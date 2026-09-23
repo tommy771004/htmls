@@ -108,6 +108,7 @@
 - [108 末班車 · LAST TRAIN](https://htmls-ruddy.vercel.app/108-last-train.html): 程序化廢棄地鐵站第一人稱波次生存射擊。霰彈槍與手槍、雙入口敵人、命中率結算、合成音效
 - [109 浮島列車 · Windward Rail](https://htmls-ruddy.vercel.app/109-windward-rail.html): Three.js 火車模擬。跨海浮島軌道、動力與煞車、乘客舒適度與小費、平穩連續倍率、機廠整備及日夜兩條路線
 - [112 Sunport Railway · 陽港模型鐵道](https://htmls-ruddy.vercel.app/112-sunport-railway.html): 桌上 HO 比例積木鐵道。環線列車、調車場、轉車盤、工業區、港口、小鎮車流與晝夜燈火；拖曳桌前實體拉桿和按鈕操作
+- [113 Dustbound Frontier · 塵境西部](https://htmls-ruddy.vercel.app/113-dustbound-frontier.html): 程序化體素西部世界。動態區塊、沙漠與峽谷、小鎮建築、NPC 巡邏交談、方塊挖掘建造與晝夜循環
 
 ### 品牌頁面
 

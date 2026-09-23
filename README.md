@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上後續的第 103–112 件互動作品；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111 件使用本地 Three.js 模組，需透過網站伺服器開啟。
+原始 100 個獨立單檔 HTML 加上後續的第 103–113 件互動作品；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111 件使用本地 Three.js 模組，需透過網站伺服器開啟。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -123,6 +123,7 @@
 | 110 | [110-embroidery-studio.html](https://htmls-ruddy.vercel.app/110-embroidery-studio.html) | 生成藝術 · 刺繡編輯器 | THREAD：逐像素布料光照、七種幾何針法與六道繡線渲染；針、橡皮擦、平移、復原重做、範本、JSON 與 PNG | 純 Canvas 2D，無外部依賴 |
 | 111 | [111-jelly-dice.html](https://htmls-ruddy.vercel.app/111-jelly-dice.html) | 創意藝術 · 互動 3D | Jelly Dice：六種果凍口味、1–5 顆骰子、拋擲碰撞與回彈、戳壓及拖曳拉伸 | 使用本地 Three.js 模組，需透過網站伺服器開啟；支援觸控與減少動態效果 |
 | 112 | [112-sunport-railway.html](https://htmls-ruddy.vercel.app/112-sunport-railway.html) | 遊戲敘事 · 桌上積木鐵道 | Sunport Railway：環線列車、調車場、轉車盤、工業區、港口、車站與小鎮；實體拉桿控制速度與時間，按鈕操作燈光、汽笛、調車 | 單檔 HTML；Three.js 由 CDN 載入，需連線及 WebGL |
+| 113 | [113-dustbound-frontier.html](https://htmls-ruddy.vercel.app/113-dustbound-frontier.html) | 遊戲敘事 · 體素開放世界 | Dustbound Frontier：程序化沙漠峽谷與西部小鎮、動態區塊、挖掘建造、28 位居民、晝夜光照與塵土粒子 | 單檔 HTML；僅 Three.js 由 CDN 載入，需連線及 WebGL |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。
