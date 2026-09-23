@@ -109,6 +109,8 @@
 | 098 | 098-xeno-glyph.html | 外星語 | XENOLINGUA 解碼器：三種筆畫文法生成字形、直書、傳送音 | |
 | 099 | 099-rubik.html | CSS 3D | 魔術方塊：整數旋轉矩陣驗證排列正確、拖曳旋轉視角、計時 | △ 只能用按鈕或按鍵轉面，不能直接拖貼紙轉 |
 | 100 | 100-fireworks.html | 煙火終章 | 河岸夜空：9 種煙火，「放一百發」每發標上一件作品的風格名，最後拼出「100」 | |
+| 101 | 101-mattpocock-skills.html | AI 學習 · 教學簡報 | mattpocock/skills 教學簡報：13 張投影片走完需求訪談、PRD、任務拆解、TDD、除錯與架構審查 | △ 後加收錄，使用 Google Fonts 外部字型，不符合前 100 件的零外部依賴規則 |
+| 102 | 102-your-project-playbooks.html | AI 學習 · 教學簡報 | 〈Starting on Your Own Project〉：在自己的專案啟動 Claude Code 的三套起手劇本（全新專案 / WebForms → Web / WinForms → Web），16 張投影片，版面沿用 101 | △ 同 101，使用 Google Fonts 外部字型 |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。

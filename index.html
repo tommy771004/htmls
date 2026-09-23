@@ -348,14 +348,14 @@ footer.site{border-top:1px solid rgba(39,39,42,.6);padding-top:20px;padding-bott
       <button class="btn" id="btnFav" title="篩選顯示我的收藏作品清單"><svg class="ico heart"><use href="#i-heart"/></svg><span>我的收藏</span><span class="count" id="favCount">0</span></button>
       <button class="btn" id="btnRandom" title="隨機開啟一件作品"><svg class="ico"><use href="#i-shuffle"/></svg><span>隨機探索</span></button>
       <button class="btn amber" id="btnCrit" title="閱讀較弱作品的誠實自評與升級方案"><svg class="ico"><use href="#i-review"/></svg><span>弱點自評</span><span class="count" id="weakCount">7</span></button>
-      <button class="btn light" id="btnDir" title="開啟全量 100 作品總目錄索引"><svg class="ico"><use href="#i-list"/></svg><span>全量目錄</span><span class="count">100</span></button>
+      <button class="btn light" id="btnDir" title="開啟全量 100 作品總目錄索引"><svg class="ico"><use href="#i-list"/></svg><span>全量目錄</span><span class="count" id="dirCount">100</span></button>
     </div>
   </div>
 </header>
 
 <main class="wrap">
   <section class="stats" aria-label="展覽統計">
-    <div class="stat"><span class="k">總收錄作品</span><div class="v"><b>100</b><span>件獨立作品</span></div></div>
+    <div class="stat"><span class="k">總收錄作品</span><div class="v"><b id="statTotal">100</b><span>件獨立作品</span></div></div>
     <div class="stat"><span class="k">策展主題類別</span><div class="v"><b id="catTotal">10</b><span>大範疇領域</span></div></div>
     <div class="stat"><span class="k">規格設計</span><div class="v"><b style="color:var(--em)">Zero</b><span>零外部依賴</span></div></div>
     <div class="stat keys-stat"><span class="k">鍵盤快捷鍵</span>
@@ -573,7 +573,9 @@ var RAW = [
 '097|lofi-room|room 48, rain & records|Lo-fi 房間|工具產生器|雨夜房間環境音混音器：點物件開關雨聲、唱片、貓呼嚕',
 '098|xeno-glyph|XENOLINGUA|外星語|工具產生器|三種筆畫文法生成外星字形，直書顯示並播放傳送音',
 '099|rubik|The Cube|CSS 3D|遊戲敘事|排列經驗證的 CSS 3D 魔術方塊，拖曳旋轉視角、打亂與計時',
-'100|fireworks|煙火終章|煙火終章|生成藝術|河岸夜空 9 種煙火，「放一百發」每發標上一件作品的風格名'
+'100|fireworks|煙火終章|煙火終章|生成藝術|河岸夜空 9 種煙火，「放一百發」每發標上一件作品的風格名',
+'101|mattpocock-skills|MattPocock Skills|AI 工程化教學簡報|AI 學習|mattpocock/skills 教學簡報：從需求訪談、PRD、任務拆解到 TDD 與架構審查，13 張投影片走完 AI 編程工作流',
+'102|your-project-playbooks|Starting on Your Own Project|AI 工程化教學簡報|AI 學習|在自己的專案啟動 Claude Code 的三套起手劇本：全新專案、WebForms 轉 Web、WinForms 轉 Web，16 張投影片'
 ];
 var WEAK = {
   '007':{reason:'執行品質沒問題，弱在風格本身：玻璃擬態儀表板是網路上最常見的範本之一，做得再細也容易被當成模板。',fix:'讓玻璃成為主角而不是卡片背景：用 SVG feDisplacementMap 做真實折射透鏡、邊緣色散與厚度高光，把控制項做成可轉動的玻璃實體。'},
@@ -584,8 +586,8 @@ var WEAK = {
   '080':{reason:'系統沒有 Didot / Bodoni，只能用 Georgia，時尚刊物最關鍵的高對比 Didone 襯線到不了位，剪影也偏平面。',fix:'用 SVG 自繪刊頭與大標的 Didone 字母（極細髮線加極粗主筆），剪影加入布料皺褶的漸層陰影與縫線細節。'},
   '086':{reason:'概念很好，但深層刻意壓暗，要移動探照燈才看得到生物，大部分時間畫面偏空，第一印象吃虧。',fix:'讓探照燈自動緩慢掃描，並讓生物主動發光引導視線，確保每一屏都有焦點；再加入側邊深度剖面迷你地圖提示進度。'}
 };
-var CATS = ['平面排版','介面風格','復古數位','生成藝術','資料科學','遊戲敘事','工具產生器','擬物器物','東方在地','品牌頁面'];
-var ALIAS = {'平面排版':'print type typography poster','介面風格':'ui interface','復古數位':'retro pixel 8-bit','生成藝術':'generative art canvas','資料科學':'data viz science chart','遊戲敘事':'game story puzzle 遊戲','工具產生器':'tool generator','擬物器物':'object skeuomorphic','東方在地':'taiwan asia 台灣 日本','品牌頁面':'brand landing shop'};
+var CATS = ['平面排版','介面風格','復古數位','生成藝術','資料科學','遊戲敘事','工具產生器','擬物器物','東方在地','品牌頁面','AI 學習'];
+var ALIAS = {'平面排版':'print type typography poster','介面風格':'ui interface','復古數位':'retro pixel 8-bit','生成藝術':'generative art canvas','資料科學':'data viz science chart','遊戲敘事':'game story puzzle 遊戲','工具產生器':'tool generator','擬物器物':'object skeuomorphic','東方在地':'taiwan asia 台灣 日本','品牌頁面':'brand landing shop','AI 學習':'ai llm agent claude skills 教學 學習 slides 簡報'};
 
 var works = RAW.map(function(l){
   var p = l.split('|');
@@ -603,6 +605,8 @@ var state = {
 };
 
 var $ = function(id){ return document.getElementById(id); };
+$('statTotal').textContent = $('dirCount').textContent = works.length;
+$('dirTitle').textContent = works.length+' 個獨立作品全量目錄';
 function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function icon(name, cls){ return '<svg class="ico'+(cls?' '+cls:'')+'"><use href="#i-'+name+'"/></svg>'; }
 function norm(s){ return String(s).toLowerCase(); }
@@ -642,7 +646,8 @@ function renderHeader(){
   b.classList.toggle('has-fav', n > 0);
   b.querySelector('use').setAttribute('href', '#i-heart');
   b.querySelector('.heart').classList.toggle('fill', n > 0 || state.cat === 'FAVORITES');
-  $('sortLbl').textContent = state.sort === 'asc' ? '#001 → #100' : '#100 → #001';
+  var last = '#'+works[works.length-1].id;
+  $('sortLbl').textContent = state.sort === 'asc' ? '#001 → '+last : last+' → #001';
   $('sortIco').querySelector('use').setAttribute('href', state.sort === 'asc' ? '#i-up' : '#i-down');
   $('btnSort').title = state.sort === 'asc' ? '目前為正序，點擊切換倒序' : '目前為倒序，點擊切換正序';
   $('vGrid').setAttribute('aria-pressed', state.view === 'grid');
@@ -650,7 +655,7 @@ function renderHeader(){
   $('qClear').hidden = !state.q; $('qHint').hidden = !!state.q;
 }
 function renderStatus(list){
-  var h = '<span style="color:var(--z300)">顯示 <strong>'+list.length+'</strong> / 100 件作品</span>';
+  var h = '<span style="color:var(--z300)">顯示 <strong>'+list.length+'</strong> / '+works.length+' 件作品</span>';
   if (state.cat !== 'ALL' || state.q){
     h += '<span style="color:var(--z600)">|</span><span style="color:var(--z500)">篩選作用中：</span>';
     if (state.cat !== 'ALL') h += '<span class="chip"><span>'+esc(state.cat==='FAVORITES'?'我的收藏':state.cat)+'</span><button data-act="clearCat" title="取消分類篩選">×</button></span>';
@@ -696,7 +701,7 @@ function emptyHTML(){
   if (state.cat === 'FAVORITES' && !state.q){
     return '<div class="empty fav"><div class="circle">'+icon('heart')+'</div><h3>目前尚未加入任何收藏作品</h3>'+
       '<p>點作品卡片右上角的愛心，或在預覽視窗中按 <kbd>F</kbd>，就能把喜歡的作品保存在這台裝置上。</p>'+
-      '<button class="btn" data-act="clearCat" style="background:var(--z800)">'+icon('dash')+'<span>瀏覽全部 100 件作品</span></button></div>';
+      '<button class="btn" data-act="clearCat" style="background:var(--z800)">'+icon('dash')+'<span>瀏覽全部 '+works.length+' 件作品</span></button></div>';
   }
   return '<div class="empty"><div class="circle">'+icon('searchoff')+'</div><h3>找不到符合條件的作品</h3>'+
     '<p>關鍵字「'+esc(state.q)+'」'+(state.cat!=='ALL'?'在分類「'+esc(state.cat==='FAVORITES'?'我的收藏':state.cat)+'」中':'')+'沒有對應的作品。</p>'+
@@ -789,7 +794,7 @@ function renderCritique(){
 }
 function renderDirectory(){
   var q = state.dq, list = works.filter(function(w){ return match(w, q); });
-  $('dirCnt').textContent = '顯示 '+list.length+' / 100 件';
+  $('dirCnt').textContent = '顯示 '+list.length+' / '+works.length+' 件';
   $('dirBody').innerHTML = list.length ? list.map(function(w){
     return '<div class="dir-row"><div class="l">'+favBtn(w,'tfav')+'<span class="num">#'+w.id+'</span>'+
       '<button class="t" data-dir-open="'+w.id+'">'+esc(w.title)+'</button><span class="g">('+esc(w.genre)+')</span>'+
