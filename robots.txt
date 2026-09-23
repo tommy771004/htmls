@@ -1,0 +1,6 @@
+# 100 Creative HTML Works
+# 所有搜尋引擎與 AI 爬蟲（Googlebot、Bingbot、GPTBot、ClaudeBot、PerplexityBot 等）皆可索引
+User-agent: *
+Allow: /
+
+Sitemap: https://htmls-ruddy.vercel.app/sitemap.xml
