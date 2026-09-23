@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080d11">
+<meta name="description" content="ARC is a cinematic, responsive concept for an online investing homepage. All market quotes shown are simulated for the demo.">
+<title>ARC — Move with the market</title>
+<style>
+:root{color-scheme:dark;--ink:#080d11;--paper:#f4f7f3;--muted:#bec8c8;--lime:#d7ff8c;--line:rgba(240,255,247,.2);--mx:52%;--my:43%;--scene-y:0px;--float-x:0px;--float-y:0px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ink);color:var(--paper)}
+button,a{font:inherit}
+button{cursor:pointer}
+a{color:inherit;text-decoration:none}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--lime);outline-offset:4px}
+.hero{position:relative;isolation:isolate;display:flex;flex-direction:column;min-height:max(790px,100svh);overflow:hidden;background:#080e13}
+.scene{position:absolute;inset:-8% -4%;z-index:-3;pointer-events:none;transform:translate3d(0,var(--scene-y),0);background:radial-gradient(ellipse 38% 42% at 72% 41%,rgba(72,141,155,.3),transparent 78%),radial-gradient(ellipse 35% 35% at 86% 68%,rgba(117,166,117,.15),transparent 78%),linear-gradient(115deg,#101c21 5%,#0b141a 45%,#152c34 80%,#091317 100%)}
+.scene:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,8,10,.96),rgba(4,8,10,.74) 39%,rgba(5,10,12,.12) 78%),linear-gradient(0deg,#090e11 1%,transparent 38%,rgba(4,8,10,.26) 100%);z-index:3}
+.scene:after{content:"";position:absolute;inset:0;z-index:4;background:radial-gradient(ellipse 55% 64% at var(--mx) var(--my),rgba(151,212,184,.1),transparent 70%);mix-blend-mode:screen}
+.skyline{position:absolute;left:36%;right:-3%;bottom:11%;height:52%;opacity:.58;background:linear-gradient(90deg,transparent 0 3%,#17272e 3% 8%,transparent 8% 9%,#101f26 9% 16%,transparent 16% 18%,#1b333c 18% 24%,transparent 24% 25%,#12252d 25% 32%,transparent 32% 33%,#203842 33% 43%,transparent 43% 44%,#182e37 44% 53%,transparent 53% 55%,#294b50 55% 63%,transparent 63% 64%,#152b34 64% 75%,transparent 75% 76%,#233941 76% 87%,transparent 87% 88%,#142a33 88% 100%);clip-path:polygon(0 76%,4% 76%,4% 61%,10% 61%,10% 72%,17% 72%,17% 43%,24% 43%,24% 59%,31% 59%,31% 32%,38% 32%,38% 53%,45% 53%,45% 67%,52% 67%,52% 24%,62% 24%,62% 55%,69% 55%,69% 34%,76% 34%,76% 59%,83% 59%,83% 46%,90% 46%,90% 67%,100% 67%,100% 100%,0 100%)}
+.skyline:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 16px,rgba(153,224,195,.18) 17px 18px,transparent 19px 33px),repeating-linear-gradient(0deg,transparent 0 17px,rgba(166,218,191,.13) 18px 19px,transparent 20px 31px);mix-blend-mode:screen}
+.horizon{position:absolute;left:22%;right:-4%;bottom:17%;height:25%;opacity:.7;background:radial-gradient(ellipse 58% 21% at 64% 88%,rgba(135,243,190,.28),transparent 70%),linear-gradient(0deg,rgba(7,14,16,.75),transparent 72%);filter:blur(15px)}
+.architecture{position:absolute;right:clamp(0px,7vw,130px);top:15%;width:min(39vw,610px);height:74%;z-index:1;transform:translate3d(var(--float-x),var(--float-y),0) perspective(1000px) rotateY(-11deg);transform-style:preserve-3d;filter:drop-shadow(0 35px 55px rgba(0,0,0,.55));will-change:transform}
+.architecture:before{content:"";position:absolute;left:9%;right:-11%;bottom:0;height:7%;border-radius:50%;background:rgba(118,201,166,.26);filter:blur(28px)}
+.tower{position:absolute;bottom:4%;width:24%;border:1px solid rgba(216,255,240,.36);border-bottom:0;clip-path:polygon(0 5%,72% 0,100% 6%,100% 100%,0 100%);background:linear-gradient(91deg,rgba(134,210,185,.05),rgba(195,243,228,.25) 21%,rgba(27,75,83,.56) 23%,rgba(23,54,65,.45) 71%,rgba(166,219,194,.44) 73%,rgba(15,46,55,.69) 100%);box-shadow:inset 8px 0 22px rgba(212,255,229,.16),inset -7px 0 21px rgba(1,8,13,.82),0 0 35px rgba(120,217,180,.12)}
+.tower:before{content:"";position:absolute;inset:8% 12% 0 7%;background:repeating-linear-gradient(0deg,transparent 0 21px,rgba(179,237,208,.24) 22px 23px,transparent 24px 29px),repeating-linear-gradient(90deg,transparent 0 19px,rgba(185,237,210,.16) 20px 21px,transparent 22px 30px);opacity:.65}
+.tower:after{content:"";position:absolute;left:0;right:0;top:0;height:21%;background:linear-gradient(170deg,rgba(226,255,242,.58),transparent 16%),linear-gradient(90deg,rgba(212,255,232,.12),transparent);clip-path:polygon(0 26%,72% 0,100% 26%,100% 32%,70% 9%,0 34%)}
+.tower.one{left:2%;height:39%;opacity:.7}.tower.two{left:23%;height:64%;opacity:.85}.tower.three{left:46%;height:91%;z-index:2}.tower.four{left:70%;height:58%;opacity:.7}
+.beam{position:absolute;left:54%;top:-5%;width:2px;height:90%;background:linear-gradient(0deg,transparent,rgba(182,255,209,.28),transparent);filter:blur(2px);opacity:.55}
+.grain{position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.14;background-image:repeating-linear-gradient(0deg,transparent 0 3px,rgba(224,255,234,.08) 4px 5px),repeating-linear-gradient(90deg,transparent 0 5px,rgba(224,255,234,.05) 6px 7px)}
+.site-header{position:relative;z-index:10;display:flex;align-items:center;gap:clamp(20px,3vw,55px);width:100%;min-height:90px;padding:18px clamp(24px,4.15vw,90px);border-bottom:1px solid rgba(228,247,237,.13)}
+.brand{font-size:25px;font-weight:800;letter-spacing:-.115em;line-height:1;white-space:nowrap}.brand span{display:inline-block;color:var(--lime);transform:translateY(-1px)}
+.desktop-nav{display:flex;align-items:center;justify-content:center;gap:clamp(18px,2vw,39px);margin-left:auto}
+.nav-item{position:relative}.nav-item summary{display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer;font-size:13px;font-weight:600;color:#e9eeeb;white-space:nowrap}.nav-item summary::-webkit-details-marker{display:none}.nav-item summary:after{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);opacity:.7}.nav-item[open] summary,.nav-item summary:hover{color:var(--lime)}
+.dropdown{position:absolute;top:calc(100% + 21px);left:-20px;width:220px;padding:8px;background:rgba(14,27,31,.97);border:1px solid rgba(223,255,233,.2);box-shadow:0 18px 50px #0008;border-radius:13px;backdrop-filter:blur(16px)}.dropdown a{display:block;padding:11px 13px;border-radius:8px;color:#d8e4de;font-size:13px}.dropdown a:hover,.dropdown a:focus-visible{background:#d7ff8c1b;color:var(--lime)}
+.header-actions{display:flex;align-items:center;gap:9px;margin-left:clamp(0px,1.5vw,24px)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:14px;min-height:49px;padding:0 21px;border:1px solid transparent;border-radius:999px;font-size:13px;font-weight:750;letter-spacing:-.01em;white-space:nowrap;transition:background .2s,color .2s,border-color .2s,transform .2s}.btn:hover{transform:translateY(-2px)}.btn:active{transform:translateY(0)}
+.btn-download{background:rgba(255,255,255,.065);border-color:rgba(255,255,255,.31);color:#fff}.btn-download:hover{background:rgba(255,255,255,.15)}
+.btn-primary{background:var(--lime);color:#10190f}.btn-primary:hover{background:#edffbf}
+.btn-outline{border-color:rgba(255,255,255,.5);background:rgba(8,17,20,.28);color:#f4f7f3}.btn-outline:hover{background:rgba(255,255,255,.12)}
+.arrow{font-size:19px;line-height:1;font-weight:400;transform:translateY(-1px)}
+.menu-button{display:none;place-items:center;width:45px;height:45px;margin-left:auto;border:1px solid rgba(255,255,255,.3);border-radius:50%;background:rgba(10,22,26,.6);color:white}.menu-button span{display:block;width:18px;height:2px;background:currentColor;box-shadow:0 6px currentColor,0 -6px currentColor}
+.mobile-nav{display:none;position:absolute;top:100%;left:14px;right:14px;padding:12px;background:#102026;border:1px solid rgba(223,255,233,.23);border-radius:15px;box-shadow:0 20px 50px #0009}.mobile-nav a,.mobile-nav button{display:block;width:100%;padding:13px 15px;text-align:left;border:0;border-radius:8px;background:none;color:#ecf5ee;font-weight:650}.mobile-nav a:hover,.mobile-nav button:hover{background:#d7ff8c1d;color:var(--lime)}.mobile-nav.open{display:block}
+.hero-main{position:relative;z-index:2;display:flex;flex:1;flex-direction:column;justify-content:center;width:100%;padding:clamp(45px,6vh,100px) clamp(24px,7vw,132px) clamp(65px,8vh,110px)}
+.content{max-width:1450px}.eyebrow{display:flex;align-items:center;gap:12px;margin:0 0 clamp(25px,4vh,46px);color:#d4e8d8;font-size:11px;letter-spacing:.23em;font-weight:720}.eyebrow:before{content:"";width:24px;height:1px;background:var(--lime)}
+.quotes{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:30px}.quote{display:flex;align-items:center;gap:11px;min-height:42px;padding:0 13px;border:1px solid rgba(220,244,231,.22);border-radius:999px;background:rgba(15,31,35,.62);backdrop-filter:blur(8px);font-variant-numeric:tabular-nums;font-size:12px;white-space:nowrap}.quote strong{font-weight:750;letter-spacing:.03em}.quote .price{color:#eaf4ec}.change{font-size:11px;font-weight:800}.up{color:#abf5ac}.down{color:#ff9897}.quote-note{display:flex;align-items:center;gap:6px;margin:0 0 0 4px;color:#9fb1ad;font-size:10px;letter-spacing:.1em;text-transform:uppercase}.quote-note:before{content:"";width:5px;height:5px;border-radius:50%;background:#c8f6a9}
+h1{margin:0;max-width:1450px;font-size:clamp(60px,8.4vw,240px);line-height:.91;letter-spacing:-.085em;font-weight:820;text-wrap:balance}.heading-line{display:block;white-space:nowrap}.heading-line:last-child{color:var(--lime)}
+.subhead{margin:31px 0 12px;font-size:clamp(19px,2.15vw,30px);line-height:1.2;letter-spacing:-.035em;font-weight:640}.intro{max-width:505px;margin:0;color:#b8c7c3;font-size:clamp(14px,1.15vw,17px);line-height:1.65;text-wrap:pretty}.hero-actions{display:flex;flex-wrap:wrap;gap:11px;margin-top:31px}.hero-actions .btn{min-width:178px;min-height:54px}
+.side-note{position:absolute;right:clamp(24px,4.15vw,90px);bottom:35px;z-index:2;writing-mode:vertical-rl;color:rgba(223,242,233,.7);font-size:10px;letter-spacing:.22em}
+.data-band{position:relative;z-index:2;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%;min-height:114px;padding:20px clamp(24px,4.15vw,90px);border-top:1px solid rgba(231,250,238,.2);background:rgba(10,22,25,.65);backdrop-filter:blur(18px)}.datum{display:flex;flex-direction:column;justify-content:center;min-width:0;padding-left:clamp(13px,2.3vw,43px);border-left:1px solid rgba(226,251,238,.19)}.datum:first-child{border-left:0;padding-left:0}.datum b{font-size:clamp(21px,2.15vw,36px);font-weight:680;letter-spacing:-.055em;line-height:1;font-variant-numeric:tabular-nums}.datum small{display:block;margin-top:8px;color:#a9bcb6;font-size:10px;font-weight:700;letter-spacing:.17em;text-transform:uppercase}
+.explore{padding:100px clamp(24px,7vw,132px) 120px;background:#0c1317;border-top:1px solid #26353a}.explore-top{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:45px}.explore h2{max-width:700px;margin:0;font-size:clamp(34px,4.4vw,67px);line-height:1.03;letter-spacing:-.065em}.explore-top p{margin:0 0 5px;max-width:300px;color:#aebeb9;font-size:14px;line-height:1.6}.pathways{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.pathway{display:flex;flex-direction:column;min-height:205px;padding:22px;border:1px solid #304044;background:#142126;transition:background .2s,border-color .2s}.pathway:hover{background:#1b2d32;border-color:#6e978b}.pathway .index{color:var(--lime);font-size:12px;font-weight:700;letter-spacing:.1em}.pathway h3{margin:auto 0 8px;font-size:21px;letter-spacing:-.04em}.pathway p{margin:0;color:#aebdb9;font-size:12px;line-height:1.5}.footline{display:flex;justify-content:space-between;gap:20px;margin-top:35px;color:#80938e;font-size:11px}.footline a{text-decoration:underline;text-underline-offset:3px}
+.dialog-backdrop{position:fixed;inset:0;z-index:30;display:none;place-items:center;padding:20px;background:rgba(0,6,9,.72)}.dialog-backdrop.open{display:grid}.dialog{position:relative;max-width:410px;width:100%;padding:33px;background:#16262b;border:1px solid #5e7c73;border-radius:17px;box-shadow:0 30px 90px #000a}.dialog .close{position:absolute;right:14px;top:12px;width:36px;height:36px;border:0;background:transparent;color:#e7f2e9;font-size:25px}.dialog .kicker{color:var(--lime);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.dialog h2{margin:13px 0;font-size:29px;letter-spacing:-.05em}.dialog p{color:#bbccc4;line-height:1.65;font-size:14px}.dialog .btn{margin-top:8px}
+@media(max-width:1100px){.desktop-nav{display:none}.menu-button{display:grid}.header-actions{margin-left:0}.architecture{right:-4%;width:51vw;opacity:.78}.hero-main{padding-left:5vw}.heading-line{font-size:clamp(60px,9vw,110px)}}
+@media(min-width:2000px){.hero-main{padding-left:clamp(132px,7vw,270px)}.architecture{width:min(39vw,1050px);right:8%}.eyebrow{font-size:15px}.quote{font-size:17px;min-height:57px;padding:0 20px}.quote .change{font-size:15px}.quote-note{font-size:14px}.subhead{font-size:42px}.intro{max-width:760px;font-size:22px}.hero-actions .btn{min-height:68px;min-width:240px;font-size:17px}.datum b{font-size:47px}.datum small{font-size:15px}.data-band{min-height:160px}.site-header{min-height:120px}.brand{font-size:36px}.nav-item summary,.site-header .btn{font-size:17px}}
+@media(max-width:700px){.site-header{min-height:72px;padding:13px 22px;gap:12px}.brand{font-size:23px}.header-actions .btn-download{display:none}.header-actions .btn-primary{min-height:42px;padding:0 15px;font-size:12px}.menu-button{order:3;margin-left:0;width:42px;height:42px}.header-actions{margin-left:auto}.hero{min-height:max(780px,100svh)}.hero-main{justify-content:flex-start;padding:48px 22px 59px}.eyebrow{font-size:10px;margin-bottom:27px}.quotes{gap:6px;margin-bottom:27px}.quote{padding:0 9px;gap:5px;min-height:36px;font-size:10px}.quote .change{font-size:9px}.quote-note{width:100%;margin-top:4px}.architecture{top:15%;right:-20%;width:83vw;height:52%;opacity:.36;filter:blur(1px)}.scene:before{background:linear-gradient(90deg,rgba(4,8,10,.86),rgba(4,8,10,.44)),linear-gradient(0deg,#090e11,transparent 55%)}.skyline{left:3%;height:45%}.heading-line{font-size:clamp(51px,13.5vw,75px)}.subhead{margin-top:26px;font-size:20px}.intro{font-size:14px;max-width:340px}.hero-actions{margin-top:26px}.hero-actions .btn{min-width:0;flex:1;padding:0 12px;min-height:49px;font-size:12px}.side-note{display:none}.data-band{min-height:95px;padding:16px 15px;backdrop-filter:blur(8px)}.datum{padding-left:8px}.datum b{font-size:clamp(17px,5vw,23px)}.datum small{font-size:8px;letter-spacing:.02em;margin-top:6px}.explore{padding:75px 22px 90px}.explore-top{display:block}.explore-top p{margin-top:18px}.pathways{grid-template-columns:repeat(2,minmax(0,1fr))}.pathway{min-height:170px}.pathway:last-child{grid-column:1/-1}.footline{flex-direction:column}}
+@media(max-width:380px){.heading-line{font-size:51px;letter-spacing:-.075em}.brand{font-size:21px}.header-actions .btn-primary{padding:0 12px}.quote{font-size:9px}.quote .change{font-size:8px}.data-band{padding-left:11px;padding-right:11px}.datum{padding-left:6px}.datum b{font-size:17px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn,.pathway{transition:none}.btn:hover{transform:none}.architecture,.scene{transform:none!important;will-change:auto}}
+</style>
+</head>
+<body>
+<main>
+  <section class="hero" id="top" aria-labelledby="hero-title">
+    <div class="scene" aria-hidden="true"><div class="skyline"></div><div class="horizon"></div><div class="architecture"><div class="tower one"></div><div class="tower two"></div><div class="tower three"></div><div class="tower four"></div><div class="beam"></div></div></div>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="ARC home">AR<span>C</span>.</a>
+      <nav class="desktop-nav" aria-label="Primary navigation">
+        <details class="nav-item"><summary>Trade</summary><div class="dropdown"><a href="#trade">Explore trading</a><a href="#markets">Market overview</a></div></details>
+        <details class="nav-item"><summary>Investing</summary><div class="dropdown"><a href="#investing">Investing ideas</a><a href="#accounts">Account paths</a></div></details>
+        <details class="nav-item"><summary>Accounts</summary><div class="dropdown"><a href="#accounts">Get oriented</a><a href="#start">Getting started</a></div></details>
+        <details class="nav-item"><summary>Markets</summary><div class="dropdown"><a href="#markets">Explore markets</a><a href="#quotes">Sample quotes</a></div></details>
+        <details class="nav-item"><summary>Company</summary><div class="dropdown"><a href="#company">About this concept</a><a href="#top">Back to top</a></div></details>
+      </nav>
+      <div class="header-actions"><button class="btn btn-download" type="button" data-download>下載 App <span class="arrow" aria-hidden="true">↗</span></button><a class="btn btn-primary" href="#start">Get Started <span class="arrow" aria-hidden="true">↗</span></a></div>
+      <button class="menu-button" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav"><span aria-hidden="true"></span></button>
+      <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation"><a href="#trade">Trade</a><a href="#investing">Investing</a><a href="#accounts">Accounts</a><a href="#markets">Markets</a><a href="#company">Company</a><button type="button" data-download>下載 App ↗</button></nav>
+    </header>
+    <div class="hero-main">
+      <div class="content">
+        <p class="eyebrow">A CLEARER WAY TO INVEST</p>
+        <div class="quotes" id="quotes" aria-label="Simulated sample stock quotes">
+          <div class="quote" data-base="624.38" data-direction="1"><strong>META</strong><span class="price">$624.38</span><span class="change up">+0.82%</span></div>
+          <div class="quote" data-base="143.61" data-direction="1"><strong>NVDA</strong><span class="price">$143.61</span><span class="change up">+1.24%</span></div>
+          <div class="quote" data-base="212.45" data-direction="-1"><strong>AMZN</strong><span class="price">$212.45</span><span class="change down">−0.31%</span></div>
+          <p class="quote-note">Simulated data</p>
+        </div>
+        <h1 id="hero-title"><span class="heading-line">Move with</span><span class="heading-line">the market.</span></h1>
+        <p class="subhead">See further. Move smarter.</p>
+        <p class="intro">Bring the markets into focus with one calm place to explore ideas, follow what matters, and find your next move.</p>
+        <div class="hero-actions"><a class="btn btn-primary" href="#start">Get Started <span class="arrow" aria-hidden="true">↗</span></a><a class="btn btn-outline" href="#markets">Explore Markets <span class="arrow" aria-hidden="true">↗</span></a></div>
+      </div>
+    </div>
+    <span class="side-note" aria-hidden="true">PERSPECTIVE CHANGES EVERYTHING · ARC / 2026</span>
+    <div class="data-band" aria-label="Five areas to explore"><div class="datum"><b>01</b><small>Trade</small></div><div class="datum"><b>02</b><small>Invest</small></div><div class="datum"><b>03</b><small>Accounts</small></div><div class="datum"><b>04</b><small>Markets</small></div><div class="datum"><b>05</b><small>About</small></div></div>
+  </section>
+  <section class="explore" id="start" aria-labelledby="explore-title">
+    <div class="explore-top"><h2 id="explore-title">One place to see<br>what moves you.</h2><p>Explore the parts of an investing experience, from the first idea to the bigger picture.</p></div>
+    <div class="pathways">
+      <article class="pathway" id="trade"><span class="index">01 / TRADE</span><h3>Act with clarity.</h3><p>A clear view of your next decision.</p></article>
+      <article class="pathway" id="investing"><span class="index">02 / INVESTING</span><h3>Follow ideas.</h3><p>Make room for a longer view.</p></article>
+      <article class="pathway" id="accounts"><span class="index">03 / ACCOUNTS</span><h3>Find your path.</h3><p>Start with the essentials in view.</p></article>
+      <article class="pathway" id="markets"><span class="index">04 / MARKETS</span><h3>Stay curious.</h3><p>Keep the market picture close.</p></article>
+      <article class="pathway" id="company"><span class="index">05 / COMPANY</span><h3>Built for focus.</h3><p>ARC is a visual brokerage concept.</p></article>
+    </div>
+    <div class="footline"><span>ARC is a design concept. Quotes are simulated and do not represent live market prices.</span><a href="#top">Back to top ↑</a></div>
+  </section>
+</main>
+<div class="dialog-backdrop" id="app-dialog" aria-hidden="true"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><button class="close" type="button" aria-label="Close dialog">×</button><span class="kicker">ARC / CONCEPT</span><h2 id="dialog-title">Designed for every screen.</h2><p>This is a visual brokerage concept, so there is no app download. Explore the responsive experience here in your browser.</p><a class="btn btn-primary" href="#start">Explore the concept <span class="arrow" aria-hidden="true">↗</span></a></div></div>
+<script>
+(()=>{'use strict';
+  const hero=document.querySelector('.hero');
+  const menuButton=document.querySelector('.menu-button');
+  const mobileNav=document.querySelector('.mobile-nav');
+  const dialog=document.getElementById('app-dialog');
+  const dialogClose=dialog.querySelector('.close');
+  let lastFocus=null;
+  menuButton.addEventListener('click',()=>{const open=mobileNav.classList.toggle('open');menuButton.setAttribute('aria-expanded',String(open));menuButton.setAttribute('aria-label',open?'Close menu':'Open menu')});
+  mobileNav.addEventListener('click',event=>{if(event.target.closest('a')){mobileNav.classList.remove('open');menuButton.setAttribute('aria-expanded','false');menuButton.setAttribute('aria-label','Open menu')}});
+  document.querySelectorAll('.nav-item a').forEach(link=>link.addEventListener('click',()=>link.closest('details').open=false));
+  document.addEventListener('click',event=>{if(!event.target.closest('.nav-item'))document.querySelectorAll('.nav-item[open]').forEach(item=>item.open=false);if(!event.target.closest('.mobile-nav,.menu-button')){mobileNav.classList.remove('open');menuButton.setAttribute('aria-expanded','false');menuButton.setAttribute('aria-label','Open menu')}});
+  function closeDialog(restoreFocus=true){dialog.classList.remove('open');dialog.setAttribute('aria-hidden','true');if(restoreFocus)lastFocus?.focus()}
+  document.querySelectorAll('[data-download]').forEach(button=>button.addEventListener('click',()=>{lastFocus=button;dialog.classList.add('open');dialog.setAttribute('aria-hidden','false');dialogClose.focus();mobileNav.classList.remove('open');menuButton.setAttribute('aria-expanded','false')}));
+  dialogClose.addEventListener('click',closeDialog);
+  dialog.addEventListener('click',event=>{if(event.target===dialog)closeDialog();else if(event.target.closest('.dialog .btn'))closeDialog(false)});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'){if(dialog.classList.contains('open'))closeDialog();document.querySelectorAll('.nav-item[open]').forEach(item=>item.open=false);mobileNav.classList.remove('open');menuButton.setAttribute('aria-expanded','false')}if(event.key==='Tab'&&dialog.classList.contains('open')){const focusable=[dialogClose,dialog.querySelector('.dialog .btn')];if(event.shiftKey&&document.activeElement===focusable[0]){event.preventDefault();focusable[1].focus()}else if(!event.shiftKey&&document.activeElement===focusable[1]){event.preventDefault();focusable[0].focus()}}});
+  const motion=window.matchMedia('(prefers-reduced-motion: reduce)');
+  const quotes=[...document.querySelectorAll('.quote')];
+  let quoteTimer=0,frame=0,tx=0,ty=0,x=0,y=0,scrollTarget=0,scrollY=0,glowX=52,glowY=43,targetGlowX=52,targetGlowY=43;
+  function tickQuotes(){quotes.forEach((quote,index)=>{const base=Number(quote.dataset.base);const direction=Number(quote.dataset.direction);const drift=(Math.random()-.5)*.36;const value=base+drift;const percent=(index===0?.82:index===1?1.24:.31)+(Math.random()-.5)*.04;quote.querySelector('.price').textContent='$'+value.toFixed(2);quote.querySelector('.change').textContent=(direction>0?'+':'−')+percent.toFixed(2)+'%'})}
+  function animate(){x+=(tx-x)*.055;y+=(ty-y)*.055;scrollY+=(scrollTarget-scrollY)*.065;glowX+=(targetGlowX-glowX)*.045;glowY+=(targetGlowY-glowY)*.045;hero.style.setProperty('--float-x',x.toFixed(2)+'px');hero.style.setProperty('--float-y',y.toFixed(2)+'px');hero.style.setProperty('--scene-y',scrollY.toFixed(2)+'px');hero.style.setProperty('--mx',glowX.toFixed(2)+'%');hero.style.setProperty('--my',glowY.toFixed(2)+'%');const moving=Math.abs(tx-x)+Math.abs(ty-y)+Math.abs(scrollTarget-scrollY)+Math.abs(targetGlowX-glowX)+Math.abs(targetGlowY-glowY)>.08;frame=moving?requestAnimationFrame(animate):0}
+  function startMotion(){if(!motion.matches&&!document.hidden&&!frame)frame=requestAnimationFrame(animate)}
+  hero.addEventListener('pointermove',event=>{if(motion.matches||event.pointerType==='touch')return;const rect=hero.getBoundingClientRect();const px=(event.clientX-rect.left)/rect.width-.5;const py=(event.clientY-rect.top)/rect.height-.5;tx=px*30;ty=py*22;targetGlowX=52+px*8;targetGlowY=43+py*6;startMotion()},{passive:true});
+  hero.addEventListener('pointerleave',()=>{tx=0;ty=0;targetGlowX=52;targetGlowY=43;startMotion()});
+  window.addEventListener('scroll',()=>{scrollTarget=Math.min(window.scrollY,hero.offsetHeight)*.16;startMotion()},{passive:true});
+  function syncMotion(){clearInterval(quoteTimer);cancelAnimationFrame(frame);frame=0;if(motion.matches||document.hidden){hero.style.removeProperty('--float-x');hero.style.removeProperty('--float-y');hero.style.removeProperty('--scene-y');hero.style.removeProperty('--mx');hero.style.removeProperty('--my');return}scrollTarget=Math.min(window.scrollY,hero.offsetHeight)*.16;quoteTimer=setInterval(tickQuotes,3600);startMotion()}
+  motion.addEventListener('change',syncMotion);document.addEventListener('visibilitychange',syncMotion);syncMotion();
+})();
+</script>
+</body>
+</html>

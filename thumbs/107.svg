@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="ARC brokerage homepage preview">
+<defs>
+  <linearGradient id="sky" x2="1" y2="1"><stop stop-color="#091014"/><stop offset=".6" stop-color="#10242a"/><stop offset="1" stop-color="#0d161a"/></linearGradient>
+  <linearGradient id="glass"><stop stop-color="#426c68" stop-opacity=".4"/><stop offset=".35" stop-color="#b9eee0" stop-opacity=".52"/><stop offset=".42" stop-color="#1e4a54" stop-opacity=".8"/><stop offset=".8" stop-color="#234551" stop-opacity=".9"/><stop offset="1" stop-color="#bcebd4" stop-opacity=".55"/></linearGradient>
+  <linearGradient id="shade"><stop stop-color="#070e11" stop-opacity=".97"/><stop offset=".53" stop-color="#071014" stop-opacity=".7"/><stop offset="1" stop-color="#071014" stop-opacity=".07"/></linearGradient>
+  <pattern id="windows" width="15" height="19" patternUnits="userSpaceOnUse"><path d="M3 11h1M11 11h1" stroke="#b9e7c5" opacity=".45"/></pattern>
+  <radialGradient id="glow"><stop stop-color="#5eaa85" stop-opacity=".38"/><stop offset="1" stop-color="#5eaa85" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="640" height="400" fill="url(#sky)"/><ellipse cx="480" cy="230" rx="220" ry="200" fill="url(#glow)"/>
+<g fill="#254049" opacity=".55"><path d="M210 220h29v-54h21v54h25v-93h35v93h37v-50h26v50h20v-111h46v111h22v-78h30v78h22v-67h37v67h25v180H210z"/></g>
+<g fill="url(#glass)" stroke="#bad8ce" stroke-opacity=".38">
+<path d="M365 154l46-6 11 6v190h-57z"/><path d="M413 106l49-9 12 9v238h-61z"/><path d="M464 44l55-7 13 8v299h-68z"/><path d="M519 139l43-5 13 5v205h-56z"/>
+</g>
+<g fill="url(#windows)" opacity=".8"><path d="M365 154l46-6 11 6v190h-57z"/><path d="M413 106l49-9 12 9v238h-61z"/><path d="M464 44l55-7 13 8v299h-68z"/><path d="M519 139l43-5 13 5v205h-56z"/></g>
+<rect width="640" height="400" fill="url(#shade)"/>
+<path d="M0 45h640M0 343h640" stroke="#d9f3df" stroke-opacity=".2"/>
+<text x="30" y="28" fill="#f3f7f0" font-family="Arial,sans-serif" font-weight="800" font-size="17" letter-spacing="-1">AR<tspan fill="#d7ff8c">C</tspan>.</text>
+<g fill="#e3eee5" font-family="Arial,sans-serif" font-size="8"><text x="245" y="26">Trade</text><text x="290" y="26">Investing</text><text x="348" y="26">Accounts</text><text x="404" y="26">Markets</text><text x="457" y="26">Company</text></g>
+<rect x="549" y="11" width="73" height="23" rx="12" fill="#d7ff8c"/><text x="561" y="26" fill="#132016" font-family="Arial,sans-serif" font-size="8" font-weight="bold">Get Started ↗</text>
+<text x="37" y="92" fill="#c8ddd0" font-family="Arial,sans-serif" font-size="7" letter-spacing="2">A CLEARER WAY TO INVEST</text>
+<g font-family="Arial,sans-serif" font-size="8" font-weight="bold"><rect x="37" y="106" width="82" height="24" rx="12" fill="#183036" stroke="#5b7b70"/><text x="47" y="121" fill="#f3f7ef">META   <tspan fill="#b9f6b1">+0.82%</tspan></text><rect x="126" y="106" width="83" height="24" rx="12" fill="#183036" stroke="#5b7b70"/><text x="136" y="121" fill="#f3f7ef">NVDA   <tspan fill="#b9f6b1">+1.24%</tspan></text><rect x="216" y="106" width="88" height="24" rx="12" fill="#183036" stroke="#5b7b70"/><text x="226" y="121" fill="#f3f7ef">AMZN   <tspan fill="#ff9897">−0.31%</tspan></text></g>
+<text x="31" y="205" fill="#f2f6ef" font-family="Arial,sans-serif" font-size="65" font-weight="800" letter-spacing="-6">Move with</text><text x="31" y="262" fill="#d7ff8c" font-family="Arial,sans-serif" font-size="65" font-weight="800" letter-spacing="-6">the market.</text>
+<text x="37" y="287" fill="#f3f7ef" font-family="Arial,sans-serif" font-size="13" font-weight="bold">See further. Move smarter.</text><text x="37" y="305" fill="#a9bfba" font-family="Arial,sans-serif" font-size="8">Bring the markets into focus with one calm place to explore ideas.</text>
+<rect x="36" y="317" width="88" height="18" rx="9" fill="#d7ff8c"/><text x="49" y="329" fill="#102010" font-family="Arial,sans-serif" font-size="8" font-weight="bold">Get Started ↗</text><rect x="130" y="317" width="99" height="18" rx="9" fill="none" stroke="#a0b1aa"/><text x="143" y="329" fill="#edf6ef" font-family="Arial,sans-serif" font-size="8">Explore Markets ↗</text>
+<rect y="343" width="640" height="57" fill="#0b171a" opacity=".8"/><g font-family="Arial,sans-serif" fill="#f1f7ef"><text x="37" y="373" font-size="22">01</text><text x="161" y="373" font-size="22">02</text><text x="285" y="373" font-size="22">03</text><text x="409" y="373" font-size="22">04</text><text x="533" y="373" font-size="22">05</text></g><g font-family="Arial,sans-serif" fill="#a7beb4" font-size="7" letter-spacing="1"><text x="38" y="386">TRADE</text><text x="162" y="386">INVEST</text><text x="286" y="386">ACCOUNTS</text><text x="410" y="386">MARKETS</text><text x="534" y="386">ABOUT</text></g><path d="M145 353v36M269 353v36M393 353v36M517 353v36" stroke="#b1d2c1" stroke-opacity=".22"/>
+</svg>

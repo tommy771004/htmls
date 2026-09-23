@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Jelly Dice 果凍骰子工房預覽">
+<defs><radialGradient id="paper"><stop stop-color="#fff8f5"/><stop offset="1" stop-color="#f7e9e8"/></radialGradient><linearGradient id="gel" x2=".9" y2="1"><stop stop-color="#ffd7df" stop-opacity=".82"/><stop offset=".55" stop-color="#ed97aa" stop-opacity=".87"/><stop offset="1" stop-color="#d76682" stop-opacity=".92"/></linearGradient><radialGradient id="tray"><stop stop-color="#fff"/><stop offset=".85" stop-color="#fffafa"/><stop offset="1" stop-color="#f3dddd"/></radialGradient><filter id="shadow"><feGaussianBlur stdDeviation="9"/></filter></defs>
+<rect width="640" height="400" fill="url(#paper)"/>
+<text x="35" y="41" font-family="sans-serif" font-size="9" font-weight="bold" letter-spacing="3" fill="#bf667c">—  A LITTLE STUDIO EXPERIMENT / 111</text>
+<text x="34" y="100" font-family="Georgia,serif" font-size="57" fill="#3e2d33">Jelly</text><text x="160" y="100" font-family="Georgia,serif" font-style="italic" font-size="57" fill="#c7657f">Dice.</text>
+<text x="37" y="124" font-family="sans-serif" font-size="10" fill="#92747d">一盤輕輕晃動的好運氣。</text>
+<ellipse cx="365" cy="268" rx="265" ry="117" fill="#cba1a9" opacity=".16" filter="url(#shadow)"/>
+<ellipse cx="365" cy="257" rx="265" ry="116" fill="url(#tray)" stroke="#edcfd3" stroke-width="9"/>
+<ellipse cx="365" cy="257" rx="244" ry="98" fill="none" stroke="#f4e0e1" stroke-width="2"/>
+<g fill="#b57182" opacity=".19"><ellipse cx="310" cy="277" rx="58" ry="23"/><ellipse cx="418" cy="272" rx="58" ry="23"/><ellipse cx="366" cy="205" rx="58" ry="23"/></g>
+<g stroke="#d8788e" stroke-opacity=".55" stroke-width="1.5"><rect x="261" y="184" width="96" height="96" rx="17" fill="url(#gel)"/><rect x="372" y="179" width="96" height="96" rx="17" fill="url(#gel)"/><rect x="319" y="115" width="96" height="96" rx="17" fill="url(#gel)"/></g>
+<g fill="#fffaf9"><circle cx="344" cy="139" r="6"/><circle cx="390" cy="188" r="6"/><circle cx="450" cy="261" r="6"/><circle cx="279" cy="203" r="6"/><circle cx="339" cy="262" r="6"/><circle cx="279" cy="262" r="6"/><circle cx="339" cy="203" r="6"/></g>
+<g fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"><path d="M277 194q3-5 11-5h55"/><path d="M388 189q3-5 11-5h54"/><path d="M334 125q3-5 11-5h54"/></g>
+<text x="36" y="365" font-family="sans-serif" font-size="10" letter-spacing="2" fill="#977b83">STRAWBERRY  ·  COCOA  ·  MATCHA  ·  GRAPE  ·  PEACH  ·  ROSE</text>
+</svg>

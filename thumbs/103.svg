@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="桃花源記水墨長卷預覽">
+<defs><radialGradient id="paper"><stop stop-color="#fbf9f1"/><stop offset="1" stop-color="#e8e7df"/></radialGradient><linearGradient id="river" x2=".5" y2="1"><stop stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#c6cac3" stop-opacity=".8"/></linearGradient></defs>
+<rect width="640" height="400" fill="url(#paper)"/>
+<path d="M0 224 Q86 184 154 210 T298 207 T452 202 T640 212 V400 H0Z" fill="#abb2a7" opacity=".16"/>
+<path d="M0 263 Q118 219 222 249 T432 237 T640 262 V400 H0Z" fill="#69776d" opacity=".15"/>
+<path d="M0 334 Q130 281 274 312 T640 313 V400 H0Z" fill="#535f55" opacity=".16"/>
+<path d="M342 271 C292 302 485 326 201 400 H450 C622 337 367 299 342 271Z" fill="url(#river)" opacity=".8"/>
+<g fill="none" stroke="#38423d" stroke-linecap="round" opacity=".48"><path d="M105 353Q106 283 84 238M100 301Q69 267 47 265M94 287Q127 257 146 257M86 260Q65 237 48 234" stroke-width="4"/><path d="M554 345Q549 286 568 234M553 300Q522 271 500 265M558 284Q594 263 607 265" stroke-width="3"/></g>
+<g fill="#a76876" opacity=".45"><ellipse cx="50" cy="263" rx="22" ry="7"/><ellipse cx="145" cy="257" rx="25" ry="8"/><ellipse cx="45" cy="234" rx="19" ry="7"/><ellipse cx="495" cy="263" rx="27" ry="8"/><ellipse cx="607" cy="265" rx="21" ry="7"/><circle cx="594" cy="297" r="3"/><circle cx="272" cy="263" r="2"/></g>
+<path d="M301 334Q330 352 365 333Q352 362 314 355Z" fill="#333c36" opacity=".6"/><path d="M332 332L336 293" fill="none" stroke="#333c36" opacity=".6"/>
+<g fill="#303a34" font-family="serif" writing-mode="vertical-rl" letter-spacing="8"><text x="402" y="55" font-size="47">桃花源記</text><text x="342" y="61" font-size="15" opacity=".7">陶淵明</text></g>
+<text x="28" y="42" fill="#96606b" font-size="11" font-family="sans-serif" letter-spacing="3">103 · 循文入境</text>
+<rect x="581" y="61" width="30" height="43" fill="none" stroke="#ac727a" opacity=".7"/><text x="588" y="69" fill="#ac727a" writing-mode="vertical-rl" font-family="serif" font-size="15">桃源</text>
+</svg>

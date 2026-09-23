@@ -1,6 +1,6 @@
 # 100 Creative HTML Works
 
-> 100 件版面、配色、字體與動效都不重複的單頁 HTML 作品，另附 2 份 AI 工程化教學簡報。每件都是單一 .html 檔，直接用瀏覽器開啟。
+> 原始 100 件設計各異的單頁 HTML 作品，加上後續作品與 2 份 AI 工程化教學簡報。大多數作品可直接用瀏覽器開啟。
 
 - 網站：https://htmls-ruddy.vercel.app/
 - 原始碼：https://github.com/tommy771004/htmls
@@ -9,7 +9,7 @@
 ## 常見問題
 
 **這是什麼？**
-100 Creative HTML Works 收錄 100 個自成一體的單頁 HTML 作品，另附 2 份 AI 工程化教學簡報。每件作品都是單一 .html 檔，CSS 與 JavaScript 全部寫在檔案裡，用瀏覽器直接開啟就能執行。
+100 Creative HTML Works 收錄原始 100 個自成一體的單頁 HTML 作品，另有後續新增的互動作品、專案範例與 2 份 AI 工程化教學簡報。
 
 **作品之間有什麼規則？**
 設計零重複：版面結構、配色、字體搭配與動效語彙不能有兩件雷同，不是同一個模板換色。題材與互動形式自由，包含作品集、小遊戲、視覺實驗、工具與資料視覺化。
@@ -21,7 +21,7 @@
 以 headless Chrome 在 1440×900 與 390×844 兩種尺寸自動檢查每件作品，並模擬滑鼠移動、點擊、按鍵與滾輪，確認沒有 uncaught exception、console.error、外部網路請求與手機水平溢出，100 件全部通過；另外逐件人工檢視桌機與手機截圖。
 
 **涵蓋哪些風格？**
-分成 11 類：平面排版、介面風格、復古數位、生成藝術、資料科學、遊戲敘事、工具產生器、擬物器物、東方在地、品牌頁面與 AI 學習。例如瑞士國際主義、包浩斯、蒸汽波、CRT 終端機、水墨山水、台灣廟宇擲筊、LCARS 星艦介面與元素週期表。
+分成 13 類：平面排版、介面風格、復古數位、生成藝術、資料科學、遊戲敘事、工具產生器、擬物器物、東方在地、品牌頁面、AI 學習、專案範例與創意藝術。例如瑞士國際主義、包浩斯、蒸汽波、CRT 終端機、水墨山水、Sales CRM 儀表板與果凍骰子。
 
 **哪些作品比較弱？**
 自評較弱的有 7 件：007、022、024、029、057、080、086。頁面上方的「弱點自評」逐件說明弱在哪裡，以及重做時會怎麼改。
@@ -104,6 +104,10 @@
 - [092 Mistletoe Lane Advent](https://htmls-ruddy.vercel.app/092-advent.html): 降臨曆。24 扇 3D 開啟的門，門面拼成村莊，落雪隨開門變大
 - [095 數織練習簿](https://htmls-ruddy.vercel.app/095-nonogram.html): 方格紙鉛筆。4 題經 solver 驗證有唯一解的數織，鉛筆塗黑與打叉
 - [099 The Cube](https://htmls-ruddy.vercel.app/099-rubik.html): CSS 3D。排列經驗證的 CSS 3D 魔術方塊，拖曳旋轉視角、打亂與計時
+- [106 Courier Rush](https://htmls-ruddy.vercel.app/106-courier-rush.html): 三線道 3D 無盡跑酷。低多邊形城市、換道佇列、跳躍、野豬／蝙蝠／雄鹿障礙與三種強化；支援 GLB 模型匯入
+- [108 末班車 · LAST TRAIN](https://htmls-ruddy.vercel.app/108-last-train.html): 程序化廢棄地鐵站第一人稱波次生存射擊。霰彈槍與手槍、雙入口敵人、命中率結算、合成音效
+- [109 浮島列車 · Windward Rail](https://htmls-ruddy.vercel.app/109-windward-rail.html): Three.js 火車模擬。跨海浮島軌道、動力與煞車、乘客舒適度與小費、平穩連續倍率、機廠整備及日夜兩條路線
+- [112 Sunport Railway · 陽港模型鐵道](https://htmls-ruddy.vercel.app/112-sunport-railway.html): 桌上 HO 比例積木鐵道。環線列車、調車場、轉車盤、工業區、港口、小鎮車流與晝夜燈火；拖曳桌前實體拉桿和按鈕操作
 
 ### 品牌頁面
 
@@ -162,6 +166,14 @@
 
 - [101 MattPocock Skills](https://htmls-ruddy.vercel.app/101-mattpocock-skills.html): AI 工程化教學簡報。mattpocock/skills 教學簡報：從需求訪談、PRD、任務拆解到 TDD 與架構審查，13 張投影片走完 AI 編程工作流
 - [102 Starting on Your Own Project](https://htmls-ruddy.vercel.app/102-your-project-playbooks.html): AI 工程化教學簡報。在自己的專案啟動 Claude Code 的三套起手劇本：全新專案、WebForms 轉 Web、WinForms 轉 Web，16 張投影片
+
+### 專案範例
+
+- [105 Northstar Sales CRM](https://htmls-ruddy.vercel.app/105-sales-crm.html): 深色高密度業務儀表板。Companies 表格、案件看板、預測、篩選、新增公司與 CSV 匯出；使用示意資料
+
+### 創意藝術
+
+- [111 Jelly Dice · 果凍骰子工房](https://htmls-ruddy.vercel.app/111-jelly-dice.html): 程序化半透明果凍骰子。六種口味、1–5 顆同時擲出、碰撞與回彈、滑鼠及觸控戳壓與拖曳
 
 ## Optional
 

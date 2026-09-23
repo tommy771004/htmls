@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Courier Rush 三線道低多邊形城市預覽">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#7896a9"/><stop offset="1" stop-color="#c9c9bb"/></linearGradient></defs>
+<rect width="640" height="400" fill="url(#sky)"/>
+<path d="M0 248V151h43v43h36v-69h47v89h33v-57h32v80h38V136h53v109h26V166h53v74h22v-95h50v95h30v-55h40v52h32v-88h55v99Z" fill="#6f8a97" opacity=".62"/>
+<path d="M0 265V206h58v48h25v-80h50v89h29v-41h54v40h49v-78h55v80h34v-57h50v58h20v-87h56v84h36v-50h47v57h31v-67h56v63Z" fill="#57788c" opacity=".7"/>
+<path d="M271 238H371L561 400H79Z" fill="#d9d0bb"/><path d="M267 238H272L116 400H77Z" fill="#95a8a7"/><path d="M369 238H374L563 400h-40Z" fill="#95a8a7"/>
+<path d="M305 246H308L247 400h-9ZM333 246h3l62 154h-9Z" fill="#f3ecda" opacity=".85"/><path d="M297 280h3l-8 21h-3Zm-15 44h4l-11 31h-5Zm-19 55h6l-8 21h-8ZM347 280h3l8 21h-3Zm17 44h4l12 31h-5Zm19 55h6l8 21h-8Z" fill="#f3ecda"/>
+<ellipse cx="322" cy="365" rx="31" ry="8" fill="#284761" opacity=".3"/>
+<path d="M307 335l-7 20 8 4 14-19 9 20 8-4-5-27Z" fill="#234c6b"/><path d="M303 304l-4 33 37 2 4-34-20-8Z" fill="#285c7e"/><path d="M299 308l-14 20 6 5 20-16m29-10 15 20-6 5-20-17" fill="none" stroke="#d8b8a3" stroke-width="9" stroke-linecap="round"/><path d="M305 290q17-18 31 0l-3 16-26 1Z" fill="#d8b8a3"/><path d="M303 289h34v8h-34Z" fill="#f5cf61"/><path d="M311 307l20 26" stroke="#f5cf61" stroke-width="7"/>
+<text x="34" y="75" fill="#fff5e8" font-family="Arial,sans-serif" font-size="45" font-weight="900" letter-spacing="-2">COURIER</text><text x="34" y="122" fill="#f5cf61" font-family="Arial,sans-serif" font-size="54" font-weight="900" letter-spacing="-2">RUSH.</text><text x="36" y="145" fill="#f6f1e6" font-family="Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="3">THREE LANES. ONE MORE RUN.</text>
+<rect x="481" y="27" width="130" height="47" fill="#173b55" opacity=".85"/><text x="494" y="42" fill="#c7d5d8" font-size="10" font-family="Arial,sans-serif" letter-spacing="2">PACE</text><text x="494" y="64" fill="#fff6df" font-size="22" font-family="Arial,sans-serif" font-weight="700">12.8 <tspan fill="#f5cf61" font-size="10">m/s</tspan></text>
+</svg>

@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-100 個獨立單檔 HTML（inline CSS/JS、無外部素材、只用系統字、聲音全部 WebAudio 即時合成），直接用瀏覽器開啟即可。
+原始 100 個獨立單檔 HTML 加上後續的第 103–112 件互動作品；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111 件使用本地 Three.js 模組，需透過網站伺服器開啟。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -113,6 +113,16 @@
 | 100 | [100-fireworks.html](https://htmls-ruddy.vercel.app/100-fireworks.html) | 煙火終章 | 河岸夜空：9 種煙火，「放一百發」每發標上一件作品的風格名，最後拼出「100」 | |
 | 101 | [101-mattpocock-skills.html](https://htmls-ruddy.vercel.app/101-mattpocock-skills.html) | AI 學習 · 教學簡報 | mattpocock/skills 教學簡報：13 張投影片走完需求訪談、PRD、任務拆解、TDD、除錯與架構審查 | △ 後加收錄，使用 Google Fonts 外部字型，不符合前 100 件的零外部依賴規則 |
 | 102 | [102-your-project-playbooks.html](https://htmls-ruddy.vercel.app/102-your-project-playbooks.html) | AI 學習 · 教學簡報 | 〈Starting on Your Own Project〉：在自己的專案啟動 Claude Code 的三套起手劇本（全新專案 / WebForms → Web / WinForms → Web），16 張投影片，版面沿用 101 | △ 同 101，使用 Google Fonts 外部字型 |
+| 103 | [103-peach-blossom-spring.html](https://htmls-ruddy.vercel.app/103-peach-blossom-spring.html) | 生成藝術 · 互動閱讀 | 〈桃花源記〉全文直式閱讀、逐句白話與註解；匯入真人朗誦及逐句時間戳後隨聲推進六幕程序水墨 | 朗誦音檔與時間戳須由讀者提供；頁面不推估時間 |
+| 104 | [104-laptop-studio.html](https://htmls-ruddy.vercel.app/104-laptop-studio.html) | 擬物器物 · 3D Mockup | FRAME：上傳、貼上或拖入截圖，置入程序生成的金屬筆電；可調相機、景深、打光與背景，匯出 PNG | Three.js 由 CDN 載入，需連線及 WebGL |
+| 105 | [105-sales-crm.html](https://htmls-ruddy.vercel.app/105-sales-crm.html) | 專案範例 · 深色業務儀表板 | Northstar Sales CRM：高密度 Companies 表格、案件看板、加權預測、搜尋篩選、新增公司與 CSV 匯出 | 靜態 HTML 互動範例；資料為示意，沒有後端與帳務串接 |
+| 106 | [106-courier-rush.html](https://htmls-ruddy.vercel.app/106-courier-rush.html) | 遊戲敘事 · 3D 跑酷 | Courier Rush：三線道換道與跳躍、三種障礙、金幣與強化、低多邊形城市；可匯入自己的 GLB 模型 | 使用本地 Three.js 模組，需透過網站伺服器開啟 |
+| 107 | [107-arc-brokerage.html](https://htmls-ruddy.vercel.app/107-arc-brokerage.html) | 平面排版 · 電影感金融首頁 | ARC 線上券商概念首頁：CSS 城市與玻璃建築、游標阻尼、捲動視差、模擬報價與五欄資訊帶 | 單檔離線可用；報價為模擬資料，沒有實際 App 下載 |
+| 108 | [108-last-train.html](https://htmls-ruddy.vercel.app/108-last-train.html) | 遊戲敘事 · 3D 波次生存射擊 | 末班車：程序化廢棄地鐵站 FPS，雙武器、雙入口波次、命中率結算與 WebAudio 聲響 | 使用本地 Three.js 模組，需透過網站伺服器開啟；桌機鍵鼠操作 |
+| 109 | [109-windward-rail.html](https://htmls-ruddy.vercel.app/109-windward-rail.html) | 遊戲敘事 · 火車模擬 | 浮島列車：動力與煞車駕駛、乘客舒適度與小費、平穩連續倍率、機廠整備，以及日間與午夜兩條路線 | 使用本地 Three.js 模組，需透過網站伺服器開啟 |
+| 110 | [110-embroidery-studio.html](https://htmls-ruddy.vercel.app/110-embroidery-studio.html) | 生成藝術 · 刺繡編輯器 | THREAD：逐像素布料光照、七種幾何針法與六道繡線渲染；針、橡皮擦、平移、復原重做、範本、JSON 與 PNG | 純 Canvas 2D，無外部依賴 |
+| 111 | [111-jelly-dice.html](https://htmls-ruddy.vercel.app/111-jelly-dice.html) | 創意藝術 · 互動 3D | Jelly Dice：六種果凍口味、1–5 顆骰子、拋擲碰撞與回彈、戳壓及拖曳拉伸 | 使用本地 Three.js 模組，需透過網站伺服器開啟；支援觸控與減少動態效果 |
+| 112 | [112-sunport-railway.html](https://htmls-ruddy.vercel.app/112-sunport-railway.html) | 遊戲敘事 · 桌上積木鐵道 | Sunport Railway：環線列車、調車場、轉車盤、工業區、港口、車站與小鎮；實體拉桿控制速度與時間，按鈕操作燈光、汽笛、調車 | 單檔 HTML；Three.js 由 CDN 載入，需連線及 WebGL |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。
