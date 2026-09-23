@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbfbf7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="捷運到站">
+<title>捷運到站 · 交通即時到站</title>
+<meta name="description" content="把台北捷運月台的導引標誌放進口袋：翻牌倒數、在路線圖上移動的列車、車廂擁擠度、收藏車站與起訖規劃。收錄於 100 Creative HTML Works（App 011・車站導引標誌）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/011-metro-arrivals.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbfbf7'/%3E%3Crect y='40' width='64' height='8' fill='%23e3002c'/%3E%3Cpath d='M22 10h20a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V16a6 6 0 0 1 6-6zm0 6v8h20v-8z' fill='%23121212' fill-rule='evenodd'/%3E%3Crect y='52' width='64' height='12' fill='%23121212'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ink:#121212;
+  --paper:#fbfbf7;
+  --mute:#55554f;
+  --soft:#ecebe4;
+  --sign:"Helvetica Neue",Helvetica,"PingFang TC","Heiti TC",sans-serif;
+  --spring:cubic-bezier(.3,1.35,.5,1);
+  --out:cubic-bezier(.2,.9,.25,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.4 var(--sign);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+svg{display:block}
+ol,ul{list-style:none}
+
+/* stage */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper);isolation:isolate}
+@media (min-width:521px){
+  body{background:#d9d7cf}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:9px;background:#161616;z-index:1;
+    box-shadow:inset 0 0 0 1.5px #3a3a38,0 18px 30px -20px rgba(20,20,18,.8)}
+  .screen{inset:9px;border-radius:45px}
+  .caption{display:block;position:relative;z-index:1;width:250px;color:var(--ink)}
+  .caption h1{font:700 40px/1.05 var(--sign);letter-spacing:.02em}
+  .caption .en{font:500 18px/1.2 var(--sign);margin-top:6px}
+  .caption p{margin-top:18px;font-size:15px;line-height:1.65;color:#3c3c38}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+/* status */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;
+  display:flex;align-items:center;justify-content:space-between;font:700 16px/1 var(--sign);background:var(--paper);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}.pages{top:env(safe-area-inset-top)!important}}
+
+/* pages */
+.pages{position:absolute;top:calc(48px + env(safe-area-inset-top));left:0;right:0;bottom:calc(70px + env(safe-area-inset-bottom));overflow:hidden}
+.track{display:flex;width:300%;height:100%;transition:transform .5s var(--out)}
+.page{width:33.3334%;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:28px}
+.page::-webkit-scrollbar{display:none}
+
+/* shared bits */
+.code{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:24px;padding:0 5px;border-radius:5px;border:3px solid;font:700 13px/1 var(--sign);letter-spacing:.02em;background:#fff;color:var(--ink)}
+.ic{width:24px;height:24px;fill:currentColor}
+.press{transition:transform .16s var(--out),background-color .16s}
+.press:active{transform:scale(.95)}
+
+/* ---------- arrivals ---------- */
+.head{position:relative;padding:14px 20px 0}
+.codes{display:flex;gap:6px;flex-wrap:wrap;min-height:40px;align-items:center}
+.codes button{height:40px;display:flex;align-items:center}
+.codes button .code{transition:transform .2s var(--spring)}
+.codes button[aria-selected=false] .code{border-color:#b9b8b0!important;color:#77766f}
+.codes button:active .code{transform:scale(.92)}
+.stname{margin-top:6px;font:700 40px/1.08 var(--sign);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:4px}
+.sten{font:500 17px/1.3 var(--sign);color:var(--ink);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbtns{position:absolute;top:12px;right:10px;display:flex}
+.hbtns button{width:44px;height:44px;display:grid;place-items:center}
+.hbtns button:active svg{transform:scale(.86)}
+.hbtns svg{transition:transform .2s var(--spring)}
+.favs{display:flex;gap:8px;overflow-x:auto;padding:14px 20px 4px;scrollbar-width:none}
+.favs::-webkit-scrollbar{display:none}
+.favs button{flex:none;height:40px;padding:0 14px;font:600 15px/1 var(--sign);border-radius:4px;background:var(--soft);color:var(--ink);display:flex;align-items:center;gap:6px}
+.favs button.on{background:var(--ink);color:#fff}
+.favs button.find{background:none;padding:0 8px;color:var(--ink);font-weight:700}
+.strip{margin:12px 0 0;padding:0 0 6px;position:relative}
+.strip svg{width:100%;height:118px;overflow:visible}
+.strip text{font:600 12px var(--sign);fill:var(--ink)}
+.plats{padding:0 16px;display:grid;gap:14px;margin-top:6px}
+.plat{border-radius:10px;overflow:hidden;background:#fff}
+.band{display:flex;align-items:center;gap:10px;padding:0 14px;height:48px}
+.band b{font:700 19px/1 var(--sign);letter-spacing:.06em}
+.band span{font:500 14px/1 var(--sign)}
+.band .pf{margin-left:auto;font-weight:700;font-size:13px}
+.band .ic{width:22px;height:22px}
+.pbody{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;padding:14px 14px 14px;align-items:center;background:#fff;border:3px solid var(--ink);border-top:0;border-radius:0 0 10px 10px}
+.flap{display:flex;align-items:center;gap:4px;perspective:300px}
+.ft{position:relative;width:34px;height:52px;border-radius:5px;background:#1b1b1a;color:#fbfbf7;font:700 38px/52px var(--sign);font-variant-numeric:tabular-nums;text-align:center}
+.ft i{position:absolute;left:0;right:0;height:26px;overflow:hidden;font-style:normal;backface-visibility:hidden;background:#1b1b1a}
+.ft i span{display:block;height:52px}
+.ft .u,.ft .fa{top:0;border-radius:5px 5px 0 0;transform-origin:50% 100%}
+.ft .l,.ft .fb{bottom:0;border-radius:0 0 5px 5px;transform-origin:50% 0}
+.ft .l span,.ft .fb span{margin-top:-26px}
+.ft::after{content:"";position:absolute;left:0;right:0;top:25.5px;height:1px;background:#000;z-index:3}
+.ft .fa{z-index:2;animation:fa .16s ease-in forwards}
+.ft .fb{z-index:2;transform:rotateX(90deg);animation:fb .16s .15s ease-out forwards}
+@keyframes fa{to{transform:rotateX(-90deg)}}
+@keyframes fb{from{transform:rotateX(90deg)}to{transform:rotateX(0)}}
+.colon{font:700 30px/1 var(--sign);width:8px;text-align:center;margin-top:-4px}
+.nx{display:flex;flex-direction:column;gap:3px;justify-self:end;text-align:right}
+.nx small{font-size:13px;color:var(--mute)}
+.nx b{font:700 22px/1 var(--sign)}
+.nx b em{font-style:normal;font-size:14px;margin-left:2px}
+.carsrow{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:6px}
+.carsrow small{font-size:13px;color:var(--mute);flex:none;width:52px}
+.cars{display:flex;gap:4px;flex:1}
+.car{flex:1;height:22px;border:2.5px solid var(--ink);border-radius:4px 4px 3px 3px;position:relative;overflow:hidden}
+.car:first-child{border-radius:9px 4px 3px 5px}
+.car:last-child{border-radius:4px 9px 5px 3px}
+.car i{position:absolute;left:0;bottom:0;top:auto;width:100%;background:var(--ink)}
+.car.best{outline:2.5px solid var(--ink);outline-offset:2px}
+.carsrow .tip{flex:none;font-size:13px;font-weight:700;width:52px;text-align:right}
+.term{padding:18px 14px;font-size:15px;color:var(--mute);background:#fff;border:3px solid var(--ink);border-top:0;border-radius:0 0 10px 10px}
+.arriving{font:700 15px var(--sign);letter-spacing:.1em}
+.xfer{margin:20px 16px 0}
+.xfer h3,.sect h3{font:700 13px/1 var(--sign);color:var(--mute);letter-spacing:.08em;margin:0 4px 8px}
+.xrow{width:100%;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;min-height:56px;padding:6px 4px;text-align:left;border-top:3px solid var(--ink)}
+.xrow:last-child{border-bottom:3px solid var(--ink)}
+.xrow .dirs{font-size:14px;line-height:1.5}
+.xrow .dirs b{font-variant-numeric:tabular-nums}
+.xrow:active{background:var(--soft)}
+
+/* ---------- lines ---------- */
+.lsel{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:16px 16px 0}
+.lsel button{height:58px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px;padding-bottom:6px;font:600 12px/1 var(--sign);color:var(--mute)}
+.lsel button i{display:block;width:100%;height:6px;border-radius:3px;transition:height .25s var(--spring)}
+.lsel button[aria-selected=true]{color:var(--ink);font-weight:800}
+.lsel button[aria-selected=true] i{height:16px}
+.lhead{padding:18px 20px 6px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.lhead h2{font:700 28px/1.1 var(--sign);letter-spacing:.04em}
+.lhead p{font:500 14px/1.3 var(--sign);color:var(--mute);margin-top:4px}
+.lhead .hw{text-align:right;font-size:13px;color:var(--mute);flex:none}
+.lhead .hw b{display:block;font:700 22px/1 var(--sign);color:var(--ink)}
+.mapw{position:relative;margin-top:8px}
+.rail{position:absolute;left:8px;top:0;width:64px;pointer-events:none}
+.stl li{height:66px}
+.stl button{width:100%;height:66px;display:grid;grid-template-columns:80px 1fr auto;align-items:center;text-align:left;padding-right:18px}
+.stl button:active{background:var(--soft)}
+.stl .nm{grid-column:2;min-width:0}
+.stl .nm b{display:block;font:700 17px/1.2 var(--sign);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stl .nm>span{display:block;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stl .xs{display:flex;gap:4px;margin-top:3px}
+.stl .xs .code{min-width:34px;height:19px;font-size:11px;border-width:2.5px;border-radius:4px}
+.stl .eta{font:700 15px/1.25 var(--sign);text-align:right;font-variant-numeric:tabular-nums}
+.stl .eta span{display:flex;align-items:center;justify-content:flex-end;gap:5px;white-space:nowrap}
+.stl .eta svg{width:10px;height:10px;fill:currentColor}
+
+/* ---------- plan ---------- */
+.od{position:relative;margin:18px 16px 0;border:3px solid var(--ink);border-radius:10px;overflow:hidden;background:#fff}
+.odrow{width:100%;min-height:74px;display:grid;grid-template-columns:48px 1fr;align-items:center;text-align:left;padding:8px 64px 8px 10px}
+.odrow+.odrow{border-top:3px solid var(--ink)}
+.odrow:active{background:var(--soft)}
+.odrow .k{font:800 26px/1 var(--sign);text-align:center}
+.odrow .v b{display:block;font:700 22px/1.2 var(--sign);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.odrow .v i{display:block;font-style:normal;font-size:13px;color:var(--mute)}
+.swap{position:absolute;right:10px;top:50%;margin-top:-24px;width:48px;height:48px;display:grid;place-items:center;background:#fff;border-radius:50%;border:3px solid var(--ink)}
+.swap:active{background:var(--soft)}
+.swap svg{transition:transform .35s var(--spring)}
+.swap.spin svg{transform:rotate(180deg)}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);margin:18px 16px 0;text-align:center}
+.sum div+div{border-left:3px solid var(--ink)}
+.sum b{display:block;font:700 30px/1 var(--sign);font-variant-numeric:tabular-nums}
+.sum b small{font-size:15px;margin-left:2px}
+.sum span{font-size:13px;color:var(--mute)}
+.jr{margin:22px 16px 0;position:relative}
+.leg{display:grid;grid-template-columns:54px 30px 1fr;min-height:40px}
+.leg .tm{font:700 15px/22px var(--sign);font-variant-numeric:tabular-nums;text-align:right;padding-right:8px}
+.leg .rl{position:relative}
+.leg .rl i{position:absolute;left:11px;width:8px;top:0;bottom:0}
+.leg .rl i.first{top:11px;border-radius:4px 4px 0 0}
+.leg .rl i.last{bottom:auto;height:11px;border-radius:0 0 4px 4px}
+.leg .rl u{position:absolute;left:4px;top:4px;width:22px;height:22px;border-radius:50%;background:#fff;border:4px solid var(--ink)}
+.leg .tx{padding:0 0 18px 6px}
+.leg .tx b{font:700 17px/22px var(--sign)}
+.leg .tx p{font-size:14px;line-height:1.45;color:var(--mute);margin-top:2px}
+.leg .tx p strong{color:var(--ink)}
+.leg.walk .rl i{background:repeating-linear-gradient(var(--ink) 0 5px,transparent 5px 10px)!important;width:4px;left:13px}
+.act{display:grid;grid-template-columns:1fr;margin:8px 16px 0}
+.btn{height:52px;border-radius:8px;background:var(--ink);color:#fff;font:700 17px/1 var(--sign);letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn:active{background:#3a3a37}
+.sect{margin:26px 16px 0}
+.rec{position:relative;overflow:hidden;border-top:3px solid var(--ink)}
+.rec:last-child{border-bottom:3px solid var(--ink)}
+.rec .del{position:absolute;right:0;top:0;bottom:0;width:88px;background:#e3002c;color:#fff;font-weight:700;font-size:15px}
+.rec .mv{position:relative;background:var(--paper);transition:transform .3s var(--out);touch-action:pan-y}
+.rec .mv.drag{transition:none}
+.rec .go{width:100%;min-height:58px;display:flex;align-items:center;gap:10px;padding:8px 4px;text-align:left;font:700 16px/1.3 var(--sign)}
+.rec .go .ic{width:18px;height:18px;flex:none}
+.rec .go small{margin-left:auto;font:500 13px var(--sign);color:var(--mute);flex:none}
+.empty{padding:16px 4px;color:var(--mute);font-size:14px}
+
+/* ---------- nav ---------- */
+.nav{position:absolute;left:0;right:0;bottom:0;z-index:20;height:calc(70px + env(safe-area-inset-bottom));background:var(--ink);padding:8px 10px env(safe-area-inset-bottom)}
+.nav .in{position:relative;display:grid;grid-template-columns:repeat(3,1fr);height:48px}
+.nav .ind{position:absolute;top:0;left:0;width:33.333%;height:48px;border-radius:6px;background:var(--paper);transition:transform .45s var(--spring)}
+.nav button{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;color:#fbfbf7;font:700 16px/1 var(--sign);letter-spacing:.1em;transition:color .3s}
+.nav button[aria-selected=true]{color:var(--ink)}
+.nav button .ic{width:22px;height:22px}
+.nav button:active .ic{transform:scale(.88)}
+.home-ind{position:absolute;left:50%;bottom:calc(6px + env(safe-area-inset-bottom)*.3);width:128px;height:5px;margin-left:-64px;border-radius:3px;background:#fbfbf7;z-index:25;pointer-events:none}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(18,18,18,.42);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:86%;display:flex;flex-direction:column;background:var(--paper);border-radius:18px 18px 0 0;
+  transform:translateY(105%);transition:transform .48s var(--spring);touch-action:none;padding-bottom:env(safe-area-inset-bottom);visibility:hidden}
+.sheet.on{transform:translateY(0);visibility:visible}
+.sheet.drag{transition:none}
+.grab{flex:none;height:26px;display:grid;place-items:center;cursor:grab}
+.grab i{width:44px;height:5px;border-radius:3px;background:var(--ink)}
+.sbody{overflow-y:auto;padding:0 20px 26px;touch-action:pan-y;overscroll-behavior:contain}
+.sbody h4{font:700 30px/1.1 var(--sign);letter-spacing:.04em}
+.sbody .en{font-size:15px;margin-top:2px}
+.search{display:flex;align-items:center;gap:8px;height:50px;border:3px solid var(--ink);border-radius:8px;padding:0 12px;margin-top:14px;background:#fff}
+.search input{flex:1;min-width:0;height:100%;border:0;background:none;font:600 17px var(--sign);color:var(--ink);outline:none}
+.pick{margin-top:10px}
+.pick button{width:100%;min-height:54px;display:flex;align-items:center;gap:10px;text-align:left;border-bottom:2px solid var(--soft);padding:6px 2px}
+.pick button:active{background:var(--soft)}
+.pick .cs{display:flex;gap:4px;flex:none}
+.pick .cs .code{min-width:36px;height:21px;font-size:11.5px;border-width:2.5px}
+.pick b{font:700 17px/1.2 var(--sign)}
+.pick span{font-size:13px;color:var(--mute);display:block}
+.dl{margin-top:16px}
+.dl .dlr{display:grid;grid-template-columns:52px 1fr 1fr;gap:10px;align-items:center;padding:10px 0;border-top:3px solid var(--ink);font-size:14px}
+.dl .dlr b{font:700 20px/1 var(--sign);font-variant-numeric:tabular-nums}
+.exits{margin-top:18px}
+.exits h5{font:700 13px var(--sign);color:var(--mute);letter-spacing:.08em;margin-bottom:6px}
+.exits li{display:flex;gap:12px;align-items:center;padding:8px 0;font-size:15px}
+.exits li b{flex:none;width:34px;height:30px;display:grid;place-items:center;background:#f8b61c;color:var(--ink);font:800 15px/1 var(--sign);border-radius:4px}
+.sacts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px}
+.sacts .btn{height:50px;font-size:15px;letter-spacing:.02em}
+.toast{position:absolute;left:16px;right:16px;top:calc(56px + env(safe-area-inset-top));z-index:60;background:var(--ink);color:#fff;border-radius:8px;min-height:50px;display:flex;align-items:center;gap:12px;padding:0 8px 0 16px;font:600 15px var(--sign);transform:translateY(-160%);transition:transform .4s var(--spring);visibility:hidden}
+.toast.on{transform:none;visibility:visible}
+.toast button{margin-left:auto;height:40px;padding:0 12px;color:#f8b61c;font-weight:800}
+@media (prefers-reduced-motion:reduce){
+  .track,.nav .ind,.sheet,.toast,.rec .mv,.swap svg{transition-duration:.01s!important}
+  .ft .fa,.ft .fb{animation:none;display:none}
+  .press:active,.codes button:active .code{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="bg"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .4  0 0 0 0 .4  0 0 0 0 .38  0 0 0 .35 0"/></filter>
+        <linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b3a36"/><stop offset="1" stop-color="#1c1c1a"/></linearGradient>
+        <linearGradient id="wl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfcdc4"/><stop offset=".6" stop-color="#e4e2da"/><stop offset="1" stop-color="#d6d4cb"/></linearGradient>
+      </defs>
+      <rect width="1600" height="1000" fill="url(#wl)"/>
+      <rect y="0" width="1600" height="170" fill="#121212"/>
+      <g fill="#fbfbf7" font-family="Helvetica Neue,PingFang TC,sans-serif" font-weight="700">
+        <text x="110" y="92" font-size="60" letter-spacing="8">台北車站</text>
+        <text x="112" y="138" font-size="28" font-weight="500">Taipei Main Station</text>
+        <text x="1290" y="92" font-size="60" letter-spacing="8">往 淡水</text>
+        <text x="1292" y="138" font-size="28" font-weight="500">To Tamsui</text>
+      </g>
+      <g font-family="Helvetica Neue,sans-serif" font-weight="700" font-size="24">
+        <rect x="400" y="50" width="80" height="46" rx="8" fill="#fbfbf7" stroke="#e3002c" stroke-width="7"/><text x="440" y="82" text-anchor="middle" fill="#121212">R10</text>
+        <rect x="494" y="50" width="90" height="46" rx="8" fill="#fbfbf7" stroke="#0070bd" stroke-width="7"/><text x="539" y="82" text-anchor="middle" fill="#121212">BL12</text>
+      </g>
+      <path d="M1210 70h40l-18-18 11-11 37 37-37 37-11-11 18-18h-40z" fill="#fbfbf7"/>
+      <rect y="206" width="1600" height="40" fill="#e3002c"/>
+      <rect y="252" width="1600" height="12" fill="#0070bd"/>
+      <g fill="#bdbbb2">
+        <rect x="60" y="264" width="10" height="506"/><rect x="1530" y="264" width="10" height="506"/>
+      </g>
+      <rect y="770" width="1600" height="230" fill="url(#fl)"/>
+      <rect y="800" width="1600" height="26" fill="#f8b61c"/>
+      <g fill="#c99414">
+        <circle cx="30" cy="813" r="4"/><circle cx="70" cy="813" r="4"/><circle cx="110" cy="813" r="4"/><circle cx="150" cy="813" r="4"/><circle cx="190" cy="813" r="4"/><circle cx="1410" cy="813" r="4"/><circle cx="1450" cy="813" r="4"/><circle cx="1490" cy="813" r="4"/><circle cx="1530" cy="813" r="4"/><circle cx="1570" cy="813" r="4"/>
+      </g>
+            <rect width="1600" height="1000" filter="url(#bg)" opacity=".22"/>
+    </svg>
+  </div>
+
+  <div class="caption">
+    <h1>捷運到站</h1>
+    <div class="en">Metro Arrivals</div>
+    <p>月台上的導引標誌，縮進手機裡。翻牌倒數、路線圖上正在移動的列車，和一鍵規劃的起訖路線。</p>
+  </div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><path d="M0 8h3v4H0zM5 5h3v7H5zM10 2.5h3V12h-3zM15 0h3v12h-3z" fill="#121212"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 12 5 8.6a4.4 4.4 0 0 1 6 0zM2.6 6 1 4.2a10.4 10.4 0 0 1 14 0L13.4 6a8 8 0 0 0-10.8 0z" fill="#121212"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><path d="M2 0h19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm.5 2.5v7h18v-7z" fill="#121212" fill-rule="evenodd"/><rect id="batt" x="2.5" y="2.5" width="14" height="7" fill="#121212"/><path d="M24 4h2v4h-2z" fill="#121212"/></svg>
+        </span>
+      </div>
+
+      <main class="pages">
+        <div class="track" id="track">
+          <!-- 到站 -->
+          <section class="page" id="pgA" aria-label="到站">
+            <div class="head">
+              <div class="codes" id="aCodes" role="tablist" aria-label="路線"></div>
+              <div class="stname" id="aName">台北車站</div>
+              <div class="sten" id="aEn">Taipei Main Station</div>
+              <div class="hbtns">
+                <button id="sndBtn" aria-label="進站提示音"></button>
+                <button id="favBtn" aria-label="收藏車站"></button>
+              </div>
+            </div>
+            <div class="favs" id="favs"></div>
+            <div class="strip"><svg id="strip" aria-label="即時列車位置"></svg></div>
+            <div class="plats" id="plats"></div>
+            <div class="xfer" id="xfer"></div>
+          </section>
+          <!-- 路線 -->
+          <section class="page" id="pgL" aria-label="路線圖">
+            <div class="lsel" id="lsel" role="tablist" aria-label="選擇路線"></div>
+            <div class="lhead"><div><h2 id="lName">淡水信義線</h2><p id="lEn">Tamsui-Xinyi Line</p></div><div class="hw">班距<b id="lHw">5 分</b></div></div>
+            <div class="mapw"><svg class="rail" id="rail"></svg><ol class="stl" id="stl"></ol></div>
+          </section>
+          <!-- 規劃 -->
+          <section class="page" id="pgP" aria-label="起訖規劃">
+            <div class="od">
+              <button class="odrow press" id="oBtn"><span class="k">起</span><span class="v"><b id="oName"></b><i id="oEn"></i></span></button>
+              <button class="odrow press" id="dBtn"><span class="k">迄</span><span class="v"><b id="dName"></b><i id="dEn"></i></span></button>
+              <button class="swap" id="swap" aria-label="起訖互換"><svg class="ic" viewBox="0 0 24 24"><path d="M7 2l5 5.5-2 1.8L8.5 7.6V16h-3V7.6L3.9 9.3 2 7.5zm10 20l-5-5.5 2-1.8 1.5 1.7V8h3v8.4l1.6-1.7 1.9 1.8z"/></svg></button>
+            </div>
+            <div class="sum" id="sum"></div>
+            <div class="jr" id="jr"></div>
+            <div class="act"><button class="btn press" id="saveTrip"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5-4.9-4.5 6.6-.8z"/></svg>儲存這趟行程</button></div>
+            <div class="sect"><h3>常用行程</h3><ul id="recs"></ul></div>
+          </section>
+        </div>
+      </main>
+
+      <nav class="nav" aria-label="主選單">
+        <div class="in" role="tablist">
+          <i class="ind" id="ind"></i>
+          <button role="tab" data-tab="0" aria-selected="true"><svg class="ic" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M7 2h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4zm-.5 4v5.5h11V6zM8 14.2a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2zm8 0a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2zM6.5 21h3L8 23.5H5zm8 0h3l1.5 2.5h-3z"/></svg>到站</button>
+          <button role="tab" data-tab="1" aria-selected="false"><svg class="ic" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10.3 5.5h3.4v4h-3.4zm0 9h3.4v4h-3.4zM12 .5a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 2.3a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zM12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 7.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 2.3a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4z"/></svg>路線</button>
+          <button role="tab" data-tab="2" aria-selected="false"><svg class="ic" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5 13.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 2.3a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zM8.5 16H13a2.5 2.5 0 0 0 0-5h-2a5.5 5.5 0 0 1 0-11h5.5v3H11a2.5 2.5 0 0 0 0 5h2a5.5 5.5 0 0 1 0 11H8.5zM16 1l5 3.5L16 8z"/></svg>規劃</button>
+        </div>
+      </nav>
+      <div class="home-ind"></div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="詳細資訊">
+        <div class="grab"><i></i></div>
+        <div class="sbody" id="sbody"></div>
+      </div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastU">復原</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+function haptic(p){ try{ if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var KEY = 'app011:';
+function load(k, d){ try{ var v = localStorage.getItem(KEY+k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(KEY+k, JSON.stringify(v)); }catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// ---------- network ----------
+var LINES = [
+ {id:'R', zh:'淡水信義線', en:'Tamsui-Xinyi Line', c:'#e3002c', t:'#fff', H:300, ph:37, cars:6, st:[[2,'象山','Xiangshan'],[3,'台北101/世貿','Taipei 101/World Trade Center'],[4,'信義安和','Xinyi Anhe'],[5,'大安','Daan'],[6,'大安森林公園','Daan Park'],[7,'東門','Dongmen'],[8,'中正紀念堂','Chiang Kai-shek Memorial Hall'],[9,'台大醫院','NTU Hospital'],[10,'台北車站','Taipei Main Station'],[11,'中山','Zhongshan'],[12,'雙連','Shuanglian'],[13,'民權西路','Minquan W. Rd.'],[14,'圓山','Yuanshan'],[15,'劍潭','Jiantan'],[16,'士林','Shilin'],[22,'北投','Beitou'],[28,'淡水','Tamsui']]},
+ {id:'BL', zh:'板南線', en:'Bannan Line', c:'#0070bd', t:'#fff', H:240, ph:81, cars:6, st:[[1,'頂埔','Dingpu'],[7,'板橋','Banqiao'],[10,'龍山寺','Longshan Temple'],[11,'西門','Ximen'],[12,'台北車站','Taipei Main Station'],[13,'善導寺','Shandao Temple'],[14,'忠孝新生','Zhongxiao Xinsheng'],[15,'忠孝復興','Zhongxiao Fuxing'],[16,'忠孝敦化','Zhongxiao Dunhua'],[17,'國父紀念館','Sun Yat-sen Memorial Hall'],[18,'市政府','Taipei City Hall'],[19,'永春','Yongchun'],[23,'南港展覽館','Nangang Exhibition Center']]},
+ {id:'G', zh:'松山新店線', en:'Songshan-Xindian Line', c:'#008659', t:'#fff', H:360, ph:142, cars:6, st:[[1,'新店','Xindian'],[3,'大坪林','Dapinglin'],[7,'公館','Gongguan'],[8,'台電大樓','Taipower Building'],[9,'古亭','Guting'],[10,'中正紀念堂','Chiang Kai-shek Memorial Hall'],[11,'小南門','Xiaonanmen'],[12,'西門','Ximen'],[13,'北門','Beimen'],[14,'中山','Zhongshan'],[15,'松江南京','Songjiang Nanjing'],[16,'南京復興','Nanjing Fuxing'],[17,'台北小巨蛋','Taipei Arena'],[19,'松山','Songshan']]},
+ {id:'O', zh:'中和新蘆線', en:'Zhonghe-Xinlu Line', c:'#f8b61c', t:'#121212', H:330, ph:12, cars:6, st:[[1,'南勢角','Nanshijiao'],[3,'永安市場','Yongan Market'],[5,'古亭','Guting'],[6,'東門','Dongmen'],[7,'忠孝新生','Zhongxiao Xinsheng'],[8,'松江南京','Songjiang Nanjing'],[9,'行天宮','Xingtian Temple'],[10,'中山國小','Zhongshan Elementary School'],[11,'民權西路','Minquan W. Rd.'],[12,'大橋頭','Daqiaotou'],[21,'迴龍','Huilong']]},
+ {id:'BR', zh:'文湖線', en:'Wenhu Line', c:'#c48c31', t:'#121212', H:200, ph:64, cars:4, st:[[1,'動物園','Taipei Zoo'],[3,'萬芳社區','Wanfang Community'],[7,'六張犁','Liuzhangli'],[8,'科技大樓','Technology Building'],[9,'大安','Daan'],[10,'忠孝復興','Zhongxiao Fuxing'],[11,'南京復興','Nanjing Fuxing'],[12,'中山國中','Zhongshan Junior High'],[13,'松山機場','Songshan Airport'],[14,'大直','Dazhi'],[19,'內湖','Neihu'],[24,'南港展覽館','Nangang Exhibition Center']]}
+];
+var LBY = {}; LINES.forEach(function(l){ LBY[l.id] = l; });
+var ST = {}; // zh -> {zh,en,lines:[{l,i}]}
+LINES.forEach(function(l){ l.st.forEach(function(s, i){ var o = ST[s[1]] || (ST[s[1]] = {zh:s[1], en:s[2], lines:[]}); o.lines.push({l:l, i:i}); }); });
+var ALL = Object.keys(ST);
+function codeOf(l, i){ var n = l.st[i][0]; return l.id + (n < 10 ? '0' + n : n); }
+function badge(l, i, cls){ return '<span class="code'+(cls?' '+cls:'')+'" style="border-color:'+l.c+'">'+codeOf(l, i)+'</span>'; }
+function badges(zh){ return ST[zh].lines.map(function(x){ return badge(x.l, x.i); }).join(''); }
+var EXITS = {
+ '台北車站':[['M3','台北車站大廳・台鐵高鐵'],['Z10','京站時尚廣場'],['Y17','地下街・台北轉運站'],['M8','新光三越站前店']],
+ '台北101/世貿':[['1','台北世貿一館'],['2','信義威秀'],['4','台北 101 購物中心'],['5','信義路五段']],
+ '西門':[['1','長沙街'],['3','成都路・紅樓'],['6','西門町徒步區'],['4','中華路一段']],
+ '中山':[['2','南西誠品'],['3','新光三越南西店'],['4','心中山線形公園'],['5','赤峰街']],
+ '動物園':[['1','台北市立動物園'],['2','貓空纜車動物園站']],
+ '士林':[['1','士林夜市方向'],['2','故宮博物院公車']],
+ '淡水':[['1','淡水老街'],['2','金色水岸・渡船頭']],
+ '忠孝復興':[['2','SOGO 復興館'],['4','東區地下街'],['3','忠孝東路四段']],
+ '公館':[['1','國立台灣大學'],['4','公館夜市・水源市場']],
+ '松山機場':[['1','松山機場第一航廈'],['3','民權東路']],
+ '大安森林公園':[['2','大安森林公園'],['6','新生南路']],
+ '古亭':[['5','牯嶺街'],['7','和平東路・師大']]
+};
+function exitsOf(zh){ return EXITS[zh] || [['1','公車轉乘站'],['2','YouBike 站'],['3','主要道路']]; }
+
+// ---------- simulation ----------
+var SEG = 110; // seconds per code unit
+function now(){ return Date.now() / 1000; }
+function mod(a, b){ return ((a % b) + b) % b; }
+function span(l){ return l.st[l.st.length - 1][0] - l.st[0][0]; }
+function uOf(l, i){ return l.st[i][0] - l.st[0][0]; }
+function ph2(l){ return l.ph * 1.7 + 11; }
+function eta(l, i, dir, t){ // dir 1 = toward last station, -1 = toward first
+  var u = uOf(l, i);
+  return dir > 0 ? mod(u * SEG + l.ph - t, l.H) : mod((span(l) - u) * SEG + ph2(l) - t, l.H);
+}
+function trainsOf(l, dir, t){
+  var L = span(l), out = [], p0, k;
+  if (dir > 0){ p0 = mod(t - l.ph, l.H) / SEG; for (k = p0; k <= L; k += l.H / SEG) out.push(k); }
+  else { p0 = mod(t - ph2(l), l.H) / SEG; for (k = p0; k <= L; k += l.H / SEG) out.push(L - k); }
+  return out;
+}
+function idxOfU(l, u){ // code units -> fractional station index
+  var c = l.st[0][0] + u, s = l.st;
+  for (var i = 0; i < s.length - 1; i++) if (c <= s[i + 1][0]) return i + (c - s[i][0]) / (s[i + 1][0] - s[i][0]);
+  return s.length - 1;
+}
+function hash(n){ n = (n ^ 61) ^ (n >>> 16); n = n + (n << 3); n = n ^ (n >>> 4); n = Math.imul(n, 0x27d4eb2d); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; }
+function loads(l, i, dir, t){
+  var u = uOf(l, i), base = dir > 0 ? t - l.ph - u * SEG : t - ph2(l) - (span(l) - u) * SEG;
+  var j = Math.floor(base / l.H) + 1, hr = new Date().getHours(), peak = (hr >= 7 && hr <= 9) || (hr >= 17 && hr <= 19) ? .35 : 0;
+  var a = [];
+  for (var c = 0; c < l.cars; c++){ var mid = 1 - Math.abs(c - (l.cars - 1) / 2) / l.cars; a.push(Math.min(1, .08 + peak + hash(j * 31 + c * 7 + l.ph + dir * 1000) * .55 + mid * .12)); }
+  return a;
+}
+
+// ---------- state ----------
+var S = {
+  sta: load('sta', '台北車站'), line: load('line', 'R'), favs: load('favs', ['台北車站','忠孝復興','西門','動物園']),
+  o: load('o', '台北車站'), d: load('d', '動物園'), recs: load('recs', [{o:'西門',d:'台北101/世貿'},{o:'中山',d:'淡水'},{o:'公館',d:'松山機場'}]),
+  snd: load('snd', true), tab: load('tab', 0), mline: load('mline', 'R')
+};
+if (!ST[S.sta]) S.sta = '台北車站';
+if (!ST[S.o]) S.o = '台北車站'; if (!ST[S.d]) S.d = '動物園';
+function lineAt(zh, id){ var r = null; ST[zh].lines.forEach(function(x){ if (x.l.id === id) r = x; }); return r || ST[zh].lines[0]; }
+
+// ---------- audio ----------
+var ac = null;
+function audio(){ if (!ac){ try{ ac = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ ac = null; } } if (ac && ac.state === 'suspended') ac.resume().catch(function(){}); return ac; }
+document.addEventListener('pointerdown', function(){ if (S.snd) audio(); }, {once:true});
+function chime(){ // three-note platform chime
+  if (!S.snd || !ac || ac.state !== 'running') return;
+  var t = ac.currentTime + .02;
+  [[659.3,0],[523.3,.32],[784,.64]].forEach(function(n){
+    var o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o2.type = 'sine'; o.frequency.value = n[0]; o2.frequency.value = n[0] * 2.01;
+    var g2 = ac.createGain(); g2.gain.value = .18; o2.connect(g2); g2.connect(g);
+    o.connect(g); g.connect(ac.destination);
+    g.gain.setValueAtTime(0, t + n[1]); g.gain.linearRampToValueAtTime(.22, t + n[1] + .02); g.gain.exponentialRampToValueAtTime(.0008, t + n[1] + 1.1);
+    o.start(t + n[1]); o2.start(t + n[1]); o.stop(t + n[1] + 1.2); o2.stop(t + n[1] + 1.2);
+  });
+}
+function tick(){ if (!ac || ac.state !== 'running') return; var o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = 1800; g.gain.setValueAtTime(.05, ac.currentTime); g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + .04); o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + .05); }
+
+// ---------- icons ----------
+var IC = {
+  star:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 1.8l3.2 6.6 7.2.9-5.3 5 1.4 7.2L12 18l-6.5 3.5 1.4-7.2-5.3-5 7.2-.9z"/></svg>',
+  starO:'<svg class="ic" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 1.8l3.2 6.6 7.2.9-5.3 5 1.4 7.2L12 18l-6.5 3.5 1.4-7.2-5.3-5 7.2-.9zm0 5.1l-1.7 3.5-3.8.5 2.8 2.6-.7 3.8 3.4-1.9 3.4 1.9-.7-3.8 2.8-2.6-3.8-.5z"/></svg>',
+  snd:'<svg class="ic" viewBox="0 0 24 24"><path d="M2 8.5h4.5L12 3v18l-5.5-5.5H2z"/><path d="M15 7.6a6 6 0 0 1 0 8.8l-1.8-1.8a3.5 3.5 0 0 0 0-5.2zm3-3a10.2 10.2 0 0 1 0 14.8l-1.8-1.8a7.7 7.7 0 0 0 0-11.2z"/></svg>',
+  mute:'<svg class="ic" viewBox="0 0 24 24"><path d="M2 8.5h4.5L12 3v18l-5.5-5.5H2z"/><path d="M14.5 8.3l1.8-1.8 2.7 2.7 2.7-2.7 1.8 1.8-2.7 2.7 2.7 2.7-1.8 1.8L19 12.8l-2.7 2.7-1.8-1.8 2.7-2.7z"/></svg>',
+  search:'<svg class="ic" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10 1.5a8.5 8.5 0 0 1 6.9 13.4l5.6 5.6-2.2 2.2-5.6-5.6A8.5 8.5 0 1 1 10 1.5zm0 3a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>',
+  arrow:'<svg class="ic" viewBox="0 0 24 24"><path d="M2 10.4h13.2L9.8 5l2.3-2.3L21.4 12l-9.3 9.3-2.3-2.3 5.4-5.4H2z"/></svg>',
+  arrowL:'<svg class="ic" viewBox="0 0 24 24"><path d="M22 10.4H8.8L14.2 5l-2.3-2.3L2.6 12l9.3 9.3 2.3-2.3-5.4-5.4H22z"/></svg>',
+  walk:'<svg class="ic" viewBox="0 0 24 24"><circle cx="13.5" cy="3.5" r="2.5"/><path d="M11 7.5l4 .5 2.5 4.5-2.3 1-1.5-2.6-1 3.6 2.8 3.5V23h-2.7v-4l-2.6-3-1.6 4.5-1 3.5H4.9l3.2-10.4L8 11.2l-2 1.8-1.7-1.9L8.6 7z"/></svg>'
+};
+
+// ---------- clock ----------
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tickClock(); setInterval(tickClock, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 18 * b.level).toFixed(1)); }).catch(function(){});
+function hhmm(sec){ var d = new Date(Date.now() + sec * 1000); return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+
+// ---------- toast ----------
+var toastTimer = 0, undoFn = null;
+function toast(msg, undo){
+  $('toastT').textContent = msg; undoFn = undo || null; $('toastU').style.display = undo ? '' : 'none';
+  $('toast').classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(function(){ $('toast').classList.remove('on'); }, undo ? 4200 : 2200);
+}
+$('toastU').addEventListener('click', function(){ if (undoFn) undoFn(); undoFn = null; $('toast').classList.remove('on'); haptic(10); });
+
+// ---------- tabs ----------
+var navBtns = document.querySelectorAll('.nav button');
+function setTab(i, silent){
+  S.tab = i; save('tab', i);
+  $('track').style.transform = 'translateX(' + (-i * 33.3334) + '%)';
+  $('ind').style.transform = 'translateX(' + (i * 100) + '%)';
+  navBtns.forEach(function(b, j){ b.setAttribute('aria-selected', j === i ? 'true' : 'false'); });
+  if (i === 1) renderMap(); if (i === 2) renderPlan();
+  if (!silent) haptic(6);
+}
+navBtns.forEach(function(b){ b.addEventListener('click', function(){ setTab(+b.dataset.tab); }); });
+
+// ---------- arrivals ----------
+var flapState = {}, lastEta = {};
+function renderArr(){
+  lastEta = {};
+  var st = ST[S.sta], cur = lineAt(S.sta, S.line); S.line = cur.l.id;
+  $('aName').textContent = st.zh; $('aEn').textContent = st.en;
+  $('aCodes').innerHTML = st.lines.map(function(x){
+    return '<button role="tab" data-line="'+x.l.id+'" aria-selected="'+(x.l.id === S.line)+'" aria-label="'+x.l.zh+'">'+badge(x.l, x.i)+'</button>';
+  }).join('');
+  var fav = S.favs.indexOf(S.sta) >= 0;
+  $('favBtn').innerHTML = fav ? IC.star : IC.starO; $('favBtn').setAttribute('aria-pressed', fav);
+  $('sndBtn').innerHTML = S.snd ? IC.snd : IC.mute; $('sndBtn').setAttribute('aria-pressed', S.snd);
+  $('favs').innerHTML = S.favs.map(function(z){ return '<button class="press'+(z === S.sta ? ' on' : '')+'" data-sta="'+esc(z)+'">'+esc(z)+'</button>'; }).join('') +
+    '<button class="find press" id="findSta">'+IC.search+'找車站</button>';
+  // platforms
+  var l = cur.l, i = cur.i, h = '';
+  [1, -1].forEach(function(dir){
+    var endI = dir > 0 ? l.st.length - 1 : 0, end = l.st[endI];
+    h += '<div class="plat"><div class="band" style="background:'+l.c+';color:'+l.t+'">' + (dir > 0 ? IC.arrow : IC.arrowL) +
+      '<b>往 '+end[1].split('/')[0]+'</b><span>To '+end[2].split('/')[0]+'</span><span class="pf">'+(dir > 0 ? '第 1 月台' : '第 2 月台')+'</span></div>';
+    if (i === endI) h += '<div class="term">本站為終點站，請往對向月台搭乘。</div></div>';
+    else h += '<div class="pbody"><div class="flap" id="fl'+dir+'" aria-live="off"></div><div class="nx"><small>下一班</small><b id="nx'+dir+'"></b></div>' +
+      '<div class="carsrow"><small>擁擠度</small><div class="cars" id="cars'+dir+'"></div><span class="tip" id="tip'+dir+'"></span></div></div></div>';
+  });
+  $('plats').innerHTML = h; flapState = {};
+  // transfers
+  var others = st.lines.filter(function(x){ return x.l.id !== S.line; });
+  $('xfer').innerHTML = others.length ? '<h3>本站轉乘</h3>' + others.map(function(x){
+    return '<button class="xrow" data-line="'+x.l.id+'">'+badge(x.l, x.i)+'<span class="dirs" data-x="'+x.l.id+'"></span><svg class="ic" viewBox="0 0 24 24"><path d="M8.3 4.3 10.6 2l10 10-10 10-2.3-2.3 7.7-7.7z"/></svg></button>';
+  }).join('') : '';
+  drawStripBase(); updateArr(true);
+}
+function flapSet(el, str, key, instant){
+  var prev = flapState[key] || '';
+  if (!el.children.length || prev.length !== str.length){
+    el.innerHTML = str.split('').map(function(c){ return c === ':' ? '<span class="colon">:</span>' : '<div class="ft"><i class="u"><span>'+c+'</span></i><i class="l"><span>'+c+'</span></i></div>'; }).join('');
+    flapState[key] = str; return;
+  }
+  var nodes = el.children;
+  for (var k = 0; k < str.length; k++){
+    if (str[k] === prev[k] || str[k] === ':') continue;
+    var ft = nodes[k], o = prev[k], n = str[k];
+    ft.querySelector('.u span').textContent = n;
+    if (instant || reduce){ ft.querySelector('.l span').textContent = n; continue; }
+    ft.querySelectorAll('.fa,.fb').forEach(function(x){ x.remove(); });
+    var fa = document.createElement('i'); fa.className = 'fa'; fa.innerHTML = '<span>'+o+'</span>';
+    var fb = document.createElement('i'); fb.className = 'fb'; fb.innerHTML = '<span>'+n+'</span>';
+    ft.appendChild(fa); ft.appendChild(fb);
+    (function(ft, n, fa, fb){ setTimeout(function(){ ft.querySelector('.l span').textContent = n; fa.remove(); fb.remove(); }, 330); })(ft, n, fa, fb);
+  }
+  flapState[key] = str;
+}
+function mmss(s){ s = Math.floor(s); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+function updateArr(instant){
+  var t = now(), cur = lineAt(S.sta, S.line), l = cur.l, i = cur.i;
+  [1, -1].forEach(function(dir){
+    var el = $('fl' + dir); if (!el) return;
+    var e = eta(l, i, dir, t), key = l.id + dir;
+    flapSet(el, mmss(e), key, instant);
+    if (lastEta[key] != null && e > lastEta[key] + 5){ chime(); haptic([12, 60, 12]); }
+    lastEta[key] = e;
+    $('nx' + dir).innerHTML = Math.round((e + l.H) / 60) + '<em>分</em>';
+    var ld = loads(l, i, dir, t), best = 0;
+    ld.forEach(function(v, c){ if (v < ld[best]) best = c; });
+    var cars = $('cars' + dir);
+    if (cars.children.length !== ld.length) cars.innerHTML = ld.map(function(){ return '<div class="car"><i></i></div>'; }).join('');
+    ld.forEach(function(v, c){ cars.children[c].firstChild.style.height = Math.round(v * 100) + '%'; cars.children[c].classList.toggle('best', c === best); });
+    $('tip' + dir).textContent = e < 25 ? '進站中' : '第 ' + (best + 1) + ' 車';
+    $('tip' + dir).className = 'tip' + (e < 25 ? ' arriving' : '');
+  });
+  document.querySelectorAll('#xfer .dirs').forEach(function(sp){
+    var x = lineAt(S.sta, sp.dataset.x), L = x.l, parts = [];
+    if (x.i < L.st.length - 1) parts.push('往 ' + L.st[L.st.length - 1][1].split('/')[0] + '　<b>' + Math.ceil(eta(L, x.i, 1, t) / 60) + ' 分</b>');
+    if (x.i > 0) parts.push('往 ' + L.st[0][1].split('/')[0] + '　<b>' + Math.ceil(eta(L, x.i, -1, t) / 60) + ' 分</b>');
+    sp.innerHTML = parts.join('<br>');
+  });
+}
+
+// line strip (signature): stations around you with trains moving on the rail
+var stripW = 390, NS = 'http://www.w3.org/2000/svg';
+function drawStripBase(){
+  var svg = $('strip'), cur = lineAt(S.sta, S.line), l = cur.l, i = cur.i;
+  stripW = svg.clientWidth || 390;
+  var sp = stripW / 5.4, cx = stripW / 2, y = 62, h = '';
+  var x0 = Math.max(0, i - 3), x1 = Math.min(l.st.length - 1, i + 3);
+  var lx = i === 0 ? cx : -20, rx = i === l.st.length - 1 ? cx : stripW + 20;
+  lx = Math.max(lx, cx + (0 - i) * sp); rx = Math.min(rx, cx + (l.st.length - 1 - i) * sp);
+  h += '<rect x="'+lx+'" y="'+(y - 5)+'" width="'+(rx - lx)+'" height="10" rx="5" fill="'+l.c+'"/>';
+  for (var k = x0; k <= x1; k++){
+    var x = cx + (k - i) * sp, me = k === i, nm = l.st[k][1].split('/')[0];
+    h += me ? '<circle cx="'+x+'" cy="'+y+'" r="12" fill="#fbfbf7" stroke="#121212" stroke-width="5"/><circle cx="'+x+'" cy="'+y+'" r="4" fill="#121212"/>'
+            : '<circle cx="'+x+'" cy="'+y+'" r="7" fill="#fbfbf7" stroke="'+l.c+'" stroke-width="4"/>';
+    if (Math.abs(k - i) <= 2) h += '<text x="'+x+'" y="'+(y + 44)+'" text-anchor="middle" style="font-weight:'+(me ? 800 : 500)+';font-size:'+(me ? 14 : 12)+'px">'+nm+'</text>';
+  }
+  h += '<text x="16" y="16" style="font-size:12px;font-weight:700;fill:#55554f">往 '+l.st[0][1].split('/')[0]+'</text>';
+  h += '<text x="'+(stripW - 16)+'" y="16" text-anchor="end" style="font-size:12px;font-weight:700;fill:#55554f">往 '+l.st[l.st.length - 1][1].split('/')[0]+'</text>';
+  h += '<g id="trains"></g>';
+  svg.innerHTML = h;
+}
+function trainGlyph(x, y, dir, c){ // side view pictogram, nose points in travel direction
+  var s = dir > 0 ? 1 : -1;
+  return '<g transform="translate('+x.toFixed(1)+' '+y+') scale('+s+' 1)"><path d="M-17 -8h24c6 0 10 4 11 8v1c0 3-2 5-5 5h-30a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2z" fill="#121212"/>' +
+    '<path d="M-13 -5h6v5h-6zM-4 -5h6v5h-6zM6 -5h4c2 0 4 2 5 5h-9z" fill="#fbfbf7"/><rect x="-17" y="4" width="34" height="2" fill="'+c+'"/></g>';
+}
+function drawTrains(){
+  var g = document.getElementById('trains'); if (!g) return;
+  var cur = lineAt(S.sta, S.line), l = cur.l, i = cur.i, t = now(), sp = stripW / 5.4, cx = stripW / 2, h = '';
+  [1, -1].forEach(function(dir){
+    trainsOf(l, dir, t).forEach(function(u){
+      var x = cx + (idxOfU(l, u) - i) * sp;
+      if (x < -30 || x > stripW + 30) return;
+      h += trainGlyph(x, dir > 0 ? 36 : 88 - 6, dir, l.c);
+    });
+  });
+  g.innerHTML = h;
+}
+$('aCodes').addEventListener('click', function(e){ var b = e.target.closest('[data-line]'); if (!b) return; S.line = b.dataset.line; save('line', S.line); haptic(6); tick(); renderArr(); });
+$('xfer').addEventListener('click', function(e){ var b = e.target.closest('[data-line]'); if (!b) return; S.line = b.dataset.line; save('line', S.line); haptic(6); renderArr(); $('pgA').scrollTo({top:0, behavior: reduce ? 'auto' : 'smooth'}); });
+$('favs').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return; haptic(6);
+  if (b.id === 'findSta') return openPicker('sta');
+  goStation(b.dataset.sta);
+});
+$('favBtn').addEventListener('click', function(){
+  var k = S.favs.indexOf(S.sta), z = S.sta;
+  if (k >= 0){ S.favs.splice(k, 1); toast('已取消收藏 ' + z, function(){ S.favs.splice(k, 0, z); save('favs', S.favs); renderArr(); }); }
+  else { S.favs.push(z); toast('已收藏 ' + z); }
+  save('favs', S.favs); haptic([8, 40, 8]); renderArr();
+});
+$('sndBtn').addEventListener('click', function(){ S.snd = !S.snd; save('snd', S.snd); if (S.snd){ audio(); setTimeout(chime, 60); } haptic(8); renderArr(); toast(S.snd ? '進站提示音：開' : '進站提示音：關'); });
+function goStation(zh){ S.sta = zh; save('sta', zh); S.line = lineAt(zh, S.line).l.id; save('line', S.line); renderArr(); }
+// swipe the header to hop between favourites
+(function(){
+  var sx = 0, sy = 0, on = false, head = document.querySelector('.head');
+  head.style.touchAction = 'pan-y';
+  head.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; on = true; sx = e.clientX; sy = e.clientY; });
+  head.addEventListener('pointerup', function(e){
+    if (!on) return; on = false; var dx = e.clientX - sx;
+    if (Math.abs(dx) < 60 || Math.abs(e.clientY - sy) > 50 || !S.favs.length) return;
+    var k = S.favs.indexOf(S.sta), n = k < 0 ? 0 : mod(k + (dx < 0 ? 1 : -1), S.favs.length);
+    goStation(S.favs[n]); haptic(6); tick();
+  });
+  head.addEventListener('pointercancel', function(){ on = false; });
+})();
+
+// ---------- lines map ----------
+var ROW = 66;
+function renderMap(){
+  var l = LBY[S.mline];
+  $('lsel').innerHTML = LINES.map(function(x){ return '<button role="tab" aria-selected="'+(x.id === l.id)+'" data-ml="'+x.id+'"><i style="background:'+x.c+'"></i>'+x.zh.slice(0, 2)+'</button>'; }).join('');
+  $('lName').textContent = l.zh; $('lEn').textContent = l.en; $('lHw').textContent = Math.round(l.H / 60 * 10) / 10 + ' 分';
+  $('stl').innerHTML = l.st.map(function(s, i){
+    var xs = ST[s[1]].lines.filter(function(x){ return x.l.id !== l.id; }).map(function(x){ return badge(x.l, x.i); }).join('');
+    return '<li><button data-st="'+esc(s[1])+'"><span class="nm"><b>'+s[1]+'</b><span>'+codeOf(l, i)+'　'+s[2]+'</span>'+(xs ? '<span class="xs">'+xs+'</span>' : '')+'</span><span class="eta" data-i="'+i+'"></span></button></li>';
+  }).join('');
+  var H = l.st.length * ROW, rail = $('rail');
+  rail.setAttribute('height', H); rail.setAttribute('viewBox', '0 0 64 ' + H); rail.style.height = H + 'px';
+  var h = '<rect x="27" y="'+(ROW / 2)+'" width="10" height="'+(H - ROW)+'" rx="5" fill="'+l.c+'"/>';
+  l.st.forEach(function(s, i){
+    var yy = i * ROW + ROW / 2, xf = ST[s[1]].lines.length > 1;
+    h += xf ? '<circle cx="32" cy="'+yy+'" r="10" fill="#fbfbf7" stroke="#121212" stroke-width="4.5"/>' : '<circle cx="32" cy="'+yy+'" r="7" fill="#fbfbf7" stroke="'+l.c+'" stroke-width="4"/>';
+    if (i < l.st.length - 1 && l.st[i + 1][0] - s[0] > 1) [-7, 0, 7].forEach(function(o){ h += '<circle cx="32" cy="'+(yy + ROW / 2 + o)+'" r="1.8" fill="'+l.t+'"/>'; });
+  });
+  h += '<g id="mtrains"></g>';
+  rail.innerHTML = h;
+  updateMap();
+}
+function mapTrain(y, dir){ // top-down car, nose toward travel direction
+  var s = dir > 0 ? 1 : -1, x = dir > 0 ? 12 : 52, c = LBY[S.mline].c;
+  return '<g transform="translate('+x+' '+y.toFixed(1)+') scale(1 '+s+')"><path d="M-6.5 -17h13v22c0 5-3 9-6.5 12-3.5-3-6.5-7-6.5-12z" fill="#121212"/><path d="M-4 5h8c0 2.6-1.6 5-4 7-2.4-2-4-4.4-4-7z" fill="#fbfbf7"/><path d="M-6.5 -8h13v3h-13z" fill="'+c+'"/></g>';
+}
+function updateMap(full){
+  var l = LBY[S.mline], t = now(), g = document.getElementById('mtrains'); if (!g) return;
+  var h = '';
+  [1, -1].forEach(function(dir){ trainsOf(l, dir, t).forEach(function(u){ h += mapTrain(idxOfU(l, u) * ROW + ROW / 2, dir); }); });
+  g.innerHTML = h;
+  if (full === false) return;
+  document.querySelectorAll('#stl .eta').forEach(function(sp){
+    var i = +sp.dataset.i, a = i < l.st.length - 1 ? Math.ceil(eta(l, i, 1, t) / 60) : null, b = i > 0 ? Math.ceil(eta(l, i, -1, t) / 60) : null;
+    var txt = '<span><svg viewBox="0 0 10 10"><path d="M0 1h10L5 9z"/></svg>'+(a != null ? a + ' 分' : '終點')+'</span><span><svg viewBox="0 0 10 10"><path d="M0 9h10L5 1z"/></svg>'+(b != null ? b + ' 分' : '終點')+'</span>';
+    if (sp.dataset.v !== txt){ sp.dataset.v = txt; sp.innerHTML = txt; }
+  });
+}
+$('lsel').addEventListener('click', function(e){ var b = e.target.closest('[data-ml]'); if (!b) return; S.mline = b.dataset.ml; save('mline', S.mline); haptic(6); tick(); renderMap(); });
+$('stl').addEventListener('click', function(e){ var b = e.target.closest('[data-st]'); if (!b) return; haptic(6); openStation(b.dataset.st); });
+
+// ---------- planner ----------
+function route(o, d){
+  if (o === d) return null;
+  var XF = 5, dist = {}, prev = {}, q = [];
+  ST[o].lines.forEach(function(x){ var k = o + '|' + x.l.id; dist[k] = 0; q.push(k); });
+  while (q.length){
+    q.sort(function(a, b){ return dist[a] - dist[b]; });
+    var k = q.shift(), p = k.split('|'), zh = p[0], lid = p[1], l = LBY[lid], i = lineAt(zh, lid).i;
+    if (zh === d) { var path = [], c = k; while (c){ path.unshift(c); c = prev[c]; } return {path:path, min:dist[k]}; }
+    var nb = [];
+    if (i > 0) nb.push([l.st[i - 1][1] + '|' + lid, (l.st[i][0] - l.st[i - 1][0]) * SEG / 60]);
+    if (i < l.st.length - 1) nb.push([l.st[i + 1][1] + '|' + lid, (l.st[i + 1][0] - l.st[i][0]) * SEG / 60]);
+    ST[zh].lines.forEach(function(x){ if (x.l.id !== lid) nb.push([zh + '|' + x.l.id, XF]); });
+    nb.forEach(function(n){ var nd = dist[k] + n[1]; if (dist[n[0]] == null || nd < dist[n[0]] - 1e-9){ dist[n[0]] = nd; prev[n[0]] = k; if (q.indexOf(n[0]) < 0) q.push(n[0]); } });
+  }
+  return null;
+}
+function legsOf(r){
+  var legs = [], cur = null;
+  r.path.forEach(function(k){
+    var p = k.split('|');
+    if (!cur || cur.l !== p[1]){ if (cur) legs.push(cur); cur = {l:p[1], st:[p[0]]}; }
+    else cur.st.push(p[0]);
+  });
+  legs.push(cur);
+  return legs.filter(function(g){ return g.st.length > 1; });
+}
+function renderPlan(){
+  $('oName').textContent = S.o; $('oEn').textContent = ST[S.o].en; $('dName').textContent = S.d; $('dEn').textContent = ST[S.d].en;
+  var r = route(S.o, S.d), t = now();
+  if (!r){ $('sum').innerHTML = ''; $('jr').innerHTML = '<p class="empty">起點和終點是同一站，換一站試試。</p>'; renderRecs(); return; }
+  var legs = legsOf(r), codes = 0, h = '', clock = 0;
+  var fl = LBY[legs[0].l], fi = lineAt(legs[0].st[0], fl.id).i, fdir = lineAt(legs[0].st[1], fl.id).i > fi ? 1 : -1;
+  var wait = eta(fl, fi, fdir, t); clock = wait;
+  legs.forEach(function(g, n){
+    var l = LBY[g.l], a = lineAt(g.st[0], l.id).i, b = lineAt(g.st[g.st.length - 1], l.id).i, dir = b > a ? 1 : -1;
+    var cu = Math.abs(l.st[b][0] - l.st[a][0]); codes += cu;
+    if (n > 0){ clock += 5 * 60; h += '<div class="leg walk"><div class="tm"></div><div class="rl"><i style="background:#121212"></i></div><div class="tx"><p>'+IC.walk.replace('class="ic"', 'class="ic" style="width:16px;height:16px;display:inline-block;vertical-align:-3px"')+' 站內轉乘・步行約 4 分</p></div></div>'; }
+    var term = dir > 0 ? l.st[l.st.length - 1] : l.st[0];
+    h += '<div class="leg"><div class="tm">'+hhmm(clock)+'</div><div class="rl"><i class="first" style="background:'+l.c+'"></i><u></u></div><div class="tx"><b>'+g.st[0]+'</b><p>搭 <strong>'+l.zh+'</strong> 往 '+term[1].split('/')[0]+'<br>經 '+cu+' 站・約 '+Math.round(cu * SEG / 60)+' 分</p></div></div>';
+    clock += cu * SEG;
+    h += '<div class="leg"><div class="tm">'+hhmm(clock)+'</div><div class="rl"><i class="last" style="background:'+l.c+'"></i><u></u></div><div class="tx"><b>'+g.st[g.st.length - 1]+'</b>'+(n === legs.length - 1 ? '<p>抵達</p>' : '')+'</div></div>';
+  });
+  var fare = Math.min(65, 20 + 5 * Math.floor(Math.max(0, codes - 3) / 3));
+  $('sum').innerHTML = '<div><b>'+Math.round(clock / 60)+'<small>分</small></b><span>含候車 '+Math.ceil(wait / 60)+' 分</span></div><div><b><small>$</small>'+fare+'</b><span>單程票價</span></div><div><b>'+(legs.length - 1)+'<small>次</small></b><span>轉乘</span></div>';
+  $('jr').innerHTML = h; renderRecs();
+}
+function renderRecs(){
+  $('recs').innerHTML = S.recs.length ? S.recs.map(function(r, i){
+    return '<li class="rec" data-i="'+i+'"><button class="del" data-del="'+i+'">刪除</button><div class="mv"><button class="go" data-go="'+i+'">'+esc(r.o)+IC.arrow+esc(r.d)+'<small>'+(ST[r.o].lines[0].l.zh.slice(0, 2))+' 出發</small></button></div></li>';
+  }).join('') : '<li class="empty">還沒有常用行程。規劃好一趟後按上面的按鈕儲存。</li>';
+}
+$('oBtn').addEventListener('click', function(){ haptic(6); openPicker('o'); });
+$('dBtn').addEventListener('click', function(){ haptic(6); openPicker('d'); });
+$('swap').addEventListener('click', function(){ var t = S.o; S.o = S.d; S.d = t; save('o', S.o); save('d', S.d); var b = $('swap'); b.classList.toggle('spin'); haptic([6, 30, 6]); tick(); renderPlan(); });
+$('saveTrip').addEventListener('click', function(){
+  if (S.o === S.d) return;
+  S.recs = S.recs.filter(function(r){ return !(r.o === S.o && r.d === S.d); }); S.recs.unshift({o:S.o, d:S.d}); S.recs = S.recs.slice(0, 8);
+  save('recs', S.recs); renderRecs(); haptic([8, 40, 8]); toast('已儲存 ' + S.o + ' 到 ' + S.d);
+});
+$('recs').addEventListener('click', function(e){
+  var g = e.target.closest('[data-go]'), d = e.target.closest('[data-del]');
+  if (d){ var i = +d.dataset.del, r = S.recs.splice(i, 1)[0]; save('recs', S.recs); renderRecs(); haptic([14, 40, 14]);
+    toast('已刪除行程', function(){ S.recs.splice(i, 0, r); save('recs', S.recs); renderRecs(); }); return; }
+  if (g){ var q = S.recs[+g.dataset.go]; S.o = q.o; S.d = q.d; save('o', S.o); save('d', S.d); haptic(6); renderPlan(); $('pgP').scrollTo({top:0, behavior: reduce ? 'auto' : 'smooth'}); }
+});
+// swipe-left to reveal delete
+var swipedAt = 0;
+(function(){
+  var mv = null, sx = 0, sy = 0, dx = 0, open = null, lock = 0;
+  $('recs').addEventListener('click', function(e){ if (Date.now() - swipedAt < 350){ e.stopPropagation(); e.preventDefault(); } }, true);
+  $('recs').addEventListener('pointerdown', function(e){ var m = e.target.closest('.mv'); if (!m) return; mv = m; sx = e.clientX; sy = e.clientY; dx = 0; lock = 0; });
+  $('recs').addEventListener('pointermove', function(e){
+    if (!mv) return; var x = e.clientX - sx, y = e.clientY - sy;
+    if (!lock){ if (Math.abs(x) > 8) lock = 1; else if (Math.abs(y) > 8){ lock = 2; } }
+    if (lock !== 1) return;
+    var base = mv === open ? -88 : 0; dx = Math.max(-120, Math.min(0, base + x));
+    mv.classList.add('drag'); mv.style.transform = 'translateX(' + dx + 'px)';
+  });
+  function end(){
+    if (!mv) return; mv.classList.remove('drag');
+    if (lock === 1){ if (dx < -44){ if (open && open !== mv) open.style.transform = ''; mv.style.transform = 'translateX(-88px)'; open = mv; haptic(6); } else { mv.style.transform = ''; if (open === mv) open = null; }
+      swipedAt = Date.now();
+    }
+    mv = null;
+  }
+  $('recs').addEventListener('pointerup', end); $('recs').addEventListener('pointercancel', end);
+})();
+
+// ---------- sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null, pickMode = null;
+function openSheet(html){
+  lastFocus = document.activeElement; $('sbody').innerHTML = html; $('sbody').scrollTop = 0;
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); pickMode = null;
+  if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
+}
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+(function(){
+  var sy = 0, dy = 0, t0 = 0, drag = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button,input')) return;
+    var sb = $('sbody'); if (e.target.closest('.sbody') && sb.scrollTop > 0) return;
+    drag = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag');
+    try{ sheet.setPointerCapture(e.pointerId); }catch(er){}
+  });
+  sheet.addEventListener('pointermove', function(e){
+    if (!drag) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6;
+    sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2);
+  });
+  function end(e){
+    if (!drag) return; drag = false; sheet.classList.remove('drag'); scrim.style.opacity = '';
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight * .35 || (v > .6 && dy > 20)) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+function pickList(q){
+  q = (q || '').trim().toLowerCase();
+  return ALL.filter(function(z){ var s = ST[z]; return !q || z.indexOf(q) >= 0 || s.en.toLowerCase().indexOf(q) >= 0 || s.lines.some(function(x){ return codeOf(x.l, x.i).toLowerCase() === q; }); })
+    .map(function(z){ return '<button data-pick="'+esc(z)+'"><span class="cs">'+badges(z)+'</span><span><b>'+z+'</b><span>'+ST[z].en+'</span></span></button>'; }).join('') || '<p class="empty">找不到「'+esc(q)+'」。試試站名、英文或站碼，例如 BL12。</p>';
+}
+function openPicker(mode){
+  pickMode = mode;
+  var title = mode === 'o' ? '從哪裡出發' : mode === 'd' ? '要去哪裡' : '找車站';
+  openSheet('<h4>'+title+'</h4><label class="search">'+IC.search+'<input id="pq" type="search" placeholder="站名、英文或站碼" autocomplete="off" aria-label="搜尋車站"></label><div class="pick" id="plist">'+pickList('')+'</div>');
+  $('pq').addEventListener('input', function(){ $('plist').innerHTML = pickList(this.value); });
+}
+function openStation(zh){
+  var st = ST[zh], t = now(), fav = S.favs.indexOf(zh) >= 0;
+  var h = '<h4>'+zh+'</h4><p class="en">'+st.en+'</p><div class="codes" style="margin-top:10px;min-height:0">'+badges(zh)+'</div><div class="dl">';
+  st.lines.forEach(function(x){
+    var l = x.l, i = x.i, a = i < l.st.length - 1, b = i > 0;
+    h += '<div class="dlr">'+badge(l, i)+'<span>'+(a ? '往 '+l.st[l.st.length - 1][1].split('/')[0]+'<br><b>'+Math.ceil(eta(l, i, 1, t) / 60)+'</b> 分' : '終點站')+'</span><span>'+(b ? '往 '+l.st[0][1].split('/')[0]+'<br><b>'+Math.ceil(eta(l, i, -1, t) / 60)+'</b> 分' : '終點站')+'</span></div>';
+  });
+  h += '</div><div class="exits"><h5>出口</h5><ul>' + exitsOf(zh).map(function(x){ return '<li><b>'+x[0]+'</b>'+x[1]+'</li>'; }).join('') + '</ul></div>';
+  h += '<div class="sacts"><button class="btn press" data-sa="arr">看到站</button><button class="btn press" data-sa="o">設為起點</button><button class="btn press" data-sa="d">設為終點</button></div>';
+  h += '<div class="act" style="margin:10px 0 0"><button class="btn press" data-sa="fav" style="background:none;color:#121212;justify-content:center">'+(fav ? IC.star + '已收藏' : IC.starO + '加入收藏')+'</button></div>';
+  openSheet(h); sheet.dataset.st = zh;
+}
+sheet.addEventListener('click', function(e){
+  var p = e.target.closest('[data-pick]'), a = e.target.closest('[data-sa]');
+  if (p){
+    var z = p.dataset.pick; haptic(8);
+    if (pickMode === 'o'){ S.o = z; save('o', z); renderPlan(); }
+    else if (pickMode === 'd'){ S.d = z; save('d', z); renderPlan(); }
+    else { goStation(z); setTab(0, true); }
+    closeSheet(); return;
+  }
+  if (a){
+    var zh = sheet.dataset.st, k = a.dataset.sa; haptic(8);
+    if (k === 'arr'){ goStation(zh); closeSheet(); setTab(0); }
+    if (k === 'o'){ S.o = zh; save('o', zh); closeSheet(); setTab(2); toast('起點：' + zh); }
+    if (k === 'd'){ S.d = zh; save('d', zh); closeSheet(); setTab(2); toast('終點：' + zh); }
+    if (k === 'fav'){ var i = S.favs.indexOf(zh); if (i >= 0) S.favs.splice(i, 1); else S.favs.push(zh); save('favs', S.favs); renderArr(); openStation(zh); }
+  }
+});
+
+// ---------- loop ----------
+var last = 0, raf = 0;
+function loop(ts){
+  raf = requestAnimationFrame(loop);
+  if (S.tab === 0) drawTrains();
+  if (S.tab === 1) updateMap(false);
+  if (ts - last > 250){ last = ts; if (S.tab === 0) updateArr(false); else if (S.tab === 1) updateMap(true); }
+}
+document.addEventListener('visibilitychange', function(){ if (document.hidden) cancelAnimationFrame(raf); else { cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); } });
+window.addEventListener('resize', function(){ drawStripBase(); });
+
+renderArr(); renderMap(); renderPlan(); setTab(S.tab, true);
+raf = requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

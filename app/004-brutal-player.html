@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ecebe4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LOUD.">
+<title>LOUD. · 音樂播放器</title>
+<meta name="description" content="粗獷主義的音樂播放器：每一首歌都在手機上即時合成，波形可以用手指刮碟，佇列拖曳排序，隨機與循環照你的意思走。收錄於 100 Creative HTML Works（App 004・粗獷主義）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/004-brutal-player.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23ffe600'/%3E%3Crect x='6' y='6' width='52' height='52' fill='none' stroke='%23000' stroke-width='6'/%3E%3Cpath d='M22 17v30l24-15z'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#ecebe4;
+  --ink:#000;
+  --y:#ffe600;
+  --dim:#56554f;
+  --heavy:"Arial Black","Arial Bold","PingFang TC","Heiti TC",sans-serif;
+  --cjk:"PingFang TC","Heiti TC",Arial,sans-serif;
+  --mono:"Courier New",Courier,monospace;
+  --b:3px solid var(--ink);
+}
+*{box-sizing:border-box;margin:0;border-radius:0}
+html,body{height:100%}
+body{font:15px/1.35 var(--cjk);color:var(--ink);background:var(--paper);overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:4px solid var(--ink);outline-offset:-4px;background:var(--y)}
+input{font:inherit;color:inherit}
+svg{display:block}
+button svg{fill:currentColor}
+.m{font-family:var(--mono);font-weight:700}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.btn-side{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper);isolation:isolate}
+@media (min-width:521px){
+  body{background:var(--paper)}
+  .stage{display:flex;align-items:center;justify-content:center;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0;overflow:hidden}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));padding:14px;background:var(--ink);z-index:1}
+  .screen{inset:14px}
+  .btn-side{display:block;position:absolute;right:-8px;top:180px;width:8px;height:74px;background:var(--y);border:var(--b);border-left:0}
+  .caption{display:block;position:fixed;right:48px;bottom:44px;z-index:1;max-width:260px;background:var(--ink);color:var(--paper);padding:16px 18px}
+  .caption h1{font:900 30px/1 var(--heavy);color:var(--y)}
+  .caption p{margin-top:8px;font-size:14px;line-height:1.5}
+}
+@media (min-width:521px) and (max-width:960px){.caption{display:none}}
+
+/* ---------- status ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 22px 0 24px;
+  display:flex;align-items:center;justify-content:space-between;font:700 16px/1 var(--mono);pointer-events:none;background:var(--paper)}
+.status .g{display:flex;gap:7px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- top text tabs ---------- */
+.tabs{position:absolute;left:0;right:0;top:calc(46px + env(safe-area-inset-top));z-index:25;display:grid;grid-template-columns:repeat(3,1fr);height:62px;border-top:var(--b);border-bottom:var(--b);background:var(--paper)}
+@media (display-mode:standalone){.tabs{top:env(safe-area-inset-top)}}
+.tab{position:relative;font:900 25px/1 var(--heavy);display:flex;align-items:center;justify-content:center;gap:4px}
+.tab+.tab{border-left:var(--b)}
+.tab sup{font:700 11px/1 var(--mono);align-self:flex-start;margin-top:12px}
+.tab[aria-selected=true]{background:var(--ink);color:var(--y)}
+.tab:active{background:var(--y);color:var(--ink)}
+
+/* ---------- pages ---------- */
+.pages{position:absolute;left:0;right:0;top:calc(108px + env(safe-area-inset-top));bottom:0}
+@media (display-mode:standalone){.pages{top:calc(62px + env(safe-area-inset-top))}}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;padding-bottom:calc(36px + env(safe-area-inset-bottom))}
+.page::-webkit-scrollbar{display:none}
+.page[hidden]{display:none!important}
+#p-now>*{flex:none}
+#p-now>.wave{flex:1 1 170px}
+.page.cut{animation:cut .16s steps(2,jump-none)}
+@keyframes cut{from{transform:translateX(18px)}to{transform:none}}
+
+/* ---------- now playing ---------- */
+.head{position:relative;padding:14px 18px 16px;display:grid;grid-template-columns:1fr auto;gap:0 8px}
+.idx{grid-column:1;grid-row:1;font:700 14px/1 var(--mono);display:flex;gap:14px;align-items:center;min-height:40px}
+.idx b{background:var(--ink);color:var(--y);padding:4px 6px}
+.more{grid-column:2;grid-row:1;width:48px;height:48px;border:var(--b);display:grid;place-items:center;align-self:start;margin-top:-4px}
+.more:active{background:var(--ink);color:var(--y)}
+.title{grid-column:1 / -1;font:900 54px/1.02 var(--heavy);letter-spacing:-.01em;margin-top:10px;word-break:break-all;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-bottom:4px}
+.artist{grid-column:1 / -1;justify-self:start;margin-top:8px;background:var(--ink);color:var(--y);font:900 20px/1 var(--heavy);padding:8px 10px 9px}
+.meta{grid-column:1 / -1;margin-top:10px;font:700 14px/1.2 var(--mono);color:var(--ink)}
+.wave{position:relative;flex:1 1 170px;min-height:130px;max-height:240px;border-top:var(--b);border-bottom:var(--b);touch-action:none;cursor:ew-resize;overflow:hidden}
+.wave canvas{position:absolute;inset:0;width:100%;height:100%}
+.wave .lab{position:absolute;top:8px;left:0;font:700 14px/1 var(--mono);background:var(--ink);color:var(--y);padding:5px 6px;pointer-events:none;white-space:nowrap}
+.times{display:flex;justify-content:space-between;padding:10px 18px 0;font:700 17px/1 var(--mono)}
+.times span:last-child{color:var(--dim)}
+.transport{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:10px;padding:14px 18px 0}
+.transport button{height:84px;border:var(--b);display:grid;place-items:center}
+.transport button:active{background:var(--ink);color:var(--y)}
+.transport .play{background:var(--y)}
+.transport .play:active{background:var(--ink);color:var(--y)}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:10px 18px 0}
+.mode{height:48px;border:var(--b);font:700 14px/1 var(--mono);display:flex;align-items:center;justify-content:center;gap:6px}
+.mode[aria-pressed=true]{background:var(--ink);color:var(--y)}
+.mode:active{background:var(--y);color:var(--ink)}
+.meter{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:16px 18px 0}
+.meter .k{font:700 13px/1 var(--mono)}
+.vu{display:grid;grid-template-columns:repeat(20,1fr);gap:3px;height:22px}
+.vu i{border:2px solid var(--ink)}
+.vu i.on{background:var(--ink)}
+.vu i.hot.on{background:var(--y)}
+.vol{grid-column:2;-webkit-appearance:none;appearance:none;width:100%;height:44px;background:none;touch-action:none;margin:0}
+.vol::-webkit-slider-runnable-track{height:6px;background:var(--ink)}
+.vol::-moz-range-track{height:6px;background:var(--ink)}
+.vol::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-10px;background:var(--y);border:var(--b);border-radius:0}
+.vol::-moz-range-thumb{width:22px;height:22px;background:var(--y);border:var(--b);border-radius:0}
+
+/* ---------- queue ---------- */
+.qhead{padding:16px 18px 14px;border-bottom:var(--b);display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.qhead .n{font:900 44px/1 var(--heavy)}
+.qhead .n small{display:block;font:700 13px/1.3 var(--mono);margin-top:6px}
+.qacts{display:flex;gap:8px}
+.qacts button{height:44px;padding:0 10px;border:var(--b);font:700 13px/1 var(--mono)}
+.qacts button:active{background:var(--ink);color:var(--y)}
+.qlist{position:relative}
+.qrow{position:relative;display:grid;grid-template-columns:1fr 48px 48px;align-items:stretch;border-bottom:var(--b);background:var(--paper);height:70px}
+.qrow.now{background:var(--y)}
+.qrow.lift{background:var(--ink);color:var(--y);z-index:3}
+.qrow.lift .qx,.qrow.lift .qh{color:var(--y)}
+.qmain{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:8px;padding:0 6px 0 18px;text-align:left;min-width:0}
+.qmain:active{background:var(--ink);color:var(--y)}
+.qmain .no{font:700 14px/1 var(--mono)}
+.qmain b{display:block;font:900 18px/1.2 var(--heavy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qmain span.a{display:block;font-size:13px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qmain .d{font:700 14px/1 var(--mono)}
+.qx,.qh{display:grid;place-items:center;border-left:var(--b)}
+.qx:active{background:var(--ink);color:var(--y)}
+.qh{touch-action:none;cursor:grab}
+.qempty{padding:28px 18px;font:900 22px/1.3 var(--heavy)}
+.qnote{padding:14px 18px;font:700 13px/1.4 var(--mono);color:var(--dim)}
+
+/* ---------- library ---------- */
+.search{display:flex;align-items:center;gap:10px;margin:16px 18px 0;border:var(--b);height:54px;padding:0 12px;background:#fff}
+.search input{flex:1;min-width:0;border:0;background:none;font:700 17px/1 var(--cjk);outline:none;height:100%}
+.search input::placeholder{color:#77766f}
+.search button{width:44px;height:44px;display:grid;place-items:center}
+.gen{display:flex;flex-wrap:wrap;gap:8px;padding:12px 18px 14px;border-bottom:var(--b)}
+.gen button{height:44px;padding:0 12px;border:var(--b);font:700 14px/1 var(--mono)}
+.gen button[aria-pressed=true]{background:var(--ink);color:var(--y)}
+.gen button:active{background:var(--y);color:var(--ink)}
+.lrow{display:grid;grid-template-columns:1fr 64px;border-bottom:var(--b);min-height:72px}
+.lmain{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:10px 12px 10px 18px;text-align:left;min-width:0}
+.lmain:active{background:var(--ink);color:var(--y)}
+.lmain b{display:block;font:900 19px/1.2 var(--heavy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lmain span{display:block;font-size:13px;margin-top:3px}
+.lmain .d{font:700 14px/1.3 var(--mono);text-align:right}
+.lmain .d small{display:block;font-size:12px}
+.lrow.in .ladd{background:var(--ink);color:var(--y)}
+.ladd{border-left:var(--b);display:grid;place-items:center}
+.ladd:active{background:var(--y);color:var(--ink)}
+.lcount{padding:14px 18px;font:700 13px/1.4 var(--mono)}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.45);display:none}
+.scrim.on{display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;background:var(--paper);border-top:6px solid var(--ink);max-height:calc(100% - 80px);overflow:hidden;display:flex;flex-direction:column;
+  transform:translateY(105%);transition:transform .28s steps(4,jump-end);touch-action:none}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{height:34px;display:grid;place-items:center;flex:none;cursor:grab}
+.grab i{width:56px;height:8px;background:var(--y);border:var(--b)}
+.sbody{overflow-y:auto;padding:0 18px calc(22px + env(safe-area-inset-bottom));scrollbar-width:none}
+.sbody::-webkit-scrollbar{display:none}
+.sbody h2{font:900 34px/1.05 var(--heavy)}
+.sbody .sub{font:700 14px/1.4 var(--mono);margin-top:8px}
+.grid{margin-top:16px;border:var(--b);padding:10px 10px 8px;background:#fff}
+.grid .row{display:grid;grid-template-columns:44px repeat(16,1fr);gap:2px;align-items:center;height:18px;margin-bottom:4px}
+.grid .row span{font:700 11px/1 var(--mono)}
+.grid i{height:14px;border:2px solid var(--ink)}
+.grid i.on{background:var(--ink)}
+.grid i.q{border-color:#b9b8b0}
+.grid i.q.on{background:var(--ink);border-color:var(--ink)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;border:var(--b)}
+.facts div{padding:10px;font:700 12px/1.2 var(--mono)}
+.facts div+div{border-left:var(--b)}
+.facts b{display:block;font:900 22px/1.1 var(--heavy);margin-top:4px}
+.sact{display:block;width:100%;height:56px;margin-top:10px;border:var(--b);font:900 18px/1 var(--heavy);text-align:left;padding:0 14px}
+.sact:active{background:var(--ink);color:var(--y)}
+.sact.y{background:var(--y)}
+
+.toast{position:absolute;left:0;right:0;bottom:0;z-index:60;background:var(--ink);color:var(--y);font:900 17px/1.2 var(--heavy);padding:16px 18px calc(22px + env(safe-area-inset-bottom));display:none}
+.toast.on{display:block}
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;background:var(--ink);z-index:70;pointer-events:none}
+.toast.on~.home-ind{background:var(--y)}
+
+@media (prefers-reduced-motion:reduce){
+  .page.cut{animation:none}
+  .sheet{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <rect width="1600" height="1000" fill="#ecebe4"/>
+      <rect x="0" y="150" width="1600" height="16" fill="#000"/>
+      <rect x="0" y="846" width="1600" height="16" fill="#000"/>
+      <rect x="930" y="166" width="420" height="680" fill="#ffe600"/>
+      <text x="-40" y="128" font-family="Arial Black, Arial" font-weight="900" font-size="128" fill="#000" letter-spacing="2">LOUD. LOUD. LOUD. LOUD. LOUD.</text>
+      <text x="-190" y="972" font-family="Arial Black, Arial" font-weight="900" font-size="128" fill="#000" letter-spacing="2">LOUD. LOUD. LOUD. LOUD. LOUD.</text>
+      <g id="bgWave" fill="#000"></g>
+    </svg>
+  </div>
+  <div class="caption"><h1>LOUD.</h1><p>每首歌都在手機上即時合成。用手指刮它。</p></div>
+
+  <div class="device">
+    <span class="btn-side" aria-hidden="true"></span>
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="4" height="4"/><rect x="5" y="5" width="4" height="7"/><rect x="10" y="2" width="4" height="10"/><rect x="15" y="0" width="3" height="12" fill="#9a998f"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M0 3 8 0l8 3-2 3-6-2-6 2z"/><path d="M4 7l4-1.4L12 7l-4 5z"/></svg>
+          <svg width="28" height="12" viewBox="0 0 28 12"><rect x="1.5" y="1.5" width="22" height="9" fill="none" stroke="#000" stroke-width="3"/><rect id="batt" x="4" y="4" width="14" height="4"/><rect x="25" y="3.5" width="3" height="5"/></svg>
+        </span>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="主要分頁">
+        <button class="tab" role="tab" data-p="now" aria-selected="true" aria-controls="p-now">播放</button>
+        <button class="tab" role="tab" data-p="queue" aria-selected="false" aria-controls="p-queue">佇列<sup id="qBadge">8</sup></button>
+        <button class="tab" role="tab" data-p="lib" aria-selected="false" aria-controls="p-lib">曲庫</button>
+      </nav>
+
+      <main class="pages">
+        <!-- NOW -->
+        <section class="page" id="p-now" aria-label="正在播放" style="display:flex;flex-direction:column">
+          <div class="head">
+            <div class="idx"><b id="npNo">01/08</b><span id="npGenre">龐克</span></div>
+            <button class="more" id="moreBtn" aria-label="曲目資訊">
+              <svg width="22" height="22" viewBox="0 0 22 22"><rect x="1" y="8" width="6" height="6"/><rect x="8" y="8" width="6" height="6"/><rect x="15" y="8" width="6" height="6"/></svg>
+            </button>
+            <h1 class="title" id="npTitle">頂樓加蓋</h1>
+            <div class="artist" id="npArtist">騎樓底</div>
+            <div class="meta" id="npMeta">172 BPM / E 小調 / 00:33</div>
+          </div>
+          <div class="wave" id="wave" role="slider" tabindex="0" aria-label="播放位置，左右拖曳可刮碟" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <canvas id="wcv"></canvas>
+            <span class="lab" id="wlab">00:00</span>
+          </div>
+          <div class="times"><span id="tNow">00:00</span><span id="tLeft">-00:33</span></div>
+          <div class="transport">
+            <button id="prevBtn" aria-label="上一首"><svg width="34" height="30" viewBox="0 0 34 30"><rect x="0" y="0" width="6" height="30"/><path d="M34 0v30L7 15z"/></svg></button>
+            <button class="play" id="playBtn" aria-label="播放"><svg id="playIc" width="40" height="44" viewBox="0 0 40 44"><path d="M2 0v44l38-22z"/></svg></button>
+            <button id="nextBtn" aria-label="下一首"><svg width="34" height="30" viewBox="0 0 34 30"><path d="M0 0v30l27-15z"/><rect x="28" y="0" width="6" height="30"/></svg></button>
+          </div>
+          <div class="modes">
+            <button class="mode" id="shufBtn" aria-pressed="false"><svg width="18" height="16" viewBox="0 0 18 16"><path d="M0 2h5l7 10h2v-3l4 5-4 5v-3h-4L3 6H0z" transform="translate(0 -2)"/><path d="M0 12h3l2-3 2 3-2 3H0zM9 4l2-3h3V-2l4 5-4 5V5h-2L10 7z" transform="translate(0 2)"/></svg>隨機</button>
+            <button class="mode" id="repBtn" aria-pressed="false"><svg width="18" height="16" viewBox="0 0 18 16"><path d="M2 3h11V0l5 4.5L13 9V6H5v3H2zM16 13H5v3L0 11.5 5 7v3h8V7h3z"/></svg><span id="repLbl">循環 關</span></button>
+            <button class="mode" id="favBtn" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 0l2.4 5.2L16 5.8l-4.2 3.8L13 16l-5-3-5 3 1.2-6.4L0 5.8l5.6-.6z"/></svg>收藏</button>
+          </div>
+          <div class="meter">
+            <span class="k">電平</span>
+            <div class="vu" id="vu" aria-hidden="true"></div>
+            <span class="k">音量</span>
+            <input class="vol" id="vol" type="range" min="0" max="100" value="80" aria-label="音量">
+          </div>
+        </section>
+
+        <!-- QUEUE -->
+        <section class="page" id="p-queue" aria-label="播放佇列" hidden>
+          <div class="qhead">
+            <div class="n"><span id="qCount">8 首</span><small id="qDur">總長 00:00</small></div>
+            <div class="qacts"><button id="qShuffle">打亂</button><button id="qClear">清掉已播</button></div>
+          </div>
+          <div class="qlist" id="qlist"></div>
+          <p class="qnote">按住右邊的三條槓上下拖曳，改變播放順序。</p>
+        </section>
+
+        <!-- LIBRARY -->
+        <section class="page" id="p-lib" aria-label="曲庫" hidden>
+          <label class="search">
+            <svg width="22" height="22" viewBox="0 0 22 22"><path d="M0 0h15v15H0zM4 4v7h7V4z" fill-rule="evenodd"/><path d="M13 16l3-3 6 6-3 3z"/></svg>
+            <input id="q" type="search" placeholder="搜尋曲名或樂團" autocomplete="off" aria-label="搜尋">
+            <button id="qClearBtn" aria-label="清除搜尋"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M0 3 3 0l5 5 5-5 3 3-5 5 5 5-3 3-5-5-5 5-3-3 5-5z"/></svg></button>
+          </label>
+          <div class="gen" id="gen" role="group" aria-label="類型">
+            <button data-g="all" aria-pressed="true">全部</button>
+            <button data-g="龐克" aria-pressed="false">龐克</button>
+            <button data-g="電子" aria-pressed="false">電子</button>
+            <button data-g="後搖" aria-pressed="false">後搖</button>
+            <button data-g="City Pop" aria-pressed="false">City Pop</button>
+            <button data-g="fav" aria-pressed="false">收藏</button>
+          </div>
+          <div id="llist"></div>
+          <p class="lcount" id="lcount"></p>
+        </section>
+      </main>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="曲目資訊">
+        <div class="grab" id="grab"><i></i></div>
+        <div class="sbody" id="sbody"></div>
+      </div>
+      <div class="toast" id="toast" role="status"></div>
+      <div class="home-ind" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var K = 'app004:';
+function load(k, d){ try { var v = localStorage.getItem(K + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(K + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function mmss(s){ s = Math.max(0, Math.round(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// ---------- library ----------
+var LIB = [
+  {id:'a', t:'頂樓加蓋', a:'騎樓底', g:'龐克', bpm:172, root:40, mode:'min', bars:24, seed:11},
+  {id:'b', t:'捷運末班車', a:'粗體字', g:'電子', bpm:124, root:45, mode:'min', bars:16, seed:23},
+  {id:'c', t:'颱風假', a:'濕地公園', g:'後搖', bpm:92, root:43, mode:'maj', bars:12, seed:37},
+  {id:'d', t:'永和豆漿四點', a:'夜貓合作社', g:'City Pop', bpm:108, root:41, mode:'maj', bars:16, seed:41},
+  {id:'e', t:'機車陣', a:'騎樓底', g:'龐克', bpm:184, root:38, mode:'min', bars:24, seed:53},
+  {id:'f', t:'鐵皮屋頂的雨', a:'濕地公園', g:'後搖', bpm:84, root:45, mode:'min', bars:12, seed:67},
+  {id:'g', t:'西門町地下道', a:'粗體字', g:'電子', bpm:128, root:42, mode:'min', bars:16, seed:71},
+  {id:'h', t:'過期發票', a:'三號出口', g:'龐克', bpm:162, root:43, mode:'min', bars:22, seed:83},
+  {id:'i', t:'淡水線', a:'夜貓合作社', g:'City Pop', bpm:112, root:44, mode:'maj', bars:16, seed:97},
+  {id:'j', t:'冷氣團', a:'粗體字', g:'電子', bpm:132, root:40, mode:'min', bars:16, seed:101},
+  {id:'k', t:'廟口', a:'濕地公園', g:'後搖', bpm:90, root:38, mode:'maj', bars:12, seed:113},
+  {id:'l', t:'騎樓下躲雨', a:'三號出口', g:'City Pop', bpm:104, root:46, mode:'maj', bars:16, seed:127}
+];
+var NOTE = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+LIB.forEach(function(t){ t.dur = t.bars * 4 * 60 / t.bpm + .6; });
+function byId(id){ for (var i = 0; i < LIB.length; i++) if (LIB[i].id === id) return LIB[i]; return null; }
+
+// ---------- procedural synthesis (plain math, no AudioContext needed) ----------
+var SR = 22050, MIN = [0,2,3,5,7,8,10], MAJ = [0,2,4,5,7,9,11];
+var GEN = {
+  '龐克': {kick:[1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,0], snare:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1], hat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
+    bass:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4], bassWave:1, bassAmp:.34, bassLen:.9, lp:.5, prog:[0,5,3,4], power:true, lead:0, drive:3.2},
+  '電子': {kick:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], snare:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], hat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,1],
+    bass:[null,0,0,null,null,0,7,null,null,0,0,null,null,0,4,0], bassWave:1, bassAmp:.3, bassLen:.8, lp:.18, prog:[0,0,5,3], lead:.55, leadWave:2, leadAmp:.09, arp:true, drive:1.7},
+  '後搖': {kick:[1,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0], snare:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], hat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
+    bass:[0,null,null,null,null,null,null,null,0,null,null,null,4,null,null,null], bassWave:0, bassAmp:.36, bassLen:3.6, lp:1, prog:[0,4,5,3], lead:.9, leadWave:3, leadAmp:.12, trem:true, pad:true, build:true, drive:1.4},
+  'City Pop': {kick:[1,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0], snare:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], hat:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    bass:[0,null,null,7,null,null,0,null,null,7,null,0,null,null,6,null], bassWave:2, bassAmp:.22, bassLen:.9, lp:.22, prog:[3,4,2,5], lead:.45, leadWave:0, leadAmp:.1, pad:true, seventh:true, drive:1.3}
+};
+function rng(s){ return function(){ s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+function mtof(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+var CACHE = {};
+function synth(tr){
+  if (CACHE[tr.id]) return CACHE[tr.id];
+  var G = GEN[tr.g], r = rng(tr.seed), spb = 60 / tr.bpm, st = spb / 4, steps = tr.bars * 16;
+  var N = Math.ceil(tr.dur * SR), out = new Float32Array(N), scale = tr.mode === 'min' ? MIN : MAJ;
+  var kick = G.kick.slice(), snare = G.snare.slice(), hat = G.hat.slice();
+  for (var v = 0; v < 3; v++){ var p = Math.floor(r() * 16); if (p % 4 && r() < .5) kick[p] = 1; }
+  if (r() < .5) snare[15] = 1;
+  var lead = [];
+  for (var i = 0; i < 16; i++) lead.push(r() < (G.lead || 0) ? Math.floor(r() * 7) + (G.arp ? (i % 4) * 2 : 0) : null);
+  function deg(d, oct){ var o = Math.floor(d / 7), k = ((d % 7) + 7) % 7; return tr.root + oct * 12 + o * 12 + scale[k]; }
+  function tone(t, dur, f, amp, wave, atk, rel, lp, trem){
+    var i0 = Math.floor(t * SR), n = Math.floor((dur + rel) * SR), ph = 0, inc = f / SR, y = 0;
+    for (var j = 0; j < n && i0 + j < N; j++){
+      var tt = j / SR, env = tt < atk ? tt / atk : tt < dur ? 1 - (tt - atk) / dur * .3 : .7 * Math.exp(-(tt - dur) / (rel * .3));
+      ph += inc; ph -= Math.floor(ph);
+      var x = wave === 0 ? Math.sin(ph * 6.2832) : wave === 1 ? 2 * ph - 1 : wave === 2 ? (ph < .5 ? .8 : -.8) : (ph < .5 ? 4 * ph - 1 : 3 - 4 * ph);
+      y += lp * (x - y);
+      if (trem) env *= .55 + .45 * Math.sin(tt * 6.2832 * trem);
+      out[i0 + j] += y * amp * env;
+    }
+  }
+  function kickAt(t, a){ var i0 = Math.floor(t * SR), ph = 0; for (var j = 0; j < 6000 && i0 + j < N; j++){ var tt = j / SR; ph += (45 + 115 * Math.exp(-tt * 28)) / SR; out[i0 + j] += Math.sin(ph * 6.2832) * Math.exp(-tt * 8) * a; } }
+  function snareAt(t, a){ var i0 = Math.floor(t * SR); for (var j = 0; j < 4200 && i0 + j < N; j++){ var tt = j / SR; out[i0 + j] += ((Math.random() * 2 - 1) * Math.exp(-tt * 20) + Math.sin(tt * 1130) * Math.exp(-tt * 30) * .6) * a; } }
+  function hatAt(t, a){ var i0 = Math.floor(t * SR), pv = 0; for (var j = 0; j < 1100 && i0 + j < N; j++){ var n = Math.random() * 2 - 1; out[i0 + j] += (n - pv) * Math.exp(-j / SR * 85) * a; pv = n; } }
+  for (var s = 0; s < steps; s++){
+    var bar = Math.floor(s / 16), k = s % 16, t = s * st;
+    var chord = G.prog[Math.floor(bar / 2) % G.prog.length];
+    var intro = bar < 2, outro = bar === tr.bars - 1, brk = bar >= Math.floor(tr.bars * .55) && bar < Math.floor(tr.bars * .55) + 2;
+    var drums = G.build ? bar >= Math.floor(tr.bars / 3) : !brk || k % 8 === 0;
+    if (outro && k > 0) continue;
+    if (drums){
+      if (kick[k] && !(brk && !G.build)) kickAt(t, .95);
+      if (snare[k] && !intro) snareAt(t, G.drive > 2 ? .5 : .38);
+      if (hat[k]) hatAt(t, (k % 4 === 0 ? .26 : .16) * (G.build ? .7 : 1));
+    }
+    if (!intro || G.build){
+      var b = G.bass[k];
+      if (b !== null && b !== undefined && !(intro && G.build && bar < 1)){
+        var f = mtof(deg(chord + b, -1 + (G.power ? 0 : 0)));
+        tone(t, st * G.bassLen * (G.bassLen > 3 ? 1 : 1), f, G.bassAmp, G.bassWave, .005, .05, G.lp, 0);
+        if (G.power) tone(t, st * G.bassLen, mtof(deg(chord + b, 0) + 7), G.bassAmp * .7, 1, .004, .05, .5, 0);
+      }
+      if (lead[k] !== null && lead[k] !== undefined && !(brk && !G.build)){
+        tone(t, st * (G.trem ? 3 : 1.4), mtof(deg(chord + lead[k], 1)), G.leadAmp, G.leadWave, .006, G.trem ? .6 : .12, 1, G.trem ? spb * 0 + tr.bpm / 15 : 0);
+      }
+    }
+    if (G.pad && k === 0 && bar % 2 === 0 && !outro){
+      [0, 2, 4].concat(G.seventh ? [6] : []).forEach(function(d){ tone(t, spb * 7.5, mtof(deg(chord + d, 0)), .05, 3, spb * 1.5, .6, .6, 0); });
+    }
+  }
+  // final hit
+  kickAt((steps - 16) * st, 1); tone((steps - 16) * st, spb * 2, mtof(deg(G.prog[0], -1)), .3, 1, .004, .6, .4, 0);
+  var peak = 0;
+  for (var q = 0; q < N; q++){ var x = Math.tanh(out[q] * G.drive); out[q] = x; if (Math.abs(x) > peak) peak = Math.abs(x); }
+  var g = .92 / (peak || 1); for (q = 0; q < N; q++) out[q] *= g;
+  // envelope for the waveform + meter
+  var B = 600, env = new Float32Array(B), per = Math.floor(N / B);
+  var lo = 1, hi = 0;
+  for (var e = 0; e < B; e++){ var m = 0, c2 = 0; for (var z = e * per; z < (e + 1) * per; z += 2){ m += out[z] * out[z]; c2++; } env[e] = Math.sqrt(m / Math.max(1, c2)); if (env[e] < lo) lo = env[e]; if (env[e] > hi) hi = env[e]; }
+  for (e = 0; e < B; e++) env[e] = Math.pow((env[e] - lo) / Math.max(.001, hi - lo), .8) * .96 + .04;
+  CACHE[tr.id] = {data:out, env:env, kick:kick, snare:snare, hat:hat, lead:lead, buf:null, rev:null};
+  return CACHE[tr.id];
+}
+
+// ---------- state ----------
+var favs = load('fav', ['a','d']);
+var queue = load('queue', ['a','b','c','d','e','f','g','h']).filter(byId);
+var cur = Math.min(load('cur', 0), Math.max(0, queue.length - 1));
+var opts = load('opts', {shuffle:false, repeat:'off', vol:80});
+var plays = load('plays', {});
+function persist(){ save('queue', queue); save('cur', cur); save('opts', opts); save('fav', favs); save('plays', plays); }
+function curTrack(){ return queue.length ? byId(queue[cur]) : null; }
+
+// ---------- audio engine ----------
+var AC = null, master = null, an = null, src = null, playing = false, pos = 0, startAt = 0, tbuf = null;
+function ac(){
+  if (!AC){
+    try {
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      master = AC.createGain(); master.gain.value = opts.vol / 100;
+      an = AC.createAnalyser(); an.fftSize = 512; tbuf = new Uint8Array(an.fftSize);
+      master.connect(an); an.connect(AC.destination);
+    } catch(e){ AC = null; }
+  }
+  if (AC && AC.state === 'suspended'){ try { AC.resume(); } catch(e){} }
+  return AC;
+}
+function bufFor(tr, rev){
+  var c = synth(tr);
+  if (!AC) return null;
+  if (!c.buf){
+    c.buf = AC.createBuffer(1, c.data.length, SR); c.buf.getChannelData(0).set(c.data);
+  }
+  if (rev && !c.rev){
+    c.rev = AC.createBuffer(1, c.data.length, SR);
+    var d = c.rev.getChannelData(0), s = c.data, n = s.length;
+    for (var i = 0; i < n; i++) d[i] = s[n - 1 - i];
+  }
+  return rev ? c.rev : c.buf;
+}
+function position(){ var tr = curTrack(); if (!tr) return 0; return playing && AC ? Math.min(tr.dur, pos + AC.currentTime - startAt) : pos; }
+function stopSrc(){ if (src){ try { src.onended = null; src.stop(); } catch(e){} src = null; } }
+function play(){
+  var tr = curTrack(); if (!tr) { toast('佇列是空的。去曲庫挑歌。'); return; }
+  if (!ac()) { toast('這台裝置沒有聲音引擎'); return; }
+  stopSrc();
+  if (pos >= tr.dur - .05) pos = 0;
+  src = AC.createBufferSource(); src.buffer = bufFor(tr); src.connect(master);
+  try { src.start(0, pos); } catch(e){ src.start(0); }
+  startAt = AC.currentTime; playing = true;
+  var me = src; src.onended = function(){ if (me === src && playing) ended(); };
+  plays[tr.id] = (plays[tr.id] || 0) + (pos < .5 ? 1 : 0); persist();
+  paintPlay(); loop();
+}
+function pause(){ pos = position(); stopSrc(); playing = false; paintPlay(); }
+function ended(){ playing = false; src = null; pos = 0; step(1, true); }
+function step(dir, auto){
+  if (!queue.length) return;
+  var was = playing || auto;
+  if (auto && opts.repeat === 'one'){ pos = 0; play(); return; }
+  if (!auto && dir < 0 && position() > 3){ seek(0); return; }
+  var n;
+  if (opts.shuffle && queue.length > 1){ do { n = Math.floor(Math.random() * queue.length); } while (n === cur); }
+  else n = cur + dir;
+  if (n >= queue.length){ if (opts.repeat === 'all' || !auto) n = 0; else { stopSrc(); playing = false; pos = 0; cur = 0; persist(); renderAll(); return; } }
+  if (n < 0) n = queue.length - 1;
+  stopSrc(); playing = false; cur = n; pos = 0; persist(); renderAll();
+  if (was) play();
+}
+function seek(p){ var tr = curTrack(); if (!tr) return; var was = playing; if (was){ stopSrc(); playing = false; } pos = Math.max(0, Math.min(tr.dur - .05, p)); if (was) play(); else drawWave(); }
+
+// ---------- now playing render ----------
+var cv = $('wcv'), cx = cv.getContext('2d'), W = 0, H = 0, dpr = 1;
+function sizeCanvas(){
+  var r = $('wave').getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1);
+  W = Math.max(1, r.width); H = Math.max(1, r.height);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawWave();
+}
+function drawWave(){
+  var tr = curTrack();
+  cx.fillStyle = '#ecebe4'; cx.fillRect(0, 0, W, H);
+  if (!tr){ $('wlab').textContent = '--:--'; return; }
+  var c = synth(tr), p = position() / tr.dur, px = Math.round(p * W), env = c.env, mid = H / 2 + 8;
+  cx.fillStyle = '#ffe600'; cx.fillRect(0, 0, px, H);
+  cx.fillStyle = '#000';
+  for (var x = 0; x < W; x += 4){
+    var e = env[Math.min(env.length - 1, Math.floor(x / W * env.length))], h = Math.max(2, e * (H - 44));
+    if (x < px) cx.fillRect(x, mid - h / 2, 3, h);
+    else cx.fillRect(x + 1, mid - h / 2, 1, h);
+  }
+  cx.fillRect(px - 2, 0, 4, H);
+  var lab = $('wlab'), t = mmss(position());
+  lab.textContent = t;
+  var lw = lab.offsetWidth || 54;
+  lab.style.transform = 'translateX(' + Math.max(0, Math.min(W - lw, px + 6 > W - lw ? px - lw - 6 : px + 6)) + 'px)';
+  $('tNow').textContent = t; $('tLeft').textContent = '-' + mmss(tr.dur - position());
+  $('wave').setAttribute('aria-valuenow', Math.round(p * 100));
+  meter(c, p);
+}
+var vuEls = [];
+(function(){ var h = ''; for (var i = 0; i < 20; i++) h += '<i class="' + (i >= 16 ? 'hot' : '') + '"></i>'; $('vu').innerHTML = h; vuEls = [].slice.call($('vu').children); })();
+function meter(c, p){
+  var lvl;
+  if (playing && an){ an.getByteTimeDomainData(tbuf); var s = 0; for (var i = 0; i < tbuf.length; i++){ var v = (tbuf[i] - 128) / 128; s += v * v; } lvl = Math.sqrt(s / tbuf.length) * 3.2; }
+  else lvl = c.env[Math.min(c.env.length - 1, Math.floor(p * c.env.length))] * .9 * (opts.vol / 100);
+  var n = Math.round(Math.min(1, lvl) * 20);
+  for (var j = 0; j < 20; j++) vuEls[j].classList.toggle('on', j < n);
+}
+function renderNow(){
+  var tr = curTrack();
+  if (!tr){
+    $('npNo').textContent = '00/00'; $('npGenre').textContent = ''; $('npTitle').textContent = '沒有歌';
+    $('npArtist').textContent = '佇列空了'; $('npMeta').textContent = '去曲庫加幾首'; drawWave(); paintPlay(); return;
+  }
+  $('npNo').textContent = String(cur + 1).padStart(2, '0') + '/' + String(queue.length).padStart(2, '0');
+  $('npGenre').textContent = tr.g + ' · 播過 ' + (plays[tr.id] || 0) + ' 次';
+  $('npTitle').textContent = tr.t; $('npArtist').textContent = tr.a;
+  $('npMeta').textContent = tr.bpm + ' BPM / ' + NOTE[tr.root % 12] + (tr.mode === 'min' ? ' 小調' : ' 大調') + ' / ' + mmss(tr.dur);
+  $('favBtn').setAttribute('aria-pressed', favs.indexOf(tr.id) > -1);
+  $('shufBtn').setAttribute('aria-pressed', opts.shuffle);
+  $('repBtn').setAttribute('aria-pressed', opts.repeat !== 'off');
+  $('repLbl').textContent = {off:'循環 關', all:'循環 全部', one:'循環 單曲'}[opts.repeat];
+  drawWave(); paintPlay();
+}
+function paintPlay(){
+  $('playIc').innerHTML = playing ? '<rect x="4" y="2" width="12" height="40"/><rect x="24" y="2" width="12" height="40"/>' : '<path d="M4 0v44l36-22z"/>';
+  $('playBtn').setAttribute('aria-label', playing ? '暫停' : '播放');
+}
+var raf = 0;
+function loop(){
+  cancelAnimationFrame(raf);
+  (function f(){
+    if (!playing && !scratching) return;
+    if (!document.hidden) drawWave();
+    raf = requestAnimationFrame(f);
+  })();
+}
+document.addEventListener('visibilitychange', function(){ if (!document.hidden && playing) loop(); });
+
+$('playBtn').addEventListener('click', function(){ haptic(playing ? 6 : [6, 20, 6]); if (playing) pause(); else play(); });
+$('nextBtn').addEventListener('click', function(){ haptic(8); ac(); step(1); });
+$('prevBtn').addEventListener('click', function(){ haptic(8); ac(); step(-1); });
+$('shufBtn').addEventListener('click', function(){ opts.shuffle = !opts.shuffle; persist(); haptic(6); renderNow(); toast(opts.shuffle ? '隨機：開' : '隨機：關'); });
+$('repBtn').addEventListener('click', function(){ opts.repeat = {off:'all', all:'one', one:'off'}[opts.repeat]; persist(); haptic(6); renderNow(); });
+$('favBtn').addEventListener('click', function(){ var tr = curTrack(); if (!tr) return; toggleFav(tr.id); });
+function toggleFav(id){
+  var i = favs.indexOf(id);
+  if (i > -1) favs.splice(i, 1); else favs.push(id);
+  persist(); haptic(i > -1 ? 6 : [8, 30, 8]); renderAll();
+  toast(i > -1 ? '拿掉收藏' : '收藏了：' + byId(id).t);
+}
+$('vol').addEventListener('input', function(){ opts.vol = +this.value; if (master) master.gain.value = opts.vol / 100; persist(); if (!playing) drawWave(); });
+
+// ---------- scratch ----------
+var scratching = false;
+(function(){
+  var w = $('wave'), was = false, lastX = 0, lastT = 0, lastGrain = 0, sp = 0;
+  w.addEventListener('pointerdown', function(e){
+    if (!curTrack()) return;
+    ac();
+    scratching = true; was = playing;
+    if (playing){ pos = position(); stopSrc(); playing = false; }
+    lastX = e.clientX; lastT = e.timeStamp;
+    var r = w.getBoundingClientRect(); sp = (e.clientX - r.left) / r.width;
+    try { w.setPointerCapture(e.pointerId); } catch(err){}
+    haptic(4); loop();
+  });
+  w.addEventListener('pointermove', function(e){
+    if (!scratching) return;
+    var tr = curTrack(), r = w.getBoundingClientRect();
+    var p = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    var dt = Math.max(1, e.timeStamp - lastT), dx = e.clientX - lastX;
+    var np = p * tr.dur, speed = (np - pos) / (dt / 1000);
+    pos = Math.min(tr.dur - .05, np);
+    if (AC && e.timeStamp - lastGrain > 28 && Math.abs(dx) > 0){ grain(tr, pos, speed); lastGrain = e.timeStamp; }
+    lastX = e.clientX; lastT = e.timeStamp;
+    drawWave();
+  });
+  function end(){
+    if (!scratching) return; scratching = false;
+    if (was) play(); else drawWave();
+  }
+  w.addEventListener('pointerup', end); w.addEventListener('pointercancel', end);
+  w.addEventListener('keydown', function(e){
+    var tr = curTrack(); if (!tr) return;
+    if (e.key === 'ArrowRight'){ seek(position() + 2); e.preventDefault(); }
+    if (e.key === 'ArrowLeft'){ seek(position() - 2); e.preventDefault(); }
+  });
+})();
+function grain(tr, at, speed){
+  try {
+    var rev = speed < 0, b = bufFor(tr, rev), rate = Math.max(.2, Math.min(3.5, Math.abs(speed)));
+    var s = AC.createBufferSource(), g = AC.createGain(), t = AC.currentTime, len = .07;
+    s.buffer = b; s.playbackRate.value = rate;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.9, t + .008); g.gain.linearRampToValueAtTime(0, t + len);
+    s.connect(g); g.connect(master);
+    var off = rev ? Math.max(0, tr.dur - at) : at;
+    s.start(t, Math.min(b.duration - .1, off), len * rate + .02); s.stop(t + len + .02);
+  } catch(e){}
+}
+
+// ---------- queue ----------
+function totalDur(){ return queue.reduce(function(a, id){ var t = byId(id); return a + (t ? t.dur : 0); }, 0); }
+function renderQueue(){
+  $('qBadge').textContent = queue.length;
+  $('qCount').textContent = queue.length + ' 首';
+  $('qDur').textContent = '總長 ' + mmss(totalDur());
+  if (!queue.length){ $('qlist').innerHTML = '<div class="qempty">空的。去曲庫加歌。</div>'; return; }
+  $('qlist').innerHTML = queue.map(function(id, i){
+    var t = byId(id);
+    return '<div class="qrow' + (i === cur ? ' now' : '') + '" data-i="' + i + '">' +
+      '<button class="qmain" data-play="' + i + '"><span class="no">' + String(i + 1).padStart(2, '0') + '</span><span style="min-width:0"><b>' + esc(t.t) + '</b><span class="a">' + esc(t.a) + ' · ' + t.g + '</span></span><span class="d">' + mmss(t.dur) + '</span></button>' +
+      '<button class="qx" data-rm="' + i + '" aria-label="從佇列移除 ' + esc(t.t) + '"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M0 3 3 0l5 5 5-5 3 3-5 5 5 5-3 3-5-5-5 5-3-3 5-5z"/></svg></button>' +
+      '<button class="qh" data-h="' + i + '" aria-label="拖曳排序"><svg width="20" height="16" viewBox="0 0 20 16"><rect y="0" width="20" height="4"/><rect y="6" width="20" height="4"/><rect y="12" width="20" height="4"/></svg></button></div>';
+  }).join('');
+}
+$('qlist').addEventListener('click', function(e){
+  var p = e.target.closest('[data-play]'), rm = e.target.closest('[data-rm]'), h = e.target.closest('[data-h]');
+  if (p){ var i = +p.dataset.play; haptic(8); ac(); stopSrc(); playing = false; cur = i; pos = 0; persist(); renderAll(); play(); return; }
+  if (rm){ removeAt(+rm.dataset.rm); return; }
+  if (h && !dragMoved){ haptic([4, 20, 4]); toast('按住三條槓上下拖曳'); }
+});
+function removeAt(i){
+  if (i < 0 || i >= queue.length) return;
+  var t = byId(queue[i]);
+  if (i === cur){ stopSrc(); playing = false; pos = 0; }
+  queue.splice(i, 1);
+  if (i < cur) cur--;
+  if (cur >= queue.length) cur = Math.max(0, queue.length - 1);
+  persist(); haptic([10, 30, 10]); renderAll(); toast('移除：' + t.t);
+}
+$('qShuffle').addEventListener('click', function(){
+  if (queue.length < 2) return;
+  var id = queue[cur], rest = queue.filter(function(_, i){ return i !== cur; });
+  for (var i = rest.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var tmp = rest[i]; rest[i] = rest[j]; rest[j] = tmp; }
+  queue = [id].concat(rest); cur = 0; persist(); haptic([6, 20, 6, 20, 6]); renderAll(); toast('打亂了。正在播的排第一。');
+});
+$('qClear').addEventListener('click', function(){
+  if (cur === 0){ toast('前面沒有已播的歌'); haptic(4); return; }
+  var n = cur; queue = queue.slice(cur); cur = 0; persist(); haptic(10); renderAll(); toast('清掉 ' + n + ' 首已播');
+});
+// drag to reorder
+var dragMoved = false;
+(function(){
+  var list = $('qlist'), row = null, from = 0, to = 0, sy = 0, rh = 70, rows = [];
+  list.addEventListener('pointerdown', function(e){
+    var h = e.target.closest('[data-h]'); if (!h) return;
+    row = h.closest('.qrow'); from = to = +row.dataset.i; sy = e.clientY; rh = row.offsetHeight; dragMoved = false;
+    rows = [].slice.call(list.querySelectorAll('.qrow'));
+    row.classList.add('lift'); haptic(10);
+    try { h.setPointerCapture(e.pointerId); } catch(err){}
+    e.preventDefault();
+  });
+  list.addEventListener('pointermove', function(e){
+    if (!row) return;
+    var dy = e.clientY - sy; if (Math.abs(dy) > 4) dragMoved = true;
+    dy = Math.max(-from * rh, Math.min((rows.length - 1 - from) * rh, dy));
+    row.style.transform = 'translateY(' + dy + 'px)';
+    var nt = Math.max(0, Math.min(rows.length - 1, from + Math.round(dy / rh)));
+    if (nt !== to){ to = nt; haptic(3); }
+    rows.forEach(function(r, i){
+      if (r === row) return;
+      var off = 0;
+      if (from < to && i > from && i <= to) off = -rh;
+      if (from > to && i < from && i >= to) off = rh;
+      r.style.transform = off ? 'translateY(' + off + 'px)' : '';
+    });
+  });
+  function end(){
+    if (!row) return;
+    var r = row; row = null; r.classList.remove('lift');
+    if (to !== from){
+      var id = queue.splice(from, 1)[0]; queue.splice(to, 0, id);
+      if (cur === from) cur = to; else if (from < cur && to >= cur) cur--; else if (from > cur && to <= cur) cur++;
+      persist(); haptic([8, 20, 8]);
+    }
+    renderAll();
+    setTimeout(function(){ dragMoved = false; }, 50);
+  }
+  list.addEventListener('pointerup', end); list.addEventListener('pointercancel', end);
+})();
+
+// ---------- library ----------
+var genre = 'all', query = '';
+function renderLib(){
+  var items = LIB.filter(function(t){
+    if (genre === 'fav' && favs.indexOf(t.id) < 0) return false;
+    if (genre !== 'all' && genre !== 'fav' && t.g !== genre) return false;
+    if (query && (t.t + t.a + t.g).toLowerCase().indexOf(query) < 0) return false;
+    return true;
+  });
+  $('llist').innerHTML = items.length ? items.map(function(t){
+    var inQ = queue.indexOf(t.id) > -1, fav = favs.indexOf(t.id) > -1;
+    return '<div class="lrow' + (inQ ? ' in' : '') + '"><button class="lmain" data-now="' + t.id + '"><span style="min-width:0"><b>' + (fav ? '★ ' : '') + esc(t.t) + '</b><span>' + esc(t.a) + ' · ' + t.g + '</span></span><span class="d">' + mmss(t.dur) + '<small>' + t.bpm + ' BPM</small></span></button>' +
+      '<button class="ladd" data-add="' + t.id + '" aria-label="' + (inQ ? '已在佇列' : '加入佇列') + '：' + esc(t.t) + '">' +
+      (inQ ? '<svg width="22" height="18" viewBox="0 0 22 18"><path d="M0 9l3-3 5 5L19 0l3 3L8 17z"/></svg>' : '<svg width="20" height="20" viewBox="0 0 20 20"><rect x="8" width="4" height="20"/><rect y="8" width="20" height="4"/></svg>') + '</button></div>';
+  }).join('') : '<div class="qempty">找不到「' + esc(query) + '」。</div>';
+  $('lcount').textContent = items.length + ' / ' + LIB.length + ' 首 · 點歌名立刻播，點右邊加到佇列';
+}
+$('gen').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  genre = b.dataset.g; haptic(5);
+  this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
+  renderLib();
+});
+$('q').addEventListener('input', function(){ query = this.value.trim().toLowerCase(); renderLib(); });
+$('qClearBtn').addEventListener('click', function(e){ e.preventDefault(); $('q').value = ''; query = ''; haptic(4); renderLib(); });
+$('llist').addEventListener('click', function(e){
+  var n = e.target.closest('[data-now]'), a = e.target.closest('[data-add]');
+  if (n){
+    var id = n.dataset.now, i = queue.indexOf(id);
+    ac(); stopSrc(); playing = false; pos = 0;
+    if (i > -1) cur = i; else { cur = queue.length ? cur + 1 : 0; queue.splice(cur, 0, id); }
+    persist(); haptic([6, 20, 6]); switchTab('now'); renderAll(); play(); return;
+  }
+  if (a){
+    var id2 = a.dataset.add;
+    if (queue.indexOf(id2) > -1){ toast('已經在佇列第 ' + (queue.indexOf(id2) + 1) + ' 首'); haptic(4); return; }
+    queue.push(id2); persist(); haptic([8, 20, 8]); renderAll(); toast('加到佇列第 ' + queue.length + ' 首');
+  }
+});
+
+// ---------- tabs (hard cut) ----------
+var current = 'now';
+function switchTab(p){
+  if (p === current) return;
+  $('p-' + current).hidden = true;
+  var pg = $('p-' + p); pg.hidden = false;
+  pg.classList.remove('cut'); void pg.offsetWidth; pg.classList.add('cut');
+  current = p;
+  document.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.p === p); });
+  if (p === 'now') sizeCanvas();
+  haptic(5);
+}
+document.querySelector('.tabs').addEventListener('click', function(e){ var t = e.target.closest('.tab'); if (t) switchTab(t.dataset.p); });
+
+// ---------- sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){
+  lastFocus = document.activeElement; $('sbody').innerHTML = html; $('sbody').scrollTop = 0;
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(8);
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on');
+  if (lastFocus && lastFocus.focus) try { lastFocus.focus({preventScroll:true}); } catch(e){}
+}
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeSheet();
+  if (e.key === ' ' && e.target === document.body){ e.preventDefault(); $('playBtn').click(); }
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button')) return;
+    if (!e.target.closest('.grab') && $('sbody').scrollTop > 0) return;
+    dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag');
+    try { sheet.setPointerCapture(e.pointerId); } catch(err){}
+  });
+  sheet.addEventListener('pointermove', function(e){
+    if (!dragging) return; dy = e.clientY - sy;
+    sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(0) + 'px)';
+  });
+  function end(e){
+    if (!dragging) return; dragging = false; sheet.classList.remove('drag');
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+$('moreBtn').addEventListener('click', function(){
+  var tr = curTrack(); if (!tr){ toast('沒有正在播的歌'); return; }
+  var c = synth(tr), fav = favs.indexOf(tr.id) > -1;
+  function row(name, arr, q){ return '<div class="row"><span>' + name + '</span>' + arr.map(function(v, i){ return '<i class="' + (v !== null && v !== undefined && v !== 0 ? 'on' : '') + (q && i % 4 ? ' q' : '') + '"></i>'; }).join('') + '</div>'; }
+  openSheet('<h2>' + esc(tr.t) + '</h2><p class="sub">' + esc(tr.a) + ' / ' + tr.g + ' / 這首歌是用下面的節奏格即時合成的</p>' +
+    '<div class="grid">' + row('大鼓', c.kick) + row('小鼓', c.snare) + row('鈸', c.hat) + row('旋律', c.lead) + '</div>' +
+    '<div class="facts"><div>速度<b>' + tr.bpm + '</b></div><div>調性<b>' + NOTE[tr.root % 12] + (tr.mode === 'min' ? 'm' : '') + '</b></div><div>播過<b>' + (plays[tr.id] || 0) + '</b></div></div>' +
+    '<button class="sact y" id="sFav">' + (fav ? '取消收藏' : '收藏這首') + '</button>' +
+    '<button class="sact" id="sAgain">下一首再放一次</button>' +
+    '<button class="sact" id="sRm">從佇列移除</button>');
+  $('sFav').addEventListener('click', function(){ toggleFav(tr.id); closeSheet(); });
+  $('sAgain').addEventListener('click', function(){ queue.splice(cur + 1, 0, tr.id); persist(); renderAll(); closeSheet(); toast('下一首：' + tr.t); haptic([8, 20, 8]); });
+  $('sRm').addEventListener('click', function(){ closeSheet(); removeAt(cur); });
+});
+
+// ---------- toast ----------
+var toastT = null;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 1900); }
+
+// ---------- clock ----------
+function tick(){ var d = new Date(); $('clock').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setInterval(tick, 20000);
+try { if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 14 * b.level).toFixed(1)); }).catch(function(){}); } catch(e){}
+
+// backdrop waveform from the first track
+(function(){
+  if (!matchMedia('(min-width:521px)').matches) return;
+  var env = synth(LIB[0]).env, out = '';
+  for (var i = 0; i < 150; i++){ var h = Math.max(4, env[Math.floor(i / 150 * env.length)] * 380); out += '<rect x="' + (i * 10.7).toFixed(1) + '" y="' + (506 - h / 2).toFixed(1) + '" width="6" height="' + h.toFixed(1) + '"/>'; }
+  $('bgWave').innerHTML = out;
+})();
+
+function renderAll(){ renderNow(); renderQueue(); renderLib(); }
+$('vol').value = opts.vol;
+if (queue.length) pos = 0;
+renderQueue(); renderLib(); renderNow();
+if (curTrack()){ pos = Math.min(curTrack().dur * .31, curTrack().dur); }
+sizeCanvas();
+window.addEventListener('resize', sizeCanvas);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c8c6c0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="聲道">
+<title>聲道 · Podcast</title>
+<meta name="description" content="一台 70 年代日系收音機造型的 Podcast 播放器：轉動調頻刻度選節目，琥珀色 VU 表跟著聲音擺動，還有章節、倍速、睡眠計時與訂閱。收錄於 100 Creative HTML Works（App 031・70 年代日系 Hi-Fi）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/031-hifi-podcast.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23c8c6c0'/%3E%3Crect x='6' y='14' width='52' height='24' rx='3' fill='%230e0d0b'/%3E%3Cpath d='M10 30h44' stroke='%23ffb547' stroke-width='2'/%3E%3Cpath d='M14 26v4M22 24v6M30 26v4M38 24v6M46 26v4' stroke='%23ffb547' stroke-width='2'/%3E%3Crect x='33' y='16' width='3' height='20' fill='%23ffe2b0'/%3E%3Ccircle cx='20' cy='49' r='7' fill='%238e8c86'/%3E%3Ccircle cx='44' cy='49' r='7' fill='%238e8c86'/%3E%3C/svg%3E">
+<style>
+:root{
+  --alu:#c8c6c0;
+  --alu-hi:#e4e2dc;
+  --alu-lo:#9d9b95;
+  --engr:#262521;
+  --engr-2:#4a4843;
+  --blk:#0e0d0b;
+  --amber:#ffb547;
+  --amber-hi:#ffe2b0;
+  --amber-lo:#6b4410;
+  --din:"DIN Alternate","DIN Condensed","Helvetica Neue","PingFang TC",sans-serif;
+  --zh:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --out:cubic-bezier(.2,.8,.25,1);
+  --spring:cubic-bezier(.3,1.3,.5,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.4 var(--zh);color:var(--engr);background:#1b1a17;-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:6px}
+svg{display:block}
+ul,ol{list-style:none}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--alu)}
+/* brushed aluminium: fine horizontal hairlines + a soft horizontal sheen, grain underneath everything */
+.brushed{background:
+  repeating-linear-gradient(0deg,rgba(255,255,255,.07) 0 1px,rgba(0,0,0,.035) 1px 2px,rgba(255,255,255,0) 2px 3px),
+  linear-gradient(100deg,#b9b7b1 0%,#d8d6d0 22%,#c3c1bb 45%,#dcdad4 68%,#bdbbb5 100%)}
+@media (min-width:521px){
+  .stage{display:flex;align-items:center;justify-content:center;gap:72px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:12px;z-index:1;
+    background:linear-gradient(160deg,#3a3935,#121110 40%,#23221f);box-shadow:inset 0 0 0 1px #5d5b55,inset 0 2px 0 rgba(255,255,255,.12),0 24px 30px -22px #000}
+  .screen{inset:12px;border-radius:40px}
+  .caption{display:block;position:relative;z-index:1;width:250px;color:var(--engr)}
+  .caption h1{font:700 44px/1 var(--zh);letter-spacing:.12em}
+  .caption .m{font:700 15px/1 var(--din);letter-spacing:.24em;margin-top:12px;color:var(--engr-2)}
+  .caption p{margin-top:18px;font-size:15px;line-height:1.7;color:#34332f}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:700 16px/1 var(--din);color:var(--engr);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+.body{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:calc(46px + env(safe-area-inset-top)) 0 calc(30px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+.body::-webkit-scrollbar{display:none}
+
+/* brand row */
+.brand{display:flex;align-items:center;gap:12px;padding:6px 20px 12px}
+.brand h1{font:700 22px/1 var(--zh);letter-spacing:.18em;text-shadow:0 1px 0 rgba(255,255,255,.55)}
+.brand .m{font:700 11px/1.25 var(--din);letter-spacing:.16em;color:var(--engr-2);text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.pwr{margin-left:auto;display:flex;align-items:center;gap:8px;font:700 12px var(--din);letter-spacing:.14em;color:var(--engr-2)}
+.lamp{width:10px;height:10px;border-radius:50%;background:#5a4a33;box-shadow:inset 0 1px 1px rgba(0,0,0,.6)}
+.lamp.on{background:var(--amber);box-shadow:inset 0 -1px 1px rgba(120,60,0,.5),inset 0 1px 1px rgba(255,255,255,.7)}
+
+/* dial window (signature, part 1) */
+.dial{position:relative;margin:0 14px;height:156px;border-radius:9px;background:#0b0a08;overflow:hidden;touch-action:none;cursor:grab;
+  box-shadow:inset 0 2px 0 rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.6),0 -1px 0 rgba(0,0,0,.25)}
+.dial:active{cursor:grabbing}
+.dial .glass{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,236,200,.08),rgba(255,236,200,0) 38%),linear-gradient(90deg,rgba(0,0,0,.75),rgba(0,0,0,0) 16%,rgba(0,0,0,0) 84%,rgba(0,0,0,.75));z-index:3}
+.scale{position:absolute;left:0;top:0;height:100%;will-change:transform}
+.scale text{font-family:var(--din);font-weight:700}
+.needle{position:absolute;left:50%;top:10px;bottom:10px;width:3px;margin-left:-1.5px;background:#ff7a2a;border-radius:2px;z-index:2}
+.dhud{position:absolute;left:14px;right:14px;top:8px;display:flex;justify-content:space-between;z-index:4;pointer-events:none;font:700 11px var(--din);letter-spacing:.16em;color:#5d4520}
+.dhud .on{color:var(--amber)}
+.sig{display:flex;gap:2px;align-items:flex-end;margin-left:6px}
+.sig i{width:3px;background:#3d2c12}
+.sig i.on{background:var(--amber)}
+.dhud .l{display:flex;align-items:flex-end}
+
+/* VU meters (signature, part 2) */
+.vus{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 14px 0}
+.vu{position:relative;height:118px;border-radius:7px;overflow:hidden;background:#0b0a08;padding:5px;box-shadow:0 1px 0 rgba(255,255,255,.6),inset 0 2px 0 rgba(0,0,0,.6)}
+.vu .face{position:relative;height:100%;border-radius:3px;overflow:hidden;background:linear-gradient(180deg,#f7d08a 0%,#f2b85c 60%,#e39c3a 100%)}
+.vu svg{width:100%;height:100%}
+
+/* now playing */
+.now{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:16px 20px 0;align-items:start}
+.now .show{font:700 13px/1 var(--din);letter-spacing:.18em;color:var(--engr-2)}
+.now .show b{font:700 13px var(--zh);letter-spacing:.1em;color:var(--engr)}
+.now h2{grid-column:1;font:700 22px/1.25 var(--zh);letter-spacing:.02em;text-shadow:0 1px 0 rgba(255,255,255,.45);min-height:55px}
+.now .meta{grid-column:1;font-size:13px;color:var(--engr-2)}
+.lever{grid-column:2;grid-row:1/4;display:flex;flex-direction:column;align-items:center;gap:6px;width:64px;padding-top:2px}
+.lever .sw{position:relative;width:26px;height:46px;border-radius:13px;background:#1a1916;box-shadow:inset 0 2px 3px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.6)}
+.lever .sw i{position:absolute;left:3px;right:3px;height:22px;top:3px;border-radius:10px;background:linear-gradient(180deg,#f2f0ea,#a9a7a1);box-shadow:0 2px 0 #5c5a55;transition:transform .28s var(--spring)}
+.lever[aria-pressed=true] .sw i{transform:translateY(18px);box-shadow:0 -2px 0 #5c5a55}
+.lever span{font:700 12px var(--zh);letter-spacing:.1em;display:flex;gap:6px;align-items:center}
+
+.tape{display:flex;align-items:center;gap:12px;padding:14px 20px 0}
+.ctr{display:flex;align-items:center;gap:2px;padding:4px 5px;border-radius:5px;background:#0b0a08;box-shadow:0 1px 0 rgba(255,255,255,.6)}
+.whl{width:17px;height:26px;overflow:hidden;border-radius:2px;background:linear-gradient(180deg,#2a2824,#0e0d0b 30%,#0e0d0b 70%,#2a2824)}
+.whl div{transition:transform .35s var(--out)}
+.whl span{display:block;height:26px;font:700 20px/26px var(--din);color:#f1ede3;text-align:center}
+.ctr .c{color:#f1ede3;font:700 18px var(--din);width:6px;text-align:center}
+.dur{font:700 13px var(--din);letter-spacing:.1em;color:var(--engr-2)}
+.fader{position:relative;flex:1;height:44px;touch-action:none;cursor:pointer}
+.fader .slot{position:absolute;left:0;right:0;top:19px;height:6px;border-radius:3px;background:#161512;box-shadow:0 1px 0 rgba(255,255,255,.6)}
+.fader .ticks i{position:absolute;top:10px;width:2px;height:6px;background:var(--engr-2);margin-left:-1px}
+.fader .cap{position:absolute;top:8px;width:18px;height:28px;margin-left:-9px;border-radius:3px;background:linear-gradient(90deg,#8f8d87,#efede7 35%,#cfcdc7 65%,#8a8882);box-shadow:0 2px 0 #4c4a45}
+.fader .cap::after{content:"";position:absolute;left:8px;top:4px;bottom:4px;width:2px;background:#1b1a17}
+
+/* piano keys */
+.keys{display:grid;grid-template-columns:1fr 1.35fr 1fr 1fr 1fr;gap:5px;margin:16px 14px 0;padding:6px;border-radius:8px;background:#141310;box-shadow:0 1px 0 rgba(255,255,255,.6)}
+.key{position:relative;height:66px;border-radius:3px 3px 5px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  background:linear-gradient(180deg,#eeece6,#c9c7c1 70%,#b3b1ab);box-shadow:0 5px 0 #6f6d68,0 6px 0 #0a0908;margin-bottom:6px;transition:transform .09s,box-shadow .09s;font:700 12px/1 var(--zh);letter-spacing:.06em;color:var(--engr)}
+.key svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:butt;stroke-linejoin:miter}
+.key:active,.key.down{transform:translateY(4px);box-shadow:0 1px 0 #6f6d68,0 2px 0 #0a0908}
+.key.down{background:linear-gradient(180deg,#dcdad4,#b8b6b0)}
+.key .led{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:#5a4a33}
+.key.down .led{background:var(--amber)}
+
+/* knobs */
+.knobs{display:grid;grid-template-columns:repeat(3,1fr);margin:18px 8px 0}
+.kn{display:flex;flex-direction:column;align-items:center}
+.kwrap{position:relative;width:118px;height:108px;touch-action:none}
+.kwrap .lbl{position:absolute;font:700 13px/1 var(--din);color:var(--engr-2);transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none}
+.kwrap .lbl.on{color:var(--engr)}
+.knob{position:absolute;left:50%;top:54px;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;
+  background:repeating-conic-gradient(#8d8b85 0 4deg,#d9d7d1 4deg 8deg);box-shadow:0 3px 0 #4f4d48,0 4px 3px -1px rgba(0,0,0,.35);transition:transform .3s var(--spring)}
+.knob::before{content:"";position:absolute;inset:6px;border-radius:50%;background:conic-gradient(from 20deg,#f4f2ec,#a6a49e 25%,#eeece6 50%,#9c9a94 75%,#f4f2ec)}
+.knob::after{content:"";position:absolute;left:50%;top:9px;width:3px;height:14px;margin-left:-1.5px;border-radius:1.5px;background:#1b1a17}
+.kn .nm{font:700 13px/1 var(--zh);letter-spacing:.14em;margin-top:2px}
+.kn .rd{font:700 13px/1 var(--din);color:var(--engr-2);margin-top:5px;height:14px;letter-spacing:.08em}
+.foot{padding:22px 20px 8px;font:700 11px/1.5 var(--din);letter-spacing:.2em;color:var(--engr-2);text-align:center}
+
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:130px;height:5px;margin-left:-65px;border-radius:3px;background:#2a2925;z-index:25;pointer-events:none}
+
+/* sheet: black anodised panel */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(10,9,8,.45);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:8px;right:8px;bottom:8px;z-index:51;max-height:78%;display:flex;flex-direction:column;border-radius:22px;background:#161512;color:#e9e5da;
+  transform:translateY(calc(100% + 20px));visibility:hidden;transition:transform .5s var(--spring),visibility 0s .5s;touch-action:none;padding-bottom:env(safe-area-inset-bottom);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.sheet.on{transform:none;visibility:visible;transition:transform .5s var(--spring)}
+.sheet.drag{transition:none}
+.grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab}
+.grab i{width:40px;height:4px;border-radius:2px;background:#5d5a52}
+.sb{overflow-y:auto;padding:0 18px 20px;touch-action:pan-y;overscroll-behavior:contain}
+.sb h4{font:700 13px/1 var(--din);letter-spacing:.22em;color:var(--amber)}
+.sb h3{font:700 22px/1.25 var(--zh);margin-top:8px}
+.sb .sub{font-size:13px;color:#a8a396;margin-top:4px}
+.eps{margin-top:14px}
+.eps li button,.chs li button{width:100%;display:grid;grid-template-columns:1fr auto;gap:2px 12px;text-align:left;padding:12px 4px;border-top:1px solid #2c2a25;align-items:center}
+.eps li button:active,.chs li button:active{background:#221f1a}
+.eps b{font:600 16px/1.35 var(--zh)}
+.eps small,.chs small{font:700 13px var(--din);color:#a8a396;letter-spacing:.06em}
+.eps .bar{grid-column:1/-1;height:3px;border-radius:2px;background:#2c2a25;margin-top:6px;overflow:hidden}
+.eps .bar i{display:block;height:100%;background:var(--amber)}
+.eps .cur b,.chs .cur b{color:var(--amber)}
+.eps .dn{font:600 12px var(--zh);color:#a8a396}
+.chs{margin-top:12px}
+.chs b{font:600 16px/1.35 var(--zh)}
+.chs li button{grid-template-columns:62px 1fr}
+.chs small{font-size:15px;color:#e9e5da}
+.chs .cur small{color:var(--amber)}
+.sacts{display:flex;gap:10px;margin-top:16px}
+.sacts button{flex:1;height:48px;border-radius:8px;background:#2a2824;color:#e9e5da;font:700 15px var(--zh);letter-spacing:.06em}
+.sacts button:active{background:#37342e}
+
+.toast{position:absolute;left:50%;top:calc(54px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-160%);visibility:hidden;transition:transform .4s var(--spring),visibility 0s .4s;
+  padding:0 16px;height:40px;display:flex;align-items:center;border-radius:6px;background:#0e0d0b;color:var(--amber);font:700 14px var(--zh);letter-spacing:.08em;white-space:nowrap}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .4s var(--spring)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (prefers-reduced-motion:reduce){
+  .knob,.lever .sw i,.whl div,.sheet,.toast,.key{transition:none!important}
+  .key:active{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <pattern id="brush" width="1600" height="3" patternUnits="userSpaceOnUse"><rect width="1600" height="1" fill="#fff" opacity=".08"/><rect y="1" width="1600" height="1" fill="#000" opacity=".04"/></pattern>
+        <linearGradient id="alu" x1="0" y1="0" x2="1" y2=".1"><stop offset="0" stop-color="#b3b1ab"/><stop offset=".3" stop-color="#d6d4ce"/><stop offset=".55" stop-color="#bfbdb7"/><stop offset=".8" stop-color="#d9d7d1"/><stop offset="1" stop-color="#b1afa9"/></linearGradient>
+        <linearGradient id="amb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1209"/><stop offset=".5" stop-color="#0d0a07"/><stop offset="1" stop-color="#1a1209"/></linearGradient>
+        <filter id="gr"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .48  0 0 0 .4 0"/></filter>
+        <radialGradient id="kb" cx=".5" cy=".5" r=".5"><stop offset=".78" stop-color="#e2e0da"/><stop offset=".8" stop-color="#8a8882"/><stop offset="1" stop-color="#5d5b56"/></radialGradient>
+      </defs>
+      <rect width="1600" height="1000" fill="url(#alu)"/>
+      <rect width="1600" height="1000" fill="url(#brush)"/>
+      <rect x="-20" y="70" width="1640" height="240" rx="14" fill="url(#amb)"/>
+      <g id="bscale"></g>
+      <rect x="1180" y="76" width="6" height="228" fill="#ff7a2a"/>
+      <g font-family="DIN Alternate,Helvetica Neue,sans-serif" font-weight="700" fill="#4a4843" letter-spacing="10" font-size="22">
+        <text x="120" y="370">SR-770  FM STEREO RECEIVER</text>
+        <text x="1336" y="580">TUNING</text>
+      </g>
+      <g><circle cx="240" cy="740" r="120" fill="#4f4d48"/><circle cx="240" cy="734" r="116" fill="url(#kb)"/><rect x="236" y="628" width="8" height="40" rx="4" fill="#1b1a17"/></g>
+      <g><circle cx="1420" cy="740" r="120" fill="#4f4d48"/><circle cx="1420" cy="734" r="116" fill="url(#kb)"/><rect x="1416" y="628" width="8" height="40" rx="4" fill="#1b1a17" transform="rotate(38 1420 734)"/></g>
+      <rect width="1600" height="1000" filter="url(#gr)" opacity=".18"/>
+    </svg>
+  </div>
+
+  <div class="caption">
+    <h1>聲道</h1>
+    <div class="m">FM · PODCAST RECEIVER</div>
+    <p>轉動調頻刻度找節目，雜訊散去就是對上了。兩只琥珀色 VU 表，跟著主持人的聲音擺動。</p>
+  </div>
+
+  <div class="device">
+    <div class="screen brushed" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#262521" stroke-width="2"><path d="M2 12V8M7 12V6M12 12V3.5M17 12V1"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#262521" stroke-width="1.8"><path d="M1.5 4.6a9.5 9.5 0 0 1 13 0M4 7.3a6 6 0 0 1 8 0M6.4 9.9a2.4 2.4 0 0 1 3.2 0"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x="1" y="1" width="21" height="10" rx="2" fill="none" stroke="#262521" stroke-width="1.6"/><rect id="batt" x="3" y="3" width="14" height="6" fill="#262521"/><path d="M23.5 4.5v3" stroke="#262521" stroke-width="2"/></svg>
+        </span>
+      </div>
+
+      <div class="body" id="body">
+        <div class="brand">
+          <div><h1>聲道</h1><div class="m">SR-770 · FM PODCAST</div></div>
+          <div class="pwr"><i class="lamp" id="pwrLamp"></i>ON AIR</div>
+        </div>
+
+        <div class="dial" id="dial" role="slider" tabindex="0" aria-label="調頻選節目" aria-valuemin="87.5" aria-valuemax="108" aria-valuenow="88.5">
+          <div class="scale" id="scale"><svg id="scaleSvg" height="156"></svg></div>
+          <div class="needle"></div>
+          <div class="dhud"><span class="l">FM<span class="sig" id="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i><i style="height:12px"></i></span></span><span id="stereo">STEREO</span></div>
+          <div class="glass"></div>
+        </div>
+
+        <div class="vus">
+          <div class="vu"><div class="face"><svg viewBox="0 0 170 108"><g class="vs"></g><line class="nd" id="ndL" x1="85" y1="118" x2="85" y2="22" stroke="#15120d" stroke-width="1.6"/><rect x="0" y="92" width="170" height="16" fill="#15120d"/><text x="14" y="104" fill="#f2b85c" style="font:700 10px DIN Alternate,sans-serif;letter-spacing:.2em">L</text></svg></div></div>
+          <div class="vu"><div class="face"><svg viewBox="0 0 170 108"><g class="vs"></g><line class="nd" id="ndR" x1="85" y1="118" x2="85" y2="22" stroke="#15120d" stroke-width="1.6"/><rect x="0" y="92" width="170" height="16" fill="#15120d"/><text x="14" y="104" fill="#f2b85c" style="font:700 10px DIN Alternate,sans-serif;letter-spacing:.2em">R</text></svg></div></div>
+        </div>
+
+        <div class="now">
+          <div class="show" id="nShow"></div>
+          <h2 id="nTitle"></h2>
+          <div class="meta" id="nMeta"></div>
+          <button class="lever" id="subBtn" aria-pressed="false" aria-label="訂閱這個節目"><span class="sw"><i></i></span><span><i class="lamp" id="subLamp"></i>訂閱</span></button>
+        </div>
+
+        <div class="tape">
+          <div class="ctr" id="ctr" aria-hidden="true"></div>
+          <div class="fader" id="fader" role="slider" tabindex="0" aria-label="播放進度"><div class="slot"></div><div class="ticks" id="ticks"></div><div class="cap" id="cap"></div></div>
+          <div class="dur" id="dur">00:00</div>
+        </div>
+
+        <div class="keys">
+          <button class="key" id="kBack" aria-label="倒退 15 秒"><svg viewBox="0 0 24 24"><path d="M9 5L4 9l5 4"/><path d="M4 9h9a7 7 0 1 1-6.4 9.8"/><path d="M11.5 14v6M14 14h3.5l-2 6"/></svg>15</button>
+          <button class="key" id="kPlay" aria-label="播放"><i class="led"></i><svg viewBox="0 0 24 24" id="playIc"><path d="M7 4.5v15L19 12z"/></svg><span id="playLbl">播放</span></button>
+          <button class="key" id="kFwd" aria-label="快轉 30 秒"><svg viewBox="0 0 24 24"><path d="M15 5l5 4-5 4"/><path d="M20 9h-9a7 7 0 1 0 6.4 9.8"/><path d="M7 14h3.4l-2 3 1.6.2a1.6 1.6 0 1 1-2.6 1.8M12.6 14h3v6h-3z"/></svg>30</button>
+          <button class="key" id="kCh" aria-label="章節"><svg viewBox="0 0 24 24"><path d="M4 6h3M4 12h3M4 18h3M10 6h10M10 12h10M10 18h6"/></svg>章節</button>
+          <button class="key" id="kEp" aria-label="節目單"><svg viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12"/><circle cx="9" cy="12" r="2.4"/><circle cx="15" cy="12" r="2.4"/><path d="M7 18l1.5-2.5h7L17 18"/></svg>節目單</button>
+        </div>
+
+        <div class="knobs">
+          <div class="kn"><div class="kwrap" id="kSpeed" role="slider" tabindex="0" aria-label="播放速度"></div><div class="nm">倍速</div><div class="rd" id="rdSpeed"></div></div>
+          <div class="kn"><div class="kwrap" id="kSleep" role="slider" tabindex="0" aria-label="睡眠計時"></div><div class="nm">睡眠</div><div class="rd" id="rdSleep"></div></div>
+          <div class="kn"><div class="kwrap" id="kVol" role="slider" tabindex="0" aria-label="音量"></div><div class="nm">音量</div><div class="rd" id="rdVol"></div></div>
+        </div>
+        <div class="foot">MADE IN TAIPEI · 1976 · 7 CHANNELS</div>
+      </div>
+      <div class="home-ind"></div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="清單"><div class="grab"><i></i></div><div class="sb" id="sb"></div></div>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+function haptic(p){ try{ if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var KEY = 'app031:';
+function load(k, d){ try{ var v = localStorage.getItem(KEY+k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(KEY+k, JSON.stringify(v)); }catch(e){} }
+
+// ---------- programme data ----------
+function E(t, d, m, a, b){ return {t:t, date:d, dur:m, ch:[a, b]}; }
+var SHOWS = [
+ {id:'bf', f:88.5, n:'台味早餐店', host:'阿凱、小米', g:'生活', eps:[
+   E('蛋餅要不要加辣？一場早餐店的哲學辯論','9 月 22 日',2412,'醬油膏派 vs 辣椒醬派','阿姨的第一句話'),
+   E('巷口豆漿店的第四十年','9 月 15 日',2890,'凌晨三點的石磨','第二代接手'),
+   E('鐵板麵的醬，到底是黑胡椒還是蘑菇','9 月 8 日',2105,'醬料盲測','兩種人的早晨'),
+   E('早餐店阿姨為什麼記得你的點單','9 月 1 日',2644,'點單記憶術','熟客經濟學')]},
+ {id:'ec', f:91.3, n:'捷運上的經濟學', host:'林以晴', g:'財經', eps:[
+   E('手搖飲為什麼一直漲','9 月 21 日',1980,'珍珠的成本','第二杯半價的秘密'),
+   E('悠遊卡裡的零錢經濟','9 月 14 日',1766,'儲值金去哪了','小額支付的戰爭'),
+   E('房租、薪水與通勤時間','9 月 7 日',2230,'一小時的價格','搬到新北划算嗎'),
+   E('夜市攤商的定價學','8 月 31 日',2011,'五十元的心理門檻','排隊是一種廣告')]},
+ {id:'nm', f:94.7, n:'夜市偵探社', host:'老鄭', g:'故事', eps:[
+   E('消失的大腸包小腸','9 月 20 日',2770,'攤位空了','監視器裡的影子'),
+   E('士林地下街的第三個出口','9 月 13 日',3010,'地圖上沒有的門','保全的證詞'),
+   E('射氣球攤的神秘常客','9 月 6 日',2550,'每晚十點半','獎品櫃的秘密'),
+   E('凌晨兩點的豆花','8 月 30 日',2390,'最後一碗','收攤後的對話')]},
+ {id:'rc', f:97.9, n:'老唱片行', host:'阿雄', g:'音樂', eps:[
+   E('民歌西餐廳的夏天','9 月 19 日',3320,'一把木吉他','那些年的駐唱歌手'),
+   E('一捲卡帶的旅程','9 月 12 日',2980,'從工廠到夜市','翻錄的年代'),
+   E('台語歌的港口與月光','9 月 5 日',3105,'港都夜雨','黑膠上的刮痕'),
+   E('城市流行曲的鼓聲','8 月 29 日',2840,'錄音室的地下室','一個鼓手的回憶')]},
+ {id:'tr', f:100.3, n:'山海線慢遊', host:'小安', g:'旅行', eps:[
+   E('搭區間車去追海線小站','9 月 18 日',2560,'追分到談文','木造站房'),
+   E('台 11 線的清晨','9 月 11 日',2350,'三仙台的日出','東河包子'),
+   E('合歡山的星空便當','9 月 4 日',2690,'武嶺的風','零下的泡麵'),
+   E('蘭嶼的飛魚季','8 月 28 日',2920,'拼板舟','雨季的部落')]},
+ {id:'tk', f:103.1, n:'科技島日報', host:'Ivy 與 Ken', g:'科技', eps:[
+   E('晶圓廠旁的便當店','9 月 17 日',1840,'三班制的午餐','園區的交通'),
+   E('為什麼你的手機越用越慢','9 月 10 日',1690,'電池與溫度','系統更新的真相'),
+   E('半導體名詞一次聽懂','9 月 3 日',2210,'奈米到底多小','先進封裝'),
+   E('台灣的第一台個人電腦','8 月 27 日',2480,'光華商場','組裝的年代')]},
+ {id:'ck', f:106.5, n:'阿嬤的灶腳', host:'阿嬤與孫女小蓁', g:'飲食', eps:[
+   E('菜脯蛋的火候','9 月 16 日',1920,'老菜脯','鐵鍋的溫度'),
+   E('滷肉飯的三層肉','9 月 9 日',2150,'肥瘦比例','冰糖與醬油'),
+   E('過年的長年菜','9 月 2 日',2030,'芥菜的苦','一家人的桌子'),
+   E('古早味粉粿','8 月 26 日',1780,'地瓜粉','黑糖水')]}
+];
+SHOWS.forEach(function(s){ s.eps.forEach(function(e, i){ e.key = s.id + i;
+  var d = e.dur, c = e.ch; e.chap = [[0,'開場'],[Math.round(d * .08), c[0]],[Math.round(d * .38), c[1]],[Math.round(d * .7),'聽眾來信'],[Math.round(d * .9),'下集預告']]; }); });
+var FMIN = 87.5, FMAX = 108, PX = 58, SW;
+
+// ---------- state ----------
+var S = {
+  show: load('show', 0), epOf: load('epOf', {}), pos: load('pos', {}), speed: load('speed', 1), sleep: load('sleep', 0), sleepEnd: load('sleepEnd', 0),
+  vol: load('vol', .7), subs: load('subs', ['bf', 'nm', 'rc']), done: load('done', {'bf2':true, 'rc3':true})
+};
+if (!SHOWS[S.show]) S.show = 0;
+var SPEEDS = [0.8, 1, 1.25, 1.5, 2], SLEEPS = [0, 15, 30, 45, 60];
+var playing = false, freq = SHOWS[S.show].f;
+function show(){ return SHOWS[S.show]; }
+function ep(){ var s = show(); return s.eps[S.epOf[s.id] || 0]; }
+function posOf(e){ return S.pos[e.key] || (e.key === 'bf0' ? 734 : 0); }
+function fmt(s){ s = Math.max(0, Math.floor(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+
+// ---------- clock ----------
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tickClock(); setInterval(tickClock, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 17 * b.level).toFixed(1)); }).catch(function(){});
+var toastT = 0;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 1800); }
+
+// ---------- dial scale ----------
+function buildScale(){
+  SW = (FMAX - FMIN) * PX + 400;
+  var svg = $('scaleSvg'), h = '';
+  svg.setAttribute('width', SW); svg.setAttribute('viewBox', '0 0 ' + SW + ' 156');
+  for (var f = 88; f <= 108.001; f += .2){
+    var x = fx(f), big = Math.abs(f - Math.round(f / 2) * 2) < .01, mid = Math.abs(f - Math.round(f)) < .01;
+    h += '<rect x="'+(x - .6)+'" y="'+(big ? 34 : mid ? 40 : 44)+'" width="1.2" height="'+(big ? 18 : mid ? 12 : 8)+'" fill="#c78a33" opacity="'+(big ? 1 : .7)+'"/>';
+    if (big) h += '<text x="'+x+'" y="28" text-anchor="middle" font-size="15" fill="#ffb547">'+Math.round(f)+'</text>';
+  }
+  h += '<rect x="'+fx(88)+'" y="56" width="'+(fx(108) - fx(88))+'" height="1.4" fill="#c78a33"/>';
+  SHOWS.forEach(function(s, i){
+    var x = fx(s.f), sub = S.subs.indexOf(s.id) >= 0;
+    h += '<g class="st" data-i="'+i+'" style="cursor:pointer"><rect x="'+(x - 50)+'" y="60" width="100" height="84" fill="transparent"/>' +
+      '<rect x="'+(x - .8)+'" y="58" width="1.6" height="'+(sub ? 34 : 26)+'" fill="'+(sub ? '#ffb547' : '#8a5d1d')+'"/>' +
+      '<text x="'+x+'" y="'+(sub ? 112 : 106)+'" text-anchor="middle" style="font:600 14px PingFang TC,sans-serif" fill="'+(sub ? '#ffe2b0' : '#a8752b')+'">'+s.n+'</text>' +
+      '<text x="'+x+'" y="'+(sub ? 130 : 124)+'" text-anchor="middle" font-size="11" letter-spacing="2" fill="'+(sub ? '#ffb547' : '#8a5d1d')+'">'+s.f.toFixed(1)+(sub ? ' · MEM' : '')+'</text></g>';
+  });
+  svg.innerHTML = h;
+}
+function fx(f){ return 200 + (f - FMIN) * PX; }
+function placeScale(){
+  var w = $('dial').clientWidth || 362;
+  $('scale').style.transform = 'translateX(' + (w / 2 - fx(freq)).toFixed(1) + 'px)';
+  $('dial').setAttribute('aria-valuenow', freq.toFixed(1));
+  var near = nearest(freq), d = Math.abs(SHOWS[near].f - freq), q = Math.max(0, 1 - d / 1.2);
+  var bars = Math.round(q * 5);
+  $('sig').querySelectorAll('i').forEach(function(b, k){ b.classList.toggle('on', k < bars); });
+  $('stereo').classList.toggle('on', d < .08);
+  setStatic(dragging || spinning ? Math.min(1, d / 1.2) : 0);
+}
+function nearest(f){ var b = 0; SHOWS.forEach(function(s, i){ if (Math.abs(s.f - f) < Math.abs(SHOWS[b].f - f)) b = i; }); return b; }
+
+// dial drag with inertia, snapping to the nearest station
+var dragging = false, spinning = false, vel = 0, lastX = 0, lastT = 0, sx = 0, sf = 0, moved = 0, spinRaf = 0;
+var dial = $('dial');
+dial.addEventListener('pointerdown', function(e){
+  audio(); dragging = true; spinning = false; cancelAnimationFrame(spinRaf); moved = 0;
+  sx = lastX = e.clientX; sf = freq; lastT = e.timeStamp; vel = 0;
+  try{ dial.setPointerCapture(e.pointerId); }catch(er){}
+});
+dial.addEventListener('pointermove', function(e){
+  if (!dragging) return;
+  var dx = e.clientX - lastX, dt = Math.max(1, e.timeStamp - lastT);
+  vel = vel * .6 + (-dx / PX / dt) * .4; lastX = e.clientX; lastT = e.timeStamp; moved += Math.abs(dx);
+  var nf = Math.max(FMIN, Math.min(FMAX, sf - (e.clientX - sx) / PX));
+  if (Math.floor(nf * 5) !== Math.floor(freq * 5)) click(.02);
+  freq = nf; placeScale();
+});
+function release(e){
+  if (!dragging) return; dragging = false;
+  if (moved < 6){ // a tap on a station name tunes straight to it
+    var g = e && e.target && e.target.closest ? e.target.closest('.st') : null;
+    if (g){ snapTo(+g.dataset.i); return; }
+    snapTo(nearest(freq)); return;
+  }
+  spinning = true; var last = performance.now();
+  (function spin(t){
+    var dt = Math.min(40, t - last); last = t;
+    freq += vel * dt; vel *= Math.pow(.992, dt);
+    if (freq < FMIN){ freq = FMIN; vel = 0; } if (freq > FMAX){ freq = FMAX; vel = 0; }
+    placeScale();
+    if (Math.abs(vel) > .0008 && !reduce){ spinRaf = requestAnimationFrame(spin); }
+    else { spinning = false; snapTo(nearest(freq)); }
+  })(last);
+}
+dial.addEventListener('pointerup', release); dial.addEventListener('pointercancel', release);
+dial.addEventListener('keydown', function(e){
+  if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ e.preventDefault(); snapTo(Math.min(SHOWS.length - 1, S.show + 1)); }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowDown'){ e.preventDefault(); snapTo(Math.max(0, S.show - 1)); }
+});
+function snapTo(i){
+  var from = freq, to = SHOWS[i].f, t0 = performance.now(), D = reduce ? 1 : 420;
+  cancelAnimationFrame(spinRaf); spinning = true;
+  (function step(t){
+    var k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3);
+    freq = from + (to - from) * e; placeScale();
+    if (k < 1) spinRaf = requestAnimationFrame(step);
+    else { spinning = false; freq = to; placeScale(); if (i !== S.show){ tune(i); } haptic([6, 30, 10]); click(.05); }
+  })(t0);
+}
+function tune(i){
+  savePos(); S.show = i; save('show', i); renderNow(); toast(SHOWS[i].f.toFixed(1) + ' MHz · ' + SHOWS[i].n);
+  if (playing) restartVoice();
+}
+
+// ---------- VU meter faces ----------
+var VU_MARKS = [[-20,'20'],[-10,'10'],[-7,'7'],[-5,'5'],[-3,'3'],[-2,''],[-1,''],[0,'0'],[1,''],[2,''],[3,'3']];
+function vuAngle(db){ // -20..+3 dB -> -46..+46 deg, VU-style compression
+  var p = Math.pow(10, db / 20), p0 = Math.pow(10, -20 / 20), p1 = Math.pow(10, 3 / 20);
+  return -46 + 92 * (p - p0) / (p1 - p0);
+}
+function buildVU(){
+  var cx = 85, cy = 118, r = 82, h = '';
+  function pt(a, rr){ var t = (a - 90) * Math.PI / 180; return [cx + rr * Math.cos(t), cy + rr * Math.sin(t)]; }
+  var a0 = pt(vuAngle(-20), r), a1 = pt(vuAngle(0), r), a2 = pt(vuAngle(3), r);
+  h += '<path d="M'+a0[0]+' '+a0[1]+' A'+r+' '+r+' 0 0 1 '+a1[0]+' '+a1[1]+'" fill="none" stroke="#15120d" stroke-width="1.4"/>';
+  h += '<path d="M'+a1[0]+' '+a1[1]+' A'+r+' '+r+' 0 0 1 '+a2[0]+' '+a2[1]+'" fill="none" stroke="#b3240f" stroke-width="5"/>';
+  VU_MARKS.forEach(function(m){
+    var a = vuAngle(m[0]), p = pt(a, r), q = pt(a, r + (m[1] ? 9 : 6)), tp = pt(a, r + 18), red = m[0] > 0;
+    h += '<line x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="'+(red ? '#b3240f' : '#15120d')+'" stroke-width="1.4"/>';
+    if (m[1]) h += '<text x="'+tp[0]+'" y="'+(tp[1] + 3)+'" text-anchor="middle" fill="'+(red || m[0] === 0 ? '#b3240f' : '#15120d')+'" style="font:700 10px DIN Alternate,sans-serif">'+m[1]+'</text>';
+  });
+  h += '<text x="85" y="78" text-anchor="middle" fill="#15120d" style="font:700 16px DIN Alternate,sans-serif;letter-spacing:.1em">VU</text>';
+  var m1 = pt(-46, 60), m2 = pt(46, 60);
+  h += '<text x="'+(m1[0] - 2)+'" y="'+(m1[1] + 16)+'" fill="#15120d" style="font:700 12px DIN Alternate,sans-serif">−</text><text x="'+(m2[0] - 4)+'" y="'+(m2[1] + 16)+'" fill="#b3240f" style="font:700 12px DIN Alternate,sans-serif">+</text>';
+  document.querySelectorAll('.vs').forEach(function(g){ g.innerHTML = h; });
+}
+
+// ---------- audio: a synthesized "broadcast" (voice murmur + bed), tuning static, key clicks ----------
+var ac = null, master, anL, anR, voiceG, bedG, staticG, bedOscs = [], noiseBuf, voiceSrc, staticSrc, bandF, formF;
+function audio(){
+  if (!ac){
+    try{
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      master = ac.createGain(); master.gain.value = S.vol * .9;
+      var split = ac.createChannelSplitter(2); anL = ac.createAnalyser(); anR = ac.createAnalyser(); anL.fftSize = anR.fftSize = 1024;
+      master.connect(ac.destination); master.connect(split); split.connect(anL, 0); split.connect(anR, 1);
+      noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+      var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      staticG = ac.createGain(); staticG.gain.value = 0;
+      var hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900;
+      staticSrc = ac.createBufferSource(); staticSrc.buffer = noiseBuf; staticSrc.loop = true; staticSrc.connect(hp); hp.connect(staticG); staticG.connect(master); staticSrc.start();
+    }catch(e){ ac = null; }
+  }
+  if (ac && ac.state === 'suspended') ac.resume().catch(function(){});
+  return ac;
+}
+function setStatic(v){ if (!ac || !staticG) return; staticG.gain.setTargetAtTime(v * .16, ac.currentTime, .03); }
+function click(v){
+  if (!ac || ac.state !== 'running') return;
+  var s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 2;
+  s.buffer = noiseBuf; g.gain.setValueAtTime(v || .05, ac.currentTime); g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + .03);
+  s.connect(f); f.connect(g); g.connect(ac.destination); s.start(ac.currentTime, Math.random()); s.stop(ac.currentTime + .04);
+}
+var CHORDS = {bf:[196,247,294], ec:[220,277,330], nm:[147,175,220], rc:[165,208,247], tr:[262,330,392], tk:[233,294,349], ck:[175,220,262]};
+function startVoice(){
+  if (!audio()) return;
+  stopVoice();
+  var t = ac.currentTime;
+  voiceSrc = ac.createBufferSource(); voiceSrc.buffer = noiseBuf; voiceSrc.loop = true;
+  bandF = ac.createBiquadFilter(); bandF.type = 'bandpass'; bandF.frequency.value = 700; bandF.Q.value = 3;
+  formF = ac.createBiquadFilter(); formF.type = 'peaking'; formF.frequency.value = 1800; formF.gain.value = 8;
+  voiceG = ac.createGain(); voiceG.gain.value = 0;
+  var pan = ac.createStereoPanner ? ac.createStereoPanner() : null;
+  voiceSrc.connect(bandF); bandF.connect(formF); formF.connect(voiceG);
+  if (pan){ pan.pan.value = -.05; voiceG.connect(pan); pan.connect(master); } else voiceG.connect(master);
+  bedG = ac.createGain(); bedG.gain.setValueAtTime(0, t); bedG.gain.linearRampToValueAtTime(.05, t + 1.2);
+  var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(bedG);
+  bedOscs = (CHORDS[show().id] || CHORDS.bf).map(function(f, k){
+    var o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = f * (S.speed > 1.2 ? 1.02 : 1);
+    var p = ac.createStereoPanner ? ac.createStereoPanner() : null;
+    if (p){ p.pan.value = [-.7, .7, 0][k]; o.connect(p); p.connect(lp); } else o.connect(lp);
+    o.start(t); return o;
+  });
+  bedG.connect(master);
+  voiceSrc.start(t);
+}
+function stopVoice(){
+  if (!ac) return;
+  var t = ac.currentTime;
+  try{ if (voiceSrc){ voiceG.gain.setTargetAtTime(0, t, .05); voiceSrc.stop(t + .3); } }catch(e){}
+  try{ if (bedG){ bedG.gain.setTargetAtTime(0, t, .1); } bedOscs.forEach(function(o){ o.stop(t + .6); }); }catch(e){}
+  voiceSrc = null; bedOscs = [];
+}
+function restartVoice(){ if (playing){ stopVoice(); startVoice(); } }
+// speech envelope: phrases with syllables and pauses, rate follows speed
+var env = 0, phrase = 0, syl = 0;
+setInterval(function(){
+  if (!playing) { env = 0; return; }
+  var r = S.speed;
+  if (phrase <= 0){ phrase = Math.random() < .22 ? -(3 + Math.random() * 6) : 18 + Math.random() * 30; }
+  if (phrase < 0){ phrase += r; env = 0; }
+  else { phrase -= r; syl += (.9 + Math.random() * .8) * r; env = Math.max(0, Math.sin(syl)) * (.55 + Math.random() * .45); }
+  if (ac && voiceG){
+    voiceG.gain.setTargetAtTime(env * .55, ac.currentTime, .025);
+    bandF.frequency.setTargetAtTime(500 + Math.random() * 700 * r, ac.currentTime, .04);
+  }
+}, 70);
+
+// ---------- VU needles (read the analyser; ballistic smoothing) ----------
+var silentFor = 0, buf = new Float32Array(1024), vuL = -20, vuR = -20, ndL = $('ndL'), ndR = $('ndR');
+function level(an){ if (!an) return 0; an.getFloatTimeDomainData(buf); var s = 0; for (var i = 0; i < buf.length; i += 2) s += buf[i] * buf[i]; return Math.sqrt(s / 512); }
+function vuFrame(){
+  var tl, tr;
+  var ll = ac && ac.state === 'running' && anL ? level(anL) : 0, lr = ll ? level(anR) : 0;
+  if (ll > 1e-4){ silentFor = 0; tl = 20 * Math.log10(ll * 24 + 1e-5); tr = 20 * Math.log10(lr * 24 + 1e-5); }
+  else if (playing && ++silentFor < 40){ tl = tr = -20; }
+  else { tl = playing ? -9 + env * 10 : -20; tr = playing ? -10 + env * 10 + Math.random() : -20; }
+  tl = Math.max(-20, Math.min(3, tl)); tr = Math.max(-20, Math.min(3, tr));
+  vuL += (tl - vuL) * .18; vuR += (tr - vuR) * .18;
+  ndL.setAttribute('transform', 'rotate(' + vuAngle(vuL).toFixed(2) + ' 85 118)');
+  ndR.setAttribute('transform', 'rotate(' + vuAngle(vuR).toFixed(2) + ' 85 118)');
+}
+
+// ---------- now playing ----------
+var W = [];
+function buildCounter(){
+  var h = ''; for (var k = 0; k < 4; k++){ if (k === 2) h += '<span class="c">:</span>'; h += '<div class="whl"><div>' + '0123456789'.split('').map(function(d){ return '<span>'+d+'</span>'; }).join('') + '</div></div>'; }
+  $('ctr').innerHTML = h; W = [].slice.call($('ctr').querySelectorAll('.whl div'));
+}
+function setCounter(s){ var t = fmt(s).replace(':', ''); for (var k = 0; k < 4; k++) W[k].style.transform = 'translateY(' + (-26 * +t[k]) + 'px)'; }
+function renderNow(){
+  var s = show(), e = ep(), sub = S.subs.indexOf(s.id) >= 0;
+  $('nShow').innerHTML = s.f.toFixed(1) + ' · <b>' + s.n + '</b>';
+  $('nTitle').textContent = e.t;
+  $('nMeta').textContent = s.host + ' · ' + e.date + ' · ' + s.g;
+  $('subBtn').setAttribute('aria-pressed', sub); $('subLamp').classList.toggle('on', sub);
+  $('dur').textContent = fmt(e.dur);
+  $('ticks').innerHTML = e.chap.slice(1).map(function(c){ return '<i style="left:' + (c[0] / e.dur * 100).toFixed(2) + '%"></i>'; }).join('');
+  updatePos();
+}
+function updatePos(){
+  var e = ep(), p = posOf(e);
+  setCounter(p);
+  $('cap').style.left = (p / e.dur * 100).toFixed(2) + '%';
+  $('fader').setAttribute('aria-valuenow', Math.round(p));
+}
+function savePos(){ save('pos', S.pos); }
+function seek(p){ var e = ep(); S.pos[e.key] = Math.max(0, Math.min(e.dur - 1, p)); updatePos(); savePos(); }
+function setPlaying(v){
+  playing = v;
+  $('kPlay').classList.toggle('down', v); $('pwrLamp').classList.toggle('on', v);
+  $('playLbl').textContent = v ? '暫停' : '播放'; $('kPlay').setAttribute('aria-label', v ? '暫停' : '播放');
+  $('playIc').innerHTML = v ? '<path d="M7.5 5v14M16.5 5v14"/>' : '<path d="M7 4.5v15L19 12z"/>';
+  if (v) startVoice(); else stopVoice();
+}
+$('kPlay').addEventListener('click', function(){ audio(); click(.08); haptic(!playing ? [10, 20, 10] : 10); setPlaying(!playing); savePos(); });
+$('kBack').addEventListener('click', function(){ audio(); click(.06); haptic(8); seek(posOf(ep()) - 15); });
+$('kFwd').addEventListener('click', function(){ audio(); click(.06); haptic(8); seek(posOf(ep()) + 30); });
+$('subBtn').addEventListener('click', function(){
+  var s = show(), k = S.subs.indexOf(s.id); audio(); click(.1);
+  if (k >= 0) S.subs.splice(k, 1); else S.subs.push(s.id);
+  save('subs', S.subs); haptic([8, 40, 8]); buildScale(); placeScale(); renderNow();
+  toast(k >= 0 ? '已取消訂閱 ' + s.n : '已訂閱，刻度上會亮起 ' + s.n);
+});
+// fader seek
+(function(){
+  var f = $('fader'), on = false;
+  function at(e){ var r = f.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); }
+  f.addEventListener('pointerdown', function(e){ on = true; try{ f.setPointerCapture(e.pointerId); }catch(er){} seek(at(e) * ep().dur); haptic(5); });
+  f.addEventListener('pointermove', function(e){ if (on) seek(at(e) * ep().dur); });
+  f.addEventListener('pointerup', function(){ on = false; }); f.addEventListener('pointercancel', function(){ on = false; });
+  f.addEventListener('keydown', function(e){ if (e.key === 'ArrowRight'){ seek(posOf(ep()) + 10); e.preventDefault(); } if (e.key === 'ArrowLeft'){ seek(posOf(ep()) - 10); e.preventDefault(); } });
+})();
+
+// ---------- knobs ----------
+function makeKnob(el, opts){
+  // opts: labels [text], idx(), set(i), fmt()
+  var n = opts.labels.length, span = 250, a0 = -125, h = '';
+  opts.labels.forEach(function(t, i){
+    var a = (a0 + span * i / (n - 1) - 90) * Math.PI / 180, x = 59 + 46 * Math.cos(a), y = 54 + 44 * Math.sin(a);
+    h += '<span class="lbl" style="left:' + x.toFixed(1) + 'px;top:' + y.toFixed(1) + 'px">' + t + '</span>';
+  });
+  h += '<button class="knob" aria-hidden="true" tabindex="-1"></button>';
+  el.innerHTML = h;
+  var knob = el.querySelector('.knob'), lbls = el.querySelectorAll('.lbl');
+  function paint(){ var i = opts.idx(); knob.style.transform = 'rotate(' + (a0 + span * i / (n - 1)) + 'deg)'; lbls.forEach(function(l, k){ l.classList.toggle('on', k === i); }); el.setAttribute('aria-valuenow', i); el.setAttribute('aria-valuetext', opts.labels[i]); opts.after && opts.after(); }
+  function set(i){ i = Math.max(0, Math.min(n - 1, i)); if (i === opts.idx()) return; opts.set(i); paint(); click(.07); haptic(6); }
+  var on = false, sy = 0, sx = 0, si = 0, mv = 0;
+  el.addEventListener('pointerdown', function(e){ audio(); on = true; sy = e.clientY; sx = e.clientX; si = opts.idx(); mv = 0; try{ el.setPointerCapture(e.pointerId); }catch(er){} });
+  el.addEventListener('pointermove', function(e){ if (!on) return; var d = (sy - e.clientY) + (e.clientX - sx); mv = Math.max(mv, Math.abs(d)); set(si + Math.round(d / 26)); });
+  function up(){ if (!on) return; on = false; if (mv < 6){ var i = opts.idx() + 1; if (i >= n) i = 0; opts.set(i); paint(); click(.07); haptic(6); } }
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', function(){ on = false; });
+  el.addEventListener('keydown', function(e){ if (e.key === 'ArrowUp' || e.key === 'ArrowRight'){ set(opts.idx() + 1); e.preventDefault(); } if (e.key === 'ArrowDown' || e.key === 'ArrowLeft'){ set(opts.idx() - 1); e.preventDefault(); } });
+  paint();
+  return paint;
+}
+makeKnob($('kSpeed'), {labels:['0.8','1','1.25','1.5','2'], idx:function(){ return Math.max(0, SPEEDS.indexOf(S.speed)); },
+  set:function(i){ S.speed = SPEEDS[i]; save('speed', S.speed); restartVoice(); }, after:function(){ $('rdSpeed').textContent = S.speed + '×'; }});
+makeKnob($('kSleep'), {labels:['OFF','15','30','45','60'], idx:function(){ return Math.max(0, SLEEPS.indexOf(S.sleep)); },
+  set:function(i){ S.sleep = SLEEPS[i]; S.sleepEnd = S.sleep ? Date.now() + S.sleep * 60000 : 0; save('sleep', S.sleep); save('sleepEnd', S.sleepEnd); if (S.sleep) toast(S.sleep + ' 分鐘後自動停止'); },
+  after:function(){ sleepRead(); }});
+var VOLS = [0, .25, .5, .7, .85, 1];
+makeKnob($('kVol'), {labels:['0','2','4','6','8','10'], idx:function(){ var b = 0; VOLS.forEach(function(v, i){ if (Math.abs(v - S.vol) < Math.abs(VOLS[b] - S.vol)) b = i; }); return b; },
+  set:function(i){ S.vol = VOLS[i]; save('vol', S.vol); if (ac && master) master.gain.setTargetAtTime(S.vol * .9, ac.currentTime, .05); }, after:function(){ $('rdVol').textContent = Math.round(S.vol * 10); }});
+function sleepRead(){ $('rdSleep').textContent = S.sleep && S.sleepEnd ? fmt((S.sleepEnd - Date.now()) / 1000) : 'OFF'; }
+if (S.sleepEnd && S.sleepEnd < Date.now()){ S.sleep = 0; S.sleepEnd = 0; }
+
+// ---------- sheets ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null, mode = '';
+function openSheet(html, m){ lastFocus = document.activeElement; mode = m; $('sb').innerHTML = html; $('sb').scrollTop = 0; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); mode = ''; if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeSheet();
+  if (e.key === ' ' && e.target === document.body){ e.preventDefault(); $('kPlay').click(); }
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, drag = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; if (e.target.closest('.sb') && $('sb').scrollTop > 0) return; drag = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(er){} });
+  sheet.addEventListener('pointermove', function(e){ if (!drag) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!drag) return; drag = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var vv = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || (vv > .6 && dy > 20)) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+function epsHtml(){
+  var s = show(), cur = S.epOf[s.id] || 0, sub = S.subs.indexOf(s.id) >= 0;
+  return '<h4>' + s.f.toFixed(1) + ' MHz · 節目單</h4><h3>' + s.n + '</h3><p class="sub">' + s.host + ' 主持 · 每週更新 · ' + (sub ? '已訂閱' : '尚未訂閱') + '</p><ul class="eps">' +
+    s.eps.map(function(e, i){ var p = posOf(e), dn = S.done[e.key];
+      return '<li><button data-ep="' + i + '" class="' + (i === cur ? 'cur' : '') + '"><b>' + e.t + '</b><small>' + fmt(e.dur) + '</small><span class="dn">' + e.date + (dn ? ' · 已聽完' : p > 0 ? ' · 剩 ' + fmt(e.dur - p) : '') + '</span><span></span><span class="bar"><i style="width:' + (dn ? 100 : p / e.dur * 100).toFixed(1) + '%"></i></span></button></li>'; }).join('') +
+    '</ul><div class="sacts"><button data-act="mark">' + (S.done[ep().key] ? '標為未聽' : '本集標為已聽完') + '</button><button data-act="sub">' + (sub ? '取消訂閱' : '訂閱節目') + '</button></div>';
+}
+function chHtml(){
+  var e = ep(), p = posOf(e), ci = 0; e.chap.forEach(function(c, i){ if (p >= c[0]) ci = i; });
+  return '<h4>章節 · CHAPTERS</h4><h3>' + e.t + '</h3><ol class="chs">' + e.chap.map(function(c, i){ return '<li><button data-ch="' + c[0] + '" class="' + (i === ci ? 'cur' : '') + '"><small>' + fmt(c[0]) + '</small><b>' + c[1] + '</b></button></li>'; }).join('') + '</ol>';
+}
+$('kEp').addEventListener('click', function(){ audio(); click(.06); openSheet(epsHtml(), 'ep'); });
+$('kCh').addEventListener('click', function(){ audio(); click(.06); openSheet(chHtml(), 'ch'); });
+sheet.addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return; haptic(8);
+  if (b.dataset.ep != null){ savePos(); S.epOf[show().id] = +b.dataset.ep; save('epOf', S.epOf); renderNow(); closeSheet(); if (!playing) setPlaying(true); else restartVoice(); toast('播放：' + ep().t.slice(0, 14)); }
+  else if (b.dataset.ch != null){ seek(+b.dataset.ch); closeSheet(); toast('跳到 ' + fmt(+b.dataset.ch)); }
+  else if (b.dataset.act === 'mark'){ var k = ep().key; if (S.done[k]) delete S.done[k]; else S.done[k] = true; save('done', S.done); $('sb').innerHTML = epsHtml(); }
+  else if (b.dataset.act === 'sub'){ $('subBtn').click(); $('sb').innerHTML = epsHtml(); }
+});
+
+// ---------- main loop ----------
+var lastT0 = performance.now(), raf = 0, lastSec = -1;
+function loop(t){
+  raf = requestAnimationFrame(loop);
+  var dt = Math.min(.1, (t - lastT0) / 1000); lastT0 = t;
+  if (playing){
+    var e = ep(), p = posOf(e) + dt * S.speed;
+    if (p >= e.dur - 1){ p = e.dur - 1; S.done[e.key] = true; save('done', S.done); setPlaying(false); toast('本集播完了'); }
+    S.pos[e.key] = p;
+    if (Math.floor(p) !== lastSec){ lastSec = Math.floor(p); updatePos(); if (lastSec % 5 === 0) savePos(); }
+  }
+  if (S.sleep && S.sleepEnd){
+    if (Date.now() >= S.sleepEnd){ S.sleep = 0; S.sleepEnd = 0; save('sleep', 0); save('sleepEnd', 0); if (playing) setPlaying(false); toast('睡眠計時到，晚安'); kSleepPaint(); }
+    else if (Math.floor(t / 500) % 2 === 0) sleepRead();
+  }
+  vuFrame();
+}
+var kSleepPaint = function(){ sleepRead(); var el = $('kSleep'); el.querySelector('.knob').style.transform = 'rotate(-125deg)'; el.querySelectorAll('.lbl').forEach(function(l, k){ l.classList.toggle('on', k === 0); }); };
+document.addEventListener('visibilitychange', function(){ cancelAnimationFrame(raf); if (!document.hidden){ lastT0 = performance.now(); raf = requestAnimationFrame(loop); } });
+window.addEventListener('resize', placeScale);
+
+buildScale(); buildVU(); buildCounter(); renderNow(); placeScale();
+raf = requestAnimationFrame(loop);
+// backdrop scale (desktop frame only)
+(function(){
+  var g = document.getElementById('bscale'), h = '';
+  for (var f = 88; f <= 108; f += .5){ var x = -120 + (f - 88) * 90, big = f % 2 === 0;
+    h += '<rect x="' + x + '" y="' + (big ? 136 : 146) + '" width="3" height="' + (big ? 34 : 20) + '" fill="#c78a33"/>';
+    if (big) h += '<text x="' + x + '" y="122" text-anchor="middle" fill="#ffb547" style="font:700 34px DIN Alternate,sans-serif">' + f + '</text>'; }
+  SHOWS.forEach(function(s){ var x = -120 + (s.f - 88) * 90; h += '<text x="' + x + '" y="250" text-anchor="middle" fill="#a8752b" style="font:600 26px PingFang TC,sans-serif">' + s.n + '</text>'; });
+  h += '<rect x="-120" y="170" width="1900" height="3" fill="#c78a33"/>';
+  g.innerHTML = h;
+})();
+})();
+</script>
+</body>
+</html>

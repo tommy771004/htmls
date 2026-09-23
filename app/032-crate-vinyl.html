@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c8541c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="唱片箱">
+<title>唱片箱 · 黑膠收藏</title>
+<meta name="description" content="像在七〇年代唱片行翻木箱一樣整理黑膠：往下撥翻唱片、抽出放上唱盤、拖唱臂落針聽爆音與合成音樂，並管理收藏與想要清單。收錄於 100 Creative HTML Works（App 032・七〇年代唱片行）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/032-crate-vinyl.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23c8541c'/%3E%3Cpath d='M0 22h64v7H0z' fill='%23e0a526'/%3E%3Cpath d='M0 29h64v6H0z' fill='%236b3417'/%3E%3Ccircle cx='32' cy='38' r='17' fill='%231a1411'/%3E%3Ccircle cx='32' cy='38' r='6' fill='%23e0a526'/%3E%3C/svg%3E">
+<style>
+:root{
+  --orange:#c8541c;--rust:#9e3d14;--brown:#6b3417;--wood:#7a4522;--wood2:#5a2f16;--mustard:#e0a526;--black:#1a1411;--ink:#1a1411;--paper:#f6e6c6;
+  --serif:Baskerville,"Baskerville Old Face","Songti TC",serif;
+  --song:"Songti TC",Baskerville,serif;
+  --sans:"PingFang TC",-apple-system,system-ui,sans-serif;
+  --spring:cubic-bezier(.3,1.3,.5,1);--icA:#1a1411;--icB:#e0a526;
+  --out:cubic-bezier(.2,.9,.3,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--sans);background:#2a1a12;color:var(--ink);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible{outline:2px solid var(--mustard);outline-offset:3px}
+svg{display:block}
+input{font:inherit;color:inherit}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--orange);isolation:isolate;-webkit-user-select:none;user-select:none}
+.screen input{-webkit-user-select:text;user-select:text}
+@media (min-width:521px){
+  .stage{display:flex;align-items:center;justify-content:center;gap:60px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0;overflow:hidden;background:#3a2014}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:10px;z-index:1;
+    background:#24150e;box-shadow:inset 0 0 0 2px #4d2d1c,0 16px 26px -18px rgba(10,4,0,.9)}
+  .screen{inset:10px;border-radius:42px}
+  .caption{display:block;position:relative;z-index:1;max-width:240px;color:var(--paper);padding:22px 24px;background:#1a1411}
+  .caption h1{font:italic 700 44px/1 var(--serif)}
+  .caption p{margin-top:12px;font-size:15px;line-height:1.7;color:rgba(246,230,198,.76)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+.wall{position:absolute;inset:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px;padding:18px;opacity:.28}
+.wall svg{width:100%;height:auto}
+.bstripes{position:absolute;left:0;right:0;top:50%;height:120px;margin-top:-60px;background:linear-gradient(#e0a526 0 33%,#c8541c 33% 66%,#6b3417 66%)}
+
+/* halftone print texture on the orange wall */
+.screen::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.16;
+  background-image:radial-gradient(circle at 50% 50%,#6b3417 1.1px,transparent 1.6px);background-size:7px 7px}
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+  height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:700 16px/1 var(--sans);color:var(--black);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+.status svg *{fill:currentColor}
+.screen.dark .status{color:var(--paper)}
+.screen.dark{--icA:#f6e6c6;--icB:#c8541c}
+.ic-a{fill:var(--icA)} .ic-b{fill:var(--icB)}
+.screen.list .stripes{display:none}
+@media (display-mode:standalone){.status{display:none}}
+
+.head{position:absolute;z-index:10;left:0;right:0;top:calc(48px + env(safe-area-inset-top));height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 22px}
+.mark{display:flex;align-items:baseline;gap:8px;color:var(--black)}
+.mark b{font:700 27px/1 var(--song);letter-spacing:.06em}
+.mark i{font:italic 700 22px/1 var(--serif);color:var(--black)}
+.screen.dark .mark{color:var(--paper)} .screen.dark .mark i{color:var(--mustard)}
+.iconbtn{width:48px;height:48px;display:grid;place-items:center;transition:transform .15s}
+.iconbtn:active{transform:scale(.86)}
+.stripes{position:absolute;z-index:1;left:0;right:0;top:calc(122px + env(safe-area-inset-top));height:54px;pointer-events:none;
+  background:linear-gradient(#e0a526 0 33.3%,#c8541c 33.3% 66.6%,#6b3417 66.6%)}
+.screen.dark .stripes{opacity:.9}
+
+.views{position:absolute;inset:0;z-index:5}
+.view{position:absolute;inset:0;padding-top:calc(110px + env(safe-area-inset-top));padding-bottom:calc(88px + env(safe-area-inset-bottom));transition:transform .5s var(--out)}
+.view[hidden]{display:block;visibility:hidden;pointer-events:none}
+.view.off-l{transform:translateX(-30%)} .view.off-r{transform:translateX(30%)}
+
+/* ---------- dig view ---------- */
+.dividers{position:relative;z-index:6;display:flex;gap:6px;padding:0 14px;height:56px;align-items:flex-end;overflow-x:auto;scrollbar-width:none}
+.dividers::-webkit-scrollbar{display:none}
+.dividers button{flex:none;height:46px;padding:0 14px;border-radius:9px 9px 0 0;background:#d6b98a;color:var(--black);font:600 15px/1 var(--sans);transition:transform .3s var(--spring),background-color .2s}
+.dividers button[aria-pressed=true]{background:var(--black);color:var(--mustard);transform:translateY(-6px)}
+.dividers button span{font:italic 700 13px/1 var(--serif);margin-left:4px;opacity:.7}
+.crate{position:relative;height:calc(100% - 56px - 150px);touch-action:none;cursor:grab;perspective:950px;perspective-origin:50% -30%;container-type:size;overflow:hidden}
+.stack{position:absolute;inset:0;transform-style:preserve-3d}
+.sl{--sz:min(262px,70cqw,calc(100cqh - 110px));position:absolute;left:50%;bottom:36px;width:var(--sz);height:var(--sz);margin-left:calc(var(--sz)/-2);transform-origin:50% 100%;transition:transform .55s var(--spring);background:#111}
+.sl svg{width:100%;height:100%}
+.sl::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 2px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(0,0,0,.4)}
+.sl.gone{visibility:hidden}
+.crate.drag .sl{transition:none}
+.box{position:absolute;left:0;right:0;bottom:0;height:min(94px,23%);pointer-events:none;z-index:300}
+.box svg{width:100%;height:100%}
+.empty{position:absolute;left:0;right:0;top:30%;text-align:center;color:var(--black);font-size:15px;z-index:2}
+.empty b{display:block;font:italic 700 26px/1.2 var(--serif)}
+.info{position:absolute;left:0;right:0;bottom:calc(88px + env(safe-area-inset-bottom));height:150px;padding:14px 22px 0;background:var(--black);color:var(--paper);z-index:4}
+.info .t{font:700 22px/1.2 var(--song);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:96px}
+.info .t.lat{font:italic 700 24px/1.15 var(--serif)}
+.info .a{margin-top:3px;font-size:15px;color:rgba(246,230,198,.78);padding-right:96px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info .meta{margin-top:6px;font-size:13px;color:rgba(246,230,198,.6)}
+.info .price{position:absolute;right:22px;top:14px;text-align:right;font:italic 700 26px/1 var(--serif);color:var(--mustard)}
+.info .price small{display:block;font:500 12px/1.4 var(--sans);font-style:normal;color:rgba(246,230,198,.6);margin-top:4px}
+.info .row{position:absolute;left:14px;right:14px;bottom:10px;display:flex;gap:8px}
+.play{flex:1;height:48px;background:var(--mustard);color:var(--black);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;gap:10px;transition:background-color .15s,transform .15s}
+.play:active{transform:scale(.97);background:#f0b93a}
+.toggle{flex:none;height:48px;padding:0 14px;color:var(--paper);font-weight:600;display:flex;align-items:center;gap:8px;background:#2c211b;transition:background-color .15s}
+.toggle:active{background:#3a2c24}
+.toggle[aria-pressed=true]{color:var(--mustard)}
+
+/* ---------- turntable view ---------- */
+.screen.dark{background:#1f1510}
+.screen.dark::before{opacity:.07}
+.deck{position:relative;margin:34px 12px 0;aspect-ratio:366/360;background:#5a2f16;touch-action:none}
+.deck > svg{position:absolute;inset:0;width:100%;height:100%}
+#armG{cursor:grab}
+.deckbar{display:flex;align-items:center;justify-content:space-between;margin:12px 16px 0;color:var(--paper)}
+.speed{display:flex;background:#2c211b}
+.speed button{width:56px;height:44px;font:italic 700 18px/1 var(--serif);color:rgba(246,230,198,.55);transition:color .2s,background-color .2s}
+.speed button[aria-pressed=true]{background:var(--mustard);color:var(--black)}
+.lift{height:44px;padding:0 14px;color:var(--paper);font-weight:600;display:flex;align-items:center;gap:8px;background:#2c211b}
+.lift:active{background:#3a2c24}
+.lift[disabled]{opacity:.4}
+.np{margin:14px 22px 0;color:var(--paper)}
+.np .t{font:700 20px/1.2 var(--song);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np .s{font-size:13px;color:rgba(246,230,198,.62);margin-top:2px}
+.tracks{margin:10px 12px 0;overflow:auto;flex:1;min-height:0;overscroll-behavior:contain}
+#v-deck,#v-deck[hidden]{display:flex;flex-direction:column}
+.deck{flex:none}
+.tr{display:grid;grid-template-columns:36px 1fr auto;align-items:center;width:100%;min-height:44px;padding:0 10px;text-align:left;color:rgba(246,230,198,.8);transition:background-color .15s}
+.tr:active{background:#2c211b}
+.tr .n{font:italic 700 15px/1 var(--serif);color:rgba(224,165,38,.8)}
+.tr .d{font-size:13px;font-variant-numeric:tabular-nums;color:rgba(246,230,198,.5)}
+.tr.on{color:var(--mustard);background:#2a1d16}
+.hint{margin:10px 22px 0;font-size:13px;color:rgba(246,230,198,.55)}
+
+/* ---------- list view ---------- */
+.listhead{padding:6px 22px 0;color:var(--black)}
+.listhead .big{font:italic 700 46px/1 var(--serif);letter-spacing:-.01em}
+.listhead .big small{font:700 17px/1 var(--song);margin-left:8px;letter-spacing:.04em;font-style:normal}
+.listhead .sum{margin-top:6px;font-size:14px}
+.filters{display:flex;gap:18px;padding:10px 22px 8px}
+.filters button{height:44px;font-weight:700;font-size:16px;color:rgba(26,20,17,.55);position:relative}
+.filters button[aria-pressed=true]{color:var(--black)}
+.filters button[aria-pressed=true]::after{content:"";position:absolute;left:-4px;right:-4px;bottom:6px;height:8px;background:var(--mustard);z-index:-1;border-radius:1px}
+.rows{position:absolute;left:0;right:0;top:calc(110px + env(safe-area-inset-top) + 142px);bottom:calc(88px + env(safe-area-inset-bottom));overflow:auto;background:var(--black);overscroll-behavior:contain}
+.rw{position:relative;height:76px;overflow:hidden}
+.rw .del{position:absolute;right:0;top:0;bottom:0;width:96px;background:#9e3d14;color:var(--paper);font-weight:700;display:flex;align-items:center;justify-content:center}
+.rw .fr{position:absolute;inset:0;display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;padding:0 14px 0 16px;background:var(--black);color:var(--paper);transition:transform .35s var(--out);touch-action:pan-y;text-align:left;width:100%}
+.rw.drag .fr{transition:none}
+.rw .fr svg{width:56px;height:56px}
+.rw .tt{min-width:0}
+.rw .tt b{display:block;font:700 16px/1.25 var(--song);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rw .tt span{display:block;font-size:13px;color:rgba(246,230,198,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rw .pr{text-align:right;font:italic 700 17px/1.2 var(--serif);color:var(--mustard)}
+.rw .pr small{display:block;font:500 12px/1.3 var(--sans);color:rgba(246,230,198,.55)}
+.rw + .rw .fr{box-shadow:inset 0 1px 0 #2c211b}
+.none{padding:30px 22px;color:rgba(246,230,198,.6);font-size:15px}
+
+/* ---------- dymo nav ---------- */
+.nav{position:absolute;z-index:20;left:0;right:0;bottom:0;height:calc(88px + env(safe-area-inset-bottom));padding:12px 14px env(safe-area-inset-bottom);display:flex;justify-content:center;gap:10px;background:#2a1a12}
+.nav::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:repeating-linear-gradient(90deg,#3a2418 0 3px,#2a1a12 3px 9px)}
+.tape{position:relative;height:46px;min-width:98px;padding:0 18px;color:#fff;font:700 17px/1 var(--sans);letter-spacing:.16em;background:#111;
+  clip-path:polygon(0 0,100% 0,96% 50%,100% 100%,0 100%,4% 50%);text-shadow:0 1px 0 rgba(0,0,0,.6),0 -1px 0 rgba(255,255,255,.25);transition:background-color .2s,transform .3s var(--spring)}
+.tape:nth-child(1){transform:rotate(-2deg)} .tape:nth-child(2){transform:rotate(1.2deg)} .tape:nth-child(3){transform:rotate(-1deg)}
+.tape[aria-selected=true]{background:#b8321a}
+.tape::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 3px);pointer-events:none}
+.tape:active{filter:brightness(1.25)}
+
+.homebar{position:absolute;z-index:70;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--paper);opacity:.7;pointer-events:none}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(26,20,17,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:92%;display:flex;flex-direction:column;background:var(--paper);color:var(--black);
+  transform:translateY(calc(100% + 24px));transition:transform .5s var(--spring);touch-action:none;padding-bottom:env(safe-area-inset-bottom)}
+.sheet::before{content:"";position:absolute;left:0;right:0;top:-10px;height:10px;background:linear-gradient(#e0a526 0 50%,#c8541c 50%)}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{width:44px;height:5px;border-radius:3px;background:rgba(26,20,17,.3);margin:10px auto 6px;flex:none}
+.sbody{overflow:auto;padding:4px 22px 26px;overscroll-behavior:contain;touch-action:pan-y}
+.sheet h3{font:italic 700 30px/1.1 var(--serif);margin:4px 0 12px}
+.sheet h3 small{font:700 16px/1 var(--song);font-style:normal;margin-left:8px}
+.prev{display:flex;gap:16px;align-items:center}
+.prev svg{width:112px;height:112px;flex:none}
+.prev p{font-size:13px;color:rgba(26,20,17,.64)}
+.fld{display:block;margin-top:14px}
+.fld span{display:block;font-size:13px;font-weight:600;color:rgba(26,20,17,.64)}
+.fld input{width:100%;height:44px;border:0;border-bottom:2px solid var(--black);background:transparent;font-size:18px;font-family:var(--song);font-weight:700;padding:0;border-radius:0;outline:none}
+.fld input:focus{border-bottom-color:var(--orange)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.opts button{height:44px;padding:0 14px;font-weight:600;background:#e7d2ad;transition:background-color .15s}
+.opts button[aria-pressed=true]{background:var(--black);color:var(--mustard)}
+.inks{display:flex;gap:10px;margin-top:8px}
+.inks button{width:56px;height:56px;padding:0;transition:transform .2s var(--spring)}
+.inks button svg{width:100%;height:100%}
+.inks button[aria-pressed=true]{transform:translateY(-6px);outline:3px solid var(--black);outline-offset:2px}
+.save{margin-top:20px;width:100%;height:54px;background:var(--black);color:var(--mustard);font-weight:700;font-size:17px;transition:transform .15s}
+.save:active{transform:scale(.98)}
+.err{color:#9e3d14;font-size:13px;min-height:18px;margin-top:6px}
+
+.toast{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-160px);transition:transform .45s var(--spring);
+  display:flex;align-items:center;gap:12px;height:48px;padding:0 6px 0 16px;background:var(--black);color:var(--paper);font-size:14px;font-weight:600;white-space:nowrap}
+.toast.on{transform:translate(-50%,0)}
+.toast button{height:40px;padding:0 12px;color:var(--mustard)}
+
+@media (max-height:740px){
+  .info{height:132px} .info .meta{display:none}
+  .crate{height:calc(100% - 56px - 132px)}
+  .deck{margin:18px 40px 0}
+}
+@media (prefers-reduced-motion:reduce){
+  .sl,.view,.sheet,.toast,.dividers button,.tape,.rw .fr{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><div class="bstripes"></div><div class="wall" id="wall"></div></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="stripes"></div>
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3.4" height="4"/><rect x="4.8" y="5.5" width="3.4" height="6.5"/><rect x="9.6" y="3" width="3.4" height="9"/><rect x="14.4" y="0" width="3.4" height="12"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 12 0 3.6C2.2 1.4 5 .2 8 .2s5.8 1.2 8 3.4z"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><path d="M0 0h23v12H0zm2 2v8h19V2z"/><rect x="3.5" y="3.5" width="13" height="5"/><rect x="24" y="4" width="2" height="4"/></svg>
+        </span>
+      </div>
+      <div class="head">
+        <div class="mark"><b>唱片箱</b><i>Crate</i></div>
+        <button class="iconbtn" id="addBtn" aria-label="新增唱片"><svg width="30" height="30" viewBox="0 0 30 30"><path class="ic-b" d="M14 5h5v8h8v5h-8v8h-5v-8H6v-5h8z"/><path class="ic-a" d="M12 3h5v8h8v5h-8v8h-5v-8H4v-5h8z"/></svg></button>
+      </div>
+
+      <div class="views">
+        <section class="view" id="v-dig" aria-label="翻箱">
+          <div class="dividers" id="dividers" role="group" aria-label="類型隔板"></div>
+          <div class="crate" id="crate" tabindex="0" aria-label="唱片箱，上下撥動翻唱片，點一下抽出">
+            <div class="stack" id="stack"></div>
+            <div class="box"><svg viewBox="0 0 390 180" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M0 22 L390 22 L390 180 L0 180Z" fill="#7a4522"/>
+              <path d="M0 26h390v12H0z" fill="#8c5129"/>
+              <path d="M0 38h390v4H0z" fill="#4a2410"/>
+              <g fill="none" stroke="#5a2f16" stroke-width="2" stroke-linecap="round" opacity=".7">
+                <path d="M16 62c60-6 120 4 190-2s120 6 170 0"/><path d="M8 96c80 8 140-6 210 0s110 4 164-4"/><path d="M20 132c70-8 150 6 230 0s90-4 130 2"/><path d="M40 164c90 4 170-6 250 0"/>
+              </g>
+              <path d="M0 102h390v6H0z" fill="#4a2410" opacity=".6"/>
+              <path d="M150 56h90c6 0 10 4 10 10v10c0 6-4 10-10 10h-90c-6 0-10-4-10-10V66c0-6 4-10 10-10z" fill="#3a1d0c"/>
+              <text x="195" y="77" text-anchor="middle" font-family="Baskerville,serif" font-style="italic" font-weight="700" font-size="17" fill="#e0a526">No.7</text>
+            </svg></div>
+            <div class="empty" id="empty" hidden><b>這格是空的</b>換個隔板，或按右上角新增一張。</div>
+          </div>
+                    <div class="info" id="info">
+            <div class="t" id="iT"></div>
+            <div class="a" id="iA"></div>
+            <div class="meta" id="iM"></div>
+            <div class="price" id="iP"></div>
+            <div class="row">
+              <button class="play" id="pullBtn"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="#1a1411"/><circle cx="11" cy="11" r="3.5" fill="#c8541c"/><circle cx="11" cy="11" r="1" fill="#1a1411"/></svg>抽出放上唱盤</button>
+              <button class="toggle" id="ownBtn" aria-pressed="false"></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="view off-r" id="v-deck" hidden aria-label="唱盤">
+          <div class="deck" id="deck"><svg id="deckSvg" viewBox="0 0 366 360" aria-hidden="true"></svg></div>
+          <div class="deckbar">
+            <div class="speed" role="group" aria-label="轉速"><button data-rpm="33" aria-pressed="true">33</button><button data-rpm="45" aria-pressed="false">45</button></div>
+            <button class="lift" id="liftBtn"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#e0a526" d="M9 3l6 7h-4v6H7v-6H3z"/></svg>抬起唱臂</button>
+          </div>
+          <div class="np"><div class="t" id="npT"></div><div class="s" id="npS"></div></div>
+          <div class="tracks" id="tracks"></div>
+        </section>
+
+        <section class="view off-r" id="v-list" hidden aria-label="清單">
+          <div class="listhead"><div class="big">Stock<small>清單</small></div><div class="sum" id="sum"></div></div>
+          <div class="filters" role="group" aria-label="篩選">
+            <button data-f="all" aria-pressed="true">全部</button><button data-f="own" aria-pressed="false">已收藏</button><button data-f="want" aria-pressed="false">想要</button>
+          </div>
+          <div class="rows" id="rows"></div>
+        </section>
+      </div>
+
+      <nav class="nav" role="tablist" aria-label="主選單">
+        <button class="tape" role="tab" data-v="dig" aria-selected="true">翻箱</button>
+        <button class="tape" role="tab" data-v="deck" aria-selected="false">唱盤</button>
+        <button class="tape" role="tab" data-v="list" aria-selected="false">清單</button>
+      </nav>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="新增唱片"><div class="grab"></div><div class="sbody" id="sbody"></div></div>
+      <div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="toastUndo" hidden>復原</button></div>
+      <div class="homebar"></div>
+    </div>
+  </div>
+  <div class="caption">
+    <h1>Crate No.7</h1>
+    <p>往下撥翻唱片，抽出來放上唱盤，把唱臂拖到溝紋上落針。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+var LS = 'app032:';
+function load(k, d){ try{ var v = localStorage.getItem(LS+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(LS+k, JSON.stringify(v)); }catch(e){} }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function hash(s){ var h = 2166136261; for (var i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h>>>0; }
+function rng(seed){ var a = typeof seed === 'number' ? seed : hash(seed); return function(){ a|=0; a = a+0x6D2B79F5|0; var t = Math.imul(a^a>>>15, 1|a); t = t+Math.imul(t^t>>>7, 61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ---------- data ---------- */
+var GENRES = [['all','全部','All'],['pop','華語','Pop'],['folk','民歌','Folk'],['rock','搖滾','Rock'],['jazz','爵士','Jazz'],['soul','靈魂','Soul']];
+var INKS = [
+  ['#e0a526','#c8541c','#1a1411'],
+  ['#1a1411','#e0a526','#c8541c'],
+  ['#c8541c','#f6e6c6','#1a1411'],
+  ['#6b3417','#e0a526','#f6e6c6'],
+  ['#f6e6c6','#1a1411','#c8541c'],
+  ['#2f4a3a','#e0a526','#f6e6c6']
+];
+var STYLES = ['sun','arcs','dots','stripes','circle','type','wave'];
+var SEED = [
+  {id:'r1', t:'之乎者也', a:'羅大佑', y:1982, g:'rock', p:2400, c:'VG+', src:'中華商場二樓', own:true, st:'type', ink:1, tr:['鹿港小鎮','童年','光陰的故事','戀曲1980','之乎者也','將進酒']},
+  {id:'r2', t:'橄欖樹', a:'齊豫', y:1979, g:'folk', p:1280, c:'NM', src:'佳佳唱片', own:true, st:'sun', ink:0},
+  {id:'r3', t:'搭錯車 電影原聲帶', a:'蘇芮', y:1983, g:'pop', p:1600, c:'VG', src:'光華商場', own:true, st:'stripes', ink:2, tr:['酒干倘賣無','一樣的月光','請跟我來','是否','搭錯車']},
+  {id:'r4', t:'Kind of Blue', a:'Miles Davis', y:1959, g:'jazz', p:3200, c:'VG+', src:'東京 Disk Union', own:true, st:'circle', ink:3, tr:['So What','Freddie Freeloader','Blue in Green','All Blues','Flamenco Sketches']},
+  {id:'r5', t:'淡淡幽情', a:'鄧麗君', y:1983, g:'pop', p:1880, c:'NM', src:'台南 林百貨旁', own:true, st:'wave', ink:4, tr:['獨上西樓','但願人長久','幾多愁','芳草無情','清夜悠悠','有個人']},
+  {id:'r6', t:"What's Going On", a:'Marvin Gaye', y:1971, g:'soul', p:2100, c:'VG', src:'高雄 堀江', own:true, st:'dots', ink:5},
+  {id:'r7', t:'捉泥鰍', a:'包美聖', y:1979, g:'folk', p:900, c:'VG', src:'台中 二手市集', own:false, st:'arcs', ink:2},
+  {id:'r8', t:'Waltz for Debby', a:'Bill Evans Trio', y:1961, g:'jazz', p:2600, c:'NM', src:'想要', own:false, st:'arcs', ink:1},
+  {id:'r9', t:'未來的主人翁', a:'羅大佑', y:1983, g:'rock', p:1900, c:'VG+', src:'中華商場二樓', own:true, st:'circle', ink:0},
+  {id:'r10', t:'我是一片雲', a:'鳳飛飛', y:1977, g:'pop', p:1100, c:'VG', src:'嘉義 文化路', own:true, st:'sun', ink:3},
+  {id:'r11', t:'Songs in the Key of Life', a:'Stevie Wonder', y:1976, g:'soul', p:2800, c:'VG+', src:'想要', own:false, st:'stripes', ink:0},
+  {id:'r12', t:'Head Hunters', a:'Herbie Hancock', y:1973, g:'jazz', p:2300, c:'VG', src:'台北 公館', own:true, st:'dots', ink:2},
+  {id:'r13', t:'小雨來的正是時候', a:'鄭怡', y:1983, g:'pop', p:1350, c:'NM', src:'光華商場', own:true, st:'dots', ink:4},
+  {id:'r14', t:'中國現代民歌集', a:'楊弦', y:1975, g:'folk', p:1700, c:'VG', src:'想要', own:false, st:'type', ink:5},
+  {id:'r15', t:'搖滾舞台', a:'薛岳', y:1985, g:'rock', p:1500, c:'VG', src:'台北 公館', own:true, st:'wave', ink:1}
+];
+var recs = load('recs', null) || SEED.slice();
+var genre = load('genre', 'all');
+var cur = load('cur', 0);
+var filtered = [];
+function isLatin(s){ return /^[\x00-\x7f]+$/.test(s); }
+function tracksOf(r){
+  if (r.tr && r.tr.length) return r.tr.map(function(n,i){ return {n:n, d:durOf(r, i)}; });
+  var out = [], rr = rng(r.id+'tr'); for (var i=0;i<8;i++) out.push({n:(i<4?'A':'B')+(i%4+1)+' 面', d:durOf(r,i)}); return out;
+}
+function durOf(r, i){ var rr = rng(r.id+'d'+i); return 150 + Math.floor(rr()*170); }
+function mmss(s){ s = Math.max(0, Math.floor(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function money(n){ return 'NT$'+n.toLocaleString('en-US'); }
+
+/* ---------- cover art: two-ink 70s print with misregistration ---------- */
+function cover(r, big){
+  var ink = INKS[r.ink % INKS.length], bg = ink[0], a = ink[1], b = ink[2], rr = rng(r.id + r.st), s = '';
+  var off = 'transform="translate(2.2 1.6)"';
+  switch(r.st){
+    case 'sun':
+      var rays = '';
+      for (var i=0;i<18;i++){ var a0 = i/18*Math.PI*2, a1 = a0 + Math.PI/18; rays += 'M150 196L'+(150+Math.cos(a0)*330).toFixed(0)+' '+(196+Math.sin(a0)*330).toFixed(0)+'L'+(150+Math.cos(a1)*330).toFixed(0)+' '+(196+Math.sin(a1)*330).toFixed(0)+'Z'; }
+      s += '<path fill="'+a+'" d="'+rays+'"/><circle cx="150" cy="196" r="58" fill="'+b+'" '+off+' opacity=".9"/><circle cx="150" cy="196" r="58" fill="'+bg+'"/>';
+      break;
+    case 'arcs':
+      for (var k=0;k<7;k++) s += '<circle cx="'+(k%2?300:0)+'" cy="300" r="'+(260-k*34)+'" fill="'+(k%2?a:b)+'"/>';
+      break;
+    case 'dots':
+      for (var y=0;y<12;y++) for (var x=0;x<12;x++){ var d = Math.hypot(x-5.5, y-6.5); var rad = Math.max(0, 11 - d*1.7); if (rad > .5) s += '<circle cx="'+(x*25+12)+'" cy="'+(y*25+12)+'" r="'+rad.toFixed(1)+'" fill="'+a+'"/>'; }
+      s += '<g '+off+' opacity=".85"><rect x="30" y="30" width="80" height="80" fill="'+b+'"/></g><rect x="30" y="30" width="80" height="80" fill="none" stroke="'+a+'" stroke-width="3"/>';
+      break;
+    case 'stripes':
+      s += '<g transform="rotate(-24 150 150)">';
+      for (var j=0;j<5;j++) s += '<rect x="-100" y="'+(110+j*26)+'" width="500" height="22" fill="'+(j%2?b:a)+'"/>';
+      s += '</g>';
+      break;
+    case 'circle':
+      s += '<circle cx="150" cy="150" r="104" fill="'+b+'" '+off+'/><circle cx="150" cy="150" r="104" fill="'+a+'"/><circle cx="150" cy="150" r="38" fill="'+bg+'"/><rect x="0" y="146" width="300" height="8" fill="'+bg+'"/>';
+      break;
+    case 'type':
+      var t = r.t.slice(0, 2);
+      s += '<text x="18" y="236" font-family="Songti TC,serif" font-weight="900" font-size="150" fill="'+b+'" '+off+'>'+esc(t)+'</text><text x="18" y="236" font-family="Songti TC,serif" font-weight="900" font-size="150" fill="'+a+'">'+esc(t)+'</text>';
+      break;
+    case 'wave':
+      for (var w=0;w<8;w++){ var yy = 70 + w*28; s += '<path d="M-10 '+yy+' q37.5 -26 75 0 t75 0 t75 0 t75 0 t75 0" fill="none" stroke="'+(w%3===0?b:a)+'" stroke-width="11"/>'; }
+      break;
+  }
+  var title = '';
+  if (big){
+    var lat = isLatin(r.t);
+    var tt = r.t.length > 16 ? r.t.slice(0, 15)+'…' : r.t;
+    title = '<rect x="0" y="0" width="300" height="46" fill="'+bg+'"/><text x="16" y="31" font-family="'+(lat?'Baskerville,serif':'Songti TC,serif')+'" '+(lat?'font-style="italic"':'')+' font-weight="700" font-size="'+(lat?24:22)+'" fill="'+(bg===b?a:b)+'">'+esc(tt)+'</text>'+
+      '<text x="284" y="30" text-anchor="end" font-family="Baskerville,serif" font-style="italic" font-weight="700" font-size="16" fill="'+(bg===b?a:b)+'">'+r.y+'</text>';
+  }
+  return '<svg viewBox="0 0 300 300" aria-hidden="true"><rect width="300" height="300" fill="'+bg+'"/>'+s+title+'</svg>';
+}
+
+/* ---------- views ---------- */
+var view = 'dig', screenEl = $('screen');
+var VIEWS = ['dig','deck','list'];
+function setView(v){
+  if (v === view) return;
+  var oi = VIEWS.indexOf(view), ni = VIEWS.indexOf(v);
+  var o = $('v-'+view), n = $('v-'+v);
+  o.classList.add(ni > oi ? 'off-l' : 'off-r'); o.hidden = true;
+  n.classList.remove('off-l','off-r'); n.hidden = false;
+  view = v; haptic(6);
+  [].forEach.call(document.querySelectorAll('.tape'), function(t){ t.setAttribute('aria-selected', t.dataset.v === v); });
+  screenEl.classList.toggle('dark', v === 'deck'); screenEl.classList.toggle('list', v === 'list');
+  document.querySelector('meta[name=theme-color]').setAttribute('content', v === 'deck' ? '#1f1510' : '#c8541c');
+  if (v === 'list') renderList();
+  if (v === 'deck') renderDeckInfo();
+}
+document.querySelector('.nav').addEventListener('click', function(e){ var b = e.target.closest('.tape'); if (b) setView(b.dataset.v); });
+
+/* ---------- dig: dividers + crate ---------- */
+function renderDividers(){
+  $('dividers').innerHTML = GENRES.map(function(g){
+    var n = g[0] === 'all' ? recs.length : recs.filter(function(r){ return r.g === g[0]; }).length;
+    return '<button data-g="'+g[0]+'" aria-pressed="'+(genre===g[0])+'">'+g[1]+'<span>'+n+'</span></button>';
+  }).join('');
+}
+$('dividers').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  genre = b.dataset.g; cur = 0; save('genre', genre); save('cur', cur); haptic(8);
+  renderDividers(); buildStack(); layout();
+});
+function buildStack(){
+  filtered = recs.filter(function(r){ return genre === 'all' || r.g === genre; });
+  if (cur >= filtered.length) cur = Math.max(0, filtered.length-1);
+  $('stack').innerHTML = filtered.map(function(r, i){ return '<div class="sl" data-i="'+i+'">'+cover(r, true)+'</div>'; }).join('');
+  $('empty').hidden = filtered.length > 0;
+  $('info').style.visibility = filtered.length ? '' : 'hidden';
+}
+function layout(extra){
+  extra = extra || 0;
+  var sls = $('stack').children;
+  for (var i=0;i<sls.length;i++){
+    var d = i - cur - extra, el = sls[i], tf;
+    if (d < -1.5){ el.classList.add('gone'); tf = 'rotateX(-80deg)'; }
+    else if (d < 0){ el.classList.remove('gone'); var k = Math.min(1, -d); tf = 'rotateX('+(-80*k).toFixed(1)+'deg)'; }
+    else if (d > 6){ el.classList.add('gone'); tf = 'translate3d(0,'+(-6*11)+'px,'+(-6*26)+'px)'; }
+    else { el.classList.remove('gone'); tf = 'translate3d(0,'+(-d*11).toFixed(1)+'px,'+(-d*26).toFixed(1)+'px)'; }
+    el.style.transform = tf;
+    el.style.zIndex = 100 - Math.round(d*2);
+  }
+  var r = filtered[cur];
+    if (!r) return;
+  var lat = isLatin(r.t);
+  $('iT').className = 't' + (lat ? ' lat' : ''); $('iT').textContent = r.t;
+  $('iA').textContent = r.a + '，' + r.y;
+  $('iM').textContent = '品相 '+r.c+'　'+(r.own ? '購於 '+r.src : '還在找');
+  $('iP').innerHTML = money(r.p) + '<small>'+GENRES.filter(function(g){ return g[0]===r.g; })[0][1]+'　第 '+(cur+1)+' / '+filtered.length+' 張</small>';
+  $('ownBtn').setAttribute('aria-pressed', r.own);
+  $('ownBtn').innerHTML = r.own ? stamp(true)+'已收藏' : stamp(false)+'想要';
+}
+function stamp(on){ return '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">'+(on?'<path fill="#c8541c" d="M4 11l4 4 9-10" stroke="#c8541c" stroke-width="0" /><path fill="none" stroke="#e0a526" stroke-width="3" stroke-linecap="square" d="M3 10.5l4.5 4.5L17 5"/>':'<path fill="#e0a526" d="M10 2l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L10 14.4 5 17.2l1.2-5.6L2 7.8l5.6-.6z"/>')+'</svg>'; }
+
+function flip(dir){
+  var n = cur + dir;
+  if (n < 0 || n >= filtered.length){ haptic([12,30,12]); layout(); return false; }
+  cur = n; save('cur', cur); haptic(5); layout(); thump(); return true;
+}
+(function(){
+  var crate = $('crate'), sy = 0, dy = 0, t0 = 0, on = false, moved = false;
+  crate.addEventListener('pointerdown', function(e){ on = true; moved = false; sy = e.clientY; dy = 0; t0 = e.timeStamp; crate.setPointerCapture(e.pointerId); crate.classList.add('drag'); });
+  crate.addEventListener('pointermove', function(e){
+    if (!on) return; dy = e.clientY - sy; if (Math.abs(dy) > 6) moved = true;
+    var k = Math.max(-1, Math.min(1, dy/140));
+    if ((k > 0 && cur >= filtered.length-1) || (k < 0 && cur <= 0)) k *= .25;
+    layout(k);
+  });
+  function end(e){
+    if (!on) return; on = false; crate.classList.remove('drag');
+    var v = dy/Math.max(1, e.timeStamp - t0);
+    if (!moved){
+      var sl = document.elementFromPoint(e.clientX, e.clientY); sl = sl && sl.closest && sl.closest('.sl');
+      if (sl && +sl.dataset.i > cur){ cur = +sl.dataset.i; save('cur', cur); haptic(6); layout(); thump(); }
+      else if (sl && +sl.dataset.i === cur) pullOut();
+      else layout();
+      return;
+    }
+    if (dy > 60 || v > .5) flip(1); else if (dy < -60 || v < -.5) flip(-1); else layout();
+  }
+  crate.addEventListener('pointerup', end); crate.addEventListener('pointercancel', end);
+  crate.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowDown'){ flip(1); e.preventDefault(); }
+    if (e.key === 'ArrowUp'){ flip(-1); e.preventDefault(); }
+    if (e.key === 'Enter') pullOut();
+  });
+})();
+function pullOut(){
+  var r = filtered[cur]; if (!r) return;
+  var el = $('stack').children[cur];
+  if (el && !reduce){ el.style.transform = 'translate3d(0,-110%,40px)'; }
+  haptic([6,20,10]);
+  setTimeout(function(){ loadRecord(r); setView('deck'); layout(); }, reduce ? 0 : 320);
+}
+$('pullBtn').addEventListener('click', pullOut);
+$('ownBtn').addEventListener('click', function(){
+  var r = filtered[cur]; if (!r) return;
+  r.own = !r.own; if (r.own && r.src === '想要') r.src = '剛剛入手';
+  persist(); layout(); haptic(r.own ? [8,30,8] : 6);
+  toast(r.own ? '收進唱片箱' : '移到想要清單');
+});
+
+/* ---------- audio ---------- */
+var AC = null, master = null, crackleG = null, warm = null;
+function ensureAudio(){
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return AC; }
+  try{
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    warm = AC.createBiquadFilter(); warm.type = 'lowpass'; warm.frequency.value = 5200; warm.Q.value = .3;
+    master = AC.createGain(); master.gain.value = .5;
+    warm.connect(master); master.connect(AC.destination);
+    var len = AC.sampleRate*2, buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+    for (var i=0;i<len;i++){ d[i] = (Math.random()*2-1)*.06; if (Math.random() < .0006) d[i] = (Math.random()<.5?-1:1)*(.5+Math.random()*.5); }
+    var src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+    var hp = AC.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900;
+    crackleG = AC.createGain(); crackleG.gain.value = 0;
+    src.connect(hp); hp.connect(crackleG); crackleG.connect(master); src.start();
+  }catch(e){ AC = null; }
+  return AC;
+}
+var noiseBuf = null;
+function noise(){ if (noiseBuf) return noiseBuf; var n = AC.sampleRate*.5, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0); for (var i=0;i<n;i++) d[i] = Math.random()*2-1; return noiseBuf = b; }
+function tone(type, f, t, dur, vol, lp){
+  var o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t+.008); g.gain.exponentialRampToValueAtTime(.0008, t+dur);
+  var out = g;
+  if (lp){ var f2 = AC.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.setValueAtTime(lp, t); f2.frequency.exponentialRampToValueAtTime(Math.max(200, lp*.3), t+dur); g.connect(f2); out = f2; }
+  o.connect(g); out.connect(warm); o.start(t); o.stop(t+dur+.05);
+}
+function hit(kind, t, vol){
+  if (kind === 'kick'){ var o = AC.createOscillator(), g = AC.createGain(); o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(42, t+.18); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t+.28); o.connect(g); g.connect(warm); o.start(t); o.stop(t+.3); return; }
+  var s = AC.createBufferSource(), f = AC.createBiquadFilter(), g2 = AC.createGain(); s.buffer = noise();
+  f.type = kind === 'hat' ? 'highpass' : 'bandpass'; f.frequency.value = kind === 'hat' ? 7000 : kind === 'brush' ? 3000 : 1800; f.Q.value = kind === 'snare' ? .8 : .5;
+  var dur = kind === 'hat' ? .05 : kind === 'brush' ? .16 : .14;
+  g2.gain.setValueAtTime(vol, t); g2.gain.exponentialRampToValueAtTime(.001, t+dur);
+  s.connect(f); f.connect(g2); g2.connect(warm); s.start(t); s.stop(t+dur+.02);
+}
+function thump(){ if (!AC) return; var t = AC.currentTime; tone('sine', 90, t, .12, .12); }
+function drop(){ var t = AC.currentTime; hit('kick', t, .35); hit('snare', t+.01, .08); crackleG.gain.setTargetAtTime(.9, t, .05); }
+
+/* sequencer: seeded progressions per genre */
+var NOTE = function(m){ return 440*Math.pow(2, (m-69)/12); };
+var PROG = {
+  jazz:[[2,'m7'],[7,'7'],[0,'M7'],[9,'m7']], folk:[[0,''],[9,'m'],[5,''],[7,'']], pop:[[0,'M7'],[4,'m7'],[5,'M7'],[7,'']],
+  rock:[[0,''],[10,''],[5,''],[0,'']], soul:[[2,'m7'],[2,'m7'],[7,'9'],[7,'9']]
+};
+var QUAL = {'':[0,4,7],'m':[0,3,7],'M7':[0,4,7,11],'m7':[0,3,7,10],'7':[0,4,7,10],'9':[0,4,10,14]};
+var TEMPO = {jazz:138, folk:88, pop:80, rock:116, soul:96};
+var seq = {on:false, step:0, next:0, rec:null, key:48, timer:0, rate:1, track:0};
+function startSeq(r, track){
+  ensureAudio(); if (!AC) return;
+  seq.rec = r; seq.track = track; seq.step = 0; seq.next = AC.currentTime + .35; seq.on = true;
+  var rr = rng(r.id + 'k' + track); seq.key = 45 + Math.floor(rr()*8); seq.swing = r.g === 'jazz' ? .18 : r.g === 'soul' ? .08 : 0;
+  seq.mel = []; for (var i=0;i<16;i++) seq.mel.push(rr() < .55 ? [0,2,4,7,9,12,14][Math.floor(rr()*7)] : null);
+  clearInterval(seq.timer); seq.timer = setInterval(pump, 25);
+}
+function stopSeq(){ seq.on = false; clearInterval(seq.timer); if (crackleG && AC) crackleG.gain.setTargetAtTime(0, AC.currentTime, .08); }
+function pump(){
+  if (!seq.on || !AC) return;
+  var spb = 60/(TEMPO[seq.rec.g]*seq.rate), s16 = spb/4;
+  while (seq.next < AC.currentTime + .12){ play16(seq.step, seq.next, s16); seq.next += s16 * (seq.step % 2 === 0 ? 1 + seq.swing : 1 - seq.swing); seq.step++; }
+}
+function play16(st, t, s16){
+  var g = seq.rec.g, bar = Math.floor(st/16), pos = st % 16, P = PROG[g], ch = P[bar % P.length], root = seq.key + ch[0], q = QUAL[ch[1]], R = seq.rate;
+  var f = function(m){ return NOTE(m)*R; };
+  if (g === 'jazz'){
+    if (pos % 4 === 0){ var walk = [0, q[1], q[2], q[1]+ (pos===12?-1:0)][pos/4]; tone('triangle', f(root-12+walk), t, s16*3.6, .22, 900); }
+    if (pos === 6 || pos === 14 || (pos === 3 && bar%2)){ q.forEach(function(iv){ tone('triangle', f(root+12+iv), t, s16*2.2, .045, 2200); }); }
+    if (pos % 4 === 0 || pos % 4 === 3) hit('hat', t, pos % 4 === 0 ? .05 : .03);
+    if (pos === 4 || pos === 12) hit('brush', t, .05);
+  } else if (g === 'folk'){
+    var arp = [0,2,1,2,3,2,1,2][pos%8], iv = [0,q[1],q[2],12][arp];
+    if (pos % 2 === 0) tone('triangle', f(root+iv+ (arp===0?-12:0)), t, s16*5, .12, 2600);
+    if (pos === 0 || pos === 8) tone('sine', f(root-12), t, s16*6, .18);
+    if (pos % 4 === 2) hit('hat', t, .015);
+  } else if (g === 'pop'){
+    if (pos === 0){ q.forEach(function(iv){ tone('triangle', f(root+12+iv), t, s16*15, .04, 1600); tone('sine', f(root+12+iv)*1.003, t, s16*15, .03); }); }
+    if (pos === 0 || pos === 6 || pos === 10) tone('sine', f(root-12), t, s16*4, .22);
+    if (pos === 0 || pos === 10) hit('kick', t, .3); if (pos === 4 || pos === 12) hit('snare', t, .07);
+    if (pos % 2 === 0 && seq.mel[pos] !== null && bar % 2 === 1) tone('sine', f(root+24+seq.mel[pos]), t, s16*3, .07);
+  } else if (g === 'rock'){
+    if (pos % 2 === 0) tone('triangle', f(root-12), t, s16*1.8, .2, 800);
+    if (pos === 0 || pos === 6 || pos === 8){ [0,7,12].forEach(function(iv){ tone('square', f(root+iv), t, s16*(pos===6?1.5:3), .03, 1400); }); }
+    if (pos === 0 || pos === 8 || pos === 10) hit('kick', t, .35); if (pos === 4 || pos === 12) hit('snare', t, .12);
+    if (pos % 2 === 0) hit('hat', t, .03);
+  } else {
+    var bl = [0,null,null,0,null,null,12,null,0,null,10,null,null,7,null,null][pos];
+    if (bl !== null) tone('triangle', f(root-12+bl), t, s16*1.6, .24, 1000);
+    if (pos === 2 || pos === 5 || pos === 10 || pos === 13) q.slice(1).forEach(function(iv){ tone('square', f(root+12+iv), t, s16*.9, .02, 2400); });
+    if (pos === 0 || pos === 7 || pos === 8) hit('kick', t, .32); if (pos === 4 || pos === 12) hit('snare', t, .1);
+    hit('hat', t, pos % 2 ? .015 : .03);
+  }
+}
+
+/* ---------- deck (turntable) ---------- */
+var deckSvg = $('deckSvg');
+var C = {x:175, y:198, r:134}, PIV = {x:318, y:62}, ARM = 206;
+var armA = 0, platA = 0, playing = false, loaded = null, pos = 0, rpm = 33, lastT = 0, raf = 0;
+function needleAt(a){ var rad = a*Math.PI/180; return {x: PIV.x - ARM*Math.sin(rad), y: PIV.y + ARM*Math.cos(rad)}; }
+function radiusAt(a){ var n = needleAt(a); return Math.hypot(n.x - C.x, n.y - C.y); }
+var A_OUT = 0, A_IN = 0;
+(function(){ for (var a=0;a<70;a+=.1){ var rr = radiusAt(a); if (!A_OUT && rr < C.r - 6) A_OUT = a; if (rr < 52){ A_IN = a; break; } } })();
+function buildDeck(){
+  var s = '';
+  s += '<rect width="366" height="360" fill="#5a2f16"/>';
+  s += '<g fill="none" stroke="#4a2410" stroke-width="2" stroke-linecap="round" opacity=".8"><path d="M0 40c90-8 200 6 366-2"/><path d="M0 120c120 10 250-6 366 4"/><path d="M0 300c100-6 230 8 366 0"/><path d="M0 344c140 4 240-6 366 2"/></g>';
+  s += '<rect x="12" y="12" width="342" height="336" fill="none" stroke="#7a4522" stroke-width="4"/>';
+  s += '<circle cx="'+C.x+'" cy="'+C.y+'" r="150" fill="#2a2420"/>';
+  s += '<g id="platter">';
+  s += '<circle cx="'+C.x+'" cy="'+C.y+'" r="146" fill="#8c8479"/>';
+  var dots = ''; for (var i=0;i<72;i++){ var a = i/72*Math.PI*2; dots += '<rect x="'+(C.x + Math.cos(a)*141 - 1.4).toFixed(1)+'" y="'+(C.y + Math.sin(a)*141 - 1.4).toFixed(1)+'" width="2.8" height="2.8" fill="#3a332c" transform="rotate('+(a*180/Math.PI).toFixed(1)+' '+(C.x + Math.cos(a)*141).toFixed(1)+' '+(C.y + Math.sin(a)*141).toFixed(1)+')"/>'; }
+  s += dots;
+  s += '<g id="disc"></g>';
+  s += '</g>';
+  s += '<circle cx="'+C.x+'" cy="'+C.y+'" r="3.2" fill="#d6d0c4"/>';
+  /* strobe light + speed knob */
+  s += '<rect x="22" y="300" width="40" height="30" fill="#2a1a10"/><circle cx="42" cy="315" r="7" id="lamp" fill="#5a2a1a"/>';
+  s += '<text x="306" y="340" text-anchor="middle" font-family="Baskerville,serif" font-style="italic" font-weight="700" font-size="14" fill="#e0a526">Crate · DD-7</text>';
+  /* tonearm base */
+  s += '<circle cx="'+PIV.x+'" cy="'+PIV.y+'" r="26" fill="#2a2420"/><circle cx="'+PIV.x+'" cy="'+PIV.y+'" r="18" fill="#b9b2a6"/>';
+  s += '<rect x="'+(PIV.x+8)+'" y="'+(PIV.y+180)+'" width="16" height="44" fill="#2a2420"/>';
+  s += '<g id="armG"><g id="arm">';
+  s += '<rect x="'+(PIV.x-3)+'" y="'+(PIV.y-40)+'" width="6" height="'+(ARM+34)+'" fill="#d8d2c6"/>';
+  s += '<rect x="'+(PIV.x-9)+'" y="'+(PIV.y-56)+'" width="18" height="24" fill="#3a332c"/>';
+  s += '<path d="M'+(PIV.x-3)+' '+(PIV.y+ARM-8)+'h16l6 26h-28z" fill="#1a1411"/><rect x="'+(PIV.x-1)+'" y="'+(PIV.y+ARM+14)+'" width="4" height="6" fill="#e0a526"/>';
+  s += '<rect x="'+(PIV.x+10)+'" y="'+(PIV.y+ARM-2)+'" width="14" height="4" fill="#d8d2c6"/>';
+  s += '<rect x="'+(PIV.x-26)+'" y="'+(PIV.y+ARM-30)+'" width="52" height="60" fill="transparent"/>';
+  s += '</g></g>';
+  s += '<circle cx="'+PIV.x+'" cy="'+PIV.y+'" r="7" fill="#3a332c"/>';
+  deckSvg.innerHTML = s;
+}
+function discSvg(r){
+  var ink = INKS[r.ink % INKS.length], s = '<circle cx="'+C.x+'" cy="'+C.y+'" r="'+C.r+'" fill="#141110"/>';
+  for (var k=0;k<22;k++){ var rr = 54 + k*3.6 + (k%5===4 ? 2 : 0); s += '<circle cx="'+C.x+'" cy="'+C.y+'" r="'+rr.toFixed(1)+'" fill="none" stroke="'+(k%5===4?'#0c0a09':'#221d1a')+'" stroke-width="'+(k%5===4?2.4:1.2)+'"/>'; }
+  s += '<path d="M'+(C.x-120)+' '+(C.y-40)+'A128 128 0 0 1 '+(C.x-40)+' '+(C.y-120)+'" fill="none" stroke="rgba(255,240,220,.14)" stroke-width="10" stroke-linecap="round"/>';
+  s += '<circle cx="'+C.x+'" cy="'+C.y+'" r="46" fill="'+ink[0]+'"/><circle cx="'+C.x+'" cy="'+C.y+'" r="46" fill="none" stroke="'+ink[1]+'" stroke-width="5"/>';
+  var lat = isLatin(r.t), tt = r.t.length > 9 ? r.t.slice(0, 8)+'…' : r.t;
+  s += '<text x="'+C.x+'" y="'+(C.y-16)+'" text-anchor="middle" font-family="'+(lat?'Baskerville,serif':'Songti TC,serif')+'" '+(lat?'font-style="italic"':'')+' font-weight="700" font-size="12" fill="'+ink[2]+'">'+esc(tt)+'</text>';
+  s += '<text x="'+C.x+'" y="'+(C.y+26)+'" text-anchor="middle" font-family="PingFang TC,sans-serif" font-weight="600" font-size="8.5" fill="'+ink[2]+'">'+esc(r.a.length > 14 ? r.a.slice(0,13)+'…' : r.a)+'</text>';
+  return s;
+}
+function setArm(a){ armA = a; $('arm').setAttribute('transform', 'rotate('+a.toFixed(2)+' '+PIV.x+' '+PIV.y+')'); }
+function loadRecord(r){
+  if (playing) stopPlay(true);
+  loaded = r; pos = 0; save('loaded', r.id);
+  $('disc').innerHTML = discSvg(r);
+  setArm(0); renderDeckInfo();
+}
+function tracksLen(r){ return tracksOf(r).reduce(function(s,t){ return s + t.d; }, 0); }
+function trackAt(r, p){ var ts = tracksOf(r), acc = 0; for (var i=0;i<ts.length;i++){ if (p < acc + ts[i].d) return {i:i, off:p-acc}; acc += ts[i].d; } return {i:ts.length-1, off:ts[ts.length-1].d}; }
+function renderDeckInfo(){
+  if (!loaded){
+    $('npT').textContent = '唱盤上還沒有唱片'; $('npS').textContent = '去木箱抽一張出來。';
+    $('tracks').innerHTML = ''; $('liftBtn').disabled = true; return;
+  }
+  var ts = tracksOf(loaded), at = trackAt(loaded, pos);
+  $('npT').textContent = loaded.t;
+  $('npS').textContent = playing ? '正在播放 '+ts[at.i].n+'　'+mmss(at.off)+' / '+mmss(ts[at.i].d)+'　'+rpm+' 轉' : (armA > .5 ? '唱臂懸在溝紋上方，放開就會落針' : '把右邊的唱臂拖到唱片上，放開落針');
+  $('liftBtn').disabled = !playing && armA < .5;
+  var h = '';
+  ts.forEach(function(t, i){ h += '<button class="tr'+(playing && i===at.i?' on':'')+'" data-t="'+i+'"><span class="n">'+(i<Math.ceil(ts.length/2)?'A':'B')+(i<Math.ceil(ts.length/2)?i+1:i+1-Math.ceil(ts.length/2))+'</span><span>'+esc(t.n)+'</span><span class="d">'+mmss(t.d)+'</span></button>'; });
+  if ($('tracks').dataset.sig !== loaded.id + (playing ? at.i : 'x')){ $('tracks').innerHTML = h; $('tracks').dataset.sig = loaded.id + (playing ? at.i : 'x'); }
+}
+function posToAngle(p){ var L = tracksLen(loaded); return A_OUT + (A_IN - A_OUT)*Math.min(1, p/L); }
+function angleToPos(a){ var L = tracksLen(loaded); return Math.max(0, Math.min(1, (a - A_OUT)/(A_IN - A_OUT)))*L; }
+function startPlay(){
+  if (!loaded) return;
+  ensureAudio(); playing = true;
+  if (AC) drop();
+  var at = trackAt(loaded, pos); startSeq(loaded, at.i);
+  $('lamp').setAttribute('fill', '#e0512a');
+  haptic([4,30,12]); lastT = performance.now(); loop(); renderDeckInfo();
+}
+function stopPlay(silent){
+  playing = false; stopSeq(); $('lamp') && $('lamp').setAttribute('fill', '#5a2a1a');
+  if (!silent && AC){ var t = AC.currentTime; tone('sawtooth', 180, t, .08, .03, 1200); }
+  renderDeckInfo();
+}
+function loop(){
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(function step(now){
+    var dt = Math.min(.1, (now - lastT)/1000); lastT = now;
+    var spinning = playing || spinDown > 0;
+    if (playing){
+      platA = (platA + dt*(rpm/60)*360) % 360;
+      var before = trackAt(loaded, pos).i;
+      pos += dt * (rpm === 45 ? 1.35 : 1);
+      if (pos >= tracksLen(loaded)){ pos = tracksLen(loaded); stopPlay(false); returnArm(); }
+      else {
+        var after = trackAt(loaded, pos).i;
+        if (after !== before){ startSeq(loaded, after); }
+        if (!armDrag) setArm(posToAngle(pos));
+      }
+      if (Math.floor(now/500) !== Math.floor((now - dt*1000)/500)) renderDeckInfo();
+    } else if (spinDown > 0){ platA = (platA + dt*spinDown*360) % 360; spinDown = Math.max(0, spinDown - dt*.9); }
+    $('platter').setAttribute('transform', 'rotate('+platA.toFixed(2)+' '+C.x+' '+C.y+')');
+    if (spinning && !document.hidden) raf = requestAnimationFrame(step);
+  });
+}
+var spinDown = 0;
+function returnArm(){
+  var from = armA, t0 = performance.now();
+  (function st(n){ var k = Math.min(1, (n - t0)/600), e = 1 - Math.pow(1-k, 3); setArm(from*(1-e)); if (k < 1) requestAnimationFrame(st); else renderDeckInfo(); })(t0);
+}
+var armDrag = false;
+(function(){
+  var deck = $('deck');
+  function angFrom(e){
+    var r = deckSvg.getBoundingClientRect(), x = (e.clientX - r.left)/r.width*366, y = (e.clientY - r.top)/r.height*360;
+    var a = Math.atan2(PIV.x - x, y - PIV.y)*180/Math.PI;
+    return Math.max(0, Math.min(A_IN + 1, a));
+  }
+  deck.addEventListener('pointerdown', function(e){
+    if (!loaded) return;
+    var r = deckSvg.getBoundingClientRect(), x = (e.clientX - r.left)/r.width*366, y = (e.clientY - r.top)/r.height*360;
+    var n = needleAt(armA), dArm = Math.hypot(x - n.x, y - n.y);
+    var along = Math.abs((x - PIV.x)*Math.cos(armA*Math.PI/180) + (y - PIV.y)*Math.sin(armA*Math.PI/180));
+    if (dArm > 70 && !(along < 22 && Math.hypot(x-PIV.x, y-PIV.y) < ARM)) return;
+    armDrag = true; deck.setPointerCapture(e.pointerId); ensureAudio();
+    if (playing){ stopPlay(false); spinDown = rpm/60; loop(); }
+    haptic(6);
+  });
+  deck.addEventListener('pointermove', function(e){
+    if (!armDrag) return; var a = angFrom(e); setArm(a);
+    $('npS').textContent = a > A_OUT ? '放開就落針：'+tracksOf(loaded)[trackAt(loaded, angleToPos(a)).i].n : '唱臂在架上';
+  });
+  function up(){
+    if (!armDrag) return; armDrag = false;
+    if (armA >= A_OUT - .5 && armA <= A_IN){ pos = angleToPos(Math.max(A_OUT, armA)); spinDown = 0; startPlay(); }
+    else { if (armA < A_OUT) { returnArm(); } renderDeckInfo(); }
+  }
+  deck.addEventListener('pointerup', up); deck.addEventListener('pointercancel', up);
+})();
+$('liftBtn').addEventListener('click', function(){
+  if (!loaded) return;
+  if (playing){ stopPlay(false); spinDown = rpm/60; loop(); }
+  returnArm(); haptic(8);
+});
+document.querySelector('.speed').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  rpm = +b.dataset.rpm; seq.rate = rpm === 45 ? 1.35 : 1; haptic(6);
+  [].forEach.call(this.children, function(x){ x.setAttribute('aria-pressed', x === b); });
+  renderDeckInfo();
+});
+$('tracks').addEventListener('click', function(e){
+  var b = e.target.closest('.tr'); if (!b || !loaded) return;
+  var i = +b.dataset.t, ts = tracksOf(loaded), acc = 0; for (var k=0;k<i;k++) acc += ts[k].d;
+  pos = acc + .5; ensureAudio();
+  if (playing){ stopSeq(); if (AC) drop(); startSeq(loaded, i); }
+  var from = armA, to = posToAngle(pos), t0 = performance.now();
+  armDrag = true;
+  (function st(n){ var k = Math.min(1, (n - t0)/500), ee = 1 - Math.pow(1-k, 3); setArm(from + (to-from)*ee); if (k < 1) requestAnimationFrame(st); else { armDrag = false; if (!playing) startPlay(); } })(t0);
+  haptic(6); renderDeckInfo();
+});
+
+/* ---------- list ---------- */
+var listF = 'all';
+function renderList(){
+  var own = recs.filter(function(r){ return r.own; }), want = recs.length - own.length;
+  var val = own.reduce(function(s,r){ return s + r.p; }, 0);
+  $('sum').textContent = '收藏 '+own.length+' 張，想要 '+want+' 張，收藏值 '+money(val);
+  var list = recs.filter(function(r){ return listF === 'all' || (listF === 'own' ? r.own : !r.own); });
+  if (!list.length){ $('rows').innerHTML = '<div class="none">'+(listF === 'want' ? '沒有想要的唱片，真知足。' : '清單是空的。')+'</div>'; return; }
+  $('rows').innerHTML = list.map(function(r){
+    return '<div class="rw" data-id="'+r.id+'"><button class="del" data-del="'+r.id+'">移除</button><button class="fr" data-open="'+r.id+'">'+cover(r, false)+'<span class="tt"><b>'+esc(r.t)+'</b><span>'+esc(r.a)+'，'+r.y+'　'+(r.own?'品相 '+r.c:'想要')+'</span></span><span class="pr">'+money(r.p)+'<small>'+GENRES.filter(function(g){ return g[0]===r.g; })[0][1]+'</small></span></button></div>';
+  }).join('');
+}
+document.querySelector('.filters').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return; listF = b.dataset.f; haptic(5);
+  [].forEach.call(this.children, function(x){ x.setAttribute('aria-pressed', x === b); }); renderList();
+});
+(function(){
+  var rows = $('rows'), sx = 0, sy = 0, dx = 0, rw = null, mode = null, openRow = null;
+  rows.addEventListener('pointerdown', function(e){
+    var fr = e.target.closest('.fr'); if (!fr) return;
+    rw = fr.parentNode; sx = e.clientX; sy = e.clientY; dx = 0; mode = null;
+  });
+  rows.addEventListener('pointermove', function(e){
+    if (!rw) return; var x = e.clientX - sx, y = e.clientY - sy;
+    if (!mode && (Math.abs(x) > 8 || Math.abs(y) > 8)){ mode = Math.abs(x) > Math.abs(y) ? 'h' : 'v'; if (mode === 'h'){ rw.classList.add('drag'); try{ rows.setPointerCapture(e.pointerId); }catch(er){} } }
+    if (mode === 'h'){ var base = rw === openRow ? -96 : 0; dx = Math.min(0, Math.max(-140, base + x)); rw.querySelector('.fr').style.transform = 'translateX('+dx+'px)'; }
+  });
+  function end(){
+    if (!rw) return; var r = rw; rw = null; r.classList.remove('drag');
+    if (mode === 'h'){
+      var fr = r.querySelector('.fr');
+      if (dx < -48){ fr.style.transform = 'translateX(-96px)'; if (openRow && openRow !== r) openRow.querySelector('.fr').style.transform = ''; openRow = r; haptic(6); }
+      else { fr.style.transform = ''; if (openRow === r) openRow = null; }
+      r.dataset.justSwiped = '1'; setTimeout(function(){ delete r.dataset.justSwiped; }, 60);
+    }
+    mode = null;
+  }
+  rows.addEventListener('pointerup', end); rows.addEventListener('pointercancel', end);
+  rows.addEventListener('click', function(e){
+    var d = e.target.closest('[data-del]');
+    if (d){ removeRec(d.dataset.del); return; }
+    var o = e.target.closest('[data-open]'); if (!o) return;
+    var row = o.parentNode; if (row.dataset.justSwiped) return;
+    if (openRow){ openRow.querySelector('.fr').style.transform = ''; openRow = null; return; }
+    var r = recs.filter(function(x){ return x.id === o.dataset.open; })[0]; if (!r) return;
+    genre = 'all'; save('genre', genre); renderDividers(); buildStack();
+    cur = filtered.indexOf(r); save('cur', cur); layout(); setView('dig');
+  });
+})();
+var undo = null, toastT = 0;
+function toast(msg, u){ $('toastMsg').textContent = msg; $('toastUndo').hidden = !u; undo = u || null; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ $('toast').classList.remove('on'); undo = null; }, 3200); }
+$('toastUndo').addEventListener('click', function(){ if (!undo) return; recs = undo; undo = null; persist(); refreshAll(); $('toast').classList.remove('on'); haptic(10); });
+function removeRec(id){
+  var snap = recs.slice(), r = recs.filter(function(x){ return x.id === id; })[0]; if (!r) return;
+  recs = recs.filter(function(x){ return x.id !== id; });
+  if (loaded && loaded.id === id){ if (playing) stopPlay(true); loaded = null; $('disc').innerHTML = ''; setArm(0); }
+  persist(); refreshAll(); haptic([10,30,10]);
+  toast('已移除《'+(r.t.length > 8 ? r.t.slice(0,8)+'…' : r.t)+'》', snap);
+}
+function persist(){ save('recs', recs); }
+function refreshAll(){ renderDividers(); buildStack(); layout(); if (view === 'list') renderList(); renderDeckInfo(); }
+
+/* ---------- add sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), sbody = $('sbody'), lastFocus = null;
+var draft = null;
+function openAdd(){
+  draft = {id:'u'+Date.now().toString(36), t:'', a:'', y:1978, g:genre === 'all' ? 'pop' : genre, p:1200, c:'VG+', src:'剛剛入手', own:true, st:STYLES[Math.floor(Math.random()*STYLES.length)], ink:Math.floor(Math.random()*INKS.length)};
+  var h = '<h3>New In<small>新進唱片</small></h3>';
+  h += '<div class="prev"><div id="pv"></div><p>封面會用兩色印刷，換個配色或印版看看。</p></div>';
+  h += '<label class="fld"><span>專輯名稱</span><input id="fT" maxlength="30" placeholder="例如：童年" autocomplete="off"></label>';
+  h += '<label class="fld"><span>歌手</span><input id="fA" maxlength="30" placeholder="例如：張艾嘉" autocomplete="off"></label>';
+  h += '<div class="two"><label class="fld"><span>年份</span><input id="fY" inputmode="numeric" maxlength="4" value="1978"></label><label class="fld"><span>價格 NT$</span><input id="fP" inputmode="numeric" maxlength="6" value="1200"></label></div>';
+  h += '<div class="fld"><span>類型</span><div class="opts" id="oG">'+GENRES.slice(1).map(function(g){ return '<button data-g="'+g[0]+'" aria-pressed="'+(draft.g===g[0])+'">'+g[1]+'</button>'; }).join('')+'</div></div>';
+  h += '<div class="fld"><span>狀態</span><div class="opts" id="oO"><button data-o="1" aria-pressed="true">已收藏</button><button data-o="0" aria-pressed="false">想要</button></div></div>';
+  h += '<div class="fld"><span>印版</span><div class="opts" id="oS">'+STYLES.map(function(s,i){ return '<button data-s="'+s+'" aria-pressed="'+(draft.st===s)+'">'+['放射','弧線','網點','斜紋','圓盤','大字','波浪'][i]+'</button>'; }).join('')+'</div></div>';
+  h += '<div class="fld"><span>配色</span><div class="inks" id="oI">'+INKS.map(function(k,i){ return '<button data-i="'+i+'" aria-label="配色 '+(i+1)+'" aria-pressed="'+(draft.ink===i)+'"><svg viewBox="0 0 56 56"><rect width="56" height="56" fill="'+k[0]+'"/><rect x="0" y="20" width="56" height="12" fill="'+k[1]+'"/><circle cx="28" cy="40" r="9" fill="'+k[2]+'"/></svg></button>'; }).join('')+'</div></div>';
+  h += '<div class="err" id="fErr"></div><button class="save" id="fSave">放進唱片箱</button>';
+  lastFocus = document.activeElement;
+  sbody.innerHTML = h; sbody.scrollTop = 0; pv();
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+}
+function pv(){ var d = Object.assign({}, draft); if (!d.t) d.t = '新唱片'; $('pv').innerHTML = cover(d, true).replace('<svg ', '<svg width="112" height="112" '); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = ''; if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+$('addBtn').addEventListener('click', openAdd);
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+sbody.addEventListener('input', function(e){
+  if (e.target.id === 'fT'){ draft.t = e.target.value.trim(); pv(); }
+  if (e.target.id === 'fA') draft.a = e.target.value.trim();
+});
+sbody.addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  var grp = b.parentNode;
+  if (grp.id === 'oG') draft.g = b.dataset.g;
+  if (grp.id === 'oO') draft.own = b.dataset.o === '1';
+  if (grp.id === 'oS') draft.st = b.dataset.s;
+  if (grp.id === 'oI') draft.ink = +b.dataset.i;
+  if (grp.id && grp.id[0] === 'o'){ [].forEach.call(grp.children, function(x){ x.setAttribute('aria-pressed', x === b); }); pv(); haptic(4); return; }
+  if (b.id === 'fSave'){
+    var y = parseInt($('fY').value, 10), p = parseInt($('fP').value, 10);
+    draft.t = $('fT').value.trim(); draft.a = $('fA').value.trim();
+    if (!draft.t){ $('fErr').textContent = '唱片要有名字。'; $('fT').focus(); haptic([20,40,20]); return; }
+    if (!draft.a) draft.a = '佚名';
+    draft.y = y > 1900 && y < 2100 ? y : 1978; draft.p = p > 0 ? p : 0;
+    if (!draft.own) draft.src = '想要';
+    recs.unshift(draft); persist();
+    genre = 'all'; save('genre', genre); cur = 0; save('cur', 0);
+    refreshAll(); closeSheet(); setView('dig'); haptic([8,30,8]);
+    toast('《'+(draft.t.length > 8 ? draft.t.slice(0,8)+'…' : draft.t)+'》放進箱子最前面');
+  }
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, on = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button,input,label')) return;
+    if (sbody.contains(e.target) && sbody.scrollTop > 0) return;
+    on = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag');
+  });
+  sheet.addEventListener('pointermove', function(e){
+    if (!on) return; dy = e.clientY - sy;
+    if (Math.abs(dy) > 4 && !sheet.hasPointerCapture(e.pointerId)) try{ sheet.setPointerCapture(e.pointerId); }catch(er){}
+    sheet.style.transform = 'translateY('+(dy > 0 ? dy : dy/6).toFixed(1)+'px)';
+    scrim.style.opacity = Math.max(0, 1 - dy/sheet.offsetHeight).toFixed(2);
+  });
+  function end(e){ if (!on) return; on = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy/Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight*.35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+/* ---------- clock, backdrop, boot ---------- */
+function tick(){ var n = new Date(); $('clock').textContent = n.getHours()+':'+String(n.getMinutes()).padStart(2,'0'); }
+tick(); setInterval(tick, 20000);
+document.addEventListener('visibilitychange', function(){ if (document.hidden){ cancelAnimationFrame(raf); } else if (playing || spinDown){ lastT = performance.now(); loop(); } });
+(function(){
+  var w = "", list = SEED.concat(SEED, SEED);
+  for (var i=0;i<list.length;i++) w += cover(list[i], true);
+  $('wall').innerHTML = w;
+})();
+buildDeck();
+renderDividers(); buildStack(); layout();
+var li = load('loaded', null), lr = recs.filter(function(r){ return r.id === li; })[0];
+if (lr) loadRecord(lr); else renderDeckInfo();
+})();
+</script>
+</body>
+</html>

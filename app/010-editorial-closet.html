@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#dfe6d6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VESTE">
+<title>VESTE · 穿搭選品</title>
+<meta name="description" content="像翻時裝雜誌一樣選單品：滑卡收進衣櫥、上衣下身鞋子組成穿搭、查尺寸、收藏每一套造型。收錄於 100 Creative HTML Works（App 010・雜誌跨頁排版）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/010-editorial-closet.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23dfe6d6'/%3E%3Cpath d='M22 14l8-3q4 5 8 0l8 3 10 11-6 6-4-3v25H24V28l-4 3-6-6z' fill='%23e04a2f' transform='translate(2 2)'/%3E%3Cpath d='M22 14l8-3q4 5 8 0l8 3 10 11-6 6-4-3v25H24V28l-4 3-6-6z' fill='none' stroke='%231b1d19' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#dfe6d6; --paper-hi:#e9eee2; --paper-lo:#cdd7c3; --paper-deep:#bccab0;
+  --ink:#1b1d19; --ink-2:#4e5648; --ink-3:#7a8470; --tomato:#e04a2f; --tomato-ink:#b8321c;
+  --caslon:"Big Caslon","Songti TC",Georgia,serif;
+  --song:"Songti TC","Big Caslon",serif;
+  --gill:"Gill Sans","Gill Sans MT","PingFang TC",system-ui,sans-serif;
+  --out:cubic-bezier(.2,.8,.2,1); --spring:cubic-bezier(.3,1.3,.45,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 var(--gill);font-variant-numeric:lining-nums;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+button:focus-visible{outline:2px solid var(--tomato);outline-offset:3px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--paper);container-type:inline-size}
+.screen::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.55;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .25 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E")}
+@media (min-width:521px){
+  body{background:#c3cfb8}
+  .look{height:clamp(300px,calc(100dvh - 378px),480px)}
+  .deck{height:clamp(300px,calc(100dvh - 392px),480px)}
+  .stage{display:flex;align-items:center;justify-content:center;gap:72px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0;overflow:hidden}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:9px;z-index:1;background:#1b1d19;
+    box-shadow:inset 0 0 0 1.5px #3a3d36,0 14px 22px -12px rgba(40,50,30,.55)}
+  .screen{inset:9px;border-radius:44px}
+  .caption{display:block;position:relative;z-index:1;max-width:250px}
+  .caption h1{font:400 64px/.9 var(--caslon);letter-spacing:-.01em}
+  .caption p{margin-top:16px;font:16px/1.6 var(--gill);color:var(--ink-2)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+  height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 16px/1 var(--gill);color:var(--ink);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* pages */
+.book{position:absolute;inset:0;z-index:1;perspective:1400px}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;background:var(--paper);padding:calc(46px + env(safe-area-inset-top)) 20px calc(84px + env(safe-area-inset-bottom));
+  visibility:hidden;scrollbar-width:none;transform-origin:0 50%;backface-visibility:hidden;overscroll-behavior:contain}
+.page::-webkit-scrollbar{display:none}
+.page.on{visibility:visible;z-index:2}
+.page.leave{visibility:visible;z-index:3;animation:turnOut .55s cubic-bezier(.45,.05,.3,1) forwards}
+.page.enter{animation:turnIn .55s cubic-bezier(.45,.05,.3,1)}
+.page.hold{visibility:visible;z-index:1}
+@keyframes turnOut{to{transform:rotateY(-92deg)}}
+@keyframes turnIn{from{transform:rotateY(-92deg)}}
+.page.leave::after,.page.enter::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(27,29,25,0),rgba(27,29,25,.18));animation:shade .55s forwards}
+@keyframes shade{from{opacity:0}to{opacity:1}}
+.page.enter::after{animation-direction:reverse}
+
+/* running head + folio */
+.run{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0 10px;font:14px/1 var(--gill);color:var(--ink-2)}
+.run b{font:400 22px/1 var(--caslon);color:var(--ink);letter-spacing:.01em}
+.folio{position:absolute;bottom:calc(88px + env(safe-area-inset-bottom));font:400 14px var(--caslon);color:var(--ink-3)}
+
+/* cover */
+.mast{position:relative;display:flex;align-items:flex-end;justify-content:space-between;margin:2px -2px 0}
+.mast h1{font:400 clamp(60px,20cqw,84px)/.82 var(--caslon);letter-spacing:-.025em;margin-left:-3px}
+.mast .iss{white-space:nowrap;text-align:right;font:14px/1.35 var(--gill);color:var(--ink-2);padding-bottom:6px}
+.mast .iss b{display:block;font:400 30px/1 var(--caslon);color:var(--tomato-ink)}
+.coverline{margin:12px 0 0;font:700 19px/1.35 var(--song);max-width:15em}
+.coverline span{color:var(--tomato-ink)}
+.deck{position:relative;height:clamp(300px,calc(100vh - 334px),500px);height:clamp(300px,calc(100dvh - 334px),500px);margin:14px 0 0}
+.bignum{position:absolute;left:-30px;bottom:-56px;font:400 300px/1 var(--caslon);color:#c7d2bb;letter-spacing:-.04em;pointer-events:none;user-select:none;z-index:0}
+.card{position:absolute;left:50%;top:0;width:min(78%,300px);height:100%;margin-left:calc(min(78%,300px) / -2);border-radius:4px;
+  background:var(--field,#eef1e8);touch-action:none;transform-origin:50% 90%;transition:transform .45s var(--spring);z-index:1;
+  display:flex;flex-direction:column;padding:16px 16px 14px;box-shadow:0 1px 0 rgba(27,29,25,.18),1px 2px 3px -1px rgba(40,50,30,.25)}
+.card.drag{transition:none}
+.card .art{flex:1;min-height:0;position:relative;margin:26px 0 8px}
+.card .art svg{position:absolute;left:6%;top:0;width:88%;height:100%}
+.card .no{position:absolute;top:10px;right:14px;font:400 30px/1 var(--caslon);color:var(--ink)}
+.card .cap{border-top:2px solid var(--ink);padding-top:8px;display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:baseline}
+.card .cap b{font:700 17px/1.3 var(--song)}
+.card .cap small{grid-column:1;font:13.5px/1.3 var(--gill);color:var(--ink-2)}
+.card .cap .pr{grid-row:1/3;grid-column:2;font:600 18px/1 var(--song);letter-spacing:.02em}
+.card .stamp{position:absolute;top:26px;padding:4px 10px;border:3px solid currentColor;font:700 22px/1 var(--song);letter-spacing:.12em;opacity:0;pointer-events:none;border-radius:3px}
+.card .stamp.keep{left:18px;color:var(--tomato-ink);transform:rotate(-12deg)}
+.card .stamp.skip{right:18px;color:var(--ink-2);transform:rotate(10deg)}
+.done{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;z-index:1}
+.done b{font:700 22px/1.3 var(--song)}
+.done p{color:var(--ink-2);font-size:15px}
+.acts{position:relative;z-index:2;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin-top:16px}
+.act{min-height:48px;display:flex;align-items:center;gap:8px;font:700 17px var(--song);padding:0 4px}
+.act svg{width:34px;height:18px;transition:transform .25s var(--out)}
+.act.l{justify-self:start}.act.r{justify-self:end;color:var(--tomato-ink)}
+.act.l:active svg{transform:translateX(-5px)}.act.r:active svg{transform:translateX(5px)}
+.count{font:400 18px var(--song);color:var(--ink-2);letter-spacing:.04em}
+
+/* builder */
+.look{position:relative;margin:0 -6px;height:clamp(300px,calc(100vh - 330px),500px);height:clamp(300px,calc(100dvh - 330px),500px);display:grid;grid-template-rows:40% 40% 20%}
+.zone{position:relative;display:grid;grid-template-columns:44px 1fr 44px;align-items:stretch;touch-action:pan-y;min-height:0}
+.zone .arrow{align-self:center}
+.zone .fig{position:relative;min-height:0}
+.zone .fig svg{position:absolute;left:0;top:-4%;width:100%;height:108%}
+.zone.shoes .fig svg{top:4%;height:92%}
+.zone .fig.inL{animation:inL .38s var(--out)}.zone .fig.inR{animation:inR .38s var(--out)}
+@keyframes inL{from{transform:translateX(-46px)}}@keyframes inR{from{transform:translateX(46px)}}
+.zone .fig.jig{animation:jig .3s}
+@keyframes jig{30%{transform:rotate(-3deg)}70%{transform:rotate(2deg)}}
+.arrow{width:44px;height:44px;display:flex;align-items:center;justify-content:center}
+.arrow svg{width:22px;height:22px}
+.arrow:active svg{transform:scale(.85)}
+.zone .tag{position:absolute;right:0;width:44px;top:calc(50% + 24px);font:400 13px/1 var(--song);color:var(--ink-3);text-align:center;pointer-events:none}
+.lookcap{display:flex;align-items:baseline;justify-content:space-between;border-top:2px solid var(--ink);padding-top:10px;margin-top:4px}
+.lookcap h2{font:400 34px/1 var(--caslon)}
+.lookcap p{font:14px/1.4 var(--gill);color:var(--ink-2);text-align:right;max-width:60%}
+.brow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.btn{min-height:50px;display:flex;align-items:center;justify-content:center;gap:10px;font:700 16px var(--song);border-radius:3px}
+.btn svg{width:22px;height:22px}
+.btn.ink{background:var(--ink);color:var(--paper-hi)}
+.btn.ink:active{background:#343830}
+.btn.plain{background:var(--paper-lo)}
+.btn.plain:active{background:var(--paper-deep)}
+
+/* closet */
+.filters{display:flex;gap:22px;margin:4px 0 12px}
+.filters button{min-height:44px;font:700 17px var(--song);color:var(--ink-3);position:relative}
+.filters button sup{font:400 12px var(--caslon);margin-left:2px;vertical-align:top;position:relative;top:-2px}
+.filters button.on{color:var(--ink)}
+.filters button.on sup{color:var(--tomato-ink)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px}
+.item{text-align:left;display:flex;flex-direction:column;gap:6px}
+.item .pl{position:relative;aspect-ratio:4/5;background:var(--field,#eef1e8);border-radius:2px;display:flex;align-items:center;justify-content:center;padding:12px;transition:transform .15s}
+.item:active .pl{transform:scale(.97)}
+.item .pl svg{width:100%;height:100%}
+.item .pl i{position:absolute;left:8px;top:6px;font:400 17px var(--caslon);font-style:normal;color:var(--ink-2)}
+.item b{font:700 15px/1.3 var(--song)}
+.item small{font:13px/1.2 var(--gill);color:var(--ink-2);margin-top:-4px}
+.item.add .pl{background:none;border:2px dashed var(--ink-3);flex-direction:column;gap:6px;font:700 15px var(--song);color:var(--ink-2)}
+.item.add .pl svg{width:40px;height:40px}
+
+/* saved */
+.spreads{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px}
+.spread{text-align:left;display:flex;flex-direction:column;gap:4px}
+.spread .mini{position:relative;aspect-ratio:3/4.4;background:var(--paper-hi);border-radius:2px;display:grid;grid-template-rows:40% 40% 20%;padding:8px 10px 6px;transition:transform .15s}
+.spread:active .mini{transform:scale(.97)}
+.spread .mini div{display:flex;justify-content:center;align-items:center;min-height:0}
+.spread .mini svg{height:110%;width:auto;max-width:100%}
+.spread h3{font:400 22px/1 var(--caslon);margin-top:4px}
+.spread small{font:13px/1.35 var(--gill);color:var(--ink-2)}
+.nothing{padding:60px 10px;text-align:center;color:var(--ink-2);font-size:15px;line-height:1.7}
+.nothing b{display:block;font:700 20px var(--song);color:var(--ink);margin-bottom:6px}
+
+/* nav */
+.nav{position:absolute;left:0;right:0;bottom:0;z-index:30;padding:6px 14px calc(22px + env(safe-area-inset-bottom));background:var(--paper);
+  display:grid;grid-template-columns:repeat(4,1fr)}
+.nav::before{content:"";position:absolute;left:20px;right:20px;top:0;height:2px;border-radius:1px;background:var(--ink)}
+.nav button{min-height:50px;display:flex;align-items:baseline;justify-content:center;gap:4px;padding-top:12px;font:700 17px/1 var(--song);color:var(--ink-3);transition:color .2s}
+.nav button i{font:400 12px var(--caslon);font-style:normal}
+.nav button.on{color:var(--tomato-ink)}
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:130px;height:5px;margin-left:-65px;border-radius:3px;background:var(--ink);z-index:45;pointer-events:none}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(27,29,25,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;background:var(--paper-hi);border-radius:18px 18px 0 0;padding:10px 20px calc(22px + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .5s var(--spring);touch-action:none;max-height:90%;overflow:auto}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--ink-3);margin:0 auto 14px}
+.sh-top{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}
+.sh-top .pl{aspect-ratio:4/5;background:var(--field);display:flex;align-items:center;justify-content:center;padding:8px;border-radius:2px}
+.sh-top .pl svg{width:100%;height:100%}
+.sh-top h3{font:700 21px/1.3 var(--song)}
+.sh-top p{font:14px/1.4 var(--gill);color:var(--ink-2);margin-top:4px}
+.sizes{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:18px 0 12px}
+.sizes button{aspect-ratio:1;min-height:48px;display:flex;align-items:center;justify-content:center;font:400 19px var(--caslon);box-shadow:inset 0 0 0 2px var(--ink);border-radius:2px}
+.sizes button.on{background:var(--ink);color:var(--paper-hi)}
+.sizes.shoes{grid-template-columns:repeat(5,1fr)}
+.sizes.shoes button{font-size:16px}
+.meas{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding:12px 0;background:var(--paper)}
+.meas div{font:13px var(--gill);color:var(--ink-2)}
+.meas b{display:block;font:400 25px/1.2 var(--song);color:var(--ink)}
+.sh-row{display:flex;gap:10px;margin-top:14px}
+.sh-row .btn{flex:1}
+.lbl{font:700 15px var(--song);margin:16px 0 8px}
+.types{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.types button{aspect-ratio:1;min-height:56px;background:var(--paper);border-radius:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;font:13px var(--song);gap:2px;padding:6px 2px 4px}
+.types button svg{width:70%;height:62%}
+.types button.on{background:var(--ink);color:var(--paper-hi)}
+.types button.on svg .ol{stroke:var(--paper-hi)}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.swatches button{width:44px;height:44px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1.5px rgba(27,29,25,.25)}
+.swatches button.on{box-shadow:inset 0 0 0 1.5px rgba(27,29,25,.25),0 0 0 3px var(--paper-hi),0 0 0 5px var(--ink)}
+.pats{display:flex;gap:22px}
+.pats button{min-height:44px;font:700 16px var(--song);color:var(--ink-3)}
+.pats button.on{color:var(--ink)}
+.namefield{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:12px 14px;background:var(--paper);border-radius:2px}
+.namefield b{font:700 17px var(--song)}
+.namefield button{min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center}
+.namefield svg{width:22px;height:22px}
+#dArt svg{width:100%;height:100%}
+
+.toast{position:absolute;left:50%;top:calc(52px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-240%);visibility:hidden;transition:transform .4s var(--spring),visibility 0s .4s;
+  background:var(--ink);color:var(--paper-hi);font:600 14px var(--gill);padding:10px 16px;border-radius:3px;white-space:nowrap;display:flex;gap:14px;align-items:center}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .4s var(--spring)}
+.toast button{color:#ff9f86;font-weight:700;min-height:28px}
+#pdefs{position:absolute;width:0;height:0}
+@media (prefers-reduced-motion:reduce){
+  .page.leave,.page.enter,.page.leave::after,.page.enter::after{animation:none}
+  .page.leave{visibility:hidden}
+  .card,.sheet,.toast,.act svg{transition:none!important}
+  .zone .fig.inL,.zone .fig.inR,.zone .fig.jig{animation:none}
+}
+</style>
+</head>
+<body>
+<svg id="pdefs" aria-hidden="true"><defs id="defs"></defs></svg>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="bd" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#1b1d19"><rect x="1" y="7" width="3" height="5"/><rect x="6" y="4.5" width="3" height="7.5"/><rect x="11" y="2" width="3" height="10"/></g><rect x="15.5" y="0" width="2.5" height="12" fill="#e04a2f"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#1b1d19" stroke-width="2" stroke-linecap="round"><path d="M1.5 4.5a9.5 9.5 0 0 1 13 0M4.5 7.5a5 5 0 0 1 7 0"/><circle cx="8" cy="10.5" r="1" fill="#1b1d19"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x="1" y="1" width="21" height="10" rx="2" fill="none" stroke="#1b1d19" stroke-width="1.6"/><rect x="3.5" y="3.5" width="12" height="5" fill="#1b1d19"/><path d="M24 4.5v3" stroke="#1b1d19" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+      <div class="book" id="book">
+        <!-- cover / issue -->
+        <section class="page on" id="pg0" aria-label="本期">
+          <header class="mast"><h1>VESTE</h1><div class="iss"><b>Nº 27</b>九月號・秋</div></header>
+          <p class="coverline">換季的第一件，是<span>外套</span>。</p>
+          <div class="deck" id="deck"><div class="bignum" aria-hidden="true">27</div></div>
+          <div class="acts">
+            <button class="act l" id="skipBtn" aria-label="略過這件"><svg viewBox="0 0 34 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M32 9H3M10 2L3 9l7 7"/></svg>略過</button>
+            <span class="count" id="count">1 / 8</span>
+            <button class="act r" id="keepBtn" aria-label="收進衣櫥">收進衣櫥<svg viewBox="0 0 34 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9h29M24 2l7 7-7 7"/></svg></button>
+          </div>
+        </section>
+
+        <!-- builder -->
+        <section class="page" id="pg1" aria-label="組合">
+          <div class="run"><b>Composer</b><span>上衣・下身・鞋，左右滑換</span></div>
+          <div class="look" id="look">
+            <div class="zone" data-z="top"><button class="arrow" data-dir="-1" aria-label="上一件上衣"></button><div class="fig"></div><button class="arrow" data-dir="1" aria-label="下一件上衣"></button><span class="tag"></span></div>
+            <div class="zone" data-z="bottom"><button class="arrow" data-dir="-1" aria-label="上一件下身"></button><div class="fig"></div><button class="arrow" data-dir="1" aria-label="下一件下身"></button><span class="tag"></span></div>
+            <div class="zone shoes" data-z="shoes"><button class="arrow" data-dir="-1" aria-label="上一雙鞋"></button><div class="fig"></div><button class="arrow" data-dir="1" aria-label="下一雙鞋"></button><span class="tag"></span></div>
+          </div>
+          <div class="lookcap"><h2 id="lookNo">Look 04</h2><p id="lookTxt"></p></div>
+          <div class="brow">
+            <button class="btn plain" id="shuffle"><svg viewBox="0 0 24 24" fill="none" stroke="#1b1d19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h4c5 0 5 10 10 10h4M3 17h4c2 0 3-1.5 4-3.5M17 7h4M13 9.5C14 8 15 7 17 7"/><path d="M18.5 4.5L21 7l-2.5 2.5M18.5 14.5L21 17l-2.5 2.5"/></svg>隨手配</button>
+            <button class="btn ink" id="saveLook"><svg viewBox="0 0 24 24" fill="none" stroke="#e9eee2" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg>收藏這套</button>
+          </div>
+        </section>
+
+        <!-- closet -->
+        <section class="page" id="pg2" aria-label="衣櫥">
+          <div class="run"><b>Wardrobe</b><span id="wcount">12 件</span></div>
+          <div class="filters" role="tablist" id="filters"></div>
+          <div class="grid" id="grid"></div>
+        </section>
+
+        <!-- saved -->
+        <section class="page" id="pg3" aria-label="收藏">
+          <div class="run"><b>Saved looks</b><span id="scount">3 套</span></div>
+          <div class="spreads" id="spreads"></div>
+        </section>
+      </div>
+
+      <nav class="nav" id="nav" role="tablist" aria-label="翻到">
+        <button class="on" data-p="0" role="tab" aria-selected="true">本期<i>1</i></button>
+        <button data-p="1" role="tab" aria-selected="false">組合<i>2</i></button>
+        <button data-p="2" role="tab" aria-selected="false">衣櫥<i>3</i></button>
+        <button data-p="3" role="tab" aria-selected="false">收藏<i>4</i></button>
+      </nav>
+      <div class="home-ind"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="單品"><div class="grab"></div><div id="sheetBody"></div></div>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+  </div>
+  <div class="caption"><h1>VESTE</h1><p>一本會翻頁的衣櫥。<br>滑卡選單品，三格拼一套。</p></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+function $(id){ return document.getElementById(id); }
+function haptic(p){ try{ if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; navigator.vibrate && navigator.vibrate(p||8) }catch(e){} }
+var KEY = 'app010:';
+function load(k, d){ try{ var v = localStorage.getItem(KEY+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(KEY+k, JSON.stringify(v)); }catch(e){} }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ---------- audio: paper ---------- */
+var ac = null;
+function audio(){ try{ if(!ac){ var A = window.AudioContext||window.webkitAudioContext; if(A) ac = new A(); } if(ac && ac.state==='suspended') ac.resume(); }catch(e){} return ac; }
+document.addEventListener('pointerdown', audio, {passive:true});
+function noise(dur, f0, f1, vol, q){
+  var a = ac; if(!a) return; var t = a.currentTime, len = Math.floor(a.sampleRate * dur), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
+  for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / len);
+  var s = a.createBufferSource(); s.buffer = b; var f = a.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = q || .8; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  var g = a.createGain(); g.gain.value = vol; s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+}
+function flip(){ noise(.32, 900, 3800, .22, .6); }
+function flick(){ noise(.16, 2400, 1200, .18, 1.2); }
+function stamp(){ var a = ac; if(!a) return; noise(.07, 300, 180, .5, 1); var t = a.currentTime, o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(60, t + .1); g.gain.setValueAtTime(.3, t); g.gain.exponentialRampToValueAtTime(.001, t + .14); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + .16); }
+function tap(){ noise(.04, 3000, 2000, .1, 2); }
+
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+tickClock(); setInterval(tickClock, 15000);
+
+/* ---------- garments: ink line + misregistered riso fill ---------- */
+var defs = $('defs'), madePat = {};
+function shade(hex, k){ var n = parseInt(hex.slice(1), 16), r = n >> 16, g = n >> 8 & 255, b = n & 255; function f(c){ return Math.max(0, Math.min(255, Math.round(k < 0 ? c * (1 + k) : c + (255 - c) * k))); } return '#' + ((1 << 24) + (f(r) << 16) + (f(g) << 8) + f(b)).toString(16).slice(1); }
+function fillOf(c, pat){
+  if (!pat || pat === 'plain') return c;
+  var id = 'p' + pat + c.slice(1); if (!madePat[id]){ madePat[id] = 1;
+    var alt = shade(c, lum(c) > .6 ? -.45 : .6), s;
+    if (pat === 'stripe') s = '<pattern id="' + id + '" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="9" height="9" fill="' + c + '"/><rect width="9" height="3.2" fill="' + alt + '"/></pattern>';
+    else s = '<pattern id="' + id + '" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="' + c + '"/><rect width="6" height="12" fill="' + alt + '" opacity=".45"/><rect width="12" height="6" fill="' + alt + '" opacity=".45"/></pattern>';
+    defs.insertAdjacentHTML('beforeend', s);
+  }
+  return 'url(#' + id + ')';
+}
+function lum(hex){ var n = parseInt(hex.slice(1), 16); return ((n >> 16) * .299 + (n >> 8 & 255) * .587 + (n & 255) * .114) / 255; }
+var SHAPES = {
+  tee: {cat:'top', n:'T恤', body:'M40 16 L52 11 Q60 20 68 11 L80 16 L104 36 L93 50 L83 43 L83 122 L37 122 L37 43 L27 50 L16 36 Z', det:'M52 11 Q60 24 68 11 M37 43 L37 36 M83 43 L83 36'},
+  shirt: {cat:'top', n:'襯衫', body:'M42 14 L53 9 L60 18 L67 9 L78 14 L98 28 L108 92 L96 95 L87 50 L86 124 L34 124 L33 50 L24 95 L12 92 L22 28 Z', det:'M53 9 L50 22 L60 18 L70 22 L67 9 M60 18 V124 M63 34 h.1 M63 52 h.1 M63 70 h.1 M63 88 h.1 M63 106 h.1 M24 90 L12 87 M96 90 L108 87'},
+  knit: {cat:'top', n:'針織衫', body:'M42 14 Q60 26 78 14 L98 26 L110 98 L97 101 L87 52 L87 124 L33 124 L33 52 L23 101 L10 98 L22 26 Z', det:'M44 15 Q60 30 76 15 M33 116 H87 M38 116 V124 M46 116 V124 M54 116 V124 M62 116 V124 M70 116 V124 M78 116 V124 M12 92 L24 95 M108 92 L96 95'},
+  jacket: {cat:'top', n:'西裝外套', body:'M40 12 L52 8 L60 14 L68 8 L80 12 L99 24 L110 100 L97 103 L88 54 L89 126 L31 126 L32 54 L23 103 L10 100 L21 24 Z', det:'M52 8 L46 30 L54 36 L60 72 L66 36 L74 30 L68 8 M60 72 V126 M56 84 h.1 M56 100 h.1 M38 92 h14 M68 92 h14 M71 40 h10'},
+  trousers: {cat:'bottom', n:'寬褲', body:'M34 8 H86 L96 124 H66 L60 42 L54 124 H24 Z', det:'M34 17 H86 M46 17 L48 60 M74 17 L72 60 M60 17 V42'},
+  jeans: {cat:'bottom', n:'牛仔褲', body:'M36 8 H84 L90 124 H64 L60 44 L56 124 H30 Z', det:'M36 17 H84 M38 17 Q46 30 52 17 M82 17 Q74 30 68 17 M60 17 V44 M33 116 H55 M65 116 H87'},
+  skirt: {cat:'bottom', n:'長裙', body:'M40 10 H80 L100 118 Q60 126 20 118 Z', det:'M40 19 H80 M50 19 L42 120 M60 19 V122 M70 19 L78 120'},
+  sneakers: {cat:'shoes', n:'球鞋', body:'M8 62 Q9 44 26 42 L46 34 Q56 48 76 50 L98 54 Q110 58 110 68 L110 74 H8 Z', det:'M8 66 H110 M40 40 L48 50 M46 37 L54 47 M52 35 L60 45 M20 52 h14'},
+  loafers: {cat:'shoes', n:'樂福鞋', body:'M8 64 Q10 50 26 49 L60 46 Q76 50 96 56 Q110 60 110 70 L110 74 H8 Z', det:'M8 69 H110 M58 47 Q68 56 80 52 M62 52 h10'},
+  boots: {cat:'shoes', n:'短靴', body:'M20 14 H52 L54 50 Q64 56 86 58 Q108 62 108 72 L108 76 H22 L18 76 Z', det:'M18 70 H108 M20 22 H52 M44 14 V50'}
+};
+function garment(g, cls){
+  var S = SHAPES[g.t], shoes = S.cat === 'shoes', vb = shoes ? '0 8 118 76' : '0 0 120 132';
+  var f = fillOf(g.c, g.p), inkDet = lum(g.c) < .28 ? 'rgba(233,238,226,.55)' : 'rgba(27,29,25,.5)';
+  var s = '<svg class="' + (cls || '') + '" viewBox="' + vb + '" aria-hidden="true">';
+  if (shoes){
+    // pair: back shoe then front shoe
+    s += '<g transform="translate(-2 -10) scale(.92)" opacity=".92"><path d="' + S.body + '" fill="' + shade(g.c, lum(g.c) > .5 ? -.12 : .12) + '" transform="translate(3 2.5)"/><path class="ol" d="' + S.body + '" fill="none" stroke="#1b1d19" stroke-width="2" stroke-linejoin="round"/></g>';
+  }
+  s += '<path d="' + S.body + '" fill="' + f + '" transform="translate(3 2.5)"/>';
+  s += '<path d="' + S.det + '" fill="none" stroke="' + inkDet + '" stroke-width="1.4" stroke-linecap="round" transform="translate(3 2.5)"/>';
+  s += '<path class="ol" d="' + S.body + '" fill="none" stroke="#1b1d19" stroke-width="2" stroke-linejoin="round"/>';
+  s += '<path class="ol" d="' + S.det + '" fill="none" stroke="#1b1d19" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>';
+  return s + '</svg>';
+}
+
+/* ---------- data ---------- */
+var FIELDS = ['#eef1e8', '#cfdac5', '#f0ddd3', '#e6e2cf'];
+var closet = load('closet', null) || [
+  {id:1, t:'jacket', c:'#cbb89a', p:'plain', n:'燕麥色西裝外套', shop:'赤峰街 Lin 選物', size:'M'},
+  {id:2, t:'shirt', c:'#f3f0e6', p:'plain', n:'白色牛津襯衫', shop:'富錦街 小日子', size:'M'},
+  {id:3, t:'tee', c:'#2d3a5a', p:'stripe', n:'海軍條紋 T', shop:'台南 神農街', size:'S'},
+  {id:4, t:'knit', c:'#d9492f', p:'plain', n:'番茄紅針織衫', shop:'中山地下街', size:'M'},
+  {id:5, t:'shirt', c:'#6f7450', p:'plain', n:'橄欖工裝襯衫', shop:'永康街 舊物', size:'L'},
+  {id:6, t:'jeans', c:'#2f3d5c', p:'plain', n:'深靛直筒牛仔褲', shop:'迪化街 布行', size:'M'},
+  {id:7, t:'trousers', c:'#b79c6e', p:'plain', n:'卡其打褶寬褲', shop:'赤峰街 Lin 選物', size:'M'},
+  {id:8, t:'skirt', c:'#25262a', p:'plain', n:'黑色百褶長裙', shop:'華山 市集', size:'S'},
+  {id:9, t:'skirt', c:'#8a5a3a', p:'check', n:'焦糖格紋長裙', shop:'台中 審計新村', size:'M'},
+  {id:10, t:'sneakers', c:'#f2efe6', p:'plain', n:'白色德訓鞋', shop:'西門町', size:'24.5'},
+  {id:11, t:'loafers', c:'#23201e', p:'plain', n:'黑色樂福鞋', shop:'台南 正興街', size:'24'},
+  {id:12, t:'boots', c:'#8a5632', p:'plain', n:'焦糖短靴', shop:'高雄 駁二', size:'24.5'}
+];
+var PICKS = [
+  {id:101, t:'jacket', c:'#3f4a3a', p:'plain', n:'墨綠羊毛外套', shop:'赤峰街 Lin 選物', pr:4680},
+  {id:102, t:'knit', c:'#e8dcc2', p:'stripe', n:'奶油條紋針織', shop:'富錦街 小日子', pr:1980},
+  {id:103, t:'trousers', c:'#4a3a33', p:'plain', n:'可可燈芯絨寬褲', shop:'迪化街 布行', pr:2380},
+  {id:104, t:'shirt', c:'#b9c7d2', p:'stripe', n:'灰藍細條紋襯衫', shop:'永康街 舊物', pr:1580},
+  {id:105, t:'boots', c:'#2a2724', p:'plain', n:'黑色切爾西靴', shop:'台南 正興街', pr:5200},
+  {id:106, t:'skirt', c:'#c9b27c', p:'plain', n:'芥末色 A 字裙', shop:'華山 市集', pr:1680},
+  {id:107, t:'tee', c:'#e04a2f', p:'plain', n:'番茄紅口袋 T', shop:'中山地下街', pr:690},
+  {id:108, t:'sneakers', c:'#cfd6c6', p:'plain', n:'開心果綠球鞋', shop:'西門町', pr:2980}
+];
+var decided = load('decided', {});
+var looks = load('looks', null) || [
+  {no:1, top:1, bottom:6, shoes:11, d:'9/02'},
+  {no:2, top:4, bottom:8, shoes:12, d:'9/09'},
+  {no:3, top:3, bottom:7, shoes:10, d:'9/16'}
+];
+var lookSeq = load('lookSeq', 4);
+var sel = load('sel', {top:0, bottom:0, shoes:0});
+function saveCloset(){ save('closet', closet); }
+function byId(id){ return closet.find(function(x){ return x.id === id; }); }
+function cat(t){ return SHAPES[t].cat; }
+function field(id){ return FIELDS[id % FIELDS.length]; }
+
+/* ---------- navigation: page turn ---------- */
+var page = 0, turning = false;
+function go(i){
+  if (i === page || turning) return;
+  var from = $('pg' + page), to = $('pg' + i), fwd = i > page;
+  page = i; renderPage(i);
+  document.querySelectorAll('#nav button').forEach(function(b){ var on = +b.dataset.p === i; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  flip(); haptic(6);
+  if (reduce){ from.classList.remove('on'); to.classList.add('on'); return; }
+  turning = true;
+  if (fwd){ to.classList.add('on'); from.classList.remove('on'); from.classList.add('leave');
+    setTimeout(function(){ from.classList.remove('leave'); turning = false; }, 560); }
+  else { from.classList.remove('on'); from.classList.add('hold'); to.classList.add('on', 'enter'); to.style.zIndex = 4;
+    setTimeout(function(){ to.classList.remove('enter'); from.classList.remove('hold'); to.style.zIndex = ''; turning = false; }, 560); }
+}
+$('nav').addEventListener('click', function(e){ var b = e.target.closest('[data-p]'); if (b) go(+b.dataset.p); });
+function renderPage(i){ if (i === 1) renderLook(); if (i === 2) renderCloset(); if (i === 3) renderSaved(); }
+
+/* ---------- 本期: card stack ---------- */
+function queue(){ return PICKS.filter(function(p){ return !decided[p.id]; }); }
+function renderDeck(){
+  var dk = $('deck'), q = queue();
+  [].slice.call(dk.querySelectorAll('.card,.done')).forEach(function(n){ n.remove(); });
+  var seen = PICKS.length - q.length;
+  $('count').textContent = Math.min(seen + 1, PICKS.length) + ' / ' + PICKS.length;
+  $('skipBtn').disabled = $('keepBtn').disabled = !q.length;
+  $('skipBtn').style.opacity = $('keepBtn').style.opacity = q.length ? '' : '.35';
+  if (!q.length){
+    var kept = PICKS.filter(function(p){ return decided[p.id] === 'keep'; }).length;
+    dk.insertAdjacentHTML('beforeend', '<div class="done"><b>本期翻完了</b><p>收了 ' + kept + ' 件進衣櫥，下期 10 月 7 日出刊。</p><button class="btn plain" id="reread" style="padding:0 22px">從頭再翻一次</button></div>');
+    return;
+  }
+  q.slice(0, 3).reverse().forEach(function(p, k, arr){
+    var depth = arr.length - 1 - k, el = document.createElement('div');
+    el.className = 'card'; el.dataset.id = p.id; el.style.setProperty('--field', field(p.id));
+    el.style.transform = 'translateY(' + (depth * 10) + 'px) scale(' + (1 - depth * .05) + ') rotate(' + (depth ? (depth % 2 ? 2.5 : -2) : 0) + 'deg)';
+    el.style.zIndex = 10 - depth;
+    el.innerHTML = '<span class="no">' + String(PICKS.indexOf(p) + 1).padStart(2, '0') + '</span><div class="art">' + garment(p) + '</div>' +
+      '<div class="cap"><b>' + p.n + '</b><small>' + p.shop + '</small><span class="pr">NT$' + p.pr.toLocaleString() + '</span></div>' +
+      '<span class="stamp keep">收下</span><span class="stamp skip">略過</span>';
+    if (!depth) bindCard(el, p);
+    dk.appendChild(el);
+  });
+}
+function bindCard(el, p){
+  var sx = 0, sy = 0, dx = 0, dy = 0, t0 = 0, drag = false;
+  var sk = el.querySelector('.stamp.keep'), ss = el.querySelector('.stamp.skip');
+  el.addEventListener('pointerdown', function(e){ drag = true; sx = e.clientX; sy = e.clientY; dx = dy = 0; t0 = e.timeStamp; el.classList.add('drag'); try{ el.setPointerCapture(e.pointerId); }catch(er){} });
+  el.addEventListener('pointermove', function(e){ if (!drag) return; dx = e.clientX - sx; dy = (e.clientY - sy) * .4;
+    el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (dx * .06) + 'deg)';
+    sk.style.opacity = Math.max(0, Math.min(1, dx / 90)); ss.style.opacity = Math.max(0, Math.min(1, -dx / 90)); });
+  function end(e){ if (!drag) return; drag = false; el.classList.remove('drag'); var v = dx / Math.max(1, e.timeStamp - t0);
+    if (dx > 100 || v > .7) fly(el, p, 1); else if (dx < -100 || v < -.7) fly(el, p, -1);
+    else { el.style.transform = ''; sk.style.opacity = ss.style.opacity = 0; } }
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+}
+var lastDecision = null;
+function fly(el, p, dir){
+  if (el.dataset.gone) return; el.dataset.gone = 1;
+  el.style.transition = 'transform .38s cubic-bezier(.4,.1,.6,1)'; el.style.transform = 'translate(' + (dir * 480) + 'px,-30px) rotate(' + (dir * 24) + 'deg)';
+  flick(); haptic(dir > 0 ? [8,30,12] : 6);
+  decided[p.id] = dir > 0 ? 'keep' : 'skip'; save('decided', decided); lastDecision = p.id;
+  if (dir > 0){
+    var id = closet.reduce(function(m, x){ return Math.max(m, x.id); }, 0) + 1;
+    closet.push({id:id, t:p.t, c:p.c, p:p.p, n:p.n, shop:p.shop, size:cat(p.t) === 'shoes' ? '24.5' : 'M', from:p.id}); saveCloset();
+    setTimeout(stamp, 120);
+    toast('「' + p.n + '」收進衣櫥', '復原', undoDecision);
+  }
+  setTimeout(renderDeck, reduce ? 0 : 330);
+}
+function undoDecision(){
+  if (lastDecision == null) return; var pid = lastDecision; lastDecision = null;
+  if (decided[pid] === 'keep'){ closet = closet.filter(function(x){ return x.from !== pid; }); saveCloset(); }
+  delete decided[pid]; save('decided', decided); renderDeck(); tap();
+}
+function topCard(){ var c = $('deck').querySelectorAll('.card'); return c[c.length - 1]; }
+$('keepBtn').addEventListener('click', function(){ var c = topCard(); if (c) fly(c, PICKS.find(function(p){ return p.id === +c.dataset.id; }), 1); });
+$('skipBtn').addEventListener('click', function(){ var c = topCard(); if (c) fly(c, PICKS.find(function(p){ return p.id === +c.dataset.id; }), -1); });
+$('deck').addEventListener('click', function(e){ if (e.target.closest('#reread')){ decided = {}; save('decided', decided); renderDeck(); flip(); haptic(); } });
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ closeSheet(); return; }
+  if (page === 0 && !sheet.classList.contains('on')){ if (e.key === 'ArrowRight') $('keepBtn').click(); if (e.key === 'ArrowLeft') $('skipBtn').click(); }
+});
+
+/* ---------- 組合 ---------- */
+var ARROW_L = '<svg viewBox="0 0 22 22" fill="none" stroke="#1b1d19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3L6 11l8 8"/></svg>';
+var ARROW_R = '<svg viewBox="0 0 22 22" fill="none" stroke="#1b1d19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3l8 8-8 8"/></svg>';
+document.querySelectorAll('.arrow').forEach(function(a){ a.innerHTML = +a.dataset.dir < 0 ? ARROW_L : ARROW_R; });
+function list(z){ return closet.filter(function(x){ return cat(x.t) === z; }); }
+function cur(z){ var l = list(z); if (!l.length) return null; sel[z] = ((sel[z] % l.length) + l.length) % l.length; return l[sel[z]]; }
+function renderZone(z, anim){
+  var zone = document.querySelector('.zone[data-z="' + z + '"]'), fig = zone.querySelector('.fig'), it = cur(z), l = list(z);
+  fig.innerHTML = it ? garment(it) : '';
+  zone.querySelector('.tag').textContent = it ? (sel[z] + 1) + '/' + l.length : '';
+  if (!it) fig.innerHTML = '<p style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink-3)">衣櫥裡還沒有</p>';
+  if (anim && !reduce){ fig.classList.remove('inL', 'inR', 'jig'); void fig.offsetWidth; fig.classList.add(anim); }
+}
+function lookText(){
+  var t = cur('top'), b = cur('bottom'), s = cur('shoes');
+  $('lookNo').textContent = 'Look ' + String(lookSeq).padStart(2, '0');
+  $('lookTxt').textContent = [t, b, s].filter(Boolean).map(function(x){ return x.n; }).join(' × ');
+}
+function renderLook(){ ['top', 'bottom', 'shoes'].forEach(function(z){ renderZone(z); }); lookText(); }
+function step(z, d){ var l = list(z); if (l.length < 2){ haptic([4,20,4]); return; } sel[z] += d; save('sel', sel); renderZone(z, d > 0 ? 'inR' : 'inL'); lookText(); flick(); haptic(5); }
+$('look').addEventListener('click', function(e){ var a = e.target.closest('.arrow'); if (!a) return; step(a.closest('.zone').dataset.z, +a.dataset.dir); });
+document.querySelectorAll('.zone').forEach(function(zone){
+  var sx = 0, sy = 0, on = false;
+  zone.addEventListener('pointerdown', function(e){ if (e.target.closest('.arrow')) return; on = true; sx = e.clientX; sy = e.clientY; });
+  zone.addEventListener('pointerup', function(e){ if (!on) return; on = false; var dx = e.clientX - sx, dy = e.clientY - sy; if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) step(zone.dataset.z, dx < 0 ? 1 : -1); });
+  zone.addEventListener('pointercancel', function(){ on = false; });
+});
+$('shuffle').addEventListener('click', function(){
+  ['top', 'bottom', 'shoes'].forEach(function(z, i){ var l = list(z); if (!l.length) return; sel[z] = Math.floor(Math.random() * l.length); setTimeout(function(){ renderZone(z, 'jig'); }, i * 90); });
+  save('sel', sel); setTimeout(lookText, 200); noise(.25, 1500, 900, .15, 1); haptic([5,20,5,20,5]);
+});
+$('saveLook').addEventListener('click', function(){
+  var t = cur('top'), b = cur('bottom'), s = cur('shoes'); if (!t || !b || !s){ toast('上衣、下身、鞋都要有一件'); haptic([10,40,10]); return; }
+  var dup = looks.some(function(l){ return l.top === t.id && l.bottom === b.id && l.shoes === s.id; });
+  if (dup){ toast('這套已經收藏過了'); haptic([4,20,4]); return; }
+  var d = new Date(); looks.unshift({no:lookSeq, top:t.id, bottom:b.id, shoes:s.id, d:(d.getMonth() + 1) + '/' + String(d.getDate()).padStart(2, '0')});
+  lookSeq++; save('looks', looks); save('lookSeq', lookSeq); lookText(); stamp(); haptic([10,30,14]); toast('Look ' + String(lookSeq - 1).padStart(2, '0') + ' 收進收藏');
+});
+
+/* ---------- 衣櫥 ---------- */
+var cf = 'all';
+var CATS = [['all', '全部'], ['top', '上衣'], ['bottom', '下身'], ['shoes', '鞋']];
+function renderCloset(){
+  $('filters').innerHTML = CATS.map(function(c){ var n = c[0] === 'all' ? closet.length : list(c[0]).length; return '<button role="tab" data-f="' + c[0] + '" class="' + (cf === c[0] ? 'on' : '') + '" aria-selected="' + (cf === c[0]) + '">' + c[1] + '<sup>' + n + '</sup></button>'; }).join('');
+  var items = closet.filter(function(x){ return cf === 'all' || cat(x.t) === cf; });
+  $('grid').innerHTML = items.map(function(x, i){ return '<button class="item" data-id="' + x.id + '"><span class="pl" style="--field:' + field(x.id) + '"><i>' + String(i + 1).padStart(2, '0') + '</i>' + garment(x) + '</span><b>' + esc(x.n) + '</b><small>' + esc(x.shop) + '・' + x.size + '</small></button>'; }).join('') +
+    '<button class="item add" id="addItem"><span class="pl"><svg viewBox="0 0 40 40" fill="none" stroke="#4e5648" stroke-width="2" stroke-linecap="round"><path d="M20 8v24M8 20h24"/></svg>加一件</span></button>';
+  $('wcount').textContent = closet.length + ' 件';
+}
+$('filters').addEventListener('click', function(e){ var b = e.target.closest('[data-f]'); if (!b) return; cf = b.dataset.f; renderCloset(); tap(); haptic(4); });
+$('grid').addEventListener('click', function(e){ if (e.target.closest('#addItem')){ openAdd(); return; } var b = e.target.closest('[data-id]'); if (b) openItem(+b.dataset.id); });
+
+/* size drawer */
+var SZ = { top:['XS','S','M','L','XL'], bottom:['XS','S','M','L','XL'], shoes:['23','23.5','24','24.5','25','25.5','26','26.5','27','27.5'] };
+function meas(c, s){
+  var i = SZ[c].indexOf(s);
+  if (c === 'top') return [['肩寬', 38 + i * 2], ['胸圍', 88 + i * 6], ['衣長', 62 + i * 2]];
+  if (c === 'bottom') return [['腰圍', 62 + i * 5], ['臀圍', 88 + i * 5], ['褲長', 96 + i * 1.5]];
+  return [['腳長', +s], ['腳寬', (8.6 + i * .15).toFixed(1)], ['跟高', 2.5]];
+}
+function openItem(id){
+  var x = byId(id); if (!x) return; var c = cat(x.t);
+  openSheet('<div class="sh-top"><div class="pl" style="--field:' + field(x.id) + '">' + garment(x) + '</div><div><h3>' + esc(x.n) + '</h3><p>' + esc(x.shop) + '・' + SHAPES[x.t].n + '</p></div></div>' +
+    '<div class="sizes' + (c === 'shoes' ? ' shoes' : '') + '" id="sizes">' + SZ[c].map(function(s){ return '<button data-s="' + s + '" class="' + (s === x.size ? 'on' : '') + '" aria-pressed="' + (s === x.size) + '">' + s + '</button>'; }).join('') + '</div>' +
+    '<div class="meas" id="meas"></div>' +
+    '<div class="sh-row"><button class="btn plain" id="delItem">移出衣櫥</button><button class="btn ink" id="wearIt">拿去組合</button></div>');
+  sheet.dataset.id = id; renderMeas(x);
+}
+function renderMeas(x){ $('meas').innerHTML = meas(cat(x.t), x.size).map(function(m){ return '<div><b>' + m[1] + '</b>' + m[0] + ' cm</div>'; }).join(''); }
+
+/* add item */
+var draft = null, COLORS = ['#f3f0e6', '#cbb89a', '#b79c6e', '#8a5632', '#d9492f', '#6f7450', '#2f3d5c', '#25262a'];
+var CNAME = {'#f3f0e6':'白色', '#cbb89a':'燕麥色', '#b79c6e':'卡其', '#8a5632':'焦糖', '#d9492f':'番茄紅', '#6f7450':'橄欖', '#2f3d5c':'深靛', '#25262a':'黑色'};
+var PNAME = {plain:'', stripe:'條紋', check:'格紋'};
+function draftName(){ return CNAME[draft.c] + PNAME[draft.p] + SHAPES[draft.t].n; }
+function openAdd(){
+  draft = {t:'tee', c:'#f3f0e6', p:'plain'};
+  openSheet('<h3 style="font:700 21px var(--song);text-align:center">加一件進衣櫥</h3>' +
+    '<div class="lbl">款式</div><div class="types" id="types">' + Object.keys(SHAPES).map(function(k){ return '<button data-t="' + k + '" class="' + (k === draft.t ? 'on' : '') + '">' + garment({t:k, c:'#dfe6d6', p:'plain'}) + SHAPES[k].n + '</button>'; }).join('') + '</div>' +
+    '<div class="lbl">顏色</div><div class="swatches" id="sw">' + COLORS.map(function(c){ return '<button data-c="' + c + '" style="--c:' + c + '" class="' + (c === draft.c ? 'on' : '') + '" aria-label="' + CNAME[c] + '"></button>'; }).join('') + '</div>' +
+    '<div class="lbl">花色</div><div class="pats" id="pats"><button data-p="plain" class="on">素面</button><button data-p="stripe">條紋</button><button data-p="check">格紋</button></div>' +
+    '<div class="namefield"><b id="dName"></b><span id="dArt" style="width:54px;height:58px;display:block"></span></div>' +
+    '<button class="btn ink" id="doAdd" style="width:100%;margin-top:14px">放進衣櫥</button>');
+  renderDraft();
+}
+function renderDraft(){ $('dName').textContent = draftName(); $('dArt').innerHTML = garment(draft); }
+
+/* sheet */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('sheetBody').innerHTML = html; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); tap(); var f = sheet.querySelector('button'); if (f) f.focus({preventScroll:true}); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = ''; if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+sheet.addEventListener('click', function(e){
+  var s = e.target.closest('[data-s]');
+  if (s){ var x = byId(+sheet.dataset.id); x.size = s.dataset.s; saveCloset(); [].forEach.call($('sizes').children, function(b){ b.classList.toggle('on', b === s); b.setAttribute('aria-pressed', b === s); }); renderMeas(x); tap(); haptic(5); renderCloset(); return; }
+  if (e.target.closest('#delItem')){ var id = +sheet.dataset.id, i = closet.findIndex(function(v){ return v.id === id; }); if (i < 0) return; var gone = closet.splice(i, 1)[0]; saveCloset(); closeSheet(); renderCloset(); flick(); haptic([8,30,8]);
+    toast('「' + gone.n + '」移出衣櫥', '復原', function(){ closet.splice(i, 0, gone); saveCloset(); renderCloset(); tap(); }); return; }
+  if (e.target.closest('#wearIt')){ var y = byId(+sheet.dataset.id), z = cat(y.t); sel[z] = list(z).indexOf(y); save('sel', sel); closeSheet(); setTimeout(function(){ go(1); }, 160); return; }
+  var t = e.target.closest('[data-t]'); if (t){ draft.t = t.dataset.t; [].forEach.call($('types').children, function(b){ b.classList.toggle('on', b === t); }); renderDraft(); tap(); haptic(4); return; }
+  var c = e.target.closest('[data-c]'); if (c){ draft.c = c.dataset.c; [].forEach.call($('sw').children, function(b){ b.classList.toggle('on', b === c); }); renderDraft(); tap(); haptic(4); return; }
+  var p = e.target.closest('#pats [data-p]'); if (p){ draft.p = p.dataset.p; [].forEach.call($('pats').children, function(b){ b.classList.toggle('on', b === p); }); renderDraft(); tap(); haptic(4); return; }
+  if (e.target.closest('#doAdd')){ var nid = closet.reduce(function(m, v){ return Math.max(m, v.id); }, 0) + 1, cc = cat(draft.t);
+    closet.push({id:nid, t:draft.t, c:draft.c, p:draft.p, n:draftName(), shop:'自己的衣櫃', size:cc === 'shoes' ? '24.5' : 'M'}); saveCloset(); closeSheet(); cf = 'all'; renderCloset(); stamp(); haptic([8,30,12]); toast('「' + draftName() + '」放進衣櫥'); return; }
+  var lk = e.target.closest('[data-look]');
+  if (lk){ var L = looks.find(function(l){ return l.no === +sheet.dataset.look; }); if (!L) return;
+    if (lk.dataset.look === 'del'){ var li = looks.indexOf(L); looks.splice(li, 1); save('looks', looks); closeSheet(); renderSaved(); flick(); haptic([8,30,8]); toast('Look ' + String(L.no).padStart(2, '0') + ' 已刪除', '復原', function(){ looks.splice(li, 0, L); save('looks', looks); renderSaved(); tap(); }); }
+    else { ['top', 'bottom', 'shoes'].forEach(function(z){ var it = byId(L[z]); if (it) sel[z] = list(z).indexOf(it); }); save('sel', sel); closeSheet(); setTimeout(function(){ go(1); }, 160); }
+  }
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(er){} });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6; sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+/* ---------- 收藏 ---------- */
+function renderSaved(){
+  $('scount').textContent = looks.length + ' 套';
+  if (!looks.length){ $('spreads').innerHTML = '<div class="nothing" style="grid-column:1/3"><b>還沒有收藏</b>到「組合」拼一套，按收藏。</div>'; return; }
+  $('spreads').innerHTML = looks.map(function(L){
+    var t = byId(L.top), b = byId(L.bottom), s = byId(L.shoes);
+    return '<button class="spread" data-no="' + L.no + '"><span class="mini"><div>' + (t ? garment(t) : '') + '</div><div>' + (b ? garment(b) : '') + '</div><div>' + (s ? garment(s) : '') + '</div></span><h3>Look ' + String(L.no).padStart(2, '0') + '</h3><small>' + [t, b, s].filter(Boolean).map(function(x){ return esc(x.n); }).join('・') + '<br>' + L.d + ' 收藏</small></button>';
+  }).join('');
+}
+$('spreads').addEventListener('click', function(e){
+  var b = e.target.closest('[data-no]'); if (!b) return; var L = looks.find(function(l){ return l.no === +b.dataset.no; }); if (!L) return;
+  var t = byId(L.top), bo = byId(L.bottom), s = byId(L.shoes);
+  openSheet('<div style="display:grid;grid-template-columns:1fr 1.1fr;gap:16px;align-items:center"><div style="display:grid;grid-template-rows:40% 40% 20%;height:250px;background:var(--paper);padding:10px">' + [t, bo, s].map(function(x){ return '<div style="display:flex;justify-content:center;min-height:0">' + (x ? garment(x) : '') + '</div>'; }).join('') + '</div>' +
+    '<div><h3 style="font:400 38px/1 var(--caslon)">Look ' + String(L.no).padStart(2, '0') + '</h3><p style="margin-top:10px;font:15px/1.6 var(--gill);color:var(--ink-2)">' + [t, bo, s].filter(Boolean).map(function(x){ return esc(x.n) + '・' + x.size; }).join('<br>') + '</p></div></div>' +
+    '<div class="sh-row"><button class="btn plain" data-look="del">刪除</button><button class="btn ink" data-look="wear">再穿一次</button></div>');
+  sheet.dataset.look = L.no;
+});
+
+/* ---------- toast ---------- */
+var toastT = null;
+function toast(msg, act, fn){
+  var t = $('toast'); t.innerHTML = ''; var sp = document.createElement('span'); sp.textContent = msg; t.appendChild(sp);
+  if (act){ var b = document.createElement('button'); b.textContent = act; b.onclick = function(){ fn(); t.classList.remove('on'); haptic(4); }; t.appendChild(b); }
+  t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 2800);
+}
+
+/* ---------- backdrop: an open issue on the table ---------- */
+(function(){
+  var s = '<rect width="1440" height="900" fill="#c3cfb8"/>';
+  s += '<g transform="rotate(-4 720 450)"><rect x="-80" y="-60" width="780" height="1080" fill="#dfe6d6"/><rect x="700" y="-60" width="820" height="1080" fill="#d6dfcc"/>';
+  s += '<rect x="690" y="-60" width="22" height="1080" fill="#c7d2bb"/>';
+  s += '<text x="-40" y="840" font-family="Big Caslon,Georgia,serif" font-size="780" fill="#cfd9c4" letter-spacing="-30">27</text>';
+  s += '<rect x="1170" y="250" width="330" height="440" fill="#e04a2f" opacity=".9"/>';
+  s += '<g transform="translate(1205 300) scale(2)" opacity=".95"><path d="M40 12 L52 8 L60 14 L68 8 L80 12 L99 24 L110 100 L97 103 L88 54 L89 126 L31 126 L32 54 L23 103 L10 100 L21 24 Z" fill="#cbb89a" transform="translate(3 2.5)"/><path d="M40 12 L52 8 L60 14 L68 8 L80 12 L99 24 L110 100 L97 103 L88 54 L89 126 L31 126 L32 54 L23 103 L10 100 L21 24 Z M52 8 L46 30 L54 36 L60 72 L66 36 L74 30 L68 8 M60 72 V126" fill="none" stroke="#1b1d19" stroke-width="1.6" stroke-linejoin="round"/></g>';
+  s += '<text x="1170" y="740" font-family="Songti TC,serif" font-weight="700" font-size="28" fill="#1b1d19">燕麥色西裝外套</text><text x="1170" y="778" font-family="Gill Sans,sans-serif" font-size="20" fill="#4e5648">赤峰街 Lin 選物・NT$ 3,280</text>';
+  s += '</g>';
+  $('bd').innerHTML = s;
+})();
+
+renderDeck(); renderLook();
+})();
+</script>
+</body>
+</html>

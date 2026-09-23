@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d3ded7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="積木塔">
+<title>積木塔 · 堆疊遊戲</title>
+<meta name="description" content="山毛櫸木與植物染的積木吊在繩上擺盪，輕觸放下，對不準的部分會被切掉，完美落點可以連擊並把積木長回來；旁邊的紅藍數棒量出塔有多高。收錄於 100 Creative HTML Works（App 064・蒙特梭利山毛櫸木玩具）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/064-beech-stack.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d3ded7'/%3E%3Crect x='14' y='44' width='36' height='11' rx='3' fill='%23e3c49c'/%3E%3Crect x='18' y='32' width='28' height='11' rx='3' fill='%23c0533f'/%3E%3Crect x='20' y='20' width='24' height='11' rx='3' fill='%23e5b440'/%3E%3Crect x='24' y='8' width='16' height='11' rx='3' fill='%234a6a93'/%3E%3C/svg%3E">
+<style>
+:root{
+  --wall:#d3ded7;
+  --ink:#2f2a24;
+  --ink-2:#5b5248;
+  --beech:#e3c49c;
+  --beech-d:#b98f62;
+  --red:#c0533f;
+  --yel:#e5b440;
+  --blue:#4a6a93;
+  --paper:#f4efe6;
+  --f:"Gill Sans","Gill Sans MT","PingFang TC","Heiti TC",sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:300 16px/1.4 var(--f);color:var(--ink);background:var(--wall);overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:10px}
+svg{display:block}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--wall);isolation:isolate}
+@media (min-width:521px){
+  .stage{display:flex;align-items:center;justify-content:center;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:56px;padding:14px;z-index:1;
+    background:repeating-linear-gradient(97deg,rgba(150,105,60,.0) 0 7px,rgba(150,105,60,.16) 7px 8px,rgba(150,105,60,0) 8px 15px,rgba(120,80,40,.1) 15px 16px),linear-gradient(160deg,#ecd2ad,#d9b489 55%,#c89f73);
+    box-shadow:inset 0 2px 0 rgba(255,245,225,.7),inset 0 -2px 0 rgba(120,80,40,.35),0 14px 22px -16px rgba(80,60,30,.55)}
+  .screen{inset:14px;border-radius:42px}
+  .caption{display:block;position:fixed;left:48px;top:48px;z-index:1;max-width:340px}
+  .caption h1{font:300 40px/1 var(--f);letter-spacing:.02em}
+  .caption p{margin-top:10px;font-size:16px;color:var(--ink-2)}
+}
+@media (min-width:521px) and (max-width:960px){.caption{display:none}}
+
+canvas#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:pointer}
+
+/* ---------- status ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;
+  display:flex;align-items:center;justify-content:space-between;font:600 15px/1 -apple-system,"Gill Sans",sans-serif;color:var(--ink);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- hud ---------- */
+.hud{position:absolute;left:0;right:0;top:calc(48px + env(safe-area-inset-top));z-index:20;display:flex;justify-content:space-between;align-items:flex-start;padding:4px 18px 0 22px;pointer-events:none}
+@media (display-mode:standalone){.hud{top:calc(8px + env(safe-area-inset-top))}}
+.score{font:300 76px/.9 var(--f);letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.score small{display:block;font:400 14px/1.3 var(--f);letter-spacing:.04em;color:var(--ink-2);margin-top:8px}
+.combo{display:block;font:400 15px/1.2 var(--f);color:var(--red);margin-top:4px;min-height:18px}
+.hbtns{display:flex;gap:4px;pointer-events:auto}
+.hbtn{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;transition:background-color .2s}
+.hbtn:active{background:rgba(47,42,36,.1)}
+.hbtn svg{width:28px;height:28px}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(47,42,36,.3);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:10px;right:10px;bottom:10px;z-index:51;border-radius:30px;background:var(--paper);padding:8px 22px calc(22px + env(safe-area-inset-bottom));
+  transform:translateY(calc(100% + 20px));transition:transform .55s cubic-bezier(.3,1.3,.5,1);touch-action:none;
+  box-shadow:inset 0 1px 0 #fff,0 10px 18px -12px rgba(60,45,25,.45)}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{height:22px;display:grid;place-items:center;cursor:grab}
+.grab i{width:40px;height:5px;border-radius:3px;background:#d6c7b0}
+.sh{font:300 34px/1.1 var(--f);text-align:center;margin-top:4px}
+.sub{text-align:center;color:var(--ink-2);font-size:15px;margin-top:6px;font-weight:400}
+.big3{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;text-align:center}
+.big3 b{display:block;font:300 34px/1 var(--f);font-variant-numeric:tabular-nums}
+.big3 span{display:block;font:400 13px/1.3 var(--f);color:var(--ink-2);margin-top:6px}
+.runs{margin-top:18px;height:80px}
+.runs svg{width:100%;height:100%;overflow:visible}
+.again{display:block;width:100%;height:56px;margin-top:18px;border-radius:18px;background:var(--ink);color:var(--paper);font:400 18px/1 var(--f);letter-spacing:.08em;transition:background-color .15s}
+.again:active{background:#4a4238}
+.set{display:flex;align-items:center;justify-content:space-between;min-height:60px;gap:14px}
+.set+.set{box-shadow:inset 0 1px 0 #e6dccb}
+.set b{display:block;font-weight:400;font-size:17px}
+.set span{display:block;font-size:14px;color:var(--ink-2);font-weight:400}
+.tog{position:relative;width:58px;height:34px;border-radius:17px;background:#dccfbb;flex:none;transition:background-color .25s}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:28px;height:28px;border-radius:14px;background:#fffaf2;box-shadow:0 1px 2px rgba(80,60,30,.35);transition:transform .35s cubic-bezier(.3,1.4,.5,1)}
+.tog[aria-checked=true]{background:var(--blue)}
+.tog[aria-checked=true]::after{transform:translateX(24px)}
+.link{height:48px;font-size:15px;color:var(--red);font-weight:400;display:block;margin:10px auto 0;padding:0 12px}
+
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--paper);z-index:60;pointer-events:none;opacity:.9}
+
+@media (prefers-reduced-motion:reduce){
+  .sheet,.tog::after{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="bw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9d6ce"/><stop offset="1" stop-color="#dbe4dd"/></linearGradient>
+        <linearGradient id="sun" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf1d6" stop-opacity=".95"/><stop offset="1" stop-color="#fbf1d6" stop-opacity=".25"/></linearGradient>
+        <filter id="gr"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .3  0 0 0 0 .28  0 0 0 0 .22  0 0 0 .35 0"/></filter>
+      </defs>
+      <rect width="1600" height="1000" fill="url(#bw)"/>
+      <path d="M140 60 L560 60 L760 700 L340 700 Z" fill="url(#sun)"/>
+      <path d="M340 60 L360 60 L560 700 L540 700 Z M200 380 L660 380 L668 404 L208 404 Z" fill="#c9d6ce"/>
+      <path d="M1040 120 L1360 120 L1500 640 L1180 640 Z" fill="url(#sun)" opacity=".55"/>
+      <rect x="0" y="760" width="1600" height="240" fill="#b58a5c"/>
+      <rect x="0" y="760" width="1600" height="10" fill="#d4ab7c"/>
+      <g stroke="#9c7248" stroke-width="2" opacity=".6"><path d="M0 830H1600M0 900H1600M0 965H1600"/></g>
+      <g>
+        <rect x="170" y="700" width="96" height="60" rx="6" fill="#e3c49c"/><rect x="186" y="648" width="64" height="52" rx="6" fill="#c0533f"/><rect x="198" y="604" width="40" height="44" rx="6" fill="#e5b440"/>
+        <rect x="1250" y="716" width="140" height="44" rx="6" fill="#4a6a93"/><rect x="1270" y="672" width="44" height="44" rx="6" fill="#e3c49c"/><rect x="1326" y="672" width="44" height="44" rx="6" fill="#e5b440"/>
+        <rect x="1410" y="690" width="26" height="70" rx="5" fill="#c0533f"/><rect x="1446" y="656" width="26" height="104" rx="5" fill="#4a6a93"/><rect x="1482" y="620" width="26" height="140" rx="5" fill="#c0533f"/>
+      </g>
+      <rect width="1600" height="1000" filter="url(#gr)" opacity=".18"/>
+    </svg>
+  </div>
+  <div class="caption"><h1>積木塔</h1><p>吊在繩上的山毛櫸積木，看準了再放手。</p></div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <canvas id="cv" aria-label="遊戲畫面，輕觸放下積木"></canvas>
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="#2f2a24"><rect y="8" width="3" height="4" rx="1.5"/><rect x="5" y="5.5" width="3" height="6.5" rx="1.5"/><rect x="10" y="3" width="3" height="9" rx="1.5"/><rect x="15" width="3" height="12" rx="1.5" opacity=".35"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#2f2a24" stroke-width="1.8" stroke-linecap="round"><path d="M1.5 4.2a9.4 9.4 0 0 1 13 0M4 7a5.8 5.8 0 0 1 8 0"/><circle cx="8" cy="10" r="1.3" fill="#2f2a24" stroke="none"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".7" y=".7" width="22.6" height="11.6" rx="4" fill="none" stroke="#2f2a24" stroke-opacity=".5" stroke-width="1.2"/><rect id="batt" x="2.4" y="2.4" width="16" height="8.2" rx="2.6" fill="#2f2a24"/><path d="M25 4.6v3.8a1.9 1.9 0 0 0 0-3.8z" fill="#2f2a24" opacity=".5"/></svg>
+        </span>
+      </div>
+      <div class="hud">
+        <div>
+          <div class="score" id="score" aria-live="polite">0<small id="best">最佳 0 · 0 公分</small></div>
+          <span class="combo" id="combo"></span>
+        </div>
+        <div class="hbtns">
+          <button class="hbtn" id="menuBtn" aria-label="設定">
+            <svg viewBox="0 0 28 28" fill="none" stroke="#2f2a24" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="18" width="22" height="7" rx="2.2"/><rect x="5" y="11" width="13" height="7" rx="2.2"/><rect x="12" y="4" width="11" height="7" rx="2.2"/></svg>
+          </button>
+          <button class="hbtn" id="restartBtn" aria-label="重新開始">
+            <svg viewBox="0 0 28 28" fill="none" stroke="#2f2a24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 9.5A9 9 0 1 0 23 15"/><path d="M22 3.5v6h-6"/><rect x="11" y="12" width="6" height="6" rx="1.6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="積木塔">
+        <div class="grab"><i></i></div>
+        <div id="sbody"></div>
+      </div>
+      <div class="home-ind" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var K = 'app064:';
+function load(k, d){ try { var v = localStorage.getItem(K + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(K + k, JSON.stringify(v)); } catch(e){} }
+var set = load('set', {sound:true, haptic:true, easy:false});
+function haptic(p){ if (!set.haptic) return; try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var best = load('best', 22), runs = load('runs', [6, 11, 9, 17, 14, 22, 19]);
+
+// ---------- audio: wood & marimba ----------
+var AC = null, noiseBuf = null;
+function ac(){
+  if (!set.sound) return null;
+  if (!AC){ try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ AC = null; } }
+  if (AC && AC.state === 'suspended'){ try { AC.resume(); } catch(e){} }
+  if (AC && !noiseBuf){ noiseBuf = AC.createBuffer(1, AC.sampleRate * .2, AC.sampleRate); var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  return AC;
+}
+function knock(pitch, vol){
+  var a = ac(); if (!a) return;
+  try {
+    var t = a.currentTime, n = a.createBufferSource(), bp = a.createBiquadFilter(), g = a.createGain();
+    n.buffer = noiseBuf; bp.type = 'bandpass'; bp.frequency.value = 700 * pitch; bp.Q.value = 6;
+    g.gain.setValueAtTime(vol || .5, t); g.gain.exponentialRampToValueAtTime(.001, t + .09);
+    n.connect(bp); bp.connect(g); g.connect(a.destination); n.start(t); n.stop(t + .12);
+    var o = a.createOscillator(), og = a.createGain();
+    o.frequency.setValueAtTime(190 * pitch, t); o.frequency.exponentialRampToValueAtTime(120 * pitch, t + .08);
+    og.gain.setValueAtTime((vol || .5) * .6, t); og.gain.exponentialRampToValueAtTime(.001, t + .12);
+    o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + .14);
+  } catch(e){}
+}
+var PENTA = [0, 2, 4, 7, 9];
+function marimba(step){
+  var a = ac(); if (!a) return;
+  try {
+    var semi = PENTA[step % 5] + 12 * Math.floor(step / 5), f = 523.25 * Math.pow(2, semi / 12), t = a.currentTime;
+    [[1, .32, .9], [3.93, .08, .22], [9.3, .03, .08]].forEach(function(h){
+      var o = a.createOscillator(), g = a.createGain();
+      o.frequency.value = f * h[0]; g.gain.setValueAtTime(h[1], t); g.gain.exponentialRampToValueAtTime(.0005, t + h[2]);
+      o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + h[2] + .02);
+    });
+  } catch(e){}
+}
+
+// ---------- canvas ----------
+var cv = $('cv'), ctx = cv.getContext('2d'), W = 390, H = 844, dpr = 1;
+var BH = 34, TEX = {}, COLORS = [
+  {n:'beech', base:'#e3c49c', grain:'#b98f62', hi:'rgba(255,248,232,.55)'},
+  {n:'red', base:'#c0533f', grain:'#8e3426', hi:'rgba(255,215,195,.4)'},
+  {n:'yel', base:'#e5b440', grain:'#b0801c', hi:'rgba(255,244,205,.5)'},
+  {n:'blue', base:'#4a6a93', grain:'#2e4a6f', hi:'rgba(210,225,245,.35)'}
+];
+function makeTex(c){
+  var tw = 760, t = document.createElement('canvas'); t.width = tw * dpr; t.height = BH * dpr;
+  var g = t.getContext('2d'); g.scale(dpr, dpr);
+  g.fillStyle = c.base; g.fillRect(0, 0, tw, BH);
+  var s = c.n.length * 97 + 13; function r(){ s = (s * 16807) % 2147483647; return s / 2147483647; }
+  g.strokeStyle = c.grain; g.lineCap = 'round';
+  for (var i = 0; i < 16; i++){
+    var y0 = r() * BH, amp = .6 + r() * 2.4, per = 80 + r() * 200, ph = r() * 6;
+    g.globalAlpha = .08 + r() * .16; g.lineWidth = .5 + r() * 1.2;
+    g.beginPath();
+    for (var x = 0; x <= tw; x += 8){ var y = y0 + Math.sin(x / per * 6.28 + ph) * amp + Math.sin(x / 31 + ph) * .4; if (x) g.lineTo(x, y); else g.moveTo(x, y); }
+    g.stroke();
+  }
+  // beech rays: tiny flecks
+  g.fillStyle = c.grain;
+  for (var k = 0; k < 140; k++){ g.globalAlpha = .1 + r() * .18; g.fillRect(r() * tw, r() * BH, 1 + r() * 3, .8); }
+  g.globalAlpha = 1;
+  return t;
+}
+function resize(){
+  var r = $('screen').getBoundingClientRect();
+  W = Math.max(300, r.width); H = Math.max(500, r.height); dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  COLORS.forEach(function(c){ TEX[c.n] = makeTex(c); });
+  layout();
+}
+var pivotY, L, groundY, targetTop;
+function layout(){
+  pivotY = Math.max(182, H * .21);
+  L = Math.min(250, H * .23);
+  groundY = H - Math.max(110, H * .16);
+  targetTop = pivotY + L + BH * 3.2;
+}
+
+// ---------- game state ----------
+var tower, pieces, fall, hang, cam, camT, state, score, combo, perfects, tSwing, floats, colorI, runStart;
+function reset(){
+  var baseW = Math.min(220, W * .56);
+  tower = [{x:W / 2, w:baseW, c:0, off:40}];
+  pieces = []; floats = []; fall = null; cam = 0; camT = 0; score = 0; combo = 0; perfects = 0; tSwing = 0; colorI = 1;
+  hang = {w:baseW, c:colorI, off:Math.random() * 400};
+  state = 'ready';
+  hud();
+}
+function speed(){ return (1.7 + Math.min(1.5, score * .055)) * (set.easy ? .68 : 1); }
+function hangPos(){
+  var th = Math.sin(tSwing * speed()) * .44;
+  return {th:th, x:W / 2 + Math.sin(th) * L, y:pivotY + Math.cos(th) * L + BH / 2};
+}
+function topY(){ return groundY - tower.length * BH; }   // world y of tower top (screen y when cam = 0)
+function drop(){
+  if (state === 'over' || fall) return;
+  var p = hangPos();
+  fall = {x:p.x, y:p.y - cam, vy:0, rot:p.th, w:hang.w, c:hang.c, off:hang.off};
+  state = 'play';
+  knock(1.6, .12); haptic(4);
+}
+function land(){
+  var top = tower[tower.length - 1], f = fall; fall = null;
+  var dx = f.x - top.x, ov = f.w / 2 + top.w / 2 - Math.abs(dx);
+  var w2 = Math.min(f.w, top.w);
+  if (ov <= 2){
+    // miss: the block tumbles off
+    pieces.push({x:f.x, y:topY() - BH / 2, w:f.w, c:f.c, off:f.off, vx:dx > 0 ? 90 : -90, vy:-60, rot:0, vr:dx > 0 ? 3.2 : -3.2});
+    gameOver(); return;
+  }
+  var nx, nw;
+  if (Math.abs(dx) <= 5){
+    nx = top.x; nw = f.w; combo++; perfects++;
+    if (combo >= 3) nw = Math.min(tower[0].w, nw + 8);
+    marimba(Math.min(14, combo - 1)); haptic([10, 30, 16]);
+    floats.push({t:combo > 1 ? '完美 ×' + combo : '完美', x:nx, y:topY() - BH - 10, a:1, c:'#2f2a24'});
+  } else {
+    combo = 0;
+    var left = Math.max(f.x - f.w / 2, top.x - top.w / 2), right = Math.min(f.x + f.w / 2, top.x + top.w / 2);
+    nw = right - left; nx = (left + right) / 2;
+    // cut piece
+    var cw = f.w - nw, cx = dx > 0 ? right + cw / 2 : left - cw / 2;
+    pieces.push({x:cx, y:topY() - BH / 2, w:cw, c:f.c, off:f.off + (dx > 0 ? nw : 0), vx:dx > 0 ? 70 : -70, vy:-40, rot:0, vr:(dx > 0 ? 1 : -1) * (1.5 + Math.random() * 2)});
+    knock(1 + Math.random() * .2, .5); haptic(12);
+  }
+  tower.push({x:nx, w:nw, c:f.c, off:f.off, sq:1});
+  score++;
+  colorI = (colorI + 1) % 4;
+  hang = {w:nw, c:colorI, off:Math.random() * 400};
+  camT = Math.max(0, targetTop - topY() < 0 ? 0 : targetTop - topY());
+  hud();
+}
+function gameOver(){
+  state = 'over'; combo = 0;
+  knock(.7, .6); setTimeout(function(){ knock(.55, .5); }, 140);
+  haptic([30, 60, 30, 60, 60]);
+  var isBest = score > best;
+  if (isBest){ best = score; save('best', best); }
+  runs.push(score); runs = runs.slice(-12); save('runs', runs);
+  hud();
+  setTimeout(function(){ showResult(isBest); }, reduce ? 200 : 900);
+}
+function hud(){
+  $('score').firstChild.nodeValue = score;
+  $('best').textContent = '高 ' + (tower ? (tower.length - 1) * 3 : 0) + ' 公分 · 最佳 ' + best;
+  $('combo').textContent = combo > 1 ? '連擊 ' + combo : '';
+}
+
+// ---------- loop ----------
+var last = 0, raf = 0;
+function frame(t){
+  raf = requestAnimationFrame(frame);
+  if (document.hidden){ last = t; return; }
+  var dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+  if (state !== 'over' && !fall) tSwing += dt;
+  if (fall){
+    fall.vy += 2600 * dt; fall.y += fall.vy * dt; fall.rot *= Math.pow(.0001, dt);
+    if (fall.y + BH / 2 >= topY()){ fall.y = topY() - BH / 2; land(); }
+  }
+  pieces.forEach(function(p){ p.vy += 1500 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; });
+  pieces = pieces.filter(function(p){ return p.y + cam < H + 120; });
+  floats.forEach(function(f){ f.y -= 30 * dt; f.a -= dt * .8; });
+  floats = floats.filter(function(f){ return f.a > 0; });
+  tower.forEach(function(b){ if (b.sq && b.sq > 0) b.sq = Math.max(0, b.sq - dt * 5); });
+  cam += (camT - cam) * Math.min(1, dt * (reduce ? 60 : 5));
+  draw();
+}
+
+// ---------- drawing ----------
+function rr(x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function block(x, y, w, cIdx, off, rot, squash){
+  // x,y = centre in screen space
+  var c = COLORS[cIdx], tex = TEX[c.n], h = BH;
+  ctx.save(); ctx.translate(x, y); if (rot) ctx.rotate(rot);
+  var sy = squash ? 1 - squash * .08 : 1; if (sy !== 1){ ctx.translate(0, h / 2); ctx.scale(1 + squash * .03, sy); ctx.translate(0, -h / 2); }
+  rr(-w / 2, -h / 2, w, h, Math.min(5, w / 2)); ctx.save(); ctx.clip();
+  var sx = (off % 300 + 300) % 300;
+  ctx.drawImage(tex, sx * dpr, 0, Math.max(1, Math.min(760 - sx, w)) * dpr, h * dpr, -w / 2, -h / 2, w, h);
+  ctx.fillStyle = c.hi; ctx.fillRect(-w / 2, -h / 2, w, 3);
+  ctx.fillStyle = 'rgba(60,35,15,.16)'; ctx.fillRect(-w / 2, h / 2 - 4, w, 4);
+  // end grain darkening at the cut ends
+  var eg = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+  eg.addColorStop(0, 'rgba(90,55,25,.14)'); eg.addColorStop(Math.min(.5, 8 / w), 'rgba(90,55,25,0)'); eg.addColorStop(Math.max(.5, 1 - 8 / w), 'rgba(90,55,25,0)'); eg.addColorStop(1, 'rgba(90,55,25,.18)');
+  ctx.fillStyle = eg; ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.restore(); ctx.restore();
+}
+function draw(){
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // wall, gets a touch lighter as the tower climbs
+  var lift = Math.min(1, cam / 2400);
+  var wg = ctx.createLinearGradient(0, 0, 0, H);
+  wg.addColorStop(0, lift > .5 ? '#dce6df' : '#cdd9d1'); wg.addColorStop(1, '#dbe3dc');
+  ctx.fillStyle = wg; ctx.fillRect(0, 0, W, H);
+  // sunlight through a window, parallax at 0.35
+  var sy = -40 + cam * .35;
+  ctx.save();
+  var sg = ctx.createLinearGradient(W * .1, sy, W * .9, sy + H * .8);
+  sg.addColorStop(0, 'rgba(252,243,216,.85)'); sg.addColorStop(1, 'rgba(252,243,216,.15)');
+  ctx.fillStyle = sg;
+  ctx.beginPath(); ctx.moveTo(W * .08, sy + 40); ctx.lineTo(W * .62, sy + 40); ctx.lineTo(W * .98, sy + H * .72); ctx.lineTo(W * .44, sy + H * .72); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = wg;
+  ctx.beginPath(); ctx.moveTo(W * .33, sy + 40); ctx.lineTo(W * .355, sy + 40); ctx.lineTo(W * .735, sy + H * .72); ctx.lineTo(W * .71, sy + H * .72); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(W * .2, sy + H * .33); ctx.lineTo(W * .78, sy + H * .33); ctx.lineTo(W * .79, sy + H * .35); ctx.lineTo(W * .21, sy + H * .35); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  var off = cam;   // world -> screen: y + cam
+  // floor: oiled oak boards + a felt mat
+  var gy = groundY + off;
+  if (gy < H + 10){
+    ctx.fillStyle = '#b58a5c'; ctx.fillRect(0, gy + 12, W, H - gy);
+    ctx.fillStyle = '#d4ab7c'; ctx.fillRect(0, gy + 12, W, 4);
+    ctx.strokeStyle = 'rgba(120,80,45,.45)'; ctx.lineWidth = 1.5;
+    for (var fy = gy + 44; fy < H; fy += 34){ ctx.beginPath(); ctx.moveTo(0, fy); ctx.lineTo(W, fy); ctx.stroke(); }
+    // madder felt mat under the tower
+    ctx.fillStyle = '#a9483a'; rr(W / 2 - 150, gy + 4, 300, 16, 6); ctx.fill();
+    ctx.fillStyle = 'rgba(255,220,200,.18)'; ctx.fillRect(W / 2 - 146, gy + 5, 292, 2);
+    if (state === 'ready' && gy + 58 < H - 22){
+      ctx.fillStyle = '#f7f0e4'; ctx.font = '400 16px "Gill Sans","PingFang TC",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('輕觸任何地方，放下積木', W / 2, Math.min(H - 40, gy + 58)); ctx.textAlign = 'start';
+    }
+  }
+  // number rod: red / blue segments, one per block
+  var rodX = 22, n = tower.length + 2;
+  for (var i = 1; i <= n; i++){
+    var y1 = groundY - i * BH + off;
+    if (y1 > H || y1 + BH < 0) continue;
+    ctx.fillStyle = i % 2 ? '#c0533f' : '#4a6a93';
+    rr(rodX, y1 + 1, 12, BH - 1, i === n ? 5 : 1.5); ctx.fill();
+    if (i % 5 === 0){
+      ctx.fillStyle = '#2f2a24'; ctx.font = '300 15px "Gill Sans","PingFang TC",sans-serif'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(i), rodX + 18, y1 + 2);
+    }
+  }
+  // tower (tight contact shadow under each block)
+  for (var b = 0; b < tower.length; b++){
+    var tb = tower[b], cy = groundY - b * BH - BH / 2 + off;
+    if (cy < -BH || cy > H + BH) continue;
+    ctx.fillStyle = 'rgba(70,45,20,.2)'; ctx.fillRect(tb.x - tb.w / 2 + 3, cy + BH / 2 - 1, tb.w - 6, 2);
+    block(tb.x, cy, tb.w, tb.c, tb.off, 0, tb.sq || 0);
+  }
+  // falling off-cuts
+  pieces.forEach(function(p){ block(p.x, p.y + off, p.w, p.c, p.off, p.rot, 0); });
+  // falling block
+  if (fall) block(fall.x, fall.y + off, fall.w, fall.c, fall.off, fall.rot, 0);
+  // dowel + string + hanging block (screen space)
+  ctx.save();
+  var dg = ctx.createLinearGradient(0, pivotY - 7, 0, pivotY + 7);
+  dg.addColorStop(0, '#f0d9b5'); dg.addColorStop(.55, '#d8b384'); dg.addColorStop(1, '#b48a5e');
+  ctx.fillStyle = dg; rr(W * .5 - 150, pivotY - 7, 300, 14, 7); ctx.fill();
+  ctx.fillStyle = '#9c7248'; ctx.beginPath(); ctx.arc(W / 2, pivotY, 4, 0, 6.29); ctx.fill();
+  if (!fall && state !== 'over'){
+    var p = hangPos();
+    ctx.strokeStyle = '#6b5a47'; ctx.lineWidth = 1.4;
+    var tx = W / 2 + Math.sin(p.th) * (L - 2), ty = pivotY + Math.cos(p.th) * (L - 2);
+    ctx.beginPath(); ctx.moveTo(W / 2, pivotY); ctx.lineTo(tx, ty); ctx.stroke();
+    block(p.x, p.y, hang.w, hang.c, hang.off, p.th, 0);
+    ctx.fillStyle = '#6b5a47'; ctx.beginPath(); ctx.arc(tx, ty, 2.4, 0, 6.29); ctx.fill();
+  }
+  ctx.restore();
+  // floating words
+  floats.forEach(function(f){
+    ctx.globalAlpha = Math.max(0, Math.min(1, f.a * 1.4));
+    ctx.fillStyle = f.c; ctx.font = '400 20px "Gill Sans","PingFang TC",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(f.t, f.x, f.y + off);
+    ctx.textAlign = 'start'; ctx.globalAlpha = 1;
+  });
+}
+
+// ---------- input ----------
+cv.addEventListener('pointerdown', function(e){
+  if (sheet.classList.contains('on')) return;
+  if (state === 'over'){ return; }
+  e.preventDefault(); drop();
+});
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ closeSheet(); return; }
+  if ((e.key === ' ' || e.key === 'Enter') && !sheet.classList.contains('on') && e.target === document.body){ e.preventDefault(); if (state === 'over') restart(); else drop(); }
+});
+function restart(){ closeSheet(); reset(); haptic(8); knock(1.3, .2); }
+$('restartBtn').addEventListener('click', function(e){ e.stopPropagation(); restart(); });
+$('menuBtn').addEventListener('click', function(e){ e.stopPropagation(); showMenu(); });
+
+// ---------- sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){
+  lastFocus = document.activeElement; $('sbody').innerHTML = html;
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on');
+  if (state === 'over') reset();
+  if (lastFocus && lastFocus.focus) try { lastFocus.focus({preventScroll:true}); } catch(e){}
+}
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button')) return;
+    dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag');
+    try { sheet.setPointerCapture(e.pointerId); } catch(err){}
+  });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){
+    if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = '';
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+function runsSVG(){
+  var r = runs.slice(-10), mx = Math.max.apply(null, r.concat([best, 5])), n = r.length, w = 330 / Math.max(n, 1);
+  var out = '';
+  r.forEach(function(v, i){
+    var h = Math.max(4, v / mx * 60), last = i === n - 1;
+    out += '<rect x="' + (i * w + w * .18).toFixed(1) + '" y="' + (64 - h).toFixed(1) + '" width="' + (w * .64).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="3" fill="' + (last ? '#c0533f' : ['#e3c49c','#e5b440','#4a6a93'][i % 3]) + '"/>';
+  });
+  var by = 64 - best / mx * 60;
+  out += '<path d="M0 ' + by.toFixed(1) + 'H330" stroke="#2f2a24" stroke-width="1" stroke-dasharray="2 4" stroke-linecap="round"/><text x="330" y="' + (by - 6).toFixed(1) + '" text-anchor="end" font-size="12" fill="#5b5248" font-family="Gill Sans, sans-serif">最佳 ' + best + '</text>';
+  out += '<text x="0" y="80" font-size="12" fill="#5b5248" font-family="Gill Sans, sans-serif">最近 ' + n + ' 局</text>';
+  return '<svg viewBox="0 0 330 82" preserveAspectRatio="none">' + out + '</svg>';
+}
+function showResult(isBest){
+  var h = score * 3;
+  openSheet('<h2 class="sh">' + (isBest && score ? '新紀錄' : score >= 10 ? '疊得真穩' : '塔倒了') + '</h2>' +
+    '<p class="sub">' + (score ? '這座塔有 ' + h + ' 公分高，大約是 ' + (h < 30 ? '一本繪本' : h < 60 ? '一把兒童椅' : h < 100 ? '一張小書桌' : '一個四歲孩子') + '的高度。' : '先等積木擺到塔的正上方再放手。') + '</p>' +
+    '<div class="big3"><div><b>' + score + '</b><span>塊積木</span></div><div><b>' + perfects + '</b><span>完美落點</span></div><div><b>' + best + '</b><span>最佳紀錄</span></div></div>' +
+    '<div class="runs">' + runsSVG() + '</div>' +
+    '<button class="again" id="again">再疊一次</button>');
+  $('again').addEventListener('click', restart);
+}
+function showMenu(){
+  openSheet('<h2 class="sh">積木塔</h2><p class="sub">目前 ' + score + ' 塊 · 最佳 ' + best + ' 塊</p>' +
+    '<div style="margin-top:14px">' +
+    '<div class="set"><div><b>木頭聲</b><span>落下的敲擊與木琴</span></div><button class="tog" role="switch" id="tSound" aria-checked="' + set.sound + '" aria-label="木頭聲"></button></div>' +
+    '<div class="set"><div><b>震動回饋</b><span>支援的裝置會輕震</span></div><button class="tog" role="switch" id="tHap" aria-checked="' + set.haptic + '" aria-label="震動回饋"></button></div>' +
+    '<div class="set"><div><b>慢慢擺</b><span>擺盪速度放慢三成</span></div><button class="tog" role="switch" id="tEasy" aria-checked="' + set.easy + '" aria-label="慢慢擺"></button></div>' +
+    '</div><div class="runs">' + runsSVG() + '</div>' +
+    '<button class="again" id="resume">回到遊戲</button><button class="link" id="clearBest">清除最佳紀錄</button>');
+  function tog(id, key){ $(id).addEventListener('click', function(){ set[key] = !set[key]; save('set', set); this.setAttribute('aria-checked', set[key]); haptic(6); if (key === 'sound' && set.sound) knock(1.2, .3); }); }
+  tog('tSound', 'sound'); tog('tHap', 'haptic'); tog('tEasy', 'easy');
+  $('resume').addEventListener('click', closeSheet);
+  var armed = false;
+  $('clearBest').addEventListener('click', function(){
+    if (!armed){ armed = true; this.textContent = '再按一次確認清除'; haptic([8, 30, 8]); return; }
+    best = 0; runs = []; save('best', 0); save('runs', []); hud(); this.textContent = '已清除'; haptic(14);
+    var r = document.querySelector('#sbody .runs'); if (r) r.innerHTML = runsSVG();
+  });
+}
+
+// ---------- clock ----------
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setInterval(tick, 20000);
+try { if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(3, 18.4 * b.level).toFixed(1)); }).catch(function(){}); } catch(e){}
+
+resize(); reset();
+// a small tower is already standing so the first screen reads as a game in progress
+(function(){
+  var seedTower = [{x:0, w:0}, {x:-6, w:-12}, {x:-6, w:0}, {x:2, w:-16}, {x:2, w:0}];
+  seedTower.forEach(function(s, i){
+    var top = tower[tower.length - 1];
+    tower.push({x:top.x + s.x, w:top.w + s.w, c:(i + 1) % 4, off:i * 70});
+  });
+  score = tower.length - 1; colorI = score % 4; hang = {w:tower[tower.length - 1].w, c:colorI, off:120};
+  camT = cam = Math.max(0, targetTop - topY());
+  hud();
+})();
+window.addEventListener('resize', function(){ resize(); camT = cam = Math.max(0, targetTop - topY()); });
+raf = requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

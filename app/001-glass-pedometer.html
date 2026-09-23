@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7d4a45">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="步頻">
+<title>步頻 Stride · 健走計步器</title>
+<meta name="description" content="液態玻璃浮在黃昏山徑上的健走計步器：步數圓環、山徑上的即時進度、逐時長條、路線卡片與目標刻度尺。收錄於 100 Creative HTML Works（App 001・iOS 液態玻璃）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/001-glass-pedometer.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%237d4a45'/%3E%3Cstop offset='.6' stop-color='%23eeae7c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23s)'/%3E%3Cpath d='M0 46 18 30l10 8 14-14 22 22v18H0z' fill='%232c443b'/%3E%3Ccircle cx='32' cy='32' r='15' fill='none' stroke='%23fff1de' stroke-width='5' stroke-linecap='round' stroke-dasharray='70 100' transform='rotate(-90 32 32)'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ink:#fff8ef;
+  --ink-2:rgba(255,246,236,.78);
+  --ink-3:rgba(255,246,236,.6);
+  --deep:#2a1a16;
+  --cream:#fff1de;
+  --apricot:#f4b37c;
+  --sage:#9fb89f;
+  --glass:rgba(38,34,30,.30);
+  --glass-strong:rgba(34,30,27,.44);
+  --edge:rgba(255,236,214,.16);
+  --lip:rgba(255,255,255,.38);
+  --spring:cubic-bezier(.34,1.36,.5,1);
+  --out:cubic-bezier(.22,1,.36,1);
+  --sans:system-ui,-apple-system,"SF Pro Text","PingFang TC","Heiti TC",sans-serif;
+  --round:"SF Pro Rounded",ui-rounded,system-ui,-apple-system,"PingFang TC",sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--sans);color:var(--ink);background:#3b2a26;-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--cream);outline-offset:3px;border-radius:12px}
+svg{display:block}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- stage: full-bleed on phones, device frame on wide screens ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.island{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:#7d4a45;isolation:isolate}
+
+@media (min-width:521px){
+  body{background:#2b1e1b}
+  .stage{display:flex;align-items:center;justify-content:center;gap:56px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:58px;padding:11px;
+    background:linear-gradient(145deg,#8a8177,#4a443f 30%,#2c2825 60%,#6d655d);
+    box-shadow:inset 0 0 0 1px rgba(255,240,225,.22),inset 0 0 0 2px rgba(0,0,0,.5),0 22px 40px -18px rgba(20,8,4,.7);z-index:1}
+  .screen{inset:11px;border-radius:47px}
+  .island{display:block;position:absolute;top:11px;left:50%;width:118px;height:34px;margin-left:-59px;border-radius:20px;background:#050404;z-index:40}
+  .caption{display:block;position:relative;z-index:1;max-width:260px;color:#fbe6d0}
+  .caption h1{font:600 34px/1.1 var(--round);letter-spacing:-.01em}
+  .caption p{margin-top:12px;font-size:15px;line-height:1.6;color:rgba(251,230,208,.72)}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+/* ---------- scene (what the glass refracts) ---------- */
+.scene{position:absolute;inset:0;z-index:0}
+.scene svg{width:100%;height:100%}
+.scene .layer{transition:transform .5s var(--out);will-change:transform}
+#hiker{transition:transform .9s var(--out)}
+.scene .trailg{transition:opacity .5s}
+.scene.quiet .trailg{opacity:.28}
+
+/* ---------- status bar ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+  height:calc(50px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;font:600 16px/1 var(--sans);color:var(--ink);letter-spacing:.01em;pointer-events:none}
+.status .glyphs{display:flex;align-items:center;gap:6px}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- glass material ---------- */
+.glass{position:relative;background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(1.7);backdrop-filter:blur(22px) saturate(1.7);
+  box-shadow:inset 0 1px 0 var(--lip),inset 0 0 0 1px var(--edge),inset 0 -12px 24px -18px rgba(255,214,170,.25),0 10px 18px -14px rgba(25,10,6,.55)}
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,0) 38%);mix-blend-mode:screen}
+
+/* ---------- pages ---------- */
+.pages{position:absolute;inset:0;z-index:10}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding:calc(62px + env(safe-area-inset-top)) 18px calc(120px + env(safe-area-inset-bottom));scrollbar-width:none}
+.page::-webkit-scrollbar{display:none}
+.page[hidden]{display:none}
+.page.enter{animation:pageIn .42s var(--out)}
+.page.enter.back{animation-name:pageInBack}
+@keyframes pageIn{from{transform:translateX(26px)}}
+@keyframes pageInBack{from{transform:translateX(-26px)}}
+
+/* collapsing iOS large title */
+.navbar{position:absolute;top:0;left:0;right:0;z-index:20;height:calc(50px + env(safe-area-inset-top));display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;
+  pointer-events:none;opacity:0;transition:opacity .2s}
+.navbar.on{opacity:1}
+.navbar .bar{position:absolute;inset:0;border-radius:0}
+.navbar .t{position:relative;font:600 15px/1 var(--sans);margin-bottom:-26px}
+.large{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:0 2px 18px}
+.large h2{font:700 34px/1.05 var(--round);letter-spacing:-.015em;text-shadow:0 1px 2px rgba(60,20,10,.25)}
+.large .sub{font-size:14px;color:var(--ink-2);margin-top:6px}
+.roundbtn{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;flex:none;transition:transform .18s var(--out)}
+.roundbtn:active{transform:scale(.9)}
+
+/* ---------- today ---------- */
+.ringwrap{position:relative;width:268px;height:268px;margin:6px auto 0;border-radius:50%}
+.ringwrap .glass{position:absolute;inset:0;border-radius:50%}
+.ringwrap>svg{position:absolute;inset:0}
+#ringArc,#ringLap{transition:stroke-dashoffset .8s var(--spring)}
+.ringtext{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.steps{font:700 58px/1 var(--round);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.of{margin-top:8px;font-size:14px;color:var(--ink-2)}
+.of b{font-weight:600;color:var(--ink)}
+.cadence{margin-top:12px;height:22px;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2)}
+.cadence svg{width:54px;height:18px}
+
+.walk{display:flex;align-items:center;justify-content:center;gap:10px;margin:22px auto 0;height:56px;padding:0 28px 0 22px;border-radius:28px;font:600 17px/1 var(--sans);transition:transform .2s var(--out),background-color .3s}
+.walk:active{transform:scale(.95)}
+.walk.on{background:rgba(255,241,222,.9);color:var(--deep);-webkit-backdrop-filter:none;backdrop-filter:none}
+.walk.on::after{display:none}
+.walk .ic{width:22px;height:22px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:22px;border-radius:24px;padding:16px 6px}
+.stat{text-align:center;padding:0 4px}
+.stat+.stat{box-shadow:-1px 0 0 rgba(255,240,225,.14)}
+.stat .v{font:600 24px/1.1 var(--round);font-variant-numeric:tabular-nums}
+.stat .l{margin-top:4px;font-size:13px;color:var(--ink-2)}
+
+.card{margin-top:14px;border-radius:24px;padding:16px 16px 14px}
+.card h3{font-size:15px;font-weight:600;display:flex;justify-content:space-between;align-items:baseline}
+.card h3 span{font-size:13px;font-weight:400;color:var(--ink-2)}
+.hours{margin-top:12px;height:96px}
+.hours svg{width:100%;height:100%;overflow:visible}
+.hours .ax{font-size:11px;fill:var(--ink-3)}
+.trailnote{display:flex;align-items:center;gap:14px}
+.trailnote .ttl{font-weight:600}
+.trailnote .ds{font-size:13px;color:var(--ink-2);margin-top:2px}
+.trailnote svg{flex:none}
+
+/* ---------- routes ---------- */
+.carousel{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -18px;padding:4px 18px 8px;scrollbar-width:none;overscroll-behavior-x:contain}
+.carousel::-webkit-scrollbar{display:none}
+.route{flex:0 0 78%;scroll-snap-align:center;border-radius:28px;padding:14px 14px 16px;text-align:left;transition:transform .22s var(--out)}
+.route:active{transform:scale(.97)}
+.route .map{height:170px;border-radius:18px;overflow:hidden;background:rgba(28,40,34,.35)}
+.route .map svg{width:100%;height:100%}
+.route .nm{margin-top:12px;font:600 19px/1.2 var(--round)}
+.route .meta{margin-top:4px;font-size:13px;color:var(--ink-2);display:flex;gap:12px}
+.dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.dots i{width:6px;height:6px;border-radius:3px;background:rgba(255,241,222,.35);transition:width .3s var(--out),background-color .3s}
+.dots i.on{width:18px;background:var(--cream)}
+.list{margin-top:18px;border-radius:24px;overflow:hidden}
+.row{display:flex;align-items:center;gap:14px;width:100%;min-height:60px;padding:10px 16px;text-align:left}
+.row+.row{box-shadow:inset 0 1px 0 rgba(255,240,225,.1)}
+.row:active{background:rgba(255,241,222,.08)}
+.row .main{flex:1;min-width:0}
+.row .main b{display:block;font-weight:600}
+.row .main span{font-size:13px;color:var(--ink-2)}
+.row .end{font:600 15px/1 var(--round);font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.sect{margin:24px 4px 8px;font-size:13px;color:var(--ink-2)}
+
+/* ---------- trends ---------- */
+.seg{position:relative;display:grid;grid-template-columns:1fr 1fr;height:40px;padding:3px;border-radius:20px}
+.seg button{position:relative;z-index:1;border-radius:17px;font-size:14px;font-weight:600;color:var(--ink-2);transition:color .25s}
+.seg button[aria-pressed=true]{color:var(--deep)}
+.seg .knob{position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:17px;background:var(--cream);transition:transform .45s var(--spring)}
+.seg[data-v=month] .knob{transform:translateX(100%)}
+.big{margin-top:22px;padding:0 4px}
+.big .v{font:700 44px/1 var(--round);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.big .l{margin-top:6px;font-size:14px;color:var(--ink-2)}
+.chart{margin-top:14px;border-radius:24px;padding:14px 12px 10px}
+.chart svg{width:100%;height:190px;overflow:visible;touch-action:pan-y}
+.chart .bar{transition:height .5s var(--spring),y .5s var(--spring)}
+.chart .ax{font-size:11px;fill:var(--ink-3)}
+.tip{font:600 13px/1 var(--sans)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.kv .glass{border-radius:22px;padding:14px 16px}
+.kv .v{font:600 22px/1.1 var(--round);font-variant-numeric:tabular-nums}
+.kv .l{font-size:13px;color:var(--ink-2);margin-top:4px}
+
+/* ---------- me ---------- */
+.profile{display:flex;align-items:center;gap:16px;border-radius:26px;padding:16px}
+.profile .av{width:62px;height:62px;flex:none}
+.profile b{font:600 20px/1.2 var(--round)}
+.profile span{display:block;font-size:13px;color:var(--ink-2);margin-top:3px}
+.setting{display:flex;align-items:center;gap:12px;min-height:58px;padding:10px 16px}
+.setting+.setting{box-shadow:inset 0 1px 0 rgba(255,240,225,.1)}
+.setting .main{flex:1}
+.setting .main span{display:block;font-size:13px;color:var(--ink-2)}
+.setting output{font:600 15px/1 var(--round);font-variant-numeric:tabular-nums;min-width:62px;text-align:right}
+.slider{width:100%;margin-top:10px;-webkit-appearance:none;appearance:none;height:28px;background:none;touch-action:none}
+.slider::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--cream) var(--p,50%),rgba(255,241,222,.22) var(--p,50%))}
+.slider::-moz-range-track{height:6px;border-radius:3px;background:rgba(255,241,222,.22)}
+.slider::-moz-range-progress{height:6px;border-radius:3px;background:var(--cream)}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;margin-top:-11px;border-radius:50%;background:#fffaf3;box-shadow:0 2px 5px -1px rgba(40,15,8,.45)}
+.slider::-moz-range-thumb{width:28px;height:28px;border:0;border-radius:50%;background:#fffaf3}
+.switch{position:relative;width:52px;height:32px;border-radius:16px;background:rgba(255,241,222,.22);flex:none;transition:background-color .25s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:28px;height:28px;border-radius:50%;background:#fffaf3;box-shadow:0 2px 4px -1px rgba(40,15,8,.4);transition:transform .35s var(--spring)}
+.switch[aria-checked=true]{background:#a9c29d}
+.switch[aria-checked=true]::after{transform:translateX(20px)}
+.danger{color:#ffc9b3;font-weight:600;width:100%;text-align:center;min-height:54px}
+
+/* ---------- tab bar ---------- */
+.tabbar{position:absolute;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:25;height:68px;border-radius:34px;display:grid;grid-template-columns:repeat(4,1fr);padding:6px}
+.tabbar .lens{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px) / 4);border-radius:28px;
+  background:rgba(255,241,222,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -1px 0 rgba(255,200,150,.18),inset 0 0 0 1px rgba(255,241,222,.12);
+  transition:transform .5s var(--spring);transform-origin:center}
+.tabbar .lens.stretch{animation:stretch .5s var(--out)}
+@keyframes stretch{40%{scale:1.22 .9}}
+.tab{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:28px;font-size:11px;font-weight:600;color:var(--ink-3);transition:color .25s}
+.tab svg{width:26px;height:26px;transition:transform .3s var(--spring)}
+.tab[aria-selected=true]{color:var(--ink)}
+.tab:active svg{transform:scale(.86)}
+.edge{position:absolute;left:0;right:0;bottom:0;height:calc(150px + env(safe-area-inset-bottom));z-index:15;pointer-events:none;
+  background:linear-gradient(180deg,rgba(38,56,48,0),rgba(38,56,48,.55) 45%,rgba(33,49,42,.92))}
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(255,248,239,.85);z-index:35;pointer-events:none}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(30,12,8,.35);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:8px;right:8px;bottom:8px;z-index:51;border-radius:38px;padding:10px 20px calc(24px + env(safe-area-inset-bottom));
+  transform:translateY(calc(100% + 20px));transition:transform .5s var(--spring);touch-action:none;--glass:rgba(40,32,28,.55)}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{width:40px;height:5px;border-radius:3px;background:rgba(255,241,222,.4);margin:0 auto 14px}
+.sheet h4{font:600 20px/1.2 var(--round);text-align:center}
+.sheet .hint{font-size:13px;color:var(--ink-2);text-align:center;margin-top:4px}
+.goalnum{margin-top:18px;text-align:center;font:700 52px/1 var(--round);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.goalnum small{font-size:16px;font-weight:600;color:var(--ink-2);margin-left:4px}
+.ruler{position:relative;height:74px;margin:14px -20px 0;overflow:hidden;touch-action:none;cursor:grab;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+.ruler .track{position:absolute;top:0;left:50%;height:100%;will-change:transform}
+.ruler .needle{position:absolute;left:50%;top:6px;width:4px;height:48px;margin-left:-2px;border-radius:2px;background:var(--cream)}
+.ruler svg text{font-size:11px;fill:var(--ink-3)}
+.sheetbtns{display:grid;grid-template-columns:1fr;margin-top:18px}
+.primary{height:54px;border-radius:27px;background:var(--cream);color:var(--deep);font-weight:700;font-size:17px;transition:transform .18s var(--out),background-color .2s}
+.primary:active{transform:scale(.96);background:#f3dcc0}
+.elev{margin-top:16px;height:120px}
+.elev svg{width:100%;height:100%;overflow:visible}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;text-align:center}
+.facts .v{font:600 20px/1.1 var(--round)}
+.facts .l{font-size:12px;color:var(--ink-2);margin-top:3px}
+
+.toast{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,calc(-100% - 90px));visibility:hidden;transition:transform .45s var(--spring),visibility 0s .45s;padding:11px 18px;border-radius:22px;font-size:14px;font-weight:600;white-space:nowrap;--glass:rgba(40,30,26,.6)}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--spring)}
+
+@media (prefers-reduced-motion:reduce){
+  .page.enter{animation:none}
+  .scene .layer,#hiker{transition:none}
+  .tabbar .lens,.seg .knob,.sheet,.toast,.switch::after{transition-duration:.01s}
+  .tabbar .lens.stretch{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="bsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a2c2a"/><stop offset=".5" stop-color="#8e5445"/><stop offset=".72" stop-color="#c98060"/></linearGradient>
+        <filter id="bgrain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .4  0 0 0 0 .35  0 0 0 .5 0"/></filter>
+      </defs>
+      <rect width="1600" height="1000" fill="url(#bsky)"/>
+      <path d="M0 720 C180 640 300 690 460 610 S760 560 900 640 1220 560 1600 650 V1000H0Z" fill="#8a6454"/>
+      <path d="M0 800 C220 730 380 790 560 720 S900 700 1080 760 1400 700 1600 760 V1000H0Z" fill="#5d5a4a"/>
+      <path d="M0 880 C260 820 520 900 760 840 S1200 830 1600 870 V1000H0Z" fill="#33403a"/>
+      <rect width="1600" height="1000" filter="url(#bgrain)" opacity=".16"/>
+    </svg>
+  </div>
+
+  <div class="caption">
+    <h1>步頻 Stride</h1>
+    <p>健走計步器。玻璃浮在黃昏山徑上，你走的每一步，都讓山徑上的小點往山頂前進。</p>
+  </div>
+
+  <div class="device">
+    <div class="island" aria-hidden="true"></div>
+    <div class="screen" id="screen">
+      <div class="scene" aria-hidden="true">
+        <svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#6d3f3c"/><stop offset=".3" stop-color="#a95f4d"/><stop offset=".5" stop-color="#dc9068"/><stop offset=".6" stop-color="#f1b884"/><stop offset=".66" stop-color="#f7d3a2"/>
+            </linearGradient>
+            <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7d3a2" stop-opacity=".55"/><stop offset="1" stop-color="#f7d3a2" stop-opacity="0"/></linearGradient>
+            <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .42  0 0 0 0 .36  0 0 0 .55 0"/></filter>
+          </defs>
+          <rect width="390" height="844" fill="url(#sky)"/>
+          <g class="layer" data-k=".04"><circle cx="286" cy="486" r="30" fill="#fde6be"/></g>
+          <g class="layer" data-k=".08">
+            <path d="M-10 500 L40 470 L78 482 L126 440 L170 470 L214 452 L262 410 L300 438 L336 424 L400 470 V844 H-10Z" fill="#c98a73"/>
+            <path d="M-10 500 L40 470 L78 482 L126 440 L170 470 L214 452 L262 410 L300 438 L336 424 L400 470 V540 H-10Z" fill="url(#haze)"/>
+          </g>
+          <g class="layer" data-k=".16">
+            <path d="M-10 560 C40 540 70 520 110 530 S170 500 210 510 250 540 300 520 360 500 400 520 V844 H-10Z" fill="#a07a67"/>
+          </g>
+          <g class="layer" data-k=".26">
+            <path d="M-10 630 C50 600 110 590 160 606 S250 640 300 612 360 590 400 600 V844 H-10Z" fill="#6f7765"/>
+          </g>
+          <g class="layer" data-k=".38">
+            <path d="M-10 700 C60 672 120 680 190 700 S320 690 400 676 V844 H-10Z" fill="#4c5f53"/>
+            <path d="M-10 760 C80 740 160 770 240 752 S340 740 400 748 V844 H-10Z" fill="#2f443b"/>
+          </g>
+          <g class="layer trailg" data-k=".3">
+            <path id="trail" d="M70 844 C110 800 190 790 170 752 S90 720 150 700 C210 682 250 664 220 640 S180 612 230 596 C270 584 250 562 214 548 S230 520 262 512 C278 500 270 470 262 432" fill="none" stroke="#f9ddb4" stroke-opacity=".55" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="1 7"/>
+            <path id="trailDone" d="M70 844 C110 800 190 790 170 752 S90 720 150 700 C210 682 250 664 220 640 S180 612 230 596 C270 584 250 562 214 548 S230 520 262 512 C278 500 270 470 262 432" fill="none" stroke="#fff3df" stroke-width="3" stroke-linecap="round"/>
+            <g transform="translate(262 432)"><path d="M0 0V-22" stroke="#fff3df" stroke-width="1.6" stroke-linecap="round"/><path d="M0.8 -22 L13 -17.5 L0.8 -13Z" fill="#fff3df"/></g>
+            <g id="hiker"><circle r="7" fill="#fff8ef"/><circle r="3" fill="#a95f4d"/></g>
+          </g>
+          <rect width="390" height="844" filter="url(#grain)" opacity=".13"/>
+        </svg>
+      </div>
+
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="glyphs">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor" opacity=".4"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.2 5.6 8.6a3.4 3.4 0 0 1 4.8 0z" fill="currentColor"/><path d="M3.4 6.4a6.5 6.5 0 0 1 9.2 0M1 3.9a10 10 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".6" y=".6" width="22.8" height="11.8" rx="3.6" fill="none" stroke="currentColor" stroke-opacity=".5" stroke-width="1.2"/><rect id="batt" x="2.4" y="2.4" width="16" height="8.2" rx="2.2" fill="currentColor"/><path d="M25 4.5v4a2 2 0 0 0 0-4z" fill="currentColor" opacity=".5"/></svg>
+        </span>
+      </div>
+      <div class="navbar" id="navbar"><div class="bar glass"></div><span class="t" id="navT">今天</span></div>
+
+      <main class="pages" id="pages">
+        <!-- TODAY -->
+        <section class="page" id="p-today" data-title="今天" aria-label="今天">
+          <div class="large">
+            <div><h2>今天</h2><p class="sub" id="dateLbl">9 月 23 日 星期三</p></div>
+            <button class="roundbtn glass" id="goalBtn" aria-label="調整每日目標">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V5.5c3-2 5.5 1.8 9 .2 1.6-.7 3-.8 5-.2v8.5c-2-.6-3.4-.5-5 .2-3.5 1.6-6-2.2-9-.2"/></svg>
+            </button>
+          </div>
+
+          <div class="ringwrap">
+            <div class="glass"></div>
+            <svg viewBox="0 0 268 268">
+              <circle cx="134" cy="134" r="116" fill="none" stroke="rgba(255,241,222,.16)" stroke-width="18"/>
+              <circle id="ringArc" cx="134" cy="134" r="116" fill="none" stroke="#fff1de" stroke-width="18" stroke-linecap="round" transform="rotate(-90 134 134)" stroke-dasharray="728.85" stroke-dashoffset="728.85"/>
+              <circle id="ringLap" cx="134" cy="134" r="116" fill="none" stroke="#f4b37c" stroke-width="18" stroke-linecap="round" transform="rotate(-90 134 134)" stroke-dasharray="728.85" stroke-dashoffset="728.85"/>
+            </svg>
+            <div class="ringtext">
+              <div class="steps" id="steps">0</div>
+              <div class="of">目標 <b id="goalLbl">10,000</b> 步</div>
+              <div class="cadence" id="cadence"><svg viewBox="0 0 54 18"><path id="cadPath" d="M0 9H54" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span id="cadLbl">未在步行</span></div>
+            </div>
+          </div>
+
+          <button class="walk glass" id="walkBtn" aria-pressed="false">
+            <svg class="ic" id="walkIc" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.4-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/></svg>
+            <span id="walkLbl">開始健走</span>
+          </button>
+
+          <div class="stats glass">
+            <div class="stat"><div class="v" id="km">0.0</div><div class="l">公里</div></div>
+            <div class="stat"><div class="v" id="kcal">0</div><div class="l">大卡</div></div>
+            <div class="stat"><div class="v" id="mins">0</div><div class="l">活動分鐘</div></div>
+          </div>
+
+          <div class="card glass">
+            <h3>逐時步數 <span id="peakLbl"></span></h3>
+            <div class="hours"><svg id="hours" viewBox="0 0 330 96" preserveAspectRatio="none"></svg></div>
+          </div>
+
+          <div class="card glass trailnote">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#fff1de" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 33 15 17l6 8 5-6 10 14z"/><path d="M26 19V7l7 2.6-7 2.6"/></svg>
+            <div><div class="ttl" id="trailTtl">山徑進度</div><div class="ds" id="trailDs"></div></div>
+          </div>
+        </section>
+
+        <!-- ROUTES -->
+        <section class="page" id="p-routes" data-title="路線" aria-label="路線" hidden>
+          <div class="large"><div><h2>路線</h2><p class="sub">台北近郊的五條步道</p></div></div>
+          <div class="carousel" id="carousel"></div>
+          <div class="dots" id="dots"></div>
+          <p class="sect">最近走過</p>
+          <div class="list glass" id="recent"></div>
+        </section>
+
+        <!-- TRENDS -->
+        <section class="page" id="p-trends" data-title="趨勢" aria-label="趨勢" hidden>
+          <div class="large"><div><h2>趨勢</h2><p class="sub" id="rangeLbl"></p></div></div>
+          <div class="seg glass" id="seg" data-v="week" role="group" aria-label="區間">
+            <span class="knob"></span>
+            <button data-v="week" aria-pressed="true">週</button>
+            <button data-v="month" aria-pressed="false">月</button>
+          </div>
+          <div class="big"><div class="v" id="avg">0</div><div class="l" id="avgLbl">每日平均步數</div></div>
+          <div class="chart glass"><svg id="chart" viewBox="0 0 330 190" preserveAspectRatio="none"></svg></div>
+          <div class="kv">
+            <div class="glass"><div class="v" id="best">0</div><div class="l" id="bestLbl">最佳一天</div></div>
+            <div class="glass"><div class="v" id="hit">0</div><div class="l">達標天數</div></div>
+          </div>
+        </section>
+
+        <!-- ME -->
+        <section class="page" id="p-me" data-title="我" aria-label="我" hidden>
+          <div class="large"><div><h2>我</h2><p class="sub">身體資料只存在這台裝置</p></div></div>
+          <div class="profile glass">
+            <svg class="av" viewBox="0 0 62 62"><circle cx="31" cy="31" r="31" fill="#e9b48c"/><path d="M8 62c2-12 11-18 23-18s21 6 23 18z" fill="#4c5f53"/><circle cx="31" cy="26" r="11" fill="#fbe0c6"/><path d="M19 24c1-9 8-13 14-12 6 0 11 5 10 12-3-4-8-5-12-5s-9 1-12 5z" fill="#3a2621"/></svg>
+            <div><b>林予安</b><span id="streak">連續 0 天達標</span></div>
+          </div>
+          <p class="sect">身體</p>
+          <div class="list glass" style="margin-top:0">
+            <div class="setting"><div class="main">步幅<span>用來換算距離</span><input class="slider" id="stride" type="range" min="55" max="85" step="1" aria-label="步幅（公分）"></div><output id="strideOut"></output></div>
+            <div class="setting"><div class="main">體重<span>用來估算熱量</span><input class="slider" id="weight" type="range" min="40" max="110" step="1" aria-label="體重（公斤）"></div><output id="weightOut"></output></div>
+          </div>
+          <p class="sect">偏好</p>
+          <div class="list glass" style="margin-top:0">
+            <button class="setting row" id="goalRow"><div class="main"><b>每日目標</b><span>拖動刻度尺調整</span></div><span class="end" id="goalRowV"></span></button>
+            <div class="setting"><div class="main">觸感回饋<span>支援的裝置會輕震</span></div><button class="switch" id="hapticSw" role="switch" aria-checked="true" aria-label="觸感回饋"></button></div>
+            <div class="setting"><div class="main">達標時通知<span>完成目標時在頂部提示</span></div><button class="switch" id="notifySw" role="switch" aria-checked="true" aria-label="達標時通知"></button></div>
+          </div>
+          <div class="list glass" style="margin-top:18px"><button class="danger" id="resetBtn">清除今天的步數</button></div>
+        </section>
+      </main>
+
+      <div class="edge" aria-hidden="true"></div>
+      <nav class="tabbar glass" id="tabbar" role="tablist" aria-label="主要分頁">
+        <span class="lens" id="lens"></span>
+        <button class="tab" role="tab" data-p="today" aria-selected="true" aria-controls="p-today">
+          <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="13" cy="13" r="9"/><path d="M13 4a9 9 0 0 1 8.4 12.2" stroke-width="3.2"/></svg>今天</button>
+        <button class="tab" role="tab" data-p="routes" aria-selected="false" aria-controls="p-routes">
+          <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22c4-1 3-6 7-7s6-4 3-7 1-5 5-5"/><circle cx="5" cy="22" r="1.6" fill="currentColor"/><circle cx="20" cy="3.4" r="1.6" fill="currentColor"/></svg>路線</button>
+        <button class="tab" role="tab" data-p="trends" aria-selected="false" aria-controls="p-trends">
+          <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 21v-5M10 21V9M15 21v-8M20 21V5"/></svg>趨勢</button>
+        <button class="tab" role="tab" data-p="me" aria-selected="false" aria-controls="p-me">
+          <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="13" cy="9" r="4.4"/><path d="M4.5 22c1-4.6 4.4-7 8.5-7s7.5 2.4 8.5 7"/></svg>我</button>
+      </nav>
+      <div class="home-ind" aria-hidden="true"></div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet glass" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT">
+        <div class="grab"></div>
+        <div id="sheetBody"></div>
+      </div>
+      <div class="toast glass" id="toast" role="status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app001:';
+function load(k, d){ try { var v = localStorage.getItem(KEY+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY+k, JSON.stringify(v)); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var fmt = function(n){ return Math.round(n).toLocaleString('en-US'); };
+
+var settings = load('settings', {goal:10000, stride:68, weight:62, haptic:true, notify:true});
+function haptic(p){ if (!settings.haptic) return; try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+
+// ---------- data: seeded history for the last 60 days, today live ----------
+function dayKey(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+var today = new Date(); today.setHours(0,0,0,0);
+var TODAY = dayKey(today);
+var seed = 20260923;
+function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+var history = load('history', null);
+if (!history){
+  history = {};
+  for (var i = 60; i >= 1; i--){
+    var d = new Date(today); d.setDate(d.getDate() - i);
+    var weekend = d.getDay() === 0 || d.getDay() === 6;
+    history[dayKey(d)] = Math.round((weekend ? 9800 : 7200) + (rnd() - .42) * 6400);
+  }
+}
+var hours = load('hours:'+TODAY, null);
+if (!hours){
+  hours = new Array(24).fill(0);
+  var now = new Date().getHours();
+  var shape = [0,0,0,0,0,0,120,640,980,420,300,380,760,520,280,340,420,610,880,540,220,90,0,0];
+  for (var h = 0; h < 24; h++) if (h < now) hours[h] = Math.round(shape[h] * (.7 + rnd() * .6));
+}
+function todaySteps(){ return hours.reduce(function(a, b){ return a + b; }, 0); }
+function persist(){ history[TODAY] = todaySteps(); save('history', history); save('hours:'+TODAY, hours); }
+
+// ---------- status bar ----------
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+tickClock(); setInterval(tickClock, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(3, 18.4 * b.level).toFixed(1)); }).catch(function(){});
+var WD = ['日','一','二','三','四','五','六'];
+$('dateLbl').textContent = (today.getMonth()+1)+' 月 '+today.getDate()+' 日 星期'+WD[today.getDay()];
+
+// ---------- scene: parallax + hiker on the trail ----------
+var trail = $('trailDone'), trailLen = trail.getTotalLength();
+trail.style.strokeDasharray = trailLen; trail.style.strokeDashoffset = trailLen;
+var layers = document.querySelectorAll('.scene .layer');
+function parallax(y){
+  if (reduce) return;
+  layers.forEach(function(g){ g.style.transform = 'translateY('+(-y * parseFloat(g.dataset.k)).toFixed(1)+'px)'; });
+}
+function placeHiker(p){
+  p = Math.max(0, Math.min(1, p));
+  var pt = trail.getPointAtLength(trailLen * p);
+  $('hiker').style.transform = 'translate('+pt.x.toFixed(1)+'px,'+pt.y.toFixed(1)+'px)';
+  trail.style.strokeDashoffset = (trailLen * (1 - p)).toFixed(1);
+}
+
+// ---------- today render ----------
+var C = 2 * Math.PI * 116, shownSteps = 0, countT = null;
+function animateCount(to){
+  cancelAnimationFrame(countT);
+  var from = shownSteps, t0 = performance.now(), dur = reduce ? 1 : 700;
+  (function step(t){
+    var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    shownSteps = from + (to - from) * e;
+    $('steps').textContent = fmt(shownSteps);
+    if (k < 1) countT = requestAnimationFrame(step);
+  })(t0);
+}
+function renderToday(){
+  var s = todaySteps(), g = settings.goal, p = s / g;
+  animateCount(s);
+  $('goalLbl').textContent = fmt(g);
+  $('ringArc').style.strokeDashoffset = (C * (1 - Math.min(1, p))).toFixed(1);
+  $('ringLap').style.strokeDashoffset = (C * (1 - Math.max(0, Math.min(1, p - 1)))).toFixed(1);
+  $('ringLap').style.opacity = p > 1 ? 1 : 0;
+  var km = s * settings.stride / 100000;
+  $('km').textContent = km.toFixed(1);
+  $('kcal').textContent = fmt(km * settings.weight * 0.72);
+  $('mins').textContent = fmt(s / 105);
+  placeHiker(p);
+  var left = g - s;
+  $('trailTtl').textContent = left > 0 ? '還差 '+fmt(left)+' 步登頂' : '今天已經登頂';
+  $('trailDs').textContent = left > 0 ? '背景山徑上的白點就是你，約再走 '+Math.ceil(left / 105)+' 分鐘' : '多走的步數畫在外圈的杏色第二圈';
+  renderHours();
+}
+function renderHours(){
+  var max = Math.max.apply(null, hours.concat([600])), w = 330 / 24, h = 78, out = '';
+  var peak = hours.indexOf(Math.max.apply(null, hours));
+  var nowH = new Date().getHours();
+  for (var i = 0; i < 24; i++){
+    var bh = Math.max(3, hours[i] / max * h);
+    out += '<rect x="'+(i * w + 2.5).toFixed(1)+'" y="'+(h - bh).toFixed(1)+'" width="'+(w - 5).toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="'+Math.min(3, bh / 2).toFixed(1)+'" fill="'+(i === nowH ? '#f4b37c' : 'rgba(255,241,222,'+(hours[i] ? .82 : .18)+')')+'"/>';
+  }
+  [0,6,12,18].forEach(function(x){ out += '<text class="ax" x="'+(x * w + 2)+'" y="95">'+x+' 時</text>'; });
+  $('hours').innerHTML = out;
+  $('peakLbl').textContent = hours[peak] ? '高峰 '+peak+' 時 · '+fmt(hours[peak])+' 步' : '';
+}
+
+// ---------- walking simulation ----------
+var walking = false, walkT = null, cadPhase = 0, lastStep = 0, cadRaf = null;
+function setWalking(on){
+  walking = on;
+  var b = $('walkBtn');
+  b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+  $('walkLbl').textContent = on ? '暫停' : '開始健走';
+  $('walkIc').innerHTML = on ? '<rect x="6.5" y="5" width="4" height="14" rx="1.4"/><rect x="13.5" y="5" width="4" height="14" rx="1.4"/>' : '<path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.4-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/>';
+  clearInterval(walkT);
+  if (on){
+    haptic([10, 40, 10]);
+    walkT = setInterval(function(){
+      if (document.hidden) return;
+      var before = todaySteps();
+      var add = 3 + Math.round(Math.random() * 2);   // ~110 steps / min at this tick rate
+      hours[new Date().getHours()] += add;
+      persist(); renderToday();
+      if (before < settings.goal && todaySteps() >= settings.goal){
+        haptic([20, 60, 20, 60, 40]);
+        if (settings.notify) toast('登頂了！今天達成 '+fmt(settings.goal)+' 步');
+      }
+    }, 1600);
+    loopCadence();
+  } else {
+    haptic(6);
+    $('cadLbl').textContent = '未在步行';
+    $('cadPath').setAttribute('d', 'M0 9H54');
+  }
+}
+function loopCadence(){
+  cancelAnimationFrame(cadRaf);
+  (function f(){
+    if (!walking) return;
+    if (!document.hidden){
+      cadPhase += .16;
+      var d = 'M0 9';
+      for (var x = 0; x <= 54; x += 3) d += 'L'+x+' '+(9 + Math.sin(x / 4.5 + cadPhase) * 6 * Math.sin((x / 54) * Math.PI)).toFixed(1);
+      $('cadPath').setAttribute('d', d);
+      $('cadLbl').textContent = (106 + Math.round(Math.sin(cadPhase / 7) * 5))+' 步／分';
+    }
+    cadRaf = requestAnimationFrame(f);
+  })();
+}
+$('walkBtn').addEventListener('click', function(){ setWalking(!walking); });
+
+// ---------- routes ----------
+var ROUTES = [
+  {n:'象山步道', km:1.6, up:183, min:45, seed:7},
+  {n:'七星山主峰', km:5.2, up:640, min:170, seed:19},
+  {n:'草嶺古道', km:8.5, up:330, min:210, seed:31},
+  {n:'金面山剪刀石', km:3.1, up:258, min:95, seed:43},
+  {n:'硬漢嶺', km:2.4, up:470, min:80, seed:57}
+];
+function routeGeom(r){
+  var s = r.seed * 9301 + 49297, rr = function(){ s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  var pts = [], x = 30, y = 150;
+  for (var i = 0; i < 9; i++){ pts.push([x, y]); x += 24 + rr() * 12; y = Math.max(22, y - 6 - rr() * 22 + (rr() < .3 ? 22 : 0)); }
+  var d = 'M'+pts[0][0]+' '+pts[0][1];
+  for (var j = 1; j < pts.length; j++){ var p0 = pts[j-1], p1 = pts[j]; d += ' Q'+((p0[0]+p1[0])/2 + (rr()-.5)*20).toFixed(0)+' '+((p0[1]+p1[1])/2 + (rr()-.5)*26).toFixed(0)+' '+p1[0].toFixed(0)+' '+p1[1].toFixed(0); }
+  var contours = '';
+  for (var k = 1; k <= 6; k++){
+    var cx = pts[pts.length-1][0] - 10, cy = pts[pts.length-1][1] + 6, rx = k * 34, ry = k * 22, cd = '';
+    for (var a = 0; a <= 24; a++){ var t = a / 24 * Math.PI * 2, wob = 1 + Math.sin(t * 3 + r.seed + k) * .12; cd += (a ? 'L' : 'M')+(cx + Math.cos(t) * rx * wob).toFixed(0)+' '+(cy + Math.sin(t) * ry * wob).toFixed(0); }
+    contours += '<path d="'+cd+'Z" fill="none" stroke="rgba(255,241,222,'+(0.22 - k * .02).toFixed(2)+'" stroke-width="1"/>';
+  }
+  return {d:d, contours:contours, start:pts[0], end:pts[pts.length-1]};
+}
+function routeSteps(r){ return Math.round(r.km * 100000 / settings.stride); }
+function renderRoutes(){
+  $('carousel').innerHTML = ROUTES.map(function(r, i){
+    var g = routeGeom(r);
+    return '<button class="route glass" data-route="'+i+'"><div class="map"><svg viewBox="0 0 280 170" preserveAspectRatio="xMidYMid slice">'+g.contours+
+      '<path d="'+g.d+'" fill="none" stroke="#fff1de" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+
+      '<circle cx="'+g.start[0]+'" cy="'+g.start[1]+'" r="5" fill="#fff1de"/><circle cx="'+g.end[0]+'" cy="'+g.end[1]+'" r="6" fill="#f4b37c" stroke="#fff1de" stroke-width="2"/></svg></div>'+
+      '<div class="nm">'+r.n+'</div><div class="meta"><span>'+r.km+' 公里</span><span>爬升 '+r.up+' 公尺</span><span>約 '+r.min+' 分</span></div></button>';
+  }).join('');
+  $('dots').innerHTML = ROUTES.map(function(_, i){ return '<i'+(i ? '' : ' class="on"')+'></i>'; }).join('');
+  var recent = [['象山步道','9 月 21 日 · 06:40'],['草嶺古道','9 月 14 日 · 08:15'],['硬漢嶺','9 月 7 日 · 16:30']];
+  $('recent').innerHTML = recent.map(function(x){
+    var r = ROUTES.filter(function(o){ return o.n === x[0]; })[0];
+    return '<button class="row" data-route="'+ROUTES.indexOf(r)+'"><div class="main"><b>'+x[0]+'</b><span>'+x[1]+'</span></div><span class="end">'+fmt(routeSteps(r))+' 步</span></button>';
+  }).join('');
+}
+$('carousel').addEventListener('scroll', function(){
+  var c = this, idx = Math.round(c.scrollLeft / (c.firstElementChild.offsetWidth + 14));
+  Array.prototype.forEach.call($('dots').children, function(d, i){ d.classList.toggle('on', i === idx); });
+}, {passive:true});
+
+function openRoute(i){
+  var r = ROUTES[i], g = routeGeom(r), s = r.seed, pts = [];
+  for (var k = 0; k <= 40; k++){ s = (s * 9301 + 49297) % 233280; pts.push(Math.sin(k / 40 * Math.PI) * r.up * (.8 + (s / 233280) * .3)); }
+  var max = Math.max.apply(null, pts), d = 'M0 110', area;
+  pts.forEach(function(v, k){ d += 'L'+(k / 40 * 330).toFixed(1)+' '+(108 - v / max * 92).toFixed(1); });
+  area = d + 'L330 110Z';
+  openSheet('<h4 id="sheetT">'+r.n+'</h4><p class="hint">海拔剖面 · 最高爬升 '+r.up+' 公尺</p>'+
+    '<div class="elev"><svg viewBox="0 0 330 112" preserveAspectRatio="none"><path d="'+area.replace('M0 110L','M0 110L')+'" fill="rgba(244,179,124,.28)"/><path d="'+d.replace('M0 110L','M')+'" fill="none" stroke="#fff1de" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg></div>'+
+    '<div class="facts"><div><div class="v">'+r.km+'</div><div class="l">公里</div></div><div><div class="v">'+fmt(routeSteps(r))+'</div><div class="l">預估步數</div></div><div><div class="v">'+r.min+'</div><div class="l">分鐘</div></div></div>'+
+    '<div class="sheetbtns"><button class="primary" data-set-goal="'+routeSteps(r)+'">把這條路線設為今日目標</button></div>');
+}
+
+// ---------- trends ----------
+var range = 'week', tipIdx = -1;
+function series(){
+  var n = range === 'week' ? 7 : 30, out = [];
+  for (var i = n - 1; i >= 0; i--){
+    var d = new Date(today); d.setDate(d.getDate() - i);
+    var v = i === 0 ? todaySteps() : (history[dayKey(d)] || 0);
+    out.push({d:d, v:v});
+  }
+  return out;
+}
+function renderTrends(){
+  var s = series(), n = s.length, max = Math.max.apply(null, s.map(function(x){ return x.v; }).concat([settings.goal])) * 1.08;
+  var sum = s.reduce(function(a, x){ return a + x.v; }, 0), best = s.reduce(function(a, x){ return x.v > a.v ? x : a; }, s[0]);
+  $('avg').textContent = fmt(sum / n);
+  $('best').textContent = fmt(best.v);
+  $('bestLbl').textContent = '最佳一天 · '+(best.d.getMonth()+1)+'/'+best.d.getDate();
+  $('hit').textContent = s.filter(function(x){ return x.v >= settings.goal; }).length+' / '+n;
+  $('rangeLbl').textContent = range === 'week' ? '最近 7 天' : '最近 30 天';
+  var H = 160, w = 330 / n, gap = range === 'week' ? 12 : 3, out = '';
+  var gy = H - settings.goal / max * H;
+  out += '<path d="M0 '+gy.toFixed(1)+'H330" stroke="rgba(255,241,222,.4)" stroke-width="1" stroke-dasharray="3 5"/>';
+  s.forEach(function(x, i){
+    var bh = Math.max(3, x.v / max * H), sel = i === tipIdx;
+    out += '<rect class="bar" data-i="'+i+'" x="'+(i * w + gap / 2).toFixed(1)+'" y="'+(H - bh).toFixed(1)+'" width="'+(w - gap).toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="'+Math.min(range === 'week' ? 7 : 2, bh / 2).toFixed(1)+'" fill="'+(sel ? '#f4b37c' : x.v >= settings.goal ? '#fff1de' : 'rgba(255,241,222,.42)')+'"/>';
+    if (range === 'week') out += '<text class="ax" x="'+(i * w + w / 2).toFixed(1)+'" y="182" text-anchor="middle">'+WD[x.d.getDay()]+'</text>';
+    else if (i % 7 === 0) out += '<text class="ax" x="'+(i * w).toFixed(1)+'" y="182">'+(x.d.getMonth()+1)+'/'+x.d.getDate()+'</text>';
+  });
+  if (tipIdx > -1 && s[tipIdx]){
+    var tx = Math.min(292, Math.max(38, tipIdx * w + w / 2)), ty = H - Math.max(3, s[tipIdx].v / max * H) - 14;
+    out += '<text class="tip" x="'+tx.toFixed(1)+'" y="'+Math.max(12, ty).toFixed(1)+'" text-anchor="middle" fill="#fff8ef">'+fmt(s[tipIdx].v)+'</text>';
+  }
+  $('chart').innerHTML = out;
+}
+$('seg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  range = b.dataset.v; tipIdx = -1; this.dataset.v = range;
+  this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
+  haptic(6); renderTrends();
+});
+$('chart').addEventListener('pointerdown', function(e){
+  var r = this.getBoundingClientRect(), n = range === 'week' ? 7 : 30;
+  var i = Math.max(0, Math.min(n - 1, Math.floor((e.clientX - r.left) / r.width * n)));
+  tipIdx = tipIdx === i ? -1 : i; haptic(4); renderTrends();
+});
+
+// ---------- me ----------
+function streak(){
+  var n = 0, d = new Date(today);
+  if (todaySteps() >= settings.goal) n++;
+  for (;;){ d.setDate(d.getDate() - 1); var v = history[dayKey(d)]; if (v >= settings.goal) n++; else break; }
+  return n;
+}
+function paintSlider(el){ el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100)+'%'); }
+function renderMe(){
+  $('stride').value = settings.stride; $('weight').value = settings.weight;
+  paintSlider($('stride')); paintSlider($('weight'));
+  $('strideOut').textContent = settings.stride+' 公分';
+  $('weightOut').textContent = settings.weight+' 公斤';
+  $('goalRowV').textContent = fmt(settings.goal)+' 步';
+  $('hapticSw').setAttribute('aria-checked', settings.haptic);
+  $('notifySw').setAttribute('aria-checked', settings.notify);
+  $('streak').textContent = '連續 '+streak()+' 天達標';
+}
+['stride','weight'].forEach(function(k){
+  $(k).addEventListener('input', function(){ settings[k] = +this.value; save('settings', settings); renderMe(); renderToday(); });
+});
+$('hapticSw').addEventListener('click', function(){ settings.haptic = !settings.haptic; save('settings', settings); renderMe(); haptic(10); });
+$('notifySw').addEventListener('click', function(){ settings.notify = !settings.notify; save('settings', settings); renderMe(); haptic(8); });
+var resetArm = null;
+$('resetBtn').addEventListener('click', function(){
+  var b = this;
+  if (!resetArm){ b.textContent = '再按一次確認清除'; haptic([8, 30, 8]); resetArm = setTimeout(function(){ resetArm = null; b.textContent = '清除今天的步數'; }, 2600); return; }
+  clearTimeout(resetArm); resetArm = null; b.textContent = '清除今天的步數';
+  hours = new Array(24).fill(0); setWalking(false); persist(); renderAll(); toast('今天的步數已清除'); haptic(20);
+});
+
+// ---------- goal sheet with draggable ruler ----------
+var STEP = 500, MIN = 3000, MAX = 25000, PX = 14;  // 14px per 500 steps
+function goalSheetHTML(){
+  var ticks = '', n = (MAX - MIN) / STEP;
+  for (var i = 0; i <= n; i++){
+    var v = MIN + i * STEP, big = v % 5000 === 0, mid = v % 1000 === 0;
+    ticks += '<rect x="'+(i * PX - 1)+'" y="'+(big ? 8 : mid ? 18 : 24)+'" width="2" height="'+(big ? 34 : mid ? 22 : 14)+'" rx="1" fill="rgba(255,241,222,'+(big ? .9 : .45)+')"/>';
+    if (big) ticks += '<text x="'+(i * PX)+'" y="66" text-anchor="middle">'+(v / 1000)+'k</text>';
+  }
+  return '<h4 id="sheetT">每日目標</h4><p class="hint">左右拖動刻度尺，每格 500 步</p>'+
+    '<div class="goalnum"><span id="gv">'+fmt(settings.goal)+'</span><small>步</small></div>'+
+    '<div class="ruler" id="ruler" role="slider" tabindex="0" aria-label="每日目標" aria-valuemin="'+MIN+'" aria-valuemax="'+MAX+'" aria-valuenow="'+settings.goal+'">'+
+      '<div class="track" id="rtrack"><svg width="'+(n * PX + 2)+'" height="74" style="margin-left:-1px;overflow:visible">'+ticks+'</svg></div><span class="needle"></span></div>'+
+    '<div class="sheetbtns"><button class="primary" id="goalDone">完成</button></div>';
+}
+function wireRuler(){
+  var ruler = $('ruler'), track = $('rtrack'), val = settings.goal, x = -(val - MIN) / STEP * PX, sx = 0, sv = 0, drag = false, lastTick = val, vel = 0, lastX = 0, lastT = 0, raf;
+  function set(v, snap){
+    v = Math.max(MIN, Math.min(MAX, v));
+    x = -(v - MIN) / STEP * PX;
+    track.style.transition = snap && !reduce ? 'transform .35s cubic-bezier(.22,1,.36,1)' : 'none';
+    track.style.transform = 'translateX('+x.toFixed(1)+'px)';
+    var sv2 = Math.round(v / STEP) * STEP;
+    if (sv2 !== lastTick){ lastTick = sv2; haptic(3); }
+    $('gv').textContent = fmt(sv2); ruler.setAttribute('aria-valuenow', sv2); val = v;
+  }
+  set(val, false);
+  ruler.addEventListener('pointerdown', function(e){ drag = true; cancelAnimationFrame(raf); sx = e.clientX; sv = val; lastX = e.clientX; lastT = e.timeStamp; vel = 0; ruler.setPointerCapture(e.pointerId); });
+  ruler.addEventListener('pointermove', function(e){
+    if (!drag) return;
+    var dt = Math.max(1, e.timeStamp - lastT); vel = (e.clientX - lastX) / dt; lastX = e.clientX; lastT = e.timeStamp;
+    set(sv - (e.clientX - sx) / PX * STEP, false);
+  });
+  function end(){
+    if (!drag) return; drag = false;
+    var v = val - vel * 220 / PX * STEP;  // inertia
+    set(Math.round(v / STEP) * STEP, true);
+  }
+  ruler.addEventListener('pointerup', end); ruler.addEventListener('pointercancel', end);
+  ruler.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { set(Math.round(val / STEP) * STEP - STEP, true); e.preventDefault(); }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { set(Math.round(val / STEP) * STEP + STEP, true); e.preventDefault(); }
+  });
+  $('goalDone').addEventListener('click', function(){ applyGoal(Math.round(val / STEP) * STEP); closeSheet(); });
+}
+function applyGoal(g){
+  settings.goal = g; save('settings', settings); renderAll(); haptic([10, 30, 10]); toast('每日目標改為 '+fmt(g)+' 步');
+}
+function openGoal(){ openSheet(goalSheetHTML()); wireRuler(); }
+$('goalBtn').addEventListener('click', openGoal);
+$('goalRow').addEventListener('click', openGoal);
+
+// ---------- bottom sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){
+  lastFocus = document.activeElement;
+  $('sheetBody').innerHTML = html;
+  sheet.style.transform = '';
+  sheet.classList.add('on'); scrim.classList.add('on');
+  haptic(6);
+  var f = sheet.querySelector('button,[tabindex]'); if (f) f.focus({preventScroll:true});
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on','drag'); sheet.style.transform = ''; scrim.classList.remove('on');
+  if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
+}
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('.ruler,button,input')) return;
+    dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId);
+  });
+  sheet.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6;   // rubber-band upward
+    sheet.style.transform = 'translateY('+y.toFixed(1)+'px)';
+    scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2);
+  });
+  function end(e){
+    if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = '';
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+sheet.addEventListener('click', function(e){
+  var b = e.target.closest('[data-set-goal]'); if (!b) return;
+  applyGoal(Math.round(+b.dataset.setGoal / 500) * 500); closeSheet(); switchTab('today');
+});
+
+// ---------- toast ----------
+var toastT = null;
+function toast(msg){ var t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 2200); }
+
+// ---------- tabs, collapsing title, parallax ----------
+var ORDER = ['today','routes','trends','me'], current = 'today';
+function moveLens(i, stretch){
+  var lens = $('lens');
+  lens.style.transform = 'translateX('+(i * 100)+'%)';
+  if (stretch && !reduce){ lens.classList.remove('stretch'); void lens.offsetWidth; lens.classList.add('stretch'); }
+}
+function switchTab(p){
+  if (p === current) { var pg = $('p-'+p); pg.scrollTo({top:0, behavior: reduce ? 'auto' : 'smooth'}); return; }
+  var from = ORDER.indexOf(current), to = ORDER.indexOf(p);
+  $('p-'+current).hidden = true;
+  var page = $('p-'+p); page.hidden = false;
+  page.classList.remove('enter','back'); void page.offsetWidth; page.classList.add('enter'); if (to < from) page.classList.add('back');
+  current = p;
+  document.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.p === p); });
+  moveLens(to, true); haptic(5);
+  $('navT').textContent = page.dataset.title;
+  document.querySelector('.scene').classList.toggle('quiet', p !== 'today');
+  onScroll.call(page);
+  if (p === 'trends') renderTrends();
+  if (p === 'me') renderMe();
+}
+$('tabbar').addEventListener('click', function(e){ var t = e.target.closest('.tab'); if (t) switchTab(t.dataset.p); });
+$('tabbar').addEventListener('keydown', function(e){
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  var i = ORDER.indexOf(current) + (e.key === 'ArrowRight' ? 1 : -1);
+  i = (i + ORDER.length) % ORDER.length; switchTab(ORDER[i]); document.querySelector('.tab[data-p="'+ORDER[i]+'"]').focus();
+});
+function onScroll(){ var y = this.scrollTop; $('navbar').classList.toggle('on', y > 44); parallax(y); }
+document.querySelectorAll('.page').forEach(function(p){ p.addEventListener('scroll', onScroll, {passive:true}); });
+
+// delegated taps inside pages
+$('pages').addEventListener('click', function(e){
+  var r = e.target.closest('[data-route]'); if (r) { haptic(6); openRoute(+r.dataset.route); }
+});
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+document.addEventListener('visibilitychange', function(){ if (!document.hidden && walking) loopCadence(); });
+
+function renderAll(){ renderToday(); renderRoutes(); renderTrends(); renderMe(); }
+persist(); renderAll(); moveLens(0, false);
+})();
+</script>
+</body>
+</html>

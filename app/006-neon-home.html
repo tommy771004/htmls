@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0c08">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="夜巢">
+<title>夜巢 NEST//07 · 智控家居儀表板</title>
+<meta name="description" content="賽博朋克風的智慧家居儀表板：在等角平面圖上點房間開燈、拖曳溫控刻度、長按解鎖大門、一鍵切換場景。收錄於 100 Creative HTML Works（App 006・賽博朋克斜切面板）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/006-neon-home.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M12 0H64V52L52 64H0V12Z' fill='%230e0c08'/%3E%3Cpath d='M32 12 52 24V44L32 56 12 44V24Z' fill='none' stroke='%23f5e400' stroke-width='3'/%3E%3Cpath d='M32 34 52 24M32 34V56M32 34 12 24' stroke='%23f5e400' stroke-width='2'/%3E%3Crect x='44' y='8' width='8' height='4' fill='%23ff4a3d'/%3E%3C/svg%3E">
+<style>
+:root{
+--bg:#0e0c08;--bg2:#14110b;--panel:#1a160e;--line:#3b3421;--line2:#5a4f2c;
+--neon:#f5e400;--neon-d:#a89c10;--red:#ff4a3d;--ink:#efe9d2;--ink-2:#b3aa8e;--ink-3:#8a8268;
+--din:"DIN Condensed","DIN Alternate","Avenir Next Condensed","PingFang TC",sans-serif;
+--mono:Menlo,"SF Mono",Consolas,monospace;
+--cjk:"PingFang TC","Heiti TC",sans-serif;
+--out:cubic-bezier(.2,.8,.2,1);--snap:cubic-bezier(.7,0,.2,1);
+--ch:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--cjk)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:2px solid var(--neon);outline-offset:2px}
+svg{display:block}
+.cut{clip-path:polygon(var(--ch) 0,100% 0,100% calc(100% - var(--ch)),calc(100% - var(--ch)) 100%,0 100%,0 var(--ch))}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;display:flex;flex-direction:column;
+  background:repeating-linear-gradient(0deg,rgba(245,228,0,.018) 0 1px,transparent 1px 3px),linear-gradient(180deg,#120f09,#0c0a06 60%,#100d07)}
+@media (min-width:521px){
+  body{background:#070604}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:414px;height:min(848px,calc(100dvh - 44px));padding:12px;z-index:1;background:linear-gradient(135deg,#2b261a,#15120c 40%,#221d13);
+    clip-path:polygon(34px 0,100% 0,100% calc(100% - 34px),calc(100% - 34px) 100%,0 100%,0 34px)}
+  .device::before{content:"";position:absolute;inset:3px;background:#0a0906;clip-path:inherit;z-index:-1}
+  .device::after{content:"NEST-07 / SN 2026-0923";position:absolute;right:46px;bottom:1px;font:600 9px/11px var(--mono);color:#6a603f;letter-spacing:.2em}
+  .screen{inset:12px;clip-path:polygon(24px 0,100% 0,100% calc(100% - 24px),calc(100% - 24px) 100%,0 100%,0 24px)}
+  .caption{display:block;position:relative;z-index:1;width:250px}
+  .caption h1{font:700 52px/1 var(--din);color:var(--neon);letter-spacing:.02em}
+  .caption h1 span{display:block;font:600 16px/1.5 var(--cjk);color:var(--ink);letter-spacing:.3em;margin-top:6px}
+  .caption p{margin-top:16px;font:400 15px/1.75 var(--cjk);color:var(--ink-2)}
+  .caption code{display:block;margin-top:14px;font:500 12px/1.6 var(--mono);color:var(--ink-3)}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+.status{flex:none;display:flex;align-items:center;justify-content:space-between;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 26px 0 34px;font:600 15px/1 var(--mono);color:var(--ink);pointer-events:none;position:relative;z-index:30}
+.status .g{display:flex;align-items:center;gap:6px}
+@media (display-mode:standalone){.status{display:none}}
+
+/* header */
+.hdr{flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:2px 18px 10px;position:relative}
+.wm{position:relative;font:700 38px/.9 var(--din);color:var(--neon);letter-spacing:.01em}
+.wm i{font-style:normal;color:var(--red)}
+.wm::before,.wm::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;overflow:hidden;pointer-events:none;visibility:hidden}
+.wm::before{color:var(--red);clip-path:inset(18% 0 58% 0)}
+.wm::after{color:var(--ink);clip-path:inset(62% 0 12% 0)}
+.wm.glitch::before{visibility:visible;animation:gl1 .42s steps(3) 1}
+.wm.glitch::after{visibility:visible;animation:gl2 .42s steps(3) 1}
+@keyframes gl1{0%{transform:translate(-4px,0)}33%{transform:translate(5px,-1px)}66%{transform:translate(-2px,1px)}100%{transform:translate(0)}}
+@keyframes gl2{0%{transform:translate(4px,0)}33%{transform:translate(-5px,1px)}66%{transform:translate(3px,0)}100%{transform:translate(0)}}
+.hdr .loc{text-align:right;font:500 12px/1.5 var(--mono);color:var(--ink-3)}
+.hdr .loc b{display:block;font:600 14px/1.2 var(--cjk);color:var(--ink);letter-spacing:.08em}
+
+/* pages */
+.pages{flex:1;min-height:0;position:relative}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:0 14px 16px;scrollbar-width:none;overscroll-behavior:contain}
+.page::-webkit-scrollbar{display:none}
+.page[hidden]{display:none}
+.page.in{animation:slideIn .34s var(--out)}
+.page.in.back{animation-name:slideBack}
+@keyframes slideIn{from{transform:translateX(26px) skewX(-2deg)}to{transform:none}}
+@keyframes slideBack{from{transform:translateX(-26px) skewX(2deg)}to{transform:none}}
+
+.panel{position:relative;background:var(--panel);--ch:12px;margin-top:10px}
+.panel::before{content:"";position:absolute;inset:0;clip-path:inherit;box-shadow:inset 0 0 0 1px var(--line);pointer-events:none}
+.ptitle{display:flex;align-items:baseline;justify-content:space-between;padding:10px 14px 0;font:700 19px/1 var(--din);letter-spacing:.06em;color:var(--ink)}
+.ptitle small{font:500 12px/1 var(--mono);color:var(--ink-3);letter-spacing:0}
+.ptitle span.zh{font:600 13px/1 var(--cjk);color:var(--ink-2);letter-spacing:.14em;margin-left:8px}
+
+/* plan */
+.plan{position:relative;margin-top:2px;padding:4px 0 0}
+.plan svg{width:100%;height:auto;overflow:visible;touch-action:manipulation}
+.room-floor{cursor:pointer;transition:fill .3s}
+.room-floor:hover{fill:rgba(245,228,0,.07)}
+.lightc{transform-box:fill-box;transform-origin:center;transform:scale(.001);transition:transform .7s var(--out),opacity .4s}
+.lit .lightc{transform:scale(1)}
+.lit.flick .lightc{animation:flick .5s steps(1)}
+@keyframes flick{0%{opacity:0}20%{opacity:.9}35%{opacity:.1}55%{opacity:1}70%{opacity:.3}100%{opacity:1}}
+.plan text{font-family:var(--cjk);pointer-events:none}
+.plan .rl{font-size:13px;font-weight:600;fill:var(--ink)}
+.plan .rv{font-family:var(--mono);font-size:11px;fill:var(--ink-3)}
+.plan .lit-t .rv{fill:var(--neon)}
+.scan{position:absolute;left:0;right:0;top:0;height:40px;background:linear-gradient(180deg,rgba(245,228,0,0),rgba(245,228,0,.03) 40%,rgba(245,228,0,.05) 55%,rgba(245,228,0,0));pointer-events:none;animation:scan 5.5s linear infinite}
+@keyframes scan{from{transform:translateY(-40px)}to{transform:translateY(260px)}}
+.planbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px 12px}
+.readout{font:500 12px/1.5 var(--mono);color:var(--ink-3)}
+.readout b{font:700 22px/1 var(--din);color:var(--ink);margin-right:2px;letter-spacing:.02em}
+.readout b.y{color:var(--neon)}
+.cbtn{--ch:8px;height:44px;padding:0 16px;background:#262012;color:var(--ink);font:700 16px/1 var(--din);letter-spacing:.1em;display:inline-flex;align-items:center;gap:8px;transition:background-color .12s,color .12s}
+.cbtn:active{background:var(--neon);color:#15120a}
+.cbtn svg{width:16px;height:16px}
+.cbtn.y{background:var(--neon);color:#15120a}
+.cbtn.y:active{background:#fff36a}
+.cbtn.r{background:#3a1511;color:#ffb3aa}
+.cbtn.r:active{background:var(--red);color:#1a0806}
+.hint{padding:0 14px 10px;font:400 13px/1.4 var(--cjk);color:var(--ink-3)}
+.chart{display:block;width:100%;height:92px}
+
+/* room strip */
+.rgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px 14px 14px}
+.rbtn{--ch:7px;position:relative;height:52px;background:#211b10;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:0 8px;text-align:left;transition:background-color .15s}
+.rbtn b{font:600 13px/1.2 var(--cjk);color:var(--ink-2)}
+.rbtn small{font:500 11px/1.3 var(--mono);color:var(--ink-3)}
+.rbtn[aria-pressed=true]{background:#3a3310}
+.rbtn[aria-pressed=true] b{color:var(--neon)}
+.rbtn[aria-pressed=true] small{color:var(--ink)}
+.rbtn:active{background:#4a4114}
+
+/* climate */
+.croom{display:flex;gap:6px;padding:12px 14px 0}
+.seg{--ch:7px;flex:1;height:44px;background:#211b10;font:600 14px/1 var(--cjk);color:var(--ink-2);letter-spacing:.1em;transition:background-color .15s,color .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.seg[aria-pressed=true]{background:var(--neon);color:#15120a}
+.seg svg{width:18px;height:18px}
+.gauge{position:relative;width:280px;max-width:100%;margin:6px auto 0;touch-action:none;cursor:grab}
+.gauge svg{width:100%;height:auto}
+.gauge .center{position:absolute;left:0;right:0;top:40%;text-align:center;pointer-events:none}
+.gauge .center b{display:block;font:700 76px/.9 var(--din);color:var(--ink);letter-spacing:.01em}
+.gauge .center b sup{font-size:26px;vertical-align:top;margin-left:2px;color:var(--ink-2)}
+.gauge .center span{display:block;margin-top:4px;font:500 12px/1.4 var(--mono);color:var(--ink-3)}
+.gauge.off .center b{color:var(--ink-3)}
+.gctl{display:flex;justify-content:space-between;align-items:center;padding:0 14px 12px;margin-top:-18px;position:relative}
+.sq{--ch:8px;width:56px;height:48px;background:#262012;display:grid;place-items:center;font:700 26px/1 var(--din);transition:background-color .12s,color .12s}
+.sq:active{background:var(--neon);color:#15120a}
+.pwr{--ch:8px;height:48px;padding:0 18px;display:flex;align-items:center;gap:8px;font:700 17px/1 var(--din);letter-spacing:.14em;background:#3a1511;color:#ffb3aa;transition:background-color .15s,color .15s}
+.pwr[aria-pressed=true]{background:#2f2a0c;color:var(--neon)}
+.pwr svg{width:18px;height:18px}
+.fan{display:flex;gap:5px;align-items:flex-end;padding:0 14px 14px}
+.fan button{flex:1;height:44px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px}
+.fan button i{display:block;width:100%;background:#2d2615;transform:skewX(-18deg);transition:background-color .15s}
+.fan button[aria-pressed=true] i{background:var(--neon)}
+.fanlbl{display:flex;justify-content:space-between;padding:12px 14px 6px;font:600 13px/1 var(--cjk);color:var(--ink-2);letter-spacing:.1em}
+.fanlbl small{font:500 12px/1 var(--mono);color:var(--ink-3);letter-spacing:0}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);padding:12px 14px 12px;gap:8px}
+.stats3 div{font:500 12px/1.4 var(--mono);color:var(--ink-3)}
+.stats3 b{display:block;font:700 26px/1 var(--din);color:var(--ink)}
+.stats3 b.r{color:var(--red)}
+
+/* gate */
+.cam{position:relative;margin:10px 14px 0;--ch:10px;background:#000}
+.cam canvas{display:block;width:100%;height:150px}
+.cam .ov{position:absolute;left:10px;top:8px;font:600 12px/1.4 var(--mono);color:var(--neon)}
+.cam .rec{position:absolute;right:10px;top:8px;font:600 12px/1.4 var(--mono);color:var(--red)}
+.lockzone{display:flex;align-items:center;gap:16px;padding:14px}
+.hold{position:relative;flex:none;width:120px;height:120px;touch-action:none}
+.hold svg{width:100%;height:100%}
+.hold .ring{transition:stroke-dashoffset .25s var(--out)}
+.hold.pressing .ring{transition:none}
+.hold .ic{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.hold .ic svg{width:40px;height:40px}
+.lockinfo b{display:block;font:700 34px/1 var(--din);letter-spacing:.06em}
+.lockinfo b.r{color:var(--red)}
+.lockinfo b.y{color:var(--neon)}
+.lockinfo span{display:block;margin-top:6px;font:500 13px/1.5 var(--cjk);color:var(--ink-2)}
+.lockinfo code{display:block;margin-top:4px;font:500 12px/1.4 var(--mono);color:var(--ink-3)}
+.hazard{height:8px;margin:0 14px;background:repeating-linear-gradient(-45deg,var(--neon) 0 8px,#15120a 8px 16px);opacity:.85;--ch:4px}
+.log{list-style:none;padding:6px 14px 12px}
+.log li{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;min-height:44px;font:500 13px/1.3 var(--cjk);color:var(--ink-2);background:linear-gradient(90deg,var(--line) 0 100%) 0 100%/100% 1px no-repeat}
+.log li:last-child{background:none}
+.log time{font:600 12px/1 var(--mono);color:var(--ink-3)}
+.log li b{font-weight:600;color:var(--ink)}
+.log .tag{font:600 11px/1 var(--mono);color:var(--neon)}
+.log .tag.r{color:var(--red)}
+.codes{padding:0 14px 12px}
+.code{display:flex;align-items:center;gap:12px;min-height:52px;background:linear-gradient(90deg,var(--line) 0 100%) 0 100%/100% 1px no-repeat}
+.code b{font:700 24px/1 var(--mono);letter-spacing:.14em;color:var(--neon)}
+.code span{flex:1;font:500 13px/1.3 var(--cjk);color:var(--ink-2)}
+.code button{width:44px;height:44px;display:grid;place-items:center;color:var(--ink-3)}
+.code button:active{color:var(--red)}
+.code button svg{width:16px;height:16px}
+
+/* scenes */
+.scene{position:relative;display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:10px;width:100%;min-height:74px;margin-top:8px;padding:10px 14px 10px 12px;background:var(--panel);text-align:left;--ch:12px;transition:background-color .15s;touch-action:pan-y}
+.scene:active{background:#241e12}
+.scene .no{font:700 40px/1 var(--din);color:var(--ink-3)}
+.scene b{display:block;font:600 17px/1.2 var(--cjk);letter-spacing:.08em}
+.scene small{display:block;margin-top:4px;font:500 12px/1.4 var(--mono);color:var(--ink-3)}
+.scene .go{font:700 14px/1 var(--din);letter-spacing:.14em;color:var(--ink-3)}
+.scene[aria-pressed=true]{background:#2b2510}
+.scene[aria-pressed=true] .no,.scene[aria-pressed=true] .go{color:var(--neon)}
+.scene[aria-pressed=true]::after{content:"";position:absolute;left:0;top:14px;bottom:14px;width:5px;background:var(--neon);clip-path:polygon(0 0,100% 6px,100% calc(100% - 6px),0 100%)}
+.swrap{position:relative;overflow:hidden}
+.swrap .del{position:absolute;right:0;top:8px;bottom:0;width:90px;display:flex;align-items:center;justify-content:center;background:#3a1511;color:#ffb3aa;font:700 15px/1 var(--din);letter-spacing:.14em;visibility:hidden}
+.swrap.sw .del{visibility:visible}
+.sched{display:flex;align-items:center;justify-content:space-between;min-height:56px;padding:0 14px;background:linear-gradient(90deg,var(--line) 0 100%) 0 100%/100% 1px no-repeat}
+.sched:last-child{background:none}
+.sched b{font:700 24px/1 var(--din);letter-spacing:.04em;margin-right:10px}
+.sched span{font:500 14px/1.3 var(--cjk);color:var(--ink-2)}
+.tg{--ch:6px;width:60px;height:44px;display:grid;place-items:center}
+.tg i{position:relative;width:52px;height:24px;background:#2d2615;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+.tg i::after{content:"";position:absolute;top:4px;left:4px;width:20px;height:16px;background:var(--ink-3);transition:transform .22s var(--snap),background-color .2s}
+.tg[aria-checked=true] i{background:#3a3310}
+.tg[aria-checked=true] i::after{transform:translateX(24px);background:var(--neon)}
+
+/* bottom HUD segment bar */
+.hud{flex:none;position:relative;display:flex;gap:4px;padding:8px 12px calc(24px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(14,12,8,0),#0b0906 30%)}
+.hud button{position:relative;flex:1;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#1c170e;
+  clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%);transition:background-color .18s,color .18s;color:var(--ink-3)}
+.hud button:first-child{clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.hud button:last-child{clip-path:polygon(12px 0,100% 0,100% 100%,0 100%)}
+.hud button b{font:700 17px/1 var(--din);letter-spacing:.14em}
+.hud button small{font:600 11px/1 var(--cjk);letter-spacing:.2em}
+.hud button[aria-selected=true]{background:var(--neon);color:#15120a}
+.hud button:active{background:#2e2714}
+.hud button[aria-selected=true]:active{background:#fff36a}
+.home-ind{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;background:rgba(239,233,210,.7);z-index:35;pointer-events:none;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(6,5,3,.66);opacity:0;pointer-events:none;transition:opacity .25s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:8px;right:8px;bottom:8px;z-index:51;max-height:86%;display:flex;flex-direction:column;background:#17130b;--ch:18px;
+  padding:10px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(calc(100% + 16px));transition:transform .42s cubic-bezier(.2,1.2,.3,1);touch-action:none}
+.sheet::before{content:"";position:absolute;inset:0;clip-path:inherit;box-shadow:inset 0 0 0 1px var(--line2);pointer-events:none}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{flex:none;width:48px;height:5px;margin:0 auto 12px;background:var(--line2);clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}
+.sbody{overflow-y:auto;min-height:0;margin:0 -18px;padding:0 18px;scrollbar-width:none}
+.sheet h4{font:700 30px/1 var(--din);letter-spacing:.04em;color:var(--neon);display:flex;align-items:baseline;gap:10px}
+.sheet h4 span{font:600 16px/1 var(--cjk);color:var(--ink);letter-spacing:.14em}
+.sheet .sub{margin-top:6px;font:500 12px/1.5 var(--mono);color:var(--ink-3)}
+.slider{margin-top:18px}
+.slider label{display:flex;justify-content:space-between;font:600 14px/1 var(--cjk);color:var(--ink-2);letter-spacing:.1em}
+.slider label b{font:700 20px/1 var(--din);color:var(--ink);letter-spacing:.04em}
+.track{position:relative;height:44px;margin-top:6px;touch-action:none;cursor:pointer}
+.track .bar{position:absolute;left:0;right:0;top:16px;height:12px;background:#2a2414;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.track .fill{position:absolute;left:0;top:16px;height:12px;background:var(--neon);clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.track .knob{position:absolute;top:8px;width:14px;height:28px;margin-left:-7px;background:var(--ink);clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}
+.track.kel .bar{background:linear-gradient(90deg,#ffae45,#ffe29a 45%,#f2f0ea)}
+.track.kel .fill{display:none}
+.bigcode{margin:18px 0 6px;text-align:center;font:700 52px/1 var(--mono);letter-spacing:.18em;color:var(--neon)}
+.srow{display:flex;gap:6px;margin-top:16px}
+.srow .cbtn{flex:1;justify-content:center}
+.txt{width:100%;height:48px;margin-top:14px;padding:0 12px;background:#221c10;border:0;color:var(--ink);font:500 17px/1 var(--cjk);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.txt::placeholder{color:var(--ink-3)}
+
+.toast{position:absolute;left:12px;right:12px;top:calc(50px + env(safe-area-inset-top));z-index:60;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:46px;padding:0 6px 0 14px;background:var(--neon);color:#15120a;font:600 14px/1.3 var(--cjk);--ch:10px;
+  transform:translateY(-160%);visibility:hidden;transition:transform .32s var(--snap),visibility 0s .32s}
+.toast.on{transform:none;visibility:visible;transition:transform .32s var(--snap)}
+.toast.err{background:var(--red);color:#1a0806}
+.toast button{height:44px;padding:0 12px;font:700 15px/1 var(--din);letter-spacing:.14em}
+
+@media (prefers-reduced-motion:reduce){
+  .scan{animation:none;display:none}
+  .page.in{animation:none}
+  .wm.glitch::before,.wm.glitch::after{animation:none;visibility:hidden}
+  .lightc{transition:opacity .2s}
+  .lit.flick .lightc{animation:none}
+  .sheet,.toast,.tg i::after{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0806"/><stop offset=".7" stop-color="#1c140a"/><stop offset="1" stop-color="#2a1a0c"/></linearGradient>
+        <pattern id="rain" width="40" height="120" patternUnits="userSpaceOnUse" patternTransform="rotate(12)"><path d="M6 0v26M26 50v34M16 90v22" stroke="#6a5a38" stroke-width="1" stroke-linecap="round" opacity=".35"/></pattern>
+        <pattern id="win" width="14" height="18" patternUnits="userSpaceOnUse"><rect x="3" y="4" width="6" height="8" fill="#3a3020"/></pattern>
+        <pattern id="win2" width="14" height="18" patternUnits="userSpaceOnUse"><rect x="3" y="4" width="6" height="8" fill="#5a4a22"/><rect x="3" y="4" width="6" height="8" fill="#f5e400" opacity=".12"/></pattern>
+      </defs>
+      <rect width="1600" height="1000" fill="url(#sky)"/>
+      <!-- Taipei 101 silhouette -->
+      <g fill="#15110b" transform="translate(1300 120)">
+        <rect x="46" y="-40" width="4" height="60"/>
+        <path d="M30 20h36l-4 40h-28z"/>
+        <path d="M22 60h52l-6 60h-40z"/><path d="M22 120h52l-6 60h-40z"/><path d="M22 180h52l-6 60h-40z"/><path d="M22 240h52l-6 60h-40z"/><path d="M22 300h52l-6 60h-40z"/><path d="M22 360h52l-6 60h-40z"/><path d="M22 420h52l-6 60h-40z"/><path d="M22 480h52l-6 60h-40z"/>
+        <path d="M10 540h76l-6 340h-64z"/>
+        <g fill="#f5e400" opacity=".22"><rect x="30" y="118" width="36" height="2"/><rect x="30" y="178" width="36" height="2"/><rect x="30" y="238" width="36" height="2"/><rect x="30" y="298" width="36" height="2"/><rect x="30" y="358" width="36" height="2"/><rect x="30" y="418" width="36" height="2"/><rect x="30" y="478" width="36" height="2"/></g>
+      </g>
+      <!-- mid towers -->
+      <g><rect x="0" y="420" width="100" height="580" fill="#14100a"/><rect x="0" y="420" width="100" height="580" fill="url(#win)"/><rect x="560" y="560" width="110" height="440" fill="#120e09"/><rect x="560" y="560" width="110" height="440" fill="url(#win)"/>
+        <rect x="200" y="330" width="140" height="670" fill="#17120b"/><rect x="200" y="330" width="140" height="670" fill="url(#win2)"/>
+        <rect x="1120" y="380" width="150" height="620" fill="#15110b"/><rect x="1120" y="380" width="150" height="620" fill="url(#win)"/>
+        <rect x="1420" y="460" width="180" height="540" fill="#17120b"/><rect x="1420" y="460" width="180" height="540" fill="url(#win2)"/></g>
+      <!-- vertical neon signs -->
+      <g font-family="PingFang TC,Heiti TC,sans-serif" font-weight="700" text-anchor="middle">
+        <rect x="120" y="470" width="58" height="250" fill="#0c0a06"/><rect x="120" y="470" width="58" height="250" fill="none" stroke="#f5e400" stroke-width="3"/>
+        <text x="149" y="530" font-size="40" fill="#f5e400">夜</text><text x="149" y="585" font-size="40" fill="#f5e400">市</text><text x="149" y="640" font-size="40" fill="#f5e400">通</text><text x="149" y="695" font-size="40" fill="#f5e400">宵</text>
+        <rect x="1060" y="540" width="50" height="200" fill="#0c0a06"/><rect x="1060" y="540" width="50" height="200" fill="none" stroke="#ff4a3d" stroke-width="3"/>
+        <text x="1085" y="592" font-size="34" fill="#ff4a3d">電</text><text x="1085" y="640" font-size="34" fill="#ff4a3d">腦</text><text x="1085" y="688" font-size="34" fill="#ff4a3d">維</text><text x="1085" y="728" font-size="30" fill="#ff4a3d">修</text>
+      </g>
+      <!-- street -->
+      <rect x="0" y="880" width="1600" height="120" fill="#0b0906"/>
+      <rect x="0" y="892" width="1600" height="3" fill="#f5e400" opacity=".18"/>
+      <g fill="#f5e400" opacity=".12"><rect x="128" y="900" width="44" height="80"/></g>
+      <g fill="#ff4a3d" opacity=".12"><rect x="1064" y="900" width="40" height="70"/></g>
+      <rect width="1600" height="1000" fill="url(#rain)"/>
+    </svg>
+  </div>
+  <div class="caption">
+    <h1>NEST//07<span>夜巢 智控家居</span></h1>
+    <p>二十七樓的一間公寓，被畫成一張會發光的等角平面圖。點一下房間就開燈，長按大門才解鎖。</p>
+    <code>A7-27F · 8 ROOMS · 3 AC · 1 GATE</code>
+  </div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="#efe9d2"><path d="M0 12 3 8V12Z"/><path d="M5 12 8 5V12Z"/><path d="M10 12 13 2.5V12Z"/><path d="M15 12 18 0V12Z"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#efe9d2" stroke-width="1.7" stroke-linejoin="bevel"><path d="M8 12 6 10 8 8 10 10Z" fill="#efe9d2" stroke="none"/><path d="M4.2 7.2 8 4.4l3.8 2.8"/><path d="M1 4 8 .9 15 4"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><path d="M3 .5H23.5V11.5H.5V3Z" fill="none" stroke="#efe9d2" opacity=".6"/><path d="M4 2H17V10H2V4Z" fill="#f5e400"/><rect x="24.5" y="4" width="2" height="4" fill="#efe9d2" opacity=".6"/></svg>
+        </span>
+      </div>
+      <header class="hdr">
+        <div class="wm" id="wm" data-t="NEST//07">NEST<i>//</i>07</div>
+        <div class="loc"><b>夜巢 A7-27F</b><span id="power">1.84 kW</span> · <span id="outT">室外 29°</span></div>
+      </header>
+
+      <div class="pages" id="pages">
+        <!-- MAP -->
+        <section class="page" id="p-map" data-i="0">
+          <div class="panel cut">
+            <div class="ptitle"><span>FLOOR PLAN<span class="zh">平面</span></span><small id="litCount">4/8 ON</small></div>
+            <div class="plan" id="plan"><div class="scan" aria-hidden="true"></div></div>
+            <div class="planbar">
+              <div class="readout"><b class="y" id="kw">1.84</b>kW 即時　<b id="kwh">12.6</b>kWh 今日</div>
+              <button class="cbtn cut" id="allBtn">全關</button>
+            </div>
+            <p class="hint">點房間開關燈，長按調亮度與色溫</p>
+          </div>
+          <div class="panel cut">
+            <div class="ptitle"><span>LIGHTS<span class="zh">照明</span></span><small>8 ZONES</small></div>
+            <div class="rgrid" id="rgrid"></div>
+          </div>
+          <div class="panel cut">
+            <div class="ptitle"><span>LOAD 24H<span class="zh">用電</span></span><small id="peak">PEAK 3.2kW 20:00</small></div>
+            <canvas class="chart" id="loadChart" style="margin:8px 0 10px"></canvas>
+          </div>
+        </section>
+
+        <!-- CLIMATE -->
+        <section class="page" id="p-clima" data-i="1" hidden>
+          <div class="panel cut">
+            <div class="croom" id="croom"></div>
+            <div class="gauge" id="gauge" role="slider" tabindex="0" aria-label="目標溫度" aria-valuemin="16" aria-valuemax="30"></div>
+            <div class="gctl"><button class="sq cut" id="tMinus" aria-label="降低 0.5 度">−</button><button class="pwr" id="acPwr" aria-pressed="true"></button><button class="sq cut" id="tPlus" aria-label="提高 0.5 度">+</button></div>
+          </div>
+          <div class="panel cut">
+            <div class="croom" id="cmode"></div>
+            <div class="fanlbl"><span>風量</span><small id="fanTxt">LV 3</small></div>
+            <div class="fan" id="fan"></div>
+          </div>
+          <div class="panel cut">
+            <div class="ptitle"><span>SENSORS<span class="zh">感測</span></span><small id="sensRoom">客廳</small></div>
+            <div class="stats3"><div><b id="sT">27.3</b>室溫 °C</div><div><b id="sH">68</b>濕度 %</div><div><b id="sP">14</b>PM2.5</div></div>
+            <canvas class="chart" id="tempChart" style="margin:0 0 10px"></canvas>
+          </div>
+        </section>
+
+        <!-- GATE -->
+        <section class="page" id="p-gate" data-i="2" hidden>
+          <div class="panel cut" style="padding-bottom:6px">
+            <div class="cam cut"><canvas id="cam"></canvas><span class="ov" id="camTs">CAM-01 27F 走廊</span><span class="rec">● REC</span></div>
+            <div class="lockzone">
+              <div class="hold" id="hold" role="button" tabindex="0" aria-label="長按切換門鎖">
+                <svg viewBox="0 0 120 120"><path d="M38 6H82L114 38V82L82 114H38L6 82V38Z" fill="#1e190f"/><path d="M38 6H82L114 38V82L82 114H38L6 82V38Z" fill="none" stroke="#3b3421" stroke-width="6"/><path class="ring" id="ring" d="M60 6H82L114 38V82L82 114H38L6 82V38L38 6Z" pathLength="100" fill="none" stroke="#f5e400" stroke-width="6" stroke-dasharray="100" stroke-dashoffset="100"/></svg>
+                <div class="ic" id="lockIc"></div>
+              </div>
+              <div class="lockinfo"><b id="lockTxt" class="r">LOCKED</b><span id="lockSub">大門已上鎖・長按 1 秒解鎖</span><code id="lockCode">BOLT 3 / DOOR SHUT</code></div>
+            </div>
+            <div class="hazard cut"></div>
+            <div class="ptitle" style="padding-top:14px"><span>ACCESS LOG<span class="zh">進出紀錄</span></span><small id="logN">6</small></div>
+            <ul class="log" id="log"></ul>
+          </div>
+          <div class="panel cut">
+            <div class="ptitle"><span>GUEST CODE<span class="zh">訪客碼</span></span><button class="cbtn cut y" id="newCode" style="height:36px;font-size:14px;padding:0 12px">+ 產生</button></div>
+            <div class="codes" id="codes"></div>
+          </div>
+        </section>
+
+        <!-- SCENE -->
+        <section class="page" id="p-scene" data-i="3" hidden>
+          <div id="scenes"></div>
+          <button class="cbtn cut" id="saveScene" style="width:100%;justify-content:center;margin-top:10px;height:52px">+ 把現在存成場景</button>
+          <div class="panel cut">
+            <div class="ptitle"><span>SCHEDULE<span class="zh">排程</span></span><small>DAILY</small></div>
+            <div id="sched" style="padding-bottom:4px"></div>
+          </div>
+        </section>
+      </div>
+
+      <nav class="hud" id="hud" role="tablist" aria-label="主選單">
+        <button role="tab" data-p="map" aria-selected="true"><b>MAP</b><small>平面</small></button>
+        <button role="tab" data-p="clima" aria-selected="false"><b>CLIMA</b><small>溫控</small></button>
+        <button role="tab" data-p="gate" aria-selected="false"><b>GATE</b><small>門禁</small></button>
+        <button role="tab" data-p="scene" aria-selected="false"><b>SCENE</b><small>場景</small></button>
+      </nav>
+      <div class="home-ind" aria-hidden="true"></div>
+      <div class="toast cut" id="toast" role="status"><span id="toastMsg"></span><button id="toastUndo">UNDO</button></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet cut" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT"><div class="grab"></div><div class="sbody" id="sheetBody"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+function $(id){ return document.getElementById(id); }
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8) }catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function pad(n){ return String(n).padStart(2, '0'); }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- rooms (plan units, metres) ----------
+var ROOMS = [
+  {id:'bed',  n:'主臥', x:0,   y:0,   w:3.2, d:3,   W:60,  f:'bed'},
+  {id:'bath', n:'浴室', x:3.2, y:0,   w:1.6, d:3,   W:30,  f:'bath'},
+  {id:'kid',  n:'次臥', x:4.8, y:0,   w:3.2, d:3,   W:40,  f:'bunk'},
+  {id:'balc', n:'陽台', x:0,   y:3,   w:1.3, d:5,   W:15,  f:'plant'},
+  {id:'liv',  n:'客廳', x:1.3, y:3,   w:4,   d:5,   W:90,  f:'sofa'},
+  {id:'study',n:'書房', x:5.3, y:3,   w:2.7, d:2.2, W:45,  f:'desk'},
+  {id:'kit',  n:'餐廚', x:5.3, y:5.2, w:2.7, d:1.8, W:70,  f:'table'},
+  {id:'ent',  n:'玄關', x:5.3, y:7,   w:2.7, d:1,   W:20,  f:'shoe'}
+];
+var ACROOMS = [{id:'liv', n:'客廳'}, {id:'bed', n:'主臥'}, {id:'study', n:'書房'}];
+var SEED = {
+  tab:'map',
+  lights:{bed:{on:false,b:40,k:2700}, bath:{on:false,b:90,k:5000}, study:{on:true,b:85,k:5200}, liv:{on:true,b:70,k:3200}, kit:{on:true,b:80,k:4000}, ent:{on:true,b:50,k:3000}, balc:{on:false,b:60,k:2700}, kid:{on:false,b:30,k:2700}},
+  ac:{room:'liv', liv:{on:true,t:25.5,m:'cool',f:3}, bed:{on:false,t:26,m:'auto',f:2}, study:{on:true,t:24.5,m:'dry',f:2}},
+  lock:{locked:true},
+  log:[{t:'22:14', who:'阿凱', how:'指紋', ev:'進門'},{t:'21:40', who:'系統', how:'AUTO', ev:'自動上鎖'},{t:'21:38', who:'外送', how:'臨時碼', ev:'放門口'},{t:'19:02', who:'小芸', how:'NFC', ev:'進門'},{t:'08:31', who:'系統', how:'AUTO', ev:'自動上鎖'},{t:'08:29', who:'阿凱', how:'指紋', ev:'出門'}],
+  codes:[{c:'402719', note:'清潔阿姨・週四 14:00 至 17:00'},{c:'883105', note:'媽媽・長期'}],
+  scenes:[
+    {id:'home', n:'回家', l:['liv','ent','kit'], ac:{liv:25.5}, lock:true},
+    {id:'movie', n:'電影', l:['liv'], dim:{liv:15}, ac:{liv:26}, lock:true},
+    {id:'sleep', n:'睡眠', l:[], ac:{bed:26.5}, lock:true},
+    {id:'away', n:'外出', l:[], ac:{}, lock:true},
+    {id:'wake', n:'起床', l:['bed','bath','kit'], ac:{}, lock:true}
+  ],
+  active:'home',
+  sched:[{t:'22:30', s:'sleep', on:true},{t:'07:10', s:'wake', on:true},{t:'09:00', s:'away', on:false}]
+};
+var KEY = 'app006:state';
+var S = JSON.parse(JSON.stringify(SEED));
+try{ var sv = JSON.parse(localStorage.getItem(KEY) || 'null'); if (sv && sv.lights) S = sv; }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+S.lock.locked = S.lock.locked !== false;
+
+// ---------- audio ----------
+var ac = null;
+function audio(){ if (!ac) { try{ ac = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+document.addEventListener('pointerdown', audio, true);
+function tone(f, d, type, vol, when, f2){
+  if (!ac) return; var t = ac.currentTime + (when || 0), o = ac.createOscillator(), g = ac.createGain();
+  o.type = type || 'square'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+  g.gain.setValueAtTime(vol || .05, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + .02);
+}
+function sOn(){ tone(620, .07, 'square', .045); tone(1240, .09, 'square', .035, .05); }
+function sOff(){ tone(900, .07, 'square', .04); tone(360, .1, 'square', .035, .05); }
+function sErr(){ tone(140, .18, 'sawtooth', .06); tone(120, .18, 'sawtooth', .05, .12); }
+function sUnlock(){ tone(440, .08, 'triangle', .09); tone(660, .08, 'triangle', .09, .08); tone(990, .14, 'triangle', .08, .16); tone(80, .06, 'square', .08, .3); }
+function sLock(){ tone(880, .08, 'triangle', .08); tone(440, .12, 'triangle', .08, .08); tone(70, .07, 'square', .09, .22); }
+function sScene(){ [523, 659, 784, 1046].forEach(function(f, i){ tone(f, .12, 'square', .03, i * .06); }); }
+function sTick(){ tone(1800, .02, 'square', .02); }
+
+// ---------- iso projection ----------
+var U = 24, OX = 180, OY = 20, WH = 10;
+function P(x, y, h){ return [(x - y) * .866 * U + OX, (x + y) * .5 * U + OY - (h || 0)]; }
+function pts(arr){ return arr.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
+function kColor(k){
+  var t = Math.max(0, Math.min(1, (k - 2700) / 3800));
+  var a = [255, 170, 70], b = [255, 226, 150], c = [242, 240, 234], r;
+  if (t < .45) { var u = t / .45; r = a.map(function(v, i){ return Math.round(v + (b[i] - v) * u); }); }
+  else { var u2 = (t - .45) / .55; r = b.map(function(v, i){ return Math.round(v + (c[i] - v) * u2); }); }
+  return 'rgb(' + r.join(',') + ')';
+}
+function cuboid(x, y, w, d, h){
+  var A = P(x, y), B = P(x + w, y), C = P(x + w, y + d), D = P(x, y + d);
+  var A2 = P(x, y, h), B2 = P(x + w, y, h), C2 = P(x + w, y + d, h), D2 = P(x, y + d, h);
+  return '<polygon points="' + pts([B, C, C2, B2]) + '" fill="#1b170d"/><polygon points="' + pts([D, C, C2, D2]) + '" fill="#231d10"/><polygon points="' + pts([A2, B2, C2, D2]) + '" fill="#2b2412"/>';
+}
+function furniture(r){
+  var x = r.x, y = r.y;
+  switch (r.f) {
+    case 'bed': return cuboid(x + .3, y + .4, 2, 1.7, 7) + cuboid(x + .3, y + .4, .45, 1.7, 12);
+    case 'bath': return cuboid(x + .15, y + .2, 1.3, .7, 8) + cuboid(x + .5, y + 2.2, .5, .5, 6);
+    case 'desk': return cuboid(x + .2, y + .2, 1.8, .6, 10) + cuboid(x + 2.1, y + .2, .45, 1.6, 18);
+    case 'sofa': return cuboid(x + .5, y + 3.3, 3, .9, 7) + cuboid(x + .5, y + 3.95, 3, .3, 12) + cuboid(x + 1.2, y + 1.9, 1.6, .7, 4) + cuboid(x + .5, y + .2, 3, .35, 9);
+    case 'table': return cuboid(x + .3, y + .5, 1.2, .8, 8) + cuboid(x + 2.1, y + .15, .45, 1.5, 11);
+    case 'shoe': return cuboid(x + .15, y + .15, .9, .4, 9);
+    case 'plant': return cuboid(x + .35, y + .4, .6, .6, 10) + cuboid(x + .35, y + 3.8, .6, .6, 7);
+    case 'bunk': return cuboid(x + 1.8, y + .3, 1.1, 1.9, 14) + cuboid(x + .2, y + .2, 1, .5, 9);
+  }
+  return '';
+}
+function buildPlan(){
+  var ext = {minX:1e9, maxX:-1e9};
+  var defs = '<defs>', floors = '', lights = '', walls = [], furn = '', labels = '';
+  ROOMS.forEach(function(r){
+    var c = [P(r.x, r.y), P(r.x + r.w, r.y), P(r.x + r.w, r.y + r.d), P(r.x, r.y + r.d)];
+    var poly = pts(c);
+    var cx = (c[0][0] + c[2][0]) / 2, cy = (c[0][1] + c[2][1]) / 2;
+    var rad = Math.max(Math.abs(c[1][0] - c[3][0]), Math.abs(c[0][1] - c[2][1])) * .7;
+    defs += '<clipPath id="cl-' + r.id + '"><polygon points="' + poly + '"/></clipPath><radialGradient id="rg-' + r.id + '"><stop offset="0" id="st-' + r.id + '" stop-color="#ffe29a" stop-opacity=".95"/><stop offset=".55" id="st2-' + r.id + '" stop-color="#ffe29a" stop-opacity=".38"/><stop offset="1" stop-color="#ffe29a" stop-opacity="0"/></radialGradient>';
+    floors += '<polygon class="room-floor" data-room="' + r.id + '" points="' + poly + '" fill="rgba(245,228,0,.025)" stroke="#5a4f2c" stroke-width="1"/>';
+    lights += '<g id="lg-' + r.id + '" clip-path="url(#cl-' + r.id + ')" pointer-events="none"><circle class="lightc" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="' + rad.toFixed(1) + '" fill="url(#rg-' + r.id + ')"/></g>';
+    [[r.x, r.y, r.x + r.w, r.y], [r.x, r.y, r.x, r.y + r.d]].forEach(function(e){ walls.push(e); });
+    furn += '<g pointer-events="none" opacity=".95">' + furniture(r) + '</g>';
+    labels += '<g id="lb-' + r.id + '"><text class="rl" x="' + cx.toFixed(1) + '" y="' + (cy - 1).toFixed(1) + '" text-anchor="middle">' + r.n + '</text><text class="rv" id="rv-' + r.id + '" x="' + cx.toFixed(1) + '" y="' + (cy + 13).toFixed(1) + '" text-anchor="middle">OFF</text></g>';
+    c.forEach(function(p){ ext.minX = Math.min(ext.minX, p[0]); ext.maxX = Math.max(ext.maxX, p[0]); });
+  });
+  defs += '</defs>';
+  // back walls extruded (north edge y=0 and west edges)
+  var wallSvg = '';
+  walls.sort(function(a, b){ return (a[0] + a[1] + a[2] + a[3]) - (b[0] + b[1] + b[2] + b[3]); }).forEach(function(e){
+    var p1 = P(e[0], e[1]), p2 = P(e[2], e[3]), p3 = P(e[2], e[3], WH), p4 = P(e[0], e[1], WH);
+    wallSvg += '<polygon points="' + pts([p1, p2, p3, p4]) + '" fill="rgba(245,228,0,.05)" stroke="#8a7d3a" stroke-width=".9" stroke-linejoin="bevel" pointer-events="none"/>';
+  });
+  // outer front edges highlighted
+  var front = '<polyline points="' + pts([P(8, 0), P(8, 8), P(0, 8)]) + '" fill="none" stroke="#f5e400" stroke-width="1.6" stroke-linecap="square" pointer-events="none"/>';
+  // door marker on entry
+  var door = '<polyline points="' + pts([P(6.2, 8), P(7.4, 8)]) + '" stroke="#ff4a3d" stroke-width="3" pointer-events="none"/><text x="' + P(6.8, 8)[0].toFixed(1) + '" y="' + (P(6.8, 8)[1] + 16).toFixed(1) + '" text-anchor="middle" style="font:600 11px Menlo,monospace" fill="#ff4a3d" id="doorTxt">GATE</text>';
+  var H = P(8, 8)[1] + 26;
+  $('plan').insertAdjacentHTML('beforeend', '<svg viewBox="0 0 360 ' + Math.ceil(H) + '" id="planSvg" aria-label="公寓平面圖">' + defs + floors + lights + wallSvg + furn + front + door + labels + '</svg>');
+}
+
+// ---------- lights ----------
+function roomById(id){ return ROOMS.find(function(r){ return r.id === id; }); }
+function paintRoom(id, flick){
+  var L = S.lights[id], g = $('lg-' + id), col = kColor(L.k);
+  $('st-' + id).setAttribute('stop-color', col); $('st2-' + id).setAttribute('stop-color', col);
+  $('st-' + id).setAttribute('stop-opacity', (.35 + L.b / 100 * .6).toFixed(2));
+  $('st2-' + id).setAttribute('stop-opacity', (.12 + L.b / 100 * .3).toFixed(2));
+  g.classList.toggle('lit', L.on);
+  if (flick && L.on && !reduce) { g.classList.remove('flick'); void g.getBoundingClientRect(); g.classList.add('flick'); }
+  $('lb-' + id).classList.toggle('lit-t', L.on);
+  $('rv-' + id).textContent = L.on ? L.b + '%' : '';
+  var rb = document.querySelector('.rbtn[data-room="' + id + '"]');
+  if (rb) { rb.setAttribute('aria-pressed', L.on); rb.querySelector('small').textContent = L.on ? L.b + '%' : 'OFF'; }
+}
+function renderLights(){ ROOMS.forEach(function(r){ paintRoom(r.id); }); renderPower(); }
+function toggleRoom(id){
+  var L = S.lights[id]; L.on = !L.on; S.active = null; save();
+  paintRoom(id, true); renderPower(); renderScenes();
+  if (L.on) sOn(); else sOff(); haptic(L.on ? 10 : [4, 30, 4]);
+}
+function litCount(){ return ROOMS.filter(function(r){ return S.lights[r.id].on; }).length; }
+function watts(){
+  var w = 180; // fridge, router, standby
+  ROOMS.forEach(function(r){ var L = S.lights[r.id]; if (L.on) w += r.W * L.b / 100; });
+  ACROOMS.forEach(function(a){ var A = S.ac[a.id]; if (A.on) w += 420 + A.f * 110 + Math.max(0, 28 - A.t) * 60; });
+  return w;
+}
+function renderPower(){
+  var kw = watts() / 1000;
+  $('kw').textContent = kw.toFixed(2); $('power').textContent = kw.toFixed(2) + ' kW';
+  $('litCount').textContent = litCount() + '/8 ON';
+  $('allBtn').textContent = litCount() ? '全關' : '全開';
+  drawLoad();
+}
+function buildRGrid(){
+  $('rgrid').innerHTML = ROOMS.map(function(r){ return '<button class="rbtn cut" data-room="' + r.id + '" aria-pressed="false"><b>' + r.n + '</b><small>OFF</small></button>'; }).join('');
+}
+// tap vs long press on plan and grid
+function bindPress(root, sel){
+  var t = 0, fired = false, target = null, sx = 0, sy = 0;
+  root.addEventListener('pointerdown', function(e){
+    var el = e.target.closest(sel); if (!el) return;
+    target = el.dataset.room; fired = false; sx = e.clientX; sy = e.clientY; clearTimeout(t);
+    t = setTimeout(function(){ fired = true; haptic([6, 30, 6]); openRoom(target); }, 480);
+  });
+  root.addEventListener('pointermove', function(e){ if (target && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { clearTimeout(t); target = null; } });
+  function cancel(){ clearTimeout(t); }
+  root.addEventListener('pointerup', cancel); root.addEventListener('pointercancel', function(){ clearTimeout(t); target = null; });
+  root.addEventListener('click', function(e){ var el = e.target.closest(sel); if (!el) return; if (fired) { fired = false; return; } toggleRoom(el.dataset.room); target = null; });
+  root.addEventListener('contextmenu', function(e){ if (e.target.closest(sel)) e.preventDefault(); });
+}
+$('allBtn').addEventListener('click', function(){
+  var on = !litCount(); var prev = JSON.stringify(S.lights);
+  ROOMS.forEach(function(r, i){ S.lights[r.id].on = on; setTimeout(function(){ paintRoom(r.id, on); }, reduce ? 0 : i * 45); });
+  S.active = on ? S.active : 'away'; save(); setTimeout(renderPower, reduce ? 0 : 400); renderScenes();
+  if (on) sOn(); else sOff(); haptic([8, 20, 8]);
+  toast(on ? '全部燈光開啟' : '全部燈光關閉', function(){ S.lights = JSON.parse(prev); save(); renderLights(); });
+});
+
+// ---------- load chart ----------
+function setupCanvas(cv){
+  var r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (!r.width) return null;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  var x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); return {x:x, w:r.width, h:r.height};
+}
+var LOAD = [0.42,0.38,0.36,0.35,0.35,0.37,0.6,1.3,1.1,0.5,0.45,0.48,0.7,0.62,0.55,0.58,0.8,1.5,2.4,3.2,3.0,2.6,2.1,1.2];
+function drawLoad(){
+  var c = setupCanvas($('loadChart')); if (!c) return; var x = c.x, W = c.w, H = c.h;
+  var hr = new Date().getHours(), data = LOAD.slice(); data[hr] = watts() / 1000;
+  var mx = 3.6, bw = (W - 28) / 24;
+  x.clearRect(0, 0, W, H);
+  x.font = '600 10px Menlo, monospace'; x.fillStyle = '#8a8268';
+  ['00','06','12','18'].forEach(function(l, i){ x.fillText(l, 14 + i * 6 * bw, H - 2); });
+  for (var i = 0; i < 24; i++) {
+    var v = data[i], h = Math.max(2, v / mx * (H - 18)), X = 14 + i * bw, Y = H - 14 - h;
+    x.fillStyle = i === hr ? '#f5e400' : i > hr ? '#2a2414' : '#5a4f2c';
+    x.beginPath(); x.moveTo(X + 2, Y); x.lineTo(X + bw - 1, Y); x.lineTo(X + bw - 1, H - 14); x.lineTo(X + 1, H - 14); x.lineTo(X + 1, Y + 1); x.closePath(); x.fill();
+  }
+  x.strokeStyle = '#ff4a3d'; x.setLineDash([3, 4]); x.lineWidth = 1; var ly = H - 14 - 3 / mx * (H - 18);
+  x.beginPath(); x.moveTo(14, ly); x.lineTo(W - 14, ly); x.stroke(); x.setLineDash([]);
+  x.fillStyle = '#ff4a3d'; x.fillText('3.0kW 契約', W - 86, ly - 4);
+}
+
+// ---------- climate ----------
+var G = {cx:140, cy:132, r:108, a0:150, a1:390};
+function tToA(t){ return G.a0 + (t - 16) / 14 * (G.a1 - G.a0); }
+function pol(a, r){ var rad = a * Math.PI / 180; return [G.cx + Math.cos(rad) * r, G.cy + Math.sin(rad) * r]; }
+function buildGauge(){
+  var s = '<svg viewBox="0 0 280 250" id="gsvg">';
+  for (var i = 0; i <= 28; i++) {
+    var t = 16 + i * .5, a = tToA(t), long = i % 4 === 0;
+    var p1 = pol(a, G.r - (long ? 20 : 12)), p2 = pol(a, G.r);
+    s += '<line class="tk" data-t="' + t + '" x1="' + p1[0].toFixed(1) + '" y1="' + p1[1].toFixed(1) + '" x2="' + p2[0].toFixed(1) + '" y2="' + p2[1].toFixed(1) + '" stroke="#3b3421" stroke-width="' + (long ? 4 : 3) + '"/>';
+    if (long) { var lp = pol(a, G.r + 14); s += '<text x="' + lp[0].toFixed(1) + '" y="' + lp[1].toFixed(1) + '" text-anchor="middle" dominant-baseline="central" style="font:600 11px Menlo,monospace" fill="#8a8268">' + t + '</text>'; }
+  }
+  s += '<polygon id="curMark" points="0,-7 6,5 -6,5" fill="#ff4a3d"/><g id="tgtMark"><polygon points="-7,-4 7,-4 0,10" fill="#f5e400"/></g></svg><div class="center"><b id="gT">25.5<sup>°</sup></b><span id="gSub">室溫 27.3°C</span></div>';
+  $('gauge').innerHTML = s;
+}
+function curAC(){ return S.ac[S.ac.room]; }
+var SENS = {liv:{t:27.3,h:68,p:14}, bed:{t:26.1,h:62,p:9}, study:{t:27.9,h:64,p:18}};
+function renderClima(){
+  var A = curAC(), room = S.ac.room, sn = SENS[room];
+  $('croom').innerHTML = ACROOMS.map(function(r){ return '<button class="seg" data-r="' + r.id + '" aria-pressed="' + (r.id === room) + '">' + r.n + '</button>'; }).join('');
+  var MODES = [['cool','冷氣','<path d="M9 1v16M2 5l14 8M2 13l14-8" stroke="currentColor" stroke-width="2" stroke-linecap="square" fill="none"/>'],['dry','除濕','<path d="M9 1 3 9v4l3 4h6l3-4V9Z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="bevel"/>'],['fan','送風','<path d="M2 6h10l3-3M2 10h13M2 14h8l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="square" fill="none"/>'],['auto','自動','<path d="M3 16 9 2l6 14M5.5 11h7" stroke="currentColor" stroke-width="2" stroke-linecap="square" fill="none"/>']];
+  $('cmode').innerHTML = MODES.map(function(m){ return '<button class="seg" data-m="' + m[0] + '" aria-pressed="' + (A.m === m[0]) + '"><svg viewBox="0 0 18 18">' + m[2] + '</svg>' + m[1] + '</button>'; }).join('');
+  $('fan').innerHTML = [1,2,3,4,5].map(function(f){ return '<button data-f="' + f + '" aria-pressed="' + (f <= A.f) + '" aria-label="風量 ' + f + '"><i style="height:' + (8 + f * 6) + 'px"></i></button>'; }).join('');
+  $('fanTxt').textContent = 'LV ' + A.f;
+  $('acPwr').setAttribute('aria-pressed', A.on);
+  $('acPwr').innerHTML = '<svg viewBox="0 0 18 18"><path d="M9 1v8M4.5 4a6.5 6.5 0 1 0 9 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square"/></svg>' + (A.on ? 'ON' : 'OFF');
+  $('sT').textContent = sn.t.toFixed(1); $('sH').textContent = sn.h; $('sP').textContent = sn.p; $('sP').className = sn.p > 15 ? 'r' : '';
+  $('sensRoom').textContent = ACROOMS.find(function(r){ return r.id === room; }).n;
+  paintGauge(); drawTemp(); renderPower();
+}
+function paintGauge(){
+  var A = curAC(), sn = SENS[S.ac.room];
+  $('gauge').classList.toggle('off', !A.on);
+  document.querySelectorAll('#gsvg .tk').forEach(function(l){ var t = +l.dataset.t; l.setAttribute('stroke', A.on && t <= A.t ? (t > A.t - .6 ? '#f5e400' : '#8a7d20') : '#3b3421'); });
+  var ta = tToA(A.t), tp = pol(ta, G.r - 30);
+  $('tgtMark').setAttribute('transform', 'translate(' + tp[0].toFixed(1) + ' ' + tp[1].toFixed(1) + ') rotate(' + (ta - 90) + ')');
+  var ca = tToA(Math.max(16, Math.min(30, sn.t))), cp = pol(ca, G.r + 2);
+  $('curMark').setAttribute('transform', 'translate(' + cp[0].toFixed(1) + ' ' + cp[1].toFixed(1) + ') rotate(' + (ca + 90) + ')');
+  $('gT').innerHTML = A.t.toFixed(1) + '<sup>°</sup>';
+  $('gSub').textContent = A.on ? '室溫 ' + sn.t.toFixed(1) + '°C　' + (sn.t > A.t ? '降溫中' : '維持中') : '冷氣關閉';
+  $('gauge').setAttribute('aria-valuenow', A.t);
+}
+function setT(t, silent){
+  var A = curAC(); t = Math.round(Math.max(16, Math.min(30, t)) * 2) / 2;
+  if (t === A.t) return; A.t = t; S.active = null; save(); paintGauge(); renderPower();
+  if (!silent) { sTick(); haptic(4); }
+}
+(function(){
+  var g = $('gauge'), on = false;
+  function fromEv(e){
+    var r = g.getBoundingClientRect(), sc = r.width / 280;
+    var dx = e.clientX - r.left - G.cx * sc, dy = e.clientY - r.top - G.cy * sc;
+    var a = Math.atan2(dy, dx) * 180 / Math.PI; if (a < 90) a += 360;
+    a = Math.max(G.a0, Math.min(G.a1, a));
+    return 16 + (a - G.a0) / (G.a1 - G.a0) * 14;
+  }
+  g.addEventListener('pointerdown', function(e){ if (!curAC().on) { haptic([15, 30, 15]); sErr(); toast('先打開冷氣', null, true); return; } on = true; g.setPointerCapture(e.pointerId); setT(fromEv(e)); });
+  g.addEventListener('pointermove', function(e){ if (on) setT(fromEv(e)); });
+  g.addEventListener('pointerup', function(){ on = false; }); g.addEventListener('pointercancel', function(){ on = false; });
+  g.addEventListener('keydown', function(e){ if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { setT(curAC().t + .5); e.preventDefault(); } if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { setT(curAC().t - .5); e.preventDefault(); } });
+})();
+$('tPlus').addEventListener('click', function(){ if (!curAC().on) { sErr(); haptic([15, 30, 15]); return; } setT(curAC().t + .5); });
+$('tMinus').addEventListener('click', function(){ if (!curAC().on) { sErr(); haptic([15, 30, 15]); return; } setT(curAC().t - .5); });
+$('acPwr').addEventListener('click', function(){ var A = curAC(); A.on = !A.on; S.active = null; save(); if (A.on) sOn(); else sOff(); haptic(10); renderClima(); });
+$('croom').addEventListener('click', function(e){ var b = e.target.closest('.seg'); if (!b) return; S.ac.room = b.dataset.r; save(); haptic(5); sTick(); renderClima(); });
+$('cmode').addEventListener('click', function(e){ var b = e.target.closest('.seg'); if (!b) return; curAC().m = b.dataset.m; save(); haptic(5); sTick(); renderClima(); });
+$('fan').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; curAC().f = +b.dataset.f; save(); haptic(5); sTick(); renderClima(); });
+function drawTemp(){
+  var c = setupCanvas($('tempChart')); if (!c) return; var x = c.x, W = c.w, H = c.h, sn = SENS[S.ac.room], A = curAC();
+  var pts2 = []; for (var i = 0; i < 48; i++) pts2.push(sn.t + Math.sin(i / 7 + sn.h) * 1.4 + Math.sin(i / 2.3) * .3 - (i > 30 ? (i - 30) * .05 : 0));
+  var lo = 22, hi = 31; function Y(v){ return 6 + (1 - (v - lo) / (hi - lo)) * (H - 20); }
+  x.clearRect(0, 0, W, H);
+  x.fillStyle = 'rgba(245,228,0,.07)'; x.fillRect(14, Y(A.t + .5), W - 28, Y(A.t - .5) - Y(A.t + .5));
+  x.strokeStyle = '#f5e400'; x.lineWidth = 1; x.setLineDash([2, 3]); x.beginPath(); x.moveTo(14, Y(A.t)); x.lineTo(W - 14, Y(A.t)); x.stroke(); x.setLineDash([]);
+  x.strokeStyle = '#efe9d2'; x.lineWidth = 1.6; x.lineJoin = 'bevel'; x.beginPath();
+  pts2.forEach(function(v, i){ var X = 14 + i / 47 * (W - 28); if (i) x.lineTo(X, Y(v)); else x.moveTo(X, Y(v)); }); x.stroke();
+  x.font = '600 10px Menlo, monospace'; x.fillStyle = '#8a8268'; x.fillText('-24H', 14, H - 2); x.fillText('NOW', W - 38, H - 2);
+  x.fillStyle = '#f5e400'; x.fillText('SET ' + A.t.toFixed(1), W - 70, Y(A.t) - 4);
+}
+
+// ---------- gate ----------
+var LOCK_SVG = '<svg viewBox="0 0 40 40"><path d="M11 18V12a9 9 0 0 1 18 0v6" fill="none" stroke="#ff4a3d" stroke-width="4" stroke-linecap="square"/><path d="M6 18h28v16l-4 4H6Z" fill="#ff4a3d"/><path d="M20 25v6" stroke="#1e190f" stroke-width="4" stroke-linecap="square"/></svg>';
+var UNLOCK_SVG = '<svg viewBox="0 0 40 40"><path d="M11 18V12a9 9 0 0 1 17.5-3" fill="none" stroke="#f5e400" stroke-width="4" stroke-linecap="square"/><path d="M6 18h28v16l-4 4H6Z" fill="#f5e400"/><path d="M20 25v6" stroke="#1e190f" stroke-width="4" stroke-linecap="square"/></svg>';
+var relockAt = 0, relockT = 0;
+function renderLock(){
+  var L = S.lock.locked;
+  $('lockIc').innerHTML = L ? LOCK_SVG : UNLOCK_SVG;
+  $('lockTxt').textContent = L ? 'LOCKED' : 'OPEN'; $('lockTxt').className = L ? 'r' : 'y';
+  $('lockSub').textContent = L ? '大門已上鎖・長按 1 秒解鎖' : '已解鎖・長按 1 秒上鎖';
+  $('ring').setAttribute('stroke', L ? '#f5e400' : '#ff4a3d');
+  $('doorTxt').textContent = L ? 'GATE' : 'OPEN';
+  $('doorTxt').setAttribute('fill', L ? '#ff4a3d' : '#f5e400');
+  updRelock();
+}
+function updRelock(){
+  if (S.lock.locked) { $('lockCode').textContent = 'BOLT 3 / DOOR SHUT'; return; }
+  var s = Math.max(0, Math.ceil((relockAt - Date.now()) / 1000));
+  $('lockCode').textContent = 'AUTO-RELOCK T-' + pad(s) + 's';
+  if (s <= 0) { setLock(true, '系統', 'AUTO', '自動上鎖'); }
+}
+function setLock(locked, who, how, ev){
+  S.lock.locked = locked;
+  var d = new Date(); S.log.unshift({t:pad(d.getHours()) + ':' + pad(d.getMinutes()), who:who, how:how, ev:ev}); S.log = S.log.slice(0, 12);
+  save(); clearInterval(relockT);
+  if (!locked) { relockAt = Date.now() + 30000; relockT = setInterval(updRelock, 1000); sUnlock(); haptic([10, 40, 30]); }
+  else { sLock(); haptic([30, 40, 10]); }
+  renderLock(); renderLog();
+}
+function renderLog(){
+  $('logN').textContent = S.log.length;
+  $('log').innerHTML = S.log.slice(0, 6).map(function(l){ return '<li><time>' + l.t + '</time><span><b>' + esc(l.who) + '</b>　' + esc(l.ev) + '</span><span class="tag' + (l.how === 'AUTO' ? '' : l.how === '臨時碼' ? ' r' : '') + '">' + esc(l.how) + '</span></li>'; }).join('');
+}
+(function(){
+  var h = $('hold'), ring = $('ring'), start = 0, raf = 0, active = false;
+  function frame(){
+    if (!active) return;
+    var p = Math.min(1, (performance.now() - start) / 1000);
+    ring.setAttribute('stroke-dashoffset', (100 - p * 100).toFixed(1));
+    if (p >= 1) { active = false; h.classList.remove('pressing'); ring.setAttribute('stroke-dashoffset', 100);
+      if (S.lock.locked) setLock(false, '阿凱', 'APP', '遠端解鎖'); else setLock(true, '阿凱', 'APP', '遠端上鎖');
+      toast(S.lock.locked ? '大門已上鎖' : '已解鎖，30 秒後自動上鎖'); return; }
+    if (p > .02 && Math.round(p * 100) % 12 === 0) haptic(3);
+    raf = requestAnimationFrame(frame);
+  }
+  function down(e){ e.preventDefault(); active = true; start = performance.now(); h.classList.add('pressing'); try{ h.setPointerCapture(e.pointerId); }catch(er){} tone(220, .05, 'square', .03); raf = requestAnimationFrame(frame); }
+  function up(){
+    if (!active) return; active = false; cancelAnimationFrame(raf); h.classList.remove('pressing');
+    var p = (performance.now() - start) / 1000;
+    ring.setAttribute('stroke-dashoffset', 100);
+    if (p < 1) { sErr(); haptic([20, 30, 20]); toast('請按住不放，直到外框走完一圈', null, true); }
+  }
+  h.addEventListener('pointerdown', down);
+  h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up); h.addEventListener('lostpointercapture', up);
+  h.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  h.addEventListener('keydown', function(e){ if ((e.key === 'Enter' || e.key === ' ') && !active && !e.repeat) { e.preventDefault(); active = true; start = performance.now(); raf = requestAnimationFrame(frame); } });
+  h.addEventListener('keyup', function(e){ if (e.key === 'Enter' || e.key === ' ') up(); });
+})();
+function renderCodes(){
+  $('codes').innerHTML = S.codes.length ? S.codes.map(function(c, i){ return '<div class="code"><b>' + c.c + '</b><span>' + esc(c.note) + '</span><button data-del="' + i + '" aria-label="刪除訪客碼 ' + c.c + '"><svg viewBox="0 0 16 16"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="square"/></svg></button></div>'; }).join('') : '<p class="hint" style="padding:12px 0">沒有有效的訪客碼</p>';
+}
+$('codes').addEventListener('click', function(e){
+  var b = e.target.closest('[data-del]'); if (!b) return; var i = +b.dataset.del, c = S.codes.splice(i, 1)[0]; save(); renderCodes(); sOff(); haptic([6, 20, 6]);
+  toast('訪客碼 ' + c.c + ' 已作廢', function(){ S.codes.splice(i, 0, c); save(); renderCodes(); });
+});
+$('newCode').addEventListener('click', function(){
+  var code = String(Math.floor(100000 + Math.random() * 900000)), dur = '2h';
+  haptic(8); sTick();
+  openSheet('<h4 id="sheetT">GUEST CODE<span>訪客碼</span></h4><p class="sub">一次性 6 位數，對講機鍵盤輸入即可開門</p><div class="bigcode" id="bc">' + code + '</div>' +
+    '<div class="srow" id="dur"><button class="seg" data-v="2h" aria-pressed="true">2 小時</button><button class="seg" data-v="today" aria-pressed="false">今天</button><button class="seg" data-v="once" aria-pressed="false">用一次</button></div>' +
+    '<input class="txt" id="cNote" maxlength="16" placeholder="給誰？例如：水電師傅" autocomplete="off">' +
+    '<div class="srow"><button class="cbtn cut" id="reroll">換一組</button><button class="cbtn cut y" id="issue">發出</button></div>');
+  $('dur').addEventListener('click', function(e){ var b = e.target.closest('.seg'); if (!b) return; dur = b.dataset.v; this.querySelectorAll('.seg').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); haptic(4); sTick(); });
+  $('reroll').addEventListener('click', function(){ code = String(Math.floor(100000 + Math.random() * 900000)); $('bc').textContent = code; haptic(4); sTick(); });
+  $('issue').addEventListener('click', function(){
+    var note = $('cNote').value.trim() || '訪客';
+    var d = new Date(), until = dur === '2h' ? pad((d.getHours() + 2) % 24) + ':' + pad(d.getMinutes()) + ' 前' : dur === 'today' ? '今天 23:59 前' : '用一次';
+    S.codes.unshift({c:code, note:note + '・' + until}); save(); renderCodes(); closeSheet(); sOn(); haptic([8, 30, 8]); toast('訪客碼 ' + code + ' 已發出');
+  });
+});
+// door cam
+var camOn = false, camLast = 0, noiseSeed = 1;
+function camFrame(ts){
+  if (!camOn || document.hidden) { camOn = false; return; }
+  requestAnimationFrame(camFrame);
+  if (ts - camLast < 80) return; camLast = ts;
+  var cv = $('cam'); var c = cv._c || (cv._c = setupCanvas(cv)); if (!c) return;
+  var x = c.x, W = c.w, H = c.h, vx = W * .5, vy = H * .46;
+  x.fillStyle = '#0d0b07'; x.fillRect(0, 0, W, H);
+  // corridor
+  x.fillStyle = '#1b170e'; x.beginPath(); x.moveTo(0, 0); x.lineTo(vx - 30, vy - 22); x.lineTo(vx - 30, vy + 26); x.lineTo(0, H); x.fill();
+  x.fillStyle = '#16130b'; x.beginPath(); x.moveTo(W, 0); x.lineTo(vx + 30, vy - 22); x.lineTo(vx + 30, vy + 26); x.lineTo(W, H); x.fill();
+  x.fillStyle = '#221d11'; x.beginPath(); x.moveTo(0, H); x.lineTo(vx - 30, vy + 26); x.lineTo(vx + 30, vy + 26); x.lineTo(W, H); x.fill();
+  x.fillStyle = '#2b2512'; x.fillRect(vx - 30, vy - 22, 60, 48);
+  x.fillStyle = '#3a3218'; x.fillRect(vx - 10, vy - 12, 20, 38);
+  // ceiling lamps
+  x.fillStyle = 'rgba(245,228,0,.55)'; [.2, .45].forEach(function(k){ var yy = vy * k, ww = (1 - k) * 40 + 8; x.fillRect(vx - ww / 2, yy, ww, 3); });
+  // door frames on sides
+  x.strokeStyle = '#3b3421'; x.lineWidth = 2; x.strokeRect(W * .08, H * .2, W * .1, H * .62); x.strokeRect(W * .82, H * .2, W * .1, H * .62);
+  // noise + scanlines
+  x.fillStyle = 'rgba(239,233,210,.08)';
+  for (var i = 0; i < 260; i++) { noiseSeed = (noiseSeed * 16807) % 2147483647; var nx = noiseSeed % W; noiseSeed = (noiseSeed * 16807) % 2147483647; x.fillRect(nx, noiseSeed % H, 1.5, 1.5); }
+  x.fillStyle = 'rgba(0,0,0,.28)'; for (var y = 0; y < H; y += 3) x.fillRect(0, y, W, 1);
+  var band = (ts / 18) % (H + 40) - 20; x.fillStyle = 'rgba(245,228,0,.05)'; x.fillRect(0, band, W, 16);
+  var d = new Date(); $('camTs').textContent = 'CAM-01 27F ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+}
+function startCam(){ if (camOn) return; camOn = true; $('cam')._c = null; requestAnimationFrame(camFrame); }
+
+// ---------- scenes ----------
+function sceneDesc(sc){
+  var ac2 = Object.keys(sc.ac || {}).map(function(k){ return sc.ac[k] + '°'; });
+  return '燈 ' + sc.l.length + '/8 · 冷氣 ' + (ac2.length ? ac2.join(' ') : 'OFF') + ' · ' + (sc.lock ? 'LOCK' : 'OPEN');
+}
+function renderScenes(){
+  $('scenes').innerHTML = S.scenes.map(function(sc, i){
+    return '<div class="swrap" data-id="' + sc.id + '"><div class="del">DELETE</div><button class="scene cut" data-scene="' + sc.id + '" aria-pressed="' + (S.active === sc.id) + '"><span class="no">' + pad(i + 1) + '</span><span><b>' + esc(sc.n) + '</b><small>' + sceneDesc(sc) + '</small></span><span class="go">' + (S.active === sc.id ? 'ACTIVE' : 'RUN') + '</span></button></div>';
+  }).join('');
+  bindSceneSwipe();
+}
+function applyScene(id){
+  var sc = S.scenes.find(function(s){ return s.id === id; }); if (!sc) return;
+  var prev = JSON.stringify({lights:S.lights, ac:S.ac, lock:S.lock, active:S.active});
+  ROOMS.forEach(function(r){ var L = S.lights[r.id]; L.on = sc.l.indexOf(r.id) >= 0; if (sc.dim && sc.dim[r.id]) L.b = sc.dim[r.id]; else if (L.on && L.b < 30) L.b = 70; });
+  ACROOMS.forEach(function(a){ var v = sc.ac[a.id]; S.ac[a.id].on = v != null; if (v != null) S.ac[a.id].t = v; });
+  var wasLocked = S.lock.locked; S.active = id; save();
+  if (sc.lock && !wasLocked) setLock(true, '場景', 'AUTO', sc.n + '上鎖');
+  ROOMS.forEach(function(r, i){ setTimeout(function(){ paintRoom(r.id, S.lights[r.id].on); }, reduce ? 0 : i * 60); });
+  setTimeout(renderPower, reduce ? 0 : 500);
+  renderScenes(); renderClima(); sScene(); haptic([8, 30, 8, 30, 8]);
+  toast('場景「' + sc.n + '」已套用', function(){ var p = JSON.parse(prev); S.lights = p.lights; S.ac = p.ac; S.lock = p.lock; S.active = p.active; save(); renderLights(); renderClima(); renderLock(); renderScenes(); });
+}
+function bindSceneSwipe(){
+  document.querySelectorAll('.swrap').forEach(function(w){
+    var b = w.querySelector('.scene'), sx = 0, sy = 0, dx = 0, mode = null, pid = null;
+    b.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; dx = 0; mode = null; pid = e.pointerId; });
+    b.addEventListener('pointermove', function(e){
+      if (pid !== e.pointerId) return; var mx = e.clientX - sx, my = e.clientY - sy;
+      if (!mode) { if (Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) { mode = 'x'; w.classList.add('sw'); try{ b.setPointerCapture(e.pointerId); }catch(er){} } else if (Math.abs(my) > 8) mode = 'y'; }
+      if (mode === 'x') { dx = Math.min(0, mx); if (dx < -90) dx = -90 + (dx + 90) / 4; b.style.transform = 'translateX(' + dx + 'px)'; }
+    });
+    function end(){
+      if (pid === null) return; pid = null;
+      if (mode === 'x') {
+        if (dx < -76) { var i = S.scenes.findIndex(function(s){ return s.id === w.dataset.id; }); var sc = S.scenes.splice(i, 1)[0]; save(); renderScenes(); sOff(); haptic([6, 20, 6]); toast('刪除場景「' + sc.n + '」', function(){ S.scenes.splice(i, 0, sc); save(); renderScenes(); }); return; }
+        b.style.transform = ''; setTimeout(function(){ w.classList.remove('sw'); }, 200);
+      }
+    }
+    b.addEventListener('pointerup', end); b.addEventListener('pointercancel', end);
+    b.addEventListener('click', function(e){ if (mode === 'x') { e.preventDefault(); return; } applyScene(b.dataset.scene); });
+  });
+}
+$('saveScene').addEventListener('click', function(){
+  haptic(6); sTick();
+  var on = ROOMS.filter(function(r){ return S.lights[r.id].on; }).map(function(r){ return r.n; });
+  openSheet('<h4 id="sheetT">SAVE SCENE<span>存成場景</span></h4><p class="sub">燈 ' + on.length + '/8：' + (on.join('、') || '全關') + '<br>冷氣：' + ACROOMS.filter(function(a){ return S.ac[a.id].on; }).map(function(a){ return a.n + ' ' + S.ac[a.id].t + '°'; }).join('、') + '<br>門鎖：' + (S.lock.locked ? '上鎖' : '開啟') + '</p>' +
+    '<input class="txt" id="scName" maxlength="8" placeholder="場景名稱，例如：週末打電動" autocomplete="off"><div class="srow"><button class="cbtn cut y" id="scGo" style="flex:1">儲存</button></div>');
+  $('scGo').addEventListener('click', function(){
+    var n = $('scName').value.trim(); if (!n) { sErr(); haptic([20, 40, 20]); $('scName').placeholder = '要先取個名字'; $('scName').focus(); return; }
+    var ac2 = {}; ACROOMS.forEach(function(a){ if (S.ac[a.id].on) ac2[a.id] = S.ac[a.id].t; });
+    var dim = {}; ROOMS.forEach(function(r){ if (S.lights[r.id].on) dim[r.id] = S.lights[r.id].b; });
+    var sc = {id:'u' + Date.now(), n:n, l:ROOMS.filter(function(r){ return S.lights[r.id].on; }).map(function(r){ return r.id; }), dim:dim, ac:ac2, lock:S.lock.locked};
+    S.scenes.push(sc); S.active = sc.id; save(); renderScenes(); closeSheet(); sScene(); haptic([8, 30, 8]); toast('已存成「' + n + '」');
+  });
+});
+function renderSched(){
+  $('sched').innerHTML = S.sched.map(function(s, i){ var sc = S.scenes.find(function(x){ return x.id === s.s; }); return '<div class="sched"><div><b>' + s.t + '</b><span>自動切到「' + (sc ? esc(sc.n) : '已刪除') + '」</span></div><button class="tg" role="switch" data-i="' + i + '" aria-checked="' + s.on + '" aria-label="' + s.t + ' 排程"><i></i></button></div>'; }).join('');
+}
+$('sched').addEventListener('click', function(e){ var b = e.target.closest('.tg'); if (!b) return; var s = S.sched[+b.dataset.i]; s.on = !s.on; save(); b.setAttribute('aria-checked', s.on); haptic(6); if (s.on) sOn(); else sOff(); });
+
+// ---------- room sheet ----------
+function openRoom(id){
+  var r = roomById(id), L = S.lights[id];
+  openSheet('<h4 id="sheetT">' + id.toUpperCase() + '<span>' + r.n + '</span></h4><p class="sub">' + r.W + 'W 燈組・' + (L.on ? 'ON' : 'OFF') + '</p>' +
+    '<div class="slider"><label>亮度<b id="bV">' + L.b + '%</b></label><div class="track" id="bT"><div class="bar"></div><div class="fill"></div><div class="knob"></div></div></div>' +
+    '<div class="slider"><label>色溫<b id="kV">' + L.k + 'K</b></label><div class="track kel" id="kT"><div class="bar"></div><div class="fill"></div><div class="knob"></div></div></div>' +
+    '<div class="srow"><button class="cbtn cut ' + (L.on ? 'r' : 'y') + '" id="rTog" style="flex:1;justify-content:center">' + (L.on ? '關燈' : '開燈') + '</button></div>');
+  function track(el, get, set, min, max, step, lbl, fmt){
+    function paint(){ var p = (get() - min) / (max - min) * 100; el.querySelector('.fill').style.width = p + '%'; el.querySelector('.knob').style.left = p + '%'; $(lbl).textContent = fmt(get()); }
+    paint(); var on = false, last = null;
+    function mv(e){ var b = el.getBoundingClientRect(), p = Math.max(0, Math.min(1, (e.clientX - b.left) / b.width)); var v = Math.round((min + p * (max - min)) / step) * step; if (v !== last) { last = v; set(v); paint(); haptic(2); } }
+    el.addEventListener('pointerdown', function(e){ on = true; el.setPointerCapture(e.pointerId); mv(e); });
+    el.addEventListener('pointermove', function(e){ if (on) mv(e); });
+    el.addEventListener('pointerup', function(){ on = false; save(); }); el.addEventListener('pointercancel', function(){ on = false; });
+  }
+  track($('bT'), function(){ return L.b; }, function(v){ L.b = v; if (!L.on) L.on = true; S.active = null; paintRoom(id); renderPower(); }, 5, 100, 5, 'bV', function(v){ return v + '%'; });
+  track($('kT'), function(){ return L.k; }, function(v){ L.k = v; paintRoom(id); }, 2700, 6500, 100, 'kV', function(v){ return v + 'K'; });
+  $('rTog').addEventListener('click', function(){ toggleRoom(id); closeSheet(); });
+}
+
+// ---------- sheet mechanics ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){
+  lastFocus = document.activeElement; $('sheetBody').innerHTML = html; sheet.style.transform = '';
+  sheet.classList.add('on'); scrim.classList.add('on');
+  var f = sheet.querySelector('button'); if (f) f.focus({preventScroll:true});
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on','drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = '';
+  if (document.activeElement && sheet.contains(document.activeElement)) document.activeElement.blur();
+  if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
+}
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button,input,.track')) return;
+    dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId);
+  });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6; sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+
+// ---------- toast ----------
+var undoFn = null, toastT = 0;
+function toast(msg, undo, err){
+  $('toastMsg').textContent = msg; $('toastUndo').style.display = undo ? '' : 'none'; undoFn = undo || null;
+  var t = $('toast'); t.classList.toggle('err', !!err); t.classList.add('on'); clearTimeout(toastT);
+  toastT = setTimeout(function(){ t.classList.remove('on'); undoFn = null; }, 3000);
+}
+$('toastUndo').addEventListener('click', function(){ haptic(8); if (undoFn) undoFn(); undoFn = null; $('toast').classList.remove('on'); });
+
+// ---------- tabs ----------
+var ORDER = ['map','clima','gate','scene'], cur = 'map';
+function switchTab(p){
+  if (p === cur) { $('p-' + p).scrollTo({top:0, behavior:reduce ? 'auto' : 'smooth'}); return; }
+  var from = ORDER.indexOf(cur), to = ORDER.indexOf(p);
+  $('p-' + cur).hidden = true; var pg = $('p-' + p); pg.hidden = false;
+  pg.classList.remove('in','back'); void pg.offsetWidth; pg.classList.add('in'); if (to < from) pg.classList.add('back');
+  cur = p; S.tab = p; save();
+  document.querySelectorAll('.hud button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.p === p); });
+  haptic(5); sTick(); glitch();
+  if (p === 'map') drawLoad();
+  if (p === 'clima') { drawTemp(); }
+  if (p === 'gate') startCam(); else camOn = false;
+}
+$('hud').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b) switchTab(b.dataset.p); });
+$('hud').addEventListener('keydown', function(e){ if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; var i = (ORDER.indexOf(cur) + (e.key === 'ArrowRight' ? 1 : 3)) % 4; switchTab(ORDER[i]); document.querySelector('.hud button[data-p="' + ORDER[i] + '"]').focus(); });
+
+// ---------- glitch wordmark ----------
+function glitch(){ if (reduce) return; var w = $('wm'); w.classList.remove('glitch'); void w.offsetWidth; w.classList.add('glitch'); }
+setInterval(function(){ if (!document.hidden && Math.random() < .5) glitch(); }, 6500);
+
+// ---------- clock + resize ----------
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + pad(d.getMinutes()); }
+tick(); setInterval(tick, 15000);
+var rzT = 0; window.addEventListener('resize', function(){ clearTimeout(rzT); rzT = setTimeout(function(){ drawLoad(); drawTemp(); $('cam')._c = null; }, 120); });
+document.addEventListener('visibilitychange', function(){ if (!document.hidden && cur === 'gate') startCam(); });
+
+// ---------- init ----------
+buildPlan(); buildRGrid(); buildGauge();
+bindPress($('plan'), '.room-floor'); bindPress($('rgrid'), '.rbtn');
+renderLights(); renderClima(); renderLock(); renderLog(); renderCodes(); renderScenes(); renderSched();
+if (S.tab && S.tab !== 'map') { var t0 = S.tab; cur = 'map'; switchTab(t0); }
+})();
+</script>
+</body>
+</html>

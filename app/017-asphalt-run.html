@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#171615">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PACE">
+<title>PACE · 跑步紀錄</title>
+<meta name="description" content="像運動雜誌封面一樣的跑步紀錄：等高線地圖上逐步描出路線、配速脈動、分段、配速熱度路線回放與週里程。收錄於 100 Creative HTML Works（App 017・運動雜誌粗斜體）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/017-asphalt-run.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23171615'/%3E%3Cpath d='M6 50c10-4 14-16 24-18s16 6 28-6' fill='none' stroke='%233a3733' stroke-width='3'/%3E%3Cpath d='M8 42c8-2 12-14 22-16s16 4 26-8' fill='none' stroke='%23ff5a1f' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='56' cy='18' r='5' fill='%23f3efe7'/%3E%3C/svg%3E">
+<style>
+:root{
+  --asp:#171615;--asp2:#211f1d;--asp3:#2d2a27;--line:#35322e;
+  --ink:#f3efe7;--ink2:#b3ada4;--ink3:#8a847b;
+  --or:#ff5a1f;--or2:#ff7a45;--ord:#b93c0c;
+  --cond:"Avenir Next Condensed","Avenir Next","Helvetica Neue","PingFang TC",sans-serif;
+  --sans:"Avenir Next","PingFang TC","Heiti TC",system-ui,sans-serif;
+  --snap:cubic-bezier(.2,1.2,.35,1);--out:cubic-bezier(.2,.9,.25,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--sans);color:var(--ink);background:var(--asp);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--or);outline-offset:3px}
+svg{display:block}
+.it{font-family:var(--cond);font-style:italic;font-weight:800;font-variant-numeric:tabular-nums}
+.hv{font-family:var(--cond);font-style:italic;font-weight:900}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.cam{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--asp)}
+.screen::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .6 0 0 0 0 .58 0 0 0 0 .55 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+@media (min-width:521px){
+  body{background:#121110}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:9px;z-index:1;
+    background:linear-gradient(160deg,#3b3834,#1c1a18 40%,#2a2724);box-shadow:inset 0 0 0 1px #4a4640,0 18px 30px -16px rgba(0,0,0,.8)}
+  .device::after{content:"";position:absolute;right:-3px;top:180px;width:4px;height:64px;border-radius:0 3px 3px 0;background:var(--or)}
+  .screen{inset:9px;border-radius:45px}
+  .cam{display:block;position:absolute;top:20px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#050505;z-index:60;box-shadow:inset 0 0 0 3px #111}
+  .caption{display:block;position:relative;z-index:1;max-width:280px}
+  .caption b{display:block;font:italic 900 96px/.9 var(--cond);letter-spacing:.01em;color:var(--ink)}
+  .caption p{margin-top:14px;font-size:15px;line-height:1.6;color:var(--ink2)}
+  .caption p em{font-style:normal;color:var(--or)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+/* status */
+.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(47px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:italic 800 17px/1 var(--cond);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* pages */
+.pages{position:absolute;inset:0;z-index:2}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;padding:calc(50px + env(safe-area-inset-top)) 18px calc(120px + env(safe-area-inset-bottom))}
+.page::-webkit-scrollbar{display:none}
+.page[hidden]{display:none}
+.page.in{animation:slideIn .38s var(--out)}
+.page.in.rev{animation-name:slideInR}
+@keyframes slideIn{from{transform:translateX(34px) skewX(-3deg)}}
+@keyframes slideInR{from{transform:translateX(-34px) skewX(3deg)}}
+
+/* cover */
+.mast{display:flex;align-items:flex-end;justify-content:space-between;margin:2px -2px 0}
+.mast h1{font:italic 900 124px/.8 var(--cond);letter-spacing:.005em;padding:10px 4px 2px 0;color:var(--ink)}
+.mast .iss{text-align:right;font:italic 700 15px/1.25 var(--cond);color:var(--ink2);padding-bottom:8px}
+.mast .iss b{display:block;font-size:30px;color:var(--or);font-weight:900}
+.tag{margin-top:10px;font-weight:700;font-size:15px;color:var(--ink2)}
+.tag b{color:var(--ink)}
+.cover{position:relative;margin:14px -18px 0;height:360px}
+.cover svg.map{width:100%;height:100%}
+.cl{position:absolute;text-shadow:0 1px 0 var(--asp),0 0 6px var(--asp)}
+.cl1{left:18px;top:14px}
+.cl1 small{display:block;font-weight:700;font-size:14px;color:var(--ink2)}
+.cl1 .it{font-size:74px;line-height:.9;display:block}
+.cl1 .it i{font-size:28px;font-style:italic;color:var(--ink2);margin-left:4px}
+.cl2{right:18px;bottom:16px;text-align:right;max-width:190px}
+.cl2 .it{display:block;font-size:38px;line-height:1;color:var(--or)}
+.cl2 span{font-size:14px;font-weight:700}
+.toc{margin-top:22px}
+.toc h2{font:italic 900 34px/1 var(--cond);letter-spacing:.01em;margin-bottom:6px}
+.toc button{display:grid;grid-template-columns:78px 1fr auto;align-items:baseline;gap:10px;width:100%;min-height:56px;padding:8px 0;text-align:left;transition:transform .15s}
+.toc button:active{transform:translateX(4px)}
+.toc button .it{font-size:34px;color:var(--or)}
+.toc button b{font-size:16px}
+.toc button span{display:block;font-size:13px;color:var(--ink2)}
+.toc button em{font:italic 800 18px/1 var(--cond);color:var(--ink2)}
+.week{margin-top:24px}
+.week .hd{display:flex;justify-content:space-between;align-items:baseline}
+.week .hd b{font:italic 900 22px/1 var(--cond)}
+.week .hd span{font-size:14px;color:var(--ink2)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:120px;margin-top:12px;align-items:end}
+.day{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.day i{display:block;width:70%;min-height:4px;background:var(--asp3);transform:skewX(-12deg);transition:height .6s var(--snap)}
+.day.has i{background:var(--or)}
+.day.today span{color:var(--ink)}
+.day span{font-size:13px;color:var(--ink3);font-weight:700}
+
+/* log */
+.ph{display:flex;align-items:flex-end;justify-content:space-between;margin:6px 0 14px}
+.ph h2{font:italic 900 52px/.95 var(--cond);letter-spacing:.005em;padding-right:6px}
+.ph .sum{text-align:right;font-size:13px;color:var(--ink2)}
+.ph .sum b{display:block;font:italic 800 26px/1 var(--cond);color:var(--ink)}
+.seg{position:relative;display:grid;grid-template-columns:repeat(4,1fr);height:44px;margin:0 2px 8px}
+.seg .knob{position:absolute;top:4px;bottom:4px;left:0;width:25%;background:var(--or);transform:skewX(-14deg);transition:left .42s var(--snap)}
+.seg button{position:relative;z-index:1;font-weight:700;font-size:14px;color:var(--ink2);transition:color .2s}
+.seg button[aria-pressed=true]{color:var(--asp)}
+.mon{font:italic 900 22px/1 var(--cond);color:var(--ink3);margin:22px 0 4px;letter-spacing:.02em}
+.rw{position:relative;overflow:hidden;margin:0 -18px}
+.rw .del{position:absolute;inset:0 0 0 auto;width:0;overflow:hidden;display:flex;align-items:center;justify-content:flex-end;background:var(--ord);font-weight:800;color:#fff;white-space:nowrap}
+.rw .del span{padding-right:22px}
+.run-row{position:relative;display:grid;grid-template-columns:106px 1fr 56px;gap:10px;align-items:center;width:100%;min-height:74px;padding:8px 18px;background:transparent;text-align:left;touch-action:pan-y;transition:transform .3s var(--out)}
+.run-row.drag{transition:none}
+.run-row:active{background:rgba(243,239,231,.04)}
+.run-row .d{font:italic 900 40px/1 var(--cond);white-space:nowrap;text-align:right;padding-right:4px}
+.run-row .d i{font-size:15px;color:var(--ink2);margin-left:2px}
+.run-row b{font-size:15px;display:block}
+.run-row span{font-size:13px;color:var(--ink2)}
+.run-row svg{width:56px;height:46px}
+.empty{padding:60px 10px;text-align:center;color:var(--ink2)}
+.empty b{display:block;font:italic 900 40px/1 var(--cond);color:var(--ink);margin-bottom:8px}
+
+/* replay */
+.rp-h{margin:6px 0 4px}
+.rp-h small{font-size:13px;color:var(--ink2);font-weight:700}
+.rp-h h2{font:italic 900 40px/1 var(--cond);padding-right:6px}
+.rp-h button{margin-top:2px;min-height:44px;font-weight:700;color:var(--or);font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.rpmap{position:relative;margin:4px -18px 0;height:300px}
+.rpmap svg{width:100%;height:100%}
+.read{display:grid;grid-template-columns:1.1fr 1.2fr 1fr;margin-top:10px}
+.read div{padding:0 2px}
+.read .it{display:block;font-size:40px;line-height:1}
+.read span{font-size:13px;color:var(--ink2);font-weight:700}
+.scrub{display:flex;align-items:center;gap:12px;margin-top:14px}
+.pbtn{width:56px;height:48px;flex:none;display:grid;place-items:center;background:var(--or);color:var(--asp);clip-path:polygon(18% 0,100% 0,82% 100%,0 100%);transition:background-color .15s,transform .15s}
+.pbtn:active{background:var(--or2);transform:scale(.94)}
+.track{position:relative;flex:1;height:48px;touch-action:none;cursor:pointer}
+.track .rail{position:absolute;left:0;right:0;top:21px;height:6px;border-radius:3px;background:var(--asp3)}
+.track .fill{position:absolute;left:0;top:21px;height:6px;border-radius:3px;background:var(--ink)}
+.track .th{position:absolute;top:12px;width:14px;height:24px;margin-left:-7px;background:var(--ink);transform:skewX(-14deg)}
+.spd{width:52px;height:48px;flex:none;font:italic 900 20px/1 var(--cond);color:var(--ink2)}
+.spd:active{color:var(--ink)}
+.splits{margin-top:18px}
+.splits h3,.pbs h3{font:italic 900 24px/1 var(--cond);margin-bottom:8px}
+.sp{display:grid;grid-template-columns:34px 64px 1fr;gap:10px;align-items:center;height:30px}
+.sp .k{font:italic 800 17px/1 var(--cond);color:var(--ink2);text-align:right}
+.sp .t{font:italic 800 19px/1 var(--cond)}
+.sp .b{height:12px;background:var(--asp3);transform:skewX(-14deg);transform-origin:left}
+.sp.best .b{background:var(--or)}
+.sp.best .t{color:var(--or)}
+
+/* stats */
+.goal{display:flex;align-items:flex-end;gap:12px;width:100%;text-align:left;margin-top:4px;min-height:44px}
+.goal .it{font-size:88px;line-height:.85}
+.goal span{font-size:14px;color:var(--ink2);font-weight:700;padding-bottom:8px}
+.goal span b{display:block;font:italic 800 26px/1 var(--cond);color:var(--ink)}
+.goalbar{position:relative;height:18px;margin:14px 0 0;background:var(--asp3);transform:skewX(-14deg);overflow:hidden}
+.goalbar i{position:absolute;inset:0 auto 0 0;background:var(--or);transition:width .7s var(--snap)}
+.wk{margin-top:26px}
+.wk .hd{display:flex;justify-content:space-between;align-items:baseline}
+.wk .hd b{font:italic 900 24px/1 var(--cond)}
+.wk .hd span{font-size:14px;color:var(--ink2)}
+.wk svg{width:100%;height:170px;margin-top:10px;overflow:visible;touch-action:pan-y}
+.wk svg text{font:italic 800 12px var(--cond);fill:var(--ink3)}
+.pbs{margin-top:26px}
+.pbg{display:grid;grid-template-columns:1fr 1fr;row-gap:18px;column-gap:14px}
+.pbg div span{display:block;font-size:13px;color:var(--ink2);font-weight:700}
+.pbg div .it{display:block;font-size:44px;line-height:1.05}
+.pbg div .it i{font-size:20px;margin-left:3px;color:var(--ink2)}
+.pbg div small{display:block}
+.pbg div small{font-size:13px;color:var(--ink3)}
+
+/* tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:20;height:calc(78px + env(safe-area-inset-bottom));padding:0 8px env(safe-area-inset-bottom);display:grid;grid-template-columns:1fr 1fr 104px 1fr 1fr;align-items:start;background:#1d1b19}
+.tab{height:62px;margin-top:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink3);font-size:12px;font-weight:700;transition:color .2s}
+.tab svg{width:26px;height:26px;transition:transform .25s var(--snap)}
+.tab[aria-selected=true]{color:var(--or)}
+.tab:active svg{transform:scale(.86)}
+.go{position:relative;margin:-22px auto 0;width:100px;height:74px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--or);color:var(--asp);clip-path:polygon(16% 0,100% 0,84% 100%,0 100%);transition:background-color .15s,transform .2s var(--snap)}
+.go b{font:italic 900 36px/.9 var(--cond);letter-spacing:.02em;padding:0 6px}
+.go span{font-size:12px;font-weight:800;margin-top:1px}
+.go:active{transform:scale(.93);background:var(--or2)}
+
+/* run screen */
+.run{position:absolute;inset:0;z-index:30;background:var(--asp);transform:translateY(102%);visibility:hidden;transition:transform .5s var(--out),visibility 0s .5s;display:flex;flex-direction:column;padding:calc(48px + env(safe-area-inset-top)) 18px calc(22px + env(safe-area-inset-bottom))}
+.run.on{transform:none;visibility:visible;transition:transform .5s var(--out)}
+.run .top{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px;color:var(--ink2)}
+.run .top b{color:var(--or);font:italic 900 18px/1 var(--cond);letter-spacing:.04em}
+.run .top b.paused{color:var(--ink2)}
+.runmap{position:relative;margin:6px -18px 0;flex:1 1 220px;min-height:150px}
+.runmap svg{position:absolute;inset:0;width:100%;height:100%}
+.clock{font:italic 900 86px/.9 var(--cond);letter-spacing:.01em;margin-top:6px;padding-right:8px;font-variant-numeric:tabular-nums}
+.duo{display:grid;grid-template-columns:1fr 1fr;margin-top:8px}
+.duo .it{display:block;font-size:48px;line-height:1}
+.duo span{font-size:13px;color:var(--ink2);font-weight:700}
+.pulse{display:flex;align-items:center;gap:6px;height:30px;margin-top:10px}
+.pulse i{display:block;width:16px;height:22px;background:var(--asp3);clip-path:polygon(0 0,45% 0,100% 50%,45% 100%,0 100%,55% 50%)}
+.pulse.on i{animation:chev var(--beat,.36s) steps(1) infinite}
+.pulse i:nth-child(2){animation-delay:calc(var(--beat,.36s)/8)}
+.pulse i:nth-child(3){animation-delay:calc(var(--beat,.36s)/4)}
+.pulse i:nth-child(4){animation-delay:calc(var(--beat,.36s)*3/8)}
+.pulse i:nth-child(5){animation-delay:calc(var(--beat,.36s)/2)}
+@keyframes chev{0%{background:var(--or)}50%{background:var(--asp3)}}
+.pulse span{margin-left:8px;font:italic 800 17px/1 var(--cond);color:var(--ink2)}
+.laps{margin-top:6px;font:italic 800 15px/1.4 var(--cond);color:var(--ink2);min-height:21px;white-space:nowrap;overflow:hidden}
+.ctl{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:10px;margin-top:12px;height:66px}
+.ctl button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:800;font-size:14px;clip-path:polygon(12% 0,100% 0,88% 100%,0 100%);overflow:hidden;transition:background-color .15s,transform .15s}
+.ctl button:active{transform:scale(.95)}
+.ctl svg{width:24px;height:24px}
+.b-lap{background:var(--asp3);color:var(--ink)}
+.b-pause{background:var(--or);color:var(--asp)}
+.b-end{background:var(--ink);color:var(--asp)}
+.b-end .hold{position:absolute;inset:0;background:var(--or);transform:scaleX(0);transform-origin:left}
+.b-end>*:not(.hold){position:relative}
+.count{position:absolute;inset:0;z-index:35;display:grid;place-items:center;pointer-events:none;visibility:hidden}
+.count.on{visibility:visible;background:var(--or)}
+.count b{font:italic 900 300px/1 var(--cond);color:var(--asp);padding-right:20px}
+.count.on b{animation:cnt .9s var(--out)}
+@keyframes cnt{from{transform:scale(1.5) skewX(-6deg)}}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(8,7,6,.62);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:88%;overflow-y:auto;background:var(--asp2);padding:12px 20px calc(24px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .5s var(--snap);touch-action:none;clip-path:polygon(0 18px,100% 0,100% 100%,0 100%);scrollbar-width:none}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{width:44px;height:5px;border-radius:3px;background:#4a4640;margin:14px auto 12px}
+.sheet h4{font:italic 900 36px/1 var(--cond);padding-right:6px}
+.sheet .hint{font-size:14px;color:var(--ink2);margin-top:4px}
+.opt{display:grid;grid-template-columns:62px 1fr auto;gap:12px;align-items:center;width:100%;min-height:62px;text-align:left;padding:6px 0}
+.opt svg{width:62px;height:48px}
+.opt b{display:block;font-size:16px}
+.opt span{font-size:13px;color:var(--ink2)}
+.opt em{font:italic 900 22px/1 var(--cond);color:var(--ink3)}
+.opt[aria-checked=true] em,.opt[aria-checked=true] b{color:var(--or)}
+.opt:active{background:var(--asp3)}
+.srow{margin-top:14px}
+.srow .lbl{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:14px;color:var(--ink2)}
+.srow .lbl .it{font-size:34px;color:var(--ink)}
+input[type=range]{width:100%;height:44px;-webkit-appearance:none;appearance:none;background:none;touch-action:none}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--or) var(--p,50%),var(--asp3) var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:30px;margin-top:-12px;background:var(--ink);transform:skewX(-14deg);border-radius:2px}
+input[type=range]::-moz-range-thumb{width:18px;height:30px;border:0;background:var(--ink)}
+.chips{display:flex;gap:8px;margin-top:8px}
+.chips button{flex:1;height:44px;font:italic 900 20px/1 var(--cond);color:var(--ink2);background:var(--asp3);clip-path:polygon(10% 0,100% 0,90% 100%,0 100%)}
+.chips button[aria-pressed=true]{background:var(--ink);color:var(--asp)}
+.bigbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:64px;margin-top:20px;background:var(--or);color:var(--asp);font:italic 900 32px/1 var(--cond);letter-spacing:.02em;clip-path:polygon(4% 0,100% 0,96% 100%,0 100%);transition:background-color .15s,transform .15s}
+.bigbtn small{font:800 15px/1 var(--sans);font-style:normal}
+.bigbtn:active{background:var(--or2);transform:scale(.97)}
+.sw{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:52px;font-weight:700;margin-top:6px}
+.sw i{position:relative;width:58px;height:30px;background:var(--asp3);transform:skewX(-14deg);transition:background-color .2s}
+.sw i::after{content:"";position:absolute;top:4px;left:4px;width:22px;height:22px;background:var(--ink2);transition:transform .3s var(--snap),background-color .2s}
+.sw[aria-checked=true] i{background:var(--or)}
+.sw[aria-checked=true] i::after{transform:translateX(28px);background:var(--asp)}
+.spread{margin-top:12px}
+.spread .it.big{display:block;font-size:96px;line-height:.85;color:var(--or);padding-right:10px}
+.spread .row3{display:grid;grid-template-columns:repeat(3,1fr);margin-top:12px}
+.spread .row3 .it{display:block;font-size:30px}
+.spread .row3 span{font-size:13px;color:var(--ink2);font-weight:700}
+.stepper{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
+.stepper button{width:64px;height:56px;background:var(--asp3);font:italic 900 34px/1 var(--cond);clip-path:polygon(14% 0,100% 0,86% 100%,0 100%)}
+.stepper button:active{background:var(--line)}
+.stepper .it{font-size:80px;line-height:1}
+
+.toast{position:absolute;left:14px;right:14px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px;padding:6px 8px 6px 18px;background:var(--ink);color:var(--asp);font-weight:700;transform:translateY(180px) skewX(-6deg);visibility:hidden;transition:transform .4s var(--snap),visibility 0s .4s}
+.toast.on{transform:skewX(-6deg);visibility:visible;transition:transform .4s var(--snap)}
+.toast span{transform:skewX(6deg)}
+.toast button{min-height:44px;padding:0 14px;font:italic 900 18px/1 var(--cond);color:var(--ord);transform:skewX(6deg)}
+.run.on~.toast{bottom:auto;top:calc(50px + env(safe-area-inset-top))}
+.homebar{position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--ink);z-index:70;pointer-events:none;opacity:.8}
+
+@media (prefers-reduced-motion:reduce){
+  .page.in{animation:none}
+  .run,.sheet,.toast,.seg .knob,.day i,.goalbar i{transition-duration:.01s}
+  .pulse.on i{animation:none;background:var(--or)}
+  .count.on b{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="agg"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="3" seed="4"/><feColorMatrix values="0 0 0 0 .55 0 0 0 0 .53 0 0 0 0 .5 0 0 0 .35 0"/></filter>
+      </defs>
+      <rect width="1440" height="900" fill="#141312"/>
+            <g transform="rotate(-14 720 450)" fill="#e9e4da">
+        <rect x="-300" y="690" width="1300" height="34" opacity=".82"/>
+        <rect x="-300" y="640" width="1300" height="14" opacity=".82"/>
+        <text x="40" y="620" font-family="Avenir Next Condensed" font-style="italic" font-weight="900" font-size="200" fill="#ff5a1f" opacity=".88" letter-spacing="6">START</text>
+        <g opacity=".6"><rect x="-200" y="130" width="170" height="16"/><rect x="80" y="130" width="170" height="16"/><rect x="360" y="130" width="170" height="16"/><rect x="1260" y="130" width="170" height="16"/><rect x="1540" y="130" width="170" height="16"/></g>
+        <text x="1180" y="1000" font-family="Avenir Next Condensed" font-style="italic" font-weight="900" font-size="130" opacity=".55">5K</text>
+      </g>
+      <rect width="1440" height="900" filter="url(#agg)"/>
+    </svg>
+  </div>
+  <div class="device">
+    <div class="cam"></div>
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clk">9:41</span>
+        <span class="g">
+          <svg width="20" height="12" viewBox="0 0 20 12"><g fill="currentColor" transform="skewX(-12)"><rect x="4" y="8" width="3" height="4"/><rect x="9" y="5" width="3" height="7"/><rect x="14" y="2" width="3" height="10"/><rect x="19" y="0" width="3" height="12" opacity=".4"/></g></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.5 1 4.6a10 10 0 0 1 14 0z" fill="currentColor"/></svg>
+          <svg width="28" height="13" viewBox="0 0 28 13"><path d="M4 1h21l-2.4 11H1.6z" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".6"/><path d="M5.5 3h13.6l-1.5 7H4z" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <main class="pages">
+        <section class="page" id="p-cover" aria-label="封面">
+          <div class="mast"><h1>PACE</h1><div class="iss">第<b id="issNo">38</b><span id="issDate">2026 秋</span></div></div>
+          <p class="tag" id="tagline"></p>
+          <div class="cover"><svg class="map" id="coverMap" viewBox="0 0 360 300" preserveAspectRatio="xMidYMid slice"></svg>
+            <div class="cl cl1"><small>本週里程</small><span class="it" id="cvWeek">0<i>km</i></span></div>
+            <div class="cl cl2"><span class="it" id="cvPB"></span><span id="cvPBl"></span></div>
+          </div>
+          <div class="toc"><h2>本期目錄</h2><div id="toc"></div></div>
+          <div class="week"><div class="hd"><b>這一週</b><span id="wkNote"></span></div><div class="days" id="days"></div></div>
+        </section>
+
+        <section class="page" id="p-log" hidden aria-label="紀錄">
+          <div class="ph"><h2>紀錄</h2><div class="sum"><b id="logTot">0</b>公里 · <span id="logN">0</span> 次</div></div>
+          <div class="seg" id="seg" role="group" aria-label="距離篩選"><i class="knob"></i>
+            <button data-f="all" aria-pressed="true">全部</button><button data-f="s" aria-pressed="false">5K 內</button><button data-f="m" aria-pressed="false">5–10K</button><button data-f="l" aria-pressed="false">10K+</button>
+          </div>
+          <div id="logList"></div>
+        </section>
+
+        <section class="page" id="p-replay" hidden aria-label="回放">
+          <div class="rp-h"><small id="rpDate"></small><h2 id="rpTitle"></h2>
+            <button id="rpPick"><svg width="18" height="18" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square" transform="skewX(-10) translate(3 0)"><path d="M5 6h14M5 12h10M5 18h6"/></g></svg>換一筆紀錄</button></div>
+          <div class="rpmap"><svg id="rpMap" viewBox="0 0 360 300" preserveAspectRatio="xMidYMid meet"></svg></div>
+          <div class="read"><div><span>距離</span><b class="it" id="rdD">0.00</b></div><div><span>時間</span><b class="it" id="rdT">0:00</b></div><div><span>配速</span><b class="it" id="rdP">-</b></div></div>
+          <div class="scrub">
+            <button class="pbtn" id="rpPlay" aria-label="播放回放"><svg width="22" height="22" viewBox="0 0 24 24" id="rpIco"><path d="M7 4l14 8-14 8z" fill="currentColor"/></svg></button>
+            <div class="track" id="track" role="slider" tabindex="0" aria-label="回放進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i class="rail"></i><i class="fill" id="tFill"></i><i class="th" id="tTh"></i></div>
+            <button class="spd" id="rpSpd" aria-label="回放速度">4×</button>
+          </div>
+          <div class="splits"><h3>每公里分段</h3><div id="splitList"></div></div>
+        </section>
+
+        <section class="page" id="p-stats" hidden aria-label="數據">
+          <div class="ph"><h2>數據</h2></div>
+          <button class="goal" id="goalBtn" aria-label="調整每週目標"><b class="it" id="stWeek">0</b><span>/ <b id="stGoal">25</b>本週公里 · 點此調整目標</span></button>
+          <div class="goalbar"><i id="goalFill" style="width:0"></i></div>
+          <div class="wk"><div class="hd"><b>十二週里程</b><span id="wkPick">點長條看單週</span></div><svg id="wkChart" viewBox="0 0 354 170"></svg></div>
+          <div class="pbs"><h3>個人最佳</h3><div class="pbg" id="pbg"></div></div>
+        </section>
+      </main>
+
+      <nav class="tabbar" role="tablist" aria-label="主選單">
+        <button class="tab" role="tab" data-p="cover" aria-selected="true"><svg viewBox="0 0 26 26"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" transform="skewX(-10) translate(3 0)"><path d="M5 3h15v20H5z"/><path d="M8 7.5h9" stroke-width="3.4"/><path d="M8 18l3.5-4 3 2.5L17 13"/></g></svg>封面</button>
+        <button class="tab" role="tab" data-p="log" aria-selected="false"><svg viewBox="0 0 26 26"><g fill="none" stroke="currentColor" stroke-width="2.6" transform="skewX(-10) translate(3 0)"><path d="M4 6h3M4 13h3M4 20h3" stroke-width="3.4"/><path d="M10 6h11M10 13h8M10 20h10"/></g></svg>紀錄</button>
+        <button class="go" id="goBtn" aria-label="開始跑步"><b>GO</b><span>開跑</span></button>
+        <button class="tab" role="tab" data-p="replay" aria-selected="false"><svg viewBox="0 0 26 26"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" transform="skewX(-10) translate(3 0)"><path d="M5 20c3-6 2-11 7-12s8 4 9-5"/></g><path d="M4 21.5l3.5-3.5v7z" fill="currentColor" transform="skewX(-10) translate(3 -3)"/></svg>回放</button>
+        <button class="tab" role="tab" data-p="stats" aria-selected="false"><svg viewBox="0 0 26 26"><g fill="currentColor" transform="skewX(-12) translate(4 0)"><rect x="3" y="14" width="4" height="9"/><rect x="10" y="8" width="4" height="15"/><rect x="17" y="3" width="4" height="20"/></g></svg>數據</button>
+      </nav>
+
+      <div class="run" id="run" role="dialog" aria-label="跑步中">
+        <div class="top"><b id="runState">LIVE</b><span id="runRoute"></span></div>
+        <div class="runmap"><svg id="runMap" viewBox="0 0 360 300" preserveAspectRatio="xMidYMid meet"></svg></div>
+        <div class="clock" id="runClock">0:00</div>
+        <div class="duo"><div><span>公里</span><b class="it" id="runD">0.00</b></div><div><span>即時配速</span><b class="it" id="runP">-</b></div></div>
+        <div class="pulse" id="pulse" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><span id="cad">步頻 170</span></div>
+        <div class="laps" id="laps">分段：尚無</div>
+        <div class="ctl">
+          <button class="b-lap" id="bLap"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.6" transform="skewX(-10) translate(2 0)"><path d="M6 3v18"/><path d="M6 4h12l-3 4 3 4H6"/></g></svg>分段</button>
+          <button class="b-pause" id="bPause"><svg viewBox="0 0 24 24" id="pIco"><g fill="currentColor" transform="skewX(-10) translate(2 0)"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></g></svg><span id="pLbl">暫停</span></button>
+          <button class="b-end" id="bEnd" aria-label="長按結束跑步"><i class="hold" id="hold"></i><svg viewBox="0 0 24 24"><g fill="currentColor" transform="skewX(-10) translate(2 0)"><rect x="5" y="5" width="14" height="14"/></g></svg><span>長按結束</span></button>
+        </div>
+      </div>
+      <div class="count" id="count" aria-live="assertive"><b id="countN">3</b></div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><div class="grab"></div><div id="shBody"></div></div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+      <div class="homebar"></div>
+    </div>
+  </div>
+  <div class="caption"><b>PACE</b><p>把每一次跑步排成一期雜誌封面。等高線地圖上<em>逐步描出</em>路線，回放時依配速上色。</p></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app017:';
+function load(k,d){ try{ var v = localStorage.getItem(KEY+k); return v===null ? d : JSON.parse(v); }catch(e){ return d; } }
+function save(k,v){ try{ localStorage.setItem(KEY+k, JSON.stringify(v)); }catch(e){} }
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+function rng(s){ return function(){ s|=0; s=s+0x6D2B79F5|0; var t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ---------- sound ---------- */
+var AC = null;
+function ac(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC = null; } } if(AC && AC.state==='suspended'){ AC.resume(); } return AC; }
+function tone(f,dur,type,vol,delay){
+  if(!AC) return; try{
+    var t = AC.currentTime + (delay||0), o = AC.createOscillator(), g = AC.createGain();
+    o.type = type||'square'; o.frequency.value = f; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.08,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+0.02);
+  }catch(e){}
+}
+function tick(){ tone(1800,0.03,'square',0.035); }
+
+/* ---------- clock ---------- */
+function clk(){ var d=new Date(); $('clk').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+clk(); setInterval(clk, 20000);
+
+/* ---------- routes ---------- */
+var ROUTES = [
+  {n:'大稻埕河濱', len:5.0, river:1, seed:11, pts:[[62,40],[92,72],[110,112],[118,160],[134,212],[160,252],[202,272],[222,246],[196,204],[172,152],[152,102],[126,60],[96,34]]},
+  {n:'大安森林公園', len:2.0, river:0, seed:23, pts:[[118,92],[180,80],[240,86],[262,112],[260,160],[256,204],[232,222],[176,226],[124,222],[100,198],[98,150],[100,112]]},
+  {n:'象山親山步道', len:3.2, river:0, seed:37, hill:[250,110], pts:[[64,252],[108,232],[128,200],[168,192],[190,152],[220,132],[248,92],[280,68],[304,100],[274,142],[252,190],[212,232],[152,262],[100,272]]},
+  {n:'新店溪自行車道', len:8.0, river:2, seed:53, pts:[[30,60],[78,82],[118,120],[150,168],[200,190],[250,212],[300,248],[330,272],[316,232],[262,194],[212,168],[172,142],[142,100],[102,62],[62,42]]}
+];
+function smooth(p){
+  var out=[], n=p.length;
+  for(var i=0;i<n;i++){
+    var p0=p[(i-1+n)%n], p1=p[i], p2=p[(i+1)%n], p3=p[(i+2)%n];
+    for(var s=0;s<12;s++){ var t=s/12, t2=t*t, t3=t2*t;
+      out.push([0.5*((2*p1[0])+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),
+                0.5*((2*p1[1])+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)]); }
+  }
+  out.push(out[0]);
+  var cum=[0]; for(var j=1;j<out.length;j++){ cum.push(cum[j-1]+Math.hypot(out[j][0]-out[j-1][0],out[j][1]-out[j-1][1])); }
+  return {pts:out, cum:cum, total:cum[cum.length-1]};
+}
+ROUTES.forEach(function(r){ r.geo = smooth(r.pts); r.d = 'M'+r.geo.pts.map(function(p){ return p[0].toFixed(1)+' '+p[1].toFixed(1); }).join('L'); });
+function posAt(r, km){
+  var g=r.geo, f=((km % r.len)+r.len)%r.len / r.len, L=f*g.total, lo=0, hi=g.cum.length-1;
+  while(hi-lo>1){ var m=(lo+hi)>>1; if(g.cum[m]<L) lo=m; else hi=m; }
+  var seg=g.cum[hi]-g.cum[lo]||1, t=(L-g.cum[lo])/seg;
+  return [g.pts[lo][0]+(g.pts[hi][0]-g.pts[lo][0])*t, g.pts[lo][1]+(g.pts[hi][1]-g.pts[lo][1])*t];
+}
+
+/* ---------- contour map (marching squares over a seeded height field) ---------- */
+var contourCache = {};
+function contours(ri){
+  if(contourCache[ri]) return contourCache[ri];
+  var r = ROUTES[ri], R = rng(r.seed), hills=[];
+  for(var i=0;i<8;i++) hills.push({x:R()*380-10, y:R()*320-10, s:36+R()*80, h:0.4+R()*1.1});
+  if(r.hill) hills.push({x:r.hill[0], y:r.hill[1], s:70, h:4});
+  var W=360,H=300,S=6,nx=W/S+1,ny=H/S+1,f=new Float32Array(nx*ny),mn=1e9,mx=-1e9;
+  for(var y=0;y<ny;y++) for(var x=0;x<nx;x++){
+    var px=x*S, py=y*S, v=0;
+    hills.forEach(function(h){ var dx=px-h.x, dy=py-h.y; v += h.h*Math.exp(-(dx*dx+dy*dy)/(2*h.s*h.s)); });
+    v += 0.12*Math.sin(px*0.03+r.seed)+0.1*Math.cos(py*0.025);
+    f[y*nx+x]=v; if(v<mn) mn=v; if(v>mx) mx=v;
+  }
+  var levels = 16, out = '';
+  for(var l=1;l<levels;l++){
+    var lv = mn+(mx-mn)*l/levels, d='';
+    for(var j=0;j<ny-1;j++) for(var i2=0;i2<nx-1;i2++){
+      var a=f[j*nx+i2], b=f[j*nx+i2+1], c=f[(j+1)*nx+i2+1], dd=f[(j+1)*nx+i2];
+      var k=(a>lv?8:0)|(b>lv?4:0)|(c>lv?2:0)|(dd>lv?1:0); if(k===0||k===15) continue;
+      var T=[(i2+(lv-a)/(b-a))*S, j*S], Rr=[(i2+1)*S,(j+(lv-b)/(c-b))*S], B=[(i2+(lv-dd)/(c-dd))*S,(j+1)*S], Lf=[i2*S,(j+(lv-a)/(dd-a))*S];
+      var segs = ({1:[[Lf,B]],2:[[B,Rr]],3:[[Lf,Rr]],4:[[T,Rr]],5:[[T,Rr],[Lf,B]],6:[[T,B]],7:[[T,Lf]],8:[[T,Lf]],9:[[T,B]],10:[[T,Lf],[B,Rr]],11:[[T,Rr]],12:[[Lf,Rr]],13:[[B,Rr]],14:[[Lf,B]]})[k];
+      segs.forEach(function(s){ d += 'M'+s[0][0].toFixed(1)+' '+s[0][1].toFixed(1)+'L'+s[1][0].toFixed(1)+' '+s[1][1].toFixed(1); });
+    }
+    out += '<path d="'+d+'" fill="none" stroke="'+(l%4===0?'#4a4640':'#302d2a')+'" stroke-width="'+(l%4===0?1.3:0.8)+'" stroke-linecap="round"/>';
+  }
+  if(r.river===1) out = '<path d="M40 -10C80 60 96 110 104 170S140 270 190 310" fill="none" stroke="#0e0d0c" stroke-width="30" stroke-linecap="round"/><text x="70" y="150" transform="rotate(68 70 150)" font-size="11" fill="#77726b" font-style="italic" font-weight="700">淡水河</text>'+out;
+  if(r.river===2) out = '<path d="M-10 40C60 70 110 110 150 150S240 220 370 290" fill="none" stroke="#0e0d0c" stroke-width="34" stroke-linecap="round"/><text x="200" y="176" transform="rotate(32 200 176)" font-size="11" fill="#77726b" font-style="italic" font-weight="700">新店溪</text>'+out;
+  contourCache[ri]=out; return out;
+}
+
+/* ---------- data ---------- */
+var DAY = 864e5;
+function startOfDay(t){ var d=new Date(t); d.setHours(0,0,0,0); return d.getTime(); }
+function weekStart(t){ var d=new Date(startOfDay(t)); var wd=(d.getDay()+6)%7; return d.getTime()-wd*DAY; }
+function seedRuns(){
+  var R=rng(2026), runs=[], now=Date.now(), today=startOfDay(now);
+  for(var w=11; w>=0; w--){
+    var n = 2+Math.floor(R()*3), used={};
+    for(var k=0;k<n;k++){
+      var dayOff = w*7 + Math.floor(R()*7); if(dayOff===0 && w===0) dayOff=1; if(used[dayOff]) continue; used[dayOff]=1;
+      var ri = [0,0,1,2,3,1,0][Math.floor(R()*7)], r=ROUTES[ri];
+      var dist = ri===1 ? 2*(2+Math.floor(R()*3)) : ri===2 ? r.len*(1+Math.floor(R()*2)) : ri===3 ? (R()<.3? 21.1 : 8+Math.floor(R()*5)) : (R()<.5? 5 : 10);
+      dist = Math.round((dist + (R()-.5)*0.3)*100)/100;
+      var base = 345 - (11-w)*2.6 + (ri===2?38:0) + (dist>15?22:0) + (R()-.5)*14;
+      var splits=[], full=Math.floor(dist);
+      for(var s=0;s<full;s++) splits.push(Math.round(base + (R()-.5)*20 + (s===full-1?-8:0)));
+      var rest = dist-full; if(rest>0.05) splits.push(Math.round((base+(R()-.5)*14)*rest));
+      var hour = [6,6,7,19,20,21][Math.floor(R()*6)];
+      runs.push({id:'r'+w+'_'+k+'_'+dayOff, t:today - dayOff*DAY + hour*36e5 + Math.floor(R()*50)*6e4, r:ri, dist:dist, splits:splits});
+    }
+  }
+  return runs.sort(function(a,b){ return b.t-a.t; });
+}
+var runs = load('runs', null); if(!Array.isArray(runs)) { runs = seedRuns(); save('runs', runs); }
+var settings = load('settings', {target:330, route:0, speed:30, metro:true, goal:25});
+var sel = load('sel', runs[0] ? runs[0].id : null);
+function runTime(r){ return r.splits.reduce(function(a,b){ return a+b; },0); }
+function fmtPace(sec){ if(!isFinite(sec)||sec<=0) return '-'; sec=Math.round(sec); return Math.floor(sec/60)+'′'+String(sec%60).padStart(2,'0')+'″'; }
+function fmtT(sec){ sec=Math.max(0,Math.round(sec)); var h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60; return (h? h+':'+String(m).padStart(2,'0') : m)+':'+String(s).padStart(2,'0'); }
+var WD = ['日','一','二','三','四','五','六'];
+function fmtDate(t){ var d=new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' 週'+WD[d.getDay()]; }
+function title(r){ var h=new Date(r.t).getHours(); return r.dist>=15 ? '長距離 LSD' : h<10 ? '晨跑' : h<17 ? '午後跑' : '夜跑'; }
+function glyph(ri, w, h, col){ var r=ROUTES[ri]; return '<svg viewBox="0 0 360 300" preserveAspectRatio="xMidYMid meet" width="'+w+'" height="'+h+'" aria-hidden="true"><path d="'+r.d+'" fill="none" stroke="'+(col||'#ff5a1f')+'" stroke-width="22" stroke-linejoin="round"/></svg>'; }
+function weekKm(ws){ return runs.filter(function(r){ return r.t>=ws && r.t<ws+7*DAY; }).reduce(function(a,r){ return a+r.dist; },0); }
+
+/* ---------- navigation ---------- */
+var ORDER = ['cover','log','replay','stats'], cur='cover';
+function go(p){
+  if(p===cur) { $('p-'+p).scrollTo({top:0, behavior:'smooth'}); return; }
+  var back = ORDER.indexOf(p) < ORDER.indexOf(cur);
+  $('p-'+cur).hidden = true; var el=$('p-'+p); el.hidden=false; el.classList.remove('in','rev'); void el.offsetWidth; el.classList.add('in'); if(back) el.classList.add('rev');
+  cur = p;
+  document.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.p===p); });
+  if(p==='replay') drawReplay(); if(p==='stats') drawStats(); if(p==='log') drawLog(); if(p==='cover') drawCover();
+  haptic(6);
+}
+document.querySelectorAll('.tab').forEach(function(t){ t.addEventListener('click', function(){ go(t.dataset.p); }); });
+
+/* ---------- cover ---------- */
+function drawCover(){
+  var now=Date.now(), ws=weekStart(now), wk=weekKm(ws);
+  var d=new Date(), start=new Date(d.getFullYear(),0,1), issue=Math.ceil(((d-start)/DAY + start.getDay()+1)/7);
+  $('issNo').textContent = issue; $('issDate').textContent = d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0');
+  var mStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  var mk = runs.filter(function(r){ return r.t>=mStart; }).reduce(function(a,r){ return a+r.dist; },0);
+  $('tagline').innerHTML = (d.getMonth()+1)+' 月已跑 <b>'+mk.toFixed(1)+' 公里</b>，共 '+runs.filter(function(r){ return r.t>=mStart; }).length+' 次出門。';
+  $('cvWeek').innerHTML = wk.toFixed(1)+'<i>km</i>';
+  var last = runs[0];
+  var m = $('coverMap');
+  if(last){
+    var ri=last.r;
+    m.innerHTML = contours(ri) + '<path d="'+ROUTES[ri].d+'" fill="none" stroke="#ff5a1f" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" pathLength="1000" stroke-dasharray="1000" stroke-dashoffset="0" id="cvRoute"/>'
+      + (function(){ var p=posAt(ROUTES[ri], last.dist); return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="7" fill="#f3efe7" stroke="#171615" stroke-width="3"/>'; })();
+    var rt=$('cvRoute'); if(rt && !matchMedia('(prefers-reduced-motion: reduce)').matches && rt.animate){ rt.animate([{strokeDashoffset:1000},{strokeDashoffset:0}], {duration:1800, easing:'cubic-bezier(.5,0,.2,1)'}); }
+    $('cvPB').textContent = last.dist.toFixed(1)+' km';
+    $('cvPBl').textContent = '最新 · '+ROUTES[ri].n+' '+title(last);
+  } else { m.innerHTML = contours(0); $('cvPB').textContent=''; $('cvPBl').textContent='還沒有紀錄，按 GO 出門'; }
+  $('toc').innerHTML = runs.slice(0,3).map(function(r){
+    return '<button data-id="'+r.id+'"><span class="it">'+r.dist.toFixed(1)+'</span><div><b>'+esc(ROUTES[r.r].n)+' '+title(r)+'</b><span>'+fmtDate(r.t)+' · '+fmtT(runTime(r))+'</span></div><em>'+fmtPace(runTime(r)/r.dist)+'</em></button>';
+  }).join('') || '<p class="empty">目錄是空的。</p>';
+  var days=''; var today=startOfDay(now);
+  var kms=[]; for(var i=0;i<7;i++){ var ds=ws+i*DAY; kms.push(runs.filter(function(r){ return r.t>=ds && r.t<ds+DAY; }).reduce(function(a,r){ return a+r.dist; },0)); }
+  var mx=Math.max(10, Math.max.apply(null,kms));
+  for(var j=0;j<7;j++){ var ds2=ws+j*DAY; days += '<div class="day'+(kms[j]?' has':'')+(ds2===today?' today':'')+'"><i style="height:'+Math.max(4, kms[j]/mx*92).toFixed(0)+'px"></i><span>'+'一二三四五六日'[j]+'</span></div>'; }
+  $('days').innerHTML = days;
+  $('wkNote').textContent = wk.toFixed(1)+' / '+settings.goal+' km';
+}
+$('toc').addEventListener('click', function(e){ var b=e.target.closest('button[data-id]'); if(!b) return; sel=b.dataset.id; save('sel',sel); go('replay'); });
+
+/* ---------- log ---------- */
+var filt='all';
+function inF(r){ return filt==='all' || (filt==='s' && r.dist<5) || (filt==='m' && r.dist>=5 && r.dist<10) || (filt==='l' && r.dist>=10); }
+function drawLog(){
+  var list = runs.filter(inF), html='', lastM='';
+  list.forEach(function(r){
+    var d=new Date(r.t), mk=d.getFullYear()+'-'+d.getMonth();
+    if(mk!==lastM){ lastM=mk; html += '<p class="mon">'+(d.getMonth()+1)+' 月 '+['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][d.getMonth()]+'</p>'; }
+    html += '<div class="rw"><div class="del"><span>刪除</span></div><button class="run-row" data-id="'+r.id+'"><span class="d">'+r.dist.toFixed(1)+'<i>km</i></span><div><b>'+esc(ROUTES[r.r].n)+' · '+title(r)+'</b><span>'+fmtDate(r.t)+' · '+fmtT(runTime(r))+' · '+fmtPace(runTime(r)/r.dist)+'/km</span></div>'+glyph(r.r,56,46,'#6d6861')+'</button></div>';
+  });
+  $('logList').innerHTML = html || '<div class="empty"><b>空白頁</b>這個距離還沒有紀錄。</div>';
+  var tot=list.reduce(function(a,r){ return a+r.dist; },0);
+  $('logTot').textContent = tot.toFixed(1); $('logN').textContent = list.length;
+}
+$('seg').addEventListener('click', function(e){
+  var b=e.target.closest('button'); if(!b) return; filt=b.dataset.f; haptic(5);
+  var bs=[].slice.call(this.querySelectorAll('button')); bs.forEach(function(x){ x.setAttribute('aria-pressed', x===b); });
+  this.querySelector('.knob').style.left = (bs.indexOf(b)*25)+'%'; drawLog();
+});
+(function(){
+  var row=null, sx=0, sy=0, dx=0, mode=null, pid=null;
+  var L=$('logList');
+  L.addEventListener('pointerdown', function(e){ row=e.target.closest('.run-row'); if(!row) return; sx=e.clientX; sy=e.clientY; dx=0; mode=null; pid=e.pointerId; });
+  L.addEventListener('pointermove', function(e){
+    if(!row||e.pointerId!==pid) return; var mx=e.clientX-sx, my=e.clientY-sy;
+    if(!mode){ if(Math.abs(mx)>8 && Math.abs(mx)>Math.abs(my)){ mode='x'; row.classList.add('drag'); try{ row.setPointerCapture(pid); }catch(er){} } else if(Math.abs(my)>8){ mode='y'; } }
+    if(mode==='x'){ dx=Math.min(0,mx); var tx=(dx<-120? -120+(dx+120)/3 : dx); row.style.transform='translateX('+tx+'px)'; row.previousElementSibling.style.width=(-tx)+'px'; }
+  });
+  function end(){
+    if(!row) return; var r=row; row=null; r.classList.remove('drag');
+    if(mode==='x'){ r.dataset.sw='1'; setTimeout(function(){ delete r.dataset.sw; },50);
+      if(dx<-96){ r.style.transform='translateX(-110%)'; r.previousElementSibling.style.transition='width .3s'; r.previousElementSibling.style.width='100%'; haptic([10,40,10]); var id=r.dataset.id; setTimeout(function(){ removeRun(id); }, 260); }
+      else { r.style.transform=''; var dl=r.previousElementSibling; dl.style.transition='width .3s'; dl.style.width='0'; setTimeout(function(){ dl.style.transition=''; },320); }
+    }
+    mode=null;
+  }
+  L.addEventListener('pointerup', end); L.addEventListener('pointercancel', end);
+  L.addEventListener('click', function(e){ var b=e.target.closest('.run-row'); if(!b||b.dataset.sw) return; sel=b.dataset.id; save('sel',sel); go('replay'); });
+})();
+var undoBuf=null;
+function removeRun(id){
+  var i=runs.findIndex(function(r){ return r.id===id; }); if(i<0) return;
+  undoBuf={run:runs[i], i:i}; runs.splice(i,1); save('runs',runs);
+  if(sel===id){ sel=runs[0]?runs[0].id:null; save('sel',sel); }
+  drawLog(); toast('已刪除 '+undoBuf.run.dist.toFixed(1)+' km', true);
+}
+$('toastU').addEventListener('click', function(){
+  if(!undoBuf) return; runs.splice(undoBuf.i,0,undoBuf.run); save('runs',runs); undoBuf=null; drawLog(); hideToast(); haptic(8);
+});
+
+/* ---------- replay ---------- */
+var rp = {pos:0, playing:false, speed:4, raf:0, last:0};
+function selRun(){ return runs.find(function(r){ return r.id===sel; }) || runs[0]; }
+function paceColor(p, mn, mx){ var t = mx>mn ? (p-mn)/(mx-mn) : 0; t=Math.max(0,Math.min(1,t)); var a=[255,90,31], b=[84,78,72]; return 'rgb('+a.map(function(v,i){ return Math.round(v+(b[i]-v)*t); }).join(',')+')'; }
+function drawReplay(){
+  var r=selRun(), svg=$('rpMap');
+  if(!r){ $('rpTitle').textContent='沒有紀錄'; $('rpDate').textContent=''; svg.innerHTML=contours(0); $('splitList').innerHTML=''; return; }
+  var R=ROUTES[r.r];
+  $('rpTitle').textContent = R.n+' '+title(r); $('rpDate').textContent = fmtDate(r.t)+' · '+r.dist.toFixed(2)+' km';
+  var paces = r.splits.map(function(s,i){ var seg = Math.min(1, r.dist-i); return s/seg; });
+  var mn=Math.min.apply(null,paces), mx=Math.max.apply(null,paces), segs='', marks='';
+  for(var k=0;k<paces.length;k++){
+    var d0=k, d1=Math.min(r.dist,k+1), pts=[]; for(var d=d0; d<=d1+1e-6; d+=0.02) pts.push(posAt(R,Math.min(d,d1)));
+    segs += '<path d="M'+pts.map(function(p){ return p[0].toFixed(1)+' '+p[1].toFixed(1); }).join('L')+'" fill="none" stroke="'+paceColor(paces[k],mn,mx)+'" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>';
+    if(k>0 && k<=12 || (k>0 && k%5===0)){ var p=posAt(R,k); marks += '<text x="'+(p[0]+9).toFixed(1)+'" y="'+(p[1]-7).toFixed(1)+'" font-size="12" font-style="italic" font-weight="900" fill="#f3efe7" stroke="#171615" stroke-width="3" paint-order="stroke">'+k+'</text>'; }
+  }
+  svg.innerHTML = contours(r.r) + '<path d="'+R.d+'" fill="none" stroke="#2d2a27" stroke-width="11" stroke-linejoin="round"/>' + segs + marks + '<g id="rpDot"><circle r="9" fill="#f3efe7" stroke="#171615" stroke-width="3"/></g>';
+  var best = paces.indexOf(Math.min.apply(null, paces.slice(0, Math.max(1, Math.floor(r.dist)))));
+  $('splitList').innerHTML = paces.map(function(p,i){
+    var w = 30 + 70*(1-(p-mn)/Math.max(1,(mx-mn)));
+    return '<div class="sp'+(i===best?' best':'')+'"><span class="k">'+(i+1)+'</span><span class="t">'+fmtPace(p)+'</span><i class="b" style="width:'+w.toFixed(0)+'%"></i></div>';
+  }).join('');
+  rp.pos = 0; setRp(0);
+}
+function setRp(f){
+  var r=selRun(); if(!r) return; rp.pos=Math.max(0,Math.min(1,f));
+  var total=runTime(r), t=total*rp.pos, acc=0, d=0, pace=0;
+  for(var i=0;i<r.splits.length;i++){ var seg=Math.min(1, r.dist-i); if(acc+r.splits[i]>=t){ d=i+seg*(t-acc)/r.splits[i]; pace=r.splits[i]/seg; break; } acc+=r.splits[i]; d=i+seg; pace=r.splits[i]/seg; }
+  var p=posAt(ROUTES[r.r], d), dot=$('rpDot'); if(dot) dot.setAttribute('transform','translate('+p[0].toFixed(1)+' '+p[1].toFixed(1)+')');
+  $('rdD').textContent=d.toFixed(2); $('rdT').textContent=fmtT(t); $('rdP').textContent=fmtPace(pace);
+  $('tFill').style.width=(rp.pos*100)+'%'; $('tTh').style.left=(rp.pos*100)+'%'; $('track').setAttribute('aria-valuenow', Math.round(rp.pos*100));
+}
+function rpLoop(ts){
+  if(!rp.playing) return;
+  if(document.hidden){ rp.last=ts; rp.raf=requestAnimationFrame(rpLoop); return; }
+  var dt=Math.min(0.1,(ts-(rp.last||ts))/1000); rp.last=ts;
+  var r=selRun(); if(!r){ rpStop(); return; }
+  var dur = 24/ (rp.speed/4); setRp(rp.pos + dt/dur);
+  if(rp.pos>=1){ rpStop(); tone(880,0.12,'triangle',0.06); tone(1320,0.2,'triangle',0.06,0.12); return; }
+  rp.raf=requestAnimationFrame(rpLoop);
+}
+function rpStop(){ rp.playing=false; cancelAnimationFrame(rp.raf); $('rpIco').innerHTML='<path d="M7 4l14 8-14 8z" fill="currentColor"/>'; $('rpPlay').setAttribute('aria-label','播放回放'); }
+$('rpPlay').addEventListener('click', function(){
+  ac(); haptic(8);
+  if(rp.playing){ rpStop(); return; }
+  if(rp.pos>=1) setRp(0);
+  rp.playing=true; rp.last=0; $('rpIco').innerHTML='<g fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></g>'; $('rpPlay').setAttribute('aria-label','暫停回放');
+  rp.raf=requestAnimationFrame(rpLoop);
+});
+$('rpSpd').addEventListener('click', function(){ rp.speed = rp.speed===4?8:rp.speed===8?16:rp.speed===16?1:4; this.textContent=rp.speed+'×'; haptic(5); });
+$('rpPick').addEventListener('click', function(){ go('log'); });
+(function(){
+  var t=$('track'), on=false;
+  function at(e){ var b=t.getBoundingClientRect(); setRp((e.clientX-b.left)/b.width); }
+  t.addEventListener('pointerdown', function(e){ on=true; try{ t.setPointerCapture(e.pointerId); }catch(er){} rpStop(); at(e); haptic(4); });
+  t.addEventListener('pointermove', function(e){ if(on) at(e); });
+  t.addEventListener('pointerup', function(){ on=false; }); t.addEventListener('pointercancel', function(){ on=false; });
+  t.addEventListener('keydown', function(e){ if(e.key==='ArrowRight'){ setRp(rp.pos+0.02); e.preventDefault(); } if(e.key==='ArrowLeft'){ setRp(rp.pos-0.02); e.preventDefault(); } });
+})();
+
+/* ---------- stats ---------- */
+var wkSel = 11;
+function drawStats(){
+  var ws=weekStart(Date.now()), wk=weekKm(ws);
+  $('stWeek').textContent = wk.toFixed(1); $('stGoal').textContent = settings.goal;
+  $('goalFill').style.width = Math.min(100, wk/settings.goal*100)+'%';
+  var weeks=[]; for(var i=11;i>=0;i--) weeks.push({ws:ws-i*7*DAY, km:weekKm(ws-i*7*DAY)});
+  var mx=Math.max(settings.goal*1.2, Math.max.apply(null, weeks.map(function(w){ return w.km; }))), H=140, bw=20, gap=(354-12*bw)/11, svg='';
+  var gy = H - settings.goal/mx*H + 10;
+  svg += '<path d="M0 '+gy.toFixed(1)+'H354" stroke="#8a847b" stroke-width="1.5" stroke-dasharray="2 6" stroke-linecap="round"/><text x="354" y="'+(gy-6).toFixed(1)+'" text-anchor="end">目標 '+settings.goal+'</text>';
+  weeks.forEach(function(w,i){
+    var h=Math.max(3, w.km/mx*H), x=i*(bw+gap), y=H-h+10, on=i===wkSel;
+    svg += '<g data-i="'+i+'" style="cursor:pointer"><rect x="'+(x-4)+'" y="0" width="'+(bw+8)+'" height="170" fill="transparent"/><path d="M'+(x+5).toFixed(1)+' '+y.toFixed(1)+'h'+bw+'l-5 '+h.toFixed(1)+'h-'+bw+'z" fill="'+(on?'#ff5a1f':w.km>=settings.goal?'#8a847b':'#3a3733')+'"/>'
+      + (i%3===2||on ? '<text x="'+(x+bw/2)+'" y="166" text-anchor="middle"'+(on?' style="fill:#f3efe7"':'')+'>'+(new Date(w.ws).getMonth()+1)+'/'+new Date(w.ws).getDate()+'</text>' : '') + '</g>';
+  });
+  $('wkChart').innerHTML = svg;
+  var w=weeks[wkSel]; $('wkPick').textContent = (new Date(w.ws).getMonth()+1)+'/'+new Date(w.ws).getDate()+' 那週 '+w.km.toFixed(1)+' km';
+  var best1=Infinity, b5=Infinity, b10=Infinity, lng=0, b1r=null, b5r=null, b10r=null, lr=null;
+  runs.forEach(function(r){
+    var full=Math.floor(r.dist);
+    for(var i=0;i<full;i++) if(r.splits[i]<best1){ best1=r.splits[i]; b1r=r; }
+    if(r.dist>=5){ var t5=r.splits.slice(0,5).reduce(function(a,b){ return a+b; },0); if(t5<b5){ b5=t5; b5r=r; } }
+    if(r.dist>=10){ var t10=r.splits.slice(0,10).reduce(function(a,b){ return a+b; },0); if(t10<b10){ b10=t10; b10r=r; } }
+    if(r.dist>lng){ lng=r.dist; lr=r; }
+  });
+  function cell(l, v, r){ return '<div><span>'+l+'</span><b class="it">'+v+'</b><small>'+(r? fmtDate(r.t)+' · '+esc(ROUTES[r.r].n) : '尚無')+'</small></div>'; }
+  $('pbg').innerHTML = cell('最快 1 公里', isFinite(best1)?fmtPace(best1):'-', b1r) + cell('5K', isFinite(b5)?fmtT(b5):'-', b5r) + cell('10K', isFinite(b10)?fmtT(b10):'-', b10r) + cell('最長距離', lng? lng.toFixed(1)+'<i>km</i>':'-', lr);
+}
+$('wkChart').addEventListener('click', function(e){ var g=e.target.closest('g[data-i]'); if(!g) return; wkSel=+g.dataset.i; haptic(5); tick(); drawStats(); });
+$('goalBtn').addEventListener('click', function(){
+  var g=settings.goal;
+  openSheet('<h4 id="shT">每週目標</h4><p class="hint">一週想跑多少公里？</p><div class="stepper"><button id="gm" aria-label="減少">−</button><b class="it" id="gv">'+g+'</b><button id="gp" aria-label="增加">+</button></div><button class="bigbtn" id="gok">定案 <small>每週 '+'<span id="gv2">'+g+'</span> 公里</small></button>');
+  function upd(){ $('gv').textContent=g; $('gv2').textContent=g; }
+  $('gm').onclick=function(){ g=Math.max(5,g-5); upd(); haptic(5); ac(); tick(); };
+  $('gp').onclick=function(){ g=Math.min(120,g+5); upd(); haptic(5); ac(); tick(); };
+  $('gok').onclick=function(){ settings.goal=g; save('settings',settings); closeSheet(); drawStats(); toast('每週目標改為 '+g+' km'); haptic([8,30,8]); };
+});
+
+/* ---------- pre-run sheet ---------- */
+$('goBtn').addEventListener('click', function(){
+  ac(); haptic(12);
+  var html = '<h4 id="shT">今天跑哪？</h4><p class="hint">選一條路線與目標配速</p><div role="radiogroup" aria-label="路線" id="routeOpts">'
+    + ROUTES.map(function(r,i){ return '<button class="opt" role="radio" data-r="'+i+'" aria-checked="'+(settings.route===i)+'">'+glyph(i,62,48, settings.route===i?'#ff5a1f':'#6d6861')+'<div><b>'+r.n+'</b><span>'+(i===2?'爬升多 · ':'')+'一圈 '+r.len.toFixed(1)+' km</span></div><em>'+r.len.toFixed(1)+'</em></button>'; }).join('')
+    + '</div><div class="srow"><div class="lbl"><span>目標配速</span><b class="it" id="tgV">'+fmtPace(settings.target)+'</b></div><input type="range" id="tg" min="240" max="450" step="5" value="'+settings.target+'" aria-label="目標配速"></div>'
+    + '<div class="srow"><div class="lbl"><span>示範加速（模擬跑步）</span></div><div class="chips" id="spdC">'+[1,10,30].map(function(s){ return '<button data-s="'+s+'" aria-pressed="'+(settings.speed===s)+'">'+s+'×</button>'; }).join('')+'</div></div>'
+    + '<button class="sw" role="switch" id="metro" aria-checked="'+settings.metro+'">配速節拍聲<i></i></button>'
+    + '<button class="bigbtn" id="startRun">GO <small>倒數三秒</small></button>';
+  openSheet(html);
+  var tg=$('tg'); function tgp(){ tg.style.setProperty('--p', ((tg.value-240)/210*100)+'%'); }
+  tgp(); tg.addEventListener('input', function(){ settings.target=+tg.value; $('tgV').textContent=fmtPace(settings.target); tgp(); });
+  $('routeOpts').addEventListener('click', function(e){ var b=e.target.closest('.opt'); if(!b) return; settings.route=+b.dataset.r; haptic(5); tick();
+    this.querySelectorAll('.opt').forEach(function(o,i){ o.setAttribute('aria-checked', o===b); o.querySelector('path').setAttribute('stroke', o===b?'#ff5a1f':'#6d6861'); }); });
+  $('spdC').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; settings.speed=+b.dataset.s; haptic(5); this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x===b); }); });
+  $('metro').addEventListener('click', function(){ settings.metro=!settings.metro; this.setAttribute('aria-checked', settings.metro); haptic(5); });
+  $('startRun').addEventListener('click', function(){ save('settings',settings); closeSheet(); countdown(); });
+});
+
+/* ---------- live run ---------- */
+var R0 = null;
+function countdown(){
+  var n=3, c=$('count'), b=$('countN'); c.classList.add('on');
+  function step(){
+    if(n===0){ b.textContent='GO'; tone(1320,0.35,'square',0.07); haptic(30); setTimeout(function(){ c.classList.remove('on'); startRun(); }, 520); }
+    else { b.textContent=n; tone(660,0.15,'square',0.06); haptic(15); setTimeout(step, 800); }
+    b.style.animation='none'; void b.offsetWidth; b.style.animation='';
+    n--;
+  }
+  step();
+}
+function startRun(){
+  R0 = {ri:settings.route, t:0, d:0, splits:[], lastSplitT:0, laps:[], paused:false, noise:0, raf:0, last:0, beatAcc:0, started:Date.now()};
+  var r=ROUTES[R0.ri];
+  $('runRoute').textContent = r.n+' · 目標 '+fmtPace(settings.target);
+  $('runMap').innerHTML = contours(R0.ri) + '<path d="'+r.d+'" fill="none" stroke="#2d2a27" stroke-width="9" stroke-linejoin="round"/><path id="liveTrace" d="'+r.d+'" fill="none" stroke="#ff5a1f" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" pathLength="1000" stroke-dasharray="1000" stroke-dashoffset="1000"/><g id="liveDot"><circle r="10" fill="#ff5a1f" opacity=".35"/><circle r="6" fill="#f3efe7" stroke="#171615" stroke-width="2.5"/></g>';
+  $('laps').textContent='分段：尚無'; $('runState').textContent='LIVE'; $('runState').classList.remove('paused'); $('pLbl').textContent='暫停';
+  $('pIco').innerHTML='<g fill="currentColor" transform="skewX(-10) translate(2 0)"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></g>';
+  $('run').classList.add('on'); $('pulse').classList.add('on');
+  R0.raf=requestAnimationFrame(runLoop); updRun();
+}
+function curPace(){ var hill = R0.ri===2 ? 30*Math.sin((R0.d % 3.2)/3.2*Math.PI*2) : 0; return settings.target + R0.noise + hill; }
+function runLoop(ts){
+  if(!R0) return;
+  var dt = Math.min(0.25, (ts-(R0.last||ts))/1000); R0.last=ts;
+  if(!document.hidden && !R0.paused){
+    var sd = dt*settings.speed; R0.noise += (Math.random()-.5)*sd*0.9; R0.noise *= 0.995; R0.noise=Math.max(-25,Math.min(25,R0.noise));
+    var p=curPace(); R0.t += sd; var before=R0.d; R0.d += sd/p;
+    if(Math.floor(R0.d) > Math.floor(before)){ R0.splits.push(Math.round(R0.t-R0.lastSplitT)); R0.lastSplitT=R0.t; tone(988,0.12,'square',0.07); tone(1480,0.2,'square',0.07,0.14); haptic([20,60,20]); toast('第 '+Math.floor(R0.d)+' 公里 '+fmtPace(R0.splits[R0.splits.length-1])); }
+    if(settings.metro){ R0.beatAcc += dt; var beat = 60/cadence(p); if(R0.beatAcc>=beat){ R0.beatAcc-=beat; tick(); } }
+    updRun();
+  }
+  R0.raf=requestAnimationFrame(runLoop);
+}
+function cadence(p){ return Math.round(Math.max(150, Math.min(190, 172 + (330-p)*0.2))); }
+function updRun(){
+  var r=ROUTES[R0.ri], p=curPace(), f=(R0.d % r.len)/r.len, laps=Math.floor(R0.d/r.len);
+  $('runClock').textContent=fmtT(R0.t); $('runD').textContent=R0.d.toFixed(2); $('runP').textContent=fmtPace(p);
+  var tr=$('liveTrace'); if(tr) tr.setAttribute('stroke-dashoffset', laps>0 && f<0.002 ? 0 : laps>0 ? 0 : (1000*(1-f)).toFixed(1));
+  if(laps>0 && tr) tr.setAttribute('stroke', '#ff7a45');
+  var pt=posAt(r,R0.d), dot=$('liveDot'); if(dot) dot.setAttribute('transform','translate('+pt[0].toFixed(1)+' '+pt[1].toFixed(1)+')');
+  var c=cadence(p); $('cad').textContent='步頻 '+c; $('pulse').style.setProperty('--beat', (60/c*2).toFixed(3)+'s');
+}
+$('bPause').addEventListener('click', function(){
+  if(!R0) return; R0.paused=!R0.paused; haptic(R0.paused?[10,30,10]:12); tone(R0.paused?440:880,0.1,'square',0.05);
+  $('runState').textContent = R0.paused?'暫停中':'LIVE'; $('runState').classList.toggle('paused', R0.paused); $('pLbl').textContent = R0.paused?'繼續':'暫停';
+  $('pulse').classList.toggle('on', !R0.paused);
+  $('pIco').innerHTML = R0.paused ? '<path d="M7 4l14 8-14 8z" fill="currentColor"/>' : '<g fill="currentColor" transform="skewX(-10) translate(2 0)"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></g>';
+});
+$('bLap').addEventListener('click', function(){
+  if(!R0) return; var prev = R0.laps.length? R0.laps[R0.laps.length-1] : {t:0,d:0};
+  R0.laps.push({t:R0.t, d:R0.d}); haptic(10); tone(1200,0.06,'square',0.06);
+  $('laps').textContent = '分段：'+R0.laps.map(function(l,i){ var p=i?R0.laps[i-1]:{t:0,d:0}; return '#'+(i+1)+' '+fmtT(l.t-p.t)+' / '+(l.d-p.d).toFixed(2); }).reverse().slice(0,3).join('　');
+  void prev;
+});
+(function(){
+  var b=$('bEnd'), h=$('hold'), anim=null, timer=null;
+  function down(){ if(!R0) return; haptic(6); if(h.animate){ anim=h.animate([{transform:'scaleX(0)'},{transform:'scaleX(1)'}],{duration:900,fill:'forwards'}); } timer=setTimeout(finish, 900); }
+  function up(){ clearTimeout(timer); if(anim){ anim.cancel(); anim=null; } }
+  b.addEventListener('pointerdown', down); b.addEventListener('pointerup', up); b.addEventListener('pointerleave', up); b.addEventListener('pointercancel', up);
+  b.addEventListener('click', function(){ if(R0 && !timer) {} toast('長按一秒結束'); });
+  b.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); finish(); } });
+})();
+function finish(){
+  if(!R0) return; cancelAnimationFrame(R0.raf);
+  var run=R0; R0=null; $('run').classList.remove('on'); $('pulse').classList.remove('on');
+  if(run.d<0.05){ toast('距離太短，不存檔'); return; }
+  var rest=run.d-Math.floor(run.d); var splits=run.splits.slice(); if(rest>0.02) splits.push(Math.round(run.t-run.lastSplitT));
+  var rec={id:'u'+Date.now(), t:Date.now(), r:run.ri, dist:Math.round(run.d*100)/100, splits:splits};
+  runs.unshift(rec); save('runs',runs); sel=rec.id; save('sel',sel);
+  tone(784,0.15,'square',0.06); tone(988,0.15,'square',0.06,0.15); tone(1319,0.35,'square',0.06,0.3); haptic([30,50,30,50,60]);
+  var tt=runTime(rec);
+  openSheet('<h4 id="shT">完賽</h4><p class="hint">'+ROUTES[rec.r].n+' · '+fmtDate(rec.t)+'</p><div class="spread"><b class="it big">'+rec.dist.toFixed(2)+'</b><div class="row3"><div><span>時間</span><b class="it">'+fmtT(tt)+'</b></div><div><span>平均配速</span><b class="it">'+fmtPace(tt/rec.dist)+'</b></div><div><span>分段</span><b class="it">'+run.laps.length+'</b></div></div></div><button class="bigbtn" id="toRp">回放 <small>看配速熱度</small></button>');
+  $('toRp').onclick=function(){ closeSheet(); go('replay'); };
+  if(cur==='cover') drawCover(); if(cur==='log') drawLog(); if(cur==='stats') drawStats(); if(cur==='replay') drawReplay();
+}
+
+/* ---------- sheet ---------- */
+var sheet=$('sheet'), scrim=$('scrim'), lastFocus=null;
+function openSheet(html){ lastFocus=document.activeElement; $('shBody').innerHTML=html; sheet.scrollTop=0; sheet.style.transform=''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); var f=sheet.querySelector('button'); if(f) f.focus({preventScroll:true}); }
+function closeSheet(){ if(!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform=''; scrim.classList.remove('on'); scrim.style.opacity=''; if(lastFocus&&lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy=0, dy=0, t0=0, on=false;
+  sheet.addEventListener('pointerdown', function(e){ if(e.target.closest('button,input')) return; on=true; sy=e.clientY; dy=0; t0=e.timeStamp; sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(er){} });
+  sheet.addEventListener('pointermove', function(e){ if(!on) return; dy=e.clientY-sy; var y=dy>0?dy:dy/6; sheet.style.transform='translateY('+y+'px)'; scrim.style.opacity=Math.max(0,1-dy/sheet.offsetHeight); });
+  function end(e){ if(!on) return; on=false; sheet.classList.remove('drag'); scrim.style.opacity=''; var v=dy/Math.max(1,e.timeStamp-t0); if(dy>sheet.offsetHeight*.35||v>.6){ closeSheet(); haptic(5); } else sheet.style.transform=''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(sheet.classList.contains('on')) closeSheet(); else if(R0) toast('長按結束鍵才會停止'); } });
+
+/* ---------- toast ---------- */
+var tt=null;
+function toast(msg, undo){ $('toastT').textContent=msg; $('toastU').hidden=!undo; var t=$('toast'); t.classList.add('on'); clearTimeout(tt); tt=setTimeout(hideToast, undo?4200:2000); }
+function hideToast(){ $('toast').classList.remove('on'); }
+
+/* ---------- boot ---------- */
+drawCover();
+})();
+</script>
+</body>
+</html>

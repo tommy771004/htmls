@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e2a93b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="月環">
+<title>月環 · 週期追蹤</title>
+<meta name="description" content="用一面北歐織品印花轉盤追蹤經期：轉動選日、記錄症狀、預測排卵與下次月經、月曆與週期史。收錄於 100 Creative HTML Works（App 016・北歐織品印花）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/016-textile-cycle.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e2a93b'/%3E%3Ccircle cx='32' cy='32' r='22' fill='%239a3a1c'/%3E%3Cpath d='M32 10a22 22 0 0 1 19 11L32 32z' fill='%23c8583a'/%3E%3Cpath d='M51 21a22 22 0 0 1 0 22L32 32z' fill='%23f3e0bf'/%3E%3Ccircle cx='32' cy='32' r='11' fill='%23f3e0bf'/%3E%3C/svg%3E">
+<style>
+:root{
+  --mustard:#e2a93b; --mustard-d:#d3982c; --clay:#c8583a; --rust:#8f371b; --rust-d:#6e2913;
+  --brown:#4a2214; --ink:#2b120b; --linen:#f3e0bf; --linen-2:#ead2ab;
+  --futura:"Futura","Futura PT","Century Gothic","PingFang TC","Heiti TC",system-ui,sans-serif;
+  --sans:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --spring:cubic-bezier(.2,1.25,.35,1); --out:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--mustard);overflow:hidden}
+body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:6px}
+svg{display:block}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.label,.speaker{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--mustard);container-type:size;isolation:isolate}
+@media (min-width:521px){
+  body{background:#c8583a}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:56px;padding:10px;background:#2b120b;
+    box-shadow:inset 0 0 0 2px #4a2214,0 18px 30px -20px rgba(60,20,8,.8)}
+  .screen{inset:10px;border-radius:46px}
+  .speaker{display:block;position:absolute;top:10px;left:50%;width:112px;height:30px;margin-left:-56px;border-radius:0 0 18px 18px;background:#2b120b;z-index:80}
+  .label{display:block;position:relative;width:250px;padding:26px 24px 24px;background:var(--linen);color:var(--rust-d);transform:rotate(-2deg);
+    box-shadow:0 3px 4px -2px rgba(60,20,8,.35)}
+  .label::before{content:"";position:absolute;inset:7px;border:2px dashed rgba(143,55,27,.55);border-radius:3px;pointer-events:none}
+  .label b{display:block;font:700 40px/1 var(--futura)}
+  .label p{margin-top:10px;font-size:15px;line-height:1.6;color:var(--brown)}
+  .label i{display:block;margin-top:14px;font:500 13px/1 var(--futura);font-style:normal;color:var(--rust)}
+}
+@media (min-width:521px) and (max-width:880px){.label{display:none}}
+
+/* ---------- print field ---------- */
+.print{position:absolute;inset:0;z-index:0;pointer-events:none}
+.print svg{position:absolute;left:-60px;top:-40px;width:calc(100% + 120px);height:calc(100% + 80px)}
+#printG{transition:transform .8s var(--out)}
+
+/* ---------- status bar ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;
+  display:flex;align-items:center;justify-content:space-between;font:600 16px/1 var(--futura);color:var(--ink);pointer-events:none}
+.status .gl{display:flex;align-items:center;gap:6px}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- views ---------- */
+.views{position:absolute;left:0;right:0;top:calc(48px + env(safe-area-inset-top));bottom:calc(74px + env(safe-area-inset-bottom));z-index:5}
+.view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  transition:transform .5s var(--out),visibility 0s .5s;visibility:hidden;transform:translateX(100%)}
+.view.left{transform:translateX(-100%)}
+.view.on{transform:none;visibility:visible;transition:transform .5s var(--out)}
+.view::-webkit-scrollbar{display:none}
+
+.head{display:flex;align-items:center;justify-content:space-between;padding:4px 20px 0 22px;min-height:48px}
+.head h1{font:700 28px/1 var(--futura);letter-spacing:.02em}
+.head h1 span{font:500 14px/1 var(--futura);margin-left:8px;color:var(--rust-d)}
+.ibtn{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:var(--ink);transition:background-color .2s}
+.ibtn:active{background:rgba(43,18,11,.12)}
+
+/* ---------- dial ---------- */
+.home{display:flex;flex-direction:column;min-height:100%}
+.dialwrap{position:relative;flex:none;width:min(348px,90cqw,47cqh);aspect-ratio:1;margin:2px auto 0;touch-action:none;cursor:grab}
+.dialwrap:active{cursor:grabbing}
+.dialwrap svg{width:100%;height:100%;overflow:visible}
+.seg{transition:fill .35s}
+.dnum{font:600 13px/1 var(--futura);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.center-n{font:700 66px/1 var(--futura);text-anchor:middle;dominant-baseline:central;fill:var(--rust-d)}
+.center-l{font:500 13px/1 var(--sans);text-anchor:middle;dominant-baseline:central;fill:var(--brown)}
+
+/* pinked panel */
+.panel{position:relative;flex:1 0 auto;margin-top:14px;background:var(--rust);color:var(--linen);padding:22px 20px 22px}
+.panel::before{content:"";position:absolute;left:0;right:0;top:-9px;height:10px;
+  background:linear-gradient(135deg,transparent 50%,var(--rust) 50%) 0 0/14px 10px repeat-x,linear-gradient(225deg,transparent 50%,var(--rust) 50%) 0 0/14px 10px repeat-x}
+.pdate{display:flex;align-items:center;justify-content:space-between;font-size:14px;color:var(--linen-2);min-height:28px}
+.today-btn{height:32px;padding:0 12px;border-radius:6px;background:var(--linen);color:var(--rust-d);font-weight:600;font-size:13px;transition:transform .15s}
+.today-btn:active{transform:scale(.94)}
+.today-btn[hidden]{display:none}
+.phase{margin-top:6px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.phase b{font:700 30px/1.15 var(--futura)}
+.phase em{font-style:normal;font-size:15px;color:var(--linen-2)}
+.pred{margin-top:6px;font-size:15px;line-height:1.55;color:var(--linen)}
+.stamps{display:grid;grid-template-columns:repeat(6,1fr);margin:18px -6px 0}
+.stamp{--cut:var(--rust);display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0 6px;border-radius:10px;color:rgba(243,224,191,.66);font-size:12px;transition:color .2s,background-color .2s,transform .15s}
+.stamp svg{width:28px;height:28px}
+.stamp[aria-pressed=true]{color:var(--linen);background:var(--rust-d);--cut:var(--rust-d)}
+.stamp:active{transform:scale(.9)}
+.acts{display:grid;grid-template-columns:1fr 52px;gap:10px;margin-top:16px}
+.bigbtn{height:52px;border-radius:8px;background:var(--linen);color:var(--rust-d);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .15s,background-color .2s;--cut:var(--linen)}
+.bigbtn:active{transform:scale(.97);background:var(--linen-2)}
+.sqbtn{height:52px;border-radius:8px;background:var(--mustard);color:var(--ink);display:grid;place-items:center;transition:transform .15s;--cut:var(--mustard)}
+.sqbtn:active{transform:scale(.92)}
+
+/* ---------- calendar ---------- */
+.monthbar{display:flex;align-items:center;justify-content:space-between;padding:4px 10px 0 22px;min-height:52px}
+.monthbar h2{font:700 28px/1 var(--futura)}
+.monthbar h2 small{font:500 15px/1 var(--futura);color:var(--rust-d);margin-left:6px}
+.monthbar .arrows{display:flex}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:6px 16px 6px;font:600 12px/1 var(--sans);color:var(--rust-d);text-align:center}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:0 16px;touch-action:pan-y}
+.cell{position:relative;aspect-ratio:1;border-radius:6px;font:600 16px/1 var(--futura);display:flex;align-items:center;justify-content:center;color:var(--ink);transition:transform .15s}
+.cell:active{transform:scale(.9)}
+.cell.out{visibility:hidden}
+.cell.per{background:var(--rust);color:var(--linen)}
+.cell.pred{background:repeating-linear-gradient(135deg,var(--rust) 0 3px,transparent 3px 7px);color:var(--ink)}
+.cell.pred span{background:var(--mustard);padding:3px 4px;border-radius:4px}
+.cell.fer{background:var(--linen)}
+.cell.ovu{background:var(--clay);color:var(--linen)}
+.cell.today{box-shadow:inset 0 0 0 2.5px var(--ink)}
+.cell .st{position:absolute;left:50%;bottom:6px;width:12px;height:3px;margin-left:-6px;border-radius:2px;background:currentColor;opacity:.75}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;padding:18px 22px 4px;font-size:13px;color:var(--brown)}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend i{width:18px;height:18px;border-radius:4px;flex:none}
+.msum{margin:18px 16px 24px;background:var(--rust);color:var(--linen);border-radius:8px;padding:18px 18px;display:grid;grid-template-columns:repeat(3,1fr);text-align:center}
+.msum b{display:block;font:700 26px/1.1 var(--futura)}
+.msum small{font-size:12px;color:var(--linen-2)}
+
+/* ---------- history ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);padding:8px 16px 0;gap:8px}
+.stat{padding:14px 12px 12px;border-radius:8px;background:var(--rust-d);color:var(--linen)}
+.stat:nth-child(2){background:var(--clay)}
+.stat:nth-child(3){background:var(--brown)}
+.stat b{display:block;font:700 30px/1 var(--futura)}
+.stat b small{font-size:14px;margin-left:2px}
+.stat span{display:block;margin-top:6px;font-size:12px;color:var(--linen-2)}
+.sect{padding:26px 22px 8px;font:700 17px/1.2 var(--sans);display:flex;justify-content:space-between;align-items:baseline}
+.sect small{font-weight:400;font-size:13px;color:var(--brown)}
+.strips{padding:0 16px}
+.strip{display:grid;grid-template-columns:62px 1fr 44px;align-items:center;gap:8px;min-height:56px}
+.strip .when{font:600 14px/1.2 var(--futura)}
+.strip .when small{display:block;font:400 12px/1.3 var(--sans);color:var(--brown)}
+.bar{position:relative;height:26px;border-radius:4px;overflow:hidden;background:var(--mustard-d);transition:width .5s var(--out)}
+.bar i{position:absolute;top:0;bottom:0}
+.bar .bp{left:0;background:var(--rust)}
+.bar .bf{background:var(--linen)}
+.bar .bo{background:var(--clay)}
+.bar em{position:absolute;right:6px;top:50%;transform:translateY(-50%);font:600 13px/1 var(--futura);font-style:normal;color:var(--ink)}
+.strip .del{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:var(--rust-d);--cut:var(--mustard)}
+.strip .del:active{background:rgba(43,18,11,.12)}
+.strip .del[disabled]{visibility:hidden}
+.set{margin:0 16px;background:var(--linen);border-radius:8px}
+.row{display:flex;align-items:center;justify-content:space-between;min-height:58px;padding:0 10px 0 16px;font-size:15px}
+.row + .row{box-shadow:inset 0 1px 0 rgba(143,55,27,.14)}
+.row small{display:block;font-size:12px;color:var(--brown);margin-top:3px}
+.stepper{display:flex;align-items:center}
+.stepper b{min-width:54px;text-align:center;font:700 18px/1 var(--futura)}
+.stepper button{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--rust-d)}
+.stepper button:active{background:rgba(143,55,27,.14)}
+.sw{position:relative;width:58px;height:34px;border-radius:6px;background:var(--linen-2);transition:background-color .25s;margin-right:6px}
+.sw::after{content:"";position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:4px;background:var(--rust-d);transition:transform .35s var(--spring)}
+.sw[aria-checked=true]{background:var(--clay)}
+.sw[aria-checked=true]::after{transform:translateX(24px);background:var(--linen)}
+.danger{display:block;width:calc(100% - 32px);margin:16px 16px 30px;height:52px;border-radius:8px;background:var(--brown);color:var(--linen);font-weight:600;font-size:15px;transition:background-color .2s}
+.danger:active{background:var(--ink)}
+.danger.armed{background:var(--rust)}
+
+/* ---------- selvedge nav ---------- */
+.selv{position:absolute;left:0;right:0;bottom:0;z-index:30;height:calc(74px + env(safe-area-inset-bottom));padding-bottom:calc(14px + env(safe-area-inset-bottom));
+  background:var(--brown);display:grid;grid-template-columns:repeat(3,1fr)}
+.selv::before{content:"";position:absolute;left:12px;right:12px;top:6px;height:2px;border-radius:1px;
+  background:repeating-linear-gradient(90deg,rgba(243,224,191,.35) 0 6px,transparent 6px 11px)}
+.tab{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:rgba(243,224,191,.62);font-size:12px;--cut:var(--brown);transition:color .25s}
+.tab svg{width:24px;height:24px;transition:transform .35s var(--spring)}
+.tab .reg{position:absolute;top:13px;left:calc(50% + 17px);width:9px;height:9px;border-radius:2px;box-shadow:inset 0 0 0 1.5px currentColor;transition:background-color .25s}
+.tab[aria-selected=true]{color:var(--linen);font-weight:700}
+.tab[aria-selected=true] .reg{background:var(--c);box-shadow:none}
+.tab:active svg{transform:scale(.86)}
+.home-ind{position:absolute;left:50%;bottom:calc(6px + env(safe-area-inset-bottom)*.3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(243,224,191,.8);z-index:35;pointer-events:none}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(43,18,11,.42);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:88%;overflow-y:auto;background:var(--linen);color:var(--ink);border-radius:18px 18px 0 0;
+  padding:8px 20px calc(22px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .5s var(--spring);touch-action:none;visibility:hidden}
+.sheet.on{transform:none;visibility:visible}
+.sheet.drag{transition:none}
+.stitch{width:64px;height:12px;margin:2px auto 10px;background:repeating-linear-gradient(90deg,var(--rust) 0 8px,transparent 8px 13px) center/100% 3px no-repeat;border-radius:2px}
+.sheet h3{font:700 22px/1.2 var(--futura)}
+.sheet h3 small{font:500 14px/1 var(--sans);color:var(--brown);margin-left:8px}
+.lbl{margin:20px 0 8px;font-size:13px;font-weight:600;color:var(--rust-d)}
+.flow{display:flex;gap:6px}
+.petal{--cut:var(--linen);flex:1;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:8px;color:var(--rust);font-size:12px;transition:background-color .2s,color .2s,transform .15s}
+.petal svg{width:24px;height:24px}
+.petal[aria-pressed=true]{background:var(--rust);color:var(--linen);--cut:var(--rust)}
+.petal:active{transform:scale(.92)}
+.sheet .stamps{margin:0 -4px}
+.sheet .stamp{color:rgba(110,41,19,.62);--cut:var(--linen)}
+.sheet .stamp[aria-pressed=true]{color:var(--linen);background:var(--rust-d);--cut:var(--rust-d)}
+.moods{display:flex;gap:6px}
+.mood{flex:1;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:8px;color:var(--clay);font-size:12px;transition:background-color .2s,color .2s,transform .15s}
+.mood svg{width:26px;height:26px}
+.mood[aria-pressed=true]{background:var(--mustard);color:var(--ink)}
+.mood:active{transform:scale(.92)}
+.note{width:100%;height:48px;border:0;border-radius:8px;background:var(--linen-2);padding:0 14px;font-size:15px}
+.note::placeholder{color:rgba(74,34,20,.55)}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-top:20px;min-height:48px;font-size:15px}
+.done{margin-top:20px;width:100%;height:54px;border-radius:8px;background:var(--rust);color:var(--linen);font-weight:700;font-size:17px;transition:background-color .2s,transform .15s}
+.done:active{background:var(--rust-d);transform:scale(.98)}
+
+.toast{position:absolute;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  min-height:50px;padding:6px 6px 6px 16px;border-radius:8px;background:var(--ink);color:var(--linen);font-size:14px;transform:translateY(20px);opacity:0;visibility:hidden;transition:transform .35s var(--out),opacity .25s,visibility 0s .35s}
+.toast.on{transform:none;opacity:1;visibility:visible;transition:transform .35s var(--out),opacity .25s}
+.toast button{height:40px;padding:0 14px;border-radius:6px;color:var(--mustard);font-weight:700}
+.toast button[hidden]{display:none}
+
+@media (prefers-reduced-motion:reduce){
+  .view,.view.on,.sheet,.toast,#printG,.sw::after,.tab svg{transition-duration:.01s}
+  .stamp:active,.cell:active,.bigbtn:active{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <pattern id="bolt" width="400" height="400" patternUnits="userSpaceOnUse">
+          <rect width="400" height="400" fill="#c8583a"/>
+          <path d="M60 330C20 250 40 130 140 70c60 90 60 190 -80 260z" fill="#8f371b"/>
+          <path d="M140 70C120 150 100 240 60 330" stroke="#c8583a" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <circle cx="290" cy="120" r="78" fill="#e2a93b"/>
+          <circle cx="290" cy="120" r="40" fill="#c8583a"/>
+          <circle cx="290" cy="120" r="14" fill="#f3e0bf"/>
+          <path d="M230 300c40-40 100-40 140 0-40 40-100 40-140 0z" fill="#4a2214"/>
+          <path d="M250 380c30-24 70-24 100 0" stroke="#e2a93b" stroke-width="14" fill="none" stroke-linecap="round"/>
+          <circle cx="40" cy="40" r="10" fill="#f3e0bf"/><circle cx="200" cy="220" r="8" fill="#e2a93b"/><circle cx="180" cy="380" r="12" fill="#8f371b"/>
+        </pattern>
+      </defs>
+      <rect width="1600" height="1000" fill="url(#bolt)"/>
+    </svg>
+  </div>
+
+  <div class="device">
+    <div class="speaker" aria-hidden="true"></div>
+    <div class="screen" id="screen">
+      <div class="print" aria-hidden="true">
+        <svg viewBox="0 0 510 924" preserveAspectRatio="xMidYMin slice">
+          <defs>
+            <pattern id="leaf" width="170" height="170" patternUnits="userSpaceOnUse">
+              <path d="M30 150C10 100 30 40 90 20c30 60 10 110-60 130z" fill="#d3982c"/>
+              <path d="M90 20C80 70 60 110 30 150" stroke="#e2a93b" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <circle cx="135" cy="115" r="26" fill="#d3982c"/><circle cx="135" cy="115" r="10" fill="#e2a93b"/>
+              <circle cx="140" cy="30" r="6" fill="#d3982c"/>
+            </pattern>
+          </defs>
+          <g id="printG"><rect x="-200" y="0" width="910" height="924" fill="url(#leaf)"/></g>
+        </svg>
+      </div>
+
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="gl">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3.4" height="5" fill="currentColor"/><rect x="4.8" y="4.6" width="3.4" height="7.4" fill="currentColor"/><rect x="9.6" y="2.3" width="3.4" height="9.7" fill="currentColor"/><rect x="14.4" y="0" width="3.4" height="12" fill="currentColor" opacity=".35"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 12 0 3.2A11.6 11.6 0 0 1 16 3.2z" fill="currentColor"/><path d="M8 12 3.4 7a6.4 6.4 0 0 1 9.2 0z" fill="#e2a93b"/><path d="M8 12 5.6 9.4a3.2 3.2 0 0 1 4.8 0z" fill="currentColor"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x="1" y="1" width="22" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect id="batt" x="3.5" y="3.5" width="15" height="6" fill="currentColor"/><rect x="24" y="4" width="2.4" height="5" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <div class="views" id="views">
+        <!-- DIAL -->
+        <section class="view on" id="v-dial" aria-label="轉盤">
+          <div class="home">
+            <div class="head"><h1>月環<span id="cycLbl">第 6 週期</span></h1>
+              <button class="ibtn" id="toToday" aria-label="轉回今天">
+                <svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M12 7v5l3.5 2.5" fill="none" stroke="#e2a93b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="dialwrap" id="dialwrap" role="slider" tabindex="0" aria-label="週期轉盤，左右鍵選日" aria-valuemin="1" aria-valuemax="29" aria-valuenow="14">
+              <svg viewBox="-200 -200 400 400" id="dialSvg">
+                <defs>
+                  <pattern id="dotsP" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#f3e0bf"/><circle cx="6" cy="6" r="2.2" fill="#c8583a"/></pattern>
+                  <pattern id="lineP" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#4a2214"/><rect width="3" height="10" fill="#6e2913"/></pattern>
+                </defs>
+                <g id="ring"></g>
+                <path d="M0 -176 L-13 -198 H13 Z" fill="#2b120b"/>
+                <circle r="94" fill="#f3e0bf"/>
+                <circle r="84" fill="none" stroke="#c8583a" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/>
+                <text class="center-n" y="-10" id="cNum">14</text>
+                <text class="center-l" y="40" id="cLbl">週期第幾天</text>
+              </svg>
+            </div>
+            <div class="panel">
+              <div class="pdate"><span id="pDate">9 月 23 日 星期三</span><button class="today-btn" id="backToday" hidden>回到今天</button></div>
+              <div class="phase"><b id="pPhase">易孕期</b><em id="pSub">第 14 天</em></div>
+              <p class="pred" id="pPred">排卵日約在 9 月 24 日。</p>
+              <div class="stamps" id="quickStamps"></div>
+              <div class="acts">
+                <button class="bigbtn" id="periodBtn">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 2.5c3.2 4.2 6.5 7.6 6.5 11.7a6.5 6.5 0 0 1-13 0c0-4.1 3.3-7.5 6.5-11.7z" fill="currentColor"/><path d="M9.2 14.5a3 3 0 0 0 3 3" stroke="var(--cut)" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+                  <span id="periodTxt">月經從這天開始</span>
+                </button>
+                <button class="sqbtn" id="moreBtn" aria-label="完整紀錄">
+                  <svg width="24" height="24" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z" fill="currentColor"/><path d="M8 10h8M8 14h8M8 18h4" stroke="var(--cut)" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CALENDAR -->
+        <section class="view" id="v-cal" aria-label="月曆">
+          <div class="monthbar"><h2 id="mTitle">九月<small>2026</small></h2>
+            <div class="arrows">
+              <button class="ibtn" id="mPrev" aria-label="上個月"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M15 4 6 12l9 8z" fill="currentColor"/></svg></button>
+              <button class="ibtn" id="mNext" aria-label="下個月"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M9 4l9 8-9 8z" fill="currentColor"/></svg></button>
+            </div>
+          </div>
+          <div class="wk"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+          <div class="grid" id="grid"></div>
+          <div class="legend">
+            <span><i style="background:var(--rust)"></i>月經</span>
+            <span><i style="background:repeating-linear-gradient(135deg,var(--rust) 0 3px,var(--mustard) 3px 7px)"></i>預測月經</span>
+            <span><i style="background:var(--linen)"></i>易孕期</span>
+            <span><i style="background:var(--clay)"></i>排卵日</span>
+          </div>
+          <div class="msum" id="msum"></div>
+        </section>
+
+        <!-- HISTORY -->
+        <section class="view" id="v-his" aria-label="週期史">
+          <div class="head"><h1>週期史</h1></div>
+          <div class="stats" id="stats"></div>
+          <div class="sect">最近週期<small>紅 月經 · 米 易孕 · 陶 排卵</small></div>
+          <div class="strips" id="strips"></div>
+          <div class="sect">設定</div>
+          <div class="set">
+            <div class="row"><div>預設週期<small>紀錄少於兩次時使用</small></div>
+              <div class="stepper"><button data-step="len,-1" aria-label="週期減一天"><svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="10.5" width="16" height="3" rx="1.5" fill="currentColor"/></svg></button><b id="setLen">29</b><button data-step="len,1" aria-label="週期加一天"><svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="10.5" width="16" height="3" rx="1.5" fill="currentColor"/><rect x="10.5" y="4" width="3" height="16" rx="1.5" fill="currentColor"/></svg></button></div></div>
+            <div class="row"><div>經期長度</div>
+              <div class="stepper"><button data-step="per,-1" aria-label="經期減一天"><svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="10.5" width="16" height="3" rx="1.5" fill="currentColor"/></svg></button><b id="setPer">5</b><button data-step="per,1" aria-label="經期加一天"><svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="10.5" width="16" height="3" rx="1.5" fill="currentColor"/><rect x="10.5" y="4" width="3" height="16" rx="1.5" fill="currentColor"/></svg></button></div></div>
+            <div class="row"><div>經期前兩天提醒<small>早上 8:30</small></div><button class="sw" id="remindSw" role="switch" aria-checked="true" aria-label="經期提醒"></button></div>
+          </div>
+          <button class="danger" id="resetBtn">清除全部紀錄</button>
+        </section>
+      </div>
+
+      <nav class="selv" role="tablist" aria-label="主要頁面">
+        <button class="tab" role="tab" aria-selected="true" data-v="dial" style="--c:var(--mustard)"><i class="reg"></i>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 2v7M12 15v7M2 12h7M15 12h7M5 5l5 5M14 14l5 5M19 5l-5 5M10 14l-5 5" stroke="var(--cut)" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="var(--cut)"/></svg>轉盤</button>
+        <button class="tab" role="tab" aria-selected="false" data-v="cal" style="--c:var(--clay)"><i class="reg"></i>
+          <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="18" rx="2" fill="currentColor"/><path d="M2 9h20M8.7 9v13M15.3 9v13M2 15.5h20" stroke="var(--cut)" stroke-width="1.6"/><rect x="6" y="1.5" width="2.6" height="5" rx="1" fill="currentColor"/><rect x="15.4" y="1.5" width="2.6" height="5" rx="1" fill="currentColor"/></svg>月曆</button>
+        <button class="tab" role="tab" aria-selected="false" data-v="his" style="--c:var(--linen)"><i class="reg"></i>
+          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1.5" fill="currentColor"/><rect x="2" y="10" width="14" height="5" rx="1.5" fill="currentColor"/><rect x="2" y="17" width="17" height="5" rx="1.5" fill="currentColor"/><path d="M8 3v5M6 10v5M7 17v5" stroke="var(--cut)" stroke-width="1.6"/></svg>週期史</button>
+      </nav>
+      <div class="home-ind" aria-hidden="true"></div>
+
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">
+        <div class="stitch" aria-hidden="true"></div>
+        <h3 id="shT">9 月 23 日<small id="shSub">週期第 14 天</small></h3>
+        <div class="lbl">經血量</div>
+        <div class="flow" id="shFlow"></div>
+        <div class="lbl">身體狀況</div>
+        <div class="stamps" id="shStamps"></div>
+        <div class="lbl">心情</div>
+        <div class="moods" id="shMood"></div>
+        <div class="lbl">筆記</div>
+        <input class="note" id="shNote" maxlength="60" placeholder="例如：喝了黑糖薑茶、瑜珈 30 分鐘" aria-label="筆記">
+        <div class="toggle-row"><span>月經從這天開始</span><button class="sw" id="shStart" role="switch" aria-checked="false" aria-label="月經從這天開始"></button></div>
+        <button class="done" id="shDone">完成</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="label">
+    <b>月環</b>
+    <p>把一整個週期印成一塊布。轉動布盤選日，記下身體的每一種感覺。</p>
+    <i>App 016 · 週期追蹤</i>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app016:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- dates ---------- */
+function iso(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function parse(s){ var a = s.split('-'); return new Date(+a[0], a[1] - 1, +a[2]); }
+function add(d, n){ var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function diff(a, b){ return Math.round((b - a) / 864e5); }
+var WD = ['日','一','二','三','四','五','六'];
+var MN = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+function md(d){ return (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日'; }
+var TODAY = new Date(); TODAY.setHours(0,0,0,0);
+
+/* ---------- data ---------- */
+var SYM = [
+  {k:'cramp', n:'經痛', svg:'<circle cx="12" cy="12" r="9.5" fill="currentColor"/><path d="M13 12a1 1 0 1 1-1-1 3 3 0 1 1-3 3 5 5 0 1 1 5.5-5.4" fill="none" stroke="var(--cut)" stroke-width="1.7" stroke-linecap="round"/>'},
+  {k:'head', n:'頭痛', svg:'<path d="M3 8a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v8a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="currentColor"/><path d="M6.5 13.5 9 10l3 3.5 3-3.5 2.5 3.5" fill="none" stroke="var(--cut)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>'},
+  {k:'bloat', n:'脹氣', svg:'<ellipse cx="12" cy="12.5" rx="10" ry="8.5" fill="currentColor"/><path d="M6.5 14a5.5 5.5 0 0 1 11 0M9.5 14a2.5 2.5 0 0 1 5 0" fill="none" stroke="var(--cut)" stroke-width="1.7" stroke-linecap="round"/>'},
+  {k:'tired', n:'疲倦', svg:'<path d="M14.5 2.5a9.8 9.8 0 1 0 7 14.2A8 8 0 0 1 14.5 2.5z" fill="currentColor"/><path d="M6.5 13.5h4" stroke="var(--cut)" stroke-width="1.7" stroke-linecap="round"/>'},
+  {k:'acne', n:'長痘', svg:'<path d="M12 2c5.5 3.4 8 7.6 8 11.3a8 8 0 0 1-16 0C4 9.6 6.5 5.4 12 2z" fill="currentColor"/><circle cx="9.3" cy="13.2" r="1.5" fill="var(--cut)"/><circle cx="14.4" cy="11.4" r="1.5" fill="var(--cut)"/><circle cx="12.4" cy="16.6" r="1.5" fill="var(--cut)"/>'},
+  {k:'mood', n:'情緒', svg:'<path d="M2 9.5c3.3-4.6 6.7-4.6 10 0s6.7 4.6 10 0V20H2z" fill="currentColor"/><path d="M2 15c3.3-3.4 6.7-3.4 10 0s6.7 3.4 10 0" fill="none" stroke="var(--cut)" stroke-width="1.7" stroke-linecap="round"/>'}
+];
+var FLOW = ['沒有','點狀','少量','中量','多量'];
+var MOODS = ['低落','煩躁','平穩','愉快','很好'];
+function drop(n){ // n cut rings
+  var s = '<path d="M12 2.5c3.2 4.2 6.5 7.6 6.5 11.7a6.5 6.5 0 0 1-13 0c0-4.1 3.3-7.5 6.5-11.7z" fill="currentColor"/>';
+  if (n === 0) return '<path d="M12 3.5c3 4 5.6 7 5.6 10.7a5.6 5.6 0 0 1-11.2 0C6.4 10.5 9 7.5 12 3.5z" fill="none" stroke="currentColor" stroke-width="1.8"/>';
+  for (var i = 0; i < n - 1; i++) s += '<path d="M8.4 ' + (15.4 - i * 2.6) + 'h7.2" stroke="var(--cut)" stroke-width="1.5" stroke-linecap="round"/>';
+  return s;
+}
+function flower(n){ // n petals
+  var s = '';
+  for (var i = 0; i < n + 1; i++){ var a = i / (n + 1) * 360; s += '<ellipse cx="12" cy="6" rx="3.4" ry="5" fill="currentColor" transform="rotate(' + a.toFixed(1) + ' 12 12)"/>'; }
+  return s + '<circle cx="12" cy="12" r="3" fill="var(--cut)"/>';
+}
+
+function seed(){
+  var cur = add(TODAY, -13), lens = [30, 29, 30, 29, 29], starts = [{s: iso(cur), p: 5}], d = cur;
+  var pers = [5, 6, 5, 5, 5];
+  lens.forEach(function(L, i){ d = add(d, -L); starts.unshift({s: iso(d), p: pers[i]}); });
+  var logs = {};
+  var f = [4, 4, 3, 2, 1];
+  for (var i = 0; i < 5; i++){ logs[iso(add(cur, i))] = {flow: f[i], sym: i < 2 ? ['cramp'].concat(i === 0 ? ['tired'] : []) : (i === 2 ? ['bloat'] : []), mood: i < 2 ? 1 : 2, note: i === 0 ? '熱敷 + 黑糖薑茶' : ''}; }
+  logs[iso(add(TODAY, -4))] = {flow: 0, sym: ['acne'], mood: 3, note: '去陽明山走步道'};
+  logs[iso(add(TODAY, -1))] = {flow: 0, sym: [], mood: 4, note: ''};
+  var prev = parse(starts[starts.length - 2].s);
+  logs[iso(add(prev, 0))] = {flow: 3, sym: ['cramp', 'head'], mood: 0, note: '請了半天假'};
+  logs[iso(add(prev, 1))] = {flow: 4, sym: ['cramp'], mood: 1, note: ''};
+  logs[iso(add(prev, -3))] = {flow: 0, sym: ['mood', 'bloat'], mood: 1, note: ''};
+  return {starts: starts, logs: logs};
+}
+var data = load('data', null);
+if (!data || !data.starts){ data = seed(); }
+var settings = load('settings', {len: 29, per: 5, remind: true});
+function persist(){ save('data', data); save('settings', settings); }
+
+function sortStarts(){ data.starts.sort(function(a, b){ return a.s < b.s ? -1 : 1; }); }
+function avgLen(){
+  var s = data.starts, arr = [];
+  for (var i = Math.max(1, s.length - 6); i < s.length; i++) arr.push(diff(parse(s[i - 1].s), parse(s[i].s)));
+  arr = arr.filter(function(x){ return x > 15 && x < 60; });
+  return arr.length ? Math.round(arr.reduce(function(a, b){ return a + b; }, 0) / arr.length) : settings.len;
+}
+function avgPer(){
+  var s = data.starts.slice(-6); if (!s.length) return settings.per;
+  return Math.round(s.reduce(function(a, b){ return a + (b.p || settings.per); }, 0) / s.length);
+}
+function lenList(){ var s = data.starts, arr = []; for (var i = 1; i < s.length; i++) arr.push(diff(parse(s[i - 1].s), parse(s[i].s))); return arr; }
+
+// what is going on for a given date
+function info(date){
+  var s = data.starts, L = avgLen(), P = avgPer();
+  if (!s.length) return null;
+  var k = -1;
+  for (var i = 0; i < s.length; i++){ if (parse(s[i].s) <= date) k = i; }
+  if (k < 0) return null;
+  var start = parse(s[k].s), len, per = s[k].p || P, pred = false;
+  if (k < s.length - 1){ len = diff(start, parse(s[k + 1].s)); }
+  else {
+    var dd = diff(start, date), curLen = Math.max(L, diff(start, TODAY) + 1);
+    if (dd < curLen) len = curLen;
+    else { var m = Math.floor((dd - curLen) / L); start = add(start, curLen + m * L); len = L; per = P; pred = true; }
+  }
+  var day = diff(start, date) + 1, ov = len - 14, phase;
+  if (day <= per) phase = 'men';
+  else if (day === ov) phase = 'ovu';
+  else if (day >= ov - 5 && day <= ov + 1) phase = 'fer';
+  else if (day < ov) phase = 'fol';
+  else phase = 'lut';
+  return {start: start, len: len, day: day, per: per, ov: ov, phase: phase, pred: pred, idx: k};
+}
+function logOf(d){ return data.logs[iso(d)] || null; }
+function ensureLog(d){ var k = iso(d); if (!data.logs[k]) data.logs[k] = {flow: 0, sym: [], mood: -1, note: ''}; return data.logs[k]; }
+function cleanLog(d){ var k = iso(d), l = data.logs[k]; if (l && !l.flow && !l.sym.length && l.mood < 0 && !l.note) delete data.logs[k]; }
+function isStart(d){ var k = iso(d); return data.starts.some(function(x){ return x.s === k; }); }
+
+/* ---------- dial ---------- */
+var ring = $('ring'), dialwrap = $('dialwrap');
+var R = 172, r0 = 100, N = 29, step = 360 / 29, rot = 0, cur = null;
+var PHASE_FILL = {men: '#8f371b', fol: '#c8583a', fer: 'url(#dotsP)', ovu: '#f3e0bf', lut: 'url(#lineP)'};
+var PHASE_TXT = {men: '#f3e0bf', fol: '#f3e0bf', fer: '#6e2913', ovu: '#8f371b', lut: '#f3e0bf'};
+var PHASE_NAME = {men: '月經期', fol: '濾泡期', fer: '易孕期', ovu: '排卵日', lut: '黃體期'};
+function pt(rad, deg){ var a = deg * Math.PI / 180; return [(rad * Math.sin(a)).toFixed(2), (-rad * Math.cos(a)).toFixed(2)]; }
+function buildDial(){
+  cur = info(TODAY);
+  if (!cur){ ring.innerHTML = ''; return; }
+  N = cur.len; step = 360 / N;
+  dialwrap.setAttribute('aria-valuemax', N);
+  var html = '', gap = Math.min(1.1, step * .08);
+  for (var i = 0; i < N; i++){
+    var c = i * step, a0 = c - step / 2 + gap, a1 = c + step / 2 - gap;
+    var p1 = pt(r0, a0), p2 = pt(R, a0), p3 = pt(R, a1), p4 = pt(r0, a1), q = pt(R + 11, c);
+    var day = i + 1, d = add(cur.start, i), ph = info(d).phase, lg = logOf(d);
+    html += '<g data-i="' + i + '"><path class="seg" d="M' + p1 + 'L' + p2 + 'Q' + q + ' ' + p3 + 'L' + p4 + 'A' + r0 + ' ' + r0 + ' 0 0 0 ' + p1 + 'Z" fill="' + PHASE_FILL[ph] + '"/>';
+    var t = pt((R + r0) / 2 + 6, c);
+    var showNum = N <= 36 || day % 2 === 1;
+    if (showNum) html += '<text class="dnum" x="' + t[0] + '" y="' + t[1] + '" fill="' + PHASE_TXT[ph] + '" transform="rotate(' + c.toFixed(2) + ' ' + t[0] + ' ' + t[1] + ')">' + day + '</text>';
+    if (lg && (lg.sym.length || lg.flow)){ var m = pt(r0 + 12, c); html += '<circle cx="' + m[0] + '" cy="' + m[1] + '" r="3.2" fill="' + (ph === 'ovu' || ph === 'fer' ? '#8f371b' : '#f3e0bf') + '"/>'; }
+    if (iso(d) === iso(TODAY)){ var a = pt(R + 17, c), b = pt(R + 25, c); html += '<path d="M' + a + 'L' + b + '" stroke="#2b120b" stroke-width="5" stroke-linecap="round"/>'; }
+    html += '</g>';
+  }
+  ring.innerHTML = html;
+  var idx = data.starts.length; $('cycLbl').textContent = '第 ' + idx + ' 週期';
+}
+var sel = 0; // selected index in current cycle
+function setRot(v){ rot = v; ring.setAttribute('transform', 'rotate(' + v.toFixed(2) + ')'); $('printG').style.transform = 'translateX(' + ((v * .9) % 170).toFixed(1) + 'px)'; }
+function idxFromRot(v){ var i = Math.round(-v / step); return ((i % N) + N) % N; }
+function selDate(){ return add(cur.start, sel); }
+
+function renderPanel(){
+  if (!cur) return;
+  var d = selDate(), inf = info(d), lg = logOf(d);
+  $('cNum').textContent = sel + 1;
+  $('cLbl').textContent = '週期第 ' + (sel + 1) + ' 天';
+  dialwrap.setAttribute('aria-valuenow', sel + 1);
+  $('pDate').textContent = md(d) + ' 星期' + WD[d.getDay()];
+  $('backToday').hidden = iso(d) === iso(TODAY);
+  $('pPhase').textContent = PHASE_NAME[inf.phase];
+  var sub = inf.phase === 'men' ? '第 ' + inf.day + ' 天' : (lg && lg.flow ? FLOW[lg.flow] + '出血' : '');
+  $('pSub').textContent = sub;
+  var next = add(cur.start, cur.len), ovD = add(cur.start, cur.ov - 1), dn = diff(d, next), dov = diff(d, ovD), txt;
+  if (inf.phase === 'men') txt = '多喝溫水、早點睡。這次預計持續到 ' + md(add(cur.start, inf.per - 1)) + '。';
+  else if (inf.phase === 'fol') txt = '精力回升，距離排卵還有 ' + dov + ' 天。';
+  else if (inf.phase === 'fer') txt = dov > 0 ? '排卵日約在 ' + md(ovD) + '，還有 ' + dov + ' 天。' : '排卵剛過，受孕機率逐日下降。';
+  else if (inf.phase === 'ovu') txt = '這天受孕機率最高，體溫可能微升。';
+  else txt = dn > 0 ? '下次月經約在 ' + md(next) + '，還有 ' + dn + ' 天。' : '月經可能晚到了，記得標記開始日。';
+  $('pPred').textContent = txt;
+  var qs = $('quickStamps').children;
+  for (var i = 0; i < SYM.length; i++) qs[i].setAttribute('aria-pressed', !!(lg && lg.sym.indexOf(SYM[i].k) >= 0));
+  var st = isStart(d);
+  $('periodTxt').textContent = st ? '取消這天的月經開始' : '月經從這天開始';
+  $('periodBtn').disabled = d > TODAY;
+  $('periodBtn').style.opacity = d > TODAY ? .45 : '';
+}
+
+// quick stamps
+(function(){
+  var html = '';
+  SYM.forEach(function(s, i){ html += '<button class="stamp" data-sym="' + i + '" aria-pressed="false"><svg viewBox="0 0 24 24">' + s.svg + '</svg>' + s.n + '</button>'; });
+  $('quickStamps').innerHTML = html;
+  $('shStamps').innerHTML = html;
+})();
+$('quickStamps').addEventListener('click', function(e){
+  var b = e.target.closest('[data-sym]'); if (!b || !cur) return;
+  var d = selDate(), lg = ensureLog(d), k = SYM[+b.dataset.sym].k, j = lg.sym.indexOf(k);
+  if (j >= 0) lg.sym.splice(j, 1); else lg.sym.push(k);
+  cleanLog(d); persist(); haptic(j >= 0 ? 5 : [6, 30, 6]);
+  buildDial(); setRot(rot); renderPanel();
+});
+
+/* rotation physics */
+var anim = null, vel = 0, lastTick = -1;
+function stopAnim(){ if (anim) cancelAnimationFrame(anim); anim = null; }
+function tickSel(){ var i = idxFromRot(rot); if (i !== lastTick){ lastTick = i; if (i !== sel){ sel = i; renderPanel(); haptic(3); } } }
+function snapTo(target){
+  stopAnim();
+  if (reduce || document.hidden){ setRot(target); tickSel(); return; }
+  var x = rot, v = vel * 16, last = performance.now();
+  function f(now){
+    var dt = Math.min(32, now - last) / 16; last = now;
+    var a = (target - x) * .16 - v * .38;   // underdamped spring
+    v += a * dt; x += v * dt;
+    setRot(x); tickSel();
+    if (Math.abs(target - x) < .05 && Math.abs(v) < .05){ setRot(target); anim = null; return; }
+    anim = requestAnimationFrame(f);
+  }
+  anim = requestAnimationFrame(f);
+}
+function coast(){
+  stopAnim();
+  if (reduce || document.hidden || Math.abs(vel) < .02){ snapTo(Math.round(rot / step) * step); return; }
+  var last = performance.now();
+  function f(now){
+    var dt = Math.min(32, now - last); last = now;
+    rot += vel * dt; vel *= Math.pow(.994, dt);
+    setRot(rot); tickSel();
+    if (Math.abs(vel) < .025){ vel = vel; snapTo(Math.round(rot / step) * step); return; }
+    anim = requestAnimationFrame(f);
+  }
+  anim = requestAnimationFrame(f);
+}
+function goIndex(i, instant){
+  var target = -i * step, k = Math.round((rot - target) / 360); target += k * 360;  // shortest way round
+  vel = 0; if (instant){ stopAnim(); setRot(target); tickSel(); } else snapTo(target);
+}
+(function(){
+  var down = false, lastA = 0, lastT = 0, moved = 0, sx = 0, sy = 0;
+  function ang(e){ var b = dialwrap.getBoundingClientRect(); return Math.atan2(e.clientX - (b.left + b.width / 2), -(e.clientY - (b.top + b.height / 2))) * 180 / Math.PI; }
+  dialwrap.addEventListener('pointerdown', function(e){
+    down = true; stopAnim(); lastA = ang(e); lastT = e.timeStamp; vel = 0; moved = 0; sx = e.clientX; sy = e.clientY;
+    dialwrap.setPointerCapture(e.pointerId);
+  });
+  dialwrap.addEventListener('pointermove', function(e){
+    if (!down) return;
+    var a = ang(e), d = a - lastA; if (d > 180) d -= 360; if (d < -180) d += 360;
+    var dt = Math.max(1, e.timeStamp - lastT);
+    moved += Math.abs(d); setRot(rot + d); vel = vel * .5 + (d / dt) * .5; lastA = a; lastT = e.timeStamp; tickSel();
+  });
+  function up(e){
+    if (!down) return; down = false;
+    if (moved < 3 && Math.hypot(e.clientX - sx, e.clientY - sy) < 8){
+      var g = e.target.closest && e.target.closest('[data-i]');
+      if (g){ goIndex(+g.dataset.i); haptic(6); return; }
+      snapTo(Math.round(rot / step) * step); return;
+    }
+    if (e.timeStamp - lastT > 80) vel = 0;
+    coast();
+  }
+  dialwrap.addEventListener('pointerup', up); dialwrap.addEventListener('pointercancel', up);
+  dialwrap.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ e.preventDefault(); goIndex((sel + 1) % N); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown'){ e.preventDefault(); goIndex((sel - 1 + N) % N); }
+  });
+})();
+function jumpToday(){ if (!cur) return; goIndex(diff(cur.start, TODAY)); haptic(8); }
+$('toToday').addEventListener('click', jumpToday);
+$('backToday').addEventListener('click', jumpToday);
+
+/* period start toggle */
+function togglePeriodStart(d){
+  if (d > TODAY) return;
+  var k = iso(d), j = -1;
+  data.starts.forEach(function(x, i){ if (x.s === k) j = i; });
+  if (j >= 0){
+    var removed = data.starts.splice(j, 1)[0];
+    toast('已取消 ' + md(d) + ' 的月經開始', function(){ data.starts.push(removed); sortStarts(); afterData(); });
+  } else {
+    // drop any start within 10 days (a correction), keep history tidy
+    var near = data.starts.filter(function(x){ return Math.abs(diff(parse(x.s), d)) < 10; });
+    data.starts = data.starts.filter(function(x){ return near.indexOf(x) < 0; });
+    data.starts.push({s: k, p: avgPer()}); sortStarts();
+    var lg = ensureLog(d); if (!lg.flow) lg.flow = 3;
+    toast('新週期從 ' + md(d) + ' 開始', function(){ data.starts = data.starts.filter(function(x){ return x.s !== k; }).concat(near); sortStarts(); afterData(); });
+  }
+  haptic([10, 40, 14]);
+  afterData();
+}
+function afterData(){
+  persist(); var keep = cur ? iso(selDate()) : null;
+  buildDial();
+  if (cur){
+    var i = keep ? diff(cur.start, parse(keep)) : diff(cur.start, TODAY);
+    if (i < 0 || i >= N) i = diff(cur.start, TODAY);
+    sel = i; lastTick = i; goIndex(i, true);
+  }
+  renderPanel(); renderCal(); renderHis();
+}
+$('periodBtn').addEventListener('click', function(){ if (cur) togglePeriodStart(selDate()); });
+$('moreBtn').addEventListener('click', function(){ if (cur) openLog(selDate()); });
+
+/* ---------- log sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), shDate = null, lastFocus = null;
+(function(){
+  var f = '';
+  FLOW.forEach(function(n, i){ f += '<button class="petal" data-flow="' + i + '" aria-pressed="false"><svg viewBox="0 0 24 24">' + drop(i) + '</svg>' + n + '</button>'; });
+  $('shFlow').innerHTML = f;
+  var m = '';
+  MOODS.forEach(function(n, i){ m += '<button class="mood" data-mood="' + i + '" aria-pressed="false"><svg viewBox="0 0 24 24">' + flower(i + 2) + '</svg>' + n + '</button>'; });
+  $('shMood').innerHTML = m;
+})();
+function renderSheet(){
+  var d = shDate, lg = logOf(d) || {flow: 0, sym: [], mood: -1, note: ''}, inf = info(d);
+  $('shT').firstChild.nodeValue = md(d) + ' ';
+  $('shSub').textContent = inf ? '週期第 ' + inf.day + ' 天 · ' + PHASE_NAME[inf.phase] : '星期' + WD[d.getDay()];
+  [].forEach.call($('shFlow').children, function(b, i){ b.setAttribute('aria-pressed', lg.flow === i); });
+  [].forEach.call($('shStamps').children, function(b, i){ b.setAttribute('aria-pressed', lg.sym.indexOf(SYM[i].k) >= 0); });
+  [].forEach.call($('shMood').children, function(b, i){ b.setAttribute('aria-pressed', lg.mood === i); });
+  if (document.activeElement !== $('shNote')) $('shNote').value = lg.note || '';
+  $('shStart').setAttribute('aria-checked', isStart(d));
+  $('shStart').disabled = d > TODAY;
+}
+function openLog(d){
+  shDate = d; lastFocus = document.activeElement; renderSheet();
+  sheet.style.transform = ''; sheet.scrollTop = 0; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+  setTimeout(function(){ $('shDone').focus({preventScroll: true}); }, 60);
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on');
+  if (shDate){ cleanLog(shDate); persist(); }
+  afterData();
+  if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll: true});
+}
+function edit(fn){ var lg = ensureLog(shDate); fn(lg); persist(); renderSheet(); }
+$('shFlow').addEventListener('click', function(e){ var b = e.target.closest('[data-flow]'); if (!b) return; edit(function(l){ l.flow = +b.dataset.flow; }); haptic(5); });
+$('shStamps').addEventListener('click', function(e){ var b = e.target.closest('[data-sym]'); if (!b) return; var k = SYM[+b.dataset.sym].k; edit(function(l){ var j = l.sym.indexOf(k); if (j >= 0) l.sym.splice(j, 1); else l.sym.push(k); }); haptic(5); });
+$('shMood').addEventListener('click', function(e){ var b = e.target.closest('[data-mood]'); if (!b) return; var v = +b.dataset.mood; edit(function(l){ l.mood = l.mood === v ? -1 : v; }); haptic(5); });
+$('shNote').addEventListener('input', function(){ var v = this.value; var lg = ensureLog(shDate); lg.note = v; persist(); });
+$('shStart').addEventListener('click', function(){ if (shDate > TODAY) return; togglePeriodStart(shDate); renderSheet(); });
+$('shDone').addEventListener('click', closeSheet);
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button,input') || sheet.scrollTop > 0) return;
+    dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId);
+  });
+  sheet.addEventListener('pointermove', function(e){
+    if (!dragging) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6;
+    sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)';
+    scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2);
+  });
+  function end(e){
+    if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = '';
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+
+/* ---------- calendar ---------- */
+var mView = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+function renderCal(){
+  var y = mView.getFullYear(), m = mView.getMonth();
+  $('mTitle').innerHTML = MN[m] + '<small>' + y + '</small>';
+  var first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate(), html = '';
+  for (var i = 0; i < first.getDay(); i++) html += '<span class="cell out"></span>';
+  var perN = 0, symN = 0;
+  for (var dd = 1; dd <= days; dd++){
+    var d = new Date(y, m, dd), inf = info(d), lg = logOf(d), cls = 'cell';
+    if (inf){
+      if (inf.phase === 'men'){ cls += inf.pred || d > TODAY ? ' pred' : ' per'; if (!(inf.pred || d > TODAY)) perN++; }
+      else if (inf.phase === 'ovu') cls += ' ovu';
+      else if (inf.phase === 'fer') cls += ' fer';
+    }
+    if (lg && lg.flow && !/ per/.test(cls)){ cls = cls.replace(/ (pred|fer|ovu)/, '') + ' per'; perN++; }
+    if (iso(d) === iso(TODAY)) cls += ' today';
+    if (lg && lg.sym.length) symN++;
+    html += '<button class="' + cls + '" data-d="' + iso(d) + '" aria-label="' + md(d) + '"><span>' + dd + '</span>' + (lg && (lg.sym.length || lg.note) ? '<i class="st"></i>' : '') + '</button>';
+  }
+  $('grid').innerHTML = html;
+  var c = info(TODAY), next = c ? add(c.start, c.len) : null;
+  $('msum').innerHTML = '<div><b>' + perN + '</b><small>經期天數</small></div><div><b>' + symN + '</b><small>有症狀的日子</small></div><div><b>' + (next ? (next.getMonth() + 1) + '/' + next.getDate() : '—') + '</b><small>下次月經</small></div>';
+}
+$('grid').addEventListener('click', function(e){ var b = e.target.closest('[data-d]'); if (!b) return; haptic(5); openLog(parse(b.dataset.d)); });
+function shiftMonth(n){ mView = new Date(mView.getFullYear(), mView.getMonth() + n, 1); renderCal(); haptic(4); }
+$('mPrev').addEventListener('click', function(){ shiftMonth(-1); });
+$('mNext').addEventListener('click', function(){ shiftMonth(1); });
+(function(){
+  var g = $('grid'), sx = 0, sy = 0, on = false;
+  g.addEventListener('pointerdown', function(e){ on = true; sx = e.clientX; sy = e.clientY; });
+  g.addEventListener('pointerup', function(e){
+    if (!on) return; on = false; var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5){ shiftMonth(dx < 0 ? 1 : -1); }
+  });
+})();
+
+/* ---------- history ---------- */
+function renderHis(){
+  var ls = lenList().slice(-6), L = avgLen(), P = avgPer();
+  var sd = 0;
+  if (ls.length > 1){ var mu = ls.reduce(function(a, b){ return a + b; }, 0) / ls.length; sd = Math.sqrt(ls.reduce(function(a, b){ return a + (b - mu) * (b - mu); }, 0) / ls.length); }
+  $('stats').innerHTML = '<div class="stat"><b>' + L + '<small>天</small></b><span>平均週期</span></div><div class="stat"><b>' + P + '<small>天</small></b><span>平均經期</span></div><div class="stat"><b>±' + sd.toFixed(1) + '</b><span>' + (sd < 1.5 ? '很規律' : sd < 3 ? '大致規律' : '波動較大') + '</span></div>';
+  var s = data.starts, html = '';
+  for (var i = s.length - 1; i >= Math.max(0, s.length - 8); i--){
+    var st = parse(s[i].s), last = i === s.length - 1, len = last ? Math.max(L, diff(st, TODAY) + 1) : diff(st, parse(s[i + 1].s));
+    var w = Math.min(100, len / 40 * 100), p = (s[i].p || P) / len * 100, ov = (len - 14) / len * 100, u = 100 / len;
+    html += '<div class="strip"><div class="when">' + (st.getMonth() + 1) + '/' + st.getDate() + '<small>' + (last ? '進行中' : len + ' 天') + '</small></div>' +
+      '<div class="bar" style="width:' + w.toFixed(1) + '%"><i class="bp" style="width:' + p.toFixed(1) + '%"></i><i class="bf" style="left:' + ((len - 19) * u).toFixed(1) + '%;width:' + (7 * u).toFixed(1) + '%"></i><i class="bo" style="left:' + ((len - 15) * u).toFixed(1) + '%;width:' + u.toFixed(1) + '%"></i>' + (last ? '' : '<em>' + len + '</em>') + '</div>' +
+      '<button class="del" data-del="' + s[i].s + '" aria-label="刪除 ' + md(st) + ' 的週期"' + (s.length < 2 ? ' disabled' : '') + '><svg width="22" height="22" viewBox="0 0 24 24"><path d="M9 15.2 17.2 2.4l1.9 1.2-7.3 12.7zM15 15.2 6.8 2.4 4.9 3.6l7.3 12.7z" fill="currentColor"/><circle cx="6.5" cy="18" r="4" fill="currentColor"/><circle cx="17.5" cy="18" r="4" fill="currentColor"/><circle cx="6.5" cy="18" r="1.6" fill="var(--cut)"/><circle cx="17.5" cy="18" r="1.6" fill="var(--cut)"/></svg></button></div>';
+  }
+  $('strips').innerHTML = html || '<p style="padding:10px 6px;font-size:14px">還沒有週期紀錄，到轉盤標記月經開始日。</p>';
+  $('setLen').textContent = settings.len; $('setPer').textContent = settings.per;
+  $('remindSw').setAttribute('aria-checked', !!settings.remind);
+}
+$('strips').addEventListener('click', function(e){
+  var b = e.target.closest('[data-del]'); if (!b) return;
+  var k = b.dataset.del, j = -1; data.starts.forEach(function(x, i){ if (x.s === k) j = i; });
+  if (j < 0) return; var rem = data.starts.splice(j, 1)[0];
+  haptic([12, 40, 12]); afterData();
+  toast('已刪除 ' + md(parse(k)) + ' 的週期', function(){ data.starts.push(rem); sortStarts(); afterData(); });
+});
+document.querySelector('.set').addEventListener('click', function(e){
+  var b = e.target.closest('[data-step]'); if (!b) return;
+  var p = b.dataset.step.split(','), k = p[0], v = settings[k] + (+p[1]);
+  var lim = k === 'len' ? [20, 45] : [2, 10]; if (v < lim[0] || v > lim[1]){ haptic([20, 30, 20]); return; }
+  settings[k] = v; haptic(4); afterData();
+});
+$('remindSw').addEventListener('click', function(){ settings.remind = !settings.remind; persist(); renderHis(); haptic(8); toast(settings.remind ? '會在經期前兩天早上提醒你' : '已關閉經期提醒'); });
+var resetArm = null;
+$('resetBtn').addEventListener('click', function(){
+  var b = this;
+  if (!resetArm){ b.textContent = '再按一次，清除後無法復原'; b.classList.add('armed'); haptic([8, 30, 8]); resetArm = setTimeout(function(){ resetArm = null; b.textContent = '清除全部紀錄'; b.classList.remove('armed'); }, 2600); return; }
+  clearTimeout(resetArm); resetArm = null; b.textContent = '清除全部紀錄'; b.classList.remove('armed');
+  data = seed(); afterData(); haptic(20); toast('已清除，換上示範資料');
+});
+
+/* ---------- toast ---------- */
+var tT = null, undoFn = null;
+function toast(msg, undo){
+  $('toastT').textContent = msg; undoFn = undo || null; $('toastU').hidden = !undo;
+  $('toast').classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, 3200);
+}
+$('toastU').addEventListener('click', function(){ if (undoFn){ var f = undoFn; undoFn = null; f(); haptic(8); } $('toast').classList.remove('on'); });
+
+/* ---------- tabs ---------- */
+var ORDER = ['dial', 'cal', 'his'], curV = 'dial';
+document.querySelector('.selv').addEventListener('click', function(e){
+  var b = e.target.closest('[data-v]'); if (!b) return; var to = b.dataset.v;
+  if (to === curV){ $('v-' + to).scrollTo({top: 0, behavior: reduce ? 'auto' : 'smooth'}); return; }
+  var dir = ORDER.indexOf(to) > ORDER.indexOf(curV);
+  var from = $('v-' + curV), tv = $('v-' + to);
+  tv.classList.remove('left'); if (!dir) tv.classList.add('left');
+  void tv.offsetWidth;
+  from.classList.remove('on'); from.classList.toggle('left', dir);
+  tv.classList.remove('left'); tv.classList.add('on');
+  [].forEach.call(document.querySelectorAll('.tab'), function(t){ t.setAttribute('aria-selected', t === b); });
+  curV = to; haptic(5);
+});
+
+/* ---------- clock ---------- */
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setTimeout(function(){ tick(); setInterval(tick, 60000); }, (60 - new Date().getSeconds()) * 1000);
+try { navigator.getBattery && navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 15 * b.level).toFixed(1)); }).catch(function(){}); } catch(e){}
+
+/* ---------- boot ---------- */
+sortStarts();
+buildDial();
+if (cur){ sel = diff(cur.start, TODAY); lastTick = sel; setRot(-sel * step); }
+renderPanel(); renderCal(); renderHis();
+})();
+</script>
+</body>
+</html>

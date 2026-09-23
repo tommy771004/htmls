@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e6e7dd">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="葉室">
+<title>葉室 · 植物照護</title>
+<meta name="description" content="孔版雙色印刷的植物照護圖鑑：缺水的植物會垂下葉子，按住澆水壺就彈回來，附澆水日曆與提醒。收錄於 100 Creative HTML Works（App 013・孔版雙色植物圖鑑）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/013-riso-plants.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e6e7dd'/%3E%3Cpath d='M31 55C12 44 13 22 31 9c18 13 18 35 0 46z' fill='%23ff48b0'/%3E%3Cpath d='M33 53V15M33 30l9-8M33 41l-10-8' stroke='%2300838a' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#e6e7dd;
+  --paper-2:#dcddd1;
+  --pink:#ff48b0;
+  --teal:#00838a;
+  --teal-ink:#00646a;
+  --navy:#16254d;
+  --spring:cubic-bezier(.3,1.7,.45,1);
+  --out:cubic-bezier(.22,1,.36,1);
+  --gill:"Gill Sans","Gill Sans MT","PingFang TC","Heiti TC",sans-serif;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .05 0 0 0 0 .16 0 0 0 0 .2 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--gill);color:var(--navy);background:var(--paper);-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2.5px solid var(--pink);outline-offset:3px}
+svg{display:block}
+.mul{mix-blend-mode:multiply}
+#defs{position:absolute;width:0;height:0;overflow:hidden}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper) var(--grain);isolation:isolate}
+@media (min-width:521px){
+  body{background:#e3e4d8}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0;background:#e3e4d8 var(--grain)}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:56px;padding:10px;background:#16254d;
+    box-shadow:inset 0 0 0 1.5px #2c3d6c,0 3px 0 #0e1834,0 14px 22px -14px rgba(22,37,77,.55);z-index:1}
+  .screen{inset:10px;border-radius:46px}
+  .caption{display:block;position:relative;z-index:1;max-width:250px}
+  .caption h1{font:700 64px/1 var(--gill);letter-spacing:.02em;color:var(--navy)}
+  .caption p{margin-top:14px;font-size:17px;line-height:1.55;color:var(--teal-ink)}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+/* ---------- status ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;font:700 16px/1 var(--gill);color:var(--navy);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+.home{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:132px;height:5px;margin-left:-66px;border-radius:3px;background:var(--navy);z-index:45;pointer-events:none}
+
+/* ---------- views ---------- */
+.views{position:absolute;left:0;right:0;top:0;bottom:calc(76px + env(safe-area-inset-bottom))}
+.view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:calc(56px + env(safe-area-inset-top)) 20px 28px;visibility:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.view.on{visibility:visible;animation:slidein .42s var(--out)}
+@keyframes slidein{from{transform:translateX(var(--from,24px))}to{transform:none}}
+
+/* masthead: the one misregistered title */
+.mast{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.reg{position:relative;font:700 58px/1 var(--gill);letter-spacing:.04em;height:62px}
+.reg span{display:block;mix-blend-mode:multiply;white-space:nowrap}
+.reg .p{color:var(--pink)}
+.reg .t{position:absolute;left:2.5px;top:-2px;color:var(--teal)}
+.mastinfo{display:flex;align-items:flex-end;gap:8px;padding-bottom:4px;text-align:right}
+.mastinfo b{font:700 44px/.9 var(--gill);color:var(--pink);mix-blend-mode:multiply}
+.mastinfo span{font-size:13px;line-height:1.3;color:var(--teal-ink)}
+
+.rooms{display:flex;gap:4px;margin:18px -20px 6px;padding:0 14px;overflow-x:auto;scrollbar-width:none}
+.rooms::-webkit-scrollbar{display:none}
+.rooms::after,.who::after{content:"";flex:none;width:14px}
+.rooms button{position:relative;flex:none;height:44px;padding:0 10px;font-weight:700;font-size:16px;color:var(--teal-ink)}
+.rooms button::before{content:"";position:absolute;left:4px;right:4px;top:15px;height:18px;background:var(--pink);mix-blend-mode:multiply;transform:skewX(-12deg) scaleX(0);transform-origin:left;transition:transform .32s var(--out);clip-path:polygon(0 12%,100% 0,97% 100%,2% 88%)}
+.rooms button[aria-pressed=true]{color:var(--navy)}
+.rooms button[aria-pressed=true]::before{transform:skewX(-12deg) scaleX(1)}
+.rooms button:active{color:var(--pink)}
+
+/* feature plate */
+.feat{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:end;margin-top:10px;padding:10px 0 18px;text-align:left;width:100%}
+.feat .plant{width:150px;height:155px}
+.feat .pno{font-size:13px;color:var(--teal-ink);font-weight:700}
+.feat .pname{display:block;font:700 34px/1.05 var(--gill);margin:2px 0 4px}
+.feat .psp{font-size:14px;color:var(--teal-ink)}
+.feat .drops{margin-top:10px}
+.feat .late{display:block;margin-top:6px;font-size:14px;font-weight:700;color:var(--navy)}
+.quick{margin-top:12px;height:46px;padding:0 18px;background:var(--pink);color:var(--navy);font-weight:700;font-size:16px;display:inline-flex;align-items:center;gap:8px;border-radius:3px;transition:background-color .2s}
+.quick:active{background:#e8349c}
+.quick svg{width:18px;height:18px}
+.stamp{position:absolute;top:6px;right:-4px;padding:3px 7px 2px;border:2.5px solid var(--pink);color:var(--pink);font:700 15px/1 var(--gill);transform:rotate(9deg);mix-blend-mode:multiply;border-radius:2px;letter-spacing:.12em}
+.featwrap{position:relative}
+.featwrap .stamp{top:8px;left:84px;right:auto;font-size:20px;padding:5px 9px 3px;border-width:3px}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;column-gap:14px;row-gap:22px;margin-top:6px}
+.plate{position:relative;display:block;text-align:left;width:100%}
+.plate .plant{width:100%;aspect-ratio:256/264;height:auto;background:var(--paper-2);border-radius:2px;transition:background-color .2s}
+.plate:active .plant{background:#d2d4c5}
+.plate .meta{display:flex;align-items:baseline;gap:6px;margin-top:8px}
+.plate .pno{font-size:12px;color:var(--teal-ink);font-weight:700}
+.plate .pname{font-size:19px;font-weight:700}
+.plate .psp{display:block;font-size:13px;color:var(--teal-ink)}
+.drops{display:flex;gap:3px;margin-top:6px}
+.drops svg{width:9px;height:12px}
+.empty{padding:40px 0;text-align:center;color:var(--teal-ink);font-size:15px}
+
+/* plant svg */
+.plant .s,.plant .l{transition:transform 1.6s cubic-bezier(.45,0,.3,1)}
+.plant.spring .s,.plant.spring .l{transition:transform 1.05s var(--spring)}
+.plant.live .s,.plant.live .l{transition:transform .35s var(--spring)}
+
+/* ---------- detail ---------- */
+.detail{position:absolute;inset:0;z-index:25;background:var(--paper) var(--grain);transform:translateX(104%);transition:transform .5s var(--out);overflow-y:auto;overflow-x:hidden;padding:calc(50px + env(safe-area-inset-top)) 20px calc(40px + env(safe-area-inset-bottom));visibility:hidden}
+.detail.on{transform:none;visibility:visible}
+.back{display:flex;align-items:center;gap:4px;height:44px;margin-left:-8px;padding:0 8px;font-weight:700;font-size:16px;color:var(--teal-ink)}
+.back svg{width:22px;height:22px}
+.back:active{color:var(--pink)}
+.dhead{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-top:4px}
+.dhead h2{font:700 42px/1 var(--gill)}
+.dhead .lat{font-style:italic;font-size:15px;color:var(--teal-ink);margin-top:6px}
+.dhead .pct{font:700 50px/.9 var(--gill);color:var(--pink);mix-blend-mode:multiply;font-variant-numeric:tabular-nums}
+.dhead .pct small{font-size:18px}
+.stagebox{position:relative;height:300px;margin:6px -20px 0;touch-action:none}
+.stagebox .plant{position:absolute;left:4px;bottom:0;width:262px;height:270px}
+.can{position:absolute;right:10px;top:10px;width:128px;height:118px;touch-action:none;transform-origin:70% 60%;transition:transform .4s var(--spring)}
+.can.pour{transform:rotate(-30deg) translate(-6px,4px)}
+.can svg{width:100%;height:100%}
+.stream{position:absolute;inset:0;pointer-events:none}
+.stream circle{fill:var(--teal);mix-blend-mode:multiply}
+.hold{position:absolute;right:14px;top:130px;font-size:13px;font-weight:700;color:var(--teal-ink);width:120px;text-align:center;pointer-events:none}
+.facts{margin-top:18px}
+.fact{display:flex;align-items:center;justify-content:space-between;min-height:52px;gap:10px}
+.fact + .fact{background-image:radial-gradient(circle,var(--teal) 1.1px,transparent 1.4px);background-size:7px 4px;background-repeat:repeat-x;background-position:0 0}
+.fact dt{font-size:15px;color:var(--teal-ink)}
+.fact dd{font-size:17px;font-weight:700;text-align:right}
+.step{display:flex;align-items:center;gap:2px}
+.step button{width:44px;height:44px;display:grid;place-items:center;color:var(--teal-ink)}
+.step button:active{color:var(--pink)}
+.step button svg{width:20px;height:20px}
+.step output{min-width:56px;text-align:center;font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
+.strip{display:grid;grid-template-columns:repeat(30,1fr);gap:2px;margin-top:10px;height:34px;align-items:end}
+.strip i{display:block;height:6px;background:var(--paper-2);border-radius:1px}
+.strip i.w{height:30px;background:var(--pink);mix-blend-mode:multiply}
+.strip i.t{outline:2px solid var(--teal);outline-offset:1px}
+.striplbl{display:flex;justify-content:space-between;font-size:12px;color:var(--teal-ink);margin-top:6px}
+.sub{font:700 18px/1.2 var(--gill);margin-top:26px}
+.danger{margin-top:28px;height:48px;width:100%;font-weight:700;font-size:15px;color:var(--teal-ink);border:2px dashed var(--teal);border-radius:3px}
+.danger:active,.danger.arm{color:var(--navy);background:var(--pink);border-color:var(--pink)}
+
+/* ---------- log ---------- */
+.monthhead{display:flex;align-items:flex-end;gap:14px}
+.monthhead .num{position:relative;font:700 86px/.82 var(--gill);letter-spacing:-.01em}
+.monthhead .num span{display:block;mix-blend-mode:multiply;color:var(--teal)}
+.monthhead .num span+span{position:absolute;left:3px;top:2px;color:var(--pink)}
+.monthhead p{font-size:15px;color:var(--teal-ink);padding-bottom:6px;line-height:1.35}
+.monthhead p b{display:block;font-size:22px;color:var(--navy)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);margin-top:18px}
+.cal .wd{font-size:12px;font-weight:700;color:var(--teal-ink);text-align:center;padding-bottom:6px}
+.cal button{position:relative;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:6px;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+.cal button.out{color:#9aa3a0}
+.cal button .ds{display:flex;gap:2px;margin-top:4px;height:9px}
+.cal button .ds i{width:7px;height:9px;background:var(--pink);mix-blend-mode:multiply;clip-path:path('M3.5 0C3.5 0 0 4.4 0 6a3.5 3.5 0 0 0 7 0C7 4.4 3.5 0 3.5 0z')}
+.cal button.today > span{color:var(--pink)}
+.cal button.sel::before{content:"";position:absolute;left:6px;right:6px;top:4px;height:22px;background:var(--teal);opacity:.22;transform:skewX(-10deg)}
+.cal button:active{color:var(--pink)}
+.who{display:flex;gap:2px;margin:18px -20px 4px;padding:0 14px;overflow-x:auto;scrollbar-width:none}
+.who::-webkit-scrollbar{display:none}
+.who button{flex:none;height:44px;padding:0 10px;font-weight:700;font-size:15px;color:var(--teal-ink)}
+.who button[aria-pressed=true]{color:var(--navy);text-decoration:underline wavy var(--pink) 2px;text-underline-offset:7px}
+.dayhdr{font-size:13px;font-weight:700;color:var(--teal-ink);margin:16px 0 4px}
+.rowwrap{position:relative;overflow:hidden;border-radius:2px}
+.rowdel{position:absolute;right:0;top:0;bottom:0;width:88px;background:var(--pink);color:var(--navy);font-weight:700;font-size:15px}
+.row{position:relative;display:flex;align-items:center;gap:12px;min-height:58px;background:var(--paper) var(--grain);touch-action:pan-y;transition:transform .35s var(--out)}
+.row.drag{transition:none}
+.row .ic{width:34px;height:34px;flex:none}
+.row .tx{flex:1;min-width:0}
+.row .tx b{display:block;font-size:17px}
+.row .tx span{font-size:13px;color:var(--teal-ink)}
+.row .ml{font-weight:700;font-variant-numeric:tabular-nums;font-size:16px}
+.hint{font-size:13px;color:var(--teal-ink);margin-top:10px}
+
+/* ---------- remind ---------- */
+.bigsay{font:700 30px/1.2 var(--gill);margin-top:4px}
+.bigsay b{font-size:76px;line-height:.9;color:var(--pink);mix-blend-mode:multiply;display:inline-block;margin-right:6px;vertical-align:-6px}
+.due{margin-top:16px}
+.duerow{display:flex;align-items:center;gap:12px;min-height:64px}
+.duerow .ic{width:48px;height:52px;flex:none}
+.duerow .tx{flex:1}
+.duerow .tx b{font-size:18px;display:block}
+.duerow .tx span{font-size:13px;color:var(--teal-ink)}
+.duerow .tx span.lateTx{color:var(--navy);font-weight:700}
+.check{width:48px;height:48px;display:grid;place-items:center}
+.check svg{width:30px;height:34px}
+.check:active svg{transform:scale(.85)}
+.check svg{transition:transform .2s var(--spring)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:14px}
+.week .col{min-height:132px;padding:6px 2px;background:var(--paper-2);border-radius:2px;text-align:center}
+.week .col.today{background:transparent;background-image:radial-gradient(circle,rgba(0,131,138,.5) 1px,transparent 1.3px);background-size:5px 5px}
+.week .col h4{font-size:12px;color:var(--teal-ink)}
+.week .col h5{font:700 20px/1.1 var(--gill);margin-bottom:6px}
+.week .col em{display:block;font-style:normal;font-size:13px;font-weight:700;line-height:1.2;padding:3px 0;margin:3px 1px;background:var(--pink);mix-blend-mode:multiply;color:var(--navy);border-radius:1px}
+.opts{margin-top:10px}
+.opt{display:flex;align-items:center;justify-content:space-between;min-height:56px;gap:12px}
+.opt + .opt{background-image:radial-gradient(circle,var(--teal) 1.1px,transparent 1.4px);background-size:7px 4px;background-repeat:repeat-x}
+.opt span{font-size:16px}
+.opt span small{display:block;font-size:13px;color:var(--teal-ink)}
+.tog{position:relative;width:58px;height:44px;flex:none}
+.tog::before{content:"";position:absolute;left:3px;right:3px;top:9px;height:26px;border:2px solid var(--teal);border-radius:3px;transition:background-color .25s}
+.tog::after{content:"";position:absolute;left:9px;top:15px;width:14px;height:14px;background:var(--teal);border-radius:1px;transition:transform .35s var(--spring),background-color .25s}
+.tog[aria-checked=true]::before{background:rgba(255,72,176,.28)}
+.tog[aria-checked=true]::after{transform:translateX(26px) rotate(45deg);background:var(--pink)}
+.ff{height:44px;padding:0 14px;font-weight:700;color:var(--navy);border:2px solid var(--navy);border-radius:3px}
+.ff:active{background:var(--navy);color:var(--paper)}
+.nextline{margin-top:18px;font-size:15px;line-height:1.5}
+.nextline b{color:var(--teal-ink)}
+
+/* ---------- nav ---------- */
+.nav{position:absolute;left:0;right:0;bottom:0;z-index:20;height:calc(76px + env(safe-area-inset-bottom));padding:0 10px env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(4,1fr);background:var(--paper) var(--grain)}
+.nav::before{content:"";position:absolute;left:18px;right:18px;top:0;height:3px;background-image:radial-gradient(circle,var(--teal) 1.2px,transparent 1.5px);background-size:6px 3px}
+.nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:700;color:var(--teal-ink);height:66px}
+.nav button svg{width:34px;height:30px;overflow:visible;transition:transform .3s var(--spring)}
+.nav button:active svg{transform:scale(.85) rotate(-6deg)}
+.nav .fill{fill:transparent;transition:fill .25s}
+.nav button[aria-selected=true]{color:var(--navy)}
+.nav button[aria-selected=true] .fill{fill:var(--pink)}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(22,37,77,.28);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:88%;overflow-y:auto;background:var(--paper) var(--grain);border-radius:6px 6px 0 0;padding:10px 20px calc(26px + env(safe-area-inset-bottom));transform:translateY(105%);visibility:hidden;transition:transform .5s var(--spring),visibility 0s .5s;touch-action:none}
+.sheet.on{transform:none;visibility:visible;transition:transform .5s var(--spring)}
+.sheet.drag{transition:none}
+.sheet::before{content:"";position:absolute;left:0;right:0;top:-1px;height:8px;background:linear-gradient(var(--pink),var(--pink)) top/100% 3px no-repeat;mix-blend-mode:multiply}
+.grab{width:44px;height:5px;border-radius:3px;background:var(--teal);opacity:.55;margin:4px auto 14px}
+.sheet h3{font:700 28px/1.1 var(--gill)}
+.spec{display:flex;gap:10px;overflow-x:auto;margin:14px -20px 0;padding:0 20px 4px;scrollbar-width:none;touch-action:pan-x}
+.spec::-webkit-scrollbar{display:none}
+.spec button{flex:none;width:92px;text-align:center;font-size:13px;font-weight:700;color:var(--teal-ink)}
+.spec button .plant{width:92px;height:101px;background:var(--paper-2);border-radius:2px;transition:background-color .2s}
+.spec button[aria-pressed=true]{color:var(--navy)}
+.spec button[aria-pressed=true] .plant{background:rgba(255,72,176,.3)}
+.lbl{display:block;font-size:13px;font-weight:700;color:var(--teal-ink);margin-top:18px}
+.field{width:100%;height:48px;margin-top:6px;padding:0 12px;border:2px solid var(--teal);border-radius:3px;background:transparent;font-size:18px;font-weight:700;outline:none}
+.field:focus{border-color:var(--pink)}
+.roompick{display:flex;flex-wrap:wrap;gap:0 4px;margin:4px -8px 0}
+.roompick button{height:44px;padding:0 8px;font-weight:700;color:var(--teal-ink);position:relative}
+.roompick button[aria-pressed=true]{color:var(--navy)}
+.roompick button[aria-pressed=true]::before{content:"";position:absolute;left:4px;right:4px;top:14px;height:18px;background:var(--pink);mix-blend-mode:multiply;transform:skewX(-12deg)}
+.roompick button span{position:relative}
+.sheetrow{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+.plantbtn{width:100%;height:54px;margin-top:22px;background:var(--pink);color:var(--navy);font-weight:700;font-size:18px;border-radius:3px;display:flex;align-items:center;justify-content:center;gap:10px}
+.plantbtn:active{background:#e8349c}
+.plantbtn svg{width:22px;height:22px}
+
+.toast{position:absolute;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:50px;padding:4px 6px 4px 16px;background:var(--navy);color:var(--paper);border-radius:3px;transform:translateY(160px);visibility:hidden;transition:transform .45s var(--spring),visibility 0s .45s;font-size:15px}
+.toast.on{transform:none;visibility:visible;transition:transform .45s var(--spring)}
+.toast button{height:44px;padding:0 12px;font-weight:700;color:var(--pink)}
+
+@media (prefers-reduced-motion:reduce){
+  .view.on{animation:none}
+  .plant .s,.plant .l,.plant.spring .s,.plant.spring .l{transition:none}
+  .detail,.sheet,.toast,.can,.rooms button::before,.tog::after{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<svg id="defs" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="htT" width="4.2" height="4.2" patternUnits="userSpaceOnUse" patternTransform="rotate(15)"><circle cx="2.1" cy="2.1" r="1.05" fill="#00838a"/></pattern>
+    <pattern id="htTd" width="3.4" height="3.4" patternUnits="userSpaceOnUse" patternTransform="rotate(15)"><circle cx="1.7" cy="1.7" r="1.4" fill="#00838a"/></pattern>
+    <pattern id="htP" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(75)"><circle cx="2.5" cy="2.5" r="1.6" fill="#ff48b0"/></pattern>
+    <clipPath id="cL"><rect x="-300" y="-300" width="300" height="600"/></clipPath>
+  </defs>
+</svg>
+
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+      <g style="mix-blend-mode:multiply">
+        <path d="M-40 980C-60 700 60 520 300 430c-10 180-80 380-340 550z" fill="#ff48b0"/>
+        <path d="M120 900C90 720 150 560 330 470" stroke="#00838a" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <path d="M1180 -60c190 60 300 230 270 470-170-90-280-250-270-470z" fill="url(#htT)"/>
+        <path d="M1200 -40c80 160 150 300 250 440" stroke="#00838a" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M1500 520c-220-10-400 90-470 290 210 40 380-60 470-290z" fill="#ff48b0" opacity=".9"/>
+        <path d="M1480 540c-150 60-280 150-440 260" stroke="#00838a" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M-60 -40c200 20 330 150 330 330C80 250-20 120-60-40z" fill="url(#htP)"/>
+        <circle cx="330" cy="470" r="150" fill="url(#htT)" opacity=".8"/>
+      </g>
+      <g stroke="#16254d" stroke-width="1.5" fill="none" opacity=".7">
+        <path d="M60 60h40M80 40v40"/><circle cx="80" cy="60" r="11"/>
+        <path d="M1340 840h40M1360 820v40"/><circle cx="1360" cy="840" r="11"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><path d="M1 11c1-2 1-3 2-3M6 11c.5-3 1-5 2-5M11 11c.4-4 1-7 2-7M16 11c.3-5 .6-9 1-10" stroke="#16254d" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11c-1-1.4-1-3 0-4 1 1 1 2.6 0 4zM3.5 5.5C5.8 3 10.2 3 12.5 5.5M1 3C4.8-.6 11.2-.6 15 3" stroke="#16254d" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><path d="M2 2.5C8 1.2 16 1.2 22 2.5v8C16 11.8 8 11.8 2 10.5z" stroke="#16254d" stroke-width="1.6" fill="none"/><path id="batt" d="M4 4.3C9 3.5 15 3.5 19.5 4.3v4.4C15 9.5 9 9.5 4 8.7z" fill="#16254d"/><path d="M24 5v3" stroke="#16254d" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+      <main class="views">
+        <section class="view on" id="v-plates" aria-label="圖鑑">
+          <header class="mast">
+            <h1 class="reg" aria-label="葉室"><span class="p" aria-hidden="true">葉室</span><span class="t" aria-hidden="true">葉室</span></h1>
+            <div class="mastinfo"><b id="thirstN">0</b><span>株口渴<br><span id="dateTx"></span></span></div>
+          </header>
+          <nav class="rooms" id="rooms" aria-label="依房間篩選"></nav>
+          <div id="feat"></div>
+          <div class="grid" id="grid"></div>
+        </section>
+
+        <section class="view" id="v-log" aria-label="紀錄">
+          <div class="monthhead">
+            <div class="num" aria-hidden="true"><span id="mNum">09</span><span id="mNum2">09</span></div>
+            <p><b id="mName">九月</b><span id="mSum"></span></p>
+          </div>
+          <div class="cal" id="cal"></div>
+          <nav class="who" id="who" aria-label="依植物篩選"></nav>
+          <div id="entries"></div>
+          <p class="hint">往左滑可以刪掉一筆。</p>
+        </section>
+
+        <section class="view" id="v-remind" aria-label="提醒">
+          <p class="bigsay" id="bigsay"></p>
+          <div class="due" id="due"></div>
+          <h3 class="sub">這一週</h3>
+          <div class="week" id="week"></div>
+          <h3 class="sub">提醒設定</h3>
+          <div class="opts">
+            <div class="opt"><span>每日提醒時間<small id="nextRem"></small></span>
+              <div class="step"><button id="hrMinus" aria-label="提早一小時"><svg viewBox="0 0 20 20"><path d="M4 10.5c4-.8 8-.8 12 0" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></button><output id="hrOut">08:00</output><button id="hrPlus" aria-label="延後一小時"><svg viewBox="0 0 20 20"><path d="M4 10.5c4-.8 8-.8 12 0M10.2 4c-.6 4-.6 8 0 12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></button></div>
+            </div>
+            <div class="opt"><span>下雨天延後一天<small>陽台的植物才適用</small></span><button class="tog" role="switch" data-set="rain" aria-label="下雨天延後一天"></button></div>
+            <div class="opt"><span>澆水聲</span><button class="tog" role="switch" data-set="sound" aria-label="澆水聲"></button></div>
+            <div class="opt"><span>觸感回饋</span><button class="tog" role="switch" data-set="haptic" aria-label="觸感回饋"></button></div>
+            <div class="opt"><span>快轉一天<small>看看它們會怎麼垂下來</small></span><button class="ff" id="ffBtn">過一天</button></div>
+          </div>
+          <p class="nextline" id="nextline"></p>
+        </section>
+      </main>
+
+      <section class="detail" id="detail" aria-label="植物詳細" aria-hidden="true"></section>
+
+      <nav class="nav" role="tablist" aria-label="主要">
+        <button role="tab" aria-selected="true" data-tab="plates"><svg viewBox="0 0 34 30"><path class="fill" d="M16 27C4 22 3 9 16 2c12 7 12 20 0 25z"/><path d="M16 27C4 22 3 9 16 2c12 7 12 20 0 25zM16.5 26V7M16.5 13l-5-3.5M16.5 13l5-4M16.5 19l-6-4M16.5 19l6-4.5" stroke="#00838a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(1.2 -.8)"/></svg>圖鑑</button>
+        <button role="tab" aria-selected="false" data-tab="log"><svg viewBox="0 0 34 30"><path class="fill" d="M6 27C10 17 17 8 29 3c-2 12-10 21-23 24z"/><path d="M6 27C10 17 17 8 29 3M11 19c-2-3-2-6-1-8M11 19c3 1 6 1 8-1M16 13c-1-3-1-5 0-7M16 13c3 .5 5 0 7-2M21 8.5c2 0 3.5-.5 5-1.5" stroke="#00838a" stroke-width="2" fill="none" stroke-linecap="round" transform="translate(1.2 -.8)"/></svg>紀錄</button>
+        <button role="tab" aria-selected="false" data-tab="remind"><svg viewBox="0 0 34 30"><path class="fill" d="M17 16C10 16 5 12 5 5c7 0 12 4 12 11zM17 16c6 0 11-3.5 11-10-6 0-11 3.5-11 10z"/><path d="M17 16C10 16 5 12 5 5c7 0 12 4 12 11zM17 16c6 0 11-3.5 11-10-6 0-11 3.5-11 10zM17 16v11M11 27.5c4-1 8-1 12 0" stroke="#00838a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(1.2 -.8)"/></svg>提醒</button>
+        <button id="addBtn" aria-label="新增植物"><svg viewBox="0 0 34 30"><path class="fill" d="M17 3c-6 7-8 13-8 17a8 8 0 0 0 16 0c0-4-2-10-8-17z"/><path d="M17 3c-6 7-8 13-8 17a8 8 0 0 0 16 0c0-4-2-10-8-17zM17 14v11M11.5 19.5h11" stroke="#00838a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(1.2 -.8)"/></svg>種一株</button>
+      </nav>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="種一株新植物">
+        <div class="grab"></div>
+        <h3>種一株</h3>
+        <div class="spec" id="specPick"></div>
+        <label class="lbl" for="nameIn">叫它什麼</label>
+        <input class="field" id="nameIn" maxlength="6" placeholder="例如：小綠" autocomplete="off">
+        <span class="lbl">放在哪裡</span>
+        <div class="roompick" id="roomPick"></div>
+        <div class="sheetrow"><span class="lbl" style="margin:0">幾天澆一次</span>
+          <div class="step"><button id="evMinus" aria-label="少一天"><svg viewBox="0 0 20 20"><path d="M4 10.5c4-.8 8-.8 12 0" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></button><output id="evOut">7 天</output><button id="evPlus" aria-label="多一天"><svg viewBox="0 0 20 20"><path d="M4 10.5c4-.8 8-.8 12 0M10.2 4c-.6 4-.6 8 0 12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></button></div>
+        </div>
+        <button class="plantbtn" id="plantBtn"><svg viewBox="0 0 22 22"><path d="M11 20V10M11 12C6 12 3 9 3 4c5 0 8 3 8 8zM11 10c4 0 8-2.5 8-7-4.5 0-8 2.5-8 7z" stroke="#16254d" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/></svg>種進圖鑑</button>
+      </div>
+      <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastTx"></span><button id="toastUndo">復原</button></div>
+      <div class="home"></div>
+    </div>
+  </div>
+
+  <div class="caption">
+    <h1>葉室</h1>
+    <p>孔版雙色印刷的植物圖鑑。口渴的植物會垂下葉子，按住澆水壺，它就彈回來。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app013:';
+function load(k, d){ try { var v = localStorage.getItem(KEY+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY+k, JSON.stringify(v)); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var DAY = 864e5;
+var settings = load('settings', {hour:8, rain:true, sound:true, haptic:true});
+function haptic(p){ if (!settings.haptic) return; try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// ---------- sound ----------
+var ac = null, pourNode = null;
+function audio(){ if (!settings.sound) return null; try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
+function plink(f, t, v){ var a = audio(); if (!a) return; var o = a.createOscillator(), g = a.createGain(), n = a.currentTime + (t||0);
+  o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, n); g.gain.linearRampToValueAtTime(v||.16, n+.01); g.gain.exponentialRampToValueAtTime(.001, n+.5);
+  o.connect(g); g.connect(a.destination); o.start(n); o.stop(n+.55); }
+function startPour(){ var a = audio(); if (!a || pourNode) return;
+  var len = a.sampleRate * 2, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < len; i++) d[i] = (Math.random()*2-1) * (.55 + .45*Math.sin(i/(180+Math.random()*40)));
+  var s = a.createBufferSource(); s.buffer = buf; s.loop = true;
+  var bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1100; bp.Q.value = 1.4;
+  var lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = 7; lg.gain.value = 380; lfo.connect(lg); lg.connect(bp.frequency);
+  var g = a.createGain(); g.gain.setValueAtTime(0, a.currentTime); g.gain.linearRampToValueAtTime(.22, a.currentTime+.12);
+  s.connect(bp); bp.connect(g); g.connect(a.destination); s.start(); lfo.start();
+  pourNode = {s:s, g:g, lfo:lfo}; }
+function stopPour(){ if (!pourNode || !ac) return; var p = pourNode; pourNode = null; var n = ac.currentTime;
+  p.g.gain.cancelScheduledValues(n); p.g.gain.setValueAtTime(p.g.gain.value, n); p.g.gain.linearRampToValueAtTime(0, n+.18);
+  p.s.stop(n+.2); p.lfo.stop(n+.2); }
+
+// ---------- species (hand-built in two ink layers) ----------
+var SP = {
+  mon:{n:'龜背芋', la:'Monstera deliciosa', light:'明亮散射光', ml:400, st:[
+    {a:-40,len:66,b:-12,lv:[{t:1,a:-22,L:60,W:30,k:'mon'}]},
+    {a:-8,len:92,b:8,lv:[{t:1,a:-4,L:70,W:34,k:'mon'}]},
+    {a:26,len:76,b:12,lv:[{t:1,a:20,L:58,W:29,k:'mon'}]},
+    {a:52,len:44,b:6,lv:[{t:1,a:34,L:44,W:22,k:'mon'}]}], dm:22, ldm:30},
+  fid:{n:'琴葉榕', la:'Ficus lyrata', light:'窗邊直射', ml:300, st:[
+    {a:-3,len:118,b:-6,w:4.5,lv:[{t:1,a:-8,L:46,W:16,k:'fid'},{t:.8,a:-62,L:44,W:15,k:'fid'},{t:.64,a:58,L:46,W:16,k:'fid'},{t:.45,a:-66,L:40,W:14,k:'fid'},{t:.3,a:64,L:36,W:13,k:'fid'}]}], dm:6, ldm:48},
+  pot:{n:'黃金葛', la:'Epipremnum aureum', light:'耐陰', ml:200, st:[
+    {a:-8,len:40,b:-4,lv:[{t:1,a:-10,L:30,W:18,k:'heart'},{t:.5,a:-60,L:26,W:16,k:'heart'}]},
+    {a:14,len:34,b:6,lv:[{t:1,a:18,L:28,W:17,k:'heart'}]},
+    {a:-104,len:92,b:-38,f:1,lv:[{t:1,a:20,L:24,W:15,k:'heart'},{t:.7,a:70,L:24,W:15,k:'heart'},{t:.4,a:-40,L:26,W:16,k:'heart'}]},
+    {a:112,len:108,b:40,f:1,lv:[{t:1,a:-20,L:24,W:15,k:'heart'},{t:.72,a:-72,L:25,W:15,k:'heart'},{t:.42,a:40,L:26,W:16,k:'heart'}]}], dm:12, ldm:36},
+  san:{n:'虎尾蘭', la:'Dracaena trifasciata', light:'什麼光都行', ml:150, st:[
+    {a:-20,len:0,lv:[{t:1,a:0,L:96,W:9,k:'blade'}]},{a:-6,len:0,lv:[{t:1,a:0,L:124,W:11,k:'blade'}]},
+    {a:8,len:0,lv:[{t:1,a:0,L:112,W:10,k:'blade'}]},{a:22,len:0,lv:[{t:1,a:0,L:84,W:9,k:'blade'}]},{a:0,d:-1,len:0,lv:[{t:1,a:-2,L:70,W:8,k:'blade'}]}], dm:16, ldm:6},
+  lily:{n:'白鶴芋', la:'Spathiphyllum', light:'半陰', ml:250, st:[
+    {a:-44,len:52,b:-8,lv:[{t:1,a:-16,L:56,W:15,k:'lance'}]},{a:-18,len:70,b:-4,lv:[{t:1,a:-6,L:60,W:16,k:'lance'}]},
+    {a:16,len:66,b:6,lv:[{t:1,a:8,L:58,W:15,k:'lance'}]},{a:40,len:50,b:8,lv:[{t:1,a:18,L:52,W:14,k:'lance'}]},
+    {a:-4,d:-1,len:112,b:-6,w:2.2,lv:[{t:1,a:0,L:30,W:11,k:'spathe'}]},{a:8,len:98,b:5,w:2.2,lv:[{t:1,a:6,L:27,W:10,k:'spathe'}]}], dm:52, ldm:38},
+  cac:{n:'金琥仙人球', la:'Echinocactus grusonii', light:'全日照', ml:80, st:[
+    {a:0,d:1,len:0,lv:[{t:1,a:0,L:70,W:36,k:'cac',sq:.16}]},{a:-58,len:12,lv:[{t:1,a:10,L:26,W:13,k:'cac',sq:.2}]},{a:60,len:10,lv:[{t:1,a:-10,L:22,W:11,k:'cac',sq:.2}]}], dm:5, ldm:4},
+  stag:{n:'鹿角蕨', la:'Platycerium bifurcatum', light:'明亮通風', ml:220, st:[
+    {a:-58,len:10,lv:[{t:1,a:-10,L:78,W:14,k:'stag'}]},{a:-22,len:12,lv:[{t:1,a:-4,L:92,W:15,k:'stag'}]},
+    {a:18,len:12,lv:[{t:1,a:4,L:86,W:15,k:'stag'}]},{a:54,len:10,lv:[{t:1,a:10,L:74,W:13,k:'stag'}]}], dm:28, ldm:26}
+};
+var SP_ORDER = ['mon','fid','pot','san','lily','cac','stag'];
+var ROOMS = ['客廳','陽台','臥室','書房','廚房','玄關'];
+
+function f1(n){ return Math.round(n*10)/10; }
+function leafD(k, L, W){
+  var h = function(){ return Array.prototype.map.call(arguments, f1).join(' '); };
+  switch(k){
+    case 'mon': case 'heart':
+      var base = 'M0 '+f1(-L*.12)+'C'+h(W*.55,L*.1,W*1.15,-L*.18,W*.85,-L*.55)+'C'+h(W*.6,-L*.86,W*.18,-L*.94,0,-L)+'C'+h(-W*.18,-L*.94,-W*.6,-L*.86,-W*.85,-L*.55)+'C'+h(-W*1.15,-L*.18,-W*.55,L*.1,0,-L*.12)+'Z';
+      if (k === 'heart') return base;
+      var holes = '';
+      [.3,.5,.7].forEach(function(t, i){ [-1,1].forEach(function(s){
+        var cx = s*W*(.5 - i*.06), cy = -L*t, rx = W*.24, ry = W*.055, th = s*(-.5 + i*.12);
+        var dx = rx*Math.cos(th), dy = rx*Math.sin(th);
+        holes += 'M'+h(cx-dx,cy-dy)+'A'+h(rx,ry,th*57.3)+' 1 0 '+h(cx+dx,cy+dy)+'A'+h(rx,ry,th*57.3)+' 1 0 '+h(cx-dx,cy-dy)+'Z';
+      }); });
+      return base + holes;
+    case 'fid': return 'M0 0C'+h(W*.35,-L*.12,W*.5,-L*.3,W*.42,-L*.48)+'C'+h(W*1.05,-L*.6,W*1.05,-L*.98,0,-L)+'C'+h(-W*1.05,-L*.98,-W*1.05,-L*.6,-W*.42,-L*.48)+'C'+h(-W*.5,-L*.3,-W*.35,-L*.12,0,0)+'Z';
+    case 'blade': return 'M'+h(-W,0)+'C'+h(-W*1.2,-L*.5,-W*.6,-L*.85,0,-L)+'C'+h(W*.7,-L*.8,W*1.2,-L*.5,W,0)+'Z';
+    case 'lance': return 'M0 0C'+h(W*1.1,-L*.2,W*1.1,-L*.7,0,-L)+'C'+h(-W*1.1,-L*.7,-W*1.1,-L*.2,0,0)+'Z';
+    case 'spathe': return 'M0 0C'+h(W*1.2,-L*.1,W*1.1,-L*.75,0,-L)+'C'+h(-W*1.1,-L*.75,-W*1.2,-L*.1,0,0)+'Z';
+    case 'cac': return 'M'+h(-W*.9,0)+'C'+h(-W*1.15,-L*.55,-W*.6,-L,0,-L)+'C'+h(W*.6,-L,W*1.15,-L*.55,W*.9,0)+'Z';
+    case 'stag': return 'M'+h(-W*.35,0)+'C'+h(-W*.6,-L*.3,-W*.9,-L*.5,-W*1.1,-L*.78)+'L'+h(-W*1.35,-L*.98)+'C'+h(-W*.9,-L*.9,-W*.55,-L*.78,-W*.35,-L*.66)+'L'+h(0,-L*.8)+'L'+h(W*.3,-L)+'C'+h(W*.55,-L*.86,W*.4,-L*.72,W*.28,-L*.64)+'L'+h(W*1.2,-L*.82)+'C'+h(W*1.05,-L*.6,W*.7,-L*.45,W*.35,0)+'Z';
+  }
+}
+function tealDetail(k, L, W){
+  var p = '';
+  if (k === 'mon' || k === 'heart' || k === 'lance' || k === 'fid' || k === 'spathe'){
+    p += 'M0 '+f1(-L*.05)+'Q'+f1(W*.06)+' '+f1(-L*.5)+' 0 '+f1(-L*.9);
+    if (k !== 'spathe') for (var i = 1; i < 4; i++){ var y = -L*(.2 + i*.18); p += 'M0 '+f1(y)+'q'+f1(W*.5)+' '+f1(-L*.04)+' '+f1(W*.75)+' '+f1(-L*.14)+'M0 '+f1(y)+'q'+f1(-W*.5)+' '+f1(-L*.04)+' '+f1(-W*.75)+' '+f1(-L*.14); }
+  } else if (k === 'blade'){
+    for (var j = 1; j < 7; j++){ var yy = -L*j*.13, ww = W*(1 - j*.11); p += 'M'+f1(-ww)+' '+f1(yy)+'q'+f1(ww)+' '+f1(-3)+' '+f1(ww*2)+' 0'; }
+  } else if (k === 'cac'){
+    [-.6,-.28,0,.28,.6].forEach(function(s){ p += 'M'+f1(W*s*1.1)+' 0Q'+f1(W*s*1.25)+' '+f1(-L*.55)+' '+f1(W*s*.4)+' '+f1(-L*.97); });
+  } else if (k === 'stag'){
+    p += 'M0 0L0 '+f1(-L*.78)+'M'+f1(-W*.1)+' '+f1(-L*.4)+'L'+f1(-W*1.1)+' '+f1(-L*.9)+'M'+f1(W*.1)+' '+f1(-L*.45)+'L'+f1(W*1.05)+' '+f1(-L*.78);
+  }
+  return p;
+}
+// quadratic stem: (0,0) -> ctrl (b, -len/2) -> (0,-len)
+function qpt(len, b, t){ var x = 2*(1-t)*t*b, y = -len*(2*(1-t)*t*.5 + t*t); var tx = 2*(1-t)*b + 2*t*(0 - b), ty = 2*(1-t)*(-len*.5) + 2*t*(-len + len*.5); return {x:x, y:y, ang:Math.atan2(tx, -ty)*57.3}; }
+
+function plantSVG(key, extraCls){
+  var sp = SP[key], ink = {p:'', t:''}, frontInk = {p:'', t:''};
+  sp.st.forEach(function(s, si){
+    var dir = s.d || (s.a < 0 ? -1 : 1);
+    var tgt = s.f ? frontInk : ink;
+    ['p','t'].forEach(function(layer){
+      var g = '<g class="s" data-x="100" data-y="150" data-a="'+s.a+'" data-dm="'+(dir*sp.dm)+'">';
+      if (layer === 't' && s.len) g += '<path d="M0 0Q'+f1(s.b||0)+' '+f1(-s.len/2)+' 0 '+f1(-s.len)+'" stroke="#00838a" stroke-width="'+(s.w||3)+'" fill="none" stroke-linecap="round"/>';
+      s.lv.forEach(function(lf){
+        var q = qpt(s.len, s.b||0, lf.t), la = (s.len ? q.ang : 0) + lf.a, ld = (lf.a < 0 ? -1 : lf.a > 0 ? 1 : dir) * sp.ldm;
+        g += '<g class="l" data-x="'+f1(q.x)+'" data-y="'+f1(q.y)+'" data-a="'+f1(la)+'" data-dm="'+ld+'"'+(lf.sq ? ' data-sq="'+lf.sq+'"' : '')+'>';
+        var d = leafD(lf.k, lf.L, lf.W);
+        if (layer === 'p'){
+          if (lf.k === 'spathe') g += '<path d="'+d+'" fill="none" stroke="#ff48b0" stroke-width="1.6"/><path d="M0 -4 L0 '+f1(-lf.L*.55)+'" stroke="#ff48b0" stroke-width="4" stroke-linecap="round"/>';
+          else if (lf.k === 'cac' || lf.k === 'stag') g += '<path d="'+d+'" fill="url(#htP)"/>';
+          else g += '<path d="'+d+'" fill="#ff48b0" fill-rule="evenodd"/>';
+        } else {
+          g += '<path d="'+d+'" fill="none" stroke="#00838a" stroke-width="1.4" fill-rule="evenodd" stroke-linejoin="round"/>';
+          if (lf.k !== 'spathe') g += '<path d="'+d+'" fill="url(#htT)" clip-path="url(#cL)" fill-rule="evenodd"/>';
+          g += '<path d="'+tealDetail(lf.k, lf.L, lf.W)+'" stroke="#00838a" stroke-width="1.3" fill="none" stroke-linecap="round"/>';
+        }
+        g += '</g>';
+      });
+      tgt[layer] += g + '</g>';
+    });
+  });
+  var pot = {
+    p:'<rect x="55" y="146" width="90" height="13" rx="1.5" fill="#ff48b0"/>',
+    t:'<path d="M60 159h80l-8 46q-32 5-64 0z" fill="url(#htTd)"/><path d="M60 159h80l-8 46q-32 5-64 0zM55 146h90v13H55z" stroke="#00838a" stroke-width="1.6" fill="none" stroke-linejoin="round"/>'
+  };
+  var off = ((key.charCodeAt(0) % 3) * .5 + 1.2).toFixed(1);
+  return '<svg class="plant '+(extraCls||'')+'" viewBox="-28 -34 256 264" aria-hidden="true">'+
+    '<g class="mul">'+ink.p+pot.p+frontInk.p+'</g>'+
+    '<g class="mul" transform="translate('+off+' -1.2)">'+ink.t+pot.t+frontInk.t+'</g></svg>';
+}
+function setDroop(svg, d){
+  svg.querySelectorAll('.s,.l').forEach(function(el){
+    var ds = el.dataset, sq = ds.sq ? ' scale(1,'+(1 - ds.sq*d).toFixed(3)+')' : '';
+    el.style.transform = 'translate('+ds.x+'px,'+ds.y+'px) rotate('+(+ds.a + ds.dm*d).toFixed(2)+'deg)'+sq;
+  });
+}
+function mountPlant(host, p, cls){
+  host.innerHTML = plantSVG(p.sp, cls);
+  var svg = host.querySelector('svg.plant');
+  setDroop(svg, droop(moist(p)));
+  return svg;
+}
+
+// ---------- data ----------
+var NOW = Date.now();
+var seed = 13013; function rnd(){ seed = (seed*16807) % 2147483647; return seed/2147483647; }
+function mkSeed(){
+  var list = [
+    {name:'阿龜', sp:'mon', room:'客廳', every:7, ago:8.4},
+    {name:'小琴', sp:'fid', room:'書房', every:9, ago:3.2},
+    {name:'葛格', sp:'pot', room:'廚房', every:5, ago:4.7},
+    {name:'將軍', sp:'san', room:'玄關', every:14, ago:6.1},
+    {name:'白白', sp:'lily', room:'臥室', every:4, ago:4.4},
+    {name:'刺刺', sp:'cac', room:'陽台', every:21, ago:9.5},
+    {name:'鹿鹿', sp:'stag', room:'陽台', every:6, ago:1.8}
+  ];
+  var plants = [], log = [];
+  list.forEach(function(x, i){
+    var id = 'p'+(i+1), ld = new Date(NOW - x.ago*DAY);
+    ld.setHours(rnd() < .6 ? 7 : 20, Math.floor(rnd()*50), 0, 0);
+    if (ld.getTime() > NOW) ld.setDate(ld.getDate() - 1);
+    var last = ld.getTime();
+    plants.push({id:id, name:x.name, sp:x.sp, room:x.room, every:x.every, last:last, no:i+1});
+    var t = last;
+    while (t > NOW - 75*DAY){
+      log.push({id:'l'+Math.round(t)+i, pid:id, t:t, ml:Math.round(SP[x.sp].ml*(.8+rnd()*.4)/10)*10});
+      var nt = new Date(t - x.every*DAY*(.85 + rnd()*.3)); nt.setHours(rnd() < .6 ? 7 : 20, Math.floor(rnd()*55), 0, 0); t = nt.getTime();
+    }
+  });
+  log.sort(function(a, b){ return b.t - a.t; });
+  return {plants:plants, log:log, nextNo:list.length+1};
+}
+var db = load('db', null) || mkSeed();
+function persist(){ save('db', db); }
+function byId(id){ for (var i = 0; i < db.plants.length; i++) if (db.plants[i].id === id) return db.plants[i]; return null; }
+function moist(p){ return Math.max(0, Math.min(1, 1 - (Date.now() - p.last)/(p.every*DAY))); }
+function droop(m){ return m >= .4 ? 0 : (.4 - m)/.4; }
+function thirsty(p){ return moist(p) < .15; }
+function daysSince(p){ return (Date.now() - p.last)/DAY; }
+function dueAt(p){ return p.last + p.every*DAY; }
+function dropsHTML(m){ var n = Math.round(m*8), s = ''; for (var i = 0; i < 8; i++) s += '<svg viewBox="0 0 9 12"><path d="M4.5 1C4.5 1 1 5.6 1 7.6a3.5 3.5 0 0 0 7 0C8 5.6 4.5 1 4.5 1z" '+(i < n ? 'fill="#ff48b0"' : 'fill="none" stroke="#00838a" stroke-width="1.2"')+'/></svg>'; return '<span class="drops" aria-label="水分 '+Math.round(m*100)+'%">'+s+'</span>'; }
+function pno(p){ return 'No.'+String(p.no).padStart(2,'0'); }
+function ago(d){ if (d < 1) return '今天'; if (d < 2) return '昨天'; return Math.floor(d)+' 天前'; }
+var WD = ['日','一','二','三','四','五','六'];
+var MN = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
+
+// ---------- clock ----------
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+tick(); setInterval(tick, 15000);
+var td = new Date(); $('dateTx').textContent = (td.getMonth()+1)+' 月 '+td.getDate()+' 日';
+
+// ---------- plates ----------
+var room = load('room', '全部');
+function renderRooms(){
+  var rs = ['全部'].concat(ROOMS.filter(function(r){ return db.plants.some(function(p){ return p.room === r; }); }));
+  if (rs.indexOf(room) < 0) room = '全部';
+  $('rooms').innerHTML = rs.map(function(r){ return '<button aria-pressed="'+(r === room)+'" data-room="'+r+'">'+r+'</button>'; }).join('');
+}
+$('rooms').addEventListener('click', function(e){ var b = e.target.closest('[data-room]'); if (!b) return; room = b.dataset.room; save('room', room); haptic(6); renderPlates(); });
+
+function renderPlates(){
+  renderRooms();
+  var list = db.plants.filter(function(p){ return room === '全部' || p.room === room; });
+  var th = db.plants.filter(thirsty).length;
+  $('thirstN').textContent = th;
+  if (!list.length){ $('feat').innerHTML = ''; $('grid').innerHTML = '<p class="empty" style="grid-column:1/-1">這裡還沒有植物。按下方「種一株」。</p>'; return; }
+  var f = list.slice().sort(function(a, b){ return moist(a) - moist(b); })[0];
+  var late = daysSince(f) - f.every;
+  $('feat').innerHTML = '<div class="featwrap"><div class="feat"><button class="fplant" data-open="'+f.id+'" aria-label="打開 '+esc(f.name)+'"></button><div>'+
+    '<span class="pno">'+pno(f)+' · 最渴的一株</span><b class="pname">'+esc(f.name)+'</b><span class="psp">'+SP[f.sp].n+' · '+f.room+'</span>'+dropsHTML(moist(f))+
+    '<span class="late">'+(late > 0 ? '晚了 '+Math.ceil(late)+' 天沒澆' : ago(daysSince(f))+'澆過')+'</span>'+
+    '<button class="quick" data-water="'+f.id+'"><svg viewBox="0 0 18 18"><path d="M9 2C9 2 3.5 8.5 3.5 11.5a5.5 5.5 0 0 0 11 0C14.5 8.5 9 2 9 2z" fill="none" stroke="#16254d" stroke-width="2"/></svg>澆一下</button></div></div>'+
+    (thirsty(f) ? '<span class="stamp" aria-hidden="true">口渴</span>' : '')+'</div>';
+  mountPlant($('feat').querySelector('.fplant'), f);
+  var rest = list.filter(function(p){ return p !== f; });
+  $('grid').innerHTML = rest.map(function(p){
+    return '<button class="plate" data-open="'+p.id+'"><span class="ph" data-ph="'+p.id+'"></span><span class="meta"><span class="pno">'+String(p.no).padStart(2,'0')+'</span><b class="pname">'+esc(p.name)+'</b></span><span class="psp">'+SP[p.sp].n+' · '+p.room+'</span>'+dropsHTML(moist(p))+(thirsty(p) ? '<span class="stamp" aria-hidden="true">口渴</span>' : '')+'</button>';
+  }).join('');
+  rest.forEach(function(p){ mountPlant($('grid').querySelector('[data-ph="'+p.id+'"]'), p); });
+}
+$('v-plates').addEventListener('click', function(e){
+  var w = e.target.closest('[data-water]');
+  if (w){ e.stopPropagation(); var p = byId(w.dataset.water); if (!p) return;
+    var svg = $('feat').querySelector('svg.plant');
+    waterFull(p, svg); return; }
+  var o = e.target.closest('[data-open]'); if (o) openDetail(o.dataset.open);
+});
+
+function logWater(p, ml){
+  var e = {id:'l'+Date.now(), pid:p.id, t:Date.now(), ml:ml};
+  db.log.unshift(e); persist();
+  return e;
+}
+function waterFull(p, svg){
+  var before = p.last;
+  p.last = Date.now();
+  var e = logWater(p, SP[p.sp].ml);
+  haptic([10,40,14]); plink(1318, 0, .12); plink(1976, .09, .1);
+  if (svg){ svg.classList.add('spring'); setDroop(svg, 0); }
+  setTimeout(function(){ renderAll(); }, reduce ? 0 : 900);
+  toast('幫 '+p.name+' 澆了 '+e.ml+' ml', function(){ p.last = before; db.log = db.log.filter(function(x){ return x !== e; }); persist(); renderAll(); });
+}
+
+// ---------- detail ----------
+var cur = null, dSvg = null;
+function openDetail(id){
+  var p = byId(id); if (!p) return; cur = p; haptic(6);
+  renderDetail();
+  $('detail').classList.add('on'); $('detail').setAttribute('aria-hidden','false');
+  $('detail').scrollTop = 0;
+  setTimeout(function(){ var b = $('detail').querySelector('.back'); if (b) b.focus({preventScroll:true}); }, 60);
+}
+function closeDetail(){ if (!$('detail').classList.contains('on')) return; $('detail').classList.remove('on'); $('detail').setAttribute('aria-hidden','true'); cur = null; stopPour(); renderAll(); }
+function renderDetail(){
+  var p = cur, sp = SP[p.sp], m = moist(p);
+  var strip = '', today0 = new Date(); today0.setHours(0,0,0,0);
+  for (var i = 29; i >= 0; i--){
+    var d0 = today0.getTime() - i*DAY, hit = db.log.some(function(x){ return x.pid === p.id && x.t >= d0 && x.t < d0 + DAY; });
+    strip += '<i class="'+(hit ? 'w' : '')+(i === 0 ? ' t' : '')+'"></i>';
+  }
+  var nd = new Date(dueAt(p));
+  $('detail').innerHTML =
+    '<button class="back" id="backBtn"><svg viewBox="0 0 22 22"><path d="M14 4C9 7 7 9 5 11c2 2 4 4 9 7M5 11h12" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>圖鑑</button>'+
+    '<div class="dhead"><div><span class="pno" style="font-size:13px;font-weight:700;color:var(--teal-ink)">'+pno(p)+'</span><h2>'+esc(p.name)+'</h2><p class="lat">'+sp.n+' · '+sp.la+'</p></div><div class="pct" id="dPct">'+Math.round(m*100)+'<small>%</small></div></div>'+
+    '<div class="stagebox"><div id="dPlant"></div>'+
+    '<svg class="stream" id="stream" viewBox="0 0 390 300" preserveAspectRatio="none"></svg>'+
+    '<button class="can" id="can" aria-label="按住澆水"><svg viewBox="0 0 128 118"><g class="mul"><path d="M40 44h52l-4 58H44z" fill="url(#htTd)"/><path d="M36 36h60v10H36z" fill="#ff48b0"/></g><g class="mul" transform="translate(1.5 -1)"><path d="M40 44h52l-4 58H44zM36 36h60v10H36zM92 58c14 0 20 12 14 24M40 58L12 30M8 24l9 1-3 10z" stroke="#00838a" stroke-width="2.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/><path d="M52 36c0-14 28-14 28 0" stroke="#00838a" stroke-width="2.4" fill="none"/></g></svg></button>'+
+    '<span class="hold">按住澆水</span></div>'+
+    dropsHTML(m).replace('class="drops"','class="drops" id="dDrops" style="justify-content:center"')+
+    '<dl class="facts">'+
+      '<div class="fact"><dt>位置</dt><dd>'+p.room+'</dd></div>'+
+      '<div class="fact"><dt>光線</dt><dd>'+sp.light+'</dd></div>'+
+      '<div class="fact"><dt>上次澆水</dt><dd id="dLast">'+ago(daysSince(p))+'</dd></div>'+
+      '<div class="fact"><dt>下次</dt><dd id="dNext">'+(nd.getMonth()+1)+'/'+nd.getDate()+' 星期'+WD[nd.getDay()]+'</dd></div>'+
+      '<div class="fact"><dt>幾天澆一次</dt><dd><div class="step"><button data-ev="-1" aria-label="少一天"><svg viewBox="0 0 20 20"><path d="M4 10.5c4-.8 8-.8 12 0" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></button><output id="dEv">'+p.every+' 天</output><button data-ev="1" aria-label="多一天"><svg viewBox="0 0 20 20"><path d="M4 10.5c4-.8 8-.8 12 0M10.2 4c-.6 4-.6 8 0 12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></button></div></dd></div>'+
+    '</dl>'+
+    '<h3 class="sub">近 30 天</h3><div class="strip">'+strip+'</div><div class="striplbl"><span>30 天前</span><span>今天</span></div>'+
+    '<button class="danger" id="delBtn">移出圖鑑</button>';
+  dSvg = mountPlant($('dPlant'), p);
+  bindCan();
+}
+function refreshDetailNumbers(){
+  if (!cur) return; var m = moist(cur);
+  $('dPct').innerHTML = Math.round(m*100)+'<small>%</small>';
+  var dd = $('dDrops'); if (dd) dd.outerHTML = dropsHTML(m).replace('class="drops"','class="drops" id="dDrops" style="justify-content:center"');
+  $('dLast').textContent = ago(daysSince(cur));
+  var nd = new Date(dueAt(cur)); $('dNext').textContent = (nd.getMonth()+1)+'/'+nd.getDate()+' 星期'+WD[nd.getDay()];
+}
+$('detail').addEventListener('click', function(e){
+  if (e.target.closest('#backBtn')){ haptic(6); closeDetail(); return; }
+  var ev = e.target.closest('[data-ev]');
+  if (ev && cur){ var m = moist(cur); cur.every = Math.max(1, Math.min(40, cur.every + (+ev.dataset.ev))); cur.last = Date.now() - (1 - m)*cur.every*DAY; persist(); haptic(5); $('dEv').textContent = cur.every+' 天'; refreshDetailNumbers(); return; }
+  var del = e.target.closest('#delBtn');
+  if (del && cur){
+    if (!del.classList.contains('arm')){ del.classList.add('arm'); del.textContent = '再按一次，確定移出 '+cur.name; haptic([8,30,8]); setTimeout(function(){ if (del.isConnected){ del.classList.remove('arm'); del.textContent = '移出圖鑑'; } }, 2600); return; }
+    var p = cur, idx = db.plants.indexOf(p), logs = db.log.filter(function(x){ return x.pid === p.id; });
+    db.plants.splice(idx, 1); db.log = db.log.filter(function(x){ return x.pid !== p.id; }); persist();
+    haptic([14,40,14]); plink(220, 0, .12);
+    closeDetail();
+    toast(p.name+' 移出圖鑑了', function(){ db.plants.splice(idx, 0, p); db.log = db.log.concat(logs).sort(function(a, b){ return b.t - a.t; }); persist(); renderAll(); });
+  }
+});
+function bindCan(){
+  var can = $('can'), stream = $('stream'), pouring = false, raf = 0, poured = 0, tPrev = 0, before = 0, drops = [];
+  function frame(t){
+    var dt = Math.min(64, t - tPrev); tPrev = t;
+    if (pouring && cur){
+      var m = moist(cur), nm = Math.min(1, m + dt/1500);
+      poured += nm - m;
+      cur.last = Date.now() - (1 - nm)*cur.every*DAY;
+      setDroop(dSvg, droop(nm));
+      if (Math.random() < .7) drops.push({x:238 + Math.random()*6, y:84, v:.6 + Math.random()*.8, vx:-2.2 - Math.random()*.8});
+      if (nm >= 1 && poured > .02){ haptic(4); }
+      refreshDetailNumbers();
+    }
+    var s = '';
+    drops = drops.filter(function(d){ d.v += .35; d.y += d.v*dt/16; d.x += d.vx*dt/16; return d.y < 196; });
+    drops.forEach(function(d){ s += '<circle cx="'+d.x.toFixed(1)+'" cy="'+d.y.toFixed(1)+'" r="2.4"/>'; });
+    stream.innerHTML = s;
+    if (pouring || drops.length) raf = requestAnimationFrame(frame); else raf = 0;
+  }
+  function start(e){
+    if (!cur) return; if (e && e.button > 0) return;
+    pouring = true; poured = 0; before = cur.last; can.classList.add('pour'); dSvg.classList.remove('spring'); dSvg.classList.add('live');
+    haptic(10); startPour(); tPrev = performance.now(); if (!raf) raf = requestAnimationFrame(frame);
+    if (e && e.pointerId !== undefined){ try { can.setPointerCapture(e.pointerId); } catch(x){} }
+  }
+  function end(){
+    if (!pouring) return; pouring = false; can.classList.remove('pour'); stopPour();
+    dSvg.classList.remove('live'); dSvg.classList.add('spring');
+    if (poured > .08 && cur){
+      var p = cur, ml = Math.round(SP[p.sp].ml*Math.min(1, poured*1.4)/10)*10, e2 = logWater(p, Math.max(20, ml));
+      plink(1318, 0, .1); plink(1976, .08, .08); haptic([8,30,12]);
+      toast('幫 '+p.name+' 澆了 '+e2.ml+' ml', function(){ p.last = before; db.log = db.log.filter(function(x){ return x !== e2; }); persist(); if (cur === p){ setDroop(dSvg, droop(moist(p))); refreshDetailNumbers(); } renderAll(); });
+    } else if (cur){ persist(); }
+    persist(); renderPlates();
+  }
+  can.addEventListener('pointerdown', start);
+  can.addEventListener('pointerup', end); can.addEventListener('pointercancel', end); can.addEventListener('lostpointercapture', end);
+  can.addEventListener('keydown', function(e){ if ((e.key === 'Enter' || e.key === ' ') && !e.repeat){ e.preventDefault(); start(); setTimeout(end, 1300); } });
+  can.addEventListener('click', function(e){ if (e.detail === 0) return; });
+}
+
+// ---------- log ----------
+var selDay = null, who = 'all';
+function dayStart(t){ var d = new Date(t); d.setHours(0,0,0,0); return d.getTime(); }
+function renderLog(){
+  var n = new Date(), y = n.getFullYear(), mo = n.getMonth();
+  $('mNum').textContent = $('mNum2').textContent = String(mo+1).padStart(2,'0');
+  $('mName').textContent = MN[mo]+'月';
+  var first = new Date(y, mo, 1), start = first.getTime() - first.getDay()*DAY, dim = new Date(y, mo+1, 0).getDate();
+  var cells = WD.map(function(w){ return '<span class="wd">'+w+'</span>'; }).join('');
+  var monthCount = 0, rows = Math.ceil((first.getDay() + dim)/7);
+  for (var i = 0; i < rows*7; i++){
+    var d = new Date(y, mo, 1 - first.getDay() + i), d0 = d.getTime();
+    var cnt = db.log.filter(function(x){ return x.t >= d0 && x.t < d0 + DAY && (who === 'all' || x.pid === who); }).length;
+    var inM = d.getMonth() === mo; if (inM) monthCount += cnt;
+    var ds = ''; for (var k = 0; k < Math.min(3, cnt); k++) ds += '<i></i>';
+    cells += '<button data-day="'+d0+'" class="'+(inM ? '' : 'out')+(dayStart(Date.now()) === d0 ? ' today' : '')+(selDay === d0 ? ' sel' : '')+'" aria-label="'+(d.getMonth()+1)+' 月 '+d.getDate()+' 日，'+cnt+' 次"><span>'+d.getDate()+'</span><span class="ds">'+ds+'</span></button>';
+  }
+  $('cal').innerHTML = cells;
+  $('mSum').textContent = '澆了 '+monthCount+' 次';
+  $('who').innerHTML = '<button data-who="all" aria-pressed="'+(who === 'all')+'">全部</button>'+db.plants.map(function(p){ return '<button data-who="'+p.id+'" aria-pressed="'+(who === p.id)+'">'+esc(p.name)+'</button>'; }).join('');
+  var list = db.log.filter(function(x){ return (who === 'all' || x.pid === who) && (selDay === null || (x.t >= selDay && x.t < selDay + DAY)); }).slice(0, 40);
+  var html = '', lastDay = null;
+  list.forEach(function(x){
+    var p = byId(x.pid); if (!p) return;
+    var d = new Date(x.t), dk = dayStart(x.t);
+    if (dk !== lastDay){ lastDay = dk; html += '<p class="dayhdr">'+(d.getMonth()+1)+' 月 '+d.getDate()+' 日 星期'+WD[d.getDay()]+'</p>'; }
+    html += '<div class="rowwrap"><button class="rowdel" data-del="'+x.id+'">刪除</button><div class="row" data-row="'+x.id+'"><span class="ic" data-mini="'+p.sp+'"></span><span class="tx"><b>'+esc(p.name)+'</b><span>'+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+' · '+p.room+'</span></span><span class="ml">'+x.ml+' ml</span></div></div>';
+  });
+  $('entries').innerHTML = html || '<p class="empty">這天沒有澆水。</p>';
+  $('entries').querySelectorAll('[data-mini]').forEach(function(el){ el.innerHTML = miniLeaf(el.dataset.mini); });
+}
+function miniLeaf(k){
+  var d = leafD(k === 'san' ? 'blade' : k === 'cac' ? 'cac' : k === 'stag' ? 'stag' : k === 'lily' ? 'lance' : k === 'fid' ? 'fid' : k === 'pot' ? 'heart' : 'mon', 28, k === 'san' ? 5 : k === 'lily' ? 8 : 13);
+  return '<svg viewBox="-17 -31 34 34"><path d="'+d+'" fill="#ff48b0" fill-rule="evenodd" class="mul"/><path d="'+d+'" fill="none" stroke="#00838a" stroke-width="1.3" transform="translate(1 -.8)" fill-rule="evenodd"/></svg>';
+}
+$('cal').addEventListener('click', function(e){ var b = e.target.closest('[data-day]'); if (!b) return; var d = +b.dataset.day; selDay = selDay === d ? null : d; haptic(5); renderLog(); });
+$('who').addEventListener('click', function(e){ var b = e.target.closest('[data-who]'); if (!b) return; who = b.dataset.who; haptic(5); renderLog(); });
+(function(){
+  var row = null, sx = 0, sy = 0, dx = 0, lock = null, open = null;
+  $('entries').addEventListener('pointerdown', function(e){
+    var r = e.target.closest('.row'); if (!r) return;
+    if (open && open !== r){ open.style.transform = ''; open = null; }
+    row = r; sx = e.clientX; sy = e.clientY; dx = 0; lock = null;
+  });
+  $('entries').addEventListener('pointermove', function(e){
+    if (!row) return; var x = e.clientX - sx, y = e.clientY - sy;
+    if (!lock){ if (Math.abs(x) > 8 || Math.abs(y) > 8) lock = Math.abs(x) > Math.abs(y) ? 'x' : 'y'; else return; }
+    if (lock !== 'x') return;
+    row.classList.add('drag'); dx = Math.min(0, x + (open === row ? -88 : 0)); if (dx < -88) dx = -88 + (dx + 88)/3;
+    row.style.transform = 'translateX('+dx.toFixed(1)+'px)';
+  });
+  function end(){ if (!row) return; row.classList.remove('drag');
+    if (lock === 'x'){ if (dx < -44){ row.style.transform = 'translateX(-88px)'; open = row; haptic(6); } else { row.style.transform = ''; if (open === row) open = null; } }
+    row = null; }
+  $('entries').addEventListener('pointerup', end); $('entries').addEventListener('pointercancel', end);
+  $('entries').addEventListener('click', function(e){
+    var b = e.target.closest('[data-del]'); if (!b) return;
+    var idx = -1; db.log.forEach(function(x, i){ if (x.id === b.dataset.del) idx = i; }); if (idx < 0) return;
+    var x = db.log.splice(idx, 1)[0]; persist(); haptic([10,30,10]); open = null; renderLog();
+    toast('刪掉一筆澆水紀錄', function(){ db.log.splice(idx, 0, x); persist(); renderLog(); });
+  });
+})();
+
+// ---------- remind ----------
+function renderRemind(){
+  var now = Date.now(), end = dayStart(now) + DAY;
+  var due = db.plants.filter(function(p){ return dueAt(p) < end; }).sort(function(a, b){ return dueAt(a) - dueAt(b); });
+  $('bigsay').innerHTML = due.length ? '<b>'+due.length+'</b>株今天要喝水' : '<b>0</b>株要澆，今天休息';
+  $('due').innerHTML = due.map(function(p){
+    var late = Math.floor((now - dueAt(p))/DAY);
+    return '<div class="duerow"><span class="ic" data-ph2="'+p.id+'"></span><span class="tx"><b>'+esc(p.name)+'</b><span class="'+(late > 0 ? 'lateTx' : '')+'">'+(late > 0 ? '晚了 '+late+' 天' : '今天')+' · '+p.room+'</span></span>'+
+      '<button class="check" data-check="'+p.id+'" aria-label="澆了 '+esc(p.name)+'"><svg viewBox="0 0 30 34"><path d="M15 3C15 3 4 16 4 22a11 11 0 0 0 22 0C26 16 15 3 15 3z" fill="none" stroke="#00838a" stroke-width="2.4"/></svg></button></div>';
+  }).join('');
+  due.forEach(function(p){ var h = $('due').querySelector('[data-ph2="'+p.id+'"]'); if (h) mountPlant(h, p); });
+  var w = '';
+  for (var i = 0; i < 7; i++){
+    var d0 = dayStart(now) + i*DAY, d = new Date(d0);
+    var names = db.plants.filter(function(p){ var t = dueAt(p); return i === 0 ? t < d0 + DAY : (t >= d0 && t < d0 + DAY); });
+    w += '<div class="col'+(i === 0 ? ' today' : '')+'"><h4>'+(i === 0 ? '今天' : '週'+WD[d.getDay()])+'</h4><h5>'+d.getDate()+'</h5>'+names.map(function(p){ return '<em>'+esc(p.name)+'</em>'; }).join('')+'</div>';
+  }
+  $('week').innerHTML = w;
+  $('hrOut').textContent = String(settings.hour).padStart(2,'0')+':00';
+  document.querySelectorAll('.tog').forEach(function(t){ t.setAttribute('aria-checked', !!settings[t.dataset.set]); });
+  var tmr = db.plants.filter(function(p){ var t = dueAt(p); return t >= end && t < end + DAY; });
+  var nextT = new Date(); if (nextT.getHours() >= settings.hour) nextT.setDate(nextT.getDate()+1);
+  $('nextRem').textContent = (nextT.getDate() === new Date().getDate() ? '今天 ' : '明天 ')+String(settings.hour).padStart(2,'0')+':00 叮你';
+  $('nextline').innerHTML = tmr.length ? '明天輪到 <b>'+tmr.map(function(p){ return esc(p.name); }).join('、')+'</b>。' : '明天沒有要澆的。';
+}
+$('due').addEventListener('click', function(e){
+  var b = e.target.closest('[data-check]'); if (!b) return; var p = byId(b.dataset.check); if (!p) return;
+  b.querySelector('path').setAttribute('fill', '#ff48b0');
+  var h = $('due').querySelector('[data-ph2="'+p.id+'"] svg');
+  waterFull(p, h);
+});
+$('hrMinus').addEventListener('click', function(){ settings.hour = (settings.hour + 23) % 24; save('settings', settings); haptic(5); renderRemind(); });
+$('hrPlus').addEventListener('click', function(){ settings.hour = (settings.hour + 1) % 24; save('settings', settings); haptic(5); renderRemind(); });
+document.querySelectorAll('.tog').forEach(function(t){ t.addEventListener('click', function(){ var k = t.dataset.set; settings[k] = !settings[k]; save('settings', settings); haptic(8); t.setAttribute('aria-checked', settings[k]); if (k === 'sound' && settings.sound) plink(1318, 0, .1); }); });
+$('ffBtn').addEventListener('click', function(){
+  db.plants.forEach(function(p){ p.last -= DAY; }); db.log.forEach(function(x){ x.t -= DAY; }); persist(); haptic([6,30,6]);
+  renderAll(); toast('一天過去了', function(){ db.plants.forEach(function(p){ p.last += DAY; }); db.log.forEach(function(x){ x.t += DAY; }); persist(); renderAll(); });
+});
+
+// ---------- tabs ----------
+var tab = 'plates', ORDER = ['plates','log','remind'];
+function switchTab(t){
+  if (t === tab) { $('v-'+t).scrollTo({top:0, behavior: reduce ? 'auto' : 'smooth'}); return; }
+  var dir = ORDER.indexOf(t) > ORDER.indexOf(tab) ? 1 : -1;
+  tab = t; haptic(6);
+  document.querySelectorAll('.nav [role=tab]').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.tab === t); });
+  document.querySelectorAll('.view').forEach(function(v){ var on = v.id === 'v-'+t; v.classList.toggle('on', on); if (on) v.style.setProperty('--from', (dir*28)+'px'); });
+  closeDetail();
+  renderAll();
+}
+document.querySelectorAll('.nav [role=tab]').forEach(function(b){ b.addEventListener('click', function(){ switchTab(b.dataset.tab); }); });
+
+// ---------- add sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null, pick = {sp:'mon', room:'客廳', every:7};
+function renderSheet(){
+  $('specPick').innerHTML = SP_ORDER.map(function(k){ return '<button data-sp="'+k+'" aria-pressed="'+(pick.sp === k)+'">'+plantSVG(k)+SP[k].n+'</button>'; }).join('');
+  $('specPick').querySelectorAll('svg.plant').forEach(function(s){ setDroop(s, 0); });
+  $('roomPick').innerHTML = ROOMS.map(function(r){ return '<button data-rp="'+r+'" aria-pressed="'+(pick.room === r)+'"><span>'+r+'</span></button>'; }).join('');
+  $('evOut').textContent = pick.every+' 天';
+}
+function openSheet(){ lastFocus = document.activeElement; renderSheet(); $('nameIn').value = ''; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+$('addBtn').addEventListener('click', openSheet);
+scrim.addEventListener('click', closeSheet);
+$('specPick').addEventListener('click', function(e){ var b = e.target.closest('[data-sp]'); if (!b) return; pick.sp = b.dataset.sp; pick.every = {mon:7,fid:9,pot:5,san:14,lily:4,cac:21,stag:6}[pick.sp]; haptic(5); var sl = $('specPick').scrollLeft; renderSheet(); $('specPick').scrollLeft = sl; });
+$('roomPick').addEventListener('click', function(e){ var b = e.target.closest('[data-rp]'); if (!b) return; pick.room = b.dataset.rp; haptic(5); $('roomPick').querySelectorAll('[data-rp]').forEach(function(x){ x.setAttribute('aria-pressed', x.dataset.rp === pick.room); }); });
+$('evMinus').addEventListener('click', function(){ pick.every = Math.max(1, pick.every - 1); $('evOut').textContent = pick.every+' 天'; haptic(4); });
+$('evPlus').addEventListener('click', function(){ pick.every = Math.min(40, pick.every + 1); $('evOut').textContent = pick.every+' 天'; haptic(4); });
+$('plantBtn').addEventListener('click', function(){
+  var nm = $('nameIn').value.trim() || ('小'+SP[pick.sp].n.slice(-1));
+  var p = {id:'p'+Date.now(), name:nm, sp:pick.sp, room:pick.room, every:pick.every, last:Date.now(), no:db.nextNo++};
+  db.plants.push(p); logWater(p, SP[p.sp].ml); persist();
+  haptic([10,40,10]); plink(988, 0, .1); plink(1318, .1, .1); plink(1976, .2, .08);
+  closeSheet(); room = '全部'; save('room', room);
+  if (tab !== 'plates') switchTab('plates'); else renderAll();
+  toast(nm+' 種進圖鑑了', function(){ db.plants = db.plants.filter(function(x){ return x !== p; }); db.log = db.log.filter(function(x){ return x.pid !== p.id; }); persist(); renderAll(); });
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button,input,.spec')) return;
+    if (sheet.scrollTop > 0) return;
+    dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch(x){}
+  });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy/6; sheet.style.transform = 'translateY('+y.toFixed(1)+'px)'; scrim.style.opacity = Math.max(0, 1 - dy/sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = '';
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight*.35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape'){ if (sheet.classList.contains('on')) closeSheet(); else closeDetail(); } });
+
+// ---------- toast ----------
+var toastT = null, undoFn = null;
+function toast(msg, undo){ $('toastTx').textContent = msg; undoFn = undo || null; $('toastUndo').style.display = undo ? '' : 'none'; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, 3600); }
+$('toastUndo').addEventListener('click', function(){ if (undoFn){ var f = undoFn; undoFn = null; f(); haptic(8); } $('toast').classList.remove('on'); });
+
+function renderAll(){ renderPlates(); if (tab === 'log') renderLog(); if (tab === 'remind') renderRemind(); }
+renderPlates(); renderLog(); renderRemind();
+// plants keep drying while you look
+setInterval(function(){ if (document.hidden || cur || sheet.classList.contains('on')) return; renderAll(); }, 60000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#9c6b3c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="回覽板">
+<title>回覽板 · 社區公告與二手交換</title>
+<meta name="description" content="一塊夾著公告的木夾板：讀完公告蓋上自己的印章傳給下一戶，也能在同一疊紙上登記二手交換、看手繪社區地圖。收錄於 100 Creative HTML Works（App 046・日本回覽板與判子）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/046-kairanban.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='4' width='52' height='58' rx='7' fill='%23a8743f'/%3E%3Crect x='12' y='14' width='40' height='44' fill='%23f6f5ef'/%3E%3Crect x='22' y='6' width='20' height='12' rx='3' fill='%23b9bdb8'/%3E%3Ccircle cx='32' cy='38' r='12' fill='none' stroke='%23c8321f' stroke-width='3'/%3E%3Ctext x='32' y='39' font-family='Songti TC,serif' font-weight='700' font-size='14' text-anchor='middle' dominant-baseline='central' fill='%23c8321f'%3E%E7%8E%8B%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+--wood:#a8743f;--wood-d:#7c5129;--wood-l:#c79a64;
+--paper:#f6f5ef;--canary:#f2e6ae;--sage:#dde6d1;--rose:#f0dcd4;
+--ink:#26221d;--ink-2:#5a534a;--ink-3:#7a7166;
+--shu:#c8321f;--shu-d:#9e2414;
+--mincho:"YuMincho","Yu Mincho","Hiragino Mincho ProN","Songti TC","Noto Serif TC",serif;
+--hand:"Kaiti TC","STKaiti","BiauKai","DFKai-SB",serif;
+--out:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.35,.5,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--wood-d);color:var(--ink);font-family:var(--mincho)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
+svg{display:block}
+input,textarea,select{font:inherit;color:inherit}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;container-type:inline-size;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .11' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .28  0 0 0 0 .16  0 0 0 0 .06  0 0 0 1.5 -.45'/%3E%3C/filter%3E%3Crect width='420' height='420' filter='url(%23g)'/%3E%3C/svg%3E"),
+    linear-gradient(100deg,#b27d47,#a26d3a 40%,#b3814d 70%,#9c683a);}
+.screen::before{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 3px rgba(80,48,20,.35),inset 0 2px 0 5px rgba(230,190,140,.18);pointer-events:none;z-index:1}
+@media (min-width:521px){
+  body{background:#3a2616}
+  .stage{display:flex;align-items:center;justify-content:center;gap:72px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:410px;height:min(844px,calc(100dvh - 48px));border-radius:56px;padding:10px;z-index:1;
+    background:linear-gradient(160deg,#2c2520,#15110e);box-shadow:inset 0 0 0 1px #5a4a3c,0 16px 28px -14px rgba(20,10,4,.8)}
+  .screen{inset:10px;border-radius:46px}
+  .caption{display:block;position:relative;z-index:1;width:250px;color:#f3e8d8}
+  .caption h1{font:700 40px/1.1 var(--mincho);letter-spacing:.12em}
+  .caption p{margin-top:16px;font:400 15px/1.8 var(--mincho);color:rgba(243,232,216,.78)}
+  .caption .hanko{width:64px;height:64px;margin-top:22px}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+  height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 16px/1 -apple-system,system-ui,sans-serif;color:#2a1a0c;pointer-events:none}
+.status .g{display:flex;align-items:center;gap:6px}
+@media (display-mode:standalone){.status{display:none}}
+
+/* burned header on the board */
+.burn{position:absolute;z-index:3;top:calc(48px + env(safe-area-inset-top));left:22px;right:22px;display:flex;align-items:flex-end;justify-content:space-between;color:#3b220e;pointer-events:none}
+.burn b{font:700 21px/1 var(--mincho);letter-spacing:.3em;text-shadow:0 1px 0 rgba(235,195,145,.45)}
+.burn span{font:600 13px/1.3 var(--mincho);letter-spacing:.08em;text-align:right;opacity:.85}
+
+/* clip */
+.clip{position:absolute;z-index:20;top:calc(78px + env(safe-area-inset-top));left:50%;width:176px;height:58px;margin-left:-88px;pointer-events:none}
+
+/* paper stack */
+.stack{position:absolute;z-index:5;left:14px;right:14px;top:calc(106px + env(safe-area-inset-top));bottom:calc(76px + env(safe-area-inset-bottom));perspective:1400px}
+.sheet-p{position:absolute;inset:0;transform-origin:50% 0;background:var(--pc);border-radius:2px 2px 0 0;
+  box-shadow:0 1px 0 rgba(60,35,10,.25),0 3px 6px -3px rgba(60,35,10,.4)}
+.sheet-p::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:10px;background:linear-gradient(transparent,rgba(0,0,0,.035));pointer-events:none}
+.sheet-p .scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:46px 18px 28px;scrollbar-width:none;overscroll-behavior:contain}
+.sheet-p .scroll::-webkit-scrollbar{display:none}
+.sheet-p.flip{animation:flipUp .52s cubic-bezier(.5,0,.75,.2) forwards;backface-visibility:hidden}
+@keyframes flipUp{0%{transform:rotateX(0)}100%{transform:rotateX(-104deg) translateY(-18px)}}
+.tabrow{position:absolute;z-index:6;left:14px;right:14px;bottom:calc(28px + env(safe-area-inset-bottom));height:48px;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.ptab{position:relative;height:48px;background:var(--pc);border-radius:0 0 8px 8px;display:flex;align-items:center;justify-content:center;gap:6px;
+  font:700 16px/1 var(--mincho);letter-spacing:.2em;color:var(--ink-2);filter:brightness(.86) saturate(.9);transform:translateY(-6px);transition:transform .3s var(--spring),filter .2s;
+  box-shadow:0 3px 4px -3px rgba(60,35,10,.5)}
+.ptab[aria-selected=true]{filter:none;transform:none;color:var(--ink)}
+.ptab:active{transform:translateY(-3px)}
+.ptab .cnt{min-width:20px;height:20px;padding:0 5px;border-radius:10px;border:1.5px solid var(--shu);color:var(--shu);font:700 12px/17px var(--mincho);letter-spacing:0;text-align:center}
+.home-ind{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(40,22,8,.55);z-index:35;pointer-events:none}
+
+/* printed header on each paper */
+.phead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:10px;margin-bottom:6px;background:radial-gradient(circle,var(--ink-3) 1px,transparent 1.4px) 0 100%/7px 3px repeat-x}
+.phead h2{font:700 24px/1.1 var(--mincho);letter-spacing:.14em}
+.phead .filt{display:flex;gap:2px}
+.fbtn{position:relative;height:44px;padding:0 10px;font:600 14px/1 var(--mincho);color:var(--ink-2);letter-spacing:.06em}
+.fbtn svg{position:absolute;left:-2px;top:6px;width:calc(100% + 4px);height:32px;overflow:visible;pointer-events:none}
+.fbtn svg path{fill:none;stroke:var(--shu);stroke-width:1.8;stroke-linecap:round;stroke-dasharray:400;stroke-dashoffset:400;transition:stroke-dashoffset .5s var(--out)}
+.fbtn[aria-pressed=true]{color:var(--ink)}
+.fbtn[aria-pressed=true] svg path{stroke-dashoffset:0}
+
+/* notices */
+.notice{padding:14px 0 16px;background:radial-gradient(circle,#b9b2a5 1px,transparent 1.3px) 0 100%/7px 3px repeat-x}
+.notice:last-child{background:none}
+.nhead{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;min-height:44px;flex-wrap:wrap}
+.nhead h3{font:700 18px/1.3 var(--mincho);letter-spacing:.04em;flex:1 1 60%}
+.nhead .from{font:500 13px/1.3 var(--mincho);color:var(--ink-3)}
+.notice p{margin-top:2px;font:400 14px/1.7 var(--mincho);color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.circ{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.hb{position:relative;display:flex;flex-direction:column;align-items:center}
+.hb small{font:600 12px/1 var(--mincho);color:var(--ink-3);margin-bottom:4px;letter-spacing:.04em}
+.hb .box{position:relative;width:100%;aspect-ratio:1/1.08;max-width:46px;border:1px solid #9b9385;display:grid;place-items:center}
+.hb .box svg.seal{width:88%;height:88%}
+.hb.me .box{border:1.5px dashed var(--shu)}
+.hb.me small{color:var(--shu)}
+button.hb{min-height:44px}
+button.hb:active .box{background:rgba(200,50,31,.06)}
+.hb.me .hint{position:absolute;inset:0;display:grid;place-items:center;font:600 12px/1.2 var(--mincho);color:var(--shu);text-align:center}
+.hb .next{position:absolute;right:-5px;top:50%;width:6px;height:10px;margin-top:-2px;color:#9b9385}
+.nfoot{display:flex;justify-content:space-between;margin-top:8px;font:500 13px/1.3 var(--mincho);color:var(--ink-3)}
+.nfoot .done{color:var(--shu)}
+.post{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;margin-top:12px;border:1.5px dashed #a79f90;font:700 16px/1 var(--mincho);letter-spacing:.2em;color:var(--ink-2);transition:background-color .15s,color .15s}
+.post:active{background:rgba(38,34,29,.05);color:var(--ink)}
+.post svg{width:20px;height:20px}
+
+/* hanko press */
+.presser{position:absolute;z-index:40;width:70px;height:120px;pointer-events:none;visibility:hidden}
+.presser.go{visibility:visible;animation:press .62s var(--out) forwards}
+@keyframes press{0%{transform:translateY(-70px) rotate(-8deg)}38%{transform:translateY(0) rotate(0) scaleY(1)}48%{transform:translateY(4px) scaleY(.96)}62%{transform:translateY(0) scaleY(1)}100%{transform:translateY(-90px) rotate(6deg)}}
+.seal.fresh{animation:inkIn .5s ease-out}
+@keyframes inkIn{0%{transform:scale(1.12)}100%{transform:none}}
+
+/* exchange ledger */
+.ledger{margin-top:4px}
+.lhead{display:grid;grid-template-columns:44px 1fr 74px;gap:10px;padding:6px 0;font:600 13px/1 var(--mincho);color:var(--ink-3);letter-spacing:.1em;border-bottom:1.5px solid rgba(38,34,29,.55)}
+.lhead span:last-child{text-align:right}
+.lrow{position:relative;overflow:hidden}
+.lrow .del{position:absolute;inset:0 0 0 auto;width:96px;display:flex;align-items:center;justify-content:center;background:var(--shu);color:#fff6ee;font:700 14px/1 var(--mincho);letter-spacing:.2em;visibility:hidden}
+.lrow.sw .del{visibility:visible}
+.item{position:relative;display:grid;grid-template-columns:44px 1fr 74px;gap:10px;align-items:center;width:100%;min-height:64px;padding:8px 0;text-align:left;background:var(--canary);touch-action:pan-y;
+  background-image:linear-gradient(rgba(38,34,29,.28),rgba(38,34,29,.28));background-size:100% 1px;background-repeat:no-repeat;background-position:0 100%}
+.item:active{background-color:#ecdf9f}
+.item svg.sk{width:44px;height:44px}
+.item .nm{font:400 18px/1.25 var(--hand);color:#1d2a4a;min-width:0}
+.item .nm small{display:block;margin-top:3px;font:500 13px/1.2 var(--mincho);color:var(--ink-3)}
+.item .md{text-align:right;font:400 17px/1.2 var(--hand);color:#1d2a4a}
+.item .md small{display:block;margin-top:3px;font:600 12px/1 var(--mincho);color:var(--ink-3)}
+.item.done .nm b,.item.done .md b{position:relative;color:#7b7f8c}
+.item.done .nm b::after,.item.done .md b::after{content:"";position:absolute;left:-2px;right:-2px;top:52%;height:2px;border-radius:1px;background:var(--shu);transform:rotate(-2deg)}
+.item .res{position:absolute;right:78px;top:50%;width:40px;height:40px;margin-top:-20px;pointer-events:none}
+
+/* map */
+.mapwrap{position:relative;margin:6px -18px 0;height:calc(100% - 62px);min-height:300px;overflow:hidden;touch-action:none;cursor:grab}
+.mapwrap svg.map{position:absolute;left:0;top:0;width:520px;height:640px;will-change:transform}
+.map text{font-family:var(--hand);fill:#3a3a52}
+.map .road{fill:none;stroke:#4a4a5e;stroke-width:1.6;stroke-linecap:round}
+.pin{cursor:pointer}
+.pin circle.hit{fill:transparent}
+.callout{position:absolute;left:12px;right:12px;bottom:12px;padding:12px 14px;background:var(--paper);box-shadow:0 2px 0 rgba(60,70,40,.25);display:flex;align-items:center;gap:12px;transform:translateY(calc(100% + 20px));transition:transform .38s var(--spring)}
+.callout.on{transform:none}
+.callout .t{flex:1;min-width:0}
+.callout b{display:block;font:700 16px/1.3 var(--mincho)}
+.callout span{display:block;font:400 13px/1.4 var(--mincho);color:var(--ink-3);margin-top:2px}
+.callout button{height:44px;padding:0 12px;font:700 14px/1 var(--mincho);color:var(--shu);letter-spacing:.1em;white-space:nowrap}
+.maphint{position:absolute;left:0;right:0;top:8px;text-align:center;font:400 13px/1 var(--hand);color:#55604a;pointer-events:none}
+
+/* household */
+.me-top{display:grid;grid-template-columns:120px minmax(0,1fr);gap:14px;align-items:center;margin-top:10px}
+.me-top>div{min-width:0}
+.field input,.field textarea{width:100%;min-width:0}
+.me-top .big{width:120px;height:120px}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field label{font:600 13px/1 var(--mincho);color:var(--ink-3);letter-spacing:.1em}
+.field input,.field textarea,.field select{height:44px;border:0;border-bottom:1.5px solid rgba(38,34,29,.5);background:transparent;font:400 20px/1 var(--hand);color:#1d2a4a;border-radius:0;outline-offset:0}
+.field textarea{height:66px;resize:none;padding-top:8px;line-height:1.4;font-size:17px}
+.seg{display:flex;gap:4px}
+.seg button{flex:1;height:44px;border:1.5px solid rgba(38,34,29,.35);font:600 15px/1 var(--mincho);color:var(--ink-2);transition:background-color .15s,color .15s}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.practice{position:relative;margin-top:14px;height:170px;background:repeating-linear-gradient(0deg,transparent 0 27px,rgba(38,34,29,.14) 27px 28px);touch-action:manipulation;cursor:pointer;overflow:hidden}
+.practice .lbl{position:absolute;left:0;top:6px;font:400 14px/1 var(--hand);color:var(--ink-3);pointer-events:none}
+.practice svg.seal{position:absolute;width:62px;height:62px;pointer-events:none}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;border-top:1.5px solid rgba(38,34,29,.55);border-bottom:1px solid rgba(38,34,29,.3)}
+.stats div{padding:10px 0;text-align:center}
+.stats b{display:block;font:700 26px/1 var(--mincho)}
+.stats span{display:block;margin-top:5px;font:500 13px/1 var(--mincho);color:var(--ink-3)}
+.row2{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:10px}
+.textact{height:44px;font:700 15px/1 var(--mincho);letter-spacing:.12em;color:var(--shu);padding:0 4px}
+.textact.dim{color:var(--ink-3)}
+.textact:active{opacity:.6}
+
+/* bottom sheet: a memo slip with perforated top */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(40,22,8,.42);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:10px;right:10px;bottom:0;z-index:51;max-height:88%;display:flex;flex-direction:column;background:var(--paper);
+  padding:26px 20px calc(22px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .5s var(--spring);touch-action:none;
+  -webkit-mask:radial-gradient(circle at 7px 0,transparent 4px,#000 4.5px) 0 0/14px 100% repeat-x;mask:radial-gradient(circle at 7px 0,transparent 4px,#000 4.5px) 0 0/14px 100% repeat-x}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{flex:none;width:44px;height:4px;border-radius:2px;background:#c9c2b4;margin:-10px auto 12px}
+.sbody{overflow-y:auto;min-height:0;margin:0 -20px;padding:0 20px;scrollbar-width:none}
+.sheet h4{font:700 22px/1.3 var(--mincho);letter-spacing:.06em}
+.sheet .meta{margin-top:4px;font:500 13px/1.4 var(--mincho);color:var(--ink-3)}
+.sheet .full{margin-top:12px;font:400 16px/1.9 var(--mincho);color:var(--ink)}
+.sheet .circ{margin-top:16px}
+.bigact{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:54px;margin-top:18px;background:var(--shu);color:#fff7ef;font:700 17px/1 var(--mincho);letter-spacing:.24em;transition:background-color .15s}
+.bigact:active{background:var(--shu-d)}
+.bigact svg{width:22px;height:22px}
+.sk-lg{width:96px;height:96px;margin:4px auto 0}
+
+.toast{position:absolute;left:0;right:0;margin:0 auto;width:max-content;top:calc(52px + env(safe-area-inset-top));z-index:60;display:flex;align-items:center;gap:6px;max-width:calc(100% - 32px);padding:0 6px 0 16px;min-height:46px;background:var(--ink);color:var(--paper);font:600 14px/1.3 var(--mincho);
+  transform:translateY(-140%);visibility:hidden;transition:transform .4s var(--spring),visibility 0s .4s}
+.toast.on{transform:none;visibility:visible;transition:transform .4s var(--spring)}
+.toast button{height:44px;padding:0 10px;color:#f19b86;font-weight:700;letter-spacing:.1em}
+
+@media (prefers-reduced-motion:reduce){
+  .sheet-p.flip{animation:none}
+  .presser.go{animation:none;visibility:hidden}
+  .seal.fresh{animation:none}
+  .sheet,.toast,.callout,.ptab{transition-duration:.01s}
+  .fbtn svg path{transition:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="ink" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="2" seed="3" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.75" result="m"/>
+      <feComposite in="SourceGraphic" in2="m" operator="in" result="s"/>
+      <feTurbulence type="fractalNoise" baseFrequency=".06" numOctaves="1" seed="9" result="w"/>
+      <feDisplacementMap in="s" in2="w" scale="2.6"/>
+    </filter>
+    <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="5"/>
+      <feDisplacementMap in="SourceGraphic" scale="3.2"/>
+    </filter>
+  </defs>
+</svg>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="bgw"><feTurbulence type="fractalNoise" baseFrequency=".003 .08" numOctaves="3" seed="2"/><feColorMatrix values="0 0 0 0 .16  0 0 0 0 .09  0 0 0 0 .04  0 0 0 1.4 -.4"/></filter>
+        <radialGradient id="pad" cx=".5" cy=".45" r=".5"><stop offset="0" stop-color="#d8412a"/><stop offset=".8" stop-color="#b52d1b"/><stop offset="1" stop-color="#8f2112"/></radialGradient>
+        <linearGradient id="tin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e3d9c8"/><stop offset=".5" stop-color="#9c9180"/><stop offset="1" stop-color="#d4c9b6"/></linearGradient>
+        <linearGradient id="stick" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9d2a8"/><stop offset=".5" stop-color="#c79c62"/><stop offset="1" stop-color="#8a6236"/></linearGradient>
+      </defs>
+      <rect width="1600" height="1000" fill="#553621"/>
+      <rect width="1600" height="1000" filter="url(#bgw)"/>
+      <g opacity=".5" stroke="#2c1a0c" stroke-width="2"><line x1="0" y1="250" x2="1600" y2="250"/><line x1="0" y1="520" x2="1600" y2="520"/><line x1="0" y1="790" x2="1600" y2="790"/></g>
+      <!-- ink pad tin -->
+      <g transform="translate(1330 290)">
+        <ellipse cx="0" cy="14" rx="128" ry="36" fill="#2c1a0c" opacity=".45"/>
+        <ellipse cx="0" cy="0" rx="124" ry="120" fill="url(#tin)"/>
+        <ellipse cx="0" cy="0" rx="104" ry="100" fill="url(#pad)"/>
+        <g fill="#9e2414" opacity=".6"><circle cx="-30" cy="-20" r="3"/><circle cx="24" cy="30" r="2"/><circle cx="40" cy="-38" r="2.5"/><circle cx="-50" cy="40" r="2"/></g>
+      </g>
+      <!-- hanko stick lying down -->
+      <g transform="translate(1180 690) rotate(-24)">
+        <rect x="0" y="0" width="300" height="46" rx="22" fill="url(#stick)"/>
+        <rect x="286" y="2" width="16" height="42" rx="6" fill="#b52d1b"/>
+        <rect x="0" y="0" width="300" height="12" rx="6" fill="#fff3dd" opacity=".35"/>
+      </g>
+      <!-- impressions on a slip of paper -->
+      <g transform="translate(110 690) rotate(-6)">
+        <rect width="300" height="200" fill="#f1efe6"/>
+        <g font-family="Kaiti TC,serif" fill="#3a3a52" font-size="22"><text x="24" y="44">收件人　四樓王家</text></g>
+        <g transform="translate(200 120)" filter="url(#ink)"><circle r="40" fill="none" stroke="#c8321f" stroke-width="5"/><text text-anchor="middle" dominant-baseline="central" font-family="Songti TC,serif" font-weight="700" font-size="46" fill="#c8321f">王</text></g>
+      </g>
+    </svg>
+  </div>
+  <div class="caption">
+    <h1>回覽板</h1>
+    <p>一塊木夾板在鄰居之間傳遞。讀完公告，蓋上自己的印，交給下一戶。</p>
+    <svg class="hanko" viewBox="-50 -50 100 100"><g filter="url(#ink)"><rect x="-42" y="-42" width="84" height="84" rx="6" fill="none" stroke="#e0513a" stroke-width="5"/><text x="0" y="-18" text-anchor="middle" dominant-baseline="central" font-family="Songti TC,serif" font-weight="700" font-size="34" fill="#e0513a">回</text><text x="0" y="18" text-anchor="middle" dominant-baseline="central" font-family="Songti TC,serif" font-weight="700" font-size="34" fill="#e0513a">覽</text></g></svg>
+  </div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="#2a1a0c"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="#2a1a0c"><path d="M8 12 5 8.6a4.6 4.6 0 0 1 6 0Z"/><path d="M2.6 6.2a7.9 7.9 0 0 1 10.8 0l-1.5 1.7a5.6 5.6 0 0 0-7.8 0Z"/><path d="M0 3.4a11.6 11.6 0 0 1 16 0l-1.5 1.7a9.3 9.3 0 0 0-13 0Z"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="#2a1a0c" opacity=".55"/><rect x="2" y="2" width="15" height="8" rx="1.5" fill="#2a1a0c"/><rect x="24.5" y="4" width="2" height="4" rx="1" fill="#2a1a0c" opacity=".55"/></svg>
+        </span>
+      </div>
+      <div class="burn" aria-hidden="true"><b>回覽板</b><span>大稻埕 永樂里<br>第七鄰</span></div>
+      <svg class="clip" viewBox="0 0 176 58" aria-hidden="true">
+        <defs><linearGradient id="steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e5e7e2"/><stop offset=".45" stop-color="#a6aaa4"/><stop offset=".55" stop-color="#8d918b"/><stop offset="1" stop-color="#c9ccc6"/></linearGradient>
+        <linearGradient id="steel2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8d918b"/><stop offset=".5" stop-color="#e3e5df"/><stop offset="1" stop-color="#8d918b"/></linearGradient></defs>
+        <path d="M6 44 C6 30 16 22 30 22 H146 C160 22 170 30 170 44 V50 H6Z" fill="#6d6a61" opacity=".35" transform="translate(0 4)"/>
+        <path d="M6 42 C6 28 16 20 30 20 H146 C160 20 170 28 170 42 V48 H6Z" fill="url(#steel)"/>
+        <path d="M44 20 C44 6 56 2 88 2 C120 2 132 6 132 20" fill="none" stroke="url(#steel2)" stroke-width="7" stroke-linecap="round"/>
+        <circle cx="30" cy="36" r="4" fill="#6f736d"/><circle cx="146" cy="36" r="4" fill="#6f736d"/>
+        <circle cx="30" cy="35" r="1.6" fill="#e9ebe6"/><circle cx="146" cy="35" r="1.6" fill="#e9ebe6"/>
+        <rect x="70" y="30" width="36" height="8" rx="4" fill="#7b7f79"/>
+        <path d="M10 26 H166" stroke="#fff" stroke-opacity=".6" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+
+      <div class="stack" id="stack">
+        <section class="sheet-p" id="pg-notice" style="--pc:var(--paper)" aria-label="公告">
+          <div class="scroll" id="noticeScroll">
+            <div class="phead"><h2>公告</h2><div class="filt" id="nFilt"></div></div>
+            <div id="notices"></div>
+            <button class="post" id="postBtn"><svg viewBox="0 0 20 20"><path d="M10 3.5v13M3.5 10h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16.5" cy="3.5" r="2" fill="#c8321f"/></svg>張貼新公告</button>
+          </div>
+        </section>
+        <section class="sheet-p" id="pg-swap" style="--pc:var(--canary)" aria-label="二手交換">
+          <div class="scroll">
+            <div class="phead"><h2>交換</h2><div class="filt" id="iFilt"></div></div>
+            <div class="ledger"><div class="lhead"><span></span><span>品名・樓層</span><span>方式</span></div><div id="items"></div></div>
+            <button class="post" id="addItem"><svg viewBox="0 0 20 20"><path d="M10 3.5v13M3.5 10h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16.5" cy="3.5" r="2" fill="#c8321f"/></svg>登記一件東西</button>
+          </div>
+        </section>
+        <section class="sheet-p" id="pg-map" style="--pc:var(--sage)" aria-label="手繪地圖">
+          <div class="scroll" style="overflow:hidden;display:flex;flex-direction:column">
+            <div class="phead"><h2>地圖</h2><span style="font:500 13px/1 var(--mincho);color:var(--ink-3)">拖曳移動・點紅印</span></div>
+            <div class="mapwrap" id="mapwrap"><div class="maphint" id="maphint"></div></div>
+          </div>
+        </section>
+        <section class="sheet-p" id="pg-me" style="--pc:var(--rose)" aria-label="本戶">
+          <div class="scroll" id="meScroll"></div>
+        </section>
+      </div>
+      <div class="tabrow" id="tabs" role="tablist">
+        <button class="ptab" role="tab" data-p="notice" style="--pc:var(--paper)" aria-selected="true">公告<span class="cnt" id="cntN">0</span></button>
+        <button class="ptab" role="tab" data-p="swap" style="--pc:var(--canary)" aria-selected="false">交換</button>
+        <button class="ptab" role="tab" data-p="map" style="--pc:var(--sage)" aria-selected="false">地圖</button>
+        <button class="ptab" role="tab" data-p="me" style="--pc:var(--rose)" aria-selected="false">本戶</button>
+      </div>
+      <svg class="presser" id="presser" viewBox="0 0 70 120" aria-hidden="true">
+        <defs><linearGradient id="pw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a6236"/><stop offset=".4" stop-color="#e3c592"/><stop offset="1" stop-color="#9c7040"/></linearGradient></defs>
+        <rect x="17" y="0" width="36" height="104" rx="14" fill="url(#pw)"/>
+        <rect x="15" y="98" width="40" height="14" rx="3" fill="#b52d1b"/>
+        <rect x="26" y="10" width="6" height="80" rx="3" fill="#fff8e8" opacity=".35"/>
+      </svg>
+      <div class="home-ind" aria-hidden="true"></div>
+      <div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="toastUndo">復原</button></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT"><div class="grab"></div><div class="sbody" id="sheetBody"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+function $(id){ return document.getElementById(id); }
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8) }catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- data ----------
+var FLOORS = ['1F','2F','3F','4F','5F','6F','7F'];
+var HOUSE = {'1F':{n:'陳',sh:'round'},'2F':{n:'林',sh:'square'},'3F':{n:'黃',sh:'round'},'4F':{n:'王',sh:'round'},'5F':{n:'張',sh:'round'},'6F':{n:'李',sh:'square'},'7F':{n:'吳',sh:'round'}};
+var ME = '4F';
+function st(fl){ var o = {}; fl.forEach(function(f, i){ o[f] = {r:((i * 37) % 17) - 8}; }); return o; }
+var SEED = {
+  me:{n:'王', sh:'round', ink:'#c8321f'},
+  nf:'all', if:'all', page:'notice', practice:[],
+  notices:[
+    {id:'n1', d:'09/23', from:'里辦公處', t:'登革熱巡檢入戶', b:'9/26（六）上午 9 點起，環保局人員入戶檢查積水容器。家中若無人，請先把陽台花盆底盤倒乾。', s:st(['1F','2F','3F']), pin:'office'},
+    {id:'n2', d:'09/22', from:'管委會', t:'水塔清洗停水', b:'9/30（三）09:00 至 15:00 全棟停水，請預先儲水。電梯照常運轉，一樓大門暫時改用側門。', s:st(['1F','2F']), pin:'bldg'},
+    {id:'n3', d:'09/20', from:'清潔隊', t:'回收車時間調整', b:'即日起每週二、五改為晚上 7:30，停靠迪化街一段與民生西路口，請勿提早放置。', s:st(['1F','2F','3F','4F','5F']), pin:'truck'},
+    {id:'n4', d:'09/18', from:'鄰長 黃太太', t:'中秋烤肉公約', b:'10/4 晚上 10 點前結束，騎樓禁止烤肉，垃圾分類後自行帶走。碼頭邊有煙火可以看。', s:st(FLOORS), pin:'pier'},
+    {id:'n5', d:'09/15', from:'里辦公處', t:'霞海城隍廟導覽', b:'10/12（日）下午 2 點廟前集合，里民免費參加，報名請找 1F 陳媽媽。', s:st(['1F','2F','3F','4F']), pin:'temple'},
+    {id:'n6', d:'09/12', from:'永樂市場', t:'市場二樓整修', b:'9/15 至 10/31 二樓布市部分攤位移到一樓東側，營業時間不變。', s:st(FLOORS), pin:'market'}
+  ],
+  items:[
+    {id:'i1', n:'大同電鍋 十人份', m:'贈送', p:0, f:'2F', note:'用了三年，外鍋有點刮痕，功能正常。', k:'cooker'},
+    {id:'i2', n:'嬰兒推車', m:'售價', p:800, f:'6F', note:'可單手折疊，附雨罩。', k:'stroller'},
+    {id:'i3', n:'台灣散步書 十二本', m:'交換', p:0, f:'3F', note:'想換童書或食譜。', k:'books'},
+    {id:'i4', n:'龜背芋 大盆', m:'贈送', p:0, f:'5F', note:'長太大了，請自己搬。', k:'plant'},
+    {id:'i5', n:'淑女腳踏車', m:'售價', p:1200, f:'1F', note:'剛換過內胎，附大鎖。', k:'bike'},
+    {id:'i6', n:'十六吋電風扇', m:'贈送', p:0, f:'4F', note:'換了循環扇，這台還很好。', k:'fan'},
+    {id:'i7', n:'烤肉架與木炭', m:'贈送', p:0, f:'7F', note:'中秋用完就送。', k:'grill', done:true}
+  ]
+};
+var KEY = 'app046:state';
+var S = JSON.parse(JSON.stringify(SEED));
+try{ var sv = JSON.parse(localStorage.getItem(KEY) || 'null'); if (sv && sv.notices) S = sv; }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+// ---------- audio ----------
+var ac = null;
+function audio(){ if (!ac) { try{ ac = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+document.addEventListener('pointerdown', audio, true);
+function thump(){
+  if (!ac) return; var t = ac.currentTime;
+  var o = ac.createOscillator(), g = ac.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(52, t + .12);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.5, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + .2);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + .22);
+  var b = ac.createBuffer(1, ac.sampleRate * .05, ac.sampleRate), d = b.getChannelData(0);
+  for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g2 = ac.createGain();
+  s.buffer = b; f.type = 'lowpass'; f.frequency.value = 900; g2.gain.value = .25;
+  s.connect(f); f.connect(g2); g2.connect(ac.destination); s.start(t);
+}
+function swish(){
+  if (!ac) return; var t = ac.currentTime, len = .28;
+  var b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (var i = 0; i < d.length; i++) { var x = i / d.length; d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * x) * .7; }
+  var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  s.buffer = b; f.type = 'bandpass'; f.Q.value = .8; f.frequency.setValueAtTime(900, t); f.frequency.linearRampToValueAtTime(3200, t + len);
+  g.gain.value = .16; s.connect(f); f.connect(g); g.connect(ac.destination); s.start(t);
+}
+
+// ---------- seal ----------
+function sealSVG(name, shape, rot, ink, cls){
+  ink = ink || '#c8321f'; name = String(name || '印').slice(0, 2);
+  var txt;
+  if (name.length === 1) txt = '<text x="0" y="1" text-anchor="middle" dominant-baseline="central" font-family="Songti TC,YuMincho,serif" font-weight="700" font-size="' + (shape === 'square' ? 50 : 54) + '" fill="' + ink + '">' + esc(name) + '</text>';
+  else txt = '<text x="0" y="-19" text-anchor="middle" dominant-baseline="central" font-family="Songti TC,YuMincho,serif" font-weight="700" font-size="34" fill="' + ink + '">' + esc(name[0]) + '</text><text x="0" y="19" text-anchor="middle" dominant-baseline="central" font-family="Songti TC,YuMincho,serif" font-weight="700" font-size="34" fill="' + ink + '">' + esc(name[1]) + '</text>';
+  var frame = shape === 'square' ? '<rect x="-42" y="-42" width="84" height="84" rx="7" fill="none" stroke="' + ink + '" stroke-width="5.5"/>' : '<circle r="44" fill="none" stroke="' + ink + '" stroke-width="5"/>';
+  return '<svg class="seal ' + (cls || '') + '" viewBox="-50 -50 100 100" aria-hidden="true"><g transform="rotate(' + (rot || 0) + ')" filter="url(#ink)">' + frame + txt + '</g></svg>';
+}
+function houseSeal(fl, rot, cls){ if (fl === ME) return sealSVG(S.me.n, S.me.sh, rot, S.me.ink, cls); var h = HOUSE[fl]; return sealSVG(h.n, h.sh, rot, '#c8321f', cls); }
+
+// ---------- icons (brush ink, round caps, one vermilion dot) ----------
+var SK = {
+  cooker:'<path d="M9 17h26v12a6 6 0 0 1-6 6H15a6 6 0 0 1-6-6Z"/><path d="M7 17h30M14 13c0-3 16-3 16 0M22 9v4M9 24H5M35 24h4"/><circle cx="22" cy="27" r="1.8" class="dot"/>',
+  stroller:'<path d="M8 12h18a10 10 0 0 1 10 10v2H10Z"/><path d="M8 12 4 8M12 24l-2 8M32 24l2 8"/><circle cx="12" cy="34" r="3"/><circle cx="32" cy="34" r="3"/><circle cx="26" cy="18" r="1.8" class="dot"/>',
+  books:'<path d="M7 34V10h7v24M14 34V8h7v26M22 34l4-25 7 1-4 25Z"/><path d="M5 34h32"/><circle cx="10.5" cy="14" r="1.6" class="dot"/>',
+  plant:'<path d="M14 26h16l-2 10H16Z"/><path d="M22 26V14M22 18c-6-1-10-5-10-10 6 0 10 4 10 10M22 16c5-2 8-6 8-10-5 0-8 4-8 10"/><circle cx="22" cy="31" r="1.6" class="dot"/>',
+  bike:'<circle cx="11" cy="28" r="7"/><circle cx="33" cy="28" r="7"/><path d="M11 28 18 16h10l5 12M18 16l4 12h-11M26 11h5"/><circle cx="22" cy="28" r="1.6" class="dot"/>',
+  fan:'<circle cx="22" cy="17" r="11"/><path d="M22 17c-5-6 1-10 4-6M22 17c7 1 6 8 1 7M22 17c-3 6-9 3-6-1M22 28v7M14 36h16"/><circle cx="22" cy="17" r="1.8" class="dot"/>',
+  grill:'<path d="M7 16h30a15 12 0 0 1-30 0Z"/><path d="M11 12h22M16 26l-4 10M28 26l4 10M22 28v8"/><circle cx="31" cy="20" r="1.6" class="dot"/>',
+  box:'<path d="M8 14 22 8l14 6v16l-14 6-14-6Z"/><path d="M8 14l14 6 14-6M22 20v16"/><circle cx="22" cy="14" r="1.6" class="dot"/>'
+};
+function sketch(k, cls){ return '<svg class="' + (cls || 'sk') + '" viewBox="0 0 44 44" aria-hidden="true"><g fill="none" stroke="#1d2a4a" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" filter="url(#rough)">' + (SK[k] || SK.box).replace('class="dot"', 'fill="#c8321f" stroke="none"') + '</g></svg>'; }
+var CIRCLE_PATH = '<svg viewBox="0 0 100 32" preserveAspectRatio="none"><path d="M60 3C30 1 4 6 4 16s24 14 46 14 46-3 46-14S72 2 42 4"/></svg>';
+
+// ---------- toast ----------
+var undoFn = null, toastT = 0;
+function toast(msg, undo){
+  $('toastMsg').textContent = msg; $('toastUndo').style.display = undo ? '' : 'none'; undoFn = undo || null;
+  $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, 3400);
+}
+$('toastUndo').addEventListener('click', function(){ haptic(8); if (undoFn) undoFn(); undoFn = null; $('toast').classList.remove('on'); });
+
+// ---------- filters ----------
+function filterBar(host, opts, cur, cb){
+  host.innerHTML = opts.map(function(o){ return '<button class="fbtn" data-v="' + o[0] + '" aria-pressed="' + (o[0] === cur) + '">' + CIRCLE_PATH + o[1] + '</button>'; }).join('');
+  host.onclick = function(e){ var b = e.target.closest('.fbtn'); if (!b) return; haptic(5); host.querySelectorAll('.fbtn').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); cb(b.dataset.v); };
+}
+
+// ---------- notices ----------
+function pending(){ return S.notices.filter(function(n){ return !n.s[ME]; }).length; }
+function circHTML(n, big){
+  return '<div class="circ">' + FLOORS.map(function(f, i){
+    var has = n.s[f], nxt = i < 6 ? '<svg class="next" viewBox="0 0 6 10"><path d="M1 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' : '';
+    if (f === ME) {
+      return '<button class="hb me" data-stamp="' + n.id + '" aria-label="' + (has ? '已蓋章' : '在這裡蓋章') + '"><small>本戶</small><span class="box">' + (has ? houseSeal(f, has.r) : '<span class="hint">蓋章</span>') + '</span>' + nxt + '</button>';
+    }
+    return '<div class="hb"><small>' + f + '</small><span class="box">' + (has ? houseSeal(f, has.r) : '') + '</span>' + nxt + '</div>';
+  }).join('') + '</div>';
+}
+function renderNotices(){
+  var list = S.notices.filter(function(n){ return S.nf === 'all' || !n.s[ME]; });
+  $('notices').innerHTML = list.length ? list.map(function(n){
+    var cnt = FLOORS.filter(function(f){ return n.s[f]; }).length;
+    var nextF = FLOORS.filter(function(f){ return !n.s[f]; })[0];
+    return '<article class="notice" data-id="' + n.id + '"><button class="nhead" data-open="' + n.id + '"><h3>' + esc(n.t) + '</h3><span class="from">' + esc(n.from) + '・' + n.d + '</span></button><p>' + esc(n.b) + '</p>' +
+      circHTML(n) + '<div class="nfoot"><span>已閱 ' + cnt + ' / 7 戶</span>' + (cnt === 7 ? '<span class="done">傳閱完畢，交回鄰長</span>' : '<span>下一戶 ' + nextF + ' ' + HOUSE[nextF].n + '家</span>') + '</div></article>';
+  }).join('') : '<p style="padding:40px 0;text-align:center;font:400 20px/1.6 var(--hand);color:var(--ink-3)">都蓋好了，今天可以把板子傳下去。</p>';
+  var c = pending(); $('cntN').textContent = c; $('cntN').style.visibility = c ? 'visible' : 'hidden';
+}
+filterBar($('nFilt'), [['all','全部'],['todo','未蓋章']], S.nf, function(v){ S.nf = v; save(); renderNotices(); });
+
+function stamp(id, btn){
+  var n = S.notices.find(function(x){ return x.id === id; }); if (!n) return;
+  if (n.s[ME]) { haptic(4); toast('這份已經蓋過了'); return; }
+  var rot = Math.round((Math.random() - .5) * 18);
+  // hanko press over the box
+  var box = btn.querySelector('.box'), scr = $('screen').getBoundingClientRect(), b = box.getBoundingClientRect();
+  var pr = $('presser'); var scale = b.width / 40;
+  pr.style.left = (b.left - scr.left + b.width / 2 - 35) + 'px';
+  pr.style.top = (b.top - scr.top + b.height / 2 - 112) + 'px';
+  pr.classList.remove('go'); void pr.getBoundingClientRect(); if (!reduce) pr.classList.add('go');
+  setTimeout(function(){
+    n.s[ME] = {r:rot, at:Date.now()}; save();
+    thump(); haptic([4, 18, 22]);
+    box.innerHTML = houseSeal(ME, rot, 'fresh');
+    btn.setAttribute('aria-label', '已蓋章');
+    var c = pending(); $('cntN').textContent = c; $('cntN').style.visibility = c ? 'visible' : 'hidden';
+    toast('蓋好了，傳給下一戶', function(){ delete n.s[ME]; save(); renderNotices(); renderMe(); });
+    setTimeout(function(){ renderNotices(); renderMe(); }, 700);
+  }, reduce ? 0 : 240);
+}
+$('pg-notice').addEventListener('click', function(e){
+  var s = e.target.closest('[data-stamp]'); if (s) { stamp(s.dataset.stamp, s); return; }
+  var o = e.target.closest('[data-open]'); if (o) { haptic(5); openNotice(o.dataset.open); }
+});
+function openNotice(id){
+  var n = S.notices.find(function(x){ return x.id === id; }); if (!n) return;
+  var mine = n.mine;
+  openSheet('<h4 id="sheetT">' + esc(n.t) + '</h4><p class="meta">' + esc(n.from) + '・' + n.d + ' 張貼</p><p class="full">' + esc(n.b) + '</p>' + circHTML(n) +
+    (n.pin ? '<button class="bigact" data-goto="' + n.pin + '"><svg viewBox="0 0 22 22"><path d="M11 20s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="11" cy="9" r="2.4" fill="currentColor"/></svg>在地圖上看</button>' : '') +
+    (mine ? '<div class="row2"><span></span><button class="textact" data-unpost="' + n.id + '">撤下這張公告</button></div>' : ''));
+}
+
+// ---------- items ----------
+function renderItems(){
+  var list = S.items.filter(function(it){ return S.if === 'all' || (S.if === 'mine' ? it.f === ME : it.m === S.if); });
+  $('items').innerHTML = list.map(function(it){
+    var price = it.m === '售價' ? 'NT$' + it.p.toLocaleString() : it.m;
+    return '<div class="lrow" data-id="' + it.id + '"><div class="del">撕掉</div><button class="item' + (it.done ? ' done' : '') + '" data-item="' + it.id + '">' + sketch(it.k) +
+      '<span class="nm"><b>' + esc(it.n) + '</b><small>' + it.f + ' ' + (it.f === ME ? S.me.n : HOUSE[it.f].n) + '家' + (it.done ? '・已送出' : it.want ? '・你預約了' : '') + '</small></span>' +
+      '<span class="md"><b>' + price + '</b><small>' + (it.m === '售價' ? '售價' : '') + '</small></span>' +
+      (it.want && !it.done ? sealSVG('予約', 'square', -8, '#c8321f', 'res').replace('class="seal res"', 'class="seal res" style="position:absolute;right:78px;top:50%;width:40px;height:40px;margin-top:-20px"') : '') + '</button></div>';
+  }).join('') || '<p style="padding:30px 0;text-align:center;font:400 19px/1.6 var(--hand);color:var(--ink-3)">這一欄還沒人寫。</p>';
+  bindSwipes();
+}
+filterBar($('iFilt'), [['all','全部'],['贈送','贈送'],['mine','我的']], S.if, function(v){ S.if = v; save(); renderItems(); });
+function bindSwipes(){
+  document.querySelectorAll('.lrow').forEach(function(row){
+    var btn = row.querySelector('.item'), sx = 0, sy = 0, dx = 0, mode = null, pid = null;
+    btn.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; dx = 0; mode = null; pid = e.pointerId; });
+    btn.addEventListener('pointermove', function(e){
+      if (pid !== e.pointerId) return;
+      var mx = e.clientX - sx, my = e.clientY - sy;
+      if (!mode) { if (Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) { mode = 'x'; row.classList.add('sw'); try{ btn.setPointerCapture(e.pointerId); }catch(er){} } else if (Math.abs(my) > 8) mode = 'y'; }
+      if (mode === 'x') { dx = Math.min(0, mx); if (dx < -96) dx = -96 + (dx + 96) / 4; btn.style.transform = 'translateX(' + dx + 'px)'; }
+    });
+    function end(){
+      if (pid === null) return; pid = null;
+      if (mode === 'x') {
+        if (dx < -80) { removeItem(row.dataset.id); return; }
+        btn.animate([{transform:'translateX(' + dx + 'px)'},{transform:'none'}], {duration:reduce ? 1 : 300, easing:'cubic-bezier(.34,1.3,.5,1)'});
+        btn.style.transform = ''; setTimeout(function(){ row.classList.remove('sw'); }, 300);
+      }
+    }
+    btn.addEventListener('pointerup', end); btn.addEventListener('pointercancel', end);
+    btn.addEventListener('click', function(e){ if (mode === 'x') { e.preventDefault(); return; } haptic(5); openItem(row.dataset.id); });
+  });
+}
+function removeItem(id){
+  var i = S.items.findIndex(function(x){ return x.id === id; }); if (i < 0) return;
+  var it = S.items.splice(i, 1)[0]; save(); haptic([6, 20, 6]); swish();
+  renderItems(); renderMe();
+  toast('撕掉了「' + it.n + '」', function(){ S.items.splice(i, 0, it); save(); renderItems(); renderMe(); });
+}
+function openItem(id){
+  var it = S.items.find(function(x){ return x.id === id; }); if (!it) return;
+  var mine = it.f === ME;
+  openSheet(sketch(it.k, 'sk-lg') + '<h4 id="sheetT" style="text-align:center;margin-top:6px">' + esc(it.n) + '</h4><p class="meta" style="text-align:center">' + it.f + ' ' + (mine ? S.me.n : HOUSE[it.f].n) + '家・' + (it.m === '售價' ? 'NT$' + it.p.toLocaleString() : it.m) + '</p>' +
+    '<p class="full" style="font-family:var(--hand);font-size:19px;color:#1d2a4a;text-align:center">' + esc(it.note || '') + '</p>' +
+    (it.done ? '<p class="meta" style="text-align:center;margin-top:14px">已經送出了</p>' :
+      mine ? '<button class="bigact" data-done="' + it.id + '">標記已送出</button>' :
+      '<button class="bigact" data-want="' + it.id + '">' + (it.want ? '取消預約' : '我想要，蓋章預約') + '</button>') +
+    '<div class="row2"><span></span><button class="textact dim" data-tear="' + it.id + '">撕掉這一行</button></div>');
+}
+function openAddItem(){
+  openSheet('<h4 id="sheetT">登記一件東西</h4><p class="meta">寫在交換單上，整棟都看得到</p>' +
+    '<div class="field" style="margin-top:14px"><label for="fN">品名</label><input id="fN" maxlength="16" placeholder="例如：兒童書桌" autocomplete="off"></div>' +
+    '<div class="field"><label>方式</label><div class="seg" id="fM"><button aria-pressed="true" data-v="贈送">贈送</button><button aria-pressed="false" data-v="交換">交換</button><button aria-pressed="false" data-v="售價">售價</button></div></div>' +
+    '<div class="field" id="fPw" style="display:none"><label for="fP">價格 NT$</label><input id="fP" inputmode="numeric" maxlength="6" placeholder="500"></div>' +
+    '<div class="field"><label for="fT">說明</label><textarea id="fT" maxlength="40" placeholder="狀況、自取時間"></textarea></div>' +
+    '<button class="bigact" id="fGo">寫上去</button>');
+  $('fM').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; haptic(4); this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); $('fPw').style.display = b.dataset.v === '售價' ? '' : 'none'; });
+  $('fGo').addEventListener('click', function(){
+    var n = $('fN').value.trim(); if (!n) { haptic([20, 40, 20]); $('fN').focus(); $('fN').placeholder = '請先寫品名'; return; }
+    var m = $('fM').querySelector('[aria-pressed=true]').dataset.v;
+    var k = /鍋|爐/.test(n) ? 'cooker' : /書/.test(n) ? 'books' : /車/.test(n) ? 'bike' : /扇/.test(n) ? 'fan' : /花|草|盆|樹/.test(n) ? 'plant' : 'box';
+    S.items.unshift({id:'i' + Date.now(), n:n, m:m, p:m === '售價' ? (parseInt($('fP').value, 10) || 0) : 0, f:ME, note:$('fT').value.trim(), k:k});
+    save(); closeSheet(); if (S.if !== 'all' && S.if !== 'mine') { S.if = 'all'; filterBar($('iFilt'), [['all','全部'],['贈送','贈送'],['mine','我的']], 'all', function(v){ S.if = v; save(); renderItems(); }); }
+    renderItems(); renderMe(); haptic([6, 30, 6]); toast('寫上交換單了');
+  });
+}
+$('addItem').addEventListener('click', function(){ haptic(6); openAddItem(); });
+
+function openPost(){
+  openSheet('<h4 id="sheetT">張貼新公告</h4><p class="meta">以 4F ' + esc(S.me.n) + '家名義，從你這戶開始傳閱</p>' +
+    '<div class="field" style="margin-top:14px"><label for="pT">標題</label><input id="pT" maxlength="14" placeholder="例如：樓梯間請勿堆放雜物" autocomplete="off"></div>' +
+    '<div class="field"><label for="pB">內容</label><textarea id="pB" maxlength="80" placeholder="時間、地點、要大家做什麼"></textarea></div>' +
+    '<button class="bigact" id="pGo">夾上回覽板</button>');
+  $('pGo').addEventListener('click', function(){
+    var t = $('pT').value.trim(), b = $('pB').value.trim();
+    if (!t) { haptic([20, 40, 20]); $('pT').focus(); $('pT').placeholder = '請先寫標題'; return; }
+    var d = new Date();
+    S.notices.unshift({id:'n' + Date.now(), d:String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0'), from:'4F ' + S.me.n + '家', t:t, b:b || '詳情請洽 4F。', s:{}, mine:true, pin:'bldg'});
+    save(); closeSheet(); renderNotices(); renderMe(); $('noticeScroll').scrollTop = 0; haptic([6, 30, 6]); toast('公告夾上去了，記得先蓋自己的章');
+  });
+}
+$('postBtn').addEventListener('click', function(){ haptic(6); openPost(); });
+
+// ---------- map ----------
+var PLACES = {
+  pier:{x:78, y:150, n:'大稻埕碼頭', d:'中秋看煙火、傍晚散步'},
+  temple:{x:250, y:196, n:'霞海城隍廟', d:'導覽 10/12 下午 2 點集合'},
+  truck:{x:262, y:300, n:'回收車停靠點', d:'每週二、五 晚上 7:30'},
+  bldg:{x:350, y:354, n:'永樂大樓（本棟）', d:'水塔清洗 9/30 停水'},
+  office:{x:410, y:250, n:'永樂里辦公處', d:'登革熱巡檢 9/26'},
+  market:{x:262, y:470, n:'永樂市場', d:'二樓布市整修中'}
+};
+function mapSVG(){
+  var pins = Object.keys(PLACES).map(function(k, i){ var p = PLACES[k];
+    return '<g class="pin" data-pin="' + k + '" transform="translate(' + p.x + ' ' + p.y + ')" role="button" aria-label="' + p.n + '"><circle class="hit" r="24"/><circle r="13" fill="#c8321f" filter="url(#rough)"/><text y="1" text-anchor="middle" dominant-baseline="central" font-weight="700" font-size="14" fill="#fdf3ea" style="font-family:Songti TC,serif">' + (i + 1) + '</text></g>'; }).join('');
+  return '<svg class="map" id="map" viewBox="0 0 520 640">' +
+  '<g filter="url(#rough)">' +
+  '<path d="M0 0 H70 C60 120 90 220 58 330 C40 420 70 520 50 640 H0Z" fill="#b8cbbd"/>' +
+  '<g fill="none" stroke="#6f8f86" stroke-width="1.4" stroke-linecap="round"><path d="M14 60q10-6 20 0t20 0"/><path d="M10 190q10-6 20 0t20 0"/><path d="M8 330q10-6 20 0t20 0"/><path d="M12 470q10-6 20 0t20 0"/><path d="M16 590q10-6 20 0t20 0"/></g>' +
+  '<path class="road" d="M92 0 C96 200 100 420 98 640" stroke-width="2"/>' +
+  '<path class="road" d="M232 0 C236 180 240 400 236 640"/><path class="road" d="M288 0 C292 180 290 400 292 640"/>' +
+  '<path class="road" d="M458 0 C452 220 462 420 456 640"/>' +
+  '<path class="road" d="M92 286 C220 282 360 290 520 284"/><path class="road" d="M92 334 C220 330 360 338 520 332"/>' +
+  '<path class="road" d="M92 560 C220 556 360 566 520 558"/>' +
+  '<path d="M322 330 h56 v48 h-56Z" fill="#e4d6a8" stroke="#4a4a5e" stroke-width="1.6"/>' +
+  '<path d="M230 176 l20 -18 20 18 v26 h-40Z" fill="#e8c1b3" stroke="#4a4a5e" stroke-width="1.6"/>' +
+  '<path d="M240 446 h46 v52 h-46Z" fill="#dcd2b8" stroke="#4a4a5e" stroke-width="1.6"/>' +
+  '<path d="M390 232 h40 v34 h-40Z" fill="#d6dcc2" stroke="#4a4a5e" stroke-width="1.6"/>' +
+  shops() + '<g fill="#6d8a5a"><circle cx="150" cy="400" r="9"/><circle cx="168" cy="414" r="7"/><circle cx="140" cy="420" r="6"/><circle cx="380" cy="480" r="8"/><circle cx="396" cy="470" r="6"/></g>' +
+  '</g>' +
+  '<g font-size="15"><text x="18" y="260" transform="rotate(-84 18 260)">淡水河</text><text x="250" y="52" transform="rotate(90 250 52)">迪化街一段</text><text x="300" y="530" transform="rotate(90 300 530)">延平北路二段</text>' +
+  '<text x="150" y="280">民生西路</text><text x="120" y="328" font-size="13"> </text><text x="330" y="552">南京西路</text><text x="464" y="120" transform="rotate(90 464 120)">重慶北路</text></g>' +
+  '<g font-size="14" fill="#3a3a52"><text x="104" y="150">碼頭</text><text x="274" y="186">城隍廟</text><text x="326" y="396">我們這棟</text><text x="296" y="490">永樂市場</text><text x="388" y="222">里辦公處</text><text x="182" y="302">回收車</text></g>' +
+  '<path d="M300 382 q-20 20 -34 -60" fill="none" stroke="#c8321f" stroke-width="1.6" stroke-dasharray="4 5" stroke-linecap="round" filter="url(#rough)"/>' +
+  '<g transform="translate(470 596)" filter="url(#rough)"><path d="M0 -22 L6 0 L0 -6 L-6 0Z" fill="#3a3a52"/><text y="16" text-anchor="middle" font-size="13">北</text></g>' +
+  pins + '</svg>';
+}
+function shops(){ var o = '<g fill="#ece3cc" stroke="#4a4a5e" stroke-width="1.1">'; for (var y = 20; y < 630; y += 34) { if ((y > 150 && y < 210) || (y > 262 && y < 350) || (y > 430 && y < 510) || (y > 540 && y < 580)) continue; o += '<path d="M' + (206 + (y % 3)) + ' ' + y + 'h20v26h-20Z"/>' + (y < 150 ? '' : '<path d="M' + (246 + (y % 2)) + ' ' + y + 'h20v26h-20Z"/>') + '<path d="M' + (300 + (y % 3)) + ' ' + (y + 8) + 'h24v22h-24Z"/>'; } return o + '</g>'; }
+var mapPos = {x:-80, y:-60}, mapBuilt = false;
+function buildMap(){
+  if (mapBuilt) return; mapBuilt = true;
+  var w = $('mapwrap'); w.insertAdjacentHTML('afterbegin', mapSVG());
+  w.insertAdjacentHTML('beforeend', '<div class="callout" id="callout"><div class="t"><b id="coN"></b><span id="coD"></span></div><button id="coGo">看公告</button></div>');
+  var m = $('map'), sx, sy, ox, oy, down = false, moved = false;
+  function clamp(){ var W = w.clientWidth, H = w.clientHeight; mapPos.x = Math.min(0, Math.max(W - 520, mapPos.x)); mapPos.y = Math.min(0, Math.max(H - 640, mapPos.y)); m.style.transform = 'translate(' + mapPos.x + 'px,' + mapPos.y + 'px)'; }
+  clamp(); window.addEventListener('resize', clamp);
+  w.addEventListener('pointerdown', function(e){ if (e.target.closest('.callout')) return; down = true; moved = false; sx = e.clientX; sy = e.clientY; ox = mapPos.x; oy = mapPos.y; });
+  w.addEventListener('pointermove', function(e){ if (!down) return; var dx = e.clientX - sx, dy = e.clientY - sy; if (!moved && Math.hypot(dx, dy) > 6) { moved = true; try{ w.setPointerCapture(e.pointerId); }catch(er){} } if (moved) { mapPos.x = ox + dx; mapPos.y = oy + dy; clamp(); } });
+  function up(e){ if (!down) return; down = false; if (!moved) { var p = e.target.closest && e.target.closest('.pin'); if (p) showPin(p.dataset.pin); else $('callout').classList.remove('on'); } }
+  w.addEventListener('pointerup', up); w.addEventListener('pointercancel', function(){ down = false; });
+  $('coGo').addEventListener('click', function(){
+    var k = this.dataset.pin, n = S.notices.find(function(x){ return x.pin === k; });
+    haptic(6); if (n) { go('notice'); setTimeout(function(){ openNotice(n.id); }, reduce ? 0 : 560); } else toast('這裡目前沒有公告');
+  });
+}
+function showPin(k){
+  var p = PLACES[k]; if (!p) return; haptic(6);
+  $('coN').textContent = p.n; $('coD').textContent = p.d; $('coGo').dataset.pin = k; $('callout').classList.add('on');
+  var w = $('mapwrap'); mapPos.x = w.clientWidth / 2 - p.x; mapPos.y = w.clientHeight / 2 - p.y - 30;
+  var m = $('map'); m.style.transition = reduce ? '' : 'transform .45s cubic-bezier(.2,.8,.2,1)';
+  var W = w.clientWidth, H = w.clientHeight; mapPos.x = Math.min(0, Math.max(W - 520, mapPos.x)); mapPos.y = Math.min(0, Math.max(H - 640, mapPos.y));
+  m.style.transform = 'translate(' + mapPos.x + 'px,' + mapPos.y + 'px)'; setTimeout(function(){ m.style.transition = ''; }, 480);
+}
+
+// ---------- household ----------
+function renderMe(){
+  var stamped = S.notices.filter(function(n){ return n.s[ME]; }).length;
+  var listed = S.items.filter(function(i){ return i.f === ME; }).length;
+  var wants = S.items.filter(function(i){ return i.want && !i.done; }).length;
+  $('meScroll').innerHTML = '<div class="phead"><h2>本戶</h2><span style="font:500 13px/1 var(--mincho);color:var(--ink-3)">4F・第七鄰</span></div>' +
+    '<div class="me-top"><div class="big" id="bigSeal">' + sealSVG(S.me.n, S.me.sh, 0, S.me.ink) + '</div><div>' +
+    '<div class="field"><label for="mN">印面文字（一至二字）</label><input id="mN" maxlength="2" value="' + esc(S.me.n) + '" autocomplete="off"></div>' +
+    '<div class="seg" id="mSh"><button data-v="round" aria-pressed="' + (S.me.sh === 'round') + '">丸印</button><button data-v="square" aria-pressed="' + (S.me.sh === 'square') + '">角印</button></div>' +
+    '<div class="seg" id="mInk" style="margin-top:6px"><button data-v="#c8321f" aria-pressed="' + (S.me.ink === '#c8321f') + '">朱肉</button><button data-v="#2b3a67" aria-pressed="' + (S.me.ink === '#2b3a67') + '">藍墨</button></div>' +
+    '</div></div>' +
+    '<div class="practice" id="practice" role="button" tabindex="0" aria-label="試蓋練習紙，點一下蓋一次"><span class="lbl">試蓋紙：點哪裡蓋哪裡</span>' +
+    (S.practice || []).map(function(p){ return sealSVG(S.me.n, S.me.sh, p.r, S.me.ink).replace('<svg class="seal ', '<svg style="left:' + p.x + '%;top:' + p.y + 'px" class="seal '); }).join('') + '</div>' +
+    '<div class="stats"><div><b>' + stamped + '</b><span>已蓋公告</span></div><div><b>' + listed + '</b><span>上架物品</span></div><div><b>' + wants + '</b><span>預約中</span></div></div>' +
+    '<div class="row2"><button class="textact dim" id="clearP">擦掉試蓋</button><button class="textact" id="resetAll">重設示範資料</button></div>';
+  $('mN').addEventListener('input', function(){ var v = this.value.trim(); if (!v) return; S.me.n = v; save(); $('bigSeal').innerHTML = sealSVG(S.me.n, S.me.sh, 0, S.me.ink); refreshSeals(); });
+  $('mN').addEventListener('change', function(){ renderMe(); });
+  $('mSh').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; haptic(5); S.me.sh = b.dataset.v; save(); renderMe(); refreshSeals(); });
+  $('mInk').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; haptic(5); S.me.ink = b.dataset.v; save(); renderMe(); refreshSeals(); });
+  $('practice').addEventListener('click', function(e){
+    var r = this.getBoundingClientRect(), x = (e.clientX - r.left - 31) / r.width * 100, y = e.clientY - r.top - 31;
+    if (!e.clientX) { x = 20 + Math.random() * 60; y = 50; }
+    S.practice = (S.practice || []).concat([{x:Math.max(0, Math.min(84, x)), y:Math.max(0, Math.min(108, y)), r:Math.round((Math.random() - .5) * 24)}]).slice(-14);
+    save(); thump(); haptic([4, 18, 22]); renderMe();
+    var last = $('practice').lastElementChild; if (last && !reduce) last.animate([{transform:'scale(1.15)'},{transform:'none'}], {duration:300, easing:'ease-out'});
+  });
+  $('practice').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); } });
+  $('clearP').addEventListener('click', function(){ haptic(6); var old = S.practice; S.practice = []; save(); swish(); renderMe(); toast('試蓋紙擦乾淨了', function(){ S.practice = old; save(); renderMe(); }); });
+  $('resetAll').addEventListener('click', function(){ haptic([10, 30, 10]); var old = JSON.stringify(S); S = JSON.parse(JSON.stringify(SEED)); save(); renderAllPages(); toast('已回到示範資料', function(){ S = JSON.parse(old); save(); renderAllPages(); }); });
+}
+function refreshSeals(){ renderNotices(); renderItems(); }
+
+// ---------- paper stack navigation ----------
+var PAGES = ['notice','swap','map','me'], cur = S.page || 'notice', flipping = false;
+function layer(){ PAGES.forEach(function(p, i){ $('pg-' + p).style.zIndex = p === cur ? 10 : 5 - i; }); }
+function go(p){
+  if (p === cur || flipping) return;
+  var from = $('pg-' + cur), to = $('pg-' + p);
+  haptic(6); swish();
+  to.style.zIndex = 9;
+  document.querySelectorAll('.ptab').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.p === p); });
+  if (p === 'map') buildMap();
+  cur = p; S.page = p; save();
+  if (reduce) { layer(); return; }
+  flipping = true;
+  from.classList.add('flip');
+  setTimeout(function(){ from.classList.remove('flip'); layer(); flipping = false; }, 540);
+}
+$('tabs').addEventListener('click', function(e){ var t = e.target.closest('.ptab'); if (t) go(t.dataset.p); });
+$('tabs').addEventListener('keydown', function(e){
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  var i = (PAGES.indexOf(cur) + (e.key === 'ArrowRight' ? 1 : 3)) % 4; go(PAGES[i]); document.querySelector('.ptab[data-p="' + PAGES[i] + '"]').focus();
+});
+
+// ---------- sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){
+  lastFocus = document.activeElement; $('sheetBody').innerHTML = html; $('sheetBody').scrollTop = 0;
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(5);
+  var f = sheet.querySelector('input,button'); if (f && f.tagName === 'BUTTON') f.focus({preventScroll:true});
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on','drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = '';
+  if (document.activeElement && sheet.contains(document.activeElement)) document.activeElement.blur();
+  if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
+}
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button,input,textarea,.hb')) return;
+    if ($('sheetBody').scrollTop > 0 && !e.target.closest('.grab')) return;
+    dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId);
+  });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6; sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+sheet.addEventListener('click', function(e){
+  var t;
+  if ((t = e.target.closest('[data-stamp]'))) { var id = t.dataset.stamp; closeSheet(); if (cur !== 'notice') go('notice'); setTimeout(function(){ var b = document.querySelector('.notice[data-id="' + id + '"] [data-stamp]'); if (b) { b.scrollIntoView({block:'center', behavior:reduce ? 'auto' : 'smooth'}); setTimeout(function(){ stamp(id, b); }, reduce ? 0 : 380); } }, 320); return; }
+  if ((t = e.target.closest('[data-goto]'))) { var k = t.dataset.goto; closeSheet(); go('map'); setTimeout(function(){ showPin(k); }, reduce ? 0 : 600); return; }
+  if ((t = e.target.closest('[data-unpost]'))) { var i = S.notices.findIndex(function(x){ return x.id === t.dataset.unpost; }); if (i >= 0) { var n = S.notices.splice(i, 1)[0]; save(); closeSheet(); renderNotices(); renderMe(); toast('公告撤下了', function(){ S.notices.splice(i, 0, n); save(); renderNotices(); renderMe(); }); } return; }
+  if ((t = e.target.closest('[data-want]'))) { var it = S.items.find(function(x){ return x.id === t.dataset.want; }); it.want = !it.want; save(); closeSheet(); renderItems(); renderMe(); if (it.want) { thump(); haptic([4, 18, 22]); } toast(it.want ? '蓋了預約章，' + it.f + ' 會聯絡你' : '取消預約了'); return; }
+  if ((t = e.target.closest('[data-done]'))) { var it2 = S.items.find(function(x){ return x.id === t.dataset.done; }); it2.done = true; save(); closeSheet(); renderItems(); haptic([6, 30, 6]); toast('劃掉了，謝謝分享', function(){ it2.done = false; save(); renderItems(); }); return; }
+  if ((t = e.target.closest('[data-tear]'))) { var id2 = t.dataset.tear; closeSheet(); removeItem(id2); }
+});
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+
+// ---------- clock ----------
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setInterval(tick, 15000);
+
+function renderAllPages(){ renderNotices(); renderItems(); renderMe(); }
+renderAllPages();
+document.querySelectorAll('.ptab').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.p === cur); });
+if (cur === 'map') buildMap();
+layer();
+})();
+</script>
+</body>
+</html>

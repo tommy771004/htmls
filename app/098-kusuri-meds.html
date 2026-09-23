@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbfbf7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="藥袋">
+<title>藥袋 · 用藥提醒</title>
+<meta name="description" content="印成藥局藥袋的用藥提醒：七日藥盒掀蓋服藥、每一種藥一只藥袋、剩餘數量與補藥、服藥時間提醒與紀錄印章。收錄於 100 Creative HTML Works（App 098・日本藥局藥袋印刷）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/098-kusuri-meds.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbfbf7'/%3E%3Crect x='9' y='9' width='46' height='46' fill='none' stroke='%231c7a4c' stroke-width='3'/%3E%3Crect x='13' y='13' width='38' height='38' fill='none' stroke='%231c7a4c' stroke-width='1.2'/%3E%3Cellipse cx='32' cy='34' rx='13' ry='8' fill='%23d23a2f' transform='rotate(-30 32 34)'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#fbfbf7;
+  --paper-2:#f1f2ec;
+  --green:#1c7a4c;
+  --green-d:#135c38;
+  --green-t:#e3efe7;
+  --red:#d23a2f;
+  --ink:#1d2320;
+  --ink-2:#4a524d;
+  --ink-3:#7c847f;
+  --min:"Toppan Bunkyu Midashi Mincho","Hiragino Mincho ProN","Songti TC",serif;
+  --sans:"Hiragino Sans","PingFang TC",system-ui,-apple-system,sans-serif;
+  --out:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.34,1.45,.5,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.5 var(--sans);color:var(--ink);background:var(--paper);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;display:flex;flex-direction:column;background:var(--paper)}
+.screen::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.55;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .35' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .55 0 0 0 0 .5 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")}
+/* the bag's printed border */
+.frame{position:absolute;inset:6px;z-index:1;pointer-events:none;border:2.5px solid var(--green)}
+.frame::after{content:"";position:absolute;inset:3px;border:1px solid var(--green)}
+@media (min-width:521px){
+  body{background:#d8ddd3}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:9px;z-index:1;
+    background:#eceee9;box-shadow:inset 0 0 0 1px #c9cdc6,inset 0 0 0 2.5px #fafbf8,1px 2px 1px rgba(60,70,62,.18),6px 14px 22px -14px rgba(50,64,54,.45)}
+  .screen{inset:9px;border-radius:43px}
+  .frame{border-radius:38px}
+  .frame::after{border-radius:35px}
+  .caption{display:block;position:relative;z-index:1;max-width:240px;background:var(--paper);padding:22px 22px 20px;border:2px solid var(--green)}
+  .caption h1{font:400 44px/1 var(--min);color:var(--green)}
+  .caption p{margin-top:12px;font:14px/1.8 var(--sans);color:var(--ink-2)}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+.status{position:relative;z-index:30;flex:none;display:flex;align-items:center;justify-content:space-between;height:calc(50px + env(safe-area-inset-top));
+  padding:env(safe-area-inset-top) 28px 0 32px;font:600 16px/1 var(--sans);color:var(--ink);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{height:env(safe-area-inset-top)}.status>*{display:none}}
+
+/* header, printed like the bag's title block */
+.head{position:relative;z-index:3;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:2px 22px 10px}
+.title{font:400 34px/1 var(--min);color:var(--green);letter-spacing:.04em}
+.title small{display:block;font:12px/1 var(--sans);color:var(--ink-3);letter-spacing:.02em;margin-top:6px}
+.who{text-align:right}
+.who b{font:400 19px/1.2 var(--min);border-bottom:1.5px solid var(--ink);padding:0 2px 2px}
+.who b span{font-size:13px;margin-left:4px}
+.who small{display:block;font:12px/1.4 var(--sans);color:var(--ink-3);margin-top:6px}
+
+/* printed checkbox navigation */
+.nav{position:relative;z-index:3;flex:none;display:grid;grid-template-columns:repeat(3,1fr);margin:0 16px;border-top:1.5px solid var(--green);border-bottom:1.5px solid var(--green)}
+.nav button{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;font:400 17px/1 var(--min);color:var(--ink-2);transition:color .2s,background-color .2s}
+.nav button+button{border-left:1px solid var(--green)}
+.nav button:active{background:var(--green-t)}
+.nav .bx{width:16px;height:16px;border:1.6px solid var(--green);display:grid;place-items:center;flex:none}
+.nav .bx svg{width:12px;height:12px;opacity:0;transform:scale(.4);transition:opacity .15s,transform .3s var(--spring)}
+.nav button[aria-selected=true]{color:var(--ink)}
+.nav button[aria-selected=true] .bx{background:var(--green)}
+.nav button[aria-selected=true] .bx svg{opacity:1;transform:none}
+
+.pages{position:relative;z-index:2;flex:1;min-height:0}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:14px 16px calc(40px + env(safe-area-inset-bottom));scrollbar-width:none}
+.page::-webkit-scrollbar{display:none}
+.page[hidden]{display:none}
+.page.enter{animation:pin .4s var(--out)}
+.page.enter.back{animation-name:pinb}
+@keyframes pin{from{transform:translateX(24px)}}
+@keyframes pinb{from{transform:translateX(-24px)}}
+
+/* form cells */
+.cell{display:grid;grid-template-columns:auto 1fr;border:1.5px solid var(--green)}
+.cell>.k{background:var(--green);color:#fff;font:400 15px/1.2 var(--min);writing-mode:vertical-rl;letter-spacing:.2em;padding:10px 7px;display:flex;align-items:center;justify-content:center}
+.cell>.v{padding:12px 14px;min-width:0}
+.next .when{font:400 30px/1.1 var(--min);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.next .when span{font-size:20px;color:var(--green)}
+.next .what{margin-top:6px;font-size:14px;color:var(--ink-2)}
+.next .what b{color:var(--ink);font-weight:600}
+.next .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.btn{height:46px;padding:0 18px;background:var(--green);color:#fff;font:400 17px/1 var(--min);border-radius:3px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background-color .15s,transform .15s var(--out);flex:none}
+.btn:active{background:var(--green-d);transform:scale(.96)}
+.btn.red{background:var(--red)}
+.btn.red:active{background:#a92c23}
+.btn.line{background:none;color:var(--green);box-shadow:inset 0 0 0 1.5px var(--green)}
+.btn.line:active{background:var(--green-t)}
+.btn svg{width:18px;height:18px}
+
+/* ---------- the 7-day pillbox ---------- */
+.boxwrap{margin-top:16px}
+.boxhead{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 8px}
+.boxhead b{font:400 19px/1 var(--min)}
+.boxhead span{font-size:13px;color:var(--ink-3)}
+.pillbox{position:relative;display:grid;grid-template-columns:22px repeat(7,1fr);gap:4px;padding:8px 8px 10px 4px;border-radius:10px;
+  background:linear-gradient(180deg,#e9ece6,#dde2da);box-shadow:inset 0 1px 0 #fff,inset 0 -2px 0 #c9cfc6,0 1px 0 #c3c9c0;perspective:520px}
+.pillbox .rl{display:flex;align-items:center;justify-content:center;font:400 14px/1 var(--min);color:var(--green-d)}
+.pillbox .dh{text-align:center;font:400 15px/1 var(--min);padding:2px 0 4px;color:var(--ink-2)}
+.pillbox .dh small{display:block;font:11px/1.2 var(--sans);color:var(--ink-3);margin-top:3px}
+.pillbox .dh.today{color:var(--red)}
+.pillbox .dh.today small{color:var(--red)}
+.comp{position:relative;height:54px;border-radius:5px;transform-style:preserve-3d}
+.comp .tray{position:absolute;inset:0;border-radius:5px;background:linear-gradient(180deg,#f7f8f4,#eef0ea);box-shadow:inset 0 2px 3px rgba(40,60,45,.16),inset 0 0 0 1px rgba(40,70,50,.1);display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:1px;padding:3px;overflow:hidden}
+.comp .tray svg{width:18px;height:18px;transition:transform .45s var(--out),opacity .3s}
+.comp.taken .tray svg{transform:translateY(40px) rotate(40deg);opacity:0}
+.comp .lid{position:absolute;inset:-1px;border-radius:5px;transform-origin:50% 0;transition:transform .55s var(--spring);
+  background:linear-gradient(170deg,rgba(214,236,222,.5),rgba(170,208,184,.42));box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 0 0 1px rgba(28,122,76,.28),inset 0 -3px 0 rgba(28,122,76,.12);
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px}
+.comp .lid i{width:12px;height:3px;border-radius:2px;background:rgba(28,122,76,.35)}
+.comp.open{z-index:3}
+.comp.open .lid{transform:rotateX(-112deg);background:linear-gradient(0deg,rgba(200,226,210,.9),rgba(160,200,176,.8))}
+.comp .stamp{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transform:scale(1.6) rotate(-14deg);transition:opacity .2s,transform .35s var(--spring)}
+.comp.taken .stamp{opacity:1;transform:rotate(-14deg)}
+.comp .stamp span{width:30px;height:30px;border:2px solid var(--red);border-radius:50%;color:var(--red);font:400 15px/1 var(--min);display:grid;place-items:center}
+.comp .stamp span b{font-weight:400;display:block;transform:translateY(1px)}
+.comp.missed .tray{box-shadow:inset 0 2px 3px rgba(40,60,45,.16),inset 0 0 0 1.5px var(--red)}
+.comp.empty .tray{background:repeating-linear-gradient(135deg,#eef0ea 0 5px,#e6e9e2 5px 10px)}
+.comp.today-col .tray{background:linear-gradient(180deg,#fff,#f5f6f1)}
+.comp:active .lid{filter:brightness(.96)}
+.comp:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+
+/* today list */
+.slots{margin-top:18px;border-top:1.5px solid var(--ink)}
+.slot{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;min-height:66px;padding:8px 2px;border-bottom:1px solid #d5d9d2}
+.slot .ic{width:44px;height:44px;display:grid;place-items:center;color:var(--green)}
+.slot .ic svg{width:34px;height:34px}
+.slot .nm{font:400 18px/1.2 var(--min)}
+.slot .nm span{font:13px/1 var(--sans);color:var(--ink-3);margin-left:6px}
+.slot .ps{display:flex;gap:3px;margin-top:5px;align-items:center;font-size:13px;color:var(--ink-2)}
+.slot .ps svg{width:16px;height:16px}
+.slot .st{font:13px/1.3 var(--sans);text-align:right;color:var(--green)}
+.slot .st b{display:block;font:400 17px/1.2 var(--min)}
+.slot .st.miss{color:var(--red)}
+.slot .st.wait{color:var(--ink-3)}
+.slot .btn{height:44px;padding:0 16px}
+.warn{margin-top:18px;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--red);color:var(--red)}
+.warn svg{width:28px;height:28px;flex:none}
+.warn p{flex:1;font-size:14px;line-height:1.45;color:var(--ink)}
+.warn p b{color:var(--red)}
+.warn .btn{height:40px;padding:0 14px;font-size:15px}
+
+/* ---------- bags ---------- */
+.bags{display:flex;flex-direction:column;gap:12px}
+.bag{position:relative;background:#fff;border:2px solid var(--green);padding:0}
+.bag::before{content:"";position:absolute;inset:3px;border:1px solid var(--green);pointer-events:none}
+.bag .top{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;width:100%;padding:14px 16px 12px;text-align:left}
+.bag .kind{font:400 25px/1 var(--min);color:var(--green);letter-spacing:.1em}
+.bag .drug{margin-top:8px;font:400 18px/1.25 var(--min)}
+.bag .drug small{font:13px/1 var(--sans);color:var(--ink-3);margin-left:6px}
+.bag .big{display:flex;align-items:center;gap:6px}
+.bag .big svg{width:34px;height:34px}
+.bag .chev{width:22px;height:22px;color:var(--green);transition:transform .35s var(--out)}
+.bag.open .chev{transform:rotate(180deg)}
+.bag .more{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--out)}
+.bag.open .more{grid-template-rows:1fr}
+.bag .more>div{overflow:hidden;min-height:0}
+.bag .inner{padding:0 16px 16px}
+.times{display:grid;grid-template-columns:repeat(4,1fr);border:1.5px solid var(--ink);margin-top:2px}
+.times span{display:flex;align-items:center;justify-content:center;gap:6px;height:42px;font:400 16px/1 var(--min)}
+.times span+span{border-left:1px solid var(--ink)}
+.times i{width:15px;height:15px;border:1.5px solid var(--ink);display:block}
+.times span.on i{background:var(--ink)}
+.times span:not(.on){color:#a3aaa5}
+.times span:not(.on) i{border-color:#a3aaa5}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin-top:12px;font-size:14px}
+.kv dt{color:var(--ink-3)}
+.kv dd{color:var(--ink)}
+.kv .rd{color:var(--red)}
+.stock{margin-top:14px}
+.stock .ln{display:flex;justify-content:space-between;align-items:baseline;font-size:14px}
+.stock .ln b{font:400 24px/1 var(--min)}
+.stock .ln b small{font:13px var(--sans);margin-left:3px;color:var(--ink-2)}
+.ticks{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px}
+.ticks i{width:6px;height:12px;border-radius:3px;background:var(--green)}
+.ticks i.off{background:#dde2dc}
+.ticks.low i:not(.off){background:var(--red)}
+.bag .acts{display:flex;gap:10px;margin-top:16px}
+.bag .acts .btn{flex:1}
+.bag .acts .del{flex:none;width:46px;padding:0;color:var(--ink-3);box-shadow:inset 0 0 0 1.5px #c5cbc6;background:none}
+.bag .acts .del:active{background:#f3e4e2;color:var(--red)}
+.bag .foot{margin-top:14px;padding-top:10px;border-top:1px dashed #b9c0ba;font-size:12px;line-height:1.5;color:var(--ink-3)}
+.bag .lowtag{font:400 14px/1 var(--min);color:var(--red);border:1.5px solid var(--red);padding:4px 6px;transform:rotate(-6deg);display:inline-block}
+.addbag{width:100%;height:64px;border:2px dashed var(--green);color:var(--green);font:400 18px/1 var(--min);display:flex;align-items:center;justify-content:center;gap:10px;transition:background-color .15s}
+.addbag:active{background:var(--green-t)}
+.addbag svg{width:22px;height:22px}
+
+/* ---------- log ---------- */
+.score{display:flex;align-items:flex-end;justify-content:space-between;padding:4px 2px 14px;border-bottom:1.5px solid var(--ink)}
+.score .n{font:400 64px/.9 var(--min);color:var(--green)}
+.score .n small{font-size:26px;margin-left:2px}
+.score p{font-size:14px;color:var(--ink-2);text-align:right;line-height:1.6}
+.score p b{font:400 20px/1 var(--min);color:var(--ink)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px 4px;margin-top:14px;text-align:center}
+.cal .h{font:400 14px/1 var(--min);color:var(--ink-3);padding-bottom:4px}
+.day{position:relative;height:48px;display:grid;place-items:center;font:13px/1 var(--sans);color:var(--ink-3)}
+.day .d{position:absolute;left:3px;top:2px;font-size:11px}
+.day svg{width:36px;height:36px}
+.day.future{opacity:.4}
+.legend{display:flex;gap:18px;margin-top:10px;font-size:13px;color:var(--ink-2);justify-content:center}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend svg{width:20px;height:20px}
+.sect{margin-top:24px;font:400 20px/1 var(--min);display:flex;justify-content:space-between;align-items:baseline}
+.sect small{font:13px/1 var(--sans);color:var(--ink-3)}
+.set{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;min-height:62px;border-bottom:1px solid #d5d9d2}
+.set .ic{color:var(--green)}
+.set .ic svg{width:30px;height:30px}
+.set .nm{font:400 17px/1.2 var(--min)}
+.set .nm small{display:block;font:12px/1.3 var(--sans);color:var(--ink-3);margin-top:3px}
+.step{display:flex;align-items:center;border:1.5px solid var(--green)}
+.step button{width:44px;height:40px;display:grid;place-items:center;color:var(--green)}
+.step button:active{background:var(--green-t)}
+.step button svg{width:14px;height:14px}
+.step output{min-width:62px;text-align:center;font:400 18px/40px var(--min);border-left:1px solid var(--green);border-right:1px solid var(--green);font-variant-numeric:tabular-nums}
+.sw{position:relative;width:56px;height:32px;border:1.5px solid var(--green);flex:none;transition:background-color .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:23px;height:23px;background:var(--green);transition:transform .3s var(--spring),background-color .2s}
+.sw[aria-checked=true]{background:var(--green)}
+.sw[aria-checked=true]::after{transform:translateX(24px);background:#fff}
+.pharm{margin-top:26px;text-align:center;font-size:12px;line-height:1.7;color:var(--ink-3)}
+.pharm b{display:block;font:400 17px/1.4 var(--min);color:var(--green)}
+
+.home-ind{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(29,35,32,.8);z-index:35;pointer-events:none}
+
+/* reminder notice */
+.notice{position:absolute;left:14px;right:14px;top:calc(54px + env(safe-area-inset-top));z-index:45;background:#fff;border:2px solid var(--red);padding:12px 12px 12px 14px;display:flex;align-items:center;gap:12px;
+  transform:translateY(-160%);visibility:hidden;transition:transform .5s var(--spring),visibility 0s .5s;box-shadow:0 3px 0 rgba(210,58,47,.15)}
+.notice.on{transform:none;visibility:visible;transition:transform .5s var(--spring)}
+.notice svg{width:30px;height:30px;flex:none;color:var(--red)}
+.notice p{flex:1;font-size:14px;line-height:1.4}
+.notice p b{display:block;font:400 17px/1.3 var(--min);color:var(--red)}
+.notice .btn{height:42px;padding:0 14px;font-size:15px}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(20,40,30,.32);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:88%;display:flex;flex-direction:column;background:var(--paper);border-top:3px solid var(--green);
+  padding:10px 0 calc(18px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .48s var(--spring);touch-action:none}
+.sheet::before{content:"";position:absolute;left:0;right:0;top:3px;height:1px;background:var(--green)}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{flex:none;width:44px;height:5px;border-radius:3px;background:#c3cac4;margin:4px auto 12px}
+.sbody{overflow-y:auto;padding:0 20px 4px;touch-action:pan-y;overscroll-behavior:contain;scrollbar-width:none}
+.sbody::-webkit-scrollbar{display:none}
+.sheet h2{font:400 26px/1.2 var(--min);color:var(--green)}
+.sheet .sub{font-size:14px;color:var(--ink-2);margin-top:4px}
+.fld{margin-top:14px}
+.fld label,.fld .lb{display:block;font-size:13px;color:var(--ink-3);margin-bottom:6px}
+.fld input{width:100%;height:46px;border:0;border-bottom:1.5px solid var(--ink);background:none;font:400 19px var(--min);color:var(--ink);outline:none;border-radius:0}
+.fld input::placeholder{color:#aab0ab}
+.fld input:focus{border-bottom-color:var(--green)}
+.swatches{display:flex;gap:6px;flex-wrap:wrap}
+.swatches button{width:48px;height:48px;display:grid;place-items:center;border-radius:4px;transition:background-color .15s}
+.swatches button svg{width:30px;height:30px}
+.swatches button[aria-pressed=true]{background:var(--green-t);box-shadow:inset 0 0 0 1.5px var(--green)}
+.pick{display:grid;grid-template-columns:repeat(4,1fr);border:1.5px solid var(--ink)}
+.pick button{height:48px;display:flex;align-items:center;justify-content:center;gap:6px;font:400 16px/1 var(--min)}
+.pick button+button{border-left:1px solid var(--ink)}
+.pick i{width:15px;height:15px;border:1.5px solid var(--ink);display:block}
+.pick button[aria-pressed=true] i{background:var(--ink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sheet .go{width:100%;margin-top:20px;height:52px;font-size:19px}
+.big-n{font:400 60px/1 var(--min);text-align:center;margin-top:14px;color:var(--green)}
+.big-n small{font-size:20px;color:var(--ink-2);margin-left:4px}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.quick .btn{width:100%}
+
+.toast{position:absolute;left:50%;bottom:calc(34px + env(safe-area-inset-bottom));z-index:60;transform:translate(-50%,120px);visibility:hidden;
+  background:var(--ink);color:#fff;font-size:14px;padding:0 6px 0 16px;min-height:46px;display:flex;align-items:center;gap:10px;white-space:nowrap;
+  transition:transform .45s var(--spring),visibility 0s .45s}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--spring)}
+.toast button{color:#9fe0bb;font-weight:600;min-height:44px;padding:0 10px}
+
+@media (prefers-reduced-motion:reduce){
+  .page.enter{animation:none}
+  .comp .lid,.comp .stamp,.comp .tray svg,.sheet,.toast,.notice,.bag .more,.sw::after{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="fib"><feTurbulence type="fractalNoise" baseFrequency=".8 .3" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .4 0 0 0 0 .45 0 0 0 0 .4 0 0 0 .18 0"/></filter>
+        <g id="bagart">
+          <rect width="360" height="500" fill="#fbfbf7"/>
+          <rect x="14" y="14" width="332" height="472" fill="none" stroke="#1c7a4c" stroke-width="6"/>
+          <rect x="24" y="24" width="312" height="452" fill="none" stroke="#1c7a4c" stroke-width="2"/>
+          <text x="180" y="120" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,Hiragino Mincho ProN,serif" font-size="72" fill="#1c7a4c" letter-spacing="10">內服藥</text>
+          <path d="M60 170h240" stroke="#1d2320" stroke-width="2"/>
+          <text x="180" y="160" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="26" fill="#1d2320">林淑芬　女士</text>
+          <g font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="24" fill="#1d2320">
+            <rect x="50" y="210" width="260" height="56" fill="none" stroke="#1d2320" stroke-width="2"/>
+            <path d="M115 210v56M180 210v56M245 210v56" stroke="#1d2320" stroke-width="1.5"/>
+            <text x="82" y="246" text-anchor="middle">早</text><text x="147" y="246" text-anchor="middle">午</text><text x="212" y="246" text-anchor="middle">晚</text><text x="277" y="246" text-anchor="middle">睡前</text>
+            <text x="60" y="320">一日　次　每次　顆</text>
+            <text x="60" y="366" fill="#d23a2f">服藥後請勿開車</text>
+          </g>
+          <text x="180" y="450" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="22" fill="#1c7a4c">杏林藥局</text>
+        </g>
+      </defs>
+      <rect width="1600" height="1000" fill="#d8ddd3"/>
+      <rect width="1600" height="1000" filter="url(#fib)"/>
+      <use href="#bagart" transform="translate(-60 590) rotate(-9) scale(1.25)"/>
+      <use href="#bagart" transform="translate(1180 -80) rotate(12) scale(1.1)"/>
+      <use href="#bagart" transform="translate(1250 560) rotate(-4) scale(1.05)"/>
+      <g transform="translate(520 790) rotate(-14)">
+        <rect width="200" height="96" rx="10" fill="#e7ebe5" stroke="#c3cac2" stroke-width="2"/>
+        <g fill="#f7f8f3" stroke="#cfd4cd"><circle cx="36" cy="30" r="16"/><circle cx="82" cy="30" r="16"/><circle cx="128" cy="30" r="16"/><circle cx="174" cy="30" r="16" fill="#e7ebe5"/><circle cx="36" cy="68" r="16"/><circle cx="82" cy="68" r="16"/><circle cx="128" cy="68" r="16"/><circle cx="174" cy="68" r="16"/></g>
+      </g>
+    </svg>
+  </div>
+
+  <div class="caption">
+    <h1>藥袋</h1>
+    <p>用藥提醒。一格一格掀開七日藥盒，每一種藥都有自己的藥袋，吃了就蓋一個「服」字章。</p>
+  </div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="frame" aria-hidden="true"></div>
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" fill="currentColor"/><rect x="10" y="3" width="3" height="9" fill="currentColor"/><rect x="15" y="0" width="3" height="12" fill="currentColor"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.5 1 4a10 10 0 0 1 14 0z" fill="currentColor"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".75" y=".75" width="22.5" height="11.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect id="batt" x="3" y="3" width="15" height="7" fill="currentColor"/><rect x="24.5" y="4.5" width="2" height="4" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <header class="head">
+        <div class="title">藥袋<small id="dateLine">115年9月23日（三）</small></div>
+        <div class="who"><b>林淑芬<span>女士</span></b><small>杏林藥局・調劑 09/20</small></div>
+      </header>
+
+      <nav class="nav" role="tablist" aria-label="主要分頁">
+        <button role="tab" data-p="box" aria-selected="true" aria-controls="p-box"><span class="bx"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M2 6.2 5 9l5-6.5"/></svg></span>藥盒</button>
+        <button role="tab" data-p="bags" aria-selected="false" aria-controls="p-bags"><span class="bx"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M2 6.2 5 9l5-6.5"/></svg></span>藥袋</button>
+        <button role="tab" data-p="log" aria-selected="false" aria-controls="p-log"><span class="bx"><svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M2 6.2 5 9l5-6.5"/></svg></span>紀錄</button>
+      </nav>
+
+      <main class="pages">
+        <section class="page" id="p-box" aria-label="藥盒">
+          <div class="cell next"><div class="k">下次</div><div class="v" id="next"></div></div>
+          <div class="boxwrap">
+            <div class="boxhead"><b>七日藥盒</b><span id="boxHint">點一格掀開蓋子</span></div>
+            <div class="pillbox" id="pillbox"></div>
+          </div>
+          <div class="slots" id="slots"></div>
+          <div id="warnBox"></div>
+        </section>
+
+        <section class="page" id="p-bags" aria-label="藥袋" hidden>
+          <div class="bags" id="bags"></div>
+        </section>
+
+        <section class="page" id="p-log" aria-label="紀錄" hidden>
+          <div class="score"><div class="n" id="pct">96<small>%</small></div><p>近 28 天按時服藥<br>連續 <b id="streak">5</b> 天全數服用</p></div>
+          <div class="cal" id="cal"></div>
+          <div class="legend">
+            <span><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="13" fill="none" stroke="#d23a2f" stroke-width="2"/><text x="18" y="18" dy=".36em" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="14" fill="#d23a2f">服</text></svg>全部服用</span>
+            <span><svg viewBox="0 0 36 36"><path d="M18 5a13 13 0 0 1 0 26" fill="none" stroke="#d23a2f" stroke-width="2"/><path d="M18 5a13 13 0 0 0 0 26" fill="none" stroke="#d23a2f" stroke-width="2" stroke-dasharray="3 3"/></svg>漏了幾次</span>
+            <span><svg viewBox="0 0 36 36"><path d="M10 10l16 16M26 10 10 26" stroke="#9aa19c" stroke-width="2"/></svg>整天沒吃</span>
+          </div>
+          <div class="sect">提醒時間<small>到點會在上方提醒</small></div>
+          <div id="settings"></div>
+          <div class="pharm"><b>杏林藥局</b>台北市大安區和平東路二段 118 號<br>藥師　陳怡君　(02) 2701-5566</div>
+        </section>
+      </main>
+      <div class="home-ind" aria-hidden="true"></div>
+
+      <div class="notice" id="notice" role="alert">
+        <svg viewBox="0 0 30 30" fill="currentColor"><path d="M15 3a2 2 0 0 1 2 2v1.2a8 8 0 0 1 6 7.8v5l2.5 3.5h-21L7 19v-5a8 8 0 0 1 6-7.8V5a2 2 0 0 1 2-2z"/><path d="M11.5 24.5h7a3.5 3.5 0 0 1-7 0z"/><rect x="13.6" y="10" width="2.8" height="7" fill="#fff"/><rect x="13.6" y="18.5" width="2.8" height="2.6" fill="#fff"/></svg>
+        <p id="noticeT"><b>晚餐後的藥還沒吃</b>18:30・3 顆</p>
+        <button class="btn red" id="noticeGo">去服藥</button>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="表單">
+        <div class="grab"></div>
+        <div class="sbody" id="sbody"></div>
+      </div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app098:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+var SLOT = ['早','午','晚','睡前'], SLOTF = ['早餐後','午餐後','晚餐後','睡前'], WK = ['日','一','二','三','四','五','六'];
+var COLORS = {white:['#f8f7f2','#c9c7bd'], pink:['#eeb4bb','#c98790'], peach:['#ecc39c','#c69868'], amber:['#dd9a32','#a86c14'], yellow:['#f1d56e','#c7a93f'], blue:['#b9d3e3','#86a7bb']};
+var SHAPES = ['round','oval','capsule'];
+
+/* ---------- data ---------- */
+var meds = load('meds', null);
+if (!Array.isArray(meds)) meds = [
+  {id:1, name:'脈優錠', sub:'5 mg', use:'高血壓', color:'white', shape:'round', slots:[1,0,0,0], per:1, stock:24, warn:'起身放慢，避免頭暈'},
+  {id:2, name:'庫魯化錠', sub:'500 mg', use:'血糖', color:'white', shape:'oval', slots:[1,0,1,0], per:1, stock:52, warn:'飯後立即服用，減少腸胃不適'},
+  {id:3, name:'保栓通膜衣錠', sub:'75 mg', use:'預防血栓', color:'pink', shape:'round', slots:[1,0,0,0], per:1, stock:5, warn:'刷牙出血或黑便請告知醫師'},
+  {id:4, name:'素果膜衣錠', sub:'20 mg', use:'膽固醇', color:'peach', shape:'oval', slots:[0,0,0,1], per:1, stock:30, warn:'避免大量飲用葡萄柚汁'},
+  {id:5, name:'氧化鎂錠', sub:'250 mg', use:'軟便・胃酸', color:'white', shape:'round', slots:[1,1,1,0], per:1, stock:70, warn:'與其他藥物間隔一小時'},
+  {id:6, name:'魚油軟膠囊', sub:'1000 mg', use:'保健', color:'amber', shape:'capsule', slots:[0,0,1,0], per:1, stock:41, warn:''}
+];
+var settings = load('settings', null) || {times:['08:00','12:30','18:30','22:00'], remind:true, sound:true};
+var nextId = meds.reduce(function(a, m){ return Math.max(a, m.id); }, 0) + 1;
+
+function dkey(d){ return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function addDays(d, n){ var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+var TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
+function mins(t){ var p = t.split(':'); return +p[0] * 60 + +p[1]; }
+function nowMin(){ var n = new Date(); return n.getHours() * 60 + n.getMinutes(); }
+function fmtM(m){ m = Math.round(m); return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+function slotMeds(s){ return meds.filter(function(m){ return m.slots[s]; }); }
+function slotCount(s){ return slotMeds(s).reduce(function(a, m){ return a + m.per; }, 0); }
+
+// log: { 'Y-M-D': { slotIndex: 'HH:MM' } }
+var log = load('log', null);
+if (!log || typeof log !== 'object'){
+  log = {}; var seed = 98;
+  var rnd = function(){ seed = seed * 16807 % 2147483647; return seed / 2147483647; };
+  for (var i = 34; i >= 1; i--){
+    var d = addDays(TODAY, -i), k = dkey(d), rec = {};
+    for (var s = 0; s < 4; s++){
+      if (!slotCount(s)) continue;
+      var miss = rnd() < .045 || (i === 2 && s === 3) || (i === 9 && rnd() < .9);
+      if (!miss) rec[s] = fmtM(mins(settings.times[s]) + Math.round((rnd() - .3) * 40));
+    }
+    log[k] = rec;
+  }
+  var tk = dkey(TODAY), nm = nowMin(), rt = {}, pend = -1;
+  for (var s2 = 0; s2 < 4; s2++){ if (slotCount(s2) && mins(settings.times[s2]) <= nm) pend = s2; }
+  for (var s3 = 0; s3 < 4; s3++){
+    if (!slotCount(s3)) continue;
+    if (mins(settings.times[s3]) <= nm && s3 !== pend) rt[s3] = fmtM(mins(settings.times[s3]) + 9 + s3 * 4);
+  }
+  log[tk] = rt;
+}
+function persist(){ save('meds', meds); save('log', log); save('settings', settings); }
+
+/* ---------- drawing ---------- */
+function pill(color, shape, taken){
+  var c = COLORS[color] || COLORS.white;
+  if (shape === 'capsule' && color === 'amber')
+    return '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="6.4" fill="' + c[0] + '" stroke="' + c[1] + '" stroke-width="1" transform="rotate(-28 12 12)"/><ellipse cx="9" cy="10.4" rx="3.6" ry="1.4" fill="#fff" opacity=".55" transform="rotate(-28 9 10.4)"/></svg>';
+  if (shape === 'capsule')
+    return '<svg viewBox="0 0 24 24"><g transform="rotate(-35 12 12)"><path d="M12 7H7.5a5 5 0 0 0 0 10H12z" fill="' + c[0] + '" stroke="' + c[1] + '"/><path d="M12 7h4.5a5 5 0 0 1 0 10H12z" fill="#f8f7f2" stroke="#c9c7bd"/><rect x="5" y="9" width="5" height="1.6" rx=".8" fill="#fff" opacity=".6"/></g></svg>';
+  if (shape === 'oval')
+    return '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="5.8" fill="' + c[0] + '" stroke="' + c[1] + '" transform="rotate(-20 12 12)"/><path d="M7 14.2 17 10" stroke="' + c[1] + '" stroke-width=".9" opacity=".7"/></svg>';
+  return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="' + c[0] + '" stroke="' + c[1] + '"/><path d="M6.6 12h10.8" stroke="' + c[1] + '" stroke-width=".9" opacity=".75"/><path d="M8 8.4a5 5 0 0 1 4-2" stroke="#fff" stroke-width="1.4" fill="none" opacity=".8"/></svg>';
+}
+var SLOTICON = [
+  '<svg viewBox="0 0 34 34" fill="currentColor"><circle cx="17" cy="19" r="7"/><rect x="15.6" y="4" width="2.8" height="5"/><rect x="3" y="17.6" width="5" height="2.8"/><rect x="26" y="17.6" width="5" height="2.8"/><rect x="6.6" y="7.6" width="2.8" height="5" transform="rotate(-45 8 10)"/><rect x="24.6" y="7.6" width="2.8" height="5" transform="rotate(45 26 10)"/><rect x="3" y="28" width="28" height="2.8"/><rect x="11" y="22" width="12" height="6" fill="#fbfbf7"/></svg>',
+  '<svg viewBox="0 0 34 34" fill="currentColor"><path d="M4 16h26a13 13 0 0 1-26 0z"/><rect x="12" y="27" width="10" height="3"/><rect x="11" y="4" width="2.6" height="9" transform="rotate(-12 12 8)"/><rect x="17" y="3" width="2.6" height="10" transform="rotate(8 18 8)"/><rect x="8" y="19" width="6" height="2.6" fill="#fbfbf7"/></svg>',
+  '<svg viewBox="0 0 34 34" fill="currentColor"><path d="M4 18h26a13 13 0 0 1-26 0z"/><rect x="12" y="29" width="10" height="2.6"/><path d="M8 14c0-4 3-4 3-8M15 14c0-4 3-4 3-8M22 14c0-4 3-4 3-8" stroke="currentColor" stroke-width="2.4" fill="none"/><rect x="8" y="21" width="6" height="2.6" fill="#fbfbf7"/></svg>',
+  '<svg viewBox="0 0 34 34" fill="currentColor"><path d="M21 4a12 12 0 1 0 9 19A10 10 0 0 1 21 4z"/><rect x="22" y="9" width="7" height="2.4"/><rect x="24.3" y="6.7" width="2.4" height="7"/><rect x="9" y="17" width="6" height="2.6" fill="#fbfbf7"/></svg>'
+];
+var STAMP = '<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="13" fill="none" stroke="#d23a2f" stroke-width="2"/><text x="18" y="18" dy=".36em" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,Hiragino Mincho ProN,serif" font-size="14" fill="#d23a2f">服</text></svg>';
+var HALF = '<svg viewBox="0 0 36 36"><path d="M18 5a13 13 0 0 1 0 26" fill="none" stroke="#d23a2f" stroke-width="2"/><path d="M18 5a13 13 0 0 0 0 26" fill="none" stroke="#d23a2f" stroke-width="2" stroke-dasharray="3 3"/><text x="18" y="18" dy=".36em" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="12" fill="#d23a2f">半</text></svg>';
+var CROSS = '<svg viewBox="0 0 36 36"><path d="M10 10l16 16M26 10 10 26" stroke="#9aa19c" stroke-width="2"/></svg>';
+
+/* ---------- audio ---------- */
+var ac = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function click(){
+  var a = audio(); if (!a || !settings.sound) return;
+  var o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
+  o.type = 'square'; o.frequency.setValueAtTime(900, t); o.frequency.exponentialRampToValueAtTime(260, t + .04);
+  g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(.001, t + .06);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + .07);
+}
+function chime(){
+  var a = audio(); if (!a || !settings.sound) return;
+  [[880, 0], [1318.5, .16]].forEach(function(p){
+    var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + p[1];
+    o.type = 'sine'; o.frequency.value = p[0];
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.16, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + .9);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 1);
+  });
+}
+function rattle(){
+  var a = audio(); if (!a || !settings.sound) return;
+  for (var i = 0; i < 4; i++){
+    var t = a.currentTime + i * .045 + Math.random() * .02, o = a.createOscillator(), g = a.createGain();
+    o.type = 'triangle'; o.frequency.value = 2200 + Math.random() * 1600;
+    g.gain.setValueAtTime(.05, t); g.gain.exponentialRampToValueAtTime(.001, t + .04);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + .05);
+  }
+}
+
+/* ---------- pillbox ---------- */
+var openComp = {};
+function weekStart(){ var d = new Date(TODAY), w = (d.getDay() + 6) % 7; return addDays(d, -w); }
+function status(d, s){
+  var k = dkey(d), rec = log[k] || {}, cnt = slotCount(s);
+  if (!cnt) return 'empty';
+  if (rec[s]) return 'taken';
+  var diff = Math.round((d - TODAY) / 864e5);
+  if (diff < 0) return 'missed';
+  if (diff > 0) return 'future';
+  var t = mins(settings.times[s]), n = nowMin();
+  if (n < t - 60) return 'upcoming';
+  if (n > t + 180) return 'late';
+  return 'due';
+}
+function renderBox(){
+  var ws = weekStart(), h = '<span></span>';
+  for (var i = 0; i < 7; i++){
+    var d = addDays(ws, i), td = dkey(d) === dkey(TODAY);
+    h += '<div class="dh' + (td ? ' today' : '') + '">' + WK[d.getDay()] + '<small>' + (td ? '今天' : d.getDate()) + '</small></div>';
+  }
+  for (var s = 0; s < 4; s++){
+    h += '<div class="rl">' + (s === 3 ? '睡' : SLOT[s]) + '</div>';
+    for (var j = 0; j < 7; j++){
+      var dd = addDays(ws, j), st = status(dd, s), id = dkey(dd) + '|' + s, ms = slotMeds(s), pills = '';
+      ms.forEach(function(m){ for (var q = 0; q < m.per; q++) pills += pill(m.color, m.shape); });
+      var cls = 'comp' + (st === 'taken' ? ' taken' : '') + (st === 'missed' ? ' missed' : '') + (st === 'empty' ? ' empty' : '') + (openComp[id] ? ' open' : '') + (dkey(dd) === dkey(TODAY) ? ' today-col' : '');
+      h += '<div class="' + cls + '" role="button" tabindex="0" data-c="' + id + '" aria-label="星期' + WK[dd.getDay()] + ' ' + SLOTF[s] + (st === 'taken' ? '，已服用' : st === 'missed' ? '，漏服' : st === 'empty' ? '，空格' : '') + '">' +
+        '<div class="tray">' + pills + '</div><div class="stamp"><span><b>服</b></span></div><div class="lid"><i></i></div></div>';
+    }
+  }
+  $('pillbox').innerHTML = h;
+}
+function takeSlot(k, s, silent){
+  var rec = log[k] = log[k] || {};
+  if (rec[s]) return;
+  rec[s] = fmtM(nowMin());
+  slotMeds(s).forEach(function(m){ m.stock = Math.max(0, m.stock - m.per); });
+  persist();
+  if (!silent){ rattle(); setTimeout(chime, 180); haptic([10, 40, 20]); }
+}
+function untake(k, s){
+  var rec = log[k]; if (!rec || !rec[s]) return;
+  delete rec[s]; slotMeds(s).forEach(function(m){ m.stock += m.per; }); persist();
+}
+$('pillbox').addEventListener('click', function(e){
+  var c = e.target.closest('.comp'); if (!c) return;
+  audio();
+  var id = c.dataset.c, p = id.split('|'), k = p[0], s = +p[1], dk = k.split('-'), d = new Date(+dk[0], +dk[1] - 1, +dk[2]);
+  var st = status(d, s);
+  if (st === 'empty'){ haptic([4, 30, 4]); toast('這一格沒有要吃的藥'); return; }
+  if (!openComp[id]){
+    Object.keys(openComp).forEach(function(x){ delete openComp[x]; });
+    openComp[id] = 1; click(); haptic(6); renderBox();
+    if (st === 'future') $('boxHint').textContent = '還沒到星期' + WK[d.getDay()] + '，先看看就好';
+    else if (st === 'taken') $('boxHint').textContent = SLOTF[s] + '已在 ' + log[k][s] + ' 服用';
+    else if (st === 'missed') $('boxHint').textContent = '這格漏服了，點一下補記';
+    else $('boxHint').textContent = '再點一下，把藥倒出來服用';
+    return;
+  }
+  if (st === 'future'){ delete openComp[id]; click(); haptic(5); renderBox(); $('boxHint').textContent = '點一格掀開蓋子'; return; }
+  if (st === 'taken'){ delete openComp[id]; click(); haptic(5); renderBox(); $('boxHint').textContent = '點一格掀開蓋子'; return; }
+  takeSlot(k, s);
+  var label = (dkey(d) === dkey(TODAY) ? '' : '星期' + WK[d.getDay()] + ' ') + SLOTF[s];
+  renderAll();
+  setTimeout(function(){ delete openComp[id]; renderBox(); }, reduce ? 0 : 900);
+  $('boxHint').textContent = label + '服用完成';
+  toast(label + '　蓋章完成', function(){ untake(k, s); renderAll(); });
+});
+$('pillbox').addEventListener('keydown', function(e){ if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.comp')){ e.preventDefault(); e.target.click(); } });
+
+function renderNext(){
+  var n = nowMin(), tk = dkey(TODAY), rec = log[tk] || {}, target = null;
+  for (var s = 0; s < 4; s++){ if (slotCount(s) && !rec[s] && status(TODAY, s) !== 'upcoming'){ target = {s:s, day:TODAY, due:true}; break; } }
+  if (!target) for (var s2 = 0; s2 < 4; s2++){ if (slotCount(s2) && !rec[s2]){ target = {s:s2, day:TODAY}; break; } }
+  if (!target) for (var s3 = 0; s3 < 4; s3++){ if (slotCount(s3)){ target = {s:s3, day:addDays(TODAY, 1)}; break; } }
+  if (!target){ $('next').innerHTML = '<div class="when">目前沒有排程</div>'; return; }
+  var ms = slotMeds(target.s), t = mins(settings.times[target.s]), when;
+  var tomorrow = dkey(target.day) !== tk;
+  if (tomorrow) when = '明天';
+  else if (target.due) when = n > t ? '晚了 ' + dur(n - t) : '現在';
+  else when = '還有 ' + dur(t - n);
+  $('next').innerHTML = '<div class="row"><div><div class="when">' + SLOTF[target.s] + '<span>' + settings.times[target.s] + '</span></div>' +
+    '<div class="what">' + when + '・<b>' + slotCount(target.s) + ' 顆</b>・' + ms.map(function(m){ return m.name.replace(/膜衣錠|軟膠囊|錠/, ''); }).join('、') + '</div></div>' +
+    (!tomorrow && target.due ? '<button class="btn" data-take="' + target.s + '">服用</button>' : '') + '</div>';
+}
+function dur(m){ m = Math.max(0, Math.round(m)); var h = Math.floor(m / 60), r = m % 60; return (h ? h + ' 小時 ' : '') + (r || !h ? r + ' 分' : ''); }
+function renderSlots(){
+  var tk = dkey(TODAY), rec = log[tk] || {}, h = '';
+  for (var s = 0; s < 4; s++){
+    var ms = slotMeds(s); if (!ms.length) continue;
+    var st = status(TODAY, s), pills = '';
+    ms.forEach(function(m){ pills += pill(m.color, m.shape); });
+    var right;
+    if (st === 'taken') right = '<div class="st"><b>已服</b>' + rec[s] + '</div>';
+    else if (st === 'upcoming') right = '<div class="st wait"><b>' + settings.times[s] + '</b>還沒到</div>';
+    else right = '<button class="btn' + (st === 'late' ? ' red' : '') + '" data-take="' + s + '">' + (st === 'late' ? '補服' : '服用') + '</button>';
+    h += '<div class="slot"><div class="ic">' + SLOTICON[s] + '</div><div><div class="nm">' + SLOTF[s] + '<span>' + settings.times[s] + '</span></div><div class="ps">' + pills + '<span>&nbsp;' + slotCount(s) + ' 顆</span></div></div>' + right + '</div>';
+  }
+  $('slots').innerHTML = h;
+  var low = meds.filter(function(m){ var perDay = m.slots.reduce(function(a, b){ return a + b; }, 0) * m.per; return perDay && m.stock / perDay < 7; });
+  $('warnBox').innerHTML = low.length ? '<div class="warn"><svg viewBox="0 0 28 28" fill="currentColor"><path d="M14 2 27 25H1z"/><rect x="12.6" y="10" width="2.8" height="8" fill="#fff"/><rect x="12.6" y="19.6" width="2.8" height="2.8" fill="#fff"/></svg><p><b>' + low[0].name + '</b> 剩 ' + low[0].stock + ' 顆，' + (low.length > 1 ? '還有 ' + (low.length - 1) + ' 種也快吃完。' : '不到一週的量。') + '</p><button class="btn red" data-refill="' + low[0].id + '">補藥</button></div>' : '';
+}
+$('p-box').addEventListener('click', function(e){
+  var t = e.target.closest('[data-take]'), r = e.target.closest('[data-refill]');
+  if (t){ var s = +t.dataset.take, k = dkey(TODAY); audio(); takeSlot(k, s); renderAll(); toast(SLOTF[s] + '　蓋章完成', function(){ untake(k, s); renderAll(); }); }
+  if (r) openRefill(+r.dataset.refill);
+});
+
+/* ---------- bags ---------- */
+var openBag = 3;
+function renderBags(){
+  $('bags').innerHTML = meds.map(function(m){
+    var perDay = m.slots.reduce(function(a, b){ return a + b; }, 0) * m.per, days = perDay ? Math.floor(m.stock / perDay) : 0, low = perDay && days < 7;
+    var ticks = '', cap = Math.max(30, Math.ceil(m.stock / 10) * 10);
+    for (var i = 0; i < Math.min(cap, 90); i++) ticks += '<i' + (i < m.stock ? '' : ' class="off"') + '></i>';
+    return '<article class="bag' + (openBag === m.id ? ' open' : '') + '" data-id="' + m.id + '">' +
+      '<button class="top" data-toggle="' + m.id + '" aria-expanded="' + (openBag === m.id) + '"><div><div class="kind">內服藥</div><div class="drug">' + esc(m.name) + '<small>' + esc(m.sub) + '</small></div></div>' +
+      '<div class="big">' + (low ? '<span class="lowtag">快吃完</span>' : '') + pill(m.color, m.shape) + '<svg class="chev" viewBox="0 0 22 22" fill="currentColor"><path d="M4 8h14l-7 8z"/></svg></div></button>' +
+      '<div class="more"><div><div class="inner">' +
+      '<div class="times">' + SLOT.map(function(s, i){ return '<span class="' + (m.slots[i] ? 'on' : '') + '"><i></i>' + s + '</span>'; }).join('') + '</div>' +
+      '<dl class="kv"><dt>用法</dt><dd>一日 ' + m.slots.reduce(function(a, b){ return a + b; }, 0) + ' 次，每次 ' + m.per + ' 顆，' + (m.slots[3] && m.slots.reduce(function(a, b){ return a + b; }, 0) === 1 ? '睡前服用' : '飯後服用') + '</dd>' +
+      '<dt>用途</dt><dd>' + esc(m.use) + '</dd>' + (m.warn ? '<dt>注意</dt><dd class="rd">' + esc(m.warn) + '</dd>' : '') + '</dl>' +
+      '<div class="stock"><div class="ln"><span>剩餘</span><b>' + m.stock + '<small>顆・約 ' + days + ' 天</small></b></div><div class="ticks' + (low ? ' low' : '') + '">' + ticks + '</div></div>' +
+      '<div class="acts"><button class="btn' + (low ? ' red' : '') + '" data-refill="' + m.id + '"><svg viewBox="0 0 18 18" fill="currentColor"><rect x="7.6" y="2" width="2.8" height="14"/><rect x="2" y="7.6" width="14" height="2.8"/></svg>補藥</button>' +
+      '<button class="btn del" data-del="' + m.id + '" aria-label="刪除 ' + esc(m.name) + '"><svg viewBox="0 0 18 18" fill="currentColor"><rect x="2" y="4" width="14" height="2.4"/><rect x="6.5" y="1.5" width="5" height="2.4"/><path d="M4 7.6h10l-1 9H5z"/></svg></button></div>' +
+      '<div class="foot">林淑芬 女士・處方 台大醫院 家醫科・調劑日 115/09/20・28 日份</div>' +
+      '</div></div></div></article>';
+  }).join('') + '<button class="addbag" id="addBag"><svg viewBox="0 0 22 22" fill="currentColor"><rect x="9.6" y="2" width="2.8" height="18"/><rect x="2" y="9.6" width="18" height="2.8"/></svg>新增一只藥袋</button>';
+}
+$('bags').addEventListener('click', function(e){
+  var t = e.target.closest('[data-toggle]'), r = e.target.closest('[data-refill]'), d = e.target.closest('[data-del]');
+  if (e.target.closest('#addBag')){ openAdd(); return; }
+  if (r){ openRefill(+r.dataset.refill); return; }
+  if (d){
+    var id = +d.dataset.del, i = meds.findIndex(function(m){ return m.id === id; }), gone = meds.splice(i, 1)[0];
+    persist(); renderAll(); haptic([10, 30, 10]);
+    toast('收起「' + gone.name + '」', function(){ meds.splice(i, 0, gone); persist(); renderAll(); });
+    return;
+  }
+  if (t){
+    var bid = +t.dataset.toggle; openBag = openBag === bid ? 0 : bid; haptic(5); click();
+    document.querySelectorAll('.bag').forEach(function(b){ var on = +b.dataset.id === openBag; b.classList.toggle('open', on); b.querySelector('.top').setAttribute('aria-expanded', on); });
+  }
+});
+
+/* ---------- log ---------- */
+function dayState(d){
+  var rec = log[dkey(d)] || {}, need = 0, got = 0;
+  for (var s = 0; s < 4; s++){ if (slotCount(s)){ need++; if (rec[s]) got++; } }
+  return {need:need, got:got};
+}
+function renderLog(){
+  var start = addDays(TODAY, -27), pad = (start.getDay() + 6) % 7, h = '';
+  ['一','二','三','四','五','六','日'].forEach(function(w){ h += '<span class="h">' + w + '</span>'; });
+  for (var i = 0; i < pad; i++) h += '<span></span>';
+  var need = 0, got = 0;
+  for (var j = 0; j < 28; j++){
+    var d = addDays(start, j), st = dayState(d), isT = j === 27, mark;
+    if (!isT){ need += st.need; got += st.got; }
+    if (isT) mark = st.got === st.need ? STAMP : st.got ? HALF : '<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="13" fill="none" stroke="#9aa19c" stroke-width="1.5" stroke-dasharray="2 4"/></svg>';
+    else mark = st.got === st.need ? STAMP : st.got ? HALF : CROSS;
+    h += '<div class="day" aria-label="' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + st.got + '/' + st.need + '"><span class="d">' + d.getDate() + '</span>' + mark + '</div>';
+  }
+  $('cal').innerHTML = h;
+  $('pct').innerHTML = (need ? Math.round(got / need * 100) : 100) + '<small>%</small>';
+  var streak = 0;
+  for (var k = 1; k < 60; k++){ var st2 = dayState(addDays(TODAY, -k)); if (st2.need && st2.got === st2.need) streak++; else break; }
+  $('streak').textContent = streak;
+  var sh = '';
+  for (var s = 0; s < 4; s++){
+    sh += '<div class="set"><div class="ic">' + SLOTICON[s] + '</div><div class="nm">' + SLOTF[s] + '<small>' + slotCount(s) + ' 顆・' + slotMeds(s).length + ' 種</small></div>' +
+      '<div class="step"><button data-tm="' + s + '" data-dv="-15" aria-label="' + SLOTF[s] + '提早 15 分"><svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="5.8" width="12" height="2.4"/></svg></button><output>' + settings.times[s] + '</output><button data-tm="' + s + '" data-dv="15" aria-label="' + SLOTF[s] + '延後 15 分"><svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="5.8" width="12" height="2.4"/><rect x="5.8" y="1" width="2.4" height="12"/></svg></button></div></div>';
+  }
+  sh += '<div class="set"><div class="ic"><svg viewBox="0 0 34 34" fill="currentColor"><path d="M17 4a2 2 0 0 1 2 2v1.3a8 8 0 0 1 6 7.7v5l2.5 3.8h-21L9 20v-5a8 8 0 0 1 6-7.7V6a2 2 0 0 1 2-2z"/><path d="M13.5 26.5h7a3.5 3.5 0 0 1-7 0z"/></svg></div><div class="nm">到點提醒<small>在上方跳出紅框通知</small></div><button class="sw" role="switch" id="swRemind" aria-checked="' + settings.remind + '" aria-label="到點提醒"></button></div>';
+  sh += '<div class="set"><div class="ic"><svg viewBox="0 0 34 34" fill="currentColor"><path d="M5 13h6l8-7v22l-8-7H5z"/><path d="M23 11a8 8 0 0 1 0 12" stroke="currentColor" stroke-width="2.6" fill="none"/></svg></div><div class="nm">藥盒聲音<small>掀蓋與蓋章的聲響</small></div><button class="sw" role="switch" id="swSound" aria-checked="' + settings.sound + '" aria-label="藥盒聲音"></button></div>';
+  $('settings').innerHTML = sh;
+}
+$('settings').addEventListener('click', function(e){
+  var b = e.target.closest('[data-tm]');
+  if (b){
+    var s = +b.dataset.tm, v = mins(settings.times[s]) + (+b.dataset.dv);
+    var lo = s ? mins(settings.times[s - 1]) + 60 : 300, hi = s < 3 ? mins(settings.times[s + 1]) - 60 : 23 * 60 + 45;
+    if (v < lo || v > hi){ haptic([6, 40, 6]); toast(v < lo ? '和前一次至少隔一小時' : '和下一次至少隔一小時'); return; }
+    settings.times[s] = fmtM(v); persist(); click(); haptic(4); renderAll(); return;
+  }
+  if (e.target.closest('#swRemind')){ settings.remind = !settings.remind; persist(); haptic(8); renderLog(); checkRemind(true); }
+  if (e.target.closest('#swSound')){ settings.sound = !settings.sound; persist(); haptic(8); renderLog(); click(); }
+});
+
+/* ---------- sheets ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html, label){
+  lastFocus = document.activeElement;
+  $('sbody').innerHTML = html; $('sbody').scrollTop = 0; sheet.setAttribute('aria-label', label);
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on');
+  if (document.activeElement && sheet.contains(document.activeElement)) document.activeElement.blur();
+  if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
+}
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, on = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button,input') || ($('sbody').scrollTop > 0 && e.target.closest('.sbody'))) return;
+    on = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId);
+  });
+  sheet.addEventListener('pointermove', function(e){
+    if (!on) return; dy = e.clientY - sy;
+    sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)';
+    scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2);
+  });
+  function end(e){
+    if (!on) return; on = false; sheet.classList.remove('drag'); scrim.style.opacity = '';
+    if (dy > sheet.offsetHeight * .35 || dy / Math.max(1, e.timeStamp - t0) > .6) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+
+var refillId = 0, refillN = 0;
+function openRefill(id){
+  var m = meds.find(function(x){ return x.id === id; }); if (!m) return;
+  refillId = id; refillN = 28;
+  openSheet('<h2>補藥・' + esc(m.name) + '</h2><p class="sub">目前剩 ' + m.stock + ' 顆。領了慢性處方箋的藥，就加進來。</p>' +
+    '<div class="big-n" id="rfN">+28<small>顆</small></div>' +
+    '<div class="quick"><button class="btn line" data-rf="7">+7</button><button class="btn line" data-rf="28">+28</button><button class="btn line" data-rf="84">+84</button></div>' +
+    '<button class="btn go" id="rfGo">加進藥袋</button>', '補藥');
+}
+var draft = null;
+function addHTML(){
+  var sw = Object.keys(COLORS).map(function(c){ return '<button data-color="' + c + '" aria-pressed="' + (draft.color === c) + '" aria-label="' + c + '">' + pill(c, draft.shape) + '</button>'; }).join('');
+  var sh = SHAPES.map(function(s){ return '<button data-shape="' + s + '" aria-pressed="' + (draft.shape === s) + '" aria-label="' + s + '">' + pill(draft.color, s) + '</button>'; }).join('');
+  return '<h2>新增藥袋</h2><p class="sub">照著藥袋上印的寫就好。</p>' +
+    '<div class="fld"><label for="fName">藥名</label><input id="fName" maxlength="14" placeholder="例如：脈優錠" value="' + esc(draft.name) + '"></div>' +
+    '<div class="two"><div class="fld"><label for="fSub">劑量</label><input id="fSub" maxlength="10" placeholder="5 mg" value="' + esc(draft.sub) + '"></div><div class="fld"><label for="fUse">用途</label><input id="fUse" maxlength="10" placeholder="高血壓" value="' + esc(draft.use) + '"></div></div>' +
+    '<div class="fld"><span class="lb">服用時間</span><div class="pick">' + SLOT.map(function(s, i){ return '<button data-slot="' + i + '" aria-pressed="' + !!draft.slots[i] + '"><i></i>' + s + '</button>'; }).join('') + '</div></div>' +
+    '<div class="fld"><span class="lb">藥的樣子</span><div class="swatches">' + sw + '</div><div class="swatches" style="margin-top:4px">' + sh + '</div></div>' +
+    '<div class="two"><div class="fld"><span class="lb">每次</span><div class="step"><button data-per="-1" aria-label="少一顆"><svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="5.8" width="12" height="2.4"/></svg></button><output>' + draft.per + ' 顆</output><button data-per="1" aria-label="多一顆"><svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="5.8" width="12" height="2.4"/><rect x="5.8" y="1" width="2.4" height="12"/></svg></button></div></div>' +
+    '<div class="fld"><span class="lb">目前數量</span><div class="step"><button data-stk="-7" aria-label="少七顆"><svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="5.8" width="12" height="2.4"/></svg></button><output>' + draft.stock + '</output><button data-stk="7" aria-label="多七顆"><svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="5.8" width="12" height="2.4"/><rect x="5.8" y="1" width="2.4" height="12"/></svg></button></div></div></div>' +
+    '<button class="btn go" id="addGo">印好藥袋</button>';
+}
+function openAdd(){
+  draft = {name:'', sub:'', use:'', slots:[1,0,1,0], color:'yellow', shape:'round', per:1, stock:28};
+  openSheet(addHTML(), '新增藥袋');
+}
+function readDraft(){ ['Name','Sub','Use'].forEach(function(f){ var el = $('f' + f); if (el) draft[f.toLowerCase()] = el.value; }); }
+$('sbody').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.rf){ refillN = +b.dataset.rf; $('rfN').innerHTML = '+' + refillN + '<small>顆</small>'; click(); haptic(4); return; }
+  if (b.id === 'rfGo'){
+    var m = meds.find(function(x){ return x.id === refillId; }); if (m){ m.stock += refillN; persist(); renderAll(); chime(); haptic([8, 30, 14]); toast(m.name + ' 補了 ' + refillN + ' 顆'); }
+    closeSheet(); return;
+  }
+  if (!draft) return;
+  readDraft();
+  if (b.dataset.slot){ var i = +b.dataset.slot; draft.slots[i] = draft.slots[i] ? 0 : 1; }
+  else if (b.dataset.color) draft.color = b.dataset.color;
+  else if (b.dataset.shape) draft.shape = b.dataset.shape;
+  else if (b.dataset.per) draft.per = Math.max(1, Math.min(4, draft.per + (+b.dataset.per)));
+  else if (b.dataset.stk) draft.stock = Math.max(0, Math.min(180, draft.stock + (+b.dataset.stk)));
+  else if (b.id === 'addGo'){
+    if (!draft.name.trim()){ haptic([6, 40, 6]); toast('先寫上藥名'); $('fName').focus(); return; }
+    if (!draft.slots.some(Boolean)){ haptic([6, 40, 6]); toast('至少勾一個服用時間'); return; }
+    var nm = {id:nextId++, name:draft.name.trim(), sub:draft.sub.trim() || '—', use:draft.use.trim() || '未填', color:draft.color, shape:draft.shape, slots:draft.slots.slice(), per:draft.per, stock:draft.stock, warn:''};
+    meds.push(nm); openBag = nm.id; persist(); renderAll(); chime(); haptic([8, 30, 14]); closeSheet(); draft = null;
+    toast('印好了：' + nm.name); return;
+  } else return;
+  click(); haptic(4);
+  var sc = $('sbody').scrollTop; $('sbody').innerHTML = addHTML(); $('sbody').scrollTop = sc;
+});
+
+/* ---------- reminder notice ---------- */
+var noticeT = null, noticeSlot = -1, dismissed = load('dismissed', {});
+function checkRemind(force){
+  var n = $('notice');
+  if (!settings.remind){ n.classList.remove('on'); return; }
+  var tk = dkey(TODAY), rec = log[tk] || {}, due = -1;
+  for (var s = 0; s < 4; s++){ var st = status(TODAY, s); if ((st === 'due' || st === 'late') && nowMin() >= mins(settings.times[s]) && !rec[s] && dismissed[tk + s] !== 1) due = s; }
+  if (due < 0){ n.classList.remove('on'); noticeSlot = -1; return; }
+  if (due !== noticeSlot || force){
+    noticeSlot = due;
+    $('noticeT').innerHTML = '<b>' + SLOTF[due] + '的藥還沒吃</b>' + settings.times[due] + '・' + slotCount(due) + ' 顆';
+    n.classList.add('on'); if (ac) chime(); haptic([20, 60, 20]);
+    clearTimeout(noticeT); noticeT = setTimeout(function(){ n.classList.remove('on'); }, 8000);
+  }
+}
+$('noticeGo').addEventListener('click', function(){
+  var s = noticeSlot; $('notice').classList.remove('on');
+  if (s > -1){ dismissed[dkey(TODAY) + s] = 1; save('dismissed', dismissed); }
+  switchTab('box');
+  var c = document.querySelector('.comp[data-c="' + dkey(TODAY) + '|' + s + '"]');
+  if (c && !c.classList.contains('open')) c.click();
+});
+(function(){
+  var n = $('notice'), sy = 0, on = false;
+  n.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; on = true; sy = e.clientY; n.setPointerCapture(e.pointerId); });
+  n.addEventListener('pointermove', function(e){ if (on && e.clientY < sy) n.style.transform = 'translateY(' + (e.clientY - sy) + 'px)'; });
+  n.addEventListener('pointerup', function(e){
+    if (!on) return; on = false; n.style.transform = '';
+    if (sy - e.clientY > 30){ n.classList.remove('on'); if (noticeSlot > -1){ dismissed[dkey(TODAY) + noticeSlot] = 1; save('dismissed', dismissed); } }
+  });
+})();
+
+/* ---------- tabs ---------- */
+var ORDER = ['box','bags','log'], cur = 'box';
+function switchTab(p){
+  if (p === cur){ $('p-' + p).scrollTo({top:0, behavior:reduce ? 'auto' : 'smooth'}); return; }
+  var a = ORDER.indexOf(cur), b = ORDER.indexOf(p);
+  $('p-' + cur).hidden = true; var pg = $('p-' + p); pg.hidden = false;
+  pg.classList.remove('enter', 'back'); void pg.offsetWidth; pg.classList.add('enter'); if (b < a) pg.classList.add('back');
+  cur = p;
+  document.querySelectorAll('.nav button').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.p === p); });
+  haptic(5); click();
+}
+document.querySelector('.nav').addEventListener('click', function(e){ var t = e.target.closest('button'); if (t) switchTab(t.dataset.p); });
+
+/* ---------- toast ---------- */
+var toastT = null, undoFn = null;
+function toast(msg, undo){
+  $('toastT').textContent = msg; undoFn = undo || null; $('toastU').hidden = !undo;
+  $('toast').classList.add('on'); clearTimeout(toastT);
+  toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, undo ? 4000 : 2000);
+}
+$('toastU').addEventListener('click', function(){ if (undoFn){ undoFn(); undoFn = null; haptic(8); } $('toast').classList.remove('on'); });
+
+/* ---------- clock ---------- */
+function renderAll(){ renderNext(); renderBox(); renderSlots(); renderBags(); renderLog(); }
+function tickClock(){
+  var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+  var t = new Date(); t.setHours(0, 0, 0, 0);
+  if (t - TODAY !== 0){ TODAY = t; }
+  $('dateLine').textContent = (d.getFullYear() - 1911) + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日（' + WK[d.getDay()] + '）';
+}
+tickClock();
+setInterval(function(){ tickClock(); renderNext(); renderSlots(); checkRemind(); }, 30000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 15 * b.level).toFixed(1)); }).catch(function(){});
+renderAll();
+setTimeout(function(){ checkRemind(); }, 1400);
+})();
+</script>
+</body>
+</html>

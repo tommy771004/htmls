@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="軌道">
+<title>軌道 Orbit · 訂閱管理</title>
+<meta name="description" content="把每一筆訂閱畫成繞行的行星：月繳在內圈、季繳在中圈、年繳在外圈，轉到正上方就是扣款日，左滑取消、快轉一個月看錢怎麼流走。收錄於 100 Creative HTML Works（App 024・瑞士極簡）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/024-orbit-subs.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23fff'/%3E%3Ccircle cx='32' cy='34' r='20' fill='none' stroke='%23000' stroke-width='3'/%3E%3Ccircle cx='32' cy='34' r='9' fill='none' stroke='%23000' stroke-width='3'/%3E%3Ccircle cx='32' cy='14' r='6' fill='%23e30613'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#ffffff;
+  --ink:#0b0b0b;
+  --ink-2:#5f5f5f;
+  --ink-3:#8c8c8c;
+  --rule:#dcdcdc;
+  --red:#e30613;
+  --f:"Helvetica Neue",Helvetica,"PingFang TC","Heiti TC",Arial,sans-serif;
+  --snap:cubic-bezier(.2,.9,.1,1);
+  --spring:cubic-bezier(.3,1.3,.5,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.4 var(--f);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+input{font:inherit;color:inherit}
+svg{display:block}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper);isolation:isolate}
+@media (min-width:521px){
+  .stage{display:flex;align-items:center;justify-content:center;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:9px;background:var(--ink);z-index:1;
+    box-shadow:0 0 0 1px #3a3a3a inset,0 1px 0 #444 inset}
+  .screen{inset:9px;border-radius:45px}
+  .caption{display:block;position:fixed;left:40px;bottom:40px;z-index:1;max-width:300px;background:#fff;padding:18px 22px 20px}
+  .caption h1{font:700 30px/1 var(--f);letter-spacing:-.01em}
+  .caption p{margin-top:10px;font-size:14px;line-height:1.5;color:var(--ink-2)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+/* ---------- status ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;
+  display:flex;align-items:center;justify-content:space-between;font:600 15px/1 var(--f);pointer-events:none;background:var(--paper)}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- header ---------- */
+.top{position:absolute;left:0;right:0;top:calc(48px + env(safe-area-inset-top));z-index:20;height:52px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;background:var(--paper)}
+@media (display-mode:standalone){.top{top:env(safe-area-inset-top)}}
+.brand{display:flex;align-items:center;gap:10px;font:700 20px/1 var(--f);letter-spacing:-.01em}
+.brand svg{width:24px;height:24px}
+.vt{position:relative;display:flex;height:44px}
+.vt button{height:44px;padding:0 10px;font-size:15px;font-weight:500;color:var(--ink-3);transition:color .2s}
+.vt button[aria-pressed=true]{color:var(--ink);font-weight:700}
+.vt .bar{position:absolute;left:0;bottom:6px;height:3px;background:var(--ink);transition:transform .45s var(--snap),width .45s var(--snap)}
+
+/* ---------- views ---------- */
+.views{position:absolute;left:0;right:0;top:calc(100px + env(safe-area-inset-top));bottom:0;overflow:hidden}
+@media (display-mode:standalone){.views{top:calc(52px + env(safe-area-inset-top))}}
+.track{position:absolute;inset:0;display:flex;width:200%;transition:transform .55s var(--snap)}
+.view{position:relative;display:flex;flex-direction:column;width:50%;height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+.view::-webkit-scrollbar{display:none}
+.screen[data-view=list] .track{transform:translateX(-50%)}
+
+/* orbit view */
+.total{display:grid;grid-template-columns:1fr auto;align-items:end;padding:6px 20px 0}
+.total button{text-align:left;min-height:44px}
+.total .cur{font:500 13px/1 var(--f);color:var(--ink-2);display:block;margin-bottom:6px}
+.total .big{font:700 58px/.9 var(--f);letter-spacing:-.02em;display:flex;align-items:baseline;gap:8px}
+.total .big small{font:500 15px/1 var(--f);letter-spacing:0;color:var(--ink-2)}
+.total .meta{text-align:right;font-size:13px;line-height:1.45;color:var(--ink-2)}
+.total .meta b{color:var(--ink);font-weight:600}
+.dialwrap{position:relative;flex:none;margin:14px auto 0;width:min(100%,370px);aspect-ratio:1;touch-action:none;cursor:grab}
+.dialwrap svg{width:100%;height:100%;overflow:visible}
+.dialwrap .tk{stroke:var(--ink)}
+.dialwrap .lbl{font:500 10px var(--f);fill:var(--ink-2)}
+.planet{cursor:pointer}
+.planet .hit{fill:transparent}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse .7s var(--snap) forwards}
+@keyframes pulse{from{transform:scale(1);opacity:1}to{transform:scale(2.6);opacity:0}}
+.center{position:absolute;left:50%;top:50%;width:144px;margin-left:-72px;transform:translateY(-50%);text-align:center;border-radius:50%;padding:8px 0}
+.center .k{font-size:12px;color:var(--ink-2);display:block}
+.center .n{display:block;font:700 16px/1.2 var(--f);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.center .v{display:block;font:300 34px/1 var(--f);letter-spacing:-.01em;margin-top:6px}
+.center .d{display:block;font-size:13px;margin-top:6px;font-weight:600}
+.center .d.hot{color:var(--red)}
+.legend{display:grid;grid-template-columns:repeat(3,1fr);margin:6px 20px 0;padding-top:12px;box-shadow:inset 0 2px 0 var(--ink)}
+.legend div{font-size:13px;color:var(--ink-2);line-height:1.35}
+.legend b{display:block;font:700 22px/1.1 var(--f);color:var(--ink)}
+.soonrow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 20px 0}
+.soonrow button{text-align:left;min-height:44px;min-width:0}
+.soonrow b{display:block;font-size:15px;font-weight:700}
+.soonrow b.hot{color:var(--red)}
+.soonrow span{display:block;font-size:13px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.soonrow button:active span{color:var(--ink)}
+.ctl{display:flex;align-items:center;gap:14px;margin:auto 20px 0;padding-top:18px}
+.lapse{flex:1;display:flex;align-items:center;gap:12px;height:56px;text-align:left}
+.lapse .ic{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);transition:background-color .15s,color .15s}
+.lapse:active .ic{background:var(--ink);color:var(--paper)}
+.lapse b{display:block;font-weight:700;font-size:15px}
+.lapse span{display:block;font-size:13px;color:var(--ink-2)}
+.add{width:56px;height:56px;background:var(--ink);color:var(--paper);display:grid;place-items:center;flex:none;transition:background-color .15s}
+.add:active{background:#3a3a3a}
+.today-btn{height:44px;font-size:13px;font-weight:600;padding:0 4px;color:var(--ink)}
+.today-btn[hidden]{display:none}
+
+/* list view */
+.filters{display:flex;gap:4px;padding:6px 14px 0}
+.filters button{height:44px;padding:0 8px;font-size:15px;color:var(--ink-3);font-weight:500}
+.filters button[aria-pressed=true]{color:var(--ink);font-weight:700}
+.sumline{display:flex;justify-content:space-between;align-items:baseline;margin:6px 20px 0;padding:12px 0 10px;box-shadow:inset 0 2px 0 var(--ink)}
+.sumline b{font:700 26px/1 var(--f);letter-spacing:-.01em}
+.sumline span{font-size:13px;color:var(--ink-2)}
+.rows{margin:0}
+.rw{position:relative;overflow:hidden}
+.rw .del{position:absolute;inset:0;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:flex-end;padding-right:22px;font-weight:700;font-size:15px}
+.row{position:relative;display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:12px;width:100%;min-height:68px;padding:10px 20px;background:var(--paper);text-align:left;touch-action:pan-y;transition:transform .35s var(--snap)}
+.row.drag{transition:none}
+.row::after{content:"";position:absolute;left:20px;right:20px;bottom:0;height:1px;background:var(--rule)}
+.row:active{background:#f4f4f4}
+.row .dt{font:700 26px/1 var(--f);letter-spacing:-.01em}
+.row .dt small{display:block;font:500 11px/1.2 var(--f);color:var(--ink-2);margin-top:4px;letter-spacing:0}
+.row .nm{font-weight:600;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .sb{font-size:13px;color:var(--ink-2);margin-top:2px}
+.row .pr{text-align:right;font-weight:600;font-size:16px}
+.row .pr small{display:block;font-size:12px;font-weight:400;color:var(--ink-2);margin-top:2px}
+.row.soon .dt{color:var(--red)}
+.hint{margin:16px 20px 0;font-size:13px;color:var(--ink-3)}
+.empty{padding:40px 20px;color:var(--ink-2);font-size:15px}
+.saved{margin:22px 20px 0;display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2)}
+.saved b{color:var(--ink);font-weight:700}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:calc(100% - 60px);display:flex;flex-direction:column;background:var(--paper);border-radius:22px 22px 0 0;
+  transform:translateY(105%);transition:transform .5s var(--spring);touch-action:none;box-shadow:0 -1px 0 #e6e6e6}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab}
+.grab i{width:36px;height:4px;background:var(--ink);border-radius:2px}
+.sbody{overflow-y:auto;padding:0 20px calc(22px + env(safe-area-inset-bottom));touch-action:pan-y;scrollbar-width:none}
+.sbody::-webkit-scrollbar{display:none}
+.sh{font:700 26px/1.1 var(--f);letter-spacing:-.01em}
+.fl{display:block;font-size:13px;color:var(--ink-2);margin:18px 0 6px}
+.inp{width:100%;height:48px;border:0;border-bottom:2px solid var(--ink);background:none;font-size:20px;font-weight:600;border-radius:0;outline:none;padding:0}
+.inp:focus{border-bottom-color:var(--red)}
+.inp::placeholder{color:#b8b8b8;font-weight:400}
+.pricewrap{display:flex;align-items:baseline;gap:8px}
+.pricewrap span{font-weight:600;color:var(--ink-2)}
+.seg3{display:grid;grid-template-columns:repeat(3,1fr);box-shadow:inset 0 0 0 2px var(--ink)}
+.seg3 button{height:46px;font-weight:600;font-size:15px}
+.seg3 button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.days button{height:44px;font-size:15px;font-weight:500}
+.days button[aria-pressed=true]{background:var(--ink);color:var(--paper);font-weight:700}
+.days button:active{background:#eee}
+.months{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;margin-bottom:6px}
+.months button{height:44px;font-size:14px;font-weight:500}
+.months button[aria-pressed=true]{background:var(--ink);color:var(--paper);font-weight:700}
+.presets{display:flex;gap:18px;overflow-x:auto;margin:14px -20px 0;padding:0 20px;scrollbar-width:none}
+.presets::-webkit-scrollbar{display:none}
+.presets button{flex:none;height:44px;font-size:14px;color:var(--ink-2);text-align:left;line-height:1.2}
+.presets button b{display:block;color:var(--ink);font-weight:600}
+.err{min-height:20px;margin-top:10px;font-size:13px;color:var(--red);font-weight:600}
+.go{width:100%;height:54px;margin-top:10px;background:var(--ink);color:var(--paper);font-weight:700;font-size:17px;transition:background-color .15s}
+.go:active{background:#333}
+.kv{display:grid;grid-template-columns:1fr auto;margin-top:18px}
+.kv div{padding:13px 0;box-shadow:inset 0 -1px 0 var(--rule);font-size:15px}
+.kv div:nth-child(odd){color:var(--ink-2)}
+.kv div:nth-child(even){text-align:right;font-weight:600}
+.acts{display:flex;justify-content:space-between;margin-top:14px}
+.acts button{height:50px;font-weight:700;font-size:16px;padding:0 2px}
+.acts .cancel{color:var(--red)}
+.mini{margin-top:18px;height:72px}
+.mini svg{width:100%;height:100%;overflow:visible}
+
+/* ---------- toast ---------- */
+.toast{position:absolute;left:12px;right:12px;bottom:calc(30px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  min-height:52px;padding:0 8px 0 18px;background:var(--ink);color:var(--paper);font-size:14px;transform:translateY(160%);transition:transform .45s var(--spring);visibility:hidden}
+.toast.on{transform:none;visibility:visible}
+.toast button{height:44px;padding:0 12px;font-weight:700;color:var(--paper)}
+.toast button:active{color:#bbb}
+.toast button[hidden]{display:none}
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--ink);z-index:70;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  .track,.row,.sheet,.toast,.vt .bar{transition-duration:.01s}
+  .pulse{animation:none;opacity:0}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <rect width="1600" height="1000" fill="#fff"/>
+      <g fill="none" stroke="#0b0b0b">
+        <circle cx="800" cy="500" r="330" stroke-width="1.5"/>
+        <circle cx="800" cy="500" r="470" stroke-width="1.5"/>
+        <circle cx="800" cy="500" r="640" stroke-width="1.5"/>
+        <circle cx="800" cy="500" r="840" stroke-width="1.5"/>
+      </g>
+      <g stroke="#0b0b0b" stroke-width="1.5" id="bgTicks"></g>
+      <circle cx="378" cy="229" r="120" fill="#e30613"/>
+      <circle cx="1242" cy="747" r="34" fill="#0b0b0b"/>
+      <circle cx="1181" cy="232" r="14" fill="#0b0b0b"/>
+      <circle cx="515" cy="870" r="22" fill="#0b0b0b"/>
+      <circle cx="1560" cy="420" r="60" fill="#0b0b0b"/>
+      <circle cx="1127" cy="500" r="9" fill="#0b0b0b"/>
+    </svg>
+  </div>
+  <div class="caption"><h1>軌道 Orbit</h1><p>每一筆訂閱都是一顆行星，轉到正上方的那天就會扣款。</p></div>
+
+  <div class="device">
+    <div class="screen" id="screen" data-view="orbit">
+      <div class="status" aria-hidden="true">
+        <span id="clock" class="num">9:41</span>
+        <span class="g">
+          <svg width="17" height="11" viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" fill="currentColor"/><rect x="4.6" y="4.8" width="3" height="6.2" fill="currentColor"/><rect x="9.2" y="2.4" width="3" height="8.6" fill="currentColor"/><rect x="13.8" y="0" width="3" height="11" fill="currentColor" opacity=".3"/></svg>
+          <svg width="15" height="11" viewBox="0 0 15 11"><circle cx="7.5" cy="9.3" r="1.7" fill="currentColor"/><path d="M4.3 6.4a4.6 4.6 0 0 1 6.4 0M1.4 3.4a8.6 8.6 0 0 1 12.2 0" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x=".75" y=".75" width="21.5" height="10.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect id="batt" x="3" y="3" width="15" height="6" fill="currentColor"/><rect x="23.5" y="4" width="2" height="4" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <header class="top">
+        <div class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="5" r="3.2" fill="#e30613"/></svg>軌道</div>
+        <div class="vt" role="group" aria-label="檢視">
+          <button id="vOrbit" aria-pressed="true" data-v="orbit">軌道</button>
+          <button id="vList" aria-pressed="false" data-v="list">清單</button>
+          <span class="bar" id="vbar"></span>
+        </div>
+      </header>
+
+      <div class="views">
+        <div class="track">
+          <!-- ORBIT -->
+          <section class="view" id="orbitView" aria-label="軌道圖">
+            <div class="total">
+              <button id="totalBtn" aria-label="切換月／年合計">
+                <span class="cur" id="totalK">每月合計 · NT$</span>
+                <span class="big num"><span id="totalV">0</span><small id="totalU">/ 月</small></span>
+              </button>
+              <div class="meta"><b id="cnt">0</b> 項訂閱<br><span id="nextMeta"></span></div>
+            </div>
+            <div class="dialwrap" id="dial" aria-label="訂閱軌道，拖曳可轉動時間">
+              <svg viewBox="0 0 360 360" id="dialSvg"></svg>
+              <button class="center" id="center" aria-label="查看選取的訂閱">
+                <span class="k" id="cK">下一筆扣款</span>
+                <span class="n" id="cN">…</span>
+                <span class="v num" id="cV">0</span>
+                <span class="d" id="cD"></span>
+              </button>
+            </div>
+            <div class="legend">
+              <div><b id="lgM">0</b>內圈 · 月繳</div>
+              <div><b id="lgQ">0</b>中圈 · 季繳</div>
+              <div><b id="lgY">0</b>外圈 · 年繳</div>
+            </div>
+            <div class="soonrow" id="soonRow" aria-label="接下來的扣款"></div>
+            <div class="ctl">
+              <button class="lapse" id="lapse" aria-label="快轉三十天">
+                <span class="ic" id="lapseIc"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M5 3.2v11.6L14.2 9z" fill="currentColor"/></svg></span>
+                <span><b id="lapseT">快轉 30 天</b><span id="lapseS">看行星轉到頂端扣款</span></span>
+              </button>
+              <button class="today-btn" id="todayBtn" hidden>回到今天</button>
+              <button class="add" id="addBtn" aria-label="新增訂閱"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M11 2v18M2 11h18" stroke="currentColor" stroke-width="2.6"/></svg></button>
+            </div>
+          </section>
+
+          <!-- LIST -->
+          <section class="view" id="listView" aria-label="訂閱清單">
+            <div class="filters" id="filters" role="group" aria-label="篩選週期">
+              <button data-f="all" aria-pressed="true">全部</button>
+              <button data-f="m" aria-pressed="false">月繳</button>
+              <button data-f="q" aria-pressed="false">季繳</button>
+              <button data-f="y" aria-pressed="false">年繳</button>
+            </div>
+            <div class="sumline"><b class="num" id="lsum">NT$0</b><span id="lsumK">依下次扣款排序</span></div>
+            <div class="rows" id="rows"></div>
+            <p class="hint">向左滑動一列即可取消訂閱，五秒內可復原。</p>
+            <div class="saved"><span>本次取消，每年省下</span><b class="num" id="savedV">NT$0</b></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="訂閱">
+        <div class="grab" id="grab"><i></i></div>
+        <div class="sbody" id="sbody"></div>
+      </div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="undo" hidden>復原</button></div>
+      <div class="home-ind" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var K = 'app024:';
+function load(k, d){ try { var v = localStorage.getItem(K + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(K + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var fmt = function(n){ return Math.round(n).toLocaleString('en-US'); };
+var NS = 'http://www.w3.org/2000/svg';
+
+// ---------- dates ----------
+var TODAY = new Date(); TODAY.setHours(0,0,0,0);
+function iso(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function parse(s){ var p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+function addDays(d, n){ var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function addMonths(d, n, day){ var x = new Date(d.getFullYear(), d.getMonth() + n, 1); var dim = new Date(x.getFullYear(), x.getMonth()+1, 0).getDate(); x.setDate(Math.min(day, dim)); return x; }
+function diff(a, b){ return Math.round((b - a) / 864e5); }
+var STEP = {m:1, q:3, y:12}, CYC = {m:'每月', q:'每季', y:'每年'}, CYCS = {m:'月繳', q:'季繳', y:'年繳'};
+function nextOn(s, from){
+  var n = parse(s.next);
+  while (n < from) n = addMonths(n, STEP[s.cycle], s.day);
+  return n;
+}
+function prevOf(s, next){ return addMonths(next, -STEP[s.cycle], s.day); }
+function monthly(s){ return s.price / STEP[s.cycle]; }
+
+// ---------- seed ----------
+function seed(){
+  var list = [
+    ['Netflix 標準方案', 390, 'm', 26], ['Spotify Premium', 149, 'm', 3], ['YouTube Premium', 199, 'm', 12],
+    ['Disney+', 270, 'm', 18], ['iCloud+ 200GB', 90, 'm', 1], ['ChatGPT Plus', 650, 'm', 15],
+    ['健身工廠 月費', 1388, 'm', 5], ['中華電信 5G 599', 599, 'm', 20], ['foodpanda pro', 99, 'm', 29],
+    ['KKBOX 季繳', 447, 'q', 44], ['商業周刊 數位版', 990, 'q', 9],
+    ['1Password 家庭', 1650, 'y', 37], ['Notion Plus', 3840, 'y', 69], ['Adobe Lightroom', 3588, 'y', 121],
+    ['Nintendo Switch Online', 1090, 'y', 172], ['Costco 會員', 1350, 'y', 228]
+  ];
+  return list.map(function(r, i){
+    var next;
+    if (r[2] === 'm'){ next = new Date(TODAY.getFullYear(), TODAY.getMonth(), Math.min(r[3], 28)); if (next < TODAY) next = addMonths(next, 1, r[3]); }
+    else next = addDays(TODAY, r[3]);
+    return {id:'s' + i, name:r[0], price:r[1], cycle:r[2], day:next.getDate(), next:iso(next)};
+  });
+}
+var subs = load('subs', null) || seed();
+var savedYear = load('saved', 0);
+var yearMode = load('year', false);
+var view = load('view', 'orbit');
+var filter = 'all';
+function persist(){ save('subs', subs); save('saved', savedYear); }
+
+// ---------- status clock ----------
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0'); }
+tick(); setInterval(tick, 20000);
+try { if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 15 * b.level).toFixed(1)); }).catch(function(){}); } catch(e){}
+
+// ---------- audio ----------
+var AC = null;
+function ac(){
+  if (!AC){ try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ AC = null; } }
+  if (AC && AC.state === 'suspended'){ try { AC.resume(); } catch(e){} }
+  return AC;
+}
+function blip(f, dur, vol, type){
+  if (!AC) return;
+  try {
+    var t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol || .12, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur + .02);
+  } catch(e){}
+}
+function charge(){ blip(1568, .09, .1); setTimeout(function(){ blip(2093, .18, .08); }, 70); }
+
+// ---------- dial ----------
+var R = {m:93, q:127, y:158}, C = 180;
+var offset = 0;           // days into the future the dial shows
+var selId = null;
+var dial = $('dialSvg');
+function el(tag, at){ var e = document.createElementNS(NS, tag); for (var k in at) e.setAttribute(k, at[k]); return e; }
+function pt(r, a){ var rad = (a - 90) * Math.PI / 180; return [C + r * Math.cos(rad), C + r * Math.sin(rad)]; }
+var planetsG;
+function buildDial(){
+  dial.innerHTML = '';
+  // rings
+  ['m','q','y'].forEach(function(c){ dial.appendChild(el('circle', {cx:C, cy:C, r:R[c], fill:'none', stroke:'#0b0b0b', 'stroke-width': c === 'm' ? 2 : 1.25})); });
+  // 30 day ticks outside the inner ring
+  var g = el('g', {'class':'tk'});
+  for (var i = 0; i < 30; i++){
+    var a = i / 30 * 360, big = i % 7 === 0, p1 = pt(R.m + 3, a), p2 = pt(R.m + (big ? 12 : 7), a);
+    g.appendChild(el('line', {x1:p1[0], y1:p1[1], x2:p2[0], y2:p2[1], 'stroke-width': big ? 2 : 1}));
+  }
+  // 12 month ticks outside the outer ring
+  for (var j = 0; j < 12; j++){
+    var b = j * 30, q1 = pt(R.y + 3, b), q2 = pt(R.y + (j % 3 === 0 ? 13 : 7), b);
+    g.appendChild(el('line', {x1:q1[0], y1:q1[1], x2:q2[0], y2:q2[1], 'stroke-width': j % 3 === 0 ? 2 : 1}));
+  }
+  // quarter ring notches
+  for (var k = 0; k < 3; k++){ var c1 = pt(R.q - 5, k * 120), c2 = pt(R.q + 5, k * 120); g.appendChild(el('line', {x1:c1[0], y1:c1[1], x2:c2[0], y2:c2[1], 'stroke-width':2})); }
+  dial.appendChild(g);
+  // week labels inside the inner ring
+  [7, 14, 21].forEach(function(d){ var p = pt(R.m - 11, d / 30 * 360), t = el('text', {x:p[0].toFixed(1), y:p[1].toFixed(1), 'class':'lbl', 'text-anchor':'middle', 'dominant-baseline':'central'}); t.textContent = d; dial.appendChild(t); });
+  // "today" marker at 12 o'clock
+  dial.appendChild(el('path', {d:'M' + C + ' ' + (C - R.y - 18) + 'V' + (C - R.m + 4), stroke:'#e30613', 'stroke-width':1.5}));
+  var tt = el('text', {x:C + 7, y:C - R.y - 9, 'class':'lbl', 'text-anchor':'start', style:'fill:#e30613;font-weight:700'}); tt.textContent = '扣款點'; dial.appendChild(tt);
+  planetsG = el('g', {}); dial.appendChild(planetsG);
+}
+function planetR(s){ return Math.min(15, 4.5 + Math.sqrt(monthly(s)) * .34); }
+var lastNext = {};
+function drawPlanets(){
+  var now = addDays(TODAY, Math.floor(offset)), frac = offset - Math.floor(offset);
+  var soon = nextDue(now);
+  planetsG.innerHTML = '';
+  var sorted = subs.slice().sort(function(a, b){ return monthly(b) - monthly(a); });
+  sorted.forEach(function(s){
+    var nx = nextOn(s, now), pv = prevOf(s, nx), period = diff(pv, nx), left = diff(now, nx) - frac;
+    if (left < 0) left += period;
+    var a = left / period * 360, r = planetR(s), p = pt(R[s.cycle], a);
+    var g = el('g', {'class':'planet', 'data-id':s.id, transform:'translate(' + p[0].toFixed(2) + ' ' + p[1].toFixed(2) + ')', role:'button', 'aria-label':s.name});
+    g.appendChild(el('circle', {r:Math.max(22, r + 6), 'class':'hit'}));
+    var red = soon && s.id === soon.id;
+    g.appendChild(el('circle', {r:r, fill: red ? '#e30613' : '#0b0b0b'}));
+    if (s.id === selId && !red) g.appendChild(el('circle', {r:r + 4.5, fill:'none', stroke:'#0b0b0b', 'stroke-width':1.5}));
+    if (s.id === selId && red) g.appendChild(el('circle', {r:r + 4.5, fill:'none', stroke:'#e30613', 'stroke-width':1.5}));
+    // charged while the month is being fast-forwarded
+    if (lastNext[s.id] && lastNext[s.id] !== iso(nx) && playing){
+      spent += s.price; charged++;
+      g.appendChild(el('circle', {r:r, fill:'none', stroke:'#e30613', 'stroke-width':2, 'class':'pulse'}));
+      charge(); haptic(6);
+    }
+    lastNext[s.id] = iso(nx);
+    planetsG.appendChild(g);
+  });
+}
+function nextDue(from){
+  var best = null, bd = 1e9;
+  subs.forEach(function(s){ var d = diff(from, nextOn(s, from)); if (d < bd){ bd = d; best = s; } });
+  return best;
+}
+function daysWord(d){ return d === 0 ? '今天扣款' : d === 1 ? '明天扣款' : d + ' 天後扣款'; }
+function renderCenter(){
+  if (playing){
+    $('cK').textContent = '第 ' + Math.min(30, Math.floor(offset)) + ' 天';
+    $('cN').textContent = charged + ' 筆扣款';
+    $('cV').textContent = fmt(spent);
+    $('cD').textContent = '已流出 NT$'; $('cD').className = 'd';
+    return;
+  }
+  var now = addDays(TODAY, Math.round(offset));
+  var soon = nextDue(now), s = subs.filter(function(x){ return x.id === selId; })[0] || soon;
+  if (!s){ $('cK').textContent = '沒有訂閱'; $('cN').textContent = '按 + 新增'; $('cV').textContent = '0'; $('cD').textContent = ''; return; }
+  var d = diff(now, nextOn(s, now));
+  $('cK').textContent = s === soon ? (offset ? '那天之後下一筆' : '下一筆扣款') : CYCS[s.cycle];
+  $('cN').textContent = s.name;
+  $('cV').textContent = fmt(s.price);
+  $('cD').textContent = daysWord(d);
+  $('cD').className = 'd' + (d <= 3 ? ' hot' : '');
+}
+function renderTotals(){
+  var m = subs.reduce(function(a, s){ return a + monthly(s); }, 0);
+  $('totalV').textContent = fmt(yearMode ? m * 12 : m);
+  $('totalU').textContent = yearMode ? '/ 年' : '/ 月';
+  $('totalK').textContent = (yearMode ? '每年合計' : '每月合計') + ' · NT$';
+  $('cnt').textContent = subs.length;
+  var soon = nextDue(TODAY);
+  $('nextMeta').textContent = soon ? '下一筆 ' + (diff(TODAY, nextOn(soon, TODAY)) || '今') + (diff(TODAY, nextOn(soon, TODAY)) ? ' 天後' : '天') : '';
+  var up = subs.map(function(x){ return {s:x, d:diff(TODAY, nextOn(x, TODAY))}; }).sort(function(a, b){ return a.d - b.d; }).slice(0, 3);
+  $('soonRow').innerHTML = up.map(function(u){ return '<button data-id="' + u.s.id + '"><b class="' + (u.d <= 3 ? 'hot' : '') + '">' + (u.d === 0 ? '今天' : u.d + ' 天後') + '</b><span>' + esc(u.s.name) + '</span><span class="num">NT$' + fmt(u.s.price) + '</span></button>'; }).join('');
+  ['m','q','y'].forEach(function(c){ $('lg' + c.toUpperCase()).textContent = subs.filter(function(s){ return s.cycle === c; }).length; });
+}
+function renderOrbit(){ drawPlanets(); renderCenter(); renderTotals(); $('todayBtn').hidden = playing || Math.round(offset) === 0; }
+
+// intro sweep: planets already visible, they swing into their true places
+function intro(){
+  if (reduce){ offset = 0; renderOrbit(); return; }
+  var t0 = performance.now(), from = -9;
+  offset = from;
+  (function f(t){
+    var k = Math.min(1, (t - t0) / 1100), e = 1 - Math.pow(1 - k, 4);
+    offset = from * (1 - e);
+    drawPlanets(); renderCenter();
+    if (k < 1) requestAnimationFrame(f); else { offset = 0; renderOrbit(); }
+  })(t0);
+}
+
+// dial drag = turn time
+(function(){
+  var d = $('dial'), dragging = false, a0 = 0, o0 = 0, moved = false, sx = 0, sy = 0;
+  function ang(e){ var r = d.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI; }
+  d.addEventListener('pointerdown', function(e){
+    if (playing || e.target.closest('.center')) return;
+    dragging = true; moved = false; a0 = ang(e); o0 = offset; sx = e.clientX; sy = e.clientY;
+    try { d.setPointerCapture(e.pointerId); } catch(err){}
+  });
+  d.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return;
+    moved = true;
+    var da = ang(e) - a0; if (da > 180) da -= 360; if (da < -180) da += 360;
+    // turning clockwise walks backward, like rewinding a dial; counter-clockwise advances time
+    o0 += -da / 360 * 30; a0 = ang(e);
+    var prev = Math.round(offset);
+    offset = Math.max(0, Math.min(365, o0));
+    if (Math.round(offset) !== prev) haptic(3);
+    drawPlanets(); renderCenter(); $('todayBtn').hidden = Math.round(offset) === 0;
+  });
+  function end(e){
+    if (!dragging) return; dragging = false;
+    if (!moved){
+      var g = e.target.closest && e.target.closest('.planet');
+      if (!g){ var hit = document.elementFromPoint(e.clientX, e.clientY); g = hit && hit.closest && hit.closest('.planet'); }
+      if (g){ select(g.getAttribute('data-id')); }
+      return;
+    }
+    offset = Math.round(offset); renderOrbit();
+  }
+  d.addEventListener('pointerup', end); d.addEventListener('pointercancel', end);
+})();
+function select(id){
+  if (selId === id){ openDetail(id); return; }
+  selId = id; haptic(5); drawPlanets(); renderCenter();
+}
+$('center').addEventListener('click', function(){
+  if (playing) return;
+  var s = subs.filter(function(x){ return x.id === selId; })[0] || nextDue(addDays(TODAY, Math.round(offset)));
+  if (s) openDetail(s.id);
+});
+$('soonRow').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b && !playing){ haptic(5); openDetail(b.dataset.id); } });
+$('todayBtn').addEventListener('click', function(){ haptic(6); animateOffset(0, 600); });
+function animateOffset(to, dur){
+  var from = offset, t0 = performance.now();
+  if (reduce) dur = 1;
+  (function f(t){
+    var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    offset = from + (to - from) * e; drawPlanets(); renderCenter();
+    if (k < 1) requestAnimationFrame(f); else { offset = to; renderOrbit(); }
+  })(t0);
+}
+
+// time-lapse: fast-forward 30 days
+var playing = false, spent = 0, charged = 0, raf = 0;
+$('lapse').addEventListener('click', function(){
+  ac(); haptic([8, 30, 8]);
+  if (playing){ stopLapse(); return; }
+  if (!subs.length){ toast('先新增一筆訂閱'); return; }
+  playing = true; spent = 0; charged = 0; offset = 0; lastNext = {};
+  drawPlanets();
+  $('lapseT').textContent = '停止'; $('lapseS').textContent = '快轉中';
+  $('lapseIc').innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" fill="currentColor"/></svg>';
+  var t0 = performance.now(), last = t0, DUR = 9000;
+  (function f(t){
+    if (!playing) return;
+    if (document.hidden){ last = t; raf = requestAnimationFrame(f); return; }
+    offset = Math.min(30, offset + (t - last) / DUR * 30); last = t;
+    drawPlanets(); renderCenter();
+    if (offset >= 30){ finishLapse(); return; }
+    raf = requestAnimationFrame(f);
+  })(t0);
+});
+function finishLapse(){
+  var s = spent, n = charged;
+  stopLapse();
+  toast('30 天內 ' + n + ' 筆扣款，共 NT$' + fmt(s));
+  blip(880, .3, .08, 'triangle');
+}
+function stopLapse(){
+  playing = false; cancelAnimationFrame(raf);
+  $('lapseT').textContent = '快轉 30 天'; $('lapseS').textContent = '看行星轉到頂端扣款';
+  $('lapseIc').innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18"><path d="M5 3.2v11.6L14.2 9z" fill="currentColor"/></svg>';
+  animateOffset(0, 700);
+}
+$('totalBtn').addEventListener('click', function(){ yearMode = !yearMode; save('year', yearMode); haptic(5); renderTotals(); renderList(); });
+
+// ---------- list ----------
+function renderList(){
+  var items = subs.filter(function(s){ return filter === 'all' || s.cycle === filter; })
+    .map(function(s){ return {s:s, n:nextOn(s, TODAY)}; })
+    .sort(function(a, b){ return a.n - b.n; });
+  var sum = items.reduce(function(a, x){ return a + monthly(x.s); }, 0);
+  $('lsum').textContent = 'NT$' + fmt(yearMode ? sum * 12 : sum);
+  $('lsumK').textContent = (yearMode ? '每年' : '每月') + ' · ' + items.length + ' 項';
+  $('savedV').textContent = 'NT$' + fmt(savedYear);
+  if (!items.length){ $('rows').innerHTML = '<div class="empty">這個分類沒有訂閱。</div>'; return; }
+  $('rows').innerHTML = items.map(function(x){
+    var s = x.s, d = diff(TODAY, x.n);
+    return '<div class="rw"><div class="del" aria-hidden="true">取消訂閱</div>' +
+      '<button class="row' + (d <= 3 ? ' soon' : '') + '" data-id="' + s.id + '">' +
+      '<span class="dt num">' + x.n.getDate() + '<small>' + (x.n.getMonth()+1) + ' 月</small></span>' +
+      '<span style="min-width:0"><span class="nm" style="display:block">' + esc(s.name) + '</span><span class="sb" style="display:block">' + CYCS[s.cycle] + ' · ' + daysWord(d) + '</span></span>' +
+      '<span class="pr num">' + fmt(s.price) + '<small>' + (s.cycle === 'm' ? '每月' : '月均 ' + fmt(monthly(s))) + '</small></span></button></div>';
+  }).join('');
+}
+function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+$('filters').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  filter = b.dataset.f; haptic(4);
+  this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
+  renderList();
+});
+// swipe to cancel
+(function(){
+  var rows = $('rows'), row = null, sx = 0, sy = 0, dx = 0, mode = '', id = null;
+  rows.addEventListener('pointerdown', function(e){
+    row = e.target.closest('.row'); if (!row) return;
+    sx = e.clientX; sy = e.clientY; dx = 0; mode = ''; id = row.dataset.id;
+  });
+  rows.addEventListener('pointermove', function(e){
+    if (!row) return;
+    var mx = e.clientX - sx, my = e.clientY - sy;
+    if (!mode){ if (Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) { mode = 'x'; row.classList.add('drag'); try { row.setPointerCapture(e.pointerId); } catch(err){} } else if (Math.abs(my) > 8) { mode = 'y'; } }
+    if (mode !== 'x') return;
+    dx = Math.min(0, mx); if (dx < -row.offsetWidth * .45) dx = -row.offsetWidth * .45 + (dx + row.offsetWidth * .45) * .3;
+    row.style.transform = 'translateX(' + dx.toFixed(1) + 'px)';
+  });
+  function end(){
+    if (!row) return;
+    var r = row; row = null; r.classList.remove('drag');
+    if (mode === 'x'){
+      r.dataset.swiped = '1';
+      setTimeout(function(){ delete r.dataset.swiped; }, 60);
+      if (dx < -110){ r.style.transform = 'translateX(-100%)'; haptic([12, 40, 20]); setTimeout(function(){ cancelSub(id); }, reduce ? 0 : 260); }
+      else r.style.transform = '';
+    }
+    mode = '';
+  }
+  rows.addEventListener('pointerup', end); rows.addEventListener('pointercancel', end);
+  rows.addEventListener('click', function(e){
+    var r = e.target.closest('.row'); if (!r || r.dataset.swiped) return;
+    haptic(5); openDetail(r.dataset.id);
+  });
+})();
+var undoState = null;
+function cancelSub(id){
+  var i = -1; subs.forEach(function(s, k){ if (s.id === id) i = k; });
+  if (i < 0) return;
+  var s = subs[i];
+  undoState = {s:s, i:i};
+  subs.splice(i, 1);
+  savedYear += monthly(s) * 12;
+  if (selId === id) selId = null;
+  persist(); renderAll();
+  toast('已取消 ' + s.name + '，每年省 NT$' + fmt(monthly(s) * 12), true);
+}
+$('undo').addEventListener('click', function(){
+  if (!undoState) return;
+  subs.splice(undoState.i, 0, undoState.s);
+  savedYear = Math.max(0, savedYear - monthly(undoState.s) * 12);
+  undoState = null; persist(); renderAll(); haptic(8);
+  toast('已復原');
+});
+
+// ---------- views ----------
+function setView(v, quiet){
+  view = v; save('view', v);
+  $('screen').dataset.view = v;
+  $('vOrbit').setAttribute('aria-pressed', v === 'orbit'); $('vList').setAttribute('aria-pressed', v === 'list');
+  placeBar();
+  if (!quiet) haptic(5);
+}
+function placeBar(){
+  var b = view === 'orbit' ? $('vOrbit') : $('vList');
+  $('vbar').style.width = (b.offsetWidth - 20) + 'px';
+  $('vbar').style.transform = 'translateX(' + (b.offsetLeft + 10) + 'px)';
+}
+$('vOrbit').addEventListener('click', function(){ setView('orbit'); });
+$('vList').addEventListener('click', function(){ if (playing) stopLapse(); setView('list'); });
+
+// ---------- sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){
+  lastFocus = document.activeElement;
+  $('sbody').innerHTML = html; $('sbody').scrollTop = 0;
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on');
+  if (lastFocus && lastFocus.focus) try { lastFocus.focus({preventScroll:true}); } catch(e){}
+}
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){
+    var body = $('sbody');
+    if (e.target.closest('button,input')) return;
+    if (!e.target.closest('.grab') && body.scrollTop > 0) return;
+    dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag');
+    try { sheet.setPointerCapture(e.pointerId); } catch(err){}
+  });
+  sheet.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6;
+    sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)';
+    scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2);
+  });
+  function end(e){
+    if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = '';
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+// add / edit sheet
+var form = null;
+var PRESETS = [['Apple Music', 165, 'm'], ['Disney+ 年繳', 2700, 'y'], ['Google One 2TB', 330, 'm'], ['Uber One', 120, 'm'], ['Duolingo Super', 2390, 'y'], ['Amazon Prime Video', 180, 'm']];
+function openAdd(editId){
+  var s = editId ? subs.filter(function(x){ return x.id === editId; })[0] : null;
+  var nx = s ? nextOn(s, TODAY) : null;
+  form = {id: s ? s.id : null, name: s ? s.name : '', price: s ? s.price : '', cycle: s ? s.cycle : 'm', day: s ? s.day : TODAY.getDate(), month: nx ? nx.getMonth() : TODAY.getMonth()};
+  openSheet(formHTML(!!s));
+  wireForm();
+}
+function formHTML(edit){
+  var days = '', months = '';
+  for (var d = 1; d <= 31; d++) days += '<button data-day="' + d + '" aria-pressed="' + (form.day === d) + '">' + d + '</button>';
+  for (var m = 0; m < 12; m++) months += '<button data-month="' + m + '" aria-pressed="' + (form.month === m) + '">' + (m + 1) + '月</button>';
+  return '<h2 class="sh">' + (edit ? '編輯訂閱' : '新增訂閱') + '</h2>' +
+    (edit ? '' : '<div class="presets" id="presets">' + PRESETS.map(function(p, i){ return '<button data-p="' + i + '"><b>' + p[0] + '</b>' + CYC[p[2]] + ' ' + fmt(p[1]) + '</button>'; }).join('') + '</div>') +
+    '<label class="fl" for="fName">名稱</label><input class="inp" id="fName" maxlength="28" placeholder="例如 Netflix" value="' + esc(form.name) + '" autocomplete="off">' +
+    '<label class="fl" for="fPrice">金額</label><div class="pricewrap"><span>NT$</span><input class="inp num" id="fPrice" inputmode="numeric" maxlength="6" placeholder="0" value="' + form.price + '"></div>' +
+    '<span class="fl">週期</span><div class="seg3" id="fCyc"><button data-c="m">月繳</button><button data-c="q">季繳</button><button data-c="y">年繳</button></div>' +
+    '<span class="fl" id="fWhenL">每月扣款日</span><div class="months" id="fMonths">' + months + '</div><div class="days" id="fDays">' + days + '</div>' +
+    '<div class="err" id="fErr"></div><button class="go" id="fSave">' + (edit ? '儲存變更' : '加入軌道') + '</button>';
+}
+function wireForm(){
+  function syncCyc(){
+    document.querySelectorAll('#fCyc button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.c === form.cycle); });
+    $('fMonths').style.display = form.cycle === 'm' ? 'none' : '';
+    $('fWhenL').textContent = form.cycle === 'm' ? '每月扣款日' : '下次扣款的月份與日期';
+  }
+  syncCyc();
+  $('fCyc').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; form.cycle = b.dataset.c; haptic(4); syncCyc(); });
+  $('fDays').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; form.day = +b.dataset.day; haptic(3); this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); });
+  $('fMonths').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; form.month = +b.dataset.month; haptic(3); this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); });
+  var pr = $('presets');
+  if (pr) pr.addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b) return; var p = PRESETS[+b.dataset.p];
+    $('fName').value = p[0]; $('fPrice').value = p[1]; form.cycle = p[2]; syncCyc(); haptic(5); $('fErr').textContent = '';
+  });
+  $('fPrice').addEventListener('input', function(){ this.value = this.value.replace(/[^0-9]/g, ''); });
+  $('fSave').addEventListener('click', saveForm);
+}
+function saveForm(){
+  var name = $('fName').value.trim(), price = parseInt($('fPrice').value, 10);
+  if (!name){ $('fErr').textContent = '請輸入名稱'; haptic([30, 40, 30]); $('fName').focus(); return; }
+  if (!(price > 0)){ $('fErr').textContent = '請輸入大於 0 的金額'; haptic([30, 40, 30]); $('fPrice').focus(); return; }
+  var next;
+  if (form.cycle === 'm'){ next = addMonths(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1), 0, form.day); if (next < TODAY) next = addMonths(next, 1, form.day); }
+  else { next = addMonths(new Date(TODAY.getFullYear(), form.month, 1), 0, form.day); if (next < TODAY) next = addMonths(next, 12, form.day); }
+  if (form.id){
+    subs.forEach(function(s){ if (s.id === form.id){ s.name = name; s.price = price; s.cycle = form.cycle; s.day = form.day; s.next = iso(next); } });
+    toast('已更新 ' + name);
+  } else {
+    var id = 'u' + Date.now().toString(36);
+    subs.push({id:id, name:name, price:price, cycle:form.cycle, day:form.day, next:iso(next)});
+    selId = id;
+    toast('已加入軌道：' + name);
+  }
+  persist(); closeSheet(); haptic([10, 30, 10]); renderAll();
+  if (view !== 'orbit') setView('orbit', true);
+}
+$('addBtn').addEventListener('click', function(){ if (playing) stopLapse(); openAdd(null); });
+
+// detail sheet
+function openDetail(id){
+  var s = subs.filter(function(x){ return x.id === id; })[0]; if (!s) return;
+  selId = id; drawPlanets(); renderCenter();
+  var nx = nextOn(s, TODAY), d = diff(TODAY, nx);
+  // next 12 charges as a strip
+  var marks = '', x = nextOn(s, TODAY);
+  for (var i = 0; i < 12; i++){
+    var dd = diff(TODAY, x); if (dd > 365) break;
+    var px = (dd / 365 * 340 + 10).toFixed(1);
+    marks += '<rect x="' + (px - 1.5) + '" y="' + (i ? 22 : 14) + '" width="3" height="' + (i ? 26 : 34) + '" fill="' + (i ? '#0b0b0b' : '#e30613') + '"/>';
+    x = addMonths(x, STEP[s.cycle], s.day);
+  }
+  var axis = '';
+  for (var m = 0; m <= 12; m += 3){ axis += '<text x="' + (m / 12 * 340 + 10) + '" y="66" font-size="11" fill="#5f5f5f" text-anchor="' + (m === 0 ? 'start' : m === 12 ? 'end' : 'middle') + '">' + (m === 0 ? '今天' : '+' + m + ' 個月') + '</text>'; }
+  openSheet('<h2 class="sh">' + esc(s.name) + '</h2>' +
+    '<div class="kv"><div>金額</div><div class="num">NT$' + fmt(s.price) + ' ' + CYC[s.cycle] + '</div>' +
+    '<div>下次扣款</div><div class="num" style="' + (d <= 3 ? 'color:#e30613' : '') + '">' + (nx.getMonth()+1) + ' 月 ' + nx.getDate() + ' 日 · ' + daysWord(d) + '</div>' +
+    '<div>換算每月</div><div class="num">NT$' + fmt(monthly(s)) + '</div>' +
+    '<div>一年花費</div><div class="num">NT$' + fmt(monthly(s) * 12) + '</div></div>' +
+    '<div class="mini"><svg viewBox="0 0 360 70" preserveAspectRatio="none"><path d="M10 48H350" stroke="#0b0b0b" stroke-width="1.5"/>' + marks + axis + '</svg></div>' +
+    '<div class="acts"><button id="dEdit">編輯</button><button class="cancel" id="dCancel">取消訂閱</button></div>');
+  $('dEdit').addEventListener('click', function(){ haptic(5); openAdd(id); });
+  var armed = null;
+  $('dCancel').addEventListener('click', function(){
+    var b = this;
+    if (!armed){ b.textContent = '再按一次確認'; haptic([8, 30, 8]); armed = setTimeout(function(){ armed = null; b.textContent = '取消訂閱'; }, 2600); return; }
+    clearTimeout(armed); closeSheet(); cancelSub(id);
+  });
+}
+
+// ---------- toast ----------
+var toastT = null;
+function toast(msg, undo){
+  $('toastT').textContent = msg; $('undo').hidden = !undo;
+  $('toast').classList.add('on'); clearTimeout(toastT);
+  toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoState = null; }, undo ? 5000 : 2400);
+}
+
+// ---------- backdrop ticks ----------
+(function(){
+  var g = $('bgTicks'), out = '';
+  for (var i = 0; i < 60; i++){
+    var a = i / 60 * Math.PI * 2, r1 = 470, r2 = i % 5 ? 480 : 494;
+    out += '<line x1="' + (800 + Math.cos(a) * r1).toFixed(1) + '" y1="' + (500 + Math.sin(a) * r1).toFixed(1) + '" x2="' + (800 + Math.cos(a) * r2).toFixed(1) + '" y2="' + (500 + Math.sin(a) * r2).toFixed(1) + '"/>';
+  }
+  g.innerHTML = out;
+})();
+
+function renderAll(){ renderOrbit(); renderList(); }
+buildDial();
+selId = null;
+renderList(); renderTotals();
+setView(view, true);
+intro();
+window.addEventListener('resize', placeBar);
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) placeBar(); });
+})();
+</script>
+</body>
+</html>

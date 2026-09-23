@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f2d2a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="拆帳">
+<title>拆帳 · 分帳</title>
+<meta name="description" content="把一張感熱紙收據上的品項拖給每個人的印章，自動印出誰該轉多少給誰的結算單。收錄於 100 Creative HTML Works（App 022・感熱紙收據）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/022-receipt-split.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232f2d2a'/%3E%3Cpath d='M14 8h36v44l-4.5-4-4.5 4-4.5-4-4.5 4-4.5-4-4.5 4-4.5-4-4.5 4z' fill='%23f4f2ec'/%3E%3Cpath d='M20 18h24M20 25h16M20 32h20' stroke='%233a3834' stroke-width='3'/%3E%3Ccircle cx='40' cy='40' r='9' fill='none' stroke='%23c2302a' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+:root{
+  --paper:#f5f3ec;--paper-2:#ebe8df;--ink:#2c2b28;--ink-2:#5f5c56;--ink-3:#8f8b83;
+  --body:#2f2d2a;--body-2:#3d3a36;--body-3:#4b4843;--key:#57534d;--key-t:#efebe2;
+  --red:#c2302a;--red-2:#a3231e;
+  --mono:"Courier New",Courier,"PingFang TC","Heiti TC",monospace;
+  --kai:"Kaiti TC","BiauKai","STKaiti","Kaiti SC","PingFang TC",serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+body{font-family:var(--mono);background:var(--body);color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:2px dashed var(--red);outline-offset:2px}
+input{font:inherit;color:inherit}
+svg{display:block}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--body);isolation:isolate}
+@media (min-width:521px){
+  body{background:#231c16}
+  .stage{display:flex;align-items:center;justify-content:center;gap:60px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:12px;z-index:1;
+    background:#1b1a18;box-shadow:inset 0 0 0 2px #45413b,inset 0 2px 0 3px #2c2a26,0 16px 22px -14px rgba(10,6,2,.8)}
+  .screen{inset:12px;border-radius:40px}
+  .caption{display:block;position:relative;z-index:1;max-width:240px;padding:22px 22px 26px;background:var(--paper);color:var(--ink);transform:rotate(-2.5deg);
+    -webkit-mask:linear-gradient(#000,#000) top/100% calc(100% - 8px) no-repeat,conic-gradient(from 135deg at 50% 0,#000 90deg,#0000 0) bottom/12px 8px repeat-x;
+    mask:linear-gradient(#000,#000) top/100% calc(100% - 8px) no-repeat,conic-gradient(from 135deg at 50% 0,#000 90deg,#0000 0) bottom/12px 8px repeat-x}
+  .caption b{display:block;font:700 30px/1.1 var(--mono);letter-spacing:.08em}
+  .caption span{display:block;margin-top:12px;font-size:14px;line-height:1.7;color:var(--ink-2)}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+/* ---------- status ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:70;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 26px 0 30px;display:flex;align-items:center;justify-content:space-between;color:var(--ink);font:700 15px/1 var(--mono);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+.status svg{fill:currentColor}
+.screen.slipping .status{color:var(--key-t)}
+@media (display-mode:standalone){.status{display:none}}
+.home{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:128px;height:5px;margin-left:-64px;border-radius:3px;background:var(--key-t);opacity:.7;z-index:66;pointer-events:none}
+
+/* ---------- top: bill line + stamps ---------- */
+.top{position:absolute;left:0;right:0;top:0;z-index:10;padding:calc(50px + env(safe-area-inset-top)) 16px 4px;background:var(--paper)}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:-8px;height:8px;background:conic-gradient(from 135deg at 50% 0,var(--paper) 90deg,#0000 0) 0 0/12px 8px repeat-x}
+.billline{display:flex;align-items:baseline;justify-content:space-between;color:var(--ink);padding:2px 6px 0}
+.billline h1{font:700 22px/1 var(--mono);letter-spacing:.14em}
+.billline span{font-size:13px;color:var(--ink-2)}
+.stamps{display:flex;gap:4px;overflow-x:auto;padding:10px 2px 8px;scrollbar-width:none}
+.stamps::-webkit-scrollbar{display:none}
+.stp{flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--ink)}
+.stp .seal{width:56px;height:56px;transition:transform .25s var(--ease)}
+.stp .amt{font:700 13px/1 var(--mono);white-space:nowrap}
+.stp:active .seal{transform:scale(.92)}
+.stp.hot .seal{transform:scale(1.14) rotate(-4deg)}
+.stp.slam .seal{animation:slam .42s var(--ease)}
+@keyframes slam{0%{transform:scale(1.5) rotate(-10deg);opacity:.6}55%{transform:scale(.94)}100%{transform:none;opacity:1}}
+.stp.addp .seal{opacity:.8}
+.stp.addp .amt{color:var(--ink-2);font-weight:400}
+
+/* ---------- receipt feed ---------- */
+.feed{position:absolute;left:0;right:0;top:calc(196px + env(safe-area-inset-top));bottom:calc(150px + env(safe-area-inset-bottom));overflow-y:auto;overflow-x:hidden;z-index:5;scrollbar-width:none;overscroll-behavior:contain}
+.feed::-webkit-scrollbar{display:none}
+.paper{position:relative;margin:0 22px;background:var(--paper);color:var(--ink);padding:10px 20px 26px;font-size:14px;line-height:1.5}
+.paper::before{content:"";position:absolute;left:0;right:0;top:-8px;height:8px;background:conic-gradient(from -45deg at 50% 100%,var(--paper) 90deg,#0000 0) 0 0/12px 8px repeat-x}
+.paper.grain{background-image:radial-gradient(rgba(60,55,45,.05) 1px,transparent 1.2px);background-size:5px 5px}
+.feed .paper{margin-top:22px;margin-bottom:0;padding-bottom:40px}
+.feed .paper.feeding{animation:feedup .55s steps(7) both}
+@keyframes feedup{from{transform:translateY(var(--fh,40px))}to{transform:none}}
+.shop{text-align:center;padding:6px 0 4px}
+.shop b{display:block;font:700 22px/1.2 var(--mono);letter-spacing:.2em;transform:scaleY(1.25);margin:4px 0 6px}
+.shop span{display:block;font-size:12px;color:var(--ink-2);line-height:1.6}
+.rule{height:10px;margin:6px 0;background:radial-gradient(circle,var(--ink-2) 1px,transparent 1.4px) 0 50%/7px 10px repeat-x;opacity:.75}
+.rule.dbl{height:8px;background:linear-gradient(var(--ink-2),var(--ink-2)) 0 1px/100% 1.5px no-repeat,linear-gradient(var(--ink-2),var(--ink-2)) 0 5.5px/100% 1.5px no-repeat;opacity:.8}
+.cols{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2)}
+.it{position:relative;display:grid;grid-template-columns:30px 1fr auto;align-items:start;gap:0 6px;width:calc(100% + 16px);margin:0 -8px;padding:8px 8px 8px 0;text-align:left;border-radius:2px;transition:background-color .15s}
+.it:active{background:var(--paper-2)}
+.it .grip{grid-row:span 2;width:30px;height:44px;margin:-6px 0 -6px;display:grid;place-items:center;touch-action:none;cursor:grab;color:var(--ink-3)}
+.it .grip svg{width:12px;height:20px;fill:currentColor}
+.it .nm{font-size:15px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.it .nm small{font-weight:400;color:var(--ink-2);font-size:13px;margin-left:4px}
+.it .pr{font:700 15px/1.5 var(--mono);text-align:right}
+.it .who{grid-column:2/4;display:flex;align-items:center;gap:3px;margin-top:3px;min-height:22px}
+.it .who i{font-style:normal;font-size:12px;color:var(--ink-2);margin-right:4px}
+.it .who svg{width:22px;height:22px}
+.it .who .pay{margin-left:auto;font-size:12px;color:var(--ink-2)}
+.it.just{animation:ink 1.2s ease-out}
+@keyframes ink{0%{color:var(--ink-3)}100%{color:var(--ink)}}
+.tot{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:14px}
+.tot b{font:700 14px/1.5 var(--mono)}
+.tot.big{font-size:16px;padding-top:6px}
+.tot.big b{font-size:22px;letter-spacing:.02em;transform:scaleY(1.15)}
+.tgl{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:44px;font-size:14px;text-align:left}
+.tgl .box{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:8px;box-shadow:inset 0 0 0 1.5px var(--ink);vertical-align:-4px;font-weight:700;line-height:1}
+.tgl .box svg{width:14px;height:14px;opacity:0}
+.tgl[aria-checked=true] .box svg{opacity:1}
+.tgl:active{background:var(--paper-2)}
+.payer{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:44px;font-size:14px}
+.payer b{border-bottom:1.5px dashed var(--ink-2)}
+.payer:active{background:var(--paper-2)}
+.bar{margin:14px auto 4px;width:220px;height:46px}
+.bar svg{width:100%;height:100%}
+.thanks{text-align:center;font-size:12px;color:var(--ink-2);line-height:1.8}
+.hint{margin:14px 26px 0;color:#bdb7ac;font-size:12px;line-height:1.6;text-align:center}
+.emptyline{padding:18px 0;text-align:center;color:var(--ink-2);font-size:13px;line-height:1.7}
+
+/* ---------- settlement slip ---------- */
+.slipwin{position:absolute;left:0;right:0;top:0;bottom:calc(150px + env(safe-area-inset-bottom));z-index:20;overflow:hidden;pointer-events:none;visibility:hidden}
+.slipwin.on{pointer-events:auto;visibility:visible}
+.slipwin .shade{position:absolute;inset:0;background:rgba(28,26,24,.72);opacity:0;transition:opacity .35s}
+.slipwin.on .shade{opacity:1}
+.slipscroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.slipscroll::-webkit-scrollbar{display:none}
+.slip{position:relative;margin:calc(64px + env(safe-area-inset-top)) 30px 0;padding:12px 20px 30px;transform:translateY(110%);will-change:transform;touch-action:pan-y}
+.slip.torn{transition:transform .5s cubic-bezier(.5,0,.8,.4)!important;transform:translateY(-130%) rotate(-5deg)!important}
+.slip h2{text-align:center;font:700 20px/1.3 var(--mono);letter-spacing:.3em;transform:scaleY(1.2);margin:6px 0 4px}
+.slip .sub{text-align:center;font-size:12px;color:var(--ink-2)}
+.pp{display:grid;grid-template-columns:auto 1fr auto;gap:0 10px;align-items:center;padding:6px 0;font-size:14px}
+.pp svg{width:28px;height:28px}
+.pp small{display:block;font-size:12px;color:var(--ink-2)}
+.pp b{font:700 15px/1.3 var(--mono);text-align:right}
+.pp b.neg{color:var(--red)}
+.tr{position:relative;display:grid;grid-template-columns:1fr auto;align-items:center;width:100%;min-height:52px;padding:6px 0;text-align:left;font-size:15px}
+.tr:active{background:var(--paper-2)}
+.tr .arrow{font-weight:700}
+.tr .arrow em{font-style:normal;display:inline-block;margin:0 6px;color:var(--ink-2)}
+.tr b{font:700 17px/1 var(--mono)}
+.tr .paid{position:absolute;right:112px;top:50%;width:66px;height:66px;margin-top:-33px;pointer-events:none;opacity:0;transform:scale(1.6) rotate(-18deg)}
+.tr[aria-pressed=true] .paid{opacity:.92;transform:rotate(-14deg);transition:transform .28s cubic-bezier(.3,1.6,.5,1),opacity .1s}
+.tr[aria-pressed=true] .arrow,.tr[aria-pressed=true] b{color:var(--ink-3)}
+.done{display:block;margin:18px auto 4px;width:150px;height:150px;opacity:0;transform:scale(1.8) rotate(8deg);pointer-events:none}
+.done.on{opacity:.9;transform:rotate(-8deg);transition:transform .35s cubic-bezier(.3,1.5,.5,1),opacity .12s}
+.tearhint{text-align:center;font-size:12px;color:var(--ink-2);margin-top:14px;line-height:1.6}
+.tearhint b{font-weight:700;color:var(--ink)}
+
+/* ---------- printer body (the nav) ---------- */
+.printer{position:absolute;left:0;right:0;bottom:0;z-index:40;height:calc(150px + env(safe-area-inset-bottom));padding:0 14px env(safe-area-inset-bottom);background:linear-gradient(var(--body-3),var(--body-2) 14px,var(--body) 70%)}
+.slot{position:relative;height:22px;margin:0 8px}
+.slot::before{content:"";position:absolute;left:0;right:0;top:-3px;height:9px;border-radius:0 0 6px 6px;background:#141312;box-shadow:inset 0 3px 3px -1px #000}
+.slot::after{content:"";position:absolute;left:10px;right:10px;top:9px;height:2px;border-radius:1px;background:rgba(255,255,255,.08)}
+.led{position:absolute;right:6px;top:10px;width:7px;height:7px;border-radius:50%;background:#5c7a4a;transition:background-color .1s}
+.led.busy{background:#e2a33a;animation:blink .18s steps(1) infinite}
+@keyframes blink{50%{background:#6a5a3a}}
+.keys{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;gap:10px;padding:10px 4px 0}
+.key{height:62px;border-radius:12px;background:var(--key);color:var(--key-t);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:13px;font-weight:700;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -3px 0 rgba(0,0,0,.28);transition:transform .08s,box-shadow .08s,background-color .15s}
+.key svg{width:22px;height:22px;fill:currentColor}
+.key:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 -1px 0 rgba(0,0,0,.28);background:#4d4944}
+.key.go{background:var(--red);color:#fff4ee}
+.key.go:active{background:var(--red-2)}
+.key:disabled{opacity:.45}
+
+/* ---------- sheet (a slip of paper) ---------- */
+.scrim{position:absolute;inset:0;z-index:80;background:rgba(20,18,16,.55);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:10px;right:10px;bottom:0;z-index:81;max-height:84%;overflow-y:auto;overflow-x:hidden;padding:4px 22px calc(24px + env(safe-area-inset-bottom));background:var(--paper);transform:translateY(106%);transition:transform .42s cubic-bezier(.2,.9,.25,1.04);touch-action:none;scrollbar-width:none}
+.sheet::-webkit-scrollbar{display:none}
+.sheetwrap{position:absolute;left:10px;right:10px;bottom:0;z-index:81;pointer-events:none}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.tearedge{position:absolute;left:10px;right:10px;z-index:82;height:8px;pointer-events:none;visibility:hidden;background:conic-gradient(from -45deg at 50% 100%,var(--paper) 90deg,#0000 0) 0 0/12px 8px repeat-x;transform:translateY(106%);transition:transform .42s cubic-bezier(.2,.9,.25,1.04)}
+.grab{display:block;height:28px;position:relative}
+.grab::before{content:"";position:absolute;left:50%;top:12px;width:44px;height:4px;margin-left:-22px;background:radial-gradient(circle,var(--ink-3) 1.4px,transparent 1.8px) 0 0/6px 4px repeat-x}
+.sheet h3{font:700 18px/1.3 var(--mono);letter-spacing:.14em;text-align:center}
+.sheet .sub{text-align:center;font-size:12px;color:var(--ink-2);margin-top:4px}
+.fld{display:block;margin-top:14px}
+.fld span{display:block;font-size:12px;color:var(--ink-2);margin-bottom:4px}
+.fld input{width:100%;height:46px;border:0;border-bottom:2px solid var(--ink);background:transparent;font-size:18px;font-weight:700;padding:0 2px;outline:none;border-radius:0}
+.fld input:focus{border-bottom-color:var(--red)}
+.two{display:grid;grid-template-columns:1fr 128px;gap:14px;align-items:end}
+.step{display:flex;align-items:center;height:46px;border-bottom:2px solid var(--ink)}
+.step button{width:44px;height:44px;font-size:22px;font-weight:700}
+.step button:active{background:var(--paper-2)}
+.step b{flex:1;text-align:center;font-size:18px}
+.pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pick button{display:flex;flex-direction:column;align-items:center;gap:2px;width:62px;padding:4px 0;font-size:12px;color:var(--ink-2)}
+.pick button svg{width:46px;height:46px;transition:opacity .15s,transform .2s var(--ease)}
+.pick button[aria-pressed=false] svg{opacity:.22;transform:scale(.9)}
+.pick button:active svg{transform:scale(.86)}
+.radio{display:flex;flex-direction:column;margin-top:4px}
+.radio button{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;text-align:left}
+.radio button::before{content:"";width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--ink)}
+.radio button[aria-pressed=true]::before{box-shadow:inset 0 0 0 1.5px var(--ink),inset 0 0 0 4px var(--paper),inset 0 0 0 9px var(--ink)}
+.radio button:active{background:var(--paper-2)}
+.acts{display:flex;gap:10px;margin-top:20px}
+.acts button{flex:1;height:52px;font-size:15px;font-weight:700;letter-spacing:.1em}
+.acts .ok{background:var(--ink);color:var(--paper)}
+.acts .ok:active{background:#000}
+.acts .ok:disabled{background:var(--ink-3)}
+.acts .void{flex:0 0 auto;padding:0 14px;color:var(--red)}
+.acts .void:active{background:#f0dcd6}
+.bigseal{display:block;width:110px;height:110px;margin:10px auto 0}
+.mine{margin-top:10px}
+.mine div{display:flex;justify-content:space-between;padding:6px 0;font-size:14px}
+.stub{display:grid;grid-template-columns:1fr auto;gap:2px 10px;width:100%;padding:12px 0;text-align:left;font-size:14px}
+.stub small{font-size:12px;color:var(--ink-2)}
+.stub b{font:700 15px/1 var(--mono);text-align:right}
+.stub .st{grid-column:2;font-size:12px;text-align:right;color:var(--red);font-weight:700}
+.stub+.stub{border-top:1.5px dashed var(--ink-3)}
+.linkish{display:block;width:100%;min-height:44px;margin-top:6px;font-size:14px;color:var(--ink-2);text-decoration:underline;text-underline-offset:3px}
+
+/* ---------- drag ghost + toast ---------- */
+.ghost{position:absolute;z-index:60;left:0;top:0;padding:8px 14px 10px;background:var(--paper);color:var(--ink);font:700 15px/1.2 var(--mono);pointer-events:none;white-space:nowrap;transform-origin:20% 50%;
+  box-shadow:0 6px 8px -6px rgba(0,0,0,.6)}
+.ghost::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:6px;background:conic-gradient(from 135deg at 50% 0,var(--paper) 90deg,#0000 0) 0 0/10px 6px repeat-x}
+.toast{position:absolute;left:20px;right:20px;bottom:calc(158px + env(safe-area-inset-bottom));z-index:90;justify-content:center;transform:translateY(24px);opacity:0;padding:12px 16px;background:var(--ink);color:var(--paper);transition:transform .35s var(--ease),opacity .2s,visibility 0s .35s;font-size:14px;font-weight:700;display:flex;gap:14px;align-items:center;visibility:hidden}
+.toast.on{transform:none;opacity:1;visibility:visible;transition:transform .35s var(--ease),opacity .2s}
+.toast button{color:#f19a8e;font-weight:700;min-height:32px;text-decoration:underline;text-underline-offset:3px}
+@media (prefers-reduced-motion:reduce){
+  .feed .paper.feeding,.stp.slam .seal{animation:none}
+  .sheet,.tearedge,.toast,.slip.torn,.tr .paid,.done{transition-duration:.01s!important}
+  .led.busy{animation:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="1.6" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="1" seed="8" result="s"/>
+      <feColorMatrix in="s" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.5 1.52" result="m"/>
+      <feComposite in="d" in2="m" operator="in"/>
+    </filter>
+  </defs>
+</svg>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="wood" x1="0" y1="0" x2="1" y2=".3"><stop offset="0" stop-color="#3a2a1f"/><stop offset=".5" stop-color="#4a3526"/><stop offset="1" stop-color="#34251b"/></linearGradient>
+        <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".012 .9" numOctaves="3" seed="4"/><feColorMatrix values="0 0 0 0 .12  0 0 0 0 .07  0 0 0 0 .03  0 0 0 .55 0"/></filter>
+        <filter id="fine"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2"/><feColorMatrix values="0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .4 0 0 0 .18 0"/></filter>
+        <pattern id="zz" width="12" height="8" patternUnits="userSpaceOnUse"><path d="M0 8 6 0 12 8z" fill="#efece4"/></pattern>
+      </defs>
+      <rect width="1600" height="1000" fill="url(#wood)"/>
+      <rect width="1600" height="1000" filter="url(#grain)"/>
+      <g transform="translate(150 610) rotate(-14)">
+        <rect x="0" y="8" width="230" height="430" fill="#efece4"/><rect x="0" y="0" width="230" height="8" fill="url(#zz)"/>
+        <g fill="#8b867c"><rect x="30" y="40" width="170" height="10"/><rect x="60" y="62" width="110" height="7"/><rect x="24" y="100" width="120" height="7"/><rect x="170" y="100" width="36" height="7"/><rect x="24" y="124" width="96" height="7"/><rect x="176" y="124" width="30" height="7"/><rect x="24" y="148" width="130" height="7"/><rect x="170" y="148" width="36" height="7"/><rect x="24" y="190" width="60" height="9"/><rect x="150" y="190" width="56" height="9"/></g>
+        <circle cx="150" cy="270" r="44" fill="none" stroke="#b2332c" stroke-width="5" opacity=".8"/>
+      </g>
+      <g transform="translate(1270 90) rotate(9)">
+        <rect x="0" y="8" width="210" height="330" fill="#efece4"/><rect x="0" y="0" width="210" height="8" fill="url(#zz)"/>
+        <g fill="#8b867c"><rect x="40" y="36" width="130" height="10"/><rect x="22" y="80" width="110" height="7"/><rect x="150" y="80" width="38" height="7"/><rect x="22" y="104" width="80" height="7"/><rect x="156" y="104" width="32" height="7"/><rect x="22" y="150" width="166" height="4"/><rect x="22" y="170" width="60" height="9"/><rect x="140" y="170" width="48" height="9"/></g>
+      </g>
+      <g transform="translate(1120 760) rotate(-32)"><rect x="0" y="0" width="520" height="12" rx="6" fill="#c9a36b"/><rect x="0" y="22" width="520" height="12" rx="6" fill="#b89058"/></g>
+      <rect width="1600" height="1000" filter="url(#fine)"/>
+    </svg>
+  </div>
+  <div class="caption"><b>拆帳</b><span>吃完這一攤，品項拖給每個人的印章，印一張誰該轉給誰的結算單。</span></div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">20:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="15" y="0" width="3" height="12" opacity=".35"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><rect x="6" y="9" width="4" height="3"/><rect x="3" y="5" width="10" height="2"/><rect x="0" y="1" width="16" height="2"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><path d="M0 0h23v12H0zM2 2v8h19V2z"/><rect x="3.5" y="3.5" width="12" height="5"/><rect x="24" y="4" width="2" height="4"/></svg>
+        </span>
+      </div>
+
+      <div class="top">
+        <div class="billline"><h1>拆帳</h1><span id="perHead">4 人・每人約 960</span></div>
+        <div class="stamps" id="stamps" aria-label="分帳的人"></div>
+      </div>
+
+      <div class="feed" id="feed">
+        <div class="paper grain" id="paper"></div>
+        <p class="hint">拖曳品項左側的齒孔到印章上，就算那個人一份</p>
+        <div style="height:26px"></div>
+      </div>
+
+      <div class="slipwin" id="slipwin" aria-hidden="true">
+        <div class="shade"></div>
+        <div class="slipscroll" id="slipscroll"><div class="slip paper grain" id="slip" role="region" aria-label="結算單"></div><div style="height:40px"></div></div>
+      </div>
+
+      <div class="printer">
+        <div class="slot"><span class="led" id="led"></span></div>
+        <div class="keys">
+          <button class="key" id="kItem" aria-label="新增品項"><svg viewBox="0 0 14 14" id="icItem"></svg>品項</button>
+          <button class="key" id="kPerson" aria-label="新增人"><svg viewBox="0 0 14 14" id="icPerson"></svg>加人</button>
+          <button class="key" id="kStubs" aria-label="存根"><svg viewBox="0 0 14 14" id="icStubs"></svg>存根</button>
+          <button class="key go" id="kSettle"><svg viewBox="0 0 14 14" id="icPrint"></svg><span id="settleLbl">印結算單</span></button>
+        </div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="tearedge" id="tearedge"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><span class="grab" aria-hidden="true"></span><div id="sheetBody"></div></div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastB" hidden>復原</button></div>
+      <div class="home" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const K = 'app022:';
+const load = (k, d) => { try { const v = localStorage.getItem(K + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const save = (k, v) => { try { localStorage.setItem(K + k, JSON.stringify(v)); } catch (e) {} };
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch (e) {} }
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const screen = $('screen');
+
+/* ---------- dot-matrix icons (the printer's own bitmap) ---------- */
+const DOTS = {
+  icItem: ['..#.#.#','..#.#.#','..#####','...###.','....#..','....#..','....#..'].map(r => r.padEnd(7, '.')),
+  icPerson: ['..###..','..###..','..###..','.......','.#####.','#######','#######'],
+  icStubs: ['#######','#.....#','#.###.#','#.....#','#######','#.#.#.#','.#.#.#.'],
+  icPrint: ['..###..','..#.#..','#######','#.....#','#######','.#...#.','.#####.']
+};
+function dotIcon(id){ const rows = DOTS[id]; let s = ''; rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === '#') s += `<rect x="${x * 2}" y="${y * 2}" width="1.7" height="1.7" rx=".3"/>`; })); $(id).innerHTML = s; }
+Object.keys(DOTS).forEach(dotIcon);
+
+/* ---------- audio ---------- */
+let ac = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+screen.addEventListener('pointerdown', audio, {once: false, passive: true});
+let noiseBuf = null;
+function noise(){ if (!noiseBuf && ac){ noiseBuf = ac.createBuffer(1, ac.sampleRate * .5, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } return noiseBuf; }
+function printSound(lines){
+  const a = ac; if (!a) return; const t0 = a.currentTime;
+  const m = a.createOscillator(), mg = a.createGain(); m.type = 'sawtooth'; m.frequency.value = 72; mg.gain.setValueAtTime(0, t0); mg.gain.linearRampToValueAtTime(.025, t0 + .03); mg.gain.setValueAtTime(.025, t0 + lines * .07); mg.gain.linearRampToValueAtTime(0, t0 + lines * .07 + .06);
+  const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400; m.connect(lp).connect(mg).connect(a.destination); m.start(t0); m.stop(t0 + lines * .07 + .1);
+  for (let i = 0; i < lines; i++){
+    const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = noise(); f.type = 'bandpass'; f.frequency.value = 3200 + Math.random() * 800; f.Q.value = 2.5;
+    const t = t0 + i * .07; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.16, t + .005); g.gain.exponentialRampToValueAtTime(.001, t + .05);
+    s.connect(f).connect(g).connect(a.destination); s.start(t, Math.random() * .3, .06);
+  }
+}
+function thump(){
+  const a = ac; if (!a) return; const t = a.currentTime;
+  const o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(55, t + .12); g.gain.setValueAtTime(.35, t); g.gain.exponentialRampToValueAtTime(.001, t + .18); o.connect(g).connect(a.destination); o.start(t); o.stop(t + .2);
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), g2 = a.createGain(); s.buffer = noise(); f.type = 'lowpass'; f.frequency.value = 900; g2.gain.setValueAtTime(.25, t); g2.gain.exponentialRampToValueAtTime(.001, t + .06); s.connect(f).connect(g2).connect(a.destination); s.start(t, 0, .08);
+}
+function rip(){
+  const a = ac; if (!a) return; const t = a.currentTime;
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = noise(); f.type = 'bandpass'; f.frequency.setValueAtTime(1200, t); f.frequency.linearRampToValueAtTime(5200, t + .28); f.Q.value = 1.2;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.3, t + .03); for (let i = 1; i < 9; i++) g.gain.setValueAtTime(i % 2 ? .1 : .28, t + i * .03); g.gain.linearRampToValueAtTime(0, t + .3);
+  s.connect(f).connect(g).connect(a.destination); s.start(t, 0, .32);
+}
+
+/* ---------- data ---------- */
+function demo(){
+  return {
+    store: '阿月海產', addr: '台南市中西區海安路二段 214 號', table: '07', no: 118, svc: true, payer: 'p1',
+    people: [{id:'p1', n:'阿傑'}, {id:'p2', n:'小芸'}, {id:'p3', n:'宗翰'}, {id:'p4', n:'佩珊'}],
+    items: [
+      {id:'i1', n:'紅蟳米糕', p:1280, q:1, who:['p1','p2','p3','p4'], by:'p1'},
+      {id:'i2', n:'烏魚子炒飯', p:380, q:1, who:['p1','p2','p3','p4'], by:'p1'},
+      {id:'i3', n:'蔭豉蚵', p:320, q:1, who:['p1','p3','p4'], by:'p1'},
+      {id:'i4', n:'炸蝦捲', p:280, q:1, who:['p1','p2','p3','p4'], by:'p1'},
+      {id:'i5', n:'鮮魚湯', p:450, q:1, who:['p1','p2','p3','p4'], by:'p1'},
+      {id:'i6', n:'炒水蓮', p:180, q:1, who:['p2','p4'], by:'p1'},
+      {id:'i7', n:'台啤 18 天', p:90, q:6, who:['p1','p3','p4'], by:'p3'},
+      {id:'i8', n:'冬瓜茶', p:60, q:1, who:['p2'], by:'p2'}
+    ],
+    paid: {}, at: Date.now()
+  };
+}
+let bill = load('bill', null);
+if (!bill || !Array.isArray(bill.people) || !Array.isArray(bill.items)) bill = demo();
+let stubs = load('stubs', null);
+if (!Array.isArray(stubs)) stubs = [
+  {store:'老四川 巴蜀麻辣燙', at: Date.now() - 86400e3 * 6, total: 2860, n: 4, done: true},
+  {store:'樂法 早午餐', at: Date.now() - 86400e3 * 13, total: 1540, n: 3, done: true},
+  {store:'墾丁 民宿兩晚', at: Date.now() - 86400e3 * 31, total: 12800, n: 5, done: false}
+];
+let uid = Date.now() % 100000;
+const persist = () => save('bill', bill);
+const person = id => bill.people.find(p => p.id === id);
+
+/* ---------- maths ---------- */
+function calc(){
+  const mult = bill.svc ? 1.1 : 1;
+  const share = {}, paid = {};
+  bill.people.forEach(p => { share[p.id] = 0; paid[p.id] = 0; });
+  let sub = 0;
+  bill.items.forEach(it => {
+    const t = it.p * it.q; sub += t;
+    const who = it.who.filter(id => share[id] != null);
+    const w = who.length ? who : bill.people.map(p => p.id);
+    w.forEach(id => { share[id] += t * mult / w.length; });
+    const by = paid[it.by] != null ? it.by : (paid[bill.payer] != null ? bill.payer : bill.people[0] && bill.people[0].id);
+    if (by) paid[by] += t * mult;
+  });
+  const total = Math.round(sub * mult);
+  // round shares to whole dollars, push remainder to the largest share
+  const ids = bill.people.map(p => p.id), rs = {};
+  ids.forEach(id => rs[id] = Math.round(share[id]));
+  const diff = total - ids.reduce((a, id) => a + rs[id], 0);
+  if (ids.length && diff){ const big = ids.reduce((a, id) => rs[id] > rs[a] ? id : a, ids[0]); rs[big] += diff; }
+  const rp = {}; ids.forEach(id => rp[id] = Math.round(paid[id]));
+  const pd = total - ids.reduce((a, id) => a + rp[id], 0);
+  if (ids.length && pd){ const big = ids.reduce((a, id) => rp[id] > rp[a] ? id : a, ids[0]); rp[big] += pd; }
+  // who owes whom: greedy
+  const bal = ids.map(id => ({id, v: rp[id] - rs[id]}));
+  const cr = bal.filter(b => b.v > 0).sort((a, b) => b.v - a.v), db = bal.filter(b => b.v < 0).map(b => ({id: b.id, v: -b.v})).sort((a, b) => b.v - a.v);
+  const tr = []; let i = 0, j = 0;
+  while (i < db.length && j < cr.length){
+    const m = Math.min(db[i].v, cr[j].v);
+    if (m > 0) tr.push({from: db[i].id, to: cr[j].id, v: m});
+    db[i].v -= m; cr[j].v -= m;
+    if (!db[i].v) i++; if (!cr[j].v) j++;
+  }
+  return {sub, total, share: rs, paid: rp, tr, svc: total - sub};
+}
+
+/* ---------- stamps ---------- */
+let rot = {};
+function seal(name, size, opts){
+  opts = opts || {};
+  const r = rot[name] != null ? rot[name] : (rot[name] = ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 13) - 6);
+  const ch = [...name].slice(0, 3), n = ch.length;
+  let txt = '';
+  if (n <= 1) txt = `<text x="30" y="31" font-size="26">${esc(ch[0] || '?')}</text>`;
+  else if (n === 2) txt = `<text x="30" y="21" font-size="19">${esc(ch[0])}</text><text x="30" y="40.5" font-size="19">${esc(ch[1])}</text>`;
+  else txt = `<text x="30" y="17.5" font-size="13">${esc(ch[0])}</text><text x="30" y="31" font-size="13">${esc(ch[1])}</text><text x="30" y="44.5" font-size="13">${esc(ch[2])}</text>`;
+  const col = opts.ghost ? '#b9b3a8' : 'var(--red)';
+  return `<svg class="${opts.cls || 'seal'}" viewBox="0 0 60 60" aria-hidden="true"><g transform="rotate(${r} 30 30)" ${opts.ghost ? '' : 'filter="url(#rough)"'} fill="${col}" stroke="${col}">
+    <circle cx="30" cy="30" r="26" fill="none" stroke-width="3.2" ${opts.ghost ? 'stroke-dasharray="4 4"' : ''}/><circle cx="30" cy="30" r="21.8" fill="none" stroke-width="1"/>
+    <g font-family="Kaiti TC, BiauKai, STKaiti, PingFang TC, serif" font-weight="700" text-anchor="middle" dominant-baseline="central" stroke-width=".9">${txt}</g></g></svg>`;
+}
+function mini(name){
+  const ch = [...name].pop() || '?';
+  return `<svg viewBox="0 0 22 22" aria-label="${esc(name)}"><circle cx="11" cy="11" r="9.4" fill="none" stroke="var(--red)" stroke-width="1.6"/><text x="11" y="11.6" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" font-family="Kaiti TC, BiauKai, STKaiti, PingFang TC, serif" fill="var(--red)">${esc(ch)}</text></svg>`;
+}
+function renderStamps(){
+  const c = calc();
+  $('stamps').innerHTML = bill.people.map(p => `<button class="stp" data-pid="${p.id}" aria-label="${esc(p.n)}，應付 ${fmt(c.share[p.id])} 元">${seal(p.n)}<span class="amt">${fmt(c.share[p.id])}</span></button>`).join('') +
+    `<button class="stp addp" id="addStamp" aria-label="新增人">${seal('＋', 56, {ghost: true})}<span class="amt">加人</span></button>`;
+  const n = bill.people.length;
+  $('perHead').textContent = n ? `${n} 人・每人約 ${fmt(c.total / n)}` : '還沒有人';
+}
+function slamStamp(pid){ const el = $('stamps').querySelector(`[data-pid="${pid}"]`); if (!el) return; el.classList.remove('slam'); el.offsetWidth; el.classList.add('slam'); }
+
+/* ---------- receipt ---------- */
+function dstr(t){ const d = new Date(t); return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} (${'日一二三四五六'[d.getDay()]}) ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
+function barcode(seed){
+  let s = seed, x = 0, out = '';
+  const r = () => (s = s * 16807 % 2147483647) / 2147483647;
+  while (x < 216){ const w = 1 + Math.floor(r() * 3.2); if (r() > .42) out += `<rect x="${x}" y="0" width="${w}" height="46"/>`; x += w + 1; }
+  return `<svg viewBox="0 0 220 46" preserveAspectRatio="none" fill="var(--ink)">${out}</svg>`;
+}
+function renderReceipt(justId){
+  const c = calc(), payer = person(bill.payer);
+  let h = `<div class="shop"><b>＊${esc(bill.store)}＊</b><span>${esc(bill.addr)}</span><span>${dstr(bill.at)}　桌 ${esc(bill.table)}　單號 ${String(bill.no).padStart(4, '0')}</span></div>
+    <div class="rule"></div><div class="cols"><span>品名 / 分給</span><span>金額</span></div><div class="rule"></div>`;
+  if (!bill.items.length) h += `<div class="emptyline">這張單還是空的。<br>按下面的「品項」印第一道菜。</div>`;
+  bill.items.forEach(it => {
+    const who = it.who.map(person).filter(Boolean), by = person(it.by);
+    h += `<button class="it${it.id === justId ? ' just' : ''}" data-iid="${it.id}" aria-label="${esc(it.n)} ${fmt(it.p * it.q)} 元，點一下編輯"><span class="grip" data-grip="${it.id}" aria-hidden="true"><svg viewBox="0 0 12 20"><circle cx="3" cy="3" r="1.6"/><circle cx="9" cy="3" r="1.6"/><circle cx="3" cy="10" r="1.6"/><circle cx="9" cy="10" r="1.6"/><circle cx="3" cy="17" r="1.6"/><circle cx="9" cy="17" r="1.6"/></svg></span>
+      <span class="nm">${esc(it.n)}${it.q > 1 ? `<small>${fmt(it.p)}×${it.q}</small>` : ''}</span><span class="pr">${fmt(it.p * it.q)}</span>
+      <span class="who">${who.length ? who.map(p => mini(p.n)).join('') : '<i>全桌平分</i>'}${by && it.by !== bill.payer ? `<span class="pay">${esc(by.n)} 付</span>` : ''}</span></button>`;
+  });
+  h += `<div class="rule"></div>
+    <div class="tot"><span>小計　${bill.items.reduce((a, i) => a + i.q, 0)} 項</span><b>${fmt(c.sub)}</b></div>
+    <button class="tgl" id="svcT" role="switch" aria-checked="${bill.svc}"><span><span class="box"><svg viewBox="0 0 14 14"><path d="M2 7.5l3.2 3L12 3.5" fill="none" stroke="var(--ink)" stroke-width="2.2"/></svg></span>服務費 10%</span><b>${fmt(c.svc)}</b></button>
+    <div class="rule dbl"></div>
+    <div class="tot big"><span>合計</span><b>NT$ ${fmt(c.total)}</b></div>
+    <button class="payer" id="payerB"><span>先結帳的人</span><b>${payer ? esc(payer.n) : '未指定'}</b></button>
+    <div class="bar">${barcode(bill.no * 7919 + bill.items.length)}</div>
+    <div class="thanks">謝謝光臨　歡迎再來<br>統一編號 8412${String(bill.no).padStart(4, '0')}</div>`;
+  $('paper').innerHTML = h;
+}
+function renderAll(justId){ renderStamps(); renderReceipt(justId); persist(); }
+function feed(lines){
+  const p = $('paper');
+  audio(); printSound(lines || 4); led(lines);
+  if (reduce) return;
+  p.style.setProperty('--fh', (lines || 4) * 18 + 'px');
+  p.classList.remove('feeding'); p.offsetWidth; p.classList.add('feeding');
+}
+function led(lines){ const l = $('led'); l.classList.add('busy'); clearTimeout(l._t); l._t = setTimeout(() => l.classList.remove('busy'), (lines || 4) * 70 + 120); }
+const toBottom = smooth => { const f = $('feed'); f.scrollTo({top: f.scrollHeight, behavior: smooth && !reduce ? 'smooth' : 'auto'}); };
+
+/* ---------- receipt interactions ---------- */
+$('paper').addEventListener('click', e => {
+  if (dragJustEnded) return;
+  const it = e.target.closest('.it');
+  if (it){ haptic(6); openItem(it.dataset.iid); return; }
+  if (e.target.closest('#svcT')){ bill.svc = !bill.svc; haptic(8); renderAll(); feed(2); return; }
+  if (e.target.closest('#payerB')){ haptic(6); openPayer(); }
+});
+
+/* drag an item by its perforation onto a stamp */
+let drag = null, dragJustEnded = false;
+$('paper').addEventListener('pointerdown', e => {
+  const g = e.target.closest('[data-grip]'); if (!g) return;
+  e.preventDefault();
+  const it = bill.items.find(i => i.id === g.dataset.grip); if (!it) return;
+  const gh = document.createElement('div'); gh.className = 'ghost'; gh.textContent = `${it.n}　${fmt(it.p * it.q)}`;
+  screen.appendChild(gh);
+  drag = {it, gh, id: e.pointerId, hot: null, moved: false};
+  try { g.setPointerCapture(e.pointerId); } catch (_) {}
+  moveGhost(e); haptic(10);
+});
+function moveGhost(e){
+  const s = screen.getBoundingClientRect();
+  const x = e.clientX - s.left, y = e.clientY - s.top;
+  drag.gh.style.transform = `translate(${x - 30}px,${y - 46}px) rotate(-6deg)`;
+  const el = document.elementFromPoint(e.clientX, e.clientY), st = el && el.closest('.stp:not(.addp)');
+  const hot = st ? st.dataset.pid : null;
+  if (hot !== drag.hot){
+    $('stamps').querySelectorAll('.stp').forEach(b => b.classList.toggle('hot', b.dataset.pid === hot));
+    drag.hot = hot; if (hot) haptic(4);
+  }
+}
+$('paper').addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; drag.moved = true; moveGhost(e); });
+function endDrag(e){
+  if (!drag) return;
+  const d = drag; drag = null;
+  d.gh.remove(); $('stamps').querySelectorAll('.stp').forEach(b => b.classList.remove('hot'));
+  dragJustEnded = true; setTimeout(() => dragJustEnded = false, 60);
+  if (!d.hot) return;
+  const p = person(d.hot), has = d.it.who.includes(d.hot);
+  if (has && d.it.who.length === 1){ toast(`${d.it.n} 至少要有一個人`); haptic([20, 40, 20]); return; }
+  d.it.who = has ? d.it.who.filter(x => x !== d.hot) : d.it.who.concat(d.hot);
+  thump(); haptic([6, 30, 14]); renderAll(d.it.id); slamStamp(d.hot);
+  toast(has ? `${p.n} 不吃 ${d.it.n}` : `${d.it.n} 算 ${p.n} 一份`);
+}
+$('paper').addEventListener('pointerup', endDrag);
+$('paper').addEventListener('pointercancel', endDrag);
+
+/* ---------- stamps row ---------- */
+$('stamps').addEventListener('click', e => {
+  const b = e.target.closest('.stp'); if (!b) return;
+  haptic(6);
+  if (b.classList.contains('addp')) openPerson(); else openPersonInfo(b.dataset.pid);
+});
+
+/* ---------- sheet ---------- */
+const sheet = $('sheet'), scrim = $('scrim'), edge = $('tearedge');
+let sheetFocus = null, onSheetClose = null;
+function syncEdge(){ const r = sheet.getBoundingClientRect(), s = screen.getBoundingClientRect(); edge.style.top = (r.top - s.top - 8) + 'px'; }
+function openSheet(html, after){
+  sheetFocus = document.activeElement; onSheetClose = null;
+  $('sheetBody').innerHTML = html;
+  sheet.style.transform = ''; edge.style.transform = ''; sheet.scrollTop = 0;
+  sheet.classList.add('on'); scrim.classList.add('on');
+  edge.style.visibility = 'hidden'; setTimeout(() => { if (!sheet.classList.contains('on')) return; syncEdge(); edge.style.transition = 'none'; edge.style.transform = 'translateY(0)'; edge.style.visibility = 'visible'; }, reduce ? 0 : 400);
+  if (after) after();
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); scrim.classList.remove('on'); sheet.style.transform = ''; scrim.style.opacity = '';
+  edge.style.visibility = 'hidden'; edge.style.transform = '';
+  if (onSheetClose) onSheetClose();
+  if (sheetFocus) try { sheetFocus.focus({preventScroll: true}); } catch (_) {}
+}
+scrim.addEventListener('click', closeSheet);
+(function(){
+  let y0 = 0, dy = 0, on = false, t0 = 0, h = 1, top0 = 0;
+  sheet.addEventListener('pointerdown', e => {
+    if (e.target.closest('input') || sheet.scrollTop > 0) return;
+    on = true; y0 = e.clientY; dy = 0; t0 = e.timeStamp; h = sheet.offsetHeight; top0 = parseFloat(edge.style.top) || 0;
+  });
+  sheet.addEventListener('pointermove', e => {
+    if (!on) return; dy = Math.max(0, e.clientY - y0);
+    if (dy > 5){ sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch (_) {} }
+    sheet.style.transform = `translateY(${dy}px)`; edge.style.transform = `translateY(${dy}px)`; scrim.style.opacity = String(1 - dy / h * .8);
+  });
+  const end = e => {
+    if (!on) return; on = false; sheet.classList.remove('drag');
+    const v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > h * .35 || (v > .6 && dy > 30)){ haptic(6); closeSheet(); }
+    else { sheet.style.transform = ''; edge.style.transition = 'transform .35s cubic-bezier(.2,.9,.25,1.04)'; edge.style.transform = 'translateY(0)'; scrim.style.opacity = ''; }
+  };
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+addEventListener('resize', () => { if (sheet.classList.contains('on')) syncEdge(); });
+
+/* ---------- item sheet (add + edit) ---------- */
+let draft = null;
+function itemHTML(isNew){
+  return `<h3 id="shT">${isNew ? '印一道菜' : '改這一行'}</h3>
+    <label class="fld"><span>品名</span><input id="fN" maxlength="14" value="${esc(draft.n)}" placeholder="例如：鹹酥雞" autocomplete="off"></label>
+    <div class="two"><label class="fld"><span>單價</span><input id="fP" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${draft.p || ''}" placeholder="0" autocomplete="off"></label>
+      <div class="fld"><span>數量</span><div class="step"><button data-q="-1" aria-label="減一">−</button><b id="fQ">${draft.q}</b><button data-q="1" aria-label="加一">＋</button></div></div></div>
+    <div class="fld"><span>分給誰（蓋上印章的人平分）</span><div class="pick" id="fWho">${bill.people.map(p => `<button data-w="${p.id}" aria-pressed="${draft.who.includes(p.id)}">${seal(p.n, 46, {cls: ''})}${esc(p.n)}</button>`).join('')}</div></div>
+    <div class="fld"><span>誰付的</span><div class="radio" id="fBy">${bill.people.map(p => `<button data-b="${p.id}" aria-pressed="${draft.by === p.id}">${esc(p.n)}</button>`).join('')}</div></div>
+    <div class="acts">${isNew ? '' : '<button class="void" data-act="void">作廢</button>'}<button class="ok" data-act="${isNew ? 'print' : 'save'}">${isNew ? '列印' : '改好了'}</button></div>`;
+}
+function openItem(id){
+  const it = id && bill.items.find(i => i.id === id);
+  if (id && !it) return;
+  if (!bill.people.length){ toast('先加一個人'); openPerson(); return; }
+  draft = it ? {id: it.id, n: it.n, p: it.p, q: it.q, who: it.who.slice(), by: it.by} : {id: null, n: '', p: 0, q: 1, who: bill.people.map(p => p.id), by: bill.payer || bill.people[0].id};
+  openSheet(itemHTML(!it));
+}
+sheet.addEventListener('input', e => {
+  if (!draft) return;
+  if (e.target.id === 'fN') draft.n = e.target.value;
+  if (e.target.id === 'fP'){ e.target.value = e.target.value.replace(/\D/g, ''); draft.p = +e.target.value || 0; }
+});
+sheet.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.q && draft){ draft.q = Math.max(1, Math.min(99, draft.q + +b.dataset.q)); $('fQ').textContent = draft.q; haptic(4); return; }
+  if (b.dataset.w && draft){
+    const id = b.dataset.w, has = draft.who.includes(id);
+    if (has && draft.who.length === 1){ haptic([20, 40, 20]); toast('至少要有一個人'); return; }
+    draft.who = has ? draft.who.filter(x => x !== id) : draft.who.concat(id);
+    b.setAttribute('aria-pressed', !has); if (!has){ thump(); haptic([4, 20, 10]); } else haptic(4);
+    return;
+  }
+  if (b.dataset.b && draft){ draft.by = b.dataset.b; $('fBy').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); haptic(4); return; }
+  if (b.dataset.pay){ bill.payer = b.dataset.pay; bill.items.forEach(i => { if (!person(i.by)) i.by = bill.payer; }); haptic(8); renderAll(); closeSheet(); feed(2); return; }
+  if (b.dataset.payall){ bill.items.forEach(i => i.by = bill.payer); haptic(8); renderAll(); closeSheet(); feed(3); toast('全部改成 ' + person(bill.payer).n + ' 付'); return; }
+  const act = b.dataset.act;
+  if (act === 'print' || act === 'save'){
+    const n = (draft.n || '').trim();
+    if (!n || !draft.p){ haptic([20, 40, 20]); const bad = !n ? $('fN') : $('fP'); bad.focus(); bad.style.borderBottomColor = 'var(--red)'; return; }
+    let id = draft.id;
+    if (act === 'print'){ id = 'i' + (uid++); bill.items.push({id, n, p: draft.p, q: draft.q, who: draft.who, by: draft.by}); }
+    else { const it = bill.items.find(i => i.id === draft.id); if (it) Object.assign(it, {n, p: draft.p, q: draft.q, who: draft.who, by: draft.by}); }
+    haptic([6, 30, 6]); closeSheet(); renderAll(id);
+    if (act === 'print'){ toBottom(false); feed(5); } else feed(2);
+    return;
+  }
+  if (act === 'void'){
+    const i = bill.items.findIndex(x => x.id === draft.id); if (i < 0) return;
+    const gone = bill.items.splice(i, 1)[0]; haptic([10, 30, 10]); closeSheet(); renderAll(); feed(2);
+    toast(`已作廢 ${gone.n}`, () => { bill.items.splice(i, 0, gone); renderAll(gone.id); feed(2); });
+    return;
+  }
+  if (act === 'addp'){
+    const n = ($('pN').value || '').trim();
+    if (!n){ haptic([20, 40, 20]); $('pN').focus(); return; }
+    if (bill.people.some(p => p.n === n)){ toast('已經有 ' + n + ' 了'); return; }
+    const id = 'p' + (uid++); bill.people.push({id, n});
+    if (!bill.payer) bill.payer = id;
+    const all = $('pAll') && $('pAll').getAttribute('aria-checked') === 'true';
+    if (all) bill.items.forEach(it => { if (!it.who.includes(id)) it.who.push(id); });
+    closeSheet(); thump(); haptic([6, 30, 14]); renderAll(); slamStamp(id);
+    const st = $('stamps'); st.scrollTo({left: st.scrollWidth, behavior: reduce ? 'auto' : 'smooth'});
+    return;
+  }
+  if (b.id === 'pAll'){ b.setAttribute('aria-checked', b.getAttribute('aria-checked') !== 'true'); haptic(4); return; }
+  if (act === 'rmp'){
+    const id = b.dataset.pid, p = person(id); if (!p) return;
+    bill.people = bill.people.filter(x => x.id !== id);
+    bill.items.forEach(it => { it.who = it.who.filter(x => x !== id); if (!it.who.length) it.who = bill.people.map(x => x.id); if (it.by === id) it.by = bill.payer === id ? (bill.people[0] && bill.people[0].id) : bill.payer; });
+    if (bill.payer === id) bill.payer = bill.people[0] ? bill.people[0].id : null;
+    haptic([10, 30, 10]); closeSheet(); renderAll(); toast(`${p.n} 先走了，帳重新分`);
+    return;
+  }
+  if (act === 'new'){
+    stubs.unshift(stubOf(false)); save('stubs', stubs);
+    bill = {store: '新的一攤', addr: '在哪吃的，點品項後可以慢慢補', table: '--', no: bill.no + 1, svc: false, payer: bill.payer, people: bill.people, items: [], paid: {}, at: Date.now()};
+    haptic([6, 30, 6]); closeSheet(); renderAll(); toBottom(false); feed(6); toast('舊單收進存根，開了一張新單');
+    return;
+  }
+  if (act === 'demo'){ bill = demo(); haptic(8); closeSheet(); renderAll(); feed(6); toast('換回示範帳單'); return; }
+  if (b.dataset.rmstub != null){ stubs.splice(+b.dataset.rmstub, 1); save('stubs', stubs); haptic(6); $('sheetBody').innerHTML = stubsHTML(); return; }
+  if (act === 'close'){ closeSheet(); }
+});
+sheet.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT'){ const ok = sheet.querySelector('.ok'); if (ok){ e.preventDefault(); ok.click(); } } });
+
+function openPerson(){
+  openSheet(`<h3 id="shT">蓋一顆新印章</h3><div id="pPrev">${seal('新', 110, {cls: 'bigseal'})}</div>
+    <label class="fld"><span>名字（最多三個字最好看）</span><input id="pN" maxlength="6" placeholder="例如：雅婷" autocomplete="off"></label>
+    <button class="tgl" id="pAll" role="switch" aria-checked="true" style="margin-top:10px"><span><span class="box"><svg viewBox="0 0 14 14"><path d="M2 7.5l3.2 3L12 3.5" fill="none" stroke="var(--ink)" stroke-width="2.2"/></svg></span>桌上每道菜都算一份</span></button>
+    <div class="acts"><button class="ok" data-act="addp">蓋章</button></div>`);
+  draft = null;
+  setTimeout(() => { const i = $('pN'); if (i) i.focus({preventScroll: true}); }, 380);
+}
+sheet.addEventListener('input', e => { if (e.target.id === 'pN'){ $('pPrev').innerHTML = seal(e.target.value.trim() || '新', 110, {cls: 'bigseal'}); } });
+function openPersonInfo(id){
+  const p = person(id); if (!p) return;
+  const c = calc(), mult = bill.svc ? 1.1 : 1;
+  const mine = bill.items.filter(it => it.who.includes(id));
+  openSheet(`${seal(p.n, 110, {cls: 'bigseal'})}<h3 id="shT" style="margin-top:8px">${esc(p.n)}</h3><div class="sub">應付 ${fmt(c.share[id])}・已先付 ${fmt(c.paid[id])}</div>
+    <div class="rule" style="margin-top:12px"></div>
+    <div class="mine">${mine.length ? mine.map(it => `<div><span>${esc(it.n)}${it.who.length > 1 ? ` ÷${it.who.length}` : ''}</span><span>${fmt(it.p * it.q * mult / it.who.length)}</span></div>`).join('') : '<div><span>還沒有算到任何一道</span></div>'}</div>
+    <div class="acts"><button class="void" data-act="rmp" data-pid="${id}">先走了</button><button class="ok" data-act="close">好</button></div>`);
+}
+function openPayer(){
+  if (!bill.people.length){ openPerson(); return; }
+  openSheet(`<h3 id="shT">誰先去櫃檯結帳</h3><div class="sub">沒特別標註的品項，都算這個人先付</div>
+    <div class="radio" style="margin-top:10px">${bill.people.map(p => `<button data-pay="${p.id}" aria-pressed="${bill.payer === p.id}">${esc(p.n)}</button>`).join('')}</div>
+    <button class="linkish" data-payall="1">把每一道都改成這個人付</button>`);
+}
+function stubOf(done){ const c = calc(); return {store: bill.store, at: bill.at, total: c.total, n: bill.people.length, done}; }
+function stubsHTML(){
+  return `<h3 id="shT">存根</h3><div class="sub">撕下來的結算單都在這裡</div><div style="margin-top:8px">${stubs.length ? stubs.map((s, i) => `<div class="stub"><span>${esc(s.store)}<br><small>${dstr(s.at).slice(0, 14)}・${s.n} 人</small></span><b>${fmt(s.total)}</b><span></span><span class="st">${s.done ? '已結清' : '未結清'}</span></div>`).join('') : '<p class="emptyline">還沒有存根</p>'}</div>
+    <div class="acts"><button class="void" data-act="demo">示範單</button><button class="ok" data-act="new">開一張新單</button></div>`;
+}
+$('kItem').addEventListener('click', () => { haptic(8); openItem(null); });
+$('kPerson').addEventListener('click', () => { haptic(8); openPerson(); });
+$('kStubs').addEventListener('click', () => { haptic(8); openSheet(stubsHTML()); });
+
+/* ---------- settlement slip ---------- */
+let slipOn = false;
+function slipHTML(){
+  const c = calc();
+  const keyOf = t => t.from + '>' + t.to;
+  const allPaid = c.tr.length > 0 && c.tr.every(t => bill.paid[keyOf(t)]);
+  return `<h2>結算單</h2><div class="sub">${esc(bill.store)}・${dstr(Date.now())}</div><div class="rule"></div>
+    ${bill.people.map(p => { const d = c.paid[p.id] - c.share[p.id]; return `<div class="pp">${mini(p.n).replace('viewBox="0 0 22 22"', 'viewBox="0 0 22 22" width="28" height="28"')}<span>${esc(p.n)}<small>吃 ${fmt(c.share[p.id])}・付 ${fmt(c.paid[p.id])}</small></span><b class="${d < 0 ? 'neg' : ''}">${d > 0 ? '+' : d < 0 ? '−' : ''}${fmt(Math.abs(d))}</b></div>`; }).join('')}
+    <div class="rule dbl"></div>
+    <div class="cols" style="padding:4px 0"><span>誰轉給誰（點一下蓋「已付」）</span></div>
+    ${c.tr.length ? c.tr.map(t => `<button class="tr" data-k="${keyOf(t)}" aria-pressed="${!!bill.paid[keyOf(t)]}"><span class="arrow">${esc(person(t.from).n)}<em>→</em>${esc(person(t.to).n)}</span><b>${fmt(t.v)}</b>
+      <svg class="paid" viewBox="0 0 66 66" aria-hidden="true"><g filter="url(#rough)" fill="none" stroke="var(--red)"><rect x="5" y="17" width="56" height="32" rx="4" stroke-width="3"/><text x="33" y="34" text-anchor="middle" dominant-baseline="central" font-size="17" font-weight="700" fill="var(--red)" stroke="none" font-family="Kaiti TC, BiauKai, PingFang TC, serif">已付</text></g></svg></button>`).join('')
+      : '<p class="emptyline">大家剛好打平，不用轉帳。</p>'}
+    <svg class="done${allPaid ? ' on' : ''}" id="doneSeal" viewBox="0 0 150 150" aria-hidden="true"><g filter="url(#rough)" fill="none" stroke="var(--red)"><circle cx="75" cy="75" r="66" stroke-width="5"/><circle cx="75" cy="75" r="56" stroke-width="1.6"/><text x="75" y="70" text-anchor="middle" dominant-baseline="central" font-size="40" font-weight="700" fill="var(--red)" stroke="none" font-family="Kaiti TC, BiauKai, PingFang TC, serif">結清</text><text x="75" y="104" text-anchor="middle" font-size="12" fill="var(--red)" stroke="none" font-family="Courier New, monospace" letter-spacing="2">${new Date().getMonth() + 1}.${new Date().getDate()}</text></g></svg>
+    <div class="tearhint">往上一撥，<b>撕下</b>收進存根</div>`;
+}
+function openSlip(){
+  if (!bill.items.length || !bill.people.length){ toast('單上還沒有東西可以結'); haptic([20, 40, 20]); return; }
+  const win = $('slipwin'), slip = $('slip');
+  slip.innerHTML = slipHTML(); slip.classList.remove('torn');
+  $('slipscroll').scrollTop = 0;
+  win.classList.add('on'); win.setAttribute('aria-hidden', 'false'); slipOn = true; screen.classList.add('slipping');
+  $('settleLbl').textContent = '收回';
+  audio();
+  const H = slip.offsetHeight + 40, lines = Math.max(6, Math.round(H / 26));
+  printSound(lines); led(lines); haptic(12);
+  if (reduce){ slip.style.transform = 'none'; return; }
+  slip.style.transition = 'none'; slip.style.transform = `translateY(${win.offsetHeight}px)`;
+  slip.offsetWidth;
+  slip.style.transition = `transform ${lines * .07}s steps(${lines})`;
+  slip.style.transform = 'translateY(0)';
+}
+function closeSlip(tear){
+  const win = $('slipwin'), slip = $('slip'); if (!slipOn) return;
+  slipOn = false; $('settleLbl').textContent = '印結算單'; screen.classList.remove('slipping');
+  if (tear){
+    const c = calc(), done = c.tr.every(t => bill.paid[t.from + '>' + t.to]);
+    stubs.unshift(stubOf(done)); save('stubs', stubs);
+    rip(); haptic([4, 10, 4, 10, 16]);
+    slip.classList.add('torn');
+    setTimeout(() => { win.classList.remove('on'); win.setAttribute('aria-hidden', 'true'); slip.classList.remove('torn'); slip.style.transition = 'none'; slip.style.transform = ''; }, reduce ? 0 : 520);
+    toast('結算單撕下，收進存根了');
+  } else {
+    printSound(4); led(4); haptic(6);
+    slip.style.transition = reduce ? 'none' : 'transform .45s cubic-bezier(.6,0,.9,.5)';
+    slip.style.transform = `translateY(${win.offsetHeight + 40}px)`;
+    setTimeout(() => { win.classList.remove('on'); win.setAttribute('aria-hidden', 'true'); }, reduce ? 0 : 460);
+  }
+}
+$('kSettle').addEventListener('click', () => { if (slipOn) closeSlip(false); else openSlip(); });
+$('slip').addEventListener('click', e => {
+  const t = e.target.closest('.tr'); if (!t || slipDragged) return;
+  const k = t.dataset.k, on = !bill.paid[k];
+  if (on) bill.paid[k] = true; else delete bill.paid[k];
+  t.setAttribute('aria-pressed', on); persist();
+  if (on){ thump(); haptic([6, 30, 14]); } else haptic(4);
+  const c = calc(), all = c.tr.length && c.tr.every(x => bill.paid[x.from + '>' + x.to]);
+  const ds = $('doneSeal'), was = ds.classList.contains('on');
+  ds.classList.toggle('on', !!all);
+  if (all && !was){ setTimeout(() => { thump(); haptic([10, 40, 30]); }, 160); }
+});
+/* flick the slip upward to tear it off */
+let slipDragged = false;
+(function(){
+  const slip = $('slip'), sc = $('slipscroll'); let y0 = 0, dy = 0, on = false, t0 = 0;
+  slip.addEventListener('pointerdown', e => { if (sc.scrollTop + sc.clientHeight < sc.scrollHeight - 4 && sc.scrollHeight > sc.clientHeight + 4) { on = false; return; } on = true; y0 = e.clientY; dy = 0; t0 = e.timeStamp; slipDragged = false; });
+  slip.addEventListener('pointermove', e => {
+    if (!on) return; dy = Math.min(0, e.clientY - y0);
+    if (dy < -8){ slipDragged = true; slip.style.transition = 'none'; slip.style.transform = `translateY(${dy}px) rotate(${dy / 60}deg)`; try { slip.setPointerCapture(e.pointerId); } catch (_) {} }
+  });
+  const end = e => {
+    if (!on) return; on = false;
+    const v = -dy / Math.max(1, e.timeStamp - t0);
+    if (dy < -140 || (v > .7 && dy < -40)) closeSlip(true);
+    else if (slipDragged){ slip.style.transition = 'transform .3s cubic-bezier(.2,.9,.25,1.1)'; slip.style.transform = 'translateY(0)'; }
+    setTimeout(() => slipDragged = false, 50);
+  };
+  slip.addEventListener('pointerup', end); slip.addEventListener('pointercancel', end);
+  sc.addEventListener('wheel', e => { if (sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2 && e.deltaY > 60) { /* scrolling past end does nothing */ } }, {passive: true});
+})();
+
+/* ---------- toast ---------- */
+let toastT = 0, undoFn = null;
+function toast(msg, undo){
+  $('toastT').textContent = msg; undoFn = undo || null; $('toastB').hidden = !undo;
+  $('toast').classList.add('on'); clearTimeout(toastT);
+  toastT = setTimeout(() => $('toast').classList.remove('on'), undo ? 4200 : 2200);
+}
+$('toastB').addEventListener('click', () => { if (undoFn) undoFn(); undoFn = null; $('toast').classList.remove('on'); haptic(8); });
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (sheet.classList.contains('on')) closeSheet(); else if (slipOn) closeSlip(false);
+});
+
+/* ---------- clock ---------- */
+function tick(){ const d = new Date(); $('clock').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setTimeout(function t(){ tick(); setTimeout(t, 60000 - Date.now() % 60000); }, 60000 - Date.now() % 60000);
+
+renderAll();
+
+})();
+</script>
+</body>
+</html>

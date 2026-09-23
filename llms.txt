@@ -109,6 +109,7 @@
 - [109 浮島列車 · Windward Rail](https://htmls-ruddy.vercel.app/109-windward-rail.html): Three.js 火車模擬。跨海浮島軌道、動力與煞車、乘客舒適度與小費、平穩連續倍率、機廠整備及日夜兩條路線
 - [112 Sunport Railway · 陽港模型鐵道](https://htmls-ruddy.vercel.app/112-sunport-railway.html): 桌上 HO 比例積木鐵道。環線列車、調車場、轉車盤、工業區、港口、小鎮車流與晝夜燈火；拖曳桌前實體拉桿和按鈕操作
 - [113 Dustbound Frontier · 塵境西部](https://htmls-ruddy.vercel.app/113-dustbound-frontier.html): 程序化體素西部世界。動態區塊、沙漠與峽谷、小鎮建築、NPC 巡邏交談、方塊挖掘建造與晝夜循環
+- [115 WIND · 草原](https://htmls-ruddy.vercel.app/115-windfield.html): 沉浸式 Three.js 草原。12 萬株 InstancedMesh 草葉隨雙層 shader 風場擺動，可調太陽與風力、阻尼視角與自動巡遊
 
 ### 品牌頁面
 
@@ -148,6 +149,7 @@
 - [045 紙上四季](https://htmls-ruddy.vercel.app/045-paper-layers.html): 紙雕層次。七層紙雕山谷視差，四季切換、24 節氣、依季節飄落花瓣與雪
 - [053 天恩宮 擲筊求籤](https://htmls-ruddy.vercel.app/053-temple.html): 台灣廟宇。稟告、擲筊、搖籤、確認、解籤全流程，12 首原創七言籤詩
 - [090 七十二候 木版曆](https://htmls-ruddy.vercel.app/090-ukiyoe.html): 浮世繪。自動定位今日的候，程序化浮世繪風景與流動青海波
+- [114 山中留話 · 3D 承諾牆](https://htmls-ruddy.vercel.app/114-promise-wall.html): 山中咖啡館 3D 承諾牆。四種便條材質、貼牆晃動、環繞縮放、點擊細讀與 localStorage 本機保存
 
 ### 擬物器物
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>100 Creative HTML Works｜100 種風格的單頁網頁設計作品集</title>
-<meta name="description" content="111 件版面、配色、字體與動效各異的 HTML 作品：瑞士國際主義、蒸汽波、水墨山水、果凍骰子，以及陽港模型鐵道。">
+<meta name="description" content="112 件版面、配色、字體與動效各異的 HTML 作品：瑞士國際主義、蒸汽波、水墨山水、果凍骰子，以及互動草原。">
 <meta name="google-site-verification" content="6KE8Qp5p0dXMp1etepmmhRmw7fG_SRwVuBampfeCL5M" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/">
@@ -14,7 +14,7 @@
 <meta property="og:locale" content="zh_TW">
 <meta property="og:url" content="https://htmls-ruddy.vercel.app/">
 <meta property="og:title" content="100 Creative HTML Works｜100 種風格的單頁網頁設計作品集">
-<meta property="og:description" content="111 件設計語彙各異的 HTML 作品：從瑞士國際主義、蒸汽波到陽港模型鐵道。">
+<meta property="og:description" content="112 件設計語彙各異的 HTML 作品：從瑞士國際主義、蒸汽波到互動草原。">
 <meta property="og:image" content="https://htmls-ruddy.vercel.app/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -33,14 +33,14 @@
    "name": "100 Creative HTML Works",
    "alternateName": "100 種風格的單頁網頁設計作品集",
    "inLanguage": "zh-Hant",
-   "description": "111 件版面、配色、字體與動效各異的 HTML 作品，包括桃花源記互動閱讀、果凍骰子與陽港模型鐵道。"
+   "description": "112 件版面、配色、字體與動效各異的 HTML 作品，包括桃花源記互動閱讀、果凍骰子與互動草原。"
   },
   {
    "@type": "CollectionPage",
    "@id": "https://htmls-ruddy.vercel.app/#page",
    "url": "https://htmls-ruddy.vercel.app/",
    "name": "100 Creative HTML Works｜100 種風格的單頁網頁設計作品集",
-   "description": "111 件版面、配色、字體與動效各異的 HTML 作品，包括桃花源記互動閱讀、果凍骰子與陽港模型鐵道。",
+   "description": "112 件版面、配色、字體與動效各異的 HTML 作品，包括桃花源記互動閱讀、果凍骰子與互動草原。",
    "inLanguage": "zh-Hant",
    "isPartOf": {
     "@id": "https://htmls-ruddy.vercel.app/#website"
@@ -92,7 +92,7 @@
      "name": "這是什麼？",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "100 Creative HTML Works 目前收錄 111 個 HTML 作品，另附 2 份 AI 工程化教學簡報。新加入的陽港模型鐵道與塵境西部從 CDN 載入 Three.js，場景素材都由程式生成。"
+      "text": "100 Creative HTML Works 目前收錄 112 個 HTML 作品，另附 2 份 AI 工程化教學簡報。互動草原與部分 3D 作品從 CDN 載入 Three.js，場景素材都由程式生成。"
      }
     },
     {
@@ -255,6 +255,15 @@ kbd{display:inline-block;min-width:22px;padding:1px 6px;font:12px/1.5 var(--mono
 .lede{grid-area:lede;margin:0;max-width:44em;font-size:16px;line-height:1.75;color:var(--text-2)}
 @media (min-width:768px){.lede>span{display:block}}
 
+/* ---------- 大分類：網頁 / App ---------- */
+.kinds{position:relative;display:flex;align-items:flex-end;gap:28px;margin:0 0 22px;padding-bottom:12px}
+.kind{display:inline-flex;align-items:baseline;gap:8px;font:600 clamp(22px,3vw,30px)/1.2 var(--serif);letter-spacing:-.01em;color:var(--text-3);transition:color var(--dur-hover)}
+.kind:hover{color:var(--text-2)}
+.kind[aria-selected="true"]{color:var(--text)}
+.kind .n{font:500 14px/1 var(--sans);letter-spacing:0;color:var(--text-3)}
+.kind-bar{position:absolute;left:0;bottom:0;width:0;height:3px;border-radius:3px;background:var(--accent);transition:transform var(--dur-morph) var(--ease-in-out),width var(--dur-morph) var(--ease-in-out)}
+.kind:active{transform:scale(.97)}
+
 /* ---------- filter bar ---------- */
 .controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
 .search{position:relative;flex:1 1 300px;max-width:460px}
@@ -318,6 +327,19 @@ kbd{display:inline-block;min-width:22px;padding:1px 6px;font:12px/1.5 var(--mono
   .card h2 a:focus-visible{outline:none}
   .card:has(h2 a:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
 }
+
+/* ---------- App 網格：直式手機畫面 ---------- */
+.grid.apps{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:640px){.grid.apps{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:960px){.grid.apps{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}}
+@media (min-width:1180px){.grid.apps{grid-template-columns:repeat(5,minmax(0,1fr));gap:18px}}
+.grid.apps .card{padding:6px 6px 12px}
+.grid.apps .thumb{aspect-ratio:390/844;border-radius:14px}
+.grid.apps .card-top{margin-top:10px;padding:0 4px}
+.grid.apps .card h2{font-size:15px}
+.grid.apps .genre,.grid.apps .desc{padding:0 4px}
+.grid.apps .desc{font-size:13px;-webkit-line-clamp:2}
+@media (max-width:639px){.grid.apps .card-acts .mini:last-child{display:none}}
 
 /* ---------- table ---------- */
 .tablewrap{overflow-x:auto;padding:4px 20px 6px;background:var(--card);border-radius:var(--r-card)}
@@ -413,9 +435,10 @@ footer.site .keys span{display:inline-flex;align-items:center;gap:5px}
 
 /* ---------- static catalog (no-JS / crawlers) & about ---------- */
 @counter-style pad3{system:extends decimal;pad:3 "0"}
-html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .controls,html:not(.js) .cats,html:not(.js) .statusbar{display:none}
+html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .kinds,html:not(.js) .controls,html:not(.js) .cats,html:not(.js) .statusbar{display:none}
 .js .catalog{display:none}
 .catalog h2{margin:0 0 12px;font:600 24px/1.3 var(--serif)}
+.catalog ol+h2{margin-top:36px}
 .catalog ol{margin:0;padding:0 0 0 3.4em;list-style:pad3}
 .catalog li{padding:8px 0;color:var(--text-2);font-size:14px}
 .catalog li::marker{font-family:var(--mono);color:var(--text-3)}
@@ -434,7 +457,8 @@ html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .controls,html
 @starting-style{.overlay{opacity:0}.overlay .dialog{opacity:0;transform:scale(.96)}.pv{opacity:0;transform:scale(.98)}}
 /* 減少動態：保留透明度與顏色變化，只移除位移與縮放。各動畫計畫把自己的規則加在這裡 */
 @media (prefers-reduced-motion:reduce){
-  .btn:active,.iconbtn:active,.seg button:active,.cat:active,.mini:active{transform:none}
+  .btn:active,.iconbtn:active,.seg button:active,.cat:active,.mini:active,.kind:active{transform:none}
+  .kind-bar{transition:none}
   .toast{transform:translate(-50%,0)}
   .overlay.out .dialog,.pv.out{transform:none}
   @starting-style{.overlay .dialog,.pv{transform:none}}
@@ -477,10 +501,15 @@ html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .controls,html
     <button data-theme-set="light" aria-pressed="false" aria-label="淺色模式" title="淺色模式"><svg class="ico"><use href="#i-sun"/></svg></button>
     <button data-theme-set="dark" aria-pressed="false" aria-label="深色模式" title="深色模式"><svg class="ico"><use href="#i-moon"/></svg></button>
   </div>
-  <p class="lede"><span><span id="nCore">111</span> 件版面、配色、字體與動效各異的 HTML 作品，另附 <span id="nExtra">2</span> 份 AI 教學簡報。</span><span>113 塵境西部：在沙塵小鎮中挖掘、建造與漫遊。</span></p>
+  <p class="lede"><span><span id="nCore">111</span> 件網頁作品與 <span id="nApps">100</span> 個手機 App 原型，另附 <span id="nExtra">2</span> 份 AI 教學簡報。</span><span>App 都能直接操作：手機上全螢幕，桌機上裝進手機外框。</span></p>
 </header>
 
 <main class="wrap">
+  <div class="kinds" id="kinds" role="tablist" aria-label="作品類型">
+    <button class="kind" role="tab" data-kind="web" aria-selected="true">網頁作品<span class="n" id="nWebTab"></span></button>
+    <button class="kind" role="tab" data-kind="app" aria-selected="false">App 原型<span class="n" id="nAppTab"></span></button>
+    <span class="kind-bar" id="kindBar" aria-hidden="true"></span>
+  </div>
   <div class="controls">
     <div class="search">
       <svg class="ico"><use href="#i-search"/></svg>
@@ -612,13 +641,22 @@ html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .controls,html
       <li><a href="104-laptop-studio.html">FRAME · 3D 筆電產品攝影棚</a>｜<span class="g">擬真 3D Mockup</span>｜<span class="c">擬物器物</span><p class="d">上傳或貼上截圖，置入程序建模的金屬筆電；調整相機、景深、打光與背景，匯出高解析度 PNG</p></li>
       <li><a href="105-sales-crm.html">Northstar Sales CRM</a>｜<span class="g">深色業務儀表板</span>｜<span class="c">專案範例</span><p class="d">高密度 Companies 表格、案件看板、加權預測、篩選與匯出；以示範資料呈現完整業務工作區</p></li>
       <li><a href="106-courier-rush.html">Courier Rush</a>｜<span class="g">三線道無盡跑酷</span>｜<span class="c">遊戲敘事</span><p class="d">低多邊形城市 3D 跑酷：換道佇列、跳躍、野豬／蝙蝠／雄鹿障礙與三種強化</p></li>
-      <li><a href="107-arc-brokerage.html">ARC · Move with the market</a>｜<span class="g">電影感金融首頁</span>｜<span class="c">平面排版</span><p class="d">深色城市情境與 CSS 玻璃建築、游標阻尼與捲動視差、模擬報價、五欄資訊帶的券商 Hero 概念頁</p></li>
+      <li><a href="107-arc-brokerage.html">ARC · Move with the market</a>｜<span class="g">可操作的券商概念站</span>｜<span class="c">平面排版</span><p class="d">電影感城市 Hero 加上真的能用的功能：模擬即時報價交易台（市價／限價單、持倉損益）、定期定額試算、產業熱力圖與漲跌排行、帳戶比較與三步驟開戶</p></li>
       <li><a href="108-last-train.html">末班車 · LAST TRAIN</a>｜<span class="g">3D 波次生存射擊</span>｜<span class="c">遊戲敘事</span><p class="d">程序化廢棄地鐵站 FPS：霰彈槍與手槍、隧道與樓梯雙入口、逐波增強的敵人與命中率結算</p></li>
       <li><a href="109-windward-rail.html">浮島列車 · Windward Rail</a>｜<span class="g">雲海火車模擬</span>｜<span class="c">遊戲敘事</span><p class="d">駕駛列車跨越浮島與海面；動力、煞車、乘客舒適度、平穩連續倍率、兩條路線與日夜光照</p></li>
       <li><a href="110-embroidery-studio.html">THREAD · 刺繡工作室</a>｜<span class="g">程序布料與刺繡</span>｜<span class="c">生成藝術</span><p class="d">純 Canvas 2D 刺繡編輯器：逐像素織布光照、七種幾何針法、六道繡線質感與 PNG 匯出</p></li>
       <li><a href="111-jelly-dice.html">Jelly Dice · 果凍骰子工房</a>｜<span class="g">互動 3D 果凍骰子</span>｜<span class="c">創意藝術</span><p class="d">六種口味的程序化透明骰子；最多五顆同時擲出，碰撞、回彈、戳壓與拖曳拉伸</p></li>
       <li><a href="112-sunport-railway.html">Sunport Railway · 陽港模型鐵道</a>｜<span class="g">桌上積木鐵道</span>｜<span class="c">遊戲敘事</span><p class="d">木桌上的 HO 比例積木鐵道：環線列車、調車場與轉車盤、港口吊車、小鎮車流；實體拉桿與按鈕控制速度、燈光及晝夜</p></li>
       <li><a href="113-dustbound-frontier.html">Dustbound Frontier · 塵境西部</a>｜<span class="g">體素開放世界</span>｜<span class="c">遊戲敘事</span><p class="d">程序化乾旱地貌與西部小鎮；動態區塊、挖掘建造、28 位居民、第一人稱探索與晝夜循環</p></li>
+      <li><a href="114-promise-wall.html">山中留話 · 3D 承諾牆</a>｜<span class="g">山中咖啡館 3D 留言</span>｜<span class="c">東方在地</span><p class="d">挑選紙條、便利貼、卡片或木牌寫下承諾；便條輕晃貼牆、點擊細讀，內容保存在本機瀏覽器</p></li>
+      <li><a href="115-windfield.html">WIND · 草原</a>｜<span class="g">沉浸式草原</span>｜<span class="c">介面風格</span><p class="d">12 萬株 InstancedMesh 草葉隨雙層風場起伏；可調日照與風力，滑鼠漫遊與閒置巡遊</p></li>
+    </ol>
+    <h2 id="appCatalogTitle">App 目錄</h2>
+    <!-- App 資料：href 為「app/三位數編號-關鍵字.html」，.c 必須是 CATS.app 其中之一 -->
+    <ol>
+<!-- APP-CATALOG:START -->
+      <li><a href="app/001-glass-pedometer.html">步頻 Stride</a>｜<span class="g">iOS 液態玻璃 健走計步器</span>｜<span class="c">健康運動</span><p class="d">開始健走模擬即時步數、每日圓環、週長條、調整目標抽屜、路線卡片左右滑</p></li>
+<!-- APP-CATALOG:END -->
     </ol>
   </section>
 </main>
@@ -626,7 +664,7 @@ html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .controls,html
 <section class="wrap about" aria-labelledby="aboutTitle">
   <h2 id="aboutTitle">關於這個作品集</h2>
   <div class="faq">
-    <div class="qa"><h3>這是什麼？</h3><p>100 Creative HTML Works 目前收錄 111 個 HTML 作品，另附 2 份 AI 工程化教學簡報。新加入的陽港模型鐵道與塵境西部從 CDN 載入 Three.js，場景素材都由程式生成。</p></div>
+    <div class="qa"><h3>這是什麼？</h3><p>100 Creative HTML Works 目前收錄 112 個 HTML 作品，另附 2 份 AI 工程化教學簡報。互動草原與部分 3D 作品從 CDN 載入 Three.js，場景素材都由程式生成。</p></div>
     <div class="qa"><h3>作品之間有什麼規則？</h3><p>設計零重複：版面結構、配色、字體搭配與動效語彙不能有兩件雷同，不是同一個模板換色。題材與互動形式自由，包含作品集、小遊戲、視覺實驗、工具與資料視覺化。</p></div>
     <div class="qa"><h3>有用到外部資源嗎？可以離線開啟嗎？</h3><p>前 100 件完全不載入外部資源：只用系統字，圖像以 CSS、SVG、Canvas 繪製，聲音以 WebAudio 即時合成，下載單一檔案就能離線開啟。101、102 兩份簡報會從 Google Fonts 載入字型。</p></div>
     <div class="qa"><h3>品質怎麼驗收？</h3><p>以 headless Chrome 在 1440×900 與 390×844 兩種尺寸自動檢查每件作品，並模擬滑鼠移動、點擊、按鍵與滾輪，確認沒有 uncaught exception、console.error、外部網路請求與手機水平溢出，100 件全部通過；另外逐件人工檢視桌機與手機截圖。</p></div>
@@ -699,15 +737,21 @@ var WEAK = {
   '080':{reason:'系統沒有 Didot / Bodoni，只能用 Georgia，時尚刊物最關鍵的高對比 Didone 襯線到不了位，剪影也偏平面。',fix:'用 SVG 自繪刊頭與大標的 Didone 字母（極細髮線加極粗主筆），剪影加入布料皺褶的漸層陰影與縫線細節。'},
   '086':{reason:'概念很好，但深層刻意壓暗，要移動探照燈才看得到生物，大部分時間畫面偏空，第一印象吃虧。',fix:'讓探照燈自動緩慢掃描，並讓生物主動發光引導視線，確保每一屏都有焦點；再加入側邊深度剖面迷你地圖提示進度。'}
 };
-var CATS = ['平面排版','介面風格','復古數位','生成藝術','資料科學','遊戲敘事','工具產生器','擬物器物','東方在地','品牌頁面','AI 學習','專案範例','創意藝術'];
-var ALIAS = {'平面排版':'print type typography poster','介面風格':'ui interface','復古數位':'retro pixel 8-bit','生成藝術':'generative art canvas','資料科學':'data viz science chart','遊戲敘事':'game story puzzle 遊戲','工具產生器':'tool generator','擬物器物':'object skeuomorphic','東方在地':'taiwan asia 台灣 日本','品牌頁面':'brand landing shop','AI 學習':'ai llm agent claude skills 教學 學習 slides 簡報','專案範例':'project example sales crm dashboard companies deals forecast','創意藝術':'creative art jelly dice three.js interactive 3d 果凍 骰子'};
+var CATS = {
+  web:['平面排版','介面風格','復古數位','生成藝術','資料科學','遊戲敘事','工具產生器','擬物器物','東方在地','品牌頁面','AI 學習','專案範例','創意藝術'],
+  app:['效率工具','生活追蹤','健康運動','理財商務','影音媒體','社群通訊','口袋遊戲','智慧控制','學習閱讀','旅行探索']
+};
+var ALIAS = {'平面排版':'print type typography poster','介面風格':'ui interface','復古數位':'retro pixel 8-bit','生成藝術':'generative art canvas','資料科學':'data viz science chart','遊戲敘事':'game story puzzle 遊戲','工具產生器':'tool generator','擬物器物':'object skeuomorphic','東方在地':'taiwan asia 台灣 日本','品牌頁面':'brand landing shop','AI 學習':'ai llm agent claude skills 教學 學習 slides 簡報','專案範例':'project example sales crm dashboard companies deals forecast','創意藝術':'creative art jelly dice three.js interactive 3d 果凍 骰子',
+  '效率工具':'productivity tool utility 工具','生活追蹤':'lifestyle tracker 生活','健康運動':'health fitness sport 運動 健身','理財商務':'finance money business 記帳 理財','影音媒體':'media music video photo 音樂 影片','社群通訊':'social chat 社群 聊天','口袋遊戲':'game mini 遊戲','智慧控制':'smart home iot control dashboard 控制','學習閱讀':'learn read education 學習 閱讀','旅行探索':'travel map 旅行 地圖'};
 
 // 作品資料來自頁面上的靜態目錄 #catalog（沒有 JS 的讀者與爬蟲也看得到），讀完就移除，改由下方 render() 顯示
 var catalog = document.getElementById('catalog');
 var works = Array.prototype.map.call(catalog.querySelectorAll('li'), function(li){
-  var a = li.querySelector('a'), file = a.getAttribute('href'), m = /^(\d{3})-(.+)\.html$/.exec(file);
+  var a = li.querySelector('a'), file = a.getAttribute('href'), m = /^(app\/)?(\d{3})-(.+)\.html$/.exec(file);
   var text = function(sel){ return li.querySelector(sel).textContent.trim(); };
-  return {id:m[1], slug:m[2], title:a.textContent.trim(), genre:text('.g'), category:text('.c'), desc:text('.d'), file:file, weak:!!WEAK[m[1]]};
+  // 網頁作品的 id 就是三位數編號；App 加上前綴 A（A001），兩邊的收藏、#hash 與自評才不會撞號
+  var kind = m[1] ? 'app' : 'web', id = (kind === 'app' ? 'A' : '')+m[2];
+  return {id:id, num:m[2], kind:kind, slug:m[3], title:a.textContent.trim(), genre:text('.g'), category:text('.c'), desc:text('.d'), file:file, weak:!!WEAK[id]};
 });
 catalog.remove();
 var byId = {}; works.forEach(function(w){ byId[w.id] = w; });
@@ -732,7 +776,7 @@ var SITE_URL = document.querySelector('link[rel="canonical"]').href;
 function load(k, d){ try { var v = localStorage.getItem('idx100:'+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
 function save(k, v){ try { localStorage.setItem('idx100:'+k, JSON.stringify(v)); } catch(e){} }
 var state = {
-  q:'', cat:'ALL', sort:load('sort','asc'), view:load('view','grid'),
+  q:'', cat:'ALL', kind:load('kind','web') === 'app' ? 'app' : 'web', sort:load('sort','asc'), view:load('view','grid'),
   favs:new Set((load('favs',[])||[]).filter(function(id){ return byId[id]; })),
   current:null, device:'desktop'
 };
@@ -742,13 +786,16 @@ function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'
 function icon(name, cls){ return '<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true"><use href="#i-'+name+'"/></svg>'; }
 function norm(s){ return String(s).toLowerCase(); }
 function catLabel(c){ return c === 'ALL' ? '全部' : c === 'FAVORITES' ? '收藏' : c; }
+function kindWorks(){ return works.filter(function(w){ return w.kind === state.kind; }); }
+function label(w){ return (w.kind === 'app' ? 'App ' : '')+w.num; }
 function match(w, q){
   if (!q) return true;
-  var hay = norm([w.id, w.slug, w.title, w.genre, w.category, w.desc, ALIAS[w.category]||'', w.weak?'weak 自評 弱':''].join(' '));
+  var hay = norm([w.id, w.num, w.slug, w.title, w.genre, w.category, w.desc, ALIAS[w.category]||'', w.kind === 'app' ? 'app 手機 mobile' : 'web 網頁', w.weak?'weak 自評 弱':''].join(' '));
   return norm(q).split(/\s+/).filter(Boolean).every(function(t){ return hay.indexOf(t) > -1; });
 }
 function filtered(){
   var list = works.filter(function(w){
+    if (w.kind !== state.kind) return false;
     if (state.cat === 'FAVORITES' && !state.favs.has(w.id)) return false;
     if (state.cat !== 'ALL' && state.cat !== 'FAVORITES' && w.category !== state.cat) return false;
     return match(w, state.q);
@@ -782,17 +829,29 @@ if (window.matchMedia){
 applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
 
 // ---------- render ----------
+function renderKinds(){
+  document.querySelectorAll('[data-kind]').forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-kind') === state.kind); });
+  var on = document.querySelector('[data-kind="'+state.kind+'"]'), bar = $('kindBar');
+  bar.style.width = on.offsetWidth+'px'; bar.style.transform = 'translateX('+on.offsetLeft+'px)';
+}
+function setKind(k){
+  if (k === state.kind) return;
+  state.kind = k; save('kind', k);
+  if (state.cat !== 'FAVORITES') state.cat = 'ALL';
+  introDone = false; render();
+}
 function renderCats(){
-  var counts = {ALL:works.length, FAVORITES:state.favs.size};
-  works.forEach(function(w){ counts[w.category] = (counts[w.category]||0) + 1; });
-  $('cats').innerHTML = ['ALL','FAVORITES'].concat(CATS).map(function(c){
+  var mine = kindWorks(), favN = mine.filter(function(w){ return state.favs.has(w.id); }).length;
+  var counts = {ALL:mine.length, FAVORITES:favN};
+  mine.forEach(function(w){ counts[w.category] = (counts[w.category]||0) + 1; });
+  $('cats').innerHTML = ['ALL','FAVORITES'].concat(CATS[state.kind]).map(function(c){
     return '<button class="cat" data-cat="'+esc(c)+'" aria-pressed="'+(state.cat===c)+'">'+
-      (c==='FAVORITES'?icon('heart', state.favs.size?'fill':''):'')+
+      (c==='FAVORITES'?icon('heart', favN?'fill':''):'')+
       '<span>'+esc(catLabel(c))+'</span><span class="n">'+(counts[c]||0)+'</span></button>';
   }).join('');
 }
 function renderControls(){
-  var first = works[0].id, last = works[works.length-1].id;
+  var mine = kindWorks(), first = mine[0].num, last = mine[mine.length-1].num;
   $('sortLbl').textContent = state.sort === 'asc' ? first+' → '+last : last+' → '+first;
   $('btnSort').classList.toggle('desc', state.sort === 'desc');
   $('btnSort').title = state.sort === 'asc' ? '目前由小到大，點擊改為由大到小' : '目前由大到小，點擊改為由小到大';
@@ -805,7 +864,8 @@ function chip(label, act, title){
 }
 function renderStatus(list){
   var active = state.cat !== 'ALL' || state.q;
-  var h = active ? '<span><strong>'+list.length+'</strong> / '+works.length+' 件</span>' : '<span>共 <strong>'+works.length+'</strong> 件</span>';
+  var total = kindWorks().length, unit = state.kind === 'app' ? ' 個' : ' 件';
+  var h = active ? '<span><strong>'+list.length+'</strong> / '+total+unit+'</span>' : '<span>共 <strong>'+total+'</strong>'+unit+'</span>';
   if (state.cat !== 'ALL') h += chip(catLabel(state.cat), 'clearCat', '取消分類篩選');
   if (state.q) h += chip('「'+state.q+'」', 'clearQ', '清除關鍵字');
   if (state.cat !== 'ALL' && state.q) h += '<button class="linkbtn" data-act="reset">全部清除</button>';
@@ -813,20 +873,20 @@ function renderStatus(list){
 }
 function favBtn(w, cls){
   var on = state.favs.has(w.id);
-  return '<button class="'+cls+(on?' on':'')+'" data-fav="'+w.id+'" title="'+(on?'取消收藏':'收藏')+'" aria-label="收藏 '+w.id+' '+esc(w.title)+'" aria-pressed="'+on+'">'+icon('heart', on?'fill':'')+'</button>';
+  return '<button class="'+cls+(on?' on':'')+'" data-fav="'+w.id+'" title="'+(on?'取消收藏':'收藏')+'" aria-label="收藏 '+label(w)+' '+esc(w.title)+'" aria-pressed="'+on+'">'+icon('heart', on?'fill':'')+'</button>';
 }
 function tabLink(w, cls){
-  return '<a class="'+cls+'" href="'+w.file+'" target="_blank" rel="noopener" title="在新分頁開啟" aria-label="在新分頁開啟 '+w.id+' '+esc(w.title)+'">'+icon('open')+'</a>';
+  return '<a class="'+cls+'" href="'+w.file+'" target="_blank" rel="noopener" title="在新分頁開啟" aria-label="在新分頁開啟 '+label(w)+' '+esc(w.title)+'">'+icon('open')+'</a>';
 }
 function genreLine(w){
   return esc(w.genre)+(w.genre !== w.category ? '<span class="sep">·</span>'+esc(w.category) : '');
 }
-function thumbFile(w){ return 'thumbs/'+w.id+(['103','104','105','106','107','108','109','110','111','112','113'].includes(w.id) ? '.svg' : '.jpg'); }
+function thumbFile(w){ if (w.kind === 'app') return 'thumbs/app/'+w.num+'.jpg'; return 'thumbs/'+w.num+(['103','104','105','106','107','108','109','110','111','112','113','114','115'].includes(w.id) ? '.svg' : '.jpg'); }
 function cardHTML(w, i){
   return '<article class="card" style="--i:'+Math.min(i, 8)+'">'+
-    '<div class="thumb"><span class="fallback">'+w.id+'</span>'+
-      '<img src="'+thumbFile(w)+'" alt="'+esc(w.title)+' 畫面預覽" loading="'+(i < 4 ? 'eager' : 'lazy')+'"'+(i === 0 ? ' fetchpriority="high"' : '')+' decoding="async" width="640" height="400" onerror="this.remove()"></div>'+
-    '<div class="card-top"><div class="card-title"><span class="num">'+w.id+'</span>'+
+    '<div class="thumb"><span class="fallback">'+w.num+'</span>'+
+      '<img src="'+thumbFile(w)+'" alt="'+esc(w.title)+' 畫面預覽" loading="'+(i < 4 ? 'eager' : 'lazy')+'"'+(i === 0 ? ' fetchpriority="high"' : '')+' decoding="async" '+(w.kind === 'app' ? 'width="390" height="844"' : 'width="640" height="400"')+' onerror="this.remove()"></div>'+
+    '<div class="card-top"><div class="card-title"><span class="num">'+w.num+'</span>'+
       '<h2><a href="'+w.file+'" data-open="'+w.id+'">'+esc(w.title)+'</a></h2></div>'+
       '<div class="card-acts">'+favBtn(w,'mini')+tabLink(w,'mini')+'</div></div>'+
     '<p class="genre">'+genreLine(w)+(w.weak?'<span class="weak">自評較弱</span>':'')+'</p>'+
@@ -837,7 +897,7 @@ function tableHTML(list){
   return '<div class="tablewrap"><table><thead><tr>'+
     '<th>編號</th><th>作品</th><th class="col-lg">風格</th><th class="col-md">分類</th><th class="col-sm">說明</th><th><span class="sr">操作</span></th>'+
     '</tr></thead><tbody>'+list.map(function(w){
-      return '<tr><td class="c-num">'+w.id+'</td>'+
+      return '<tr><td class="c-num">'+w.num+'</td>'+
         '<td class="c-title"><a href="'+w.file+'" data-open="'+w.id+'">'+esc(w.title)+'</a>'+(w.weak?'<span class="weak">自評較弱</span>':'')+'</td>'+
         '<td class="col-lg c-meta">'+esc(w.genre)+'</td><td class="col-md c-meta">'+esc(w.category)+'</td>'+
         '<td class="col-sm desc" title="'+esc(w.desc)+'">'+esc(w.desc)+'</td>'+
@@ -848,7 +908,7 @@ function emptyHTML(){
   if (state.cat === 'FAVORITES' && !state.q){
     return '<div class="empty"><h3>還沒有收藏</h3>'+
       '<p>點作品標題旁的愛心，或在預覽時按 <kbd>F</kbd>。收藏只存在這台裝置的瀏覽器裡。</p>'+
-      '<button class="btn" data-act="clearCat">看全部 '+works.length+' 件</button></div>';
+      '<button class="btn" data-act="clearCat">看全部 '+kindWorks().length+(state.kind === 'app' ? ' 個' : ' 件')+'</button></div>';
   }
   return '<div class="empty"><h3>沒有符合的作品</h3>'+
     '<p>找不到「'+esc(state.q)+'」'+(state.cat !== 'ALL' ? '（分類：'+esc(catLabel(state.cat))+'）' : '')+'。換個關鍵字，或清除篩選。</p>'+
@@ -857,11 +917,11 @@ function emptyHTML(){
 var introDone = false;
 function render(){
   var list = filtered();
-  renderControls(); renderCats(); renderStatus(list);
+  renderKinds(); renderControls(); renderCats(); renderStatus(list);
   var r = $('results');
   if (!list.length) r.innerHTML = emptyHTML();
   else if (state.view === 'table') r.innerHTML = tableHTML(list);
-  else r.innerHTML = '<div class="grid'+(introDone ? '' : ' intro')+'">'+list.map(cardHTML).join('')+'</div>';
+  else r.innerHTML = '<div class="grid'+(state.kind === 'app' ? ' apps' : '')+(introDone ? '' : ' intro')+'">'+list.map(cardHTML).join('')+'</div>';
   introDone = true;
   if (state.current) syncPreviewMeta();
 }
@@ -875,8 +935,8 @@ function popHeart(btn){
 function toggleFav(id){
   if (!byId[id]) return;
   var added = !state.favs.has(id);
-  if (added) { state.favs.add(id); toast('已收藏 '+id); }
-  else { state.favs.delete(id); toast('已取消收藏 '+id); }
+  if (added) { state.favs.add(id); toast('已收藏 '+label(byId[id])); }
+  else { state.favs.delete(id); toast('已取消收藏 '+label(byId[id])); }
   save('favs', Array.from(state.favs));
   render();
   // render() 會重建卡片，所以要在它之後重新找按鈕；只彈剛按下的那一顆
@@ -891,6 +951,7 @@ var lastFocus = null, pvHideT = null, pvSrcT = null;
 function openPreview(id, push){
   var w = byId[id]; if (!w) return;
   var first = !state.current, pv = $('pv');
+  if (w.kind !== state.kind) { state.kind = w.kind; save('kind', w.kind); if (state.cat !== 'FAVORITES') state.cat = 'ALL'; render(); }
   if (first) lastFocus = document.activeElement;
   clearTimeout(pvHideT); clearTimeout(pvSrcT); pv.classList.remove('out');
   state.current = id;
@@ -906,7 +967,7 @@ function openPreview(id, push){
 function syncPreviewMeta(){
   var w = byId[state.current]; if (!w) return;
   var list = filtered(), idx = list.findIndex(function(x){ return x.id === w.id; });
-  $('pvId').textContent = w.id; $('pvTitle').textContent = w.title; $('pvGenre').textContent = w.genre;
+  $('pvId').textContent = label(w); $('pvTitle').textContent = w.title; $('pvGenre').textContent = w.genre;
   $('pvDesc').textContent = w.desc; $('pvWeak').hidden = !w.weak;
   $('pvPos').textContent = idx > -1 ? (idx+1)+' / '+list.length : '不在目前篩選中';
   $('pvTab').href = w.file;
@@ -915,7 +976,7 @@ function syncPreviewMeta(){
   fb.querySelector('.heart').classList.toggle('fill', on);
   $('pvFavLbl').textContent = on ? '已收藏' : '收藏';
   fb.title = on ? '取消收藏 (F)' : '收藏 (F)';
-  document.title = w.id+' '+w.title+' · '+SITE_NAME;
+  document.title = label(w)+' '+w.title+' · '+SITE_NAME;
 }
 function closePreview(){
   if (!state.current) return;
@@ -981,10 +1042,10 @@ function anyModal(){ var m = $('critModal'); return !m.hidden && !m.classList.co
 function renderCritique(){
   var list = works.filter(function(w){ return w.weak; });
   $('critN').textContent = list.length;
-  $('critBody').innerHTML = '<p class="crit-note">100 件作品都通過了自動驗收：沒有 console error、手機 390px 不破版、沒有外部請求。但能跑不等於好看，以下是我主觀認為最弱的 '+list.length+' 件。</p>'+
+  $('critBody').innerHTML = '<p class="crit-note">網頁與 App 都通過了自動驗收：沒有 console error、手機 390px 不破版、沒有外部請求。但能跑不等於好看，以下是我主觀認為最弱的 '+list.length+' 件。</p>'+
     list.map(function(w){
       var x = WEAK[w.id];
-      return '<section class="crit"><div class="crit-top"><span class="num">'+w.id+'</span><h3>'+esc(w.title)+'</h3><span class="g">'+esc(w.genre)+'</span>'+
+      return '<section class="crit"><div class="crit-top"><span class="num">'+label(w)+'</span><h3>'+esc(w.title)+'</h3><span class="g">'+esc(w.genre)+'</span>'+
         '<button class="linkbtn" data-crit-open="'+w.id+'">預覽</button></div>'+
         '<dl><dt>問題</dt><dd>'+esc(x.reason)+'</dd><dt>改法</dt><dd>'+esc(x.fix)+'</dd></dl></section>';
     }).join('');
@@ -1014,7 +1075,7 @@ function toast(msg){ var t = $('toast'); t.textContent = msg; t.classList.add('s
 
 // ---------- events ----------
 document.addEventListener('click', function(e){
-  var t = e.target.closest('[data-fav],[data-open],[data-cat],[data-act],[data-close],[data-dev],[data-crit-open],[data-theme-set]');
+  var t = e.target.closest('[data-fav],[data-open],[data-cat],[data-act],[data-close],[data-dev],[data-crit-open],[data-theme-set],[data-kind]');
   if (!t) return;
   if (t.hasAttribute('data-fav')) { e.preventDefault(); e.stopPropagation(); toggleFav(t.getAttribute('data-fav')); return; }
   if (t.hasAttribute('data-open')) {
@@ -1022,6 +1083,7 @@ document.addEventListener('click', function(e){
     e.preventDefault(); openPreview(t.getAttribute('data-open')); return;
   }
   if (t.hasAttribute('data-theme-set')) { setTheme(t.getAttribute('data-theme-set')); return; }
+  if (t.hasAttribute('data-kind')) { setKind(t.getAttribute('data-kind')); return; }
   if (t.hasAttribute('data-cat')) { state.cat = t.getAttribute('data-cat'); render(); return; }
   if (t.hasAttribute('data-dev')) { setDevice(t.getAttribute('data-dev')); return; }
   if (t.hasAttribute('data-crit-open')) { closeModal('critModal'); openPreview(t.getAttribute('data-crit-open')); return; }
@@ -1080,8 +1142,15 @@ window.addEventListener('hashchange', function(){
 });
 
 // ---------- init ----------
-var core = works.filter(function(w){ return w.category !== 'AI 學習'; }).length;
-$('nCore').textContent = core; $('nExtra').textContent = works.length - core;
+var webWorks = works.filter(function(w){ return w.kind === 'web'; });
+var core = webWorks.filter(function(w){ return w.category !== 'AI 學習'; }).length, appN = works.length - webWorks.length;
+$('nCore').textContent = core; $('nExtra').textContent = webWorks.length - core; $('nApps').textContent = appN;
+$('nWebTab').textContent = webWorks.length; $('nAppTab').textContent = appN;
+$('kinds').addEventListener('keydown', function(e){
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  var k = state.kind === 'web' ? 'app' : 'web'; setKind(k); document.querySelector('[data-kind="'+k+'"]').focus(); e.preventDefault();
+});
+window.addEventListener('resize', renderKinds);
 render(); renderCritique();
 var h = location.hash.replace('#','');
 if (byId[h]) openPreview(h, false);

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+<defs>
+<linearGradient id="room" x2="0" y2="1"><stop stop-color="#28382e"/><stop offset="1" stop-color="#6a654c"/></linearGradient>
+<linearGradient id="wall" x2="0" y2="1"><stop stop-color="#cfb99a"/><stop offset="1" stop-color="#b39c7b"/></linearGradient>
+<linearGradient id="sky" x2="0" y2="1"><stop stop-color="#c8d2bc"/><stop offset=".62" stop-color="#eddbba"/><stop offset="1" stop-color="#91a286"/></linearGradient>
+<linearGradient id="shade" x2="0" y2="1"><stop stop-color="#1b291f" stop-opacity=".28"/><stop offset=".55" stop-color="#1b291f" stop-opacity="0"/><stop offset="1" stop-color="#1b291f" stop-opacity=".48"/></linearGradient>
+<filter id="shadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="1" dy="5" stdDeviation="4" flood-color="#352f24" flood-opacity=".42"/></filter>
+<filter id="blur"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
+<rect width="640" height="400" fill="url(#room)"/>
+<rect x="0" y="30" width="115" height="292" fill="url(#sky)"/>
+<rect x="525" y="30" width="115" height="292" fill="url(#sky)"/>
+<g opacity=".65" filter="url(#blur)" fill="#58705a"><path d="M0 245 30 166l28 37 33-67 32 82v110H0ZM521 230l30-82 33 60 23-42 33 58v102H521Z"/></g>
+<rect x="0" y="38" width="115" height="14" fill="#453626"/><rect x="525" y="38" width="115" height="14" fill="#453626"/><rect x="96" y="38" width="18" height="285" fill="#453626"/><rect x="525" y="38" width="18" height="285" fill="#453626"/>
+<rect x="104" y="38" width="432" height="282" fill="#573e2c"/>
+<rect x="116" y="52" width="408" height="256" fill="url(#wall)"/>
+<path d="M115 64h410M115 299h410" stroke="#9d7650" stroke-width="7"/>
+<g filter="url(#shadow)">
+<g transform="translate(147 93) rotate(-4)"><rect width="87" height="37" fill="#f3e7cb"/><path d="M12 9h61M12 16h45M12 23h54" stroke="#816f59" stroke-width="2" opacity=".65"/><rect x="31" y="-4" width="24" height="10" fill="#c2b9a0" opacity=".7"/></g>
+<g transform="translate(252 82) rotate(3)"><rect width="69" height="70" fill="#eecb87"/><path d="M10 18h42M10 26h48M10 34h28" stroke="#70624e" stroke-width="2" opacity=".6"/></g>
+<g transform="translate(337 94) rotate(-3)"><rect width="94" height="58" fill="#cdd7cb"/><rect x="5" y="5" width="84" height="48" fill="none" stroke="#809783"/><path d="M13 22h65M13 29h51M13 36h62" stroke="#596b5a" stroke-width="2" opacity=".6"/><circle cx="47" cy="5" r="3" fill="#b96d53"/></g>
+<g transform="translate(444 96) rotate(4)"><rect width="65" height="41" fill="#90633f" stroke="#69482f" stroke-width="4"/><path d="M11 15h40M11 23h29" stroke="#e3c7a0" stroke-width="2" opacity=".7"/></g>
+<g transform="translate(141 184) rotate(-4)"><rect width="71" height="70" fill="#dfbd75"/><path d="M11 18h46M11 26h38M11 34h44" stroke="#705e43" stroke-width="2" opacity=".6"/></g>
+<g transform="translate(242 178) rotate(2)"><rect width="96" height="57" fill="#cbd8d0"/><rect x="5" y="5" width="86" height="47" fill="none" stroke="#7e9a8c"/><path d="M12 21h65M12 28h56M12 35h46" stroke="#647663" stroke-width="2" opacity=".6"/></g>
+<g transform="translate(359 183) rotate(-3)"><rect width="89" height="33" fill="#f3e6c9"/><path d="M11 12h66M11 20h51" stroke="#796c56" stroke-width="2" opacity=".6"/></g>
+<g transform="translate(463 178) rotate(4)"><rect width="49" height="62" fill="#efce8b"/><path d="M8 16h33M8 24h27M8 32h31" stroke="#79634b" stroke-width="2" opacity=".6"/></g>
+<g transform="translate(154 268) rotate(3)"><rect width="86" height="32" fill="#996d47" stroke="#6a4c34" stroke-width="3"/><path d="M11 15h62" stroke="#e6c9a1" stroke-width="2"/></g>
+<g transform="translate(277 257) rotate(-3)"><rect width="78" height="32" fill="#f4e7ca"/><path d="M11 14h57M11 21h38" stroke="#897b67" stroke-width="2"/></g>
+<g transform="translate(382 258) rotate(2)"><rect width="59" height="47" fill="#e9c681"/><path d="M9 17h40M9 24h33" stroke="#7b6549" stroke-width="2"/></g>
+</g>
+<rect x="0" y="315" width="640" height="85" fill="#4b392a"/><path d="M0 325h640" stroke="#a0744c" stroke-width="12"/><rect width="640" height="400" fill="url(#shade)"/>
+<text x="32" y="365" fill="#fff0d0" font-family="serif" font-size="29" letter-spacing="3">山中留話</text><text x="205" y="363" fill="#ead4a8" font-family="sans-serif" font-size="10" letter-spacing="3">A PROMISE, LEFT IN THE MOUNTAINS</text>
+</svg>

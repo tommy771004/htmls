@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ff8fb1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="存錢罐">
+<title>存錢罐 · 存錢目標</title>
+<meta name="description" content="一台扭蛋機造型的存錢目標：投幣進投幣口、轉把手讓錢掉進透明圓罩、存滿就轉出一顆扭蛋。收錄於 100 Creative HTML Works（App 027・日本扭蛋玩具）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/027-gacha-savings.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ff8fb1'/%3E%3Ccircle cx='32' cy='26' r='19' fill='%23fff' fill-opacity='.85'/%3E%3Ccircle cx='25' cy='33' r='6' fill='%23ffd23f'/%3E%3Ccircle cx='37' cy='34' r='6' fill='%23ffd23f'/%3E%3Ccircle cx='31' cy='24' r='6' fill='%23e9b93a'/%3E%3Crect x='14' y='44' width='36' height='14' rx='4' fill='%23e8517a'/%3E%3Ccircle cx='32' cy='51' r='4' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --pink:#ff8fb1;
+  --pink2:#f56f98;
+  --pink3:#e8517a;
+  --cherry:#5a1030;
+  --cherry2:#8a2a4e;
+  --yolk:#ffd23f;
+  --yolk2:#e9b93a;
+  --white:#ffffff;
+  --blush:#ffe6ee;
+  --maru:"Hiragino Maru Gothic ProN","Yuanti TC","PingFang TC",sans-serif;
+  --spring:cubic-bezier(.3,1.5,.5,1);
+  --out:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--maru);color:var(--cherry);background:var(--pink);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:3px solid var(--cherry);outline-offset:2px;border-radius:12px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;overflow:clip;isolation:isolate;display:flex;flex-direction:column;
+  background:linear-gradient(90deg,rgba(255,255,255,0) 0,rgba(255,255,255,.28) 4%,rgba(255,255,255,0) 11%,rgba(255,255,255,0) 90%,rgba(255,255,255,.18) 95%,rgba(255,255,255,0) 100%),var(--pink)}
+@media (min-width:521px){
+  body{background:#ffc8d8}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:60px;padding:12px;z-index:1;
+    background:linear-gradient(100deg,#ffb5cb 0%,#ff7aa2 30%,#ffc2d4 52%,#f0608c 80%,#ff9dba 100%);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.7),inset 0 -3px 0 rgba(150,20,60,.25),2px 14px 20px -12px rgba(120,20,50,.5)}
+  .screen{inset:12px;border-radius:48px}
+  .caption{display:block;position:relative;z-index:1;max-width:250px}
+  .caption h1{font:700 52px/1 var(--maru);color:var(--cherry);letter-spacing:.04em}
+  .caption p{margin-top:14px;font-size:16px;line-height:1.7;color:var(--cherry2)}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+.status{flex:none;height:calc(44px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:700 15px/1 var(--maru);color:var(--cherry);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- marquee ---------- */
+.marq{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 16px 0 22px}
+.marq .nm{min-width:0}
+.marq h1{font:700 23px/1.15 var(--maru);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.marq .tg{font-size:13px;color:var(--cherry2);margin-top:2px}
+.book{flex:none;width:48px;height:48px;display:grid;place-items:center;border-radius:14px;transition:background-color .15s}
+.book:active{background:rgba(90,16,48,.08)}
+.book svg{width:30px;height:30px}
+
+/* ---------- dome ---------- */
+.dome{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;touch-action:none}
+.globe{position:relative;flex:none;width:var(--d,300px);height:var(--d,300px)}
+.globe canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:50%}
+.globe .glass{position:absolute;inset:0;pointer-events:none}
+.neck{position:absolute;left:50%;bottom:-10px;width:62%;height:26px;margin-left:-31%;border-radius:10px 10px 4px 4px;background:var(--white);box-shadow:inset 0 -5px 0 #f1d6df,0 2px 0 rgba(90,16,48,.12)}
+.pctmark{position:absolute;right:-6px;top:50%;transform:translateY(-50%);font:700 13px/1 var(--maru);color:var(--cherry2)}
+
+/* ---------- plate ---------- */
+.plate{flex:none;margin:14px 16px 0;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:0 6px}
+.plate .saved{font:800 34px/1 var(--maru);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.plate .saved small{font-size:15px;font-weight:700;margin-right:3px}
+.plate .of{font-size:13px;color:var(--cherry2);margin-top:4px}
+.plate .pct{font:800 22px/1 var(--maru);color:var(--white);text-shadow:0 1px 0 var(--pink3)}
+.bar{margin:8px 22px 0;height:10px;border-radius:5px;background:rgba(90,16,48,.14);overflow:hidden}
+.bar i{display:block;height:100%;width:100%;border-radius:5px;background:var(--yolk);transform-origin:left;transition:transform .8s var(--spring)}
+
+/* ---------- body panel ---------- */
+.panel{flex:none;margin:12px 12px 0;border-radius:26px;background:var(--pink3);display:grid;grid-template-columns:1fr 112px 1fr;align-items:center;padding:12px 10px;
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.28),inset 0 -4px 0 rgba(90,16,48,.2)}
+.slot{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--white);font-size:12px;text-align:center}
+.slot .mouth{width:74px;height:48px;border-radius:12px;background:var(--white);display:grid;place-items:center;box-shadow:inset 0 -4px 0 #f1d6df}
+.slot .mouth i{display:block;width:8px;height:30px;border-radius:4px;background:var(--cherry)}
+.slot b{font:800 15px/1 var(--maru);font-variant-numeric:tabular-nums}
+.crank{width:112px;height:126px;touch-action:none;position:relative;display:flex;flex-direction:column;align-items:center;gap:2px}
+.crank svg{width:104px;height:104px;flex:none}
+.crank .arm{transform-origin:56px 56px;transform-box:view-box;transition:transform .5s var(--spring)}
+.crank.drag .arm{transition:none}
+.crank .lbl{text-align:center;font-size:12px;line-height:1.2;color:var(--white)}
+.outlet{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--white);text-align:center}
+.door{position:relative;width:78px;height:62px;border-radius:14px 14px 20px 20px;background:var(--cherry);overflow:hidden;box-shadow:inset 0 6px 0 rgba(0,0,0,.25)}
+.door .flap{position:absolute;left:0;right:0;top:0;height:22px;background:rgba(255,255,255,.55);border-radius:14px 14px 4px 4px;transform-origin:top;transition:transform .3s var(--spring)}
+.door.has .flap{transform:rotateX(70deg)}
+.door .cap{position:absolute;left:50%;bottom:6px;width:44px;height:44px;margin-left:-22px;transform:translateY(80px);transition:transform .7s var(--spring)}
+.door.has .cap{transform:translateY(0)}
+.door .cap svg{width:100%;height:100%}
+
+/* ---------- coins ---------- */
+.coins{flex:none;display:flex;justify-content:space-between;gap:4px;padding:12px 14px 0}
+.coin{flex:1;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:14px;font-size:12px;color:var(--cherry);transition:background-color .15s}
+.coin:active{background:rgba(255,255,255,.28)}
+.coin svg{width:40px;height:40px;transition:transform .25s var(--spring)}
+.coin:active svg{transform:scale(.86)}
+
+/* ---------- rack ---------- */
+.rack{flex:none;position:relative;margin-top:10px;padding:0 0 calc(22px + env(safe-area-inset-bottom))}
+.rack::before{content:"";position:absolute;left:0;right:0;bottom:calc(22px + env(safe-area-inset-bottom) + 30px);height:14px;background:var(--pink2);box-shadow:inset 0 3px 0 rgba(255,255,255,.35),0 3px 0 rgba(90,16,48,.14)}
+.shelf{position:relative;display:flex;gap:6px;overflow-x:auto;padding:0 14px;scroll-snap-type:x proximity;scrollbar-width:none;touch-action:pan-x}
+.shelf::-webkit-scrollbar{display:none}
+.cp{flex:none;width:74px;display:flex;flex-direction:column;align-items:center;gap:2px;scroll-snap-align:center;padding-top:8px}
+.cp svg{width:54px;height:54px;transition:transform .45s var(--spring)}
+.cp[aria-pressed=true] svg{transform:translateY(-6px) scale(1.12)}
+.cp:active svg{transform:scale(.9)}
+.cp span{font-size:12px;line-height:1.25;max-width:72px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--cherry);margin-top:16px}
+.cp[aria-pressed=true] span{font-weight:800}
+.cp small{font-size:11px;color:var(--cherry2);font-variant-numeric:tabular-nums}
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--cherry);opacity:.7;z-index:40;pointer-events:none}
+
+/* flying coin */
+.fly{position:absolute;left:0;top:0;width:40px;height:40px;z-index:30;pointer-events:none}
+.fly svg{width:100%;height:100%}
+
+/* ---------- sheets ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(90,16,48,.35);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:8px;right:8px;bottom:8px;z-index:51;max-height:88%;overflow-y:auto;background:var(--white);border-radius:34px;padding:10px 20px calc(22px + env(safe-area-inset-bottom));
+  transform:translateY(110%);visibility:hidden;transition:transform .55s var(--spring),visibility 0s .55s;touch-action:none;box-shadow:inset 0 -5px 0 #f6dbe4}
+.sheet.on{transform:translateY(0);visibility:visible;transition:transform .55s var(--spring)}
+.sheet.drag{transition:none}
+.grip{width:42px;height:5px;border-radius:3px;background:#f2c3d3;margin:0 auto 14px}
+.sheet h2{font:800 21px/1.25 var(--maru);text-align:center}
+.sheet .sub{text-align:center;font-size:13px;color:var(--cherry2);margin-top:4px}
+.field{margin-top:14px}
+.field label{display:block;font-size:13px;color:var(--cherry2);margin-bottom:6px}
+.field input{width:100%;height:52px;border:0;border-radius:16px;background:var(--blush);padding:0 16px;font:700 18px var(--maru);color:var(--cherry);outline:none}
+.picks{display:flex;flex-wrap:wrap;gap:6px}
+.pick{min-height:48px;padding:0 10px;border-radius:14px;display:flex;align-items:center;gap:6px;font-size:14px;background:var(--blush);transition:background-color .15s}
+.pick svg{width:30px;height:30px}
+.pick[aria-checked=true]{background:var(--yolk)}
+.pick:active{background:#ffd9e5}
+.big{margin-top:18px;width:100%;height:56px;border-radius:18px;background:var(--pink3);color:var(--white);font:800 18px/1 var(--maru);box-shadow:inset 0 -5px 0 rgba(90,16,48,.25);transition:transform .15s,background-color .15s}
+.big:active{transform:translateY(2px);box-shadow:inset 0 -2px 0 rgba(90,16,48,.25)}
+.row2{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:10px}
+.txtbtn{min-height:44px;padding:0 12px;font-size:15px;color:var(--cherry2);display:inline-flex;align-items:center;gap:6px}
+.txtbtn svg{width:20px;height:20px}
+.txtbtn:active{opacity:.6}
+.ledger{margin-top:14px;list-style:none}
+.ledger li{display:flex;justify-content:space-between;gap:10px;padding:11px 2px;font-size:15px}
+.ledger li+li{box-shadow:0 -2px 0 var(--blush)}
+.ledger li b{font-variant-numeric:tabular-nums}
+.ledger li.out b{color:var(--pink3)}
+.ledger li span{color:var(--cherry2);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;text-align:center}
+.stats b{display:block;font:800 21px/1.1 var(--maru);font-variant-numeric:tabular-nums}
+.stats span{font-size:12px;color:var(--cherry2)}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.keypad button{height:52px;border-radius:16px;background:var(--blush);font:700 21px var(--maru);transition:background-color .1s}
+.keypad button:active{background:#ffd0de}
+.amt{margin-top:12px;text-align:center;font:800 40px/1 var(--maru);font-variant-numeric:tabular-nums}
+.amt small{font-size:17px;margin-right:4px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px}
+.seg button{height:46px;border-radius:14px;background:var(--blush);font-size:15px}
+.seg button[aria-checked=true]{background:var(--yolk);font-weight:800}
+.prize{position:relative;height:210px;margin-top:6px}
+.prize .half{position:absolute;left:50%;top:40px;width:140px;height:70px;margin-left:-70px;transition:transform .9s var(--spring)}
+.prize .half svg{width:100%;height:100%}
+.prize .top{transform:translateY(0)}
+.prize .bot{top:110px}
+.prize.open .top{transform:translate(-58px,-30px) rotate(-28deg)}
+.prize.open .bot{transform:translate(58px,26px) rotate(22deg)}
+.prize .toy{position:absolute;left:50%;top:50px;width:110px;height:110px;margin-left:-55px;transform:scale(.4);transition:transform .8s .2s var(--spring)}
+.prize.open .toy{transform:scale(1)}
+.prize .toy svg{width:100%;height:100%}
+.shelfbook{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.shelfbook div{text-align:center;font-size:13px}
+.shelfbook svg{width:64px;height:64px;margin:0 auto 4px}
+.shelfbook small{display:block;color:var(--cherry2);font-size:12px}
+.empty{text-align:center;color:var(--cherry2);font-size:14px;padding:18px 0}
+.toast{position:absolute;left:50%;top:calc(52px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-190%);visibility:hidden;transition:transform .5s var(--spring),visibility 0s .5s;
+  display:flex;align-items:center;gap:10px;padding:10px 10px 10px 18px;border-radius:20px;background:var(--white);font-size:14px;font-weight:700;white-space:nowrap;box-shadow:inset 0 -4px 0 #f6dbe4}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .5s var(--spring)}
+.toast button{min-height:36px;padding:0 10px;border-radius:12px;background:var(--yolk);font-size:14px;font-weight:800}
+
+@media (max-height:720px){
+  .marq h1{font-size:20px}.plate{margin-top:8px}.plate .saved{font-size:28px}
+  .panel{margin-top:8px;padding:8px 10px;grid-template-columns:1fr 96px 1fr}.crank{width:96px;height:108px}.crank svg{width:88px;height:88px}
+  .slot .mouth{height:40px}.door{height:52px}.coins{padding-top:6px}.coin{height:54px}.coin svg{width:32px;height:32px}
+  .rack{margin-top:4px}.cp{padding-top:4px}.cp svg{width:44px;height:44px}.cp span{margin-top:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  .bar i,.crank .arm,.door .flap,.door .cap,.cp svg,.sheet,.toast,.prize .half,.prize .toy,.coin svg{transition-duration:.01s!important}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="bd" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="19" height="12" viewBox="0 0 19 12" fill="currentColor"><circle cx="2" cy="10" r="2"/><rect x="5" y="6" width="4" height="6" rx="2"/><rect x="10" y="3" width="4" height="9" rx="2"/><rect x="15" y="0" width="4" height="12" rx="2"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M1.5 4.5c3.8-3.4 9.2-3.4 13 0M4.3 7.4c2.2-1.9 5.2-1.9 7.4 0"/><circle cx="8" cy="10.2" r="1.3" fill="currentColor" stroke="none"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x="1" y="1" width="22" height="11" rx="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="3.6" y="3.6" width="14" height="5.8" rx="2.9" fill="currentColor"/><path d="M24.6 4.8c1.2.4 1.2 3 0 3.4z" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <header class="marq">
+        <div class="nm"><h1 id="gName">東京賞楓</h1><p class="tg" id="gTag">目標 NT$45,000・連續存 6 天</p></div>
+        <button class="book" id="bookBtn" aria-label="扭蛋冊"><svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6.5c3.4-1.4 6.8-1.4 10 1 3.2-2.4 6.6-2.4 10-1v17c-3.4-1.4-6.8-1.4-10 1-3.2-2.4-6.6-2.4-10-1z"/><path d="M15 7.5v17"/><circle cx="9.8" cy="13.4" r="2.6" fill="#ffd23f"/><circle cx="20.2" cy="15.6" r="2.6" fill="#fff"/></svg></button>
+      </header>
+
+      <div class="dome" id="dome">
+        <div class="globe" id="globe">
+          <canvas id="cv" aria-label="存錢圓罩，點一下搖一搖" role="img"></canvas>
+          <svg class="glass" viewBox="0 0 300 300" aria-hidden="true">
+            <circle cx="150" cy="150" r="147" fill="none" stroke="#ffffff" stroke-width="5" stroke-opacity=".9"/>
+            <path d="M58 92c16-34 48-58 88-64" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-opacity=".75"/>
+            <path d="M44 132c1-8 3-16 6-23" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-opacity=".6"/>
+            <path d="M232 238c16-14 28-32 34-52" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-opacity=".35"/>
+          </svg>
+          <div class="neck"></div>
+        </div>
+      </div>
+
+      <div class="plate">
+        <div><p class="saved" id="saved"><small>NT$</small>28,600</p><p class="of" id="of">還差 NT$16,400</p></div>
+        <p class="pct" id="pct">64%</p>
+      </div>
+      <div class="bar"><i id="bar"></i></div>
+
+      <div class="panel">
+        <div class="slot"><div class="mouth" id="mouth"><i></i></div><span>投入 <b id="pend">NT$0</b></span></div>
+        <div class="crank" id="crank" role="button" tabindex="0" aria-label="轉把手，把投入的錢存進去">
+          <svg viewBox="0 0 112 112" aria-hidden="true">
+            <circle cx="56" cy="56" r="50" fill="#fff"/><circle cx="56" cy="56" r="50" fill="none" stroke="#f1d6df" stroke-width="5" stroke-dasharray="3 9"/>
+            <g class="arm" id="arm"><rect x="16" y="46" width="80" height="20" rx="10" fill="#ffd23f"/><rect x="16" y="46" width="80" height="7" rx="3.5" fill="#fff" fill-opacity=".5"/><circle cx="84" cy="56" r="7" fill="#e9b93a"/></g>
+            <circle cx="56" cy="56" r="11" fill="#e8517a"/><circle cx="53" cy="53" r="3" fill="#fff" fill-opacity=".7"/>
+          </svg>
+          <span class="lbl" id="crankLbl">轉一圈</span>
+        </div>
+        <div class="outlet"><button class="door" id="door" aria-label="取出扭蛋"><span class="flap"></span><span class="cap" id="doorCap"></span></button><span id="doorLbl">存滿會掉扭蛋</span></div>
+      </div>
+
+      <div class="coins" id="coins"></div>
+
+      <div class="rack"><div class="shelf" id="shelf" role="group" aria-label="目標扭蛋架"></div></div>
+      <div class="home-ind"></div>
+
+      <div id="flyLayer"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT"><div class="grip"></div><div id="sheetBody"></div></div>
+      <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="undoBtn">收回</button></div>
+    </div>
+  </div>
+  <div class="caption">
+    <h1>存錢罐</h1>
+    <p>投幣、轉把手，錢掉進透明圓罩裡越堆越高。存滿那天，會轉出一顆扭蛋。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var KEY='app027:';
+function $(id){return document.getElementById(id);}
+function load(k,d){try{var v=localStorage.getItem(KEY+k);return v===null?d:JSON.parse(v);}catch(e){return d;}}
+function save(k,v){try{localStorage.setItem(KEY+k,JSON.stringify(v));}catch(e){}}
+function haptic(p){try{navigator.vibrate&&navigator.vibrate(p||8);}catch(e){}}
+var RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
+function money(n){return Math.round(n).toLocaleString('en-US');}
+
+/* ---------- audio ---------- */
+var AC=null;
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;}}if(AC&&AC.state==='suspended')AC.resume().catch(function(){});return AC;}
+function tone(f,t0,d,v,type){var c=AC;if(!c)return;var o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.value=f;g.gain.setValueAtTime(.001,t0);g.gain.linearRampToValueAtTime(v,t0+.005);g.gain.exponentialRampToValueAtTime(.001,t0+d);o.connect(g);g.connect(c.destination);o.start(t0);o.stop(t0+d+.02);}
+function clink(){var c=ac();if(!c)return;try{var t=c.currentTime;tone(2637,t,.25,.08);tone(3951,t,.18,.05);tone(5274,t+.01,.12,.03);}catch(e){}}
+function tick(){var c=ac();if(!c)return;try{var t=c.currentTime;tone(900,t,.03,.08,'square');}catch(e){}}
+function chaching(){var c=ac();if(!c)return;try{var t=c.currentTime;[1047,1319,1568,2093].forEach(function(f,i){tone(f,t+i*.07,.3,.07,'triangle');});}catch(e){}}
+function fanfare(){var c=ac();if(!c)return;try{var t=c.currentTime;[523,659,784,1047,784,1047,1319].forEach(function(f,i){tone(f,t+i*.1,.35,.08,'triangle');});}catch(e){}}
+
+/* ---------- icons (house style: chunky rounded, cherry outline, plastic fills) ---------- */
+var ICON={
+  plane:'<path d="M8 30l14-3 10-15c2-3 6-2 5 2l-4 13 12 2 3-5h4l-2 9 2 9h-4l-3-5-12 2 4 13c1 4-3 5-5 2L22 39 8 36z" fill="#fff" stroke="#5a1030" stroke-width="3" stroke-linejoin="round"/>',
+  phone:'<rect x="18" y="8" width="28" height="48" rx="7" fill="#fff" stroke="#5a1030" stroke-width="3"/><rect x="23" y="15" width="18" height="28" rx="3" fill="#ff8fb1"/><circle cx="32" cy="49" r="2.6" fill="#5a1030"/>',
+  umbrella:'<path d="M8 32C9 18 20 10 32 10s23 8 24 22c-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0z" fill="#ffd23f" stroke="#5a1030" stroke-width="3" stroke-linejoin="round"/><path d="M32 32v17c0 5-7 5-7 0" fill="none" stroke="#5a1030" stroke-width="3" stroke-linecap="round"/>',
+  cat:'<path d="M14 26l-2-14 11 7c6-2 12-2 18 0l11-7-2 14c2 4 2 10 0 14-4 9-12 12-18 12S18 49 14 40c-2-4-2-10 0-14z" fill="#ffd23f" stroke="#5a1030" stroke-width="3" stroke-linejoin="round"/><circle cx="25" cy="32" r="2.6" fill="#5a1030"/><circle cx="39" cy="32" r="2.6" fill="#5a1030"/><path d="M29 39c2 2 4 2 6 0" fill="none" stroke="#5a1030" stroke-width="2.6" stroke-linecap="round"/>',
+  surf:'<path d="M20 54C12 40 20 14 44 8c6 16-6 42-24 46z" fill="#fff" stroke="#5a1030" stroke-width="3" stroke-linejoin="round"/><path d="M24 48c6-10 12-22 18-34" fill="none" stroke="#ff8fb1" stroke-width="4" stroke-linecap="round"/>',
+  wheel:'<circle cx="32" cy="32" r="22" fill="#5a1030"/><circle cx="32" cy="32" r="12" fill="#fff"/><circle cx="32" cy="32" r="4" fill="#ffd23f"/><path d="M32 12v5M32 47v5M12 32h5M47 32h5" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
+  gift:'<rect x="11" y="24" width="42" height="30" rx="5" fill="#ff8fb1" stroke="#5a1030" stroke-width="3"/><rect x="8" y="16" width="48" height="10" rx="4" fill="#ffd23f" stroke="#5a1030" stroke-width="3"/><path d="M32 16v38" stroke="#5a1030" stroke-width="3"/><path d="M32 16c-6-10-16-6-10 0M32 16c6-10 16-6 10 0" fill="none" stroke="#5a1030" stroke-width="3" stroke-linecap="round"/>',
+  house:'<path d="M10 30L32 12l22 18v22c0 2-1 3-3 3H13c-2 0-3-1-3-3z" fill="#fff" stroke="#5a1030" stroke-width="3" stroke-linejoin="round"/><rect x="26" y="36" width="12" height="19" rx="3" fill="#ffd23f" stroke="#5a1030" stroke-width="3"/>'
+};
+var CAPCOL={y:['#ffd23f','#e9b93a'],p:['#ff8fb1','#e8517a'],w:['#ffffff','#f1d6df'],c:['#e8517a','#b8325c']};
+function capsule(col,fill,opened){var c=CAPCOL[col]||CAPCOL.y,f=Math.max(0,Math.min(1,fill||0)),lv=(52-f*24).toFixed(1);
+  return '<svg viewBox="0 0 54 54" aria-hidden="true"><defs><clipPath id="cl'+col+Math.round(f*100)+'"><path d="M4 27h46a23 23 0 0 1-46 0z"/></clipPath></defs>'+
+  '<path d="M4 27a23 23 0 0 1 46 0z" fill="'+c[0]+'"/><path d="M4 27a23 23 0 0 1 46 0z" fill="none" stroke="'+c[1]+'" stroke-width="2"/>'+
+  '<path d="M4 27h46a23 23 0 0 1-46 0z" fill="#fff" fill-opacity=".7"/>'+
+  '<g clip-path="url(#cl'+col+Math.round(f*100)+')"><rect x="0" y="'+lv+'" width="54" height="54" fill="#ffd23f"/><path d="M0 '+lv+'c9-3 18 3 27 0s18-3 27 0" fill="#e9b93a" /></g>'+
+  '<path d="M4 27h46" stroke="'+c[1]+'" stroke-width="2.5"/><circle cx="27" cy="27" r="23" fill="none" stroke="#5a1030" stroke-width="2.4"/>'+
+  '<path d="M12 17c3-5 8-8 13-9" stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".85"/></svg>';}
+
+/* ---------- data ---------- */
+function dAgo(n,h){var d=new Date();d.setDate(d.getDate()-n);d.setHours(h||20,Math.floor(Math.random()*50),0,0);return d.getTime();}
+function seed(){function led(pairs){return pairs.map(function(p){return{t:dAgo(p[0],p[2]),a:p[1]};});}
+  return[
+    {id:'g1',n:'東京賞楓',target:45000,col:'y',ic:'plane',log:led([[0,500],[1,1000],[2,100],[3,500],[4,1000],[5,500],[9,5000],[16,10000],[30,10000]])},
+    {id:'g2',n:'奶茶的健檢',target:4500,col:'c',ic:'cat',log:led([[1,500],[4,1000],[8,1600],[15,1000]])},
+    {id:'g3',n:'換新手機',target:32000,col:'p',ic:'phone',log:led([[2,1000],[6,800],[13,3000],[27,5000]])},
+    {id:'g4',n:'緊急預備金',target:60000,col:'w',ic:'umbrella',log:led([[3,2000],[10,5000],[20,10200],[40,12000],[60,12000]])},
+    {id:'g5',n:'墾丁衝浪課',target:6800,col:'p',ic:'surf',done:dAgo(34),opened:true,log:led([[34,1800],[48,2000],[60,3000]])},
+    {id:'g6',n:'機車換新胎',target:3200,col:'y',ic:'wheel',done:dAgo(70),opened:true,log:led([[70,1200],[80,2000]])}
+  ];}
+var goals=load('goals',null);if(!Array.isArray(goals)||!goals.length)goals=seed();
+var cur=load('cur','g1');var pending=0;
+function persist(){save('goals',goals);save('cur',cur);}
+function G(id){for(var i=0;i<goals.length;i++)if(goals[i].id===id)return goals[i];return null;}
+function active(){return goals.filter(function(g){return !g.opened;});}
+function saved(g){return g.log.reduce(function(s,e){return s+e.a;},0);}
+function goal(){var g=G(cur);if(!g||g.opened){var a=active();g=a[0]||null;cur=g?g.id:null;}return g;}
+function streak(){var days={};goals.forEach(function(g){g.log.forEach(function(e){if(e.a>0){var d=new Date(e.t);days[d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()]=1;}});});
+  var n=0,d=new Date();for(var i=0;i<400;i++){var k=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();if(days[k])n++;else if(i>0)break;d.setDate(d.getDate()-1);}return n;}
+
+/* ---------- dome physics ---------- */
+var cv=$('cv'),cx=cv.getContext('2d'),D=300,DPR=1,balls=[],CAP=150,shake=0;
+var DEN={10:{r:8.5,c:['#e7e7ea','#b9b9c0']},50:{r:10,c:['#ffd23f','#d9a21c']},100:{r:9,c:['#ff8fb1','#e8517a'],star:1},500:{r:9.5,c:['#ffd23f','#d9a21c'],star:1},1000:{r:10,c:['#ffffff','#e8517a'],star:1}};
+function denomFor(a){return a>=1000?1000:a>=500?500:a>=100?100:a>=50?50:10;}
+function sizeDome(){var dome=$('dome'),h=dome.clientHeight,w=dome.clientWidth;D=Math.max(120,Math.min(310,h-32,w-60));$('globe').style.setProperty('--d',D+'px');
+  DPR=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(D*DPR);cv.height=Math.round(D*DPR);}
+function tokensFor(g){var s=saved(g),n=Math.round(Math.min(1,s/g.target)*CAP);return n;}
+function rebuild(settle){var g=goal();balls=[];if(!g){draw();return;}var n=tokensFor(g),log=g.log.slice().reverse(),ks=[];
+  /* distribute tokens by deposit size, oldest first */
+  var total=saved(g)||1;var MIX=[10,50,50,100,100,500,1000];log.forEach(function(e,j){var k=Math.max(e.a>0?1:0,Math.round(e.a/total*n)),top=denomFor(e.a);for(var i=0;i<k;i++){var m=MIX[(i*5+j*3)%MIX.length];ks.push(m>top?top:m);}});
+  ks=ks.slice(0,n);while(ks.length<n)ks.push(50);
+  var sc=D/300;ks.forEach(function(k,i){var r=DEN[k].r*sc,x=D/2+(Math.random()-.5)*D*.5,y=D-20-i*1.5*sc;balls.push({x:x,y:y,px:x,py:y,r:r,k:k,a:Math.random()*6});});
+  if(settle){for(var s=0;s<260;s++)phys(1);}}
+function phys(sub){var R=D/2-4,cxx=D/2,cyy=D/2,g=.35*(D/300);
+  for(var i=0;i<balls.length;i++){var b=balls[i],vx=(b.x-b.px)*.985,vy=(b.y-b.py)*.985;b.px=b.x;b.py=b.y;b.x+=vx;b.y+=vy+g;}
+  for(var it=0;it<3;it++){
+    for(var a=0;a<balls.length;a++){var p=balls[a];for(var c=a+1;c<balls.length;c++){var q=balls[c],dx=q.x-p.x,dy=q.y-p.y,rr=p.r+q.r,d2=dx*dx+dy*dy;if(d2<rr*rr&&d2>.0001){var d=Math.sqrt(d2),o=(rr-d)/2,nx=dx/d,ny=dy/d;p.x-=nx*o;p.y-=ny*o;q.x+=nx*o;q.y+=ny*o;}}}
+    for(var k=0;k<balls.length;k++){var bb=balls[k],ddx=bb.x-cxx,ddy=bb.y-cyy,dd=Math.sqrt(ddx*ddx+ddy*ddy),lim=R-bb.r;if(dd>lim){bb.x=cxx+ddx/dd*lim;bb.y=cyy+ddy/dd*lim;}}}}
+function coinDraw(b){var d=DEN[b.k],c=cx;c.save();c.translate(b.x,b.y);c.rotate(b.a);
+  if(d.star){var r=b.r;c.fillStyle=d.c[0];c.strokeStyle=d.c[1];c.lineWidth=1.4;c.beginPath();for(var i=0;i<10;i++){var ang=i*Math.PI/5-Math.PI/2,rad=i%2?r*.55:r;c.lineTo(Math.cos(ang)*rad,Math.sin(ang)*rad);}c.closePath();c.fill();c.stroke();
+    c.fillStyle='rgba(255,255,255,.55)';c.beginPath();c.arc(-r*.2,-r*.25,r*.18,0,7);c.fill();}
+  else{c.fillStyle=d.c[1];c.beginPath();c.arc(0,0,b.r,0,7);c.fill();c.fillStyle=d.c[0];c.beginPath();c.arc(-.6,-.8,b.r-1.6,0,7);c.fill();c.strokeStyle=d.c[1];c.lineWidth=1;c.beginPath();c.arc(-.6,-.8,b.r*.6,0,7);c.stroke();
+    c.fillStyle='rgba(255,255,255,.7)';c.beginPath();c.ellipse(-b.r*.35,-b.r*.4,b.r*.28,b.r*.14,-.6,0,7);c.fill();}
+  c.restore();}
+function draw(){var c=cx;c.setTransform(DPR,0,0,DPR,0,0);c.clearRect(0,0,D,D);
+  var gr=c.createLinearGradient(0,0,0,D);gr.addColorStop(0,'rgba(255,255,255,.55)');gr.addColorStop(1,'rgba(255,235,242,.75)');c.fillStyle=gr;c.beginPath();c.arc(D/2,D/2,D/2,0,7);c.fill();
+  /* fill line at target level */
+  c.strokeStyle='rgba(90,16,48,.18)';c.setLineDash([4,6]);c.lineWidth=1.5;var yl=D*.14;c.beginPath();c.moveTo(D*.5-Math.sqrt(Math.max(0,(D/2)*(D/2)-(D/2-yl)*(D/2-yl)))+10,yl);c.lineTo(D*.5+Math.sqrt(Math.max(0,(D/2)*(D/2)-(D/2-yl)*(D/2-yl)))-10,yl);c.stroke();c.setLineDash([]);
+  for(var i=0;i<balls.length;i++)coinDraw(balls[i]);
+  if(!balls.length){c.fillStyle='rgba(90,16,48,.45)';c.font='700 15px "Hiragino Maru Gothic ProN","Yuanti TC",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(goal()?'投第一枚硬幣':'新增一個目標',D/2,D/2);}}
+var raf=0,idle=0;
+function frame(){raf=0;if(document.hidden)return;if(shake>0){shake--;balls.forEach(function(b){b.px-=(Math.random()-.5)*3;b.py+=Math.random()*4;});}
+  phys(1);draw();var moving=balls.some(function(b){return Math.abs(b.x-b.px)+Math.abs(b.y-b.py)>.05;});idle=moving?0:idle+1;if(idle<30)raf=requestAnimationFrame(frame);}
+function kick(){idle=0;if(!raf&&!document.hidden)raf=requestAnimationFrame(frame);}
+function drop(k,count){var sc=D/300;for(var i=0;i<count;i++){(function(i){setTimeout(function(){var r=DEN[k].r*sc,x=D/2+(Math.random()-.5)*30,y=r+4;balls.push({x:x,y:y,px:x-(Math.random()-.5)*2,py:y-2,r:r,k:k,a:Math.random()*6});kick();},i*(RM.matches?0:45));})(i);}}
+$('globe').addEventListener('pointerdown',function(){if(!balls.length)return;shake=RM.matches?0:16;haptic([6,20,6]);clink();kick();});
+
+/* ---------- render ---------- */
+var COINS=[[10,'10 元'],[50,'50 元'],[100,'100'],[500,'500'],[1000,'1000'],[0,'其他']];
+function coinSVG(v){if(v===10)return '<svg viewBox="0 0 40 40"><circle cx="20" cy="21" r="17" fill="#b9b9c0"/><circle cx="20" cy="19" r="17" fill="#e7e7ea"/><circle cx="20" cy="19" r="12" fill="none" stroke="#b9b9c0" stroke-width="1.6"/><text x="20" y="19.5" font-size="11" font-weight="800" fill="#6d6d78" text-anchor="middle" dominant-baseline="central" font-family="Hiragino Maru Gothic ProN,sans-serif">10</text></svg>';
+  if(v===50)return '<svg viewBox="0 0 40 40"><circle cx="20" cy="21" r="18" fill="#d9a21c"/><circle cx="20" cy="19" r="18" fill="#ffd23f"/><circle cx="20" cy="19" r="13" fill="none" stroke="#d9a21c" stroke-width="1.6"/><text x="20" y="19.5" font-size="11" font-weight="800" fill="#8a5a00" text-anchor="middle" dominant-baseline="central" font-family="Hiragino Maru Gothic ProN,sans-serif">50</text></svg>';
+  if(v===0)return '<svg viewBox="0 0 40 40"><circle cx="20" cy="21" r="17" fill="#e8517a"/><circle cx="20" cy="19" r="17" fill="#fff"/><path d="M14 25l2-6 9-9 4 4-9 9zM23 12l4 4" fill="none" stroke="#5a1030" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  var col=v===100?['#ff8fb1','#e8517a']:v===500?['#f2a65a','#c97a2c']:['#9fcdf0','#5f9fd0'];
+  return '<svg viewBox="0 0 40 40"><rect x="3" y="11" width="34" height="20" rx="4" fill="'+col[1]+'"/><rect x="3" y="9" width="34" height="20" rx="4" fill="'+col[0]+'"/><circle cx="12" cy="19" r="5" fill="#fff" fill-opacity=".6"/><text x="26" y="19.5" font-size="'+(v===1000?9:10)+'" font-weight="800" fill="#5a1030" text-anchor="middle" dominant-baseline="central" font-family="Hiragino Maru Gothic ProN,sans-serif">'+v+'</text></svg>';}
+$('coins').innerHTML=COINS.map(function(c){return '<button class="coin" data-v="'+c[0]+'" aria-label="'+(c[0]?'投 '+c[0]+' 元':'其他金額')+'">'+coinSVG(c[0])+c[1]+'</button>';}).join('');
+function renderShelf(){var h='';active().forEach(function(g){var s=saved(g);h+='<button class="cp" data-id="'+g.id+'" aria-pressed="'+(g.id===cur)+'" aria-label="'+g.n+'，存了 '+Math.round(s/g.target*100)+'%">'+capsule(g.col,s/g.target)+'<span>'+g.n+'</span><small>'+Math.min(100,Math.round(s/g.target*100))+'%</small></button>';});
+  h+='<button class="cp" id="addGoal" aria-label="新增目標"><svg viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="23" fill="none" stroke="#5a1030" stroke-width="2.4" stroke-dasharray="5 6" stroke-linecap="round"/><path d="M27 18v18M18 27h18" stroke="#5a1030" stroke-width="3" stroke-linecap="round"/></svg><span>新目標</span><small>&nbsp;</small></button>';
+  $('shelf').innerHTML=h;}
+function render(){var g=goal();renderShelf();
+  if(!g){$('gName').textContent='架上空了';$('gTag').textContent='點右下的虛線扭蛋新增目標';$('saved').innerHTML='<small>NT$</small>0';$('of').textContent='沒有進行中的目標';$('pct').textContent='';$('bar').style.transform='scaleX(0)';rebuild(true);draw();return;}
+  var s=saved(g),p=Math.min(1,s/g.target);$('gName').textContent=g.n;var st=streak();$('gTag').textContent='目標 NT$'+money(g.target)+(st>1?'・連續存 '+st+' 天':'');
+  $('saved').innerHTML='<small>NT$</small>'+money(s);$('of').textContent=s>=g.target?'存滿了！轉出扭蛋吧':'還差 NT$'+money(g.target-s);$('pct').textContent=Math.floor(p*100)+'%';
+  $('bar').style.transform='scaleX('+p.toFixed(3)+')';$('pend').textContent='NT$'+money(pending);
+  var door=$('door'),full=s>=g.target&&!g.opened;door.classList.toggle('has',full);$('doorCap').innerHTML=full?capsule(g.col,1):'';$('doorLbl').textContent=full?'點我打開':'存滿會掉扭蛋';
+  $('crankLbl').textContent=pending?'轉一圈存入':'先投幣';}
+
+/* ---------- deposit: coin -> slot ---------- */
+var screenEl=$('screen');
+function rel(el){var s=screenEl.getBoundingClientRect(),r=el.getBoundingClientRect(),k=screenEl.offsetWidth/s.width||1;return{x:(r.left-s.left)*k,y:(r.top-s.top)*k,w:r.width*k,h:r.height*k};}
+function insert(v,from){if(!goal()){toast('先新增一個目標',null);haptic([20,40,20]);return;}pending+=v;haptic(8);
+  var a=rel(from.querySelector('svg')||from),b=rel($('mouth'));if(!RM.matches){var f=document.createElement('div');f.className='fly';f.innerHTML=coinSVG(v>=100&&[100,500,1000].indexOf(v)>=0?v:v===50?50:10);$('flyLayer').appendChild(f);
+    var x0=a.x,y0=a.y,x1=b.x+b.w/2-20,y1=b.y+b.h/2-20,mx=(x0+x1)/2,my=Math.min(y0,y1)-90;
+    var anim=f.animate([{transform:'translate('+x0+'px,'+y0+'px) scale(1)'},{transform:'translate('+mx+'px,'+my+'px) scale(1.1) rotate(160deg)',offset:.55},{transform:'translate('+x1+'px,'+y1+'px) scale(.35) rotate(300deg)'}],{duration:520,easing:'cubic-bezier(.3,.1,.4,1)'});
+    anim.onfinish=function(){f.remove();clink();render();};}else{clink();render();}}
+$('coins').addEventListener('click',function(e){var b=e.target.closest('.coin');if(!b)return;var v=+b.dataset.v;if(!v){openCustom();return;}insert(v,b);});
+
+/* ---------- crank ---------- */
+var crank=$('crank'),arm=$('arm'),ang=0,acc=0,dragging=false,lastA=0,busy=false;
+function setArm(a){arm.style.transform='rotate('+a+'deg)';}
+function angAt(e){var r=crank.getBoundingClientRect();return Math.atan2(e.clientY-(r.top+r.height/2),e.clientX-(r.left+r.width/2))*180/Math.PI;}
+crank.addEventListener('pointerdown',function(e){if(busy)return;dragging=true;acc=0;lastA=angAt(e);crank.classList.add('drag');try{crank.setPointerCapture(e.pointerId);}catch(x){}haptic(5);});
+crank.addEventListener('pointermove',function(e){if(!dragging)return;var a=angAt(e),d=a-lastA;if(d>180)d-=360;if(d<-180)d+=360;lastA=a;if(d<0)d*=.15;var before=Math.floor(acc/30);acc+=d;ang+=d;setArm(ang);if(Math.floor(acc/30)>before){tick();haptic(3);}if(acc>=330){dragging=false;crank.classList.remove('drag');commit();}});
+function endCrank(){if(!dragging)return;dragging=false;crank.classList.remove('drag');if(acc<15){autoTurn();}else if(acc<330){ang-=acc;setArm(ang);haptic([10,30,10]);}}
+crank.addEventListener('pointerup',endCrank);crank.addEventListener('pointercancel',function(){if(!dragging)return;dragging=false;crank.classList.remove('drag');ang-=acc;setArm(ang);});
+crank.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();autoTurn();}});
+function autoTurn(){if(busy)return;var start=ang,t0=performance.now(),dur=RM.matches?1:700,ticks=0;busy=true;crank.classList.add('drag');
+  (function step(t){var p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3);ang=start+360*e;setArm(ang);var tk=Math.floor(e*12);if(tk>ticks){ticks=tk;tick();}if(p<1)requestAnimationFrame(step);else{crank.classList.remove('drag');busy=false;commit();}})(performance.now());}
+function commit(){var g=goal();if(!g){toast('先新增一個目標',null);return;}
+  if(!pending){haptic([20,40,20]);toast('先投幣再轉',null);return;}
+  var was=saved(g),v=pending;pending=0;g.log.unshift({t:Date.now(),a:v});persist();
+  var before=balls.length,now=tokensFor(g),add=Math.max(1,now-before);drop(denomFor(v),Math.min(add,40));chaching();haptic([10,30,16]);
+  if(was<g.target&&saved(g)>=g.target){g.done=Date.now();persist();setTimeout(function(){fanfare();haptic([30,60,30,60,60]);toast('存滿了！扭蛋掉出來了',null);},500);}
+  else toast('存入 NT$'+money(v),function(){var i=g.log.indexOf(g.log.filter(function(x){return x.a===v;})[0]);if(i>=0)g.log.splice(i,1);persist();rebuild(true);render();kick();});
+  render();}
+
+/* ---------- capsule open ---------- */
+$('door').addEventListener('click',function(){var g=goal();if(!g||saved(g)<g.target){haptic([20,40,20]);toast('存滿 '+(g?'NT$'+money(g.target):'')+' 才會掉扭蛋',null);return;}
+  haptic(10);var c=CAPCOL[g.col]||CAPCOL.y;
+  openSheet('<h2 id="sheetT">'+g.n+'</h2><p class="sub">NT$'+money(saved(g))+'・存了 '+Math.max(1,Math.round((Date.now()-g.log[g.log.length-1].t)/864e5))+' 天</p>'+
+    '<div class="prize" id="prize"><div class="half top"><svg viewBox="0 0 140 70"><path d="M2 68a68 66 0 0 1 136 0z" fill="'+c[0]+'" stroke="#5a1030" stroke-width="3"/><path d="M26 30c10-12 24-18 40-20" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".8"/></svg></div>'+
+    '<div class="toy"><svg viewBox="0 0 64 64">'+(ICON[g.ic]||ICON.gift)+'</svg></div>'+
+    '<div class="half bot"><svg viewBox="0 0 140 70"><path d="M2 2a68 66 0 0 0 136 0z" fill="#fff" fill-opacity=".85" stroke="#5a1030" stroke-width="3"/></svg></div></div>'+
+    '<button class="big" id="keepBtn">收進扭蛋冊</button>');
+  setTimeout(function(){var p=$('prize');if(p)p.classList.add('open');fanfare();},250);});
+
+/* ---------- shelf ---------- */
+var pressT=null,longed=false;
+$('shelf').addEventListener('pointerdown',function(e){var b=e.target.closest('.cp[data-id]');if(!b)return;longed=false;clearTimeout(pressT);pressT=setTimeout(function(){longed=true;haptic(14);openDetail(b.dataset.id);},520);});
+['pointerup','pointercancel','pointerleave'].forEach(function(n){$('shelf').addEventListener(n,function(){clearTimeout(pressT);});});
+$('shelf').addEventListener('scroll',function(){clearTimeout(pressT);},{passive:true});
+$('shelf').addEventListener('click',function(e){var b=e.target.closest('.cp');if(!b)return;if(longed){longed=false;return;}
+  if(b.id==='addGoal'){openAdd();return;}var id=b.dataset.id;if(id===cur){openDetail(id);return;}
+  cur=id;pending=0;persist();haptic(8);tick();rebuild(true);render();kick();});
+
+/* ---------- sheets ---------- */
+var sheet=$('sheet'),scrim=$('scrim'),lastFocus=null,form=null;
+function openSheet(h){lastFocus=document.activeElement;$('sheetBody').innerHTML=h;sheet.style.transform='';sheet.scrollTop=0;sheet.classList.add('on');scrim.classList.add('on');haptic(6);}
+function closeSheet(){if(!sheet.classList.contains('on'))return;sheet.classList.remove('on','drag');sheet.style.transform='';scrim.classList.remove('on');form=null;if(lastFocus&&lastFocus.focus)try{lastFocus.focus({preventScroll:true});}catch(e){}}
+scrim.addEventListener('click',closeSheet);
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSheet();});
+(function(){var sy=0,dy=0,t0=0,on=false;
+  sheet.addEventListener('pointerdown',function(e){if(e.target.closest('button,input')||sheet.scrollTop>0)return;on=true;sy=e.clientY;dy=0;t0=e.timeStamp;sheet.classList.add('drag');try{sheet.setPointerCapture(e.pointerId);}catch(x){}});
+  sheet.addEventListener('pointermove',function(e){if(!on)return;dy=e.clientY-sy;sheet.style.transform='translateY('+(dy>0?dy:dy/6).toFixed(1)+'px)';scrim.style.opacity=Math.max(0,1-dy/sheet.offsetHeight).toFixed(2);});
+  function end(e){if(!on)return;on=false;sheet.classList.remove('drag');scrim.style.opacity='';if(dy>sheet.offsetHeight*.35||dy/Math.max(1,e.timeStamp-t0)>.6)closeSheet();else sheet.style.transform='';}
+  sheet.addEventListener('pointerup',end);sheet.addEventListener('pointercancel',end);})();
+
+function icPicks(sel){return Object.keys(ICON).filter(function(k){return k!=='wheel';}).map(function(k){return '<button class="pick" role="radio" data-ic="'+k+'" aria-checked="'+(k===sel)+'" aria-label="'+k+'"><svg viewBox="0 0 64 64">'+ICON[k]+'</svg></button>';}).join('');}
+function colPicks(sel){return Object.keys(CAPCOL).map(function(k){return '<button class="pick" role="radio" data-col="'+k+'" aria-checked="'+(k===sel)+'" aria-label="扭蛋顏色">'+capsule(k,.4).replace('<svg ','<svg style="width:32px;height:32px" ')+'</button>';}).join('');}
+function openAdd(){form={mode:'add',n:'',target:10000,ic:'gift',col:'y'};
+  openSheet('<h2 id="sheetT">放一顆新扭蛋上架</h2><p class="sub">存滿就能轉出來</p>'+
+    '<div class="field"><label for="fN">想存錢做什麼</label><input id="fN" maxlength="12" placeholder="例如：花蓮溯溪" autocomplete="off"></div>'+
+    '<div class="field"><label for="fT">目標金額（NT$）</label><input id="fT" inputmode="numeric" value="10000"></div>'+
+    '<div class="field"><label>扭蛋裡的玩具</label><div class="picks" role="radiogroup">'+icPicks('gift')+'</div></div>'+
+    '<div class="field"><label>殼的顏色</label><div class="picks" role="radiogroup">'+colPicks('y')+'</div></div>'+
+    '<button class="big" id="saveGoal">上架</button>');}
+function openDetail(id){var g=G(id);if(!g)return;form={mode:'detail',id:id,wd:false};var s=saved(g);
+  var L=g.log.slice(0,8).map(function(e){var d=new Date(e.t);return '<li class="'+(e.a<0?'out':'')+'"><span>'+(d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+('0'+d.getMinutes()).slice(-2)+'</span><b>'+(e.a<0?'−':'+')+' NT$'+money(Math.abs(e.a))+'</b></li>';}).join('');
+  var days=g.log.length?Math.max(1,Math.round((Date.now()-g.log[g.log.length-1].t)/864e5)):0;
+  openSheet('<h2 id="sheetT">'+g.n+'</h2><p class="sub">目標 NT$'+money(g.target)+'</p>'+
+    '<div class="stats"><div><b>'+Math.min(100,Math.round(s/g.target*100))+'%</b><span>進度</span></div><div><b>'+g.log.filter(function(e){return e.a>0;}).length+'</b><span>投幣次數</span></div><div><b>'+days+'</b><span>天</span></div></div>'+
+    '<ul class="ledger">'+(L||'<li><span>還沒有紀錄</span><b></b></li>')+'</ul>'+
+    '<div class="row2"><button class="txtbtn" id="wdBtn"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v10M6 9l4 4 4-4M4 17h12"/></svg>領出一些</button><button class="txtbtn" id="delBtn" style="color:#e8517a"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M5.5 6.5l.8 10h7.4l.8-10"/></svg>下架這顆</button></div>');}
+var amt='';
+function openCustom(wd){amt='';form={mode:wd?'withdraw':'custom',id:cur};
+  openSheet('<h2 id="sheetT">'+(wd?'從罐子領出':'投多少？')+'</h2><p class="amt" id="amt"><small>NT$</small>0</p><div class="keypad" id="kp">'+[1,2,3,4,5,6,7,8,9,'00',0,'⌫'].map(function(k){return '<button data-k="'+k+'" aria-label="'+(k==='⌫'?'刪除':k)+'">'+(k==='⌫'?'<svg viewBox="0 0 24 24" width="24" height="24" style="margin:auto" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h10v12H9l-5-6z"/><path d="M12 10l4 4M16 10l-4 4"/></svg>':k)+'</button>';}).join('')+'</div><button class="big" id="amtOk">'+(wd?'領出':'投進投幣口')+'</button>');}
+sheet.addEventListener('click',function(e){var b=e.target.closest('button');if(!b||!form)return;
+  if(b.dataset.ic){form.ic=b.dataset.ic;sheet.querySelectorAll('[data-ic]').forEach(function(x){x.setAttribute('aria-checked',String(x===b));});haptic(5);return;}
+  if(b.dataset.col){form.col=b.dataset.col;sheet.querySelectorAll('[data-col]').forEach(function(x){x.setAttribute('aria-checked',String(x===b));});haptic(5);tick();return;}
+  if(b.id==='saveGoal'){var n=($('fN').value||'').trim(),t=parseInt(($('fT').value||'').replace(/[^0-9]/g,''),10);
+    if(!n||!(t>=100)){haptic([20,40,20]);(n?$('fT'):$('fN')).focus();toast(!n?'幫目標取個名字':'金額至少 NT$100',null);return;}
+    var g={id:'g'+Date.now().toString(36),n:n,target:t,col:form.col,ic:form.ic,log:[]};goals.unshift(g);cur=g.id;pending=0;persist();closeSheet();rebuild(true);render();kick();chaching();haptic(12);
+    var sh=$('shelf');sh.scrollTo({left:0,behavior:RM.matches?'auto':'smooth'});return;}
+  if(b.id==='wdBtn'){closeSheet();setTimeout(function(){openCustom(true);},120);return;}
+  if(b.id==='delBtn'){var id=form.id,gi=-1;goals.forEach(function(x,i){if(x.id===id)gi=i;});if(gi<0)return;var gone=goals.splice(gi,1)[0];if(cur===id){cur=(active()[0]||{}).id||null;}persist();closeSheet();rebuild(true);render();kick();haptic([10,40,10]);
+    toast('下架「'+gone.n+'」',function(){goals.splice(gi,0,gone);cur=gone.id;persist();rebuild(true);render();kick();});return;}
+  if(b.dataset.k!==undefined){var k=b.dataset.k;if(k==='⌫')amt=amt.slice(0,-1);else if(amt.length<7&&!(amt===''&&(k==='0'||k==='00')))amt+=k;$('amt').innerHTML='<small>NT$</small>'+money(+amt||0);haptic(3);tick();return;}
+  if(b.id==='amtOk'){var v=+amt||0;if(!v){haptic([20,40,20]);return;}var mode=form.mode;closeSheet();
+    if(mode==='custom'){insert(v,$('coins').lastChild);}
+    else{var gg=goal();if(!gg)return;var mx=saved(gg);v=Math.min(v,mx);if(!v){toast('罐子是空的',null);return;}gg.log.unshift({t:Date.now(),a:-v});persist();rebuild(true);render();kick();haptic([10,30,10]);toast('領出 NT$'+money(v),null);}return;}
+  if(b.id==='keepBtn'){var g2=goal();if(g2){g2.opened=true;g2.done=g2.done||Date.now();persist();}closeSheet();pending=0;rebuild(true);render();kick();setTimeout(openBook,300);return;}
+});
+function openBook(){form={mode:'book'};var done=goals.filter(function(g){return g.opened;}),total=0;goals.forEach(function(g){total+=saved(g);});
+  openSheet('<h2 id="sheetT">扭蛋冊</h2><p class="sub">一共存了 NT$'+money(total)+'・連續 '+streak()+' 天</p>'+
+    (done.length?'<div class="shelfbook">'+done.map(function(g){var d=new Date(g.done||Date.now());return '<div><svg viewBox="0 0 64 64">'+(ICON[g.ic]||ICON.gift)+'</svg>'+g.n+'<small>'+d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+'・NT$'+money(g.target)+'</small></div>';}).join('')+'</div>':'<p class="empty">還沒有轉出過扭蛋。存滿第一個目標吧。</p>'));}
+$('bookBtn').addEventListener('click',function(){haptic(6);openBook();});
+
+/* ---------- toast ---------- */
+var toastT=null,undoFn=null;
+function toast(m,undo){$('toastMsg').textContent=m;undoFn=undo||null;$('undoBtn').style.display=undo?'':'none';var t=$('toast');t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('on');undoFn=null;},undo?4000:2000);}
+$('undoBtn').addEventListener('click',function(){if(undoFn){var f=undoFn;undoFn=null;f();haptic(6);}$('toast').classList.remove('on');});
+
+/* ---------- backdrop: a wall of machines ---------- */
+(function(){var h='<rect width="1600" height="1000" fill="#ffc8d8"/>',cols=['#ff8fb1','#ffd23f','#ffffff','#e8517a'],k=0;
+  for(var row=0;row<3;row++)for(var i=0;i<9;i++){var x=i*190-40+(row%2)*95,y=row*330-40,c=cols[(i+row*2)%4],c2=c==='#ffffff'?'#f6dbe4':c==='#ffd23f'?'#e9b93a':c==='#ff8fb1'?'#e8517a':'#b8325c';
+    h+='<g opacity=".55"><rect x="'+(x+20)+'" y="'+(y+150)+'" width="130" height="150" rx="18" fill="'+c+'"/><rect x="'+(x+20)+'" y="'+(y+288)+'" width="130" height="12" fill="'+c2+'"/><circle cx="'+(x+85)+'" cy="'+(y+100)+'" r="68" fill="#fff" fill-opacity=".75"/>';
+    for(var j=0;j<6;j++){var cc=cols[(j+i)%4];h+='<circle cx="'+(x+50+(j%3)*34)+'" cy="'+(y+120+Math.floor(j/3)*26)+'" r="14" fill="'+(cc==='#ffffff'?'#ff8fb1':cc)+'"/>';}
+    h+='<circle cx="'+(x+85)+'" cy="'+(y+215)+'" r="22" fill="#fff"/><rect x="'+(x+67)+'" y="'+(y+209)+'" width="36" height="12" rx="6" fill="#ffd23f"/><rect x="'+(x+60)+'" y="'+(y+250)+'" width="50" height="30" rx="10" fill="#5a1030" fill-opacity=".6"/></g>';}
+  $('bd').innerHTML=h;})();
+
+/* ---------- clock ---------- */
+function clock(){var d=new Date();$('clock').textContent=d.getHours()+':'+('0'+d.getMinutes()).slice(-2);}
+clock();setTimeout(function(){clock();setInterval(clock,60000);},(60-new Date().getSeconds())*1000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden){clock();render();kick();}});
+
+renderShelf();sizeDome();rebuild(true);render();draw();
+if(window.ResizeObserver){var lastD=D;new ResizeObserver(function(){var o=D;sizeDome();if(Math.abs(D-o)>2)rebuild(true);draw();}).observe($('dome'));}
+})();
+</script>
+</body>
+</html>

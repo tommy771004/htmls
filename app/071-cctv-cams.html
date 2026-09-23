@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="保全">
+<title>保全 · 監視器</title>
+<meta name="description" content="家用監視器 App：四格與單格即時畫面、VHS 時間戳與雜訊、可拖曳回放的事件時間軸、按住對講、快照與布防密碼盤。收錄於 100 Creative HTML Works（App 071・CCTV 單色 VHS）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/071-cctv-cams.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b0f0c'/%3E%3Crect x='7' y='12' width='23' height='17' fill='%237f9a78'/%3E%3Crect x='34' y='12' width='23' height='17' fill='%234d634b'/%3E%3Crect x='7' y='33' width='23' height='17' fill='%234d634b'/%3E%3Crect x='34' y='33' width='23' height='17' fill='%237f9a78'/%3E%3Crect x='44' y='54' width='13' height='4' fill='%23e0402f'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0b0f0c;
+  --panel:#131a14;
+  --panel-2:#1a231b;
+  --ph:#b3cba8;
+  --ph-2:#7f9a78;
+  --ph-3:#4d634b;
+  --red:#e0402f;
+  --mono:"Andale Mono","Menlo",monospace;
+  --zh:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --out:cubic-bezier(.2,.8,.25,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.4 var(--zh);color:var(--ph);background:var(--bg);-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--ph);outline-offset:2px}
+svg{display:block}
+ul{list-style:none}
+.ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--bg);isolation:isolate}
+@media (min-width:521px){
+  body{background:#070907}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop canvas{width:100%;height:100%;display:block}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:46px;padding:10px;z-index:1;background:#232823;
+    box-shadow:inset 0 0 0 2px #333a33,inset 0 3px 0 rgba(255,255,255,.07),0 20px 30px -24px #000}
+  .screen{inset:10px;border-radius:36px}
+  .caption{display:block;position:relative;z-index:1;width:250px;padding:18px 20px;background:rgba(7,9,7,.86);border-radius:6px}
+  .caption h1{font:600 34px/1.1 var(--zh);color:var(--ph);letter-spacing:.12em}
+  .caption .m{font:15px/1 var(--mono);color:var(--red);margin-top:10px;letter-spacing:.1em}
+  .caption p{margin-top:14px;font-size:14px;line-height:1.7;color:var(--ph-2)}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:15px/1 var(--mono);color:var(--ph);pointer-events:none;background:var(--bg)}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+.body{position:absolute;inset:calc(46px + env(safe-area-inset-top)) 0 0;overflow-y:auto;overflow-x:hidden;padding-bottom:calc(28px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+.body::-webkit-scrollbar{display:none}
+
+.hdr{display:flex;align-items:center;gap:10px;padding:6px 16px 10px}
+.hdr h1{font:600 22px/1 var(--zh);letter-spacing:.16em}
+.hdr .site{font:13px/1.3 var(--mono);color:var(--ph-2);margin-top:5px}
+.arm{margin-left:auto;height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:6px;background:var(--panel);font:600 14px var(--zh)}
+.arm:active{background:var(--panel-2)}
+.arm .ic{width:20px;height:20px}
+.arm.off{color:var(--ph-2)}
+.arm.on{color:var(--ph)}
+.arm.on .shield{color:var(--red)}
+
+.bar2{display:flex;align-items:center;gap:10px;padding:0 16px 8px}
+.seg{position:relative;display:grid;grid-template-columns:1fr 1fr;height:40px;width:148px;border-radius:6px;background:var(--panel);padding:3px}
+.seg i{position:absolute;top:3px;left:3px;width:calc(50% - 3px);height:34px;border-radius:4px;background:var(--ph);transition:transform .3s var(--out)}
+.seg.r i{transform:translateX(100%)}
+.seg button{position:relative;font:600 14px var(--zh);color:var(--ph);transition:color .25s}
+.seg button[aria-pressed=true]{color:var(--bg)}
+.rec{margin-left:auto;display:flex;align-items:center;gap:7px;font:15px var(--mono);letter-spacing:.08em;color:var(--ph)}
+.rec b{width:11px;height:11px;border-radius:50%;background:var(--red)}
+.rec.blink b{visibility:hidden}
+.chn{font:13px var(--mono);color:var(--ph-2)}
+
+/* the monitor wall */
+.wall{position:relative;margin:0 12px;border-radius:14px;background:#030403;padding:6px;box-shadow:inset 0 0 0 2px #1b221c}
+.quad{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cam{position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:4px;background:#000;touch-action:manipulation;cursor:pointer}
+.cam canvas{position:absolute;inset:0;width:100%;height:100%}
+.osd{position:absolute;inset:0;pointer-events:none;font:12px/1 var(--mono);color:#dfeeda;letter-spacing:.04em;text-shadow:1px 0 rgba(224,64,47,.35),-1px 0 rgba(120,200,255,.2)}
+.osd .tl{position:absolute;left:7px;top:7px}
+.osd .tr{position:absolute;right:7px;top:7px}
+.osd .bl{position:absolute;left:7px;bottom:7px}
+.osd .br{position:absolute;right:7px;bottom:7px;color:var(--red)}
+.cam.alert::after{content:"";position:absolute;inset:0;border:3px solid var(--red);border-radius:4px;pointer-events:none}
+.single{display:none;position:relative}
+.wall.one .quad{display:none}
+.wall.one .single{display:block}
+.single .cam{touch-action:pan-y}
+.single .osd{font-size:14px}
+.single .osd .tl,.single .osd .tr{top:10px}
+.brk{position:absolute;width:18px;height:18px;border:0 solid #dfeeda;opacity:.75;pointer-events:none}
+.brk.a{left:12px;top:30px;border-left-width:2px;border-top-width:2px}
+.brk.b{right:12px;top:30px;border-right-width:2px;border-top-width:2px}
+.brk.c{left:12px;bottom:30px;border-left-width:2px;border-bottom-width:2px}
+.brk.d{right:12px;bottom:30px;border-right-width:2px;border-bottom-width:2px}
+.flash{position:absolute;inset:0;background:#e9f5e4;opacity:0;pointer-events:none;z-index:5}
+.flash.go{animation:flash .45s ease-out}
+@keyframes flash{0%{opacity:.85}100%{opacity:0}}
+.talk{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:none;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;background:rgba(0,0,0,.72);font:13px var(--mono);color:#dfeeda}
+.talk.on{display:flex}
+.talk i{display:block;width:3px;background:#dfeeda;height:6px}
+
+/* timeline */
+.tlw{position:relative;margin:12px 12px 0;height:78px;border-radius:8px;background:var(--panel);overflow:hidden;touch-action:none;cursor:grab}
+.tlw canvas{position:absolute;inset:0;width:100%;height:100%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 100%);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 100%)}
+.ph{position:absolute;left:78%;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--red);pointer-events:none}
+.ph::before{content:"";position:absolute;left:-5px;top:0;border:6px solid transparent;border-top-color:var(--red)}
+.tlh{display:flex;align-items:center;justify-content:space-between;margin:10px 16px 0;font:13px var(--mono);color:var(--ph-2)}
+.tlh b{font-weight:400;color:var(--ph)}
+.live{height:36px;padding:0 12px;border-radius:5px;background:var(--panel);font:600 13px var(--mono);letter-spacing:.1em;color:var(--ph-2)}
+.live.on{background:var(--red);color:#fff}
+
+/* dock */
+.dock{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:8px;margin:14px 12px 0}
+.dk{height:66px;border-radius:8px;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font:600 13px var(--zh);color:var(--ph);transition:background-color .15s,transform .12s}
+.dk:active{transform:scale(.96)}
+.dk.on{background:var(--ph);color:var(--bg)}
+.dk.talking{background:var(--red);color:#fff}
+.dk small{font:12px var(--mono);color:inherit;opacity:.75}
+
+/* events */
+.evh{display:flex;align-items:center;gap:10px;margin:22px 16px 8px}
+.evh h2{font:600 17px var(--zh);letter-spacing:.1em}
+.evh .n{font:13px var(--mono);color:var(--ph-2)}
+.flt{position:relative;display:grid;grid-template-columns:repeat(4,1fr);margin:0 12px;height:40px;background:var(--panel);border-radius:6px;padding:3px}
+.flt i{position:absolute;top:3px;left:3px;height:34px;width:calc(25% - 1.5px);border-radius:4px;background:var(--panel-2);box-shadow:inset 0 -2px 0 var(--ph-2);transition:transform .3s var(--out)}
+.flt button{position:relative;font:600 14px var(--zh);color:var(--ph-2)}
+.flt button[aria-pressed=true]{color:var(--ph)}
+.evs{margin:8px 0 0}
+.ev{position:relative;overflow:hidden}
+.ev .del{position:absolute;right:0;top:0;bottom:0;width:86px;background:var(--red);color:#fff;font:600 14px var(--zh)}
+.ev .mv{position:relative;background:var(--bg);transition:transform .3s var(--out);touch-action:pan-y}
+.ev .mv.drag{transition:none}
+.ev .go{width:100%;display:grid;grid-template-columns:96px 1fr auto;gap:12px;align-items:center;padding:8px 16px;text-align:left;min-height:72px}
+.ev .go:active{background:var(--panel)}
+.ev canvas{width:96px;height:60px;border-radius:3px;background:#000;display:block}
+.ev b{display:block;font:600 15px/1.3 var(--zh)}
+.ev span{display:block;font-size:13px;color:var(--ph-2);margin-top:2px}
+.ev time{font:13px var(--mono);color:var(--ph);text-align:right;line-height:1.5}
+.ev time em{display:block;font-style:normal;color:var(--red)}
+.ev+.ev .go{border-top:1px solid #1d261e}
+.empty{padding:20px 16px;color:var(--ph-2);font-size:14px}
+
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:128px;height:5px;margin-left:-64px;border-radius:3px;background:var(--ph-2);z-index:25;pointer-events:none}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:86%;display:flex;flex-direction:column;background:var(--panel);border-radius:14px 14px 0 0;
+  transform:translateY(105%);visibility:hidden;transition:transform .42s var(--out),visibility 0s .42s;touch-action:none;padding-bottom:env(safe-area-inset-bottom)}
+.sheet.on{transform:none;visibility:visible;transition:transform .42s var(--out)}
+.sheet.drag{transition:none}
+.grab{flex:none;height:28px;display:grid;place-items:center;cursor:grab}
+.grab i{width:42px;height:4px;border-radius:2px;background:var(--ph-3)}
+.sb{overflow-y:auto;padding:0 20px 24px;touch-action:pan-y;overscroll-behavior:contain}
+.sb h3{font:600 20px var(--zh);letter-spacing:.1em}
+.sb p{font-size:13px;color:var(--ph-2);margin-top:4px}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px}
+.modes button{height:48px;border-radius:6px;background:var(--bg);font:600 14px var(--zh);color:var(--ph-2)}
+.modes button[aria-pressed=true]{background:var(--ph);color:var(--bg)}
+.pin{display:flex;justify-content:center;gap:14px;margin:20px 0 6px}
+.pin i{width:16px;height:16px;border-radius:50%;border:2px solid var(--ph-2)}
+.pin i.f{background:var(--ph);border-color:var(--ph)}
+.pin.bad{animation:bad .35s}
+@keyframes bad{25%{transform:translateX(-8px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.pad button{height:56px;border-radius:6px;background:var(--bg);font:22px var(--mono);color:var(--ph)}
+.pad button:active{background:#243024}
+.pad .fn{font:600 14px var(--zh);color:var(--ph-2)}
+.hint{text-align:center;font:13px var(--mono);color:var(--ph-3);margin-top:10px}
+.gal{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.gal figure{position:relative}
+.gal img{width:100%;aspect-ratio:16/10;display:block;border-radius:4px;background:#000}
+.gal figcaption{display:flex;justify-content:space-between;align-items:center;font:12px var(--mono);color:var(--ph-2);margin-top:2px}
+.gal figcaption button{width:44px;height:36px;display:grid;place-items:center;color:var(--ph-2)}
+.gal figcaption .ic{width:18px;height:18px}
+
+.toast{position:absolute;left:12px;right:12px;top:calc(52px + env(safe-area-inset-top));z-index:60;min-height:46px;display:flex;align-items:center;gap:10px;padding:0 6px 0 14px;border-radius:6px;background:#e4efe0;color:var(--bg);font:600 14px var(--zh);
+  transform:translateY(-150%);visibility:hidden;transition:transform .35s var(--out),visibility 0s .35s}
+.toast.on{transform:none;visibility:visible;transition:transform .35s var(--out)}
+.toast button{margin-left:auto;height:38px;padding:0 12px;font:600 14px var(--zh);color:var(--red)}
+@media (prefers-reduced-motion:reduce){
+  .seg i,.flt i,.sheet,.toast,.ev .mv{transition-duration:.01s!important}
+  .flash.go,.pin.bad{animation:none}
+  .dk:active{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><canvas id="bd"></canvas></div>
+  <div class="caption">
+    <h1>保全</h1>
+    <div class="m">● REC  CH1-CH4</div>
+    <p>家裡四支鏡頭的 VHS 監看牆。點一格放大，拖時間軸回放，按住對講跟門口的外送員說話。</p>
+  </div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="#b3cba8"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2.5" width="3" height="9.5"/><rect x="15" y="0" width="3" height="12"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#b3cba8" stroke-width="2" stroke-linecap="square"><path d="M2 4.5 8 1l6 3.5M4.5 7.5 8 5.5l3.5 2"/><rect x="7" y="9.5" width="2" height="2" fill="#b3cba8" stroke="none"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x="1" y="1" width="21" height="10" fill="none" stroke="#b3cba8" stroke-width="2"/><rect id="batt" x="3.5" y="3.5" width="14" height="5" fill="#b3cba8"/><rect x="23" y="4" width="2.5" height="4" fill="#b3cba8"/></svg>
+        </span>
+      </div>
+
+      <div class="body" id="body">
+        <div class="hdr">
+          <div><h1>保全</h1><div class="site">板橋 林宅 · 4 CAM</div></div>
+          <button class="arm" id="armBtn"><svg class="ic shield" viewBox="0 0 24 24"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10v-6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg><span id="armT">外出布防</span></button>
+        </div>
+        <div class="bar2">
+          <div class="seg" id="seg" role="group" aria-label="畫面配置"><i></i><button id="bQuad" aria-pressed="true">四格</button><button id="bOne" aria-pressed="false">單格</button></div>
+          <span class="chn" id="chn"></span>
+          <span class="rec" id="rec"><b></b>REC</span>
+        </div>
+
+        <div class="wall" id="wall">
+          <div class="quad" id="quad"></div>
+          <div class="single" id="single">
+            <div class="cam" id="big"><canvas width="224" height="140"></canvas>
+              <div class="osd"><span class="tl" id="bTL"></span><span class="tr" id="bTR"></span><span class="bl" id="bBL"></span><span class="br" id="bBR"></span></div>
+              <i class="brk a"></i><i class="brk b"></i><i class="brk c"></i><i class="brk d"></i>
+              <div class="talk" id="talk"><span>TALK</span><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="flash" id="flash"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tlh"><span id="tlLbl"><b>LIVE</b> 即時</span><button class="live on" id="liveBtn">LIVE</button></div>
+        <div class="tlw" id="tlw" role="slider" tabindex="0" aria-label="事件時間軸，左右拖曳回放"><canvas id="tlc"></canvas><div class="ph"></div></div>
+
+        <div class="dock">
+          <button class="dk" id="talkBtn" aria-label="按住對講"><svg class="ic" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="11"/><path d="M5.5 10.5c0 4 2.9 6.5 6.5 6.5s6.5-2.5 6.5-6.5M12 17v4.5M8 21.5h8"/></svg><span id="talkL">按住對講</span></button>
+          <button class="dk" id="snapBtn" aria-label="快照"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><rect x="8.5" y="9.5" width="7" height="7"/></svg>快照</button>
+          <button class="dk" id="irBtn" aria-label="夜視" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><rect x="9.5" y="9.5" width="5" height="5"/></svg><span id="irL">夜視</span></button>
+          <button class="dk" id="galBtn" aria-label="快照相簿"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="15" height="12"/><path d="M6 20h15V8M3 14l4-4 4 4 3-3 4 4"/></svg><span>相簿 <small id="galN">0</small></span></button>
+        </div>
+
+        <div class="evh"><h2>事件</h2><span class="n" id="evN"></span></div>
+        <div class="flt" id="flt"><i></i><button data-f="all" aria-pressed="true">全部</button><button data-f="p" aria-pressed="false">人</button><button data-f="c" aria-pressed="false">車</button><button data-f="a" aria-pressed="false">動物</button></div>
+        <ul class="evs" id="evs"></ul>
+      </div>
+      <div class="home-ind"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="設定"><div class="grab"><i></i></div><div class="sb" id="sb"></div></div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastU">復原</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+function haptic(p){ try{ if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var KEY = 'app071:';
+function load(k, d){ try{ var v = localStorage.getItem(KEY+k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(KEY+k, JSON.stringify(v)); }catch(e){} }
+function pad2(n){ return String(n).padStart(2, '0'); }
+function hms(t){ var d = new Date(t); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()); }
+function ymd(t){ var d = new Date(t); return d.getFullYear() + '/' + pad2(d.getMonth() + 1) + '/' + pad2(d.getDate()); }
+
+var CAMS = [{n:'前門', en:'FRONT'}, {n:'車庫', en:'GARAGE'}, {n:'後巷', en:'ALLEY'}, {n:'客廳', en:'LIVING'}];
+var TYPES = {p:'人', c:'車', a:'動物', m:'移動'};
+var NOW0 = Date.now(), MIN = 60000, HR = 3600000;
+function seedEvents(){
+  var s = [[4,0,'p','外送員靠近門口','放下一個包裹後離開'],[31,2,'a','一隻橘貓走過圍牆','停留約 20 秒'],[95,1,'c','車輛駛入車庫','車牌 ABC-1234，家人回家'],[132,0,'p','有人按門鈴','隔壁王太太，留下一袋文旦'],
+    [260,3,'m','客廳偵測到移動','窗簾被風吹動'],[395,0,'p','郵差投遞','掛號信，已簽收'],[520,2,'a','鴿子停在冷氣外機','約 3 分鐘'],[640,1,'c','車輛駛出車庫','早上出門'],[655,0,'p','家人出門','鎖門確認'],[905,2,'a','貓在後巷翻垃圾桶','凌晨巡邏'],[1180,3,'m','客廳偵測到移動','掃地機器人啟動']];
+  return s.map(function(e, i){ return {id:'e' + i, t:NOW0 - e[0] * MIN - 37000 * i, cam:e[1], type:e[2], title:e[3], sub:e[4], seen:i > 2}; });
+}
+var S = {
+  events: load('events', null) || seedEvents(), arm: load('arm', 2), ir: load('ir', 0), snaps: load('snaps', []), filt: 'all', mode: load('mode', 0), cur: load('cur', 0)
+};
+var ARM = ['撤防', '在家布防', '外出布防'];
+var view = null; // null = live, else playback timestamp
+
+// ---------- clock / toast ----------
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + pad2(d.getMinutes()); }
+tickClock(); setInterval(tickClock, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 17 * b.level).toFixed(1)); }).catch(function(){});
+var toastT = 0, undoFn = null;
+function toast(m, u){ $('toastT').textContent = m; undoFn = u || null; $('toastU').style.display = u ? '' : 'none'; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ $('toast').classList.remove('on'); }, u ? 4000 : 2200); }
+$('toastU').addEventListener('click', function(){ if (undoFn) undoFn(); undoFn = null; $('toast').classList.remove('on'); });
+
+// ---------- audio ----------
+var ac = null, noiseBuf = null;
+function audio(){ if (!ac){ try{ ac = new (window.AudioContext || window.webkitAudioContext)(); noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }catch(e){ ac = null; } } if (ac && ac.state === 'suspended') ac.resume().catch(function(){}); return ac; }
+function beep(f, len, when, vol){ if (!ac || ac.state !== 'running') return; var t = ac.currentTime + (when || 0), o = ac.createOscillator(), g = ac.createGain(); o.type = 'square'; o.frequency.value = f; g.gain.setValueAtTime(vol || .05, t); g.gain.setValueAtTime(0, t + len); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + len + .02); }
+function squelch(len, vol){ if (!ac || ac.state !== 'running') return; var t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = .8; s.buffer = noiseBuf; g.gain.setValueAtTime(vol || .12, t); g.gain.exponentialRampToValueAtTime(.001, t + len); s.connect(f); f.connect(g); g.connect(ac.destination); s.start(t); s.stop(t + len + .02); }
+var hum = null;
+function humOn(){ if (!audio() || ac.state !== 'running' || hum) return; var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = noiseBuf; s.loop = true; f.type = 'lowpass'; f.frequency.value = 900; g.gain.value = .035; s.connect(f); f.connect(g); g.connect(ac.destination); s.start(); hum = {s:s, g:g}; }
+function humOff(){ if (!hum) return; try{ hum.g.gain.setTargetAtTime(0, ac.currentTime, .03); hum.s.stop(ac.currentTime + .2); }catch(e){} hum = null; }
+function shutter(){ squelch(.05, .2); setTimeout(function(){ squelch(.08, .14); }, 90); }
+
+// ---------- scenes (grayscale vector, then a VHS phosphor pass) ----------
+var W = 224, H = 140;
+var off = document.createElement('canvas'); off.width = W; off.height = H; var ox = off.getContext('2d');
+function g(v){ v = Math.max(0, Math.min(255, v | 0)); return 'rgb(' + v + ',' + v + ',' + v + ')'; }
+function light(t){ var h = new Date(t).getHours() + new Date(t).getMinutes() / 60; if (h >= 7 && h < 17.5) return 1; if (h >= 6 && h < 7) return .3 + .7 * (h - 6); if (h >= 17.5 && h < 19) return 1 - .7 * (h - 17.5) / 1.5; return .3; }
+function actorOf(cam, t){ // an event actor if an event on this camera is within its 40 s window
+  for (var i = 0; i < S.events.length; i++){ var e = S.events[i]; if (e.cam === cam && t >= e.t - 8000 && t <= e.t + 32000) return {type:e.type, p:(t - e.t + 8000) / 40000}; }
+  var cyc = [0, 0, 70000, 0][cam]; // the alley cat walks by every 70 s in live view
+  if (cyc && view == null){ var p = (t % cyc) / 26000; if (p < 1) return {type:'a', p:p}; }
+  return null;
+}
+function person(x, y, s, v){ ox.fillStyle = g(v); ox.beginPath(); ox.arc(x, y - 30 * s, 6 * s, 0, 7); ox.fill(); ox.beginPath(); ox.moveTo(x - 9 * s, y - 22 * s); ox.lineTo(x + 9 * s, y - 22 * s); ox.lineTo(x + 7 * s, y); ox.lineTo(x - 7 * s, y); ox.fill(); }
+function scene(cam, t, L, ir){
+  var a = actorOf(cam, t), dim = function(v){ return v * L; };
+  ox.fillStyle = g(dim(90)); ox.fillRect(0, 0, W, H);
+  if (cam === 0){ // front door, corridor
+    ox.fillStyle = g(dim(130)); ox.fillRect(0, 0, W, 104);
+    ox.fillStyle = g(dim(80)); ox.beginPath(); ox.moveTo(0, 104); ox.lineTo(W, 104); ox.lineTo(W, H); ox.lineTo(0, H); ox.fill();
+    ox.fillStyle = g(dim(58)); ox.fillRect(88, 20, 50, 84); ox.fillStyle = g(dim(40)); ox.fillRect(92, 24, 42, 80);
+    ox.fillStyle = g(dim(170)); ox.fillRect(126, 62, 5, 3);
+    ox.fillStyle = g(dim(150)); ox.fillRect(90, 106, 46, 9);
+    ox.fillStyle = g(dim(105)); ox.fillRect(16, 62, 42, 42); ox.fillStyle = g(dim(85)); ox.fillRect(18, 82, 38, 1);
+    ox.fillStyle = g(dim(70)); ox.fillRect(170, 90, 16, 16); ox.fillStyle = g(dim(60)); ox.beginPath(); ox.arc(178, 80, 13, 0, 7); ox.fill();
+    ox.fillStyle = g(dim(210)); ox.fillRect(104, 6, 18, 4);
+    var pk = S.events.filter(function(e){ return e.cam === 0 && e.type === 'p' && e.title.indexOf('外送') >= 0 && t > e.t + 20000 && t < e.t + 3 * HR; })[0];
+    if (pk){ ox.fillStyle = g(dim(175)); ox.fillRect(100, 96, 18, 13); ox.fillStyle = g(dim(120)); ox.fillRect(100, 101, 18, 2); }
+    if (a && a.type === 'p'){ var x = 200 - a.p * 90, sc = .9 + a.p * .5; person(x, 112, sc, 25); if (a.p > .35 && a.p < .65){ ox.fillStyle = g(dim(175)); ox.fillRect(x - 12, 88, 14, 10); } }
+  } else if (cam === 1){ // garage
+    ox.fillStyle = g(dim(100)); ox.fillRect(0, 0, W, 82);
+    for (var k = 8; k < 76; k += 6){ ox.fillStyle = g(dim(k % 12 ? 118 : 86)); ox.fillRect(40, k, 144, 3); }
+    ox.fillStyle = g(dim(70)); ox.fillRect(0, 82, W, H - 82);
+    var carX = 58; var inCar = true;
+    if (a && a.type === 'c'){ carX = 58 + (1 - a.p) * 140; }
+    ox.fillStyle = g(dim(inCar ? 45 : 70)); ox.beginPath(); ox.moveTo(carX, 118); ox.lineTo(carX, 96); ox.lineTo(carX + 22, 80); ox.lineTo(carX + 80, 80); ox.lineTo(carX + 100, 96); ox.lineTo(carX + 108, 118); ox.fill();
+    ox.fillStyle = g(dim(95)); ox.fillRect(carX + 28, 85, 22, 11); ox.fillRect(carX + 54, 85, 22, 11);
+    ox.fillStyle = g(25); ox.beginPath(); ox.arc(carX + 22, 120, 9, 0, 7); ox.arc(carX + 86, 120, 9, 0, 7); ox.fill();
+    if (a && a.type === 'c'){ var grd = ox.createLinearGradient(carX, 0, carX - 70, 0); grd.addColorStop(0, 'rgba(255,255,255,.75)'); grd.addColorStop(1, 'rgba(255,255,255,0)'); ox.fillStyle = grd; ox.beginPath(); ox.moveTo(carX, 100); ox.lineTo(carX - 80, 88); ox.lineTo(carX - 80, 126); ox.lineTo(carX, 110); ox.fill(); }
+    ox.fillStyle = g(dim(60)); ox.fillRect(186, 94, 26, 16); ox.beginPath(); ox.arc(190, 114, 5, 0, 7); ox.arc(208, 114, 5, 0, 7); ox.fill();
+  } else if (cam === 2){ // alley: wall, AC units, laundry
+    ox.fillStyle = g(dim(70)); ox.fillRect(0, 0, W, 36);
+    ox.fillStyle = g(dim(118)); ox.fillRect(0, 36, W, 58);
+    for (var r = 40; r < 92; r += 8) for (var c = (r / 8) % 2 ? 0 : 10; c < W; c += 20){ ox.fillStyle = g(dim(104)); ox.fillRect(c, r, 18, 1); }
+    ox.fillStyle = g(dim(140)); ox.fillRect(0, 33, W, 4);
+    ox.fillStyle = g(dim(150)); ox.fillRect(24, 52, 40, 28); ox.fillStyle = g(dim(110)); ox.beginPath(); ox.arc(44, 66, 10, 0, 7); ox.fill();
+    ox.fillStyle = g(dim(80)); ox.fillRect(0, 94, W, H - 94);
+    ox.fillStyle = g(dim(60)); ox.fillRect(150, 10, 64, 2);
+    var sw = Math.sin(t / 900) * 2;
+    [[156, 16, 14], [174, 14, 12], [192, 18, 16]].forEach(function(cl){ ox.fillStyle = g(dim(160 + cl[2])); ox.fillRect(cl[0] + sw, 12, cl[1], cl[2] + 10); });
+    ox.fillStyle = g(dim(65)); ox.fillRect(94, 104, 18, 24);
+    if (a && a.type === 'a'){ var cx = -20 + a.p * 260, cy = 31; ox.fillStyle = g(dim(40)); ox.beginPath(); ox.ellipse(cx, cy, 11, 5, 0, 0, 7); ox.fill(); ox.beginPath(); ox.arc(cx + 11, cy - 4, 4.2, 0, 7); ox.fill();
+      ox.beginPath(); ox.moveTo(cx + 9, cy - 7); ox.lineTo(cx + 10, cy - 11); ox.lineTo(cx + 13, cy - 7); ox.fill(); ox.strokeStyle = g(dim(40)); ox.lineWidth = 2; ox.beginPath(); ox.moveTo(cx - 10, cy - 1); ox.quadraticCurveTo(cx - 18, cy - 12 + Math.sin(t / 200) * 3, cx - 14, cy - 16); ox.stroke(); }
+  } else { // living room
+    ox.fillStyle = g(dim(112)); ox.fillRect(0, 0, W, 96);
+    ox.fillStyle = g(dim(40 + 30 * (1 - L))); ox.fillRect(128, 12, 80, 56);
+    for (var q = 0; q < 14; q++){ ox.fillStyle = g(150 + (q * 37 % 60)); ox.fillRect(132 + (q * 29 % 72), 30 + (q * 17 % 34), 2, 2); }
+    ox.fillStyle = g(dim(140)); ox.fillRect(124, 10, 10 + Math.sin(t / 1300) * 3, 62); ox.fillRect(200 - Math.sin(t / 1500) * 2, 10, 12, 62);
+    ox.fillStyle = g(dim(78)); ox.fillRect(0, 96, W, H - 96);
+    ox.fillStyle = g(dim(62)); ox.fillRect(10, 72, 96, 34); ox.fillStyle = g(dim(75)); ox.fillRect(10, 62, 96, 14); ox.fillRect(6, 66, 10, 40); ox.fillRect(100, 66, 10, 40);
+    var tv = 60 + Math.abs(Math.sin(t / 370) * 70 + Math.sin(t / 97) * 20); ox.fillStyle = g(20); ox.fillRect(30, 18, 60, 36); ox.fillStyle = g(tv * (L < .5 ? 1.4 : .7)); ox.fillRect(33, 21, 54, 30);
+    if (a){ ox.fillStyle = g(dim(55)); ox.beginPath(); ox.ellipse(60 + a.p * 100, 122, 12, 6, 0, 0, 7); ox.fill(); }
+  }
+}
+var frameN = 0;
+function render(canvas, cam, t, opts){
+  opts = opts || {};
+  var L = light(t), ir = S.ir === 1 || (S.ir === 0 && L < .5);
+  scene(cam, t, ir ? .95 : L, ir);
+  var ctx = canvas.getContext('2d'), img = ox.getImageData(0, 0, W, H), d = img.data, n = opts.still ? 10 : 22, roll = (frameN * 1.7) % (H + 40) - 20;
+  var jit = !opts.still && Math.random() < .06 ? (Math.random() * 14 | 0) + 4 : 0, jy = Math.random() * H | 0;
+  for (var y = 0; y < H; y++){
+    var sl = y % 2 ? .8 : 1, rb = Math.abs(y - roll) < 8 ? 1.08 : 1, sh = jit && y >= jy && y < jy + 5 ? jit : 0;
+    for (var x = 0; x < W; x++){
+      var i = (y * W + x) * 4, si = sh ? (y * W + Math.max(0, x - sh)) * 4 : i;
+      var v = d[si];
+      if (ir){ var dx = (x - W / 2) / W, dy = (y - H / 2) / H; v = v * (1.25 - (dx * dx + dy * dy) * 2.2) + 12; }
+      v = (v + (Math.random() - .5) * n) * sl * rb;
+      d[i] = v * .62; d[i + 1] = v * .86; d[i + 2] = v * .64; d[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return ir;
+}
+
+// ---------- quad + single ----------
+var quadCams = [];
+function buildQuad(){
+  $('quad').innerHTML = CAMS.map(function(c, i){ return '<button class="cam" data-cam="' + i + '" aria-label="CH' + (i + 1) + ' ' + c.n + '，點兩下放大"><canvas width="224" height="140"></canvas><span class="osd"><span class="tl">CH' + (i + 1) + ' ' + c.n + '</span><span class="tr"></span><span class="bl"></span><span class="br"></span></span></button>'; }).join('');
+  quadCams = [].slice.call($('quad').querySelectorAll('.cam'));
+}
+function setMode(m){
+  S.mode = m; save('mode', m);
+  $('wall').classList.toggle('one', m === 1); $('seg').classList.toggle('r', m === 1);
+  $('bQuad').setAttribute('aria-pressed', m === 0); $('bOne').setAttribute('aria-pressed', m === 1);
+  $('chn').textContent = m === 1 ? 'CH' + (S.cur + 1) + ' / 4' : '';
+  haptic(6);
+}
+function setCam(i){ S.cur = (i + 4) % 4; save('cur', S.cur); $('chn').textContent = S.mode === 1 ? 'CH' + (S.cur + 1) + ' / 4' : ''; }
+$('bQuad').addEventListener('click', function(){ setMode(0); });
+$('bOne').addEventListener('click', function(){ setMode(1); });
+$('quad').addEventListener('click', function(e){ var b = e.target.closest('[data-cam]'); if (!b) return; audio(); beep(1400, .03); setCam(+b.dataset.cam); setMode(1); });
+// swipe single view to change channel, tap to go back to quad
+(function(){
+  var big = $('big'), sx = 0, sy = 0, on = false;
+  big.addEventListener('pointerdown', function(e){ on = true; sx = e.clientX; sy = e.clientY; });
+  big.addEventListener('pointerup', function(e){
+    if (!on) return; on = false; var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)){ setCam(S.cur + (dx < 0 ? 1 : -1)); audio(); beep(1400, .03); haptic(6); }
+  });
+  big.addEventListener('pointercancel', function(){ on = false; });
+  big.addEventListener('dblclick', function(){ setMode(0); });
+})();
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ closeSheet(); return; }
+  if (sheet.classList.contains('on')) return;
+  if (S.mode === 1 && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.target === document.body){ setCam(S.cur + (e.key === 'ArrowRight' ? 1 : -1)); }
+});
+
+// ---------- timeline ----------
+var tlc = $('tlc'), tctx = tlc.getContext('2d'), PXM = 1.1; // px per minute
+function sizeTL(){ var r = $('tlw').getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1); tlc.width = r.width * dpr; tlc.height = r.height * dpr; tctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawTL(); }
+function tNow(){ return Date.now(); }
+function tView(){ return view == null ? tNow() : view; }
+function drawTL(){
+  var w = tlc.width / Math.min(2, devicePixelRatio || 1), h = 78, c = tView(), cx = w * .78, now = tNow();
+  tctx.clearRect(0, 0, w, h);
+  var xNow = cx + (now - c) / MIN * PXM;
+  tctx.fillStyle = '#0b0f0c'; if (xNow < w) tctx.fillRect(xNow, 0, w - xNow, h);
+  var start = c - (cx / PXM) * MIN, end = c + ((w - cx) / PXM) * MIN;
+  var h0 = Math.floor(start / (15 * MIN)) * 15 * MIN;
+  tctx.font = '12px Andale Mono, Menlo, monospace'; tctx.textAlign = 'center';
+  for (var t = h0; t < end; t += 15 * MIN){
+    if (t > now) break;
+    var x = cx + (t - c) / MIN * PXM, d = new Date(t), full = d.getMinutes() === 0;
+    tctx.fillStyle = full ? '#7f9a78' : '#3a4a39'; tctx.fillRect(x, full ? 52 : 60, 1, full ? 26 : 18);
+    if (full){ tctx.fillStyle = '#7f9a78'; tctx.fillText(pad2(d.getHours()) + ':00', x, 46); }
+  }
+  S.events.forEach(function(e){
+    var x = cx + (e.t - c) / MIN * PXM; if (x < -10 || x > w + 10) return;
+    tctx.fillStyle = e.seen ? '#7f9a78' : '#e0402f';
+    tctx.fillRect(x - .5, 26, 1, 10);
+    if (e.type === 'p'){ tctx.beginPath(); tctx.arc(x, 9, 3, 0, 7); tctx.fill(); tctx.fillRect(x - 4, 13, 8, 10); }
+    else if (e.type === 'c'){ tctx.fillRect(x - 7, 12, 14, 7); tctx.fillRect(x - 4, 8, 8, 4); tctx.fillRect(x - 6, 19, 3, 3); tctx.fillRect(x + 3, 19, 3, 3); }
+    else if (e.type === 'a'){ tctx.fillRect(x - 6, 14, 10, 6); tctx.fillRect(x + 3, 10, 5, 5); tctx.fillRect(x - 8, 11, 2, 5); tctx.fillRect(x - 5, 20, 2, 3); tctx.fillRect(x + 1, 20, 2, 3); }
+    else { tctx.fillRect(x - 6, 10, 12, 2); tctx.fillRect(x - 6, 15, 12, 2); tctx.fillRect(x - 6, 20, 12, 2); }
+  });
+}
+(function(){
+  var el = $('tlw'), on = false, sx = 0, sc = 0, moved = 0;
+  el.addEventListener('pointerdown', function(e){ audio(); on = true; sx = e.clientX; sc = tView(); moved = 0; try{ el.setPointerCapture(e.pointerId); }catch(er){} });
+  el.addEventListener('pointermove', function(e){
+    if (!on) return; var dx = e.clientX - sx; moved = Math.max(moved, Math.abs(dx));
+    var t = sc - dx / PXM * MIN, now = tNow();
+    if (t >= now - 3000){ goLive(true); } else { view = Math.max(now - 24 * HR, t); playState(); }
+    drawTL();
+  });
+  function up(e){
+    if (!on) return; on = false;
+    if (moved < 5){ // tap on a marker jumps to it
+      var r = el.getBoundingClientRect(), x = e.clientX - r.left, c = tView(), best = null, bd = 16;
+      S.events.forEach(function(ev){ var ex = r.width * .78 + (ev.t - c) / MIN * PXM; if (Math.abs(ex - x) < bd){ bd = Math.abs(ex - x); best = ev; } });
+      if (best) openEvent(best);
+    } else haptic(6);
+  }
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', function(){ on = false; });
+  el.addEventListener('keydown', function(e){ if (e.key === 'ArrowLeft'){ view = tView() - 5 * MIN; playState(); drawTL(); e.preventDefault(); } if (e.key === 'ArrowRight'){ var t = tView() + 5 * MIN; if (t >= tNow()) goLive(); else { view = t; playState(); } drawTL(); e.preventDefault(); } });
+})();
+function playState(){ $('liveBtn').classList.remove('on'); $('tlLbl').innerHTML = '<b>PLAY</b> 回放 ' + hms(view); }
+function goLive(silent){ view = null; $('liveBtn').classList.add('on'); $('tlLbl').innerHTML = '<b>LIVE</b> 即時'; if (!silent){ haptic(8); beep(1600, .04); } }
+$('liveBtn').addEventListener('click', function(){ audio(); goLive(); drawTL(); });
+function openEvent(e){ view = e.t - 6000; setCam(e.cam); setMode(1); playState(); drawTL(); if (!e.seen){ e.seen = true; save('events', S.events); renderEvents(); } haptic(8); $('body').scrollTo({top:0, behavior: reduce ? 'auto' : 'smooth'}); }
+
+// ---------- events ----------
+function renderEvents(){
+  var list = S.events.filter(function(e){ return S.filt === 'all' || e.type === S.filt; }).sort(function(a, b){ return b.t - a.t; });
+  var un = S.events.filter(function(e){ return !e.seen; }).length;
+  $('evN').textContent = S.events.length + ' 筆' + (un ? ' · ' + un + ' 未看' : '');
+  $('evs').innerHTML = list.length ? list.map(function(e){
+    return '<li class="ev" data-id="' + e.id + '"><button class="del" data-del="' + e.id + '">刪除</button><div class="mv"><button class="go" data-go="' + e.id + '"><canvas width="224" height="140"></canvas><span><b>' + e.title + '</b><span>CH' + (e.cam + 1) + ' ' + CAMS[e.cam].n + ' · ' + e.sub + '</span></span><time>' + hms(e.t).slice(0, 5) + (e.seen ? '' : '<em>未看</em>') + '</time></button></div></li>';
+  }).join('') : '<li class="empty">這個分類目前沒有事件。</li>';
+  $('evs').querySelectorAll('.ev').forEach(function(li){ var e = byId(li.dataset.id); render(li.querySelector('canvas'), e.cam, e.t + 8000, {still:true}); });
+}
+function byId(id){ for (var i = 0; i < S.events.length; i++) if (S.events[i].id === id) return S.events[i]; return null; }
+$('flt').addEventListener('click', function(e){
+  var b = e.target.closest('[data-f]'); if (!b) return; S.filt = b.dataset.f; haptic(6);
+  var bs = $('flt').querySelectorAll('button'); bs.forEach(function(x, i){ x.setAttribute('aria-pressed', x === b); if (x === b) $('flt').querySelector('i').style.transform = 'translateX(' + (i * 100) + '%)'; });
+  renderEvents();
+});
+var swipedAt = 0;
+$('evs').addEventListener('click', function(e){
+  if (Date.now() - swipedAt < 350) return;
+  var d = e.target.closest('[data-del]'), g = e.target.closest('[data-go]');
+  if (d){ var id = d.dataset.del, k = -1; S.events.forEach(function(x, i){ if (x.id === id) k = i; }); if (k < 0) return; var rm = S.events.splice(k, 1)[0]; save('events', S.events); renderEvents(); drawTL(); haptic([14, 40, 14]);
+    toast('已刪除事件錄影', function(){ S.events.splice(k, 0, rm); save('events', S.events); renderEvents(); drawTL(); }); return; }
+  if (g) openEvent(byId(g.dataset.go));
+});
+(function(){
+  var mv = null, sx = 0, sy = 0, dx = 0, open = null, lock = 0;
+  $('evs').addEventListener('pointerdown', function(e){ var m = e.target.closest('.mv'); if (!m) return; mv = m; sx = e.clientX; sy = e.clientY; dx = 0; lock = 0; });
+  $('evs').addEventListener('pointermove', function(e){
+    if (!mv) return; var x = e.clientX - sx, y = e.clientY - sy;
+    if (!lock){ if (Math.abs(x) > 8) lock = 1; else if (Math.abs(y) > 8) lock = 2; }
+    if (lock !== 1) return; dx = Math.max(-110, Math.min(0, (mv === open ? -86 : 0) + x)); mv.classList.add('drag'); mv.style.transform = 'translateX(' + dx + 'px)';
+  });
+  function end(){ if (!mv) return; mv.classList.remove('drag'); if (lock === 1){ swipedAt = Date.now(); if (dx < -40){ if (open && open !== mv) open.style.transform = ''; mv.style.transform = 'translateX(-86px)'; open = mv; haptic(6); } else { mv.style.transform = ''; if (open === mv) open = null; } } mv = null; }
+  $('evs').addEventListener('pointerup', end); $('evs').addEventListener('pointercancel', end);
+})();
+
+// ---------- dock ----------
+(function(){ // hold to talk
+  var b = $('talkBtn'), timer = 0, talking = false;
+  b.addEventListener('pointerdown', function(e){ audio(); try{ b.setPointerCapture(e.pointerId); }catch(er){} timer = setTimeout(function(){ talking = true; b.classList.add('talking'); $('talkL').textContent = '說話中…'; $('talk').classList.add('on'); if (S.mode === 0){ setCam(0); setMode(1); } squelch(.12, .15); humOn(); haptic(20); }, 260); });
+  function up(){ clearTimeout(timer); if (talking){ talking = false; b.classList.remove('talking'); $('talkL').textContent = '按住對講'; $('talk').classList.remove('on'); humOff(); squelch(.25, .12); haptic([8, 30, 8]); toast('已對 CH' + (S.cur + 1) + ' ' + CAMS[S.cur].n + ' 喊話'); } }
+  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', function(){ if (talking) up(); });
+  b.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+})();
+$('talkBtn').addEventListener('keydown', function(e){ if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toast('請按住按鈕說話'); } });
+var shortTap = 0;
+$('talkBtn').addEventListener('pointerdown', function(){ shortTap = Date.now(); });
+$('talkBtn').addEventListener('pointerup', function(){ if (Date.now() - shortTap < 250) toast('按住不放就能對講'); });
+$('snapBtn').addEventListener('click', function(){
+  audio(); shutter(); haptic([6, 20, 6]);
+  var cam = S.mode === 1 ? S.cur : 0, cv = document.createElement('canvas'); cv.width = W; cv.height = H; render(cv, cam, tView(), {still:true});
+  var url; try{ url = cv.toDataURL('image/jpeg', .7); }catch(e){ url = ''; }
+  S.snaps.unshift({u:url, t:tView(), cam:cam}); S.snaps = S.snaps.slice(0, 8); save('snaps', S.snaps); $('galN').textContent = S.snaps.length;
+  if (S.mode === 1){ var f = $('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+  toast('快照已存：CH' + (cam + 1) + ' ' + hms(tView()));
+});
+function paintIR(){ var lb = ['夜視 自動', '夜視 開', '夜視 關'][S.ir]; $('irL').textContent = lb; $('irBtn').classList.toggle('on', S.ir === 1); $('irBtn').setAttribute('aria-pressed', S.ir === 1); }
+$('irBtn').addEventListener('click', function(){ audio(); beep(1200, .03); S.ir = (S.ir + 1) % 3; save('ir', S.ir); paintIR(); haptic(6); });
+$('galBtn').addEventListener('click', function(){ audio(); beep(1200, .03); openGallery(); });
+
+// ---------- arming keypad ----------
+var PIN = '2580', entry = '', target = S.arm;
+function paintArm(){ $('armT').textContent = ARM[S.arm]; $('armBtn').className = 'arm ' + (S.arm ? 'on' : 'off'); $('rec').style.display = ''; }
+function keypadHtml(){
+  return '<h3>布防設定</h3><p>選擇模式後輸入 4 位數密碼</p><div class="modes">' + ARM.map(function(m, i){ return '<button data-mode="' + i + '" aria-pressed="' + (i === target) + '">' + m + '</button>'; }).join('') + '</div>' +
+    '<div class="pin" id="pin">' + [0, 1, 2, 3].map(function(i){ return '<i class="' + (i < entry.length ? 'f' : '') + '"></i>'; }).join('') + '</div>' +
+    '<div class="pad">' + [1,2,3,4,5,6,7,8,9].map(function(n){ return '<button data-k="' + n + '">' + n + '</button>'; }).join('') + '<button class="fn" data-k="c">清除</button><button data-k="0">0</button><button class="fn" data-k="b">刪除</button></div><div class="hint">DEMO PIN 2580</div>';
+}
+$('armBtn').addEventListener('click', function(){ audio(); beep(1200, .03); entry = ''; target = S.arm === 2 ? 0 : 2; openSheet(keypadHtml(), 'arm'); });
+
+// ---------- gallery ----------
+function openGallery(){
+  var h = '<h3>快照相簿</h3><p>' + (S.snaps.length ? S.snaps.length + ' 張，存在這支手機' : '還沒有快照。按「快照」存下目前畫面。') + '</p><div class="gal">' +
+    S.snaps.map(function(s, i){ return '<figure>' + (s.u ? '<img alt="CH' + (s.cam + 1) + ' 快照" src="' + s.u + '">' : '') + '<figcaption>CH' + (s.cam + 1) + ' ' + hms(s.t).slice(0, 5) + '<button data-rm="' + i + '" aria-label="刪除快照"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></figcaption></figure>'; }).join('') + '</div>';
+  openSheet(h, 'gal');
+}
+
+// ---------- sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null, mode = '';
+function openSheet(html, m){ lastFocus = document.activeElement; mode = m; $('sb').innerHTML = html; $('sb').scrollTop = 0; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); mode = ''; if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, drag = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button,img')) return; if (e.target.closest('.sb') && $('sb').scrollTop > 0) return; drag = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(er){} });
+  sheet.addEventListener('pointermove', function(e){ if (!drag) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!drag) return; drag = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || (v > .6 && dy > 20)) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+sheet.addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.mode != null){ target = +b.dataset.mode; audio(); beep(1300, .03); haptic(6); $('sb').innerHTML = keypadHtml(); return; }
+  if (b.dataset.k != null){
+    var k = b.dataset.k; audio(); beep(k === 'c' || k === 'b' ? 900 : 1500, .05); haptic(5);
+    if (k === 'c') entry = ''; else if (k === 'b') entry = entry.slice(0, -1); else if (entry.length < 4) entry += k;
+    $('sb').innerHTML = keypadHtml();
+    if (entry.length === 4){
+      if (entry === PIN){ S.arm = target; save('arm', S.arm); paintArm(); beep(1800, .08); beep(2200, .12, .1); haptic([10, 40, 10]); setTimeout(function(){ closeSheet(); toast('已切換為「' + ARM[S.arm] + '」'); }, 180); }
+      else { entry = ''; haptic([40, 40, 40]); beep(300, .25, 0, .07); setTimeout(function(){ $('sb').innerHTML = keypadHtml(); var p = $('pin'); if (p) p.classList.add('bad'); }, 60); }
+    }
+    return;
+  }
+  if (b.dataset.rm != null){ var i = +b.dataset.rm, s = S.snaps.splice(i, 1)[0]; save('snaps', S.snaps); $('galN').textContent = S.snaps.length; openGallery(); haptic(10);
+    toast('已刪除快照', function(){ S.snaps.splice(i, 0, s); save('snaps', S.snaps); $('galN').textContent = S.snaps.length; if (mode === 'gal') openGallery(); }); }
+});
+
+// ---------- live motion detection ----------
+var LIVE_EVENTS = [[0,'p','有人經過門口','停留 12 秒後離開'],[2,'a','貓走過後巷圍牆','又是那隻橘貓'],[1,'c','機車停到車庫前','鄰居暫停後離開']];
+setInterval(function(){
+  if (document.hidden || Math.random() > .5) return;
+  var L = LIVE_EVENTS[Math.random() * LIVE_EVENTS.length | 0], e = {id:'e' + Date.now(), t:Date.now() + 8000, cam:L[0], type:L[1], title:L[2], sub:L[3], seen:false};
+  S.events.unshift(e); S.events = S.events.slice(0, 30); save('events', S.events);
+  setTimeout(function(){ renderEvents(); drawTL(); if (S.arm){ beep(1760, .06); beep(1760, .06, .12); haptic([20, 60, 20]); } toast('CH' + (e.cam + 1) + ' ' + CAMS[e.cam].n + '：' + e.title); alertCam = e.cam; alertUntil = Date.now() + 5000; }, 8000);
+}, 45000);
+var alertCam = -1, alertUntil = 0;
+
+// ---------- loop ----------
+var raf = 0, lastR = 0, lastBlink = 0;
+function loop(ts){
+  raf = requestAnimationFrame(loop);
+  if (ts - lastR < (reduce ? 200 : 66)) return; lastR = ts; frameN++;
+  if (view != null){ view += 66 * (reduce ? 3 : 1); if (view >= tNow()){ goLive(true); } else if (frameN % 8 === 0) playState(); }
+  var t = tView(), rec = S.arm > 0, tsTxt = ymd(t) + ' ' + hms(t);
+  if (S.mode === 0){
+    quadCams.forEach(function(c, i){
+      var ir = render(c.firstChild, i, t);
+      var o = c.querySelector('.osd');
+      o.children[1].textContent = hms(t);
+      o.children[2].textContent = view == null ? (ir ? 'IR' : '') : 'PLAY ▶';
+      o.children[3].textContent = rec && view == null ? 'REC' : '';
+      c.classList.toggle('alert', alertCam === i && Date.now() < alertUntil);
+    });
+  } else {
+    var ir = render($('big').firstElementChild, S.cur, t);
+    $('bTL').textContent = 'CH' + (S.cur + 1) + ' ' + CAMS[S.cur].en; $('bTR').textContent = tsTxt;
+    $('bBL').textContent = view == null ? (ir ? 'SP  IR' : 'SP') : 'PLAY ▶  SP';
+    $('bBR').textContent = rec && view == null ? '● REC' : '';
+  }
+  if (view != null && frameN % 3 === 0) drawTL();
+  if (ts - lastBlink > 600){ lastBlink = ts; $('rec').classList.toggle('blink'); $('rec').style.opacity = S.arm ? 1 : .35; if (view == null) drawTL(); }
+}
+document.addEventListener('visibilitychange', function(){ cancelAnimationFrame(raf); if (!document.hidden) raf = requestAnimationFrame(loop); });
+window.addEventListener('resize', function(){ sizeTL(); sizeBD(); });
+
+// ---------- control-room backdrop (desktop frame only) ----------
+var bd = $('bd');
+function sizeBD(){
+  if (innerWidth < 521) return;
+  var dpr = Math.min(2, devicePixelRatio || 1); bd.width = innerWidth * dpr; bd.height = innerHeight * dpr;
+  var c = bd.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var w = innerWidth, h = innerHeight; c.fillStyle = '#070907'; c.fillRect(0, 0, w, h);
+  var cols = 6, rows = 4, mw = w / cols, mh = h / rows, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  for (var r = 0; r < rows; r++) for (var q = 0; q < cols; q++){
+    var x = q * mw + 10, y = r * mh + 10, ww = mw - 20, hh = mh - 20;
+    c.fillStyle = '#111511'; c.fillRect(x - 6, y - 6, ww + 12, hh + 12);
+    render(cv, (r * cols + q) % 4, Date.now() - (r * cols + q) * 1800000, {still:true});
+    c.globalAlpha = .38; c.drawImage(cv, x, y, ww, hh); c.globalAlpha = 1;
+    c.fillStyle = 'rgba(179,203,168,.5)'; c.font = '13px Andale Mono, monospace'; c.fillText('CH' + pad2(r * cols + q + 5), x + 10, y + 22);
+  }
+}
+
+buildQuad(); paintArm(); paintIR(); $('galN').textContent = S.snaps.length; setMode(S.mode); setCam(S.cur); renderEvents();
+sizeTL(); sizeBD(); raf = requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#20231a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="貪食蛇">
+<title>貪食蛇 3310 · 貪食蛇</title>
+<meta name="description" content="單色 LCD 上的貪食蛇：像素殘影、注音按鍵、背光、九段速度、五種迷宮與各等級最高分，用手機鍵盤或滑動操作。收錄於 100 Creative HTML Works（App 052・單色 LCD 殘影）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/052-nokia-snake.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2320231a'/%3E%3Crect x='8' y='12' width='48' height='34' rx='3' fill='%23b5cf6a'/%3E%3Cpath d='M14 38h18v-6h-6v-6h18v6' fill='none' stroke='%231d2610' stroke-width='4'/%3E%3Crect x='46' y='18' width='4' height='4' fill='%231d2610'/%3E%3C/svg%3E">
+<style>
+:root{
+  --shell:#20231a;--shell2:#2b2f22;--shell3:#16180f;--key:#383d2c;--key2:#2c3023;--legend:#d7dcc2;--legend2:#9aa383;--lit:#c6f06a;
+  --lcd:#9eae62;--ink:#1d2610;--paper:#d3dbb9;
+  --sans:"Helvetica Neue","PingFang TC",-apple-system,system-ui,sans-serif;
+  --cjk:"PingFang TC","Heiti TC",sans-serif;
+  --spring:cubic-bezier(.3,1.3,.5,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--cjk);background:#161810;color:var(--legend);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible{outline:2px solid var(--lit);outline-offset:2px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--shell);isolation:isolate;-webkit-user-select:none;user-select:none}
+@media (min-width:521px){
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop canvas{width:100%;height:100%;display:block}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));padding:12px;z-index:1;
+    border-radius:74px 74px 96px 96px / 60px 60px 130px 130px;background:#2e3325;
+    box-shadow:inset 0 2px 0 rgba(230,240,200,.14),inset 0 -3px 0 rgba(0,0,0,.35),0 14px 24px -16px rgba(20,26,8,.8)}
+  .screen{inset:12px;border-radius:64px 64px 86px 86px / 52px 52px 122px 122px}
+  .caption{display:block;position:relative;z-index:1;max-width:240px;padding:20px 22px;background:#1d2610;color:#b5cf6a}
+  .caption h1{font:600 30px/1.1 var(--cjk);letter-spacing:.08em}
+  .caption p{margin-top:10px;font-size:15px;line-height:1.7;color:rgba(181,207,106,.78)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+.phone{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:0 14px calc(22px + env(safe-area-inset-bottom));
+  background:radial-gradient(120% 60% at 50% 0%,#2b2f22 0,#20231a 60%)}
+.status{flex:none;width:100%;display:flex;align-items:center;justify-content:space-between;height:calc(44px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 18px 0 22px;font:600 15px/1 var(--sans);color:var(--legend2);letter-spacing:.04em;pointer-events:none}
+.status .g{display:flex;gap:7px;align-items:center}
+.status svg *{fill:currentColor}
+@media (display-mode:standalone){.status{display:none}}
+.top{flex:1 1 44px;max-height:104px;min-height:34px;position:relative;width:100%;display:flex;align-items:center;justify-content:center}
+.ear{width:64px;height:10px;border-radius:5px;background:var(--shell3);box-shadow:inset 0 2px 0 rgba(0,0,0,.5),0 1px 0 rgba(230,240,200,.08)}
+.manual{position:absolute;right:0;top:50%;margin-top:-22px;width:48px;height:44px;display:grid;place-items:center;color:var(--legend2);transition:color .2s}
+.manual:active{color:var(--lit)}
+.manual svg *{fill:currentColor}
+
+/* the lens: flat top, a smile-curved bottom edge */
+.lens{flex:none;position:relative;width:100%;padding:16px 16px 34px;background:#0f110b;
+  border-radius:26px 26px 50% 50% / 26px 26px 34px 34px;box-shadow:inset 0 1px 0 rgba(230,240,200,.12),0 1px 0 rgba(230,240,200,.06)}
+.lcdbox{position:relative;width:100%;aspect-ratio:84/48;background:var(--lcd);border-radius:3px;overflow:hidden;touch-action:none;transition:background-color .6s}
+.lcdbox canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.lcdbox::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 3px 0 rgba(29,38,16,.28),inset 3px 0 0 rgba(29,38,16,.12)}
+.mark{position:absolute;left:0;right:0;bottom:9px;text-align:center;font:700 11px/1 var(--sans);letter-spacing:.4em;color:#5d6450}
+
+.pad{flex:1 1 auto;width:100%;display:flex;flex-direction:column;justify-content:center;gap:16px;padding-top:18px;min-height:0;max-height:430px}
+.navrow{display:grid;grid-template-columns:62px 1fr 62px;gap:14px;align-items:center}
+.k{position:relative;display:flex;align-items:center;justify-content:center;gap:5px;color:var(--legend);background:linear-gradient(#41462f,#343826 55%,#2c3023);
+  box-shadow:inset 0 1px 0 rgba(230,240,200,.16),0 2px 0 #13150d;transition:transform .06s,background .1s,color .3s}
+.k:active,.k.down{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(230,240,200,.08),0 0 0 #13150d;background:#2c3023}
+.kc{height:56px;border-radius:50% 40% 40% 50% / 50%;font:700 20px/1 var(--sans)}
+.navi{height:60px;border-radius:14px 14px 50% 50% / 14px 14px 30px 30px;background:linear-gradient(#cfd8ae,#b9c393);color:#1d2610;font:600 15px/1 var(--cjk);letter-spacing:.1em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 2px 0 #13150d}
+.navi:active,.navi.down{background:#aab485;transform:translateY(2px);box-shadow:0 0 0 #13150d}
+.rock{height:60px;display:flex;flex-direction:column;border-radius:40% 50% 50% 40% / 50%;overflow:hidden;background:#2c3023;box-shadow:0 2px 0 #13150d}
+.rock button{flex:1;display:grid;place-items:center;color:var(--legend);background:linear-gradient(#41462f,#343826);transition:background .1s}
+.rock button + button{box-shadow:inset 0 1px 0 #1b1d13;background:linear-gradient(#343826,#2c3023)}
+.rock button:active,.rock button.down{background:#262a1d}
+.rock svg *{fill:currentColor}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 12px}
+.keys .k{height:clamp(44px,7vh,60px);flex-direction:row;font:600 22px/1 var(--sans)}
+.keys .k small{font:500 11px/1.05 var(--cjk);color:var(--legend2);letter-spacing:0;max-width:30px;text-align:left;transition:color .3s}
+.keys .k:nth-child(3n+1){border-radius:24px 12px 12px 24px / 24px 12px 12px 24px;transform:translateY(4px)}
+.keys .k:nth-child(3n+2){border-radius:12px}
+.keys .k:nth-child(3n){border-radius:12px 24px 24px 12px / 12px 24px 24px 12px;transform:translateY(4px)}
+.keys .k:nth-child(3n+1):active,.keys .k:nth-child(3n):active,.keys .k:nth-child(3n+1).down,.keys .k:nth-child(3n).down{transform:translateY(6px)}
+.keys .k.dir{color:#e3ead0}
+.keys .k .ar{position:absolute;top:5px;left:50%;margin-left:-4px}
+.keys .k .ar *{fill:var(--legend2);transition:fill .3s}
+.screen.lit .k,.screen.lit .rock button{color:var(--lit)}
+.screen.lit .navi{color:#1d2610}
+.screen.lit .keys .k small{color:#a3c65a}
+.screen.lit .keys .k .ar *{fill:var(--lit)}
+.homebar{position:absolute;z-index:70;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--legend2);opacity:.6;pointer-events:none}
+
+/* manual sheet: a printed page from the handbook */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(10,12,6,.55);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:10px;right:10px;bottom:0;z-index:51;max-height:88%;display:flex;flex-direction:column;background:var(--paper);color:#1d2610;border-radius:6px 6px 0 0;
+  transform:translateY(calc(100% + 20px));transition:transform .5s var(--spring);touch-action:none;padding-bottom:env(safe-area-inset-bottom)}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{width:44px;height:5px;border-radius:3px;background:rgba(29,38,16,.3);margin:10px auto 4px;flex:none}
+.sbody{overflow:auto;padding:6px 20px 26px;overscroll-behavior:contain;touch-action:pan-y}
+.pg{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:rgba(29,38,16,.6)}
+.sheet h3{font:600 26px/1.2 var(--cjk);margin:2px 0 12px;letter-spacing:.04em}
+.kt{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:15px}
+.kt b{font:700 15px/1.45 var(--sans);white-space:nowrap}
+.set{margin-top:20px}
+.set .l{font-size:13px;font-weight:600;color:rgba(29,38,16,.62);margin-bottom:6px}
+.seg{display:flex;border:2px solid #1d2610}
+.seg button{flex:1;height:44px;font-weight:600;transition:background-color .15s,color .15s}
+.seg button + button{border-left:2px solid #1d2610}
+.seg button[aria-pressed=true]{background:#1d2610;color:var(--paper)}
+.log{margin-top:22px}
+.log .h{display:flex;justify-content:space-between;align-items:center}
+.log .h b{font-size:17px}
+.log .h button{height:44px;padding:0 4px;font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.lr{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;height:42px;font-size:14px;border-top:1px dashed rgba(29,38,16,.3)}
+.lr .s{font:700 18px/1 var(--sans);font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+.lr .m{color:rgba(29,38,16,.62)}
+.none{font-size:14px;color:rgba(29,38,16,.6);padding:10px 0}
+.toast{position:absolute;left:50%;top:calc(52px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-160px);transition:transform .4s var(--spring);display:flex;align-items:center;gap:12px;height:46px;padding:0 6px 0 16px;background:#1d2610;color:#b5cf6a;font-size:14px;font-weight:600;white-space:nowrap}
+.toast.on{transform:translate(-50%,0)}
+.toast button{height:40px;padding:0 12px;color:var(--paper)}
+
+@media (max-height:700px){
+  .top{height:30px} .lens{padding:12px 14px 28px} .pad{gap:10px;padding-top:8px} .keys{gap:8px 12px} .navrow .kc,.navi,.rock{height:50px}
+}
+@media (prefers-reduced-motion:reduce){
+  .sheet,.toast{transition-duration:.01s}
+  .k,.keys .k:nth-child(n){transition:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><canvas id="bd"></canvas></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="phone">
+        <div class="status" aria-hidden="true">
+          <span id="clock">9:41</span>
+          <span class="g">
+            <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="9" width="3" height="3"/><rect x="4.5" y="6" width="3" height="6"/><rect x="9" y="3" width="3" height="9"/><rect x="13.5" y="0" width="3" height="12"/></svg>
+            <svg width="15" height="12" viewBox="0 0 15 12"><rect x="6" y="9" width="3" height="3"/><rect x="3" y="6" width="3" height="2"/><rect x="9" y="6" width="3" height="2"/><rect x="6" y="5" width="3" height="1"/><rect x="0" y="2" width="3" height="2"/><rect x="12" y="2" width="3" height="2"/><rect x="3" y="0" width="9" height="2"/></svg>
+            <svg width="24" height="12" viewBox="0 0 24 12"><path d="M0 0h21v12H0zm2 2v8h17V2z"/><rect x="4" y="4" width="3" height="4"/><rect x="8" y="4" width="3" height="4"/><rect x="12" y="4" width="3" height="4"/><rect x="22" y="4" width="2" height="4"/></svg>
+          </span>
+        </div>
+        <div class="top">
+          <div class="ear"></div>
+          <button class="manual" id="manBtn" aria-label="打開說明書與紀錄"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M2 3h8v2h2V3h8v15h-8v2h-2v-2H2zm2 2v11h6V7H8V5zm10 0v2h-2v9h6V5z"/><rect x="5" y="8" width="3" height="2"/><rect x="5" y="11" width="3" height="2"/><rect x="14" y="8" width="3" height="2"/></svg></button>
+        </div>
+        <div class="lens">
+          <div class="lcdbox" id="lcdbox" aria-label="液晶螢幕，可滑動控制方向" role="img"><canvas id="lcd"></canvas></div>
+          <div class="mark">3310</div>
+        </div>
+        <div class="pad">
+          <div class="navrow">
+            <button class="k kc" data-key="c" aria-label="C 返回">C</button>
+            <button class="k navi" data-key="navi" id="naviKey" aria-label="導航鍵">選擇</button>
+            <div class="rock"><button data-key="up" aria-label="向上"><svg width="14" height="10" viewBox="0 0 14 10"><path d="M6 0h2v2h2v2h2v2h2v2H0V6h2V4h2V2h2z"/></svg></button><button data-key="down" aria-label="向下"><svg width="14" height="10" viewBox="0 0 14 10"><path d="M0 2h14v2h-2v2h-2v2H8v2H6V8H4V6H2V4H0z"/></svg></button></div>
+          </div>
+          <div class="keys" id="keys"></div>
+        </div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="說明書"><div class="grab"></div><div class="sbody" id="sbody"></div></div>
+      <div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="toastUndo" hidden>復原</button></div>
+      <div class="homebar"></div>
+    </div>
+  </div>
+  <div class="caption">
+    <h1>貪食蛇 3310</h1>
+    <p>按 2 4 6 8 或在螢幕上滑動。液晶會留下殘影，撞到自己就結束。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+var LS = 'app052:';
+function load(k, d){ try{ var v = localStorage.getItem(LS+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(LS+k, JSON.stringify(v)); }catch(e){} }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- settings & records ---------- */
+var level = load('level', 5), maze = load('maze', 0), sound = load('sound', true), ghost = load('ghost', 1), backMode = load('back', 0);
+var best = load('best', {}), logs = load('log', null);
+if (!logs){
+  var d0 = Date.now();
+  logs = [
+    {s:142, l:7, m:0, t:d0 - 3600e3*5}, {s:96, l:5, m:1, t:d0 - 3600e3*26}, {s:188, l:8, m:0, t:d0 - 3600e3*50},
+    {s:57, l:4, m:2, t:d0 - 3600e3*73}, {s:121, l:6, m:3, t:d0 - 3600e3*98}
+  ];
+  best = {'7-0':142, '5-1':96, '8-0':188, '4-2':57, '6-3':121, '9-0':205};
+}
+var MAZES = [{n:'無牆'}, {n:'圍牆'}, {n:'隧道'}, {n:'十字'}, {n:'四角'}];
+var SPEED = [0, 480, 400, 330, 270, 220, 180, 145, 115, 88];
+
+/* ---------- LCD framebuffer ---------- */
+var LW = 84, LH = 48, fb = new Uint8Array(LW*LH), I = new Float32Array(LW*LH);
+function clr(){ fb.fill(0); }
+function px(x, y, v){ if (x >= 0 && y >= 0 && x < LW && y < LH) fb[y*LW + x] = v === undefined ? 1 : v; }
+function rect(x, y, w, h, v){ for (var j=0;j<h;j++) for (var i=0;i<w;i++) px(x+i, y+j, v); }
+function frame(x, y, w, h){ for (var i=0;i<w;i++){ px(x+i, y); px(x+i, y+h-1); } for (var j=0;j<h;j++){ px(x, y+j); px(x+w-1, y+j); } }
+
+/* hand-drawn digits: 3x5 for the HUD, 5x7 for menus */
+var D3 = ['111101101101111','010110010010111','111001111100111','111001111001111','101101111001001','111100111001111','111100111101111','111001010010010','111101111101111','111101111001111'];
+var D5 = [
+ ['01110','10001','10011','10101','11001','10001','01110'],['00100','01100','00100','00100','00100','00100','01110'],
+ ['01110','10001','00001','00110','01000','10000','11111'],['11110','00001','00001','01110','00001','00001','11110'],
+ ['00010','00110','01010','10010','11111','00010','00010'],['11111','10000','11110','00001','00001','10001','01110'],
+ ['00110','01000','10000','11110','10001','10001','01110'],['11111','00001','00010','00100','01000','01000','01000'],
+ ['01110','10001','10001','01110','10001','10001','01110'],['01110','10001','10001','01111','00001','00010','01100']];
+var EXTRA5 = {'/':['00001','00010','00010','00100','01000','01000','10000'], ':':['0','0','1','0','1','0','0'], '-':['000','000','000','111','000','000','000'], '!':['1','1','1','1','1','0','1'], 'I':['111','010','010','010','010','010','111'], ' ':['00','00','00','00','00','00','00']};
+function num3(n, x, y, v){ String(n).split('').forEach(function(c, k){ var b = D3[+c]; for (var i=0;i<15;i++) if (b[i] === '1') px(x + k*4 + i%3, y + Math.floor(i/3), v); }); return String(n).length*4 - 1; }
+
+/* CJK glyphs: rendered once from the system face, snapped to a 12px grid at the crispest half-pixel offset */
+var gCache = {}, gc = document.createElement('canvas'); gc.width = gc.height = 16;
+var gx = gc.getContext('2d', {willReadFrequently:true});
+function cjk(ch){
+  if (gCache[ch]) return gCache[ch];
+  var bestBits = null, bestScore = -1e9;
+  [[0,0],[.5,0],[0,.5],[.5,.5]].forEach(function(o){
+    gx.clearRect(0,0,16,16); gx.font = '400 12px "PingFang TC","Heiti TC",sans-serif'; gx.textBaseline = 'top'; gx.fillStyle = '#000';
+    gx.fillText(ch, o[0], o[1] + .5);
+    var d = gx.getImageData(0,0,12,12).data, bits = new Uint8Array(144), solid = 0, mid = 0;
+    for (var i=0;i<144;i++){ var a = d[i*4+3]; if (a > 200) solid++; else if (a > 70) mid++; bits[i] = a > 138 ? 1 : 0; }
+    var sc = solid - mid*.45;
+    if (sc > bestScore){ bestScore = sc; bestBits = bits; }
+  });
+  return gCache[ch] = bestBits;
+}
+function glyphW(ch){ if (/[0-9]/.test(ch)) return 6; if (EXTRA5[ch]) return EXTRA5[ch][0].length + 1; return 12; }
+function textW(s){ var w = 0; for (var i=0;i<s.length;i++) w += glyphW(s[i]); return w; }
+function text(s, x, y, v){
+  v = v === undefined ? 1 : v;
+  for (var i=0;i<s.length;i++){
+    var ch = s[i];
+    if (/[0-9]/.test(ch)){ var b = D5[+ch]; for (var r=0;r<7;r++) for (var c=0;c<5;c++) if (b[r][c] === '1') px(x+c, y+3+r, v); x += 6; }
+    else if (EXTRA5[ch]){ var e = EXTRA5[ch]; for (var r2=0;r2<7;r2++) for (var c2=0;c2<e[0].length;c2++) if (e[r2][c2] === '1') px(x+c2, y+3+r2, v); x += e[0].length + 1; }
+    else { var g = cjk(ch); for (var k=0;k<144;k++) if (g[k]) px(x + k%12, y + Math.floor(k/12), v); x += 12; }
+  }
+  return x;
+}
+function center(s, y, v){ text(s, Math.floor((LW - textW(s))/2), y, v); }
+
+/* ---------- display with ghosting ---------- */
+var cv = $('lcd'), cx = cv.getContext('2d'), box = $('lcdbox');
+var CW = 0, CH = 0, dpr = 1;
+function sizeLCD(){ dpr = Math.min(2, devicePixelRatio || 1); CW = box.clientWidth; CH = box.clientHeight; cv.width = Math.round(CW*dpr); cv.height = Math.round(CH*dpr); }
+var light = 1, lightTarget = 1, lightTimer = 0;
+var BG_OFF = [158,174,98], BG_ON = [181,207,106], INK = [29,38,16];
+function blit(dt){
+  var up = .55, dn = [.4, .16, .07][ghost];
+  var k1 = 1 - Math.pow(1-up, dt*60), k2 = 1 - Math.pow(1-dn, dt*60);
+  light += (lightTarget - light)*Math.min(1, dt*5);
+  var bg = BG_OFF.map(function(v, i){ return Math.round(v + (BG_ON[i]-v)*light); });
+  var bgs = 'rgb('+bg+')';
+  box.style.backgroundColor = bgs;
+  cx.setTransform(1,0,0,1,0,0);
+  cx.fillStyle = bgs; cx.fillRect(0,0,cv.width,cv.height);
+  var pw = cv.width/LW, ph = cv.height/LH, gap = Math.max(.6, pw*.12);
+  for (var y=0;y<LH;y++){
+    for (var x=0;x<LW;x++){
+      var i = y*LW+x, t = fb[i], v = I[i];
+      v += (t - v)*(t > v ? k1 : k2); I[i] = v;
+      var a = .06 + v*.94;
+      cx.fillStyle = 'rgba(29,38,16,'+a.toFixed(3)+')';
+      cx.fillRect(x*pw + gap*.5, y*ph + gap*.5, pw - gap, ph - gap);
+    }
+  }
+}
+function wake(){ lightTarget = 1; clearTimeout(lightTimer); if (backMode === 0 && state !== 'game') lightTimer = setTimeout(function(){ lightTarget = 0; screenEl.classList.remove('lit'); }, 9000); screenEl.classList.add('lit'); }
+
+/* ---------- audio ---------- */
+var AC = null;
+function ac(){ if (!sound) return null; try{ if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); }catch(e){ AC = null; } return AC; }
+function beep(f, dur, when, vol, slideTo){
+  var a = ac(); if (!a) return; var t = a.currentTime + (when||0);
+  var o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.setValueAtTime(f, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(vol || .06, t); g.gain.setValueAtTime(vol || .06, t + dur - .005); g.gain.linearRampToValueAtTime(0, t + dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + .02);
+}
+function keyTone(){ beep(1330, .045, 0, .035); }
+function eatTone(){ beep(1760, .03); beep(2350, .035, .035); }
+function bonusTone(){ [1320,1760,2090,2640].forEach(function(f,i){ beep(f, .045, i*.05); }); }
+function dieTone(){ beep(520, .5, 0, .06, 90); }
+function tune(){
+  /* Tárrega, Gran Vals (1902), the phrase every handset of the era rang with */
+  var N = {E5:659.3,D5:587.3,Fs4:370,Gs4:415.3,Cs5:554.4,B4:493.9,D4:293.7,E4:329.6,A4:440,Cs4:277.2};
+  var seq = [['E5',1],['D5',1],['Fs4',2],['Gs4',2],['Cs5',1],['B4',1],['D4',2],['E4',2],['B4',1],['A4',1],['Cs4',2],['E4',2],['A4',5]];
+  var t = 0, u = .115; seq.forEach(function(n){ beep(N[n[0]], n[1]*u - .012, t, .05); t += n[1]*u; });
+}
+
+/* ---------- state machine ---------- */
+var state = 'title', menuIdx = 0, menuTop = 0, sub = {}, screenEl = $('screen');
+var MAIN = [
+  {t:'開始遊戲', go:function(){ startGame(); }},
+  {t:'等級', v:function(){ return String(level); }, go:function(){ setState('level'); }},
+  {t:'迷宮', v:function(){ return MAZES[maze].n; }, go:function(){ sub.idx = maze; setState('maze'); }},
+  {t:'最高分', go:function(){ sub.idx = 0; setState('scores'); }},
+  {t:'音效', v:function(){ return sound ? '開' : '關'; }, go:function(){ sound = !sound; save('sound', sound); if (sound) keyTone(); }},
+  {t:'說明', go:function(){ sub.idx = 0; setState('help'); }}
+];
+var HELP = ['2468 轉向','或在螢幕滑動','5 暫停遊戲','C 回到選單','吃點 +等級分','蟲子限時出現','撞到自己就輸','無牆可穿邊界'];
+function setState(s){ state = s; titleT = 0; updateNavi(); }
+function softkey(){
+  switch(state){
+    case 'title': return '開始'; case 'menu': return '選擇'; case 'level': case 'maze': return '確定';
+    case 'scores': case 'help': return '返回'; case 'game': return '暫停'; case 'pause': return '繼續'; case 'over': return '重玩'; case 'dying': return '';
+  }
+  return '';
+}
+function updateNavi(){ var s = softkey(); $('naviKey').textContent = s || ' '; $('naviKey').setAttribute('aria-label', '導航鍵 '+s); }
+
+/* ---------- game ---------- */
+var COLS = 27, ROWS = 13, X0 = 1, Y0 = 8;
+var G = null;
+function wallsFor(m){
+  var w = {};
+  function add(c, r){ w[c+','+r] = 1; }
+  if (m === 1){ for (var c=0;c<COLS;c++){ add(c,0); add(c,ROWS-1); } for (var r=0;r<ROWS;r++){ add(0,r); add(COLS-1,r); } }
+  if (m === 2){ for (var c2=5;c2<22;c2++){ add(c2,3); add(c2,9); } }
+  if (m === 3){ for (var c3=4;c3<23;c3++) if (c3 < 11 || c3 > 15) add(c3,6); for (var r3=1;r3<12;r3++) if (r3 < 4 || r3 > 8) add(13,r3); }
+  if (m === 4){ [[1,1,1,0],[25,1,-1,0],[1,11,1,0],[25,11,-1,0]].forEach(function(q){ for (var i=0;i<5;i++) add(q[0]+q[2]*i, q[1]); for (var j=1;j<3;j++) add(q[0], q[1] + (q[1] < 6 ? j : -j)); }); }
+  return w;
+}
+function startGame(){
+  var mid = Math.floor(ROWS/2);
+  G = {snake:[[8,mid],[7,mid],[6,mid],[5,mid],[4,mid]], dir:[1,0], q:[], walls:wallsFor(maze), food:null, bug:null, eaten:0, score:0, acc:0, grow:0, over:0};
+  if (maze === 2 || maze === 3){ G.snake = [[8,1],[7,1],[6,1],[5,1],[4,1]]; }
+  placeFood(); setState('game'); wake(); haptic(10);
+}
+function free(c, r){ if (G.walls[c+','+r]) return false; for (var i=0;i<G.snake.length;i++) if (G.snake[i][0] === c && G.snake[i][1] === r) return false; if (G.food && G.food[0] === c && G.food[1] === r) return false; if (G.bug && r === G.bug[1] && (c === G.bug[0] || c === G.bug[0]+1)) return false; return true; }
+function placeFood(){ var n = 0, c, r; do { c = Math.floor(Math.random()*COLS); r = Math.floor(Math.random()*ROWS); n++; } while (!free(c, r) && n < 500); G.food = [c, r]; }
+function placeBug(){ var n = 0, c, r; do { c = Math.floor(Math.random()*(COLS-1)); r = Math.floor(Math.random()*ROWS); n++; } while ((!free(c, r) || !free(c+1, r)) && n < 500); G.bug = [c, r, 20, Math.floor(Math.random()*3)]; }
+function turn(dx, dy){
+  if (state !== 'game') return;
+  var last = G.q.length ? G.q[G.q.length-1] : G.dir;
+  if ((dx && dx === -last[0]) || (dy && dy === -last[1]) || (dx === last[0] && dy === last[1])) return;
+  if (G.q.length < 3) G.q.push([dx, dy]);
+}
+function step(){
+  if (G.q.length) G.dir = G.q.shift();
+  var h = G.snake[0], nx = h[0] + G.dir[0], ny = h[1] + G.dir[1];
+  if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS){
+    if (maze === 1){ return die(); }
+    nx = (nx + COLS) % COLS; ny = (ny + ROWS) % ROWS;
+  }
+  if (G.walls[nx+','+ny]) return die();
+  for (var i=0;i<G.snake.length - (G.grow ? 0 : 1);i++) if (G.snake[i][0] === nx && G.snake[i][1] === ny) return die();
+  G.snake.unshift([nx, ny]);
+  if (G.grow) G.grow--; else G.snake.pop();
+  if (G.food && nx === G.food[0] && ny === G.food[1]){
+    G.score += level; G.eaten++; G.grow += 1; eatTone(); haptic(6);
+    placeFood(); if (G.eaten % 5 === 0 && !G.bug) placeBug();
+  }
+  if (G.bug){
+    if (ny === G.bug[1] && (nx === G.bug[0] || nx === G.bug[0]+1)){
+      var pts = level*5 + G.bug[2]*level; G.score += pts; G.bug = null; bonusTone(); haptic([8,30,8]);
+    } else if (--G.bug[2] <= 0) G.bug = null;
+  }
+}
+function die(){
+  setState('dying'); G.dieT = 0; dieTone(); haptic([30,60,30,60,80]);
+  var key = level+'-'+maze, prev = best[key] || 0;
+  G.record = G.score > prev && G.score > 0;
+  if (G.record){ best[key] = G.score; save('best', best); }
+  logs.unshift({s:G.score, l:level, m:maze, t:Date.now()}); logs = logs.slice(0, 30); save('log', logs);
+}
+var BUGS = [
+  ['011110','110011','011110'], ['100001','011110','101101'], ['010010','111111','010010']
+];
+function drawCell(c, r, kind, dir){
+  var x = X0 + c*3, y = Y0 + r*3;
+  if (kind === 'wall'){ rect(x, y, 3, 3); px(x+1, y+1, 0); return; }
+  if (kind === 'food'){ px(x+1, y); px(x, y+1); px(x+2, y+1); px(x+1, y+2); return; }
+  if (kind === 'tail'){ px(x+1, y+1); px(x+1, y); px(x, y+1); px(x+2, y+1); px(x+1, y+2); return; }
+  rect(x, y, 3, 3);
+  if (kind === 'head'){
+    var ex = dir[0] === 1 ? 2 : dir[0] === -1 ? 0 : (dir[1] === -1 ? 0 : 2), ey = dir[1] === 1 ? 2 : dir[1] === -1 ? 0 : 0;
+    px(x+ex, y+ey, 0);
+  }
+  if (kind === 'body2') px(x+1, y+1, 0);
+}
+function drawGame(blink){
+  frame(0, 7, LW, LH-7);
+  num3(G.score, 1, 0);
+  if (G.bug){ var b = BUGS[G.bug[3]]; for (var r=0;r<3;r++) for (var c=0;c<6;c++) if (b[r][c] === '1') px(62+c, 1+r); num3(String(G.bug[2]).padStart(2,'0'), 71, 0); }
+  for (var k in G.walls){ var p = k.split(','); drawCell(+p[0], +p[1], 'wall'); }
+  if (G.food) drawCell(G.food[0], G.food[1], 'food');
+  if (G.bug){ var bb = BUGS[G.bug[3]], bx = X0 + G.bug[0]*3, by = Y0 + G.bug[1]*3; for (var rr=0;rr<3;rr++) for (var cc=0;cc<6;cc++) if (bb[rr][cc] === '1') px(bx+cc, by+rr); }
+  if (!blink) G.snake.forEach(function(s, i){ drawCell(s[0], s[1], i === 0 ? 'head' : i === G.snake.length-1 ? 'tail' : (i % 2 ? 'body' : 'body2'), G.dir); });
+}
+
+/* ---------- screens ---------- */
+var titleT = 0, lastT = performance.now();
+function drawMenu(title, items, idx){
+  text(title, 0, 0);
+  var n = String(idx+1); num3(n, LW - 4*n.length - 1, 2);
+  if (idx < menuTop) menuTop = idx; if (idx > menuTop + 1) menuTop = idx - 1;
+  for (var i=0;i<2;i++){
+    var it = items[menuTop + i]; if (!it) break;
+    var y = 12 + i*12, sel = menuTop + i === idx;
+    if (sel) rect(0, y, 80, 12);
+    text(it.t, 1, y, sel ? 0 : 1);
+    if (it.v){ var v = it.v(); text(v, 79 - textW(v), y, sel ? 0 : 1); }
+  }
+  /* scrollbar */
+  for (var yy=12;yy<36;yy++) px(82, yy, yy % 2);
+  var th = Math.max(4, Math.floor(24*2/items.length)), ty = 12 + Math.round((24 - th)*(idx/(Math.max(1, items.length-1))));
+  rect(81, ty, 3, th);
+  center(softkey(), 36);
+}
+function render(dt){
+  clr();
+  switch(state){
+    case 'title':
+      titleT += dt;
+      /* the pixel snake coils across the title card */
+      var path = [], L = 22, ph = titleT*14;
+      for (var i=0;i<L;i++){ var t = (ph - i*1.1); var x = 42 + Math.round(Math.sin(t/7)*30), y = 22 + Math.round(Math.sin(t/3.5)*4); path.push([x, y]); }
+      path.forEach(function(p, i){ rect(p[0]-1, p[1]-1, i === 0 ? 3 : 2, i === 0 ? 3 : 2); });
+      text('貪食蛇', 1, 0); text('II', 38, 0);
+      num3(Math.max(0, ...Object.values(best).concat([0])), 83 - 4*String(Math.max(0, ...Object.values(best).concat([0]))).length, 2);
+      center(softkey(), 36);
+      break;
+    case 'menu': drawMenu('貪食蛇 II', MAIN, menuIdx); break;
+    case 'level':
+      text('等級', 0, 0); num3(level, 79, 2);
+      for (var l=1;l<=9;l++){ var h = 3 + l*2, bx = 3 + (l-1)*9; if (l <= level) rect(bx, 32 - h, 6, h); else frame(bx, 32 - h, 6, h); }
+      center(softkey(), 36);
+      break;
+    case 'maze':
+      var items = MAZES.map(function(m, i){ return {t:m.n, v:function(){ return i === maze ? '*' : ''; }}; });
+      drawMenu('迷宮', items.map(function(it, i){ return {t:it.t, v:function(){ return i === maze ? '選' : ''; }}; }), sub.idx);
+      break;
+    case 'scores':
+      text('最高分', 0, 0); text(MAZES[maze].n, 58, 0);
+      for (var s=0;s<2;s++){
+        var lv = sub.idx + s + 1; if (lv > 9) break;
+        var sc = String(best[lv+'-'+maze] || 0);
+        text('等級'+lv, 1, 12 + s*12); text(sc, 80 - textW(sc), 12 + s*12);
+      }
+      center(softkey(), 36);
+      break;
+    case 'help':
+      for (var hl=0;hl<3;hl++){ var ln = HELP[sub.idx + hl]; if (ln) text(ln, 1, hl*12); }
+      center(softkey(), 36);
+      break;
+    case 'game': case 'pause':
+      if (state === 'game'){
+        G.acc += dt*1000;
+        var ms = SPEED[level];
+        while (G.acc >= ms && state === 'game'){ G.acc -= ms; step(); }
+      }
+      if (G) drawGame(false);
+      if (state === 'pause'){ rect(16, 17, 52, 18, 0); frame(16, 17, 52, 18); center('暫停', 20); }
+      break;
+    case 'dying':
+      G.dieT += dt;
+      drawGame(Math.floor(G.dieT*6) % 2 === 1);
+      if (G.dieT > 1.6){ setState('over'); if (G.record){ tune(); haptic([10,40,10,40,10]); } }
+      break;
+    case 'over':
+      center('遊戲結束', 0);
+      var str = String(G.score); text('分數', 14, 13); text(str, 70 - textW(str), 13);
+      if (G.record){ if (Math.floor(titleT*3) % 2 === 0) center('新紀錄!', 24); }
+      else { var b2 = String(best[level+'-'+maze] || 0); text('最高', 14, 24); text(b2, 70 - textW(b2), 24); }
+      titleT += dt;
+      center(softkey(), 36);
+      break;
+  }
+}
+
+/* ---------- input ---------- */
+function press(k){
+  wake(); if (sound) keyTone(); haptic(5);
+  var dirs = {up:[0,-1], down:[0,1], '2':[0,-1], '8':[0,1], '4':[-1,0], '6':[1,0], left:[-1,0], right:[1,0]};
+  if (state === 'game'){
+    if (dirs[k]) return turn(dirs[k][0], dirs[k][1]);
+    if (k === 'navi' || k === '5'){ setState('pause'); return; }
+    if (k === 'c'){ setState('pause'); return; }
+    return;
+  }
+  if (state === 'pause'){
+    if (k === 'navi' || k === '5'){ G.acc = 0; setState('game'); return; }
+    if (k === 'c'){ G = null; setState('menu'); return; }
+    return;
+  }
+  var up = k === 'up' || k === '2', down = k === 'down' || k === '8', ok = k === 'navi' || k === '5', back = k === 'c';
+  switch(state){
+    case 'title': if (ok || back || up || down) setState('menu'); break;
+    case 'menu':
+      if (up) menuIdx = (menuIdx + MAIN.length - 1) % MAIN.length;
+      if (down) menuIdx = (menuIdx + 1) % MAIN.length;
+      if (ok) MAIN[menuIdx].go();
+      if (back) setState('title');
+      break;
+    case 'level':
+      if (up || k === '6' || k === 'right') level = Math.min(9, level + 1);
+      if (down || k === '4' || k === 'left') level = Math.max(1, level - 1);
+      if (/^[1-9]$/.test(k)) level = +k;
+      save('level', level);
+      if (ok || back) setState('menu');
+      break;
+    case 'maze':
+      if (up) sub.idx = (sub.idx + MAZES.length - 1) % MAZES.length;
+      if (down) sub.idx = (sub.idx + 1) % MAZES.length;
+      if (ok){ maze = sub.idx; save('maze', maze); setState('menu'); }
+      if (back) setState('menu');
+      break;
+    case 'scores':
+      if (up) sub.idx = Math.max(0, sub.idx - 1); if (down) sub.idx = Math.min(7, sub.idx + 1);
+      if (ok || back) setState('menu');
+      break;
+    case 'help':
+      if (up) sub.idx = Math.max(0, sub.idx - 1); if (down) sub.idx = Math.min(HELP.length - 3, sub.idx + 1);
+      if (ok || back) setState('menu');
+      break;
+    case 'over':
+      if (ok) startGame();
+      if (back || up || down) { G = null; setState('menu'); }
+      break;
+  }
+}
+var KEYS = [['1','ㄅㄆㄇㄈ'],['2','ㄉㄊㄋㄌ'],['3','ㄍㄎㄏ'],['4','ㄐㄑㄒ'],['5','ㄓㄔㄕㄖ'],['6','ㄗㄘㄙ'],['7','ㄧㄨㄩ'],['8','ㄚㄛㄜㄝ'],['9','ㄞㄟㄠㄡ'],['*','+'],['0','ㄢㄣㄤㄥㄦ'],['#','⇧']];
+var ARROW = {'2':'M3 0h2v2h2v2H1V2h2z','8':'M1 0h6v2H5v2H3V2H1z','4':'M2 1h2v6H2V5H0V3h2z','6':'M4 1h2v2h2v2H6v2H4z'};
+$('keys').innerHTML = KEYS.map(function(k){
+  var dir = ARROW[k[0]];
+  return '<button class="k'+(dir?' dir':'')+'" data-key="'+k[0]+'" aria-label="按鍵 '+k[0]+'">'+(dir?'<svg class="ar" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="'+dir+'"/></svg>':'')+k[0]+'<small>'+k[1]+'</small></button>';
+}).join('');
+function keyEl(k){ return document.querySelector('[data-key="'+k+'"]'); }
+screenEl.addEventListener('pointerdown', function(e){
+  var b = e.target.closest('[data-key]'); if (!b) return;
+  e.preventDefault(); press(b.dataset.key);
+});
+screenEl.addEventListener('click', function(e){ var b = e.target.closest('[data-key]'); if (b && e.detail === 0) press(b.dataset.key); });
+(function(){
+  var sx = 0, sy = 0, on = false;
+  box.addEventListener('pointerdown', function(e){ on = true; sx = e.clientX; sy = e.clientY; try{ box.setPointerCapture(e.pointerId); }catch(er){} });
+  function end(e){
+    if (!on) return; on = false;
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 18){ if (state !== 'game') press('navi'); return; }
+    var k = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    if (state === 'game') press(k === 'up' ? '2' : k === 'down' ? '8' : k === 'left' ? '4' : '6');
+    else press(k);
+  }
+  box.addEventListener('pointerup', end); box.addEventListener('pointercancel', function(){ on = false; });
+})();
+var KB = {ArrowUp:'2', ArrowDown:'8', ArrowLeft:'4', ArrowRight:'6', w:'2', s:'8', a:'4', d:'6', Enter:'navi', ' ':'navi', Backspace:'c'};
+document.addEventListener('keydown', function(e){
+  if (sheet.classList.contains('on')){ if (e.key === 'Escape') closeSheet(); return; }
+  if (e.target.closest && e.target.closest('button') && (e.key === 'Enter' || e.key === ' ')) return;
+  var k = e.key === 'Escape' ? 'c' : KB[e.key] || (/^[0-9]$/.test(e.key) ? e.key : null);
+  if (state !== 'game' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) k = e.key === 'ArrowUp' ? 'up' : 'down';
+  if (state !== 'game' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) k = e.key === 'ArrowLeft' ? 'left' : 'right';
+  if (!k) return; e.preventDefault();
+  var el = keyEl(k === 'left' ? '4' : k === 'right' ? '6' : k); if (el){ el.classList.add('down'); setTimeout(function(){ el.classList.remove('down'); }, 110); }
+  press(k);
+});
+
+/* ---------- loop ---------- */
+var raf = 0;
+function loop(now){
+  var dt = Math.min(.1, (now - lastT)/1000); lastT = now;
+  render(dt); blit(dt);
+  raf = requestAnimationFrame(loop);
+}
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden){ cancelAnimationFrame(raf); if (state === 'game') setState('pause'); }
+  else { lastT = performance.now(); raf = requestAnimationFrame(loop); }
+});
+
+/* ---------- manual sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), sbody = $('sbody'), lastFocus = null;
+function fmtT(t){ var d = new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function renderManual(){
+  var h = '<div class="pg"><span>使用手冊</span><span>第 47 頁</span></div><h3>貪食蛇 II</h3>';
+  h += '<div class="kt"><b>2 4 6 8</b><span>上、左、右、下轉向，或在液晶上滑動</span><b>5／導航鍵</b><span>選擇、暫停與繼續</span><b>C</b><span>返回；遊戲中先暫停</span><b>等級 1–9</b><span>越快每顆點越值錢</span></div>';
+  h += '<div class="set"><div class="l">液晶殘影</div><div class="seg" data-set="ghost">'+['輕','標準','濃'].map(function(t,i){ return '<button data-v="'+i+'" aria-pressed="'+(ghost===i)+'">'+t+'</button>'; }).join('')+'</div></div>';
+  h += '<div class="set"><div class="l">背光</div><div class="seg" data-set="back">'+['自動熄滅','常亮'].map(function(t,i){ return '<button data-v="'+i+'" aria-pressed="'+(backMode===i)+'">'+t+'</button>'; }).join('')+'</div></div>';
+  h += '<div class="set"><div class="l">按鍵音</div><div class="seg" data-set="sound">'+['關','開'].map(function(t,i){ return '<button data-v="'+i+'" aria-pressed="'+((sound?1:0)===i)+'">'+t+'</button>'; }).join('')+'</div></div>';
+  h += '<div class="log"><div class="h"><b>對局紀錄</b>'+(logs.length ? '<button id="clearLog">清除紀錄</button>' : '')+'</div>';
+  if (!logs.length) h += '<div class="none">還沒有紀錄。去吃第一顆點吧。</div>';
+  logs.slice(0, 12).forEach(function(g){ h += '<div class="lr"><span>'+fmtT(g.t)+'</span><span class="m">等級 '+g.l+'　'+MAZES[g.m].n+'</span><span class="s">'+g.s+'</span></div>'; });
+  h += '</div>';
+  sbody.innerHTML = h;
+}
+function openSheet(){ lastFocus = document.activeElement; renderManual(); sbody.scrollTop = 0; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); if (state === 'game') setState('pause'); var f = sheet.querySelector('button'); if (f) f.focus({preventScroll:true}); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = ''; if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+$('manBtn').addEventListener('click', openSheet);
+scrim.addEventListener('click', closeSheet);
+var undo = null, toastT = 0;
+function toast(msg, u){ $('toastMsg').textContent = msg; $('toastUndo').hidden = !u; undo = u || null; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ $('toast').classList.remove('on'); undo = null; }, 3200); }
+$('toastUndo').addEventListener('click', function(){ if (!undo) return; logs = undo; undo = null; save('log', logs); renderManual(); $('toast').classList.remove('on'); haptic(8); });
+sbody.addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'clearLog'){ var snap = logs.slice(); logs = []; save('log', logs); renderManual(); toast('已清除 '+snap.length+' 筆紀錄', snap); haptic([10,30,10]); return; }
+  var seg = b.closest('.seg'); if (!seg) return;
+  var v = +b.dataset.v;
+  if (seg.dataset.set === 'ghost'){ ghost = v; save('ghost', v); }
+  if (seg.dataset.set === 'back'){ backMode = v; save('back', v); wake(); }
+  if (seg.dataset.set === 'sound'){ sound = v === 1; save('sound', sound); if (sound) keyTone(); }
+  [].forEach.call(seg.children, function(x){ x.setAttribute('aria-pressed', x === b); }); haptic(5);
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, on = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; if (sbody.contains(e.target) && sbody.scrollTop > 0) return; on = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); });
+  sheet.addEventListener('pointermove', function(e){ if (!on) return; dy = e.clientY - sy; if (Math.abs(dy) > 4 && !sheet.hasPointerCapture(e.pointerId)) try{ sheet.setPointerCapture(e.pointerId); }catch(er){} sheet.style.transform = 'translateY('+(dy > 0 ? dy : dy/6).toFixed(1)+'px)'; scrim.style.opacity = Math.max(0, 1 - dy/sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!on) return; on = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy/Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight*.35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+/* ---------- desktop backdrop: the LCD, magnified, with a slow snake ---------- */
+var bd = $('bd'), bx = bd.getContext('2d'), bdSnake = [], bdT = 0;
+function bdSize(){ var d = Math.min(2, devicePixelRatio||1); bd.width = innerWidth*d; bd.height = innerHeight*d; }
+function drawBackdrop(dt){
+  if (!bd.offsetParent && getComputedStyle(bd.parentNode).display === 'none') return;
+  var P = 22*Math.min(2, devicePixelRatio||1), cols = Math.ceil(bd.width/P), rows = Math.ceil(bd.height/P);
+  bdT += dt;
+  if (!bdSnake.length){ for (var i=0;i<26;i++) bdSnake.push([4 - i, Math.floor(rows*.72)]); bdSnake.dir = [1,0]; bdSnake.acc = 0; }
+  bdSnake.acc += dt;
+  if (!reduce && bdSnake.acc > .16){
+    bdSnake.acc = 0; var h = bdSnake[0], d = bdSnake.dir;
+    if (Math.random() < .08) d = Math.random() < .5 ? [d[1], -d[0]] : [-d[1], d[0]];
+    var nx = h[0] + d[0], ny = h[1] + d[1];
+    if (ny < 2 || ny > rows - 3){ d = [d[1] || 1, 0]; nx = h[0] + d[0]; ny = h[1]; }
+    bdSnake.dir = d; bdSnake.unshift([(nx + cols) % cols, ny]); bdSnake.pop();
+  }
+  bx.fillStyle = '#8f9d57'; bx.fillRect(0,0,bd.width,bd.height);
+  bx.fillStyle = 'rgba(29,38,16,.07)';
+  for (var y=0;y<rows;y++) for (var x=0;x<cols;x++) bx.fillRect(x*P+2, y*P+2, P-4, P-4);
+  bx.fillStyle = 'rgba(29,38,16,.5)';
+  bdSnake.forEach(function(s){ bx.fillRect(s[0]*P+2, s[1]*P+2, P-4, P-4); });
+}
+var bdLast = performance.now();
+(function bdLoop(now){
+  var dt = Math.min(.2, (now - bdLast)/1000); bdLast = now;
+  if (!document.hidden && innerWidth >= 521) drawBackdrop(dt);
+  requestAnimationFrame(bdLoop);
+})(bdLast);
+
+/* ---------- clock & boot ---------- */
+function tick(){ var n = new Date(); $('clock').textContent = n.getHours()+':'+String(n.getMinutes()).padStart(2,'0'); }
+tick(); setInterval(tick, 20000);
+var rt = 0; addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ sizeLCD(); bdSize(); }, 100); });
+sizeLCD(); bdSize(); updateNavi(); wake();
+raf = requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0000aa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="批踢踢">
+<title>批踢踢 · BBS 論壇</title>
+<meta name="description" content="ANSI 藍底的 BBS 論壇：看板、文章列表、文章三層，游標列一格一格跳，能推能噓、搜尋標題與作者、在看板發文。收錄於 100 Creative HTML Works（App 044・ANSI BBS 藍底）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/044-ptt-bbs.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230000aa'/%3E%3Crect x='6' y='10' width='52' height='10' fill='%2300aaaa'/%3E%3Cpath d='M10 30h8v4h-8zM10 40h8v4h-8zM10 50h8v4h-8z' fill='%23ffff55'/%3E%3Cpath d='M22 30h32v4H22zM22 40h26v4H22zM22 50h30v4H22z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0000aa;
+  --deep:#00007a;
+  --w:#ffffff;
+  --g:#aaaaaa;
+  --y:#ffff55;
+  --yl:#ffffaa;
+  --c:#55ffff;
+  --cy:#00aaaa;
+  --r:#ff5555;
+  --gr:#55ff55;
+  --m:#ff55ff;
+  --k:#000000;
+  --f:Menlo,"Heiti TC","PingFang TC",monospace;
+  --rowh:58px;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.4 var(--f);color:var(--g);background:var(--bg);overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation;text-align:left}
+button:focus-visible,input:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px dashed var(--y);outline-offset:-2px}
+input,textarea{font:inherit;color:inherit}
+svg{display:block}
+.w{color:var(--w)}.y{color:var(--y)}.c{color:var(--c)}.r{color:var(--r)}.gr{color:var(--gr)}.m{color:var(--m)}.g{color:var(--g)}
+b{font-weight:700}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--bg);isolation:isolate}
+@media (min-width:521px){
+  body{background:var(--bg)}
+  .stage{display:flex;align-items:center;justify-content:center;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0;overflow:hidden;background:var(--bg)}
+  .backdrop .logo{position:absolute;top:50%;right:calc(50% + 250px);transform:translateY(-58%);font:22px/1 var(--f);white-space:pre;letter-spacing:0}
+  .backdrop .login{position:absolute;top:50%;left:calc(50% + 250px);transform:translateY(-50%);font:17px/2 var(--f);white-space:pre;color:var(--g)}
+  .backdrop .hdl{position:absolute;left:0;right:0;top:0;height:34px;background:var(--g);color:var(--k);font:700 15px/34px var(--f);padding:0 20px;white-space:nowrap;overflow:hidden}
+  .backdrop .ftl{position:absolute;left:0;right:0;bottom:0;height:30px;background:var(--cy);color:var(--k);font:14px/30px var(--f);padding:0 20px;white-space:nowrap;overflow:hidden}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:44px;padding:13px;background:#bdbab0;z-index:1;
+    box-shadow:inset 0 2px 0 #dedbd2,inset 0 -3px 0 #8f8c83}
+  .screen{inset:13px;border-radius:32px;box-shadow:0 0 0 3px #2a2a2a}
+  .caption{display:block;position:fixed;left:40px;bottom:54px;z-index:1;max-width:300px;background:var(--bg);color:var(--w);padding:12px 14px;font-size:14px;line-height:1.5}
+  .caption h1{font:700 18px/1.2 var(--f);color:var(--y)}
+}
+@media (min-width:521px) and (max-width:960px){.caption{display:none}}
+@media (min-width:521px) and (max-width:1180px){.backdrop .logo,.backdrop .login{display:none}}
+
+/* ---------- status ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(44px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 24px 0 28px;
+  display:flex;align-items:center;justify-content:space-between;font:700 15px/1 var(--f);color:var(--w);pointer-events:none;background:var(--bg)}
+.status .gl{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- screens ---------- */
+.scr{position:absolute;left:0;right:0;top:calc(44px + env(safe-area-inset-top));bottom:0;display:flex;flex-direction:column;background:var(--bg)}
+@media (display-mode:standalone){.scr{top:env(safe-area-inset-top)}}
+.scr[hidden]{display:none}
+.scr.in{animation:redraw .18s steps(3,jump-none)}
+@keyframes redraw{from{transform:translateY(10px)}to{transform:none}}
+.hd{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;height:40px;padding:0 12px;background:var(--g);color:var(--k);font-weight:700;white-space:nowrap;overflow:hidden}
+.hd .t{overflow:hidden;text-overflow:ellipsis}
+.hd .bl{color:var(--bg)}
+.sub{flex:none;display:flex;align-items:center;gap:0;height:44px;padding:0 6px;color:var(--g);font-size:13px;white-space:nowrap}
+.sub button{height:44px;padding:0 10px;font-size:14px;color:var(--g)}
+.sub button[aria-pressed=true]{color:var(--y);font-weight:700}
+.sub button[aria-pressed=true]::before{content:"[";color:var(--w)}
+.sub button[aria-pressed=true]::after{content:"]";color:var(--w)}
+.sub .sp{flex:1}
+.sub .clr{color:var(--c)}
+.list{position:relative;flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none}
+.list::-webkit-scrollbar{display:none}
+.bar{position:absolute;left:0;right:0;top:0;height:var(--rowh);background:var(--cy);pointer-events:none;transition:transform .12s steps(2,jump-end)}
+.row{position:relative;z-index:1;display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:4px;width:100%;height:var(--rowh);padding:0 12px 0 6px}
+.row .cur{color:var(--y);font-weight:700;visibility:hidden}
+.row.on .cur{visibility:visible;color:var(--k)}
+.row.on,.row.on *{color:var(--k)!important}
+.row .l1{display:flex;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden}
+.row .l2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;margin-top:2px}
+.row .main{min-width:0}
+.row .nm{color:var(--w);font-weight:700}
+.row .cl{font-size:13px}
+.row .pop{font-weight:700;text-align:right;min-width:40px}
+.row .tt{overflow:hidden;text-overflow:ellipsis;color:var(--w)}
+.row .tt.re{color:var(--g)}
+.row .meta{font-size:13px}
+.row .pc{font-weight:700;min-width:26px;text-align:right;align-self:start;margin-top:10px}
+.art .row{grid-template-columns:22px 28px 1fr}
+.pin .row .tt{color:var(--y)}
+.empty{padding:26px 16px;color:var(--w);line-height:1.6}
+
+.foot{flex:none;padding-bottom:env(safe-area-inset-bottom)}
+.line{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;background:var(--cy);color:var(--k);font-size:13px;white-space:nowrap;overflow:hidden}
+.line b{color:var(--bg)}
+.keys{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;height:64px;padding-bottom:18px;background:var(--g)}
+.key{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--k);font-size:13px;line-height:1.1;height:46px}
+.key kbd{font:700 15px/1 var(--f);color:var(--bg)}
+.key:active{background:var(--k);color:var(--g)}
+.key:active kbd{color:var(--y)}
+.key[disabled]{opacity:.45}
+
+/* article */
+.read{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;touch-action:pan-y;padding-bottom:14px}
+.read::-webkit-scrollbar{display:none}
+.ah{display:grid;grid-template-columns:auto 1fr;row-gap:2px;padding:0 0 10px;color:var(--w)}
+.ah .k{background:var(--g);color:var(--bg);padding:3px 8px;font-weight:700}
+.ah .v{padding:3px 10px;background:var(--deep);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rule{height:2px;background:var(--g);opacity:.55;margin:0 0 12px}
+.body{padding:0 14px;color:var(--w);white-space:pre-wrap;word-break:break-word;line-height:1.65}
+.sig{padding:12px 14px 6px;color:var(--gr);font-size:13px;white-space:pre-wrap;word-break:break-all;line-height:1.55}
+.cm{display:grid;grid-template-columns:22px 1fr;gap:0 4px;padding:3px 14px;font-size:14px;line-height:1.5}
+.cm .tg{font-weight:700}
+.cm .tg.p{color:var(--w)}
+.cm .tg.b,.cm .tg.a{color:var(--r)}
+.cm .id{color:var(--y);font-weight:700}
+.cm .tx{color:var(--yl)}
+.cm .tm{color:var(--g);font-size:12px;margin-left:6px;white-space:nowrap}
+.cm.me{background:var(--deep)}
+.flash{animation:flash .5s steps(2,jump-none) 2}
+@keyframes flash{50%{background:var(--cy)}}
+
+/* editor */
+.ed{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;color:var(--w)}
+.ed .cats{display:flex;flex-wrap:wrap;gap:0 2px}
+.ed .cats button{height:44px;padding:0 8px;color:var(--g)}
+.ed .cats button[aria-pressed=true]{background:var(--g);color:var(--k)}
+.fld{display:flex;align-items:center;gap:8px;min-height:44px}
+.fld span{color:var(--y);flex:none}
+.fld input{flex:1;min-width:0;height:40px;border:0;background:var(--deep);color:var(--w);padding:0 8px;outline:none;border-radius:0}
+.ed textarea{flex:1;min-height:200px;border:0;background:var(--deep);color:var(--w);padding:8px;outline:none;resize:none;line-height:1.6;border-radius:0}
+.ed .note{font-size:13px;color:var(--g)}
+.caret{display:inline-block;width:.6em;height:1.05em;vertical-align:-2px;background:var(--w);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* sheet (terminal prompt) */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,40,.5);opacity:0;pointer-events:none;transition:opacity .2s steps(2)}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;background:var(--k);color:var(--w);border-top:3px solid var(--cy);padding:0 14px calc(18px + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .3s cubic-bezier(.3,1.25,.5,1);touch-action:none}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{height:28px;display:grid;place-items:center;cursor:grab}
+.grab i{width:44px;height:6px;background:var(--cy)}
+.sheet h3{font-size:15px;color:var(--c);font-weight:700;margin-bottom:6px}
+.opts{display:grid;gap:0}
+.opts button{height:44px;padding:0 8px;color:var(--g)}
+.opts button[aria-pressed=true]{background:var(--cy);color:var(--k)}
+.prompt{display:flex;align-items:center;gap:6px;margin-top:10px;min-height:44px;border-bottom:2px solid var(--g)}
+.prompt label{flex:none;white-space:nowrap}
+.prompt input{flex:1;min-width:0;height:44px;border:0;background:none;outline:none;color:var(--yl)}
+.srow{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.srow .hint{font-size:13px;color:var(--g)}
+.srow .hint.bad{color:var(--r)}
+.ok{height:46px;padding:0 18px;background:var(--g);color:var(--k);font-weight:700}
+.ok:active{background:var(--w)}
+
+.toast{position:absolute;left:0;right:0;top:calc(84px + env(safe-area-inset-top));z-index:60;background:var(--k);color:var(--y);padding:10px 14px;font-size:14px;border-bottom:2px solid var(--y);display:none}
+.toast.on{display:block}
+.home-ind{position:absolute;left:50%;bottom:calc(5px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--k);z-index:70;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  .scr.in,.flash{animation:none}
+  .bar,.sheet{transition-duration:.01s}
+  .caret{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><div class="hdl">【 批踢踢實業坊 】　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　telnet ptt.cc</div><div class="logo" id="ansi"></div><div class="login" id="login"></div><div class="ftl" id="ftl"></div></div>
+  <div class="caption"><h1>批踢踢 BBS</h1>藍底白字、游標一格一格跳，推一下再走。</div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">09:41</span>
+        <span class="gl">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect y="9" width="3" height="3"/><rect x="5" y="6" width="3" height="6"/><rect x="10" y="3" width="3" height="9"/><rect x="15" width="3" height="12" fill="#5555ff"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="#fff"><rect x="6" y="9" width="4" height="3"/><rect x="3" y="5" width="10" height="2"/><rect x="0" y="1" width="16" height="2"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><rect x="1" y="1" width="22" height="10" fill="none" stroke="#fff" stroke-width="2"/><rect id="batt" x="3" y="3" width="14" height="6" fill="#55ff55"/><rect x="24" y="4" width="3" height="4" fill="#fff"/></svg>
+        </span>
+      </div>
+
+      <!-- BOARDS -->
+      <section class="scr" id="sBoards" aria-label="看板列表">
+        <div class="hd"><span class="t">【看板列表】</span><span class="bl">批踢踢實業坊</span></div>
+        <div class="sub">
+          <button id="mHot" aria-pressed="true">熱門看板</button>
+          <button id="mFav" aria-pressed="false">我的最愛</button>
+          <span class="sp"></span><span id="bCount" style="padding-right:8px">14 板</span>
+        </div>
+        <div class="list" id="bList" role="listbox" aria-label="看板"></div>
+        <div class="foot">
+          <div class="line"><span id="lineB">《09/23 週三 14:05》</span><span>線上 <b id="online">132,451</b> 人</span></div>
+          <div class="keys">
+            <button class="key" data-k="up" aria-label="游標上移"><kbd>↑</kbd>上</button>
+            <button class="key" data-k="down" aria-label="游標下移"><kbd>↓</kbd>下</button>
+            <button class="key" data-k="enter" aria-label="進入看板"><kbd>→</kbd>進入</button>
+            <button class="key" data-k="search" aria-label="搜尋看板"><kbd>/</kbd>搜尋</button>
+            <button class="key" data-k="fav" aria-label="加入或移除最愛"><kbd>F</kbd>最愛</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ARTICLES -->
+      <section class="scr art" id="sList" aria-label="文章列表" hidden>
+        <div class="hd"><span class="t" id="lHead">【板主:】</span><span class="bl" id="lBoard">看板《》</span></div>
+        <div class="sub"><span id="lInfo" style="padding:0 10px">共 0 篇</span><span class="sp"></span><button class="clr" id="lClear" hidden>清除搜尋</button></div>
+        <div class="list" id="aList" role="listbox" aria-label="文章"></div>
+        <div class="foot">
+          <div class="line"><span id="lineL">文章選讀</span><span id="lineL2"></span></div>
+          <div class="keys">
+            <button class="key" data-k="back" aria-label="返回看板列表"><kbd>←</kbd>返回</button>
+            <button class="key" data-k="up" aria-label="游標上移"><kbd>↑</kbd>上</button>
+            <button class="key" data-k="down" aria-label="游標下移"><kbd>↓</kbd>下</button>
+            <button class="key" data-k="search" aria-label="搜尋文章"><kbd>/</kbd>搜尋</button>
+            <button class="key" data-k="post" aria-label="發表文章"><kbd>P</kbd>發文</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- READ -->
+      <section class="scr" id="sRead" aria-label="文章" hidden>
+        <div class="read" id="read"></div>
+        <div class="foot">
+          <div class="line"><span id="lineR">瀏覽 第 1/1 頁 (100%)</span><span id="lineR2"></span></div>
+          <div class="keys">
+            <button class="key" data-k="back" aria-label="返回文章列表"><kbd>←</kbd>返回</button>
+            <button class="key" data-k="push" aria-label="推文"><kbd>X</kbd>推文</button>
+            <button class="key" data-k="prev" aria-label="上一篇"><kbd>[</kbd>上篇</button>
+            <button class="key" data-k="next" aria-label="下一篇"><kbd>]</kbd>下篇</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- EDITOR -->
+      <section class="scr" id="sEdit" aria-label="發表文章" hidden>
+        <div class="hd"><span class="t">發表文章於【 <span id="eBoard">Gossiping</span> 】看板</span></div>
+        <div class="ed">
+          <div class="cats" id="eCats" role="group" aria-label="文章種類"></div>
+          <div class="fld"><span>標題：</span><input id="eTitle" maxlength="40" placeholder="請輸入標題" autocomplete="off"></div>
+          <textarea id="eBody" aria-label="內文" placeholder="內文。按下方 ^X 發表。"></textarea>
+          <div class="note" id="eNote">簽名檔會自動附上。放棄會丟掉目前的內容。</div>
+        </div>
+        <div class="foot">
+          <div class="line"><span>編輯文章</span><span id="eCount">0 字</span></div>
+          <div class="keys">
+            <button class="key" data-k="cancelpost" aria-label="放棄"><kbd>Esc</kbd>放棄</button>
+            <button class="key" data-k="sendpost" aria-label="發表"><kbd>^X</kbd>發表</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="指令">
+        <div class="grab"><i></i></div>
+        <div id="sbody"></div>
+      </div>
+      <div class="toast" id="toast" role="status"></div>
+      <div class="home-ind" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var K = 'app044:';
+function load(k, d){ try { var v = localStorage.getItem(K + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(K + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function p2(n){ return String(n).padStart(2, '0'); }
+var ME = 'nightowl23';
+var NOW = new Date();
+var WD = ['日','一','二','三','四','五','六'];
+function md(d){ return (d.getMonth() + 1) + '/' + p2(d.getDate()); }
+function daysAgo(n){ var d = new Date(NOW); d.setDate(d.getDate() - n); return d; }
+
+// ---------- bell (the only sound, like a terminal) ----------
+var AC = null;
+function bell(){
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    var t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'square'; o.frequency.value = 880; g.gain.setValueAtTime(.05, t); g.gain.setValueAtTime(0, t + .09);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + .1);
+  } catch(e){}
+}
+
+// ---------- data ----------
+var BOARDS = [
+  {n:'Gossiping', c:'綜合', t:'◎[八卦] 平平是鄉民，為什麼差這麼多', p:8912, bm:'nekoapple/Kay731'},
+  {n:'Stock', c:'學術', t:'◎[股票] 買在起漲點，賣在起跌點', p:3406, bm:'eyespot/andyjy12'},
+  {n:'Baseball', c:'棒球', t:'◎[棒球] 季後賽倒數，應援不要停', p:2251, bm:'SuperC/iamshiba'},
+  {n:'C_Chat', c:'閒談', t:'◎[希洽] 動漫 ACG 閒聊', p:1877, bm:'erisiss/nh60211as'},
+  {n:'WomenTalk', c:'聊天', t:'◎[女孩] 女孩們的悄悄話', p:1305, bm:'yulan1001'},
+  {n:'NBA', c:'籃球', t:'◎[NBA] 季前熱身賽開打', p:1120, bm:'Vedan/jim1101'},
+  {n:'Tech_Job', c:'工作', t:'◎[科技] 科技業工作討論', p:986, bm:'saltlake'},
+  {n:'Lifeismoney', c:'省錢', t:'◎[省錢] 省錢板，精打細算', p:802, bm:'Arctica'},
+  {n:'movie', c:'影視', t:'◎[電影] 看完再來聊', p:633, bm:'Ravencroft'},
+  {n:'home-sale', c:'房屋', t:'◎[房屋] 買房賣房大小事', p:541, bm:'ifsoul'},
+  {n:'cat', c:'寵物', t:'◎[貓咪] 喵喵喵喵', p:412, bm:'lulumiya'},
+  {n:'Food', c:'美食', t:'◎[美食] 你今天吃什麼', p:244, bm:'hsiangyu'},
+  {n:'Tainan', c:'地區', t:'◎[台南] 府城生活', p:187, bm:'tainanlover'},
+  {n:'MRT', c:'交通', t:'◎[捷運] 台北捷運討論', p:96, bm:'fishwind'}
+];
+var AUTH = ['kaorumi','AirBigBird','yenchi0619','oldbeef','tainanlover','hsiangyu','bigtom','chiayi_fish','Richard1989','LinKaiWen','a8752130','windfree','ninja5566','mochi_mochi','zxcv0707','drizzle'];
+var PUSH = ['笑死','五樓你怎麼說','先推再看','這篇會紅','樓下幫高調','你各位啊','有圖有真相','專業推','真的假的','我阿嬤都這樣講','推 好文','有夠扯','樓上正解','好喔','這個我可以','朝聖','推推','給推','收到','期待後續'];
+var BOO = ['標題黨','又來了','廢文','好無聊','去看置底'];
+var ARROW = ['我覺得還好啦','補充一下，那邊晚上很暗','記得帶傘','原PO加油','其實要看情況','同意一半'];
+var SEEDS = {
+  Gossiping: [
+    ['問卦','有沒有台北下午突然暴雨的八卦？','剛剛在忠孝復興出站\n太陽還很大\n走到 SOGO 門口就整個倒下來\n\n雨傘在包包裡但根本來不及拿\n\n有沒有台北午後雷陣雨都這麼準時的八卦？',142],
+    ['新聞','中秋連假首日國道車潮 雪隧回堵十公里','1.媒體來源：\n批踢踢新聞台\n\n2.記者署名：\n記者小編\n\n3.完整新聞標題：\n中秋連假首日國道車潮 雪隧回堵十公里\n\n4.完整新聞內文：\n中秋連假首日，國道五號南向一早就湧現車潮，\n雪山隧道南口一度回堵十公里。\n高公局建議用路人避開尖峰時段出發。\n\n5.備註：\n每年都在塞，每年都要去',64],
+    ['問卦','珍奶去冰半糖是不是最正確的點法？','如題\n\n身邊朋友都說微糖少冰才是王道\n但我覺得半糖去冰珍珠比較Q\n\n有沒有卦？',38],
+    ['問卦','便利商店店員最怕聽到哪句話？','在超商打工半年\n目前第一名是「幫我找一下那個... 就那個...」\n\n第二名是「我要寄貨，還沒包」\n\n大家覺得呢',57],
+    ['問卦','鹹酥雞一定要加九層塔嗎？','今天買鹹酥雞老闆直接幫我加九層塔\n我沒說要加\n但吃起來真的香\n\n所以九層塔是預設選項嗎？',23],
+    ['問卦','機車族最討厭哪個路口？','我先說\n台北橋下橋那個機車道\n每天早上都像在打仗\n\n換你們',12],
+    ['問卦','為什麼台南人吃什麼都要加糖？','去台南玩三天\n肉燥飯甜、滷肉甜、連醬油都甜\n\n是不是有什麼歷史原因？',-12],
+    ['新聞','東北季風增強 北部週末轉涼','氣象署表示，週末起東北季風增強，\n北部及東北部高溫降至二十五度左右，\n早晚溫差大，外出請多帶件外套。',9]
+  ],
+  Stock: [
+    ['閒聊','盤中閒聊','盤中閒聊請在這篇\n\n禁止喊單、禁止報明牌\n\n祝大家都賺錢',180],
+    ['標的','0050 定期定額 多','分類：多\n\n1.標的：0050\n2.分類：多\n3.分析/正文：\n每月定期定額三千\n不看盤、不停扣\n\n4.進退場機制：\n退休再說',44],
+    ['請益','零股定期定額該挑哪幾檔？','剛出社會\n每個月想存五千\n想問零股定期定額大家都挑哪些？\n\n謝謝各位',15],
+    ['新聞','美聯準會宣布降息一碼','聯準會宣布降息一碼，符合市場預期。\n亞股早盤普遍走揚。',71]
+  ],
+  Baseball: [
+    ['情報','今日先發投手','洲際 18:35\n客隊 先發 未定\n主隊 先發 未定\n\n天母 18:35\n客隊 先發 未定\n主隊 先發 未定',33],
+    ['討論','季後賽門票秒殺怎麼辦','系統一開賣就排隊八千人\n排到的時候只剩外野\n\n大家都怎麼搶的？',48],
+    ['分享','主場應援曲整理','把今年各隊主場應援曲整理成表格\n歡迎補充\n\n（表格太長放在下面）',19]
+  ],
+  Food: [
+    ['食記','台南 中西區 早上六點的牛肉湯','店名：不寫，被說業配\n地址：中西區某路口\n\n早上六點排了二十分鐘\n溫體牛切得很薄\n湯頭清甜\n配肉燥飯剛好\n\n價位：一碗一百八',27],
+    ['食記','永和 凌晨四點的燒餅油條','睡不著跑去吃\n四點店裡還是滿的\n\n鹹豆漿加蛋\n燒餅夾油條\n\n是一種安定的感覺',16],
+    ['請益','高雄鍋燒意麵推薦','下週去高雄出差\n想吃鍋燒意麵\n\n有推薦的店嗎？',6]
+  ],
+  Tainan: [
+    ['心得','林百貨頂樓看夕陽','平日傍晚上去人很少\n神社前面拍照剛好\n\n記得五點前進場',11],
+    ['問題','神農街附近停車','週末想去神農街\n開車的話停哪裡比較方便？',4],
+    ['活動','府城中秋市集','這週六在孔廟旁邊\n有文創攤位跟手作柚子燈',8]
+  ]
+};
+var GENERIC = [['閒聊','本週閒聊區','閒聊請在這篇\n\n請遵守板規，友善發言'],['請益','新手發問，請多指教','如題\n剛來這個板\n有什麼要先知道的嗎？'],['心得','潛水多年第一次發文','一直都在看大家的文章\n今天終於註冊了\n\n請多指教'],['討論','大家最近都在忙什麼','天氣變涼了\n大家最近都在做什麼？'],['情報','板聚報名開始','地點：台北車站附近\n時間：下個月第一個週六\n\n名額有限']];
+
+function rng(s){ return function(){ s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+function genComments(r, n, bias){
+  var out = [];
+  for (var i = 0; i < n; i++){
+    var x = r(), tag = x < .72 + bias ? 'p' : x < .86 ? 'a' : 'b';
+    var pool = tag === 'p' ? PUSH : tag === 'b' ? BOO : ARROW;
+    var h = Math.floor(8 + r() * 14), m = Math.floor(r() * 60);
+    out.push({g:tag, id:AUTH[Math.floor(r() * AUTH.length)], t:pool[Math.floor(r() * pool.length)], tm:md(NOW) + ' ' + p2(h) + ':' + p2(m)});
+  }
+  return out;
+}
+var ARTS = {};
+BOARDS.forEach(function(b, bi){
+  var r = rng(97 + bi * 131), list = SEEDS[b.n] || GENERIC.map(function(g){ return [g[0], g[1], g[2], Math.floor(r() * 30) - 3]; });
+  var arts = list.map(function(a, i){
+    var n = Math.floor(3 + r() * 7);
+    return {id:b.n + '-' + i, cat:a[0], t:a[1], body:a[2], base:a[3] - Math.max(0, Math.round(n * .6)), au:AUTH[Math.floor(r() * AUTH.length)], d:md(daysAgo(Math.floor(i / 3))), time:new Date(daysAgo(Math.floor(i / 3)).setHours(8 + i, Math.floor(r() * 60))), cm:genComments(r, n, a[3] < 0 ? -.5 : 0)};
+  });
+  arts.push({id:b.n + '-pin', cat:'公告', t:b.n + ' 板規（發文前請詳閱）', body:'一、請友善發言。\n二、禁止人身攻擊。\n三、標題請標明分類。\n四、違者依情節輕重水桶。\n\n板主 ' + b.bm + ' 敬上', base:0, au:b.bm.split('/')[0], d:'1/01', time:new Date(NOW.getFullYear(), 0, 1, 12), cm:[], pin:true});
+  ARTS[b.n] = arts;
+});
+// user state
+var favs = load('fav', ['Gossiping','Baseball','Food','Tainan']);
+var myPosts = load('posts', {});
+var myCm = load('cm', {});
+var lastPush = 0;
+function arts(board){
+  var mine = (myPosts[board] || []).map(function(p){ p.time = new Date(p.ts); return p; });
+  var list = ARTS[board].filter(function(a){ return !a.pin; });
+  var pins = ARTS[board].filter(function(a){ return a.pin; });
+  return list.concat(mine).sort(function(a, b){ return a.time - b.time; }).concat(pins);
+}
+function comments(a){ return a.cm.concat(myCm[a.id] || []); }
+function score(a){ return (a.base || 0) + comments(a).reduce(function(s, c){ return s + (c.g === 'p' ? 1 : c.g === 'b' ? -1 : 0); }, 0); }
+function pushMark(n){
+  if (n >= 100) return '<span class="pc r">爆</span>';
+  if (n >= 10) return '<span class="pc y">' + n + '</span>';
+  if (n > 0) return '<span class="pc gr">' + n + '</span>';
+  if (n <= -10) return '<span class="pc g">X' + Math.min(9, Math.floor(-n / 10)) + '</span>';
+  return '<span class="pc"></span>';
+}
+function popMark(p){
+  if (p >= 5000) return '<span class="pop r">爆!</span>';
+  if (p >= 1000) return '<span class="pop m">HOT</span>';
+  if (p >= 100) return '<span class="pop y">' + p + '</span>';
+  return '<span class="pop g">' + p + '</span>';
+}
+
+// ---------- navigation state ----------
+var view = 'boards', mode = 'hot', board = null, cur = {boards:0, list:0}, query = '', qAuthor = false, bQuery = '', reading = null;
+var rowsB = [], rowsA = [];
+function rowH(){ return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rowh')) || 58; }
+
+function boardRows(){
+  var l = mode === 'fav' ? BOARDS.filter(function(b){ return favs.indexOf(b.n) > -1; }) : BOARDS.slice().sort(function(a, b){ return b.p - a.p; });
+  if (bQuery) l = l.filter(function(b){ return (b.n + b.t + b.c).toLowerCase().indexOf(bQuery) > -1; });
+  return l;
+}
+function renderBoards(){
+  rowsB = boardRows();
+  cur.boards = Math.max(0, Math.min(rowsB.length - 1, cur.boards));
+  $('bCount').textContent = bQuery ? '搜尋「' + bQuery + '」' + rowsB.length + ' 板' : rowsB.length + ' 板';
+  var html = '<div class="bar" id="bBar"></div>';
+  if (!rowsB.length) html += '<div class="empty">' + (mode === 'fav' ? '最愛是空的。\n切到熱門看板，按 F 加入。' : '找不到看板。') + '</div>';
+  html += rowsB.map(function(b, i){
+    var fav = favs.indexOf(b.n) > -1;
+    return '<button class="row' + (i === cur.boards ? ' on' : '') + '" data-i="' + i + '" role="option" aria-selected="' + (i === cur.boards) + '">' +
+      '<span class="cur">&gt;</span><span class="main"><span class="l1"><span class="nm">' + b.n + '</span><span class="cl g">' + b.c + '</span>' + (fav ? '<span class="y">★</span>' : '') + '</span><span class="l2 g" style="display:block">' + esc(b.t) + '</span></span>' + popMark(b.p) + '</button>';
+  }).join('');
+  $('bList').innerHTML = html;
+  placeBar('bBar', cur.boards, false);
+  $('mHot').setAttribute('aria-pressed', mode === 'hot'); $('mFav').setAttribute('aria-pressed', mode === 'fav');
+}
+function renderList(){
+  var b = BOARDS.filter(function(x){ return x.n === board; })[0];
+  $('lHead').textContent = '【板主:' + b.bm + '】';
+  $('lBoard').textContent = '看板《' + b.n + '》';
+  var all = arts(board);
+  rowsA = query ? all.filter(function(a){ return (qAuthor ? a.au : a.cat + a.t).toLowerCase().indexOf(query) > -1; }) : all;
+  cur.list = Math.max(0, Math.min(rowsA.length - 1, cur.list));
+  $('lInfo').textContent = query ? (qAuthor ? '作者' : '標題') + '「' + query + '」共 ' + rowsA.length + ' 篇' : '共 ' + all.length + ' 篇 · 板主 ' + b.bm.split('/')[0];
+  $('lClear').hidden = !query;
+  var html = '<div class="bar" id="aBar"></div>';
+  if (!rowsA.length) html += '<div class="empty">沒有符合的文章。</div>';
+  var n = 0;
+  html += rowsA.map(function(a, i){
+    if (!a.pin) n++;
+    var re = /^Re:/.test(a.t);
+    return '<button class="row' + (i === cur.list ? ' on' : '') + (a.pin ? ' pinr' : '') + '" data-i="' + i + '" role="option" aria-selected="' + (i === cur.list) + '">' +
+      '<span class="cur">&gt;</span>' + (a.pin ? '<span class="pc y">★</span>' : pushMark(score(a))) +
+      '<span class="main"><span class="l1"><span class="tt' + (re ? ' re' : '') + '"' + (a.pin ? ' style="color:#ffff55"' : '') + '>' + (a.cat === '公告' ? '[公告] ' : '□ [' + a.cat + '] ') + esc(a.t) + '</span></span>' +
+      '<span class="l2 meta" style="display:block"><span class="g">' + (a.pin ? '置底' : String(n).padStart(5, ' ')) + '</span> <span class="w">' + a.d + '</span> <span class="' + (a.au === ME ? 'y' : 'c') + '">' + a.au + '</span></span></span></button>';
+  }).join('');
+  $('aList').innerHTML = html;
+  placeBar('aBar', cur.list, false);
+  lineL();
+}
+function lineL(){
+  var a = rowsA[cur.list];
+  $('lineL').textContent = a ? '作者 ' + a.au + ' · ' + comments(a).length + ' 則推文' : '文章選讀';
+  $('lineL2').textContent = rowsA.length ? (cur.list + 1) + '/' + rowsA.length : '';
+}
+function placeBar(id, i, animate){
+  var bar = $(id); if (!bar) return;
+  var list = bar.parentNode;
+  if (!list.querySelector('.row')){ bar.style.display = 'none'; return; }
+  bar.style.display = '';
+  if (!animate) bar.style.transition = 'none';
+  bar.style.transform = 'translateY(' + (i * rowH()) + 'px)';
+  if (!animate){ void bar.offsetWidth; bar.style.transition = ''; }
+}
+function moveCursor(d, abs){
+  var key = view === 'boards' ? 'boards' : 'list', rows = view === 'boards' ? rowsB : rowsA;
+  if (!rows.length){ bell(); return; }
+  var n = abs !== undefined ? abs : cur[key] + d;
+  if (n < 0 || n >= rows.length){ bell(); haptic([20, 30, 20]); n = Math.max(0, Math.min(rows.length - 1, n)); }
+  if (n === cur[key] && abs === undefined) return;
+  var listEl = view === 'boards' ? $('bList') : $('aList');
+  var prev = listEl.querySelector('.row.on'); if (prev){ prev.classList.remove('on'); prev.setAttribute('aria-selected', 'false'); }
+  cur[key] = n;
+  var row = listEl.querySelector('.row[data-i="' + n + '"]'); if (row){ row.classList.add('on'); row.setAttribute('aria-selected', 'true'); }
+  placeBar(view === 'boards' ? 'bBar' : 'aBar', n, !reduce);
+  // keep the cursor row on screen
+  var top = n * rowH(), h = listEl.clientHeight;
+  if (top < listEl.scrollTop) listEl.scrollTop = top;
+  else if (top + rowH() > listEl.scrollTop + h) listEl.scrollTop = top + rowH() - h;
+  haptic(3);
+  if (view === 'list') lineL();
+}
+function show(v){
+  ['sBoards','sList','sRead','sEdit'].forEach(function(id){ $(id).hidden = true; });
+  var el = $({boards:'sBoards', list:'sList', read:'sRead', edit:'sEdit'}[v]);
+  el.hidden = false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
+  view = v;
+}
+function enterBoard(n){
+  board = n; query = ''; cur.list = Math.max(0, arts(n).filter(function(a){ return !a.pin; }).length - 1);
+  show('list'); renderList();
+  var l = $('aList'); l.scrollTop = l.scrollHeight;
+}
+function openArticle(a){
+  reading = a; show('read'); renderRead(); $('read').scrollTop = 0;
+}
+function renderRead(){
+  var a = reading, b = board, cms = comments(a);
+  var t = a.time instanceof Date ? a.time : new Date(a.ts);
+  var ts = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][t.getDay()] + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()] + ' ' + p2(t.getDate()) + ' ' + p2(t.getHours()) + ':' + p2(t.getMinutes()) + ':' + p2((t.getSeconds() || 17)) + ' ' + t.getFullYear();
+  var ip = '1.' + (160 + a.au.length * 3) + '.' + (a.t.length * 7 % 250) + '.' + (a.body.length % 250);
+  var html = '<div class="ah"><span class="k"> 作者 </span><span class="v">' + a.au + (a.au === ME ? ' (我)' : '') + '　<span class="g">看板</span> ' + b + '</span>' +
+    '<span class="k"> 標題 </span><span class="v">[' + a.cat + '] ' + esc(a.t) + '</span>' +
+    '<span class="k"> 時間 </span><span class="v">' + ts + '</span></div><div class="rule"></div>' +
+    '<div class="body">' + esc(a.body) + '</div>' +
+    '<div class="sig">--\n※ 發信站: 批踢踢實業坊(ptt.cc), 來自: ' + ip + ' (臺灣)\n※ 文章網址: ptt.cc/bbs/' + b + '/M.' + Math.floor(t.getTime() / 1000) + '.A.html</div>' +
+    '<div id="cms">' + cms.map(cmHTML).join('') + '</div>';
+  $('read').innerHTML = html;
+  var sc = score(a);
+  $('lineR').textContent = '推文 ' + cms.length + ' 則 · 分數 ' + (sc >= 100 ? '爆' : sc);
+  $('lineR2').textContent = (rowsA.indexOf(a) + 1) + '/' + rowsA.length;
+  pageLine();
+}
+function cmHTML(c){
+  var tg = c.g === 'p' ? '推' : c.g === 'b' ? '噓' : '→';
+  return '<div class="cm' + (c.id === ME ? ' me' : '') + '"><span class="tg ' + c.g + '">' + tg + '</span><span><span class="id">' + c.id + '</span><span class="tx">: ' + esc(c.t) + '</span><span class="tm">' + c.tm + '</span></span></div>';
+}
+function pageLine(){
+  var r = $('read'); var total = Math.max(1, Math.ceil(r.scrollHeight / Math.max(1, r.clientHeight))), pg = Math.min(total, Math.floor(r.scrollTop / Math.max(1, r.clientHeight)) + 1);
+  var pct = r.scrollHeight <= r.clientHeight ? 100 : Math.round((r.scrollTop + r.clientHeight) / r.scrollHeight * 100);
+  $('lineR2').textContent = '第 ' + pg + '/' + total + ' 頁 (' + pct + '%)';
+}
+$('read').addEventListener('scroll', pageLine, {passive:true});
+
+// ---------- keys ----------
+function act(k){
+  if (k === 'up') return moveCursor(-1);
+  if (k === 'down') return moveCursor(1);
+  if (k === 'enter'){
+    if (view === 'boards'){ var b = rowsB[cur.boards]; if (b){ haptic(6); enterBoard(b.n); } else bell(); }
+    else if (view === 'list'){ var a = rowsA[cur.list]; if (a){ haptic(6); openArticle(a); } else bell(); }
+    return;
+  }
+  if (k === 'back'){
+    haptic(5);
+    if (view === 'read'){ show('list'); renderList(); moveCursor(0, Math.max(0, rowsA.indexOf(reading))); scrollCursor(); return; }
+    if (view === 'list'){ show('boards'); renderBoards(); scrollCursor(); return; }
+    if (view === 'edit'){ act('cancelpost'); return; }
+    return;
+  }
+  if (k === 'fav'){
+    var bb = view === 'boards' ? rowsB[cur.boards] : null; if (!bb){ bell(); return; }
+    var i = favs.indexOf(bb.n);
+    if (i > -1) favs.splice(i, 1); else favs.push(bb.n);
+    save('fav', favs); haptic(i > -1 ? 6 : [8, 30, 8]);
+    toast(i > -1 ? '已從我的最愛移除 ' + bb.n : '已加入我的最愛 ' + bb.n);
+    renderBoards(); return;
+  }
+  if (k === 'search') return openSearch();
+  if (k === 'post') return openEditor();
+  if (k === 'push') return openPush();
+  if (k === 'prev' || k === 'next'){
+    var idx = rowsA.indexOf(reading) + (k === 'prev' ? -1 : 1);
+    if (idx < 0 || idx >= rowsA.length){ bell(); toast(k === 'prev' ? '已經是第一篇' : '已經是最後一篇'); return; }
+    cur.list = idx; haptic(5); openArticle(rowsA[idx]); return;
+  }
+  if (k === 'cancelpost'){ show('list'); renderList(); haptic(5); toast('已放棄編輯'); return; }
+  if (k === 'sendpost') return sendPost();
+}
+function scrollCursor(){
+  var listEl = view === 'boards' ? $('bList') : $('aList'), n = view === 'boards' ? cur.boards : cur.list;
+  listEl.scrollTop = Math.max(0, n * rowH() - listEl.clientHeight / 2);
+}
+document.querySelectorAll('.key').forEach(function(k){ k.addEventListener('click', function(){ act(this.dataset.k); }); });
+
+// rows: tap = cursor jumps there, then opens
+function rowTap(listId, key){
+  $(listId).addEventListener('click', function(e){
+    var r = e.target.closest('.row'); if (!r) return;
+    var i = +r.dataset.i;
+    if (i !== cur[key]){ moveCursor(0, i); setTimeout(function(){ if (cur[key] === i && view === (key === 'boards' ? 'boards' : 'list')) act('enter'); }, reduce ? 0 : 170); }
+    else act('enter');
+  });
+}
+rowTap('bList', 'boards'); rowTap('aList', 'list');
+$('mHot').addEventListener('click', function(){ mode = 'hot'; cur.boards = 0; haptic(5); renderBoards(); });
+$('mFav').addEventListener('click', function(){ mode = 'fav'; cur.boards = 0; haptic(5); renderBoards(); });
+$('lClear').addEventListener('click', function(){ query = ''; haptic(5); renderList(); });
+
+// swipe right on article = back
+(function(){
+  var r = $('read'), sx = 0, sy = 0, on = false;
+  r.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; on = true; });
+  r.addEventListener('pointerup', function(e){
+    if (!on) return; on = false;
+    if (e.clientX - sx > 90 && Math.abs(e.clientY - sy) < 60) act('back');
+  });
+  r.addEventListener('pointercancel', function(){ on = false; });
+})();
+
+document.addEventListener('keydown', function(e){
+  if (e.target.closest && e.target.closest('input,textarea')){
+    if (e.key === 'Escape'){ e.target.blur(); if (!sheet.classList.contains('on') && view === 'edit') act('cancelpost'); else closeSheet(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x' && view === 'edit'){ e.preventDefault(); sendPost(); }
+    return;
+  }
+  if (sheet.classList.contains('on')){ if (e.key === 'Escape') closeSheet(); return; }
+  var k = e.key;
+  if (k === 'ArrowUp' || k === 'k'){ e.preventDefault(); act('up'); }
+  else if (k === 'ArrowDown' || k === 'j'){ e.preventDefault(); act('down'); }
+  else if (k === 'ArrowRight' || k === 'Enter'){ if (view === 'boards' || view === 'list'){ e.preventDefault(); act('enter'); } }
+  else if (k === 'ArrowLeft' || k === 'q' || k === 'Escape'){ if (view !== 'boards'){ e.preventDefault(); act('back'); } }
+  else if (k === '/'){ e.preventDefault(); if (view !== 'read') act('search'); }
+  else if (k === 'p' || k === 'P'){ if (view === 'list') act('post'); }
+  else if (k === 'x' || k === 'X'){ if (view === 'read') act('push'); }
+  else if (k === 'f' || k === 'F'){ if (view === 'boards') act('fav'); }
+  else if (k === '[' || k === ']'){ if (view === 'read') act(k === '[' ? 'prev' : 'next'); }
+});
+
+// ---------- sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){
+  lastFocus = document.activeElement; $('sbody').innerHTML = html;
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on');
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  if (lastFocus && lastFocus.focus) try { lastFocus.focus({preventScroll:true}); } catch(e){}
+}
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button,input')) return;
+    dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag');
+    try { sheet.setPointerCapture(e.pointerId); } catch(err){}
+  });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)'; });
+  function end(e){
+    if (!dragging) return; dragging = false; sheet.classList.remove('drag');
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+// search prompt
+function openSearch(){
+  if (view === 'boards'){
+    openSheet('<h3>搜尋看板</h3><div class="prompt"><label for="sq" class="y">看板名稱或中文:</label><input id="sq" autocomplete="off" value="' + esc(bQuery) + '" placeholder="例如 美食"></div>' +
+      '<div class="srow"><span class="hint">清空再按確定就顯示全部</span><button class="ok" id="sgo">確定</button></div>');
+    var go = function(){ bQuery = $('sq').value.trim().toLowerCase(); cur.boards = 0; mode = 'hot'; closeSheet(); renderBoards(); haptic(5); };
+    $('sgo').addEventListener('click', go);
+    $('sq').addEventListener('keydown', function(e){ if (e.key === 'Enter') go(); });
+    return;
+  }
+  if (view !== 'list'){ bell(); return; }
+  var authorMode = qAuthor;
+  openSheet('<h3>搜尋' + board + '</h3><div class="opts" id="sm"><button data-m="0" aria-pressed="' + !authorMode + '">/ 標題關鍵字</button><button data-m="1" aria-pressed="' + authorMode + '">a 作者</button></div>' +
+    '<div class="prompt"><label for="sq" class="y" id="sql">' + (authorMode ? '[搜尋作者]' : '[搜尋標題]') + ' 關鍵字:</label><input id="sq" autocomplete="off" value="' + esc(query) + '"></div>' +
+    '<div class="srow"><span class="hint" id="shint">例如 颱風、台南、kaorumi</span><button class="ok" id="sgo">確定</button></div>');
+  $('sm').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b) return; authorMode = b.dataset.m === '1'; haptic(4);
+    this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
+    $('sql').textContent = (authorMode ? '[搜尋作者]' : '[搜尋標題]') + ' 關鍵字:';
+  });
+  var go2 = function(){
+    var v = $('sq').value.trim().toLowerCase();
+    qAuthor = authorMode; query = v; cur.list = 0; closeSheet(); renderList(); haptic(5);
+    if (v && !rowsA.length){ bell(); }
+  };
+  $('sgo').addEventListener('click', go2);
+  $('sq').addEventListener('keydown', function(e){ if (e.key === 'Enter') go2(); });
+}
+
+// push prompt
+function openPush(){
+  if (!reading){ bell(); return; }
+  var g = 'p';
+  openSheet('<h3>您覺得這篇文章</h3><div class="opts" id="pm"><button data-g="p" aria-pressed="true"><span class="w">1.</span> 值得推薦</button><button data-g="b" aria-pressed="false"><span class="r">2.</span> 給它噓聲</button><button data-g="a" aria-pressed="false"><span class="r">3.</span> 只加→註解</button></div>' +
+    '<div class="prompt"><label for="pq" id="pl"><span class="w">推</span> <span class="y">' + ME + '</span>:</label><input id="pq" maxlength="36" autocomplete="off"></div>' +
+    '<div class="srow"><span class="hint" id="phint">最多 36 字</span><button class="ok" id="pgo">確定</button></div>');
+  $('pm').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b) return; g = b.dataset.g; haptic(4);
+    this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
+    $('pl').innerHTML = '<span class="' + (g === 'p' ? 'w' : 'r') + '">' + (g === 'p' ? '推' : g === 'b' ? '噓' : '→') + '</span> <span class="y">' + ME + '</span>:';
+  });
+  var go = function(){
+    var v = $('pq').value.trim();
+    if (!v){ $('phint').textContent = '請輸入內容'; $('phint').className = 'hint bad'; bell(); haptic([20, 30, 20]); return; }
+    var note = '';
+    if (g !== 'a' && Date.now() - lastPush < 60000){ g = 'a'; note = '一分鐘內連續推文，改為 → 註解'; }
+    if (g !== 'a') lastPush = Date.now();
+    var d = new Date(), before = score(reading);
+    var c = {g:g, id:ME, t:v, tm:md(d) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes())};
+    (myCm[reading.id] = myCm[reading.id] || []).push(c); save('cm', myCm);
+    closeSheet(); renderRead();
+    var r = $('read'); r.scrollTop = r.scrollHeight;
+    var last = $('cms').lastElementChild; if (last){ last.classList.add('flash'); }
+    haptic(g === 'b' ? [30, 40, 30] : [8, 20, 8]);
+    if (g === 'b') bell();
+    if (before < 100 && score(reading) >= 100) toast('這篇爆了！');
+    else if (note) toast(note);
+  };
+  $('pgo').addEventListener('click', go);
+  $('pq').addEventListener('keydown', function(e){ if (e.key === 'Enter') go(); });
+}
+
+// editor
+var CATS = ['問卦','新聞','心得','請益','閒聊','情報'], eCat = '問卦';
+function openEditor(){
+  if (view !== 'list'){ bell(); return; }
+  $('eBoard').textContent = board;
+  $('eCats').innerHTML = CATS.map(function(c, i){ return '<button data-c="' + c + '" aria-pressed="' + (c === eCat) + '">' + (i + 1) + '.' + c + '</button>'; }).join('');
+  $('eTitle').value = ''; $('eBody').value = ''; $('eCount').textContent = '0 字'; $('eNote').textContent = '簽名檔會自動附上。放棄會丟掉目前的內容。'; $('eNote').style.color = '';
+  show('edit'); haptic(6);
+}
+$('eCats').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return; eCat = b.dataset.c; haptic(4);
+  this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
+});
+$('eBody').addEventListener('input', function(){ $('eCount').textContent = this.value.length + ' 字'; });
+function sendPost(){
+  var t = $('eTitle').value.trim(), body = $('eBody').value.trim();
+  if (!t){ $('eNote').textContent = '標題不能空白'; $('eNote').style.color = '#ff5555'; bell(); haptic([20, 30, 20]); $('eTitle').focus(); return; }
+  var d = new Date();
+  var p = {id:board + '-me-' + d.getTime(), cat:eCat, t:t, body:body || '如題', base:0, au:ME, d:md(d), ts:d.getTime(), time:d, cm:[]};
+  (myPosts[board] = myPosts[board] || []).push(p); save('posts', myPosts);
+  show('list'); query = ''; renderList();
+  cur.list = rowsA.indexOf(rowsA.filter(function(x){ return x.id === p.id; })[0]);
+  renderList(); scrollCursor();
+  haptic([10, 30, 10]); toast('文章發表成功，你的文章在第 ' + (cur.list + 1) + ' 篇');
+}
+
+// ---------- toast ----------
+var toastT = null;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 2000); }
+
+// ---------- clock / footer ----------
+function tick(){
+  var d = new Date();
+  $('clock').textContent = p2(d.getHours()) + ':' + p2(d.getMinutes());
+  $('lineB').textContent = '《' + p2(d.getMonth() + 1) + '/' + p2(d.getDate()) + ' 週' + WD[d.getDay()] + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + '》';
+  $('online').textContent = (128000 + Math.floor(Math.random() * 9000)).toLocaleString('en-US');
+}
+tick(); setInterval(tick, 20000);
+try { if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 14 * b.level).toFixed(1)); }).catch(function(){}); } catch(e){}
+
+// ---------- backdrop: login screen in ANSI blocks ----------
+(function(){
+  if (!matchMedia('(min-width:521px)').matches) return;
+  var F = {P:['11110','10001','11110','10000','10000'], T:['11111','00100','00100','00100','00100']};
+  var cols = ['#ffff55','#ffff55','#55ffff','#55ffff','#ff5555'], px = 20, svg = '';
+  ['P','T','T'].forEach(function(ch, li){
+    F[ch].forEach(function(row, y){ row.split('').forEach(function(v, x){ if (v === '1') svg += '<rect x="' + ((li * 6 + x) * px) + '" y="' + (y * px) + '" width="' + px + '" height="' + px + '" fill="' + cols[y] + '"/>'; }); });
+  });
+  $('ansi').innerHTML = '<svg width="340" height="100" viewBox="0 0 340 100">' + svg + '</svg>\n<span style="color:#aaaaaa;font-size:16px">批踢踢實業坊 · ptt.cc</span>';
+  $('login').innerHTML = '<span style="color:#ffffff">歡迎來到 批踢踢實業坊</span>\n本站目前上線人數 <span style="color:#ffff55">132,451</span>\n\n請輸入代號，或以 guest 參觀\n或以 new 註冊: <span style="color:#ffffff">' + ME + '</span><span class="caret"></span>';
+  $('ftl').textContent = '《' + (NOW.getMonth() + 1) + '/' + NOW.getDate() + ' 星期' + WD[NOW.getDay()] + '》　按任意鍵繼續　（手機版請點看板）';
+})();
+
+renderBoards();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#151412">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="3D 列印">
+<title>3D 列印 · 3D 列印監控</title>
+<meta name="description" content="工業安全黃黑風格的 3D 列印監控：看台北 101 模型逐層擠出、暫停與繼續、調整噴嘴熱床溫度、拖曳排序列印佇列。收錄於 100 Creative HTML Works（App 068・工業安全黃黑）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/068-hazard-printer.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3Cpattern id='h' width='12' height='12' patternUnits='userSpaceOnUse' patternTransform='rotate(45)'%3E%3Crect width='6' height='12' fill='%23f5c400'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%23151412'/%3E%3Crect y='52' width='64' height='12' fill='url(%23h)'/%3E%3Cpath d='M22 48h20v-6H22zM24 42h16v-6H24zM26 36h12v-6H26zM28 30h8v-6h-8z' fill='%23e9e4d8'/%3E%3Cpath d='M26 8h12v10H26z' fill='%23f5c400'/%3E%3Cpath d='M30 18h4l-2 4z' fill='%23ff6b1a'/%3E%3C/svg%3E">
+<style>
+:root{
+  --blk:#151412;
+  --blk-2:#1f1d1a;
+  --blk-3:#2b2925;
+  --yel:#f5c400;
+  --yel-d:#c99f00;
+  --org:#ff6b1a;
+  --wht:#f2eee4;
+  --wht-2:#b9b3a6;
+  --wht-3:#8a8478;
+  --din:"DIN Condensed","DIN Alternate","Avenir Next Condensed","PingFang TC",sans-serif;
+  --mono:Menlo,"SF Mono",monospace;
+  --text:"PingFang TC","Heiti TC",system-ui,-apple-system,sans-serif;
+  --out:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.3,1.3,.5,1);
+  --haz:repeating-linear-gradient(-45deg,var(--yel) 0 10px,var(--blk) 10px 20px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--text);color:var(--wht);background:var(--blk);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--yel);outline-offset:2px}
+svg{display:block}
+.din{font-family:var(--din);font-weight:700;letter-spacing:.01em}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.bumper{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--blk);isolation:isolate}
+@media (min-width:521px){
+  body{background:#121110}
+  .stage{display:flex;align-items:center;justify-content:center;gap:76px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:50px;padding:12px;background:#262420;z-index:1;
+    box-shadow:inset 0 0 0 2px #3b3833,0 16px 24px -16px rgba(0,0,0,.8)}
+  .screen{inset:12px;border-radius:38px}
+  .bumper{display:block;position:absolute;width:74px;height:74px;z-index:2;pointer-events:none;border:10px solid var(--yel);}
+  .bumper.tl{left:-4px;top:-4px;border-right:0;border-bottom:0;border-radius:54px 0 0 0}
+  .bumper.tr{right:-4px;top:-4px;border-left:0;border-bottom:0;border-radius:0 54px 0 0}
+  .bumper.bl{left:-4px;bottom:-4px;border-right:0;border-top:0;border-radius:0 0 0 54px}
+  .bumper.br{right:-4px;bottom:-4px;border-left:0;border-top:0;border-radius:0 0 54px 0}
+  .caption{display:block;position:relative;z-index:1;width:260px}
+  .caption h1{font:700 64px/.9 var(--din);color:var(--yel)}
+  .caption p{margin-top:16px;font-size:16px;line-height:1.65;color:var(--wht-2)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;
+  display:flex;align-items:center;justify-content:space-between;font:700 19px/1 var(--din);color:var(--wht);pointer-events:none;background:var(--blk)}
+.status .gl{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* pages */
+.pages{position:absolute;inset:0;z-index:5;display:flex;width:200%;transition:transform .5s var(--out)}
+.pages.q{transform:translateX(-50%)}
+.page{position:relative;width:50%;height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain;padding:calc(54px + env(safe-area-inset-top)) 16px calc(112px + env(safe-area-inset-bottom))}
+.page::-webkit-scrollbar{display:none}
+
+.hd{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.pbtn{display:flex;align-items:baseline;gap:8px;text-align:left;min-height:48px;border-radius:6px;padding:2px 0}
+.pbtn .id{font:700 46px/.9 var(--din);color:var(--yel)}
+.pbtn svg{width:14px;height:14px;align-self:center}
+.pbtn .nm{display:block;font-size:13px;color:var(--wht-2);margin-top:4px}
+.state{font:700 26px/1 var(--din);text-align:right}
+.state small{display:block;font:12px/1.3 var(--mono);color:var(--wht-3);margin-top:3px;letter-spacing:0}
+.state.print{color:var(--yel)} .state.pause{color:var(--org)} .state.heat{color:var(--org)} .state.done{color:#9fd36b} .state.idle,.state.maint{color:var(--wht-3)}
+
+.chamber{position:relative;margin:12px 0 0;background:var(--blk-2);border-radius:4px;overflow:hidden}
+.chamber::before,.chamber::after{content:"";position:absolute;left:0;right:0;height:8px;background:var(--haz);z-index:2}
+.chamber::before{top:0}.chamber::after{bottom:0}
+.chamber canvas{display:block;width:100%;height:292px}
+.chamber .tag{position:absolute;left:12px;top:18px;z-index:3;font:12px/1.4 var(--mono);color:var(--wht-2)}
+.chamber .tag b{display:block;font:700 18px/1.1 var(--din);color:var(--wht);letter-spacing:.02em}
+.lamp{position:absolute;right:6px;top:12px;z-index:3;width:48px;height:48px;display:grid;place-items:center;border-radius:6px}
+.lamp svg{width:24px;height:24px}
+.lamp:active{background:rgba(245,196,0,.14)}
+.idlebox{position:absolute;left:0;right:0;bottom:22px;z-index:3;display:flex;justify-content:center}
+
+.prog{margin-top:14px}
+.prog .row{display:flex;align-items:flex-end;justify-content:space-between}
+.prog .lay{font:700 40px/.9 var(--din)}
+.prog .lay small{font-size:22px;color:var(--wht-3)}
+.prog .eta{text-align:right;font:13px/1.3 var(--text);color:var(--wht-2)}
+.prog .eta b{display:block;font:600 22px/1.1 var(--mono);color:var(--wht)}
+.bar{position:relative;height:16px;margin-top:10px;background:var(--blk-3);border-radius:2px;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--haz);background-size:28.28px 28.28px;transition:width .6s var(--out)}
+.bar.run i{animation:crawl 1.2s linear infinite}
+@keyframes crawl{to{background-position:28.28px 0}}
+.bar .pc{position:absolute;right:6px;top:0;bottom:0;display:flex;align-items:center;font:700 13px/1 var(--din);color:var(--wht)}
+
+.temps{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.tbox{position:relative;text-align:left;background:var(--blk-2);border-radius:4px;padding:12px 12px 10px;min-height:118px}
+.tbox:active{background:var(--blk-3)}
+.tbox .l{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--wht-2)}
+.tbox .l svg{width:18px;height:18px}
+.tbox .v{font:700 44px/1 var(--din);margin-top:8px}
+.tbox .v small{font-size:20px;color:var(--wht-3)}
+.tbox .tg{font:12px/1.2 var(--mono);color:var(--wht-3);margin-top:2px}
+.tbox canvas{position:absolute;left:0;right:0;bottom:0;width:100%;height:34px;opacity:.9}
+.tbox.hot .v{color:var(--org)}
+
+.ctl{display:grid;grid-template-columns:1.25fr 1fr;gap:10px;margin-top:10px}
+.big{height:70px;border-radius:4px;background:var(--yel);color:var(--blk);font:700 26px/1 var(--din);display:flex;align-items:center;justify-content:center;gap:10px;transition:background-color .15s,transform .1s}
+.big svg{width:22px;height:22px}
+.big:active{background:var(--yel-d);transform:scale(.98)}
+.big[disabled]{background:var(--blk-3);color:var(--wht-3);cursor:default}
+.hold{position:relative;height:70px;border-radius:4px;background:var(--blk-2);color:var(--org);font:700 22px/1 var(--din);overflow:hidden;box-shadow:inset 0 0 0 2px var(--org)}
+.hold .f{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--org)}
+.hold span{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px}
+.hold span small{font:11px/1 var(--text);color:var(--wht-2)}
+.hold.arm span,.hold.arm span small{color:var(--blk)}
+.hold[disabled]{opacity:.35;cursor:default}
+.speeds{margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);background:var(--blk-2);border-radius:4px;padding:4px;gap:4px}
+.speeds button{height:52px;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:14px/1 var(--text);color:var(--wht-2);transition:background-color .15s,color .15s}
+.speeds button b{font:700 18px/1 var(--din);color:var(--wht)}
+.speeds button.on{background:var(--wht);color:var(--blk)}
+.speeds button.on b{color:var(--blk)}
+.fanrow{display:flex;align-items:center;justify-content:space-between;margin-top:10px;background:var(--blk-2);border-radius:4px;padding:6px 6px 6px 12px}
+.fanrow .l{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--wht-2)}
+.fanrow .l svg{width:22px;height:22px}
+.fanrow .l svg.spin{animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fanrow .st{display:flex;align-items:center}
+.fanrow .st button{width:48px;height:44px;display:grid;place-items:center;border-radius:3px}
+.fanrow .st button:active{background:var(--blk-3)}
+.fanrow .st svg{width:16px;height:16px}
+.fanrow .st b{min-width:54px;text-align:center;font:700 22px/1 var(--din)}
+.log{margin-top:16px;font:12px/1.7 var(--mono);color:var(--wht-3)}
+.log b{color:var(--wht-2);font-weight:400}
+
+/* queue */
+.qhd{display:flex;align-items:flex-end;justify-content:space-between}
+.qhd h2{font:700 46px/.9 var(--din);color:var(--yel)}
+.qhd .sum{text-align:right;font-size:13px;color:var(--wht-2)}
+.qhd .sum b{display:block;font:700 22px/1.1 var(--din);color:var(--wht)}
+.qlist{position:relative;margin-top:16px}
+.qrow{position:relative;height:84px;touch-action:pan-y}
+.qrow .del{position:absolute;right:0;top:0;bottom:8px;width:92px;background:var(--org);color:var(--blk);font:700 18px/1 var(--din);display:grid;place-items:center;border-radius:4px;visibility:hidden}
+.qrow.sw .del,.qrow[data-open] .del{visibility:visible}
+.qrow .face{position:relative;height:76px;display:grid;grid-template-columns:44px 58px 1fr auto;align-items:center;gap:8px;background:var(--blk-2);border-radius:4px;padding-right:12px;transition:transform .3s var(--out)}
+.qrow.sw .face,.qrow.lift .face{transition:none}
+.qrow.lift{z-index:5}
+.qrow.lift .face{background:var(--blk-3);box-shadow:0 8px 12px -8px rgba(0,0,0,.8)}
+.qrow.shift{transition:transform .25s var(--out)}
+.handle{height:76px;display:grid;place-items:center;touch-action:none;cursor:grab;border-radius:4px 0 0 4px}
+.handle svg{width:18px;height:24px}
+.qrow canvas{width:58px;height:58px}
+.qrow .nm{font:600 15px/1.25 var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qrow .fn{font:11px/1.3 var(--mono);color:var(--wht-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qrow .mt{display:flex;align-items:center;gap:6px;font:12px/1.3 var(--mono);color:var(--wht-2);margin-top:3px}
+.qrow .mt i{width:10px;height:10px;border-radius:2px;flex:none}
+.qrow .ix{font:700 30px/1 var(--din);color:var(--wht-3);text-align:right}
+.qrow:first-child .ix{color:var(--yel)}
+.addq{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:64px;margin-top:6px;border-radius:4px;background:var(--blk);color:var(--yel);font:700 22px/1 var(--din);box-shadow:inset 0 0 0 2px var(--blk-3)}
+.addq:active{background:var(--blk-2)}
+.addq svg{width:20px;height:20px}
+.empty{padding:40px 10px;text-align:center;color:var(--wht-3)}
+
+/* rocker nav */
+.rocker{position:absolute;left:14px;right:14px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:20;height:66px;display:grid;grid-template-columns:1fr 1fr;background:var(--blk-3);border-radius:6px;padding:4px;overflow:hidden}
+.rocker .knob{position:absolute;left:4px;top:4px;bottom:4px;width:calc(50% - 4px);border-radius:3px;background:var(--yel);transition:transform .45s var(--spring)}
+.rocker.q .knob{transform:translateX(100%)}
+.rocker button{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;font:700 24px/1 var(--din);color:var(--wht-2);transition:color .25s}
+.rocker button.on{color:var(--blk)}
+.rocker button svg{width:22px;height:22px}
+.rocker .cnt{font:12px/1 var(--mono);margin-left:2px}
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--wht);z-index:80;pointer-events:none}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:calc(100% - 60px);display:flex;flex-direction:column;background:var(--blk-2);border-radius:10px 10px 0 0;overflow:hidden;
+  transform:translateY(calc(100% + 20px));transition:transform .5s var(--spring);touch-action:none}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.sheet .hz{flex:none;height:10px;background:var(--haz)}
+.sheet .grab{flex:none;height:24px;display:grid;place-items:center}
+.sheet .grab i{width:42px;height:5px;border-radius:3px;background:var(--wht-3)}
+.sbody{flex:1;overflow-y:auto;scrollbar-width:none;padding:0 18px calc(24px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+.sbody::-webkit-scrollbar{display:none}
+.sbody h3{font:700 34px/1 var(--din);color:var(--yel)}
+.sbody .lead{font-size:13px;color:var(--wht-2);margin-top:6px}
+.tset{display:grid;grid-template-columns:72px 1fr 72px;align-items:center;margin-top:18px}
+.tset button{height:72px;border-radius:4px;background:var(--blk-3);font:700 30px/1 var(--din);color:var(--wht)}
+.tset button:active{background:#3a3732}
+.tset .n{text-align:center;font:700 84px/1 var(--din);color:var(--wht)}
+.tset .n small{font-size:30px;color:var(--wht-3)}
+.presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px}
+.presets button{height:60px;border-radius:4px;background:var(--blk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:700 18px/1 var(--din);color:var(--wht)}
+.presets button small{font:11px/1 var(--mono);color:var(--wht-3)}
+.presets button.on{background:var(--wht);color:var(--blk)}
+.presets button.on small{color:#555}
+.tchart{margin-top:16px;height:110px;background:var(--blk);border-radius:4px}
+.tchart canvas{width:100%;height:110px;display:block}
+.okbtn{margin-top:16px;width:100%;height:62px;border-radius:4px;background:var(--yel);color:var(--blk);font:700 24px/1 var(--din)}
+.okbtn:active{background:var(--yel-d)}
+.lib{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;min-height:76px;padding:8px 0}
+.lib + .lib{box-shadow:0 -1px 0 var(--blk-3)}
+.lib canvas{width:58px;height:58px}
+.lib .nm{font:600 15px/1.25 var(--text)}
+.lib .fn{font:11px/1.3 var(--mono);color:var(--wht-3)}
+.lib .mt{font:12px/1.3 var(--mono);color:var(--wht-2);margin-top:2px}
+.lib button{height:48px;padding:0 14px;border-radius:4px;background:var(--yel);color:var(--blk);font:700 18px/1 var(--din)}
+.lib button:active{background:var(--yel-d)}
+.prn{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;width:100%;min-height:74px;text-align:left;padding:8px 10px;border-radius:4px}
+.prn.on{background:var(--blk-3)}
+.prn:active{background:#34312c}
+.prn .id{font:700 36px/1 var(--din);color:var(--yel)}
+.prn .nm{font:600 15px/1.3 var(--text)}
+.prn .s{font:12px/1.3 var(--mono);color:var(--wht-3)}
+.prn .pct{font:700 24px/1 var(--din)}
+
+.toast{position:absolute;left:50%;top:calc(56px + env(safe-area-inset-top));z-index:90;transform:translate(-50%,-150px);visibility:hidden;transition:transform .45s var(--spring),visibility 0s .45s;
+  display:flex;align-items:center;gap:12px;padding:12px 16px 12px 14px;background:var(--yel);color:var(--blk);font:600 15px/1.2 var(--text);white-space:nowrap;border-radius:4px;max-width:calc(100% - 32px)}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--spring)}
+.toast button{font:700 18px/1 var(--din);height:36px;padding:0 6px;margin:-8px -6px;text-decoration:none;color:var(--blk);box-shadow:inset 0 -2px 0 var(--blk)}
+
+@media (prefers-reduced-motion:reduce){
+  .pages,.rocker .knob,.sheet,.toast,.qrow .face,.qrow.shift{transition-duration:.01s}
+  .bar.run i,.fanrow .l svg.spin{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" id="bd"></svg></div>
+  <div class="device">
+    <span class="bumper tl"></span><span class="bumper tr"></span><span class="bumper bl"></span><span class="bumper br"></span>
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="gl">
+          <svg width="19" height="12" viewBox="0 0 19 12"><path d="M0 12h3.5V8H0zM5 12h3.5V5.5H5zM10 12h3.5V3H10zM15 12h4V0h-4z" fill="#f2eee4"/></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 12 5 8.5l1.3-1.3a3.1 3.1 0 0 1 4.4 0L12 8.5zM2.3 5.8l1.5 1.5a6.7 6.7 0 0 1 9.4 0l1.5-1.5a8.8 8.8 0 0 0-12.4 0z" fill="#f2eee4"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><rect x=".8" y=".8" width="22.4" height="10.4" fill="none" stroke="#f2eee4" stroke-width="1.6"/><rect x="3" y="3" width="15" height="6" fill="#f5c400"/><rect x="24" y="4" width="2.4" height="4" fill="#f2eee4"/></svg>
+        </span>
+      </div>
+
+      <div class="pages" id="pages">
+        <!-- status page -->
+        <section class="page" id="pStatus" aria-label="印表機狀態">
+          <div class="hd">
+            <button class="pbtn" id="pickPrinter" aria-label="切換印表機"><span><span class="id" id="pId">P-01</span><span class="nm" id="pNm">工作室左</span></span><svg viewBox="0 0 14 14"><path d="M2 5h10l-5 6z" fill="#f5c400"/></svg></button>
+            <div class="state" id="pState">列印中<small id="pSub">0.20 mm · PLA</small></div>
+          </div>
+          <div class="chamber" id="chamber">
+            <canvas id="cv" aria-label="列印倉即時畫面"></canvas>
+            <div class="tag" id="jobTag"><b>台北101 模型</b>taipei101_0.2mm.gcode</div>
+            <button class="lamp" id="lamp" aria-label="列印倉燈光" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M8 3h8l2 8H6z" fill="#f5c400"/><path d="M9 13h6v3H9zM10 18h4v3h-4z" fill="#f2eee4"/></svg></button>
+            <div class="idlebox" id="idleBox" hidden></div>
+          </div>
+          <div class="prog">
+            <div class="row"><div class="lay din" id="lay">142<small> / 380 層</small></div><div class="eta">剩餘時間<b id="eta">00:23:41</b></div></div>
+            <div class="bar run" id="bar"><i id="barI"></i><span class="pc" id="pc">37%</span></div>
+          </div>
+          <div class="temps">
+            <button class="tbox" id="tNoz" aria-label="噴嘴溫度"><span class="l"><svg viewBox="0 0 18 18"><path d="M5 1h8v7H5z" fill="#f5c400"/><path d="M6 8h6v4H6z" fill="#f2eee4"/><path d="M7.5 12h3L9 16z" fill="#ff6b1a"/></svg>噴嘴</span><div class="v" id="vNoz">215<small>°C</small></div><div class="tg mono" id="gNoz">目標 215</div><canvas id="cNoz"></canvas></button>
+            <button class="tbox" id="tBed" aria-label="熱床溫度"><span class="l"><svg viewBox="0 0 18 18"><path d="M1 11h16v3H1z" fill="#f5c400"/><path d="M4 9c0-2 2-2 2-4M9 9c0-2 2-2 2-4M14 9c0-2 2-2 2-4" stroke="#ff6b1a" stroke-width="1.6" fill="none"/></svg>熱床</span><div class="v" id="vBed">60<small>°C</small></div><div class="tg mono" id="gBed">目標 60</div><canvas id="cBed"></canvas></button>
+          </div>
+          <div class="ctl">
+            <button class="big" id="pauseBtn"><svg viewBox="0 0 22 22" id="pauseIc"><path d="M4 3h5v16H4zM13 3h5v16h-5z" fill="#151412"/></svg><span id="pauseTx">暫停</span></button>
+            <button class="hold" id="stopBtn" aria-label="長按停止列印"><span class="f" id="stopF"></span><span>長按停止<small>按住 1.2 秒</small></span></button>
+          </div>
+          <div class="speeds" id="speeds" role="group" aria-label="列印速度"></div>
+          <div class="fanrow"><span class="l"><svg viewBox="0 0 22 22" id="fanIc"><circle cx="11" cy="11" r="2.4" fill="#f5c400"/><path d="M11 8.6C9 5 10 2 13 2c2 0 2.4 3-2 6.6zM13.4 11c3.6-2 6.6-1 6.6 2 0 2-3 2.4-6.6-2zM11 13.4c2 3.6 1 6.6-2 6.6-2 0-2.4-3 2-6.6zM8.6 11C5 13 2 12 2 9c0-2 3-2.4 6.6 2z" fill="#f2eee4"/></svg>模型風扇</span>
+            <span class="st"><button id="fanMinus" aria-label="風扇減速"><svg viewBox="0 0 16 16"><path d="M2 7h12v2.4H2z" fill="#f2eee4"/></svg></button><b id="fanV">100%</b><button id="fanPlus" aria-label="風扇加速"><svg viewBox="0 0 16 16"><path d="M2 7h12v2.4H2z" fill="#f2eee4"/><path d="M6.8 2h2.4v12H6.8z" fill="#f2eee4"/></svg></button></span></div>
+          <div class="log" id="log"></div>
+        </section>
+
+        <!-- queue page -->
+        <section class="page" id="pQueue" aria-label="列印佇列">
+          <div class="qhd"><h2>佇列</h2><div class="sum" id="qSum"></div></div>
+          <div class="qlist" id="qlist"></div>
+          <button class="addq" id="addq"><svg viewBox="0 0 20 20"><path d="M8.6 2h2.8v6.6H18v2.8h-6.6V18H8.6v-6.6H2V8.6h6.6z" fill="#f5c400"/></svg>從檔案庫加入</button>
+        </section>
+      </div>
+
+      <nav class="rocker" id="rocker" aria-label="切換頁面">
+        <span class="knob" aria-hidden="true"></span>
+        <button class="on" data-pg="s" aria-pressed="true"><svg viewBox="0 0 22 22"><path d="M3 3h16v11H3z" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M7 19h8" stroke="currentColor" stroke-width="2.4"/><path d="M8 11h6V8H8z" fill="currentColor"/></svg>狀態</button>
+        <button data-pg="q" aria-pressed="false"><svg viewBox="0 0 22 22"><path d="M3 4h16v3H3zM3 10h16v3H3zM3 16h10v3H3z" fill="currentColor"/></svg>佇列<span class="cnt" id="qCnt"></span></button>
+      </nav>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="抽屜"><div class="hz" aria-hidden="true"></div><div class="grab" aria-hidden="true"><i></i></div><div class="sbody" id="sbody"></div></div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="home-ind" aria-hidden="true"></div>
+    </div>
+  </div>
+  <div class="caption">
+    <h1>3D 列印</h1>
+    <p>看台北 101 一層一層長出來。暫停、調溫、換速度，佇列用手指拖著排。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+function load(k, d){ try{ var v = localStorage.getItem('app068:'+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem('app068:'+k, JSON.stringify(v)); }catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- sound ---------- */
+var AC = null;
+function ac(){ try{ if (!AC) AC = new (window.AudioContext||window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); }catch(e){ AC = null; } return AC; }
+function beep(f, d, v, w, type){ var a = ac(); if (!a) return; try{ var t = a.currentTime + (w||0), o = a.createOscillator(), g = a.createGain(); o.type = type||'square'; o.frequency.value = f; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v||.06, t+.005); g.gain.setValueAtTime(v||.06, t+d*.8); g.gain.exponentialRampToValueAtTime(.0001, t+d); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+d+.02); }catch(e){} }
+function key(){ beep(2200, .03, .03); }
+function stepper(up){ var a = ac(); if (!a) return; try{ var t = a.currentTime, o = a.createOscillator(), g = a.createGain(), f = a.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.setValueAtTime(up ? 180 : 520, t); o.frequency.exponentialRampToValueAtTime(up ? 520 : 150, t+.35); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 2; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.08, t+.03); g.gain.exponentialRampToValueAtTime(.0001, t+.4); o.connect(f); f.connect(g); g.connect(a.destination); o.start(t); o.stop(t+.45); }catch(e){} }
+function done(){ [0, .18, .36].forEach(function(w){ beep(1760, .12, .05, w); }); beep(2349, .4, .05, .56); }
+
+/* ---------- models (iso layer renderer) ---------- */
+var MODELS = {
+  t101:{ n:4, r:function(z){ if (z < .09) return 1; if (z < .16) return .8; if (z < .84){ var f = ((z - .16)/.085) % 1; return .5 + .16*f; } if (z < .9) return .4; if (z < .93) return .26; return .07; }, rot:function(){ return Math.PI/4; } },
+  vase:{ n:44, r:function(z){ return .5 + .32*Math.sin(z*3.4 + .5) + .1*z; }, rot:function(){ return 0; } },
+  cup:{ n:6, r:function(z){ return .95 - .08*z; }, rot:function(){ return 0; } },
+  gear:{ n:28, r:function(z){ return .95; }, rot:function(){ return 0; }, spike:true },
+  lamp:{ n:5, r:function(z){ return .92 - .38*z; }, rot:function(z){ return z*1.6; } },
+  bear:{ n:18, r:function(z){ if (z < .45) return .7 + .2*Math.sin(z/.45*Math.PI); if (z < .55) return .45; return .55*Math.sqrt(Math.max(0, 1 - Math.pow((z - .78)/.24, 2))) + .05; }, rot:function(){ return 0; } }
+};
+var FILES = [
+  { key:'t101', nm:'台北101 模型', fn:'taipei101_0.2mm.gcode', mat:'PLA', col:'#e9e4d8', cn:'消光白', min:38, g:46, layers:380, hmm:1 },
+  { key:'vase', nm:'波浪花瓶', fn:'wave_vase_spiral.gcode', mat:'Silk PLA', col:'#f5c400', cn:'安全黃', min:52, g:61, layers:260, hmm:.8 },
+  { key:'cup', nm:'手搖杯架', fn:'bubbletea_holder_petg.gcode', mat:'PETG', col:'#ff6b1a', cn:'警示橘', min:44, g:38, layers:140, hmm:.45 },
+  { key:'gear', nm:'行星齒輪組', fn:'planetary_gear_m2.gcode', mat:'PLA', col:'#8d877c', cn:'石墨灰', min:31, g:24, layers:90, hmm:.25 },
+  { key:'lamp', nm:'扭轉燈罩', fn:'twist_lamp_shade.gcode', mat:'PLA', col:'#e9e4d8', cn:'消光白', min:95, g:112, layers:420, hmm:.9 },
+  { key:'bear', nm:'台灣黑熊擺飾', fn:'formosan_bear.gcode', mat:'PLA', col:'#5d5850', cn:'石墨黑', min:66, g:52, layers:300, hmm:.75 }
+];
+function file(k){ for (var i = 0; i < FILES.length; i++) if (FILES[i].key === k) return FILES[i]; return FILES[0]; }
+function shade(hex, f){ var n = parseInt(hex.slice(1), 16), r = Math.min(255, (n>>16)*f)|0, g = Math.min(255, ((n>>8)&255)*f)|0, b = Math.min(255, (n&255)*f)|0; return 'rgb('+r+','+g+','+b+')'; }
+/* draws layers [from,to) into ctx. geom: cx, by (bed y), R (px radius), Hpx (height px) */
+function drawLayers(ctx, f, from, to, G){
+  var M = MODELS[f.key], n = M.n, L = f.layers;
+  for (var i = from; i < to; i++){
+    var z0 = i/L, z1 = (i+1)/L, r = M.r(z0)*G.R, rot = M.rot(z0), y0 = G.by - z0*G.H, y1 = G.by - z1*G.H;
+    var pts = [];
+    for (var k = 0; k < n; k++){ var a = rot + k/n*Math.PI*2, rr = r*(M.spike ? (k % 2 ? .82 : 1) : 1); pts.push([rr*Math.cos(a), rr*Math.sin(a)]); }
+    var band = i % 2 ? 1 : .93;
+    for (var k2 = 0; k2 < n; k2++){
+      var p = pts[k2], q = pts[(k2+1) % n], mx = (p[0]+q[0])/2, my = (p[1]+q[1])/2, nx = mx, ny = my;
+      var vis = (nx + ny) > 0.0001; if (!vis) continue;
+      var lum = .5 + .42*Math.max(0, (nx*.2 + ny*.98)/Math.hypot(nx, ny));
+      var X1 = G.cx + (p[0]-p[1])*.866, Y1 = (p[0]+p[1])*.5, X2 = G.cx + (q[0]-q[1])*.866, Y2 = (q[0]+q[1])*.5;
+      ctx.fillStyle = shade(f.col, lum*band);
+      ctx.beginPath(); ctx.moveTo(X1, y0 + Y1); ctx.lineTo(X2, y0 + Y2); ctx.lineTo(X2, y1 + Y2 - .4); ctx.lineTo(X1, y1 + Y1 - .4); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = shade(f.col, 1.04);
+    ctx.beginPath(); pts.forEach(function(p, j){ var X = G.cx + (p[0]-p[1])*.866, Y = y1 + (p[0]+p[1])*.5; if (j) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); }); ctx.closePath(); ctx.fill();
+  }
+}
+function perimeterPoint(f, layer, t, G){
+  var M = MODELS[f.key], n = M.n, z = layer/f.layers, r = M.r(z)*G.R, rot = M.rot(z), s = t*n, k = Math.floor(s) % n, u = s - Math.floor(s);
+  function v(k){ var a = rot + k/n*Math.PI*2, rr = r*(M.spike ? (k % 2 ? .82 : 1) : 1); return [rr*Math.cos(a), rr*Math.sin(a)]; }
+  var p = v(k), q = v((k+1) % n), x = p[0] + (q[0]-p[0])*u, y = p[1] + (q[1]-p[1])*u;
+  return [G.cx + (x - y)*.866, G.by - (layer+1)/f.layers*G.H + (x + y)*.5];
+}
+function thumb(cv, f){
+  var d = Math.min(2, window.devicePixelRatio || 1), w = 58, h = 58; cv.width = w*d; cv.height = h*d;
+  var c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, w, h);
+  var G = { cx:29, by:47, R:14, H:36*f.hmm };
+  c.fillStyle = '#2b2925'; c.beginPath(); c.moveTo(29-24, 47); c.lineTo(29, 47+13); c.lineTo(29+24, 47); c.lineTo(29, 47-13); c.closePath(); c.fill();
+  drawLayers(c, f, 0, f.layers, G);
+}
+
+/* ---------- state ---------- */
+var SPEEDS = [['靜音',.5],['標準',1],['運動',1.24],['狂暴',1.66]];
+function freshPrinters(){
+  return [
+    { id:'P-01', nm:'工作室左', st:'print', job:{ key:'t101' }, layer:142, t:.3, paused:false, spd:1, fan:100, noz:[214.6,215], bed:[60,60], lamp:true },
+    { id:'P-02', nm:'工作室右', st:'idle', job:null, layer:0, t:0, paused:false, spd:1, fan:80, noz:[27,0], bed:[26,0], lamp:true },
+    { id:'P-03', nm:'陽台角落', st:'maint', job:null, layer:0, t:0, paused:false, spd:1, fan:0, noz:[25,0], bed:[25,0], lamp:false, note:'噴嘴堵塞，等新的 0.4 噴頭' }
+  ];
+}
+var printers = load('printers', null); if (!Array.isArray(printers) || printers.length !== 3) printers = freshPrinters();
+var queue = load('queue', null); if (!Array.isArray(queue)) queue = [{ id:'q1', key:'cup' }, { id:'q2', key:'vase' }, { id:'q3', key:'gear' }, { id:'q4', key:'bear' }];
+var sel = load('sel', 0); if (!printers[sel]) sel = 0;
+var hist = printers.map(function(p){ var h = { n:[], b:[] }; for (var i = 0; i < 60; i++){ h.n.push(p.noz[0] + Math.sin(i*.7)*.6 + (i%3 - 1)*.3); h.b.push(p.bed[0] + Math.sin(i*.4)*.3); } return h; });
+var logLines = [['09:12','P-01 開始列印 taipei101_0.2mm.gcode'],['09:11','P-01 熱床到溫 60°C'],['08:57','P-02 取下成品：行星齒輪組'],['08:20','P-03 回報：噴嘴溫度異常，已停機']];
+function persist(){ save('printers', printers); save('queue', queue); }
+function cur(){ return printers[sel]; }
+function jf(p){ return p.job ? file(p.job.key) : null; }
+
+/* ---------- canvas scene ---------- */
+var cv = $('cv'), ctx = cv.getContext('2d'), cache = document.createElement('canvas'), cctx = cache.getContext('2d');
+var W = 0, Hh = 0, DPR = 1, G = null, cacheKey = '', cacheLayer = 0, stripe = null;
+function sizeCanvas(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  var r = cv.getBoundingClientRect(); W = Math.max(200, r.width); Hh = r.height || 292;
+  cv.width = W*DPR; cv.height = Hh*DPR; cache.width = W*DPR; cache.height = Hh*DPR;
+  cacheKey = ''; draw();
+}
+function geom(f){ var R = Math.min(W*.2, 70); return { cx:W/2, by:Hh*.76, R:R, H:Hh*.62*(f ? f.hmm : 1) }; }
+function hazardPattern(c){ var p = document.createElement('canvas'); p.width = 16; p.height = 16; var x = p.getContext('2d'); x.fillStyle = '#151412'; x.fillRect(0,0,16,16); x.fillStyle = '#f5c400'; x.beginPath(); x.moveTo(0,16); x.lineTo(8,16); x.lineTo(16,8); x.lineTo(16,0); x.closePath(); x.fill(); x.beginPath(); x.moveTo(0,0); x.lineTo(0,8); x.lineTo(8,0); x.closePath(); x.fill(); return c.createPattern(p, 'repeat'); }
+function drawBed(c){
+  var cx = W/2, by = Hh*.76, bw = Math.min(W*.42, 150), bh = bw*.58, th = 12;
+  if (!stripe) stripe = hazardPattern(c);
+  c.fillStyle = stripe;
+  c.beginPath(); c.moveTo(cx - bw, by); c.lineTo(cx, by + bh); c.lineTo(cx, by + bh + th); c.lineTo(cx - bw, by + th); c.closePath(); c.fill();
+  c.fillStyle = '#0c0b0a'; c.beginPath(); c.moveTo(cx, by + bh); c.lineTo(cx + bw, by); c.lineTo(cx + bw, by + th); c.lineTo(cx, by + bh + th); c.closePath(); c.fill();
+  c.fillStyle = '#34312c'; c.beginPath(); c.moveTo(cx - bw, by); c.lineTo(cx, by + bh); c.lineTo(cx + bw, by); c.lineTo(cx, by - bh); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(242,238,228,.06)';
+  for (var i = 0; i < 90; i++){ var u = ((i*73) % 97)/97 - .5, v = ((i*31) % 89)/89 - .5; c.fillRect(cx + (u - v)*bw*.96, by + (u + v)*bh*.96, 1.2, 1.2); }
+}
+function rebuildCache(p){
+  var f = jf(p), key = p.id + (f ? f.key : '-') + W;
+  var target = !f ? 0 : (p.st === 'done' ? f.layers : p.layer);
+  if (key !== cacheKey || target < cacheLayer){
+    cctx.setTransform(DPR, 0, 0, DPR, 0, 0); cctx.clearRect(0, 0, W, Hh);
+    drawBed(cctx); cacheKey = key; cacheLayer = 0;
+  }
+  if (f && target > cacheLayer){ G = geom(f); drawLayers(cctx, f, cacheLayer, target, G); cacheLayer = target; }
+}
+var noz = { x:0, y:0 };
+function draw(){
+  var p = cur(); if (!W) return;
+  rebuildCache(p);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  var bg = ctx.createLinearGradient(0, 0, W*.6, Hh);
+  bg.addColorStop(0, p.lamp ? '#3a3629' : '#1c1a17'); bg.addColorStop(.55, p.lamp ? '#221f1a' : '#171512'); bg.addColorStop(1, '#141311');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, Hh);
+  ctx.drawImage(cache, 0, 0, W, Hh);
+  var f = jf(p);
+  var tx = W/2 + 70, ty = Hh*.2;
+  if (f && (p.st === 'print' || p.st === 'heat')){
+    G = geom(f);
+    var passes = 3, tt = (p.t*passes) % 1;
+    if (p.st === 'print'){
+      var pt = perimeterPoint(f, p.layer, tt, G); tx = pt[0]; ty = pt[1] - (p.paused ? 14 : 0);
+      if (!p.paused){
+        ctx.strokeStyle = '#ff6b1a'; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.beginPath();
+        var steps = Math.max(2, Math.floor(tt*60));
+        for (var s = 0; s <= steps; s++){ var q = perimeterPoint(f, p.layer, tt*s/steps, G); if (s) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); }
+        ctx.stroke();
+      }
+    } else { tx = W/2 + 60; ty = G.by - 40; }
+  } else if (p.st === 'done' && f){ G = geom(f); tx = W - 60; ty = 60; }
+  else { tx = W - 70; ty = 64; }
+  noz.x += (tx - noz.x)*.35; noz.y += (ty - noz.y)*.35;
+  drawHead(noz.x, noz.y, p);
+  if (p.st === 'maint'){
+    ctx.fillStyle = 'rgba(21,20,18,.55)'; ctx.fillRect(0, 0, W, Hh);
+  }
+}
+function drawHead(x, y, p){
+  ctx.fillStyle = '#0c0b0a'; ctx.fillRect(0, y - 58, W, 10);
+  ctx.fillStyle = '#f5c400'; ctx.fillRect(0, y - 49, W, 2);
+  ctx.fillStyle = '#26241f'; ctx.fillRect(x - 18, y - 60, 36, 14);
+  ctx.fillStyle = '#f5c400'; ctx.fillRect(x - 16, y - 46, 32, 26);
+  ctx.save(); ctx.beginPath(); ctx.rect(x - 16, y - 46, 32, 7); ctx.clip();
+  ctx.fillStyle = '#151412'; for (var i = -3; i < 7; i++){ ctx.beginPath(); ctx.moveTo(x - 16 + i*8, y - 39); ctx.lineTo(x - 12 + i*8, y - 39); ctx.lineTo(x - 5 + i*8, y - 46); ctx.lineTo(x - 9 + i*8, y - 46); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  ctx.fillStyle = '#151412'; ctx.beginPath(); ctx.arc(x, y - 29, 6, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#6a655c'; ctx.fillRect(x - 7, y - 20, 14, 9);
+  ctx.fillStyle = p.st === 'print' && !p.paused ? '#ff6b1a' : '#b9b3a6';
+  ctx.beginPath(); ctx.moveTo(x - 4, y - 11); ctx.lineTo(x + 4, y - 11); ctx.lineTo(x, y - 2); ctx.closePath(); ctx.fill();
+}
+
+/* ---------- simulation ---------- */
+var last = performance.now(), raf = 0, lastUi = 0;
+function frame(now){
+  var dt = Math.min(.1, (now - last)/1000); last = now;
+  step(dt);
+  draw();
+  if (now - lastUi > 250){ lastUi = now; ui(); }
+  raf = requestAnimationFrame(frame);
+}
+function secPerLayer(f){ return f.min*60/f.layers; }
+function step(dt){
+  printers.forEach(function(p, i){
+    var f = jf(p);
+    p.noz[0] += (p.noz[1] - p.noz[0])*Math.min(1, dt*.9) + (Math.random() - .5)*dt*.8;
+    p.bed[0] += (p.bed[1] - p.bed[0])*Math.min(1, dt*.35) + (Math.random() - .5)*dt*.3;
+    if (!p.noz[1]) p.noz[0] = Math.max(24, p.noz[0]); if (!p.bed[1]) p.bed[0] = Math.max(24, p.bed[0]);
+    if (p.st === 'heat' && f && Math.abs(p.noz[0] - p.noz[1]) < 3 && Math.abs(p.bed[0] - p.bed[1]) < 3){ p.st = 'print'; addLog(p.id+' 到溫，開始列印 '+f.fn); if (i === sel) beep(1320, .1, .05); }
+    if (p.st === 'print' && f && !p.paused){
+      var cold = p.noz[0] < p.noz[1] - 12;
+      if (!cold){
+        var visualLayer = 1.4/SPEEDS[p.spd][1];
+        p.t += dt/visualLayer;
+        p.remain = Math.max(0, (f.layers - p.layer - p.t)*secPerLayer(f)/SPEEDS[p.spd][1]);
+        while (p.t >= 1){ p.t -= 1; p.layer++; }
+        if (p.layer >= f.layers){ p.layer = f.layers; p.st = 'done'; p.noz[1] = 0; p.bed[1] = 0; addLog(p.id+' 完成 '+f.nm); if (i === sel){ done(); haptic([20,60,20,60,40]); toast(f.nm+' 印好了'); } persist(); }
+      }
+    }
+  });
+  var s = Math.floor(performance.now()/1000);
+  if (s !== step.s){ step.s = s; printers.forEach(function(p, i){ hist[i].n.push(p.noz[0]); hist[i].b.push(p.bed[0]); if (hist[i].n.length > 60){ hist[i].n.shift(); hist[i].b.shift(); } }); if (s % 5 === 0) persist(); }
+}
+document.addEventListener('visibilitychange', function(){ if (document.hidden){ cancelAnimationFrame(raf); raf = 0; persist(); } else if (!raf){ last = performance.now(); raf = requestAnimationFrame(frame); } });
+
+/* ---------- UI ---------- */
+var STATE_TX = { print:'列印中', heat:'加熱中', done:'完成', idle:'閒置', maint:'維修中' };
+function fmt(sec){ sec = Math.max(0, Math.round(sec)); var h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = sec%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+function ui(){
+  var p = cur(), f = jf(p);
+  $('pId').textContent = p.id; $('pNm').textContent = p.nm;
+  var stx = p.st === 'print' && p.paused ? '已暫停' : STATE_TX[p.st], cls = p.st === 'print' && p.paused ? 'pause' : p.st;
+  var st = $('pState'); st.className = 'state din ' + cls;
+  st.firstChild.nodeValue = stx;
+  $('pSub').textContent = f ? '0.20 mm · ' + f.mat : (p.st === 'maint' ? '停機' : '待命');
+  $('jobTag').innerHTML = f ? '<b>'+esc(f.nm)+'</b>'+esc(f.fn) : (p.st === 'maint' ? '<b>停機維修</b>'+esc(p.note||'') : '<b>列印床空著</b>可以從佇列開始下一件');
+  var L = f ? f.layers : 0, lay = f ? (p.st === 'done' ? L : Math.min(L, p.layer)) : 0;
+  $('lay').innerHTML = (f ? lay : '—') + '<small> / '+(f ? L : '—')+' 層</small>';
+  var pct = f ? (p.st === 'done' ? 100 : Math.floor((p.layer + p.t)/L*100)) : 0;
+  $('barI').style.width = pct + '%'; $('pc').textContent = pct + '%';
+  $('bar').classList.toggle('run', p.st === 'print' && !p.paused && !reduce);
+  $('eta').textContent = f ? (p.st === 'done' ? '00:00:00' : fmt(p.remain !== undefined ? p.remain : (L - p.layer)*secPerLayer(f)/SPEEDS[p.spd][1])) : '--:--:--';
+  $('vNoz').innerHTML = Math.round(p.noz[0]) + '<small>°C</small>'; $('gNoz').textContent = p.noz[1] ? '目標 '+p.noz[1] : '加熱關閉';
+  $('vBed').innerHTML = Math.round(p.bed[0]) + '<small>°C</small>'; $('gBed').textContent = p.bed[1] ? '目標 '+p.bed[1] : '加熱關閉';
+  $('tNoz').classList.toggle('hot', p.noz[0] > 50); $('tBed').classList.toggle('hot', p.bed[0] > 45);
+  spark($('cNoz'), hist[sel].n, '#ff6b1a', 0, 260); spark($('cBed'), hist[sel].b, '#f5c400', 0, 110);
+  var pb = $('pauseBtn');
+  pb.disabled = !(p.st === 'print');
+  $('pauseTx').textContent = p.paused ? '繼續' : '暫停';
+  $('pauseIc').innerHTML = p.paused ? '<path d="M5 3l14 8-14 8z" fill="#151412"/>' : '<path d="M4 3h5v16H4zM13 3h5v16h-5z" fill="#151412"/>';
+  $('stopBtn').disabled = !(p.st === 'print' || p.st === 'heat');
+  $('fanV').textContent = p.fan + '%';
+  $('fanIc').classList.toggle('spin', p.fan > 0 && (p.st === 'print' && !p.paused) && !reduce);
+  $('lamp').setAttribute('aria-pressed', p.lamp);
+  var ib = $('idleBox');
+  if (p.st === 'idle'){ ib.hidden = false; ib.innerHTML = queue.length ? '<button class="big" data-start style="padding:0 20px;height:58px;font-size:22px"><svg viewBox="0 0 22 22"><path d="M5 3l14 8-14 8z" fill="#151412"/></svg>開始：'+esc(file(queue[0].key).nm)+'</button>' : '<button class="big" data-goq style="padding:0 20px;height:58px;font-size:22px">佇列是空的，去加一件</button>'; }
+  else if (p.st === 'done'){ ib.hidden = false; ib.innerHTML = '<button class="big" data-clear style="padding:0 20px;height:58px;font-size:22px">取下成品'+(queue.length ? '，接著印下一件' : '')+'</button>'; }
+  else { ib.hidden = true; ib.innerHTML = ''; }
+  renderSpeeds();
+  $('log').innerHTML = logLines.slice(0, 5).map(function(l){ return '<div><b>'+l[0]+'</b>  '+esc(l[1])+'</div>'; }).join('');
+  $('qCnt').textContent = queue.length;
+}
+function spark(c, arr, col, lo, hi){
+  var d = Math.min(2, window.devicePixelRatio || 1), w = c.clientWidth || 160, h = 34;
+  if (c.width !== Math.round(w*d)){ c.width = Math.round(w*d); c.height = h*d; }
+  var x = c.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, w, h);
+  if (arr.length < 2) return;
+  x.strokeStyle = col; x.lineWidth = 1.6; x.beginPath();
+  arr.forEach(function(v, i){ var X = w - (arr.length - 1 - i)*(w/59), Y = h - 3 - (v - lo)/(hi - lo)*(h - 6); if (i) x.lineTo(X, Y); else x.moveTo(X, Y); });
+  x.stroke();
+}
+function renderSpeeds(){
+  var p = cur(), h = SPEEDS.map(function(s, i){ return '<button class="'+(i===p.spd?'on':'')+'" data-spd="'+i+'" aria-pressed="'+(i===p.spd)+'"><b>'+Math.round(s[1]*100)+'%</b>'+s[0]+'</button>'; }).join('');
+  if ($('speeds').innerHTML !== h) $('speeds').innerHTML = h;
+}
+function addLog(t){ var d = new Date(); logLines.unshift([String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'), t]); logLines = logLines.slice(0, 8); }
+
+/* ---------- controls ---------- */
+$('pauseBtn').addEventListener('click', function(){
+  var p = cur(); if (p.st !== 'print') return; ac();
+  p.paused = !p.paused; stepper(!p.paused); haptic(p.paused ? [10,40,10] : 14);
+  addLog(p.id + (p.paused ? ' 暫停，噴頭抬升 2 mm' : ' 繼續列印')); persist(); ui();
+});
+$('speeds').addEventListener('click', function(e){ var b = e.target.closest('[data-spd]'); if (!b) return; var p = cur(); p.spd = +b.dataset.spd; ac(); key(); haptic(5); addLog(p.id+' 速度 '+SPEEDS[p.spd][0]+' '+Math.round(SPEEDS[p.spd][1]*100)+'%'); persist(); ui(); });
+$('fanMinus').addEventListener('click', function(){ var p = cur(); p.fan = Math.max(0, p.fan - 10); ac(); key(); haptic(4); persist(); ui(); });
+$('fanPlus').addEventListener('click', function(){ var p = cur(); p.fan = Math.min(100, p.fan + 10); ac(); key(); haptic(4); persist(); ui(); });
+$('lamp').addEventListener('click', function(){ var p = cur(); p.lamp = !p.lamp; ac(); beep(p.lamp ? 1600 : 900, .04, .03); haptic(5); persist(); ui(); });
+$('idleBox').addEventListener('click', function(e){
+  var p = cur();
+  if (e.target.closest('[data-start]')) startNext(p);
+  else if (e.target.closest('[data-clear]')){ ac(); key(); haptic(8); addLog(p.id+' 取下成品：'+jf(p).nm); p.job = null; p.st = 'idle'; p.layer = 0; p.t = 0; cacheKey = ''; if (queue.length) startNext(p); else { persist(); ui(); } }
+  else if (e.target.closest('[data-goq]')) goPage('q');
+});
+function startNext(p){
+  if (!queue.length) return;
+  var q = queue.shift(), f = file(q.key);
+  p.job = { key:q.key }; p.st = 'heat'; p.layer = 0; p.t = 0; p.paused = false; p.remain = undefined;
+  p.noz[1] = f.mat === 'PETG' ? 240 : 215; p.bed[1] = f.mat === 'PETG' ? 75 : 60;
+  cacheKey = ''; ac(); stepper(true); haptic([10,30,10]); addLog(p.id+' 預熱：'+f.nm); toast('預熱中，到溫就開印'); persist(); ui(); renderQueue();
+}
+/* hold to stop */
+(function(){
+  var b = $('stopBtn'), fl = $('stopF'), t0 = 0, raf2 = 0, on = false;
+  function tick(){ var k = Math.min(1, (performance.now() - t0)/1200); fl.style.width = (k*100)+'%'; b.classList.toggle('arm', k > .5); if (k >= 1){ on = false; fire(); return; } if (on) raf2 = requestAnimationFrame(tick); }
+  function fire(){ var p = cur(), f = jf(p); fl.style.width = '0'; b.classList.remove('arm'); if (!f) return; beep(440, .5, .08, 0, 'sawtooth'); haptic([40,40,40]); addLog(p.id+' 手動停止：'+f.nm); p.st = 'idle'; p.job = null; p.paused = false; p.noz[1] = 0; p.bed[1] = 0; cacheKey = ''; persist(); ui(); toast('已停止，這一件作廢'); }
+  b.addEventListener('pointerdown', function(e){ if (b.disabled) return; ac(); on = true; t0 = performance.now(); beep(700, .08, .04); haptic(10); try{ b.setPointerCapture(e.pointerId); }catch(err){} raf2 = requestAnimationFrame(tick); });
+  function cancel(){ if (!on) return; on = false; cancelAnimationFrame(raf2); fl.style.width = '0'; b.classList.remove('arm'); }
+  b.addEventListener('pointerup', cancel); b.addEventListener('pointercancel', cancel); b.addEventListener('pointerleave', cancel);
+  b.addEventListener('click', function(e){ if (e.detail === 0 && !b.disabled){ fire(); } });
+})();
+
+/* temperature sheet */
+function openTemp(which){
+  var p = cur(), isN = which === 'noz', arr = isN ? p.noz : p.bed;
+  var pres = isN ? [['PLA',215],['PETG',240],['ABS',255],['關閉',0]] : [['PLA',60],['PETG',75],['ABS',100],['關閉',0]];
+  var val = arr[1], max = isN ? 300 : 110;
+  function body(){ return '<h3>'+(isN ? '噴嘴溫度' : '熱床溫度')+'</h3><p class="lead">'+p.id+' · 現在 <span class="mono" id="tNow">'+Math.round(arr[0])+'°C</span></p>'+
+    '<div class="tset"><button data-d="-5" aria-label="降低 5 度">−5</button><div class="n" id="tVal">'+(val || '關')+(val ? '<small>°C</small>' : '')+'</div><button data-d="5" aria-label="提高 5 度">+5</button></div>'+
+    '<div class="presets">'+pres.map(function(x){ return '<button data-v="'+x[1]+'" class="'+(x[1]===val?'on':'')+'"><span>'+x[0]+'</span><small>'+(x[1] ? x[1]+'°' : 'OFF')+'</small></button>'; }).join('')+'</div>'+
+    '<div class="tchart"><canvas id="tc"></canvas></div>'+
+    '<button class="okbtn" id="tOk">設定為 '+(val ? val+'°C' : '關閉')+'</button>'; }
+  openSheet(body());
+  var chart = function(){ var c = $('tc'); if (!c) return; var d = Math.min(2, window.devicePixelRatio||1), w = c.clientWidth, h = 110; c.width = w*d; c.height = h*d; var x = c.getContext('2d'); x.setTransform(d,0,0,d,0,0); var a = isN ? hist[sel].n : hist[sel].b, lo = 0, hi = max;
+    x.fillStyle = '#8a8478'; x.font = '11px Menlo, monospace'; x.fillText(hi+'°', 6, 14); x.fillText('0°', 6, h - 6); x.fillText('近 60 秒', w - 58, h - 6);
+    if (val){ var ty = h - 8 - val/hi*(h - 20); x.strokeStyle = '#f5c400'; x.setLineDash([4,4]); x.beginPath(); x.moveTo(34, ty); x.lineTo(w - 6, ty); x.stroke(); x.setLineDash([]); }
+    x.strokeStyle = isN ? '#ff6b1a' : '#f5c400'; x.lineWidth = 2; x.beginPath(); a.forEach(function(v, i){ var X = w - 6 - (a.length - 1 - i)*((w - 40)/59), Y = h - 8 - v/hi*(h - 20); if (i) x.lineTo(X, Y); else x.moveTo(X, Y); }); x.stroke(); };
+  chart();
+  $('sbody').onclick = function(e){
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.d){ val = Math.max(0, Math.min(max, val + +b.dataset.d)); key(); haptic(4); }
+    else if (b.dataset.v !== undefined){ val = +b.dataset.v; key(); haptic(5); }
+    else if (b.id === 'tOk'){ arr[1] = val; persist(); ui(); beep(1320, .08, .05); beep(1760, .1, .05, .1); haptic([8,30,8]); addLog(p.id+(isN ? ' 噴嘴' : ' 熱床')+'目標 '+(val ? val+'°C' : '關閉')); closeSheet(); return; }
+    $('sbody').innerHTML = body(); chart();
+  };
+}
+$('tNoz').addEventListener('click', function(){ ac(); key(); haptic(5); openTemp('noz'); });
+$('tBed').addEventListener('click', function(){ ac(); key(); haptic(5); openTemp('bed'); });
+
+/* printer picker */
+$('pickPrinter').addEventListener('click', function(){
+  ac(); key(); haptic(5);
+  openSheet('<h3>印表機</h3><p class="lead">工作室三台，點一下切換。</p><div style="margin-top:12px">'+printers.map(function(p, i){ var f = jf(p), pct = f ? (p.st === 'done' ? 100 : Math.floor((p.layer + p.t)/f.layers*100)) : null;
+    return '<button class="prn'+(i===sel?' on':'')+'" data-i="'+i+'"><span class="id">'+p.id+'</span><span><span class="nm" style="display:block">'+p.nm+' · '+(p.st === 'print' && p.paused ? '已暫停' : STATE_TX[p.st])+'</span><span class="s" style="display:block">'+(f ? esc(f.fn) : (p.note ? esc(p.note) : '列印床空著'))+'</span></span><span class="pct">'+(pct !== null ? pct+'%' : '')+'</span></button>'; }).join('')+'</div>');
+  $('sbody').onclick = function(e){ var b = e.target.closest('[data-i]'); if (!b) return; sel = +b.dataset.i; save('sel', sel); cacheKey = ''; key(); haptic(6); closeSheet(); ui(); draw(); if (cur().st === 'maint') toast(cur().id+' 維修中'); };
+});
+
+/* ---------- queue page ---------- */
+function renderQueue(){
+  var tot = queue.reduce(function(s, q){ return s + file(q.key).min; }, 0);
+  $('qSum').innerHTML = '<b>'+queue.length+' 件</b>共 '+Math.floor(tot/60)+' 小時 '+(tot%60)+' 分';
+  $('qlist').innerHTML = queue.length ? queue.map(function(q, i){ var f = file(q.key);
+    return '<div class="qrow" data-i="'+i+'"><button class="del" data-del="'+i+'" aria-label="移除 '+f.nm+'">移除</button><div class="face">'+
+      '<span class="handle" data-h="'+i+'" role="button" tabindex="0" aria-label="拖曳排序 '+f.nm+'，可用上下鍵"><svg viewBox="0 0 18 24"><path d="M2 5h14v3H2zM2 10.5h14v3H2zM2 16h14v3H2z" fill="#8a8478"/></svg></span>'+
+      '<canvas data-k="'+q.key+'"></canvas><div style="min-width:0"><div class="nm">'+esc(f.nm)+'</div><div class="fn">'+esc(f.fn)+'</div><div class="mt"><i style="background:'+f.col+'"></i>'+f.mat+' · '+f.min+' 分 · '+f.g+' g</div></div>'+
+      '<div class="ix">'+(i === 0 ? '下一件' : String(i+1).padStart(2,'0'))+'</div></div></div>'; }).join('') : '<p class="empty">佇列清空了。從檔案庫挑一件吧。</p>';
+  $('qlist').querySelectorAll('canvas').forEach(function(c){ thumb(c, file(c.dataset.k)); });
+  $('qCnt').textContent = queue.length;
+  var ix = $('qlist').querySelector('.qrow:first-child .ix'); if (ix) ix.style.fontSize = '20px';
+}
+/* drag reorder + swipe delete */
+(function(){
+  var list = $('qlist'), drag = null, sw = null;
+  var ROW = 84;
+  list.addEventListener('pointerdown', function(e){
+    var h = e.target.closest('[data-h]'), row = e.target.closest('.qrow');
+    if (h){ ac(); var i = +h.dataset.h; drag = { i:i, to:i, y:e.clientY, row:row, rows:[].slice.call(list.querySelectorAll('.qrow')) }; row.classList.add('lift'); try{ h.setPointerCapture(e.pointerId); }catch(err){} haptic(8); key(); e.preventDefault(); return; }
+    if (row && !e.target.closest('.del')) sw = { row:row, x:e.clientX, y:e.clientY, dx:0, on:null, base: row.dataset.open ? -92 : 0 };
+  });
+  list.addEventListener('pointermove', function(e){
+    if (drag){
+      var dy = e.clientY - drag.y, n = drag.rows.length;
+      drag.row.style.transform = 'translateY('+dy+'px)';
+      var to = Math.max(0, Math.min(n - 1, drag.i + Math.round(dy/ROW)));
+      if (to !== drag.to){ drag.to = to; haptic(3); beep(1500, .02, .025); }
+      drag.rows.forEach(function(r, j){ if (j === drag.i) return; r.classList.add('shift'); var off = 0; if (drag.i < to && j > drag.i && j <= to) off = -ROW; if (drag.i > to && j < drag.i && j >= to) off = ROW; r.style.transform = off ? 'translateY('+off+'px)' : ''; });
+      return;
+    }
+    if (sw){
+      var mx = e.clientX - sw.x, my = e.clientY - sw.y;
+      if (sw.on === null){ if (Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)){ sw.on = true; sw.row.classList.add('sw'); } else if (Math.abs(my) > 8){ sw = null; return; } else return; }
+      sw.dx = mx; sw.row.querySelector('.face').style.transform = 'translateX('+Math.max(-130, Math.min(0, sw.base + mx))+'px)';
+    }
+  });
+  function end(){
+    if (drag){
+      var d = drag; drag = null;
+      if (d.to !== d.i){ var it = queue.splice(d.i, 1)[0]; queue.splice(d.to, 0, it); persist(); addLog('佇列：'+file(it.key).nm+' 移到第 '+(d.to+1)+' 位'); haptic(10); }
+      renderQueue(); ui(); return;
+    }
+    if (sw){ var s = sw; sw = null; if (!s.on) return; s.row.classList.remove('sw'); var f = s.row.querySelector('.face');
+      if (s.base + s.dx < -46){ s.row.dataset.open = '1'; f.style.transform = 'translateX(-92px)'; haptic(5); } else { delete s.row.dataset.open; f.style.transform = ''; } }
+  }
+  list.addEventListener('pointerup', end); list.addEventListener('pointercancel', end);
+  list.addEventListener('keydown', function(e){ var h = e.target.closest('[data-h]'); if (!h) return; var i = +h.dataset.h, to = e.key === 'ArrowUp' ? i - 1 : e.key === 'ArrowDown' ? i + 1 : -1; if (to < 0 || to >= queue.length) return; e.preventDefault(); var it = queue.splice(i, 1)[0]; queue.splice(to, 0, it); persist(); renderQueue(); var nh = list.querySelector('[data-h="'+to+'"]'); if (nh) nh.focus(); });
+  list.addEventListener('click', function(e){ var b = e.target.closest('[data-del]'); if (!b) return; var i = +b.dataset.del, it = queue.splice(i, 1)[0]; if (!it) return; persist(); ac(); beep(330, .12, .05); haptic([8,30,8]); renderQueue(); ui();
+    toast('已移除 '+file(it.key).nm, '復原', function(){ queue.splice(Math.min(i, queue.length), 0, it); persist(); renderQueue(); ui(); }); });
+})();
+$('addq').addEventListener('click', function(){
+  ac(); key(); haptic(5);
+  openSheet('<h3>檔案庫</h3><p class="lead">已切片的 G-code，加進佇列最後面。</p><div style="margin-top:8px">'+FILES.map(function(f){ return '<div class="lib"><canvas data-k="'+f.key+'"></canvas><div><div class="nm">'+esc(f.nm)+'</div><div class="fn">'+esc(f.fn)+'</div><div class="mt">'+f.mat+' '+f.cn+' · '+f.min+' 分 · '+f.g+' g</div></div><button data-add="'+f.key+'">加入</button></div>'; }).join('')+'</div>');
+  $('sbody').querySelectorAll('canvas').forEach(function(c){ thumb(c, file(c.dataset.k)); });
+  $('sbody').onclick = function(e){ var b = e.target.closest('[data-add]'); if (!b) return; queue.push({ id:'q'+Date.now().toString(36), key:b.dataset.add }); persist(); beep(1320, .06, .04); beep(1760, .08, .04, .07); haptic(8); renderQueue(); ui(); b.textContent = '已加入'; b.disabled = true; toast(file(b.dataset.add).nm+' 排到第 '+queue.length+' 位'); };
+});
+
+/* ---------- pages ---------- */
+function goPage(pg){
+  $('pages').classList.toggle('q', pg === 'q'); $('rocker').classList.toggle('q', pg === 'q');
+  $('rocker').querySelectorAll('button').forEach(function(b){ var on = b.dataset.pg === pg; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+  save('pg', pg);
+}
+$('rocker').addEventListener('click', function(e){ var b = e.target.closest('[data-pg]'); if (!b || b.classList.contains('on')) return; ac(); beep(900, .05, .05); beep(600, .06, .04, .05); haptic(10); goPage(b.dataset.pg); });
+
+/* ---------- sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('sbody').onclick = null; $('sbody').innerHTML = html; $('sbody').scrollTop = 0; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); var f = sheet.querySelector('button'); if (f) try{ f.focus({ preventScroll:true }); }catch(e){} }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = ''; if (lastFocus && lastFocus.focus) try{ lastFocus.focus({ preventScroll:true }); }catch(e){} }
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+(function(){
+  var sy = 0, dy = 0, t0 = 0, on = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button,canvas')) return; if ($('sbody').scrollTop > 2 && e.target.closest('.sbody')) return; on = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(err){} });
+  sheet.addEventListener('pointermove', function(e){ if (!on) return; dy = e.clientY - sy; sheet.style.transform = 'translateY('+(dy > 0 ? dy : dy/6).toFixed(1)+'px)'; scrim.style.opacity = Math.max(0, 1 - dy/sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!on) return; on = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy/Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight*.35 || v > .6){ haptic(5); closeSheet(); } else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+/* ---------- toast ---------- */
+var tT = null;
+function toast(msg, act, fn){ var t = $('toast'); t.innerHTML = '<span>'+esc(msg)+'</span>' + (act ? '<button>'+act+'</button>' : ''); if (act) t.querySelector('button').onclick = function(){ fn(); t.classList.remove('on'); haptic(6); }; t.classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ t.classList.remove('on'); }, act ? 4000 : 1900); }
+
+/* ---------- clock ---------- */
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+tickClock(); setInterval(tickClock, 15000);
+
+/* ---------- backdrop: tread plate + hazard tape ---------- */
+(function(){
+  var s = '<defs><pattern id="tp" width="36" height="36" patternUnits="userSpaceOnUse"><rect width="36" height="36" fill="#1b1a17"/><path d="M4 12l8-8 3 3-8 8z" fill="#2a2824"/><path d="M22 14l8 8-3 3-8-8z" fill="#2a2824"/><path d="M5 12.5l7.5-7.5" stroke="#35322d" stroke-width="1"/><path d="M22.5 14.5l7.5 7.5" stroke="#35322d" stroke-width="1"/></pattern>'+
+    '<pattern id="hz" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="30" height="60" fill="#f5c400"/><rect x="30" width="30" height="60" fill="#151412"/></pattern>'+
+    '<linearGradient id="lt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5c400" stop-opacity=".08"/><stop offset=".6" stop-color="#000" stop-opacity="0"/></linearGradient></defs>';
+  s += '<rect width="1600" height="1000" fill="url(#tp)"/><rect width="1600" height="1000" fill="url(#lt)"/>';
+  s += '<g transform="rotate(-18 800 500)"><rect x="-300" y="80" width="2200" height="70" fill="url(#hz)"/><rect x="-300" y="860" width="2200" height="70" fill="url(#hz)"/></g>';
+  s += '<text x="120" y="620" font-family="DIN Condensed, sans-serif" font-weight="700" font-size="260" fill="#f5c400" opacity=".1">P-01</text>';
+  $('bd').innerHTML = s;
+})();
+
+/* ---------- boot ---------- */
+goPage(load('pg', 's'));
+renderQueue(); ui();
+requestAnimationFrame(function(){ sizeCanvas(); noz.x = W/2; noz.y = 60; raf = requestAnimationFrame(frame); });
+window.addEventListener('resize', function(){ sizeCanvas(); });
+})();
+</script>
+</body>
+</html>

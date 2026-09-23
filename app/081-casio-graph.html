@@ -1,0 +1,1370 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b1a18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="函數機">
+<title>函數機 · 繪圖計算機</title>
+<meta name="description" content="黑色塑膠機身、128×64 點陣液晶的繪圖計算機：輸入函數，看圖形一點一點描出來，平移縮放、追蹤求根、數值表格。收錄於 100 Creative HTML Works（App 081・卡西歐圖形計算機）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/081-casio-graph.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='8' y='2' width='48' height='60' rx='9' fill='%231b1a18'/%3E%3Crect x='13' y='8' width='38' height='22' rx='2' fill='%23bcc5a7'/%3E%3Cpath d='M16 24h3v-4h3v-5h3v-2h3v2h3v5h3v4h3v2h3v-2h3' fill='none' stroke='%231b2317' stroke-width='2'/%3E%3Crect x='13' y='37' width='10' height='6' rx='2' fill='%23e8762b'/%3E%3Crect x='27' y='37' width='10' height='6' rx='2' fill='%234a4743'/%3E%3Crect x='41' y='37' width='10' height='6' rx='2' fill='%234a4743'/%3E%3Crect x='13' y='48' width='10' height='7' rx='2' fill='%234a4743'/%3E%3Crect x='27' y='48' width='10' height='7' rx='2' fill='%234a4743'/%3E%3Crect x='41' y='48' width='10' height='7' rx='2' fill='%23bcc5a7'/%3E%3C/svg%3E">
+<style>
+:root{
+  --body:#1b1a18;
+  --body-2:#23211e;
+  --key:#2c2a27;
+  --key-top:#3a3834;
+  --num:#474440;
+  --num-top:#57534e;
+  --lip:#0c0b0a;
+  --orange:#e8762b;
+  --orange-ink:#f3a064;
+  --lcd:#bcc5a7;
+  --lcd-2:#aeb898;
+  --lcd-ink:#1b2317;
+  --legend:#efebe2;
+  --mute:#a8a295;
+  --kf:"Avenir Next Condensed","Avenir Next","Helvetica Neue",Arial,"PingFang TC",sans-serif;
+  --cjk:"PingFang TC","Heiti TC","Noto Sans TC",system-ui,sans-serif;
+  --chalk:"Kaiti TC","STKaiti","BiauKai","Songti TC",serif;
+  --out:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.3,1.35,.5,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--cjk);color:var(--legend);background:var(--body);-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:2px solid var(--orange-ink);outline-offset:2px;border-radius:10px}
+svg{display:block}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.cam{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--body);isolation:isolate}
+@media (min-width:521px){
+  body{background:#1d2520}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:56px;padding:10px;z-index:1;
+    background:linear-gradient(160deg,#4a4741,#1d1c1a 38%,#131211 70%,#35322e);
+    box-shadow:inset 0 0 0 1px rgba(255,248,235,.14),inset 0 0 0 2px #070706,0 26px 40px -22px rgba(0,0,0,.8)}
+  .screen{inset:10px;border-radius:46px}
+  .cam{display:block;position:absolute;top:22px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#050505;box-shadow:inset 0 0 0 2px #151412;z-index:60}
+  .caption{display:block;position:relative;z-index:1;max-width:300px;color:#ece8da;font-family:var(--chalk)}
+  .caption h1{font-size:44px;line-height:1.1;font-weight:400;letter-spacing:.04em}
+  .caption p{margin-top:14px;font-size:18px;line-height:1.7;color:rgba(236,232,218,.78)}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+/* ---------- plastic ---------- */
+.grain{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5}
+.grain svg{width:100%;height:100%}
+
+/* ---------- status bar ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+  height:calc(44px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 15px/1 var(--kf);color:var(--legend);letter-spacing:.02em;pointer-events:none;font-variant-numeric:tabular-nums}
+.status .glyphs{display:flex;align-items:center;gap:7px}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- calculator ---------- */
+.calc{position:absolute;z-index:2;left:0;right:0;top:calc(44px + env(safe-area-inset-top));bottom:calc(20px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;padding:2px 14px 0}
+@media (display-mode:standalone){.calc{top:calc(8px + env(safe-area-inset-top))}}
+.brow{display:flex;align-items:baseline;gap:10px;padding:2px 8px 8px}
+.brow b{font:700 19px/1 var(--cjk);letter-spacing:.06em;color:var(--legend)}
+.brow i{font:italic 700 15px/1 var(--kf);color:var(--orange-ink);letter-spacing:.02em}
+.brow span{margin-left:auto;font:500 12px/1 var(--cjk);color:var(--mute)}
+.bezel{position:relative;background:#11100f;border-radius:16px 16px 26px 26px/16px 16px 34px 34px;padding:11px 12px 9px;
+  box-shadow:inset 0 1px 0 rgba(255,248,235,.08),inset 0 -2px 0 rgba(0,0,0,.6)}
+.lcd{position:relative;border-radius:5px;overflow:hidden;background:linear-gradient(168deg,#c6cfb2 0%,var(--lcd) 42%,var(--lcd-2) 100%);
+  box-shadow:inset 0 2px 3px rgba(20,26,16,.45),inset 0 0 0 1px rgba(20,26,16,.35);touch-action:none;cursor:crosshair}
+.lcd canvas{display:block;width:100%}
+.lcd::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,rgba(255,255,255,.16),rgba(255,255,255,0) 34%)}
+.bezel .lbl{display:flex;justify-content:space-between;align-items:center;margin-top:7px;padding:0 4px;font:500 11.5px/1 var(--cjk);color:#8f897c}
+.bezel .lbl em{font:italic 600 12px/1 var(--kf);color:#8f897c;letter-spacing:.04em}
+
+.keys{flex:1;min-height:0;margin-top:10px;display:grid;grid-template-columns:repeat(30,1fr);
+  grid-template-rows:40px repeat(3,minmax(44px,1fr)) repeat(4,minmax(46px,1.12fr));gap:7px 7px;padding-bottom:6px}
+.k{position:relative;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-end;min-width:0;touch-action:manipulation}
+.k .sl{display:block;height:15px;font:500 11.5px/15px var(--cjk);color:var(--orange-ink);text-align:center;white-space:nowrap;overflow:visible;letter-spacing:.02em}
+.k .cap{position:relative;flex:1;max-height:46px;display:flex;align-items:center;justify-content:center;border-radius:9px 9px 12px 12px;
+  background:linear-gradient(180deg,var(--key-top),var(--key) 55%,#252320);color:var(--legend);font:600 16px/1 var(--kf);letter-spacing:.01em;
+  box-shadow:inset 0 1px 0 rgba(255,248,235,.13),0 3px 0 var(--lip),0 4px 3px -2px rgba(0,0,0,.55);transition:transform .07s,box-shadow .07s}
+.k.down .cap,.k:active .cap{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,248,235,.07),0 1px 0 var(--lip),0 1px 2px -1px rgba(0,0,0,.5)}
+.k .cap sup{font-size:.62em;margin-left:1px;transform:translateY(-.35em)}
+.k .it{font-family:"Times New Roman",Times,serif;font-style:italic;font-weight:500;font-size:19px}
+.k.fk .cap{max-height:25px;border-radius:12px/10px;font-size:13px;font-weight:600;color:#d8d3c8}
+.k.num .cap{background:linear-gradient(180deg,var(--num-top),var(--num) 55%,#3f3c38);font-size:21px;font-weight:500;max-height:52px}
+.k.shift .cap{background:linear-gradient(180deg,#f08a44,var(--orange) 60%,#d86a22);color:#1b1a18;box-shadow:inset 0 1px 0 rgba(255,232,210,.4),0 3px 0 #6b3510,0 4px 3px -2px rgba(0,0,0,.5)}
+.k.shift.on .cap{background:#f5ad76}
+.k.ac .cap{color:var(--orange-ink)}
+.k.exe .cap{background:linear-gradient(180deg,#cad2b6,var(--lcd) 60%,#a9b392);color:var(--lcd-ink);font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 3px 0 #4b523e,0 4px 3px -2px rgba(0,0,0,.5)}
+.k.small .cap{font-size:14px}
+
+.dpad{position:relative;grid-column:21/31;grid-row:2/4;display:flex;align-items:center;justify-content:center}
+.dpad .plate{position:relative;width:min(100%,108px);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle at 50% 42%,#3b3935 0,#2b2926 62%,#211f1d 100%);box-shadow:inset 0 1px 0 rgba(255,248,235,.12),0 3px 0 var(--lip),0 5px 4px -3px rgba(0,0,0,.55)}
+.dpad .plate::before{content:"";position:absolute;inset:34%;border-radius:50%;background:#1a1917;box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
+.dpad .plate b{position:absolute;left:0;right:0;top:50%;margin-top:-6px;text-align:center;font:600 8.5px/12px var(--kf);letter-spacing:.08em;color:#6f6a60;pointer-events:none}
+.dp{position:absolute;display:grid;place-items:center;color:#d8d3c8;border-radius:12px}
+.dp svg{width:14px;height:14px;transition:transform .07s}
+.dp.u{top:0;left:30%;width:40%;height:34%}.dp.d{bottom:0;left:30%;width:40%;height:34%}
+.dp.l{left:0;top:30%;width:34%;height:40%}.dp.r{right:0;top:30%;width:34%;height:40%}
+.dp.down svg,.dp:active svg{transform:scale(.82)}
+.dp.u.down~.plate,.dp.u:active{background:rgba(0,0,0,.18)}
+.dp.down,.dp:active{background:rgba(0,0,0,.22)}
+
+@media (max-height:720px){
+  .brow{padding-bottom:5px}.brow span{display:none}
+  .bezel{padding:8px 10px 6px}
+  .bezel .lbl{display:none}
+  .keys{margin-top:7px;gap:5px 6px;grid-template-rows:36px repeat(3,minmax(44px,1fr)) repeat(4,minmax(44px,1.05fr))}
+  .k .sl{height:13px;line-height:13px;font-size:11px}
+}
+
+.home{position:absolute;left:50%;bottom:7px;width:132px;height:5px;margin-left:-66px;border-radius:3px;background:rgba(239,235,226,.55);z-index:40;pointer-events:none}
+
+/* ---------- sheet (範例庫) ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(8,7,6,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:82%;display:flex;flex-direction:column;border-radius:26px 26px 0 0;
+  background:linear-gradient(180deg,#2e2c28,#242220 30%);box-shadow:inset 0 1px 0 rgba(255,248,235,.14),0 -8px 16px -12px rgba(0,0,0,.7);
+  padding:10px 0 calc(16px + env(safe-area-inset-bottom));transform:translateY(105%);visibility:hidden;transition:transform .48s var(--spring),visibility 0s .48s;touch-action:none}
+.sheet.on{transform:translateY(0);visibility:visible;transition:transform .48s var(--spring)}
+.sheet.drag{transition:none}
+.grab{width:42px;height:5px;border-radius:3px;background:#5d5953;margin:0 auto 12px;flex:none}
+.sheet header{padding:0 22px 12px;flex:none}
+.sheet h2{font:600 21px/1.2 var(--cjk);letter-spacing:.04em}
+.sheet header p{margin-top:4px;font-size:13.5px;color:var(--mute)}
+.libs{list-style:none;padding:0 12px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;flex:1;min-height:0}
+.libs li{position:relative}
+.lib{display:flex;align-items:center;gap:14px;width:100%;padding:9px 10px;border-radius:14px;text-align:left;transition:background-color .15s}
+.lib:active{background:rgba(255,248,235,.06)}
+.lib .th{flex:none;width:104px;height:52px;border-radius:4px;background:linear-gradient(168deg,#c6cfb2,var(--lcd) 45%,var(--lcd-2));box-shadow:inset 0 1px 2px rgba(20,26,16,.45)}
+.lib .th canvas{width:104px;height:52px;display:block}
+.lib .tx{min-width:0;flex:1}
+.lib b{display:block;font:600 16px/1.3 var(--cjk)}
+.lib small{display:block;margin-top:3px;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib .fx{display:block;margin-top:3px;font:italic 14px/1.3 "Times New Roman",Times,serif;color:#d9d3c5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.libs .del{position:absolute;right:4px;top:50%;margin-top:-22px;width:44px;height:44px;display:grid;place-items:center;color:var(--orange-ink);border-radius:12px}
+.libs .del:active{background:rgba(232,118,43,.14)}
+.libs li.mine .lib{padding-right:50px}
+.savecur{flex:none;margin:12px 22px 0;height:52px;border-radius:12px 12px 16px 16px;display:flex;align-items:center;justify-content:center;gap:10px;
+  background:linear-gradient(180deg,#f08a44,var(--orange) 60%,#d86a22);color:#1b1a18;font:600 16px/1 var(--cjk);box-shadow:inset 0 1px 0 rgba(255,232,210,.4),0 3px 0 #6b3510;transition:transform .07s,box-shadow .07s}
+.savecur:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,232,210,.3),0 1px 0 #6b3510}
+.savecur svg{width:18px;height:18px}
+
+.toast{position:absolute;left:50%;top:calc(52px + env(safe-area-inset-top));z-index:70;display:flex;align-items:center;gap:14px;
+  transform:translate(-50%,-160%);visibility:hidden;transition:transform .4s var(--spring),visibility 0s .4s;
+  padding:0 8px 0 16px;height:46px;border-radius:8px;background:var(--lcd);color:var(--lcd-ink);font:600 14px/1 var(--cjk);white-space:nowrap;
+  box-shadow:inset 0 0 0 1px rgba(20,26,16,.3),0 6px 10px -6px rgba(0,0,0,.6)}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .4s var(--spring)}
+.toast button{height:36px;padding:0 12px;border-radius:6px;background:var(--lcd-ink);color:var(--lcd);font-weight:600}
+.toast button[hidden]{display:none}
+
+@media (prefers-reduced-motion:reduce){
+  .k .cap,.dp svg,.savecur{transition:none}
+  .k.down .cap,.k:active .cap,.savecur:active{transform:none}
+  .sheet,.toast,.scrim{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="chalk" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2"/>
+          <feComponentTransfer><feFuncA type="discrete" tableValues="0 .55 .8 1"/></feComponentTransfer>
+        </filter>
+        <filter id="slate"><feTurbulence type="fractalNoise" baseFrequency=".6" numOctaves="3" seed="9"/><feColorMatrix values="0 0 0 0 .86  0 0 0 0 .9  0 0 0 0 .84  0 0 0 .07 0"/></filter>
+                <linearGradient id="board" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26302a"/><stop offset="1" stop-color="#1b221e"/></linearGradient>
+      </defs>
+      <rect width="1440" height="900" fill="url(#board)"/>
+      <rect width="1440" height="900" filter="url(#slate)"/>
+      <g filter="url(#chalk)" fill="none" stroke="#ebe7da" stroke-linecap="round" stroke-linejoin="round" opacity=".62">
+        <path d="M44 520 H318" stroke-width="3"/><path d="M306 512 L320 520 L306 528" stroke-width="3"/>
+        <path d="M180 760 V260" stroke-width="3"/><path d="M172 274 L180 260 L188 274" stroke-width="3"/>
+        <path d="M84 300 Q180 760 276 300" stroke-width="3.2"/>
+        <path d="M48 520 C70 450,96 450,118 520 S166 590,188 520 S236 450,258 520 S300 580,316 540" stroke-width="2.6" stroke-dasharray="1 9"/>
+        <path d="M1150 610 C1180 560,1210 560,1240 610 S1300 660,1330 610" stroke-width="2.4"/>
+      </g>
+      <g filter="url(#chalk)" fill="#ebe7da" font-family="Kaiti TC, STKaiti, serif" opacity=".7">
+        <text x="44" y="120" font-size="34">高一數學</text>
+        <text x="44" y="170" font-size="26">第三章　函數的圖形</text>
+        <text x="200" y="300" font-size="24" font-style="italic" font-family="Times New Roman, serif">y = ax²+bx+c</text>
+        <text x="60" y="820" font-size="22">頂點 (−b/2a, …)</text>
+        <text x="1120" y="150" font-size="30" font-style="italic" font-family="Times New Roman, serif">Δ = b² − 4ac</text>
+        <text x="1120" y="220" font-size="24">Δ &gt; 0　兩個交點</text>
+        <text x="1120" y="264" font-size="24">Δ = 0　相切</text>
+        <text x="1120" y="308" font-size="24">Δ &lt; 0　不相交</text>
+        <text x="1120" y="700" font-size="26" font-style="italic" font-family="Times New Roman, serif">sin²θ + cos²θ = 1</text>
+        <text x="1120" y="822" font-size="22">9/23（三）值日生　陳柏翰</text>
+      </g>
+      <rect x="0" y="862" width="1440" height="38" fill="#3c2f24"/>
+      <rect x="0" y="862" width="1440" height="4" fill="#57453a"/>
+      <rect x="1000" y="848" width="92" height="14" rx="6" fill="#eeeade"/>
+      <rect x="1110" y="851" width="54" height="11" rx="5" fill="#e59a62"/>
+    </svg>
+  </div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="grain" aria-hidden="true"><svg><filter id="pl"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="3"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 .97  0 0 0 0 .9  0 0 0 .06 0"/></filter><rect width="100%" height="100%" filter="url(#pl)"/></svg></div>
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="glyphs">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" fill="currentColor"/><rect x="10" y="3" width="3" height="9" fill="currentColor"/><rect x="15" y="0" width="3" height="12" fill="currentColor" opacity=".4"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.5 L5.2 8.6 A4 4 0 0 1 10.8 8.6Z M2.6 6 A7.6 7.6 0 0 1 13.4 6 L12 7.4 A5.6 5.6 0 0 0 4 7.4Z M0 3.4 A11.2 11.2 0 0 1 16 3.4 L14.6 4.8 A9.2 9.2 0 0 0 1.4 4.8Z" fill="currentColor"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><rect x=".75" y=".75" width="22.5" height="10.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="24" y="4" width="2.5" height="4" fill="currentColor"/><g id="batt" fill="currentColor"><rect x="3" y="3" width="5" height="6"/><rect x="9.5" y="3" width="5" height="6"/><rect x="16" y="3" width="5" height="6"/></g></svg>
+        </span>
+      </div>
+
+      <main class="calc">
+        <div class="brow"><b>函數機</b><i>fx-G115</i><span>繪圖計算機</span></div>
+        <div class="bezel">
+          <div class="lcd" id="lcdbox" role="img" aria-label="點陣液晶螢幕"><canvas id="lcd"></canvas></div>
+          <div class="lbl"><span>點陣液晶 128 × 64</span><em>GRAPH</em></div>
+        </div>
+        <div class="keys" id="keys"></div>
+      </main>
+      <div class="home" aria-hidden="true"></div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="libT">
+        <div class="grab" aria-hidden="true"></div>
+        <header><h2 id="libT">範例庫</h2><p>點一組函數，載入並重新描圖</p></header>
+        <ul class="libs" id="libs"></ul>
+        <button class="savecur" id="saveCur"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 2.5h9.5l2.5 2.5v10.5h-12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M6 2.5v4h5v-4M6 15.5v-4.5h6v4.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>把目前的函數存成新範例</button>
+      </div>
+      <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+    </div>
+    <div class="cam" aria-hidden="true"></div>
+  </div>
+  <aside class="caption"><h1>函數機</h1><p>點陣液晶的繪圖計算機。<br>輸入函數，看它一格一格被描出來。</p></aside>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var PFX = 'app081:';
+function load(k, d){ try { var v = localStorage.getItem(PFX + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+function save(k, v){ try { localStorage.setItem(PFX + k, JSON.stringify(v)); } catch (e) {} }
+var reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+/* ================= settings & state ================= */
+var SET0 = {ang:1, grid:1, axes:0, snd:0, vib:0, spd:1};
+var set = Object.assign({}, SET0, load('set', {}));
+function haptic(p){ if (set.vib !== 0) return; try { navigator.vibrate && navigator.vibrate(p || 8); } catch (e) {} }
+
+var WIN_INIT = {xmin:-6.3, xmax:6.3, ymin:-3.1, ymax:3.1, xs:1, ys:1};
+var S = {
+  mode: load('mode', 'graph'),
+  prev: 'menu',
+  shift: false,
+  err: null,
+  fns: load('fns', ['2sin(X)', '0.25X²-2', '', '']),
+  on: load('on', [1, 1, 0, 0]),
+  win: Object.assign({}, WIN_INIT, load('win', {})),
+  tab: Object.assign({start:-3, step:1, top:0, sel:0, col:1}, load('tab', {})),
+  hist: load('hist', [{e:'√(2)', r:'1.414213562'}, {e:'1.017^40', r:'1.963555012'}, {e:'sin(π÷6)', r:'0.5'}]),
+  ans: load('ans', 0.5),
+  ysel: 0, menuSel: 1, setSel: 0, vwSel: 0, tsSel: 0,
+  edit: null, run: {toks: [], cur: 0, fresh: false},
+  trace: null, root: null, plot: null, flash: -1
+};
+if (['menu','run','yeq','graph','table'].indexOf(S.mode) < 0) S.mode = 'graph';
+
+/* ================= 5x7 dot-matrix font (hand-set) ================= */
+var F5 = {
+'0':'0E11131519110E','1':'040C040404040E','2':'0E11010204081F','3':'1F02040201110E','4':'02060A121F0202','5':'1F101E0101110E','6':'0608101E11110E','7':'1F010204080808','8':'0E11110E11110E','9':'0E11110F01020C',
+'A':'0E1111111F1111','B':'1E11111E11111E','C':'0E11101010110E','D':'1C12111111121C','E':'1F10101E10101F','F':'1F10101E101010','G':'0E11101711110F','H':'1111111F111111','I':'0E04040404040E','J':'0702020202120C','K':'11121418141211','L':'1010101010101F','M':'111B1515111111','N':'11111915131111','O':'0E11111111110E','P':'1E11111E101010','Q':'0E11111115120D','R':'1E11111E141211','S':'0F10100E01011E','T':'1F040404040404','U':'1111111111110E','V':'11111111110A04','W':'1111111515150A','X':'11110A040A1111','Y':'1111110A040404','Z':'1F01020408101F',
+'a':'00000E010F110F','b':'1010161911111E','c':'00000E1010110E','d':'01010D1311110F','e':'00000E111F100E','f':'0609081C080808','g':'000F11110F010E','h':'10101619111111','i':'04000C0404040E','j':'0200060202120C','k':'10101214181412','l':'0C04040404040E','m':'00001A15151111','n':'00001619111111','o':'00000E1111110E','p':'00001E111E1010','q':'00000D130F0101','r':'00001619101010','s':'00000E100E011E','t':'08081C08080906','u':'0000111111130D','v':'00001111110A04','w':'0000111115150A','x':'0000110A040A11','y':'000011110F010E','z':'00001F0204081F',
+' ':'00000000000000','+':'0004041F040400','-':'0000001F000000','×':'00110A040A1100','÷':'0004001F000400','/':'00010204081000','*':'0004150E150400','^':'040A1100000000','(':'02040808080402',')':'08040202020408','=':'00001F001F0000','.':'00000000000C0C',',':'000000000C0408',':':'000C0C000C0C00','!':'04040404000004','?':'0E110102040004','<':'02040810080402','>':'08040201020408','_':'0000000000001F','[':'0E08080808080E',']':'0E02020202020E','%':'18190204081303',
+'π':'00001F0A0A0A11','√':'07040404140C04','θ':'0E11111F11110E','²':'0C02040E000000','¹':'040C040E000000','⁻':'000E0000000000','→':'0004021F020400','←':'0004081F080400','↑':'040E1504040404','↓':'04040404150E04','▶':'080C0E0F0E0C08','◀':'02060E1E0E0602','▲':'00040E1F000000','▼':'00001F0E040000','█':'1F1F1F1F1F1F1F','°':'06090906000000','|':'04040404040404','~':'0000081502000000'
+};
+var G5 = {};
+function glyph5(c){
+  var g = G5[c]; if (g) return g;
+  var s = F5[c] || F5['?']; g = [];
+  for (var i = 0; i < 7; i++) g.push(parseInt(s.substr(i * 2, 2), 16));
+  return (G5[c] = g);
+}
+/* 3x5 font for the soft-key tabs */
+var F3 = {A:'25755',B:'65656',C:'34443',D:'65556',E:'74647',F:'74644',G:'34553',H:'55755',I:'72227',J:'11152',K:'55655',L:'44447',M:'57755',N:'65555',O:'25552',P:'65644',Q:'25563',R:'65655',S:'34216',T:'72222',U:'55557',V:'55552',W:'55775',X:'55255',Y:'55222',Z:'71247',
+'0':'75557','1':'26227','2':'61247','3':'61216','4':'55711','5':'74616','6':'34757','7':'71122','8':'75757','9':'75716','+':'02720','-':'00700','.':'00002','/':'11244','=':'07070',' ':'00000','>':'42124','<':'12421'};
+
+/* ================= LCD buffer ================= */
+function LCD(w, h){ this.w = w; this.h = h; this.b = new Uint8Array(w * h); }
+LCD.prototype.clear = function(){ this.b.fill(0); };
+LCD.prototype.px = function(x, y, v){ x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; this.b[y * this.w + x] = (v === undefined ? 1 : v); };
+LCD.prototype.xp = function(x, y){ if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; var i = y * this.w + x; this.b[i] = this.b[i] ? 0 : 1; };
+LCD.prototype.rect = function(x, y, w, h, v){ for (var j = y; j < y + h; j++) for (var i = x; i < x + w; i++) this.px(i, j, v); };
+LCD.prototype.xrect = function(x, y, w, h){ for (var j = y; j < y + h; j++) for (var i = x; i < x + w; i++) this.xp(i, j); };
+LCD.prototype.frame = function(x, y, w, h){ for (var i = x; i < x + w; i++){ this.px(i, y); this.px(i, y + h - 1); } for (var j = y; j < y + h; j++){ this.px(x, j); this.px(x + w - 1, j); } };
+LCD.prototype.line = function(x0, y0, x1, y1, pat, v){
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  var dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, e = dx + dy, n = 0;
+  for (var guard = 0; guard < 600; guard++){
+    if (!pat || pat(n)) this.px(x0, y0, v);
+    n++;
+    if (x0 === x1 && y0 === y1) break;
+    var e2 = 2 * e;
+    if (e2 >= dy){ e += dy; x0 += sx; }
+    if (e2 <= dx){ e += dx; y0 += sy; }
+  }
+};
+LCD.prototype.text = function(x, y, s, v){
+  var cs = Array.from(s); if (v === undefined) v = 1;
+  for (var k = 0; k < cs.length; k++){
+    var g = glyph5(cs[k]), gx = x + k * 6;
+    for (var r = 0; r < 7; r++) for (var c = 0; c < 5; c++) if ((g[r] >> (4 - c)) & 1) this.px(gx + c, y + r, v);
+  }
+};
+LCD.prototype.inv = function(x, y, s){ var n = Array.from(s).length; this.rect(x - 1, y - 1, n * 6 + 1, 9, 1); this.text(x, y, s, 0); };
+LCD.prototype.mini = function(x, y, s, v){
+  if (v === undefined) v = 1;
+  for (var k = 0; k < s.length; k++){
+    var g = F3[s[k]] || F3[' '];
+    for (var r = 0; r < 5; r++){ var bits = +g[r]; for (var c = 0; c < 3; c++) if ((bits >> (2 - c)) & 1) this.px(x + k * 4 + c, y + r, v); }
+  }
+};
+
+/* ================= canvas painter ================= */
+var cv = $('lcd'), ctx = cv.getContext('2d'), L = new LCD(128, 64);
+var ghostCache = {};
+function ghostLayer(buf, W, H){
+  var key = buf.w + 'x' + buf.h + ':' + W + 'x' + H;
+  if (ghostCache[key]) return ghostCache[key];
+  var c = document.createElement('canvas'); c.width = W; c.height = H;
+  var g = c.getContext('2d'), p = W / buf.w, gap = Math.max(.35, p * .12);
+  g.fillStyle = 'rgba(27,35,23,.05)';
+  for (var y = 0; y < buf.h; y++) for (var x = 0; x < buf.w; x++) g.fillRect(x * p + gap, y * p + gap, p - gap * 2, p - gap * 2);
+  return (ghostCache[key] = c);
+}
+function paint(buf, c, cx){
+  var W = c.width, H = c.height; if (!W || !H) return;
+  var p = W / buf.w, gap = Math.max(.35, p * .12), s = p - gap * 2;
+  cx.clearRect(0, 0, W, H);
+  cx.drawImage(ghostLayer(buf, W, H), 0, 0);
+  var b = buf.b, w = buf.w, h = buf.h, x, y;
+  cx.fillStyle = 'rgba(27,35,23,.17)';
+  var ox = p * .3, oy = p * .42;
+  for (y = 0; y < h; y++) for (x = 0; x < w; x++) if (b[y * w + x]) cx.fillRect(x * p + gap + ox, y * p + gap + oy, s, s);
+  cx.fillStyle = '#1b2317';
+  for (y = 0; y < h; y++) for (x = 0; x < w; x++) if (b[y * w + x]) cx.fillRect(x * p + gap, y * p + gap, s, s);
+}
+function sizeLCD(){
+  var w = Math.floor($('lcdbox').clientWidth); if (!w) return;
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.style.height = (w / 2) + 'px';
+  cv.width = Math.round(w * dpr); cv.height = Math.round(w / 2 * dpr);
+  ghostCache = {};
+  dirty = true;
+}
+
+/* ================= tokens & parser ================= */
+var MULTI = ['asin(','acos(','atan(','sin(','cos(','tan(','log(','ln(','√(','Abs(','Ans','⁻¹'];
+function tokenize(s){
+  var out = [], i = 0;
+  while (i < s.length){
+    var m = null;
+    for (var k = 0; k < MULTI.length; k++) if (s.substr(i, MULTI[k].length) === MULTI[k]){ m = MULTI[k]; break; }
+    if (m){ out.push(m); i += m.length; continue; }
+    var c = s[i]; i++;
+    if (c === ' ') continue;
+    if (c === '*') c = '×'; else if (c === '/') c = '÷'; else if (c === 'x') c = 'X';
+    out.push(c);
+  }
+  return out;
+}
+function deg(){ return set.ang === 0; }
+function toR(v){ return deg() ? v * Math.PI / 180 : v; }
+function fromR(v){ return deg() ? v * 180 / Math.PI : v; }
+var FN = {
+  'sin(': function(v){ return Math.sin(toR(v)); }, 'cos(': function(v){ return Math.cos(toR(v)); }, 'tan(': function(v){ var r = toR(v); return Math.abs(Math.cos(r)) < 1e-12 ? NaN : Math.tan(r); },
+  'asin(': function(v){ return fromR(Math.asin(v)); }, 'acos(': function(v){ return fromR(Math.acos(v)); }, 'atan(': function(v){ return fromR(Math.atan(v)); },
+  'log(': function(v){ return Math.log10(v); }, 'ln(': function(v){ return Math.log(v); }, '√(': function(v){ return Math.sqrt(v); }, 'Abs(': function(v){ return Math.abs(v); }
+};
+var DIG = /^[0-9.]$/;
+function compile(toks){
+  var i = 0;
+  function peek(){ return toks[i]; }
+  function next(){ return toks[i++]; }
+  function starts(t){ return t !== undefined && (DIG.test(t) || t === 'X' || t === 'π' || t === 'e' || t === 'Ans' || t === '(' || !!FN[t]); }
+  function expr(){
+    var a = term();
+    while (peek() === '+' || peek() === '-'){
+      var op = next(), b = term(), l = a;
+      a = op === '+' ? (function(l, b){ return function(x){ return l(x) + b(x); }; })(l, b) : (function(l, b){ return function(x){ return l(x) - b(x); }; })(l, b);
+    }
+    return a;
+  }
+  function term(){
+    var a = unary();
+    for (;;){
+      var t = peek(), b, l = a;
+      if (t === '×' || t === '÷'){ next(); b = unary(); a = t === '×' ? mk(l, b, 0) : mk(l, b, 1); }
+      else if (starts(t)){ b = unary(); a = mk(l, b, 0); }
+      else break;
+    }
+    return a;
+  }
+  function mk(l, b, div){ return div ? function(x){ return l(x) / b(x); } : function(x){ return l(x) * b(x); }; }
+  function unary(){
+    var t = peek();
+    if (t === '-' || t === '⁻'){ next(); var a = unary(); return function(x){ return -a(x); }; }
+    if (t === '+'){ next(); return unary(); }
+    return power();
+  }
+  function power(){
+    var a = post();
+    if (peek() === '^'){ next(); var b = unary(); return function(x){ return Math.pow(a(x), b(x)); }; }
+    return a;
+  }
+  function post(){
+    var a = prim();
+    while (peek() === '²' || peek() === '⁻¹'){
+      var t = next(), b = a;
+      a = t === '²' ? function(x){ var v = b(x); return v * v; } : function(x){ return 1 / b(x); };
+    }
+    return a;
+  }
+  function closeParen(){ if (peek() === ')') next(); else if (peek() !== undefined && !starts(peek()) && ['+','-','×','÷','^','²','⁻¹'].indexOf(peek()) < 0) throw 0; }
+  function prim(){
+    var t = next(), v, a;
+    if (t === undefined) throw 0;
+    if (DIG.test(t) || t === 'E'){
+      var s = t === 'E' ? '1' : t;
+      if (t !== 'E') while (DIG.test(peek() || '')) s += next();
+      if (t === 'E' || peek() === 'E'){
+        if (t !== 'E') next();
+        s += 'e';
+        if (peek() === '-' || peek() === '⁻'){ next(); s += '-'; }
+        var d = ''; while (/^[0-9]$/.test(peek() || '')) d += next();
+        if (!d) throw 0; s += d;
+      }
+      if ((s.match(/\./g) || []).length > 1 || s === '.') throw 0;
+      v = parseFloat(s); if (isNaN(v)) throw 0;
+      return function(){ return v; };
+    }
+    if (t === 'X') return function(x){ return x; };
+    if (t === 'π') return function(){ return Math.PI; };
+    if (t === 'e') return function(){ return Math.E; };
+    if (t === 'Ans'){ var an = S.ans; return function(){ return an; }; }
+    if (t === '('){ a = expr(); if (peek() === ')') next(); else if (peek() !== undefined) throw 0; return a; }
+    if (FN[t]){
+      var f = FN[t]; a = expr();
+      if (peek() === ')') next(); else if (peek() !== undefined) throw 0;
+      return function(x){ return f(a(x)); };
+    }
+    throw 0;
+  }
+  if (!toks.length) throw 0;
+  var r = expr();
+  if (i < toks.length) throw 0;
+  return r;
+}
+function tryCompile(str){ try { return compile(tokenize(str)); } catch (e) { return null; } }
+
+/* ================= number formatting ================= */
+function trimZ(s){ if (s.indexOf('.') >= 0 && s.indexOf('e') < 0){ s = s.replace(/0+$/, '').replace(/\.$/, ''); } return s; }
+function expo(v, p){
+  var s = v.toExponential(Math.max(0, p - 1)).split('e');
+  var m = trimZ(s[0]), ex = +s[1];
+  return m + 'E' + (ex < 0 ? '-' : '') + Math.abs(ex);
+}
+function fmtN(v, n){
+  if (!isFinite(v)) return n >= 5 ? 'ERROR' : 'ERR';
+  if (Math.abs(v) < 1e-12) return '0';
+  var p, s;
+  for (p = Math.min(10, n); p >= 1; p--){
+    s = v.toPrecision(p);
+    if (s.indexOf('e') >= 0) continue;
+    s = trimZ(s);
+    if (s.length <= n) return s;
+  }
+  for (p = Math.min(10, n - 3); p >= 1; p--){ s = expo(v, p); if (s.length <= n) return s; }
+  return expo(v, 1).slice(0, n);
+}
+
+/* ================= audio ================= */
+var ac = null;
+function ensureAudio(){
+  if (ac) { if (ac.state === 'suspended') try { ac.resume(); } catch (e) {} return; }
+  try { var A = window.AudioContext || window.webkitAudioContext; if (A) ac = new A(); } catch (e) { ac = null; }
+}
+function blip(f, d, vol, type){
+  if (!ac || set.snd !== 0) return;
+  try {
+    var t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || 'square'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || .04, t + .003); g.gain.exponentialRampToValueAtTime(0.0001, t + (d || .02));
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + (d || .02) + .02);
+  } catch (e) {}
+}
+function clickSnd(){ blip(2600, .014, .03, 'square'); }
+function errSnd(){ blip(330, .09, .05, 'square'); setTimeout(function(){ blip(250, .12, .05, 'square'); }, 110); }
+
+/* ================= graph math ================= */
+var cache = {key:'', fs:[], ys:[]};
+function compiledFns(){ return S.fns.map(function(s){ return s ? tryCompile(s) : null; }); }
+function colX(i, win, gw){ return win.xmin + i * (win.xmax - win.xmin) / gw; }
+function rowY(v, win, gh){ return (win.ymax - v) / (win.ymax - win.ymin) * gh; }
+function graphData(){
+  var key = S.fns.join('|') + S.on.join('') + [S.win.xmin, S.win.xmax, S.win.ymin, S.win.ymax].join(',') + set.ang + S.ans;
+  if (cache.key === key) return cache;
+  var fs = compiledFns(), ys = [];
+  for (var k = 0; k < 4; k++){
+    if (!fs[k] || !S.on[k]){ ys.push(null); continue; }
+    var arr = new Float64Array(127);
+    for (var i = 0; i < 127; i++){ var v; try { v = fs[k](colX(i, S.win, 126)); } catch (e) { v = NaN; } arr[i] = v; }
+    ys.push(arr);
+  }
+  cache = {key:key, fs:fs, ys:ys};
+  return cache;
+}
+var PAT = [null, null, function(n){ return n % 2 === 0; }, function(n){ return n % 6 < 4; }];
+function plotSeries(buf, ys, win, gh, k, upto){
+  var prev = null, pat = PAT[k], thick = k === 1;
+  for (var i = 0; i < upto; i++){
+    var v = ys[i]; if (!isFinite(v)){ prev = null; continue; }
+    var py = rowY(v, win, gh);
+    if (py < -400) py = -400; if (py > gh + 400) py = gh + 400;
+    if (prev !== null){
+      var jump = (prev < -2 && py > gh + 2) || (prev > gh + 2 && py < -2);
+      if (!jump){
+        var a = Math.max(-2, Math.min(gh + 2, prev)), b = Math.max(-2, Math.min(gh + 2, py));
+        buf.line(i - 1, a, i, b, pat);
+        if (thick) buf.line(i - 1, a + 1, i, b + 1, pat);
+      }
+    } else if (py >= 0 && py <= gh){ buf.px(i, py); if (thick) buf.px(i, py + 1); }
+    prev = py;
+  }
+}
+function niceStep(range, px, minPx){
+  var st = 1, per = px / range;
+  var cand = [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.25,0.5,1,2,5,10,20,50,100,200,500,1000,2000,5000];
+  for (var i = 0; i < cand.length; i++){ st = cand[i]; if (st * per >= minPx) break; }
+  return st;
+}
+function drawAxes(buf, win, gw, gh, small){
+  var y0 = rowY(0, win, gh), x0 = (0 - win.xmin) / (win.xmax - win.xmin) * gw;
+  var xs = Math.max(win.xs || 1, niceStep(win.xmax - win.xmin, gw, small ? 6 : 5));
+  var ys = Math.max(win.ys || 1, niceStep(win.ymax - win.ymin, gh, small ? 6 : 5));
+  if (win.xs && (win.xs * gw / (win.xmax - win.xmin)) >= 4) xs = win.xs;
+  if (win.ys && (win.ys * gh / (win.ymax - win.ymin)) >= 4) ys = win.ys;
+  var t;
+  if (set.grid === 0 && !small){
+    for (t = Math.ceil(win.xmin / xs) * xs; t <= win.xmax; t += xs){
+      var gx = Math.round((t - win.xmin) / (win.xmax - win.xmin) * gw);
+      for (var u = Math.ceil(win.ymin / ys) * ys; u <= win.ymax; u += ys) buf.px(gx, rowY(u, win, gh));
+    }
+  }
+  if (set.axes !== 0 && !small) return;
+  if (y0 >= 0 && y0 <= gh){
+    for (var i = 0; i <= gw; i++) buf.px(i, y0);
+    for (t = Math.ceil(win.xmin / xs) * xs; t <= win.xmax; t += xs){ var tx = (t - win.xmin) / (win.xmax - win.xmin) * gw; buf.px(tx, y0 - 1); buf.px(tx, y0 + 1); }
+  }
+  if (x0 >= 0 && x0 <= gw){
+    for (var j = 0; j <= gh; j++) buf.px(x0, j);
+    for (t = Math.ceil(win.ymin / ys) * ys; t <= win.ymax; t += ys){ var ty = rowY(t, win, gh); buf.px(x0 - 1, ty); buf.px(x0 + 1, ty); }
+  }
+}
+
+/* ================= screens ================= */
+var SOFT = {
+  run: ['CLR','ANS','PI','ABS','ANG','Y='],
+  yeq: ['SEL','DEL','LIB','V-W','TABL','DRAW'],
+  graph: ['TRCE','ZM+','ZM-','ORIG','ROOT','TABL'],
+  table: ['SET','HALF','DBL','Y=','TOP','GRPH'],
+  vwin: ['INIT','TRIG','STD','SQR','Y=','DRAW'],
+  tset: ['','','','','Y=','TABL'],
+  menu: ['','','','','',''],
+  setup: ['','','','','','EXIT']
+};
+var SETROWS = [['Angle','ang',['Deg','Rad']],['Grid','grid',['On','Off']],['Axes','axes',['On','Off']],['Beep','snd',['On','Off']],['Vibrate','vib',['On','Off']],['Plot','spd',['Slow','Fast']]];
+function softLabels(){
+  if (S.mode === 'setup'){ var r = SETROWS[S.setSel]; return [r[2][0].toUpperCase(), r[2][1].toUpperCase(), '', '', '', 'EXIT']; }
+  if (S.mode === 'graph' && S.trace) return ['TRCE','ZM+','ZM-','ORIG','ROOT','TABL'];
+  return SOFT[S.mode] || SOFT.menu;
+}
+function drawSoft(){
+  var lab = softLabels();
+  for (var i = 0; i < 6; i++){
+    var x = i * 21 + 1, s = lab[i];
+    L.rect(x, 56, 20, 8, 0);
+    if (s){
+      L.rect(x, 57, 20, 7, 1);
+      L.px(x + 19, 57, 0); L.px(x + 18, 57, 0); L.px(x + 19, 58, 0);
+      var w = s.length * 4 - 1; L.mini(x + Math.floor((20 - w) / 2), 58, s, 0);
+    }
+    if (S.flash === i){ L.frame(x, 57, 20, 7); }
+  }
+}
+function fitStr(pre, toks, cur, width){
+  var s = toks.join(''), chars = Array.from(s);
+  var cpos = Array.from(toks.slice(0, cur).join('')).length;
+  var room = width - Array.from(pre).length, off = 0;
+  if (chars.length > room){ off = Math.max(0, Math.min(chars.length - room + 1, cpos - room + 2)); }
+  return {s: pre + chars.slice(off, off + room).join(''), c: Array.from(pre).length + cpos - off, more: chars.length - off > room};
+}
+function cursorAt(x, y){ if ((performance.now() / 500 | 0) % 2 === 0) for (var r = 0; r < 7; r++) L.px(x - 1, y + r); }
+
+function drawMenu(){
+  var items = ['RUN','GRAPH','TABLE','V-WIN','SET UP','LIB'];
+  for (var k = 0; k < 6; k++){
+    var c = k % 3, r = (k / 3) | 0, x = 1 + c * 42, y = 1 + r * 27, w = 41, h = 26, v = 1;
+    if (k === S.menuSel){ L.rect(x, y, w, h, 1); v = 0; } else L.frame(x, y, w, h);
+    L.mini(x + 2, y + 2, String(k + 1), v);
+    var ix = x + 11, iy = y + 4;
+    menuIcon(k, ix, iy, v);
+    var lw = items[k].length * 4 - 1; L.mini(x + Math.floor((w - lw) / 2), y + 19, items[k], v);
+  }
+  L.mini(1, 58, 'MAIN MENU', 1);
+  L.mini(deg() ? 115 : 115, 58, deg() ? 'DEG' : 'RAD', 1);
+}
+function menuIcon(k, x, y, v){
+  var i;
+  if (k === 0){ L.text(x - 1, y + 3, '1+2', v); L.rect(x - 1, y + 11, 0, 0, v); }
+  else if (k === 1){ for (i = 0; i < 20; i++) L.px(x + i, y + 7, v); for (i = 0; i < 14; i++) L.px(x + 4, y + i, v); var p = null; for (i = 0; i < 20; i++){ var yy = y + 7 - Math.round(5 * Math.sin(i / 3)); if (p !== null) L.line(x + i - 1, p, x + i, yy, null, v); p = yy; } }
+  else if (k === 2){ L.frame(x, y, 20, 13); for (i = 1; i < 19; i++) L.px(x + i, y + 4, v); for (i = 1; i < 12; i++) L.px(x + 7, y + i, v); for (i = 1; i < 19; i++) L.px(x + i, y + 8, v); if (!v){ L.rect(x, y, 20, 1, 0); L.rect(x, y + 12, 20, 1, 0); L.rect(x, y, 1, 13, 0); L.rect(x + 19, y, 1, 13, 0); } }
+  else if (k === 3){ var cs = [[0,0,1,1],[19,0,-1,1],[0,12,1,-1],[19,12,-1,-1]]; cs.forEach(function(q){ for (var j = 0; j < 4; j++){ L.px(x + q[0] + q[2] * j, y + q[1], v); L.px(x + q[0], y + q[1] + q[3] * j, v); } }); for (i = 0; i < 12; i++) L.px(x + 4 + i, y + 9 - Math.round(i * .45), v); }
+  else if (k === 4){ var cx = x + 10, cy = y + 6; for (i = 0; i < 16; i++){ var a = i / 16 * Math.PI * 2; L.px(cx + Math.round(4 * Math.cos(a)), cy + Math.round(4 * Math.sin(a)), v); } for (i = 0; i < 8; i++){ var b = i / 8 * Math.PI * 2; L.px(cx + Math.round(6 * Math.cos(b)), cy + Math.round(6 * Math.sin(b)), v); L.px(cx + Math.round(5.5 * Math.cos(b)), cy + Math.round(5.5 * Math.sin(b)), v); } L.px(cx, cy, v); }
+  else { for (i = 0; i < 13; i++){ L.px(x + 2, y + i, v); L.px(x + 18, y + i, v); } L.line(x + 2, y, x + 9, y + 2, null, v); L.line(x + 9, y + 2, x + 10, y + 12, null, v); L.line(x + 10, y + 2, x + 18, y, null, v); L.line(x + 2, y + 12, x + 10, y + 13, null, v); L.line(x + 10, y + 13, x + 18, y + 12, null, v); for (i = 4; i < 9; i++){ L.px(x + i, y + 5, v); L.px(x + i + 8, y + 5, v); L.px(x + i, y + 8, v); } }
+}
+
+function runLines(){
+  var lines = [];
+  S.hist.slice(-6).forEach(function(h){
+    var ch = Array.from(h.e);
+    for (var i = 0; i < ch.length; i += 21) lines.push({t: ch.slice(i, i + 21).join('')});
+    lines.push({t: h.r, right: true});
+  });
+  var r = S.run, s = Array.from(r.toks.join('')), cpos = Array.from(r.toks.slice(0, r.cur).join('')).length;
+  var n = Math.max(1, Math.ceil((s.length + 1) / 21));
+  for (var j = 0; j < n; j++){
+    var ln = {t: s.slice(j * 21, j * 21 + 21).join(''), input: true};
+    if (cpos >= j * 21 && cpos < j * 21 + 21) ln.cur = cpos - j * 21;
+    lines.push(ln);
+  }
+  return lines.slice(-7);
+}
+function drawRun(){
+  var lines = runLines();
+  lines.forEach(function(l, k){
+    var y = k * 8 + 1, x = l.right ? 127 - Array.from(l.t).length * 6 : 1;
+    L.text(x, y, l.t);
+    if (l.cur !== undefined) cursorAt(1 + l.cur * 6, y);
+  });
+  L.mini(119, 1, deg() ? 'D' : 'R', 1);
+}
+function styleMark(k, x, y){
+  var i;
+  if (k === 0) for (i = 0; i < 5; i++) L.px(x + i, y);
+  if (k === 1) for (i = 0; i < 5; i++){ L.px(x + i, y); L.px(x + i, y + 1); }
+  if (k === 2) for (i = 0; i < 5; i += 2) L.px(x + i, y);
+  if (k === 3){ L.px(x, y); L.px(x + 1, y); L.px(x + 3, y); L.px(x + 4, y); }
+}
+function drawYeq(){
+  L.text(1, 1, 'Graph Func :Y=');
+  for (var k = 0; k < 4; k++){
+    var y = 11 + k * 9, pre = 'Y' + (k + 1);
+    L.text(1, y, pre);
+    if (S.on[k] && S.fns[k]) L.inv(13, y, '='); else L.text(13, y, '=');
+    if (S.edit && S.edit.t === 'y' && S.edit.i === k){
+      var f = fitStr('', S.edit.toks, S.edit.cur, 17);
+      L.text(19, y, f.s); cursorAt(19 + f.c * 6, y);
+    } else {
+      var ch = Array.from(S.fns[k] || '');
+      L.text(19, y, ch.length > 16 ? ch.slice(0, 15).join('') + '▶' : ch.join(''));
+      styleMark(k, 122, y + 3);
+      if (k === S.ysel) L.xrect(0, y - 1, 128, 9);
+    }
+  }
+  var w = S.win;
+  L.mini(1, 49, 'X ' + fmtN(w.xmin, 5) + ' ' + fmtN(w.xmax, 5) + '  Y ' + fmtN(w.ymin, 5) + ' ' + fmtN(w.ymax, 5), 1);
+}
+function drawGraph(){
+  var d = graphData(), gw = 126, gh = 62;
+  drawAxes(L, S.win, gw, gh, false);
+  var order = [0,1,2,3].filter(function(k){ return d.ys[k]; });
+  var total = order.length * 127, prog = S.plot ? S.plot.t : total;
+  var pen = null;
+  order.forEach(function(k, n){
+    var upto = Math.max(0, Math.min(127, Math.floor(prog - n * 127)));
+    if (upto > 0) plotSeries(L, d.ys[k], S.win, gh, k, upto);
+    if (S.plot && upto > 0 && upto < 127){ var v = d.ys[k][upto - 1]; if (isFinite(v)) pen = [upto - 1, rowY(v, S.win, gh)]; }
+  });
+  if (pen && (performance.now() / 90 | 0) % 2 === 0){ for (var q = -2; q <= 2; q++){ L.xp(pen[0] + q, Math.round(pen[1])); if (q) L.xp(pen[0], Math.round(pen[1]) + q); } }
+  if (!order.length){ L.rect(10, 20, 108, 20, 0); L.frame(10, 20, 108, 20); L.text(22, 26, 'No Func [EXIT]'); }
+  if (S.trace){
+    var t = S.trace, ys = d.ys[t.k];
+    if (ys){
+      var x = colX(t.col, S.win, gw), v = S.root ? 0 : ys[t.col];
+      if (S.root) x = S.root.list[S.root.i];
+      var pxx = S.root ? Math.round((x - S.win.xmin) / (S.win.xmax - S.win.xmin) * gw) : t.col;
+      var py = Math.round(rowY(S.root ? 0 : v, S.win, gh));
+      if (isFinite(py)) for (var z = -3; z <= 3; z++){ if (Math.abs(z) > 1){ L.xp(pxx + z, py); L.xp(pxx, py + z); } }
+      L.rect(0, 0, 128, 9, 0);
+      L.text(1, 1, S.root ? 'ROOT' : ('Y' + (t.k + 1) + '=' + S.fns[t.k]).slice(0, 21));
+      L.rect(0, 55, 128, 9, 0);
+      L.text(1, 56, ('X=' + fmtN(x, 7)).padEnd(10, ' ').slice(0, 10) + ' Y=' + fmtN(isFinite(v) ? v : NaN, 7));
+      return true;
+    }
+  }
+  return false;
+}
+function tabCols(){ var c = []; for (var k = 0; k < 4 && c.length < 3; k++) if (S.on[k] && S.fns[k]) c.push(k); return c; }
+function drawTable(){
+  var cols = tabCols(), fs = graphData().fs, T = S.tab;
+  if (T.sel > 3) T.sel = 3;
+  L.rect(0, 0, 128, 9, 1);
+  L.text(2, 1, 'X', 0);
+  cols.forEach(function(k, n){ L.text(28 + n * 34, 1, 'Y' + (k + 1), 0); });
+  for (var r = 0; r < 4; r++){
+    var x = T.start + (T.top + r) * T.step, y = 12 + r * 9;
+    L.text(1, y, fmtN(x, 4));
+    cols.forEach(function(k, n){ var v; try { v = fs[k](x); } catch (e) { v = NaN; } L.text(28 + n * 34, y, fmtN(v, 5)); });
+    if (r === T.sel){ var cx = T.col === 0 || !cols.length ? 0 : 26 + (Math.min(T.col, cols.length) - 1) * 34; L.xrect(cx, y - 1, T.col === 0 || !cols.length ? 25 : 33, 9); }
+  }
+  for (var j = 10; j < 46; j++){ L.px(25, j); for (var n = 1; n < cols.length; n++) L.px(25 + n * 34, j); }
+  var sx = T.start + (T.top + T.sel) * T.step, lab, val;
+  if (T.col === 0 || !cols.length){ lab = 'X='; val = sx; }
+  else { var kk = cols[Math.min(T.col, cols.length) - 1]; lab = 'Y' + (kk + 1) + '='; try { val = fs[kk](sx); } catch (e) { val = NaN; } }
+  if (!cols.length) { L.text(4, 29, 'No Func :Y=[F4]'); }
+  return lab + fmtN(val, 17);
+}
+function drawFields(title, rows, sel){
+  L.text(1, 1, title);
+  rows.forEach(function(r, k){
+    var y = 9 + k * 8;
+    L.text(1, y, r[0]);
+    if (S.edit && S.edit.t === r[2] && S.edit.i === k){
+      var f = fitStr('', S.edit.toks, S.edit.cur, 13); L.text(49, y, f.s); cursorAt(49 + f.c * 6, y);
+    } else {
+      L.text(49, y, r[1]);
+      if (k === sel) L.xrect(48, y - 1, 80, 9);
+    }
+  });
+}
+var VWROWS = [['Xmin :','xmin'],['max  :','xmax'],['scale:','xs'],['Ymin :','ymin'],['max  :','ymax'],['scale:','ys']];
+function compose(){
+  L.clear();
+  if (S.mode === 'off') return;
+  var bottomText = null, traceOwn = false;
+  switch (S.mode){
+    case 'menu': drawMenu(); break;
+    case 'run': drawRun(); break;
+    case 'yeq': drawYeq(); break;
+    case 'graph': traceOwn = drawGraph(); break;
+    case 'table': bottomText = drawTable(); break;
+    case 'vwin': drawFields('View Window', VWROWS.map(function(r){ return [r[0], fmtN(S.win[r[1]], 12), 'v']; }), S.vwSel); break;
+    case 'tset': drawFields('Table Setting', [['Start:', fmtN(S.tab.start, 12), 't'], ['Step :', fmtN(S.tab.step, 12), 't']], S.tsSel); L.text(1, 33, 'X=Start+n*Step'); break;
+    case 'setup': drawFields('Set Up', SETROWS.map(function(r){ return [(r[0] + '        ').slice(0, 8), r[2][set[r[1]]], 's']; }), S.setSel); break;
+  }
+  if (bottomText !== null){ L.rect(0, 47, 128, 9, 0); L.text(1, 48, bottomText.slice(0, 21)); }
+  if (S.mode !== 'menu' && !traceOwn) drawSoft();
+  if (S.shift){ L.rect(0, 0, 8, 9, 1); L.text(1, 1, 'S', 0); }
+  if (S.err){
+    L.rect(9, 14, 110, 30, 0); L.frame(10, 15, 108, 28); L.frame(11, 16, 106, 26);
+    var e = S.err, ew = Array.from(e).length * 6; L.text(64 - (ew >> 1), 20, e);
+    L.text(22, 31, 'Press:[EXIT]');
+  }
+}
+
+/* ================= render loop ================= */
+var dirty = true, rafId = 0, lastT = 0, tickN = 0;
+function needsLoop(){ return !!S.plot || !!S.edit || S.mode === 'run' || S.flash >= 0; }
+function frame(t){
+  rafId = 0;
+  if (document.hidden) return;
+  var dt = lastT ? Math.min(50, t - lastT) : 16; lastT = t;
+  if (S.plot){
+    var sp = set.spd === 1 ? 5.2 : 1.6;
+    S.plot.t += sp * dt / 16.7;
+    var tot = S.plot.total;
+    if ((S.plot.t / 5 | 0) !== tickN){ tickN = S.plot.t / 5 | 0; blip(1500, .006, .012, 'square'); }
+    if (S.plot.t >= tot) S.plot = null;
+    dirty = true;
+  }
+  if (S.edit || S.mode === 'run' || S.plot || S.flash >= 0) dirty = true;
+  if (dirty){ compose(); paint(L, cv, ctx); dirty = false; }
+  if (needsLoop()) rafId = requestAnimationFrame(frame); else lastT = 0;
+}
+function kick(){ dirty = true; if (!rafId && !document.hidden) rafId = requestAnimationFrame(frame); }
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) { lastT = 0; kick(); } });
+
+function startPlot(){
+  var d = graphData(), n = d.ys.filter(Boolean).length;
+  S.root = null;
+  if (reduce || !n){ S.plot = null; kick(); return; }
+  S.plot = {t: 0, total: n * 127}; tickN = 0; kick();
+}
+function persist(){ save('fns', S.fns); save('on', S.on); save('win', S.win); save('tab', {start:S.tab.start, step:S.tab.step}); save('hist', S.hist.slice(-30)); save('ans', S.ans); save('mode', S.mode); save('set', set); }
+
+/* ================= editing ================= */
+function setMode(m){
+  if (S.mode !== m && ['vwin','tset','setup'].indexOf(m) >= 0) S.prev = S.mode;
+  S.edit = null; S.trace = null; S.root = null;
+  if (m !== 'graph') S.plot = null;
+  S.mode = m; save('mode', m === 'off' ? 'graph' : (['vwin','tset','setup'].indexOf(m) >= 0 ? S.prev : m));
+  if (m === 'graph') startPlot();
+  kick();
+}
+function err(msg){ S.err = msg; errSnd(); haptic([30, 40, 30]); kick(); }
+function blank(i){ S.flash = i; errSnd(); haptic([12, 30, 12]); kick(); setTimeout(function(){ S.flash = -1; kick(); }, 220); }
+var OPS = ['+','-','×','÷','^','²','⁻¹'];
+function typeToks(arr){
+  var m = S.mode;
+  if (m === 'run'){
+    var r = S.run;
+    if (r.fresh && !r.toks.length && OPS.indexOf(arr[0]) >= 0){ r.toks = ['Ans']; r.cur = 1; }
+    r.fresh = false;
+    r.toks.splice.apply(r.toks, [r.cur, 0].concat(arr)); r.cur += arr.length; kick(); return;
+  }
+  if (m === 'yeq'){
+    if (!S.edit) S.edit = {t:'y', i:S.ysel, toks:[], cur:0};
+  } else if (m === 'vwin' || m === 'tset'){
+    if (!S.edit) S.edit = {t: m === 'vwin' ? 'v' : 't', i: m === 'vwin' ? S.vwSel : S.tsSel, toks:[], cur:0};
+  } else if (m === 'menu'){
+    var n = +arr[0]; if (arr.length === 1 && n >= 1 && n <= 6){ S.menuSel = n - 1; openMenu(); return; }
+    blank(-1); return;
+  } else { blank(-1); return; }
+  var e = S.edit; e.toks.splice.apply(e.toks, [e.cur, 0].concat(arr)); e.cur += arr.length; kick();
+}
+function commitEdit(){
+  var e = S.edit; if (!e) return true;
+  var str = e.toks.join('');
+  if (e.t === 'y'){
+    if (str && !tryCompile(str)){ err('Syntax ERROR'); return false; }
+    S.fns[e.i] = str; S.on[e.i] = str ? 1 : 0;
+  } else {
+    var f = tryCompile(str), v;
+    if (!f){ err('Syntax ERROR'); return false; }
+    try { v = f(0); } catch (x) { v = NaN; }
+    if (!isFinite(v)){ err('Math ERROR'); return false; }
+    if (e.t === 'v'){
+      var key = VWROWS[e.i][1], w = Object.assign({}, S.win); w[key] = v;
+      if ((key === 'xs' || key === 'ys') && v <= 0){ err('Range ERROR'); return false; }
+      if (w.xmin >= w.xmax || w.ymin >= w.ymax){ err('Range ERROR'); return false; }
+      S.win = w;
+    } else {
+      if (e.i === 0) S.tab.start = v; else { if (v === 0){ err('Range ERROR'); return false; } S.tab.step = v; }
+      S.tab.top = 0;
+    }
+  }
+  S.edit = null; persist(); kick(); return true;
+}
+function evalRun(){
+  var r = S.run;
+  if (!r.toks.length){ if (S.hist.length){ r.toks = tokenize(S.hist[S.hist.length - 1].e); r.cur = r.toks.length; } else return; }
+  var str = r.toks.join(''), f;
+  try { f = compile(r.toks); } catch (e) { err('Syntax ERROR'); return; }
+  var v; try { v = f(0); } catch (e) { v = NaN; }
+  if (!isFinite(v)){ err('Math ERROR'); return; }
+  S.ans = v;
+  S.hist.push({e: str, r: fmtN(v, 21 > 12 ? 12 : 21)});
+  if (S.hist.length > 30) S.hist.shift();
+  r.toks = []; r.cur = 0; r.fresh = true;
+  blip(1900, .03, .03, 'triangle');
+  persist(); kick();
+}
+function zoom(f, cx, cy){
+  var w = S.win;
+  if (cx === undefined){ cx = (w.xmin + w.xmax) / 2; cy = (w.ymin + w.ymax) / 2; }
+  var nw = {xmin: cx + (w.xmin - cx) * f, xmax: cx + (w.xmax - cx) * f, ymin: cy + (w.ymin - cy) * f, ymax: cy + (w.ymax - cy) * f, xs: w.xs, ys: w.ys};
+  if (nw.xmax - nw.xmin < 1e-4 || nw.xmax - nw.xmin > 1e6) return false;
+  S.win = nw; return true;
+}
+function autofit(){
+  var d = graphData(), lo = Infinity, hi = -Infinity;
+  d.ys.forEach(function(a){ if (!a) return; for (var i = 0; i < a.length; i++){ var v = a[i]; if (isFinite(v) && Math.abs(v) < 1e7){ if (v < lo) lo = v; if (v > hi) hi = v; } } });
+  if (!isFinite(lo)){ err('No Func'); return; }
+  if (hi - lo < 1e-9){ lo -= 1; hi += 1; }
+  var pad = (hi - lo) * .1; S.win = Object.assign({}, S.win, {ymin: lo - pad, ymax: hi + pad});
+}
+function findRoots(k){
+  var f = graphData().fs[k]; if (!f) return [];
+  var w = S.win, n = 400, out = [], px = null, pv = null;
+  function F(x){ try { return f(x); } catch (e) { return NaN; } }
+  for (var i = 0; i <= n; i++){
+    var x = w.xmin + (w.xmax - w.xmin) * i / n, v = F(x);
+    if (isFinite(v) && Math.abs(v) < 1e-12) { out.push(x); }
+    else if (pv !== null && isFinite(v) && isFinite(pv) && (pv < 0) !== (v < 0) && Math.abs(v - pv) < (w.ymax - w.ymin) * 4){
+      var a = px, b = x, fa = pv;
+      for (var j = 0; j < 60; j++){ var m = (a + b) / 2, fm = F(m); if ((fa < 0) === (fm < 0)){ a = m; fa = fm; } else b = m; }
+      out.push((a + b) / 2);
+    }
+    px = x; pv = v;
+  }
+  return out;
+}
+function enabledList(){ var d = graphData(); return [0,1,2,3].filter(function(k){ return d.ys[k]; }); }
+
+/* ================= soft keys & keys ================= */
+function soft(i){
+  var m = S.mode;
+  if (m === 'run'){
+    if (i === 0){ S.hist = []; S.run = {toks:[], cur:0, fresh:false}; persist(); toast('已清除計算紀錄'); kick(); }
+    else if (i === 1) typeToks(['Ans']); else if (i === 2) typeToks(['π']); else if (i === 3) typeToks(['Abs(']);
+    else if (i === 4){ set.ang = set.ang ? 0 : 1; persist(); toast(deg() ? '角度：度' : '角度：弧度'); kick(); }
+    else setMode('yeq');
+    return;
+  }
+  if (m === 'yeq'){
+    if (S.edit && i !== 1){ if (!commitEdit()) return; }
+    if (i === 0){ if (!S.fns[S.ysel]) { blank(0); return; } S.on[S.ysel] = S.on[S.ysel] ? 0 : 1; persist(); kick(); }
+    else if (i === 1){ if (S.edit) S.edit = null; S.fns[S.ysel] = ''; S.on[S.ysel] = 0; persist(); kick(); }
+    else if (i === 2) openLib();
+    else if (i === 3) setMode('vwin');
+    else if (i === 4) setMode('table');
+    else setMode('graph');
+    return;
+  }
+  if (m === 'graph'){
+    var ks = enabledList();
+    if (i === 0){ if (!ks.length){ blank(0); return; } S.plot = null; S.root = null; S.trace = S.trace ? null : {k: ks[0], col: 63}; kick(); }
+    else if (i === 1 || i === 2){ if (zoom(i === 1 ? .5 : 2)){ persist(); S.trace = null; startPlot(); } else err('Range ERROR'); }
+    else if (i === 3){ S.win = Object.assign({}, WIN_INIT); S.trace = null; persist(); startPlot(); }
+    else if (i === 4){
+      var k = S.trace ? S.trace.k : ks[0]; if (k === undefined){ blank(4); return; }
+      var rs = (S.root && S.root.k === k) ? S.root.list : findRoots(k);
+      if (!rs.length){ err('Not Found'); return; }
+      var idx = (S.root && S.root.k === k) ? (S.root.i + 1) % rs.length : 0;
+      S.plot = null; S.trace = {k: k, col: 63}; S.root = {k: k, list: rs, i: idx}; blip(1200, .05, .03, 'triangle'); kick();
+    }
+    else setMode('table');
+    return;
+  }
+  if (m === 'table'){
+    if (i === 0) setMode('tset');
+    else if (i === 1){ S.tab.step = S.tab.step / 2; persist(); kick(); }
+    else if (i === 2){ S.tab.step = S.tab.step * 2; persist(); kick(); }
+    else if (i === 3) setMode('yeq');
+    else if (i === 4){ S.tab.top = 0; S.tab.sel = 0; kick(); }
+    else setMode('graph');
+    return;
+  }
+  if (m === 'vwin'){
+    S.edit = null;
+    if (i === 0) S.win = Object.assign({}, WIN_INIT);
+    else if (i === 1) S.win = {xmin:-2 * Math.PI, xmax:2 * Math.PI, ymin:-1.6, ymax:1.6, xs:Math.PI / 2, ys:.5};
+    else if (i === 2) S.win = {xmin:-10, xmax:10, ymin:-10, ymax:10, xs:1, ys:1};
+    else if (i === 3){ var w = S.win, cy = (w.ymin + w.ymax) / 2, hr = (w.xmax - w.xmin) * 62 / 126 / 2; S.win = Object.assign({}, w, {ymin: cy - hr, ymax: cy + hr}); }
+    else if (i === 4){ persist(); setMode('yeq'); return; }
+    else { persist(); setMode('graph'); return; }
+    persist(); kick(); return;
+  }
+  if (m === 'tset'){
+    if (i === 4){ if (commitEdit()) setMode('yeq'); } else if (i === 5){ if (commitEdit()) setMode('table'); } else blank(i);
+    return;
+  }
+  if (m === 'setup'){
+    if (i === 0 || i === 1){ set[SETROWS[S.setSel][1]] = i; persist(); cache.key = ''; kick(); }
+    else if (i === 5) setMode(S.prev || 'menu');
+    else blank(i);
+    return;
+  }
+  blank(i);
+}
+function openMenu(){
+  var t = ['run','graph','table','vwin','setup','lib'][S.menuSel];
+  if (t === 'lib'){ openLib(); return; }
+  if (t === 'graph'){ setMode(enabledList().length ? 'graph' : 'yeq'); return; }
+  setMode(t);
+}
+function back(){
+  var m = S.mode;
+  if (S.edit){ S.edit = null; kick(); return; }
+  if (m === 'graph' && S.trace){ S.trace = null; S.root = null; kick(); return; }
+  if (m === 'graph' || m === 'table') { setMode('yeq'); return; }
+  if (m === 'vwin' || m === 'tset' || m === 'setup'){ setMode(S.prev || 'menu'); return; }
+  if (m === 'menu'){ setMode('graph'); return; }
+  setMode('menu');
+}
+function arrow(dir){
+  var m = S.mode, e = S.edit;
+  if (m === 'run'){
+    var r = S.run;
+    if (dir === 'l') r.cur = Math.max(0, r.cur - 1);
+    else if (dir === 'r') r.cur = Math.min(r.toks.length, r.cur + 1);
+    else if (dir === 'u' && S.hist.length){ var h = S.hist[S.hist.length - 1]; r.toks = tokenize(h.e); r.cur = r.toks.length; r.fresh = false; }
+    else { blank(-1); return; }
+    kick(); return;
+  }
+  if (e && (dir === 'l' || dir === 'r')){ e.cur = dir === 'l' ? Math.max(0, e.cur - 1) : Math.min(e.toks.length, e.cur + 1); kick(); return; }
+  if (e && !commitEdit()) return;
+  if (m === 'yeq'){
+    if (dir === 'u') S.ysel = (S.ysel + 3) % 4; else if (dir === 'd') S.ysel = (S.ysel + 1) % 4;
+    else { var t = tokenize(S.fns[S.ysel] || ''); S.edit = {t:'y', i:S.ysel, toks:t, cur: dir === 'l' ? 0 : t.length}; }
+    kick(); return;
+  }
+  if (m === 'menu'){
+    var s = S.menuSel;
+    if (dir === 'l') s = (s + 5) % 6; else if (dir === 'r') s = (s + 1) % 6; else s = (s + 3) % 6;
+    S.menuSel = s; kick(); return;
+  }
+  if (m === 'graph'){
+    if (S.trace){
+      var ks = enabledList(); S.root = null;
+      if (dir === 'l') S.trace.col = Math.max(0, S.trace.col - 1);
+      else if (dir === 'r') S.trace.col = Math.min(126, S.trace.col + 1);
+      else if (ks.length){ var at = ks.indexOf(S.trace.k); S.trace.k = ks[(at + (dir === 'd' ? 1 : ks.length - 1)) % ks.length]; }
+      blip(2200, .008, .02); kick(); return;
+    }
+    var w = S.win, dx = (w.xmax - w.xmin) / 8, dy = (w.ymax - w.ymin) / 8;
+    var ox = dir === 'l' ? -dx : dir === 'r' ? dx : 0, oy = dir === 'u' ? dy : dir === 'd' ? -dy : 0;
+    S.win = Object.assign({}, w, {xmin: w.xmin + ox, xmax: w.xmax + ox, ymin: w.ymin + oy, ymax: w.ymax + oy});
+    S.plot = null; persist(); kick(); return;
+  }
+  if (m === 'table'){
+    var T = S.tab, n = tabCols().length;
+    if (dir === 'u'){ if (T.sel > 0) T.sel--; else T.top--; }
+    else if (dir === 'd'){ if (T.sel < 3) T.sel++; else T.top++; }
+    else if (dir === 'l') T.col = Math.max(0, T.col - 1);
+    else T.col = Math.min(n, T.col + 1);
+    kick(); return;
+  }
+  if (m === 'vwin' || m === 'tset' || m === 'setup'){
+    var key = m === 'vwin' ? 'vwSel' : m === 'tset' ? 'tsSel' : 'setSel', max = m === 'vwin' ? 6 : m === 'tset' ? 2 : SETROWS.length;
+    if (dir === 'u') S[key] = (S[key] + max - 1) % max;
+    else if (dir === 'd') S[key] = (S[key] + 1) % max;
+    else if (m === 'setup'){ var rr = SETROWS[S.setSel][1]; set[rr] = set[rr] ? 0 : 1; persist(); cache.key = ''; }
+    else { var cur = m === 'vwin' ? S.win[VWROWS[S.vwSel][1]] : (S.tsSel ? S.tab.step : S.tab.start); var tk = tokenize(fmtN(cur, 12).replace('E', 'E')); S.edit = {t: m === 'vwin' ? 'v' : 't', i: S[key], toks: tk, cur: dir === 'l' ? 0 : tk.length}; }
+    kick(); return;
+  }
+}
+function exe(){
+  var m = S.mode;
+  if (m === 'run'){ evalRun(); return; }
+  if (m === 'menu'){ openMenu(); return; }
+  if (m === 'yeq'){ if (S.edit){ if (commitEdit()) S.ysel = Math.min(3, S.ysel + 1); kick(); } else setMode('graph'); return; }
+  if (m === 'graph'){ S.trace = null; startPlot(); return; }
+  if (m === 'table'){
+    var T = S.tab, x = T.start + (T.top + T.sel) * T.step, cols = tabCols();
+    if (!cols.length){ blank(-1); return; }
+    var w = S.win;
+    if (x < w.xmin || x > w.xmax){ var hw = (w.xmax - w.xmin) / 2; S.win = Object.assign({}, w, {xmin: x - hw, xmax: x + hw}); }
+    var k = cols[Math.max(0, Math.min(T.col, cols.length) - 1)];
+    setMode('graph'); S.plot = null;
+    S.trace = {k: k, col: Math.round((x - S.win.xmin) / (S.win.xmax - S.win.xmin) * 126)};
+    kick(); return;
+  }
+  if (m === 'vwin' || m === 'tset'){
+    var key = m === 'vwin' ? 'vwSel' : 'tsSel', max = m === 'vwin' ? 6 : 2;
+    if (S.edit){ if (commitEdit()) S[key] = (S[key] + 1) % max; } else S[key] = (S[key] + 1) % max;
+    kick(); return;
+  }
+  if (m === 'setup'){ var rr = SETROWS[S.setSel][1]; set[rr] = set[rr] ? 0 : 1; persist(); cache.key = ''; kick(); }
+}
+function del(all){
+  var t = S.mode === 'run' ? S.run : S.edit;
+  if (!t){
+    if (S.mode === 'yeq' && S.fns[S.ysel]){ S.fns[S.ysel] = ''; S.on[S.ysel] = 0; persist(); kick(); return; }
+    blank(-1); return;
+  }
+  if (all){ t.toks = []; t.cur = 0; }
+  else if (t.cur > 0){ t.toks.splice(t.cur - 1, 1); t.cur--; }
+  kick();
+}
+var TOK = {k0:['0'],k1:['1'],k2:['2'],k3:['3'],k4:['4'],k5:['5'],k6:['6'],k7:['7'],k8:['8'],k9:['9'],dot:['.'],exp:['E'],neg:['⁻'],
+  add:['+'],sub:['-'],mul:['×'],div:['÷'],pow:['^'],sq:['²'],lp:['('],rp:[')'],X:['X'],sqrt:['√('],log:['log('],ln:['ln('],sin:['sin('],cos:['cos('],tan:['tan(']};
+var STOK = {log:['1','0','^','('], sqrt:['Abs('], X:['Ans'], sq:['⁻¹'], pow:['e'], ln:['e','^','('], sin:['asin('], cos:['acos('], tan:['atan('], exp:['π']};
+function press(id){
+  ensureAudio();
+  if (S.mode === 'off'){ if (id === 'AC'){ S.mode = load('mode', 'graph'); if (S.mode === 'off') S.mode = 'graph'; setMode(S.mode); clickSnd(); haptic(10); } return; }
+  clickSnd(); haptic(6);
+  if (S.err){ S.err = null; kick(); if (id !== 'EXIT' && id !== 'AC') return; }
+  var sh = S.shift;
+  if (id === 'SHIFT'){ S.shift = !sh; syncShift(); kick(); return; }
+  if (sh){ S.shift = false; syncShift(); if (shifted(id)){ kick(); return; } }
+  if (/^F[1-6]$/.test(id)){ soft(+id[1] - 1); return; }
+  if (TOK[id]){ typeToks(TOK[id]); return; }
+  switch (id){
+    case 'MENU': setMode('menu'); break;
+    case 'EXIT': back(); break;
+    case 'AC':
+      if (S.mode === 'run'){ S.run = {toks:[], cur:0, fresh:false}; }
+      else if (S.edit){ S.edit.toks = []; S.edit.cur = 0; }
+      else if (S.mode === 'graph'){ S.plot = null; S.trace = null; S.root = null; }
+      kick(); break;
+    case 'DEL': del(false); break;
+    case 'EXE': exe(); break;
+    case 'up': arrow('u'); break; case 'down': arrow('d'); break; case 'left': arrow('l'); break; case 'right': arrow('r'); break;
+  }
+}
+function shifted(id){
+  if (STOK[id]){ typeToks(STOK[id]); return true; }
+  switch (id){
+    case 'F1': if (S.mode !== 'graph') setMode('graph'); soft(0); if (!S.trace) soft(0); return true;
+    case 'F2': autofit(); persist(); if (S.mode !== 'graph') setMode('graph'); else startPlot(); toast('Y 範圍已配合函數'); return true;
+    case 'F3': setMode('vwin'); return true;
+    case 'F4': openLib(); return true;
+    case 'F5': if (S.mode !== 'graph') setMode('graph'); soft(4); return true;
+    case 'F6': setMode(S.mode === 'table' ? 'graph' : 'table'); return true;
+    case 'MENU': setMode('setup'); return true;
+    case 'AC': S.mode = 'off'; S.edit = null; S.plot = null; kick(); toast('已關機，按 AC 開機'); return true;
+    case 'DEL': del(true); return true;
+  }
+  return false;
+}
+function syncShift(){ var b = document.querySelector('.k.shift'); if (b) b.classList.toggle('on', S.shift); }
+
+/* ================= build keyboard ================= */
+var AR = {u:'M7 2 L13 11 H1Z', d:'M7 12 L1 3 H13Z', l:'M2 7 L11 1 V13Z', r:'M12 7 L3 13 V1Z'};
+var KEYS = [
+  ['F1','F1','fk','描點'],['F2','F2','fk','適配'],['F3','F3','fk','視窗'],['F4','F4','fk','範例'],['F5','F5','fk','求根'],['F6','F6','fk','圖↔表'],
+  ['SHIFT','SHIFT','shift small',''],['log','log','','10ˣ'],['sqrt','√','','|x|'],['MENU','MENU','small','設定'],
+  ['X','<span class="it">X,θ,T</span>','','Ans'],['sq','<span class="it">x</span><sup>2</sup>','','x⁻¹'],['pow','^','','e'],['EXIT','EXIT','small',''],
+  ['ln','ln','','eˣ'],['sin','sin','','sin⁻¹'],['cos','cos','','cos⁻¹'],['tan','tan','','tan⁻¹'],['lp','(','',''],['rp',')','',''],
+  ['k7','7','num',''],['k8','8','num',''],['k9','9','num',''],['DEL','DEL','small','全清'],['AC','AC','ac small','關機'],
+  ['k4','4','num',''],['k5','5','num',''],['k6','6','num',''],['mul','×','num',''],['div','÷','num',''],
+  ['k1','1','num',''],['k2','2','num',''],['k3','3','num',''],['add','+','num',''],['sub','−','num',''],
+  ['k0','0','num',''],['dot','.','num',''],['exp','×10<sup>x</sup>','small','π'],['neg','(−)','small',''],['EXE','EXE','exe small','']
+];
+var ARIA = {sqrt:'平方根',sq:'平方',pow:'次方',X:'變數 X',lp:'左括號',rp:'右括號',mul:'乘',div:'除',add:'加',sub:'減',dot:'小數點',exp:'乘十的次方',neg:'負號',DEL:'刪除',AC:'全部清除'};
+var keysEl = $('keys');
+KEYS.forEach(function(k, n){
+  var b = document.createElement('button');
+  b.className = 'k ' + k[2]; b.dataset.k = k[0];
+  b.innerHTML = '<span class="sl">' + k[3] + '</span><span class="cap">' + k[1] + '</span>';
+  if (ARIA[k[0]]) b.setAttribute('aria-label', ARIA[k[0]]);
+  var span, col, row;
+  if (n < 6){ span = 5; col = n * 5 + 1; row = 1; }
+  else if (n < 10){ span = 5; col = (n - 6) * 5 + 1; row = 2; }
+  else if (n < 14){ span = 5; col = (n - 10) * 5 + 1; row = 3; }
+  else if (n < 20){ span = 5; col = (n - 14) * 5 + 1; row = 4; }
+  else { var m = n - 20; span = 6; col = (m % 5) * 6 + 1; row = 5 + ((m / 5) | 0); }
+  b.style.gridColumn = col + ' / span ' + span; b.style.gridRow = row;
+  keysEl.appendChild(b);
+});
+var dp = document.createElement('div'); dp.className = 'dpad';
+dp.innerHTML = '<div class="plate">' + ['u','d','l','r'].map(function(d){
+  var nm = {u:'上',d:'下',l:'左',r:'右'}[d];
+  return '<button class="dp ' + d + '" data-k="' + {u:'up',d:'down',l:'left',r:'right'}[d] + '" aria-label="' + nm + '"><svg viewBox="0 0 14 14"><path d="' + AR[d] + '" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>';
+}).join('') + '<b>REPLAY</b></div>';
+keysEl.appendChild(dp);
+
+var rep = null;
+function stopRep(){ if (rep){ clearTimeout(rep.t0); clearInterval(rep.iv); rep = null; } }
+keysEl.addEventListener('pointerdown', function(e){
+  var b = e.target.closest('[data-k]'); if (!b) return;
+  var id = b.dataset.k;
+  b.classList.add('down'); b._pd = true;
+  press(id);
+  stopRep();
+  if (/^(up|down|left|right|DEL)$/.test(id)) rep = {t0: setTimeout(function(){ rep && (rep.iv = setInterval(function(){ press(id); }, 85)); }, 420)};
+});
+function up(e){ stopRep(); var d = keysEl.querySelectorAll('.down'); for (var i = 0; i < d.length; i++) d[i].classList.remove('down'); }
+keysEl.addEventListener('pointerup', up); keysEl.addEventListener('pointercancel', up); keysEl.addEventListener('pointerleave', up);
+keysEl.addEventListener('click', function(e){
+  var b = e.target.closest('[data-k]'); if (!b) return;
+  if (b._pd){ b._pd = false; return; }
+  press(b.dataset.k);
+});
+keysEl.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+var KB = {'0':'k0','1':'k1','2':'k2','3':'k3','4':'k4','5':'k5','6':'k6','7':'k7','8':'k8','9':'k9','.':'dot','+':'add','-':'sub','*':'mul','/':'div','^':'pow','(':'lp',')':'rp','x':'X','X':'X',
+  Enter:'EXE','=':'EXE',Backspace:'DEL',Delete:'AC',ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',Shift:'SHIFT',m:'MENU',s:'sin',c:'cos',t:'tan',l:'ln',r:'sqrt'};
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ if (sheet.classList.contains('on')) closeSheet(); else press('EXIT'); e.preventDefault(); return; }
+  if (sheet.classList.contains('on')) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('button')) return;
+  var id = KB[e.key]; if (!id) return;
+  e.preventDefault();
+  var b = keysEl.querySelector('[data-k="' + id + '"]');
+  if (b){ b.classList.add('down'); setTimeout(function(){ b.classList.remove('down'); }, 110); }
+  press(id);
+});
+
+/* ================= LCD gestures ================= */
+var box = $('lcdbox'), ptrs = new Map(), g0 = null;
+function toBuf(e){ var r = box.getBoundingClientRect(); return {x: (e.clientX - r.left) / r.width * 128, y: (e.clientY - r.top) / r.height * 64}; }
+box.addEventListener('pointerdown', function(e){
+  ensureAudio();
+  try { box.setPointerCapture(e.pointerId); } catch (x) {}
+  ptrs.set(e.pointerId, toBuf(e));
+  var pts = Array.from(ptrs.values());
+  g0 = {pts: pts.map(function(p){ return {x:p.x, y:p.y}; }), win: Object.assign({}, S.win), t: Date.now(), moved: 0, top: S.tab.top};
+  if (S.mode === 'graph' && S.trace && pts.length === 1){ S.root = null; S.trace.col = Math.max(0, Math.min(126, Math.round(pts[0].x))); kick(); }
+});
+box.addEventListener('pointermove', function(e){
+  if (!ptrs.has(e.pointerId) || !g0) return;
+  ptrs.set(e.pointerId, toBuf(e));
+  var pts = Array.from(ptrs.values()), w = g0.win;
+  if (pts.length === 1 && g0.pts.length === 1){
+    var dx = pts[0].x - g0.pts[0].x, dy = pts[0].y - g0.pts[0].y;
+    g0.moved = Math.max(g0.moved, Math.abs(dx) + Math.abs(dy));
+    if (S.mode === 'graph'){
+      if (S.trace){ S.trace.col = Math.max(0, Math.min(126, Math.round(pts[0].x))); kick(); return; }
+      if (g0.moved < 1.5) return;
+      var ux = (w.xmax - w.xmin) / 126, uy = (w.ymax - w.ymin) / 62;
+      S.win = Object.assign({}, w, {xmin: w.xmin - dx * ux, xmax: w.xmax - dx * ux, ymin: w.ymin + dy * uy, ymax: w.ymax + dy * uy});
+      S.plot = null; kick();
+    } else if (S.mode === 'table'){ S.tab.top = g0.top - Math.round(dy / 9); kick(); }
+  } else if (pts.length === 2 && g0.pts.length === 2 && S.mode === 'graph'){
+    var d0 = Math.hypot(g0.pts[0].x - g0.pts[1].x, g0.pts[0].y - g0.pts[1].y), d1 = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    if (d0 < 4 || d1 < 4) return;
+    var f = d0 / d1, cx = w.xmin + ((g0.pts[0].x + g0.pts[1].x) / 2) / 126 * (w.xmax - w.xmin), cy = w.ymax - ((g0.pts[0].y + g0.pts[1].y) / 2) / 62 * (w.ymax - w.ymin);
+    S.win = w; if (zoom(f, cx, cy)){ S.plot = null; kick(); }
+    g0.moved = 99;
+  }
+});
+function lcdUp(e){
+  if (!ptrs.has(e.pointerId)) return;
+  var p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId);
+  if (!g0) return;
+  var tap = g0.moved < 2 && Date.now() - g0.t < 400 && g0.pts.length === 1;
+  if (tap) lcdTap(p);
+  if (S.mode === 'graph') persist();
+  if (!ptrs.size) g0 = null; else g0 = {pts: Array.from(ptrs.values()), win: Object.assign({}, S.win), t: Date.now(), moved: 99, top: S.tab.top};
+}
+box.addEventListener('pointerup', lcdUp); box.addEventListener('pointercancel', lcdUp);
+function lcdTap(p){
+  var m = S.mode;
+  if (S.err){ S.err = null; kick(); return; }
+  if (p.y >= 55 && ['menu','off'].indexOf(m) < 0 && !(m === 'graph' && S.trace)){ var i = Math.min(5, Math.floor(p.x / 21.3)); if (softLabels()[i]){ clickSnd(); haptic(6); soft(i); } return; }
+  if (m === 'menu'){ var c = Math.min(2, Math.floor(p.x / 42.6)), r = p.y < 28 ? 0 : 1; var k = r * 3 + c; clickSnd(); haptic(6); if (S.menuSel === k) openMenu(); else { S.menuSel = k; kick(); } return; }
+  if (m === 'yeq' && p.y > 9 && p.y < 47){ var yi = Math.max(0, Math.min(3, Math.floor((p.y - 10) / 9))); if (S.edit && !commitEdit()) return; S.ysel = yi; haptic(4); kick(); return; }
+  if (m === 'graph' && !S.trace){ var ks = enabledList(); if (!ks.length) return; S.plot = null; S.trace = {k: ks[0], col: Math.max(0, Math.min(126, Math.round(p.x)))}; haptic(6); kick(); return; }
+  if (m === 'table' && p.y > 9 && p.y < 55){ S.tab.sel = Math.max(0, Math.min(3, Math.floor((p.y - 11) / 9))); S.tab.col = p.x < 26 ? 0 : Math.min(tabCols().length, 1 + Math.floor((p.x - 26) / 34)); haptic(4); kick(); return; }
+  if ((m === 'vwin' || m === 'tset' || m === 'setup') && p.y > 9){ var key = m === 'vwin' ? 'vwSel' : m === 'tset' ? 'tsSel' : 'setSel', max = m === 'vwin' ? 6 : m === 'tset' ? 2 : SETROWS.length; var ri = Math.floor((p.y - 8) / 8); if (ri < max){ if (S.edit && !commitEdit()) return; if (m === 'setup' && S.setSel === ri){ var rr = SETROWS[ri][1]; set[rr] = set[rr] ? 0 : 1; persist(); cache.key = ''; } S[key] = ri; haptic(4); kick(); } }
+}
+box.addEventListener('wheel', function(e){
+  if (S.mode !== 'graph') return;
+  e.preventDefault();
+  var p = toBuf(e), w = S.win, cx = w.xmin + p.x / 126 * (w.xmax - w.xmin), cy = w.ymax - p.y / 62 * (w.ymax - w.ymin);
+  if (zoom(e.deltaY > 0 ? 1.12 : 1 / 1.12, cx, cy)){ S.plot = null; kick(); clearTimeout(box._t); box._t = setTimeout(persist, 300); }
+}, {passive:false});
+
+/* ================= library sheet ================= */
+var LIB0 = [
+  {n:'投籃的拋物線', d:'罰球線出手，球在哪裡落地', f:['-0.35X²+2.2X+0.5','','',''], w:[-0.5,7,-0.5,4.5,1,1]},
+  {n:'基隆港潮汐', d:'半日潮，大約 12.4 小時一個週期', f:['1.1sin(0.507X)+0.2','0.2','',''], w:[0,24,-1.5,1.8,3,.5]},
+  {n:'手搖飲退冰', d:'85 度熱紅茶放在 24 度的教室', f:['24+61e^(-0.06X)','24','',''], w:[0,60,15,90,10,10]},
+  {n:'二次函數比較', d:'高一數學第三章：平移與開口', f:['X²','X²-3','(X-2)²','-0.5X²+2'], w:[-6.3,6.3,-4,6,1,1]},
+  {n:'三角函數全家福', d:'sin、cos、tan 放在同一張圖', f:['sin(X)','cos(X)','tan(X)',''], w:[-6.3,6.3,-3.1,3.1,1,1]},
+  {n:'定存複利 1.7%', d:'十萬元放四十年，單位：萬元', f:['10(1.017)^X','10+0.17X','',''], w:[0,40,8,22,5,2]},
+  {n:'颱風的風速剖面', d:'離中心越遠，風速先強後弱', f:['48X÷(1+0.04X²)','','',''], w:[0,30,0,130,5,20]}
+];
+var mine = load('mine', []);
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function thumb(c, item){
+  var B = new LCD(64, 32), win = {xmin:item.w[0], xmax:item.w[1], ymin:item.w[2], ymax:item.w[3]};
+  var saved = {grid: set.grid, axes: set.axes}; set.grid = 1; set.axes = 0;
+  drawAxes(B, win, 62, 30, true);
+  set.grid = saved.grid; set.axes = saved.axes;
+  item.f.forEach(function(s, k){
+    if (!s) return; var f = tryCompile(s); if (!f) return;
+    var ys = new Float64Array(63); for (var i = 0; i < 63; i++){ try { ys[i] = f(win.xmin + i * (win.xmax - win.xmin) / 62); } catch (e) { ys[i] = NaN; } }
+    plotSeries(B, ys, win, 30, k, 63);
+  });
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  c.width = Math.round(104 * dpr); c.height = Math.round(52 * dpr);
+  paint(B, c, c.getContext('2d'));
+}
+function prettyF(f){ return f.filter(Boolean).map(function(s){ return 'y = ' + s.replace(/X/g, 'x').replace(/\-/g, '−'); }).join('　'); }
+function renderLib(){
+  var ul = $('libs'); ul.innerHTML = '';
+  var all = LIB0.map(function(x, i){ return {it:x, own:false, i:i}; }).concat(mine.map(function(x, i){ return {it:x, own:true, i:i}; }));
+  all.forEach(function(o){
+    var li = document.createElement('li'); if (o.own) li.className = 'mine';
+    li.innerHTML = '<button class="lib" data-src="' + (o.own ? 'm' : 'b') + '" data-i="' + o.i + '"><span class="th"><canvas></canvas></span><span class="tx"><b></b><small></small><span class="fx"></span></span></button>' +
+      (o.own ? '<button class="del" data-del="' + o.i + '" aria-label="刪除這組範例"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M3.5 5h11M7 5V3h4v2M5 5l.8 10h6.4L13 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></button>' : '');
+    li.querySelector('b').textContent = o.it.n;
+    li.querySelector('small').textContent = o.it.d;
+    li.querySelector('.fx').textContent = prettyF(o.it.f);
+    ul.appendChild(li);
+    thumb(li.querySelector('canvas'), o.it);
+  });
+}
+function openLib(){
+  lastFocus = document.activeElement;
+  renderLib();
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on');
+  haptic(8); blip(1400, .04, .025, 'triangle');
+  var f = sheet.querySelector('button'); if (f) try { f.focus({preventScroll:true}); } catch (e) {}
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = '';
+  if (lastFocus && lastFocus.focus) try { lastFocus.focus({preventScroll:true}); } catch (e) {}
+}
+scrim.addEventListener('click', closeSheet);
+$('libs').addEventListener('click', function(e){
+  var d = e.target.closest('[data-del]');
+  if (d){
+    var i = +d.dataset.del, gone = mine.splice(i, 1)[0]; save('mine', mine); renderLib(); haptic([10, 30, 10]);
+    toast('已刪除「' + gone.n + '」', function(){ mine.splice(i, 0, gone); save('mine', mine); if (sheet.classList.contains('on')) renderLib(); });
+    return;
+  }
+  var b = e.target.closest('.lib'); if (!b) return;
+  var it = (b.dataset.src === 'm' ? mine : LIB0)[+b.dataset.i]; if (!it) return;
+  S.fns = it.f.slice(0, 4); while (S.fns.length < 4) S.fns.push('');
+  S.on = S.fns.map(function(s){ return s ? 1 : 0; });
+  S.win = {xmin:it.w[0], xmax:it.w[1], ymin:it.w[2], ymax:it.w[3], xs:it.w[4] || 1, ys:it.w[5] || 1};
+  persist(); closeSheet(); haptic(10);
+  setMode('graph'); toast('載入「' + it.n + '」');
+});
+$('saveCur').addEventListener('click', function(){
+  if (!S.fns.some(Boolean)){ toast('Y= 裡還沒有函數'); errSnd(); return; }
+  var d = new Date(), w = S.win;
+  var it = {n:'我的函數 ' + (mine.length + 1), d:(d.getMonth() + 1) + '/' + d.getDate() + ' 存入・X ' + fmtN(w.xmin, 5) + ' 到 ' + fmtN(w.xmax, 5), f:S.fns.slice(), w:[w.xmin, w.xmax, w.ymin, w.ymax, w.xs, w.ys]};
+  mine.push(it); save('mine', mine); renderLib(); haptic([8, 30, 8]); blip(1800, .05, .03, 'triangle');
+  toast('已存成「' + it.n + '」');
+  var ul = $('libs'); ul.scrollTop = ul.scrollHeight;
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, drag = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('.del, .savecur')) return;
+    if (e.target.closest('.libs') && $('libs').scrollTop > 0) return;
+    drag = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag');
+  });
+  sheet.addEventListener('pointermove', function(e){
+    if (!drag) return;
+    dy = e.clientY - sy;
+    if (Math.abs(dy) > 6 && !sheet.hasPointerCapture(e.pointerId)) try { sheet.setPointerCapture(e.pointerId); } catch (x) {}
+    var y = dy > 0 ? dy : dy / 6;
+    sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)';
+    scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2);
+  });
+  function end(e){
+    if (!drag) return; drag = false; sheet.classList.remove('drag'); scrim.style.opacity = '';
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight * .35 || (v > .6 && dy > 20)) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+/* ================= toast ================= */
+var toastT = null, undoFn = null;
+function toast(msg, undo){
+  $('toastT').textContent = msg; undoFn = undo || null; $('toastU').hidden = !undo;
+  $('toast').classList.add('on'); clearTimeout(toastT);
+  toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, undo ? 3600 : 2000);
+}
+$('toastU').addEventListener('click', function(){ if (undoFn){ undoFn(); undoFn = null; haptic(8); } $('toast').classList.remove('on'); });
+
+/* ================= clock & boot ================= */
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setInterval(tick, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ var n = Math.max(1, Math.ceil(b.level * 3)); var r = $('batt').children; for (var i = 0; i < 3; i++) r[i].style.opacity = i < n ? 1 : .2; }).catch(function(){});
+window.addEventListener('resize', function(){ sizeLCD(); kick(); });
+sizeLCD();
+if (S.mode === 'graph') startPlot(); else kick();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="放映表">
+<title>放映表 · 串流節目表</title>
+<meta name="description" content="典藏電影頻道的橫向節目表：暗紅現在線劃過六個片台，點片名抽出編號書背般的詳情，收進片單書架、設定開播提醒。收錄於 100 Creative HTML Works（App 040・典藏電影系列）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/040-criterion-tv.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230b0b0a'/%3E%3Crect x='10' y='8' width='12' height='48' fill='%23f3f2ef'/%3E%3Crect x='26' y='8' width='9' height='48' fill='%238e1b1b'/%3E%3Crect x='39' y='8' width='14' height='48' fill='%23f3f2ef'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bk:#0b0b0a; --bk2:#171615; --bk3:#23211f; --gr:#8d8a85; --gr2:#5f5c58; --wh:#f3f2ef; --red:#8e1b1b; --red2:#b3302b;
+  --cond:"Avenir Next Condensed","Avenir Next","Helvetica Neue",sans-serif;
+  --cjk:"Lantinghei TC","PingFang TC","Heiti TC",system-ui,sans-serif;
+  --mix:"Avenir Next Condensed","Lantinghei TC","PingFang TC",sans-serif;
+  --out:cubic-bezier(.2,1,.3,1); --spring:cubic-bezier(.3,1.3,.5,1);
+  --PX:3.2px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.5 var(--cjk);color:var(--wh);background:var(--bk);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;text-align:inherit}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--red2);outline-offset:2px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--bk);isolation:isolate;display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
+@media (min-width:521px){
+  body{background:#0b0b0a}
+  .stage{display:flex;align-items:center;justify-content:center;gap:72px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:50px;padding:7px;z-index:1;background:#1b1a19;
+    box-shadow:inset 0 0 0 1px #3a3835,inset 0 1px 0 1px #4a4743,0 20px 30px -20px #000}
+  .screen{inset:7px;border-radius:43px}
+  .caption{display:block;position:relative;z-index:1;width:260px;order:-1;padding:22px 24px 26px;background:var(--bk);border-top:6px solid var(--wh)}
+  .caption b{display:block;font:700 13px/1 var(--cond);letter-spacing:.24em;color:var(--red2)}
+  .caption h1{font:300 46px/1.05 var(--cjk);margin-top:14px;letter-spacing:.06em}
+  .caption p{margin-top:16px;font-size:14px;line-height:1.75;color:#b7b4ae}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+.status{flex:none;display:flex;align-items:center;justify-content:space-between;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 15px/1 var(--cond);letter-spacing:.04em}
+.status .gl{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* top text nav */
+.nav{flex:none;display:flex;align-items:flex-end;gap:22px;padding:8px 20px 12px}
+.nav button{font:300 26px/1 var(--cjk);color:var(--gr2);letter-spacing:.04em;min-height:44px;display:flex;align-items:flex-end;padding-bottom:4px;transition:color .25s}
+.nav button[aria-selected=true]{color:var(--wh);font-weight:600}
+.nav button:active{color:var(--gr)}
+.nav sup{font:700 14px/1 var(--cond);color:var(--red2);margin-left:2px;align-self:flex-start;margin-top:6px}
+.nav .sp{flex:1}
+.nav .clock{font:500 13px/1.25 var(--cond);color:var(--gr);text-align:right;letter-spacing:.1em;padding-bottom:6px}
+.nav .clock b{display:block;font:700 22px/1 var(--cond);color:var(--wh);letter-spacing:.02em}
+
+.views{flex:1;position:relative;min-height:0}
+.view{position:absolute;inset:0;display:flex;flex-direction:column}
+.view[hidden]{display:none}
+.view.enter{animation:vin .4s var(--out)}
+@keyframes vin{from{transform:translateX(var(--dx,30px))}to{transform:none}}
+
+/* day strip */
+.days{flex:none;display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px 10px;gap:2px}
+.days button{height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--gr)}
+.days button span{font:400 12px/1 var(--cjk)}
+.days button b{font:700 21px/1 var(--cond)}
+.days button[aria-pressed=true]{background:var(--wh);color:var(--bk)}
+.days button:active{background:var(--bk3)}
+
+/* EPG */
+.epg{flex:1;min-height:0;overflow:auto;position:relative;overscroll-behavior:contain;scrollbar-width:none}
+.epg::-webkit-scrollbar{display:none}
+.grid{position:relative}
+.ruler{position:sticky;top:0;z-index:6;display:flex;height:34px;background:var(--bk)}
+.corner{position:sticky;left:0;z-index:7;flex:none;width:76px;background:var(--bk);font:700 11px/34px var(--cond);letter-spacing:.2em;color:var(--gr2);padding-left:14px}
+.ticks{position:relative;flex:none}
+.ticks span{position:absolute;top:0;font:600 14px/34px var(--cond);color:var(--gr);letter-spacing:.04em;padding-left:6px;white-space:nowrap}
+.ticks span::before{content:"";position:absolute;left:0;top:10px;width:2px;height:14px;border-radius:1px;background:var(--gr2)}
+.ticks span.h{color:var(--wh)}
+.ticks span.m::before{height:8px;top:13px}
+.ticks span.m{font-size:12px;color:var(--gr2)}
+.nowflag{position:absolute;top:5px;z-index:2;background:var(--red);color:var(--wh);font:700 13px/24px var(--cond);padding:0 6px;letter-spacing:.06em;transform:translateX(-50%);white-space:nowrap}
+.row{display:flex;height:92px}
+.ch{position:sticky;left:0;z-index:5;flex:none;width:76px;background:var(--bk);padding:8px 8px 8px 14px;display:flex;flex-direction:column;justify-content:space-between;border-right:3px solid var(--bk)}
+.ch b{font:700 30px/1 var(--cond);letter-spacing:-.01em}
+.ch span{font:500 12px/1.25 var(--cjk);color:var(--gr)}
+.progs{position:relative;flex:none;height:100%}
+.pg{position:absolute;top:3px;bottom:3px;background:var(--bk2);padding:0;clip-path:inset(0);transition:background .2s}
+.pg .in{position:sticky;left:84px;height:100%;max-width:100%;display:inline-flex;flex-direction:column;justify-content:space-between;padding:9px 10px 8px;vertical-align:top;text-align:left}
+.pg.nar .in{position:static;width:100%;align-items:center;justify-content:center;padding:6px 0}
+.pg.nar .ti{writing-mode:vertical-rl;font-size:11.5px;letter-spacing:.08em;line-height:1.1;white-space:nowrap}
+.pg:active{background:var(--bk3)}
+.pg .no{font:700 11px/1 var(--cond);letter-spacing:.14em;color:var(--red2);white-space:nowrap}
+.pg .ti{font:500 16px/1.2 var(--cjk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pg .tm{font:500 12px/1 var(--cond);color:var(--gr);letter-spacing:.06em;white-space:nowrap}
+.pg.essay{background:transparent;box-shadow:inset 0 0 0 1px var(--bk3)}
+.pg.essay .ti{font-size:12.5px;color:var(--gr);line-height:1.3}
+.pg.essay .in{justify-content:center}
+.pg.past{opacity:.5}
+.pg.live{background:var(--wh);color:var(--bk)}
+.pg.live .no{color:var(--red)}
+.pg.live .tm{color:#4d4a46}
+.pg.live .in.after{position:static;display:flex;width:auto}
+.pg.live .bar{position:absolute;left:0;bottom:0;height:4px;background:var(--red);border-radius:0 2px 2px 0}
+.pg.essay.live{background:var(--bk3);color:var(--wh)}
+.pg .mk{position:absolute;right:8px;top:8px;display:flex;gap:4px}
+.pg .mk svg{width:13px;height:13px}
+.nowline{position:absolute;top:34px;bottom:0;width:2px;margin-left:-1px;background:var(--red2);z-index:4;pointer-events:none}
+.jump{position:absolute;right:16px;bottom:calc(26px + env(safe-area-inset-bottom));z-index:8;height:48px;padding:0 16px 0 12px;background:var(--red);color:var(--wh);display:flex;align-items:center;gap:8px;font:700 15px/1 var(--cond);letter-spacing:.12em;transition:transform .35s var(--spring),visibility 0s;clip-path:polygon(0 0,100% 0,100% 100%,10px 100%,0 calc(100% - 10px))}
+.jump[hidden]{display:flex;transform:translateY(90px);visibility:hidden;transition:transform .3s,visibility 0s .3s}
+.jump:active{background:#6f1414}
+
+/* shelf */
+.shelfhead{flex:none;display:flex;align-items:baseline;justify-content:space-between;padding:0 20px 10px}
+.shelfhead p{font:400 13px/1.4 var(--cjk);color:var(--gr)}
+.sorts{display:flex;gap:14px}
+.sorts button{font:500 14px/1 var(--cjk);color:var(--gr2);min-height:44px;padding:0 2px}
+.sorts button[aria-pressed=true]{color:var(--wh)}
+.shelfwrap{flex:1;overflow-y:auto;padding:4px 16px 60px;overscroll-behavior:contain}
+.shelf{display:flex;flex-wrap:wrap;align-items:flex-end;gap:0;row-gap:34px;position:relative;touch-action:pan-y}
+.spine{position:relative;height:262px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:12px 0 12px;transition:transform .35s var(--out);touch-action:pan-y}
+.spine::after{content:"";position:absolute;left:-2px;right:-2px;bottom:-14px;height:12px;background:#2b2926;border-top:2px solid #45423e}
+.spine .n{font:700 19px/1 var(--cond);letter-spacing:.02em}
+.spine.long .t{font-size:13.5px;letter-spacing:.04em}
+.spine .t{writing-mode:vertical-rl;font:500 17px/1 var(--cjk);letter-spacing:.14em;flex:1;display:flex;align-items:center;justify-content:center;padding:14px 0;overflow:hidden;max-height:176px}
+.spine .d{writing-mode:vertical-rl;font:400 11px/1 var(--cjk);letter-spacing:.12em;opacity:.7}
+.spine.w{background:var(--wh);color:var(--bk)}
+.spine.b{background:#1e1d1b;color:var(--wh);box-shadow:inset 1px 0 0 #34322f,inset -1px 0 0 #000}
+.spine.g{background:#a6a29b;color:var(--bk)}
+.spine.r{background:var(--red);color:var(--wh)}
+.spine:active,.spine.pull{transform:translateY(-16px)}
+.spine.lift{transform:translateY(-22px) rotate(-2deg);z-index:3;transition:none}
+.shelfempty{padding:40px 20px;color:var(--gr);font-size:14px;line-height:1.8}
+
+/* reminders */
+.leads{flex:none;display:flex;align-items:center;gap:6px;padding:0 20px 8px;color:var(--gr);font-size:13px}
+.leads button{min-width:52px;height:44px;font:700 16px/1 var(--cond);color:var(--gr2);letter-spacing:.04em}
+.leads button[aria-pressed=true]{color:var(--bk);background:var(--wh)}
+.remlist{flex:1;overflow-y:auto;padding:4px 0 60px;overscroll-behavior:contain}
+.rem{display:flex;align-items:stretch;min-height:84px;border-top:1px solid var(--bk3)}
+.rem .open{flex:1;display:flex;align-items:center;gap:14px;padding:12px 0 12px 20px;min-width:0}
+.rem .open:active{background:var(--bk2)}
+.rem .tm{flex:none;width:64px;font:700 26px/1 var(--cond);letter-spacing:.01em}
+.rem .tm small{display:block;font:500 12px/1.4 var(--cjk);color:var(--gr);letter-spacing:0;margin-top:4px}
+.rem .tx{flex:1;min-width:0}
+.rem .tx b{display:block;font:500 17px/1.3 var(--cjk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rem .tx span{display:block;font:400 12.5px/1.4 var(--cjk);color:var(--gr);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rem .cd{flex:none;font:700 15px/1.2 var(--cond);color:var(--red2);text-align:right;letter-spacing:.06em;padding-left:6px}
+.rem .cd.on{color:var(--wh)}
+.rem .x{flex:none;width:56px;display:grid;place-items:center;color:var(--gr)}
+.rem .x:active{color:var(--wh);background:var(--bk2)}
+.remempty{padding:30px 20px;color:var(--gr);font-size:14px;line-height:1.8}
+
+.home{position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(243,242,239,.7);z-index:30;pointer-events:none}
+
+/* sheet: the insert booklet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:90%;background:var(--wh);color:var(--bk);display:flex;flex-direction:column;transform:translateY(calc(100% + 30px));transition:transform .5s var(--spring);touch-action:none;border-radius:14px 14px 0 0}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{flex:none;height:26px;display:flex;align-items:center;justify-content:center;cursor:grab}
+.grab i{width:44px;height:5px;border-radius:3px;background:#bdb9b2}
+.sb{overflow-y:auto;padding:0 20px calc(26px + env(safe-area-inset-bottom))}
+.dhead{display:flex;gap:16px;align-items:flex-start}
+.cover{flex:none;width:140px;height:140px}
+.cover svg{width:100%;height:100%}
+.dmeta{min-width:0;padding-top:2px}
+.dmeta .no{font:700 13px/1 var(--cond);letter-spacing:.2em;color:var(--red)}
+.dmeta h2{font:600 25px/1.2 var(--cjk);margin-top:8px;letter-spacing:.02em}
+.dmeta .ot{font:600 14px/1.2 var(--cond);letter-spacing:.1em;text-transform:uppercase;margin-top:6px;color:#4d4a46}
+.dmeta .by{font:400 13px/1.5 var(--cjk);color:#4d4a46;margin-top:8px}
+.syn{font:400 15px/1.75 var(--cjk);margin-top:16px}
+.air{margin-top:16px;padding:12px 0;border-top:3px solid var(--bk);display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.air b{font:700 22px/1 var(--cond);letter-spacing:.02em}
+.air span{font:400 13px/1.4 var(--cjk);color:#4d4a46;text-align:right}
+.prog{height:4px;background:#d6d3cd;position:relative;margin-top:-4px;margin-bottom:6px}
+.prog i{position:absolute;left:0;top:0;bottom:0;background:var(--red);border-radius:0 2px 2px 0}
+.act{display:flex;align-items:center;gap:14px;width:100%;min-height:58px;border-top:1px solid #d6d3cd;font:500 16px/1.3 var(--cjk);padding:0 2px}
+.act:active{background:#e6e4df}
+.act svg{flex:none;width:22px;height:22px}
+.act .st{margin-left:auto;font:700 13px/1 var(--cond);letter-spacing:.14em;color:#6b6863}
+.act[aria-pressed=true] .st{color:var(--red)}
+.sw{margin-left:auto;width:50px;height:28px;border-radius:14px;background:#cfccc6;position:relative;transition:background .2s;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .3s var(--spring)}
+.act[aria-checked=true] .sw{background:var(--red)}
+.act[aria-checked=true] .sw::after{transform:translateX(22px)}
+.other{margin-top:18px}
+.other h3{font:700 12px/1 var(--cond);letter-spacing:.24em;color:#6b6863;margin-bottom:6px}
+.slot{display:flex;align-items:center;width:100%;min-height:50px;border-top:1px solid #d6d3cd;gap:12px}
+.slot:active{background:#e6e4df}
+.slot b{font:700 18px/1 var(--cond);width:92px}
+.slot span{flex:1;font-size:13.5px;color:#4d4a46}
+.slot svg{width:18px;height:18px}
+.slot[aria-pressed=true]{color:var(--red)}
+
+.toast{position:absolute;left:14px;right:14px;top:calc(52px + env(safe-area-inset-top));z-index:60;background:var(--wh);color:var(--bk);padding:12px 14px;display:flex;align-items:center;gap:12px;font:500 14px/1.4 var(--cjk);transform:translateY(-160px);visibility:hidden;transition:transform .45s var(--spring),visibility 0s .45s;border-left:6px solid var(--red)}
+.toast.on{transform:none;visibility:visible;transition:transform .45s var(--spring)}
+.toast span{flex:1}
+.toast button{font:700 14px/1 var(--cond);letter-spacing:.14em;color:var(--red);min-height:40px;padding:0 6px}
+.toast button[hidden]{display:none}
+
+@media (prefers-reduced-motion:reduce){
+  .view.enter{animation:none}
+  .spine,.jump{transition:none}
+  .sheet,.toast{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="wall" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="caption"><b>NO. 040</b><h1>放映表</h1><p>典藏電影的串流節目表。橫向捲動六個片台，暗紅的現在線告訴你哪一部正在放。</p></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">21:07</span>
+        <span class="gl">
+          <svg width="17" height="11" viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" fill="currentColor"/><rect x="4.6" y="5" width="3" height="6" fill="currentColor"/><rect x="9.2" y="2.5" width="3" height="8.5" fill="currentColor"/><rect x="13.8" y="0" width="3" height="11" fill="currentColor" opacity=".35"/></svg>
+          <svg width="15" height="11" viewBox="0 0 15 11"><path d="M7.5 10.5 5 7.8a3.6 3.6 0 0 1 5 0z" fill="currentColor"/><path d="M2.8 5.3a6.7 6.7 0 0 1 9.4 0M.6 2.9a10 10 0 0 1 13.8 0" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x=".5" y=".5" width="22" height="11" rx="2.5" fill="none" stroke="currentColor"/><rect x="2.2" y="2.2" width="13" height="7.6" rx="1.2" fill="currentColor"/><rect x="23.6" y="4" width="2" height="4" rx="1" fill="currentColor"/></svg>
+        </span>
+      </div>
+      <nav class="nav" role="tablist" aria-label="主要">
+        <button role="tab" data-v="epg" aria-selected="true">節目</button>
+        <button role="tab" data-v="shelf" aria-selected="false">片單<sup id="shelfN"></sup></button>
+        <button role="tab" data-v="rem" aria-selected="false">提醒<sup id="remN"></sup></button>
+        <span class="sp"></span>
+        <div class="clock" aria-hidden="true"><b id="bigClock">21:07</b><span id="dayLbl">SEP 23</span></div>
+      </nav>
+      <main class="views">
+        <section class="view" id="v-epg" aria-label="節目表">
+          <div class="days" id="days" role="group" aria-label="日期"></div>
+          <div class="epg" id="epg"><div class="grid" id="grid"></div></div>
+          <button class="jump" id="jump" hidden aria-label="回到現在"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1v14M1 8h4M11 8h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>NOW</button>
+        </section>
+        <section class="view" id="v-shelf" aria-label="片單" hidden>
+          <div class="shelfhead"><p id="shelfTip">長按書背可拖曳排序</p><div class="sorts" role="group" aria-label="排序"><button data-sort="mine" aria-pressed="true">我的順序</button><button data-sort="no" aria-pressed="false">依編號</button></div></div>
+          <div class="shelfwrap"><div class="shelf" id="shelf"></div></div>
+        </section>
+        <section class="view" id="v-rem" aria-label="提醒" hidden>
+          <div class="leads" role="group" aria-label="提前時間">提前<button data-lead="5" aria-pressed="false">5′</button><button data-lead="10" aria-pressed="true">10′</button><button data-lead="30" aria-pressed="false">30′</button>分鐘通知</div>
+          <div class="remlist" id="remlist"></div>
+        </section>
+      </main>
+      <div class="home" aria-hidden="true"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="影片資訊">
+        <div class="grab" aria-hidden="true"><i></i></div>
+        <div class="sb" id="sb"></div>
+      </div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var K = 'app040:';
+function load(k,d){ try{ var v = localStorage.getItem(K+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } }
+function save(k,v){ try{ localStorage.setItem(K+k, JSON.stringify(v)); }catch(e){} }
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+var ac = null;
+function tone(f,t,d,g){ try{ if(!ac){ var C = window.AudioContext||window.webkitAudioContext; if(!C) return; ac = new C(); } if(ac.state==='suspended') ac.resume();
+  var o = ac.createOscillator(), v = ac.createGain(), s = ac.currentTime+(t||0); o.type='sine'; o.frequency.value=f; v.gain.setValueAtTime(0,s); v.gain.linearRampToValueAtTime(g||.07,s+.01); v.gain.exponentialRampToValueAtTime(.0001,s+d); o.connect(v); v.connect(ac.destination); o.start(s); o.stop(s+d+.05); }catch(e){} }
+function projector(){ try{ if(!ac){ var C = window.AudioContext||window.webkitAudioContext; if(!C) return; ac = new C(); } var n = ac.sampleRate*.35|0, b = ac.createBuffer(1,n,ac.sampleRate), d = b.getChannelData(0);
+  for(var i=0;i<n;i++){ var ph = (i/ac.sampleRate*24)%1; d[i] = (Math.random()*2-1)*(ph<.18?.5:.04)*(1-i/n); } var s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800; g.gain.value=.35; s.buffer=b; s.connect(f); f.connect(g); g.connect(ac.destination); s.start(); }catch(e){} }
+
+/* ---------- films ---------- */
+// no, 中文片名, original, director, year, country, minutes, synopsis
+var FL = [
+ [23,'悲情城市','A City of Sadness','侯孝賢',1989,'台灣',157,'二二八前後，基隆林家四兄弟各自走向命運。'],
+ [31,'戀戀風塵','Dust in the Wind','侯孝賢',1986,'台灣',109,'九份的少年少女到台北謀生，青梅竹馬在兵役之間走散。'],
+ [47,'牯嶺街少年殺人事件','A Brighter Summer Day','楊德昌',1991,'台灣',237,'六〇年代的台北，少年小四在幫派、愛情與時代之間。'],
+ [52,'一一','Yi Yi','楊德昌',2000,'台灣',173,'台北一家人的一年，從一場婚禮到一場葬禮。'],
+ [58,'恐怖份子','The Terrorizers','楊德昌',1986,'台灣',109,'一通惡作劇電話，牽動三組彼此陌生的人。'],
+ [64,'童年往事','A Time to Live, A Time to Die','侯孝賢',1985,'台灣',138,'從大陸遷台的一家人，少年阿孝在鳳山長大。'],
+ [7,'東京物語','Tokyo Story','小津安二郎',1953,'日本',136,'老夫婦上京探望子女，只有守寡的媳婦溫柔相待。'],
+ [12,'晚春','Late Spring','小津安二郎',1949,'日本',108,'為了讓女兒安心出嫁，父親假稱自己要再婚。'],
+ [2,'七武士','Seven Samurai','黑澤明',1954,'日本',207,'農村雇來七名浪人，抵禦年年來犯的山賊。'],
+ [9,'羅生門','Rashomon','黑澤明',1950,'日本',88,'一樁林中命案，四份互相矛盾的證詞。'],
+ [18,'雨月物語','Ugetsu','溝口健二',1953,'日本',97,'戰亂裡的陶匠與武士夢，被湖畔的鬼魅引誘。'],
+ [5,'四百擊','The 400 Blows','楚浮',1959,'法國',99,'巴黎少年安托萬逃學、偷竊，一路跑向海邊。'],
+ [11,'斷了氣','Breathless','高達',1960,'法國',90,'小混混與美國女孩，在巴黎街頭的逃亡。'],
+ [16,'去年在馬倫巴','Last Year at Marienbad','雷奈',1961,'法國',94,'豪華旅館裡，男人堅稱去年見過她。'],
+ [3,'第七封印','The Seventh Seal','柏格曼',1957,'瑞典',96,'十字軍騎士返鄉途中，與死神下一盤棋。'],
+ [14,'野草莓','Wild Strawberries','柏格曼',1957,'瑞典',91,'老教授赴頒獎途中，重遊自己的記憶。'],
+ [21,'單車失竊記','Bicycle Thieves','狄西嘉',1948,'義大利',89,'戰後羅馬，父子倆尋找被偷走的謀生單車。'],
+ [27,'八又二分之一','8½','費里尼',1963,'義大利',138,'陷入創作瓶頸的導演，在幻想與現實間游移。'],
+ [34,'大路','La Strada','費里尼',1954,'義大利',108,'街頭大力士帶著單純的傑索米娜四處巡演。'],
+ [40,'鏡子','Mirror','塔可夫斯基',1975,'蘇聯',107,'詩人的童年、母親與國家的歷史交織成夢。'],
+ [44,'潛行者','Stalker','塔可夫斯基',1979,'蘇聯',162,'嚮導帶兩人潛入禁區，尋找實現願望的房間。'],
+ [8,'第三人','The Third Man','卡洛．李',1949,'英國',104,'戰後維也納，小說家追查好友離奇的死。'],
+ [1,'大國民','Citizen Kane','奧森．威爾斯',1941,'美國',119,'報業大亨臨終留下一句「玫瑰花蕾」。'],
+ [29,'迷魂記','Vertigo','希區考克',1958,'美國',128,'懼高的退休警探，愛上一個不存在的女人。'],
+ [36,'後窗','Rear Window','希區考克',1954,'美國',112,'腿傷的攝影師，從後窗目睹一樁謀殺。'],
+ [70,'花樣年華','In the Mood for Love','王家衛',2000,'香港',98,'1962 年的香港，兩位鄰居發現彼此的配偶外遇。'],
+ [73,'重慶森林','Chungking Express','王家衛',1994,'香港',102,'兩個失戀的警察，兩段在重慶大廈邊的相遇。'],
+ [49,'俠女','A Touch of Zen','胡金銓',1971,'台灣',180,'書生、女俠與東廠番子，在竹林裡決一死戰。'],
+ [55,'龍門客棧','Dragon Inn','胡金銓',1967,'台灣',111,'荒漠客棧中，俠客護送忠臣的遺孤出關。'],
+ [61,'小城之春','Spring in a Small Town','費穆',1948,'中國',93,'戰後的小城，舊情人來訪打破一家的平靜。'],
+ [19,'秋刀魚之味','An Autumn Afternoon','小津安二郎',1962,'日本',113,'鰥夫送女兒出嫁，獨自回到空下來的家。'],
+ [67,'風櫃來的人','The Boys from Fengkuei','侯孝賢',1983,'台灣',101,'澎湖少年到高雄，在城市裡學著長大。'],
+ [76,'青少年哪吒','Rebels of the Neon God','蔡明亮',1992,'台灣',106,'西門町的少年，一場說不清的報復。'],
+ [79,'愛情萬歲','Vive L\'Amour','蔡明亮',1994,'台灣',118,'三個陌生人，同一間待售的空屋。'],
+ [82,'飲食男女','Eat Drink Man Woman','李安',1994,'台灣',124,'退休大廚每週日為三個女兒做一桌菜。'],
+ [85,'推手','Pushing Hands','李安',1991,'台灣',105,'退休太極拳師到紐約與兒子一家同住。']
+];
+var FILM = {}; FL.forEach(function(r){ FILM[r[0]] = {no:r[0],t:r[1],ot:r[2],dir:r[3],yr:r[4],ct:r[5],min:r[6],syn:r[7]}; });
+var CH = [
+ {n:'01',sn:'新電影',name:'台灣新電影',films:[23,31,47,52,58,64,67,76,79]},
+ {n:'02',name:'日本巨匠',films:[7,12,2,9,18,19]},
+ {n:'03',name:'新浪潮',films:[5,11,16,5,11]},
+ {n:'04',name:'歐陸作者',films:[3,14,21,27,34,40,44]},
+ {n:'05',name:'黑白懸疑',films:[8,1,29,36,9]},
+ {n:'06',name:'華語經典',films:[70,73,49,55,61,82,85]}
+];
+var ESSAYS = ['導讀｜長鏡頭留白','導讀｜榻榻米視角','導讀｜跳接的誕生','修復手記｜4K 掃描','導讀｜黑白的溫度','導演訪談｜片場回憶','導讀｜城市與少年','修復手記｜聲軌重建'];
+
+/* ---------- time + schedule ---------- */
+var START = 6*60, END = 26*60, PXM = 3.2, CHW = 76;
+var now = new Date();
+function dayBase(off){ var d = new Date(now); if(now.getHours() < 2) d.setDate(d.getDate()-1); d.setHours(0,0,0,0); d.setDate(d.getDate()+off); return d; }
+function rng(seed){ var s = seed>>>0 || 1; return function(){ s ^= s<<13; s >>>= 0; s ^= s>>17; s ^= s<<5; s >>>= 0; return s/4294967296; }; }
+var schedCache = {};
+function schedule(off){ if(schedCache[off]) return schedCache[off]; var base = dayBase(off), seed = base.getFullYear()*400 + base.getMonth()*32 + base.getDate();
+  var out = CH.map(function(ch, ci){ var r = rng(seed*7 + ci*131 + 3), t = START - Math.floor(r()*9)*10, i = Math.floor(r()*ch.films.length), list = [], k = 0;
+    while(t < END){ var f = FILM[ch.films[i % ch.films.length]], dur = Math.ceil(f.min/5)*5;
+      list.push({kind:'film', film:f.no, s:t, e:t+dur, ch:ci}); t += dur; i++;
+      if(k++ % 2 === 0 || r() < .3){ var ed = r() < .5 ? 15 : 10; list.push({kind:'essay', title:ESSAYS[Math.floor(r()*ESSAYS.length)], s:t, e:t+ed, ch:ci}); t += ed; }
+      else { t += 5; } }
+    return list; });
+  schedCache[off] = out; return out; }
+function abs(off, m){ var d = dayBase(off); return d.getTime() + m*60000; }
+function hm(m){ m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+function nowMin(){ var n = new Date(), b = dayBase(0); return (n - b)/60000; }
+
+/* ---------- state ---------- */
+var shelf = load('shelf', null); if(!Array.isArray(shelf)) shelf = [47, 7, 70, 3, 29, 49, 12];
+shelf = shelf.filter(function(n){ return FILM[n]; });
+var rems = load('rems', null);
+var lead = +load('lead', 10) || 10;
+var dayOff = 0, view = 'epg', sortMode = 'mine';
+function persist(){ save('shelf', shelf); save('rems', rems); save('lead', lead); }
+function seedRems(){ var sc = schedule(0), nm = nowMin(), picks = [], out = [];
+  sc.forEach(function(row){ row.forEach(function(p){ if(p.kind==='film' && p.s > nm + 20) picks.push(p); }); });
+  picks.sort(function(a,b){ return a.s - b.s; });
+  if(picks.length < 2){ schedule(1).forEach(function(row){ row.slice(0,4).forEach(function(p){ if(p.kind==='film') picks.push({film:p.film, s:p.s, ch:p.ch, off:1}); }); }); }
+  picks.slice(0,3).forEach(function(p){ out.push({film:p.film, ch:p.ch, at:abs(p.off||0, p.s), fired:false}); }); return out; }
+if(!Array.isArray(rems)) rems = seedRems();
+
+/* ---------- cover art ---------- */
+function cover(f, sz){ var r = rng(f.no*977+13), dark = f.no % 3 !== 1, bg = dark ? '#0b0b0a' : '#f3f2ef', fg = dark ? '#f3f2ef' : '#0b0b0a', red = '#8e1b1b', m = f.no % 5, s = '';
+  if(m===0){ var cy = 70 + r()*20; s += '<circle cx="100" cy="'+cy+'" r="54" fill="'+fg+'"/>'; for(var i=0;i<6;i++) s += '<rect x="30" y="'+(cy-6+i*11)+'" width="140" height="'+(2+i*.9)+'" fill="'+bg+'"/>'; s += '<rect x="24" y="'+(cy+62)+'" width="24" height="6" fill="'+red+'"/>'; }
+  else if(m===1){ var k = 40 + r()*60; s += '<path d="M0 '+(200-k)+' L200 '+k+' V200 H0Z" fill="'+fg+'"/><path d="M0 '+(200-k)+' L200 '+k+'" stroke="'+red+'" stroke-width="5"/>'; }
+  else if(m===2){ for(var y=0;y<9;y++) for(var x=0;x<9;x++){ var rr = Math.max(.6, 9*(1 - Math.hypot(x-2-r()*.4, y-6)/9)); s += '<circle cx="'+(20+x*20)+'" cy="'+(14+y*18)+'" r="'+rr.toFixed(1)+'" fill="'+fg+'"/>'; } s += '<circle cx="'+(20+6*20)+'" cy="'+(14+2*18)+'" r="7" fill="'+red+'"/>'; }
+  else if(m===3){ for(var j=0;j<4;j++){ var w = 130 - j*30, o = 35 + j*15 + r()*4; s += '<rect x="'+o+'" y="'+(20+j*14)+'" width="'+w+'" height="'+(w*.72)+'" fill="none" stroke="'+(j===2?red:fg)+'" stroke-width="'+(j===2?5:3)+'"/>'; } }
+  else { var x0 = 18; while(x0 < 182){ var w2 = 3 + Math.floor(r()*14); s += '<rect x="'+x0+'" y="18" width="'+w2+'" height="120" fill="'+(r()<.08?red:fg)+'"/>'; x0 += w2 + 3 + Math.floor(r()*9); } }
+  var tsize = f.t.length > 6 ? 13 : 16;
+  return '<svg viewBox="0 0 200 200" width="'+sz+'" height="'+sz+'" role="img" aria-label="'+f.t+' 封面"><rect width="200" height="200" fill="'+bg+'"/>'+s+
+    '<rect x="0" y="152" width="200" height="48" fill="'+bg+'"/><text x="16" y="178" font-family="Lantinghei TC, PingFang TC" font-size="'+tsize+'" font-weight="600" fill="'+fg+'">'+f.t+'</text>'+
+    '<text x="184" y="178" text-anchor="end" font-family="Avenir Next Condensed, Avenir Next" font-weight="700" font-size="13" letter-spacing="1.5" fill="'+red+'">'+f.no+'</text>'+
+    '<text x="16" y="193" font-family="Avenir Next Condensed, Avenir Next" font-weight="600" font-size="8" letter-spacing="1.6" fill="'+fg+'" opacity=".7">'+f.ot.toUpperCase()+'</text></svg>'; }
+
+/* ---------- icons: condensed, square-ended strokes ---------- */
+var I = {
+ shelf:'<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 3v16M8 5v14M13 3v16M18.5 6l-2.4 13" stroke="currentColor" stroke-width="2.6" fill="none"/></svg>',
+ shelfOn:'<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 3v16M8 5v14M13 3v16" stroke="currentColor" stroke-width="2.6" fill="none"/><path d="M18.5 6l-2.4 13" stroke="#8e1b1b" stroke-width="2.6"/></svg>',
+ bell:'<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 2v2M5 16V9a6 6 0 0 1 12 0v7M3 16h16M9 19h4" stroke="currentColor" stroke-width="2.2" fill="none"/></svg>',
+ play:'<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M6 3v16l13-8z" fill="currentColor"/></svg>',
+ x:'<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3l12 12M15 3 3 15" stroke="currentColor" stroke-width="2.2"/></svg>'
+};
+var MK_BELL = '<svg viewBox="0 0 13 13"><path d="M2.5 10V5.5a4 4 0 0 1 8 0V10M1 10h11" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>';
+var MK_SHELF = '<svg viewBox="0 0 13 13"><path d="M2 1v11M6 1v11M10.5 2l-1.5 10" stroke="currentColor" stroke-width="1.9" fill="none"/></svg>';
+
+/* ---------- day strip ---------- */
+var DOW = ['日','一','二','三','四','五','六'], MON = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function renderDays(){ var h = ''; for(var i=0;i<7;i++){ var d = dayBase(i); h += '<button data-off="'+i+'" aria-pressed="'+(i===dayOff)+'" aria-label="'+(d.getMonth()+1)+'月'+d.getDate()+'日"><span>'+(i===0?'今天':'週'+DOW[d.getDay()])+'</span><b>'+d.getDate()+'</b></button>'; } $('days').innerHTML = h; }
+$('days').addEventListener('click', function(e){ var b = e.target.closest('[data-off]'); if(!b) return; var o = +b.dataset.off; if(o===dayOff) return; dayOff = o; haptic(6); renderDays(); renderEPG(true); });
+
+/* ---------- EPG ---------- */
+var W = (END-START)*PXM;
+function isRem(film, at){ return rems.some(function(r){ return r.film===film && Math.abs(r.at - at) < 60000; }); }
+function renderEPG(scrollIt){
+  var sc = schedule(dayOff), nm = dayOff===0 ? nowMin() : -1, h = '<div class="ruler"><div class="corner">CH</div><div class="ticks" style="width:'+W+'px">';
+  for(var m=START; m<END; m+=30){ h += '<span class="'+(m%60?'m':'h')+'" style="left:'+((m-START)*PXM)+'px">'+hm(m)+'</span>'; }
+  if(nm >= START && nm < END) h += '<span class="nowflag" id="nowflag" style="left:'+((nm-START)*PXM)+'px">'+hm(Math.floor(nm))+'</span>';
+  h += '</div></div>';
+  sc.forEach(function(row, ci){ var ch = CH[ci]; h += '<div class="row"><div class="ch"><b>'+ch.n+'</b><span>'+(ch.sn||ch.name)+'</span></div><div class="progs" style="width:'+W+'px">';
+    row.forEach(function(p, pi){ var l = (Math.max(p.s,START)-START)*PXM, w = (Math.min(p.e,END)-Math.max(p.s,START))*PXM - 3; if(w <= 0) return;
+      var live = nm >= p.s && nm < p.e, past = nm >= p.e, at = abs(dayOff, p.s), el = live ? (nm-Math.max(p.s,START))*PXM : 0, after = live && (w - el) > 128;
+      if(p.kind==='film'){ var f = FILM[p.film], marks = (isRem(f.no, at)?MK_BELL:'')+(shelf.indexOf(f.no)>=0?MK_SHELF:'');
+        h += '<button class="pg'+(live?' live':'')+(past?' past':'')+'" style="left:'+l+'px;width:'+w+'px'+(live?';background:linear-gradient(90deg,#d9d6d0 '+el.toFixed(0)+'px,#f3f2ef '+el.toFixed(0)+'px)':'')+'" data-ci="'+ci+'" data-pi="'+pi+'" aria-label="'+hm(p.s)+' '+f.t+(live?'，播出中':'')+'">'+
+          '<span class="in'+(after?' after':'')+'"'+(after?' style="margin-left:'+(el+4).toFixed(0)+'px"':'')+'><span class="no">No. '+f.no+'</span><span class="ti">'+f.t+'</span><span class="tm">'+hm(p.s)+' – '+hm(p.e)+'</span></span>'+(marks?'<span class="mk">'+marks+'</span>':'')+
+          (live?'<i class="bar" style="width:'+((nm-p.s)/(p.e-p.s)*100).toFixed(1)+'%"></i>':'')+'</button>';
+      } else {
+        var nar = w < 70; h += '<button class="pg essay'+(nar?' nar':'')+(live?' live':'')+(past?' past':'')+'" style="left:'+l+'px;width:'+w+'px" data-ci="'+ci+'" data-pi="'+pi+'" aria-label="'+hm(p.s)+' '+p.title+'"><span class="in"><span class="ti">'+(nar?p.title.split('｜')[1]:p.title.replace('｜','<br>'))+'</span></span></button>'; }
+    });
+    h += '</div></div>'; });
+  if(nm >= START && nm < END) h += '<div class="nowline" id="nowline" style="left:'+(CHW+(nm-START)*PXM)+'px"></div>';
+  $('grid').style.width = (CHW+W)+'px'; $('grid').innerHTML = h;
+  if(scrollIt){ var e = $('epg'); e.scrollLeft = nm >= START ? Math.max(0, (nm-START)*PXM - 70) : 0; e.scrollTop = 0; }
+  updateJump();
+}
+function scrollToNow(smooth){ var nm = nowMin(), e = $('epg'); if(dayOff!==0){ dayOff = 0; renderDays(); renderEPG(false); }
+  e.scrollTo({left: Math.max(0, (nm-START)*PXM - 70), top:0, behavior: smooth && !reduce ? 'smooth' : 'auto'}); }
+function updateJump(){ var e = $('epg'), nm = nowMin(), x = (nm-START)*PXM, vis = dayOff===0 && x >= e.scrollLeft && x <= e.scrollLeft + e.clientWidth - CHW; $('jump').hidden = vis || !(nm>=START && nm<END); }
+$('epg').addEventListener('scroll', function(){ updateJump(); }, {passive:true});
+$('jump').addEventListener('click', function(){ haptic(8); projector(); scrollToNow(true); });
+$('grid').addEventListener('click', function(e){ var b = e.target.closest('.pg'); if(!b) return; haptic(6); openProg(dayOff, +b.dataset.ci, +b.dataset.pi); });
+
+/* ---------- detail sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null, cur = null;
+function airings(no){ var out = []; for(var o=0;o<7;o++){ schedule(o).forEach(function(row, ci){ row.forEach(function(p){ if(p.kind==='film' && p.film===no) out.push({off:o, ci:ci, s:p.s, e:p.e, at:abs(o,p.s)}); }); }); } return out.sort(function(a,b){ return a.at-b.at; }); }
+function dayName(off){ if(off===0) return '今天'; if(off===1) return '明天'; var d = dayBase(off); return (d.getMonth()+1)+'/'+d.getDate()+' 週'+DOW[d.getDay()]; }
+function openProg(off, ci, pi){ var p = schedule(off)[ci][pi]; if(!p) return;
+  if(p.kind==='essay'){ var next = schedule(off)[ci][pi+1] || schedule(off)[ci][pi-1]; var nf = next && next.kind==='film' ? FILM[next.film] : null;
+    $('sb').innerHTML = '<div class="dmeta"><div class="no">CH '+CH[ci].n+' · '+hm(p.s)+'</div><h2>'+p.title.split('｜')[1]+'</h2><div class="ot">'+p.title.split('｜')[0]+' · '+(p.e-p.s)+' MIN</div></div>'+
+      '<p class="syn">片與片之間的十幾分鐘：策展人、修復師與影評人，談下一部片為什麼值得等。</p>'+
+      (nf ? '<button class="act" data-film="'+nf.no+'" data-off="'+off+'" data-ci="'+ci+'" data-s="'+next.s+'">'+I.play+'接著播：'+nf.t+'<span class="st">NO. '+nf.no+'</span></button>' : '');
+    cur = null; openSheet(); return; }
+  showFilm(FILM[p.film], {off:off, ci:ci, s:p.s, e:p.e, at:abs(off,p.s)});
+}
+function showFilm(f, slot){ cur = {f:f, slot:slot};
+  if(!slot){ var a = airings(f.no), nowT = Date.now(); slot = a.filter(function(x){ return x.at + (x.e-x.s)*60000 > nowT; })[0] || a[0]; cur.slot = slot; }
+  var nowT = Date.now(), live = slot && nowT >= slot.at && nowT < slot.at + (slot.e-slot.s)*60000, past = slot && nowT >= slot.at + (slot.e-slot.s)*60000;
+  var inShelf = shelf.indexOf(f.no) >= 0, remOn = slot && isRem(f.no, slot.at);
+  var others = airings(f.no).filter(function(x){ return x.at > nowT && (!slot || x.at !== slot.at); }).slice(0,3);
+  var h = '<div class="dhead"><div class="cover">'+cover(f, 140)+'</div><div class="dmeta"><div class="no">NO. '+f.no+'</div><h2>'+f.t+'</h2><div class="ot">'+f.ot+'</div><div class="by">'+f.dir+'<br>'+f.yr+' · '+f.ct+' · '+f.min+' 分</div></div></div>'+
+    '<p class="syn">'+f.syn+'</p>';
+  if(slot){ h += '<div class="air"><b>'+hm(slot.s)+' – '+hm(slot.e)+'</b><span>'+dayName(slot.off)+' · CH'+CH[slot.ci].n+' '+CH[slot.ci].name+'</span></div>';
+    if(live){ var pr = (nowT - slot.at)/((slot.e-slot.s)*60000); h += '<div class="prog"><i style="width:'+(pr*100).toFixed(1)+'%"></i></div>'; } }
+  h += '<button class="act" id="aShelf" aria-pressed="'+inShelf+'">'+(inShelf?I.shelfOn:I.shelf)+(inShelf?'已放上片單':'放上片單')+'<span class="st">'+(inShelf?'移除':'加入')+'</span></button>';
+  if(slot && !live && !past) h += '<button class="act" id="aRem" role="switch" aria-checked="'+!!remOn+'">'+I.bell+'開播前 '+lead+' 分鐘提醒<span class="sw"></span></button>';
+  else if(live) h += '<button class="act" id="aWatch">'+I.play+'正在播出 · 已播 '+Math.floor((nowT-slot.at)/60000)+' 分<span class="st">收看</span></button>';
+  if(others.length){ h += '<div class="other"><h3>其他場次</h3>'+others.map(function(o){ var on = isRem(f.no, o.at); return '<button class="slot" data-at="'+o.at+'" data-ci="'+o.ci+'" aria-pressed="'+on+'" aria-label="'+dayName(o.off)+' '+hm(o.s)+' 設定提醒"><b>'+hm(o.s)+'</b><span>'+dayName(o.off)+' · CH'+CH[o.ci].n+'</span>'+(on?MK_BELL.replace('viewBox','width="16" height="16" viewBox'):I.bell.replace('viewBox','width="18" height="18" viewBox'))+'</button>'; }).join('')+'</div>'; }
+  $('sb').innerHTML = h; if(!sheet.classList.contains('on')) openSheet();
+}
+$('sb').addEventListener('click', function(e){
+  var t = e.target.closest('button'); if(!t) return; haptic(6);
+  if(t.dataset.film){ var off = +t.dataset.off, ci = +t.dataset.ci, s = +t.dataset.s; showFilm(FILM[+t.dataset.film], {off:off, ci:ci, s:s, e:s+Math.ceil(FILM[+t.dataset.film].min/5)*5, at:abs(off,s)}); return; }
+  if(!cur) return; var f = cur.f;
+  if(t.id==='aShelf'){ var i = shelf.indexOf(f.no); if(i>=0){ shelf.splice(i,1); toast('《'+f.t+'》已從片單取下', function(){ shelf.splice(i,0,f.no); }); } else { shelf.push(f.no); toast('《'+f.t+'》放上片單第 '+shelf.length+' 格'); projector(); } persist(); refresh(); showFilm(f, cur.slot); }
+  else if(t.id==='aRem'){ toggleRem(f.no, cur.slot.ci, cur.slot.at); showFilm(f, cur.slot); }
+  else if(t.id==='aWatch'){ projector(); toast('正在載入《'+f.t+'》… 這是示範版，放映機聲音代替畫面'); }
+  else if(t.dataset.at){ toggleRem(f.no, +t.dataset.ci, +t.dataset.at); showFilm(f, cur.slot); }
+});
+function toggleRem(no, ci, at){ var i = rems.findIndex(function(r){ return r.film===no && Math.abs(r.at-at) < 60000; });
+  if(i>=0){ var old = rems.splice(i,1)[0]; toast('已取消《'+FILM[no].t+'》的提醒', function(){ rems.push(old); }); }
+  else { rems.push({film:no, ch:ci, at:at, fired:false}); tone(784,0,.35); tone(1175,.12,.5); var d = new Date(at); toast('會在 '+hm(d.getHours()*60+d.getMinutes()-lead)+' 提醒你《'+FILM[no].t+'》'); }
+  persist(); refresh(); }
+function openSheet(){ lastFocus = document.activeElement; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); $('sb').scrollTop = 0; var b = sheet.querySelector('button'); if(b) b.focus({preventScroll:true}); }
+function closeSheet(){ if(!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform=''; scrim.classList.remove('on'); scrim.style.opacity='';
+  document.querySelectorAll('.spine.pull').forEach(function(s){ s.classList.remove('pull'); });
+  if(lastFocus && lastFocus.focus && document.contains(lastFocus)) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){ var sy=0, dy=0, t0=0, on=false;
+  sheet.addEventListener('pointerdown', function(e){ if(e.target.closest('button')) return; if($('sb').contains(e.target) && $('sb').scrollTop > 0) return; on=true; sy=e.clientY; dy=0; t0=e.timeStamp; sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(_){} });
+  sheet.addEventListener('pointermove', function(e){ if(!on) return; dy = e.clientY-sy; sheet.style.transform = 'translateY('+(dy>0?dy:dy/6).toFixed(1)+'px)'; scrim.style.opacity = Math.max(0,1-dy/sheet.offsetHeight).toFixed(2); });
+  function end(e){ if(!on) return; on=false; sheet.classList.remove('drag'); scrim.style.opacity=''; var v = dy/Math.max(1,e.timeStamp-t0); if(dy > sheet.offsetHeight*.35 || v > .6) closeSheet(); else sheet.style.transform=''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end); })();
+
+/* ---------- shelf ---------- */
+function spineClass(f){ return f.no % 7 === 0 ? 'r' : ['w','b','g','b','w'][f.no % 5]; }
+function renderShelf(){
+  var list = sortMode==='no' ? shelf.slice().sort(function(a,b){ return a-b; }) : shelf;
+  $('shelfN').textContent = shelf.length || '';
+  $('shelfTip').textContent = sortMode==='no' ? '依典藏編號排列' : '長按書背可拖曳排序';
+  if(!list.length){ $('shelf').innerHTML = '<p class="shelfempty">片單是空的。<br>在節目表點任何一部片，選「放上片單」。</p>'; return; }
+  $('shelf').innerHTML = list.map(function(no){ var f = FILM[no], w = Math.round(40 + Math.min(1, f.min/240)*22); return '<button class="spine '+spineClass(f)+(f.t.length>6?' long':'')+'" data-no="'+no+'" style="width:'+w+'px" aria-label="No. '+no+' '+f.t+'"><span class="n">'+no+'</span><span class="t">'+f.t+'</span><span class="d">'+f.dir+'</span></button>'; }).join('');
+}
+$('shelf').addEventListener('click', function(e){ var s = e.target.closest('.spine'); if(!s || s.dataset.dragged) { if(s) delete s.dataset.dragged; return; } s.classList.add('pull'); haptic(6); projector(); showFilm(FILM[+s.dataset.no]); });
+document.querySelectorAll('[data-sort]').forEach(function(b){ b.addEventListener('click', function(){ sortMode = b.dataset.sort; document.querySelectorAll('[data-sort]').forEach(function(x){ x.setAttribute('aria-pressed', x===b); }); haptic(5); renderShelf(); }); });
+(function(){ var hold = null, drag = null, sx = 0, sy = 0;
+  function rects(){ return Array.prototype.map.call($('shelf').querySelectorAll('.spine'), function(el){ return {el:el, r:el.getBoundingClientRect()}; }); }
+  $('shelf').addEventListener('pointerdown', function(e){ var s = e.target.closest('.spine'); if(!s || sortMode!=='mine') return; sx = e.clientX; sy = e.clientY;
+    hold = setTimeout(function(){ drag = s; s.classList.add('lift'); s.dataset.dragged = 1; haptic([10,20,10]); try{ s.setPointerCapture(e.pointerId); }catch(_){} }, 320); });
+  $('shelf').addEventListener('pointermove', function(e){ if(hold && !drag && (Math.abs(e.clientX-sx) > 8 || Math.abs(e.clientY-sy) > 8)){ clearTimeout(hold); hold = null; }
+    if(!drag) return; e.preventDefault(); drag.style.transform = 'translate('+(e.clientX-sx)+'px,'+(e.clientY-sy-22)+'px) rotate(-2deg)';
+    var rs = rects(), target = null; rs.forEach(function(o){ if(o.el!==drag && e.clientX > o.r.left && e.clientX < o.r.right && e.clientY > o.r.top - 20 && e.clientY < o.r.bottom + 20) target = o.el; });
+    if(target){ var before = rs.map(function(o){ return [o.el, o.r.left, o.r.top]; }), dr = drag.getBoundingClientRect();
+      var ia = shelf.indexOf(+drag.dataset.no), ib = shelf.indexOf(+target.dataset.no); shelf.splice(ia,1); shelf.splice(ib,0,+drag.dataset.no);
+      if(ia < ib) target.after(drag); else target.before(drag);
+      var nr = drag.getBoundingClientRect(); sx += nr.left - dr.left + 0; sy += nr.top - dr.top;
+      drag.style.transform = 'translate('+(e.clientX-sx)+'px,'+(e.clientY-sy-22)+'px) rotate(-2deg)';
+      before.forEach(function(b){ if(b[0]===drag) return; var r2 = b[0].getBoundingClientRect(), dx = b[1]-r2.left, dy = b[2]-r2.top; if(!dx && !dy) return; b[0].style.transition='none'; b[0].style.transform='translate('+dx+'px,'+dy+'px)'; requestAnimationFrame(function(){ b[0].style.transition=''; b[0].style.transform=''; }); });
+      haptic(4); } });
+  function end(){ clearTimeout(hold); hold = null; if(!drag) return; var d = drag; drag = null; d.classList.remove('lift'); d.style.transform=''; persist(); setTimeout(function(){ delete d.dataset.dragged; }, 50); }
+  $('shelf').addEventListener('pointerup', end); $('shelf').addEventListener('pointercancel', end);
+  $('shelf').addEventListener('contextmenu', function(e){ e.preventDefault(); });
+})();
+
+/* ---------- reminders ---------- */
+function renderRems(){
+  var nowT = Date.now(); rems.sort(function(a,b){ return a.at-b.at; });
+  var up = rems.filter(function(r){ return r.at + 3*3600000 > nowT; });
+  $('remN').textContent = rems.filter(function(r){ return r.at > nowT; }).length || '';
+  document.querySelectorAll('[data-lead]').forEach(function(b){ b.setAttribute('aria-pressed', +b.dataset.lead===lead); });
+  if(!up.length){ $('remlist').innerHTML = '<p class="remempty">沒有提醒。<br>在影片資訊裡打開「開播前提醒」，時間到了這裡會通知你。</p>'; return; }
+  $('remlist').innerHTML = up.map(function(r){ var f = FILM[r.film], d = new Date(r.at), mins = Math.round((r.at-nowT)/60000), off = Math.round((dayBase(0).getTime() - new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime())/-86400000);
+    var cd = mins > 0 ? (mins >= 1440 ? Math.floor(mins/1440)+' 天後' : mins >= 60 ? Math.floor(mins/60)+' 時 '+(mins%60)+' 分' : mins+' 分後') : '播出中';
+    return '<div class="rem"><button class="open" data-no="'+r.film+'" data-at="'+r.at+'" data-ci="'+r.ch+'"><span class="tm">'+hm(d.getHours()*60+d.getMinutes())+'<small>'+(off===0?'今天':off===1?'明天':(d.getMonth()+1)+'/'+d.getDate())+'</small></span><span class="tx"><b>'+f.t+'</b><span>CH'+CH[r.ch].n+' '+CH[r.ch].name+' · No. '+f.no+'</span></span><span class="cd'+(mins<=0?' on':'')+'">'+cd+'</span></button><button class="x" data-del="'+r.at+'_'+r.film+'" aria-label="取消提醒 '+f.t+'">'+I.x+'</button></div>'; }).join('');
+}
+$('remlist').addEventListener('click', function(e){ var x = e.target.closest('[data-del]'); if(x){ var p = x.dataset.del.split('_'); haptic([8,30,8]); toggleRem(+p[1], 0, +p[0]); return; }
+  var o = e.target.closest('.open'); if(o){ haptic(6); var at = +o.dataset.at, no = +o.dataset.no, a = airings(no).filter(function(s){ return Math.abs(s.at-at) < 60000; })[0]; showFilm(FILM[no], a); } });
+document.querySelectorAll('[data-lead]').forEach(function(b){ b.addEventListener('click', function(){ lead = +b.dataset.lead; persist(); haptic(5); renderRems(); toast('提醒改為開播前 '+lead+' 分鐘'); }); });
+function checkRems(){ var nowT = Date.now(), changed = false;
+  rems.forEach(function(r){ if(!r.fired && r.at - lead*60000 <= nowT && r.at > nowT - 60000){ r.fired = true; changed = true; tone(659,0,.4); tone(988,.15,.6); haptic([20,60,20]); toast('《'+FILM[r.film].t+'》'+Math.max(0,Math.round((r.at-nowT)/60000))+' 分鐘後在 CH'+CH[r.ch].n+' 開播'); } });
+  if(changed) persist(); }
+
+/* ---------- toast ---------- */
+var tT = null, undoFn = null;
+function toast(msg, undo){ $('toastT').textContent = msg; undoFn = undo || null; $('toastU').hidden = !undo; $('toast').classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ $('toast').classList.remove('on'); }, 3400); }
+$('toastU').addEventListener('click', function(){ if(undoFn){ undoFn(); undoFn = null; persist(); refresh(); if(cur && sheet.classList.contains('on')) showFilm(cur.f, cur.slot); } $('toast').classList.remove('on'); haptic(6); });
+
+/* ---------- nav ---------- */
+var ORDER = ['epg','shelf','rem'];
+function go(v){ if(v===view) return; var from = ORDER.indexOf(view), to = ORDER.indexOf(v); $('v-'+view).hidden = true; var el = $('v-'+v); el.hidden = false; el.style.setProperty('--dx', (to>from?30:-30)+'px'); el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
+  view = v; document.querySelectorAll('.nav [role=tab]').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.v===v); }); haptic(5);
+  if(v==='shelf') renderShelf(); if(v==='rem') renderRems(); if(v==='epg') updateJump(); }
+document.querySelectorAll('.nav [role=tab]').forEach(function(t){ t.addEventListener('click', function(){ go(t.dataset.v); }); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSheet(); });
+function refresh(){ renderEPG(false); renderShelf(); renderRems(); }
+
+/* ---------- clock ---------- */
+function tick(){ now = new Date(); var t = hm(now.getHours()*60+now.getMinutes()); $('clock').textContent = t; $('bigClock').textContent = t; $('dayLbl').textContent = MON[now.getMonth()]+' '+now.getDate();
+  if(document.hidden) return; var nm = nowMin(), nl = $('nowline'), nf = $('nowflag');
+  if(nl && dayOff===0){ nl.style.left = (CHW+(nm-START)*PXM)+'px'; nf.style.left = ((nm-START)*PXM)+'px'; nf.textContent = hm(Math.floor(nm)); }
+  checkRems(); if(view==='rem') renderRems(); }
+setInterval(tick, 20000);
+document.addEventListener('visibilitychange', function(){ if(!document.hidden){ tick(); renderEPG(false); } });
+
+/* ---------- backdrop: a wall of spines ---------- */
+(function(){ var r = rng(40), h = '<defs><linearGradient id="fall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".0"/><stop offset=".7" stop-color="#000" stop-opacity=".45"/><stop offset="1" stop-color="#000" stop-opacity=".8"/></linearGradient></defs><rect width="1600" height="1000" fill="#0b0b0a"/>';
+  [[40,430],[500,430]].forEach(function(sh){ var x = -20, y = sh[0], H = sh[1];
+    while(x < 1620){ var w = 26 + Math.floor(r()*34), t = r(), c = t < .08 ? '#8e1b1b' : t < .42 ? '#e9e7e2' : t < .62 ? '#9c9892' : '#1d1c1a', tc = (c==='#e9e7e2'||c==='#9c9892') ? '#0b0b0a' : '#e9e7e2', hh = H - Math.floor(r()*30);
+      h += '<rect x="'+x+'" y="'+(y+H-hh)+'" width="'+w+'" height="'+hh+'" fill="'+c+'"/><text x="'+(x+w/2)+'" y="'+(y+H-hh+24)+'" text-anchor="middle" font-family="Avenir Next Condensed" font-weight="700" font-size="'+(w>40?16:13)+'" fill="'+tc+'">'+(1+Math.floor(r()*1100))+'</text>';
+      x += w + 2; }
+    h += '<rect x="0" y="'+(y+H)+'" width="1600" height="16" fill="#26241f"/>'; });
+  h += '<rect width="1600" height="1000" fill="#0b0b0a" opacity=".38"/><rect width="1600" height="1000" fill="url(#fall)"/>';
+  $('wall').innerHTML = h; })();
+
+renderDays(); renderEPG(true); renderShelf(); renderRems(); tick(); persist();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f1510">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="夜市翻牌">
+<title>夜市翻牌 · 記憶翻牌</title>
+<meta name="description" content="在紅白藍帆布攤子下翻牌，找出成對的雞排、珍奶、臭豆腐，每配成一對就點亮一顆燈泡。收錄於 100 Creative HTML Works（App 062・台灣夜市帆布與燈泡）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/062-nightmarket-memory.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f1510'/%3E%3Cpath d='M6 8h52v18c-4 4-9 4-13 0-4 4-9 4-13 0-4 4-9 4-13 0-4 4-9 4-13 0z' fill='%23f6f0e2'/%3E%3Cpath d='M12 8h8v22l-4-4-4 4zM36 8h8v22l-4-4-4 4z' fill='%23c8242c'/%3E%3Cpath d='M24 8h8v22l-4-4-4 4zM48 8h8v22l-4-4-4 4z' fill='%231f4aa0'/%3E%3Ccircle cx='32' cy='46' r='9' fill='%23ffcf4a'/%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+:root{
+  --red:#c8242c;--red-d:#9a1920;--blue:#1f4aa0;--blue-d:#163677;--white:#f6f0e2;--bulb:#ffcf4a;--bulb-d:#e3a520;
+  --night:#1f1510;--night-2:#2b1d15;--wood:#3a261a;--ink:#3a1f14;--cream:#fbf5e6;
+  --yp:"Yuppy TC","Yuanti TC","PingFang TC","Heiti TC",sans-serif;
+  --ui:system-ui,-apple-system,"PingFang TC",sans-serif;
+  --boing:cubic-bezier(.34,1.45,.55,1);
+}
+body{font-family:var(--yp);background:var(--night);color:var(--white);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--bulb);outline-offset:2px;border-radius:8px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--night);isolation:isolate;display:flex;flex-direction:column}
+@media (min-width:521px){
+  body{background:#140d09}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:11px;z-index:1;background:#2a2320;
+    box-shadow:inset 0 0 0 1.5px #5a4a40,inset 0 0 0 4px #1a1411,0 18px 24px -16px rgba(0,0,0,.8)}
+  .screen{inset:11px;border-radius:43px}
+  .caption{display:block;position:relative;z-index:1;max-width:250px}
+  .caption b{display:block;font:400 46px/1.05 var(--yp);color:var(--bulb)}
+  .caption span{display:block;margin-top:14px;font:15px/1.7 var(--ui);color:#e8d9c0}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:60;height:calc(40px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;display:flex;align-items:center;justify-content:space-between;font:700 16px/1 var(--ui);color:var(--white);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+.status svg{fill:currentColor}
+@media (display-mode:standalone){.status{display:none}}
+.home{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:132px;height:5px;margin-left:-66px;border-radius:3px;background:var(--white);opacity:.7;z-index:66;pointer-events:none}
+
+/* ---------- awning (the stall canopy) ---------- */
+.awning{position:relative;flex:none;height:calc(142px + env(safe-area-inset-top));z-index:5}
+.awning svg.canvas{position:absolute;left:0;right:0;bottom:0;width:100%;height:calc(100% - 42px - env(safe-area-inset-top))}
+.awning::before{content:"";position:absolute;left:-4px;right:-4px;top:calc(38px + env(safe-area-inset-top));height:7px;border-radius:4px;background:#6b5646;box-shadow:inset 0 2px 0 #8a7462;z-index:1}
+.awning .title{position:absolute;left:0;right:0;top:calc(62px + env(safe-area-inset-top));text-align:center;pointer-events:none}
+.awning .title b{display:inline-block;padding:3px 16px 5px;background:var(--cream);color:var(--red);font:400 24px/1.1 var(--yp);letter-spacing:.12em;border-radius:6px;box-shadow:inset 0 0 0 2.5px var(--red),0 2px 0 rgba(0,0,0,.25)}
+.sway{transform-origin:50% 0;animation:sway 5.5s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:skewX(0)}50%{transform:skewX(.6deg)}}
+
+/* bulbs */
+.bulbs{position:relative;flex:none;height:44px;margin-top:-10px;z-index:6}
+.bulbs svg{width:100%;height:100%;overflow:visible}
+.bulbs .b .glass{fill:#6d5b45;transition:fill .25s}
+.bulbs .b .shine{fill:#fff;opacity:.25}
+.bulbs .b.on .glass{fill:var(--bulb)}
+.bulbs .b.on .shine{opacity:.8}
+.bulbs .b.on .fil{stroke:#fff7d6}
+.bulbs .b.pop{animation:pop .5s var(--boing)}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+.bulbs .b{transform-box:fill-box;transform-origin:50% 0}
+.chase .b.on .glass{animation:chase 1s steps(1) infinite;animation-delay:calc(var(--i) * -.125s)}
+@keyframes chase{0%,49%{fill:var(--bulb)}50%,100%{fill:#b88b2a}}
+
+/* signs */
+.signs{flex:none;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:2px 16px 10px;z-index:4}
+.sign{position:relative;padding:6px 4px 7px;background:var(--cream);color:var(--red);text-align:center;border-radius:6px;box-shadow:inset 0 0 0 3px var(--blue),inset 0 0 0 5px var(--cream),inset 0 0 0 6.5px var(--red)}
+.sign::before,.sign::after{content:"";position:absolute;top:-10px;width:2px;height:10px;background:#8a7a66}
+.sign::before{left:18px}.sign::after{right:18px}
+.sign span{display:block;font:600 11px/1.2 var(--ui);color:var(--blue);letter-spacing:.1em}
+.sign b{display:block;font:400 22px/1.15 var(--yp);font-variant-numeric:tabular-nums;margin-top:1px}
+.sign.warm b{color:var(--blue)}
+
+/* ---------- board ---------- */
+.counter{position:relative;flex:1;min-height:0;padding:10px 14px 10px;background:
+  repeating-linear-gradient(90deg,transparent 0 77px,rgba(0,0,0,.22) 77px 79px,transparent 79px 80px),linear-gradient(var(--night-2),var(--wood))}
+.grid{height:100%;display:grid;gap:8px;perspective:900px}
+.card{position:relative;width:100%;height:100%;min-height:0;border-radius:10px;transform-style:preserve-3d;transition:transform .5s var(--boing)}
+.card .in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .5s var(--boing);border-radius:10px}
+.card .fc,.card .bk{position:absolute;inset:0;border-radius:10px;-webkit-backface-visibility:hidden;backface-visibility:hidden;overflow:hidden}
+.card .bk{background:
+  repeating-linear-gradient(0deg,rgba(0,0,0,.08) 0 1px,transparent 1px 3px),
+  linear-gradient(90deg,var(--red) 0 16%,var(--white) 16% 22%,var(--blue) 22% 38%,var(--white) 38% 44%,var(--red) 44% 56%,var(--white) 56% 62%,var(--blue) 62% 78%,var(--white) 78% 84%,var(--red) 84%);
+  box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 0 4px rgba(0,0,0,.18)}
+.card .bk::after{content:"";position:absolute;inset:6px;border-radius:6px;border:1.5px dashed rgba(255,255,255,.7)}
+.card .fc{transform:rotateY(180deg);background:var(--cream);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;box-shadow:inset 0 0 0 2px #e8dcc2}
+.card .fc svg{width:74%;height:auto;max-height:72%;aspect-ratio:1;flex:0 1 auto;min-height:0}
+.card .fc span{font:400 13px/1.1 var(--yp);color:var(--ink);white-space:nowrap}
+.card.up .in{transform:rotateY(180deg)}
+.card:active:not(.up) .in{transform:scale(.94)}
+.card.done .fc{background:#fff4cf;box-shadow:inset 0 0 0 2.5px var(--bulb-d)}
+.card.done .in{animation:jump .55s var(--boing)}
+@keyframes jump{0%{transform:rotateY(180deg)}40%{transform:rotateY(180deg) translateY(-8px) scale(1.06)}100%{transform:rotateY(180deg)}}
+.card.miss .in{animation:miss .45s ease}
+@keyframes miss{0%,100%{transform:rotateY(180deg)}25%{transform:rotateY(180deg) translateX(5px) rotate(2deg)}50%{transform:rotateY(180deg) translateX(-5px) rotate(-2deg)}75%{transform:rotateY(180deg) translateX(3px)}}
+.card .fc .stamp{position:absolute;right:5px;top:5px;width:22px;height:22px;max-height:none;opacity:0;transform:scale(1.8) rotate(-20deg);transition:opacity .15s,transform .3s var(--boing)}
+.card.done .fc .stamp{opacity:1;transform:rotate(-12deg)}
+.shout{position:absolute;left:50%;top:44%;z-index:8;transform:translate(-50%,-50%) rotate(-6deg) scale(.6);padding:6px 18px 8px;background:var(--red);color:var(--cream);font:400 30px/1.1 var(--yp);border-radius:8px;box-shadow:inset 0 0 0 3px var(--cream),inset 0 0 0 5px var(--red);opacity:0;pointer-events:none;visibility:hidden}
+.shout.go{visibility:visible;animation:shout 1s var(--boing)}
+@keyframes shout{0%{opacity:0;transform:translate(-50%,-50%) rotate(-6deg) scale(.6)}20%{opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(1.08)}75%{opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(1)}100%{opacity:0;transform:translate(-50%,-70%) rotate(-6deg) scale(1)}}
+
+/* ---------- bottom counter front: level tags + tools ---------- */
+.front{flex:none;padding:10px 12px calc(22px + env(safe-area-inset-bottom));background:linear-gradient(var(--red) 0 6px,var(--night) 6px);position:relative}
+.front::before{content:"";position:absolute;left:0;right:0;top:6px;height:4px;background:repeating-linear-gradient(90deg,var(--white) 0 10px,var(--blue) 10px 20px)}
+.levels{display:flex;justify-content:center;gap:8px;padding-top:6px}
+.tag{position:relative;min-width:84px;height:46px;padding:0 12px 0 22px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--cream);color:var(--red);font:400 17px/1 var(--yp);
+  clip-path:polygon(12px 0,100% 0,100% 100%,12px 100%,0 50%);transition:background-color .2s,color .2s,transform .3s var(--boing);transform:rotate(var(--r,0deg))}
+.tag::before{content:"";position:absolute;left:10px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:var(--night)}
+.tag small{font:600 11px/1 var(--ui);color:var(--blue)}
+.tag[aria-pressed=true]{background:var(--red);color:var(--cream)}
+.tag[aria-pressed=true] small{color:#ffd9d0}
+.tag:active{transform:rotate(0) scale(.95)}
+.tools{display:flex;justify-content:space-around;margin-top:8px}
+.tool{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:60px;height:52px;justify-content:center;color:var(--bulb);font:600 12px/1 var(--ui)}
+.tool svg{width:28px;height:28px}
+.tool:active svg{transform:scale(.86) rotate(-6deg)}
+.tool:disabled{color:#6d5b45}
+.tool[aria-pressed=false] .on,.tool[aria-pressed=true] .off{display:none}
+
+/* ---------- sheet (prize ticket) ---------- */
+.scrim{position:absolute;inset:0;z-index:80;background:rgba(15,9,6,.62);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:81;max-height:84%;overflow-y:auto;padding:6px 22px 22px;background:var(--cream);color:var(--ink);border-radius:14px;transform:translateY(calc(100% + 40px));transition:transform .5s var(--boing);touch-action:none;
+  -webkit-mask:radial-gradient(circle 13px at 0 118px,#0000 12.5px,#000 13px) left/51% 100% no-repeat,radial-gradient(circle 13px at 100% 118px,#0000 12.5px,#000 13px) right/51% 100% no-repeat;
+  mask:radial-gradient(circle 13px at 0 118px,#0000 12.5px,#000 13px) left/51% 100% no-repeat,radial-gradient(circle 13px at 100% 118px,#0000 12.5px,#000 13px) right/51% 100% no-repeat}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{display:block;height:22px;position:relative}
+.grab::before{content:"";position:absolute;left:50%;top:8px;width:40px;height:5px;margin-left:-20px;border-radius:3px;background:#d9c9a6}
+.tk-h{text-align:center;height:90px;display:flex;flex-direction:column;justify-content:center}
+.tk-h b{font:400 32px/1.1 var(--yp);color:var(--red);letter-spacing:.08em}
+.tk-h span{font:600 13px/1.4 var(--ui);color:var(--blue);margin-top:4px}
+.perf{height:2px;margin:0 -8px;background:repeating-linear-gradient(90deg,#cdbb95 0 6px,transparent 6px 11px)}
+.stars{display:flex;justify-content:center;gap:10px;margin:16px 0 6px}
+.stars svg{width:44px;height:44px}
+.stars .s{animation:starin .5s var(--boing) both;animation-delay:calc(var(--i) * .16s + .2s)}
+@keyframes starin{from{transform:scale(.4) rotate(-40deg)}to{transform:none}}
+.facts{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;margin:12px 0 4px}
+.facts b{display:block;font:400 26px/1.1 var(--yp);color:var(--ink)}
+.facts span{font:600 12px/1.4 var(--ui);color:#8a6a4e}
+.newrec{text-align:center;margin-top:10px;font:400 18px/1 var(--yp);color:var(--red)}
+.row2{display:flex;gap:10px;margin-top:18px}
+.row2 button{flex:1;height:54px;border-radius:10px;font:400 19px/1 var(--yp)}
+.row2 .go{background:var(--red);color:var(--cream);box-shadow:inset 0 -3px 0 var(--red-d)}
+.row2 .go:active{box-shadow:inset 0 -1px 0 var(--red-d);transform:translateY(2px)}
+.row2 .alt{color:var(--blue)}
+.row2 .alt:active{background:#efe3c8}
+.rec{margin-top:10px}
+.rec h4{font:400 17px/1 var(--yp);color:var(--blue);margin:14px 0 6px}
+.rec .ln{display:grid;grid-template-columns:1fr auto auto;gap:14px;padding:9px 0;font:600 14px/1.2 var(--ui);color:var(--ink)}
+.rec .ln+.ln{background:linear-gradient(90deg,#d9c9a6 50%,transparent 0) top/8px 1.5px repeat-x}
+.rec .ln span:not(:first-child){font-variant-numeric:tabular-nums;text-align:right;min-width:48px}
+.rec .ln small{color:#8a6a4e;font-weight:500;margin-left:6px}
+.rec .none{font:400 16px/1.6 var(--yp);color:#8a6a4e;padding:6px 0}
+
+.toast{position:absolute;left:50%;top:calc(170px + env(safe-area-inset-top));z-index:70;transform:translate(-50%,-10px);opacity:0;visibility:hidden;padding:8px 16px;background:var(--bulb);color:var(--ink);font:400 17px/1.2 var(--yp);border-radius:8px;white-space:nowrap;transition:transform .35s var(--boing),opacity .2s,visibility 0s .35s}
+.toast.on{transform:translate(-50%,0);opacity:1;visibility:visible;transition:transform .35s var(--boing),opacity .2s}
+
+@media (max-height:720px){
+  .awning{height:calc(120px + env(safe-area-inset-top))}
+  .awning .title{top:calc(54px + env(safe-area-inset-top))}
+  .awning .title b{font-size:20px}
+  .sign b{font-size:19px}
+  .tools{margin-top:4px}.tool{height:46px}
+  .front{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  .card .fc span{font-size:11px}
+}
+@media (prefers-reduced-motion:reduce){
+  .sway,.chase .b.on .glass,.bulbs .b.pop,.card.done .in,.card.miss .in,.stars .s{animation:none}
+  .card .in,.card,.sheet,.tag,.toast{transition-duration:.01s}
+  .shout.go{animation-duration:1.4s;animation-timing-function:steps(1)}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="street" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="caption"><b>夜市翻牌</b><span>紅白藍帆布下的記憶攤。翻兩張，一樣就收下，每一對都點亮一顆燈泡。</span></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">21:08</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 12 5.4 8.8a4 4 0 0 1 5.2 0zM3.6 6.8a6.8 6.8 0 0 1 8.8 0l1.4-1.6a9 9 0 0 0-11.6 0zM.4 3.2a11.4 11.4 0 0 1 15.2 0L16.8 1.8a13.4 13.4 0 0 0-17.6 0z"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x=".5" y=".5" width="22" height="11" rx="3.2" fill="none" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="15" height="8" rx="2"/><rect x="24" y="4" width="1.6" height="4" rx=".8" opacity=".5"/></svg>
+        </span>
+      </div>
+
+      <div class="awning" aria-hidden="true">
+        <svg class="canvas sway" viewBox="0 0 390 118" preserveAspectRatio="none" id="awn"></svg>
+        <div class="title"><b>夜市翻牌</b></div>
+      </div>
+      <div class="bulbs" aria-hidden="true"><svg id="bulbs" viewBox="0 0 390 44" preserveAspectRatio="none"></svg></div>
+
+      <div class="signs" role="group" aria-label="戰況">
+        <div class="sign"><span>時間</span><b id="sTime">00:00</b></div>
+        <div class="sign warm"><span>步數</span><b id="sSteps">0</b></div>
+        <div class="sign"><span>配對</span><b id="sPairs">0/8</b></div>
+      </div>
+
+      <div class="counter"><div class="grid" id="grid" role="grid" aria-label="牌桌"></div><div class="shout" id="shout" aria-hidden="true"></div></div>
+
+      <div class="front">
+        <div class="levels" role="group" aria-label="攤位大小">
+          <button class="tag" data-lv="0" style="--r:-2deg" aria-pressed="true">小攤<small>4×4</small></button>
+          <button class="tag" data-lv="1" style="--r:1.5deg" aria-pressed="false">中攤<small>4×5</small></button>
+          <button class="tag" data-lv="2" style="--r:-1deg" aria-pressed="false">大攤<small>4×6</small></button>
+        </div>
+        <div class="tools">
+          <button class="tool" id="bPeek" aria-label="偷看一秒，多算五步"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14.5c3-5 6.6-7.5 11-7.5s8 2.5 11 7.5c-3 5-6.6 7.5-11 7.5S6 19.5 3 14.5z"/><circle cx="14" cy="14.5" r="3.4" fill="currentColor"/><path d="M14 2.5v2M6.5 4.5l1.2 1.6M21.5 4.5l-1.2 1.6"/></svg>偷看</button>
+          <button class="tool" id="bNew" aria-label="重新開一局"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22.5 11A9 9 0 1 0 23 17"/><path d="M23.5 4.5V11H17"/></svg>重來</button>
+          <button class="tool" id="bSound" aria-label="聲音" aria-pressed="true"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h4.5L14 6v16l-5.5-5H4z" fill="currentColor"/><path class="on" d="M18 10.5c1.4 1 2 2.2 2 3.5s-.6 2.5-2 3.5M21 7.5c2.4 1.8 3.6 4 3.6 6.5S23.4 18.7 21 20.5"/><path class="off" d="M18.5 10.5l6 7M24.5 10.5l-6 7"/></svg>聲音</button>
+          <button class="tool" id="bRec" aria-label="紀錄"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h18v4.2a2.8 2.8 0 0 0 0 5.6V21H5v-4.2a2.8 2.8 0 0 0 0-5.6z"/><path d="M14.5 10.5l1.1 2.2 2.4.3-1.8 1.7.5 2.4-2.2-1.2-2.2 1.2.5-2.4-1.8-1.7 2.4-.3z" fill="currentColor" stroke-width="1"/></svg>紀錄</button>
+        </div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><span class="grab" aria-hidden="true"></span><div id="sheetBody"></div></div>
+      <div class="toast" id="toast" role="status"></div>
+      <div class="home" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const K = 'app062:';
+const load = (k, d) => { try { const v = localStorage.getItem(K + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const save = (k, v) => { try { localStorage.setItem(K + k, JSON.stringify(v)); } catch (e) {} };
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let sound = load('sound', true);
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch (e) {} }
+
+/* ---------- the twelve snacks (one outline weight, one palette) ---------- */
+const O = 'stroke="#3a1f14" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"';
+const FOOD = [
+  {n:'雞排', d:`<path d="M14 48 18 20h24l4 28z" fill="#f3e3c2" ${O}/><path d="M16.5 32h27" stroke="#c8242c" stroke-width="3"/><path d="M13 20c-1-6 4-10 8-8 1-4 7-6 10-2 4-3 11-1 11 4 5 1 6 7 2 9-5 3-26 3-31-3z" fill="#d98a2e" ${O}/><g fill="#b86a1c"><circle cx="21" cy="15" r="1.2"/><circle cx="30" cy="13" r="1.2"/><circle cx="38" cy="17" r="1.2"/><circle cx="26" cy="19" r="1"/><circle cx="34" cy="20" r="1"/></g>`},
+  {n:'珍珠奶茶', d:`<path d="M17 16h26l-3.5 36h-19z" fill="#d9a877" ${O}/><path d="M17 16h26l-.7 7H17.7z" fill="#fbf5e6" ${O}/><g fill="#3a1f14"><circle cx="24" cy="47" r="2.4"/><circle cx="30" cy="48" r="2.4"/><circle cx="36" cy="47" r="2.4"/><circle cx="27" cy="43" r="2.4"/><circle cx="33" cy="43" r="2.4"/></g><path d="M34 4 31 30" stroke="#c8242c" stroke-width="4" stroke-linecap="round"/><path d="M21 31c5 1.5 13 1.5 18 0" stroke="#fff" stroke-opacity=".5" stroke-width="1.6" fill="none"/>`},
+  {n:'臭豆腐', d:`<ellipse cx="30" cy="42" rx="24" ry="10" fill="#fbf5e6" ${O}/><path d="M14 38l4-12 11 2-3 12z" fill="#e0a13c" ${O}/><path d="M29 40l2-13 11 1-1 13z" fill="#e8b04a" ${O}/><path d="M19 26l3-8 10 1.5-3 9z" fill="#d6902c" ${O}/><path d="M22 22c4-3 9-2 12 1M28 20c3 2 6 5 9 6M21 25c6 1 12 3 16 1" stroke="#7fae4a" stroke-width="2.2" fill="none" stroke-linecap="round"/><g fill="#c8242c"><circle cx="36" cy="33" r="1.4"/><circle cx="24" cy="34" r="1.4"/><circle cx="32" cy="24" r="1.2"/></g>`},
+  {n:'蚵仔煎', d:`<ellipse cx="30" cy="40" rx="25" ry="12" fill="#fbf5e6" ${O}/><path d="M10 38c0-9 9-14 20-14s20 5 20 14c-4 5-12 7-20 7s-16-2-20-7z" fill="#f1dc9a" ${O}/><g fill="#9aa3a0" ${O} stroke-width="1.4"><ellipse cx="22" cy="33" rx="3.4" ry="2.4"/><ellipse cx="33" cy="30" rx="3.4" ry="2.4"/><ellipse cx="38" cy="37" rx="3.4" ry="2.4"/></g><path d="M16 36c4-3 7 2 11-1s7 2 11-1 6 1 8 0" stroke="#d2493a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M26 38l4 2M42 32l3 1M18 31l2-2" stroke="#5f9a3c" stroke-width="2.4" stroke-linecap="round"/>`},
+  {n:'糖葫蘆', d:`<path d="M30 56V8" stroke="#b58a52" stroke-width="2.6" stroke-linecap="round"/>${[14, 25, 36, 47].map((y, i) => `<circle cx="30" cy="${y}" r="${i === 3 ? 6.5 : 7}" fill="#d6282f" ${O}/><path d="M26.5 ${y - 3}a4 4 0 0 1 3-2" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" opacity=".85"/>`).join('')}`},
+  {n:'大腸包小腸', d:`<path d="M6 34c0-8 10-12 24-12s24 4 24 12-10 12-24 12S6 42 6 34z" fill="#f7f1e4" ${O}/><path d="M9 32c6-4 34-4 42 0-4 2-38 2-42 0z" fill="#b8452a" ${O}/><path d="M14 28c8-2 24-2 32 0" stroke="#86c06a" stroke-width="3" stroke-linecap="round"/><g fill="#e8dcc6"><circle cx="16" cy="40" r="1"/><circle cx="24" cy="42" r="1"/><circle cx="36" cy="41" r="1"/><circle cx="44" cy="39" r="1"/></g>`},
+  {n:'地瓜球', d:`<path d="M13 30h34l-5 24H18z" fill="#fbf5e6" ${O}/><path d="M13 30h34" stroke="#1f4aa0" stroke-width="3"/>${[[20,26],[30,24],[40,26],[25,17],[35,17],[30,10]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="6" fill="#f0b43a" ${O}/><path d="M${x - 3} ${y - 2}a3 3 0 0 1 2.4-1.6" stroke="#fff5c8" stroke-width="1.6" fill="none" stroke-linecap="round"/>`).join('')}`},
+  {n:'烤玉米', d:`<path d="M30 58V46" stroke="#b58a52" stroke-width="3" stroke-linecap="round"/><path d="M30 4c8 0 11 10 11 21s-3 21-11 21-11-10-11-21S22 4 30 4z" fill="#c9782a" ${O}/><g stroke="#8a4a14" stroke-width="1.2" opacity=".75"><path d="M21 14h18M20 20h20M19.6 26h20.8M20 32h20M21 38h18"/><path d="M26 6v38M30 5v41M34 6v38"/></g><path d="M24 10c-1 4-1 8 0 12" stroke="#f7c77a" stroke-width="2" fill="none" stroke-linecap="round"/>`},
+  {n:'胡椒餅', d:`<path d="M8 38c0-12 10-22 22-22s22 10 22 22c-6 6-38 6-44 0z" fill="#e3a452" ${O}/><path d="M16 26c5-4 9-5 14-5s10 1 14 5" stroke="#7a3a14" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/><g fill="#fbf5e6">${[[20,32],[26,28],[34,28],[40,32],[30,34],[24,36],[36,36]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="1.4" ry=".9"/>`).join('')}</g><path d="M10 40c7 5 33 5 40 0" stroke="#3a1f14" stroke-width="2" fill="none"/>`},
+  {n:'棉花糖', d:`<path d="M30 58V36" stroke="#b58a52" stroke-width="2.6" stroke-linecap="round"/><path d="M16 26c-5-2-5-10 1-11 0-6 8-9 12-5 3-5 12-4 13 2 6 0 8 8 3 11 2 6-5 10-10 8-3 4-10 4-12 0-5 2-10-1-7-5z" fill="#f4a9bf" ${O}/><path d="M22 16c3-2 7-2 9 1M34 22c3 0 5 2 5 4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8"/>`},
+  {n:'烤魷魚', d:`<path d="M30 58V44" stroke="#b58a52" stroke-width="3" stroke-linecap="round"/><path d="M30 4c7 4 10 11 10 20v14H20V24c0-9 3-16 10-20z" fill="#d9763a" ${O}/><path d="M20 38l-4 10M25 38l-2 12M30 38v12M35 38l2 12M40 38l4 10" stroke="#d9763a" stroke-width="3.4" stroke-linecap="round"/><path d="M20 38l-4 10M25 38l-2 12M30 38v12M35 38l2 12M40 38l4 10" stroke="#3a1f14" stroke-width="1" stroke-linecap="round" opacity=".5"/><path d="M22 18l16 6M22 26l16 6" stroke="#7a2e10" stroke-width="2.2" stroke-linecap="round" opacity=".7"/>`},
+  {n:'豆花', d:`<path d="M8 30h44c0 12-10 20-22 20S8 42 8 30z" fill="#1f4aa0" ${O}/><path d="M12 38c6 2 30 2 36 0" stroke="#fbf5e6" stroke-width="2" fill="none" opacity=".6"/><path d="M10 30c4-5 12-8 20-8s16 3 20 8z" fill="#fbf5e6" ${O}/><path d="M14 29c6-2 26-2 32 0" stroke="#c98a3a" stroke-width="2.6" stroke-linecap="round"/><g fill="#b86a2a" ${O} stroke-width="1.2"><ellipse cx="22" cy="25" rx="2.4" ry="1.7"/><ellipse cx="31" cy="24" rx="2.4" ry="1.7"/><ellipse cx="38" cy="26" rx="2.4" ry="1.7"/></g>`}
+];
+const art = i => `<svg viewBox="0 0 60 60" aria-hidden="true">${FOOD[i].d}</svg>`;
+const STAMP = `<svg class="stamp" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="#c8242c" stroke-width="2"/><text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#c8242c" font-family="Yuppy TC,PingFang TC,sans-serif">收</text></svg>`;
+
+/* ---------- awning + bulbs ---------- */
+(function(){
+  const W = 390, H = 118, n = 10, w = W / n, base = 92;
+  let s = '<defs><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".5" stop-color="#000" stop-opacity="0"/></linearGradient></defs>';
+  const cols = ['#c8242c', '#f6f0e2', '#1f4aa0', '#f6f0e2'];
+  for (let i = 0; i < n; i++){
+    const x = i * w, c = cols[i % 4];
+    s += `<path d="M${x} 0H${x + w}V${base}Q${x + w / 2} ${base + 20} ${x} ${base}Z" fill="${c}"/>`;
+  }
+  s += `<rect width="${W}" height="${H}" fill="url(#shade)"/>`;
+  let scal = `M0 ${base}`; for (let i = 0; i < n; i++) scal += `Q${i * w + w / 2} ${base + 20} ${(i + 1) * w} ${base}`;
+  s += `<path d="${scal}" fill="none" stroke="#3a1f14" stroke-opacity=".35" stroke-width="1.5"/>`;
+  s += `<path d="M0 ${base - 6}H${W}" stroke="#000" stroke-opacity=".12" stroke-width="1"/>`;
+  $('awn').innerHTML = s;
+})();
+function renderBulbs(total, lit, popIdx){
+  const W = 390, pad = 22, gap = (W - pad * 2) / (total - 1);
+  let wire = `M0 2`, s = '';
+  const y = i => 8 + Math.sin((i / (total - 1)) * Math.PI) * 6;
+  for (let i = 0; i < total; i++){ const x = pad + i * gap; wire += ` Q${x - gap / 2} ${y(i) + 6} ${x} ${y(i)}`; }
+  wire += ` Q${W - pad / 2} 8 ${W} 2`;
+  s += `<path d="${wire}" fill="none" stroke="#2a1a10" stroke-width="1.6"/>`;
+  for (let i = 0; i < total; i++){
+    const x = pad + i * gap, yy = y(i);
+    s += `<g class="b${i < lit ? ' on' : ''}${i === popIdx ? ' pop' : ''}" style="--i:${i}"><rect x="${x - 3}" y="${yy}" width="6" height="6" rx="1" fill="#4a3a2c"/><path class="glass" d="M${x} ${yy + 6}c-6.5 0-8 5-8 9 0 6 4.5 10 8 10s8-4 8-10c0-4-1.5-9-8-9z"/><path class="fil" d="M${x - 2.4} ${yy + 16}l1.2-3 1.2 3 1.2-3 1.2 3" fill="none" stroke="#3a2c20" stroke-width="1"/><path class="shine" d="M${x - 4.6} ${yy + 12}c.4-2 1.4-3 2.8-3.4"/></g>`;
+  }
+  $('bulbs').innerHTML = s;
+  $('bulbs').querySelectorAll('.shine').forEach(p => { p.setAttribute('fill', 'none'); p.setAttribute('stroke', '#fff'); p.setAttribute('stroke-width', '1.6'); p.setAttribute('stroke-linecap', 'round'); });
+}
+
+/* ---------- audio ---------- */
+let ac = null;
+function audio(){ if (!sound) return null; if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function tone(f, t, d, type, v){ const a = audio(); if (!a) return; const o = a.createOscillator(), g = a.createGain(), T = a.currentTime + t; o.type = type || 'sine'; o.frequency.setValueAtTime(f, T); g.gain.setValueAtTime(0, T); g.gain.linearRampToValueAtTime(v || .12, T + .008); g.gain.exponentialRampToValueAtTime(.001, T + d); o.connect(g).connect(a.destination); o.start(T); o.stop(T + d + .05); }
+function flipSnd(){ const a = audio(); if (!a) return; const n = a.createBuffer(1, a.sampleRate * .04, a.sampleRate), c = n.getChannelData(0); for (let i = 0; i < c.length; i++) c[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / c.length, 3); const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = n; f.type = 'highpass'; f.frequency.value = 1400; g.gain.value = .45; s.connect(f).connect(g).connect(a.destination); s.start(); }
+const ding = combo => { const b = 880 * Math.pow(2, Math.min(combo, 5) / 12); tone(b, 0, .5, 'triangle', .13); tone(b * 1.5, .09, .6, 'triangle', .1); tone(b * 2, .18, .5, 'sine', .05); };
+const buzz = () => { tone(140, 0, .18, 'square', .05); tone(120, .1, .2, 'square', .04); };
+const fanfare = () => [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, i * .11, i === 5 ? .9 : .25, 'triangle', .12));
+
+/* ---------- game state ---------- */
+const LV = [{c:4, r:4, n:'小攤'}, {c:4, r:5, n:'中攤'}, {c:4, r:6, n:'大攤'}];
+let lv = load('lv', 0), best = load('best', {}), hist = load('hist', null);
+if (!Array.isArray(hist)) hist = [
+  {lv:0, t:48, s:12, at: Date.now() - 864e5 * 1},
+  {lv:1, t:83, s:17, at: Date.now() - 864e5 * 2},
+  {lv:0, t:61, s:15, at: Date.now() - 864e5 * 4}
+];
+if (!best[0]) best = {0: {t: 48, s: 12}, 1: {t: 83, s: 17}};
+let deck = [], open = [], steps = 0, matched = 0, t0 = 0, elapsed = 0, running = false, combo = 0, peeked = false, busy = false, tickT = 0, won = false;
+const pairs = () => LV[lv].c * LV[lv].r / 2;
+const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function newGame(preview){
+  clearInterval(tickT); running = false; won = false; elapsed = 0; steps = 0; matched = 0; combo = 0; peeked = false; open = []; busy = false;
+  const n = pairs(), picks = shuffle(FOOD.map((_, i) => i)).slice(0, n);
+  deck = shuffle(picks.concat(picks)).map((f, i) => ({f, i, up: false, done: false}));
+  const g = $('grid'), L = LV[lv];
+  g.style.gridTemplateColumns = `repeat(${L.c},1fr)`; g.style.gridTemplateRows = `repeat(${L.r},1fr)`;
+  g.innerHTML = deck.map(c => `<button class="card" data-i="${c.i}" role="gridcell" aria-label="第 ${c.i + 1} 張，蓋著"><span class="in"><span class="bk"></span><span class="fc">${art(c.f)}<span>${FOOD[c.f].n}</span>${STAMP}</span></span></button>`).join('');
+  document.querySelector('.bulbs').classList.remove('chase');
+  $('bPeek').disabled = false;
+  renderBulbs(n, 0); hud();
+  if (preview){
+    busy = true;
+    g.querySelectorAll('.card').forEach(c => c.classList.add('up'));
+    setTimeout(() => { g.querySelectorAll('.card').forEach(c => c.classList.remove('up')); busy = false; flipSnd(); }, reduce ? 900 : 1500);
+  }
+}
+function hud(){
+  $('sTime').textContent = mmss(elapsed);
+  $('sSteps').textContent = steps;
+  $('sPairs').textContent = matched + '/' + pairs();
+}
+function startClock(){
+  if (running) return; running = true; t0 = performance.now() - elapsed * 1000;
+  clearInterval(tickT); tickT = setInterval(() => { if (document.hidden || !running) return; elapsed = (performance.now() - t0) / 1000; $('sTime').textContent = mmss(elapsed); }, 250);
+}
+document.addEventListener('visibilitychange', () => { if (!running) return; if (document.hidden) elapsed = (performance.now() - t0) / 1000; else t0 = performance.now() - elapsed * 1000; });
+function cardEl(i){ return $('grid').querySelector(`.card[data-i="${i}"]`); }
+function setUp(c, up){ c.up = up; const el = cardEl(c.i); el.classList.toggle('up', up); el.setAttribute('aria-label', up ? FOOD[c.f].n : `第 ${c.i + 1} 張，蓋著`); }
+function flip(i){
+  if (busy || won) return;
+  const c = deck[i]; if (!c || c.up || c.done) return;
+  if (open.length === 2){ open.forEach(o => { setUp(o, false); cardEl(o.i).classList.remove('miss'); }); open = []; }
+  audio(); startClock(); flipSnd(); haptic(6);
+  setUp(c, true); open.push(c);
+  if (open.length < 2) return;
+  steps++; hud();
+  const [a, b] = open;
+  if (a.f === b.f){
+    a.done = b.done = true; open = []; matched++; combo++;
+    setTimeout(() => {
+      [a, b].forEach(x => cardEl(x.i).classList.add('done'));
+      ding(combo); haptic([8, 40, 16]);
+      renderBulbs(pairs(), matched, matched - 1); hud();
+      if (combo >= 2) shout(combo >= 4 ? '夜市王！' : combo === 3 ? '手氣旺！' : '連中 ×2');
+      if (matched === pairs()) setTimeout(win, 500);
+    }, 380);
+  } else {
+    combo = 0;
+    setTimeout(() => {
+      if (open[0] !== a || open[1] !== b) return;
+      [a, b].forEach(x => cardEl(x.i).classList.add('miss')); buzz(); haptic([20, 30, 20]);
+      setTimeout(() => { if (open[0] !== a) return; [a, b].forEach(x => { setUp(x, false); cardEl(x.i).classList.remove('miss'); }); open = []; }, 480);
+    }, 520);
+  }
+}
+$('grid').addEventListener('click', e => { const b = e.target.closest('.card'); if (b) flip(+b.dataset.i); });
+function shout(t){ const s = $('shout'); s.textContent = t; s.classList.remove('go'); s.offsetWidth; s.classList.add('go'); }
+
+function stars(){ const n = pairs(); return steps <= n * 1.5 ? 3 : steps <= n * 2.2 ? 2 : 1; }
+function win(){
+  won = true; running = false; clearInterval(tickT); elapsed = (performance.now() - t0) / 1000; hud();
+  document.querySelector('.bulbs').classList.add('chase');
+  fanfare(); haptic([20, 60, 20, 60, 60]);
+  const t = Math.round(elapsed), b = best[lv], rec = !b || t < b.t || (t === b.t && steps < b.s);
+  if (rec) best[lv] = {t, s: steps};
+  hist.unshift({lv, t, s: steps, at: Date.now()}); hist = hist.slice(0, 12);
+  save('best', best); save('hist', hist);
+  const st = stars();
+  const star = (on, i) => `<svg class="s" style="--i:${i}" viewBox="0 0 44 44"><path d="M22 3.5l5.6 11.4 12.6 1.8-9.1 8.9 2.1 12.5L22 32.2l-11.2 5.9 2.1-12.5-9.1-8.9 12.6-1.8z" fill="${on ? '#ffcf4a' : '#e8dcc2'}" stroke="${on ? '#c8242c' : '#d4c3a0'}" stroke-width="2.4" stroke-linejoin="round"/></svg>`;
+  setTimeout(() => openSheet(`<div class="tk-h"><b id="shT">${st === 3 ? '夜市王' : st === 2 ? '收攤囉' : '有吃有保庇'}</b><span>${LV[lv].n}・${pairs()} 對全收</span></div><div class="perf"></div>
+    <div class="stars">${[0, 1, 2].map(i => star(i < st, i)).join('')}</div>
+    <div class="facts"><div><b>${mmss(t)}</b><span>時間</span></div><div><b>${steps}</b><span>步數</span></div><div><b>${best[lv] ? mmss(best[lv].t) : '--'}</b><span>最佳</span></div></div>
+    ${rec ? '<div class="newrec">新紀錄！老闆送你一支糖葫蘆</div>' : ''}
+    <div class="row2"><button class="alt" data-act="lv">換攤位</button><button class="go" data-act="again">再玩一攤</button></div>`), 700);
+}
+function recHTML(){
+  return `<div class="tk-h"><b id="shT">戰績</b><span>在這台手機上的每一攤</span></div><div class="perf"></div><div class="rec">
+    <h4>最佳紀錄</h4>${LV.map((L, i) => `<div class="ln"><span>${L.n}<small>${L.c}×${L.r}</small></span><span>${best[i] ? mmss(best[i].t) : '--:--'}</span><span>${best[i] ? best[i].s + ' 步' : ''}</span></div>`).join('')}
+    <h4>最近幾攤</h4>${hist.length ? hist.slice(0, 6).map(h => { const d = new Date(h.at); return `<div class="ln"><span>${LV[h.lv].n}<small>${d.getMonth() + 1}/${d.getDate()}</small></span><span>${mmss(h.t)}</span><span>${h.s} 步</span></div>`; }).join('') : '<p class="none">還沒逛過任何一攤</p>'}
+  </div><div class="row2"><button class="go" data-act="close">回攤位</button></div>`;
+}
+
+/* ---------- controls ---------- */
+function setLevel(n){
+  lv = n; save('lv', lv);
+  document.querySelectorAll('.tag').forEach(t => t.setAttribute('aria-pressed', +t.dataset.lv === lv));
+  newGame(true);
+}
+document.querySelector('.levels').addEventListener('click', e => { const t = e.target.closest('.tag'); if (!t) return; haptic(8); audio(); tone(660, 0, .12, 'triangle', .08); setLevel(+t.dataset.lv); });
+$('bNew').addEventListener('click', () => { haptic(8); audio(); tone(520, 0, .1, 'triangle', .08); newGame(true); toast('重新洗牌'); });
+$('bPeek').addEventListener('click', () => {
+  if (peeked || busy || won){ if (peeked) toast('這一局已經偷看過了'); return; }
+  peeked = true; $('bPeek').disabled = true; busy = true; haptic([6, 30, 6]); audio(); startClock();
+  open.forEach(o => setUp(o, false)); open = [];
+  steps += 5; hud(); toast('偷看一秒，多算 5 步');
+  const hidden = deck.filter(c => !c.done);
+  hidden.forEach(c => setUp(c, true));
+  setTimeout(() => { hidden.forEach(c => setUp(c, false)); busy = false; flipSnd(); }, 1100);
+});
+$('bSound').addEventListener('click', () => { sound = !sound; save('sound', sound); $('bSound').setAttribute('aria-pressed', sound); haptic(6); if (sound) tone(880, 0, .12, 'triangle', .08); toast(sound ? '聲音開' : '靜音'); });
+$('bSound').setAttribute('aria-pressed', sound);
+$('bRec').addEventListener('click', () => { haptic(6); openSheet(recHTML()); });
+
+/* ---------- sheet ---------- */
+const sheet = $('sheet'), scrim = $('scrim');
+let lastF = null;
+function openSheet(h){ lastF = document.activeElement; $('sheetBody').innerHTML = h; sheet.style.transform = ''; sheet.scrollTop = 0; sheet.classList.add('on'); scrim.classList.add('on'); const b = sheet.querySelector('.go'); if (b) setTimeout(() => b.focus({preventScroll: true}), 60); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); scrim.classList.remove('on'); sheet.style.transform = ''; scrim.style.opacity = ''; if (lastF) try { lastF.focus({preventScroll: true}); } catch (_) {} }
+scrim.addEventListener('click', closeSheet);
+sheet.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return; haptic(8);
+  if (b.dataset.act === 'again'){ closeSheet(); newGame(true); }
+  else if (b.dataset.act === 'lv'){ closeSheet(); setLevel((lv + 1) % 3); toast('換到' + LV[lv].n); }
+  else if (b.dataset.act === 'close') closeSheet();
+});
+(function(){
+  let y0 = 0, dy = 0, on = false, t0s = 0, h = 1;
+  sheet.addEventListener('pointerdown', e => { if (e.target.closest('button') || sheet.scrollTop > 0) return; on = true; y0 = e.clientY; dy = 0; t0s = e.timeStamp; h = sheet.offsetHeight; });
+  sheet.addEventListener('pointermove', e => { if (!on) return; dy = Math.max(0, e.clientY - y0); if (dy > 5){ sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch (_) {} } sheet.style.transform = `translateY(${dy}px)`; scrim.style.opacity = String(1 - dy / h * .8); });
+  const end = e => { if (!on) return; on = false; sheet.classList.remove('drag'); const v = dy / Math.max(1, e.timeStamp - t0s); if (dy > h * .35 || (v > .6 && dy > 30)){ haptic(6); closeSheet(); } else { sheet.style.transform = ''; scrim.style.opacity = ''; } };
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+
+let tT = 0;
+function toast(m){ const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tT); tT = setTimeout(() => t.classList.remove('on'), 1600); }
+
+/* ---------- desktop backdrop: the market street ---------- */
+(function(){
+  let g = `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#140d09"/><stop offset=".7" stop-color="#2b1a12"/><stop offset="1" stop-color="#3a2216"/></linearGradient><filter id="gr"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2"/><feColorMatrix values="0 0 0 0 .5 0 0 0 0 .4 0 0 0 0 .3 0 0 0 .14 0"/></filter></defs><rect width="1600" height="1000" fill="url(#sky)"/>`;
+  const stalls = [[-40, 380, 330], [1150, 420, 250], [1400, 340, 260], [80, 640, 240]];
+  const cols = ['#c8242c', '#f6f0e2', '#1f4aa0', '#f6f0e2'];
+  stalls.forEach(([x, y, w], k) => {
+    const n = 8, sw = w / n;
+    g += `<rect x="${x + 10}" y="${y + 60}" width="${w - 20}" height="${1000 - y}" fill="#221610"/>`;
+    for (let i = 0; i < n; i++) g += `<path d="M${x + i * sw} ${y}h${sw}v56q${-sw / 2} 16 ${-sw} 0z" fill="${cols[(i + k) % 4]}" opacity=".9"/>`;
+    g += `<rect x="${x + 30}" y="${y + 90}" width="${w - 60}" height="46" rx="6" fill="#f6f0e2"/><rect x="${x + 34}" y="${y + 94}" width="${w - 68}" height="38" rx="4" fill="none" stroke="#c8242c" stroke-width="3"/>`;
+    g += `<text x="${x + w / 2}" y="${y + 121}" text-anchor="middle" font-size="24" fill="#c8242c" font-family="Yuppy TC,PingFang TC,sans-serif">${['古早味雞排', '台南擔仔麵', '碳烤玉米', '珍珠奶茶'][k]}</text>`;
+    g += `<rect x="${x + 20}" y="${y + 160}" width="${w - 40}" height="14" fill="#5a3a26"/>`;
+  });
+  let wire = 'M0 120', bl = '';
+  for (let i = 0; i <= 16; i++){ const x = i * 100, y = 150 + Math.sin(i * .9) * 10; wire += ` Q${x - 50} ${y + 26} ${x} ${y}`; bl += `<circle cx="${x}" cy="${y + 14}" r="9" fill="${i % 3 ? '#ffcf4a' : '#e3a520'}"/><rect x="${x - 3}" y="${y}" width="6" height="7" fill="#3a2a1c"/>`; }
+  g += `<path d="${wire}" fill="none" stroke="#0e0906" stroke-width="3"/>${bl}`;
+  g += `<rect y="880" width="1600" height="120" fill="#170f0a"/><rect width="1600" height="1000" filter="url(#gr)"/>`;
+  $('street').innerHTML = g;
+})();
+
+function tick(){ const d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setTimeout(function t(){ tick(); setTimeout(t, 60000 - Date.now() % 60000); }, 60000 - Date.now() % 60000);
+
+document.querySelectorAll('.tag').forEach(t => t.setAttribute('aria-pressed', +t.dataset.lv === lv));
+newGame(true);
+})();
+</script>
+</body>
+</html>

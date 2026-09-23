@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b1a18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="808">
+<title>808 · 節奏機</title>
+<meta name="description" content="口袋裡的經典類比節奏機：12 軌樂器切換、16 步編輯、拖曳旋鈕調速度與音色、8 個樣式槽，全部用 WebAudio 即時合成鼓聲。收錄於 100 Creative HTML Works（App 036・TR-808 經典配色）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/036-step-808.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b1a18'/%3E%3Crect x='8' y='36' width='10' height='18' rx='2' fill='%23d93a1e'/%3E%3Crect x='21' y='36' width='10' height='18' rx='2' fill='%23f07a1a'/%3E%3Crect x='34' y='36' width='10' height='18' rx='2' fill='%23f2c230'/%3E%3Crect x='47' y='36' width='10' height='18' rx='2' fill='%23ece6d6'/%3E%3Ctext x='32' y='28' font-family='Helvetica Neue,Arial' font-weight='700' font-style='italic' font-size='20' fill='%23ece6d6' text-anchor='middle'%3E808%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --black:#141312; --panel:#1f1e1c; --deck:#2b2a27; --deck2:#383633; --print:#ece6d6; --dim:#a8a195;
+  --red:#d93a1e; --orange:#f07a1a; --yellow:#f2c230; --white:#e9e2d0;
+  --ital:"Helvetica Neue","Helvetica","Arial","PingFang TC",sans-serif;
+  --sans:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --out:cubic-bezier(.22,1,.36,1); --spring:cubic-bezier(.2,1.3,.35,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--panel);overflow:hidden}
+body{font-family:var(--sans);color:var(--print);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+button:focus-visible{outline:2px solid var(--yellow);outline-offset:2px;border-radius:4px}
+svg{display:block}
+.it{font-family:var(--ital);font-weight:700;font-style:italic}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.cam{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--panel);isolation:isolate}
+@media (min-width:521px){
+  body{background:#0f0e0d}
+  .stage{display:flex;align-items:center;justify-content:center;gap:60px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:50px;padding:9px;background:#0b0a0a;
+    box-shadow:inset 0 0 0 1.5px #57534c,inset 0 0 0 4px #0b0a0a,0 16px 26px -18px #000;z-index:1}
+  .screen{inset:9px;border-radius:41px}
+  .cam{display:block;position:absolute;top:21px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#050505;box-shadow:inset 0 0 0 2px #1d1c1b;z-index:90}
+  .caption{display:block;position:relative;z-index:1;max-width:250px}
+  .caption b{display:block;font:italic 700 64px/1 var(--ital);color:var(--print);letter-spacing:-.01em}
+  .caption p{margin-top:12px;font-size:15px;line-height:1.6;color:var(--dim)}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+/* ---------- status ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 26px 0 30px;
+  display:flex;align-items:center;justify-content:space-between;font:italic 700 16px/1 var(--ital);color:var(--print);pointer-events:none}
+.status .gl{display:flex;align-items:center;gap:6px}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- layout ---------- */
+.body{position:absolute;left:0;right:0;top:calc(46px + env(safe-area-inset-top));bottom:calc(84px + env(safe-area-inset-bottom));overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.body::-webkit-scrollbar{display:none}
+.top{display:flex;align-items:center;justify-content:space-between;padding:2px 12px 0 18px;min-height:54px}
+.logo{display:flex;align-items:baseline;gap:10px}
+.logo b{font:italic 700 36px/1 var(--ital);letter-spacing:-.02em}
+.logo span{font-size:12px;line-height:1.3;color:var(--dim)}
+.logo span i{display:block;font:italic 700 12px/1.3 var(--ital);color:var(--orange)}
+.patbtn{display:flex;align-items:center;gap:8px;height:44px;padding:0 10px 0 12px;border-radius:6px;background:var(--deck);font-size:14px;transition:background-color .2s}
+.patbtn:active{background:var(--deck2)}
+.patbtn b{font:italic 700 20px/1 var(--ital);color:var(--orange)}
+
+/* stripes band printed on the panel */
+.band{height:6px;margin:8px 18px 0;border-radius:3px;background:linear-gradient(90deg,var(--red) 0 25%,var(--orange) 25% 50%,var(--yellow) 50% 75%,var(--white) 75%)}
+
+/* deck: tempo + master */
+.deck{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center;padding:14px 16px 6px 12px}
+.tempo{display:flex;align-items:center;gap:6px}
+.bpm{min-width:92px}
+.bpm b{display:block;font:italic 700 46px/1 var(--ital);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.bpm span{font-size:12px;color:var(--dim)}
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;justify-items:center}
+.knob{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;touch-action:none;cursor:ns-resize;font-size:12px;color:var(--dim);min-width:44px}
+.knob svg{overflow:visible}
+.knob .rot{transition:transform .08s linear}
+.knob .val{font:italic 700 12px/1 var(--ital);color:var(--print)}
+.tap{height:44px;min-width:56px;padding:0 10px;border-radius:5px;background:var(--deck2);font:italic 700 14px/1 var(--ital);color:var(--print);box-shadow:inset 0 -3px 0 #1a1918;transition:transform .08s,box-shadow .08s}
+.tap:active{transform:translateY(2px);box-shadow:inset 0 -1px 0 #1a1918}
+
+/* track selector */
+.tracks{position:relative;display:flex;gap:4px;overflow-x:auto;padding:22px 12px 8px;scroll-snap-type:x proximity;scrollbar-width:none;touch-action:pan-x}
+.tracks::-webkit-scrollbar{display:none}
+.trk{position:relative;flex:none;width:62px;height:74px;border-radius:5px;background:var(--deck);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;scroll-snap-align:center;transition:background-color .2s,color .2s}
+.trk b{font:italic 700 20px/1 var(--ital)}
+.trk span{font-size:11px;color:var(--dim)}
+.trk .mini{display:grid;grid-template-columns:repeat(16,1fr);gap:1px;width:46px;height:4px;margin-top:3px}
+.trk .mini i{background:#46433e;border-radius:1px}
+.trk .mini i.on{background:var(--orange)}
+.trk[aria-selected=true]{background:var(--orange);color:var(--black)}
+.trk[aria-selected=true] span{color:#3a1a05}
+.trk[aria-selected=true] .mini i{background:rgba(20,19,18,.25)}
+.trk[aria-selected=true] .mini i.on{background:var(--black)}
+.trk.muted b{text-decoration:line-through;text-decoration-thickness:2px}
+.trk::before{content:"";position:absolute;top:-12px;left:50%;margin-left:-6px;border:6px solid transparent;border-top:8px solid var(--orange);opacity:0;transition:opacity .2s}
+.trk[aria-selected=true]::before{opacity:1}
+.trk.hit{background:var(--deck2)}
+.trk[aria-selected=true].hit{background:#ff9a45}
+
+/* voice section */
+.voice{display:grid;grid-template-columns:1fr 1fr 1fr auto;align-items:end;gap:6px;padding:10px 14px 4px 10px}
+.voice h3{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;font-size:15px;padding-left:4px}
+.voice h3 b{font:italic 700 17px/1 var(--ital);color:var(--orange)}
+.vbtns{display:flex;flex-direction:column;gap:6px}
+.vb{height:44px;min-width:66px;padding:0 10px;border-radius:5px;background:var(--deck2);font-size:13px;font-weight:600;box-shadow:inset 0 -3px 0 #1a1918;transition:transform .08s,box-shadow .08s,background-color .2s}
+.vb:active{transform:translateY(2px);box-shadow:inset 0 -1px 0 #1a1918}
+.vb[aria-pressed=true]{background:var(--red);color:#fff}
+
+/* step keys */
+.keys{padding:14px 10px 6px}
+.krow{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.krow + .krow{margin-top:12px}
+.k{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px}
+.led{width:9px;height:9px;border-radius:50%;background:#4b1a10;transition:background-color .06s}
+.led.on{background:#ff4523;box-shadow:inset -1px -1px 0 rgba(0,0,0,.25),inset 1px 1px 0 rgba(255,220,200,.6)}
+.led.run{background:#fff4c8}
+.key{width:100%;height:62px;filter:brightness(.6);border-radius:4px;background:var(--c);box-shadow:inset 0 -5px 0 rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .07s,box-shadow .07s,filter .06s}
+.key:active,.key.press{transform:translateY(3px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.3)}
+.k.on .key{filter:none}
+.key.cur,.k.on .key.cur{filter:brightness(1.25) saturate(1.1)}
+.k small{font:italic 700 12px/1 var(--ital);color:var(--dim)}
+.k.on small{color:var(--print)}
+
+/* score (overview) */
+.score{display:none;padding:10px 10px 6px}
+.score.on{display:block}
+.keys.off,.voice.off{display:none}
+.srow{display:grid;grid-template-columns:34px repeat(16,1fr);gap:2px;align-items:center;margin-bottom:3px}
+.srow b{font:italic 700 12px/1 var(--ital);color:var(--dim);cursor:pointer;height:22px;display:flex;align-items:center}
+.srow.sel b{color:var(--orange)}
+.sc{height:22px;border-radius:2px;background:#34322f;transition:background-color .1s}
+.sc:nth-child(4n+2){margin-left:0}
+.sc.on{background:var(--c)}
+.sc.cur{outline:1.5px solid #fff4c8;outline-offset:-1.5px}
+.shint{margin-top:10px;font-size:12px;color:var(--dim);text-align:center}
+
+/* transport */
+.trans{position:absolute;left:0;right:0;bottom:0;z-index:30;height:calc(84px + env(safe-area-inset-bottom));padding:10px 12px calc(16px + env(safe-area-inset-bottom));background:var(--black);
+  display:grid;grid-template-columns:92px 1fr 58px;gap:8px;align-items:center}
+.start{height:56px;border-radius:5px;background:var(--red);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.3);transition:transform .07s,box-shadow .07s,background-color .2s}
+.start b{font:italic 700 15px/1 var(--ital)}
+.start span{font-size:11px;opacity:.85}
+.start:active{transform:translateY(3px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.3)}
+.start.playing{background:#ff5a2e}
+.slots{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.slot{height:44px;border-radius:4px;background:var(--deck);font:italic 700 15px/1 var(--ital);color:var(--dim);position:relative;transition:background-color .15s,color .15s}
+.slot.has{color:var(--print)}
+.slot[aria-pressed=true]{background:var(--print);color:var(--black)}
+.slot.queued{background:var(--yellow);color:var(--black)}
+.slot:active{background:var(--deck2)}
+.modebtn{height:56px;border-radius:5px;background:var(--deck);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--dim);transition:background-color .2s}
+.modebtn[aria-pressed=true]{background:var(--deck2);color:var(--print)}
+.modebtn:active{background:var(--deck2)}
+.home-ind{position:absolute;left:50%;bottom:calc(6px + env(safe-area-inset-bottom)*.3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(236,230,214,.7);z-index:35;pointer-events:none}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:86%;overflow-y:auto;background:var(--deck);border-radius:14px 14px 0 0;
+  padding:8px 16px calc(20px + env(safe-area-inset-bottom));transform:translateY(105%);visibility:hidden;transition:transform .45s var(--spring),visibility 0s .45s;touch-action:none}
+.sheet.on{transform:none;visibility:visible;transition:transform .45s var(--spring)}
+.sheet.drag{transition:none}
+.grip{width:44px;height:5px;margin:2px auto 12px;border-radius:3px;background:linear-gradient(90deg,var(--red) 0 25%,var(--orange) 25% 50%,var(--yellow) 50% 75%,var(--white) 75%)}
+.sheet h3{font:italic 700 22px/1.2 var(--ital)}
+.sheet h3 small{font:400 13px/1 var(--sans);color:var(--dim);margin-left:8px}
+.plist{margin-top:12px}
+.pl{display:grid;grid-template-columns:38px 1fr 96px;align-items:center;gap:10px;width:100%;min-height:58px;padding:6px 8px;border-radius:6px;text-align:left;transition:background-color .15s}
+.pl:active{background:var(--deck2)}
+.pl.sel{background:#3f3c38}
+.pl > b{font:italic 700 22px/1 var(--ital);color:var(--orange)}
+.pl span{font-size:15px}
+.pl span small{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+.pl svg{width:96px;height:36px}
+.pacts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.pa{height:52px;border-radius:5px;background:var(--deck2);font-size:14px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:inset 0 -3px 0 #1a1918;transition:transform .08s,box-shadow .08s,background-color .2s}
+.pa:active{transform:translateY(2px);box-shadow:inset 0 -1px 0 #1a1918}
+.pa.armed{background:var(--red)}
+
+.toast{position:absolute;left:50%;top:calc(52px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-12px);opacity:0;visibility:hidden;padding:0 16px;height:40px;display:flex;align-items:center;border-radius:5px;background:var(--print);color:var(--black);font-size:14px;font-weight:600;white-space:nowrap;transition:transform .3s var(--out),opacity .2s,visibility 0s .3s}
+.toast.on{transform:translate(-50%,0);opacity:1;visibility:visible;transition:transform .3s var(--out),opacity .2s}
+
+@media (prefers-reduced-motion:reduce){
+  .sheet,.toast,.knob .rot{transition-duration:.01s}
+  .key:active,.key.press,.start:active,.vb:active,.tap:active,.pa:active{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="bgn"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2"/><feColorMatrix values="0 0 0 0 .5 0 0 0 0 .48 0 0 0 0 .45 0 0 0 .07 0"/></filter>
+      </defs>
+      <rect width="1600" height="1000" fill="#1c1b19"/>
+      <rect y="0" width="1600" height="560" fill="#262522"/>
+      <g fill="#ece6d6" opacity=".11" font-family="Helvetica Neue,Arial" font-style="italic" font-weight="700"><text x="-40" y="470" font-size="560">808</text></g>
+      <g font-family="Helvetica Neue,Arial" font-style="italic" font-weight="700" font-size="22" fill="#f07a1a">
+        <text x="120" y="620">BASS DRUM</text><text x="420" y="620">SNARE</text><text x="660" y="620">TOMS</text><text x="880" y="620">CLAP</text><text x="1080" y="620">COWBELL</text><text x="1330" y="620">HI-HAT</text>
+      </g>
+      <g id="bgkeys"></g>
+      <rect width="1600" height="1000" filter="url(#bgn)"/>
+    </svg>
+  </div>
+
+  <div class="device">
+    <div class="cam" aria-hidden="true"></div>
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="gl">
+          <svg width="19" height="12" viewBox="0 0 19 12"><path d="M1 12 3 7h3l-2 5zM6 12l3-7.5h3L9 12zM11 12l4-10h3l-4 10z" fill="currentColor"/></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12"><path d="M9 11.5 6.8 9a3 3 0 0 1 4.6 0zM4.2 6.6a7 7 0 0 1 9.8 0M1.5 3.8a11 11 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+          <svg width="28" height="13" viewBox="0 0 28 13"><path d="M3 1h21l-2 11H1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path id="batt" d="M4.4 3h16.8l-1.3 7H3.1z" fill="currentColor"/><path d="M25.5 4.5h1.6l-.6 4h-1.6z" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <div class="body" id="body">
+        <div class="top">
+          <div class="logo"><b>808</b><span><i>Rhythm Composer</i>節奏作曲機</span></div>
+          <button class="patbtn" id="patBtn" aria-label="開啟樣式槽"><b id="patLetter">A</b><span id="patName">西門町電氣</span>
+            <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 6h10l-5 6z" fill="currentColor"/></svg></button>
+        </div>
+        <div class="band"></div>
+
+        <div class="deck">
+          <div class="tempo">
+            <button class="knob" id="kTempo" role="slider" aria-label="速度" data-min="60" data-max="180" data-big="1"></button>
+            <div class="bpm"><b id="bpmV">118</b><span>BPM 速度</span></div>
+          </div>
+          <div class="minis">
+            <button class="knob" id="kSwing" role="slider" aria-label="搖擺" data-min="0" data-max="60"></button>
+            <button class="knob" id="kVol" role="slider" aria-label="總音量" data-min="0" data-max="100"></button>
+            <div class="knob" style="cursor:default"><button class="tap" id="tapBtn" aria-label="點按設定速度">TAP</button><span>點速度</span></div>
+          </div>
+        </div>
+
+        <div class="tracks" id="tracks" role="tablist" aria-label="樂器軌"></div>
+
+        <div class="voice" id="voice">
+          <h3><b id="vCode">BD</b><span id="vName">低音鼓</span></h3>
+          <button class="knob" id="kLevel" role="slider" aria-label="音量" data-min="0" data-max="100"></button>
+          <button class="knob" id="kTone" role="slider" aria-label="音色" data-min="0" data-max="100"></button>
+          <button class="knob" id="kDecay" role="slider" aria-label="衰減" data-min="0" data-max="100"></button>
+          <div class="vbtns">
+            <button class="vb" id="auditBtn">試聽</button>
+            <button class="vb" id="muteBtn" aria-pressed="false">靜音</button>
+          </div>
+        </div>
+
+        <div class="keys" id="keys"></div>
+        <div class="score" id="score"></div>
+      </div>
+
+      <div class="trans">
+        <button class="start" id="startBtn" aria-label="開始或停止"><b>START</b><span>開始</span></button>
+        <div class="slots" id="slots" aria-label="樣式槽"></div>
+        <button class="modebtn" id="modeBtn" aria-pressed="false" aria-label="切換總譜">
+          <svg width="24" height="20" viewBox="0 0 24 20"><g fill="currentColor"><rect x="0" y="0" width="5" height="4" rx="1"/><rect x="6.3" y="0" width="5" height="4" rx="1" opacity=".4"/><rect x="12.6" y="0" width="5" height="4" rx="1"/><rect x="19" y="0" width="5" height="4" rx="1" opacity=".4"/><rect x="0" y="8" width="5" height="4" rx="1" opacity=".4"/><rect x="6.3" y="8" width="5" height="4" rx="1"/><rect x="12.6" y="8" width="5" height="4" rx="1" opacity=".4"/><rect x="19" y="8" width="5" height="4" rx="1"/><rect x="0" y="16" width="5" height="4" rx="1"/><rect x="6.3" y="16" width="5" height="4" rx="1"/><rect x="12.6" y="16" width="5" height="4" rx="1" opacity=".4"/><rect x="19" y="16" width="5" height="4" rx="1" opacity=".4"/></g></svg>
+          <span id="modeLbl">總譜</span></button>
+      </div>
+      <div class="home-ind" aria-hidden="true"></div>
+
+      <div class="toast" id="toast" role="status"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">
+        <div class="grip" aria-hidden="true"></div>
+        <h3 id="shT">樣式槽<small>點一下切換，播放中會在下一小節換上</small></h3>
+        <div class="plist" id="plist"></div>
+        <div class="pacts">
+          <button class="pa" id="aRand"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M3 6h4l10 12h4M3 18h4l10-12h4" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M19 3l3 3-3 3M19 15l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>隨機編一段</button>
+          <button class="pa" id="aCopy"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M3 8h11v13H3z" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M9 3h12v13" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>複製到下一格</button>
+          <button class="pa" id="aClear"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M3 21 21 3M4 6h9M4 11h5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>清空這個樣式</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption"><b>808</b><p>十六顆彩色琴鍵、一顆速度旋鈕。在捷運上也能編一段鼓。</p></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app036:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var TR = [
+  {c:'AC', n:'重音', k:['音量']},
+  {c:'BD', n:'低音鼓', k:['音量','音色','衰減']},
+  {c:'SD', n:'小鼓', k:['音量','音色','響線']},
+  {c:'LT', n:'低筒鼓', k:['音量','音高','衰減']},
+  {c:'MT', n:'中筒鼓', k:['音量','音高','衰減']},
+  {c:'HT', n:'高筒鼓', k:['音量','音高','衰減']},
+  {c:'RS', n:'邊擊', k:['音量','音色','衰減']},
+  {c:'CP', n:'拍手', k:['音量','音色','衰減']},
+  {c:'CB', n:'牛鈴', k:['音量','音色','衰減']},
+  {c:'CY', n:'鈸', k:['音量','音色','衰減']},
+  {c:'OH', n:'開鈸', k:['音量','音色','衰減']},
+  {c:'CH', n:'閉鈸', k:['音量','音色','衰減']}
+];
+var COLORS = ['#d93a1e','#f07a1a','#f2c230','#e9e2d0'];
+function P(map){ var out = TR.map(function(){ return new Array(16).fill(0); }); Object.keys(map).forEach(function(c){ var i = TR.findIndex(function(t){ return t.c === c; }); out[i] = map[c].split('').map(function(ch){ return ch === 'x' ? 1 : 0; }); }); return out; }
+function seedPatterns(){
+  return [
+    {n:'西門町電氣', bpm:118, s:P({AC:'x...x...x...x...', BD:'x.....x...x.....', SD:'....x.......x...', CP:'....x.......x...', CH:'x.x.x.x.x.x.x.x.', OH:'.......x.......x', CB:'..........x..x..'})},
+    {n:'北投 Boom Bap', bpm:90, s:P({AC:'x.......x.......', BD:'x......x.xx.....', SD:'....x.......x...', CH:'x.x.x.x.x.x.x.xx', RS:'..x.......x.....', CY:'x...............'})},
+    {n:'墾丁邁阿密', bpm:130, s:P({AC:'x..x..x...x..x..', BD:'x..x..x...x..x..', SD:'....x.......x...', CH:'xxxxxxxxxxxxxxxx', CP:'....x.......x..x', LT:'......x.......x.', MT:'.............x..'})},
+    {n:'夜市 Trap', bpm:140, s:P({BD:'x.........x..x..', SD:'........x.......', CP:'........x.......', CH:'x.x.xxx.x.x.xx.x', OH:'..............x.', HT:'...........x.x..', AC:'x.......x.......'})},
+    {n:'空白', bpm:120, s:P({})}, {n:'空白', bpm:120, s:P({})}, {n:'空白', bpm:120, s:P({})}, {n:'空白', bpm:120, s:P({})}
+  ];
+}
+var pats = load('pats', null); if (!pats || pats.length !== 8) pats = seedPatterns();
+var DEF = TR.map(function(t, i){ return {lv: i === 0 ? 60 : 80, tn: 50, dc: i === 1 ? 55 : 50, mute: false}; });
+var voices = load('voices', DEF); if (!voices || voices.length !== TR.length) voices = DEF;
+var st = load('state', {slot: 0, trk: 1, swing: 0, vol: 80, mode: 'keys'});
+function persist(){ save('pats', pats); save('voices', voices); save('state', st); }
+function pat(){ return pats[st.slot]; }
+
+/* ---------- knobs ---------- */
+function knobSVG(big){
+  var s = big ? 84 : 52, R = big ? 44 : 44, t = '';
+  for (var i = 0; i <= 10; i++){ var a = (-135 + i * 27) * Math.PI / 180, r1 = 44, r2 = i % 5 === 0 ? 50 : 48; t += '<path d="M' + (r1 * Math.sin(a)).toFixed(1) + ' ' + (-r1 * Math.cos(a)).toFixed(1) + 'L' + (r2 * Math.sin(a)).toFixed(1) + ' ' + (-r2 * Math.cos(a)).toFixed(1) + '" stroke="#a8a195" stroke-width="' + (i % 5 === 0 ? 3 : 2) + '" stroke-linecap="round"/>'; }
+  var cap = big ? '<circle r="37" fill="#0e0d0c"/><circle r="36" fill="none" stroke="#2a2826" stroke-width="3" stroke-dasharray="2 2.6"/><circle r="27" fill="#1c1b19"/><path d="M0 -34V-14" stroke="#ece6d6" stroke-width="4" stroke-linecap="round"/>'
+    : '<circle r="36" fill="#0e0d0c"/><circle r="35" fill="none" stroke="#2a2826" stroke-width="3" stroke-dasharray="2 2.6"/><circle r="25" fill="#f07a1a"/><circle r="25" fill="none" stroke="#b85a10" stroke-width="2"/><path d="M0 -24V-9" stroke="#141312" stroke-width="5" stroke-linecap="round"/>';
+  return '<svg width="' + s + '" height="' + s + '" viewBox="-52 -52 104 104">' + t + '<g class="rot">' + cap + '</g></svg>';
+}
+var knobs = {};
+function makeKnob(id, label, get, set, fmt){
+  var el = $(id), big = !!el.dataset.big, min = +el.dataset.min, max = +el.dataset.max;
+  el.innerHTML = knobSVG(big) + (big ? '' : '<span class="val"></span><span class="lab">' + label + '</span>');
+  var rot = el.querySelector('.rot'), val = el.querySelector('.val');
+  var k = {el: el, label: label, update: function(){
+    var v = get(), f = (v - min) / (max - min);
+    rot.style.transform = 'rotate(' + (-135 + f * 270).toFixed(1) + 'deg)';
+    el.setAttribute('aria-valuemin', min); el.setAttribute('aria-valuemax', max); el.setAttribute('aria-valuenow', Math.round(v));
+    if (val) val.textContent = fmt ? fmt(v) : Math.round(v);
+  }, setLabel: function(t){ var l = el.querySelector('.lab'); if (l) l.textContent = t; el.setAttribute('aria-label', t); }};
+  var sy = 0, sv = 0, down = false, lastStep = 0;
+  el.addEventListener('pointerdown', function(e){ down = true; sy = e.clientY; sv = get(); lastStep = Math.round(sv); el.setPointerCapture(e.pointerId); e.preventDefault(); });
+  el.addEventListener('pointermove', function(e){
+    if (!down) return;
+    var nv = Math.max(min, Math.min(max, sv + (sy - e.clientY) * (max - min) / 180));
+    set(nv); k.update(); var r = Math.round(nv); if (Math.abs(r - lastStep) >= (max - min) / 20){ lastStep = r; haptic(2); }
+  });
+  function up(){ if (down){ down = false; persist(); } }
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('keydown', function(e){
+    var d = e.key === 'ArrowUp' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowDown' || e.key === 'ArrowLeft' ? -1 : 0;
+    if (!d) return; e.preventDefault(); set(Math.max(min, Math.min(max, get() + d * (max - min) / 50))); k.update(); persist();
+  });
+  el.addEventListener('wheel', function(e){ e.preventDefault(); set(Math.max(min, Math.min(max, get() - Math.sign(e.deltaY) * (max - min) / 60))); k.update(); persist(); }, {passive: false});
+  knobs[id] = k; k.update(); return k;
+}
+
+/* ---------- audio ---------- */
+var ac = null, master = null, noise = null, lastOH = null;
+function audio(){
+  if (ac) { if (ac.state === 'suspended') ac.resume(); return ac; }
+  var C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
+  ac = new C();
+  var comp = ac.createDynamicsCompressor(); comp.threshold.value = -10; comp.ratio.value = 4;
+  master = ac.createGain(); master.gain.value = st.vol / 100; master.connect(comp); comp.connect(ac.destination);
+  noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); var d = noise.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return ac;
+}
+function env(g, t, peak, dec){ g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(.0002, peak), t + .002); g.gain.exponentialRampToValueAtTime(.0001, t + dec); }
+function osc(type, f, t, dur, out){ var o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); o.connect(out); o.start(t); o.stop(t + dur + .05); return o; }
+function nz(t, dur, out){ var s = ac.createBufferSource(); s.buffer = noise; s.connect(out); s.start(t, Math.random() * .5); s.stop(t + dur + .05); return s; }
+function filt(type, f, q){ var b = ac.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q) b.Q.value = q; return b; }
+var METAL = [205.3, 304.4, 369.6, 522.7, 540, 800];
+function trig(ti, t, acc){
+  if (!ac) return;
+  var v = voices[ti], lv = v.lv / 100 * (acc ? 1.5 : 1), tn = v.tn / 100, dc = v.dc / 100, g = ac.createGain(), c = TR[ti].c;
+  g.connect(master);
+  if (c === 'BD'){
+    var f0 = 42 + tn * 26, o = osc('sine', f0 * 3.4, t, 1.3, g); o.frequency.exponentialRampToValueAtTime(f0, t + .06);
+    env(g, t, .95 * lv, .12 + dc * 1.1);
+  } else if (c === 'SD'){
+    var gt = ac.createGain(); gt.connect(g); env(gt, t, .5, .18);
+    osc('triangle', 180, t, .2, gt); osc('triangle', 332, t, .2, gt);
+    var gn = ac.createGain(), hp = filt('highpass', 1800); hp.connect(gn); gn.connect(g); env(gn, t, .25 + tn * .6, .1 + dc * .3); nz(t, .45, hp);
+    g.gain.value = lv * .9;
+  } else if (c === 'LT' || c === 'MT' || c === 'HT'){
+    var base = {LT: 92, MT: 138, HT: 196}[c] * (.8 + tn * .4), o2 = osc('sine', base * 1.25, t, 1, g);
+    o2.frequency.exponentialRampToValueAtTime(base, t + .08);
+    env(g, t, .75 * lv, .16 + dc * .6);
+  } else if (c === 'RS'){
+    var b = filt('bandpass', 1700 + tn * 1200, 4); b.connect(g); osc('triangle', 1720, t, .06, b); osc('square', 480, t, .05, b);
+    env(g, t, .9 * lv, .03 + dc * .05);
+  } else if (c === 'CP'){
+    var bp = filt('bandpass', 900 + tn * 900, 1.4), gc = ac.createGain(); bp.connect(gc); gc.connect(g); nz(t, .6, bp);
+    gc.gain.setValueAtTime(0.0001, t);
+    [0, .011, .022].forEach(function(o3){ gc.gain.setValueAtTime(1, t + o3); gc.gain.exponentialRampToValueAtTime(.08, t + o3 + .009); });
+    gc.gain.setValueAtTime(.9, t + .031); gc.gain.exponentialRampToValueAtTime(.0001, t + .15 + dc * .35);
+    g.gain.value = lv * .9;
+  } else if (c === 'CB'){
+    var b2 = filt('bandpass', 900 + tn * 500, 1.2); b2.connect(g); osc('square', 540, t, .6, b2); osc('square', 800, t, .6, b2);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.55 * lv, t + .002); g.gain.exponentialRampToValueAtTime(.18 * lv, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + .15 + dc * .4);
+  } else if (c === 'CY' || c === 'OH' || c === 'CH'){
+    var hp2 = filt('highpass', 6500 + tn * 2500), bp2 = filt('bandpass', 10000, .6); bp2.connect(hp2); hp2.connect(g);
+    var dur = c === 'CH' ? .035 + dc * .06 : c === 'OH' ? .18 + dc * .5 : .6 + dc * 1.6;
+    METAL.forEach(function(f){ osc('square', f * (.92 + tn * .16), t, dur, bp2); });
+    env(g, t, (c === 'CY' ? .42 : .34) * lv, dur);
+    if (c === 'CH' && lastOH && lastOH.t < t){ try { lastOH.g.gain.cancelScheduledValues(t); lastOH.g.gain.setTargetAtTime(.0001, t, .008); } catch(e){} }
+    if (c === 'OH') lastOH = {g: g, t: t};
+  }
+}
+
+/* ---------- sequencer ---------- */
+var playing = false, step = 0, nextT = 0, timer = null, queue = [], curStep = -1, queuedSlot = -1;
+function sp16(){ return 60 / pat().bpm / 4; }
+function schedule(){
+  while (nextT < ac.currentTime + .12){
+    var p = pat(), acc = p.s[0][step] === 1, sw = step % 2 ? st.swing / 100 * sp16() * .66 : 0;
+    for (var i = 1; i < TR.length; i++) if (p.s[i][step] && !voices[i].mute) trig(i, nextT + sw, acc && !voices[0].mute);
+    queue.push({s: step, t: nextT + sw});
+    nextT += sp16(); step = (step + 1) % 16;
+    if (step === 0 && queuedSlot >= 0){ st.slot = queuedSlot; queuedSlot = -1; persist(); setTimeout(renderAll, 0); }
+  }
+}
+function start(){
+  if (!audio()) { toast('這個瀏覽器不支援 WebAudio'); return; }
+  playing = true; step = 0; nextT = ac.currentTime + .06; queue = [];
+  schedule(); timer = setInterval(schedule, 25);
+  $('startBtn').classList.add('playing'); $('startBtn').innerHTML = '<b>STOP</b><span>停止</span>';
+  loop();
+}
+function stop(){
+  playing = false; clearInterval(timer); timer = null; queue = []; curStep = -1; showStep(-1);
+  if (queuedSlot >= 0){ st.slot = queuedSlot; queuedSlot = -1; persist(); renderAll(); }
+  $('startBtn').classList.remove('playing'); $('startBtn').innerHTML = '<b>START</b><span>開始</span>';
+}
+$('startBtn').addEventListener('click', function(){ haptic(playing ? [8, 20, 8] : 14); playing ? stop() : start(); });
+var raf = null;
+function loop(){
+  if (!playing) { raf = null; return; }
+  var now = ac.currentTime, s = -1;
+  while (queue.length && queue[0].t <= now){ s = queue.shift().s; }
+  if (s >= 0 && s !== curStep){ curStep = s; showStep(s); }
+  raf = requestAnimationFrame(loop);
+}
+document.addEventListener('visibilitychange', function(){ if (document.hidden && playing) stop(); });
+
+var keyEls = [], ledEls = [];
+function showStep(s){
+  for (var i = 0; i < 16; i++){ if (keyEls[i]){ keyEls[i].classList.toggle('cur', i === s); ledEls[i].classList.toggle('run', i === s); } }
+  var cells = document.querySelectorAll('.sc');
+  for (var j = 0; j < cells.length; j++) cells[j].classList.toggle('cur', +cells[j].dataset.s === s);
+  if (s >= 0){ var p = pat(); for (var t = 1; t < TR.length; t++){ if (p.s[t][s] && trkEls[t]){ flash(trkEls[t]); } } }
+}
+function flash(el){ el.classList.add('hit'); clearTimeout(el._h); el._h = setTimeout(function(){ el.classList.remove('hit'); }, 90); }
+
+/* ---------- UI build ---------- */
+var trkEls = [];
+function buildTracks(){
+  var h = '';
+  TR.forEach(function(t, i){ h += '<button class="trk" role="tab" data-t="' + i + '" aria-label="' + t.n + '"><b>' + t.c + '</b><span>' + t.n + '</span><span class="mini">' + '<i></i>'.repeat(16) + '</span></button>'; });
+  $('tracks').innerHTML = h; trkEls = [].slice.call($('tracks').children);
+}
+function buildKeys(){
+  var h = '';
+  for (var r = 0; r < 2; r++){
+    h += '<div class="krow">';
+    for (var c = 0; c < 8; c++){ var i = r * 8 + c; h += '<div class="k"><i class="led"></i><button class="key" data-s="' + i + '" style="--c:' + COLORS[Math.floor(i / 4)] + '" aria-label="第 ' + (i + 1) + ' 步"></button><small>' + (i + 1) + '</small></div>'; }
+    h += '</div>';
+  }
+  $('keys').innerHTML = h;
+  keyEls = [].slice.call(document.querySelectorAll('.key')); ledEls = [].slice.call(document.querySelectorAll('.led'));
+}
+function buildScore(){
+  var h = '';
+  TR.forEach(function(t, i){
+    h += '<div class="srow" data-row="' + i + '"><b data-pick="' + i + '">' + t.c + '</b>';
+    for (var s = 0; s < 16; s++) h += '<button class="sc" data-t="' + i + '" data-s="' + s + '" style="--c:' + COLORS[Math.floor(s / 4)] + '" aria-label="' + t.n + ' 第 ' + (s + 1) + ' 步"></button>';
+    h += '</div>';
+  });
+  $('score').innerHTML = h + '<p class="shint">點格子直接編輯，點左邊代號切換樂器軌</p>';
+}
+function buildSlots(){
+  var h = ''; 'ABCDEFGH'.split('').forEach(function(l, i){ h += '<button class="slot" data-slot="' + i + '" aria-label="樣式 ' + l + '">' + l + '</button>'; });
+  $('slots').innerHTML = h;
+}
+function hasNotes(p){ return p.s.some(function(r){ return r.some(function(x){ return x; }); }); }
+function renderAll(){
+  var p = pat(), ti = st.trk, t = TR[ti], v = voices[ti];
+  trkEls.forEach(function(el, i){
+    el.setAttribute('aria-selected', i === ti); el.classList.toggle('muted', voices[i].mute);
+    var mi = el.querySelectorAll('.mini i'); for (var s = 0; s < 16; s++) mi[s].classList.toggle('on', !!p.s[i][s]);
+  });
+  keyEls.forEach(function(k, i){ var on = !!p.s[ti][i]; ledEls[i].classList.toggle('on', on); k.parentNode.classList.toggle('on', on); k.setAttribute('aria-pressed', on); });
+  document.querySelectorAll('.sc').forEach(function(c){ c.classList.toggle('on', !!p.s[+c.dataset.t][+c.dataset.s]); });
+  document.querySelectorAll('.srow').forEach(function(r){ r.classList.toggle('sel', +r.dataset.row === ti); });
+  $('vCode').textContent = t.c; $('vName').textContent = t.n;
+  knobs.kLevel.setLabel(t.k[0]); knobs.kTone.setLabel(t.k[1] || '音色'); knobs.kDecay.setLabel(t.k[2] || '衰減');
+  knobs.kTone.el.style.visibility = t.k[1] ? '' : 'hidden'; knobs.kDecay.el.style.visibility = t.k[2] ? '' : 'hidden';
+  knobs.kLevel.update(); knobs.kTone.update(); knobs.kDecay.update(); knobs.kTempo.update(); knobs.kSwing.update(); knobs.kVol.update();
+  $('bpmV').textContent = Math.round(p.bpm);
+  $('muteBtn').setAttribute('aria-pressed', v.mute);
+  $('patLetter').textContent = 'ABCDEFGH'[st.slot]; $('patName').textContent = p.n;
+  [].forEach.call($('slots').children, function(b, i){ b.setAttribute('aria-pressed', i === st.slot); b.classList.toggle('has', hasNotes(pats[i])); b.classList.toggle('queued', i === queuedSlot); });
+  var sc = st.mode === 'score';
+  $('score').classList.toggle('on', sc); $('keys').classList.toggle('off', sc); $('voice').classList.toggle('off', sc);
+  $('modeBtn').setAttribute('aria-pressed', sc); $('modeLbl').textContent = sc ? '單軌' : '總譜';
+  if ($('sheet').classList.contains('on')) renderSheet();
+}
+function selectTrack(i, preview){
+  st.trk = i; persist(); renderAll(); haptic(5);
+  var el = trkEls[i], box = $('tracks'); if (el) box.scrollTo({left: el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2, behavior: reduce ? 'auto' : 'smooth'});
+  if (preview && i > 0 && audio()) trig(i, ac.currentTime + .01, false);
+}
+
+buildTracks(); buildKeys(); buildScore(); buildSlots();
+makeKnob('kTempo', '速度', function(){ return pat().bpm; }, function(v){ pat().bpm = v; $('bpmV').textContent = Math.round(v); });
+makeKnob('kSwing', '搖擺', function(){ return st.swing; }, function(v){ st.swing = v; }, function(v){ return Math.round(v) + '%'; });
+makeKnob('kVol', '總音量', function(){ return st.vol; }, function(v){ st.vol = v; if (master) master.gain.setTargetAtTime(v / 100, ac.currentTime, .02); });
+makeKnob('kLevel', '音量', function(){ return voices[st.trk].lv; }, function(v){ voices[st.trk].lv = v; });
+makeKnob('kTone', '音色', function(){ return voices[st.trk].tn; }, function(v){ voices[st.trk].tn = v; });
+makeKnob('kDecay', '衰減', function(){ return voices[st.trk].dc; }, function(v){ voices[st.trk].dc = v; });
+
+$('tracks').addEventListener('click', function(e){ var b = e.target.closest('[data-t]'); if (b) selectTrack(+b.dataset.t, true); });
+$('keys').addEventListener('pointerdown', function(e){
+  var b = e.target.closest('.key'); if (!b) return;
+  b.classList.add('press'); setTimeout(function(){ b.classList.remove('press'); }, 110);
+});
+$('keys').addEventListener('click', function(e){
+  var b = e.target.closest('.key'); if (!b) return;
+  var s = +b.dataset.s, row = pat().s[st.trk]; row[s] = row[s] ? 0 : 1; persist(); renderAll();
+  haptic(row[s] ? 7 : 4);
+  if (row[s] && !playing && st.trk > 0 && audio()) trig(st.trk, ac.currentTime + .01, !!pat().s[0][s]);
+});
+$('score').addEventListener('click', function(e){
+  var pk = e.target.closest('[data-pick]'); if (pk){ selectTrack(+pk.dataset.pick, true); return; }
+  var c = e.target.closest('.sc'); if (!c) return;
+  var t = +c.dataset.t, s = +c.dataset.s, row = pat().s[t]; row[s] = row[s] ? 0 : 1; persist(); renderAll(); haptic(row[s] ? 6 : 3);
+  if (row[s] && !playing && t > 0 && audio()) trig(t, ac.currentTime + .01, false);
+});
+$('auditBtn').addEventListener('click', function(){ haptic(6); if (!audio()) return; if (st.trk === 0){ trig(1, ac.currentTime + .01, true); return; } trig(st.trk, ac.currentTime + .01, false); flash(trkEls[st.trk]); });
+$('muteBtn').addEventListener('click', function(){ var v = voices[st.trk]; v.mute = !v.mute; persist(); renderAll(); haptic(v.mute ? [6, 30, 6] : 6); toast(TR[st.trk].n + (v.mute ? ' 已靜音' : ' 取消靜音')); });
+$('modeBtn').addEventListener('click', function(){ st.mode = st.mode === 'score' ? 'keys' : 'score'; persist(); renderAll(); haptic(6); });
+$('slots').addEventListener('click', function(e){ var b = e.target.closest('[data-slot]'); if (b) pickSlot(+b.dataset.slot); });
+function pickSlot(i){
+  if (i === st.slot && queuedSlot < 0) return;
+  if (playing){ queuedSlot = i; toast('下一小節換到 ' + 'ABCDEFGH'[i]); }
+  else { st.slot = i; persist(); }
+  renderAll(); haptic(6);
+}
+var taps = [];
+$('tapBtn').addEventListener('click', function(){
+  var now = performance.now(); taps = taps.filter(function(t){ return now - t < 2200; }); taps.push(now); haptic(5);
+  if (audio()) trig(6, ac.currentTime + .005, false);
+  if (taps.length >= 3){ var iv = (taps[taps.length - 1] - taps[0]) / (taps.length - 1), b = Math.max(60, Math.min(180, 60000 / iv)); pat().bpm = b; persist(); renderAll(); }
+});
+
+/* ---------- sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function thumb(p){
+  var s = '';
+  for (var r = 1; r < TR.length; r++) for (var c = 0; c < 16; c++) if (p.s[r][c]) s += '<rect x="' + (c * 6) + '" y="' + ((r - 1) * 3.3).toFixed(1) + '" width="5" height="2.6" fill="' + COLORS[Math.floor(c / 4)] + '"/>';
+  return '<svg viewBox="0 0 96 36" aria-hidden="true"><rect width="96" height="36" rx="3" fill="#1f1e1c"/>' + s + '</svg>';
+}
+function renderSheet(){
+  var h = '';
+  pats.forEach(function(p, i){
+    var n = p.s.reduce(function(a, r){ return a + r.reduce(function(x, y){ return x + y; }, 0); }, 0);
+    h += '<button class="pl' + (i === st.slot ? ' sel' : '') + '" data-pick-slot="' + i + '"><b>' + 'ABCDEFGH'[i] + '</b><span>' + (n ? p.n : '空白') + '<small>' + Math.round(p.bpm) + ' BPM · ' + n + ' 個音</small></span>' + thumb(p) + '</button>';
+  });
+  $('plist').innerHTML = h;
+}
+function openSheet(){ lastFocus = document.activeElement; renderSheet(); sheet.style.transform = ''; sheet.scrollTop = 0; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); disarm(); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll: true}); }
+$('patBtn').addEventListener('click', openSheet);
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeSheet();
+  if (e.key === ' ' && !sheet.classList.contains('on') && !/INPUT|BUTTON/.test((document.activeElement || {}).tagName || '')){ e.preventDefault(); playing ? stop() : start(); }
+});
+$('plist').addEventListener('click', function(e){ var b = e.target.closest('[data-pick-slot]'); if (!b) return; pickSlot(+b.dataset.pickSlot); renderSheet(); });
+var NAMES = ['大稻埕律動', '淡水夜風', '高雄港口', '台東鼓浪', '新竹風城', '花蓮碎拍'];
+$('aRand').addEventListener('click', function(){
+  var p = pat(), R = Math.random, row = function(prob, fixed){ var a = []; for (var i = 0; i < 16; i++) a.push(fixed && fixed.indexOf(i) >= 0 ? 1 : (R() < prob ? 1 : 0)); return a; };
+  p.s = TR.map(function(){ return new Array(16).fill(0); });
+  p.s[1] = row(.12, [0, R() < .5 ? 10 : 6]); p.s[2] = row(.04, [4, 12]); p.s[11] = row(.55, [0, 2, 4, 6, 8, 10, 12, 14]);
+  p.s[10] = row(.08, []); p.s[7] = row(.05, R() < .5 ? [12] : []); p.s[3 + Math.floor(R() * 3)] = row(.12, []); p.s[8] = row(.06, []);
+  p.s[0] = row(0, [0, 4, 8, 12]);
+  for (var s = 0; s < 16; s++) if (p.s[11][s] && p.s[10][s]) p.s[11][s] = 0;
+  p.n = NAMES[Math.floor(R() * NAMES.length)]; p.bpm = 96 + Math.round(R() * 40);
+  persist(); renderAll(); renderSheet(); haptic([6, 20, 6, 20, 6]); toast('編好一段「' + p.n + '」');
+});
+$('aCopy').addEventListener('click', function(){
+  var to = (st.slot + 1) % 8; pats[to] = JSON.parse(JSON.stringify(pat())); persist(); renderAll(); renderSheet(); haptic(8); toast('已複製到 ' + 'ABCDEFGH'[to]);
+});
+var armT = null;
+function disarm(){ clearTimeout(armT); armT = null; var b = $('aClear'); b.classList.remove('armed'); b.lastChild.nodeValue = '清空這個樣式'; }
+$('aClear').addEventListener('click', function(){
+  var b = this;
+  if (!armT){ b.classList.add('armed'); b.lastChild.nodeValue = '再按一次清空'; haptic([8, 30, 8]); armT = setTimeout(disarm, 2400); return; }
+  disarm(); var p = pat(); p.s = TR.map(function(){ return new Array(16).fill(0); }); p.n = '空白'; persist(); renderAll(); renderSheet(); haptic(16); toast('樣式 ' + 'ABCDEFGH'[st.slot] + ' 已清空');
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button') || sheet.scrollTop > 0) return; dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId); });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+var tT = null;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ t.classList.remove('on'); }, 1800); }
+
+/* backdrop keys */
+(function(){ var g = document.getElementById('bgkeys'), h = ''; for (var i = 0; i < 16; i++){ h += '<rect x="' + (60 + i * 94) + '" y="700" width="76" height="190" rx="8" fill="' + COLORS[Math.floor(i / 4)] + '"/><rect x="' + (60 + i * 94) + '" y="868" width="76" height="22" rx="4" fill="#000" opacity=".22"/><circle cx="' + (98 + i * 94) + '" cy="668" r="9" fill="' + ([0, 4, 6, 8, 12].indexOf(i) >= 0 ? '#ff4523' : '#4b1a10') + '"/><text x="' + (98 + i * 94) + '" y="930" text-anchor="middle" font-family="Helvetica Neue,Arial" font-style="italic" font-weight="700" font-size="22" fill="#a8a195">' + (i + 1) + '</text>'; } g.innerHTML = h; })();
+
+/* clock */
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setTimeout(function(){ tick(); setInterval(tick, 60000); }, (60 - new Date().getSeconds()) * 1000);
+
+renderAll();
+setTimeout(function(){ var el = trkEls[st.trk], box = $('tracks'); if (el) box.scrollLeft = el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2; }, 0);
+})();
+</script>
+</body>
+</html>

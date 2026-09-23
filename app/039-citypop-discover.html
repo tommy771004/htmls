@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1283b3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="夏夜">
+<title>夏夜 · 音樂探索</title>
+<meta name="description" content="80 年代 City Pop 唱片探索：左右甩唱片封套決定喜歡或略過，唱片滑出封套即時合成試聽，收進你的唱片箱。收錄於 100 Creative HTML Works（App 039・日本 City Pop 平塗插畫）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/039-citypop-discover.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231283b3'/%3E%3Crect y='10' width='64' height='8' fill='%23ff7a63'/%3E%3Crect y='20' width='64' height='6' fill='%23ffa06b'/%3E%3Crect y='28' width='64' height='5' fill='%23ffe45c'/%3E%3Cpath d='M0 40h64v24H0z' fill='%231fa7d8'/%3E%3Cpath d='M44 60c0-14 2-22 6-30' stroke='%230c3a4a' stroke-width='3' fill='none'/%3E%3Cpath d='M50 30c-8-4-16 0-18 4 6-3 12-2 18-4zm0 0c6-6 12-6 16-3-6-1-10 0-16 3zm0 0c2-8 0-12-4-14 4 5 4 9 4 14z' fill='%230c3a4a'/%3E%3C/svg%3E">
+<style>
+:root{
+  --pool:#1283b3;
+  --pool-2:#0f76a2;
+  --pool-3:#0b5f84;
+  --coral:#ff7a63;
+  --lemon:#ffe45c;
+  --white:#fffdf6;
+  --ink:#0c3a4a;
+  --dim:rgba(255,253,246,.82);
+  --dim2:rgba(255,253,246,.66);
+  --fut:"Futura","Futura PT","Avenir Next","PingFang TC",system-ui,sans-serif;
+  --sans:-apple-system,"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --out:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.3,1.4,.5,1);
+  --cs:320px;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--sans);color:var(--white);background:var(--pool);-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--lemon);outline-offset:3px;border-radius:8px}
+svg{display:block}
+.ob{font-family:var(--fut);font-weight:700;font-style:italic}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--pool);isolation:isolate}
+@media (min-width:521px){
+  body{background:#ff9a6b}
+  .stage{display:flex;align-items:center;justify-content:center;gap:60px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:50px;padding:9px;z-index:1;background:#fffdf6;
+    box-shadow:inset 0 0 0 1px #e8e2d0,inset 0 -3px 0 #d9d2bd,0 14px 24px -14px rgba(12,58,74,.55)}
+  .screen{inset:9px;border-radius:42px}
+  .caption{display:block;position:relative;z-index:1;max-width:260px;color:var(--white)}
+  .caption h1{font:italic 700 58px/1 var(--fut);letter-spacing:.02em;color:var(--white)}
+  .caption h1 small{display:block;font-size:20px;letter-spacing:.14em;color:var(--ink);margin-top:10px}
+  .caption p{margin-top:18px;font:600 16px/1.7 var(--sans);color:var(--ink)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+/* pool caustics */
+.water{position:absolute;inset:-60px;z-index:0;pointer-events:none}
+.water svg{width:100%;height:100%}
+.water g{animation:drift 14s ease-in-out infinite alternate}
+@keyframes drift{to{transform:translate(26px,18px)}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 15px/1 var(--sans);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+.view{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;padding-top:calc(46px + env(safe-area-inset-top))}
+.view[hidden]{display:none}
+
+/* header */
+.head{display:flex;align-items:center;justify-content:space-between;padding:6px 16px 0 22px;height:58px}
+.logo{display:flex;align-items:baseline;gap:10px}
+.logo b{font:italic 700 34px/1 var(--fut);letter-spacing:.02em}
+.logo span{font:italic 700 13px/1 var(--fut);color:var(--lemon);letter-spacing:.12em}
+.crateBtn{display:flex;align-items:center;gap:6px;height:48px;padding:0 8px;border-radius:12px;font:italic 700 18px/1 var(--fut)}
+.crateBtn svg{width:34px;height:30px}
+.crateBtn:active{transform:scale(.94)}
+.times{display:flex;gap:4px;padding:2px 14px 0 16px}
+.times button{height:44px;padding:0 10px;font:italic 700 19px/1 var(--fut);color:var(--dim2);transition:color .25s}
+.times button[aria-pressed=true]{color:var(--lemon)}
+.times button:active{transform:scale(.95)}
+.times .n{font-size:13px;margin-left:3px;vertical-align:3px;color:inherit;opacity:.8}
+
+/* deck */
+.deckwrap{position:relative;flex:none;height:calc(var(--cs) + 26px);margin-top:10px}
+.next{margin:auto 0;display:flex;align-items:center;gap:12px;padding:10px 26px 12px;min-height:76px}
+.next .lbl{font:italic 700 14px/1.2 var(--fut);color:var(--dim);flex:none;width:44px}
+.next button{width:50px;height:50px;flex:none;border-radius:3px;overflow:hidden;box-shadow:0 3px 6px -3px rgba(6,44,62,.6);transition:transform .2s var(--out)}
+.next button:nth-child(odd){transform:rotate(-3deg)}
+.next button:nth-child(even){transform:rotate(2deg)}
+.next button:active{transform:scale(.9)}
+.next button svg{width:100%;height:100%}
+.tight .next{display:none}
+.tight .ctrl{margin-top:auto}
+.next .more{font:italic 700 15px/1 var(--fut);color:var(--dim2)}
+.deck{position:absolute;left:50%;top:6px;width:var(--cs);height:var(--cs);margin-left:calc(var(--cs) / -2)}
+.card{position:absolute;inset:0;touch-action:none;will-change:transform;transition:transform .5s var(--spring)}
+.card.drag{transition:none}
+.card.fly{transition:transform .45s cubic-bezier(.4,.1,.8,.6)}
+.card .sleeve{position:absolute;inset:0;border-radius:4px;overflow:hidden;background:#fff;transition:transform .6s var(--spring);z-index:2;box-shadow:0 5px 10px -4px rgba(6,44,62,.55)}
+.card .sleeve svg{width:100%;height:100%}
+.card .rec{position:absolute;inset:3%;border-radius:50%;z-index:1;transition:transform .7s var(--spring)}
+.card .rec svg{width:100%;height:100%}
+.card .rec .spin{transform-origin:50% 50%;transform-box:fill-box}
+.card.playing .sleeve{transform:translateX(-17%) scale(.8)}
+.card.playing .rec{transform:translateX(30%) scale(.8)}
+.card.playing .rec .spin{animation:spin 1.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.stamp{position:absolute;top:22px;z-index:3;font:italic 700 34px/1 var(--fut);padding:6px 12px 4px;border:4px solid currentColor;border-radius:6px;opacity:0;pointer-events:none}
+.stamp.like{left:18px;color:var(--lemon);transform:rotate(-12deg)}
+.stamp.nope{right:18px;color:var(--coral);transform:rotate(10deg)}
+.card .prog{position:absolute;left:10px;right:10px;bottom:-16px;height:6px;z-index:3;transition:opacity .3s}
+.card:not(.playing) .prog{opacity:0}
+.emptyDeck{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;border:3px dashed rgba(255,253,246,.4);border-radius:6px;padding:24px}
+.emptyDeck b{font:italic 700 24px/1.3 var(--fut)}
+.emptyDeck p{color:var(--dim)}
+.flat{height:50px;padding:0 24px;border-radius:4px;background:var(--lemon);color:var(--ink);font:italic 700 17px/1 var(--fut);transition:background-color .2s,transform .15s}
+.flat:active{transform:scale(.96);background:#ffd426}
+
+/* info */
+.info{padding:14px 26px 0;min-height:98px}
+.info h2{font:italic 700 27px/1.15 var(--fut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:4px}
+.info .who{margin-top:6px;font-size:15px;color:var(--dim)}
+.info .meta{margin-top:8px;display:flex;gap:18px;font:italic 700 14px/1 var(--fut);color:var(--lemon)}
+.info .meta span{white-space:nowrap}
+.hint{font-size:13px;color:var(--dim2);margin-top:8px}
+
+/* controls */
+.ctrl{margin-top:0;display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr 1fr;align-items:center;padding:0 12px calc(26px + env(safe-area-inset-bottom))}
+.cb{height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font:italic 700 13px/1 var(--fut);color:var(--white);transition:transform .15s var(--out)}
+.cb svg{width:40px;height:40px}
+.cb.sm svg{width:30px;height:30px}
+.cb:active{transform:scale(.88)}
+.cb:disabled{opacity:.35;cursor:default}
+.cb.play svg{width:66px;height:66px}
+.cb.play .spin{transform-origin:33px 33px}
+.cb.play.on .spin{animation:spin 1.8s linear infinite}
+
+/* crate view */
+.crateV{background:var(--pool-2)}
+.crateV.enter{animation:slideIn .45s var(--out)}
+@keyframes slideIn{from{transform:translateX(40px)}}
+.chead{display:flex;align-items:center;gap:6px;height:58px;padding:6px 16px 0 8px}
+.back{width:48px;height:48px;display:grid;place-items:center;border-radius:12px}
+.back svg{width:26px;height:26px}
+.back:active{transform:scale(.9)}
+.chead h2{font:italic 700 30px/1 var(--fut);flex:1}
+.chead .cnt{font:italic 700 16px/1 var(--fut);color:var(--lemon)}
+.sorts{display:flex;gap:2px;padding:4px 14px 8px 18px}
+.sorts button{height:44px;padding:0 10px;font:italic 700 16px/1 var(--fut);color:var(--dim2)}
+.sorts button[aria-pressed=true]{color:var(--lemon)}
+.grid{flex:1;overflow-y:auto;overflow-x:hidden;padding:6px 18px calc(40px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:22px 16px;align-content:start;scrollbar-width:none;overscroll-behavior:contain}
+.grid::-webkit-scrollbar{display:none}
+.tile{text-align:left;display:flex;flex-direction:column;gap:8px;min-width:0}
+.tile .cv{position:relative;aspect-ratio:1;border-radius:3px;overflow:hidden;box-shadow:0 4px 8px -4px rgba(6,44,62,.6);transition:transform .2s var(--out)}
+.tile .cv svg{width:100%;height:100%}
+.tile:active .cv{transform:scale(.96)}
+.tile b{font:italic 700 15px/1.25 var(--fut);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile span{font-size:13px;color:var(--dim);display:block;margin-top:2px}
+.tile .eq{position:absolute;right:8px;bottom:8px;width:26px;height:20px}
+.cempty{grid-column:1/-1;padding:60px 10px;text-align:center;color:var(--dim);font-size:15px;line-height:1.7}
+.cempty b{display:block;font:italic 700 22px/1.3 var(--fut);color:var(--white);margin-bottom:6px}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(6,40,56,.45);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;background:var(--white);color:var(--ink);border-radius:26px 26px 0 0;padding:8px 22px calc(24px + env(safe-area-inset-bottom));transform:translateY(105%);visibility:hidden;transition:transform .5s var(--spring);touch-action:none}
+.sheet.on{transform:none;visibility:visible}
+.sheet.drag{transition:none}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:rgba(12,58,74,.25);margin:4px auto 14px}
+.turn{position:relative;height:210px;margin:0 -22px;background:var(--coral);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.turn .plat{width:190px;height:190px}
+.turn .plat .spin{transform-origin:95px 95px}
+.turn.on .plat .spin{animation:spin 1.8s linear infinite}
+.turn .arm{position:absolute;left:calc(50% + 70px);top:14px;width:60px;height:150px;transform-origin:40px 16px;transform:rotate(-28deg);transition:transform .8s var(--spring)}
+.turn.on .arm{transform:rotate(0)}
+.sheet h3{margin-top:16px;font:italic 700 26px/1.2 var(--fut)}
+.sheet .who{margin-top:4px;color:#2e5866}
+.creds{margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px}
+.creds dt{color:#4d7280}
+.creds dd{margin:0;font-weight:600}
+.srow{display:flex;align-items:center;gap:10px;margin-top:18px}
+.srow .flat{flex:1}
+.srow .txt{height:50px;padding:0 16px;font:italic 700 16px/1 var(--fut);color:#b8402c;border-radius:4px}
+.srow .txt:active{background:rgba(255,122,99,.12)}
+.sheet .flat{background:var(--ink);color:var(--lemon)}
+.sheet .flat:active{background:#0a2e3b}
+
+.toast{position:absolute;left:50%;bottom:calc(120px + env(safe-area-inset-bottom));z-index:60;transform:translate(-50%,180px);transition:transform .45s var(--spring);background:var(--lemon);color:var(--ink);padding:0 8px 0 18px;height:48px;border-radius:4px;display:flex;align-items:center;gap:10px;font:italic 700 15px/1 var(--fut);white-space:nowrap}
+.toast.on{transform:translate(-50%,0)}
+.toast button{height:40px;padding:0 10px;color:#b8402c;font:italic 700 15px/1 var(--fut)}
+.toast button[hidden]{display:none}
+.toast.solo{padding-right:18px}
+
+@media (prefers-reduced-motion:reduce){
+  .water g,.card.playing .rec .spin,.cb.play.on .spin,.turn.on .plat .spin{animation:none}
+  .card,.card .sleeve,.card .rec,.sheet,.toast,.turn .arm{transition-duration:.01s}
+  .crateV.enter{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="bd" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="caption">
+    <h1>夏夜<small>SUMMER NIGHT FM</small></h1>
+    <p>右甩收進唱片箱，左甩略過。唱片會從封套裡滑出來，放一段即時合成的試聽。</p>
+  </div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="water" aria-hidden="true"><svg viewBox="0 0 500 960" preserveAspectRatio="xMidYMid slice"><g id="caus" fill="none" stroke="#bfeaff" stroke-opacity=".16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></g></svg></div>
+
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="20" height="12" viewBox="0 0 20 12" fill="currentColor"><path d="M1.5 12 3.2 8H6l-1.7 4zM6.5 12l2.7-6.5H12L9.3 12zM11.5 12 15 3.2h2.8L14.3 12z"/><path d="M16.5 12 21 .6" stroke="currentColor" stroke-width="2.8" opacity=".35"/></svg>
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" transform="skewX(-10)"><path d="M6.4 9.4a4 4 0 0 1 5.2 0M3.6 6.4a8 8 0 0 1 10.8 0M1 3.4a11.6 11.6 0 0 1 16 0"/></svg>
+          <svg width="28" height="13" viewBox="0 0 28 13"><path d="M4 1h19l-2.6 11H1.4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path id="batt" d="M5.4 3h14.9l-1.7 7H3.7z" fill="var(--lemon)"/><path d="M25 5l-.8 3.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+      <!-- DISCOVER -->
+      <section class="view" id="vDeck" aria-label="探索">
+        <div class="head">
+          <div class="logo"><b>夏夜</b><span>FM 88.7</span></div>
+          <button class="crateBtn" id="toCrate" aria-label="打開唱片箱"><svg viewBox="0 0 34 30" stroke-linejoin="round"><path d="M9 3.5 19 1l2.6 11-10 2.4z" fill="#ffe45c"/><path d="M16.5 4.2 26 5.6l-1.6 10.6-9.6-1.4z" fill="#fffdf6"/><path d="M4 13h28l-3.6 15.5H.4z" fill="#ff7a63"/><path d="M7.4 18.5h20.6M6.2 23.5h20.6" stroke="#0c3a4a" stroke-width="2.2" stroke-linecap="round"/></svg><span id="crateN">0</span></button>
+        </div>
+        <div class="times" id="times" role="group" aria-label="時段"></div>
+        <div class="deckwrap"><div class="deck" id="deck"></div></div>
+        <div class="info" id="info" aria-live="polite"><h2 id="tTitle"></h2><p class="who" id="tWho"></p><div class="meta" id="tMeta"></div></div>
+        <div class="next" id="next" aria-label="接下來"></div>
+        <div class="ctrl">
+          <button class="cb sm" id="bUndo" aria-label="倒帶，回到上一張"><svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9h10.5a6.5 6.5 0 0 1 0 13H10" transform="skewX(-10) translate(3 0)"/><path d="M12 4.5 7.5 9l4.5 4.5" transform="skewX(-10) translate(3 0)"/></svg>倒帶</button>
+          <button class="cb" id="bNope" aria-label="略過"><svg viewBox="0 0 40 40" fill="none" stroke="#ff7a63" stroke-width="5.5" stroke-linecap="round"><path d="M13 10 29 30M31 10 11 30"/></svg>略過</button>
+          <button class="cb play" id="bPlay" aria-label="試聽"><svg viewBox="0 0 66 66"><g class="spin"><circle cx="33" cy="33" r="31" fill="#0c3a4a"/><circle cx="33" cy="33" r="24" fill="none" stroke="#1f5566" stroke-width="1.4"/><circle cx="33" cy="33" r="19" fill="none" stroke="#1f5566" stroke-width="1.4"/><circle cx="33" cy="33" r="12" fill="#ffe45c"/><path d="M26 29a8 8 0 0 1 6-6" stroke="#fffdf6" stroke-width="2" fill="none" stroke-linecap="round"/></g><g id="playGlyph"><path d="M30 28.5 38.5 33 30 37.5z" fill="#0c3a4a" stroke="#0c3a4a" stroke-width="2" stroke-linejoin="round"/></g></svg><span id="playL">試聽</span></button>
+          <button class="cb" id="bLike" aria-label="收進唱片箱"><svg viewBox="0 0 40 40"><circle cx="25" cy="15" r="11" fill="#0c3a4a"/><circle cx="25" cy="15" r="3.6" fill="#ff7a63"/><path d="M10 12h20l-4.4 22H5.6z" fill="#ffe45c" stroke="#ffe45c" stroke-width="2" stroke-linejoin="round"/><path d="M17.4 18v10M12.8 23h9.6" stroke="#0c3a4a" stroke-width="3.2" stroke-linecap="round"/></svg>收藏</button>
+          <button class="cb sm" id="bInfo" aria-label="唱片資料"><svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M9 7h15M7.4 15h15M5.8 23h9" transform="skewX(-10) translate(3 0)"/></svg>資料</button>
+        </div>
+      </section>
+
+      <!-- CRATE -->
+      <section class="view crateV" id="vCrate" aria-label="唱片箱" hidden>
+        <div class="chead"><button class="back" id="fromCrate" aria-label="回到探索"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 5 8 13l8 8" transform="skewX(-10) translate(2 0)"/></svg></button><h2>唱片箱</h2><span class="cnt" id="crateCnt"></span></div>
+        <div class="sorts" id="sorts" role="group" aria-label="排序">
+          <button data-s="new" aria-pressed="true">最新收進</button><button data-s="year" aria-pressed="false">年份</button><button data-s="bpm" aria-pressed="false">速度</button>
+        </div>
+        <div class="grid" id="grid"></div>
+      </section>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sT">
+        <div class="grab"></div>
+        <div id="sheetBody"></div>
+      </div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastB" hidden>復原</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app039:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch (e) {} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch (e) {} }
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setInterval(tick, 15000);
+
+/* ---------- catalogue ---------- */
+var T = [
+  {id:1, t:'淡水線上的午後', en:'Afternoon on Tamsui Line', a:'海岸線俱樂部', y:1984, tod:'noon', sc:'coast', bpm:108, key:2, pr:0, lbl:'#ff7a63', cr:['林國棟','海岸線俱樂部']},
+  {id:2, t:'游泳池畔的約定', en:'Poolside Promise', a:'林曉晴', y:1985, tod:'noon', sc:'pool', bpm:112, key:5, pr:1, lbl:'#ffe45c', cr:['周文彬','李志遠']},
+  {id:3, t:'白色敞篷車', en:'White Convertible', a:'南風樂團', y:1983, tod:'noon', sc:'coast', bpm:116, key:7, pr:2, lbl:'#1fa7d8', cr:['南風樂團','陳建州']},
+  {id:4, t:'檸檬汽水', en:'Lemon Soda', a:'陳美玲', y:1986, tod:'noon', sc:'beach', bpm:104, key:0, pr:3, lbl:'#ffe45c', cr:['吳思涵','黃志明']},
+  {id:5, t:'墾丁 Highway', en:'Kenting Highway', a:'夏日電台', y:1987, tod:'noon', sc:'beach', bpm:118, key:9, pr:1, lbl:'#ff7a63', cr:['夏日電台','劉家豪']},
+  {id:6, t:'星期六的泳圈', en:'Saturday Float', a:'Coco 蔡', y:1988, tod:'noon', sc:'pool', bpm:100, key:4, pr:0, lbl:'#1fa7d8', cr:['蔡可可','王大衛']},
+  {id:7, t:'中山北路的黃昏', en:'Chungshan North Sunset', a:'蔡明哲', y:1984, tod:'dusk', sc:'city', bpm:98, key:10, pr:0, lbl:'#ff7a63', cr:['蔡明哲','許偉倫']},
+  {id:8, t:'福隆海岸線', en:'Fulong Coastline', a:'藍色珊瑚', y:1985, tod:'dusk', sc:'coast', bpm:110, key:3, pr:2, lbl:'#ffe45c', cr:['藍色珊瑚','張永華']},
+  {id:9, t:'八里渡船頭', en:'Bali Ferry Pier', a:'郭怡君', y:1983, tod:'dusk', sc:'beach', bpm:96, key:8, pr:3, lbl:'#1fa7d8', cr:['郭怡君','林正雄']},
+  {id:10, t:'西子灣週末', en:'Sizihwan Weekend', a:'高雄港夜行', y:1986, tod:'dusk', sc:'pool', bpm:106, key:1, pr:1, lbl:'#ff7a63', cr:['洪文正','高雄港夜行']},
+  {id:11, t:'金瓜石的風', en:'Wind of Jinguashi', a:'山城少年', y:1987, tod:'dusk', sc:'coast', bpm:102, key:6, pr:0, lbl:'#ffe45c', cr:['山城少年','鄭仲文']},
+  {id:12, t:'夕陽泳池', en:'Sunset Pool', a:'Yuki 楊', y:1988, tod:'dusk', sc:'pool', bpm:114, key:11, pr:2, lbl:'#1fa7d8', cr:['楊雪','Yuki 楊']},
+  {id:13, t:'東區午夜', en:'East District Midnight', a:'霓虹計程車', y:1985, tod:'night', sc:'city', bpm:112, key:9, pr:1, lbl:'#ff7a63', cr:['霓虹計程車','陳柏宇']},
+  {id:14, t:'仁愛路的雨', en:'Rain on Ren-ai Road', a:'李佩珊', y:1986, tod:'night', sc:'city', bpm:94, key:4, pr:3, lbl:'#ffe45c', cr:['李佩珊','沈立群']},
+  {id:15, t:'最後一班捷運', en:'Last Train Home', a:'月台樂隊', y:1988, tod:'night', sc:'city', bpm:118, key:2, pr:0, lbl:'#1fa7d8', cr:['月台樂隊','蘇建宏']},
+  {id:16, t:'夜泳', en:'Night Swim', a:'林曉晴', y:1987, tod:'night', sc:'pool', bpm:100, key:7, pr:2, lbl:'#ff7a63', cr:['周文彬','林曉晴']},
+  {id:17, t:'北海岸兜風', en:'North Coast Drive', a:'南風樂團', y:1984, tod:'night', sc:'coast', bpm:108, key:0, pr:1, lbl:'#ffe45c', cr:['南風樂團','陳建州']},
+  {id:18, t:'午夜 FM', en:'Midnight FM', a:'夏日電台', y:1986, tod:'night', sc:'beach', bpm:104, key:5, pr:3, lbl:'#1fa7d8', cr:['夏日電台','吳宗翰']}
+];
+var BY = {}; T.forEach(function(x){ BY[x.id] = x; });
+var KEYS = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
+var TOD = {noon:'午後', dusk:'黃昏', night:'深夜'};
+
+/* ---------- state ---------- */
+var st = load('state', {tod:'dusk', liked:[4, 14, 8], skipped:[], likedAt:{4: Date.now() - 864e5 * 3, 14: Date.now() - 864e5 * 2, 8: Date.now() - 3600e3}, sort:'new'});
+var hist = [];
+
+/* ---------- cover art ---------- */
+function rng(seed){ var s = seed * 7919 + 13; return function(){ s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+var PAL = {
+  noon: {sky:['#8fd6f0', '#a9e1f4', '#c6ecf8'], sea:'#1fa7d8', sea2:'#1283b3', sun:'#fffdf6', land:'#fffdf6', dark:'#0c3a4a', acc:'#ff7a63', acc2:'#ffe45c'},
+  dusk: {sky:['#ff7a63', '#ff9a6b', '#ffbe6e', '#ffe07e'], sea:'#1f86b8', sea2:'#136f9b', sun:'#ffe45c', land:'#ffd3a8', dark:'#0c3a4a', acc:'#fffdf6', acc2:'#ffe45c'},
+  night: {sky:['#0c3a4a', '#0f4a5c', '#135a6c'], sea:'#0f5f7a', sea2:'#0b4a60', sun:'#ffe45c', land:'#0a3040', dark:'#06222e', acc:'#ff7a63', acc2:'#ffe45c'}
+};
+function palm(x, y, h, lean, col, s){
+  var tx = x + lean * h * .35, ty = y - h, out = '<path d="M' + x + ' ' + y + 'Q' + (x + lean * h * .05) + ' ' + (y - h * .55) + ' ' + tx + ' ' + ty + '" stroke="' + col + '" stroke-width="' + (h * .055).toFixed(1) + '" fill="none" stroke-linecap="round"/>';
+  var L = [-160, -120, -60, -20, 25, 70, 200], len = h * .42;
+  L.forEach(function(a, i){
+    var r = (a + lean * 10) * Math.PI / 180, ex = tx + Math.cos(r) * len, ey = ty + Math.sin(r) * len * .6 + len * .35, mx = tx + Math.cos(r) * len * .55, my = ty + Math.sin(r) * len * .6 - len * .12;
+    var w = len * .16;
+    out += '<path d="M' + tx.toFixed(1) + ' ' + ty.toFixed(1) + 'Q' + (mx - w).toFixed(1) + ' ' + (my - w).toFixed(1) + ' ' + ex.toFixed(1) + ' ' + ey.toFixed(1) + 'Q' + (mx + w * .4).toFixed(1) + ' ' + (my + w * .8).toFixed(1) + ' ' + tx.toFixed(1) + ' ' + ty.toFixed(1) + 'Z" fill="' + col + '"/>';
+  });
+  return out;
+}
+function bands(p, y1){
+  var n = p.sky.length, h = y1 / n, o = '';
+  for (var i = 0; i < n; i++) o += '<rect y="' + (i * h).toFixed(1) + '" width="300" height="' + (h + 1).toFixed(1) + '" fill="' + p.sky[i] + '"/>';
+  return o;
+}
+function sun(p, tod, cx, cy, r, uid){
+  if (tod === 'night') return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r * .6 + '" fill="' + p.sun + '"/><circle cx="' + (cx + r * .26) + '" cy="' + (cy - r * .16) + '" r="' + r * .52 + '" fill="' + p.sky[0] + '"/>';
+  if (tod === 'noon') return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r * .55 + '" fill="#fffdf6"/>';
+  var m = '<mask id="sm' + uid + '"><rect width="300" height="300" fill="#fff"/>';
+  for (var i = 0; i < 4; i++) m += '<rect y="' + (cy + r * .15 + i * r * .22).toFixed(1) + '" width="300" height="' + (r * (.05 + i * .03)).toFixed(1) + '" fill="#000"/>';
+  return m + '</mask><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + p.sun + '" mask="url(#sm' + uid + ')"/>';
+}
+function stars(r, n){ var o = ''; for (var i = 0; i < n; i++) o += '<circle cx="' + (r() * 300).toFixed(0) + '" cy="' + (r() * 120).toFixed(0) + '" r="' + (r() < .2 ? 1.6 : .9) + '" fill="#fffdf6"/>'; return o; }
+function cloud(x, y, s){ return '<path d="M' + x + ' ' + y + 'h' + 70 * s + 'a' + 14 * s + ' ' + 14 * s + ' 0 0 0-' + 18 * s + '-' + 16 * s + 'a' + 20 * s + ' ' + 20 * s + ' 0 0 0-' + 36 * s + '-' + 4 * s + 'a' + 14 * s + ' ' + 14 * s + ' 0 0 0-' + 16 * s + ' ' + 20 * s + 'z" fill="#fffdf6"/>'; }
+function car(x, y, col, dark){
+  return '<g transform="translate(' + x + ' ' + y + ')"><path d="M0 0h96c6 0 10-4 10-10v-6c0-4-3-6-8-7l-22-4-14-11c-2-1-5-1-6 1l6 10H14c-8 0-14 6-14 14z" fill="' + col + '"/><path d="M52-37l12 10" stroke="' + dark + '" stroke-width="3" stroke-linecap="round"/><path d="M4-12h92" stroke="rgba(255,253,246,.7)" stroke-width="2.4"/><circle cx="22" cy="0" r="10" fill="' + dark + '"/><circle cx="22" cy="0" r="4" fill="#fffdf6"/><circle cx="80" cy="0" r="10" fill="' + dark + '"/><circle cx="80" cy="0" r="4" fill="#fffdf6"/></g>';
+}
+function cover(tr, uid){
+  var p = PAL[tr.tod], r = rng(tr.id * 31 + 7), o = '<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">', hz;
+  if (tr.sc === 'coast'){
+    hz = 150; o += bands(p, hz) + (tr.tod === 'night' ? stars(r, 26) : tr.tod === 'noon' ? cloud(30, 70, 1) + cloud(170, 44, .7) : '') + sun(p, tr.tod, 210, hz - 10, 46, uid);
+    o += '<rect y="' + hz + '" width="300" height="150" fill="' + p.sea + '"/>';
+    for (var i = 0; i < 7; i++) o += '<path d="M' + (r() * 260).toFixed(0) + ' ' + (hz + 10 + i * 12) + 'h' + (18 + r() * 40).toFixed(0) + '" stroke="#fffdf6" stroke-opacity=".7" stroke-width="2.4" stroke-linecap="round"/>';
+    o += '<path d="M0 232 300 204V300H0Z" fill="' + (tr.tod === 'night' ? '#0a3040' : '#ff7a63') + '"/><path d="M0 240 300 212" stroke="#fffdf6" stroke-width="3" stroke-dasharray="14 12"/>';
+    o += '<path d="M0 222 300 194" stroke="' + p.dark + '" stroke-width="3"/>';
+    for (var g = 0; g < 10; g++) o += '<path d="M' + (g * 32 + 8) + ' ' + (222 - g * 2.99).toFixed(1) + 'v10" stroke="' + p.dark + '" stroke-width="3"/>';
+    o += car(120, 266, tr.tod === 'night' ? '#ff7a63' : '#fffdf6', p.dark);
+    o += palm(34, 300, 190, .5, p.dark) + palm(274, 300, 150, -.6, p.dark);
+  } else if (tr.sc === 'pool'){
+    hz = 120; o += bands(p, hz) + (tr.tod === 'night' ? stars(r, 20) : tr.tod === 'noon' ? cloud(180, 60, .9) : '') + sun(p, tr.tod, 80, 70, 34, uid);
+    o += '<rect x="130" y="58" width="150" height="70" fill="' + (tr.tod === 'night' ? '#0a3040' : '#fffdf6') + '"/><rect x="118" y="52" width="174" height="10" fill="' + p.dark + '"/>';
+    for (var w = 0; w < 4; w++) o += '<rect x="' + (142 + w * 34) + '" y="76" width="22" height="30" fill="' + (tr.tod === 'night' ? '#ffe45c' : p.sea2) + '"/>';
+    o += '<rect y="' + hz + '" width="300" height="180" fill="' + (tr.tod === 'night' ? '#123f4e' : p.land) + '"/>';
+    o += '<path d="M40 150H290L300 300H0Z" fill="' + p.sea + '"/><path d="M40 150H290" stroke="#fffdf6" stroke-width="6"/>';
+    for (var c = 0; c < 9; c++){ var cx = 40 + r() * 230, cy = 170 + r() * 110; o += '<path d="M' + cx.toFixed(0) + ' ' + cy.toFixed(0) + 'q10-8 20 0t20 0" stroke="#bfeaff" stroke-width="3" fill="none" stroke-linecap="round"/>'; }
+    o += '<g stroke="#fffdf6" stroke-width="5" fill="none" stroke-linecap="round"><path d="M226 186v-52q0-12 12-12"/><path d="M256 186v-52q0-12 12-12"/></g><g stroke="#fffdf6" stroke-width="4"><path d="M226 150h30M226 166h30"/></g>';
+    o += '<g transform="translate(70 214) rotate(-8)"><ellipse rx="34" ry="12" fill="#ff7a63"/><ellipse rx="16" ry="5" fill="' + p.sea + '"/></g>';
+    o += palm(18, 170, 150, .55, p.dark);
+  } else if (tr.sc === 'city'){
+    hz = 210; o += bands(p, hz) + (tr.tod === 'night' ? stars(r, 30) : '') + sun(p, tr.tod, 230, 64, 34, uid);
+    var x = 0;
+    while (x < 300){
+      var bw = 28 + r() * 36, bh = 70 + r() * 110, col = [p.dark, '#0f4a5c', '#1b5d6e'][Math.floor(r() * 3)];
+      if (tr.tod === 'dusk') col = ['#0c3a4a', '#1f5d70', '#2f7085'][Math.floor(r() * 3)];
+      if (tr.tod === 'noon') col = ['#fffdf6', '#e8f6fc', '#ff7a63'][Math.floor(r() * 3)];
+      o += '<rect x="' + x.toFixed(0) + '" y="' + (hz - bh).toFixed(0) + '" width="' + bw.toFixed(0) + '" height="' + (bh + 1).toFixed(0) + '" fill="' + col + '"/>';
+      for (var yy = hz - bh + 10; yy < hz - 10; yy += 12) for (var xx = x + 6; xx < x + bw - 8; xx += 9) if (r() < (tr.tod === 'night' ? .45 : .25)) o += '<rect x="' + xx.toFixed(0) + '" y="' + yy.toFixed(0) + '" width="4" height="6" fill="' + (tr.tod === 'noon' ? '#1283b3' : '#ffe45c') + '"/>';
+      x += bw + 2;
+    }
+    o += '<rect y="' + hz + '" width="300" height="' + (300 - hz) + '" fill="' + (tr.tod === 'noon' ? '#1fa7d8' : '#0a3040') + '"/>';
+    o += '<path d="M0 ' + (hz + 20) + 'H300" stroke="' + (tr.tod === 'noon' ? '#fffdf6' : '#ff7a63') + '" stroke-width="7"/>';
+    for (var k = 0; k < 14; k++) o += '<path d="M' + (k * 24 + r() * 8).toFixed(0) + ' ' + (hz + 44 + (k % 3) * 14) + 'h' + (8 + r() * 14).toFixed(0) + '" stroke="' + (k % 2 ? '#ffe45c' : '#ff7a63') + '" stroke-opacity=".8" stroke-width="3" stroke-linecap="round"/>';
+    o += palm(270, 300, 120, -.4, tr.tod === 'noon' ? '#0c3a4a' : '#06222e');
+  } else {
+    hz = 160; o += bands(p, hz) + (tr.tod === 'night' ? stars(r, 24) : tr.tod === 'noon' ? cloud(20, 60, .8) + cloud(190, 90, .6) : '') + sun(p, tr.tod, 150, hz - 6, 52, uid);
+    o += '<rect y="' + hz + '" width="300" height="60" fill="' + p.sea + '"/>';
+    for (var j = 0; j < 5; j++) o += '<path d="M' + (r() * 250).toFixed(0) + ' ' + (hz + 8 + j * 10) + 'h' + (20 + r() * 40).toFixed(0) + '" stroke="#fffdf6" stroke-opacity=".7" stroke-width="2.4" stroke-linecap="round"/>';
+    o += '<path d="M0 214Q150 200 300 214V300H0Z" fill="' + (tr.tod === 'night' ? '#1b4c58' : '#ffe9a8') + '"/>';
+    o += '<g transform="translate(96 236)"><path d="M0 60 6-10" stroke="' + p.dark + '" stroke-width="4"/><path d="M-50 0A56 40 0 0 1 62-20Z" fill="#ff7a63"/><path d="M-50 0 6-10 -14-44Z" fill="#fffdf6"/><path d="M6-10 62-20 26-48Z" fill="#fffdf6"/></g>';
+    o += '<g transform="translate(216 196) rotate(12)"><rect x="-10" y="0" width="20" height="96" rx="10" fill="#ffe45c"/><path d="M0 6v84" stroke="#ff7a63" stroke-width="4"/></g>';
+    o += palm(270, 300, 170, -.5, p.dark);
+  }
+  o += '<text x="16" y="28" font-family="Futura,Avenir Next,sans-serif" font-weight="700" font-style="italic" font-size="15" fill="' + (tr.tod === 'dusk' || tr.tod === 'night' ? '#fffdf6' : '#0c3a4a') + '">' + tr.en + '</text>';
+  o += '<text x="16" y="46" font-family="PingFang TC,sans-serif" font-weight="600" font-size="12" fill="' + (tr.tod === 'dusk' || tr.tod === 'night' ? '#fffdf6' : '#0c3a4a') + '" opacity=".9">' + tr.a + '</text>';
+  return o + '</svg>';
+}
+function vinyl(tr){
+  var g = '';
+  for (var i = 0; i < 9; i++) g += '<circle cx="50" cy="50" r="' + (22 + i * 2.8) + '" fill="none" stroke="#1d2a2e" stroke-width=".6"/>';
+  return '<svg viewBox="0 0 100 100"><g class="spin"><circle cx="50" cy="50" r="49.5" fill="#0d1417"/>' + g + '<path d="M22 30a34 34 0 0 1 20-14" stroke="#51666c" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="50" cy="50" r="17" fill="' + tr.lbl + '"/><text x="50" y="47" text-anchor="middle" font-family="Futura,sans-serif" font-style="italic" font-weight="700" font-size="5.4" fill="#0c3a4a">' + tr.en.slice(0, 18) + '</text><text x="50" y="58" text-anchor="middle" font-family="Futura,sans-serif" font-size="4" fill="#0c3a4a">33⅓ · ' + tr.y + '</text><circle cx="50" cy="50" r="1.6" fill="#0d1417"/></g></svg>';
+}
+
+/* ---------- music engine ---------- */
+var AC = null, bus = null, dly = null, noiseBuf = null;
+var CH = {maj7:[0, 4, 7, 11, 14], m7:[0, 3, 7, 10, 14], d7:[0, 4, 7, 10, 13], m9:[0, 3, 7, 10, 14]};
+var PROG = [
+  [[5, 'maj7', 4], [4, 'd7', 4], [9, 'm7', 4], [7, 'm7', 2], [0, 'd7', 2]],
+  [[5, 'maj7', 4], [7, 'd7', 4], [4, 'm7', 4], [9, 'm7', 4]],
+  [[2, 'm7', 4], [7, 'd7', 4], [0, 'maj7', 4], [9, 'm9', 4]],
+  [[0, 'maj7', 4], [9, 'm7', 4], [2, 'm7', 4], [7, 'd7', 4]]
+];
+function ensureAudio(){
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return AC; }
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    var comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
+    bus = AC.createGain(); bus.gain.value = .0001; bus.connect(comp); comp.connect(AC.destination);
+    dly = AC.createDelay(1); var fb = AC.createGain(), lp = AC.createBiquadFilter(), wet = AC.createGain();
+    fb.gain.value = .32; lp.type = 'lowpass'; lp.frequency.value = 2400; wet.gain.value = .25;
+    dly.connect(lp); lp.connect(fb); fb.connect(dly); lp.connect(wet); wet.connect(bus);
+    var n = AC.sampleRate, b = AC.createBuffer(1, n, n), d = b.getChannelData(0); for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; noiseBuf = b;
+  } catch (e) { AC = null; }
+  return AC;
+}
+function mtof(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+function env(g, t, a, peak, dec){ g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dec); }
+function ep(m, t, v){
+  var f = mtof(m), c = AC.createOscillator(), mo = AC.createOscillator(), mg = AC.createGain(), g = AC.createGain();
+  c.frequency.value = f; mo.frequency.value = f; mg.gain.setValueAtTime(f * 1.6, t); mg.gain.exponentialRampToValueAtTime(f * .08, t + .5);
+  mo.connect(mg); mg.connect(c.frequency); c.connect(g); env(g, t, .006, .06 * v, 1.1); g.connect(bus); g.connect(dly);
+  c.start(t); mo.start(t); c.stop(t + 1.3); mo.stop(t + 1.3);
+}
+function bass(m, t, len){
+  var o = AC.createOscillator(), o2 = AC.createOscillator(), f = AC.createBiquadFilter(), g = AC.createGain();
+  o.type = 'sawtooth'; o2.type = 'square'; o.frequency.value = mtof(m); o2.frequency.value = mtof(m) * .5;
+  f.type = 'lowpass'; f.Q.value = 7; f.frequency.setValueAtTime(1400, t); f.frequency.exponentialRampToValueAtTime(180, t + .16);
+  o.connect(f); o2.connect(f); f.connect(g); env(g, t, .005, .2, len); g.connect(bus);
+  o.start(t); o2.start(t); o.stop(t + len + .05); o2.stop(t + len + .05);
+}
+function kick(t){ var o = AC.createOscillator(), g = AC.createGain(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + .12); env(g, t, .002, .5, .26); o.connect(g); g.connect(bus); o.start(t); o.stop(t + .32); }
+function noise(t, type, freq, peak, dec, send){
+  var s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = noiseBuf; f.type = type; f.frequency.value = freq;
+  s.connect(f); f.connect(g); env(g, t, .002, peak, dec); g.connect(bus); if (send) g.connect(dly); s.start(t, Math.random() * .5); s.stop(t + dec + .05);
+}
+function snare(t){ noise(t, 'bandpass', 1900, .22, .16, true); var o = AC.createOscillator(), g = AC.createGain(); o.frequency.value = 196; env(g, t, .002, .09, .09); o.connect(g); g.connect(bus); o.start(t); o.stop(t + .12); }
+function lead(m, t, len){
+  var o = AC.createOscillator(), f = AC.createBiquadFilter(), g = AC.createGain(), lfo = AC.createOscillator(), lg = AC.createGain();
+  o.type = 'square'; o.frequency.value = mtof(m); f.type = 'lowpass'; f.frequency.value = 1800; lfo.frequency.value = 5.5; lg.gain.value = mtof(m) * .012;
+  lfo.connect(lg); lg.connect(o.frequency); o.connect(f); f.connect(g);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.045, t + .03); g.gain.setValueAtTime(.045, t + len * .7); g.gain.exponentialRampToValueAtTime(.0001, t + len);
+  g.connect(bus); g.connect(dly); o.start(t); lfo.start(t); o.stop(t + len + .02); lfo.stop(t + len + .02);
+}
+var player = {id:null, on:false, step:0, next:0, timer:null, t0:0, dur:30};
+var EP_PAT = [[0, 3, 6, 10, 14], [2, 6, 10, 14], [0, 6, 8, 14], [3, 6, 11, 14]];
+var BASS_PAT = [[0, 0], [3, 0], [6, 12], [8, 7], [10, 0], [11, 10], [14, 12]];
+function chordAt(tr, beat){
+  var pr = PROG[tr.pr], total = pr.reduce(function(a, c){ return a + c[2]; }, 0), b = beat % total, acc = 0;
+  for (var i = 0; i < pr.length; i++){ if (b < acc + pr[i][2]) return pr[i]; acc += pr[i][2]; }
+  return pr[0];
+}
+function schedule(){
+  if (!player.on || !AC) return;
+  var tr = BY[player.id], spb = 60 / tr.bpm / 4;
+  while (player.next < AC.currentTime + .14){
+    var s = player.step, t = player.next, pos = s % 16, beat = Math.floor(s / 4), ch = chordAt(tr, beat), root = 48 + tr.key + ch[0];
+    var swing = (pos % 2) ? spb * .12 : 0; t += swing;
+    if (pos === 0 || pos === 7 || pos === 10) kick(t);
+    if (pos === 4 || pos === 12) snare(t);
+    if (pos % 2 === 0) noise(t, 'highpass', 8000, pos === 14 ? .06 : .035, pos === 14 ? .2 : .04);
+    else if (Math.random() < .3) noise(t, 'highpass', 9000, .018, .03);
+    BASS_PAT.forEach(function(b){ if (b[0] === pos) bass(root - 12 + b[1], t, spb * 1.6); });
+    if (EP_PAT[tr.id % 4].indexOf(pos) > -1){
+      CH[ch[1]].forEach(function(iv, k){ if (k === 0) return; var m = root + 12 + iv; while (m > 72) m -= 12; ep(m, t + k * .006, .9); });
+    }
+    var bar = Math.floor(s / 16);
+    if (bar % 2 === 1 && [0, 3, 6, 10].indexOf(pos) > -1){
+      var tones = CH[ch[1]], pick = tones[(pos + bar + tr.id) % tones.length];
+      lead(root + 24 + pick - (pick > 11 ? 12 : 0), t, spb * (pos === 10 ? 5 : 2.6));
+    }
+    player.next += spb; player.step++;
+  }
+}
+function play(id){
+  if (!ensureAudio()) { toast('這個瀏覽器不支援即時合成'); return; }
+  stopAudio(true);
+  player.id = id; player.on = true; player.step = 0; player.next = AC.currentTime + .06; player.t0 = AC.currentTime;
+  bus.gain.cancelScheduledValues(AC.currentTime); bus.gain.setValueAtTime(.0001, AC.currentTime); bus.gain.exponentialRampToValueAtTime(.9, AC.currentTime + .25);
+  player.timer = setInterval(schedule, 25); schedule();
+  paintPlaying(); progLoop();
+}
+function stopAudio(quiet){
+  if (!player.on) return;
+  player.on = false; clearInterval(player.timer);
+  if (AC){ bus.gain.cancelScheduledValues(AC.currentTime); bus.gain.setValueAtTime(Math.max(.0001, bus.gain.value), AC.currentTime); bus.gain.exponentialRampToValueAtTime(.0001, AC.currentTime + .2); }
+  if (!quiet) paintPlaying();
+}
+function toggle(id){ if (player.on && player.id === id){ stopAudio(); haptic(6); } else { play(id); haptic([6, 30, 6]); } }
+function paintPlaying(){
+  document.querySelectorAll('.card').forEach(function(c){ c.classList.toggle('playing', player.on && +c.dataset.id === player.id); });
+  var top = topId(), on = player.on && player.id === top;
+  $('bPlay').classList.toggle('on', on); $('playL').textContent = on ? '暫停' : '試聽';
+  $('playGlyph').innerHTML = on ? '<rect x="28" y="27.5" width="3.6" height="11" rx="1.2" fill="#0c3a4a"/><rect x="34.4" y="27.5" width="3.6" height="11" rx="1.2" fill="#0c3a4a"/>' : '<path d="M30 28.5 38.5 33 30 37.5z" fill="#0c3a4a" stroke="#0c3a4a" stroke-width="2" stroke-linejoin="round"/>';
+  var turn = document.querySelector('.turn'); if (turn) turn.classList.toggle('on', player.on && +turn.dataset.id === player.id);
+  var sb = $('sPlay'); if (sb) sb.textContent = player.on && +sb.dataset.id === player.id ? '暫停' : '播放試聽';
+  document.querySelectorAll('.tile').forEach(function(t){ var e = t.querySelector('.eq'); if (e) e.style.display = player.on && +t.dataset.id === player.id ? '' : 'none'; });
+}
+var progRaf = 0;
+function progLoop(){
+  cancelAnimationFrame(progRaf);
+  (function f(){
+    if (!player.on) return;
+    if (!document.hidden){
+      var k = Math.min(1, (AC.currentTime - player.t0) / player.dur), c = document.querySelector('.card.playing .prog line.p');
+      if (c) c.setAttribute('x2', (3 + k * ((c.dataset.w || 300) - 6)).toFixed(1));
+      if (k >= 1){ stopAudio(); return; }
+    }
+    progRaf = requestAnimationFrame(f);
+  })();
+}
+document.addEventListener('visibilitychange', function(){ if (document.hidden && player.on) stopAudio(); });
+function chime(up){
+  if (!ensureAudio()) return;
+  var t = AC.currentTime + .01, base = up ? 76 : 64;
+  bus.gain.cancelScheduledValues(t); if (!player.on){ bus.gain.setValueAtTime(.8, t); }
+  (up ? [0, 4, 7, 11] : [0, -5]).forEach(function(iv, i){ ep(base + iv, t + i * .06, 1.4); });
+}
+
+/* ---------- deck ---------- */
+var deckIds = [];
+function buildDeck(){
+  deckIds = T.filter(function(x){ return x.tod === st.tod && st.liked.indexOf(x.id) < 0 && st.skipped.indexOf(x.id) < 0; }).map(function(x){ return x.id; });
+}
+function topId(){ return deckIds[0]; }
+function cardHTML(id){
+  var tr = BY[id];
+  return '<div class="rec" aria-hidden="true">' + vinyl(tr) + '</div><div class="sleeve">' + cover(tr, 'c' + id) + '</div>' +
+    '<span class="stamp like">收藏</span><span class="stamp nope">略過</span>' +
+    '<svg class="prog" viewBox="0 0 300 6" preserveAspectRatio="none" aria-hidden="true"><line x1="3" y1="3" x2="297" y2="3" stroke="rgba(255,253,246,.3)" stroke-width="5" stroke-linecap="round"/><line class="p" data-w="300" x1="3" y1="3" x2="3" y2="3" stroke="#ffe45c" stroke-width="5" stroke-linecap="round"/></svg>';
+}
+var POS = [
+  'translate(0,0) rotate(0deg)',
+  'translate(10px,14px) rotate(3deg) scale(.95)',
+  'translate(-8px,24px) rotate(-3deg) scale(.9)'
+];
+function renderDeck(enterFrom){
+  var deck = $('deck'), have = {};
+  deck.querySelectorAll('.card').forEach(function(c){ have[c.dataset.id] = c; });
+  var show = deckIds.slice(0, 3);
+  Object.keys(have).forEach(function(k){ if (show.indexOf(+k) < 0 && !have[k].classList.contains('fly')) have[k].remove(); });
+  var emp = deck.querySelector('.emptyDeck'); if (emp) emp.remove();
+  if (!show.length){
+    var e = document.createElement('div'); e.className = 'emptyDeck';
+    var skippedHere = st.skipped.filter(function(id){ return BY[id].tod === st.tod; }).length;
+    e.innerHTML = '<b>' + TOD[st.tod] + '的唱片都聽完了</b><p>' + (skippedHere ? '略過的 ' + skippedHere + ' 張可以再洗回來。' : '這個時段的唱片全收進唱片箱了。') + '</p>' + (skippedHere ? '<button class="flat" id="reshuffle">洗回略過的唱片</button>' : '<button class="flat" id="goCrate2">打開唱片箱</button>');
+    deck.appendChild(e);
+  }
+  show.forEach(function(id, i){
+    var c = have[id];
+    if (!c){
+      c = document.createElement('div'); c.className = 'card'; c.dataset.id = id; c.innerHTML = cardHTML(id);
+      c.style.transform = enterFrom && i === 0 ? enterFrom : POS[Math.min(2, i + 1)];
+      deck.insertBefore(c, deck.firstChild);
+      void c.offsetWidth;
+    }
+    c.style.zIndex = 10 - i;
+    c.style.transform = POS[i];
+    c.setAttribute('aria-hidden', i ? 'true' : 'false');
+  });
+  renderInfo(); paintPlaying();
+}
+function renderInfo(){
+  var id = topId(), tr = BY[id];
+  $('bNope').disabled = $('bLike').disabled = $('bPlay').disabled = $('bInfo').disabled = !tr;
+  $('bUndo').disabled = !hist.length;
+  var nx = deckIds.slice(1, 5);
+  $('next').innerHTML = nx.length ? '<span class="lbl">接下來</span>' + nx.map(function(i){ return '<button data-jump="' + i + '" aria-label="先聽〈' + BY[i].t + '〉">' + cover(BY[i], 'n' + i) + '</button>'; }).join('') + (deckIds.length > 5 ? '<span class="more">+' + (deckIds.length - 5) + '</span>' : '') : '';
+  if (!tr){ $('tTitle').textContent = ''; $('tWho').textContent = ''; $('tMeta').innerHTML = ''; return; }
+  $('tTitle').textContent = tr.t;
+  $('tWho').textContent = tr.a + '・' + tr.y;
+  $('tMeta').innerHTML = '<span>' + tr.bpm + ' BPM</span><span>' + KEYS[tr.key] + ' 大調</span><span>' + (deckIds.length) + ' 張待聽</span>';
+}
+function decide(like, fromDrag){
+  var id = topId(); if (!id) return;
+  var card = $('deck').querySelector('.card[data-id="' + id + '"]');
+  var wasPlaying = player.on;
+  if (player.on && player.id === id) stopAudio(true);
+  if (card){
+    card.classList.remove('drag'); card.classList.add('fly');
+    var cur = fromDrag || {x:0, y:0};
+    card.style.transform = 'translate(' + (like ? 1 : -1) * (window.innerWidth + 260) + 'px,' + (cur.y + 60) + 'px) rotate(' + (like ? 32 : -32) + 'deg)';
+    card.querySelector(like ? '.stamp.like' : '.stamp.nope').style.opacity = 1;
+    setTimeout(function(){ card.remove(); }, 480);
+  }
+  deckIds.shift();
+  if (like){ st.liked.push(id); st.likedAt[id] = Date.now(); chime(true); haptic([10, 40, 16]); }
+  else { st.skipped.push(id); haptic(8); }
+  hist.push({id:id, like:like});
+  save('state', st); renderCrateBadge(); renderTimes(); renderDeck();
+  if (wasPlaying && topId()) play(topId());
+}
+function undo(){
+  var h = hist.pop(); if (!h) return;
+  if (h.like){ st.liked = st.liked.filter(function(x){ return x !== h.id; }); delete st.likedAt[h.id]; }
+  else st.skipped = st.skipped.filter(function(x){ return x !== h.id; });
+  if (BY[h.id].tod !== st.tod){ st.tod = BY[h.id].tod; buildDeck(); deckIds = [h.id].concat(deckIds.filter(function(x){ return x !== h.id; })); }
+  else deckIds.unshift(h.id);
+  save('state', st); stopAudio();
+  renderCrateBadge(); renderTimes();
+  renderDeck('translate(' + (h.like ? 1 : -1) * 420 + 'px,40px) rotate(' + (h.like ? 24 : -24) + 'deg)');
+  haptic([6, 20, 6]);
+}
+/* drag on the top card */
+(function(){
+  var card = null, sx = 0, sy = 0, dx = 0, dy = 0, t0 = 0, lx = 0, lt = 0, vx = 0, moved = false;
+  $('deck').addEventListener('pointerdown', function(e){
+    var c = e.target.closest('.card'); if (!c || +c.dataset.id !== topId() || c.classList.contains('fly')) return;
+    card = c; sx = e.clientX; sy = e.clientY; dx = dy = 0; t0 = lt = e.timeStamp; lx = e.clientX; vx = 0; moved = false;
+    card.classList.add('drag'); card.setPointerCapture(e.pointerId); ensureAudio();
+  });
+  $('deck').addEventListener('pointermove', function(e){
+    if (!card) return;
+    dx = e.clientX - sx; dy = e.clientY - sy; if (Math.abs(dx) + Math.abs(dy) > 6) moved = true;
+    var dt = Math.max(1, e.timeStamp - lt); vx = (e.clientX - lx) / dt; lx = e.clientX; lt = e.timeStamp;
+    card.style.transform = 'translate(' + dx + 'px,' + dy * .4 + 'px) rotate(' + dx * .07 + 'deg)';
+    card.querySelector('.stamp.like').style.opacity = Math.max(0, Math.min(1, dx / 90));
+    card.querySelector('.stamp.nope').style.opacity = Math.max(0, Math.min(1, -dx / 90));
+    var nx = $('deck').querySelector('.card[data-id="' + deckIds[1] + '"]');
+    if (nx){ var k = Math.min(1, Math.abs(dx) / 140); nx.style.transition = 'none'; nx.style.transform = 'translate(' + (10 - 10 * k) + 'px,' + (14 - 14 * k) + 'px) rotate(' + (3 - 3 * k) + 'deg) scale(' + (.95 + .05 * k) + ')'; }
+  });
+  function end(){
+    if (!card) return;
+    var c = card; card = null; c.classList.remove('drag');
+    var nx = $('deck').querySelector('.card[data-id="' + deckIds[1] + '"]'); if (nx) nx.style.transition = '';
+    if (!moved){ c.style.transform = POS[0]; toggle(+c.dataset.id); return; }
+    if (Math.abs(dx) > 110 || Math.abs(vx) > .55){ decide(dx > 0 || (Math.abs(dx) < 110 && vx > 0), {x:dx, y:dy * .4}); return; }
+    c.style.transform = POS[0]; c.querySelectorAll('.stamp').forEach(function(s){ s.style.opacity = 0; });
+    if (nx) nx.style.transform = POS[1];
+  }
+  $('deck').addEventListener('pointerup', end); $('deck').addEventListener('pointercancel', end);
+  $('deck').addEventListener('click', function(e){
+    if (e.target.id === 'reshuffle'){ st.skipped = st.skipped.filter(function(id){ return BY[id].tod !== st.tod; }); save('state', st); buildDeck(); renderTimes(); renderDeck(); haptic([8, 30, 8]); }
+    if (e.target.id === 'goCrate2') openCrate();
+  });
+})();
+$('next').addEventListener('click', function(e){
+  var b = e.target.closest('[data-jump]'); if (!b) return;
+  var id = +b.dataset.jump; stopAudio(true);
+  deckIds = [id].concat(deckIds.filter(function(x){ return x !== id; }));
+  renderDeck('translate(0,-30px) rotate(-5deg) scale(1.04)'); haptic([6, 20, 6]);
+});
+$('bNope').addEventListener('click', function(){ decide(false); });
+$('bLike').addEventListener('click', function(){ decide(true); });
+$('bPlay').addEventListener('click', function(){ var id = topId(); if (id) toggle(id); });
+$('bUndo').addEventListener('click', undo);
+$('bInfo').addEventListener('click', function(){ var id = topId(); if (id) openRecord(id, false); });
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ if ($('sheet').classList.contains('on')) closeSheet(); else if (!$('vCrate').hidden) closeCrate(); return; }
+  if ($('sheet').classList.contains('on') || !$('vCrate').hidden) return;
+  if (e.target.closest && e.target.closest('button') && (e.key === ' ' || e.key === 'Enter')) return;
+  if (e.key === 'ArrowRight') decide(true);
+  else if (e.key === 'ArrowLeft') decide(false);
+  else if (e.key === ' '){ e.preventDefault(); var id = topId(); if (id) toggle(id); }
+});
+
+/* ---------- time-of-day filter ---------- */
+function renderTimes(){
+  $('times').innerHTML = ['noon', 'dusk', 'night'].map(function(k){
+    var n = T.filter(function(x){ return x.tod === k && st.liked.indexOf(x.id) < 0 && st.skipped.indexOf(x.id) < 0; }).length;
+    return '<button data-t="' + k + '" aria-pressed="' + (st.tod === k) + '">' + TOD[k] + '<span class="n">' + n + '</span></button>';
+  }).join('');
+}
+$('times').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b || b.dataset.t === st.tod) return;
+  st.tod = b.dataset.t; save('state', st); stopAudio(true); buildDeck();
+  $('deck').innerHTML = ''; renderTimes(); renderDeck('translate(0,60px) rotate(-4deg) scale(.9)'); haptic(6);
+});
+
+/* ---------- crate ---------- */
+function renderCrateBadge(){ $('crateN').textContent = st.liked.length; }
+function sorted(){
+  var a = st.liked.slice().map(function(id){ return BY[id]; });
+  if (st.sort === 'new') a.sort(function(x, y){ return (st.likedAt[y.id] || 0) - (st.likedAt[x.id] || 0); });
+  if (st.sort === 'year') a.sort(function(x, y){ return x.y - y.y; });
+  if (st.sort === 'bpm') a.sort(function(x, y){ return y.bpm - x.bpm; });
+  return a;
+}
+var EQ = '<svg class="eq" viewBox="0 0 26 20" aria-hidden="true"><path d="M3 20V9M10 20V3M17 20V11M24 20V6" stroke="#ffe45c" stroke-width="4" stroke-linecap="round" transform="skewX(-10) translate(3 0)"/></svg>';
+function renderCrate(){
+  $('crateCnt').textContent = st.liked.length + ' 張';
+  document.querySelectorAll('#sorts button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.s === st.sort); });
+  var a = sorted();
+  if (!a.length){ $('grid').innerHTML = '<p class="cempty"><b>唱片箱還是空的</b>在探索頁把喜歡的唱片往右甩，就會收進來。</p>'; return; }
+  $('grid').innerHTML = a.map(function(tr){
+    return '<button class="tile" data-id="' + tr.id + '"><span class="cv">' + cover(tr, 't' + tr.id) + EQ + '</span><span><b>' + tr.t + '</b><span>' + tr.a + '・' + tr.y + '・' + TOD[tr.tod] + '</span></span></button>';
+  }).join('');
+  paintPlaying();
+}
+function openCrate(){
+  renderCrate(); $('vCrate').hidden = false; var v = $('vCrate'); v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); haptic(6); $('fromCrate').focus({preventScroll:true});
+}
+function closeCrate(){ $('vCrate').hidden = true; haptic(5); renderDeck(); $('toCrate').focus({preventScroll:true}); }
+$('toCrate').addEventListener('click', openCrate);
+$('fromCrate').addEventListener('click', closeCrate);
+$('sorts').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; st.sort = b.dataset.s; save('state', st); renderCrate(); haptic(5); });
+$('grid').addEventListener('click', function(e){ var t = e.target.closest('.tile'); if (t) openRecord(+t.dataset.id, true); });
+/* edge swipe right on the crate returns */
+(function(){
+  var sx = 0, sy = 0, on = false;
+  $('vCrate').addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; on = true; });
+  $('vCrate').addEventListener('pointerup', function(e){ if (!on) return; on = false; var dx = e.clientX - sx, dy = e.clientY - sy; if (dx > 90 && Math.abs(dy) < 50) closeCrate(); });
+})();
+
+/* ---------- record sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openRecord(id, inCrate){
+  var tr = BY[id], liked = st.liked.indexOf(id) > -1;
+  lastFocus = document.activeElement;
+  var arm = '<svg class="arm" viewBox="0 0 60 150" aria-hidden="true"><circle cx="40" cy="16" r="12" fill="#0c3a4a"/><circle cx="40" cy="16" r="5" fill="#fffdf6"/><path d="M40 16 42 110 26 132" stroke="#fffdf6" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 128l14 8-5 9-14-8z" fill="#0c3a4a"/></svg>';
+  $('sheetBody').innerHTML = '<div class="turn" data-id="' + id + '"><svg class="plat" viewBox="0 0 190 190"><circle cx="95" cy="95" r="94" fill="#0c3a4a"/><g class="spin"><foreignObject x="5" y="5" width="180" height="180"></foreignObject></g></svg>' + arm + '</div>' +
+    '<h3 id="sT">' + tr.t + '</h3><p class="who">' + tr.a + '・' + tr.en + '</p>' +
+    '<dl class="creds"><dt>發行</dt><dd>' + tr.y + ' 年・' + TOD[tr.tod] + '系列</dd><dt>作曲</dt><dd>' + tr.cr[0] + '</dd><dt>編曲</dt><dd>' + tr.cr[1] + '</dd><dt>速度</dt><dd>' + tr.bpm + ' BPM・' + KEYS[tr.key] + ' 大調</dd></dl>' +
+    '<div class="srow"><button class="flat" id="sPlay" data-id="' + id + '">播放試聽</button>' + (liked ? '<button class="txt" id="sRemove">移出唱片箱</button>' : '<button class="txt" id="sLike" style="color:#0c3a4a">收進唱片箱</button>') + '</div>';
+  // vinyl drawn inline (no foreignObject needed)
+  var g = $('sheetBody').querySelector('.plat .spin'); g.innerHTML = vinyl(tr).replace('<svg viewBox="0 0 100 100"><g class="spin">', '<g transform="translate(8 8) scale(1.74)">').replace('</g></svg>', '</g>');
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); paintPlaying(); haptic(6);
+  $('sPlay').addEventListener('click', function(){ toggle(id); paintPlaying(); });
+  var rm = $('sRemove');
+  if (rm) rm.addEventListener('click', function(){
+    var at = st.likedAt[id];
+    st.liked = st.liked.filter(function(x){ return x !== id; }); delete st.likedAt[id]; save('state', st);
+    if (player.on && player.id === id) stopAudio();
+    closeSheet(); renderCrate(); renderCrateBadge(); renderTimes(); buildDeck(); renderDeck(); haptic([12, 30, 12]);
+    toast('已移出〈' + tr.t + '〉', function(){ st.liked.push(id); st.likedAt[id] = at; save('state', st); renderCrate(); renderCrateBadge(); renderTimes(); buildDeck(); renderDeck(); });
+  });
+  var lk = $('sLike');
+  if (lk) lk.addEventListener('click', function(){ closeSheet(); if (topId() === id) decide(true); });
+}
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = ''; if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, on = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; on = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId); });
+  sheet.addEventListener('pointermove', function(e){ if (!on) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!on) return; on = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+/* ---------- toast ---------- */
+var toastTm = null, undoFn = null;
+function toast(msg, fn){ $('toastT').textContent = msg; undoFn = fn || null; $('toastB').hidden = !fn; $('toast').classList.toggle('solo', !fn); $('toast').classList.add('on'); clearTimeout(toastTm); toastTm = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, fn ? 4200 : 2400); }
+$('toastB').addEventListener('click', function(){ if (undoFn){ undoFn(); undoFn = null; haptic(8); } $('toast').classList.remove('on'); });
+
+/* ---------- water + backdrop ---------- */
+(function(){
+  var r = rng(5), s = '';
+  for (var i = 0; i < 44; i++){
+    var x = r() * 520 - 10, y = r() * 980 - 10, d = 'M' + x.toFixed(0) + ' ' + y.toFixed(0);
+    for (var k = 0; k < 3; k++){ x += 20 + r() * 40; y += (r() - .5) * 40; d += 'q' + (10 + r() * 20).toFixed(0) + ' ' + ((r() - .5) * 30).toFixed(0) + ' ' + (20 + r() * 20).toFixed(0) + ' ' + ((r() - .5) * 20).toFixed(0); }
+    s += '<path d="' + d + '"/>';
+  }
+  $('caus').innerHTML = s;
+  var p = PAL.dusk, b = '';
+  var sky = ['#ff7a63', '#ff8c67', '#ff9f6a', '#ffb66d', '#ffcf74', '#ffe07e'];
+  sky.forEach(function(c, i){ b += '<rect y="' + i * 80 + '" width="1600" height="81" fill="' + c + '"/>'; });
+  b += '<mask id="bsm"><rect width="1600" height="1000" fill="#fff"/>'; for (var j = 0; j < 5; j++) b += '<rect y="' + (420 + j * 30) + '" width="1600" height="' + (6 + j * 5) + '" fill="#000"/>'; b += '</mask>';
+  b += '<circle cx="1180" cy="470" r="200" fill="#ffe45c" mask="url(#bsm)"/>';
+  b += '<rect y="560" width="1600" height="440" fill="#1283b3"/><path d="M0 560H1600" stroke="#fffdf6" stroke-width="10"/>';
+  var rr = rng(9);
+  for (var w = 0; w < 26; w++){ var x0 = rr() * 1600, y0 = 600 + rr() * 380; b += '<path d="M' + x0.toFixed(0) + ' ' + y0.toFixed(0) + 'q24-16 48 0t48 0" stroke="#bfeaff" stroke-width="6" fill="none" stroke-linecap="round" opacity=".7"/>'; }
+  b += '<g stroke="#fffdf6" stroke-width="12" fill="none" stroke-linecap="round"><path d="M1390 700v-150q0-30 30-30"/><path d="M1460 700v-150q0-30 30-30"/></g><g stroke="#fffdf6" stroke-width="10"><path d="M1390 600h70M1390 650h70"/></g>';
+  b += palm(-10, 1000, 560, .28, '#0c3a4a') + palm(1560, 1000, 520, -.55, '#0c3a4a') + palm(1380, 1000, 380, -.2, '#0f4a5c');
+  $('bd').innerHTML = b;
+})();
+
+/* ---------- size ---------- */
+function size(){
+  var r = $('screen').getBoundingClientRect(), sa = $('vDeck').getBoundingClientRect().height - r.height, cs = Math.min(r.width - 64, r.height - 474, 340), tight = cs < 250;
+  if (tight) cs = Math.min(r.width - 64, r.height - 398, 340);
+  $('screen').classList.toggle('tight', tight);
+  $('screen').style.setProperty('--cs', Math.round(cs) + 'px');
+}
+window.addEventListener('resize', size);
+
+buildDeck(); renderTimes(); renderCrateBadge(); size(); renderDeck();
+if (navigator.getBattery) navigator.getBattery().then(function(b){ var w = 3.7 + 14.9 * b.level; $('batt').setAttribute('d', 'M5.4 3h' + (w - 3.7 + 1.7).toFixed(1) + 'l-1.7 7H3.7z'); }).catch(function(){});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6faee">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="小帳本">
+<title>小帳本 Ledger · 智慧記帳本</title>
+<meta name="description" content="用數字鍵盤記下每筆收支，分類甜甜圈看清錢去哪，換一張桌布就從種子色重新長出整套主題。收錄於 100 Creative HTML Works（App 002・Material You 3 動態取色）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/002-material-ledger.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='20' fill='%23dcebc4'/%3E%3Cpath d='M32 12a20 20 0 1 1-20 20' fill='none' stroke='%234a6630' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M12 32a20 20 0 0 1 20-20' fill='none' stroke='%23a3c585' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:"Avenir Next","Avenir","PingFang TC","Heiti TC",system-ui,sans-serif;background:var(--surface,#f6faee);color:var(--on-surface,#1a1c17);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+svg{display:block}
+input{font:inherit;color:inherit}
+:root{--emph:cubic-bezier(.2,0,0,1);--decel:cubic-bezier(.05,.7,.1,1);--accel:cubic-bezier(.3,0,.8,.15);--num:"Avenir Next","Avenir","Helvetica Neue",sans-serif}
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.punch{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--surface);color:var(--on-surface);isolation:isolate;transition:background-color .45s var(--emph),color .45s var(--emph)}
+@media (min-width:521px){.stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+.backdrop{display:block;position:fixed;inset:0;z-index:0}
+.backdrop svg{width:100%;height:100%}
+.device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:46px;padding:9px;background:var(--dev);z-index:1;box-shadow:inset 0 0 0 1.5px var(--dev-edge),0 18px 30px -20px rgba(0,0,0,.55);transition:background-color .45s}
+.screen{inset:9px;border-radius:37px}
+.punch{display:block;position:absolute;top:21px;left:50%;width:13px;height:13px;margin-left:-6.5px;border-radius:50%;background:#0b0b0a;z-index:90;box-shadow:inset 0 0 0 2px #1d1d1b}
+.caption{display:block;position:relative;z-index:1;max-width:250px;color:var(--cap)}
+.caption b{display:block;font-size:34px;font-weight:600;letter-spacing:-.01em;line-height:1.1}
+.caption span{display:block;margin-top:12px;font-size:15px;line-height:1.65;opacity:.8}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+.status{position:absolute;top:0;left:0;right:0;z-index:96;height:calc(38px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 22px 0 26px;display:flex;align-items:center;justify-content:space-between;font:600 14px/1 var(--num);color:var(--on-surface);pointer-events:none;letter-spacing:.02em}
+.status .g{display:flex;gap:5px;align-items:center}
+.status svg{fill:currentColor}
+@media (display-mode:standalone){.status{display:none}}
+.gesture{position:absolute;left:50%;bottom:calc(6px + env(safe-area-inset-bottom)*.4);width:108px;height:4px;margin-left:-54px;border-radius:2px;background:var(--on-surface);opacity:.55;z-index:95;pointer-events:none}
+.pages{position:absolute;left:0;right:0;top:calc(38px + env(safe-area-inset-top));bottom:calc(84px + env(safe-area-inset-bottom))}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:0 0 110px;display:none;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.page.on{display:block;animation:through .34s var(--decel)}
+@keyframes through{from{opacity:.35;transform:scale(.965)}to{opacity:1;transform:none}}
+.page::-webkit-scrollbar{display:none}
+.appbar{display:flex;align-items:center;gap:4px;padding:8px 8px 4px 20px;min-height:64px}
+.appbar h1{flex:1;font-size:28px;font-weight:600;letter-spacing:-.01em;line-height:1.1}
+.appbar h1 small{display:block;font-size:13px;font-weight:500;color:var(--on-surface-variant);letter-spacing:.01em;margin-bottom:2px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--on-surface-variant);transition:background-color .2s}
+.ib:active{background:color-mix(in srgb,var(--on-surface) 12%,transparent)}
+.ib svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ib:disabled{opacity:.3;pointer-events:none}
+.hero{margin:6px 16px 0;padding:20px 20px 18px;border-radius:28px;background:var(--primary-container);color:var(--on-primary-container);transition:background-color .45s var(--emph),color .45s}
+.hero .lbl{font-size:14px;font-weight:500;opacity:.8}
+.hero .bal{font:600 44px/1.05 var(--num);letter-spacing:-.01em;margin-top:6px;font-variant-numeric:tabular-nums}
+.hero .bal i{font-style:normal;font-size:20px;font-weight:500;margin-right:6px;opacity:.7}
+.hero .io{display:grid;grid-template-columns:1fr 1fr;margin-top:14px;gap:12px}
+.hero .io div{font-size:13px;opacity:.85}
+.hero .io b{display:block;font:600 18px/1.3 var(--num);font-variant-numeric:tabular-nums;opacity:1;margin-top:2px}
+.wave{margin-top:16px}
+.wave svg{width:100%;height:22px;overflow:visible}
+.wave .meta{display:flex;justify-content:space-between;font-size:13px;margin-top:6px;opacity:.85}
+.hero.over .wave .meta b{color:var(--error)}
+.chips{display:flex;gap:8px;padding:16px 16px 6px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:36px;padding:0 14px 0 12px;border-radius:8px;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;color:var(--on-surface-variant);box-shadow:inset 0 0 0 1px var(--outline-variant);transition:background-color .2s,color .2s,box-shadow .2s}
+.chip svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;margin-left:-2px;display:none}
+.chip[aria-pressed=true]{background:var(--secondary-container);color:var(--on-secondary-container);box-shadow:none;padding-left:8px}
+.chip[aria-pressed=true] svg{display:block}
+.chip:active{background:color-mix(in srgb,var(--secondary-container) 70%,var(--on-surface) 10%)}
+.day{padding:18px 20px 6px;display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--on-surface-variant)}
+.day span:last-child{font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:500}
+.row{position:relative;overflow:hidden;touch-action:pan-y;transition:height .32s var(--emph)}
+.row .bin{position:absolute;inset:0;background:var(--error-container);color:var(--on-error-container);display:flex;align-items:center;justify-content:flex-end;padding-right:28px}
+.row .bin svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s var(--emph)}
+.row.armed .bin svg{transform:scale(1.25) rotate(-8deg)}
+.item{position:relative;display:flex;align-items:center;gap:16px;width:100%;min-height:68px;padding:10px 20px;text-align:left;background:var(--surface);transition:background-color .2s}
+.item.slide{transition:transform .32s var(--emph),background-color .2s}
+.item:active{background:color-mix(in srgb,var(--surface) 88%,var(--on-surface))}
+.item .ic{width:28px;height:28px;flex:none}
+.item .tx{flex:1;min-width:0}
+.item .tx b{display:block;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .tx span{display:block;font-size:13px;color:var(--on-surface-variant);margin-top:2px}
+.item .amt{font:600 16px/1 var(--num);font-variant-numeric:tabular-nums}
+.item .amt.in{color:var(--tertiary)}
+.item.fresh{animation:fresh 1.4s var(--emph)}
+@keyframes fresh{0%,30%{background:var(--tertiary-container)}100%{background:var(--surface)}}
+.empty{padding:48px 32px;text-align:center;color:var(--on-surface-variant);font-size:15px;line-height:1.6}
+.empty svg{width:120px;height:90px;margin:0 auto 12px}
+.cat{stroke:var(--on-surface-variant);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.cat .t{fill:var(--c,var(--primary));stroke:none;opacity:.9}
+.seg{display:inline-flex;margin:4px 16px 0;border-radius:20px;box-shadow:inset 0 0 0 1px var(--outline);overflow:hidden}
+.seg button{height:40px;padding:0 18px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;color:var(--on-surface)}
+.seg button+button{box-shadow:inset 1px 0 0 var(--outline)}
+.seg button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;display:none}
+.seg button[aria-pressed=true]{background:var(--secondary-container);color:var(--on-secondary-container)}
+.seg button[aria-pressed=true] svg{display:block}
+.donutwrap{position:relative;width:250px;height:250px;margin:14px auto 4px}
+.donutwrap svg{width:100%;height:100%;overflow:visible}
+.donutwrap circle.s{cursor:pointer;transition:stroke-width .3s var(--emph),opacity .3s}
+.dcenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center}
+.dcenter span{font-size:14px;color:var(--on-surface-variant);font-weight:500}
+.dcenter b{font:600 30px/1.15 var(--num);font-variant-numeric:tabular-nums;margin-top:2px}
+.dcenter em{font-style:normal;font-size:13px;color:var(--on-surface-variant);margin-top:2px}
+.legend{padding:6px 8px 0}
+.leg{display:grid;grid-template-columns:28px 1fr auto;gap:4px 14px;align-items:center;width:100%;padding:10px 12px;border-radius:16px;text-align:left;transition:background-color .2s}
+.leg[aria-pressed=true]{background:var(--surface-container-high)}
+.leg:active{background:var(--surface-container-highest)}
+.leg .ic{width:28px;height:28px;grid-row:span 2}
+.leg b{font-size:15px;font-weight:500}
+.leg .v{font:600 15px/1 var(--num);font-variant-numeric:tabular-nums;text-align:right}
+.leg .bar{grid-column:2/4;height:6px;border-radius:3px;background:var(--surface-container-highest);position:relative;overflow:hidden}
+.leg .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--c)}
+.leg .p{font-size:13px;color:var(--on-surface-variant);font-weight:500;margin-left:6px}
+.card{margin:18px 16px 0;padding:18px 16px 14px;border-radius:24px;background:var(--surface-container-low);transition:background-color .45s}
+.card h3{font-size:16px;font-weight:600;display:flex;justify-content:space-between;align-items:baseline}
+.card h3 span{font-size:13px;font-weight:500;color:var(--on-surface-variant)}
+.bars{margin-top:12px;height:120px;position:relative;touch-action:pan-y}
+.bars svg{width:100%;height:100%}
+.tip{position:absolute;top:-6px;transform:translateX(-50%);padding:6px 10px;border-radius:8px;background:var(--inverse-surface);color:var(--inverse-on-surface);font:600 13px/1.2 var(--num);white-space:nowrap;pointer-events:none;visibility:hidden}
+.tip.on{visibility:visible}
+.walls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:8px 16px 0}
+.wall{position:relative;aspect-ratio:3/4;border-radius:22px;overflow:hidden;transition:border-radius .45s var(--emph)}
+.wall svg{width:100%;height:100%}
+.wall[aria-pressed=true]{border-radius:48px 48px 22px 22px}
+.wall .nm{position:absolute;left:0;right:0;bottom:0;padding:18px 0 9px;text-align:center;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.45))}
+.wall::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 0 var(--primary);transition:box-shadow .3s var(--emph)}
+.wall[aria-pressed=true]::after{box-shadow:inset 0 0 0 4px var(--primary),inset 0 0 0 7px var(--surface)}
+.sec{padding:24px 20px 8px;font-size:14px;font-weight:600;color:var(--primary)}
+.tones{padding:0 16px}
+.tones .r{display:grid;grid-template-columns:52px repeat(11,1fr);align-items:center;margin-bottom:4px}
+.tones .r span{font-size:12px;color:var(--on-surface-variant);font-weight:500}
+.tones .r i{height:28px;display:block;transition:background-color .45s var(--emph)}
+.tones .r i:nth-child(2){border-radius:10px 0 0 10px}
+.tones .r i:last-child{border-radius:0 10px 10px 0}
+.tones .scale{display:grid;grid-template-columns:52px repeat(11,1fr);font:500 10px/1 var(--num);color:var(--on-surface-variant);text-align:center;margin-top:6px}
+.lrow{display:flex;align-items:center;gap:16px;width:100%;min-height:72px;padding:8px 20px;text-align:left}
+.lrow:active{background:color-mix(in srgb,var(--on-surface) 8%,transparent)}
+.lrow .tx{flex:1}
+.lrow .tx b{display:block;font-size:16px;font-weight:500}
+.lrow .tx span{display:block;font-size:13px;color:var(--on-surface-variant);margin-top:2px}
+.sw{position:relative;width:52px;height:32px;border-radius:16px;background:var(--surface-container-highest);box-shadow:inset 0 0 0 2px var(--outline);flex:none;transition:background-color .25s}
+.sw i{position:absolute;left:8px;top:8px;width:16px;height:16px;border-radius:50%;background:var(--outline);transition:transform .3s var(--emph),width .3s var(--emph),height .3s var(--emph),left .3s var(--emph),top .3s var(--emph),background-color .25s;display:grid;place-items:center}
+.sw i svg{width:16px;height:16px;stroke:var(--on-primary-container);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .2s}
+.lrow[aria-checked=true] .sw{background:var(--primary);box-shadow:none}
+.lrow[aria-checked=true] .sw i{left:24px;top:4px;width:24px;height:24px;background:var(--on-primary)}
+.lrow[aria-checked=true] .sw i svg{opacity:1}
+.slider{position:relative;height:48px;margin:0 20px;touch-action:none;cursor:pointer}
+.slider .trk{position:absolute;left:0;right:0;top:16px;height:16px}
+.slider .a,.slider .b{position:absolute;top:0;bottom:0}
+.slider .a{left:0;border-radius:8px 3px 3px 8px;background:var(--primary)}
+.slider .b{right:0;border-radius:3px 8px 8px 3px;background:var(--secondary-container)}
+.slider .h{position:absolute;top:2px;width:4px;height:44px;margin-left:-2px;border-radius:2px;background:var(--primary);transition:width .15s,margin .15s}
+.slider.drag .h{width:2px;margin-left:-1px}
+.slider .vl{position:absolute;top:-34px;transform:translateX(-50%);padding:6px 12px;border-radius:16px;background:var(--inverse-surface);color:var(--inverse-on-surface);font:600 13px/1.2 var(--num);white-space:nowrap;visibility:hidden}
+.slider.drag .vl{visibility:visible}
+.budgetv{display:flex;justify-content:space-between;padding:0 20px 6px;font-size:13px;color:var(--on-surface-variant)}
+.budgetv b{font:600 16px/1 var(--num);color:var(--on-surface)}
+.textbtn{height:44px;padding:0 14px;margin:14px 12px 0;border-radius:22px;font-size:14px;font-weight:600;color:var(--error);display:inline-flex;align-items:center;gap:8px}
+.textbtn:active{background:color-mix(in srgb,var(--error) 12%,transparent)}
+.textbtn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fab{position:absolute;right:16px;bottom:calc(100px + env(safe-area-inset-bottom));z-index:40;height:56px;min-width:56px;padding:0 20px 0 16px;border-radius:16px;background:var(--primary-container);color:var(--on-primary-container);display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;box-shadow:0 3px 4px -2px color-mix(in srgb,var(--primary) 45%,transparent);transition:padding .3s var(--emph),background-color .45s,transform .3s var(--emph),border-radius .2s}
+.fab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;flex:none}
+.fab span{white-space:nowrap;overflow:hidden;max-width:80px;transition:max-width .3s var(--emph)}
+.fab.mini{padding:0 16px}
+.fab.mini span{max-width:0}
+.fab:active{border-radius:22px;background:color-mix(in srgb,var(--primary-container) 85%,var(--on-primary-container))}
+.screen.snacking .fab:not(.away){transform:translateY(-58px)}
+.fab.away{transform:translateX(calc(100% + 40px))}
+.nav{position:absolute;left:0;right:0;bottom:0;z-index:45;height:calc(84px + env(safe-area-inset-bottom));padding:12px 8px env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface-container);transition:background-color .45s}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:4px;height:60px;font-size:12px;font-weight:600;color:var(--on-surface-variant)}
+.nav .pill{position:relative;width:64px;height:32px;border-radius:16px;display:grid;place-items:center}
+.nav .pill::before{content:"";position:absolute;inset:0;border-radius:16px;background:var(--secondary-container);transform:scaleX(.3);opacity:0;transition:transform .35s var(--emph),opacity .2s}
+.nav .pill svg{position:relative;width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav .pill svg .f{fill:none;transition:fill .2s}
+.nav button[aria-selected=true]{color:var(--on-surface)}
+.nav button[aria-selected=true] .pill{color:var(--on-secondary-container)}
+.nav button[aria-selected=true] .pill::before{transform:none;opacity:1}
+.nav button[aria-selected=true] .pill svg .f{fill:currentColor}
+.nav button:active .pill{background:color-mix(in srgb,var(--on-surface) 10%,transparent)}
+.add{position:absolute;inset:0;z-index:80;background:var(--surface);visibility:hidden;display:flex;flex-direction:column;padding-top:calc(38px + env(safe-area-inset-top));clip-path:inset(0 0 0 0 round 0px)}
+.add.open{visibility:visible}
+.add::before{content:"";position:absolute;inset:0;background:var(--primary-container);opacity:0;pointer-events:none;z-index:5;transition:opacity .28s var(--emph)}
+.add.fromfab::before{opacity:1;transition:none}
+.add .top{display:flex;align-items:center;padding:4px 8px}
+.add .tabs{flex:1;display:flex;justify-content:center;position:relative;gap:4px}
+.add .tabs button{height:48px;padding:0 18px;font-size:15px;font-weight:600;color:var(--on-surface-variant)}
+.add .tabs button[aria-selected=true]{color:var(--primary)}
+.add .tabs .ind{position:absolute;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--primary);transition:transform .35s var(--emph),width .35s var(--emph)}
+.add .save{height:40px;padding:0 18px;border-radius:20px;background:var(--primary);color:var(--on-primary);font-size:14px;font-weight:600;margin-right:6px}
+.add .save:active{border-radius:10px}
+.add .save:disabled{background:color-mix(in srgb,var(--on-surface) 12%,transparent);color:color-mix(in srgb,var(--on-surface) 40%,transparent)}
+.amtbox{padding:10px 24px 0;text-align:right}
+.amtbox .cur{font-size:15px;font-weight:600;color:var(--on-surface-variant)}
+.amtbox .big{font:600 56px/1.1 var(--num);letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--on-surface);white-space:nowrap}
+.amtbox .big.zero{color:var(--outline)}
+.amtbox .big::after{content:"";display:inline-block;width:3px;height:44px;margin-left:4px;vertical-align:-4px;background:var(--primary);border-radius:2px;animation:caret 1.1s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+.amtbox .big.shake{animation:shake .32s}
+@keyframes shake{25%{transform:translateX(8px)}50%{transform:translateX(-6px)}75%{transform:translateX(3px)}}
+.cats{display:grid;grid-template-columns:repeat(5,1fr);gap:2px 0;padding:10px 8px 0}
+.cats button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;font-size:12px;font-weight:600;color:var(--on-surface-variant);min-height:64px}
+.cats .sh{position:relative;width:48px;height:40px;display:grid;place-items:center}
+.cats .sh .ck{position:absolute;inset:-2px 2px;width:44px;height:44px;fill:var(--primary-container);transform:scale(.2) rotate(-60deg);opacity:0;transition:transform .45s var(--emph),opacity .2s;margin:auto}
+.cats .sh .ic{position:relative;width:26px;height:26px}
+.cats button[aria-pressed=true]{color:var(--on-surface)}
+.cats button[aria-pressed=true] .ck{transform:none;opacity:1;animation:spin 14s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fields{display:flex;gap:8px;padding:8px 16px 0;align-items:stretch}
+.tf{flex:1;position:relative;height:52px;border-radius:12px 12px 0 0;background:var(--surface-container-highest);box-shadow:inset 0 -1px 0 var(--on-surface-variant)}
+.tf:focus-within{box-shadow:inset 0 -2px 0 var(--primary)}
+.tf input{width:100%;height:100%;border:0;background:none;padding:18px 14px 4px;font-size:16px;outline:none}
+.tf label{position:absolute;left:14px;top:7px;font-size:12px;font-weight:600;color:var(--on-surface-variant);pointer-events:none}
+.tf:focus-within label{color:var(--primary)}
+.dsel{display:flex;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outline);overflow:hidden}
+.dsel button{width:46px;font-size:13px;font-weight:600;color:var(--on-surface-variant)}
+.dsel button+button{box-shadow:inset 1px 0 0 var(--outline)}
+.dsel button[aria-pressed=true]{background:var(--secondary-container);color:var(--on-secondary-container)}
+.pad{margin-top:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px calc(26px + env(safe-area-inset-bottom))}
+.pad button{height:58px;border-radius:29px;background:var(--surface-container-high);font:500 26px/1 var(--num);color:var(--on-surface);display:grid;place-items:center;transition:border-radius .16s var(--emph),background-color .16s}
+.pad button:active{border-radius:12px;background:var(--secondary-container)}
+.pad button svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pad .bk{background:var(--tertiary-container);color:var(--on-tertiary-container)}
+.scrim{position:absolute;inset:0;z-index:84;background:rgba(0,0,0,.32);opacity:0;pointer-events:none;transition:opacity .3s var(--emph)}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:85;max-height:86%;overflow:auto;border-radius:28px 28px 0 0;background:var(--surface-container-low);padding:0 0 calc(26px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .45s var(--decel);touch-action:none}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{display:block;width:100%;height:36px;position:relative}
+.grab::before{content:"";position:absolute;left:50%;top:16px;width:32px;height:4px;margin-left:-16px;border-radius:2px;background:var(--on-surface-variant);opacity:.4}
+.sh-h{display:flex;align-items:center;padding:0 12px 0 24px;gap:8px}
+.sh-h h2{flex:1;font-size:22px;font-weight:600}
+.sh-amt{padding:18px 24px 4px;display:flex;align-items:center;gap:16px}
+.sh-amt .ic{width:40px;height:40px}
+.sh-amt b{font:600 36px/1 var(--num);font-variant-numeric:tabular-nums}
+.kv{padding:6px 24px}
+.kv div{display:flex;justify-content:space-between;padding:12px 0;font-size:15px;box-shadow:inset 0 -1px 0 var(--outline-variant)}
+.kv div:last-child{box-shadow:none}
+.kv span{color:var(--on-surface-variant)}
+.recat{display:grid;grid-template-columns:repeat(5,1fr);padding:4px 8px}
+.recat button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;font-size:12px;font-weight:600;color:var(--on-surface-variant);border-radius:16px;min-height:60px}
+.recat button .ic{width:26px;height:26px}
+.recat button[aria-pressed=true]{background:var(--secondary-container);color:var(--on-secondary-container)}
+.fill{display:block;height:52px;margin:14px 24px 0;width:calc(100% - 48px);border-radius:16px;background:var(--primary);color:var(--on-primary);font-size:16px;font-weight:600;transition:border-radius .2s var(--emph)}
+.fill:active{border-radius:26px}
+.fill.err{background:var(--error);color:var(--on-error)}
+.months{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 20px}
+.months button{height:52px;border-radius:26px;font-size:15px;font-weight:600;color:var(--on-surface);transition:border-radius .2s var(--emph)}
+.months button:active{border-radius:10px}
+.months button[aria-pressed=true]{background:var(--primary);color:var(--on-primary)}
+.months button:disabled{color:var(--outline);pointer-events:none}
+.yr{display:flex;align-items:center;justify-content:center;gap:8px;font:600 18px/1 var(--num)}
+.note{padding:4px 24px 0;font-size:14px;line-height:1.6;color:var(--on-surface-variant)}
+.snack{position:absolute;left:12px;right:12px;bottom:calc(98px + env(safe-area-inset-bottom));z-index:88;min-height:48px;padding:6px 8px 6px 16px;border-radius:6px;background:var(--inverse-surface);color:var(--inverse-on-surface);display:flex;align-items:center;gap:8px;font-size:14px;transform:translateY(20px) scale(.96);visibility:hidden;opacity:0;transition:transform .3s var(--emph),opacity .2s,visibility 0s .3s}
+.snack.on{transform:none;opacity:1;visibility:visible;transition:transform .3s var(--decel),opacity .2s}
+.snack span{flex:1}
+.snack button{height:40px;padding:0 12px;border-radius:20px;font-weight:600;color:var(--inverse-primary)}
+.snack.high{bottom:calc(20px + env(safe-area-inset-bottom))}
+@media (prefers-reduced-motion:reduce){.page.on{animation:none}
+.cats button[aria-pressed=true] .ck{animation:none}
+.fab,.fab span,.sheet,.snack,.item.slide,.row,.wall,.nav .pill::before,.add .tabs .ind{transition-duration:.01s}
+.amtbox .big::after{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="bigwall" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="caption"><b>小帳本 Ledger</b><span>一筆一筆記下來。換一張桌布，整本帳就從那個顏色重新長出來。</span></div>
+  <div class="device">
+    <div class="punch" aria-hidden="true"></div>
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="16" height="14" viewBox="0 0 16 14"><path d="M8 13.2 .4 4.6a11 11 0 0 1 15.2 0z" opacity=".95"/></svg>
+          <svg width="14" height="14" viewBox="0 0 14 14"><path d="M13.5 .5v13H.5z"/></svg>
+          <svg width="9" height="15" viewBox="0 0 9 15"><rect x="2.5" y="0" width="4" height="2" rx=".6"/><rect x=".5" y="1.6" width="8" height="13" rx="1.8"/></svg>
+          <span style="font-size:12px;margin-left:1px" id="batt">87%</span>
+        </span>
+      </div>
+
+      <main class="pages">
+        <!-- 明細 -->
+        <section class="page on" id="p-list" aria-label="明細">
+          <header class="appbar">
+            <button class="ib" id="prevM" aria-label="上個月"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <h1 id="mTitle" role="button" tabindex="0" aria-label="選擇月份" style="cursor:pointer;text-align:center"><small>2026</small>九月</h1>
+            <button class="ib" id="nextM" aria-label="下個月"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+          </header>
+          <div class="hero" id="hero">
+            <div class="lbl">本月結餘</div>
+            <div class="bal" id="bal"><i>NT$</i>0</div>
+            <div class="io"><div>支出<b id="sumOut">0</b></div><div>收入<b id="sumIn">0</b></div></div>
+            <div class="wave" aria-label="預算進度">
+              <svg id="waveSvg" viewBox="0 0 310 22" preserveAspectRatio="none"></svg>
+              <div class="meta"><span>預算 <span id="bgt">40,000</span></span><b id="bgtPct">0%</b></div>
+            </div>
+          </div>
+          <div class="chips" id="chips" role="group" aria-label="篩選"></div>
+          <div id="list"></div>
+        </section>
+
+        <!-- 分析 -->
+        <section class="page" id="p-stats" aria-label="分析">
+          <header class="appbar">
+            <button class="ib" id="prevM2" aria-label="上個月"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <h1 id="mTitle2" style="text-align:center"><small>2026</small>九月</h1>
+            <button class="ib" id="nextM2" aria-label="下個月"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+          </header>
+          <div style="text-align:center"><div class="seg" role="group" aria-label="類型">
+            <button aria-pressed="true" data-k="out"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>支出</button>
+            <button aria-pressed="false" data-k="in"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>收入</button>
+          </div></div>
+          <div class="donutwrap"><svg id="donut" viewBox="0 0 250 250"></svg><div class="dcenter"><span id="dLbl">本月支出</span><b id="dVal">0</b><em id="dSub">&nbsp;</em></div></div>
+          <div class="legend" id="legend"></div>
+          <div class="card"><h3>每日支出 <span id="avgDay">日均 0</span></h3><div class="bars" id="bars"><svg id="barSvg" viewBox="0 0 330 120" preserveAspectRatio="none"></svg><div class="tip" id="tip"></div></div></div>
+        </section>
+
+        <!-- 主題 -->
+        <section class="page" id="p-theme" aria-label="主題">
+          <header class="appbar"><h1><small>動態取色</small>主題</h1></header>
+          <div class="walls" id="walls" role="group" aria-label="桌布"></div>
+          <div class="sec">從種子色長出的色調</div>
+          <div class="tones" id="tones"></div>
+          <div class="sec">外觀與預算</div>
+          <button class="lrow" id="darkRow" role="switch" aria-checked="false"><span class="tx"><b>深色主題</b><span>同一組色調，換到夜晚</span></span><span class="sw"><i><svg viewBox="0 0 16 16"><path d="M3.5 8.3l3 3 6-6.3"/></svg></i></span></button>
+          <div class="budgetv"><span>每月預算</span><b id="bgtV">40,000</b></div>
+          <div class="slider" id="slider" role="slider" tabindex="0" aria-label="每月預算" aria-valuemin="5000" aria-valuemax="60000"><div class="trk"><i class="a" id="sa"></i><i class="b" id="sb"></i></div><i class="h" id="sh"></i><span class="vl" id="svl"></span></div>
+          <button class="textbtn" id="resetBtn"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v5h5"/></svg>重設示範帳目</button>
+        </section>
+      </main>
+
+      <button class="fab" id="fab" aria-label="記一筆"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>記一筆</span></button>
+
+      <nav class="nav" role="tablist" aria-label="主要導覽">
+        <button role="tab" aria-selected="true" data-p="p-list"><span class="pill"><svg viewBox="0 0 24 24"><path class="f" d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9.5 8.5h5M9.5 12.5h5" stroke="var(--surface-container)"/></svg></span>明細</button>
+        <button role="tab" aria-selected="false" data-p="p-stats"><span class="pill"><svg viewBox="0 0 24 24"><path class="f" d="M12 3a9 9 0 0 1 9 9h-9z"/><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 3a9 9 0 0 1 9 9h-9z"/></svg></span>分析</button>
+        <button role="tab" aria-selected="false" data-p="p-theme"><span class="pill"><svg viewBox="0 0 24 24"><path class="f" d="M12 3.5c-4.8 0-8.5 3.6-8.5 8.2 0 4.4 3.5 8.3 7.6 8.3 1.3 0 1.7-1 1.2-2-.6-1.2.1-2.5 1.5-2.5h2.3c2.6 0 4.4-1.8 4.4-4.3 0-4.3-3.8-7.7-8.5-7.7z"/><path d="M12 3.5c-4.8 0-8.5 3.6-8.5 8.2 0 4.4 3.5 8.3 7.6 8.3 1.3 0 1.7-1 1.2-2-.6-1.2.1-2.5 1.5-2.5h2.3c2.6 0 4.4-1.8 4.4-4.3 0-4.3-3.8-7.7-8.5-7.7z"/><circle cx="8" cy="11" r="1.2" fill="var(--surface-container)" stroke="none"/><circle cx="12" cy="7.6" r="1.2" fill="var(--surface-container)" stroke="none"/><circle cx="16" cy="10" r="1.2" fill="var(--surface-container)" stroke="none"/></svg></span>主題</button>
+      </nav>
+
+      <div class="add" id="add" role="dialog" aria-modal="true" aria-label="記一筆">
+        <div class="top">
+          <button class="ib" id="addClose" aria-label="關閉"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          <div class="tabs" role="tablist" id="typeTabs"><button role="tab" aria-selected="true" data-t="out">支出</button><button role="tab" aria-selected="false" data-t="in">收入</button><i class="ind" id="tabInd"></i></div>
+          <button class="save" id="saveBtn" disabled>儲存</button>
+        </div>
+        <div class="amtbox"><div class="cur" id="addCat">餐飲</div><div class="big zero" id="amt">0</div></div>
+        <div class="cats" id="cats" role="group" aria-label="分類"></div>
+        <div class="fields">
+          <div class="tf"><label for="noteIn">備註</label><input id="noteIn" maxlength="18" autocomplete="off" placeholder=""></div>
+          <div class="dsel" role="group" aria-label="日期" id="dsel"><button aria-pressed="true" data-d="0">今天</button><button aria-pressed="false" data-d="1">昨天</button><button aria-pressed="false" data-d="2">前天</button></div>
+        </div>
+        <div class="pad" id="pad">
+          <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+          <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+          <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+          <button data-k="00">00</button><button data-k="0">0</button><button data-k="bk" class="bk" aria-label="刪除一位"><svg viewBox="0 0 24 24"><path d="M9 5h11v14H9l-6-7z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg></button>
+        </div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><span class="grab" aria-hidden="true"></span><div id="sheetBody"></div></div>
+      <div class="snack" id="snack" role="status"><span id="snackT"></span><button id="snackB">復原</button></div>
+      <div class="gesture" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const K = 'app002:';
+const load = (k, d) => { try { const v = localStorage.getItem(K + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const save = (k, v) => { try { localStorage.setItem(K + k, JSON.stringify(v)); } catch (e) {} };
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch (e) {} }
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const screen = $('screen');
+function toRgbLin(L, C, h){
+const a = C * Math.cos(h * Math.PI / 180), b = C * Math.sin(h * Math.PI / 180);
+const l_ = L + .3963377774 * a + .2158037573 * b, m_ = L - .1055613458 * a - .0638541728 * b, s_ = L - .0894841775 * a - 1.291485548 * b;
+const l = l_ ** 3, m = m_ ** 3, s = s_ ** 3;
+return [4.0767416621 * l - 3.3077115913 * m + .2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - .3413193965 * s, -.0041960863 * l - .7034186147 * m + 1.707614701 * s];
+}
+const inG = c => c.every(v => v >= -1e-4 && v <= 1.0001);
+const gam = v => { v = Math.min(1, Math.max(0, v)); return v <= .0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - .055; };
+function tone(h, C, t){
+if (t <= 0) return '#000000'; if (t >= 100) return '#ffffff';
+const L = (t + 16) / 116;
+let lo = 0, hi = C, rgb = toRgbLin(L, C, h);
+if (!inG(rgb)){ for (let i = 0; i < 18; i++){ const mid = (lo + hi) / 2; if (inG(toRgbLin(L, mid, h))) lo = mid; else hi = mid; } rgb = toRgbLin(L, lo, h); }
+return '#' + rgb.map(v => Math.round(gam(v) * 255).toString(16).padStart(2, '0')).join('');
+}
+const SEEDS = [
+{n:'苔綠', h:132, c:.13},
+{n:'烏龍', h:78, c:.12},
+{n:'柿子', h:44, c:.15},
+{n:'洛神', h:8, c:.14},
+{n:'海藻', h:192, c:.1},
+{n:'龍眼', h:58, c:.055}
+];
+function palettes(s){
+return {
+p: t => tone(s.h, s.c, t),
+s: t => tone(s.h, s.c * .34, t),
+t: t => tone((s.h + 62) % 360, s.c * .62, t),
+n: t => tone(s.h, .011, t),
+v: t => tone(s.h, .026, t),
+e: t => tone(27, .17, t)
+};
+}
+let state = {
+seed: load('seed', 0), dark: load('dark', false), budget: load('budget', 40000)
+};
+function applyTheme(){
+const P = palettes(SEEDS[state.seed] || SEEDS[0]), d = state.dark;
+const r = d ? {
+'primary':P.p(80),'on-primary':P.p(20),'primary-container':P.p(30),'on-primary-container':P.p(90),'inverse-primary':P.p(40),
+'secondary-container':P.s(30),'on-secondary-container':P.s(90),'tertiary':P.t(80),'tertiary-container':P.t(30),'on-tertiary-container':P.t(90),
+'surface':P.n(6),'surface-container-low':P.n(10),'surface-container':P.n(12),'surface-container-high':P.n(17),'surface-container-highest':P.n(22),
+'on-surface':P.n(90),'on-surface-variant':P.v(80),'outline':P.v(60),'outline-variant':P.v(30),'inverse-surface':P.n(90),'inverse-on-surface':P.n(20),
+'error':P.e(80),'on-error':P.e(20),'error-container':P.e(30),'on-error-container':P.e(90)
+} : {
+'primary':P.p(40),'on-primary':P.p(100),'primary-container':P.p(90),'on-primary-container':P.p(10),'inverse-primary':P.p(80),
+'secondary-container':P.s(90),'on-secondary-container':P.s(10),'tertiary':P.t(40),'tertiary-container':P.t(90),'on-tertiary-container':P.t(10),
+'surface':P.n(98),'surface-container-low':P.n(96),'surface-container':P.n(94),'surface-container-high':P.n(92),'surface-container-highest':P.n(90),
+'on-surface':P.n(10),'on-surface-variant':P.v(30),'outline':P.v(50),'outline-variant':P.v(80),'inverse-surface':P.n(20),'inverse-on-surface':P.n(95),
+'error':P.e(40),'on-error':P.e(100),'error-container':P.e(90),'on-error-container':P.e(10)
+};
+const st = document.documentElement.style;
+for (const k in r) st.setProperty('--' + k, r[k]);
+st.setProperty('--dev', P.n(d ? 16 : 22)); st.setProperty('--dev-edge', P.v(d ? 35 : 45)); st.setProperty('--cap', P.n(14));
+// category colours harmonised with the seed
+CAT_TONES = d ? [P.p(80), P.t(75), P.s(70), P.p(60), P.t(55), P.v(70), P.e(75)] : [P.p(40), P.t(50), P.s(60), P.p(70), P.t(75), P.v(55), P.e(55)];
+INC_TONES = d ? [P.t(80), P.p(75), P.s(70)] : [P.t(40), P.p(55), P.s(55)];
+const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = r['surface'];
+drawBigWall(); renderTones();
+}
+let CAT_TONES = [], INC_TONES = [];
+function wallSVG(i, w, h, big){
+const s = SEEDS[i], P = palettes(s), id = 'w' + i + (big ? 'b' : '');
+const sky = [P.p(88), P.t(82)], hills = [P.p(70), P.s(55), P.p(45), P.p(30), P.n(20)];
+const sun = tone((s.h + 25) % 360, .05, 97);
+const k = w / 120, y = v => (v * h / 160).toFixed(1), x = v => (v * k).toFixed(1), rs = v => (v * k * (big ? .5 : 1)).toFixed(1);
+let g = `<defs><linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient>` +
+(big ? `<filter id="${id}g"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .35 0"/></filter>` : '') + `</defs>`;
+g += `<rect width="${w}" height="${h}" fill="url(#${id}s)"/>`;
+const variants = [
+() => `<circle cx="${x(84)}" cy="${y(46)}" r="${rs(15)}" fill="${sun}"/>`,
+() => `<circle cx="${x(30)}" cy="${y(40)}" r="${rs(11)}" fill="${sun}"/>`,
+() => `<circle cx="${x(64)}" cy="${y(60)}" r="${rs(20)}" fill="${sun}"/>`,
+() => `<circle cx="${x(88)}" cy="${y(34)}" r="${rs(9)}" fill="${sun}"/>`,
+() => `<circle cx="${x(40)}" cy="${y(54)}" r="${rs(13)}" fill="${sun}"/>`,
+() => `<circle cx="${x(76)}" cy="${y(40)}" r="${rs(12)}" fill="${sun}"/>`
+];
+g += variants[i]();
+const shapes = [
+[[0,86,20,74,44,80,70,66,96,76,120,70],[0,104,30,94,60,100,90,88,120,96],[0,122,26,112,58,118,90,106,120,114],[0,140,40,132,80,138,120,130]],
+[[0,92,18,80,40,90,66,78,90,88,120,80],[0,108,24,100,54,106,84,96,120,104],[0,126,34,116,70,122,120,114],[0,144,50,136,120,142]],
+[[0,80,30,64,54,76,80,60,104,72,120,66],[0,100,26,92,52,98,86,88,120,98],[0,120,40,110,78,118,120,108],[0,140,30,134,70,142,120,134]],
+[[0,88,24,70,48,84,72,68,98,82,120,74],[0,106,30,96,62,104,94,94,120,100],[0,124,28,116,64,124,98,114,120,120],[0,142,46,134,86,142,120,136]],
+[[0,96,30,90,60,94,90,86,120,92],[0,110,28,104,60,110,90,102,120,108],[0,126,30,120,64,126,120,118],[0,142,40,138,80,144,120,138]],
+[[0,84,22,76,46,82,74,70,100,78,120,72],[0,102,34,94,62,100,92,92,120,98],[0,122,30,114,66,120,120,112],[0,140,44,134,88,140,120,134]]
+][i];
+shapes.forEach((pts, j) => {
+let d = `M0 ${y(pts[1])}`;
+for (let q = 2; q < pts.length; q += 2){ const px = pts[q - 2], py = pts[q - 1], nx = pts[q], ny = pts[q + 1]; d += ` Q${x((px + nx) / 2)} ${y(Math.min(py, ny) - 6)} ${x(nx)} ${y(ny)}`; }
+d += ` V${h} H0Z`;
+g += `<path d="${d}" fill="${hills[j + 1] || hills[0]}"/>`;
+});
+if (big) g += `<rect width="${w}" height="${h}" filter="url(#${id}g)" opacity=".5"/>`;
+return g;
+}
+function drawBigWall(){ const el = $('bigwall'); el.setAttribute('viewBox', '0 0 1600 1000'); el.innerHTML = wallSVG(state.seed, 1600, 1000, true); }
+function renderWalls(){
+$('walls').innerHTML = SEEDS.map((s, i) => `<button class="wall" data-i="${i}" aria-pressed="${i === state.seed}" aria-label="${s.n}"><svg viewBox="0 0 120 160" preserveAspectRatio="xMidYMid slice">${wallSVG(i, 120, 160)}</svg><span class="nm">${s.n}</span></button>`).join('');
+}
+function renderTones(){
+const P = palettes(SEEDS[state.seed] || SEEDS[0]), T = [0,10,20,30,40,50,60,70,80,90,100];
+const rows = [['主色', P.p], ['次色', P.s], ['第三色', P.t], ['中性', P.n], ['中性變體', P.v]];
+$('tones').innerHTML = rows.map(([n, f]) => `<div class="r"><span>${n}</span>${T.map(t => `<i style="background:${f(t)}"></i>`).join('')}</div>`).join('') +
+`<div class="scale"><span></span>${T.map(t => `<span>${t}</span>`).join('')}</div>`;
+}
+const CATS = {
+out: [
+{k:'food', n:'餐飲', d:'<path class="t" d="M5 12h14a7 6 0 0 1-14 0z"/><path d="M4 12h16M5 12a7 7 0 0 0 14 0M9 20h6M14.5 4 11 10M18.5 5 13.5 10"/>'},
+{k:'move', n:'交通', d:'<path class="t" d="M6 13h12v4H6z"/><rect x="5" y="4" width="14" height="14" rx="3"/><path d="M5 11h14M8 18v2M16 18v2"/><circle cx="8.5" cy="15" r=".6"/><circle cx="15.5" cy="15" r=".6"/>'},
+{k:'shop', n:'購物', d:'<path class="t" d="M6 9h12l-1 11H7z"/><path d="M5 8h14l-1.2 12.5H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'},
+{k:'home', n:'居家', d:'<path class="t" d="M10 20v-6h4v6z"/><path d="M4 11 12 4l8 7M6 9.5V20h12V9.5"/><path d="M10 20v-6h4v6"/>'},
+{k:'daily', n:'日用', d:'<path class="t" d="M8 11h8v9H8z"/><path d="M9 4h6v3l2 3v10H7V10l2-3z"/><path d="M7 13h10"/>'},
+{k:'fun', n:'娛樂', d:'<path class="t" d="M4 9h16v2.2a1.8 1.8 0 0 0 0 3.6V17H4v-2.2a1.8 1.8 0 0 0 0-3.6z"/><path d="M4 7h16v3.2a1.8 1.8 0 0 0 0 3.6V17H4v-3.2a1.8 1.8 0 0 0 0-3.6z"/><path d="M14 7v10" stroke-dasharray="1.6 2"/>'},
+{k:'med', n:'醫療', d:'<path class="t" d="M9 5h6v4h4v6h-4v4H9v-4H5V9h4z" transform="translate(12 12) scale(.62) translate(-12 -12)"/><path d="M9 4h6v5h5v6h-5v5H9v-5H4V9h5z"/>'}
+],
+in: [
+{k:'pay', n:'薪資', d:'<path class="t" d="M4 8h16v4H4z"/><rect x="3" y="6" width="18" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.4"/><path d="M6.5 9.5v5M17.5 9.5v5"/>'},
+{k:'bonus', n:'獎金', d:'<path class="t" d="M5 10h14v3H5z"/><path d="M4 9h16v4H4zM5.5 13v7h13v-7M12 9v11"/><path d="M12 9c-1.5-3.5-5-4-5-1.8C7 9 12 9 12 9zM12 9c1.5-3.5 5-4 5-1.8C17 9 12 9 12 9z"/>'},
+{k:'side', n:'其他', d:'<path class="t" d="M12 5l2 5 5 .5-4 3.5 1.2 5L12 16.5 7.8 19 9 14 5 10.5l5-.5z" transform="translate(12 12) scale(.55) translate(-12 -12)"/><path d="M12 3.5l2.4 5.6 6 .6-4.6 4 1.4 6-5.2-3.2-5.2 3.2 1.4-6-4.6-4 6-.6z"/>'}
+]
+};
+const catOf = (type, k) => CATS[type].find(c => c.k === k) || CATS[type][0];
+function catColor(type, k){ const i = CATS[type].findIndex(c => c.k === k); return (type === 'out' ? CAT_TONES : INC_TONES)[Math.max(0, i)]; }
+const icon = (type, k, cls) => `<svg class="cat ${cls || 'ic'}" viewBox="0 0 24 24" style="--c:${catColor(type, k)}">${catOf(type, k).d}</svg>`;
+const COOKIE = (() => { let d = ''; for (let i = 0; i <= 72; i++){ const a = i / 72 * Math.PI * 2, r = 20 + 2.2 * Math.cos(a * 9); d += (i ? 'L' : 'M') + (22 + r * Math.cos(a)).toFixed(2) + ' ' + (22 + r * Math.sin(a)).toFixed(2); } return d + 'Z'; })();
+const today = new Date(); today.setHours(0, 0, 0, 0);
+const dk = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+function seedData(){
+let seed = 90213;
+const r = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+const pick = a => a[Math.floor(r() * a.length)];
+const out = []; let id = 1;
+const add = (d, type, cat, amt, note) => out.push({id: id++, d: dk(d), type, cat, amt: Math.round(amt), note});
+const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)){
+const day = new Date(d), dom = day.getDate(), wd = day.getDay(), wk = wd === 0 || wd === 6;
+if (dom === 5){ add(day, 'in', 'pay', 52000, ['一','二','三','四','五','六','七','八','九','十','十一','十二'][(day.getMonth() + 11) % 12] + '月薪資'); add(day, 'out', 'home', 16500, '房租・永和'); }
+if (dom === 12) add(day, 'out', 'daily', 599, '中華電信月租');
+if (dom === 18) add(day, 'out', 'home', 1184, '台電電費');
+if (dom === 26) add(day, 'in', 'side', 8000, '接案・品牌插畫');
+if (dom === 9) add(day, 'in', 'bonus', 200, '發票中獎');
+if (!wk && r() < .8) add(day, 'out', 'food', 45 + r() * 45, pick(['蛋餅＋大冰奶', '鐵板麵加蛋', '御飯糰＋豆漿', '美而美總匯', '蘿蔔糕＋紅茶']));
+if (r() < .9) add(day, 'out', 'food', wk ? 220 + r() * 480 : 85 + r() * 90, wk ? pick(['鼎泰豐', '樂法 早午餐', '海底撈', '阿宗麵線＋雞排', '林東芳牛肉麵']) : pick(['排骨便當', '滷肉飯＋貢丸湯', '自助餐', '越南河粉', '牛肉麵']));
+if (r() < .55) add(day, 'out', 'food', 40 + r() * 30, pick(['珍珠奶茶 半糖', '冬瓜檸檬', '四季春 微糖', '黑糖鮮奶']));
+if (!wk && r() < .75) add(day, 'out', 'move', pick([30, 35, 40, 25]), pick(['捷運・悠遊卡', 'YouBike', '公車 307']));
+if (r() < .08) add(day, 'out', 'move', pick([245, 180, 700]), pick(['Uber 回家', '計程車', '高鐵 台北→台中']));
+if (r() < .22) add(day, 'out', 'shop', 180 + r() * 900, pick(['全聯', '家樂福', '蝦皮・收納盒', '誠品・兩本書', 'UNIQLO 襯衫']));
+if (r() < .12) add(day, 'out', 'daily', 60 + r() * 260, pick(['屈臣氏', '洗衣精補充包', '小北百貨']));
+if (wk && r() < .5) add(day, 'out', 'fun', 280 + r() * 520, pick(['威秀電影', '好樂迪 KTV', '貓空纜車', '展覽門票']));
+if (r() < .04) add(day, 'out', 'med', pick([150, 220, 380]), pick(['診所掛號', '藥局', '牙醫洗牙']));
+}
+return out;
+}
+let tx = load('tx', null);
+if (!Array.isArray(tx)) tx = seedData();
+let nextId = tx.reduce((m, t) => Math.max(m, t.id), 0) + 1;
+const persist = () => save('tx', tx);
+let viewY = today.getFullYear(), viewM = today.getMonth();
+let filter = 'all', statType = 'out', statSel = null;
+const inMonth = t => { const d = parse(t.d); return d.getFullYear() === viewY && d.getMonth() === viewM; };
+const MN = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+const WD = ['週日','週一','週二','週三','週四','週五','週六'];
+function renderHeader(){
+['mTitle', 'mTitle2'].forEach(id => $(id).innerHTML = `<small>${viewY}</small>${MN[viewM]}`);
+const atNow = viewY === today.getFullYear() && viewM === today.getMonth();
+$('nextM').disabled = $('nextM2').disabled = atNow;
+}
+function renderHero(){
+const m = tx.filter(inMonth);
+const o = m.filter(t => t.type === 'out').reduce((a, t) => a + t.amt, 0), i = m.filter(t => t.type === 'in').reduce((a, t) => a + t.amt, 0);
+$('bal').innerHTML = `<i>NT$</i>${i - o < 0 ? '−' : ''}${fmt(Math.abs(i - o))}`;
+$('sumOut').textContent = fmt(o); $('sumIn').textContent = fmt(i);
+$('bgt').textContent = fmt(state.budget);
+const pct = o / state.budget;
+$('bgtPct').textContent = `已用 ${Math.round(pct * 100)}%`;
+$('hero').classList.toggle('over', pct > 1);
+wavePct = Math.min(1, pct);
+drawWave();
+}
+let wavePct = 0, wavePh = 0;
+function drawWave(){
+const W = 310, H = 22, mid = 11, end = Math.max(0, W * wavePct), gap = 6;
+let d = '';
+const endW = Math.max(0, end - 2);
+for (let x = 0; x <= endW; x += 2){ const y = mid + Math.sin(x / 7.5 + wavePh) * 3.4 * Math.min(1, x / 12, (endW - x) / 12 + .25); d += (x ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(2); }
+const tStart = Math.min(W, end + gap);
+$('waveSvg').innerHTML =
+(tStart < W - 4 ? `<path d="M${tStart} ${mid}H${W - 4}" stroke="var(--on-primary-container)" stroke-opacity=".22" stroke-width="4" stroke-linecap="round"/><circle cx="${W - 2}" cy="${mid}" r="2" fill="var(--on-primary-container)"/>` : '') +
+(d ? `<path d="${d}" fill="none" stroke="${wavePct >= 1 ? 'var(--error)' : 'var(--primary)'}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` : '');
+}
+let waveRaf = 0, waveLast = 0;
+function waveLoop(t){
+waveRaf = requestAnimationFrame(waveLoop);
+if (document.hidden || !$('p-list').classList.contains('on')) return;
+if (t - waveLast < 33) return; waveLast = t;
+wavePh -= .09; drawWave();
+}
+if (!reduce) waveRaf = requestAnimationFrame(waveLoop);
+function renderChips(){
+const opts = [['all', '全部'], ['out', '支出'], ['in', '收入']].concat(CATS.out.map(c => [c.k, c.n]));
+$('chips').innerHTML = opts.map(([k, n]) => `<button class="chip" data-f="${k}" aria-pressed="${filter === k}"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>${n}</button>`).join('');
+}
+function passes(t){ if (filter === 'all') return true; if (filter === 'out' || filter === 'in') return t.type === filter; return t.cat === filter; }
+function renderList(freshId){
+const m = tx.filter(t => inMonth(t) && passes(t)).sort((a, b) => b.d < a.d ? -1 : b.d > a.d ? 1 : b.id - a.id);
+if (!m.length){
+$('list').innerHTML = `<div class="empty"><svg viewBox="0 0 120 90"><path d="M30 14h60v66l-10-6-10 6-10-6-10 6-10-6-10 6z" fill="var(--surface-container-high)"/><path d="M42 34h36M42 46h24" stroke="var(--outline-variant)" stroke-width="5" stroke-linecap="round"/></svg>這裡還沒有帳目。<br>按右下角「記一筆」開始。</div>`;
+return;
+}
+let html = '', cur = '';
+m.forEach(t => {
+if (t.d !== cur){
+cur = t.d; const dd = parse(t.d);
+const net = m.filter(x => x.d === cur).reduce((a, x) => a + (x.type === 'out' ? -x.amt : x.amt), 0);
+const lbl = t.d === dk(today) ? '今天' : t.d === dk(new Date(today.getTime() - 864e5)) ? '昨天' : `${dd.getMonth() + 1}月${dd.getDate()}日 ${WD[dd.getDay()]}`;
+html += `<div class="day"><span>${lbl}</span><span>${net < 0 ? '−' : '+'}${fmt(Math.abs(net))}</span></div>`;
+}
+const c = catOf(t.type, t.cat);
+html += `<div class="row" data-id="${t.id}"><div class="bin"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13M10.5 11v5M13.5 11v5"/></svg></div>` +
+`<button class="item${t.id === freshId ? ' fresh' : ''}" data-id="${t.id}">${icon(t.type, t.cat)}<span class="tx"><b>${esc(t.note || c.n)}</b><span>${c.n}</span></span><span class="amt ${t.type}">${t.type === 'in' ? '+' : '−'}${fmt(t.amt)}</span></button></div>`;
+});
+$('list').innerHTML = html;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+$('chips').addEventListener('click', e => {
+const b = e.target.closest('.chip'); if (!b) return;
+filter = b.dataset.f; haptic(6);
+$('chips').querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b));
+renderList();
+});
+let sw = null;
+$('list').addEventListener('pointerdown', e => {
+const it = e.target.closest('.item'); if (!it) return;
+sw = {it, row: it.parentNode, x: e.clientX, y: e.clientY, dx: 0, on: false, id: e.pointerId, moved: false};
+});
+$('list').addEventListener('pointermove', e => {
+if (!sw || e.pointerId !== sw.id) return;
+const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+if (!sw.on){
+if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.3 && dx < 0){ sw.on = true; sw.it.classList.remove('slide'); try { sw.it.setPointerCapture(e.pointerId); } catch (_) {} }
+else if (Math.abs(dy) > 10){ sw = null; return; }
+else return;
+}
+sw.moved = true;
+sw.dx = Math.min(0, dx);
+sw.it.style.transform = `translateX(${sw.dx}px)`;
+const armed = sw.dx < -sw.row.offsetWidth * .38;
+if (armed !== sw.row.classList.contains('armed')){ sw.row.classList.toggle('armed', armed); haptic(armed ? 12 : 4); }
+});
+function endSwipe(){
+if (!sw) return;
+const s = sw; sw = null;
+if (!s.on) return;
+s.it.classList.add('slide');
+if (s.dx < -s.row.offsetWidth * .38){
+s.it.style.transform = 'translateX(-110%)';
+const id = +s.row.dataset.id;
+s.row.style.height = s.row.offsetHeight + 'px';
+requestAnimationFrame(() => { s.row.style.height = '0px'; });
+setTimeout(() => removeTx(id), reduce ? 0 : 320);
+} else {
+s.it.style.transform = ''; s.row.classList.remove('armed');
+}
+s.it.dataset.swiped = '1'; setTimeout(() => { delete s.it.dataset.swiped; }, 50);
+}
+$('list').addEventListener('pointerup', endSwipe);
+$('list').addEventListener('pointercancel', endSwipe);
+$('list').addEventListener('click', e => {
+const it = e.target.closest('.item'); if (!it || it.dataset.swiped) return;
+haptic(6); openDetail(+it.dataset.id);
+});
+let lastDeleted = null;
+function removeTx(id){
+const i = tx.findIndex(t => t.id === id); if (i < 0) return;
+lastDeleted = {t: tx[i], i};
+tx.splice(i, 1); persist(); haptic([10, 40, 10]);
+renderAll();
+snack('已刪除「' + (lastDeleted.t.note || catOf(lastDeleted.t.type, lastDeleted.t.cat).n) + '」', '復原', () => {
+if (!lastDeleted) return; tx.splice(lastDeleted.i, 0, lastDeleted.t); persist(); renderAll(lastDeleted.t.id); lastDeleted = null; haptic(8);
+});
+}
+function shiftMonth(n){
+let m = viewM + n, y = viewY;
+if (m < 0){ m = 11; y--; } if (m > 11){ m = 0; y++; }
+if (y > today.getFullYear() || (y === today.getFullYear() && m > today.getMonth())) return;
+viewY = y; viewM = m; statSel = null; haptic(6); renderAll();
+}
+$('prevM').onclick = $('prevM2').onclick = () => shiftMonth(-1);
+$('nextM').onclick = $('nextM2').onclick = () => shiftMonth(1);
+$('mTitle').addEventListener('click', openMonths);
+$('mTitle').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openMonths(); } });
+let pickY = viewY;
+function openMonths(){ pickY = viewY; haptic(6); openSheet(monthsHTML()); }
+function monthsHTML(){
+return `<div class="sh-h"><h2 id="shT">選擇月份</h2></div>
+<div class="yr"><button class="ib" data-yr="-1" aria-label="前一年"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><span>${pickY}</span><button class="ib" data-yr="1" aria-label="後一年" ${pickY >= today.getFullYear() ? 'disabled' : ''}><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button></div>
+<div class="months">${MN.map((n, i) => `<button data-mo="${i}" aria-pressed="${pickY === viewY && i === viewM}" ${pickY === today.getFullYear() && i > today.getMonth() ? 'disabled' : ''}>${n}</button>`).join('')}</div>`;
+}
+function renderStats(){
+const m = tx.filter(t => inMonth(t) && t.type === statType);
+const cats = CATS[statType].map((c, i) => ({c, i, v: m.filter(t => t.cat === c.k).reduce((a, t) => a + t.amt, 0)})).filter(x => x.v > 0).sort((a, b) => b.v - a.v);
+const total = cats.reduce((a, x) => a + x.v, 0);
+const R = 100, C = 2 * Math.PI * R, gapPx = cats.length > 1 ? 14 : 0;
+let off = 0, svg = `<circle cx="125" cy="125" r="${R}" fill="none" stroke="var(--surface-container-high)" stroke-width="22"/>`;
+if (total){
+cats.forEach(x => {
+const len = x.v / total * C, seg = Math.max(.1, len - gapPx), sel = statSel === x.c.k;
+const col = catColor(statType, x.c.k);
+svg += `<circle class="s" data-k="${x.c.k}" cx="125" cy="125" r="${R}" fill="none" stroke="${col}" stroke-width="${sel ? 30 : 22}" stroke-linecap="round" stroke-dasharray="${seg.toFixed(2)} ${(C - seg).toFixed(2)}" stroke-dashoffset="${(-off - gapPx / 2).toFixed(2)}" transform="rotate(-90 125 125)" opacity="${statSel && !sel ? .35 : 1}"/>`;
+off += len;
+});
+}
+$('donut').innerHTML = svg;
+const s = statSel && cats.find(x => x.c.k === statSel);
+$('dLbl').textContent = s ? s.c.n : (statType === 'out' ? '本月支出' : '本月收入');
+$('dVal').textContent = 'NT$ ' + fmt(s ? s.v : total);
+$('dSub').textContent = s ? Math.round(s.v / total * 100) + '%・' + m.filter(t => t.cat === s.c.k).length + ' 筆' : m.length + ' 筆';
+$('legend').innerHTML = cats.length ? cats.map(x => `<button class="leg" data-k="${x.c.k}" aria-pressed="${statSel === x.c.k}" style="--c:${catColor(statType, x.c.k)}">${icon(statType, x.c.k)}<b>${x.c.n}<span class="p">${Math.round(x.v / total * 100)}%</span></b><span class="v">${fmt(x.v)}</span><span class="bar"><i style="width:${(x.v / cats[0].v * 100).toFixed(1)}%"></i></span></button>`).join('')
+: `<div class="empty">這個月沒有${statType === 'out' ? '支出' : '收入'}。</div>`;
+// daily bars
+const dim = new Date(viewY, viewM + 1, 0).getDate();
+const days = Array.from({length: dim}, (_, i) => tx.filter(t => inMonth(t) && t.type === 'out' && parse(t.d).getDate() === i + 1).reduce((a, t) => a + t.amt, 0));
+const cap = Math.max(1, ...days.map(v => Math.min(v, 6000)));
+const w = 330 / dim, isNow = viewY === today.getFullYear() && viewM === today.getMonth();
+let b = '';
+days.forEach((v, i) => {
+const hgt = v ? Math.max(4, Math.min(v, 6000) / cap * 104) : 2, isT = isNow && i + 1 === today.getDate();
+b += `<rect data-i="${i}" x="${(i * w + w * .18).toFixed(2)}" y="${(112 - hgt).toFixed(2)}" width="${(w * .64).toFixed(2)}" height="${hgt.toFixed(2)}" rx="${Math.min(w * .32, 4).toFixed(2)}" fill="${isT ? 'var(--tertiary)' : v > 6000 ? 'var(--error)' : 'var(--primary)'}" opacity="${v ? 1 : .25}"/>`;
+});
+b += `<path d="M0 116H330" stroke="var(--outline-variant)" stroke-width="1.5" stroke-linecap="round"/>`;
+$('barSvg').innerHTML = b; barDays = days;
+const used = isNow ? today.getDate() : dim;
+$('avgDay').textContent = '日均 ' + fmt(days.reduce((a, v) => a + v, 0) / used);
+}
+let barDays = [];
+document.querySelector('#p-stats .seg').addEventListener('click', e => {
+const b = e.target.closest('button'); if (!b) return;
+statType = b.dataset.k; statSel = null; haptic(6);
+b.parentNode.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+renderStats();
+});
+$('donut').addEventListener('click', e => { const s = e.target.closest('.s'); if (!s) return; toggleSel(s.dataset.k); });
+$('legend').addEventListener('click', e => { const b = e.target.closest('.leg'); if (!b) return; toggleSel(b.dataset.k); });
+function toggleSel(k){ statSel = statSel === k ? null : k; haptic(8); renderStats(); }
+function barTip(e){
+const r = $('bars').getBoundingClientRect(), i = Math.max(0, Math.min(barDays.length - 1, Math.floor((e.clientX - r.left) / r.width * barDays.length)));
+const tip = $('tip');
+tip.textContent = `${viewM + 1}/${i + 1}・NT$ ${fmt(barDays[i])}`;
+tip.style.left = Math.max(60, Math.min(r.width - 60, (i + .5) / barDays.length * r.width)) + 'px';
+tip.classList.add('on');
+$('barSvg').querySelectorAll('rect').forEach(x => x.style.opacity = +x.dataset.i === i ? 1 : '');
+}
+$('bars').addEventListener('pointerdown', e => { barTip(e); haptic(4); });
+$('bars').addEventListener('pointermove', e => { if (e.buttons || e.pointerType === 'touch') barTip(e); });
+$('bars').addEventListener('pointerleave', () => { $('tip').classList.remove('on'); $('barSvg').querySelectorAll('rect').forEach(x => x.style.opacity = ''); });
+$('walls').addEventListener('click', e => {
+const b = e.target.closest('.wall'); if (!b) return;
+state.seed = +b.dataset.i; save('seed', state.seed); haptic([6, 30, 6]);
+$('walls').querySelectorAll('.wall').forEach(w => w.setAttribute('aria-pressed', w === b));
+applyTheme(); renderAll();
+snack('主題已從「' + SEEDS[state.seed].n + '」重新取色');
+});
+$('darkRow').addEventListener('click', () => {
+state.dark = !state.dark; save('dark', state.dark); haptic(10);
+$('darkRow').setAttribute('aria-checked', state.dark);
+applyTheme(); renderAll();
+});
+const SMIN = 5000, SMAX = 60000, SSTEP = 1000;
+function setSlider(v, commit){
+v = Math.round(Math.max(SMIN, Math.min(SMAX, v)) / SSTEP) * SSTEP;
+const p = (v - SMIN) / (SMAX - SMIN), sl = $('slider'), W = sl.offsetWidth || 350, x = p * W;
+$('sa').style.width = Math.max(0, x - 6) + 'px'; $('sb').style.width = Math.max(0, W - x - 6) + 'px';
+$('sh').style.left = x + 'px'; $('svl').style.left = x + 'px'; $('svl').textContent = fmt(v);
+sl.setAttribute('aria-valuenow', v); sl.setAttribute('aria-valuetext', 'NT$ ' + fmt(v));
+$('bgtV').textContent = fmt(v);
+if (v !== state.budget){ state.budget = v; haptic(3); }
+if (commit){ save('budget', state.budget); renderHero(); }
+}
+(function(){
+const sl = $('slider'); let on = false;
+const at = e => { const r = sl.getBoundingClientRect(); return SMIN + (e.clientX - r.left) / r.width * (SMAX - SMIN); };
+sl.addEventListener('pointerdown', e => { on = true; sl.classList.add('drag'); try { sl.setPointerCapture(e.pointerId); } catch (_) {} setSlider(at(e)); });
+sl.addEventListener('pointermove', e => { if (on) setSlider(at(e)); });
+const up = () => { if (!on) return; on = false; sl.classList.remove('drag'); setSlider(state.budget, true); };
+sl.addEventListener('pointerup', up); sl.addEventListener('pointercancel', up);
+sl.addEventListener('keydown', e => {
+const d = {ArrowLeft: -SSTEP, ArrowDown: -SSTEP, ArrowRight: SSTEP, ArrowUp: SSTEP}[e.key];
+if (d){ e.preventDefault(); setSlider(state.budget + d, true); }
+});
+})();
+$('resetBtn').addEventListener('click', () => {
+haptic(10);
+openSheet(`<div class="sh-h"><h2 id="shT">重設示範帳目？</h2></div><p class="note">目前 ${tx.length} 筆帳目會被換成兩個月的示範資料。主題與預算會保留。</p><button class="fill err" data-act="reset">重設</button>`);
+});
+function go(pid){
+document.querySelectorAll('.nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.p === pid));
+document.querySelectorAll('.page').forEach(p => { const on = p.id === pid; if (on && !p.classList.contains('on')){ p.classList.add('on'); p.scrollTop = 0; } else if (!on) p.classList.remove('on'); });
+$('fab').classList.toggle('away', pid === 'p-theme');
+$('fab').classList.remove('mini');
+if (pid === 'p-stats') renderStats();
+if (pid === 'p-theme') requestAnimationFrame(() => setSlider(state.budget));
+}
+document.querySelector('.nav').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; haptic(6); go(b.dataset.p); });
+document.querySelectorAll('.page').forEach(p => { let ly = 0; p.addEventListener('scroll', () => { const y = p.scrollTop; if (Math.abs(y - ly) > 6){ $('fab').classList.toggle('mini', y > ly && y > 40); ly = y; } }, {passive: true}); });
+let entry = {type: 'out', cat: 'food', amt: '', ago: 0};
+function renderCats(){
+$('cats').innerHTML = CATS[entry.type].map(c => `<button data-k="${c.k}" aria-pressed="${entry.cat === c.k}"><span class="sh"><svg class="ck" viewBox="0 0 44 44"><path d="${COOKIE}"/></svg>${icon(entry.type, c.k)}</span>${c.n}</button>`).join('');
+$('addCat').textContent = catOf(entry.type, entry.cat).n;
+}
+function renderAmt(){
+const v = entry.amt ? +entry.amt : 0;
+$('amt').textContent = fmt(v); $('amt').classList.toggle('zero', !v);
+$('saveBtn').disabled = !v;
+}
+function placeInd(){
+const b = $('typeTabs').querySelector('[aria-selected=true]'), ind = $('tabInd');
+ind.style.width = (b.offsetWidth - 20) + 'px'; ind.style.left = '0px';
+ind.style.transform = `translateX(${b.offsetLeft + 10}px)`;
+}
+let lastFocusAdd = null;
+function openAdd(){
+entry = {type: 'out', cat: 'food', amt: '', ago: 0};
+$('noteIn').value = '';
+$('typeTabs').querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === 'out'));
+$('dsel').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.d === '0'));
+renderCats(); renderAmt();
+const add = $('add'), s = screen.getBoundingClientRect(), f = $('fab').getBoundingClientRect();
+const ins = `inset(${f.top - s.top}px ${s.right - f.right}px ${s.bottom - f.bottom}px ${f.left - s.left}px round 16px)`;
+lastFocusAdd = document.activeElement;
+add.style.transition = 'none'; add.style.clipPath = ins; add.classList.add('open', 'fromfab');
+add.offsetWidth; placeInd();
+add.style.transition = reduce ? 'none' : 'clip-path .5s var(--emph)';
+add.style.clipPath = 'inset(0px 0px 0px 0px round 0px)';
+requestAnimationFrame(() => add.classList.remove('fromfab'));
+haptic(10);
+setTimeout(() => $('addClose').focus({preventScroll: true}), 60);
+}
+function closeAdd(){
+const add = $('add'); if (!add.classList.contains('open')) return;
+const s = screen.getBoundingClientRect(), f = $('fab').getBoundingClientRect();
+add.style.transition = reduce ? 'none' : 'clip-path .38s var(--accel)';
+add.style.clipPath = `inset(${f.top - s.top}px ${s.right - f.right}px ${s.bottom - f.bottom}px ${f.left - s.left}px round 16px)`;
+add.classList.add('fromfab');
+setTimeout(() => { add.classList.remove('open', 'fromfab'); add.style.clipPath = ''; }, reduce ? 0 : 380);
+if (lastFocusAdd) try { lastFocusAdd.focus({preventScroll: true}); } catch (_) {}
+}
+$('fab').addEventListener('click', openAdd);
+$('addClose').addEventListener('click', () => { haptic(6); closeAdd(); });
+$('typeTabs').addEventListener('click', e => {
+const b = e.target.closest('button'); if (!b) return;
+entry.type = b.dataset.t; entry.cat = CATS[entry.type][0].k; haptic(6);
+$('typeTabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', x === b));
+placeInd(); renderCats();
+});
+$('cats').addEventListener('click', e => {
+const b = e.target.closest('button'); if (!b) return;
+entry.cat = b.dataset.k; haptic(5);
+$('cats').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+$('addCat').textContent = catOf(entry.type, entry.cat).n;
+});
+$('dsel').addEventListener('click', e => {
+const b = e.target.closest('button'); if (!b) return;
+entry.ago = +b.dataset.d; haptic(5);
+$('dsel').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+});
+function key(k){
+if (k === 'bk'){ entry.amt = entry.amt.slice(0, -1); haptic(4); }
+else {
+const n = entry.amt + k;
+if (n.replace(/^0+/, '').length > 7){ const a = $('amt'); a.classList.remove('shake'); a.offsetWidth; a.classList.add('shake'); haptic([20, 30, 20]); return; }
+entry.amt = n.replace(/^0+/, ''); haptic(4);
+}
+renderAmt();
+}
+$('pad').addEventListener('click', e => { const b = e.target.closest('button'); if (b) key(b.dataset.k); });
+document.addEventListener('keydown', e => {
+if (!$('add').classList.contains('open') || document.activeElement === $('noteIn')) return;
+if (/^[0-9]$/.test(e.key)) key(e.key);
+else if (e.key === 'Backspace') key('bk');
+else if (e.key === 'Enter' && !$('saveBtn').disabled) $('saveBtn').click();
+});
+$('saveBtn').addEventListener('click', () => {
+const v = +entry.amt; if (!v) return;
+const d = new Date(today); d.setDate(d.getDate() - entry.ago);
+const t = {id: nextId++, d: dk(d), type: entry.type, cat: entry.cat, amt: v, note: $('noteIn').value.trim()};
+tx.push(t); persist(); haptic([8, 40, 14]);
+viewY = d.getFullYear(); viewM = d.getMonth();
+if (filter !== 'all' && !passes(t)){ filter = 'all'; renderChips(); }
+closeAdd(); go('p-list');
+setTimeout(() => {
+renderAll(t.id);
+snack(`已記下 NT$ ${fmt(v)}・${catOf(t.type, t.cat).n}`);
+const row = $('list').querySelector(`.row[data-id="${t.id}"]`); if (row) row.scrollIntoView({block: 'center', behavior: reduce ? 'auto' : 'smooth'});
+}, reduce ? 0 : 300);
+});
+function openDetail(id){
+const t = tx.find(x => x.id === id); if (!t) return;
+const c = catOf(t.type, t.cat), d = parse(t.d);
+openSheet(`<div class="sh-h"><h2 id="shT">${esc(t.note || c.n)}</h2><button class="ib" data-del="${t.id}" aria-label="刪除這筆"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13M10.5 11v5M13.5 11v5"/></svg></button></div>
+<div class="sh-amt">${icon(t.type, t.cat)}<b>${t.type === 'in' ? '+' : '−'}${fmt(t.amt)}</b></div>
+<div class="kv"><div><span>日期</span>${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${WD[d.getDay()]}</div><div><span>類型</span>${t.type === 'in' ? '收入' : '支出'}</div></div>
+<div class="sec" style="padding-top:8px">改分類</div>
+<div class="recat">${CATS[t.type].map(x => `<button data-re="${x.k}" data-id="${t.id}" aria-pressed="${x.k === t.cat}">${icon(t.type, x.k)}${x.n}</button>`).join('')}</div>
+<button class="fill" data-act="close">完成</button>`);
+}
+const sheet = $('sheet'), scrim = $('scrim');
+let sheetFocus = null;
+function openSheet(html){
+sheetFocus = document.activeElement;
+$('sheetBody').innerHTML = html;
+sheet.style.transform = ''; sheet.scrollTop = 0;
+sheet.classList.add('on'); scrim.classList.add('on');
+const f = sheet.querySelector('#sheetBody button'); if (f) setTimeout(() => f.focus({preventScroll: true}), 30);
+}
+function closeSheet(){
+if (!sheet.classList.contains('on')) return;
+sheet.classList.remove('on', 'drag'); scrim.classList.remove('on'); sheet.style.transform = ''; scrim.style.opacity = '';
+if (sheetFocus) try { sheetFocus.focus({preventScroll: true}); } catch (_) {}
+}
+scrim.addEventListener('click', closeSheet);
+sheet.addEventListener('click', e => {
+const b = e.target.closest('button'); if (!b) return;
+if (b.dataset.act === 'close'){ haptic(6); closeSheet(); }
+else if (b.dataset.act === 'reset'){ tx = seedData(); nextId = tx.reduce((m, t) => Math.max(m, t.id), 0) + 1; persist(); viewY = today.getFullYear(); viewM = today.getMonth(); filter = 'all'; renderChips(); renderAll(); closeSheet(); haptic([10, 30, 10]); snack('示範帳目已重設'); }
+else if (b.dataset.del){ const id = +b.dataset.del; closeSheet(); setTimeout(() => removeTx(id), 200); }
+else if (b.dataset.re){
+const t = tx.find(x => x.id === +b.dataset.id); if (!t) return;
+t.cat = b.dataset.re; persist(); haptic(6);
+sheet.querySelectorAll('[data-re]').forEach(x => x.setAttribute('aria-pressed', x === b));
+const ic = sheet.querySelector('.sh-amt .ic'); if (ic) ic.outerHTML = icon(t.type, t.cat);
+renderAll();
+}
+else if (b.dataset.yr){ pickY += +b.dataset.yr; haptic(4); $('sheetBody').innerHTML = monthsHTML(); }
+else if (b.dataset.mo != null){ viewY = pickY; viewM = +b.dataset.mo; statSel = null; haptic(8); closeSheet(); renderAll(); }
+});
+(function(){
+let y0 = 0, dy = 0, on = false, t0 = 0, h = 1;
+sheet.addEventListener('pointerdown', e => {
+if (e.target.closest('button') && !e.target.closest('.grab')) { if (sheet.scrollTop > 0) return; }
+if (sheet.scrollTop > 0) return;
+on = true; y0 = e.clientY; dy = 0; t0 = e.timeStamp; h = sheet.offsetHeight;
+});
+sheet.addEventListener('pointermove', e => {
+if (!on) return;
+dy = Math.max(0, e.clientY - y0);
+if (dy > 4){ sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch (_) {} }
+sheet.style.transform = `translateY(${dy}px)`; scrim.style.opacity = String(1 - dy / h * .8);
+});
+const end = e => {
+if (!on) return; on = false; sheet.classList.remove('drag');
+const v = dy / Math.max(1, e.timeStamp - t0);
+if (dy > h * .35 || (v > .6 && dy > 30)){ haptic(6); closeSheet(); }
+else { sheet.style.transform = ''; scrim.style.opacity = ''; }
+};
+sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', e => {
+if (e.key !== 'Escape') return;
+if (sheet.classList.contains('on')) closeSheet(); else if ($('add').classList.contains('open')) closeAdd();
+});
+let snackT = 0, snackFn = null;
+function snack(msg, act, fn){
+const s = $('snack');
+$('snackT').textContent = msg;
+$('snackB').style.display = act ? '' : 'none'; $('snackB').textContent = act || '';
+snackFn = fn || null;
+s.classList.add('on'); screen.classList.add('snacking'); clearTimeout(snackT);
+snackT = setTimeout(() => { s.classList.remove('on'); screen.classList.remove('snacking'); }, act ? 5000 : 2600);
+}
+$('snackB').addEventListener('click', () => { if (snackFn) snackFn(); snackFn = null; $('snack').classList.remove('on'); screen.classList.remove('snacking'); });
+function tick(){ const d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setTimeout(function t(){ tick(); setTimeout(t, 60000 - Date.now() % 60000); }, 60000 - Date.now() % 60000);
+try { navigator.getBattery && navigator.getBattery().then(b => { $('batt').textContent = Math.round(b.level * 100) + '%'; }).catch(() => {}); } catch (_) {}
+function renderAll(fresh){ renderHeader(); renderHero(); renderList(fresh); if ($('p-stats').classList.contains('on')) renderStats(); }
+applyTheme(); renderWalls(); renderChips(); renderAll();
+$('darkRow').setAttribute('aria-checked', state.dark);
+addEventListener('resize', () => { if ($('p-theme').classList.contains('on')) setSlider(state.budget); if ($('add').classList.contains('open')) placeInd(); });
+})();
+</script>
+</body>
+</html>

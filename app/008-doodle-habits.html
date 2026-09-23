@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f8f8f4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="小日課">
+<title>小日課 · 習慣養成</title>
+<meta name="description" content="畫在素描本上的習慣養成本：每天用蠟筆塗滿勾選框、月曆用色鉛筆塗色、連續天數用「正」字劃記。收錄於 100 Creative HTML Works（App 008・手繪鉛筆塗鴉）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/008-doodle-habits.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f8f8f4'/%3E%3Cpath d='M14 15c12-1.4 24-1.2 36 .3 1.3 11.3 1.2 22.6-.2 34-12 1.3-24 1.2-35.8-.2C12.6 37.8 12.7 26.4 14 15z' fill='none' stroke='%23403c37' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M19 44 25 20l3 24 5-24 3 24 5-24 3 24 4-20' fill='none' stroke='%23d8433b' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#f8f8f4;
+  --paper-2:#fdfdfb;
+  --graphite:#3e3a35;
+  --graphite-2:#6b665e;
+  --graphite-3:#8f897f;
+  --red:#d33f36;
+  --blue:#2b69ae;
+  --green:#3a8f4a;
+  --ochre:#c9791e;
+  --hand:"Noteworthy","Hannotate TC","HanziPen TC","Yuanti TC","PingFang TC",sans-serif;
+  --text:"PingFang TC","Heiti TC",system-ui,-apple-system,sans-serif;
+  --out:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.32,1.4,.5,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--text);color:var(--graphite);background:var(--paper);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible{outline:2px dashed var(--blue);outline-offset:3px;border-radius:10px}
+svg{display:block;overflow:visible}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper);isolation:isolate}
+.tooth{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.55;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .33 0 0 0 0 .3 0 0 0 -1.1 .62'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23t)'/%3E%3C/svg%3E")}
+@media (min-width:521px){
+  body{background:#efeee8}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:10px;background:#2f2d2a;z-index:1;
+    box-shadow:inset 0 0 0 1.5px #57534d,inset 0 0 0 3px #1f1d1b,0 16px 26px -18px rgba(62,54,40,.55)}
+  .screen{inset:10px;border-radius:44px}
+  .caption{display:block;position:relative;z-index:1;width:250px;transform:rotate(-2deg)}
+  .caption h1{font:700 44px/1.05 var(--hand);color:var(--graphite)}
+  .caption p{margin-top:12px;font:18px/1.55 var(--hand);color:var(--graphite-2)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+/* ---------- status bar ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;
+  display:flex;align-items:center;justify-content:space-between;font:700 17px/1 var(--hand);color:var(--graphite);pointer-events:none;background:linear-gradient(var(--paper) 70%,rgba(248,248,244,0))}
+.status .gl{display:flex;gap:7px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- pages ---------- */
+.pages{position:absolute;inset:0;z-index:5}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;
+  padding:calc(58px + env(safe-area-inset-top)) 20px calc(116px + env(safe-area-inset-bottom))}
+.page::-webkit-scrollbar{display:none}
+.page[hidden]{display:none}
+.page.enter{animation:turn .46s var(--out)}
+.page.enter.back{animation-name:turnBack}
+@keyframes turn{from{transform:translateX(24px) rotate(.8deg)}}
+@keyframes turnBack{from{transform:translateX(-24px) rotate(-.8deg)}}
+
+.hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:4px 0 6px}
+.date{font:700 38px/1.05 var(--hand);letter-spacing:.01em}
+.sub{margin-top:6px;font-size:14px;color:var(--graphite-2)}
+.sub b{font-weight:600;color:var(--graphite)}
+.bare{width:48px;height:48px;display:grid;place-items:center;flex:none;border-radius:14px;transition:transform .18s var(--out)}
+.bare:active{transform:scale(.88) rotate(-6deg)}
+.bare svg{width:30px;height:30px}
+
+/* score doodle */
+.score{position:relative;display:flex;align-items:center;gap:16px;margin:12px 0 10px;min-height:92px}
+.score .frac{position:relative;font:700 64px/1 var(--hand);color:var(--red);letter-spacing:.04em;padding:6px 4px 0}
+.score .frac small{font-size:30px;color:var(--graphite-2);margin-left:2px}
+.score .note{font:19px/1.35 var(--hand);color:var(--graphite);transform:rotate(-3deg);max-width:170px}
+.score .note svg{width:44px;height:22px;margin-top:2px}
+.score .burst{position:absolute;left:-10px;top:-6px;width:128px;height:96px;pointer-events:none}
+
+/* habit rows */
+.list{margin-top:4px}
+.row{position:relative;touch-action:pan-y}
+.row .rule{position:absolute;left:0;right:0;bottom:0;height:6px}
+.row .rule svg{width:100%;height:6px}
+.row .erase{position:absolute;right:0;top:0;bottom:6px;width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--red);font:700 15px/1 var(--hand)}
+.row .erase svg{width:40px;height:24px}
+.row .face{position:relative;display:flex;align-items:center;gap:12px;padding:14px 0 16px;transition:transform .35s var(--out)}
+.row .erase{visibility:hidden}
+.row.drag .erase,.row[data-swiped] .erase{visibility:visible}
+.row.drag .face{transition:none}
+.row .ic{width:40px;height:40px;flex:none}
+.row .meta{flex:1;min-width:0;text-align:left;padding:2px 0;border-radius:10px}
+.row .nm{display:block;font:700 20px/1.2 var(--hand);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .st{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:13px;color:var(--graphite-2)}
+.row .st b{font-weight:600;color:var(--graphite)}
+.week{display:flex;gap:3px}
+.week svg{width:12px;height:12px}
+.box{width:58px;height:58px;flex:none;display:grid;place-items:center;border-radius:12px}
+.box svg{width:52px;height:52px}
+.box:active svg{transform:scale(.92) rotate(-3deg)}
+.box svg{transition:transform .15s var(--out)}
+.fill{stroke-dasharray:100;stroke-dashoffset:0}
+.fill.draw{animation:scrib .52s cubic-bezier(.45,.05,.4,1)}
+@keyframes scrib{from{stroke-dashoffset:100}}
+.fill.gone{transition:opacity .22s;opacity:0}
+
+.newrow{display:flex;align-items:center;gap:12px;width:100%;margin-top:14px;padding:12px 4px;font:700 18px/1.2 var(--hand);color:var(--graphite-2);border-radius:14px}
+.newrow svg.ol{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.newrow{position:relative;min-height:62px;justify-content:center}
+.newrow:active{color:var(--graphite)}
+.newrow .pl{width:24px;height:24px}
+
+.empty{padding:40px 10px;text-align:center;font:19px/1.5 var(--hand);color:var(--graphite-2)}
+
+/* calendar */
+.monthhd{display:flex;align-items:center;justify-content:space-between;margin:2px -6px 4px}
+.monthhd .m{text-align:center}
+.monthhd .m .big{font:700 38px/1.05 var(--hand)}
+.monthhd .m .yr{font-size:13px;color:var(--graphite-2);margin-top:2px}
+.filters{display:flex;gap:2px;margin:10px -8px 8px;overflow-x:auto;scrollbar-width:none;padding:4px 4px}
+.filters::-webkit-scrollbar{display:none}
+.fbtn{position:relative;flex:none;min-width:48px;height:48px;padding:0 8px;display:grid;place-items:center;font:700 16px/1 var(--hand);color:var(--graphite-2)}
+.fbtn svg.i{width:28px;height:28px}
+.fbtn .ring{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.fbtn.on{color:var(--graphite)}
+.dow{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font:700 15px/1 var(--hand);color:var(--graphite-2);margin-bottom:6px}
+.dow span:first-child,.dow span:last-child{color:var(--red)}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);row-gap:4px}
+.day{position:relative;aspect-ratio:1/1.02;display:grid;place-items:center;border-radius:10px}
+.day svg{position:absolute;inset:2px;width:calc(100% - 4px);height:calc(100% - 4px)}
+.day .n{position:relative;font:700 17px/1 var(--hand);color:var(--graphite);paint-order:stroke;-webkit-text-stroke:0}
+.day .n{text-shadow:0 0 3px var(--paper),0 0 2px var(--paper),0 0 1px var(--paper)}
+.day.fut .n{color:var(--graphite-3)}
+.day:active{transform:scale(.92)}
+.day{transition:transform .15s var(--out)}
+.legend{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.legend .it .v{font:700 30px/1 var(--hand)}
+.legend .it .l{font-size:13px;color:var(--graphite-2);margin-top:4px}
+
+/* tally */
+.tl{margin-top:10px}
+.titem{padding:14px 0 18px;position:relative}
+.titem .top{display:flex;align-items:center;gap:10px}
+.titem .top svg.ic{width:30px;height:30px;flex:none}
+.titem .top .nm{font:700 19px/1.2 var(--hand);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.titem .top .num{font:700 26px/1 var(--hand)}
+.titem .top .num small{font-size:14px;color:var(--graphite-2);margin-left:2px}
+.zheng{display:flex;flex-wrap:wrap;gap:6px 6px;margin:10px 0 6px 40px}
+.zheng svg{width:30px;height:30px}
+.zheng .stroke{stroke-dasharray:100;stroke-dashoffset:0}
+.zheng.draw .stroke{animation:scrib .3s linear backwards}
+.titem .foot{margin-left:40px;font-size:13px;color:var(--graphite-2)}
+.titem .foot b{color:var(--graphite);font-weight:600}
+.chart{margin-top:8px}
+.chart h3{font:700 22px/1.2 var(--hand);margin-bottom:6px}
+.chart svg{width:100%;height:150px}
+.chart text{font:13px var(--hand);fill:var(--graphite-2)}
+
+/* ---------- tab bar ---------- */
+.tabs{position:absolute;left:0;right:0;bottom:0;z-index:20;height:calc(88px + env(safe-area-inset-bottom));padding:4px 22px calc(20px + env(safe-area-inset-bottom));
+  display:grid;grid-template-columns:repeat(3,1fr);background:var(--paper)}
+.tabs .edge{position:absolute;left:10px;right:10px;top:-3px;height:8px;pointer-events:none}
+.tabs .edge svg{width:100%;height:8px}
+.tab{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:64px;font:700 15px/1 var(--hand);color:var(--graphite-3);transition:color .2s}
+.tab svg.i{width:28px;height:28px;transition:transform .25s var(--spring)}
+.tab.on{color:var(--graphite)}
+.tab.on svg.i{transform:rotate(-6deg) scale(1.06)}
+.tab:active svg.i{transform:scale(.86)}
+.tab .loop{position:absolute;left:50%;top:50%;width:92px;height:70px;margin:-35px 0 0 -46px;pointer-events:none}
+.tab .loop path{stroke-dasharray:100;stroke-dashoffset:100;opacity:0;transition:opacity .15s}
+.tab.on .loop path{stroke-dashoffset:0;opacity:1;transition:stroke-dashoffset .5s cubic-bezier(.5,0,.3,1)}
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--graphite);z-index:40;pointer-events:none;opacity:.85}
+
+/* ---------- torn-paper drawer ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(62,58,53,.26);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:absolute;left:0;right:0;bottom:0;z-index:51;transform:translateY(calc(100% + 30px));transition:transform .52s var(--spring);touch-action:none;
+  filter:drop-shadow(0 -3px 3px rgba(80,70,55,.16))}
+.drawer.on{transform:translateY(0)}
+.drawer.drag{transition:none}
+.sheet{background:var(--paper-2);padding:30px 22px calc(26px + env(safe-area-inset-bottom));max-height:calc(100vh - 90px);max-height:calc(100dvh - 90px);overflow-y:auto;scrollbar-width:none}
+.device .sheet{max-height:720px}
+.sheet::-webkit-scrollbar{display:none}
+.tape{position:absolute;left:50%;top:2px;width:76px;height:22px;margin-left:-38px;z-index:2;background:rgba(214,203,170,.62);transform:rotate(-2.5deg);pointer-events:none;
+  clip-path:polygon(0 12%,4% 0,9% 10%,14% 2%,100% 0,97% 30%,100% 55%,96% 80%,100% 100%,8% 96%,3% 100%,0 70%,4% 45%)}
+.sheet h4{font:700 30px/1.15 var(--hand);text-align:center;margin-top:4px}
+.sheet .lead{text-align:center;font-size:14px;color:var(--graphite-2);margin-top:4px}
+.fld{margin-top:20px}
+.fld .lb{font:700 17px/1 var(--hand);color:var(--graphite-2);margin-bottom:8px}
+.namein{position:relative}
+.namein input{width:100%;height:50px;border:0;background:none;font:700 24px/1 var(--hand);color:var(--graphite);padding:0 4px;outline:none}
+.namein input::placeholder{color:#aaa49a}
+.namein svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:6px}
+.picks{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.pick{position:relative;height:52px;display:grid;place-items:center}
+.pick svg.i{width:30px;height:30px}
+.pick .ring{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity .15s}
+.pick.on .ring{opacity:1}
+.pencils{display:flex;flex-direction:column;gap:2px}
+.pencil{height:40px;display:flex;align-items:center;gap:10px;text-align:left;transition:transform .3s var(--spring)}
+.pencil svg{width:220px;height:22px;flex:none}
+.pencil span{font:700 16px/1 var(--hand);color:var(--graphite-2)}
+.pencil.on{transform:translateX(24px)}
+.pencil.on span{color:var(--graphite)}
+.choice{display:flex;gap:10px}
+.cho{position:relative;height:48px;padding:0 18px;font:700 19px/1 var(--hand);color:var(--graphite-2)}
+.cho .ring{position:absolute;inset:-2px -4px;width:calc(100% + 8px);height:calc(100% + 4px);pointer-events:none;opacity:0}
+.cho.on{color:var(--graphite)}
+.cho.on .ring{opacity:1}
+.go{position:relative;display:grid;place-items:center;width:100%;height:60px;margin-top:24px;font:700 22px/1 var(--hand);color:#fff;transition:transform .18s var(--out)}
+.go svg{position:absolute;inset:0;width:100%;height:100%}
+.go span{position:relative;text-shadow:0 1px 1px rgba(30,25,20,.45),0 0 6px rgba(30,25,20,.25)}
+.go.ghost span{text-shadow:none}
+.go:active{transform:scale(.97) rotate(-.6deg)}
+.go.ghost{color:var(--red)}
+.big-ic{width:64px;height:64px;margin:0 auto}
+.dstats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;text-align:center}
+.dstats .v{font:700 32px/1 var(--hand)}
+.dstats .l{font-size:13px;color:var(--graphite-2);margin-top:4px}
+.mini{display:grid;grid-template-columns:repeat(7,26px);justify-content:center;gap:8px 12px;margin-top:14px}
+.mini svg{width:100%;height:auto;aspect-ratio:1}
+.dayrow{display:flex;align-items:center;gap:12px;width:100%;padding:8px 2px;text-align:left}
+.dayrow svg.ic{width:32px;height:32px;flex:none}
+.dayrow .nm{flex:1;font:700 19px/1.2 var(--hand)}
+.dayrow .bx{width:46px;height:46px;flex:none}
+
+/* ---------- toast (paper scrap) ---------- */
+.toast{position:absolute;left:50%;bottom:calc(98px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:14px;padding:12px 14px 12px 18px;background:var(--paper-2);
+  transform:translate(-50%,180px) rotate(-1.5deg);visibility:hidden;transition:transform .45s var(--spring),visibility 0s .45s;filter:drop-shadow(0 2px 2px rgba(80,70,55,.2));
+  clip-path:polygon(0 6%,6% 0,20% 5%,38% 1%,56% 6%,74% 0,90% 4%,100% 0,99% 50%,100% 100%,82% 96%,64% 100%,45% 95%,26% 100%,10% 96%,0 100%,1% 50%);
+  font:700 17px/1.2 var(--hand);white-space:nowrap;max-width:calc(100% - 32px)}
+.toast.on{transform:translate(-50%,0) rotate(-1.5deg);visibility:visible;transition:transform .45s var(--spring)}
+.toast button{height:44px;padding:0 6px;color:var(--blue);font:700 17px/1 var(--hand)}
+
+@media (prefers-reduced-motion:reduce){
+  .page.enter{animation:none}
+  .fill.draw,.zheng.draw .stroke{animation:none}
+  .drawer,.toast,.row .face,.pencil,.tab svg.i{transition-duration:.01s}
+  .tab.on .loop path{transition:none}
+  .pencil.on{transform:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="crayon" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="4" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.9 1.45" result="wax"/>
+      <feComposite in="d" in2="wax" operator="in"/>
+    </filter>
+    <filter id="pencil" x="-5%" y="-20%" width="110%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="1" seed="9" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="1.1" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="btooth"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" seed="2"/><feColorMatrix values="0 0 0 0 .3 0 0 0 0 .28 0 0 0 0 .25 0 0 0 -1.2 .6"/></filter>
+        <linearGradient id="pw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1ddb6"/><stop offset="1" stop-color="#d8b88a"/></linearGradient>
+      </defs>
+      <rect width="1600" height="1000" fill="#f2f1ec"/>
+      <rect width="1600" height="1000" filter="url(#btooth)" opacity=".7"/>
+      <!-- spiral binding -->
+      <g fill="none" stroke="#6f6a62" stroke-width="5" stroke-linecap="round">
+        <g id="coil"><path d="M40 58c-6-26 6-44 18-44s16 16 10 30"/><circle cx="54" cy="66" r="7" fill="#d9d6ce" stroke="none"/></g>
+      </g>
+      <g id="coils"></g>
+      <!-- doodles -->
+      <g fill="none" stroke="#4a4640" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#pencil)" opacity=".8">
+        <path d="M80 250h90M125 252v110M128 305h40M90 290v74M70 366h112"/>
+        <path d="M210 250h90M255 252v110M258 305h40M220 290v74M200 366h112"/>
+        <path d="M100 560c60-6 120-5 180 1 5 50 4 100-2 150-58 5-117 4-176-1-6-50-6-100-2-150z"/>
+        <path d="M1270 170c48-4 96-4 144 1 4 40 3 80-1 120-47 4-95 3-142-1-5-40-5-80-1-120z"/>
+        <path d="M1420 690c40-30 90-20 110 20s-10 90-60 90-80-40-50-110z"/>
+        <path d="M1450 750l20 20 40-50"/>
+      </g>
+      <g fill="none" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" filter="url(#crayon)">
+        <path d="M110 700 130 575l24 125 24-125 24 125 24-125 24 125 22-100" stroke="#3a8f4a" opacity=".85"/>
+        <path d="M1282 280 1296 180l22 100 22-100 22 100 22-100 22 100" stroke="#d33f36" opacity=".85"/>
+      </g>
+      <g font-family="Noteworthy, Hannotate TC, sans-serif" font-weight="700" fill="#4a4640" opacity=".78">
+        <text x="80" y="470" font-size="38" transform="rotate(-4 80 470)">九月要早睡！</text>
+        <text x="1250" y="400" font-size="34" transform="rotate(3 1250 400)">喝水 2000cc</text>
+        <text x="1250" y="620" font-size="30" transform="rotate(-3 1250 620)">連續 21 天</text>
+      </g>
+      <!-- colored pencils -->
+      <g id="pencils"></g>
+    </svg>
+  </div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="tooth" aria-hidden="true"></div>
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="gl">
+          <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="#3e3a35" stroke-width="2.2" stroke-linecap="round"><path d="M2 12.5v-2.2M7 12.7V8M12.1 12.4V5.2M17 12.8V2"/></svg>
+          <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="#3e3a35" stroke-width="2" stroke-linecap="round"><path d="M1.6 5.2c5-4.4 11.8-4.5 16.9-.1M4.6 8.2c3.2-2.7 7.6-2.8 10.9 0M8 11.3c1.2-1 2.9-1 4.1.1"/></svg>
+          <svg width="28" height="14" viewBox="0 0 28 14" fill="none" stroke="#3e3a35" stroke-width="1.8" stroke-linecap="round"><path d="M2 2.4c7-.6 14.1-.5 21.1.1.4 3 .4 6.1-.1 9.2-7 .5-14 .4-21-.1-.4-3.1-.4-6.1 0-9.2z"/><path d="M25.4 5.3v3.6"/><path d="M4.6 10.2 7 4.2l2.2 6 2.4-6 2.3 6 2.4-6 2.1 5" stroke-width="2"/></svg>
+        </span>
+      </div>
+
+      <main class="pages">
+        <!-- today -->
+        <section class="page" id="p-today" aria-label="今天">
+          <div class="hd">
+            <div>
+              <h2 class="date" id="tDate">9月23日</h2>
+              <p class="sub" id="tSub">星期三 · 秋分</p>
+            </div>
+            <button class="bare" id="addTop" aria-label="新增習慣"><svg viewBox="0 0 32 32" fill="none" stroke="#3e3a35" stroke-width="2.4" stroke-linecap="round"><path d="M16.2 5.6c.4 7 .2 13.9-.3 20.8M5.4 16.4c7-.5 14.1-.4 21.2.2"/></svg></button>
+          </div>
+          <div class="score" id="score"></div>
+          <div class="list" id="list"></div>
+          <button class="newrow" id="addRow"><svg class="ol" viewBox="0 0 350 62" preserveAspectRatio="none" id="newOl"></svg><svg class="pl" viewBox="0 0 32 32" fill="none" stroke="#6b665e" stroke-width="2.4" stroke-linecap="round"><path d="M16.2 5.6c.4 7 .2 13.9-.3 20.8M5.4 16.4c7-.5 14.1-.4 21.2.2"/></svg><span>畫一個新習慣</span></button>
+        </section>
+
+        <!-- month -->
+        <section class="page" id="p-month" aria-label="月曆" hidden>
+          <div class="monthhd">
+            <button class="bare" id="mPrev" aria-label="上個月"><svg viewBox="0 0 32 32" fill="none" stroke="#3e3a35" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M25 16.4c-6-.4-12-.3-17.8.2M13.6 9.4c-2.2 2.6-4.3 4.8-6.6 7 2.4 2 4.6 4.3 6.8 6.8"/></svg></button>
+            <div class="m"><div class="big" id="mTitle">九月</div><div class="yr" id="mYear">2026</div></div>
+            <button class="bare" id="mNext" aria-label="下個月"><svg viewBox="0 0 32 32" fill="none" stroke="#3e3a35" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.2c6-.5 12-.4 17.8.1M18.4 9.3c2.3 2.6 4.4 4.9 6.6 7.1-2.4 2-4.6 4.3-6.8 6.8"/></svg></button>
+          </div>
+          <div class="filters" id="filters" role="group" aria-label="篩選習慣"></div>
+          <div class="dow"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+          <div class="grid" id="grid"></div>
+          <div class="legend" id="legend"></div>
+        </section>
+
+        <!-- tally -->
+        <section class="page" id="p-tally" aria-label="劃記" hidden>
+          <div class="hd"><div><h2 class="date">劃記</h2><p class="sub">一個「正」是五天，沒斷就一直寫下去</p></div></div>
+          <div class="tl" id="tally"></div>
+          <div class="chart" id="chart"></div>
+        </section>
+      </main>
+
+      <nav class="tabs" role="tablist" aria-label="分頁">
+        <div class="edge" aria-hidden="true"><svg viewBox="0 0 350 8" preserveAspectRatio="none" id="tabEdge"></svg></div>
+        <button class="tab on" role="tab" aria-selected="true" data-tab="today">
+          <svg class="loop" viewBox="0 0 92 70" fill="none" aria-hidden="true"><path pathLength="100" d="M68 10C52 2 20 4 9 20c-9 14 2 34 26 40 22 5 46 0 52-16 6-15-6-30-24-34-10-2-19-1-27 2" stroke="#d33f36" stroke-width="2.2" stroke-linecap="round" filter="url(#pencil)"/></svg>
+          <svg class="i" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8.5c6.5-.8 13.2-.7 19.9.2.8 5.2.8 10.5-.1 15.6-6.6.8-13.2.7-19.7-.1-.9-5.2-.9-10.5-.1-15.7z"/><path d="M10.5 16.2l3.6 4.1 8.3-10.8"/></svg>
+          <span>今天</span>
+        </button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="month">
+          <svg class="loop" viewBox="0 0 92 70" fill="none" aria-hidden="true"><path pathLength="100" d="M22 8C40 1 74 4 84 22c8 15-4 32-28 37-22 5-46-1-50-17-4-15 9-29 28-32 10-2 19 0 26 3" stroke="#2b69ae" stroke-width="2.2" stroke-linecap="round" filter="url(#pencil)"/></svg>
+          <svg class="i" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 8.3c7-.6 14-.5 21 .1l-.3 17.4c-6.8.5-13.7.4-20.5-.2z"/><path d="M5.8 13c6.8-.4 13.6-.3 20.4.1M11 5.2v5.2M21.2 5.1v5.3"/><path d="M10 18h.4M15.8 18h.4M21.6 18h.4M10 21.8h.4M15.8 21.8h.4" stroke-width="2.8"/></svg>
+          <span>月曆</span>
+        </button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="tally">
+          <svg class="loop" viewBox="0 0 92 70" fill="none" aria-hidden="true"><path pathLength="100" d="M70 12C54 3 22 5 10 21c-9 13 1 33 25 39 23 6 47 0 52-17 5-14-7-28-25-32-10-2-19-1-27 3" stroke="#3a8f4a" stroke-width="2.2" stroke-linecap="round" filter="url(#pencil)"/></svg>
+          <svg class="i" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 7.6c6-.4 12-.4 18 .1M16 7.8c.2 5.9.2 11.7 0 17.6M16.2 16c2.5-.2 4.9-.2 7.4 0M9.6 13c.2 4.1.2 8.3 0 12.4M5.8 25.6c6.9-.4 13.7-.4 20.6.1"/></svg>
+          <span>劃記</span>
+        </button>
+      </nav>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="抽屜">
+        <div class="tape" aria-hidden="true"></div>
+        <div class="sheet" id="sheet"><div id="sheetBody"></div></div>
+      </div>
+      <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastBtn">復原</button></div>
+      <div class="home-ind" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <div class="caption">
+    <h1>小日課</h1>
+    <p>把每天的小事畫進素描本：蠟筆塗滿格子，月曆用色鉛筆塗色，連續天數寫成一串「正」。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+function load(k, d){ try{ var v = localStorage.getItem('app008:'+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem('app008:'+k, JSON.stringify(v)); }catch(e){} }
+
+/* ---------- random + hand-drawn geometry ---------- */
+function rng(seed){ var s = (seed*2654435761)>>>0 || 7; return function(){ s ^= s<<13; s>>>=0; s ^= s>>>17; s ^= s<<5; s>>>=0; return (s % 100000)/100000; }; }
+function f(n){ return n.toFixed(1); }
+function hline(x1, y1, x2, y2, r, j){
+  var mx = (x1+x2)/2 + (r()-.5)*j, my = (y1+y2)/2 + (r()-.5)*j;
+  return 'M'+f(x1)+' '+f(y1)+'Q'+f(mx)+' '+f(my)+' '+f(x2)+' '+f(y2);
+}
+function wbox(x, y, w, h, seed, j){
+  var r = rng(seed), o = 1.8, jj = j||2.2, d = '';
+  d += hline(x-o*r(), y+(r()-.5)*1.5, x+w+o*r(), y+(r()-.5)*1.5, r, jj);
+  d += hline(x+w+(r()-.5)*1.5, y-o*r(), x+w+(r()-.5)*1.5, y+h+o*r(), r, jj);
+  d += hline(x+w+o*r(), y+h+(r()-.5)*1.5, x-o*r(), y+h+(r()-.5)*1.5, r, jj);
+  d += hline(x+(r()-.5)*1.5, y+h+o*r(), x+(r()-.5)*1.5, y-o*r(), r, jj);
+  return d;
+}
+function scribble(x, y, w, h, seed, n){
+  var r = rng(seed), k = n||7, d = 'M'+f(x+1)+' '+f(y+h-2);
+  for (var i = 0; i < k; i++){
+    var t0 = (i+.55)/k, t1 = (i+1)/k;
+    d += 'L'+f(x+w*t0+(r()-.5)*2.4)+' '+f(y+1+r()*2.5);
+    d += 'L'+f(x+w*t1-Math.min(w*.18,h*.35)+(r()-.5)*2.4)+' '+f(y+h-1-r()*2.5);
+  }
+  return d;
+}
+function wline(w, seed, y, j){ var r = rng(seed); return hline(2, y+(r()-.5), w*.5, y+(r()-.5)*1.4, r, j||2) + hline(w*.5, y+(r()-.5)*1.2, w-2, y+(r()-.5), r, j||2); }
+function loopPath(w, h, seed){
+  var r = rng(seed), cx = w/2, cy = h/2, rx = w/2-3, ry = h/2-3, d = '', a0 = -2.2 + r()*.4;
+  for (var i = 0; i <= 26; i++){
+    var a = a0 + i/26*Math.PI*2.25, k = 1 + (r()-.5)*.07;
+    var x = cx + Math.cos(a)*rx*k, y = cy + Math.sin(a)*ry*k;
+    d += (i ? 'L' : 'M') + f(x)+' '+f(y);
+  }
+  return d;
+}
+
+/* ---------- icon set: pencil doodles ---------- */
+var ICONS = {
+  water:'<path d="M9 7.5l2.2 19c3.2 1.1 6.5 1.1 9.7-.2L23 7.2"/><path d="M8.6 7.4c4.9.9 9.8.8 14.7-.4"/><path d="M10.3 15.2c1.8-.8 3.7-.8 5.7.1s3.9.9 5.9-.5"/><path d="M16 18.8c-1.6 2.3-1.8 3.8-.1 4.1 1.6-.1 1.7-1.6.1-4.1z"/>',
+  sun:'<path d="M16 10.5c3.4-.2 5.8 2.4 5.6 5.6-.2 3.2-2.6 5.4-5.8 5.3-3.1-.1-5.4-2.6-5.2-5.7.2-3 2.3-5.1 5.4-5.2z"/><path d="M16 3.5v3M16 25.8v2.8M3.8 16.2h3M25.4 15.8h2.9M7.4 7.2l2.1 2.2M22.6 22.6l2 2M24.8 7.4l-2 2.1M9.2 22.9l-2 2"/>',
+  book:'<path d="M5 8.5c3.8-1.4 7.6-1.2 11 1.2v16c-3.4-2.2-7.2-2.5-11-1.1z"/><path d="M16 9.7c3.5-2.3 7.3-2.6 11-1.3v15.9c-3.8-1.3-7.6-1-11 1.2"/><path d="M8 12.6c1.9-.5 3.8-.4 5.6.4M8 16.2c1.9-.5 3.8-.4 5.6.4M18.6 13c1.8-.8 3.7-.9 5.6-.4"/>',
+  shoe:'<path d="M4.5 21.8c-.2-2.6.1-5.4.9-8 2.4.9 4.5.6 6-1l2.4 2.9"/><path d="M13.8 15.7l1.8-1.5M16.3 18l1.7-1.4"/><path d="M4.6 21.8c5.8.3 11.6.4 17.4-.1 2.8-.2 5.3-1.2 5.6-3.6-3.4-.7-7-1.6-10.4-3.6-2.3-1.3-4-2.8-5.4-4.3"/><path d="M4.4 25.2c7.6.5 15.1.4 22.6-.4"/>',
+  pen:'<path d="M8 24.5l2-6.2L21.6 6.7c1.2-1.1 2.8-1 3.8.1 1 1.1 1 2.6-.1 3.7L13.7 22.1z"/><path d="M10 18.3l3.8 3.8M19.4 8.9l3.8 3.9"/><path d="M5.6 27.4c3.2-1.6 6.1-.4 9.2-.8 2-.2 3.4-1.2 5-1"/>',
+  tea:'<path d="M9.2 11.3l2 15.3c3.2 1 6.5 1 9.7 0l2-15.3z"/><path d="M8 11.2c5.3-.8 10.7-.9 16 0M15.6 11l2.7-8"/><path d="M12.6 22.2h.3M16.2 23.2h.3M19.4 21.6h.3M14.3 19.2h.3" stroke-width="3"/><path d="M5 27.5L27.2 4.8"/>',
+  tooth:'<path d="M9.3 6.5c2.3-1.2 4.4-.4 6.6.6 2.4-1 4.8-1.8 7-.4 2.3 1.6 2.2 4.9 1.5 7.6-.8 3.1-1.3 6.2-1.7 9.4-.2 1.5-1.8 2.2-2.6.7-.8-1.9-1-4.3-2.3-5.8-.9-1-2.2-1-3 .1-1.2 1.6-1.5 3.9-2.3 5.7-.8 1.4-2.3.8-2.5-.7-.4-3.2-1-6.4-1.8-9.5-.7-2.7-.8-6.1 1.1-7.7z"/>',
+  plant:'<path d="M16 27V14.5"/><path d="M16 18.5c-4.6.4-7.4-2.4-7.8-7 4.8-.1 7.4 2.4 7.8 7z"/><path d="M16 15c.3-4.4 3-7.1 7.6-7.4.1 4.6-2.7 7.3-7.6 7.4z"/><path d="M10.4 27.2c3.8-.6 7.5-.6 11.2 0"/>',
+  moon:'<path d="M19.6 5.4c-5.4.6-9.2 5.3-8.7 10.7.5 5.4 5.2 9.3 10.6 8.8 1.4-.1 2.7-.5 3.9-1.2-1.6 3.1-4.8 5.1-8.5 5.1-5.4 0-9.8-4.4-9.8-9.8 0-5.2 4.1-9.5 9.3-9.8 1.1-.1 2.2.1 3.2.2z"/><path d="M23.4 8.2l.8 2 2.1.4-1.6 1.3.5 2.1-1.9-1.1-1.8 1.2.4-2.2-1.6-1.4 2.1-.3z"/>',
+  stretch:'<path d="M16 5.2c1.2 0 2.1.9 2.1 2.1S17.2 9.4 16 9.4s-2.1-1-2.1-2.1.9-2.1 2.1-2.1z"/><path d="M16 11.2v7.6M16 13l-7.2-4.6M16 13l7.2-4.6M16 18.8l-5.4 7.6M16 18.8l5.6 7.6"/>'
+};
+var ICON_KEYS = Object.keys(ICONS);
+var COLORS = { red:'#d33f36', blue:'#2b69ae', green:'#3a8f4a', ochre:'#c9791e', graphite:'#4d4944' };
+var COLOR_NAMES = { red:'朱紅', blue:'群青', green:'草綠', ochre:'赭黃', graphite:'鉛筆灰' };
+function icon(k, c, cls, sw){ return '<svg class="'+(cls||'')+'" viewBox="0 0 32 32" fill="none" stroke="'+c+'" stroke-width="'+(sw||2.2)+'" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[k]||ICONS.plant)+'</svg>'; }
+
+/* ---------- dates ---------- */
+var NOW = new Date(); NOW.setHours(12,0,0,0);
+function key(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function addDays(d, n){ var x = new Date(d); x.setDate(x.getDate()+n); return x; }
+var TODAY = key(NOW);
+var WD = ['日','一','二','三','四','五','六'];
+var CN_MONTH = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+var TERMS = {'1-5':'小寒','1-20':'大寒','2-4':'立春','2-19':'雨水','3-5':'驚蟄','3-20':'春分','4-4':'清明','4-20':'穀雨','5-5':'立夏','5-21':'小滿','6-5':'芒種','6-21':'夏至','7-7':'小暑','7-22':'大暑','8-7':'立秋','8-23':'處暑','9-7':'白露','9-23':'秋分','10-8':'寒露','10-23':'霜降','11-7':'立冬','11-22':'小雪','12-7':'大雪','12-21':'冬至'};
+
+/* ---------- data ---------- */
+var habits = load('habits', null), log = load('log', null);
+if (!Array.isArray(habits) || !log || typeof log !== 'object'){
+  habits = [
+    { id:'h1', name:'喝水 2000cc', icon:'water', color:'blue', freq:'daily' },
+    { id:'h2', name:'六點半起床', icon:'sun', color:'red', freq:'weekday' },
+    { id:'h3', name:'讀二十頁書', icon:'book', color:'green', freq:'daily' },
+    { id:'h4', name:'河堤散步', icon:'shoe', color:'ochre', freq:'daily' },
+    { id:'h5', name:'練硬筆字', icon:'pen', color:'graphite', freq:'daily' },
+    { id:'h6', name:'不喝手搖飲', icon:'tea', color:'red', freq:'daily' }
+  ];
+  log = {};
+  var p = { h1:.93, h2:.8, h3:.78, h4:.7, h5:.62, h6:.74 };
+  var r = rng(20260923);
+  for (var i = 1; i <= 75; i++){
+    var d = addDays(NOW, -i), k = key(d), arr = [];
+    habits.forEach(function(h){
+      var pp = p[h.id]; if (i < 22 && h.id === 'h1') pp = 1; if (i < 13 && h.id === 'h3') pp = 1; if (i < 9 && h.id === 'h4') pp = 1;
+      if (h.freq === 'weekday' && (d.getDay() === 0 || d.getDay() === 6)) return;
+      if (r() < pp) arr.push(h.id);
+    });
+    if (arr.length) log[k] = arr;
+  }
+  log[TODAY] = ['h1','h3','h6'];
+  save('habits', habits); save('log', log);
+}
+function isDone(id, k){ var a = log[k]; return !!(a && a.indexOf(id) > -1); }
+function setDone(id, k, on){
+  var a = log[k] || []; var i = a.indexOf(id);
+  if (on && i < 0) a.push(id); if (!on && i > -1) a.splice(i,1);
+  if (a.length) log[k] = a; else delete log[k];
+  save('log', log);
+}
+function applies(h, d){ return h.freq !== 'weekday' || (d.getDay() !== 0 && d.getDay() !== 6); }
+function streak(h){
+  var d = new Date(NOW), n = 0, guard = 0;
+  if (!isDone(h.id, key(d))) d = addDays(d, -1);
+  while (guard++ < 500){
+    if (!applies(h, d)){ d = addDays(d, -1); continue; }
+    if (isDone(h.id, key(d))){ n++; d = addDays(d, -1); } else break;
+  }
+  return n;
+}
+function best(h){
+  var b = 0, c = 0;
+  for (var i = 120; i >= 0; i--){ var d = addDays(NOW, -i); if (!applies(h, d)) continue; if (isDone(h.id, key(d))){ c++; if (c > b) b = c; } else if (i !== 0) c = 0; }
+  return b;
+}
+function total(h){ var n = 0; for (var k in log) if (log[k].indexOf(h.id) > -1) n++; return n; }
+
+/* ---------- audio: pencil on paper ---------- */
+var AC = null;
+function ac(){ try{ if (!AC) AC = new (window.AudioContext||window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); }catch(e){ AC = null; } return AC; }
+function scratch(dur, freq, vol, strokes){
+  var a = ac(); if (!a) return;
+  try{
+    var n = Math.floor(a.sampleRate*dur), b = a.createBuffer(1, n, a.sampleRate), ch = b.getChannelData(0), s = strokes||6;
+    for (var i = 0; i < n; i++){ var t = i/n; ch[i] = (Math.random()*2-1) * Math.pow(Math.abs(Math.sin(t*Math.PI*s)), .6) * (1 - t*.5); }
+    var src = a.createBufferSource(); src.buffer = b;
+    var bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = .9;
+    var g = a.createGain(); g.gain.value = vol;
+    src.connect(bp); bp.connect(g); g.connect(a.destination); src.start();
+  }catch(e){}
+}
+function tick(){ scratch(.05, 3600, .12, 1); }
+
+/* ---------- clock ---------- */
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+tickClock(); setInterval(tickClock, 15000);
+
+/* ---------- static decorations ---------- */
+$('tabEdge').innerHTML = '<path d="'+wline(350, 11, 4, 3)+'" stroke="#6b665e" stroke-width="1.6" fill="none" stroke-linecap="round" filter="url(#pencil)"/>';
+$('newOl').innerHTML = '<path d="'+wbox(3, 3, 344, 56, 77, 3)+'" stroke="#8f897f" stroke-width="1.8" fill="none" stroke-dasharray="7 7" stroke-linecap="round"/>';
+(function(){
+  var coils = '';
+  for (var x = 60; x < 1600; x += 64) coils += '<use href="#coil" x="'+(x-40)+'" y="0"/>';
+  document.getElementById('coils').innerHTML = '<g fill="none" stroke="#6f6a62" stroke-width="5" stroke-linecap="round">'+coils+'</g>';
+  function pencil(x, y, rot, col, dark, len){
+    return '<g transform="translate('+x+' '+y+') rotate('+rot+')">'+
+      '<rect x="0" y="-13" width="'+len+'" height="26" fill="'+col+'"/>'+
+      '<rect x="0" y="-13" width="'+len+'" height="8" fill="#fff" opacity=".18"/>'+
+      '<rect x="0" y="5" width="'+len+'" height="8" fill="'+dark+'" opacity=".5"/>'+
+      '<path d="M'+len+' -13 L'+(len+58)+' -2 L'+(len+58)+' 2 L'+len+' 13z" fill="url(#pw)"/>'+
+      '<path d="M'+(len+40)+' -5.5 L'+(len+62)+' 0 L'+(len+40)+' 5.5z" fill="'+dark+'"/>'+
+      '<rect x="-18" y="-13" width="18" height="26" fill="'+dark+'"/>'+
+      '<text x="40" y="5" font-family="Avenir Next, sans-serif" font-size="13" font-weight="600" fill="#fff" opacity=".75" letter-spacing="2">NO.08 · 小日課</text>'+
+    '</g>';
+  }
+  document.getElementById('pencils').innerHTML =
+    pencil(1010, 950, -12, '#d33f36', '#8e2620', 330) +
+    pencil(1150, 1010, -19, '#2b69ae', '#1b4675', 300) +
+    pencil(40, 870, 9, '#3a8f4a', '#23602f', 260);
+})();
+
+/* ---------- today ---------- */
+function boxSvg(h, k, animate){
+  var done = isDone(h.id, k), seed = (h.id.charCodeAt(1)||3)*31 + k.length*7 + parseInt(k.slice(-2),10);
+  var s = '<svg viewBox="0 0 52 52" aria-hidden="true">';
+  if (done) s += '<path class="fill'+(animate?' draw':'')+'" pathLength="100" d="'+scribble(10,10,32,32,seed,5)+'" stroke="'+COLORS[h.color]+'" stroke-width="5.2" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#crayon)"/>';
+  s += '<path d="'+wbox(7,7,38,38,seed+3,2.4)+'" stroke="#3e3a35" stroke-width="2" fill="none" stroke-linecap="round" filter="url(#pencil)"/>';
+  return s + '</svg>';
+}
+function miniBox(h, d, sz){
+  var k = key(d), on = isDone(h.id, k), app = applies(h, d), seed = d.getDate()*13 + (h.id.charCodeAt(1)||1);
+  var s = '<svg viewBox="0 0 14 14" aria-hidden="true">';
+  if (on) s += '<path d="'+scribble(2,2,10,10,seed,3)+'" stroke="'+COLORS[h.color]+'" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+  s += '<path d="'+wbox(1.5,1.5,11,11,seed,1)+'" stroke="'+(app?'#6b665e':'#c5c0b6')+'" stroke-width="1.1" fill="none" stroke-linecap="round"/>';
+  return s + '</svg>';
+}
+function noteFor(done, tot){
+  if (!tot) return '先畫一個習慣吧';
+  if (done === 0) return '今天還是白紙';
+  if (done === tot) return '全部塗滿了！';
+  if (done/tot >= .5) return '過半了，繼續塗';
+  return '慢慢來，一格一格';
+}
+function renderToday(anim){
+  var dd = NOW;
+  $('tDate').textContent = (dd.getMonth()+1)+'月'+dd.getDate()+'日';
+  var term = TERMS[(dd.getMonth()+1)+'-'+dd.getDate()];
+  $('tSub').innerHTML = '星期'+WD[dd.getDay()] + (term ? ' · <b>'+term+'</b>' : '');
+  var todays = habits.filter(function(h){ return applies(h, dd); });
+  var done = todays.filter(function(h){ return isDone(h.id, TODAY); }).length;
+  var all = todays.length && done === todays.length;
+  $('score').innerHTML =
+    (all ? '<svg class="burst" viewBox="0 0 128 96" fill="none" stroke="#c9791e" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M10 20l10 8M4 48h13M12 76l10-8M64 4v10M106 16l-9 9M118 48h-12M108 80l-10-8"/></svg>' : '') +
+    '<div class="frac" aria-label="今天完成 '+done+' 項，共 '+todays.length+' 項">'+done+'<small>/'+todays.length+'</small></div>'+
+    '<div class="note">'+noteFor(done, todays.length)+
+    '<svg viewBox="0 0 44 22" fill="none" stroke="#3e3a35" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M40 4C30 2 16 6 8 15"/><path d="M5 9l3 7 7-2"/></svg></div>';
+  var html = '';
+  if (!habits.length) html = '<p class="empty">空白的一頁。<br>在下面畫一個新習慣吧。</p>';
+  habits.forEach(function(h, idx){
+    var st = streak(h), wk = '';
+    for (var i = 6; i >= 0; i--) wk += miniBox(h, addDays(NOW, -i));
+    var ap = applies(h, dd);
+    html += '<div class="row" data-id="'+h.id+'">'+
+      '<button class="erase" data-erase="'+h.id+'" aria-label="擦掉 '+h.name+'"><svg viewBox="0 0 40 24" fill="none" stroke="#d33f36" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5 15 5.2c1-1 2.3-1 3.3 0l6.8 6.4c1 1 1 2.4 0 3.4l-6.2 6.2H9.3z"/><path d="M11.4 9.4l9 8.6"/><path d="M26 21.4h10"/></svg>擦掉</button>'+
+      '<div class="face">'+
+        icon(h.icon, COLORS[h.color], 'ic')+
+        '<button class="meta" data-open="'+h.id+'" aria-label="'+h.name+' 詳細">'+
+          '<span class="nm">'+esc(h.name)+'</span>'+
+          '<span class="st"><span>連續 <b>'+st+'</b> 天</span><span class="week">'+wk+'</span></span>'+
+        '</button>'+
+        (ap ? '<button class="box" data-check="'+h.id+'" role="switch" aria-checked="'+isDone(h.id, TODAY)+'" aria-label="'+esc(h.name)+' 今天完成">'+boxSvg(h, TODAY, anim === h.id)+'</button>'
+            : '<span class="box" style="font:700 14px/1.2 var(--hand);color:#8f897f;text-align:center">週末<br>休息</span>')+
+      '</div>'+
+      '<div class="rule" aria-hidden="true"><svg viewBox="0 0 350 6" preserveAspectRatio="none"><path d="'+wline(350, idx*17+5, 3, 1.6)+'" stroke="#a39d92" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg></div>'+
+    '</div>';
+  });
+  $('list').innerHTML = html;
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+$('list').addEventListener('click', function(e){
+  if (Date.now() < suppress) return;
+  var c = e.target.closest('[data-check]');
+  if (c){
+    ac();
+    var id = c.dataset.check, h = find(id), on = !isDone(id, TODAY);
+    if (!on){
+      var fl = c.querySelector('.fill'); if (fl) fl.classList.add('gone');
+      scratch(.3, 900, .2, 4); haptic([6,30,6]);
+      setTimeout(function(){ setDone(id, TODAY, false); renderAll(); }, 200);
+      return;
+    }
+    setDone(id, TODAY, true); scratch(.46, 2600, .22, 7); haptic(12);
+    renderToday(id); renderMonth(); renderTally();
+    var st = streak(h);
+    if ([3,7,14,21,30,50,100].indexOf(st) > -1) toast('「'+h.name+'」連續 '+st+' 天！', null);
+    return;
+  }
+  var er = e.target.closest('[data-erase]');
+  if (er){ removeHabit(er.dataset.erase); return; }
+  var o = e.target.closest('[data-open]');
+  if (o){ if (o.closest('.row').dataset.swiped){ closeSwipes(); return; } openDetail(o.dataset.open); }
+});
+function find(id){ for (var i = 0; i < habits.length; i++) if (habits[i].id === id) return habits[i]; return null; }
+
+/* swipe-to-erase */
+var swipe = null;
+function closeSwipes(){ document.querySelectorAll('.row').forEach(function(r){ r.querySelector('.face').style.transform = ''; delete r.dataset.swiped; }); }
+$('list').addEventListener('pointerdown', function(e){
+  var row = e.target.closest('.row'); if (!row || e.target.closest('.erase')) return;
+  swipe = { row:row, x:e.clientX, y:e.clientY, dx:0, on:false, base: row.dataset.swiped ? -96 : 0, id:e.pointerId };
+});
+$('list').addEventListener('pointermove', function(e){
+  if (!swipe || e.pointerId !== swipe.id) return;
+  var dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  if (!swipe.on){ if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)*1.3){ swipe.on = true; swipe.row.classList.add('drag'); try{ swipe.row.setPointerCapture(e.pointerId); }catch(err){} } else if (Math.abs(dy) > 10){ swipe = null; return; } else return; }
+  var x = Math.min(0, Math.max(-130, swipe.base + dx));
+  swipe.dx = dx; swipe.row.querySelector('.face').style.transform = 'translateX('+x+'px)';
+});
+function endSwipe(){
+  if (!swipe) return;
+  var s = swipe; swipe = null;
+  if (!s.on) return;
+  s.row.classList.remove('drag');
+  var x = s.base + s.dx, face = s.row.querySelector('.face');
+  if (x < -54){ closeSwipes(); s.row.dataset.swiped = '1'; face.style.transform = 'translateX(-96px)'; haptic(6); scratch(.12, 1200, .1, 1); }
+  else { face.style.transform = ''; delete s.row.dataset.swiped; }
+  suppress = Date.now() + 350;
+}
+var suppress = 0;
+$('list').addEventListener('pointerup', endSwipe);
+$('list').addEventListener('pointercancel', endSwipe);
+
+var undo = null;
+function removeHabit(id){
+  var i = -1; habits.forEach(function(h, j){ if (h.id === id) i = j; });
+  if (i < 0) return;
+  var h = habits[i];
+  undo = { h:h, i:i };
+  habits.splice(i, 1); save('habits', habits);
+  ac(); scratch(.5, 700, .25, 5); haptic([10,40,10]);
+  closeSheet(); renderAll();
+  toast('擦掉了「'+h.name+'」', function(){ habits.splice(Math.min(undo.i, habits.length), 0, undo.h); save('habits', habits); renderAll(); haptic(8); });
+}
+
+/* ---------- month ---------- */
+var view = new Date(NOW.getFullYear(), NOW.getMonth(), 1, 12);
+var filter = load('filter', 'all');
+function renderFilters(){
+  var h = '<button class="fbtn'+(filter==='all'?' on':'')+'" data-f="all" aria-pressed="'+(filter==='all')+'">'+(filter==='all'?'<svg class="ring" viewBox="0 0 60 48" fill="none"><path d="'+loopPath(60,48,5)+'" stroke="#3e3a35" stroke-width="1.8" stroke-linecap="round"/></svg>':'')+'全部</button>';
+  habits.forEach(function(x){
+    var on = filter === x.id;
+    h += '<button class="fbtn'+(on?' on':'')+'" data-f="'+x.id+'" aria-pressed="'+on+'" aria-label="只看 '+esc(x.name)+'">'+(on?'<svg class="ring" viewBox="0 0 48 48" fill="none"><path d="'+loopPath(48,48,x.id.charCodeAt(1))+'" stroke="'+COLORS[x.color]+'" stroke-width="1.8" stroke-linecap="round"/></svg>':'')+icon(x.icon, COLORS[x.color], 'i')+'</button>';
+  });
+  $('filters').innerHTML = h;
+}
+function renderMonth(){
+  if (filter !== 'all' && !find(filter)) filter = 'all';
+  renderFilters();
+  $('mTitle').textContent = CN_MONTH[view.getMonth()];
+  $('mYear').textContent = view.getFullYear();
+  var first = new Date(view), off = first.getDay(), days = new Date(view.getFullYear(), view.getMonth()+1, 0).getDate();
+  var html = '', sel = filter === 'all' ? habits : habits.filter(function(h){ return h.id === filter; });
+  var cells = 0, full = 0, fills = 0;
+  for (var i = 0; i < off; i++) html += '<span></span>';
+  for (var d = 1; d <= days; d++){
+    var dt = new Date(view.getFullYear(), view.getMonth(), d, 12), k = key(dt), fut = dt > NOW;
+    var done = sel.filter(function(h){ return isDone(h.id, k); });
+    var appl = sel.filter(function(h){ return applies(h, dt); });
+    var svg = '<svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-linecap="round">';
+    if (filter !== 'all' && done.length){
+      svg += '<path d="'+scribble(7,8,34,32,d*7,6)+'" stroke="'+COLORS[done[0].color]+'" stroke-width="6" stroke-linejoin="round" filter="url(#crayon)" opacity=".82"/>';
+    } else {
+      done.forEach(function(h, j){
+        var r = rng(d*31+j*7), x0 = 6 + j*5.4 + r()*1.5;
+        svg += '<path d="M'+f(x0)+' 42 L'+f(x0+13+r()*3)+' 7" stroke="'+COLORS[h.color]+'" stroke-width="4.2" filter="url(#crayon)" opacity=".85"/>';
+      });
+    }
+    if (k === TODAY) svg += '<path d="'+loopPath(48,48,d)+'" stroke="#d33f36" stroke-width="2"/>';
+    if (!fut && appl.length && done.length === appl.length && filter === 'all') svg += '<path d="M40 3.5l1.3 3 3.2.4-2.4 2.2.7 3.2-2.8-1.6-2.8 1.6.6-3.2-2.4-2.2 3.2-.4z" fill="#c9791e" stroke="#c9791e" stroke-width=".8" stroke-linejoin="round"/>';
+    svg += '</svg>';
+    if (!fut){ cells += appl.length; fills += done.length; if (appl.length && done.length === appl.length) full++; }
+    html += '<button class="day'+(fut?' fut':'')+'" data-day="'+k+'" aria-label="'+(view.getMonth()+1)+'月'+d+'日，完成 '+done.length+' 項">'+svg+'<span class="n">'+d+'</span></button>';
+  }
+  $('grid').innerHTML = html;
+  var pct = cells ? Math.round(fills/cells*100) : 0;
+  var longest = 0; sel.forEach(function(h){ longest = Math.max(longest, best(h)); });
+  $('legend').innerHTML =
+    '<div class="it"><div class="v" style="color:#2b69ae">'+fills+'</div><div class="l">本月塗了幾格</div></div>'+
+    '<div class="it"><div class="v" style="color:#3a8f4a">'+pct+'%</div><div class="l">完成率</div></div>'+
+    '<div class="it"><div class="v" style="color:#c9791e">'+full+'</div><div class="l">全部塗滿的日子</div></div>'+
+    '<div class="it"><div class="v" style="color:#d33f36">'+longest+'</div><div class="l">最長連續天數</div></div>';
+}
+$('filters').addEventListener('click', function(e){ var b = e.target.closest('[data-f]'); if (!b) return; ac(); tick(); haptic(5); filter = b.dataset.f; save('filter', filter); renderMonth(); });
+$('mPrev').addEventListener('click', function(){ ac(); scratch(.18, 1800, .12, 1); haptic(6); view = new Date(view.getFullYear(), view.getMonth()-1, 1, 12); renderMonth(); });
+$('mNext').addEventListener('click', function(){
+  ac(); haptic(6);
+  var nx = new Date(view.getFullYear(), view.getMonth()+1, 1, 12);
+  if (nx > NOW){ toast('下個月還是白紙', null); haptic([4,30,4]); return; }
+  scratch(.18, 1800, .12, 1); view = nx; renderMonth();
+});
+$('grid').addEventListener('click', function(e){
+  var b = e.target.closest('[data-day]'); if (!b) return;
+  ac(); tick(); haptic(6);
+  if (b.classList.contains('fut')){ toast('那天還沒到喔', null); return; }
+  openDay(b.dataset.day);
+});
+
+/* ---------- tally ---------- */
+function zhengSvg(n, color, anim){
+  var out = '', groups = Math.ceil(n/5), strokes = [
+    'M5 6.5c7-.3 14-.3 21 .1', 'M15.5 6.7c.2 6.4.2 12.8 0 19.2', 'M15.8 15.5c2.9-.2 5.8-.2 8.6 0', 'M8.8 12.6c.2 4.4.2 8.8 0 13.2', 'M4.2 26c7.8-.3 15.6-.3 23.4.1'
+  ];
+  var shown = Math.min(groups, 14), delay = 0;
+  for (var g = 0; g < shown; g++){
+    var c = Math.min(5, n - g*5), s = '<svg viewBox="0 0 32 32" fill="none" stroke="'+color+'" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">';
+    for (var i = 0; i < c; i++){ s += '<path class="stroke" pathLength="100" style="animation-delay:'+(delay*45)+'ms" d="'+strokes[i]+'"/>'; delay++; }
+    out += s + '</svg>';
+  }
+  if (groups > shown) out += '<span style="font:700 18px/30px var(--hand);color:#6b665e">＋'+(n - shown*5)+'</span>';
+  return out;
+}
+function renderTally(anim){
+  var html = '';
+  habits.forEach(function(h){
+    var st = streak(h), b = best(h), t = total(h);
+    var mDone = 0, mAll = 0;
+    for (var i = 0; i < 30; i++){ var d = addDays(NOW, -i); if (applies(h, d)){ mAll++; if (isDone(h.id, key(d))) mDone++; } }
+    html += '<div class="titem">'+
+      '<div class="top">'+icon(h.icon, COLORS[h.color], 'ic')+'<div class="nm">'+esc(h.name)+'</div><div class="num" style="color:'+COLORS[h.color]+'">'+st+'<small>天</small></div></div>'+
+      '<div class="zheng'+(anim?' draw':'')+'" aria-label="連續 '+st+' 天">'+(st ? zhengSvg(st, COLORS[h.color]) : '<span style="font:17px/30px var(--hand);color:#8f897f">今天從第一筆開始</span>')+'</div>'+
+      '<div class="foot">最佳 <b>'+b+'</b> 天 · 近 30 天 <b>'+(mAll?Math.round(mDone/mAll*100):0)+'%</b> · 累計 <b>'+t+'</b> 格</div>'+
+    '</div>';
+  });
+  if (!habits.length) html = '<p class="empty">還沒有東西可以劃記。</p>';
+  $('tally').innerHTML = html;
+  // two-week wobbly line
+  var pts = [], W = 350, H = 150, n = 14, maxv = Math.max(1, habits.length);
+  for (var i = n-1; i >= 0; i--){
+    var d = addDays(NOW, -i), c = habits.filter(function(h){ return isDone(h.id, key(d)); }).length;
+    pts.push({ x: 18 + (n-1-i)/(n-1)*(W-36), y: 20 + (1 - c/maxv)*(H-52), c:c, d:d });
+  }
+  var r = rng(99), path = 'M'+f(pts[0].x)+' '+f(pts[0].y);
+  for (var j = 1; j < pts.length; j++){ var a = pts[j-1], bb = pts[j]; path += 'Q'+f((a.x+bb.x)/2 + (r()-.5)*4)+' '+f((a.y+bb.y)/2 + (r()-.5)*5)+' '+f(bb.x)+' '+f(bb.y); }
+  var dots = pts.map(function(p, i){ return '<path d="'+loopPath(10,10,i+3)+'" transform="translate('+f(p.x-5)+' '+f(p.y-5)+')" stroke="#d33f36" stroke-width="1.8" fill="'+(i===pts.length-1?'#d33f36':'none')+'"/>'; }).join('');
+  var labels = pts.filter(function(p, i){ return i % 3 === 1 || i === pts.length-1; }).map(function(p){ return '<text x="'+f(p.x)+'" y="'+(H-6)+'" text-anchor="middle">'+(p.d.getMonth()+1)+'/'+p.d.getDate()+'</text>'; }).join('');
+  $('chart').innerHTML = '<h3>最近兩週，每天塗了幾格</h3><svg viewBox="0 0 '+W+' '+H+'" aria-label="最近十四天完成數折線圖"><path d="'+wline(W, 3, H-26, 2)+'" stroke="#a39d92" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="'+path+'" stroke="#3e3a35" stroke-width="2.2" fill="none" stroke-linecap="round" filter="url(#pencil)"/>'+dots+labels+'<text x="'+f(pts[pts.length-1].x)+'" y="'+f(pts[pts.length-1].y-14)+'" text-anchor="middle" style="fill:#d33f36;font-weight:700">'+pts[pts.length-1].c+'</text></svg>';
+}
+
+function renderAll(){ renderToday(); renderMonth(); renderTally(); }
+
+/* ---------- tabs ---------- */
+var ORDER = ['today','month','tally'], cur = 'today';
+function switchTab(t, quiet){
+  if (ORDER.indexOf(t) < 0) t = 'today';
+  var back = ORDER.indexOf(t) < ORDER.indexOf(cur);
+  document.querySelectorAll('.tab').forEach(function(b){ var on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  ORDER.forEach(function(k){ var p = $('p-'+k); if (k === t){ p.hidden = false; if (!quiet){ p.classList.remove('enter','back'); void p.offsetWidth; p.classList.add('enter'); if (back) p.classList.add('back'); } } else p.hidden = true; });
+  if (t === 'tally' && !quiet) renderTally(true);
+  cur = t; save('tab', t);
+}
+document.querySelectorAll('.tab').forEach(function(b){ b.addEventListener('click', function(){ if (b.dataset.tab === cur) return; ac(); scratch(.2, 1500, .12, 2); haptic(6); switchTab(b.dataset.tab); }); });
+
+/* ---------- drawer (torn paper) ---------- */
+var drawer = $('drawer'), sheet = $('sheet'), scrim = $('scrim'), lastFocus = null, onClose = null;
+function tear(){
+  var r = rng(Date.now() % 9973 + 1), pts = ['0% 100%','0% 12px'], x = 0;
+  while (x < 100){ x += 2 + r()*3.2; pts.push(Math.min(100,x).toFixed(1)+'% '+(2 + r()*9).toFixed(1)+'px'); }
+  pts.push('100% 100%');
+  sheet.style.clipPath = 'polygon('+pts.join(',')+')';
+}
+function openSheet(html, after){
+  lastFocus = document.activeElement;
+  $('sheetBody').innerHTML = html; tear(); sheet.scrollTop = 0;
+  drawer.style.transform = ''; drawer.classList.add('on'); scrim.classList.add('on');
+  ac(); scratch(.32, 1100, .16, 2); haptic(8);
+  if (after) after();
+  var fcs = sheet.querySelector('input,button'); if (fcs) try{ fcs.focus({ preventScroll:true }); }catch(e){}
+}
+function closeSheet(){
+  if (!drawer.classList.contains('on')) return;
+  drawer.classList.remove('on','drag'); drawer.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = '';
+  if (onClose){ var c = onClose; onClose = null; c(); }
+  if (lastFocus && lastFocus.focus) try{ lastFocus.focus({ preventScroll:true }); }catch(e){}
+}
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+(function(){
+  var sy = 0, dy = 0, t0 = 0, on = false;
+  drawer.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button,input')) return;
+    if (sheet.scrollTop > 0 && e.target.closest('.sheet')) return;
+    on = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; drawer.classList.add('drag');
+    try{ drawer.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  drawer.addEventListener('pointermove', function(e){
+    if (!on) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy/6;
+    drawer.style.transform = 'translateY('+y.toFixed(1)+'px)';
+    scrim.style.opacity = Math.max(0, 1 - dy/drawer.offsetHeight).toFixed(2);
+  });
+  function end(e){
+    if (!on) return; on = false; drawer.classList.remove('drag'); scrim.style.opacity = '';
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > drawer.offsetHeight*.35 || v > .6){ haptic(6); closeSheet(); } else drawer.style.transform = '';
+  }
+  drawer.addEventListener('pointerup', end); drawer.addEventListener('pointercancel', end);
+})();
+
+function goBtn(label, color, id, ghost){
+  return '<button class="go'+(ghost?' ghost':'')+'" id="'+id+'"><svg viewBox="0 0 346 60" preserveAspectRatio="none" aria-hidden="true">'+
+    (ghost ? '' : '<path d="'+scribble(12,10,322,40,id.length*13,30)+'" stroke="'+color+'" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#crayon)"/>')+
+    '<path d="'+wbox(4,4,338,52,id.length*7,3)+'" stroke="'+(ghost?color:'#3e3a35')+'" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span>'+label+'</span></button>';
+}
+
+/* add habit */
+function openAdd(){
+  var st = { icon:'plant', color:'green', freq:'daily' };
+  var picks = ICON_KEYS.map(function(k){ return '<button class="pick'+(k===st.icon?' on':'')+'" data-icon="'+k+'" aria-label="圖案 '+k+'"><svg class="ring" viewBox="0 0 52 52" fill="none"><path d="'+loopPath(52,52,k.length*9)+'" stroke="#3e3a35" stroke-width="1.8" stroke-linecap="round"/></svg>'+icon(k, '#3e3a35', 'i')+'</button>'; }).join('');
+  var pens = ['red','blue','green','ochre','graphite'].map(function(c){ return '<button class="pencil'+(c===st.color?' on':'')+'" data-color="'+c+'" aria-label="'+COLOR_NAMES[c]+'色鉛筆">'+pencilSvg(c)+'<span>'+COLOR_NAMES[c]+'</span></button>'; }).join('');
+  openSheet(
+    '<h4>新習慣</h4><p class="lead">寫下一件每天想做的小事</p>'+
+    '<div class="fld"><div class="namein"><input id="nName" maxlength="14" placeholder="例如：睡前拉筋" autocomplete="off" aria-label="習慣名稱"><svg viewBox="0 0 346 6" preserveAspectRatio="none"><path d="'+wline(346, 5, 3, 2)+'" stroke="#3e3a35" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg></div></div>'+
+    '<div class="fld"><div class="lb">畫個圖案</div><div class="picks" id="nIcons">'+picks+'</div></div>'+
+    '<div class="fld"><div class="lb">挑一支色鉛筆</div><div class="pencils" id="nPens">'+pens+'</div></div>'+
+    '<div class="fld"><div class="lb">多久一次</div><div class="choice" id="nFreq">'+
+      '<button class="cho on" data-freq="daily"><svg class="ring" viewBox="0 0 90 52" fill="none" preserveAspectRatio="none"><path d="'+loopPath(90,52,4)+'" stroke="#3e3a35" stroke-width="1.8" stroke-linecap="round"/></svg>每天</button>'+
+      '<button class="cho" data-freq="weekday"><svg class="ring" viewBox="0 0 120 52" fill="none" preserveAspectRatio="none"><path d="'+loopPath(120,52,8)+'" stroke="#3e3a35" stroke-width="1.8" stroke-linecap="round"/></svg>只有平日</button>'+
+    '</div></div>'+
+    goBtn('畫上去', COLORS.green, 'nGo')
+  );
+  var body = $('sheetBody');
+  function paintGo(){ var g = $('nGo'); if (g) g.outerHTML = goBtn('畫上去', COLORS[st.color], 'nGo'); }
+  body.onclick = function(e){
+    var ic = e.target.closest('[data-icon]'), co = e.target.closest('[data-color]'), fr = e.target.closest('[data-freq]');
+    if (ic){ st.icon = ic.dataset.icon; body.querySelectorAll('.pick').forEach(function(b){ b.classList.toggle('on', b === ic); }); tick(); haptic(5); }
+    if (co){ st.color = co.dataset.color; body.querySelectorAll('.pencil').forEach(function(b){ b.classList.toggle('on', b === co); }); body.querySelectorAll('.pick svg.i').forEach(function(s){ s.setAttribute('stroke', COLORS[st.color]); }); paintGo(); scratch(.14, 2200, .1, 1); haptic(5); }
+    if (fr){ st.freq = fr.dataset.freq; body.querySelectorAll('.cho').forEach(function(b){ b.classList.toggle('on', b === fr); }); tick(); haptic(5); }
+    if (e.target.closest('#nGo')){
+      var inp = $('nName'), name = (inp.value || '').trim();
+      if (!name){ inp.focus(); haptic([10,40,10]); toast('先寫個名字吧', null); return; }
+      var h = { id:'h'+Date.now().toString(36), name:name, icon:st.icon, color:st.color, freq:st.freq };
+      habits.push(h); save('habits', habits);
+      scratch(.5, 2400, .2, 8); haptic(14);
+      closeSheet(); renderAll(); switchTab('today', true);
+      var pg = $('p-today'); setTimeout(function(){ pg.scrollTo({ top: pg.scrollHeight, behavior:'smooth' }); }, 60);
+      toast('畫好了「'+name+'」', null);
+    }
+  };
+  body.querySelectorAll('.pick svg.i').forEach(function(s){ s.setAttribute('stroke', COLORS[st.color]); });
+  $('nName').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); var g = $('nGo'); if (g) g.click(); } });
+}
+function pencilSvg(c){
+  var col = COLORS[c];
+  return '<svg viewBox="0 0 220 22" aria-hidden="true"><rect x="10" y="3" width="160" height="16" fill="'+col+'"/><rect x="10" y="3" width="160" height="5" fill="#fff" opacity=".2"/><rect x="10" y="14" width="160" height="5" fill="#000" opacity=".16"/><rect x="0" y="3" width="10" height="16" fill="'+col+'" opacity=".7"/><path d="M170 3l36 7v2l-36 7z" fill="#e4c79a"/><path d="M196 8l14 3-14 3z" fill="'+col+'"/></svg>';
+}
+$('addTop').addEventListener('click', openAdd);
+$('addRow').addEventListener('click', openAdd);
+
+/* detail */
+function openDetail(id){
+  var h = find(id); if (!h) return;
+  var cells = '';
+  var start = addDays(NOW, -34);
+  for (var i = 0; i < 35; i++){ var d = addDays(start, i); cells += miniBox(h, d); }
+  var pens = ['red','blue','green','ochre','graphite'].map(function(c){ return '<button class="pencil'+(c===h.color?' on':'')+'" data-color="'+c+'" aria-label="改用'+COLOR_NAMES[c]+'">'+pencilSvg(c)+'<span>'+COLOR_NAMES[c]+'</span></button>'; }).join('');
+  openSheet(
+    '<div class="big-ic">'+icon(h.icon, COLORS[h.color], '', 2)+'</div>'+
+    '<h4>'+esc(h.name)+'</h4><p class="lead">'+(h.freq==='weekday'?'只有平日':'每天')+' · 近五週</p>'+
+    '<div class="dstats"><div><div class="v" style="color:'+COLORS[h.color]+'">'+streak(h)+'</div><div class="l">連續天數</div></div><div><div class="v">'+best(h)+'</div><div class="l">最佳紀錄</div></div><div><div class="v">'+total(h)+'</div><div class="l">累計格數</div></div></div>'+
+    '<div class="mini">'+cells+'</div>'+
+    '<div class="fld"><div class="lb">換一支色鉛筆</div><div class="pencils" id="dPens">'+pens+'</div></div>'+
+    goBtn('擦掉這個習慣', COLORS.red, 'dErase', true)
+  );
+  var body = $('sheetBody');
+  body.querySelectorAll('.mini svg').forEach(function(s){ s.setAttribute('viewBox','0 0 14 14'); });
+  body.onclick = function(e){
+    var co = e.target.closest('[data-color]');
+    if (co){ h.color = co.dataset.color; save('habits', habits); body.querySelectorAll('.pencil').forEach(function(b){ b.classList.toggle('on', b === co); });
+      var big = body.querySelector('.big-ic svg'); if (big) big.setAttribute('stroke', COLORS[h.color]);
+      scratch(.14, 2200, .1, 1); haptic(5); renderAll(); }
+    if (e.target.closest('#dErase')) removeHabit(h.id);
+  };
+}
+
+/* day sheet (backfill) */
+function openDay(k){
+  var p = k.split('-'), dt = new Date(+p[0], +p[1]-1, +p[2], 12);
+  function rows(){
+    var list = habits.filter(function(h){ return applies(h, dt); });
+    if (!list.length) return '<p class="empty">這天沒有要做的事</p>';
+    return list.map(function(h){ return '<button class="dayrow" data-dk="'+h.id+'" role="switch" aria-checked="'+isDone(h.id,k)+'">'+icon(h.icon, COLORS[h.color], 'ic')+'<span class="nm">'+esc(h.name)+'</span><span class="bx">'+boxSvg(h, k, false)+'</span></button>'; }).join('');
+  }
+  openSheet('<h4>'+(dt.getMonth()+1)+'月'+dt.getDate()+'日</h4><p class="lead">星期'+WD[dt.getDay()]+(k===TODAY?' · 今天':' · 補畫也算數')+'</p><div class="fld" id="dRows">'+rows()+'</div>');
+  $('sheetBody').onclick = function(e){
+    var b = e.target.closest('[data-dk]'); if (!b) return;
+    var id = b.dataset.dk, on = !isDone(id, k);
+    setDone(id, k, on); scratch(on ? .4 : .25, on ? 2600 : 900, .2, on ? 6 : 3); haptic(on ? 10 : [6,30,6]);
+    b.setAttribute('aria-checked', on);
+    b.querySelector('.bx').innerHTML = boxSvg(find(id), k, on);
+    renderAll();
+  };
+}
+
+/* ---------- toast ---------- */
+var tT = null, tAct = null;
+function toast(msg, action){
+  $('toastMsg').textContent = msg; tAct = action;
+  $('toastBtn').style.display = action ? '' : 'none';
+  var t = $('toast'); t.classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ t.classList.remove('on'); tAct = null; }, action ? 4200 : 2000);
+}
+$('toastBtn').addEventListener('click', function(){ if (tAct){ var a = tAct; tAct = null; a(); } $('toast').classList.remove('on'); });
+
+/* ---------- boot ---------- */
+renderAll();
+switchTab(load('tab', 'today'), true);
+})();
+</script>
+</body>
+</html>

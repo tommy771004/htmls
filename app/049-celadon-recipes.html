@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b7d1c1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="青瓷">
+<title>青瓷 · 食譜社群</title>
+<meta name="description" content="把每道菜盛在高麗青瓷象嵌盤裡的食譜社群：份量縮放、逐步橫翻的料理模式與步驟計時、收藏、分享、廚友心得。收錄於 100 Creative HTML Works（App 049・韓式青瓷釉色）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/049-celadon-recipes.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b7d1c1'/%3E%3Ccircle cx='32' cy='32' r='24' fill='%237fa590'/%3E%3Ccircle cx='32' cy='32' r='17' fill='%239cbfab'/%3E%3Ccircle cx='32' cy='32' r='20.5' fill='none' stroke='%23f2f4ec' stroke-width='2.4' stroke-dasharray='3 3'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23f2f4ec' stroke='%234a2718' stroke-width='1.4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --glaze:#b7d1c1;--glaze2:#a6c4b2;--cel:#7fa590;--deep:#46695a;--pool:#3a5a4c;
+  --ink:#43220f;--chest:#7a4128;--mute:#44564a;--slip:#f2f4ec;--line:rgba(67,34,15,.16);
+  --song:"Songti TC","STSong","Songti SC","PingFang TC",serif;
+  --sans:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --out:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.32,1.28,.5,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.6 var(--song);color:var(--ink);background:var(--glaze);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+textarea,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--chest);outline-offset:2px}
+svg{display:block}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--glaze);isolation:isolate}
+.crk{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+@media (min-width:521px){
+  body{background:#9fbfad}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop canvas{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:60px;padding:12px;z-index:1;
+    background:linear-gradient(160deg,#7a4128,#4a2414 55%,#6a3620);box-shadow:inset 0 1px 0 rgba(255,220,190,.35),inset 0 0 0 2px #3a1a0c,0 16px 24px -16px rgba(40,50,40,.6)}
+  .screen{inset:12px;border-radius:48px}
+  .caption{display:block;position:relative;z-index:1;max-width:230px}
+  .caption h1{font:700 44px/1 var(--song);letter-spacing:.14em;color:var(--ink)}
+  .caption p{margin-top:14px;font-size:15px;line-height:1.85;color:#2f4238}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+/* ---------- status ---------- */
+.sb{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 34px;display:flex;align-items:center;justify-content:space-between;font:600 15px/1 var(--sans);color:var(--ink);pointer-events:none;transition:color .3s}
+.sb .gl{display:flex;gap:6px;align-items:center}
+.sb.light{color:var(--slip)}
+@media (display-mode:standalone){.sb{display:none}}
+.homeind{position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--ink);z-index:90;pointer-events:none;transition:background-color .3s}
+.homeind.light{background:var(--slip)}
+
+/* ---------- header / nav ---------- */
+.hdr{position:absolute;left:0;right:0;top:calc(48px + env(safe-area-inset-top));z-index:5;display:flex;align-items:center;padding:0 12px 0 22px;height:60px}
+.logo{display:flex;align-items:center;gap:10px;font:700 26px/1 var(--song);letter-spacing:.18em}
+.nav{margin-left:auto;display:flex;gap:2px}
+.nav button{height:44px;padding:0 10px;font-size:16px;color:var(--mute);letter-spacing:.08em;transition:color .25s}
+.nav button[aria-selected=true]{color:var(--ink);font-weight:700}
+.nav button:active{color:var(--chest)}
+
+.views{position:absolute;left:0;right:0;top:calc(108px + env(safe-area-inset-top));bottom:0;z-index:2}
+.view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding-bottom:calc(40px + env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior:contain}
+.view::-webkit-scrollbar{display:none}
+.view[hidden]{display:none}
+.view.in{animation:vin .38s var(--out)}
+@keyframes vin{from{transform:translateY(12px)}}
+
+/* ---------- home ---------- */
+.cats{display:flex;gap:4px;padding:0 14px;overflow-x:auto;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cats button{flex:none;height:44px;padding:0 10px;font-size:15px;color:var(--mute);transition:color .2s}
+.cats button[aria-pressed=true]{color:var(--chest);font-weight:700}
+.deck{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 0 4px;gap:0;scrollbar-width:none;overscroll-behavior-x:contain}
+.deck::before,.deck::after{content:"";flex:0 0 12%}
+.deck::-webkit-scrollbar{display:none}
+.plate{flex:0 0 76%;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 6px}
+.plate .dish{width:min(100%,286px);aspect-ratio:1;will-change:transform;transition:transform .12s linear}
+.plate .dish svg{width:100%;height:100%;filter:drop-shadow(3px 7px 5px rgba(38,64,52,.34))}
+.plate button.open{display:block;width:100%;border-radius:50%}
+.plate button.open:active .dish{transform:scale(.97)}
+.plate h3{margin-top:12px;font:700 26px/1.25 var(--song);letter-spacing:.1em}
+.plate .meta{margin-top:4px;font-size:14px;color:var(--mute)}
+.plate .meta b{color:var(--ink);font-weight:600}
+.deckEmpty{flex:0 0 76%;padding:80px 20px;text-align:center;color:var(--mute)}
+.feedpeek{margin:20px 18px 0}
+.fp-h{display:flex;align-items:baseline;justify-content:space-between;font-size:15px;color:var(--mute)}
+.fp-h b{font-size:18px;color:var(--ink);letter-spacing:.06em}
+.fp-h button{height:44px;padding:0 4px;color:var(--chest);font-size:14px}
+.note{display:flex;gap:12px;padding:12px 0;align-items:flex-start;box-shadow:inset 0 -1px 0 var(--line);text-align:left;width:100%}
+.note .who{flex:none}
+.note .body{flex:1;min-width:0;font-size:15px;line-height:1.65}
+.note .body small{display:block;font:13px/1.4 var(--sans);color:var(--mute);margin-bottom:2px}
+.note .body small b{color:var(--ink);font-weight:600}
+.note .like{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;width:44px;height:52px;font:13px/1 var(--sans);color:var(--mute);gap:3px;border-radius:10px}
+.note .like:active{background:rgba(67,34,15,.08)}
+.note .like.on{color:var(--chest)}
+.note .like.on .bowlf{fill:var(--chest)}
+
+/* ---------- shelf ---------- */
+.shelf{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 10px;padding:8px 18px}
+.shelf button{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:14px;border-radius:12px;padding:4px 0}
+.shelf button:active{background:rgba(67,34,15,.06)}
+.shelf .dish{width:92%;aspect-ratio:1}
+.shelf .dish svg{width:100%;height:100%;filter:drop-shadow(2px 4px 3px rgba(38,64,52,.3))}
+.more{margin:26px 18px 0}
+.sg{display:flex;align-items:center;gap:12px;padding:8px 0;box-shadow:inset 0 -1px 0 var(--line)}
+.sg .op{display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-align:left;min-height:56px;border-radius:10px}
+.sg .op:active{background:rgba(67,34,15,.05)}
+.sg .op .dish{flex:none;width:52px;height:52px}
+.sg .op b{display:block;font-size:17px;letter-spacing:.06em}
+.sg .op span{font:13px/1.4 var(--sans);color:var(--mute)}
+.sg .add{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:12px;color:var(--ink)}
+.sg .add:active{background:rgba(67,34,15,.08)}
+.hint{padding:12px 22px 0;color:var(--mute);font-size:14px;line-height:1.8}
+.bigempty{padding:60px 30px;text-align:center;color:var(--mute);line-height:1.9}
+
+/* ---------- feed ---------- */
+.compose{display:flex;align-items:center;gap:12px;margin:4px 18px 4px;min-height:52px;width:calc(100% - 36px);border-radius:14px;padding:0 16px;background:rgba(242,244,236,.55);color:var(--mute);font-size:15px;text-align:left}
+.compose:active{background:rgba(242,244,236,.8)}
+.feed{padding:0 18px}
+.feed .note .body .dn{display:inline-block;color:var(--chest);font-weight:700}
+.feed .thumb{flex:none;width:44px;height:44px}
+
+/* ---------- detail ---------- */
+.detail{position:absolute;inset:0;z-index:30;background:var(--glaze);transform:translateX(104%);transition:transform .45s var(--out);display:flex;flex-direction:column;visibility:hidden}
+.detail.on{transform:none;visibility:visible}
+.detail .crk{opacity:.8}
+.dtop{position:relative;z-index:2;flex:none;display:flex;align-items:center;height:calc(104px + env(safe-area-inset-top));padding:calc(48px + env(safe-area-inset-top)) 8px 0}
+.ibtn{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;flex:none}
+.ibtn:active{background:rgba(67,34,15,.08)}
+.ibtn.on .bowlf{fill:var(--chest)}
+.dtop .sp{flex:1}
+.dscroll{position:relative;z-index:1;flex:1;overflow-y:auto;overflow-x:hidden;padding:0 22px calc(110px + env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior:contain}
+.dscroll::-webkit-scrollbar{display:none}
+.dhero{display:flex;flex-direction:column;align-items:center;text-align:center}
+.dhero .dish{width:210px;height:210px}
+.dhero .dish svg{width:100%;height:100%;filter:drop-shadow(3px 7px 5px rgba(38,64,52,.34))}
+.dhero h2{margin-top:10px;font:700 30px/1.25 var(--song);letter-spacing:.12em}
+.dhero .by{display:flex;align-items:center;gap:8px;margin-top:6px;font:14px/1 var(--sans);color:var(--mute)}
+.dhero .by b{color:var(--ink);font-weight:600}
+.desc{margin-top:14px;font-size:16px;line-height:1.85}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;text-align:center}
+.facts div{padding:8px 0}
+.facts div+div{box-shadow:inset 1px 0 0 var(--line)}
+.facts b{display:block;font:700 20px/1.2 var(--song)}
+.facts span{font:13px/1.4 var(--sans);color:var(--mute)}
+.sec{display:flex;align-items:center;justify-content:space-between;margin-top:26px}
+.sec h4{font:700 20px/1.2 var(--song);letter-spacing:.12em}
+.step{display:flex;align-items:center;gap:2px;font:14px/1 var(--sans)}
+.step button{width:44px;height:44px;display:grid;place-items:center;border-radius:50%}
+.step button:active{background:rgba(67,34,15,.1)}
+.step output{min-width:68px;text-align:center;font:700 17px/1 var(--song)}
+.ings{margin-top:6px}
+.ing{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;text-align:left;box-shadow:inset 0 -1px 0 var(--line);font-size:16px;transition:color .2s}
+.ing .ck{flex:none;width:22px;height:22px}
+.ing .q{margin-left:auto;font-weight:700;white-space:nowrap}
+.ing.done{color:rgba(67,34,15,.45)}
+.ing:active{background:rgba(67,34,15,.05)}
+.steps{margin-top:8px;counter-reset:s}
+.srow{display:flex;gap:14px;padding:12px 0;box-shadow:inset 0 -1px 0 var(--line);font-size:16px;line-height:1.75}
+.srow .n{flex:none;width:30px;font:700 20px/1.4 var(--song);color:var(--chest)}
+.srow .tm{display:inline-flex;align-items:center;gap:4px;margin-left:6px;font:13px/1 var(--sans);color:var(--deep);white-space:nowrap}
+.cookbar{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:12px 18px calc(22px + env(safe-area-inset-bottom));background:linear-gradient(rgba(183,209,193,0),var(--glaze) 30%)}
+.cookbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:56px;border-radius:16px;background:var(--ink);color:var(--slip);font:700 18px/1 var(--song);letter-spacing:.2em;transition:background-color .2s}
+.cookbtn:active{background:var(--chest)}
+
+/* ---------- cooking mode ---------- */
+.cook{position:absolute;inset:0;z-index:60;background:var(--pool);color:var(--slip);display:flex;flex-direction:column;transform:translateY(104%);transition:transform .5s var(--out);visibility:hidden}
+.cook.on{transform:none;visibility:visible}
+.ctop{flex:none;display:flex;align-items:center;gap:6px;height:calc(104px + env(safe-area-inset-top));padding:calc(48px + env(safe-area-inset-top)) 8px 0 8px}
+.ctop .t{flex:1;min-width:0;font:700 17px/1.2 var(--song);letter-spacing:.1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cook .ibtn:active{background:rgba(242,244,236,.12)}
+.prog{flex:none;height:4px;margin:6px 22px 0;border-radius:2px;background:rgba(242,244,236,.18);overflow:hidden}
+.prog i{display:block;height:100%;width:100%;border-radius:2px;background:var(--slip);transform-origin:left;transition:transform .4s var(--out)}
+.tray{flex:none;display:flex;gap:8px;padding:10px 18px 0;min-height:52px;overflow-x:auto;scrollbar-width:none}
+.tray::-webkit-scrollbar{display:none}
+.tray button{flex:none;display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:12px;background:rgba(242,244,236,.12);font:600 14px/1 var(--sans)}
+.tray button.done{background:var(--slip);color:var(--pool)}
+.tray .ph{font:14px/40px var(--sans);color:rgba(242,244,236,.6)}
+.pages{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:contain}
+.pages::-webkit-scrollbar{display:none}
+.page{flex:0 0 100%;scroll-snap-align:center;position:relative;overflow-y:auto;padding:14px 28px 30px;display:flex;flex-direction:column}
+.page .big{position:relative;font:700 88px/1 var(--song);color:rgba(242,244,236,.3);letter-spacing:.04em;will-change:transform}
+.page .big small{display:block;margin-top:10px;font:14px/1 var(--sans);color:rgba(242,244,236,.75);letter-spacing:0}
+.page p{margin-top:18px;font:500 23px/1.75 var(--song);letter-spacing:.03em}
+.page .ingh{margin-top:12px;font:14px/1.7 var(--sans);color:rgba(242,244,236,.75)}
+.timer{position:relative;align-self:center;margin-top:auto;width:196px;height:196px;border-radius:50%;display:grid;place-items:center}
+.timer svg{position:absolute;inset:0;width:100%;height:100%}
+.timer .tv{position:relative;text-align:center}
+.timer .tv b{display:block;font:700 44px/1 var(--song);font-variant-numeric:tabular-nums}
+.timer .tv span{display:block;margin-top:8px;font:14px/1 var(--sans);color:rgba(242,244,236,.75)}
+.timer:active{transform:scale(.97)}
+.reset{align-self:center;height:44px;padding:0 16px;margin-top:6px;font:14px/1 var(--sans);color:rgba(242,244,236,.75);border-radius:12px}
+.reset:active{background:rgba(242,244,236,.1)}
+.finish{margin-top:auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
+.finish .dish{width:180px;height:180px}
+.finish button{height:52px;padding:0 26px;border-radius:14px;background:var(--slip);color:var(--pool);font:700 17px/1 var(--song);letter-spacing:.14em}
+.finish button:active{background:#dfe7dc}
+.cnav{flex:none;display:flex;justify-content:space-between;align-items:center;padding:6px 14px calc(26px + env(safe-area-inset-bottom))}
+.cnav button{height:52px;padding:0 16px;border-radius:14px;font:600 16px/1 var(--sans);display:flex;align-items:center;gap:6px}
+.cnav button:active{background:rgba(242,244,236,.12)}
+.cnav button:disabled{opacity:.35}
+.cnav .pg{font:14px/1 var(--sans);color:rgba(242,244,236,.75)}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:70;background:rgba(40,50,42,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:71;max-height:86%;display:flex;flex-direction:column;background:var(--slip);border-radius:26px 26px 0 0;transform:translateY(calc(100% + 30px));transition:transform .45s var(--spring);touch-action:none}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grip{flex:none;padding:9px 0 6px;cursor:grab}
+.grip i{display:block;width:40px;height:5px;border-radius:3px;background:rgba(67,34,15,.2);margin:0 auto}
+.sbody{overflow-y:auto;padding:4px 22px calc(26px + env(safe-area-inset-bottom));touch-action:pan-y}
+.sbody h4{font:700 21px/1.3 var(--song);letter-spacing:.1em}
+.sbody .sub{font:13px/1.5 var(--sans);color:var(--mute);margin-top:2px}
+.pick{display:flex;gap:10px;overflow-x:auto;margin:14px -22px 0;padding:0 22px 4px;scrollbar-width:none}
+.pick::-webkit-scrollbar{display:none}
+.pick button{flex:none;width:76px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;border-radius:12px;padding:4px 0;color:var(--mute)}
+.pick button .dish{width:62px;height:62px}
+.pick button[aria-pressed=true]{background:rgba(127,165,144,.28);color:var(--ink);font-weight:700}
+textarea{width:100%;min-height:110px;margin-top:12px;border:0;border-radius:14px;background:#e3eadf;padding:12px 14px;font-size:16px;line-height:1.7;resize:none;outline:0}
+textarea:focus{box-shadow:inset 0 0 0 2px var(--cel)}
+.post{margin-top:14px;width:100%;height:52px;border-radius:14px;background:var(--ink);color:var(--slip);font:700 17px/1 var(--song);letter-spacing:.2em}
+.post:active{background:var(--chest)}
+.post:disabled{opacity:.4}
+.srow2{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;font-size:16px;text-align:left;box-shadow:inset 0 -1px 0 var(--line)}
+.srow2:active{background:rgba(67,34,15,.05)}
+.sharecard{margin-top:12px;padding:14px;border-radius:14px;background:#e3eadf;font:14px/1.7 var(--sans);white-space:pre-wrap;max-height:160px;overflow:auto}
+
+.toast{position:absolute;left:50%;top:calc(56px + env(safe-area-inset-top));z-index:95;max-width:86%;transform:translate(-50%,-160%);visibility:hidden;padding:12px 18px;border-radius:14px;background:var(--ink);color:var(--slip);font:600 14px/1.4 var(--sans);transition:transform .45s var(--spring),visibility 0s .45s;text-align:center}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--spring)}
+
+@media (prefers-reduced-motion:reduce){
+  .view.in{animation:none}
+  .detail,.cook,.sheet,.toast,.prog i{transition:none}
+  .plate .dish,.page .big{transform:none !important}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><canvas id="bd"></canvas></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <canvas class="crk" id="crk" aria-hidden="true"></canvas>
+      <header class="sb" id="sb">
+        <span id="clock">9:41</span>
+        <span class="gl" aria-hidden="true">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1.5"/><rect x="5" y="5.5" width="3" height="6.5" rx="1.5"/><rect x="10" y="3" width="3" height="9" rx="1.5"/><rect x="15" y="0" width="3" height="12" rx="1.5"/></g></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M1.5 4.6a9.2 9.2 0 0 1 13 0M4 7.3a5.6 5.6 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="8" cy="10" r="1.7" fill="currentColor"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><rect x=".8" y=".8" width="22.4" height="10.4" rx="3.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M24.6 4.2v3.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect id="batt" x="2.6" y="2.6" width="15" height="6.8" rx="1.6" fill="currentColor"/></svg>
+        </span>
+      </header>
+
+      <header class="hdr">
+        <div class="logo"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill="#7fa590"/><circle cx="15" cy="15" r="9" fill="#9cbfab"/><circle cx="15" cy="15" r="11" fill="none" stroke="#f2f4ec" stroke-width="1.6" stroke-dasharray="2.2 2.2"/><circle cx="15" cy="15" r="3" fill="#f2f4ec" stroke="#43220f" stroke-width="1"/></svg>青瓷</div>
+        <nav class="nav" role="tablist" aria-label="主要">
+          <button role="tab" data-v="home" aria-selected="true">窯出</button>
+          <button role="tab" data-v="fav" aria-selected="false">收藏</button>
+          <button role="tab" data-v="feed" aria-selected="false">廚友</button>
+        </nav>
+      </header>
+
+      <main class="views">
+        <section class="view" id="v-home">
+          <div class="cats" id="cats"></div>
+          <div class="deck" id="deck"></div>
+          <div class="feedpeek">
+            <div class="fp-h"><b>廚友剛做了</b><button id="toFeed">全部心得</button></div>
+            <div id="peekNotes"></div>
+          </div>
+        </section>
+        <section class="view" id="v-fav" hidden>
+          <p class="hint" id="favHint"></p>
+          <div class="shelf" id="shelf"></div>
+          <div class="more"><div class="fp-h"><b>還可以試試</b></div><div id="sugg"></div></div>
+        </section>
+        <section class="view" id="v-feed" hidden>
+          <button class="compose" id="compose"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M4 17.5 15.5 6l2 2L6 19.5H4z" fill="none" stroke="#43220f" stroke-width="1.6" stroke-linejoin="round"/><circle cx="17" cy="5" r="2" fill="#f2f4ec" stroke="#43220f" stroke-width="1.2"/></svg>今天做了什麼？寫一段心得</button>
+          <div class="feed" id="feed"></div>
+        </section>
+      </main>
+
+      <section class="detail" id="detail" aria-label="食譜" aria-hidden="true">
+        <canvas class="crk" id="crk2" aria-hidden="true"></canvas>
+        <div class="dtop">
+          <button class="ibtn" id="back" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7" fill="none" stroke="#43220f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17.5" cy="12" r="1.8" fill="#f2f4ec" stroke="#43220f" stroke-width="1.1"/></svg></button>
+          <span class="sp"></span>
+          <button class="ibtn" id="favT" aria-pressed="false" aria-label="收藏"><svg width="26" height="26" viewBox="0 0 26 26"><path class="bowlf" d="M3.5 11h19a9.5 8.5 0 0 1-19 0z" fill="none" stroke="#43220f" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 21.5h8" stroke="#43220f" stroke-width="1.8" stroke-linecap="round"/><circle cx="13" cy="6.3" r="2" fill="#f2f4ec" stroke="#43220f" stroke-width="1.2"/></svg></button>
+          <button class="ibtn" id="shareB" aria-label="分享"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M10 5H5.5v13.5H19V14" fill="none" stroke="#43220f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 12l7-7M13.5 5H19v5.5" fill="none" stroke="#43220f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="5" r="1.8" fill="#f2f4ec" stroke="#43220f" stroke-width="1.1"/></svg></button>
+        </div>
+        <div class="dscroll" id="dscroll"></div>
+        <div class="cookbar"><button class="cookbtn" id="cookGo"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 10h16a8 7 0 0 1-16 0z" fill="none" stroke="#f2f4ec" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 6.5c0-1.5 1.5-1.5 1.5-3M12.5 6.5c0-1.5 1.5-1.5 1.5-3" fill="none" stroke="#f2f4ec" stroke-width="1.5" stroke-linecap="round"/></svg>開火料理</button></div>
+      </section>
+
+      <section class="cook" id="cook" aria-label="料理模式" aria-hidden="true">
+        <div class="ctop">
+          <button class="ibtn" id="cookX" aria-label="離開料理模式"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="#f2f4ec" stroke-width="2" stroke-linecap="round"/></svg></button>
+          <span class="t" id="cookT"></span>
+        </div>
+        <div class="prog"><i id="progI"></i></div>
+        <div class="tray" id="tray" aria-live="polite"></div>
+        <div class="pages" id="pages"></div>
+        <div class="cnav">
+          <button id="prevB" aria-label="上一步"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="#f2f4ec" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>上一步</button>
+          <span class="pg num" id="pgT"></span>
+          <button id="nextB" aria-label="下一步">下一步<svg width="20" height="20" viewBox="0 0 20 20"><path d="M7.5 4l6 6-6 6" fill="none" stroke="#f2f4ec" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </section>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="面板">
+        <div class="grip" aria-hidden="true"><i></i></div>
+        <div class="sbody" id="sbody"></div>
+      </div>
+      <div class="homeind" id="hi" aria-hidden="true"></div>
+    </div>
+  </div>
+  <div class="caption">
+    <h1>青瓷</h1>
+    <p>每道家常菜，都盛在一只象嵌青瓷盤裡。翻開步驟、按下計時，廚友的心得就在旁邊。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app049:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// ---------- sound: celadon bowl ----------
+var ac = null;
+function audio(){ try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
+function bowl(base, vol, dur){
+  var a = audio(); if (!a) return; var t = a.currentTime; base = base || 660; vol = vol || .12; dur = dur || 2.4;
+  [[1, 1], [2.76, .45], [5.4, .22], [8.9, .1]].forEach(function(h){
+    var o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.value = base * h[0] * (1 + (Math.random() - .5) * .004);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol * h[1], t + .006); g.gain.exponentialRampToValueAtTime(.0001, t + dur / h[0] * 1.6);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur * 2);
+  });
+}
+function tap(){ bowl(1320, .03, .35); }
+
+// ---------- seeded random ----------
+function rng(seed){ var s = seed % 2147483647; if (s <= 0) s += 2147483646; return function(){ s = s * 16807 % 2147483647; return (s - 1) / 2147483646; }; }
+function crackPath(r, cx, cy, R, n, seg){
+  var d = '';
+  for (var i = 0; i < n; i++){
+    var a = r() * Math.PI * 2, rr = Math.sqrt(r()) * R, x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr, ang = r() * Math.PI * 2, k = 3 + Math.floor(r() * 4);
+    d += 'M' + x.toFixed(1) + ' ' + y.toFixed(1);
+    for (var j = 0; j < k; j++){ ang += (r() - .5) * 1.4; var L = seg * (.6 + r() * .9); x += Math.cos(ang) * L; y += Math.sin(ang) * L; d += 'L' + x.toFixed(1) + ' ' + y.toFixed(1); }
+  }
+  return d;
+}
+
+// ---------- the dish: top view of an inlaid celadon plate ----------
+var uid = 0;
+function dishSVG(rc, opt){
+  opt = opt || {}; var id = 'd' + (uid++), r = rng(rc.seed), m = rc.motif, tint = rc.tint || 0;
+  var rim = ['#c3d9ca', '#bcd6c9', '#c8d8c2'][tint], mid = ['#8fb49f', '#86ae9f', '#97b39a'][tint], well = ['#6f9884', '#6a9589', '#7b9b80'][tint];
+  var s = '<svg viewBox="0 0 240 240" role="img" aria-label="' + esc(rc.name) + ' 青瓷盤"><defs>' +
+    '<radialGradient id="' + id + 'r" cx=".4" cy=".36" r=".72"><stop offset="0" stop-color="' + rim + '"/><stop offset=".78" stop-color="' + mid + '"/><stop offset="1" stop-color="' + well + '"/></radialGradient>' +
+    '<radialGradient id="' + id + 'w" cx=".44" cy=".4" r=".7"><stop offset="0" stop-color="' + mid + '"/><stop offset=".85" stop-color="' + well + '"/><stop offset="1" stop-color="#557d6c"/></radialGradient>' +
+    '<clipPath id="' + id + 'c"><circle cx="120" cy="120" r="115"/></clipPath></defs>' +
+    '<circle cx="120" cy="120" r="116" fill="url(#' + id + 'r)"/>' +
+    '<circle cx="120" cy="120" r="115.2" fill="none" stroke="#5d8574" stroke-width="1.6"/>' +
+    '<circle cx="120" cy="120" r="84" fill="url(#' + id + 'w)"/>' +
+    '<circle cx="120" cy="120" r="84" fill="none" stroke="#5a8271" stroke-width="1" opacity=".7"/>' +
+    '<circle cx="120" cy="120" r="44" fill="none" stroke="#4f7666" stroke-width="1.4" opacity=".35"/>';
+  // inlaid band
+  s += '<circle cx="120" cy="120" r="90" fill="none" stroke="#f2f4ec" stroke-width="1.6"/><circle cx="120" cy="120" r="90" fill="none" stroke="#3b2a22" stroke-width=".5" stroke-dasharray="1 5" opacity=".5"/>' +
+    '<circle cx="120" cy="120" r="109" fill="none" stroke="#3b2a22" stroke-width=".7" opacity=".55"/>';
+  var N = m === 'lotus' ? 26 : m === 'cloud' ? 12 : 14;
+  for (var i = 0; i < N; i++){
+    var a = i / N * 360;
+    if (m === 'lotus'){
+      s += '<g transform="rotate(' + a + ' 120 120)"><path d="M120 12 C114 17 114 24 120 28 C126 24 126 17 120 12Z" fill="#f2f4ec" stroke="#3b2a22" stroke-width=".7"/><path d="M120 16v8" stroke="#3b2a22" stroke-width=".5"/></g>';
+    } else if (m === 'cloud'){
+      s += '<g transform="rotate(' + a + ' 120 120) translate(120 20.5)"><path d="M-9 2c0-5 6-6 7-2c1-4 7-3 6 1c3 0 4 3 2 4" fill="none" stroke="#3b2a22" stroke-width="3.4" stroke-linecap="round"/><path d="M-9 2c0-5 6-6 7-2c1-4 7-3 6 1c3 0 4 3 2 4" fill="none" stroke="#f2f4ec" stroke-width="1.8" stroke-linecap="round"/></g>';
+    } else {
+      s += '<g transform="rotate(' + a + ' 120 120) translate(120 20.5)"><circle r="5.6" fill="#f2f4ec" stroke="#3b2a22" stroke-width=".8"/>';
+      for (var p = 0; p < 8; p++) s += '<line x1="0" y1="0" x2="' + (Math.cos(p * Math.PI / 4) * 4.2).toFixed(2) + '" y2="' + (Math.sin(p * Math.PI / 4) * 4.2).toFixed(2) + '" stroke="#3b2a22" stroke-width=".6"/>';
+      s += '<circle r="1.5" fill="#3b2a22"/></g>';
+    }
+  }
+  // crackle (貫入), clipped to the plate
+  s += '<g clip-path="url(#' + id + 'c)"><path d="' + crackPath(r, 120, 120, 116, opt.small ? 22 : 46, 11) + '" fill="none" stroke="#35584a" stroke-width=".55" opacity=".32" stroke-linejoin="round"/></g>';
+  // gloss: raking highlight on the upper-left rim
+  s += '<path d="M40 86 A86 86 0 0 1 98 32" fill="none" stroke="#fbfdf8" stroke-width="7" stroke-linecap="round" opacity=".38"/><path d="M47 80 A80 80 0 0 1 70 52" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" opacity=".55"/>';
+  // inlaid name
+  if (!opt.noName){
+    var nm = rc.short || rc.name, fs = nm.length <= 2 ? 44 : nm.length === 3 ? 38 : 30;
+    s += '<text x="120" y="121" font-family="Songti TC,STSong,serif" font-weight="700" font-size="' + fs + '" letter-spacing="3" text-anchor="middle" dominant-baseline="central" fill="#f2f4ec" stroke="#3b2a22" stroke-width="1.3" paint-order="stroke" stroke-linejoin="round">' + esc(nm) + '</text>';
+  }
+  return s + '</svg>';
+}
+
+// ---------- data ----------
+var AUTH = {a:['阿嬤的灶腳', '灶'], b:['台南小吃研究所', '南'], c:['首爾媽媽 金小姐', '金'], d:['竹北下班煮', '竹'], e:['阿德師', '德']};
+var RECIPES = [
+  {id:'r1', name:'麻油雞', cat:'湯品', au:'a', min:45, serv:4, motif:'chry', tint:0, seed:11, likes:1284,
+    desc:'入秋第一鍋。老薑要煸到捲邊，麻油不能大火，整間屋子會香到鄰居來敲門。',
+    ing:[['土雞腿', 2, '隻'], ['老薑', 80, '克'], ['黑麻油', 4, '大匙'], ['米酒', 600, '毫升'], ['枸杞', 1, '小匙']],
+    steps:[['老薑刷洗乾淨，連皮切成薄片。', 0], ['冷鍋倒入黑麻油，轉小火把薑片煸到邊緣捲起、微微焦香。', 300], ['放入雞腿塊，轉中火炒到表面全部變白。', 240], ['倒入米酒煮滾，蓋上鍋蓋轉小火。', 900], ['撒入枸杞，關火燜一下就能上桌。', 180]]},
+  {id:'r2', name:'三杯雞', cat:'家常', au:'e', min:25, serv:3, motif:'cloud', tint:1, seed:27, likes:962,
+    desc:'一杯麻油、一杯醬油、一杯米酒，現在多半減量，九層塔要最後才下。',
+    ing:[['雞腿肉', 500, '克'], ['蒜頭', 10, '瓣'], ['老薑', 30, '克'], ['麻油', 2, '大匙'], ['醬油', 2, '大匙'], ['米酒', 3, '大匙'], ['冰糖', 1, '小匙'], ['九層塔', 1, '把']],
+    steps:[['麻油小火煸香薑片與整顆蒜頭。', 180], ['下雞肉煎到兩面金黃。', 240], ['加醬油、米酒、冰糖，蓋鍋燜煮。', 480], ['開蓋收汁到濃稠，丟入九層塔拌一下關火。', 60]]},
+  {id:'r3', name:'番茄炒蛋', cat:'家常', au:'d', min:10, serv:2, motif:'lotus', tint:2, seed:43, likes:2210,
+    desc:'下班十分鐘的救命菜。蛋先炒到半熟起鍋，番茄出水後再回鍋，蛋才會嫩。',
+    ing:[['雞蛋', 3, '顆'], ['牛番茄', 2, '顆'], ['蔥', 1, '支'], ['糖', .5, '小匙'], ['鹽', .25, '小匙'], ['番茄醬', 1, '大匙']],
+    steps:[['蛋打散加一點鹽，番茄切塊，蔥切段。', 0], ['熱油下蛋液，炒到七分熟先盛起。', 60], ['同鍋炒番茄，加糖與番茄醬，壓出湯汁。', 120], ['蛋回鍋拌勻，撒蔥段起鍋。', 0]]},
+  {id:'r4', name:'涼拌豆芽', short:'豆芽', cat:'小菜', au:'c', min:8, serv:4, motif:'chry', tint:1, seed:59, likes:731,
+    desc:'韓式小菜콩나물무침。黃豆芽燙到還有脆度，香油和蒜泥拌開，冰過更好吃。',
+    ing:[['黃豆芽', 300, '克'], ['蒜泥', 1, '小匙'], ['香油', 1, '大匙'], ['鹽', .5, '小匙'], ['白芝麻', 1, '小匙'], ['蔥花', 1, '大匙']],
+    steps:[['豆芽洗淨，滾水加鹽燙熟。', 240], ['撈起泡冰水瀝乾。', 60], ['加入蒜泥、香油、鹽、芝麻與蔥花抓勻。', 0]]},
+  {id:'r5', name:'人參雞湯', short:'參雞湯', cat:'湯品', au:'c', min:90, serv:2, motif:'lotus', tint:0, seed:71, likes:845,
+    desc:'三伏天吃熱的。童子雞肚裡塞糯米、紅棗、人參，慢燉到骨頭都酥。',
+    ing:[['童子雞', 1, '隻'], ['糯米', .5, '杯'], ['人參', 1, '支'], ['紅棗', 4, '顆'], ['蒜頭', 6, '瓣'], ['水', 1500, '毫升']],
+    steps:[['糯米泡水一小時，雞洗淨擦乾。', 0], ['雞肚塞入糯米、人參、紅棗與蒜，用牙籤封口。', 0], ['放入鍋中加水，大火煮滾撈浮沫。', 600], ['轉小火燉煮，中途翻面一次。', 3600], ['上桌前加鹽與胡椒，配蔥花。', 0]]},
+  {id:'r6', name:'蔥油餅', cat:'點心', au:'b', min:40, serv:4, motif:'cloud', tint:2, seed:89, likes:1530,
+    desc:'燙麵加冷水麵，餅皮才會又軟又有層次。宜蘭三星蔥最好，蔥白蔥綠都要。',
+    ing:[['中筋麵粉', 300, '克'], ['熱水', 120, '毫升'], ['冷水', 60, '毫升'], ['青蔥', 4, '支'], ['豬油', 2, '大匙'], ['鹽', 1, '小匙']],
+    steps:[['麵粉先沖熱水攪散，再加冷水揉成團。', 0], ['蓋布鬆弛。', 900], ['擀開抹豬油撒鹽與蔥花，捲起盤成圓再擀平。', 0], ['中小火煎到兩面金黃，用鍋鏟往中間擠一擠。', 360]]},
+  {id:'r7', name:'滷肉飯', cat:'家常', au:'b', min:70, serv:6, motif:'chry', tint:2, seed:97, likes:3104,
+    desc:'三層肉切丁不絞，紅蔥酥是靈魂。滷到油亮，隔夜更入味。',
+    ing:[['豬五花', 600, '克'], ['紅蔥酥', 4, '大匙'], ['醬油', 5, '大匙'], ['冰糖', 1, '大匙'], ['米酒', 3, '大匙'], ['五香粉', .25, '小匙'], ['水', 500, '毫升']],
+    steps:[['五花肉切小丁，乾鍋煸出油。', 420], ['加紅蔥酥、醬油、冰糖炒到上色。', 120], ['倒米酒與水，加五香粉煮滾。', 180], ['轉小火滷到肉軟、汁收一半。', 2700]]},
+  {id:'r8', name:'地瓜球', cat:'點心', au:'d', min:30, serv:4, motif:'lotus', tint:1, seed:113, likes:688,
+    desc:'夜市那一味。起鍋前用漏勺壓一壓，球會膨成空心，外脆內Q。',
+    ing:[['黃地瓜', 300, '克'], ['樹薯粉', 150, '克'], ['糖', 3, '大匙'], ['炸油', 1, '鍋']],
+    steps:[['地瓜蒸熟壓泥，趁熱拌糖。', 900], ['加樹薯粉揉成不黏手的糰，搓小球。', 0], ['油溫 150 度下鍋，邊炸邊用漏勺壓。', 360], ['球膨起變金黃就撈起。', 0]]}
+];
+function R(id){ for (var i = 0; i < RECIPES.length; i++) if (RECIPES[i].id === id) return RECIPES[i]; return RECIPES[0]; }
+var SEEDNOTES = [
+  {id:'n1', who:'林小姐', mk:'林', rid:'r1', ago:'2 小時前', t:'薑煸久一點真的差很多，老公喝了兩碗湯。', likes:42},
+  {id:'n2', who:'阿翔', mk:'翔', rid:'r3', ago:'今天', t:'番茄先炒出沙再放蛋，照做第一次就不會水水的。', likes:18},
+  {id:'n3', who:'Yumi', mk:'Y', rid:'r4', ago:'昨天', t:'加一點點韓國辣椒粉也好吃，便當菜首選。', likes:27},
+  {id:'n4', who:'陳媽媽', mk:'陳', rid:'r7', ago:'昨天', t:'紅蔥酥自己炸，豬油留著炒青菜。', likes:65},
+  {id:'n5', who:'小方', mk:'方', rid:'r6', ago:'3 天前', t:'鬆弛時間不要省，擀的時候差很多。', likes:11}
+];
+var favs = load('favs', ['r1', 'r7']), serv = load('serv', {}), checks = load('checks', {}), notes = load('notes', null) || SEEDNOTES.slice(), liked = load('liked', {}), cat = load('cat', '全部'), view = load('view', 'home');
+function persist(){ save('favs', favs); save('serv', serv); save('checks', checks); save('notes', notes); save('liked', liked); save('cat', cat); save('view', view); }
+
+// ---------- crackle ground ----------
+function crackCanvas(cv, seed, alpha){
+  var d = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+  cv.width = w * d; cv.height = h * d; var x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0);
+  var r = rng(seed); x.clearRect(0, 0, w, h);
+  var g = x.createLinearGradient(0, 0, w * .4, h); g.addColorStop(0, 'rgba(255,255,250,.22)'); g.addColorStop(.5, 'rgba(255,255,250,0)'); g.addColorStop(1, 'rgba(60,100,80,.10)');
+  x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.strokeStyle = 'rgba(50,86,70,' + alpha + ')'; x.lineWidth = .7; x.lineJoin = 'round';
+  var n = Math.round(w * h / 900);
+  for (var i = 0; i < n; i++){
+    var px = r() * w, py = r() * h, ang = r() * Math.PI * 2, k = 3 + Math.floor(r() * 5);
+    x.beginPath(); x.moveTo(px, py);
+    for (var j = 0; j < k; j++){ ang += (r() - .5) * 1.3; var L = 10 + r() * 22; px += Math.cos(ang) * L; py += Math.sin(ang) * L; x.lineTo(px, py); }
+    x.stroke();
+  }
+  // grain
+  var img = x.getImageData(0, 0, cv.width, cv.height), data = img.data;
+  for (var p = 0; p < data.length; p += 4){ if (r() < .5){ var v = r() < .5 ? 0 : 255; data[p] = data[p] * .9 + v * .1; data[p + 1] = data[p + 1] * .9 + v * .1; data[p + 2] = data[p + 2] * .9 + v * .1; data[p + 3] = Math.max(data[p + 3], 9); } }
+  x.putImageData(img, 0, 0);
+}
+
+// ---------- rendering ----------
+var CATS = ['全部', '湯品', '家常', '小菜', '點心'];
+function authorMark(k, big){
+  var a = AUTH[k] || [k, k], s = big ? 30 : 26;
+  return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="14" fill="#7fa590"/><circle cx="15" cy="15" r="11.2" fill="none" stroke="#f2f4ec" stroke-width="1.2"/><text x="15" y="15.6" font-family="Songti TC,serif" font-weight="700" font-size="13" text-anchor="middle" dominant-baseline="central" fill="#f2f4ec" stroke="#3b2a22" stroke-width=".7" paint-order="stroke">' + esc(a[1]) + '</text></svg>';
+}
+function noteMark(mk){
+  return '<svg width="36" height="36" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="14" fill="#a6c4b2"/><circle cx="15" cy="15" r="11.2" fill="none" stroke="#43220f" stroke-width=".8" stroke-dasharray="1.6 1.6"/><text x="15" y="15.6" font-family="Songti TC,serif" font-weight="700" font-size="13" text-anchor="middle" dominant-baseline="central" fill="#43220f">' + esc(mk) + '</text></svg>';
+}
+function bowlIcon(){ return '<svg width="22" height="22" viewBox="0 0 26 26"><path class="bowlf" d="M3.5 11h19a9.5 8.5 0 0 1-19 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 21.5h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'; }
+function renderCats(){
+  $('cats').innerHTML = CATS.map(function(c){ return '<button data-cat="' + c + '" aria-pressed="' + (c === cat) + '">' + c + '</button>'; }).join('');
+}
+function renderDeck(){
+  var list = RECIPES.filter(function(r){ return cat === '全部' || r.cat === cat; });
+  if (!list.length){ $('deck').innerHTML = '<div class="deckEmpty">這個分類還沒有食譜</div>'; return; }
+  $('deck').innerHTML = list.map(function(r){
+    return '<article class="plate" data-rid="' + r.id + '"><button class="open" data-open="' + r.id + '" aria-label="打開 ' + r.name + '"><div class="dish">' + dishSVG(r) + '</div></button>' +
+      '<h3>' + r.name + '</h3><div class="meta"><b>' + AUTH[r.au][0] + '</b>・' + r.min + ' 分・' + r.serv + ' 人份</div></article>';
+  }).join('');
+  $('deck').scrollLeft = 0; spinPlates();
+}
+function spinPlates(){
+  if (reduce) return;
+  var dk = $('deck'), mid = dk.scrollLeft + dk.clientWidth / 2;
+  dk.querySelectorAll('.plate').forEach(function(p){
+    var off = (p.offsetLeft + p.offsetWidth / 2 - mid) / p.offsetWidth;
+    p.querySelector('.dish').style.transform = 'rotate(' + (off * 38).toFixed(1) + 'deg) scale(' + (1 - Math.min(.12, Math.abs(off) * .12)).toFixed(3) + ')';
+  });
+}
+var rafS = 0;
+$('deck').addEventListener('scroll', function(){ if (!rafS) rafS = requestAnimationFrame(function(){ rafS = 0; spinPlates(); }); }, {passive:true});
+function noteHTML(n, withThumb){
+  var r = R(n.rid), on = !!liked[n.id];
+  return '<div class="note">' + (withThumb ? '<div class="thumb">' + dishSVG(r, {small:true, noName:true}) + '</div>' : '<div class="who">' + noteMark(n.mk) + '</div>') +
+    '<div class="body"><small><b>' + esc(n.who) + '</b> 做了 <button class="dn" data-open="' + r.id + '" style="color:var(--chest);font-weight:700">' + r.name + '</button>・' + esc(n.ago) + '</small>' + esc(n.t) + '</div>' +
+    '<button class="like' + (on ? ' on' : '') + '" data-like="' + n.id + '" aria-pressed="' + on + '" aria-label="讚">' + bowlIcon() + '<span class="num">' + (n.likes + (on ? 1 : 0)) + '</span></button></div>';
+}
+function renderPeek(){ $('peekNotes').innerHTML = notes.slice(0, 3).map(function(n){ return noteHTML(n, false); }).join(''); }
+function renderFeed(){ $('feed').innerHTML = notes.map(function(n){ return noteHTML(n, true); }).join(''); }
+function renderShelf(){
+  var list = favs.map(R);
+  $('favHint').textContent = list.length ? '收藏的 ' + list.length + ' 道菜。點盤子打開，長按移除。' : '';
+  $('sugg').innerHTML = RECIPES.filter(function(r){ return favs.indexOf(r.id) < 0; }).map(function(r){ return '<div class="sg"><button class="op" data-open="' + r.id + '"><span class="dish">' + dishSVG(r, {small:true, noName:true}) + '</span><span><b>' + r.name + '</b><span>' + AUTH[r.au][0] + '・' + r.min + ' 分</span></span></button><button class="add" data-addfav="' + r.id + '" aria-label="收藏 ' + r.name + '">' + bowlIcon() + '</button></div>'; }).join('') || '<p class="hint" style="padding:8px 0">全部都收藏了。</p>';
+  $('shelf').innerHTML = list.length ? list.map(function(r){ return '<button data-open="' + r.id + '" data-fav="' + r.id + '"><div class="dish">' + dishSVG(r, {small:true}) + '</div>' + r.name + '</button>'; }).join('') : '<div class="bigempty" style="grid-column:1/-1">架上還空著。<br>在食譜頁點盤子圖示收藏。</div>';
+}
+
+// ---------- views ----------
+function setView(v){
+  view = v; save('view', v);
+  document.querySelectorAll('.nav button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.v === v); });
+  ['home', 'fav', 'feed'].forEach(function(k){ var el = $('v-' + k), on = k === v; el.hidden = !on; if (on && !reduce){ el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); } });
+  if (v === 'fav') renderShelf(); if (v === 'feed') renderFeed(); if (v === 'home'){ renderPeek(); spinPlates(); }
+}
+document.querySelector('.nav').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if (!b) return; haptic(5); tap(); setView(b.dataset.v); });
+$('cats').addEventListener('click', function(e){ var b = e.target.closest('[data-cat]'); if (!b) return; cat = b.dataset.cat; save('cat', cat); haptic(5); tap(); renderCats(); renderDeck(); });
+$('toFeed').addEventListener('click', function(){ haptic(5); setView('feed'); });
+
+// global delegation: open recipe, likes, long-press unfavourite
+var lp = null, lpFired = false;
+document.addEventListener('pointerdown', function(e){
+  var f = e.target.closest('[data-fav]'); if (!f) return; lpFired = false;
+  lp = setTimeout(function(){ lpFired = true; var id = f.dataset.fav; favs = favs.filter(function(x){ return x !== id; }); persist(); haptic([10, 30, 10]); bowl(440, .06, 1); renderShelf(); toast('已從收藏移除：' + R(id).name); }, 560);
+});
+['pointerup', 'pointercancel', 'pointermove'].forEach(function(t){ document.addEventListener(t, function(e){ if (t === 'pointermove' && Math.abs(e.movementY || 0) + Math.abs(e.movementX || 0) < 3) return; clearTimeout(lp); }); });
+document.addEventListener('click', function(e){
+  var af = e.target.closest('[data-addfav]');
+  if (af){ var fid = af.dataset.addfav; if (favs.indexOf(fid) < 0) favs.push(fid); persist(); haptic([8, 24, 8]); bowl(660, .08, 1.6); toast('收進架上了：' + R(fid).name); renderShelf(); return; }
+  var lk = e.target.closest('[data-like]');
+  if (lk){ var id = lk.dataset.like; liked[id] = !liked[id]; persist(); haptic(liked[id] ? [6, 20, 6] : 5); if (liked[id]) bowl(880, .05, .8); var n = notes.filter(function(x){ return x.id === id; })[0]; lk.classList.toggle('on', liked[id]); lk.setAttribute('aria-pressed', liked[id]); lk.querySelector('span').textContent = n.likes + (liked[id] ? 1 : 0); return; }
+  var o = e.target.closest('[data-open]');
+  if (o){ if (lpFired){ lpFired = false; return; } haptic(6); tap(); openDetail(o.dataset.open); }
+});
+
+// ---------- detail ----------
+var curR = null;
+function frac(v){
+  var w = Math.floor(v + 1e-9), f = v - w, map = [[0, ''], [.25, '¼'], [.333, '⅓'], [.5, '½'], [.667, '⅔'], [.75, '¾'], [1, '']], best = map[0], bd = 9;
+  map.forEach(function(m){ var d = Math.abs(f - m[0]); if (d < bd){ bd = d; best = m; } });
+  if (best[0] === 1){ w += 1; best = map[0]; }
+  if (bd > .09) return (Math.round(v * 10) / 10).toString();
+  return (w ? w : '') + best[1] || '0';
+}
+function qty(q, u, k){
+  var v = q * k;
+  if (u === '克' || u === '毫升'){ v = v >= 100 ? Math.round(v / 10) * 10 : Math.round(v); return v + ' ' + u; }
+  if (u === '鍋' || u === '把') return (v <= 1 ? '1' : frac(v)) + ' ' + u;
+  if (u === '隻' || u === '顆' || u === '瓣' || u === '支') return (v < 1 ? frac(v) : Math.round(v * 2) / 2 % 1 ? frac(Math.round(v * 2) / 2) : Math.round(v)) + ' ' + u;
+  return frac(v) + ' ' + u;
+}
+var CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+function mmss(s){ s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+function renderDetail(){
+  var r = curR, sv = serv[r.id] || r.serv, k = sv / r.serv, ck = checks[r.id] || [];
+  var h = '<div class="dhero"><div class="dish">' + dishSVG(r) + '</div><h2>' + r.name + '</h2><div class="by">' + authorMark(r.au) + '<b>' + AUTH[r.au][0] + '</b>・' + r.likes.toLocaleString() + ' 人收藏</div></div>' +
+    '<p class="desc">' + esc(r.desc) + '</p>' +
+    '<div class="facts"><div><b class="num">' + r.min + '</b><span>分鐘</span></div><div><b class="num">' + r.steps.length + '</b><span>步驟</span></div><div><b>' + r.cat + '</b><span>分類</span></div></div>' +
+    '<div class="sec"><h4>食材</h4><div class="step"><button id="sMinus" aria-label="減少份量"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 9h10" stroke="#43220f" stroke-width="2" stroke-linecap="round"/></svg></button><output id="sOut" aria-live="polite">' + sv + ' 人份</output><button id="sPlus" aria-label="增加份量"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 9h10M9 4v10" stroke="#43220f" stroke-width="2" stroke-linecap="round"/></svg></button></div></div>' +
+    '<div class="ings">' + r.ing.map(function(g, i){ var on = ck.indexOf(i) >= 0; return '<button class="ing' + (on ? ' done' : '') + '" data-ing="' + i + '" aria-pressed="' + on + '"><svg class="ck" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="' + (on ? '#7fa590' : 'none') + '" stroke="#43220f" stroke-width="1.4"/>' + (on ? '<path d="M6.8 11.2l2.9 2.9 5.6-6" fill="none" stroke="#f2f4ec" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' : '') + '</svg>' + g[0] + '<span class="q num">' + qty(g[1], g[2], k) + '</span></button>'; }).join('') + '</div>' +
+    '<div class="sec"><h4>步驟</h4></div><div class="steps">' + r.steps.map(function(s, i){ return '<div class="srow"><span class="n">' + CN[i] + '</span><span>' + esc(s[0]) + (s[1] ? '<span class="tm"><svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 4.8v2.9l2 1.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>' + mmss(s[1]) + '</span>' : '') + '</span></div>'; }).join('') + '</div>';
+  $('dscroll').innerHTML = h;
+  $('favT').setAttribute('aria-pressed', favs.indexOf(r.id) >= 0); $('favT').classList.toggle('on', favs.indexOf(r.id) >= 0);
+  $('sMinus').addEventListener('click', function(){ step(-1); });
+  $('sPlus').addEventListener('click', function(){ step(1); });
+}
+function step(d){
+  var r = curR, sv = (serv[r.id] || r.serv) + d; if (sv < 1 || sv > 12){ haptic([20, 30, 20]); return; }
+  serv[r.id] = sv; persist(); haptic(5); tap();
+  var k = sv / r.serv; $('sOut').textContent = sv + ' 人份';
+  document.querySelectorAll('.ing').forEach(function(b){ var g = r.ing[+b.dataset.ing]; b.querySelector('.q').textContent = qty(g[1], g[2], k); });
+}
+$('dscroll').addEventListener('click', function(e){
+  var b = e.target.closest('[data-ing]'); if (!b) return;
+  var i = +b.dataset.ing, ck = checks[curR.id] = checks[curR.id] || [], at = ck.indexOf(i);
+  if (at >= 0) ck.splice(at, 1); else ck.push(i); persist(); haptic(5); tap();
+  var on = at < 0; b.classList.toggle('done', on); b.setAttribute('aria-pressed', on);
+  b.querySelector('.ck').innerHTML = '<circle cx="11" cy="11" r="9" fill="' + (on ? '#7fa590' : 'none') + '" stroke="#43220f" stroke-width="1.4"/>' + (on ? '<path d="M6.8 11.2l2.9 2.9 5.6-6" fill="none" stroke="#f2f4ec" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' : '');
+});
+function openDetail(id){
+  curR = R(id); renderDetail(); $('dscroll').scrollTop = 0;
+  $('detail').classList.add('on'); $('detail').setAttribute('aria-hidden', 'false');
+  setTimeout(function(){ crackCanvas($('crk2'), 7, .12); }, 30);
+  $('back').focus({preventScroll:true});
+}
+function closeDetail(){ $('detail').classList.remove('on'); $('detail').setAttribute('aria-hidden', 'true'); if (view === 'fav') renderShelf(); }
+$('back').addEventListener('click', function(){ haptic(5); closeDetail(); });
+(function(){ // edge swipe back
+  var sx = 0, sy = 0, on = false, d = $('detail');
+  d.addEventListener('pointerdown', function(e){ var r = d.getBoundingClientRect(); if (e.clientX - r.left < 28){ on = true; sx = e.clientX; sy = e.clientY; } });
+  d.addEventListener('pointerup', function(e){ if (on && e.clientX - sx > 80 && Math.abs(e.clientY - sy) < 60){ haptic(5); closeDetail(); } on = false; });
+})();
+$('favT').addEventListener('click', function(){
+  var id = curR.id, at = favs.indexOf(id);
+  if (at >= 0){ favs.splice(at, 1); toast('已取消收藏'); haptic(5); } else { favs.unshift(id); toast('收進架上了：' + curR.name); haptic([8, 24, 8]); bowl(660, .08, 1.6); }
+  persist(); this.setAttribute('aria-pressed', at < 0); this.classList.toggle('on', at < 0);
+});
+$('shareB').addEventListener('click', function(){
+  var r = curR, sv = serv[r.id] || r.serv, k = sv / r.serv;
+  var text = '【' + r.name + '】' + sv + ' 人份・' + r.min + ' 分鐘\n食材：' + r.ing.map(function(g){ return g[0] + ' ' + qty(g[1], g[2], k); }).join('、') + '\n' + r.steps.map(function(s, i){ return CN[i] + '、' + s[0]; }).join('\n') + '\n來自「青瓷」・' + AUTH[r.au][0];
+  haptic(6);
+  openSheet('<h4>分享這道菜</h4><p class="sub">' + r.name + '・' + sv + ' 人份</p><div class="sharecard">' + esc(text) + '</div>' +
+    '<button class="srow2" id="shSys"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5.5v13.5H19V14" fill="none" stroke="#43220f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 12l7-7M13.5 5H19v5.5" fill="none" stroke="#43220f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>用系統分享</button>' +
+    '<button class="srow2" id="shCopy"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2" fill="none" stroke="#43220f" stroke-width="1.7"/><path d="M5 15V5.5A1.5 1.5 0 0 1 6.5 4H15" fill="none" stroke="#43220f" stroke-width="1.7" stroke-linecap="round"/></svg>複製食譜文字</button>' +
+    '<button class="srow2" id="shNote"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18.5 16.5 7l2 2L7 20.5H5z" fill="none" stroke="#43220f" stroke-width="1.7" stroke-linejoin="round"/></svg>寫一段心得給廚友</button>');
+  $('shSys').addEventListener('click', function(){ if (navigator.share){ navigator.share({title:r.name, text:text}).then(function(){ closeSheet(); }).catch(function(){}); } else { copy(text); } });
+  $('shCopy').addEventListener('click', function(){ copy(text); });
+  $('shNote').addEventListener('click', function(){ closeSheet(); setTimeout(function(){ openCompose(r.id); }, 280); });
+});
+function copy(text){
+  var done = function(){ closeSheet(); toast('已複製，可以貼到 LINE 了'); bowl(990, .05, .8); };
+  try { if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done, function(){ fallback(); }); return; } } catch(e){}
+  fallback();
+  function fallback(){ var t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch(e){} t.remove(); done(); }
+}
+
+// ---------- compose ----------
+function openCompose(rid){
+  var sel = rid || RECIPES[0].id;
+  openSheet('<h4>寫一段心得</h4><p class="sub">選你做的那道菜</p><div class="pick" id="pick">' + RECIPES.map(function(r){ return '<button data-pk="' + r.id + '" aria-pressed="' + (r.id === sel) + '"><span class="dish">' + dishSVG(r, {small:true, noName:true}) + '</span>' + r.name + '</button>'; }).join('') + '</div>' +
+    '<textarea id="ta" maxlength="120" placeholder="例如：米酒換成一半水，小孩也敢喝。" aria-label="心得內容"></textarea><button class="post" id="postB" disabled>送出</button>');
+  $('pick').addEventListener('click', function(e){ var b = e.target.closest('[data-pk]'); if (!b) return; sel = b.dataset.pk; haptic(5); tap(); this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); });
+  $('ta').addEventListener('input', function(){ $('postB').disabled = !this.value.trim(); });
+  $('postB').addEventListener('click', function(){
+    var t = $('ta').value.trim(); if (!t) return;
+    notes.unshift({id:'u' + Date.now(), who:'我', mk:'我', rid:sel, ago:'剛剛', t:t, likes:0}); persist();
+    closeSheet(); haptic([8, 30, 8]); bowl(784, .08, 1.8); toast('心得已送出');
+    if ($('detail').classList.contains('on')) closeDetail(); setView('feed');
+  });
+}
+$('compose').addEventListener('click', function(){ haptic(5); openCompose(); });
+
+// ---------- cooking mode ----------
+var timers = load('timers', {});   // key rid:i -> {end, left, run}
+var cookR = null, pageI = 0;
+function tkey(i){ return cookR.id + ':' + i; }
+function tleft(t){ return t.run ? Math.max(0, (t.end - Date.now()) / 1000) : t.left; }
+function renderCook(){
+  var r = cookR, sv = serv[r.id] || r.serv, k = sv / r.serv;
+  $('cookT').textContent = r.name + '・' + sv + ' 人份';
+  var h = r.steps.map(function(s, i){
+    var ingHint = i === 0 ? '<div class="ingh">' + r.ing.map(function(g){ return g[0] + ' ' + qty(g[1], g[2], k); }).join('・') + '</div>' : '';
+    var tm = s[1] ? '<button class="timer" data-t="' + i + '" aria-label="步驟 ' + (i + 1) + ' 計時"><svg viewBox="0 0 196 196"><circle cx="98" cy="98" r="88" fill="none" stroke="rgba(242,244,236,.16)" stroke-width="10"/><circle class="arc" cx="98" cy="98" r="88" fill="none" stroke="#f2f4ec" stroke-width="10" stroke-linecap="round" transform="rotate(-90 98 98)" stroke-dasharray="552.9" stroke-dashoffset="0"/><circle cx="98" cy="98" r="74" fill="none" stroke="rgba(242,244,236,.35)" stroke-width="1" stroke-dasharray="2 5"/></svg><div class="tv"><b class="num">' + mmss(s[1]) + '</b><span>點一下開始</span></div></button><button class="reset" data-rs="' + i + '">重設計時</button>' : '';
+    return '<div class="page" data-p="' + i + '"><div class="big">' + CN[i] + '<small>第 ' + (i + 1) + ' 步，共 ' + r.steps.length + ' 步</small></div><p>' + esc(s[0]) + '</p>' + ingHint + tm + '</div>';
+  }).join('') + '<div class="page" data-p="' + r.steps.length + '"><div class="big">成<small>全部完成</small></div><p>盛盤，趁熱吃。</p><div class="finish"><div class="dish">' + dishSVG(r) + '</div><button id="doneNote">寫一段心得</button></div></div>';
+  $('pages').innerHTML = h;
+  $('doneNote').addEventListener('click', function(){ closeCook(); setTimeout(function(){ openCompose(r.id); }, 300); });
+  paintTimers(); goPage(pageI, true);
+}
+function goPage(i, instant){
+  var n = cookR.steps.length; i = Math.max(0, Math.min(n, i)); pageI = i;
+  var pg = $('pages'); pg.scrollTo({left:i * pg.clientWidth, behavior:instant || reduce ? 'auto' : 'smooth'});
+  updNav();
+}
+function updNav(){
+  var n = cookR.steps.length;
+  $('pgT').textContent = pageI < n ? (pageI + 1) + ' / ' + n : '完成';
+  $('prevB').disabled = pageI === 0; $('nextB').disabled = pageI >= n;
+  $('progI').style.transform = 'scaleX(' + Math.min(1, (pageI + 1) / (n + 1)).toFixed(3) + ')';
+}
+$('prevB').addEventListener('click', function(){ haptic(5); tap(); goPage(pageI - 1); });
+$('nextB').addEventListener('click', function(){ haptic(5); tap(); goPage(pageI + 1); });
+var rafP = 0;
+$('pages').addEventListener('scroll', function(){
+  if (rafP) return; rafP = requestAnimationFrame(function(){
+    rafP = 0; var pg = $('pages'), w = pg.clientWidth, i = Math.round(pg.scrollLeft / w);
+    if (i !== pageI){ pageI = i; updNav(); haptic(4); }
+    if (!reduce) pg.querySelectorAll('.page').forEach(function(p, k){ var off = (k * w - pg.scrollLeft) / w; p.querySelector('.big').style.transform = 'translateX(' + (off * 70).toFixed(1) + 'px)'; });
+  });
+}, {passive:true});
+$('pages').addEventListener('click', function(e){
+  var t = e.target.closest('[data-t]'), rs = e.target.closest('[data-rs]');
+  if (t){ var i = +t.dataset.t, k = tkey(i), s = cookR.steps[i][1], tm = timers[k] || {left:s, run:false};
+    if (tm.run){ tm.left = tleft(tm); tm.run = false; haptic(6); } else { if (tm.left <= 0) tm.left = s; tm.end = Date.now() + tm.left * 1000; tm.run = true; haptic([6, 20, 6]); tap(); }
+    tm.name = cookR.steps[i][0].slice(0, 6); tm.total = s; timers[k] = tm; save('timers', timers); paintTimers(); }
+  if (rs){ var j = +rs.dataset.rs; delete timers[tkey(j)]; save('timers', timers); haptic(5); paintTimers(); }
+});
+function paintTimers(){
+  if (!cookR) return;
+  document.querySelectorAll('#pages [data-t]').forEach(function(b){
+    var i = +b.dataset.t, s = cookR.steps[i][1], tm = timers[tkey(i)], left = tm ? tleft(tm) : s;
+    b.querySelector('b').textContent = mmss(left);
+    b.querySelector('span').textContent = tm ? (tm.run ? '計時中・點一下暫停' : left <= 0 ? '時間到' : '已暫停') : '點一下開始';
+    b.querySelector('.arc').setAttribute('stroke-dashoffset', (552.9 * (1 - left / s)).toFixed(1));
+  });
+  var keys = Object.keys(timers).filter(function(k){ return k.indexOf(cookR.id + ':') === 0; });
+  $('tray').innerHTML = keys.length ? keys.map(function(k){ var tm = timers[k], l = tleft(tm), i = +k.split(':')[1]; return '<button data-go="' + i + '" class="' + (l <= 0 ? 'done' : '') + '"><span>' + CN[i] + '</span><span class="num">' + (l <= 0 ? '時間到' : mmss(l)) + '</span></button>'; }).join('') : '<span class="ph">有計時的步驟，按下圓環就會開始</span>';
+}
+$('tray').addEventListener('click', function(e){ var b = e.target.closest('[data-go]'); if (!b) return; haptic(5); goPage(+b.dataset.go); });
+setInterval(function(){
+  if (document.hidden) return;
+  var fired = false;
+  Object.keys(timers).forEach(function(k){ var tm = timers[k]; if (tm.run && tleft(tm) <= 0){ tm.run = false; tm.left = 0; fired = true; var rr = R(k.split(':')[0]); toast(rr.name + '・第' + CN[+k.split(':')[1]] + '步時間到'); } });
+  if (fired){ save('timers', timers); bowl(660, .16, 3); setTimeout(function(){ bowl(880, .12, 3); }, 380); haptic([200, 100, 200]); }
+  if ($('cook').classList.contains('on')) paintTimers();
+}, 250);
+function openCook(){
+  cookR = curR; pageI = 0; renderCook();
+  $('cook').classList.add('on'); $('cook').setAttribute('aria-hidden', 'false'); $('sb').classList.add('light'); $('hi').classList.add('light');
+  haptic([8, 30, 8]); bowl(523, .09, 2);
+  try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function(l){ wl = l; }).catch(function(){}); } catch(e){}
+  setTimeout(function(){ goPage(0, true); }, 20);
+}
+var wl = null;
+function closeCook(){ $('cook').classList.remove('on'); $('cook').setAttribute('aria-hidden', 'true'); $('sb').classList.remove('light'); $('hi').classList.remove('light'); try { wl && wl.release(); } catch(e){} wl = null; }
+$('cookGo').addEventListener('click', openCook);
+$('cookX').addEventListener('click', function(){ haptic(5); closeCook(); });
+
+// ---------- sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('sbody').innerHTML = html; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); var f = sheet.querySelector('button,textarea'); if (f) f.focus({preventScroll:true}); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button,textarea,.pick,.sharecard')) return; dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch(x){} });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+var toastT = null;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 2300); }
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ if (sheet.classList.contains('on')) closeSheet(); else if ($('cook').classList.contains('on')) closeCook(); else if ($('detail').classList.contains('on')) closeDetail(); }
+  if ($('cook').classList.contains('on') && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) goPage(pageI + (e.key === 'ArrowRight' ? 1 : -1));
+});
+
+// ---------- backdrop ----------
+function drawBackdrop(){
+  var cv = $('bd'); if (innerWidth < 521) return;
+  var d = Math.min(2, window.devicePixelRatio || 1), w = innerWidth, h = innerHeight; cv.width = w * d; cv.height = h * d;
+  var x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0);
+  var g = x.createLinearGradient(0, 0, w, h); g.addColorStop(0, '#b9d4c4'); g.addColorStop(.55, '#98b9a6'); g.addColorStop(1, '#7da391'); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  // the inside of a huge bowl: concentric glaze pooling, lit from upper left
+  var cx = w * .5, cy = h * 1.25, R = Math.max(w, h) * 1.05;
+  for (var i = 0; i < 26; i++){ x.beginPath(); x.arc(cx, cy, R * (1 - i * .028), 0, Math.PI * 2); x.strokeStyle = 'rgba(58,94,78,' + (.018 + i * .002) + ')'; x.lineWidth = 18; x.stroke(); }
+  // inlaid chrysanthemum band along the rim arc
+  var rb = R * .62;
+  for (var a = -Math.PI * .95; a < -Math.PI * .05; a += .055){
+    var px = cx + Math.cos(a) * rb, py = cy + Math.sin(a) * rb; if (py < -20 || py > h + 20) continue;
+    x.beginPath(); x.arc(px, py, 9, 0, Math.PI * 2); x.fillStyle = 'rgba(242,244,236,.8)'; x.fill(); x.strokeStyle = 'rgba(59,42,34,.6)'; x.lineWidth = 1; x.stroke();
+    for (var p = 0; p < 8; p++){ x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(p * Math.PI / 4) * 7, py + Math.sin(p * Math.PI / 4) * 7); x.stroke(); }
+  }
+  x.beginPath(); x.arc(cx, cy, rb + 20, Math.PI, Math.PI * 2); x.strokeStyle = 'rgba(242,244,236,.55)'; x.lineWidth = 2.5; x.stroke();
+  x.beginPath(); x.arc(cx, cy, rb - 20, Math.PI, Math.PI * 2); x.strokeStyle = 'rgba(59,42,34,.35)'; x.lineWidth = 1; x.stroke();
+  var r = rng(5); x.strokeStyle = 'rgba(46,80,66,.2)'; x.lineWidth = .8;
+  for (var n = 0; n < w * h / 1400; n++){ var qx = r() * w, qy = r() * h, an = r() * 6.28, k = 3 + Math.floor(r() * 5); x.beginPath(); x.moveTo(qx, qy); for (var j = 0; j < k; j++){ an += (r() - .5) * 1.3; var L = 12 + r() * 26; qx += Math.cos(an) * L; qy += Math.sin(an) * L; x.lineTo(qx, qy); } x.stroke(); }
+}
+
+
+// mouse drag-to-scroll for horizontal snap rails (touch scrolls natively)
+function dragRail(el, itemSel){
+  var on = false, sx = 0, sl = 0, moved = false;
+  el.addEventListener('pointerdown', function(e){ if (e.pointerType !== 'mouse' || e.button !== 0) return; on = true; moved = false; sx = e.clientX; sl = el.scrollLeft; });
+  window.addEventListener('pointermove', function(e){ if (!on) return; var dx = e.clientX - sx; if (!moved && Math.abs(dx) > 6){ moved = true; el.style.scrollSnapType = 'none'; } if (moved) el.scrollLeft = sl - dx; });
+  window.addEventListener('pointerup', function(e){
+    if (!on) return; on = false; if (!moved) return;
+    var dx = e.clientX - sx, items = el.querySelectorAll(itemSel), mid = el.scrollLeft + el.clientWidth / 2, best = null, bd = 1e9, dir = dx < -30 ? 1 : dx > 30 ? -1 : 0, curI = 0;
+    items.forEach(function(it, i){ var c = it.offsetLeft + it.offsetWidth / 2, d = Math.abs(c - (sl + el.clientWidth / 2)); if (d < bd){ bd = d; curI = i; } });
+    var target = items[Math.max(0, Math.min(items.length - 1, curI + dir))];
+    el.style.scrollSnapType = '';
+    if (target) el.scrollTo({left:target.offsetLeft + target.offsetWidth / 2 - el.clientWidth / 2, behavior:reduce ? 'auto' : 'smooth'});
+    el.addEventListener('click', function kill(ev){ ev.stopPropagation(); ev.preventDefault(); }, {capture:true, once:true});
+    setTimeout(function(){ moved = false; }, 0);
+  });
+}
+dragRail($('deck'), '.plate'); dragRail($('pages'), '.page');
+// ---------- boot ----------
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tickClock(); setInterval(tickClock, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 15 * b.level).toFixed(1)); }).catch(function(){});
+renderCats(); renderDeck(); renderPeek(); setView(view);
+crackCanvas($('crk'), 3, .13); drawBackdrop();
+var rt = null; addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ crackCanvas($('crk'), 3, .13); if ($('detail').classList.contains('on')) crackCanvas($('crk2'), 7, .12); drawBackdrop(); spinPlates(); }, 150); });
+})();
+</script>
+</body>
+</html>

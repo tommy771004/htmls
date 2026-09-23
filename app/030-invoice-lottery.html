@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#135a39">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="發票對獎">
+<title>發票對獎 · 統一發票對獎</title>
+<meta name="description" content="輸入發票末三碼即時對獎，可能中獎再補前五碼確認獎別，並把發票收進發票夾自動核對。收錄於 100 Creative HTML Works（App 030・台灣電子發票網紋紙）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/030-invoice-lottery.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23135a39'/%3E%3Cpath d='M16 10h32v40l-4-3-4 3-4-3-4 3-4-3-4 3-4-3-4 3z' fill='%23e6f1e4'/%3E%3Cpath d='M22 22h20M22 29h20' stroke='%23135a39' stroke-width='3'/%3E%3Cpath d='M30 38h12' stroke='%23c8322b' stroke-width='4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --g0:#0c3f27; --g1:#135a39; --g2:#1b6e47; --g3:#237d53; --gl:#cfe5d3;
+  --paper:#e7f2e5; --paper2:#d9eadb; --ink:#153826; --ink2:#4d6b58; --red:#c8322b; --red2:#9f231d;
+  --on:#edf7ef; --on2:#a9cdb4;
+  --sans:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --mono:Menlo,"SF Mono",monospace;
+  --out:cubic-bezier(.2,.8,.2,1); --spring:cubic-bezier(.32,1.3,.45,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--g1);color:var(--on);font:15px/1.45 var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+button:focus-visible{outline:2px solid #f3e7a6;outline-offset:2px;border-radius:8px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;container-type:size;
+  background:linear-gradient(180deg,#16623e 0%,var(--g1) 45%,#105133 100%)}
+@media (min-width:521px){
+  body{background:#0b2619}
+  .stage{display:flex;align-items:center;justify-content:center;gap:70px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:56px;padding:10px;z-index:1;
+    background:linear-gradient(150deg,#e9ece6,#b9bdb4 40%,#8d918a 70%,#c9ccc5);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),inset 0 0 0 2px rgba(0,0,0,.25),0 16px 26px -14px rgba(0,0,0,.7)}
+  .screen{inset:10px;border-radius:46px}
+  .caption{display:block;position:relative;z-index:1;max-width:290px;padding:22px 24px 26px;background:var(--paper);color:var(--ink);
+    clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),93.75% 100%,87.5% calc(100% - 8px),81.25% 100%,75% calc(100% - 8px),68.75% 100%,62.5% calc(100% - 8px),56.25% 100%,50% calc(100% - 8px),43.75% 100%,37.5% calc(100% - 8px),31.25% 100%,25% calc(100% - 8px),18.75% 100%,12.5% calc(100% - 8px),6.25% 100%,0 calc(100% - 8px))}
+  .caption h1{font:700 30px/1.1 var(--sans);letter-spacing:.06em}
+  .caption p{margin-top:10px;font-size:14.5px;line-height:1.7;color:var(--ink2)}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+  height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 16px/1 var(--sans);color:var(--on);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+.main{position:absolute;inset:0;display:flex;flex-direction:column;padding:calc(48px + env(safe-area-inset-top)) 16px calc(60px + env(safe-area-inset-bottom))}
+
+/* period switcher */
+.period{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;height:clamp(52px,8cqh,64px);flex:none}
+.period button{height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px}
+.period button:active{background:rgba(0,0,0,.18)}
+.period button[disabled]{opacity:.3;cursor:default}
+.period svg{width:22px;height:22px}
+.pname{text-align:center;overflow:hidden;position:relative;height:100%}
+.pname .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .38s var(--out)}
+.pname b{font:600 21px/1.1 var(--sans);letter-spacing:.04em}
+.pname small{font:13px/1.3 var(--sans);color:var(--on2);margin-top:3px}
+
+/* receipt: signature */
+.receipt{position:relative;flex:1 1 auto;min-height:0;margin-top:4px;color:var(--ink);background:var(--paper);padding:14px 16px 20px;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 9px),95% 100%,90% calc(100% - 9px),85% 100%,80% calc(100% - 9px),75% 100%,70% calc(100% - 9px),65% 100%,60% calc(100% - 9px),55% 100%,50% calc(100% - 9px),45% 100%,40% calc(100% - 9px),35% 100%,30% calc(100% - 9px),25% 100%,20% calc(100% - 9px),15% 100%,10% calc(100% - 9px),5% 100%,0 calc(100% - 9px));
+  display:flex;flex-direction:column;overflow:hidden}
+.receipt .guil{position:absolute;inset:0;z-index:0;pointer-events:none}
+.receipt .guil svg{width:100%;height:100%}
+.receipt > *:not(.guil){position:relative;z-index:1}
+.rhead{display:flex;justify-content:space-between;align-items:baseline;flex:none}
+.rhead h2{font:700 15px/1.2 var(--sans);letter-spacing:.24em}
+.rhead span{font:12.5px var(--sans);color:var(--ink2)}
+.prizes{flex:1;display:flex;flex-direction:column;justify-content:space-around;margin:6px 0 4px;min-height:0;position:relative}
+.pz{display:grid;grid-template-columns:76px 1fr;align-items:center;column-gap:8px;padding:2px 0}
+.pz .lab b{display:block;font:700 15px/1.15 var(--sans)}
+.pz .lab small{font:12.5px/1.2 var(--sans);color:var(--ink2)}
+.nums{display:flex;flex-direction:column;gap:1px}
+.num{font:500 clamp(21px,3.3cqh,26px)/1.2 var(--mono);letter-spacing:.08em;color:var(--ink);white-space:nowrap;text-align:right}
+.num i{font-style:normal;transition:color .15s,background-color .15s;border-radius:3px}
+.num i.t{color:var(--red);font-weight:700}
+.num i.hit{background:var(--red);color:#fff5ef}
+.num i.dim{color:rgba(21,56,38,.35)}
+.scanline{position:absolute;left:-6px;right:-6px;height:3px;top:0;border-radius:2px;background:var(--red);opacity:0;pointer-events:none}
+.scanline.go{animation:scan .62s var(--out)}
+@keyframes scan{0%{opacity:.9;transform:translateY(0)}100%{opacity:.9;transform:translateY(var(--h,200px))}}
+.rfoot{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex:none;padding-top:6px;border-top:1.5px dashed rgba(21,56,38,.25)}
+.rfoot .tally{font:13px/1.4 var(--sans);color:var(--ink2)}
+.rfoot .tally b{color:var(--ink);font-weight:700}
+.rfoot svg{height:26px;width:118px}
+.pending{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;color:var(--ink2)}
+.pending b{font:700 40px/1 var(--mono);color:var(--ink);letter-spacing:.04em}
+.pending span{font-size:14px}
+
+/* entry display */
+.entry{flex:none;display:flex;flex-direction:column;align-items:center;padding:clamp(8px,1.6cqh,14px) 0 clamp(6px,1.2cqh,10px)}
+.cells{display:flex;gap:6px;align-items:flex-end;height:clamp(50px,7.4cqh,60px)}
+.cell{width:clamp(38px,5.6cqh,46px);height:100%;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font:600 clamp(28px,4.2cqh,34px)/1 var(--mono);color:var(--on);background:var(--g0);box-shadow:inset 0 2px 0 rgba(0,0,0,.25)}
+.cell.cur{box-shadow:inset 0 2px 0 rgba(0,0,0,.25),inset 0 -3px 0 #f3e7a6}
+.cell.front{width:clamp(24px,4cqh,32px);height:80%;font-size:clamp(20px,3cqh,24px);background:rgba(12,63,39,.7)}
+.cell.gap{width:6px;background:none;box-shadow:none}
+.cells.shake{animation:shake .32s}
+@keyframes shake{20%{transform:translateX(-7px)}45%{transform:translateX(6px)}70%{transform:translateX(-3px)}}
+.msg{margin-top:8px;min-height:22px;font:600 15px/22px var(--sans);color:var(--on2);text-align:center;white-space:nowrap}
+.msg.win{color:#ffe3a8}
+.msg.lose{color:var(--on2)}
+
+/* keypad */
+.pad{flex:none;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.k{height:clamp(46px,6.8cqh,60px);border-radius:12px;background:var(--g2);font:500 clamp(24px,3.4cqh,28px)/1 var(--mono);color:var(--on);
+  display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -2px 0 rgba(0,0,0,.18);transition:background-color .08s}
+.k:active,.k.press{background:var(--g0);box-shadow:inset 0 2px 3px rgba(0,0,0,.3)}
+.k.fn{background:transparent;box-shadow:none;font:600 16px var(--sans);color:var(--on2)}
+.k.fn:active{background:rgba(0,0,0,.18)}
+.k svg{width:26px;height:26px}
+
+/* folder */
+.folder{position:absolute;left:0;right:0;bottom:0;z-index:30;height:calc(100% - 112px - env(safe-area-inset-top));
+  transform:translateY(calc(100% - 50px - env(safe-area-inset-bottom)));transition:transform .5s var(--spring);touch-action:none;display:flex;flex-direction:column}
+.folder.open{transform:translateY(0)}
+.folder.drag{transition:none}
+.ftab{flex:none;align-self:flex-start;margin-left:16px;height:34px;padding:0 18px 0 16px;border-radius:12px 12px 0 0;background:#e9dcae;color:#3e3417;
+  display:flex;align-items:center;gap:8px;font:700 14px var(--sans);letter-spacing:.06em}
+.ftab svg{width:18px;height:18px}
+.fbody{flex:1;min-height:0;background:#e9dcae;border-radius:0 18px 0 0;display:flex;flex-direction:column;color:#2d2612;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 -2px 6px -2px rgba(0,0,0,.35)}
+.fhead{flex:none;display:flex;align-items:center;justify-content:space-between;padding:8px 16px 8px 18px;min-height:36px}
+.fhead .sum{font:14px/1.3 var(--sans);color:#5d5231}
+.fhead .sum b{color:var(--red2);font-weight:700}
+.fhead .add{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 6px;font:700 15px var(--sans);color:#2d2612}
+.fhead .add svg{width:20px;height:20px}
+.ffilter{flex:none;display:flex;gap:18px;padding:0 18px 8px}
+.ffilter button{min-height:40px;font:600 15px var(--sans);color:#8a7c52;position:relative}
+.ffilter button.on{color:#2d2612}
+.ffilter button.on::after{content:"";position:absolute;left:0;right:0;bottom:6px;height:3px;border-radius:2px;background:var(--red)}
+.flist{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 12px calc(24px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+.grp{font:700 13px var(--sans);color:#7a6c43;letter-spacing:.12em;padding:12px 6px 6px}
+.row{position:relative;margin-bottom:6px;border-radius:10px;overflow:hidden;background:#b5321f}
+.row .del{position:absolute;right:0;top:0;bottom:0;width:88px;display:flex;align-items:center;justify-content:center;font:700 15px var(--sans);color:#fff2ea}
+.row .face{position:relative;background:#f6efd6;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:10px 14px;min-height:64px;touch-action:pan-y;transition:transform .3s var(--out)}
+.row.drag .face{transition:none}
+.row .no{font:600 17px/1.2 var(--mono);letter-spacing:.04em;color:#2d2612}
+.row .no i{font-style:normal;color:var(--red2)}
+.row .st{font:13px/1.3 var(--sans);color:#6f6340}
+.row .res{grid-row:1/3;grid-column:2;text-align:right;font:600 14px/1.2 var(--sans);color:#8a7c52}
+.row .res.w{color:var(--red2)}
+.row .res.w b{display:block;font:700 18px/1.1 var(--mono)}
+.stamp{display:inline-block;transform:rotate(-8deg);border:2px solid var(--red2);color:var(--red2);border-radius:5px;padding:1px 6px;font:700 13px var(--sans);letter-spacing:.1em;margin-top:2px}
+.empty{padding:40px 20px;text-align:center;color:#7a6c43;font-size:14px}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(5,25,14,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;background:var(--paper);color:var(--ink);border-radius:22px 22px 0 0;
+  padding:10px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .5s var(--spring);touch-action:none;max-height:92%;overflow:auto}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{width:42px;height:5px;border-radius:3px;background:rgba(21,56,38,.28);margin:0 auto 12px}
+.sheet h3{font:700 19px/1.2 var(--sans);text-align:center;letter-spacing:.06em}
+.sheet .sub{font-size:13.5px;color:var(--ink2);text-align:center;margin-top:4px}
+.fullno{display:flex;justify-content:center;gap:4px;margin:14px 0 10px}
+.fullno span{width:34px;height:44px;border-bottom:2.5px solid rgba(21,56,38,.3);display:flex;align-items:center;justify-content:center;font:600 26px var(--mono)}
+.fullno span.tr{color:var(--ink2);font-size:22px}
+.fullno span.cur{border-color:var(--red)}
+.fullno .sep{width:10px;border:0}
+.spad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.spad .k{height:48px;background:var(--paper2);color:var(--ink);box-shadow:inset 0 -2px 0 rgba(21,56,38,.14)}
+.spad .k:active{background:#c4dcc7}
+.spad .k.fn{background:transparent;color:var(--ink2)}
+.stores{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;margin:4px -16px 0;padding-left:16px;scrollbar-width:none}
+.stores::-webkit-scrollbar{display:none}
+.stores button{flex:none;min-height:44px;padding:0 12px;border-radius:8px;font:600 14px var(--sans);color:var(--ink2);background:var(--paper2)}
+.stores button.on{background:var(--ink);color:var(--paper)}
+.go{display:block;width:100%;min-height:52px;margin-top:10px;border-radius:12px;background:var(--g1);color:var(--on);font:700 17px var(--sans);letter-spacing:.14em}
+.go:active{background:var(--g0)}
+.go[disabled]{opacity:.4}
+.win-sheet{text-align:center;padding:6px 0 4px}
+.win-sheet .amt{font:700 46px/1.1 var(--mono);color:var(--red);margin:10px 0 2px}
+.win-sheet .how{font-size:14px;color:var(--ink2);line-height:1.7;margin-top:8px}
+
+.toast{position:absolute;left:50%;top:calc(54px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-240%);visibility:hidden;transition:transform .4s var(--spring),visibility 0s .4s;
+  background:var(--ink);color:var(--paper);font:600 14px var(--sans);padding:10px 16px;border-radius:10px;white-space:nowrap;display:flex;gap:12px;align-items:center}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .4s var(--spring)}
+.toast button{color:#ffd7a0;font-weight:700;min-height:28px}
+#confetti{position:absolute;inset:0;z-index:55;pointer-events:none;width:100%;height:100%}
+.home-ind{position:absolute;left:50%;bottom:calc(6px + env(safe-area-inset-bottom)*.3);width:130px;height:5px;margin-left:-65px;border-radius:3px;background:rgba(45,38,18,.55);z-index:45;pointer-events:none}
+@media (prefers-reduced-motion:reduce){
+  .folder,.sheet,.toast,.pname .in,.row .face{transition:none!important}
+  .scanline.go,.cells.shake{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="desk" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#edf7ef"><rect y="8" width="3" height="4" rx=".5"/><rect x="5" y="5" width="3" height="7" rx=".5"/><rect x="10" y="2.5" width="3" height="9.5" rx=".5"/><rect x="15" width="3" height="12" rx=".5"/></g></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="#edf7ef"><path d="M8.5 12 0 3.3A12.5 12.5 0 0 1 17 3.3z"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><path d="M1 1h21v3l-1.5 1v3L22 9v3H1V9l1.5-1V5L1 4z" fill="none" stroke="#edf7ef" stroke-width="1.4" stroke-linejoin="round"/><rect x="4" y="3.5" width="13" height="6" fill="#edf7ef"/><path d="M24 4.5v4" stroke="#edf7ef" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+      <div class="main">
+        <div class="period">
+          <button id="prevP" aria-label="上一期"><svg viewBox="0 0 24 24" fill="none" stroke="#edf7ef" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l-8 8 8 8"/></svg></button>
+          <div class="pname" aria-live="polite"><div class="in" id="pIn"><b id="pTitle">115 年 5-6 月</b><small id="pSub">7/25 開獎</small></div></div>
+          <button id="nextP" aria-label="下一期"><svg viewBox="0 0 24 24" fill="none" stroke="#edf7ef" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4l8 8-8 8"/></svg></button>
+        </div>
+
+        <section class="receipt" id="receipt" aria-label="中獎號碼">
+          <div class="guil" id="guil"></div>
+          <div class="rhead"><h2>中獎號碼單</h2><span id="rDemo">示範號碼</span></div>
+          <div class="prizes" id="prizes"></div>
+          <div class="rfoot"><div class="tally" id="tally">本期已對 <b>0</b> 張</div><svg id="bar" viewBox="0 0 118 26" preserveAspectRatio="none"></svg></div>
+        </section>
+
+        <div class="entry">
+          <div class="cells" id="cells" aria-live="polite"></div>
+          <div class="msg" id="msg">輸入發票末三碼</div>
+        </div>
+
+        <div class="pad" id="pad">
+          <button class="k" data-d="1">1</button><button class="k" data-d="2">2</button><button class="k" data-d="3">3</button>
+          <button class="k" data-d="4">4</button><button class="k" data-d="5">5</button><button class="k" data-d="6">6</button>
+          <button class="k" data-d="7">7</button><button class="k" data-d="8">8</button><button class="k" data-d="9">9</button>
+          <button class="k fn" data-d="c" aria-label="清除">清除</button><button class="k" data-d="0">0</button>
+          <button class="k fn" data-d="b" aria-label="退格"><svg viewBox="0 0 26 26" fill="none" stroke="#a9cdb4" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M9 5h13v16H9l-7-8z"/><path d="M12.5 10l5 6M17.5 10l-5 6"/></svg></button>
+        </div>
+      </div>
+
+      <section class="folder" id="folder" aria-label="發票夾">
+        <button class="ftab" id="ftab" aria-expanded="false"><svg viewBox="0 0 20 20" fill="none" stroke="#3e3417" stroke-width="2" stroke-linejoin="round"><path d="M2 5h6l2 2h8v10H2z"/></svg><span id="ftabTxt">發票夾</span></button>
+        <div class="fbody">
+          <div class="fhead"><div class="sum" id="fsum"></div><button class="add" id="addInv" aria-label="新增發票"><svg viewBox="0 0 20 20" fill="none" stroke="#2d2612" stroke-width="2.2" stroke-linecap="round"><path d="M10 3v14M3 10h14"/></svg>收一張</button></div>
+          <div class="ffilter" role="tablist" id="ffilter"><button class="on" data-f="all" role="tab" aria-selected="true">全部</button><button data-f="win" role="tab" aria-selected="false">中獎</button><button data-f="wait" role="tab" aria-selected="false">待開獎</button></div>
+          <div class="flist" id="flist"></div>
+        </div>
+      </section>
+
+      <canvas id="confetti"></canvas>
+      <div class="home-ind"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="對話"><div class="grab"></div><div id="sheetBody"></div></div>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+  </div>
+  <div class="caption"><h1>發票對獎</h1><p>打三個數字就知道有沒有中；<br>對上了，再補前五碼看獎別。</p></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+function $(id){ return document.getElementById(id); }
+function haptic(p){ try{ if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; navigator.vibrate && navigator.vibrate(p||8) }catch(e){} }
+var KEY = 'app030:';
+function load(k, d){ try{ var v = localStorage.getItem(KEY+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(KEY+k, JSON.stringify(v)); }catch(e){} }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* audio */
+var ac = null;
+function audio(){ try{ if(!ac){ var A = window.AudioContext||window.webkitAudioContext; if(A) ac = new A(); } if(ac && ac.state==='suspended') ac.resume(); }catch(e){} return ac; }
+document.addEventListener('pointerdown', audio, {passive:true});
+function tone(f, t0, dur, type, vol){ var a = ac; if(!a) return; var t = a.currentTime + t0, o = a.createOscillator(), g = a.createGain(); o.type = type || 'triangle'; o.frequency.value = f;
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol || .12, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + .02); }
+function tick(){ tone(2400, 0, .03, 'square', .035); tone(1200, .012, .03, 'square', .02); }
+function miss(){ tone(180, 0, .16, 'sine', .16); tone(140, .07, .18, 'sine', .12); }
+function maybe(){ tone(660, 0, .12); tone(880, .1, .16); }
+function fanfare(){ [523, 659, 784, 1047, 1319].forEach(function(f, i){ tone(f, i * .09, .5, 'triangle', .11); }); tone(2093, .5, .6, 'sine', .05); }
+
+/* clock */
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+tickClock(); setInterval(tickClock, 15000);
+
+/* periods (示範號碼) */
+var PERIODS = [
+  {id:'11501', y:115, m:'1-2', draw:'3/25', claim:'4/6 - 7/6', sp:'92260417', gr:'07718524', first:['35541069','12986330','76053281']},
+  {id:'11503', y:115, m:'3-4', draw:'5/25', claim:'6/6 - 9/7', sp:'17844295', gr:'35012678', first:['80421936','61395412','44708853']},
+  {id:'11505', y:115, m:'5-6', draw:'7/25', claim:'8/6 - 11/5', sp:'64027183', gr:'90517342', first:['21735604','58910277','03648891']},
+  {id:'11507', y:115, m:'7-8', draw:'9/25', pending:true}
+];
+var PRIZE = [
+  ['特別獎', 10000000, '1,000 萬'], ['特獎', 2000000, '200 萬'], ['頭獎', 200000, '20 萬'], ['二獎', 40000, '4 萬'],
+  ['三獎', 10000, '1 萬'], ['四獎', 4000, '4,000'], ['五獎', 1000, '1,000'], ['六獎', 200, '200']
+];
+var pi = load('period', 2); if (!PERIODS[pi]) pi = 2;
+var tally = load('tally', {}); // {periodId:{n, w, amt}}
+
+/* invoice folder */
+var inv = load('inv', null) || [
+  {id:1, p:'11507', tr:'VK', no:'58214036', st:'全聯 中壢中美店', d:'9/21', amt:486},
+  {id:2, p:'11507', tr:'XF', no:'03117725', st:'路易莎 中壢站前', d:'9/19', amt:95},
+  {id:3, p:'11507', tr:'AB', no:'77430918', st:'中油 環中東路站', d:'9/12', amt:1210},
+  {id:4, p:'11505', tr:'RL', no:'83210277', st:'阿英滷肉飯', d:'6/28', amt:140},
+  {id:5, p:'11505', tr:'QA', no:'47160891', st:'家樂福 中原店', d:'6/14', amt:2356},
+  {id:6, p:'11505', tr:'PC', no:'19574402', st:'誠品 桃園店', d:'5/30', amt:720},
+  {id:7, p:'11505', tr:'KD', no:'66082513', st:'Uber 計程', d:'5/9', amt:265},
+  {id:8, p:'11503', tr:'TM', no:'22375412', st:'大苑子 中壢元化', d:'4/22', amt:60},
+  {id:9, p:'11503', tr:'NH', no:'91846630', st:'台灣大哥大', d:'3/15', amt:599},
+  {id:10, p:'11501', tr:'GE', no:'40126357', st:'全家 新明店', d:'2/3', amt:88}
+];
+function saveInv(){ save('inv', inv); }
+
+/* check logic */
+function tailEq(a, b, n){ return a.slice(-n) === b.slice(-n); }
+function checkFull(no, P){
+  if (P.pending) return null;
+  if (no === P.sp) return 0; if (no === P.gr) return 1;
+  var best = null;
+  P.first.forEach(function(f){ for (var n = 8; n >= 3; n--){ if (tailEq(no, f, n)){ var r = n === 8 ? 2 : 10 - n; if (best === null || r < best) best = r; break; } } });
+  return best;
+}
+function tailMatches(t, P){ // t is 3 digits
+  var r = {first:[], sg:[]};
+  P.first.forEach(function(f, i){ if (f.slice(-3) === t) r.first.push(i); });
+  if (P.sp.slice(-3) === t) r.sg.push('sp'); if (P.gr.slice(-3) === t) r.sg.push('gr');
+  return r;
+}
+
+/* guilloche */
+function guilloche(el, w, h, col, dens){
+  var s = '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="' + col + '" stroke-width=".7">';
+  for (var k = 0; k < dens; k++){
+    var d = '', ph = k * .52, amp = h * .09 + (k % 3) * 4, yb = (k / dens) * h * 1.1 - h * .05;
+    for (var x = 0; x <= w; x += 6){ var y = yb + Math.sin(x / 38 + ph) * amp + Math.sin(x / 13 + ph * 2) * 3; d += (x ? 'L' : 'M') + x + ' ' + y.toFixed(1); }
+    s += '<path d="' + d + '"/>';
+  }
+  s += '</g></svg>'; el.innerHTML = s;
+}
+guilloche($('guil'), 360, 300, 'rgba(38,120,72,.16)', 34);
+
+/* barcode (Code 39-ish stripes from the period id) */
+function barcode(txt){
+  var s = '', x = 0, seed = 7; for (var i = 0; i < txt.length; i++) seed = (Math.imul(seed, 31) + txt.charCodeAt(i)) & 0x7fffffff;
+  while (x < 118){ seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; var w = 1 + (seed % 3) * .9; if ((seed >> 5) % 2) s += '<rect x="' + x.toFixed(1) + '" y="0" width="' + w.toFixed(1) + '" height="26" fill="#153826"/>'; x += w + .9; }
+  $('bar').innerHTML = s;
+}
+
+/* render period */
+function fmtNum(no, cls){ return no.split('').map(function(c, i){ return '<i class="' + (i >= 5 ? 't' : '') + '" data-i="' + i + '">' + c + '</i>'; }).join(''); }
+function renderPeriod(dir){
+  var P = PERIODS[pi];
+  var apply = function(){
+    $('pTitle').textContent = P.y + ' 年 ' + P.m + ' 月';
+    $('pSub').textContent = P.pending ? P.draw + ' 開獎' : P.draw + ' 開獎・領獎 ' + P.claim;
+    $('prevP').disabled = pi === 0; $('nextP').disabled = pi === PERIODS.length - 1;
+    if (P.pending){
+      var d = new Date(), y = d.getFullYear(), left = Math.ceil((new Date(y, 8, 25) - new Date(y, d.getMonth(), d.getDate())) / 864e5);
+      $('prizes').innerHTML = '<div class="pending"><b>' + (left > 0 ? left + ' 天' : '今天') + '</b><span>' + (left > 0 ? '後開獎，先把發票收進發票夾' : '晚間開獎，號碼公布後就能對') + '</span></div>';
+    } else {
+      var h = '<div class="scanline" id="scan"></div>';
+      h += row('特別獎', '1,000 萬', [P.sp], 'sp') + row('特獎', '200 萬', [P.gr], 'gr') + row('頭獎', '20 萬', P.first, 'f');
+      $('prizes').innerHTML = h;
+    }
+    barcode(P.id + 'TW');
+    renderTally(); resetEntry();
+  };
+  function row(n, a, nums, k){ return '<div class="pz"><div class="lab"><b>' + n + '</b><small>' + a + '</small></div><div class="nums">' + nums.map(function(x, i){ return '<div class="num" data-k="' + k + '" data-n="' + i + '">' + fmtNum(x) + '</div>'; }).join('') + '</div></div>'; }
+  if (dir && !reduce){
+    var inEl = $('pIn'); inEl.style.transition = 'none'; apply(); inEl.style.transform = 'translateX(' + (dir * 40) + '%)'; inEl.getBoundingClientRect();
+    inEl.style.transition = ''; inEl.style.transform = '';
+  } else apply();
+}
+function renderTally(){
+  var P = PERIODS[pi], t = tally[P.id] || {n:0, w:0, amt:0};
+  $('tally').innerHTML = P.pending ? '尚未開獎' : '本期已對 <b>' + t.n + '</b> 張' + (t.w ? '・中 <b>' + t.w + '</b> 張 <b>' + t.amt.toLocaleString() + '</b> 元' : '');
+}
+$('prevP').addEventListener('click', function(){ if (pi > 0){ pi--; save('period', pi); renderPeriod(-1); tick(); haptic(); } });
+$('nextP').addEventListener('click', function(){ if (pi < PERIODS.length - 1){ pi++; save('period', pi); renderPeriod(1); tick(); haptic(); } });
+// swipe on receipt to change period
+(function(){
+  var r = $('receipt'), sx = 0, sy = 0, on = false;
+  r.addEventListener('pointerdown', function(e){ on = true; sx = e.clientX; sy = e.clientY; });
+  r.addEventListener('pointerup', function(e){ if (!on) return; on = false; var dx = e.clientX - sx, dy = e.clientY - sy; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5){ if (dx < 0) $('nextP').click(); else $('prevP').click(); } });
+  r.addEventListener('pointercancel', function(){ on = false; });
+  r.style.touchAction = 'pan-y';
+})();
+
+/* entry */
+var digits = '', front = '', mode = 'tail'; // tail | front
+function renderCells(){
+  var h = '';
+  if (mode === 'front'){
+    for (var i = 0; i < 5; i++) h += '<span class="cell front' + (i === front.length ? ' cur' : '') + '">' + (front[i] || '') + '</span>';
+    h += '<span class="cell gap"></span>';
+  }
+  for (var j = 0; j < 3; j++) h += '<span class="cell' + (mode === 'tail' && j === digits.length ? ' cur' : '') + '">' + (digits[j] || '') + '</span>';
+  $('cells').innerHTML = h;
+}
+function setMsg(t, cls){ var m = $('msg'); m.textContent = t; m.className = 'msg' + (cls ? ' ' + cls : ''); }
+function resetEntry(){ digits = ''; front = ''; mode = 'tail'; renderCells(); clearMarks(); setMsg(PERIODS[pi].pending ? '開獎後才能對，先收進發票夾' : '輸入發票末三碼'); }
+function clearMarks(){ document.querySelectorAll('.num i').forEach(function(i){ i.classList.remove('hit', 'dim'); }); }
+function markLive(){
+  // live highlight: digits typed so far vs the tails
+  clearMarks(); var P = PERIODS[pi]; if (P.pending) return;
+  document.querySelectorAll('.num').forEach(function(n){
+    var no = n.textContent, is = n.querySelectorAll('i');
+    if (mode === 'tail'){
+      if (!digits.length) return;
+      var ok = no.slice(5, 5 + digits.length) === digits;
+      for (var k = 5; k < 5 + digits.length; k++) is[k].classList.add(ok ? 'hit' : 'dim');
+    } else {
+      var full = front + digits, okT = no.slice(-3) === digits;
+      if (!okT){ for (var q = 0; q < 8; q++) is[q].classList.add('dim'); return; }
+      for (var t = 5; t < 8; t++) is[t].classList.add('hit');
+      for (var z = 0; z < front.length; z++) is[z].classList.add(no[z] === front[z] ? 'hit' : 'dim');
+    }
+  });
+}
+function bump(win, amt){
+  var P = PERIODS[pi], t = tally[P.id] || {n:0, w:0, amt:0}; t.n++; if (win){ t.w++; t.amt += amt; } tally[P.id] = t; save('tally', tally); renderTally();
+}
+var busy = false;
+function press(d){
+  if (busy) return; var P = PERIODS[pi];
+  if (d === 'c'){ resetEntry(); tick(); haptic(4); return; }
+  if (d === 'b'){ if (mode === 'front' && front.length) front = front.slice(0, -1); else if (mode === 'front'){ mode = 'tail'; digits = digits.slice(0, -1); } else digits = digits.slice(0, -1); renderCells(); markLive(); tick(); haptic(4); if (mode === 'tail') setMsg(P.pending ? '開獎後才能對，先收進發票夾' : '輸入發票末三碼'); return; }
+  if (P.pending){ tick(); haptic([6,40,6]); setMsg('這期 ' + P.draw + ' 才開獎', 'lose'); $('cells').classList.remove('shake'); void $('cells').offsetWidth; $('cells').classList.add('shake'); return; }
+  tick(); haptic(6);
+  if (mode === 'tail'){
+    if (digits.length >= 3) return; digits += d; renderCells(); markLive();
+    if (digits.length === 3) evalTail();
+  } else {
+    if (front.length >= 5) return; front += d; renderCells(); markLive();
+    if (front.length === 5) evalFull();
+  }
+}
+function scan(cb){
+  var sl = $('scan'); if (!sl || reduce){ cb(); return; }
+  var h = $('prizes').offsetHeight; sl.style.setProperty('--h', h + 'px'); sl.classList.remove('go'); void sl.offsetWidth; sl.classList.add('go');
+  busy = true; setTimeout(function(){ busy = false; cb(); }, 560);
+}
+function evalTail(){
+  var P = PERIODS[pi];
+  scan(function(){
+    var m = tailMatches(digits, P);
+    if (!m.first.length && !m.sg.length){
+      miss(); haptic([4,30,4]); setMsg(digits + ' 沒中，下一張', 'lose'); bump(false);
+      $('cells').classList.remove('shake'); void $('cells').offsetWidth; $('cells').classList.add('shake');
+      busy = true; setTimeout(function(){ busy = false; digits = ''; renderCells(); clearMarks(); }, 650);
+      return;
+    }
+    maybe(); haptic([10,40,10]); mode = 'front'; renderCells(); markLive();
+    setMsg(m.first.length ? '至少中六獎 200 元，補前五碼看更大獎' : '末三碼對上大獎號碼，補前五碼確認', 'win');
+  });
+}
+function evalFull(){
+  var P = PERIODS[pi], no = front + digits, r = checkFull(no, P);
+  scan(function(){
+    if (r === null){ miss(); haptic([4,30,4]); setMsg('前五碼不符，這張沒中', 'lose'); bump(false); busy = true; setTimeout(function(){ busy = false; resetEntry(); }, 900); return; }
+    var pz = PRIZE[r]; bump(true, pz[1]); celebrate(); setMsg('中' + pz[0] + '！' + pz[2] + ' 元', 'win');
+    showWin(no, r, P);
+  });
+}
+$('pad').addEventListener('click', function(e){ var b = e.target.closest('[data-d]'); if (!b) return; press(b.dataset.d); });
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ if (sheet.classList.contains('on')) closeSheet(); else if (folderOpen) setFolder(false); return; }
+  if (sheet.classList.contains('on') || folderOpen) return;
+  if (/^[0-9]$/.test(e.key)) { press(e.key); flash(e.key); } else if (e.key === 'Backspace'){ press('b'); flash('b'); }
+});
+function flash(d){ var b = document.querySelector('#pad [data-d="' + d + '"]'); if (!b) return; b.classList.add('press'); setTimeout(function(){ b.classList.remove('press'); }, 110); }
+
+/* confetti */
+var cv = $('confetti'), cx = cv.getContext('2d'), bits = [], craf = 0;
+function celebrate(){
+  fanfare(); haptic([20,50,20,50,40]);
+  if (reduce) return;
+  var r = $('screen').getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = r.width * dpr; cv.height = r.height * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var cols = ['#c8322b', '#e7f2e5', '#f0d27a', '#1b6e47', '#fff'];
+  for (var i = 0; i < 140; i++) bits.push({x: r.width / 2 + (Math.random() - .5) * 60, y: r.height * .52, vx: (Math.random() - .5) * 9, vy: -6 - Math.random() * 9, w: 5 + Math.random() * 6, h: 3 + Math.random() * 4, a: Math.random() * 6, va: (Math.random() - .5) * .4, c: cols[i % cols.length], W: r.width, H: r.height});
+  if (!craf) craf = requestAnimationFrame(fall);
+}
+function fall(){
+  if (document.hidden){ craf = requestAnimationFrame(fall); return; }
+  var W = cv.width, H = cv.height; cx.clearRect(0, 0, W, H);
+  for (var i = bits.length - 1; i >= 0; i--){
+    var b = bits[i]; b.vy += .28; b.vx *= .985; b.x += b.vx; b.y += b.vy; b.a += b.va;
+    if (b.y > b.H + 20){ bits.splice(i, 1); continue; }
+    cx.save(); cx.translate(b.x, b.y); cx.rotate(b.a); cx.scale(1, Math.cos(b.a * 2)); cx.fillStyle = b.c; cx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); cx.restore();
+  }
+  if (bits.length) craf = requestAnimationFrame(fall); else { craf = 0; cx.clearRect(0, 0, W, H); }
+}
+
+/* win sheet */
+function showWin(no, r, P){
+  var pz = PRIZE[r];
+  openSheet('<div class="win-sheet"><h3>' + pz[0] + '</h3><div class="amt">' + pz[1].toLocaleString() + ' 元</div>' +
+    '<div class="fullno" aria-label="' + no + '">' + no.split('').map(function(c, i){ return '<span' + (i >= 8 - [8,8,8,7,6,5,4,3][r] ? ' style="color:var(--red)"' : '') + '>' + c + '</span>'; }).join('') + '</div>' +
+    '<p class="how">' + P.y + ' 年 ' + P.m + ' 月・領獎期間 ' + P.claim + '<br>' + (pz[1] <= 1000 ? '超商多媒體機台就能兌領' : pz[1] <= 20000 ? '到郵局或指定銀行兌領' : '中獎金額較大，記得帶身分證到指定銀行') + '</p>' +
+    '<button class="go" id="winSave">收進發票夾</button></div>');
+  sheet.dataset.no = no; sheet.dataset.p = P.id;
+}
+
+/* folder */
+var folderOpen = false, filter = 'all';
+function resultOf(v){ var P = PERIODS.find(function(p){ return p.id === v.p; }); if (!P) return {t:'x'}; if (P.pending) return {t:'wait', P:P}; var r = checkFull(v.no, P); return r === null ? {t:'no'} : {t:'win', r:r}; }
+function pname(id){ var P = PERIODS.find(function(p){ return p.id === id; }); return P ? P.y + ' 年 ' + P.m + ' 月' : id; }
+function renderFolder(){
+  var wins = 0, sum = 0, waiting = 0;
+  inv.forEach(function(v){ var r = resultOf(v); if (r.t === 'win'){ wins++; sum += PRIZE[r.r][1]; } if (r.t === 'wait') waiting++; });
+  $('ftabTxt').textContent = '發票夾・' + inv.length + ' 張' + (wins ? '・中 ' + wins : '');
+  $('fsum').innerHTML = '中獎 <b>' + sum.toLocaleString() + '</b> 元・待開獎 ' + waiting + ' 張';
+  var list = inv.slice().sort(function(a, b){ return b.p.localeCompare(a.p) || b.id - a.id; }).filter(function(v){ var r = resultOf(v); return filter === 'all' || (filter === 'win' && r.t === 'win') || (filter === 'wait' && r.t === 'wait'); });
+  if (!list.length){ $('flist').innerHTML = '<div class="empty">' + (filter === 'win' ? '這裡還沒有中獎的發票' : filter === 'wait' ? '沒有等開獎的發票' : '發票夾是空的，按「收一張」') + '</div>'; return; }
+  var h = '', last = '';
+  list.forEach(function(v){
+    if (v.p !== last){ h += '<div class="grp">' + pname(v.p) + '</div>'; last = v.p; }
+    var r = resultOf(v), res = '';
+    if (r.t === 'win') res = '<div class="res w"><b>' + PRIZE[r.r][1].toLocaleString() + '</b><span class="stamp">' + PRIZE[r.r][0] + '</span></div>';
+    else if (r.t === 'wait') res = '<div class="res">待開獎</div>'; else res = '<div class="res">沒中</div>';
+    h += '<div class="row" data-id="' + v.id + '"><button class="del" data-del="' + v.id + '">刪除</button><div class="face"><div class="no">' + v.tr + '-' + v.no.slice(0, 5) + '<i>' + v.no.slice(5) + '</i></div><div class="st">' + v.st + '・' + v.d + '・' + v.amt + ' 元</div>' + res + '</div></div>';
+  });
+  $('flist').innerHTML = h;
+}
+renderFolder();
+var folder = $('folder');
+function setFolder(o){ folderOpen = o; folder.classList.toggle('open', o); folder.style.transform = ''; $('ftab').setAttribute('aria-expanded', o); haptic(o ? 8 : 5); tick(); }
+$('ftab').addEventListener('click', function(){ if (!moved) setFolder(!folderOpen); });
+var moved = false;
+(function(){
+  var sy = 0, dy = 0, t0 = 0, drag = false, base = 0;
+  function start(e){ drag = true; moved = false; sy = e.clientY; dy = 0; t0 = e.timeStamp; base = folderOpen ? 0 : folder.offsetHeight - 50; folder.classList.add('drag'); try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(er){} }
+  function move(e){ if (!drag) return; dy = e.clientY - sy; if (Math.abs(dy) > 6) moved = true; var y = Math.max(0, base + dy); folder.style.transform = 'translateY(' + y + 'px)'; }
+  function end(e){ if (!drag) return; drag = false; folder.classList.remove('drag'); var v = dy / Math.max(1, e.timeStamp - t0);
+    if (moved){ if (folderOpen) setFolder(!(dy > folder.offsetHeight * .3 || v > .6)); else setFolder(dy < -80 || v < -.5); } else folder.style.transform = ''; setTimeout(function(){ moved = false; }, 0); }
+  [$('ftab'), document.querySelector('.fhead')].forEach(function(el){ el.addEventListener('pointerdown', function(e){ if (e.target.closest('#addInv')) return; start(e); }); el.addEventListener('pointermove', move); el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); });
+})();
+$('ffilter').addEventListener('click', function(e){ var b = e.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; [].forEach.call(this.children, function(x){ x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); }); renderFolder(); tick(); haptic(4); });
+// swipe rows
+(function(){
+  var list = $('flist'), row = null, sx = 0, sy = 0, dx = 0, axis = '', justDragged = false;
+  list.addEventListener('pointerdown', function(e){ var r = e.target.closest('.row'); if (!r || e.target.closest('.del')) return; closeRows(r); row = r; sx = e.clientX; sy = e.clientY; dx = 0; axis = ''; });
+  list.addEventListener('pointermove', function(e){ if (!row) return; var mx = e.clientX - sx, my = e.clientY - sy; if (!axis && (Math.abs(mx) > 8 || Math.abs(my) > 8)) axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
+    if (axis !== 'x') return; row.classList.add('drag'); dx = Math.max(-110, Math.min(0, mx + (row.classList.contains('open') ? -88 : 0))); row.querySelector('.face').style.transform = 'translateX(' + dx + 'px)'; });
+  function end(){ if (!row) return; var r = row; row = null; r.classList.remove('drag'); if (axis !== 'x') return; justDragged = true; setTimeout(function(){ justDragged = false; }, 60); var open = dx < -44; r.classList.toggle('open', open); r.querySelector('.face').style.transform = open ? 'translateX(-88px)' : ''; if (open) haptic(6); }
+  list.addEventListener('pointerup', end); list.addEventListener('pointercancel', end);
+  list.addEventListener('click', function(e){ var d = e.target.closest('[data-del]'); if (d){ del(+d.dataset.del); return; } if (justDragged) return; var r = e.target.closest('.row'); if (r && r.classList.contains('open')){ closeRows(); } });
+})();
+function closeRows(except){ document.querySelectorAll('.row.open').forEach(function(r){ if (r !== except){ r.classList.remove('open'); r.querySelector('.face').style.transform = ''; } }); }
+var undoBuf = null;
+function del(id){
+  var i = inv.findIndex(function(v){ return v.id === id; }); if (i < 0) return; undoBuf = {v:inv[i], i:i}; inv.splice(i, 1); saveInv(); renderFolder(); haptic([8,30,8]); miss();
+  toast('已刪除 ' + undoBuf.v.tr + '-' + undoBuf.v.no, '復原', function(){ if (!undoBuf) return; inv.splice(undoBuf.i, 0, undoBuf.v); undoBuf = null; saveInv(); renderFolder(); tick(); });
+}
+
+/* add invoice sheet */
+var STORES = ['全家 新明店', '7-ELEVEN 中央門市', '全聯 中壢中美店', '路易莎 中壢站前', '中油 環中東路站', '夜市攤商'];
+var ad = null;
+function openAdd(prefill, pid){
+  ad = {tr:'', no:prefill || '', st:STORES[0], p:pid || '11507'};
+  var L = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; ad.tr = L[Math.floor(Math.random() * L.length)] + L[Math.floor(Math.random() * L.length)];
+  openSheet('<h3>收一張發票</h3><p class="sub" id="adSub">' + pname(ad.p) + '・字軌 ' + ad.tr + '</p><div class="fullno" id="adNo"></div>' +
+    '<div class="stores" id="adSt">' + STORES.map(function(s, i){ return '<button data-st="' + i + '" class="' + (i ? '' : 'on') + '">' + s + '</button>'; }).join('') + '</div>' +
+    '<div class="spad" id="adPad">' + '123456789'.split('').map(function(d){ return '<button class="k" data-ad="' + d + '">' + d + '</button>'; }).join('') + '<button class="k fn" data-ad="c">清除</button><button class="k" data-ad="0">0</button><button class="k fn" data-ad="b" aria-label="退格">退格</button></div>' +
+    '<button class="go" id="adGo" disabled>收進發票夾</button>');
+  renderAdNo();
+}
+function renderAdNo(){
+  var h = '<span class="tr">' + ad.tr[0] + '</span><span class="tr">' + ad.tr[1] + '</span><span class="sep"></span>';
+  for (var i = 0; i < 8; i++) h += '<span class="' + (i === ad.no.length ? 'cur' : '') + '">' + (ad.no[i] || '') + '</span>';
+  $('adNo').innerHTML = h; $('adGo').disabled = ad.no.length !== 8;
+}
+$('addInv').addEventListener('click', function(){ openAdd(); tick(); });
+
+/* sheet */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('sheetBody').innerHTML = html; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); var f = sheet.querySelector('button'); if (f) f.focus({preventScroll:true}); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = ''; if (mode === 'front' && front.length === 5) resetEntry(); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+sheet.addEventListener('click', function(e){
+  var k = e.target.closest('[data-ad]');
+  if (k){ var d = k.dataset.ad; if (d === 'c') ad.no = ''; else if (d === 'b') ad.no = ad.no.slice(0, -1); else if (ad.no.length < 8) ad.no += d; renderAdNo(); tick(); haptic(4); return; }
+  var s = e.target.closest('[data-st]');
+  if (s){ ad.st = STORES[+s.dataset.st]; [].forEach.call($('adSt').children, function(x){ x.classList.toggle('on', x === s); }); tick(); haptic(4); return; }
+  if (e.target.closest('#adGo') && ad && ad.no.length === 8){
+    var d2 = new Date(), id = inv.reduce(function(m, v){ return Math.max(m, v.id); }, 0) + 1;
+    inv.push({id:id, p:ad.p, tr:ad.tr, no:ad.no, st:ad.st, d:(d2.getMonth() + 1) + '/' + d2.getDate(), amt:Math.round(40 + Math.random() * 400)});
+    saveInv(); renderFolder(); closeSheet(); maybe(); haptic([8,30,8]);
+    var r = resultOf(inv[inv.length - 1]); toast(r.t === 'win' ? '收好了，這張中' + PRIZE[r.r][0] + '！' : r.t === 'wait' ? '收好了，' + PERIODS[3].draw + ' 開獎後自動核對' : '收好了，這張沒中'); return;
+  }
+  if (e.target.closest('#winSave')){
+    var no = sheet.dataset.no, p = sheet.dataset.p; closeSheet(); resetEntry(); openAdd(no, p); return;
+  }
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(er){} });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6; sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+/* toast */
+var toastT = null;
+function toast(msg, act, fn){
+  var t = $('toast'); t.innerHTML = ''; var sp = document.createElement('span'); sp.textContent = msg; t.appendChild(sp);
+  if (act){ var b = document.createElement('button'); b.textContent = act; b.onclick = function(){ fn(); t.classList.remove('on'); }; t.appendChild(b); }
+  t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 2800);
+}
+
+/* backdrop: invoices on a desk */
+(function(){
+  var s = '<rect width="1440" height="900" fill="#0d2a1c"/>', seed = 3;
+  function rnd(){ seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  function qr(ox, oy){ var m = 70 / 21, q = '<g fill="#153826">'; for (var r = 0; r < 21; r++) for (var c = 0; c < 21; c++){ var f = (r < 7 && c < 7) || (r < 7 && c > 13) || (r > 13 && c < 7); if (f){ var rr = r > 13 ? r - 14 : r, cc = c > 13 ? c - 14 : c, on = rr === 0 || rr === 6 || cc === 0 || cc === 6 || (rr > 1 && rr < 5 && cc > 1 && cc < 5); if (on) q += '<rect x="' + (ox + c * m).toFixed(1) + '" y="' + (oy + r * m).toFixed(1) + '" width="' + (m + .2).toFixed(2) + '" height="' + (m + .2).toFixed(2) + '"/>'; } else if (rnd() > .52) q += '<rect x="' + (ox + c * m).toFixed(1) + '" y="' + (oy + r * m).toFixed(1) + '" width="' + (m + .2).toFixed(2) + '" height="' + (m + .2).toFixed(2) + '"/>'; } return q + '</g>'; }
+  var spots = [[140,140],[330,560],[120,700],[1180,120],[1320,480],[1060,690],[560,80],[900,820],[40,420],[1400,800]];
+  spots.forEach(function(p, i){
+    var rot = (rnd() - .5) * 40, w = 200, h = 300;
+    s += '<g transform="translate(' + p[0] + ' ' + p[1] + ') rotate(' + rot.toFixed(1) + ')">';
+    s += '<path d="M-100 -150H100V140' + (function(){ var z = ''; for (var k = 0; k < 10; k++) z += 'L' + (80 - k * 20) + ' ' + (k % 2 ? 140 : 150); return z; })() + 'L-100 150Z" fill="' + (i % 3 ? '#e2eee0' : '#f0f4ec') + '" opacity=".92"/>';
+    for (var l = 0; l < 14; l++){ var y = -140 + l * 20; s += '<path d="M-100 ' + y + 'q50 ' + (8 + l % 3 * 3) + ' 100 0t100 0" fill="none" stroke="#9cc8a8" stroke-width=".8" opacity=".6"/>'; }
+    s += '<text x="0" y="-104" text-anchor="middle" font-family="PingFang TC,sans-serif" font-size="17" font-weight="700" fill="#244c34">電子發票證明聯</text>';
+    s += '<text x="0" y="-70" text-anchor="middle" font-family="PingFang TC,sans-serif" font-size="20" fill="#244c34">115年' + ['01-02','03-04','05-06','07-08'][i % 4] + '月</text>';
+    s += '<text x="0" y="-34" text-anchor="middle" font-family="Menlo,monospace" font-size="24" font-weight="700" fill="#153826">' + ['QK','RL','AB','VK','TM'][i % 5] + '-' + String(Math.floor(rnd() * 1e8)).padStart(8, '0') + '</text>';
+    var x = -80; while (x < 80){ var bw = 1 + Math.floor(rnd() * 3); if (rnd() > .45) s += '<rect x="' + x + '" y="0" width="' + bw + '" height="34" fill="#153826"/>'; x += bw + 1; }
+    s += qr(-80, 48) + qr(10, 48);
+    s += '</g>';
+  });
+  s += '<rect width="1440" height="900" fill="#0d2a1c" opacity=".55"/>';
+  $('desk').innerHTML = s;
+})();
+
+renderPeriod();
+})();
+</script>
+</body>
+</html>

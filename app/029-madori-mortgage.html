@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#56574f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="房貸格局">
+<title>房貸格局 · 房貸試算</title>
+<meta name="description" content="把物件畫成日式間取り格局圖的房貸試算：逐房描繪平面圖、點房間看它值多少、滑桿試算月付、攤還圖與三組方案比較。收錄於 100 Creative HTML Works（App 029・日式不動產格局圖）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/029-madori-mortgage.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbfbf9'/%3E%3Cpath d='M12 12h40v40H12z M12 30h22 M34 12v40 M34 38h18' fill='none' stroke='%23262624' stroke-width='3.5'/%3E%3Ccircle cx='46' cy='22' r='7' fill='%23d8432b'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#fbfbf9;--ink:#262624;--ink2:#5d5d58;--line:#9a9a93;--hair:#d5d5cf;--wet:#ecece6;
+  --shu:#d8432b;--shu2:#b8341f;--shut:#f8dcd3;--ground:#56574f;--ground2:#4a4b44;
+  --font:"YuGothic","Yu Gothic","Hiragino Sans","PingFang TC","Heiti TC",sans-serif;
+  --out:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.3,1.3,.5,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:500 14px/1.5 var(--font);color:var(--ink);background:var(--ground);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;font-feature-settings:"palt" 1}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
+svg{display:block}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--ground);isolation:isolate}
+@media (min-width:521px){
+  body{background:var(--paper)}
+  .stage{display:flex;align-items:center;justify-content:center;gap:60px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0;background:var(--paper)}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:58px;padding:9px;z-index:1;background:#d6d6d0;
+    box-shadow:inset 0 0 0 1px #bdbdb6,inset 0 0 0 3px #e9e9e4,inset 0 0 0 9px #cfcfc9,0 18px 30px -22px rgba(40,40,35,.55)}
+  .screen{inset:9px;border-radius:49px}
+  .caption{display:block;position:relative;z-index:1;max-width:240px;background:var(--paper);padding:10px 12px 12px}
+  .caption h1{font:700 30px/1.15 var(--font);letter-spacing:.04em}
+  .caption h1 b{color:var(--shu)}
+  .caption p{margin-top:10px;font-size:14px;line-height:1.75;color:var(--ink2)}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+/* ---------- status + top ---------- */
+.sb{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 34px;display:flex;align-items:center;justify-content:space-between;color:#fbfbf9;font:700 15px/1 var(--font);pointer-events:none}
+.sb .gl{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.sb{display:none}}
+.top{position:absolute;left:0;right:0;top:calc(48px + env(safe-area-inset-top));height:52px;display:flex;align-items:center;gap:6px;padding:0 10px 0 20px;color:#fbfbf9;z-index:5}
+.top h2{font:700 19px/1 var(--font);letter-spacing:.06em;display:flex;align-items:center;gap:10px}
+.top .cnt{font-size:13px;color:#d8d8d1;margin-left:4px;letter-spacing:.02em}
+.top .sp{flex:1}
+.tbtn{height:44px;min-width:44px;display:grid;place-items:center;padding:0 8px;border-radius:10px;color:#fbfbf9;font-size:14px;transition:background-color .2s}
+.tbtn:active{background:rgba(255,255,255,.14)}
+.tbtn[aria-pressed=true]{color:#ffd9cf}
+.tbtn[aria-pressed=true] .seal{fill:var(--shu)}
+
+/* ---------- flyer pager ---------- */
+.pager{position:absolute;left:0;right:0;top:calc(100px + env(safe-area-inset-top));bottom:calc(164px + env(safe-area-inset-bottom));display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;padding:4px 7% 14px;scrollbar-width:none;overscroll-behavior-x:contain}
+.pager::-webkit-scrollbar{display:none}
+.flyer{position:relative;flex:0 0 86%;scroll-snap-align:center;background:var(--paper);border-radius:4px;display:flex;flex-direction:column;padding:14px 14px 12px;transition:transform .35s var(--out)}
+.flyer.dim{transform:scale(.965)}
+.flyer::before,.flyer::after{content:"";position:absolute;width:10px;height:10px;border:solid var(--line);pointer-events:none}
+.flyer::before{right:5px;top:5px;border-width:1px 1px 0 0}
+.flyer::after{left:5px;bottom:5px;border-width:0 0 1px 1px}
+.fhead,.rinfo,.spec,.price{flex:none}
+.fhead{display:flex;align-items:flex-start;gap:8px}
+.fhead .t{flex:1;min-width:0}
+.fhead b{display:block;font-size:16px;font-weight:700;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fhead span{display:block;font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.more{width:44px;height:44px;margin:-8px -8px 0 0;display:grid;place-items:center;border-radius:8px;flex:none}
+.more:active{background:var(--wet)}
+.plan{position:relative;flex:none;height:220px;margin-top:6px;touch-action:pan-x pan-y}
+.ledger{flex:1;min-height:0;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:44px;column-gap:14px;align-content:start;margin-top:4px}
+.ledger button{display:flex;align-items:center;gap:6px;height:44px;font-size:13px;color:var(--ink2);box-shadow:inset 0 -1px 0 var(--hair);text-align:left;white-space:nowrap;overflow:hidden}
+.ledger button b{color:var(--ink);font-weight:700;font-size:14px}
+.ledger button .v{margin-left:auto;color:var(--ink);font-weight:700}
+.ledger button:active{background:var(--wet)}
+.ledger button.on b,.ledger button.on .v{color:var(--shu2)}
+.plan .pw,.plan .pw svg{position:absolute;inset:0;width:100%;height:100%}
+#bd .bw{fill:none;stroke:#6d6d68}
+.room{cursor:pointer}
+.room .f{transition:fill .25s}
+.room.on .f{fill:url(#hs)}
+.room.on text{fill:var(--shu2)}
+.wall{fill:none;stroke:var(--ink);stroke-linejoin:miter}
+.flyer.draw .wall{animation:draw .5s var(--out) backwards;animation-delay:var(--d)}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.stamp{flex:none;width:52px;height:52px;margin:-8px -4px -6px auto;display:grid;place-items:center;border-radius:50%;align-self:center}
+.stamp svg{width:50px;height:50px}
+.stamp .ink{transition:opacity .2s}
+.stamp.on .ink{opacity:1}
+.stamp:not(.on) .ink{opacity:0}
+.stamp.on .hint{opacity:0}
+.stamp.thump svg{animation:thump .42s var(--spring)}
+@keyframes thump{0%{transform:scale(1.35) rotate(-14deg)}60%{transform:scale(.94) rotate(-9deg)}100%{transform:scale(1) rotate(-8deg)}}
+.stamp svg{transform:rotate(-8deg)}
+.rinfo{min-height:22px;font-size:13px;color:var(--ink2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rinfo b{color:var(--shu2);font-weight:700}
+.spec{display:flex;gap:12px;margin-top:6px;padding-top:8px;box-shadow:inset 0 1px 0 var(--hair);font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden}
+.spec i{font-style:normal;color:var(--ink);font-weight:700}
+.price{display:flex;align-items:baseline;gap:6px;margin-top:4px}
+.price small{font-size:13px;color:var(--ink2)}
+.price strong{font:700 34px/1.1 var(--font);color:var(--shu);letter-spacing:.01em}
+.price .u{margin-left:auto;font-size:13px;color:var(--ink2)}
+.pnum{position:absolute;left:0;right:0;bottom:calc(166px + env(safe-area-inset-bottom));height:0;display:none}
+.empty{flex:0 0 86%;scroll-snap-align:center;display:grid;place-items:center;text-align:center;color:#e8e8e2;font-size:15px;line-height:1.8}
+
+/* ---------- drawer ---------- */
+.drawer{position:absolute;left:0;right:0;bottom:0;height:88%;z-index:20;background:var(--paper);border-radius:22px 22px 0 0;display:flex;flex-direction:column;
+  transform:translateY(calc(100% - 164px - env(safe-area-inset-bottom)));transition:transform .45s var(--spring);box-shadow:0 -1px 0 rgba(0,0,0,.08)}
+.drawer.drag{transition:none}
+.dgrip{flex:none;touch-action:none;cursor:grab;padding:8px 20px 0}
+.dgrip .h{width:38px;height:5px;border-radius:3px;background:var(--hair);margin:0 auto 8px}
+.peek{display:flex;align-items:flex-end;gap:10px}
+.peek .l{font-size:13px;color:var(--ink2)}
+.peek strong{display:block;font:700 34px/1.05 var(--font);letter-spacing:.01em}
+.peek strong small{font-size:15px;margin-left:3px;font-weight:600}
+.peek .r{margin-left:auto;text-align:right;font-size:13px;color:var(--ink2);line-height:1.55}
+.peek .r b{color:var(--ink)}
+.ratio{display:inline-block;font-weight:700}
+.ratio.warn{color:var(--shu)}
+.tabs{flex:none;display:flex;gap:4px;padding:8px 12px 0}
+.tabs button{height:44px;padding:0 12px;font-size:15px;color:var(--line);font-weight:600;border-radius:8px;transition:color .2s}
+.tabs button[aria-selected=true]{color:var(--ink);font-weight:700}
+.tabs button:active{background:var(--wet)}
+.dbody{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 20px calc(30px + env(safe-area-inset-bottom));overscroll-behavior:contain;scrollbar-width:none}
+.dbody::-webkit-scrollbar{display:none}
+.panel[hidden]{display:none}
+.panel.in{animation:pin .3s var(--out)}
+@keyframes pin{from{transform:translateX(14px)}}
+.presets{display:flex;gap:8px;margin:6px 0 4px;overflow-x:auto;scrollbar-width:none}
+.presets::-webkit-scrollbar{display:none}
+.presets button{flex:none;height:44px;padding:0 14px;border-radius:8px;background:var(--wet);font-size:14px;font-weight:600;color:var(--ink2);transition:background-color .2s,color .2s}
+.presets button:active{background:var(--hair)}
+.presets button.on{background:var(--ink);color:var(--paper)}
+.fld{margin-top:14px}
+.fld .lab{display:flex;align-items:baseline;justify-content:space-between;font-size:14px;color:var(--ink2)}
+.fld .lab b{font:700 17px/1 var(--font);color:var(--ink)}
+.fld .lab b small{font-size:13px;font-weight:600;color:var(--ink2);margin-left:4px}
+.rng{position:relative;height:40px}
+.rng input{position:absolute;inset:0;width:100%;height:40px;-webkit-appearance:none;appearance:none;background:none;touch-action:none;cursor:pointer;margin:0}
+.rng input::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,var(--shu) var(--p,50%),var(--line) var(--p,50%))}
+.rng input::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-10px;background:var(--paper);border:2.5px solid var(--shu);border-radius:3px;transform:rotate(45deg)}
+.rng input::-moz-range-track{height:2px;background:var(--line)}
+.rng input::-moz-range-progress{height:2px;background:var(--shu)}
+.rng input::-moz-range-thumb{width:16px;height:16px;background:var(--paper);border:2.5px solid var(--shu);border-radius:3px;transform:rotate(45deg)}
+.rng .ticks{position:absolute;left:11px;right:11px;top:26px;height:6px;display:flex;justify-content:space-between;pointer-events:none}
+.rng .ticks i{width:1px;height:6px;background:var(--line)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;margin-top:8px;border-radius:8px;background:var(--wet);padding:3px}
+.seg button{height:40px;border-radius:6px;font-weight:600;color:var(--ink2);font-size:14px;transition:background-color .2s,color .2s}
+.seg button[aria-pressed=true]{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(40,40,35,.18)}
+.act{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;margin-top:20px;border-radius:10px;background:var(--ink);color:var(--paper);font-weight:700;font-size:16px;letter-spacing:.04em;transition:background-color .2s}
+.act:active{background:#000}
+.act.shu{background:var(--shu)}
+.act.shu:active{background:var(--shu2)}
+.note{margin-top:10px;font-size:13px;color:var(--ink2);line-height:1.7}
+
+.chart{position:relative;margin-top:6px;touch-action:none}
+.chart svg{width:100%;height:190px;overflow:visible}
+.chart text{font-size:11px;fill:var(--ink2);font-family:var(--font)}
+.scrub{min-height:44px;font-size:13px;color:var(--ink2);margin-top:4px;line-height:1.6}
+.scrub b{color:var(--ink)}
+.scrub i{font-style:normal;color:var(--shu2);font-weight:700}
+.tot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.tot div{background:var(--wet);border-radius:8px;padding:10px 10px 8px}
+.tot b{display:block;font:700 18px/1.2 var(--font)}
+.tot span{font-size:13px;color:var(--ink2)}
+.ms{margin-top:14px}
+.ms div{display:flex;justify-content:space-between;align-items:center;min-height:40px;font-size:14px;box-shadow:inset 0 -1px 0 var(--hair)}
+.ms div span{color:var(--ink2)}
+
+.cmp{display:grid;margin-top:8px;column-gap:8px}
+.cmp .c{display:grid;grid-template-rows:auto;align-content:start}
+.cmp .cell{min-height:40px;display:flex;align-items:center;font-size:14px;box-shadow:inset 0 -1px 0 var(--hair);white-space:nowrap;overflow:hidden}
+.cmp .hd{min-height:96px;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;padding-top:4px;white-space:normal}
+.cmp .hd svg{width:52px;height:44px}
+.cmp .hd b{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cmp .lb .cell{color:var(--ink2);font-size:13px}
+.cmp .best{color:var(--shu2);font-weight:700}
+.cmp .del{height:44px;width:100%;display:flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2);border-radius:6px}
+.cmp .del:active{background:var(--wet)}
+.cmpEmpty{margin-top:20px;font-size:14px;color:var(--ink2);line-height:1.8}
+
+/* ---------- modal sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(30,30,26,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:86%;display:flex;flex-direction:column;background:var(--paper);border-radius:22px 22px 0 0;
+  transform:translateY(calc(100% + 30px));transition:transform .45s var(--spring);touch-action:none}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.sheet .grip{flex:none;padding:8px 0 4px;cursor:grab}
+.sheet .grip i{display:block;width:38px;height:5px;border-radius:3px;background:var(--hair);margin:0 auto}
+.sheet .sb2{overflow-y:auto;padding:6px 20px calc(24px + env(safe-area-inset-bottom));touch-action:pan-y}
+.sheet h4{font:700 19px/1.3 var(--font);letter-spacing:.03em}
+.sheet .sub{font-size:13px;color:var(--ink2);margin-top:2px}
+.txt{width:100%;height:48px;margin-top:8px;border:0;border-radius:8px;background:var(--wet);padding:0 14px;font-size:16px;outline:0}
+.txt:focus{box-shadow:inset 0 0 0 2px var(--ink)}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;font-size:16px;text-align:left;box-shadow:inset 0 -1px 0 var(--hair)}
+.row:active{background:var(--wet)}
+.row.red{color:var(--shu2);font-weight:700}
+.tmpl{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.tmpl button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;border-radius:8px;font-size:13px;color:var(--ink2);transition:background-color .2s}
+.tmpl button svg{width:54px;height:46px}
+.tmpl button[aria-pressed=true]{background:var(--wet);color:var(--ink);font-weight:700}
+
+.toast{position:absolute;left:14px;right:14px;top:calc(54px + env(safe-area-inset-top));z-index:60;display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 8px 6px 16px;border-radius:10px;background:var(--ink);color:var(--paper);font-size:14px;
+  transform:translateY(-150%);visibility:hidden;transition:transform .4s var(--spring),visibility 0s .4s}
+.toast.on{transform:none;visibility:visible;transition:transform .4s var(--spring)}
+.toast span{flex:1}
+.toast button{height:40px;padding:0 12px;border-radius:8px;color:#ffc9bb;font-weight:700}
+.toast button:active{background:rgba(255,255,255,.12)}
+.homeind{position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--ink);z-index:70;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  .flyer,.drawer,.sheet,.toast{transition:none}
+  .flyer.draw .wall,.stamp.thump svg,.panel.in{animation:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="hw" width=".22" height=".22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".22" height=".22" fill="#ecece6"/><line x1="0" y1="0" x2="0" y2=".22" stroke="#cfcfc8" stroke-width=".04"/></pattern>
+    <pattern id="hs" width=".26" height=".26" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width=".26" height=".26" fill="#fbe7e1"/><line x1="0" y1="0" x2="0" y2=".26" stroke="#eea796" stroke-width=".07"/></pattern>
+    <pattern id="hb" width=".24" height=".24" patternUnits="userSpaceOnUse"><rect width=".24" height=".24" fill="#f5f5f1"/><circle cx=".12" cy=".12" r=".028" fill="#b9b9b1"/></pattern>
+  </defs>
+</svg>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="bd" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"></svg></div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <header class="sb">
+        <span id="clock">9:41</span>
+        <span class="gl" aria-hidden="true">
+          <svg width="18" height="12" viewBox="0 0 18 12"><path d="M1 11h3M6 11V8M11 11V5M16 11V1" stroke="#fbfbf9" stroke-width="2.4" stroke-linecap="square"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M1 4.5a10 10 0 0 1 14 0M3.6 7.2a6.3 6.3 0 0 1 8.8 0" fill="none" stroke="#fbfbf9" stroke-width="1.8"/><rect x="6.5" y="9" width="3" height="3" fill="#fbfbf9"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><rect x=".8" y=".8" width="22.4" height="10.4" rx="2" fill="none" stroke="#fbfbf9" stroke-width="1.4"/><rect x="24" y="4" width="2" height="4" fill="#fbfbf9"/><rect id="batt" x="2.6" y="2.6" width="15" height="6.8" fill="#fbfbf9"/></svg>
+        </span>
+      </header>
+      <div class="top">
+        <h2><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 2h18v18H2z M2 11h10 M12 2v18 M12 14h8" fill="none" stroke="#fbfbf9" stroke-width="2"/><rect x="14.5" y="4.5" width="3.4" height="3.4" fill="#f08a73"/></svg>房貸格局<span class="cnt num" id="cnt">4 件</span></h2>
+        <span class="sp"></span>
+        <button class="tbtn" id="favBtn" aria-pressed="false" aria-label="只看蓋了候補章的物件"><svg width="24" height="24" viewBox="0 0 24 24"><circle class="seal" cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="5.6" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></button>
+        <button class="tbtn" id="addBtn" aria-label="新增物件"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M3 3h18v18H3z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v9M7.5 12h9" stroke="currentColor" stroke-width="2"/></svg></button>
+      </div>
+
+      <div class="pager" id="pager" aria-label="物件"></div>
+
+      <section class="drawer" id="drawer" aria-label="房貸試算">
+        <div class="dgrip" id="dgrip">
+          <div class="h"></div>
+          <div class="peek">
+            <div><div class="l" id="peekL">每月應繳</div><strong class="num" id="pay">0<small>元</small></strong></div>
+            <div class="r" id="peekR"></div>
+          </div>
+        </div>
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected="true" data-tab="calc">試算</button>
+          <button role="tab" aria-selected="false" data-tab="amort">攤還</button>
+          <button role="tab" aria-selected="false" data-tab="cmp">比較 <span class="num" id="cmpN"></span></button>
+        </div>
+        <div class="dbody" id="dbody">
+          <div class="panel" id="t-calc">
+            <div class="presets" id="presets">
+              <button data-pre="0">一般房貸</button><button data-pre="1">青年首購</button><button data-pre="2">保守試算</button><button data-pre="3">高成數</button>
+            </div>
+            <div class="fld"><div class="lab">頭期款<b class="num" id="vDown"></b></div><div class="rng"><input type="range" id="iDown" min="10" max="50" step="1" aria-label="頭期款比例"><div class="ticks"><i></i><i></i><i></i><i></i><i></i></div></div></div>
+            <div class="fld"><div class="lab">年利率<b class="num" id="vRate"></b></div><div class="rng"><input type="range" id="iRate" min="1.5" max="4" step="0.005" aria-label="年利率"><div class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
+            <div class="fld"><div class="lab">貸款年限</div><div class="seg" id="segYears"><button data-y="20">20 年</button><button data-y="30">30 年</button><button data-y="40">40 年</button></div></div>
+            <div class="fld"><div class="lab">寬限期（只繳利息）<b class="num" id="vGrace"></b></div><div class="rng"><input type="range" id="iGrace" min="0" max="5" step="1" aria-label="寬限期年數"><div class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
+            <div class="fld"><div class="lab">攤還方式</div><div class="seg" id="segMethod"><button data-m="equal">本息平均</button><button data-m="principal">本金平均</button></div></div>
+            <div class="fld"><div class="lab">家庭月收入<b class="num" id="vInc"></b></div><div class="rng"><input type="range" id="iInc" min="4" max="30" step="0.5" aria-label="家庭月收入"><div class="ticks"><i></i><i></i><i></i><i></i></div></div></div>
+            <button class="act" id="saveCmp"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 2h14v14H2z M9 2v14" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11.5 9h3M13 7.5v3" stroke="currentColor" stroke-width="1.6"/></svg>加入比較</button>
+            <p class="note" id="calcNote"></p>
+          </div>
+          <div class="panel" id="t-amort" hidden>
+            <div class="chart" id="chart"><svg id="amSvg" viewBox="0 0 340 190" preserveAspectRatio="none" aria-label="逐年本金與利息"></svg></div>
+            <div class="scrub" id="scrub"></div>
+            <div class="tot" id="tot"></div>
+            <div class="ms" id="ms"></div>
+          </div>
+          <div class="panel" id="t-cmp" hidden>
+            <div id="cmpBox"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT">
+        <div class="grip" aria-hidden="true"><i></i></div>
+        <div class="sb2" id="sheetBody"></div>
+      </div>
+      <div class="homeind" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <div class="caption">
+    <h1>房貸<b>格局</b></h1>
+    <p>把每一坪換算成錢。點房間看它值多少，拉滑桿看每月要繳多少。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app029:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+function fmt(n){ return Math.round(n).toLocaleString('en-US'); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// ---------- sound ----------
+var ac = null;
+function audio(){ try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
+function thump(){
+  var a = audio(); if (!a) return; var t = a.currentTime;
+  var o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(55, t + .12);
+  g.gain.setValueAtTime(.35, t); g.gain.exponentialRampToValueAtTime(.001, t + .18); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + .2);
+  noise(.05, 1800, .12);
+}
+function noise(dur, freq, vol){
+  var a = audio(); if (!a) return; var t = a.currentTime, n = Math.floor(a.sampleRate * dur), b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0);
+  for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = b; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = .8; g.gain.value = vol;
+  s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+}
+function tick(){ noise(.012, 3200, .05); }
+function paper(){ noise(.14, 900, .06); }
+
+// ---------- plans (metres; x right, y down) ----------
+var PLANS = {
+  A:{W:12,H:9.8,label:'3房2廳',rooms:[
+    {n:'主臥',t:'bed',x:0,y:0,w:4.2,h:4,to:'客廳'},{n:'主衛',t:'bath',x:4.2,y:0,w:2,h:2.2,to:'主臥'},{n:'衛浴',t:'bath',x:4.2,y:2.2,w:2,h:1.8,to:'客廳'},
+    {n:'次臥',t:'bed',x:6.2,y:0,w:3,h:4,to:'餐廳'},{n:'書房',t:'bed',x:9.2,y:0,w:2.8,h:4,to:'玄關'},
+    {n:'客廳',t:'liv',x:0,y:4,w:7.2,h:4.4},{n:'廚房',t:'kit',x:7.2,y:4,w:2.4,h:2.6,to:'餐廳'},{n:'玄關',t:'ent',x:9.6,y:4,w:2.4,h:2.6,to:'餐廳'},
+    {n:'餐廳',t:'liv',x:7.2,y:6.6,w:4.8,h:1.8},{n:'陽台',t:'bal',x:0,y:8.4,w:7.2,h:1.4,to:'客廳'},{n:'工作陽台',t:'bal',x:7.2,y:8.4,w:4.8,h:1.4,to:'餐廳'}]},
+  B:{W:8.4,H:8.2,label:'2房1廳',rooms:[
+    {n:'主臥',t:'bed',x:0,y:0,w:3.6,h:3.4,to:'客餐廳'},{n:'次臥',t:'bed',x:3.6,y:0,w:2.8,h:3.4,to:'客餐廳'},{n:'衛浴',t:'bath',x:6.4,y:0,w:2,h:2,to:'玄關'},
+    {n:'玄關',t:'ent',x:6.4,y:2,w:2,h:1.4,to:'客餐廳'},{n:'客餐廳',t:'liv',x:0,y:3.4,w:5.4,h:3.6},{n:'廚房',t:'kit',x:5.4,y:3.4,w:3,h:2.4,to:'客餐廳'},
+    {n:'工作陽台',t:'bal',x:5.4,y:5.8,w:3,h:1.2,to:'廚房'},{n:'陽台',t:'bal',x:0,y:7,w:5.4,h:1.2,to:'客餐廳'}]},
+  C:{W:13,H:10.2,label:'4房2廳',rooms:[
+    {n:'主臥',t:'bed',x:0,y:0,w:4.4,h:4.2,to:'客廳'},{n:'主衛',t:'bath',x:4.4,y:0,w:2,h:2.2,to:'主臥'},{n:'更衣室',t:'clo',x:4.4,y:2.2,w:2,h:2,to:'主臥'},
+    {n:'臥室',t:'bed',x:6.4,y:0,w:3.2,h:4.2,to:'餐廳'},{n:'臥室',t:'bed',x:9.6,y:0,w:3.4,h:4.2,to:'臥室4'},
+    {n:'客廳',t:'liv',x:0,y:4.2,w:6.4,h:4.6},{n:'餐廳',t:'liv',x:6.4,y:4.2,w:3.2,h:2.6},{n:'廚房',t:'kit',x:6.4,y:6.8,w:3.2,h:2,to:'餐廳'},
+    {n:'臥室4',t:'bed',x:9.6,y:4.2,w:3.4,h:3,to:'餐廳'},{n:'衛浴',t:'bath',x:9.6,y:7.2,w:1.8,h:1.6,to:'玄關'},{n:'玄關',t:'ent',x:11.4,y:7.2,w:1.6,h:1.6,to:'臥室4'},
+    {n:'陽台',t:'bal',x:0,y:8.8,w:6.4,h:1.4,to:'客廳'},{n:'工作陽台',t:'bal',x:6.4,y:8.8,w:3.2,h:1.4,to:'廚房'}]},
+  D:{W:11,H:9.8,label:'3房＋和室',rooms:[
+    {n:'主臥',t:'bed',x:0,y:0,w:4,h:3.8,to:'客廳'},{n:'次臥',t:'bed',x:4,y:0,w:3,h:3.8,to:'餐廳'},{n:'和室',t:'tat',x:7,y:0,w:4,h:3.8,to:'廚房'},
+    {n:'客廳',t:'liv',x:0,y:3.8,w:5.6,h:4.6},{n:'餐廳',t:'liv',x:5.6,y:3.8,w:2.8,h:2.4},{n:'廚房',t:'kit',x:8.4,y:3.8,w:2.6,h:2.4,to:'餐廳'},
+    {n:'衛浴',t:'bath',x:5.6,y:6.2,w:1.8,h:2.2,to:'餐廳'},{n:'玄關',t:'ent',x:7.4,y:6.2,w:1.4,h:2.2,to:'餐廳'},{n:'小孩房',t:'bed',x:8.8,y:6.2,w:2.2,h:2.2,to:'玄關'},
+    {n:'陽台',t:'bal',x:0,y:8.4,w:5.6,h:1.4,to:'客廳'}]}
+};
+function planArea(p){ var a = 0; p.rooms.forEach(function(r){ if (r.t !== 'bal') a += r.w * r.h; }); return a; }
+var PING = 3.30579;
+
+var SEED = [
+  {id:'p1', area:'台北市大安區', road:'和平東路二段', name:'和平晴空', st:'科技大樓站 步行 6 分', price:2680, plan:'A', age:12, fl:'9F／14F', fee:3800, stamp:true},
+  {id:'p2', area:'新北市板橋區', road:'文化路一段', name:'文化雅築', st:'新埔站 步行 4 分', price:1380, plan:'B', age:25, fl:'5F／7F', fee:1200, stamp:false},
+  {id:'p3', area:'台中市西屯區', road:'市政北七路', name:'七期悅河', st:'市政府站 步行 9 分', price:1980, plan:'C', age:4, fl:'17F／26F', fee:5200, stamp:false},
+  {id:'p4', area:'高雄市鼓山區', road:'美術東二路', name:'美術館森居', st:'美術館站 步行 7 分', price:1560, plan:'D', age:18, fl:'11F／15F', fee:2600, stamp:true}
+];
+var props = load('props', null) || SEED.map(function(p){ return Object.assign({}, p); });
+var cur = load('cur', 0), favOnly = load('fav', false), selRoom = -1;
+var P = load('params', {down:20, rate:2.185, years:30, grace:0, method:'equal', inc:17});
+var scen = load('scen', null);
+if (!scen){ scen = [{name:'和平晴空', plan:'A', price:2680, down:20, rate:2.185, years:30, grace:0, method:'equal', inc:17}, {name:'文化雅築', plan:'B', price:1380, down:20, rate:2.185, years:40, grace:3, method:'equal', inc:12}]; }
+function persist(){ save('props', props); save('cur', cur); save('params', P); save('scen', scen); save('fav', favOnly); }
+
+// ---------- mortgage maths ----------
+function sched(price, p){
+  var L = price * 10000 * (1 - p.down / 100), i = p.rate / 100 / 12, N = p.years * 12, G = Math.min(p.grace, p.years - 1) * 12, bal = L, rows = [], first = 0, afterG = 0;
+  var M = i ? (L * i / (1 - Math.pow(1 + i, -(N - G)))) : L / (N - G);
+  for (var m = 0; m < N; m++){
+    var int = bal * i, prin = 0;
+    if (m >= G) prin = p.method === 'equal' ? M - int : L / (N - G);
+    prin = Math.min(prin, bal); bal -= prin;
+    rows.push({i:int, p:prin, bal:bal});
+    if (m === 0) first = int + prin; if (m === G) afterG = int + prin;
+  }
+  var totI = rows.reduce(function(a, r){ return a + r.i; }, 0);
+  return {L:L, rows:rows, first:first, afterG:afterG, totI:totI, tot:L + totI};
+}
+function ratioOf(pay, inc){ return pay / (inc * 10000) * 100; }
+
+// ---------- plan SVG ----------
+function planSVG(pl, opt){
+  opt = opt || {};
+  var W = pl.W, H = pl.H, ppm = opt.ppm || 24, k = 1 / ppm, pad = opt.thumb ? .3 : .35, padB = opt.thumb ? .3 : 1.5;
+  var s = '<svg viewBox="' + (-pad) + ' ' + (-pad) + ' ' + (W + pad * 2) + ' ' + (H + pad + padB) + '" preserveAspectRatio="xMidYMid meet"' + (opt.thumb ? ' aria-hidden="true"' : ' role="img" aria-label="' + pl.label + '格局圖"') + '>';
+  var ext = 3.2 * k, inn = 1.6 * k, thin = .9 * k, fs = 13 * k, fs2 = 11.5 * k;
+  if (opt.thumb){ ext = .28; inn = .16; }
+  var byName = {}; pl.rooms.forEach(function(r){ byName[r.n] = r; });
+  // fills
+  pl.rooms.forEach(function(r, idx){
+    var fill = r.t === 'bath' ? 'url(#hw)' : r.t === 'bal' ? 'url(#hb)' : '#fff';
+    s += '<g class="room" data-r="' + idx + '"><rect class="f" x="' + r.x + '" y="' + r.y + '" width="' + r.w + '" height="' + r.h + '" fill="' + fill + '"/></g>';
+  });
+  if (!opt.thumb){
+    // fixtures
+    pl.rooms.forEach(function(r){
+      var x = r.x, y = r.y, w = r.w, h = r.h, st = ' fill="none" stroke="#9a9a93" stroke-width="' + thin + '"';
+      if (r.t === 'bath'){ var tw = Math.min(1.5, w - .3); s += '<rect x="' + (x + .15) + '" y="' + (y + .15) + '" width="' + tw + '" height=".72" rx=".2"' + st + '/><ellipse cx="' + (x + w - .38) + '" cy="' + (y + h - .45) + '" rx=".2" ry=".27"' + st + '/>'; }
+      if (r.t === 'kit'){ s += '<rect x="' + (x + .08) + '" y="' + (y + .08) + '" width="' + (w - .16) + '" height=".6"' + st + '/><rect x="' + (x + .3) + '" y="' + (y + .18) + '" width=".55" height=".4" rx=".08"' + st + '/><circle cx="' + (x + w - .45) + '" cy="' + (y + .38) + '" r=".17"' + st + '/><circle cx="' + (x + w - .95) + '" cy="' + (y + .38) + '" r=".17"' + st + '/>'; }
+      if (r.t === 'ent'){ s += '<line x1="' + x + '" y1="' + (y + h * .55) + '" x2="' + (x + w) + '" y2="' + (y + h * .55) + '" stroke="#9a9a93" stroke-width="' + thin + '" stroke-dasharray="' + (4 * k) + ' ' + (3 * k) + '"/><rect x="' + (x + w - .5) + '" y="' + (y + .1) + '" width=".4" height="' + (h * .5) + '"' + st + '/>'; }
+      if (r.t === 'clo'){ s += '<path d="M' + (x + .2) + ' ' + (y + .2) + 'L' + (x + w - .2) + ' ' + (y + h - .2) + 'M' + (x + w - .2) + ' ' + (y + .2) + 'L' + (x + .2) + ' ' + (y + h - .2) + '" stroke="#c9c9c2" stroke-width="' + thin + '" stroke-dasharray="' + (3 * k) + ' ' + (3 * k) + '"/>'; }
+      if (r.t === 'tat'){ var d = ''; for (var tx = x + .9; tx < x + w - .1; tx += .9) d += 'M' + tx + ' ' + y + 'V' + (y + h / 2); for (var ty = y + h / 2; ty < y + h - .1; ty += .9) d += 'M' + x + ' ' + ty + 'H' + (x + w); d += 'M' + x + ' ' + (y + h / 2) + 'H' + (x + w); s += '<path d="' + d + '" stroke="#b9b9b1" stroke-width="' + thin + '"/>'; }
+      if (r.t === 'bal'){ s += ''; }
+    });
+  }
+  // walls (drawn room by room)
+  pl.rooms.forEach(function(r, idx){
+    var sw = r.t === 'bal' ? thin * 1.2 : inn;
+    s += '<path class="wall" pathLength="1" stroke-dasharray="1 0" style="--d:' + (idx * 90) + 'ms" stroke-width="' + sw + '"' + (r.t === 'bal' ? ' stroke="#6d6d68"' : '') + ' d="M' + r.x + ' ' + r.y + 'h' + r.w + 'v' + r.h + 'h' + (-r.w) + 'z"/>';
+  });
+  // exterior edges
+  var ed = '';
+  pl.rooms.forEach(function(r){
+    if (r.t === 'bal') return;
+    if (r.y === 0) ed += 'M' + r.x + ' 0h' + r.w;
+    if (r.x === 0) ed += 'M0 ' + r.y + 'v' + r.h;
+    if (Math.abs(r.x + r.w - W) < .01) ed += 'M' + W + ' ' + r.y + 'v' + r.h;
+    var below = pl.rooms.some(function(o){ return o !== r && Math.abs(o.y - (r.y + r.h)) < .01 && o.x < r.x + r.w - .01 && o.x + o.w > r.x + .01 && o.t !== 'bal'; });
+    if (!below) ed += 'M' + r.x + ' ' + (r.y + r.h) + 'h' + r.w;
+  });
+  s += '<path class="wall" pathLength="1" stroke-dasharray="1 0" style="--d:' + (pl.rooms.length * 90) + 'ms" stroke-width="' + ext + '" stroke-linecap="square" d="' + ed + '"/>';
+  if (!opt.thumb){
+    // doors, sliding doors, windows
+    pl.rooms.forEach(function(r){
+      if (r.to && byName[r.to]){
+        var e = shared(r, byName[r.to]);
+        if (e){
+          if (r.t === 'bal' && byName[r.to].t !== 'kit'){
+            var len = (e.b - e.a) * .6, st = e.a + (e.b - e.a - len) / 2;
+            s += gap(e, st, st + len, inn * 1.6) + (e.h ? '<path d="M' + st + ' ' + (e.c - .06) + 'h' + (len * .55) + 'M' + (st + len * .45) + ' ' + (e.c + .06) + 'h' + (len * .55) + '"' : '<path d="M' + (e.c - .06) + ' ' + st + 'v' + (len * .55) + 'M' + (e.c + .06) + ' ' + (st + len * .45) + 'v' + (len * .55) + '"') + ' stroke="#262624" stroke-width="' + thin + '"/>';
+          } else {
+            var dw = Math.min(.8, (e.b - e.a) - .3), a0 = e.a + .15, a1 = a0 + dw, sg = e.side;
+            s += gap(e, a0, a1, inn * 1.6);
+            if (e.h){ var ly = e.c + sg * dw; s += '<path d="M' + a0 + ' ' + e.c + 'V' + ly + 'A' + dw + ' ' + dw + ' 0 0 ' + (sg < 0 ? 1 : 0) + ' ' + a1 + ' ' + e.c + '" fill="none" stroke="#6d6d68" stroke-width="' + thin + '"/>'; }
+            else { var lx = e.c + sg * dw; s += '<path d="M' + e.c + ' ' + a0 + 'H' + lx + 'A' + dw + ' ' + dw + ' 0 0 ' + (sg < 0 ? 0 : 1) + ' ' + e.c + ' ' + a1 + '" fill="none" stroke="#6d6d68" stroke-width="' + thin + '"/>'; }
+          }
+        }
+      }
+      if (r.t !== 'bal' && r.t !== 'ent' && r.t !== 'clo'){
+        var win = function(horiz, c, a, b){ var L = Math.min(r.t === 'bath' ? .7 : 1.8, (b - a) * .5), m = (a + b) / 2; return gap({h:horiz, c:c}, m - L / 2, m + L / 2, ext * 1.2) + (horiz ? '<path d="M' + (m - L / 2) + ' ' + (c - ext * .35) + 'h' + L + 'M' + (m - L / 2) + ' ' + (c + ext * .35) + 'h' + L + '"' : '<path d="M' + (c - ext * .35) + ' ' + (m - L / 2) + 'v' + L + 'M' + (c + ext * .35) + ' ' + (m - L / 2) + 'v' + L + '"') + ' stroke="#262624" stroke-width="' + thin + '"/>'; };
+        if (r.y === 0) s += win(true, 0, r.x, r.x + r.w);
+        else if (r.x === 0 && r.t !== 'liv') s += win(false, 0, r.y, r.y + r.h);
+        else if (Math.abs(r.x + r.w - W) < .01) s += win(false, W, r.y, r.y + r.h);
+      }
+    });
+    // labels
+    pl.rooms.forEach(function(r, idx){
+      var cx = r.x + r.w / 2, cy = r.y + r.h / 2 + (r.t === 'bath' ? .3 : r.t === 'kit' ? .3 : 0), a = r.w * r.h / PING, small = r.w * r.h < 3.2 || r.w < 1.7 || r.h < 1.8 || r.t === 'bath';
+      s += '<g class="room" data-r="' + idx + '" pointer-events="none"><text x="' + cx + '" y="' + (small ? cy : cy - fs * .55) + '" font-size="' + (small ? fs2 : fs) + '" font-weight="700" fill="#262624" text-anchor="middle" dominant-baseline="central">' + r.n + '</text>' +
+        (small ? '' : '<text x="' + cx + '" y="' + (cy + fs * .75) + '" font-size="' + fs2 + '" fill="#5d5d58" text-anchor="middle" dominant-baseline="central">' + a.toFixed(1) + '坪</text>') + '</g>';
+    });
+    // compass + scale
+    var cx0 = W + pad * .5, cy0 = -pad * .5;
+    s += '<g transform="translate(' + (W - .2) + ' ' + (H + .6) + ')"><path d="M-3 0h3M-3 -.12v.24M-2 -.08v.16M-1 -.08v.16M0 -.12v.24" stroke="#5d5d58" stroke-width="' + thin + '" fill="none"/><text x="-3" y=".45" font-size="' + fs2 + '" fill="#5d5d58" dominant-baseline="central">0</text><text x="0" y=".45" font-size="' + fs2 + '" fill="#5d5d58" text-anchor="end" dominant-baseline="central">3m</text></g>';
+    s += '<g transform="translate(.3 ' + (H + .6) + ')"><path d="M0 -.5L.26 .3L0 .14L-.26 .3Z" fill="#d8432b"/><text x=".5" y="0" font-size="' + fs2 + '" fill="#5d5d58" dominant-baseline="central">N</text></g>';
+  }
+  return s + '</svg>';
+}
+function shared(r, o){
+  var e = null;
+  if (Math.abs(r.y + r.h - o.y) < .01 || Math.abs(o.y + o.h - r.y) < .01){
+    var a = Math.max(r.x, o.x), b = Math.min(r.x + r.w, o.x + o.w);
+    if (b - a > .7) e = {h:true, c:Math.abs(r.y + r.h - o.y) < .01 ? o.y : r.y, a:a, b:b, side:Math.abs(r.y + r.h - o.y) < .01 ? -1 : 1};
+  }
+  if (!e && (Math.abs(r.x + r.w - o.x) < .01 || Math.abs(o.x + o.w - r.x) < .01)){
+    var a2 = Math.max(r.y, o.y), b2 = Math.min(r.y + r.h, o.y + o.h);
+    if (b2 - a2 > .7) e = {h:false, c:Math.abs(r.x + r.w - o.x) < .01 ? o.x : r.x, a:a2, b:b2, side:Math.abs(r.x + r.w - o.x) < .01 ? -1 : 1};
+  }
+  return e;
+}
+function gap(e, a, b, w){ return e.h ? '<line x1="' + a + '" y1="' + e.c + '" x2="' + b + '" y2="' + e.c + '" stroke="#fff" stroke-width="' + w + '"/>' : '<line x1="' + e.c + '" y1="' + a + '" x2="' + e.c + '" y2="' + b + '" stroke="#fff" stroke-width="' + w + '"/>'; }
+
+// ---------- flyers ----------
+function visible(){ return props.map(function(p, i){ return i; }).filter(function(i){ return !favOnly || props[i].stamp; }); }
+function sealSVG(){
+  return '<svg viewBox="0 0 58 58" aria-hidden="true"><g class="hint"><circle cx="29" cy="29" r="24" fill="none" stroke="#9a9a93" stroke-width="1.4" stroke-dasharray="3 3"/><text x="29" y="29" font-size="13" fill="#5d5d58" text-anchor="middle" dominant-baseline="central" font-weight="700">蓋章</text></g>' +
+    '<g class="ink"><circle cx="29" cy="29" r="25" fill="none" stroke="#d8432b" stroke-width="3"/><circle cx="29" cy="29" r="20.5" fill="none" stroke="#d8432b" stroke-width="1.2"/><text x="29" y="20.5" font-size="14" fill="#d8432b" text-anchor="middle" dominant-baseline="central" font-weight="700">候</text><text x="29" y="37" font-size="14" fill="#d8432b" text-anchor="middle" dominant-baseline="central" font-weight="700">補</text></g></svg>';
+}
+function renderPager(){
+  var v = visible(), h = '';
+  $('cnt').textContent = props.length + ' 件' + (favOnly ? '・候補 ' + v.length : '');
+  if (!v.length){ $('pager').innerHTML = '<div class="empty">' + (favOnly ? '還沒有蓋上候補章的物件。<br>在物件右上角點一下「蓋章」。' : '沒有物件。<br>按右上角的方框加一間。') + '</div>'; return; }
+  v.forEach(function(i){
+    var p = props[i], pl = PLANS[p.plan], inPing = planArea(pl) / PING;
+    h += '<article class="flyer" data-i="' + i + '" aria-label="' + esc(p.name) + '">' +
+      '<div class="fhead"><div class="t"><b>' + esc(p.area.replace(/^(..市)/, '$1・')) + ' ' + esc(p.road) + '</b><span>' + esc(p.name) + '　' + esc(p.st) + '</span></div>' +
+      '<button class="more" data-more="' + i + '" aria-label="物件選項"><svg width="20" height="20" viewBox="0 0 20 20"><rect x="3" y="9" width="2.6" height="2.6" fill="#262624"/><rect x="8.7" y="9" width="2.6" height="2.6" fill="#262624"/><rect x="14.4" y="9" width="2.6" height="2.6" fill="#262624"/></svg></button></div>' +
+      '<div class="plan" data-plan="' + i + '"></div>' +
+      '<div class="ledger" data-led="' + i + '"></div><div class="rinfo" data-info="' + i + '">單價 ' + (p.price / inPing).toFixed(1) + ' 萬／坪・點房間看它值多少</div>' +
+      '<div class="spec"><span><i>' + pl.label + '</i></span><span>室內 <i class="num">' + inPing.toFixed(1) + '</i> 坪</span><span>屋齡 <i class="num">' + p.age + '</i> 年</span><span class="num">' + esc(p.fl) + '</span></div>' +
+      '<div class="price"><small>總價</small><strong class="num">' + fmt(p.price) + '</strong><small>萬</small><button class="stamp' + (p.stamp ? ' on' : '') + '" data-stamp="' + i + '" aria-pressed="' + p.stamp + '" aria-label="候補章">' + sealSVG() + '</button></div></article>';
+  });
+  $('pager').innerHTML = h;
+  drawPlans();
+  var idx = v.indexOf(cur); if (idx < 0){ cur = v[0]; idx = 0; }
+  var fl = $('pager').children[idx];
+  if (fl) $('pager').scrollLeft = fl.offsetLeft - ($('pager').clientWidth - fl.offsetWidth) / 2;
+  markActive(false);
+}
+function drawPlans(){
+  document.querySelectorAll('.plan').forEach(function(box){
+    var i = +box.dataset.plan, pl = PLANS[props[i].plan], w = box.clientWidth || 300, fl = box.parentNode;
+    var avail = fl.clientHeight - 28 - fl.querySelector('.fhead').offsetHeight - 12 - fl.querySelector('.rinfo').offsetHeight - fl.querySelector('.spec').offsetHeight - fl.querySelector('.price').offsetHeight - 16;
+    var h = Math.max(130, Math.min(w * (pl.H + 1.85) / (pl.W + .7), avail));
+    box.style.height = Math.round(h) + 'px';
+    var ppm = Math.min(w / (pl.W + .7), h / (pl.H + 1.85));
+    var svgWrap = box.querySelector('.pw');
+    if (!svgWrap){ svgWrap = document.createElement('div'); svgWrap.className = 'pw'; box.insertBefore(svgWrap, box.firstChild); }
+    svgWrap.innerHTML = planSVG(pl, {ppm:ppm});
+    renderLedger(i);
+  });
+}
+function renderLedger(i){
+  var led = document.querySelector('[data-led="' + i + '"]'); if (!led) return;
+  var p = props[i], pl = PLANS[p.plan], tot = planArea(pl);
+  var rows = Math.floor((led.clientHeight + 1) / 44), list = pl.rooms.map(function(r, k){ return {r:r, k:k}; }).filter(function(o){ return o.r.t !== 'bal'; }).sort(function(a, b){ return b.r.w * b.r.h - a.r.w * a.r.h; }).slice(0, Math.max(0, rows * 2));
+  led.innerHTML = list.map(function(o){ var a = o.r.w * o.r.h; return '<button data-room="' + o.k + '" class="' + (i === cur && o.k === selRoom ? 'on' : '') + '"><b>' + o.r.n + '</b><span class="num">' + (a / PING).toFixed(1) + '坪</span><span class="v num">' + fmt(p.price * a / tot) + '萬</span></button>'; }).join('');
+}
+function markActive(draw){
+  document.querySelectorAll('.flyer').forEach(function(f){
+    var on = +f.dataset.i === cur; f.classList.toggle('dim', !on);
+    if (on && draw && !reduce){ f.classList.remove('draw'); void f.offsetWidth; f.classList.add('draw'); }
+  });
+}
+var scrollT = null;
+$('pager').addEventListener('scroll', function(){
+  clearTimeout(scrollT);
+  scrollT = setTimeout(function(){
+    var pg = $('pager'), mid = pg.scrollLeft + pg.clientWidth / 2, best = null, bd = 1e9;
+    Array.prototype.forEach.call(pg.querySelectorAll('.flyer'), function(f){ var d = Math.abs(f.offsetLeft + f.offsetWidth / 2 - mid); if (d < bd){ bd = d; best = f; } });
+    if (best && +best.dataset.i !== cur){ cur = +best.dataset.i; selRoom = -1; save('cur', cur); haptic(5); paper(); markActive(true); renderCalc(); }
+  }, 90);
+}, {passive:true});
+$('pager').addEventListener('click', function(e){
+  var st = e.target.closest('[data-stamp]');
+  if (st){
+    var i = +st.dataset.stamp; props[i].stamp = !props[i].stamp; persist();
+    st.classList.toggle('on', props[i].stamp); st.setAttribute('aria-pressed', props[i].stamp);
+    if (props[i].stamp){ st.classList.remove('thump'); void st.offsetWidth; st.classList.add('thump'); thump(); haptic([18, 30, 8]); toast('蓋上候補章：' + props[i].name); }
+    else { haptic(6); tick(); toast('取消候補：' + props[i].name); }
+    if (favOnly) setTimeout(renderPager, 420); else $('cnt').textContent = props.length + ' 件';
+    return;
+  }
+  var mo = e.target.closest('[data-more]'); if (mo){ openMenu(+mo.dataset.more); return; }
+  var lr = e.target.closest('[data-room]');
+  if (lr){ var fl0 = lr.closest('.flyer'); if (+fl0.dataset.i !== cur){ fl0.scrollIntoView({behavior:reduce ? 'auto' : 'smooth', inline:'center', block:'nearest'}); return; } var rr = +lr.dataset.room; selRoom = selRoom === rr ? -1 : rr; haptic(6); tick(); roomInfo(); return; }
+  var rm = e.target.closest('.room');
+  var fl = e.target.closest('.flyer');
+  if (fl && +fl.dataset.i !== cur){ fl.scrollIntoView({behavior:reduce ? 'auto' : 'smooth', inline:'center', block:'nearest'}); return; }
+  if (rm && fl){ var r = +rm.dataset.r; selRoom = selRoom === r ? -1 : r; haptic(6); tick(); roomInfo(); }
+});
+function roomInfo(){
+  var fl = document.querySelector('.flyer[data-i="' + cur + '"]'); if (!fl) return;
+  fl.querySelectorAll('.room').forEach(function(g){ g.classList.toggle('on', +g.dataset.r === selRoom); });
+  fl.querySelectorAll('[data-room]').forEach(function(g){ g.classList.toggle('on', +g.dataset.room === selRoom); });
+  var el = fl.querySelector('.rinfo'), p = props[cur], pl = PLANS[p.plan];
+  if (selRoom < 0){ el.textContent = '單價 ' + (p.price / (planArea(pl) / PING)).toFixed(1) + ' 萬／坪・點房間看它值多少'; return; }
+  var r = pl.rooms[selRoom], share = r.w * r.h / (r.t === 'bal' ? planArea(pl) * 2 : planArea(pl)), s = sched(p.price, P);
+  var pay = Math.max(s.first, s.afterG);
+  el.innerHTML = '<b>' + r.n + '</b>　' + (r.w * r.h / PING).toFixed(1) + ' 坪・約 <b class="num">' + fmt(p.price * share) + '</b> 萬・每月 <b class="num">' + fmt(pay * share) + '</b> 元';
+}
+
+// ---------- calc drawer ----------
+var PRE = [{down:20, rate:2.185, years:30, grace:0}, {down:20, rate:1.775, years:40, grace:5}, {down:30, rate:2.8, years:20, grace:0}, {down:10, rate:2.36, years:30, grace:2}];
+function setP(k, v){ P[k] = v; save('params', P); renderCalc(); }
+function syncInputs(){
+  $('iDown').value = P.down; $('iRate').value = P.rate; $('iGrace').value = P.grace; $('iInc').value = P.inc;
+  ['iDown', 'iRate', 'iGrace', 'iInc'].forEach(function(id){ var el = $(id); el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%'); });
+  document.querySelectorAll('#segYears button').forEach(function(b){ b.setAttribute('aria-pressed', +b.dataset.y === P.years); });
+  document.querySelectorAll('#segMethod button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.m === P.method); });
+  document.querySelectorAll('#presets button').forEach(function(b){ var q = PRE[+b.dataset.pre]; b.classList.toggle('on', q.down === P.down && Math.abs(q.rate - P.rate) < .001 && q.years === P.years && q.grace === P.grace); });
+}
+function renderCalc(){
+  var p = props[cur]; syncInputs();
+  if (!p){ $('pay').innerHTML = '0<small>元</small>'; $('peekR').textContent = ''; return; }
+  var s = sched(p.price, P), pay = P.grace ? s.first : s.first, after = s.afterG;
+  $('pay').innerHTML = fmt(P.grace ? s.first : s.first) + '<small>元</small>';
+  $('peekL').textContent = P.grace ? '寬限期每月（只繳息）' : P.method === 'equal' ? '每月應繳' : '首月應繳（逐月遞減）';
+  var rt = ratioOf(Math.max(s.first, after), P.inc);
+  $('peekR').innerHTML = '貸款 <b class="num">' + fmt(s.L / 10000) + '</b> 萬・' + P.years + ' 年<br>' + (P.grace ? '寬限後 <b class="num">' + fmt(after) + '</b> 元・' : '') + '負擔 <span class="ratio num' + (rt > 50 ? ' warn' : '') + '">' + rt.toFixed(0) + '%</span>';
+  $('vDown').innerHTML = P.down + '%<small class="num">' + fmt(p.price * P.down / 100) + ' 萬</small>';
+  $('vRate').innerHTML = P.rate.toFixed(3) + '%';
+  $('vGrace').innerHTML = P.grace ? P.grace + ' 年' : '不使用';
+  $('vInc').innerHTML = P.inc.toFixed(1) + '<small>萬／月</small>';
+  $('calcNote').textContent = rt <= 33 ? '房貸占收入三分之一以內，還有餘裕存錢。' : rt <= 50 ? '負擔比在一半以內，銀行多半核貸，但生活要精打細算。' : '超過收入一半，銀行可能降低成數，建議拉長年限或提高頭期款。';
+  if (!$('t-amort').hidden) renderAmort();
+  if (selRoom >= 0) roomInfo();
+}
+['iDown', 'iRate', 'iGrace', 'iInc'].forEach(function(id){
+  var key = {iDown:'down', iRate:'rate', iGrace:'grace', iInc:'inc'}[id], last = null;
+  $(id).addEventListener('input', function(){ var v = +this.value; if (v !== last){ if (id !== 'iRate' || Math.round(v * 200) % 10 === 0) tick(); last = v; } setP(key, v); });
+  $(id).addEventListener('change', function(){ haptic(6); });
+});
+$('segYears').addEventListener('click', function(e){ var b = e.target.closest('[data-y]'); if (!b) return; haptic(6); tick(); setP('years', +b.dataset.y); });
+$('segMethod').addEventListener('click', function(e){ var b = e.target.closest('[data-m]'); if (!b) return; haptic(6); tick(); setP('method', b.dataset.m); });
+$('presets').addEventListener('click', function(e){ var b = e.target.closest('[data-pre]'); if (!b) return; var q = PRE[+b.dataset.pre]; Object.keys(q).forEach(function(k){ P[k] = q[k]; }); save('params', P); haptic([6, 20, 6]); tick(); renderCalc(); toast('套用：' + b.textContent); });
+$('saveCmp').addEventListener('click', function(){
+  var p = props[cur]; if (!p) return;
+  if (scen.length >= 3){ haptic([20, 40, 20]); toast('比較最多三組，先刪掉一組'); setTab('cmp'); return; }
+  scen.push({name:p.name, plan:p.plan, price:p.price, down:P.down, rate:P.rate, years:P.years, grace:P.grace, method:P.method, inc:P.inc}); persist();
+  haptic([8, 30, 8]); thump(); toast('已加入比較：' + p.name); renderCmp();
+});
+
+// tabs
+var tab = 'calc';
+function setTab(t){
+  tab = t;
+  document.querySelectorAll('.tabs button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.tab === t); });
+  ['calc', 'amort', 'cmp'].forEach(function(k){ var el = $('t-' + k); var on = k === t; el.hidden = !on; if (on && !reduce){ el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); } });
+  if (t === 'amort') renderAmort(); if (t === 'cmp') renderCmp();
+  if (detent === 0) snap(1);
+}
+document.querySelector('.tabs').addEventListener('click', function(e){ var b = e.target.closest('[data-tab]'); if (!b) return; haptic(5); setTab(b.dataset.tab); });
+
+// amortization chart
+var scrubY = -1;
+function renderAmort(){
+  var p = props[cur]; if (!p){ $('amSvg').innerHTML = ''; return; }
+  var s = sched(p.price, P), yrs = [], W = 340, H = 190, top = 10, bot = 22;
+  for (var y = 0; y < P.years; y++){ var a = s.rows.slice(y * 12, y * 12 + 12); yrs.push({i:a.reduce(function(t, r){ return t + r.i; }, 0), p:a.reduce(function(t, r){ return t + r.p; }, 0), bal:a[a.length - 1].bal}); }
+  var mx = 0; yrs.forEach(function(r){ mx = Math.max(mx, r.i + r.p); });
+  var bw = W / yrs.length, g = '', ch = H - top - bot;
+  yrs.forEach(function(r, i){
+    var hp = r.p / mx * ch, hi = r.i / mx * ch, x = i * bw + bw * .12, w = bw * .76;
+    g += '<rect x="' + x + '" y="' + (top + ch - hp) + '" width="' + w + '" height="' + hp + '" fill="' + (i === scrubY ? '#000' : '#262624') + '"/>';
+    g += '<rect x="' + x + '" y="' + (top + ch - hp - hi) + '" width="' + w + '" height="' + hi + '" fill="' + (i === scrubY ? '#b8341f' : '#e98b75') + '"/>';
+  });
+  var line = ''; yrs.forEach(function(r, i){ line += (i ? 'L' : 'M') + (i * bw + bw / 2).toFixed(1) + ' ' + (top + ch - r.bal / s.L * ch).toFixed(1); });
+  var bl = 'M0 ' + top + 'L' + (bw / 2) + ' ' + top + line.replace(/^M/, 'L');
+  g += '<path d="' + bl + '" fill="none" stroke="#fbfbf9" stroke-width="3.2" vector-effect="non-scaling-stroke"/><path d="' + bl + '" fill="none" stroke="#262624" stroke-width="1.2" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>';
+  [0, Math.floor(P.years / 2), P.years - 1].forEach(function(i){ g += '<text x="' + (i * bw + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle">' + (i + 1) + '年</text>'; });
+  if (scrubY >= 0) g += '<line x1="' + (scrubY * bw + bw / 2) + '" y1="' + top + '" x2="' + (scrubY * bw + bw / 2) + '" y2="' + (top + ch) + '" stroke="#262624" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+  $('amSvg').innerHTML = g;
+  var sy = scrubY >= 0 ? scrubY : 0, r = yrs[sy];
+  $('scrub').innerHTML = '第 <b class="num">' + (sy + 1) + '</b> 年　年繳本金 <b class="num">' + fmt(r.p / 10000) + '</b> 萬・利息 <i class="num">' + fmt(r.i / 10000) + '</i> 萬<br>年底剩餘本金 <b class="num">' + fmt(r.bal / 10000) + '</b> 萬' + (scrubY < 0 ? '　（在圖上左右拖曳）' : '');
+  $('tot').innerHTML = '<div><b class="num">' + fmt(s.totI / 10000) + '</b><span>總利息（萬）</span></div><div><b class="num">' + fmt(s.tot / 10000) + '</b><span>總還款（萬）</span></div><div><b class="num">' + (s.totI / s.tot * 100).toFixed(0) + '%</b><span>利息占比</span></div>';
+  var ms = '';
+  [5, 10, 20, 30, 40].filter(function(y){ return y <= P.years; }).forEach(function(y){ ms += '<div><span>第 ' + y + ' 年底</span><b class="num">剩 ' + fmt(yrs[y - 1].bal / 10000) + ' 萬</b></div>'; });
+  $('ms').innerHTML = ms;
+}
+(function(){
+  var ch = $('chart'), on = false;
+  function at(e){ var r = ch.getBoundingClientRect(), n = P.years, i = Math.max(0, Math.min(n - 1, Math.floor((e.clientX - r.left) / r.width * n))); if (i !== scrubY){ scrubY = i; tick(); haptic(3); renderAmort(); } }
+  ch.addEventListener('pointerdown', function(e){ on = true; try { ch.setPointerCapture(e.pointerId); } catch(x){} at(e); });
+  ch.addEventListener('pointermove', function(e){ if (on) at(e); });
+  ch.addEventListener('pointerup', function(){ on = false; });
+  ch.addEventListener('pointercancel', function(){ on = false; });
+})();
+
+// compare
+function renderCmp(){
+  $('cmpN').textContent = scen.length ? scen.length : '';
+  if (!scen.length){ $('cmpBox').innerHTML = '<p class="cmpEmpty">在「試算」頁按「加入比較」，最多並排三組方案。</p>'; return; }
+  var rows = scen.map(function(c){ var s = sched(c.price, c); return {c:c, s:s, pay:Math.max(s.first, s.afterG), r:ratioOf(Math.max(s.first, s.afterG), c.inc)}; });
+  var minPay = Math.min.apply(null, rows.map(function(r){ return r.pay; })), minI = Math.min.apply(null, rows.map(function(r){ return r.s.totI; }));
+  var h = '<div class="cmp" style="grid-template-columns:62px repeat(' + rows.length + ',1fr)"><div class="c lb"><div class="cell hd"></div><div class="cell">貸款</div><div class="cell">利率</div><div class="cell">年限</div><div class="cell">最高月付</div><div class="cell">總利息</div><div class="cell">負擔比</div><div class="cell" style="box-shadow:none"></div></div>';
+  rows.forEach(function(r, i){
+    var c = r.c, best = rows.length > 1;
+    h += '<div class="c"><div class="cell hd">' + planSVG(PLANS[c.plan] || PLANS.A, {thumb:true}) + '<b>' + esc(c.name) + '</b></div>' +
+      '<div class="cell num">' + fmt(r.s.L / 10000) + ' 萬</div><div class="cell num">' + c.rate.toFixed(2) + '%</div><div class="cell">' + c.years + ' 年' + (c.grace ? '＋寬' + c.grace : '') + '</div>' +
+      '<div class="cell num' + (best && r.pay === minPay ? ' best' : '') + '">' + fmt(r.pay) + '</div><div class="cell num' + (best && r.s.totI === minI ? ' best' : '') + '">' + fmt(r.s.totI / 10000) + ' 萬</div>' +
+      '<div class="cell num' + (r.r > 50 ? ' best' : '') + '">' + r.r.toFixed(0) + '%</div>' +
+      '<div class="cell" style="box-shadow:none"><button class="del" data-del="' + i + '" aria-label="移除 ' + esc(c.name) + '"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.6"/></svg>移除</button></div></div>';
+  });
+  $('cmpBox').innerHTML = h + '</div><p class="note">朱色是較省的一組；負擔比超過一半也會標朱。</p>';
+}
+$('cmpBox').addEventListener('click', function(e){
+  var b = e.target.closest('[data-del]'); if (!b) return;
+  var i = +b.dataset.del, gone = scen.splice(i, 1)[0]; persist(); haptic([10, 20, 10]); renderCmp();
+  toast('移除：' + gone.name, function(){ scen.splice(i, 0, gone); persist(); renderCmp(); });
+});
+
+// drawer detents
+var drawer = $('drawer'), detent = 0;
+function detentY(d){ var H = drawer.offsetHeight, peek = 164 + safeB(); return d === 0 ? H - peek : d === 1 ? H * .42 : 0; }
+function safeB(){ var t = document.createElement('div'); t.style.cssText = 'position:absolute;height:env(safe-area-inset-bottom)'; document.body.appendChild(t); var v = t.offsetHeight; t.remove(); return v; }
+function snap(d){ detent = d; drawer.style.transform = 'translateY(' + detentY(d) + 'px)'; }
+(function(){
+  var grip = $('dgrip'), sy = 0, y0 = 0, dy = 0, t0 = 0, drag = false, moved = false;
+  function down(e){ drag = true; moved = false; sy = e.clientY; y0 = detentY(detent); dy = 0; t0 = e.timeStamp; drawer.classList.add('drag'); try { grip.setPointerCapture(e.pointerId); } catch(x){} }
+  grip.addEventListener('pointerdown', down);
+  grip.addEventListener('pointermove', function(e){ if (!drag) return; dy = e.clientY - sy; if (Math.abs(dy) > 4) moved = true; var y = Math.max(-20, y0 + dy); drawer.style.transform = 'translateY(' + y + 'px)'; });
+  function up(e){
+    if (!drag) return; drag = false; drawer.classList.remove('drag');
+    if (!moved){ snap(detent === 0 ? 1 : detent === 1 ? 2 : 0); haptic(5); return; }
+    var v = dy / Math.max(1, e.timeStamp - t0), y = y0 + dy, best = 0, bd = 1e9;
+    if (Math.abs(v) > .5) best = v > 0 ? Math.max(0, detent - 1) : Math.min(2, detent + 1);
+    else [0, 1, 2].forEach(function(d){ var dd = Math.abs(detentY(d) - y); if (dd < bd){ bd = dd; best = d; } });
+    snap(best); haptic(5);
+  }
+  grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+})();
+
+// ---------- modal sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){
+  lastFocus = document.activeElement; $('sheetBody').innerHTML = html; sheet.style.transform = '';
+  sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+  var f = sheet.querySelector('button,input'); if (f) f.focus({preventScroll:true});
+}
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button,input,select,.rng')) return; if ($('sheetBody').scrollTop > 0 && e.target.closest('.sb2')) return; dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch(x){} });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6; sheet.style.transform = 'translateY(' + y + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+function openMenu(i){
+  var p = props[i];
+  openSheet('<h4>' + esc(p.name) + '</h4><p class="sub">' + esc(p.area + p.road) + '</p>' +
+    '<div class="fld"><div class="lab">議價後總價<b class="num" id="mPv">' + fmt(p.price) + '<small>萬</small></b></div><div class="rng"><input type="range" id="mP" min="' + Math.round(p.price * .8) + '" max="' + Math.round(p.price * 1.1) + '" step="10" value="' + p.price + '" aria-label="議價後總價"><div class="ticks"><i></i><i></i><i></i><i></i></div></div></div>' +
+    '<button class="row" id="mCalc"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 3h16v16H3z M3 9h16 M9 9v10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>用這間展開試算</button>' +
+    '<button class="row red" id="mDel"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M4 6h14M8 6V3.5h6V6M6 6l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>刪除物件</button>');
+  var mp = $('mP'); mp.style.setProperty('--p', ((p.price - mp.min) / (mp.max - mp.min) * 100) + '%');
+  mp.addEventListener('input', function(){ this.style.setProperty('--p', ((this.value - this.min) / (this.max - this.min) * 100) + '%'); $('mPv').innerHTML = fmt(this.value) + '<small>萬</small>'; tick(); });
+  mp.addEventListener('change', function(){ p.price = +this.value; persist(); renderPager(); renderCalc(); toast(p.name + ' 總價改為 ' + fmt(p.price) + ' 萬'); });
+  $('mCalc').addEventListener('click', function(){ closeSheet(); cur = i; save('cur', cur); renderPager(); renderCalc(); setTab('calc'); snap(2); });
+  $('mDel').addEventListener('click', function(){
+    var gone = props.splice(i, 1)[0]; if (cur >= props.length) cur = Math.max(0, props.length - 1); persist(); closeSheet(); haptic([12, 30, 12]); renderPager(); renderCalc();
+    toast('已刪除：' + gone.name, function(){ props.splice(i, 0, gone); cur = i; persist(); renderPager(); renderCalc(); });
+  });
+}
+var AREAS = ['台北市信義區', '台北市中山區', '新北市新店區', '新北市林口區', '桃園市中壢區', '新竹縣竹北市', '台中市南屯區', '台南市東區', '高雄市前鎮區'];
+function openAdd(){
+  var tp = 'A', ai = 0;
+  var tm = ''; ['B', 'A', 'D', 'C'].forEach(function(k){ tm += '<button data-tp="' + k + '" aria-pressed="' + (k === tp) + '">' + planSVG(PLANS[k], {thumb:true}) + PLANS[k].label + '</button>'; });
+  openSheet('<h4>新增物件</h4><p class="sub">選格局，填名稱與開價</p>' +
+    '<input class="txt" id="aName" maxlength="12" placeholder="社區名稱，例如：竹北璞園" aria-label="社區名稱">' +
+    '<div class="fld"><div class="lab">區域<b id="aArea">' + AREAS[0] + '</b></div><div class="rng"><input type="range" id="aA" min="0" max="' + (AREAS.length - 1) + '" step="1" value="0" aria-label="區域"></div></div>' +
+    '<div class="tmpl" id="aTp">' + tm + '</div>' +
+    '<div class="fld"><div class="lab">開價<b class="num" id="aPv">1,800<small>萬</small></b></div><div class="rng"><input type="range" id="aP" min="600" max="5000" step="20" value="1800" aria-label="開價"></div></div>' +
+    '<div class="fld"><div class="lab">屋齡<b class="num" id="aGv">10<small>年</small></b></div><div class="rng"><input type="range" id="aG" min="0" max="45" step="1" value="10" aria-label="屋齡"></div></div>' +
+    '<button class="act shu" id="aGo">建立物件</button>');
+  var pc = function(el){ el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%'); };
+  ['aA', 'aP', 'aG'].forEach(function(id){ pc($(id)); });
+  $('aA').addEventListener('input', function(){ ai = +this.value; pc(this); $('aArea').textContent = AREAS[ai]; tick(); });
+  $('aP').addEventListener('input', function(){ pc(this); $('aPv').innerHTML = fmt(this.value) + '<small>萬</small>'; });
+  $('aG').addEventListener('input', function(){ pc(this); $('aGv').innerHTML = this.value + '<small>年</small>'; });
+  $('aTp').addEventListener('click', function(e){ var b = e.target.closest('[data-tp]'); if (!b) return; tp = b.dataset.tp; haptic(5); tick(); this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); });
+  $('aGo').addEventListener('click', function(){
+    var nm = $('aName').value.trim() || AREAS[ai].slice(3) + '新案';
+    props.push({id:'u' + Date.now(), area:AREAS[ai], road:'', name:nm, st:'新增於 ' + new Date().toLocaleDateString('zh-TW'), price:+$('aP').value, plan:tp, age:+$('aG').value, fl:'樓層未填', fee:0, stamp:false});
+    cur = props.length - 1; favOnly = false; $('favBtn').setAttribute('aria-pressed', 'false'); persist(); closeSheet(); haptic([8, 30, 8]); thump(); renderPager(); markActive(true); renderCalc(); toast('已建立：' + nm);
+  });
+}
+$('addBtn').addEventListener('click', function(){ tick(); openAdd(); });
+$('favBtn').addEventListener('click', function(){ favOnly = !favOnly; this.setAttribute('aria-pressed', favOnly); save('fav', favOnly); haptic(6); tick(); selRoom = -1; renderPager(); renderCalc(); });
+
+// ---------- toast ----------
+var toastT = null, undoFn = null;
+function toast(msg, undo){
+  $('toastT').textContent = msg; undoFn = undo || null; $('toastU').hidden = !undo;
+  $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, undo ? 4200 : 2200);
+}
+$('toastU').addEventListener('click', function(){ if (undoFn){ undoFn(); undoFn = null; haptic(8); } $('toast').classList.remove('on'); });
+
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ if (sheet.classList.contains('on')) closeSheet(); else if (detent) snap(0); }
+});
+
+// ---------- backdrop: a whole floor of units ----------
+(function(){
+  var s = '<g transform="translate(150 229) scale(24)" opacity=".7">', units = ['A', 'C', 'B', 'D', 'D', 'B', 'A', 'C'], x = 0;
+  units.forEach(function(u, i){
+    var pl = PLANS[u], g = planSVG(pl, {ppm:24}).replace(/<path d="M0 -\.5[^>]*>/, '').replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '').replace(/class="wall"/g, 'class="bw"');
+    var row = i < 4 ? 0 : 1, col = i % 4, ox = col * 13.6, oy = row ? 12.6 : 0;
+    s += '<g transform="translate(' + ox + ' ' + oy + ')' + (row ? ' translate(0 ' + (pl.H) + ') scale(1 -1) translate(0 ' + (-pl.H) + ')' : '') + '">' + g.replace(/<text[^>]*>[^<]*<\/text>/g, '') + '</g>';
+  });
+  s += '<rect x="0" y="10.6" width="54" height="1.6" fill="none" stroke="#9a9a93" stroke-width=".05" stroke-dasharray=".3 .2"/><text x="27" y="11.4" font-size=".7" fill="#9a9a93" text-anchor="middle" dominant-baseline="central" font-family="YuGothic,PingFang TC">共用廊道</text></g>';
+  s += '<g transform="translate(1340 820) rotate(-8)"><circle r="48" fill="none" stroke="#d8432b" stroke-width="5"/><circle r="39" fill="none" stroke="#d8432b" stroke-width="2"/><text y="-14" font-size="26" fill="#d8432b" text-anchor="middle" dominant-baseline="central" font-weight="700" font-family="YuGothic,PingFang TC">格</text><text y="16" font-size="26" fill="#d8432b" text-anchor="middle" dominant-baseline="central" font-weight="700" font-family="YuGothic,PingFang TC">局</text></g>';
+  s += '<g font-family="YuGothic,PingFang TC" fill="#5d5d58" font-size="15"><text x="120" y="964">標準層平面圖　S = 1 : 100　6 戶／層</text></g>';
+  $('bd').innerHTML = s;
+})();
+
+
+// mouse drag-to-scroll for horizontal snap rails (touch scrolls natively)
+function dragRail(el, itemSel){
+  var on = false, sx = 0, sl = 0, moved = false;
+  el.addEventListener('pointerdown', function(e){ if (e.pointerType !== 'mouse' || e.button !== 0) return; on = true; moved = false; sx = e.clientX; sl = el.scrollLeft; });
+  window.addEventListener('pointermove', function(e){ if (!on) return; var dx = e.clientX - sx; if (!moved && Math.abs(dx) > 6){ moved = true; el.style.scrollSnapType = 'none'; } if (moved) el.scrollLeft = sl - dx; });
+  window.addEventListener('pointerup', function(e){
+    if (!on) return; on = false; if (!moved) return;
+    var dx = e.clientX - sx, items = el.querySelectorAll(itemSel), mid = el.scrollLeft + el.clientWidth / 2, best = null, bd = 1e9, dir = dx < -30 ? 1 : dx > 30 ? -1 : 0, curI = 0;
+    items.forEach(function(it, i){ var c = it.offsetLeft + it.offsetWidth / 2, d = Math.abs(c - (sl + el.clientWidth / 2)); if (d < bd){ bd = d; curI = i; } });
+    var target = items[Math.max(0, Math.min(items.length - 1, curI + dir))];
+    el.style.scrollSnapType = '';
+    if (target) el.scrollTo({left:target.offsetLeft + target.offsetWidth / 2 - el.clientWidth / 2, behavior:reduce ? 'auto' : 'smooth'});
+    el.addEventListener('click', function kill(ev){ ev.stopPropagation(); ev.preventDefault(); }, {capture:true, once:true});
+    setTimeout(function(){ moved = false; }, 0);
+  });
+}
+dragRail($('pager'), '.flyer');
+// ---------- clock ----------
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tickClock(); setInterval(tickClock, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 15 * b.level).toFixed(1)); }).catch(function(){});
+
+$('favBtn').setAttribute('aria-pressed', favOnly);
+renderPager(); renderCalc(); renderCmp(); snap(0);
+if (!reduce) setTimeout(function(){ markActive(true); }, 60);
+var rt = null; addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ drawPlans(); snap(detent); roomInfo(); }, 120); });
+})();
+</script>
+</body>
+</html>

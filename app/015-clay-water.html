@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f07f2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="水水">
+<title>水水 · 喝水紀錄</title>
+<meta name="description" content="黏土做的喝水紀錄：一鍵倒一杯，拖曳或傾斜手機水瓶裡的水會晃，還有自訂杯量、每日目標與兩週歷史。收錄於 100 Creative HTML Works（App 015・黏土風果凍按鈕）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/015-clay-water.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23f07f2e'/%3E%3Crect x='19' y='9' width='26' height='8' rx='4' fill='%23fff3e8'/%3E%3Crect x='14' y='14' width='36' height='42' rx='13' fill='%23fff3e8'/%3E%3Cpath d='M16 34c6-3 12 3 18 0s10-2 14 0v10c0 6-4 10-10 10H26c-6 0-10-4-10-10z' fill='%2319a094'/%3E%3C/svg%3E">
+<style>
+:root{
+  --orange:#f07f2e;
+  --orange-d:#c85f17;
+  --orange-l:#ffa35c;
+  --clay:#fff3e8;
+  --clay-d:#f1dccb;
+  --teal:#19a094;
+  --teal-d:#0f7168;
+  --teal-l:#6fd1c4;
+  --ink:#3b1805;
+  --ink-2:#6e3814;
+  --round:"Arial Rounded MT Bold","Arial Rounded MT","SF Pro Rounded",ui-rounded,"PingFang TC","Yuanti TC",system-ui,sans-serif;
+  --cjk:"PingFang TC","Yuanti TC",system-ui,sans-serif;
+  --jelly:cubic-bezier(.3,1.6,.5,1);
+  --out:cubic-bezier(.2,.9,.3,1);
+  /* clay: light from the upper left, pressed-in lip, tight tinted drop */
+  --clay-in:inset 3px 4px 6px rgba(255,255,255,.85),inset -4px -6px 10px rgba(196,120,60,.28);
+  --clay-drop:0 5px 6px -4px rgba(120,48,6,.45);
+  --orange-in:inset 3px 4px 8px rgba(255,200,150,.7),inset -4px -6px 10px rgba(150,60,5,.35);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--cjk);color:var(--ink);background:var(--orange);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:18px}
+svg{display:block}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.cam{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--orange);isolation:isolate}
+@media (min-width:521px){
+  body{background:#e8712a}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:62px;padding:13px;z-index:1;
+    background:var(--clay);
+    box-shadow:inset 5px 7px 10px rgba(255,255,255,.9),inset -7px -10px 16px rgba(196,110,50,.35),0 16px 18px -12px rgba(110,40,4,.55)}
+  .screen{inset:13px;border-radius:50px}
+  .cam{display:block;position:absolute;top:13px;left:50%;width:108px;height:30px;margin-left:-54px;border-radius:0 0 18px 18px;background:var(--clay);z-index:60;
+    box-shadow:inset -3px -4px 6px rgba(196,110,50,.3)}
+  .caption{display:block;position:relative;z-index:1;max-width:250px;color:var(--ink)}
+  .caption h1{font:400 44px/1 var(--round);letter-spacing:.02em}
+  .caption p{margin-top:14px;font-size:15px;line-height:1.65;color:#4a1f06}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+/* grain on the substrate only */
+.grain{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.22;mix-blend-mode:multiply}
+.grain svg{width:100%;height:100%}
+
+/* ---------- status bar ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+  height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 34px;font:400 16px/1 var(--round);color:var(--ink);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- main ---------- */
+.app{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;padding:calc(52px + env(safe-area-inset-top)) 20px calc(144px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;height:52px;flex:none}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font:400 30px/1 var(--round);letter-spacing:.04em}
+.brand span{font-size:14px;color:var(--ink-2)}
+.streak{display:flex;align-items:center;gap:6px;height:44px;padding:0 14px 0 10px;border-radius:22px;background:var(--orange);box-shadow:var(--orange-in);font:400 14px/1 var(--round);color:var(--ink)}
+.streak svg{width:22px;height:22px}
+
+.hero{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 168px;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"big big" "info btl";column-gap:10px;margin-top:4px}
+.bighead{grid-area:big;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.nums{grid-area:info;align-self:center}
+.lab{font-size:14px;color:var(--ink-2);margin-bottom:6px}
+.big{font:400 72px/1 var(--round);letter-spacing:.01em;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.big small{font-size:20px;margin-left:4px;letter-spacing:0}
+.nums .goal{margin-top:0;font:400 16px/1.3 var(--round)}
+.nums .left{margin-top:4px;font-size:14px;color:var(--ink-2)}
+.nums .pct{display:inline-flex;align-items:center;justify-content:center;margin-top:18px;height:40px;min-width:78px;padding:0 14px;border-radius:20px;
+  background:var(--teal);color:#fff;font:400 18px/1 var(--round);box-shadow:inset 3px 4px 6px rgba(160,240,228,.7),inset -3px -5px 8px rgba(0,60,55,.4),var(--clay-drop)}
+.nums .pct.done{background:var(--clay);color:var(--teal-d);box-shadow:var(--clay-in),var(--clay-drop)}
+
+.bwrap{grid-area:btl;position:relative;height:100%;max-height:440px;min-height:190px;align-self:end;touch-action:none;cursor:grab}
+.bwrap:active{cursor:grabbing}
+.btl{position:absolute;left:50%;bottom:6px;width:150px;height:calc(100% - 22px);margin-left:-75px;transform-origin:50% 100%}
+.rim{position:absolute;left:28px;right:28px;top:0;height:20px;border-radius:10px;background:var(--clay);box-shadow:var(--clay-in),0 3px 3px -2px rgba(120,48,6,.4);z-index:2}
+.body{position:absolute;left:0;right:0;top:12px;bottom:0;border-radius:52px 52px 44px 44px;background:var(--clay);overflow:hidden;box-shadow:var(--clay-drop)}
+.body canvas{position:absolute;inset:0;width:100%;height:100%}
+.body::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  box-shadow:inset 7px 9px 12px rgba(255,255,255,.75),inset -9px -12px 16px rgba(170,90,30,.3)}
+.ticks{position:absolute;right:12px;top:14%;bottom:12%;width:14px;z-index:1;pointer-events:none}
+.ticks i{position:absolute;right:0;height:5px;border-radius:3px;background:rgba(110,56,20,.28)}
+.drop{position:absolute;left:50%;top:-10px;width:22px;height:28px;margin-left:-11px;z-index:3;pointer-events:none;visibility:hidden}
+.drop svg{width:100%;height:100%}
+.tip{position:absolute;left:0;right:0;bottom:-2px;text-align:center;font-size:13px;color:var(--ink-2);pointer-events:none}
+
+/* cups: the jelly buttons */
+.cups{flex:none;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.cup{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:96px;padding:10px 0 12px;border-radius:26px;
+  background:var(--clay);box-shadow:var(--clay-in),var(--clay-drop);transition:background .2s}
+.cup svg{width:40px;height:40px}
+.cup b{font:400 15px/1 var(--round)}
+.cup small{font-size:11px;color:var(--ink-2);margin-top:-2px}
+.cup.custom{background:var(--orange);box-shadow:var(--orange-in),var(--clay-drop)}
+.jelly{animation:jelly .55s var(--out)}
+@keyframes jelly{0%{transform:scale(1,1)}18%{transform:scale(1.12,.84)}38%{transform:scale(.92,1.1)}58%{transform:scale(1.04,.96)}78%{transform:scale(.99,1.01)}100%{transform:scale(1,1)}}
+.cup:active,.jel:active{transform:scale(1.06,.9)}
+
+/* ---------- drawer ---------- */
+.scrim{position:absolute;inset:0;z-index:40;background:rgba(80,30,4,.38);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:absolute;left:0;right:0;bottom:0;z-index:45;height:86%;border-radius:36px 36px 0 0;background:var(--clay);
+  box-shadow:inset 0 5px 8px rgba(255,255,255,.9),0 -4px 8px -4px rgba(120,48,6,.35);
+  transform:translateY(calc(100% - 132px - env(safe-area-inset-bottom)));transition:transform .5s var(--jelly);display:flex;flex-direction:column}
+.drawer.open{transform:translateY(0)}
+.drawer.drag{transition:none}
+.dhead{flex:none;padding:10px 22px 10px;touch-action:none;cursor:grab}
+.handle{width:44px;height:6px;border-radius:3px;background:var(--clay-d);margin:0 auto 10px;box-shadow:inset 1px 1px 2px rgba(150,80,30,.3)}
+.drow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.drow h2{font:400 19px/1.2 var(--round)}
+.drow .sub{font-size:13px;color:var(--ink-2);margin-top:2px}
+.more{height:44px;min-width:44px;padding:0 14px;border-radius:22px;background:var(--orange);box-shadow:var(--orange-in);font:400 14px/1 var(--round);display:flex;align-items:center;gap:6px}
+.more svg{width:18px;height:18px;transition:transform .4s var(--jelly)}
+.drawer.open .more svg{transform:rotate(180deg)}
+.beads{position:relative;height:30px;margin-top:10px}
+.beads .string{position:absolute;left:0;right:0;top:14px;height:4px;border-radius:2px;background:var(--clay-d)}
+.beads .now{position:absolute;top:6px;width:4px;height:20px;border-radius:2px;background:var(--orange)}
+.beads i{position:absolute;top:16px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:inset 2px 2px 3px rgba(255,255,255,.55),inset -2px -3px 4px rgba(0,50,45,.35)}
+.beads .hrs{position:absolute;left:0;right:0;top:30px;display:none}
+.dbody{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:8px 22px calc(40px + env(safe-area-inset-bottom))}
+.dbody h3{font:400 16px/1 var(--round);margin:22px 0 12px;color:var(--ink)}
+.dbody h3:first-child{margin-top:10px}
+
+.log{list-style:none;padding:0}
+.log li{display:grid;grid-template-columns:52px 32px 1fr auto 44px;align-items:center;gap:8px;min-height:52px;border-radius:18px;padding:0 4px 0 12px;margin-bottom:6px;background:#fbe9da}
+.log time{font:400 14px/1 var(--round);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.log svg{width:26px;height:26px}
+.log .k{font-size:15px}
+.log .ml{font:400 16px/1 var(--round)}
+.log button{width:44px;height:44px;display:grid;place-items:center;border-radius:14px}
+.log button svg{width:22px;height:22px}
+.log button:active{background:var(--clay-d)}
+.empty{font-size:14px;color:var(--ink-2);padding:10px 2px}
+
+.fort{display:grid;grid-template-columns:repeat(14,1fr);gap:5px;align-items:end;height:112px}
+.mini{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;border-radius:10px}
+.mini .jar{position:relative;width:100%;height:78px;border-radius:9px 9px 7px 7px;background:#fbe4d2;overflow:hidden;box-shadow:inset 2px 2px 3px rgba(255,255,255,.8),inset -2px -3px 4px rgba(170,90,30,.25)}
+.mini .jar i{position:absolute;left:0;right:0;bottom:0;background:var(--teal);border-radius:3px 3px 0 0}
+.mini .jar i.hit{background:var(--teal-d)}
+.mini small{font-size:12px;color:var(--ink-2);line-height:1}
+.mini.sel .jar{outline:3px solid var(--orange);outline-offset:1px}
+.mini.today small{color:var(--ink);font-weight:600}
+.dayline{margin-top:12px;min-height:22px;font-size:14px;color:var(--ink-2)}
+.dayline b{font:400 15px var(--round);color:var(--ink)}
+
+.goalrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:24px;background:#fbe9da}
+.goalrow output{font:400 30px/1 var(--round);font-variant-numeric:tabular-nums;text-align:center;flex:1}
+.goalrow output small{font-size:15px}
+.jel{width:56px;height:56px;border-radius:20px;display:grid;place-items:center;background:var(--orange);box-shadow:var(--orange-in),var(--clay-drop)}
+.jel svg{width:24px;height:24px}
+.weight{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;font-size:14px;color:var(--ink-2)}
+.weight button{height:44px;padding:0 16px;border-radius:22px;background:var(--teal);color:#fff;font:400 14px/1 var(--round);box-shadow:inset 2px 3px 5px rgba(160,240,228,.6),inset -3px -4px 6px rgba(0,60,55,.4)}
+
+.opt{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:6px 4px;border-radius:16px}
+.opt + .opt{margin-top:2px}
+.opt .t{font-size:15px}
+.opt .d{font-size:13px;color:var(--ink-2);margin-top:2px}
+.sw{position:relative;flex:none;width:64px;height:38px;border-radius:19px;background:var(--clay-d);box-shadow:inset 2px 3px 5px rgba(150,80,30,.3)}
+.sw::after{content:"";position:absolute;top:4px;left:4px;width:30px;height:30px;border-radius:50%;background:#fff;box-shadow:inset -2px -3px 4px rgba(170,90,30,.25),0 2px 3px -1px rgba(120,48,6,.4);transition:transform .45s var(--jelly)}
+.sw[aria-checked=true]{background:var(--teal);box-shadow:inset 2px 3px 5px rgba(0,60,55,.45)}
+.sw[aria-checked=true]::after{transform:translateX(26px)}
+.reset{margin-top:18px;height:48px;width:100%;border-radius:24px;background:#fbe4d2;color:var(--orange-d);font:400 15px/1 var(--round)}
+
+/* ---------- sheet (custom pour) ---------- */
+.sheet{position:absolute;left:10px;right:10px;bottom:10px;z-index:55;border-radius:34px;background:var(--clay);padding:10px 20px calc(20px + env(safe-area-inset-bottom));
+  box-shadow:inset 0 5px 8px rgba(255,255,255,.9),0 8px 12px -8px rgba(90,30,4,.5);transform:translateY(calc(100% + 24px));transition:transform .5s var(--jelly);touch-action:none}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.sheet h4{font:400 20px/1.2 var(--round);text-align:center;margin-top:4px}
+.kinds{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
+.kind{height:76px;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#fbe9da;font-size:13px}
+.kind svg{width:28px;height:28px}
+.kind[aria-pressed=true]{background:var(--teal);color:#fff;box-shadow:inset 2px 3px 5px rgba(160,240,228,.6),inset -3px -4px 6px rgba(0,60,55,.4)}
+.kind[aria-pressed=true] svg *{stroke:#fff}
+.kind[aria-pressed=true] svg .f{fill:#fff}
+.amt{text-align:center;margin-top:18px;font:400 52px/1 var(--round);font-variant-numeric:tabular-nums}
+.amt small{font-size:18px;margin-left:4px}
+.slider{position:relative;height:56px;margin-top:10px;touch-action:none}
+.slider .track{position:absolute;left:0;right:0;top:20px;height:16px;border-radius:8px;background:#fbe4d2;box-shadow:inset 2px 3px 4px rgba(170,90,30,.3)}
+.slider .fill{position:absolute;left:0;top:20px;height:16px;border-radius:8px;background:var(--teal);box-shadow:inset 2px 2px 3px rgba(160,240,228,.6)}
+.slider .knob{position:absolute;top:6px;width:44px;height:44px;margin-left:-22px;border-radius:50%;background:var(--orange);box-shadow:var(--orange-in),0 3px 4px -2px rgba(110,40,4,.5)}
+.slider input{position:absolute;inset:0;width:100%;opacity:0;margin:0;cursor:pointer}
+.shbtns{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:18px}
+.shbtns button{height:56px;border-radius:24px;font:400 16px/1 var(--round)}
+.shbtns .save{background:#fbe4d2;color:var(--ink)}
+.shbtns .pour{background:var(--orange);box-shadow:var(--orange-in),var(--clay-drop);color:var(--ink)}
+
+.toast{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));z-index:70;display:flex;align-items:center;gap:6px;max-width:340px;padding:0 6px 0 18px;height:48px;border-radius:24px;
+  background:var(--ink);color:var(--clay);font-size:14px;transform:translate(-50%,-90px);transition:transform .45s var(--jelly);white-space:nowrap}
+.toast.on{transform:translate(-50%,0)}
+.toast button{height:40px;padding:0 14px;border-radius:20px;color:var(--orange-l);font:400 14px/1 var(--round)}
+.toast button[hidden]{display:none}
+.home{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(59,24,5,.5);z-index:80;pointer-events:none}
+
+@media (max-height:700px){
+  .big{font-size:58px}
+  .cup{height:84px}
+  .cup svg{width:34px;height:34px}
+  .top{height:44px}
+}
+@media (prefers-reduced-motion:reduce){
+  .jelly{animation:none}
+  .drawer,.sheet,.toast,.sw::after,.more svg{transition-duration:.01s}
+  .cup:active,.jel:active{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="bg-grain"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .55  0 0 0 0 .25  0 0 0 0 .05  0 0 0 .55 0"/></filter>
+        <linearGradient id="bg-f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f28a3b"/><stop offset="1" stop-color="#e46d22"/></linearGradient>
+        <radialGradient id="pud" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#5ed0c2"/><stop offset=".55" stop-color="#19a094"/><stop offset="1" stop-color="#0d6a61"/></radialGradient>
+        <radialGradient id="pebble" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fffaf4"/><stop offset=".7" stop-color="#fbe6d4"/><stop offset="1" stop-color="#e9c6a6"/></radialGradient>
+      </defs>
+      <rect width="1600" height="1000" fill="url(#bg-f)"/>
+      <!-- a clay puddle under the phone, sculpted rather than glowing -->
+      <path d="M560 860c-60-70 10-150 150-170 120-18 180 30 300 10 140-24 250 20 250 110 0 90-120 130-280 130-140 0-220-10-300 0-60 8-90-40-120-80z" fill="#c95a14" opacity=".55" transform="translate(6 14)"/>
+      <path d="M560 860c-60-70 10-150 150-170 120-18 180 30 300 10 140-24 250 20 250 110 0 90-120 130-280 130-140 0-220-10-300 0-60 8-90-40-120-80z" fill="url(#pud)"/>
+      <path d="M640 760c40-30 110-38 150-30" stroke="#b9efe6" stroke-width="12" stroke-linecap="round" fill="none" opacity=".8"/>
+      <g transform="translate(1270 270)"><ellipse cx="6" cy="92" rx="70" ry="14" fill="#c95a14" opacity=".5"/><path d="M-60 20c0-50 40-80 66-80s66 30 66 80-30 70-66 70-66-20-66-70z" fill="url(#pebble)"/></g>
+      <g transform="translate(250 230) rotate(-18)"><ellipse cx="4" cy="58" rx="42" ry="9" fill="#c95a14" opacity=".5"/><path d="M0-50c22 30 40 50 40 72a40 40 0 0 1-80 0c0-22 18-42 40-72z" fill="url(#pud)"/><path d="M-18 16c2-12 8-20 14-26" stroke="#b9efe6" stroke-width="8" stroke-linecap="round" fill="none"/></g>
+      <g transform="translate(1340 780)"><path d="M-40 0c0-26 18-40 40-40s40 14 40 40-18 36-40 36-40-10-40-36z" fill="url(#pud)"/></g>
+      <rect width="1600" height="1000" filter="url(#bg-grain)" opacity=".2"/>
+    </svg>
+  </div>
+
+  <div class="caption">
+    <h1>水水</h1>
+    <p>黏土做的喝水紀錄。點一下杯子就倒一杯，拖著水瓶晃一晃，水面會跟著你的手晃。</p>
+  </div>
+
+  <div class="device">
+    <div class="cam" aria-hidden="true"></div>
+    <div class="screen" id="screen">
+      <div class="grain" aria-hidden="true"><svg><filter id="g1"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .6  0 0 0 0 .3  0 0 0 0 .1  0 0 0 .6 0"/></filter><rect width="100%" height="100%" filter="url(#g1)"/></svg></div>
+
+      <div class="status" aria-hidden="true">
+        <span id="clock">09:41</span>
+        <span class="g">
+          <svg width="20" height="13" viewBox="0 0 20 13"><rect x="1" y="8" width="3.4" height="4" rx="1.7" fill="#3b1805"/><rect x="6" y="5.5" width="3.4" height="6.5" rx="1.7" fill="#3b1805"/><rect x="11" y="3" width="3.4" height="9" rx="1.7" fill="#3b1805"/><rect x="16" y=".5" width="3.4" height="11.5" rx="1.7" fill="#3b1805" opacity=".35"/></svg>
+          <svg width="18" height="13" viewBox="0 0 18 13"><path d="M2 5.2a10 10 0 0 1 14 0M4.8 8a6 6 0 0 1 8.4 0" stroke="#3b1805" stroke-width="2.4" stroke-linecap="round" fill="none"/><circle cx="9" cy="11" r="1.8" fill="#3b1805"/></svg>
+          <svg width="28" height="14" viewBox="0 0 28 14"><rect x="1.2" y="1.2" width="22" height="11.6" rx="5.8" stroke="#3b1805" stroke-width="2" fill="none"/><rect x="3.6" y="3.6" width="14" height="6.8" rx="3.4" fill="#3b1805"/><rect x="24.6" y="4.8" width="2.4" height="4.4" rx="1.2" fill="#3b1805"/></svg>
+        </span>
+      </div>
+
+      <main class="app" id="app">
+        <header class="top">
+          <div class="brand"><b>水水</b><span id="dateL">9月23日 週三</span></div>
+          <button class="streak" id="streakBtn" aria-label="連續達標天數，打開歷史">
+            <svg viewBox="0 0 24 24"><path d="M12 3c3.6 4.3 6 7.4 6 10.6A6 6 0 0 1 6 13.6C6 10.4 8.4 7.3 12 3z" fill="#19a094" stroke="#0f7168" stroke-width="2.2" stroke-linejoin="round"/><circle cx="10" cy="14" r="1.8" fill="#fff"/></svg>
+            <span id="streakN">連續 0 天</span>
+          </button>
+        </header>
+
+        <section class="hero">
+          <div class="bighead"><div><div class="lab">今天喝了</div><div class="big"><span id="total">0</span><small>ml</small></div></div></div>
+          <div class="nums">
+            <div class="goal" id="goalL">目標 2,000 ml</div>
+            <div class="left" id="leftL">還差 2,000 ml</div>
+            <button class="pct" id="pct" aria-label="打開今天的紀錄">0%</button>
+          </div>
+          <div class="bwrap" id="bwrap" aria-label="水瓶，左右拖曳可以晃動" role="img">
+            <div class="drop" id="drop"><svg viewBox="0 0 22 28"><path d="M11 1c5 7 10 12 10 17a10 10 0 0 1-20 0C1 13 6 8 11 1z" fill="#19a094"/><path d="M6 17c0-3 1.5-5 3-6.5" stroke="#b9efe6" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></div>
+            <div class="btl" id="btl">
+              <div class="rim"></div>
+              <div class="body" id="bbody"><canvas id="water"></canvas></div>
+              <div class="ticks" aria-hidden="true"><i style="top:0;width:14px"></i><i style="top:25%;width:9px"></i><i style="top:50%;width:14px"></i><i style="top:75%;width:9px"></i></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="cups" id="cups" aria-label="一鍵加水，長按可改杯量"></div>
+      </main>
+
+      <div class="scrim" id="scrim"></div>
+
+      <section class="drawer" id="drawer" role="dialog" aria-label="今天與歷史">
+        <div class="dhead" id="dhead">
+          <div class="handle"></div>
+          <div class="drow">
+            <div><h2 id="dTitle">今天 0 杯</h2><div class="sub" id="dSub">還沒喝，先來一杯吧</div></div>
+            <button class="more" id="moreBtn" aria-label="展開紀錄"><span id="moreT">紀錄</span><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6" stroke="#3b1805" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></button>
+          </div>
+          <div class="beads" id="beads" aria-hidden="true"><div class="string"></div></div>
+        </div>
+        <div class="dbody" id="dbody">
+          <h3>今天的每一杯</h3>
+          <ul class="log" id="log"></ul>
+          <h3>最近兩週</h3>
+          <div class="fort" id="fort"></div>
+          <div class="dayline" id="dayline"></div>
+          <h3>每日目標</h3>
+          <div class="goalrow">
+            <button class="jel" id="gMinus" aria-label="目標減少 100 ml"><svg viewBox="0 0 24 24"><path d="M6 12h12" stroke="#3b1805" stroke-width="3" stroke-linecap="round"/></svg></button>
+            <output id="goalOut">2,000<small> ml</small></output>
+            <button class="jel" id="gPlus" aria-label="目標增加 100 ml"><svg viewBox="0 0 24 24"><path d="M6 12h12M12 6v12" stroke="#3b1805" stroke-width="3" stroke-linecap="round"/></svg></button>
+          </div>
+          <div class="weight"><span id="wtL">體重 56 kg，建議每天 1,960 ml</span><button id="wtBtn">照建議</button></div>
+          <h3>設定</h3>
+          <div class="opt"><div><div class="t">晃動感應</div><div class="d">傾斜手機時水面會晃</div></div><button class="sw" role="switch" id="swTilt" aria-checked="false" aria-label="晃動感應"></button></div>
+          <div class="opt"><div><div class="t">喝水提醒</div><div class="d" id="remD">每 90 分鐘，瓶子會輕輕跳一下</div></div><button class="sw" role="switch" id="swRem" aria-checked="true" aria-label="喝水提醒"></button></div>
+          <div class="opt"><div><div class="t">倒水聲</div><div class="d">咕嘟一聲</div></div><button class="sw" role="switch" id="swSnd" aria-checked="true" aria-label="倒水聲"></button></div>
+          <button class="reset" id="clearToday">清空今天的紀錄</button>
+        </div>
+      </section>
+
+      <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">
+        <div class="handle"></div>
+        <h4 id="shT">自訂一杯</h4>
+        <div class="kinds" id="kinds"></div>
+        <div class="amt"><span id="amtN">300</span><small>ml</small></div>
+        <div class="slider" id="slider">
+          <div class="track"></div><div class="fill" id="sFill"></div><div class="knob" id="sKnob"></div>
+          <input type="range" id="amtR" min="50" max="1000" step="10" value="300" aria-label="杯量">
+        </div>
+        <div class="shbtns">
+          <button class="save" id="saveCup">存成第 1 個杯子</button>
+          <button class="pour" id="pourBtn">倒進去</button>
+        </div>
+      </section>
+
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="undoBtn" hidden>復原</button></div>
+      <div class="home" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app015:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var fmt = function(n){ return Math.round(n).toLocaleString('en-US'); };
+var settings = load('settings', {goal:2000, weight:56, tilt:false, remind:true, sound:true});
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+
+/* ---------- icons: fat rounded strokes, one filled clay pellet each ---------- */
+var KINDS = {
+  water:{n:'白開水', c:'#19a094', svg:'<path d="M12 3.5c3.4 4.4 5.8 7.4 5.8 10.4a5.8 5.8 0 0 1-11.6 0c0-3 2.4-6 5.8-10.4z" stroke="#0f7168" stroke-width="2.3" stroke-linejoin="round" fill="none"/><circle class="f" cx="10" cy="14.5" r="1.9" fill="#19a094"/>'},
+  tea:{n:'無糖綠茶', c:'#7aa33c', svg:'<path d="M5 18.5c0-8 5-13 14-13-.4 8.6-5.4 13.4-14 13z" stroke="#4f7424" stroke-width="2.3" stroke-linejoin="round" fill="none"/><path d="M5 18.5 12 11.5" stroke="#4f7424" stroke-width="2.3" stroke-linecap="round"/><circle class="f" cx="14" cy="9.5" r="1.8" fill="#7aa33c"/>'},
+  coffee:{n:'美式咖啡', c:'#8a4a22', svg:'<ellipse cx="12" cy="12" rx="5.6" ry="8" transform="rotate(30 12 12)" stroke="#6a3514" stroke-width="2.3" fill="none"/><path d="M9.6 6.8c2.6 3 2.2 7.4 4.8 10.4" stroke="#6a3514" stroke-width="2.3" stroke-linecap="round" fill="none"/><circle class="f" cx="15.5" cy="8.5" r="1.6" fill="#8a4a22"/>'},
+  soda:{n:'氣泡水', c:'#3fb8c9', svg:'<circle cx="9" cy="15" r="4" stroke="#1d7e8c" stroke-width="2.3" fill="none"/><circle cx="16" cy="8" r="2.8" stroke="#1d7e8c" stroke-width="2.3" fill="none"/><circle class="f" cx="16.5" cy="16.5" r="1.8" fill="#3fb8c9"/><circle class="f" cx="8" cy="6" r="1.4" fill="#3fb8c9"/>'}
+};
+function kindIcon(k){ return '<svg viewBox="0 0 24 24">' + KINDS[k].svg + '</svg>'; }
+function cupIcon(ml){
+  // a clay tumbler, its height grows with volume and water shows the fill
+  var h = 12 + Math.min(1, ml / 700) * 20, top = 36 - h;
+  return '<svg viewBox="0 0 40 40"><path d="M' + (9) + ' ' + top + 'h22l-2.4 ' + (h - 3) + 'a3 3 0 0 1-3 2.8H14.4a3 3 0 0 1-3-2.8z" fill="#fbe4d2" stroke="#6e3814" stroke-width="2.2" stroke-linejoin="round"/>' +
+    '<path d="M' + (11.2) + ' ' + (top + h * .38) + 'h17.6l-1.6 ' + (h * .62 - 3) + 'a2.4 2.4 0 0 1-2.4 2.2H15.2a2.4 2.4 0 0 1-2.4-2.2z" fill="#19a094"/>' +
+    '<circle cx="15" cy="' + (top + 4) + '" r="1.6" fill="#fff"/></svg>';
+}
+
+/* ---------- data ---------- */
+function dkey(d){ return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+var now = new Date(), today0 = new Date(now); today0.setHours(0,0,0,0);
+var TODAY = dkey(today0);
+var cups = load('cups', [{ml:150,k:'water'},{ml:250,k:'tea'},{ml:350,k:'coffee'},{ml:500,k:'water'}]);
+var days = load('days', null);
+var seed = 1523;
+function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+if (!days){
+  days = {};
+  for (var i = 16; i >= 1; i--){
+    var d = new Date(today0); d.setDate(d.getDate() - i);
+    days[dkey(d)] = Math.round((1500 + rnd() * 900 + (i === 9 ? -700 : 0)) / 10) * 10;
+  }
+}
+var logs = load('log:' + TODAY, null);
+if (!logs){
+  var plan = [[7,40,250,'water'],[9,10,350,'coffee'],[10,45,150,'water'],[12,30,500,'tea'],[14,20,250,'water'],[15,50,350,'soda']];
+  var mins = now.getHours() * 60 + now.getMinutes();
+  logs = plan.filter(function(p){ return p[0] * 60 + p[1] < mins - 5; }).map(function(p){ return {t:p[0] * 60 + p[1], ml:p[2], k:p[3]}; });
+}
+function totalToday(){ return logs.reduce(function(s, l){ return s + l.ml; }, 0); }
+function persist(){ save('log:' + TODAY, logs); days[TODAY] = totalToday(); save('days', days); save('cups', cups); save('settings', settings); }
+
+/* ---------- sound ---------- */
+var ac = null;
+function audio(){ if (!settings.sound) return null; try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
+function bloop(big){
+  var a = audio(); if (!a) return;
+  var t = a.currentTime;
+  [0, .09, big ? .17 : null].forEach(function(dt, i){
+    if (dt === null) return;
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine';
+    var f0 = [520, 760, 430][i];
+    o.frequency.setValueAtTime(f0 * .6, t + dt); o.frequency.exponentialRampToValueAtTime(f0, t + dt + .05); o.frequency.exponentialRampToValueAtTime(f0 * .5, t + dt + .16);
+    g.gain.setValueAtTime(0.0001, t + dt); g.gain.exponentialRampToValueAtTime(.22, t + dt + .015); g.gain.exponentialRampToValueAtTime(.0001, t + dt + .2);
+    o.connect(g).connect(a.destination); o.start(t + dt); o.stop(t + dt + .22);
+  });
+}
+function tick(){ var a = audio(); if (!a) return; var t = a.currentTime, o = a.createOscillator(), g = a.createGain(); o.type = 'triangle'; o.frequency.value = 880; g.gain.setValueAtTime(.08, t); g.gain.exponentialRampToValueAtTime(.0001, t + .05); o.connect(g).connect(a.destination); o.start(t); o.stop(t + .06); }
+
+/* ---------- water simulation ---------- */
+var cv = $('water'), ctx = cv.getContext('2d'), bbody = $('bbody'), btl = $('btl');
+var W = 150, H = 300, dpr = 1;
+var N = 30, wh = new Float32Array(N), wv = new Float32Array(N);
+var level = 0, levelT = 0;            // fill fraction shown vs target
+var theta = 0, thetaV = 0, thetaT = 0; // bottle tilt (radians)
+var phi = 0, phiV = 0;                  // water surface angle relative to world, lags behind
+var bubbles = [], splash = [];
+var dragging = false, tiltInput = 0, lastT = 0, running = false, idle = 0;
+function size(){
+  var r = bbody.getBoundingClientRect();
+  W = Math.max(40, r.width); H = Math.max(80, r.height);
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  draw();
+}
+function fillFrac(){ return Math.min(1.08, totalToday() / settings.goal); }
+function poke(x, amt){ var i = Math.max(0, Math.min(N - 1, Math.round(x / W * (N - 1)))); for (var j = -2; j <= 2; j++){ var k = i + j; if (k >= 0 && k < N) wv[k] += amt * (1 - Math.abs(j) * .3); } }
+function step(dt){
+  // bottle follows the finger / device with a spring
+  var target = dragging ? thetaT : tiltInput;
+  thetaV += ((target - theta) * 120 - thetaV * 14) * dt; theta += thetaV * dt;
+  // water surface wants to stay level in the world: relative angle = -theta, springy so it sloshes
+  var prevV = phiV;
+  phiV += ((-theta - phi) * 60 - phiV * 3.2) * dt; phi += phiV * dt;
+  var acc = (phiV - prevV) / Math.max(dt, .001);
+  for (var i = 0; i < N; i++) wv[i] += acc * (i / (N - 1) - .5) * .0009;
+  // 1D wave with neighbour coupling
+  for (var p = 0; p < 2; p++){
+    for (i = 0; i < N; i++){
+      var l = wh[Math.max(0, i - 1)], r = wh[Math.min(N - 1, i + 1)];
+      wv[i] += ((l + r - 2 * wh[i]) * 140 - wh[i] * 26) * dt * .5;
+      wv[i] *= Math.pow(.2, dt);
+    }
+    for (i = 0; i < N; i++) wh[i] += wv[i] * dt * .5;
+  }
+  level += (levelT - level) * Math.min(1, dt * 4);
+  for (i = bubbles.length - 1; i >= 0; i--){ var b = bubbles[i]; b.y -= b.s * dt; b.x += Math.sin(b.y / 9 + b.p) * .3; if (b.y < b.top) bubbles.splice(i, 1); }
+  for (i = splash.length - 1; i >= 0; i--){ var s = splash[i]; s.vy += 900 * dt; s.x += s.vx * dt; s.y += s.vy * dt; if (s.y > s.floor) splash.splice(i, 1); }
+}
+function surfY(i){ return 0; }
+function draw(){
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  var base = H - 6 - Math.min(1.1, level) * (H * .8);
+  var tanP = Math.tan(Math.max(-.9, Math.min(.9, phi)));
+  var pts = [];
+  for (var i = 0; i < N; i++){ var x = i / (N - 1) * W; pts.push([x, base + tanP * (x - W / 2) + wh[i] * 26]); }
+  if (level > .004){
+    // body of water
+    var gr = ctx.createLinearGradient(0, base - 30, 0, H);
+    gr.addColorStop(0, '#2bb3a5'); gr.addColorStop(1, '#10786e');
+    ctx.beginPath(); ctx.moveTo(-2, H + 2); ctx.lineTo(-2, pts[0][1]);
+    for (i = 1; i < N; i++){ var mx = (pts[i - 1][0] + pts[i][0]) / 2, my = (pts[i - 1][1] + pts[i][1]) / 2; ctx.quadraticCurveTo(pts[i - 1][0], pts[i - 1][1], mx, my); }
+    ctx.lineTo(W + 2, pts[N - 1][1]); ctx.lineTo(W + 2, H + 2); ctx.closePath();
+    ctx.fillStyle = gr; ctx.fill();
+    // surface lip: the clay-bright edge of the water
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1] + 3);
+    for (i = 1; i < N; i++) ctx.lineTo(pts[i][0], pts[i][1] + 3);
+    ctx.strokeStyle = 'rgba(190,245,236,.85)'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
+    // bubbles
+    ctx.fillStyle = 'rgba(210,250,244,.75)';
+    bubbles.forEach(function(b){ ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.3); ctx.fill(); });
+  }
+  ctx.fillStyle = '#19a094';
+  splash.forEach(function(s){ ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.3); ctx.fill(); });
+  btl.style.transform = reduce ? '' : 'rotate(' + (theta * 57.3).toFixed(2) + 'deg)';
+}
+function energy(){ var e = Math.abs(thetaV) + Math.abs(phiV) + Math.abs(theta - (dragging ? thetaT : tiltInput)) + Math.abs(phi + theta) + Math.abs(levelT - level) * 3; for (var i = 0; i < N; i++) e += Math.abs(wv[i]) * .5 + Math.abs(wh[i]); return e + bubbles.length + splash.length; }
+function loop(t){
+  if (document.hidden){ running = false; return; }
+  var dt = Math.min(.033, (t - (lastT || t)) / 1000 || .016); lastT = t;
+  step(dt); draw();
+  if (energy() < .004 && !dragging && !settings.tilt){ running = false; return; }
+  requestAnimationFrame(loop);
+}
+function kick(){ if (!running){ running = true; lastT = 0; requestAnimationFrame(loop); } }
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) kick(); });
+
+/* drag the bottle to slosh */
+(function(){
+  var wrap = $('bwrap'), sx = 0, lx = 0, id = null;
+  wrap.addEventListener('pointerdown', function(e){ dragging = true; sx = lx = e.clientX; id = e.pointerId; try { wrap.setPointerCapture(id); } catch(_){} haptic(5); kick(); });
+  wrap.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    var dx = e.clientX - sx; thetaT = Math.max(-.36, Math.min(.36, dx / 320));
+    var vx = e.clientX - lx; lx = e.clientX; if (Math.abs(vx) > 6) poke(W * (vx > 0 ? .15 : .85), -vx * .004);
+  });
+  function end(){ if (!dragging) return; dragging = false; thetaT = 0; if (Math.abs(theta) > .25) haptic([6, 30, 6]); kick(); }
+  wrap.addEventListener('pointerup', end); wrap.addEventListener('pointercancel', end); wrap.addEventListener('lostpointercapture', end);
+})();
+
+/* device tilt */
+function onOrient(e){ if (e.gamma == null) return; tiltInput = Math.max(-.6, Math.min(.6, e.gamma / 70)); kick(); }
+function setTilt(on){
+  settings.tilt = on; persist(); $('swTilt').setAttribute('aria-checked', on);
+  window.removeEventListener('deviceorientation', onOrient);
+  if (!on){ tiltInput = 0; kick(); return; }
+  var D = window.DeviceOrientationEvent;
+  if (D && typeof D.requestPermission === 'function'){
+    D.requestPermission().then(function(s){ if (s === 'granted') window.addEventListener('deviceorientation', onOrient); else { toast('沒有取得感應權限'); setTilt(false); } }).catch(function(){ setTilt(false); });
+  } else if (D){ window.addEventListener('deviceorientation', onOrient); toast('歪一下手機試試'); }
+  else { toast('這台裝置沒有方向感應'); }
+}
+
+/* ---------- pour ---------- */
+var dropEl = $('drop');
+function pour(ml, k){
+  var entry = {t:now.getHours() * 60 + now.getMinutes(), ml:ml, k:k};
+  var d = new Date(); entry.t = d.getHours() * 60 + d.getMinutes();
+  var before = totalToday();
+  logs.push(entry); persist();
+  bloop(ml >= 400); haptic([8, 20, 14]);
+  var hitGoal = before < settings.goal && totalToday() >= settings.goal;
+  var fall = function(){
+    levelT = fillFrac();
+    var x = W / 2 + (Math.random() - .5) * 20;
+    poke(x, 1.4 + ml / 300);
+    for (var i = 0; i < 7; i++) splash.push({x:x, y:H - 6 - level * H * .8, vx:(Math.random() - .5) * 160, vy:-120 - Math.random() * 160, r:2 + Math.random() * 2.5, floor:H - 6 - level * H * .8 + 4});
+    for (i = 0; i < 4 + ml / 120; i++) bubbles.push({x:10 + Math.random() * (W - 20), y:H - 6 - Math.random() * 20, s:30 + Math.random() * 40, r:1.5 + Math.random() * 2.5, p:Math.random() * 6, top:H - 6 - levelT * H * .8 + 8});
+    kick();
+    if (hitGoal){ setTimeout(function(){ bloop(true); haptic([10, 40, 10, 40, 20]); toast('今天的水喝滿了，讚'); }, 380); }
+  };
+  if (reduce || !dropEl.animate){ fall(); }
+  else {
+    var wrapH = $('bwrap').clientHeight;
+    var endY = Math.max(30, wrapH - 12 - Math.min(1.1, level) * H * .8 - 34);
+    dropEl.style.visibility = 'visible';
+    var an = dropEl.animate([{transform:'translateY(-40px) scale(.7,1.1)'},{transform:'translateY(' + endY + 'px) scale(.8,1.2)', offset:.92},{transform:'translateY(' + (endY + 12) + 'px) scale(1.4,.3)'}], {duration:420, easing:'cubic-bezier(.5,0,.9,.6)'});
+    an.onfinish = function(){ dropEl.style.visibility = 'hidden'; fall(); };
+  }
+  renderAll();
+  toast('+' + ml + ' ml ' + KINDS[k].n, true);
+}
+var lastUndo = null;
+$('undoBtn').addEventListener('click', function(){
+  if (!lastUndo) return; lastUndo(); lastUndo = null; hideToast(); haptic(12);
+});
+
+/* ---------- cups (jelly buttons) ---------- */
+function renderCups(){
+  var h = cups.map(function(c, i){ return '<button class="cup" data-i="' + i + '" aria-label="倒一杯 ' + c.ml + ' ml ' + KINDS[c.k].n + '">' + cupIcon(c.ml) + '<b>' + c.ml + '</b><small>' + KINDS[c.k].n.slice(-2) + '</small></button>'; }).join('');
+  h += '<button class="cup custom" data-i="c" aria-label="自訂杯量"><svg viewBox="0 0 40 40"><path d="M20 11v18M11 20h18" stroke="#3b1805" stroke-width="3.4" stroke-linecap="round"/><circle cx="28" cy="12" r="2.4" fill="#fff3e8"/></svg><b>自訂</b><small>杯量</small></button>';
+  $('cups').innerHTML = h;
+}
+(function(){
+  var cupsEl = $('cups'), lp = null, lpFired = false;
+  cupsEl.addEventListener('pointerdown', function(e){
+    var b = e.target.closest('.cup'); if (!b || b.dataset.i === 'c') return;
+    lpFired = false; clearTimeout(lp);
+    lp = setTimeout(function(){ lpFired = true; haptic([5, 30, 5]); openSheet(+b.dataset.i); }, 520);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){ cupsEl.addEventListener(ev, function(){ clearTimeout(lp); }); });
+  cupsEl.addEventListener('click', function(e){
+    var b = e.target.closest('.cup'); if (!b) return;
+    if (lpFired){ lpFired = false; return; }
+    jelly(b);
+    if (b.dataset.i === 'c'){ openSheet(-1); return; }
+    var c = cups[+b.dataset.i];
+    pour(c.ml, c.k);
+    lastUndo = function(){ logs.pop(); persist(); levelT = fillFrac(); kick(); renderAll(); };
+  });
+})();
+function jelly(el){ if (reduce) return; el.classList.remove('jelly'); void el.offsetWidth; el.classList.add('jelly'); }
+
+/* ---------- render ---------- */
+var WD = ['日','一','二','三','四','五','六'];
+function hm(t){ return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); }
+function streak(){
+  var n = totalToday() >= settings.goal ? 1 : 0, d = new Date(today0);
+  for (var i = 0; i < 60; i++){ d.setDate(d.getDate() - 1); var v = days[dkey(d)]; if (v != null && v >= settings.goal * .9) n++; else break; }
+  return n;
+}
+function renderAll(){
+  var tot = totalToday(), g = settings.goal, pct = Math.round(tot / g * 100);
+  $('total').textContent = fmt(tot);
+  $('goalL').textContent = '目標 ' + fmt(g) + ' ml';
+  $('leftL').textContent = tot >= g ? '超過目標 ' + fmt(tot - g) + ' ml' : '還差 ' + fmt(g - tot) + ' ml，約 ' + Math.ceil((g - tot) / 250) + ' 杯';
+  var p = $('pct'); p.textContent = pct + '%'; p.classList.toggle('done', tot >= g);
+  $('streakN').textContent = '連續 ' + streak() + ' 天';
+  $('dTitle').textContent = '今天 ' + logs.length + ' 杯';
+  var last = logs[logs.length - 1];
+  var nowM = new Date().getHours() * 60 + new Date().getMinutes();
+  $('dSub').textContent = last ? '上一杯 ' + hm(last.t) + '，' + (nowM - last.t < 60 ? '剛剛才喝' : '已經 ' + Math.floor((nowM - last.t) / 60) + ' 小時 ' + ((nowM - last.t) % 60) + ' 分') : '還沒喝，先來一杯吧';
+  // beads on a string, 6:00 to 24:00
+  var bh = '<div class="string"></div><div class="now" style="left:calc(' + Math.max(0, Math.min(100, (nowM - 360) / 1080 * 100)).toFixed(1) + '% - 2px)"></div>';
+  logs.forEach(function(l){ var s = 10 + l.ml / 50; bh += '<i style="left:' + Math.max(2, Math.min(98, (l.t - 360) / 1080 * 100)).toFixed(1) + '%;width:' + s + 'px;height:' + s + 'px;background:' + KINDS[l.k].c + '"></i>'; });
+  $('beads').innerHTML = bh;
+  // log list, newest first
+  var lh = logs.map(function(l, i){ return {l:l, i:i}; }).reverse().map(function(o){ var l = o.l; return '<li><time>' + hm(l.t) + '</time>' + kindIcon(l.k) + '<span class="k">' + KINDS[l.k].n + '</span><span class="ml">' + l.ml + ' ml</span><button data-del="' + o.i + '" aria-label="刪除 ' + hm(l.t) + ' 這杯"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" stroke="#c85f17" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="12" cy="13" r="1.5" fill="#c85f17"/></svg></button></li>'; }).join('');
+  $('log').innerHTML = lh || '<li class="empty" style="background:none">今天還沒有紀錄。</li>';
+  // two weeks of mini jars
+  var fh = '', d = new Date(today0); d.setDate(d.getDate() - 13);
+  for (var i = 0; i < 14; i++){
+    var k = dkey(d), v = k === TODAY ? tot : (days[k] || 0), f = Math.min(1, v / g);
+    fh += '<button class="mini' + (k === TODAY ? ' today' : '') + (k === selDay ? ' sel' : '') + '" data-day="' + k + '" data-v="' + v + '" data-wd="' + (d.getMonth() + 1) + '/' + d.getDate() + ' 週' + WD[d.getDay()] + '" aria-label="' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + v + ' ml"><span class="jar"><i class="' + (v >= g ? 'hit' : '') + '" style="height:' + (f * 100).toFixed(0) + '%"></i></span><small>' + (k === TODAY ? '今' : WD[d.getDay()]) + '</small></button>';
+    d.setDate(d.getDate() + 1);
+  }
+  $('fort').innerHTML = fh;
+  var avg = 0, cnt = 0, hits = 0; d = new Date(today0);
+  for (i = 1; i <= 13; i++){ d.setDate(d.getDate() - 1); var vv = days[dkey(d)]; if (vv != null){ avg += vv; cnt++; if (vv >= g) hits++; } }
+  if (!selDay) $('dayline').innerHTML = '前 13 天平均 <b>' + fmt(cnt ? avg / cnt : 0) + ' ml</b>，喝滿 <b>' + hits + '</b> 天';
+  $('goalOut').innerHTML = fmt(g) + '<small> ml</small>';
+  var sug = Math.round(settings.weight * 35 / 10) * 10;
+  $('wtL').textContent = '體重 ' + settings.weight + ' kg，建議每天 ' + fmt(sug) + ' ml';
+  $('swTilt').setAttribute('aria-checked', !!settings.tilt);
+  $('swRem').setAttribute('aria-checked', !!settings.remind);
+  $('swSnd').setAttribute('aria-checked', !!settings.sound);
+  levelT = fillFrac();
+  kick();
+}
+var selDay = null;
+$('fort').addEventListener('click', function(e){
+  var b = e.target.closest('.mini'); if (!b) return;
+  selDay = selDay === b.dataset.day ? null : b.dataset.day; haptic(5); tick();
+  document.querySelectorAll('.mini').forEach(function(m){ m.classList.toggle('sel', m.dataset.day === selDay); });
+  var v = +b.dataset.v;
+  if (selDay) $('dayline').innerHTML = b.dataset.wd + ' 喝了 <b>' + fmt(v) + ' ml</b>，' + (v >= settings.goal ? '有喝滿' : '差 ' + fmt(settings.goal - v) + ' ml');
+  else renderAll();
+});
+$('log').addEventListener('click', function(e){
+  var b = e.target.closest('[data-del]'); if (!b) return;
+  var i = +b.dataset.del, removed = logs.splice(i, 1)[0];
+  persist(); renderAll(); haptic([12, 30, 12]);
+  lastUndo = function(){ logs.splice(i, 0, removed); persist(); renderAll(); };
+  toast('刪掉 ' + hm(removed.t) + ' 的 ' + removed.ml + ' ml', true);
+});
+function setGoal(g){ settings.goal = Math.max(800, Math.min(4500, g)); persist(); renderAll(); tick(); haptic(6); }
+$('gMinus').addEventListener('click', function(){ jelly(this); setGoal(settings.goal - 100); });
+$('gPlus').addEventListener('click', function(){ jelly(this); setGoal(settings.goal + 100); });
+$('wtBtn').addEventListener('click', function(){ setGoal(Math.round(settings.weight * 35 / 10) * 10); toast('目標改成 ' + fmt(settings.goal) + ' ml'); });
+$('swTilt').addEventListener('click', function(){ haptic(8); setTilt(!settings.tilt); });
+$('swRem').addEventListener('click', function(){ settings.remind = !settings.remind; persist(); renderAll(); haptic(8); toast(settings.remind ? '提醒開了' : '提醒關了'); });
+$('swSnd').addEventListener('click', function(){ settings.sound = !settings.sound; persist(); renderAll(); haptic(8); if (settings.sound) bloop(false); });
+var clearArm = false, clearT = null;
+$('clearToday').addEventListener('click', function(){
+  if (!clearArm){ clearArm = true; this.textContent = '再按一次確定清空'; var b = this; clearT = setTimeout(function(){ clearArm = false; b.textContent = '清空今天的紀錄'; }, 2600); haptic([10, 40, 10]); return; }
+  clearTimeout(clearT); clearArm = false; this.textContent = '清空今天的紀錄';
+  var old = logs.slice(); logs = []; persist(); renderAll(); haptic(20);
+  lastUndo = function(){ logs = old; persist(); renderAll(); };
+  toast('今天的紀錄清空了', true);
+});
+$('streakBtn').addEventListener('click', function(){ openDrawer(true); setTimeout(function(){ var f = $('fort'); $('dbody').scrollTo({top:f.offsetTop - 60, behavior:reduce ? 'auto' : 'smooth'}); }, 60); });
+$('pct').addEventListener('click', function(){ openDrawer(true); $('dbody').scrollTop = 0; });
+
+/* ---------- drawer ---------- */
+var drawer = $('drawer'), scrim = $('scrim'), dOpen = false;
+function openDrawer(on){
+  dOpen = on; drawer.classList.toggle('open', on); drawer.style.transform = '';
+  scrim.classList.toggle('on', on || sheetOn);
+  $('moreT').textContent = on ? '收起' : '紀錄';
+  $('moreBtn').setAttribute('aria-label', on ? '收起紀錄' : '展開紀錄');
+  haptic(6);
+}
+$('moreBtn').addEventListener('click', function(e){ e.stopPropagation(); openDrawer(!dOpen); });
+(function(){
+  var head = $('dhead'), sy = 0, dy = 0, t0 = 0, drag = false, moved = false, base = 0;
+  head.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button')) return;
+    drag = true; moved = false; sy = e.clientY; dy = 0; t0 = e.timeStamp;
+    base = dOpen ? 0 : drawer.offsetHeight - 132;
+    drawer.classList.add('drag'); try { head.setPointerCapture(e.pointerId); } catch(_){}
+  });
+  head.addEventListener('pointermove', function(e){
+    if (!drag) return; dy = e.clientY - sy; if (Math.abs(dy) > 4) moved = true;
+    var y = Math.max(-20, Math.min(drawer.offsetHeight - 132, base + dy));
+    if (y < 0) y = y / 3;
+    drawer.style.transform = 'translateY(' + y + 'px)';
+  });
+  function end(e){
+    if (!drag) return; drag = false; drawer.classList.remove('drag');
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (!moved){ openDrawer(!dOpen); return; }
+    if (dOpen) openDrawer(!(dy > drawer.offsetHeight * .35 || v > .6));
+    else openDrawer(dy < -drawer.offsetHeight * .2 || v < -.5);
+  }
+  head.addEventListener('pointerup', end); head.addEventListener('pointercancel', end);
+})();
+scrim.addEventListener('click', function(){ if (sheetOn) closeSheet(); else openDrawer(false); });
+
+/* ---------- custom sheet ---------- */
+var sheet = $('sheet'), sheetOn = false, editIdx = -1, sKind = 'water', lastFocus = null;
+function renderKinds(){
+  $('kinds').innerHTML = Object.keys(KINDS).map(function(k){ return '<button class="kind" data-k="' + k + '" aria-pressed="' + (k === sKind) + '">' + kindIcon(k) + KINDS[k].n + '</button>'; }).join('');
+}
+function setAmt(v){
+  v = Math.max(50, Math.min(1000, Math.round(v / 10) * 10));
+  $('amtR').value = v; $('amtN').textContent = v;
+  var f = (v - 50) / 950, sl = $('slider').clientWidth || 300;
+  $('sFill').style.width = (22 + f * (sl - 44)) + 'px'; $('sKnob').style.left = (22 + f * (sl - 44)) + 'px';
+}
+function openSheet(idx){
+  lastFocus = document.activeElement;
+  editIdx = idx; var c = idx >= 0 ? cups[idx] : {ml:300, k:'water'};
+  sKind = c.k; renderKinds();
+  $('shT').textContent = idx >= 0 ? '改第 ' + (idx + 1) + ' 個杯子' : '自訂一杯';
+  $('saveCup').textContent = idx >= 0 ? '存起來' : '換掉第 4 個杯子';
+  sheetOn = true; sheet.classList.add('on'); sheet.style.transform = ''; scrim.classList.add('on');
+  requestAnimationFrame(function(){ setAmt(c.ml); });
+  var f = sheet.querySelector('.kind[aria-pressed=true]'); if (f) f.focus({preventScroll:true});
+}
+function closeSheet(){
+  if (!sheetOn) return;
+  sheetOn = false; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.toggle('on', dOpen);
+  if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
+}
+$('kinds').addEventListener('click', function(e){ var b = e.target.closest('.kind'); if (!b) return; sKind = b.dataset.k; renderKinds(); haptic(5); tick(); });
+$('amtR').addEventListener('input', function(){ setAmt(+this.value); if (+this.value % 50 === 0) haptic(3); });
+$('saveCup').addEventListener('click', function(){
+  var v = +$('amtR').value, i = editIdx >= 0 ? editIdx : 3;
+  cups[i] = {ml:v, k:sKind}; persist(); renderCups(); closeSheet(); haptic([8, 20, 8]);
+  toast('第 ' + (i + 1) + ' 個杯子改成 ' + v + ' ml');
+});
+$('pourBtn').addEventListener('click', function(){
+  var v = +$('amtR').value; closeSheet();
+  pour(v, sKind);
+  lastUndo = function(){ logs.pop(); persist(); renderAll(); };
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, drag = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button,input,.slider')) return; drag = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch(_){} });
+  sheet.addEventListener('pointermove', function(e){ if (!drag) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6) + 'px)'; });
+  function end(e){ if (!drag) return; drag = false; sheet.classList.remove('drag'); var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape'){ if (sheetOn) closeSheet(); else if (dOpen) openDrawer(false); } });
+
+/* ---------- toast ---------- */
+var toastTm = null;
+function toast(msg, undo){ $('toastT').textContent = msg; $('undoBtn').hidden = !undo; if (!undo) lastUndo = null; $('toast').classList.add('on'); clearTimeout(toastTm); toastTm = setTimeout(hideToast, undo ? 3600 : 2200); }
+function hideToast(){ $('toast').classList.remove('on'); }
+
+/* ---------- clock, date, reminder nudge ---------- */
+function clock(){
+  var d = new Date();
+  $('clock').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  $('dateL').textContent = (d.getMonth() + 1) + '月' + d.getDate() + '日 週' + WD[d.getDay()];
+  if (settings.remind && logs.length){
+    var m = d.getHours() * 60 + d.getMinutes(), last = logs[logs.length - 1].t;
+    $('remD').textContent = '每 90 分鐘，下次 ' + hm(Math.min(1439, last + 90));
+    if (m - last >= 90 && m - last < 92 && d.getHours() < 23){ theta = .2; thetaV = 4; kick(); toast('該喝水囉'); haptic([20, 60, 20]); }
+  }
+}
+clock();
+setTimeout(function(){ clock(); setInterval(clock, 60000); }, (60 - new Date().getSeconds()) * 1000);
+
+/* ---------- boot ---------- */
+renderCups(); renderAll();
+level = 0; levelT = fillFrac();
+size();
+if (window.ResizeObserver) new ResizeObserver(size).observe(bbody); else window.addEventListener('resize', size);
+if (settings.tilt){ var D = window.DeviceOrientationEvent; if (D && typeof D.requestPermission !== 'function') window.addEventListener('deviceorientation', onOrient); }
+// the bottle fills once on open so the water is already moving when you look at it
+if (!reduce){ theta = -.12; thetaV = 0; kick(); } else { level = levelT; draw(); }
+})();
+</script>
+</body>
+</html>

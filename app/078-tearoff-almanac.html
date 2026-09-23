@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c7d1c3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="日日">
+<title>日日 · 每日簡報與黃曆</title>
+<meta name="description" content="一本掛在牆上的台灣撕日曆：往下撕換日，看農曆、節氣、宜忌、沖煞與吉時，翻到背面是今日簡報與待辦。收錄於 100 Creative HTML Works（App 078・台灣撕日曆）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/078-tearoff-almanac.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23c7d1c3'/%3E%3Crect x='12' y='8' width='40' height='11' fill='%23b8262b'/%3E%3Crect x='12' y='19' width='40' height='38' fill='%23f4f3ef'/%3E%3Ctext x='32' y='49' font-family='Songti TC,serif' font-weight='900' font-size='27' text-anchor='middle' fill='%23b8262b'%3E23%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --red:#b8262b;
+  --red-d:#8f1c21;
+  --ink:#1c1816;
+  --ink-2:#4a4440;
+  --ink-3:#7a726c;
+  --paper:#f4f3ef;
+  --paper-2:#e9e7e0;
+  --wall:#c7d1c3;
+  --wall-d:#b3bfae;
+  --wains:#6f8a78;
+  --song:"Songti TC","STSongti-TC-Regular","Songti SC",serif;
+  --li:"Libian TC","Libian SC","Songti TC",serif;
+  --ui:"PingFang TC",system-ui,-apple-system,sans-serif;
+  --out:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.34,1.4,.5,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.5 var(--song);color:var(--ink);background:var(--wall);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+svg{display:block}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.cam{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#cdd6c9 0%,var(--wall) 60%,#bcc8b7 100%)}
+.screen::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .42 0 0 0 0 .35 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E")}
+@media (min-width:521px){
+  body{background:#a9b7a6}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:10px;z-index:1;
+    background:#2a2522;box-shadow:inset 0 0 0 1.5px #4d4540,inset 0 0 0 3px #171311,0 3px 2px -1px rgba(40,50,38,.35),8px 14px 26px -16px rgba(40,50,38,.55)}
+  .screen{inset:10px;border-radius:44px}
+  .cam{display:block;position:absolute;top:21px;left:50%;width:96px;height:28px;margin-left:-48px;border-radius:15px;background:#0d0b0a;z-index:40}
+  .caption{display:block;position:relative;z-index:1;max-width:250px;color:var(--ink)}
+  .caption h1{font:400 64px/1 var(--li);color:var(--red)}
+  .caption p{margin-top:14px;font:15px/1.8 var(--song);color:#2d302b}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+/* ---------- status ---------- */
+.status{position:relative;z-index:30;flex:none;display:flex;align-items:center;justify-content:space-between;height:calc(50px + env(safe-area-inset-top));
+  padding:env(safe-area-inset-top) 28px 0 32px;font:600 16px/1 var(--ui);color:var(--ink);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{height:env(safe-area-inset-top)}.status>*{display:none}}
+
+/* ---------- top row ---------- */
+.top{position:relative;z-index:5;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 22px;height:50px}
+.brand{font:400 26px/1 var(--li);color:var(--ink);display:flex;align-items:baseline;gap:10px}
+.brand small{font:13px/1 var(--song);color:var(--ink-2)}
+.topbtns{display:flex}
+.ib{width:46px;height:46px;display:grid;place-items:center;border-radius:8px;transition:background-color .2s,transform .15s var(--out)}
+.ib:active{background:rgba(28,24,22,.08);transform:scale(.92)}
+.ib svg{width:26px;height:26px}
+
+/* ---------- calendar ---------- */
+.padwrap{position:relative;z-index:2;flex:1;min-height:0;container-type:size;container-name:pw;display:flex;justify-content:center;align-items:flex-start;padding-top:4px}
+.cal{position:relative;width:min(356px,calc(100cqw - 34px),calc((100cqh - 14px) / 1.56));container-type:inline-size}
+.nail{position:absolute;left:50%;top:-2px;width:14px;height:14px;margin-left:-7px;border-radius:50%;z-index:6;
+  background:radial-gradient(circle at 38% 34%,#d9d4cc 0 18%,#8f8880 45%,#4c4642 100%)}
+.string{position:absolute;left:50%;top:4px;width:40cqw;height:9cqw;margin-left:-20cqw;z-index:5;overflow:visible}
+.plate{position:relative;margin-top:7cqw;height:14cqw;background:var(--red);color:#f6ede6;display:flex;align-items:center;justify-content:space-between;padding:0 5cqw;z-index:3;
+  box-shadow:0 1px 0 var(--red-d)}
+.plate .l{font:400 5.6cqw/1 var(--li);letter-spacing:.06em}
+.plate .r{font:4cqw/1.2 var(--song);text-align:right;opacity:.92}
+.plate .fu{position:absolute;left:50%;top:50%;width:10cqw;height:10cqw;margin:-5cqw 0 0 -5cqw}
+.stub{position:relative;height:2.6cqw;margin:0 1.2cqw;background:var(--paper);z-index:2;
+  clip-path:polygon(0 0,100% 0,100% 55%,97% 100%,94% 45%,90% 90%,86% 40%,82% 100%,78% 50%,74% 85%,70% 35%,66% 95%,62% 45%,58% 90%,54% 40%,50% 100%,46% 50%,42% 88%,38% 38%,34% 96%,30% 48%,26% 86%,22% 40%,18% 100%,14% 45%,10% 90%,6% 38%,3% 95%,0 50%)}
+.pad{position:relative;height:137cqw;margin:0 1.2cqw}
+.stack{position:absolute;left:0;right:0;bottom:-3.4cqw;height:6cqw;z-index:0;
+  background:repeating-linear-gradient(180deg,#e7e5de 0 2px,#cfccc3 2px 3px)}
+.stack::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:3px;background:rgba(60,70,56,.28);filter:blur(1.5px)}
+.page{position:absolute;inset:0;background:var(--paper);z-index:1}
+.page.under{box-shadow:0 1px 0 #d6d3cb}
+#top{z-index:2;transform-origin:50% 0;touch-action:none;cursor:grab}
+#top.flying{transition:none}
+#top.back-spring{transition:transform .5s var(--spring)}
+#top.dropin{animation:dropin .5s var(--out)}
+@keyframes dropin{from{transform:translateY(-8cqw) rotate(-1.5deg)}}
+.flip{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .7s var(--out)}
+#top.flipped .flip{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--paper);overflow:hidden}
+.face::before{content:"";position:absolute;left:0;right:0;top:0;height:2.2cqw;
+  background:radial-gradient(circle at 50% 30%,#bdb9b0 0 .5cqw,transparent .6cqw) 0 0/3cqw 2.2cqw repeat-x;opacity:.8}
+.back{transform:rotateY(180deg);background:#f0efea}
+.fallen{position:absolute;inset:0;z-index:4;pointer-events:none;transform-origin:50% 0}
+.fallen .face.front{box-shadow:0 2px 0 rgba(0,0,0,.05)}
+
+/* rip crack along the perforation while pulling */
+.rip{position:absolute;left:0;right:0;top:0;height:3cqw;z-index:3;pointer-events:none;overflow:visible}
+.rip path{stroke:#9d978d;stroke-width:1.4;fill:none;stroke-linecap:round}
+
+/* front layout */
+.fr{position:absolute;inset:0;padding:4cqw 5cqw 3cqw;display:flex;flex-direction:column}
+.row1{display:flex;align-items:flex-end;justify-content:space-between;margin-top:1.4cqw}
+.mon{font:400 8.4cqw/1 var(--li)}
+.yr{font:3.5cqw/1.35 var(--song);color:var(--ink-2);text-align:right}
+.yr b{font-weight:700;color:var(--ink);letter-spacing:.12em}
+.bigrow{position:relative;display:flex;align-items:center;justify-content:center;height:42cqw;margin-top:.4cqw}
+.num{font:900 47cqw/1 var(--song);letter-spacing:-.02em;font-variant-numeric:lining-nums;transform:translateY(1cqw)}
+.vert{position:absolute;top:1.6cqw;writing-mode:vertical-rl;font:4.6cqw/1.2 var(--song);letter-spacing:.18em;color:var(--ink-2)}
+.vert.l{left:0}.vert.r{right:0}
+.vert b{font-weight:700;color:var(--ink)}
+.red .num,.red .mon,.red .wk{color:var(--red)}
+.wkrow{display:flex;align-items:baseline;justify-content:center;gap:3cqw;margin-top:-1cqw}
+.wk{font:400 8.2cqw/1 var(--li);letter-spacing:.12em}
+.wk-en{font:600 3.2cqw/1 var(--song);letter-spacing:.3em;color:var(--ink-3)}
+.mark{display:flex;justify-content:center;gap:2.4cqw;min-height:8.4cqw;margin-top:1.8cqw;align-items:center}
+.mark span{font:700 3.9cqw/1 var(--song);padding:1.2cqw 2.2cqw;border:1.5px solid currentColor;color:var(--ink)}
+.mark span.h{color:var(--red)}
+.mark span.f{border-style:dashed}
+.yj{display:grid;grid-template-columns:1fr 1fr;margin-top:2.2cqw;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.yj>div{display:flex;gap:2.4cqw;padding:2.2cqw 1.2cqw;align-items:flex-start}
+.yj>div+div{border-left:1px solid var(--ink)}
+.seal{flex:none;width:9.4cqw;height:9.4cqw;border-radius:50%;display:grid;place-items:center;font:400 6cqw/1 var(--li);color:#fff;background:var(--red)}
+.seal.ji{background:var(--ink)}
+.seal span{display:block;transform:translateY(.2cqw)}
+.yj ul{list-style:none;font:4cqw/1.38 var(--song)}
+.info{display:flex;justify-content:space-between;align-items:baseline;font:3.7cqw/1.3 var(--song);margin-top:2.4cqw;color:var(--ink-2)}
+.info b{color:var(--ink);font-weight:700}
+.hours{display:grid;grid-template-columns:repeat(12,1fr);margin-top:2cqw;text-align:center;font:3.6cqw/1.2 var(--song)}
+.hours i{font-style:normal;display:block}
+.hours .ok{color:var(--red);font-weight:700}
+.hours .no{color:#a9a39b}
+.hours small{display:block;font-size:2.5cqw;margin-top:.4cqw}
+.say{margin-top:auto;padding-top:1.4cqw;text-align:center}
+.say p{font:400 5.2cqw/1.3 var(--li)}
+.say small{display:block;font:3.2cqw/1.4 var(--song);color:var(--ink-3);margin-top:.8cqw}
+.pin{position:absolute;right:3.4cqw;top:3.4cqw;width:6cqw;height:10cqw;opacity:0;transition:opacity .25s}
+.saved .pin{opacity:1}
+
+/* back layout */
+.bk{position:absolute;inset:0;padding:5cqw 5cqw 3cqw;display:flex;flex-direction:column;overflow:hidden}
+.bk h3{font:400 7cqw/1 var(--li);display:flex;justify-content:space-between;align-items:baseline}
+.bk h3 small{font:3.4cqw/1 var(--song);color:var(--ink-3)}
+.wx{display:grid;grid-template-columns:auto 1fr;gap:4cqw;align-items:center;margin-top:4cqw;padding-bottom:3.4cqw;border-bottom:2px solid var(--ink)}
+.wx svg{width:17cqw;height:17cqw}
+.wx .t{font:900 10cqw/1 var(--song)}
+.wx .t small{font-size:4.2cqw;font-weight:400;margin-left:1cqw}
+.wx .s{font:3.6cqw/1.5 var(--song);color:var(--ink-2)}
+.sky{display:grid;grid-template-columns:repeat(3,1fr);margin-top:3cqw;text-align:center}
+.sky b{display:block;font:700 5.2cqw/1.1 var(--song)}
+.sky span{font:3.2cqw/1.4 var(--song);color:var(--ink-3)}
+.sky svg{width:5.6cqw;height:5.6cqw;margin:0 auto}
+.todo{margin-top:3.6cqw;flex:1;min-height:0;display:flex;flex-direction:column}
+.todo h4{font:400 5cqw/1 var(--li);display:flex;justify-content:space-between}
+.todo h4 small{font:3.2cqw/1 var(--song);color:var(--ink-3);align-self:center}
+.tl{list-style:none;margin-top:1.6cqw;overflow-y:auto;flex:1;min-height:0;touch-action:pan-y;scrollbar-width:none;-webkit-mask-image:linear-gradient(#000 calc(100% - 14px),transparent);mask-image:linear-gradient(#000 calc(100% - 14px),transparent)}
+.tl::-webkit-scrollbar{display:none}
+.tl li{display:flex;align-items:center;min-height:44px;border-bottom:1px dashed #bdb8ae}
+.tl .ck{flex:none;width:44px;height:44px;display:grid;place-items:center;margin-left:-2.4cqw}
+.tl .ck i{width:18px;height:18px;border:1.8px solid var(--ink);display:grid;place-items:center}
+.tl .ck svg{width:14px;height:14px;opacity:0;transition:opacity .15s}
+.tl li.done .ck svg{opacity:1}
+.tl li.done .tx{color:var(--ink-3);text-decoration:line-through;text-decoration-thickness:1.5px}
+.tl .tx{flex:1;font:15px/1.35 var(--song);min-width:0}
+.tl .del{flex:none;width:44px;height:44px;display:grid;place-items:center;color:var(--ink-3)}
+.tl .del svg{width:14px;height:14px}
+.add{display:flex;align-items:center;border-bottom:2px solid var(--ink);margin-top:1cqw}
+.add input{flex:1;min-width:0;height:44px;border:0;background:none;font:15px var(--song);color:var(--ink);outline:none}
+.add input::placeholder{color:#958e86}
+.add button{width:44px;height:44px;display:grid;place-items:center}
+.add svg{width:18px;height:18px}
+.tip{margin-top:3cqw;font:3.6cqw/1.6 var(--song);color:var(--ink-2)}
+.tip b{font:400 4.2cqw/1 var(--li);color:var(--red);margin-right:1.6cqw}
+
+/* hint */
+.hint{position:absolute;left:0;right:0;bottom:-10.4cqw;text-align:center;font:13px/1 var(--song);color:#44503f;pointer-events:none;transition:opacity .4s}
+.hint svg{display:inline-block;vertical-align:-3px;margin-right:4px;animation:nudge 2.4s var(--out) infinite}
+@keyframes nudge{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(4px)}}
+.hint.gone,.flipped~.hint,.cal.fl .hint{opacity:0}
+@container pw (max-height:500px){.hint{display:none}}
+
+/* ---------- dock ---------- */
+.dock{position:relative;z-index:5;flex:none;display:grid;grid-template-columns:1fr 1.3fr 1fr;align-items:center;padding:0 18px calc(26px + env(safe-area-inset-bottom));height:calc(96px + env(safe-area-inset-bottom))}
+.act{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:60px;border-radius:10px;font:400 15px/1 var(--li);color:var(--ink);transition:background-color .2s}
+.act:active{background:rgba(28,24,22,.08)}
+.act svg{width:28px;height:28px;transition:transform .25s var(--out)}
+.act:active svg{transform:scale(.88)}
+.act.main{font-size:17px}
+.act.main svg{width:32px;height:32px}
+.act[aria-pressed=true]{color:var(--red)}
+.act[disabled]{color:#6f7a6c}
+.home-ind{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(28,24,22,.8);z-index:35;pointer-events:none}
+
+/* ---------- sheet: a torn slip of paper ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(30,36,28,.34);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:86%;display:flex;flex-direction:column;background:var(--paper);
+  padding:22px 0 calc(18px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .48s var(--spring);touch-action:none;
+  clip-path:polygon(0 8px,3% 2px,6% 7px,9% 1px,12% 6px,15% 0,18% 7px,21% 2px,24% 8px,27% 1px,30% 6px,33% 0,36% 7px,39% 3px,42% 8px,45% 1px,48% 6px,51% 0,54% 7px,57% 2px,60% 8px,63% 1px,66% 6px,69% 0,72% 7px,75% 3px,78% 8px,81% 1px,84% 6px,87% 0,90% 7px,93% 2px,96% 8px,100% 2px,100% 100%,0 100%)}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{flex:none;width:44px;height:5px;border-radius:3px;background:#bdb8ae;margin:0 auto 10px}
+.sbody{overflow-y:auto;padding:0 22px;touch-action:pan-y;overscroll-behavior:contain;scrollbar-width:none}
+.sbody::-webkit-scrollbar{display:none}
+.sheet h2{font:400 26px/1.2 var(--li);display:flex;justify-content:space-between;align-items:baseline}
+.sheet h2 small{font:14px/1 var(--song);color:var(--ink-3)}
+.dl{margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:10px 16px;font:15px/1.5 var(--song)}
+.dl dt{font:400 17px/1.35 var(--li);color:var(--red)}
+.dl dd{color:var(--ink)}
+.gods{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 0;margin-top:4px}
+.gods span{font-size:14px;line-height:1.35}
+.gods span.no{color:#9a938b}
+.gods b{font-weight:700;margin-right:3px}
+
+.mhead{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.mhead b{font:400 22px/1 var(--li)}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);margin-top:8px;text-align:center}
+.grid .h{font:13px/32px var(--song);color:var(--ink-3)}
+.grid .h.s{color:var(--red)}
+.grid button{height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 17px/1 var(--song);border-radius:4px;transition:background-color .15s}
+.grid button small{font:400 10px/1 var(--song);color:var(--ink-3);margin-top:4px;height:10px}
+.grid button.s{color:var(--red)}
+.grid button.today{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.grid button.cur{background:var(--ink);color:var(--paper)}
+.grid button.cur small{color:#cfcac2}
+.grid button:active{background:var(--paper-2)}
+.grid button.past{color:#b0aaa2}
+
+.clips{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 12px;margin-top:14px}
+.clip{position:relative;background:#fff;padding:12px 6px 10px;text-align:center;border-top:3px solid var(--red);transform:rotate(var(--r));box-shadow:0 1px 2px rgba(60,50,40,.18)}
+.clip b{display:block;font:900 36px/1 var(--song)}
+.clip .m{font:400 14px/1 var(--li)}
+.clip .y{font:12px/1.4 var(--song);color:var(--ink-3);margin-top:4px}
+.clip .go{position:absolute;inset:0}
+.clip .x{position:absolute;right:-8px;top:-12px;width:36px;height:36px;display:grid;place-items:center;z-index:2}
+.clip .x i{width:22px;height:22px;border-radius:50%;background:var(--ink);display:grid;place-items:center}
+.clip .x svg{width:10px;height:10px}
+.clip.red b,.clip.red .m{color:var(--red)}
+.empty{margin:26px 0 14px;text-align:center;font:15px/1.8 var(--song);color:var(--ink-2)}
+.nav2{display:flex;gap:4px}
+
+/* toast */
+.toast{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-140px);visibility:hidden;
+  background:var(--ink);color:var(--paper);font:14px/1 var(--song);padding:12px 16px;display:flex;gap:14px;align-items:center;white-space:nowrap;
+  transition:transform .45s var(--spring),visibility 0s .45s}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--spring)}
+.toast button{color:#f1b9b0;font-weight:700;min-height:28px}
+
+@media (prefers-reduced-motion:reduce){
+  .flip,.sheet,.toast,#top.back-spring{transition-duration:.01s}
+  #top.dropin,.hint svg{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="plaster"><feTurbulence type="fractalNoise" baseFrequency=".6" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .35 0 0 0 0 .4 0 0 0 0 .33 0 0 0 .3 0"/></filter>
+        <linearGradient id="lite" x1="0" y1="0" x2="1" y2=".4"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></linearGradient>
+        <pattern id="tile" width="44" height="44" patternUnits="userSpaceOnUse"><rect width="44" height="44" fill="#6f8a78"/><rect x="1" y="1" width="42" height="42" fill="#7b9583"/><path d="M22 6 38 22 22 38 6 22Z" fill="#6a8472"/><circle cx="22" cy="22" r="4" fill="#b8262b" opacity=".7"/></pattern>
+      </defs>
+      <rect width="1600" height="1000" fill="#c7d1c3"/>
+      <rect y="738" width="1600" height="262" fill="url(#tile)"/>
+      <rect y="728" width="1600" height="12" fill="#e9e7e0"/>
+      <rect y="740" width="1600" height="4" fill="#5b7262" opacity=".5"/>
+      <rect width="1600" height="1000" filter="url(#plaster)"/>
+      <rect width="1600" height="1000" fill="url(#lite)"/>
+      <!-- a second calendar, already torn to the stub, hanging in the kitchen -->
+      <g transform="translate(1270 150)">
+        <circle cx="60" cy="0" r="6" fill="#6b645e"/>
+        <path d="M60 0 20 34M60 0l40 34" stroke="#8e867d" stroke-width="2"/>
+        <rect x="0" y="34" width="120" height="30" fill="#b8262b"/>
+        <path d="M4 64h112v6l-6 4-6-5-7 5-6-4-7 5-6-5-7 4-6-4-7 5-6-5-7 4-6-5-7 5-6-4-7 5-6-5-6 4Z" fill="#f4f3ef"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="caption">
+    <h1>日日</h1>
+    <p>一本掛在牆上的撕日曆。往下撕一頁，就是新的一天；翻到背面，是今天的簡報。</p>
+  </div>
+
+  <div class="device">
+    <div class="cam" aria-hidden="true"></div>
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><path d="M1 12V9M6 12V6M11 12V3.5M16 12V1" stroke="currentColor" stroke-width="3"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11 5.4 8.2a3.6 3.6 0 0 1 5.2 0Z" fill="currentColor"/><path d="M3.2 6a6.8 6.8 0 0 1 9.6 0M1 3.6a10 10 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".75" y=".75" width="22.5" height="11.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect id="batt" x="3" y="3" width="15" height="7" fill="currentColor"/><path d="M25 4.5h1.6v4H25z" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <div class="top">
+        <div class="brand">日日<small id="brandSub">丙午年</small></div>
+        <div class="topbtns">
+          <button class="ib" id="jumpBtn" aria-label="跳到某一天">
+            <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M5 7h18v17H5z"/><path d="M5 11.5h18"/><path d="M9.5 4v5M18.5 4v5"/><rect x="15" y="15.5" width="4.5" height="4.5" fill="#b8262b" stroke="none"/></svg>
+          </button>
+          <button class="ib" id="clipsBtn" aria-label="剪貼簿">
+            <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8.5 19 5.5l3 13-13 3z"/><path d="M4.5 12.5v12h13"/><rect x="11.5" y="10" width="4.5" height="4.5" fill="#b8262b" stroke="none" transform="rotate(-13 13.7 12.2)"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="padwrap" id="padwrap">
+        <div class="cal" id="cal">
+          <svg class="string" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true"><path d="M50 1 3 22M50 1l47 21" stroke="#6d665f" stroke-width="1.2" fill="none" vector-effect="non-scaling-stroke"/></svg>
+          <span class="nail" aria-hidden="true"></span>
+          <div class="plate">
+            <span class="l" id="plateL">民國一一五年</span>
+            <svg class="fu" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 37 20 20 37 3 20Z" fill="none" stroke="#f6ede6" stroke-width="1.6"/><path d="M20 10 30 20 20 30 10 20Z" fill="#f6ede6" opacity=".9"/><circle cx="20" cy="20" r="3" fill="#b8262b"/></svg>
+            <span class="r" id="plateR">2026<br>歲次丙午</span>
+          </div>
+          <div class="stub" aria-hidden="true"></div>
+          <div class="pad" id="pad">
+            <div class="stack" id="stack" aria-hidden="true"></div>
+            <div class="page under" id="under" aria-hidden="true"></div>
+            <div class="page" id="top" role="button" tabindex="0" aria-label="日曆頁：往下拖曳撕下，點一下看詳細">
+              <div class="flip"><div class="face front" id="front"></div><div class="face back" id="back"></div></div>
+              <svg class="rip" id="rip" viewBox="0 0 100 3" preserveAspectRatio="none" aria-hidden="true"><path id="ripPath" d="" vector-effect="non-scaling-stroke"/></svg>
+            </div>
+          </div>
+          <div class="hint" id="hint"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#44503f" stroke-width="1.8"><path d="M7 1v11M2.5 7.5 7 12l4.5-4.5"/></svg>抓住頁面往下撕</div>
+        </div>
+      </div>
+
+      <div class="dock">
+        <button class="act" id="saveBtn" aria-pressed="false">
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6v14.5a4 4 0 0 0 8 0V8.5a2.6 2.6 0 0 0-5.2 0V19.5"/><rect x="18.5" y="3.5" width="4.5" height="4.5" fill="#b8262b" stroke="none"/></svg>收藏
+        </button>
+        <button class="act main" id="flipBtn" aria-pressed="false">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 5h13l5 5v17H7z"/><path d="M20 5v5h5"/><path d="M11 17.5h8.5M16.5 14.5l3 3-3 3"/><rect x="11" y="22" width="4.5" height="2.2" fill="#b8262b" stroke="none"/></svg><span id="flipLbl">翻背面</span>
+        </button>
+        <button class="act" id="todayBtn">
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2"><circle cx="14" cy="6" r="2.4"/><path d="M14 8.4 6 14v10h16V14z"/><rect x="11.7" y="15.5" width="4.6" height="4.6" fill="#b8262b" stroke="none"/></svg>回今天
+        </button>
+      </div>
+      <div class="home-ind" aria-hidden="true"></div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="詳細">
+        <div class="grab"></div>
+        <div class="sbody" id="sbody"></div>
+      </div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app078:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- calendar maths ---------- */
+var STEM = '甲乙丙丁戊己庚辛壬癸', BR = '子丑寅卯辰巳午未申酉戌亥', ZOD = '鼠牛虎兔龍蛇馬羊猴雞狗豬';
+var CN = ['〇','一','二','三','四','五','六','七','八','九','十'];
+var WK = ['日','一','二','三','四','五','六'], WKE = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+var MON = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+var TERMS = ['春分','清明','穀雨','立夏','小滿','芒種','夏至','小暑','大暑','立秋','處暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至','小寒','大寒','立春','雨水','驚蟄'];
+function key(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function fromKey(k){ var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function addDays(d, n){ var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function jdn(d){ return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5 + 2440588); }
+function sunLon(jd){
+  var n = jd - 2451545, L = (280.46 + .9856474 * n) % 360, g = ((357.528 + .9856003 * n) % 360) * Math.PI / 180;
+  return ((L + 1.915 * Math.sin(g) + .02 * Math.sin(2 * g)) % 360 + 360) % 360;
+}
+function termOn(d){ // Taiwan local day: 16:00 UTC previous day .. 16:00 UTC this day
+  var j = jdn(d) - .5 - 8 / 24, a = Math.floor(sunLon(j) / 15), b = Math.floor(sunLon(j + 1) / 15);
+  return a !== b ? TERMS[b % 24] : '';
+}
+function nextTerm(d){ for (var i = 1; i < 20; i++){ var t = termOn(addDays(d, i)); if (t) return {n:t, days:i}; } return null; }
+function cnNum(n){ // for 民國 year: digit by digit
+  return String(n).split('').map(function(c){ return CN[+c]; }).join('');
+}
+function lunarDay(n){
+  if (n === 10) return '初十'; if (n === 20) return '二十'; if (n === 30) return '三十';
+  var t = Math.floor(n / 10), u = n % 10;
+  return (t === 0 ? '初' : t === 1 ? '十' : t === 2 ? '廿' : '三') + CN[u];
+}
+var lunarFmt = null;
+try { lunarFmt = new Intl.DateTimeFormat('zh-TW-u-ca-chinese', {year:'numeric', month:'long', day:'numeric'}); } catch(e){}
+function lunar(d){
+  if (!lunarFmt) return null;
+  try {
+    var o = {}; lunarFmt.formatToParts(d).forEach(function(p){ o[p.type] = p.value; });
+    if (!o.month || !o.day) return null;
+    return {month:o.month, day:+o.day, yearName:o.yearName || ''};
+  } catch(e){ return null; }
+}
+var YI = {
+  0:[['出行','會友','上任','祈福'],['動土','開倉','掘井']],
+  1:[['祭祀','沐浴','掃舍','求醫'],['嫁娶','遠行','開市']],
+  2:[['開市','納財','裁衣','祭祀'],['栽種','安葬','服藥']],
+  3:[['修飾垣牆','平治道塗','塗泥'],['開渠','栽種','嫁娶']],
+  4:[['訂盟','納采','入學','會友'],['訴訟','出行','開渠']],
+  5:[['捕捉','栽種','納采'],['開市','移徙','出行']],
+  6:[['求醫','拆卸','破屋'],['嫁娶','開市','出行','入宅']],
+  7:[['祭祀','安床','沐浴'],['登高','行船','遠行']],
+  8:[['開市','入學','嫁娶','移徙','交易'],['訴訟','爭執']],
+  9:[['納財','收帳','入宅','捕捉'],['出行','安葬','針灸']],
+  10:[['開市','求職','出行','動土','入學'],['安葬','伐木']],
+  11:[['築堤','補垣','塞穴','安床'],['開市','出行','求醫']]
+};
+var JC = '建除滿平定執破危成收開閉';
+var JCD = ['萬物初生，宜起始','除舊布新，宜清掃','豐收盈滿，宜納財','平常之日，宜修整','安定之日，宜訂約','執守之日，宜收成','月破之日，諸事少做','危險之日，宜謹慎','成就之日，諸事多宜','收藏之日，宜收帳','開通之日，宜開始','閉藏之日，宜收尾'];
+var GODS = ['青龍','明堂','天刑','朱雀','金匱','天德','白虎','玉堂','天牢','玄武','司命','勾陳'];
+var GOOD = [1,1,0,0,1,1,0,1,0,0,1,0];
+var DRAGON = [8,10,0,2,4,6,8,10,0,2,4,6]; // day branch -> hour branch where 青龍 starts
+var SAY = [
+  ['食果子，拜樹頭','吃果子要記得種樹的人'],['一枝草，一點露','天無絕人之路'],['好天著存雨來糧','晴天就要存下雨天的糧'],
+  ['呷緊弄破碗','吃太急會把碗打破'],['戲棚下站久，就是你的','堅持久了，機會就是你的'],['人兩腳，錢四腳','錢跑得比人快'],
+  ['千金買厝，萬金買厝邊','好鄰居比好房子難得'],['有樣看樣，無樣家己想','有例照做，沒例自己想'],['一樣米飼百樣人','同樣的米，養出百種人'],
+  ['甘願做牛，免驚無犁通拖','肯做事，不怕沒事做'],['路是人行出來的','路是人走出來的'],['未曾學行，先學飛','還不會走就想飛'],
+  ['食飯皇帝大','吃飯最重要'],['輸人毋輸陣','輸人不能輸氣勢'],['一日徛, 三日倒','站一天，躺三天，量力而為'],
+  ['歹竹出好筍','平凡之處也能出好東西'],['近廟欺神','太熟悉就容易輕忽'],['食緊挵破碗','做事別急'],
+  ['三日無餾，蹈上樹','三天不溫習就忘光'],['惜花連盆，惜子連孫','愛屋及烏'],['大隻雞慢啼','大器晚成'],
+  ['嘴唸經，手摸奶','說一套做一套'],['水清魚就現','事情清楚了真相就出來'],['一時風，駛一時帆','順勢而為']
+];
+var TIPS = [
+  ['中秋','烤肉醬先刷薄薄一層，快熟時再刷第二層，才不會焦。'],['收納','冰箱門邊放醬料，最冷的後層放肉和魚。'],['古早味','蘿蔔乾炒蛋：蘿蔔乾先泡水十分鐘去鹹。'],
+  ['節電','冷氣設 27 度加電扇，比 24 度省一成電。'],['養生','秋分後早晚溫差大，出門帶件薄外套。'],['家事','白醋加小蘇打，可以清水槽的水垢。'],
+  ['小吃','滷肉飯的肥肉切小丁，滷前先炒出油。'],['種花','九層塔摘頂芽，會長得更茂密。'],['閱讀','睡前讀十頁，比滑手機更容易入睡。'],
+  ['茶','凍頂烏龍第一泡洗茶，第二泡最香。'],['散步','飯後走十五分鐘，對血糖最友善。'],['乾貨','香菇用冷水泡一夜，比熱水泡更香。'],
+  ['歲時','秋分這天晝夜等長，之後夜漸長。'],['廚房','炒青菜最後再加鹽，菜色較翠綠。']
+];
+var HOLI = {'01-01':'開國紀念日','02-28':'和平紀念日','04-04':'兒童節','05-01':'勞動節','09-28':'教師節','10-10':'國慶日','10-25':'光復節','12-25':'行憲紀念日'};
+var FEST = {'03-12':'植樹節','03-29':'青年節','08-08':'父親節','11-12':'國父誕辰'};
+var LHOLI = {'正月-1':'春節','正月-2':'春節','正月-3':'春節','五月-5':'端午節','八月-15':'中秋節'};
+var LFEST = {'正月-15':'元宵節','七月-7':'七夕','七月-15':'中元節','九月-9':'重陽節','臘月-16':'尾牙','臘月-8':'臘八'};
+
+function seedRand(n){ var s = n % 2147483647; if (s <= 0) s += 2147483646; return function(){ s = s * 16807 % 2147483647; return (s - 1) / 2147483646; }; }
+
+var infoCache = {};
+function info(d){
+  var k = key(d); if (infoCache[k]) return infoCache[k];
+  var j = jdn(d), gz = ((j - 11) % 60 + 60) % 60, st = gz % 10, br = gz % 12;
+  var lon = sunLon(j - .5 - 8 / 24 + .5), mIdx = Math.floor(((lon - 315 + 360) % 360) / 30), mBr = (mIdx + 2) % 12;
+  var jc = (br - mBr + 12) % 12;
+  var L = lunar(d), Ln = lunar(addDays(d, 1));
+  var md = k.slice(5), wd = d.getDay();
+  var holiday = HOLI[md] || '', fest = FEST[md] || '';
+  var term = termOn(d);
+  if (L){
+    var lk = L.month + '-' + L.day;
+    if (LHOLI[lk]) holiday = LHOLI[lk];
+    if (LFEST[lk]) fest = LFEST[lk];
+    if (Ln && Ln.month === '正月' && Ln.day === 1) holiday = '除夕';
+  }
+  if (term === '清明') holiday = '民族掃墓節';
+  var yi = YI[jc][0].slice(), ji = YI[jc][1].slice();
+  var extra = ['理髮','會友','納財','裁衣','掃舍','入學','交易'][st % 7];
+  if (yi.indexOf(extra) < 0 && ji.indexOf(extra) < 0 && yi.length < 5 && jc !== 6) yi.push(extra);
+  var dragon = DRAGON[br], hours = [];
+  for (var h = 0; h < 12; h++) hours.push(GOOD[(h - dragon + 12) % 12]);
+  var cs = (st + 4) % 10, cb = (br + 6) % 12;
+  // 申子辰煞南 寅午戌煞北 巳酉丑煞東 亥卯未煞西
+  var sha, shaMap = {0:'南',4:'南',8:'南',2:'北',6:'北',10:'北',5:'東',9:'東',1:'東',11:'西',3:'西',7:'西'};
+  sha = shaMap[br];
+  var r = seedRand(j * 7 + 3), say = SAY[j % SAY.length], tip = TIPS[(j * 5) % TIPS.length];
+  var doy = Math.round((d - new Date(d.getFullYear(), 0, 1)) / 864e5);
+  var hi = Math.round(26.2 + 7.2 * Math.cos(2 * Math.PI * (doy - 205) / 365) + (r() - .5) * 3);
+  var lo = hi - 5 - Math.round(r() * 3), rain = Math.round(Math.min(90, Math.max(0, 25 + 30 * Math.sin(2 * Math.PI * (doy - 60) / 365) + (r() - .4) * 50)) / 10) * 10;
+  var o = {d:d, k:k, y:d.getFullYear(), m:d.getMonth(), day:d.getDate(), wd:wd, L:L, term:term, holiday:holiday, fest:fest,
+    gz:STEM[st] + BR[br], st:st, br:br, mgz:mBr, jc:jc, yi:yi, ji:ji, hours:hours, dragon:dragon,
+    chong:ZOD[cb] + '（' + STEM[cs] + BR[cb] + '）', sha:sha, say:say, tip:tip, hi:hi, lo:lo, rain:rain,
+    red:wd === 0 || !!holiday};
+  infoCache[k] = o; return o;
+}
+function sunTimes(d){
+  var lat = 25.04 * Math.PI / 180, lon = 121.56, rad = Math.PI / 180;
+  var n = jdn(d) - 2451545 + .0008, J = n - lon / 360;
+  var M = (357.5291 + .98560028 * J) % 360, Mr = M * rad;
+  var C = 1.9148 * Math.sin(Mr) + .02 * Math.sin(2 * Mr) + .0003 * Math.sin(3 * Mr);
+  var lam = ((M + C + 282.9372) % 360) * rad;
+  var Jt = 2451545 + J + .0053 * Math.sin(Mr) - .0069 * Math.sin(2 * lam);
+  var dec = Math.asin(Math.sin(lam) * Math.sin(23.44 * rad));
+  var w = Math.acos((Math.sin(-.833 * rad) - Math.sin(lat) * Math.sin(dec)) / (Math.cos(lat) * Math.cos(dec))) / rad;
+  function hm(jd){ var f = ((jd + .5) % 1 + 1) % 1, h = (f * 24 + 8) % 24, mm = Math.round(h * 60); return String(Math.floor(mm / 60)).padStart(2, '0') + ':' + String(mm % 60).padStart(2, '0'); }
+  return [hm(Jt - w / 360), hm(Jt + w / 360)];
+}
+function moonAge(d){ var a = ((jdn(d) - 2451550.26) / 29.530588853) % 1; return a < 0 ? a + 1 : a; }
+
+/* ---------- state ---------- */
+var TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
+var view = new Date(TODAY);
+var saved = load('saved', null);
+if (!Array.isArray(saved)) saved = [key(addDays(TODAY, 2)), key(addDays(TODAY, -5))];
+var todos = load('todos', null);
+if (!todos || typeof todos !== 'object'){
+  todos = {};
+  todos[key(TODAY)] = [{t:'繳中華電信帳單', d:true}, {t:'下午三點 牙醫回診', d:false}, {t:'買蛋黃酥給阿嬤', d:false}];
+  todos[key(addDays(TODAY, 1))] = [{t:'訂中秋烤肉的木炭', d:false}];
+  todos[key(addDays(TODAY, 2))] = [{t:'回台南，高鐵 10:31', d:false}];
+}
+var torn = load('torn', 0);
+var sound = true;
+
+/* ---------- audio: paper tear ---------- */
+var ac = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ ac = null; } } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function tearSound(len){
+  var a = audio(); if (!a || !sound) return;
+  len = len || .34;
+  var n = Math.floor(a.sampleRate * len), buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0), crack = 0;
+  for (var i = 0; i < n; i++){
+    if (Math.random() < .004) crack = 1;
+    crack *= .996;
+    var env = Math.min(1, i / (n * .08)) * Math.pow(1 - i / n, 1.4);
+    ch[i] = (Math.random() * 2 - 1) * env * (.25 + crack * .9);
+  }
+  var src = a.createBufferSource(); src.buffer = buf;
+  var bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = .7;
+  var hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700;
+  var g = a.createGain(); g.gain.value = .55;
+  src.connect(bp); bp.connect(hp); hp.connect(g); g.connect(a.destination); src.start();
+}
+function tick(){
+  var a = audio(); if (!a || !sound) return;
+  var o = a.createOscillator(), g = a.createGain(); o.type = 'triangle'; o.frequency.value = 1400;
+  g.gain.setValueAtTime(.12, a.currentTime); g.gain.exponentialRampToValueAtTime(.001, a.currentTime + .05);
+  o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + .06);
+}
+
+/* ---------- render ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function frontHTML(d){
+  var o = info(d), L = o.L;
+  var lunarTxt = L ? '農曆<b>' + L.month + lunarDay(L.day) + '</b>' : '';
+  var marks = '';
+  if (o.holiday) marks += '<span class="h">' + o.holiday + '</span>';
+  if (o.term) marks += '<span' + (o.holiday ? '' : ' class="h"') + '>' + o.term + '</span>';
+  if (o.fest) marks += '<span class="f">' + o.fest + '</span>';
+  if (!marks){ var nt = nextTerm(d); marks = '<span class="f">距' + (nt ? nt.n + ' ' + nt.days + ' 天' : '節氣') + '</span>'; }
+  var hrs = '';
+  for (var h = 0; h < 12; h++) hrs += '<i class="' + (o.hours[h] ? 'ok' : 'no') + '">' + BR[h] + '<small>' + (o.hours[h] ? '吉' : '凶') + '</small></i>';
+  return '<div class="fr' + (o.red ? ' red' : '') + '">' +
+    '<svg class="pin" viewBox="0 0 12 20" aria-hidden="true"><path d="M4 2v12a2.4 2.4 0 0 0 4.8 0V4.4a1.6 1.6 0 0 0-3.2 0V13" fill="none" stroke="#b8262b" stroke-width="1.5"/></svg>' +
+    '<div class="row1"><span class="mon">' + MON[o.m] + '</span><span class="yr"><b>' + o.y + '</b><br>民國' + (o.y - 1911) + '年</span></div>' +
+    '<div class="bigrow"><span class="vert l">' + lunarTxt + '</span><span class="num">' + o.day + '</span><span class="vert r">' + (L ? L.yearName + '年' : '') + '　<b>' + o.gz + '日</b></span></div>' +
+    '<div class="wkrow"><span class="wk">星期' + WK[o.wd] + '</span><span class="wk-en">' + WKE[o.wd] + '</span></div>' +
+    '<div class="mark">' + marks + '</div>' +
+    '<div class="yj"><div><span class="seal"><span>宜</span></span><ul>' + o.yi.slice(0, 4).map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul></div>' +
+    '<div><span class="seal ji"><span>忌</span></span><ul>' + o.ji.slice(0, 4).map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul></div></div>' +
+    '<div class="info"><span>沖<b>' + o.chong + '</b>　煞<b>' + o.sha + '</b></span><span>建除 <b>' + JC[o.jc] + '日</b></span></div>' +
+    '<div class="hours">' + hrs + '</div>' +
+    '<div class="say"><p>' + o.say[0] + '</p><small>' + o.say[1] + '</small></div></div>';
+}
+function moonSVG(a){
+  var rx = (Math.abs(Math.cos(a * 2 * Math.PI)) * 10).toFixed(2), wax = a < .5;
+  var s1 = wax ? 1 : 0, s2 = wax ? (a < .25 ? 0 : 1) : (a < .75 ? 0 : 1);
+  var d = 'M12 2A10 10 0 0 ' + s1 + ' 12 22A' + rx + ' 10 0 0 ' + s2 + ' 12 2Z';
+  return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="#1c1816" stroke-width="1.6"/><path d="' + d + '" fill="#1c1816"/></svg>';
+}
+function wxSVG(rain){
+  if (rain >= 50) return '<svg viewBox="0 0 60 60" fill="none" stroke="#1c1816" stroke-width="2.4"><path d="M16 36h28a9 9 0 0 0 0-18 13 13 0 0 0-25 3 7.5 7.5 0 0 0-3 15z" fill="#e3e0d8"/><path d="M22 42l-3 8M31 42l-3 8M40 42l-3 8" stroke="#b8262b"/></svg>';
+  if (rain >= 30) return '<svg viewBox="0 0 60 60" fill="none" stroke="#1c1816" stroke-width="2.4"><circle cx="22" cy="22" r="9" fill="#b8262b" stroke="none"/><path d="M20 44h24a8 8 0 0 0 0-16 11 11 0 0 0-21 3 6.5 6.5 0 0 0-3 13z" fill="#f0efea"/></svg>';
+  return '<svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="12" fill="#b8262b"/><g stroke="#1c1816" stroke-width="2.4"><path d="M30 6v7M30 47v7M6 30h7M47 30h7M13 13l5 5M42 42l5 5M13 47l5-5M42 18l5-5"/></g></svg>';
+}
+function backHTML(d){
+  var o = info(d), st = sunTimes(d), ma = moonAge(d), list = todos[o.k] || [];
+  var nt = nextTerm(d);
+  var phase = ma < .03 || ma > .97 ? '新月' : ma < .22 ? '眉月' : ma < .28 ? '上弦' : ma < .47 ? '盈凸' : ma < .53 ? '滿月' : ma < .72 ? '虧凸' : ma < .78 ? '下弦' : '殘月';
+  return '<div class="bk"><h3>今日簡報<small>' + (o.m + 1) + '/' + o.day + '（' + WK[o.wd] + '）</small></h3>' +
+    '<div class="wx">' + wxSVG(o.rain) + '<div><div class="t">' + o.lo + '–' + o.hi + '<small>°C</small></div><div class="s">臺北　降雨機率 ' + o.rain + '%' + (o.rain >= 50 ? '，帶傘' : o.hi >= 32 ? '，防曬補水' : '') + '</div></div></div>' +
+    '<div class="sky"><div><svg viewBox="0 0 24 24" fill="none" stroke="#1c1816" stroke-width="2"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 4v5M9.5 6.5 12 4l2.5 2.5"/></svg><b>' + st[0] + '</b><span>日出</span></div>' +
+    '<div><svg viewBox="0 0 24 24" fill="none" stroke="#1c1816" stroke-width="2"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 4v5M9.5 6.5 12 9l2.5-2.5"/></svg><b>' + st[1] + '</b><span>日落</span></div>' +
+    '<div>' + moonSVG(ma) + '<b>' + phase + '</b><span>' + (nt ? nt.days + ' 天後' + nt.n : '月相') + '</span></div></div>' +
+    '<div class="todo"><h4>待辦<small>' + list.filter(function(x){ return !x.d; }).length + ' 件未完成</small></h4><ul class="tl" id="tl">' +
+    list.map(function(x, i){ return '<li class="' + (x.d ? 'done' : '') + '"><button class="ck" data-ck="' + i + '" aria-label="完成 ' + esc(x.t) + '"><i><svg viewBox="0 0 14 14" fill="none" stroke="#b8262b" stroke-width="2.4"><path d="M2 7.5 5.5 11 12 3"/></svg></i></button><span class="tx">' + esc(x.t) + '</span><button class="del" data-del="' + i + '" aria-label="刪除 ' + esc(x.t) + '"><svg viewBox="0 0 14 14" stroke="currentColor" stroke-width="2"><path d="M2 2l10 10M12 2 2 12"/></svg></button></li>'; }).join('') +
+    '</ul><form class="add" id="addForm"><input id="addIn" maxlength="30" placeholder="寫一件今天要做的事" aria-label="新增待辦"><button aria-label="加入"><svg viewBox="0 0 18 18" stroke="#1c1816" stroke-width="2.2"><path d="M9 2v14M2 9h14"/></svg></button></form></div>' +
+    '<p class="tip"><b>' + o.tip[0] + '</b>' + o.tip[1] + '</p></div>';
+}
+var flipped = false;
+function render(){
+  var o = info(view);
+  $('front').innerHTML = frontHTML(view);
+  $('back').innerHTML = backHTML(view);
+  $('under').innerHTML = '<div class="face front">' + frontHTML(addDays(view, 1)) + '</div>';
+  $('top').classList.toggle('saved', saved.indexOf(o.k) > -1);
+  $('top').classList.toggle('flipped', flipped);
+  $('saveBtn').setAttribute('aria-pressed', saved.indexOf(o.k) > -1);
+  $('flipBtn').setAttribute('aria-pressed', flipped);
+  $('flipLbl').textContent = flipped ? '翻正面' : '翻背面';
+  $('cal').classList.toggle('fl', flipped);
+  $('todayBtn').toggleAttribute('disabled', false);
+  $('brandSub').textContent = (o.L ? o.L.yearName + '年' : '') + (key(view) === key(TODAY) ? '　今天' : '　' + diffLabel());
+  $('plateL').textContent = '民國' + cnNum(o.y - 1911) + '年';
+  $('plateR').innerHTML = o.y + '<br>歲次' + (o.L ? o.L.yearName : '');
+  var left = Math.round((new Date(o.y, 11, 31) - view) / 864e5);
+  $('stack').style.height = (1.2 + left / 365 * 6).toFixed(2) + 'cqw';
+  $('stack').style.bottom = -(1.2 + left / 365 * 6 - 2.6).toFixed(2) + 'cqw';
+  $('top').setAttribute('aria-label', (o.m + 1) + '月' + o.day + '日 星期' + WK[o.wd] + '。往下拖曳撕下，點一下看詳細');
+  wireBack();
+}
+function diffLabel(){ var n = Math.round((view - TODAY) / 864e5); return n > 0 ? n + ' 天後' : -n + ' 天前'; }
+function wireBack(){
+  var f = $('addForm');
+  if (!f) return;
+  f.addEventListener('submit', function(e){
+    e.preventDefault(); var v = $('addIn').value.trim(); if (!v) { haptic([6, 30, 6]); return; }
+    var k = key(view); (todos[k] = todos[k] || []).push({t:v, d:false}); save('todos', todos); haptic(8); tick();
+    render(); var inp = $('addIn'); if (inp) inp.focus({preventScroll:true});
+  });
+}
+$('back').addEventListener('click', function(e){
+  var k = key(view), list = todos[k] || [];
+  var c = e.target.closest('[data-ck]'), dl = e.target.closest('[data-del]');
+  if (c){ var i = +c.dataset.ck; list[i].d = !list[i].d; save('todos', todos); haptic(list[i].d ? [6, 20, 10] : 6); tick(); render(); }
+  if (dl){
+    var j = +dl.dataset.del, gone = list.splice(j, 1)[0]; todos[k] = list; save('todos', todos); haptic(12); render();
+    toast('刪除「' + gone.t + '」', function(){ list.splice(j, 0, gone); todos[k] = list; save('todos', todos); render(); });
+  }
+});
+
+/* ---------- tear gesture ---------- */
+var topEl = $('top'), drag = null;
+function ripPath(p, dir){
+  if (p <= 0) return '';
+  var len = Math.min(100, p * 100), d = '', x0 = dir >= 0 ? 100 : 0, s = dir >= 0 ? -1 : 1;
+  for (var i = 0; i <= len; i += 2.5){ d += (i ? 'L' : 'M') + (x0 + s * i).toFixed(1) + ' ' + (1.5 + Math.sin(i * 1.7) * .9).toFixed(2); }
+  return d;
+}
+topEl.addEventListener('pointerdown', function(e){
+  if (flipped || e.button > 0) return;
+  audio();
+  drag = {x:e.clientX, y:e.clientY, dx:0, dy:0, on:false, id:e.pointerId, t:e.timeStamp};
+});
+topEl.addEventListener('pointermove', function(e){
+  if (!drag || e.pointerId !== drag.id) return;
+  drag.dx = e.clientX - drag.x; drag.dy = e.clientY - drag.y;
+  if (!drag.on){
+    if (Math.hypot(drag.dx, drag.dy) < 8) return;
+    drag.on = true; topEl.setPointerCapture(e.pointerId); topEl.classList.remove('back-spring'); $('hint').classList.add('gone');
+  }
+  var dy = Math.max(0, drag.dy), p = Math.min(1.15, dy / 130 + Math.abs(drag.dx) / 420);
+  var rot = drag.dx * .05 * Math.min(1, p + .3), ty = dy * .2 + Math.max(0, p - .6) * 20;
+  if (!reduce) topEl.style.transform = 'translate(' + (drag.dx * .12).toFixed(1) + 'px,' + ty.toFixed(1) + 'px) rotate(' + rot.toFixed(2) + 'deg)';
+  $('ripPath').setAttribute('d', ripPath(Math.min(1, p), drag.dx));
+  if (p >= 1 && !drag.armed){ drag.armed = true; haptic(10); }
+  if (p < 1 && drag.armed) drag.armed = false;
+});
+function endDrag(e){
+  if (!drag) return;
+  var d = drag; drag = null;
+  if (!d.on){ if (e.type === 'pointerup') openDetail(); return; }
+  if (d.armed){ tearOff(d.dx >= 0 ? 1 : -1); }
+  else { topEl.classList.add('back-spring'); topEl.style.transform = ''; $('ripPath').setAttribute('d', ''); }
+}
+topEl.addEventListener('pointerup', endDrag);
+topEl.addEventListener('pointercancel', endDrag);
+topEl.addEventListener('keydown', function(e){
+  if (e.key === 'ArrowDown' || e.key === 'PageDown'){ e.preventDefault(); if (!flipped) tearOff(1); }
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openDetail(); }
+});
+
+function flyClone(dir, html, fromTransform){
+  var f = document.createElement('div');
+  f.className = 'fallen'; f.innerHTML = '<div class="face front">' + html + '</div>';
+  f.style.transform = fromTransform || '';
+  $('pad').appendChild(f);
+  if (reduce){ setTimeout(function(){ f.remove(); }, 60); return; }
+  var rot = dir * (18 + Math.random() * 14), x = dir * (60 + Math.random() * 60);
+  f.animate([
+    {transform:fromTransform || 'none', opacity:1},
+    {transform:'translate(' + (x * .4) + 'px,40px) rotate(' + (rot * .5) + 'deg)', opacity:1, offset:.3},
+    {transform:'translate(' + x + 'px,' + (innerHeight * .9) + 'px) rotate(' + rot + 'deg)', opacity:.9}
+  ], {duration:720, easing:'cubic-bezier(.4,.05,.7,.4)'}).onfinish = function(){ f.remove(); };
+}
+function tearOff(dir){
+  var html = $('front').innerHTML, tr = topEl.style.transform;
+  topEl.classList.remove('back-spring'); topEl.style.transform = ''; $('ripPath').setAttribute('d', '');
+  flyClone(dir, html, tr);
+  tearSound(); haptic([14, 30, 8]);
+  view = addDays(view, 1); torn++; save('torn', torn);
+  render();
+}
+function goTo(target){
+  var n = Math.round((target - view) / 864e5);
+  if (n === 0) return;
+  if (n > 0){
+    var steps = Math.min(n, 6), i = 0;
+    (function one(){
+      var html = $('front').innerHTML;
+      flyClone(i % 2 ? 1 : -1, html, '');
+      if (i === 0) tearSound(.5); haptic(6);
+      i++;
+      view = i === steps ? new Date(target) : addDays(view, 1);
+      render();
+      if (i < steps) setTimeout(one, reduce ? 0 : 110);
+    })();
+  } else {
+    view = new Date(target); render();
+    topEl.classList.remove('dropin'); void topEl.offsetWidth; if (!reduce) topEl.classList.add('dropin');
+    haptic(10); tick();
+  }
+}
+
+/* ---------- dock ---------- */
+$('flipBtn').addEventListener('click', function(){ flipped = !flipped; haptic(8); tick(); render(); });
+$('saveBtn').addEventListener('click', function(){
+  var k = key(view), i = saved.indexOf(k);
+  if (i > -1){ saved.splice(i, 1); toast('已從剪貼簿移除'); haptic(6); }
+  else { saved.push(k); saved.sort(); toast('夾進剪貼簿了'); haptic([8, 30, 12]); }
+  save('saved', saved); tick(); render();
+});
+$('todayBtn').addEventListener('click', function(){
+  if (key(view) === key(TODAY)){ toast('已經是今天'); haptic(6); return; }
+  flipped = false; goTo(TODAY);
+});
+
+/* ---------- sheets ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html, label){
+  lastFocus = document.activeElement;
+  $('sbody').innerHTML = html; $('sbody').scrollTop = 0;
+  sheet.setAttribute('aria-label', label || '');
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+  var f = sheet.querySelector('button'); if (f) f.focus({preventScroll:true});
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on');
+  if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
+}
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, on = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button') || ($('sbody').scrollTop > 0 && e.target.closest('.sbody'))) return;
+    on = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId);
+  });
+  sheet.addEventListener('pointermove', function(e){
+    if (!on) return; dy = e.clientY - sy;
+    sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)';
+    scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2);
+  });
+  function end(e){
+    if (!on) return; on = false; sheet.classList.remove('drag'); scrim.style.opacity = '';
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+function openDetail(){
+  var o = info(view), nt = nextTerm(view), gods = '';
+  for (var h = 0; h < 12; h++){ var gi = (h - o.dragon + 12) % 12; gods += '<span class="' + (GOOD[gi] ? '' : 'no') + '"><b>' + BR[h] + '</b>' + GODS[gi] + '</span>'; }
+  openSheet('<h2>' + (o.m + 1) + '月' + o.day + '日<small>' + (o.L ? '農曆' + o.L.month + lunarDay(o.L.day) : '') + '</small></h2>' +
+    '<dl class="dl">' +
+    '<dt>干支</dt><dd>' + (o.L ? o.L.yearName + '年　' : '') + BR[o.mgz] + '月　' + o.gz + '日</dd>' +
+    '<dt>建除</dt><dd>' + JC[o.jc] + '日，' + JCD[o.jc] + '</dd>' +
+    '<dt>宜</dt><dd>' + o.yi.join('　') + '</dd>' +
+    '<dt>忌</dt><dd>' + o.ji.join('　') + '</dd>' +
+    '<dt>沖煞</dt><dd>沖' + o.chong + '，煞' + o.sha + '。屬' + o.chong.charAt(0) + '的朋友今天行事低調些。</dd>' +
+    '<dt>節氣</dt><dd>' + (o.term ? '今天' + o.term + '。' : '') + (nt ? '再 ' + nt.days + ' 天是' + nt.n + '。' : '') + '</dd>' +
+    '<dt>吉時</dt><dd><div class="gods">' + gods + '</div></dd>' +
+    '<dt>俗諺</dt><dd>' + o.say[0] + '：' + o.say[1] + '。</dd>' +
+    '</dl>', '當日詳細');
+}
+var mCursor = null;
+function monthHTML(){
+  var y = mCursor.getFullYear(), m = mCursor.getMonth(), first = new Date(y, m, 1).getDay(), n = new Date(y, m + 1, 0).getDate();
+  var h = '<h2>跳到某一天<small>往後會一口氣撕過去</small></h2><div class="mhead"><button class="ib" data-mv="-1" aria-label="上個月"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 6 9 14l8 8"/></svg></button><b>' + y + ' 年 ' + (m + 1) + ' 月</b><button class="ib" data-mv="1" aria-label="下個月"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m11 6 8 8-8 8"/></svg></button></div><div class="grid">';
+  WK.forEach(function(w, i){ h += '<span class="h' + (i === 0 ? ' s' : '') + '">' + w + '</span>'; });
+  for (var i = 0; i < first; i++) h += '<span></span>';
+  for (var d = 1; d <= n; d++){
+    var dt = new Date(y, m, d), o = info(dt), cls = [];
+    if (o.red) cls.push('s'); if (key(dt) === key(TODAY)) cls.push('today'); if (key(dt) === key(view)) cls.push('cur'); if (dt < TODAY) cls.push('past');
+    var sub = o.holiday || o.term || o.fest || (o.L ? (o.L.day === 1 ? o.L.month : lunarDay(o.L.day)) : '');
+    if (sub.length > 3) sub = sub.slice(0, 3);
+    h += '<button class="' + cls.join(' ') + '" data-go="' + key(dt) + '" aria-label="' + (m + 1) + '月' + d + '日">' + d + '<small>' + sub + '</small></button>';
+  }
+  return h + '</div>';
+}
+function openJump(){ mCursor = new Date(view.getFullYear(), view.getMonth(), 1); openSheet(monthHTML(), '跳到某一天'); }
+function clipsHTML(){
+  if (!saved.length) return '<h2>剪貼簿</h2><p class="empty">還沒有收藏的日子。<br>看到喜歡的那頁，按下方的「收藏」夾起來。</p>';
+  return '<h2>剪貼簿<small>' + saved.length + ' 頁</small></h2><div class="clips">' + saved.map(function(k, i){
+    var o = info(fromKey(k));
+    return '<div class="clip' + (o.red ? ' red' : '') + '" style="--r:' + ((i % 3 - 1) * 1.6) + 'deg"><span class="m">' + MON[o.m] + '</span><b>' + o.day + '</b><div class="y">' + o.y + '・' + (o.holiday || o.term || '星期' + WK[o.wd]) + '</div>' +
+      '<button class="go" data-go="' + k + '" aria-label="翻到 ' + k + '"></button><button class="x" data-unsave="' + k + '" aria-label="移除 ' + k + '"><i><svg viewBox="0 0 10 10" stroke="#f4f3ef" stroke-width="1.8"><path d="M1 1l8 8M9 1 1 9"/></svg></i></button></div>';
+  }).join('') + '</div>';
+}
+$('sbody').addEventListener('click', function(e){
+  var mv = e.target.closest('[data-mv]'), go = e.target.closest('[data-go]'), un = e.target.closest('[data-unsave]');
+  if (mv){ mCursor = new Date(mCursor.getFullYear(), mCursor.getMonth() + (+mv.dataset.mv), 1); $('sbody').innerHTML = monthHTML(); haptic(5); tick(); return; }
+  if (un){
+    var k = un.dataset.unsave, i = saved.indexOf(k); saved.splice(i, 1); save('saved', saved); render(); $('sbody').innerHTML = clipsHTML(); haptic(10);
+    toast('移除 ' + k.slice(5).replace('-', '/'), function(){ saved.splice(i, 0, k); save('saved', saved); render(); if (sheet.classList.contains('on')) $('sbody').innerHTML = clipsHTML(); });
+    return;
+  }
+  if (go){ closeSheet(); flipped = false; setTimeout(function(){ goTo(fromKey(go.dataset.go)); }, reduce ? 0 : 260); }
+});
+$('jumpBtn').addEventListener('click', openJump);
+$('clipsBtn').addEventListener('click', function(){ openSheet(clipsHTML(), '剪貼簿'); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+
+/* ---------- toast ---------- */
+var toastT = null, undoFn = null;
+function toast(msg, undo){
+  $('toastT').textContent = msg; undoFn = undo || null; $('toastU').hidden = !undo;
+  $('toast').classList.add('on'); clearTimeout(toastT);
+  toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, undo ? 4000 : 2000);
+}
+$('toastU').addEventListener('click', function(){ if (undoFn){ undoFn(); undoFn = null; haptic(8); } $('toast').classList.remove('on'); });
+
+/* ---------- clock ---------- */
+function clock(){
+  var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+  var t = new Date(); t.setHours(0, 0, 0, 0);
+  if (t - TODAY !== 0){ var wasToday = key(view) === key(TODAY); TODAY = t; if (wasToday) view = new Date(t); render(); }
+}
+clock(); setInterval(clock, 20000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 15 * b.level).toFixed(1)); }).catch(function(){});
+if (torn > 2) $('hint').classList.add('gone');
+render();
+})();
+</script>
+</body>
+</html>

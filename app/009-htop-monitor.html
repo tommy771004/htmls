@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="sysmon">
+<title>sysmon · 系統監控器</title>
+<meta name="description" content="htop 真實 ANSI 配色的口袋系統監控：每核 CPU 長條、記憶體組成、行程排序與送出信號、網路走勢與 tmux 指令列。收錄於 100 Creative HTML Works（App 009・黑客終端 htop）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/009-htop-monitor.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3Cg shape-rendering='crispEdges'%3E%3Crect x='10' y='14' width='4' height='10' fill='%23fff'/%3E%3Crect x='16' y='16' width='22' height='6' fill='%2371d15b'/%3E%3Crect x='38' y='16' width='8' height='6' fill='%23ef5b52'/%3E%3Crect x='50' y='14' width='4' height='10' fill='%23fff'/%3E%3Crect x='10' y='30' width='4' height='10' fill='%23fff'/%3E%3Crect x='16' y='32' width='12' height='6' fill='%2371d15b'/%3E%3Crect x='28' y='32' width='6' height='6' fill='%235b8ef0'/%3E%3Crect x='50' y='30' width='4' height='10' fill='%23fff'/%3E%3Crect x='6' y='48' width='52' height='8' fill='%2371d15b'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#000;--fg:#d6d6d0;--dim:#8a8a84;--faint:#4a4a46;
+  --r:#ef5b52;--g:#71d15b;--y:#e8c547;--b:#5f95f2;--m:#d472d4;--c:#56cfd8;--W:#fff;
+  --mono:Menlo,"SF Mono",Monaco,"PingFang TC","Heiti TC",monospace;
+  --lh:18px;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:13px/var(--lh) var(--mono);color:var(--fg);background:#000;overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;font-variant-ligatures:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-user-select:none;user-select:none;text-align:left;border-radius:0}
+input{font:inherit;color:inherit}
+:focus-visible{outline:1px dashed var(--c);outline-offset:-1px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.k0{color:#000}.kr{color:var(--r)}.kg{color:var(--g)}.ky{color:var(--y)}.kb{color:var(--b)}.km{color:var(--m)}.kc{color:var(--c)}.kW{color:var(--W);font-weight:700}.kd{color:var(--dim)}.kf{color:var(--faint)}
+.mono-scheme .kr,.mono-scheme .kg,.mono-scheme .ky,.mono-scheme .kb,.mono-scheme .km,.mono-scheme .kc{color:var(--fg)}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:#000;display:flex;flex-direction:column}
+@media (min-width:521px){
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;overflow:hidden;z-index:0}
+  .blog{position:absolute;left:3vw;right:3vw;top:0;bottom:0;padding:8px 0;font:12px/19px var(--mono);white-space:pre;color:#3d3d3a;column-width:460px;column-gap:3vw;column-fill:auto;overflow:hidden}
+  .blog span{opacity:.9}
+  .blog .hot{color:#6c6c66}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:56px;padding:10px;background:#0b0b0a;z-index:1;
+    box-shadow:inset 0 0 0 1px #2f2f2c,inset 0 0 0 3px #050505,0 1px 0 #3a3a36}
+  .screen{inset:10px;border-radius:46px}
+  .caption{display:block;position:relative;z-index:1;max-width:250px;background:#000;padding:14px 16px}
+  .caption h1{font:700 26px/1.1 var(--mono);color:var(--g)}
+  .caption h1 i{font-style:normal;color:var(--dim);font-weight:400}
+  .caption p{margin-top:10px;font-size:13px;line-height:1.7;color:var(--dim)}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+/* ---------- status bar ---------- */
+.sb{flex:none;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 26px 0 30px;display:flex;align-items:center;justify-content:space-between;color:var(--W);font-weight:700;font-size:14px}
+.sb .gl{display:flex;gap:7px;align-items:center}
+.sb svg{display:block;shape-rendering:crispEdges}
+@media (display-mode:standalone){.sb{display:none}}
+
+/* ---------- windows ---------- */
+.wins{position:relative;flex:1;min-height:0}
+.win{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:2px 8px 10px;scrollbar-width:none;overscroll-behavior:contain;touch-action:pan-y}
+.win::-webkit-scrollbar{display:none}
+.win[hidden]{display:none}
+.win.paint{animation:paint .16s steps(8,end)}
+@keyframes paint{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+.ln{white-space:pre;overflow:hidden;height:var(--lh)}
+.div{white-space:pre;overflow:hidden;color:var(--faint);height:var(--lh);margin:4px 0 2px}
+.div.on{color:var(--g)}
+.div b{font-weight:400;color:var(--fg)}
+.div.on b{color:var(--g)}
+.meter{display:block;width:100%;white-space:pre;overflow:hidden;height:22px;line-height:22px}
+.meter *,.pr *,.row44 *{pointer-events:none}
+.meter:active,.meter.pin{background:#1d1d1b}
+.cores{display:grid;grid-template-columns:1fr 1fr;column-gap:1ch}
+canvas{display:block;width:100%}
+.hist{height:150px;margin-top:2px}
+.pr{display:block;width:100%;white-space:pre;overflow:hidden;min-height:44px;padding:4px 0}
+.pr .l2{color:var(--dim)}
+.pr:active{background:#1d1d1b}
+.pr.sel{background:var(--c);color:#000}
+.pr.sel *{color:#000 !important}
+.pr.dying{background:var(--r);color:#000}
+.pr.dying *{color:#000 !important}
+.hdr{flex:none;display:flex;white-space:pre;background:var(--g);color:#000;height:30px;line-height:30px;overflow:hidden}
+.hdr button{height:30px;padding:0}
+.hdr button.on{background:var(--c)}
+.hdr button:active{background:var(--W)}
+.proc{display:flex;flex-direction:column;padding:0}
+.plist{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 8px 8px;scrollbar-width:none;overscroll-behavior:contain}
+.plist::-webkit-scrollbar{display:none}
+.hdrwrap{padding:0 8px}
+.empty{padding:18px 0;color:var(--dim);white-space:pre-wrap}
+.kbtn{display:inline-block;min-height:44px;line-height:44px;padding:0 1ch;color:var(--fg)}
+.kbtn b{color:var(--y);font-weight:700}
+.kbtn:active{background:var(--fg);color:#000}
+.kbtn:active b{color:#000}
+.row44{display:block;width:100%;min-height:44px;white-space:pre;overflow:hidden;padding:4px 0}
+.row44:active{background:#1d1d1b}
+.row44.off{color:var(--dim)}
+.spark{height:44px;margin:2px 0 6px}
+.memmap{height:54px;margin:6px 0 4px}
+.memp{height:90px;margin:4px 0}
+
+/* ---------- F-key bar ---------- */
+.fkeys{flex:none;display:grid;grid-template-columns:repeat(7,1fr);height:44px;background:#000;white-space:pre;overflow:hidden}
+.fkeys[hidden]{display:none}
+.fkeys button{display:flex;align-items:center;justify-content:center;height:44px;overflow:hidden}
+.fkeys button b{color:var(--W);font-weight:400;padding-right:1px}
+.fkeys button span{background:var(--c);color:#000;padding:0 1px}
+.fkeys button:active span,.fkeys button.on span{background:var(--W)}
+.fline{flex:none;display:flex;align-items:center;height:44px;padding:0 8px;background:#000;white-space:pre}
+.fline[hidden]{display:none}
+.fline b{color:#000;background:var(--c);font-weight:400;padding:0 1ch}
+.fline input{flex:1;min-width:0;background:none;border:0;outline:0;padding:0 1ch;height:44px;caret-color:var(--W)}
+.fline button{height:44px;padding:0 1ch;color:var(--dim)}
+
+/* ---------- tmux status line ---------- */
+.tmux{flex:none;position:relative;display:flex;align-items:stretch;height:44px;background:var(--g);color:#000;white-space:pre;overflow:hidden}
+.tmux button{height:44px;padding:0 .6ch}
+.tmux button:active{background:#000;color:var(--g)}
+.tmux .tw.on{background:#000;color:var(--g)}
+.tmux .ses b{font-weight:700}
+.tmux .rt{margin-left:auto;display:flex;align-items:center;padding-right:1ch}
+.tmux .msg{position:absolute;inset:0;display:flex;align-items:center;padding:0 1ch;background:var(--y);color:#000;visibility:hidden}
+.tmux .msg.on{visibility:visible}
+.tmux form{position:absolute;inset:0;display:flex;align-items:center;background:var(--y);color:#000;padding-left:1ch}
+.tmux form[hidden]{display:none}
+.tmux form input{flex:1;min-width:0;height:44px;background:none;border:0;outline:0;padding:0;caret-color:#000;color:#000}
+.tmux form button{padding:0 1.2ch}
+.home{flex:none;height:calc(22px + env(safe-area-inset-bottom));position:relative;background:#000}
+.home::after{content:"";position:absolute;left:50%;top:9px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:#d6d6d0}
+
+/* ---------- popup sheet (tmux display-popup) ---------- */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:6px;right:6px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:51;max-height:76%;display:flex;flex-direction:column;background:#000;
+  border:1px solid var(--g);transform:translateY(calc(100% + 90px));transition:transform .32s cubic-bezier(.2,.9,.25,1);touch-action:none}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.sheet .grab{flex:none;height:26px;display:flex;justify-content:center;align-items:center;cursor:grab}
+.sheet .grab i{width:44px;height:4px;background:var(--faint)}
+.sheet .ttl{position:absolute;top:-10px;left:14px;background:#000;padding:0 1ch;color:var(--g);line-height:18px}
+.sheet .body{overflow-y:auto;overflow-x:hidden;padding:0 12px 14px;touch-action:pan-y;scrollbar-width:none;overscroll-behavior:contain}
+.sheet .body::-webkit-scrollbar{display:none}
+.kv{white-space:pre-wrap;word-break:break-all}
+.sig{display:flex;width:100%;min-height:44px;align-items:center;white-space:pre}
+.sig:active,.sig.hl{background:var(--c);color:#000}
+.sig:active *,.sig.hl *{color:#000}
+.chk{display:flex;width:100%;min-height:44px;align-items:center;white-space:pre}
+.chk:active{background:#1d1d1b}
+.rng{display:flex;align-items:center;gap:1ch;min-height:44px}
+.rng input{flex:1;-webkit-appearance:none;appearance:none;height:30px;background:none;touch-action:none}
+.rng input::-webkit-slider-runnable-track{height:2px;background:var(--faint)}
+.rng input::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:20px;margin-top:-9px;background:var(--c);border-radius:0}
+.rng input::-moz-range-track{height:2px;background:var(--faint)}
+.rng input::-moz-range-thumb{width:9px;height:20px;background:var(--c);border:0;border-radius:0}
+.out{white-space:pre-wrap;word-break:break-all;min-height:40px}
+.cursor{display:inline-block;width:1ch;background:var(--fg);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{background:transparent}}
+
+@media (prefers-reduced-motion:reduce){
+  .win.paint{animation:none}
+  .sheet{transition:none}
+  .cursor{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><div class="blog" id="blog"></div></div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <header class="sb">
+        <span id="clock">14:32</span>
+        <span class="gl" aria-hidden="true">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" fill="#d6d6d0"/><rect x="5" y="5" width="3" height="7" fill="#d6d6d0"/><rect x="10" y="2" width="3" height="10" fill="#d6d6d0"/><rect x="15" y="0" width="3" height="12" fill="#4a4a46"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><rect x="0" y="0" width="16" height="2" fill="#d6d6d0"/><rect x="3" y="4" width="10" height="2" fill="#d6d6d0"/><rect x="6" y="8" width="4" height="4" fill="#d6d6d0"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><rect x="0" y="0" width="24" height="12" fill="none" stroke="#d6d6d0" stroke-width="2"/><rect x="24" y="4" width="3" height="4" fill="#d6d6d0"/><rect id="batt" x="3" y="3" width="14" height="6" fill="#71d15b"/></svg>
+        </span>
+      </header>
+
+      <main class="wins" id="wins">
+        <!-- 0:cpu -->
+        <section class="win" id="w0" aria-label="CPU">
+          <div class="cores" id="cores"></div>
+          <button class="meter" id="memM" aria-label="記憶體，前往 1:mem"></button>
+          <button class="meter" id="swpM" aria-label="置換空間"></button>
+          <div class="ln" id="tasks"></div>
+          <div class="ln" id="load"></div>
+          <div class="ln" id="upt"></div>
+          <div class="div on" id="d1"></div>
+          <canvas class="hist" id="hist" aria-label="CPU 使用率歷史"></canvas>
+          <div class="ln kd" id="histAx"></div>
+          <div class="div" id="d2"></div>
+          <div id="topcpu"></div>
+        </section>
+        <!-- 1:mem -->
+        <section class="win" id="w1" aria-label="記憶體" hidden>
+          <div class="ln"><span class="kc">記憶體</span> <span class="kd">16.0G 統一記憶體 · LPDDR5</span></div>
+          <canvas class="memmap" id="memmap"></canvas>
+          <div id="memleg"></div>
+          <div class="div on" id="d3"></div>
+          <canvas class="memp" id="memp" aria-label="記憶體壓力"></canvas>
+          <div class="ln" id="memstat"></div>
+          <div>
+            <button class="kbtn" id="purgeBtn"><b>p</b>urge 快取</button>
+            <button class="kbtn" id="swapBtn"><b>s</b>wap 細節</button>
+          </div>
+          <div class="div" id="d4"></div>
+          <div id="topmem"></div>
+        </section>
+        <!-- 2:proc -->
+        <section class="win proc" id="w2" aria-label="行程" hidden>
+          <div class="hdrwrap"><div class="hdr" id="hdr" role="toolbar" aria-label="排序欄位"></div></div>
+          <div class="plist" id="plist" role="listbox" aria-label="行程列表"></div>
+        </section>
+        <!-- 3:net -->
+        <section class="win" id="w3" aria-label="網路" hidden>
+          <div id="ifaces"></div>
+          <div class="div on" id="d5"></div>
+          <div id="conns"></div>
+          <div>
+            <button class="kbtn" id="unitBtn"><b>u</b>nits <span id="unitLbl">bytes</span></button>
+            <button class="kbtn" id="pingBtn"><b>i</b> ping ptt.cc</button>
+          </div>
+        </section>
+      </main>
+
+      <div class="fline" id="fline" hidden>
+        <b id="fmode">F4 篩選</b><input id="finput" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="篩選文字"><button id="fclose" aria-label="關閉篩選">Esc</button>
+      </div>
+      <div class="fkeys" id="fkeys" hidden>
+        <button data-f="1" aria-label="F1 說明"><b>F1</b><span>說明</span></button>
+        <button data-f="2" aria-label="F2 設定"><b>F2</b><span>設定</span></button>
+        <button data-f="3" aria-label="F3 搜尋"><b>F3</b><span>搜尋</span></button>
+        <button data-f="4" aria-label="F4 篩選"><b>F4</b><span>篩選</span></button>
+        <button data-f="5" aria-label="F5 樹狀"><b>F5</b><span>樹狀</span></button>
+        <button data-f="6" aria-label="F6 排序"><b>F6</b><span>排序</span></button>
+        <button data-f="9" aria-label="F9 送出信號"><b>F9</b><span>結束</span></button>
+      </div>
+
+      <nav class="tmux" id="tmux" aria-label="tmux 視窗">
+        <button class="ses" id="cmdBtn" aria-label="開啟指令列"><b>[:</b>sys<b>]</b></button>
+        <button class="tw on" data-w="0" role="tab" aria-selected="true">0:cpu*</button>
+        <button class="tw" data-w="1" role="tab" aria-selected="false">1:mem </button>
+        <button class="tw" data-w="2" role="tab" aria-selected="false">2:proc</button>
+        <button class="tw" data-w="3" role="tab" aria-selected="false">3:net </button>
+        <span class="rt" id="tclock">14:32</span>
+        <div class="msg" id="msg" role="status" aria-live="polite"></div>
+        <form id="prompt" hidden autocomplete="off"><span>:</span><input id="pin" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-label="tmux 指令"><button type="button" id="pesc">Esc</button></form>
+      </nav>
+      <div class="home" aria-hidden="true"></div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT">
+        <span class="ttl" id="sheetT">popup</span>
+        <div class="grab" aria-hidden="true"><i></i></div>
+        <div class="body" id="sheetBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caption">
+    <h1>sysmon<i>_</i></h1>
+    <p>htop 配色的口袋系統監控。每核 CPU、行程排序與送出信號、網路走勢，全在一條 tmux 狀態列下。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app009:';
+function load(k, d){ try { var v = localStorage.getItem(KEY+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY+k, JSON.stringify(v)); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var S = load('settings', {interval:1, sound:true, haptic:true, hideK:true, tree:false, mono:false, units:'bytes'});
+var sortK = load('sort', {k:'cpu', d:1});
+function haptic(p){ if (!S.haptic) return; try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function pad(s, n, right){ s = String(s); if (s.length > n) return s.slice(0, n); var p = ' '.repeat(n - s.length); return right ? p + s : s + p; }
+function patch(box, items){
+  var old = {};
+  Array.prototype.slice.call(box.children).forEach(function(c){ if (c.dataset.key) old[c.dataset.key] = c; else c.remove(); });
+  var prev = null;
+  items.forEach(function(it){
+    var el = old[it.key];
+    if (!el){ el = document.createElement(it.tag || 'button'); el.dataset.key = it.key; } else delete old[it.key];
+    if (el.className !== it.cls) el.className = it.cls;
+    if (it.html != null && el._h !== it.html){ el.innerHTML = it.html; el._h = it.html; }
+    if (it.attrs) for (var a in it.attrs) if (el.getAttribute(a) !== String(it.attrs[a])) el.setAttribute(a, it.attrs[a]);
+    var next = prev ? prev.nextSibling : box.firstChild;
+    if (next !== el) box.insertBefore(el, next);
+    prev = el;
+  });
+  for (var k in old) old[k].remove();
+}
+function sp(cls, t){ return '<span class="'+cls+'">'+esc(t)+'</span>'; }
+
+// ---------- sound: terminal bell + blips, created on gesture ----------
+var ac = null;
+function audio(){ if (!S.sound) return null; try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
+function beep(f, dur, type, vol){
+  var a = audio(); if (!a) return;
+  var o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
+  o.type = type || 'square'; o.frequency.value = f;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol || .05, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + .02);
+}
+function bell(){ beep(220, .22, 'square', .06); haptic([30, 40, 30]); }
+function blip(){ beep(1320, .04, 'square', .025); }
+
+// ---------- char grid ----------
+var CW = 7.8;
+function measure(){
+  var s = document.createElement('span'); s.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:13px var(--mono)';
+  s.textContent = 'M'.repeat(40); document.body.appendChild(s); CW = s.getBoundingClientRect().width / 40 || 7.8; s.remove();
+}
+function colsOf(el){ var cs = getComputedStyle(el), w = (el.clientWidth || 360) - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); return Math.max(20, Math.floor(w / CW)); }
+
+// ---------- processes ----------
+var SEED = [
+  [1,0,'root','launchd','/sbin/launchd',.1,18,'S',4],
+  [0,0,'root','kernel_task','kernel_task',6,3100,'S',412,true],
+  [182,1,'_windowserver','WindowServer','/System/Library/PrivateFrameworks/SkyLight.framework/WindowServer -daemon',14,690,'S',22],
+  [311,1,'root','mds_stores','/System/Library/Frameworks/CoreServices.framework/mds_stores',3,210,'S',9],
+  [402,1,'root','bluetoothd','/usr/sbin/bluetoothd',.4,24,'S',6],
+  [455,1,'root','backupd','/System/Library/CoreServices/backupd.bundle/backupd  Time Machine → TPE-NAS',2,96,'S',11],
+  [612,1,'_spotlight','photoanalysisd','photoanalysisd  分析 2,318 張 墾丁旅行 相片',9,420,'S',8],
+  [1204,1,'tommy','Google Chrome','/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',4,610,'S',38],
+  [1233,1204,'tommy','Chrome Helper','Chrome Helper (Renderer)  --type=renderer  ptt.cc/bbs/Gossiping',11,380,'S',19],
+  [1241,1204,'tommy','Chrome Helper','Chrome Helper (Renderer)  --type=renderer  youtube.com  台北捷運 車廂錄影',18,520,'S',24],
+  [1250,1204,'tommy','Chrome Helper','Chrome Helper (GPU)  --type=gpu-process',7,300,'S',14],
+  [1302,1,'tommy','LINE','/Applications/LINE.app/Contents/MacOS/LINE  「週五聚餐」群組',3,340,'S',31],
+  [1377,1,'tommy','Spotify','/Applications/Spotify.app  正在播放 草東沒有派對 - 山海',2.5,290,'S',27],
+  [1420,1,'tommy','Code Helper','Code Helper (Plugin)  ~/dev/bento-order',5,470,'S',21],
+  [2088,1,'tommy','tmux','tmux: server (/private/tmp/tmux-501/default)',.2,6,'S',1],
+  [2090,2088,'tommy','zsh','-zsh',0,5,'S',1],
+  [2111,2090,'tommy','node','node ~/dev/bento-order/server.js --port 3000',6,180,'S',11],
+  [2140,1,'postgres','postgres','postgres: tommy bento_db [local] idle',1.2,120,'S',6],
+  [2141,2140,'postgres','postgres','postgres: autovacuum launcher',.3,18,'S',1],
+  [2302,2090,'tommy','python3','python3 scrape_twse.py --date 2026-09-23  台股收盤爬蟲',22,260,'R',4],
+  [2388,2090,'tommy','ffmpeg','ffmpeg -i 台北101跨年煙火.mov -c:v libx265 -crf 22 fireworks.mp4',168,910,'R',24],
+  [2410,1,'tommy','Docker','com.docker.virtualization  3 containers',9,1480,'S',17],
+  [2433,1,'tommy','Notion','/Applications/Notion.app  「期末專題 分工表」',2,260,'S',23],
+  [2502,1,'ytlin','sshd','sshd: ytlin@ttys003',.2,8,'S',2],
+  [2519,2502,'ytlin','rsync','rsync -av ~/論文資料/ ytlin@nas.ntu:/backup/',4,40,'D',3],
+  [2601,2090,'tommy','sysmon','sysmon --tmux --theme htop',1.6,32,'R',3]
+];
+var procs;
+function spawnAll(){
+  procs = SEED.map(function(s){ return {pid:s[0],ppid:s[1],user:s[2],name:s[3],cmd:s[4],base:s[5],mem:s[6],st:s[7],thr:s[8],kern:!!s[9],cpu:s[5],time:s[5]*(40+s[0]%97)*36,ni:0,start:startOf(s[0])}; });
+}
+function startOf(pid){ var h = 7 + (pid * 7) % 8, m = (pid * 13) % 60; return pad(h,2,1).replace(' ','0')+':'+pad(m,2,1).replace(' ','0'); }
+spawnAll();
+var saved = load('procs', null);
+if (saved){
+  var dead = saved.dead || [], st = saved.st || {}, ni = saved.ni || {};
+  procs = procs.filter(function(p){ return dead.indexOf(p.pid) < 0; });
+  procs.forEach(function(p){ if (st[p.pid]) p.st = st[p.pid]; if (ni[p.pid] != null) p.ni = ni[p.pid]; });
+}
+var deadList = saved && saved.dead ? saved.dead.slice() : [];
+function persistProcs(){
+  var st = {}, ni = {};
+  procs.forEach(function(p){ if (p.st === 'T') st[p.pid] = 'T'; if (p.ni) ni[p.pid] = p.ni; });
+  save('procs', {dead:deadList, st:st, ni:ni});
+}
+var selPid = load('sel', 2388);
+var filterTxt = '';
+
+// ---------- simulation ----------
+var NC = 8, cores = [], hist = [], memHist = [], pinCore = -1;
+for (var i = 0; i < NC; i++) cores.push({u:0,k:0,l:0});
+var rx = {en0:[],utun3:[],lo0:[]}, tx = {en0:[],utun3:[],lo0:[]};
+var ifState = load('if', {en0:true, utun3:true, lo0:true});
+var cache = 3.1, purged = 0, uptime0 = Date.now() - (12*86400 + 4*3600 + 13*60) * 1000;
+function rnd(a, b){ return a + Math.random() * (b - a); }
+function step(){
+  var total = 0;
+  procs.forEach(function(p){
+    if (p.st === 'T' || p.st === 'Z') { p.cpu = 0; return; }
+    var nf = 1 - p.ni / 40;
+    var v = p.base * nf * rnd(.55, 1.45);
+    if (Math.random() < .04) v += rnd(5, 40) * (p.base > 1 ? 1 : .2);
+    p.cpu = Math.max(0, Math.min(v, p.thr * 100));
+    p.time += p.cpu / 100 * S.interval;
+    if (p.name !== 'kernel_task') p.st = p.cpu > 15 ? 'R' : (p.st === 'D' ? 'D' : 'S');
+    total += p.cpu;
+  });
+  var per = total / NC, ws = [], sum = 0;
+  for (var i = 0; i < NC; i++){ var w = (i < 4 ? 1.35 : .65) * rnd(.6, 1.4); ws.push(w); sum += w; }
+  for (i = 0; i < NC; i++){
+    var t = Math.min(100, per * ws[i] * NC / sum);
+    cores[i] = {u:t * .72, k:t * .22, l:t * .06};
+  }
+  hist.push(cores.map(function(c){ return c.u + c.k + c.l; }));
+  if (hist.length > 240) hist.shift();
+  if (cache < 3.1) cache = Math.min(3.1, cache + .02);
+  var m = memUse();
+  memHist.push(m.pressure); if (memHist.length > 240) memHist.shift();
+  ['en0','utun3','lo0'].forEach(function(k){
+    var up = ifState[k], base = k === 'en0' ? 2.4e6 : k === 'utun3' ? 3.2e5 : 6e4;
+    var hasF = procs.some(function(p){ return p.name === 'rsync'; });
+    rx[k].push(up ? base * rnd(.2, 1.6) * (Math.random() < .08 ? 4 : 1) : 0);
+    tx[k].push(up ? base * rnd(.05, .35) * (k === 'en0' && hasF ? 3 : 1) : 0);
+    if (rx[k].length > 120){ rx[k].shift(); tx[k].shift(); }
+  });
+}
+function memUse(){
+  var app = procs.reduce(function(a, p){ return a + p.mem; }, 0) / 1024 * .72;
+  var wired = 2.2, comp = Math.max(.2, app * .12), used = app + wired + comp;
+  var total = 16, free = Math.max(.3, total - used - cache);
+  return {app:app, wired:wired, comp:comp, cache:cache, free:free, used:used, total:total, pressure:Math.min(1, (used) / total)};
+}
+
+// ---------- rendering helpers ----------
+function meter(label, parts, text, n){
+  var inner = n - label.length - 2; if (inner < 4) inner = 4;
+  var cells = [];
+  parts.forEach(function(p){ var c = Math.round(p.v * inner); for (var i = 0; i < c && cells.length < inner; i++) cells.push({ch:'|', c:p.c}); });
+  while (cells.length < inner) cells.push({ch:' ', c:''});
+  var t = text.slice(-inner);
+  for (var j = 0; j < t.length; j++) cells[inner - t.length + j] = {ch:t[j], c:'kd'};
+  var out = sp('kc', label) + sp('kW', '['), cur = null, buf = '';
+  cells.forEach(function(x){ if (x.c !== cur){ if (buf) out += sp(cur || '', buf); buf = ''; cur = x.c; } buf += x.ch; });
+  if (buf) out += sp(cur || '', buf);
+  return out + sp('kW', ']');
+}
+function divider(el, title, on){
+  var n = colsOf(el.parentNode);
+  var t = title ? '─ ' + title + ' ' : '';
+  var tw = 0; for (var i = 0; i < t.length; i++) tw += t.charCodeAt(i) > 0x2e80 ? 2 : 1;
+  el.innerHTML = esc('─'.slice(0)) + '<b>' + esc(t.slice(1)) + '</b>' + esc('─'.repeat(Math.max(0, n - tw)));
+  if (on != null) el.classList.toggle('on', on);
+}
+function fmtMem(mb){ return mb >= 1024 ? (mb / 1024).toFixed(2) + 'G' : Math.round(mb) + 'M'; }
+function fmtTime(s){ var h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = (s % 60).toFixed(2); return (h ? h + 'h' : '') + pad(m, h ? 2 : 1, 1).replace(' ', '0') + ':' + pad(x, 5, 1).replace(' ', '0'); }
+function fmtRate(b){ if (S.units === 'bits'){ b *= 8; return b > 1e6 ? (b / 1e6).toFixed(1) + 'Mb' : (b / 1e3).toFixed(0) + 'Kb'; } return b > 1e6 ? (b / 1e6).toFixed(1) + 'M' : (b / 1e3).toFixed(0) + 'K'; }
+function sizeCanvas(cv){
+  var d = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w * d) || cv.height !== Math.round(h * d)){ cv.width = Math.round(w * d); cv.height = Math.round(h * d); }
+  var x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, w, h); return {x:x, w:w, h:h};
+}
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function lvl(v){ if (S.mono) return css('--fg'); return v > 80 ? css('--r') : v > 50 ? css('--y') : css('--g'); }
+
+// ---------- window 0: cpu ----------
+function renderCpu(){
+  var w0 = $('w0'), n = colsOf(w0), half = Math.floor((n - 1) / 2), items = [];
+  [0, 4, 1, 5, 2, 6, 3, 7].forEach(function(i){
+    var c = cores[i], tot = c.u + c.k + c.l;
+    items.push({key:'c' + i, cls:'meter' + (pinCore === i ? ' pin' : ''), attrs:{'data-core':i, 'aria-label':'核心 ' + (i + 1)},
+      html:meter(pad(i + 1, 2, 1), [{v:c.l / 100, c:'kb'}, {v:c.u / 100, c:'kg'}, {v:c.k / 100, c:'kr'}], tot.toFixed(1) + '%', half)});
+  });
+  patch($('cores'), items);
+  var m = memUse();
+  $('memM').innerHTML = meter('Mem', [{v:m.app / 16, c:'kg'}, {v:(m.wired + m.comp) / 16, c:'kb'}, {v:m.cache / 16, c:'ky'}], m.used.toFixed(2) + 'G/16.0G', n);
+  var swp = procs.some(function(p){ return p.name === 'ffmpeg'; }) ? 612 : 128;
+  $('swpM').innerHTML = meter('Swp', [{v:swp / 2048, c:'kr'}], swp + 'M/2.00G', n);
+  var run = procs.filter(function(p){ return p.st === 'R'; }).length, thr = procs.reduce(function(a, p){ return a + p.thr; }, 0);
+  $('tasks').innerHTML = sp('kc', 'Tasks: ') + sp('kW', procs.length + 286) + sp('kc', ', ') + sp('kg', thr + 812) + sp('kc', ' thr; ') + sp('kg', run) + sp('kc', ' running');
+  var tot = cores.reduce(function(a, c){ return a + c.u + c.k + c.l; }, 0) / 100;
+  loadAvg[0] += (tot - loadAvg[0]) * .15; loadAvg[1] += (tot - loadAvg[1]) * .04; loadAvg[2] += (tot - loadAvg[2]) * .012;
+  $('load').innerHTML = sp('kc', 'Load average: ') + sp('kW', loadAvg[0].toFixed(2)) + ' ' + sp('kc', loadAvg[1].toFixed(2)) + ' ' + sp('kd', loadAvg[2].toFixed(2));
+  var up = Math.floor((Date.now() - uptime0) / 1000);
+  $('upt').innerHTML = sp('kc', 'Uptime: ') + sp('kW', Math.floor(up / 86400) + ' days, ' + [Math.floor(up / 3600) % 24, Math.floor(up / 60) % 60, up % 60].map(function(x){ return pad(x, 2, 1).replace(' ', '0'); }).join(':'));
+  divider($('d1'), pinCore < 0 ? 'CPU 全部核心 · ' + (S.interval * 60) + 's' : 'CPU 核心 ' + (pinCore + 1) + ' · 點同一條取消', true);
+  drawHist();
+  divider($('d2'), 'top · 依 CPU%', false);
+  var top = procs.slice().filter(function(p){ return !(S.hideK && p.kern); }).sort(function(a, b){ return b.cpu - a.cpu; }).slice(0, 6);
+  patch($('topcpu'), top.map(function(p){
+    return {key:'t' + p.pid, cls:'row44', attrs:{'data-jump':p.pid}, html:sp('kW', pad(p.pid, 5, 1)) + ' ' + sp(p.cpu > 50 ? 'kr' : p.cpu > 10 ? 'ky' : 'kg', pad(p.cpu.toFixed(1), 5, 1)) + '% ' + sp('kW', p.name) + '\n' + sp('kd', '      ' + p.cmd)};
+  }));
+}
+var loadAvg = [3.1, 2.6, 2.2];
+function drawHist(){
+  var cv = $('hist'), g = sizeCanvas(cv), x = g.x, cw = CW, rows = Math.floor(g.h / 6);
+  var cols = Math.floor(g.w / cw), data = hist.slice(-cols);
+  x.fillStyle = css('--faint');
+  for (var r = 1; r < 4; r++){ var yy = Math.round(g.h * r / 4) + .5; for (var xx = 0; xx < g.w; xx += 4) x.fillRect(xx, yy, 1, 1); }
+  var off = cols - data.length;
+  data.forEach(function(sample, i){
+    var v = pinCore < 0 ? sample.reduce(function(a, b){ return a + b; }, 0) / NC : sample[pinCore];
+    var hh = Math.round(v / 100 * rows) * 6, px = (off + i) * cw;
+    for (var y = 0; y < hh; y += 6){
+      var lv = (y + 6) / g.h * 100; x.fillStyle = lvl(lv);
+      x.fillRect(Math.round(px), g.h - y - 5, Math.max(1, Math.round(cw) - 2), 5);
+    }
+  });
+  var last = data.length ? data[data.length - 1] : [0];
+  var lv = pinCore < 0 ? last.reduce(function(a, b){ return a + b; }, 0) / NC : last[pinCore];
+  $('histAx').textContent = pad('-' + (cols * S.interval) + 's', Math.floor(colsOf($('w0')) - 8)) + pad((lv || 0).toFixed(1) + '%', 8, 1);
+}
+
+// ---------- window 1: mem ----------
+function renderMem(){
+  var m = memUse(), cv = $('memmap'), g = sizeCanvas(cv), x = g.x, cells = Math.floor(g.w / CW), rows = 3, rh = g.h / rows;
+  var segs = [[m.app, '--g', '應用程式'], [m.wired, '--r', '聯動'], [m.comp, '--m', '已壓縮'], [m.cache, '--y', '快取檔案'], [m.free, '--faint', '可用']];
+  var totalCells = cells * rows, idx = 0;
+  segs.forEach(function(s){
+    var n = Math.round(s[0] / 16 * totalCells);
+    x.fillStyle = S.mono && s[1] !== '--faint' ? css('--fg') : css(s[1]);
+    for (var k = 0; k < n && idx < totalCells; k++, idx++){
+      var col = Math.floor(idx / rows), row = idx % rows;
+      x.fillRect(Math.round(col * CW), Math.round(row * rh) + 1, Math.max(1, Math.round(CW) - 2), Math.round(rh) - 3);
+    }
+  });
+  var leg = '';
+  segs.forEach(function(s){ leg += '<div class="ln">' + sp(s[1] === '--faint' ? 'kd' : 'k' + s[1].slice(2), '■') + ' ' + pad(s[2], 6) + sp('kW', pad(s[0].toFixed(2) + 'G', 8, 1)) + sp('kd', pad((s[0] / 16 * 100).toFixed(0) + '%', 6, 1)) + '</div>'; });
+  $('memleg').innerHTML = leg;
+  divider($('d3'), '記憶體壓力 · ' + (m.pressure > .85 ? '警告' : m.pressure > .7 ? '偏高' : '正常'), true);
+  var pc = $('memp'), q = sizeCanvas(pc), y = q.x, data = memHist.slice(-Math.floor(q.w / 3));
+  y.fillStyle = css('--faint'); for (var xx = 0; xx < q.w; xx += 4) y.fillRect(xx, Math.round(q.h * .3) + .5, 1, 1);
+  data.forEach(function(v, i){ var hh = v * q.h; y.fillStyle = lvl(v * 100 * .95); y.fillRect(q.w - (data.length - i) * 3, q.h - hh, 2, hh); });
+  $('memstat').innerHTML = sp('kc', '壓縮 ') + sp('kW', (m.comp).toFixed(2) + 'G') + sp('kc', '  置換 ') + sp('kW', '612M') + sp('kc', '  頁面 ') + sp('kW', (4.2 + purged).toFixed(1) + 'M/s');
+  divider($('d4'), 'top · 依 RES', false);
+  var top = procs.slice().sort(function(a, b){ return b.mem - a.mem; }).slice(0, 7), mx = top.length ? top[0].mem : 1, n = colsOf($('w1'));
+  patch($('topmem'), top.map(function(p){
+    var bw = Math.max(1, Math.round(p.mem / mx * (n - 22)));
+    return {key:'m' + p.pid, cls:'row44', attrs:{'data-jump':p.pid}, html:sp('kW', pad(p.name, 13)) + sp('kc', pad(fmtMem(p.mem), 7, 1)) + ' ' + sp('kg', '|'.repeat(bw)) + '\n' + sp('kd', '      PID ' + p.pid + '  ' + p.user + '  ' + p.thr + ' thr')};
+  }));
+}
+
+// ---------- window 2: proc ----------
+var COLS = [['pid','  PID',5,1],['user',' USER     ',10,0],['st','S ',2,0],['cpu',' CPU%',5,1],['mem','  MEM%',6,1],['cmd',' Command',0,0]];
+function renderHdr(){
+  var h = '';
+  COLS.forEach(function(c){ h += '<button data-sort="'+c[0]+'" class="'+(sortK.k === c[0] ? 'on' : '')+'" aria-label="依 '+c[1].trim()+' 排序">'+esc(c[1] + (sortK.k === c[0] && c[0] !== 'cmd' ? '' : ''))+'</button>'; });
+  $('hdr').innerHTML = h;
+}
+function visibleProcs(){
+  var list = procs.filter(function(p){ return !(S.hideK && p.kern); });
+  if (filterTxt && fmode === 'f'){ var f = filterTxt.toLowerCase(); list = list.filter(function(p){ return (p.cmd + ' ' + p.user + ' ' + p.pid).toLowerCase().indexOf(f) >= 0; }); }
+  var k = sortK.k, d = sortK.d;
+  var key = function(p){ return k === 'mem' ? p.mem : k === 'pid' ? p.pid : k === 'user' ? p.user : k === 'st' ? p.st : k === 'cmd' ? p.cmd.toLowerCase() : k === 'time' ? p.time : p.cpu; };
+  list.sort(function(a, b){ var x = key(a), y = key(b); return (x > y ? -1 : x < y ? 1 : 0) * d; });
+  if (S.tree){
+    var byP = {}, out = [];
+    list.forEach(function(p){ (byP[p.ppid] = byP[p.ppid] || []).push(p); });
+    var ids = {}; list.forEach(function(p){ ids[p.pid] = 1; });
+    var walk = function(p, pre, last, depth){
+      p._tree = depth ? pre + (last ? '└─ ' : '├─ ') : '';
+      out.push(p);
+      var kids = (byP[p.pid] || []).filter(function(c){ return c.pid !== p.pid; });
+      kids.forEach(function(c, i){ walk(c, depth ? pre + (last ? '   ' : '│  ') : '', i === kids.length - 1, depth + 1); });
+    };
+    list.filter(function(p){ return !ids[p.ppid] || p.pid === p.ppid; }).forEach(function(p){ walk(p, '', true, 0); });
+    return out;
+  }
+  list.forEach(function(p){ p._tree = ''; });
+  return list;
+}
+function renderProc(){
+  var list = visibleProcs(), items = [];
+  if (!list.length){ $('plist').innerHTML = '<div class="empty">沒有符合「'+esc(filterTxt)+'」的行程。\nEsc 清除篩選。</div>'; return; }
+  list.forEach(function(p){
+    var cpuC = p.cpu > 50 ? 'kr' : p.cpu > 10 ? 'ky' : '', stC = p.st === 'R' ? 'kg' : p.st === 'T' ? 'kr' : p.st === 'D' ? 'km' : 'kd';
+    var memP = p.mem / 16384 * 100;
+    var srch = fmode === 's' && filterTxt && p.cmd.toLowerCase().indexOf(filterTxt.toLowerCase()) >= 0;
+    items.push({key:'p' + p.pid, cls:'pr' + (p.pid === selPid ? ' sel' : '') + (p.dying ? ' dying' : ''), attrs:{'data-pid':p.pid, role:'option', 'aria-selected':p.pid === selPid}, html:
+      sp('kW', pad(p.pid, 5, 1)) + ' ' + sp(p.user === 'root' ? 'kr' : p.user === 'tommy' ? '' : 'kc', pad(p.user, 8)) + ' ' + sp(stC, p.st) + ' ' +
+      sp(cpuC, pad(p.cpu.toFixed(1), 5, 1)) + ' ' + sp(memP > 5 ? 'kc' : '', pad(memP.toFixed(1), 5, 1)) + ' ' + sp('kc', p._tree) + sp(srch ? 'ky' : 'kW', p.name) + (p.ni ? sp(p.ni < 0 ? 'kr' : 'kg', ' ni' + p.ni) : '') +
+      '\n<span class="l2">' + esc('      ' + fmtTime(p.time) + '  ' + fmtMem(p.mem) + '  ' + p.thr + 'thr  ' + p.cmd) + '</span>'});
+  });
+  patch($('plist'), items);
+}
+
+// ---------- window 3: net ----------
+var CONNS = [
+  ['LINE', 'gw.line.naver.jp:443', 'ESTAB', 1.1e5],
+  ['Chrome Helper', 'ptt.cc:443', 'ESTAB', 4.2e5],
+  ['Chrome Helper', 'rr3.googlevideo.com:443', 'ESTAB', 1.9e6],
+  ['Spotify', 'audio-ak.spotifycdn.com:443', 'ESTAB', 2.4e5],
+  ['python3', 'openapi.twse.com.tw:443', 'ESTAB', 8.8e4],
+  ['rsync', 'nas.ntu.edu.tw:22', 'ESTAB', 6.1e5],
+  ['node', 'localhost:5432', 'ESTAB', 1.2e4],
+  ['backupd', 'TPE-NAS.local:445', 'SYN_SENT', 0]
+];
+function renderNet(){
+  var n = colsOf($('w3')), items = [];
+  [['en0', 'Wi-Fi · TPE-Home-5G', '192.168.1.23'], ['utun3', 'VPN · 學校 NTU', '10.8.0.14'], ['lo0', 'loopback', '127.0.0.1']].forEach(function(f){
+    var k = f[0], on = ifState[k], r = rx[k], t = tx[k], lr = r[r.length - 1] || 0, lt = t[t.length - 1] || 0;
+    var sumR = r.reduce(function(a, b){ return a + b; }, 0) * S.interval, sumT = t.reduce(function(a, b){ return a + b; }, 0) * S.interval;
+    items.push({key:'i' + k, cls:'row44' + (on ? '' : ' off'), attrs:{'data-if':k, 'aria-label':k + (on ? ' 連線中，點一下停用' : ' 已停用，點一下啟用')}, html:
+      sp(on ? 'kW' : 'kd', pad(k, 6)) + sp('kd', pad(f[1], Math.max(10, n - 25))) + (on ? sp('kg', '↓' + pad(fmtRate(lr), 6, 1)) + ' ' + sp('kr', '↑' + pad(fmtRate(lt), 6, 1)) : sp('kr', pad('DOWN', 15, 1))) +
+      '\n' + sp('kd', '      ' + f[2] + '  累計 ↓' + fmtRate(sumR) + ' ↑' + fmtRate(sumT))});
+    items.push({key:'s' + k, tag:'canvas', cls:'spark', attrs:{'data-sp':k, 'aria-hidden':'true'}});
+  });
+  patch($('ifaces'), items);
+  document.querySelectorAll('[data-sp]').forEach(function(cv){
+    var k = cv.dataset.sp, g = sizeCanvas(cv), x = g.x, r = rx[k], t = tx[k], cols = Math.floor(g.w / 3), mx = 1;
+    var rs = r.slice(-cols), ts = t.slice(-cols);
+    rs.forEach(function(v){ mx = Math.max(mx, v); }); ts.forEach(function(v){ mx = Math.max(mx, v); });
+    var mid = g.h / 2;
+    x.fillStyle = css('--faint'); for (var xx = 0; xx < g.w; xx += 3) x.fillRect(xx, Math.round(mid), 1, 1);
+    rs.forEach(function(v, i){ var hh = Math.max(v ? 1 : 0, v / mx * (mid - 2)); x.fillStyle = S.mono ? css('--fg') : css('--g'); x.fillRect(g.w - (rs.length - i) * 3, mid - hh, 2, hh); });
+    ts.forEach(function(v, i){ var hh = Math.max(v ? 1 : 0, v / mx * (mid - 2)); x.fillStyle = S.mono ? css('--dim') : css('--r'); x.fillRect(g.w - (ts.length - i) * 3, mid + 1, 2, hh); });
+  });
+  divider($('d5'), 'nettop · 連線', true);
+  var c = '', live = procs.map(function(p){ return p.name; });
+  CONNS.forEach(function(k){
+    var alive = live.indexOf(k[0]) >= 0, rate = alive && ifState.en0 ? k[3] * rnd(.3, 1.5) : 0;
+    c += '<div class="ln">' + sp(alive ? 'kW' : 'kd', pad(k[0], 13)) + ' ' + sp(alive ? 'kg' : 'kd', pad(alive ? fmtRate(rate) : '-', 6, 1)) + ' ' + sp(k[2] === 'ESTAB' && alive ? 'kc' : 'ky', pad(alive ? k[2] : 'CLOSED', 8)) + '</div>' +
+      '<div class="ln kd">  → ' + esc(k[1]) + '</div>';
+  });
+  $('conns').innerHTML = c;
+  $('unitLbl').textContent = S.units;
+}
+
+// ---------- windows ----------
+var W = load('win', 0), fmode = '';
+function render(){
+  if (W === 0) renderCpu(); else if (W === 1) renderMem(); else if (W === 2) renderProc(); else renderNet();
+}
+function setWin(i, quiet){
+  i = (i + 4) % 4;
+  if (i !== W || quiet){
+    for (var k = 0; k < 4; k++) $('w' + k).hidden = k !== i;
+    var el = $('w' + i); el.classList.remove('paint'); void el.offsetWidth; if (!quiet && !reduce) el.classList.add('paint');
+  }
+  var prev = W; W = i; save('win', W);
+  document.querySelectorAll('.tw').forEach(function(b){
+    var n = +b.dataset.w, names = ['cpu', 'mem', 'proc', 'net'];
+    b.classList.toggle('on', n === W); b.setAttribute('aria-selected', n === W);
+    b.textContent = n + ':' + names[n] + (n === W ? '*' : n === prev && n !== W ? '-' : ' ');
+  });
+  $('fkeys').hidden = W !== 2 || !$('fline').hidden;
+  if (W !== 2) closeF();
+  if (W === 2) renderHdr();
+  render();
+}
+document.querySelectorAll('.tw').forEach(function(b){ b.addEventListener('click', function(){ haptic(6); blip(); setWin(+b.dataset.w); }); });
+// swipe between windows (prefix n / p)
+(function(){
+  var sx = 0, sy = 0, on = false;
+  $('wins').addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; on = true; });
+  $('wins').addEventListener('pointerup', function(e){
+    if (!on) return; on = false;
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6){ haptic(5); setWin(W + (dx < 0 ? 1 : -1)); msg('select-window ' + (dx < 0 ? 'next' : 'previous')); }
+  });
+  $('wins').addEventListener('pointercancel', function(){ on = false; });
+})();
+
+// window-level taps
+$('cores').addEventListener('click', function(e){
+  var b = e.target.closest('[data-core]'); if (!b) return;
+  var c = +b.dataset.core; pinCore = pinCore === c ? -1 : c; haptic(6); renderCpu();
+});
+$('memM').addEventListener('click', function(){ haptic(6); setWin(1); });
+$('swpM').addEventListener('click', function(){ haptic(6); openSwap(); });
+document.addEventListener('click', function(e){
+  var j = e.target.closest('[data-jump]'); if (!j) return;
+  selPid = +j.dataset.jump; save('sel', selPid); haptic(6); setWin(2); scrollSel();
+});
+function scrollSel(){ var r = $('plist').querySelector('.sel'); if (r) r.scrollIntoView({block:'center'}); }
+$('plist').addEventListener('click', function(e){
+  var b = e.target.closest('[data-pid]'); if (!b) return;
+  var pid = +b.dataset.pid; haptic(6);
+  if (pid === selPid) openProc(pid); else { selPid = pid; save('sel', selPid); renderProc(); }
+});
+$('hdr').addEventListener('click', function(e){
+  var b = e.target.closest('[data-sort]'); if (!b) return;
+  var k = b.dataset.sort; if (sortK.k === k) sortK.d *= -1; else sortK = {k:k, d:k === 'pid' || k === 'user' || k === 'cmd' ? -1 : 1};
+  save('sort', sortK); haptic(6); blip(); renderHdr(); renderProc(); msg('sort ' + k + (sortK.d > 0 ? ' ↓' : ' ↑'));
+});
+$('ifaces').addEventListener('click', function(e){
+  var b = e.target.closest('[data-if]'); if (!b) return;
+  var k = b.dataset.if; ifState[k] = !ifState[k]; save('if', ifState); haptic(ifState[k] ? 8 : [10, 30, 10]); blip();
+  msg('ifconfig ' + k + (ifState[k] ? ' up' : ' down')); logLine('kernel', k + ': link ' + (ifState[k] ? 'up' : 'down'));
+  renderNet();
+});
+$('unitBtn').addEventListener('click', function(){ S.units = S.units === 'bytes' ? 'bits' : 'bytes'; save('settings', S); haptic(6); renderNet(); });
+$('pingBtn').addEventListener('click', function(){ runCmd('ping ptt.cc'); });
+$('purgeBtn').addEventListener('click', function(){ runCmd('purge'); });
+$('swapBtn').addEventListener('click', openSwap);
+
+// ---------- F keys ----------
+$('fkeys').addEventListener('click', function(e){
+  var b = e.target.closest('[data-f]'); if (!b) return; haptic(6); blip();
+  var f = +b.dataset.f;
+  if (f === 1) openHelp();
+  else if (f === 2) openSetup();
+  else if (f === 3) openF('s');
+  else if (f === 4) openF('f');
+  else if (f === 5){ S.tree = !S.tree; save('settings', S); renderProc(); msg(S.tree ? '樹狀檢視 開' : '樹狀檢視 關'); }
+  else if (f === 6) openSort();
+  else if (f === 9) openProc(selPid, true);
+});
+function openF(m){
+  fmode = m; $('fmode').textContent = m === 's' ? 'F3 搜尋' : 'F4 篩選'; $('finput').setAttribute('aria-label', m === 's' ? '搜尋行程' : '篩選行程');
+  $('fline').hidden = false; $('fkeys').hidden = true; $('finput').value = filterTxt; $('finput').focus({preventScroll:true}); renderProc();
+}
+function closeF(){ if ($('fline').hidden) return; $('fline').hidden = true; fmode = ''; filterTxt = ''; $('fkeys').hidden = W !== 2; renderProc(); }
+$('finput').addEventListener('input', function(){
+  filterTxt = this.value;
+  if (fmode === 's' && filterTxt){ var f = filterTxt.toLowerCase(), m = visibleProcs().filter(function(p){ return p.cmd.toLowerCase().indexOf(f) >= 0; })[0]; if (m){ selPid = m.pid; } }
+  renderProc(); if (fmode === 's') scrollSel();
+});
+$('finput').addEventListener('keydown', function(e){ if (e.key === 'Escape'){ e.stopPropagation(); closeF(); } if (e.key === 'Enter'){ this.blur(); } });
+$('fclose').addEventListener('click', function(){ haptic(6); closeF(); });
+
+// ---------- sheet (tmux popup) ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null, sheetKind = '';
+function openSheet(title, html, kind){
+  lastFocus = document.activeElement; sheetKind = kind || '';
+  $('sheetT').textContent = title; $('sheetBody').innerHTML = html; $('sheetBody').scrollTop = 0;
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+  var f = sheet.querySelector('button,input'); if (f) f.focus({preventScroll:true});
+}
+function closeSheet(){
+  if (!sheet.classList.contains('on')) return;
+  sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); sheetKind = ''; clearInterval(pingT);
+  if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
+}
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){
+    if (e.target.closest('button,input') || (e.target.closest('.body') && $('sheetBody').scrollTop > 0)) return;
+    dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch(x){}
+  });
+  sheet.addEventListener('pointermove', function(e){
+    if (!dragging) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6;
+    sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2);
+  });
+  function end(e){
+    if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = '';
+    var v = dy / Math.max(1, e.timeStamp - t0);
+    if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = '';
+  }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+var SIGS = [[15, 'SIGTERM', '請它收尾結束'], [9, 'SIGKILL', '立即終止，不可攔截'], [1, 'SIGHUP', '重新載入 / 重啟'], [19, 'SIGSTOP', '暫停（T）'], [18, 'SIGCONT', '繼續執行'], [2, 'SIGINT', '如同 Ctrl-C']];
+var sudo = false;
+function findP(pid){ for (var i = 0; i < procs.length; i++) if (procs[i].pid === pid) return procs[i]; return null; }
+function openProc(pid, toSig){
+  var p = findP(pid); if (!p){ bell(); msg('沒有選取的行程'); return; }
+  var h = '<div class="kv">' + sp('kc', 'PID ') + sp('kW', p.pid) + sp('kc', '  PPID ') + p.ppid + sp('kc', '  USER ') + sp(p.user === 'root' ? 'kr' : 'kW', p.user) + '\n' +
+    sp('kc', '狀態 ') + p.st + sp('kc', '  執行緒 ') + p.thr + sp('kc', '  開始 ') + p.start + '\n' +
+    sp('kc', 'RES ') + fmtMem(p.mem) + sp('kc', '  TIME+ ') + fmtTime(p.time) + '\n' + sp('kd', p.cmd) + '</div>' +
+    '<div class="rng"><span class="kc">NI</span><input type="range" id="niR" min="-20" max="19" step="1" value="' + p.ni + '" aria-label="nice 值"><span class="kW" id="niV">' + pad(p.ni, 3, 1) + '</span></div>' +
+    '<button class="chk" id="sudoT" role="switch" aria-checked="' + sudo + '">' + sp('kW', sudo ? '[x]' : '[ ]') + ' 以 root 身分送出 (sudo)</button>' +
+    '<div class="ln kd" id="sigHead">送出信號：</div>';
+  SIGS.forEach(function(s, i){ h += '<button class="sig' + (i === 0 ? ' hl' : '') + '" data-sig="' + s[0] + '"><span>' + sp('kW', pad(s[0], 3, 1)) + ' ' + sp('kc', pad(s[1], 8)) + ' ' + sp('kd', s[2]) + '</span></button>'; });
+  openSheet(p.name + ' · ' + p.pid, h, 'proc');
+  if (toSig) setTimeout(function(){ var el = $('sigHead'); if (el) $('sheetBody').scrollTop = el.offsetTop - 30; }, 30);
+  $('niR').addEventListener('input', function(){ $('niV').textContent = pad(this.value, 3, 1); });
+  $('niR').addEventListener('change', function(){
+    var v = +this.value;
+    if (v < p.ni && !sudo && p.user !== 'root'){ this.value = p.ni; $('niV').textContent = pad(p.ni, 3, 1); bell(); msg('renice: 降低 nice 需要 sudo'); return; }
+    p.ni = v; persistProcs(); haptic(6); msg('renice ' + v + ' -p ' + p.pid); render();
+  });
+  $('sudoT').addEventListener('click', function(){ sudo = !sudo; this.setAttribute('aria-checked', sudo); this.firstChild.textContent = sudo ? '[x]' : '[ ]'; haptic(6); blip(); });
+  $('sheetBody').querySelectorAll('[data-sig]').forEach(function(b){ b.addEventListener('click', function(){ signal(p.pid, +b.dataset.sig); closeSheet(); }); });
+}
+function signal(pid, sig){
+  var p = findP(pid); if (!p){ bell(); msg('kill: (' + pid + ') - No such process'); return false; }
+  if (p.pid === 1 || p.pid === 0){ bell(); msg('kill: ' + pid + ': 拒絕，系統核心行程'); return false; }
+  if (p.name === 'sysmon'){ bell(); msg('sysmon 不能結束自己'); return false; }
+  if (p.user !== 'tommy' && !sudo){ bell(); msg('kill: ' + pid + ': Operation not permitted'); return false; }
+  if (sig === 19){ p.st = 'T'; persistProcs(); haptic(10); blip(); msg('[' + pid + '] stopped  ' + p.name); logLine(p.name, 'stopped by signal 19'); render(); return true; }
+  if (sig === 18){ p.st = 'S'; persistProcs(); haptic(6); blip(); msg('[' + pid + '] continued  ' + p.name); render(); return true; }
+  if (sig === 1){ p.start = new Date().toTimeString().slice(0, 5); p.time = 0; p.cpu = p.base * 3; haptic(8); blip(); msg('[' + pid + '] SIGHUP → 重新載入 ' + p.name); logLine(p.name, 'reloading configuration'); render(); return true; }
+  p.dying = true; haptic([12, 30, 20]); beep(sig === 9 ? 440 : 660, .09, 'square', .05);
+  render();
+  setTimeout(function(){
+    var kids = procs.filter(function(c){ return c.ppid === p.pid; }).map(function(c){ return c.pid; });
+    procs = procs.filter(function(c){ return c.pid !== p.pid && kids.indexOf(c.pid) < 0; });
+    deadList.push(p.pid); deadList = deadList.concat(kids); persistProcs();
+    if (selPid === p.pid){ var v = visibleProcs(); selPid = v.length ? v[0].pid : 0; save('sel', selPid); }
+    logLine('kernel', 'pid ' + p.pid + ' (' + p.name + ') exited on signal ' + sig + (kids.length ? ', reaped ' + kids.length + ' child' : ''));
+    render();
+  }, sig === 9 ? 260 : 700);
+  msg('[' + pid + '] ' + (sig === 9 ? 'killed' : 'terminated') + '  ' + p.name);
+  return true;
+}
+function openSort(){
+  var h = '', names = {pid:'PID', user:'USER', st:'STATE', cpu:'PERCENT_CPU', mem:'PERCENT_MEM', time:'TIME', cmd:'Command'};
+  Object.keys(names).forEach(function(k){ h += '<button class="sig' + (sortK.k === k ? ' hl' : '') + '" data-sk="' + k + '"><span>' + sp('kW', sortK.k === k ? '>' : ' ') + ' ' + esc(names[k]) + '</span></button>'; });
+  openSheet('Sort by', h, 'sort');
+  $('sheetBody').querySelectorAll('[data-sk]').forEach(function(b){ b.addEventListener('click', function(){
+    var k = b.dataset.sk; sortK = {k:k, d:k === 'pid' || k === 'user' || k === 'cmd' ? -1 : 1}; save('sort', sortK); haptic(6); closeSheet(); renderHdr(); renderProc(); msg('sort ' + k);
+  }); });
+}
+function chk(id, on, label){ return '<button class="chk" id="' + id + '" role="switch" aria-checked="' + on + '">' + sp('kW', on ? '[x]' : '[ ]') + ' ' + esc(label) + '</button>'; }
+function openSetup(){
+  var h = '<div class="ln kc">更新間隔</div><div>';
+  [.5, 1, 2, 3].forEach(function(v){ h += '<button class="kbtn" data-iv="' + v + '">' + (S.interval === v ? '(•) ' : '( ) ') + v + 's</button>'; });
+  h += '</div>' + chk('sK', S.hideK, '隱藏核心執行緒') + chk('sT', S.tree, '樹狀檢視') + chk('sM', S.mono, 'Monochrome 單色配色') + chk('sS', S.sound, '終端鈴聲與提示音') + chk('sH', S.haptic, '觸覺回饋') +
+    '<button class="sig" id="sR"><span>' + sp('ky', 'respawn') + '  ' + sp('kd', '復原所有被結束的行程') + '</span></button>';
+  openSheet('F2 Setup', h, 'setup');
+  var wire = function(id, key){ $(id).addEventListener('click', function(){ S[key] = !S[key]; save('settings', S); this.setAttribute('aria-checked', S[key]); this.firstChild.textContent = S[key] ? '[x]' : '[ ]'; haptic(6); blip(); applyScheme(); render(); }); };
+  wire('sK', 'hideK'); wire('sT', 'tree'); wire('sM', 'mono'); wire('sS', 'sound'); wire('sH', 'haptic');
+  $('sheetBody').querySelectorAll('[data-iv]').forEach(function(b){ b.addEventListener('click', function(){ S.interval = +b.dataset.iv; save('settings', S); restartTick(); haptic(6); openSetup(); msg('delay ' + S.interval + 's'); }); });
+  $('sR').addEventListener('click', function(){ runCmd('respawn'); closeSheet(); });
+}
+function openHelp(){
+  var h = '<div class="out">' + sp('kW', 'sysmon 0.9 · htop 配色') + '\n\n' +
+    sp('kc', '手勢') + '\n  左右滑　切換 tmux 視窗\n  點核心　只看那顆核心的歷史\n  點兩下行程　詳細資料與信號\n\n' +
+    sp('kc', '指令（點 [:sys] 或按 :）') + '\n  kill [-9|-STOP|-CONT] <pid>\n  sort cpu|mem|pid|time\n  filter <文字>   nice <pid> <n>\n  ping <主機>     interval <秒>\n  purge  respawn  uptime  neofetch  clear\n\n' +
+    sp('kc', '鍵盤') + '\n  0-3 視窗　↑↓ 選行程　Enter 詳細　Esc 關閉</div>';
+  openSheet('F1 Help', h, 'help');
+}
+function openSwap(){
+  openSheet('swap', '<div class="out">' + sp('kc', 'vm.swapusage') + '\n  total = 2048.00M\n  used  = ' + (procs.some(function(p){ return p.name === 'ffmpeg'; }) ? '612.25M' : '128.00M') + '\n  free  = 大致充足\n  (encrypted)\n\n' + sp('kd', '結束 ffmpeg 轉檔可以釋放大部分置換空間。') + '</div>', 'swap');
+}
+
+// ---------- tmux message + prompt ----------
+var msgT = null;
+function msg(t){ var m = $('msg'); m.textContent = t; m.classList.add('on'); clearTimeout(msgT); msgT = setTimeout(function(){ m.classList.remove('on'); }, 2400); }
+var hist2 = load('cmdhist', []), hIdx = -1;
+function openPrompt(){ haptic(6); blip(); $('prompt').hidden = false; $('msg').classList.remove('on'); $('pin').value = ''; hIdx = -1; $('pin').focus({preventScroll:true}); }
+function closePrompt(){ $('prompt').hidden = true; $('pin').blur(); }
+$('cmdBtn').addEventListener('click', openPrompt);
+$('pesc').addEventListener('click', function(){ haptic(6); closePrompt(); });
+$('prompt').addEventListener('submit', function(e){ e.preventDefault(); var v = $('pin').value.trim(); closePrompt(); if (v) runCmd(v); });
+$('pin').addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ e.stopPropagation(); closePrompt(); }
+  if (e.key === 'ArrowUp' && hist2.length){ e.preventDefault(); hIdx = Math.min(hist2.length - 1, hIdx + 1); this.value = hist2[hist2.length - 1 - hIdx]; }
+  if (e.key === 'ArrowDown'){ e.preventDefault(); hIdx = Math.max(-1, hIdx - 1); this.value = hIdx < 0 ? '' : hist2[hist2.length - 1 - hIdx]; }
+});
+var pingT = null;
+function runCmd(line){
+  hist2.push(line); if (hist2.length > 30) hist2.shift(); save('cmdhist', hist2);
+  var a = line.split(/\s+/), c = a[0].toLowerCase();
+  if (/^[0-3]$/.test(c)) return setWin(+c);
+  var wn = {cpu:0, mem:1, proc:2, net:3}; if (c in wn) return setWin(wn[c]);
+  if (c === 'select-window'){ var t = +a[a.length - 1]; if (t >= 0 && t < 4) return setWin(t); }
+  if (c === 'help' || c === '?') return openHelp();
+  if (c === 'kill'){
+    var sig = 15, pid = NaN;
+    a.slice(1).forEach(function(x){ if (x[0] === '-'){ var s = x.slice(1).toUpperCase(); sig = s === 'STOP' ? 19 : s === 'CONT' ? 18 : s === 'HUP' ? 1 : s === 'KILL' ? 9 : s === 'TERM' ? 15 : +s || 15; } else pid = +x; });
+    if (isNaN(pid)){ bell(); return msg('usage: kill [-9|-STOP|-CONT] <pid>'); }
+    return signal(pid, sig);
+  }
+  if (c === 'sort'){ var k = (a[1] || '').toLowerCase(); if (['cpu', 'mem', 'pid', 'time', 'user'].indexOf(k) < 0){ bell(); return msg('sort: cpu|mem|pid|time|user'); } sortK = {k:k, d:k === 'pid' || k === 'user' ? -1 : 1}; save('sort', sortK); setWin(2); renderHdr(); renderProc(); return msg('sort ' + k); }
+  if (c === 'filter'){ setWin(2); openF('f'); $('finput').value = filterTxt = a.slice(1).join(' '); renderProc(); return; }
+  if (c === 'nice' || c === 'renice'){ var p = findP(+a[1]), n = +a[2]; if (!p || isNaN(n)){ bell(); return msg('usage: nice <pid> <-20..19>'); } p.ni = Math.max(-20, Math.min(19, n)); persistProcs(); render(); return msg('renice ' + p.ni + ' -p ' + p.pid); }
+  if (c === 'interval' || c === 'delay'){ var v = +a[1]; if (!(v >= .5 && v <= 5)){ bell(); return msg('interval: 0.5 到 5 秒'); } S.interval = v; save('settings', S); restartTick(); return msg('delay ' + v + 's'); }
+  if (c === 'purge'){ var fr = cache; cache = .4; purged = 38; setTimeout(function(){ purged = 0; }, 4000); haptic([8, 20, 8]); blip(); logLine('kernel', 'purge: freed ' + fr.toFixed(2) + 'G file cache'); render(); return msg('purge: 釋放 ' + (fr - .4).toFixed(2) + 'G 快取'); }
+  if (c === 'respawn'){ spawnAll(); deadList = []; persistProcs(); selPid = 2388; save('sel', selPid); render(); haptic([8, 20, 8]); logLine('launchd', 'respawned ' + procs.length + ' jobs'); return msg('respawn: ' + procs.length + ' 個行程已復原'); }
+  if (c === 'uptime'){ return msg('up ' + $('upt').textContent.replace('Uptime: ', '') + ', load ' + loadAvg.map(function(x){ return x.toFixed(2); }).join(' ')); }
+  if (c === 'clear'){ hist = []; memHist = []; render(); return msg('history cleared'); }
+  if (c === 'ping'){
+    var host = a[1] || 'ptt.cc', seq = 0, base = /8\.8|google/.test(host) ? 6 : /ptt/.test(host) ? 11 : /line/.test(host) ? 32 : 18;
+    openSheet('ping ' + host, '<div class="out" id="pout">PING ' + esc(host) + ' 56 data bytes\n</div><span class="cursor">&nbsp;</span>', 'ping');
+    clearInterval(pingT);
+    pingT = setInterval(function(){
+      var o = $('pout'); if (!o || sheetKind !== 'ping'){ clearInterval(pingT); return; }
+      if (!ifState.en0){ o.innerHTML += sp('kr', 'Request timeout for icmp_seq ' + seq) + '\n'; bell(); }
+      else { var ms = (base * rnd(.8, 1.6)).toFixed(3); o.innerHTML += '64 bytes from ' + esc(host) + ': icmp_seq=' + seq + ' ttl=54 time=' + sp(+ms > base * 1.4 ? 'ky' : 'kg', ms + ' ms') + '\n'; beep(1760, .03, 'sine', .03); }
+      seq++; if (seq >= 6){ clearInterval(pingT); o.innerHTML += '\n' + sp('kc', '--- ' + esc(host) + ' ping statistics ---') + '\n6 packets transmitted' + (ifState.en0 ? ', 0.0% packet loss' : ', 100.0% packet loss'); }
+      $('sheetBody').scrollTop = 9999;
+    }, 520);
+    return;
+  }
+  if (c === 'neofetch'){
+    var m = memUse();
+    openSheet('neofetch', '<div class="out">' + sp('kg', '   ▄▄▄    ') + sp('kW', 'tommy') + '@' + sp('kW', 'taipei-mbp') + '\n' + sp('kg', '  █████   ') + sp('kc', 'OS ') + 'macOS 17 Tahoe\n' + sp('ky', ' ██████▌  ') + sp('kc', 'Host ') + 'MacBook Pro 14\n' + sp('ky', ' ██████▌  ') + sp('kc', 'CPU ') + '8 核心 (4P + 4E)\n' + sp('kr', '  █████   ') + sp('kc', 'Memory ') + m.used.toFixed(1) + 'G / 16G\n' + sp('km', '   ▀█▀    ') + sp('kc', 'Shell ') + 'zsh 5.9 · tmux 3.5\n' + sp('kb', '          ') + sp('kc', 'Locale ') + 'zh_TW.UTF-8</div>', 'neo');
+    return;
+  }
+  bell(); msg('unknown command: ' + c);
+}
+
+// ---------- keyboard ----------
+document.addEventListener('keydown', function(e){
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'Escape'){ if (sheet.classList.contains('on')) closeSheet(); else closeF(); return; }
+  if (e.key === ':'){ e.preventDefault(); openPrompt(); return; }
+  if (/^[0-3]$/.test(e.key)){ setWin(+e.key); return; }
+  if (W === 2 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){
+    e.preventDefault(); var v = visibleProcs(), i = v.findIndex(function(p){ return p.pid === selPid; });
+    i = Math.max(0, Math.min(v.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1))); if (v[i]){ selPid = v[i].pid; save('sel', selPid); renderProc(); scrollSel(); }
+  }
+  if (W === 2 && e.key === 'Enter' && !sheet.classList.contains('on')) openProc(selPid);
+  if (e.key === 'F9'){ e.preventDefault(); openProc(selPid, true); }
+});
+
+// ---------- backdrop: kernel log tail ----------
+var LOG0 = ['kernel[0]: AppleT8112 thermal: pressure nominal', 'WindowServer: display 1 mode 3024x1964@120', 'mds_stores: indexing ~/Documents/期末專題 (412 items)', 'bluetoothd: AirPods Pro connected, codec AAC', 'backupd: Time Machine starting backup to TPE-NAS',
+  'photoanalysisd: 墾丁旅行 2,318 assets queued', 'kernel[0]: en0: link up 1201 Mbps TPE-Home-5G', 'postgres[2140]: checkpoint complete: wrote 318 buffers', 'node[2111]: GET /api/bento?day=wed 200 14ms', 'python3[2302]: fetched 1,032 rows 上市收盤',
+  'ffmpeg[2388]: frame= 8412 fps= 41 q=28.0 size= 612MiB', 'sshd[2502]: Accepted publickey for ytlin', 'rsync[2519]: sending 論文資料/第三章.docx', 'kernel[0]: memorystatus: compressor 1.21G', 'launchd[1]: com.apple.xpc.launchd.domain.user.501 ok'];
+var blogEl = $('blog'), blines = [];
+function logLine(who, t){
+  var d = new Date(), ts = 'Sep 23 ' + d.toTimeString().slice(0, 8);
+  blines.push('<span class="hot">' + esc(ts + ' taipei-mbp ' + who + ': ' + t) + '</span>');
+  if (blines.length > 150) blines.shift();
+  blogEl.innerHTML = blines.join('\n');
+  setTimeout(function(){ blines = blines.map(function(l){ return l.replace('class="hot"', ''); }); }, 1200);
+}
+(function(){ var now = new Date(), base = now.getHours() * 60 + now.getMinutes(); for (var i = 0; i < 150; i++){ var l = LOG0[(i * 7) % LOG0.length], t = Math.max(0, base - (150 - i) * 3), z = function(v){ return pad(v, 2, 1).replace(' ', '0'); }; blines.push('<span>' + esc('Sep 23 ' + z(Math.floor(t / 60)) + ':' + z(t % 60) + ':' + z((i * 13) % 60) + ' taipei-mbp ' + l) + '</span>'); } blogEl.innerHTML = blines.join('\n'); })();
+
+// ---------- clock, battery, tick ----------
+function tickClock(){ var d = new Date(), t = pad(d.getHours(), 2, 1).replace(' ', '0') + ':' + pad(d.getMinutes(), 2, 1).replace(' ', '0'); $('clock').textContent = t; $('tclock').textContent = (innerWidth > 400 && innerWidth < 521 ? '"mbp" ' : '') + t; }
+tickClock(); setInterval(tickClock, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, Math.round(18 * b.level))); }).catch(function(){});
+function applyScheme(){ document.body.classList.toggle('mono-scheme', !!S.mono); }
+var tickT = null, n = 0;
+function tick(){ if (document.hidden) return; step(); render(); if (++n % 6 === 0 && innerWidth >= 521) logLine(['kernel', 'node[2111]', 'ffmpeg[2388]', 'mds_stores'][n % 4], ['memorystatus: ok', 'GET /api/orders 200 ' + Math.round(rnd(6, 40)) + 'ms', 'frame=' + (8412 + n * 41) + ' fps=41', 'indexed ' + Math.round(rnd(3, 40)) + ' items'][n % 4]); }
+function restartTick(){ clearInterval(tickT); tickT = setInterval(tick, S.interval * 1000); }
+measure(); applyScheme();
+for (var k = 0; k < 90; k++) step();
+setWin(W, true);
+restartTick();
+var rt = null; addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ measure(); render(); }, 120); });
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) render(); });
+})();
+</script>
+</body>
+</html>
