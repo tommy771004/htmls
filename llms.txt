@@ -90,6 +90,7 @@
 - [083 OPTIKON](https://htmls-ruddy.vercel.app/083-op-art.html): 歐普藝術。隆起棋盤、波流、摩爾紋、漩渦四幅錯視，可調密度與扭曲
 - [091 Two Inks](https://htmls-ruddy.vercel.app/091-dither-3d.html): 1-bit 抖動渲染。WebGL raymarch 五種 SDF 標本，雙墨 Bayer 抖動即時渲染
 - [100 煙火終章](https://htmls-ruddy.vercel.app/100-fireworks.html): 煙火終章。河岸夜空 9 種煙火，「放一百發」每發標上一件作品的風格名
+- [116 Thockwork · 客製化鍵盤工坊](https://htmls-ruddy.vercel.app/116-thockwork-keyboard.html): 程序化 Three.js 鍵盤。逐顆生成鍵帽、軸體與外殼，切換配列、配色、材質與軸體，旋轉試打並體驗本機示範購物車；需連線載入 Three.js 與 GSAP
 
 ### 遊戲敘事
 

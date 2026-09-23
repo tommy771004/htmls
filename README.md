@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上後續的第 103–115 件互動作品；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、115 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111 件使用本地 Three.js 模組，需透過網站伺服器開啟。
+原始 100 個獨立單檔 HTML 加上後續的第 103–116 件互動作品；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111 件使用本地 Three.js 模組，需透過網站伺服器開啟。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -126,6 +126,7 @@
 | 113 | [113-dustbound-frontier.html](https://htmls-ruddy.vercel.app/113-dustbound-frontier.html) | 遊戲敘事 · 體素開放世界 | Dustbound Frontier：程序化沙漠峽谷與西部小鎮、動態區塊、挖掘建造、28 位居民、晝夜光照與塵土粒子 | 單檔 HTML；僅 Three.js 由 CDN 載入，需連線及 WebGL |
 | 114 | [114-promise-wall.html](https://htmls-ruddy.vercel.app/114-promise-wall.html) | 東方在地 · 3D 承諾牆 | 山中留話：山中咖啡館的承諾牆，四種便條材質、貼牆晃動、環繞縮放、點擊細讀及本機保存 | 單檔 HTML；Three.js 由 CDN 載入，需連線及 WebGL；內容僅存在本機瀏覽器 |
 | 115 | [115-windfield.html](https://htmls-ruddy.vercel.app/115-windfield.html) | 介面風格 · 沉浸式草原 | WIND：12 萬株獨立草葉的 shader 風浪、漸層與背光，平滑遠景、天空散射、可調日照風力與阻尼漫遊 | 單檔 HTML；僅 Three.js 由 CDN 載入，需連線及 WebGL2；60fps 為效能目標，依裝置而異 |
+| 116 | [116-thockwork-keyboard.html](https://htmls-ruddy.vercel.app/116-thockwork-keyboard.html) | 生成藝術 · 客製化 3D 鍵盤 | Thockwork：程序生成每顆鍵帽、軸體與外殼；可選 60／65／75 配列、外殼、配色、鍵帽與軸體，旋轉試打並加入購物車 | 單檔 HTML；Three.js 與 GSAP 由 CDN 載入，需連線及 WebGL；購物車與結帳僅為本機示範，不會扣款或送出資料 |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。

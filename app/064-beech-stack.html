@@ -395,10 +395,6 @@ function draw(){
     // madder felt mat under the tower
     ctx.fillStyle = '#a9483a'; rr(W / 2 - 150, gy + 4, 300, 16, 6); ctx.fill();
     ctx.fillStyle = 'rgba(255,220,200,.18)'; ctx.fillRect(W / 2 - 146, gy + 5, 292, 2);
-    if (state === 'ready' && gy + 58 < H - 22){
-      ctx.fillStyle = '#f7f0e4'; ctx.font = '400 16px "Gill Sans","PingFang TC",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('輕觸任何地方，放下積木', W / 2, Math.min(H - 40, gy + 58)); ctx.textAlign = 'start';
-    }
   }
   // number rod: red / blue segments, one per block
   var rodX = 22, n = tower.length + 2;
@@ -438,6 +434,11 @@ function draw(){
     ctx.fillStyle = '#6b5a47'; ctx.beginPath(); ctx.arc(tx, ty, 2.4, 0, 6.29); ctx.fill();
   }
   ctx.restore();
+  if (state === 'ready'){
+    var onFloor = groundY + cam + 58 < H - 22;
+    ctx.fillStyle = onFloor ? '#f7f0e4' : '#2f2a24'; ctx.font = '400 16px "Gill Sans","PingFang TC",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('輕觸任何地方，放下積木', W / 2, onFloor ? groundY + cam + 58 : pivotY - 24); ctx.textAlign = 'start';
+  }
   // floating words
   floats.forEach(function(f){
     ctx.globalAlpha = Math.max(0, Math.min(1, f.a * 1.4));

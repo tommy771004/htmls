@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3f4524">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="野戰羅盤">
+<title>野戰羅盤 · 指南針／水平儀</title>
+<meta name="description" content="橄欖綠野戰裝備風格的指南針、水平儀與高度計：液體阻尼羅盤、密位與目標方位環、氣泡水平、TWD97 座標與山頭標記。收錄於 100 Creative HTML Works（App 096・軍用野戰裝備橄欖綠）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/096-field-compass.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234a5129'/%3E%3Ccircle cx='32' cy='32' r='23' fill='%2311120d'/%3E%3Cpath d='M32 12 38 32H26z' fill='%23b6f07c'/%3E%3Cpath d='M32 52 26 32h12z' fill='%23e4dfc4' opacity='.5'/%3E%3C/svg%3E">
+<style>
+:root{
+  --od:#4a5129; --od2:#3b4121; --od3:#5d6636; --od4:#2f3419; --print:#e4dfc4; --print2:#b9b592; --face:#11120d; --face2:#1b1d14; --lum:#b6f07c; --lum2:#7fae55; --warn:#e0a13a;
+  --din:"DIN Condensed","DIN Alternate","Bahnschrift","Arial Narrow","PingFang TC",sans-serif;
+  --sans:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --out:cubic-bezier(.22,1,.36,1); --spring:cubic-bezier(.2,1.3,.35,1);
+}
+.night{--od:#141610; --od2:#0c0d09; --od3:#1d2016; --od4:#090a07; --print:#9fdc6c; --print2:#6f9a4c}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--od);overflow:hidden}
+body{font-family:var(--sans);color:var(--print);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+button:focus-visible{outline:2px solid var(--lum);outline-offset:2px;border-radius:6px}
+svg{display:block}
+.din{font-family:var(--din);font-weight:700}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.guards{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--od);isolation:isolate;transition:background-color .4s;container-type:size}
+.screen::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(45deg,rgba(0,0,0,.05) 0 2px,transparent 2px 5px),repeating-linear-gradient(-45deg,rgba(255,255,255,.025) 0 2px,transparent 2px 5px)}
+@media (min-width:521px){
+  body{background:#2f3419}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:398px;height:min(852px,calc(100dvh - 40px));border-radius:58px;padding:14px;background:#3b4121;
+    box-shadow:inset 0 0 0 2px #5d6636,inset 0 0 0 5px #2f3419,0 16px 26px -18px rgba(10,12,4,.9);z-index:1}
+  .screen{inset:14px;border-radius:44px}
+  .guards{display:block;position:absolute;inset:0;pointer-events:none;z-index:2}
+  .guards i{position:absolute;width:64px;height:64px;border:9px solid #2a2f16}
+  .guards i:nth-child(1){left:-4px;top:-4px;border-right:0;border-bottom:0;border-radius:60px 0 0 0}
+  .guards i:nth-child(2){right:-4px;top:-4px;border-left:0;border-bottom:0;border-radius:0 60px 0 0}
+  .guards i:nth-child(3){left:-4px;bottom:-4px;border-right:0;border-top:0;border-radius:0 0 0 60px}
+  .guards i:nth-child(4){right:-4px;bottom:-4px;border-left:0;border-top:0;border-radius:0 0 60px 0}
+  .caption{display:block;position:relative;z-index:1;max-width:250px;padding:20px 22px;background:#2f3419;color:#e4dfc4}
+  .caption b{display:block;font:700 54px/1 var(--din);letter-spacing:.02em}
+  .caption p{margin-top:10px;font-size:15px;line-height:1.65;color:#b9b592}
+  .caption span{display:block;margin-top:14px;font:700 16px/1 var(--din);color:#b6f07c;letter-spacing:.06em}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:700 18px/1 var(--din);color:var(--print);pointer-events:none;letter-spacing:.04em}
+.status .gl{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+.head{position:absolute;left:0;right:0;top:calc(46px + env(safe-area-inset-top));z-index:10;display:flex;align-items:center;gap:10px;padding:0 14px 0 20px;min-height:58px}
+.head .t{flex:1;min-width:0}
+.head h1{font:700 26px/1 var(--din);letter-spacing:.03em}
+.coord{display:flex;align-items:center;gap:6px;height:32px;margin-top:3px;font:700 16px/1 var(--din);color:var(--print2);letter-spacing:.04em;white-space:nowrap}
+.coord:active{color:var(--print)}
+.toggle{display:flex;flex-direction:column;align-items:center;gap:2px;width:58px;height:56px;font-size:11px;color:var(--print2)}
+.toggle svg{overflow:visible}
+.toggle .lever{transition:transform .3s var(--spring);transform-origin:20px 24px}
+.toggle[aria-checked=true] .lever{transform:rotate(180deg)}
+
+.views{position:absolute;left:0;right:0;top:calc(106px + env(safe-area-inset-top));bottom:calc(126px + env(safe-area-inset-bottom))}
+.view{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;visibility:hidden;overflow-y:auto;overflow-x:hidden}
+.view::-webkit-scrollbar{display:none}
+.view.on{visibility:visible;animation:vin .45s var(--out)}
+@keyframes vin{from{transform:translateY(14px) scale(.97)}to{transform:none}}
+.inst{position:relative;flex:none;width:min(340px,calc(100cqw - 36px),46cqh);aspect-ratio:1;margin-top:4px;touch-action:none}
+.inst svg{width:100%;height:100%;overflow:visible}
+.read{display:flex;align-items:flex-end;justify-content:center;gap:16px;margin-top:10px;min-height:74px}
+.big{font:700 72px/.9 var(--din);letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.big sup{font-size:34px;vertical-align:top;margin-left:2px}
+.sub{padding-bottom:6px;font-size:14px;line-height:1.5;color:var(--print2)}
+.sub b{display:block;font:700 26px/1 var(--din);color:var(--print);letter-spacing:.03em}
+.sub b small{font-size:15px;color:var(--print2);margin-left:6px}
+.note{font-size:13px;color:var(--print2);margin-top:4px;min-height:20px;text-align:center}
+.note b{color:var(--lum);font-weight:600}
+.night .note b{color:var(--print)}
+.acts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:calc(100% - 24px);margin-top:10px;padding-bottom:12px}
+.acts.three{grid-template-columns:repeat(3,1fr)}
+.act{height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--od2);border-radius:6px;font-size:12px;color:var(--print);box-shadow:inset 0 -3px 0 var(--od4);transition:transform .08s,box-shadow .08s,background-color .3s}
+.act svg{width:24px;height:24px}
+.act:active{transform:translateY(2px);box-shadow:inset 0 -1px 0 var(--od4)}
+.act[aria-pressed=true]{background:var(--face);color:var(--lum)}
+.act b{font:700 20px/1 var(--din);letter-spacing:.03em}
+
+/* mode selector */
+.sel{position:absolute;left:0;right:0;bottom:0;z-index:20;height:calc(126px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--od2);transition:background-color .4s;
+  clip-path:polygon(0 18px,18px 0,calc(100% - 18px) 0,100% 18px,100% 100%,0 100%)}
+.sel .labels{position:absolute;left:0;right:0;top:10px;height:44px}
+.mode{position:absolute;top:0;width:96px;height:44px;margin-left:-48px;display:flex;align-items:center;justify-content:center;gap:6px;font:600 14px/1 var(--sans);color:var(--print2);transition:color .25s}
+.mode b{font:700 17px/1 var(--din);letter-spacing:.05em}
+.mode[aria-selected=true]{color:var(--lum)}
+.night .mode[aria-selected=true]{color:var(--print)}
+.knob{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));width:74px;height:74px;margin-left:-37px;border-radius:50%;touch-action:none}
+.knob svg{width:100%;height:100%}
+.knob .rot{transition:transform .45s var(--spring);transform-origin:37px 37px}
+.home-ind{position:absolute;left:50%;bottom:calc(6px + env(safe-area-inset-bottom)*.3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--print2);opacity:.8;z-index:35;pointer-events:none}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(8,9,5,.55);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:86%;overflow-y:auto;background:var(--od2);border-radius:16px 16px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom));
+  transform:translateY(105%);visibility:hidden;transition:transform .48s var(--spring),visibility 0s .48s,background-color .4s;touch-action:none;box-shadow:inset 0 1px 0 rgba(228,223,196,.18)}
+.sheet.on{transform:none;visibility:visible;transition:transform .48s var(--spring),background-color .4s}
+.sheet.drag{transition:none}
+.grip{width:46px;height:6px;border-radius:3px;margin:0 auto 12px;background:repeating-linear-gradient(90deg,var(--print2) 0 6px,transparent 6px 10px)}
+.sheet h3{font:700 28px/1.1 var(--din);letter-spacing:.03em}
+.sheet h3 small{font:400 13px/1 var(--sans);color:var(--print2);margin-left:10px;letter-spacing:0}
+.mk{display:grid;grid-template-columns:34px 1fr auto 44px;align-items:center;gap:8px;min-height:62px;box-shadow:inset 0 -1px 0 rgba(228,223,196,.1)}
+.mk .n{font:700 22px/1 var(--din);color:var(--lum);text-align:center}
+.night .mk .n{color:var(--print)}
+.mk .nm{min-width:0;font-size:15px}
+.mk .nm small{display:block;margin-top:3px;font-size:12px;color:var(--print2)}
+.mk .br{text-align:right;font:700 22px/1 var(--din);letter-spacing:.02em}
+.mk .br small{display:block;font:400 12px/1.3 var(--sans);color:var(--print2)}
+.mk .go{height:62px;display:contents}
+.mk button.row{display:contents;text-align:left}
+.xbtn{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:var(--print2)}
+.xbtn:active{background:rgba(228,223,196,.1)}
+.addmk{width:100%;height:54px;margin-top:14px;border-radius:6px;background:var(--face);color:var(--lum);font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+.night .addmk{color:var(--print)}
+.addmk:active{background:#000}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.cbox{background:var(--face);border-radius:6px;padding:12px 14px;color:var(--print)}
+.cbox span{font-size:12px;color:var(--print2)}
+.cbox b{display:block;margin-top:6px;font:700 24px/1.1 var(--din);letter-spacing:.03em;color:var(--lum)}
+.night .cbox b{color:var(--print)}
+.cbox.w{grid-column:1/-1}
+.src{margin-top:12px;font-size:13px;color:var(--print2);line-height:1.6}
+
+.toast{position:absolute;left:50%;top:calc(52px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-10px);opacity:0;visibility:hidden;padding:0 16px;height:42px;display:flex;align-items:center;gap:10px;border-radius:6px;background:var(--face);color:var(--print);font-size:14px;white-space:nowrap;transition:transform .3s var(--out),opacity .2s,visibility 0s .3s}
+.toast.on{transform:translate(-50%,0);opacity:1;visibility:visible;transition:transform .3s var(--out),opacity .2s}
+.toast button{height:42px;color:var(--lum);font-weight:700}
+.toast button[hidden]{display:none}
+
+@media (prefers-reduced-motion:reduce){
+  .view.on{animation:none}
+  .knob .rot,.toggle .lever,.sheet,.toast{transition-duration:.01s}
+  .act:active{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" id="topo">
+      <rect width="1600" height="1000" fill="#4a5129"/>
+      <g id="contours" fill="none" stroke="#3b4121" stroke-width="2"></g>
+      <g fill="#2f3419" font-family="DIN Condensed,Arial Narrow" font-weight="700" font-size="22">
+        <text x="378" y="300">3417</text><text x="1198" y="610">3421</text><text x="760" y="820">3150</text>
+      </g>
+      <path d="M0 520C200 470 330 520 520 480S820 380 980 430 1300 560 1600 500" stroke="#2f3419" stroke-width="4" stroke-dasharray="14 10" fill="none"/>
+    </svg>
+  </div>
+
+  <div class="device">
+    <div class="guards" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="gl">
+          <svg width="18" height="12" viewBox="0 0 18 12"><path d="M0 12h3.4V8.5H0zM4.8 12h3.4V6H4.8zM9.6 12H13V3.5H9.6zM14.4 12h3.4V0h-3.4z" fill="currentColor"/></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 12 0 3l2-2 6.5 7 6.5-7 2 2z" fill="currentColor"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><path d="M1 1h21v11H1z" fill="none" stroke="currentColor" stroke-width="2"/><path id="batt" d="M3.5 3.5h13v6h-13z" fill="currentColor"/><path d="M23.5 4h2v5h-2z" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <div class="head">
+        <div class="t"><h1>野戰羅盤</h1>
+          <button class="coord" id="coordBtn" aria-label="座標詳情"><svg width="14" height="16" viewBox="0 0 14 16"><path d="M7 15.5S1 9.6 1 6a6 6 0 0 1 12 0c0 3.6-6 9.5-6 9.5z" fill="currentColor"/><path d="M5 6h4M7 4v4" stroke="var(--od)" stroke-width="1.6"/></svg><span id="coordTxt">N24°08'15" E121°16'28"</span></button>
+        </div>
+        <button class="toggle" id="nightSw" role="switch" aria-checked="false" aria-label="夜光模式">
+          <svg width="40" height="40" viewBox="0 0 40 40"><rect x="6" y="14" width="28" height="20" rx="3" fill="var(--face)"/><circle cx="20" cy="24" r="6" fill="var(--od3)"/><g class="lever"><rect x="17.5" y="4" width="5" height="21" rx="2.5" fill="var(--print2)"/><circle cx="20" cy="5" r="4" fill="var(--print)"/></g><circle cx="10" cy="30" r="1.6" fill="var(--lum)"/></svg>夜光</button>
+      </div>
+
+      <div class="views">
+        <!-- COMPASS -->
+        <section class="view on" id="v-cmp" aria-label="羅盤">
+          <div class="inst" id="cmpInst" role="img" aria-label="羅盤：拖曳轉身，拖曳外環設定目標方位">
+            <svg viewBox="-172 -172 344 344" id="cmpSvg">
+              <circle r="171" fill="#2a2e17"/>
+              <g id="bezel"></g>
+              <circle r="146" fill="#11120d"/>
+              <g id="card"></g>
+              <path d="M0 -150V-112" stroke="#b6f07c" stroke-width="4" stroke-linecap="round"/>
+              <path d="M0 -104V104" stroke="#e4dfc4" stroke-width="1" opacity=".35"/>
+              <circle r="9" fill="#2a2e17"/><circle r="4" fill="#b6f07c"/>
+            </svg>
+          </div>
+          <div class="read"><div class="big" id="hdg">274<sup>°</sup></div><div class="sub"><b id="dirTxt">W<small>西</small></b><span id="milTxt">4871 mil</span></div></div>
+          <div class="note" id="cmpNote"></div>
+          <div class="acts">
+            <button class="act" id="aList"><svg viewBox="0 0 24 24"><path d="M5 3v18M5 4h11l-3 4 3 4H5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>標記</button>
+            <button class="act" id="aMark"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="2.2"/><path d="M12 7l4 5-4 5-4-5z" fill="currentColor"/></svg>記下此點</button>
+            <button class="act" id="aBezel" aria-pressed="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-dasharray="3 2.4"/><path d="M12 1.5l3 4.5H9z" fill="currentColor"/></svg>對準目標</button>
+            <button class="act" id="aSensor" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M3 8c-1.4 2.6-1.4 5.4 0 8M21 8c1.4 2.6 1.4 5.4 0 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span id="sensLbl">模擬</span></button>
+          </div>
+        </section>
+
+        <!-- LEVEL -->
+        <section class="view" id="v-lvl" aria-label="水平儀">
+          <div class="inst" id="lvlInst" role="img" aria-label="水平儀：拖曳傾斜">
+            <svg viewBox="-172 -172 344 344">
+              <circle r="171" fill="#2a2e17"/>
+              <circle r="150" fill="#11120d"/>
+              <g fill="none" stroke="#e4dfc4" opacity=".4"><circle r="120" stroke-width="1"/><circle r="72" stroke-width="1"/></g>
+              <circle r="24" fill="none" stroke="#b6f07c" stroke-width="2.5"/>
+              <path d="M-150 0H-32M32 0H150M0 -150V-32M0 32V150" stroke="#e4dfc4" stroke-width="1" opacity=".4"/>
+              <g font-family="DIN Condensed,Arial Narrow" font-weight="700" font-size="15" fill="#b9b592" text-anchor="middle"><text x="0" y="-76" dominant-baseline="auto">3°</text><text x="0" y="-124">5°</text></g>
+              <g id="bubble"><circle r="22" fill="#b6f07c" fill-opacity=".22" stroke="#b6f07c" stroke-width="2"/><ellipse cx="-7" cy="-8" rx="7" ry="4.5" fill="#e4dfc4" opacity=".55"/></g>
+            </svg>
+          </div>
+          <svg width="300" height="46" viewBox="0 0 300 46" style="margin-top:12px;flex:none" aria-hidden="true">
+            <rect x="2" y="6" width="296" height="34" rx="17" fill="#11120d" stroke="#2a2e17" stroke-width="4"/>
+            <path d="M136 10v26M164 10v26" stroke="#b6f07c" stroke-width="2"/>
+            <g id="tube"><rect x="-24" y="12" width="48" height="22" rx="11" fill="#b6f07c" fill-opacity=".28" stroke="#b6f07c" stroke-width="2"/></g>
+          </svg>
+          <div class="read"><div class="sub"><b id="pitchV">0.0°</b>前後</div><div class="big" id="lvlBig" style="font-size:54px">水平</div><div class="sub"><b id="rollV">0.0°</b>左右</div></div>
+          <div class="acts three">
+            <button class="act" id="lZero"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2.2"/></svg>歸零校正</button>
+            <button class="act" id="lFlat"><svg viewBox="0 0 24 24"><path d="M3 16h18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6 12c2-3 10-3 12 0" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>放平</button>
+            <button class="act" id="lHold" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="1.5" fill="currentColor"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>鎖定讀數</button>
+          </div>
+        </section>
+
+        <!-- ALTIMETER -->
+        <section class="view" id="v-alt" aria-label="高度計">
+          <div class="inst" id="altInst" role="img" aria-label="高度計">
+            <svg viewBox="-172 -172 344 344" id="altSvg">
+              <circle r="171" fill="#2a2e17"/>
+              <circle r="150" fill="#11120d"/>
+              <g id="altTicks"></g>
+              <rect x="-46" y="38" width="92" height="36" rx="4" fill="#2a2e17"/>
+              <text id="drum" x="0" y="57" text-anchor="middle" dominant-baseline="central" font-family="DIN Condensed,Arial Narrow" font-weight="700" font-size="30" fill="#e4dfc4">3275</text>
+              <rect x="-34" y="-78" width="68" height="26" rx="3" fill="#2a2e17"/>
+              <text id="qnhTxt" x="0" y="-65" text-anchor="middle" dominant-baseline="central" font-family="DIN Condensed,Arial Narrow" font-weight="700" font-size="19" fill="#b6f07c">1013</text>
+              <text x="0" y="-92" text-anchor="middle" font-family="PingFang TC,sans-serif" font-size="11" fill="#b9b592">QNH hPa</text>
+              <g id="needleK"><path d="M0 18V-70" stroke="#e4dfc4" stroke-width="9" stroke-linecap="round"/><path d="M0 -70l-6 -2 6 -14 6 14z" fill="#b6f07c"/></g>
+              <g id="needleH"><path d="M0 26V-128" stroke="#e4dfc4" stroke-width="4.5" stroke-linecap="round"/><path d="M0 -112V-134" stroke="#b6f07c" stroke-width="6" stroke-linecap="round"/></g>
+              <circle r="10" fill="#2a2e17"/><circle r="4" fill="#e4dfc4"/>
+            </svg>
+          </div>
+          <div class="read"><div class="big" id="altBig">3275<sup>m</sup></div><div class="sub"><b id="presV">682.4<small>hPa</small></b><span id="trendV">3 小時 −0.8 hPa</span></div></div>
+          <svg id="spark" width="330" height="54" viewBox="0 0 330 54" style="flex:none;margin-top:6px" aria-label="過去六小時氣壓"></svg>
+          <div class="acts three">
+            <button class="act" id="qMinus" aria-label="QNH 減一"><b>−1</b>QNH</button>
+            <button class="act" id="qCal"><svg viewBox="0 0 24 24"><path d="M3 20 10 8l4 6 3-4 4 10z" fill="currentColor"/><circle cx="17" cy="5" r="2.2" fill="currentColor"/></svg>校正到武嶺</button>
+            <button class="act" id="qPlus" aria-label="QNH 加一"><b>+1</b>QNH</button>
+          </div>
+        </section>
+      </div>
+
+      <nav class="sel" aria-label="模式">
+        <div class="labels" role="tablist">
+          <button class="mode" role="tab" data-m="0" aria-selected="true" style="left:22%"><b>CMP</b>羅盤</button>
+          <button class="mode" role="tab" data-m="1" aria-selected="false" style="left:50%"><b>LVL</b>水平</button>
+          <button class="mode" role="tab" data-m="2" aria-selected="false" style="left:78%"><b>ALT</b>高度</button>
+        </div>
+        <button class="knob" id="knob" aria-label="切換模式">
+          <svg viewBox="0 0 74 74"><circle cx="37" cy="37" r="36" fill="var(--face)"/><g class="rot" id="knobRot"><circle cx="37" cy="37" r="30" fill="var(--od3)"/><circle cx="37" cy="37" r="30" fill="none" stroke="var(--od4)" stroke-width="3" stroke-dasharray="3 3"/><rect x="31" y="6" width="12" height="62" rx="6" fill="var(--od4)"/><path d="M37 9v14" stroke="var(--lum)" stroke-width="4" stroke-linecap="round"/></g></svg>
+        </button>
+      </nav>
+      <div class="home-ind" aria-hidden="true"></div>
+
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><div class="grip" aria-hidden="true"></div><div id="shBody"></div></div>
+    </div>
+  </div>
+  <div class="caption"><b>野戰羅盤</b><p>液體阻尼的指針、夜光刻度、密位與目標環。合歡山的稜線上，一樣找得到北。</p><span>CMP · LVL · ALT</span></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app096:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var R2D = 180 / Math.PI, D2R = Math.PI / 180;
+
+var st = load('state', {mode: 0, night: false, bezel: null, heading: 274, qnh: 1013, lvlOff: [0, 0]});
+var marks = load('marks', [
+  {n:'合歡山主峰', lat:24.1419, lon:121.2711, h:3417},
+  {n:'合歡東峰', lat:24.1358, lon:121.2819, h:3421},
+  {n:'石門山', lat:24.1495, lon:121.2877, h:3237},
+  {n:'合歡北峰', lat:24.1822, lon:121.2769, h:3422},
+  {n:'松雪樓', lat:24.1383, lon:121.2856, h:3150},
+  {n:'小奇萊', lat:24.1253, lon:121.2906, h:3152}
+]);
+function persist(){ save('state', st); save('marks', marks); }
+var here = {lat: 24.1375, lon: 121.2744, h: 3275, src: '模擬：武嶺停車場'};
+
+/* ---------- geo ---------- */
+function bearing(a, b){ var p1 = a.lat * D2R, p2 = b.lat * D2R, dl = (b.lon - a.lon) * D2R; var y = Math.sin(dl) * Math.cos(p2), x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl); return (Math.atan2(y, x) * R2D + 360) % 360; }
+function dist(a, b){ var p1 = a.lat * D2R, p2 = b.lat * D2R, dp = p2 - p1, dl = (b.lon - a.lon) * D2R; var h = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2); return 6371008 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h)); }
+function dms(v, pos, neg){ var s = v >= 0 ? pos : neg; v = Math.abs(v); var d = Math.floor(v), m = Math.floor((v - d) * 60), sec = Math.round(((v - d) * 60 - m) * 60); if (sec === 60){ sec = 0; m++; } return s + d + '°' + String(m).padStart(2, '0') + "'" + String(sec).padStart(2, '0') + '"'; }
+function twd97(lat, lon){
+  var a = 6378137, f = 1 / 298.257222101, e2 = f * (2 - f), ep2 = e2 / (1 - e2), k0 = .9999, l0 = 121 * D2R, FE = 250000;
+  var p = lat * D2R, l = lon * D2R, sp = Math.sin(p), cp = Math.cos(p), tp = Math.tan(p);
+  var N = a / Math.sqrt(1 - e2 * sp * sp), T = tp * tp, C = ep2 * cp * cp, A = (l - l0) * cp, e4 = e2 * e2, e6 = e4 * e2;
+  var M = a * ((1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256) * p - (3 * e2 / 8 + 3 * e4 / 32 + 45 * e6 / 1024) * Math.sin(2 * p) + (15 * e4 / 256 + 45 * e6 / 1024) * Math.sin(4 * p) - (35 * e6 / 3072) * Math.sin(6 * p));
+  var x = FE + k0 * N * (A + (1 - T + C) * Math.pow(A, 3) / 6 + (5 - 18 * T + T * T + 72 * C - 58 * ep2) * Math.pow(A, 5) / 120);
+  var y = k0 * (M + N * tp * (A * A / 2 + (5 - T + 9 * C + 4 * C * C) * Math.pow(A, 4) / 24 + (61 - 58 * T + T * T + 600 * C - 330 * ep2) * Math.pow(A, 6) / 720));
+  return [x, y];
+}
+var DIRS = [['N','北'],['NNE','北北東'],['NE','東北'],['ENE','東北東'],['E','東'],['ESE','東南東'],['SE','東南'],['SSE','南南東'],['S','南'],['SSW','南南西'],['SW','西南'],['WSW','西南西'],['W','西'],['WNW','西北西'],['NW','西北'],['NNW','北北西']];
+function dirOf(h){ return DIRS[Math.round(h / 22.5) % 16]; }
+function norm(a){ return ((a % 360) + 360) % 360; }
+function adiff(a, b){ var d = norm(b - a); return d > 180 ? d - 360 : d; }
+
+/* ---------- compass drawing ---------- */
+function buildCard(){
+  var s = '';
+  for (var d = 0; d < 360; d += 2){
+    var long = d % 10 === 0, r1 = long ? 116 : 128, a = d * D2R;
+    s += '<path d="M' + (138 * Math.sin(a)).toFixed(1) + ' ' + (-138 * Math.cos(a)).toFixed(1) + 'L' + (r1 * Math.sin(a)).toFixed(1) + ' ' + (-r1 * Math.cos(a)).toFixed(1) + '" stroke="#e4dfc4" stroke-width="' + (long ? 2 : 1) + '" opacity="' + (long ? .9 : .5) + '"/>';
+  }
+  var CARD = {0: 'N', 90: 'E', 180: 'S', 270: 'W'}, CN = {0: '北', 90: '東', 180: '南', 270: '西'};
+  for (var d2 = 0; d2 < 360; d2 += 30){
+    var a2 = d2 * D2R, x = 100 * Math.sin(a2), y = -100 * Math.cos(a2);
+    if (CARD[d2] !== undefined){
+      s += '<g transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + d2 + ')"><text text-anchor="middle" dominant-baseline="central" font-family="DIN Condensed,Arial Narrow" font-weight="700" font-size="30" fill="' + (d2 === 0 ? '#b6f07c' : '#e4dfc4') + '">' + CARD[d2] + '</text><text y="24" text-anchor="middle" dominant-baseline="central" font-family="PingFang TC,sans-serif" font-size="11" fill="#b9b592">' + CN[d2] + '</text></g>';
+    } else {
+      s += '<text transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + d2 + ')" text-anchor="middle" dominant-baseline="central" font-family="DIN Condensed,Arial Narrow" font-weight="700" font-size="19" fill="#e4dfc4">' + d2 + '</text>';
+    }
+  }
+  // mils ring
+  for (var m = 0; m < 64; m += 8){ var a3 = m / 64 * 2 * Math.PI; s += '<text transform="translate(' + (70 * Math.sin(a3)).toFixed(1) + ' ' + (-70 * Math.cos(a3)).toFixed(1) + ') rotate(' + (m / 64 * 360) + ')" text-anchor="middle" dominant-baseline="central" font-family="DIN Condensed,Arial Narrow" font-weight="700" font-size="12" fill="#7fae55">' + m + '</text>'; }
+  s += '<path d="M0 -146l7 12h-14z" fill="#b6f07c"/>';
+  [90, 180, 270].forEach(function(d3){ var a4 = d3 * D2R; s += '<circle cx="' + (131 * Math.sin(a4)).toFixed(1) + '" cy="' + (-131 * Math.cos(a4)).toFixed(1) + '" r="3.4" fill="#b6f07c"/>'; });
+  s += '<g id="mkOnCard"></g>';
+  $('card').innerHTML = s;
+}
+function buildBezel(){
+  var s = '';
+  for (var i = 0; i < 120; i++){ var a = i * 3 * D2R; s += '<path d="M' + (168 * Math.sin(a)).toFixed(1) + ' ' + (-168 * Math.cos(a)).toFixed(1) + 'L' + (158 * Math.sin(a)).toFixed(1) + ' ' + (-158 * Math.cos(a)).toFixed(1) + '" stroke="#11120d" stroke-width="2.4"/>'; }
+  s += '<g id="bezelMark"><path d="M0 -168l7 13h-14z" fill="#b6f07c"/><path d="M-3 -152h6v5h-6z" fill="#b6f07c"/></g>';
+  $('bezel').innerHTML = s;
+}
+function renderMarksOnCard(){
+  var s = '';
+  marks.forEach(function(m, i){ var b = bearing(here, m) * D2R; s += '<g transform="translate(' + (84 * Math.sin(b)).toFixed(1) + ' ' + (-84 * Math.cos(b)).toFixed(1) + ') rotate(' + (b * R2D).toFixed(1) + ')"><path d="M0 -7 5 0 0 7-5 0z" fill="#e0a13a"/><text y="-14" text-anchor="middle" dominant-baseline="central" font-family="DIN Condensed,Arial Narrow" font-weight="700" font-size="12" fill="#e0a13a">' + (i + 1) + '</text></g>'; });
+  var g = $('mkOnCard'); if (g) g.innerHTML = s;
+}
+
+/* ---------- heading physics (liquid damping) ---------- */
+var target = st.heading, shown = st.heading, vel = 0, sensor = false, lastHap = -1;
+function stepCompass(dt){
+  var d = adiff(shown, target);
+  if (reduce){ shown = target; vel = 0; }
+  else { var acc = d * 0.0009 - vel * 0.045; vel += acc * dt; shown = norm(shown + vel * dt); }
+  $('card').setAttribute('transform', 'rotate(' + (-shown).toFixed(2) + ')');
+  var hd = Math.round(norm(shown)) % 360;
+  $('hdg').innerHTML = String(hd).padStart(3, '0') + '<sup>°</sup>';
+  var dr = dirOf(shown); $('dirTxt').innerHTML = dr[0] + '<small>' + dr[1] + '</small>';
+  $('milTxt').textContent = Math.round(norm(shown) / 360 * 6400) + ' mil';
+  if (st.bezel !== null){
+    var dv = adiff(shown, st.bezel), ad = Math.abs(Math.round(dv));
+    $('cmpNote').innerHTML = ad <= 2 ? '<b>已對準目標 ' + Math.round(st.bezel) + '°</b>' : '目標 ' + Math.round(st.bezel) + '° · 往' + (dv > 0 ? '右' : '左') + '轉 <b>' + ad + '°</b>';
+    if (ad <= 2 && lastHap !== 1){ lastHap = 1; haptic([10, 40, 10]); } else if (ad > 4) lastHap = 0;
+  } else $('cmpNote').textContent = sensor ? '感測器讀數 · 已套用磁偏角 −4.6°' : '拖曳羅盤轉身；拖曳外環設定目標方位';
+}
+function renderBezel(){
+  var bm = $('bezelMark'); if (bm) bm.setAttribute('transform', 'rotate(' + ((st.bezel === null ? 0 : st.bezel) - shown).toFixed(2) + ')');
+  $('bezel').style.opacity = st.bezel === null ? .55 : 1;
+  $('aBezel').setAttribute('aria-pressed', st.bezel !== null);
+}
+
+/* ---------- level ---------- */
+var tilt = [0, 0], tiltT = [0, 0], tiltV = [0, 0], hold = false, flatHap = false;
+function stepLevel(dt){
+  for (var i = 0; i < 2; i++){
+    if (reduce){ tilt[i] = tiltT[i]; continue; }
+    var acc = (tiltT[i] - tilt[i]) * .0016 - tiltV[i] * .06; tiltV[i] += acc * dt; tilt[i] += tiltV[i] * dt;
+  }
+  var p = tilt[0] - st.lvlOff[0], r = tilt[1] - st.lvlOff[1];
+  var bx = Math.max(-1, Math.min(1, r / 5)) * 120, by = Math.max(-1, Math.min(1, -p / 5)) * 120, len = Math.hypot(bx, by);
+  if (len > 124){ bx *= 124 / len; by *= 124 / len; }
+  $('bubble').setAttribute('transform', 'translate(' + (-bx).toFixed(1) + ' ' + (-by).toFixed(1) + ')');
+  $('tube').setAttribute('transform', 'translate(' + (150 - Math.max(-1, Math.min(1, r / 5)) * 120).toFixed(1) + ' 0)');
+  if (!hold){
+    $('pitchV').textContent = (p >= 0 ? '+' : '') + p.toFixed(1) + '°'; $('rollV').textContent = (r >= 0 ? '+' : '') + r.toFixed(1) + '°';
+    var flat = Math.abs(p) < .3 && Math.abs(r) < .3, lb = $('lvlBig');
+    lb.textContent = flat ? '水平' : Math.hypot(p, r).toFixed(1) + '°';
+    if (flat && !flatHap){ flatHap = true; haptic([6, 30, 6]); } else if (!flat) flatHap = false;
+  }
+}
+
+/* ---------- altimeter ---------- */
+var trueAlt = 3275, stationP = 0, altShown = 3275;
+function presAt(h, qnh){ return qnh * Math.pow(1 - 2.25577e-5 * h, 5.25588); }
+function altFrom(p, qnh){ return 44330.77 * (1 - Math.pow(p / qnh, .190263)); }
+var weatherQ = 1016.2; // real sea-level pressure today
+function buildAlt(){
+  var s = '';
+  for (var i = 0; i < 50; i++){ var a = i / 50 * 2 * Math.PI, long = i % 5 === 0, r1 = long ? 122 : 132; s += '<path d="M' + (142 * Math.sin(a)).toFixed(1) + ' ' + (-142 * Math.cos(a)).toFixed(1) + 'L' + (r1 * Math.sin(a)).toFixed(1) + ' ' + (-r1 * Math.cos(a)).toFixed(1) + '" stroke="#e4dfc4" stroke-width="' + (long ? 3 : 1.4) + '"/>'; }
+  for (var n = 0; n < 10; n++){ var b = n / 10 * 2 * Math.PI; s += '<text x="' + (102 * Math.sin(b)).toFixed(1) + '" y="' + (-102 * Math.cos(b)).toFixed(1) + '" text-anchor="middle" dominant-baseline="central" font-family="DIN Condensed,Arial Narrow" font-weight="700" font-size="28" fill="#e4dfc4">' + n + '</text>'; }
+  s += '<text x="-60" y="10" font-family="DIN Condensed,Arial Narrow" font-weight="700" font-size="13" fill="#7fae55" text-anchor="middle">×100m</text>';
+  $('altTicks').innerHTML = s;
+}
+var hist = (function(){ var a = [], v = 682.9; for (var i = 0; i < 36; i++){ v += (Math.sin(i / 5) * .05) - .022 + ((i * 37) % 11 - 5) * .01; a.push(v); } return a; })();
+function renderSpark(){
+  var mn = Math.min.apply(null, hist) - .2, mx = Math.max.apply(null, hist) + .2, w = 330, h = 54;
+  var pts = hist.map(function(v, i){ return [(i / (hist.length - 1) * (w - 8) + 4).toFixed(1), (h - 6 - (v - mn) / (mx - mn) * (h - 14)).toFixed(1)]; });
+  var d = 'M' + pts.map(function(p){ return p.join(' '); }).join('L');
+  $('spark').innerHTML = '<rect width="330" height="54" rx="6" fill="#11120d"/><path d="' + d + 'L' + (w - 4) + ' ' + h + 'L4 ' + h + 'Z" fill="#b6f07c" opacity=".12"/><path d="' + d + '" fill="none" stroke="#b6f07c" stroke-width="2" stroke-linejoin="round"/><circle cx="' + pts[pts.length - 1][0] + '" cy="' + pts[pts.length - 1][1] + '" r="3.5" fill="#b6f07c"/><text x="10" y="16" font-family="PingFang TC,sans-serif" font-size="11" fill="#b9b592">6 小時前</text><text x="320" y="16" text-anchor="end" font-family="PingFang TC,sans-serif" font-size="11" fill="#b9b592">現在</text>';
+  var dd = hist[hist.length - 1] - hist[hist.length - 19];
+  $('trendV').textContent = '3 小時 ' + (dd >= 0 ? '+' : '−') + Math.abs(dd).toFixed(1) + ' hPa · ' + (dd < -1 ? '天氣轉壞' : dd < 0 ? '緩降' : '穩定');
+}
+function stepAlt(dt){
+  stationP = presAt(trueAlt, weatherQ);
+  var a = altFrom(stationP, st.qnh);
+  altShown += (a - altShown) * Math.min(1, dt * .004);
+  var t = norm(altShown / 1000 * 360), k = altShown / 10000 * 360;
+  $('needleH').setAttribute('transform', 'rotate(' + t.toFixed(2) + ')');
+  $('needleK').setAttribute('transform', 'rotate(' + k.toFixed(2) + ')');
+  var v = Math.round(altShown);
+  $('drum').textContent = v; $('altBig').innerHTML = v + '<sup>m</sup>';
+  $('presV').innerHTML = stationP.toFixed(1) + '<small>hPa</small>';
+  $('qnhTxt').textContent = Math.round(st.qnh);
+}
+
+/* ---------- loop ---------- */
+var raf = null, lastT = 0, simT = 0;
+function loop(t){
+  raf = null; if (document.hidden) return;
+  var dt = Math.min(48, t - (lastT || t)); lastT = t;
+  simT += dt;
+  if (!sensor && simT > 900){ simT = 0; trueAlt += (Math.random() - .5) * .8; if (!dragging && Math.abs(adiff(shown, target)) < .5) target = norm(target + (Math.random() - .5) * .8); }
+  if (st.mode === 0){ stepCompass(dt); renderBezel(); }
+  if (st.mode === 1) stepLevel(dt);
+  if (st.mode === 2) stepAlt(dt);
+  raf = requestAnimationFrame(loop);
+}
+function kick(){ if (!raf){ lastT = 0; raf = requestAnimationFrame(loop); } }
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) kick(); });
+
+/* ---------- compass gestures ---------- */
+var dragging = false;
+(function(){
+  var el = $('cmpInst'), mode = null, lastA = 0;
+  function ang(e){ var b = el.getBoundingClientRect(); return Math.atan2(e.clientX - b.left - b.width / 2, -(e.clientY - b.top - b.height / 2)) * R2D; }
+  el.addEventListener('pointerdown', function(e){
+    var b = el.getBoundingClientRect(), r = Math.hypot(e.clientX - b.left - b.width / 2, e.clientY - b.top - b.height / 2) / (b.width / 2);
+    mode = r > .86 ? 'bezel' : 'body'; lastA = ang(e); dragging = true; el.setPointerCapture(e.pointerId);
+    if (mode === 'bezel' && st.bezel === null){ st.bezel = Math.round(shown); }
+  });
+  el.addEventListener('pointermove', function(e){
+    if (!dragging) return; var a = ang(e), d = a - lastA; if (d > 180) d -= 360; if (d < -180) d += 360; lastA = a;
+    if (mode === 'bezel'){ var nb = norm(st.bezel + d), c = Math.round(nb / 3); if (c !== Math.round(st.bezel / 3)) haptic(2); st.bezel = nb; }
+    else if (!sensor){ target = norm(target - d); }
+  });
+  function up(){ if (!dragging) return; dragging = false; if (mode === 'bezel'){ st.bezel = Math.round(st.bezel / 3) * 3 % 360; } st.heading = Math.round(target); persist(); mode = null; }
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.tabIndex = 0;
+  el.addEventListener('keydown', function(e){ if (e.key === 'ArrowLeft'){ target = norm(target - 5); e.preventDefault(); } if (e.key === 'ArrowRight'){ target = norm(target + 5); e.preventDefault(); } });
+})();
+$('aBezel').addEventListener('click', function(){
+  if (st.bezel === null){ st.bezel = Math.round(shown); toast('目標方位設為 ' + st.bezel + '°'); }
+  else { st.bezel = null; toast('已清除目標方位'); }
+  lastHap = -1; persist(); haptic(8); renderBezel();
+});
+
+/* ---------- level gestures ---------- */
+(function(){
+  var el = $('lvlInst'), on = false, sx = 0, sy = 0, s0 = [0, 0];
+  el.addEventListener('pointerdown', function(e){ if (sensor) return; on = true; sx = e.clientX; sy = e.clientY; s0 = tiltT.slice(); el.setPointerCapture(e.pointerId); });
+  el.addEventListener('pointermove', function(e){ if (!on) return; tiltT = [Math.max(-9, Math.min(9, s0[0] - (e.clientY - sy) / 22)), Math.max(-9, Math.min(9, s0[1] - (e.clientX - sx) / 22))]; });
+  function up(){ on = false; }
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+})();
+$('lZero').addEventListener('click', function(){ st.lvlOff = [tilt[0], tilt[1]]; persist(); haptic([8, 30, 8]); toast('以目前角度為零點'); });
+$('lFlat').addEventListener('click', function(){ tiltT = [st.lvlOff[0], st.lvlOff[1]]; haptic(6); });
+$('lHold').addEventListener('click', function(){ hold = !hold; this.setAttribute('aria-pressed', hold); haptic(8); toast(hold ? '讀數已鎖定' : '讀數解除鎖定'); });
+
+/* ---------- altimeter controls ---------- */
+function setQ(v){ st.qnh = Math.max(950, Math.min(1050, v)); persist(); haptic(4); }
+$('qMinus').addEventListener('click', function(){ setQ(Math.round(st.qnh) - 1); });
+$('qPlus').addEventListener('click', function(){ setQ(Math.round(st.qnh) + 1); });
+$('qCal').addEventListener('click', function(){
+  // solve QNH so the reading equals the known 3275 m at 武嶺
+  var p = presAt(trueAlt, weatherQ); st.qnh = p / Math.pow(1 - 2.25577e-5 * 3275, 5.25588); persist();
+  haptic([8, 30, 8]); toast('已依武嶺路標 3275 m 校正，QNH ' + st.qnh.toFixed(1));
+});
+
+/* ---------- sensors ---------- */
+var hasEvents = false;
+function onOrient(e){
+  var h = e.webkitCompassHeading != null ? e.webkitCompassHeading : (e.alpha != null ? 360 - e.alpha : null);
+  if (h == null) return;
+  hasEvents = true; sensor = true; target = norm(h);
+  if (e.beta != null){ tiltT = [Math.max(-9, Math.min(9, e.beta)), Math.max(-9, Math.min(9, e.gamma || 0))]; }
+  $('sensLbl').textContent = '感測器'; $('aSensor').setAttribute('aria-pressed', 'true');
+}
+$('aSensor').addEventListener('click', function(){
+  haptic(6);
+  if (sensor){ sensor = false; window.removeEventListener('deviceorientation', onOrient); $('sensLbl').textContent = '模擬'; this.setAttribute('aria-pressed', 'false'); toast('改用模擬：拖曳羅盤轉身'); return; }
+  var D = window.DeviceOrientationEvent;
+  if (!D){ toast('這台裝置沒有方位感測器'); return; }
+  var start = function(){ window.addEventListener('deviceorientation', onOrient); setTimeout(function(){ if (!hasEvents) toast('沒有收到感測器資料，維持模擬'); }, 1500); };
+  if (typeof D.requestPermission === 'function'){ D.requestPermission().then(function(r){ if (r === 'granted') start(); else toast('未取得感測器權限'); }).catch(function(){ toast('未取得感測器權限'); }); }
+  else start();
+});
+
+/* ---------- modes ---------- */
+var VIEWS = ['v-cmp', 'v-lvl', 'v-alt'], ANG = [-50, 0, 50];
+var ac = null;
+function click(){ try { if (!ac){ var C = window.AudioContext || window.webkitAudioContext; if (!C) return; ac = new C(); } var t = ac.currentTime, b = ac.createBuffer(1, 800, ac.sampleRate), d = b.getChannelData(0); for (var i = 0; i < 800; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / 800, 6); var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 1.5; g.gain.value = .6; s.buffer = b; s.connect(f); f.connect(g); g.connect(ac.destination); s.start(t); } catch(e){} }
+function setMode(m, silent){
+  st.mode = m; persist();
+  VIEWS.forEach(function(id, i){ $(id).classList.toggle('on', i === m); });
+  document.querySelectorAll('.mode').forEach(function(b){ b.setAttribute('aria-selected', +b.dataset.m === m); });
+  $('knobRot').style.transform = 'rotate(' + ANG[m] + 'deg)';
+  if (!silent){ haptic([6, 20, 6]); click(); }
+  kick();
+}
+document.querySelector('.labels').addEventListener('click', function(e){ var b = e.target.closest('[data-m]'); if (b && +b.dataset.m !== st.mode) setMode(+b.dataset.m); });
+(function(){
+  var k = $('knob'), on = false, sx = 0, moved = false;
+  k.addEventListener('pointerdown', function(e){ on = true; moved = false; sx = e.clientX; k.setPointerCapture(e.pointerId); });
+  k.addEventListener('pointermove', function(e){ if (!on) return; var dx = e.clientX - sx; if (Math.abs(dx) > 24){ var m = Math.max(0, Math.min(2, st.mode + (dx > 0 ? 1 : -1))); sx = e.clientX; moved = true; if (m !== st.mode) setMode(m); } });
+  k.addEventListener('pointerup', function(){ on = false; });
+  k.addEventListener('click', function(){ if (moved){ moved = false; return; } setMode((st.mode + 1) % 3); });
+})();
+
+/* ---------- night ---------- */
+function applyNight(){ $('screen').classList.toggle('night', st.night); $('nightSw').setAttribute('aria-checked', st.night); document.querySelector('meta[name=theme-color]').setAttribute('content', st.night ? '#141610' : '#3f4524'); }
+$('nightSw').addEventListener('click', function(){ st.night = !st.night; persist(); applyNight(); haptic(10); click(); });
+
+/* ---------- coords ---------- */
+function renderCoord(){ $('coordTxt').textContent = dms(here.lat, 'N', 'S') + ' ' + dms(here.lon, 'E', 'W'); }
+function coordHTML(){
+  var t = twd97(here.lat, here.lon);
+  return '<h3 id="shT">座標<small>' + here.src + '</small></h3><div class="cgrid">' +
+    '<div class="cbox"><span>緯度</span><b>' + dms(here.lat, 'N ', 'S ') + '</b></div><div class="cbox"><span>經度</span><b>' + dms(here.lon, 'E ', 'W ') + '</b></div>' +
+    '<div class="cbox"><span>TWD97 橫坐標 E</span><b>' + Math.round(t[0]).toLocaleString('en-US') + '</b></div><div class="cbox"><span>TWD97 縱坐標 N</span><b>' + Math.round(t[1]).toLocaleString('en-US') + '</b></div>' +
+    '<div class="cbox w"><span>十進位 · 高度</span><b>' + here.lat.toFixed(5) + ', ' + here.lon.toFixed(5) + ' · ' + Math.round(here.h) + ' m</b></div></div>' +
+    '<button class="addmk" data-act="copy">複製座標</button><button class="addmk" data-act="locate" style="background:transparent">用這支手機定位</button>' +
+    '<p class="src">TWD97 採二度分帶（中央經線 121°E），適合對照登山地圖的方格座標。</p>';
+}
+$('coordBtn').addEventListener('click', function(){ haptic(6); openSheet(coordHTML()); });
+
+/* ---------- markers ---------- */
+function fmtD(m){ return m >= 1000 ? (m / 1000).toFixed(m >= 10000 ? 0 : 1) + ' km' : Math.round(m) + ' m'; }
+function marksHTML(){
+  var h = '<h3 id="shT">標記<small>點一列把目標環對準它</small></h3>';
+  if (!marks.length) h += '<p class="src">還沒有標記。按「記下此點」或下面的按鈕新增。</p>';
+  marks.forEach(function(m, i){
+    var b = Math.round(bearing(here, m)), d = dist(here, m), dh = Math.round(m.h - here.h);
+    h += '<div class="mk"><button class="row" data-aim="' + i + '"><span class="n">' + (i + 1) + '</span><span class="nm">' + m.n + '<small>' + m.h + ' m · ' + (dh >= 0 ? '高 ' : '低 ') + Math.abs(dh) + ' m</small></span><span class="br">' + String(b).padStart(3, '0') + '°<small>' + fmtD(d) + ' · ' + dirOf(b)[1] + '</small></span></button>' +
+      '<button class="xbtn" data-del="' + i + '" aria-label="刪除 ' + m.n + '"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 4l10 10M14 4 4 14" stroke="currentColor" stroke-width="2.2" stroke-linecap="square"/></svg></button></div>';
+  });
+  return h + '<button class="addmk" data-act="add"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14" stroke="currentColor" stroke-width="2.4"/></svg>在目前位置加標記</button>';
+}
+function addMark(){
+  var n = marks.length + 1, t = new Date();
+  // a new mark lands a short pace along the current heading, as if you walked there
+  var d = 60 + Math.random() * 90, b = shown * D2R;
+  marks.push({n: '標記 ' + n + ' · ' + t.getHours() + ':' + String(t.getMinutes()).padStart(2, '0'), lat: +(here.lat + d * Math.cos(b) / 111320).toFixed(6), lon: +(here.lon + d * Math.sin(b) / (111320 * Math.cos(here.lat * D2R))).toFixed(6), h: Math.round(altShown + (Math.random() - .5) * 6)});
+  persist(); renderMarksOnCard(); haptic([8, 30, 8]); click();
+  toast('已記下標記 ' + n + '（' + String(Math.round(shown)).padStart(3, '0') + '°）');
+}
+$('aMark').addEventListener('click', addMark);
+$('aList').addEventListener('click', function(){ haptic(6); openSheet(marksHTML()); });
+
+/* ---------- sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('shBody').innerHTML = html; sheet.style.transform = ''; sheet.scrollTop = 0; sheet.classList.add('on'); scrim.classList.add('on'); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll: true}); }
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+sheet.addEventListener('click', function(e){
+  var aim = e.target.closest('[data-aim]');
+  if (aim){ var m = marks[+aim.dataset.aim]; st.bezel = Math.round(bearing(here, m)); lastHap = -1; persist(); closeSheet(); if (st.mode !== 0) setMode(0); toast('目標：' + m.n.split(' · ')[0] + ' ' + String(st.bezel).padStart(3, '0') + '°'); haptic(8); return; }
+  var del = e.target.closest('[data-del]');
+  if (del){ var i = +del.dataset.del, rm = marks.splice(i, 1)[0]; persist(); renderMarksOnCard(); $('shBody').innerHTML = marksHTML(); haptic([10, 30, 10]);
+    toast('刪除了 ' + rm.n.split(' · ')[0], function(){ marks.splice(i, 0, rm); persist(); renderMarksOnCard(); if (sheet.classList.contains('on')) $('shBody').innerHTML = marksHTML(); }); return; }
+  var a = e.target.closest('[data-act]'); if (!a) return;
+  if (a.dataset.act === 'add'){ addMark(); $('shBody').innerHTML = marksHTML(); }
+  if (a.dataset.act === 'copy'){ var t = twd97(here.lat, here.lon), txt = here.lat.toFixed(5) + ', ' + here.lon.toFixed(5) + ' (TWD97 ' + Math.round(t[0]) + ' ' + Math.round(t[1]) + ')';
+    try { navigator.clipboard.writeText(txt).then(function(){ toast('座標已複製'); }, function(){ toast(txt); }); } catch(err){ toast(txt); } haptic(6); }
+  if (a.dataset.act === 'locate'){
+    haptic(6);
+    if (!navigator.geolocation){ toast('這個瀏覽器無法定位'); return; }
+    toast('定位中…');
+    try { navigator.geolocation.getCurrentPosition(function(p){ here = {lat: p.coords.latitude, lon: p.coords.longitude, h: p.coords.altitude || here.h, src: 'GPS ±' + Math.round(p.coords.accuracy) + ' m'}; renderCoord(); renderMarksOnCard(); if (sheet.classList.contains('on')) $('shBody').innerHTML = coordHTML(); toast('已更新為目前位置'); }, function(){ toast('無法取得位置，維持模擬座標'); }, {timeout: 8000}); } catch(err){ toast('無法取得位置'); }
+  }
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dg = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button') || sheet.scrollTop > 0) return; dg = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId); });
+  sheet.addEventListener('pointermove', function(e){ if (!dg) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!dg) return; dg = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+var tT = null, undoFn = null;
+function toast(m, undo){ $('toastT').textContent = m; undoFn = undo || null; $('toastU').hidden = !undo; $('toast').classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, 2400); }
+$('toastU').addEventListener('click', function(){ if (undoFn){ var f = undoFn; undoFn = null; f(); haptic(6); } $('toast').classList.remove('on'); });
+
+/* backdrop contours */
+(function(){
+  var g = $('contours'), h = '', peaks = [[400, 280, 1], [1220, 590, .9], [780, 800, .7]];
+  peaks.forEach(function(pk){ for (var k = 1; k <= 11; k++){ var r = k * 34 * pk[2], s = ''; for (var a = 0; a <= 64; a++){ var t = a / 64 * Math.PI * 2, w = 1 + .16 * Math.sin(3 * t + k * .7 + pk[0]) + .08 * Math.cos(5 * t + k); s += (a ? 'L' : 'M') + (pk[0] + Math.cos(t) * r * w * 1.25).toFixed(1) + ' ' + (pk[1] + Math.sin(t) * r * w * .85).toFixed(1); } h += '<path d="' + s + 'Z"' + (k % 5 === 0 ? ' stroke-width="3.5"' : '') + '/>'; } });
+  g.innerHTML = h;
+})();
+
+function tick(){ var d = new Date(); $('clock').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setTimeout(function(){ tick(); setInterval(tick, 60000); }, (60 - new Date().getSeconds()) * 1000);
+
+buildCard(); buildBezel(); buildAlt(); renderSpark(); renderMarksOnCard(); renderCoord(); applyNight();
+stepCompass(0); renderBezel(); stepLevel(0); stepAlt(1000);
+setMode(st.mode, true);
+})();
+</script>
+</body>
+</html>

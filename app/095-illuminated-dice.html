@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e6d3a8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="羊皮骰">
+<title>羊皮骰 · TRPG 骰子</title>
+<meta name="description" content="泥金手抄本風格的 TRPG 骰子：d4 到 d100 在羊皮紙骰盤裡彈跳，優勢與劣勢、擲骰紀錄，角色卡點一下屬性就擲檢定。收錄於 100 Creative HTML Works（App 095・泥金手抄本）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/095-illuminated-dice.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23e6d3a8'/%3E%3Crect x='8' y='8' width='48' height='48' fill='%23b8322a' stroke='%23c99a2e' stroke-width='5'/%3E%3Cpath d='M32 15 47 24v17l-15 9-15-9V24z' fill='%23f3e6c4' stroke='%23c99a2e' stroke-width='2.5'/%3E%3Ctext x='32' y='38' text-anchor='middle' font-family='Georgia' font-size='15' font-weight='700' fill='%23b8322a'%3E20%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --vellum:#e8d6ab;
+  --vellum-2:#dcc594;
+  --vellum-3:#f1e4c3;
+  --ink:#2c1c10;
+  --ink-2:#5b4128;
+  --ink-3:#806247;
+  --verm:#b3301f;
+  --verm-d:#8c2214;
+  --gold:#c4952c;
+  --gold-l:#ecd08a;
+  --gold-d:#8e6415;
+  --leaf:linear-gradient(135deg,#f3dc92 0%,#c89a33 28%,#f0d587 48%,#a87a1f 70%,#e2bf66 100%);
+  --hand:"Apple Chancery","Kaiti TC","STKaiti","Songti TC",serif;
+  --kai:"Kaiti TC","STKaiti","Songti TC","PingFang TC",serif;
+  --song:"Songti TC","Kaiti TC","PingFang TC",serif;
+  --out:cubic-bezier(.2,.9,.3,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:16px/1.5 var(--kai);color:var(--ink);background:var(--vellum);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible{outline:2px solid var(--verm);outline-offset:3px;border-radius:4px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--vellum);isolation:isolate}
+@media (min-width:521px){
+  body{background:#3a1511}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:12px;z-index:1;
+    background:linear-gradient(150deg,#5a2419,#3b130d 40%,#51201a 70%,#2f0f0a);
+    box-shadow:inset 0 0 0 2px #1f0906,inset 0 0 0 4px #c4952c,inset 0 0 0 5.5px #2a0c08,0 14px 20px -12px rgba(0,0,0,.7)}
+  .screen{inset:12px;border-radius:40px}
+  .caption{display:block;position:relative;z-index:1;max-width:250px;color:#ecd9b0}
+  .caption h1{font:400 46px/1.1 var(--hand);color:#ecd08a}
+  .caption p{margin-top:14px;font:400 16px/1.7 var(--kai);color:#d9c39a}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+/* vellum: mottled stains + fine grain + burnt edge, all behind content */
+.vel{position:absolute;inset:0;z-index:0;pointer-events:none}
+.vel svg{width:100%;height:100%}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 34px;font:400 17px/1 var(--hand);color:var(--ink);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+.folio{position:absolute;left:0;right:0;top:calc(46px + env(safe-area-inset-top));bottom:calc(64px + env(safe-area-inset-bottom));z-index:1;display:flex;flex-direction:column;transform-origin:0 50%}
+.folio[hidden]{display:none}
+.turn{animation:turn .55s var(--out)}
+.turn.back{animation-name:turnb}
+@keyframes turn{from{transform:perspective(1400px) rotateY(-70deg)}to{transform:perspective(1400px) rotateY(0)}}
+@keyframes turnb{from{transform:perspective(1400px) rotateY(24deg) translateX(20px)}to{transform:none}}
+
+/* header */
+.fh{flex:none;display:grid;grid-template-columns:1fr auto;align-items:center;height:50px;padding:0 10px 0 22px}
+.fh h1{font:400 24px/1 var(--kai);letter-spacing:.12em;color:var(--verm)}
+.fh h1 i{font:400 17px/1 var(--hand);font-style:normal;color:var(--ink-3);letter-spacing:0;margin-left:10px}
+.ib{width:48px;height:48px;display:grid;place-items:center;border-radius:8px}
+.ib svg{width:28px;height:28px}
+.ib:active{background:rgba(92,60,30,.1)}
+
+/* result: the illuminated numeral */
+.res{flex:none;display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;padding:4px 22px 10px}
+.cap{position:relative;width:104px;height:104px}
+.cap svg{width:100%;height:100%}
+.cap .num{position:absolute;inset:0;display:grid;place-items:center;font:400 54px/1 var(--hand);color:var(--gold-l);padding-top:4px}
+.cap .num.w3{font-size:40px}
+.cap.pop .num{animation:capp .5s var(--out)}
+@keyframes capp{0%{transform:scale(.6)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+.res .ex{font:400 22px/1.2 var(--hand);color:var(--ink)}
+.res .br{margin-top:6px;font:400 15px/1.45 var(--kai);color:var(--ink-2);word-break:break-all;max-height:44px;overflow:hidden}
+.res .rub{margin-top:6px;font:400 17px/1 var(--kai);color:var(--verm);letter-spacing:.1em;min-height:17px}
+.res .lb{font:400 14px/1 var(--kai);color:var(--ink-3);margin-bottom:6px;min-height:14px}
+
+/* tray */
+.tray{position:relative;flex:1;min-height:150px;margin:0 16px;touch-action:none;cursor:pointer}
+.tray .frame{position:absolute;inset:0;pointer-events:none}
+.tray .frame svg{width:100%;height:100%}
+.tray .felt{position:absolute;inset:14px;border-radius:2px;background:#d9c08b;box-shadow:inset 2px 3px 6px rgba(90,55,20,.35)}
+.tray .empty{position:absolute;inset:14px;display:grid;place-items:center;text-align:center;font:400 16px/1.6 var(--kai);color:var(--ink-3);padding:0 30px;pointer-events:none}
+.die{position:absolute;left:0;top:0;width:66px;height:66px;margin:-33px 0 0 -33px;will-change:transform;pointer-events:none}
+.die svg{width:100%;height:100%;overflow:visible}
+.die .v{font-family:"Apple Chancery","Kaiti TC",serif;font-size:21px;fill:var(--verm)}
+.die.drop{opacity:.42}
+.die.settle svg{animation:settle .35s var(--out)}
+@keyframes settle{0%{transform:scale(1.18)}100%{transform:scale(1)}}
+
+/* controls */
+.mode{flex:none;display:grid;grid-template-columns:repeat(3,1fr);margin:10px 22px 0;height:44px}
+.mode button{font:400 17px/1 var(--kai);color:var(--ink-3);border:1.5px solid transparent;border-radius:3px}
+.mode button[aria-pressed=true]{color:var(--verm);border-color:var(--verm)}
+.dice{flex:none;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:6px 12px 0}
+.dice button{position:relative;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:6px}
+.dice button svg{width:32px;height:32px}
+.dice button b{font:400 15px/1 var(--hand);color:var(--ink)}
+.dice button .c{position:absolute;right:4px;top:3px;min-width:18px;height:18px;border-radius:9px;background:var(--verm);color:#f6e7c8;font:400 12px/18px var(--hand);text-align:center;padding:0 4px}
+.dice button:active{background:rgba(92,60,30,.12)}
+.pool{flex:none;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:6px;margin:6px 16px 0 22px;min-height:66px}
+.pool .ex{font:400 20px/1.2 var(--hand);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pool .ex small{display:block;font:400 13px/1.3 var(--kai);color:var(--ink-3);white-space:normal}
+.mod{display:flex;align-items:center}
+.mod button{width:40px;height:44px;display:grid;place-items:center;border-radius:6px}
+.mod button svg{width:20px;height:20px}
+.mod button:active{background:rgba(92,60,30,.12)}
+.mod output{min-width:34px;text-align:center;font:400 20px/1 var(--hand)}
+.seal{position:relative;width:66px;height:66px;border-radius:50%;display:grid;place-items:center}
+.seal svg{position:absolute;inset:0;width:100%;height:100%;transition:transform .15s}
+.seal span{position:relative;font:400 26px/1 var(--kai);color:#f2d9b4;margin-top:-2px}
+.seal:active svg{transform:scale(.93)}
+.seal:disabled{opacity:.5}
+
+/* bottom folio nav */
+.nav{position:absolute;left:0;right:0;bottom:0;z-index:30;height:calc(64px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:1fr 1fr;align-items:center}
+.nav::before{content:"";position:absolute;left:22px;right:22px;top:0;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--gold) 20%,var(--gold-l) 50%,var(--gold) 80%,transparent)}
+.nav button{height:56px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--ink-3);font:400 18px/1 var(--kai);transition:color .2s}
+.nav button i{font:400 15px/1 var(--hand);font-style:normal}
+.nav button[aria-selected=true]{color:var(--verm)}
+.nav button[aria-selected=true] i{color:var(--gold-d)}
+.nav button svg{width:22px;height:22px}
+
+/* character folio */
+.cscroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 22px 26px}
+.who{display:grid;grid-template-columns:86px 1fr;gap:16px;align-items:center;padding:6px 0 14px}
+.who svg{width:86px;height:100px}
+.who h2{font:400 30px/1.1 var(--kai);letter-spacing:.06em}
+.who h2 small{display:block;font:400 18px/1.2 var(--hand);color:var(--ink-3);letter-spacing:0;margin-top:4px}
+.who p{margin-top:6px;font-size:15px;color:var(--ink-2)}
+.party{display:flex;gap:4px;margin-top:6px}
+.party button{height:40px;padding:0 10px;border-radius:4px;font:400 15px/1 var(--kai);color:var(--ink-3)}
+.party button[aria-pressed=true]{color:var(--ink);background:rgba(196,149,44,.22)}
+.vit{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:10px;margin-top:4px}
+.box{position:relative;padding:10px 10px 8px;text-align:center;border:1.5px solid var(--ink-2);border-radius:2px}
+.box::before{content:"";position:absolute;inset:3px;border:1px solid rgba(91,65,40,.35);pointer-events:none}
+.box span{display:block;font-size:14px;color:var(--ink-2)}
+.box b{display:block;font:400 30px/1.1 var(--hand);margin-top:2px}
+.box b small{font-size:17px;color:var(--ink-3)}
+.hp{display:grid;grid-template-columns:44px 1fr 44px;align-items:center}
+.hp button{height:44px;display:grid;place-items:center;border-radius:4px}
+.hp button svg{width:20px;height:20px}
+.hp button:active{background:rgba(92,60,30,.12)}
+.hpbar{height:8px;margin:6px 6px 0;border-radius:4px;background:rgba(91,65,40,.18);overflow:hidden}
+.hpbar i{display:block;height:100%;background:var(--verm);border-radius:4px;transition:width .35s var(--out)}
+.sect{margin:22px 0 8px;display:flex;align-items:baseline;gap:10px}
+.sect b{font:400 36px/.8 var(--hand);color:var(--verm)}
+.sect span{font:400 18px/1 var(--kai);letter-spacing:.08em}
+.sect em{margin-left:auto;font:400 14px var(--kai);font-style:normal;color:var(--ink-3)}
+.abil{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.abil button{padding:10px 4px 8px;text-align:center;border-radius:3px;background:rgba(241,228,195,.55);box-shadow:inset 0 0 0 1px rgba(91,65,40,.28)}
+.abil button:active{background:rgba(196,149,44,.28)}
+.abil .n{font-size:15px;color:var(--ink-2)}
+.abil .m{font:400 30px/1.1 var(--hand)}
+.abil .s{font:400 14px/1 var(--hand);color:var(--ink-3)}
+.atk{list-style:none;padding:0}
+.atk li{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;min-height:56px}
+.atk li + li{box-shadow:0 -1px 0 rgba(91,65,40,.22)}
+.atk .nm{font-size:17px}
+.atk .nm small{display:block;font-size:13px;color:var(--ink-3)}
+.atk button{height:44px;min-width:64px;padding:0 10px;border-radius:3px;font:400 17px/1 var(--hand);color:var(--verm);box-shadow:inset 0 0 0 1.5px var(--verm)}
+.atk button:active{background:rgba(179,48,31,.1)}
+.atk button.dmg{color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+.notes{font-size:15px;line-height:1.7;color:var(--ink-2)}
+.notes b{font:400 38px/.8 var(--hand);color:var(--verm);float:left;margin:6px 6px 0 0}
+.editbtn{margin-top:18px;width:100%;height:50px;border-radius:3px;font:400 17px/1 var(--kai);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:60;background:rgba(40,18,8,.45);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:70;max-height:82%;display:flex;flex-direction:column;background:var(--vellum-3);border-radius:16px 16px 0 0;transform:translateY(105%);transition:transform .45s var(--out);
+  box-shadow:0 -3px 6px -3px rgba(60,30,10,.35)}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{flex:none;padding:8px 0 4px;touch-action:none;cursor:grab}
+.handle{width:40px;height:5px;border-radius:3px;background:rgba(91,65,40,.35);margin:0 auto}
+.sheet h4{flex:none;text-align:center;font:400 21px/1.3 var(--kai);letter-spacing:.1em;color:var(--verm);padding:6px 0 4px}
+.shb{flex:1;min-height:0;overflow:auto;padding:4px 22px calc(22px + env(safe-area-inset-bottom))}
+.hist{list-style:none;padding:0}
+.hist li{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:10px 0}
+.hist li + li{box-shadow:0 -1px 0 rgba(91,65,40,.2)}
+.hist .t{font:400 32px/1 var(--hand);color:var(--verm);text-align:center}
+.hist .e{font:400 17px/1.2 var(--hand)}
+.hist .e small{display:block;font:400 13px/1.4 var(--kai);color:var(--ink-3)}
+.hist button{height:44px;padding:0 10px;border-radius:3px;font:400 15px/1 var(--kai);color:var(--ink-2)}
+.hist button:active{background:rgba(92,60,30,.12)}
+.clr{margin-top:14px;width:100%;height:48px;border-radius:3px;color:var(--verm);font:400 16px/1 var(--kai);box-shadow:inset 0 0 0 1.5px rgba(179,48,31,.5)}
+.row{display:grid;grid-template-columns:1fr auto;align-items:center;min-height:52px}
+.row + .row{box-shadow:0 -1px 0 rgba(91,65,40,.18)}
+.row span{font-size:17px}
+.step{display:flex;align-items:center}
+.step button{width:44px;height:44px;display:grid;place-items:center;border-radius:4px}
+.step button svg{width:20px;height:20px}
+.step output{min-width:40px;text-align:center;font:400 22px/1 var(--hand)}
+.fld{display:block;margin:8px 0}
+.fld span{display:block;font-size:14px;color:var(--ink-3);margin-bottom:4px}
+.fld input{width:100%;height:46px;border:0;border-radius:3px;background:rgba(220,197,148,.55);box-shadow:inset 0 1px 2px rgba(60,30,10,.2);padding:0 12px;font:400 18px var(--kai);color:var(--ink)}
+.done{margin-top:16px;width:100%;height:52px;border-radius:3px;background:var(--verm);color:#f6e7c8;font:400 18px/1 var(--kai);letter-spacing:.2em}
+.toast{position:absolute;left:50%;top:calc(52px + env(safe-area-inset-top));z-index:90;display:flex;align-items:center;gap:6px;height:46px;padding:0 6px 0 16px;border-radius:4px;background:var(--ink);color:var(--vellum-3);font:400 15px/1 var(--kai);white-space:nowrap;transform:translate(-50%,-120px);transition:transform .4s var(--out)}
+.toast.on{transform:translate(-50%,0)}
+.toast button{height:36px;padding:0 12px;border-radius:3px;color:var(--gold-l);font:400 15px/1 var(--kai)}
+.toast button[hidden]{display:none}
+.home{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom));width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(44,28,16,.55);z-index:95;pointer-events:none}
+@media (max-height:720px){
+  .cap{width:84px;height:84px}
+  .cap .num{font-size:44px}
+  .dice button{height:54px}
+  .res{padding-bottom:4px}
+}
+@media (prefers-reduced-motion:reduce){
+  .turn,.cap.pop .num,.die.settle svg{animation:none}
+  .sheet,.toast,.hpbar i{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3dc92"/><stop offset=".28" stop-color="#c89a33"/><stop offset=".48" stop-color="#f0d587"/><stop offset=".7" stop-color="#a87a1f"/><stop offset="1" stop-color="#e2bf66"/></linearGradient>
+    <radialGradient id="bone" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#fbf1d8"/><stop offset=".7" stop-color="#eedcb2"/><stop offset="1" stop-color="#d9bf88"/></radialGradient>
+    <radialGradient id="wax" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#d0472f"/><stop offset=".6" stop-color="#a82a18"/><stop offset="1" stop-color="#7d1b0e"/></radialGradient>
+    <filter id="leafgrain"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 .35  0 0 0 0 .22  0 0 0 0 .05  0 0 0 .5 0"/><feComposite in2="SourceGraphic" operator="in"/><feBlend in="SourceGraphic" mode="multiply"/></filter>
+  </defs>
+</svg>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="lth"><feTurbulence type="fractalNoise" baseFrequency=".6" numOctaves="4" seed="9"/><feColorMatrix values="0 0 0 0 .1  0 0 0 0 .03  0 0 0 0 .02  0 0 0 .5 0"/></filter>
+        <linearGradient id="lthg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4c1a13"/><stop offset=".5" stop-color="#3a130d"/><stop offset="1" stop-color="#2c0d09"/></linearGradient>
+      </defs>
+      <rect width="1600" height="1000" fill="url(#lthg)"/>
+      <rect width="1600" height="1000" filter="url(#lth)"/>
+      <!-- gold tooling -->
+      <g fill="none" stroke="#b98a2a" stroke-width="3" opacity=".75">
+        <rect x="60" y="60" width="1480" height="880"/>
+        <rect x="80" y="80" width="1440" height="840" stroke-width="1.5"/>
+      </g>
+      <g fill="#b98a2a" opacity=".75">
+        <path id="fl" d="M80 80c30 0 50 14 58 40-26-8-44-4-58 10 14-14 18-32 10-58 26 8 40 28 40 58" transform="translate(0 0)"/>
+        <use href="#fl" transform="translate(1600 0) scale(-1 1)"/>
+        <use href="#fl" transform="translate(0 1000) scale(1 -1)"/>
+        <use href="#fl" transform="translate(1600 1000) scale(-1 -1)"/>
+        <circle cx="800" cy="80" r="6"/><circle cx="800" cy="920" r="6"/><circle cx="80" cy="500" r="6"/><circle cx="1520" cy="500" r="6"/>
+      </g>
+      <!-- silk ribbon bookmark -->
+      <path d="M1320 0h36v330l-18-22-18 22z" fill="#8c2214"/>
+      <path d="M1328 0v300" stroke="#b3301f" stroke-width="4"/>
+    </svg>
+  </div>
+  <div class="caption">
+    <h1>Liber Aleae</h1>
+    <p>泥金手抄本做成的 TRPG 骰子。骰子在羊皮紙上彈跳落定，點數寫進金箔首字母；角色卡上點一下屬性就擲檢定。</p>
+  </div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="vel" aria-hidden="true">
+        <svg preserveAspectRatio="none" viewBox="0 0 390 844">
+          <defs>
+            <filter id="stain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .018" numOctaves="3" seed="7"/><feColorMatrix values="0 0 0 0 .55  0 0 0 0 .38  0 0 0 0 .15  0 0 0 .38 -.08"/></filter>
+            <filter id="fine"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .4  0 0 0 0 .28  0 0 0 0 .12  0 0 0 .22 0"/></filter>
+            <linearGradient id="edgeT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a6a2a" stop-opacity=".35"/><stop offset=".08" stop-color="#9a6a2a" stop-opacity="0"/><stop offset=".92" stop-color="#9a6a2a" stop-opacity="0"/><stop offset="1" stop-color="#9a6a2a" stop-opacity=".35"/></linearGradient>
+            <linearGradient id="edgeL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9a6a2a" stop-opacity=".3"/><stop offset=".1" stop-color="#9a6a2a" stop-opacity="0"/><stop offset=".9" stop-color="#9a6a2a" stop-opacity="0"/><stop offset="1" stop-color="#9a6a2a" stop-opacity=".3"/></linearGradient>
+          </defs>
+          <rect width="390" height="844" fill="#e8d6ab"/>
+          <rect width="390" height="844" filter="url(#stain)"/>
+          <rect width="390" height="844" filter="url(#fine)"/>
+          <rect width="390" height="844" fill="url(#edgeT)"/>
+          <rect width="390" height="844" fill="url(#edgeL)"/>
+        </svg>
+      </div>
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="20" height="12" viewBox="0 0 20 12"><path d="M1.5 11 3 8M6.5 11 8.5 6M11.5 11l2.5-7.5M16.5 11 19 1" stroke="#2c1c10" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <svg width="18" height="12" viewBox="0 0 18 12"><path d="M1.5 5C6 .8 12 .8 16.5 5M4.5 8c2.6-2.2 6.4-2.2 9 0" stroke="#2c1c10" stroke-width="1.8" stroke-linecap="round" fill="none"/><path d="M9 9.2 10.4 11 9 12 7.6 11z" fill="#b3301f"/></svg>
+          <svg width="28" height="13" viewBox="0 0 28 13"><path d="M2 2.5h19.5l1.5 1v6l-1.5 1H2L1 9.5v-6z" stroke="#2c1c10" stroke-width="1.5" fill="none" stroke-linejoin="round"/><path d="M4 6.5h13" stroke="#2c1c10" stroke-width="4" stroke-linecap="round"/><path d="M25 5v3" stroke="#2c1c10" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+      <!-- folio i: the tray -->
+      <section class="folio" id="f-tray" aria-label="骰盤">
+        <header class="fh">
+          <h1>骰盤<i>fol. i</i></h1>
+          <button class="ib" id="histBtn" aria-label="擲骰紀錄">
+            <svg viewBox="0 0 28 28"><path d="M8 5.5h13.5a2.5 2.5 0 0 1 0 5H20v11a3 3 0 0 1-3 3H7.5a2.5 2.5 0 0 1 0-5H9V8a2.5 2.5 0 0 0-2.5-2.5" stroke="#2c1c10" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 12h5M12 15.5h5" stroke="#2c1c10" stroke-width="1.6" stroke-linecap="round"/><path d="M12 19h3" stroke="#b3301f" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </header>
+        <div class="res">
+          <div class="cap" id="cap">
+            <svg viewBox="0 0 104 104" aria-hidden="true">
+              <rect x="3" y="3" width="98" height="98" fill="url(#leaf)" filter="url(#leafgrain)"/>
+              <rect x="10" y="10" width="84" height="84" fill="#b3301f"/>
+              <g stroke="#f4e3c0" stroke-width="1.1" fill="none" opacity=".75" stroke-linecap="round">
+                <path d="M14 30c6-10 14-14 22-14M90 74c-6 10-14 14-22 14M14 74c4 8 10 12 16 13M90 30c-4-8-10-12-16-13"/>
+                <circle cx="18" cy="18" r="2"/><circle cx="86" cy="86" r="2"/><circle cx="86" cy="18" r="2"/><circle cx="18" cy="86" r="2"/>
+                <path d="M22 52c-4-2-6-5-6-8M82 52c4 2 6 5 6 8"/>
+              </g>
+              <rect x="10" y="10" width="84" height="84" fill="none" stroke="#6e1a0e" stroke-width="1"/>
+            </svg>
+            <div class="num" id="capNum">20</div>
+          </div>
+          <div>
+            <div class="lb" id="resLb"></div>
+            <div class="ex" id="resEx">1d20</div>
+            <div class="br" id="resBr">點下方的封蠟擲骰</div>
+            <div class="rub" id="resRub"></div>
+          </div>
+        </div>
+        <div class="tray" id="tray" aria-label="骰盤，點一下重擲，往一個方向甩就朝那裡擲">
+          <div class="felt"></div>
+          <div class="frame" aria-hidden="true"><svg id="frameSvg" preserveAspectRatio="none"></svg></div>
+          <div class="empty" id="trayEmpty">選好骰子，點封蠟擲出</div>
+          <div id="diceLayer"></div>
+        </div>
+        <div class="mode" id="mode" aria-label="擲骰方式">
+          <button data-m="0" aria-pressed="true">普通</button>
+          <button data-m="1" aria-pressed="false">優勢</button>
+          <button data-m="-1" aria-pressed="false">劣勢</button>
+        </div>
+        <div class="dice" id="picker" aria-label="加骰子，長按移除"></div>
+        <div class="pool">
+          <div class="ex" id="poolEx">1d20<small>長按骰子移除一顆</small></div>
+          <div class="mod"><button id="modM" aria-label="調整值減一"><svg viewBox="0 0 20 20"><path d="M4.5 10.5c3.5-.8 7.5-.8 11 0" stroke="#2c1c10" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><output id="modOut">+0</output><button id="modP" aria-label="調整值加一"><svg viewBox="0 0 20 20"><path d="M4.5 10.5c3.5-.8 7.5-.8 11 0M10 4.5c.6 3.5.6 7.5 0 11" stroke="#2c1c10" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></div>
+          <button class="seal" id="rollBtn" aria-label="擲骰">
+            <svg viewBox="0 0 66 66" aria-hidden="true"><path d="M33 3c5 0 7 3 11 4s8 0 10 4 1 7 3 10 5 6 5 12-3 8-5 11-1 7-3 10-6 3-10 4-6 4-11 4-7-3-11-4-8 0-10-4-1-7-3-10-5-5-5-11 3-9 5-12 1-7 3-10 6-3 10-4 6-4 11-4z" fill="url(#wax)"/><circle cx="33" cy="33" r="20" fill="none" stroke="#7d1b0e" stroke-width="2"/><circle cx="33" cy="33" r="17" fill="none" stroke="#d4583e" stroke-width=".8" opacity=".7"/><path d="M20 20c4-4 9-6 14-6" stroke="#e98a6e" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".6"/></svg>
+            <span>擲</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- folio ii: character sheet -->
+      <section class="folio" id="f-char" aria-label="角色卡" hidden>
+        <header class="fh">
+          <h1>角色卡<i>fol. ii</i></h1>
+          <button class="ib" id="editBtn" aria-label="編輯角色">
+            <svg viewBox="0 0 28 28"><path d="M22.5 4.5C16 6 10.5 11 7.5 19l1.8 1.2C13 13.5 17.5 9 22.5 4.5z" stroke="#2c1c10" stroke-width="1.6" stroke-linejoin="round" fill="none"/><path d="M8.4 19.6 6 24" stroke="#2c1c10" stroke-width="1.8" stroke-linecap="round"/><path d="M4.5 24.5h8" stroke="#b3301f" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </header>
+        <div class="cscroll" id="charBody"></div>
+      </section>
+
+      <nav class="nav" role="tablist" aria-label="頁">
+        <button role="tab" id="n-tray" aria-selected="true"><i>i.</i>骰盤</button>
+        <button role="tab" id="n-char" aria-selected="false"><i>ii.</i>角色卡</button>
+      </nav>
+
+      <div class="scrim" id="scrim"></div>
+      <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">
+        <div class="grab" id="grab"><div class="handle"></div></div>
+        <h4 id="shT">紀錄</h4>
+        <div class="shb" id="shB"></div>
+      </section>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="undoBtn" hidden>復原</button></div>
+      <div class="home" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app095:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function rint(n){ try { var a = new Uint32Array(1); crypto.getRandomValues(a); return 1 + a[0] % n; } catch(e){ return 1 + Math.floor(Math.random() * n); } }
+function sg(n){ return (n >= 0 ? '+' : '−') + Math.abs(n); }
+
+/* ---------- dice shapes (bone with a gold rim) ---------- */
+var SIDES = [4, 6, 8, 10, 12, 20, 100];
+function shape(s){
+  var P = {
+    4:'M29 6 53 49H5z',
+    6:'M10 10h38v38H10z',
+    8:'M29 3 53 29 29 55 5 29z',
+    10:'M29 3 52 24 29 55 6 24z',
+    12:'M29 4 54 22 45 51H13L4 22z',
+    20:'M29 3 52 16v26L29 55 6 42V16z',
+    100:'M29 3 52 24 29 55 6 24z'
+  }[s];
+  var inner = {
+    4:'', 6:'', 8:'<path d="M5 29h48" stroke="#b28a3a" stroke-width="1" opacity=".6"/>',
+    10:'<path d="M6 24 29 34l23-10M29 34v21" stroke="#b28a3a" stroke-width="1" fill="none" opacity=".6"/>',
+    12:'<path d="M29 12l14 10-5 16H20l-5-16z" stroke="#b28a3a" stroke-width="1" fill="none" opacity=".6"/>',
+    20:'<path d="M29 12 44 38H14z" stroke="#b28a3a" stroke-width="1" fill="none" opacity=".6"/>',
+    100:'<path d="M6 24 29 34l23-10M29 34v21" stroke="#b28a3a" stroke-width="1" fill="none" opacity=".6"/>'
+  }[s];
+  return {p:P, inner:inner};
+}
+function dieSVG(s, v, strike){
+  var sh = shape(s), cy = s === 4 ? 36 : s === 20 ? 30 : s === 10 || s === 100 ? 26 : 29;
+  var t = s === 100 ? (v === 100 ? '00' : String(v).padStart(2, '0')) : String(v);
+  return '<svg viewBox="0 0 58 58"><path d="' + sh.p + '" fill="url(#bone)" stroke="url(#leaf)" stroke-width="3" stroke-linejoin="round"/>' + sh.inner +
+    '<text class="v" x="29" y="' + cy + '" text-anchor="middle" dominant-baseline="central"' + (t.length > 2 ? ' font-size="15"' : '') + '>' + t + '</text>' +
+    (strike ? '<path d="M14 ' + cy + 'h30" stroke="#2c1c10" stroke-width="2.2" stroke-linecap="round"/>' : '') + '</svg>';
+}
+function pickerSVG(s){ var sh = shape(s); return '<svg viewBox="0 0 58 58"><path d="' + sh.p + '" fill="none" stroke="#2c1c10" stroke-width="2.6" stroke-linejoin="round"/>' + sh.inner.replace(/#b28a3a/g, '#b3301f') + '</svg>'; }
+
+/* ---------- state ---------- */
+var S = load('state', null) || {pool:{20:1}, mod:0, mode:0, hist:[], char:0};
+var PARTY = load('party', null) || [
+  {name:'林鹿', en:'Lin Lu', cls:'半精靈遊俠', lv:5, home:'鹿港', ac:15, hp:38, hpMax:44, init:3, speed:30,
+    ab:{力量:12, 敏捷:17, 體質:14, 智力:10, 感知:15, 魅力:11}, prof:3,
+    atk:[{n:'長弓', d:'射程 150 呎', hit:7, dmg:'1d8+4'}, {n:'雙短劍', d:'近戰・輕型', hit:6, dmg:'1d6+3'}, {n:'獵人印記', d:'附加傷害', hit:null, dmg:'1d6'}],
+    note:'從鹿港出發的遊俠，追著一隻會說話的白鹿到了北方山脈。怕水，但很會找路。'},
+  {name:'阿薩', en:'Asa Stonebeard', cls:'山地矮人牧師', lv:5, home:'九份', ac:18, hp:41, hpMax:41, init:0, speed:25,
+    ab:{力量:14, 敏捷:10, 體質:16, 智力:11, 感知:17, 魅力:12}, prof:3,
+    atk:[{n:'戰鎚', d:'近戰・多用途', hit:5, dmg:'1d8+2'}, {n:'神聖火焰', d:'戲法・敏捷豁免', hit:null, dmg:'2d8'}, {n:'治療術', d:'一環法術', hit:null, dmg:'1d8+3'}],
+    note:'九份礦坑長大的矮人，信奉爐火之神。每場戰鬥結束都要泡一壺高山茶。'}
+];
+function persist(){ if (S.hist.length > 60) S.hist.length = 60; save('state', S); save('party', PARTY); }
+function modOf(score){ return Math.floor((score - 10) / 2); }
+if (!S.hist.length){
+  var now = Date.now();
+  S.hist = [
+    {t:now - 6e5, lb:'長弓 命中', ex:'1d20+7', dice:[{s:20, v:17}], mod:7, tot:24, crit:0},
+    {t:now - 5.6e5, lb:'長弓 傷害', ex:'1d8+4', dice:[{s:8, v:6}], mod:4, tot:10, crit:0},
+    {t:now - 3e5, lb:'敏捷豁免', ex:'1d20+6 優勢', dice:[{s:20, v:4, drop:1}, {s:20, v:20}], mod:6, tot:26, crit:1},
+    {t:now - 1.2e5, lb:'', ex:'4d6', dice:[{s:6, v:5}, {s:6, v:2}, {s:6, v:6}, {s:6, v:3}], mod:0, tot:16, crit:0}
+  ].reverse();
+}
+
+/* ---------- audio: bone on vellum ---------- */
+var ac = null, nb = null;
+function audio(){ try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
+function clack(vol, low){
+  if (!ac) return;
+  if (!nb){ nb = ac.createBuffer(1, ac.sampleRate * .06, ac.sampleRate); var d = nb.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 4); }
+  var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  s.buffer = nb; f.type = 'bandpass'; f.frequency.value = low ? 520 : 1800 + Math.random() * 1800; f.Q.value = low ? 1.2 : 3; g.gain.value = Math.min(.8, vol);
+  s.playbackRate.value = .8 + Math.random() * .5; s.connect(f).connect(g).connect(ac.destination); s.start();
+}
+function chime(){ if (!ac) return; var t = ac.currentTime; [659, 880, 1319].forEach(function(f, i){ var o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(.0001, t + i * .09); g.gain.exponentialRampToValueAtTime(.12, t + i * .09 + .01); g.gain.exponentialRampToValueAtTime(.0001, t + i * .09 + .7); o.connect(g).connect(ac.destination); o.start(t + i * .09); o.stop(t + i * .09 + .75); }); }
+
+/* ---------- picker + pool ---------- */
+function renderPicker(){
+  $('picker').innerHTML = SIDES.map(function(s){ var c = S.pool[s] || 0; return '<button data-s="' + s + '" aria-label="加一顆 d' + s + (c ? '，目前 ' + c + ' 顆' : '') + '">' + pickerSVG(s) + '<b>d' + s + '</b>' + (c ? '<span class="c">' + c + '</span>' : '') + '</button>'; }).join('');
+}
+function poolExpr(){
+  var parts = SIDES.filter(function(s){ return S.pool[s]; }).map(function(s){ return S.pool[s] + 'd' + s; });
+  return parts.join(' + ') + (S.mod ? ' ' + sg(S.mod).replace('+', '+ ').replace('−', '− ') : '');
+}
+function renderPool(){
+  var e = poolExpr(), n = SIDES.reduce(function(a, s){ return a + (S.pool[s] || 0); }, 0);
+  var modeT = S.mode && S.pool[20] ? (S.mode > 0 ? '優勢：d20 擲兩次取高' : '劣勢：d20 擲兩次取低') : '長按骰子移除一顆';
+  $('poolEx').innerHTML = (e || '空的骰袋') + '<small>' + modeT + '</small>';
+  $('modOut').textContent = sg(S.mod);
+  $('rollBtn').disabled = !n;
+  [].forEach.call($('mode').children, function(b){ b.setAttribute('aria-pressed', +b.dataset.m === S.mode); });
+}
+(function(){
+  var lp = null, lpFired = false;
+  $('picker').addEventListener('pointerdown', function(e){ var b = e.target.closest('[data-s]'); if (!b) return; lpFired = false; clearTimeout(lp); lp = setTimeout(function(){ lpFired = true; var s = +b.dataset.s; if (S.pool[s]){ S.pool[s]--; if (!S.pool[s]) delete S.pool[s]; persist(); renderPicker(); renderPool(); haptic([6, 30, 6]); } }, 480); });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){ $('picker').addEventListener(ev, function(){ clearTimeout(lp); }); });
+  $('picker').addEventListener('click', function(e){
+    var b = e.target.closest('[data-s]'); if (!b) return; if (lpFired){ lpFired = false; return; }
+    var s = +b.dataset.s, tot = SIDES.reduce(function(a, k){ return a + (S.pool[k] || 0); }, 0);
+    if (tot >= 12){ toast('骰盤最多放 12 顆'); haptic([10, 40, 10]); return; }
+    S.pool[s] = (S.pool[s] || 0) + 1; persist(); renderPicker(); renderPool(); haptic(5); audio(); clack(.25);
+  });
+})();
+$('mode').addEventListener('click', function(e){ var b = e.target.closest('[data-m]'); if (!b) return; S.mode = +b.dataset.m; if (S.mode && !S.pool[20]){ S.pool[20] = 1; renderPicker(); } persist(); renderPool(); haptic(5); });
+$('modM').addEventListener('click', function(){ S.mod = Math.max(-20, S.mod - 1); persist(); renderPool(); haptic(4); });
+$('modP').addEventListener('click', function(){ S.mod = Math.min(30, S.mod + 1); persist(); renderPool(); haptic(4); });
+
+/* ---------- tray frame (gold rule with corner knots, redrawn to size) ---------- */
+function drawFrame(){
+  var t = $('tray'), w = t.clientWidth, h = t.clientHeight, f = $('frameSvg');
+  if (w < 40 || h < 40) return;
+  f.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+  var k = function(x, y, sx, sy){ return '<path transform="translate(' + x + ' ' + y + ') scale(' + sx + ' ' + sy + ')" d="M2 2c10 0 16 5 18 14-7-3-13-2-18 3 5-5 6-11 3-18" fill="#b3301f"/>'; };
+  f.innerHTML = '<rect x="4" y="4" width="' + (w - 8) + '" height="' + (h - 8) + '" fill="none" stroke="url(#leaf)" stroke-width="5"/>' +
+    '<rect x="10" y="10" width="' + (w - 20) + '" height="' + (h - 20) + '" fill="none" stroke="#8e6415" stroke-width="1"/>' +
+    k(0, 0, 1, 1) + k(w, 0, -1, 1) + k(0, h, 1, -1) + k(w, h, -1, -1) +
+    '<circle cx="' + (w / 2) + '" cy="4" r="4" fill="#b3301f"/><circle cx="' + (w / 2) + '" cy="' + (h - 4) + '" r="4" fill="#b3301f"/>';
+}
+
+/* ---------- physics roll ---------- */
+var layer = $('diceLayer'), live = [], rolling = false, pending = null, lastT = 0;
+function roll(opts){
+  opts = opts || {};
+  var list = [];
+  SIDES.forEach(function(s){ for (var i = 0; i < (S.pool[s] || 0); i++) list.push(s); });
+  if (!list.length){ toast('先選骰子'); return; }
+  audio();
+  var mode = opts.mode != null ? opts.mode : S.mode, mod = opts.mod != null ? opts.mod : S.mod;
+  var dice = [];
+  list.forEach(function(s){
+    if (s === 20 && mode){
+      var a = rint(20), b = rint(20), keepA = mode > 0 ? a >= b : a <= b;
+      dice.push({s:20, v:a, drop:!keepA}, {s:20, v:b, drop:keepA});
+    } else dice.push({s:s, v:rint(s)});
+  });
+  var kept = dice.filter(function(d){ return !d.drop; });
+  var tot = kept.reduce(function(a, d){ return a + d.v; }, 0) + mod;
+  var d20 = kept.filter(function(d){ return d.s === 20; });
+  var crit = d20.length === 1 && dice.filter(function(d){ return d.s === 20; }).length <= 2 ? (d20[0].v === 20 ? 1 : d20[0].v === 1 ? -1 : 0) : 0;
+  var ex = opts.ex || (poolExpr() || '') + (mode && S.pool[20] ? (mode > 0 ? ' 優勢' : ' 劣勢') : '');
+  pending = {t:Date.now(), lb:opts.lb || '', ex:ex, dice:dice.map(function(d){ var o = {s:d.s, v:d.v}; if (d.drop) o.drop = 1; return o; }), mod:mod, tot:tot, crit:crit};
+  // launch
+  var tr = $('tray'), W = tr.clientWidth, H = tr.clientHeight, pad = 44;
+  var vx0 = opts.vx, vy0 = opts.vy;
+  layer.innerHTML = ''; live = [];
+  $('trayEmpty').style.display = 'none';
+  dice.forEach(function(d, i){
+    var el = document.createElement('div'); el.className = 'die'; layer.appendChild(el);
+    var o = {d:d, el:el, x:W - pad - Math.random() * 40, y:H - pad - Math.random() * 60 - i * 6, vx:vx0 != null ? vx0 * (.8 + Math.random() * .4) : -(520 + Math.random() * 420), vy:vy0 != null ? vy0 * (.8 + Math.random() * .4) : -(380 + Math.random() * 520), a:Math.random() * 360, va:(Math.random() - .5) * 1400, face:rint(d.s), acc:0};
+    if (vx0 != null && vx0 > 0){ o.x = pad + Math.random() * 40; }
+    if (vy0 != null && vy0 > 0){ o.y = pad + Math.random() * 40; }
+    live.push(o);
+  });
+  if (reduce){ settleAll(); return; }
+  rolling = true; lastT = 0; haptic([12, 20, 8]); clack(.6);
+  requestAnimationFrame(step);
+}
+var t0 = 0;
+function step(ts){
+  if (!rolling) return;
+  if (document.hidden){ lastT = 0; requestAnimationFrame(step); return; }
+  if (!lastT){ lastT = ts; t0 = ts; }
+  var dt = Math.min(.033, (ts - lastT) / 1000); lastT = ts;
+  var tr = $("tray"), W = tr.clientWidth, H = tr.clientHeight, R = 31, m = 14 + R, moving = false, bumps = 0;
+  live.forEach(function(o){
+    o.x += o.vx * dt; o.y += o.vy * dt; o.a += o.va * dt;
+    var f = Math.pow(.18, dt); o.vx *= f; o.vy *= f; o.va *= Math.pow(.1, dt);
+    if (o.x < m){ o.x = m; if (o.vx < 0){ bumps = Math.max(bumps, -o.vx); o.vx = -o.vx * .62; o.va *= -.8; } }
+    if (o.x > W - m){ o.x = W - m; if (o.vx > 0){ bumps = Math.max(bumps, o.vx); o.vx = -o.vx * .62; o.va *= -.8; } }
+    if (o.y < m){ o.y = m; if (o.vy < 0){ bumps = Math.max(bumps, -o.vy); o.vy = -o.vy * .62; } }
+    if (o.y > H - m){ o.y = H - m; if (o.vy > 0){ bumps = Math.max(bumps, o.vy); o.vy = -o.vy * .62; } }
+    var sp = Math.hypot(o.vx, o.vy); o.acc += sp * dt;
+    if (o.acc > 34){ o.acc = 0; o.face = rint(o.d.s); o.dirty = true; }
+    if (sp > 22) moving = true;
+  });
+  // simple elastic pushes between dice
+  for (var i = 0; i < live.length; i++) for (var j = i + 1; j < live.length; j++){
+    var A = live[i], B = live[j], dx = B.x - A.x, dy = B.y - A.y, dd = Math.hypot(dx, dy) || 1;
+    if (dd < R * 2){
+      var nx = dx / dd, ny = dy / dd, ov = (R * 2 - dd) / 2; A.x -= nx * ov; A.y -= ny * ov; B.x += nx * ov; B.y += ny * ov;
+      var rv = (B.vx - A.vx) * nx + (B.vy - A.vy) * ny; if (rv < 0){ A.vx += rv * nx * .9; A.vy += rv * ny * .9; B.vx -= rv * nx * .9; B.vy -= rv * ny * .9; bumps = Math.max(bumps, -rv * .6); }
+    }
+  }
+  if (bumps > 120){ clack(bumps / 1400); if (bumps > 300) haptic(4); }
+  live.forEach(function(o){
+    if (o.dirty || !o.el.firstChild){ o.el.innerHTML = dieSVG(o.d.s, o.face); o.dirty = false; }
+    o.el.style.transform = 'translate(' + o.x.toFixed(1) + 'px,' + o.y.toFixed(1) + 'px) rotate(' + (o.a % 360).toFixed(1) + 'deg)';
+  });
+  if ((!moving && ts - t0 > 500) || ts - t0 > 2600){ settleAll(); return; }
+  requestAnimationFrame(step);
+}
+function settleAll(){
+  rolling = false;
+  var tr = $('tray'), W = tr.clientWidth, H = tr.clientHeight;
+  live.forEach(function(o, i){
+    if (reduce){ var cols = Math.max(1, Math.floor((W - 40) / 64)); o.x = 40 + (i % cols) * 64; o.y = 50 + Math.floor(i / cols) * 64; o.a = 0; }
+    o.a = Math.round(o.a / 90) * 90 * 0 + (o.a % 360 > 180 ? -6 : 6) * (i % 2 ? 1 : -1);
+    o.el.innerHTML = dieSVG(o.d.s, o.d.v, o.d.drop);
+    o.el.classList.toggle('drop', !!o.d.drop); o.el.classList.add('settle');
+    o.el.style.transform = 'translate(' + o.x.toFixed(1) + 'px,' + o.y.toFixed(1) + 'px) rotate(' + o.a.toFixed(1) + 'deg)';
+  });
+  clack(.5, true);
+  if (pending){
+    S.hist.unshift(pending); persist(); showResult(pending, true);
+    if (pending.crit > 0){ chime(); haptic([20, 40, 20, 40, 40]); } else haptic(pending.crit < 0 ? [60] : [8, 30, 8]);
+    pending = null;
+  }
+}
+function showResult(r, pop){
+  var n = $('capNum'); n.textContent = r.tot; n.classList.toggle('w3', String(r.tot).length > 2);
+  if (pop && !reduce){ var c = $('cap'); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+  $('resLb').textContent = r.lb || '';
+  $('resEx').textContent = r.ex;
+  $('resBr').textContent = r.dice.map(function(d){ return d.drop ? '(' + d.v + ')' : d.v; }).join(' + ') + (r.mod ? ' ' + sg(r.mod).replace('+', '+ ').replace('−', '− ') : '');
+  $('resRub').textContent = r.crit > 0 ? '大成功' : r.crit < 0 ? '大失敗' : '';
+}
+$('rollBtn').addEventListener('click', function(){ roll(); });
+(function(){
+  var tr = $('tray'), sx = 0, sy = 0, st = 0, on = false, pts = [];
+  tr.addEventListener('pointerdown', function(e){ on = true; sx = e.clientX; sy = e.clientY; st = e.timeStamp; pts = [[e.clientX, e.clientY, e.timeStamp]]; });
+  tr.addEventListener('pointermove', function(e){ if (!on) return; pts.push([e.clientX, e.clientY, e.timeStamp]); if (pts.length > 6) pts.shift(); });
+  tr.addEventListener('pointerup', function(e){
+    if (!on) return; on = false; if (rolling) return;
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.hypot(dx, dy) < 10){ roll(); return; }
+    var a = pts[0], dtm = Math.max(16, e.timeStamp - a[2]), vx = (e.clientX - a[0]) / dtm * 1000, vy = (e.clientY - a[1]) / dtm * 1000;
+    var sp = Math.hypot(vx, vy), k = Math.min(1100, Math.max(500, sp)) / (sp || 1);
+    roll({vx:vx * k, vy:vy * k});
+  });
+  tr.addEventListener('pointercancel', function(){ on = false; });
+})();
+
+/* ---------- history sheet ---------- */
+function fmtTime(t){ var d = new Date(t), now = new Date(); var hm = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); return d.toDateString() === now.toDateString() ? hm : (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hm; }
+function histHTML(){
+  if (!S.hist.length) return '<p style="text-align:center;color:#806247;padding:30px 0">卷軸上還沒有字。</p>';
+  return '<ul class="hist">' + S.hist.slice(0, 40).map(function(h, i){
+    return '<li><div class="t">' + h.tot + '</div><div class="e">' + esc(h.ex) + '<small>' + (h.lb ? esc(h.lb) + '・' : '') + h.dice.map(function(d){ return d.drop ? '(' + d.v + ')' : d.v; }).join(' ') + (h.crit > 0 ? '・大成功' : h.crit < 0 ? '・大失敗' : '') + '・' + fmtTime(h.t) + '</small></div><button data-re="' + i + '">再擲</button></li>';
+  }).join('') + '</ul><button class="clr" id="clrHist">清空紀錄</button>';
+}
+$('histBtn').addEventListener('click', function(){ openSheet('擲骰紀錄', histHTML()); });
+
+/* ---------- character folio ---------- */
+function crest(){
+  return '<svg viewBox="0 0 86 100" aria-hidden="true"><path d="M6 6h74v40c0 24-16 40-37 50C22 86 6 70 6 46z" fill="url(#leaf)" filter="url(#leafgrain)"/><path d="M12 12h62v34c0 20-13 34-31 42C25 80 12 66 12 46z" fill="#b3301f"/>' +
+    '<g stroke="#f0d587" stroke-width="2.6" stroke-linecap="round" fill="none"><path d="M43 70V48M43 48c-6-4-10-10-10-18M43 48c6-4 10-10 10-18M33 30l-7-8M33 36l-9-3M53 30l7-8M53 36l9-3"/></g>' +
+    '<circle cx="43" cy="52" r="6" fill="#f0d587"/></svg>';
+}
+function renderChar(){
+  var c = PARTY[S.char], hpPct = Math.max(0, c.hp / c.hpMax * 100);
+  var h = '<div class="who">' + crest() + '<div><h2>' + esc(c.name) + '<small>' + esc(c.en) + '</small></h2><p>' + esc(c.cls) + '・' + c.lv + ' 級・' + esc(c.home) + '</p>' +
+    '<div class="party">' + PARTY.map(function(p, i){ return '<button data-pc="' + i + '" aria-pressed="' + (i === S.char) + '">' + esc(p.name) + '</button>'; }).join('') + '</div></div></div>';
+  h += '<div class="vit"><div class="box"><span>生命值</span><div class="hp"><button data-hp="-1" aria-label="受傷一點"><svg viewBox="0 0 20 20"><path d="M4.5 10.5c3.5-.8 7.5-.8 11 0" stroke="#2c1c10" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><b>' + c.hp + '<small>/' + c.hpMax + '</small></b><button data-hp="1" aria-label="治療一點"><svg viewBox="0 0 20 20"><path d="M4.5 10.5c3.5-.8 7.5-.8 11 0M10 4.5c.6 3.5.6 7.5 0 11" stroke="#2c1c10" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></div><div class="hpbar"><i style="width:' + hpPct + '%"></i></div></div>' +
+    '<div class="box"><span>護甲</span><b>' + c.ac + '</b></div><div class="box"><span>先攻</span><b>' + sg(c.init) + '</b></div></div>';
+  h += '<div class="sect"><b>A</b><span>屬性</span><em>點一下擲檢定</em></div><div class="abil">' + Object.keys(c.ab).map(function(k){ var m = modOf(c.ab[k]); return '<button data-ab="' + k + '" aria-label="' + k + '檢定 ' + sg(m) + '"><div class="n">' + k + '</div><div class="m">' + sg(m) + '</div><div class="s">' + c.ab[k] + '</div></button>'; }).join('') + '</div>';
+  h += '<div class="sect"><b>B</b><span>攻擊與法術</span></div><ul class="atk">' + c.atk.map(function(a, i){ return '<li><div class="nm">' + esc(a.n) + '<small>' + esc(a.d) + '</small></div>' + (a.hit != null ? '<button data-hit="' + i + '" aria-label="' + esc(a.n) + '命中">' + sg(a.hit) + '</button>' : '<span></span>') + '<button class="dmg" data-dmg="' + i + '" aria-label="' + esc(a.n) + '傷害">' + esc(a.dmg) + '</button></li>'; }).join('') + '</ul>';
+  h += '<div class="sect"><b>C</b><span>先攻與速度</span></div><div class="vit" style="grid-template-columns:1fr 1fr"><button class="box" data-init="1" aria-label="擲先攻"><span>擲先攻</span><b>1d20' + sg(c.init) + '</b></button><div class="box"><span>速度</span><b>' + c.speed + '<small> 呎</small></b></div></div>';
+  h += '<div class="sect"><b>D</b><span>背景</span></div><p class="notes"><b>' + esc(c.note.charAt(0)) + '</b>' + esc(c.note.slice(1)) + '</p>';
+  $('charBody').innerHTML = h;
+}
+function parseDmg(s){ var m = /^(\d+)d(\d+)([+-]\d+)?$/.exec(s); return m ? {n:+m[1], s:+m[2], mod:+(m[3] || 0)} : null; }
+function rollFor(pool, mod, lb, ex, mode){
+  var old = {pool:S.pool, mod:S.mod, mode:S.mode};
+  S.pool = pool; S.mod = mod; S.mode = mode || 0;
+  goFolio('tray');
+  renderPicker(); renderPool();
+  setTimeout(function(){ roll({lb:lb, ex:ex, mode:S.mode}); }, reduce ? 0 : 380);
+}
+$('charBody').addEventListener('click', function(e){
+  var c = PARTY[S.char], b;
+  if ((b = e.target.closest('[data-pc]'))){ S.char = +b.dataset.pc; persist(); renderChar(); haptic(5); return; }
+  if ((b = e.target.closest('[data-hp]'))){ c.hp = Math.max(0, Math.min(c.hpMax, c.hp + +b.dataset.hp)); persist(); renderChar(); haptic(c.hp === 0 ? [40, 60, 40] : 5); if (c.hp === 0) toast(c.name + ' 倒下了，開始擲死亡豁免'); return; }
+  if ((b = e.target.closest('[data-ab]'))){ var k = b.dataset.ab, m = modOf(c.ab[k]); haptic(6); rollFor({20:1}, m, c.name + '・' + k + '檢定', '1d20' + sg(m).replace('−', '-'), S.mode); return; }
+  if ((b = e.target.closest('[data-hit]'))){ var a = c.atk[+b.dataset.hit]; haptic(6); rollFor({20:1}, a.hit, a.n + ' 命中', '1d20' + sg(a.hit), S.mode); return; }
+  if ((b = e.target.closest('[data-dmg]'))){ var a2 = c.atk[+b.dataset.dmg], p = parseDmg(a2.dmg); if (!p) return; var pool = {}; pool[p.s] = p.n; haptic(6); rollFor(pool, p.mod, a2.n + (a2.n === '治療術' ? ' 回復' : ' 傷害'), a2.dmg, 0); return; }
+  if ((b = e.target.closest('[data-init]'))){ haptic(6); rollFor({20:1}, c.init, c.name + '・先攻', '1d20' + sg(c.init), 0); }
+});
+$('editBtn').addEventListener('click', function(){
+  var c = PARTY[S.char];
+  var h = '<label class="fld"><span>名字</span><input id="eName" maxlength="12" value="' + esc(c.name) + '"></label><label class="fld"><span>職業</span><input id="eCls" maxlength="16" value="' + esc(c.cls) + '"></label>' +
+    ['等級', '護甲', '生命上限'].concat(Object.keys(c.ab)).map(function(k){ var v = k === '等級' ? c.lv : k === '護甲' ? c.ac : k === '生命上限' ? c.hpMax : c.ab[k]; return '<div class="row"><span>' + k + '</span><div class="step"><button data-st="' + k + '" data-d="-1" aria-label="' + k + '減一"><svg viewBox="0 0 20 20"><path d="M4.5 10.5c3.5-.8 7.5-.8 11 0" stroke="#2c1c10" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><output id="st-' + k + '">' + v + '</output><button data-st="' + k + '" data-d="1" aria-label="' + k + '加一"><svg viewBox="0 0 20 20"><path d="M4.5 10.5c3.5-.8 7.5-.8 11 0M10 4.5c.6 3.5.6 7.5 0 11" stroke="#2c1c10" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></div></div>'; }).join('') +
+    '<button class="done" id="eDone">落筆</button>';
+  openSheet('編輯 ' + c.name, h);
+});
+
+/* ---------- sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), sheetOn = false, lastFocus = null;
+function openSheet(title, html){ lastFocus = document.activeElement; $('shT').textContent = title; $('shB').innerHTML = html; $('shB').scrollTop = 0; sheetOn = true; sheet.classList.add('on'); sheet.style.transform = ''; scrim.classList.add('on'); haptic(6); }
+function closeSheet(){ if (!sheetOn) return; sheetOn = false; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (document.activeElement) document.activeElement.blur(); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var g = $('grab'), sy = 0, dy = 0, t0 = 0, drag = false;
+  g.addEventListener('pointerdown', function(e){ drag = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try { g.setPointerCapture(e.pointerId); } catch(_){} });
+  g.addEventListener('pointermove', function(e){ if (!drag) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6) + 'px)'; });
+  function end(e){ if (!drag) return; drag = false; sheet.classList.remove('drag'); var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
+})();
+var clrArm = false, clrT = null;
+$('shB').addEventListener('click', function(e){
+  var b;
+  if ((b = e.target.closest('[data-re]'))){
+    var h = S.hist[+b.dataset.re]; if (!h) return;
+    var pool = {}; h.dice.forEach(function(d){ pool[d.s] = (pool[d.s] || 0) + 1; });
+    var mode = /優勢/.test(h.ex) ? 1 : /劣勢/.test(h.ex) ? -1 : 0; if (mode) pool[20] = Math.ceil(pool[20] / 2);
+    closeSheet(); rollFor(pool, h.mod, h.lb, h.ex, mode); return;
+  }
+  if (e.target.id === 'clrHist'){
+    if (!clrArm){ clrArm = true; e.target.textContent = '再按一次，整卷刮掉'; clrT = setTimeout(function(){ clrArm = false; var x = $('clrHist'); if (x) x.textContent = '清空紀錄'; }, 2600); haptic([10, 40, 10]); return; }
+    clearTimeout(clrT); clrArm = false; var old = S.hist.slice(); S.hist = []; persist(); closeSheet(); haptic(20);
+    toast('紀錄清空了', true); lastUndo = function(){ S.hist = old; persist(); };
+    return;
+  }
+  if ((b = e.target.closest('[data-st]'))){
+    var c = PARTY[S.char], k = b.dataset.st, d = +b.dataset.d;
+    if (k === '等級') c.lv = Math.max(1, Math.min(20, c.lv + d));
+    else if (k === '護甲') c.ac = Math.max(5, Math.min(30, c.ac + d));
+    else if (k === '生命上限'){ c.hpMax = Math.max(1, Math.min(300, c.hpMax + d)); c.hp = Math.min(c.hp, c.hpMax); }
+    else { c.ab[k] = Math.max(1, Math.min(30, c.ab[k] + d)); if (k === '敏捷') c.init = modOf(c.ab[k]); }
+    $('st-' + k).textContent = k === '等級' ? c.lv : k === '護甲' ? c.ac : k === '生命上限' ? c.hpMax : c.ab[k];
+    persist(); haptic(4); return;
+  }
+  if (e.target.id === 'eDone'){
+    var cc = PARTY[S.char], n = $('eName').value.trim(), cl = $('eCls').value.trim();
+    if (n) cc.name = n; if (cl) cc.cls = cl; persist(); closeSheet(); renderChar(); haptic([6, 20, 6]); toast('寫進角色卡了');
+  }
+});
+
+/* ---------- folios ---------- */
+var folio = 'tray';
+function goFolio(f){
+  if (f === folio) return;
+  var back = f === 'tray';
+  $('f-' + folio).hidden = true; var el = $('f-' + f); el.hidden = false;
+  el.classList.remove('turn', 'back'); void el.offsetWidth; if (!reduce){ el.classList.add('turn'); if (back) el.classList.add('back'); }
+  folio = f; $('n-tray').setAttribute('aria-selected', f === 'tray'); $('n-char').setAttribute('aria-selected', f === 'char');
+  if (f === 'char') renderChar(); else requestAnimationFrame(drawFrame);
+  haptic(6); audio(); clack(.3, true);
+}
+$('n-tray').addEventListener('click', function(){ goFolio('tray'); });
+$('n-char').addEventListener('click', function(){ goFolio('char'); });
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ closeSheet(); return; }
+  if (sheetOn || e.target.tagName === 'INPUT') return;
+  if ((e.key === 'r' || e.key === ' ') && folio === 'tray'){ e.preventDefault(); roll(); }
+});
+
+/* ---------- toast ---------- */
+var toastTm = null, lastUndo = null;
+function toast(m, undo){ $('toastT').textContent = m; $('undoBtn').hidden = !undo; if (!undo) lastUndo = null; $('toast').classList.add('on'); clearTimeout(toastTm); toastTm = setTimeout(function(){ $('toast').classList.remove('on'); }, undo ? 3200 : 2000); }
+$('undoBtn').addEventListener('click', function(){ if (lastUndo){ lastUndo(); lastUndo = null; } $('toast').classList.remove('on'); haptic(10); });
+
+function clock(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+clock(); setTimeout(function(){ clock(); setInterval(clock, 60000); }, (60 - new Date().getSeconds()) * 1000);
+
+/* ---------- boot: last roll lies in the tray ---------- */
+renderPicker(); renderPool(); drawFrame();
+window.addEventListener('resize', drawFrame);
+if (window.ResizeObserver) new ResizeObserver(drawFrame).observe($('tray'));
+(function(){
+  var h = S.hist[0]; if (!h) return; showResult(h, false);
+  var tr = $('tray'), W = tr.clientWidth, H = tr.clientHeight;
+  $('trayEmpty').style.display = 'none';
+  h.dice.forEach(function(d, i){ var el = document.createElement('div'); el.className = 'die' + (d.drop ? ' drop' : ''); el.innerHTML = dieSVG(d.s, d.v, d.drop); var x = W * (.28 + (i % 4) * .15) + (i % 2) * 8, y = H * (.4 + Math.floor(i / 4) * .25) + (i % 3) * 10; el.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + ((i % 2 ? 1 : -1) * (6 + i * 3)) + 'deg)'; layer.appendChild(el); live.push({d:d, el:el, x:x, y:y, a:0}); });
+})();
+})();
+</script>
+</body>
+</html>

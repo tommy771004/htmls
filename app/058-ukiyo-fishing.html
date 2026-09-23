@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f3b5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="浮世釣">
+<title>浮世釣 · 釣魚</title>
+<meta name="description" content="浮世繪平塗浪花裡的海釣小遊戲：按住蓄力拋竿、看浮標提竿、拿捏線張力收線，釣上的魚印成一張張版畫收進圖鑑。收錄於 100 Creative HTML Works（App 058・浮世繪平塗浪花）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/058-ukiyo-fishing.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d8d3c4'/%3E%3Ccircle cx='44' cy='18' r='8' fill='%23c8452c'/%3E%3Cpath d='M0 64V40C10 22 30 14 42 26c-8-4-16 0-16 8 0 6 6 10 14 8l24 22z' fill='%231f3b5c'/%3E%3Cpath d='M26 34c2-6 10-8 16-4' stroke='%23d8d3c4' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --prus:#1f3b5c;
+  --prus-2:#35618a;
+  --prus-3:#8fb0c4;
+  --paper:#d8d3c4;
+  --paper-2:#e6e2d6;
+  --verm:#c8452c;
+  --ink:#16222e;
+  --bao:"Baoli TC","Baoli SC","Libian TC","Songti TC",serif;
+  --sans:"PingFang TC",system-ui,-apple-system,sans-serif;
+  --out:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.34,1.4,.5,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.5 var(--sans);color:var(--ink);background:var(--paper);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--verm);outline-offset:2px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--paper)}
+@media (min-width:521px){
+  body{background:#cfc9b8}
+  .stage{display:flex;align-items:center;justify-content:center;gap:60px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop canvas{width:100%;height:100%;display:block}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:48px;padding:8px;z-index:1;
+    background:#16222e;box-shadow:inset 0 0 0 1px #3a4d60,3px 4px 0 rgba(22,34,46,.25)}
+  .screen{inset:8px;border-radius:40px}
+  .caption{display:flex;position:relative;z-index:1;gap:14px;align-items:flex-start}
+  .caption h1{writing-mode:vertical-rl;font:400 46px/1 var(--bao);letter-spacing:.14em;background:var(--paper-2);color:var(--ink);padding:18px 12px;box-shadow:inset 0 0 0 2px var(--ink),inset 0 0 0 5px var(--paper-2),inset 0 0 0 6px var(--ink)}
+  .caption p{writing-mode:vertical-rl;font:16px/1.9 var(--bao);color:var(--paper-2);background:rgba(22,34,46,.78);padding:14px 8px;letter-spacing:.1em;max-height:360px}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;height:calc(50px + env(safe-area-inset-top));
+  padding:env(safe-area-inset-top) 28px 0 32px;font:600 16px/1 var(--sans);color:var(--paper-2);pointer-events:none;transition:color .3s}
+.status .g{display:flex;gap:6px;align-items:center}
+.screen.dex .status{color:var(--ink)}
+@media (display-mode:standalone){.status{display:none}}
+
+/* ---------- nav: two print cartouches ---------- */
+.nav{position:absolute;right:14px;top:calc(56px + env(safe-area-inset-top));z-index:30;display:flex;gap:6px}
+.cart{writing-mode:vertical-rl;width:44px;height:92px;display:flex;align-items:center;justify-content:center;font:400 20px/1 var(--bao);letter-spacing:.2em;
+  background:var(--paper-2);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink),inset 0 0 0 4px var(--paper-2),inset 0 0 0 5px var(--ink);transition:background-color .25s,color .25s,transform .2s var(--out)}
+.cart:active{transform:translateY(2px)}
+.cart[aria-selected=true]{background:var(--verm);color:var(--paper-2);box-shadow:inset 0 0 0 1.5px var(--ink),inset 0 0 0 4px var(--verm),inset 0 0 0 5px var(--paper-2)}
+.spot{position:absolute;left:14px;top:calc(56px + env(safe-area-inset-top));z-index:30;display:flex;align-items:flex-start;gap:8px;text-align:left;padding:4px;min-height:44px}
+.spot .seal{flex:none;width:40px;height:40px;background:var(--verm);color:var(--paper-2);display:grid;place-items:center;font:400 18px/1 var(--bao)}
+.spot .seal span{display:block;transform:translateY(1px)}
+.spot b{display:block;font:400 21px/1.15 var(--bao);color:var(--paper-2)}
+.spot small{font:12px/1.4 var(--sans);color:rgba(230,226,214,.82)}
+.screen.dex .spot{display:none}
+
+/* ---------- fishing ---------- */
+#sea{position:absolute;inset:0;z-index:1;touch-action:none;cursor:pointer}
+#sea canvas{width:100%;height:100%;display:block}
+.hud{position:absolute;left:0;right:0;bottom:0;z-index:20;padding:12px 18px calc(28px + env(safe-area-inset-bottom));background:var(--paper-2);
+  box-shadow:0 -2px 0 var(--ink),0 -5px 0 var(--paper-2),0 -6px 0 var(--ink)}
+.hud .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.hud .say{font:400 22px/1.2 var(--bao);min-height:28px}
+.hud .say.hot{color:var(--verm)}
+.hud .meta{font:13px/1.3 var(--sans);color:#4c5967;text-align:right;white-space:nowrap}
+.hud .meta b{font:400 18px/1 var(--bao);color:var(--ink)}
+.gauge{position:relative;height:26px;margin-top:10px;background:var(--paper);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.gauge .z{position:absolute;top:0;bottom:0}
+.gauge .z.slack{left:0;width:12%;background:repeating-linear-gradient(135deg,transparent 0 4px,rgba(22,34,46,.18) 4px 5px)}
+.gauge .z.good{left:30%;width:52%;background:rgba(53,97,138,.22)}
+.gauge .z.bad{left:88%;right:0;background:var(--verm)}
+.gauge .fill{position:absolute;left:0;top:4px;bottom:4px;background:var(--prus);width:0}
+.gauge .nd{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;background:var(--ink);left:0}
+.gauge .lab{position:absolute;right:6px;top:50%;transform:translateY(-50%);font:12px/1 var(--sans);color:var(--paper-2);mix-blend-mode:normal}
+.gauge.power .fill{background:var(--verm)}
+.gauge.power .z{display:none}
+.act{display:flex;gap:10px;margin-top:12px}
+.btn{flex:1;height:52px;font:400 21px/1 var(--bao);background:var(--prus);color:var(--paper-2);display:flex;align-items:center;justify-content:center;gap:10px;transition:background-color .15s,transform .15s var(--out);touch-action:none}
+.btn:active,.btn.down{background:var(--ink);transform:scale(.98)}
+.btn.v{background:var(--verm)}
+.btn.v:active{background:#9e3420}
+.btn svg{width:26px;height:26px}
+.btn.sq{flex:none;width:52px;background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+
+/* ---------- dex ---------- */
+#dex{position:absolute;inset:0;z-index:25;background:var(--paper);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;
+  padding:calc(58px + env(safe-area-inset-top)) 16px calc(34px + env(safe-area-inset-bottom));transition:transform .5s var(--out)}
+#dex::-webkit-scrollbar{display:none}
+#dex.off{transform:translateY(100%)}
+#dex[hidden]{display:none}
+.dhead{padding:4px 110px 10px 4px}
+.dhead h2{font:400 34px/1.1 var(--bao)}
+.dhead p{font:13px/1.5 var(--sans);color:#4c5967;margin-top:4px}
+.dhead p b{font:400 18px/1 var(--bao);color:var(--verm)}
+.filt{display:flex;gap:4px;margin:6px 0 12px;overflow-x:auto;scrollbar-width:none}
+.filt::-webkit-scrollbar{display:none}
+.filt button{flex:none;height:44px;padding:0 10px;font:400 17px/1 var(--bao);color:#4c5967}
+.filt button[aria-pressed=true]{color:var(--verm)}
+.filt button[aria-pressed=true] span{border-bottom:2px solid var(--verm);padding-bottom:3px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.print{position:relative;background:var(--paper-2);box-shadow:inset 0 0 0 1.5px var(--ink);padding:10px 10px 10px;text-align:left;display:flex;flex-direction:column;min-height:150px;transition:transform .2s var(--out)}
+.print:active{transform:scale(.97)}
+.print .band{position:absolute;left:1.5px;right:1.5px;top:1.5px;height:44px;background:linear-gradient(180deg,rgba(31,59,92,.55),rgba(31,59,92,0))}
+.print svg{position:relative;width:100%;height:78px;margin-top:10px}
+.print .nm{position:relative;font:400 19px/1.2 var(--bao);margin-top:4px}
+.print .st{position:relative;font:12px/1.4 var(--sans);color:#4c5967}
+.print .rar{position:absolute;right:8px;top:8px;display:flex;gap:2px}
+.print .rar i{width:8px;height:8px;background:var(--verm)}
+.print .rar i.o{background:none;box-shadow:inset 0 0 0 1.5px var(--verm)}
+.print.unk .nm{color:#6f7a84}
+.recent{margin-top:22px}
+.recent h3{font:400 22px/1 var(--bao);margin-bottom:6px}
+.recent li{list-style:none;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;min-height:56px;border-bottom:1px solid rgba(22,34,46,.2)}
+.recent li svg{width:52px;height:30px}
+.recent li b{font:400 17px/1.2 var(--bao);display:block}
+.recent li span{font:12px/1.3 var(--sans);color:#4c5967}
+.recent li em{font:400 18px/1 var(--bao);font-style:normal}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(22,34,46,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:10px;right:10px;bottom:10px;z-index:51;max-height:86%;display:flex;flex-direction:column;background:var(--paper-2);
+  box-shadow:inset 0 0 0 2px var(--ink),inset 0 0 0 6px var(--paper-2),inset 0 0 0 7px var(--ink);padding:12px 0 calc(16px + env(safe-area-inset-bottom) * .5);
+  transform:translateY(110%);transition:transform .5s var(--spring);touch-action:none}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{flex:none;width:44px;height:5px;background:var(--ink);opacity:.35;margin:2px auto 10px}
+.sbody{overflow-y:auto;padding:0 22px 6px;touch-action:pan-y;overscroll-behavior:contain;scrollbar-width:none}
+.sbody::-webkit-scrollbar{display:none}
+.big{position:relative;margin:4px -8px 0;background:linear-gradient(180deg,rgba(31,59,92,.65),rgba(31,59,92,.05) 55%,transparent);padding:18px 8px 6px}
+.big svg{width:100%;height:150px}
+.big .title{position:absolute;right:10px;top:12px;writing-mode:vertical-rl;background:var(--paper-2);padding:10px 6px;font:400 24px/1 var(--bao);letter-spacing:.14em;box-shadow:inset 0 0 0 1.5px var(--ink)}
+.big .new{position:absolute;left:12px;top:14px;width:54px;height:54px;background:var(--verm);color:var(--paper-2);display:grid;place-items:center;font:400 20px/1.05 var(--bao);text-align:center;transform:rotate(-6deg)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);margin-top:10px;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+.facts div{text-align:center;padding:10px 0}
+.facts div+div{border-left:1px solid rgba(22,34,46,.3)}
+.facts b{display:block;font:400 26px/1.1 var(--bao)}
+.facts span{font:12px/1.3 var(--sans);color:#4c5967}
+.desc{margin-top:12px;font:15px/1.7 var(--sans);color:#2b3845}
+.desc b{font:400 17px var(--bao);color:var(--verm);margin-right:6px}
+.srow{display:flex;gap:10px;margin-top:16px}
+.map svg{width:100%;height:auto;margin-top:6px}
+.spots{margin-top:6px}
+.spots button{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;width:100%;min-height:62px;text-align:left;border-bottom:1px solid rgba(22,34,46,.2)}
+.spots .n{width:40px;height:40px;display:grid;place-items:center;font:400 18px/1 var(--bao);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.spots button[aria-pressed=true] .n{background:var(--verm);color:var(--paper-2);box-shadow:none}
+.spots b{display:block;font:400 19px/1.2 var(--bao)}
+.spots span{font:12px/1.4 var(--sans);color:#4c5967}
+.spots em{font:400 15px/1 var(--bao);font-style:normal;color:#4c5967}
+.sheet h3{font:400 26px/1.2 var(--bao)}
+
+.toast{position:absolute;left:50%;top:calc(160px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-30px) scale(.9);opacity:0;visibility:hidden;
+  background:var(--ink);color:var(--paper-2);font:400 18px/1 var(--bao);padding:12px 18px;white-space:nowrap;transition:transform .35s var(--spring),opacity .2s,visibility 0s .35s}
+.toast.on{transform:translate(-50%,0);opacity:1;visibility:visible;transition:transform .35s var(--spring),opacity .2s}
+.home-ind{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(22,34,46,.7);z-index:45;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  #dex,.sheet,.toast,.cart{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><canvas id="bdc"></canvas></div>
+  <div class="caption"><h1>浮世釣</h1><p>拋竿入浪，收線看緣</p></div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5.5" width="3" height="6.5"/><rect x="10" y="3" width="3" height="9"/><rect x="15" y="0" width="3" height="12"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 4.5c4-3.6 10-3.6 14 0M3.8 7.4c2.4-2 6-2 8.4 0"/><rect x="6.8" y="9" width="2.4" height="2.4" fill="currentColor" stroke="none"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".75" y=".75" width="22.5" height="11.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect id="batt" x="3" y="3" width="15" height="7" fill="currentColor"/><rect x="24.5" y="4" width="2" height="5" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <div id="sea" role="application" aria-label="釣場：按住蓄力，放開拋竿"><canvas id="cv"></canvas></div>
+
+      <button class="spot" id="spotBtn" aria-label="換釣場"><span class="seal"><span id="spotSeal">龜</span></span><span><b id="spotName">龜山島外海</b><small id="spotSub">黃昏・東北風 3 級</small></span></button>
+      <nav class="nav" role="tablist" aria-label="主要分頁">
+        <button class="cart" role="tab" data-v="sea" aria-selected="true">釣場</button>
+        <button class="cart" role="tab" data-v="dex" aria-selected="false">圖鑑</button>
+      </nav>
+
+      <div class="hud" id="hud">
+        <div class="row"><div class="say" id="say">按住水面蓄力</div><div class="meta" id="meta">今日 <b id="today">0</b> 尾</div></div>
+        <div class="gauge power" id="gauge" aria-hidden="true"><span class="z slack"></span><span class="z good"></span><span class="z bad"></span><span class="fill" id="gfill"></span><span class="nd" id="gnd"></span><span class="lab" id="glab"></span></div>
+        <div class="act">
+          <button class="btn sq" id="sndBtn" aria-label="聲音" aria-pressed="true"><svg viewBox="0 0 26 26" id="sndIc"></svg></button>
+          <button class="btn" id="mainBtn"><svg viewBox="0 0 26 26" id="mainIc"></svg><span id="mainLbl">按住拋竿</span></button>
+        </div>
+      </div>
+
+      <section id="dex" class="off" hidden aria-label="圖鑑">
+        <div class="dhead"><h2>魚譜</h2><p>已收 <b id="dexN">0</b>／<span id="dexT">13</span> 種・共釣 <span id="dexC">0</span> 尾</p></div>
+        <div class="filt" id="filt"></div>
+        <div class="grid" id="grid"></div>
+        <div class="recent"><h3>最近漁獲</h3><ul id="recent"></ul></div>
+      </section>
+
+      <div class="home-ind" aria-hidden="true"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="詳細"><div class="grab"></div><div class="sbody" id="sbody"></div></div>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app058:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+var settings = load('settings', {sound:true});
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var C = {prus:'#1f3b5c', prus2:'#35618a', prus3:'#8fb0c4', paper:'#d8d3c4', paper2:'#e6e2d6', verm:'#c8452c', ink:'#16222e'};
+
+/* ---------- fish ---------- */
+// shape: [bodyHeight, tail(f/r/l/n), dorsal(n/long/sail/rib), pattern, back, belly, accent]
+var FISH = [
+  {id:'mahi', n:'鬼頭刀', tw:'萬魚', r:2, sz:[60,120], sp:[0], t:'day', str:3.2, sh:[26,'f','long','dots','#6f8f3a','#e3c24a','#2f6f8a'], d:'東北角夏天最常見的大魚，上鉤後會躍出水面，頭部方鈍。'},
+  {id:'fly', n:'飛魚', tw:'飛烏', r:1, sz:[20,35], sp:[0], t:'day', str:1.2, sh:[14,'f','n','wing','#2f5f8a','#dfe3e2','#35618a'], d:'胸鰭展開像翅膀，能貼著海面滑翔上百公尺。'},
+  {id:'cutlass', n:'白帶魚', tw:'白魚', r:2, sz:[60,110], sp:[0,1], t:'night', str:2.2, sh:[9,'n','rib','none','#b9c4c9','#eef0ee','#8fa3ad'], d:'夜裡才靠岸覓食，身體銀白如刀，沒有尾鰭。'},
+  {id:'marlin', n:'旗魚', tw:'旗魚', r:4, sz:[150,280], sp:[0], t:'any', str:5.4, sh:[22,'l','sail','none','#1f3b5c','#c9d4d8','#35618a'], d:'東海岸的鏢旗魚是百年技藝。力氣極大，要一收一放。'},
+  {id:'mack', n:'鯖魚', tw:'花飛', r:1, sz:[25,40], sp:[0,1], t:'any', str:1.4, sh:[16,'f','n','wave','#2c6a73','#e1e4dc','#1f3b5c'], d:'南方澳的名產，背上有藍黑色波紋，成群洄游。'},
+  {id:'porgy', n:'黑鯛', tw:'烏格', r:2, sz:[25,50], sp:[1], t:'any', str:2.4, sh:[30,'f','spiny','none','#3b4652','#9aa3a8','#1f2a33'], d:'礁岩磯釣的頭號目標，警覺心高，咬餌很輕。'},
+  {id:'grouper', n:'石斑', tw:'過魚', r:3, sz:[30,80], sp:[1,2], t:'any', str:3.4, sh:[28,'r','spiny','spots','#7a5a3c','#c9a47a','#4a3222'], d:'躲在礁洞裡，一上鉤就往洞裡鑽，要立刻收線。'},
+  {id:'rabbit', n:'臭肚魚', tw:'臭肚', r:1, sz:[18,30], sp:[1,2], t:'any', str:1.3, sh:[24,'f','spiny','spots','#7b8150','#cfc9a0','#4d5230'], d:'澎湖海邊常見，背鰭有毒刺，拿的時候要小心。'},
+  {id:'girella', n:'白毛', tw:'瓜子鱲', r:1, sz:[20,40], sp:[1], t:'day', str:1.6, sh:[27,'f','spiny','none','#56606a','#b8bec2','#343c44'], d:'東北角冬天的磯釣魚，愛吃海藻，拉力不小。'},
+  {id:'amber', n:'紅魽', tw:'紅甘', r:3, sz:[50,100], sp:[2], t:'any', str:3.8, sh:[20,'f','n','stripe','#5d6f86','#e3e3dc','#d9a441'], d:'澎湖外海的高級魚，一條黃線從眼睛延伸到尾巴。'},
+  {id:'thread', n:'午仔魚', tw:'午仔', r:2, sz:[25,45], sp:[2], t:'any', str:2.0, sh:[18,'f','n','thread','#8f9aa0','#e8e8e2','#d9c07a'], d:'胸鰭下有幾根鬚絲，用來在沙底探食。'},
+  {id:'bream', n:'赤鯮', tw:'赤鯮', r:2, sz:[25,45], sp:[2], t:'day', str:2.0, sh:[30,'f','spiny','none','#c8584a','#efc6b2','#9e3420'], d:'粉紅色的鯛類，辦桌的吉祥菜。'},
+  {id:'giant', n:'龍膽石斑', tw:'龍膽', r:4, sz:[100,200], sp:[2], t:'any', str:5.8, sh:[32,'r','spiny','blotch','#4a4a38','#a8a27a','#2b2a20'], d:'澎湖深礁的傳說，一條可以超過百公斤。'}
+];
+var SPOTS = [
+  {n:'龜山島外海', s:'龜', note:'黑潮經過，洄游魚多', dist:'頭城外 10 km', x:260, y:130},
+  {n:'基隆八斗子', s:'八', note:'礁岩磯釣，黑鯛石斑', dist:'潮境公園', x:214, y:48},
+  {n:'澎湖外垵', s:'澎', note:'溫暖淺礁，紅魽赤鯮', dist:'西嶼南端', x:38, y:318}
+];
+function fishSVG(f, known, w, h){
+  var s = f.sh, H = s[0], back = known ? s[4] : C.ink, belly = known ? s[5] : '#2a3a4a', acc = known ? s[6] : C.ink, id = 'g' + f.id + (known ? 'k' : 'u') + Math.round(Math.random() * 1e6);
+  var long = s[2] === 'rib', L = long ? 196 : 150, x0 = long ? 4 : 20, ol = known ? C.ink : C.ink;
+  var body = long
+    ? 'M4 50C30 42 120 44 196 49C120 55 30 57 4 52Z'
+    : 'M' + x0 + ' 51C' + (x0 + 26) + ' ' + (50 - H) + ' ' + (x0 + 92) + ' ' + (50 - H) + ' ' + (x0 + L - 20) + ' 48L' + (x0 + L - 20) + ' 53C' + (x0 + 92) + ' ' + (50 + H * .86) + ' ' + (x0 + 26) + ' ' + (50 + H * .8) + ' ' + x0 + ' 53Z';
+  var tx = x0 + L - 22, tail = '';
+  if (s[1] === 'f') tail = 'M' + tx + ' 50L' + (tx + 36) + ' ' + (50 - H * .9) + 'L' + (tx + 24) + ' 50L' + (tx + 36) + ' ' + (50 + H * .9) + 'Z';
+  if (s[1] === 'r') tail = 'M' + tx + ' 50C' + (tx + 14) + ' ' + (50 - H * .8) + ' ' + (tx + 34) + ' ' + (50 - H * .6) + ' ' + (tx + 32) + ' 50C' + (tx + 34) + ' ' + (50 + H * .6) + ' ' + (tx + 14) + ' ' + (50 + H * .8) + ' ' + tx + ' 50Z';
+  if (s[1] === 'l') tail = 'M' + tx + ' 50C' + (tx + 20) + ' 40 ' + (tx + 30) + ' 22 ' + (tx + 40) + ' 12C' + (tx + 30) + ' 34 ' + (tx + 30) + ' 66 ' + (tx + 40) + ' 88C' + (tx + 30) + ' 78 ' + (tx + 20) + ' 60 ' + tx + ' 50Z';
+  var fin = '';
+  if (s[2] === 'n') fin = 'M' + (x0 + 60) + ' ' + (52 - H * .92) + 'L' + (x0 + 74) + ' ' + (50 - H - 12) + 'L' + (x0 + 88) + ' ' + (52 - H * .9) + 'Z';
+  if (s[2] === 'spiny') fin = 'M' + (x0 + 40) + ' ' + (52 - H * .85) + 'L' + (x0 + 48) + ' ' + (50 - H - 12) + 'L' + (x0 + 58) + ' ' + (50 - H - 6) + 'L' + (x0 + 66) + ' ' + (50 - H - 13) + 'L' + (x0 + 76) + ' ' + (50 - H - 6) + 'L' + (x0 + 86) + ' ' + (50 - H - 11) + 'L' + (x0 + 104) + ' ' + (52 - H * .75) + 'Z';
+  if (s[2] === 'long') fin = 'M' + (x0 + 14) + ' ' + (50 - H * .72) + 'C' + (x0 + 40) + ' ' + (50 - H - 14) + ' ' + (x0 + 100) + ' ' + (50 - H - 8) + ' ' + (x0 + 124) + ' 44L' + (x0 + 100) + ' ' + (52 - H * .7) + 'Z';
+  if (s[2] === 'sail') fin = 'M' + (x0 + 30) + ' ' + (52 - H * .8) + 'C' + (x0 + 40) + ' 0 ' + (x0 + 80) + ' 2 ' + (x0 + 110) + ' ' + (50 - H * .6) + 'Z';
+  if (s[2] === 'rib') fin = 'M20 46C80 36 150 40 190 47C150 44 80 42 20 48Z';
+  var pat = '';
+  if (known){
+    if (s[3] === 'dots' || s[3] === 'spots') for (var i = 0; i < 16; i++){ var px = x0 + 26 + (i * 37 % 100), py = 50 - H * .5 + (i * 23 % Math.max(10, H)); pat += '<circle cx="' + px + '" cy="' + py + '" r="' + (s[3] === 'dots' ? 1.6 : 2.6) + '" fill="' + acc + '" opacity=".8"/>'; }
+    if (s[3] === 'blotch') for (var b = 0; b < 5; b++) pat += '<ellipse cx="' + (x0 + 34 + b * 20) + '" cy="' + (48 - H * .3 + (b % 2) * 12) + '" rx="8" ry="6" fill="' + acc + '" opacity=".55"/>';
+    if (s[3] === 'wave') for (var wv = 0; wv < 7; wv++) pat += '<path d="M' + (x0 + 34 + wv * 13) + ' ' + (50 - H * .7) + 'q4 6 0 10t0 8" stroke="' + acc + '" stroke-width="2" fill="none"/>';
+    if (s[3] === 'stripe') pat += '<path d="M' + (x0 + 14) + ' 47C' + (x0 + 60) + ' 44 ' + (x0 + 110) + ' 45 ' + (x0 + L - 20) + ' 49" stroke="' + acc + '" stroke-width="3" fill="none"/>';
+    if (s[3] === 'wing') pat += '<path d="M' + (x0 + 40) + ' 54L' + (x0 + 70) + ' 86L' + (x0 + 118) + ' 90L' + (x0 + 64) + ' 56Z" fill="' + C.prus3 + '" stroke="' + ol + '" stroke-width="1.6" opacity=".95"/><path d="M' + (x0 + 70) + ' 86 ' + (x0 + 64) + ' 58M' + (x0 + 90) + ' 88 ' + (x0 + 66) + ' 57" stroke="' + ol + '" stroke-width="1"/>';
+    if (s[3] === 'thread') pat += '<path d="M' + (x0 + 28) + ' 60q-4 16 -8 22M' + (x0 + 32) + ' 60q-2 16 -3 24M' + (x0 + 36) + ' 60q0 14 2 22" stroke="' + ol + '" stroke-width="1.2" fill="none"/>';
+    for (var sc = 0; sc < 5; sc++) pat += '<path d="M' + (x0 + 50 + sc * 14) + ' ' + (50 + H * .2) + 'a6 6 0 0 1 10 0" stroke="' + ol + '" stroke-width=".9" fill="none" opacity=".35"/>';
+  }
+  var bill = f.id === 'marlin' ? '<path d="M' + (x0 + 2) + ' 50L-18 47" stroke="' + ol + '" stroke-width="3" stroke-linecap="round"/>' : '';
+  var eye = long ? '<circle cx="14" cy="49" r="3" fill="' + C.paper2 + '"/><circle cx="14.6" cy="49" r="1.5" fill="' + C.ink + '"/>' :
+    '<circle cx="' + (x0 + 14) + '" cy="' + (48 - H * .15) + '" r="4.6" fill="' + (known ? C.paper2 : '#2a3a4a') + '" stroke="' + ol + '" stroke-width="1.2"/><circle cx="' + (x0 + 14.8) + '" cy="' + (48 - H * .15) + '" r="2.1" fill="' + C.ink + '"/>' +
+    '<path d="M' + (x0 + 26) + ' ' + (50 - H * .5) + 'q-5 ' + (H * .5) + ' 0 ' + H + '" stroke="' + ol + '" stroke-width="1.4" fill="none" opacity=".7"/>';
+  var pec = long ? '' : '<path d="M' + (x0 + 34) + ' 56l14 10 -2 -12z" fill="' + acc + '" stroke="' + ol + '" stroke-width="1.2" opacity=".9"/>';
+  return '<svg viewBox="-24 -4 ' + (w || 244) + ' ' + (h || 108) + '" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset=".15" stop-color="' + back + '"/><stop offset=".8" stop-color="' + belly + '"/></linearGradient></defs>' +
+    '<path d="' + tail + '" fill="' + acc + '" stroke="' + ol + '" stroke-width="1.6" stroke-linejoin="round"/>' + (fin ? '<path d="' + fin + '" fill="' + acc + '" stroke="' + ol + '" stroke-width="1.6" stroke-linejoin="round"/>' : '') + bill +
+    '<path d="' + body + '" fill="url(#' + id + ')" stroke="' + ol + '" stroke-width="2" stroke-linejoin="round"/>' + pat + pec + eye + '</svg>';
+}
+
+/* ---------- state ---------- */
+var dex = load('dex', null);
+if (!dex || typeof dex !== 'object') dex = {mack:{n:3, best:34}, fly:{n:2, best:29}, mahi:{n:1, best:88}, rabbit:{n:4, best:26}, porgy:{n:1, best:41}};
+var log = load('log', null);
+if (!Array.isArray(log)) log = [{f:'mahi', cm:88, spot:0, t:'9/21 17:40'}, {f:'porgy', cm:41, spot:1, t:'9/20 06:15'}, {f:'mack', cm:34, spot:0, t:'9/20 05:52'}, {f:'rabbit', cm:26, spot:2, t:'9/14 10:08'}];
+var spot = load('spot', 0), todayN = load('today:' + new Date().toDateString(), 0);
+function persist(){ save('dex', dex); save('log', log.slice(0, 30)); save('spot', spot); save('today:' + new Date().toDateString(), todayN); }
+
+function phaseOfDay(){ var h = new Date().getHours() + new Date().getMinutes() / 60; return h < 5 || h >= 19 ? 'night' : h < 7.5 ? 'dawn' : h < 16.5 ? 'day' : 'dusk'; }
+var PH = {
+  dawn:{sky:['#35618a','#b7c2c4','#e6d9c4'], sea:['#6f95ad','#35618a','#1f3b5c'], sun:[.3,.35], sunC:'#c8452c', txt:'清晨'},
+  day:{sky:['#1f3b5c','#8fb0c4','#e6e2d6'], sea:['#5d88a6','#2e5680','#1a3452'], sun:[.26,.12], sunC:'#c8452c', txt:'白晝'},
+  dusk:{sky:['#1f3b5c','#b0747a','#e5b98a'], sea:['#5f7f98','#2c4c70','#182f4a'], sun:[.62,.33], sunC:'#c8452c', txt:'黃昏'},
+  night:{sky:['#0f2033','#1f3b5c','#4c6f8c'], sea:['#2e5072','#1a3452','#0e1f33'], sun:[.72,.14], sunC:'#e6e2d6', txt:'夜'}
+};
+
+/* ---------- scene ---------- */
+var cv = $('cv'), cx = cv.getContext('2d'), W = 390, H = 844, DPR = 1;
+function resize(){
+  var r = $('sea').getBoundingClientRect(); DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = Math.max(200, r.width); H = Math.max(300, r.height); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  if (!raf) draw(performance.now());
+}
+function hudTop(){ var hb = $('hud').getBoundingClientRect(), sb = $('sea').getBoundingClientRect(); return hb.top - sb.top; }
+function horizon(){ return H * .36; }
+function island(c, idx, hz){
+  c.fillStyle = C.prus2;
+  c.beginPath();
+  if (idx === 0){ // Guishan: turtle with a head
+    var x = W * .64; c.moveTo(x - 90, hz); c.bezierCurveTo(x - 70, hz - 40, x - 20, hz - 62, x + 10, hz - 44); c.bezierCurveTo(x + 30, hz - 30, x + 44, hz - 22, x + 62, hz - 14);
+    c.bezierCurveTo(x + 70, hz - 20, x + 84, hz - 20, x + 90, hz - 10); c.lineTo(x + 96, hz); c.closePath(); c.fill();
+    c.fillStyle = C.prus; c.beginPath(); c.moveTo(x - 60, hz); c.bezierCurveTo(x - 40, hz - 26, x - 10, hz - 36, x + 20, hz - 20); c.lineTo(x + 30, hz); c.fill();
+  } else if (idx === 1){ // Keelang islet + coast
+    c.moveTo(-10, hz); c.bezierCurveTo(W * .1, hz - 30, W * .22, hz - 26, W * .3, hz - 10); c.lineTo(W * .34, hz); c.closePath(); c.fill();
+    var x2 = W * .7; c.beginPath(); c.moveTo(x2 - 30, hz); c.lineTo(x2 - 12, hz - 34); c.lineTo(x2 + 4, hz - 28); c.lineTo(x2 + 26, hz); c.closePath(); c.fill();
+  } else { // Penghu: flat basalt mesas
+    c.moveTo(W * .12, hz); c.lineTo(W * .15, hz - 16); c.lineTo(W * .36, hz - 18); c.lineTo(W * .39, hz); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(W * .7, hz); c.lineTo(W * .72, hz - 10); c.lineTo(W * .84, hz - 11); c.lineTo(W * .86, hz); c.closePath(); c.fill();
+    c.fillStyle = C.paper2; c.fillRect(W * .79, hz - 30, 4, 20); c.fillStyle = C.verm; c.fillRect(W * .788, hz - 34, 6, 5);
+  }
+}
+function curl(c, x0, y0, S, t){
+  var rock = Math.sin(t * .0009) * .02;
+  c.save(); c.translate(x0, y0); c.rotate(rock); c.scale(S, S);
+  // body
+  c.beginPath(); c.moveTo(0, 1); c.bezierCurveTo(.05, .55, .25, .08, .55, .04); c.bezierCurveTo(.8, .01, .96, .2, .88, .38);
+  c.bezierCurveTo(.8, .3, .7, .22, .62, .3); c.bezierCurveTo(.5, .42, .56, .78, .78, 1); c.closePath();
+  c.fillStyle = C.prus; c.fill();
+  // inner bands
+  c.lineWidth = .012; c.strokeStyle = C.prus3;
+  for (var i = 1; i < 6; i++){ c.beginPath(); c.moveTo(.08 + i * .06, 1); c.bezierCurveTo(.12 + i * .05, .6, .3 + i * .03, .2 + i * .03, .55, .1 + i * .04); c.stroke(); }
+  c.strokeStyle = C.paper2; c.lineWidth = .006;
+  for (var j = 1; j < 4; j++){ c.beginPath(); c.moveTo(.62 + j * .02, .34 + j * .03); c.bezierCurveTo(.55, .5 + j * .04, .6, .8, .72 + j * .03, 1); c.stroke(); }
+  // foam lip with claws
+  c.fillStyle = C.paper2; c.strokeStyle = C.ink; c.lineWidth = .006;
+  c.beginPath(); c.moveTo(.3, .15); c.bezierCurveTo(.45, .02, .75, -.02, .9, .2); c.bezierCurveTo(.93, .28, .9, .36, .88, .38); c.bezierCurveTo(.84, .28, .72, .12, .52, .12); c.bezierCurveTo(.44, .12, .36, .16, .3, .15); c.fill(); c.stroke();
+  for (var k = 0; k < 13; k++){
+    var u = k / 12, px = .34 + u * .56, py = .12 - Math.sin(u * Math.PI) * .08 + u * u * .18, wob = Math.sin(t * .003 + k) * .012;
+    var dx = .01 + u * .05, dy = .05 + u * .03;
+    c.beginPath(); c.moveTo(px - .018, py); c.quadraticCurveTo(px + dx * .4, py - .03 + wob, px + dx + wob, py + dy * .2);
+    c.quadraticCurveTo(px + dx * .3, py + .005, px + dx * .55, py + dy); c.quadraticCurveTo(px, py + .02, px - .018, py); c.fill(); c.stroke();
+  }
+  // spray: flat round flecks
+  c.fillStyle = C.paper2;
+  for (var s = 0; s < 18; s++){ var a = s * 2.4, rr = .05 + (s % 5) * .03; c.beginPath(); c.arc(.78 + Math.cos(a) * rr + Math.sin(t * .001 + s) * .01, .04 + Math.sin(a) * rr * .6 - .04, .008 + (s % 3) * .004, 0, 7); c.fill(); }
+  c.restore();
+}
+var G = {mode:'idle', power:0, charging:false, float:null, bite:0, biteT:0, nibT:0, fish:null, tension:0, dist:0, stamina:100, surge:0, slackT:0, overT:0, holding:false, t0:0, cast:null, splash:[], msgT:0};
+function boatPos(){ var ht = hudTop(); return {x:W * .74, y:ht - 34}; }
+function rodTip(){ var b = boatPos(), bend = G.mode === 'fight' ? Math.min(1, G.tension / 100) : G.charging ? G.power * .5 : 0; return {x:b.x - 58 + bend * 26, y:b.y - 118 + bend * 58}; }
+function draw(t){
+  var c = cx, P = PH[phaseOfDay()], hz = horizon();
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // sky with bokashi band
+  var g = c.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, P.sky[0]); g.addColorStop(.35, P.sky[1]); g.addColorStop(1, P.sky[2]);
+  c.fillStyle = g; c.fillRect(0, 0, W, hz + 1);
+  // sun / moon
+  c.fillStyle = P.sunC; c.beginPath(); c.arc(W * P.sun[0] + 60, H * P.sun[1] + 20, 24, 0, 7); c.fill();
+  // stylised cloud bands
+  c.fillStyle = 'rgba(230,226,214,.78)';
+  [[.06, .2, .34], [.52, .27, .3]].forEach(function(b, i){
+    var x = W * b[0] + Math.sin(t * .00005 + i) * 12, y = hz * b[1] + 30, w = W * b[2];
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + w, y); c.quadraticCurveTo(x + w + 10, y + 6, x + w, y + 12); c.lineTo(x + 20, y + 12); c.quadraticCurveTo(x + 8, y + 6, x, y); c.fill();
+  });
+  island(c, spot, hz);
+  // sea bands
+  var sg = c.createLinearGradient(0, hz, 0, H); sg.addColorStop(0, P.sea[0]); sg.addColorStop(.35, P.sea[1]); sg.addColorStop(1, P.sea[2]);
+  c.fillStyle = sg; c.fillRect(0, hz, W, H - hz);
+  // wave hairlines
+  c.strokeStyle = 'rgba(230,226,214,.5)'; c.lineWidth = 1;
+  for (var r = 0; r < 16; r++){
+    var y = hz + 8 + Math.pow(r / 16, 1.5) * (H - hz), amp = 1.5 + r * .35, len = 16 + r * 4, ph = t * .0012 * (1 + r * .05) + r * 1.7;
+    c.globalAlpha = .25 + r / 40;
+    c.beginPath();
+    for (var x = -20; x < W + 20; x += len){ var yy = y + Math.sin(x * .05 + ph) * amp; c.moveTo(x, yy); c.quadraticCurveTo(x + len * .5, yy - amp * 1.6, x + len * .82, yy); }
+    c.stroke();
+  }
+  c.globalAlpha = 1;
+  // small crest caps
+  c.fillStyle = C.paper2;
+  for (var k = 0; k < 10; k++){
+    var cxp = ((k * 97 + t * .012) % (W + 60)) - 30, cyp = hz + 40 + (k * 53 % Math.max(40, (hudTop() - hz - 120)));
+    c.beginPath(); c.moveTo(cxp, cyp); c.quadraticCurveTo(cxp + 6, cyp - 7, cxp + 13, cyp - 2); c.quadraticCurveTo(cxp + 7, cyp - 3, cxp + 5, cyp + 1); c.fill();
+  }
+  // the great wave at left
+  curl(c, -W * .18, hudTop() - W * .78, W * .78, t);
+  // fish shadow while fighting
+  if (G.mode === 'fight' && G.float){
+    var fx = G.float.x + Math.sin(t * .004) * 18 * (1 + G.surge), fy = G.float.y + 14;
+    c.fillStyle = 'rgba(14,31,51,.55)'; c.beginPath(); c.ellipse(fx, fy, 22 + G.fish.r * 5, 6 + G.fish.r, Math.sin(t * .003) * .3, 0, 7); c.fill();
+  }
+  // boat, angler
+  var b = boatPos(), tip = rodTip();
+  c.fillStyle = C.ink; c.beginPath(); c.moveTo(b.x - 64, b.y - 10); c.lineTo(b.x + 58, b.y - 16); c.lineTo(b.x + 40, b.y + 8); c.lineTo(b.x - 50, b.y + 10); c.closePath(); c.fill();
+  c.strokeStyle = C.paper2; c.lineWidth = 1.2; c.beginPath(); c.moveTo(b.x - 58, b.y - 6); c.lineTo(b.x + 52, b.y - 12); c.stroke();
+  c.fillStyle = C.ink; c.fillRect(b.x - 6, b.y - 40, 16, 30);
+  c.fillStyle = C.verm; c.beginPath(); c.moveTo(b.x - 14, b.y - 40); c.lineTo(b.x + 2, b.y - 54); c.lineTo(b.x + 18, b.y - 40); c.closePath(); c.fill();
+  // rod
+  var hand = {x:b.x - 4, y:b.y - 28}, bend = G.mode === 'fight' ? G.tension / 100 : 0;
+  c.strokeStyle = C.ink; c.lineWidth = 3; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(hand.x, hand.y); c.quadraticCurveTo(hand.x - 50, hand.y - 90 + bend * 40, tip.x, tip.y); c.stroke();
+  // line + float
+  if (G.float || G.cast){
+    var fp = G.cast ? G.cast.p : G.float;
+    c.strokeStyle = 'rgba(230,226,214,.9)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(tip.x, tip.y);
+    var sag = G.mode === 'fight' ? Math.max(0, 40 - G.tension * .5) : 30;
+    c.quadraticCurveTo((tip.x + fp.x) / 2, Math.max(tip.y, fp.y) + sag, fp.x, fp.y); c.stroke();
+    if (G.mode !== 'fight'){
+      var dip = G.mode === 'bite' ? 7 : G.nib > 0 ? 3 * G.nib : Math.sin(t * .004) * 1.2;
+      c.fillStyle = C.verm; c.beginPath(); c.ellipse(fp.x, fp.y - 5 + dip, 4, 7 - Math.max(0, dip) * .7, 0, 0, 7); c.fill();
+      c.fillStyle = C.paper2; c.fillRect(fp.x - 4, fp.y - 1 + dip, 8, 3);
+    } else {
+      c.strokeStyle = C.paper2; c.lineWidth = 1.5; c.beginPath(); c.ellipse(fp.x, fp.y + 2, 10 + Math.sin(t * .02) * 3, 3, 0, 0, 7); c.stroke();
+    }
+    if (G.mode === 'bite'){ c.fillStyle = C.verm; c.font = '28px "Baoli TC",serif'; c.textAlign = 'center'; c.fillText('！', fp.x, fp.y - 26); }
+  }
+  // ripples
+  G.splash = G.splash.filter(function(s){ return t - s.t < 1400; });
+  G.splash.forEach(function(s){ var k = (t - s.t) / 1400; c.strokeStyle = 'rgba(230,226,214,' + (1 - k) + ')'; c.lineWidth = 1.4; c.beginPath(); c.ellipse(s.x, s.y, 6 + k * 40, 2 + k * 10, 0, 0, 7); c.stroke(); });
+}
+
+/* ---------- loop / game logic ---------- */
+var raf = 0, last = 0;
+function loop(t){
+  raf = 0;
+  if (document.hidden || view !== 'sea') return;
+  var dt = Math.min(.05, (t - (last || t)) / 1000); last = t;
+  step(dt, t);
+  draw(t);
+  raf = requestAnimationFrame(loop);
+}
+function kick(){ if (!raf && view === 'sea'){ last = 0; raf = requestAnimationFrame(loop); } }
+function say(txt, hot){ var s = $('say'); s.textContent = txt; s.classList.toggle('hot', !!hot); }
+function setBtn(label, ic, v){ $('mainLbl').textContent = label; $('mainIc').innerHTML = ic; $('mainBtn').classList.toggle('v', !!v); }
+var IC = {
+  cast:'<path d="M5 22 19 5" stroke="currentColor" stroke-width="2.4"/><path d="M19 5c3 4 3 10 0 15" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="19" cy="21" r="2.6" fill="currentColor"/>',
+  hook:'<path d="M15 3v13a5 5 0 0 1-10 0v-3" stroke="currentColor" stroke-width="2.6" fill="none"/><path d="M5 13l-2 3" stroke="currentColor" stroke-width="2.6"/><rect x="12" y="2" width="6" height="3" fill="currentColor"/>',
+  reel:'<circle cx="13" cy="13" r="8.5" stroke="currentColor" stroke-width="2.4" fill="none"/><circle cx="13" cy="13" r="2.6" fill="currentColor"/><path d="M13 4.5V1M21.5 13H25" stroke="currentColor" stroke-width="2.4"/>',
+  back:'<path d="M20 13H6M11 7l-6 6 6 6" stroke="currentColor" stroke-width="2.4" fill="none"/>'
+};
+function gauge(mode, v, label){
+  var gEl = $('gauge'); gEl.classList.toggle('power', mode === 'power');
+  var p = Math.max(0, Math.min(100, v));
+  $('gfill').style.width = p + '%'; $('gnd').style.left = p + '%'; $('glab').textContent = label || '';
+}
+function reset(msg){
+  G.mode = 'idle'; G.float = null; G.cast = null; G.fish = null; G.power = 0; G.charging = false; G.tension = 0; G.nib = 0;
+  say(msg || '按住水面蓄力'); setBtn('按住拋竿', IC.cast); gauge('power', 0, ''); $('meta').innerHTML = '今日 <b>' + todayN + '</b> 尾';
+}
+function pickFish(){
+  var night = phaseOfDay() === 'night', pool = FISH.filter(function(f){ return f.sp.indexOf(spot) > -1 && (f.t === 'any' || (f.t === 'night') === night); });
+  var wts = pool.map(function(f){ return [0, 50, 26, 12, 4][f.r]; }), tot = wts.reduce(function(a, b){ return a + b; }, 0), x = Math.random() * tot;
+  for (var i = 0; i < pool.length; i++){ x -= wts[i]; if (x <= 0) return pool[i]; }
+  return pool[0];
+}
+function step(dt, t){
+  if (G.charging){ G.power = Math.min(1, G.power + dt * .75); gauge('power', G.power * 100, Math.round(8 + G.power * 30) + ' m'); if (Math.random() < dt * 8) ratchet(.3); }
+  if (G.cast){
+    var k = Math.min(1, (t - G.cast.t0) / G.cast.dur), a = G.cast.a, bb = G.cast.b;
+    G.cast.p = {x:a.x + (bb.x - a.x) * k, y:a.y + (bb.y - a.y) * k - Math.sin(k * Math.PI) * 120};
+    if (k >= 1){ G.float = bb; G.cast = null; G.mode = 'wait'; G.biteT = 2 + Math.random() * 4.5; G.nibT = .8 + Math.random(); G.splash.push({x:bb.x, y:bb.y, t:t}); splash(); haptic(12); say('等魚咬餌…'); setBtn('提竿', IC.hook); }
+  }
+  if (G.mode === 'wait'){
+    G.biteT -= dt; G.nibT -= dt; G.nib = Math.max(0, (G.nib || 0) - dt * 4);
+    if (G.nibT <= 0){ G.nib = 1; G.nibT = .7 + Math.random() * 1.6; tick(); haptic(4); if (Math.random() < .5) say('浮標動了一下…'); }
+    if (G.biteT <= 0){ G.mode = 'bite'; G.bite = .95; G.fish = pickFish(); say('提竿！', true); setBtn('提竿！', IC.hook, true); bell(); haptic([30, 30, 30]); G.splash.push({x:G.float.x, y:G.float.y, t:t}); }
+  }
+  if (G.mode === 'bite'){ G.bite -= dt; if (G.bite <= 0){ reset('慢了一拍，魚吐餌跑了'); haptic([6, 40, 6]); } }
+  if (G.mode === 'fight'){
+    var f = G.fish, base = (.35 + f.str * .16) * (.35 + .65 * G.stamina / 100);
+    if (G.surge > 0) G.surge -= dt; else if (Math.random() < dt * (.18 + f.str * .05)){ G.surge = .6 + Math.random() * .9; haptic([20, 20, 20]); say('魚在衝！放線', true); }
+    var P = base + (G.surge > 0 ? f.str * .55 : 0);
+    var target = G.holding ? 30 + P * 20 : P * 11;
+    G.tension += (target - G.tension) * Math.min(1, dt * 3.2);
+    if (G.holding){ G.dist -= Math.max(.2, 3.4 - P * .5) * dt; if (Math.random() < dt * 14) ratchet(.18); }
+    else G.dist += P * .9 * dt;
+    if (G.tension > 30 && G.tension < 88) G.stamina = Math.max(0, G.stamina - dt * (G.tension / 50) * 5.5);
+    G.overT = G.tension >= 97 ? G.overT + dt : 0;
+    G.slackT = G.tension < 9 ? G.slackT + dt : 0;
+    var near = Math.max(0, Math.min(1, G.dist / G.startDist)), b = boatPos();
+    G.float = {x:b.x - 70 + (G.anchor.x - (b.x - 70)) * near, y:b.y - 14 + (G.anchor.y - (b.y - 14)) * near};
+    gauge('tension', G.tension, Math.max(0, G.dist).toFixed(1) + ' m');
+    $('meta').innerHTML = '體力 <b>' + Math.round(G.stamina) + '</b>';
+    if (G.surge <= 0 && G.holding && G.mode === 'fight' && $('say').classList.contains('hot')) say('收線中…');
+    if (G.overT > .28){ snap(); return; }
+    if (G.slackT > 3.2){ reset('線太鬆，魚脫鉤了'); haptic([6, 40, 6]); return; }
+    if (G.dist <= 1.5) landed();
+  }
+}
+function startCharge(){
+  if (G.mode === 'bite'){ hookIt(); return; }
+  if (G.mode === 'fight'){ G.holding = true; $('mainBtn').classList.add('down'); return; }
+  if (G.mode === 'wait'){ // pulling early spooks the fish
+    if (Math.random() < .35){ reset('太早提竿，魚被嚇跑了'); } else { G.biteT += 1.2; say('別急，再等等'); }
+    haptic(6); return;
+  }
+  if (G.mode !== 'idle') return;
+  audio(); G.charging = true; G.power = 0; say('蓄力…'); kick();
+}
+function endCharge(){
+  if (G.mode === 'fight'){ G.holding = false; $('mainBtn').classList.remove('down'); return; }
+  if (!G.charging) return;
+  G.charging = false;
+  var p = Math.max(.12, G.power), b = boatPos(), hz = horizon();
+  var dest = {x:W * (.38 + Math.random() * .22), y:b.y - 90 - p * (b.y - 90 - hz - 26)};
+  G.cast = {a:rodTip(), b:dest, t0:performance.now(), dur:520 + p * 380, p:rodTip()}; G.mode = 'cast';
+  G.castDist = Math.round(8 + p * 30);
+  whoosh(); haptic(10); say('拋出 ' + G.castDist + ' 公尺'); gauge('power', 0, '');
+}
+function hookIt(){
+  G.mode = 'fight'; G.holding = false; G.tension = 30; G.stamina = 100; G.surge = 0; G.slackT = 0; G.overT = 0;
+  G.startDist = G.dist = G.castDist + 2; G.anchor = {x:G.float.x, y:G.float.y};
+  say('上鉤了！按住收線'); setBtn('按住收線', IC.reel); haptic([40, 30, 40]); splash();
+}
+function snap(){
+  crack(); haptic([80, 40, 80]); var nm = G.fish.n; reset('啪！斷線了'); toast('跑掉的是' + (G.fish ? '' : '') + '一條' + (nm.length > 3 ? '大' : '') + '魚');
+}
+function landed(){
+  var f = G.fish, cm = Math.round(f.sz[0] + Math.pow(Math.random(), 1.6) * (f.sz[1] - f.sz[0]));
+  var first = !dex[f.id], rec = dex[f.id] || {n:0, best:0}, pb = cm > rec.best;
+  rec.n++; rec.best = Math.max(rec.best, cm); dex[f.id] = rec; todayN++;
+  var d = new Date(); log.unshift({f:f.id, cm:cm, spot:spot, t:(d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')});
+  persist(); koto(); haptic([20, 40, 20, 40, 60]);
+  reset('釣到' + f.n + '！');
+  showCatch(f, cm, first, pb);
+}
+
+/* ---------- input on the sea ---------- */
+(function(){
+  var sea = $('sea'), mb = $('mainBtn');
+  sea.addEventListener('pointerdown', function(e){ if (sheet.classList.contains('on')) return; sea.setPointerCapture(e.pointerId); audio(); startCharge(); });
+  sea.addEventListener('pointerup', endCharge); sea.addEventListener('pointercancel', endCharge);
+  mb.addEventListener('pointerdown', function(e){ mb.setPointerCapture(e.pointerId); audio(); startCharge(); });
+  mb.addEventListener('pointerup', endCharge); mb.addEventListener('pointercancel', endCharge);
+  mb.addEventListener('keydown', function(e){ if ((e.key === ' ' || e.key === 'Enter') && !e.repeat){ e.preventDefault(); startCharge(); } });
+  mb.addEventListener('keyup', function(e){ if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); endCharge(); } });
+})();
+$('sndBtn').addEventListener('click', function(){ settings.sound = !settings.sound; save('settings', settings); sndIcon(); haptic(6); if (settings.sound){ audio(); tick(); } else stopSea(); });
+function sndIcon(){
+  $('sndIc').innerHTML = '<path d="M4 10h5l6-5v16l-6-5H4z" fill="currentColor"/>' + (settings.sound ? '<path d="M18 9c2 2 2 6 0 8M21 6c4 4 4 10 0 14" stroke="currentColor" stroke-width="2" fill="none"/>' : '<path d="M18 9l6 8M24 9l-6 8" stroke="currentColor" stroke-width="2"/>');
+  $('sndBtn').setAttribute('aria-pressed', settings.sound);
+}
+
+/* ---------- audio ---------- */
+var ac = null, seaNode = null;
+function audio(){
+  if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+  if (ac && ac.state === 'suspended') ac.resume();
+  if (ac && settings.sound && !seaNode) startSea();
+  return ac;
+}
+function noiseBuf(sec){ var n = Math.floor(ac.sampleRate * sec), b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0), l = 0; for (var i = 0; i < n; i++){ l = (l + .06 * (Math.random() * 2 - 1)) / 1.06; d[i] = l * 3.2; } return b; }
+function startSea(){
+  var s = ac.createBufferSource(); s.buffer = noiseBuf(4); s.loop = true;
+  var f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 520;
+  var g = ac.createGain(); g.gain.value = .0;
+  var lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = .11; lg.gain.value = .05; lfo.connect(lg); lg.connect(g.gain);
+  g.gain.setValueAtTime(.07, ac.currentTime);
+  s.connect(f); f.connect(g); g.connect(ac.destination); s.start(); lfo.start();
+  seaNode = {s:s, g:g, lfo:lfo};
+}
+function stopSea(){ if (seaNode){ try { seaNode.s.stop(); seaNode.lfo.stop(); } catch(e){} seaNode = null; } }
+function env(node, g0, dur){ var g = ac.createGain(), t = ac.currentTime; g.gain.setValueAtTime(g0, t); g.gain.exponentialRampToValueAtTime(.0005, t + dur); node.connect(g); g.connect(ac.destination); return t; }
+function tick(){ if (!ac || !settings.sound) return; var o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = 1800; var t = env(o, .05, .04); o.start(t); o.stop(t + .05); }
+function ratchet(v){ if (!ac || !settings.sound) return; var o = ac.createOscillator(); o.type = 'square'; o.frequency.value = 2600 + Math.random() * 400; var t = env(o, (v || .2) * .12, .015); o.start(t); o.stop(t + .02); }
+function whoosh(){ if (!ac || !settings.sound) return; var s = ac.createBufferSource(); s.buffer = noiseBuf(.5); var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2; f.frequency.setValueAtTime(600, ac.currentTime); f.frequency.exponentialRampToValueAtTime(3000, ac.currentTime + .35); s.connect(f); var t = env(f, .5, .45); s.start(t); }
+function splash(){ if (!ac || !settings.sound) return; var s = ac.createBufferSource(); s.buffer = noiseBuf(.6); var f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; s.connect(f); var t = env(f, .7, .5); s.start(t); }
+function crack(){ if (!ac || !settings.sound) return; var s = ac.createBufferSource(); s.buffer = noiseBuf(.15); var f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2400; s.connect(f); var t = env(f, 1, .12); s.start(t); }
+function bell(){ if (!ac || !settings.sound) return; [880, 1320].forEach(function(fr, i){ var o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = fr; var t = env(o, .12 / (i + 1), .5); o.start(t); o.stop(t + .5); }); }
+function koto(){
+  if (!ac || !settings.sound) return;
+  [392, 440, 523.25, 659.25, 783.99].forEach(function(fr, i){
+    var o = ac.createOscillator(), f = ac.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.value = fr; f.type = 'lowpass'; f.frequency.value = 2200; o.connect(f);
+    var g = ac.createGain(), t = ac.currentTime + i * .11; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.09, t + .005); g.gain.exponentialRampToValueAtTime(.0005, t + 1.1);
+    f.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + 1.2);
+  });
+}
+
+/* ---------- views ---------- */
+var view = 'sea';
+function setView(v){
+  if (v === view) return;
+  view = v; haptic(6); tick();
+  document.querySelectorAll('.cart').forEach(function(c){ c.setAttribute('aria-selected', c.dataset.v === v); });
+  var dx = $('dex');
+  if (v === 'dex'){ if (G.mode === 'fight' || G.mode === 'bite') reset('收竿了'); G.charging = false; dx.hidden = false; renderDex(); void dx.offsetWidth; dx.classList.remove('off'); $('screen').classList.add('dex'); if (seaNode) seaNode.g.gain.setTargetAtTime(.015, ac.currentTime, .3); }
+  else { dx.classList.add('off'); $('screen').classList.remove('dex'); setTimeout(function(){ if (view === 'sea') dx.hidden = true; }, reduce ? 0 : 500); kick(); if (seaNode) seaNode.g.gain.setTargetAtTime(.07, ac.currentTime, .3); }
+}
+document.querySelector('.nav').addEventListener('click', function(e){ var b = e.target.closest('.cart'); if (b) setView(b.dataset.v); });
+var filt = 'all';
+function renderDex(){
+  var seen = FISH.filter(function(f){ return dex[f.id]; }).length, tot = 0; for (var k in dex) tot += dex[k].n;
+  $('dexN').textContent = seen; $('dexT').textContent = FISH.length; $('dexC').textContent = tot;
+  var F = [['all','全部'],['seen','已收'],['0','龜山島'],['1','八斗子'],['2','澎湖']];
+  $('filt').innerHTML = F.map(function(x){ return '<button data-f="' + x[0] + '" aria-pressed="' + (filt === x[0]) + '"><span>' + x[1] + '</span></button>'; }).join('');
+  var list = FISH.filter(function(f){ return filt === 'all' || (filt === 'seen' ? dex[f.id] : f.sp.indexOf(+filt) > -1); });
+  $('grid').innerHTML = list.map(function(f){
+    var k = !!dex[f.id], rar = ''; for (var i = 1; i <= 4; i++) rar += '<i' + (i <= f.r ? '' : ' class="o"') + '></i>';
+    return '<button class="print' + (k ? '' : ' unk') + '" data-fish="' + f.id + '" aria-label="' + (k ? f.n : '未見的魚') + '"><span class="band"></span><span class="rar">' + rar + '</span>' + fishSVG(f, k) +
+      '<span class="nm">' + (k ? f.n : '未見') + '</span><span class="st">' + (k ? dex[f.id].n + ' 尾・最大 ' + dex[f.id].best + ' cm' : SPOTS[f.sp[0]].n + (f.t === 'night' ? '・夜' : '')) + '</span></button>';
+  }).join('') || '<p class="st">這裡還沒有魚。</p>';
+  $('recent').innerHTML = log.slice(0, 6).map(function(r){
+    var f = FISH.filter(function(x){ return x.id === r.f; })[0]; if (!f) return '';
+    return '<li>' + fishSVG(f, true) + '<div><b>' + f.n + '</b><span>' + SPOTS[r.spot].n + '・' + r.t + '</span></div><em>' + r.cm + ' cm</em></li>';
+  }).join('');
+}
+$('filt').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; filt = b.dataset.f; haptic(4); tick(); renderDex(); });
+$('grid').addEventListener('click', function(e){
+  var b = e.target.closest('[data-fish]'); if (!b) return;
+  var f = FISH.filter(function(x){ return x.id === b.dataset.fish; })[0], k = dex[f.id];
+  haptic(6);
+  openSheet('<div class="big">' + fishSVG(f, !!k) + '<span class="title">' + (k ? f.n : '未見') + '</span></div>' +
+    '<div class="facts"><div><b>' + (k ? k.n : 0) + '</b><span>釣過</span></div><div><b>' + (k ? k.best : '—') + '</b><span>最大 cm</span></div><div><b>' + '一二三四'[f.r - 1] + '</b><span>稀有</span></div></div>' +
+    '<p class="desc"><b>' + (k ? '台語　' + f.tw : '線索') + '</b>' + (k ? f.d : '常出沒在' + f.sp.map(function(s){ return SPOTS[s].n; }).join('、') + (f.t === 'night' ? '，只在夜裡咬餌' : f.t === 'day' ? '，白天比較活躍' : '') + '。') + '</p>' +
+    '<div class="srow"><button class="btn" id="goFish">去' + SPOTS[f.sp[0]].n + '</button></div>', f.n);
+  $('goFish').addEventListener('click', function(){ spot = f.sp[0]; persist(); renderSpot(); closeSheet(); setView('sea'); });
+});
+
+/* ---------- catch sheet ---------- */
+function showCatch(f, cm, first, pb){
+  openSheet('<div class="big">' + fishSVG(f, true) + '<span class="title">' + f.n + '</span>' + (first ? '<span class="new">初<br>見</span>' : pb ? '<span class="new">新<br>紀錄</span>' : '') + '</div>' +
+    '<div class="facts"><div><b>' + cm + '</b><span>公分</span></div><div><b>' + (Math.round(Math.pow(cm / 10, 3) * .012 * (f.sh[0] / 20) * 10) / 10) + '</b><span>公斤</span></div><div><b>' + dex[f.id].n + '</b><span>累計</span></div></div>' +
+    '<p class="desc"><b>' + SPOTS[spot].n + '</b>' + f.d + '</p>' +
+    '<div class="srow"><button class="btn" id="keepBtn">收進魚譜</button><button class="btn v" id="relBtn">放流</button></div>', '釣到' + f.n);
+  $('keepBtn').addEventListener('click', function(){ closeSheet(); toast('收進魚譜'); });
+  $('relBtn').addEventListener('click', function(){ closeSheet(); G.splash.push({x:boatPos().x - 70, y:boatPos().y - 10, t:performance.now()}); splash(); toast('謝謝海'); });
+}
+
+/* ---------- spot sheet ---------- */
+function renderSpot(){
+  var s = SPOTS[spot], P = PH[phaseOfDay()];
+  $('spotSeal').textContent = s.s; $('spotName').textContent = s.n; $('spotSub').textContent = P.txt + '・' + s.note;
+  if (!raf) draw(performance.now());
+}
+$('spotBtn').addEventListener('click', function(){
+  var map = '<svg viewBox="0 0 300 360" class="map"><rect width="300" height="360" fill="#35618a" opacity=".18"/>' +
+    '<path d="M214 40C232 44 250 60 262 84 272 110 266 140 256 170 246 206 236 240 220 280 206 312 188 340 170 356L110 356C100 320 92 280 96 240 100 200 118 160 140 120 160 86 186 50 214 40Z" fill="#e6e2d6" stroke="#16222e" stroke-width="2"/>' +
+    '<path d="M150 150c20-10 40 0 50 20M130 220c24-6 44 6 52 26" stroke="#16222e" stroke-width="1.2" fill="none" opacity=".5"/>' +
+    '<path d="M24 300l10-8 14 4 6 12-8 10-16-2zM44 330l8-4 6 6-6 6z" fill="#e6e2d6" stroke="#16222e" stroke-width="1.6"/>' +
+    '<ellipse cx="282" cy="132" rx="7" ry="4" fill="#e6e2d6" stroke="#16222e" stroke-width="1.4"/>' +
+    SPOTS.map(function(s, i){ return '<g><rect x="' + (s.x - 9) + '" y="' + (s.y - 9) + '" width="18" height="18" fill="' + (i === spot ? '#c8452c' : '#e6e2d6') + '" stroke="#16222e" stroke-width="1.6"/><text x="' + s.x + '" y="' + s.y + '" dy=".35em" text-anchor="middle" font-family="Baoli TC,serif" font-size="12" fill="' + (i === spot ? '#e6e2d6' : '#16222e') + '">' + s.s + '</text></g>'; }).join('') + '</svg>';
+  openSheet('<h3>換個釣場</h3><div class="map">' + map + '</div><div class="spots">' + SPOTS.map(function(s, i){
+    var n = FISH.filter(function(f){ return f.sp.indexOf(i) > -1; }), got = n.filter(function(f){ return dex[f.id]; }).length;
+    return '<button data-spot="' + i + '" aria-pressed="' + (i === spot) + '"><span class="n">' + s.s + '</span><span><b>' + s.n + '</b><span>' + s.dist + '・' + s.note + '</span></span><em>' + got + '／' + n.length + '</em></button>';
+  }).join('') + '</div>', '換釣場');
+});
+$('sbody').addEventListener('click', function(e){
+  var b = e.target.closest('[data-spot]'); if (!b) return;
+  spot = +b.dataset.spot; persist(); renderSpot(); closeSheet(); if (G.mode !== 'idle') reset(); haptic([8, 30, 8]); splash(); toast('來到' + SPOTS[spot].n);
+});
+
+/* ---------- sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html, label){ lastFocus = document.activeElement; $('sbody').innerHTML = html; $('sbody').scrollTop = 0; sheet.setAttribute('aria-label', label || ''); sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (view === 'dex') renderDex(); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, on = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button') || ($('sbody').scrollTop > 0 && e.target.closest('.sbody'))) return; on = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId); });
+  sheet.addEventListener('pointermove', function(e){ if (!on) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!on) return; on = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; if (dy > sheet.offsetHeight * .35 || dy / Math.max(1, e.timeStamp - t0) > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+
+var toastT = null;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 1800); }
+
+/* ---------- desktop backdrop: the same print, wide ---------- */
+function drawBackdrop(){
+  var bc = $('bdc'); if (!bc || getComputedStyle(bc.parentNode).display === 'none') return;
+  var r = bc.getBoundingClientRect(); bc.width = Math.round(r.width); bc.height = Math.round(r.height);
+  var sW = W, sH = H, sD = DPR, sc = cx, sHud = hudTop;
+  W = bc.width; H = bc.height; DPR = 1; cx = bc.getContext('2d'); hudTop = function(){ return H + W * .06; };
+  var saveMode = G.mode; G.mode = 'none';
+  draw(9000);
+  G.mode = saveMode; W = sW; H = sH; DPR = sD; cx = sc; hudTop = sHud;
+}
+
+/* ---------- boot ---------- */
+function clock(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+clock(); setInterval(function(){ clock(); renderSpot(); }, 30000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 15 * b.level).toFixed(1)); }).catch(function(){});
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) kick(); else G.charging = false; });
+window.addEventListener('resize', function(){ resize(); drawBackdrop(); });
+sndIcon(); resize(); renderSpot(); reset(); drawBackdrop(); kick();
+})();
+</script>
+</body>
+</html>

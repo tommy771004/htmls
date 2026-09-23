@@ -98,7 +98,7 @@ svg{display:block}
 
 .speed{padding:10px 0 12px;border-bottom:3px solid var(--ink);display:grid;grid-template-columns:1fr auto;align-items:end}
 .speed .num{font-size:128px;letter-spacing:-.01em;margin-top:2px}
-.trend{width:34px;display:flex;flex-direction:column;align-items:center;gap:6px;padding-bottom:12px}
+.trend{width:56px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;padding-bottom:12px}
 .trend svg{width:30px;height:30px}
 .trend span{font:700 13px/1 var(--dinc)}
 .grid2{display:grid;grid-template-columns:1fr 1fr}
@@ -108,7 +108,12 @@ svg{display:block}
 .grid2 .cellf:nth-child(n+3){border-top:3px solid var(--ink)}
 .row3{display:grid;grid-template-columns:repeat(3,1fr);border-top:3px solid var(--ink)}
 .row3 .cellf{min-height:78px}
+.row3 .cellf{padding-right:10px}
 .row3 .cellf + .cellf{padding-left:10px;border-left:3px solid var(--ink)}
+.route{border-top:3px solid var(--ink);padding-top:10px}
+.route svg{width:100%;height:84px;margin-top:6px;overflow:visible}
+.lapbars{margin-top:14px;border-top:3px solid var(--ink);padding-top:10px}
+.lapbars svg{width:100%;height:120px;margin-top:8px}
 .row3 .num{font-size:32px}
 .zbox{display:inline-grid;place-items:center;min-width:32px;height:22px;padding:0 5px;background:var(--red);color:#fff;font:700 15px/1 var(--dinc);letter-spacing:.03em;vertical-align:6px;margin-left:6px}
 
@@ -132,6 +137,7 @@ svg{display:block}
 /* laps */
 .laptop{display:grid;grid-template-columns:1fr 1fr;border-bottom:3px solid var(--ink);padding:10px 0 12px}
 .laptop .num{font-size:52px}
+.laptop > div:first-child{padding-right:12px}
 .laptop > div + div{padding-left:12px;border-left:3px solid var(--ink)}
 table{width:100%;border-collapse:collapse;margin-top:6px;font:700 17px/1 var(--din);font-variant-numeric:tabular-nums}
 th{font:700 12px/1 var(--sans);text-align:right;padding:10px 0 8px}
@@ -145,6 +151,7 @@ tr.best td:nth-child(4){color:var(--red)}
 
 /* climb */
 .cltop{display:grid;grid-template-columns:1.1fr 1fr;border-bottom:3px solid var(--ink);padding:10px 0 12px}
+.cltop > div:first-child{padding-right:12px}
 .cltop > div + div{padding-left:12px;border-left:3px solid var(--ink)}
 .cltop .num{font-size:74px}
 .cltop .num.red{color:var(--red)}
@@ -156,6 +163,7 @@ tr.best td:nth-child(4){color:var(--red)}
 .legend i{display:inline-block;width:18px;height:12px;vertical-align:-2px;margin-right:4px}
 .clrow{display:grid;grid-template-columns:repeat(3,1fr);border-top:3px solid var(--ink);margin-top:10px}
 .clrow .cellf{min-height:72px}
+.clrow .cellf{padding-right:8px}
 .clrow .cellf + .cellf{padding-left:10px;border-left:3px solid var(--ink)}
 .clrow .num{font-size:28px}
 
@@ -220,7 +228,7 @@ tr.best td:nth-child(4){color:var(--red)}
       </defs>
       <rect width="1440" height="900" fill="#2c2d2b"/>
       <rect width="1440" height="900" filter="url(#asph)"/>
-      <path d="M1010 -20 1180 920" stroke="#d8d4c2" stroke-width="16" stroke-dasharray="120 110" opacity=".75"/>
+      <path d="M1200 -20 1350 920" stroke="#d8d4c2" stroke-width="16" stroke-dasharray="120 110" opacity=".75"/>
       <path d="M170 -20 40 920" stroke="#c9a53a" stroke-width="10" opacity=".55"/>
       <path d="M-40 520C300 500 520 488 720 486s420 14 760 34" stroke="url(#tape)" stroke-width="64" fill="none"/>
       <path d="M-40 520C300 500 520 488 720 486s420 14 760 34" stroke="url(#barsh)" stroke-width="64" fill="none"/>
@@ -274,6 +282,7 @@ tr.best td:nth-child(4){color:var(--red)}
               <div class="cellf"><div class="lab">爬升<em>M</em></div><div class="num" id="gain"></div></div>
               <div class="cellf"><div class="lab">坡度<em>%</em></div><div class="num" id="grade"></div></div>
             </div>
+            <div class="route"><div class="lab">全程 河濱 → 風櫃嘴 → 汐止<em id="rtTx"></em></div><svg viewBox="0 0 340 84" preserveAspectRatio="none" id="rt"></svg></div>
           </section>
           <!-- heart -->
           <section class="page" aria-label="心率">
@@ -291,6 +300,7 @@ tr.best td:nth-child(4){color:var(--red)}
               <div><div class="lab">本圈均速<em>KM/H</em></div><div class="num" id="lapV"></div></div>
             </div>
             <table><thead><tr><th>圈</th><th>時間</th><th>公里</th><th>均速</th><th>心率</th></tr></thead><tbody id="lapRows"></tbody></table>
+            <div class="lapbars"><div class="lab">每圈均速<em>KM/H</em></div><svg viewBox="0 0 340 120" id="lapBars"></svg></div>
           </section>
           <!-- climb -->
           <section class="page" aria-label="爬坡">
@@ -452,7 +462,21 @@ function renderRide(){
   var up = kmh >= avg;
   $('trendIc').innerHTML = up ? '<path d="M15 4 27 18H19V27H11V18H3z" fill="#111210"/>' : '<path d="M15 27 27 13H19V4H11V13H3z" fill="#d62518"/>';
   $('trendTx').textContent = up ? '高於均速' : '低於均速';
-  $('trendTx').style.fontSize = '11px';
+  $('trendTx').style.fontSize = '12px';
+  if (!rtBuilt) buildRoute();
+  var px = R.d/((N - 1)*STEP)*340;
+  $('rtDone').setAttribute('width', px.toFixed(1)); $('rtMe').setAttribute('transform', 'translate('+px.toFixed(1)+' '+(rtY(elevAt(R.d)) - 4).toFixed(1)+')');
+  $('rtTx').textContent = (R.d/1000).toFixed(1)+' / '+((N - 1)*STEP/1000).toFixed(1)+' KM';
+}
+var rtBuilt = false, EMAX = 0;
+function rtY(e){ return 82 - e/EMAX*70; }
+function buildRoute(){
+  EMAX = Math.max.apply(null, EL) + 20;
+  var d = 'M0 84'; for (var i = 0; i < N; i++) d += 'L'+(i/(N - 1)*340).toFixed(1)+' '+rtY(EL[i]).toFixed(1); d += 'L340 84z';
+  $('rt').innerHTML = '<defs><pattern id="rtp" width="2" height="2" patternUnits="userSpaceOnUse"><rect width="1" height="1" fill="#111210"/><rect x="1" y="1" width="1" height="1" fill="#111210"/></pattern><clipPath id="rtc"><rect id="rtDone" x="0" y="0" width="0" height="84"/></clipPath></defs>'+
+    '<path d="'+d+'" fill="url(#rtp)"/><path d="'+d+'" fill="#111210" clip-path="url(#rtc)"/>'+
+    '<g id="rtMe"><path d="M-8 -14h16L0 0z" fill="#d62518"/></g>';
+  rtBuilt = true;
 }
 function renderHR(){
   var z = zoneOf(R.hr);
@@ -473,6 +497,10 @@ function renderLaps(){
   var rows = '<tr class="live"><td>'+(R.laps.length + 1)+'</td><td>'+fmtT(lt)+'</td><td>'+(ld/1000).toFixed(2)+'</td><td>'+(lt > 1 ? (ld/lt*3.6).toFixed(1) : '0.0')+'</td><td>'+Math.round(R.lap.hrs/Math.max(1, R.lap.n) || R.hr)+'</td></tr>';
   rows += R.laps.slice().reverse().map(function(l){ return '<tr class="'+(l.d/l.t === best ? 'best' : '')+'"><td>'+l.n+'</td><td>'+fmtT(l.t)+'</td><td>'+(l.d/1000).toFixed(2)+'</td><td>'+(l.d/l.t*3.6).toFixed(1)+'</td><td>'+l.hr+'</td></tr>'; }).join('');
   $('lapRows').innerHTML = rows;
+  var all = R.laps.map(function(l){ return {n:l.n, v:l.d/l.t*3.6}; }); if (lt > 5) all.push({n:R.laps.length + 1, v:ld/lt*3.6, live:1});
+  all = all.slice(-8); var mx = Math.max.apply(null, all.map(function(a){ return a.v; }).concat([10])), bw = 340/Math.max(all.length, 5), b = '';
+  all.forEach(function(a, i){ var h = a.v/mx*74, x = i*bw + 6; b += '<rect x="'+x.toFixed(1)+'" y="'+(100 - h).toFixed(1)+'" width="'+(bw - 12).toFixed(1)+'" height="'+h.toFixed(1)+'" fill="'+(a.live ? '#d62518' : a.v === mx ? '#111210' : 'url(#lbp)')+'"/><text x="'+(x + (bw - 12)/2).toFixed(1)+'" y="116" text-anchor="middle" font-size="13" font-weight="700" font-family="DIN Alternate, sans-serif" fill="#111210">'+a.n+'</text><text x="'+(x + (bw - 12)/2).toFixed(1)+'" y="'+(95 - h).toFixed(1)+'" text-anchor="middle" font-size="12" font-weight="700" font-family="DIN Alternate, sans-serif" fill="#111210">'+a.v.toFixed(1)+'</text>'; });
+  $('lapBars').innerHTML = '<defs><pattern id="lbp" width="2" height="2" patternUnits="userSpaceOnUse"><rect width="1" height="1" fill="#111210"/><rect x="1" y="1" width="1" height="1" fill="#111210"/></pattern></defs>'+b;
 }
 var profBuilt = false;
 function buildProfile(){

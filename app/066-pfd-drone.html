@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="天眼">
+<title>天眼 · 無人機遙控</title>
+<meta name="description" content="把航空主飛行顯示器搬到手機上的無人機遙控：雙搖桿操縱、地平儀與速度高度帶即時反應，長按起降、一鍵返航、雲台拍照。收錄於 100 Creative HTML Works（App 066・航空主飛行顯示器 PFD）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/066-pfd-drone.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3CclipPath id='c'%3E%3Ccircle cx='32' cy='32' r='24'/%3E%3C/clipPath%3E%3Cg clip-path='url(%23c)' transform='rotate(-14 32 32)'%3E%3Crect x='0' y='0' width='64' height='34' fill='%232b6fb8'/%3E%3Crect x='0' y='34' width='64' height='30' fill='%237b4a24'/%3E%3Crect x='0' y='33' width='64' height='2' fill='%23fff'/%3E%3C/g%3E%3Cpath d='M14 32h12v5M50 32H38v5' fill='none' stroke='%23000' stroke-width='5'/%3E%3Cpath d='M14 32h12v5M50 32H38v5' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%23ff40ff' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+:root{
+--k:#000;--k2:#0b0b0b;--k3:#161616;--k4:#232323;--w:#f2f2f2;--w2:#a9a9a9;--w3:#7d7d7d;
+--mag:#ff40ff;--cyan:#33e0ff;--grn:#3ee06b;--amb:#ffb000;--red:#ff3b3b;--sky:#2b6fb8;--gnd:#7b4a24;
+--din:"DIN Condensed","DIN Alternate","Avenir Next Condensed",sans-serif;
+--cjk:"PingFang TC","Heiti TC",sans-serif;
+--out:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.4,.5,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#000;color:var(--w);font-family:var(--cjk)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.grips{display:none}
+.device{position:relative;width:100%;height:100%}
+.rig{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:#000;display:flex;flex-direction:column}
+@media (min-width:521px){
+  body{background:#07101c}
+  .stage{display:flex;align-items:center;justify-content:center;gap:40px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .rig{position:relative;flex:none;z-index:1;width:auto;height:auto}
+  .grips{display:block;position:absolute;left:-96px;right:-96px;top:50%;height:360px;margin-top:-150px;z-index:0;pointer-events:none}
+  .grips svg{width:100%;height:100%}
+  .device{position:relative;width:410px;height:min(844px,calc(100dvh - 48px));border-radius:50px;padding:10px;z-index:1;background:linear-gradient(180deg,#26282a,#101112);box-shadow:inset 0 0 0 1px #3c3f42,0 14px 26px -14px rgba(0,0,0,.9)}
+  .screen{inset:10px;border-radius:40px}
+  .caption{display:block;position:relative;z-index:2;width:230px;margin-right:90px}
+  .caption h1{font:700 60px/1 var(--din);letter-spacing:.04em}
+  .caption h1 small{display:block;font:600 15px/1.4 var(--din);color:var(--mag);letter-spacing:.3em;margin-top:6px}
+  .caption p{margin-top:16px;font:400 15px/1.75 var(--cjk);color:#c9d2de}
+}
+@media (min-width:521px) and (max-width:980px){.caption{display:none}}
+
+.status{flex:none;display:flex;align-items:center;justify-content:space-between;height:calc(44px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 26px 0 32px;font:600 15px/1 -apple-system,system-ui,sans-serif;pointer-events:none}
+.status .g{display:flex;align-items:center;gap:6px}
+@media (display-mode:standalone){.status{display:none}}
+
+/* FMA annunciator strip */
+.fma{flex:none;display:grid;grid-template-columns:repeat(4,1fr) 52px;gap:1px;margin:0 8px;background:var(--k4)}
+.fma div{background:#000;padding:5px 0 4px;text-align:center;font:700 16px/1 var(--din);letter-spacing:.06em;color:var(--grn)}
+.fma div small{display:block;margin-top:3px;font:500 11px/1 var(--cjk);color:var(--w3);letter-spacing:.1em}
+.fma .c{color:var(--cyan)}.fma .m{color:var(--mag)}.fma .w{color:var(--w)}.fma .a{color:var(--amb)}.fma .r{color:var(--red)}
+.fma button{background:#000;display:grid;place-items:center;height:100%;min-height:44px}
+.fma button svg{width:22px;height:22px}
+.fma button:active{background:var(--k3)}
+
+/* main display */
+.disp{position:relative;flex:1;min-height:200px;margin:6px 8px 0;background:#000;touch-action:none}
+.disp canvas{position:absolute;inset:0;width:100%;height:100%}
+.warn{position:absolute;left:50%;top:10px;transform:translateX(-50%);padding:5px 10px;font:700 16px/1 var(--din);letter-spacing:.12em;color:#000;background:var(--amb);visibility:hidden;white-space:nowrap;pointer-events:none}
+.warn.on{visibility:visible;animation:blink 1s steps(1) infinite}
+.warn.red{background:var(--red);color:#fff}
+@keyframes blink{50%{background:#000;color:var(--amb)}}
+.warn.red.on{animation-name:blinkr}
+@keyframes blinkr{50%{background:#000;color:var(--red)}}
+.pip{position:absolute;left:6px;bottom:50px;width:92px;height:64px;border:1.5px solid var(--w3);background:#000;overflow:hidden;border-radius:6px}
+.pip canvas{position:absolute;inset:0;width:100%;height:100%}
+.pip span{position:absolute;left:5px;top:4px;font:700 12px/1 var(--din);letter-spacing:.1em;color:var(--cyan)}
+
+/* tele strip */
+.tele{flex:none;display:grid;grid-template-columns:repeat(5,1fr);margin:6px 8px 0;background:var(--k2);border-radius:8px;min-height:48px;text-align:center;align-items:center;width:calc(100% - 16px)}
+.tele div{font:500 11px/1.2 var(--cjk);color:var(--w3);letter-spacing:.06em}
+.tele b{display:block;font:700 21px/1 var(--din);color:var(--w);letter-spacing:.02em;margin-bottom:2px}
+.tele b.c{color:var(--cyan)}.tele b.a{color:var(--amb)}.tele b.r{color:var(--red)}
+.tele:active{background:var(--k3)}
+
+.row{flex:none;display:flex;align-items:center;gap:8px;margin:6px 8px 0}
+.modes{display:flex;background:var(--k2);border-radius:22px;padding:3px;position:relative}
+.modes button{position:relative;z-index:1;width:54px;height:38px;font:700 16px/1 var(--din);letter-spacing:.12em;color:var(--w3);transition:color .2s}
+.modes button[aria-selected=true]{color:#000}
+.modes .kn{position:absolute;left:3px;top:3px;width:54px;height:38px;border-radius:19px;background:var(--cyan);transition:transform .35s var(--spring)}
+.gimbal{flex:1;display:flex;align-items:center;gap:8px;height:44px;padding:0 4px 0 10px;background:var(--k2);border-radius:22px;touch-action:none;cursor:ew-resize;min-width:0}
+.gimbal span{font:500 12px/1 var(--cjk);color:var(--w3);white-space:nowrap}
+.gimbal b{font:700 18px/1 var(--din);color:var(--mag);width:40px;text-align:right}
+.gtrack{position:relative;flex:1;height:44px;min-width:40px}
+.gtrack svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+
+/* sticks + center controls */
+.ctl{flex:none;display:grid;grid-template-columns:1fr 84px 1fr;align-items:center;justify-items:center;gap:4px;padding:8px 8px calc(22px + env(safe-area-inset-bottom))}
+.stick{position:relative;width:min(138px,34vw);aspect-ratio:1;touch-action:none;cursor:grab}
+.stick svg.base{width:100%;height:100%}
+.stick .thumb{position:absolute;left:50%;top:50%;width:46%;height:46%;margin:-23% 0 0 -23%;border-radius:50%;background:radial-gradient(circle at 38% 32%,#5a5a5a,#262626 60%,#141414);box-shadow:inset 0 0 0 1.5px #6b6b6b,0 3px 4px -2px rgba(0,0,0,.9);will-change:transform}
+.stick .thumb::after{content:"";position:absolute;inset:30%;border-radius:50%;box-shadow:inset 0 0 0 1.5px #3a3a3a}
+.stick.on .thumb{box-shadow:inset 0 0 0 2px var(--cyan),0 3px 4px -2px rgba(0,0,0,.9)}
+.stick .lbl{position:absolute;left:0;right:0;bottom:-2px;text-align:center;font:500 11px/1 var(--cjk);color:var(--w3);letter-spacing:.1em;pointer-events:none}
+.mid{display:flex;flex-direction:column;align-items:center;gap:8px}
+.tko{position:relative;width:76px;height:76px;touch-action:none}
+.tko svg{width:100%;height:100%}
+.tko .t{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;font:700 18px/1 var(--din);letter-spacing:.1em}
+.tko .t small{font:500 11px/1.2 var(--cjk);color:var(--w3);letter-spacing:.08em;margin-top:3px}
+.mbtn{width:76px;height:44px;border-radius:22px;background:var(--k3);display:flex;align-items:center;justify-content:center;gap:5px;font:700 15px/1 var(--din);letter-spacing:.1em;color:var(--w2);transition:background-color .15s,color .15s}
+.mbtn svg{width:18px;height:18px}
+.mbtn:active{background:var(--k4)}
+.mbtn.on{background:var(--mag);color:#000}
+.mbtn.shot:active{background:var(--w);color:#000}
+.home-ind{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(242,242,242,.7);z-index:35;pointer-events:none}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:88%;display:flex;flex-direction:column;background:#0d0d0d;border-radius:24px 24px 0 0;box-shadow:0 -1px 0 #2a2a2a;
+  padding:8px 18px calc(20px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .48s var(--spring);touch-action:none}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{flex:none;width:40px;height:5px;border-radius:3px;background:#3a3a3a;margin:0 auto 10px}
+.sbody{overflow-y:auto;min-height:0;margin:0 -18px;padding:0 18px;scrollbar-width:none}
+.stabs{display:flex;gap:18px;margin-bottom:12px}
+.stabs button{height:44px;font:700 22px/1 var(--din);letter-spacing:.08em;color:var(--w3);display:flex;align-items:center;gap:6px;transition:color .15s}
+.stabs button small{font:500 13px/1 var(--cjk);letter-spacing:.1em}
+.stabs button[aria-selected=true]{color:var(--cyan)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#222;border-radius:10px;overflow:hidden}
+.kv div{background:#111;padding:10px 12px}
+.kv dt{font:500 12px/1 var(--cjk);color:var(--w3);letter-spacing:.08em}
+.kv dd{margin-top:6px;font:700 22px/1 var(--din);letter-spacing:.03em}
+.kv dd.c{color:var(--cyan)}.kv dd.m{color:var(--mag)}.kv dd.g{color:var(--grn)}
+.cells{display:flex;gap:6px;margin-top:12px}
+.cells div{flex:1;background:#111;border-radius:8px;padding:8px;text-align:center;font:500 12px/1 var(--cjk);color:var(--w3)}
+.cells b{display:block;font:700 20px/1 var(--din);color:var(--w);margin-bottom:4px}
+.flog{list-style:none}
+.flog li{position:relative;overflow:hidden;border-bottom:1px solid #1e1e1e}
+.flog li:last-child{border-bottom:0}
+.flog .it{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;min-height:62px;background:#0d0d0d;touch-action:pan-y;width:100%;text-align:left}
+.flog .it b{font:700 22px/1 var(--din);color:var(--w)}
+.flog .it span{font:500 14px/1.35 var(--cjk);color:var(--w2)}
+.flog .it span small{display:block;font:500 12px/1.3 var(--cjk);color:var(--w3)}
+.flog .it i{font:700 17px/1 var(--din);font-style:normal;color:var(--mag)}
+.flog .del{position:absolute;inset:0 0 0 auto;width:88px;display:flex;align-items:center;justify-content:center;background:var(--red);color:#fff;font:600 14px/1 var(--cjk);visibility:hidden}
+.flog li.sw .del{visibility:visible}
+.album{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.album button{position:relative;aspect-ratio:16/10;border-radius:6px;overflow:hidden;background:#111}
+.album img{width:100%;height:100%;object-fit:cover;display:block}
+.album span{position:absolute;left:5px;bottom:4px;font:700 12px/1 var(--din);color:#fff;letter-spacing:.06em;text-shadow:0 1px 2px #000}
+.empty{padding:30px 0;text-align:center;font:500 14px/1.6 var(--cjk);color:var(--w3)}
+.set{display:flex;align-items:center;justify-content:space-between;min-height:58px;border-bottom:1px solid #1e1e1e;gap:12px}
+.set span{font:500 15px/1.3 var(--cjk);color:var(--w2)}
+.set span small{display:block;font:500 12px/1.3 var(--cjk);color:var(--w3)}
+.step{display:flex;align-items:center;gap:4px}
+.step button{width:44px;height:40px;border-radius:20px;background:#1a1a1a;font:700 22px/1 var(--din);color:var(--w)}
+.step button:active{background:#2a2a2a}
+.step b{width:60px;text-align:center;font:700 22px/1 var(--din);color:var(--mag)}
+.sw2{width:56px;height:44px;display:grid;place-items:center}
+.sw2 i{position:relative;width:50px;height:30px;border-radius:15px;background:#2a2a2a;transition:background-color .2s}
+.sw2 i::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#bbb;transition:transform .3s var(--spring),background-color .2s}
+.sw2[aria-checked=true] i{background:#0f4a55}
+.sw2[aria-checked=true] i::after{transform:translateX(20px);background:var(--cyan)}
+.wide{width:100%;height:50px;margin-top:14px;border-radius:25px;background:var(--cyan);color:#000;font:700 16px/1 var(--cjk);letter-spacing:.14em;transition:background-color .15s}
+.wide:active{background:#9af0ff}
+.photo-big{width:100%;border-radius:10px;display:block}
+
+.toast{position:absolute;left:0;right:0;margin:0 auto;width:max-content;max-width:calc(100% - 32px);top:calc(52px + env(safe-area-inset-top));z-index:60;display:flex;align-items:center;gap:6px;min-height:42px;padding:0 16px;border-radius:21px;background:#1b1b1b;box-shadow:inset 0 0 0 1px #333;font:600 14px/1.3 var(--cjk);
+  transform:translateY(-150%);visibility:hidden;transition:transform .4s var(--spring),visibility 0s .4s}
+.toast.on{transform:none;visibility:visible;transition:transform .4s var(--spring)}
+.toast i{width:8px;height:8px;border-radius:50%;background:var(--cyan);flex:none}
+.toast.warn2 i{background:var(--amb)}
+
+@media (max-height:720px){.stick{width:min(118px,31vw)}.tko{width:66px;height:66px}.mbtn{height:40px}.ctl{padding-top:4px}}
+@media (prefers-reduced-motion:reduce){
+  .warn.on{animation:none}
+  .sheet,.toast,.modes .kn,.sw2 i::after{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="bs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050b16"/><stop offset=".75" stop-color="#12305a"/><stop offset="1" stop-color="#1d4a80"/></linearGradient>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2412"/><stop offset="1" stop-color="#140c05"/></linearGradient>
+        <filter id="gn"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .35 0"/></filter>
+      </defs>
+      <rect width="1600" height="560" fill="url(#bs)"/>
+      <rect y="560" width="1600" height="440" fill="url(#bg)"/>
+      <path d="M0 560 C120 520 220 470 330 430 C400 404 460 420 520 460 C580 500 640 540 700 560Z" fill="#0c1a2c"/>
+      <rect y="558" width="1600" height="3" fill="#f2f2f2" opacity=".75"/>
+      <g stroke="#f2f2f2" stroke-width="2" opacity=".28" stroke-linecap="round"><path d="M60 400h80M60 240h80M60 720h80M60 880h80M1460 400h80M1460 240h80M1460 720h80M1460 880h80"/></g>
+      <g fill="#f2f2f2" opacity=".35" font-family="DIN Condensed,sans-serif" font-size="26" font-weight="700"><text x="150" y="409">10</text><text x="150" y="249">20</text><text x="150" y="729">10</text><text x="150" y="889">20</text><text x="1420" y="409" text-anchor="end">10</text><text x="1420" y="249" text-anchor="end">20</text><text x="1420" y="729" text-anchor="end">10</text><text x="1420" y="889" text-anchor="end">20</text></g>
+      <g fill="#ffd9a0" opacity=".7"><circle cx="1180" cy="556" r="1.6"/><circle cx="1210" cy="555" r="1.2"/><circle cx="1236" cy="556" r="1.6"/><circle cx="1262" cy="555" r="1.2"/><circle cx="1300" cy="556" r="1.4"/></g>
+      <rect width="1600" height="1000" filter="url(#gn)" opacity=".08"/>
+    </svg>
+  </div>
+  <div class="caption">
+    <h1>天眼<small>SKY-EYE PFD</small></h1>
+    <p>把客機駕駛艙的主飛行顯示器裝進遙控器。推搖桿，地平儀跟著傾斜；在八里左岸起飛，望向觀音山。</p>
+  </div>
+  <div class="rig">
+    <div class="grips" aria-hidden="true">
+      <svg viewBox="0 0 602 360">
+        <defs><linearGradient id="gp" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1c1d1f"/><stop offset=".5" stop-color="#34373a"/><stop offset="1" stop-color="#1c1d1f"/></linearGradient></defs>
+        <path d="M110 40 C60 40 20 70 14 130 C6 210 30 300 70 340 C92 360 120 350 126 320 L126 60Z" fill="url(#gp)"/>
+        <path d="M492 40 C542 40 582 70 588 130 C596 210 572 300 532 340 C510 360 482 350 476 320 L476 60Z" fill="url(#gp)"/>
+        <rect x="58" y="-40" width="14" height="96" rx="7" fill="#26282a" transform="rotate(-12 65 50)"/>
+        <rect x="530" y="-40" width="14" height="96" rx="7" fill="#26282a" transform="rotate(12 537 50)"/>
+        <circle cx="70" cy="120" r="10" fill="#111"/><circle cx="532" cy="120" r="10" fill="#111"/>
+        <path d="M40 180 h30M532 180 h30" stroke="#ff40ff" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="#f2f2f2"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="#f2f2f2"><path d="M8 12 5 8.6a4.6 4.6 0 0 1 6 0Z"/><path d="M2.6 6.2a7.9 7.9 0 0 1 10.8 0l-1.5 1.7a5.6 5.6 0 0 0-7.8 0Z"/><path d="M0 3.4a11.6 11.6 0 0 1 16 0l-1.5 1.7a9.3 9.3 0 0 0-13 0Z"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="#f2f2f2" opacity=".5"/><rect x="2" y="2" width="16" height="8" rx="1.5" fill="#f2f2f2"/><rect x="24.5" y="4" width="2" height="4" rx="1" fill="#f2f2f2" opacity=".5"/></svg>
+        </span>
+      </div>
+      <div class="fma" id="fma">
+        <div id="fmaMode">P-GPS<small>定位模式</small></div>
+        <div id="fmaState" class="w">DISARM<small>馬達</small></div>
+        <div id="fmaSat" class="c">SAT 18<small>衛星</small></div>
+        <div id="fmaLink" class="c">RC 97<small>訊號</small></div>
+        <button id="menuBtn" aria-label="遙測、航跡與設定"><svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="8.5" fill="none" stroke="#f2f2f2" stroke-width="1.8"/><path d="M11 3.5v3M11 15.5v3M3.5 11h3M15.5 11h3" stroke="#f2f2f2" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="11" r="2" fill="#ff40ff"/></svg></button>
+      </div>
+      <div class="disp" id="disp">
+        <canvas id="main"></canvas>
+        <div class="warn" id="warn"></div>
+        <button class="pip" id="pip" aria-label="切換小視窗"><canvas id="pipc"></canvas><span id="pipLbl">MAP</span></button>
+        <div class="flash" id="flash"></div>
+      </div>
+      <button class="tele" id="tele" aria-label="開啟遙測詳情">
+        <div><b id="tH">0.0</b>高度 m</div>
+        <div><b id="tD">0</b>距離 m</div>
+        <div><b id="tS">0.0</b>水平 m/s</div>
+        <div><b id="tB">96</b>電量 %</div>
+        <div><b id="tT" class="c">00:00</b>飛行</div>
+      </button>
+      <div class="row">
+        <div class="modes" id="modes" role="tablist"><i class="kn" id="kn"></i><button role="tab" data-m="pfd" aria-selected="true">PFD</button><button role="tab" data-m="cam" aria-selected="false">CAM</button><button role="tab" data-m="map" aria-selected="false">MAP</button></div>
+        <div class="gimbal" id="gimbal" role="slider" tabindex="0" aria-label="雲台俯仰" aria-valuemin="-90" aria-valuemax="0"><span>雲台</span><div class="gtrack" id="gtrack"><svg id="gsvg" viewBox="0 0 100 44" preserveAspectRatio="none"></svg></div><b id="gV">-30°</b></div>
+      </div>
+      <div class="ctl">
+        <div class="stick" id="stL" aria-label="左搖桿：升降與轉向"><svg class="base" viewBox="0 0 140 140"><circle cx="70" cy="70" r="67" fill="#0e0e0e" stroke="#2a2a2a" stroke-width="2"/><circle cx="70" cy="70" r="44" fill="none" stroke="#1f1f1f" stroke-width="1.5"/><path d="M70 10v14M70 116v14M10 70h14M116 70h14" stroke="#4a4a4a" stroke-width="2" stroke-linecap="round"/><path d="M64 18l6-7 6 7M64 122l6 7 6-7" fill="none" stroke="#33e0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 64a50 50 0 0 0 0 12M119 64a50 50 0 0 1 0 12" fill="none" stroke="#ff40ff" stroke-width="2" stroke-linecap="round"/></svg><div class="thumb" id="thL"></div><span class="lbl">升降 ・ 轉向</span></div>
+        <div class="mid">
+          <div class="tko" id="tko" role="button" tabindex="0" aria-label="長按起飛或降落">
+            <svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="34" fill="#111" stroke="#2a2a2a" stroke-width="4"/><circle id="tkoRing" cx="38" cy="38" r="34" fill="none" stroke="#3ee06b" stroke-width="4" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 38 38)"/></svg>
+            <div class="t" id="tkoT">起飛<small>長按</small></div>
+          </div>
+          <button class="mbtn" id="rth" aria-label="返航"><svg viewBox="0 0 18 18"><path d="M3 9 9 3l6 6M5 7.5V15h8V7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>RTH</button>
+          <button class="mbtn shot" id="shot" aria-label="拍照"><svg viewBox="0 0 18 18"><circle cx="9" cy="9.5" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2 5.5h3l1.5-2h5l1.5 2h3v10H2Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>拍</button>
+        </div>
+        <div class="stick" id="stR" aria-label="右搖桿：前後與左右"><svg class="base" viewBox="0 0 140 140"><circle cx="70" cy="70" r="67" fill="#0e0e0e" stroke="#2a2a2a" stroke-width="2"/><circle cx="70" cy="70" r="44" fill="none" stroke="#1f1f1f" stroke-width="1.5"/><path d="M70 10v14M70 116v14M10 70h14M116 70h14" stroke="#4a4a4a" stroke-width="2" stroke-linecap="round"/><path d="M64 18l6-7 6 7M64 122l6 7 6-7M18 64l-7 6 7 6M122 64l7 6-7 6" fill="none" stroke="#33e0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="thumb" id="thR"></div><span class="lbl">前後 ・ 橫移</span></div>
+      </div>
+      <div class="home-ind" aria-hidden="true"></div>
+      <div class="toast" id="toast" role="status"><i></i><span id="toastMsg"></span></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="遙測與設定"><div class="grab"></div><div class="sbody" id="sheetBody"></div></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+function $(id){ return document.getElementById(id); }
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8) }catch(e){} }
+function pad(n){ return String(n).padStart(2, '0'); }
+function clamp(v, a, b){ return v < a ? a : v > b ? b : v; }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var DEG = Math.PI / 180;
+
+// ---------- persistent state ----------
+var KEY = 'app066:state';
+var P = {mode:'pfd', gimbal:-30, altLimit:120, rthAlt:40, sound:true, photos:[], flights:[
+  {d:'09/21', t:402, dist:412, alt:86, where:'八里左岸 自行車道'},
+  {d:'09/14', t:318, dist:260, alt:64, where:'淡水河口 觀海平台'},
+  {d:'09/07', t:521, dist:488, alt:112, where:'觀音山 硬漢嶺 下方草地'}
+]};
+try{ var sv = JSON.parse(localStorage.getItem(KEY) || 'null'); if (sv && sv.flights) for (var k in sv) P[k] = sv[k]; }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(P)); }catch(e){} }
+
+// ---------- sim state ----------
+var D = {x:0, y:0, alt:0, vx:0, vy:0, vz:0, hdg:62, pitch:0, roll:0, cmdP:0, cmdR:0, armed:false, flying:false, landing:false, taking:false, rth:null, bat:96, t:0, maxD:0, maxA:0, trail:[], warnKey:''};
+var L = {x:0, y:0}, R = {x:0, y:0}, KEYS = {};
+
+// ---------- audio ----------
+var ac = null, motor = null;
+function audio(){ if (!ac) { try{ ac = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+document.addEventListener('pointerdown', audio, true);
+function beep(f, d, vol, type, when){ if (!ac || !P.sound) return; var t = ac.currentTime + (when || 0), o = ac.createOscillator(), g = ac.createGain(); o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol || .06, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + .02); }
+function motorStart(){
+  if (!ac || motor) return;
+  var g = ac.createGain(); g.gain.value = 0; var f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; f.Q.value = 2;
+  var o1 = ac.createOscillator(), o2 = ac.createOscillator(); o1.type = 'sawtooth'; o2.type = 'sawtooth'; o1.frequency.value = 120; o2.frequency.value = 123.5;
+  o1.connect(f); o2.connect(f); f.connect(g); g.connect(ac.destination); o1.start(); o2.start();
+  motor = {g:g, f:f, o1:o1, o2:o2};
+}
+function motorSet(thr){
+  if (!motor) return; var t = ac.currentTime, on = D.armed && P.sound && !document.hidden;
+  motor.g.gain.setTargetAtTime(on ? .035 + thr * .03 : 0, t, .08);
+  motor.o1.frequency.setTargetAtTime(110 + thr * 90, t, .1); motor.o2.frequency.setTargetAtTime(113 + thr * 94, t, .1);
+  motor.f.frequency.setTargetAtTime(700 + thr * 900, t, .1);
+}
+
+// ---------- sticks ----------
+function bindStick(el, thumb, v){
+  var id = null;
+  function set(e){
+    var r = el.getBoundingClientRect(), rad = r.width / 2;
+    var dx = (e.clientX - r.left - rad) / (rad * .62), dy = (e.clientY - r.top - rad) / (rad * .62);
+    var m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; }
+    v.x = Math.abs(dx) < .06 ? 0 : dx; v.y = Math.abs(dy) < .06 ? 0 : dy;
+    thumb.style.transform = 'translate(' + (dx * rad * .62).toFixed(1) + 'px,' + (dy * rad * .62).toFixed(1) + 'px)';
+  }
+  el.addEventListener('pointerdown', function(e){ if (id !== null) return; id = e.pointerId; el.setPointerCapture(id); el.classList.add('on'); set(e); haptic(4); });
+  el.addEventListener('pointermove', function(e){ if (e.pointerId === id) set(e); });
+  function up(e){ if (e.pointerId !== id) return; id = null; el.classList.remove('on'); v.x = 0; v.y = 0;
+    if (reduce) { thumb.style.transform = ''; return; }
+    thumb.animate([{transform:thumb.style.transform},{transform:'translate(0,0)'}], {duration:260, easing:'cubic-bezier(.34,1.5,.5,1)'}); thumb.style.transform = ''; }
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
+}
+bindStick($('stL'), $('thL'), L); bindStick($('stR'), $('thR'), R);
+document.addEventListener('keydown', function(e){ if (e.target.tagName === 'INPUT') return; KEYS[e.key.toLowerCase()] = true; if (e.key === 'Escape') closeSheet(); if (/^arrow/.test(e.key.toLowerCase()) && !sheet.classList.contains('on')) e.preventDefault(); });
+document.addEventListener('keyup', function(e){ KEYS[e.key.toLowerCase()] = false; });
+function inputs(){
+  var lx = L.x, ly = L.y, rx = R.x, ry = R.y;
+  if (KEYS.w) ly = -1; if (KEYS.s) ly = 1; if (KEYS.a) lx = -1; if (KEYS.d) lx = 1;
+  if (KEYS.arrowup) ry = -1; if (KEYS.arrowdown) ry = 1; if (KEYS.arrowleft) rx = -1; if (KEYS.arrowright) rx = 1;
+  function ex(v){ return v * (.35 + .65 * v * v); }
+  return {yaw:ex(lx), thr:-ex(ly), fwd:-ex(ry), lat:ex(rx)};
+}
+
+// ---------- takeoff / land (hold) ----------
+(function(){
+  var el = $('tko'), ring = $('tkoRing'), t0 = 0, on = false, raf = 0;
+  function frame(){
+    if (!on) return; var p = Math.min(1, (performance.now() - t0) / 900);
+    ring.setAttribute('stroke-dashoffset', (100 - p * 100).toFixed(1));
+    if (p >= 1) { on = false; ring.setAttribute('stroke-dashoffset', 100); if (D.flying || D.taking) land(); else takeoff(); return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function down(e){ if (e && e.preventDefault) e.preventDefault(); on = true; t0 = performance.now(); ring.setAttribute('stroke', D.flying ? '#ffb000' : '#3ee06b'); try{ el.setPointerCapture(e.pointerId); }catch(er){} haptic(5); beep(660, .05, .04); raf = requestAnimationFrame(frame); }
+  function up(){ if (!on) return; on = false; cancelAnimationFrame(raf); ring.setAttribute('stroke-dashoffset', 100); toast(D.flying ? '按住直到綠圈走滿才會降落' : '按住直到綠圈走滿才會起飛'); haptic([15, 30, 15]); }
+  el.addEventListener('pointerdown', down); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  el.addEventListener('keydown', function(e){ if ((e.key === 'Enter' || e.key === ' ') && !on && !e.repeat) { e.preventDefault(); on = true; t0 = performance.now(); raf = requestAnimationFrame(frame); } });
+  el.addEventListener('keyup', function(e){ if (e.key === 'Enter' || e.key === ' ') up(); });
+})();
+function takeoff(){
+  if (D.bat < 12) { toast('電量太低，請先更換電池', true); beep(220, .3, .08, 'square'); return; }
+  motorStart(); D.armed = true; D.taking = true; D.landing = false; D.rth = null; D.t = 0; D.maxD = 0; D.maxA = 0; D.trail = [];
+  D.x = 0; D.y = 0; D.alt = 0;
+  haptic([20, 40, 20]); beep(880, .08, .06); beep(1320, .12, .06, 'sine', .1);
+  toast('自動起飛，爬升到 5 公尺懸停'); updTko();
+}
+function land(){ D.landing = true; D.taking = false; D.rth = null; $('rth').classList.remove('on'); haptic([20, 40, 20]); beep(660, .1, .06); beep(440, .14, .06, 'sine', .1); toast('自動降落中，推油門可取消'); updTko(); }
+function touchdown(){
+  var wasFlying = D.flying;
+  D.flying = false; D.armed = false; D.landing = false; D.taking = false; D.rth = null; D.vx = D.vy = D.vz = 0; D.alt = 0;
+  $('rth').classList.remove('on'); motorSet(0); updTko();
+  if (wasFlying && D.t > 3) {
+    var d = new Date();
+    P.flights.unshift({d:pad(d.getMonth() + 1) + '/' + pad(d.getDate()), t:Math.round(D.t), dist:Math.round(D.maxD), alt:Math.round(D.maxA), where:'八里左岸 自行車道'});
+    P.flights = P.flights.slice(0, 20); save();
+    toast('降落完成，飛行 ' + fmtT(D.t) + ' 已存入航跡'); haptic([10, 30, 10]);
+  }
+}
+function updTko(){
+  var f = D.flying || D.taking;
+  $('tkoT').innerHTML = (f ? '降落' : '起飛') + '<small>長按</small>';
+  $('tkoT').style.color = f ? 'var(--amb)' : 'var(--grn)';
+}
+$('rth').addEventListener('click', function(){
+  if (!D.flying) { toast('還在地面上'); haptic([15, 30, 15]); return; }
+  if (D.rth) { D.rth = null; this.classList.remove('on'); toast('返航取消'); haptic(6); return; }
+  D.rth = 'climb'; D.landing = false; this.classList.add('on'); haptic([10, 30, 10]); beep(520, .1, .06); beep(780, .1, .06, 'sine', .12);
+  toast('返航：先爬升到 ' + P.rthAlt + ' 公尺再飛回起飛點');
+});
+
+// ---------- physics ----------
+function fmtT(s){ s = Math.floor(s); return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
+function step(dt){
+  var I = inputs(), tvx = 0, tvy = 0, tvz = 0, yawRate = 0;
+  if (D.armed) {
+    var ch = Math.cos(D.hdg * DEG), sh = Math.sin(D.hdg * DEG);
+    var fwd = I.fwd * 12, lat = I.lat * 9;
+    if (D.rth) {
+      var dist = Math.hypot(D.x, D.y), brg = (Math.atan2(-D.x, -D.y) / DEG + 360) % 360;
+      if (Math.abs(I.fwd) + Math.abs(I.lat) + Math.abs(I.thr) > 1.2) { D.rth = null; $('rth').classList.remove('on'); toast('手動介入，返航已取消'); }
+      else if (D.rth === 'climb') { tvz = D.alt < P.rthAlt - .5 ? 4 : 0; var dh = ((brg - D.hdg + 540) % 360) - 180; yawRate = clamp(dh * 2, -80, 80); fwd = 0; lat = 0; if (D.alt >= P.rthAlt - .5 && Math.abs(dh) < 4) D.rth = 'fly'; }
+      else if (D.rth === 'fly') { var dh2 = ((brg - D.hdg + 540) % 360) - 180; yawRate = clamp(dh2 * 2, -60, 60); fwd = Math.min(12, dist * .5); lat = 0; if (dist < 1.5) D.rth = 'down'; }
+      else if (D.rth === 'down') { fwd = 0; lat = 0; tvz = -Math.min(3, Math.max(.6, D.alt * .4)); var k = .8; tvx = -D.x * k; tvy = -D.y * k; }
+    }
+    if (!D.rth || D.rth !== 'down') { tvx = sh * fwd + ch * lat; tvy = ch * fwd - sh * lat; }
+    if (!D.rth) { yawRate = I.yaw * 90; tvz = I.thr * 4; }
+    if (D.taking) { tvz = D.alt < 5 ? 2.2 : 0; if (D.alt >= 4.9) { D.taking = false; D.flying = true; beep(990, .08, .05); } if (D.alt > .3) D.flying = true; }
+    if (D.landing) { if (I.thr > .5) { D.landing = false; toast('降落取消，繼續懸停'); updTko(); } else { tvz = -Math.min(2.5, Math.max(.5, D.alt * .5)); tvx *= .3; tvy *= .3; } }
+    if (D.alt >= P.altLimit && tvz > 0) tvz = 0;
+    D.cmdP = clamp(-fwd * 2.1, -28, 28); D.cmdR = clamp(lat * 2.4, -28, 28);
+  } else { D.cmdP = 0; D.cmdR = 0; }
+  // wind + response
+  var wind = D.flying ? .35 : 0, tt = performance.now() / 1000;
+  var k = 1 - Math.exp(-dt * 1.8);
+  D.vx += (tvx + Math.sin(tt * .7) * wind - D.vx) * k;
+  D.vy += (tvy + Math.cos(tt * .5) * wind * .6 - D.vy) * k;
+  D.vz += (tvz - D.vz) * (1 - Math.exp(-dt * 3));
+  D.hdg = (D.hdg + yawRate * dt + 360) % 360;
+  if (D.armed) { D.x += D.vx * dt; D.y += D.vy * dt; D.alt = Math.max(0, D.alt + D.vz * dt); }
+  if (D.flying && D.alt <= .02 && D.vz <= 0 && !D.taking) touchdown();
+  // attitude = body-frame accelerations proxy
+  var ch2 = Math.cos(D.hdg * DEG), sh2 = Math.sin(D.hdg * DEG);
+  var bf = sh2 * D.vx + ch2 * D.vy, bl = ch2 * D.vx - sh2 * D.vy;
+  var tp = D.armed && D.alt > .2 ? clamp(-bf * 1.9 + Math.sin(tt * 3.1) * .4, -30, 30) : 0;
+  var tr = D.armed && D.alt > .2 ? clamp(bl * 2.3 + yawRate * .03 + Math.sin(tt * 2.3) * .5, -35, 35) : 0;
+  D.pitch += (tp - D.pitch) * (1 - Math.exp(-dt * 6)); D.roll += (tr - D.roll) * (1 - Math.exp(-dt * 6));
+  if (D.armed) {
+    D.t += dt; var load = .018 + Math.abs(D.vz) * .004 + Math.hypot(D.vx, D.vy) * .0012;
+    D.bat = Math.max(0, D.bat - load * dt * (D.flying ? 1 : .3));
+    var dd = Math.hypot(D.x, D.y); D.maxD = Math.max(D.maxD, dd); D.maxA = Math.max(D.maxA, D.alt);
+    if (D.flying && (!D.trail.length || Math.hypot(D.x - D.trail[D.trail.length - 1][0], D.y - D.trail[D.trail.length - 1][1]) > 2)) { D.trail.push([D.x, D.y]); if (D.trail.length > 600) D.trail.shift(); }
+    if (D.bat < 15 && D.flying && !D.rth && !D.autoRth) { D.autoRth = true; D.rth = 'climb'; $('rth').classList.add('on'); toast('電量低於 15%，自動返航', true); beep(440, .2, .08, 'square'); beep(440, .2, .08, 'square', .35); }
+  }
+  motorSet(D.armed ? clamp(.35 + D.vz * .12 + Math.hypot(D.vx, D.vy) * .03, 0, 1) : 0);
+}
+
+// ---------- canvas helpers ----------
+function fit(cv){
+  var r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+  var w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  var x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); return {x:x, w:r.width, h:r.height};
+}
+function font(px, w){ return (w || 700) + ' ' + px + 'px "DIN Condensed","DIN Alternate","Avenir Next Condensed",sans-serif'; }
+function boxText(x, t, cx, cy, w, h, col, align){
+  x.fillStyle = '#000'; x.fillRect(cx - w / 2, cy - h / 2, w, h);
+  x.strokeStyle = '#f2f2f2'; x.lineWidth = 1.5; x.strokeRect(cx - w / 2 + .75, cy - h / 2 + .75, w - 1.5, h - 1.5);
+  x.fillStyle = col || '#f2f2f2'; x.textAlign = align || 'center'; x.textBaseline = 'middle'; x.fillText(t, align === 'right' ? cx + w / 2 - 6 : cx, cy + 2);
+}
+
+// ---------- PFD ----------
+function drawPFD(c){
+  var x = c.x, W = c.w, H = c.h;
+  var tapeW = 58, altW = 64, vsiW = 16, hdgH = 44;
+  var ax = tapeW + 6, aw = W - ax - altW - vsiW - 10, ay = 4, ah = H - hdgH - 8;
+  var cx = ax + aw / 2, cy = ay + ah / 2, ppd = ah / 46;
+  x.clearRect(0, 0, W, H); x.fillStyle = '#000'; x.fillRect(0, 0, W, H);
+  // attitude
+  x.save(); x.beginPath(); rr(x, ax, ay, aw, ah, 14); x.clip();
+  x.translate(cx, cy); x.rotate(-D.roll * DEG); x.translate(0, D.pitch * ppd);
+  x.fillStyle = '#2b6fb8'; x.fillRect(-W * 2, -H * 4, W * 4, H * 4);
+  x.fillStyle = '#7b4a24'; x.fillRect(-W * 2, 0, W * 4, H * 4);
+  x.fillStyle = '#f2f2f2'; x.fillRect(-W * 2, -1, W * 4, 2);
+  x.strokeStyle = '#f2f2f2'; x.lineWidth = 1.6; x.font = font(14); x.fillStyle = '#f2f2f2'; x.textBaseline = 'middle';
+  for (var p = -40; p <= 40; p += 2.5) {
+    if (!p) continue; var y = -p * ppd, big = p % 10 === 0, mid = p % 5 === 0, len = big ? 36 : mid ? 18 : 8;
+    if (Math.abs(p - D.pitch) > 22) continue;
+    x.beginPath(); x.moveTo(-len, y); x.lineTo(len, y); x.stroke();
+    if (big) { x.textAlign = 'right'; x.fillText(Math.abs(p), -len - 5, y + 1); x.textAlign = 'left'; x.fillText(Math.abs(p), len + 5, y + 1); }
+  }
+  x.restore();
+  // roll scale
+  var rr0 = Math.min(aw, ah) * .44;
+  x.save(); x.translate(cx, cy); x.strokeStyle = '#f2f2f2'; x.lineWidth = 2;
+  x.beginPath(); x.arc(0, 0, rr0, -150 * DEG, -30 * DEG); x.stroke();
+  [-60, -45, -30, -20, -10, 10, 20, 30, 45, 60].forEach(function(a){ var l = Math.abs(a) % 30 === 0 ? 12 : 7; var t = (a - 90) * DEG; x.beginPath(); x.moveTo(Math.cos(t) * rr0, Math.sin(t) * rr0); x.lineTo(Math.cos(t) * (rr0 + l), Math.sin(t) * (rr0 + l)); x.stroke(); });
+  x.fillStyle = '#f2f2f2'; x.beginPath(); x.moveTo(0, -rr0 - 1); x.lineTo(-7, -rr0 - 12); x.lineTo(7, -rr0 - 12); x.closePath(); x.fill();
+  x.rotate(-D.roll * DEG); x.fillStyle = Math.abs(D.roll) > 30 ? '#ffb000' : '#f2f2f2'; x.beginPath(); x.moveTo(0, -rr0 + 2); x.lineTo(-8, -rr0 + 14); x.lineTo(8, -rr0 + 14); x.closePath(); x.fill();
+  x.restore();
+  // flight director (magenta)
+  if (D.armed) {
+    x.save(); x.strokeStyle = '#ff40ff'; x.lineWidth = 3; x.lineCap = 'round';
+    var fy = cy + clamp((D.pitch - D.cmdP) * ppd, -ah * .35, ah * .35), fx = cx + clamp((D.cmdR - D.roll) * 2.2, -aw * .35, aw * .35);
+    x.beginPath(); x.moveTo(cx - 46, fy); x.lineTo(cx + 46, fy); x.moveTo(fx, cy - 46); x.lineTo(fx, cy + 46); x.stroke(); x.restore();
+  }
+  // aircraft symbol
+  x.save(); x.lineJoin = 'miter';
+  [['#000', 6], ['#f2f2f2', 2.4]].forEach(function(s){ x.strokeStyle = s[0]; x.lineWidth = s[1];
+    x.beginPath(); x.moveTo(cx - 74, cy); x.lineTo(cx - 28, cy); x.lineTo(cx - 28, cy + 12); x.moveTo(cx + 74, cy); x.lineTo(cx + 28, cy); x.lineTo(cx + 28, cy + 12); x.stroke();
+    x.strokeRect(cx - 4, cy - 4, 8, 8); });
+  x.restore();
+  // speed tape (ground speed m/s)
+  var gs = Math.hypot(D.vx, D.vy), spp = ah / 16;
+  x.save(); x.beginPath(); x.rect(0, ay, tapeW, ah); x.clip(); x.fillStyle = '#141414'; x.fillRect(0, ay, tapeW, ah);
+  x.strokeStyle = '#f2f2f2'; x.fillStyle = '#f2f2f2'; x.lineWidth = 1.5; x.font = font(15); x.textAlign = 'right'; x.textBaseline = 'middle';
+  for (var s = Math.floor(gs) - 9; s <= gs + 9; s++) { if (s < 0) continue; var sy = cy - (s - gs) * spp; x.beginPath(); x.moveTo(tapeW - (s % 2 ? 6 : 11), sy); x.lineTo(tapeW, sy); x.stroke(); if (s % 2 === 0) x.fillText(s, tapeW - 15, sy + 1); }
+  x.fillStyle = '#ff40ff'; var ty = cy - (Math.min(12, Math.hypot(D.cmdP, D.cmdR) / 2.1) - gs) * spp; x.fillRect(tapeW - 4, ty - 6, 4, 12);
+  x.restore();
+  x.font = font(20); boxText(x, gs.toFixed(1), tapeW / 2, cy, tapeW - 2, 28, '#f2f2f2');
+  x.fillStyle = '#000'; x.fillRect(0, ay, tapeW, 20); x.font = font(12, 600); x.fillStyle = '#33e0ff'; x.textAlign = 'center'; x.fillText('GS m/s', tapeW / 2, ay + 11);
+  // altitude tape
+  var alx = W - altW - vsiW - 4, app = ah / 50;
+  x.save(); x.beginPath(); x.rect(alx, ay, altW, ah); x.clip(); x.fillStyle = '#141414'; x.fillRect(alx, ay, altW, ah);
+  x.strokeStyle = '#f2f2f2'; x.fillStyle = '#f2f2f2'; x.lineWidth = 1.5; x.font = font(15); x.textAlign = 'left'; x.textBaseline = 'middle';
+  for (var a = Math.floor(D.alt / 5) * 5 - 30; a <= D.alt + 30; a += 5) { if (a < 0) continue; var ay2 = cy - (a - D.alt) * app; x.beginPath(); x.moveTo(alx, ay2); x.lineTo(alx + (a % 10 ? 6 : 11), ay2); x.stroke(); if (a % 10 === 0) x.fillText(a, alx + 15, ay2 + 1); }
+  var lim = cy - (P.altLimit - D.alt) * app; if (lim > ay) { x.fillStyle = 'rgba(255,59,59,.35)'; x.fillRect(alx, ay, altW, lim - ay); x.fillStyle = '#ff3b3b'; x.fillRect(alx, lim - 1, altW, 2); }
+  var tgt = D.rth ? P.rthAlt : D.taking ? 5 : null;
+  if (tgt != null) { var by = cy - (tgt - D.alt) * app; x.fillStyle = '#ff40ff'; x.beginPath(); x.moveTo(alx, by - 7); x.lineTo(alx + 8, by - 7); x.lineTo(alx + 8, by - 3); x.lineTo(alx + 4, by); x.lineTo(alx + 8, by + 3); x.lineTo(alx + 8, by + 7); x.lineTo(alx, by + 7); x.closePath(); x.fill(); }
+  x.fillStyle = '#7b4a24'; var gy = cy + D.alt * app; if (gy < ay + ah) x.fillRect(alx, gy, altW, ay + ah - gy);
+  x.restore();
+  x.font = font(20); boxText(x, D.alt.toFixed(1), alx + altW / 2, cy, altW, 28, D.alt >= P.altLimit - .5 ? '#ffb000' : '#f2f2f2');
+  x.fillStyle = '#000'; x.fillRect(alx, ay, altW, 20); x.font = font(12, 600); x.fillStyle = '#33e0ff'; x.textAlign = 'center'; x.fillText('ALT m', alx + altW / 2, ay + 11);
+  if (tgt != null) { x.fillStyle = '#ff40ff'; x.font = font(14); x.fillText(tgt + ' m', alx + altW / 2, ay + ah - 10); }
+  // VSI
+  var vx0 = W - vsiW - 2; x.fillStyle = '#0f0f0f'; x.fillRect(vx0, ay + 20, vsiW, ah - 40);
+  x.strokeStyle = '#7d7d7d'; x.lineWidth = 1; for (var v = -4; v <= 4; v += 2) { var vy = cy - v / 5 * (ah / 2 - 24); x.beginPath(); x.moveTo(vx0, vy); x.lineTo(vx0 + 5, vy); x.stroke(); }
+  var vn = cy - clamp(D.vz, -5, 5) / 5 * (ah / 2 - 24); x.strokeStyle = '#f2f2f2'; x.lineWidth = 2.4; x.beginPath(); x.moveTo(vx0 + vsiW, cy); x.lineTo(vx0 + 2, vn); x.stroke();
+  // heading tape
+  var hy = H - hdgH, hpp = aw / 70;
+  x.save(); x.beginPath(); x.rect(ax, hy, aw, hdgH); x.clip(); x.fillStyle = '#141414'; x.fillRect(ax, hy, aw, hdgH);
+  x.strokeStyle = '#f2f2f2'; x.fillStyle = '#f2f2f2'; x.lineWidth = 1.5; x.font = font(15); x.textAlign = 'center'; x.textBaseline = 'middle';
+  for (var h = Math.floor(D.hdg / 5) * 5 - 40; h <= D.hdg + 40; h += 5) {
+    var hx = cx + (h - D.hdg) * hpp, hh = (h + 360) % 360;
+    x.beginPath(); x.moveTo(hx, hy); x.lineTo(hx, hy + (hh % 10 ? 5 : 9)); x.stroke();
+    if (hh % 30 === 0) x.fillText({0:'N', 90:'E', 180:'S', 270:'W'}[hh] || String(hh / 10), hx, hy + 22);
+  }
+  var hb = (Math.atan2(-D.x, -D.y) / DEG + 360) % 360, hd = ((hb - D.hdg + 540) % 360) - 180;
+  if (Math.hypot(D.x, D.y) > 3) { var hbx = cx + clamp(hd, -34, 34) * hpp; x.fillStyle = '#33e0ff'; x.font = font(15); x.fillText('H', hbx, hy + 36); x.beginPath(); x.moveTo(hbx - 5, hy + 30); x.lineTo(hbx + 5, hy + 30); x.lineTo(hbx, hy + 26); x.fill(); }
+  x.restore();
+  x.font = font(18); boxText(x, pad(Math.round(D.hdg) % 360).padStart(3, '0') + '°', cx, hy - 2, 52, 22, '#f2f2f2');
+  // mode text
+  x.font = font(13, 600); x.textAlign = 'right'; x.fillStyle = D.armed ? '#3ee06b' : '#d0d0d0';
+  x.fillText(D.rth ? 'RTH ' + D.rth.toUpperCase() : D.landing ? 'AUTO LAND' : D.taking ? 'AUTO T/O' : D.flying ? 'HOVER HOLD' : 'ON GROUND', ax + aw - 12, ay + ah - 12);
+}
+function rr(x, X, Y, W, H, r){ x.moveTo(X + r, Y); x.arcTo(X + W, Y, X + W, Y + H, r); x.arcTo(X + W, Y + H, X, Y + H, r); x.arcTo(X, Y + H, X, Y, r); x.arcTo(X, Y, X + W, Y, r); x.closePath(); }
+
+// ---------- MAP ----------
+function drawMap(c, small){
+  var x = c.x, W = c.w, H = c.h, sc = small ? .35 : .9;
+  function M(px, py){ return [W / 2 + (px - D.x) * sc, H / 2 - (py - D.y) * sc]; }
+  x.fillStyle = '#10150d'; x.fillRect(0, 0, W, H);
+  // river (淡水河) band to the north-east
+  x.save(); x.fillStyle = '#10283f';
+  var r1 = M(-900, 160), r2 = M(900, 520); x.beginPath();
+  x.moveTo(M(-900, 180)[0], M(-900, 180)[1]); x.bezierCurveTo(M(-300, 120)[0], M(-300, 120)[1], M(200, 260)[0], M(200, 260)[1], M(900, 220)[0], M(900, 220)[1]);
+  x.lineTo(M(900, 900)[0], M(900, 900)[1]); x.lineTo(M(-900, 900)[0], M(-900, 900)[1]); x.closePath(); x.fill(); x.restore();
+  // 觀音山 contours (south-west)
+  x.strokeStyle = '#3a4a26'; x.lineWidth = 1.2;
+  for (var i = 1; i <= 6; i++) { var m = M(-420, -520); x.beginPath(); x.ellipse(m[0], m[1], i * 55 * sc, i * 38 * sc, -.4, 0, Math.PI * 2); x.stroke(); }
+  // bike path
+  x.strokeStyle = '#6b5a2e'; x.lineWidth = small ? 1.5 : 3; x.setLineDash(small ? [] : [8, 6]); x.beginPath();
+  var b0 = M(-900, 120); x.moveTo(b0[0], b0[1]); var b1 = M(-200, 70), b2 = M(300, 170), b3 = M(900, 150); x.bezierCurveTo(b1[0], b1[1], b2[0], b2[1], b3[0], b3[1]); x.stroke(); x.setLineDash([]);
+  if (!small) {
+    x.font = font(15, 600); x.fillStyle = '#5f8fb8'; x.textAlign = 'center';
+    var tl = M(160, 380); x.fillText('淡水河', tl[0], tl[1]); var tt2 = M(380, 560); x.fillStyle = '#b89a6a'; x.fillText('淡水老街 ↗ 對岸', tt2[0], tt2[1]);
+    var gl = M(-420, -520); x.fillStyle = '#7a8a5a'; x.fillText('觀音山', gl[0], gl[1]);
+    var bl = M(-30, 60); x.fillStyle = '#9a8656'; x.fillText('八里左岸自行車道', bl[0], bl[1] + 22);
+    [[260, 190, '八里渡船頭'], [-340, -140, '十三行博物館'], [520, 120, '挖子尾'], [120, -120, '觀海平台']].forEach(function(l){ var q = M(l[0], l[1]); x.fillStyle = '#c9b27a'; x.fillRect(q[0] - 4, q[1] - 4, 8, 8); x.font = font(14, 600); x.textAlign = 'left'; x.fillText(l[2], q[0] + 8, q[1] + 1); });
+    x.textAlign = 'center';
+    // range rings
+    x.strokeStyle = 'rgba(51,224,255,.45)'; x.lineWidth = 1; x.setLineDash([3, 5]);
+    [100, 200, 400].forEach(function(r){ var h0 = M(0, 0); x.beginPath(); x.arc(h0[0], h0[1], r * sc, 0, Math.PI * 2); x.stroke(); x.fillStyle = '#33e0ff'; x.font = font(12, 600); x.fillText(r + 'm', h0[0] + r * sc * .71 + 12, h0[1] - r * sc * .71); });
+    x.setLineDash([]);
+  }
+  // trail
+  if (D.trail.length > 1) { x.strokeStyle = '#ff40ff'; x.lineWidth = small ? 1.5 : 2.5; x.lineJoin = 'round'; x.beginPath(); D.trail.forEach(function(p, i){ var q = M(p[0], p[1]); if (i) x.lineTo(q[0], q[1]); else x.moveTo(q[0], q[1]); }); var cq = M(D.x, D.y); x.lineTo(cq[0], cq[1]); x.stroke(); }
+  // home
+  var h = M(0, 0); x.strokeStyle = '#33e0ff'; x.lineWidth = 2; x.beginPath(); x.arc(h[0], h[1], small ? 5 : 11, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = '#33e0ff'; x.font = font(small ? 10 : 15); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('H', h[0], h[1] + 1);
+  // drone
+  x.save(); x.translate(W / 2, H / 2); x.rotate(D.hdg * DEG); x.fillStyle = '#f2f2f2'; x.strokeStyle = '#000'; x.lineWidth = 2;
+  var s = small ? .55 : 1; x.beginPath(); x.moveTo(0, -13 * s); x.lineTo(9 * s, 10 * s); x.lineTo(0, 5 * s); x.lineTo(-9 * s, 10 * s); x.closePath(); x.stroke(); x.fill(); x.restore();
+  if (!small) { x.fillStyle = '#f2f2f2'; x.font = font(16); x.textAlign = 'left'; x.fillText('N', 14, 20); x.beginPath(); x.moveTo(30, 26); x.lineTo(35, 12); x.lineTo(40, 26); x.fillStyle = '#f2f2f2'; x.fill();
+    x.font = font(13, 600); x.fillStyle = '#7d7d7d'; x.fillText('25.1603N 121.4332E', 14, H - 14); }
+}
+
+// ---------- CAM ----------
+function drawCam(c, small){
+  var x = c.x, W = c.w, H = c.h, fov = 70, ppd = W / fov;
+  var hzY = H / 2 + P.gimbal * ppd; // camera tilted down: horizon rises above centre
+  var roll = D.roll * .04;
+  x.save(); x.translate(W / 2, H / 2); x.rotate(-roll * DEG); x.translate(-W / 2, -H / 2);
+  var sky = x.createLinearGradient(0, hzY - H, 0, hzY); sky.addColorStop(0, '#1b3f6e'); sky.addColorStop(1, '#e9a36b');
+  x.fillStyle = sky; x.fillRect(-W, hzY - H * 3, W * 3, H * 3);
+  // mountain silhouette 觀音山 at bearing 225, 淡水 town at 60
+  function bx(b){ var d = ((b - D.hdg + 540) % 360) - 180; return W / 2 + d * ppd; }
+  var mx = bx(225), mh = 9 * ppd * (1 - Math.min(.6, D.alt / 400));
+  if (mx > -W && mx < W * 2) { x.fillStyle = '#3a3226'; x.beginPath(); x.moveTo(mx - 30 * ppd, hzY); x.bezierCurveTo(mx - 14 * ppd, hzY - mh * .4, mx - 8 * ppd, hzY - mh, mx - 2 * ppd, hzY - mh * .95); x.bezierCurveTo(mx + 4 * ppd, hzY - mh * 1.05, mx + 10 * ppd, hzY - mh * .5, mx + 28 * ppd, hzY); x.fill(); }
+  var tx = bx(60);
+  if (tx > -W && tx < W * 2) { x.fillStyle = '#2a2622'; for (var i = -12; i < 12; i++) { var hh = (2 + ((i * 37) % 5 + 5) % 5) * ppd * .5; x.fillRect(tx + i * ppd * 1.2, hzY - hh, ppd * 1.1, hh); }
+    x.fillStyle = '#ffd08a'; for (var j = -12; j < 12; j += 2) x.fillRect(tx + j * ppd * 1.2 + ppd * .4, hzY - ppd * .9, 2, 2); }
+  // ground: river then bank, perspective bands
+  var alt = Math.max(1.5, D.alt);
+  x.fillStyle = '#20364a'; x.fillRect(-W, hzY, W * 3, H * 3);
+  function yAt(dist){ var ang = Math.atan2(alt, dist) / DEG; return hzY + ang * ppd; }
+  var bankY = yAt(170 + D.y * .4);
+  x.fillStyle = '#3d4a2a'; x.fillRect(-W, bankY, W * 3, H * 3);
+  for (var d = 160; d > 2; d *= .82) { var y1 = yAt(d + D.y * .4); if (y1 < bankY) continue; x.fillStyle = (Math.floor(Math.log(d) * 6) % 2) ? 'rgba(90,110,60,.35)' : 'rgba(30,40,20,.25)'; x.fillRect(-W, y1, W * 3, Math.max(1, yAt(d * .82) - y1)); }
+  var py = yAt(40 + D.y * .4); if (py > bankY) { x.fillStyle = '#6b5a2e'; x.fillRect(-W, py, W * 3, Math.max(2, ppd * alt / 40)); }
+  // sun glint on river
+  x.fillStyle = 'rgba(255,210,150,.35)'; x.fillRect(bx(250) - ppd * 3, hzY + 2, ppd * 6, Math.max(2, bankY - hzY - 4));
+  x.restore();
+  // reticle + OSD
+  x.strokeStyle = 'rgba(242,242,242,.85)'; x.lineWidth = 1.5;
+  var cx = W / 2, cy = H / 2, s = small ? 6 : 14;
+  x.beginPath(); x.moveTo(cx - s * 2, cy); x.lineTo(cx - s, cy); x.moveTo(cx + s, cy); x.lineTo(cx + s * 2, cy); x.moveTo(cx, cy - s * 2); x.lineTo(cx, cy - s); x.moveTo(cx, cy + s); x.lineTo(cx, cy + s * 2); x.stroke();
+  if (!small) {
+    [[14, 14, 1, 1], [W - 14, 14, -1, 1], [14, H - 14, 1, -1], [W - 14, H - 14, -1, -1]].forEach(function(k){ x.beginPath(); x.moveTo(k[0], k[1] + 16 * k[3]); x.lineTo(k[0], k[1]); x.lineTo(k[0] + 16 * k[2], k[1]); x.stroke(); });
+    x.font = font(15); x.fillStyle = '#f2f2f2'; x.textAlign = 'left'; x.textBaseline = 'middle';
+    x.fillText('4K 30 · ISO 100 · 1/500', 22, 28); x.textAlign = 'right'; x.fillStyle = '#ff40ff'; x.fillText('GIMBAL ' + P.gimbal + '°', W - 22, 28);
+    x.fillStyle = '#f2f2f2'; x.fillText('H ' + D.alt.toFixed(1) + '  D ' + Math.round(Math.hypot(D.x, D.y)), W - 22, H - 26);
+    // gimbal scale on right
+    x.strokeStyle = '#f2f2f2'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(W - 26, 50); x.lineTo(W - 26, H - 96); x.stroke();
+    var gy = 50 + (-P.gimbal / 90) * (H - 146); x.fillStyle = '#ff40ff'; x.beginPath(); x.moveTo(W - 28, gy); x.lineTo(W - 38, gy - 6); x.lineTo(W - 38, gy + 6); x.closePath(); x.fill();
+  }
+}
+
+// ---------- main loop ----------
+var last = 0, running = false, mainC = $('main'), pipC = $('pipc');
+function frame(ts){
+  if (document.hidden) { running = false; motorSet(0); return; }
+  requestAnimationFrame(frame);
+  var dt = Math.min(.05, (ts - (last || ts)) / 1000); last = ts;
+  step(dt);
+  var c = fit(mainC); if (c.w) { if (P.mode === 'pfd') drawPFD(c); else if (P.mode === 'map') drawMap(c); else drawCam(c); }
+  var pc = fit(pipC); if (pc.w) { if (P.mode === 'map') drawCam(pc, true); else drawMap(pc, true); }
+  tele();
+}
+function start(){ if (running) return; running = true; last = 0; requestAnimationFrame(frame); }
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) start(); });
+
+var teleT = 0;
+function tele(){
+  var now = performance.now(); if (now - teleT < 120) return; teleT = now;
+  var dist = Math.hypot(D.x, D.y);
+  $('tH').textContent = D.alt.toFixed(1); $('tD').textContent = Math.round(dist); $('tS').textContent = Math.hypot(D.vx, D.vy).toFixed(1);
+  $('tB').textContent = Math.round(D.bat); $('tB').className = D.bat < 20 ? 'r' : D.bat < 35 ? 'a' : '';
+  $('tT').textContent = fmtT(D.t);
+  var st = $('fmaState');
+  st.innerHTML = (D.rth ? 'RTH' : D.landing ? 'LAND' : D.taking ? 'T/O' : D.flying ? 'HOVER' : D.armed ? 'ARMED' : 'DISARM') + '<small>' + (D.armed ? '馬達運轉' : '馬達') + '</small>';
+  st.className = D.rth ? 'm' : D.landing || D.taking ? 'a' : D.armed ? '' : 'w';
+  var sat = 17 + Math.round(Math.sin(now / 4000) * 2 + 1); $('fmaSat').innerHTML = 'SAT ' + sat + '<small>衛星</small>';
+  var rc = clamp(Math.round(99 - dist / 12 - Math.abs(Math.sin(now / 3000)) * 2), 20, 99);
+  $('fmaLink').innerHTML = 'RC ' + rc + '<small>訊號</small>'; $('fmaLink').className = rc < 50 ? 'a' : 'c';
+  var w = '', red = false;
+  if (D.bat < 15 && D.armed) { w = 'LOW BATTERY 電量低'; red = true; }
+  else if (D.alt >= P.altLimit - .5) w = 'ALT LIMIT ' + P.altLimit + 'm 法規上限';
+  else if (dist > 450) w = 'VLOS 超出目視範圍';
+  else if (Math.abs(D.roll) > 30) w = 'BANK ANGLE';
+  if (w !== D.warnKey) { D.warnKey = w; var el = $('warn'); el.textContent = w; el.classList.toggle('on', !!w); el.classList.toggle('red', red); if (w) { beep(red ? 440 : 880, .12, .06, 'square'); haptic([30, 60, 30]); } }
+  $('gimbal').setAttribute('aria-valuenow', P.gimbal);
+}
+
+// ---------- modes & pip ----------
+var MODES = ['pfd','cam','map'];
+function setMode(m){
+  P.mode = m; save(); var i = MODES.indexOf(m);
+  document.querySelectorAll('#modes button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.m === m); });
+  $('kn').style.transform = 'translateX(' + (i * 54) + 'px)';
+  $('pipLbl').textContent = m === 'map' ? 'CAM' : 'MAP';
+  $('pip').style.left = m === 'pfd' ? '6px' : 'auto'; $('pip').style.right = m === 'pfd' ? 'auto' : '12px';
+  $('pip').style.bottom = m === 'pfd' ? '50px' : '12px';
+}
+$('modes').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; haptic(5); beep(1200, .03, .03); setMode(b.dataset.m); });
+$('pip').addEventListener('click', function(){ haptic(6); setMode(P.mode === 'map' ? 'cam' : 'map'); });
+
+// ---------- gimbal ----------
+function paintGimbal(){
+  var s = ''; for (var i = 0; i <= 18; i++) { var X = i / 18 * 100, big = i % 6 === 0; s += '<line x1="' + X + '" x2="' + X + '" y1="' + (big ? 12 : 16) + '" y2="' + (big ? 32 : 28) + '" stroke="' + (big ? '#7d7d7d' : '#3a3a3a') + '" stroke-width="1.5" vector-effect="non-scaling-stroke"/>'; }
+  var gx = (-P.gimbal) / 90 * 100;
+  s += '<line x1="' + gx + '" x2="' + gx + '" y1="6" y2="38" stroke="#ff40ff" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+  $('gsvg').innerHTML = s; $('gV').textContent = P.gimbal + '°';
+}
+(function(){
+  var el = $('gimbal'), on = false, lastV = null;
+  function set(e){ var r = $('gtrack').getBoundingClientRect(); var p = clamp((e.clientX - r.left) / r.width, 0, 1); var v = -Math.round(p * 90); if (v !== lastV) { lastV = v; P.gimbal = v; paintGimbal(); if (v % 15 === 0) { haptic(3); beep(1500, .02, .02); } } }
+  el.addEventListener('pointerdown', function(e){ on = true; el.setPointerCapture(e.pointerId); set(e); });
+  el.addEventListener('pointermove', function(e){ if (on) set(e); });
+  el.addEventListener('pointerup', function(){ on = false; save(); }); el.addEventListener('pointercancel', function(){ on = false; });
+  el.addEventListener('keydown', function(e){ if (e.key === 'ArrowLeft') { P.gimbal = Math.min(0, P.gimbal + 5); } else if (e.key === 'ArrowRight') { P.gimbal = Math.max(-90, P.gimbal - 5); } else return; e.preventDefault(); e.stopPropagation(); paintGimbal(); save(); });
+})();
+
+// ---------- photo ----------
+$('shot').addEventListener('click', function(){
+  var off = document.createElement('canvas'); off.width = 320; off.height = 200; var x = off.getContext('2d');
+  drawCam({x:x, w:320, h:200}, true);
+  var url = ''; try{ url = off.toDataURL('image/jpeg', .72); }catch(e){}
+  var d = new Date();
+  P.photos.unshift({u:url, t:pad(d.getHours()) + ':' + pad(d.getMinutes()), h:Math.round(D.alt), g:P.gimbal}); P.photos = P.photos.slice(0, 12); save();
+  var f = $('flash'); if (!reduce) f.animate([{opacity:.85},{opacity:0}], {duration:320, easing:'ease-out'});
+  haptic([4, 20, 4]); if (ac && P.sound) { beep(2400, .03, .05, 'square'); beep(1600, .05, .05, 'square', .05); }
+  toast('已拍照，存在相簿（' + P.photos.length + ' 張）');
+});
+
+// ---------- sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), sTab = 'tele', lastFocus = null;
+function openSheet(tab){
+  lastFocus = document.activeElement; sTab = tab || 'tele'; renderSheet();
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(5);
+  var f = sheet.querySelector('button'); if (f) f.focus({preventScroll:true});
+}
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = ''; if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+$('tele').addEventListener('click', function(){ openSheet('tele'); });
+$('menuBtn').addEventListener('click', function(){ openSheet('set'); });
+function renderSheet(){
+  var tabs = [['tele','TELEM','遙測'],['log','LOG','航跡'],['pics','PICS','相簿'],['set','SET','設定']];
+  var h = '<div class="stabs" id="stabs" role="tablist">' + tabs.map(function(t){ return '<button role="tab" data-t="' + t[0] + '" aria-selected="' + (sTab === t[0]) + '">' + t[1] + '<small>' + t[2] + '</small></button>'; }).join('') + '</div>';
+  if (sTab === 'tele') {
+    var dist = Math.hypot(D.x, D.y), v = (15.2 + D.bat / 100 * 2.2);
+    h += '<dl class="kv"><div><dt>高度 AGL</dt><dd>' + D.alt.toFixed(1) + ' m</dd></div><div><dt>距起飛點</dt><dd class="c">' + Math.round(dist) + ' m</dd></div>' +
+      '<div><dt>垂直速度</dt><dd>' + D.vz.toFixed(1) + ' m/s</dd></div><div><dt>航向</dt><dd>' + String(Math.round(D.hdg)).padStart(3, '0') + '°</dd></div>' +
+      '<div><dt>返航高度</dt><dd class="m">' + P.rthAlt + ' m</dd></div><div><dt>高度上限</dt><dd class="m">' + P.altLimit + ' m</dd></div>' +
+      '<div><dt>風速（估）</dt><dd>3.2 m/s NE</dd></div><div><dt>GPS</dt><dd class="g">3D FIX</dd></div></dl>' +
+      '<div class="cells"><div><b>' + (v / 4).toFixed(2) + '</b>電芯 1</div><div><b>' + (v / 4 - .01).toFixed(2) + '</b>電芯 2</div><div><b>' + (v / 4 + .01).toFixed(2) + '</b>電芯 3</div><div><b>' + (v / 4).toFixed(2) + '</b>電芯 4</div></div>' +
+      '<button class="wide" id="swapBat">' + (D.armed ? '落地後才能換電池' : '換上新電池（100%）') + '</button>';
+  } else if (sTab === 'log') {
+    var tot = P.flights.reduce(function(a, f){ return a + f.t; }, 0);
+    h += '<p class="empty" style="padding:0 0 10px;text-align:left">共 ' + P.flights.length + ' 趟・累計 ' + fmtT(tot) + '・左滑刪除</p><ul class="flog" id="flog">' + P.flights.map(function(f, i){ return '<li data-i="' + i + '"><div class="del">刪除</div><button class="it"><b>' + f.d + '</b><span>' + f.where + '<small>最遠 ' + f.dist + ' m・最高 ' + f.alt + ' m</small></span><i>' + fmtT(f.t) + '</i></button></li>'; }).join('') + '</ul>' + (P.flights.length ? '' : '<p class="empty">還沒有航跡，去飛一趟吧。</p>');
+  } else if (sTab === 'pics') {
+    h += P.photos.length ? '<div class="album">' + P.photos.map(function(p, i){ return '<button data-p="' + i + '" aria-label="照片 ' + p.t + '">' + (p.u ? '<img alt="" src="' + p.u + '">' : '') + '<span>' + p.t + ' · ' + p.h + 'm</span></button>'; }).join('') + '</div>' : '<p class="empty">還沒有照片。按「拍」把雲台畫面存下來。</p>';
+  } else {
+    h += '<div class="set"><span>高度上限<small>台灣法規：距地面 400 呎（約 120 m）</small></span><div class="step"><button data-k="altLimit" data-d="-10" aria-label="降低高度上限">−</button><b>' + P.altLimit + '</b><button data-k="altLimit" data-d="10" aria-label="提高高度上限">+</button></div></div>' +
+      '<div class="set"><span>返航高度<small>高於周邊障礙物</small></span><div class="step"><button data-k="rthAlt" data-d="-5" aria-label="降低返航高度">−</button><b>' + P.rthAlt + '</b><button data-k="rthAlt" data-d="5" aria-label="提高返航高度">+</button></div></div>' +
+      '<div class="set"><span>馬達與提示音</span><button class="sw2" id="sndSw" role="switch" aria-checked="' + P.sound + '" aria-label="馬達與提示音"><i></i></button></div>' +
+      '<div class="set" style="border:0"><span>鍵盤操作<small>W/S 升降・A/D 轉向・方向鍵 前後左右</small></span></div>';
+  }
+  $('sheetBody').innerHTML = h;
+  bindSheet();
+}
+function bindSheet(){
+  $('stabs').onclick = function(e){ var b = e.target.closest('button'); if (!b) return; haptic(4); sTab = b.dataset.t; renderSheet(); };
+  var sb = $('swapBat'); if (sb) sb.onclick = function(){ if (D.armed) { haptic([15, 30, 15]); return; } D.bat = 100; D.autoRth = false; haptic([10, 30, 10]); beep(880, .08, .05); renderSheet(); toast('電池已更換，100%'); };
+  var sw = $('sndSw'); if (sw) sw.onclick = function(){ P.sound = !P.sound; save(); this.setAttribute('aria-checked', P.sound); haptic(5); };
+  document.querySelectorAll('.step button').forEach(function(b){ b.onclick = function(){ var k = b.dataset.k, d = +b.dataset.d; var lim = k === 'altLimit' ? [30, 120] : [20, P.altLimit]; var nv = clamp(P[k] + d, lim[0], lim[1]); if (nv === P[k]) { haptic([15, 30, 15]); toast(k === 'altLimit' ? '上限不可超過法規 120 m' : '返航高度需低於上限'); return; } P[k] = nv; if (P.rthAlt > P.altLimit) P.rthAlt = P.altLimit; save(); haptic(4); beep(1400, .03, .03); renderSheet(); }; });
+  document.querySelectorAll('.album button').forEach(function(b){ b.onclick = function(){ var p = P.photos[+b.dataset.p]; haptic(5); $('sheetBody').innerHTML = '<div class="stabs"><button aria-selected="true" id="backPics">‹ PICS<small>相簿</small></button></div>' + (p.u ? '<img class="photo-big" alt="雲台照片" src="' + p.u + '">' : '') + '<p class="empty" style="padding:12px 0 0">' + p.t + '・高度 ' + p.h + ' m・雲台 ' + p.g + '°</p><button class="wide" id="delPic" style="background:#2a2a2a;color:#ff8a8a">刪除這張</button>';
+    $('backPics').onclick = function(){ sTab = 'pics'; renderSheet(); };
+    $('delPic').onclick = function(){ P.photos.splice(+b.dataset.p, 1); save(); haptic([6, 20, 6]); sTab = 'pics'; renderSheet(); toast('照片已刪除'); }; }; });
+  document.querySelectorAll('#flog li').forEach(function(li){
+    var it = li.querySelector('.it'), sx = 0, sy = 0, dx = 0, mode = null, pid = null;
+    it.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; dx = 0; mode = null; pid = e.pointerId; });
+    it.addEventListener('pointermove', function(e){ if (pid !== e.pointerId) return; var mx = e.clientX - sx, my = e.clientY - sy;
+      if (!mode) { if (Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) { mode = 'x'; li.classList.add('sw'); try{ it.setPointerCapture(e.pointerId); }catch(er){} } else if (Math.abs(my) > 8) mode = 'y'; }
+      if (mode === 'x') { dx = Math.min(0, mx); if (dx < -88) dx = -88 + (dx + 88) / 4; it.style.transform = 'translateX(' + dx + 'px)'; e.stopPropagation(); } });
+    function end(e){ if (pid === null) return; pid = null; if (mode === 'x') { e.stopPropagation(); if (dx < -70) { P.flights.splice(+li.dataset.i, 1); save(); haptic([6, 20, 6]); renderSheet(); toast('航跡已刪除'); return; } it.style.transform = ''; setTimeout(function(){ li.classList.remove('sw'); }, 200); } }
+    it.addEventListener('pointerup', end); it.addEventListener('pointercancel', end);
+    it.addEventListener('click', function(){ if (mode !== 'x') { haptic(3); toast('左滑可以刪除這筆航跡'); } });
+  });
+}
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; if ($('sheetBody').scrollTop > 0 && !e.target.closest('.grab')) return; dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId); });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy / 6; sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+// ---------- toast ----------
+var toastT = 0;
+function toast(msg, warn){ $('toastMsg').textContent = msg; var t = $('toast'); t.classList.toggle('warn2', !!warn); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 2600); }
+
+// ---------- clock ----------
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + pad(d.getMinutes()); }
+tick(); setInterval(tick, 15000);
+
+paintGimbal(); setMode(P.mode || 'pfd'); updTko(); start();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16295a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="錶盤">
+<title>錶盤 · 手錶錶盤編輯</title>
+<meta name="description" content="琺瑯與機刻紋的手錶錶盤編輯器：指針真實走時、拖曳配置複雜功能、換琺瑯色與指針、轉錶冠上鍊、計時碼錶與我的錶盤收藏。收錄於 100 Creative HTML Works（App 069・鐘錶琺瑯盤機刻紋）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/069-enamel-watchfaces.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316295a'/%3E%3Ccircle cx='32' cy='32' r='23' fill='%23f6f5ef' stroke='%23c9a24a' stroke-width='3'/%3E%3Cpath d='M32 32V14M32 32l10 6' stroke='%231f47b0' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='32' r='2.6' fill='%231f47b0'/%3E%3C/svg%3E">
+<style>
+:root{
+  --steel:#16295a;--steel2:#1c3370;--steel3:#244089;--enamel:#f6f5ef;--mist:#aebbdc;--dim:#8595c0;
+  --gold:#c9a24a;--gold2:#e7cf8c;--gold3:#9c7a2c;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","PingFang TC","Heiti TC",serif;
+  --out:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.3,1.3,.5,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.5 var(--serif);color:var(--enamel);background:var(--steel);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
+svg{display:block}
+.num{font-variant-numeric:tabular-nums lining-nums}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;display:flex;flex-direction:column;
+  background:repeating-linear-gradient(118deg,rgba(255,255,255,.028) 0 7px,rgba(0,0,0,.035) 7px 14px),linear-gradient(165deg,#1d3677,#16295a 45%,#111f47)}
+@media (min-width:521px){
+  body{background:#0f1c40}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:60px;padding:11px;z-index:1;
+    background:linear-gradient(135deg,#efe0b0,#b8923a 26%,#7d5e1e 52%,#d9bf7c 78%,#9c7a2c);box-shadow:inset 0 0 0 1px rgba(255,245,210,.6),inset 0 0 0 3px #5a4212,0 18px 28px -18px rgba(5,10,30,.8)}
+  .screen{inset:11px;border-radius:49px}
+  .caption{display:block;position:relative;z-index:1;max-width:240px}
+  .caption h1{font:700 40px/1 var(--serif);color:var(--enamel);letter-spacing:.06em}
+  .caption h1 i{font-style:italic;color:var(--gold2);font-weight:400;font-size:22px;margin-left:8px;letter-spacing:0}
+  .caption p{margin-top:14px;font-size:15px;line-height:1.8;color:var(--mist)}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+/* ---------- status + header ---------- */
+.sb{flex:none;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 34px;display:flex;align-items:center;justify-content:space-between;font:600 15px/1 var(--serif)}
+.sb .gl{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.sb{display:none}}
+.hdr{flex:none;display:flex;align-items:center;height:50px;padding:0 10px 0 22px;gap:2px}
+.hdr h2{font:700 22px/1 var(--serif);letter-spacing:.08em}
+.hdr h2 small{font:italic 400 14px/1 var(--serif);color:var(--gold2);margin-left:8px;letter-spacing:0}
+.hdr .sp{flex:1}
+.ib{height:44px;min-width:44px;display:grid;place-items:center;border-radius:12px;padding:0 6px;font-size:14px;color:var(--enamel);transition:background-color .2s}
+.ib:active{background:rgba(246,245,239,.1)}
+.sync{display:flex;align-items:center;gap:6px;padding:0 12px;height:36px;border-radius:18px;background:var(--enamel);color:var(--steel);font-weight:700;font-size:14px;position:relative;overflow:hidden;transition:background-color .2s}
+.sync:active{background:#dcdcd2}
+.sync .bar{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--gold2);transform-origin:left;transform:scaleX(0);z-index:0}
+.sync span,.sync svg{position:relative;z-index:1}
+
+/* ---------- watch ---------- */
+.stageW{position:relative;flex:1;min-height:200px;display:grid;place-items:center;touch-action:pan-y}
+.watch{position:relative;height:100%;max-height:360px;aspect-ratio:320/360;max-width:94%}
+.watch svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.watch.swap{animation:swap .5s var(--out)}
+@keyframes swap{0%{transform:translateX(var(--dx,40px)) rotate(var(--rot,6deg))}100%{transform:none}}
+.slot{cursor:pointer}
+.slot .ring{fill:none;stroke:transparent}
+.editing .slot .ring{stroke:var(--gold);stroke-dasharray:3 3;stroke-width:1.4}
+.slot.hot .ring{stroke:var(--gold2);stroke-dasharray:none;stroke-width:2.6}
+.crown{cursor:ns-resize}
+.meta{flex:none;text-align:center;padding:2px 20px 0}
+.meta b{display:block;font:700 21px/1.2 var(--serif);letter-spacing:.06em}
+.meta span{display:block;font:italic 14px/1.4 var(--serif);color:var(--mist)}
+.thumbs{flex:none;display:flex;gap:10px;overflow-x:auto;padding:10px 18px 4px;scrollbar-width:none;scroll-snap-type:x proximity}
+.thumbs::-webkit-scrollbar{display:none}
+.thumbs button{flex:none;width:58px;height:58px;border-radius:50%;scroll-snap-align:center;position:relative;transition:transform .25s var(--out)}
+.thumbs button svg{width:58px;height:58px}
+.thumbs button:active{transform:scale(.92)}
+.thumbs button[aria-pressed=true] .sel{stroke:var(--gold2)}
+
+/* ---------- editor panel ---------- */
+.panel{flex:none;height:228px;display:flex;flex-direction:column;margin-top:8px;background:rgba(8,16,40,.34);border-radius:26px 26px 0 0;box-shadow:inset 0 1px 0 rgba(174,187,220,.12)}
+.tabs{flex:none;display:flex;justify-content:center;gap:4px;padding:6px 10px 0}
+.tabs button{height:44px;padding:0 14px;font-size:15px;color:var(--dim);letter-spacing:.06em;transition:color .2s}
+.tabs button[aria-selected=true]{color:var(--gold2);font-weight:700}
+.tabs button:active{color:var(--enamel)}
+.pbody{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 18px calc(30px + env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior:contain}
+.pbody::-webkit-scrollbar{display:none}
+.pp[hidden]{display:none}
+.pp.in{animation:ppin .3s var(--out)}
+@keyframes ppin{from{transform:translateY(8px)}}
+.lab{font-size:13px;color:var(--mist);margin:8px 0 4px;letter-spacing:.04em}
+.sw{display:flex;gap:6px;flex-wrap:wrap}
+.sw button{display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;padding:4px 0;border-radius:12px;font-size:13px;color:var(--mist)}
+.sw button svg{width:34px;height:34px}
+.sw button[aria-pressed=true]{color:var(--gold2);font-weight:700}
+.sw button[aria-pressed=true] .o{stroke:var(--gold2);stroke-width:2}
+.sw button:active{background:rgba(246,245,239,.08)}
+.tray{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.tray button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0 2px;border-radius:12px;font-size:13px;color:var(--mist);touch-action:none}
+.tray button svg{width:44px;height:44px}
+.tray button.used{color:var(--gold2)}
+.tray button.pick{background:rgba(231,207,140,.14);color:var(--enamel)}
+.tray button:active{background:rgba(246,245,239,.08)}
+.tip{font-size:13px;color:var(--dim);margin-top:6px;line-height:1.6}
+.rowt{display:flex;align-items:center;justify-content:space-between;min-height:48px;box-shadow:inset 0 -1px 0 rgba(174,187,220,.12)}
+.rowt span small{display:block;font-size:13px;color:var(--dim)}
+.tog{position:relative;width:50px;height:30px;border-radius:15px;background:rgba(174,187,220,.25);flex:none;transition:background-color .25s}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--enamel);transition:transform .3s var(--spring)}
+.tog[aria-checked=true]{background:var(--gold)}
+.tog[aria-checked=true]::after{transform:translateX(20px)}
+.ghost{position:absolute;z-index:80;width:54px;height:54px;margin:-27px 0 0 -27px;pointer-events:none;transition:transform .15s}
+.ghost svg{width:54px;height:54px;filter:drop-shadow(1px 3px 2px rgba(5,10,30,.45))}
+.homeind{position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--enamel);z-index:90;pointer-events:none}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:60;background:rgba(6,12,32,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:61;max-height:82%;display:flex;flex-direction:column;background:#f4f3ec;color:#16295a;border-radius:28px 28px 0 0;transform:translateY(calc(100% + 30px));transition:transform .45s var(--spring);touch-action:none}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grip{flex:none;padding:9px 0 6px;cursor:grab}
+.grip i{display:block;width:40px;height:5px;border-radius:3px;background:rgba(22,41,90,.22);margin:0 auto}
+.sbody{overflow-y:auto;padding:4px 22px calc(26px + env(safe-area-inset-bottom));touch-action:pan-y}
+.sbody h4{font:700 22px/1.3 var(--serif);letter-spacing:.04em}
+.sbody .sub{font-size:14px;color:#5a6a92;margin-top:2px}
+.mine{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 8px;margin-top:14px}
+.mine .it{display:flex;flex-direction:column;align-items:center;gap:4px}
+.mine .it>button:first-child{width:86px;height:86px;border-radius:50%}
+.mine .it>button:first-child:active{transform:scale(.95)}
+.mine .it svg{width:86px;height:86px}
+.mine .it b{font-size:13px;line-height:1.3;text-align:center}
+.mine .del{height:32px;padding:0 10px;font-size:13px;color:#9a3b2b;border-radius:10px}
+.mine .del:active{background:rgba(154,59,43,.1)}
+.addmine{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;margin-top:18px;border-radius:14px;background:#16295a;color:#f6f5ef;font-weight:700;font-size:16px}
+.addmine:active{background:#244089}
+.empty{grid-column:1/-1;padding:24px 0;text-align:center;color:#5a6a92;line-height:1.8}
+
+.toast{position:absolute;left:50%;top:calc(56px + env(safe-area-inset-top));z-index:95;display:flex;align-items:center;gap:10px;max-width:90%;transform:translate(-50%,-160%);visibility:hidden;padding:10px 8px 10px 18px;min-height:46px;border-radius:14px;background:var(--enamel);color:var(--steel);font:600 14px/1.4 var(--serif);transition:transform .45s var(--spring),visibility 0s .45s;white-space:nowrap}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--spring)}
+.toast button{height:34px;padding:0 10px;border-radius:10px;color:#9c7a2c;font-weight:700}
+.toast button[hidden]{display:none}
+
+@media (prefers-reduced-motion:reduce){
+  .watch.swap,.pp.in{animation:none}
+  .sheet,.toast,.tog::after{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="bd" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <header class="sb">
+        <span id="clock" class="num">9:41</span>
+        <span class="gl" aria-hidden="true">
+          <svg width="18" height="12" viewBox="0 0 18 12"><g fill="#f6f5ef"><path d="M0 12 3 8v4z"/><path d="M5 12l3-6.5V12z"/><path d="M10 12l3-9v9z"/><path d="M15 12l3-12v12z"/></g></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M1.2 4.6a9.6 9.6 0 0 1 13.6 0M3.8 7.4a5.8 5.8 0 0 1 8.4 0" fill="none" stroke="#f6f5ef" stroke-width="1.6"/><path d="M8 8.4l2 2.2L8 12.6 6 10.6z" fill="#f6f5ef"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><rect x=".8" y=".8" width="22.4" height="10.4" rx="5.2" fill="none" stroke="#c9a24a" stroke-width="1.3"/><circle cx="25" cy="6" r="1.4" fill="#c9a24a"/><rect id="batt" x="2.6" y="2.6" width="15" height="6.8" rx="3.4" fill="#f6f5ef"/></svg>
+        </span>
+      </header>
+      <div class="hdr">
+        <h2>錶盤<small>atelier</small></h2>
+        <span class="sp"></span>
+        <button class="ib" id="mineBtn" aria-label="我的錶盤"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="#f6f5ef" stroke-width="1.6"/><path d="M12 12V6.5M12 12l3.6 2.2" stroke="#f6f5ef" stroke-width="1.6" stroke-linecap="round"/><path d="M8.5 2.2h7M8.5 21.8h7" stroke="#c9a24a" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <button class="sync" id="syncBtn"><i class="bar" id="syncBar"></i><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3.5M4 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="syncT">傳送到手錶</span></button>
+      </div>
+      <div class="stageW" id="stageW">
+        <div class="watch" id="watch"><svg id="wsvg" viewBox="0 0 320 360" role="img" aria-label="錶盤預覽"></svg></div>
+      </div>
+      <div class="meta"><b id="fName">大明火</b><span id="fSub">Grand Feu · 琺瑯白</span></div>
+      <div class="thumbs" id="thumbs" aria-label="錶盤畫廊"></div>
+      <section class="panel">
+        <div class="tabs" role="tablist">
+          <button role="tab" data-t="color" aria-selected="true">琺瑯與金屬</button>
+          <button role="tab" data-t="comp" aria-selected="false">複雜功能</button>
+          <button role="tab" data-t="hand" aria-selected="false">指針</button>
+        </div>
+        <div class="pbody">
+          <div class="pp" id="p-color"></div>
+          <div class="pp" id="p-comp" hidden></div>
+          <div class="pp" id="p-hand" hidden></div>
+        </div>
+      </section>
+      <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="我的錶盤">
+        <div class="grip" aria-hidden="true"><i></i></div>
+        <div class="sbody" id="sbody"></div>
+      </div>
+      <div class="homeind" aria-hidden="true"></div>
+    </div>
+  </div>
+  <div class="caption">
+    <h1>錶盤<i>atelier</i></h1>
+    <p>大明火琺瑯、麥穗機刻紋、藍鋼指針。拖一顆複雜功能到錶盤上，轉一下錶冠替它上鍊。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app069:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var S = load('settings', {tick:false, haptic:true});
+function haptic(p){ if (!S.haptic) return; try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// ---------- sound: escapement, ratchet, chime ----------
+var ac = null;
+function audio(){ try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
+function click(freq, vol, dur){
+  var a = audio(); if (!a) return; var t = a.currentTime, n = Math.floor(a.sampleRate * (dur || .018)), b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0);
+  for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4);
+  var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = b; f.type = 'bandpass'; f.frequency.value = freq || 4200; f.Q.value = 3; g.gain.value = vol || .25;
+  s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+}
+function chime(){
+  var a = audio(); if (!a) return; var t = a.currentTime;
+  [1318.5, 1760, 2637].forEach(function(fq, i){ var o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.value = fq; g.gain.setValueAtTime(0, t + i * .11); g.gain.linearRampToValueAtTime(.08, t + i * .11 + .005); g.gain.exponentialRampToValueAtTime(.0001, t + i * .11 + 1.4); o.connect(g); g.connect(a.destination); o.start(t + i * .11); o.stop(t + i * .11 + 1.5); });
+}
+
+// ---------- catalogue ----------
+var STYLES = [
+  {id:'feu', name:'大明火', en:'Grand Feu', pat:'plain', dial:'white', hands:'breguet', hc:'blue', nums:'breguet', comps:{top:null, left:null, right:null, bottom:'secs'}},
+  {id:'orge', name:'麥穗紋', en:'Grain d’orge', pat:'rose', dial:'blue', hands:'leaf', hc:'gold', nums:'roman', comps:{top:'moon', left:null, right:'date', bottom:null}},
+  {id:'soleil', name:'太陽紋', en:'Soleil', pat:'sun', dial:'black', hands:'dauphine', hc:'gold', nums:'index', comps:{top:null, left:'chrono', right:'power', bottom:'secs'}},
+  {id:'clous', name:'巴黎釘紋', en:'Clous de Paris', pat:'clous', dial:'white', hands:'dauphine', hc:'blue', nums:'breguet', comps:{top:'date', left:'world', right:null, bottom:null}},
+  {id:'vague', name:'海浪紋', en:'Vagues', pat:'wave', dial:'gold', hands:'breguet', hc:'blue', nums:'roman', comps:{top:null, left:'steps', right:'temp', bottom:null}}
+];
+var DIALS = {white:{n:'琺瑯白', base:'#f7f6f0', edge:'#e4e2d8', line:'rgba(96,104,140,.22)', ink:'#1a2a52', sub:'#ecebe3'},
+  blue:{n:'藍鋼琺瑯', base:'#2449a8', edge:'#16307a', line:'rgba(190,210,255,.30)', ink:'#f4f2ea', sub:'#1d3d93'},
+  black:{n:'黑琺瑯', base:'#191713', edge:'#0b0a08', line:'rgba(255,248,230,.13)', ink:'#efe7d2', sub:'#221f1a'},
+  gold:{n:'金面', base:'#d9ba6c', edge:'#b08c3a', line:'rgba(96,66,10,.28)', ink:'#34260a', sub:'#cfae5c'}};
+var HC = {blue:{n:'藍鋼', a:'#1f47b0', b:'#4a72d6'}, gold:{n:'金', a:'#b8923a', b:'#ecd697'}};
+var CASES = {gold:{n:'黃金', a:'#f1e2b0', b:'#b8923a', c:'#7d5e1e'}, steel:{n:'精鋼', a:'#f2f3f5', b:'#aeb4c0', c:'#6b7383'}};
+var COMPS = {date:'日期', moon:'月相', world:'東京時間', power:'動力儲存', chrono:'計時碼錶', secs:'小秒針', steps:'步數', temp:'台北氣溫'};
+var SLOTS = {top:[160, 124], left:[112, 172], right:[208, 172], bottom:[160, 220]};
+
+var cur = load('face', null) || clone(STYLES[0]);
+if (!cur.caseM) cur.caseM = 'gold';
+var mine = load('mine', null) || [Object.assign(clone(STYLES[1]), {caseM:'steel', label:'週末藍'}), Object.assign(clone(STYLES[2]), {caseM:'gold', label:'會議用'})];
+var power = load('power', 58), chrono = load('chrono', {run:false, t0:0, acc:0});
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function persist(){ save('face', cur); save('mine', mine); save('power', power); save('chrono', chrono); save('settings', S); }
+
+// ---------- geometry helpers ----------
+function pol(cx, cy, r, deg){ var a = (deg - 90) * Math.PI / 180; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; }
+function f(n){ return n.toFixed(2); }
+
+// ---------- guilloché ----------
+function guilloche(pat, cx, cy, R, stroke, dense){
+  var d = '', i, k;
+  if (pat === 'rose'){
+    var N = dense ? 34 : 16;
+    for (i = 0; i < N; i++){
+      var r0 = R * (.12 + .88 * i / N), ph = i * .21, amp = R * .018;
+      d += 'M';
+      for (k = 0; k <= 144; k++){ var th = k / 144 * Math.PI * 2, rr = r0 + amp * Math.sin(th * 24 + ph * 6); d += (k ? 'L' : '') + f(cx + Math.cos(th) * rr) + ' ' + f(cy + Math.sin(th) * rr); }
+    }
+  } else if (pat === 'sun'){
+    var M = dense ? 180 : 72;
+    for (i = 0; i < M; i++){ var p1 = pol(cx, cy, R * .08, i / M * 360), p2 = pol(cx, cy, R, i / M * 360); d += 'M' + f(p1[0]) + ' ' + f(p1[1]) + 'L' + f(p2[0]) + ' ' + f(p2[1]); }
+  } else if (pat === 'clous'){
+    var st = dense ? 7 : 12;
+    for (i = -R * 2; i < R * 2; i += st){ d += 'M' + f(cx + i - R) + ' ' + f(cy - R) + 'l' + f(R * 2) + ' ' + f(R * 2) + 'M' + f(cx + i + R) + ' ' + f(cy - R) + 'l' + f(-R * 2) + ' ' + f(R * 2); }
+  } else if (pat === 'wave'){
+    var W = dense ? 5 : 9;
+    for (var y = cy - R; y < cy + R; y += W){
+      d += 'M' + f(cx - R) + ' ' + f(y);
+      for (k = 0; k <= 60; k++){ var x = cx - R + k / 60 * R * 2; d += 'L' + f(x) + ' ' + f(y + Math.sin(x / R * 9 + y / 14) * W * .45); }
+    }
+  }
+  return d ? '<path d="' + d + '" fill="none" stroke="' + stroke + '" stroke-width="' + (dense ? .5 : .8) + '"/>' : '';
+}
+
+// ---------- hands (drawn pointing to 12, pivot at 0,0) ----------
+function hand(kind, L, w, col){
+  var a = col.a, b = col.b;
+  if (kind === 'breguet'){
+    var rr = L * .085 + 2, cy = -L * .72;
+    return '<path d="M-' + (w * .55) + ' ' + (L * .14) + 'L' + (w * .55) + ' ' + (L * .14) + 'L' + (w * .32) + ' ' + f(cy + rr) + 'L-' + (w * .32) + ' ' + f(cy + rr) + 'Z" fill="' + a + '"/>' +
+      '<circle cx="0" cy="' + f(cy) + '" r="' + f(rr) + '" fill="none" stroke="' + a + '" stroke-width="' + f(w * .62) + '"/>' +
+      '<path d="M-' + (w * .34) + ' ' + f(cy - rr) + 'L0 ' + (-L) + 'L' + (w * .34) + ' ' + f(cy - rr) + 'Z" fill="' + a + '"/><circle cx="0" cy="0" r="' + (w * 1.3) + '" fill="' + a + '"/>';
+  }
+  if (kind === 'leaf'){
+    return '<path d="M0 ' + (L * .12) + 'C-' + (w * 1.6) + ' ' + f(-L * .2) + ' -' + (w * 1.4) + ' ' + f(-L * .6) + ' 0 ' + (-L) + 'C' + (w * 1.4) + ' ' + f(-L * .6) + ' ' + (w * 1.6) + ' ' + f(-L * .2) + ' 0 ' + (L * .12) + 'Z" fill="' + a + '"/>' +
+      '<path d="M0 ' + f(-L * .18) + 'L0 ' + f(-L * .9) + '" stroke="' + b + '" stroke-width=".8" stroke-linecap="round"/><circle cx="0" cy="0" r="' + (w * 1.2) + '" fill="' + a + '"/>';
+  }
+  // dauphine: faceted
+  return '<path d="M0 ' + (L * .1) + 'L-' + (w * 1.15) + ' 0L0 ' + (-L) + 'Z" fill="' + b + '"/><path d="M0 ' + (L * .1) + 'L' + (w * 1.15) + ' 0L0 ' + (-L) + 'Z" fill="' + a + '"/><circle cx="0" cy="0" r="' + (w * 1.2) + '" fill="' + a + '"/>';
+}
+
+// ---------- moon phase ----------
+function moonAge(d){ var syn = 29.530588853, ref = Date.UTC(2000, 0, 6, 18, 14); return (((d - ref) / 864e5) % syn + syn) % syn; }
+function moonPath(cx, cy, r, age){
+  var ph = age / 29.530588853, lit = ph < .5, k = Math.cos(ph * 2 * Math.PI), rx = Math.abs(k) * r;
+  // terminator ellipse; bright side right when waxing
+  var s1 = lit ? 1 : 0, sweep = (lit ? k > 0 : k < 0) ? 0 : 1;
+  return 'M' + f(cx) + ' ' + f(cy - r) + 'A' + f(r) + ' ' + f(r) + ' 0 0 ' + s1 + ' ' + f(cx) + ' ' + f(cy + r) + 'A' + f(rx) + ' ' + f(r) + ' 0 0 ' + sweep + ' ' + f(cx) + ' ' + f(cy - r) + 'Z';
+}
+
+// ---------- complication faces (static parts; live parts get ids) ----------
+function subBase(cx, cy, r, D, id){
+  var s = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + D.sub + '"/>';
+  for (var i = 1; i < 7; i++) s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + f(r * i / 7) + '" fill="none" stroke="' + D.line + '" stroke-width=".6"/>';
+  return s + '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + D.ink + '" stroke-width=".8" opacity=".45"/>';
+}
+function ticks(cx, cy, r, n, len, col, w){ var s = ''; for (var i = 0; i < n; i++){ var a = pol(cx, cy, r, i / n * 360), b = pol(cx, cy, r - len, i / n * 360); s += 'M' + f(a[0]) + ' ' + f(a[1]) + 'L' + f(b[0]) + ' ' + f(b[1]); } return '<path d="' + s + '" stroke="' + col + '" stroke-width="' + (w || .7) + '"/>'; }
+function compSVG(type, cx, cy, D, live, r){
+  r = r || 23; var ink = D.ink, s = '', now = new Date(), g = CASES[cur.caseM || 'gold'], gold = '#c9a24a';
+  var lbl = function(t, dy){ return '<text x="' + cx + '" y="' + f(cy + (dy || r * .5)) + '" font-size="' + f(r * .27) + '" fill="' + ink + '" text-anchor="middle" dominant-baseline="central" font-family="PingFang TC,sans-serif" opacity=".8">' + t + '</text>'; };
+  var hnd = function(id, len, col){ return '<g ' + (live ? 'id="' + id + '" ' : '') + 'transform="translate(' + cx + ' ' + cy + ')"><path d="M0 3L0 ' + (-len) + '" stroke="' + col + '" stroke-width="1.3" stroke-linecap="round"/><circle r="1.8" fill="' + col + '"/></g>'; };
+  if (type === 'date'){
+    var wd = '日一二三四五六'[now.getDay()];
+    s += '<rect x="' + (cx - r * .72) + '" y="' + (cy - r * .5) + '" width="' + (r * 1.44) + '" height="' + (r * 1) + '" rx="2" fill="#fbfaf5" stroke="' + gold + '" stroke-width="1.4"/>' +
+      '<text x="' + (cx - r * .3) + '" y="' + f(cy + .5) + '" font-size="' + f(r * .62) + '" fill="#1a2a52" text-anchor="middle" dominant-baseline="central" font-family="Charter,serif" font-weight="700">' + now.getDate() + '</text>' +
+      '<text x="' + (cx + r * .36) + '" y="' + f(cy + .5) + '" font-size="' + f(r * .42) + '" fill="#9a3b2b" text-anchor="middle" dominant-baseline="central" font-family="PingFang TC,sans-serif">' + wd + '</text>';
+    return s;
+  }
+  if (type === 'moon'){
+    var age = moonAge(now);
+    s += '<clipPath id="mc' + cx + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#132a6b"/>' +
+      '<g clip-path="url(#mc' + cx + ')"><circle cx="' + (cx - r * .5) + '" cy="' + (cy - r * .45) + '" r=".9" fill="#ecd697"/><circle cx="' + (cx + r * .55) + '" cy="' + (cy - r * .1) + '" r=".7" fill="#ecd697"/><circle cx="' + (cx + r * .2) + '" cy="' + (cy + r * .6) + '" r=".8" fill="#ecd697"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + f(r * .56) + '" fill="#0d1f52"/><path d="' + moonPath(cx, cy, r * .56, age) + '" fill="#ecd697"/></g>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + gold + '" stroke-width="1.4"/>';
+    return s;
+  }
+  s += subBase(cx, cy, r, D);
+  if (type === 'secs'){ s += ticks(cx, cy, r - 1, 12, 3, ink); s += hnd(live ? 'hSecs' : '', r * .8, '#9a3b2b'); }
+  else if (type === 'world'){ s += ticks(cx, cy, r - 1, 24, 2, ink, .5) + lbl('東京', -r * .4); var tk = (now.getUTCHours() + 9) % 24 + now.getMinutes() / 60; s += '<g ' + (live ? 'id="hWorld" ' : '') + 'transform="translate(' + cx + ' ' + cy + ') rotate(' + f(tk * 15) + ')"><path d="M0 3L0 ' + (-r * .78) + '" stroke="' + ink + '" stroke-width="1.3" stroke-linecap="round"/><circle r="1.8" fill="' + ink + '"/></g>'; }
+  else if (type === 'power'){
+    var a0 = -120, a1 = 120, arc = function(rr){ var p = pol(cx, cy, rr, a0), q = pol(cx, cy, rr, a1); return 'M' + f(p[0]) + ' ' + f(p[1]) + 'A' + rr + ' ' + rr + ' 0 1 1 ' + f(q[0]) + ' ' + f(q[1]); };
+    s += '<path d="' + arc(r - 4) + '" fill="none" stroke="' + ink + '" stroke-width="2.4" opacity=".25"/>' + lbl('72h', r * .45);
+    s += '<g ' + (live ? 'id="hPower" ' : '') + 'transform="translate(' + cx + ' ' + cy + ') rotate(' + f(a0 + (a1 - a0) * power / 100) + ')"><path d="M0 3L0 ' + (-r * .8) + '" stroke="#9a3b2b" stroke-width="1.4" stroke-linecap="round"/><circle r="1.8" fill="#9a3b2b"/></g>';
+  }
+  else if (type === 'chrono'){ s += ticks(cx, cy, r - 1, 30, 2.5, ink, .5) + '<text ' + (live ? 'id="tChrono" ' : '') + 'x="' + cx + '" y="' + f(cy + r * .45) + '" font-size="' + f(r * .3) + '" fill="' + ink + '" text-anchor="middle" dominant-baseline="central" font-family="Charter,serif" class="num">0:00</text>' + hnd(live ? 'hChrono' : '', r * .82, '#1f47b0'); }
+  else if (type === 'steps'){ var pr = .855, c0 = 2 * Math.PI * (r - 4); s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r - 4) + '" fill="none" stroke="' + ink + '" stroke-width="2.6" opacity=".2"/><circle cx="' + cx + '" cy="' + cy + '" r="' + (r - 4) + '" fill="none" stroke="#c9a24a" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="' + f(c0 * pr) + ' ' + f(c0) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/><text x="' + cx + '" y="' + f(cy - 1) + '" font-size="' + f(r * .36) + '" fill="' + ink + '" text-anchor="middle" dominant-baseline="central" font-family="Charter,serif" font-weight="700">6,842</text>' + lbl('步', r * .42); }
+  else if (type === 'temp'){ s += '<text x="' + cx + '" y="' + f(cy - 2) + '" font-size="' + f(r * .62) + '" fill="' + ink + '" text-anchor="middle" dominant-baseline="central" font-family="Charter,serif" font-weight="700">29°</text>' + lbl('台北', r * .52); }
+  return s;
+}
+
+// ---------- the watch ----------
+var uidN = 0;
+function watchSVG(face, opt){
+  opt = opt || {}; var live = !!opt.live, id = 'w' + (uidN++), D = DIALS[face.dial], C = CASES[face.caseM || 'gold'], H = HC[face.hc];
+  var cx = 160, cy = 172, R = 118, s = '<defs>' +
+    '<linearGradient id="' + id + 'c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + C.a + '"/><stop offset=".45" stop-color="' + C.b + '"/><stop offset=".75" stop-color="' + C.c + '"/><stop offset="1" stop-color="' + C.b + '"/></linearGradient>' +
+    '<radialGradient id="' + id + 'd" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="' + D.base + '"/><stop offset=".8" stop-color="' + D.base + '"/><stop offset="1" stop-color="' + D.edge + '"/></radialGradient>' +
+    '<clipPath id="' + id + 'k"><circle cx="' + cx + '" cy="' + cy + '" r="' + (R - 1) + '"/></clipPath></defs>';
+  if (!opt.thumb){
+    // lugs + strap stubs
+    s += '<path d="M104 60 L96 18 Q95 8 106 8 L214 8 Q225 8 224 18 L216 60Z" fill="#1b1a17"/><path d="M104 284 L96 326 Q95 336 106 336 L214 336 Q225 336 224 326 L216 284Z" fill="#1b1a17"/>' +
+      '<path d="M104 60 L96 18 Q95 8 106 8 L214 8 Q225 8 224 18 L216 60Z M104 284 L96 326 Q95 336 106 336 L214 336 Q225 336 224 326 L216 284Z" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1"/>' +
+      '<path d="M78 90 Q70 60 96 44 L118 58 Q100 72 100 92Z M242 90 Q250 60 224 44 L202 58 Q220 72 220 92Z M78 254 Q70 284 96 300 L118 286 Q100 272 100 252Z M242 254 Q250 284 224 300 L202 286 Q220 272 220 252Z" fill="url(#' + id + 'c)"/>' +
+      '<g class="crown" id="' + (live ? 'crown' : '') + '"><rect x="287" y="160" width="20" height="24" rx="4" fill="url(#' + id + 'c)"/><path d="M291 160v24M295 160v24M299 160v24M303 160v24" stroke="' + C.c + '" stroke-width="1"/><rect x="278" y="166" width="11" height="12" fill="' + C.b + '"/></g>';
+  }
+  s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (R + 14) + '" fill="url(#' + id + 'c)"/>' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="' + (R + 13.3) + '" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1"/>' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="' + (R + 3) + '" fill="' + C.c + '"/>' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="url(#' + id + 'd)"/>';
+  s += '<g clip-path="url(#' + id + 'k)">' + guilloche(face.pat, cx, cy, R * .86, D.line, !opt.thumb) + '</g>';
+  // chapter ring: railway minute track
+  s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (R - 6) + '" fill="none" stroke="' + D.ink + '" stroke-width=".7" opacity=".6"/><circle cx="' + cx + '" cy="' + cy + '" r="' + (R - 12) + '" fill="none" stroke="' + D.ink + '" stroke-width=".7" opacity=".6"/>';
+  if (!opt.thumb) s += ticks(cx, cy, R - 6, 60, 6, D.ink, .6);
+  // numerals
+  var comps = face.comps, blocked = {12:!!comps.top, 9:!!comps.left, 3:!!comps.right, 6:!!comps.bottom}, ROM = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+  for (var h = 0; h < 12; h++){
+    var hh = h === 0 ? 12 : h; if (blocked[hh] && !opt.bare) continue;
+    var ang = h * 30;
+    if (face.nums === 'index'){
+      var p = pol(cx, cy, R - 24, ang), big = h % 3 === 0;
+      s += '<g transform="translate(' + f(p[0]) + ' ' + f(p[1]) + ') rotate(' + ang + ')"><rect x="' + (big ? -3 : -1.8) + '" y="-9" width="' + (big ? 6 : 3.6) + '" height="18" rx="1" fill="#c9a24a"/><rect x="' + (big ? -1 : -.6) + '" y="-8" width="' + (big ? 2 : 1.2) + '" height="16" fill="#f1e2b0"/></g>';
+    } else {
+      var q = pol(cx, cy, R - 25, ang), txt = face.nums === 'roman' ? ROM[h] : String(hh);
+      s += '<text x="' + f(q[0]) + '" y="' + f(q[1]) + '" font-size="' + (face.nums === 'roman' ? 15 : 19) + '" fill="' + D.ink + '" text-anchor="middle" dominant-baseline="central" font-family="Charter,Iowan Old Style,serif"' + (face.nums === 'breguet' ? ' font-style="italic"' : '') + (face.nums === 'roman' ? ' letter-spacing="-.5"' : '') + '>' + txt + '</text>';
+    }
+  }
+  // signature
+  s += '<text x="' + cx + '" y="' + (cy - 44) + '" font-size="8.5" letter-spacing="2" fill="' + D.ink + '" text-anchor="middle" dominant-baseline="central" font-family="Charter,serif" opacity="' + (comps.top ? 0 : .8) + '">ATELIER · TAIPEI</text>';
+  // slots
+  Object.keys(SLOTS).forEach(function(k){
+    var c = SLOTS[k], t = comps[k];
+    s += '<g class="slot" data-slot="' + k + '">' + (t ? compSVG(t, c[0], c[1], D, live) : '') + '<circle class="ring" cx="' + c[0] + '" cy="' + c[1] + '" r="26"/><circle cx="' + c[0] + '" cy="' + c[1] + '" r="27" fill="transparent"/></g>';
+  });
+  // hands
+  if (!opt.thumb){
+    var sh = 'filter="url(#' + id + 's)"';
+    s += '<defs><filter id="' + id + 's" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="1.2" dy="1.8" stdDeviation=".9" flood-color="#0a1433" flood-opacity=".35"/></filter></defs>';
+    s += '<g ' + sh + '><g id="' + (live ? 'hH' : '') + '" transform="translate(' + cx + ' ' + cy + ')">' + hand(face.hands, 62, 4.6, H) + '</g>' +
+      '<g id="' + (live ? 'hM' : '') + '" transform="translate(' + cx + ' ' + cy + ')">' + hand(face.hands, 96, 3.4, H) + '</g>' +
+      '<g id="' + (live ? 'hS' : '') + '" transform="translate(' + cx + ' ' + cy + ')"><path d="M0 22L0 -108" stroke="' + (face.hc === 'blue' ? '#9a3b2b' : '#1f47b0') + '" stroke-width="1.1" stroke-linecap="round"/><circle cy="15" r="3.4" fill="' + (face.hc === 'blue' ? '#9a3b2b' : '#1f47b0') + '"/><circle r="3" fill="' + (face.hc === 'blue' ? '#9a3b2b' : '#1f47b0') + '"/><circle r="1.2" fill="#e7cf8c"/></g></g>';
+  } else {
+    s += '<g transform="translate(' + cx + ' ' + cy + ') rotate(300)">' + hand(face.hands, 62, 5.6, H) + '</g><g transform="translate(' + cx + ' ' + cy + ') rotate(60)">' + hand(face.hands, 96, 4.4, H) + '</g>';
+  }
+  // crystal gloss
+  if (!opt.thumb) s += '<path d="M' + (cx - 96) + ' ' + (cy - 52) + ' A' + (R - 8) + ' ' + (R - 8) + ' 0 0 1 ' + (cx - 30) + ' ' + (cy - 106) + '" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".08"/>';
+  return s;
+}
+function thumbSVG(face, sel){
+  var inner = watchSVG(face, {thumb:true});
+  return '<svg viewBox="26 38 268 268" aria-hidden="true">' + inner + '<circle class="sel" cx="160" cy="172" r="130" fill="none" stroke="transparent" stroke-width="7"/></svg>';
+}
+
+// ---------- render ----------
+function renderWatch(anim){
+  $('wsvg').innerHTML = watchSVG(cur, {live:true});
+  var st = STYLES.filter(function(x){ return x.pat === cur.pat; })[0] || STYLES[0];
+  $('fName').textContent = cur.label || st.name;
+  $('fSub').textContent = st.en + ' · ' + DIALS[cur.dial].n + ' · ' + HC[cur.hc].n + '針';
+  if (anim && !reduce){ var w = $('watch'); w.classList.remove('swap'); void w.offsetWidth; w.classList.add('swap'); }
+  $('watch').classList.toggle('editing', tab === 'comp');
+  wireCrown(); tickHands(true);
+}
+function renderThumbs(){
+  $('thumbs').innerHTML = STYLES.map(function(st, i){ return '<button data-style="' + i + '" aria-pressed="' + (st.pat === cur.pat) + '" aria-label="' + st.name + '">' + thumbSVG(st) + '</button>'; }).join('');
+}
+function swatch(fill, stroke){ return '<svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="13" fill="' + fill + '"/><circle class="o" cx="17" cy="17" r="15.5" fill="none" stroke="rgba(174,187,220,.35)" stroke-width="1"/>' + (stroke || '') + '</svg>'; }
+function renderColor(){
+  var h = '<div class="lab">琺瑯</div><div class="sw">' + Object.keys(DIALS).map(function(k){ return '<button data-dial="' + k + '" aria-pressed="' + (cur.dial === k) + '">' + swatch(DIALS[k].base) + DIALS[k].n + '</button>'; }).join('') + '</div>' +
+    '<div class="lab">錶殼</div><div class="sw">' + Object.keys(CASES).map(function(k){ return '<button data-case="' + k + '" aria-pressed="' + ((cur.caseM || 'gold') === k) + '">' + swatch(CASES[k].b, '<circle cx="17" cy="17" r="8" fill="' + CASES[k].a + '"/>') + CASES[k].n + '</button>'; }).join('') + '</div>';
+  $('p-color').innerHTML = h;
+}
+function compIcon(t){
+  var D = {sub:'#1d3d93', line:'rgba(190,210,255,.3)', ink:'#f4f2ea'};
+  return '<svg viewBox="130 142 60 60">' + compSVG(t, 160, 172, D, false, 26) + '</svg>';
+}
+function renderComp(){
+  var used = {}; Object.keys(cur.comps).forEach(function(k){ if (cur.comps[k]) used[cur.comps[k]] = k; });
+  $('p-comp').innerHTML = '<div class="tray" id="tray">' + Object.keys(COMPS).map(function(t){ return '<button data-comp="' + t + '" class="' + (used[t] ? 'used' : '') + (pick === t ? ' pick' : '') + '" aria-label="' + COMPS[t] + '">' + compIcon(t) + COMPS[t] + '</button>'; }).join('') + '</div>' +
+    '<p class="tip">拖到錶盤上的虛線圈。點一下功能再點圈也可以；把錶盤上的功能拖出錶外就移除。</p>';
+}
+function renderHand(){
+  var shapes = {breguet:'寶璣', leaf:'柳葉', dauphine:'太子妃'}, nums = {breguet:'寶璣數字', roman:'羅馬', index:'刻度'};
+  $('p-hand').innerHTML = '<div class="lab">指針造型</div><div class="sw">' + Object.keys(shapes).map(function(k){ return '<button data-hands="' + k + '" aria-pressed="' + (cur.hands === k) + '"><svg viewBox="-17 -17 34 34"><circle class="o" r="15.5" fill="none" stroke="rgba(174,187,220,.35)"/><g transform="rotate(35) translate(0 9) scale(.22)">' + hand(k, 96, 4.4, HC[cur.hc]) + '</g></svg>' + shapes[k] + '</button>'; }).join('') + '</div>' +
+    '<div class="lab">指針材質</div><div class="sw">' + Object.keys(HC).map(function(k){ return '<button data-hc="' + k + '" aria-pressed="' + (cur.hc === k) + '">' + swatch(HC[k].a, '<path d="M17 9v16" stroke="' + HC[k].b + '" stroke-width="2" stroke-linecap="round"/>') + HC[k].n + '</button>'; }).join('') + '</div>' +
+    '<div class="lab">時標</div><div class="sw">' + Object.keys(nums).map(function(k){ return '<button data-nums="' + k + '" aria-pressed="' + (cur.nums === k) + '"><svg viewBox="0 0 34 34"><circle class="o" cx="17" cy="17" r="15.5" fill="none" stroke="rgba(174,187,220,.35)"/><text x="17" y="17.5" font-size="' + (k === 'roman' ? 11 : 15) + '" fill="#f6f5ef" text-anchor="middle" dominant-baseline="central" font-family="Charter,serif"' + (k === 'breguet' ? ' font-style="italic"' : '') + '>' + (k === 'breguet' ? '12' : k === 'roman' ? 'XII' : '') + '</text>' + (k === 'index' ? '<rect x="15" y="9" width="4" height="16" rx="1" fill="#c9a24a"/>' : '') + '</svg>' + nums[k] + '</button>'; }).join('') + '</div>' +
+    '<div class="rowt"><span>秒針掃動<small>' + (cur.sweep === false ? '石英跳秒' : '機械式每秒八跳') + '</small></span><button class="tog" id="tSweep" role="switch" aria-checked="' + (cur.sweep !== false) + '" aria-label="秒針掃動"></button></div>' +
+    '<div class="rowt"><span>擒縱聲<small>聽得到擺輪的滴答</small></span><button class="tog" id="tTick" role="switch" aria-checked="' + S.tick + '" aria-label="擒縱聲"></button></div>' +
+    '<div class="rowt"><span>觸覺回饋</span><button class="tog" id="tHap" role="switch" aria-checked="' + S.haptic + '" aria-label="觸覺回饋"></button></div>';
+  $('tSweep').addEventListener('click', function(){ cur.sweep = cur.sweep === false; persist(); this.setAttribute('aria-checked', cur.sweep); this.previousElementSibling.querySelector('small').textContent = cur.sweep ? '機械式每秒八跳' : '石英跳秒'; haptic(6); click(3000, .2); });
+  $('tTick').addEventListener('click', function(){ S.tick = !S.tick; persist(); this.setAttribute('aria-checked', S.tick); haptic(6); click(3000, .2); });
+  $('tHap').addEventListener('click', function(){ S.haptic = !S.haptic; persist(); this.setAttribute('aria-checked', S.haptic); haptic(10); });
+}
+var tab = 'color', pick = null;
+function setTab(t){
+  tab = t; pick = null;
+  document.querySelectorAll('.tabs button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.t === t); });
+  ['color', 'comp', 'hand'].forEach(function(k){ var el = $('p-' + k), on = k === t; el.hidden = !on; if (on && !reduce){ el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); } });
+  if (t === 'color') renderColor(); if (t === 'comp') renderComp(); if (t === 'hand') renderHand();
+  $('watch').classList.toggle('editing', t === 'comp');
+}
+document.querySelector('.tabs').addEventListener('click', function(e){ var b = e.target.closest('[data-t]'); if (!b) return; haptic(5); click(3600, .15); setTab(b.dataset.t); });
+document.querySelector('.pbody').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  var changed = true;
+  if (b.dataset.dial) cur.dial = b.dataset.dial;
+  else if (b.dataset.case) cur.caseM = b.dataset.case;
+  else if (b.dataset.hands) cur.hands = b.dataset.hands;
+  else if (b.dataset.hc) cur.hc = b.dataset.hc;
+  else if (b.dataset.nums) cur.nums = b.dataset.nums;
+  else if (b.dataset.comp && !dragMoved){ pick = pick === b.dataset.comp ? null : b.dataset.comp; haptic(5); click(3600, .15); renderComp(); if (pick) toast('點錶盤上的一個虛線圈放進去'); return; }
+  else changed = false;
+  if (!changed) return;
+  delete cur.label; haptic(6); click(2800, .2); persist(); renderWatch(false); setTab(tab);
+});
+$('thumbs').addEventListener('click', function(e){
+  var b = e.target.closest('[data-style]'); if (!b) return; applyStyle(+b.dataset.style, 1);
+});
+function applyStyle(i, dir){
+  var st = clone(STYLES[(i + STYLES.length) % STYLES.length]); st.caseM = cur.caseM || 'gold'; st.sweep = cur.sweep;
+  cur = st; persist(); haptic(8); click(2200, .25);
+  $('watch').style.setProperty('--dx', (dir > 0 ? 50 : -50) + 'px'); $('watch').style.setProperty('--rot', (dir > 0 ? 8 : -8) + 'deg');
+  renderWatch(true); renderThumbs(); setTab(tab);
+  var tb = $('thumbs').querySelector('[aria-pressed=true]'); if (tb) tb.scrollIntoView({inline:'center', block:'nearest', behavior:reduce ? 'auto' : 'smooth'});
+}
+function styleIndex(){ for (var i = 0; i < STYLES.length; i++) if (STYLES[i].pat === cur.pat) return i; return 0; }
+// swipe the watch to flip through the gallery
+(function(){
+  var sx = 0, sy = 0, on = false, el = $('stageW');
+  el.addEventListener('pointerdown', function(e){ if (e.target.closest('.slot,.crown') && (tab === 'comp' || e.target.closest('.crown'))) return; on = true; sx = e.clientX; sy = e.clientY; });
+  el.addEventListener('pointerup', function(e){ if (!on) return; on = false; var dx = e.clientX - sx, dy = e.clientY - sy; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) applyStyle(styleIndex() + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1); });
+  el.addEventListener('pointercancel', function(){ on = false; });
+})();
+
+// ---------- slots: tap (chrono / pick placement) ----------
+var lpT = null, lpDone = false;
+$('wsvg').addEventListener('pointerdown', function(e){
+  var sl = e.target.closest('.slot'); if (!sl) return;
+  var k = sl.dataset.slot, t = cur.comps[k];
+  if (tab === 'comp' && t && !pick){ startDrag(e, t, k); return; }
+  if (t === 'chrono'){ lpDone = false; clearTimeout(lpT); lpT = setTimeout(function(){ lpDone = true; chrono = {run:false, t0:0, acc:0}; persist(); haptic([10, 30, 10]); click(1800, .3); toast('計時歸零'); }, 600); }
+});
+$('wsvg').addEventListener('pointerup', function(e){
+  clearTimeout(lpT);
+  var sl = e.target.closest('.slot'); if (!sl || dragging) return;
+  var k = sl.dataset.slot, t = cur.comps[k];
+  if (pick){ place(pick, k); pick = null; renderComp(); return; }
+  if (t === 'chrono' && !lpDone){
+    if (chrono.run){ chrono.acc += Date.now() - chrono.t0; chrono.run = false; } else { chrono.t0 = Date.now(); chrono.run = true; }
+    persist(); haptic(12); click(1500, .35, .03);
+  } else if (t === 'moon' && tab !== 'comp'){ var age = moonAge(new Date()); toast('月齡 ' + age.toFixed(1) + ' 天・' + (age < 1.5 || age > 28 ? '新月' : age < 7 ? '眉月' : age < 8.8 ? '上弦' : age < 14 ? '盈凸' : age < 16 ? '滿月' : age < 22 ? '虧凸' : age < 23.8 ? '下弦' : '殘月')); haptic(5); }
+  else if (t === 'power' && tab !== 'comp'){ toast('動力儲存 ' + Math.round(power * .72) + ' 小時，轉錶冠上鍊'); haptic(5); }
+  else if (!t && tab !== 'comp'){ setTab('comp'); toast('拖一個複雜功能到這個圈'); }
+});
+function place(t, k){
+  Object.keys(cur.comps).forEach(function(s){ if (cur.comps[s] === t) cur.comps[s] = null; });
+  cur.comps[k] = t; delete cur.label; persist(); haptic([8, 20, 8]); click(2000, .3, .03); renderWatch(false); renderComp();
+}
+
+// ---------- drag complications ----------
+var dragging = null, dragMoved = false, ghost = null;
+function startDrag(e, type, fromSlot){
+  dragging = {type:type, from:fromSlot || null, sx:e.clientX, sy:e.clientY}; dragMoved = false;
+  try { e.target.setPointerCapture && e.target.releasePointerCapture && e.target.releasePointerCapture(e.pointerId); } catch(x){}
+}
+$('p-comp').addEventListener('pointerdown', function(e){ var b = e.target.closest('[data-comp]'); if (!b) return; startDrag(e, b.dataset.comp, null); });
+function slotAt(x, y){
+  var hit = null;
+  document.querySelectorAll('#wsvg .slot').forEach(function(g){ var r = g.querySelector('.ring').getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; if (Math.hypot(x - cx, y - cy) < r.width * .75) hit = g; });
+  return hit;
+}
+window.addEventListener('pointermove', function(e){
+  if (!dragging) return;
+  if (!dragMoved && Math.hypot(e.clientX - dragging.sx, e.clientY - dragging.sy) < 8) return;
+  var scr = $('screen').getBoundingClientRect();
+  if (!dragMoved){ dragMoved = true; ghost = document.createElement('div'); ghost.className = 'ghost'; ghost.innerHTML = compIcon(dragging.type); $('screen').appendChild(ghost); haptic(6); $('watch').classList.add('editing'); }
+  ghost.style.left = (e.clientX - scr.left) + 'px'; ghost.style.top = (e.clientY - scr.top) + 'px';
+  var hit = slotAt(e.clientX, e.clientY);
+  document.querySelectorAll('#wsvg .slot').forEach(function(g){ g.classList.toggle('hot', g === hit); });
+});
+window.addEventListener('pointerup', function(e){
+  if (!dragging) return;
+  var d = dragging; dragging = null;
+  if (ghost){ ghost.remove(); ghost = null; }
+  document.querySelectorAll('#wsvg .slot').forEach(function(g){ g.classList.remove('hot'); });
+  if (!dragMoved){ setTimeout(function(){ dragMoved = false; }, 0); return; }
+  var hit = slotAt(e.clientX, e.clientY);
+  if (hit){ place(d.type, hit.dataset.slot); toast(COMPS[d.type] + ' 放上錶盤'); }
+  else if (d.from){
+    var wr = $('watch').getBoundingClientRect(), inside = e.clientX > wr.left && e.clientX < wr.right && e.clientY > wr.top && e.clientY < wr.bottom;
+    if (!inside){ var prev = clone(cur); cur.comps[d.from] = null; delete cur.label; persist(); haptic([10, 30, 10]); click(1200, .3, .04); renderWatch(false); renderComp(); toast('移除 ' + COMPS[d.type], function(){ cur = prev; persist(); renderWatch(false); renderComp(); }); }
+  }
+  setTimeout(function(){ dragMoved = false; }, 0);
+  if (tab !== 'comp') $('watch').classList.remove('editing');
+});
+
+// ---------- crown: wind the power reserve ----------
+function wireCrown(){
+  var cr = $('crown'); if (!cr) return;
+  var on = false, ly = 0, acc = 0;
+  cr.addEventListener('pointerdown', function(e){ on = true; ly = e.clientY; acc = 0; e.stopPropagation(); try { cr.setPointerCapture(e.pointerId); } catch(x){} });
+  cr.addEventListener('pointermove', function(e){
+    if (!on) return; acc += Math.abs(e.clientY - ly); ly = e.clientY;
+    while (acc > 9){ acc -= 9; if (power < 100){ power = Math.min(100, power + 1.4); click(5200, .18, .01); haptic(3); } else { haptic([20]); } }
+    var hp = $('hPower'); if (hp){ var t = hp.getAttribute('transform').replace(/rotate\([^)]*\)/, 'rotate(' + f(-120 + 240 * power / 100) + ')'); hp.setAttribute('transform', t); }
+  });
+  function end(){ if (!on) return; on = false; persist(); toast('動力儲存 ' + Math.round(power * .72) + ' 小時'); }
+  cr.addEventListener('pointerup', end); cr.addEventListener('pointercancel', end);
+  cr.addEventListener('click', function(){ if (acc === 0 && !on){ power = Math.min(100, power + 4); click(5200, .2, .01); haptic(4); persist(); renderWatch(false); } });
+}
+
+// ---------- live hands ----------
+var lastSec = -1, lastMin = -1;
+function tickHands(force){
+  var n = new Date(), ms = n.getMilliseconds(), s = n.getSeconds(), m = n.getMinutes(), h = n.getHours() % 12;
+  var sweep = cur.sweep !== false, sf = sweep ? s + Math.floor(ms / 125) / 8 : s;
+  var set = function(id, deg){ var el = $(id); if (el) el.setAttribute('transform', el.getAttribute('transform').replace(/ ?rotate\([^)]*\)/, '') + ' rotate(' + f(deg) + ')'); };
+  set('hS', sf * 6); set('hM', (m + sf / 60) * 6); set('hH', (h + m / 60 + s / 3600) * 30); set('hSecs', sf * 6);
+  var cr = chrono.acc + (chrono.run ? Date.now() - chrono.t0 : 0), cs = cr / 1000;
+  set('hChrono', (sweep ? Math.floor(cs * 8) / 8 : Math.floor(cs)) * 6);
+  var tc = $('tChrono'); if (tc) tc.textContent = Math.floor(cs / 60) + ':' + String(Math.floor(cs) % 60).padStart(2, '0');
+  if (s !== lastSec){
+    if (lastSec >= 0 && S.tick && !force) click(s % 2 ? 3800 : 3200, .12, .012);
+    lastSec = s;
+    if (m !== lastMin){ lastMin = m; tickClock(); if (!force && lastMin % 5 === 0) power = Math.max(0, power - .12); }
+  }
+}
+var raf = 0;
+function loop(){ raf = 0; if (document.hidden) return; tickHands(false); raf = requestAnimationFrame(loop); }
+document.addEventListener('visibilitychange', function(){ if (!document.hidden && !raf) raf = requestAnimationFrame(loop); });
+
+// ---------- my faces sheet ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('sbody').innerHTML = html; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); var fo = sheet.querySelector('button'); if (fo) fo.focus({preventScroll:true}); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dg = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; dg = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch(x){} });
+  sheet.addEventListener('pointermove', function(e){ if (!dg) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight); });
+  function end(e){ if (!dg) return; dg = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+function mineHTML(){
+  return '<h4>我的錶盤</h4><p class="sub">' + mine.length + ' 只收藏・點一下戴上</p><div class="mine">' +
+    (mine.length ? mine.map(function(m, i){ var st = STYLES.filter(function(x){ return x.pat === m.pat; })[0]; return '<div class="it"><button data-wear="' + i + '" aria-label="戴上 ' + esc(m.label || st.name) + '">' + thumbSVG(m) + '</button><b>' + esc(m.label || st.name) + '</b><button class="del" data-del="' + i + '">刪除</button></div>'; }).join('') : '<p class="empty">還沒有收藏。調好一只錶，按下方按鈕收進來。</p>') +
+    '</div><button class="addmine" id="addMine"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>收藏目前這只</button>';
+}
+var NAMES = ['晨間', '通勤', '週末藍', '會議用', '晚宴', '出差', '雨天', '紀念日'];
+function openMine(){ openSheet(mineHTML()); }
+$('sbody').addEventListener('click', function(e){
+  var w = e.target.closest('[data-wear]'), d = e.target.closest('[data-del]'), a = e.target.closest('#addMine');
+  if (w){ cur = clone(mine[+w.dataset.wear]); persist(); closeSheet(); click(2200, .25); renderWatch(true); renderThumbs(); setTab(tab); toast('換上：' + (cur.label || '')); }
+  if (d){ var i = +d.dataset.del, gone = mine.splice(i, 1)[0]; persist(); haptic([10, 30, 10]); $('sbody').innerHTML = mineHTML(); toast('已刪除 ' + (gone.label || ''), function(){ mine.splice(i, 0, gone); persist(); if (sheet.classList.contains('on')) $('sbody').innerHTML = mineHTML(); }); }
+  if (a){ var c = clone(cur); c.label = c.label || NAMES[mine.length % NAMES.length]; mine.push(c); persist(); haptic([8, 24, 8]); chime(); $('sbody').innerHTML = mineHTML(); toast('收進我的錶盤：' + c.label); }
+});
+$('mineBtn').addEventListener('click', openMine);
+
+// ---------- sync ----------
+var syncing = false;
+$('syncBtn').addEventListener('click', function(){
+  if (syncing) return; syncing = true; haptic(6); click(2400, .2);
+  var bar = $('syncBar'), t0 = performance.now(), D = 1600;
+  $('syncT').textContent = '傳送中';
+  (function step(t){
+    var p = Math.min(1, (t - t0) / D); bar.style.transform = 'scaleX(' + p.toFixed(3) + ')';
+    if (Math.floor(p * 12) !== Math.floor(((t - 16) - t0) / D * 12)) click(4800, .08, .008);
+    if (p < 1) requestAnimationFrame(step);
+    else { $('syncT').textContent = '已同步'; chime(); haptic([10, 40, 10]); toast('錶盤已傳送到手錶'); setTimeout(function(){ bar.style.transform = 'scaleX(0)'; $('syncT').textContent = '傳送到手錶'; syncing = false; }, 1600); }
+  })(t0);
+});
+
+// ---------- toast ----------
+var toastT = null, undoFn = null;
+function toast(m, undo){ $('toastT').textContent = m; undoFn = undo || null; $('toastU').hidden = !undo; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, undo ? 4000 : 2200); }
+$('toastU').addEventListener('click', function(){ if (undoFn){ undoFn(); undoFn = null; haptic(8); } $('toast').classList.remove('on'); });
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ if (sheet.classList.contains('on')) closeSheet(); else if (pick){ pick = null; renderComp(); } }
+  if (e.target === document.body && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) applyStyle(styleIndex() + (e.key === 'ArrowRight' ? 1 : -1), e.key === 'ArrowRight' ? 1 : -1);
+});
+
+// ---------- backdrop: a huge rose-engine dial, cropped ----------
+(function(){
+  var s = '<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1f3a80"/><stop offset=".5" stop-color="#152a5f"/><stop offset="1" stop-color="#0e1c42"/></linearGradient></defs><rect width="1600" height="1000" fill="url(#bg)"/>';
+  var d = '', cx = 1250, cy = 760, i, k;
+  for (i = 0; i < 70; i++){ var r0 = 60 + i * 11, ph = i * .23; d += 'M'; for (k = 0; k <= 240; k++){ var th = k / 240 * Math.PI * 2, rr = r0 + 5 * Math.sin(th * 36 + ph * 6); d += (k ? 'L' : '') + f(cx + Math.cos(th) * rr) + ' ' + f(cy + Math.sin(th) * rr); } }
+  s += '<path d="' + d + '" fill="none" stroke="rgba(174,196,255,.13)" stroke-width="1"/>';
+  s += '<circle cx="' + cx + '" cy="' + cy + '" r="840" fill="none" stroke="#c9a24a" stroke-width="3" opacity=".7"/><circle cx="' + cx + '" cy="' + cy + '" r="822" fill="none" stroke="#c9a24a" stroke-width="1" opacity=".5"/>';
+  var tk = ''; for (i = 0; i < 120; i++){ var a = pol(cx, cy, 812, i * 3), b = pol(cx, cy, i % 5 ? 800 : 786, i * 3); tk += 'M' + f(a[0]) + ' ' + f(a[1]) + 'L' + f(b[0]) + ' ' + f(b[1]); }
+  s += '<path d="' + tk + '" stroke="#e7cf8c" stroke-width="1.4" opacity=".55"/>';
+  var ROM = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+  for (i = 0; i < 12; i++){ var p = pol(cx, cy, 740, i * 30); s += '<text x="' + f(p[0]) + '" y="' + f(p[1]) + '" font-size="46" fill="#e7cf8c" opacity=".5" text-anchor="middle" dominant-baseline="central" font-family="Charter,serif">' + ROM[i] + '</text>'; }
+  $('bd').innerHTML = s;
+})();
+
+// ---------- boot ----------
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tickClock(); setInterval(tickClock, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(3, 15 * b.level).toFixed(1)); }).catch(function(){});
+renderWatch(false); renderThumbs(); setTab('color');
+raf = requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

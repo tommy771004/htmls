@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Thockwork 客製化鍵盤工坊預覽">
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#56514b"/><stop offset="1" stop-color="#302d2a"/></linearGradient>
+    <linearGradient id="metal" x2="0" y2="1"><stop stop-color="#e0ded5"/><stop offset=".45" stop-color="#bab9b2"/><stop offset="1" stop-color="#777874"/></linearGradient>
+    <linearGradient id="cap" x2="0" y2="1"><stop stop-color="#fff8e8"/><stop offset="1" stop-color="#d7d1c4"/></linearGradient>
+    <pattern id="keys" width="29" height="29" patternUnits="userSpaceOnUse">
+      <rect x="2" y="3" width="25" height="24" rx="4" fill="#9e9a91"/>
+      <rect x="3" y="3" width="23" height="21" rx="3.5" fill="url(#cap)"/>
+      <path d="M5 5h18" stroke="#fff" stroke-opacity=".5" stroke-width="1"/>
+    </pattern>
+    <filter id="shadow" x="-30%" y="-40%" width="160%" height="190%"><feGaussianBlur stdDeviation="15"/></filter>
+    <clipPath id="bed"><rect x="0" y="0" width="493" height="145" rx="8"/></clipPath>
+  </defs>
+  <rect width="640" height="400" fill="url(#bg)"/>
+  <ellipse cx="325" cy="230" rx="266" ry="97" fill="#10100e" opacity=".48" filter="url(#shadow)"/>
+  <g transform="translate(76 114) rotate(-10 246 92)">
+    <rect x="-16" y="-11" width="527" height="190" rx="17" fill="#6b6a65"/>
+    <rect x="-16" y="-17" width="527" height="184" rx="17" fill="url(#metal)" stroke="#e9e7df" stroke-width="2"/>
+    <rect x="-4" y="-5" width="503" height="155" rx="11" fill="#4e4c48"/>
+    <g clip-path="url(#bed)">
+      <rect width="493" height="145" fill="url(#keys)"/>
+      <rect x="2" y="3" width="23" height="21" rx="3.5" fill="#dd6558"/>
+      <rect x="408" y="32" width="81" height="21" rx="3.5" fill="#dd6558"/>
+      <rect x="2" y="61" width="23" height="21" rx="3.5" fill="#55524f"/>
+      <rect x="437" y="61" width="52" height="21" rx="3.5" fill="#55524f"/>
+      <rect x="2" y="90" width="52" height="21" rx="3.5" fill="#55524f"/>
+      <rect x="408" y="90" width="81" height="21" rx="3.5" fill="#55524f"/>
+      <rect x="2" y="119" width="81" height="21" rx="3.5" fill="#55524f"/>
+      <rect x="118" y="119" width="176" height="21" rx="3.5" fill="#f8f0df"/>
+      <rect x="321" y="119" width="168" height="21" rx="3.5" fill="#55524f"/>
+      <g fill="#3d3b38" font-family="Arial,sans-serif" font-size="7" font-weight="700">
+        <text x="35" y="19">1</text><text x="64" y="19">2</text><text x="93" y="19">3</text><text x="122" y="19">4</text><text x="151" y="19">5</text><text x="180" y="19">6</text><text x="209" y="19">7</text><text x="238" y="19">8</text><text x="267" y="19">9</text>
+        <text x="35" y="48">Q</text><text x="64" y="48">W</text><text x="93" y="48">E</text><text x="122" y="48">R</text><text x="151" y="48">T</text><text x="180" y="48">Y</text><text x="209" y="48">U</text><text x="238" y="48">I</text><text x="267" y="48">O</text>
+        <text x="35" y="77">A</text><text x="64" y="77">S</text><text x="93" y="77">D</text><text x="122" y="77">F</text><text x="151" y="77">G</text><text x="180" y="77">H</text><text x="209" y="77">J</text><text x="238" y="77">K</text><text x="267" y="77">L</text>
+        <text x="64" y="106">Z</text><text x="93" y="106">X</text><text x="122" y="106">C</text><text x="151" y="106">V</text><text x="180" y="106">B</text><text x="209" y="106">N</text><text x="238" y="106">M</text>
+      </g>
+      <text x="8" y="19" fill="#fff2e5" font-family="Arial,sans-serif" font-size="7" font-weight="700">Esc</text>
+    </g>
+  </g>
+  <text x="34" y="351" fill="#f6efe2" font-family="Arial,sans-serif" font-size="28" font-weight="700" letter-spacing="1">Thockwork</text>
+  <text x="36" y="374" fill="#c4bcb0" font-family="Arial,sans-serif" font-size="11" letter-spacing="3">CUSTOM KEYBOARD STUDIO · 116</text>
+</svg>

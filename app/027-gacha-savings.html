@@ -494,7 +494,7 @@ $('undoBtn').addEventListener('click',function(){if(undoFn){var f=undoFn;undoFn=
 /* ---------- backdrop: a wall of machines ---------- */
 (function(){var h='<rect width="1600" height="1000" fill="#ffc8d8"/>',cols=['#ff8fb1','#ffd23f','#ffffff','#e8517a'],k=0;
   for(var row=0;row<3;row++)for(var i=0;i<9;i++){var x=i*190-40+(row%2)*95,y=row*330-40,c=cols[(i+row*2)%4],c2=c==='#ffffff'?'#f6dbe4':c==='#ffd23f'?'#e9b93a':c==='#ff8fb1'?'#e8517a':'#b8325c';
-    h+='<g opacity=".55"><rect x="'+(x+20)+'" y="'+(y+150)+'" width="130" height="150" rx="18" fill="'+c+'"/><rect x="'+(x+20)+'" y="'+(y+288)+'" width="130" height="12" fill="'+c2+'"/><circle cx="'+(x+85)+'" cy="'+(y+100)+'" r="68" fill="#fff" fill-opacity=".75"/>';
+    h+='<g opacity=".3"><rect x="'+(x+20)+'" y="'+(y+150)+'" width="130" height="150" rx="18" fill="'+c+'"/><rect x="'+(x+20)+'" y="'+(y+288)+'" width="130" height="12" fill="'+c2+'"/><circle cx="'+(x+85)+'" cy="'+(y+100)+'" r="68" fill="#fff" fill-opacity=".75"/>';
     for(var j=0;j<6;j++){var cc=cols[(j+i)%4];h+='<circle cx="'+(x+50+(j%3)*34)+'" cy="'+(y+120+Math.floor(j/3)*26)+'" r="14" fill="'+(cc==='#ffffff'?'#ff8fb1':cc)+'"/>';}
     h+='<circle cx="'+(x+85)+'" cy="'+(y+215)+'" r="22" fill="#fff"/><rect x="'+(x+67)+'" y="'+(y+209)+'" width="36" height="12" rx="6" fill="#ffd23f"/><rect x="'+(x+60)+'" y="'+(y+250)+'" width="50" height="30" rx="10" fill="#5a1030" fill-opacity=".6"/></g>';}
   $('bd').innerHTML=h;})();

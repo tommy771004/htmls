@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c1a17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="臨帖">
+<title>臨帖 · 寫字練習</title>
+<meta name="description" content="在朱紅米字格上描紅練楷書：筆順示範、隨筆速變化的墨跡、覆蓋與筆順評分、字帖選字與作品冊。收錄於 100 Creative HTML Works（App 076・米字格習字帖）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/076-kaishu-practice.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e9ddb5'/%3E%3Crect x='8' y='8' width='48' height='48' fill='none' stroke='%23c23b22' stroke-width='2.5'/%3E%3Cpath d='M8 8l48 48M56 8 8 56M32 8v48M8 32h48' stroke='%23c23b22' stroke-width='1' stroke-dasharray='3 3'/%3E%3Cpath d='M20 22c8-2 16-3 24-4M31 14c2 10 2 26 0 38' stroke='%23161311' stroke-width='5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --felt:#1c1a17; --felt2:#27241f; --felt3:#34302a; --paper:#e9ddb5; --paper2:#ddcf9f; --shu:#c23b22; --shu-l:#d86a50; --ink:#161311; --mist:#b9ad8c;
+  --kai:"Kaiti TC","STKaiti","BiauKai","DFKai-SB",serif;
+  --sans:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --out:cubic-bezier(.22,1,.36,1); --spring:cubic-bezier(.2,1.25,.35,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--felt);overflow:hidden}
+body{font-family:var(--sans);color:var(--paper);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+button:focus-visible{outline:2px solid var(--shu-l);outline-offset:2px;border-radius:6px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--felt);container-type:size;isolation:isolate}
+.screen::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 1px,transparent 1px 3px),repeating-linear-gradient(0deg,rgba(0,0,0,.08) 0 1px,transparent 1px 4px);pointer-events:none}
+@media (min-width:521px){
+  body{background:#141210}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:10px;background:#0e0d0c;box-shadow:inset 0 0 0 1.5px #3b362e,0 18px 28px -20px #000;z-index:1}
+  .screen{inset:10px;border-radius:42px}
+  .caption{display:block;position:relative;z-index:1;max-width:240px}
+  .caption b{display:block;font:400 56px/1 var(--kai);color:var(--paper)}
+  .caption p{margin-top:14px;font-size:15px;line-height:1.7;color:var(--mist)}
+  .caption i{display:inline-block;margin-top:18px;padding:6px 8px;font:400 18px/1 var(--kai);font-style:normal;color:var(--paper);background:var(--shu);border-radius:3px}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:600 16px/1 var(--sans);color:var(--paper);pointer-events:none}
+.status .gl{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+.main{position:absolute;left:0;right:0;top:calc(46px + env(safe-area-inset-top));bottom:calc(88px + env(safe-area-inset-bottom));overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.main::-webkit-scrollbar{display:none}
+.head{display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 20px;min-height:52px}
+.head h1{font:400 28px/1 var(--kai);color:var(--paper)}
+.head h1 small{font:400 13px/1 var(--sans);color:var(--mist);margin-left:10px}
+.head .r{display:flex}
+.ibtn{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:var(--paper);transition:background-color .2s}
+.ibtn:active{background:rgba(233,221,181,.1)}
+.meta{display:flex;align-items:flex-end;justify-content:space-between;padding:4px 20px 10px}
+.meta .ch{display:flex;align-items:flex-end;gap:10px}
+.meta .ch b{font:400 40px/1 var(--kai);color:var(--paper)}
+.meta .ch span{font-size:13px;line-height:1.5;color:var(--mist)}
+.meta .ch span em{display:block;font-style:normal;font:400 15px/1.3 var(--kai);color:var(--paper)}
+.meta .bst{text-align:right;font-size:12px;color:var(--mist)}
+.meta .bst b{display:block;font:400 22px/1.1 var(--kai);color:var(--shu-l)}
+
+/* paper */
+.paperwrap{position:relative;width:min(358px,calc(100cqw - 32px),52cqh);aspect-ratio:1;margin:0 auto}
+.paper{position:absolute;inset:0;background:var(--paper);border-radius:2px;overflow:hidden;touch-action:none;box-shadow:0 2px 3px -1px rgba(0,0,0,.5)}
+.paper svg,.paper canvas{position:absolute;inset:0;width:100%;height:100%}
+.paper canvas{cursor:crosshair}
+.tmpl{transition:opacity .3s}
+.tmpl.off{opacity:0}
+.gradeov{pointer-events:none}
+.circle{fill:none;stroke:var(--shu);stroke-width:2.4;stroke-linecap:round;stroke-dasharray:300;stroke-dashoffset:300;transition:stroke-dashoffset .9s var(--out)}
+.circle.on{stroke-dashoffset:0}
+.seal{position:absolute;right:10px;bottom:10px;width:58px;height:58px;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;background:var(--shu);color:var(--paper);font:400 22px/1 var(--kai);border-radius:4px;transform:rotate(-8deg) scale(1);pointer-events:none;transition:transform .35s var(--spring),opacity .2s}
+.seal[hidden]{display:flex;opacity:0;transform:rotate(-8deg) scale(1.6)}
+.seal::after{content:"";position:absolute;inset:4px;border:1.5px solid rgba(233,221,181,.7);border-radius:2px}
+.stepnote{position:absolute;left:18px;top:16px;font:400 15px/1 var(--kai);color:var(--shu);pointer-events:none;min-height:15px}
+
+/* tools */
+.tools{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:14px 10px 0}
+.tool{height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:10px;font-size:12px;color:var(--mist);transition:background-color .2s,color .2s}
+.tool svg{width:26px;height:26px}
+.tool:active{background:rgba(233,221,181,.08)}
+.tool[aria-pressed=true]{color:var(--paper)}
+.tool[aria-pressed=true] svg .ac{fill:var(--shu-l)}
+.tool b{font:400 15px/1 var(--kai);color:var(--paper);min-height:15px}
+.submit{display:flex;align-items:center;justify-content:center;gap:10px;width:calc(100% - 32px);height:54px;margin:12px 16px 20px;background:var(--shu);color:var(--paper);border-radius:4px;font:400 22px/1 var(--kai);transition:background-color .2s,transform .12s}
+.submit:active{background:#a8321c;transform:scale(.98)}
+.submit small{font:500 13px/1 var(--sans);opacity:.8}
+
+/* copybook strip */
+.book{position:absolute;left:0;right:0;bottom:0;z-index:20;height:calc(88px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--felt2);box-shadow:inset 0 1px 0 rgba(233,221,181,.08)}
+.strip{display:flex;gap:6px;overflow-x:auto;padding:10px 14px 0;scroll-snap-type:x proximity;scrollbar-width:none;touch-action:pan-x}
+.strip::-webkit-scrollbar{display:none}
+.bc{position:relative;flex:none;width:52px;height:58px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;border-radius:3px;transition:background-color .2s}
+.bc .sq{position:relative;width:42px;height:42px;background:rgba(233,221,181,.08);display:grid;place-items:center;font:400 30px/1 var(--kai);color:var(--mist);border-radius:2px;transition:background-color .2s,color .2s}
+.bc .sq::before{content:"";position:absolute;inset:3px;border:1px dashed rgba(194,59,34,.45)}
+.bc small{font:400 12px/1 var(--kai);color:var(--shu-l);min-height:12px}
+.bc[aria-selected=true] .sq{background:var(--paper);color:var(--ink)}
+.bc[aria-selected=true] .sq::before{border-color:rgba(194,59,34,.6)}
+.bc:active .sq{transform:scale(.94)}
+.home-ind{position:absolute;left:50%;bottom:calc(6px + env(safe-area-inset-bottom)*.3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(233,221,181,.7);z-index:35;pointer-events:none}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(10,9,8,.55);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:88%;overflow-y:auto;background:var(--paper);color:var(--ink);border-radius:14px 14px 0 0;padding:10px 20px calc(22px + env(safe-area-inset-bottom));
+  transform:translateY(105%);visibility:hidden;transition:transform .48s var(--spring),visibility 0s .48s;touch-action:none}
+.sheet.on{transform:none;visibility:visible;transition:transform .48s var(--spring)}
+.sheet.drag{transition:none}
+.grip{width:40px;height:5px;border-radius:3px;background:rgba(194,59,34,.55);margin:0 auto 12px}
+.sheet h3{font:400 28px/1.2 var(--kai)}
+.sheet h3 small{font:400 13px/1 var(--sans);color:#6f6446;margin-left:8px}
+.gtop{display:flex;align-items:center;gap:16px;margin-top:8px}
+.gseal{width:84px;height:84px;flex:none;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;background:var(--shu);color:var(--paper);font:400 30px/1 var(--kai);border-radius:5px;transform:rotate(-6deg);position:relative}
+.gseal::after{content:"";position:absolute;inset:5px;border:1.5px solid rgba(233,221,181,.7);border-radius:3px}
+.gnum{font:400 56px/1 var(--kai)}
+.gnum small{font-size:18px;margin-left:4px}
+.gline{margin-top:6px;font-size:14px;color:#5b5238}
+.bars{margin-top:18px;display:grid;gap:12px}
+.bar{display:grid;grid-template-columns:72px 1fr 44px;align-items:center;gap:10px;font-size:14px}
+.bar i{position:relative;height:8px;border-radius:4px;background:var(--paper2);overflow:hidden}
+.bar i::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--w);border-radius:4px;background:var(--ink)}
+.bar b{font:400 16px/1 var(--kai);text-align:right}
+.tip{margin-top:16px;padding:12px 14px;background:var(--paper2);border-radius:4px;font:400 17px/1.5 var(--kai)}
+.acts{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:16px;align-items:center}
+.pri{height:54px;border-radius:4px;background:var(--shu);color:var(--paper);font:400 21px/1 var(--kai);transition:background-color .2s}
+.pri:active{background:#a8321c}
+.txt{height:54px;padding:0 16px;font:400 19px/1 var(--kai);color:var(--ink);border-radius:4px}
+.txt:active{background:var(--paper2)}
+.works{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.work{position:relative}
+.work canvas{width:100%;aspect-ratio:1;background:#f0e6c4;display:block;border-radius:2px}
+.work .ws{position:absolute;right:4px;top:4px;padding:3px 4px;background:var(--shu);color:var(--paper);font:400 12px/1 var(--kai);border-radius:2px;writing-mode:vertical-rl}
+.work p{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5b5238;margin-top:2px}
+.work p button{width:36px;height:36px;display:grid;place-items:center;color:#6f6446;border-radius:50%}
+.work p button:active{background:var(--paper2)}
+.empty{margin-top:18px;font:400 18px/1.6 var(--kai);color:#6f6446}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:12px;text-align:center}
+.stats b{display:block;font:400 30px/1.1 var(--kai)}
+.stats span{font-size:12px;color:#6f6446}
+.set h4{margin:20px 0 8px;font:400 19px/1 var(--kai);color:var(--shu)}
+.cgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.cg{position:relative;aspect-ratio:1;display:grid;place-items:center;background:#f0e6c4;font:400 34px/1 var(--kai);color:var(--ink);border-radius:2px;transition:transform .12s}
+.cg::before{content:"";position:absolute;inset:4px;border:1px dashed rgba(194,59,34,.4)}
+.cg small{position:absolute;right:4px;bottom:3px;font:400 12px/1 var(--kai);color:var(--shu)}
+.cg.cur{box-shadow:inset 0 0 0 2px var(--shu)}
+.cg:active{transform:scale(.94)}
+.opt{display:flex;align-items:center;justify-content:space-between;min-height:56px;font-size:15px;margin-top:10px}
+.sw{position:relative;width:58px;height:34px;border-radius:4px;background:var(--paper2);transition:background-color .25s}
+.sw::after{content:"";position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:3px;background:#8a7d58;transition:transform .35s var(--spring),background-color .25s}
+.sw[aria-checked=true]{background:var(--shu)}
+.sw[aria-checked=true]::after{transform:translateX(24px);background:var(--paper)}
+
+.toast{position:absolute;left:16px;right:16px;bottom:calc(98px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:4px 6px 4px 16px;border-radius:4px;background:var(--paper);color:var(--ink);font-size:14px;transform:translateY(12px);opacity:0;visibility:hidden;transition:transform .3s var(--out),opacity .2s,visibility 0s .3s}
+.toast.on{transform:none;opacity:1;visibility:visible;transition:transform .3s var(--out),opacity .2s}
+.toast button{height:40px;padding:0 12px;font:400 17px/1 var(--kai);color:var(--shu)}
+.toast button[hidden]{display:none}
+
+@media (prefers-reduced-motion:reduce){
+  .sheet,.toast,.seal,.sw::after,.tmpl{transition-duration:.01s}
+  .circle{transition:none}
+  .bc:active .sq,.cg:active,.submit:active{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="fb"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3"/><feColorMatrix values="0 0 0 0 .6 0 0 0 0 .55 0 0 0 0 .45 0 0 0 .06 0"/></filter>
+        <filter id="pb"><feTurbulence type="fractalNoise" baseFrequency=".04 .9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 .55 0 0 0 0 .48 0 0 0 0 .3 0 0 0 .12 0"/></filter>
+      </defs>
+      <rect width="1600" height="1000" fill="#1c1a17"/>
+      <rect width="1600" height="1000" filter="url(#fb)"/>
+      <g transform="rotate(-4 300 500)">
+        <rect x="-60" y="120" width="520" height="760" fill="#e4d7aa"/>
+        <rect x="-60" y="120" width="520" height="760" filter="url(#pb)"/>
+        <g fill="none" stroke="#c23b22" stroke-width="2"><rect x="30" y="170" width="200" height="200"/><rect x="250" y="170" width="200" height="200"/><rect x="30" y="390" width="200" height="200"/><rect x="250" y="390" width="200" height="200"/><rect x="30" y="610" width="200" height="200"/><rect x="250" y="610" width="200" height="200"/></g>
+        <g stroke="#c23b22" stroke-width="1" stroke-dasharray="5 5" opacity=".6"><path d="M130 170v640M350 170v640M30 270h420M30 490h420M30 710h420"/></g>
+        <g font-family="Kaiti TC" font-size="170" fill="#161311" text-anchor="middle"><text x="130" y="335">永</text><text x="350" y="335">和</text><text x="130" y="555">九</text><text x="350" y="555">年</text></g>
+        <g font-family="Kaiti TC" font-size="170" fill="#c23b22" opacity=".3" text-anchor="middle"><text x="130" y="775">歲</text><text x="350" y="775">在</text></g>
+      </g>
+      <g transform="translate(1290 720)">
+        <rect x="-190" y="-120" width="380" height="250" rx="30" fill="#0f0e0d"/>
+        <rect x="-172" y="-102" width="344" height="214" rx="22" fill="#23211e"/>
+        <ellipse cx="-30" cy="10" rx="120" ry="70" fill="#070606"/>
+        <path d="M-120 -10c30-30 150-40 190 -6" stroke="#3b3731" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </g>
+      <g transform="translate(1370 290) rotate(28)">
+        <rect x="-10" y="-260" width="20" height="360" rx="10" fill="#6b4a2a"/>
+        <rect x="-10" y="-240" width="20" height="14" fill="#c23b22"/>
+        <path d="M-12 100h24l-4 40c-2 30-6 60-8 90-2-30-6-60-8-90z" fill="#161311"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="gl">
+          <svg width="18" height="12" viewBox="0 0 18 12"><path d="M1.5 11.5v-3M6 11.5v-5M10.5 11.5v-7.5M15 11.5V1.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.3c-.6-.8-1.3-1.4-2.3-1.8M8 11.3c.6-.8 1.3-1.4 2.3-1.8M3.5 6.8C5 5.6 6.4 5 8 5s3 .6 4.5 1.8M1 3.6C3 2 5.4 1 8 1s5 1 7 2.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><path d="M2 1.5h20c.8 0 1 .4 1 1v8c0 .6-.3 1-1 1H2c-.6 0-1-.4-1-1v-8c0-.6.4-1 1-1z" fill="none" stroke="currentColor" stroke-width="1.5"/><path id="batt" d="M3.2 3.6h14.6v5.8H3.2z" fill="currentColor"/><path d="M25 5v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+      <div class="main" id="main">
+        <div class="head">
+          <h1>臨帖<small id="setName">獨體字 · 第 1 字</small></h1>
+          <div class="r">
+            <button class="ibtn" id="worksBtn" aria-label="作品冊"><svg width="26" height="26" viewBox="0 0 26 26"><path d="M4 5.5c3-1.4 6-1.4 9 0 3-1.4 6-1.4 9 0v15c-3-1.4-6-1.4-9 0-3-1.4-6-1.4-9 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 5.5v15" stroke="currentColor" stroke-width="2"/><rect x="16" y="9" width="3.4" height="3.4" fill="#c23b22"/></svg></button>
+            <button class="ibtn" id="listBtn" aria-label="字表"><svg width="26" height="26" viewBox="0 0 26 26"><rect x="3.5" y="3.5" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 3.5v19M3.5 13h19" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2"/><path d="M7 8.5c2.4-.4 4-.6 5-.6M9.5 6.5c.4 1.5.3 3.5-.3 5" stroke="#c23b22" stroke-width="2" stroke-linecap="round"/></svg></button>
+          </div>
+        </div>
+        <div class="meta">
+          <div class="ch"><b id="mChar">永</b><span><em id="mZy">ㄩㄥˇ</em><span id="mInfo">五畫 · 永字八法</span></span></div>
+          <div class="bst"><b id="mBest">未寫</b>最佳</div>
+        </div>
+        <div class="paperwrap">
+          <div class="paper" id="paper">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <defs><filter id="fiber" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".06 1.4" numOctaves="2" seed="7"/><feColorMatrix values="0 0 0 0 .52 0 0 0 0 .44 0 0 0 0 .26 0 0 0 .16 0"/></filter></defs>
+              <rect width="100" height="100" filter="url(#fiber)"/>
+              <g fill="none" stroke="#c23b22">
+                <rect x="2.5" y="2.5" width="95" height="95" stroke-width=".9"/>
+                <rect x="4" y="4" width="92" height="92" stroke-width=".35"/>
+                <path d="M4 4 96 96M96 4 4 96M50 4v92M4 50h92" stroke-width=".3" stroke-dasharray="1.6 1.4" opacity=".75"/>
+              </g>
+              <text class="tmpl" id="tmpl" x="50" y="44" font-size="86" text-anchor="middle" dominant-baseline="central" fill="#c23b22" fill-opacity=".26" style="font-family:var(--kai)">永</text>
+              <g id="nextHint"></g>
+              <g class="gradeov"><path class="circle" id="circle" d="M50 7C74 6 94 24 93 50S74 93 50 93 7 76 7.5 50 25 8.5 52 7.5" pathLength="300"/></g>
+            </svg>
+            <canvas id="guide" aria-hidden="true"></canvas>
+            <canvas id="ink" aria-label="書寫區，用手指或筆描寫"></canvas>
+            <div class="stepnote" id="stepnote"></div>
+            <div class="seal" id="seal" hidden>甲上</div>
+          </div>
+        </div>
+        <div class="tools">
+          <button class="tool" id="tOrder" aria-label="筆順示範"><svg viewBox="0 0 26 26"><path d="M5 20C9 9 15 5 21 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3 3.4"/><circle class="ac" cx="21" cy="5" r="3" fill="currentColor"/><path d="M4 21l2.5-5 2.5 3.5z" fill="currentColor"/></svg>筆順</button>
+          <button class="tool" id="tTrace" aria-pressed="true" aria-label="描紅"><svg viewBox="0 0 26 26"><rect x="3.5" y="3.5" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2"/><path class="ac" d="M8 9c3-.6 7-1 10-1.2M12.6 7c.5 4 .4 8.4-.6 12" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg>描紅</button>
+          <button class="tool" id="tBrush" aria-label="筆的粗細"><b id="bLbl">中楷</b>筆</button>
+          <button class="tool" id="tInk" aria-label="墨色"><b id="iLbl">濃墨</b>墨</button>
+          <button class="tool" id="tUndo" aria-label="復原上一筆"><svg viewBox="0 0 26 26"><path d="M9 7 4 12l5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 12H15a6 6 0 0 1 0 12h-3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>復原</button>
+          <button class="tool" id="tClear" aria-label="清除重寫"><svg viewBox="0 0 26 26"><path d="M5 21h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M8 17 17.5 4.5l4 3L12 20H8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path class="ac" d="M15.2 7.6l4 3" stroke="currentColor" stroke-width="2.2"/></svg>清除</button>
+        </div>
+        <button class="submit" id="submit">交卷<small id="subInfo">已寫 0 / 5 筆</small></button>
+      </div>
+
+      <div class="book"><div class="strip" id="strip" role="tablist" aria-label="字帖"></div></div>
+      <div class="home-ind" aria-hidden="true"></div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><div class="grip" aria-hidden="true"></div><div id="shBody"></div></div>
+    </div>
+  </div>
+  <div class="caption"><b>臨帖</b><p>朱紅米字格，一格一個字。先看筆順，再一筆一筆描過去。</p><i>甲上</i></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app076:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var DY = -6;   // glyph frame -> centred in the grid
+
+/* ---------- copybook: medians in the glyph frame (Kaiti TC, 86px at y=50 central) ---------- */
+var CH = [
+  {c:'永', z:'ㄩㄥˇ', set:'永字八法', n:['點','橫折鉤','橫撇','撇','捺'], s:[[[45,21],[55,28]],[[35,41],[49,37],[51,42],[50,70],[50,91],[41,84]],[[18,56],[37,52],[33,64],[16,82]],[[72,38],[57,53]],[[52,53],[64,68],[75,77],[92,78]]]},
+  {c:'十', z:'ㄕˊ', set:'獨體字', n:['橫','豎'], s:[[[18,51],[50,48],[86,46]],[[49,21],[50,55],[50,92]]]},
+  {c:'人', z:'ㄖㄣˊ', set:'獨體字', n:['撇','捺'], s:[[[50,28],[46,46],[35,65],[16,82]],[[49,49],[62,65],[76,79],[92,81]]]},
+  {c:'大', z:'ㄉㄚˋ', set:'獨體字', n:['橫','撇','捺'], s:[[[27,51],[50,48],[78,45]],[[46,23],[48,45],[40,66],[22,85]],[[50,59],[62,74],[74,84],[91,85]]]},
+  {c:'口', z:'ㄎㄡˇ', set:'獨體字', n:['豎','橫折','橫'], s:[[[27,40],[33,55],[35,76]],[[35,41],[60,37],[77,40],[70,56],[67,68]],[[37,72],[55,70],[69,69]]]},
+  {c:'山', z:'ㄕㄢ', set:'獨體字', n:['豎','豎折','豎'], s:[[[48,27],[50,50],[51,72]],[[22,56],[25,66],[25,80],[45,74],[73,70]],[[76,49],[78,64],[76,84]]]},
+  {c:'上', z:'ㄕㄤˋ', set:'獨體字', n:['豎','橫','橫'], s:[[[44,23],[47,40],[47,78]],[[50,49],[60,47],[70,45]],[[14,81],[50,79],[84,78]]]},
+  {c:'中', z:'ㄓㄨㄥ', set:'獨體字', n:['豎','橫折','橫','豎'], s:[[[24,40],[29,52],[30,64]],[[31,42],[55,38],[71,36],[80,41],[73,52],[70,56]],[[33,60],[52,58],[69,56]],[[50,20],[50,60],[50,96]]]},
+  {c:'木', z:'ㄇㄨˋ', set:'獨體字', n:['橫','豎','撇','點'], s:[[[28,45],[50,42],[73,39]],[[46,21],[49,40],[50,65],[50,90]],[[47,46],[40,62],[30,73],[17,80]],[[51,45],[62,60],[74,72],[90,74]]]},
+  {c:'水', z:'ㄕㄨㄟˇ', set:'獨體字', n:['豎鉤','橫撇','撇','捺'], s:[[[47,20],[50,40],[50,70],[50,88],[40,80]],[[21,46],[38,43],[34,54],[26,68],[17,78]],[[76,33],[66,43],[57,51]],[[56,51],[66,62],[76,70],[92,71]]]},
+  {c:'心', z:'ㄒㄧㄣ', set:'獨體字', n:['點','臥鉤','點','點'], s:[[[22,48],[20,60],[18,68]],[[32,51],[38,65],[48,74],[62,77],[79,72],[68,57]],[[41,34],[47,40],[51,45]],[[69,37],[77,41],[82,48]]]},
+  {c:'日', z:'ㄖˋ', set:'獨體字', n:['豎','橫折','橫','橫'], s:[[[30,33],[32,55],[33,80]],[[33,34],[52,31],[62,29],[69,33],[67,55],[67,84]],[[37,55],[50,53],[62,51]],[[37,75],[50,74],[62,74]]]},
+  {c:'月', z:'ㄩㄝˋ', set:'獨體字', n:['撇','橫折鉤','橫','橫'], s:[[[35,26],[39,45],[33,70],[17,88]],[[41,28],[55,25],[64,22],[70,26],[67,40],[68,70],[68,86],[64,91],[55,81]],[[41,44],[53,42],[64,41]],[[41,59],[53,57],[64,56]]]},
+  {c:'天', z:'ㄊㄧㄢ', set:'獨體字', n:['橫','橫','撇','捺'], s:[[[31,31],[50,29],[68,27]],[[25,53],[50,50],[73,47]],[[48,31],[49,50],[40,68],[17,83]],[[49,56],[60,70],[70,82],[90,86]]]},
+  {c:'王', z:'ㄨㄤˊ', set:'獨體字', n:['橫','橫','豎','橫'], s:[[[33,33],[52,31],[71,29]],[[36,56],[52,54],[68,51]],[[49,36],[50,57],[50,78]],[[18,80],[52,79],[87,79]]]},
+  {c:'火', z:'ㄏㄨㄛˇ', set:'獨體字', n:['點','撇','撇','捺'], s:[[[29,45],[34,50],[38,55]],[[71,35],[63,43],[56,50]],[[46,22],[48,40],[46,55],[38,72],[22,86]],[[50,57],[61,72],[72,83],[92,86]]]}
+];
+var NUM = ['零','一','二','三','四','五','六','七','八','九','十'];
+var st = load('state', {i: 0, trace: true, brush: 1, ink: 0, hint: true});
+var rec = load('rec', {'永': {b: 84, n: 6}, '大': {b: 76, n: 3}, '山': {b: 91, n: 4}, '心': {b: 68, n: 2}, '十': {b: 88, n: 1}});
+var works = load('works', null);
+if (!works){ var d0 = Date.now(); works = [{c:'山', g:91, t:d0 - 864e5 * 1, seed:3}, {c:'永', g:84, t:d0 - 864e5 * 2, seed:5}, {c:'大', g:76, t:d0 - 864e5 * 4, seed:9}, {c:'心', g:68, t:d0 - 864e5 * 6, seed:11}]; }
+function persist(){ save('state', st); save('rec', rec); save('works', works); }
+function gradeOf(s){ return s >= 90 ? '甲上' : s >= 80 ? '甲' : s >= 70 ? '乙上' : s >= 60 ? '乙' : '丙'; }
+var BR = [{n:'小楷', w:3.4}, {n:'中楷', w:5}, {n:'大楷', w:6.8}];
+var INK = [{n:'濃墨', c:'#161311'}, {n:'淡墨', c:'#57504a'}];
+function cur(){ return CH[st.i]; }
+
+/* ---------- smoothing ---------- */
+function smooth(pts, seg){
+  var out = [], n = pts.length; seg = seg || 8;
+  if (n < 3){ for (var k = 0; k <= seg; k++){ var t = k / seg; out.push([pts[0][0] + (pts[n - 1][0] - pts[0][0]) * t, pts[0][1] + (pts[n - 1][1] - pts[0][1]) * t]); } return out; }
+  for (var i = 0; i < n - 1; i++){
+    var p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(n - 1, i + 2)];
+    for (var j = 0; j < seg; j++){
+      var u = j / seg, u2 = u * u, u3 = u2 * u;
+      out.push([.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * u + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * u2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * u3),
+                .5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * u + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * u2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * u3)]);
+    }
+  }
+  out.push(pts[n - 1]); return out;
+}
+function framePts(s){ return s.map(function(p){ return [p[0], p[1] + DY]; }); }
+
+/* ---------- ink engine ---------- */
+var paper = $('paper'), inkC = $('ink'), guideC = $('guide'), ix = inkC.getContext('2d'), gx = guideC.getContext('2d'), S = 1, DPR = 1;
+var strokes = [], drawing = null, graded = false;
+function sizeCanvases(){
+  var b = paper.getBoundingClientRect(); DPR = Math.min(2, window.devicePixelRatio || 1); S = b.width / 100;
+  [inkC, guideC].forEach(function(c){ c.width = Math.round(b.width * DPR); c.height = Math.round(b.height * DPR); });
+  redraw();
+}
+function stamp(ctx, sc, x, y, w){ ctx.beginPath(); ctx.arc(x * sc, y * sc, Math.max(.3, w / 2) * sc, 0, 6.2832); ctx.fill(); }
+function paintSeg(ctx, sc, a, b){
+  var dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), steps = Math.max(1, Math.ceil(d / Math.max(.25, Math.min(a.w, b.w) * .22)));
+  for (var i = 1; i <= steps; i++){ var t = i / steps; stamp(ctx, sc, a.x + dx * t, a.y + dy * t, a.w + (b.w - a.w) * t); }
+}
+function paintStroke(ctx, sc, s, extra){
+  ctx.fillStyle = s.c; var p = s.p; if (!p.length) return;
+  var e = extra || 0;
+  stamp(ctx, sc, p[0].x, p[0].y, p[0].w + e);
+  for (var i = 1; i < p.length; i++) paintSeg(ctx, sc, {x: p[i - 1].x, y: p[i - 1].y, w: p[i - 1].w + e}, {x: p[i].x, y: p[i].y, w: p[i].w + e});
+}
+function redraw(){
+  ix.setTransform(DPR, 0, 0, DPR, 0, 0); ix.clearRect(0, 0, inkC.width, inkC.height);
+  strokes.forEach(function(s){ paintStroke(ix, S, s); });
+  if (drawing) paintStroke(ix, S, drawing);
+}
+function pos(e){ var b = inkC.getBoundingClientRect(); return {x: (e.clientX - b.left) / b.width * 100, y: (e.clientY - b.top) / b.height * 100}; }
+inkC.addEventListener('pointerdown', function(e){
+  if (e.button > 0) return;
+  stopGuide();
+  if (graded) clearGrade();
+  var p = pos(e), base = BR[st.brush].w;
+  drawing = {c: INK[st.ink].c, p: [{x: p.x, y: p.y, w: base * 1.12, t: e.timeStamp}], pen: e.pointerType === 'pen'};
+  inkC.setPointerCapture(e.pointerId);
+  ix.setTransform(DPR, 0, 0, DPR, 0, 0); ix.fillStyle = drawing.c; stamp(ix, S, p.x, p.y, base * 1.12);
+});
+inkC.addEventListener('pointermove', function(e){
+  if (!drawing) return;
+  var evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; if (!evs.length) evs = [e];
+  var base = BR[st.brush].w;
+  evs.forEach(function(ev){
+    var p = pos(ev), last = drawing.p[drawing.p.length - 1], d = Math.hypot(p.x - last.x, p.y - last.y);
+    if (d < .35) return;
+    var dt = Math.max(1, ev.timeStamp - last.t), v = d / dt, target;
+    if (drawing.pen && ev.pressure > 0) target = base * (.3 + ev.pressure * 1.1);
+    else target = base * Math.max(.38, Math.min(1.25, 1.22 - v * 1.6));
+    var w = last.w * .78 + target * .22, np = {x: p.x, y: p.y, w: w, t: ev.timeStamp, v: v};
+    drawing.p.push(np);
+    ix.setTransform(DPR, 0, 0, DPR, 0, 0); ix.fillStyle = drawing.c; paintSeg(ix, S, last, np);
+  });
+});
+function endStroke(){
+  if (!drawing) return;
+  var p = drawing.p;
+  if (p.length > 2){
+    // 出鋒: a quick lift leaves a tapering tail
+    var a = p[p.length - 2], b = p[p.length - 1], v = b.v || 0;
+    if (v > .05){ var dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, len = Math.min(6, v * 22); for (var k = 1; k <= 3; k++) p.push({x: b.x + dx / d * len * k / 3, y: b.y + dy / d * len * k / 3, w: b.w * (1 - k / 3.4), t: b.t}); }
+  }
+  strokes.push(drawing); drawing = null; redraw(); updCount(); haptic(4);
+}
+inkC.addEventListener('pointerup', endStroke); inkC.addEventListener('pointercancel', endStroke);
+
+function updCount(){
+  var n = cur().s.length;
+  $('subInfo').textContent = '已寫 ' + strokes.length + ' / ' + n + ' 筆';
+  renderHint();
+}
+function renderHint(){
+  var g = $('nextHint'), k = strokes.length, c = cur();
+  if (!st.hint || !st.trace || k >= c.s.length || graded){ g.innerHTML = ''; $('stepnote').textContent = ''; return; }
+  var p = framePts(c.s[k]), a = p[0], b = p[1];
+  var ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+  g.innerHTML = '<circle cx="' + a[0] + '" cy="' + a[1] + '" r="3.2" fill="#c23b22"/><text x="' + a[0] + '" y="' + (a[1] + .2) + '" font-size="3.8" fill="#e9ddb5" text-anchor="middle" dominant-baseline="central" style="font-family:var(--sans);font-weight:700">' + (k + 1) + '</text>' +
+    '<path d="M' + (a[0] + Math.cos(ang) * 5).toFixed(1) + ' ' + (a[1] + Math.sin(ang) * 5).toFixed(1) + 'l' + (Math.cos(ang) * 5).toFixed(1) + ' ' + (Math.sin(ang) * 5).toFixed(1) + '" stroke="#c23b22" stroke-width=".9" stroke-linecap="round" stroke-dasharray="1 1.4"/>';
+  $('stepnote').textContent = '第' + NUM[k + 1] + '筆 ' + c.n[k];
+}
+
+/* ---------- stroke-order guide ---------- */
+var gAnim = null;
+function stopGuide(){ if (gAnim){ cancelAnimationFrame(gAnim); gAnim = null; } gx.setTransform(1, 0, 0, 1, 0, 0); gx.clearRect(0, 0, guideC.width, guideC.height); $('tOrder').setAttribute('aria-pressed', 'false'); renderHint(); }
+function playGuide(){
+  stopGuide(); var c = cur(), paths = c.s.map(function(s){ return smooth(framePts(s), 10); });
+  $('tOrder').setAttribute('aria-pressed', 'true'); haptic(6);
+  var per = reduce ? 1 : 620, gap = 160, t0 = performance.now(), total = paths.length * (per + gap) + 900;
+  function f(now){
+    var el = now - t0; gx.setTransform(DPR, 0, 0, DPR, 0, 0); gx.clearRect(0, 0, 100 * S, 100 * S);
+    var w = BR[1].w * .95;
+    for (var i = 0; i < paths.length; i++){
+      var start = i * (per + gap), k = Math.max(0, Math.min(1, (el - start) / per)); if (k <= 0) break;
+      var pts = paths[i], upto = Math.max(1, Math.floor(k * (pts.length - 1)));
+      gx.fillStyle = 'rgba(22,19,17,.82)';
+      for (var j = 1; j <= upto; j++){ var wa = w * (j < 3 ? 1.15 : j > pts.length - 4 ? .6 + .4 * (pts.length - 1 - j) / 3 : 1); paintSeg(gx, S, {x: pts[j - 1][0], y: pts[j - 1][1], w: wa}, {x: pts[j][0], y: pts[j][1], w: wa}); }
+      if (k < 1){ $('stepnote').textContent = '第' + NUM[i + 1] + '筆 ' + c.n[i]; if (!f['b' + i]){ f['b' + i] = 1; haptic(3); } }
+      gx.fillStyle = '#c23b22'; gx.font = '700 ' + (3.6 * S) + 'px "PingFang TC",sans-serif'; gx.textAlign = 'center'; gx.textBaseline = 'middle';
+      gx.fillText(String(i + 1), (pts[0][0] - 3.6) * S, (pts[0][1] - 3.6) * S);
+    }
+    if (el < total && !document.hidden){ gAnim = requestAnimationFrame(f); }
+    else { gAnim = null; setTimeout(function(){ if (!gAnim) stopGuide(); }, reduce ? 1200 : 200); }
+  }
+  gAnim = requestAnimationFrame(f);
+}
+$('tOrder').addEventListener('click', function(){ if (gAnim) stopGuide(); else playGuide(); });
+
+/* ---------- scoring ---------- */
+function mask(draw){
+  var c = document.createElement('canvas'); c.width = c.height = 100; var x = c.getContext('2d'); draw(x);
+  var d = x.getImageData(0, 0, 100, 100).data, m = new Uint8Array(10000); for (var i = 0; i < 10000; i++) m[i] = d[i * 4 + 3] > 90 ? 1 : 0; return m;
+}
+function glyph(x, dil){
+  x.font = '86px ' + getComputedStyle(document.body).getPropertyValue('--kai'); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#000';
+  x.fillText(cur().c, 50, 50 + DY);
+  if (dil){ x.lineWidth = dil; x.strokeStyle = '#000'; x.lineJoin = 'round'; x.strokeText(cur().c, 50, 50 + DY); }
+}
+function score(){
+  var c = cur(), T = mask(function(x){ glyph(x, 0); }), Td = mask(function(x){ glyph(x, 8); });
+  var U = mask(function(x){ strokes.forEach(function(s){ paintStroke(x, 1, {c: '#000', p: s.p}); }); });
+  var Ud = mask(function(x){ strokes.forEach(function(s){ paintStroke(x, 1, {c: '#000', p: s.p}, 5); }); });
+  var u = 0, uin = 0, t = 0, tcov = 0;
+  for (var i = 0; i < 10000; i++){ if (U[i]){ u++; if (Td[i]) uin++; } if (T[i]){ t++; if (Ud[i]) tcov++; } }
+  var prec = u ? uin / u : 0, cov = t ? tcov / t : 0, n = c.s.length, m = strokes.length;
+  var sc = Math.max(0, 1 - Math.abs(m - n) / n), ok = 0;
+  for (var k = 0; k < Math.min(m, n); k++){
+    var md = framePts(c.s[k]), us = strokes[k].p, a = us[0], b = us[us.length - 1], ma = md[0], mb = md[md.length - 1];
+    if (Math.hypot(a.x - ma[0], a.y - ma[1]) < 18 && Math.hypot(b.x - mb[0], b.y - mb[1]) < 24) ok++;
+  }
+  var ord = ok / n, total = Math.round(100 * (.4 * cov + .32 * prec + .12 * sc + .16 * ord));
+  if (!m) total = 0;
+  return {total: Math.max(0, Math.min(100, total)), cov: cov, prec: prec, strokes: m, need: n, order: ok};
+}
+function tipFor(r){
+  if (!r.strokes) return '紙上還沒有墨跡，先描一筆吧。';
+  if (r.order < r.need && r.strokes >= r.need) return '筆順有幾筆不對。按「筆順」看一次示範，再照順序寫。';
+  if (r.strokes < r.need) return '少了 ' + (r.need - r.strokes) + ' 筆。' + cur().n[r.strokes] + '還沒寫。';
+  if (r.strokes > r.need) return '多了 ' + (r.strokes - r.need) + ' 筆，楷書講究一筆到位。';
+  if (r.prec < .75) return '墨跡跑出紅字外，放慢一點，貼著字的中線走。';
+  if (r.cov < .7) return '筆畫太細或太短，換大一號的筆，收筆要到位。';
+  return '結構穩，筆順也對。可以試試關掉描紅，改成臨寫。';
+}
+var lastRes = null;
+$('submit').addEventListener('click', function(){
+  if (drawing) endStroke();
+  stopGuide();
+  var r = score(); lastRes = r; graded = true;
+  var g = gradeOf(r.total), c = cur();
+  $('seal').textContent = g; $('seal').hidden = false; $('circle').classList.toggle('on', r.total >= 80);
+  renderHint();
+  if (r.strokes){ var rr = rec[c.c] || {b: 0, n: 0}; rr.n++; var newBest = r.total > rr.b; if (newBest) rr.b = r.total; rec[c.c] = rr; persist(); renderMeta(); renderStrip(); }
+  stampSound(); haptic(r.total >= 80 ? [12, 50, 20] : [10, 40, 10]);
+  openSheet(
+    '<h3 id="shT">' + c.c + '<small>' + NUM[c.s.length] + '畫 · 第 ' + ((rec[c.c] || {}).n || 0) + ' 次練習</small></h3>' +
+    '<div class="gtop"><div class="gseal">' + g + '</div><div><div class="gnum">' + r.total + '<small>分</small></div><div class="gline">筆畫 ' + r.strokes + ' / ' + r.need + ' · 筆順對了 ' + r.order + ' 筆</div></div></div>' +
+    '<div class="bars">' +
+      '<div class="bar"><span>覆蓋紅字</span><i style="--w:' + Math.round(r.cov * 100) + '%"></i><b>' + Math.round(r.cov * 100) + '</b></div>' +
+      '<div class="bar"><span>不出框</span><i style="--w:' + Math.round(r.prec * 100) + '%"></i><b>' + Math.round(r.prec * 100) + '</b></div>' +
+      '<div class="bar"><span>筆順</span><i style="--w:' + Math.round(r.order / r.need * 100) + '%"></i><b>' + r.order + '/' + r.need + '</b></div>' +
+    '</div>' +
+    '<p class="tip">' + tipFor(r) + '</p>' +
+    '<div class="acts"><button class="pri" data-act="keep"' + (r.strokes ? '' : ' disabled style="opacity:.5"') + '>存入作品冊</button><button class="txt" data-act="again">再寫一次</button></div>');
+});
+function clearGrade(){ graded = false; $('seal').hidden = true; $('circle').classList.remove('on'); renderHint(); }
+
+/* ---------- sound: the seal ---------- */
+var ac = null;
+function stampSound(){
+  try {
+    if (!ac){ var C = window.AudioContext || window.webkitAudioContext; if (!C) return; ac = new C(); }
+    if (ac.state === 'suspended') ac.resume();
+    var t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(70, t + .08);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.5, t + .005); g.gain.exponentialRampToValueAtTime(.0001, t + .16); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + .2);
+    var b = ac.createBuffer(1, ac.sampleRate * .06, ac.sampleRate), d = b.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    var n = ac.createBufferSource(), f = ac.createBiquadFilter(), gn = ac.createGain(); n.buffer = b; f.type = 'lowpass'; f.frequency.value = 900; gn.gain.value = .35; n.connect(f); f.connect(gn); gn.connect(ac.destination); n.start(t);
+  } catch(e){}
+}
+
+/* ---------- tools ---------- */
+$('tTrace').addEventListener('click', function(){ st.trace = !st.trace; persist(); applyTools(); haptic(6); toast(st.trace ? '描紅：照著紅字描' : '臨寫：看著左上的字自己寫'); });
+$('tBrush').addEventListener('click', function(){ st.brush = (st.brush + 1) % 3; persist(); applyTools(); haptic(5); });
+$('tInk').addEventListener('click', function(){ st.ink = (st.ink + 1) % 2; persist(); applyTools(); haptic(5); });
+$('tUndo').addEventListener('click', function(){ if (!strokes.length){ haptic([15, 30, 15]); return; } strokes.pop(); if (graded) clearGrade(); redraw(); updCount(); haptic(5); });
+$('tClear').addEventListener('click', function(){
+  if (!strokes.length){ haptic([15, 30, 15]); return; }
+  var old = strokes.slice(); strokes = []; if (graded) clearGrade(); redraw(); updCount(); haptic(10);
+  toast('已清除 ' + old.length + ' 筆', function(){ strokes = old; redraw(); updCount(); });
+});
+function applyTools(){
+  $('tTrace').setAttribute('aria-pressed', st.trace); $('tmpl').classList.toggle('off', !st.trace);
+  $('bLbl').textContent = BR[st.brush].n; $('iLbl').textContent = INK[st.ink].n; $('iLbl').style.color = st.ink ? '#b9ad8c' : '';
+  renderHint();
+}
+
+/* ---------- copybook ---------- */
+function renderStrip(){
+  var h = '';
+  CH.forEach(function(c, i){ var r = rec[c.c]; h += '<button class="bc" role="tab" data-i="' + i + '" aria-selected="' + (i === st.i) + '" aria-label="' + c.c + '"><span class="sq">' + c.c + '</span><small>' + (r ? gradeOf(r.b) : '') + '</small></button>'; });
+  $('strip').innerHTML = h;
+}
+function renderMeta(){
+  var c = cur(), r = rec[c.c];
+  $('mChar').textContent = c.c; $('mZy').textContent = c.z; $('mInfo').textContent = NUM[c.s.length] + '畫 · ' + c.set;
+  $('mBest').textContent = r ? gradeOf(r.b) + ' ' + r.b : '未寫';
+  $('tmpl').textContent = c.c;
+  var set = CH.filter(function(x){ return x.set === c.set; }), idx = set.indexOf(c) + 1;
+  $('setName').textContent = c.set + ' · 第 ' + NUM[idx] + ' 字';
+}
+function pick(i){
+  if (i === st.i) return;
+  st.i = i; persist(); strokes = []; drawing = null; stopGuide(); clearGrade(); redraw();
+  renderMeta(); renderStrip(); updCount(); haptic(6);
+  var el = $('strip').children[i], box = $('strip'); if (el) box.scrollTo({left: el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2, behavior: reduce ? 'auto' : 'smooth'});
+}
+$('strip').addEventListener('click', function(e){ var b = e.target.closest('[data-i]'); if (b) pick(+b.dataset.i); });
+
+/* ---------- works (portfolio) ---------- */
+function rng(s){ return function(){ s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+function synthStrokes(ch, seed){
+  var r = rng(seed * 7919 + 13), c = CH.filter(function(x){ return x.c === ch; })[0]; if (!c) return [];
+  return c.s.map(function(s){
+    var pts = smooth(framePts(s), 6), jx = (r() - .5) * 2.4, jy = (r() - .5) * 2.4;
+    return {c: '#161311', p: pts.map(function(p, i){ var k = i / (pts.length - 1); return {x: p[0] + jx + (r() - .5) * .6, y: p[1] + jy + (r() - .5) * .6, w: 5 * (k < .15 ? 1.2 : k > .85 ? .75 : 1) * (.9 + r() * .2)}; })};
+  });
+}
+function drawWork(cv, w){
+  var sz = 120; cv.width = sz; cv.height = sz; var x = cv.getContext('2d'), sc = sz / 100;
+  x.fillStyle = '#f0e6c4'; x.fillRect(0, 0, sz, sz);
+  x.strokeStyle = 'rgba(194,59,34,.7)'; x.lineWidth = 1; x.strokeRect(3, 3, sz - 6, sz - 6);
+  x.setLineDash([2, 2]); x.strokeStyle = 'rgba(194,59,34,.35)'; x.beginPath(); x.moveTo(sz / 2, 3); x.lineTo(sz / 2, sz - 3); x.moveTo(3, sz / 2); x.lineTo(sz - 3, sz / 2); x.moveTo(3, 3); x.lineTo(sz - 3, sz - 3); x.moveTo(sz - 3, 3); x.lineTo(3, sz - 3); x.stroke(); x.setLineDash([]);
+  var ss = w.s || synthStrokes(w.c, w.seed || 1);
+  ss.forEach(function(s){ paintStroke(x, sc, s); });
+}
+function worksHTML(){
+  var tot = 0, sum = 0; Object.keys(rec).forEach(function(k){ tot += rec[k].n; sum += rec[k].b; });
+  var n = Object.keys(rec).length;
+  var h = '<h3 id="shT">作品冊<small>' + works.length + ' 張</small></h3><div class="stats"><div><b>' + tot + '</b><span>練習次數</span></div><div><b>' + n + '</b><span>寫過的字</span></div><div><b>' + (n ? gradeOf(Math.round(sum / n)) : '無') + '</b><span>平均等第</span></div></div>';
+  if (!works.length) return h + '<p class="empty">還沒有存下的作品。交卷後按「存入作品冊」。</p>';
+  h += '<div class="works">';
+  works.forEach(function(w, i){ var d = new Date(w.t); h += '<div class="work"><canvas data-w="' + i + '" aria-label="' + w.c + ' 作品"></canvas><span class="ws">' + gradeOf(w.g) + '</span><p>' + (d.getMonth() + 1) + '/' + d.getDate() + ' · ' + w.g + '分<button data-del="' + i + '" aria-label="刪除這張"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 4l10 10M14 4 4 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></p></div>'; });
+  return h + '</div>';
+}
+function showWorks(){ openSheet(worksHTML()); paintWorks(); }
+function paintWorks(){ document.querySelectorAll('[data-w]').forEach(function(cv){ drawWork(cv, works[+cv.dataset.w]); }); }
+$('worksBtn').addEventListener('click', function(){ haptic(6); showWorks(); });
+
+function listHTML(){
+  var sets = {}, order = [];
+  CH.forEach(function(c, i){ if (!sets[c.set]){ sets[c.set] = []; order.push(c.set); } sets[c.set].push(i); });
+  var h = '<h3 id="shT">字表<small>點一個字開始練</small></h3>';
+  order.forEach(function(s){
+    h += '<div class="set"><h4>' + s + '</h4><div class="cgrid">';
+    sets[s].forEach(function(i){ var c = CH[i], r = rec[c.c]; h += '<button class="cg' + (i === st.i ? ' cur' : '') + '" data-pick="' + i + '" aria-label="' + c.c + '">' + c.c + '<small>' + (r ? gradeOf(r.b) : '') + '</small></button>'; });
+    h += '</div></div>';
+  });
+  h += '<div class="opt"><span>描紅時提示下一筆起點</span><button class="sw" data-sw="hint" role="switch" aria-checked="' + st.hint + '" aria-label="提示下一筆起點"></button></div>';
+  return h;
+}
+$('listBtn').addEventListener('click', function(){ haptic(6); openSheet(listHTML()); });
+
+/* ---------- sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('shBody').innerHTML = html; sheet.style.transform = ''; sheet.scrollTop = 0; sheet.classList.add('on'); scrim.classList.add('on'); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll: true}); }
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+sheet.addEventListener('click', function(e){
+  var p = e.target.closest('[data-pick]'); if (p){ pick(+p.dataset.pick); closeSheet(); return; }
+  var s = e.target.closest('[data-sw]'); if (s){ st.hint = !st.hint; persist(); s.setAttribute('aria-checked', st.hint); renderHint(); haptic(6); return; }
+  var d = e.target.closest('[data-del]');
+  if (d){ var i = +d.dataset.del, w = works.splice(i, 1)[0]; persist(); $('shBody').innerHTML = worksHTML(); paintWorks(); haptic([10, 30, 10]);
+    toast('刪除了「' + w.c + '」這張', function(){ works.splice(i, 0, w); persist(); if (sheet.classList.contains('on')){ $('shBody').innerHTML = worksHTML(); paintWorks(); } }); return; }
+  var a = e.target.closest('[data-act]'); if (!a) return;
+  if (a.dataset.act === 'keep' && lastRes && lastRes.strokes){
+    works.unshift({c: cur().c, g: lastRes.total, t: Date.now(), s: strokes.map(function(s){ return {c: s.c, p: s.p.map(function(q){ return {x: +q.x.toFixed(1), y: +q.y.toFixed(1), w: +q.w.toFixed(2)}; })}; })});
+    if (works.length > 24) works.length = 24;
+    persist(); closeSheet(); haptic([8, 30, 8]); toast('已存入作品冊');
+  }
+  if (a.dataset.act === 'again'){ closeSheet(); strokes = []; clearGrade(); redraw(); updCount(); }
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button') || sheet.scrollTop > 0) return; dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); sheet.setPointerCapture(e.pointerId); });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+var tT = null, undoFn = null;
+function toast(m, undo){ $('toastT').textContent = m; undoFn = undo || null; $('toastU').hidden = !undo; $('toast').classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, 2800); }
+$('toastU').addEventListener('click', function(){ if (undoFn){ var f = undoFn; undoFn = null; f(); haptic(6); } $('toast').classList.remove('on'); });
+
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setTimeout(function(){ tick(); setInterval(tick, 60000); }, (60 - new Date().getSeconds()) * 1000);
+
+/* ---------- boot ---------- */
+renderStrip(); renderMeta(); applyTools();
+// seed the sheet with two strokes already written so the first screen shows real ink
+if (!load('touched', false)){ strokes = synthStrokes(cur().c, 2).slice(0, 2); }
+sizeCanvases(); updCount();
+inkC.addEventListener('pointerdown', function once(){ save('touched', true); inkC.removeEventListener('pointerdown', once); });
+window.addEventListener('resize', sizeCanvases);
+if (window.ResizeObserver) new ResizeObserver(function(){ sizeCanvases(); }).observe(paper);
+setTimeout(function(){ var el = $('strip').children[st.i], box = $('strip'); if (el) box.scrollLeft = el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2; }, 0);
+})();
+</script>
+</body>
+</html>

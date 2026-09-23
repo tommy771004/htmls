@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2b2724">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="一日一頁">
+<title>一日一頁 · 日記</title>
+<meta name="description" content="一天一頁的手帳日記：翻頁寫字、蓋上心情印章、緞帶書籤帶你回到今天，一年的心情排成一張像素圖。收錄於 100 Creative HTML Works（App 083・手帳薄紙與緞帶書籤）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/083-hobonichi-diary.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232b2724'/%3E%3Crect x='12' y='8' width='40' height='50' rx='2' fill='%23f3f2ec'/%3E%3Cpath d='M40 8v46l-4-5-4 5V8z' fill='%23b3262e'/%3E%3Ctext x='24' y='36' font-family='Hiragino Mincho ProN' font-size='16' text-anchor='middle' fill='%232b2622'%3E1%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --cover:#2b2724;
+  --paper:#f3f2ec;
+  --paper-2:#e8e7df;
+  --dot:rgba(118,128,136,.36);
+  --ink:#2b2622;
+  --ink-2:#6d6862;
+  --ink-3:#98938b;
+  --ribbon:#b3262e;
+  --seal:#c23b30;
+  --min:"Hiragino Mincho ProN","Hiragino Mincho Pro","Songti TC",serif;
+  --ui:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --spring:cubic-bezier(.3,1.35,.5,1);
+  --out:cubic-bezier(.22,1,.36,1);
+  --m1:#d9653b;--m2:#6f9a7c;--m3:#c9b27a;--m4:#7f94a3;--m5:#3f4f64;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.5 var(--min);color:var(--ink);background:var(--cover);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+textarea{font:inherit;color:inherit}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--ribbon);outline-offset:3px;border-radius:6px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.island{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;display:flex;flex-direction:column;
+  background:var(--cover) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .45' numOctaves='3' seed='6'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .09 0 0 0 0 .08 0 0 0 1 -.35'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23c)'/%3E%3C/svg%3E")}
+@media (min-width:521px){
+  body{background:#8c8a80}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:11px;z-index:1;background:linear-gradient(160deg,#4a4540,#1c1917 55%,#35302b);box-shadow:inset 0 0 0 1px rgba(255,250,240,.18),0 22px 30px -20px rgba(30,25,20,.8)}
+  .screen{inset:11px;border-radius:44px}
+  .island{display:block;position:absolute;top:11px;left:50%;width:112px;height:32px;margin-left:-56px;border-radius:18px;background:#0a0908;z-index:90}
+  .caption{display:block;position:relative;z-index:1;max-width:250px}
+  .caption h1{font:600 40px/1.1 var(--min);color:#f6f5ef;letter-spacing:.1em}
+  .caption p{margin-top:16px;font:15px/1.8 var(--min);color:#ecebe4}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+.status{flex:none;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:600 15px/1 var(--ui);color:#efece4;pointer-events:none;position:relative;z-index:40}
+.status .glyphs{display:flex;align-items:center;gap:6px}
+@media (display-mode:standalone){.status{height:env(safe-area-inset-top);visibility:hidden}}
+
+/* ---------- book ---------- */
+.book{position:relative;flex:1;min-height:0;margin:2px 10px 0;perspective:1800px}
+.page{position:absolute;inset:0;border-radius:3px 10px 10px 3px;overflow:hidden;background:var(--paper);display:flex;flex-direction:column;
+  box-shadow:inset 10px 0 12px -10px rgba(60,50,40,.35),2px 0 0 #dcdad2,4px 0 0 #cfcdc4,5px 1px 0 #bfbcb2;
+  transform-origin:left center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.page .grid{position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(circle,var(--dot) 1px,transparent 1.3px);background-size:14px 14px;background-position:6px 7px}
+.page .shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(40,30,20,.0),rgba(40,30,20,.35));opacity:0}
+.page.flip{z-index:3;will-change:transform}
+.page.under{z-index:1}
+.page.cur{z-index:2}
+.ph{position:relative;flex:none;display:flex;align-items:flex-start;gap:12px;padding:16px 18px 0 22px;height:112px;touch-action:pan-y}
+.ph .d{font:600 62px/1 var(--min);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ph .m{padding-top:8px;font:600 16px/1.35 var(--min)}
+.ph .m small{display:block;font:13px/1.5 var(--ui);color:var(--ink-2);font-weight:400;margin-top:2px}
+.stamps{position:absolute;right:16px;top:10px;width:132px;height:96px}
+.stamps .mood{position:absolute;right:6px;top:2px;width:84px;height:84px;cursor:pointer}
+.stamps .wx{position:absolute;left:0;top:44px;width:46px;height:46px;cursor:pointer}
+.stamps .slot{position:absolute;right:10px;top:6px;width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font:13px/1.3 var(--ui);color:var(--ink-3);text-align:center}
+.stamps .slot::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,transparent 60%,transparent 60%);border:1.5px dashed rgba(109,104,98,.45)}
+.thunk{animation:thunk .55s var(--out)}
+@keyframes thunk{0%{transform:translateY(-26px) scale(1.35);opacity:.2}45%{transform:scale(.94);opacity:1}100%{transform:none}}
+.prompt{position:relative;flex:none;display:flex;align-items:center;gap:6px;min-height:42px;margin:6px 16px 0 22px;font:14px/1.4 var(--min);color:var(--ink-2);text-align:left}
+.prompt b{font-weight:600;color:var(--seal);flex:none}
+.prompt span{flex:1;min-width:0}
+.body{position:relative;flex:1;min-height:0;margin:0 18px 0 22px}
+.body textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;border:0;outline:0;background:transparent;padding:0 2px;font:16px/28px var(--min);color:var(--ink);letter-spacing:.02em;caret-color:var(--ribbon);scrollbar-width:none}
+.body textarea::-webkit-scrollbar{display:none}
+.body textarea::placeholder{color:var(--ink-3)}
+.body .ro{font:16px/28px var(--min);letter-spacing:.02em;white-space:pre-wrap;overflow:hidden;height:100%;padding:0 2px}
+.pf{position:relative;flex:none;display:flex;align-items:flex-end;gap:10px;padding:10px 18px 14px 22px;touch-action:pan-y}
+.pf q{flex:1;quotes:none;font:13px/1.6 var(--min);color:var(--ink-2)}
+.pf .no{font:13px/1 var(--min);color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* ribbon */
+.ribbon{position:absolute;top:-4px;right:66px;z-index:6;width:44px;height:calc(100% + 30px);display:flex;justify-content:center;transition:transform .5s var(--spring),opacity .3s}
+.ribbon svg{width:14px;height:100%;overflow:visible}
+.ribbon.away{transform:translateX(62px)}
+.ribbon.away svg{width:14px}
+
+/* ---------- toolbar ---------- */
+.tools{flex:none;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px calc(24px + env(safe-area-inset-bottom));color:#e9e6de}
+.tool{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:52px;justify-content:center;border-radius:12px;font:12px/1 var(--ui);color:#d8d4ca;transition:background-color .2s}
+.tool:active{background:rgba(255,250,240,.08)}
+.tool svg{width:26px;height:26px}
+.tool[disabled]{opacity:.35}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:61;max-height:calc(100% - 56px);display:flex;flex-direction:column;border-radius:20px 20px 0 0;background:var(--paper);
+  transform:translateY(105%);visibility:hidden;transition:transform .5s var(--spring),visibility 0s .5s}
+.sheet.on{transform:none;visibility:visible;transition:transform .5s var(--spring)}
+.sheet.drag{transition:none}
+.shead{flex:none;padding:10px 20px 4px;touch-action:none;cursor:grab}
+.grab{width:40px;height:5px;border-radius:3px;background:rgba(43,38,34,.2);margin:0 auto 12px}
+.shead h2{font:600 20px/1.2 var(--min);display:flex;justify-content:space-between;align-items:baseline;letter-spacing:.06em}
+.shead h2 small{font:13px/1 var(--ui);color:var(--ink-2);letter-spacing:0;font-weight:400}
+.sbody{flex:1;min-height:0;overflow-y:auto;padding:8px 20px calc(26px + env(safe-area-inset-bottom));scrollbar-width:none}
+.sbody::-webkit-scrollbar{display:none}
+.lbl{font:600 14px/1.2 var(--min);color:var(--ink-2);margin:6px 0 10px;letter-spacing:.08em}
+.pad{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;justify-items:center}
+.pad button{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding:6px 0;border-radius:10px;font:13px/1 var(--min);color:var(--ink-2)}
+.pad button svg{width:58px;height:58px;transition:transform .15s var(--out)}
+.pad button:active svg{transform:scale(.9) rotate(-6deg)}
+.pad button[aria-pressed=true]{color:var(--ink);font-weight:600;background:var(--paper-2)}
+.wxpad{display:flex;gap:18px;justify-content:center;margin-top:4px}
+.wxpad button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 10px;border-radius:10px;font:13px/1 var(--ui);color:var(--ink-2)}
+.wxpad button svg{width:48px;height:48px}
+.wxpad button[aria-pressed=true]{background:var(--paper-2);color:var(--ink)}
+.clear{display:block;margin:16px auto 0;min-height:44px;padding:0 18px;font:14px/1 var(--ui);color:var(--seal)}
+.plist button{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;text-align:left;font:16px/1.4 var(--min);border-radius:10px;padding:6px 8px}
+.plist button:active{background:var(--paper-2)}
+.plist button svg{flex:none;width:18px;height:18px;color:var(--seal)}
+.plist button[aria-current=true]{color:var(--seal)}
+/* year pixels */
+.year{display:grid;grid-template-columns:22px repeat(12,1fr);gap:3px;font:11px/1 var(--ui);color:var(--ink-3)}
+.year .mh{text-align:center;padding-bottom:4px;font:600 12px/1 var(--min);color:var(--ink-2)}
+.year .dl{text-align:right;padding-right:4px;line-height:15px;font-variant-numeric:tabular-nums}
+.year button{height:15px;border-radius:2px;background:rgba(43,38,34,.07);transition:transform .15s}
+.year button:active{transform:scale(1.4)}
+.year button.fut{background:transparent;box-shadow:inset 0 0 0 1px rgba(43,38,34,.08);cursor:default}
+.year button.today{box-shadow:0 0 0 2px var(--ribbon)}
+.year i{height:15px}
+.legend{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:16px 0 4px;text-align:center;font:12px/1.4 var(--min);color:var(--ink-2)}
+.legend b{display:block;font:600 20px/1.2 var(--min);color:var(--ink)}
+.legend i{display:block;width:16px;height:16px;border-radius:3px;margin:0 auto 6px}
+
+.toast{position:absolute;left:0;right:0;margin:0 auto;width:max-content;max-width:calc(100% - 40px);bottom:calc(96px + env(safe-area-inset-bottom));z-index:70;padding:11px 16px;border-radius:10px;background:var(--ink);color:var(--paper);font:14px/1.3 var(--ui);
+  transform:translateY(8px);opacity:0;visibility:hidden;transition:transform .35s var(--spring),opacity .2s,visibility 0s .35s}
+.toast.on{transform:none;opacity:1;visibility:visible;transition:transform .35s var(--spring),opacity .2s}
+.home-ind{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(239,236,228,.55);z-index:99;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  .thunk{animation:none}
+  .ribbon,.sheet,.toast{transition-duration:.01s!important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="ink" x="0" y="0" width="1" height="1"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="4" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -3.2 0 0 0 2.35" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in"/></filter>
+  </defs>
+</svg>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs><filter id="wd"><feTurbulence type="fractalNoise" baseFrequency=".004 .09" numOctaves="3" seed="3"/><feColorMatrix values="0 0 0 0 .45 0 0 0 0 .42 0 0 0 0 .37 0 0 0 .7 0"/></filter></defs>
+      <rect width="1600" height="1000" fill="#8c8a80"/>
+      <rect width="1600" height="1000" filter="url(#wd)"/>
+      <g transform="rotate(-6 250 760)"><rect x="60" y="600" width="380" height="300" rx="4" fill="#f3f2ec"/><g fill="rgba(118,128,136,.4)"><circle cx="90" cy="630" r="1.5"/></g>
+        <path d="M100 680h260M100 710h300M100 740h220" stroke="#2b2622" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+        <g transform="translate(330 790) rotate(-8)" fill="none" stroke="#d9653b" stroke-width="4" opacity=".85"><circle r="34"/><circle r="26" stroke-width="2"/></g></g>
+      <g transform="rotate(8 1360 260)"><rect x="1210" y="90" width="44" height="360" rx="22" fill="#2b2622"/><rect x="1214" y="100" width="36" height="60" rx="4" fill="#c9b27a"/></g>
+      <path d="M1100 1000V560l-14 18-14-18v440z" fill="#b3262e"/>
+    </svg>
+  </div>
+  <div class="caption">
+    <h1>一日一頁</h1>
+    <p>一天只有一頁。寫幾行字，蓋一個心情章，紅緞帶永遠夾在今天。一年過去，心情排成一張小小的像素圖。</p>
+  </div>
+
+  <div class="device">
+    <div class="island" aria-hidden="true"></div>
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="glyphs">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1" opacity=".35"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.3 5.7 8.7a3.3 3.3 0 0 1 4.6 0z" fill="currentColor"/><path d="M3.4 6.4a6.5 6.5 0 0 1 9.2 0M1 3.9a10 10 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".7" y=".7" width="22.6" height="11.6" rx="3" fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="1.2"/><rect id="batt" x="2.4" y="2.4" width="16" height="8.2" rx="1.6" fill="currentColor"/><path d="M25 4.5v4a2 2 0 0 0 0-4z" fill="currentColor" opacity=".55"/></svg>
+        </span>
+      </div>
+
+      <div class="book" id="book"></div>
+
+      <nav class="tools" aria-label="手帳工具">
+        <button class="tool" id="tPrev" aria-label="前一天"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5c3-.6 6-.4 8 1v15c-2-1.4-5-1.6-8-1z"/><path d="M13 6c2-1.4 5-1.6 8-1v6"/><path d="M21 16h-6m2.4-2.6L15 16l2.4 2.6"/><circle cx="21" cy="21" r="1.2" fill="#c23b30" stroke="none"/></svg>前一天</button>
+        <button class="tool" id="tYear" aria-label="一年心情"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 5h4v4H5zM11 5h4v4h-4zM17 5h4v4h-4zM5 11h4v4H5zM11 11h4v4h-4zM5 17h4v4H5z"/><circle cx="19" cy="19" r="1.2" fill="#c23b30" stroke="none"/></svg>一年</button>
+        <button class="tool" id="tStamp" aria-label="蓋心情章"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4h6v5c0 2 4 3 4 6H6c0-3 4-4 4-6z"/><path d="M5 18h16v3H5z"/><circle cx="13" cy="24" r="1.2" fill="#c23b30" stroke="none"/></svg>蓋章</button>
+        <button class="tool" id="tPrompt" aria-label="換一個提示"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 4 21 8 10 19l-5 1 1-5z"/><path d="M15 6l4 4"/><circle cx="6" cy="23" r="1.2" fill="#c23b30" stroke="none"/></svg>提示</button>
+        <button class="tool" id="tNext" aria-label="後一天"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5c-3-.6-6-.4-8 1v15c2-1.4 5-1.6 8-1z"/><path d="M13 6c-2-1.4-5-1.6-8-1v6"/><path d="M5 16h6m-2.4-2.6L11 16l-2.4 2.6"/><circle cx="5" cy="21" r="1.2" fill="#c23b30" stroke="none"/></svg>後一天</button>
+      </nav>
+
+      <div class="home-ind" aria-hidden="true"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT">
+        <div class="shead" id="sheetHead"><div class="grab"></div><h2 id="sheetT"></h2></div>
+        <div class="sbody" id="sheetBody"></div>
+      </div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app083:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function clamp(v, a, b){ return v < a ? a : v > b ? b : v; }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ---------- sound ---------- */
+var ac = null, nb = null;
+function audio(){ if (ac){ if (ac.state === 'suspended') ac.resume(); return ac; } try { ac = new (window.AudioContext || window.webkitAudioContext)(); nb = ac.createBuffer(1, ac.sampleRate * .6, ac.sampleRate); var d = nb.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } catch(e){ ac = null; } return ac; }
+document.addEventListener('pointerdown', audio, {once:true, capture:true});
+function nz(t, dur, f0, f1, q, g){ var s = ac.createBufferSource(); s.buffer = nb; var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur); var gn = ac.createGain(); gn.gain.setValueAtTime(.0001, t); gn.gain.linearRampToValueAtTime(g, t + dur * .3); gn.gain.exponentialRampToValueAtTime(.0005, t + dur); s.connect(f); f.connect(gn); gn.connect(ac.destination); s.start(t, Math.random() * .2); s.stop(t + dur + .02); }
+function sFlip(){ if (!audio()) return; var t = ac.currentTime; nz(t, .28, 900, 4200, .8, .22); nz(t + .18, .12, 3000, 1500, 1.2, .1); }
+function sStamp(){ if (!audio()) return; var t = ac.currentTime; var o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(60, t + .12); g.gain.setValueAtTime(.55, t); g.gain.exponentialRampToValueAtTime(.0005, t + .16); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + .2); nz(t, .06, 700, 400, 1, .35); }
+
+/* ---------- dates ---------- */
+var WD = ['日','一','二','三','四','五','六'], MON = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
+function key(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function fromKey(k){ var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function addDays(k, n){ var d = fromKey(k); d.setDate(d.getDate() + n); return key(d); }
+function doy(d){ return Math.round((d - new Date(d.getFullYear(), 0, 1)) / 864e5) + 1; }
+var TODAY = key(new Date());
+var TERMS = {'1-5':'小寒','1-20':'大寒','2-4':'立春','2-19':'雨水','3-5':'驚蟄','3-20':'春分','4-5':'清明','4-20':'穀雨','5-5':'立夏','5-21':'小滿','6-5':'芒種','6-21':'夏至','7-7':'小暑','7-22':'大暑','8-7':'立秋','8-23':'處暑','9-7':'白露','9-23':'秋分','10-8':'寒露','10-23':'霜降','11-7':'立冬','11-22':'小雪','12-7':'大雪','12-21':'冬至'};
+function termOf(d){ var t = TERMS[(d.getMonth() + 1) + '-' + d.getDate()]; if (t) return '今日' + t; for (var i = 1; i < 15; i++){ var p = new Date(d); p.setDate(p.getDate() - i); t = TERMS[(p.getMonth() + 1) + '-' + p.getDate()]; if (t) return t + '後第 ' + i + ' 天'; } return ''; }
+var QUOTES = ['慢慢寫，字會自己排好隊。','今天沒發生什麼，也是一種發生。','把一件小事記下來，它就不會那麼快走掉。','晴天的影子，比陰天的更清楚。','累了就只寫一行，一行也算數。','騎車經過的那棵樹，明年還會在。','寫錯的字，是這一頁最真的地方。','喜歡的東西，多說一次也不嫌多。','下雨的聲音，適合拿來當標點。','今天的自己，明天會想念。','不必寫完，只要開始。','早餐店阿姨的一句早安，也可以寫進來。','一年很長，一天剛好。','翻回去看的時候，要對自己溫柔一點。','記住一種氣味，比記住一件事更久。','把「還好」換成更準確的詞。','今天也有一件事做得不錯。','空白的一頁，也是一種休息。','巷口的貓，今天也在。','寫下來的煩惱，會變小一號。'];
+var PROMPTS = ['今天最想記住的一個聲音？','今天吃到最好吃的是什麼？','有誰讓你笑了？','今天學到的一件小事。','如果今天有標題，會是什麼？','走路時看到了什麼？','今天想對誰說謝謝？','現在最想去的地方。','今天的天空是什麼顏色？','一件拖延了很久、終於做了的事。','今天身體哪裡最累？','睡前最想做的一件事。'];
+
+/* ---------- moods ---------- */
+var MOODS = [
+  {n:'開心', c:'#d9653b', g:'<g transform="translate(40 36)"><circle r="5"/>' + [0,72,144,216,288].map(function(a){ return '<ellipse cx="0" cy="-11" rx="5" ry="7" transform="rotate(' + a + ')"/>'; }).join('') + '</g>'},
+  {n:'平靜', c:'#6f9a7c', g:'<path d="M22 40c6-6 12-6 18 0s12 6 18 0M22 30c6-6 12-6 18 0s12 6 18 0" fill="none" stroke-width="3.4" stroke-linecap="round"/>'},
+  {n:'普通', c:'#b39a5e', g:'<circle cx="40" cy="36" r="12" fill="none" stroke-width="3.4"/><circle cx="40" cy="36" r="3.4"/>'},
+  {n:'疲憊', c:'#7f94a3', g:'<path d="M46 22a14 14 0 1 0 6 22 11 11 0 1 1-6-22z"/><path d="M26 22h5l-5 6h5" fill="none" stroke-width="2.4" stroke-linejoin="round"/>'},
+  {n:'低落', c:'#3f4f64', g:'<path d="M40 20c7 10 11 16 11 21a11 11 0 0 1-22 0c0-5 4-11 11-21z"/>'}
+];
+function moodSVG(i, rot){
+  var m = MOODS[i];
+  return '<svg viewBox="0 0 80 80" aria-hidden="true" style="transform:rotate(' + (rot || 0) + 'deg)"><g filter="url(#ink)" fill="' + m.c + '" stroke="' + m.c + '">' +
+    '<circle cx="40" cy="40" r="36" fill="none" stroke-width="3.6"/><circle cx="40" cy="40" r="30.5" fill="none" stroke-width="1.4"/>' + m.g +
+    '<text x="40" y="63" text-anchor="middle" font-family="Hiragino Mincho ProN, Songti TC, serif" font-weight="600" font-size="11" stroke="none" letter-spacing="2">' + m.n + '</text></g></svg>';
+}
+var WX = ['晴', '陰', '雨'];
+function wxSVG(i, rot){
+  return '<svg viewBox="0 0 46 46" aria-hidden="true" style="transform:rotate(' + (rot || 0) + 'deg)"><g filter="url(#ink)"><rect x="3" y="3" width="40" height="40" rx="4" fill="none" stroke="#c23b30" stroke-width="3.2"/>' +
+    '<text x="23" y="24" text-anchor="middle" dominant-baseline="central" font-family="Hiragino Mincho ProN, Songti TC, serif" font-weight="700" font-size="24" fill="#c23b30">' + WX[i] + '</text></g></svg>';
+}
+
+/* ---------- data ---------- */
+function mul(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+var db = load('db', null);
+if (!db){
+  db = {};
+  var r = mul(83), d0 = new Date(new Date().getFullYear(), 0, 1), tk = fromKey(TODAY);
+  for (var d = new Date(d0); d < tk; d.setDate(d.getDate() + 1)){
+    if (r() < .14) continue;
+    var season = Math.sin((doy(d) - 20) / 365 * Math.PI * 2);
+    var x = r() + (d.getDay() === 0 || d.getDay() === 6 ? -.18 : .05) - season * .08;
+    var mood = x < .28 ? 0 : x < .55 ? 1 : x < .78 ? 2 : x < .93 ? 3 : 4;
+    db[key(d)] = {m:mood, w:Math.floor(r() * 3), t:'', p:Math.floor(r() * PROMPTS.length)};
+  }
+  var W = [
+    [-9, '下午去大稻埕的布市買了一塊藍色的棉布，想做成書衣。老闆娘說這個顏色今年很少人買。\n回家路上下了一陣雨，躲在騎樓等雨停。'],
+    [-7, '加班到九點。捷運上有個小朋友一直在數站名，數到圓山就睡著了。'],
+    [-6, '媽寄了文旦來，整個房間都是柚子皮的味道。中秋還沒到，先吃了兩顆。'],
+    [-5, '週末。早上睡到十點，去巷口早餐店點了蘿蔔糕加蛋。\n下午把陽台的九層塔剪了一半，晚上炒了三杯雞。'],
+    [-4, '開會開到頭痛。記一下：下次先把問題寫下來再進會議室。'],
+    [-3, '和阿芳去象山看夜景，爬到一半就喘。山頂風很大，101 的燈是橘色的。'],
+    [-2, '今天沒什麼特別的。午餐吃了公司樓下的滷肉飯，湯很燙。'],
+    [-1, '秋分。天黑得比上個月早了。下班走回家的路上，有人在烤香腸。'],
+    [0, '早上在巷口買了飯糰，阿伯多給了一條油條。\n今天想早點睡，']
+  ];
+  W.forEach(function(w, i){ var k = addDays(TODAY, w[0]); db[k] = {m:[1, 3, 0, 0, 3, 0, 2, 1, 0][i], w:[2, 1, 0, 0, 1, 0, 1, 1, 0][i], t:w[1], p:(i * 5) % PROMPTS.length}; });
+}
+function persist(){ save('db', db); }
+function entry(k){ return db[k] || {m:-1, w:-1, t:'', p:(doy(fromKey(k)) * 7) % PROMPTS.length}; }
+function setEntry(k, e){ db[k] = e; persist(); }
+
+/* ---------- clock ---------- */
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setInterval(tick, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(3, 18.4 * b.level).toFixed(1)); }).catch(function(){});
+var tT = 0;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ t.classList.remove('on'); }, 2000); }
+
+/* ---------- page rendering ---------- */
+var cur = TODAY;
+function rotFor(k, salt){ var s = 0; for (var i = 0; i < k.length; i++) s = (s * 31 + k.charCodeAt(i)) % 997; return ((s * (salt || 1)) % 21) - 12; }
+function pageHTML(k, live){
+  var d = fromKey(k), e = entry(k), n = doy(d), yl = (new Date(d.getFullYear(), 11, 31) - new Date(d.getFullYear(), 0, 1)) / 864e5 + 1;
+  var st = '';
+  if (e.m >= 0) st += '<button class="mood" data-act="stamp" aria-label="心情：' + MOODS[e.m].n + '，點一下換章"' + (live ? '' : ' tabindex="-1"') + '>' + moodSVG(e.m, rotFor(k)) + '</button>';
+  else st += '<button class="slot" data-act="stamp"' + (live ? '' : ' tabindex="-1"') + '>蓋一個<br>心情章</button>';
+  if (e.w >= 0) st += '<button class="wx" data-act="stamp" aria-label="天氣：' + WX[e.w] + '"' + (live ? '' : ' tabindex="-1"') + '>' + wxSVG(e.w, rotFor(k, 7) * .6) + '</button>';
+  var body = live ? '<textarea id="ta" aria-label="' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日的日記" placeholder="寫一點什麼，一行也好。">' + esc(e.t) + '</textarea>' : '<div class="ro">' + (e.t ? esc(e.t) : '<span style="color:var(--ink-3)">（空白的一頁）</span>') + '</div>';
+  return '<div class="grid"></div>' +
+    '<header class="ph"><div class="d">' + d.getDate() + '</div><div class="m">' + MON[d.getMonth()] + '月 · 星期' + WD[d.getDay()] + '<small>' + d.getFullYear() + ' · 第 ' + n + ' 天</small><small>' + termOf(d) + '</small></div>' +
+    '<div class="stamps">' + st + '</div></header>' +
+    '<button class="prompt" data-act="prompt"' + (live ? '' : ' tabindex="-1"') + '><b>提示</b><span>' + PROMPTS[e.p] + '</span></button>' +
+    '<div class="body">' + body + '</div>' +
+    '<footer class="pf"><q>' + QUOTES[n % QUOTES.length] + '</q><span class="no">' + n + ' / ' + yl + '</span></footer>' +
+    '<div class="shade"></div>';
+}
+function ribbonHTML(){
+  return '<div class="ribbon' + (cur === TODAY ? '' : ' away') + '" id="ribbon"><button aria-label="緞帶書籤：回到今天" style="width:44px;height:100%;display:flex;justify-content:center"><svg viewBox="0 0 14 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H14V100L7 96 0 100Z" fill="#b3262e"/><path d="M3 0V99" stroke="#8e1c23" stroke-width=".8" vector-effect="non-scaling-stroke"/><path d="M11 0V99" stroke="#d0444b" stroke-width=".8" vector-effect="non-scaling-stroke" opacity=".6"/></svg></button></div>';
+}
+var book = $('book'), pageEl = null;
+function mount(){
+  book.innerHTML = '';
+  pageEl = document.createElement('article'); pageEl.className = 'page cur'; pageEl.innerHTML = pageHTML(cur, true); book.appendChild(pageEl);
+  book.insertAdjacentHTML('beforeend', ribbonHTML());
+  $('ribbon').querySelector('button').addEventListener('click', goToday);
+  bindPage(); save('view', cur);
+  $('tNext').disabled = false;
+}
+function bindPage(){
+  var ta = $('ta'), tmr = 0;
+  if (ta) ta.addEventListener('input', function(){ clearTimeout(tmr); tmr = setTimeout(function(){ var e = entry(cur); e.t = ta.value; setEntry(cur, e); }, 250); });
+  if (ta) ta.addEventListener('blur', function(){ var e = entry(cur); if (e.t !== ta.value){ e.t = ta.value; setEntry(cur, e); } });
+}
+book.addEventListener('click', function(e){
+  var b = e.target.closest('[data-act]'); if (!b || !pageEl || !pageEl.contains(b)) return;
+  if (b.dataset.act === 'stamp') openStamp();
+  if (b.dataset.act === 'prompt') openPrompts();
+});
+
+/* ---------- flipping ---------- */
+var flipping = false;
+function flip(dir, target, dragState){
+  if (flipping) return; target = target || addDays(cur, dir);
+  var ta = $('ta'); if (ta){ var e0 = entry(cur); if (e0.t !== ta.value){ e0.t = ta.value; setEntry(cur, e0); } }
+  flipping = true;
+  var other = document.createElement('article'); other.innerHTML = pageHTML(target, false);
+  var mover, W = book.clientWidth;
+  if (dir > 0){ other.className = 'page under'; book.insertBefore(other, pageEl); mover = pageEl; mover.classList.add('flip'); }
+  else { other.className = 'page flip'; other.style.transform = 'rotateY(-180deg)'; book.appendChild(other); mover = other; }
+  var from = dir > 0 ? 0 : -180, to = dir > 0 ? -180 : 0;
+  var shade = mover.querySelector('.shade');
+  function set(a){ mover.style.transform = 'rotateY(' + a.toFixed(2) + 'deg)'; shade.style.opacity = (Math.abs(a) / 180 * 1.4).toFixed(2); }
+  function finish(ok){
+    flipping = false;
+    if (ok){ cur = target; mount(); sFlip(); haptic(6); }
+    else { other.remove(); if (pageEl){ pageEl.classList.remove('flip'); pageEl.style.transform = ''; pageEl.querySelector('.shade').style.opacity = 0; } }
+  }
+  if (dragState){ dragState.set = set; dragState.from = from; dragState.to = to; dragState.finish = function(ok){ animate(ok ? to : from, ok); }; set(from); return; }
+  animate(to, true);
+  function animate(end, ok){
+    if (reduce){ finish(ok); return; }
+    var start = parseFloat((mover.style.transform.match(/-?[\d.]+/) || [from])[0]), t0 = performance.now(), dur = 420 * Math.abs(end - start) / 180 + 80;
+    (function f(t){ var p = clamp((t - t0) / dur, 0, 1), e = 1 - Math.pow(1 - p, 3); set(start + (end - start) * e); if (p < 1) requestAnimationFrame(f); else finish(ok); })(t0);
+  }
+}
+(function(){
+  var sx = 0, sy = 0, down = false, st = null, lt = 0, vx = 0, lx = 0;
+  book.addEventListener('pointerdown', function(e){
+    if (flipping || e.target.closest('textarea') || e.target.closest('#ribbon')) return;
+    down = true; st = null; sx = lx = e.clientX; sy = e.clientY; lt = e.timeStamp; vx = 0;
+  });
+  book.addEventListener('pointermove', function(e){
+    if (!down) return; var dx = e.clientX - sx, dy = e.clientY - sy;
+    vx = (e.clientX - lx) / Math.max(1, e.timeStamp - lt); lx = e.clientX; lt = e.timeStamp;
+    if (!st){
+      if (Math.abs(dx) < 10 || Math.abs(dy) > Math.abs(dx)) { if (Math.abs(dy) > 14) down = false; return; }
+      st = {dir:dx < 0 ? 1 : -1}; try { book.setPointerCapture(e.pointerId); } catch(_){}
+      flip(st.dir, null, st); if (!st.set){ down = false; return; }
+    }
+    var p = clamp(Math.abs(dx) / (book.clientWidth * .9), 0, 1);
+    if ((st.dir > 0 && dx > 0) || (st.dir < 0 && dx < 0)) p = 0;
+    st.p = p; st.set(st.from + (st.to - st.from) * p);
+  });
+  function up(){
+    if (!down) return; down = false; if (!st || !st.finish) return;
+    var ok = st.p > .32 || (st.dir > 0 ? vx < -.5 : vx > .5); st.finish(ok); st = null;
+  }
+  book.addEventListener('pointerup', up); book.addEventListener('pointercancel', up);
+})();
+$('tPrev').addEventListener('click', function(){ flip(-1); });
+$('tNext').addEventListener('click', function(){ flip(1); });
+function goToday(){
+  haptic(10);
+  if (cur === TODAY){ toast('緞帶就夾在今天'); var ta = $('ta'); if (ta) ta.focus({preventScroll:true}); return; }
+  flip(cur < TODAY ? 1 : -1, TODAY);
+}
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ closeSheet(); return; }
+  if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+  if (sheet.classList.contains('on')) return;
+  if (e.key === 'ArrowRight') flip(1); if (e.key === 'ArrowLeft') flip(-1);
+});
+
+/* ---------- sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(title, html, after){ lastFocus = document.activeElement; $('sheetT').innerHTML = title; $('sheetBody').innerHTML = html; $('sheetBody').scrollTop = 0; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(8); if (after) after(); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (lastFocus && lastFocus.focus && document.contains(lastFocus)) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var h = $('sheetHead'), y0 = 0, dy = 0, t0 = 0, on = false;
+  h.addEventListener('pointerdown', function(e){ on = true; y0 = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try { h.setPointerCapture(e.pointerId); } catch(_){} });
+  h.addEventListener('pointermove', function(e){ if (!on) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = 'translateY(' + dy + 'px)'; });
+  function up(e){ if (!on) return; on = false; sheet.classList.remove('drag'); var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || (v > .6 && dy > 30)) closeSheet(); else sheet.style.transform = ''; }
+  h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+})();
+
+/* stamp pad */
+function openStamp(){
+  var e = entry(cur), d = fromKey(cur);
+  var h = '<p class="lbl">心情</p><div class="pad">' + MOODS.map(function(m, i){ return '<button data-mood="' + i + '" aria-pressed="' + (e.m === i) + '">' + moodSVG(i, 0) + m.n + '</button>'; }).join('') + '</div>';
+  h += '<p class="lbl" style="margin-top:18px">天氣</p><div class="wxpad">' + WX.map(function(w, i){ return '<button data-wx="' + i + '" aria-pressed="' + (e.w === i) + '">' + wxSVG(i, 0) + w + '</button>'; }).join('') + '</div>';
+  if (e.m >= 0 || e.w >= 0) h += '<button class="clear" id="unstamp">把章擦掉</button>';
+  openSheet('蓋章 <small>' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日</small>', h);
+}
+$('sheetBody').addEventListener('click', function(ev){
+  var b = ev.target.closest('button'); if (!b) return;
+  if (b.dataset.mood !== undefined || b.dataset.wx !== undefined){
+    var e = entry(cur); if (b.dataset.mood !== undefined) e.m = +b.dataset.mood; else e.w = +b.dataset.wx;
+    setEntry(cur, e); closeSheet(); remountStamps(b.dataset.mood !== undefined ? '.mood' : '.wx'); return;
+  }
+  if (b.id === 'unstamp'){ var e2 = entry(cur), old = {m:e2.m, w:e2.w}; e2.m = -1; e2.w = -1; setEntry(cur, e2); closeSheet(); remountStamps(); haptic(8);
+    var t = $('toast'); t.innerHTML = '章擦掉了 <button id="undoSt" style="margin-left:8px;color:#f0a79f;font-weight:600;min-height:32px">復原</button>'; t.classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ t.classList.remove('on'); }, 3800);
+    $('undoSt').addEventListener('click', function(){ var e3 = entry(cur); e3.m = old.m; e3.w = old.w; setEntry(cur, e3); remountStamps(); t.classList.remove('on'); }); return; }
+  if (b.dataset.pr !== undefined){ var e4 = entry(cur); e4.p = +b.dataset.pr; setEntry(cur, e4); closeSheet(); var pr = pageEl.querySelector('.prompt span'); pr.textContent = PROMPTS[e4.p]; haptic(6); var ta = $('ta'); if (ta){ ta.focus({preventScroll:true}); } return; }
+  if (b.dataset.day){ closeSheet(); var k = b.dataset.day; if (k !== cur) setTimeout(function(){ flip(k > cur ? 1 : -1, k); }, 260); return; }
+});
+function remountStamps(which){
+  var ta = $('ta'), txt = ta ? ta.value : null;
+  var tmp = document.createElement('div'); tmp.innerHTML = pageHTML(cur, true);
+  var ns = tmp.querySelector('.stamps'), os = pageEl.querySelector('.stamps'); os.replaceWith(ns);
+  if (which){ var el = ns.querySelector(which); if (el && !reduce){ el.classList.add('thunk'); } sStamp(); haptic([20, 30, 12]); }
+  if (ta && txt !== null) ta.value = txt;
+}
+$('tStamp').addEventListener('click', openStamp);
+
+/* prompts */
+function openPrompts(){
+  var e = entry(cur);
+  var h = '<div class="plist">' + PROMPTS.map(function(p, i){ return '<button data-pr="' + i + '" aria-current="' + (e.p === i) + '"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 14 13 5l1.6 1.6-9 9H4z"/><circle cx="15" cy="15" r="1" fill="currentColor" stroke="none"/></svg>' + p + '</button>'; }).join('') + '</div>';
+  openSheet('提示 <small>寫不出來的時候</small>', h);
+}
+$('tPrompt').addEventListener('click', openPrompts);
+
+/* year in pixels */
+function openYear(){
+  var y = fromKey(cur).getFullYear(), counts = [0, 0, 0, 0, 0], written = 0;
+  var h = '<div class="year" role="grid" aria-label="' + y + ' 年心情"><span></span>' + MON.map(function(m, i){ return '<span class="mh">' + (i + 1) + '</span>'; }).join('');
+  for (var day = 1; day <= 31; day++){
+    h += '<span class="dl">' + (day % 5 === 0 || day === 1 ? day : '') + '</span>';
+    for (var mo = 0; mo < 12; mo++){
+      var dt = new Date(y, mo, day);
+      if (dt.getMonth() !== mo){ h += '<i></i>'; continue; }
+      var k = key(dt), e = db[k], fut = k > TODAY;
+      if (e && e.m >= 0) counts[e.m]++; if (e && e.t) written++;
+      h += '<button data-day="' + k + '" class="' + (fut ? 'fut' : '') + (k === TODAY ? ' today' : '') + '" style="' + (e && e.m >= 0 ? 'background:' + MOODS[e.m].c : '') + '" aria-label="' + (mo + 1) + ' 月 ' + day + ' 日' + (e && e.m >= 0 ? '，' + MOODS[e.m].n : '') + '"' + (fut ? ' disabled' : '') + '></button>';
+    }
+  }
+  h += '</div><div class="legend">' + MOODS.map(function(m, i){ return '<div><i style="background:' + m.c + '"></i><b>' + counts[i] + '</b>' + m.n + '</div>'; }).join('') + '</div>';
+  h += '<p style="text-align:center;font:13px/1.6 var(--ui);color:var(--ink-2);margin-top:8px">今年寫了 ' + written + ' 頁，蓋了 ' + counts.reduce(function(a, b){ return a + b; }, 0) + ' 個章。點一格翻到那一天。</p>';
+  openSheet(y + ' <small>一年的心情</small>', h);
+}
+$('tYear').addEventListener('click', openYear);
+
+mount();
+if (cur !== TODAY){ /* remembered page */ }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3f2ee">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="館藏">
+<title>館藏 · 博物館導覽</title>
+<meta name="description" content="臺灣日常器物館的隨身導覽：三層樓平面圖點房間縮放，展品以展牆標籤排版呈現，語音導覽可刮擦逐句聆聽，喜歡的收進收藏。收錄於 100 Creative HTML Works（App 080・展品標籤排版）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/080-museum-guide.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23f3f2ee'/%3E%3Cpath d='M8 8h30v26H8z' fill='%236e2f2b'/%3E%3Cpath d='M38 8h18v40H38z' fill='%238e9b80'/%3E%3Cpath d='M8 34h30v22H8z' fill='%23c69a4b'/%3E%3Cpath d='M8 8h48v48H8z' fill='none' stroke='%23151515' stroke-width='4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#f3f2ee; --ink:#151515; --ink2:#5b5a56; --ink3:#8c8a84; --rule:#d9d7d1;
+  --op:Optima,"Optima nova","Candara","Segoe UI",sans-serif;
+  --cjk:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --mix:Optima,"PingFang TC","Heiti TC",sans-serif;
+  --out:cubic-bezier(.2,1,.3,1); --spring:cubic-bezier(.3,1.3,.5,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.55 var(--mix);color:var(--ink);background:var(--paper);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;text-align:inherit}
+button:focus-visible,[tabindex]:focus-visible,.mk:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+svg{display:block}
+.num{font-family:var(--op);font-variant-numeric:lining-nums}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper);isolation:isolate;display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
+@media (min-width:521px){
+  body{background:#4b2522}
+  .stage{display:flex;align-items:center;justify-content:center;gap:80px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,#6a3531 0%,#5a2c29 30%,#46221f 70%,#3a1c1a 100%)}
+  .backdrop::after{content:"";position:absolute;left:0;right:0;bottom:0;height:9vh;background:#2a1715;box-shadow:0 -3px 0 #1e100f}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:8px;z-index:1;background:#141414;box-shadow:inset 0 0 0 1px #3b3b3b,0 26px 30px -24px rgba(0,0,0,.9)}
+  .screen{inset:8px;border-radius:44px}
+  .caption{display:block;position:relative;z-index:1;width:230px;background:#f3f2ee;color:var(--ink);padding:22px 22px 20px;align-self:center;margin-top:120px;box-shadow:0 8px 10px -8px rgba(0,0,0,.6)}
+  .caption h1{font:400 26px/1.2 var(--cjk);letter-spacing:.06em}
+  .caption .by{font:italic 14px/1.4 var(--op);margin-top:4px;color:var(--ink2)}
+  .caption .md{font:13px/1.6 var(--mix);color:var(--ink2);margin-top:10px}
+  .caption p{font:13.5px/1.75 var(--cjk);margin-top:12px}
+  .caption .acc{font:12px/1 var(--op);color:var(--ink3);margin-top:14px;letter-spacing:.06em}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+.status{flex:none;display:flex;align-items:center;justify-content:space-between;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 15px/1 var(--op)}
+.status .gl{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+.head{flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:6px 20px 12px}
+.head .nm{font:500 17px/1.2 var(--cjk);letter-spacing:.08em}
+.head .en{font:italic 13px/1.3 var(--op);color:var(--ink2);margin-top:2px}
+.tabs{display:flex;gap:16px}
+.tabs button{font:400 15px/1 var(--cjk);color:var(--ink3);min-height:44px;display:flex;align-items:center;gap:4px}
+.tabs button[aria-selected=true]{color:var(--ink);font-weight:600}
+.tabs .c{font:600 15px/1 var(--op)}
+
+.views{flex:1;position:relative;min-height:0}
+.view{position:absolute;inset:0;display:flex;flex-direction:column}
+.view[hidden]{display:none}
+.view.enter{animation:vin .4s var(--out)}
+@keyframes vin{from{transform:translateY(14px)}to{transform:none}}
+
+.fbar{flex:none;display:flex;align-items:flex-end;gap:12px;padding:0 20px 10px;min-height:62px}
+.fbar .fl{font:400 52px/.9 var(--op);letter-spacing:-.01em}
+.fbar .fl small{font-size:22px;margin-left:2px}
+.fbar .fn{flex:1;min-width:0;padding-bottom:4px}
+.fbar .fn b{display:block;font:500 17px/1.3 var(--cjk);letter-spacing:.06em}
+.fbar .fn span{font:13px/1.3 var(--mix);color:var(--ink2)}
+.fbar .seen{text-align:right;padding-bottom:4px;font:13px/1.3 var(--mix);color:var(--ink2)}
+.fbar .seen b{display:block;font:400 22px/1 var(--op);color:var(--ink)}
+.back{display:none;align-items:center;gap:6px;min-height:44px;font:500 15px/1 var(--cjk);padding-right:8px;margin-bottom:-4px}
+.zoomed .back{display:flex}
+.zoomed .fl{display:none}
+.back:active{opacity:.6}
+
+.planwrap{flex:1;position:relative;min-height:0;margin:0 12px 0 8px;touch-action:manipulation}
+.strip{flex:none;display:flex;gap:12px;overflow-x:auto;padding:12px 20px calc(30px + env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior-x:contain}
+.strip::-webkit-scrollbar{display:none}
+.tile{flex:none;width:92px;text-align:left}
+.tile .art{display:grid;place-items:center;width:92px;height:92px}
+.tile .art svg{width:66px;height:66px}
+.tile b{display:block;font:500 13px/1.3 var(--cjk);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile span{font:12px/1.2 var(--op);color:var(--ink2)}
+.tile:active .art{filter:brightness(.92)}
+
+.plan{position:absolute;inset:0;width:calc(100% - 52px);height:100%}
+.plan.swap{animation:lift .45s var(--out)}
+@keyframes lift{from{transform:translateY(var(--fy,30px))}to{transform:none}}
+.room{cursor:pointer;transition:opacity .4s}
+.plan.focus .room:not(.on),.plan.focus .ex{opacity:.3}
+.plan.focus .mk.off{opacity:.3}
+.room rect.fillr{transition:filter .2s}
+.room:active rect.fillr{filter:brightness(.92)}
+.rl{font-family:var(--op);pointer-events:none}
+.rn{font-family:var(--cjk);pointer-events:none}
+.mk{cursor:pointer}
+.mk circle{transition:r .2s}
+.mk text{font:600 12px var(--op);pointer-events:none}
+.floors{position:absolute;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
+.floors button{width:44px;height:52px;display:flex;align-items:center;justify-content:center;font:400 22px/1 var(--op);color:var(--ink2);box-shadow:inset 0 0 0 1.5px var(--rule)}
+.floors button[aria-pressed=true]{background:var(--ink);color:var(--paper);box-shadow:none}
+.floors button:active{background:#e4e2dc}
+.floors button[aria-pressed=true]:active{background:#333}
+.floors .ico{height:28px;box-shadow:none;color:var(--ink3)}
+
+/* collection */
+.coll{flex:1;overflow-y:auto;padding:4px 16px 110px;display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:start;overscroll-behavior:contain}
+.card{display:flex;flex-direction:column;text-align:left}
+.card .art{aspect-ratio:1/1;display:grid;place-items:center}
+.card .art svg{width:70%;height:70%}
+.card .cap{padding:8px 2px 0}
+.card .cap b{display:block;font:500 15px/1.3 var(--cjk)}
+.card .cap span{font:12.5px/1.4 var(--mix);color:var(--ink2)}
+.card:active .art{filter:brightness(.94)}
+.collhead{grid-column:1/-1;font:13.5px/1.6 var(--cjk);color:var(--ink2);padding:0 2px 4px}
+.collempty{grid-column:1/-1;padding:30px 4px;font:15px/1.8 var(--cjk);color:var(--ink2)}
+
+/* mini player */
+.mini{position:absolute;left:10px;right:10px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:20;background:var(--ink);color:var(--paper);display:flex;align-items:center;min-height:60px;padding:0 4px 0 14px;gap:10px;transform:translateY(140%);transition:transform .4s var(--spring)}
+.mini.on{transform:none}
+.mini .mt{flex:1;min-width:0;cursor:pointer}
+.mini .mt b{display:block;font:500 14px/1.3 var(--cjk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini .mt span{font:12px/1.3 var(--op);color:#b5b3ad}
+.mini .pb{position:absolute;left:0;bottom:0;height:3px;background:var(--paper);border-radius:0 2px 2px 0}
+.mini button.ib{width:44px;height:44px;display:grid;place-items:center}
+.mini button.ib:active{opacity:.6}
+.home{position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(21,21,21,.8);z-index:30;pointer-events:none}
+
+/* sheet = wall label */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(21,21,21,.42);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;height:92%;background:var(--paper);display:flex;flex-direction:column;transform:translateY(calc(100% + 30px));transition:transform .5s var(--spring);touch-action:none;border-radius:16px 16px 0 0;overflow:hidden}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.sb{flex:1;overflow-y:auto;overscroll-behavior:contain}
+.wall{position:relative;height:250px;display:grid;place-items:center}
+.wall svg.obj{width:170px;height:170px}
+.wall .grab{position:absolute;top:8px;left:50%;width:40px;height:5px;margin-left:-20px;border-radius:3px;background:currentColor;opacity:.45}
+.wall .nav{position:absolute;bottom:10px;display:flex;gap:4px}
+.wall .nav.l{left:8px}.wall .nav.r{right:8px}
+.wall .nav button{width:44px;height:44px;display:grid;place-items:center;color:inherit}
+.wall .nav button:active{opacity:.6}
+.wall .roomtag{position:absolute;top:22px;left:20px;font:13px/1.3 var(--mix);opacity:.85}
+.lbl{padding:22px 24px 8px;max-width:420px}
+.lbl .no{font:400 15px/1 var(--op);color:var(--ink2)}
+.lbl h2{font:300 30px/1.2 var(--cjk);letter-spacing:.04em;margin-top:10px}
+.lbl .mk2{font:500 15px/1.5 var(--mix);margin-top:10px}
+.lbl .meta{font:14px/1.6 var(--mix);color:var(--ink2);margin-top:2px}
+.lbl p{font:15.5px/1.85 var(--cjk);margin-top:14px}
+.lbl .acc{font:12.5px/1 var(--op);color:var(--ink3);margin-top:16px;letter-spacing:.04em}
+.guide{margin:18px 24px 0;padding-top:16px;box-shadow:0 -2px 0 var(--ink)}
+.guide .gh{display:flex;align-items:center;gap:12px}
+.guide .play{width:52px;height:52px;display:grid;place-items:center;flex:none}
+.guide .play:active{opacity:.6}
+.guide .gt{flex:1;font:500 15px/1.3 var(--cjk)}
+.guide .gt span{display:block;font:13px/1.3 var(--op);color:var(--ink2);margin-top:2px}
+.guide .say{font:13px/1 var(--cjk);color:var(--ink2);min-height:44px;display:flex;align-items:center;gap:6px}
+.guide .say[aria-pressed=true]{color:var(--ink);font-weight:600}
+.scrub{position:relative;height:48px;margin-top:6px;cursor:pointer;touch-action:none}
+.scrub svg{width:100%;height:100%}
+.scrub .head2{position:absolute;top:6px;bottom:6px;width:2px;margin-left:-1px;background:var(--ink);pointer-events:none}
+.tr{margin-top:8px;padding-bottom:6px}
+.tr button{display:flex;gap:12px;width:100%;padding:8px 0;font:15px/1.7 var(--cjk);color:var(--ink3);transition:color .25s}
+.tr button .ts{flex:none;width:34px;font:13px/1.9 var(--op);color:var(--ink3)}
+.tr button.cur{color:var(--ink)}
+.tr button.cur .ts{color:var(--ink)}
+.acts{margin:10px 24px calc(30px + env(safe-area-inset-bottom))}
+.act{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;box-shadow:0 -1px 0 var(--rule);font:500 15px/1.3 var(--cjk)}
+.act:active{background:#e7e5df}
+.act svg{flex:none}
+.act .st{margin-left:auto;font:13px/1 var(--mix);color:var(--ink2)}
+
+.toast{position:absolute;left:50%;top:calc(54px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-140px);background:var(--ink);color:var(--paper);padding:11px 16px;font:500 14px/1.3 var(--cjk);white-space:nowrap;visibility:hidden;transition:transform .45s var(--spring),visibility 0s .45s}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--spring)}
+
+@media (prefers-reduced-motion:reduce){
+  .view.enter,.plan.swap{animation:none}
+  .sheet,.toast,.mini{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"></div>
+  <aside class="caption">
+    <h1>館藏</h1>
+    <div class="by">Museum Guide, 2026</div>
+    <div class="md">HTML、SVG、Web Audio<br>手機一支</div>
+    <p>臺灣日常器物館的隨身導覽。點房間放大，讀展牆標籤，拖動語音導覽逐句聽。</p>
+    <div class="acc">App 080</div>
+  </aside>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="gl">
+          <svg width="17" height="11" viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" rx=".6" fill="currentColor"/><rect x="4.6" y="5" width="3" height="6" rx=".6" fill="currentColor"/><rect x="9.2" y="2.5" width="3" height="8.5" rx=".6" fill="currentColor"/><rect x="13.8" y="0" width="3" height="11" rx=".6" fill="currentColor"/></svg>
+          <svg width="15" height="11" viewBox="0 0 15 11"><path d="M7.5 10.5 5 7.8a3.6 3.6 0 0 1 5 0z" fill="currentColor"/><path d="M2.8 5.3a6.7 6.7 0 0 1 9.4 0M.6 2.9a10 10 0 0 1 13.8 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x=".5" y=".5" width="22" height="11" rx="3" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="17" height="8" rx="1.6" fill="currentColor"/><path d="M24 4v4c.8-.3 1.3-1 1.3-2S24.8 4.3 24 4z" fill="currentColor" opacity=".45"/></svg>
+        </span>
+      </div>
+      <header class="head">
+        <div><div class="nm">臺灣日常器物館</div><div class="en">Museum of Everyday Taiwan</div></div>
+        <div class="tabs" role="tablist">
+          <button role="tab" data-v="plan" aria-selected="true">平面圖</button>
+          <button role="tab" data-v="coll" aria-selected="false">收藏 <span class="c" id="collN">0</span></button>
+        </div>
+      </header>
+      <main class="views">
+        <section class="view" id="v-plan" aria-label="平面圖">
+          <div class="fbar" id="fbar">
+            <button class="back" id="back" aria-label="回到全層"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 2 4 8l6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>全層</button>
+            <div class="fl num" id="flNum">1<small>F</small></div>
+            <div class="fn"><b id="flName">廚房與餐桌</b><span id="flSub">3 間展間 · 4 件展品</span></div>
+            <div class="seen"><b class="num" id="seenN">0/12</b>已看</div>
+          </div>
+          <div class="planwrap" id="planwrap">
+            <svg class="plan" id="plan" viewBox="8 8 344 440" preserveAspectRatio="xMidYMid meet" role="group" aria-label="樓層平面圖"></svg>
+            <div class="floors" role="group" aria-label="樓層">
+              <span class="ico floors-ico" aria-hidden="true"><svg width="22" height="26" viewBox="0 0 22 26"><path d="M3 2h16v22H3zM11 2v22" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 10l2-2.5 2 2.5M11.5 16l2 2.5 2-2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <button data-f="3" aria-pressed="false" aria-label="3 樓">3</button>
+              <button data-f="2" aria-pressed="false" aria-label="2 樓">2</button>
+              <button data-f="1" aria-pressed="true" aria-label="1 樓">1</button>
+            </div>
+          </div>
+          <div class="strip" id="strip" aria-label="本層展品"></div>
+        </section>
+        <section class="view" id="v-coll" aria-label="收藏" hidden>
+          <div class="coll" id="coll"></div>
+        </section>
+      </main>
+      <div class="mini" id="mini" aria-hidden="true">
+        <div class="mt" id="miniOpen" role="button" tabindex="-1" aria-label="打開正在播放的展品"><b id="miniT"></b><span id="miniS"></span></div>
+        <button class="ib" id="miniPlay" aria-label="播放或暫停" tabindex="-1"></button>
+        <button class="ib" id="miniX" aria-label="停止導覽" tabindex="-1"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        <i class="pb" id="miniPb"></i>
+      </div>
+      <div class="home" aria-hidden="true"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="展品標籤"><div class="sb" id="sb"></div></div>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var K = 'app080:';
+function load(k,d){ try{ var v = localStorage.getItem(K+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } }
+function save(k,v){ try{ localStorage.setItem(K+k, JSON.stringify(v)); }catch(e){} }
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+
+/* ---------- rooms + floors ---------- */
+var ROOMS = {
+ A:{f:1,r:[20,20,180,170],c:'#8e9b80',t:'#151515',n:'電鍋廳'}, B:{f:1,r:[200,20,140,210],c:'#c69a4b',t:'#151515',n:'碗與便當'}, C:{f:1,r:[20,190,180,140],c:'#6e2f2b',t:'#f3f2ee',n:'熱水與茶'},
+ D:{f:2,r:[20,20,320,120],c:'#3e5a55',t:'#f3f2ee',n:'騎樓'}, E:{f:2,r:[20,140,170,190],c:'#262524',t:'#f3f2ee',n:'霓虹暗房'}, F:{f:2,r:[190,140,150,190],c:'#b98073',t:'#151515',n:'路上的車'},
+ G:{f:3,r:[20,20,160,210],c:'#66704f',t:'#f3f2ee',n:'窗'}, H:{f:3,r:[180,20,160,210],c:'#a8634a',t:'#f3f2ee',n:'客廳'}, I:{f:3,r:[20,230,320,100],c:'#cfc6b2',t:'#151515',n:'燈'}
+};
+var FLOORS = {
+ 1:{n:'廚房與餐桌', extra:[['大廳',200,230,140,190],['樓梯',20,330,90,90,'stair'],['電梯',110,330,90,90,'lift']], doors:[[197,90,6,26],[90,187,26,6],[197,240,6,26],[260,227,26,6],[250,417,50,6]], entry:[275,420]},
+ 2:{n:'街道與招牌', extra:[['樓梯',20,330,90,90,'stair'],['電梯',110,330,90,90,'lift'],['咖啡',200,330,140,90]], doors:[[80,137,26,6],[250,137,26,6],[187,220,6,26],[140,327,26,6],[260,327,26,6]]},
+ 3:{n:'家與光', extra:[['樓梯',20,330,90,90,'stair'],['電梯',110,330,90,90,'lift'],['館藏商店',200,330,140,90]], doors:[[177,110,6,26],[80,227,26,6],[250,227,26,6],[140,327,26,6],[260,327,26,6]]}
+};
+
+/* ---------- exhibits ---------- */
+var EX = [
+ {id:1,room:'A',x:110,y:120,t:'十人份電鍋',mk:'本地家電廠',yr:'1962',mat:'鋁、鋼、電木',dim:'高 26 × 徑 30 公分',acc:'1962.018.1',d:'外鍋加一杯水，按下開關，跳起來就熟了。這個動作在台灣廚房重複了六十年。',
+  tr:['這是一台 1962 年出廠的十人份電鍋。','原理很簡單：外鍋的水燒乾，溫度升高，開關就會跳起。','蒸飯、燉湯、熱便當，一只鍋撐起整個家的晚餐。','注意側邊的把手，被三代人的手磨出了光澤。']},
+ {id:2,room:'B',x:282,y:104,t:'鋁製便當盒',mk:'作者不詳',yr:'約 1971',mat:'鋁',dim:'18 × 12 × 6 公分',acc:'1971.103.2',d:'早上裝進飯菜，中午放進學校的蒸飯箱。蓋子上刻著主人的名字。',
+  tr:['這個鋁便當盒，陪一位國小學生走過六年。','每天早上，媽媽把飯菜壓得實實的。','上課前放進蒸飯箱，下課鐘響，整間教室都是飯菜香。','蓋子一角有個凹痕，據說是被躲避球打的。']},
+ {id:3,room:'B',x:290,y:170,t:'紅花瓷碗',mk:'鶯歌窯場',yr:'1968',mat:'瓷、釉上彩',dim:'口徑 13 公分',acc:'1968.041.3',d:'每戶人家的櫥櫃裡都有幾個。紅色小花是手繪的，每一朵都不太一樣。',
+  tr:['這種紅花碗，幾乎每個台灣家庭都用過。','花是工人一筆一筆畫上去的，一天要畫上千個。','仔細看，每一朵花的花瓣數都不同。','它盛過白飯、滷肉，也盛過颱風夜的泡麵。']},
+ {id:4,room:'C',x:110,y:268,t:'牡丹熱水瓶',mk:'本地五金行',yr:'1975',mat:'鐵皮、玻璃內膽',dim:'高 34 公分',acc:'1975.066.1',d:'玻璃內膽保溫一整天。瓶身的印花，是當年最流行的牡丹。',
+  tr:['熱水瓶的心臟，是一層鍍銀的雙層玻璃。','它怕摔，所以家家都把它放在桌子最裡面。','瓶身的牡丹印花，是七〇年代的流行花樣。','冬天早上，第一杯熱茶就從這裡倒出來。']},
+ {id:5,room:'D',x:120,y:88,t:'紅色塑膠凳',mk:'塑膠射出廠',yr:'1983',mat:'聚丙烯',dim:'高 45 公分',acc:'1983.207.5',d:'夜市、辦桌、騎樓下的麵攤都有它。可以一路疊到一個人高。',
+  tr:['這張紅色塑膠凳，是台灣街頭最常見的座位。','它輕、便宜，疊起來可以堆到一個人那麼高。','座面中間的小洞，是為了方便提起來。','辦桌的晚上，一次會排出好幾百張。']},
+ {id:6,room:'E',x:105,y:250,t:'霓虹招牌「冰」',mk:'霓虹燈師傅 阿坤',yr:'1988',mat:'玻璃管、氖氣',dim:'90 × 90 公分',acc:'1988.312.1',d:'玻璃管用火烤軟，一筆一筆彎成字。夏夜裡，它比路燈還亮。',
+  tr:['這個「冰」字，來自一家開了四十年的冰果室。','師傅用噴燈把玻璃管烤軟，徒手彎出每一筆。','通電後，管裡的氖氣會發出紅橘色的光。','冰果室收起來那天，老闆把招牌捐給了我們。']},
+ {id:7,room:'D',x:270,y:88,t:'手寫價目板',mk:'騎樓麵攤老闆',yr:'1995',mat:'木板、油漆',dim:'60 × 55 公分',acc:'1995.044.2',d:'價錢漲過幾次，舊數字就用白漆蓋掉重寫。',
+  tr:['這塊價目板掛在騎樓麵攤，整整二十年。','仔細看數字，底下還有好幾層舊的價錢。','滷肉飯從二十元漲到三十五元，都寫在這塊板上。','字是老闆自己寫的，他說寫得醜，客人比較記得住。']},
+ {id:8,room:'F',x:265,y:245,t:'檔車油箱',mk:'三重機車行',yr:'1979',mat:'鋼板、烤漆',dim:'52 × 30 公分',acc:'1979.150.1',d:'載過一家四口、一台冰箱和無數次返鄉。油箱上的刮痕，都是路。',
+  tr:['這是一台 125cc 檔車的油箱。','一家四口擠在一台機車上，是很多人的童年記憶。','油箱側面的刮痕，來自一次颱風天的滑倒。','主人說，這台車騎到里程表轉了兩圈。']},
+ {id:9,room:'G',x:100,y:140,t:'鐵窗花',mk:'三重鐵工廠',yr:'1974',mat:'鍛鐵、紅丹漆',dim:'90 × 90 公分',acc:'1974.088.4',d:'防盜，也是裝飾。每家鐵工廠都有自己的招牌花樣。',
+  tr:['鐵窗花，是台灣公寓最有表情的地方。','它原本是為了防小偷，卻被做成了花、雲和幾何。','每家鐵工廠都有招牌花樣，看窗就知道是誰做的。','這一片來自三重一棟拆除的老公寓。']},
+ {id:10,room:'H',x:225,y:150,t:'磨石子地磚',mk:'泥作師傅',yr:'1970',mat:'水泥、大理石粒',dim:'30 × 30 公分',acc:'1970.019.6',d:'石粒拌進水泥，磨了又磨，才露出這片花色。',
+  tr:['磨石子地，要先把石粒拌進水泥鋪平。','乾了以後，用機器一遍一遍地磨，磨出光澤。','石粒的顏色和大小，是師傅配出來的祕方。','夏天赤腳踩上去，是整間屋子最涼的地方。']},
+ {id:11,room:'H',x:300,y:100,t:'轉盤電話',mk:'電信局配發',yr:'1976',mat:'塑膠、金屬',dim:'22 × 15 公分',acc:'1976.230.1',d:'撥一個 0 要轉最遠。整條巷子的人，都曾來借過這支電話。',
+  tr:['這支轉盤電話，是巷子裡第一支家用電話。','撥號時，手指要轉到金屬擋片再放開。','數字 0 最遠，所以大家都怕號碼裡有 0。','鄰居常來借打，旁邊還放著一個零錢罐。']},
+ {id:12,room:'I',x:180,y:285,t:'拉線燈座',mk:'迪化街電料行',yr:'1965',mat:'電木、銅、棉線',dim:'高 18 公分',acc:'1965.007.2',d:'輕輕一拉，燈亮；再拉一下，燈暗。睡前最後一個動作。',
+  tr:['這是一個拉線式燈座，裝在天花板正中央。','拉一下開，再拉一下關，簡單得不需要說明書。','棉線末端常綁一顆珠子，小孩也拉得到。','很多人記得，睡前最後一件事就是拉這條線。']}
+];
+var BY = {}; EX.forEach(function(e){ BY[e.id] = e; });
+var T = 40, CUES = [0,10,20,30];
+
+/* ---------- object drawings: one catalogue line style ---------- */
+var RED = '#b1342c';
+function flower(x,y,s){ var h = ''; for(var i=0;i<5;i++){ var a = i/5*Math.PI*2; h += '<circle cx="'+(x+Math.cos(a)*s).toFixed(1)+'" cy="'+(y+Math.sin(a)*s).toFixed(1)+'" r="'+(s*.8).toFixed(1)+'" fill="'+RED+'" stroke="none"/>'; } return h + '<circle cx="'+x+'" cy="'+y+'" r="'+(s*.55).toFixed(1)+'" fill="#e8c46a" stroke="none"/>'; }
+var DRAW = {
+ 1:'<path d="M30 36c2-10 14-16 30-16s28 6 30 16"/><path d="M54 21c0-4 12-4 12 0v2H54z"/><ellipse cx="60" cy="38" rx="34" ry="7"/><path d="M26 38v44c0 6 15 11 34 11s34-5 34-11V38"/><path d="M26 50h-8v8h8M94 50h8v8h-8"/><path d="M28 62c20 6 44 6 64 0" opacity=".45"/><rect x="51" y="72" width="18" height="11" rx="2"/><path d="M56 77.5h8"/>',
+ 2:'<path d="M18 48 60 33 102 48 60 63Z"/><path d="M18 48v26l42 15V63M102 48v26L60 89"/><path d="M33 53l5 12M87 53l-5 12"/><path d="M40 45 60 38l20 7" opacity=".45"/><path d="M26 58l26 9" opacity=".45"/>',
+ 3:'<path d="M16 50h88c-2 26-20 40-44 40S18 76 16 50Z"/><ellipse cx="60" cy="50" rx="44" ry="7"/><path d="M47 90h26v6H47z"/>'+flower(38,66,3.2)+flower(60,74,3.6)+flower(82,65,3.2),
+ 4:'<rect x="46" y="16" width="28" height="12" rx="3"/><path d="M50 28v3h20v-3"/><path d="M42 31h36v62c0 5-8 9-18 9s-18-4-18-9Z"/><path d="M78 42c15 0 15 32 0 32"/><path d="M42 48h36M42 78h36"/>'+flower(52,63,3)+flower(68,61,3.4),
+ 5:'<ellipse cx="60" cy="34" rx="34" ry="9" fill="'+RED+'"/><path d="M26 34v5c0 5 15 9 34 9s34-4 34-9v-5"/><ellipse cx="60" cy="34" rx="6" ry="2" fill="#f3f2ee"/><path d="M32 45 22 98M88 45l10 53M50 48l-4 50M70 48l4 50"/><path d="M27 76h66"/>',
+ 6:'<rect x="14" y="14" width="92" height="92" rx="5"/><path d="M26 14v-6M94 14v-6"/><text x="60" y="61" text-anchor="middle" dominant-baseline="central" font-size="66" font-family="PingFang TC, Heiti TC" font-weight="300" fill="none" stroke="#e8674f" stroke-width="2.6" stroke-linejoin="round">冰</text>',
+ 7:'<path d="M60 22V11M48 11h24"/><rect x="18" y="22" width="84" height="80" rx="3"/><g stroke="none" font-family="HanziPen TC, Hannotate TC, PingFang TC" font-size="12.5" fill="currentColor"><text x="28" y="44">滷肉飯</text><text x="92" y="44" text-anchor="end">35</text><text x="28" y="66">貢丸湯</text><text x="92" y="66" text-anchor="end">30</text><text x="28" y="88">燙青菜</text><text x="92" y="88" text-anchor="end">40</text></g><path d="M78 40h16" opacity=".35"/>',
+ 8:'<path d="M14 70c0-22 24-36 56-36 22 0 36 8 36 22 0 16-16 24-40 24H24c-6 0-10-4-10-10Z"/><ellipse cx="62" cy="39" rx="8" ry="3"/><path d="M28 64c22-10 52-12 72-6"/><path d="M22 80v10h30"/><path d="M40 72c10-4 26-5 38-3" opacity=".45"/>',
+ 9:'<rect x="14" y="14" width="92" height="92"/><path d="M60 14v92M14 60h92"/><circle cx="37" cy="37" r="12"/><circle cx="83" cy="37" r="12"/><circle cx="37" cy="83" r="12"/><circle cx="83" cy="83" r="12"/><path d="M49 37c6 0 11 5 11 11M71 37c-6 0-11 5-11 11M49 83c6 0 11-5 11-11M71 83c-6 0-11-5-11-11"/><circle cx="60" cy="60" r="6"/><path d="M37 25v-11M37 95v11M83 25v-11M83 95v11" opacity=".5"/>',
+ 10:'<rect x="16" y="16" width="88" height="88"/>',
+ 11:'<path d="M22 94 33 58h54l11 36Z"/><path d="M16 50c0-10 8-15 16-15h56c8 0 16 5 16 15l-9 4c-2-6-6-8-12-8H37c-6 0-10 2-12 8Z"/><circle cx="60" cy="76" r="14"/><circle cx="60" cy="76" r="4.5"/><path d="M98 90c12 2 10 16 0 16"/>',
+ 12:'<path d="M60 8v18"/><path d="M50 26h20v17H50z"/><path d="M47 43h26"/><path d="M52 43c-10 8-14 17-14 27a22 22 0 0 0 44 0c0-10-4-19-14-27"/><path d="M55 64c0 7 10 7 10 0M60 64v-9"/><path d="M70 34h9v48"/><circle cx="79" cy="86" r="3.2"/>'
+};
+function terrazzo(){ var s = '', r = 17; function rnd(){ r = (r*16807)%2147483647; return r/2147483647; } var cols = ['currentColor','#b1342c','#8c8a84','#c69a4b'];
+  for(var i=0;i<46;i++){ var x = 22+rnd()*76, y = 22+rnd()*76, k = 1.4+rnd()*3.4, a = rnd()*6.28, pts = []; for(var j=0;j<4;j++){ var aa = a + j*1.57 + rnd()*.6; pts.push((x+Math.cos(aa)*k*(0.6+rnd()*.6)).toFixed(1)+','+(y+Math.sin(aa)*k*(0.6+rnd()*.6)).toFixed(1)); } s += '<polygon points="'+pts.join(' ')+'" fill="'+cols[i%4]+'" stroke="none" opacity=".85"/>'; } return s; }
+DRAW[10] += terrazzo();
+function obj(id, col, cls){ return '<svg class="'+(cls||'obj')+'" viewBox="0 0 120 120" aria-hidden="true" style="color:'+col+'"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+DRAW[id]+'</g></svg>'; }
+DRAW[11] += (function(){ var s = ''; for(var i=0;i<10;i++){ var a = -Math.PI/2 + .5 + i*.52; s += '<circle cx="'+(60+Math.cos(a)*9.6).toFixed(1)+'" cy="'+(76+Math.sin(a)*9.6).toFixed(1)+'" r="1.9"/>'; } return s; })();
+
+/* ---------- state ---------- */
+var favs = load('favs', null); if(!Array.isArray(favs)) favs = [3, 6, 9];
+var seen = load('seen', null); if(!Array.isArray(seen)) seen = [1, 2, 3, 5];
+var floor = +load('floor', 1) || 1; if(!FLOORS[floor]) floor = 1;
+var speak = load('speak', true);
+function persist(){ save('favs', favs); save('seen', seen); save('floor', floor); save('speak', speak); }
+
+/* ---------- plan ---------- */
+var FULL = [8,8,344,440], vb = FULL.slice(), zoomRoom = null, anim = 0;
+function renderPlan(){ var fl = FLOORS[floor], h = '';
+  h += '<rect x="20" y="20" width="320" height="400" fill="#fbfaf7"/>';
+  fl.extra.forEach(function(x){ h += '<g class="ex"><rect x="'+x[1]+'" y="'+x[2]+'" width="'+x[3]+'" height="'+x[4]+'" fill="#fbfaf7" stroke="#151515" stroke-width="3"/>';
+    if(x[5]==='stair'){ for(var i=0;i<7;i++) h += '<path d="M'+(x[1]+14)+' '+(x[2]+14+i*10)+'h'+(x[3]-28)+'" stroke="#8c8a84" stroke-width="1.4" stroke-linecap="round"/>'; }
+    if(x[5]==='lift'){ h += '<rect x="'+(x[1]+22)+'" y="'+(x[2]+18)+'" width="'+(x[3]-44)+'" height="'+(x[4]-36)+'" fill="none" stroke="#8c8a84" stroke-width="1.4"/><path d="M'+(x[1]+22)+' '+(x[2]+18)+'l'+(x[3]-44)+' '+(x[4]-36)+'M'+(x[1]+x[3]-22)+' '+(x[2]+18)+'l-'+(x[3]-44)+' '+(x[4]-36)+'" stroke="#8c8a84" stroke-width="1.4"/>'; }
+    h += '<text class="rn" x="'+(x[1]+x[3]/2)+'" y="'+(x[2]+x[4]-12)+'" text-anchor="middle" font-size="12.5" fill="#5b5a56">'+x[0]+'</text></g>'; });
+  Object.keys(ROOMS).forEach(function(k){ var r = ROOMS[k]; if(r.f !== floor) return; var R = r.r;
+    h += '<g class="room'+(zoomRoom===k?' on':'')+'" data-room="'+k+'" role="button" tabindex="0" aria-label="展間 '+k+' '+r.n+'"><rect class="fillr" x="'+R[0]+'" y="'+R[1]+'" width="'+R[2]+'" height="'+R[3]+'" fill="'+r.c+'" stroke="#151515" stroke-width="3"/>'+
+      '<text class="rl" x="'+(R[0]+12)+'" y="'+(R[1]+30)+'" font-size="24" fill="'+r.t+'">'+k+'</text><text class="rn" x="'+(R[0]+12)+'" y="'+(R[1]+49)+'" font-size="13" fill="'+r.t+'">'+r.n+'</text></g>'; });
+  fl.doors.forEach(function(d){ h += '<rect x="'+d[0]+'" y="'+d[1]+'" width="'+d[2]+'" height="'+d[3]+'" fill="#fbfaf7"/>'; });
+  h += '<rect x="20" y="20" width="320" height="400" fill="none" stroke="#151515" stroke-width="7"/>';
+  fl.doors.forEach(function(d){ if(d[1] > 410) h += '<rect x="'+d[0]+'" y="'+(d[1]-3)+'" width="'+d[2]+'" height="12" fill="#f3f2ee"/>'; });
+  if(fl.entry) h += '<path d="M'+fl.entry[0]+' 438v-22m-6 7 6-7 6 7" fill="none" stroke="#151515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text class="rn" x="'+(fl.entry[0]+12)+'" y="434" font-size="11" fill="#151515">入口</text><path d="M268 392l7-12 7 12z" fill="#151515"/><text class="rn" x="286" y="392" font-size="11" fill="#5b5a56">你在這裡</text>';
+  EX.forEach(function(e){ var r = ROOMS[e.room]; if(r.f !== floor) return; var v = seen.indexOf(e.id) >= 0;
+    h += '<g class="mk'+(zoomRoom && zoomRoom!==e.room?' off':'')+'" data-id="'+e.id+'" role="button" tabindex="0" aria-label="展品 '+e.id+' '+e.t+(v?'，已看':'')+'"><circle cx="'+e.x+'" cy="'+e.y+'" r="13" fill="'+(v?'#151515':'#fbfaf7')+'" stroke="#151515" stroke-width="2"/>'+
+      '<text x="'+e.x+'" y="'+e.y+'" text-anchor="middle" dominant-baseline="central" fill="'+(v?'#fbfaf7':'#151515')+'">'+e.id+'</text>'+(favs.indexOf(e.id)>=0?'<path d="M'+(e.x+8)+' '+(e.y-17)+'h8v10l-4-3-4 3z" fill="'+RED+'" stroke="#fbfaf7" stroke-width="1"/>':'')+'</g>'; });
+  $('plan').innerHTML = h; $('plan').classList.toggle('focus', !!zoomRoom); setVB(vb);
+  var n = EX.filter(function(e){ return ROOMS[e.room].f===floor; }).length, rc = Object.keys(ROOMS).filter(function(k){ return ROOMS[k].f===floor; }).length;
+  $('flNum').innerHTML = floor+'<small>F</small>'; $('flName').textContent = zoomRoom ? '展間 '+zoomRoom+'　'+ROOMS[zoomRoom].n : fl.n;
+  $('flSub').textContent = zoomRoom ? EX.filter(function(e){ return e.room===zoomRoom; }).length+' 件展品 · '+floor+' 樓' : rc+' 間展間 · '+n+' 件展品';
+  $('seenN').textContent = seen.length+'/'+EX.length; $('collN').textContent = favs.length;
+  document.querySelectorAll('.floors button').forEach(function(b){ b.setAttribute('aria-pressed', +b.dataset.f===floor); });
+  $('fbar').classList.toggle('zoomed', !!zoomRoom);
+  $('strip').innerHTML = EX.filter(function(e){ return ROOMS[e.room].f===floor && (!zoomRoom || e.room===zoomRoom); }).map(function(e){ var r = ROOMS[e.room]; return '<button class="tile'+(seenHas(e.id)?' seen':'')+'" data-id="'+e.id+'" aria-label="'+e.id+' '+e.t+'"><span class="art" style="background:'+r.c+'">'+obj(e.id, r.t, 'o3')+'</span><b>'+e.t+'</b><span>'+String(e.id).padStart(2,'0')+' · '+(seenHas(e.id)?'已看':e.yr)+'</span></button>'; }).join('');
+}
+function setVB(v){ $('plan').setAttribute('viewBox', v.map(function(n){ return n.toFixed(2); }).join(' ')); }
+function tweenVB(to){ cancelAnimationFrame(anim); var from = vb.slice(), t0 = performance.now(), D = reduce ? 1 : 520;
+  (function f(t){ var k = Math.min(1, (t - t0)/D), e = 1 - Math.pow(1-k, 4); vb = from.map(function(a,i){ return a + (to[i]-a)*e; }); setVB(vb); if(k < 1) anim = requestAnimationFrame(f); })(t0); }
+function zoomTo(k){ var R = ROOMS[k].r, pad = 16; zoomRoom = k; haptic(6); tick2(); tweenVB([R[0]-pad, R[1]-pad, R[2]+pad*2, R[3]+pad*2]); renderPlan(); }
+function zoomOut(){ if(!zoomRoom) return; zoomRoom = null; haptic(5); tweenVB(FULL); renderPlan(); }
+$('back').addEventListener('click', zoomOut);
+$('plan').addEventListener('click', function(e){ var m = e.target.closest('.mk'); if(m){ openEx(+m.dataset.id); return; } var r = e.target.closest('.room'); if(r){ if(zoomRoom === r.dataset.room) return; zoomTo(r.dataset.room); } });
+$('plan').addEventListener('keydown', function(e){ if(e.key!=='Enter' && e.key!==' ') return; var m = e.target.closest('.mk'); if(m){ e.preventDefault(); openEx(+m.dataset.id); return; } var r = e.target.closest('.room'); if(r){ e.preventDefault(); zoomTo(r.dataset.room); } });
+document.querySelectorAll('.floors button').forEach(function(b){ b.addEventListener('click', function(){ var f = +b.dataset.f; if(f===floor){ zoomOut(); return; } var up = f > floor; floor = f; zoomRoom = null; cancelAnimationFrame(anim); vb = FULL.slice(); renderPlan(); persist(); ding(up); haptic([6,40,6]);
+  var p = $('plan'); p.style.setProperty('--fy', (up ? -40 : 40)+'px'); p.classList.remove('swap'); void p.getBoundingClientRect(); p.classList.add('swap'); }); });
+
+/* ---------- audio: elevator ding, room tone, narration ---------- */
+var ac = null, tone = null;
+function actx(){ try{ if(!ac){ var A = window.AudioContext||window.webkitAudioContext; if(!A) return null; ac = new A(); } if(ac.state==='suspended') ac.resume(); }catch(e){ return null; } return ac; }
+function beep(f, t, d, g){ var a = actx(); if(!a) return; var o = a.createOscillator(), v = a.createGain(), s = a.currentTime+t; o.type='sine'; o.frequency.value=f; v.gain.setValueAtTime(0,s); v.gain.linearRampToValueAtTime(g,s+.01); v.gain.exponentialRampToValueAtTime(.0001,s+d); o.connect(v); v.connect(a.destination); o.start(s); o.stop(s+d+.05); }
+function ding(up){ beep(up?988:1175, 0, 1.1, .06); beep(up?1175:988, .22, 1.3, .05); }
+function tick2(){ beep(1760, 0, .05, .02); }
+function roomTone(on){ var a = actx(); if(!a) return;
+  if(on && !tone){ var n = a.sampleRate*2, b = a.createBuffer(1,n,a.sampleRate), d = b.getChannelData(0), last = 0; for(var i=0;i<n;i++){ last = (last + .02*(Math.random()*2-1))/1.02; d[i] = last*3.2; }
+    var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = b; s.loop = true; f.type='lowpass'; f.frequency.value = 380; g.gain.value = 0; g.gain.linearRampToValueAtTime(.05, a.currentTime+.6); s.connect(f); f.connect(g); g.connect(a.destination); s.start(); tone = {s:s, g:g}; }
+  else if(!on && tone){ var tt = tone; tone = null; try{ tt.g.gain.cancelScheduledValues(a.currentTime); tt.g.gain.setValueAtTime(tt.g.gain.value, a.currentTime); tt.g.gain.linearRampToValueAtTime(0, a.currentTime+.3); tt.s.stop(a.currentTime+.35); }catch(e){} } }
+var voice = null;
+function pickVoice(){ try{ var vs = speechSynthesis.getVoices(); voice = vs.filter(function(v){ return /zh[-_]TW/i.test(v.lang); })[0] || vs.filter(function(v){ return /^zh/i.test(v.lang); })[0] || null; }catch(e){} }
+try{ if(window.speechSynthesis){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; } }catch(e){}
+function say(txt){ if(!speak) return; try{ if(!window.speechSynthesis) return; speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(txt); u.lang = 'zh-TW'; if(voice) u.voice = voice; u.rate = .95; speechSynthesis.speak(u); }catch(e){} }
+function hush(){ try{ window.speechSynthesis && speechSynthesis.cancel(); }catch(e){} }
+
+var pl = {id:null, t:0, on:false, cue:-1}, plT = 0, plLast = 0;
+function cueAt(t){ var c = 0; CUES.forEach(function(s,i){ if(t >= s) c = i; }); return c; }
+function play(id){ if(pl.id !== id){ pl = {id:id, t:0, on:false, cue:-1}; } if(pl.t >= T) pl.t = 0; pl.on = true; roomTone(true); plLast = performance.now(); loopPl(); updPl(true); }
+function pause(){ pl.on = false; roomTone(false); hush(); cancelAnimationFrame(plT); updPl(); }
+function stop(){ pause(); pl = {id:null, t:0, on:false, cue:-1}; updPl(); }
+function loopPl(){ cancelAnimationFrame(plT); plT = requestAnimationFrame(function f(now){ if(!pl.on) return; if(document.hidden){ plLast = now; plT = requestAnimationFrame(f); return; } pl.t += (now - plLast)/1000; plLast = now;
+  if(pl.t >= T){ pl.t = T; pause(); if(!seenHas(pl.id)){ seen.push(pl.id); persist(); } return; } updPl(); plT = requestAnimationFrame(f); }); }
+function seenHas(id){ return seen.indexOf(id) >= 0; }
+function fmtT(t){ t = Math.floor(t); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); }
+function updPl(forceSay){ var c = cueAt(pl.t);
+  if(pl.on && (c !== pl.cue || forceSay)){ pl.cue = c; say(BY[pl.id].tr[c]); } else if(!pl.on) pl.cue = c;
+  // sheet
+  if(cur && pl.id === cur){ var h = $('sheadH'); if(h) h.style.left = (pl.t/T*100).toFixed(2)+'%'; var pf = $('scrubFill'); if(pf) pf.setAttribute('width', (pl.t/T*100).toFixed(2)+'%');
+    var tt = $('gtT'); if(tt) tt.textContent = fmtT(pl.t)+' / '+fmtT(T); var pb = $('playBtn'); if(pb) pb.innerHTML = pl.on ? PAUSE : PLAY, pb.setAttribute('aria-label', pl.on ? '暫停導覽' : '播放導覽');
+    document.querySelectorAll('.tr button').forEach(function(b, i){ b.classList.toggle('cur', i === c); }); }
+  // mini
+  var mini = $('mini'), show = !!pl.id && !(sheet.classList.contains('on') && cur === pl.id);
+  mini.classList.toggle('on', show); mini.setAttribute('aria-hidden', !show); mini.querySelectorAll('[tabindex]').forEach(function(x){ x.tabIndex = show ? 0 : -1; });
+  if(pl.id){ $('miniT').textContent = pl.id+'　'+BY[pl.id].t; $('miniS').textContent = (pl.on?'導覽中 ':'已暫停 ')+fmtT(pl.t)+' / '+fmtT(T); $('miniPb').style.width = (pl.t/T*100).toFixed(1)+'%'; $('miniPlay').innerHTML = pl.on ? PAUSE_S : PLAY_S; }
+}
+var PLAY = '<svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="14" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 9.5v11l9-5.5z" fill="currentColor"/></svg>';
+var PAUSE = '<svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="14" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11.5 10v10M18.5 10v10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+var PLAY_S = '<svg width="18" height="18" viewBox="0 0 18 18"><path d="M5 3.5v11l9-5.5z" fill="currentColor"/></svg>';
+var PAUSE_S = '<svg width="18" height="18" viewBox="0 0 18 18"><path d="M5.5 4v10M12.5 4v10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+$('miniPlay').addEventListener('click', function(){ haptic(5); pl.on ? pause() : play(pl.id); });
+$('miniX').addEventListener('click', function(){ haptic(5); stop(); });
+$('miniOpen').addEventListener('click', function(){ if(pl.id) openEx(pl.id); });
+$('miniOpen').addEventListener('keydown', function(e){ if(e.key==='Enter' && pl.id) openEx(pl.id); });
+
+/* ---------- label sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), cur = null, lastFocus = null;
+function bars(){ var s = '', r = 5; function rnd(){ r = (r*16807)%2147483647; return r/2147483647; } for(var i=0;i<60;i++){ var h = 6 + Math.abs(Math.sin(i*.37)*14) + rnd()*10; s += '<rect x="'+(i*100/60+.3).toFixed(2)+'%" y="'+(24-h/2).toFixed(1)+'" width="0.9%" height="'+h.toFixed(1)+'" rx="1"/>'; } return s; }
+var BARS = bars();
+function openEx(id){ var e = BY[id], r = ROOMS[e.room]; cur = id; if(!seenHas(id)){ seen.push(id); persist(); }
+  var ids = EX.map(function(x){ return x.id; }), i = ids.indexOf(id), prev = EX[(i-1+EX.length)%EX.length], next = EX[(i+1)%EX.length], fav = favs.indexOf(id) >= 0;
+  var h = '<div class="wall" style="background:'+r.c+';color:'+r.t+'"><i class="grab"></i><div class="roomtag">'+r.f+' 樓 · 展間 '+e.room+' '+r.n+'</div>'+obj(id, r.t)+
+    '<div class="nav l"><button data-go="'+prev.id+'" aria-label="上一件：'+prev.t+'"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M12.5 3.5 6 10l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>'+
+    '<div class="nav r"><button data-go="'+next.id+'" aria-label="下一件：'+next.t+'"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M7.5 3.5 14 10l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div>'+
+    '<div class="lbl"><div class="no">'+String(id).padStart(2,'0')+'</div><h2>'+e.t+'</h2><div class="mk2">'+e.mk+'</div><div class="meta">'+e.yr+'<br>'+e.mat+'<br>'+e.dim+'</div><p>'+e.d+'</p><div class="acc">館藏號 '+e.acc+'</div></div>'+
+    '<div class="guide"><div class="gh"><button class="play" id="playBtn" aria-label="播放導覽">'+(pl.id===id && pl.on ? PAUSE : PLAY)+'</button><div class="gt">語音導覽<span id="gtT">0:00 / 0:40</span></div><button class="say" id="sayBtn" aria-pressed="'+!!speak+'">'+
+      '<svg width="18" height="18" viewBox="0 0 18 18"><path d="M3 7v4h3l4 3.5v-11L6 7z" fill="currentColor"/>'+(speak?'<path d="M12.5 6.5c1.2 1.4 1.2 3.6 0 5M14.6 4.6c2.3 2.5 2.3 6.3 0 8.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>':'<path d="M12.5 7l4 4M16.5 7l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>')+'</svg>朗讀</button></div>'+
+    '<div class="scrub" id="scrub" role="slider" tabindex="0" aria-label="導覽進度" aria-valuemin="0" aria-valuemax="40"><svg aria-hidden="true"><defs><clipPath id="cf"><rect id="scrubFill" x="0" y="0" width="0%" height="48"/></clipPath></defs><g fill="#c9c7c1">'+BARS+'</g><g fill="#151515" clip-path="url(#cf)">'+BARS+'</g></svg><i class="head2" id="sheadH"></i></div>'+
+    '<div class="tr">'+e.tr.map(function(l, k){ return '<button data-cue="'+k+'"><span class="ts">'+fmtT(CUES[k])+'</span>'+l+'</button>'; }).join('')+'</div></div>'+
+    '<div class="acts"><button class="act" id="favBtn" aria-pressed="'+fav+'"><svg width="20" height="22" viewBox="0 0 20 22"><path d="M4 2h12v18l-6-4.5L4 20z" fill="'+(fav?RED:'none')+'" stroke="'+(fav?RED:'currentColor')+'" stroke-width="1.7" stroke-linejoin="round"/></svg>'+(fav?'已收藏':'收進收藏')+'<span class="st">'+(fav?'取消':favs.length+' 件')+'</span></button>'+
+    '<button class="act" id="goRoom"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M2 2h16v16H2zM2 10h7M11 2v7" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="14.5" cy="14" r="2" fill="currentColor"/></svg>在平面圖上看<span class="st">'+r.f+'F · '+e.room+'</span></button></div>';
+  $('sb').innerHTML = h;
+  if(!sheet.classList.contains('on')){ lastFocus = document.activeElement; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); }
+  $('sb').scrollTop = 0; updPl(); renderPlan(); if(view==='coll') renderColl();
+  setTimeout(function(){ var p = $('playBtn'); if(p) p.focus({preventScroll:true}); }, 40);
+}
+function closeSheet(){ if(!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform=''; scrim.classList.remove('on'); scrim.style.opacity=''; var was = cur; cur = null; updPl(); if(lastFocus && lastFocus.focus && document.contains(lastFocus)) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+$('sb').addEventListener('click', function(e){ var b = e.target.closest('button'); if(!b) return;
+  if(b.id==='playBtn'){ haptic(6); actx(); if(pl.id===cur && pl.on) pause(); else play(cur); }
+  else if(b.id==='sayBtn'){ speak = !speak; persist(); haptic(5); if(!speak) hush(); else if(pl.on && pl.id===cur) say(BY[cur].tr[cueAt(pl.t)]); openEx(cur); }
+  else if(b.dataset.cue != null){ haptic(4); if(pl.id !== cur){ pl = {id:cur, t:0, on:false, cue:-1}; } pl.t = CUES[+b.dataset.cue] + .01; if(!pl.on) play(cur); else updPl(true); }
+  else if(b.dataset.go){ haptic(5); tick2(); var n = BY[+b.dataset.go]; if(ROOMS[n.room].f !== floor){ floor = ROOMS[n.room].f; zoomRoom = null; vb = FULL.slice(); } openEx(n.id); }
+  else if(b.id==='favBtn'){ var i = favs.indexOf(cur); if(i>=0){ favs.splice(i,1); toast('已從收藏移除'); } else { favs.push(cur); toast('收進收藏：'+BY[cur].t); beep(1318,0,.4,.04); } persist(); haptic([6,30,6]); openEx(cur); }
+  else if(b.id==='goRoom'){ var ex = BY[cur]; closeSheet(); go('plan'); if(ROOMS[ex.room].f !== floor){ floor = ROOMS[ex.room].f; zoomRoom = null; vb = FULL.slice(); renderPlan(); } zoomTo(ex.room); }
+});
+// scrub
+(function(){ var on = false;
+  function at(e){ var s = $('scrub'); if(!s) return 0; var r = s.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left)/r.width)); }
+  $('sb').addEventListener('pointerdown', function(e){ if(!e.target.closest('#scrub')) return; on = true; if(pl.id !== cur) pl = {id:cur, t:0, on:false, cue:-1}; try{ e.target.closest('#scrub').setPointerCapture(e.pointerId); }catch(_){} pl.t = at(e)*T; hush(); var was = pl.on; pl.on = false; pl.resume = was; updPl(); haptic(3); e.stopPropagation(); });
+  $('sb').addEventListener('pointermove', function(e){ if(!on) return; var c0 = cueAt(pl.t); pl.t = at(e)*T; if(cueAt(pl.t) !== c0){ haptic(3); tick2(); } updPl(); });
+  function end(){ if(!on) return; on = false; if(pl.resume) play(cur); else updPl(); }
+  $('sb').addEventListener('pointerup', end); $('sb').addEventListener('pointercancel', end);
+  $('sb').addEventListener('keydown', function(e){ if(!e.target.closest('#scrub')) return; if(e.key==='ArrowRight'||e.key==='ArrowLeft'){ e.preventDefault(); if(pl.id !== cur) pl = {id:cur, t:0, on:false, cue:-1}; pl.t = Math.max(0, Math.min(T, pl.t + (e.key==='ArrowRight'?5:-5))); updPl(true); } });
+})();
+// drag to dismiss (from the wall panel, or anywhere when scrolled to top)
+(function(){ var sy=0, dy=0, t0=0, on=false;
+  sheet.addEventListener('pointerdown', function(e){ if(e.target.closest('button,#scrub')) return; if($('sb').scrollTop > 0) return; on=true; sy=e.clientY; dy=0; t0=e.timeStamp; });
+  sheet.addEventListener('pointermove', function(e){ if(!on) return; dy = e.clientY-sy; if(dy > 6 && !sheet.classList.contains('drag')){ sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(_){} } if(sheet.classList.contains('drag')){ sheet.style.transform = 'translateY('+Math.max(dy/6, dy).toFixed(1)+'px)'; scrim.style.opacity = Math.max(0,1-dy/sheet.offsetHeight).toFixed(2); } });
+  function end(e){ if(!on) return; on=false; if(!sheet.classList.contains('drag')) return; sheet.classList.remove('drag'); scrim.style.opacity=''; if(dy > sheet.offsetHeight*.35 || dy/Math.max(1,e.timeStamp-t0) > .6) closeSheet(); else sheet.style.transform=''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end); })();
+
+/* ---------- collection ---------- */
+function renderColl(){ var c = $('coll');
+  if(!favs.length){ c.innerHTML = '<p class="collempty">還沒有收藏。<br>在展品標籤下方點「收進收藏」，它會像明信片一樣收在這裡。</p>'; return; }
+  c.innerHTML = '<p class="collhead">'+favs.length+' 張明信片 · 點開重讀標籤</p>' + favs.map(function(id){ var e = BY[id], r = ROOMS[e.room]; return '<button class="card" data-id="'+id+'" aria-label="'+e.t+'"><span class="art" style="background:'+r.c+'">'+obj(id, r.t, 'o2')+'</span><span class="cap"><b>'+e.t+'</b><span>'+e.yr+' · '+r.f+'F 展間 '+e.room+'</span></span></button>'; }).join(''); }
+$('strip').addEventListener('click', function(e){ var b = e.target.closest('.tile'); if(b){ haptic(5); openEx(+b.dataset.id); } });
+$('coll').addEventListener('click', function(e){ var b = e.target.closest('.card'); if(b){ haptic(5); openEx(+b.dataset.id); } });
+
+/* ---------- views ---------- */
+var view = 'plan';
+function go(v){ if(v===view) return; $('v-'+view).hidden = true; var el = $('v-'+v); el.hidden = false; el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); view = v;
+  document.querySelectorAll('.tabs [role=tab]').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.v===v); }); if(v==='coll') renderColl(); haptic(5); }
+document.querySelectorAll('.tabs [role=tab]').forEach(function(t){ t.addEventListener('click', function(){ go(t.dataset.v); }); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(sheet.classList.contains('on')) closeSheet(); else zoomOut(); } });
+
+var tT = null; function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ t.classList.remove('on'); }, 2200); }
+function clock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+clock(); setInterval(clock, 20000);
+document.addEventListener('visibilitychange', function(){ if(document.hidden && pl.on){ pause(); } });
+renderPlan(); updPl(); persist();
+})();
+</script>
+</body>
+</html>

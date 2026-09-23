@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#161514">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="旅日會話">
+<title>旅日會話 · 旅行會話卡</title>
+<meta name="description" content="把日語旅行會話做成一張張淺綠地紋的鐵道車票：沿著路線切換情境，朗讀、收藏剪票、橫向放大給店員看。收錄於 100 Creative HTML Works（App 093・日本鐵道車票地紋）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/093-kippu-phrases.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161514'/%3E%3Cpath d='M16 14h38v36H8V22z' fill='%23d3e8d6'/%3E%3Cpath d='M16 30h30M16 38h20' stroke='%23161514' stroke-width='4'/%3E%3Ccircle cx='8' cy='36' r='5' fill='%23161514'/%3E%3C/svg%3E">
+<style>
+:root{
+  --night:#161514;
+  --night-2:#211f1d;
+  --kippu:#d3e8d6;
+  --kippu-2:#bcd8c3;
+  --ink:#141414;
+  --ink-2:#34503d;
+  --line:#8fc79d;
+  --out:cubic-bezier(.2,.9,.25,1);
+  --spring:cubic-bezier(.3,1.45,.5,1);
+  --jp:"Toppan Bunkyu Gothic","Hiragino Sans","Hiragino Kaku Gothic ProN","PingFang TC",sans-serif;
+  --zh:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --jimon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Cpath d='M0 6q6-6 12 0t12 0 12 0 12 0M0 18q6-6 12 0t12 0 12 0 12 0' stroke='%23b6d4be' stroke-width='1' fill='none'/%3E%3Cpath d='M0 12q6 6 12 0t12 0 12 0 12 0' stroke='%23c4dfca' stroke-width='1' fill='none'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:400 15px/1.45 var(--zh);color:var(--kippu);background:var(--night);-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+input,select{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--line);outline-offset:3px}
+svg{display:block}
+[lang=ja]{font-family:var(--jp)}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.map,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--night);isolation:isolate}
+@media (min-width:521px){
+  body{background:#121110}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .map{display:block;position:fixed;inset:0;z-index:0}
+  .map svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:10px;background:#0b0b0a;
+    box-shadow:inset 0 0 0 1.5px #3a3935,0 14px 22px -14px rgba(0,0,0,.8);z-index:1}
+  .screen{inset:10px;border-radius:42px}
+  .caption{display:block;position:relative;z-index:1;max-width:260px}
+  .caption h1{font:600 50px/1.1 var(--zh);color:var(--kippu);letter-spacing:.04em}
+  .caption p{margin-top:14px;font-size:16px;line-height:1.7;color:#a9c4ae}
+  .caption span{display:block;margin-top:18px;font:400 15px/1 var(--jp);color:var(--line);letter-spacing:.2em}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;font:600 16px/1 var(--zh);color:var(--kippu);pointer-events:none;background:var(--night)}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+.home{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:130px;height:5px;margin-left:-65px;border-radius:3px;background:var(--kippu);z-index:90;pointer-events:none}
+
+/* ---------- header ---------- */
+.head{position:absolute;top:calc(48px + env(safe-area-inset-top));left:0;right:0;z-index:20;background:var(--night);padding:4px 10px 0 20px}
+.hrow{display:flex;align-items:center;gap:4px;height:52px}
+.hrow h1{flex:1;font:600 24px/1 var(--zh);letter-spacing:.06em;display:flex;align-items:baseline;gap:10px}
+.hrow h1 span{font:400 13px/1 var(--jp);color:var(--line);letter-spacing:.18em}
+.ib{position:relative;width:44px;height:44px;display:grid;place-items:center;color:var(--kippu)}
+.ib svg{width:24px;height:24px;transition:transform .2s var(--out)}
+.ib:active svg{transform:scale(.86)}
+.ib .n{position:absolute;right:2px;top:5px;min-width:18px;height:18px;padding:0 4px;background:var(--kippu);color:var(--ink);font:600 12px/18px var(--zh);text-align:center;clip-path:polygon(4px 0,100% 0,100% 100%,0 100%,0 4px)}
+.search{display:none;padding:2px 10px 10px 0}
+.head.q .search{display:block}
+.search input{width:100%;height:46px;background:var(--night-2);border:0;border-bottom:2px solid var(--line);padding:0 12px;font-size:16px;outline:none;color:var(--kippu);border-radius:0}
+.search input::placeholder{color:#8aa894}
+
+/* rail line nav */
+.rail{position:relative;height:74px;margin:0 -10px 0 -20px;overflow-x:auto;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rail .track{position:relative;display:flex;min-width:100%;padding:0 12px;height:100%}
+.rail .track::before{content:"";position:absolute;left:20px;right:20px;top:22px;height:6px;background:var(--line);border-radius:3px}
+.st{position:relative;flex:1 0 62px;height:100%;display:flex;flex-direction:column;align-items:center;padding-top:14px;color:#9fbfa7;transition:color .25s}
+.st i{position:relative;width:22px;height:22px;border-radius:50%;background:var(--night);border:4px solid var(--line);transition:background-color .25s}
+.st b{margin-top:8px;font-size:14px;font-weight:600;white-space:nowrap}
+.st small{font:400 11px/1 var(--jp);color:#7f9c88;margin-top:3px}
+.st[aria-selected=true]{color:var(--kippu)}
+.st[aria-selected=true] i{background:var(--kippu)}
+.train{position:absolute;top:14px;left:0;width:34px;height:22px;pointer-events:none;transition:transform .5s var(--spring);z-index:2}
+.train svg{width:34px;height:22px}
+
+/* ---------- list ---------- */
+.list{position:absolute;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:hidden;padding:12px 16px calc(40px + env(safe-area-inset-bottom));touch-action:pan-y;overscroll-behavior:contain}
+.list.slide{animation:slide .45s var(--out)}
+@keyframes slide{from{transform:translateX(var(--from,30px))}to{transform:none}}
+.shead{display:flex;align-items:baseline;justify-content:space-between;margin:2px 4px 12px;color:#a9c4ae;font-size:13px}
+.shead b{font:600 17px/1 var(--zh);color:var(--kippu)}
+.shead b span{font:400 14px/1 var(--jp);color:var(--line);margin-left:8px;letter-spacing:.12em}
+
+/* the ticket */
+.tk{position:relative;display:block;width:100%;text-align:left;color:var(--ink);background:var(--kippu) var(--jimon);padding:14px 16px 6px 26px;margin-bottom:14px;clip-path:polygon(16px 0,100% 0,100% 100%,0 100%,0 16px);transition:transform .2s var(--out)}
+.tk.press{transform:scale(.985)}
+.tk .top{display:flex;justify-content:space-between;align-items:baseline;font:400 12px/1.2 var(--jp);color:var(--ink-2);padding-left:6px;letter-spacing:.06em}
+.tk .top em{font-style:normal;font-variant-numeric:tabular-nums}
+.tk .jp{margin-top:10px;font:600 23px/1.4 var(--jp);letter-spacing:.02em;color:var(--ink)}
+.slot{display:inline-block;padding:0 4px;margin:0 2px;border-bottom:3px solid var(--ink);cursor:pointer;background:rgba(20,20,20,.07)}
+.slot:active{background:rgba(20,20,20,.18)}
+.tk .ro{margin-top:4px;font-size:13px;color:var(--ink-2);letter-spacing:.02em}
+.tk .zh{margin-top:6px;font-size:16px;font-weight:600;color:var(--ink)}
+.tk .bot{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.tk .bot small{font:400 12px/1.2 var(--jp);color:var(--ink-2);letter-spacing:.04em}
+.acts{display:flex;margin-right:-8px}
+.acts button{width:44px;height:44px;display:grid;place-items:center;color:var(--ink)}
+.acts button svg{width:22px;height:22px;transition:transform .2s var(--spring)}
+.acts button:active svg{transform:scale(.8)}
+.acts button.on svg .fillme{fill:var(--ink)}
+.acts button.speaking svg .wave{animation:wave .6s ease-in-out infinite alternate}
+@keyframes wave{to{opacity:.2}}
+/* punch hole: cut from the left edge, clear of all text */
+.tk .hole{position:absolute;left:-1px;top:50%;width:15px;height:18px;margin-top:-9px;background:var(--night);clip-path:polygon(0 0,100% 30%,100% 70%,0 100%);transform:scaleX(0);transform-origin:left;transition:transform .28s var(--spring)}
+.tk.fav .hole{transform:scaleX(1)}
+.tk .stamp{position:absolute;right:14px;top:34px;font:600 12px/1 var(--jp);color:#a3372e;border:2px solid #a3372e;padding:4px 5px 3px;border-radius:50%;transform:rotate(-12deg);opacity:.85;letter-spacing:.05em;display:none}
+.tk.fav .stamp{display:block}
+.empty{margin:40px 10px;text-align:center;color:#a9c4ae;font-size:15px;line-height:1.7}
+
+/* coupon book (favourites) */
+.book .tk{margin-bottom:0}
+.book .tk + .tk{margin-top:0}
+.perf{height:10px;margin:0 6px;background:radial-gradient(circle,var(--night) 3px,transparent 3.5px) 0 50%/12px 10px repeat-x,var(--kippu)}
+
+/* ---------- enlarged ticket ---------- */
+.big{position:absolute;inset:0;z-index:70;background:rgba(10,10,9,.94);visibility:hidden;opacity:0;transition:opacity .3s,visibility 0s .3s}
+.big.on{visibility:visible;opacity:1;transition:opacity .3s}
+.big .tk{position:absolute;left:50%;top:50%;width:var(--bw,760px);height:var(--bh,350px);margin:0;padding:22px 30px 18px 40px;display:flex;flex-direction:column;justify-content:center;transform:translate(-50%,-50%) rotate(90deg) scale(.55);transition:transform .55s var(--spring);clip-path:polygon(24px 0,100% 0,100% 100%,0 100%,0 24px)}
+.big.on .tk{transform:translate(-50%,-50%) rotate(90deg) scale(1)}
+.big.flat .tk{transform:translate(-50%,-50%) scale(1)}
+.big .tk .top{font-size:15px;position:absolute;left:44px;right:30px;top:20px}
+.big .tk .jp{font-size:var(--bf,46px);line-height:1.3;margin-top:8px}
+.big .tk .ro{font-size:18px}
+.big .tk .zh{font-size:20px;margin-top:10px}
+.big .tk .please{position:absolute;left:44px;right:30px;bottom:18px;display:flex;justify-content:space-between;font:400 14px/1.2 var(--jp);color:var(--ink-2)}
+.big .hint{position:absolute;left:0;right:0;bottom:calc(26px + env(safe-area-inset-bottom));text-align:center;color:#a9c4ae;font-size:13px}
+.big .bigacts{position:absolute;top:calc(56px + env(safe-area-inset-top));right:14px;display:flex;gap:4px}
+.big .bigacts button{height:44px;padding:0 12px;display:flex;align-items:center;gap:6px;color:var(--kippu);font-size:14px}
+.big .bigacts button svg{width:20px;height:20px}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:60;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:61;max-height:88%;overflow-y:auto;background:var(--kippu) var(--jimon);color:var(--ink);padding:10px 20px calc(24px + env(safe-area-inset-bottom));clip-path:polygon(22px 0,100% 0,100% 100%,0 100%,0 22px);transform:translateY(105%);visibility:hidden;transition:transform .5s var(--spring),visibility 0s .5s;touch-action:none}
+.sheet.on{transform:none;visibility:visible;transition:transform .5s var(--spring)}
+.sheet.drag{transition:none}
+.grab{width:44px;height:5px;border-radius:3px;background:var(--ink-2);opacity:.6;margin:4px auto 14px}
+.sheet h3{font:600 22px/1.2 var(--zh)}
+.sheet h3 span{font:400 14px/1 var(--jp);color:var(--ink-2);margin-left:10px;letter-spacing:.1em}
+.opts{margin-top:12px}
+.opt{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 10px;width:100%;min-height:58px;padding:8px 0;text-align:left;border-top:2px dotted var(--ink-2)}
+.opt b{font:600 20px/1.2 var(--jp)}
+.opt span{font-size:13px;color:var(--ink-2);grid-column:1}
+.opt i{grid-row:1/3;grid-column:2;width:22px;height:22px;border:2.5px solid var(--ink);border-radius:50%}
+.opt[aria-checked=true] i{background:radial-gradient(circle,var(--ink) 5px,transparent 5.5px)}
+.opt:active{background:rgba(20,20,20,.06)}
+.fl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-top:14px}
+.fi{width:100%;height:46px;margin-top:6px;background:rgba(255,255,255,.35);border:0;border-bottom:2px solid var(--ink);padding:0 10px;font-size:17px;outline:none;border-radius:0;color:var(--ink)}
+.fi[lang=ja]{font-family:var(--jp)}
+.sitpick{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.sitpick button{height:40px;padding:0 12px;font-size:14px;font-weight:600;border:2px solid var(--ink);color:var(--ink)}
+.sitpick button[aria-pressed=true]{background:var(--ink);color:var(--kippu)}
+.issue{width:100%;height:54px;margin-top:20px;background:var(--ink);color:var(--kippu);font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;clip-path:polygon(12px 0,100% 0,100% 100%,0 100%,0 12px)}
+.issue:active{background:#34322e}
+.issue svg{width:22px;height:22px}
+.err{color:#a3372e;font-size:13px;margin-top:8px;min-height:18px}
+
+.toast{position:absolute;left:16px;right:16px;bottom:calc(30px + env(safe-area-inset-bottom));z-index:80;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px;padding:0 6px 0 16px;background:var(--kippu);color:var(--ink);font-size:15px;font-weight:600;clip-path:polygon(10px 0,100% 0,100% 100%,0 100%,0 10px);transform:translateY(140px);visibility:hidden;transition:transform .45s var(--spring),visibility 0s .45s}
+.toast.on{transform:none;visibility:visible;transition:transform .45s var(--spring)}
+.toast button{height:44px;padding:0 12px;text-decoration:underline;text-underline-offset:4px}
+
+@media (prefers-reduced-motion:reduce){
+  .list.slide{animation:none}
+  .train,.big .tk,.sheet,.toast,.tk .hole,.tk{transition-duration:.01s}
+  .acts button.speaking svg .wave{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="map" aria-hidden="true">
+    <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" font-family="Toppan Bunkyu Gothic, Hiragino Sans, sans-serif">
+      <rect width="1440" height="900" fill="#121110"/>
+      <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1010 140C1260 140 1330 300 1330 450S1260 760 1010 760 690 600 690 450 760 140 1010 140z" stroke="#8fc79d" stroke-width="10" opacity=".55"/>
+        <path d="M150 260H520L690 450H1330" stroke="#d3e8d6" stroke-width="6" opacity=".22"/>
+        <path d="M1010 140V40M1010 760V880" stroke="#d3e8d6" stroke-width="6" opacity=".18"/>
+        <path d="M60 620H420L560 520" stroke="#d3e8d6" stroke-width="6" opacity=".14"/>
+      </g>
+      <g fill="#121110" stroke="#d3e8d6" stroke-width="5" opacity=".7">
+        <circle cx="1010" cy="140" r="12"/><circle cx="1330" cy="450" r="12"/><circle cx="1010" cy="760" r="12"/><circle cx="690" cy="450" r="12"/><circle cx="1230" cy="220" r="10"/><circle cx="1240" cy="690" r="10"/><circle cx="520" cy="260" r="10"/><circle cx="150" cy="260" r="10"/><circle cx="420" cy="620" r="10"/>
+      </g>
+      <g fill="#8faf98" font-size="22" opacity=".8">
+        <text x="1032" y="130">池袋</text><text x="1352" y="458">東京</text><text x="1032" y="800">品川</text><text x="608" y="440">新宿</text><text x="1252" y="208">上野</text><text x="1262" y="700">新橋</text><text x="500" y="240">中野</text><text x="120" y="240">三鷹</text><text x="398" y="660">渋谷</text>
+      </g>
+    </svg>
+  </div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><path d="M0 12h3.5V9H0zM4.8 12h3.5V6.5H4.8zM9.6 12h3.5V3.5H9.6zM14.4 12H18V0h-3.6z" fill="#d3e8d6"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 12 5.6 9.4a3.4 3.4 0 0 1 4.8 0zM3.2 6.7a6.8 6.8 0 0 1 9.6 0M.8 4a10.2 10.2 0 0 1 14.4 0" stroke="#d3e8d6" stroke-width="1.7" fill="none"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><path d="M4 .8h19v10.4H.8V4z" stroke="#d3e8d6" stroke-width="1.4" fill="none"/><path id="batt" d="M5 3h16v6H3V5z" fill="#d3e8d6"/><rect x="24.2" y="4" width="2.2" height="4" fill="#d3e8d6"/></svg>
+        </span>
+      </div>
+
+      <header class="head" id="head">
+        <div class="hrow">
+          <h1>旅日會話<span lang="ja">きっぷ</span></h1>
+          <button class="ib" id="qBtn" aria-label="搜尋"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M15 15l5.5 5.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"/></svg></button>
+          <button class="ib" id="addBtn" aria-label="自訂一張"><svg viewBox="0 0 24 24"><path d="M7 4h14v16H3V8z" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M12 9v7M8.5 12.5h7" stroke="currentColor" stroke-width="2.2"/></svg></button>
+          <button class="ib" id="bookBtn" aria-label="回數券收藏"><svg viewBox="0 0 24 24"><path d="M7 3h14v18H3V7z" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M3 12h2M8 12h2M13 12h2M18 12h3" stroke="currentColor" stroke-width="2.2"/><path d="M3 10.2 6 12l-3 1.8z" fill="currentColor"/></svg><span class="n" id="favN">0</span></button>
+        </div>
+        <div class="search"><input id="qIn" type="search" placeholder="搜尋中文、日文或羅馬拼音" autocomplete="off"></div>
+        <nav class="rail" id="rail" role="tablist" aria-label="情境"><div class="track" id="track"></div></nav>
+      </header>
+
+      <main class="list" id="list"></main>
+
+      <div class="big" id="big" role="dialog" aria-modal="true" aria-label="放大給店員看">
+        <div class="bigacts"><button id="bigRot" aria-label="轉向"><svg viewBox="0 0 20 20"><path d="M4 9a6 6 0 0 1 11-3M16 11a6 6 0 0 1-11 3" stroke="#d3e8d6" stroke-width="2" fill="none"/><path d="M15 2v4.5h-4.5M5 18v-4.5h4.5" stroke="#d3e8d6" stroke-width="2" fill="none"/></svg>轉向</button><button id="bigSay" aria-label="朗讀"><svg viewBox="0 0 20 20"><path d="M3 7.5h3.5L11 4v12l-4.5-3.5H3z" fill="#d3e8d6"/><path d="M13.5 7a4 4 0 0 1 0 6M16 4.5a7.5 7.5 0 0 1 0 11" stroke="#d3e8d6" stroke-width="1.8" fill="none"/></svg>朗讀</button></div>
+        <div id="bigTk"></div>
+        <p class="hint">點一下收起</p>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="車票"><div class="grab"></div><div id="sheetBody"></div></div>
+      <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastTx"></span><button id="toastUndo">復原</button></div>
+      <div class="home"></div>
+    </div>
+  </div>
+  <div class="caption">
+    <h1>旅日會話</h1>
+    <p>每一句會話都是一張淺綠地紋的車票。沿著路線換情境，收藏時剪一個票孔，遇到店員就把車票橫過來放大。</p>
+    <span lang="ja">乗車券　旅の会話</span>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app093:';
+function load(k, d){ try { var v = localStorage.getItem(KEY+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY+k, JSON.stringify(v)); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// ---------- sound: the ticket punch ----------
+var ac = null;
+function audio(){ try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
+function punch(){ var a = audio(); if (!a) return; var n = a.currentTime, len = Math.floor(a.sampleRate*.06), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
+  for (var i = 0; i < len; i++) d[i] = (Math.random()*2-1)*Math.pow(1 - i/len, 4);
+  var s = a.createBufferSource(); s.buffer = b; var hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1500; var g = a.createGain(); g.gain.value = .5; s.connect(hp); hp.connect(g); g.connect(a.destination); s.start(n);
+  var o = a.createOscillator(), og = a.createGain(); o.frequency.setValueAtTime(260, n); o.frequency.exponentialRampToValueAtTime(90, n + .08); og.gain.setValueAtTime(.3, n); og.gain.exponentialRampToValueAtTime(.001, n + .1); o.connect(og); og.connect(a.destination); o.start(n); o.stop(n + .12); }
+function chime(){ var a = audio(); if (!a) return; [880, 1175, 1318].forEach(function(f, i){ var n = a.currentTime + i*.16, o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, n); g.gain.linearRampToValueAtTime(.12, n + .01); g.gain.exponentialRampToValueAtTime(.001, n + .6); o.connect(g); g.connect(a.destination); o.start(n); o.stop(n + .65); }); }
+
+// ---------- phrases ----------
+var SITS = [
+  {id:'eki', zh:'車站', jp:'駅', to:'窓口'},
+  {id:'food', zh:'餐廳', jp:'食堂', to:'客席'},
+  {id:'konbini', zh:'超商', jp:'コンビニ', to:'レジ'},
+  {id:'shop', zh:'購物', jp:'買物', to:'売場'},
+  {id:'hotel', zh:'飯店', jp:'宿', to:'フロント'},
+  {id:'sos', zh:'緊急', jp:'緊急', to:'交番'}
+];
+var SLOTS = {
+  place:[['新宿','しんじゅく','shinjuku','新宿'],['京都','きょうと','kyōto','京都'],['大阪','おおさか','ōsaka','大阪'],['箱根湯本','はこねゆもと','hakone-yumoto','箱根湯本'],['成田空港','なりたくうこう','narita kūkō','成田機場']],
+  people:[['一人','ひとり','hitori','一位'],['二人','ふたり','futari','兩位'],['三人','さんにん','sannin','三位'],['四人','よにん','yonin','四位']],
+  allergy:[['エビ','えび','ebi','蝦子'],['卵','たまご','tamago','蛋'],['ナッツ','なっつ','nattsu','堅果'],['そば','そば','soba','蕎麥'],['乳製品','にゅうせいひん','nyūseihin','乳製品']],
+  pair:[['一膳','いちぜん','ichizen','一雙'],['二膳','にぜん','nizen','兩雙'],['三膳','さんぜん','sanzen','三雙']],
+  size:[['大きい','おおきい','ōkii','大一點'],['小さい','ちいさい','chīsai','小一點']]
+};
+var BASE = [
+  ['eki','{place}まで、大人一枚ください。','{place} made, otona ichimai kudasai.','到{place}，一張全票。'],
+  ['eki','この電車は{place}に止まりますか？','kono densha wa {place} ni tomarimasu ka?','這班車有停{place}嗎？'],
+  ['eki','乗り換えはどこですか？','norikae wa doko desu ka?','在哪裡轉車？'],
+  ['eki','ICカードにチャージしたいです。','IC kādo ni chāji shitai desu.','我想幫 IC 卡儲值。'],
+  ['eki','コインロッカーはどこですか？','koin rokkā wa doko desu ka?','置物櫃在哪裡？'],
+  ['eki','終電は何時ですか？','shūden wa nanji desu ka?','末班車幾點？'],
+  ['food','{people}です。','{people} desu.','{people}。'],
+  ['food','おすすめは何ですか？','osusume wa nan desu ka?','有推薦的嗎？'],
+  ['food','これを一つください。','kore o hitotsu kudasai.','這個給我一份。'],
+  ['food','{allergy}アレルギーがあります。','{allergy} arerugī ga arimasu.','我對{allergy}過敏。'],
+  ['food','お会計をお願いします。','okaikei o onegai shimasu.','麻煩結帳。'],
+  ['food','カードで払えますか？','kādo de haraemasu ka?','可以刷卡嗎？'],
+  ['konbini','温めてください。','atatamete kudasai.','請幫我加熱。'],
+  ['konbini','袋はいりません。','fukuro wa irimasen.','不用袋子。'],
+  ['konbini','お箸を{pair}ください。','ohashi o {pair} kudasai.','請給我{pair}筷子。'],
+  ['konbini','トイレを借りてもいいですか？','toire o karite mo ii desu ka?','可以借廁所嗎？'],
+  ['shop','免税できますか？','menzei dekimasu ka?','可以辦免稅嗎？'],
+  ['shop','試着してもいいですか？','shichaku shite mo ii desu ka?','可以試穿嗎？'],
+  ['shop','もう少し{size}サイズはありますか？','mō sukoshi {size} saizu wa arimasu ka?','有{size}的尺寸嗎？'],
+  ['shop','プレゼント用に包んでもらえますか？','purezento-yō ni tsutsunde moraemasu ka?','可以包成禮物嗎？'],
+  ['hotel','チェックインをお願いします。','chekku-in o onegai shimasu.','我要辦入住。'],
+  ['hotel','荷物を預かってもらえますか？','nimotsu o azukatte moraemasu ka?','可以寄放行李嗎？'],
+  ['hotel','Wi-Fiのパスワードを教えてください。','Wi-Fi no pasuwādo o oshiete kudasai.','請告訴我 Wi-Fi 密碼。'],
+  ['hotel','朝食は何時からですか？','chōshoku wa nanji kara desu ka?','早餐幾點開始？'],
+  ['sos','助けてください！','tasukete kudasai!','請幫幫我！'],
+  ['sos','財布をなくしました。','saifu o nakushimashita.','我的錢包掉了。'],
+  ['sos','病院に連れて行ってください。','byōin ni tsurete itte kudasai.','請帶我去醫院。'],
+  ['sos','日本語が話せません。','nihongo ga hanasemasen.','我不會說日文。'],
+  ['sos','台湾の代表処に連絡したいです。','taiwan no daihyōsho ni renraku shitai desu.','我想聯絡台灣駐日代表處。']
+];
+var PH = BASE.map(function(b, i){ return {id:'b'+i, sit:b[0], jp:b[1], ro:b[2], zh:b[3], no:412 + i*7}; });
+var custom = load('custom', [{id:'c1', sit:'food', jp:'パクチー抜きでお願いします。', ro:'pakuchī nuki de onegai shimasu.', zh:'不要香菜，謝謝。', no:903}]);
+var favs = load('favs', ['b0','b9','b25']);
+var slotSel = load('slots', {});
+var sit = load('sit', 'eki');
+function all(){ return PH.concat(custom.map(function(c){ c.custom = true; return c; })); }
+function byId(id){ var a = all(); for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return null; }
+function sitOf(id){ for (var i = 0; i < SITS.length; i++) if (SITS[i].id === id) return SITS[i]; return SITS[0]; }
+function slotKey(p){ var m = p.jp.match(/\{(\w+)\}/); return m ? m[1] : null; }
+function slotVal(p){ var k = slotKey(p); if (!k) return null; var i = slotSel[p.id] || 0; return SLOTS[k][i % SLOTS[k].length]; }
+function fill(p, field, html){ var v = slotVal(p); var k = slotKey(p); if (!v) return html ? esc(p[field]) : p[field];
+  var val = field === 'jp' ? v[0] : field === 'ro' ? v[2] : v[3];
+  var parts = p[field].split('{'+k+'}');
+  if (!html) return parts.join(val);
+  return parts.map(esc).join(field === 'jp' ? '<span class="slot" data-slot="'+p.id+'" role="button" tabindex="0" aria-label="換一個">'+esc(val)+'</span>' : esc(val)); }
+function reading(p){ var v = slotVal(p), k = slotKey(p); return v ? p.jp.split('{'+k+'}').join(v[0]) : p.jp; }
+
+// ---------- icons (one house style: 2.2 stroke, square caps, a ticket-corner nick) ----------
+var IC = {
+  say:'<svg viewBox="0 0 22 22"><path d="M3 8h3.5L11 4.2v13.6L6.5 14H3z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="miter"/><path class="wave" d="M14 8.2a3.6 3.6 0 0 1 0 5.6M16.6 5.6a7.3 7.3 0 0 1 0 10.8" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
+  big:'<svg viewBox="0 0 22 22"><path d="M6 3h13v16H3V6z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 13l5-5M10 8h4v4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="square"/></svg>',
+  fav:'<svg viewBox="0 0 22 22"><path d="M6 3h13v16H3V6z" stroke="currentColor" stroke-width="2" fill="none"/><path class="fillme" d="M3 8.5 8 11l-5 2.5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 9h5M11 13h5" stroke="currentColor" stroke-width="2"/></svg>',
+  tear:'<svg viewBox="0 0 22 22"><path d="M6 3h13v7l-2 1.5 2 1.5v6H3v-6l2-1.5L3 10V6z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 11.5h6" stroke="currentColor" stroke-width="2" stroke-dasharray="2 2"/></svg>'
+};
+
+// ---------- rail nav ----------
+function renderRail(){
+  var list = SITS.slice(); if (custom.length) list.push({id:'mine', zh:'自訂', jp:'私の'});
+  $('track').innerHTML = list.map(function(s){ return '<button class="st" role="tab" data-sit="'+s.id+'" aria-selected="'+(sit === s.id)+'"><i></i><b>'+s.zh+'</b><small lang="ja">'+s.jp+'</small></button>'; }).join('')+
+    '<span class="train" id="train"><svg viewBox="0 0 34 22"><path d="M4 2h22c4 0 7 4 7 9s-3 9-7 9H4z" fill="#d3e8d6"/><path d="M8 7h6v6H8zM17 7h6v6h-6z" fill="#161514"/><path d="M4 17h26" stroke="#161514" stroke-width="2"/></svg></span>';
+  placeTrain(true);
+}
+function placeTrain(instant){
+  var b = $('track').querySelector('[data-sit="'+sit+'"]'), tr = $('train'); if (!b || !tr) return;
+  var x = b.offsetLeft + b.offsetWidth/2 - 17;
+  if (instant){ tr.style.transition = 'none'; tr.style.transform = 'translateX('+x+'px)'; tr.getBoundingClientRect(); tr.style.transition = ''; }
+  else tr.style.transform = 'translateX('+x+'px)';
+  var rail = $('rail'), target = b.offsetLeft - rail.clientWidth/2 + b.offsetWidth/2;
+  if (rail.scrollTo) rail.scrollTo({left:Math.max(0, target), behavior: instant || reduce ? 'auto' : 'smooth'});
+}
+$('track').addEventListener('click', function(e){ var b = e.target.closest('[data-sit]'); if (b) goSit(b.dataset.sit); });
+function sitList(){ var l = SITS.map(function(s){ return s.id; }); if (custom.length) l.push('mine'); return l; }
+function goSit(id){
+  if (id === sit && view === 'sit') return;
+  var L = sitList(), dir = L.indexOf(id) >= L.indexOf(sit) ? 1 : -1;
+  sit = id; save('sit', sit); view = 'sit'; query = ''; $('qIn').value = ''; $('head').classList.remove('q');
+  haptic(6); tick();
+  $('track').querySelectorAll('[data-sit]').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.sit === sit); });
+  placeTrain(false); render(dir);
+}
+function tick(){ var a = audio(); if (!a) return; var n = a.currentTime, o = a.createOscillator(), g = a.createGain(); o.type = 'triangle'; o.frequency.value = 1400; g.gain.setValueAtTime(.05, n); g.gain.exponentialRampToValueAtTime(.001, n + .05); o.connect(g); g.connect(a.destination); o.start(n); o.stop(n + .06); }
+
+// ---------- tickets ----------
+var view = 'sit', query = '';
+var today = new Date(), issued = (today.getMonth()+1)+'月'+today.getDate()+'日';
+function ticket(p){
+  var s = p.sit === 'mine' ? {jp:'私の', to:'メモ'} : sitOf(p.sit), f = favs.indexOf(p.id) >= 0;
+  return '<article class="tk'+(f ? ' fav' : '')+'" data-id="'+p.id+'">'+
+    '<div class="top" lang="ja"><span>'+s.jp+'　→　'+s.to+'</span><em>No.'+String(p.no).padStart(4,'0')+'</em></div>'+
+    '<p class="jp" lang="ja">'+fill(p, 'jp', true)+'</p><p class="ro">'+esc(fill(p, 'ro'))+'</p><p class="zh">'+esc(fill(p, 'zh'))+'</p>'+
+    '<div class="bot"><small lang="ja">'+issued+'　当日限り有効</small><div class="acts">'+
+      '<button data-act="say" aria-label="朗讀">'+IC.say+'</button><button data-act="big" aria-label="放大給店員看">'+IC.big+'</button>'+
+      '<button data-act="fav" class="'+(f ? 'on' : '')+'" aria-label="'+(f ? '取消收藏' : '剪票收藏')+'">'+IC.fav+'</button>'+
+      (p.custom ? '<button data-act="tear" aria-label="撕掉這張">'+IC.tear+'</button>' : '')+
+    '</div></div><span class="hole" aria-hidden="true"></span><span class="stamp" lang="ja" aria-hidden="true">入鋏</span></article>';
+}
+function render(dir){
+  var L = $('list'), html = '';
+  if (view === 'book'){
+    var fs = favs.map(byId).filter(Boolean);
+    html = '<div class="shead"><b>回數券<span lang="ja">回数券</span></b><span>剪過票的 '+fs.length+' 張</span></div>';
+    html += fs.length ? '<div class="book">'+fs.map(ticket).join('<div class="perf" aria-hidden="true"></div>')+'</div>' : '<p class="empty">還沒有剪票的車票。<br>在車票右下角按一下收藏。</p>';
+  } else if (query){
+    var q = query.toLowerCase(), res = all().filter(function(p){ return (fill(p, 'jp') + fill(p, 'ro') + fill(p, 'zh')).toLowerCase().indexOf(q) >= 0 || p.zh.indexOf(query) >= 0; });
+    html = '<div class="shead"><b>搜尋「'+esc(query)+'」</b><span>'+res.length+' 張</span></div>'+(res.length ? res.map(ticket).join('') : '<p class="empty">找不到這句。<br>按右上角自己印一張。</p>');
+  } else {
+    var s = sit === 'mine' ? {zh:'自訂', jp:'私の'} : sitOf(sit), list = sit === 'mine' ? custom : all().filter(function(p){ return p.sit === sit; });
+    html = '<div class="shead"><b>'+s.zh+'<span lang="ja">'+s.jp+'</span></b><span>'+list.length+' 張車票</span></div>'+(list.length ? list.map(ticket).join('') : '<p class="empty">這站還沒有車票。</p>');
+  }
+  L.innerHTML = html; L.scrollTop = 0;
+  if (dir && !reduce){ L.classList.remove('slide'); L.style.setProperty('--from', (dir*34)+'px'); void L.offsetWidth; L.classList.add('slide'); }
+  $('favN').textContent = favs.length; $('favN').style.display = favs.length ? '' : 'none';
+  $('bookBtn').setAttribute('aria-pressed', view === 'book');
+}
+function layoutList(){ $('list').style.top = ($('head').offsetTop + $('head').offsetHeight)+'px'; }
+
+// ---------- actions ----------
+var speakingBtn = null;
+function say(p, btn){
+  var text = reading(p);
+  try {
+    if (!window.speechSynthesis) throw 0;
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text); u.lang = 'ja-JP'; u.rate = .88;
+    var v = speechSynthesis.getVoices().filter(function(x){ return /ja/i.test(x.lang); })[0]; if (v) u.voice = v;
+    if (speakingBtn) speakingBtn.classList.remove('speaking');
+    speakingBtn = btn; if (btn) btn.classList.add('speaking');
+    u.onend = u.onerror = function(){ if (btn) btn.classList.remove('speaking'); };
+    setTimeout(function(){ if (btn) btn.classList.remove('speaking'); }, 400 + text.length*260);
+    speechSynthesis.speak(u);
+    if (!v) toast('這台裝置沒有日語語音，改用系統預設');
+  } catch(e){ chime(); toast('這台裝置不支援朗讀'); }
+  haptic(6);
+}
+function toggleFav(p, card){
+  var i = favs.indexOf(p.id);
+  if (i >= 0){ favs.splice(i, 1); haptic(6); toast('從回數券拿出來了'); }
+  else { favs.unshift(p.id); punch(); haptic([14,20,6]); toast('剪票，收進回數券'); }
+  save('favs', favs);
+  if (card && view !== 'book'){ card.classList.toggle('fav', i < 0); var b = card.querySelector('[data-act=fav]'); b.classList.toggle('on', i < 0); b.setAttribute('aria-label', i < 0 ? '取消收藏' : '剪票收藏'); $('favN').textContent = favs.length; $('favN').style.display = favs.length ? '' : 'none'; }
+  else render(0);
+}
+$('list').addEventListener('click', function(e){
+  var slot = e.target.closest('[data-slot]');
+  if (slot){ var sp = byId(slot.dataset.slot); openSlots(sp); return; }
+  var b = e.target.closest('[data-act]'); if (!b) return;
+  var card = b.closest('.tk'), p = byId(card.dataset.id); if (!p) return;
+  var a = b.dataset.act;
+  if (a === 'say') say(p, b);
+  else if (a === 'big') openBig(p);
+  else if (a === 'fav') toggleFav(p, card);
+  else if (a === 'tear'){
+    var idx = custom.indexOf(p); custom.splice(idx, 1); save('custom', custom); var fi = favs.indexOf(p.id); if (fi >= 0){ favs.splice(fi, 1); save('favs', favs); }
+    haptic([10,30,10]); punch();
+    if (!custom.length && sit === 'mine'){ sit = 'eki'; save('sit', sit); }
+    renderRail(); render(0);
+    toast('撕掉了「'+fill(p, 'zh')+'」', function(){ custom.splice(idx, 0, p); save('custom', custom); if (fi >= 0){ favs.unshift(p.id); save('favs', favs); } renderRail(); render(0); });
+  }
+});
+$('list').addEventListener('keydown', function(e){ var s = e.target.closest('[data-slot]'); if (s && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); openSlots(byId(s.dataset.slot)); } });
+$('list').addEventListener('pointerdown', function(e){ var t = e.target.closest('.tk'); if (t && !e.target.closest('button,.slot')){ t.classList.add('press'); setTimeout(function(){ t.classList.remove('press'); }, 160); } });
+// swipe the list sideways to ride to the next station
+(function(){
+  var L = $('list'), sx = 0, sy = 0, on = false, lock = null;
+  L.addEventListener('pointerdown', function(e){ on = true; sx = e.clientX; sy = e.clientY; lock = null; });
+  L.addEventListener('pointermove', function(e){ if (!on || lock) return; var x = e.clientX - sx, y = e.clientY - sy; if (Math.abs(x) > 12 || Math.abs(y) > 12) lock = Math.abs(x) > Math.abs(y)*1.4 ? 'x' : 'y'; });
+  L.addEventListener('pointerup', function(e){ if (!on) return; on = false; if (lock !== 'x' || view !== 'sit' || query) return; var dx = e.clientX - sx; if (Math.abs(dx) < 60) return;
+    var list = sitList(), i = list.indexOf(sit), n = i + (dx < 0 ? 1 : -1); if (n >= 0 && n < list.length) goSit(list[n]); else haptic([4,20,4]); });
+  L.addEventListener('pointercancel', function(){ on = false; });
+})();
+
+// ---------- enlarge for the clerk ----------
+var bigP = null, flat = false;
+function openBig(p){
+  bigP = p; var sc = $('screen'), W = sc.clientWidth, H = sc.clientHeight;
+  var bw = flat ? W - 32 : H - 150, bh = flat ? Math.min(360, H*.5) : W - 40;
+  var len = reading(p).length, fs = Math.max(26, Math.min(56, (bw - 70)/Math.max(6, len)*1.9));
+  $('big').style.setProperty('--bw', bw+'px'); $('big').style.setProperty('--bh', bh+'px'); $('big').style.setProperty('--bf', fs.toFixed(0)+'px');
+  var s = p.sit === 'mine' ? {jp:'私の', to:'メモ'} : sitOf(p.sit);
+  $('bigTk').innerHTML = '<div class="tk'+(favs.indexOf(p.id) >= 0 ? ' fav' : '')+'"><div class="top" lang="ja"><span>'+s.jp+'　→　'+s.to+'</span><em>No.'+String(p.no).padStart(4,'0')+'</em></div><p class="jp" lang="ja">'+esc(reading(p))+'</p><p class="ro">'+esc(fill(p, 'ro'))+'</p><p class="zh">'+esc(fill(p, 'zh'))+'</p><div class="please" lang="ja"><span>すみません、これを見てください。</span><span>'+issued+'</span></div><span class="hole"></span></div>';
+  $('big').classList.toggle('flat', flat);
+  $('big').classList.add('on'); haptic([6,30,12]);
+  setTimeout(function(){ $('bigSay').focus({preventScroll:true}); }, 60);
+}
+function closeBig(){ if (!$('big').classList.contains('on')) return; $('big').classList.remove('on'); bigP = null; haptic(5); }
+$('big').addEventListener('click', function(e){
+  if (e.target.closest('#bigSay')){ if (bigP) say(bigP, null); return; }
+  if (e.target.closest('#bigRot')){ flat = !flat; save('flat', flat); if (bigP) openBig(bigP); return; }
+  closeBig();
+});
+flat = load('flat', false);
+
+// ---------- sheets ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('sheetBody').innerHTML = html; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (lastFocus && lastFocus.focus && lastFocus.isConnected) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+function openSlots(p){
+  if (!p) return; var k = slotKey(p), cur = (slotSel[p.id] || 0) % SLOTS[k].length;
+  var title = {place:'目的地', people:'人數', allergy:'過敏原', pair:'幾雙', size:'尺寸'}[k];
+  openSheet('<h3>換一個'+title+'<span lang="ja">'+esc(p.jp.split('{')[0] || '')+'…</span></h3><div class="opts" role="radiogroup">'+
+    SLOTS[k].map(function(v, i){ return '<button class="opt" role="radio" aria-checked="'+(i === cur)+'" data-pick="'+i+'"><b lang="ja">'+esc(v[0])+'</b><span>'+esc(v[1])+'　'+esc(v[3])+'</span><i></i></button>'; }).join('')+'</div>');
+  sheet.dataset.for = p.id;
+}
+var draft = {sit:'food'};
+function openAdd(){
+  draft = {sit: sit === 'mine' ? 'food' : sit};
+  openSheet('<h3>自己印一張<span lang="ja">乗車券発行</span></h3>'+
+    '<label class="fl" for="fJp">日文</label><input class="fi" id="fJp" lang="ja" maxlength="40" placeholder="例：駅まで歩けますか？" autocomplete="off">'+
+    '<label class="fl" for="fRo">讀音（可空白）</label><input class="fi" id="fRo" maxlength="60" placeholder="eki made arukemasu ka?" autocomplete="off">'+
+    '<label class="fl" for="fZh">中文</label><input class="fi" id="fZh" maxlength="30" placeholder="走得到車站嗎？" autocomplete="off">'+
+    '<span class="fl">放在哪一站</span><div class="sitpick" id="sitPick">'+SITS.map(function(s){ return '<button data-dsit="'+s.id+'" aria-pressed="'+(draft.sit === s.id)+'">'+s.zh+'</button>'; }).join('')+'</div>'+
+    '<p class="err" id="fErr"></p>'+
+    '<button class="issue" id="fGo"><svg viewBox="0 0 22 22"><path d="M6 3h13v16H3V6z" stroke="#d3e8d6" stroke-width="2" fill="none"/><path d="M8 11h7M11.5 7.5v7" stroke="#d3e8d6" stroke-width="2"/></svg>發行車票</button>');
+}
+sheet.addEventListener('click', function(e){
+  var o = e.target.closest('[data-pick]');
+  if (o){ var id = sheet.dataset.for; slotSel[id] = +o.dataset.pick; save('slots', slotSel); haptic(6); tick();
+    sheet.querySelectorAll('[data-pick]').forEach(function(b){ b.setAttribute('aria-checked', b === o); });
+    render(0); setTimeout(closeSheet, reduce ? 0 : 220); return; }
+  var ds = e.target.closest('[data-dsit]');
+  if (ds){ draft.sit = ds.dataset.dsit; haptic(5); sheet.querySelectorAll('[data-dsit]').forEach(function(b){ b.setAttribute('aria-pressed', b === ds); }); return; }
+  if (e.target.closest('#fGo')){
+    var jp = $('fJp').value.trim(), ro = $('fRo').value.trim(), zh = $('fZh').value.trim();
+    if (!jp || !zh){ $('fErr').textContent = !jp ? '日文那一行還空著。' : '中文那一行還空著。'; haptic([6,30,6]); (!jp ? $('fJp') : $('fZh')).focus(); return; }
+    var p = {id:'c'+Date.now(), sit:draft.sit, jp:jp.replace(/[{}]/g, ''), ro:ro, zh:zh.replace(/[{}]/g, ''), no:900 + custom.length*3 + 1};
+    custom.push(p); save('custom', custom); closeSheet(); punch(); chime(); haptic([10,40,10]);
+    sit = p.sit; save('sit', sit); view = 'sit'; renderRail(); render(1); layoutList();
+    toast('發行了一張新車票', function(){ custom = custom.filter(function(x){ return x !== p; }); save('custom', custom); renderRail(); render(0); });
+  }
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, dragging = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button,input')) return; if (sheet.scrollTop > 0) return; dragging = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch(x){} });
+  sheet.addEventListener('pointermove', function(e){ if (!dragging) return; dy = e.clientY - sy; var y = dy > 0 ? dy : dy/6; sheet.style.transform = 'translateY('+y.toFixed(1)+'px)'; scrim.style.opacity = Math.max(0, 1 - dy/sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!dragging) return; dragging = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy/Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight*.35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape'){ if (sheet.classList.contains('on')) closeSheet(); else if ($('big').classList.contains('on')) closeBig(); else if ($('head').classList.contains('q')){ $('head').classList.remove('q'); query = ''; render(0); layoutList(); } } });
+
+// ---------- header ----------
+$('addBtn').addEventListener('click', function(){ audio(); openAdd(); });
+$('bookBtn').addEventListener('click', function(){ audio(); tick(); view = view === 'book' ? 'sit' : 'book'; query = ''; $('head').classList.remove('q'); haptic(6);
+  $('track').querySelectorAll('[data-sit]').forEach(function(b){ b.setAttribute('aria-selected', view === 'sit' && b.dataset.sit === sit); });
+  render(view === 'book' ? 1 : -1); layoutList(); });
+$('qBtn').addEventListener('click', function(){ var on = $('head').classList.toggle('q'); haptic(5); layoutList(); if (on){ view = 'sit'; $('qIn').focus(); } else { query = ''; $('qIn').value = ''; render(0); } });
+$('qIn').addEventListener('input', function(){ query = $('qIn').value.trim(); render(0); });
+
+var toastT = null, undoFn = null;
+function toast(msg, undo){ $('toastTx').textContent = msg; undoFn = undo || null; $('toastUndo').style.display = undo ? '' : 'none'; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, 3000); }
+$('toastUndo').addEventListener('click', function(){ if (undoFn){ var f = undoFn; undoFn = null; f(); haptic(8); } $('toast').classList.remove('on'); });
+
+function clock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+clock(); setInterval(clock, 15000);
+if (sit === 'mine' && !custom.length) sit = 'eki';
+renderRail(); render(0); layoutList();
+addEventListener('resize', function(){ layoutList(); placeTrain(true); if (bigP) openBig(bigP); });
+if (window.speechSynthesis && speechSynthesis.getVoices) try { speechSynthesis.getVoices(); } catch(e){}
+})();
+</script>
+</body>
+</html>

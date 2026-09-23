@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#21150e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="星盤">
+<title>星盤 · 星空圖</title>
+<meta name="description" content="以臺北緯度計算的旋轉星盤：用手指轉動星空、撥日期與時間刻度，點星座看介紹與今夜最高點，夜裡切換紅光模式保護暗適應。收錄於 100 Creative HTML Works（App 079・古星圖版畫）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/079-planisphere.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2321150e'/%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%23c9a24e' stroke-width='3'/%3E%3Cellipse cx='32' cy='36' rx='16' ry='14' fill='%23120b07' stroke='%23c9a24e' stroke-width='1.5'/%3E%3Cpath d='M24 34l6-5 7 3 5-6' fill='none' stroke='%23e8cf8a' stroke-width='1.4'/%3E%3Ccircle cx='24' cy='34' r='2' fill='%23f3e2b0'/%3E%3Ccircle cx='30' cy='29' r='1.5' fill='%23f3e2b0'/%3E%3Ccircle cx='37' cy='32' r='2.2' fill='%23f3e2b0'/%3E%3Ccircle cx='42' cy='26' r='1.5' fill='%23f3e2b0'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#2a1b12;
+  --paper-2:#21150e;
+  --paper-3:#35241a;
+  --sky:#140d09;
+  --gold:#c9a24e;
+  --gold-2:#9c7a36;
+  --gold-3:rgba(201,162,78,.35);
+  --star:#f3e2b0;
+  --ink:#ecdcb4;
+  --ink-2:#b89f73;
+  --hl:#ffe7a3;
+  --hoef:"Hoefler Text","Baskerville","Songti TC","Apple LiSung",serif;
+  --cjk:"Songti TC","Hoefler Text",serif;
+  --out:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.34,1.3,.5,1);
+  --P:370px;
+}
+.screen.red{
+  --paper:#140403;--paper-2:#0e0302;--paper-3:#1d0605;--sky:#070101;--gold:#b8342a;--gold-2:#8a261f;--gold-3:rgba(184,52,42,.35);--star:#e0473a;--ink:#d2463a;--ink-2:#96322a;--hl:#ff5a48;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--cjk);color:var(--ink);background:#21150e;-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:8px}
+svg{display:block}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper);isolation:isolate;transition:background-color .5s}
+@media (min-width:521px){
+  body{background:#1a100a}
+  .stage{display:flex;align-items:center;justify-content:center;gap:70px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:50px;padding:9px;z-index:1;background:#0f0906;box-shadow:inset 0 0 0 1px #5b4526,inset 0 0 0 3px #0f0906,inset 0 0 0 4px rgba(201,162,78,.35),0 16px 26px -16px #000}
+  .screen{inset:9px;border-radius:41px}
+  .caption{display:block;position:relative;z-index:1;max-width:250px;color:#ecdcb4}
+  .caption h1{font:400 50px/1 var(--hoef);letter-spacing:.14em}
+  .caption h1 i{display:block;font-size:20px;letter-spacing:.06em;color:#c9a24e;margin-top:12px}
+  .caption p{margin-top:18px;font:16px/1.8 var(--cjk);color:#b89f73}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+/* paper texture behind content */
+.tex{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5}
+.tex svg{width:100%;height:100%}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 15px/1 var(--hoef);color:var(--ink);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+.app{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;padding:calc(46px + env(safe-area-inset-top)) 0 calc(16px + env(safe-area-inset-bottom))}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 22px;height:52px}
+.hd h1{font:400 26px/1 var(--hoef);letter-spacing:.2em}
+.hd h1 small{font:italic 14px/1 var(--hoef);letter-spacing:.04em;color:var(--ink-2);margin-left:6px}
+.redBtn{display:flex;align-items:center;gap:8px;height:44px;padding:0 10px;border-radius:10px;font:15px/1 var(--cjk);color:var(--ink)}
+.redBtn svg{width:28px;height:28px}
+.redBtn:active{transform:scale(.94)}
+.redBtn[aria-pressed=true]{color:var(--hl)}
+
+.plani{position:relative;width:var(--P);height:calc(var(--P) * 234 / 236);margin:0 auto;flex:none;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 44px),linear-gradient(90deg,transparent 0,#000 22px,#000 calc(100% - 22px),transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0,#000 44px),linear-gradient(90deg,transparent 0,#000 22px,#000 calc(100% - 22px),transparent);mask-composite:intersect}
+.plani svg{width:100%;height:100%;overflow:hidden}
+.plani.drag{cursor:grabbing}
+#disc{will-change:transform}
+.st{fill:var(--star)}
+.cl{stroke:var(--gold);stroke-width:.55;fill:none;opacity:.75}
+.cl.hi{stroke:var(--hl);stroke-width:1.1;opacity:1}
+.lb{fill:var(--ink-2);font:7.4px var(--cjk);text-anchor:middle;dominant-baseline:central}
+.lb.hi{fill:var(--hl);font-weight:600}
+.sn{fill:var(--ink);font:italic 6.4px var(--hoef);dominant-baseline:central}
+.grid{stroke:var(--gold-3);fill:none;stroke-width:.4}
+.ecl{stroke:var(--gold-2);fill:none;stroke-width:.55;stroke-dasharray:1.4 2.6}
+.mw{stroke:var(--star);stroke-linecap:round;stroke-width:.8;opacity:.2}
+.dring{fill:var(--paper-3)}
+.dtick{stroke:var(--gold);stroke-linecap:round}
+.dtx{fill:var(--ink);font:7.4px var(--cjk);text-anchor:middle;dominant-baseline:central}
+.mask{fill:var(--paper)}
+.hatch{stroke:var(--gold);stroke-width:.35;opacity:.16}
+.rim{stroke:var(--gold);fill:none}
+.htx{fill:var(--ink);font:7px var(--hoef);text-anchor:middle;dominant-baseline:central}
+.dir{fill:var(--gold);font:600 9px var(--cjk);text-anchor:middle;dominant-baseline:central}
+.idx{fill:var(--hl)}
+
+.read{text-align:center;padding:8px 20px 0;min-height:62px;margin-top:auto}
+.read b{display:block;font:400 25px/1.2 var(--hoef);letter-spacing:.04em;font-variant-numeric:lining-nums tabular-nums}
+.read span{display:block;margin-top:4px;font:13px/1.3 var(--cjk);color:var(--ink-2)}
+
+.rulers{display:flex;flex-direction:column;gap:8px;padding:8px 16px 0}
+.ruler{position:relative;height:52px;border-radius:8px;background:var(--paper-2);overflow:hidden;touch-action:none;cursor:ew-resize;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
+.ruler svg{position:absolute;inset:0;width:100%;height:100%}
+.ruler .nm{position:absolute;left:0;top:0;bottom:0;z-index:1;display:flex;align-items:center;padding:0 10px 0 12px;background:var(--paper-2);box-shadow:6px 0 8px -2px var(--paper-2);font:13px/1 var(--cjk);color:var(--ink-2);pointer-events:none}
+.ruler .nd{position:absolute;left:50%;top:0;bottom:0;width:14px;margin-left:-7px;pointer-events:none}
+.rt{stroke:var(--gold);stroke-linecap:round}
+.rx{fill:var(--ink);font:12px var(--hoef);text-anchor:middle}
+
+.bot{margin-top:auto;display:flex;justify-content:center;gap:14px;padding:10px 16px 0}
+.bb{flex:1;max-width:170px;height:52px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:26px;font:16px/1 var(--cjk);color:var(--ink);background:var(--paper-3);transition:background-color .2s,transform .12s;box-shadow:inset 0 0 0 1px var(--gold-3)}
+.bb svg{width:24px;height:24px}
+.bb:active{transform:scale(.96);background:var(--paper-2)}
+.bb.live{color:var(--hl)}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(8,4,2,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:82%;display:flex;flex-direction:column;background:var(--paper-3);color:var(--ink);border-radius:24px 24px 0 0;padding:8px 0 calc(18px + env(safe-area-inset-bottom));transform:translateY(105%);visibility:hidden;transition:transform .5s var(--spring);box-shadow:inset 0 1px 0 var(--gold-3)}
+.sheet.on{transform:none;visibility:visible}
+.sheet:focus{outline:none}
+.sheet.drag{transition:none}
+.sheet .grab{flex:none;width:44px;height:24px;margin:0 auto;display:grid;place-items:center;touch-action:none;cursor:grab}
+.sheet .grab i{width:40px;height:4px;border-radius:2px;background:var(--gold-3)}
+.sheet .sb{overflow-y:auto;overscroll-behavior:contain;padding:4px 22px 6px;scrollbar-width:none}
+.sheet .sb::-webkit-scrollbar{display:none}
+.ihead{display:flex;gap:16px;align-items:center}
+.ihead svg{width:96px;height:96px;flex:none}
+.ihead h3{font:400 28px/1.15 var(--cjk);letter-spacing:.06em}
+.ihead p{font:italic 16px/1.3 var(--hoef);color:var(--ink-2);margin-top:4px}
+.facts{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.facts div span{display:block;font-size:13px;color:var(--ink-2)}
+.facts div b{display:block;margin-top:3px;font:400 18px/1.25 var(--hoef)}
+.note{margin-top:16px;font-size:15px;line-height:1.75;color:var(--ink)}
+.acts{display:flex;gap:10px;margin-top:18px}
+.acts button{flex:1;height:50px;border-radius:25px;font:16px/1 var(--cjk);transition:transform .12s,background-color .2s}
+.acts button:active{transform:scale(.97)}
+.acts .pri{background:var(--gold);color:var(--paper-2)}
+.acts .sec{color:var(--ink);box-shadow:inset 0 0 0 1px var(--gold-3)}
+.acts .sec[aria-pressed=true]{color:var(--hl);box-shadow:inset 0 0 0 1px var(--hl)}
+.cat h3{font:400 24px/1.2 var(--cjk);letter-spacing:.06em}
+.cat .sub{font-size:13px;color:var(--ink-2);margin-top:4px}
+.crow{display:flex;align-items:center;gap:14px;width:100%;min-height:62px;padding:8px 0;text-align:left;border-radius:10px}
+.crow + .crow{box-shadow:inset 0 1px 0 rgba(201,162,78,.12)}
+.crow svg{width:46px;height:46px;flex:none}
+.crow svg.seen{width:14px;height:14px;display:inline-block}
+.crow .m{flex:1;min-width:0}
+.crow .m b{display:block;font:400 17px/1.3 var(--cjk)}
+.crow .m span{font-size:13px;color:var(--ink-2)}
+.crow .alt{font:400 17px/1 var(--hoef);color:var(--ink);text-align:right;min-width:62px}
+.crow .alt small{display:block;font:12px/1.3 var(--cjk);color:var(--ink-2);margin-top:3px}
+.crow.below{opacity:.55}
+.crow:active{background:rgba(201,162,78,.08)}
+.seen{display:inline-block;margin-left:6px;vertical-align:1px}
+.sec2{margin:16px 0 4px;font-size:13px;color:var(--ink-2)}
+
+.toast{position:absolute;left:50%;top:calc(54px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-150px);transition:transform .45s var(--spring);background:var(--paper-3);color:var(--ink);padding:12px 18px;border-radius:12px;font:14px/1.3 var(--cjk);white-space:nowrap;box-shadow:inset 0 0 0 1px var(--gold-3)}
+.toast.on{transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){
+  .sheet,.toast{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="bd" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="caption"><h1>星盤<i>Planisphaerium Taipei</i></h1><p>以臺北北緯二十五度刻成的旋轉星盤。轉動星空，撥日期與時刻，夜裡切換紅光。</p></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="tex" aria-hidden="true"><svg><filter id="pn"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .1  0 0 0 0 .06  0 0 0 0 .03  0 0 0 .7 0"/></filter><rect width="100%" height="100%" filter="url(#pn)"/></svg></div>
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><path d="M2 12 3 9 4 12 1 10h4z"/><path d="M7 12l1-4.5L9 12 6 9h4z"/><path d="M12 12l1-7 1 7-3-4.5h4z"/><path d="M16.6 12 17.4 2l.6 10" opacity=".35"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M5.6 9a3.4 3.4 0 0 1 4.8 0M3.2 6.4a7 7 0 0 1 9.6 0M.9 3.8a10.4 10.4 0 0 1 14.2 0"/><circle cx="8" cy="11" r="1" fill="currentColor"/></svg>
+          <svg width="27" height="12" viewBox="0 0 27 12"><rect x=".6" y=".6" width="22" height="10.8" rx="2" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="2.2" y="2.2" width="18.8" height="7.6" fill="none" stroke="currentColor" stroke-width=".5" opacity=".6"/><rect id="batt" x="3.2" y="3.2" width="15" height="5.6" fill="currentColor"/><path d="M24 4.4v3.2" stroke="currentColor" stroke-width="1.6"/></svg>
+        </span>
+      </div>
+
+      <main class="app">
+        <div class="hd">
+          <h1>星盤<small>臺北 25°N</small></h1>
+          <button class="redBtn" id="redBtn" aria-pressed="false" aria-label="紅光夜視模式"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="14" cy="14" r="10.5"/><circle cx="14" cy="14" r="7"/><path d="M8.2 10.2l11.6 7.6M7.4 14.4l11 7M9.8 6.8l11 7.2M11.2 20.8l5.8 3.6M11.8 4l5 3.2" stroke-width=".9" opacity=".75"/><path d="M14 1.5v2M14 24.5v2M1.5 14h2M24.5 14h2"/></svg><span>紅光</span></button>
+        </div>
+
+        <div class="plani" id="plani" role="img" aria-label="旋轉星盤，拖動旋轉，點星座看介紹"><svg id="psvg"></svg></div>
+
+        <div class="read" aria-live="polite"><b id="rDate">九月廿三日 21:40</b><span id="rSub"></span></div>
+
+        <div class="rulers">
+          <div class="ruler" id="rDay" role="slider" tabindex="0" aria-label="日期，左右拖動"><span class="nm">日期</span><svg id="rDaySvg"></svg><svg class="nd" viewBox="0 0 14 52"><path d="M1 0h12L7 9z" fill="var(--hl)"/><path d="M7 9v34" stroke="var(--hl)" stroke-width="1.4"/><path d="M1 52h12L7 43z" fill="var(--hl)"/></svg></div>
+          <div class="ruler" id="rTime" role="slider" tabindex="0" aria-label="時刻，左右拖動"><span class="nm">時刻</span><svg id="rTimeSvg"></svg><svg class="nd" viewBox="0 0 14 52"><path d="M1 0h12L7 9z" fill="var(--hl)"/><path d="M7 9v34" stroke="var(--hl)" stroke-width="1.4"/><path d="M1 52h12L7 43z" fill="var(--hl)"/></svg></div>
+        </div>
+
+        <div class="bot">
+          <button class="bb" id="nowBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.4 2.2"/><path d="M12 1.5v2M12 20.5v2"/></svg><span id="nowL">此刻</span></button>
+          <button class="bb" id="catBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4 17l5-6 5 3 6-8"/><circle cx="4" cy="17" r="1.8" fill="currentColor"/><circle cx="9" cy="11" r="1.4" fill="currentColor"/><circle cx="14" cy="14" r="1.6" fill="currentColor"/><circle cx="20" cy="6" r="1.9" fill="currentColor"/></svg><span>星座目錄</span></button>
+        </div>
+      </main>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sT"><div class="grab" id="grab"><i></i></div><div class="sb" id="sheetBody"></div></div>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app079:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch (e) {} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch (e) {} }
+var NS = 'http://www.w3.org/2000/svg', D2R = Math.PI / 180, LAT = 25.04, LON = 121.51, TZ = 8;
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setInterval(tick, 15000);
+
+/* ---------- catalogue (J2000 RA hours, Dec deg, magnitude) ---------- */
+var C = [
+ {id:'uma', zh:'大熊座', en:'Ursa Major', sea:'春季', note:'北斗七星是大熊的背與尾。沿斗口兩星天樞、天璇連線延長約五倍，就是北極星。', s:[['天樞',11.062,61.75,1.8],['天璇',11.031,56.38,2.4],['天璣',11.897,53.69,2.4],['天權',12.257,57.03,3.3],['玉衡',12.900,55.96,1.8],['開陽',13.399,54.93,2.2],['搖光',13.792,49.31,1.9]], l:[[0,1],[1,2],[2,3],[3,0],[3,4],[4,5],[5,6]]},
+ {id:'umi', zh:'小熊座', en:'Ursa Minor', sea:'全年', note:'尾端就是北極星，在臺北永遠停在北方約二十五度高，整片天空繞著它轉。', s:[['北極星',2.530,89.26,2.0],['',17.537,86.59,4.4],['',16.766,82.04,4.2],['',15.734,77.79,4.3],['帝星',14.845,74.16,2.1],['',15.345,71.83,3.0],['',16.292,75.76,4.9]], l:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,3]]},
+ {id:'cas', zh:'仙后座', en:'Cassiopeia', sea:'秋季', note:'五顆亮星排成 W，與北斗七星隔著北極星相對，北斗低時看它找北極星。', s:[['王良一',0.153,59.15,2.3],['王良四',0.675,56.54,2.2],['策',0.945,60.72,2.5],['閣道三',1.430,60.24,2.7],['閣道二',1.907,63.67,3.4]], l:[[0,1],[1,2],[2,3],[3,4]]},
+ {id:'cep', zh:'仙王座', en:'Cepheus', sea:'秋季', note:'像一間尖頂小屋。造父一是著名的造父變星，科學家用它量出宇宙的距離。', s:[['天鉤五',21.310,62.59,2.5],['上衛增一',21.478,70.56,3.2],['少衛增八',23.656,77.63,3.2],['',22.828,66.20,3.5],['造父一',22.181,58.20,3.4]], l:[[0,1],[1,2],[2,3],[3,4],[4,0],[1,3]]},
+ {id:'cyg', zh:'天鵝座', en:'Cygnus', sea:'夏季', note:'沿著銀河展翅的天鵝，又叫北十字。尾巴的天津四是夏季大三角的一角。', s:[['天津四',20.690,45.28,1.3],['天津一',20.370,40.26,2.2],['輦道增七',19.512,27.96,3.1],['天津九',20.770,33.97,2.5],['天津二',19.750,45.13,2.9]], l:[[0,1],[1,2],[4,1],[1,3]]},
+ {id:'lyr', zh:'天琴座', en:'Lyra', sea:'夏季', note:'織女星就在這裡。七夕時抬頭，銀河對岸的牛郎星在東南邊。', s:[['織女一',18.616,38.78,0.0],['漸台二',18.835,33.36,3.5],['漸台三',18.982,32.69,3.3],['',18.746,37.61,4.3],['',18.908,36.90,4.3]], l:[[0,3],[3,1],[1,2],[2,4],[4,3]]},
+ {id:'aql', zh:'天鷹座', en:'Aquila', sea:'夏季', note:'牛郎星（河鼓二）兩旁各有一顆小星，像挑著扁擔上的兩個孩子。', s:[['河鼓二',19.846,8.87,0.8],['河鼓三',19.771,10.61,2.7],['河鼓一',19.922,6.41,3.7],['',19.425,3.11,3.4],['',19.104,-4.88,3.4],['',19.090,13.86,3.0]], l:[[1,0],[0,2],[0,3],[3,4],[3,5]]},
+ {id:'sco', zh:'天蠍座', en:'Scorpius', sea:'夏季', note:'紅色的心宿二是蠍子的心臟。在臺灣可以看到整條彎曲的蠍尾貼著南方地平線。', s:[['心宿二',16.490,-26.43,1.0],['房宿三',16.006,-22.62,2.3],['房宿四',16.091,-19.81,2.6],['房宿一',15.981,-26.11,2.9],['心宿一',16.353,-25.59,2.9],['心宿三',16.598,-28.22,2.8],['尾宿二',16.836,-34.29,2.3],['尾宿三',16.864,-38.05,3.0],['',16.910,-42.36,3.6],['',17.203,-43.24,3.3],['尾宿五',17.622,-43.00,1.9],['',17.793,-40.13,3.0],['尾宿七',17.708,-39.03,2.4],['尾宿八',17.560,-37.10,1.6]], l:[[2,1],[1,3],[1,4],[4,0],[0,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13]]},
+ {id:'sgr', zh:'人馬座', en:'Sagittarius', sea:'夏季', note:'亮星組成一把茶壺，壺嘴正對銀河中心，夏夜的銀河像壺口冒出的蒸氣。', s:[['箕宿三',18.403,-34.38,1.8],['箕宿二',18.350,-29.83,2.7],['斗宿二',18.466,-25.42,2.8],['斗宿四',18.921,-26.30,2.1],['斗宿六',19.043,-29.88,2.6],['',18.761,-26.99,3.2],['',19.115,-27.67,3.3],['箕宿一',18.097,-30.42,3.0]], l:[[7,1],[1,0],[0,7],[1,2],[2,5],[5,1],[5,3],[3,6],[6,4],[4,5],[4,0]]},
+ {id:'boo', zh:'牧夫座', en:'Boötes', sea:'春季', note:'順著北斗斗柄的弧線往下畫，會碰到橘色的大角星，這條線叫春季大曲線。', s:[['大角星',14.261,19.18,-0.05],['梗河一',14.750,27.07,2.4],['',15.258,33.31,3.5],['七公增五',15.032,40.39,3.5],['招搖',14.535,38.31,3.0],['',14.530,30.37,3.6],['右攝提一',13.911,18.40,2.7]], l:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6]]},
+ {id:'crb', zh:'北冕座', en:'Corona Borealis', sea:'春夏', note:'七顆星彎成半圈皇冠，中間最亮的叫貫索四。', s:[['貫索四',15.578,26.71,2.2],['',15.464,29.11,3.7],['',15.549,31.36,4.1],['',15.713,26.30,3.8],['',15.826,26.07,4.6],['',15.960,26.88,4.2]], l:[[2,1],[1,0],[0,3],[3,4],[4,5]]},
+ {id:'her', zh:'武仙座', en:'Hercules', sea:'夏季', note:'四顆星圍成的梯形叫拱心石，在拱心石一邊可以用望遠鏡找到 M13 球狀星團。', s:[['',17.251,36.81,3.2],['',16.715,38.92,3.5],['',16.688,31.60,2.8],['',17.005,30.93,3.9]], l:[[0,1],[1,2],[2,3],[3,0]]},
+ {id:'vir', zh:'室女座', en:'Virgo', sea:'春季', note:'角宿一是春天南方最亮的白星，與大角星、五帝座一合成春季大三角。', s:[['角宿一',13.420,-11.16,1.0],['東上相',12.694,-1.45,2.7],['太微左垣四',13.036,10.96,2.8],['',12.927,3.40,3.4],['',13.578,-0.60,3.4],['右執法',11.845,1.76,3.6],['',12.332,-0.67,3.9]], l:[[5,6],[6,1],[1,0],[1,3],[3,2],[3,4],[4,0]]},
+ {id:'leo', zh:'獅子座', en:'Leo', sea:'春季', note:'獅子的頭是一個反寫的問號，底部的軒轅十四幾乎正好坐在黃道上。', s:[['軒轅十四',10.140,11.97,1.4],['',10.122,16.76,3.5],['軒轅十二',10.333,19.84,2.0],['',10.278,23.42,3.4],['',9.879,26.01,3.9],['',9.764,23.77,3.0],['西上相',11.235,20.52,2.6],['西次相',11.237,15.43,3.3],['五帝座一',11.818,14.57,2.1]], l:[[0,1],[1,2],[2,3],[3,4],[4,5],[2,6],[6,8],[8,7],[7,0],[6,7]]},
+ {id:'gem', zh:'雙子座', en:'Gemini', sea:'冬季', note:'北河二、北河三是一對兄弟的頭，冬夜很高，十二月的雙子座流星雨從這裡射出。', s:[['北河二',7.577,31.89,1.6],['北河三',7.755,28.03,1.1],['井宿三',6.629,16.40,1.9],['井宿五',6.732,25.13,3.0],['井宿一',6.383,22.51,2.9],['天樽二',7.335,21.98,3.5],['井宿七',7.068,20.57,3.9]], l:[[0,3],[3,4],[1,5],[5,6],[6,2],[0,1]]},
+ {id:'cmi', zh:'小犬座', en:'Canis Minor', sea:'冬季', note:'只有兩顆亮星。南河三與參宿四、天狼星組成冬季大三角。', s:[['南河三',7.655,5.22,0.4],['南河二',7.453,8.29,2.9]], l:[[0,1]]},
+ {id:'cma', zh:'大犬座', en:'Canis Major', sea:'冬季', note:'天狼星是全天最亮的恆星，冬夜在南方閃爍，靠近地平線時會變換顏色。', s:[['天狼星',6.752,-16.72,-1.46],['軍市一',6.378,-17.96,2.0],['弧矢一',7.140,-26.39,1.8],['弧矢七',6.977,-28.97,1.5],['弧矢二',7.402,-29.30,2.4],['',7.050,-23.83,3.0]], l:[[1,0],[0,5],[5,2],[2,3],[2,4]]},
+ {id:'ori', zh:'獵戶座', en:'Orion', sea:'冬季', note:'腰帶上三顆等距的星一眼就認得。左上紅色的參宿四與右下藍白的參宿七顏色對比很美。', s:[['參宿四',5.919,7.41,0.5],['參宿七',5.242,-8.20,0.1],['參宿五',5.419,6.35,1.6],['參宿三',5.533,-0.30,2.2],['參宿二',5.604,-1.20,1.7],['參宿一',5.679,-1.94,1.8],['參宿六',5.796,-9.67,2.1],['觜宿一',5.585,9.93,3.4]], l:[[0,2],[0,5],[2,3],[3,4],[4,5],[5,6],[3,1],[0,7],[7,2]]},
+ {id:'tau', zh:'金牛座', en:'Taurus', sea:'冬季', note:'橙紅的畢宿五是牛眼，旁邊的畢星團排成 V 字，肩上的昴宿星團俗稱七姊妹。', s:[['畢宿五',4.599,16.51,0.9],['五車五',5.438,28.61,1.7],['天關',5.627,21.14,3.0],['畢宿四',4.330,15.63,3.7],['畢宿三',4.382,17.54,3.8],['畢宿一',4.477,19.18,3.5],['',4.011,12.49,3.4],['昴宿六',3.791,24.11,2.9]], l:[[6,3],[3,0],[0,2],[3,4],[4,5],[5,1]]},
+ {id:'aur', zh:'御夫座', en:'Auriga', sea:'冬季', note:'五車二是一顆黃色亮星，冬天傍晚從東北方升起，五顆星圍成一個五邊形。', s:[['五車二',5.278,46.00,0.1],['五車三',5.992,44.95,1.9],['',5.995,37.21,2.6],['五車一',4.950,33.17,2.7],['',5.032,43.82,3.0],['五車五',5.438,28.61,1.7]], l:[[0,1],[1,2],[2,5],[5,3],[3,4],[4,0]]},
+ {id:'per', zh:'英仙座', en:'Perseus', sea:'秋季', note:'大陵五每不到三天就會暗下一次，古人叫它惡魔之星；八月英仙座流星雨從這裡出發。', s:[['天船三',3.405,49.86,1.8],['大陵五',3.136,40.96,2.1],['',3.715,47.79,3.0],['',3.080,53.51,2.9],['',3.964,40.01,2.9],['',3.902,31.88,2.9]], l:[[3,0],[0,2],[2,4],[4,5],[0,1]]},
+ {id:'and', zh:'仙女座', en:'Andromeda', sea:'秋季', note:'從奎宿九往上看，有一團模糊的光斑，那是兩百五十萬光年外的仙女座星系。', s:[['壁宿二',0.140,29.09,2.1],['',0.655,30.86,3.3],['奎宿九',1.162,35.62,2.1],['天大將軍一',2.065,42.33,2.1]], l:[[0,1],[1,2],[2,3]]},
+ {id:'peg', zh:'飛馬座', en:'Pegasus', sea:'秋季', note:'秋季四邊形是秋夜的地標，四顆星幾乎圍成一個正方形。', s:[['室宿一',23.079,15.21,2.5],['室宿二',23.063,28.08,2.4],['壁宿一',0.221,15.18,2.8],['危宿三',21.736,9.88,2.4],['',22.691,10.83,3.4],['',22.170,6.20,3.5],['壁宿二',0.140,29.09,2.1]], l:[[6,1],[1,0],[0,2],[2,6],[0,4],[4,5],[5,3]]},
+ {id:'ari', zh:'牡羊座', en:'Aries', sea:'秋季', note:'兩三顆星組成的小星座，是黃道十二星座的第一個。', s:[['婁宿三',2.120,23.46,2.0],['婁宿一',1.911,20.81,2.6]], l:[[0,1]]},
+ {id:'crv', zh:'烏鴉座', en:'Corvus', sea:'春季', note:'四顆三等星圍成一面小帆，就在角宿一的右邊，很好找。', s:[['軫宿一',12.263,-17.54,2.6],['軫宿四',12.573,-23.40,2.6],['軫宿三',12.498,-16.52,2.9],['軫宿二',12.169,-22.62,3.0]], l:[[0,2],[2,1],[1,3],[3,0]]},
+ {id:'cru', zh:'南十字座', en:'Crux', sea:'春季', note:'在臺灣只有春夜、在南部往正南方貼著地平線才看得到，墾丁是最好的地點。', s:[['十字架二',12.443,-63.10,0.8],['十字架三',12.795,-59.69,1.3],['十字架一',12.519,-57.11,1.6],['十字架四',12.252,-58.75,2.8]], l:[[0,2],[3,1]]},
+ {id:'car', zh:'船底座', en:'Carina', sea:'冬季', note:'老人星是全天第二亮的星，在臺灣冬夜貼著南方地平線，看到它古人說會長壽。', s:[['老人星',6.399,-52.70,-0.7]], l:[]},
+ {id:'psa', zh:'南魚座', en:'Piscis Austrinus', sea:'秋季', note:'北落師門是秋夜南方天空唯一的一等星，四周很空，一眼就能找到。', s:[['北落師門',22.961,-29.62,1.2]], l:[]},
+ {id:'cen', zh:'半人馬座', en:'Centaurus', sea:'春季', note:'南門二是離太陽最近的恆星系統，只有 4.4 光年，在臺灣南部春夜低低出現。', s:[['南門二',14.660,-60.83,-0.3],['馬腹一',14.064,-60.37,0.6]], l:[[0,1]]},
+ {id:'hya', zh:'長蛇座', en:'Hydra', sea:'春季', note:'全天最長的星座，只有星宿一比較亮，古人叫它孤獨的一顆星。', s:[['星宿一',9.460,-8.66,2.0]], l:[]}
+];
+
+/* ---------- time + astronomy ---------- */
+function jd(ms){ return ms / 864e5 + 2440587.5; }
+function lstH(ms){ var d = jd(ms) - 2451545.0, g = 18.697374558 + 24.06570982441908 * d + LON / 15; g %= 24; return g < 0 ? g + 24 : g; }
+function tw(ms){ return new Date(ms + TZ * 3600e3); }   // read with getUTC*
+function altAz(ra, dec, lst){
+  var ha = (lst - ra) * 15 * D2R, d = dec * D2R, la = LAT * D2R;
+  var alt = Math.asin(Math.sin(la) * Math.sin(d) + Math.cos(la) * Math.cos(d) * Math.cos(ha));
+  var az = Math.atan2(-Math.sin(ha) * Math.cos(d), Math.cos(la) * Math.sin(d) - Math.sin(la) * Math.cos(d) * Math.cos(ha));
+  return {alt: alt / D2R, az: ((az / D2R) + 360) % 360};
+}
+var DIRS = ['北', '東北', '東', '東南', '南', '西南', '西', '西北'];
+function dirName(az){ return DIRS[Math.round(az / 45) % 8]; }
+var CN = ['〇','一','二','三','四','五','六','七','八','九','十'];
+function cnNum(n){ if (n <= 10) return CN[n]; if (n < 20) return '十' + CN[n - 10]; if (n === 20) return '二十'; if (n < 30) return '廿' + CN[n - 20]; if (n === 30) return '三十'; return '卅' + CN[n - 30]; }
+var WD = ['日', '一', '二', '三', '四', '五', '六'];
+
+/* ---------- state ---------- */
+var prefs = load('prefs', {red:false});
+var seen = load('seen', ['ori', 'uma', 'sco', 'lyr', 'cas']);
+var view = Date.now(), live = true, hiId = null;
+
+/* ---------- geometry ---------- */
+var S = 370, cx = 185, cy = 185, Rd = 181, R = 141, Rm = 159;
+var VB = {x:cx - 118, y:cy - 50, w:236, h:234};
+function rOf(dec){ return R * (90 - dec) / 155; }
+function discXY(ra, dec){ var th = -ra * 15 * D2R, r = rOf(dec); return [cx + r * Math.sin(th), cy + r * Math.cos(th)]; }
+function el(tag, attrs, parent){ var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function f1(n){ return n.toFixed(1); }
+
+var svg = $('psvg'), disc, labelsG, hlG, idxEl;
+var starPts = [];   // {c, i, ra, dec}
+function starPath(x, y, mag){
+  var r = Math.max(.65, Math.min(3, 2.6 - mag * .5)), p = '';
+  if (mag < 1.6){
+    var L = r * 2.3, s = r * .5;
+    p = 'M' + f1(x) + ' ' + f1(y - L) + 'L' + f1(x + s) + ' ' + f1(y - s) + 'L' + f1(x + L) + ' ' + f1(y) + 'L' + f1(x + s) + ' ' + f1(y + s) + 'L' + f1(x) + ' ' + f1(y + L) + 'L' + f1(x - s) + ' ' + f1(y + s) + 'L' + f1(x - L) + ' ' + f1(y) + 'L' + f1(x - s) + ' ' + f1(y - s) + 'Z';
+  }
+  return {r:r, p:p};
+}
+function build(){
+  svg.setAttribute('viewBox', VB.x + ' ' + VB.y + ' ' + VB.w + ' ' + VB.h);
+  svg.innerHTML = '';
+  var defs = el('defs', {}, svg);
+  var pat = el('pattern', {id:'hat', width:3.2, height:3.2, patternUnits:'userSpaceOnUse', patternTransform:'rotate(35)'}, defs);
+  el('path', {d:'M0 0V3.2', class:'hatch'}, pat);
+  var clip = el('clipPath', {id:'dclip'}, defs); el('circle', {cx:cx, cy:cy, r:Rd}, clip);
+
+  disc = el('g', {id:'disc'}, svg);
+  el('circle', {cx:cx, cy:cy, r:Rd, class:'dring'}, disc);
+  el('circle', {cx:cx, cy:cy, r:Rm + 1, fill:'var(--sky)'}, disc);
+  // declination circles + hour spokes
+  [60, 30, 0, -30, -60].forEach(function(dc){ el('circle', {cx:cx, cy:cy, r:f1(rOf(dc)), class:'grid'}, disc); });
+  for (var h = 0; h < 24; h += 2){ var a = discXY(h, 80), b = discXY(h, -65); el('path', {d:'M' + f1(a[0]) + ' ' + f1(a[1]) + 'L' + f1(b[0]) + ' ' + f1(b[1]), class:'grid'}, disc); }
+  // milky way stipple along the galactic plane
+  var dG = 27.12825 * D2R, aG = 192.85948, lN = 122.93192, seed = 11, rnd = function(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }, mw = '';
+  for (var l = 0; l < 360; l += 1.2){
+    var wid = 6 + 9 * Math.pow(Math.cos((l > 180 ? l - 360 : l) * D2R / 2), 6) + (Math.abs(l - 80) < 25 ? 4 : 0), n = 3 + Math.round(wid / 4);
+    for (var k = 0; k < n; k++){
+      var b = ((rnd() + rnd() + rnd()) / 1.5 - 1) * wid, bb = b * D2R, dl = (lN - l) * D2R;
+      var sd = Math.sin(dG) * Math.sin(bb) + Math.cos(dG) * Math.cos(bb) * Math.cos(dl), dec = Math.asin(sd) / D2R;
+      var ra = (aG + Math.atan2(Math.cos(bb) * Math.sin(dl), Math.cos(dG) * Math.sin(bb) - Math.sin(dG) * Math.cos(bb) * Math.cos(dl)) / D2R) / 15;
+      if (dec < -66) continue;
+      var q = discXY(((ra % 24) + 24) % 24, dec); mw += 'M' + f1(q[0]) + ' ' + f1(q[1]) + 'h.1';
+    }
+  }
+  el('path', {d:mw, class:'mw'}, disc);
+  // ecliptic
+  var ec = '', eps = 23.44 * D2R;
+  for (var lam = 0; lam <= 360; lam += 4){ var L = lam * D2R, de = Math.asin(Math.sin(eps) * Math.sin(L)) / D2R, rr = Math.atan2(Math.cos(eps) * Math.sin(L), Math.cos(L)) / D2R / 15; var p = discXY((rr + 24) % 24, de); ec += (lam ? 'L' : 'M') + f1(p[0]) + ' ' + f1(p[1]); }
+  el('path', {d:ec, class:'ecl'}, disc);
+  // constellation lines, stars
+  var lineG = el('g', {}, disc), starG = el('g', {}, disc);
+  starPts = [];
+  C.forEach(function(c, ci){
+    var d = '';
+    c.l.forEach(function(pr){ var a = discXY(c.s[pr[0]][1], c.s[pr[0]][2]), b = discXY(c.s[pr[1]][1], c.s[pr[1]][2]); d += 'M' + f1(a[0]) + ' ' + f1(a[1]) + 'L' + f1(b[0]) + ' ' + f1(b[1]); });
+    if (d) el('path', {d:d, class:'cl', 'data-c':c.id}, lineG);
+    c.s.forEach(function(s, si){
+      if (s[2] < -66) return;
+      var p = discXY(s[1], s[2]), g = starPath(p[0], p[1], s[3]);
+      if (g.p) el('path', {d:g.p, class:'st', opacity:.85}, starG);
+      el('circle', {cx:f1(p[0]), cy:f1(p[1]), r:f1(g.r), class:'st'}, starG);
+      starPts.push({c:ci, x:p[0], y:p[1], m:s[3]});
+    });
+  });
+  // pleiades cluster
+  var pl = discXY(3.79, 24.1); [[0, 0], [2.4, -1.6], [-2.2, -1.2], [1.2, 2.2], [-1, 2.6], [3.4, 1]].forEach(function(o){ el('circle', {cx:f1(pl[0] + o[0]), cy:f1(pl[1] + o[1]), r:.9, class:'st'}, starG); });
+  // date ring (days of the year, placed by sidereal time at local midnight)
+  var dr = el('g', {}, disc), yr = tw(view).getUTCFullYear(), m0 = Date.UTC(yr, 0, 1) - TZ * 3600e3, tk = '';
+  for (var dd = 0; dd < 366; dd++){
+    var t = m0 + dd * 864e5, dt = tw(t); if (dt.getUTCFullYear() !== yr) break;
+    var th = -lstH(t) * 15 * D2R, day = dt.getUTCDate(), len = day === 1 ? 14 : day % 5 === 0 ? 8 : 4;
+    var r1 = Rd - 2, r0 = r1 - len;
+    tk += 'M' + f1(cx + r0 * Math.sin(th)) + ' ' + f1(cy + r0 * Math.cos(th)) + 'L' + f1(cx + r1 * Math.sin(th)) + ' ' + f1(cy + r1 * Math.cos(th));
+    if (day === 15){
+      var rt = Rd - 13, tx = cx + rt * Math.sin(th), ty = cy + rt * Math.cos(th), rot = 180 - th / D2R;
+      var tEl = el('text', {x:f1(tx), y:f1(ty), class:'dtx', transform:'rotate(' + f1(rot) + ' ' + f1(tx) + ' ' + f1(ty) + ')'}, dr); tEl.textContent = cnNum(dt.getUTCMonth() + 1) + '月';
+    }
+  }
+  el('path', {d:tk, class:'dtick', 'stroke-width':.6}, dr);
+  el('circle', {cx:cx, cy:cy, r:Rd - .5, class:'rim', 'stroke-width':1}, disc);
+
+  // highlighted constellation layer + labels (labels are counter-rotated so they stay upright)
+  hlG = el('g', {}, disc);
+  labelsG = el('g', {}, disc);
+  C.forEach(function(c){
+    var sx = 0, sy = 0, n = 0; c.s.forEach(function(s){ var p = discXY(s[1], s[2]); sx += p[0]; sy += p[1]; n++; });
+    var g = el('g', {'data-c':c.id, 'data-x':f1(sx / n), 'data-y':f1(sy / n)}, labelsG);
+    var t = el('text', {x:0, y:c.s.length > 2 ? 8 : 6.5, class:'lb'}, g); t.textContent = c.zh;
+    // star name of the brightest named star
+    var br = c.s.slice().sort(function(a, b){ return a[3] - b[3]; })[0];
+    if (br[3] < .9 && br[0]){ var bp = discXY(br[1], br[2]); var sg = el('g', {'data-sx':f1(bp[0]), 'data-sy':f1(bp[1]), class:'sname'}, labelsG); var st = el('text', {x:4, y:-4, class:'sn'}, sg); st.textContent = br[0]; }
+  });
+
+  // the mask: paper card with the horizon window cut out
+  var win = horizonPath();
+  var mp = 'M' + (cx - Rm) + ' ' + cy + 'a' + Rm + ' ' + Rm + ' 0 1 0 ' + (2 * Rm) + ' 0a' + Rm + ' ' + Rm + ' 0 1 0 ' + (-2 * Rm) + ' 0Z' + win;
+  el('path', {d:mp, class:'mask', 'fill-rule':'evenodd'}, svg);
+  el('path', {d:mp, fill:'url(#hat)', 'fill-rule':'evenodd'}, svg);
+  el('path', {d:win, class:'rim', 'stroke-width':1.6}, svg);
+  el('path', {d:horizonPath(3), class:'rim', 'stroke-width':.6, opacity:.7}, svg);
+  el('circle', {cx:cx, cy:cy, r:Rm, class:'rim', 'stroke-width':1.2}, svg);
+  el('circle', {cx:cx, cy:cy, r:Rm - 17, class:'rim', 'stroke-width':.6, opacity:.6}, svg);
+  // hour ring on the mask (local time)
+  var ht = '';
+  for (var m = 0; m < 24 * 60; m += 10){
+    var th2 = 15.041 * (m / 60) * D2R, big = m % 60 === 0, half = m % 30 === 0, r1b = Rm - 1, r0b = r1b - (big ? 7 : half ? 4.5 : 2.5);
+    ht += 'M' + f1(cx + r0b * Math.sin(th2)) + ' ' + f1(cy + r0b * Math.cos(th2)) + 'L' + f1(cx + r1b * Math.sin(th2)) + ' ' + f1(cy + r1b * Math.cos(th2));
+    if (big && (m / 60) % 2 === 0){ var rt2 = Rm - 12.5, x2 = cx + rt2 * Math.sin(th2), y2 = cy + rt2 * Math.cos(th2); var te = el('text', {x:f1(x2), y:f1(y2), class:'htx', transform:'rotate(' + f1(180 - th2 / D2R) + ' ' + f1(x2) + ' ' + f1(y2) + ')'}, svg); te.textContent = (m / 60); }
+  }
+  el('path', {d:ht, class:'dtick', 'stroke-width':.55}, svg);
+  // compass on the horizon
+  [[0, '北'], [90, '東'], [180, '南'], [270, '西']].forEach(function(a){
+    var p = hzPoint(a[0], 7); var t = el('text', {x:f1(p[0]), y:f1(p[1]), class:'dir'}, svg); t.textContent = a[1];
+  });
+  var z = discFixed(0, LAT); el('path', {d:'M' + f1(z[0] - 5) + ' ' + f1(z[1]) + 'h10M' + f1(z[0]) + ' ' + f1(z[1] - 5) + 'v10', class:'rim', 'stroke-width':.9}, svg);
+  // time index (a small gold pointer on the rim at the current local time)
+  idxEl = el('path', {d:'M0 -3.4 3.2 2-3.2 2Z', class:'idx'}, svg);
+}
+function discFixed(haH, dec){ var th = haH * 15 * D2R, r = rOf(dec); return [cx + r * Math.sin(th), cy + r * Math.cos(th)]; }
+function hzPoint(azDeg, inset){
+  var A = azDeg * D2R, la = LAT * D2R, dec = Math.asin(Math.cos(la) * Math.cos(A)) / D2R, ha = Math.atan2(-Math.sin(A), -Math.sin(la) * Math.cos(A));
+  var r = rOf(dec) - (inset || 0); return [cx + r * Math.sin(ha), cy + r * Math.cos(ha)];
+}
+function horizonPath(inset){ var d = ''; for (var a = 0; a <= 360; a += 3){ var p = hzPoint(a, inset ? -inset : 0); d += (a ? 'L' : 'M') + f1(p[0]) + ' ' + f1(p[1]); } return d + 'Z'; }
+
+/* ---------- render the current time ---------- */
+var lastHourTick = null;
+function render(){
+  var lst = lstH(view), rot = -lst * 15;
+  disc.setAttribute('transform', 'rotate(' + rot.toFixed(3) + ' ' + cx + ' ' + cy + ')');
+  // counter-rotate labels
+  labelsG.querySelectorAll('g').forEach(function(g){
+    var x = g.dataset.x || g.dataset.sx, y = g.dataset.y || g.dataset.sy;
+    g.setAttribute('transform', 'translate(' + x + ' ' + y + ') rotate(' + (-rot).toFixed(2) + ')');
+  });
+  var t = tw(view), hh = t.getUTCHours() + t.getUTCMinutes() / 60, th = 15.041 * hh * D2R, r = Rm + 6;
+  idxEl.setAttribute('transform', 'translate(' + f1(cx + r * Math.sin(th)) + ' ' + f1(cy + r * Math.cos(th)) + ') rotate(' + f1(-th / D2R) + ')');
+  $('rDate').textContent = cnNum(t.getUTCMonth() + 1) + '月' + cnNum(t.getUTCDate()) + '日　' + String(t.getUTCHours()).padStart(2, '0') + ':' + String(t.getUTCMinutes()).padStart(2, '0');
+  var up = C.filter(function(c){ var b = brightest(c); return altAz(b[1], b[2], lst).alt > 10; }).length;
+  $('rSub').textContent = '星期' + WD[t.getUTCDay()] + '・恆星時 ' + Math.floor(lst) + 'h' + String(Math.floor(lst % 1 * 60)).padStart(2, '0') + 'm・' + up + ' 個星座在天上';
+  $('nowBtn').classList.toggle('live', live); $('nowL').textContent = live ? '此刻・跟隨' : '回到此刻';
+  drawRuler('day'); drawRuler('time');
+  var hk = Math.floor(view / 36e5); if (lastHourTick !== null && hk !== lastHourTick) { tickSound(); haptic(3); } lastHourTick = hk;
+}
+function brightest(c){ return c.s.slice().sort(function(a, b){ return a[3] - b[3]; })[0]; }
+function setView(ms, fromLive){ view = ms; if (!fromLive) live = false; render(); }
+
+/* ---------- audio: brass tick ---------- */
+var AC = null;
+function tickSound(){
+  if (!AC) return; var t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'triangle'; o.frequency.setValueAtTime(2200, t); o.frequency.exponentialRampToValueAtTime(1300, t + .03);
+  g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(.0001, t + .06); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + .07);
+}
+function wakeAudio(){ if (!AC){ try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (AC && AC.state === 'suspended') AC.resume(); }
+
+/* ---------- rotate the sky with inertia ---------- */
+(function(){
+  var p = $('plani'), on = false, a0 = 0, v0 = 0, lastA = 0, lastT = 0, vel = 0, moved = false, sx = 0, sy = 0, raf = 0;
+  function ang(e){ var r = p.getBoundingClientRect(), ox = r.left + (cx - VB.x) * r.width / VB.w, oy = r.top + (cy - VB.y) * r.height / VB.h; return Math.atan2(e.clientY - oy, e.clientX - ox) / D2R; }
+  p.addEventListener('pointerdown', function(e){ wakeAudio(); cancelAnimationFrame(raf); on = true; moved = false; sx = e.clientX; sy = e.clientY; a0 = lastA = ang(e); v0 = view; lastT = e.timeStamp; vel = 0; p.setPointerCapture(e.pointerId); p.classList.add('drag'); });
+  p.addEventListener('pointermove', function(e){
+    if (!on) return;
+    if (Math.hypot(e.clientX - sx, e.clientY - sy) > 6) moved = true;
+    if (!moved) return;
+    var a = ang(e), d = a - lastA; if (d > 180) d -= 360; if (d < -180) d += 360;
+    var dt = Math.max(1, e.timeStamp - lastT); vel = vel * .5 + (d / dt) * .5; lastA = a; lastT = e.timeStamp;
+    // screen rotation clockwise by d degrees == sidereal time going backwards
+    setView(view - d / 15 / 1.0027379 * 36e5);
+  });
+  function end(e){
+    if (!on) return; on = false; p.classList.remove('drag');
+    if (!moved){ tapAt(e); return; }
+    if (reduce || Math.abs(vel) < .02) return;
+    (function spin(){ vel *= .94; if (Math.abs(vel) < .004) return; setView(view - vel * 16 / 15 / 1.0027379 * 36e5); raf = requestAnimationFrame(spin); })();
+  }
+  p.addEventListener('pointerup', end); p.addEventListener('pointercancel', end);
+})();
+function tapAt(e){
+  var r = $('plani').getBoundingClientRect(), x = VB.x + (e.clientX - r.left) * VB.w / r.width, y = VB.y + (e.clientY - r.top) * VB.h / r.height;
+  var lst = lstH(view), rot = -lst * 15 * D2R, best = null, bd = 18;
+  starPts.forEach(function(s){
+    var dx = s.x - cx, dy = s.y - cy, X = cx + dx * Math.cos(rot) - dy * Math.sin(rot), Y = cy + dx * Math.sin(rot) + dy * Math.cos(rot), d = Math.hypot(X - x, Y - y);
+    if (d < bd){ bd = d; best = s; }
+  });
+  if (best){ haptic(6); openInfo(C[best.c].id); } else { haptic([4, 20, 4]); toast('點星星附近看星座介紹'); }
+}
+
+/* ---------- rulers ---------- */
+var RUL = {
+  day:{el:$('rDay'), svg:$('rDaySvg'), px:9, unit:864e5},
+  time:{el:$('rTime'), svg:$('rTimeSvg'), px:1.4, unit:6e4}
+};
+function drawRuler(k){
+  var R_ = RUL[k], w = R_.el.clientWidth || 358, h = 52, mid = w / 2, out = '', t = tw(view);
+  if (k === 'day'){
+    var dayStart = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()), frac = (t.getTime() - dayStart) / 864e5, n = Math.ceil(mid / R_.px) + 2;
+    for (var i = -n; i <= n; i++){
+      var d = new Date(dayStart + i * 864e5), x = mid + (i - frac + .5) * R_.px, dd = d.getUTCDate(), big = dd === 1, med = dd % 5 === 0;
+      out += '<path class="rt" d="M' + f1(x) + ' ' + (big ? 20 : med ? 26 : 30) + 'V42" stroke-width="' + (big ? 1.6 : 1) + '"/>';
+      if (big || (med && dd !== 30)) out += '<text class="rx" x="' + f1(x) + '" y="16"' + (big ? ' style="font-weight:600"' : '') + '>' + (big ? cnNum(d.getUTCMonth() + 1) + '月' : dd) + '</text>';
+    }
+  } else {
+    var mins = t.getUTCHours() * 60 + t.getUTCMinutes() + t.getUTCSeconds() / 60, n2 = Math.ceil(mid / R_.px / 10) + 2, base = Math.floor(mins / 10) * 10;
+    for (var j = -n2; j <= n2; j++){
+      var m = base + j * 10, x2 = mid + (m - mins) * R_.px, mm = ((m % 1440) + 1440) % 1440, hr = mm % 60 === 0;
+      out += '<path class="rt" d="M' + f1(x2) + ' ' + (hr ? 22 : mm % 30 === 0 ? 28 : 32) + 'V42" stroke-width="' + (hr ? 1.5 : 1) + '"/>';
+      if (hr) out += '<text class="rx" x="' + f1(x2) + '" y="17">' + (mm / 60) + ' 時</text>';
+    }
+  }
+  R_.svg.innerHTML = out;
+}
+Object.keys(RUL).forEach(function(k){
+  var R_ = RUL[k], on = false, lx = 0, lt = 0, vel = 0, acc = 0, raf = 0;
+  R_.el.addEventListener('pointerdown', function(e){ wakeAudio(); cancelAnimationFrame(raf); on = true; lx = e.clientX; lt = e.timeStamp; vel = 0; acc = 0; R_.el.setPointerCapture(e.pointerId); });
+  R_.el.addEventListener('pointermove', function(e){
+    if (!on) return; var dx = e.clientX - lx, dt = Math.max(1, e.timeStamp - lt); vel = vel * .5 + (dx / dt) * .5; lx = e.clientX; lt = e.timeStamp;
+    move(-dx);
+  });
+  function move(px){
+    if (k === 'day'){ acc += px / R_.px; var whole = Math.trunc(acc); if (whole){ acc -= whole; setView(view + whole * 864e5); tickSound(); haptic(2); } }
+    else setView(view + px / R_.px * 6e4);
+  }
+  function end(){ if (!on) return; on = false; if (reduce) return; (function glide(){ vel *= .93; if (Math.abs(vel) < .02){ if (k === 'time') snap(); return; } move(-vel * 16); raf = requestAnimationFrame(glide); })(); }
+  function snap(){ var s = 5 * 6e4, t = view + TZ * 3600e3; setView(Math.round(t / s) * s - TZ * 3600e3); }
+  R_.el.addEventListener('pointerup', end); R_.el.addEventListener('pointercancel', end);
+  R_.el.addEventListener('keydown', function(e){
+    var step = k === 'day' ? 864e5 : 10 * 6e4;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ setView(view + step); e.preventDefault(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown'){ setView(view - step); e.preventDefault(); }
+  });
+});
+
+/* ---------- buttons ---------- */
+$('nowBtn').addEventListener('click', function(){
+  var from = view, to = Date.now(), t0 = performance.now(), dur = reduce ? 1 : 700; live = true; haptic([6, 30, 6]);
+  (function f(t){ var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); view = from + (to - from) * e; render(); if (k < 1) requestAnimationFrame(f); else { live = true; render(); } })(t0);
+  toast('回到此刻：臺北的天空');
+});
+setInterval(function(){ if (live && !document.hidden){ view = Date.now(); render(); } }, 30000);
+function setRed(on){ prefs.red = on; save('prefs', prefs); $('screen').classList.toggle('red', on); $('redBtn').setAttribute('aria-pressed', on); document.querySelector('meta[name=theme-color]').setAttribute('content', on ? '#0e0302' : '#21150e'); }
+$('redBtn').addEventListener('click', function(){ setRed(!prefs.red); haptic(8); toast(prefs.red ? '紅光模式：保護眼睛的暗適應' : '一般模式'); });
+$('catBtn').addEventListener('click', openCat);
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ closeSheet(); return; }
+  if ($('sheet').classList.contains('on') || /ruler/.test(e.target.className || '')) return;
+  if (e.key === 'ArrowRight'){ setView(view + 10 * 6e4); } else if (e.key === 'ArrowLeft'){ setView(view - 10 * 6e4); }
+  else if (e.key === 'ArrowUp'){ setView(view + 864e5); } else if (e.key === 'ArrowDown'){ setView(view - 864e5); }
+  else if (e.key === 'r' || e.key === 'R'){ setRed(!prefs.red); }
+});
+
+/* ---------- constellation figure (mini engraving) ---------- */
+function figure(c, size){
+  var pts = c.s.map(function(s){ var th = -s[1] * 15 * D2R, r = 90 - s[2]; return [r * Math.sin(th), r * Math.cos(th)]; });
+  // orient around own centre, flip so north is up-ish
+  var mx = 0, my = 0; pts.forEach(function(p){ mx += p[0]; my += p[1]; }); mx /= pts.length; my /= pts.length;
+  var ang = Math.atan2(mx, my), ca = Math.cos(ang), sa = Math.sin(ang);
+  pts = pts.map(function(p){ var x = p[0] - mx, y = p[1] - my; return [x * ca - y * sa, -(x * sa + y * ca)]; });
+  var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  pts.forEach(function(p){ minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]); minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]); });
+  var span = Math.max(maxX - minX, maxY - minY, 6), k = (size - 16) / span, ox = size / 2 - (minX + maxX) / 2 * k, oy = size / 2 - (minY + maxY) / 2 * k;
+  var P = pts.map(function(p){ return [p[0] * k + ox, p[1] * k + oy]; }), o = '<svg viewBox="0 0 ' + size + ' ' + size + '"><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + (size / 2 - 1) + '" fill="var(--sky)" stroke="var(--gold-3)"/>';
+  c.l.forEach(function(pr){ o += '<path d="M' + f1(P[pr[0]][0]) + ' ' + f1(P[pr[0]][1]) + 'L' + f1(P[pr[1]][0]) + ' ' + f1(P[pr[1]][1]) + '" stroke="var(--gold)" stroke-width="1" opacity=".8"/>'; });
+  c.s.forEach(function(s, i){ o += '<circle cx="' + f1(P[i][0]) + '" cy="' + f1(P[i][1]) + '" r="' + f1(Math.max(1.2, 3.6 - s[3] * .7) * size / 96) + '" fill="var(--star)"/>'; });
+  return o + '</svg>';
+}
+function transitTonight(c){
+  // local time tonight when the brightest star crosses the meridian (hour angle 0)
+  var b = brightest(c), t0 = view, lst = lstH(t0), dh = ((b[1] - lst) % 24 + 24) % 24, tt = t0 + dh / 1.0027379 * 36e5;
+  if (dh > 12) tt -= 24 / 1.0027379 * 36e5;
+  return tt;
+}
+function fmtT(ms){ var t = tw(ms); return String(t.getUTCHours()).padStart(2, '0') + ':' + String(t.getUTCMinutes()).padStart(2, '0'); }
+
+/* ---------- sheets ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null, curInfo = null;
+function highlight(id){
+  hiId = id; hlG.innerHTML = '';
+  document.querySelectorAll('.lb').forEach(function(t){ t.classList.toggle('hi', t.parentNode.dataset.c === id); });
+  document.querySelectorAll('path.cl').forEach(function(p){ p.classList.toggle('hi', p.dataset.c === id); });
+}
+function openInfo(id){
+  var c = C.filter(function(x){ return x.id === id; })[0]; curInfo = id; highlight(id);
+  var b = brightest(c), lst = lstH(view), aa = altAz(b[1], b[2], lst), tt = transitTonight(c), maxAlt = 90 - Math.abs(LAT - b[2]);
+  var pos = aa.alt > 0 ? '高度 ' + Math.round(aa.alt) + '°・' + dirName(aa.az) : '在地平線下';
+  var isSeen = seen.indexOf(id) > -1;
+  openSheet('<div class="ihead">' + figure(c, 96) + '<div><h3 id="sT">' + c.zh + '</h3><p>' + c.en + '</p></div></div>' +
+    '<div class="facts"><div><span>最亮的星</span><b>' + (b[0] || c.zh) + '・' + b[3].toFixed(1) + ' 等</b></div><div><span>此刻位置</span><b>' + pos + '</b></div>' +
+    '<div><span>最高點時刻</span><b>' + fmtT(tt) + '・' + Math.round(maxAlt) + '°</b></div><div><span>最佳季節</span><b>' + c.sea + '夜晚</b></div></div>' +
+    '<p class="note">' + c.note + '</p>' +
+    '<div class="acts"><button class="sec" id="seenBtn" aria-pressed="' + isSeen + '">' + (isSeen ? '已觀測' : '記下看到了') + '</button><button class="pri" id="goTransit">轉到最高點</button></div>');
+  $('goTransit').addEventListener('click', function(){ closeSheet(); animateTo(tt); toast(c.zh + '在 ' + fmtT(tt) + ' 到達正南方最高處'); });
+  $('seenBtn').addEventListener('click', function(){
+    var i = seen.indexOf(id); if (i > -1) seen.splice(i, 1); else seen.push(id); save('seen', seen);
+    var on = seen.indexOf(id) > -1; this.setAttribute('aria-pressed', on); this.textContent = on ? '已觀測' : '記下看到了'; haptic(on ? [8, 30, 8] : 6);
+  });
+}
+function animateTo(to){ var from = view, t0 = performance.now(), dur = reduce ? 1 : 900; live = false; (function f(t){ var k = Math.min(1, (t - t0) / dur), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; view = from + (to - from) * e; render(); if (k < 1) requestAnimationFrame(f); })(t0); }
+function openCat(){
+  var lst = lstH(view), rows = C.map(function(c){ var b = brightest(c), a = altAz(b[1], b[2], lst); return {c:c, a:a}; }).sort(function(x, y){ return y.a.alt - x.a.alt; });
+  var upRows = rows.filter(function(r){ return r.a.alt > 0; }), dn = rows.filter(function(r){ return r.a.alt <= 0; });
+  function row(r){ var c = r.c, sn = seen.indexOf(c.id) > -1; return '<button class="crow' + (r.a.alt > 0 ? '' : ' below') + '" data-id="' + c.id + '">' + figure(c, 46) + '<span class="m"><b>' + c.zh + (sn ? '<svg class="seen" width="14" height="14" viewBox="0 0 14 14" aria-label="已觀測"><path d="M7 1l1.6 4.4L13 7l-4.4 1.6L7 13 5.4 8.6 1 7l4.4-1.6z" fill="var(--hl)"/></svg>' : '') + '</b><span>' + c.en + '・' + c.sea + '</span></span><span class="alt">' + (r.a.alt > 0 ? Math.round(r.a.alt) + '°' : '—') + '<small>' + (r.a.alt > 0 ? dirName(r.a.az) : '地平線下') + '</small></span></button>'; }
+  openSheet('<div class="cat"><h3 id="sT">星座目錄</h3><p class="sub">' + $('rDate').textContent + '・已觀測 ' + seen.length + ' / ' + C.length + '</p>' +
+    '<p class="sec2">在天上・' + upRows.length + '</p>' + upRows.map(row).join('') + '<p class="sec2">地平線下・' + dn.length + '</p>' + dn.map(row).join('') + '</div>');
+  $('sheetBody').querySelectorAll('.crow').forEach(function(b){ b.addEventListener('click', function(){ var id = b.dataset.id; closeSheet(); setTimeout(function(){ openInfo(id); }, 260); }); });
+}
+function openSheet(html){ lastFocus = lastFocus || document.activeElement; $('sheetBody').innerHTML = html; $('sheetBody').scrollTop = 0; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); sheet.focus({preventScroll:true}); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = ''; highlight(null); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); lastFocus = null; }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy = 0, dy = 0, t0 = 0, on = false, body = $('sheetBody');
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; if (body.contains(e.target) && body.scrollTop > 0) return; on = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; });
+  sheet.addEventListener('pointermove', function(e){ if (!on) return; dy = e.clientY - sy; if (dy > 6 && !sheet.classList.contains('drag')){ sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch (x) {} } if (sheet.classList.contains('drag')){ sheet.style.transform = 'translateY(' + Math.max(0, dy).toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); } });
+  function end(e){ if (!on) return; on = false; var was = sheet.classList.contains('drag'); sheet.classList.remove('drag'); scrim.style.opacity = ''; if (!was) return; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || v > .6) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+
+/* ---------- toast ---------- */
+var toastTm = null;
+function toast(m){ $('toast').textContent = m; $('toast').classList.add('on'); clearTimeout(toastTm); toastTm = setTimeout(function(){ $('toast').classList.remove('on'); }, 2400); }
+
+/* ---------- sizing ---------- */
+function size(){
+  var r = $('screen').getBoundingClientRect(), P = Math.min(r.width, (r.height - 440) * 236 / 234, 440);
+  P = Math.max(250, P);
+  $('screen').style.setProperty('--P', Math.floor(P) + 'px');
+  drawRuler('day'); drawRuler('time');
+}
+window.addEventListener('resize', size);
+
+/* ---------- backdrop: an engraved atlas plate of Orion and Taurus ---------- */
+(function(){
+  var o = '<defs><filter id="bpn"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .12  0 0 0 0 .07  0 0 0 0 .03  0 0 0 .8 0"/></filter><pattern id="bh" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><path d="M0 0V6" stroke="#c9a24e" stroke-width=".7" opacity=".12"/></pattern></defs>';
+  o += '<rect width="1600" height="1000" fill="#241710"/><rect width="1600" height="1000" fill="url(#bh)"/><rect width="1600" height="1000" filter="url(#bpn)" opacity=".6"/>';
+  o += '<rect x="40" y="40" width="1520" height="920" fill="none" stroke="#c9a24e" stroke-width="2" opacity=".6"/><rect x="52" y="52" width="1496" height="896" fill="none" stroke="#c9a24e" stroke-width=".8" opacity=".5"/>';
+  var ids = ['ori', 'tau', 'gem', 'cmi', 'cma', 'aur'], sc = 95, ox = 1600 - 20, oy = 470;
+  function P(ra, dec){ return [ox - (ra - 3.4) * 15 * sc / 11.5 * Math.cos(dec * D2R * .4), oy - dec * sc / 11.5 * 1.1]; }
+  for (var g = -40; g <= 40; g += 20){ var d = ''; for (var ra = 3; ra <= 8.4; ra += .2){ var q = P(ra, g); d += (ra === 3 ? 'M' : 'L') + f1(q[0]) + ' ' + f1(q[1]); } o += '<path d="' + d + '" stroke="#c9a24e" stroke-width=".8" fill="none" opacity=".25"/>'; }
+  ids.forEach(function(id){
+    var c = C.filter(function(x){ return x.id === id; })[0];
+    c.l.forEach(function(pr){ var a = P(c.s[pr[0]][1], c.s[pr[0]][2]), b = P(c.s[pr[1]][1], c.s[pr[1]][2]); o += '<path d="M' + f1(a[0]) + ' ' + f1(a[1]) + 'L' + f1(b[0]) + ' ' + f1(b[1]) + '" stroke="#c9a24e" stroke-width="1.4" opacity=".55"/>'; });
+    c.s.forEach(function(s){ var p = P(s[1], s[2]), r = Math.max(2, 9 - s[3] * 2.2); o += '<circle cx="' + f1(p[0]) + '" cy="' + f1(p[1]) + '" r="' + f1(r) + '" fill="#f3e2b0"/>'; if (s[3] < 1){ o += '<path d="M' + f1(p[0]) + ' ' + f1(p[1] - r * 2.6) + 'V' + f1(p[1] + r * 2.6) + 'M' + f1(p[0] - r * 2.6) + ' ' + f1(p[1]) + 'H' + f1(p[0] + r * 2.6) + '" stroke="#f3e2b0" stroke-width="1.2" opacity=".7"/>'; } });
+    var m = c.s.reduce(function(a, s){ var p = P(s[1], s[2]); return [a[0] + p[0] / c.s.length, a[1] + p[1] / c.s.length]; }, [0, 0]);
+    o += '<text x="' + f1(m[0]) + '" y="' + f1(m[1] + 46) + '" text-anchor="middle" font-family="Hoefler Text,serif" font-style="italic" font-size="22" fill="#c9a24e" opacity=".8">' + c.en + '</text>';
+  });
+  o += '<g transform="translate(150 820)" fill="none" stroke="#c9a24e" opacity=".7"><circle r="60" stroke-width="1.4"/><circle r="52" stroke-width=".6"/><path d="M0-70V70M-70 0H70" stroke-width=".8"/><path d="M0-52 8 0 0 52-8 0Z" fill="#c9a24e" stroke="none" opacity=".6"/></g>';
+  $('bd').innerHTML = o;
+})();
+
+setRed(!!prefs.red); size(); build(); render();
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 15 * b.level).toFixed(1)); }).catch(function(){});
+})();
+</script>
+</body>
+</html>

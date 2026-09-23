@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e9dfc6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="野鳥">
+<title>野鳥 · 鳥類圖鑑</title>
+<meta name="description" content="十二幅手工上色的台灣野鳥版畫圖鑑：依棲地與特有種篩選、聽合成的叫聲與聲譜、打勾已見並寫下觀察紀錄。收錄於 100 Creative HTML Works（App 082・奧杜邦圖鑑版畫）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/082-field-birds.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23efe5cc'/%3E%3Cpath d='M8 50c14-6 30-4 48-10' stroke='%236b4a2e' stroke-width='4' fill='none'/%3E%3Cpath d='M18 44l-12 10 16-6z' fill='%234f7fb8'/%3E%3Cellipse cx='32' cy='36' rx='14' ry='9' fill='%234f7fb8' stroke='%232a2118' stroke-width='2'/%3E%3Ccircle cx='44' cy='26' r='7' fill='%232a2118'/%3E%3Cpath d='M50 26l8 2-8 2z' fill='%23c2352a'/%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+:root{
+  --paper:#ece2c9;--plate:#f5eedc;--plate-2:#e3d7ba;--ink:#2a2118;--ink-2:#5d4f3e;--ink-3:#8c7c64;--ox:#8c2b1f;--moss:#5f6b3c;--wash:#c79a4a;
+  --bask:"Baskerville","Baskerville Old Face","Songti TC","Hoefler Text",Georgia,serif;
+  --song:"Songti TC","Baskerville","STSong",serif;
+  --ui:system-ui,-apple-system,"PingFang TC",sans-serif;
+  --ease:cubic-bezier(.22,.8,.2,1);
+}
+body{font-family:var(--song);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:2px solid var(--ox);outline-offset:2px}
+input{font:inherit;color:inherit}
+svg{display:block}
+i.it,.lat{font-family:var(--bask);font-style:italic}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper);isolation:isolate}
+.grain{position:absolute;inset:0;z-index:0;pointer-events:none}
+.grain svg{width:100%;height:100%}
+@media (min-width:521px){
+  body{background:#d9cba8}
+  .stage{display:flex;align-items:center;justify-content:center;gap:66px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:11px;z-index:1;background:#3b2a1d;
+    box-shadow:inset 0 0 0 1.5px #6b5038,inset 0 0 0 4px #2a1d13,0 3px 3px rgba(60,40,20,.35),0 20px 24px -18px rgba(60,40,20,.7)}
+  .screen{inset:11px;border-radius:41px}
+  .caption{display:block;position:relative;z-index:1;max-width:260px;color:var(--ink)}
+  .caption b{display:block;font:400 52px/1 var(--song)}
+  .caption em{display:block;font:italic 22px/1.2 var(--bask);color:var(--ink-2);margin-top:8px}
+  .caption span{display:block;margin-top:16px;font:15px/1.8 var(--song);color:var(--ink-2)}
+}
+@media (min-width:521px) and (max-width:860px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:70;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;display:flex;align-items:center;justify-content:space-between;font:600 16px/1 var(--ui);color:var(--ink);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+.status svg{fill:currentColor}
+@media (display-mode:standalone){.status{display:none}}
+.home{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:132px;height:5px;margin-left:-66px;border-radius:3px;background:var(--ink);opacity:.8;z-index:96;pointer-events:none}
+
+/* pages */
+.page{position:absolute;left:0;right:0;top:calc(48px + env(safe-area-inset-top));bottom:calc(78px + env(safe-area-inset-bottom));overflow-y:auto;overflow-x:hidden;z-index:2;scrollbar-width:none;overscroll-behavior:contain;transition:transform .45s var(--ease),opacity .3s}
+.page::-webkit-scrollbar{display:none}
+#pJournal{transform:translateX(12%);opacity:0;pointer-events:none;visibility:hidden}
+.screen.jr #pPlates{transform:translateX(-12%);opacity:0;pointer-events:none}
+.screen.jr #pJournal{transform:none;opacity:1;pointer-events:auto;visibility:visible}
+
+.mast{padding:8px 22px 4px;display:flex;align-items:flex-end;justify-content:space-between}
+.mast h1{font:700 34px/1 var(--song);letter-spacing:.06em}
+.mast h1 .lat{display:block;font-size:17px;font-weight:400;color:var(--ink-2);letter-spacing:0;margin-top:6px}
+.mast .count{text-align:right;font:13px/1.4 var(--song);color:var(--ink-2)}
+.mast .count b{display:block;font:italic 28px/1 var(--bask);color:var(--ox)}
+.filters{display:flex;gap:2px;overflow-x:auto;padding:10px 14px 6px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.fl{position:relative;flex:none;height:44px;padding:0 11px;font:15px/1 var(--song);color:var(--ink-2)}
+.fl svg{position:absolute;left:0;top:4px;width:100%;height:36px;opacity:0;transition:opacity .2s}
+.fl[aria-pressed=true]{color:var(--ink);font-weight:700}
+.fl[aria-pressed=true] svg{opacity:1}
+.fl:active{color:var(--ink)}
+
+.plates{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;padding:10px 16px 24px}
+.pl{position:relative;display:block;text-align:left;background:var(--plate);padding:8px 8px 10px;box-shadow:inset 0 0 0 1px var(--plate-2);transition:transform .25s var(--ease)}
+.pl:active{transform:scale(.97)}
+.pl .fr{position:relative;box-shadow:inset 0 0 0 1px var(--ink-2),inset 0 0 0 3px var(--plate),inset 0 0 0 3.6px var(--ink-3)}
+.pl .fr svg{width:100%;height:auto;aspect-ratio:1}
+.pl .no{position:absolute;left:8px;top:7px;font:italic 11px/1 var(--bask);color:var(--ink-2)}
+.pl b{display:block;font:700 16px/1.25 var(--song);margin-top:8px}
+.pl .lat{display:block;font-size:13px;color:var(--ink-2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl .seen{position:absolute;right:10px;bottom:12px;width:30px;height:24px;color:var(--ox)}
+.none{grid-column:1/-1;padding:40px 10px;text-align:center;font:16px/1.7 var(--song);color:var(--ink-2)}
+
+/* detail */
+.detail{position:absolute;inset:0;z-index:50;background:var(--paper);transform:translateX(100%);visibility:hidden;transition:transform .45s var(--ease),visibility 0s .45s;touch-action:pan-y}
+.detail.on{transform:none;visibility:visible;transition:transform .45s var(--ease)}
+.detail.drag{transition:none}
+.detail .grain{position:absolute}
+.dtop{position:absolute;left:0;right:0;top:calc(48px + env(safe-area-inset-top));height:50px;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 6px}
+.back{height:44px;padding:0 12px 0 6px;display:flex;align-items:center;gap:2px;font:15px/1 var(--song);color:var(--ink)}
+.back svg{width:26px;height:26px}
+.back:active{color:var(--ox)}
+.dtop .plno{font:italic 16px/1 var(--bask);color:var(--ink-2)}
+.dscroll{position:absolute;left:0;right:0;top:calc(98px + env(safe-area-inset-top));bottom:0;overflow-y:auto;padding:0 20px calc(40px + env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior:contain}
+.dscroll::-webkit-scrollbar{display:none}
+.bigplate{background:var(--plate);padding:10px;box-shadow:inset 0 0 0 1px var(--plate-2)}
+.bigplate .fr{box-shadow:inset 0 0 0 1.2px var(--ink-2),inset 0 0 0 4px var(--plate),inset 0 0 0 4.8px var(--ink-3)}
+.bigplate svg{width:100%;height:auto;aspect-ratio:1}
+.bigplate .legend{text-align:center;padding:10px 0 2px}
+.bigplate .legend b{display:block;font:700 26px/1.2 var(--song);letter-spacing:.08em}
+.bigplate .legend .lat{display:block;font-size:18px;color:var(--ink-2);margin-top:3px}
+.facts{display:flex;justify-content:center;flex-wrap:wrap;gap:4px 16px;margin-top:14px;font:14px/1.5 var(--song);color:var(--ink-2)}
+.facts b{color:var(--ink);font-weight:700}
+.desc{margin-top:12px;font:16px/1.85 var(--song);text-align:justify}
+.vox{margin-top:20px}
+.voxh{display:flex;align-items:center;justify-content:space-between}
+.voxh h3{font:700 16px/1 var(--song)}
+.voxh h3 .lat{font-weight:400;color:var(--ink-2);margin-left:6px}
+.play{height:44px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;font:15px/1 var(--song);color:var(--ox)}
+.play svg{width:26px;height:26px}
+.play:active{transform:scale(.95)}
+.play .stop{display:none}
+.play.on .go{display:none}
+.play.on .stop{display:block}
+.sono{position:relative;margin-top:8px;height:110px;background:var(--plate);box-shadow:inset 0 0 0 1px var(--ink-3)}
+.sono canvas{position:absolute;left:28px;right:8px;top:8px;bottom:20px;width:calc(100% - 36px);height:82px}
+.sono .ax{position:absolute;left:4px;font:italic 10px/1 var(--bask);color:var(--ink-3)}
+.sono .ax.t{bottom:4px;left:28px;right:8px;display:flex;justify-content:space-between}
+.rowacts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.check{height:54px;display:flex;align-items:center;justify-content:center;gap:10px;font:16px/1 var(--song);color:var(--ink);box-shadow:inset 0 0 0 1.4px var(--ink)}
+.check svg{width:26px;height:26px}
+.check .tk{stroke-dasharray:30;stroke-dashoffset:30;transition:stroke-dashoffset .35s var(--ease)}
+.check[aria-pressed=true] .tk{stroke-dashoffset:0}
+.check[aria-pressed=true]{color:var(--ox);box-shadow:inset 0 0 0 1.4px var(--ox)}
+.check:active{background:var(--plate)}
+.log{height:54px;font:16px/1 var(--song);background:var(--ink);color:var(--plate)}
+.log:active{background:#000}
+.mylogs{margin-top:22px}
+.mylogs h4{font:700 15px/1 var(--song);margin-bottom:6px}
+.mylogs p{font:14px/1.7 var(--song);color:var(--ink-2)}
+.mylogs .ent{display:flex;justify-content:space-between;gap:10px;padding:8px 0;font:14px/1.5 var(--song)}
+.mylogs .ent+.ent{background:linear-gradient(90deg,var(--ink-3) 40%,transparent 0) top/6px 1px repeat-x}
+.mylogs .ent span:last-child{color:var(--ink-2);white-space:nowrap}
+
+/* journal */
+.jhead{padding:10px 22px 0}
+.jhead h2{font:700 30px/1.1 var(--song);letter-spacing:.06em}
+.jhead h2 .lat{font-weight:400;font-size:17px;color:var(--ink-2);margin-left:8px;letter-spacing:0}
+.tally{display:flex;align-items:flex-end;gap:14px;margin-top:14px}
+.tally b{font:italic 56px/.9 var(--bask);color:var(--ox)}
+.tally span{font:15px/1.5 var(--song);color:var(--ink-2);padding-bottom:6px}
+.tally svg{flex:1;height:40px}
+.sech{padding:22px 22px 6px;font:700 16px/1 var(--song);display:flex;justify-content:space-between;align-items:baseline}
+.sech span{font:italic 14px/1 var(--bask);color:var(--ink-2);font-weight:400}
+.ck{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:0 10px;width:100%;min-height:52px;padding:4px 22px;text-align:left}
+.ck:active{background:var(--plate)}
+.ck svg.box{width:26px;height:26px}
+.ck .tk{stroke-dasharray:30;stroke-dashoffset:30;transition:stroke-dashoffset .35s var(--ease)}
+.ck[aria-checked=true] .tk{stroke-dashoffset:0}
+.ck b{font:700 16px/1.2 var(--song)}
+.ck .lat{font-size:13px;color:var(--ink-2);margin-left:6px;font-weight:400}
+.ck small{font:13px/1 var(--song);color:var(--ink-2)}
+.ck[aria-checked=true] small{color:var(--ox)}
+.entry{position:relative;overflow:hidden;touch-action:pan-y}
+.entry .rm{position:absolute;inset:0;background:var(--ox);color:var(--plate);display:flex;align-items:center;justify-content:flex-end;padding-right:24px;font:15px/1 var(--song)}
+.entry .in{position:relative;display:grid;grid-template-columns:56px 1fr;gap:12px;align-items:center;padding:10px 22px;background:var(--paper);transition:transform .3s var(--ease)}
+.entry .in.drag{transition:none}
+.entry .in svg{width:56px;height:56px;background:var(--plate);box-shadow:inset 0 0 0 1px var(--ink-3)}
+.entry b{font:700 15px/1.3 var(--song)}
+.entry .when{display:block;font:13px/1.5 var(--song);color:var(--ink-2)}
+.entry .note{display:block;font:14px/1.5 var(--song);color:var(--ink);margin-top:2px}
+.entry+.entry .in::before{content:"";position:absolute;left:22px;right:22px;top:0;height:1px;background:linear-gradient(90deg,var(--ink-3) 40%,transparent 0) 0 0/6px 1px repeat-x}
+
+/* bottom nav */
+.nav{position:absolute;left:0;right:0;bottom:0;z-index:40;height:calc(78px + env(safe-area-inset-bottom));padding:6px 30px env(safe-area-inset-bottom);display:grid;grid-template-columns:1fr 1fr;background:var(--paper)}
+.nav::before{content:"";position:absolute;left:22px;right:22px;top:0;height:3px;background:linear-gradient(var(--ink),var(--ink)) 0 0/100% 1px no-repeat,linear-gradient(var(--ink),var(--ink)) 0 2.5px/100% .6px no-repeat;opacity:.7}
+.nav .stroke{position:absolute;top:10px;left:30px;width:calc(50% - 30px);height:52px;transition:transform .5s var(--ease);pointer-events:none}
+.nav .stroke svg{width:100%;height:100%}
+.screen.jr .nav .stroke{transform:translateX(100%)}
+.nav button{position:relative;height:58px;display:flex;align-items:center;justify-content:center;gap:10px;font:17px/1 var(--song);color:var(--ink-2)}
+.nav button svg{width:28px;height:28px}
+.nav button .lat{font-size:14px}
+.nav button[aria-selected=true]{color:var(--ink);font-weight:700}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:80;background:rgba(42,33,24,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:81;max-height:86%;overflow-y:auto;background:var(--plate);padding:0 22px calc(24px + env(safe-area-inset-bottom));transform:translateY(104%);transition:transform .45s var(--ease);touch-action:none;box-shadow:inset 0 1px 0 var(--ink-3)}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{display:block;height:28px;position:relative}
+.grab::before{content:"";position:absolute;left:50%;top:12px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--ink-3)}
+.sheet h3{font:700 22px/1.2 var(--song);letter-spacing:.04em}
+.sheet h3 .lat{display:block;font-weight:400;font-size:15px;color:var(--ink-2);margin-top:4px;letter-spacing:0}
+.lbl{display:block;font:13px/1 var(--song);color:var(--ink-2);margin:18px 0 8px}
+.places{display:flex;flex-wrap:wrap;gap:4px 6px}
+.places button{min-height:40px;padding:0 10px;font:15px/1 var(--song);color:var(--ink-2);box-shadow:inset 0 -1px 0 transparent}
+.places button[aria-pressed=true]{color:var(--ink);font-weight:700;box-shadow:inset 0 -2px 0 var(--ox)}
+.stepper{display:flex;align-items:center;gap:4px}
+.stepper button{width:48px;height:44px;font:22px/1 var(--bask);color:var(--ink)}
+.stepper button:active{background:var(--plate-2)}
+.stepper b{min-width:54px;text-align:center;font:italic 30px/1 var(--bask)}
+.nt{width:100%;height:46px;border:0;border-bottom:1.4px solid var(--ink);background:transparent;font:16px/1 var(--song);outline:none;padding:0 2px;border-radius:0}
+.nt:focus{border-bottom-color:var(--ox)}
+.save{display:block;width:100%;height:54px;margin-top:22px;background:var(--ink);color:var(--plate);font:17px/1 var(--song)}
+.save:active{background:#000}
+
+.toast{position:absolute;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));z-index:90;transform:translate(-50%,16px);opacity:0;visibility:hidden;padding:12px 18px;background:var(--ink);color:var(--plate);font:15px/1.2 var(--song);white-space:nowrap;display:flex;gap:14px;align-items:center;transition:transform .3s var(--ease),opacity .2s,visibility 0s .3s}
+.toast.on{transform:translate(-50%,0);opacity:1;visibility:visible;transition:transform .3s var(--ease),opacity .2s}
+.toast button{color:#e7b9a6;text-decoration:underline;text-underline-offset:3px;min-height:30px}
+
+@media (prefers-reduced-motion:reduce){
+  .page,.detail,.sheet,.toast,.nav .stroke,.check .tk,.ck .tk,.entry .in,.pl{transition-duration:.01s!important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="hatch" width="2.6" height="2.6" patternUnits="userSpaceOnUse" patternTransform="rotate(38)"><path d="M0 0V2.6" stroke="#2a2118" stroke-width=".55"/></pattern>
+    <pattern id="hatch2" width="3.4" height="3.4" patternUnits="userSpaceOnUse" patternTransform="rotate(-50)"><path d="M0 0V3.4" stroke="#2a2118" stroke-width=".45"/></pattern>
+    <filter id="wash" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".06" numOctaves="2" seed="5" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"/></filter>
+    <filter id="pgrain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .45  0 0 0 0 .35  0 0 0 0 .2  0 0 0 .16 0"/></filter>
+  </defs>
+</svg>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="bigplate" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="caption"><b>野鳥</b><em>Aves Formosanae</em><span>十二幅手工上色的台灣野鳥版畫。聽一段叫聲，在見過的那一頁打個勾。</span></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="grain" aria-hidden="true"><svg preserveAspectRatio="none"><rect width="100%" height="100%" filter="url(#pgrain)"/></svg></div>
+      <div class="status" aria-hidden="true">
+        <span id="clock">6:12</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".5"/><rect x="5" y="5.5" width="3" height="6.5" rx=".5"/><rect x="10" y="3" width="3" height="9" rx=".5"/><rect x="15" y="0" width="3" height="12" rx=".5" opacity=".35"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 12 5.4 8.8a4 4 0 0 1 5.2 0zM3.6 6.8a6.8 6.8 0 0 1 8.8 0l1.4-1.6a9 9 0 0 0-11.6 0zM.4 3.2a11.4 11.4 0 0 1 15.2 0L16.8 1.8a13.4 13.4 0 0 0-17.6 0z"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x=".6" y=".6" width="21.8" height="10.8" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="2.4" y="2.4" width="12" height="7.2" rx="1"/><rect x="23.6" y="4" width="1.8" height="4" rx=".6"/></svg>
+        </span>
+      </div>
+
+      <section class="page" id="pPlates" aria-label="圖鑑">
+        <div class="mast"><h1>野鳥<span class="lat">Aves Formosanae</span></h1><div class="count"><b id="seenN">7</b>已見 / 十二種</div></div>
+        <div class="filters" id="filters" role="group" aria-label="篩選"></div>
+        <div class="plates" id="plates"></div>
+      </section>
+
+      <section class="page" id="pJournal" aria-label="觀察清單">
+        <div class="jhead"><h2>觀察手記<span class="lat">Diarium</span></h2>
+          <div class="tally"><b id="jN">7</b><span>／12 種<br>已見</span><svg id="tallySvg" viewBox="0 0 200 40" preserveAspectRatio="xMaxYMid meet" aria-hidden="true"></svg></div></div>
+        <div class="sech">清單<span>Index avium</span></div>
+        <div id="checklist"></div>
+        <div class="sech">紀錄<span id="logN">9 entries</span></div>
+        <div id="journal"></div>
+        <div style="height:24px"></div>
+      </section>
+
+      <nav class="nav" role="tablist" aria-label="主要導覽">
+        <span class="stroke" aria-hidden="true"><svg viewBox="0 0 160 52" preserveAspectRatio="none"><path d="M8 30C6 18 22 10 50 11c30 0 62-4 88 1 14 3 18 12 14 21-5 10-30 11-60 10-26 0-58 5-76 0C12 41 9 36 8 30z" fill="#c79a4a" opacity=".38"/><path d="M20 38c30 2 70-2 118-3" stroke="#c79a4a" stroke-width="2" fill="none" opacity=".5"/></svg></span>
+        <button role="tab" aria-selected="true" id="tPlates"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h9.5c.6 0 1 .4 1 1v17c0-.8-.6-1.4-1.4-1.4H4z"/><path d="M24 5h-9.5v18c0-.8.6-1.4 1.4-1.4H24z"/><path d="M7 10.5c1.6-1.2 3.4-.8 4.6.6M17.4 12c1.2-.9 2.8-1 4 0" /><path d="M6.6 14.2h4.6M6.6 17h3.2M17.4 15.4h3.6M17.4 18h2.6" stroke-width=".9"/></svg>圖鑑 <span class="lat">Plates</span></button>
+        <button role="tab" aria-selected="false" id="tJournal"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h15l1.5 1.5V24H6z"/><path d="M9.5 9.6l1.6 1.6 3-3.2M9.5 15.4l1.6 1.6 3-3.2" /><path d="M16 10h3.5M16 16h3.5M9.5 20.6h10" stroke-width=".9"/></svg>觀察 <span class="lat">Diarium</span></button>
+      </nav>
+
+      <div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="dName">
+        <div class="grain" aria-hidden="true"><svg preserveAspectRatio="none" width="100%" height="100%"><rect width="100%" height="100%" filter="url(#pgrain)"/></svg></div>
+        <div class="dtop"><button class="back" id="back" aria-label="回圖鑑"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 5.5 8.5 13l7.5 7.5"/><path d="M8.5 13h12" stroke-width=".9"/></svg>圖鑑</button><span class="plno" id="dNo">Pl. I</span></div>
+        <div class="dscroll" id="dscroll"></div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><span class="grab" aria-hidden="true"></span><div id="sheetBody"></div></div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastB" hidden>復原</button></div>
+      <div class="home" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const K = 'app082:';
+const load = (k, d) => { try { const v = localStorage.getItem(K + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const save = (k, v) => { try { localStorage.setItem(K + k, JSON.stringify(v)); } catch (e) {} };
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch (e) {} }
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const screen = $('screen');
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+
+/* ---------- the twelve plates ---------- */
+const B = [
+  {k:'lanque', n:'台灣藍鵲', l:'Urocissa caerulea', len:'64 cm', st:'特有種', hab:['山林'], hz:'中低海拔闊葉林', d:'成群在樹冠間滑翔，長尾巴像一條藍色緞帶。育雛時會合力驅趕靠近巢的人，被稱作「長尾山娘」。',
+    s:.92, tilt:-10, body:'#4f7fb8', belly:'#8aabcf', wing:'#3f6ea8', head:'#1f1c1a', bill:'#c2352a', legC:'#c2352a', tailC:'#4f7fb8', tailL:98, tailA:168, tailW:8, tip:'#f4efe3', eyeC:'#e8c43a', hr:11},
+  {k:'wuse', n:'五色鳥', l:'Psilopogon nuchalis', len:'20 cm', st:'特有種', hab:['山林'], hz:'低中海拔森林、公園', d:'叫聲像敲木魚，「郭、郭、郭」可以響一整個夏天。會在枯木上啄出圓洞當巢，俗稱「花和尚」。',
+    s:1.05, tilt:-22, body:'#5f9a4a', belly:'#86b05a', wing:'#4a8438', head:'#5f9a4a', cap:'#e0b93a', mask:'#3f78b0', throat:'#c83a2a', bill:'#3a3530', billL:13, billW:5, tailC:'#4f8a3c', tailL:22, tailA:150, tailW:6, hr:12.5},
+  {k:'dizhi', n:'帝雉', l:'Syrmaticus mikado', len:'87 cm', st:'特有種', hab:['高山'], hz:'中高海拔針闊葉林', d:'清晨霧裡在林道邊慢慢踱步的「迷霧中的王者」。舊版千元鈔背面就是牠。',
+    pose:'ground', s:.9, tilt:-4, body:'#2c3350', belly:'#2a2f45', wing:'#252a40', head:'#2c3350', face:'#c8322a', bill:'#cfc3a0', billL:7, legC:'#6a6a6a', tailC:'#2c3350', tailL:96, tailA:176, tailW:7, bars:'#e8e2d0', wbar:'#e8e2d0', hr:10},
+  {k:'zixiao', n:'台灣紫嘯鶇', l:'Myophonus insularis', len:'30 cm', st:'特有種', hab:['水邊','山林'], hz:'溪流、山澗', d:'在溪邊石頭上跳來跳去，展開尾羽又收起。叫聲尖銳像生鏽的剎車，「吱～」一聲劃過山谷。',
+    pose:'rock', s:1, tilt:-16, body:'#3b3f7a', belly:'#33376c', wing:'#2e3266', head:'#353970', bill:'#e6c43a', billL:12, legC:'#2a2118', tailC:'#2f3266', tailL:36, tailA:155, tailW:7, hr:12},
+  {k:'guanyu', n:'冠羽畫眉', l:'Yuhina brunneiceps', len:'13 cm', st:'特有種', hab:['山林'], hz:'中高海拔森林', d:'頭上翹著褐色小冠羽，臉上一道黑白花紋。叫聲被聽成「吐米酒」，常一大群在花間吸蜜。',
+    s:1.08, tilt:-18, body:'#8a7a66', belly:'#e6ddcc', wing:'#7a6a58', head:'#8a7a66', crest:'#7a5f48', crestH:14, cheek:'#f4efe3', mous:'#1f1c1a', bill:'#3a3530', billL:8, tailC:'#7a6a58', tailL:26, tailA:150, tailW:5, hr:12},
+  {k:'huang', n:'黃山雀', l:'Machlolophus holsti', len:'13 cm', st:'特有種', hab:['山林'], hz:'中海拔闊葉林', d:'鮮黃的肚子配一頂黑色尖冠，在中海拔闊葉林遇到算是好運。常和其他小鳥混群覓食。',
+    s:1.08, tilt:-16, body:'#4f7f78', belly:'#e7c43a', wing:'#3d5f6f', head:'#1f1c1a', crest:'#1f1c1a', crestH:12, cheek:'#e7c43a', bill:'#2a2118', billL:7, wbar:'#f4efe3', tailC:'#3d5f6f', tailL:30, tailA:152, tailW:5, hr:12},
+  {k:'ligbei', n:'栗背林鴝', l:'Tarsiger johnstoniae', len:'12 cm', st:'特有種', hab:['高山'], hz:'高海拔步道、箭竹林', d:'高山步道邊的常客，不太怕人。雄鳥胸前一圈栗橙色，白色眉線像用細筆畫上去的。',
+    s:1.08, tilt:-12, body:'#9a4a2a', belly:'#c9c2b4', wing:'#2a2522', head:'#1f1c1a', brow:'#f4efe3', bill:'#1f1c1a', billL:7, tailC:'#2a2522', tailL:28, tailA:150, tailW:5, hr:12},
+  {k:'pilu', n:'黑面琵鷺', l:'Platalea minor', len:'76 cm', st:'冬候鳥', hab:['水邊'], hz:'河口、魚塭、潟湖', d:'每年冬天從北方飛來台南七股度冬，用湯匙一樣的嘴在淺水裡左右掃，掃到魚蝦就一口夾住。',
+    pose:'wade', s:.9, tilt:-4, body:'#f3efe6', belly:'#ebe4d4', wing:'#e6dfcf', head:'#f3efe6', chest:'#e8c86a', face:'#1f1c1a', bill:'#1f1c1a', billL:44, spoon:true, legC:'#1f1c1a', tailC:'#ebe4d4', tailL:16, tailA:170, tailW:6, hr:11},
+  {k:'cui', n:'翠鳥', l:'Alcedo atthis', len:'16 cm', st:'留鳥', hab:['水邊','平地'], hz:'溪流、池塘、公園水邊', d:'水邊一道藍光。停在低枝上盯著水面，一頭栽下去，再叼著小魚飛回原位甩兩下。',
+    pose:'water', s:1.08, tilt:-10, body:'#2f8fa8', belly:'#d9823a', wing:'#2a7a94', head:'#2f8fa8', cheek:'#d9823a', throat:'#f4efe3', bill:'#1f1c1a', billL:26, billW:3.2, legC:'#c2352a', tailC:'#2a7a94', tailL:14, tailA:160, tailW:5, hr:12.5},
+  {k:'hongzui', n:'紅嘴黑鵯', l:'Hypsipetes leucocephalus', len:'25 cm', st:'留鳥', hab:['平地','山林'], hz:'平地至中海拔', d:'紅嘴紅腳一身黑，頭頂亂亂的。叫聲像貓在喵，常一群在苦楝樹上吵成一團。',
+    s:1, tilt:-14, body:'#2e2c2a', belly:'#3a3734', wing:'#242220', head:'#1f1d1b', crest:'#1f1d1b', crestH:8, bill:'#d0382a', billL:10, legC:'#d0382a', tailC:'#242220', tailL:40, tailA:156, tailW:6, hr:11.5},
+  {k:'lv', n:'綠繡眼', l:'Zosterops simplex', len:'11 cm', st:'留鳥', hab:['平地'], hz:'公園、校園、果園', d:'眼睛一圈白。公園裡最常見的小鳥之一，成群在花間鑽來鑽去，叫聲細細碎碎。',
+    s:1.12, tilt:-14, body:'#9aa84a', belly:'#e8e2c8', wing:'#7f8f3a', head:'#9aa84a', throat:'#e2cf5a', ring:true, bill:'#3a3530', billL:7, tailC:'#7f8f3a', tailL:24, tailA:150, tailW:5, hr:12},
+  {k:'maque', n:'麻雀', l:'Passer montanus', len:'14 cm', st:'留鳥', hab:['平地'], hz:'城市、農田', d:'臉頰上一顆黑斑。騎樓、早餐店門口、剛收割的稻田，哪裡都有牠吱吱喳喳。',
+    s:1.08, tilt:-10, body:'#8a6440', belly:'#d9ceb8', wing:'#7a5434', head:'#7a4a2a', cheek:'#f1ebdd', spot:'#1f1c1a', throat:'#1f1c1a', wbar:'#f1ebdd', bill:'#2a2118', billL:7, billW:3.6, tailC:'#6e4c30', tailL:26, tailA:152, tailW:5, hr:12}
+];
+const byK = k => B.find(b => b.k === k);
+
+/* ---------- engraved bird renderer ---------- */
+let uidN = 0;
+const f1 = n => (+n).toFixed(1);
+function circ(cx, cy, r){ return `M${f1(cx - r)} ${f1(cy)}a${f1(r)} ${f1(r)} 0 1 0 ${f1(2 * r)} 0a${f1(r)} ${f1(r)} 0 1 0 ${f1(-2 * r)} 0Z`; }
+function bird(b, opts){
+  opts = opts || {};
+  const id = 'b' + (uidN++), pose = b.pose || 'perch';
+  const legLen = pose === 'wade' ? 52 : pose === 'ground' ? 16 : 7;
+  const feetY = 20 + legLen;
+  const gy = pose === 'wade' ? 176 : pose === 'ground' ? 168 : pose === 'rock' ? 132 : pose === 'water' ? 118 : 140;
+  const s = (b.s || 1) * 1.28, px = pose === 'ground' ? 118 : pose === 'wade' ? 92 : 104, py = gy - feetY * s;
+  const ink = '#2a2118';
+  let scene = '', fills = '', lines = '', hatch = '';
+  const F = (d, c) => { fills += `<path d="${d}" fill="${c}"/>`; lines += `<path d="${d}"/>`; };
+  // ---- scene ----
+  if (pose === 'perch' || pose === 'water'){
+    const y = gy + 2;
+    const br = `M-4 ${y + 14}C40 ${y - 2} 110 ${y + 8} 204 ${y - 14}`;
+    scene += `<path d="${br}" stroke="#6b4a2e" stroke-width="7" fill="none" stroke-linecap="round"/><path d="${br}" stroke="url(#hatch)" stroke-width="7" fill="none" opacity=".6"/><path d="M-4 ${y + 10.5}C40 ${y - 5.5} 110 ${y + 4.5} 204 ${y - 17.5}M-4 ${y + 17.5}C40 ${y + 1.5} 110 ${y + 11.5} 204 ${y - 10.5}" stroke="${ink}" stroke-width=".9" fill="none"/>`;
+    scene += `<path d="M150 ${y - 4}q10-20 32-26" stroke="#6b4a2e" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+    [[170, y - 20, -30], [184, y - 30, 10], [40, y + 4, 160]].forEach(([x, yy, r]) => { scene += `<g transform="translate(${x} ${yy}) rotate(${r})"><path d="M0 0C6-7 18-7 24 0 18 7 6 7 0 0Z" fill="#8a9a5e" filter="url(#wash)"/><path d="M0 0C6-7 18-7 24 0 18 7 6 7 0 0ZM2 0H21" stroke="${ink}" stroke-width=".8" fill="none"/></g>`; });
+    if (pose === 'water') scene += `<g stroke="#7f9a9e" stroke-width="1.2" stroke-linecap="round" opacity=".8"><path d="M10 170h60M90 176h80M30 184h50M120 188h60M60 194h40"/></g>`;
+  } else if (pose === 'ground'){
+    scene += `<path d="M-4 ${gy}C40 ${gy - 6} 150 ${gy - 2} 204 ${gy - 8}V204H-4Z" fill="#b9a57c" opacity=".55" filter="url(#wash)"/><path d="M-4 ${gy}C40 ${gy - 6} 150 ${gy - 2} 204 ${gy - 8}" stroke="${ink}" stroke-width="1" fill="none"/>`;
+    [[20, gy - 3], [60, gy - 4], [168, gy - 6], [186, gy - 7]].forEach(([x, y]) => { scene += `<path d="M${x} ${y}l-4-12M${x} ${y}l1-15M${x} ${y}l5-11" stroke="#5f6b3c" stroke-width="1.2" stroke-linecap="round"/>`; });
+    scene += `<path d="M-4 ${gy + 6}H204V204H-4Z" fill="url(#hatch2)" opacity=".35"/>`;
+  } else if (pose === 'wade'){
+    scene += `<g stroke="#7f9a9e" stroke-width="1.2" stroke-linecap="round"><path d="M-4 ${gy}H204" stroke="${ink}" stroke-width=".9"/><path d="M20 ${gy + 7}h50M96 ${gy + 7}h70M40 ${gy + 14}h40M110 ${gy + 14}h50M70 ${gy + 20}h40"/></g>`;
+    [[172, 60], [182, 44], [190, 70], [14, 80]].forEach(([x, h]) => { scene += `<path d="M${x} ${gy}q-2 ${-h / 2} 3 ${-h}" stroke="#5f6b3c" stroke-width="1.6" fill="none"/><path d="M${x + 3} ${gy - h}q3 8 0 16" stroke="#8a6a3a" stroke-width="3.4" stroke-linecap="round"/>`; });
+  } else if (pose === 'rock'){
+    const r = `M10 ${gy + 4}C20 ${gy - 12} 70 ${gy - 16} 120 ${gy - 6}C150 ${gy} 176 ${gy + 8} 190 ${gy + 30}H10Z`;
+    scene += `<path d="${r}" fill="#8f8577" filter="url(#wash)"/><path d="${r}" fill="url(#hatch)" opacity=".45"/><path d="${r}" stroke="${ink}" stroke-width="1" fill="none"/>`;
+    scene += `<g stroke="#7f9a9e" stroke-width="1.2" stroke-linecap="round"><path d="M0 ${gy + 40}h60M80 ${gy + 46}h90M20 ${gy + 54}h70M110 ${gy + 58}h60"/></g>`;
+  }
+  // ---- legs (not tilted) ----
+  let legs = '';
+  if (pose !== 'none'){
+    const lc = b.legC || '#4a3a2c', lw = pose === 'wade' ? 2.2 : 2;
+    [[-3, 0], [7, 2]].forEach(([x, dx]) => { legs += `<path d="M${x} 16L${x + dx} ${feetY}" stroke="${lc}" stroke-width="${lw}" stroke-linecap="round"/><path d="M${x + dx} ${feetY}l6 .5M${x + dx} ${feetY}l-4 .8" stroke="${lc}" stroke-width="1.4" stroke-linecap="round"/>`; });
+  }
+  // ---- tail ----
+  const a = (b.tailA || 158) * Math.PI / 180, L = b.tailL || 26, w = b.tailW || 5;
+  const r1 = [-24, -4], r2 = [-20, 9], mid = [-22, 2.5], dir = [Math.cos(a), Math.sin(a)], nrm = [-dir[1], dir[0]];
+  const tip = [mid[0] + dir[0] * L, mid[1] + dir[1] * L];
+  const tp = k => [mid[0] + dir[0] * L * k, mid[1] + dir[1] * L * k];
+  const tailD = `M${r1[0]} ${r1[1]}L${f1(tip[0] + nrm[0] * w)} ${f1(tip[1] + nrm[1] * w)}Q${f1(tip[0] + dir[0] * 3)} ${f1(tip[1] + dir[1] * 3)} ${f1(tip[0] - nrm[0] * w)} ${f1(tip[1] - nrm[1] * w)}L${r2[0]} ${r2[1]}Z`;
+  F(tailD, b.tailC);
+  if (b.tip){ const q = tp(.84), ww = w * .96; F(`M${f1(q[0] + nrm[0] * ww)} ${f1(q[1] + nrm[1] * ww)}L${f1(tip[0] + nrm[0] * w)} ${f1(tip[1] + nrm[1] * w)}Q${f1(tip[0] + dir[0] * 3)} ${f1(tip[1] + dir[1] * 3)} ${f1(tip[0] - nrm[0] * w)} ${f1(tip[1] - nrm[1] * w)}L${f1(q[0] - nrm[0] * ww)} ${f1(q[1] - nrm[1] * ww)}Z`, b.tip); }
+  if (b.bars){ [.25, .38, .51, .64, .77, .9].forEach(k => { const q = tp(k), ww = 4 + (w - 4) * k; fills += `<path d="M${f1(q[0] + nrm[0] * ww)} ${f1(q[1] + nrm[1] * ww)}L${f1(q[0] - nrm[0] * ww)} ${f1(q[1] - nrm[1] * ww)}" stroke="${b.bars}" stroke-width="2.2"/>`; }); }
+  lines += `<path d="M${f1(mid[0])} ${f1(mid[1])}L${f1(tip[0])} ${f1(tip[1])}" stroke-width=".6"/>`;
+  // ---- neck (waders) ----
+  const wade = pose === 'wade';
+  const hr = b.hr || 12, hx = wade ? 30 : 25, hy = wade ? -52 : -19;
+  if (wade) F(`M10 -14C16 -30 20 -44 ${hx - 6} ${hy + 6}L${hx + 6} ${hy + 8}C30 -40 28 -24 26 -6Z`, b.body);
+  // ---- body ----
+  const bodyD = 'M-30 0C-30 -16 -12 -22 6 -20C22 -18 30 -8 30 4C30 18 14 24 -2 24C-18 24 -30 14 -30 0Z';
+  F(bodyD, b.body);
+  fills += `<clipPath id="${id}c"><path d="${bodyD}"/></clipPath><g clip-path="url(#${id}c)"><path d="M-36 6C-14 30 24 28 36 -4L36 40L-36 40Z" fill="${b.belly}"/>${b.chest ? `<path d="M10 -10C22 -8 30 0 30 6C24 10 16 8 10 4Z" fill="${b.chest}"/>` : ''}</g>`;
+  hatch += `<g clip-path="url(#${id}c)"><path d="M-34 10C-10 30 20 30 34 10V40H-34Z" fill="url(#hatch)" opacity=".42"/><path d="M-34 -24H40V-12C10 -20 -20 -14 -34 -6Z" fill="url(#hatch2)" opacity=".25"/></g>`;
+  lines += `<path d="M-26 8C-12 22 14 22 28 6" stroke-width=".6" stroke-dasharray="1.5 2.2"/>`;
+  // ---- wing ----
+  const wingD = 'M-22 -8C-6 -18 14 -14 18 -4C10 8 -8 12 -38 16C-34 8 -30 -2 -22 -8Z';
+  F(wingD, b.wing);
+  lines += `<path d="M-30 12C-18 8 -6 4 6 -2M-34 15C-20 12 -10 9 0 5M-26 8C-14 2 -4 -4 8 -8" stroke-width=".7"/>`;
+  hatch += `<clipPath id="${id}w"><path d="${wingD}"/></clipPath><path clip-path="url(#${id}w)" d="M-40 4C-20 0 0 0 20 -2V20H-40Z" fill="url(#hatch)" opacity=".4"/>`;
+  if (b.wbar) fills += `<path d="M-20 -2C-10 -8 2 -8 10 -6M-24 4C-14 0 -4 -1 6 0" stroke="${b.wbar}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  // ---- head ----
+  const headD = circ(hx, hy, hr);
+  F(headD, b.head);
+  const cp = `${id}h`;
+  fills += `<clipPath id="${cp}"><path d="${headD}"/></clipPath><g clip-path="url(#${cp})">`;
+  if (b.cap) fills += `<path d="M${hx - hr} ${hy - hr}H${hx + hr + 2}V${hy - hr * .35}C${hx + 4} ${hy - hr * .6} ${hx - 6} ${hy - hr * .7} ${hx - hr} ${hy - hr * .2}Z" fill="${b.cap}"/>`;
+  if (b.mask) fills += `<path d="M${hx - 2} ${hy - hr}H${hx + hr + 2}V${hy + hr * .45}C${hx + 4} ${hy + hr * .4} ${hx - 3} ${hy + 2} ${hx - 2} ${hy - hr * .4}Z" fill="${b.mask}"/>`;
+  if (b.face) fills += `<path d="M${hx + 1} ${hy - hr * .6}C${hx + hr * .9} ${hy - hr * .7} ${hx + hr + 2} ${hy} ${hx + hr * .7} ${hy + hr * .5}C${hx + 3} ${hy + hr * .5} ${hx} ${hy} ${hx + 1} ${hy - hr * .6}Z" fill="${b.face}"/>`;
+  if (b.cheek) fills += `<ellipse cx="${hx - 1}" cy="${hy + hr * .42}" rx="${hr * .55}" ry="${hr * .36}" fill="${b.cheek}"/>`;
+  if (b.spot) fills += `<ellipse cx="${hx - 2}" cy="${hy + hr * .42}" rx="2.4" ry="2" fill="${b.spot}"/>`;
+  if (b.throat) fills += `<ellipse cx="${hx + hr * .45}" cy="${hy + hr * .95}" rx="${hr * .42}" ry="${hr * .38}" fill="${b.throat}"/>`;
+  if (b.mous) fills += `<path d="M${hx + hr * .6} ${hy + hr * .2}C${hx + 2} ${hy + hr * .5} ${hx - 3} ${hy + hr * .7} ${hx - 6} ${hy + hr * .9}" stroke="${b.mous}" stroke-width="1.8" fill="none"/><path d="M${hx - 1} ${hy - hr * .1}C${hx + 2} ${hy + 1} ${hx + 5} ${hy + 1} ${hx + 7} ${hy - 1}" stroke="${b.mous}" stroke-width="1.4" fill="none"/>`;
+  fills += `</g>`;
+  hatch += `<path clip-path="url(#${cp})" d="M${hx - hr} ${hy + hr * .2}C${hx - 4} ${hy + hr} ${hx + 6} ${hy + hr} ${hx + hr} ${hy + hr * .5}V${hy + hr + 2}H${hx - hr}Z" fill="url(#hatch)" opacity=".35"/>`;
+  if (b.crest){ const h = b.crestH || 10; F(`M${hx - hr * .75} ${hy - hr * .45}C${hx - hr * .9} ${hy - hr - h * .5} ${hx - hr * .4 - h * .5} ${hy - hr - h} ${hx - hr * .6 - h * .6} ${hy - hr - h * 1.05}C${hx - hr * .1} ${hy - hr - h * .6} ${hx + hr * .2} ${hy - hr * .9} ${hx + hr * .3} ${hy - hr * .85}Z`, b.crest); }
+  if (b.brow) fills += `<path d="M${hx - 3} ${hy - hr * .42}C${hx + 2} ${hy - hr * .62} ${hx + 6} ${hy - hr * .6} ${hx + hr * .85} ${hy - hr * .3}" stroke="${b.brow}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  // ---- bill ----
+  const bx = hx + hr * .86, by = hy + hr * .08, bl = b.billL || 9, bw = b.billW || 2.6;
+  const billD = b.spoon
+    ? `M${bx - 1} ${by - 2.4}L${bx + bl * .72} ${by - 1.2}C${bx + bl * .82} ${by - 6} ${bx + bl} ${by - 5.4} ${bx + bl} ${by + .4}C${bx + bl} ${by + 5.6} ${bx + bl * .82} ${by + 6.4} ${bx + bl * .72} ${by + 2}L${bx - 1} ${by + 2.8}Z`
+    : `M${bx - 1} ${f1(by - bw)}C${f1(bx + bl * .5)} ${f1(by - bw * .7)} ${f1(bx + bl * .85)} ${f1(by - bw * .2)} ${f1(bx + bl)} ${f1(by + bw * .35)}C${f1(bx + bl * .7)} ${f1(by + bw * .7)} ${f1(bx + bl * .3)} ${f1(by + bw)} ${bx - 1} ${f1(by + bw)}Z`;
+  F(billD, b.bill);
+  lines += `<path d="M${bx} ${by + .2}L${f1(bx + bl * .9)} ${f1(by + bw * .3)}" stroke-width=".6"/>`;
+  // ---- eye ----
+  const ex = hx + hr * .32, ey = hy - hr * .12;
+  if (b.ring) fills += `<circle cx="${ex}" cy="${ey}" r="4.3" fill="#fbf7ec"/>`;
+  const eyeC = b.eyeC || '#1f1813';
+  const eye = `<circle cx="${ex}" cy="${ey}" r="2.3" fill="${eyeC}" stroke="${ink}" stroke-width=".8"/>${eyeC !== '#1f1813' ? `<circle cx="${ex}" cy="${ey}" r="1.1" fill="#1f1813"/>` : ''}<circle cx="${ex + .8}" cy="${ey - .8}" r=".7" fill="#fff"/>`;
+  const upper = `<g transform="rotate(${b.tilt || -14} 0 0)"><g filter="url(#wash)" opacity=".93">${fills}</g>${hatch}<g fill="none" stroke="${ink}" stroke-width="1.15" stroke-linejoin="round" stroke-linecap="round">${lines}</g>${eye}</g>`;
+  const vb = opts.crop ? opts.crop : '0 0 200 200';
+  return `<svg viewBox="${vb}" aria-hidden="true">${opts.noScene ? '' : scene}<g transform="translate(${px} ${f1(py)}) scale(${f1(s * 100) / 100})">${legs}${upper}</g></svg>`;
+}
+
+/* ---------- songs (synthesised) + sonogram ---------- */
+const SONG = {
+  lanque: [0, .3, .6, .9].map(t => ({t, d: .2, f0: 1500, f1: 1100, k: 'harsh'})),
+  wuse: Array.from({length: 8}, (_, i) => ({t: i * .26, d: .09, f0: 520, f1: 480, k: 'knock'})),
+  dizhi: [0, .38, .74].map(t => ({t, d: .12, f0: 420, f1: 300, k: 'harsh'})),
+  zixiao: [{t: 0, d: .9, f0: 5600, f1: 4300, k: 'tone'}, {t: 1.15, d: .55, f0: 5300, f1: 4600, k: 'tone'}],
+  guanyu: [0, 1.05].flatMap(o => [{t: o, d: .14, f0: 2600, f1: 2700, k: 'tone'}, {t: o + .2, d: .14, f0: 3000, f1: 3100, k: 'tone'}, {t: o + .4, d: .22, f0: 3700, f1: 3300, k: 'tone'}]),
+  huang: Array.from({length: 6}, (_, i) => ({t: i * .17, d: .07, f0: 6400, f1: 5800, k: 'tone'})),
+  ligbei: [{t: 0, d: .6, f0: 7000, f1: 6600, k: 'trill'}, {t: .95, d: .45, f0: 6800, f1: 7200, k: 'trill'}],
+  pilu: [{t: 0, d: .2, f0: 260, f1: 180, k: 'harsh'}, {t: .55, d: .24, f0: 240, f1: 170, k: 'harsh'}],
+  cui: [{t: 0, d: .12, f0: 6000, f1: 4800, k: 'tone'}, {t: .3, d: .12, f0: 6000, f1: 4800, k: 'tone'}, {t: .9, d: .1, f0: 5800, f1: 4900, k: 'tone'}],
+  hongzui: [{t: 0, d: .45, f0: 2000, f1: 1200, k: 'tone'}, {t: .7, d: .28, f0: 1400, f1: 1800, k: 'tone'}, {t: 1.15, d: .4, f0: 1900, f1: 1250, k: 'tone'}],
+  lv: Array.from({length: 12}, (_, i) => ({t: i * .09, d: .06, f0: 4200 + ((i * 1733) % 1900), f1: 4400 + ((i * 977) % 1700), k: 'tone'})),
+  maque: [{t: 0, d: .09, f0: 4000, f1: 3200, k: 'tone'}, {t: .2, d: .09, f0: 3900, f1: 3100, k: 'tone'}, {t: .5, d: .1, f0: 4200, f1: 3300, k: 'tone'}, {t: .68, d: .09, f0: 3800, f1: 3000, k: 'tone'}]
+};
+const songLen = k => Math.max(...SONG[k].map(s => s.t + s.d)) + .15;
+let ac = null, playing = null;
+function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+function sing(k){
+  const a = audio(); if (!a) return null;
+  const out = a.createGain(); out.gain.value = .9; out.connect(a.destination);
+  const T = a.currentTime + .05;
+  SONG[k].forEach(s => {
+    const t = T + s.t, g = a.createGain(); g.connect(out);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(s.k === 'knock' ? .5 : .22, t + .012); g.gain.setValueAtTime(s.k === 'knock' ? .5 : .22, t + s.d * .6); g.gain.exponentialRampToValueAtTime(.001, t + s.d + (s.k === 'knock' ? .08 : .02));
+    const o = a.createOscillator(); o.frequency.setValueAtTime(s.f0, t); o.frequency.exponentialRampToValueAtTime(s.f1, t + s.d);
+    if (s.k === 'harsh'){ o.type = 'sawtooth'; const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = s.f0 * 1.4; bp.Q.value = 1.4; o.connect(bp).connect(g); const o2 = a.createOscillator(); o2.type = 'square'; o2.frequency.setValueAtTime(s.f0 * 1.51, t); o2.frequency.exponentialRampToValueAtTime(s.f1 * 1.49, t + s.d); const g2 = a.createGain(); g2.gain.value = .3; o2.connect(g2).connect(bp); o2.start(t); o2.stop(t + s.d + .1); }
+    else if (s.k === 'knock'){ o.type = 'triangle'; o.connect(g); }
+    else if (s.k === 'trill'){ o.type = 'sine'; const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = 34; lg.gain.value = 500; lfo.connect(lg).connect(o.frequency); lfo.start(t); lfo.stop(t + s.d + .1); o.connect(g); }
+    else { o.type = 'sine'; o.connect(g); }
+    o.start(t); o.stop(t + s.d + .12);
+  });
+  return {out, T};
+}
+function drawSono(k, prog){
+  const c = $('sono'); if (!c) return;
+  const dpr = Math.min(2, devicePixelRatio || 1), W = c.clientWidth, H = c.clientHeight;
+  if (c.width !== Math.round(W * dpr)){ c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+  const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
+  const len = songLen(k), fx = t => t / len * W, fy = f => H - Math.min(1, f / 8000) * (H - 4) - 2;
+  x.strokeStyle = 'rgba(42,33,24,.12)'; x.lineWidth = 1;
+  [2000, 4000, 6000].forEach(f => { x.beginPath(); for (let px = 0; px < W; px += 5){ x.moveTo(px, fy(f)); x.lineTo(px + 2, fy(f)); } x.stroke(); });
+  SONG[k].forEach(s => {
+    const done = prog != null && s.t <= prog * len;
+    x.strokeStyle = done ? '#2a2118' : 'rgba(93,79,62,.42)'; x.fillStyle = x.strokeStyle; x.lineCap = 'round';
+    const x0 = fx(s.t), x1 = fx(s.t + s.d);
+    if (s.k === 'harsh'){
+      for (let h = 1; h <= 3; h++){ x.lineWidth = 3.4 / h; x.beginPath(); x.moveTo(x0, fy(s.f0 * h)); x.lineTo(x1, fy(s.f1 * h)); x.stroke(); }
+      for (let px = x0; px < x1; px += 2){ x.fillRect(px, fy(s.f0 * 2.4) , 1, fy(s.f1 * .6) - fy(s.f0 * 2.4)); }
+    } else if (s.k === 'trill'){
+      x.lineWidth = 1.6; x.beginPath(); for (let px = x0, i = 0; px <= x1; px += 2, i++){ const f = s.f0 + (s.f1 - s.f0) * (px - x0) / Math.max(1, x1 - x0) + (i % 2 ? 450 : -450); i ? x.lineTo(px, fy(f)) : x.moveTo(px, fy(f)); } x.stroke();
+    } else if (s.k === 'knock'){
+      x.lineWidth = 3; x.beginPath(); x.moveTo(x0, fy(s.f0)); x.lineTo(x1, fy(s.f1)); x.stroke(); x.lineWidth = 1.4; x.beginPath(); x.moveTo(x0, fy(s.f0 * 2)); x.lineTo(x1, fy(s.f1 * 2)); x.stroke();
+    } else {
+      x.lineWidth = 2.8; x.beginPath(); x.moveTo(x0, fy(s.f0)); x.quadraticCurveTo((x0 + x1) / 2, fy((s.f0 + s.f1) / 2 + 150), x1, fy(s.f1)); x.stroke();
+    }
+  });
+  if (prog != null && prog < 1){ x.strokeStyle = '#8c2b1f'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(fx(prog * len), 0); x.lineTo(fx(prog * len), H); x.stroke(); }
+}
+let sonoRaf = 0;
+function playSong(k){
+  stopSong();
+  const r = sing(k); if (!r) return;
+  const len = songLen(k), btn = $('playB'); if (btn) btn.classList.add('on');
+  playing = {k, r, start: ac.currentTime + .05, len};
+  haptic(6);
+  const loop = () => {
+    if (!playing) return;
+    const p = (ac.currentTime - playing.start) / playing.len;
+    drawSono(k, Math.max(0, Math.min(1, p)));
+    if (p >= 1){ stopSong(true); return; }
+    sonoRaf = requestAnimationFrame(loop);
+  };
+  sonoRaf = requestAnimationFrame(loop);
+}
+function stopSong(natural){
+  cancelAnimationFrame(sonoRaf);
+  if (playing){ if (!natural) try { playing.r.out.gain.setTargetAtTime(0, ac.currentTime, .02); } catch (e) {} const k = playing.k; playing = null; drawSono(k, 1); }
+  const btn = $('playB'); if (btn) btn.classList.remove('on');
+}
+
+/* ---------- data ---------- */
+const today = new Date(); today.setHours(0, 0, 0, 0);
+const DAY = 864e5;
+let seen = load('seen', null);
+if (!seen || typeof seen !== 'object') seen = {lanque: +today - 40 * DAY, wuse: +today - 32 * DAY, hongzui: +today - 20 * DAY, lv: +today - 18 * DAY, maque: +today - 60 * DAY, cui: +today - 9 * DAY, pilu: +today - 3 * DAY};
+let logs = load('logs', null);
+if (!Array.isArray(logs)) logs = [
+  {id:1, k:'pilu', at: +today - 3 * DAY + 7.5 * 3600e3, p:'台南 七股 黑琵保護區', n:38, note:'退潮時一整排在淺灘掃食'},
+  {id:2, k:'cui', at: +today - 9 * DAY + 16 * 3600e3, p:'台北 植物園 荷花池', n:1, note:'停在同一根竹竿上半小時'},
+  {id:3, k:'lv', at: +today - 12 * DAY + 9 * 3600e3, p:'台北 大安森林公園', n:12, note:'在羊蹄甲花間鑽'},
+  {id:4, k:'hongzui', at: +today - 20 * DAY + 8 * 3600e3, p:'陽明山 二子坪', n:6, note:'苦楝樹上吵成一團'},
+  {id:5, k:'wuse', at: +today - 26 * DAY + 10 * 3600e3, p:'台北 植物園', n:1, note:'聽到郭郭聲找了十分鐘'},
+  {id:6, k:'wuse', at: +today - 32 * DAY + 7 * 3600e3, p:'陽明山 二子坪', n:2, note:''},
+  {id:7, k:'lanque', at: +today - 40 * DAY + 6.5 * 3600e3, p:'陽明山 二子坪', n:5, note:'五隻排成一列飛過步道'},
+  {id:8, k:'maque', at: +today - 44 * DAY + 12 * 3600e3, p:'台北 大安森林公園', n:20, note:''},
+  {id:9, k:'lanque', at: +today - 52 * DAY + 15 * 3600e3, p:'新北 烏來 信賢步道', n:3, note:'尾巴真的好長'}
+];
+const persist = () => { save('seen', seen); save('logs', logs); };
+const PLACES = ['陽明山 二子坪', '台北 植物園', '台北 大安森林公園', '台南 七股 黑琵保護區', '大雪山 林道 23K', '合歡山 武嶺', '關渡 自然公園', '新北 烏來 信賢步道'];
+const md = t => { const d = new Date(t); return `${d.getMonth() + 1} 月 ${d.getDate()} 日`; };
+const hm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+
+/* ---------- plates view ---------- */
+const FILTERS = [['all', '全部'], ['endemic', '特有種'], ['山林', '山林'], ['高山', '高山'], ['水邊', '水邊'], ['平地', '平地'], ['unseen', '未見']];
+let filter = load('filter', 'all');
+const loop = w => `<svg viewBox="0 0 80 36" preserveAspectRatio="none" aria-hidden="true"><path d="M8 20C6 10 26 5 42 6c18 1 32 5 31 14-1 8-18 11-35 10C22 29 9 27 7 19c-1-6 8-11 20-12" fill="none" stroke="#8c2b1f" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+function renderFilters(){ $('filters').innerHTML = FILTERS.map(([k, n]) => `<button class="fl" data-f="${k}" aria-pressed="${filter === k}">${loop()}${n}</button>`).join(''); }
+const pass = b => filter === 'all' || (filter === 'endemic' ? b.st === '特有種' : filter === 'unseen' ? !seen[b.k] : b.hab.includes(filter));
+const TICK = `<svg class="seen" viewBox="0 0 30 24" aria-label="已見"><path d="M3 13c3 2 5 5 7 8 4-8 9-14 17-19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const plateCache = {};
+const plateArt = b => plateCache[b.k] || (plateCache[b.k] = bird(b));
+function renderPlates(){
+  const list = B.map((b, i) => ({b, i})).filter(x => pass(x.b));
+  $('plates').innerHTML = list.length ? list.map(({b, i}) => `<button class="pl" data-k="${b.k}" aria-label="${b.n}${seen[b.k] ? '，已見' : ''}"><div class="fr">${plateArt(b)}<span class="no">Pl. ${ROMAN[i]}</span></div><b>${b.n}</b><span class="lat">${b.l}</span>${seen[b.k] ? TICK : ''}</button>`).join('')
+    : `<p class="none">這一類都見過了。<br>換個篩選看看。</p>`;
+  const n = Object.keys(seen).length; $('seenN').textContent = n;
+}
+$('filters').addEventListener('click', e => { const b = e.target.closest('.fl'); if (!b) return; filter = b.dataset.f; save('filter', filter); haptic(5); $('filters').querySelectorAll('.fl').forEach(x => x.setAttribute('aria-pressed', x === b)); renderPlates(); });
+$('plates').addEventListener('click', e => { const b = e.target.closest('.pl'); if (b){ haptic(6); openDetail(b.dataset.k); } });
+
+/* ---------- detail ---------- */
+let cur = null;
+function detailHTML(b){
+  const i = B.indexOf(b), mine = logs.filter(l => l.k === b.k).sort((x, y) => y.at - x.at);
+  return `<div class="bigplate"><div class="fr">${bird(b)}</div><div class="legend"><b id="dName">${b.n}</b><span class="lat">${b.l}</span></div></div>
+    <div class="facts"><span>體長 <b>${b.len}</b></span><span><b>${b.st}</b></span><span>${b.hz}</span></div>
+    <p class="desc">${b.d}</p>
+    <div class="vox"><div class="voxh"><h3>叫聲<span class="lat">Vox</span></h3><button class="play" id="playB" aria-label="播放叫聲"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><g class="go"><path d="M8 6.5v13l11-6.5z" fill="currentColor" fill-opacity=".15"/></g><g class="stop"><path d="M8 7h3.5v12H8zM14.5 7H18v12h-3.5z"/></g></svg>聽一次</button></div>
+      <div class="sono"><span class="ax" style="top:6px">8k</span><span class="ax" style="top:44px">4k</span><canvas id="sono"></canvas><span class="ax t"><span>0</span><span>${songLen(b.k).toFixed(1)} s</span></span></div></div>
+    <div class="rowacts"><button class="check" id="seenB" aria-pressed="${!!seen[b.k]}"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h18v17H4z"/><path class="tk" d="M7 13.5c2 1.4 3.4 3.4 4.6 5.6 3-6 6.6-10.4 11.4-14" stroke-width="2.2"/></svg><span id="seenL">${seen[b.k] ? '見過了' : '還沒見過'}</span></button><button class="log" id="logB">記一筆觀察</button></div>
+    <div class="mylogs"><h4>我的紀錄</h4>${mine.length ? mine.map(l => `<div class="ent"><span>${esc(l.p)}・${l.n} 隻${l.note ? `<br><span style="color:var(--ink-2)">${esc(l.note)}</span>` : ''}</span><span>${md(l.at)}</span></div>`).join('') : '<p>還沒有觀察紀錄。</p>'}</div>`;
+}
+function openDetail(k){
+  const b = byK(k); if (!b) return; cur = b;
+  $('dNo').textContent = 'Pl. ' + ROMAN[B.indexOf(b)];
+  $('dscroll').innerHTML = detailHTML(b); $('dscroll').scrollTop = 0;
+  $('detail').classList.add('on');
+  requestAnimationFrame(() => drawSono(k, null));
+  setTimeout(() => $('back').focus({preventScroll: true}), 80);
+}
+function closeDetail(){ stopSong(); $('detail').classList.remove('on'); $('detail').style.transform = ''; cur = null; }
+$('back').addEventListener('click', () => { haptic(6); closeDetail(); });
+$('dscroll').addEventListener('click', e => {
+  if (!cur) return;
+  if (e.target.closest('#playB')){ if (playing) stopSong(); else playSong(cur.k); return; }
+  if (e.target.closest('#seenB')){ toggleSeen(cur.k); const on = !!seen[cur.k]; $('seenB').setAttribute('aria-pressed', on); $('seenL').textContent = on ? '見過了' : '還沒見過'; return; }
+  if (e.target.closest('#logB')){ haptic(6); openLog(cur.k); }
+});
+function toggleSeen(k){
+  if (seen[k]){ delete seen[k]; haptic(6); } else { seen[k] = Date.now(); haptic([6, 30, 12]); pencil(); }
+  persist(); renderPlates(); renderJournal();
+}
+/* swipe right from the page to go back */
+(function(){
+  const d = $('detail'); let x0 = 0, y0 = 0, dx = 0, on = false, lock = null;
+  d.addEventListener('pointerdown', e => { if (e.target.closest('button,canvas')) return; on = true; lock = null; x0 = e.clientX; y0 = e.clientY; dx = 0; });
+  d.addEventListener('pointermove', e => {
+    if (!on) return; const mx = e.clientX - x0, my = e.clientY - y0;
+    if (!lock){ if (Math.abs(mx) > 10 && Math.abs(mx) > Math.abs(my) * 1.4 && mx > 0) lock = 'x'; else if (Math.abs(my) > 10) { lock = 'y'; on = false; return; } else return; }
+    dx = Math.max(0, mx); d.classList.add('drag'); d.style.transform = `translateX(${dx}px)`; try { d.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  const end = () => { if (!on) return; on = false; d.classList.remove('drag'); if (lock === 'x' && dx > d.offsetWidth * .3){ haptic(6); closeDetail(); } else d.style.transform = ''; };
+  d.addEventListener('pointerup', end); d.addEventListener('pointercancel', end);
+})();
+
+/* ---------- log sheet ---------- */
+let draft = null;
+function openLog(k){
+  const b = byK(k);
+  draft = {k, p: logs.length ? logs.slice().sort((x, y) => y.at - x.at)[0].p : PLACES[0], n: 1};
+  openSheet(`<h3 id="shT">${b.n}<span class="lat">${b.l}・${md(Date.now())} ${hm(Date.now())}</span></h3>
+    <span class="lbl">在哪裡</span><div class="places" id="lp">${PLACES.map(p => `<button data-p="${p}" aria-pressed="${p === draft.p}">${p}</button>`).join('')}</div>
+    <span class="lbl">幾隻</span><div class="stepper"><button data-n="-1" aria-label="少一隻">−</button><b id="lnN">1</b><button data-n="1" aria-label="多一隻">+</button></div>
+    <span class="lbl">一句話</span><input class="nt" id="lnote" maxlength="30" placeholder="牠在做什麼？" autocomplete="off">
+    <button class="save" id="lsave">記下來</button>`);
+}
+const sheet = $('sheet'), scrim = $('scrim');
+let sheetFocus = null;
+function openSheet(h){ sheetFocus = document.activeElement; $('sheetBody').innerHTML = h; sheet.style.transform = ''; sheet.scrollTop = 0; sheet.classList.add('on'); scrim.classList.add('on'); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); scrim.classList.remove('on'); sheet.style.transform = ''; scrim.style.opacity = ''; if (sheetFocus) try { sheetFocus.focus({preventScroll: true}); } catch (_) {} }
+scrim.addEventListener('click', closeSheet);
+sheet.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !draft) return;
+  if (b.dataset.p){ draft.p = b.dataset.p; haptic(4); $('lp').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); }
+  else if (b.dataset.n){ draft.n = Math.max(1, Math.min(999, draft.n + +b.dataset.n)); $('lnN').textContent = draft.n; haptic(4); }
+  else if (b.id === 'lsave'){
+    const l = {id: Date.now(), k: draft.k, at: Date.now(), p: draft.p, n: draft.n, note: $('lnote').value.trim()};
+    logs.push(l); const first = !seen[draft.k]; if (first) seen[draft.k] = Date.now(); persist();
+    haptic([6, 30, 12]); pencil(); closeSheet(); renderPlates(); renderJournal();
+    if (cur && cur.k === draft.k){ const y = $('dscroll').scrollTop; $('dscroll').innerHTML = detailHTML(cur); $('dscroll').scrollTop = y; requestAnimationFrame(() => drawSono(cur.k, null)); }
+    toast(first ? `新種！${byK(draft.k).n} 記進清單` : '記下來了');
+    draft = null;
+  }
+});
+sheet.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'lnote'){ e.preventDefault(); $('lsave').click(); } });
+(function(){
+  let y0 = 0, dy = 0, on = false, t0 = 0, h = 1;
+  sheet.addEventListener('pointerdown', e => { if (e.target.closest('input,button') || sheet.scrollTop > 0) return; on = true; y0 = e.clientY; dy = 0; t0 = e.timeStamp; h = sheet.offsetHeight; });
+  sheet.addEventListener('pointermove', e => { if (!on) return; dy = Math.max(0, e.clientY - y0); if (dy > 5){ sheet.classList.add('drag'); try { sheet.setPointerCapture(e.pointerId); } catch (_) {} } sheet.style.transform = `translateY(${dy}px)`; scrim.style.opacity = String(1 - dy / h * .8); });
+  const end = e => { if (!on) return; on = false; sheet.classList.remove('drag'); const v = dy / Math.max(1, e.timeStamp - t0); if (dy > h * .35 || (v > .6 && dy > 30)){ haptic(6); closeSheet(); } else { sheet.style.transform = ''; scrim.style.opacity = ''; } };
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+function pencil(){ const a = audio(); if (!a) return; const n = a.createBuffer(1, a.sampleRate * .22, a.sampleRate), c = n.getChannelData(0); for (let i = 0; i < c.length; i++){ const t = i / c.length; c[i] = (Math.random() * 2 - 1) * (t < .35 ? t / .35 : 1 - (t - .35) / .65) * .6; } const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = n; f.type = 'bandpass'; f.frequency.value = 3800; f.Q.value = .8; g.gain.value = .35; s.connect(f).connect(g).connect(a.destination); s.start(); }
+
+/* ---------- journal ---------- */
+const BOX = `<svg class="box" viewBox="0 0 26 26" fill="none" stroke="#2a2118" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h18v17H4z"/><path class="tk" d="M7 13.5c2 1.4 3.4 3.4 4.6 5.6 3-6 6.6-10.4 11.4-14" stroke="#8c2b1f" stroke-width="2.2"/></svg>`;
+const miniCache = {};
+const mini = b => miniCache[b.k] || (miniCache[b.k] = bird(b, {noScene: true, crop: b.pose === 'wade' ? '30 20 140 140' : '40 40 120 120'}));
+function renderJournal(){
+  const n = Object.keys(seen).length;
+  $('jN').textContent = n;
+  let t = '';
+  for (let i = 0; i < 12; i++){ const g = Math.floor(i / 5), j = i % 5, x = 200 - (Math.floor(11 / 5) + 1) * 44 + g * 44; const on = i < n;
+    t += j === 4 ? `<path d="M${x - 2} 30L${x + 30} 10" stroke="${on ? '#8c2b1f' : '#c9b99a'}" stroke-width="2" stroke-linecap="round"/>` : `<path d="M${x + j * 7} 8L${x + j * 7 + 1} 34" stroke="${on ? '#8c2b1f' : '#c9b99a'}" stroke-width="2" stroke-linecap="round"/>`; }
+  $('tallySvg').innerHTML = t;
+  $('checklist').innerHTML = B.map(b => `<button class="ck" role="checkbox" data-k="${b.k}" aria-checked="${!!seen[b.k]}">${BOX}<span><b>${b.n}</b><span class="lat">${b.l}</span></span><small>${seen[b.k] ? md(seen[b.k]) : b.st}</small></button>`).join('');
+  const L = logs.slice().sort((a, b) => b.at - a.at);
+  $('logN').textContent = L.length + ' entries';
+  $('journal').innerHTML = L.length ? L.map(l => { const b = byK(l.k); return `<div class="entry" data-id="${l.id}"><div class="rm">劃掉</div><div class="in">${mini(b)}<div><b>${b.n}・${l.n} 隻</b><span class="when">${md(l.at)} ${hm(l.at)}・${esc(l.p)}</span>${l.note ? `<span class="note">${esc(l.note)}</span>` : ''}</div></div></div>`; }).join('')
+    : `<p class="none">還沒有紀錄。去圖鑑挑一隻吧。</p>`;
+}
+$('checklist').addEventListener('click', e => { const b = e.target.closest('.ck'); if (!b) return; toggleSeen(b.dataset.k); });
+/* swipe a journal entry left to strike it out */
+let sw = null, lastGone = null;
+$('journal').addEventListener('pointerdown', e => { const r = e.target.closest('.entry'); if (!r) return; sw = {r, in: r.querySelector('.in'), x: e.clientX, y: e.clientY, dx: 0, on: false}; });
+$('journal').addEventListener('pointermove', e => {
+  if (!sw) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+  if (!sw.on){ if (dx < -10 && Math.abs(dx) > Math.abs(dy) * 1.3){ sw.on = true; sw.in.classList.add('drag'); try { sw.in.setPointerCapture(e.pointerId); } catch (_) {} } else if (Math.abs(dy) > 10){ sw = null; return; } else return; }
+  sw.dx = Math.min(0, dx); sw.in.style.transform = `translateX(${sw.dx}px)`;
+});
+function endSw(){
+  if (!sw) return; const s = sw; sw = null; if (!s.on) return; s.in.classList.remove('drag');
+  if (s.dx < -s.r.offsetWidth * .35){
+    const id = +s.r.dataset.id, i = logs.findIndex(l => l.id === id); s.in.style.transform = 'translateX(-100%)';
+    setTimeout(() => { if (i < 0) return; lastGone = logs.splice(i, 1)[0]; persist(); renderJournal(); haptic([10, 30, 10]); toast('劃掉一筆紀錄', () => { if (lastGone){ logs.push(lastGone); lastGone = null; persist(); renderJournal(); } }); }, reduce ? 0 : 220);
+  } else s.in.style.transform = '';
+}
+$('journal').addEventListener('pointerup', endSw); $('journal').addEventListener('pointercancel', endSw);
+
+/* ---------- nav ---------- */
+function go(t){
+  screen.classList.toggle('jr', t === 'j');
+  $('tPlates').setAttribute('aria-selected', t !== 'j'); $('tJournal').setAttribute('aria-selected', t === 'j');
+  if (cur) closeDetail();
+}
+$('tPlates').addEventListener('click', () => { haptic(6); if (!screen.classList.contains('jr') && !cur) $('pPlates').scrollTo({top: 0, behavior: reduce ? 'auto' : 'smooth'}); go('p'); });
+$('tJournal').addEventListener('click', () => { haptic(6); go('j'); });
+
+/* ---------- toast ---------- */
+let tT = 0, undo = null;
+function toast(m, fn){ $('toastT').textContent = m; undo = fn || null; $('toastB').hidden = !fn; $('toast').classList.add('on'); clearTimeout(tT); tT = setTimeout(() => $('toast').classList.remove('on'), fn ? 4000 : 2200); }
+$('toastB').addEventListener('click', () => { if (undo) undo(); undo = null; $('toast').classList.remove('on'); haptic(6); });
+
+document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (sheet.classList.contains('on')) closeSheet(); else if (cur) closeDetail(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && playing) stopSong(); });
+addEventListener('resize', () => { if (cur) drawSono(cur.k, null); });
+
+/* ---------- desktop backdrop: a loose plate from the folio ---------- */
+(function(){
+  const b = B[0];
+  $('bigplate').innerHTML = `<defs><filter id="fox"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="3" seed="11"/><feColorMatrix values="0 0 0 0 .55 0 0 0 0 .4 0 0 0 0 .2 0 0 0 1.2 -.62"/></filter></defs>
+    <rect width="1600" height="1000" fill="#e4d6b4"/><rect width="1600" height="1000" filter="url(#fox)" opacity=".5"/><rect width="1600" height="1000" filter="url(#pgrain)"/>
+    <rect x="70" y="60" width="1460" height="880" fill="none" stroke="#5d4f3e" stroke-width="2"/><rect x="82" y="72" width="1436" height="856" fill="none" stroke="#8c7c64" stroke-width="1"/>
+    <g opacity=".55" transform="translate(900 60) scale(4.2)">${bird(b).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '')}</g>
+    <text x="1240" y="900" font-family="Baskerville,serif" font-style="italic" font-size="30" fill="#5d4f3e">Pl. I.  Urocissa caerulea</text>`;
+})();
+
+function tick(){ const d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setTimeout(function t(){ tick(); setTimeout(t, 60000 - Date.now() % 60000); }, 60000 - Date.now() % 60000);
+
+renderFilters(); renderPlates(); renderJournal();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#9fd6c1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="廚房計時">
+<title>廚房計時 · 多重計時器</title>
+<meta name="description" content="五〇年代琺瑯廚具風的多重計時器：一整面鉻旋鈕，轉一下就開始倒數，多個同時計時，時間到機械鈴響，還有台灣家常預設。收錄於 100 Creative HTML Works（App 072・五〇年代粉彩琺瑯家電）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/072-enamel-kitchen.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%239fd6c1'/%3E%3Ccircle cx='32' cy='32' r='24' fill='%23d9534a'/%3E%3Ccircle cx='32' cy='32' r='16' fill='%23d7dcdb'/%3E%3Crect x='30' y='14' width='4' height='14' rx='2' fill='%23d9534a'/%3E%3C/svg%3E">
+<style>
+:root{
+  --mint:#9fd6c1;--mint2:#8ccab3;--mint3:#c4e8da;--teal:#1d3b34;--teal2:#3f6358;
+  --red:#d9534a;--red2:#a8352e;--cream:#fdf3e4;
+  --chrome:linear-gradient(180deg,#fbfcfc 0%,#c9d0ce 38%,#8d9795 52%,#dfe4e3 70%,#f5f7f6 100%);
+  --heavy:"Avenir Next","Avenir","Yuanti TC","PingFang TC",sans-serif;
+  --round:"Yuanti TC","PingFang TC",sans-serif;
+  --spring:cubic-bezier(.3,1.4,.5,1);
+  --out:cubic-bezier(.2,.9,.3,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--round);background:#7fbfa8;color:var(--teal);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible,.dial:focus-visible{outline:3px solid var(--red);outline-offset:3px;border-radius:12px}
+svg{display:block}
+input{font:inherit;color:inherit}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;-webkit-user-select:none;user-select:none;
+  background:linear-gradient(100deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.22) 42%,rgba(255,255,255,0) 54%),linear-gradient(#a8dbc7,#96cfb9)}
+.screen input{-webkit-user-select:text;user-select:text}
+@media (min-width:521px){
+  .stage{display:flex;align-items:center;justify-content:center;gap:60px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0;overflow:hidden}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:56px;padding:10px;z-index:1;
+    background:linear-gradient(135deg,#fbfcfc,#aeb7b5 30%,#eef1f0 48%,#7e8886 70%,#e6eaea);
+    box-shadow:inset 0 0 0 1px rgba(60,80,75,.5),0 16px 24px -16px rgba(30,60,50,.7)}
+  .screen{inset:10px;border-radius:46px}
+  .caption{display:block;position:relative;z-index:1;max-width:240px;padding:22px 24px 24px;background:var(--red);color:var(--cream);border-radius:18px 18px 18px 4px}
+  .caption h1{font:800 34px/1.1 var(--round)}
+  .caption p{margin-top:10px;font-size:15px;line-height:1.7;color:rgba(253,243,228,.86)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+  height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:800 16px/1 var(--heavy);color:var(--teal);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+.status svg *{fill:currentColor}
+@media (display-mode:standalone){.status{display:none}}
+
+/* chrome header trim */
+.head{position:absolute;z-index:10;left:0;right:0;top:calc(48px + env(safe-area-inset-top));height:76px;padding:0 20px;display:flex;align-items:center;justify-content:space-between}
+.brand b{display:block;font:800 30px/1 var(--round);letter-spacing:.04em;color:var(--teal)}
+.brand span{display:block;margin-top:6px;font-size:14px;font-weight:700;color:var(--teal2)}
+.brand span em{font:800 15px/1 var(--heavy);font-style:normal;color:var(--red2)}
+.trim{position:absolute;left:0;right:0;bottom:0;height:8px;background:var(--chrome)}
+.stopall{height:44px;padding:0 14px;font-weight:800;font-size:14px;color:var(--red2);border-radius:22px;background:var(--cream);transition:background-color .2s,transform .15s}
+.stopall:active{transform:scale(.95);background:#f4e2cb}
+.stopall[disabled]{opacity:.45}
+
+.wall{position:absolute;z-index:5;left:0;right:0;top:calc(124px + env(safe-area-inset-top));bottom:calc(92px + env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;padding:14px 10px 20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 6px}
+.cell{position:relative;display:flex;flex-direction:column;align-items:center;padding:6px 0 10px}
+.dial{position:relative;width:150px;height:150px;touch-action:none;cursor:grab;border-radius:50%}
+.dial svg.face{position:absolute;inset:0;width:100%;height:100%}
+.face .ring{fill:var(--red)}
+.face .wedge{fill:var(--red2)}
+.face .tk{stroke:var(--cream);stroke-width:1.4;stroke-linecap:round}
+.face .tk.b{stroke-width:2.6}
+.face text{font:800 11px var(--heavy);fill:var(--cream)}
+.knob{position:absolute;left:50%;top:50%;width:92px;height:92px;margin:-46px 0 0 -46px;border-radius:50%;
+  background:conic-gradient(from 200deg,#f7f9f8,#9aa4a2 10%,#eef1f0 22%,#7a8482 36%,#fbfcfc 50%,#8f9997 64%,#e4e8e7 78%,#a2acaa 90%,#f7f9f8);
+  box-shadow:0 4px 5px -2px rgba(29,59,52,.45),inset 0 0 0 1px rgba(60,80,75,.35)}
+.flutes{position:absolute;inset:0;border-radius:50%;will-change:transform;
+  background:repeating-conic-gradient(rgba(40,55,52,.20) 0 5deg,rgba(255,255,255,.18) 5deg 10deg);
+  -webkit-mask:radial-gradient(circle,transparent 0 35px,#000 36px);mask:radial-gradient(circle,transparent 0 35px,#000 36px)}
+.ptr{position:absolute;left:50%;top:5px;width:8px;height:24px;margin-left:-4px;border-radius:4px;background:var(--red)}
+.cap{position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;
+  background:radial-gradient(circle at 38% 30%,#ffffff 0,#e3e7e6 30%,#a9b2b0 70%,#cfd5d4 100%);box-shadow:inset 0 -2px 3px rgba(40,55,52,.25)}
+.cap i{position:absolute;inset:0;display:grid;place-items:center}
+.cap svg *{fill:var(--teal2)}
+.cell.run .cap svg *{fill:var(--red2)}
+.plate{margin-top:8px;min-width:120px;padding:5px 14px 6px;border-radius:9px 9px 16px 16px;background:var(--chrome);text-align:center;box-shadow:inset 0 1px 0 #fff,0 1px 0 rgba(29,59,52,.25)}
+.plate b{display:block;font:800 15px/1.25 var(--round);color:var(--teal);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm{margin-top:6px;font:800 28px/1 var(--heavy);font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--teal)}
+.st{margin-top:3px;font-size:13px;font-weight:700;color:var(--teal2);height:18px}
+.cell.run .st{color:var(--red2)}
+.cell.pause .tm{color:var(--teal2)}
+.cell.ring .plate{background:var(--red)}
+.cell.ring .plate b{color:var(--cream)}
+.cell.ring .knob{animation:shake .12s linear infinite}
+.cell.ring .st{color:var(--red2)}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+.cell.dragging .knob{box-shadow:0 2px 3px -1px rgba(29,59,52,.45),inset 0 0 0 1px rgba(60,80,75,.35)}
+.cell.gone{transform:scale(.6);opacity:0;transition:transform .3s var(--out),opacity .3s}
+.socket{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;align-content:center;gap:6px;color:var(--teal2);font-weight:800;font-size:14px;
+  background:radial-gradient(circle,#8cc9b2 0 44px,transparent 45px),radial-gradient(circle,transparent 0 58px,rgba(29,59,52,.14) 59px 62px,transparent 63px);transition:transform .15s}
+.socket:active{transform:scale(.95)}
+.socket svg *{fill:var(--teal2)}
+
+/* chrome base with push buttons */
+.base{position:absolute;z-index:20;left:0;right:0;bottom:0;height:calc(92px + env(safe-area-inset-bottom));padding:14px 16px env(safe-area-inset-bottom);background:var(--red);display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.base::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:var(--chrome)}
+.push{height:58px;margin-top:6px;border-radius:10px;background:var(--chrome);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:15px;color:var(--teal);
+  box-shadow:0 3px 0 #7d2620,inset 0 1px 0 #fff;transition:transform .08s,box-shadow .08s}
+.push:active{transform:translateY(3px);box-shadow:0 0 0 #7d2620,inset 0 1px 0 #fff}
+.push svg *{fill:var(--red2)}
+.homebar{position:absolute;z-index:70;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--cream);opacity:.8;pointer-events:none}
+
+/* banner when a timer rings */
+.bell{position:absolute;z-index:40;left:12px;right:12px;top:calc(52px + env(safe-area-inset-top));height:64px;border-radius:16px;background:var(--red);color:var(--cream);display:flex;align-items:center;gap:12px;padding:0 8px 0 16px;
+  transform:translateY(-150px);transition:transform .45s var(--spring)}
+.bell.on{transform:translateY(0)}
+.bell b{flex:1;font-size:17px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bell button{height:48px;padding:0 16px;border-radius:12px;background:var(--cream);color:var(--red2);font-weight:800}
+.bell svg{flex:none}
+.bell svg *{fill:var(--cream)}
+
+/* sheets */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(29,59,52,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:88%;display:flex;flex-direction:column;background:var(--mint3);border-radius:26px 26px 0 0;
+  transform:translateY(calc(100% + 20px));transition:transform .5s var(--spring);touch-action:none;padding-bottom:env(safe-area-inset-bottom)}
+.sheet::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;border-radius:26px 26px 0 0;background:var(--chrome);opacity:.9}
+.sheet.on{transform:translateY(0)}
+.sheet.drag{transition:none}
+.grab{width:44px;height:5px;border-radius:3px;background:rgba(29,59,52,.3);margin:16px auto 6px;flex:none}
+.sbody{overflow:auto;padding:4px 20px 28px;overscroll-behavior:contain;touch-action:pan-y}
+.sheet h3{font:800 26px/1.2 var(--round);margin:4px 0 4px}
+.sheet .sub{font-size:14px;color:var(--teal2);margin-bottom:14px}
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pre{position:relative;min-height:74px;border-radius:14px;background:var(--cream);padding:10px 12px;text-align:left;display:grid;grid-template-columns:34px 1fr;gap:4px 10px;align-items:center;transition:transform .15s,background-color .15s}
+.pre:active{transform:scale(.96);background:#f6e6cf}
+.pre svg{grid-row:span 2}
+.pre b{font-size:15px;font-weight:800;line-height:1.2}
+.pre span{font:800 16px/1 var(--heavy);color:var(--red2)}
+.pre small{font:700 12px/1.2 var(--round);color:var(--teal2);grid-column:2}
+.pre .rm{position:absolute;right:2px;top:2px;width:40px;height:40px;display:grid;place-items:center}
+.pre .rm svg *{fill:var(--teal2)}
+.custom{margin-top:18px;padding:14px;border-radius:16px;background:var(--mint)}
+.custom .l{font-weight:800;margin-bottom:8px}
+.crow2{display:flex;gap:10px;align-items:center}
+.crow2 input{flex:1;min-width:0;height:48px;border:0;border-radius:12px;background:var(--cream);padding:0 12px;font-size:16px;font-weight:700;outline:none}
+.step{display:flex;align-items:center;background:var(--cream);border-radius:12px}
+.step button{width:44px;height:48px;font:800 22px/1 var(--heavy);color:var(--red2)}
+.step output{min-width:48px;text-align:center;font:800 18px/1 var(--heavy)}
+.big{margin-top:12px;width:100%;height:52px;border-radius:14px;background:var(--red);color:var(--cream);font-weight:800;font-size:16px;box-shadow:0 3px 0 #7d2620;transition:transform .08s,box-shadow .08s}
+.big:active{transform:translateY(3px);box-shadow:0 0 0 #7d2620}
+.big.ghost{background:var(--cream);color:var(--red2);box-shadow:0 3px 0 #c9b79f}
+.lg{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;min-height:52px;border-bottom:2px dotted rgba(29,59,52,.2)}
+.lg .when{font:800 15px/1 var(--heavy);color:var(--teal2);font-variant-numeric:tabular-nums}
+.lg b{font-weight:800}
+.lg .d{font:800 15px/1 var(--heavy);color:var(--red2)}
+.none{padding:16px 0;color:var(--teal2)}
+.opt{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:0 12px;border-radius:14px;text-align:left;font-weight:800;transition:background-color .15s}
+.opt + .opt{margin-top:6px}
+.opt[aria-pressed=true]{background:var(--cream)}
+.opt .dot{width:22px;height:22px;border-radius:50%;background:var(--cream);box-shadow:inset 0 0 0 3px var(--teal2);flex:none}
+.opt[aria-pressed=true] .dot{background:var(--red);box-shadow:inset 0 0 0 4px var(--cream),0 0 0 2px var(--red)}
+.opt small{display:block;font-size:13px;font-weight:700;color:var(--teal2)}
+.editq{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.editq button{height:48px;border-radius:12px;background:var(--cream);font:800 16px/1 var(--heavy);color:var(--red2);transition:transform .1s}
+.editq button:active{transform:scale(.94)}
+.lbl{display:block;font-size:13px;font-weight:800;color:var(--teal2);margin:14px 0 6px}
+
+.toast{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-160px);transition:transform .45s var(--spring);
+  display:flex;align-items:center;gap:12px;height:48px;padding:0 6px 0 18px;border-radius:24px;background:var(--teal);color:var(--cream);font-size:14px;font-weight:800;white-space:nowrap}
+.toast.on{transform:translate(-50%,0)}
+.toast button{height:40px;padding:0 14px;border-radius:20px;color:var(--mint)}
+
+@media (max-width:360px){.dial,.socket{width:138px;height:138px}}
+@media (prefers-reduced-motion:reduce){
+  .sheet,.toast,.bell{transition-duration:.01s}
+  .cell.ring .knob{animation:none}
+  .cell.gone{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="bdsvg" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3.4" height="4" rx="1.7"/><rect x="4.8" y="5.5" width="3.4" height="6.5" rx="1.7"/><rect x="9.6" y="3" width="3.4" height="9" rx="1.7"/><rect x="14.4" y="0" width="3.4" height="12" rx="1.7"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 12 1.2 5a9.6 9.6 0 0 1 13.6 0z"/><path d="M8 3.2a11 11 0 0 1 7.6 3l.9-1A12.4 12.4 0 0 0 8 1.8 12.4 12.4 0 0 0-.5 5.2l.9 1A11 11 0 0 1 8 3.2z" opacity=".5"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="6" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="3" width="15" height="7" rx="3.5"/><rect x="24.6" y="4" width="2" height="5" rx="1"/></svg>
+        </span>
+      </div>
+      <header class="head">
+        <div class="brand"><b>廚房計時</b><span id="summary">&nbsp;</span></div>
+        <button class="stopall" id="stopAll">全部停</button>
+        <div class="trim"></div>
+      </header>
+
+      <main class="wall" id="wall"><div class="grid" id="grid"></div></main>
+
+      <nav class="base">
+        <button class="push" data-open="presets"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 2c3.8 0 6.6 4.6 6.6 9.4 0 4.6-2.9 8.1-6.6 8.1s-6.6-3.5-6.6-8.1C4.4 6.6 7.2 2 11 2z"/><circle cx="11" cy="13" r="3.2" fill="#fdf3e4"/></svg>預設</button>
+        <button class="push" data-open="log"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M4 3h14c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm0 8h9c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-2c0-1.1.9-2 2-2z"/></svg>紀錄</button>
+        <button class="push" data-open="bells"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 2c.9 0 1.6.7 1.6 1.6v.4c3.1.7 5 3.4 5 6.6v3.8l1.8 2.4c.5.7 0 1.6-.8 1.6H3.4c-.8 0-1.3-.9-.8-1.6l1.8-2.4v-3.8c0-3.2 1.9-5.9 5-6.6v-.4C9.4 2.7 10.1 2 11 2zm-2.6 17.2h5.2a2.6 2.6 0 0 1-5.2 0z"/></svg>鈴聲</button>
+      </nav>
+
+      <div class="bell" id="bell" role="alert">
+        <svg width="28" height="28" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 2c.9 0 1.6.7 1.6 1.6v.4c3.1.7 5 3.4 5 6.6v3.8l1.8 2.4c.5.7 0 1.6-.8 1.6H3.4c-.8 0-1.3-.9-.8-1.6l1.8-2.4v-3.8c0-3.2 1.9-5.9 5-6.6v-.4C9.4 2.7 10.1 2 11 2zm-2.6 17.2h5.2a2.6 2.6 0 0 1-5.2 0z"/></svg>
+        <b id="bellMsg"></b><button id="bellOff">關掉</button>
+      </div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="面板"><div class="grab"></div><div class="sbody" id="sbody"></div></div>
+      <div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="toastUndo" hidden>復原</button></div>
+      <div class="homebar"></div>
+    </div>
+  </div>
+  <div class="caption">
+    <h1>廚房計時</h1>
+    <p>一顆旋鈕管一道菜。順時針轉就開始倒數，時間到會響鈴。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+var LS = 'app072:';
+function load(k, d){ try{ var v = localStorage.getItem(LS+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(LS+k, JSON.stringify(v)); }catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var MAX = 6, MAXSEC = 180*60;
+
+/* ---------- presets ---------- */
+var BASE_PRESETS = [
+  {id:'egg', n:'半熟蛋', s:390, note:'水滾下蛋', ic:'egg'},
+  {id:'lu', n:'溏心滷蛋', s:420, note:'冰鎮後泡滷汁', ic:'egg'},
+  {id:'noodle', n:'泡麵', s:180, note:'蓋上碗蓋', ic:'bowl'},
+  {id:'rice', n:'電鍋白飯', s:1200, note:'外鍋一杯水', ic:'pot'},
+  {id:'fish', n:'清蒸鱸魚', s:720, note:'大火蒸', ic:'fish'},
+  {id:'steak', n:'煎牛排', s:150, note:'每面兩分半', ic:'pan'},
+  {id:'veg', n:'燙地瓜葉', s:90, note:'撈起淋油', ic:'leaf'},
+  {id:'dump', n:'水餃', s:540, note:'點三次水', ic:'bowl'},
+  {id:'tea', n:'紅茶回沖', s:240, note:'第二泡', ic:'cup'},
+  {id:'yam', n:'烤地瓜', s:2700, note:'兩百度翻面', ic:'pan'},
+  {id:'pork', n:'滷肉', s:3600, note:'小火慢燉', ic:'pot'},
+  {id:'mung', n:'綠豆湯', s:1800, note:'燜三十分', ic:'pot'}
+];
+var custom = load('custom', []);
+function allPresets(){ return custom.concat(BASE_PRESETS); }
+var ICON = {
+  egg:'<path d="M17 4c5 0 8.4 6.4 8.4 12.6 0 6-3.8 10.4-8.4 10.4S8.6 22.6 8.6 16.6C8.6 10.4 12 4 17 4z" fill="#fdf3e4" stroke="#1d3b34" stroke-width="0"/><path d="M17 4c5 0 8.4 6.4 8.4 12.6 0 6-3.8 10.4-8.4 10.4S8.6 22.6 8.6 16.6C8.6 10.4 12 4 17 4zm0 2.6c-3.2 0-5.8 4.9-5.8 10 0 4.6 2.6 7.8 5.8 7.8s5.8-3.2 5.8-7.8c0-5.1-2.6-10-5.8-10z" fill="#3f6358"/><circle cx="17" cy="17.5" r="4" fill="#d9534a"/>',
+  bowl:'<path d="M4 14h26c0 7-5.8 12-13 12S4 21 4 14z" fill="#d9534a"/><rect x="11" y="26" width="12" height="3" rx="1.5" fill="#a8352e"/><path d="M12 5c1.5 2-1.2 3.4.3 6M17 4c1.5 2-1.2 3.6.3 7M22 5c1.5 2-1.2 3.4.3 6" fill="none" stroke="#3f6358" stroke-width="2.4" stroke-linecap="round"/>',
+  pot:'<rect x="6" y="11" width="22" height="16" rx="5" fill="#d9534a"/><rect x="3" y="14" width="5" height="4" rx="2" fill="#a8352e"/><rect x="26" y="14" width="5" height="4" rx="2" fill="#a8352e"/><rect x="8" y="7" width="18" height="5" rx="2.5" fill="#3f6358"/><rect x="15" y="4" width="4" height="4" rx="2" fill="#3f6358"/>',
+  fish:'<path d="M4 17c4-6 10-8 15-8 5 0 8 4 8 8s-3 8-8 8c-5 0-11-2-15-8z" fill="#d9534a"/><path d="M26 17l6-6v12z" fill="#a8352e"/><circle cx="10.5" cy="15.5" r="1.8" fill="#fdf3e4"/>',
+  pan:'<ellipse cx="14" cy="18" rx="11" ry="8" fill="#3f6358"/><ellipse cx="14" cy="17" rx="8" ry="5.6" fill="#d9534a"/><rect x="23" y="15" width="10" height="4" rx="2" fill="#3f6358"/>',
+  leaf:'<path d="M6 27C6 14 14 6 29 5c-1 15-9 23-22 23z" fill="#3f6358"/><path d="M8 26C13 19 18 14 25 9" fill="none" stroke="#9fd6c1" stroke-width="2" stroke-linecap="round"/>',
+  cup:'<path d="M6 12h18v8c0 5-4 8-9 8s-9-3-9-8z" fill="#d9534a"/><path d="M24 14h3a3.5 3.5 0 0 1 0 7h-3.5" fill="none" stroke="#a8352e" stroke-width="3"/><path d="M12 4c1.4 2-1 3.2.4 5.6M17 4c1.4 2-1 3.2.4 5.6" fill="none" stroke="#3f6358" stroke-width="2.2" stroke-linecap="round"/>'
+};
+function icon(k, s){ return '<svg width="'+(s||34)+'" height="'+(s||34)+'" viewBox="0 0 34 34" aria-hidden="true">'+(ICON[k]||ICON.pot)+'</svg>'; }
+
+/* ---------- timers ---------- */
+var now0 = Date.now();
+var timers = load('timers', null) || [
+  {id:'t1', n:'電鍋白飯', ic:'pot', set:1200, left:754, st:'run', end:now0 + 754e3},
+  {id:'t2', n:'滷肉', ic:'pot', set:3600, left:2470, st:'run', end:now0 + 2470e3},
+  {id:'t3', n:'半熟蛋', ic:'egg', set:390, left:390, st:'idle'},
+  {id:'t4', n:'紅茶回沖', ic:'cup', set:240, left:132, st:'pause'},
+  {id:'t5', n:'泡麵', ic:'bowl', set:180, left:180, st:'idle'}
+];
+var logs = load('logs', null) || [
+  {n:'綠豆湯', s:1800, t:now0 - 3600e3*2.5}, {n:'燙地瓜葉', s:90, t:now0 - 3600e3*5}, {n:'水餃', s:540, t:now0 - 3600e3*6.2}, {n:'半熟蛋', s:390, t:now0 - 3600e3*26}
+];
+var bellKind = load('bell', 0), tickOn = load('tick', false);
+function persist(){ save('timers', timers); }
+function remain(t){ return t.st === 'run' ? Math.max(0, (t.end - Date.now())/1000) : t.left; }
+function fmt(s){ s = Math.ceil(s); var h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60; return (h ? h+':'+String(m).padStart(2,'0') : String(m).padStart(2,'0'))+':'+String(x).padStart(2,'0'); }
+function fmtShort(s){ return s >= 3600 ? (s/3600).toFixed(s%3600 ? 1 : 0)+' 小時' : s >= 60 ? Math.round(s/60*10)/10+' 分' : s+' 秒'; }
+
+/* ---------- dial face ---------- */
+var FACE = (function(){
+  var s = '<svg class="face" viewBox="0 0 150 150" aria-hidden="true"><circle class="ring" cx="75" cy="75" r="74"/><path class="wedge" d=""/>';
+  for (var m=0;m<60;m++){
+    var a = m*6*Math.PI/180, big = m%5 === 0, r1 = 72, r2 = big ? 62 : 67;
+    s += '<line class="tk'+(big?' b':'')+'" x1="'+(75+Math.sin(a)*r1).toFixed(1)+'" y1="'+(75-Math.cos(a)*r1).toFixed(1)+'" x2="'+(75+Math.sin(a)*r2).toFixed(1)+'" y2="'+(75-Math.cos(a)*r2).toFixed(1)+'"/>';
+  }
+  s += '</svg>';
+  return s;
+})();
+function wedgePath(sec){
+  if (sec <= 0) return '';
+  var mins = Math.min(sec/60, 60), a = mins*6*Math.PI/180, R = 74, r = 54;
+  if (mins >= 59.99) return 'M75 1a74 74 0 1 1-.01 0zM75 21a54 54 0 1 0 .01 0z';
+  var large = mins*6 > 180 ? 1 : 0;
+  var x1 = 75 + Math.sin(a)*R, y1 = 75 - Math.cos(a)*R, x2 = 75 + Math.sin(a)*r, y2 = 75 - Math.cos(a)*r;
+  return 'M75 1A74 74 0 '+large+' 1 '+x1.toFixed(2)+' '+y1.toFixed(2)+'L'+x2.toFixed(2)+' '+y2.toFixed(2)+'A54 54 0 '+large+' 0 75 21Z';
+}
+var CAP = {
+  run:'<svg width="22" height="22" viewBox="0 0 22 22"><rect x="5" y="4" width="4.4" height="14" rx="2.2"/><rect x="12.6" y="4" width="4.4" height="14" rx="2.2"/></svg>',
+  stop:'<svg width="22" height="22" viewBox="0 0 22 22"><path d="M7 4.4c0-1.2 1.3-1.9 2.3-1.3l9 6.6c.9.6.9 1.9 0 2.6l-9 6.6c-1 .6-2.3-.1-2.3-1.3z"/></svg>',
+  ring:'<svg width="22" height="22" viewBox="0 0 22 22"><path d="M11 2c.9 0 1.6.7 1.6 1.6v.4c3.1.7 5 3.4 5 6.6v3.8l1.8 2.4c.5.7 0 1.6-.8 1.6H3.4c-.8 0-1.3-.9-.8-1.6l1.8-2.4v-3.8c0-3.2 1.9-5.9 5-6.6v-.4C9.4 2.7 10.1 2 11 2z"/></svg>'
+};
+
+function render(){
+  var g = $('grid'), h = '';
+  timers.forEach(function(t){
+    h += '<div class="cell" data-id="'+t.id+'"><div class="dial" tabindex="0" role="slider" aria-label="'+esc(t.n)+' 旋鈕，轉動設定時間，點一下開始或暫停，長按編輯" aria-valuemin="0" aria-valuemax="'+MAXSEC+'">'+FACE+
+      '<div class="knob"><div class="flutes"><i class="ptr"></i></div><div class="cap"><i></i></div></div></div>'+
+      '<div class="plate"><b>'+esc(t.n)+'</b></div><div class="tm"></div><div class="st"></div></div>';
+  });
+  if (timers.length < MAX) h += '<div class="cell"><button class="socket" id="addKnob" aria-label="裝一顆新旋鈕"><svg width="28" height="28" viewBox="0 0 28 28"><rect x="11.5" y="3" width="5" height="22" rx="2.5"/><rect x="3" y="11.5" width="22" height="5" rx="2.5"/></svg>裝旋鈕</button></div>';
+  g.innerHTML = h;
+  update();
+}
+var lastSec = {};
+function update(){
+  var running = 0, ringing = [];
+  timers.forEach(function(t){
+    var c = document.querySelector('.cell[data-id="'+t.id+'"]');
+    if (t.st === 'run' && t.end <= Date.now()){ fire(t); }
+    var r = remain(t);
+    if (t.st === 'run') running++;
+    if (t.st === 'ring') ringing.push(t);
+    if (!c) return;
+    c.className = 'cell ' + t.st + (c.classList.contains('dragging') ? ' dragging' : '');
+    c.querySelector('.tm').textContent = fmt(r);
+    c.querySelector('.st').textContent = t.st === 'run' ? (r >= 3600 ? '走了，超過一小時' : '倒數中') : t.st === 'pause' ? '暫停' : t.st === 'ring' ? '時間到！' : r > 0 ? '點一下開始' : '轉動設定';
+    c.querySelector('.flutes').style.transform = 'rotate('+((r/60)*6).toFixed(2)+'deg)';
+    c.querySelector('.wedge').setAttribute('d', wedgePath(r));
+    c.querySelector('.cap i').innerHTML = t.st === 'run' ? CAP.run : t.st === 'ring' ? CAP.ring : CAP.stop;
+    c.querySelector('.dial').setAttribute('aria-valuenow', Math.round(r));
+    c.querySelector('.dial').setAttribute('aria-valuetext', fmt(r));
+    if (tickOn && t.st === 'run'){ var s = Math.ceil(r); if (lastSec[t.id] !== s){ lastSec[t.id] = s; tick(); } }
+  });
+  $('summary').innerHTML = running ? '<em>'+running+'</em> 顆在走' + (ringing.length ? '，'+ringing.length+' 顆在響' : '') : ringing.length ? '<em>'+ringing.length+'</em> 顆在響' : '全部靜止';
+  $('stopAll').disabled = !running && !ringing.length;
+  if (ringing.length){ $('bellMsg').textContent = ringing.map(function(t){ return t.n; }).join('、') + ' 好了'; $('bell').classList.add('on'); }
+  else $('bell').classList.remove('on');
+}
+function fire(t){
+  t.st = 'ring'; t.left = 0; persist();
+  logs.unshift({n:t.n, s:t.set, t:Date.now()}); logs = logs.slice(0, 40); save('logs', logs);
+  startBell(); haptic([200,100,200,100,400]);
+}
+
+/* ---------- audio: synthesised bells ---------- */
+var AC = null;
+function ac(){ try{ if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); }catch(e){ AC = null; } return AC; }
+function strike(t, f, vol, dec){
+  var a = AC, parts = [[1,1],[2.76,.5],[5.4,.28],[8.93,.14]], g = a.createGain();
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0005, t+dec); g.connect(a.destination);
+  parts.forEach(function(p){ var o = a.createOscillator(), og = a.createGain(); o.type = 'sine'; o.frequency.value = f*p[0]; og.gain.value = p[1]; o.connect(og); og.connect(g); o.start(t); o.stop(t+dec+.05); });
+}
+function playBell(kind, dur){
+  var a = ac(); if (!a) return; var t = a.currentTime + .02;
+  if (kind === 0){ for (var i=0;i<Math.floor(dur*14);i++) strike(t + i/14, 2150, .09, .12); }
+  else if (kind === 1){ for (var j=0;j<Math.floor(dur*2.2);j++){ strike(t + j/2.2, 1318, .16, 1.1); strike(t + j/2.2 + .2, 1046, .12, 1.1); } }
+  else { for (var k=0;k<Math.floor(dur*1.4);k++){ var o = a.createOscillator(), g = a.createGain(), tt = t + k/1.4; o.type = 'triangle'; o.frequency.setValueAtTime(880, tt); o.frequency.setValueAtTime(1175, tt+.16); g.gain.setValueAtTime(.0001, tt); g.gain.exponentialRampToValueAtTime(.18, tt+.02); g.gain.exponentialRampToValueAtTime(.001, tt+.5); o.connect(g); g.connect(a.destination); o.start(tt); o.stop(tt+.55); } }
+}
+var bellTimer = 0, bellCount = 0;
+function startBell(){
+  if (bellTimer) return; bellCount = 0;
+  playBell(bellKind, 2);
+  bellTimer = setInterval(function(){
+    if (!timers.some(function(t){ return t.st === 'ring'; }) || ++bellCount > 8){ stopBell(); return; }
+    playBell(bellKind, 2); haptic([200,100,200]);
+  }, 3000);
+}
+function stopBell(){ clearInterval(bellTimer); bellTimer = 0; }
+function tick(){ var a = AC; if (!a) return; var t = a.currentTime, s = a.createBufferSource(), b = a.createBuffer(1, 400, a.sampleRate), d = b.getChannelData(0); for (var i=0;i<400;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/400, 6); s.buffer = b; var f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 3200; var g = a.createGain(); g.gain.value = .5; s.connect(f); f.connect(g); g.connect(a.destination); s.start(t); }
+
+/* ---------- knob gestures ---------- */
+var drag = null;
+function angleAt(dial, e){ var r = dial.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2; return Math.atan2(e.clientX - cx, -(e.clientY - cy))*180/Math.PI; }
+$('grid').addEventListener('pointerdown', function(e){
+  var dial = e.target.closest('.dial'); if (!dial) return;
+  var cell = dial.closest('.cell'), t = byId(cell.dataset.id); if (!t) return;
+  ac();
+  drag = {t:t, cell:cell, dial:dial, a0:angleAt(dial, e), acc:0, base:remain(t), moved:false, t0:e.timeStamp, was:t.st, lastMin:Math.floor(remain(t)/60), id:e.pointerId};
+  drag.lp = setTimeout(function(){ if (drag && !drag.moved){ var tt = drag.t; drag = null; haptic(20); openEdit(tt); } }, 560);
+  dial.setPointerCapture(e.pointerId);
+});
+$('grid').addEventListener('pointermove', function(e){
+  if (!drag || e.pointerId !== drag.id) return;
+  var a = angleAt(drag.dial, e), d = a - drag.a0;
+  if (d > 180) d -= 360; if (d < -180) d += 360;
+  drag.a0 = a; drag.acc += d;
+  if (!drag.moved && Math.abs(drag.acc) > 6){
+    drag.moved = true; clearTimeout(drag.lp); drag.cell.classList.add('dragging');
+    if (drag.t.st === 'ring') silence(drag.t);
+    drag.t.st = 'idle'; drag.t.left = drag.base;
+  }
+  if (!drag.moved) return;
+  var sec = Math.max(0, Math.min(MAXSEC, drag.base + drag.acc*10));
+  sec = Math.round(sec/15)*15;
+  drag.t.left = sec;
+  var m = Math.floor(sec/60);
+  if (m !== drag.lastMin){ drag.lastMin = m; clack(); haptic(3); }
+  update();
+});
+function endDrag(e){
+  if (!drag || (e && e.pointerId !== drag.id)) return;
+  clearTimeout(drag.lp); var d = drag; drag = null; d.cell.classList.remove('dragging');
+  var t = d.t;
+  if (!d.moved){ tapKnob(t); return; }
+  if (t.left > 0){ t.set = t.left; t.st = 'run'; t.end = Date.now() + t.left*1000; haptic([6,30,10]); }
+  else { t.st = 'idle'; }
+  persist(); update();
+}
+$('grid').addEventListener('pointerup', endDrag);
+$('grid').addEventListener('pointercancel', endDrag);
+function clack(){ var a = AC; if (!a) return; var t = a.currentTime, o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.setValueAtTime(2400, t); o.frequency.exponentialRampToValueAtTime(900, t+.018); g.gain.setValueAtTime(.05, t); g.gain.exponentialRampToValueAtTime(.001, t+.03); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+.04); }
+function tapKnob(t){
+  if (t.st === 'ring'){ silence(t); return; }
+  if (t.st === 'run'){ t.left = remain(t); t.st = 'pause'; haptic(8); }
+  else if (t.left > 0){ t.st = 'run'; t.end = Date.now() + t.left*1000; haptic([6,30,10]); }
+  else { t.left = t.set || 300; t.st = 'idle'; haptic(6); }
+  persist(); update();
+}
+function silence(t){ t.st = 'idle'; t.left = t.set; persist(); if (!timers.some(function(x){ return x.st === 'ring'; })) stopBell(); haptic(10); update(); }
+$('grid').addEventListener('keydown', function(e){
+  var dial = e.target.closest('.dial'); if (!dial) return;
+  var t = byId(dial.closest('.cell').dataset.id); if (!t) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowDown'){
+    var dir = (e.key === 'ArrowRight' || e.key === 'ArrowUp') ? 60 : -60;
+    if (t.st === 'run'){ t.left = remain(t); t.st = 'pause'; }
+    t.left = Math.max(0, Math.min(MAXSEC, t.left + dir)); t.set = t.left || t.set; persist(); update(); e.preventDefault();
+  } else if (e.key === 'Enter' || e.key === ' '){ tapKnob(t); e.preventDefault(); }
+  else if (e.key === 'e'){ openEdit(t); }
+});
+$('grid').addEventListener('click', function(e){ if (e.target.closest('#addKnob')) openSheet('presets'); });
+function byId(id){ return timers.filter(function(t){ return t.id === id; })[0]; }
+$('stopAll').addEventListener('click', function(){
+  timers.forEach(function(t){ if (t.st === 'run'){ t.left = remain(t); t.st = 'pause'; } if (t.st === 'ring'){ t.st = 'idle'; t.left = t.set; } });
+  stopBell(); persist(); update(); haptic([10,30,10]); toast('全部停下來了');
+});
+$('bellOff').addEventListener('click', function(){ timers.forEach(function(t){ if (t.st === 'ring'){ t.st = 'idle'; t.left = t.set; } }); stopBell(); persist(); update(); haptic(10); });
+
+/* ---------- sheets ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), sbody = $('sbody'), lastFocus = null, kind = '', editing = null, draft = {n:'', m:5};
+function openSheet(k, t){
+  lastFocus = document.activeElement; kind = k; editing = t || null;
+  paint(); sbody.scrollTop = 0;
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+}
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform = ''; scrim.classList.remove('on'); scrim.style.opacity = ''; if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+function openEdit(t){ openSheet('edit', t); }
+function paint(){
+  var h = '';
+  if (kind === 'presets'){
+    var full = timers.length >= MAX;
+    h += '<h3>家常預設</h3><div class="sub">'+(full ? '牆上六顆都裝滿了，點一個會換掉最久沒動的那顆。' : '點一下，就在牆上裝一顆轉好的旋鈕。')+'</div><div class="presets">';
+    allPresets().forEach(function(p){
+      h += '<button class="pre" data-pre="'+p.id+'">'+icon(p.ic)+'<b>'+esc(p.n)+'</b><span>'+fmt(p.s)+'</span><small>'+esc(p.note||'')+'</small>'+(p.custom ? '<span class="rm" data-rm="'+p.id+'" role="button" aria-label="刪除 '+esc(p.n)+'"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="6.5" y="1" width="3" height="14" rx="1.5" transform="rotate(45 8 8)"/><rect x="6.5" y="1" width="3" height="14" rx="1.5" transform="rotate(-45 8 8)"/></svg></span>' : '')+'</button>';
+    });
+    h += '</div><div class="custom"><div class="l">自己加一道</div><div class="crow2"><input id="cName" maxlength="10" placeholder="例如：媽媽的麻油雞" value="'+esc(draft.n)+'"><div class="step"><button data-cm="-1" aria-label="少一分鐘">−</button><output id="cMin">'+draft.m+'分</output><button data-cm="1" aria-label="多一分鐘">+</button></div></div><button class="big" id="cSave">存成預設</button></div>';
+  } else if (kind === 'log'){
+    h += '<h3>今天煮了什麼</h3><div class="sub">響過鈴的計時都記在這裡。</div>';
+    if (!logs.length) h += '<div class="none">還沒有紀錄。</div>';
+    logs.slice(0, 20).forEach(function(l){ var d = new Date(l.t); h += '<div class="lg"><span class="when">'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+'</span><b>'+esc(l.n)+'</b><span class="d">'+fmtShort(l.s)+'</span></div>'; });
+    if (logs.length) h += '<button class="big ghost" id="clearLog" style="margin-top:18px">清空紀錄</button>';
+  } else if (kind === 'bells'){
+    h += '<h3>鈴聲</h3><div class="sub">點一下會先試聽。</div>';
+    [['機械鈴','老式計時器的小鐵錘，叮叮叮叮'],['雙音門鈴','客廳那種叮咚'],['電鍋跳起','短短的兩聲嗶']].forEach(function(b, i){
+      h += '<button class="opt" data-bell="'+i+'" aria-pressed="'+(bellKind===i)+'"><span class="dot"></span><span>'+b[0]+'<small>'+b[1]+'</small></span></button>';
+    });
+    h += '<div class="lbl">走動時</div><button class="opt" id="tickOpt" aria-pressed="'+tickOn+'"><span class="dot"></span><span>滴答聲<small>倒數時每秒輕輕響一下</small></span></button>';
+  } else if (kind === 'edit' && editing){
+    var t = editing;
+    h += '<h3>'+esc(t.n)+'</h3><div class="sub">現在 '+fmt(remain(t))+'</div>';
+    h += '<label class="lbl" for="eName">名稱</label><div class="crow2"><input id="eName" maxlength="10" value="'+esc(t.n)+'"></div>';
+    h += '<div class="lbl">快速加時</div><div class="editq"><button data-add="30">+30 秒</button><button data-add="60">+1 分</button><button data-add="300">+5 分</button><button data-add="0">歸零</button></div>';
+    h += '<button class="big" id="eDone" style="margin-top:20px">好了</button><button class="big ghost" id="eDel" style="margin-top:12px">拆下這顆旋鈕</button>';
+  }
+  sbody.innerHTML = h;
+}
+document.querySelector('.base').addEventListener('click', function(e){ var b = e.target.closest('[data-open]'); if (b) openSheet(b.dataset.open); });
+scrim.addEventListener('click', function(){ commitEdit(); closeSheet(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape'){ commitEdit(); closeSheet(); } });
+function commitEdit(){ if (kind === 'edit' && editing && $('eName')){ var v = $('eName').value.trim(); if (v) editing.n = v; persist(); render(); } }
+sbody.addEventListener('input', function(e){ if (e.target.id === 'cName') draft.n = e.target.value; });
+sbody.addEventListener('click', function(e){
+  var rm = e.target.closest('[data-rm]');
+  if (rm){ e.stopPropagation(); custom = custom.filter(function(p){ return p.id !== rm.dataset.rm; }); save('custom', custom); paint(); haptic([8,30,8]); return; }
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.pre){
+    var p = allPresets().filter(function(x){ return x.id === b.dataset.pre; })[0]; if (!p) return;
+    var t = {id:'t'+Date.now().toString(36), n:p.n, ic:p.ic, set:p.s, left:p.s, st:'idle'};
+    if (timers.length >= MAX){
+      var idle = timers.filter(function(x){ return x.st !== 'run' && x.st !== 'ring'; });
+      if (!idle.length){ toast('六顆都在走，先停一顆'); haptic([20,40,20]); return; }
+      timers.splice(timers.indexOf(idle[0]), 1, t);
+    } else timers.push(t);
+    persist(); render(); closeSheet(); haptic([6,30,10]); toast('裝好「'+p.n+'」，轉一下或點一下開始');
+    return;
+  }
+  if (b.dataset.cm){ draft.m = Math.max(1, Math.min(180, draft.m + (+b.dataset.cm))); $('cMin').textContent = draft.m+'分'; haptic(3); return; }
+  if (b.id === 'cSave'){
+    var n = ($('cName').value || '').trim();
+    if (!n){ $('cName').focus(); $('cName').placeholder = '先取個名字'; haptic([20,40,20]); return; }
+    custom.unshift({id:'c'+Date.now().toString(36), n:n, s:draft.m*60, note:'自訂', ic:'pot', custom:true}); save('custom', custom);
+    draft = {n:'', m:5}; paint(); haptic([8,30,8]); toast('存好了');
+    return;
+  }
+  if (b.id === 'clearLog'){ var snap = logs.slice(); logs = []; save('logs', logs); paint(); toast('紀錄清空了', function(){ logs = snap; save('logs', logs); if (kind === 'log') paint(); }); return; }
+  if (b.dataset.bell !== undefined){ bellKind = +b.dataset.bell; save('bell', bellKind); [].forEach.call(sbody.querySelectorAll('[data-bell]'), function(x){ x.setAttribute('aria-pressed', x === b); }); playBell(bellKind, 1.2); haptic(5); return; }
+  if (b.id === 'tickOpt'){ tickOn = !tickOn; save('tick', tickOn); b.setAttribute('aria-pressed', tickOn); ac(); haptic(5); return; }
+  if (b.dataset.add !== undefined && editing){
+    var t2 = editing, add = +b.dataset.add, r = remain(t2);
+    if (add === 0){ t2.st = 'idle'; t2.left = 0; }
+    else if (t2.st === 'run'){ t2.end += add*1000; }
+    else { t2.left = Math.min(MAXSEC, r + add); t2.set = t2.left; if (t2.st === 'ring') t2.st = 'idle'; }
+    persist(); update(); sbody.querySelector('.sub').textContent = '現在 '+fmt(remain(t2)); haptic(4); return;
+  }
+  if (b.id === 'eDone'){ commitEdit(); closeSheet(); return; }
+  if (b.id === 'eDel' && editing){
+    var snap2 = timers.slice(), gone = editing, cell = document.querySelector('.cell[data-id="'+gone.id+'"]');
+    closeSheet(); if (cell) cell.classList.add('gone');
+    setTimeout(function(){
+      timers = timers.filter(function(x){ return x !== gone; }); persist(); render();
+      if (!timers.some(function(x){ return x.st === 'ring'; })) stopBell();
+      toast('拆下「'+gone.n+'」', function(){ timers = snap2; persist(); render(); });
+    }, reduce ? 0 : 280);
+    haptic([10,30,10]);
+  }
+});
+(function(){
+  var sy = 0, dy = 0, t0 = 0, on = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button,input,label')) return; if (sbody.contains(e.target) && sbody.scrollTop > 0) return; on = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); });
+  sheet.addEventListener('pointermove', function(e){ if (!on) return; dy = e.clientY - sy; if (Math.abs(dy) > 4 && !sheet.hasPointerCapture(e.pointerId)) try{ sheet.setPointerCapture(e.pointerId); }catch(er){} sheet.style.transform = 'translateY('+(dy > 0 ? dy : dy/6).toFixed(1)+'px)'; scrim.style.opacity = Math.max(0, 1 - dy/sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!on) return; on = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy/Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight*.35 || v > .6){ commitEdit(); closeSheet(); } else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+var undoFn = null, toastT = 0;
+function toast(msg, u){ $('toastMsg').textContent = msg; $('toastUndo').hidden = !u; undoFn = u || null; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, 3200); }
+$('toastUndo').addEventListener('click', function(){ if (undoFn){ undoFn(); undoFn = null; haptic(8); } $('toast').classList.remove('on'); });
+
+/* ---------- backdrop: a mint tiled kitchen wall over an enamel counter ---------- */
+(function(){
+  var s = '<defs><pattern id="tile" width="60" height="60" patternUnits="userSpaceOnUse"><rect width="60" height="60" fill="#7fbfa8"/><rect x="2" y="2" width="56" height="56" rx="5" fill="#a6dac6"/><path d="M8 10c10-4 26-5 40-2" stroke="#c9ebde" stroke-width="4" stroke-linecap="round" fill="none"/></pattern></defs>'+
+    '<rect width="1600" height="1000" fill="url(#tile)"/><rect y="700" width="1600" height="16" fill="#e6eaea"/><rect y="716" width="1600" height="6" fill="#8d9795"/><rect y="722" width="1600" height="300" fill="#d9534a"/>'+
+    '<path d="M0 760h1600" stroke="#c4463d" stroke-width="3"/>';
+  var b = $('bdsvg'); b.setAttribute('viewBox', '0 0 1600 1000'); b.innerHTML = s;
+})();
+
+/* ---------- clock & loop ---------- */
+function clock(){ var n = new Date(); $('clock').textContent = n.getHours()+':'+String(n.getMinutes()).padStart(2,'0'); }
+clock(); setInterval(clock, 20000);
+var loopT = setInterval(function(){ if (!document.hidden && !drag) update(); }, 250);
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) update(); });
+render();
+})();
+</script>
+</body>
+</html>

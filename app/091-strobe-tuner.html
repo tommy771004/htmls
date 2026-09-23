@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0909">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="調音">
+<title>調音 · 樂器調音器</title>
+<meta name="description" content="復古頻閃調音器：紅色頻閃盤在音不準時漂移、調準時靜止，搭配鍍鉻指針表；轉動琴頭上的弦鈕調音，支援吉他、烏克麗麗、貝斯、小提琴與二胡，還有參考音與麥克風偵測。收錄於 100 Creative HTML Works（App 091・復古頻閃調音器）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/091-strobe-tuner.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0909'/%3E%3Crect x='6' y='16' width='52' height='32' rx='6' fill='%23d9d9d6'/%3E%3Crect x='9' y='19' width='46' height='26' rx='4' fill='%23000'/%3E%3Cpath d='M12 26h6M22 26h6M32 26h6M42 26h6M14 33h4M20 33h4M26 33h4M32 33h4M38 33h4M44 33h4M12 40h2M16 40h2M20 40h2M24 40h2M28 40h2M32 40h2M36 40h2M40 40h2M44 40h2M48 40h2' stroke='%23ff3a24' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+:root{
+  --blk:#0a0909;
+  --crk:#141312;
+  --red:#ff3a24;
+  --red-lo:#5a1a12;
+  --chrome:linear-gradient(180deg,#f7f7f5 0%,#b9b9b6 22%,#f0f0ee 40%,#6f6f6c 62%,#d6d6d3 82%,#9a9a97 100%);
+  --txt:#ecebe7;
+  --txt-2:#a19f99;
+  --fut:"Futura","Futura PT","Avenir Next","PingFang TC",sans-serif;
+  --zh:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --out:cubic-bezier(.2,.8,.25,1);
+  --spring:cubic-bezier(.3,1.35,.5,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.4 var(--zh);color:var(--txt);background:var(--blk);-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--red);outline-offset:3px;border-radius:8px}
+svg{display:block}
+.ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ic .dot{fill:var(--red);stroke:none}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--crk)}
+.crinkle{position:absolute;inset:0;z-index:0;pointer-events:none}
+.crinkle svg{width:100%;height:100%}
+@media (min-width:521px){
+  body{background:#050404}
+  .stage{display:flex;align-items:center;justify-content:center;gap:72px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0;overflow:hidden}
+  .backdrop svg{position:absolute;width:100%;height:100%}
+  .disc{transform-origin:800px 1480px;animation:spin 60s linear infinite}
+  @keyframes spin{to{transform:rotate(-360deg)}}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:4px;z-index:1;background:var(--chrome)}
+  .device::before{content:"";position:absolute;inset:4px;border-radius:50px;background:#050404}
+  .screen{inset:12px;border-radius:44px}
+  .caption{display:block;position:relative;z-index:1;width:240px;color:var(--txt)}
+  .caption h1{font:500 48px/1 var(--fut);letter-spacing:.2em}
+  .caption .m{font:500 14px/1 var(--fut);letter-spacing:.3em;color:var(--red);margin-top:14px}
+  .caption p{margin-top:18px;font-size:15px;line-height:1.7;color:var(--txt-2)}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+@media (min-width:521px) and (prefers-reduced-motion:reduce){.disc{animation:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;display:flex;align-items:center;justify-content:space-between;font:500 16px/1 var(--fut);color:var(--txt);pointer-events:none}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+.body{position:absolute;inset:calc(46px + env(safe-area-inset-top)) 0 0;z-index:1;overflow-y:auto;overflow-x:hidden;padding-bottom:calc(26px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+.body::-webkit-scrollbar{display:none}
+
+.hdr{display:flex;align-items:center;padding:4px 18px 0}
+.hdr h1{font:500 22px/1 var(--fut);letter-spacing:.3em}
+.cal{margin-left:auto;display:flex;align-items:center;height:44px;border-radius:22px;background:#1f1d1b;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.cal button{width:40px;height:44px;display:grid;place-items:center;color:var(--txt-2)}
+.cal button:active{color:var(--txt)}
+.cal span{font:500 14px/1 var(--fut);letter-spacing:.06em;min-width:82px;text-align:center}
+.cal span b{font-weight:700;color:var(--txt)}
+
+.readout{display:grid;grid-template-columns:auto 1fr;align-items:end;gap:0 16px;padding:10px 22px 0;min-height:104px}
+.note{font:500 88px/.9 var(--fut);letter-spacing:-.01em;display:flex;align-items:flex-start}
+.note sup{font-size:30px;margin-left:2px;margin-top:4px;color:var(--txt-2)}
+.note sub{font-size:30px;align-self:flex-end;margin-left:2px;color:var(--txt-2)}
+.rd2{padding-bottom:6px}
+.cents{font:500 34px/1 var(--fut);font-variant-numeric:tabular-nums;color:var(--txt)}
+.cents small{font-size:18px;color:var(--txt-2);margin-left:2px}
+.hz{font:500 14px/1.4 var(--fut);color:var(--txt-2);margin-top:6px;letter-spacing:.04em}
+.lamp{display:inline-flex;align-items:center;gap:7px;font:500 12px/1 var(--fut);letter-spacing:.24em;color:#6d6a64;margin-top:8px}
+.lamp i{width:10px;height:10px;border-radius:50%;background:var(--red-lo);box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
+.lamp.on{color:var(--txt)}
+.lamp.on i{background:var(--red);box-shadow:inset 0 -1px 1px rgba(120,10,0,.6),inset 0 1px 1px rgba(255,220,210,.7)}
+
+/* strobe window: chrome bezel, the signature */
+.bezel{margin:12px 14px 0;padding:5px;border-radius:18px;background:var(--chrome)}
+.win{position:relative;height:150px;border-radius:13px;overflow:hidden;background:#000}
+.win canvas{position:absolute;inset:0;width:100%;height:100%}
+.win::after{content:"";position:absolute;inset:0;border-radius:13px;pointer-events:none;background:linear-gradient(172deg,rgba(255,255,255,.14),rgba(255,255,255,0) 34%),linear-gradient(0deg,rgba(0,0,0,.45),rgba(0,0,0,0) 30%)}
+.win .flat{position:absolute;left:10px;bottom:8px;font:500 12px/1 var(--fut);letter-spacing:.22em;color:#8a8780;z-index:2}
+.win .sharp{position:absolute;right:10px;bottom:8px;font:500 12px/1 var(--fut);letter-spacing:.22em;color:#8a8780;z-index:2}
+.win .idx{position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:rgba(236,235,231,.4);z-index:2}
+
+/* needle meter */
+.meter{position:relative;margin:10px 14px 0;height:92px}
+.meter svg{width:100%;height:100%;overflow:visible}
+.meter text{font:500 12px var(--fut);fill:var(--txt-2)}
+
+/* instrument + headstock */
+.inst{display:flex;align-items:center;justify-content:space-between;padding:10px 8px 0}
+.inst button.arr{width:48px;height:48px;display:grid;place-items:center;color:var(--txt-2)}
+.inst button.arr:active{color:var(--txt)}
+.inst .nm{text-align:center;flex:1;height:48px}
+.inst .nm b{display:block;font:600 19px/1.2 var(--zh);letter-spacing:.14em}
+.inst .nm span{font:500 13px/1.3 var(--fut);letter-spacing:.14em;color:var(--txt-2)}
+.head{position:relative;margin:4px 0 0;touch-action:pan-y}
+.head svg{width:100%;height:auto}
+.peg{position:absolute;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;touch-action:none;display:grid;place-items:center}
+.peg .lb{position:absolute;top:50%;font:500 14px/1 var(--fut);transform:translateY(-50%);white-space:nowrap;display:flex;align-items:center;gap:4px;color:var(--txt-2);pointer-events:none}
+.peg.l .lb{right:52px}
+.peg.r .lb{left:52px}
+.peg.sel .lb{color:var(--txt)}
+.peg .lb svg{width:14px;height:14px;fill:none;stroke:var(--red);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.peg .ring{position:absolute;inset:2px;border-radius:50%;border:2px solid transparent;transition:border-color .2s}
+.peg.sel .ring{border-color:var(--red)}
+.prog{text-align:center;font:500 13px/1 var(--fut);letter-spacing:.14em;color:var(--txt-2);margin-top:4px}
+
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 14px 0}
+.ctl button{height:62px;border-radius:14px;background:#1f1d1b;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:600 13px var(--zh);letter-spacing:.06em;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);transition:background-color .15s,transform .12s}
+.ctl button:active{transform:scale(.96)}
+.ctl button.on{background:var(--txt);color:var(--blk)}
+.ctl button.on .ic{stroke:var(--blk)}
+.more{display:block;margin:14px auto 0;height:44px;padding:0 18px;font:600 14px var(--zh);color:var(--txt-2);letter-spacing:.08em}
+.more:active{color:var(--txt)}
+
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:130px;height:5px;margin-left:-65px;border-radius:3px;background:#d9d8d4;z-index:25;pointer-events:none}
+
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:84%;display:flex;flex-direction:column;border-radius:26px 26px 0 0;background:#1a1817;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);transform:translateY(105%);visibility:hidden;transition:transform .5s var(--spring),visibility 0s .5s;touch-action:none;padding-bottom:env(safe-area-inset-bottom)}
+.sheet.on{transform:none;visibility:visible;transition:transform .5s var(--spring)}
+.sheet.drag{transition:none}
+.grab{flex:none;height:30px;display:grid;place-items:center;cursor:grab}
+.grab i{width:44px;height:5px;border-radius:3px;background:#4a4744}
+.sb{overflow-y:auto;padding:0 20px 24px;touch-action:pan-y;overscroll-behavior:contain}
+.sb h3{font:500 22px var(--fut);letter-spacing:.16em}
+.sb p{font-size:13px;color:var(--txt-2);margin-top:4px}
+.opts{margin-top:14px}
+.opts button{width:100%;min-height:62px;display:grid;grid-template-columns:1fr auto;align-items:center;text-align:left;padding:8px 4px;border-top:1px solid #2a2725}
+.opts button:active{background:#22201e}
+.opts b{font:600 16px var(--zh)}
+.opts span{font:500 14px var(--fut);letter-spacing:.1em;color:var(--txt-2)}
+.opts .on b{color:var(--red)}
+.wide{width:100%;height:52px;margin-top:16px;border-radius:14px;background:#2a2725;font:600 15px var(--zh);letter-spacing:.08em}
+.wide:active{background:#34302d}
+
+.toast{position:absolute;left:50%;top:calc(54px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-170%);visibility:hidden;transition:transform .4s var(--spring),visibility 0s .4s;
+  height:42px;padding:0 18px;display:flex;align-items:center;border-radius:21px;background:var(--txt);color:var(--blk);font:600 14px var(--zh);white-space:nowrap}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .4s var(--spring)}
+@media (prefers-reduced-motion:reduce){
+  .sheet,.toast{transition-duration:.01s}
+  .ctl button:active{transform:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="chr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f7f5"/><stop offset=".22" stop-color="#b9b9b6"/><stop offset=".4" stop-color="#f0f0ee"/><stop offset=".62" stop-color="#6f6f6c"/><stop offset=".82" stop-color="#d6d6d3"/><stop offset="1" stop-color="#9a9a97"/></linearGradient>
+  <linearGradient id="chrH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8e8e8b"/><stop offset=".3" stop-color="#f4f4f2"/><stop offset=".55" stop-color="#a9a9a6"/><stop offset=".8" stop-color="#e6e6e3"/><stop offset="1" stop-color="#777774"/></linearGradient>
+  <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1e1a17"/><stop offset=".5" stop-color="#2d2723"/><stop offset="1" stop-color="#1a1714"/></linearGradient>
+  <linearGradient id="wood2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a2e16"/><stop offset=".5" stop-color="#7a4222"/><stop offset="1" stop-color="#4c2612"/></linearGradient>
+</defs></svg>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <rect width="1600" height="1000" fill="#050404"/>
+      <g class="disc" id="bdDisc"></g>
+      <rect x="0" y="0" width="1600" height="1000" fill="url(#bdShade)"/>
+      <defs><linearGradient id="bdShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050404" stop-opacity=".2"/><stop offset=".6" stop-color="#050404" stop-opacity=".55"/><stop offset="1" stop-color="#050404" stop-opacity=".92"/></linearGradient></defs>
+    </svg>
+  </div>
+  <div class="caption">
+    <h1>調音</h1>
+    <div class="m">STROBE · 440</div>
+    <p>紅色頻閃盤往右漂是偏高，往左漂是偏低，停住就準了。轉動琴頭上的弦鈕，看著它慢慢停下來。</p>
+  </div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="crinkle" aria-hidden="true"><svg><filter id="crk"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .48  0 0 0 0 .46  0 0 0 .28 0"/></filter><rect width="100%" height="100%" fill="#141312"/><rect width="100%" height="100%" filter="url(#crk)"/></svg></div>
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="#ecebe7"><circle cx="2" cy="10" r="2"/><circle cx="7" cy="7.5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="16.5" cy="2.5" r="1.5" fill="none" stroke="#ecebe7" stroke-width="1"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#ecebe7" stroke-width="1.6" stroke-linecap="round"><path d="M1.6 4.8a9 9 0 0 1 12.8 0M4.2 7.6a5.3 5.3 0 0 1 7.6 0"/><circle cx="8" cy="10.3" r="1.3" fill="#ecebe7" stroke="none"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x="1" y="1" width="21" height="10" rx="5" fill="none" stroke="#ecebe7" stroke-width="1.4"/><rect id="batt" x="3" y="3" width="14" height="6" rx="3" fill="#ecebe7"/><circle cx="24" cy="6" r="1.4" fill="#ecebe7"/></svg>
+        </span>
+      </div>
+
+      <div class="body" id="body">
+        <div class="hdr">
+          <h1>調音</h1>
+          <div class="cal" aria-label="標準音校正">
+            <button id="calDn" aria-label="A4 降低 1 赫茲"><svg class="ic" viewBox="0 0 24 24"><path d="M14.5 6 8.5 12l6 6"/></svg></button>
+            <span>A4 <b id="calV">440</b> Hz</span>
+            <button id="calUp" aria-label="A4 提高 1 赫茲"><svg class="ic" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button>
+          </div>
+        </div>
+
+        <div class="readout" aria-live="polite">
+          <div class="note" id="note">E<sub>2</sub></div>
+          <div class="rd2">
+            <div class="cents" id="cents">--<small>¢</small></div>
+            <div class="hz" id="hz">82.41 Hz 目標</div>
+            <div class="lamp" id="lamp"><i></i>IN TUNE</div>
+          </div>
+        </div>
+
+        <div class="bezel"><div class="win" id="win"><canvas id="strobe"></canvas><span class="idx"></span><span class="flat">♭ FLAT</span><span class="sharp">SHARP ♯</span></div></div>
+
+        <div class="meter"><svg viewBox="0 0 362 92" id="meter"></svg></div>
+
+        <div class="inst">
+          <button class="arr" id="prevI" aria-label="上一種樂器"><svg class="ic" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></button>
+          <button class="nm" id="instBtn" aria-label="調音方式"><b id="instN">吉他</b><span id="instP">STANDARD · E A D G B E</span></button>
+          <button class="arr" id="nextI" aria-label="下一種樂器"><svg class="ic" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div class="head" id="head"></div>
+        <div class="prog" id="prog"></div>
+
+        <div class="ctl">
+          <button id="refBtn" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M6 12c1.5-4 3-4 4.5 0s3 4 4.5 0 2.5-3 3-1.5"/><circle class="dot" cx="12" cy="3" r="1.8"/></svg>參考音</button>
+          <button id="pluckBtn"><svg class="ic" viewBox="0 0 24 24"><path d="M5 19 12 5l7 14z"/><path d="M3 12h4M17 12h4"/><circle class="dot" cx="12" cy="14" r="1.8"/></svg>撥弦</button>
+          <button id="micBtn" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><rect x="8.5" y="3" width="7" height="12" rx="3.5"/><path d="M5 11.5a7 7 0 0 0 14 0M12 18.5V21"/><circle class="dot" cx="12" cy="21" r="1.6"/></svg>麥克風</button>
+        </div>
+        <button class="more" id="shuffle">把弦轉鬆，重新練習</button>
+      </div>
+      <div class="home-ind"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="調音方式"><div class="grab"><i></i></div><div class="sb" id="sb"></div></div>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+function haptic(p){ try{ if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var KEY = 'app091:';
+function load(k, d){ try{ var v = localStorage.getItem(KEY+k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(KEY+k, JSON.stringify(v)); }catch(e){} }
+
+// ---------- instruments ----------
+var INST = [
+ {id:'gt', n:'吉他', en:'GUITAR', presets:[{n:'標準', en:'STANDARD', s:['E2','A2','D3','G3','B3','E4']},{n:'Drop D', en:'DROP D', s:['D2','A2','D3','G3','B3','E4']},{n:'DADGAD', en:'DADGAD', s:['D2','A2','D3','G3','A3','D4']},{n:'Open G', en:'OPEN G', s:['D2','G2','D3','G3','B3','D4']}]},
+ {id:'uk', n:'烏克麗麗', en:'UKULELE', presets:[{n:'標準', en:'STANDARD', s:['G4','C4','E4','A4']},{n:'Low G', en:'LOW G', s:['G3','C4','E4','A4']}]},
+ {id:'bs', n:'貝斯', en:'BASS', presets:[{n:'標準', en:'STANDARD', s:['E1','A1','D2','G2']},{n:'Drop D', en:'DROP D', s:['D1','A1','D2','G2']}]},
+ {id:'vn', n:'小提琴', en:'VIOLIN', presets:[{n:'標準', en:'STANDARD', s:['G3','D4','A4','E5']}]},
+ {id:'eh', n:'二胡', en:'ERHU', presets:[{n:'標準', en:'STANDARD · 內 D 外 A', s:['D4','A4']}]}
+];
+var NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function midi(n){ var m = n.match(/^([A-G]#?)(-?\d)$/); return NAMES.indexOf(m[1]) + (+m[2] + 1) * 12; }
+function freqOf(m){ return S.a4 * Math.pow(2, (m - 69) / 12); }
+
+var S = {
+  inst: load('inst', 0), preset: load('preset', {}), a4: load('a4', 440), sel: load('sel', 0),
+  det: load('det', {gt:[-24, 9, -41, 3, 17, -7], uk:[-12, 22, -5, 31], bs:[-35, 14, -8, 6], vn:[18, -26, 7, -15], eh:[-30, 12]}),
+  done: load('done', {})
+};
+function inst(){ return INST[S.inst]; }
+function preset(){ var i = inst(); return i.presets[S.preset[i.id] || 0]; }
+function strings(){ return preset().s; }
+function dets(){ var i = inst(); if (!S.det[i.id] || S.det[i.id].length !== strings().length) S.det[i.id] = strings().map(function(){ return Math.round((Math.random() - .5) * 60); }); return S.det[i.id]; }
+function doneOf(){ var k = inst().id + (S.preset[inst().id] || 0); return S.done[k] || (S.done[k] = []); }
+
+// ---------- status ----------
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tickClock(); setInterval(tickClock, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(3, 17 * b.level).toFixed(1)); }).catch(function(){});
+var toastT = 0;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 1900); }
+
+// ---------- audio ----------
+var ac = null, pl = null, ref = null, mic = null, an = null, micBuf = null;
+function audio(){ if (!ac){ try{ ac = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ ac = null; } } if (ac && ac.state === 'suspended') ac.resume().catch(function(){}); return ac; }
+function pluckSound(f){ // a plucked string: bright saw through a closing lowpass
+  if (!audio() || ac.state !== 'running') return;
+  stopPluck(); var t = ac.currentTime;
+  var o = ac.createOscillator(), o2 = ac.createOscillator(), lp = ac.createBiquadFilter(), g = ac.createGain();
+  o.type = 'sawtooth'; o2.type = 'triangle'; o.frequency.value = f; o2.frequency.value = f * 2;
+  lp.type = 'lowpass'; lp.frequency.setValueAtTime(Math.min(8000, f * 14), t); lp.frequency.exponentialRampToValueAtTime(Math.max(200, f * 1.6), t + 2.4);
+  var g2 = ac.createGain(); g2.gain.value = .25;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.2, t + .006); g.gain.exponentialRampToValueAtTime(.0008, t + 4.5);
+  o.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(ac.destination);
+  o.start(t); o2.start(t); o.stop(t + 4.6); o2.stop(t + 4.6);
+  pl = {o:o, o2:o2, g:g, end:t + 4.6};
+}
+function bendPluck(f){ if (pl && ac && ac.currentTime < pl.end){ pl.o.frequency.setTargetAtTime(f, ac.currentTime, .03); pl.o2.frequency.setTargetAtTime(f * 2, ac.currentTime, .03); } }
+function stopPluck(){ if (!pl) return; try{ pl.g.gain.setTargetAtTime(0, ac.currentTime, .02); pl.o.stop(ac.currentTime + .1); pl.o2.stop(ac.currentTime + .1); }catch(e){} pl = null; }
+function refOn(f){
+  if (!audio()) return; refOff(); var t = ac.currentTime;
+  var o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+  o.type = 'sine'; o2.type = 'sawtooth'; o.frequency.value = f; o2.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = f * 4;
+  var g2 = ac.createGain(); g2.gain.value = .12; o2.connect(g2); g2.connect(lp); o.connect(lp); lp.connect(g); g.connect(ac.destination);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.16, t + .08);
+  o.start(t); o2.start(t); ref = {o:o, o2:o2, g:g};
+}
+function refOff(){ if (!ref) return; try{ var t = ac.currentTime; ref.g.gain.setTargetAtTime(0, t, .04); ref.o.stop(t + .3); ref.o2.stop(t + .3); }catch(e){} ref = null; }
+function ding(){ if (!ac || ac.state !== 'running') return; var t = ac.currentTime; [1318.5, 1975.5].forEach(function(f, i){ var o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0, t + i * .09); g.gain.linearRampToValueAtTime(.08, t + i * .09 + .01); g.gain.exponentialRampToValueAtTime(.0005, t + i * .09 + .7); o.connect(g); g.connect(ac.destination); o.start(t + i * .09); o.stop(t + i * .09 + .75); }); }
+function tick(){ if (!ac || ac.state !== 'running') return; var t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = 2600; g.gain.setValueAtTime(.03, t); g.gain.exponentialRampToValueAtTime(.0001, t + .02); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + .03); }
+
+// ---------- signal model ----------
+// sig: level 0..1 of what the tuner "hears"; cents measured against the selected string
+var sig = 0, meas = 0, sigCents = 0, sigMidi = null, source = 'none', inTuneT = 0;
+function pluck(){
+  var d = dets()[S.sel], m = midi(strings()[S.sel]);
+  sig = 1; source = 'pluck'; sigMidi = m;
+  pluckSound(freqOf(m) * Math.pow(2, d / 1200));
+}
+
+// ---------- strobe canvas (signature) ----------
+var cv = $('strobe'), cx = cv.getContext('2d'), CW = 362, CH = 150, dpr = 1;
+function sizeStrobe(){ var r = $('win').getBoundingClientRect(); dpr = Math.min(2, devicePixelRatio || 1); CW = r.width || 352; CH = r.height || 150; cv.width = CW * dpr; cv.height = CH * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+var BANDS = [{r:1.0, n:36, k:1}, {r:1.0, n:72, k:2}, {r:1.0, n:144, k:4}, {r:1.0, n:288, k:8}], phase = [0, 0, 0, 0];
+function drawStrobe(dt){
+  var R = 620, ox = CW / 2, oy = R + 22, bh = 26, gap = 6;
+  cx.fillStyle = '#000'; cx.fillRect(0, 0, CW, CH);
+  var lit = Math.min(1, sig * 1.2), c = sigCents;
+  BANDS.forEach(function(b, k){
+    if (!reduce) phase[k] += (lit > .02 ? c : 0) * b.k * .00018 * dt;
+    var r0 = R - k * (bh + gap), r1 = r0 - bh, seg = Math.PI * 2 / b.n, a0 = -Math.PI / 2 - .36, a1 = -Math.PI / 2 + .36;
+    var start = Math.floor((a0 - phase[k]) / seg) * seg + phase[k];
+    var flick = .86 + Math.random() * .14;
+    for (var a = start; a < a1; a += seg){
+      cx.beginPath(); cx.arc(ox, oy, r0, a, a + seg / 2); cx.arc(ox, oy, r1, a + seg / 2, a, true); cx.closePath();
+      cx.fillStyle = lit > .02 ? 'rgba(255,' + (58 + 30 * lit | 0) + ',36,' + (.22 + .78 * lit * flick).toFixed(3) + ')' : 'rgba(255,58,36,.12)';
+      cx.fill();
+    }
+    cx.beginPath(); cx.arc(ox, oy, r1 - gap / 2, a0, a1); cx.strokeStyle = 'rgba(200,200,196,.18)'; cx.lineWidth = 1; cx.stroke();
+  });
+}
+
+// ---------- needle meter ----------
+var needle = null, nAng = -60;
+function buildMeter(){
+  var cxm = 181, cy = 150, r = 118, h = '';
+  function pt(a, rr){ var t = (a - 90) * Math.PI / 180; return [cxm + rr * Math.cos(t), cy + rr * Math.sin(t)]; }
+  for (var c = -50; c <= 50; c += 5){
+    var a = c * 1.1, big = c % 25 === 0, p = pt(a, r), q = pt(a, r - (big ? 14 : c % 10 === 0 ? 9 : 6));
+    h += '<line x1="' + p[0].toFixed(1) + '" y1="' + p[1].toFixed(1) + '" x2="' + q[0].toFixed(1) + '" y2="' + q[1].toFixed(1) + '" stroke="' + (c === 0 ? '#ff3a24' : '#8a8780') + '" stroke-width="' + (c === 0 ? 3 : big ? 2 : 1.2) + '" stroke-linecap="round"/>';
+    if (big){ var tp = pt(a, r + 12); h += '<text x="' + tp[0].toFixed(1) + '" y="' + (tp[1] + 4).toFixed(1) + '" text-anchor="middle">' + (c > 0 ? '+' + c : c) + '</text>'; }
+  }
+  var z0 = pt(-2.2, r + 1), z1 = pt(2.2, r + 1);
+  h += '<path d="M' + z0[0] + ' ' + z0[1] + 'A' + (r + 1) + ' ' + (r + 1) + ' 0 0 1 ' + z1[0] + ' ' + z1[1] + '" stroke="#ff3a24" stroke-width="4" fill="none"/>';
+  h += '<g id="needle"><path d="M' + (cxm - 2) + ' ' + cy + 'L' + (cxm - .6) + ' ' + (cy - r + 6) + 'L' + (cxm + .6) + ' ' + (cy - r + 6) + 'L' + (cxm + 2) + ' ' + cy + 'z" fill="url(#chrH)"/></g>';
+  h += '<rect x="' + (cxm - 60) + '" y="' + 82 + '" width="120" height="14" rx="7" fill="#0a0909"/>';
+  h += '<text x="' + cxm + '" y="' + 91 + '" text-anchor="middle" style="font:500 11px Futura,sans-serif;letter-spacing:.3em;fill:#6d6a64">CENTS</text>';
+  $('meter').innerHTML = h; needle = document.getElementById('needle');
+}
+
+// ---------- headstocks ----------
+// each: svg body + peg anchor points in viewBox 390 x 250 units; strings run from posts to the nut
+function headDef(id, n){
+  var H = {};
+  if (id === 'gt'){
+    H.body = '<path d="M140 250V214c-18-6-40-22-46-52l-8-110C84 26 106 8 130 8h130c24 0 46 18 44 44l-8 110c-6 30-28 46-46 52v36z" fill="url(#wood)"/><path d="M140 222h110v8H140z" fill="#e8e3d6"/>';
+    H.posts = [[150, 176], [146, 118], [142, 60], [240, 60], [244, 118], [248, 176]];
+    H.pegs = [[64, 176, 'l'], [60, 118, 'l'], [56, 60, 'l'], [334, 60, 'r'], [330, 118, 'r'], [326, 176, 'r']];
+    H.nut = [155, 171, 187, 203, 219, 235];
+  } else if (id === 'uk'){
+    H.body = '<path d="M150 250v-34c-12-6-26-18-30-40l-8-120c0-26 18-44 40-44h86c22 0 40 18 40 44l-8 120c-4 22-18 34-30 40v34z" fill="url(#wood2)"/><path d="M150 222h90v8h-90z" fill="#e8e3d6"/>';
+    H.posts = [[164, 166], [160, 84], [230, 84], [226, 166]];
+    H.pegs = [[80, 166, 'l'], [76, 84, 'l'], [314, 84, 'r'], [310, 166, 'r']];
+    H.nut = [163, 184, 206, 227];
+  } else if (id === 'bs'){
+    H.body = '<path d="M138 250v-32c-20-8-44-26-50-60L78 44C76 20 98 4 122 4h146c24 0 46 16 44 40l-10 114c-6 34-30 52-50 60v32z" fill="url(#wood)"/><path d="M138 222h114v8H138z" fill="#e8e3d6"/>';
+    H.posts = [[152, 158], [146, 70], [244, 70], [238, 158]];
+    H.pegs = [[62, 158, 'l'], [56, 70, 'l'], [334, 70, 'r'], [328, 158, 'r']];
+    H.nut = [155, 182, 208, 235];
+  } else if (id === 'vn'){
+    H.body = '<path d="M168 250v-26l-6-120c-2-20 2-40 14-54-16-6-22-24-14-38 8-14 28-16 38-4 10 12 4 28-8 32 10 12 14 30 12 52l-6 132v26z" fill="url(#wood2)"/><circle cx="184" cy="26" r="9" fill="none" stroke="#3a1c0c" stroke-width="3"/><path d="M168 224h38v6h-38z" fill="#1a1612"/>';
+    H.posts = [[178, 190], [176, 124], [196, 124], [194, 190]];
+    H.pegs = [[92, 190, 'l'], [90, 124, 'l'], [286, 124, 'r'], [284, 190, 'r']];
+    H.nut = [175, 183, 191, 199];
+    H.violin = true;
+  } else {
+    H.body = '<path d="M176 250V40c0-16 6-30 18-30s18 14 18 30v210z" fill="url(#wood)"/><path d="M186 10c-10-2-14 6-8 12M202 10c10-2 14 6 8 12" stroke="#2d2723" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M176 232h36v6h-36z" fill="#e8e3d6"/>';
+    H.posts = [[194, 76], [194, 150]];
+    H.pegs = [[300, 76, 'r'], [300, 150, 'r']];
+    H.nut = [188, 200];
+    H.erhu = true;
+  }
+  return H;
+}
+var pegEls = [];
+function renderHead(){
+  var i = inst(), H = headDef(i.id), s = strings(), d = dets(), dn = doneOf(), h = '<svg viewBox="0 0 390 250" id="hsvg">';
+  h += H.body;
+  s.forEach(function(n, k){
+    var p = H.posts[k], nx = H.nut[k], pg = H.pegs[k], th = 1 + (5 - Math.min(5, Math.floor(midi(n) / 12) - 1)) * .35;
+    h += '<path data-s="' + k + '" d="M' + nx + ' 250V' + (H.erhu ? 238 : 226) + 'L' + p[0] + ' ' + p[1] + '" stroke="' + (k === S.sel ? '#f4f2ec' : '#b6b2a8') + '" stroke-width="' + th.toFixed(1) + '" fill="none"/>';
+    // tuning machine: shaft through the headstock + a chrome button, or wooden pegs for violin
+    if (H.violin) h += '<path d="M' + p[0] + ' ' + (p[1] - 6) + 'L' + pg[0] + ' ' + (pg[1] - 5) + 'v10L' + p[0] + ' ' + (p[1] + 6) + 'z" fill="#2a160b"/>';
+    else h += '<rect x="' + Math.min(p[0], pg[0]) + '" y="' + (p[1] - 4) + '" width="' + Math.abs(pg[0] - p[0]) + '" height="8" fill="url(#chr)"/>';
+    h += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="5" fill="url(#chrH)"/>';
+  });
+  h += '</svg>';
+  s.forEach(function(n, k){
+    var pg = H.pegs[k];
+    h += '<button class="peg ' + pg[2] + (k === S.sel ? ' sel' : '') + '" data-k="' + k + '" aria-label="' + n + ' 弦，拖曳調音" style="left:' + (pg[0] / 390 * 100).toFixed(2) + '%;top:' + (pg[1] / 250 * 100).toFixed(2) + '%">' +
+      '<svg viewBox="-24 -24 48 48" width="48" height="48" class="knob"><g>' +
+      (H.violin ? '<ellipse rx="11" ry="17" fill="#2a160b"/><ellipse rx="7" ry="12" fill="#3d2112"/><circle r="3" fill="#1a0d06"/>' :
+       '<rect x="-17" y="-8" width="34" height="16" rx="8" fill="url(#chr)"/><rect x="-6" y="-13" width="12" height="26" rx="4" fill="url(#chrH)"/>') +
+      '</g></svg><span class="ring"></span><span class="lb">' + (dn.indexOf(k) >= 0 ? '<svg viewBox="0 0 14 14"><path d="M2.5 7.5l3 3 6-7"/></svg>' : '') + n.replace('#', '♯') + '</span></button>';
+  });
+  $('head').innerHTML = h;
+  pegEls = [].slice.call($('head').querySelectorAll('.peg'));
+  pegEls.forEach(function(el, k){ el.querySelector('g').setAttribute('transform', 'rotate(' + (d[k] * 3).toFixed(1) + ')'); });
+  $('instN').textContent = i.n; $('instP').textContent = preset().en + ' · ' + s.map(function(x){ return x.replace(/\d/, '').replace('#', '♯'); }).join(' ');
+  $('prog').textContent = dn.length + ' / ' + s.length + ' 已調準';
+  renderTarget();
+}
+function renderTarget(){
+  var n = strings()[S.sel], m = midi(n), nm = NAMES[m % 12], oct = Math.floor(m / 12) - 1;
+  $('note').innerHTML = nm.replace('#', '<sup>♯</sup>') + '<sub>' + oct + '</sub>';
+  $('hz').textContent = freqOf(m).toFixed(2) + ' Hz 目標';
+}
+function selectString(k, quiet){ S.sel = k; save('sel', k); pegEls.forEach(function(el, j){ el.classList.toggle('sel', j === k); }); $('head').querySelectorAll('path[data-s]').forEach(function(p){ p.setAttribute('stroke', +p.dataset.s === k ? '#f4f2ec' : '#b6b2a8'); }); renderTarget(); if (ref) refOn(freqOf(midi(strings()[k]))); if (!quiet){ haptic(6); } }
+// pegs: tap selects and plucks, vertical drag turns the tuning key
+(function(){
+  var on = null, sy = 0, sx = 0, sd = 0, mv = 0;
+  $('head').addEventListener('pointerdown', function(e){
+    var p = e.target.closest('.peg'); if (!p) return; audio();
+    on = +p.dataset.k; sy = e.clientY; sx = e.clientX; sd = dets()[on]; mv = 0;
+    try{ p.setPointerCapture(e.pointerId); }catch(er){}
+    if (on !== S.sel) selectString(on);
+    pluck();
+  });
+  $('head').addEventListener('pointermove', function(e){
+    if (on == null) return;
+    var dy = (sy - e.clientY) + (e.clientX - sx) * (pegEls[on].classList.contains('l') ? -.5 : .5); mv = Math.max(mv, Math.abs(dy));
+    var d = dets(), nv = Math.max(-80, Math.min(80, sd + dy * .35));
+    if (Math.round(nv / 4) !== Math.round(d[on] / 4)){ tick(); haptic(3); }
+    d[on] = nv; sig = Math.max(sig, .85); source = 'pluck';
+    var g = pegEls[on] && pegEls[on].querySelector('g'); if (g) g.setAttribute('transform', 'rotate(' + (nv * 3).toFixed(1) + ')');
+    bendPluck(freqOf(midi(strings()[on])) * Math.pow(2, nv / 1200));
+  });
+  function up(){ if (on == null) return; save('det', S.det); on = null; }
+  $('head').addEventListener('pointerup', up); $('head').addEventListener('pointercancel', up);
+  $('head').addEventListener('keydown', function(e){
+    var p = e.target.closest('.peg'); if (!p) return; var k = +p.dataset.k, d = dets();
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown'){ e.preventDefault(); if (k !== S.sel) selectString(k); d[k] += e.key === 'ArrowUp' ? 1 : -1; save('det', S.det); sig = Math.max(sig, .8); source = 'pluck'; }
+  });
+})();
+// swipe the headstock to change instrument
+(function(){
+  var h = $('head'), sx = 0, sy = 0, on = false;
+  h.addEventListener('pointerdown', function(e){ if (e.target.closest('.peg')) return; on = true; sx = e.clientX; sy = e.clientY; });
+  h.addEventListener('pointerup', function(e){ if (!on) return; on = false; var dx = e.clientX - sx; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(e.clientY - sy)) setInst(S.inst + (dx < 0 ? 1 : -1)); });
+  h.addEventListener('pointercancel', function(){ on = false; });
+})();
+function setInst(i){ S.inst = (i + INST.length) % INST.length; save('inst', S.inst); S.sel = 0; save('sel', 0); sig = 0; stopPluck(); if (ref){ refOff(); paintRef(); } renderHead(); haptic(8); tick(); }
+$('prevI').addEventListener('click', function(){ audio(); setInst(S.inst - 1); });
+$('nextI').addEventListener('click', function(){ audio(); setInst(S.inst + 1); });
+
+// ---------- controls ----------
+function paintRef(){ $('refBtn').classList.toggle('on', !!ref); $('refBtn').setAttribute('aria-pressed', !!ref); }
+$('refBtn').addEventListener('click', function(){
+  audio(); haptic(8);
+  if (ref){ refOff(); source = 'none'; } else { refOn(freqOf(midi(strings()[S.sel]))); source = 'ref'; stopMic(); }
+  paintRef();
+});
+$('pluckBtn').addEventListener('click', function(){ audio(); haptic(10); stopMic(); if (ref){ refOff(); paintRef(); } pluck(); });
+$('micBtn').addEventListener('click', function(){
+  audio(); haptic(8);
+  if (mic){ stopMic(); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !ac){ toast('這台裝置不支援麥克風，改用撥弦模擬'); return; }
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false}}).then(function(st){
+    mic = st; var src = ac.createMediaStreamSource(st); an = ac.createAnalyser(); an.fftSize = 4096; micBuf = new Float32Array(an.fftSize); src.connect(an);
+    source = 'mic'; if (ref){ refOff(); paintRef(); }
+    $('micBtn').classList.add('on'); $('micBtn').setAttribute('aria-pressed', 'true'); toast('正在聽，撥一根弦');
+  }).catch(function(){ toast('沒有麥克風權限，改用撥弦模擬'); });
+});
+function stopMic(){ if (!mic) return; try{ mic.getTracks().forEach(function(t){ t.stop(); }); }catch(e){} mic = null; an = null; if (source === 'mic') source = 'none'; $('micBtn').classList.remove('on'); $('micBtn').setAttribute('aria-pressed', 'false'); }
+function detectPitch(){ // autocorrelation on the mic buffer
+  an.getFloatTimeDomainData(micBuf); var N = micBuf.length, rms = 0, i;
+  for (i = 0; i < N; i++) rms += micBuf[i] * micBuf[i]; rms = Math.sqrt(rms / N); if (rms < .01) return null;
+  var sr = ac.sampleRate, minL = Math.floor(sr / 1400), maxL = Math.floor(sr / 38), best = -1, bv = 0;
+  for (var L = minL; L < maxL; L++){ var s = 0; for (i = 0; i < N - L; i += 2) s += micBuf[i] * micBuf[i + L]; if (s > bv){ bv = s; best = L; } }
+  if (best < 0) return null; return {f:sr / best, rms:rms};
+}
+$('calDn').addEventListener('click', function(){ setA4(S.a4 - 1); });
+$('calUp').addEventListener('click', function(){ setA4(S.a4 + 1); });
+function setA4(v){ audio(); S.a4 = Math.max(430, Math.min(450, v)); save('a4', S.a4); $('calV').textContent = S.a4; renderTarget(); tick(); haptic(5); if (ref) refOn(freqOf(midi(strings()[S.sel]))); if (S.a4 !== 440) toast('標準音 A4 = ' + S.a4 + ' Hz'); }
+$('shuffle').addEventListener('click', function(){ audio(); var i = inst(); S.det[i.id] = strings().map(function(){ var v = Math.round((Math.random() - .5) * 70); return Math.abs(v) < 8 ? v + 14 : v; }); S.done[i.id + (S.preset[i.id] || 0)] = []; save('det', S.det); save('done', S.done); renderHead(); haptic([10, 40, 10]); toast('弦都轉鬆了，從第一根開始'); });
+
+// ---------- sheet (tuning presets) ----------
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('sb').innerHTML = html; $('sb').scrollTop = 0; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+(function(){
+  var sy = 0, dy = 0, t0 = 0, drag = false;
+  sheet.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; if (e.target.closest('.sb') && $('sb').scrollTop > 0) return; drag = true; sy = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(er){} });
+  sheet.addEventListener('pointermove', function(e){ if (!drag) return; dy = e.clientY - sy; sheet.style.transform = 'translateY(' + (dy > 0 ? dy : dy / 6).toFixed(1) + 'px)'; scrim.style.opacity = Math.max(0, 1 - dy / sheet.offsetHeight).toFixed(2); });
+  function end(e){ if (!drag) return; drag = false; sheet.classList.remove('drag'); scrim.style.opacity = ''; var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || (v > .6 && dy > 20)) closeSheet(); else sheet.style.transform = ''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+function presetSheet(){
+  var i = inst(), cur = S.preset[i.id] || 0;
+  var h = '<h3>' + i.en + '</h3><p>' + i.n + '的調音方式</p><div class="opts">' + i.presets.map(function(p, k){ return '<button data-p="' + k + '" class="' + (k === cur ? 'on' : '') + '"><b>' + p.n + '</b><span>' + p.s.join(' ').replace(/#/g, '♯') + '</span></button>'; }).join('') + '</div>';
+  h += '<p style="margin-top:18px">換樂器</p><div class="opts">' + INST.map(function(x, k){ return '<button data-i="' + k + '" class="' + (k === S.inst ? 'on' : '') + '"><b>' + x.n + '</b><span>' + x.en + '</span></button>'; }).join('') + '</div>';
+  openSheet(h);
+}
+$('instBtn').addEventListener('click', function(){ audio(); tick(); presetSheet(); });
+sheet.addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.p != null){ S.preset[inst().id] = +b.dataset.p; save('preset', S.preset); S.sel = 0; delete S.det[inst().id]; dets(); save('det', S.det); renderHead(); closeSheet(); toast(inst().n + '：' + preset().n); }
+  if (b.dataset.i != null){ setInst(+b.dataset.i); closeSheet(); }
+});
+
+// ---------- loop ----------
+var raf = 0, last = performance.now(), wob = 0, shownC = null;
+function loop(t){
+  raf = requestAnimationFrame(loop);
+  var dt = Math.min(50, t - last); last = t;
+  var target = midi(strings()[S.sel]);
+  if (source === 'mic' && an){
+    var r = detectPitch();
+    if (r){ var m = 69 + 12 * Math.log2(r.f / S.a4), near = Math.round(m); sigMidi = near; sigCents = (m - near) * 100; sig = Math.min(1, r.rms * 12);
+      var k = -1, bd = 99; strings().forEach(function(n, j){ var dd = Math.abs(midi(n) - m); if (dd < bd){ bd = dd; k = j; } }); if (k >= 0 && k !== S.sel && bd < .5) selectString(k, true);
+      sigCents = (m - midi(strings()[S.sel])) * 100; }
+    else sig *= .9;
+  } else if (source === 'ref'){ sig = .9; sigCents = 0; }
+  else if (source === 'pluck'){
+    wob += dt * .011; sig *= Math.pow(.99972, dt);
+    sigCents = dets()[S.sel] + Math.sin(wob) * .6 * sig + (sig > .8 ? (sig - .8) * 18 : 0);
+    if (sig < .02){ sig = 0; source = 'none'; }
+  } else { sig *= .9; }
+  drawStrobe(dt);
+  var c = Math.max(-50, Math.min(50, sigCents)), live = sig > .03;
+  var ta = live ? c * 1.1 : -58; nAng += (ta - nAng) * Math.min(1, dt * .012);
+  if (needle) needle.setAttribute('transform', 'rotate(' + nAng.toFixed(2) + ' 181 150)');
+  var txt = live ? (sigCents >= 0 ? '+' : '') + sigCents.toFixed(Math.abs(sigCents) < 10 ? 1 : 0) : '--';
+  if (txt !== shownC){ shownC = txt; $('cents').innerHTML = txt + '<small>¢</small>'; }
+  var ok = live && Math.abs(sigCents) <= 2 && source !== 'ref';
+  $('lamp').classList.toggle('on', ok || (source === 'ref' && live));
+  if (ok){ inTuneT += dt; if (inTuneT > 600){ markDone(); inTuneT = -99999; } } else if (inTuneT > 0 || !live) inTuneT = 0;
+  if (live && Math.abs(sigCents) > 6){ var dn = doneOf(), ix = dn.indexOf(S.sel); if (ix >= 0 && source === 'pluck'){ dn.splice(ix, 1); save('done', S.done); renderHead(); } }
+}
+function markDone(){
+  var dn = doneOf(); if (dn.indexOf(S.sel) >= 0) return;
+  dn.push(S.sel); save('done', S.done); ding(); haptic([10, 50, 18]);
+  var s = strings(); renderHead();
+  if (dn.length >= s.length) toast('全部調準了，可以開始彈了');
+  else { toast(s[S.sel].replace('#', '♯') + ' 調準了'); var nx = -1; for (var k = 1; k <= s.length; k++){ var j = (S.sel + k) % s.length; if (dn.indexOf(j) < 0){ nx = j; break; } } if (nx >= 0) setTimeout(function(){ selectString(nx, true); }, 900); }
+}
+document.addEventListener('visibilitychange', function(){ cancelAnimationFrame(raf); if (!document.hidden){ last = performance.now(); raf = requestAnimationFrame(loop); } });
+window.addEventListener('resize', sizeStrobe);
+
+// backdrop disc (desktop only)
+(function(){
+  var g = $('bdDisc'), h = '', cxd = 800, cyd = 1480;
+  [[1400, 60], [1320, 120], [1240, 240], [1160, 480]].forEach(function(b){
+    var r0 = b[0], r1 = r0 - 64, n = b[1], seg = Math.PI * 2 / n;
+    for (var k = 0; k < n; k++){ var a = k * seg, a2 = a + seg / 2;
+      h += '<path d="M' + (cxd + r0 * Math.cos(a)).toFixed(1) + ' ' + (cyd + r0 * Math.sin(a)).toFixed(1) + 'A' + r0 + ' ' + r0 + ' 0 0 1 ' + (cxd + r0 * Math.cos(a2)).toFixed(1) + ' ' + (cyd + r0 * Math.sin(a2)).toFixed(1) + 'L' + (cxd + r1 * Math.cos(a2)).toFixed(1) + ' ' + (cyd + r1 * Math.sin(a2)).toFixed(1) + 'A' + r1 + ' ' + r1 + ' 0 0 0 ' + (cxd + r1 * Math.cos(a)).toFixed(1) + ' ' + (cyd + r1 * Math.sin(a)).toFixed(1) + 'z" fill="#ff3a24" opacity=".72"/>'; }
+  });
+  h += '<circle cx="' + cxd + '" cy="' + cyd + '" r="1080" fill="#0c0b0a"/><circle cx="' + cxd + '" cy="' + cyd + '" r="1080" fill="none" stroke="#9a9a97" stroke-width="10"/>';
+  g.innerHTML = h;
+})();
+
+buildMeter(); renderHead(); sizeStrobe();
+sig = .95; source = 'pluck'; // the tuner opens mid-pluck so the strobe is already drifting
+raf = requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

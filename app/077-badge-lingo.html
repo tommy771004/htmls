@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#cdbf94">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="徽章語">
+<title>徽章語 · 台語學習</title>
+<meta name="description" content="用童軍刺繡徽章學台語：沿著縫線關卡路徑上課，選擇題與點字造句、生命線與經驗值，每過一關就把徽章縫上肩帶。收錄於 100 Creative HTML Works（App 077・童軍刺繡徽章）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/077-badge-lingo.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23cdbf94'/%3E%3Cpath d='M32 6 56 14v17c0 15-11 24-24 29C19 55 8 46 8 31V14z' fill='%2327405e' stroke='%23d9a22a' stroke-width='4'/%3E%3Cpath d='M20 30h24M20 38h16' stroke='%23f4ecd4' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --kh:#cdbf94;--kh2:#bfb083;--kh3:#a4966a;--khl:#ddd2ae;
+  --ol:#4d5530;--ol2:#3a4125;--ink:#2c311d;--ink2:#4f5536;
+  --red:#b3342b;--gold:#d9a22a;--cream:#f4ecd4;--navy:#27405e;--grn:#3f6b3a;--brn:#8a3b2a;
+  --cond:"Avenir Next Condensed","Avenir Next","PingFang TC",sans-serif;
+  --sans:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --bounce:cubic-bezier(.34,1.56,.5,1);--out:cubic-bezier(.2,.85,.25,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--sans);color:var(--ink);background:var(--kh);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--navy);outline-offset:3px;border-radius:8px}
+svg{display:block}
+.c{font-family:var(--cond);font-weight:700}
+.tl{font-family:"Helvetica Neue","Lucida Grande",sans-serif;font-weight:500;letter-spacing:0}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--kh)}
+.twill{position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(55deg,rgba(80,70,40,.075) 0 1.5px,transparent 1.5px 4px),repeating-linear-gradient(-35deg,rgba(255,250,230,.08) 0 1px,transparent 1px 6px)}
+@media (min-width:521px){
+  body{background:#b9aa7c}
+  .stage{display:flex;align-items:center;justify-content:center;gap:60px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:12px;z-index:1;background:var(--ol);box-shadow:inset 0 0 0 1px #5d6640,0 14px 26px -12px rgba(40,36,15,.7)}
+  .device::before{content:"";position:absolute;inset:5px;border-radius:49px;border:2px dashed rgba(244,236,212,.55);pointer-events:none}
+  .screen{inset:12px;border-radius:42px}
+  .caption{display:block;position:relative;z-index:1;width:260px;color:var(--ink)}
+  .caption b{display:block;font:700 56px/1.05 var(--sans);color:var(--ol2)}
+  .caption b span{display:block;font:700 22px/1.4 var(--cond);color:var(--red);letter-spacing:.04em}
+  .caption p{margin-top:12px;font-size:15px;line-height:1.65;color:var(--ink2)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:700 16px/1 var(--cond);color:var(--ink);pointer-events:none}
+.status .gl{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+
+/* top bar */
+.hdbg{position:absolute;top:0;left:0;right:0;z-index:19;height:calc(100px + env(safe-area-inset-top));background:var(--kh);box-shadow:0 3px 0 var(--kh2)}
+.hdbg::after{content:"";position:absolute;left:10px;right:10px;bottom:5px;border-top:2px dashed rgba(58,65,37,.3)}
+.top{position:absolute;top:calc(46px + env(safe-area-inset-top));left:0;right:0;z-index:20;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+.top button{height:44px;display:flex;align-items:center;gap:6px;padding:0 6px;border-radius:10px;transition:transform .15s}
+.top button:active{transform:scale(.92)}
+.hearts{display:flex;gap:1px}
+.hearts svg{width:24px;height:22px}
+.xp b,.fire b{font:700 20px/1 var(--cond)}
+.xp svg,.fire svg{width:24px;height:24px}
+
+/* pages */
+.pages{position:absolute;inset:0;z-index:2}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain;padding:calc(112px + env(safe-area-inset-top)) 0 calc(110px + env(safe-area-inset-bottom))}
+.page::-webkit-scrollbar{display:none}
+.page[hidden]{display:none}
+.page.in{animation:pin .4s var(--out)}
+@keyframes pin{from{transform:translateY(18px)}}
+
+/* path */
+.unit{position:relative;width:100%;aspect-ratio:390/560}
+.unit>svg{position:absolute;inset:0;width:100%;height:100%}
+.tape{position:absolute;left:50%;top:2.5%;transform:translateX(-50%);min-width:220px;height:46px;padding:0 22px;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--ol);color:var(--cream);white-space:nowrap}
+.tape::before{content:"";position:absolute;inset:4px 3px;border-top:1.5px dashed rgba(244,236,212,.6);border-bottom:1.5px dashed rgba(244,236,212,.6)}
+.tape b{font:700 15px/1 var(--cond);color:var(--gold);letter-spacing:.06em}
+.tape span{font-size:16px;font-weight:600}
+.unit.locked .tape{background:var(--kh3);color:#3d4228}
+.unit.locked .tape b{color:#4a4f32}
+.knot{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;display:grid;place-items:center;transition:transform .2s var(--bounce)}
+.knot:active{transform:scale(.9)}
+.knot svg{width:64px;height:64px}
+.knot .n{position:absolute;inset:0;display:grid;place-items:center;font:700 24px/1 var(--cond);color:var(--cream);padding-top:1px}
+.knot.lock .n{color:#6d6443}
+.knot.cur{width:78px;height:78px;margin:-39px 0 0 -39px}
+.knot.cur svg{width:78px;height:78px}
+.knot.cur .run{animation:sew 1.6s linear infinite}
+@keyframes sew{to{stroke-dashoffset:-24}}
+.go{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);padding:7px 12px 8px;background:var(--cream);color:var(--red);font-weight:700;font-size:14px;white-space:nowrap;border-radius:4px;box-shadow:0 2px 0 var(--kh3);pointer-events:none}
+.go::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:var(--cream)}
+.bigb{position:absolute;width:128px;height:128px;margin:-64px 0 0 -64px;transition:transform .25s var(--bounce)}
+.bigb:active{transform:scale(.94) rotate(-3deg)}
+.bigb svg{width:100%;height:100%}
+.bigb .lbl{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:6px;font-size:13px;font-weight:700;color:var(--ink2);white-space:nowrap}
+
+/* sash */
+.sashwrap{position:relative;min-height:100%;padding:0 0 30px}
+.sashh{text-align:center;padding:6px 20px 14px}
+.sashh h2{font:700 30px/1.1 var(--cond);color:var(--ol2)}
+.sashh h2 span{font-family:var(--sans);font-size:24px}
+.sashh p{font-size:14px;color:var(--ink2);margin-top:2px}
+.sash{position:relative;margin:0 auto;width:262px;padding:18px 12px 26px;background:var(--ol);display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;box-shadow:inset 0 0 0 5px var(--ol),inset 0 0 0 7px rgba(244,236,212,.35)}
+.sash::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(55deg,rgba(0,0,0,.08) 0 1.5px,transparent 1.5px 4px);pointer-events:none}
+.sb{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;border-radius:10px;transition:transform .2s var(--bounce)}
+.sb:active{transform:scale(.94)}
+.sb svg{width:104px;height:104px}
+.sb span{font-size:13px;font-weight:600;color:var(--cream)}
+.sb.no span{color:rgba(244,236,212,.6)}
+.sb.new svg .edge{animation:stitch 1.8s var(--out)}
+.sb.new svg .body{animation:fillin 1.8s var(--out)}
+@keyframes stitch{from{stroke-dashoffset:100}}
+@keyframes fillin{0%,55%{opacity:0}}
+
+/* word bag */
+.bagh{padding:6px 20px 8px}
+.bagh h2{font:700 30px/1.1 var(--sans);color:var(--ol2)}
+.bagh p{font-size:14px;color:var(--ink2)}
+.seg{position:relative;display:grid;grid-template-columns:repeat(3,1fr);margin:10px 20px 6px;height:44px;background:var(--kh2);border-radius:10px;padding:3px}
+.seg .k{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px)/3);border-radius:8px;background:var(--cream);transition:transform .4s var(--bounce);box-shadow:inset 0 0 0 1.5px var(--kh3)}
+.seg button{position:relative;font-weight:600;font-size:14px;color:var(--ink2)}
+.seg button[aria-pressed=true]{color:var(--ink)}
+.ugrp{margin:18px 20px 6px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--ol2)}
+.ugrp svg{width:30px;height:30px;flex:none}
+.word{display:grid;grid-template-columns:1fr auto 48px;align-items:center;gap:10px;margin:0 14px;padding:10px 6px 10px 10px;min-height:62px;border-radius:10px;transition:background-color .2s}
+.word:nth-of-type(odd){background:rgba(255,250,230,.22)}
+.word .hz{font-size:21px;font-weight:600;color:var(--ink)}
+.word .tl{display:block;font-size:16px;color:var(--navy);margin-top:1px}
+.word .zh{font-size:14px;color:var(--ink2);text-align:right}
+.star{width:44px;height:44px;display:grid;place-items:center;border-radius:22px;transition:transform .25s var(--bounce)}
+.star:active{transform:scale(.8)}
+.star svg{width:26px;height:26px}
+.empty{text-align:center;padding:40px 30px;color:var(--ink2)}
+
+/* nav */
+.nav{position:absolute;left:0;right:0;bottom:0;z-index:20;height:calc(84px + env(safe-area-inset-bottom));padding:6px 12px env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(3,1fr);background:var(--kh2);box-shadow:0 -3px 0 var(--kh3)}
+.nav::before{content:"";position:absolute;left:10px;right:10px;top:6px;border-top:2px dashed rgba(58,65,37,.35)}
+.nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:13px;font-weight:600;color:#5a5f40;height:64px;transition:color .2s}
+.nav button svg{width:32px;height:32px;transition:transform .3s var(--bounce)}
+.nav button[aria-selected=true]{color:var(--ink)}
+.nav button[aria-selected=true] svg{transform:translateY(-2px) rotate(-4deg)}
+.nav button:active svg{transform:scale(.86)}
+.nav .dim{fill:none;stroke:currentColor}
+.nav button[aria-selected=true] .fill{fill:var(--red)}
+.nav .fill{fill:none;stroke:currentColor}
+
+/* lesson overlay */
+.lesson{position:absolute;inset:0;z-index:30;background:var(--khl);display:flex;flex-direction:column;padding:calc(50px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(103%);visibility:hidden;transition:transform .5s var(--out),visibility 0s .5s}
+.lesson.on{transform:none;visibility:visible;transition:transform .5s var(--out)}
+.lh{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center}
+.x{width:44px;height:44px;display:grid;place-items:center;border-radius:22px}
+.x:active{background:rgba(0,0,0,.06)}
+.prog{position:relative;height:16px}
+.prog i{position:absolute;left:0;right:0;top:7px;border-top:2.5px dashed #a79a70}
+.prog b{position:absolute;left:0;top:4px;height:8px;border-radius:4px;background:var(--grn);transition:width .5s var(--out)}
+.lh .hc{display:flex;align-items:center;gap:4px;font:700 20px/1 var(--cond);color:var(--red)}
+.lh .hc svg{width:26px;height:24px}
+.qwrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-top:18px;scrollbar-width:none}
+.qwrap::-webkit-scrollbar{display:none}
+.qk{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;color:var(--ol)}
+.qk svg{width:44px;height:44px;transition:transform .4s var(--bounce)}
+.qk svg.hop{animation:hop .6s var(--bounce)}
+@keyframes hop{30%{transform:translateY(-14px) rotate(-8deg) scale(1.1)}60%{transform:translateY(0) rotate(4deg)}}
+.qt{font-size:23px;font-weight:700;line-height:1.35;margin-top:10px;color:var(--ink)}
+.qt em{font-style:normal;color:var(--red)}
+.qbig{margin:12px 0 4px;padding:14px 16px;background:var(--cream);border-radius:12px;box-shadow:inset 0 0 0 2px var(--kh2)}
+.qbig b{display:block;font-size:30px;font-weight:700}
+.qbig .tl{font-size:20px;color:var(--navy)}
+.opts{display:grid;gap:10px;margin-top:16px}
+.opt{position:relative;display:flex;align-items:center;gap:12px;min-height:62px;padding:10px 16px;text-align:left;background:var(--cream);border-radius:12px;box-shadow:inset 0 0 0 2px var(--kh2),0 3px 0 var(--kh2);transition:box-shadow .15s,transform .15s,background-color .2s}
+.opt:active{transform:translateY(2px);box-shadow:inset 0 0 0 2px var(--kh2),0 1px 0 var(--kh2)}
+.opt .k{font:700 16px/1 var(--cond);color:var(--kh3);width:16px}
+.opt b{font-size:20px;font-weight:600}
+.opt .tl{margin-left:auto;font-size:17px;color:var(--navy)}
+.opt[aria-pressed=true]{box-shadow:inset 0 0 0 3px var(--navy),0 3px 0 var(--navy);background:#fff9e8}
+.opt[aria-pressed=true]::after{content:"";position:absolute;inset:6px;border-radius:8px;border:1.5px dashed rgba(39,64,94,.45);pointer-events:none}
+.opt.right{box-shadow:inset 0 0 0 3px var(--grn),0 3px 0 var(--grn);background:#eef3e0}
+.opt.wrong{box-shadow:inset 0 0 0 3px var(--red),0 3px 0 var(--red);background:#f8e3dc}
+.line{min-height:122px;margin-top:18px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:8px;padding:8px 0;background:repeating-linear-gradient(transparent 0 54px,#a79a70 54px 55.5px,transparent 55.5px 58px)}
+.bank{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:22px}
+.tile{position:relative;min-height:48px;min-width:48px;padding:5px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--cream);border-radius:8px;box-shadow:inset 0 0 0 2px var(--kh2),0 3px 0 var(--kh3);transition:transform .2s var(--bounce)}
+.tile b{font-size:19px;font-weight:600;line-height:1.1}
+.tile .tl{font-size:12px;color:var(--navy);line-height:1.2}
+.tile:active{transform:translateY(2px)}
+.tile.ghost{visibility:hidden}
+.tile.pop{animation:tpop .3s var(--bounce)}
+@keyframes tpop{from{transform:scale(.7)}}
+.check{flex:none;height:56px;margin-top:12px;border-radius:12px;background:var(--ol);color:var(--cream);font-weight:700;font-size:18px;letter-spacing:.1em;box-shadow:0 4px 0 var(--ol2);transition:transform .12s,box-shadow .12s,background-color .2s;position:relative}
+.check::after{content:"";position:absolute;inset:5px;border-radius:8px;border:1.5px dashed rgba(244,236,212,.45);pointer-events:none}
+.check:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ol2)}
+.check[disabled]{background:#a79a70;color:#efe7cf;box-shadow:0 4px 0 #8e8260;cursor:default}
+.fb{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:18px 18px calc(18px + env(safe-area-inset-bottom));color:var(--cream);transform:translateY(105%);visibility:hidden;transition:transform .42s var(--bounce),visibility 0s .42s}
+.fb.on{transform:none;visibility:visible;transition:transform .42s var(--bounce)}
+.fb.ok{background:var(--grn)}
+.fb.bad{background:var(--red)}
+.fb h3{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700}
+.fb h3 svg{width:34px;height:34px}
+.fb p{margin-top:6px;font-size:16px}
+.fb p .tl{font-size:18px}
+.fb button{display:block;width:100%;height:56px;margin-top:14px;border-radius:12px;background:var(--cream);font-weight:700;font-size:18px;letter-spacing:.1em;box-shadow:0 4px 0 rgba(0,0,0,.25);transition:transform .12s}
+.fb.ok button{color:var(--grn)}.fb.bad button{color:var(--red)}
+.fb button:active{transform:translateY(3px)}
+.done{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:10px}
+.done svg.bb{width:170px;height:170px;animation:hop .9s var(--bounce)}
+.done h2{font-size:28px;font-weight:700;margin-top:12px}
+.done .row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:20px}
+.done .row div{padding:12px 4px;background:var(--cream);border-radius:12px;box-shadow:inset 0 0 0 2px var(--kh2)}
+.done .row b{display:block;font:700 30px/1.1 var(--cond)}
+.done .row span{font-size:13px;color:var(--ink2)}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(44,49,29,.45);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:86%;overflow-y:auto;background:var(--khl);padding:10px 22px calc(24px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0;transform:translateY(105%);transition:transform .5s var(--bounce);touch-action:none;scrollbar-width:none}
+.sheet::before{content:"";position:absolute;left:10px;right:10px;top:8px;height:calc(100% - 8px);border:2px dashed rgba(77,85,48,.3);border-bottom:0;border-radius:18px 18px 0 0;pointer-events:none}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--kh3);margin:6px auto 12px}
+.sheet h4{font-size:22px;font-weight:700;text-align:center}
+.sheet .sub{text-align:center;font-size:14px;color:var(--ink2);margin-top:3px}
+.sheet .bd{display:grid;place-items:center;margin:12px 0 4px}
+.sheet .bd svg{width:150px;height:150px}
+.wl{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.wl div{font-size:15px}
+.wl .tl{display:block;font-size:14px;color:var(--navy)}
+.sbtn{display:block;width:100%;height:54px;margin-top:18px;border-radius:12px;background:var(--ol);color:var(--cream);font-weight:700;font-size:17px;box-shadow:0 4px 0 var(--ol2)}
+.sbtn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ol2)}
+.sbtn[disabled]{background:#a79a70;box-shadow:0 4px 0 #8e8260}
+.hbig{display:flex;justify-content:center;gap:6px;margin:16px 0 6px}
+.hbig svg{width:40px;height:36px}
+.toast{position:absolute;left:50%;top:calc(104px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-170px);visibility:hidden;padding:10px 18px;background:var(--ol2);color:var(--cream);font-weight:600;font-size:14px;border-radius:10px;white-space:nowrap;transition:transform .45s var(--bounce),visibility 0s .45s}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--bounce)}
+.homebar{position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--ink);opacity:.75;z-index:70;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  .page.in,.qk svg.hop,.done svg.bb,.tile.pop,.sb.new svg .edge,.sb.new svg .body{animation:none}
+  .knot.cur .run{animation:none}
+  .lesson,.fb,.sheet,.toast,.seg .k{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="sat" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(38)"><path d="M0 0v5" stroke="rgba(255,255,255,.2)" stroke-width="1.8"/><path d="M2.5 0v5" stroke="rgba(0,0,0,.08)" stroke-width="1"/></pattern>
+    <pattern id="sat2" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(-50)"><path d="M0 0v4" stroke="rgba(255,255,255,.28)" stroke-width="1.4"/></pattern>
+  </defs>
+</svg>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg id="bd" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice"></svg></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="twill"></div>
+      <div class="hdbg" aria-hidden="true"><div class="twill"></div></div>
+      <div class="status" aria-hidden="true"><span id="clk">9:41</span>
+        <span class="gl"><svg width="18" height="12" viewBox="0 0 18 12"><g fill="currentColor"><rect x="0" y="8" width="3.2" height="4" rx="1"/><rect x="4.8" y="5.5" width="3.2" height="6.5" rx="1"/><rect x="9.6" y="3" width="3.2" height="9" rx="1"/><rect x="14.4" y="0" width="3.2" height="12" rx="1" opacity=".35"/></g></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.4 1.2 4.4a9.8 9.8 0 0 1 13.6 0z" fill="currentColor"/></svg>
+        <svg width="27" height="13" viewBox="0 0 27 13"><rect x="1" y="1" width="22" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 1.4" opacity=".7"/><rect x="3" y="3" width="15" height="7" rx="1.5" fill="currentColor"/><rect x="24" y="4.5" width="2" height="4" rx=".8" fill="currentColor" opacity=".6"/></svg></span>
+      </div>
+      <div class="top">
+        <button id="heartBtn" aria-label="生命線"><span class="hearts" id="hearts"></span></button>
+        <button class="fire" id="fireBtn" aria-label="連續天數"><svg viewBox="0 0 24 24"><path d="M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.4 1.4-3.6 2.2-5.2.5 1.5 1.3 2.4 2.3 2.8C11 7 11 4.5 12 2z" fill="#d9a22a"/><path d="M12 9c.5 2 2.4 2.8 2.4 5a2.4 2.4 0 0 1-4.8 0c0-1.6 1.3-2.4 2.4-5z" fill="#b3342b"/><path d="M4 21l16-3M4 18l16 3" stroke="#6b4a2a" stroke-width="2.2" stroke-linecap="round"/></svg><b id="streak">0</b></button>
+        <button class="xp" id="xpBtn" aria-label="經驗值"><svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.2 6.7.5-5.1 4.4 1.6 6.5L12 16.1l-5.8 3.5 1.6-6.5L2.7 8.7l6.7-.5z" fill="#d9a22a"/><path d="M12 5.5l1.7 4 4.3.3-3.3 2.8 1 4.2L12 14.5l-3.7 2.3 1-4.2L6 9.8l4.3-.3z" fill="none" stroke="#8a6414" stroke-width="1" stroke-dasharray="1.4 1.2"/></svg><b id="xp">0</b></button>
+      </div>
+      <main class="pages">
+        <section class="page" id="p-path" aria-label="關卡路徑"><div id="pathBox"></div></section>
+        <section class="page" id="p-sash" hidden aria-label="肩帶"><div class="sashwrap"><div class="sashh"><h2><span>肩帶</span> <span id="sashN">0/9</span></h2><p>每過一關，就把徽章縫上來</p></div><div class="sash" id="sash"></div></div></section>
+        <section class="page" id="p-bag" hidden aria-label="字囊">
+          <div class="bagh"><h2>字囊</h2><p id="bagN"></p></div>
+          <div class="seg" id="seg"><i class="k"></i><button data-f="all" aria-pressed="true">已學</button><button data-f="star" aria-pressed="false">熟練</button><button data-f="todo" aria-pressed="false">待加強</button></div>
+          <div id="bagList"></div>
+        </section>
+      </main>
+      <nav class="nav" role="tablist" aria-label="主選單">
+        <button role="tab" data-p="path" aria-selected="true"><svg viewBox="0 0 32 32"><path d="M9 28c0-6 14-5 14-11S9 12 9 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-dasharray="3 2.4" stroke-linecap="round"/><circle cx="9" cy="5" r="3.4" class="fill" stroke-width="2"/><path d="M20 22l3 5 3-5z" fill="currentColor"/></svg>路徑</button>
+        <button role="tab" data-p="sash" aria-selected="false"><svg viewBox="0 0 32 32"><path d="M7 3l6 0 13 26h-6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M9.4 6.5 21.6 26" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2"/><circle cx="14" cy="13" r="3.4" class="fill" stroke-width="2"/><path d="M19.5 18l3 1.5-1.6 3-3-1.5z" fill="currentColor"/></svg>肩帶</button>
+        <button role="tab" data-p="bag" aria-selected="false"><svg viewBox="0 0 32 32"><path d="M9 11h14l3 15a2 2 0 0 1-2 2.4H8a2 2 0 0 1-2-2.4z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M9 11c1-3 3-4 7-4s6 1 7 4" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M8.5 15h15" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2"/><path d="M13 7 11 3M19 7l2-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="21" r="3" class="fill" stroke-width="2"/></svg>字囊</button>
+      </nav>
+
+      <section class="lesson" id="lesson" role="dialog" aria-label="課程">
+        <div class="lh"><button class="x" id="quit" aria-label="離開課程"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M5 5l12 12M17 5 5 17" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button><div class="prog"><i></i><b id="progB" style="width:0"></b></div><span class="hc" id="lHearts"></span></div>
+        <div class="qwrap" id="qwrap"></div>
+        <button class="check" id="check" disabled>檢查</button>
+        <div class="fb" id="fb"><h3 id="fbT"></h3><p id="fbP"></p><button id="fbGo">繼續</button></div>
+      </section>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><div class="grab"></div><div id="shBody"></div></div>
+      <div class="toast" id="toast" role="status"></div>
+      <div class="homebar"></div>
+    </div>
+  </div>
+  <div class="caption"><b>徽章語<span>台語 · 童軍徽章課</span></b><p>沿著縫線一關一關學台語。每過一關，就有一枚刺繡徽章縫上你的肩帶。</p></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var KEY='app077:';
+function load(k,d){ try{ var v=localStorage.getItem(KEY+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
+function save(k,v){ try{ localStorage.setItem(KEY+k, JSON.stringify(v)); }catch(e){} }
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+function shuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+var RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- content: 台語 (Tâi-lô) ---------- */
+var UNITS=[
+ {n:'打招呼', col:'#b3342b', edge:'#d9a22a', words:[['你好','lí hó','你好'],['多謝','to-siā','謝謝'],['歹勢','pháinn-sè','不好意思'],['食飽未','tsia̍h-pá--buē','吃飽了嗎'],['再會','tsài-huē','再見'],['勞力','lóo-la̍t','麻煩你了'],['免客氣','bián kheh-khì','不客氣'],['敖早','gâu-tsá','早安']],
+  sent:[['你好，吃飽了嗎？',['你好','食飽未'],['吃','飽了']],['謝謝，再見。',['多謝','再會'],['謝謝','再見']],['不好意思，不客氣。',['歹勢','免客氣'],['對不起']]]},
+ {n:'數字', col:'#27405e', edge:'#f4ecd4', words:[['一','tsi̍t','一'],['兩','nn̄g','二'],['三','sann','三'],['四','sì','四'],['五','gōo','五'],['六','la̍k','六'],['七','tshit','七'],['八','peh','八'],['九','káu','九'],['十','tsa̍p','十']],
+  sent:[['我要三個。',['我','欲','三','个'],['要','兩']],['四十九',['四','十','九'],['八','七']],['兩個人',['兩','个','人'],['二','三']]]},
+ {n:'夜市', col:'#d9a22a', edge:'#b3342b', words:[['夜市','iā-tshī','夜市'],['蚵仔煎','ô-á-tsian','蚵仔煎'],['食','tsia̍h','吃'],['啉','lim','喝'],['偌濟錢','guā-tsē tsînn','多少錢'],['足好食','tsiok hó-tsia̍h','很好吃'],['傷貴','siunn kuì','太貴'],['買','bé','買'],['臭豆腐','tshàu-tāu-hū','臭豆腐']],
+  sent:[['我要去夜市吃蚵仔煎。',['我','欲','去','夜市','食','蚵仔煎'],['要','吃']],['這個多少錢？',['這个','偌濟錢'],['多少','這個']],['很好吃，太貴了。',['足好食','傷貴'],['很','好吃']]]},
+ {n:'坐車', col:'#3f6b3a', edge:'#f4ecd4', words:[['火車','hué-tshia','火車'],['車頭','tshia-thâu','車站'],['去','khì','去'],['欲','beh','要'],['佗位','tó-uī','哪裡'],['遠','hn̄g','遠'],['近','kīn','近'],['行路','kiânn-lōo','走路'],['坐','tsē','坐（車）']],
+  sent:[['火車站在哪裡？',['車頭','佇','佗位'],['在','哪']],['我走路去。',['我','行路','去'],['走','要']],['很遠，坐火車。',['足','遠','坐','火車'],['很','近']]]},
+ {n:'天氣', col:'#f4ecd4', edge:'#27405e', words:[['天氣','thinn-khì','天氣'],['落雨','lo̍h-hōo','下雨'],['熱','jua̍h','熱'],['寒','kuânn','冷'],['風颱','hong-thai','颱風'],['日頭','ji̍t-thâu','太陽'],['今仔日','kin-á-ji̍t','今天'],['明仔載','bîn-á-tsài','明天']],
+  sent:[['今天下雨。',['今仔日','落雨'],['今天','下雨']],['明天很熱。',['明仔載','足','熱'],['很','寒']],['颱風要來了。',['風颱','欲','來','矣'],['颱風','要']]]},
+ {n:'厝內', col:'#8a3b2a', edge:'#d9a22a', words:[['厝','tshù','家'],['阿爸','a-pah','爸爸'],['阿母','a-bú','媽媽'],['阿公','a-kong','爺爺'],['阿媽','a-má','奶奶'],['囡仔','gín-á','小孩'],['小妹','sió-muē','妹妹'],['阿兄','a-hiann','哥哥']],
+  sent:[['奶奶在家。',['阿媽','佇','厝'],['在','家']],['我哥哥是老師。',['阮','阿兄','是','老師'],['我的','哥哥']],['小孩要吃飯。',['囡仔','欲','食','飯'],['吃','要']]]}
+];
+var TLX={'我':'guá','欲':'beh','去':'khì','个':'ê','這个':'tsit-ê','足':'tsiok','佇':'tī','來':'lâi','矣':'--ah','阮':'guán','是':'sī','老師':'lāu-su','飯':'pn̄g','人':'lâng','十':'tsa̍p','要':'','吃':'','飽了':'','謝謝':'','再見':'','對不起':'','兩':'nn̄g','二':'','多少':'','這個':'','很':'','好吃':'','在':'','哪':'','走':'','近':'kīn','今天':'','下雨':'','寒':'kuânn','颱風':'','家':'','我的':'','哥哥':''};
+UNITS.forEach(function(u){ u.words.forEach(function(w){ TLX[w[0]]=w[1]; }); });
+var SPECIAL=[
+ {id:'s7', n:'連續七天', col:'#4d5530', edge:'#d9a22a'},
+ {id:'sp', n:'零失誤', col:'#d9a22a', edge:'#27405e'},
+ {id:'se', n:'早起鳥', col:'#27405e', edge:'#d9a22a'}
+];
+
+/* ---------- badges (embroidered SVG) ---------- */
+var SHAPES=[
+ 'M60 8a52 52 0 1 1 0 104A52 52 0 1 1 60 8z',
+ 'M60 8 104 22v34c0 28-20 46-44 56C36 102 16 84 16 56V22z',
+ 'M60 6 107 33v54L60 114 13 87V33z',
+ 'M60 6 114 60 60 114 6 60z',
+ 'M60 8a52 52 0 1 1 0 104A52 52 0 1 1 60 8z',
+ 'M60 8 108 46v62H12V46z'
+];
+var ICONS=[
+ '<path d="M34 40h52a7 7 0 0 1 7 7v24a7 7 0 0 1-7 7H60L46 89V78H34a7 7 0 0 1-7-7V47a7 7 0 0 1 7-7z" fill="#f4ecd4"/><circle cx="46" cy="59" r="4.5" fill="#b3342b"/><circle cx="60" cy="59" r="4.5" fill="#b3342b"/><circle cx="74" cy="59" r="4.5" fill="#b3342b"/>',
+ '<text x="60" y="62" text-anchor="middle" dominant-baseline="central" font-family="Avenir Next Condensed" font-weight="700" font-size="40" fill="#d9a22a">123</text>',
+ '<rect x="50" y="30" width="20" height="8" rx="2" fill="#4d5530"/><ellipse cx="60" cy="62" rx="24" ry="25" fill="#b3342b"/><path d="M60 37v50M46 40q-8 22 0 44M74 40q8 22 0 44" stroke="#8a2a22" stroke-width="2.4" fill="none"/><rect x="50" y="85" width="20" height="7" rx="2" fill="#4d5530"/><path d="M56 92v10M60 92v12M64 92v10" stroke="#b3342b" stroke-width="2.4" stroke-linecap="round"/>',
+ '<rect x="40" y="36" width="40" height="44" rx="9" fill="#f4ecd4"/><rect x="46" y="42" width="28" height="15" rx="3" fill="#3f6b3a"/><circle cx="49" cy="68" r="3.6" fill="#d9a22a"/><circle cx="71" cy="68" r="3.6" fill="#d9a22a"/><path d="M46 80l-6 9M74 80l6 9" stroke="#f4ecd4" stroke-width="4" stroke-linecap="round"/>',
+ '<circle cx="50" cy="48" r="15" fill="#b3342b"/><path d="M40 74a12 12 0 0 1 3-23 15 15 0 0 1 28 3 10 10 0 0 1 3 20z" fill="#27405e"/><path d="M46 82l-3 8M58 82l-3 8M70 82l-3 8" stroke="#27405e" stroke-width="3.4" stroke-linecap="round"/>',
+ '<path d="M33 62 60 40l27 22" fill="none" stroke="#f4ecd4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M39 58v28h42V58" fill="none" stroke="#f4ecd4" stroke-width="5" stroke-linejoin="round"/><rect x="53" y="68" width="14" height="18" rx="2" fill="#d9a22a"/>'
+];
+var SP_ICON={
+ s7:'<path d="M60 30c3 12 16 17 16 32a16 16 0 0 1-32 0c0-8 5-12 7-17 2 5 4 8 7 9-1-9-1-16 2-24z" fill="#d9a22a"/><path d="M60 54c2 6 7 9 7 15a7 7 0 0 1-14 0c0-5 4-8 7-15z" fill="#b3342b"/><path d="M36 92l48-9M36 83l48 9" stroke="#8a5a2a" stroke-width="6" stroke-linecap="round"/>',
+ sp:'<path d="M60 30l8.5 18 19.5 2-14.6 13 4.2 19.5L60 72.5 42.4 82.5l4.2-19.5L32 50l19.5-2z" fill="#27405e"/>',
+ se:'<circle cx="60" cy="70" r="16" fill="#d9a22a"/><path d="M60 38v10M36 48l7 7M84 48l-7 7M28 70h10M82 70h10" stroke="#d9a22a" stroke-width="5" stroke-linecap="round"/><path d="M24 88h72" stroke="#f4ecd4" stroke-width="5" stroke-linecap="round"/>'
+};
+function badgeSVG(shape, col, edge, icon, state){
+  // state: 'full' | 'chalk'
+  if(state==='chalk') return '<svg viewBox="0 0 120 120" aria-hidden="true"><path d="'+shape+'" fill="rgba(255,250,230,.12)" stroke="rgba(244,236,212,.55)" stroke-width="2.5" stroke-dasharray="5 5"/></svg>';
+  return '<svg viewBox="0 0 120 120" aria-hidden="true"><g class="body"><path d="'+shape+'" fill="'+col+'"/><path d="'+shape+'" fill="url(#sat)"/><g>'+icon+'</g><path d="'+shape+'" fill="url(#sat2)" opacity=".5"/></g>'
+    +'<path class="edge" d="'+shape+'" fill="none" stroke="'+edge+'" stroke-width="8" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0" stroke-linejoin="round"/>'
+    +'<path d="'+shape+'" fill="none" stroke="rgba(0,0,0,.28)" stroke-width="8" stroke-dasharray="1.1 1.3" stroke-linejoin="round"/></svg>';
+}
+function unitBadge(i, state){ var u=UNITS[i]; return badgeSVG(SHAPES[i], u.col, u.edge, ICONS[i], state); }
+function heartSVG(on){ return '<svg viewBox="0 0 26 24" aria-hidden="true"><path d="M13 22S2 15.5 2 8.2A5.6 5.6 0 0 1 13 6a5.6 5.6 0 0 1 11 2.2C24 15.5 13 22 13 22z" fill="'+(on?'#b3342b':'none')+'" stroke="'+(on?'#8a2a22':'#8e8260')+'" stroke-width="'+(on?1.6:1.8)+'" '+(on?'':'stroke-dasharray="2.4 2"')+'/>'+(on?'<path d="M13 18.6S5.4 14 5.4 8.8a3.2 3.2 0 0 1 6-1.6" fill="none" stroke="rgba(244,236,212,.7)" stroke-width="1.3" stroke-dasharray="1.8 1.6" stroke-linecap="round"/>':'')+'</svg>'; }
+
+/* ---------- state ---------- */
+var DAY=864e5;
+function today(){ var d=new Date(); return Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()))/DAY); }
+var S=load('state', null);
+if(!S){ S={hearts:4, heartAt:Date.now(), xp:340, streak:6, lastDay:today()-1, prog:[3,3,1,0,0,0], earned:{u0:Date.now()-9*DAY, u1:Date.now()-3*DAY, se:Date.now()-5*DAY}, star:{'多謝':1,'你好':1,'三':1,'七':1,'再會':1}, miss:{'歹勢':2,'勞力':1,'九':1,'兩':1}}; }
+function persist(){ save('state', S); }
+var MAXH=5, REGEN=30*60000;
+function regen(){ if(S.hearts>=MAXH){ S.heartAt=Date.now(); return; } var n=Math.floor((Date.now()-S.heartAt)/REGEN); if(n>0){ S.hearts=Math.min(MAXH,S.hearts+n); S.heartAt+=n*REGEN; persist(); } }
+function curUnit(){ for(var i=0;i<UNITS.length;i++) if(S.prog[i]<3) return i; return UNITS.length; }
+
+/* ---------- sound ---------- */
+var AC=null;
+function ac(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } } if(AC&&AC.state==='suspended') AC.resume(); return AC; }
+function note(f,t0,d,type,v){ if(!AC) return; try{ var t=AC.currentTime+t0, o=AC.createOscillator(), g=AC.createGain(); o.type=type||'triangle'; o.frequency.value=f; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v||0.1,t+0.015); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d+0.02); }catch(e){} }
+function sew(t0,dur){ if(!AC) return; try{ var n=Math.floor(dur*22); for(var i=0;i<n;i++){ var t=AC.currentTime+t0+i/22, b=AC.createBuffer(1,AC.sampleRate*0.02,AC.sampleRate), d=b.getChannelData(0); for(var k=0;k<d.length;k++) d[k]=(Math.random()*2-1)*(1-k/d.length); var s=AC.createBufferSource(); s.buffer=b; var f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800; f.Q.value=2; var g=AC.createGain(); g.gain.value=0.22; s.connect(f); f.connect(g); g.connect(AC.destination); s.start(t); } }catch(e){} }
+function sRight(){ note(660,0,.18); note(990,.1,.3); sew(.05,.25); }
+function sWrong(){ note(196,0,.28,'square',.06); note(185,.12,.3,'square',.05); }
+function sTap(){ note(1200,0,.05,'sine',.05); }
+function sBadge(){ sew(0,1.4); [523,659,784,1047].forEach(function(f,i){ note(f,1.3+i*.12,.5); }); }
+
+/* ---------- top bar ---------- */
+function renderTop(){ regen(); var h=''; for(var i=0;i<MAXH;i++) h+=heartSVG(i<S.hearts); $('hearts').innerHTML=h; $('xp').textContent=S.xp; $('streak').textContent=S.streak; }
+
+/* ---------- path ---------- */
+var KP=[[50,31],[29,47],[70,62]], BP=[50,84];
+function renderPath(){
+  var cu=curUnit(), h='';
+  UNITS.forEach(function(u,i){
+    var locked=i>cu, pts=KP.concat([BP]);
+    var d='M195 -10 C195 60 '+(pts[0][0]*3.9)+' '+(pts[0][1]*5.6-60)+' '+(pts[0][0]*3.9)+' '+(pts[0][1]*5.6);
+    for(var k=1;k<pts.length;k++){ var a=pts[k-1], b=pts[k]; d+=' C'+(a[0]*3.9)+' '+(a[1]*5.6+44)+' '+(b[0]*3.9)+' '+(b[1]*5.6-44)+' '+(b[0]*3.9)+' '+(b[1]*5.6); }
+    d+=' C195 530 195 540 195 570';
+    h+='<div class="unit'+(locked?' locked':'')+'" data-u="'+i+'"><svg viewBox="0 0 390 560" preserveAspectRatio="none" aria-hidden="true"><path d="'+d+'" fill="none" stroke="'+(locked?'#a4966a':'#f4ecd4')+'" stroke-width="3.4" stroke-dasharray="9 7" stroke-linecap="round"/></svg>'
+      + '<div class="tape"><b>第 '+(i+1)+' 關</b><span>'+u.n+'</span></div>';
+    for(var k2=0;k2<3;k2++){
+      var st = S.prog[i]>k2 ? 'done' : (i===cu && S.prog[i]===k2) ? 'cur' : 'lock';
+      var fill = st==='done'? u.col==='#f4ecd4'?'#27405e':u.col : st==='cur'? '#4d5530' : 'none';
+      var svg='<svg viewBox="0 0 78 78">'+(st==='lock'
+        ? '<circle cx="39" cy="39" r="27" fill="rgba(255,250,230,.25)" stroke="#a4966a" stroke-width="2.5" stroke-dasharray="4 4"/>'
+        : '<circle cx="39" cy="39" r="30" fill="'+fill+'"/><circle cx="39" cy="39" r="30" fill="url(#sat)"/><circle class="run" cx="39" cy="39" r="34" fill="none" stroke="'+(st==='cur'?'#d9a22a':'#f4ecd4')+'" stroke-width="'+(st==='cur'?4:3)+'" stroke-dasharray="7 5" stroke-linecap="round"/>')+'</svg>';
+      h+='<button class="knot '+st+'" style="left:'+KP[k2][0]+'%;top:'+KP[k2][1]+'%" data-u="'+i+'" data-k="'+k2+'" aria-label="第'+(i+1)+'關 第'+(k2+1)+'課'+(st==='done'?'，已完成':st==='cur'?'，開始':'，未解鎖')+'">'+svg+'<span class="n">'+(st==='done'?'<svg width="26" height="26" viewBox="0 0 26 26" style="width:26px;height:26px"><path d="M6 13.5l4.6 4.5L20 8" fill="none" stroke="#f4ecd4" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>':(k2+1))+'</span>'+(st==='cur'?'<span class="go">開始上課</span>':'')+'</button>';
+    }
+    var earned=!!S.earned['u'+i];
+    h+='<button class="bigb" style="left:'+BP[0]+'%;top:'+BP[1]+'%" data-b="'+i+'" aria-label="'+u.n+'徽章'+(earned?'，已獲得':'，還沒縫上')+'">'+unitBadge(i, earned?'full':'chalk').replace('rgba(244,236,212,.55)', '#8e8260').replace('rgba(255,250,230,.12)','rgba(255,250,230,.2)')+'<span class="lbl">'+(earned?u.n+'徽章':S.prog[i]+' / 3 課')+'</span></button></div>';
+  });
+  h+='<p class="empty">更多關卡縫製中</p>';
+  $('pathBox').innerHTML=h;
+}
+$('pathBox').addEventListener('click', function(e){
+  var k=e.target.closest('.knot'), b=e.target.closest('.bigb');
+  if(k){ var u=+k.dataset.u, kk=+k.dataset.k; ac();
+    if(k.classList.contains('lock')){ toast('先把前面的課縫完'); haptic([20,40,20]); sWrong(); return; }
+    startLesson(u, kk, k.classList.contains('done')); return; }
+  if(b){ ac(); sTap(); openBadge(+b.dataset.b); }
+});
+function scrollToCur(sm){ var el=document.querySelector('.knot.cur'), p=$('p-path'); if(!el) return; var r=el.getBoundingClientRect(), pr=p.getBoundingClientRect(); p.scrollTo({top:p.scrollTop+r.top-pr.top-pr.height*0.42, behavior:(sm&&!RM)?'smooth':'auto'}); }
+
+/* ---------- sash ---------- */
+var newBadge=null;
+function renderSash(){
+  var h='', n=0;
+  UNITS.forEach(function(u,i){ var e=!!S.earned['u'+i]; if(e) n++;
+    h+='<button class="sb'+(e?'':' no')+(newBadge==='u'+i?' new':'')+'" data-b="'+i+'">'+unitBadge(i, e?'full':'chalk')+'<span>'+u.n+'</span></button>'; });
+  SPECIAL.forEach(function(s){ var e=!!S.earned[s.id]; if(e) n++;
+    h+='<button class="sb'+(e?'':' no')+'" data-s="'+s.id+'">'+badgeSVG(SHAPES[s.id==='sp'?1:0], s.col, s.edge, SP_ICON[s.id], e?'full':'chalk')+'<span>'+s.n+'</span></button>'; });
+  $('sash').innerHTML=h; $('sashN').textContent=n+'/'+(UNITS.length+SPECIAL.length);
+  newBadge=null;
+}
+$('sash').addEventListener('click', function(e){ var b=e.target.closest('.sb'); if(!b) return; ac(); sTap(); haptic(6); if(b.dataset.b!==undefined) openBadge(+b.dataset.b); else openSpecial(b.dataset.s); });
+function fmtD(t){ var d=new Date(t); return (d.getMonth()+1)+' 月 '+d.getDate()+' 日'; }
+function openBadge(i){
+  var u=UNITS[i], e=S.earned['u'+i];
+  openSheet('<h4 id="shT">'+u.n+'徽章</h4><p class="sub">'+(e? fmtD(e)+' 縫上肩帶' : '完成第 '+(i+1)+' 關三課就能縫上 · 目前 '+S.prog[i]+' / 3')+'</p><div class="bd">'+unitBadge(i, e?'full':'chalk').replace('rgba(244,236,212,.55)','#8e8260')+'</div>'
+    + '<div class="wl">'+u.words.map(function(w){ return '<div>'+w[0]+'　'+w[2]+'<span class="tl">'+w[1]+'</span></div>'; }).join('')+'</div>'
+    + (i<=curUnit() ? '<button class="sbtn" id="bgo">'+(S.prog[i]>=3?'複習這一關':'繼續上課')+'</button>' : ''));
+  var g=$('bgo'); if(g) g.onclick=function(){ closeSheet(); startLesson(i, Math.min(2,S.prog[i]), S.prog[i]>=3); };
+}
+function openSpecial(id){
+  var s=SPECIAL.find(function(x){ return x.id===id; }), e=S.earned[id];
+  var how={s7:'連續七天都上課', sp:'一堂課全部答對、沒有失去任何生命', se:'早上八點前完成一堂課'}[id];
+  openSheet('<h4 id="shT">'+s.n+'</h4><p class="sub">'+(e? fmtD(e)+' 獲得' : how)+'</p><div class="bd">'+badgeSVG(SHAPES[id==='sp'?1:0], s.col, s.edge, SP_ICON[id], e?'full':'chalk').replace('rgba(244,236,212,.55)','#8e8260')+'</div><p class="sub">'+how+'</p>');
+}
+
+/* ---------- word bag ---------- */
+var bagF='all';
+function renderBag(){
+  var cu=curUnit(), h='', total=0;
+  UNITS.forEach(function(u,i){
+    if(i>cu || (i===cu && S.prog[i]===0)) return;
+    var ws=u.words.filter(function(w){ return bagF==='all' || (bagF==='star' && S.star[w[0]]) || (bagF==='todo' && S.miss[w[0]] && !S.star[w[0]]); });
+    if(!ws.length) return; total+=ws.length;
+    h+='<div class="ugrp">'+unitBadge(i,'full')+u.n+'</div>';
+    ws.forEach(function(w){ var st=!!S.star[w[0]];
+      h+='<div class="word"><div><span class="hz">'+w[0]+'</span><span class="tl">'+w[1]+'</span></div><span class="zh">'+w[2]+(S.miss[w[0]]&&!st?'<br><small style="color:var(--red)">錯 '+S.miss[w[0]]+' 次</small>':'')+'</span><button class="star" data-w="'+esc(w[0])+'" aria-pressed="'+st+'" aria-label="標記熟練">'+starSVG(st)+'</button></div>'; });
+  });
+  $('bagList').innerHTML=h || '<p class="empty">'+(bagF==='star'?'還沒有標記熟練的字，按星星收藏。':bagF==='todo'?'沒有答錯過的字，真厲害。':'上完第一課，字就會收進字囊。')+'</p>';
+  var learned=0; UNITS.forEach(function(u,i){ if(i<cu || (i===cu&&S.prog[i]>0)) learned+=u.words.length; });
+  $('bagN').textContent='收了 '+learned+' 個台語詞 · 熟練 '+Object.keys(S.star).length+' 個';
+}
+function starSVG(on){ return '<svg viewBox="0 0 26 26"><path d="M13 2.5l3 6.6 7.2.7-5.4 4.8 1.6 7.1L13 18l-6.4 3.7 1.6-7.1-5.4-4.8 7.2-.7z" fill="'+(on?'#d9a22a':'none')+'" stroke="'+(on?'#8a6414':'#8e8260')+'" stroke-width="1.8" stroke-linejoin="round" '+(on?'':'stroke-dasharray="2.6 2"')+'/></svg>'; }
+$('bagList').addEventListener('click', function(e){ var b=e.target.closest('.star'); if(!b) return; var w=b.dataset.w; if(S.star[w]) delete S.star[w]; else S.star[w]=1; persist(); ac(); sTap(); haptic(S.star[w]?[6,20,10]:5);
+  b.setAttribute('aria-pressed', !!S.star[w]); b.innerHTML=starSVG(!!S.star[w]); b.animate && !RM && b.animate([{transform:'scale(1.4) rotate(-15deg)'},{transform:'none'}],{duration:350,easing:'cubic-bezier(.34,1.56,.5,1)'});
+  if(bagF!=='all') setTimeout(renderBag, 300); else $('bagN').textContent=$('bagN').textContent.replace(/熟練 \d+/, '熟練 '+Object.keys(S.star).length); });
+$('seg').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; bagF=b.dataset.f; haptic(5); var bs=[].slice.call(this.querySelectorAll('button')); bs.forEach(function(x){ x.setAttribute('aria-pressed', x===b); }); this.querySelector('.k').style.transform='translateX('+(bs.indexOf(b)*100)+'%)'; renderBag(); });
+
+/* ---------- tabs ---------- */
+var cur='path';
+function go(p){
+  if(p===cur){ return; }
+  $('p-'+cur).hidden=true; var el=$('p-'+p); el.hidden=false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); cur=p;
+  document.querySelectorAll('.nav button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.p===p); });
+  if(p==='sash') renderSash(); if(p==='bag') renderBag(); if(p==='path'){ renderPath(); scrollToCur(false); }
+  haptic(6);
+}
+document.querySelectorAll('.nav button').forEach(function(b){ b.addEventListener('click', function(){ ac(); go(b.dataset.p); }); });
+
+/* ---------- lesson engine ---------- */
+var L=null;
+function makeQs(u){
+  var U=UNITS[u], ws=shuffle(U.words), pool=[].concat.apply([], UNITS.map(function(x){ return x.words; })), qs=[];
+  var sents=shuffle(U.sent);
+  var order=['to','zh','build','to','zh','build'];
+  var wi=0, si=0;
+  order.forEach(function(t){
+    if(t==='build'){ var s=sents[si++ % sents.length]; qs.push({t:'build', zh:s[0], ans:s[1], tiles:shuffle(s[1].concat(s[2]))}); return; }
+    var w=ws[wi++ % ws.length], others=shuffle(U.words.filter(function(x){ return x[0]!==w[0] && x[2]!==w[2]; })).slice(0,3);
+    if(others.length<3) others=others.concat(shuffle(pool.filter(function(x){ return x[0]!==w[0]; })).slice(0,3-others.length));
+    qs.push({t:t, w:w, opts:shuffle([w].concat(others))});
+  });
+  return qs;
+}
+function startLesson(u, k, review){
+  regen();
+  if(S.hearts<=0 && !review){ openHearts(); return; }
+  L={u:u, k:k, review:review, qs:makeQs(u), i:0, right:0, lost:0, sel:null, built:[], checked:false};
+  $('lesson').classList.add('on'); $('fb').classList.remove('on','ok','bad');
+  haptic(10); sew(0,.3); renderQ();
+}
+function lHearts(){ $('lHearts').innerHTML=heartSVG(S.hearts>0)+(L&&L.review?'∞':S.hearts); }
+function renderQ(){
+  lHearts(); $('progB').style.width=(L.i/L.qs.length*100)+'%';
+  var q=L.qs[L.i], U=UNITS[L.u], h='<div class="qk">'+unitBadge(L.u,'full').replace('<svg','<svg id="qBadge"')+'第 '+(L.u+1)+' 關 · '+U.n+(L.review?' · 複習':'')+'</div>';
+  L.sel=null; L.built=[]; L.checked=false;
+  if(q.t==='to'){
+    h+='<p class="qt">「<em>'+q.w[2]+'</em>」台語按怎講？</p><div class="opts" role="radiogroup">'+q.opts.map(function(o,i){ return '<button class="opt" role="radio" aria-pressed="false" data-i="'+i+'"><span class="k">'+(i+1)+'</span><b>'+o[0]+'</b><span class="tl">'+o[1]+'</span></button>'; }).join('')+'</div>';
+  } else if(q.t==='zh'){
+    h+='<p class="qt">這句台語是什麼意思？</p><div class="qbig"><b>'+q.w[0]+'</b><span class="tl">'+q.w[1]+'</span></div><div class="opts" role="radiogroup">'+q.opts.map(function(o,i){ return '<button class="opt" role="radio" aria-pressed="false" data-i="'+i+'"><span class="k">'+(i+1)+'</span><b>'+o[2]+'</b></button>'; }).join('')+'</div>';
+  } else {
+    h+='<p class="qt">用台語講：<em>'+q.zh+'</em></p><div class="line" id="line"></div><div class="bank" id="bank">'+q.tiles.map(function(t,i){ return tileHTML(t,i); }).join('')+'</div>';
+  }
+  $('qwrap').innerHTML=h; $('qwrap').scrollTop=0; $('check').disabled=true; $('check').textContent='檢查';
+}
+function tileHTML(t,i){ return '<button class="tile" data-i="'+i+'"><b>'+t+'</b><span class="tl">'+(TLX[t]||'&nbsp;')+'</span></button>'; }
+$('qwrap').addEventListener('click', function(e){
+  if(!L||L.checked) return; var q=L.qs[L.i];
+  var o=e.target.closest('.opt');
+  if(o){ L.sel=+o.dataset.i; document.querySelectorAll('.opt').forEach(function(x){ x.setAttribute('aria-pressed', x===o); }); $('check').disabled=false; sTap(); haptic(5); return; }
+  var t=e.target.closest('.tile'); if(!t) return; var i=+t.dataset.i;
+  if(t.parentNode.id==='bank'){ L.built.push(i); t.classList.add('ghost'); var n=document.createElement('div'); n.innerHTML=tileHTML(q.tiles[i],i); var nt=n.firstChild; nt.classList.add('pop'); $('line').appendChild(nt); }
+  else { L.built.splice(L.built.indexOf(i),1); t.remove(); var g=document.querySelector('#bank .tile[data-i="'+i+'"]'); if(g){ g.classList.remove('ghost'); g.classList.add('pop'); setTimeout(function(){ g.classList.remove('pop'); },320); } }
+  $('check').disabled=!L.built.length; sTap(); haptic(5);
+});
+$('check').addEventListener('click', function(){
+  if(!L||L.checked) return; var q=L.qs[L.i], ok, ansTxt;
+  if(q.t==='build'){ var got=L.built.map(function(i){ return q.tiles[i]; }); ok = got.join('|')===q.ans.join('|'); ansTxt='<b>'+q.ans.join(' ')+'</b><br><span class="tl">'+q.ans.map(function(x){ return TLX[x]; }).join(' ')+'</span>'; }
+  else { var chosen=q.opts[L.sel]; ok = chosen[0]===q.w[0]; ansTxt='<b>'+q.w[0]+'</b> <span class="tl">'+q.w[1]+'</span>　'+q.w[2];
+    document.querySelectorAll('.opt').forEach(function(x,i){ if(q.opts[i][0]===q.w[0]) x.classList.add('right'); else if(i===L.sel) x.classList.add('wrong'); }); }
+  L.checked=true;
+  var fb=$('fb'); fb.classList.remove('ok','bad'); fb.classList.add(ok?'ok':'bad');
+  if(ok){ L.right++; sRight(); haptic([10,30,14]); var bb=$('qBadge'); if(bb){ bb.classList.remove('hop'); void bb.getBBox; bb.classList.add('hop'); }
+    $('fbT').innerHTML='<svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="#f4ecd4"/><path d="M10 17.5l5 5 9-10" fill="none" stroke="#3f6b3a" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'+['讚！答對矣','真好！','對矣！'][L.i%3];
+    $('fbP').innerHTML=ansTxt; }
+  else { sWrong(); haptic([40,60,40]);
+    if(q.w){ S.miss[q.w[0]]=(S.miss[q.w[0]]||0)+1; }
+    if(!L.review){ S.hearts=Math.max(0,S.hearts-1); if(S.hearts<MAXH && S.hearts===MAXH-1) S.heartAt=Date.now(); L.lost++; }
+    persist(); renderTop(); lHearts();
+    $('fbT').innerHTML='<svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="#f4ecd4"/><path d="M11 11l12 12M23 11 11 23" stroke="#b3342b" stroke-width="3.6" stroke-linecap="round"/></svg>正確答案是';
+    $('fbP').innerHTML=ansTxt; }
+  fb.classList.add('on'); $('fbGo').focus({preventScroll:true});
+});
+$('fbGo').addEventListener('click', function(){
+  $('fb').classList.remove('on'); haptic(6);
+  if(!L.review && S.hearts<=0){ endLesson(false); return; }
+  L.i++; if(L.i>=L.qs.length){ endLesson(true); return; }
+  renderQ();
+});
+function endLesson(pass){
+  $('progB').style.width= pass?'100%':$('progB').style.width;
+  var u=L.u, gained=0, unitDone=false, perfect=pass&&L.right===L.qs.length;
+  if(pass){
+    gained = L.review ? 5 : 10 + (perfect?5:0); S.xp+=gained;
+    if(!L.review && S.prog[u]===L.k){ S.prog[u]=L.k+1; if(S.prog[u]>=3 && !S.earned['u'+u]){ S.earned['u'+u]=Date.now(); unitDone=true; newBadge='u'+u; } }
+    var t=today(); if(S.lastDay!==t){ S.streak = S.lastDay===t-1 ? S.streak+1 : 1; S.lastDay=t; }
+    if(S.streak>=7 && !S.earned.s7) S.earned.s7=Date.now();
+    if(perfect && !L.review && !S.earned.sp) S.earned.sp=Date.now();
+    if(new Date().getHours()<8 && !S.earned.se) S.earned.se=Date.now();
+    if(L.review && S.hearts<MAXH){ S.hearts++; }
+    persist();
+  }
+  $('check').disabled=false; $('check').textContent= pass ? (unitDone?'把徽章縫上肩帶':'回到路徑') : '回到路徑';
+  $('qwrap').innerHTML='<div class="done">'+(pass? unitBadge(u,'full').replace('<svg','<svg class="bb"') : heartSVG(false).replace('<svg','<svg class="bb"'))
+    +'<h2>'+(pass? (unitDone?'第 '+(u+1)+' 關完成！':perfect?'零失誤！':'這課縫好了') : '線用完了')+'</h2>'
+    +(pass? '<div class="row"><div><b>+'+gained+'</b><span>經驗值</span></div><div><b>'+Math.round(L.right/L.qs.length*100)+'%</b><span>答對率</span></div><div><b>'+S.streak+'</b><span>連續天數</span></div></div>'
+          : '<p style="margin-top:10px;color:var(--ink2)">生命線每 30 分鐘補一條，也可以複習舊課補線。</p>')+'</div>';
+  if(pass){ note(784,0,.2); note(988,.12,.2); note(1175,.24,.4); haptic([20,40,20,40,40]); } else { sWrong(); }
+  L.finished={pass:pass, unitDone:unitDone}; L.checked=true;
+  renderTop();
+}
+$('check').addEventListener('click', function(){
+  if(!L||!L.finished) return;
+  var f=L.finished; L=null; $('lesson').classList.remove('on');
+  if(f.unitDone){ if(cur!=='sash') go('sash'); else renderSash(); ac(); sBadge(); toast('新徽章縫上肩帶了'); }
+  else { renderPath(); if(cur==='path') setTimeout(function(){ scrollToCur(true); }, 300); if(cur==='bag') renderBag(); if(cur==='sash') renderSash(); }
+}, true);
+$('quit').addEventListener('click', function(){
+  if(!L) return; if(L.finished){ $('check').click(); return; }
+  var ls=$('lesson'); ls.classList.remove('on'); L=null; haptic(8); toast('課程先存著，隨時回來');
+});
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape'){ if(sheet.classList.contains('on')) closeSheet(); else if(L) $('quit').click(); return; }
+  if(!L||L.checked||sheet.classList.contains('on')) return;
+  var n=+e.key; if(n>=1&&n<=4){ var o=document.querySelector('.opt[data-i="'+(n-1)+'"]'); if(o) o.click(); }
+  if(e.key==='Enter' && !$('check').disabled){ e.preventDefault(); $('check').click(); }
+});
+
+/* hearts / xp / streak sheets */
+function openHearts(){
+  regen(); var h=''; for(var i=0;i<MAXH;i++) h+=heartSVG(i<S.hearts);
+  var next = S.hearts>=MAXH ? '生命線是滿的' : '下一條線 '+Math.max(1,Math.ceil((REGEN-(Date.now()-S.heartAt))/60000))+' 分鐘後補上';
+  openSheet('<h4 id="shT">生命線</h4><p class="sub">答錯一題會拆掉一條線</p><div class="hbig">'+h+'</div><p class="sub">'+next+'</p><button class="sbtn" id="refill"'+(S.hearts>=MAXH||S.xp<30?' disabled':'')+'>用 30 經驗值補一條</button><button class="sbtn" id="review" style="background:var(--kh3);box-shadow:0 4px 0 #8e8260;color:var(--ink)">複習舊課補線</button>');
+  $('refill').onclick=function(){ if(S.xp<30||S.hearts>=MAXH) return; S.xp-=30; S.hearts++; persist(); renderTop(); ac(); sRight(); haptic([10,30,10]); openHearts(); };
+  $('review').onclick=function(){ closeSheet(); var u=Math.max(0, Math.min(curUnit(), UNITS.length-1)); var done=[]; for(var i=0;i<UNITS.length;i++) if(S.prog[i]>0) done.push(i); var pick=done.length? done[Math.floor(Math.random()*done.length)] : u; startLesson(pick, 0, true); };
+}
+$('heartBtn').addEventListener('click', function(){ ac(); sTap(); openHearts(); });
+$('xpBtn').addEventListener('click', function(){ ac(); sTap();
+  var lv=Math.floor(S.xp/200)+1, into=S.xp%200;
+  openSheet('<h4 id="shT">經驗值 '+S.xp+'</h4><p class="sub">童軍等級 '+lv+' · 再 '+(200-into)+' 點升級</p><div class="prog" style="margin:22px 4px 6px"><i></i><b style="width:'+(into/200*100)+'%"></b></div><p class="sub">一堂課 +10，零失誤再 +5，複習 +5</p>'); });
+$('fireBtn').addEventListener('click', function(){ ac(); sTap();
+  var t=today(), did = S.lastDay===t;
+  openSheet('<h4 id="shT">連續 '+S.streak+' 天</h4><p class="sub">'+(did?'今天的營火已經點上了':'今天還沒上課，營火快熄了')+'</p><div class="bd">'+badgeSVG(SHAPES[0], '#4d5530', '#d9a22a', SP_ICON.s7, S.earned.s7?'full':'chalk').replace('rgba(244,236,212,.55)','#8e8260')+'</div><p class="sub">連續七天可以得到營火徽章</p>'+(did?'':'<button class="sbtn" id="goNow">現在上一課</button>'));
+  var g=$('goNow'); if(g) g.onclick=function(){ closeSheet(); var u=curUnit(); if(u<UNITS.length) startLesson(u, S.prog[u], false); };
+});
+
+/* ---------- sheet ---------- */
+var sheet=$('sheet'), scrim=$('scrim'), lastFocus=null;
+function openSheet(html){ lastFocus=document.activeElement; $('shBody').innerHTML=html; sheet.scrollTop=0; sheet.style.transform=''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); var f=sheet.querySelector('button:not([disabled])'); if(f) f.focus({preventScroll:true}); }
+function closeSheet(){ if(!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform=''; scrim.classList.remove('on'); scrim.style.opacity=''; if(lastFocus&&lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy=0,dy=0,t0=0,on=false;
+  sheet.addEventListener('pointerdown', function(e){ if(e.target.closest('button')||sheet.scrollTop>0) return; on=true; sy=e.clientY; dy=0; t0=e.timeStamp; sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(er){} });
+  sheet.addEventListener('pointermove', function(e){ if(!on) return; dy=e.clientY-sy; sheet.style.transform='translateY('+(dy>0?dy:dy/6)+'px)'; scrim.style.opacity=Math.max(0,1-dy/sheet.offsetHeight); });
+  function end(e){ if(!on) return; on=false; sheet.classList.remove('drag'); scrim.style.opacity=''; var v=dy/Math.max(1,e.timeStamp-t0); if(dy>sheet.offsetHeight*.35||v>.6){ closeSheet(); haptic(5); } else sheet.style.transform=''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+var tt=null;
+function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(tt); tt=setTimeout(function(){ t.classList.remove('on'); }, 1900); }
+
+/* clock */
+function clk(){ var d=new Date(); $('clk').textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+clk(); setInterval(clk, 20000); setInterval(renderTop, 60000);
+
+/* backdrop: khaki shirt with a diagonal sash of badges */
+(function(){
+  var h='<defs><pattern id="tw" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(55)"><rect width="6" height="6" fill="#bfae80"/><path d="M0 0v6" stroke="#b0a072" stroke-width="2"/></pattern><pattern id="tw2" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(55)"><rect width="6" height="6" fill="#4d5530"/><path d="M0 0v6" stroke="#434a2a" stroke-width="2"/></pattern></defs><rect width="1440" height="900" fill="url(#tw)"/>';
+  h+='<path d="M1060 -40 1220 -40 1440 360 1440 560z" fill="none"/>';
+  h+='<g transform="rotate(28 220 450)"><rect x="80" y="-300" width="250" height="1500" fill="url(#tw2)"/><rect x="88" y="-300" width="234" height="1500" fill="none" stroke="rgba(244,236,212,.4)" stroke-width="2" stroke-dasharray="8 6"/>';
+  for(var i=0;i<6;i++){ h+='<g transform="translate('+(i%2?210:100)+' '+(i*150-40)+') scale(.9)">'+unitBadge(i,'full').replace(/<\/?svg[^>]*>/g,'')+'</g>'; }
+  h+='</g><path d="M1180 0v900" stroke="#b0a072" stroke-width="3"/><path d="M1190 0v900" stroke="rgba(58,65,37,.35)" stroke-width="2" stroke-dasharray="7 6"/><circle cx="1260" cy="210" r="16" fill="#8e7f55"/><circle cx="1260" cy="210" r="16" fill="none" stroke="#6f6342" stroke-width="2"/><path d="M1254 210h12M1260 204v12" stroke="#6f6342" stroke-width="2"/>';
+  $('bd').innerHTML=h;
+})();
+
+/* boot */
+renderTop(); renderPath(); requestAnimationFrame(function(){ scrollToCur(false); });
+})();
+</script>
+</body>
+</html>

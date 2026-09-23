@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://htmls-ruddy.vercel.app/</loc>
-    <lastmod>2026-09-23</lastmod>
+    <lastmod>2026-09-24</lastmod>
     <image:image><image:loc>https://htmls-ruddy.vercel.app/og-image.jpg</image:loc></image:image>
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/001.jpg</image:loc></image:image>
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/002.jpg</image:loc></image:image>
@@ -568,5 +568,10 @@
     <loc>https://htmls-ruddy.vercel.app/115-windfield.html</loc>
     <lastmod>2026-09-23</lastmod>
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/115.svg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://htmls-ruddy.vercel.app/116-thockwork-keyboard.html</loc>
+    <lastmod>2026-09-24</lastmod>
+    <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/116.svg</image:loc></image:image>
   </url>
 </urlset>

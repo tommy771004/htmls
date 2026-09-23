@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffcf00">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="寶寶日誌">
+<title>寶寶日誌 · 育兒紀錄</title>
+<meta name="description" content="粗黑線平塗風的育兒紀錄：四顆原色大快捷鍵一按就開始餵奶、睡眠計時或記尿布，當天時間軸與一週統計。收錄於 100 Creative HTML Works（App 097・粗黑線平塗）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/097-bruna-baby.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ffcf00'/%3E%3Cpath d='M14 64c0-14 8-22 18-22s18 8 18 22z' fill='%23e2231a' stroke='%231a1a1a' stroke-width='3'/%3E%3Ccircle cx='32' cy='28' r='15' fill='%23fff' stroke='%231a1a1a' stroke-width='3'/%3E%3Ccircle cx='26.5' cy='28' r='2' fill='%231a1a1a'/%3E%3Ccircle cx='37.5' cy='28' r='2' fill='%231a1a1a'/%3E%3C/svg%3E">
+<style>
+:root{
+  --red:#e2231a;--yel:#ffcf00;--blu:#0064b0;--grn:#1f8a3a;--blk:#1a1a1a;--wht:#ffffff;--ink2:#4a4a4a;
+  --fu:"Futura","Futura PT","Avenir Next","PingFang TC",sans-serif;
+  --yu:"Yuanti TC","PingFang TC","Heiti TC",system-ui,sans-serif;
+  --boing:cubic-bezier(.3,1.7,.45,1);--out:cubic-bezier(.2,.85,.25,1);
+  --ol:4px solid var(--blk);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:600 15px/1.45 var(--yu);color:var(--blk);background:var(--wht);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:4px solid var(--blu);outline-offset:3px}
+svg{display:block}
+.f{font-family:var(--fu);font-weight:700;font-variant-numeric:tabular-nums}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--wht)}
+@media (min-width:521px){
+  body{background:var(--blu)}
+  .stage{display:flex;align-items:center;justify-content:center;gap:56px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:56px;padding:12px;z-index:1;background:var(--red);border:5px solid var(--blk)}
+  .screen{inset:7px;border-radius:44px;border:4px solid var(--blk)}
+  .caption{display:block;position:relative;z-index:1;width:250px;color:var(--wht)}
+  .caption b{display:block;font:700 50px/1.1 var(--yu)}
+  .caption p{margin-top:12px;font-size:16px;line-height:1.65}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:700 16px/1 var(--fu);pointer-events:none;transition:color .5s}
+.status .gl{display:flex;gap:6px;align-items:center}
+.night .status{color:var(--wht)}
+@media (display-mode:standalone){.status{display:none}}
+
+.pages{position:absolute;inset:0;z-index:2}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.page::-webkit-scrollbar{display:none}
+.page[hidden]{display:none}
+.page.in{animation:pin .4s var(--boing)}
+@keyframes pin{from{transform:translateY(14px)}}
+
+/* today */
+.scene{position:relative;height:calc(262px + env(safe-area-inset-top));background:var(--yel);border-bottom:var(--ol);overflow:hidden;transition:background-color .6s}
+.night .scene{background:var(--blu)}
+.scene svg.world{position:absolute;inset:0;width:100%;height:100%}
+.scene .sky-day{transition:opacity .6s}.scene .sky-night{opacity:0;transition:opacity .6s}
+.night .scene .sky-day{opacity:0}.night .scene .sky-night{opacity:1}
+.kid{position:absolute;left:50%;bottom:-4px;width:200px;height:190px;margin-left:-100px;transition:transform .5s var(--boing)}
+.kid.hop{animation:khop .6s var(--boing)}
+@keyframes khop{35%{transform:translateY(-22px) scale(1.04,.96)}}
+.kid svg{width:100%;height:100%}
+.name{position:absolute;left:20px;top:calc(56px + env(safe-area-inset-top));transition:color .5s}
+.name b{display:block;font:700 28px/1.1 var(--yu)}
+.name span{font-size:14px}
+.night .name{color:var(--wht)}
+.day{position:absolute;right:18px;top:calc(56px + env(safe-area-inset-top));text-align:right;font-size:14px;transition:color .5s}
+.day b{display:block;font:700 30px/1 var(--fu)}
+.night .day{color:var(--wht)}
+.since{display:grid;grid-template-columns:repeat(3,1fr);padding:14px 14px 4px;text-align:center}
+.since div{padding:0 4px}
+.since b{display:block;font:700 26px/1.05 var(--fu)}
+.since b small{font-size:14px;margin-left:1px}
+.since span{font-size:13px;color:var(--ink2)}
+.keys{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px 16px 8px}
+.key{position:relative;height:132px;border:var(--ol);border-radius:26px;text-align:left;padding:14px 16px;display:flex;flex-direction:column;justify-content:flex-end;color:var(--wht);transition:transform .15s}
+.key:active{transform:scale(.95)}
+.key.jump{animation:jump .55s var(--boing)}
+@keyframes jump{0%{transform:scale(.92,1.06)}30%{transform:translateY(-16px) scale(1.03,.97)}60%{transform:translateY(0) scale(.98,1.02)}}
+.key b{font:700 23px/1.1 var(--yu);position:relative}
+.key span{font-size:13px;position:relative;margin-top:2px}
+.key .t{font:700 32px/1 var(--fu);position:relative;letter-spacing:.02em}
+.key svg.ic{position:absolute;right:-6px;top:-18px;width:82px;height:82px;transition:transform .4s var(--boing)}
+.key.run svg.ic{animation:wig 1.2s ease-in-out infinite}
+@keyframes wig{50%{transform:rotate(-8deg) translateY(-3px)}}
+.k-feed{background:var(--red)}
+.k-diaper{background:var(--yel);color:var(--blk)}
+.k-sleep{background:var(--blu)}
+.k-other{background:var(--grn)}
+.key.run{box-shadow:inset 0 0 0 5px var(--wht)}
+.k-diaper.run{box-shadow:inset 0 0 0 5px var(--blk)}
+.side{position:relative;display:flex;gap:6px;margin-top:6px}
+.side i{font-style:normal;min-width:34px;height:30px;display:grid;place-items:center;border:3px solid var(--wht);border-radius:15px;font-size:13px}
+.side i.on{background:var(--wht);color:var(--red)}
+
+/* timeline */
+.th{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:52px 1fr 52px;align-items:center;padding:calc(50px + env(safe-area-inset-top)) 10px 10px;background:var(--wht);border-bottom:var(--ol)}
+.th h2{text-align:center;font:700 24px/1.1 var(--yu)}
+.th h2 span{display:block;font:700 14px/1.3 var(--fu);color:var(--ink2)}
+.arr{width:48px;height:48px;border:var(--ol);border-radius:50%;display:grid;place-items:center;background:var(--yel);transition:transform .15s}
+.arr:active{transform:scale(.88)}
+.arr[disabled]{background:var(--wht);opacity:.35}
+.arr svg{width:22px;height:22px}
+.legend{display:flex;justify-content:center;gap:16px;padding:10px 0 4px;font-size:13px}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:16px;height:16px;border:3px solid var(--blk);border-radius:5px}
+.tl{position:relative;margin:6px 16px 0 60px;height:1152px}
+.hr{position:absolute;left:-52px;right:0;height:0}
+.hr span{position:absolute;left:0;top:-9px;width:40px;text-align:right;font:700 13px/1 var(--fu);color:var(--ink2)}
+.hr i{position:absolute;left:48px;right:0;top:0;border-top:2px dotted #c9c9c9}
+.hr.q span{color:var(--blk)}
+.ev{position:absolute;border:3px solid var(--blk);border-radius:12px;min-height:22px;display:flex;align-items:center;gap:6px;padding:0 8px;font-size:13px;overflow:hidden;text-align:left;transition:transform .15s}
+.ev:active{transform:scale(.97)}
+.ev.sleep{left:0;width:46%;background:var(--blu);color:var(--wht);align-items:flex-start;padding-top:3px}
+.ev.feed{left:49%;width:51%;background:var(--red);color:var(--wht)}
+.ev.diaper{left:49%;width:30px;height:30px;padding:0;border-radius:50%;background:var(--yel);justify-content:center;margin-top:-15px}
+.ev.diaper.poo{background:#8a5a2b}
+.ev.other{left:calc(49% + 36px);height:30px;margin-top:-15px;background:var(--grn);color:var(--wht);border-radius:15px}
+.ev.live{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.25) 0 6px,transparent 6px 12px)}
+.now{position:absolute;left:-8px;right:-4px;height:0;border-top:4px solid var(--red);z-index:3}
+.now::before{content:"";position:absolute;left:-6px;top:-9px;width:14px;height:14px;border-radius:50%;background:var(--red);border:3px solid var(--blk)}
+.fab{position:absolute;right:18px;bottom:calc(98px + env(safe-area-inset-bottom));z-index:15;width:62px;height:62px;border:var(--ol);border-radius:50%;background:var(--grn);color:var(--wht);display:grid;place-items:center;transition:transform .2s var(--boing)}
+.fab:active{transform:scale(.88) rotate(90deg)}
+.fab svg{width:28px;height:28px}
+
+/* stats */
+.sh{padding:calc(56px + env(safe-area-inset-top)) 20px 6px}
+.sh h2{font:700 30px/1.1 var(--yu)}
+.sh p{font-size:14px;color:var(--ink2)}
+.card{margin:14px 16px 0;border:var(--ol);border-radius:24px;padding:14px 14px 10px}
+.card .hd{display:flex;justify-content:space-between;align-items:baseline}
+.card .hd b{font:700 19px/1.2 var(--yu)}
+.card .hd span{font-size:14px}
+.card .hd span b{font:700 24px/1 var(--fu)}
+.card svg{width:100%;height:130px;margin-top:8px;overflow:visible;touch-action:pan-y}
+.card svg text{font:700 12px var(--fu);fill:var(--blk)}
+.c-sleep{background:#e6f0f8}.c-feed{background:#fde9e7}.c-diaper{background:#fff6cc}
+
+/* nav */
+.nav{position:absolute;left:0;right:0;bottom:0;z-index:20;height:calc(86px + env(safe-area-inset-bottom));padding:10px 14px env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:var(--wht);border-top:var(--ol)}
+.nav button{height:60px;border:var(--ol);border-radius:18px;display:flex;align-items:center;justify-content:center;gap:6px;font:700 16px/1 var(--yu);background:var(--wht);transition:background-color .25s,color .25s,transform .15s}
+.nav button:active{transform:scale(.94)}
+.nav button svg{width:26px;height:26px}
+.nav button[aria-selected=true][data-p=today]{background:var(--yel)}
+.nav button[aria-selected=true][data-p=line]{background:var(--blu);color:var(--wht)}
+.nav button[aria-selected=true][data-p=stats]{background:var(--red);color:var(--wht)}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:50;background:rgba(26,26,26,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:8px;right:8px;bottom:8px;z-index:51;max-height:86%;overflow-y:auto;background:var(--wht);border:var(--ol);border-radius:30px;padding:10px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(calc(100% + 20px));transition:transform .5s var(--boing);touch-action:none;scrollbar-width:none}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{width:46px;height:6px;border-radius:3px;background:var(--blk);margin:4px auto 12px}
+.sheet h4{font:700 24px/1.2 var(--yu);text-align:center}
+.sheet .sub{text-align:center;font-size:14px;color:var(--ink2);margin-top:2px}
+.choice{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.choice button{height:96px;border:var(--ol);border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:15px;transition:transform .15s,background-color .2s}
+.choice button:active{transform:scale(.93)}
+.choice button svg{width:44px;height:44px}
+.choice button[aria-pressed=true]{background:var(--yel)}
+.step{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
+.step button{width:64px;height:64px;border:var(--ol);border-radius:50%;font:700 32px/1 var(--fu);background:var(--yel);transition:transform .15s}
+.step button:active{transform:scale(.88)}
+.step output{font:700 54px/1 var(--fu)}
+.step output small{font-size:20px;margin-left:4px}
+.lbl{font-size:14px;color:var(--ink2);text-align:center;margin-top:14px}
+.big{display:block;width:100%;height:60px;margin-top:18px;border:var(--ol);border-radius:30px;font:700 19px/1 var(--yu);background:var(--grn);color:var(--wht);transition:transform .15s}
+.big:active{transform:scale(.96)}
+.big.red{background:var(--red)}
+.quiet{display:block;margin:12px auto 0;min-height:44px;padding:0 16px;font-size:15px;color:var(--ink2)}
+
+.toast{position:absolute;left:14px;right:14px;top:calc(52px + env(safe-area-inset-top));z-index:60;display:flex;align-items:center;justify-content:space-between;min-height:54px;padding:4px 6px 4px 18px;border:var(--ol);border-radius:27px;background:var(--wht);font-size:15px;transform:translateY(-140px);visibility:hidden;transition:transform .45s var(--boing),visibility 0s .45s}
+.toast.on{transform:none;visibility:visible;transition:transform .45s var(--boing)}
+.toast button{min-height:42px;padding:0 16px;border-radius:21px;background:var(--yel);border:3px solid var(--blk);font-weight:700}
+.homebar{position:absolute;left:50%;bottom:7px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--blk);z-index:70;pointer-events:none}
+
+@media (max-height:740px){ .scene{height:calc(214px + env(safe-area-inset-top))} .kid{width:160px;height:152px;margin-left:-80px} .key{height:112px} .key svg.ic{width:66px;height:66px} .since b{font-size:22px} }
+@media (prefers-reduced-motion:reduce){
+  .page.in,.key.jump,.kid.hop,.key.run svg.ic{animation:none}
+  .sheet,.toast{transition-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+    <rect width="1440" height="900" fill="#0064b0"/>
+    <path d="M-20 690C200 600 420 610 640 680S1100 720 1460 620V920H-20z" fill="#1f8a3a" stroke="#1a1a1a" stroke-width="6"/>
+    <circle cx="1210" cy="190" r="72" fill="#ffcf00" stroke="#1a1a1a" stroke-width="6"/>
+    <g fill="#fff" stroke="#1a1a1a" stroke-width="6"><path d="M150 210a40 40 0 0 1 72-18 34 34 0 0 1 60 18 26 26 0 0 1 0 52H160a26 26 0 0 1-10-52z"/><path d="M1010 420a30 30 0 0 1 54-14 26 26 0 0 1 46 14 20 20 0 0 1 0 40h-92a20 20 0 0 1-8-40z"/></g>
+    <g stroke="#1a1a1a" stroke-width="6"><path d="M1260 690v-90" /><circle cx="1260" cy="585" r="36" fill="#e2231a"/><path d="M200 700v-70"/><circle cx="200" cy="612" r="28" fill="#ffcf00"/></g>
+  </svg></div>
+  <div class="caption"><b>寶寶日誌</b><p>四顆大按鍵，單手就能記：餵奶、尿布、睡覺、其他。記下來的每一刻，都排成當天的時間軸。</p></div>
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true"><span id="clk">9:41</span>
+        <span class="gl"><svg width="18" height="12" viewBox="0 0 18 12"><g fill="currentColor"><rect x="0" y="7.5" width="3.4" height="4.5" rx="1.7"/><rect x="4.8" y="5" width="3.4" height="7" rx="1.7"/><rect x="9.6" y="2.5" width="3.4" height="9.5" rx="1.7"/><rect x="14.4" y="0" width="3.4" height="12" rx="1.7" opacity=".35"/></g></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.4 1.2 4.4a9.8 9.8 0 0 1 13.6 0z" fill="currentColor"/></svg>
+        <svg width="28" height="14" viewBox="0 0 28 14"><rect x="1.5" y="1.5" width="22" height="11" rx="4" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="4" y="4" width="14" height="6" rx="2" fill="currentColor"/><rect x="25" y="5" width="2.2" height="4" rx="1" fill="currentColor"/></svg></span>
+      </div>
+      <main class="pages">
+        <section class="page" id="p-today" aria-label="今天">
+          <div class="scene">
+            <svg class="world" viewBox="0 0 390 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+              <g class="sky-day"><circle cx="330" cy="150" r="26" fill="#e2231a" stroke="#1a1a1a" stroke-width="4"/><path d="M36 170a22 22 0 0 1 40-10 18 18 0 0 1 32 10 14 14 0 0 1 0 28H42a14 14 0 0 1-6-28z" fill="#fff" stroke="#1a1a1a" stroke-width="4"/></g>
+              <g class="sky-night"><path d="M334 128a26 26 0 1 0 22 40 20 20 0 1 1-22-40z" fill="#ffcf00" stroke="#1a1a1a" stroke-width="4"/><g fill="#fff" stroke="#1a1a1a" stroke-width="3"><path d="M60 150l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/><path d="M270 110l3 6 6 .5-4.5 4 1.4 6-5.9-3.4-5.9 3.4 1.4-6-4.5-4 6-.5z"/></g></g>
+              <path d="M-10 262C80 236 150 240 200 252S320 270 400 244V310H-10z" fill="#1f8a3a" stroke="#1a1a1a" stroke-width="4"/>
+            </svg>
+            <div class="name"><b>小湯圓</b><span id="age"></span></div>
+            <div class="day"><b id="dNum">23</b><span id="dTxt">九月 週三</span></div>
+            <div class="kid" id="kid"></div>
+          </div>
+          <div class="since">
+            <div><b id="sFeed">-</b><span>距上次餵奶</span></div>
+            <div><b id="sDiaper">-</b><span>距上次換布</span></div>
+            <div><b id="sSleep">-</b><span id="sSleepL">今天睡了</span></div>
+          </div>
+          <div class="keys">
+            <button class="key k-feed" id="kFeed" aria-label="餵奶"></button>
+            <button class="key k-diaper" id="kDiaper" aria-label="換尿布"></button>
+            <button class="key k-sleep" id="kSleep" aria-label="睡覺"></button>
+            <button class="key k-other" id="kOther" aria-label="其他紀錄"></button>
+          </div>
+        </section>
+        <section class="page" id="p-line" hidden aria-label="時間軸">
+          <div class="th"><button class="arr" id="prevD" aria-label="前一天"><svg viewBox="0 0 22 22"><path d="M14 4 7 11l7 7" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></button><h2 id="lDay">今天<span></span></h2><button class="arr" id="nextD" aria-label="後一天"><svg viewBox="0 0 22 22"><path d="M8 4l7 7-7 7" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+          <div class="legend"><span><i style="background:var(--blu)"></i>睡覺</span><span><i style="background:var(--red)"></i>餵奶</span><span><i style="background:var(--yel);border-radius:50%"></i>尿布</span><span><i style="background:var(--grn)"></i>其他</span></div>
+          <div class="tl" id="tl"></div>
+        </section>
+        <section class="page" id="p-stats" hidden aria-label="統計">
+          <div class="sh"><h2>這一週</h2><p id="stSub"></p></div>
+          <div class="card c-sleep"><div class="hd"><b>睡眠</b><span id="stSleep"></span></div><svg id="chSleep" viewBox="0 0 330 130"></svg></div>
+          <div class="card c-feed"><div class="hd"><b>餵奶</b><span id="stFeed"></span></div><svg id="chFeed" viewBox="0 0 330 130"></svg></div>
+          <div class="card c-diaper"><div class="hd"><b>尿布</b><span id="stDiaper"></span></div><svg id="chDiaper" viewBox="0 0 330 130"></svg></div>
+        </section>
+      </main>
+      <button class="fab" id="fab" hidden aria-label="補記一筆"><svg viewBox="0 0 28 28"><path d="M14 5v18M5 14h18" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/></svg></button>
+      <nav class="nav" role="tablist" aria-label="主選單">
+        <button role="tab" data-p="today" aria-selected="true"><svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="6" fill="#ffcf00" stroke="currentColor" stroke-width="3"/><path d="M13 1.5v3M13 21.5v3M1.5 13h3M21.5 13h3M4.8 4.8l2.2 2.2M19 19l2.2 2.2M4.8 21.2 7 19M19 7l2.2-2.2" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>今天</button>
+        <button role="tab" data-p="line" aria-selected="false"><svg viewBox="0 0 26 26"><path d="M6 2v22" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><rect x="9" y="4" width="14" height="7" rx="3" fill="#e2231a" stroke="currentColor" stroke-width="3"/><circle cx="14" cy="18" r="4" fill="#ffcf00" stroke="currentColor" stroke-width="3"/></svg>時間軸</button>
+        <button role="tab" data-p="stats" aria-selected="false"><svg viewBox="0 0 26 26"><rect x="2.5" y="12" width="6" height="11" rx="2" fill="#0064b0" stroke="currentColor" stroke-width="3"/><rect x="10" y="4" width="6" height="19" rx="2" fill="#ffcf00" stroke="currentColor" stroke-width="3"/><rect x="17.5" y="9" width="6" height="14" rx="2" fill="#1f8a3a" stroke="currentColor" stroke-width="3"/></svg>統計</button>
+      </nav>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><div class="grab"></div><div id="shBody"></div></div>
+      <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastU" hidden>復原</button></div>
+      <div class="homebar"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var KEY='app097:';
+function load(k,d){ try{ var v=localStorage.getItem(KEY+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
+function save(k,v){ try{ localStorage.setItem(KEY+k, JSON.stringify(v)); }catch(e){} }
+function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }
+function rng(s){ return function(){ s|=0; s=s+0x6D2B79F5|0; var t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+var MIN=6e4, HR=36e5, DAY=864e5, RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var BIRTH=new Date(2026,5,2).getTime();
+
+/* ---------- icons (thick outline, flat primaries) ---------- */
+var IC={
+ bottle:'<svg class="ic" viewBox="0 0 80 80" aria-hidden="true"><path d="M33 8h14l-1 8H34z" fill="#ffcf00" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round"/><rect x="28" y="16" width="24" height="7" rx="3" fill="#0064b0" stroke="#1a1a1a" stroke-width="4"/><path d="M29 23h22l3 10v36a6 6 0 0 1-6 6H32a6 6 0 0 1-6-6V33z" fill="#fff" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round"/><path d="M28 48h24v21a4 4 0 0 1-4 4H32a4 4 0 0 1-4-4z" fill="#fff6cc"/><path d="M40 38h8M40 48h8M40 58h8" stroke="#1a1a1a" stroke-width="3.4" stroke-linecap="round"/></svg>',
+ diaper:'<svg class="ic" viewBox="0 0 80 80" aria-hidden="true"><path d="M8 22h64v10c0 20-14 34-32 34S8 52 8 32z" fill="#fff" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round"/><path d="M8 22h12v12H8zM60 22h12v12H60z" fill="#e2231a" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round"/><path d="M30 44q10 8 20 0" fill="none" stroke="#1a1a1a" stroke-width="3.4" stroke-linecap="round"/></svg>',
+ moon:'<svg class="ic" viewBox="0 0 80 80" aria-hidden="true"><path d="M44 10a30 30 0 1 0 26 44A24 24 0 1 1 44 10z" fill="#ffcf00" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round"/><path d="M60 14l2.5 5 5.5.6-4 3.8 1 5.4-5-2.7-5 2.7 1-5.4-4-3.8 5.5-.6z" fill="#fff" stroke="#1a1a1a" stroke-width="3" stroke-linejoin="round"/></svg>',
+ bowl:'<svg class="ic" viewBox="0 0 80 80" aria-hidden="true"><path d="M54 8 42 36" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/><ellipse cx="57" cy="7" rx="6" ry="4" transform="rotate(-66 57 7)" fill="#ffcf00" stroke="#1a1a1a" stroke-width="3.4"/><path d="M10 36h60c0 18-13 30-30 30S10 54 10 36z" fill="#fff" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round"/><path d="M14 36c6-8 16-10 26-10s20 2 26 10" fill="#ffcf00" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round"/><rect x="28" y="66" width="24" height="7" rx="3" fill="#e2231a" stroke="#1a1a1a" stroke-width="4"/></svg>'
+};
+function kidSVG(mode){
+  // mode: awake | sleep | feed | happy
+  var eyes = mode==='sleep' ? '<path d="M82 92q6 5 12 0M106 92q6 5 12 0" fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>' : '<circle cx="88" cy="92" r="4.6" fill="#1a1a1a"/><circle cx="112" cy="92" r="4.6" fill="#1a1a1a"/>';
+  var mouth = mode==='feed' ? '' : mode==='happy' ? '<path d="M93 106q7 8 14 0z" fill="#e2231a" stroke="#1a1a1a" stroke-width="3" stroke-linejoin="round"/>' : '<path d="M95 107q5 4 10 0" fill="none" stroke="#1a1a1a" stroke-width="3.4" stroke-linecap="round"/>';
+  var extra = '';
+  if(mode==='sleep') extra = '<g font-family="Futura" font-weight="700" fill="#fff" stroke="#1a1a1a" stroke-width="2.4" paint-order="stroke"><text x="146" y="58" font-size="26">z</text><text x="164" y="36" font-size="18">z</text></g>';
+  if(mode==='feed') extra = '<g transform="rotate(-58 100 108)"><path d="M96 98h8l-.6 6h-6.8z" fill="#ffcf00" stroke="#1a1a1a" stroke-width="3"/><rect x="93" y="104" width="14" height="5" rx="2" fill="#0064b0" stroke="#1a1a1a" stroke-width="3"/><path d="M94 109h12l2 6v22a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4v-22z" fill="#fff" stroke="#1a1a1a" stroke-width="3.4" stroke-linejoin="round"/></g>';
+  if(mode==='happy') extra = '<g fill="#fff" stroke="#1a1a1a" stroke-width="3" stroke-linejoin="round"><path d="M40 60l3 7 7 .6-5.4 4.6 1.6 7-6.2-3.8-6.2 3.8 1.6-7L30 67.6l7-.6z"/><path d="M160 70l2.4 5.4 5.6.5-4.2 3.6 1.3 5.5-5-3-5 3 1.3-5.5-4.2-3.6 5.6-.5z"/></g>';
+  return '<svg viewBox="0 0 200 190" aria-hidden="true">'
+   + '<path d="M44 196c0-40 24-66 56-66s56 26 56 66z" fill="#e2231a" stroke="#1a1a1a" stroke-width="4.5" stroke-linejoin="round"/>'
+   + '<path d="M86 132l14 12 14-12" fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>'
+   + '<ellipse cx="50" cy="164" rx="12" ry="16" transform="rotate(24 50 164)" fill="#fff" stroke="#1a1a1a" stroke-width="4.5"/>'
+   + '<ellipse cx="150" cy="164" rx="12" ry="16" transform="rotate(-24 150 164)" fill="#fff" stroke="#1a1a1a" stroke-width="4.5"/>'
+   + '<circle cx="100" cy="92" r="46" fill="#fff" stroke="#1a1a1a" stroke-width="4.5"/>'
+   + '<path d="M96 47c-4-10 6-16 12-10" fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>'
+   + eyes + mouth + extra + '</svg>';
+}
+
+/* ---------- data ---------- */
+function seed(){
+  var R=rng(97), ev=[], now=Date.now(), t=new Date(now-7*DAY); t.setHours(0,20,0,0); t=t.getTime(); var id=0, sides=['L','R','B','B'];
+  function h(ms){ return new Date(ms).getHours(); }
+  while(t < now-40*MIN){
+    var side=sides[Math.floor(R()*4)], fd=side==='B'? (10+R()*8)*MIN : (12+R()*10)*MIN;
+    ev.push({id:'s'+(id++), type:'feed', s:t, e:t+fd, side:side, ml: side==='B'? 90+Math.round(R()*6)*10 : 0}); t+=fd;
+    if(R()<.78){ var dt=t+(5+R()*25)*MIN; var r=R(); ev.push({id:'s'+(id++), type:'diaper', s:dt, kind:r<.62?'wet':r<.86?'poo':'both'}); }
+    if(R()<.08 && h(t)>9 && h(t)<18) ev.push({id:'s'+(id++), type:'other', s:t+40*MIN, what:['洗澡','量體溫','維他命D','趴睡練習'][Math.floor(R()*4)]});
+    var night = h(t)>=20 || h(t)<6;
+    var awake = night ? (15+R()*20)*MIN : (55+R()*45)*MIN; t+=awake;
+    var sl = night ? (130+R()*110)*MIN : (35+R()*80)*MIN;
+    if(t+sl > now-40*MIN){ break; }
+    ev.push({id:'s'+(id++), type:'sleep', s:t, e:t+sl}); t+=sl;
+  }
+  return ev.sort(function(a,b){ return a.s-b.s; });
+}
+var EV=load('ev',null); if(!Array.isArray(EV)) { EV=seed(); save('ev',EV); }
+var RUN=load('run',{feed:null, sleep:null});
+var lastSide=load('side','L');
+function persist(){ save('ev',EV); save('run',RUN); }
+function last(type){ for(var i=EV.length-1;i>=0;i--) if(EV[i].type===type) return EV[i]; return null; }
+function sod(t){ var d=new Date(t); d.setHours(0,0,0,0); return d.getTime(); }
+
+/* ---------- sound ---------- */
+var AC=null;
+function ac(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } } if(AC&&AC.state==='suspended') AC.resume(); return AC; }
+function boing(f){ if(!AC) return; try{ var t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.setValueAtTime(f||260,t); o.frequency.exponentialRampToValueAtTime((f||260)*2.2,t+.09); o.frequency.exponentialRampToValueAtTime((f||260)*1.4,t+.22); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.16,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.3); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+.32); }catch(e){} }
+function tune(notes){ if(!AC) return; notes.forEach(function(f,i){ try{ var t=AC.currentTime+i*.14, o=AC.createOscillator(), g=AC.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.12,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.4); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+.42); }catch(e){} }); }
+
+/* ---------- formatting ---------- */
+function ago(t){ var m=Math.max(0,Math.floor((Date.now()-t)/MIN)); return m<60 ? m+'<small>分</small>' : Math.floor(m/60)+'<small>時</small>'+(m%60)+'<small>分</small>'; }
+function dur(ms){ var m=Math.round(ms/MIN); return m<60? m+' 分' : Math.floor(m/60)+' 小時 '+(m%60)+' 分'; }
+function clock(ms){ var s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return (h? h+':'+String(m).padStart(2,'0') : m)+':'+String(x).padStart(2,'0'); }
+function hm(t){ var d=new Date(t); return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+var WD='日一二三四五六', MO=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+function sideTxt(s){ return {L:'左邊',R:'右邊',B:'奶瓶'}[s]; }
+function kindTxt(k){ return {wet:'濕',poo:'便便',both:'濕＋便'}[k]; }
+
+/* ---------- today ---------- */
+var kidMode='awake', happyT=null;
+function renderKid(force){
+  var m = RUN.sleep ? 'sleep' : RUN.feed ? 'feed' : (happyT ? 'happy' : 'awake');
+  if(m!==kidMode || force){ kidMode=m; $('kid').innerHTML=kidSVG(m); }
+  $('screen').classList.toggle('night', !!RUN.sleep);
+  var tc=document.querySelector('meta[name=theme-color]'); if(tc) tc.setAttribute('content', RUN.sleep && cur==='today' ? '#0064b0' : '#ffcf00');
+}
+function hopKid(){ var k=$('kid'); k.classList.remove('hop'); void k.offsetWidth; k.classList.add('hop'); }
+function renderToday(){
+  var d=new Date(), days=Math.floor((sod(Date.now())-BIRTH)/DAY), mo=0, dd=new Date(BIRTH);
+  while(new Date(dd.getFullYear(), dd.getMonth()+mo+1, dd.getDate()).getTime() <= sod(Date.now())) mo++;
+  var rest=Math.floor((sod(Date.now())-new Date(dd.getFullYear(), dd.getMonth()+mo, dd.getDate()).getTime())/DAY);
+  $('age').textContent=mo+' 個月 '+rest+' 天 · 第 '+(days+1)+' 天';
+  $('dNum').textContent=d.getDate(); $('dTxt').textContent=MO[d.getMonth()]+' 週'+WD[d.getDay()];
+  var lf=last('feed'), ld=last('diaper');
+  $('sFeed').innerHTML = RUN.feed ? '餵奶中' : lf ? ago(lf.e||lf.s) : '-';
+  $('sDiaper').innerHTML = ld ? ago(ld.s) : '-';
+  var t0=sod(Date.now()), slept=EV.filter(function(e){ return e.type==='sleep' && e.e>t0; }).reduce(function(a,e){ return a+(e.e-Math.max(e.s,t0)); },0) + (RUN.sleep? Date.now()-Math.max(RUN.sleep.s,t0) : 0);
+  $('sSleep').innerHTML = Math.floor(slept/HR)+'<small>時</small>'+Math.floor(slept%HR/MIN)+'<small>分</small>'; $('sSleepL').textContent='今天睡了';
+  renderKeys(); renderKid();
+}
+function renderKeys(){
+  var lf=last('feed'), ld=last('diaper');
+  $('kFeed').innerHTML = IC.bottle + (RUN.feed ? '<span class="t" id="tFeed">'+clock(Date.now()-RUN.feed.s)+'</span><b>按一下結束</b><span class="side">'+['L','R','B'].map(function(s){ return '<i data-side="'+s+'" class="'+(RUN.feed.side===s?'on':'')+'">'+{L:'左',R:'右',B:'瓶'}[s]+'</i>'; }).join('')+'</span>'
+    : '<b>餵奶</b><span>'+(lf? '上次 '+hm(lf.s)+' · '+(lf.side==='B'? lf.ml+' ml' : sideTxt(lf.side)) : '按一下開始計時')+'</span>');
+  $('kFeed').classList.toggle('run', !!RUN.feed);
+  $('kDiaper').innerHTML = IC.diaper + '<b>換尿布</b><span>'+(ld? '上次 '+hm(ld.s)+' · '+kindTxt(ld.kind) : '按一下記錄')+'</span>';
+  $('kSleep').innerHTML = IC.moon + (RUN.sleep ? '<span class="t" id="tSleep">'+clock(Date.now()-RUN.sleep.s)+'</span><b>醒了，結束</b>' : '<b>睡覺</b><span>按一下開始計時</span>');
+  $('kSleep').classList.toggle('run', !!RUN.sleep);
+  var lo=last('other');
+  $('kOther').innerHTML = IC.bowl + '<b>其他</b><span>'+(lo? '上次 '+lo.what : '洗澡、體溫、吃藥')+'</span>';
+}
+function jump(el){ el.classList.remove('jump'); void el.offsetWidth; el.classList.add('jump'); }
+$('kFeed').addEventListener('click', function(e){
+  ac(); jump(this);
+  var sd=e.target.closest('[data-side]');
+  if(RUN.feed && sd){ RUN.feed.side=sd.dataset.side; lastSide=RUN.feed.side; save('side',lastSide); persist(); renderKeys(); boing(420); haptic(6); return; }
+  if(!RUN.feed){
+    if(RUN.sleep) endSleep(true);
+    RUN.feed={s:Date.now(), side:lastSide}; persist(); boing(260); tune([523,659]); haptic([10,30,10]); renderToday(); hopKid(); toast('開始餵奶 · '+sideTxt(lastSide)); return;
+  }
+  var f=RUN.feed, ml=120;
+  var lb=last('feed'); if(lb && lb.ml) ml=lb.ml;
+  openSheet('<h4 id="shT">餵完了</h4><p class="sub">'+hm(f.s)+' 開始 · '+dur(Date.now()-f.s)+'</p><div class="choice" id="sideC">'+['L','R','B'].map(function(s){ return '<button data-s="'+s+'" aria-pressed="'+(f.side===s)+'">'+(s==='B'?IC.bottle.replace('class="ic"',''):'<svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="16" fill="'+(s==='L'?'#e2231a':'#0064b0')+'" stroke="#1a1a1a" stroke-width="4"/><text x="22" y="23" text-anchor="middle" dominant-baseline="central" font-family="Futura" font-weight="700" font-size="16" fill="#fff">'+(s==='L'?'L':'R')+'</text></svg>')+sideTxt(s)+'</button>'; }).join('')+'</div>'
+    + '<div id="mlBox"'+(f.side==='B'?'':' hidden')+'><p class="lbl">喝了多少</p><div class="step"><button id="mlM" aria-label="減 10 毫升">−</button><output id="mlV">'+ml+'<small>ml</small></output><button id="mlP" aria-label="加 10 毫升">+</button></div></div>'
+    + '<button class="big red" id="saveF">記下這次餵奶</button><button class="quiet" id="goOn">還沒，繼續計時</button>');
+  $('sideC').onclick=function(e){ var b=e.target.closest('button'); if(!b) return; f.side=b.dataset.s; this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x===b); }); $('mlBox').hidden=f.side!=='B'; boing(380); haptic(5); };
+  $('mlM').onclick=function(){ ml=Math.max(10,ml-10); $('mlV').innerHTML=ml+'<small>ml</small>'; boing(300); haptic(4); };
+  $('mlP').onclick=function(){ ml=Math.min(300,ml+10); $('mlV').innerHTML=ml+'<small>ml</small>'; boing(360); haptic(4); };
+  $('goOn').onclick=closeSheet;
+  $('saveF').onclick=function(){
+    var ev={id:'e'+Date.now(), type:'feed', s:f.s, e:Math.max(f.s+MIN, Date.now()), side:f.side, ml:f.side==='B'?ml:0};
+    EV.push(ev); RUN.feed=null; lastSide=f.side==='B'?'B':(f.side==='L'?'R':'L'); save('side',lastSide); persist(); closeSheet(); tune([659,523,784]); haptic([10,30,10,30,20]);
+    renderToday(); hopKid(); toast('記好了 · '+dur(ev.e-ev.s)+(ev.ml?' · '+ev.ml+' ml':''), ev.id);
+  };
+});
+$('kDiaper').addEventListener('click', function(){
+  ac(); jump(this); boing(300); haptic(6);
+  openSheet('<h4 id="shT">換尿布</h4><p class="sub">'+hm(Date.now())+'</p><div class="choice" id="dC">'
+    + '<button data-k="wet"><svg viewBox="0 0 44 44"><path d="M22 6c7 10 12 16 12 23a12 12 0 0 1-24 0c0-7 5-13 12-23z" fill="#0064b0" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round"/></svg>濕</button>'
+    + '<button data-k="poo"><svg viewBox="0 0 44 44"><path d="M10 34h24a4 4 0 0 0 1-8 5 5 0 0 0-4-8 5 5 0 0 0-7-7c1-2 0-4-2-5-1 3-5 4-6 8a5 5 0 0 0-4 7 5 5 0 0 0-3 8 4 4 0 0 0 1 5z" fill="#8a5a2b" stroke="#1a1a1a" stroke-width="3.6" stroke-linejoin="round"/></svg>便便</button>'
+    + '<button data-k="both"><svg viewBox="0 0 44 44"><path d="M15 8c5 7 8 11 8 16a8 8 0 0 1-16 0c0-5 3-9 8-16z" fill="#0064b0" stroke="#1a1a1a" stroke-width="3.6"/><path d="M24 38h14a3 3 0 0 0 1-6 4 4 0 0 0-3-6 4 4 0 0 0-5-5c1-2 0-3-1-4-1 2-4 3-5 6a4 4 0 0 0-3 5 4 4 0 0 0-1 7z" fill="#8a5a2b" stroke="#1a1a1a" stroke-width="3.2" stroke-linejoin="round"/></svg>都有</button></div>');
+  $('dC').onclick=function(e){ var b=e.target.closest('button'); if(!b) return; var ev={id:'e'+Date.now(), type:'diaper', s:Date.now(), kind:b.dataset.k}; EV.push(ev); persist(); closeSheet(); tune([784,988]); haptic([8,20,8]);
+    happyT=setTimeout(function(){ happyT=null; renderKid(); }, 2600); renderToday(); hopKid(); toast('換好了 · '+kindTxt(ev.kind), ev.id); };
+});
+function endSleep(silent){
+  var s=RUN.sleep; if(!s) return; var ev={id:'e'+Date.now(), type:'sleep', s:s.s, e:Math.max(s.s+MIN, Date.now())}; EV.push(ev); RUN.sleep=null; persist();
+  if(!silent){ tune([523,659,784]); haptic([10,30,10]); toast('睡了 '+dur(ev.e-ev.s), ev.id); }
+  return ev;
+}
+$('kSleep').addEventListener('click', function(){
+  ac(); jump(this);
+  if(RUN.sleep){ endSleep(false); renderToday(); hopKid(); return; }
+  if(RUN.feed){ toast('先結束餵奶再睡'); haptic([30,40,30]); boing(180); return; }
+  RUN.sleep={s:Date.now()}; persist(); tune([784,659,523]); haptic([20,60,20]); renderToday(); toast('晚安，小湯圓');
+});
+$('kOther').addEventListener('click', function(){
+  ac(); jump(this); boing(340); haptic(6);
+  var items=[['洗澡','#0064b0'],['量體溫','#e2231a'],['維他命D','#ffcf00'],['趴睡練習','#1f8a3a'],['剪指甲','#fff'],['打預防針','#e2231a']];
+  openSheet('<h4 id="shT">其他紀錄</h4><p class="sub">'+hm(Date.now())+'</p><div class="choice" id="oC" style="grid-template-columns:repeat(2,1fr)">'+items.map(function(it){ return '<button data-w="'+it[0]+'" style="height:64px;flex-direction:row;gap:10px"><svg viewBox="0 0 44 44" style="width:28px;height:28px"><circle cx="22" cy="22" r="15" fill="'+it[1]+'" stroke="#1a1a1a" stroke-width="4.5"/></svg>'+it[0]+'</button>'; }).join('')+'</div>');
+  $('oC').onclick=function(e){ var b=e.target.closest('button'); if(!b) return; var ev={id:'e'+Date.now(), type:'other', s:Date.now(), what:b.dataset.w}; EV.push(ev); persist(); closeSheet(); tune([659,880]); haptic(8); renderToday(); hopKid(); toast('記下了 · '+ev.what, ev.id); };
+});
+
+/* ---------- timeline ---------- */
+var dayOff=0, PX=48; // px per hour
+function renderLine(){
+  var d0=sod(Date.now())-dayOff*DAY, d1=d0+DAY, d=new Date(d0);
+  $('lDay').innerHTML=(dayOff===0?'今天':dayOff===1?'昨天':(d.getMonth()+1)+' 月 '+d.getDate()+' 日')+'<span>'+(d.getMonth()+1)+'/'+d.getDate()+' 週'+WD[d.getDay()]+'</span>';
+  $('nextD').disabled=dayOff===0; $('prevD').disabled=dayOff>=6;
+  var h='';
+  for(var i=0;i<=24;i++) h+='<div class="hr'+(i%6===0?' q':'')+'" style="top:'+(i*PX)+'px"><span>'+String(i).padStart(2,'0')+':00</span><i></i></div>';
+  var list=EV.slice(); if(RUN.sleep) list.push({id:'live-s', type:'sleep', s:RUN.sleep.s, e:Date.now(), live:1}); if(RUN.feed) list.push({id:'live-f', type:'feed', s:RUN.feed.s, e:Date.now(), side:RUN.feed.side, live:1});
+  list.forEach(function(e){
+    var end=e.e||e.s; if(end<d0 || e.s>=d1) return;
+    var top=(Math.max(e.s,d0)-d0)/HR*PX, bot=(Math.min(end,d1)-d0)/HR*PX;
+    if(e.type==='sleep'||e.type==='feed'){ var ht=Math.max(22, bot-top);
+      h+='<button class="ev '+e.type+(e.live?' live':'')+'" data-id="'+e.id+'" style="top:'+top.toFixed(1)+'px;height:'+ht.toFixed(1)+'px" aria-label="'+(e.type==='sleep'?'睡覺':'餵奶')+' '+hm(e.s)+'">'+(ht>=34||e.type==='feed' ? (e.type==='sleep' ? '睡 '+dur(end-e.s) : (e.side==='B'? e.ml+'ml' : sideTxt(e.side))+(ht>=40?' '+Math.round((end-e.s)/MIN)+'分':'')) : '')+'</button>'; }
+    else if(e.type==='diaper') h+='<button class="ev diaper'+(e.kind!=='wet'?' poo':'')+'" data-id="'+e.id+'" style="top:'+top.toFixed(1)+'px;left:calc(49% + '+(dayHasFeedAt(e.s)?'0px':'0px')+')" aria-label="尿布 '+hm(e.s)+' '+kindTxt(e.kind)+'"></button>';
+    else h+='<button class="ev other" data-id="'+e.id+'" style="top:'+top.toFixed(1)+'px">'+e.what+'</button>';
+  });
+  if(dayOff===0) h+='<div class="now" style="top:'+((Date.now()-d0)/HR*PX).toFixed(1)+'px"></div>';
+  $('tl').innerHTML=h;
+}
+function dayHasFeedAt(){ return false; }
+function scrollLineToNow(){ var p=$('p-line'); if(dayOff===0){ p.scrollTop=Math.max(0, (Date.now()-sod(Date.now()))/HR*PX - 160); } else p.scrollTop=6*PX; }
+$('prevD').addEventListener('click', function(){ if(dayOff>=6) return; dayOff++; renderLine(); scrollLineToNow(); ac(); boing(240); haptic(5); });
+$('nextD').addEventListener('click', function(){ if(dayOff<=0) return; dayOff--; renderLine(); scrollLineToNow(); ac(); boing(300); haptic(5); });
+$('tl').addEventListener('click', function(e){
+  var b=e.target.closest('.ev'); if(!b) return; ac(); boing(320); haptic(6);
+  var id=b.dataset.id;
+  if(id==='live-s'||id==='live-f'){ go('today'); return; }
+  var ev=EV.find(function(x){ return x.id===id; }); if(!ev) return;
+  var name={feed:'餵奶',sleep:'睡覺',diaper:'換尿布',other:ev.what}[ev.type];
+  var detail = ev.type==='feed' ? hm(ev.s)+'–'+hm(ev.e)+' · '+(ev.side==='B'? ev.ml+' ml' : sideTxt(ev.side))+' · '+dur(ev.e-ev.s) : ev.type==='sleep' ? hm(ev.s)+'–'+hm(ev.e)+' · '+dur(ev.e-ev.s) : hm(ev.s)+(ev.kind?' · '+kindTxt(ev.kind):'');
+  openSheet('<h4 id="shT">'+name+'</h4><p class="sub">'+detail+'</p><p class="lbl">時間記錯了？往前或往後挪 10 分鐘</p><div class="step"><button id="tM" aria-label="提早 10 分鐘">−</button><output id="tV" style="font-size:44px">'+hm(ev.s)+'</output><button id="tP" aria-label="延後 10 分鐘">+</button></div><button class="big" id="tOk">好了</button><button class="quiet" id="del" style="color:var(--red)">刪除這筆</button>');
+  function shift(n){ ev.s+=n*10*MIN; if(ev.e) ev.e+=n*10*MIN; $('tV').textContent=hm(ev.s); persist(); renderLine(); boing(n>0?360:280); haptic(4); }
+  $('tM').onclick=function(){ shift(-1); }; $('tP').onclick=function(){ shift(1); };
+  $('tOk').onclick=function(){ EV.sort(function(a,b){ return a.s-b.s; }); persist(); closeSheet(); };
+  $('del').onclick=function(){ var i=EV.indexOf(ev); if(i<0) return; EV.splice(i,1); persist(); closeSheet(); renderLine(); haptic([20,40,20]); toast('刪掉了 · '+name, null, function(){ EV.splice(i,0,ev); persist(); renderLine(); }); };
+});
+$('fab').addEventListener('click', function(){
+  ac(); boing(300); haptic(8);
+  var type='feed', t=Math.min(Date.now(), sod(Date.now())-dayOff*DAY+ (dayOff? 12*HR : 0)) ; if(!dayOff) t=Date.now()-30*MIN; t=Math.round(t/(10*MIN))*10*MIN;
+  openSheet('<h4 id="shT">補記一筆</h4><p class="sub">忘了按也沒關係</p><div class="choice" id="aT" style="grid-template-columns:repeat(4,1fr)">'
+    +[['feed','餵奶','bottle'],['diaper','尿布','diaper'],['sleep','睡覺','moon'],['other','洗澡','bowl']].map(function(x,i){ return '<button data-t="'+x[0]+'" aria-pressed="'+(i===0)+'" style="height:86px">'+IC[x[2]].replace('class="ic"','')+x[1]+'</button>'; }).join('')
+    +'</div><p class="lbl">開始時間</p><div class="step"><button id="aM" aria-label="提早 10 分鐘">−</button><output id="aV" style="font-size:44px">'+hm(t)+'</output><button id="aP" aria-label="延後 10 分鐘">+</button></div><button class="big" id="aOk">加進時間軸</button>');
+  $('aT').onclick=function(e){ var b=e.target.closest('button'); if(!b) return; type=b.dataset.t; this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x===b); }); boing(360); haptic(5); };
+  $('aM').onclick=function(){ t-=10*MIN; $('aV').textContent=hm(t); boing(280); };
+  $('aP').onclick=function(){ if(t+10*MIN<=Date.now()){ t+=10*MIN; $('aV').textContent=hm(t); boing(360); } else { haptic([20,30,20]); } };
+  $('aOk').onclick=function(){
+    var ev={id:'e'+Date.now(), type:type, s:t};
+    if(type==='feed'){ ev.e=t+15*MIN; ev.side='B'; ev.ml=120; } if(type==='sleep'){ ev.e=Math.min(Date.now(), t+60*MIN); } if(type==='diaper') ev.kind='wet'; if(type==='other') ev.what='洗澡';
+    EV.push(ev); EV.sort(function(a,b){ return a.s-b.s; }); persist(); closeSheet(); renderLine(); tune([659,784]); haptic([8,20,8]); toast('補記好了 · '+hm(t), ev.id);
+  };
+});
+
+/* ---------- stats ---------- */
+var stSel=6;
+function weekData(){
+  var out=[], t0=sod(Date.now());
+  for(var i=6;i>=0;i--){ var a=t0-i*DAY, b=a+DAY, sl=0, fc=0, ml=0, dc=0;
+    EV.forEach(function(e){ if(e.type==='sleep' && e.e>a && e.s<b) sl+=Math.min(e.e,b)-Math.max(e.s,a); if(e.type==='feed' && e.s>=a && e.s<b){ fc++; ml+=e.ml||0; } if(e.type==='diaper' && e.s>=a && e.s<b) dc++; });
+    out.push({a:a, sleep:sl/HR, feed:fc, ml:ml, diaper:dc}); }
+  return out;
+}
+function bars(id, data, key, col, unit, fmt){
+  var mx=Math.max.apply(null, data.map(function(d){ return d[key]; }))*1.15||1, w=330, bw=30, gap=(w-7*bw)/6, H=100, s='';
+  var avg=data.slice(0,6).reduce(function(a,d){ return a+d[key]; },0)/6, ay=H-avg/mx*H+4;
+  s+='<path d="M0 '+ay.toFixed(1)+'H330" stroke="#1a1a1a" stroke-width="2" stroke-dasharray="4 6" stroke-linecap="round" opacity=".45"/>';
+  data.forEach(function(d,i){ var h=Math.max(6, d[key]/mx*H), x=i*(bw+gap), y=H-h+4, on=i===stSel;
+    s+='<g data-i="'+i+'" style="cursor:pointer"><rect x="'+(x-4)+'" y="0" width="'+(bw+8)+'" height="130" fill="transparent"/><rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw+'" height="'+h.toFixed(1)+'" rx="8" fill="'+(on?col:'#fff')+'" stroke="#1a1a1a" stroke-width="3.5"/>'
+      +(on?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-7).toFixed(1)+'" text-anchor="middle" style="font-size:13px">'+fmt(d[key])+'</text>':'')
+      +'<text x="'+(x+bw/2).toFixed(1)+'" y="124" text-anchor="middle"'+(on?'':' style="fill:#4a4a4a"')+'>'+(i===6?'今':WD[new Date(d.a).getDay()])+'</text></g>'; });
+  $(id).innerHTML=s;
+}
+function renderStats(){
+  var D=weekData(), s=D[stSel], d=new Date(s.a);
+  $('stSub').textContent='點長條看每一天 · 目前選 '+(stSel===6?'今天':(d.getMonth()+1)+'/'+d.getDate()+' 週'+WD[d.getDay()]);
+  $('stSleep').innerHTML='<b>'+s.sleep.toFixed(1)+'</b> 小時'; $('stFeed').innerHTML='<b>'+s.feed+'</b> 次 · '+s.ml+' ml'; $('stDiaper').innerHTML='<b>'+s.diaper+'</b> 片';
+  bars('chSleep', D, 'sleep', '#0064b0', '', function(v){ return v.toFixed(1); });
+  bars('chFeed', D, 'feed', '#e2231a', '', function(v){ return v; });
+  bars('chDiaper', D, 'diaper', '#ffcf00', '', function(v){ return v; });
+}
+['chSleep','chFeed','chDiaper'].forEach(function(id){ $(id).addEventListener('click', function(e){ var g=e.target.closest('g[data-i]'); if(!g) return; stSel=+g.dataset.i; ac(); boing(260+stSel*30); haptic(5); renderStats(); }); });
+
+/* ---------- nav ---------- */
+var cur='today';
+function go(p){
+  if(p!==cur){ $('p-'+cur).hidden=true; var el=$('p-'+p); el.hidden=false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); cur=p; }
+  document.querySelectorAll('.nav button').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.p===p); });
+  $('fab').hidden = p!=='line';
+  $('screen').classList.toggle('night', !!RUN.sleep && p==='today');
+  if(p==='today') renderToday(); if(p==='line'){ renderLine(); scrollLineToNow(); } if(p==='stats') renderStats();
+  haptic(6);
+}
+document.querySelectorAll('.nav button').forEach(function(b){ b.addEventListener('click', function(){ ac(); boing(240); go(b.dataset.p); }); });
+
+/* ---------- sheet ---------- */
+var sheet=$('sheet'), scrim=$('scrim'), lastFocus=null;
+function openSheet(html){ lastFocus=document.activeElement; $('shBody').innerHTML=html; sheet.scrollTop=0; sheet.style.transform=''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); var f=sheet.querySelector('button'); if(f) f.focus({preventScroll:true}); }
+function closeSheet(){ if(!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform=''; scrim.classList.remove('on'); scrim.style.opacity=''; if(lastFocus&&lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+(function(){
+  var sy=0,dy=0,t0=0,on=false;
+  sheet.addEventListener('pointerdown', function(e){ if(e.target.closest('button')||sheet.scrollTop>0) return; on=true; sy=e.clientY; dy=0; t0=e.timeStamp; sheet.classList.add('drag'); try{ sheet.setPointerCapture(e.pointerId); }catch(er){} });
+  sheet.addEventListener('pointermove', function(e){ if(!on) return; dy=e.clientY-sy; sheet.style.transform='translateY('+(dy>0?dy:dy/6)+'px)'; scrim.style.opacity=Math.max(0,1-dy/sheet.offsetHeight); });
+  function end(e){ if(!on) return; on=false; sheet.classList.remove('drag'); scrim.style.opacity=''; var v=dy/Math.max(1,e.timeStamp-t0); if(dy>sheet.offsetHeight*.35||v>.6){ closeSheet(); haptic(5); } else sheet.style.transform=''; }
+  sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+})();
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSheet(); });
+
+/* ---------- toast with undo ---------- */
+var tt=null, undoFn=null;
+function toast(msg, evId, fn){
+  $('toastT').textContent=msg;
+  undoFn = fn || (evId ? function(){ var i=EV.findIndex(function(x){ return x.id===evId; }); if(i>=0) EV.splice(i,1); persist(); if(cur==='today') renderToday(); if(cur==='line') renderLine(); } : null);
+  $('toastU').hidden=!undoFn; var t=$('toast'); t.classList.add('on'); clearTimeout(tt); tt=setTimeout(function(){ t.classList.remove('on'); undoFn=null; }, undoFn?4000:1900);
+}
+$('toastU').addEventListener('click', function(){ if(undoFn){ undoFn(); undoFn=null; ac(); boing(200); haptic(8); } $('toast').classList.remove('on'); });
+
+/* ---------- ticking ---------- */
+function clk(){ var d=new Date(); $('clk').textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+clk(); setInterval(clk, 20000);
+setInterval(function(){
+  if(document.hidden) return;
+  if(RUN.feed && $('tFeed')) $('tFeed').textContent=clock(Date.now()-RUN.feed.s);
+  if(RUN.sleep && $('tSleep')) $('tSleep').textContent=clock(Date.now()-RUN.sleep.s);
+}, 1000);
+setInterval(function(){ if(document.hidden) return; if(cur==='today') renderToday(); if(cur==='line' && dayOff===0) renderLine(); }, 30000);
+
+go('today');
+})();
+</script>
+</body>
+</html>

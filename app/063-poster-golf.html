@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7fc4dd">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="小白球">
+<title>小白球 · 迷你高爾夫</title>
+<meta name="description" content="九張台灣旅遊海報，九個迷你高爾夫球洞：往後拉線瞄準、放開擊球，繞過日月潭、穿過太魯閣、躲開澎湖風車。收錄於 100 Creative HTML Works（App 063・60 年代旅遊海報平塗）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/063-poster-golf.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237fc4dd'/%3E%3Ccircle cx='40' cy='30' r='16' fill='%23f0854a'/%3E%3Cpath d='M0 44c16-8 40-8 64 0v20H0z' fill='%235b9b4b'/%3E%3Ccircle cx='22' cy='48' r='5' fill='%23fff'/%3E%3Cpath d='M44 50V24' stroke='%232f2418' stroke-width='2'/%3E%3Cpath d='M44 24l10 4-10 4z' fill='%23f6e7c8'/%3E%3C/svg%3E">
+<style>
+:root{
+  --sky:#7fc4dd;
+  --sky-d:#4f9dbf;
+  --sun:#f0854a;
+  --sun-l:#f5b36a;
+  --grass:#5b9b4b;
+  --grass-d:#3f7a3a;
+  --cream:#f6e7c8;
+  --ink:#2f2418;
+  --ink-2:#5a4632;
+  --cond:"Avenir Next Condensed","Avenir Next","PingFang TC",system-ui,sans-serif;
+  --ui:"PingFang TC","Heiti TC",system-ui,sans-serif;
+  --spring:cubic-bezier(.3,1.4,.5,1);
+  --out:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--ui);color:var(--ink);background:var(--sky);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--ink);outline-offset:2px;border-radius:6px}
+svg{display:block}
+.cd{font-family:var(--cond);font-stretch:condensed}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption,.island{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--sky)}
+@media (min-width:521px){
+  body{background:#f0854a}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0}
+  .backdrop svg{width:100%;height:100%}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:56px;padding:11px;z-index:1;background:#f6e7c8;box-shadow:inset 0 0 0 3px #2f2418,6px 6px 0 #2f2418}
+  .screen{inset:11px;border-radius:45px}
+  .island{display:block;position:absolute;top:11px;left:50%;width:112px;height:32px;margin-left:-56px;border-radius:18px;background:#1b140d;z-index:90}
+  .caption{display:block;position:relative;z-index:1;max-width:260px}
+  .caption h1{font:800 76px/.9 var(--cond);font-stretch:condensed;color:var(--cream);letter-spacing:.01em;text-shadow:4px 4px 0 var(--ink)}
+  .caption p{margin-top:18px;font:600 15px/1.7 var(--ui);color:var(--ink)}
+}
+@media (min-width:521px) and (max-width:880px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:50;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:700 16px/1 var(--cond);color:var(--ink);pointer-events:none}
+.status .glyphs{display:flex;align-items:center;gap:6px}
+@media (display-mode:standalone){.status{visibility:hidden}}
+
+.view{position:absolute;inset:0;display:flex;flex-direction:column}
+.view[hidden]{display:none}
+.view.enter{animation:vin .45s var(--out)}
+@keyframes vin{from{transform:translateY(24px)}}
+
+/* ---------- gallery ---------- */
+.gscroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain}
+.gscroll::-webkit-scrollbar{display:none}
+.ghead{position:relative;padding:calc(58px + env(safe-area-inset-top)) 20px 18px;overflow:hidden}
+.ghead .sunbg{position:absolute;right:-60px;top:-30px;width:240px;height:240px;border-radius:50%;background:var(--sun)}
+.ghead .sunbg::after{content:"";position:absolute;inset:34px;border-radius:50%;background:var(--sun-l)}
+.ghead h1{position:relative;font:800 64px/.9 var(--cond);font-stretch:condensed;color:var(--cream);letter-spacing:.01em;text-shadow:3px 3px 0 var(--ink)}
+.ghead .en{position:relative;margin-top:8px;font:700 15px/1 var(--cond);letter-spacing:.24em;color:var(--ink)}
+.tally{position:relative;display:flex;align-items:flex-end;gap:20px;margin-top:20px}
+.tally div{font:600 13px/1.2 var(--ui);color:var(--ink-2)}
+.tally b{display:block;font:800 34px/1 var(--cond);font-stretch:condensed;color:var(--ink)}
+.go{position:relative;margin-left:auto;display:flex;align-items:center;gap:8px;height:50px;padding:0 20px;background:var(--ink);color:var(--cream);font:700 17px/1 var(--cond);letter-spacing:.06em;border-radius:4px;box-shadow:3px 3px 0 var(--sun);transition:transform .1s,box-shadow .1s}
+.go:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--sun)}
+.go svg{width:18px;height:18px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;padding:6px 16px calc(36px + env(safe-area-inset-bottom))}
+.poster{position:relative;display:block;text-align:left;transition:transform .2s var(--out)}
+.poster:active{transform:scale(.96) rotate(-1deg)}
+.poster svg{width:100%;height:auto;border-radius:3px;box-shadow:3px 3px 0 var(--ink)}
+.poster .cap{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;font:700 14px/1.2 var(--ui)}
+.poster .cap span{font:700 13px/1 var(--cond);color:var(--ink-2)}
+.poster.locked svg{filter:grayscale(.85) brightness(.9)}
+.poster.locked .cap{color:var(--ink-2)}
+.poster .best{position:absolute;right:-4px;top:-6px;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:var(--cream);border:2.5px solid var(--ink);font:800 17px/1 var(--cond);transform:rotate(12deg)}
+.poster .lock{position:absolute;left:50%;top:38%;width:30px;height:34px;margin:-17px 0 0 -15px}
+
+/* ---------- play ---------- */
+.band{position:relative;z-index:2;flex:none;padding:calc(48px + env(safe-area-inset-top)) 10px 8px;display:flex;align-items:center;gap:6px;background:var(--hb,var(--sun))}
+.iconbtn{width:44px;height:44px;display:grid;place-items:center;border-radius:6px;color:var(--ink);flex:none}
+.iconbtn:active{background:rgba(47,36,24,.12)}
+.htitle{flex:1;min-width:0}
+.htitle b{display:block;font:800 26px/1 var(--cond);font-stretch:condensed;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.htitle span{display:block;margin-top:3px;font:700 13px/1.1 var(--cond);letter-spacing:.14em;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strokes{flex:none;display:flex;align-items:baseline;gap:4px;padding:0 6px;font:800 40px/1 var(--cond);font-stretch:condensed}
+.strokes small{font:700 14px/1 var(--cond);color:var(--ink-2)}
+.court{position:relative;flex:1;min-height:0;touch-action:none;cursor:crosshair}
+.court canvas{position:absolute;inset:0;width:100%;height:100%}
+.hud{flex:none;display:flex;align-items:center;gap:12px;padding:10px 16px calc(26px + env(safe-area-inset-bottom));background:var(--hb,var(--sun))}
+.meter{flex:1;height:14px;border-radius:2px;background:rgba(47,36,24,.18);position:relative;overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:left;transform:scaleX(0);background:var(--ink)}
+.hud .tip{font:600 13px/1.3 var(--ui);color:var(--ink);min-width:92px}
+.flat{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:4px;font:700 15px/1 var(--cond);letter-spacing:.05em;border:2px solid var(--ink)}
+.flat:active{background:rgba(47,36,24,.12)}
+
+/* ---------- result ---------- */
+.result{position:absolute;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;padding:0 18px calc(26px + env(safe-area-inset-bottom));background:rgba(47,36,24,.35);opacity:0;visibility:hidden;transition:opacity .3s,visibility 0s .3s}
+.result.on{opacity:1;visibility:visible;transition:opacity .3s}
+.rcard{width:100%;max-width:360px;background:var(--cream);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);padding:18px 18px 16px;transform:translateY(40px);transition:transform .5s var(--spring)}
+.result.on .rcard{transform:none}
+.rcard .word{font:800 58px/.9 var(--cond);font-stretch:condensed;color:var(--sun);text-shadow:3px 3px 0 var(--ink);letter-spacing:.01em}
+.rcard .zh{margin-top:8px;font:700 20px/1.2 var(--ui)}
+.rcard .line{margin-top:6px;font:14px/1.5 var(--ui);color:var(--ink-2)}
+.rcard .acts{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin-top:18px}
+.rcard .acts .go{margin:0;justify-content:center}
+.rcard .acts .flat{justify-content:center}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;z-index:60;background:rgba(47,36,24,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:61;max-height:calc(100% - 60px);display:flex;flex-direction:column;background:var(--cream);border-top:3px solid var(--ink);border-radius:18px 18px 0 0;
+  transform:translateY(105%);visibility:hidden;transition:transform .5s var(--spring),visibility 0s .5s}
+.sheet.on{transform:none;visibility:visible;transition:transform .5s var(--spring)}
+.sheet.drag{transition:none}
+.shead{flex:none;padding:10px 20px 6px;touch-action:none;cursor:grab}
+.grab{width:40px;height:5px;border-radius:3px;background:rgba(47,36,24,.3);margin:0 auto 12px}
+.shead h2{font:800 30px/1 var(--cond);font-stretch:condensed;display:flex;justify-content:space-between;align-items:baseline}
+.shead h2 small{font:600 13px/1 var(--ui);color:var(--ink-2)}
+.sbody{flex:1;min-height:0;overflow-y:auto;padding:6px 20px calc(26px + env(safe-area-inset-bottom));scrollbar-width:none}
+.card-t{width:100%;border-collapse:collapse;font:600 15px/1 var(--cond)}
+.card-t th{font:600 12px/1 var(--ui);color:var(--ink-2);text-align:center;padding:8px 0}
+.card-t td{text-align:center;height:44px;border-top:2px solid rgba(47,36,24,.14)}
+.card-t td:first-child,.card-t th:first-child{text-align:left}
+.card-t td:first-child{font:600 15px/1.2 var(--ui)}
+.card-t .u{color:#2f7a3a}.card-t .o{color:#b8442a}
+.card-t tfoot td{font:800 20px/1 var(--cond);border-top:3px solid var(--ink)}
+.row2{display:flex;gap:10px;margin-top:18px}
+.row2 .flat{flex:1;justify-content:center}
+.toggle{display:flex;align-items:center;justify-content:space-between;min-height:54px;margin-top:10px;font:600 15px/1.3 var(--ui)}
+.toggle span{display:block;font:13px/1.3 var(--ui);color:var(--ink-2);font-weight:400}
+.sw{position:relative;width:54px;height:32px;border:2.5px solid var(--ink);border-radius:4px;flex:none;background:var(--cream)}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;background:var(--ink);transition:transform .3s var(--spring)}
+.sw[aria-checked=true]{background:var(--sun)}
+.sw[aria-checked=true]::after{transform:translateX(22px)}
+
+.toast{position:absolute;left:0;right:0;margin:0 auto;width:max-content;max-width:calc(100% - 32px);top:calc(126px + env(safe-area-inset-top));z-index:70;padding:12px 16px;background:var(--ink);color:var(--cream);font:700 14px/1.3 var(--ui);border-radius:4px;
+  transform:translateY(-8px);opacity:0;visibility:hidden;transition:transform .35s var(--spring),opacity .2s,visibility 0s .35s}
+.toast.on{transform:none;opacity:1;visibility:visible;transition:transform .35s var(--spring),opacity .2s}
+.home-ind{position:absolute;left:50%;bottom:calc(8px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(47,36,24,.55);z-index:99;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  .view.enter{animation:none}
+  .rcard,.sheet,.toast,.sw::after,.poster{transition-duration:.01s!important}
+  .result.on .rcard,.rcard{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <rect width="1600" height="1000" fill="#f0854a"/>
+      <rect y="0" width="1600" height="300" fill="#f5b36a"/>
+      <rect y="300" width="1600" height="120" fill="#f39a55"/>
+      <circle cx="1240" cy="470" r="230" fill="#f6e7c8"/>
+      <path d="M0 640 260 470 420 560 640 400 900 600 1100 500 1600 640V1000H0Z" fill="#4f9dbf"/>
+      <path d="M0 760C300 690 600 740 900 700S1400 690 1600 730V1000H0Z" fill="#5b9b4b"/>
+      <path d="M0 860C300 820 700 880 1000 840S1400 830 1600 850V1000H0Z" fill="#3f7a3a"/>
+      <g stroke="#2f2418" stroke-width="5" fill="none"><path d="M1420 860V700"/></g><path d="M1420 700l60 20-60 20z" fill="#f6e7c8" stroke="#2f2418" stroke-width="4"/>
+      <circle cx="1330" cy="862" r="12" fill="#fff" stroke="#2f2418" stroke-width="4"/>
+    </svg>
+  </div>
+  <div class="caption">
+    <h1>小白球</h1>
+    <p>九張台灣旅遊海報，九個迷你高爾夫球洞。往後拉線，放開擊球。</p>
+  </div>
+
+  <div class="device">
+    <div class="island" aria-hidden="true"></div>
+    <div class="screen" id="screen">
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="glyphs">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5.5" width="3" height="6.5"/><rect x="10" y="3" width="3" height="9"/><rect x="15" y="0" width="3" height="12" opacity=".35"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.5 5.6 8.8a3.4 3.4 0 0 1 4.8 0z" fill="currentColor"/><path d="M3.4 6.4a6.5 6.5 0 0 1 9.2 0M1 3.9a10 10 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x="1" y="1" width="22" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect id="batt" x="3" y="3" width="16" height="7" fill="currentColor"/><path d="M24.5 4.5v4h1.5v-4z" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <section class="view" id="gallery" aria-label="球洞">
+        <div class="gscroll" id="gscroll">
+          <div class="ghead">
+            <div class="sunbg" aria-hidden="true"></div>
+            <h1>小白球</h1>
+            <p class="en">NINE HOLES · FORMOSA TOUR</p>
+            <div class="tally">
+              <div><b id="tBest">—</b><span id="tBestL">最佳總桿</span></div>
+              <div><b id="tPar">27</b>標準桿</div>
+              <button class="go" id="goBtn"><span id="goLbl">開球</span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M5 13 13 5M7 5h6v6"/></svg></button>
+            </div>
+          </div>
+          <div class="grid" id="grid"></div>
+        </div>
+      </section>
+
+      <section class="view" id="play" aria-label="球場" hidden>
+        <div class="band">
+          <button class="iconbtn" id="backBtn" aria-label="回海報牆"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg></button>
+          <div class="htitle"><b id="hName">墾丁</b><span id="hSub">HOLE 1 · PAR 2</span></div>
+          <div class="strokes" aria-live="polite"><span id="sNow">0</span><small>桿</small></div>
+          <button class="iconbtn" id="cardBtn" aria-label="計分卡"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M5 3h14v18H5z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></button>
+        </div>
+        <div class="court" id="court" aria-label="往後拉線瞄準，放開擊球" role="application"><canvas id="cv"></canvas></div>
+        <div class="hud">
+          <span class="tip" id="tip">往後拉，放開擊球</span>
+          <div class="meter" aria-hidden="true"><i id="meter"></i></div>
+          <button class="flat" id="retry" aria-label="重打這一洞"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M4 9a5 5 0 1 0 2-4"/><path d="M3 2v4h4"/></svg>重打</button>
+        </div>
+      </section>
+
+      <div class="result" id="result" role="dialog" aria-modal="true" aria-labelledby="rWord">
+        <div class="rcard">
+          <div class="word" id="rWord">BIRDIE</div>
+          <div class="zh" id="rZh">博蒂，少一桿</div>
+          <div class="line" id="rLine"></div>
+          <div class="acts"><button class="flat" id="rAgain">再打一次</button><button class="go" id="rNext">下一洞</button></div>
+        </div>
+      </div>
+
+      <div class="home-ind" aria-hidden="true"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT">
+        <div class="shead" id="sheetHead"><div class="grab"></div><h2 id="sheetT">計分卡</h2></div>
+        <div class="sbody" id="sheetBody"></div>
+      </div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var KEY = 'app063:';
+function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
+var opts = load('opts', {sound:true, guide:true});
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function clamp(v, a, b){ return v < a ? a : v > b ? b : v; }
+
+/* ---------- sound ---------- */
+var ac = null, nb = null;
+function audio(){ if (!opts.sound) return null; if (ac){ if (ac.state === 'suspended') ac.resume(); return ac; } try { ac = new (window.AudioContext || window.webkitAudioContext)(); nb = ac.createBuffer(1, ac.sampleRate * .8, ac.sampleRate); var d = nb.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } catch(e){ ac = null; } return ac; }
+document.addEventListener('pointerdown', function(){ audio(); }, {once:true, capture:true});
+function tone(f, t, dur, g, type, f2){ var o = ac.createOscillator(), gn = ac.createGain(); o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur); gn.gain.setValueAtTime(g, t); gn.gain.exponentialRampToValueAtTime(.0005, t + dur); o.connect(gn); gn.connect(ac.destination); o.start(t); o.stop(t + dur + .02); }
+function nz(t, dur, freq, type, g, f2){ var s = ac.createBufferSource(); s.buffer = nb; var f = ac.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t); if (f2) f.frequency.exponentialRampToValueAtTime(f2, t + dur); var gn = ac.createGain(); gn.gain.setValueAtTime(g, t); gn.gain.exponentialRampToValueAtTime(.0005, t + dur); s.connect(f); f.connect(gn); gn.connect(ac.destination); s.start(t); s.stop(t + dur + .02); }
+function sPutt(p){ if (!audio()) return; var t = ac.currentTime; tone(1150, t, .07, .25 + p * .3, 'sine', 700); nz(t, .03, 3000, 'highpass', .2); }
+function sWall(v){ if (!audio()) return; var t = ac.currentTime; tone(420, t, .05, clamp(v / 200, .03, .2), 'triangle', 300); }
+function sCup(){ if (!audio()) return; var t = ac.currentTime; [0, .07, .12, .17].forEach(function(d, i){ tone(1600 - i * 200, t + d, .05, .18, 'triangle'); }); tone(120, t + .22, .15, .4); }
+function sSplash(){ if (!audio()) return; var t = ac.currentTime; nz(t, .5, 1800, 'lowpass', .5, 300); }
+function sSand(){ if (!audio()) return; nz(ac.currentTime, .12, 900, 'bandpass', .12); }
+function sWin(){ if (!audio()) return; var t = ac.currentTime; [523, 659, 784, 1047].forEach(function(f, i){ tone(f, t + .3 + i * .1, .35, .12, 'square'); }); }
+
+/* ---------- holes (units: 100 x 150) ---------- */
+function rectPoly(x0, y0, x1, y1){ return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]; }
+var HOLES = [
+  {n:'墾丁', en:'KENTING', par:2, hb:'#f5b36a', tee:[50, 130], cup:[50, 26], wall:rectPoly(20, 10, 80, 142),
+    bump:[[50, 80, 5]], sand:[[34, 50, 9, 5]], water:[], blocks:[], slopes:[]},
+  {n:'日月潭', en:'SUN MOON LAKE', par:3, hb:'#9fd0de', tee:[50, 134], cup:[50, 20], wall:[[16, 8], [84, 8], [92, 28], [92, 126], [84, 144], [16, 144], [8, 126], [8, 28]],
+    bump:[], sand:[[76, 34, 8, 5]], water:[[50, 76, 23, 27]], blocks:[], slopes:[]},
+  {n:'太魯閣', en:'TAROKO GORGE', par:3, hb:'#c9d7c4', tee:[27, 132], cup:[72, 20], wall:[[10, 145], [45, 145], [45, 95], [90, 95], [90, 8], [55, 8], [55, 60], [10, 60]],
+    bump:[[28, 76, 4], [72, 82, 4], [70, 40, 3.5]], sand:[], water:[], blocks:[], slopes:[]},
+  {n:'阿里山', en:'ALISHAN', par:3, hb:'#f5b36a', tee:[50, 136], cup:[56, 18], wall:rectPoly(12, 8, 88, 146),
+    bump:[[30, 102, 5], [66, 110, 5], [46, 72, 6], [72, 54, 5], [28, 42, 5]], sand:[[50, 30, 12, 5]], water:[], blocks:[], slopes:[]},
+  {n:'野柳', en:'YEHLIU', par:2, hb:'#9fd0de', tee:[50, 132], cup:[50, 22], wall:[[22, 10], [78, 10], [90, 76], [78, 142], [22, 142], [10, 76]],
+    bump:[[50, 74, 8], [37, 92, 3.5], [63, 58, 3.5]], sand:[], water:[[74, 112, 7, 10]], blocks:[], slopes:[]},
+  {n:'台北 101', en:'TAIPEI 101', par:3, hb:'#f0854a', tee:[27, 134], cup:[78, 26], wall:[[10, 146], [45, 146], [45, 45], [90, 45], [90, 8], [10, 8]],
+    bump:[], sand:[[30, 22, 9, 5]], water:[], blocks:[rectPoly(22, 70, 32, 90)], slopes:[]},
+  {n:'澎湖', en:'PENGHU', par:3, hb:'#9fd0de', tee:[50, 136], cup:[50, 22], wall:rectPoly(12, 8, 88, 146),
+    bump:[], sand:[], water:[[24, 34, 8, 6], [76, 34, 8, 6]], blocks:[], slopes:[], mill:[50, 76, 24, 1.3], stubs:[[[12, 76], [23, 76]], [[77, 76], [88, 76]]]},
+  {n:'九份', en:'JIUFEN', par:4, hb:'#f5b36a', tee:[50, 138], cup:[50, 20], wall:rectPoly(15, 8, 85, 146),
+    bump:[[30, 66, 3.5], [70, 98, 3.5], [44, 124, 3]], sand:[], water:[], blocks:[], slopes:[[15, 40, 85, 54, 0, 42], [15, 76, 85, 90, 0, 42], [15, 104, 85, 116, 0, 42]]},
+  {n:'合歡山', en:'HEHUANSHAN', par:4, hb:'#c9d7c4', tee:[25, 134], cup:[75, 128], wall:[[10, 146], [40, 146], [40, 62], [60, 62], [60, 146], [90, 146], [90, 8], [10, 8]],
+    bump:[[50, 40, 4]], sand:[[26, 26, 9, 5], [75, 92, 8, 5]], water:[[75, 30, 7, 6]], blocks:[], slopes:[]}
+];
+var PAR = HOLES.reduce(function(a, h){ return a + h.par; }, 0);
+var prog = load('prog', {unlocked:1, best:[], round:[], cur:0});
+
+/* ---------- posters (SVG) ---------- */
+var INK = '#2f2418', CR = '#f6e7c8', SUN = '#f0854a', SUNL = '#f5b36a', SKY = '#7fc4dd', SKYD = '#4f9dbf', GR = '#5b9b4b', GRD = '#3f7a3a';
+function poster(i){
+  var s = '<svg viewBox="0 0 120 160" role="img" aria-label="' + HOLES[i].n + '海報">', m = '';
+  switch (i){
+    case 0: // kenting
+      s += '<rect width="120" height="160" fill="' + SUNL + '"/><circle cx="78" cy="62" r="30" fill="' + SUN + '"/><path d="M0 92 30 70 46 84 60 76 120 92V160H0Z" fill="' + GRD + '"/><rect y="92" width="120" height="30" fill="' + SKYD + '"/><path d="M0 102h120M10 112h40M66 110h44" stroke="' + CR + '" stroke-width="2"/><path d="M0 122h120v38H0z" fill="' + CR + '"/>';
+      m = '<path d="M30 128C32 108 28 90 38 70" stroke="' + INK + '" stroke-width="4" fill="none"/><path d="M38 70c-12-4-22 2-26 10M38 70c12-6 22-2 28 6M38 70c-4-12-14-16-22-14M38 70c6-12 16-14 24-10" stroke="' + GR + '" stroke-width="5" fill="none" stroke-linecap="round"/>';
+      break;
+    case 1: // sun moon lake
+      s += '<rect width="120" height="160" fill="' + SKY + '"/><circle cx="30" cy="40" r="14" fill="' + CR + '"/><path d="M0 84 26 56 48 74 72 50 120 80V160H0Z" fill="' + GRD + '"/><path d="M0 96 40 78 80 90 120 80V160H0Z" fill="' + GR + '"/><ellipse cx="60" cy="122" rx="54" ry="18" fill="' + SKYD + '"/><path d="M26 120h20M70 126h24" stroke="' + CR + '" stroke-width="2"/>';
+      m = '<g fill="' + SUN + '" stroke="' + INK + '" stroke-width="1.5"><path d="M88 58h10l-2 8h-6z"/><path d="M87 66h12l-2 9h-8z"/><path d="M86 75h14l-2 10H88z"/><path d="M93 50l5 8H88z"/></g>';
+      break;
+    case 2: // taroko
+      s += '<rect width="120" height="160" fill="' + SUNL + '"/><path d="M0 0H44L40 40 48 80 36 160H0Z" fill="#5d6f6a"/><path d="M120 0H80L86 50 74 100 86 160H120Z" fill="#4a5b57"/><path d="M36 160 46 110 60 100 74 110 86 160Z" fill="' + SKY + '"/><path d="M52 130h10M58 144h16" stroke="' + CR + '" stroke-width="2"/>';
+      m = '<path d="M40 74Q62 52 82 74" stroke="' + SUN + '" stroke-width="5" fill="none"/><path d="M40 74h42" stroke="' + INK + '" stroke-width="2"/><path d="M48 74v-8M56 74v-14M64 74v-16M72 74v-11" stroke="' + INK + '" stroke-width="1.5"/>';
+      break;
+    case 3: // alishan
+      s += '<rect width="120" height="160" fill="' + SUNL + '"/><circle cx="60" cy="70" r="22" fill="' + SUN + '"/><path d="M60 30v10M28 44l7 7M92 44l-7 7M20 70h10M90 70h10" stroke="' + SUN + '" stroke-width="3"/><path d="M0 84c10-6 20 6 30 0s20-6 30 0 20 6 30 0 20-6 30 0V100H0Z" fill="' + CR + '"/><rect y="100" width="120" height="60" fill="' + GRD + '"/>';
+      m = '<g fill="' + GR + '" stroke="' + INK + '" stroke-width="1.2"><path d="M14 126 24 96 34 126Z"/><path d="M92 128 102 94 112 128Z"/></g><path d="M0 142h120" stroke="' + INK + '" stroke-width="2"/><rect x="40" y="124" width="44" height="16" fill="#c0392b" stroke="' + INK + '" stroke-width="1.5"/><path d="M46 128h8v5h-8zM60 128h8v5h-8zM74 128h6v5h-6z" fill="' + CR + '"/>';
+      break;
+    case 4: // yehliu
+      s += '<rect width="120" height="160" fill="' + SKY + '"/><circle cx="92" cy="34" r="16" fill="' + SUNL + '"/><rect y="96" width="120" height="64" fill="' + SKYD + '"/><path d="M8 108h26M60 118h40M20 134h30" stroke="' + CR + '" stroke-width="2"/><path d="M0 120 30 112 60 124V160H0Z" fill="#c9a36a"/>';
+      m = '<path d="M34 118c-2-10 4-14 4-24-2-10 2-20 12-22 10 0 16 8 14 16-2 6-8 8-12 8 0 8 6 12 4 22z" fill="#c9a36a" stroke="' + INK + '" stroke-width="1.6"/><path d="M52 72c4-6 12-6 14 0" stroke="' + INK + '" stroke-width="1.6" fill="none"/>';
+      break;
+    case 5: // taipei 101
+      s += '<rect width="120" height="160" fill="' + SUN + '"/><rect y="0" width="120" height="50" fill="' + SUNL + '"/><circle cx="30" cy="60" r="16" fill="' + CR + '"/><path d="M0 120 30 96 56 112 86 90 120 110V160H0Z" fill="' + GRD + '"/><path d="M0 136h120V160H0z" fill="' + GR + '"/>';
+      m = '<g fill="' + SKYD + '" stroke="' + INK + '" stroke-width="1.3"><path d="M72 136V104h16v32z"/><path d="M73 104l2-10h10l2 10z"/><path d="M74 94l2-10h8l2 10z"/><path d="M75 84l2-10h6l2 10z"/><path d="M76 74l2-10h4l2 10z"/></g><path d="M80 64V44" stroke="' + INK + '" stroke-width="2"/><path d="M40 136v-18h10v18M54 136v-24h8v24" fill="' + SKY + '" stroke="' + INK + '" stroke-width="1.2"/>';
+      break;
+    case 6: // penghu
+      s += '<rect width="120" height="160" fill="' + SKY + '"/><circle cx="96" cy="30" r="12" fill="' + SUNL + '"/><path d="M0 82 40 74 120 84V96H0Z" fill="' + GR + '"/><rect y="96" width="120" height="64" fill="' + SKYD + '"/>';
+      m = [28, 60, 92].map(function(x, k){ var y = 78 - k * 2; return '<path d="M' + x + ' ' + (y + 12) + 'V' + (y - 30) + '" stroke="' + CR + '" stroke-width="2.5"/><g transform="translate(' + x + ' ' + (y - 30) + ') rotate(' + (k * 25) + ')" stroke="' + CR + '" stroke-width="2.5" stroke-linecap="round"><path d="M0 0V-16M0 0l14 8M0 0l-14 8"/></g>'; }).join('') +
+        '<path d="M44 124c-6-8-16-2-10 6l10 10 10-10c6-8-4-14-10-6zM76 124c-6-8-16-2-10 6l10 10 10-10c6-8-4-14-10-6z" fill="none" stroke="' + CR + '" stroke-width="2.5"/>';
+      break;
+    case 7: // jiufen
+      s += '<rect width="120" height="160" fill="#34506a"/><circle cx="90" cy="30" r="12" fill="' + CR + '"/><path d="M0 60 60 44 120 70V160H0Z" fill="#2c4638"/><path d="M0 90 50 70 120 96V160H0Z" fill="' + GRD + '"/>';
+      m = ''; for (var r = 0; r < 4; r++) for (var c = 0; c < 5; c++){ var x = 6 + c * 23 + (r % 2) * 10, y = 76 + r * 20 - c * 2; m += '<rect x="' + x + '" y="' + y + '" width="16" height="12" fill="' + INK + '"/><rect x="' + (x + 4) + '" y="' + (y + 4) + '" width="4" height="4" fill="' + SUNL + '"/>'; if ((r + c) % 2) m += '<circle cx="' + (x + 14) + '" cy="' + (y - 3) + '" r="3" fill="' + SUN + '"/>'; }
+      break;
+    case 8: // hehuan
+      s += '<rect width="120" height="160" fill="' + SKYD + '"/><g fill="' + CR + '"><circle cx="20" cy="20" r="1.5"/><circle cx="50" cy="34" r="1.2"/><circle cx="80" cy="14" r="1.6"/><circle cx="104" cy="40" r="1.2"/><circle cx="36" cy="54" r="1"/></g><path d="M0 120 34 60 56 90 82 44 120 104V160H0Z" fill="#5d6f6a"/><path d="M34 60 44 78 38 76 30 82 26 74ZM82 44 94 62 86 60 78 66 72 58Z" fill="' + CR + '"/><path d="M0 130 60 110 120 128V160H0Z" fill="' + GRD + '"/>';
+      m = '<g fill="' + GR + '" stroke="' + INK + '" stroke-width="1.2"><path d="M18 146 26 118 34 146Z"/><path d="M92 148 100 122 108 148Z"/></g>';
+      break;
+  }
+  s += m + '<rect x="0" y="0" width="120" height="160" fill="none" stroke="' + INK + '" stroke-width="3"/>';
+  s += '<text x="8" y="20" font-family="Avenir Next Condensed" font-weight="800" font-size="16" fill="' + INK + '">' + (i + 1) + '</text>';
+  return s + '</svg>';
+}
+
+/* ---------- gallery ---------- */
+function renderGallery(){
+  var h = '', tot = 0, done = 0;
+  HOLES.forEach(function(ho, i){
+    var lk = i >= prog.unlocked, b = prog.best[i];
+    if (b){ tot += b; done++; }
+    h += '<button class="poster' + (lk ? ' locked' : '') + '" data-h="' + i + '" aria-label="第 ' + (i + 1) + ' 洞 ' + ho.n + (lk ? '，尚未開放' : '') + '">' + poster(i) +
+      (lk ? '<svg class="lock" viewBox="0 0 30 34" aria-hidden="true"><path d="M8 15V10a7 7 0 0 1 14 0v5" fill="none" stroke="' + INK + '" stroke-width="3"/><rect x="4" y="15" width="22" height="17" fill="' + CR + '" stroke="' + INK + '" stroke-width="3"/><path d="M15 21v5" stroke="' + INK + '" stroke-width="3"/></svg>' : '') +
+      (b ? '<span class="best">' + b + '</span>' : '') +
+      '<span class="cap">' + ho.n + '<span>PAR ' + ho.par + '</span></span></button>';
+  });
+  $('grid').innerHTML = h;
+  $('tBest').textContent = done ? tot : '—'; $('tBestL').textContent = done === 9 || !done ? '最佳總桿' : '前 ' + done + ' 洞最佳';
+  var next = Math.min(prog.unlocked - 1, 8);
+  $('goLbl').textContent = done ? '第 ' + (next + 1) + ' 洞 ' + HOLES[next].n : '開球';
+}
+$('grid').addEventListener('click', function(e){
+  var b = e.target.closest('.poster'); if (!b) return; var i = +b.dataset.h;
+  if (i >= prog.unlocked){ haptic([20, 40, 20]); toast('先打完第 ' + prog.unlocked + ' 洞才會開放'); return; }
+  startHole(i);
+});
+$('goBtn').addEventListener('click', function(){ startHole(Math.min(prog.unlocked - 1, 8)); });
+
+function show(id){
+  ['gallery', 'play'].forEach(function(v){ $(v).hidden = v !== id; });
+  var el = $(id); el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
+}
+$('backBtn').addEventListener('click', function(){ stopLoop(); show('gallery'); renderGallery(); haptic(6); });
+
+var tT = 0;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ t.classList.remove('on'); }, 2000); }
+
+/* ---------- play state ---------- */
+var H = null, hi = 0, ball = {x:0, y:0, vx:0, vy:0}, last = [0, 0], strokes = 0, sunk = false, sinkT = 0, millA = 0, splashT = 0, trail = [];
+var cv = $('cv'), cx = cv.getContext('2d'), W = 0, Ht = 0, DPR = 1, S = 1, OX = 0, OY = 0;
+var BR = 2.2, CUPR = 3.3;
+function startHole(i){
+  hi = i; H = HOLES[i]; prog.cur = i; save('prog', prog);
+  ball = {x:H.tee[0], y:H.tee[1], vx:0, vy:0}; last = H.tee.slice(); strokes = 0; sunk = false; sinkT = 0; trail = [];
+  $('hName').textContent = H.n; $('hSub').textContent = 'HOLE ' + (i + 1) + ' · PAR ' + H.par + ' · ' + H.en;
+  $('play').style.setProperty('--hb', H.hb); $('sNow').textContent = '0'; $('tip').textContent = '往後拉，放開擊球';
+  $('result').classList.remove('on');
+  show('play'); size(); startLoop(); haptic(8);
+}
+function size(){
+  var r = $('court').getBoundingClientRect(); DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = Math.max(10, r.width); Ht = Math.max(10, r.height);
+  cv.width = Math.round(W * DPR); cv.height = Math.round(Ht * DPR);
+  S = Math.min((W - 16) / 100, (Ht - 16) / 150); OX = (W - 100 * S) / 2; OY = (Ht - 150 * S) / 2;
+  draw();
+}
+window.addEventListener('resize', function(){ if (!$('play').hidden) size(); });
+if (window.ResizeObserver) new ResizeObserver(function(){ if (!$('play').hidden) size(); }).observe($('court'));
+
+/* ---------- physics ---------- */
+function segs(){
+  var out = [], w = H.wall;
+  for (var i = 0; i < w.length; i++) out.push([w[i], w[(i + 1) % w.length]]);
+  H.blocks.forEach(function(b){ for (var i = 0; i < b.length; i++) out.push([b[i], b[(i + 1) % b.length]]); });
+  if (H.stubs) H.stubs.forEach(function(s){ out.push(s); });
+  return out;
+}
+function inEll(x, y, e){ var dx = (x - e[0]) / e[2], dy = (y - e[1]) / e[3]; return dx * dx + dy * dy < 1; }
+function collideSeg(a, b, e, vel){
+  var abx = b[0] - a[0], aby = b[1] - a[1], t = clamp(((ball.x - a[0]) * abx + (ball.y - a[1]) * aby) / (abx * abx + aby * aby || 1), 0, 1);
+  var px = a[0] + abx * t, py = a[1] + aby * t, dx = ball.x - px, dy = ball.y - py, d = Math.hypot(dx, dy);
+  if (d >= BR || d === 0) return false;
+  var nx = dx / d, ny = dy / d; ball.x = px + nx * BR; ball.y = py + ny * BR;
+  var rvx = ball.vx - (vel ? vel[0] : 0), rvy = ball.vy - (vel ? vel[1] : 0), vn = rvx * nx + rvy * ny;
+  if (vn < 0){ ball.vx -= (1 + e) * vn * nx; ball.vy -= (1 + e) * vn * ny; if (-vn > 12){ sWall(-vn); haptic(3); } }
+  return true;
+}
+function collideCirc(c, e){
+  var dx = ball.x - c[0], dy = ball.y - c[1], d = Math.hypot(dx, dy), R = c[2] + BR;
+  if (d >= R || d === 0) return;
+  var nx = dx / d, ny = dy / d; ball.x = c[0] + nx * R; ball.y = c[1] + ny * R;
+  var vn = ball.vx * nx + ball.vy * ny; if (vn < 0){ ball.vx -= (1 + e) * vn * nx; ball.vy -= (1 + e) * vn * ny; if (-vn > 12){ sWall(-vn * 1.3); haptic(4); } }
+}
+var SEGS = [];
+function step(dt){
+  if (H.mill) millA += H.mill[3] * dt;
+  if (sunk){ sinkT += dt; return; }
+  if (splashT > 0){ splashT -= dt; if (splashT <= 0){ ball.x = last[0]; ball.y = last[1]; ball.vx = ball.vy = 0; } return; }
+  var sp = Math.hypot(ball.vx, ball.vy); if (sp === 0 && !H.slopes.length) return;
+  var n = 4, h = dt / n;
+  for (var k = 0; k < n; k++){
+    var inSand = H.sand.some(function(s){ return inEll(ball.x, ball.y, s); });
+    H.slopes.forEach(function(s){ if (ball.x > s[0] && ball.x < s[2] && ball.y > s[1] && ball.y < s[3]){ ball.vx += s[4] * h; ball.vy += s[5] * h; } });
+    var fr = inSand ? 3.6 : .75; ball.vx *= Math.exp(-fr * h); ball.vy *= Math.exp(-fr * h);
+    sp = Math.hypot(ball.vx, ball.vy);
+    var dec = (inSand ? 30 : 7) * h; if (sp <= dec){ ball.vx = ball.vy = 0; sp = 0; } else { ball.vx -= ball.vx / sp * dec; ball.vy -= ball.vy / sp * dec; }
+    ball.x += ball.vx * h; ball.y += ball.vy * h;
+    SEGS.forEach(function(s){ collideSeg(s[0], s[1], .72); });
+    H.bump.forEach(function(c){ collideCirc(c, .85); });
+    if (H.mill){
+      var m = H.mill, ca = Math.cos(millA), sa = Math.sin(millA);
+      var a = [m[0] - ca * m[2], m[1] - sa * m[2]], b = [m[0] + ca * m[2], m[1] + sa * m[2]];
+      var rx = ball.x - m[0], ry = ball.y - m[1];
+      collideSeg(a, b, .6, [-ry * m[3], rx * m[3]]);
+    }
+    // cup
+    var dx = H.cup[0] - ball.x, dy = H.cup[1] - ball.y, dc = Math.hypot(dx, dy);
+    sp = Math.hypot(ball.vx, ball.vy);
+    if (dc < CUPR){
+      if (sp < 62){ sunk = true; sinkT = 0; ball.vx = ball.vy = 0; ball.x = H.cup[0]; ball.y = H.cup[1]; onSink(); return; }
+      ball.vx += dx / dc * 900 * h; ball.vy += dy / dc * 900 * h; ball.vx *= .96; ball.vy *= .96;
+    }
+    // water
+    if (H.water.some(function(w){ return inEll(ball.x, ball.y, w); })){ splashT = .7; strokes++; updStrokes(); sSplash(); haptic([30, 40, 30]); toast('落水，罰一桿'); ball.vx = ball.vy = 0; return; }
+    if (inSand && sp > 20 && Math.random() < .02) sSand();
+  }
+  if (Math.hypot(ball.vx, ball.vy) > 1) { trail.push([ball.x, ball.y]); if (trail.length > 16) trail.shift(); } else if (trail.length) trail.shift();
+}
+function moving(){ return Math.hypot(ball.vx, ball.vy) > 0 || splashT > 0; }
+
+/* ---------- drawing ---------- */
+function P(x, y){ return [OX + x * S, OY + y * S]; }
+function path(poly){ cx.beginPath(); poly.forEach(function(p, i){ var q = P(p[0], p[1]); if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); cx.closePath(); }
+function ell(e){ var c = P(e[0], e[1]); cx.beginPath(); cx.ellipse(c[0], c[1], e[2] * S, e[3] * S, 0, 0, 7); }
+function draw(){
+  if (!H) return;
+  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // backdrop: flat poster sky with big sun
+  cx.fillStyle = H.hb; cx.fillRect(0, 0, W, Ht);
+  cx.fillStyle = 'rgba(255,255,255,.18)'; cx.beginPath(); cx.arc(W * .82, Ht * .16, Math.min(W, Ht) * .34, 0, 7); cx.fill();
+  cx.fillStyle = 'rgba(47,36,24,.08)'; for (var i = 0; i < 6; i++) cx.fillRect(0, Ht * .7 + i * 18, W, 8);
+  // print-offset shadow of course
+  cx.save(); cx.translate(4, 4); path(H.wall); cx.fillStyle = INK; cx.fill(); cx.restore();
+  // grass with mow stripes
+  path(H.wall); cx.fillStyle = GR; cx.fill();
+  cx.save(); path(H.wall); cx.clip(); cx.fillStyle = 'rgba(255,255,255,.07)';
+  for (var y = 0; y < 150; y += 10){ var p0 = P(0, y); cx.fillRect(0, p0[1], W, 5 * S); }
+  cx.restore();
+  // slopes (stairs)
+  H.slopes.forEach(function(s){
+    var a = P(s[0], s[1]), b = P(s[2], s[3]); cx.fillStyle = GRD; cx.fillRect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
+    cx.fillStyle = 'rgba(246,231,200,.55)'; for (var x = s[0] + 6; x < s[2] - 3; x += 9){ var q = P(x, (s[1] + s[3]) / 2); cx.beginPath(); cx.moveTo(q[0] - 2.4 * S, q[1] - 1.6 * S); cx.lineTo(q[0] + 2.4 * S, q[1] - 1.6 * S); cx.lineTo(q[0], q[1] + 2 * S); cx.fill(); }
+  });
+  // sand
+  H.sand.forEach(function(e){ ell(e); cx.fillStyle = SUNL; cx.fill(); cx.lineWidth = 1.5; cx.strokeStyle = INK; cx.stroke(); cx.fillStyle = 'rgba(47,36,24,.25)'; for (var k = 0; k < 7; k++){ var c = P(e[0] + Math.cos(k * 2.3) * e[2] * .5, e[1] + Math.sin(k * 1.7) * e[3] * .5); cx.fillRect(c[0], c[1], 1.5, 1.5); } });
+  // water
+  H.water.forEach(function(e){ ell(e); cx.fillStyle = SKYD; cx.fill(); cx.lineWidth = 1.5; cx.strokeStyle = INK; cx.stroke();
+    cx.strokeStyle = CR; cx.lineWidth = 1.4; var c = P(e[0], e[1]); for (var k = -1; k <= 1; k++){ cx.beginPath(); cx.moveTo(c[0] - e[2] * S * .45, c[1] + k * e[3] * S * .38); cx.quadraticCurveTo(c[0], c[1] + k * e[3] * S * .38 - 3, c[0] + e[2] * S * .45, c[1] + k * e[3] * S * .38); cx.stroke(); } });
+  // blocks
+  H.blocks.forEach(function(b){ cx.save(); cx.translate(3, 3); path(b); cx.fillStyle = INK; cx.fill(); cx.restore(); path(b); cx.fillStyle = SKYD; cx.fill(); cx.lineWidth = 2; cx.strokeStyle = INK; cx.stroke();
+    var a = P(b[0][0], b[0][1]), c = P(b[2][0], b[2][1]); cx.fillStyle = CR; for (var yy = a[1] + 4; yy < c[1] - 3; yy += 6) cx.fillRect(a[0] + 3, yy, c[0] - a[0] - 6, 2); });
+  // walls (thick cream rails)
+  path(H.wall); cx.lineJoin = 'round'; cx.lineWidth = 3.4 * S; cx.strokeStyle = CR; cx.stroke(); cx.lineWidth = 1.6; cx.strokeStyle = INK; cx.stroke();
+  if (H.stubs) H.stubs.forEach(function(s){ var a = P(s[0][0], s[0][1]), b = P(s[1][0], s[1][1]); cx.lineCap = 'round'; cx.lineWidth = 2.6 * S; cx.strokeStyle = INK; cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b[0], b[1]); cx.stroke(); cx.lineWidth = 1.6 * S; cx.strokeStyle = CR; cx.stroke(); });
+  // bumpers (trees / rocks)
+  H.bump.forEach(function(c){ var q = P(c[0], c[1]); cx.fillStyle = INK; cx.beginPath(); cx.arc(q[0] + 2, q[1] + 2, c[2] * S, 0, 7); cx.fill(); cx.fillStyle = hi === 3 || hi === 0 ? GRD : '#c9a36a'; cx.beginPath(); cx.arc(q[0], q[1], c[2] * S, 0, 7); cx.fill(); cx.lineWidth = 1.5; cx.strokeStyle = INK; cx.stroke(); cx.fillStyle = 'rgba(255,255,255,.3)'; cx.beginPath(); cx.arc(q[0] - c[2] * S * .3, q[1] - c[2] * S * .3, c[2] * S * .35, 0, 7); cx.fill(); });
+  // cup + flag
+  var cp = P(H.cup[0], H.cup[1]);
+  cx.fillStyle = '#1d160e'; cx.beginPath(); cx.arc(cp[0], cp[1], CUPR * S, 0, 7); cx.fill(); cx.lineWidth = 1.5; cx.strokeStyle = CR; cx.stroke();
+  if (!sunk || sinkT < .1){ cx.strokeStyle = INK; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(cp[0], cp[1]); cx.lineTo(cp[0], cp[1] - 16 * S); cx.stroke();
+    cx.fillStyle = SUN; cx.beginPath(); cx.moveTo(cp[0], cp[1] - 16 * S); cx.lineTo(cp[0] + 9 * S, cp[1] - 13 * S); cx.lineTo(cp[0], cp[1] - 10 * S); cx.closePath(); cx.fill(); cx.lineWidth = 1.4; cx.stroke();
+    cx.fillStyle = INK; cx.font = '800 ' + Math.round(3.6 * S) + 'px "Avenir Next Condensed", sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(String(hi + 1), cp[0] + 3.4 * S, cp[1] - 13 * S + .5); }
+  // windmill
+  if (H.mill){
+    var m = H.mill, mc = P(m[0], m[1]), ca = Math.cos(millA), sa = Math.sin(millA);
+    cx.lineCap = 'round'; cx.strokeStyle = INK; cx.lineWidth = 3.2 * S; cx.beginPath(); cx.moveTo(mc[0] - ca * m[2] * S + 2, mc[1] - sa * m[2] * S + 2); cx.lineTo(mc[0] + ca * m[2] * S + 2, mc[1] + sa * m[2] * S + 2); cx.stroke();
+    cx.strokeStyle = CR; cx.lineWidth = 2.2 * S; cx.beginPath(); cx.moveTo(mc[0] - ca * m[2] * S, mc[1] - sa * m[2] * S); cx.lineTo(mc[0] + ca * m[2] * S, mc[1] + sa * m[2] * S); cx.stroke();
+    cx.fillStyle = SUN; cx.beginPath(); cx.arc(mc[0], mc[1], 3 * S, 0, 7); cx.fill(); cx.lineWidth = 1.5; cx.strokeStyle = INK; cx.stroke();
+  }
+  // tee mark
+  var tp = P(H.tee[0], H.tee[1]); cx.strokeStyle = 'rgba(246,231,200,.7)'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(tp[0] - 5 * S, tp[1] + 4 * S); cx.lineTo(tp[0] + 5 * S, tp[1] + 4 * S); cx.stroke();
+  // trail
+  trail.forEach(function(t, k){ var q = P(t[0], t[1]); cx.fillStyle = 'rgba(246,231,200,' + (k / trail.length * .5).toFixed(2) + ')'; cx.beginPath(); cx.arc(q[0], q[1], BR * S * .5, 0, 7); cx.fill(); });
+  // aim
+  if (aim && !moving() && !sunk){
+    var bq = P(ball.x, ball.y), len = aim.p * 44 * S;
+    cx.fillStyle = CR; for (var d = 5 * S; d < len; d += 3.4 * S){ cx.beginPath(); cx.arc(bq[0] + aim.dx * d, bq[1] + aim.dy * d, 1.1 * S * (1 - d / len * .5), 0, 7); cx.fill(); }
+    cx.strokeStyle = aim.p > .85 ? SUN : CR; cx.lineWidth = 2; cx.beginPath(); cx.arc(bq[0], bq[1], 6 * S, -Math.PI / 2, -Math.PI / 2 + aim.p * Math.PI * 2); cx.stroke();
+    cx.strokeStyle = 'rgba(47,36,24,.6)'; cx.lineWidth = 1.5; cx.setLineDash([3, 3]); cx.beginPath(); cx.moveTo(bq[0], bq[1]); cx.lineTo(bq[0] - aim.dx * len * .6, bq[1] - aim.dy * len * .6); cx.stroke(); cx.setLineDash([]);
+  }
+  // ball
+  var bp = P(ball.x, ball.y), rr = BR * S, sc = 1;
+  if (sunk) sc = Math.max(0, 1 - sinkT * 4);
+  if (splashT > 0) sc = Math.max(0, splashT / .7);
+  if (sc > 0){
+    cx.fillStyle = 'rgba(47,36,24,.45)'; cx.beginPath(); cx.arc(bp[0] + 1.6, bp[1] + 1.6, rr * sc, 0, 7); cx.fill();
+    cx.fillStyle = '#ffffff'; cx.beginPath(); cx.arc(bp[0], bp[1], rr * sc, 0, 7); cx.fill(); cx.lineWidth = 1.2; cx.strokeStyle = INK; cx.stroke();
+  }
+  if (splashT > 0){ var k2 = 1 - splashT / .7; cx.strokeStyle = CR; cx.lineWidth = 2; cx.beginPath(); cx.arc(bp[0], bp[1], (3 + k2 * 8) * S, 0, 7); cx.stroke(); }
+}
+
+/* ---------- loop ---------- */
+var raf = 0, lastT = 0, running = false;
+function frame(t){
+  if (!running) return;
+  if (document.hidden){ raf = requestAnimationFrame(frame); lastT = t; return; }
+  var dt = Math.min(.033, (t - lastT) / 1000 || .016); lastT = t;
+  step(dt); draw();
+  $('meter').style.transform = 'scaleX(' + (aim ? aim.p : Math.min(1, Math.hypot(ball.vx, ball.vy) / 125)).toFixed(3) + ')';
+  raf = requestAnimationFrame(frame);
+}
+function startLoop(){ SEGS = segs(); if (running) return; running = true; lastT = performance.now(); raf = requestAnimationFrame(frame); }
+function stopLoop(){ running = false; cancelAnimationFrame(raf); }
+document.addEventListener('visibilitychange', function(){ lastT = performance.now(); });
+
+/* ---------- aiming ---------- */
+var aim = null;
+(function(){
+  var c = $('court'), sx = 0, sy = 0, on = false;
+  c.addEventListener('pointerdown', function(e){
+    if (!H || sunk || moving()) return; on = true; sx = e.clientX; sy = e.clientY; aim = {dx:0, dy:-1, p:0}; try { c.setPointerCapture(e.pointerId); } catch(_){}
+  });
+  c.addEventListener('pointermove', function(e){
+    if (!on) return; var dx = sx - e.clientX, dy = sy - e.clientY, d = Math.hypot(dx, dy);
+    if (d < 4){ aim.p = 0; return; }
+    var np = clamp(d / (46 * S), 0, 1); if (Math.floor(np * 10) !== Math.floor(aim.p * 10)) haptic(2);
+    aim.dx = dx / d; aim.dy = dy / d; aim.p = np; $('tip').textContent = '力道 ' + Math.round(np * 100) + '%';
+  });
+  function up(){
+    if (!on) return; on = false; var a = aim; aim = null;
+    if (!a || a.p < .06){ $('tip').textContent = '拉遠一點才會出力'; return; }
+    last = [ball.x, ball.y]; var v = 18 + a.p * 112; ball.vx = a.dx * v; ball.vy = a.dy * v; strokes++; updStrokes(); sPutt(a.p); haptic(12);
+    $('tip').textContent = '第 ' + strokes + ' 桿';
+  }
+  c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+  c.tabIndex = 0;
+  c.addEventListener('keydown', function(e){
+    if (!H || sunk || moving()) return;
+    if (!aim) aim = {dx:0, dy:-1, p:.5};
+    var ang = Math.atan2(aim.dy, aim.dx);
+    if (e.key === 'ArrowLeft') ang -= .08; else if (e.key === 'ArrowRight') ang += .08; else if (e.key === 'ArrowUp') aim.p = clamp(aim.p + .05, .05, 1); else if (e.key === 'ArrowDown') aim.p = clamp(aim.p - .05, .05, 1);
+    else if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); var a = aim; aim = null; last = [ball.x, ball.y]; var v = 18 + a.p * 112; ball.vx = a.dx * v; ball.vy = a.dy * v; strokes++; updStrokes(); sPutt(a.p); return; } else return;
+    e.preventDefault(); aim.dx = Math.cos(ang); aim.dy = Math.sin(ang);
+  });
+})();
+function updStrokes(){ $('sNow').textContent = strokes; }
+
+/* ---------- sink & result ---------- */
+var NAMES = {'-3':['ALBATROSS', '信天翁，少三桿'], '-2':['EAGLE', '老鷹，少兩桿'], '-1':['BIRDIE', '小鳥，少一桿'], '0':['PAR', '標準桿'], '1':['BOGEY', '柏忌，多一桿'], '2':['DOUBLE', '雙柏忌，多兩桿']};
+function onSink(){
+  sCup(); haptic([10, 30, 10, 30, 40]);
+  var diff = strokes - H.par, nm = strokes === 1 ? ['ACE!', '一桿進洞'] : NAMES[String(clamp(diff, -3, 2))] || ['+' + diff, '多了 ' + diff + ' 桿'];
+  if (diff > 2) nm = ['+' + diff, '多了 ' + diff + ' 桿，再試一次'];
+  var prev = prog.best[hi]; if (!prev || strokes < prev) prog.best[hi] = strokes;
+  prog.round[hi] = strokes; if (hi + 1 >= prog.unlocked) prog.unlocked = Math.min(9, hi + 2); save('prog', prog);
+  $('rWord').textContent = nm[0]; $('rZh').textContent = nm[1];
+  $('rLine').textContent = H.n + ' · 標準桿 ' + H.par + ' · 你打了 ' + strokes + ' 桿' + (prev && strokes < prev ? '，刷新最佳（原本 ' + prev + '）' : prev ? '，最佳是 ' + prog.best[hi] : '');
+  $('rNext').textContent = hi < 8 ? '下一洞 ' + HOLES[hi + 1].n : '看計分卡';
+  setTimeout(function(){ $('result').classList.add('on'); if (diff <= 0) sWin(); $('rNext').focus({preventScroll:true}); }, 650);
+}
+$('rAgain').addEventListener('click', function(){ startHole(hi); });
+$('rNext').addEventListener('click', function(){ $('result').classList.remove('on'); if (hi < 8) startHole(hi + 1); else { openCard(); } });
+$('retry').addEventListener('click', function(){ if (!H) return; haptic(8); startHole(hi); toast('重新開球'); });
+
+/* ---------- scorecard sheet ---------- */
+var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('sheetBody').innerHTML = html; sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(8); }
+function closeSheet(){ if (!sheet.classList.contains('on')) return; sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on'); if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape'){ if (sheet.classList.contains('on')) closeSheet(); else if ($('result').classList.contains('on')) $('result').classList.remove('on'); } });
+(function(){
+  var h = $('sheetHead'), y0 = 0, dy = 0, t0 = 0, on = false;
+  h.addEventListener('pointerdown', function(e){ on = true; y0 = e.clientY; dy = 0; t0 = e.timeStamp; sheet.classList.add('drag'); try { h.setPointerCapture(e.pointerId); } catch(_){} });
+  h.addEventListener('pointermove', function(e){ if (!on) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = 'translateY(' + dy + 'px)'; });
+  function up(e){ if (!on) return; on = false; sheet.classList.remove('drag'); var v = dy / Math.max(1, e.timeStamp - t0); if (dy > sheet.offsetHeight * .35 || (v > .6 && dy > 30)) closeSheet(); else sheet.style.transform = ''; }
+  h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+})();
+function openCard(){
+  var rows = '', tb = 0, tr = 0, nb = 0, nr = 0;
+  HOLES.forEach(function(ho, i){
+    var b = prog.best[i], r = prog.round[i];
+    if (b){ tb += b; nb++; } if (r){ tr += r; nr++; }
+    function cell(v){ if (!v) return '<td>—</td>'; var d = v - ho.par; return '<td class="' + (d < 0 ? 'u' : d > 0 ? 'o' : '') + '">' + v + '</td>'; }
+    rows += '<tr><td>' + (i + 1) + ' ' + ho.n + '</td><td>' + ho.par + '</td>' + cell(r) + cell(b) + '</tr>';
+  });
+  var h = '<table class="card-t"><thead><tr><th>球洞</th><th>標準</th><th>這一輪</th><th>最佳</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr><td>總計</td><td>' + PAR + '</td><td>' + (nr ? tr : '—') + '</td><td>' + (nb ? tb : '—') + '</td></tr></tfoot></table>';
+  h += '<div class="toggle"><div>音效<span>擊球、撞牆、進洞的聲音</span></div><button class="sw" role="switch" id="swSound" aria-checked="' + opts.sound + '" aria-label="音效"></button></div>';
+  h += '<div class="row2"><button class="flat" id="newRound">新的一輪</button><button class="flat" id="resetAll">清空紀錄</button></div>';
+  openSheet(h);
+  $('swSound').addEventListener('click', function(){ opts.sound = !opts.sound; this.setAttribute('aria-checked', opts.sound); save('opts', opts); haptic(6); });
+  $('newRound').addEventListener('click', function(){ prog.round = []; save('prog', prog); closeSheet(); toast('新的一輪，從第 1 洞開始'); startHole(0); });
+  $('resetAll').addEventListener('click', function(){
+    var snap = JSON.stringify(prog); prog = {unlocked:1, best:[], round:[], cur:0}; save('prog', prog); closeSheet(); stopLoop(); show('gallery'); renderGallery();
+    var t = $('toast'); t.innerHTML = '紀錄已清空 <button id="undoReset" style="margin-left:10px;color:#f5b36a;font-weight:800;min-height:32px">復原</button>'; t.classList.add('on'); clearTimeout(tT); tT = setTimeout(function(){ t.classList.remove('on'); }, 4000);
+    $('undoReset').addEventListener('click', function(){ prog = JSON.parse(snap); save('prog', prog); renderGallery(); t.classList.remove('on'); });
+  });
+}
+$('cardBtn').addEventListener('click', openCard);
+
+/* ---------- clock ---------- */
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setInterval(tick, 15000);
+if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(3, 16 * b.level).toFixed(1)); }).catch(function(){});
+
+// seed a little history so the wall is alive on first open
+if (!load('seeded', false) && !prog.best.length){ prog = {unlocked:4, best:[2, 4, 3], round:[2, 4, 3], cur:3}; save('prog', prog); save('seeded', true); }
+renderGallery();
+})();
+</script>
+</body>
+</html>

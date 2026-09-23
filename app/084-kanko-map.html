@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e5f1d2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="散步地圖">
+<title>散步地圖 · 城市散步</title>
+<meta name="description" content="日本手繪觀光地圖風格的台南中西區散步地圖：拖曳平移、縮放，三段抽屜裡找景點、排路線、跟著小人走一圈，每到一站蓋一個紀念章。收錄於 100 Creative HTML Works（App 084・日本手繪觀光地圖）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/app/084-kanko-map.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e5f1d2'/%3E%3Cpath d='M0 40q16-6 30 2t34-2v24H0z' fill='%23a7d9e4'/%3E%3Cpath d='M10 12l12 8 20-6 12 8' fill='none' stroke='%23fffcf1' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='38' cy='30' r='12' fill='none' stroke='%23e04a2f' stroke-width='3.5'/%3E%3Ccircle cx='38' cy='30' r='4' fill='%23e04a2f'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ground:#e5f1d2;
+  --road:#fffcf1;
+  --water:#a7d9e4;
+  --ver:#e04a2f;
+  --ver-d:#b8361f;
+  --ink:#35372e;
+  --ink-2:#646856;
+  --paper:#fcfdf6;
+  --paper-2:#f1f5e4;
+  --teal:#2f5d57;
+  --f:"Yuanti TC","PingFang TC","Heiti TC",sans-serif;
+  --spring:cubic-bezier(.25,1.2,.4,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:15px/1.45 var(--f);color:var(--ink);background:var(--ground);overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--ver);outline-offset:2px;border-radius:10px}
+input{font:inherit;color:inherit}
+svg{display:block}
+.ico{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.backdrop,.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;overflow:clip;background:var(--ground);isolation:isolate}
+@media (min-width:521px){
+  .stage{display:flex;align-items:center;justify-content:center;padding:24px}
+  .backdrop{display:block;position:fixed;inset:0;z-index:0;overflow:hidden;background:var(--ground)}
+  .backdrop .bw{position:absolute;left:50%;top:50%;width:2000px;height:2600px;margin:-1300px 0 0 -1000px;transform:rotate(-4deg) scale(.95);opacity:.5}
+  .backdrop .bw svg{width:100%;height:100%}
+  .backdrop .fold{position:absolute;inset:0;background:linear-gradient(90deg,transparent 0 24.6%,rgba(80,100,60,.14) 25%,rgba(255,255,255,.25) 25.4%,transparent 26% 74%,rgba(80,100,60,.14) 74.6%,rgba(255,255,255,.25) 75%,transparent 75.6%),linear-gradient(180deg,transparent 0 49.4%,rgba(80,100,60,.12) 50%,rgba(255,255,255,.22) 50.5%,transparent 51%)}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:10px;background:var(--teal);z-index:1;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 16px 26px -18px rgba(30,60,50,.7)}
+  .screen{inset:10px;border-radius:44px}
+  .caption{display:block;position:fixed;left:44px;top:44px;z-index:1;max-width:300px;background:var(--paper);padding:14px 18px 16px;border-radius:18px}
+  .caption h1{font:700 24px/1.2 var(--f)}
+  .caption p{margin-top:6px;font-size:14px;color:var(--ink-2)}
+}
+@media (min-width:521px) and (max-width:960px){.caption{display:none}}
+
+/* ---------- map ---------- */
+.map{position:absolute;inset:0;overflow:hidden;overflow:clip;touch-action:none;cursor:grab;background:var(--ground)}
+.map.grabbing{cursor:grabbing}
+.world{position:absolute;left:0;top:0;width:1000px;height:1300px;transform-origin:0 0;will-change:transform}
+.world svg{width:1000px;height:1300px;overflow:visible}
+.spot{cursor:pointer}
+.spot .nm{font:700 14px var(--f);fill:var(--ink);paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round}
+.spot.sel .ring{stroke:var(--ver);stroke-width:3;fill:none}
+.spot .ring{fill:none;stroke:none}
+.rd{font:500 11px var(--f);fill:#7c8269;letter-spacing:.2em}
+.wlab{font:700 13px var(--f);fill:#3f86a0;letter-spacing:.3em}
+.stampPop{transform-box:fill-box;transform-origin:center;animation:thump .45s var(--spring)}
+@keyframes thump{from{transform:scale(1.5) rotate(-8deg);opacity:.2}to{transform:none;opacity:1}}
+
+/* ---------- status / header / controls ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;
+  display:flex;align-items:center;justify-content:space-between;font:600 15px/1 -apple-system,var(--f);color:var(--ink);pointer-events:none;
+  background:linear-gradient(180deg,rgba(229,241,210,.95),rgba(229,241,210,.0))}
+.status .g{display:flex;gap:6px;align-items:center}
+@media (display-mode:standalone){.status{display:none}}
+.plate{position:absolute;left:14px;top:calc(52px + env(safe-area-inset-top));z-index:20;display:flex;align-items:center;gap:10px;padding:8px 16px 9px 12px;background:var(--paper);border-radius:16px 16px 16px 4px;
+  box-shadow:0 1px 0 #d8e3c4,0 3px 6px -4px rgba(50,70,40,.35)}
+@media (display-mode:standalone){.plate{top:calc(10px + env(safe-area-inset-top))}}
+.plate svg{width:30px;height:30px}
+.plate b{display:block;font:700 18px/1.15 var(--f);letter-spacing:.06em}
+.plate span{display:block;font-size:12px;color:var(--ink-2);letter-spacing:.1em}
+.ctrls{position:absolute;right:12px;top:calc(52px + env(safe-area-inset-top));z-index:20;display:flex;flex-direction:column;gap:8px;transition:opacity .25s}
+@media (display-mode:standalone){.ctrls{top:calc(10px + env(safe-area-inset-top))}}
+.cbtn{width:46px;height:46px;border-radius:23px;background:var(--paper);display:grid;place-items:center;color:var(--ink);box-shadow:0 1px 0 #d8e3c4,0 3px 6px -4px rgba(50,70,40,.35);transition:background-color .15s}
+.cbtn:active{background:var(--paper-2)}
+.cbtn svg{width:24px;height:24px}
+.ctrls.hide{opacity:0;pointer-events:none}
+
+/* ---------- drawer ---------- */
+.drawer{position:absolute;left:0;right:0;bottom:0;z-index:40;height:calc(100% - 96px - env(safe-area-inset-top));background:var(--paper);border-radius:26px 26px 0 0;
+  display:flex;flex-direction:column;transform:translateY(var(--y,60%));transition:transform .5s var(--spring);box-shadow:0 -1px 0 #dbe5c8,0 -6px 14px -12px rgba(50,70,40,.5)}
+.drawer.drag{transition:none}
+.dhead{flex:none;touch-action:none;cursor:grab;padding:0 12px}
+.grab{height:22px;display:grid;place-items:center}
+.grab i{width:42px;height:5px;border-radius:3px;background:#cfd9ba}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);height:46px}
+.tab{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;font:700 16px/1 var(--f);color:var(--ink-2);letter-spacing:.08em}
+.tab small{font:500 12px/1 var(--f);color:var(--ink-2)}
+.tab[aria-selected=true]{color:var(--ink)}
+.tab[aria-selected=true]::before,.pen[aria-pressed=true]::before{content:"";position:absolute;inset:4px 10px;background:no-repeat center/100% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40' preserveAspectRatio='none'%3E%3Cpath d='M12 8C30 1 78 1 92 10S88 36 52 37 4 32 6 18 30 4 58 5' fill='none' stroke='%23e04a2f' stroke-width='2.4' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+.dbody{flex:1;overflow:hidden;touch-action:none;position:relative}
+.drawer:not(.full) .dbody{-webkit-mask-image:linear-gradient(#000 calc(100% - 48px),transparent calc(100% - 14px));mask-image:linear-gradient(#000 calc(100% - 48px),transparent calc(100% - 14px))}
+.drawer.full .dbody{overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain}
+.dbody::-webkit-scrollbar{display:none}
+.pane{padding:6px 16px calc(40px + env(safe-area-inset-bottom))}
+.pane[hidden]{display:none}
+.search{display:flex;align-items:center;gap:10px;height:48px;padding:0 6px 0 14px;background:var(--paper-2);border-radius:14px}
+.search svg{width:22px;height:22px;flex:none;color:var(--ink-2)}
+.search input{flex:1;min-width:0;height:100%;border:0;background:none;outline:none;font-size:16px}
+.search input::placeholder{color:#8e927e}
+.search button{width:40px;height:40px;display:grid;place-items:center;color:var(--ink-2)}
+.search button[hidden]{display:none}
+.chips{display:flex;gap:2px;margin:6px -6px 2px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.pen{position:relative;flex:none;height:44px;padding:0 14px;font:500 15px/1 var(--f);color:var(--ink-2)}
+.pen[aria-pressed=true]{color:var(--ink);font-weight:700}
+.pen span{position:relative}
+.pen[aria-pressed=true]::before{inset:5px 1px}
+.srow{display:grid;grid-template-columns:58px 1fr 44px;align-items:center;gap:12px;min-height:74px;padding:6px 0;width:100%;text-align:left;border-radius:14px}
+.srow+.srow{box-shadow:inset 0 1px 0 #e9efd9}
+.srow:active{background:var(--paper-2)}
+.srow .pic{width:58px;height:50px}
+.srow b{display:block;font:700 16px/1.3 var(--f)}
+.srow .m{display:block;font-size:13px;color:var(--ink-2);margin-top:2px}
+.srow .m i{font-style:normal;color:var(--ver)}
+.star{width:44px;height:44px;display:grid;place-items:center;color:#a8ad96}
+.star[aria-pressed=true]{color:var(--ver)}
+.star[aria-pressed=true] path{fill:var(--ver)}
+.star svg{width:24px;height:24px}
+.empty{padding:26px 4px;color:var(--ink-2)}
+
+/* detail */
+.back{display:flex;align-items:center;gap:4px;height:44px;color:var(--ink-2);font-size:15px;padding-right:10px}
+.back svg{width:20px;height:20px}
+.dt-top{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+.dt-top h2{font:700 26px/1.2 var(--f);letter-spacing:.04em}
+.dt-top .m{font-size:14px;color:var(--ink-2);margin-top:4px}
+.dt-top .m i{font-style:normal;color:var(--ver)}
+.hero{margin-top:12px;height:150px;border-radius:18px;background:var(--ground);display:grid;place-items:center;position:relative;overflow:hidden}
+.hero svg.big{width:190px;height:158px}
+.hero .seal{position:absolute;right:12px;bottom:10px;width:78px;height:78px}
+.desc{margin-top:14px;font-size:15px;line-height:1.75}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin-top:12px;font-size:14px}
+.kv dt{color:var(--ink-2)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.act{height:52px;border-radius:16px;font:700 16px/1 var(--f);display:flex;align-items:center;justify-content:center;gap:8px;transition:background-color .15s}
+.act svg{width:22px;height:22px}
+.act.v{background:var(--ver);color:#fff}
+.act.v:active{background:var(--ver-d)}
+.act.p{background:var(--paper-2);color:var(--ink)}
+.act.p:active{background:#e3ead0}
+.act[aria-disabled=true]{opacity:.55}
+
+/* route */
+.rsum{display:flex;align-items:baseline;justify-content:space-between;padding:8px 2px 4px}
+.rsum b{font:700 30px/1 var(--f)}
+.rsum b small{font-size:15px;margin-left:4px;color:var(--ink-2)}
+.rsum span{font-size:14px;color:var(--ink-2)}
+.rbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 6px}
+.stop{display:grid;grid-template-columns:34px 1fr 44px 44px;align-items:center;gap:6px;min-height:58px}
+.stop .no{width:30px;height:30px;border-radius:50%;background:var(--ver);color:#fff;font:700 15px/30px var(--f);text-align:center}
+.stop b{font:700 16px/1.3 var(--f)}
+.stop .m{display:block;font-size:13px;color:var(--ink-2)}
+.stop button{width:44px;height:44px;display:grid;place-items:center;color:var(--ink-2);border-radius:12px}
+.stop button:active{background:var(--paper-2)}
+.stop button svg{width:22px;height:22px}
+.leg{margin-left:14px;padding:2px 0 2px 26px;font-size:13px;color:var(--ink-2);background:no-repeat 0 50%/4px 100% linear-gradient(var(--ver) 50%,transparent 0) repeat-y;background-size:3px 8px}
+.home-pt{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;color:var(--ink-2)}
+.home-pt svg{width:30px;height:30px}
+
+/* stamps */
+.shead{display:flex;justify-content:space-between;align-items:baseline;padding:8px 2px 12px}
+.shead b{font:700 30px/1 var(--f)}
+.shead span{font-size:14px;color:var(--ink-2)}
+.card{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px;border-radius:20px;background:var(--paper-2)}
+.slot{aspect-ratio:1;display:grid;place-items:center;border-radius:14px;position:relative}
+.slot:active{background:#e6edd4}
+.slot svg{width:92%;height:92%}
+
+.toast{position:absolute;left:50%;top:calc(116px + env(safe-area-inset-top));z-index:60;max-width:calc(100% - 40px);transform:translate(-50%,-160px);visibility:hidden;transition:transform .45s var(--spring),visibility 0s .45s;
+  background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:14px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--spring)}
+.home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom) * .3);width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--ink);z-index:70;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  .drawer,.toast{transition-duration:.01s}
+  .stampPop{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="backdrop" aria-hidden="true"><div class="bw" id="bw"></div><div class="fold"></div></div>
+  <div class="caption"><h1>散步地圖 · 府城</h1><p>手繪的台南中西區，走到哪裡蓋到哪裡。</p></div>
+
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="map" id="map" aria-label="台南中西區地圖，可拖曳與縮放">
+        <div class="world" id="world"></div>
+      </div>
+
+      <div class="status" aria-hidden="true">
+        <span id="clock">9:41</span>
+        <span class="g">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="#35372e"><rect y="8" width="3" height="4" rx="1.5"/><rect x="5" y="5.5" width="3" height="6.5" rx="1.5"/><rect x="10" y="3" width="3" height="9" rx="1.5"/><rect x="15" width="3" height="12" rx="1.5" opacity=".35"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#35372e" stroke-width="1.8" stroke-linecap="round"><path d="M1.5 4.4c3.6-3.4 9.4-3.4 13 0M4.2 7.2c2.2-2 5.4-2 7.6 0"/><circle cx="8" cy="10" r="1.3" fill="#35372e" stroke="none"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".7" y=".7" width="22.6" height="11.6" rx="4" fill="none" stroke="#35372e" stroke-opacity=".5" stroke-width="1.2"/><rect id="batt" x="2.4" y="2.4" width="16" height="8.2" rx="2.6" fill="#35372e"/><path d="M25 4.6v3.8a1.9 1.9 0 0 0 0-3.8z" fill="#35372e" opacity=".5"/></svg>
+        </span>
+      </div>
+
+      <div class="plate">
+        <svg viewBox="0 0 30 30" class="ico" style="color:#e04a2f"><path d="M15 27c-5-6-8-10-8-14a8 8 0 0 1 16 0c0 4-3 8-8 14z"/><circle cx="15" cy="13" r="3"/></svg>
+        <div><b>府城散步</b><span>台南 · 中西區</span></div>
+      </div>
+      <div class="ctrls" id="ctrls">
+        <button class="cbtn" id="zin" aria-label="放大"><svg viewBox="0 0 24 24" class="ico"><path d="M12 5.5c.2 4.4-.1 8.6 0 13M5.5 12c4.3-.2 8.7.1 13 0"/></svg></button>
+        <button class="cbtn" id="zout" aria-label="縮小"><svg viewBox="0 0 24 24" class="ico"><path d="M5.5 12.2c4.3-.3 8.7.1 13-.2"/></svg></button>
+        <button class="cbtn" id="home" aria-label="回到車站"><svg viewBox="0 0 24 24" class="ico"><path d="M12 3.5l3.2 8.2L12 20.5 8.8 11.7z"/><path d="M12 3.5l3.2 8.2H8.8z" fill="#e04a2f" stroke="#e04a2f"/></svg></button>
+      </div>
+
+      <section class="drawer" id="drawer" aria-label="景點抽屜">
+        <div class="dhead" id="dhead">
+          <div class="grab"><i></i></div>
+          <div class="tabs" role="tablist">
+            <button class="tab" role="tab" data-t="spots" aria-selected="true">景點<small id="nSpots">12</small></button>
+            <button class="tab" role="tab" data-t="route" aria-selected="false">路線<small id="nRoute">0</small></button>
+            <button class="tab" role="tab" data-t="stamps" aria-selected="false">集章<small id="nStamps">0</small></button>
+          </div>
+        </div>
+        <div class="dbody" id="dbody">
+          <div class="pane" id="pSpots">
+            <div id="spotList">
+              <label class="search">
+                <svg viewBox="0 0 22 22" class="ico"><circle cx="9.5" cy="9.5" r="6"/><path d="M14 14.2l4.6 4.3"/></svg>
+                <input id="q" type="search" placeholder="搜尋景點、小吃、老街" autocomplete="off" aria-label="搜尋景點">
+                <button id="qx" aria-label="清除" hidden><svg viewBox="0 0 22 22" width="18" height="18" class="ico"><path d="M6 6.2l10 9.6M16 6l-9.8 10"/></svg></button>
+              </label>
+              <div class="chips" id="chips" role="group" aria-label="分類"></div>
+              <div id="rows"></div>
+            </div>
+            <div id="detail" hidden></div>
+          </div>
+          <div class="pane" id="pRoute" hidden></div>
+          <div class="pane" id="pStamps" hidden></div>
+        </div>
+      </section>
+
+      <div class="toast" id="toast" role="status"></div>
+      <div class="home-ind" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var K = 'app084:';
+function load(k, d){ try { var v = localStorage.getItem(K + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(K + k, JSON.stringify(v)); } catch(e){} }
+function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function rng(s){ return function(){ s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+
+// ---------- data ----------
+var SPOTS = [
+  {id:1, n:'赤崁樓', c:'古蹟', x:520, y:430, ill:'tower', h:'08:30 至 21:30', d:'荷蘭時期普羅民遮城的遺址，上頭疊著清代的海神廟與文昌閣。晚上點燈後，紅牆倒映在池子裡。'},
+  {id:2, n:'大天后宮', c:'古蹟', x:420, y:490, ill:'temple', h:'06:00 至 21:00', d:'全台第一座官建媽祖廟，原本是寧靖王的府邸。廟裡的月老很靈，常有人來求姻緣。'},
+  {id:3, n:'神農街', c:'老街', x:215, y:318, ill:'lane', h:'全天', d:'兩三百公尺的窄巷，木造老屋改成酒館與小店。入夜後紅燈籠一路亮到巷底。'},
+  {id:4, n:'水仙宮市場', c:'小吃', x:250, y:470, ill:'market', h:'06:00 至 13:00', d:'府城人的廚房。魚丸湯、米糕、現切水果，十點以前最熱鬧。'},
+  {id:5, n:'國華街', c:'小吃', x:385, y:640, ill:'food', h:'10:00 至 20:00', d:'一條街吃到飽：肉燥飯、蝦捲、碗粿、剉冰。排隊的店通常值得。'},
+  {id:6, n:'正興街', c:'老街', x:240, y:640, ill:'cat', h:'11:00 至 19:00', d:'小小一段街區，冰店、選物店，還有常在屋頂曬太陽的街貓。'},
+  {id:7, n:'林百貨', c:'景點', x:470, y:790, ill:'dept', h:'11:00 至 21:00', d:'1932 年開幕的五層樓百貨，保留當年的流籠電梯，頂樓還有一座小神社。'},
+  {id:8, n:'湯德章紀念公園', c:'景點', x:640, y:705, ill:'park', h:'全天', d:'府城的大圓環，幾條大路在這裡交會。樹蔭下的長椅是散步的中繼站。'},
+  {id:9, n:'孔廟', c:'古蹟', x:585, y:965, ill:'confucius', h:'08:30 至 17:30', d:'全臺首學。紅牆老樹很安靜，對面的府中街有文創小店和豆花。'},
+  {id:10, n:'司法博物館', c:'古蹟', x:735, y:900, ill:'dome', h:'09:00 至 17:00，週一休', d:'日治時期的臺南地方法院。屋頂的圓頂與挑高的法庭，很值得慢慢看。'},
+  {id:11, n:'藍晒圖文創園區', c:'景點', x:330, y:1050, ill:'blue', h:'11:00 至 21:00', d:'舊司法宿舍改成的文創聚落，牆上畫著巨大的藍晒圖，傍晚最適合拍照。'},
+  {id:12, n:'台南車站', c:'景點', x:880, y:300, ill:'station', h:'全天', d:'1936 年的白色車站，二樓曾是鐵道飯店。散步從這裡出發。'}
+];
+var HOME = {x:880, y:300};
+var CATS = ['全部','古蹟','小吃','老街','景點','收藏'];
+function spot(id){ for (var i = 0; i < SPOTS.length; i++) if (SPOTS[i].id === id) return SPOTS[i]; return null; }
+var favs = load('fav', [3, 7]);
+var route = load('route', [1, 2, 5, 7]).filter(spot);
+var stamps = load('stamps', {12:'9/21', 1:'9/21'});
+function meters(a, b){ return Math.hypot(a.x - b.x, a.y - b.y) * 2.3 * 1.25; }
+function mins(m){ return Math.max(1, Math.round(m / 75)); }
+function km(m){ return m >= 1000 ? (m / 1000).toFixed(1) + ' 公里' : Math.round(m / 10) * 10 + ' 公尺'; }
+
+// ---------- illustrations (one hand-drawn house style) ----------
+var S = 'stroke="#35372e" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"';
+var ILL = {
+  tower:'<path d="M8 50h44V34H8z" fill="#ddd6bf" ' + S + '/><path d="M26 50v-7a4 4 0 0 1 8 0v7" fill="#9c9785" ' + S + '/><path d="M14 34V22h32v12" fill="#e04a2f" ' + S + '/><path d="M4 24q6-1 10-6h32q4 5 10 6-6 0-8-2H12q-2 2-8 2z" fill="#2f5d57" ' + S + '/><path d="M20 18v-6h20v6" fill="#e04a2f" ' + S + '/><path d="M14 13q5-1 8-5h16q3 4 8 5-5 0-6-1H20q-1 1-6 1z" fill="#2f5d57" ' + S + '/><path d="M22 28h4M34 28h4"/>',
+  temple:'<path d="M8 50V32h44v18z" fill="#e04a2f" ' + S + '/><path d="M25 50V38h10v12" fill="#6b3a2c" ' + S + '/><path d="M2 32q8 0 12-8h32q4 8 12 8-3-4-1-9-4 5-9 4H14q-5 1-9-4 2 5-3 9z" fill="#2f5d57" ' + S + '/><path d="M24 24q6-6 12 0" fill="none" ' + S + '/><circle cx="30" cy="20" r="2" fill="#e5b440" ' + S + '/><path d="M14 40h6M40 40h6" stroke="#fff" stroke-width="1.6"/>',
+  lane:'<path d="M4 50V22l10-6 10 6v28z" fill="#f4ecd6" ' + S + '/><path d="M36 50V24l10-7 10 7v26z" fill="#f4ecd6" ' + S + '/><path d="M8 34h12M40 36h12M10 50v-8h8v8M42 50v-8h8v8" fill="none" ' + S + '/><path d="M18 20q12 10 24 0" fill="none" ' + S + '/><g fill="#e04a2f" ' + S + '><ellipse cx="22" cy="24" rx="3" ry="4"/><ellipse cx="30" cy="26.5" rx="3" ry="4"/><ellipse cx="38" cy="24" rx="3" ry="4"/></g>',
+  market:'<path d="M8 50V28h44v22" fill="#f4ecd6" ' + S + '/><path d="M4 28l4-10h44l4 10z" fill="#fff" ' + S + '/><path d="M12 18l-2 10M20 18l-1 10M28 18v10M36 18l1 10M44 18l2 10" stroke="#e04a2f" stroke-width="3.2"/><path d="M4 28l4-10h44l4 10z" fill="none" ' + S + '/><path d="M14 50v-9h14v9M34 42h12v8H34z" fill="#e5b440" ' + S + '/><circle cx="38" cy="40" r="2.6" fill="#e04a2f" ' + S + '/><circle cx="43" cy="40" r="2.6" fill="#9ccc6a" ' + S + '/>',
+  food:'<path d="M8 30h44q-2 18-22 18T8 30z" fill="#fff" ' + S + '/><path d="M12 34h36" stroke="#e04a2f" stroke-width="2"/><path d="M8 30h44" ' + S + '/><path d="M22 24q-4-4 0-8t0-8M30 24q-4-4 0-8t0-8M38 24q-4-4 0-8" fill="none" ' + S + '/><path d="M40 4l-6 22M46 6l-9 20" ' + S + '/>',
+  cat:'<path d="M2 50l8-22h40l8 22z" fill="#e04a2f" ' + S + '/><path d="M6 40h48" stroke="#b8361f" stroke-width="1.2"/><path d="M24 28c-2-6 0-12 4-14l-1-5 4 3 4-3-1 5c4 2 5 8 3 14" fill="#35372e" ' + S + '/><path d="M38 28c6 0 8-4 6-9" fill="none" ' + S + ' stroke-width="2.4"/><circle cx="29" cy="15" r=".9" fill="#e5b440" stroke="none"/><circle cx="34" cy="15" r=".9" fill="#e5b440" stroke="none"/>',
+  dept:'<path d="M12 50V14h36v36z" fill="#f2e7cc" ' + S + '/><path d="M12 21h36M12 28h36M12 35h36M12 42h36M21 14v36M30 14v36M39 14v36" stroke="#b9a883" stroke-width="1"/><path d="M12 50V14h36v36z" fill="none" ' + S + '/><path d="M26 50v-6h8v6" fill="#6b3a2c" ' + S + '/><path d="M24 14V8h12v6M22 8h16" fill="none" stroke="#e04a2f" stroke-width="2" stroke-linecap="round"/><path d="M30 8V4" ' + S + '/>',
+  park:'<ellipse cx="30" cy="44" rx="26" ry="6" fill="#bfe0a6" ' + S + '/><path d="M30 44V28" ' + S + ' stroke-width="2.2"/><path d="M14 26c-6-8 4-16 10-12 2-8 14-8 16 0 8-3 14 6 8 12 2 6-8 10-12 5-4 4-12 4-14-1-6 3-12-1-8-4z" fill="#8fc47a" ' + S + '/><path d="M8 50l4-6M52 50l-4-6" ' + S + '/>',
+  confucius:'<path d="M4 50V32h40v18z" fill="#e04a2f" ' + S + '/><path d="M0 32q8-1 10-8h28q2 7 10 8z" fill="#3a3a32" ' + S + '/><path d="M18 50v-9h12v9" fill="#6b3a2c" ' + S + '/><path d="M50 50V36" ' + S + ' stroke-width="2.2"/><circle cx="50" cy="28" r="9" fill="#8fc47a" ' + S + '/><circle cx="56" cy="36" r="5" fill="#8fc47a" ' + S + '/>',
+  dome:'<path d="M6 50V30h48v20z" fill="#f2e7cc" ' + S + '/><path d="M14 50V34M22 50V34M38 50V34M46 50V34" ' + S + '/><path d="M20 30a10 12 0 0 1 20 0z" fill="#6f8d86" ' + S + '/><path d="M30 18v-6" ' + S + '/><path d="M4 30h52" ' + S + ' stroke-width="1.8"/><path d="M27 50v-10h6v10" fill="#6b3a2c" ' + S + '/>',
+  blue:'<path d="M6 50V16h40v34z" fill="#3f79b8" ' + S + '/><path d="M14 44V28l12-8 12 8v16zM22 44v-8h8v8M14 28h24" fill="none" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/><path d="M46 50V26h10v24z" fill="#f4ecd6" ' + S + '/>',
+  station:'<path d="M2 50V30h56v20z" fill="#fbf8ee" ' + S + '/><path d="M18 30V20h24v10" fill="#fbf8ee" ' + S + '/><path d="M16 20h28M0 30h60" ' + S + ' stroke="#2f5d57" stroke-width="2"/><circle cx="30" cy="25" r="3.2" fill="#fff" ' + S + '/><path d="M30 23.4V25h1.4" ' + S + ' stroke-width="1"/><path d="M8 38h6v6H8zM46 38h6v6h-6zM25 50v-10h10v10" fill="#a7d9e4" ' + S + '/>'
+};
+function ill(k, w, h, cls){ return '<svg class="' + (cls || '') + '" viewBox="0 0 60 52" width="' + w + '" height="' + h + '" aria-hidden="true">' + ILL[k] + '</svg>'; }
+function sealSVG(s, date, ghost){
+  var n = s.n.length > 4 ? [s.n.slice(0, Math.ceil(s.n.length / 2)), s.n.slice(Math.ceil(s.n.length / 2))] : s.n.length > 2 ? [s.n.slice(0, 2), s.n.slice(2)] : [s.n];
+  var rot = ((s.id * 37) % 17) - 8, col = ghost ? '#b8bfa4' : '#e04a2f';
+  var t = n.map(function(line, i){ return '<text x="50" y="' + (n.length === 1 ? 50 : 42 + i * 18) + '" text-anchor="middle" dominant-baseline="central" font-family="Yuanti TC, PingFang TC, sans-serif" font-weight="700" font-size="' + (line.length > 3 ? 13 : 16) + '" fill="' + col + '">' + line + '</text>'; }).join('');
+  return '<svg viewBox="0 0 100 100" aria-hidden="true"><g transform="rotate(' + (ghost ? 0 : rot) + ' 50 50)"><circle cx="50" cy="50" r="42" fill="none" stroke="' + col + '" stroke-width="' + (ghost ? 1.6 : 3.4) + '"' + (ghost ? ' stroke-dasharray="4 5"' : '') + '/>' +
+    (ghost ? '' : '<circle cx="50" cy="50" r="35" fill="none" stroke="' + col + '" stroke-width="1.2"/>') + t +
+    (date && !ghost ? '<text x="50" y="80" text-anchor="middle" dominant-baseline="central" font-family="Yuanti TC, PingFang TC, sans-serif" font-size="9" fill="' + col + '">' + date + '</text>' : '') + '</g></svg>';
+}
+
+// ---------- map drawing ----------
+var ROADS = [
+  ['民族路', 18, [[0,380],[300,383],[470,378],[640,381],[1000,388]], [385,381,0]],
+  ['府前路', 18, [[0,915],[300,912],[560,915],[1000,905]], [860,909,0]],
+  ['西門路', 18, [[300,0],[301,640],[302,1300]], [301,560,90]],
+  ['永福路', 12, [[470,120],[468,380],[470,700]], [469,250,90]],
+  ['忠義路', 12, [[640,0],[642,380],[640,640]], [641,200,90]],
+  ['中山路', 16, [[870,320],[640,705]], [760,510,-59]],
+  ['中正路', 16, [[640,705],[300,745],[200,752]], [420,724,-7]],
+  ['南門路', 14, [[640,705],[622,1300]], [630,1150,90]],
+  ['開山路', 14, [[640,705],[860,1300]], [800,1150,70]],
+  ['海安路', 16, [[200,230],[196,700],[206,1180]], [199,820,90]],
+  ['民生路', 12, [[300,560],[470,600],[640,705]], [540,630,20]],
+  ['北門路', 14, [[860,0],[860,1300]], [860,760,90]],
+  ['', 7, [[120,318],[300,318]], null],
+  ['', 7, [[385,470],[385,905]], null],
+  ['', 7, [[200,640],[300,640]], null],
+  ['', 7, [[560,980],[680,1030]], null],
+  ['', 8, [[470,700],[470,915]], null],
+  ['', 8, [[300,1060],[640,1080]], null],
+  ['', 8, [[740,388],[742,905]], null]
+];
+function wobble(pts, amp, seed){
+  var r = rng(seed), d = '';
+  for (var i = 0; i < pts.length - 1; i++){
+    var a = pts[i], b = pts[i + 1], len = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(len / 26)), nx = -(b[1] - a[1]) / len, ny = (b[0] - a[0]) / len;
+    for (var k = (i ? 1 : 0); k <= n; k++){
+      var t = k / n, j = (k === 0 || k === n) ? 0 : (r() - .5) * amp * 2;
+      var x = a[0] + (b[0] - a[0]) * t + nx * j, y = a[1] + (b[1] - a[1]) * t + ny * j;
+      d += (d ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }
+  }
+  return d;
+}
+function segDist(px, py, a, b){
+  var dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((px - a[0]) * dx + (py - a[1]) * dy) / (dx * dx + dy * dy)));
+  return Math.hypot(px - a[0] - t * dx, py - a[1] - t * dy);
+}
+function nearRoad(x, y, pad){
+  for (var i = 0; i < ROADS.length; i++){ var p = ROADS[i][2]; for (var k = 0; k < p.length - 1; k++) if (segDist(x, y, p[k], p[k + 1]) < ROADS[i][1] / 2 + pad) return true; }
+  return false;
+}
+function inWater(x, y){ return x < 96 || (y > 722 && y < 808 && x < 190); }
+function mapSVG(){
+  var o = '<svg viewBox="0 0 1000 1300" xmlns="http://www.w3.org/2000/svg"><defs>' +
+    '<pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 8L8 0" stroke="#cfe3b6" stroke-width="1.4"/></pattern></defs>';
+  o += '<rect width="1000" height="1300" fill="#e5f1d2"/>';
+  // soft block tints
+  var br = rng(5);
+  for (var bx = 0; bx < 10; bx++) for (var by = 0; by < 13; by++){ if (br() < .35) o += '<rect x="' + (bx * 100 + 8) + '" y="' + (by * 100 + 8) + '" width="84" height="84" rx="14" fill="#dcecc6"/>'; }
+  // water: canal on the west + the basin
+  o += '<path d="M0 0H70C96 200 60 380 88 560S70 900 96 1300H0Z" fill="#a7d9e4" stroke="#7fbfd0" stroke-width="2"/>';
+  o += '<path d="M60 722C110 716 160 720 186 730Q198 765 186 800C150 812 110 806 60 808Z" fill="#a7d9e4" stroke="#7fbfd0" stroke-width="2"/>';
+  var wr = rng(9);
+  for (var w = 0; w < 26; w++){ var wx = 14 + wr() * 50, wy = 40 + w * 48 + wr() * 10; o += '<path d="M' + wx.toFixed(0) + ' ' + wy.toFixed(0) + 'q4-4 8 0t8 0" fill="none" stroke="#5fa9bf" stroke-width="1.4" stroke-linecap="round"/>'; }
+  [[110,748],[140,770],[120,790],[160,752]].forEach(function(p){ o += '<path d="M' + p[0] + ' ' + p[1] + 'q4-4 8 0t8 0" fill="none" stroke="#5fa9bf" stroke-width="1.4" stroke-linecap="round"/>'; });
+  o += '<text class="wlab" x="36" y="620" transform="rotate(90 36 620)">台南運河</text><text class="wlab" x="112" y="838" style="letter-spacing:.1em;font-size:11px">往安平</text>';
+  // parks
+  o += '<path d="M520 930c30-24 110-26 140 0s20 90-20 100-110 6-128-20-20-60 8-80z" fill="url(#hatch)" stroke="#bcd9a2" stroke-width="1.5"/>';
+  // roads: edge then fill
+  var ro = '', rf = '', lab = '';
+  ROADS.forEach(function(r, i){
+    var d = wobble(r[2], 1.3, 11 + i * 7);
+    ro += '<path d="' + d + '" stroke="#bccaa2" stroke-width="' + (r[1] + 4) + '" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+    rf += '<path d="' + d + '" stroke="#fffcf1" stroke-width="' + r[1] + '" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+    if (r[0] && r[3]) lab += '<text class="rd" x="' + r[3][0] + '" y="' + r[3][1] + '" text-anchor="middle" dominant-baseline="central" transform="rotate(' + r[3][2] + ' ' + r[3][0] + ' ' + r[3][1] + ')">' + r[0] + '</text>';
+  });
+  o += ro + rf;
+  // roundabout
+  o += '<circle cx="640" cy="705" r="60" fill="#fffcf1" stroke="#bccaa2" stroke-width="2"/><circle cx="640" cy="705" r="44" fill="#bfe0a6" stroke="#9cc584" stroke-width="1.5"/>';
+  // railway
+  o += '<path d="M936 0V1300" stroke="#35372e" stroke-width="7"/><path d="M936 0V1300" stroke="#fffcf1" stroke-width="4" stroke-dasharray="14 14"/>';
+  o += lab;
+  // little houses and trees filling the blocks
+  var hr = rng(21), houses = '', trees = '';
+  for (var h = 0; h < 520 && houses.length < 60000; h++){
+    var x = 100 + hr() * 830, y = 20 + hr() * 1270;
+    if (inWater(x, y) || nearRoad(x, y, 9)) continue;
+    var near = false; for (var s = 0; s < SPOTS.length; s++) if (Math.hypot(SPOTS[s].x - x, SPOTS[s].y - y) < 52) { near = true; break; }
+    if (near || Math.hypot(x - 640, y - 705) < 70) continue;
+    if (hr() < .22){ trees += '<circle cx="' + x.toFixed(0) + '" cy="' + y.toFixed(0) + '" r="' + (5 + hr() * 4).toFixed(1) + '" fill="#9fcf88" stroke="#7fae6c" stroke-width="1"/>'; continue; }
+    var w2 = 10 + hr() * 8, h2 = 7 + hr() * 4, roof = ['#eab09b','#a9cfc0','#e9d9a8','#f3c2a8'][Math.floor(hr() * 4)];
+    houses += '<g transform="translate(' + x.toFixed(0) + ' ' + y.toFixed(0) + ')"><rect x="' + (-w2 / 2).toFixed(1) + '" y="0" width="' + w2.toFixed(1) + '" height="' + h2.toFixed(1) + '" fill="#fbf8ee" stroke="#a3ae8e" stroke-width=".8"/><path d="M' + (-w2 / 2 - 1).toFixed(1) + ' 0L0 -5L' + (w2 / 2 + 1).toFixed(1) + ' 0Z" fill="' + roof + '" stroke="#a3ae8e" stroke-width=".8" stroke-linejoin="round"/></g>';
+  }
+  o += houses + trees;
+  // park trees
+  [[620,690],[655,688],[640,722],[612,718],[668,716],[540,950],[600,940],[650,1000],[560,1010]].forEach(function(t, i){ o += '<circle cx="' + t[0] + '" cy="' + t[1] + '" r="' + (9 + i % 3 * 2) + '" fill="#8fc47a" stroke="#6f9f5e" stroke-width="1.2"/>'; });
+  // title cartouche + compass (in the world, like a printed map)
+  o += '<g transform="translate(700 1150)"><rect x="0" y="0" width="190" height="96" rx="10" fill="#fcfdf6" stroke="#35372e" stroke-width="1.4"/><text x="95" y="36" text-anchor="middle" font-family="Yuanti TC, PingFang TC, sans-serif" font-weight="700" font-size="22" fill="#35372e" letter-spacing="4">府城散步</text><text x="95" y="66" text-anchor="middle" font-family="Yuanti TC, PingFang TC, sans-serif" font-size="12" fill="#646856" letter-spacing="3">台南市中西區 · 手繪</text></g>';
+  o += '<g transform="translate(150 1180)"><circle r="30" fill="#fcfdf6" stroke="#35372e" stroke-width="1.3"/><path d="M0 -24L7 0 0 24-7 0Z" fill="#fcfdf6" stroke="#35372e" stroke-width="1.3" stroke-linejoin="round"/><path d="M0 -24L7 0H-7Z" fill="#e04a2f"/><text y="-36" text-anchor="middle" font-family="Yuanti TC, sans-serif" font-weight="700" font-size="14" fill="#35372e">北</text></g>';
+  o += '<text x="560" y="560" font-family="Yuanti TC, PingFang TC, sans-serif" font-weight="700" font-size="46" fill="#c9deae" letter-spacing="30" transform="rotate(-8 560 560)">中西區</text>';
+  // route layer + spots + walker
+  o += '<g id="routeG"></g><g id="spotsG"></g><g id="walker" style="display:none"><circle r="12" fill="#fcfdf6" stroke="#e04a2f" stroke-width="2.5"/><circle cy="-4" r="3" fill="#35372e"/><path d="M0 -1v6M-4 9l4-4 4 4M-4 2h8" stroke="#35372e" stroke-width="1.8" stroke-linecap="round" fill="none"/></g>';
+  // you are here at the station
+  o += '<g transform="translate(' + HOME.x + ' ' + (HOME.y + 34) + ')"><circle r="7" fill="#e04a2f" stroke="#fff" stroke-width="2.5"/><text x="12" y="1" dominant-baseline="central" font-family="Yuanti TC, sans-serif" font-size="12" font-weight="700" fill="#e04a2f" paint-order="stroke" stroke="#fcfdf6" stroke-width="3">你在這裡</text></g>';
+  return o + '</svg>';
+}
+function drawSpots(){
+  var g = '';
+  SPOTS.forEach(function(s){
+    var sel = s.id === selected, stamped = !!stamps[s.id], fav = favs.indexOf(s.id) > -1;
+    g += '<g class="spot' + (sel ? ' sel' : '') + '" data-spot="' + s.id + '" transform="translate(' + s.x + ' ' + s.y + ')">' +
+      '<circle class="hit" r="38" fill="transparent"/>' +
+      '<g transform="translate(-30 -46)">' + ILL[s.ill].replace(/<path /, '<path ') + '</g>' +
+      '<circle class="ring" cy="-20" r="36"/>' +
+      '<g transform="translate(26 -44)"><circle r="11" fill="' + (stamped ? '#fcfdf6' : '#e04a2f') + '" stroke="#e04a2f" stroke-width="2"/><text text-anchor="middle" dominant-baseline="central" font-family="Yuanti TC, PingFang TC, sans-serif" font-size="12" font-weight="700" fill="' + (stamped ? '#e04a2f' : '#fff') + '">' + s.id + '</text></g>' +
+      (fav ? '<path transform="translate(-34 -52) scale(.7)" d="M12 2.8l2.8 5.9 6.3.8-4.6 4.3 1.2 6.3L12 17l-5.7 3.1 1.2-6.3-4.6-4.3 6.3-.8z" fill="#e04a2f" stroke="#35372e" stroke-width="1.4" stroke-linejoin="round"/>' : '') +
+      '<text class="nm" y="20" text-anchor="middle">' + s.n + '</text></g>';
+  });
+  $('spotsG').innerHTML = g;
+}
+function drawRoute(){
+  var pts = [HOME].concat(route.map(spot));
+  if (pts.length < 2){ $('routeG').innerHTML = ''; return; }
+  var d = 'M' + pts[0].x + ' ' + (pts[0].y + 34);
+  for (var i = 1; i < pts.length; i++){
+    var a = pts[i - 1], b = pts[i], ay = i === 1 ? a.y + 34 : a.y, mx = (a.x + b.x) / 2 + (b.y - ay) * .12, my = (ay + b.y) / 2 - (b.x - a.x) * .12;
+    d += 'Q' + mx.toFixed(0) + ' ' + my.toFixed(0) + ' ' + b.x + ' ' + b.y;
+  }
+  $('routeG').innerHTML = '<path id="routePath" d="' + d + '" fill="none" stroke="#fcfdf6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/><path d="' + d + '" fill="none" stroke="#e04a2f" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 9"/>' +
+    route.map(function(id, i){ var s = spot(id); return '<g transform="translate(' + (s.x - 30) + ' ' + (s.y + 4) + ')"><rect x="-11" y="-10" width="22" height="20" rx="6" fill="#35372e"/><text text-anchor="middle" dominant-baseline="central" font-family="Yuanti TC, sans-serif" font-size="12" font-weight="700" fill="#fcfdf6">' + (i + 1) + '</text></g>'; }).join('');
+}
+
+// ---------- map pan / zoom ----------
+var map = $('map'), world = $('world');
+world.innerHTML = mapSVG();
+var view = load('view', null) || {s:.74, x:0, y:0}, VW = 390, VH = 844;
+function measure(){ var r = map.getBoundingClientRect(); VW = r.width || 390; VH = r.height || 844; }
+function clampView(){
+  view.s = Math.max(.42, Math.min(2.2, view.s));
+  var minX = VW - 1000 * view.s - 80, minY = VH - 1300 * view.s - 200;
+  view.x = Math.max(Math.min(80, minX), Math.min(80, view.x));
+  view.y = Math.max(Math.min(120, minY), Math.min(120, view.y));
+  if (1000 * view.s + 160 < VW) view.x = (VW - 1000 * view.s) / 2;
+}
+function apply(){ clampView(); world.style.transform = 'translate(' + view.x.toFixed(1) + 'px,' + view.y.toFixed(1) + 'px) scale(' + view.s.toFixed(4) + ')'; }
+var saveT = null;
+function persistView(){ clearTimeout(saveT); saveT = setTimeout(function(){ save('view', view); }, 400); }
+function zoomAt(f, cx, cy){
+  var ns = Math.max(.42, Math.min(2.2, view.s * f)); f = ns / view.s;
+  view.x = cx - (cx - view.x) * f; view.y = cy - (cy - view.y) * f; view.s = ns; apply(); persistView();
+}
+var anim = 0;
+function flyTo(wx, wy, s, dur){
+  cancelAnimationFrame(anim);
+  var visibleH = VH - drawerVisible(), cy = Math.max(170, (visibleH + 110) / 2);
+  var from = {x:view.x, y:view.y, s:view.s}, to = {s:s || view.s};
+  to.x = VW / 2 - wx * to.s; to.y = cy - wy * to.s;
+  var t0 = performance.now(); dur = reduce ? 1 : (dur || 650);
+  (function f(t){
+    var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    view.s = from.s + (to.s - from.s) * e; view.x = from.x + (to.x - from.x) * e; view.y = from.y + (to.y - from.y) * e; apply();
+    if (k < 1) anim = requestAnimationFrame(f); else persistView();
+  })(t0);
+}
+(function(){
+  var ptrs = {}, last = null, moved = false, vx = 0, vy = 0, lt = 0, pinch = null, inert = 0, downT = 0;
+  map.addEventListener('pointerdown', function(e){
+    cancelAnimationFrame(anim); cancelAnimationFrame(inert);
+    ptrs[e.pointerId] = {x:e.clientX, y:e.clientY};
+    var ids = Object.keys(ptrs);
+    if (ids.length === 1){ last = {x:e.clientX, y:e.clientY}; moved = false; vx = vy = 0; lt = e.timeStamp; downT = e.timeStamp; }
+    if (ids.length === 2){ var a = ptrs[ids[0]], b = ptrs[ids[1]]; pinch = {d:Math.hypot(a.x - b.x, a.y - b.y), s:view.s}; moved = true; }
+  });
+  map.addEventListener('pointermove', function(e){
+    if (!ptrs[e.pointerId]) return;
+    ptrs[e.pointerId] = {x:e.clientX, y:e.clientY};
+    var ids = Object.keys(ptrs), r = map.getBoundingClientRect();
+    if (ids.length >= 2 && pinch){
+      var a = ptrs[ids[0]], b = ptrs[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y);
+      zoomAt(pinch.s * d / pinch.d / view.s, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top); return;
+    }
+    var dx = e.clientX - last.x, dy = e.clientY - last.y;
+    if (!moved && Math.hypot(e.clientX - (last.x), e.clientY - (last.y)) < 5 && e.timeStamp - downT < 200) return;
+    if (!moved){ moved = true; map.classList.add('grabbing'); try { map.setPointerCapture(e.pointerId); } catch(err){} }
+    view.x += dx; view.y += dy; apply();
+    var dt = Math.max(1, e.timeStamp - lt); vx = dx / dt; vy = dy / dt; lt = e.timeStamp;
+    last = {x:e.clientX, y:e.clientY};
+  });
+  function up(e){
+    if (!ptrs[e.pointerId]) return;
+    delete ptrs[e.pointerId];
+    if (Object.keys(ptrs).length) { pinch = null; var k = Object.keys(ptrs)[0]; last = {x:ptrs[k].x, y:ptrs[k].y}; return; }
+    map.classList.remove('grabbing'); pinch = null;
+    if (!moved){
+      var el = document.elementFromPoint(e.clientX, e.clientY), g = el && el.closest && el.closest('[data-spot]');
+      if (g) selectSpot(+g.getAttribute('data-spot'), true);
+      return;
+    }
+    persistView();
+    if (reduce || e.timeStamp - lt > 80) return;
+    (function glide(){
+      vx *= .93; vy *= .93; view.x += vx * 16; view.y += vy * 16; apply();
+      if (Math.abs(vx) + Math.abs(vy) > .02) inert = requestAnimationFrame(glide); else persistView();
+    })();
+  }
+  map.addEventListener('pointerup', up); map.addEventListener('pointercancel', up);
+  map.addEventListener('wheel', function(e){ e.preventDefault(); var r = map.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top); }, {passive:false});
+})();
+$('zin').addEventListener('click', function(){ haptic(5); zoomAt(1.3, VW / 2, (VH - drawerVisible()) / 2 + 40); });
+$('zout').addEventListener('click', function(){ haptic(5); zoomAt(1 / 1.3, VW / 2, (VH - drawerVisible()) / 2 + 40); });
+$('home').addEventListener('click', function(){ haptic(6); flyTo(HOME.x - 200, HOME.y + 200, .74); });
+
+// ---------- drawer ----------
+var drawer = $('drawer'), snap = 'peek';
+function dH(){ return drawer.offsetHeight || (VH - 96); }
+function snapY(n){ var h = dH(); return n === 'full' ? 0 : n === 'half' ? Math.max(0, h - VH * .5) : Math.max(0, h - 208); }
+function drawerVisible(){ return dH() - snapY(snap); }
+function setSnap(n, quiet){
+  snap = n; drawer.style.setProperty('--y', snapY(n) + 'px');
+  drawer.classList.toggle('full', n === 'full');
+  $('ctrls').classList.toggle('hide', n === 'full');
+  if (n !== 'full') $('dbody').scrollTop = 0;
+  if (!quiet) haptic(5);
+}
+(function(){
+  var sy = 0, y0 = 0, dy = 0, t0 = 0, dragging = false, moved = false;
+  function start(e){
+    if (e.target.closest('input')) return;
+    if (drawer.classList.contains('full') && !e.target.closest('.dhead')) return;
+    dragging = true; moved = false; sy = e.clientY; y0 = snapY(snap); dy = 0; t0 = e.timeStamp;
+  }
+  function move(e){
+    if (!dragging) return;
+    dy = e.clientY - sy;
+    if (!moved && Math.abs(dy) < 6) return;
+    if (!moved){ moved = true; drawer.classList.add('drag'); try { drawer.setPointerCapture(e.pointerId); } catch(err){} }
+    var y = y0 + dy, max = snapY('peek');
+    if (y < 0) y = y / 4; if (y > max) y = max + (y - max) / 3;
+    drawer.style.setProperty('--y', y.toFixed(1) + 'px');
+  }
+  function end(e){
+    if (!dragging) return; dragging = false;
+    if (!moved) return;
+    drawer.classList.remove('drag');
+    var v = dy / Math.max(1, e.timeStamp - t0), y = y0 + dy;
+    var order = ['full','half','peek'], cur = order.indexOf(snap), n;
+    if (Math.abs(v) > .5) n = order[Math.max(0, Math.min(2, cur + (v > 0 ? 1 : -1)))];
+    else { var best = 1e9; order.forEach(function(o){ var d = Math.abs(snapY(o) - y); if (d < best){ best = d; n = o; } }); }
+    setSnap(n);
+    suppressClick = true; setTimeout(function(){ suppressClick = false; }, 50);
+  }
+  drawer.addEventListener('pointerdown', start); drawer.addEventListener('pointermove', move);
+  drawer.addEventListener('pointerup', end); drawer.addEventListener('pointercancel', end);
+  $('dhead').addEventListener('click', function(e){ if (!e.target.closest('.tab') && !suppressClick) setSnap(snap === 'peek' ? 'half' : snap === 'half' ? 'full' : 'peek'); });
+})();
+var suppressClick = false;
+drawer.addEventListener('click', function(e){ if (suppressClick){ e.stopPropagation(); e.preventDefault(); } }, true);
+
+// ---------- tabs ----------
+var tab = 'spots';
+function setTab(t){
+  tab = t;
+  document.querySelectorAll('.tab').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.t === t); });
+  $('pSpots').hidden = t !== 'spots'; $('pRoute').hidden = t !== 'route'; $('pStamps').hidden = t !== 'stamps';
+  $('dbody').scrollTop = 0;
+  if (t === 'route') renderRoute(); if (t === 'stamps') renderStamps();
+}
+document.querySelector('.tabs').addEventListener('click', function(e){
+  var b = e.target.closest('.tab'); if (!b) return; haptic(5);
+  if (b.dataset.t === tab && snap === 'peek'){ setSnap('half'); return; }
+  setTab(b.dataset.t); if (snap === 'peek') setSnap('half', true);
+});
+
+// ---------- spots pane ----------
+var cat = '全部', q = '', selected = null;
+function renderChips(){
+  $('chips').innerHTML = CATS.map(function(c){ return '<button class="pen" data-c="' + c + '" aria-pressed="' + (c === cat) + '"><span>' + c + '</span></button>'; }).join('');
+}
+function walkFromHome(s){ return mins(meters(HOME, s)); }
+function renderRows(){
+  var list = SPOTS.filter(function(s){
+    if (cat === '收藏' && favs.indexOf(s.id) < 0) return false;
+    if (cat !== '全部' && cat !== '收藏' && s.c !== cat) return false;
+    if (q && (s.n + s.c + s.d).indexOf(q) < 0) return false;
+    return true;
+  });
+  $('nSpots').textContent = SPOTS.length;
+  $('rows').innerHTML = list.length ? list.map(function(s){
+    var fav = favs.indexOf(s.id) > -1, inR = route.indexOf(s.id) > -1;
+    return '<div class="srow" role="button" tabindex="0" data-open="' + s.id + '">' + ill(s.ill, 58, 50, 'pic') +
+      '<span><b>' + s.n + '</b><span class="m">' + s.c + ' · 從車站走 ' + walkFromHome(s) + ' 分' + (stamps[s.id] ? ' · <i>已蓋章</i>' : '') + (inR ? ' · 在路線上' : '') + '</span></span>' +
+      '<button class="star" data-fav="' + s.id + '" aria-pressed="' + fav + '" aria-label="' + (fav ? '取消收藏 ' : '收藏 ') + s.n + '"><svg viewBox="0 0 24 24" class="ico"><path d="M12 2.8l2.8 5.9 6.3.8-4.6 4.3 1.2 6.3L12 17l-5.7 3.1 1.2-6.3-4.6-4.3 6.3-.8z"/></svg></button></div>';
+  }).join('') : '<div class="empty">找不到「' + esc(q || cat) + '」。換個關鍵字試試。</div>';
+}
+$('chips').addEventListener('click', function(e){ var b = e.target.closest('.pen'); if (!b) return; cat = b.dataset.c; haptic(4); renderChips(); renderRows(); });
+$('q').addEventListener('input', function(){ q = this.value.trim(); $('qx').hidden = !q; renderRows(); });
+$('q').addEventListener('focus', function(){ if (snap !== 'full') setSnap('full', true); });
+$('qx').addEventListener('click', function(e){ e.preventDefault(); $('q').value = ''; q = ''; this.hidden = true; haptic(4); renderRows(); });
+$('rows').addEventListener('click', function(e){
+  var f = e.target.closest('[data-fav]');
+  if (f){ e.stopPropagation(); toggleFav(+f.dataset.fav); return; }
+  var r = e.target.closest('[data-open]'); if (r) selectSpot(+r.dataset.open, false);
+});
+$('rows').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ var r = e.target.closest('[data-open]'); if (r) selectSpot(+r.dataset.open, false); } });
+function toggleFav(id){
+  var i = favs.indexOf(id); if (i > -1) favs.splice(i, 1); else favs.push(id);
+  save('fav', favs); haptic(i > -1 ? 5 : [8, 24, 8]); renderRows(); drawSpots(); if (selected === id) renderDetail();
+  toast(i > -1 ? '取消收藏 ' + spot(id).n : '收藏了 ' + spot(id).n);
+}
+function selectSpot(id, fromMap){
+  selected = id; haptic(6); click();
+  setTab('spots'); $('spotList').hidden = true; $('detail').hidden = false; renderDetail();
+  if (snap === 'peek' || snap === 'full') setSnap('half', true);
+  var s = spot(id); drawSpots();
+  setTimeout(function(){ flyTo(s.x, s.y - 10, Math.max(view.s, .95)); }, fromMap ? 0 : 60);
+}
+function closeDetail(){ selected = null; $('spotList').hidden = false; $('detail').hidden = true; drawSpots(); renderRows(); haptic(4); }
+function renderDetail(){
+  var s = spot(selected); if (!s) return;
+  var fav = favs.indexOf(s.id) > -1, inR = route.indexOf(s.id) > -1, st = stamps[s.id];
+  $('detail').innerHTML = '<button class="back" id="dBack"><svg viewBox="0 0 20 20" class="ico"><path d="M12.5 4.5c-2.6 2-4.4 3.6-6 5.5 1.7 1.9 3.4 3.5 6 5.5"/></svg>全部景點</button>' +
+    '<div class="dt-top"><div><h2>' + s.n + '</h2><p class="m">' + s.c + ' · 從車站走 ' + walkFromHome(s) + ' 分 · ' + km(meters(HOME, s)) + (st ? ' · <i>' + st + ' 蓋過章</i>' : '') + '</p></div>' +
+    '<button class="star" data-dfav="1" aria-pressed="' + fav + '" aria-label="收藏"><svg viewBox="0 0 24 24" class="ico"><path d="M12 2.8l2.8 5.9 6.3.8-4.6 4.3 1.2 6.3L12 17l-5.7 3.1 1.2-6.3-4.6-4.3 6.3-.8z"/></svg></button></div>' +
+    '<div class="hero">' + ill(s.ill, 190, 158, 'big') + '<div class="seal" id="dSeal">' + sealSVG(s, st, !st) + '</div></div>' +
+    '<p class="desc">' + s.d + '</p><dl class="kv"><dt>開放</dt><dd>' + s.h + '</dd><dt>編號</dt><dd>地圖上的 ' + s.id + ' 號</dd></dl>' +
+    '<div class="acts"><button class="act ' + (inR ? 'p' : 'v') + '" id="dRoute"><svg viewBox="0 0 22 22" class="ico"><path d="M4 18c3-1 3-5 7-6s5-5 7-8"/><circle cx="4" cy="18" r="1.6" fill="currentColor"/><circle cx="18" cy="4" r="1.6" fill="currentColor"/></svg>' + (inR ? '移出路線' : '加入路線') + '</button>' +
+    '<button class="act p" id="dStamp"' + (st ? ' aria-disabled="true"' : '') + '><svg viewBox="0 0 22 22" class="ico"><path d="M8 3.5h6l-1 6h4.5v4h-13v-4H9zM5 17.5h12"/></svg>' + (st ? '已蓋章' : '蓋紀念章') + '</button></div>';
+  $('dBack').addEventListener('click', closeDetail);
+  document.querySelector('[data-dfav]').addEventListener('click', function(){ toggleFav(s.id); });
+  $('dRoute').addEventListener('click', function(){ toggleRoute(s.id); renderDetail(); });
+  $('dStamp').addEventListener('click', function(){
+    if (stamps[s.id]){ haptic(4); toast('這一站已經蓋過章了'); return; }
+    stamp(s.id, true); renderDetail();
+    var sv = document.querySelector('#dSeal svg'); if (sv){ sv.classList.add('stampPop'); }
+  });
+}
+function toggleRoute(id){
+  var i = route.indexOf(id);
+  if (i > -1) route.splice(i, 1); else route.push(id);
+  save('route', route); haptic(i > -1 ? 5 : [8, 24, 8]); drawRoute(); renderRows(); badges();
+  toast(i > -1 ? '從路線移除 ' + spot(id).n : '加入路線第 ' + route.length + ' 站：' + spot(id).n);
+}
+
+// ---------- stamps ----------
+function stamp(id, sound){
+  var d = new Date(); stamps[id] = (d.getMonth() + 1) + '/' + d.getDate(); save('stamps', stamps);
+  if (sound) thud(); haptic([20, 40, 12]); drawSpots(); badges(); renderRows();
+  if (Object.keys(stamps).length === SPOTS.length) setTimeout(function(){ toast('十二個章都蓋齊了，府城散步完成！'); chime(); }, 500);
+  else toast('蓋到了 ' + spot(id).n + ' 的紀念章');
+}
+function renderStamps(){
+  var n = Object.keys(stamps).length;
+  $('pStamps').innerHTML = '<div class="shead"><b>' + n + ' / ' + SPOTS.length + '</b><span>' + (n === SPOTS.length ? '集章卡完成' : '還差 ' + (SPOTS.length - n) + ' 個章') + '</span></div>' +
+    '<div class="card">' + SPOTS.map(function(s){ return '<button class="slot" data-slot="' + s.id + '" aria-label="' + s.n + (stamps[s.id] ? ' 已蓋章' : ' 未蓋章') + '">' + sealSVG(s, stamps[s.id], !stamps[s.id]) + '</button>'; }).join('') + '</div>' +
+    '<p class="empty" style="padding:14px 2px">點一個章，地圖會帶你去那一站。</p>';
+}
+$('pStamps').addEventListener('click', function(e){ var b = e.target.closest('[data-slot]'); if (b) selectSpot(+b.dataset.slot, false); });
+
+// ---------- route ----------
+function routeLen(){ var pts = [HOME].concat(route.map(spot)), m = 0; for (var i = 1; i < pts.length; i++) m += meters(pts[i - 1], pts[i]); return m; }
+function renderRoute(){
+  var m = routeLen(), html = '';
+  html += '<div class="rsum"><b>' + (route.length ? km(m).replace(/ /, '<small>') + '</small>' : '0<small>站</small>') + '</b><span>' + (route.length ? route.length + ' 站 · 約 ' + mins(m) + ' 分鐘' : '從景點加幾站進來') + '</span></div>';
+  html += '<div class="rbtns"><button class="act v" id="rWalk"' + (route.length ? '' : ' aria-disabled="true"') + '><svg viewBox="0 0 22 22" class="ico"><circle cx="12" cy="4" r="2"/><path d="M11 7.5l-2 5 3 3v4M9 12.5l-3 6M11 7.5l3 3 3 .5"/></svg>' + (walking ? '停下來' : '開始散步') + '</button>' +
+    '<button class="act p" id="rOpt"' + (route.length > 2 ? '' : ' aria-disabled="true"') + '><svg viewBox="0 0 22 22" class="ico"><path d="M4 6h10M4 11h7M4 16h4M16 5v12M13 14l3 3 3-3"/></svg>順路排序</button></div>';
+  html += '<div class="home-pt"><svg viewBox="0 0 60 52">' + ILL.station + '</svg>出發：台南車站</div>';
+  var prev = HOME;
+  route.forEach(function(id, i){
+    var s = spot(id), leg = meters(prev, s);
+    html += '<div class="leg">步行 ' + km(leg) + ' · ' + mins(leg) + ' 分</div>';
+    html += '<div class="stop"><span class="no">' + (i + 1) + '</span><span><b>' + s.n + '</b><span class="m">' + s.c + (stamps[id] ? ' · 已蓋章' : '') + '</span></span>' +
+      '<button data-up="' + i + '" aria-label="往前移 ' + s.n + '"><svg viewBox="0 0 22 22" class="ico"><path d="M11 17.5V5M6 9.5c2-1.8 3.4-3.2 5-5 1.6 1.8 3 3.2 5 5"/></svg></button>' +
+      '<button data-rm="' + id + '" aria-label="移除 ' + s.n + '"><svg viewBox="0 0 22 22" class="ico"><path d="M6 6.2l10 9.6M16 6l-9.8 10"/></svg></button></div>';
+    prev = s;
+  });
+  if (!route.length) html += '<p class="empty">路線是空的。在景點頁按「加入路線」，或點地圖上的景點。</p>';
+  $('pRoute').innerHTML = html;
+  $('rWalk').addEventListener('click', function(){ if (!route.length){ haptic([20, 30, 20]); toast('先加幾站到路線'); return; } walking ? stopWalk() : startWalk(); });
+  $('rOpt').addEventListener('click', function(){
+    if (route.length < 3){ haptic(4); toast('至少三站才需要排序'); return; }
+    var left = route.slice(), out = [], at = HOME;
+    while (left.length){ var bi = 0, bd = 1e9; left.forEach(function(id, i){ var d = meters(at, spot(id)); if (d < bd){ bd = d; bi = i; } }); at = spot(left[bi]); out.push(left.splice(bi, 1)[0]); }
+    var before = routeLen(); route = out; save('route', route); drawRoute(); renderRoute(); haptic([8, 24, 8]);
+    var saved = before - routeLen();
+    toast(saved > 20 ? '順路排好了，少走 ' + km(saved) : '原本的順序就很順了');
+  });
+}
+$('pRoute').addEventListener('click', function(e){
+  var up = e.target.closest('[data-up]'), rm = e.target.closest('[data-rm]');
+  if (up){ var i = +up.dataset.up; if (i === 0){ haptic(4); toast('已經是第一站'); return; } var t = route[i]; route[i] = route[i - 1]; route[i - 1] = t; save('route', route); drawRoute(); renderRoute(); haptic(5); }
+  if (rm){ toggleRoute(+rm.dataset.rm); renderRoute(); }
+});
+function badges(){ $('nRoute').textContent = route.length; $('nStamps').textContent = Object.keys(stamps).length; }
+
+// walk along the route, stamping every stop
+var walking = false, walkRaf = 0;
+function startWalk(){
+  var p = $('routePath'); if (!p) return;
+  ac(); walking = true; haptic([10, 30, 10]); renderRoute(); setSnap('peek', true);
+  var len = p.getTotalLength(), wk = $('walker'); wk.style.display = '';
+  var stops = [], acc = 0, pts = [HOME].concat(route.map(spot));
+  // arc length at each stop: sample the path to find nearest points
+  route.forEach(function(id){ var s = spot(id), best = 1e9, at = acc; for (var L = acc; L <= len; L += 6){ var q2 = p.getPointAtLength(L), d = Math.hypot(q2.x - s.x, q2.y - s.y); if (d < best){ best = d; at = L; } if (d > best + 60) break; } stops.push({id:id, L:at}); acc = at; });
+  var t0 = performance.now(), dur = reduce ? 1200 : Math.min(16000, 2200 + len * 6), next = 0;
+  (function f(t){
+    if (!walking) return;
+    if (document.hidden){ t0 += 16; walkRaf = requestAnimationFrame(f); return; }
+    var k = Math.min(1, (t - t0) / dur), L = len * k, q3 = p.getPointAtLength(L);
+    wk.setAttribute('transform', 'translate(' + q3.x.toFixed(1) + ' ' + q3.y.toFixed(1) + ')');
+    view.x += ((VW / 2 - q3.x * view.s) - view.x) * .08; view.y += ((Math.max(170, (VH - drawerVisible() + 110) / 2) - q3.y * view.s) - view.y) * .08; apply();
+    while (next < stops.length && L >= stops[next].L - 2){ var sid = stops[next].id; if (!stamps[sid]) stamp(sid, true); else click(); next++; }
+    if (k < 1) walkRaf = requestAnimationFrame(f);
+    else { walking = false; chime(); toast('走完了！全程 ' + km(routeLen()) + '，約 ' + mins(routeLen()) + ' 分鐘'); setTimeout(function(){ wk.style.display = 'none'; }, 1500); if (tab === 'route') renderRoute(); persistView(); }
+  })(t0);
+}
+function stopWalk(){ walking = false; cancelAnimationFrame(walkRaf); $('walker').style.display = 'none'; haptic(6); renderRoute(); }
+
+// ---------- sound ----------
+var AC = null;
+function ac(){
+  if (!AC){ try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ AC = null; } }
+  if (AC && AC.state === 'suspended'){ try { AC.resume(); } catch(e){} }
+  return AC;
+}
+function tone(f, d, v, type, when){
+  var a = ac(); if (!a) return;
+  try { var t = a.currentTime + (when || 0), o = a.createOscillator(), g = a.createGain(); o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0005, t + d); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + .02); } catch(e){}
+}
+function thud(){ var a = ac(); if (!a) return; try { var t = a.currentTime, o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(55, t + .12); g.gain.setValueAtTime(.5, t); g.gain.exponentialRampToValueAtTime(.001, t + .2); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + .22); } catch(e){} tone(900, .05, .05, 'triangle'); }
+function click(){ tone(1400, .04, .04, 'triangle'); }
+function chime(){ [659, 784, 988].forEach(function(f, i){ tone(f, .5, .08, 'sine', i * .12); }); }
+
+// ---------- toast ----------
+var toastT = null;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 2300); }
+
+// ---------- misc ----------
+function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setInterval(tick, 20000);
+try { if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(3, 18.4 * b.level).toFixed(1)); }).catch(function(){}); } catch(e){}
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ if (selected) closeDetail(); else if (snap !== 'peek') setSnap('peek'); }
+  if (e.target.closest && e.target.closest('input')) return;
+  if (e.key === '+' || e.key === '='){ zoomAt(1.2, VW / 2, VH / 2); }
+  if (e.key === '-'){ zoomAt(1 / 1.2, VW / 2, VH / 2); }
+});
+// desktop backdrop: the same printed map, spread out and folded
+if (matchMedia('(min-width:521px)').matches){ $('bw').innerHTML = world.innerHTML.replace(/id="[^"]+"/g, ''); }
+
+measure();
+renderChips(); renderRows(); drawSpots(); drawRoute(); badges();
+setSnap('peek', true);
+if (!load('view', null)){ view.s = .74; view.x = VW / 2 - 420 * view.s; view.y = 150 - 360 * view.s; }
+apply();
+window.addEventListener('resize', function(){ measure(); setSnap(snap, true); apply(); });
+})();
+</script>
+</body>
+</html>
