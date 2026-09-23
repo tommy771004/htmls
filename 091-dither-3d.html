@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Inks — Plate 091, an Ordered Dither Study</title>
+<style>
+  :root{
+    --ink:#2a170e;      /* burnt umber */
+    --paper:#e9dcbd;    /* bone */
+    --mono:"Lucida Console","Lucida Sans Typewriter",Consolas,Menlo,"DejaVu Sans Mono",monospace;
+  }
+  body.inv{ --ink:#e9dcbd; --paper:#2a170e; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ink);color:var(--paper);font-family:var(--mono);overflow:hidden}
+  canvas#view{position:fixed;inset:0;width:100vw;height:100vh;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;cursor:grab;display:block}
+  canvas#view.drag{cursor:grabbing}
+
+  /* 1-bit panels with dithered (checkerboard) drop shadows */
+  .panel{position:absolute;background:var(--ink);border:2px solid var(--paper);padding:14px 16px;z-index:2}
+  .panel::after{content:"";position:absolute;left:6px;top:6px;right:-8px;bottom:-8px;z-index:-2;
+    background:repeating-conic-gradient(var(--paper) 0 25%, transparent 0 50%) 0 0/2px 2px;pointer-events:none}
+  .panel::before{content:"";position:absolute;inset:0;background:var(--ink);z-index:-1}
+
+  header.panel{top:22px;left:22px;max-width:390px}
+  .kicker{font-size:11px;letter-spacing:.22em;text-transform:uppercase;display:flex;justify-content:space-between;gap:12px;border-bottom:2px solid var(--paper);padding-bottom:8px;margin-bottom:10px}
+  h1{margin:0;font-size:clamp(26px,3.6vw,46px);line-height:.95;letter-spacing:-.02em;font-weight:normal;text-transform:uppercase}
+  h1 b{display:inline-block;background:var(--paper);color:var(--ink);padding:0 .15em;font-weight:normal}
+  .lede{font-size:12px;line-height:1.6;margin:10px 0 0}
+  .lede em{font-style:normal;border-bottom:1px dotted var(--paper)}
+
+  #spec{left:22px;bottom:22px;width:min(390px,calc(100vw - 44px))}
+  #spec .tag{font-size:11px;letter-spacing:.2em;text-transform:uppercase}
+  #spec .name{font-size:18px;margin:6px 0 4px;text-transform:uppercase}
+  #spec .quip{font-size:12px;line-height:1.5;opacity:1}
+  .readout{margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:2px solid var(--paper);padding-top:8px;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+  .readout div span{display:block;font-size:14px;letter-spacing:0;margin-top:2px}
+
+  #ctrl{right:22px;top:22px;width:252px}
+  #ctrl h2{font-size:11px;letter-spacing:.2em;font-weight:normal;margin:0 0 6px;text-transform:uppercase}
+  .row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  button{font:inherit;font-size:12px;min-width:40px;min-height:40px;padding:0 10px;background:var(--ink);color:var(--paper);border:2px solid var(--paper);cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
+  button:hover,button:focus-visible{outline:none;background:repeating-conic-gradient(var(--paper) 0 25%, var(--ink) 0 50%) 0 0/2px 2px;color:var(--paper);text-shadow:0 0 0 var(--ink),1px 0 var(--ink),-1px 0 var(--ink),0 1px var(--ink),0 -1px var(--ink)}
+  button.on{background:var(--paper);color:var(--ink);text-shadow:none}
+  #matrix{display:grid;gap:0;border:2px solid var(--paper);width:max-content;max-width:100%;font-size:9px;line-height:1}
+  #matrix i{font-style:normal;display:grid;place-items:center;width:26px;height:18px;border-right:1px solid var(--paper);border-bottom:1px solid var(--paper)}
+  #matrix.m8 i{width:26px;height:15px}
+  #matrix .dark{background:var(--paper);color:var(--ink)}
+  .mnote{font-size:10px;line-height:1.5;margin-top:6px}
+  .hint{position:absolute;right:22px;bottom:22px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;background:var(--ink);border:2px solid var(--paper);padding:6px 9px;z-index:2}
+  .blink{animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  #nogl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:12px;display:none}
+
+  @media (max-width:760px){
+    header.panel{top:12px;left:12px;right:12px;max-width:none;padding:10px 12px}
+    .lede{display:none}
+    h1{font-size:25px}
+    #ctrl{top:auto;bottom:12px;right:12px;left:12px;width:auto;padding:10px}
+    #ctrl h2,#matrix,.mnote,#mhead{display:none}
+    .row{margin-bottom:6px;gap:5px}
+    .row:last-of-type{margin-bottom:0}
+    button{flex:1 1 auto;padding:0 6px;font-size:11px}
+    #spec{left:12px;right:12px;width:auto;bottom:auto;top:118px;padding:8px 12px;border-width:2px}
+    #spec .quip,.readout{display:none}
+    #spec .name{font-size:14px;margin:4px 0 0}
+    .hint{display:none}
+    .kicker{font-size:10px;padding-bottom:6px;margin-bottom:6px}
+  }
+</style>
+</head>
+<body>
+<canvas id="view" aria-label="A dithered 3D object, drag to rotate"></canvas>
+
+<header class="panel">
+  <div class="kicker"><span>Plate 091</span><span>1-bit / 2 inks</span></div>
+  <h1>Two Inks,<br><b>Many</b> Greys</h1>
+  <p class="lede">Every pixel on this screen is either burnt umber or bone. Nothing in between. The greys you think you see are a rumour, spread by a threshold matrix <em>Bryce Bayer</em> published at Kodak in 1973 and raymarched live, sixty times a second.</p>
+</header>
+
+<section class="panel" id="spec" aria-live="polite">
+  <div class="tag" id="sTag">Specimen A</div>
+  <div class="name" id="sName">Torus, agitated</div>
+  <div class="quip" id="sQuip">A doughnut that has been reading the news.</div>
+  <div class="readout">
+    <div>Matrix<span id="rM">8×8</span></div>
+    <div>Pixel<span id="rP">3px</span></div>
+    <div>Greys<span id="rG">65</span></div>
+    <div>FPS<span id="rF">--</span></div>
+  </div>
+</section>
+
+<aside class="panel" id="ctrl">
+  <h2>Specimen</h2>
+  <div class="row" id="objs"></div>
+  <h2>Threshold matrix</h2>
+  <div class="row" id="mats"></div>
+  <div class="row">
+    <button id="pxDown" aria-label="Smaller pixels">px−</button>
+    <button id="pxUp" aria-label="Bigger pixels">px+</button>
+    <button id="inv" aria-label="Swap inks">swap</button>
+    <button id="spin" aria-label="Toggle spin" class="on">spin</button>
+  </div>
+  <h2 id="mhead">Current thresholds</h2>
+  <div id="matrix"></div>
+  <div class="mnote" id="mnote"></div>
+</aside>
+
+<div class="hint">Drag to turn · 1–5 specimen · D matrix · +/− pixel<span class="blink">_</span></div>
+<div id="nogl">WebGL unavailable — falling back to the slow pencil.</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  let cv = $('#view');
+  if (!cv) return;
+
+  const SPECIMENS = [
+    ['Specimen A', 'Torus, agitated', 'A doughnut that has been reading the news.'],
+    ['Specimen B', 'Menger sponge, L3', 'Surface area heading to infinity. Volume heading home.'],
+    ['Specimen C', 'Gyroid shell', 'Minimal surface, maximal mood. Coral would be jealous.'],
+    ['Specimen D', 'Metaballs × 4', 'Four spheres who have never heard of personal space.'],
+    ['Specimen E', 'Chain, three links', 'Tensile strength: untested. Rhetorical strength: considerable.']
+  ];
+  const MATS = [
+    {k:'none', label:'1:1', n:0, note:'Plain threshold at 50%. The brutal option: a photograph becomes a ransom note.'},
+    {k:'b2', label:'2×2', n:2, note:'Four thresholds, five greys. Chunky, honest, very 1984.'},
+    {k:'b4', label:'4×4', n:4, note:'Sixteen thresholds, seventeen greys. The cross-hatch you remember from fax machines.'},
+    {k:'b8', label:'8×8', n:8, note:'Sixty-four thresholds. Close enough to grey that your eye stops arguing.'},
+    {k:'noise', label:'rand', n:-1, note:'White noise threshold. Every frame re-rolls the dice — the film-grain school.'}
+  ];
+
+  const S = {
+    obj: 0, from: 0, to: 0, morph: 1,
+    mat: 3, px: innerWidth < 760 ? 2 : 3,
+    yaw: .6, pitch: .75, vy: 0, vp: 0,
+    spin: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+    inv: false
+  };
+
+  // ---------- UI ----------
+  const objRow = $('#objs'), matRow = $('#mats');
+  SPECIMENS.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.textContent = String.fromCharCode(65 + i);
+    b.setAttribute('aria-label', s[1]);
+    b.addEventListener('click', () => setObj(i));
+    objRow && objRow.appendChild(b);
+  });
+  MATS.forEach((m, i) => {
+    const b = document.createElement('button');
+    b.textContent = m.label;
+    b.addEventListener('click', () => setMat(i));
+    matRow && matRow.appendChild(b);
+  });
+
+  function bayerVal(x, y, n) { // integer rank 0..n*n-1
+    let v = 0, mask = n >> 1;
+    for (let bit = 0; mask; mask >>= 1, bit++) {
+      const xb = (x & mask) ? 1 : 0, yb = (y & mask) ? 1 : 0;
+      v = (v << 2) | ((xb ^ yb) << 1 | yb);
+    }
+    return v;
+  }
+  function paintMatrix() {
+    const box = $('#matrix'), note = $('#mnote');
+    if (!box) return;
+    const m = MATS[S.mat];
+    box.innerHTML = '';
+    box.className = m.n === 8 ? 'm8' : '';
+    if (m.n > 0) {
+      box.style.gridTemplateColumns = `repeat(${m.n}, auto)`;
+      const tot = m.n * m.n;
+      for (let y = 0; y < m.n; y++) for (let x = 0; x < m.n; x++) {
+        const i = document.createElement('i');
+        const v = bayerVal(x, y, m.n);
+        i.textContent = v;
+        if (v < tot / 2) i.className = 'dark';
+        box.appendChild(i);
+      }
+    } else {
+      box.style.gridTemplateColumns = '1fr';
+      const i = document.createElement('i');
+      i.style.width = '140px'; i.style.height = '28px';
+      i.textContent = m.n === 0 ? 'if (L > 0.5) bone' : 'if (L > rand()) bone';
+      box.appendChild(i);
+    }
+    if (note) note.textContent = m.note;
+    const rM = $('#rM'), rG = $('#rG');
+    if (rM) rM.textContent = m.label;
+    if (rG) rG.textContent = m.n > 0 ? (m.n * m.n + 1) : (m.n === 0 ? '2' : '∞?');
+    [...(matRow ? matRow.children : [])].forEach((b, i) => b.classList.toggle('on', i === S.mat));
+  }
+  function setObj(i) {
+    if (i === S.to && S.morph >= 1) return;
+    S.from = S.morph >= 1 ? S.to : S.to; S.to = i; S.morph = 0;
+    const s = SPECIMENS[i];
+    const t = $('#sTag'), n = $('#sName'), q = $('#sQuip');
+    if (t) t.textContent = s[0]; if (n) n.textContent = s[1]; if (q) q.textContent = s[2];
+    [...(objRow ? objRow.children : [])].forEach((b, k) => b.classList.toggle('on', k === i));
+  }
+  function setMat(i) { S.mat = (i + MATS.length) % MATS.length; paintMatrix(); }
+  function setPx(p) { S.px = Math.max(1, Math.min(8, p)); const r = $('#rP'); if (r) r.textContent = S.px + 'px'; resize(); }
+
+  const pxDown = $('#pxDown'), pxUp = $('#pxUp'), invB = $('#inv'), spinB = $('#spin');
+  pxDown && pxDown.addEventListener('click', () => setPx(S.px - 1));
+  pxUp && pxUp.addEventListener('click', () => setPx(S.px + 1));
+  invB && invB.addEventListener('click', () => { S.inv = !S.inv; document.body.classList.toggle('inv', S.inv); invB.classList.toggle('on', S.inv); });
+  spinB && spinB.addEventListener('click', () => { S.spin = !S.spin; spinB.classList.toggle('on', S.spin); });
+  spinB && spinB.classList.toggle('on', S.spin);
+
+  addEventListener('keydown', e => {
+    if (e.target && e.target.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
+    const k = e.key;
+    if (k >= '1' && k <= '5') setObj(+k - 1);
+    else if (k === 'd' || k === 'D') setMat(S.mat + 1);
+    else if (k === '+' || k === '=') setPx(S.px + 1);
+    else if (k === '-' || k === '_') setPx(S.px - 1);
+    else if (k === 'i' || k === 'I') invB && invB.click();
+    else if (k === ' ') { S.spin = !S.spin; spinB && spinB.classList.toggle('on', S.spin); e.preventDefault(); }
+    else if (k === 'ArrowLeft') S.vy -= .06;
+    else if (k === 'ArrowRight') S.vy += .06;
+    else if (k === 'ArrowUp') S.vp -= .04;
+    else if (k === 'ArrowDown') S.vp += .04;
+  });
+
+  // drag to orbit
+  let drag = null;
+  function bindCanvas(c) {
+    c.addEventListener('pointerdown', e => {
+      drag = { x: e.clientX, y: e.clientY };
+      try { c.setPointerCapture(e.pointerId); } catch (_) {}
+      c.classList.add('drag');
+    });
+    c.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      S.yaw += dx * .008; S.pitch = Math.max(-1.2, Math.min(1.2, S.pitch + dy * .008));
+      S.vy = dx * .008 * .5; S.vp = dy * .008 * .5;
+      drag.x = e.clientX; drag.y = e.clientY;
+    });
+    const end = () => { drag = null; c.classList.remove('drag'); };
+    c.addEventListener('pointerup', end);
+    c.addEventListener('pointercancel', end);
+    c.addEventListener('wheel', e => { e.preventDefault(); S.vy += Math.sign(e.deltaY) * .03; }, { passive: false });
+  }
+  bindCanvas(cv);
+
+  // ---------- WebGL ----------
+  let gl = null;
+  try { gl = cv.getContext('webgl', { antialias: false, preserveDrawingBuffer: false }) || cv.getContext('experimental-webgl'); } catch (_) { gl = null; }
+
+  const VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+  const FS = `
+precision highp float;
+uniform vec2 R; uniform float T; uniform vec2 ROT;
+uniform float MX, MAT, INV;
+uniform vec3 C0, C1;
+
+mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
+float sdBox(vec3 p, vec3 b){vec3 q=abs(p)-b;return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.);}
+float sdTorus(vec3 p, vec2 t){vec2 q=vec2(length(p.xz)-t.x,p.y);return length(q)-t.y;}
+float smin(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
+
+float menger(vec3 p){
+  float d=sdBox(p,vec3(1.));
+  float s=1.;
+  for(int m=0;m<3;m++){
+    vec3 a=mod(p*s,2.)-1.;
+    s*=3.;
+    vec3 r=abs(1.-3.*abs(a));
+    float da=max(r.x,r.y),db=max(r.y,r.z),dc=max(r.z,r.x);
+    float c=(min(da,min(db,dc))-1.)/s;
+    d=max(d,c);
+  }
+  return d;
+}
+float o0(vec3 p){
+  float a=atan(p.z,p.x);
+  vec3 q=p; q.y+=.11*sin(3.*a+T*1.3);
+  return (sdTorus(q,vec2(1.05,.36))+.03*sin(9.*a-T*2.))*.7;
+}
+float o1(vec3 p){ return menger(p/.8)*.8; }
+float o2(vec3 p){
+  vec3 q=p*4.2;
+  float g=abs(dot(sin(q),cos(q.zxy)))/4.2-.045;
+  return max(length(p)-1.3,g*.75);
+}
+float o3(vec3 p){
+  float t=T*.9;
+  float d=length(p-vec3(.55*sin(t),.35*cos(t*1.3),.2*sin(t*.7)))-.62;
+  d=smin(d,length(p-vec3(-.6*cos(t*.8),.5*sin(t*1.1),.3*cos(t)))-.5,.5);
+  d=smin(d,length(p-vec3(.2*sin(t*1.7),-.55*cos(t*.6),.5*sin(t*1.2)))-.45,.5);
+  d=smin(d,length(p-vec3(-.2,.2*sin(t*2.),-.55*cos(t*.9)))-.4,.5);
+  return d;
+}
+float o4(vec3 p){
+  vec3 c=p-vec3(-.86,0.,0.); c.x*=.8;
+  float d=sdTorus(c.xzy,vec2(.46,.12));
+  c=p; c.x*=.8;
+  d=min(d,sdTorus(c,vec2(.46,.12)));
+  c=p-vec3(.86,0.,0.); c.x*=.8;
+  d=min(d,sdTorus(c.xzy,vec2(.46,.12)));
+  return d*.8;
+}
+float objA(vec3 p){
+#if OA==0
+  return o0(p);
+#elif OA==1
+  return o1(p);
+#elif OA==2
+  return o2(p);
+#elif OA==3
+  return o3(p);
+#else
+  return o4(p);
+#endif
+}
+float objB(vec3 p){
+#if OB==0
+  return o0(p);
+#elif OB==1
+  return o1(p);
+#elif OB==2
+  return o2(p);
+#elif OB==3
+  return o3(p);
+#else
+  return o4(p);
+#endif
+}
+float mapObj(vec3 p){
+  p.y-=.08*sin(T*1.2);
+  p.xz*=rot(ROT.x); p.yz*=rot(ROT.y);
+#if OA==OB
+  return objA(p);
+#else
+  return mix(objA(p),objB(p),smoothstep(0.,1.,MX));
+#endif
+}
+float map(vec3 p){ return min(mapObj(p), p.y+1.55); }
+vec3 nrm(vec3 p){
+  vec2 e=vec2(.0015,-.0015);
+  return normalize(e.xyy*mapObj(p+e.xyy)+e.yyx*mapObj(p+e.yyx)+e.yxy*mapObj(p+e.yxy)+e.xxx*mapObj(p+e.xxx));
+}
+vec2 sph(vec3 ro, vec3 rd, float r){
+  float b=dot(ro,rd), c=dot(ro,ro)-r*r, h=b*b-c;
+  if(h<0.) return vec2(-1.);
+  h=sqrt(h); return vec2(-b-h,-b+h);
+}
+float shadow(vec3 ro, vec3 rd){
+  vec2 bs=sph(ro,rd,1.95);
+  if(bs.y<0.) return 1.;
+  float res=1., t=max(.03,bs.x);
+  for(int i=0;i<24;i++){
+    float h=mapObj(ro+rd*t);
+    res=min(res,8.*h/t);
+    t+=clamp(h,.03,.35);
+    if(res<.004||t>bs.y) break;
+  }
+  return clamp(res,0.,1.);
+}
+float ao(vec3 p, vec3 n){
+  float o=0., s=1.;
+  for(int i=1;i<=4;i++){ float h=.08*float(i); o+=(h-map(p+n*h))*s; s*=.7; }
+  return clamp(1.-2.*o,0.,1.);
+}
+float b2(vec2 a){a=floor(a);return fract(a.x/2.+a.y*a.y*.75);}
+float b4(vec2 a){return b2(.5*a)*.25+b2(a);}
+float b8(vec2 a){return b4(.5*a)*.25+b2(a);}
+float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+
+void main(){
+  vec2 fc=gl_FragCoord.xy;
+  vec2 uv=(fc-.5*R)/min(R.x,R.y*1.02);
+  if(R.x<R.y) uv.y+=.04;
+  vec3 ro=vec3(0.,2.1,6.6);
+  vec3 ta=vec3(0.,-.25,0.);
+  vec3 ww=normalize(ta-ro), uu=normalize(cross(ww,vec3(0,1,0))), vv=cross(uu,ww);
+  vec3 rd=normalize(uv.x*uu+uv.y*vv+1.85*ww);
+  vec3 L=normalize(vec3(-.75,.9,.8));
+
+  float tObj=1e9;
+  vec2 bs=sph(ro,rd,1.95);
+  if(bs.y>0.){
+    float t=max(bs.x,0.);
+    for(int i=0;i<80;i++){
+      float h=mapObj(ro+rd*t);
+      if(h<.0015*t){tObj=t;break;}
+      t+=h;
+      if(t>bs.y) break;
+    }
+  }
+  float tFl=rd.y<0.?(-1.55-ro.y)/rd.y:1e9;
+
+  vec2 q=fc/R;
+  float bg=.09*smoothstep(.85,.0,length((fc-vec2(.5,.58)*R)/min(R.x,R.y)));
+  float lum=bg;
+  if(tObj<tFl && tObj<1e8){
+    vec3 p=ro+rd*tObj, n=nrm(p);
+    float dif=max(dot(n,L),0.);
+    float sh=shadow(p+n*.006,L);
+    float oc=ao(p,n);
+    float spe=pow(max(dot(reflect(rd,n),L),0.),24.);
+    float rim=pow(1.-max(dot(-rd,n),0.),3.);
+    float back=max(dot(n,normalize(vec3(.9,.25,-.5))),0.);
+    lum=.04+.78*dif*sh+.16*oc*(.5+.5*n.y)+.35*spe*sh+.25*rim+.3*back*oc;
+    lum*=mix(.6,1.,oc);
+  } else if(tFl<1e8){
+    vec3 p=ro+rd*tFl;
+    float sh=shadow(p+vec3(0.,.004,0.),L);
+    float oc=clamp(.35+.65*mapObj(p)/.9,0.,1.);
+    float fall=exp(-.006*tFl*tFl);
+    float pool=smoothstep(3.4,.6,length(p.xz-vec2(-.4,.4)));
+    lum=mix(bg,.5*pool*sh*mix(.5,1.,oc),fall);
+  }
+  lum=clamp(lum,0.,1.);
+  lum=smoothstep(.02,.92,lum);
+
+  float th=.5;
+  if(MAT>3.5) th=hash(fc+floor(T*15.)*vec2(17.,31.));
+  else if(MAT>2.5) th=b8(fc)+.5/64.;
+  else if(MAT>1.5) th=b4(fc)+.5/16.;
+  else if(MAT>.5) th=b2(fc)+.5/4.;
+  float on=step(th,lum);
+  if(INV>.5) on=1.-on;
+  gl_FragColor=vec4(mix(C0,C1,on),1.);
+}`;
+
+  // one program per (from,to) pair: objects chosen by the preprocessor, so no branch flattening on the GPU
+  const progs = new Map();
+  let vsObj = null, quad = null;
+  function compile(type, src) {
+    const sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { console.warn(gl.getShaderInfoLog(sh)); return null; }
+    return sh;
+  }
+  function getProg(a, b) {
+    const key = a + '_' + b;
+    if (progs.has(key)) return progs.get(key);
+    const fs = compile(gl.FRAGMENT_SHADER, '#define OA ' + a + '\n#define OB ' + b + '\n' + FS);
+    if (!fs || !vsObj) return null;
+    const pr = gl.createProgram(); gl.attachShader(pr, vsObj); gl.attachShader(pr, fs); gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { console.warn(gl.getProgramInfoLog(pr)); return null; }
+    const u = { pr, loc: gl.getAttribLocation(pr, 'p') };
+    ['R', 'T', 'ROT', 'MX', 'MAT', 'INV', 'C0', 'C1'].forEach(n => u[n] = gl.getUniformLocation(pr, n));
+    progs.set(key, u);
+    return u;
+  }
+  if (gl) {
+    vsObj = compile(gl.VERTEX_SHADER, VS);
+    quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    if (!getProg(0, 0)) gl = null;
+  }
+  // pixel budget: keep the internal buffer around 90k pixels (it's 1-bit art; chunky is the point)
+  S.px = Math.max(S.px, Math.ceil(Math.sqrt(innerWidth * innerHeight / 90000)));
+  let ctx2d = null;
+  function toCPU() {
+    gl = null;
+    const nc = document.createElement('canvas');
+    nc.id = 'view'; nc.setAttribute('aria-label', cv.getAttribute('aria-label') || '');
+    cv.replaceWith(nc); cv = nc; bindCanvas(cv);
+    ctx2d = cv.getContext('2d');
+    const n = $('#nogl'); if (n) n.style.display = 'block';
+    resize();
+  }
+  if (gl) {
+    try {
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      const ren = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+      if (/swiftshader|llvmpipe|software|basic render/i.test(ren)) S.px += 1;   // software rasteriser: go chunkier
+    } catch (_) {}
+  }
+  let glLost = false, lostTimer = 0;
+  function initGL() {
+    progs.clear();
+    vsObj = compile(gl.VERTEX_SHADER, VS);
+    quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    return !!getProg(0, 0);
+  }
+  if (gl) {
+    const glRef = gl;
+    cv.addEventListener('webglcontextlost', e => {
+      e.preventDefault(); glLost = true; S.px = Math.min(8, S.px + 1);
+      clearTimeout(lostTimer);
+      lostTimer = setTimeout(() => { if (glLost) toCPU(); }, 2500);
+    });
+    cv.addEventListener('webglcontextrestored', () => {
+      clearTimeout(lostTimer); gl = glRef;
+      if (initGL()) { glLost = false; setPx(S.px); } else toCPU();
+    });
+  }
+  if (!gl) { ctx2d = cv.getContext('2d'); const n = $('#nogl'); if (n) n.style.display = 'block'; }
+
+  function resize() {
+    const w = Math.max(40, Math.ceil(innerWidth / S.px)), h = Math.max(40, Math.ceil(innerHeight / S.px));
+    if (!gl) { cv.width = Math.min(w, 240); cv.height = Math.round(cv.width * h / w); return; }
+    cv.width = w; cv.height = h;
+    gl.viewport(0, 0, w, h);
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  const C0 = hex('#2a170e'), C1 = hex('#e9dcbd');
+
+  // CPU fallback: dithered sphere, analytic
+  function cpuFrame(t) {
+    if (!ctx2d) return;
+    const w = cv.width, h = cv.height, img = ctx2d.createImageData(w, h), d = img.data;
+    const lx = Math.cos(t * .5 + S.yaw), lz = Math.sin(t * .5 + S.yaw) * .6, ly = .7;
+    const r = Math.min(w, h) * .32;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const nx = (x - w / 2) / r, ny = (h / 2 - y) / r, q = nx * nx + ny * ny;
+      let L = .15 + .25 * (1 - y / h);
+      if (q < 1) { const nz = Math.sqrt(1 - q); L = .06 + .9 * Math.max(0, nx * lx + ny * ly + nz * lz); }
+      const th = (bayerVal(x & 7, y & 7, 8) + .5) / 64;
+      const c = (L > th) !== S.inv ? C1 : C0, k = (y * w + x) * 4;
+      d[k] = c[0] * 255; d[k + 1] = c[1] * 255; d[k + 2] = c[2] * 255; d[k + 3] = 255;
+    }
+    ctx2d.putImageData(img, 0, 0);
+  }
+
+  let autoBumps = 0, last = performance.now(), fpsAcc = 0, fpsN = 0, fpsT = 0, clock = 0;
+  const rF = $('#rF');
+  function frame(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    clock += dt;
+    if (!drag) {
+      S.yaw += S.vy; S.pitch = Math.max(-1.2, Math.min(1.2, S.pitch + S.vp));
+      S.vy *= .93; S.vp *= .9;
+      if (S.spin) S.yaw += dt * .35;
+      S.pitch += (.75 - S.pitch) * dt * .4;
+    }
+    if (S.morph < 1) { S.morph = Math.min(1, S.morph + dt / .9); if (S.morph >= 1) S.from = S.to; }
+    const U = gl && !glLost ? (getProg(S.from, S.morph >= 1 ? S.from : S.to) || getProg(S.to, S.to)) : null;
+    if (gl && U) {
+      gl.useProgram(U.pr);
+      gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+      gl.enableVertexAttribArray(U.loc); gl.vertexAttribPointer(U.loc, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform2f(U.R, cv.width, cv.height);
+      gl.uniform1f(U.T, clock);
+      gl.uniform2f(U.ROT, S.yaw, S.pitch);
+      gl.uniform1f(U.MX, S.morph >= 1 ? 0 : S.morph);
+      gl.uniform1f(U.MAT, S.mat); gl.uniform1f(U.INV, S.inv ? 1 : 0);
+      gl.uniform3fv(U.C0, C0); gl.uniform3fv(U.C1, C1);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    } else if (!gl && ctx2d) cpuFrame(clock);
+    fpsAcc += dt; fpsN++;
+    if (now - fpsT > 500) {
+      const fps = fpsN / Math.max(fpsAcc, 1e-3);
+      if (rF) rF.textContent = Math.round(fps);
+      if (gl && !glLost && fps < 22 && autoBumps < 2 && clock > 1) { autoBumps++; setPx(S.px + 1); }
+      fpsAcc = 0; fpsN = 0; fpsT = now;
+    }
+    requestAnimationFrame(frame);
+  }
+
+  const start = Math.max(0, 'abcde'.indexOf((location.hash || '').slice(1, 2).toLowerCase()));
+  S.to = -1; setObj(start); S.from = start; S.morph = 1;
+  paintMatrix(); setPx(S.px);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

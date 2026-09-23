@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DWG TLV-26B-001 — Cal. 26-B Movement Blueprint</title>
+<style>
+:root{
+  --bp:#1c4f8c; --bp2:#174478; --deep:#0c2c55; --ln:rgba(235,244,255,.92); --ln2:rgba(235,244,255,.55); --ln3:rgba(235,244,255,.16); --hl:#fff7c2;
+  --mono:"Courier New",Courier,"Nimbus Mono PS",monospace;
+  --nar:"Arial Narrow","Roboto Condensed","Helvetica Neue Condensed","Arial",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--deep);color:var(--ln);font-family:var(--mono);min-height:100vh;padding:18px}
+.sheet{position:relative;max-width:1400px;margin:0 auto;background:
+   radial-gradient(1200px 700px at 30% 20%,rgba(255,255,255,.06),transparent 60%),
+   linear-gradient(var(--ln3) 1px,transparent 1px) 0 0/50px 50px,
+   linear-gradient(90deg,var(--ln3) 1px,transparent 1px) 0 0/50px 50px,
+   linear-gradient(rgba(235,244,255,.06) 1px,transparent 1px) 0 0/10px 10px,
+   linear-gradient(90deg,rgba(235,244,255,.06) 1px,transparent 1px) 0 0/10px 10px,
+   var(--bp);
+  box-shadow:0 30px 60px rgba(0,0,0,.45),inset 0 0 120px rgba(5,20,45,.45);padding:34px}
+.sheet::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.crease{position:absolute;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),rgba(0,0,0,.08),transparent)}
+.crease.v{top:0;bottom:0;width:10px;left:33.3%}
+.crease.v2{top:0;bottom:0;width:10px;left:66.6%}
+.crease.hz{left:0;right:0;height:10px;top:50%;background:linear-gradient(180deg,transparent,rgba(255,255,255,.07),rgba(0,0,0,.08),transparent)}
+.frame{position:relative;border:2px solid var(--ln);outline:1px solid var(--ln2);outline-offset:8px}
+.zones{position:absolute;display:flex;justify-content:space-around;font:12px var(--nar);color:var(--ln2);pointer-events:none}
+.zones.top{top:-27px;left:0;right:0}
+.zones.bot{bottom:-27px;left:0;right:0}
+.zones.lft,.zones.rgt{flex-direction:column;top:0;bottom:0;align-items:center}
+.zones.lft{left:-24px} .zones.rgt{right:-24px}
+.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);min-height:calc(100vh - 106px)}
+.draw{position:relative;border-right:1px solid var(--ln2);padding:64px 10px 10px}
+.draw h1{position:absolute;left:18px;top:14px;margin:0;font:700 clamp(15px,1.6vw,21px)/1.15 var(--nar);letter-spacing:.14em;text-transform:uppercase}
+.draw h1 small{display:block;font:12px var(--mono);letter-spacing:.06em;color:var(--ln2);text-transform:none;margin-top:4px}
+#dwg{display:block;width:100%;height:auto;max-height:calc(100vh - 190px);margin:0 auto;overflow:visible}
+.ctl{position:absolute;right:14px;top:12px;display:flex;gap:8px}
+.btn{height:40px;min-width:40px;padding:0 12px;background:rgba(10,40,80,.45);border:1px solid var(--ln);color:var(--ln);font:700 12px var(--nar);letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+.btn:hover,.btn[aria-pressed=true]{background:var(--ln);color:var(--bp)}
+.btn:focus-visible{outline:2px dashed var(--hl);outline-offset:2px}
+.notes{position:absolute;left:18px;bottom:14px;font:11px/1.55 var(--mono);color:var(--ln2);max-width:340px}
+.notes b{font:700 11px var(--nar);letter-spacing:.14em;color:var(--ln)}
+
+.side{display:flex;flex-direction:column;min-width:0}
+.spec{padding:16px 18px;border-bottom:1px solid var(--ln2);min-height:230px;position:relative}
+.spec .lbl{font:700 11px var(--nar);letter-spacing:.2em;color:var(--ln2)}
+.spec h2{margin:6px 0 2px;font:700 clamp(22px,2.2vw,30px)/1.05 var(--nar);letter-spacing:.06em;text-transform:uppercase}
+.spec .no{display:inline-grid;place-items:center;width:30px;height:30px;border:1.5px solid var(--ln);border-radius:50%;font:700 13px var(--nar);margin-right:10px;vertical-align:4px}
+.spec dl{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin:12px 0 10px;font-size:13px}
+.spec dt{color:var(--ln2)}
+.spec dd{margin:0}
+.spec p{margin:0;font-size:13px;color:var(--hl);border-left:2px solid var(--hl);padding-left:10px}
+.spec .hint{font-size:11px;color:var(--ln2);margin-top:10px}
+.bom{flex:1;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font:700 11px var(--nar);letter-spacing:.14em;text-align:left;color:var(--ln2);border-bottom:1px solid var(--ln2);padding:7px 8px;position:sticky;top:0;background:var(--bp2)}
+td{padding:0 8px;border-bottom:1px solid var(--ln3);height:30px}
+tr.row{cursor:pointer}
+tr.row:hover td,tr.row.on td{background:rgba(255,247,194,.12);color:var(--hl)}
+tr.row:focus-visible{outline:1px dashed var(--hl)}
+td.n{width:36px;text-align:center;font-family:var(--nar);font-weight:700}
+.tblock{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:2px solid var(--ln);font-size:11px}
+.tblock > div{border-right:1px solid var(--ln2);border-bottom:1px solid var(--ln2);padding:5px 8px;min-height:44px}
+.tblock > div:nth-child(3n){border-right:0}
+.tblock span{display:block;font:700 9.5px var(--nar);letter-spacing:.16em;color:var(--ln2)}
+.tblock .big{grid-column:1/-1;font:700 17px/1.15 var(--nar);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:14px}
+.tblock .big svg{width:62px;height:30px;flex:0 0 auto}
+.tblock .dn{font:700 15px var(--nar);letter-spacing:.08em}
+
+/* svg styles */
+.l1{fill:none;stroke:var(--ln);stroke-width:1.25}
+.l2{fill:none;stroke:var(--ln2);stroke-width:.8}
+.hid{fill:none;stroke:var(--ln2);stroke-width:.9;stroke-dasharray:6 4}
+.cl{fill:none;stroke:var(--ln2);stroke-width:.6;stroke-dasharray:22 4 3 4}
+.dim{fill:none;stroke:var(--ln);stroke-width:.8}
+.dimt{fill:var(--ln);font:12px var(--mono);letter-spacing:.02em}
+.lab{fill:var(--ln);font:700 12px var(--nar);letter-spacing:.12em}
+.part{cursor:pointer;outline:none}
+.part .hit{fill:rgba(255,255,255,0.001);stroke:none}
+.part.on .l1,.part:focus-visible .l1{stroke:var(--hl);stroke-width:2;filter:drop-shadow(0 0 4px rgba(255,247,194,.7))}
+.part.on .hit{fill:rgba(255,247,194,.07)}
+.balloon circle{fill:var(--bp);stroke:var(--ln);stroke-width:1.2}
+.balloon text{fill:var(--ln);font:700 12px var(--nar);text-anchor:middle;dominant-baseline:central}
+.balloon line{stroke:var(--ln2);stroke-width:.8}
+.balloon.on circle{fill:var(--hl);stroke:var(--hl)}
+.balloon.on text{fill:var(--bp)}
+.balloon.on line{stroke:var(--hl)}
+.draw-in{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw 1s cubic-bezier(.6,0,.2,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.fade-in{opacity:0;animation:fadein .6s ease forwards}
+@keyframes fadein{to{opacity:1}}
+
+@media (max-width:980px){
+  body{padding:10px}
+  .sheet{padding:26px 22px}
+  .grid{grid-template-columns:minmax(0,1fr);min-height:0}
+  .draw{border-right:0;border-bottom:1px solid var(--ln2);padding-top:84px}
+  #dwg{max-height:none}
+  .ctl{top:auto;bottom:auto;right:auto;left:18px;top:52px}
+  .notes{position:static;margin-top:6px;max-width:none}
+  .zones.lft,.zones.rgt{display:none}
+}
+@media (max-width:480px){
+  .sheet{padding:24px 12px}
+  .frame{outline-offset:5px}
+  .tblock .big{font-size:14px}
+  td{font-size:11.5px;padding:0 5px}
+}
+@media (prefers-reduced-motion:reduce){ .draw-in{animation:none;stroke-dashoffset:0} .fade-in{animation:none;opacity:1} }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <span class="crease v"></span><span class="crease v2"></span><span class="crease hz"></span>
+  <div class="frame">
+    <div class="zones top"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
+    <div class="zones bot"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
+    <div class="zones lft"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span></div>
+    <div class="zones rgt"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span></div>
+    <div class="grid">
+      <section class="draw">
+        <h1>Cal. 26-B hand-wound movement<small>Plan view · dial side down · scale 10:1</small></h1>
+        <div class="ctl">
+          <button class="btn" id="run" aria-pressed="true">❚❚ Hold</button>
+          <button class="btn" id="tick" aria-pressed="false">Tick audio</button>
+        </div>
+        <svg id="dwg" viewBox="0 0 700 660" role="img" aria-label="Plan view of a mechanical watch movement. Hover or tap a part for its specification."></svg>
+        <div class="notes"><b>NOTES</b><br>1. BRIDGES REMOVED FOR CLARITY (SHOWN HIDDEN).<br>2. ALL PIVOTS JEWELED UNLESS NOTED.<br>3. HAIRSPRING NOT TO SCALE. IT IS SHY.</div>
+      </section>
+      <aside class="side">
+        <div class="spec" id="spec" aria-live="polite"></div>
+        <div class="bom"><table><thead><tr><th>ITEM</th><th>PART</th><th>QTY</th><th>MATERIAL</th></tr></thead><tbody id="bom"></tbody></table></div>
+        <div class="tblock">
+          <div class="big"><svg viewBox="0 0 62 30" aria-label="Third-angle projection symbol"><g fill="none" stroke="#ebf4ff" stroke-width="1.2"><path d="M4 9 22 4v22L4 21z"/><path d="M13 15H1M26 15h2" stroke-dasharray="3 2"/><circle cx="45" cy="15" r="11"/><circle cx="45" cy="15" r="5"/><path d="M30 15h30M45 1v28" stroke-dasharray="6 2 1 2"/></g></svg>Atelier Tolv — watch works</div>
+          <div><span>DRAWN</span>H. ARVIDSSON</div><div><span>CHECKED</span>L. OKAFOR</div><div><span>DATE</span>2026-09-23</div>
+          <div><span>SCALE</span>10 : 1</div><div><span>UNITS</span>mm</div><div><span>SHEET</span>1 OF 1</div>
+          <div><span>DWG NO.</span><b class="dn">TLV-26B-001</b></div><div><span>REV</span><b class="dn">C</b></div><div><span>TOLERANCE</span>±0.005 UNLESS NOTED</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const svg = $('#dwg'); if (!svg) return;
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const rad = d => d*Math.PI/180;
+const pt = (cx,cy,r,a) => [cx + r*Math.cos(a), cy + r*Math.sin(a)];
+
+/* ---------- path generators ---------- */
+function gear(cx,cy,r,teeth,depth){
+  const step = Math.PI*2/teeth; let d = '';
+  for (let i=0;i<teeth;i++){
+    const a = i*step, pts = [pt(cx,cy,r-depth,a), pt(cx,cy,r,a+step*.22), pt(cx,cy,r,a+step*.48), pt(cx,cy,r-depth,a+step*.7)];
+    d += (i?'L':'M') + pts.map(p => p[0].toFixed(2)+' '+p[1].toFixed(2)).join('L');
+  }
+  return d + 'Z';
+}
+function saw(cx,cy,r,teeth,depth,club){
+  const step = Math.PI*2/teeth; let d = '';
+  for (let i=0;i<teeth;i++){ const a=i*step;
+    const pts = club ? [pt(cx,cy,r-depth,a), pt(cx,cy,r,a+step*.55), pt(cx,cy,r,a+step*.68), pt(cx,cy,r-depth*.55,a+step*.75)]
+                     : [pt(cx,cy,r-depth,a), pt(cx,cy,r,a+step*.85)];
+    d += (i?'L':'M') + pts.map(p => p[0].toFixed(2)+' '+p[1].toFixed(2)).join('L'); }
+  return d + 'Z';
+}
+function windows(cx,cy,rh,rr,arms,armW){
+  let d=''; const step = Math.PI*2/arms;
+  for (let k=0;k<arms;k++){
+    const a1 = k*step + armW/rh*.5 + .02, a2 = (k+1)*step - armW/rh*.5 - .02;
+    const b1 = k*step + armW/rr*.5, b2 = (k+1)*step - armW/rr*.5;
+    const p1=pt(cx,cy,rh,a1), p2=pt(cx,cy,rr,b1), p3=pt(cx,cy,rr,b2), p4=pt(cx,cy,rh,a2);
+    d += `M${p1[0].toFixed(2)} ${p1[1].toFixed(2)}L${p2[0].toFixed(2)} ${p2[1].toFixed(2)}A${rr} ${rr} 0 0 1 ${p3[0].toFixed(2)} ${p3[1].toFixed(2)}L${p4[0].toFixed(2)} ${p4[1].toFixed(2)}A${rh} ${rh} 0 0 0 ${p1[0].toFixed(2)} ${p1[1].toFixed(2)}Z`;
+  }
+  return d;
+}
+function spiral(cx,cy,r0,r1,turns){ let d=''; const n = turns*60; for (let i=0;i<=n;i++){ const t=i/n, a=t*turns*Math.PI*2, r=r0+(r1-r0)*t; const p=pt(cx,cy,r,a); d += (i?'L':'M')+p[0].toFixed(2)+' '+p[1].toFixed(2); } return d; }
+const circ = (g,cx,cy,r,cls) => el('circle',{cx,cy,r,class:cls||'l1'},g);
+function jewel(g,cx,cy){ circ(g,cx,cy,6.5,'l1'); circ(g,cx,cy,3.6,'l2'); circ(g,cx,cy,1.2,'l1'); }
+
+/* ---------- layout ---------- */
+const O = [330,330], R = 250;
+const P = {
+  barrel:[228,262], center:[332,300], third:[414,284], fourth:[446,338], escape:[426,392], pallet:[386,438], balance:[312,478], crown:[505,262]
+};
+const PARTS = [
+  { id:'plate',   n:1,  name:'Mainplate',          qty:1,  mat:'Brass, rhodium plated', dims:'Ø 30.00 × 1.80', rate:'—', note:'Everything else is its problem.' },
+  { id:'barrel',  n:2,  name:'Barrel & mainspring', qty:1, mat:'Brass / Co-Ni alloy', dims:'Ø 9.50 · 90 T', rate:'1 rev / 8 h', note:'Stores Monday’s winding for Wednesday. Power reserve 42 h.' },
+  { id:'center',  n:3,  name:'Center wheel',       qty:1,  mat:'CuBe, gilt', dims:'Ø 7.00 · 70 T · pinion 10 L', rate:'1 rev / h', note:'Carries the minute hand and most of the responsibility.' },
+  { id:'third',   n:4,  name:'Third wheel',        qty:1,  mat:'CuBe, gilt', dims:'Ø 5.20 · 60 T · pinion 8 L', rate:'1 rev / 7.5 min', note:'Middle management of the gear train. Nobody knows what it does, yet it is essential.' },
+  { id:'fourth',  n:5,  name:'Fourth wheel',       qty:1,  mat:'CuBe, gilt', dims:'Ø 4.80 · 80 T · pinion 8 L', rate:'1 rev / min', note:'Drives the seconds hand. Knows exactly how long that meeting was.' },
+  { id:'escape',  n:6,  name:'Escape wheel',       qty:1,  mat:'Steel, polished', dims:'Ø 3.00 · 15 club teeth', rate:'1 rev / 6 s', note:'Releases energy one polite tooth at a time.' },
+  { id:'pallet',  n:7,  name:'Pallet fork',        qty:1,  mat:'Steel + 2 ruby pallets', dims:'L 4.60', rate:'18,000 beats / h', note:'Says no, then yes, eighteen thousand times an hour.' },
+  { id:'balance', n:8,  name:'Balance & hairspring', qty:1, mat:'CuBe rim / Ni-Fe spring', dims:'Ø 10.20 · 280° ampl.', rate:'2.5 Hz', note:'The heartbeat. Do not touch it with your thumb. We can tell.' },
+  { id:'crown',   n:9,  name:'Crown & winding wheel', qty:1, mat:'Steel, knurled', dims:'Ø 2.20 · 22 T', rate:'on demand', note:'The only part you are allowed to touch.' },
+  { id:'screws',  n:10, name:'Plate screws',       qty:4,  mat:'Steel, flame-blued', dims:'M 0.8 × 1.2', rate:'—', note:'Flame-blued at 290 °C. Mostly for vanity; also for holding things.' },
+  { id:'jewels',  n:11, name:'Jewels',             qty:17, mat:'Synthetic ruby', dims:'Ø 0.95–1.30', rate:'—', note:'Seventeen rubies. Not an investment. Please stop asking.' }
+];
+
+const defs = el('defs',{},svg);
+const layer = el('g',{},svg);
+const groups = {}; const rot = {};
+function part(id){ const g = el('g',{class:'part','data-id':id,tabindex:0,role:'button','aria-label':PARTS.find(p=>p.id===id).name},layer); groups[id]=g; return g; }
+function spinner(g, cx, cy){ const s = el('g',{},g); rot[g.dataset.id] = { el:s, cx, cy }; return s; }
+
+// 1 plate
+{ const g = part('plate'); el('circle',{cx:O[0],cy:O[1],r:R,class:'hit'},g);
+  circ(g,O[0],O[1],R); circ(g,O[0],O[1],R-7,'l2');
+  // stem slot at 3 o'clock
+  el('path',{d:`M${O[0]+R-2} ${O[1]-8}H${O[0]+R+40}M${O[0]+R-2} ${O[1]+8}H${O[0]+R+40}`,class:'l2'},g);
+  // hidden bridges (dashed)
+  el('path',{d:`M150 200 C 210 130, 330 170, 380 215 S 470 250, 480 300 L 455 360 C 420 330, 330 350, 280 360 S 170 330, 150 280 Z`,class:'hid'},g);
+  el('path',{d:`M255 470 C 250 420, 300 400, 340 410 L 420 450 C 430 470, 410 490, 380 486 L 330 540 C 300 548, 262 520, 255 470 Z`,class:'hid'},g);
+}
+// 2 barrel
+{ const [x,y]=P.barrel; const g=part('barrel'); el('circle',{cx:x,cy:y,r:96,class:'hit'},g); const s=spinner(g,x,y);
+  el('path',{d:gear(x,y,95,90,4.5),class:'l1'},s); circ(s,x,y,86,'l2');
+  el('path',{d:saw(x,y,58,28,5,false),class:'l1'},s); // ratchet wheel on top
+  el('path',{d:spiral(x,y,14,50,5.5),class:'l2','stroke-dasharray':'2 3'},s);
+  circ(s,x,y,14,'l1'); el('path',{d:`M${x-9} ${y-9}h18v18h-18z`,class:'l2'},s);
+  // click spring (static)
+  el('path',{d:`M${x+34} ${y-58} q 22 -10 30 8 q -8 4 -16 -2`,class:'l1'},g);
+}
+// 3 center
+{ const [x,y]=P.center; const g=part('center'); el('circle',{cx:x,cy:y,r:71,class:'hit'},g); const s=spinner(g,x,y);
+  el('path',{d:gear(x,y,70,70,4),class:'l1'},s); circ(s,x,y,60,'l2'); el('path',{d:windows(x,y,16,57,4,8),class:'l1'},s);
+  el('path',{d:gear(x,y,13,10,3.2),class:'l1'},s); }
+// 4 third
+{ const [x,y]=P.third; const g=part('third'); el('circle',{cx:x,cy:y,r:53,class:'hit'},g); const s=spinner(g,x,y);
+  el('path',{d:gear(x,y,52,60,3.6),class:'l1'},s); circ(s,x,y,44,'l2'); el('path',{d:windows(x,y,12,41,4,6),class:'l1'},s);
+  el('path',{d:gear(x,y,10.5,8,3),class:'l1'},s); }
+// 5 fourth
+{ const [x,y]=P.fourth; const g=part('fourth'); el('circle',{cx:x,cy:y,r:49,class:'hit'},g); const s=spinner(g,x,y);
+  el('path',{d:gear(x,y,48,80,3),class:'l1'},s); circ(s,x,y,41,'l2'); el('path',{d:windows(x,y,11,38,5,5),class:'l1'},s);
+  el('path',{d:gear(x,y,9.5,8,2.6),class:'l1'},s); }
+// 6 escape
+{ const [x,y]=P.escape; const g=part('escape'); el('circle',{cx:x,cy:y,r:32,class:'hit'},g); const s=spinner(g,x,y);
+  el('path',{d:saw(x,y,30,15,8,true),class:'l1'},s); circ(s,x,y,19,'l2'); el('path',{d:windows(x,y,7,17,5,3.5),class:'l1'},s); }
+// 7 pallet
+{ const [x,y]=P.pallet; const g=part('pallet'); el('circle',{cx:x,cy:y,r:30,class:'hit'},g); const s=spinner(g,x,y);
+  el('path',{d:`M${x-22} ${y-40} L${x-10} ${y-8} L${x+8} ${y-8} L${x+26} ${y-34} M${x-10} ${y-8} L${x-40} ${y+18} L${x-48} ${y+16} M${x+8} ${y-8} L${x-34} ${y+26} L${x-44} ${y+26}`,class:'l1'},s);
+  el('path',{d:`M${x-28} ${y-44}l8 -3 4 10 -8 3z M${x+22} ${y-40}l8 3 -3 10 -8 -3z`,class:'l1'},s);
+  circ(s,x,y,5,'l1'); }
+// 8 balance
+{ const [x,y]=P.balance; const g=part('balance'); el('circle',{cx:x,cy:y,r:74,class:'hit'},g);
+  const hs = el('g',{},g); rot.hair = { el:hs, cx:x, cy:y };
+  el('path',{d:spiral(x,y,9,40,7),class:'l2'},hs);
+  el('path',{d:`M${x+40} ${y} q 10 -6 18 -2`,class:'l2'},g); // stud
+  const s=spinner(g,x,y);
+  circ(s,x,y,68); circ(s,x,y,60,'l2'); el('path',{d:windows(x,y,10,58,3,7),class:'l1'},s);
+  for (let k=0;k<12;k++){ const [sx,sy]=pt(x,y,72,k*Math.PI/6); circ(s,sx,sy,3.2,'l1'); }
+  circ(s,x,y,6,'l1'); const [rx,ry]=pt(x,y,14,rad(-40)); circ(s,rx,ry,2.4,'l1'); }
+// 9 crown & winding
+{ const [x,y]=P.crown; const g=part('crown'); const cx=O[0]+R+44;
+  el('rect',{x:cx-4,y:O[1]-40,width:60,height:80,class:'hit'},g);
+  el('circle',{cx:x,cy:y,r:24,class:'hit'},g);
+  const s=spinner(g,x,y); el('path',{d:gear(x,y,22,22,3.5),class:'l1'},s); circ(s,x,y,6,'l1');
+  el('path',{d:`M${O[0]+R-40} ${O[1]-5}H${cx}M${O[0]+R-40} ${O[1]+5}H${cx}`,class:'l1'},g);
+  el('rect',{x:cx,y:O[1]-26,width:34,height:52,rx:5,class:'l1'},g);
+  for (let k=0;k<9;k++) el('path',{d:`M${cx+5+k*3.2} ${O[1]-26}v52`,class:'l2'},g);
+  el('path',{d:`M${x+18} ${y+12} L${O[0]+R-40} ${O[1]-5}`,class:'hid'},g); }
+// 10 screws
+{ const g=part('screws'); [200,318,52,140].forEach(a => { const [x,y]=pt(O[0],O[1],R-24,rad(a)); el('circle',{cx:x,cy:y,r:10,class:'hit'},g); circ(g,x,y,8.5); circ(g,x,y,5.5,'l2'); el('path',{d:`M${x-8} ${y+2.5}L${x+8} ${y-2.5}`,class:'l1'},g); }); }
+// 11 jewels at pivots
+{ const g=part('jewels'); Object.keys(P).forEach(k => { if (k==='crown') return; const [x,y]=P[k]; el('circle',{cx:x,cy:y,r:7,class:'hit'},g); jewel(g,x,y); }); }
+
+/* ---------- centre lines ---------- */
+const cls = el('g',{},svg);
+Object.keys(P).forEach(k => { const [x,y]=P[k]; const L = {barrel:108,center:82,third:62,fourth:58,escape:40,pallet:24,balance:86,crown:32}[k];
+  el('path',{d:`M${x-L} ${y}H${x+L}M${x} ${y-L}V${y+L}`,class:'cl'},cls); });
+el('path',{d:`M${O[0]-R-18} ${O[1]}H${O[0]+R+90}M${O[0]} ${O[1]-R-18}V${O[1]+R+18}`,class:'cl'},cls);
+
+/* ---------- dimensions (drawn in) ---------- */
+const dims = el('g',{},svg);
+function arrowLine(x1,y1,x2,y2,delay){
+  const len = Math.hypot(x2-x1,y2-y1);
+  const l = el('path',{d:`M${x1} ${y1}L${x2} ${y2}`,class:'dim draw-in',style:`--len:${len};animation-delay:${delay}s`},dims);
+  const a = Math.atan2(y2-y1,x2-x1), s=7, w=2.4;
+  [[x1,y1,a],[x2,y2,a+Math.PI]].forEach(([x,y,t]) => el('path',{d:`M${x} ${y}L${x+s*Math.cos(t)-w*Math.sin(t)} ${y+s*Math.sin(t)+w*Math.cos(t)}L${x+s*Math.cos(t)+w*Math.sin(t)} ${y+s*Math.sin(t)-w*Math.cos(t)}Z`,fill:'#ebf4ff',class:'fade-in',style:`animation-delay:${delay+1.1}s`},dims));
+}
+function text(x,y,t,delay,anchor='middle',rotate=0){ const e = el('text',{x,y,class:'dimt fade-in','text-anchor':anchor,style:`animation-delay:${delay}s`,transform:rotate?`rotate(${rotate} ${x} ${y})`:''},dims); e.textContent=t; return e; }
+// overall diameter
+{ const y = O[1]-R-38; [O[0]-R, O[0]+R].forEach(x => el('path',{d:`M${x} ${O[1]-4}V${y-8}`,class:'l2 draw-in',style:`--len:${R+44};animation-delay:.1s`},dims));
+  arrowLine(O[0]-R,y,O[0]+R,y,.35); text(O[0], y-7, 'Ø 30.00  (11½‴)', .9); }
+// balance diameter, left
+{ const [x,y]=P.balance; const X = x-68, X2 = x+68, Y = y+100; [X,X2].forEach(xx => el('path',{d:`M${xx} ${y+6}V${Y+8}`,class:'l2 draw-in',style:`--len:110;animation-delay:.7s`},dims));
+  arrowLine(X,Y,X2,Y,.9); text(x, Y+16, 'Ø 10.20', 1.4); }
+// centre distance barrel–center
+{ const [ax,ay]=P.barrel, [bx,by]=P.center; const nx = -(by-ay), ny = (bx-ax); const nl=Math.hypot(nx,ny); const off=-120;
+  const ox = nx/nl*off, oy = ny/nl*off;
+  el('path',{d:`M${ax} ${ay}L${ax+ox*1.05} ${ay+oy*1.05}M${bx} ${by}L${bx+ox*1.05} ${by+oy*1.05}`,class:'l2 draw-in',style:`--len:130;animation-delay:.5s`},dims);
+  arrowLine(ax+ox,ay+oy,bx+ox,by+oy,.6); const mx=(ax+bx)/2+ox, my=(ay+by)/2+oy; const ang = Math.atan2(by-ay,bx-ax)*180/Math.PI; text(mx, my-6, '10.45', 1.2, 'middle', ang); }
+// plate thickness note leader
+{ el('path',{d:`M${O[0]-R*.62} ${O[1]+R*.78} L${O[0]-R-10} ${O[1]+R+20} H${O[0]-R-70}`,class:'dim draw-in',style:`--len:200;animation-delay:1.1s`},dims);
+  text(O[0]-R-70, O[1]+R+14, 'THK 1.80', 2, 'start'); }
+
+/* ---------- balloons ---------- */
+const bl = el('g',{},svg); const balloons = {};
+const BAL = { plate:[70,150], barrel:[80,300], center:[250,110], third:[470,140], fourth:[640,380], escape:[620,470], pallet:[560,560], balance:[160,600], crown:[660,230], screws:[70,440], jewels:[420,610] };
+const ANCH = { plate:pt(O[0],O[1],R,rad(210)), barrel:pt(...P.barrel,92,rad(185)), center:pt(...P.center,68,rad(-110)), third:pt(...P.third,50,rad(-80)), fourth:pt(...P.fourth,46,rad(10)), escape:pt(...P.escape,28,rad(30)), pallet:[P.pallet[0]+24,P.pallet[1]-30], balance:pt(...P.balance,70,rad(150)), crown:[O[0]+R+60,O[1]-20], screws:pt(O[0],O[1],R-24,rad(140)), jewels:P.balance };
+PARTS.forEach((p,i) => {
+  const [bx,by] = BAL[p.id], [ax,ay] = ANCH[p.id];
+  const g = el('g',{class:'balloon fade-in',style:`animation-delay:${.5 + i*.05}s`,'data-id':p.id},bl);
+  const ang = Math.atan2(ay-by, ax-bx);
+  el('line',{x1:bx+14*Math.cos(ang),y1:by+14*Math.sin(ang),x2:ax,y2:ay},g);
+  el('circle',{cx:ax,cy:ay,r:2,fill:'#ebf4ff'},g);
+  el('circle',{cx:bx,cy:by,r:14},g); const t = el('text',{x:bx,y:by},g); t.textContent = p.n;
+  g.style.cursor='pointer'; g.addEventListener('pointerdown', () => select(p.id));
+  balloons[p.id] = g;
+});
+
+/* ---------- BOM + spec ---------- */
+const bom = $('#bom'), spec = $('#spec');
+if (bom) PARTS.forEach(p => { const tr = document.createElement('tr'); tr.className='row'; tr.dataset.id=p.id; tr.tabIndex=0;
+  tr.innerHTML = `<td class="n">${p.n}</td><td>${p.name}</td><td>${p.qty}</td><td>${p.mat}</td>`;
+  tr.addEventListener('pointerenter', () => select(p.id)); tr.addEventListener('click', () => select(p.id)); tr.addEventListener('focus', () => select(p.id));
+  bom.appendChild(tr); });
+let current = null;
+function select(id){
+  if (current === id) return; current = id;
+  const p = PARTS.find(x => x.id===id); if (!p) return;
+  Object.values(groups).forEach(g => g.classList.toggle('on', g.dataset.id===id));
+  Object.values(balloons).forEach(g => g.classList.toggle('on', g.dataset.id===id));
+  document.querySelectorAll('tr.row').forEach(r => r.classList.toggle('on', r.dataset.id===id));
+  if (spec) spec.innerHTML = `<div class="lbl">SPECIFICATION · ITEM ${String(p.n).padStart(2,'0')} OF 11</div>
+    <h2><span class="no">${p.n}</span>${p.name}</h2>
+    <dl><dt>MATERIAL</dt><dd>${p.mat}</dd><dt>DIMENSIONS</dt><dd>${p.dims}</dd><dt>RATE</dt><dd>${p.rate}</dd><dt>QTY</dt><dd>${p.qty}</dd></dl>
+    <p>${p.note}</p><div class="hint">Hover / tap any part · ← → to step through the list</div>`;
+}
+Object.values(groups).forEach(g => {
+  g.addEventListener('pointerenter', () => select(g.dataset.id));
+  g.addEventListener('pointerdown', () => select(g.dataset.id));
+  g.addEventListener('focus', () => select(g.dataset.id));
+});
+select('balance');
+addEventListener('keydown', e => {
+  if (e.key==='ArrowRight' || e.key==='ArrowLeft' || e.key==='ArrowDown' || e.key==='ArrowUp') {
+    const i = PARTS.findIndex(p => p.id===current); const d = (e.key==='ArrowRight'||e.key==='ArrowDown') ? 1 : -1;
+    select(PARTS[(i + d + PARTS.length) % PARTS.length].id); e.preventDefault();
+  } else if (e.key===' ' && !(document.activeElement && document.activeElement.tagName==='BUTTON')) { e.preventDefault(); toggleRun(); }
+});
+
+/* ---------- motion ---------- */
+let running = true, simT = 0, last = performance.now(), lastBeat = -1;
+const runBtn = $('#run'), tickBtn = $('#tick');
+function toggleRun(){ running = !running; if (runBtn) { runBtn.textContent = running ? '❚❚ Hold' : '▶ Run'; runBtn.setAttribute('aria-pressed', running); } }
+if (runBtn) runBtn.addEventListener('click', toggleRun);
+let actx = null, audioOn = false;
+if (tickBtn) tickBtn.addEventListener('click', () => {
+  audioOn = !audioOn; tickBtn.setAttribute('aria-pressed', audioOn);
+  if (audioOn && !actx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) actx = new AC(); }
+  if (actx && actx.state==='suspended') actx.resume();
+});
+function tick(strong){
+  if (!actx || !audioOn) return;
+  const t = actx.currentTime, len = Math.floor(actx.sampleRate*.012), b = actx.createBuffer(1,len,actx.sampleRate), d = b.getChannelData(0);
+  for (let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/len, 4);
+  const s = actx.createBufferSource(); s.buffer=b; const f = actx.createBiquadFilter(); f.type='bandpass'; f.frequency.value = strong ? 4200 : 3300; f.Q.value = 3;
+  const g = actx.createGain(); g.gain.value = .5; s.connect(f); f.connect(g); g.connect(actx.destination); s.start(t);
+}
+const setR = (id, deg) => { const r = rot[id]; if (r) r.el.setAttribute('transform', `rotate(${deg.toFixed(3)} ${r.cx} ${r.cy})`); };
+function frame(now){
+  const dt = Math.min(.05,(now-last)/1000); last = now;
+  if (running) simT += dt;
+  const beats = simT * 5;                     // 18,000 A/h = 5 beats per second
+  const bi = Math.floor(beats), bf = beats - bi;
+  if (running && bi !== lastBeat) { lastBeat = bi; tick(bi%2===0); }
+  const hop = Math.min(1, bf/.14);            // escape wheel jumps early in each beat
+  const escDeg = (bi + (1 - Math.pow(1-hop,3))) * 12;  // 12° per beat (15 teeth)
+  setR('escape', escDeg);
+  setR('fourth', -escDeg/10);
+  setR('third', escDeg/80);
+  setR('center', -escDeg/480);
+  setR('barrel', escDeg/3840);
+  setR('crown', -escDeg/1200);
+  const osc = Math.sin(simT * Math.PI * 2 * 2.5);
+  setR('balance', osc * 140);
+  setR('hair', osc * 18);
+  { const tgt = bi%2 ? 7 : -7, e2 = 1 - Math.pow(1-hop,2); setR('pallet', -tgt + 2*tgt*e2); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+document.addEventListener('visibilitychange', () => { last = performance.now(); });
+})();
+</script>
+</body>
+</html>

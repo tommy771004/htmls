@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ashgrove Cabinet — A Catalogue of Curiosities</title>
+<style>
+:root{
+  --green:#12241b; --green-d:#0a1510; --walnut:#5a3721; --walnut-d:#35200f; --walnut-l:#7a4e2e;
+  --gold:#d6a84e; --gold-l:#f1d48a; --candle:#ffcf7a; --vellum:#ebdfc3; --ink:#2a1c10; --oxblood:#7c2720;
+  --serif:"Palatino Linotype","Book Antiqua",Palatino,"URW Palladio L",Georgia,serif;
+  --body:Constantia,"Palatino Linotype",Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{min-height:100vh;color:var(--vellum);font-family:var(--body);background:var(--green-d)}
+.room{position:relative;min-height:100vh;padding:28px 4vw 60px;isolation:isolate;
+  background:
+   radial-gradient(ellipse 60% 55% at 72% 30%, rgba(255,190,90,.16), transparent 70%),
+   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='160' viewBox='0 0 120 160'%3E%3Cg fill='none' stroke='%23244a37' stroke-width='1.2' opacity='.55'%3E%3Cpath d='M60 10c14 18 26 26 40 30-14 4-26 12-40 30-14-18-26-26-40-30 14-4 26-12 40-30z'/%3E%3Cpath d='M60 90c14 18 26 26 40 30-14 4-26 12-40 30-14-18-26-26-40-30 14-4 26-12 40-30z'/%3E%3Ccircle cx='60' cy='40' r='5'/%3E%3Ccircle cx='60' cy='120' r='5'/%3E%3Cpath d='M0 80c10-6 20-6 30 0M90 80c10-6 20-6 30 0'/%3E%3C/g%3E%3C/svg%3E"),
+   linear-gradient(180deg,#163024,#0f1f17 60%,#0a1510)}
+.room::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:40;background:radial-gradient(ellipse 80% 75% at 60% 40%,transparent 40%,rgba(3,6,4,.78));transition:background 1.2s}
+.glow{position:fixed;inset:0;pointer-events:none;z-index:39;mix-blend-mode:soft-light;background:radial-gradient(circle at var(--cx,78%) var(--cy,24%),rgba(255,196,110,.55),transparent 42%);animation:flick 3.2s infinite;transition:opacity 1s}
+@keyframes flick{0%,100%{opacity:.9}8%{opacity:.75}12%{opacity:.95}33%{opacity:.82}37%{opacity:1}61%{opacity:.86}70%{opacity:.93}88%{opacity:.78}}
+body.dark .glow{opacity:0;animation:none}
+body.dark .room::after{background:radial-gradient(ellipse 60% 55% at 50% 45%,rgba(0,0,0,.45),rgba(0,0,0,.93))}
+
+header.mast{text-align:center;max-width:980px;margin:0 auto 34px;position:relative;z-index:2}
+.soc{font:600 12px/1.4 var(--serif);letter-spacing:.34em;text-transform:uppercase;color:var(--gold)}
+.soc span{display:inline-block;padding:0 14px}
+h1{margin:6px 0 2px;font:italic 400 clamp(38px,5.6vw,78px)/1 var(--serif);color:var(--gold-l);letter-spacing:.01em;text-shadow:0 0 30px rgba(255,190,90,.25)}
+h1 em{font-style:normal;font-variant:small-caps;letter-spacing:.06em}
+.sub{font:italic 15px/1.5 var(--serif);color:#c8b893;margin:0}
+.rule{display:flex;align-items:center;justify-content:center;gap:12px;color:var(--gold);margin:12px auto 0;max-width:460px}
+.rule::before,.rule::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.rule svg{width:26px;height:14px}
+
+main.study{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr);gap:clamp(24px,4vw,64px);max-width:1260px;margin:0 auto;align-items:start;position:relative;z-index:2}
+
+/* ---------- CABINET ---------- */
+.cabinet{position:relative;padding-top:84px}
+.candle{position:absolute;right:7%;top:-34px;width:74px;height:128px;z-index:6;background:none;border:0;padding:0;cursor:pointer}
+.candle svg{width:100%;height:100%;overflow:visible}
+.candle .flame{transform-origin:37px 44px;animation:flame 1.4s ease-in-out infinite}
+@keyframes flame{0%,100%{transform:scale(1,1) skewX(0)}20%{transform:scale(.94,1.06) skewX(3deg)}45%{transform:scale(1.04,.95) skewX(-2deg)}70%{transform:scale(.97,1.08) skewX(2deg)}}
+.candle .halo{animation:flick 2.1s infinite}
+body.dark .slot:nth-child(10) .knob{background:radial-gradient(circle at 40% 40%,#fff,#9ff3dc 30%,#1d6b5a 75%);box-shadow:0 0 14px 5px rgba(120,240,210,.55);transition:all 2s 1.2s}
+body.dark .candle .flame,body.dark .candle .halo{opacity:0;animation:none}
+.candle .smoke{opacity:0}
+body.dark .candle .smoke{animation:smoke 2.4s ease-out forwards}
+@keyframes smoke{0%{opacity:.8;transform:translateY(0)}100%{opacity:0;transform:translateY(-40px) scaleX(1.6)}}
+.candle:focus-visible{outline:2px dashed var(--gold);outline-offset:4px}
+.candle-tip{position:absolute;right:calc(7% + 80px);top:6px;font:italic 12px/1.3 var(--serif);color:#b9a579;text-align:right;pointer-events:none}
+
+.cornice{position:relative;height:40px;margin:0 -18px;background:linear-gradient(180deg,#8a5a34,#4a2c17 60%,#2f1b0c);border-radius:3px 3px 0 0;box-shadow:0 3px 0 #1d1007,inset 0 2px 0 rgba(255,210,160,.25)}
+.cornice::before{content:"";position:absolute;left:10px;right:10px;bottom:6px;height:6px;background:repeating-linear-gradient(90deg,#2f1b0c 0 6px,#6d4526 6px 12px);opacity:.8}
+.crest{position:absolute;left:50%;top:-30px;transform:translateX(-50%);width:130px;height:44px}
+.carcass{position:relative;padding:16px;background:
+   repeating-linear-gradient(88deg,rgba(0,0,0,.12) 0 2px,transparent 2px 9px),
+   linear-gradient(180deg,#4b2d18,#3a2210);box-shadow:0 30px 60px rgba(0,0,0,.6),inset 0 0 0 2px #25140a}
+.drawers{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.plinth{height:26px;margin:0 -10px;background:linear-gradient(180deg,#3d2412,#1f1107);border-radius:0 0 4px 4px;position:relative}
+.plinth::before,.plinth::after{content:"";position:absolute;bottom:-22px;width:46px;height:24px;background:linear-gradient(180deg,#2b1809,#140a03);border-radius:0 0 40% 40%}
+.plinth::before{left:6%}.plinth::after{right:6%}
+
+.slot{position:relative;aspect-ratio:1.55;background:radial-gradient(ellipse at 50% 20%,#1a0e06,#070402);border-radius:2px;box-shadow:inset 0 6px 12px rgba(0,0,0,.9)}
+.tray{position:absolute;inset:6% 6% 0;clip-path:polygon(9% 0,91% 0,100% 100%,0 100%);background:
+   repeating-linear-gradient(90deg,rgba(0,0,0,.18) 0 3px,transparent 3px 10px),
+   linear-gradient(180deg,#2a170a,#5a3a22);display:flex;justify-content:center;align-items:flex-start;padding-top:3%}
+.tray svg{height:52%;width:auto;color:var(--gold-l);filter:drop-shadow(0 2px 2px rgba(0,0,0,.7));opacity:0;transform:translateY(8px);transition:opacity .4s .25s,transform .5s .2s}
+.slot.open .tray svg{opacity:1;transform:none}
+.front{position:absolute;inset:0;border:0;padding:0;width:100%;cursor:pointer;border-radius:3px;color:var(--ink);
+  background:
+   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='100'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .35' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .05 0 0 0 0 .02 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
+   linear-gradient(180deg,#7a4b2a,#5b3720 55%,#4a2c18);
+  box-shadow:inset 0 2px 0 rgba(255,215,170,.22),inset 0 -3px 0 rgba(0,0,0,.4),inset 0 0 0 4px rgba(40,20,8,.35),0 2px 3px rgba(0,0,0,.55);
+  transition:transform .65s cubic-bezier(.25,.8,.25,1),box-shadow .65s;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8%}
+.front:hover{filter:brightness(1.1)}
+.front:focus-visible{outline:2px solid var(--gold-l);outline-offset:3px}
+.slot.ajar .front{transform:translateY(7%) scale(1.012)}
+.slot.open{z-index:5}
+.slot.open .front{transform:translateY(48%) scale(1.07);box-shadow:inset 0 2px 0 rgba(255,215,170,.25),inset 0 -3px 0 rgba(0,0,0,.4),0 22px 26px rgba(0,0,0,.7)}
+.plate{width:62%;max-width:150px;padding:3px;border-radius:3px;background:linear-gradient(180deg,#f3d893,#a97a2c 50%,#7a531a);box-shadow:0 1px 2px rgba(0,0,0,.6)}
+.plate span{display:block;background:#efe3c6;border-radius:1px;padding:3% 4%;font:italic 600 clamp(10px,1.05vw,14px)/1.15 var(--serif);text-align:center;box-shadow:inset 0 0 6px rgba(120,80,30,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plate b{display:block;font:700 clamp(9px,.8vw,11px)/1.2 var(--serif);letter-spacing:.2em;font-style:normal;color:var(--oxblood)}
+.knob{width:clamp(12px,1.6vw,20px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1c0,#d5a24a 40%,#6d4712 80%);box-shadow:0 2px 3px rgba(0,0,0,.7)}
+.keyhole{width:clamp(12px,1.6vw,20px);aspect-ratio:.6;background:radial-gradient(circle at 50% 30%,#0b0603 28%,transparent 30%),linear-gradient(#0b0603,#0b0603) 50% 80%/28% 55% no-repeat;border-radius:2px;position:relative}
+.keyhole::before{content:"";position:absolute;inset:-5px -7px;border-radius:40%;background:radial-gradient(circle at 35% 30%,#f7e2a4,#b8852f 55%,#6d4712);z-index:-1}
+.slot.rattle .front{animation:rattle .38s steps(2) 1}
+@keyframes rattle{0%{transform:translateX(0)}25%{transform:translateX(-3px) rotate(-.4deg)}50%{transform:translateX(3px)}75%{transform:translateX(-2px) rotate(.3deg)}100%{transform:none}}
+.slot.seen .plate span::after{content:"";position:absolute}
+.hint{margin:40px 0 0;text-align:center;font:italic 13px/1.5 var(--serif);color:#a99670}
+.hint kbd{font:600 11px var(--serif);border:1px solid #6d5a3a;border-radius:3px;padding:1px 5px;color:var(--gold)}
+
+/* ---------- CATALOGUE CARD ---------- */
+.card{position:relative;overflow:hidden;color:var(--ink);padding:30px 30px 26px;border-radius:2px;background:
+   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .32 0 0 0 0 .15 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E"),
+   radial-gradient(ellipse at 30% 20%,#f3e8cf,#e3d2ac 70%,#cdb68a);
+  box-shadow:0 26px 50px rgba(0,0,0,.6),0 0 0 1px rgba(90,60,20,.35);transform:rotate(.8deg)}
+.card::before{content:"";position:absolute;left:0;right:0;top:64px;height:1px;background:rgba(140,40,30,.55)}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;font:600 11px/1 var(--serif);letter-spacing:.24em;text-transform:uppercase;color:#6d5335;height:30px}
+.card-head b{color:var(--oxblood);font-size:13px}
+.card.swap .card-body{animation:ink .7s ease-out}
+@keyframes ink{from{opacity:0;filter:blur(3px)}}
+.plate-fig{position:relative;margin:18px auto 6px;width:min(230px,70%);aspect-ratio:1.2;display:grid;place-items:center;border:1px solid rgba(80,50,20,.4);outline:1px solid rgba(80,50,20,.25);outline-offset:4px;background:radial-gradient(circle,rgba(255,250,235,.4),transparent 70%)}
+.plate-fig svg{width:78%;height:auto;color:var(--ink)}
+.fig-cap{text-align:center;font:italic 12px/1.3 var(--serif);color:#6d5335;margin-bottom:12px}
+.card h2{margin:0;font:400 clamp(24px,2.3vw,30px)/1.15 var(--serif);text-align:center}
+.card .latin{text-align:center;font:italic 15px/1.4 var(--serif);color:#6d4a2a;margin:4px 0 14px}
+.card dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0 0 14px;font-size:14px;line-height:1.45}
+.card dt{font:600 11px/1.9 var(--serif);letter-spacing:.18em;text-transform:uppercase;color:#7a5a36}
+.card dd{margin:0}
+.note{margin:0;font:italic 15.5px/1.6 var(--serif);border-top:1px solid rgba(90,60,20,.3);padding-top:12px}
+.note::first-letter{font:400 40px/.8 var(--serif);float:left;margin:6px 6px 0 0;color:var(--oxblood)}
+.intro p{font:16px/1.65 var(--body);margin:14px 0}
+.intro .sig{font:italic 17px var(--serif);text-align:right;margin-top:10px}
+.ledger{margin-top:18px;padding-top:12px;border-top:1px dashed rgba(90,60,20,.45);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font:600 12px var(--serif);letter-spacing:.08em;color:#8a7250}
+.ledger .lab{font:600 10px var(--serif);letter-spacing:.24em;text-transform:uppercase;margin-right:4px}
+.ledger i{font-style:normal;position:relative;min-width:18px;text-align:center}
+.ledger i.on{color:var(--ink)}
+.ledger i.on::after{content:"";position:absolute;left:-2px;right:-2px;top:52%;height:1.5px;background:var(--oxblood);transform:rotate(-8deg)}
+.stamp{position:absolute;right:22px;top:84px;width:92px;height:92px;opacity:0;transform:rotate(-16deg) scale(1.6);pointer-events:none;color:var(--oxblood);mix-blend-mode:multiply}
+.card.done .stamp{opacity:.8;transform:rotate(-16deg) scale(1);transition:all .3s cubic-bezier(.6,0,.9,.4)}
+
+footer{max-width:1260px;margin:70px auto 0;text-align:center;font:italic 13px/1.6 var(--serif);color:#8f7f5d;position:relative;z-index:2}
+
+@media (max-width:980px){
+  main.study{grid-template-columns:1fr}
+  .card{max-width:560px;margin:0 auto;transform:none}
+}
+@media (max-width:600px){
+  .room{padding:22px 16px 50px}
+  .soc{font-size:10px;letter-spacing:.2em}
+  .soc span{padding:0 4px}
+  .drawers{grid-template-columns:repeat(3,1fr);gap:8px}
+  .carcass{padding:10px}
+  .cornice{margin:0 -8px}
+  .candle{right:4%;width:58px;height:100px;top:-38px}
+  .candle-tip{right:calc(4% + 62px);top:-14px;font-size:11px}
+  .plate{width:80%}
+  .plate span{font-size:10px}
+  .card{padding:24px 18px 20px}
+  .stamp{right:10px;top:74px;width:74px;height:74px}
+  .cabinet{padding-top:54px}
+}
+@media (prefers-reduced-motion:reduce){
+  .glow,.candle .flame,.candle .halo{animation:none}
+  .front{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="glow" aria-hidden="true"></div>
+<div class="room">
+  <header class="mast">
+    <div class="soc"><span>The Ashgrove Society</span>·<span>for Natural Philosophy</span></div>
+    <h1>A Cabinet of <em>Curiosities</em></h1>
+    <p class="sub">Being a Catalogue of Twelve Drawers &amp; the Things They Keep — Collected 1847–1891</p>
+    <div class="rule" aria-hidden="true"><svg viewBox="0 0 26 14"><path d="M1 7h7M18 7h7M13 1l4 6-4 6-4-6z" fill="none" stroke="currentColor"/></svg></div>
+  </header>
+
+  <main class="study">
+    <section class="cabinet" aria-label="The cabinet">
+      <button class="candle" id="candle" aria-label="Snuff or relight the candle">
+        <svg viewBox="0 0 74 128" aria-hidden="true">
+          <defs>
+            <radialGradient id="hal"><stop offset="0" stop-color="#ffd98a" stop-opacity=".75"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient>
+            <linearGradient id="wax" x1="0" x2="1"><stop offset="0" stop-color="#cbb893"/><stop offset=".45" stop-color="#f3e7c8"/><stop offset="1" stop-color="#a8966f"/></linearGradient>
+            <linearGradient id="fl" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff8a1e"/><stop offset=".45" stop-color="#ffd76a"/><stop offset="1" stop-color="#fff8e0"/></linearGradient>
+          </defs>
+          <circle class="halo" cx="37" cy="34" r="34" fill="url(#hal)"/>
+          <path class="smoke" d="M37 44c-4-6 4-10 0-16s4-10 0-16" fill="none" stroke="#9c9a93" stroke-width="2" stroke-linecap="round"/>
+          <path class="flame" d="M37 14c6 10 9 17 9 23a9 9 0 0 1-18 0c0-6 3-13 9-23z" fill="url(#fl)"/>
+          <path d="M37 42v7" stroke="#2a1c10" stroke-width="2"/>
+          <path d="M24 50c0-2 26-2 26 0v58H24z" fill="url(#wax)"/>
+          <path d="M24 50c4 3 3 12 5 15s3-8 6-10 2 6 5 7 3-10 10-12" fill="none" stroke="#fff5dc" stroke-width="1.6" opacity=".8"/>
+          <path d="M6 110h62l-4 8H10z" fill="#b8842f"/><ellipse cx="37" cy="110" rx="31" ry="4" fill="#e6bd62"/>
+          <path d="M66 112c10 0 10 10 0 10" fill="none" stroke="#b8842f" stroke-width="3"/>
+        </svg>
+      </button>
+      <div class="candle-tip" id="candleTip">the candle is<br>not decorative</div>
+      <div class="cornice">
+        <svg class="crest" viewBox="0 0 130 44" aria-hidden="true">
+          <path d="M8 44c10-6 22-10 34-12C48 20 56 8 65 4c9 4 17 16 23 28 12 2 24 6 34 12z" fill="#6b4224" stroke="#2f1b0c" stroke-width="1.5"/>
+          <circle cx="65" cy="26" r="9" fill="none" stroke="#d6a84e" stroke-width="1.5"/>
+          <path d="M65 19v14M58 26h14" stroke="#d6a84e" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="carcass"><div class="drawers" id="drawers" role="grid" aria-label="Twelve drawers"></div></div>
+      <div class="plinth"></div>
+      <p class="hint">Click a drawer to pull it open · <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> to browse, <kbd>Esc</kbd> to close</p>
+    </section>
+
+    <article class="card" id="card" aria-live="polite">
+      <div class="card-head"><span>Catalogus Mirabilium</span><b id="cardNo">Preface</b></div>
+      <svg class="stamp" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="3"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" stroke-width="1"/>
+        <path id="stp" d="M50 50m-30 0a30 30 0 1 1 60 0a30 30 0 1 1-60 0" fill="none"/>
+        <text font-family="Palatino Linotype, serif" font-size="10" letter-spacing="2" fill="currentColor"><textPath href="#stp">ASHGROVE · EXAMINED IN FULL ·</textPath></text>
+        <text x="50" y="56" text-anchor="middle" font-family="Palatino Linotype, serif" font-size="18" font-style="italic" fill="currentColor">XII</text>
+      </svg>
+      <div class="card-body" id="cardBody"></div>
+      <div class="ledger" id="ledger"><span class="lab">Examined</span></div>
+    </article>
+  </main>
+
+  <footer>Ashgrove House, Upper Library, East Wing · Visitors are asked not to wind the watch in Drawer VIII.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+  var S = 'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
+  function tooth(x,y,s){ return '<path transform="translate('+x+' '+y+') scale('+s+')" d="M0 0C-6 0-8 6-7 12S-5 26-3 30C-2 32 0 28 0 22 0 28 2 32 3 30 5 26 6 18 7 12S6 0 0 0Z"/>'; }
+  var ART = {
+    moth:'<g '+S+'><path d="M60 38C58 50 58 78 60 90 62 78 62 50 60 38Z"/><path d="M59 48C40 22 14 26 16 44S40 62 58 58Z"/><path d="M61 48C80 22 106 26 104 44S80 62 62 58Z"/><path d="M58 60C44 64 30 78 38 90S56 84 59 72Z"/><path d="M62 60C76 64 90 78 82 90S64 84 61 72Z"/><path d="M59 39C54 30 50 24 44 20M61 39C66 30 70 24 76 20"/><circle cx="34" cy="44" r="6"/><circle cx="86" cy="44" r="6"/><path d="M24 40l24 9M22 48l26 7M72 49l24-9M72 55l26-7M44 72l12-4M76 72l-12-4" opacity=".55"/></g>',
+    teeth:'<g '+S+'><rect x="14" y="30" width="92" height="64" rx="4"/>'+tooth(30,40,1)+tooth(50,40,1)+tooth(70,40,1)+tooth(90,40,1)+tooth(40,66,.8)+tooth(60,66,.8)+tooth(80,66,.8)+'<path d="M20 104h40l6 6h-46z"/><path d="M60 104c10-6 26-6 36-2"/></g>',
+    compass:'<g '+S+'><circle cx="60" cy="62" r="46"/><circle cx="60" cy="62" r="39"/><circle cx="60" cy="62" r="34" stroke-dasharray="1.5 5.6" stroke-width="5"/><path d="M60 26l6 30 30 6-30 6-6 30-6-30-30-6 30-6z"/><path d="M60 62L60 30 66 62z" fill="currentColor"/><path d="M52 16h16M60 10v6"/><circle cx="60" cy="62" r="3" fill="currentColor"/></g>',
+    letter:'<g '+S+'><rect x="14" y="30" width="92" height="62" rx="2"/><path d="M14 30l46 34 46-34M14 92l34-28M106 92L72 64"/><circle cx="60" cy="64" r="10" fill="#7c2720" stroke="#7c2720"/><path d="M55 64h10M60 59v10" stroke="#f0dcc0" stroke-width="1.2"/><path d="M22 40c6-2 10 2 16 0M24 46c6-2 12 1 18-1" opacity=".5"/></g>',
+    astrolabe:'<g '+S+'><circle cx="60" cy="66" r="44"/><circle cx="60" cy="66" r="38" stroke-dasharray="1.2 4.6" stroke-width="5"/><circle cx="60" cy="66" r="30"/><circle cx="60" cy="66" r="12"/><path d="M60 22v88M16 66h88"/><path d="M34 44c14 10 38 10 52 0M30 82c18-10 42-10 60 0" opacity=".7"/><path d="M60 66l24-20"/><circle cx="60" cy="14" r="7"/><path d="M54 20l-2 4M66 20l2 4"/><circle cx="60" cy="66" r="2.5" fill="currentColor"/></g>',
+    ink:'<g '+S+'><path d="M40 60v36q0 6 6 6h28q6 0 6-6V60q0-8-10-10V40H50v10q-10 2-10 10z"/><rect x="47" y="34" width="26" height="6" rx="1"/><rect x="46" y="68" width="28" height="18"/><path d="M50 74h20M52 80h14" opacity=".6"/><path d="M58 36C66 20 84 8 108 4 100 16 88 30 66 40"/><path d="M76 20l6 6M84 14l6 6M92 10l5 5M70 26l5 6" opacity=".6"/><path d="M42 94h36" opacity=".4"/></g>',
+    raven:'<g '+S+'><path d="M16 62c0-20 18-28 34-24 12 3 22 10 56 18-14 6-34 10-50 12-12 8-34 10-40-6z"/><circle cx="38" cy="56" r="9"/><circle cx="38" cy="56" r="3" fill="currentColor"/><path d="M60 58c12 2 26 0 40-2M58 70c14 4 28 4 36 2" opacity=".7"/><path d="M22 72c4 10 14 14 26 10"/><path d="M28 44c6-4 14-4 20 0" opacity=".5"/><path d="M20 96h80M30 96v-8h60v8" opacity=".6"/></g>',
+    watch:'<g '+S+'><circle cx="60" cy="68" r="40"/><circle cx="60" cy="68" r="34"/><circle cx="60" cy="68" r="30" stroke-dasharray="1.4 6.45" stroke-width="5"/><rect x="54" y="22" width="12" height="7" rx="2"/><circle cx="60" cy="14" r="7"/><path d="M60 68l18 3M60 68l22 7" /><path d="M60 68l19-6" stroke-width="2.4"/><circle cx="60" cy="68" r="2.6" fill="currentColor"/><path d="M53 12c-18-4-30 4-40 18M16 26l-4 8 8-2" opacity=".7"/></g>',
+    nightshade:'<g '+S+'><path d="M58 110C56 80 60 50 72 16"/><path d="M60 80C46 76 34 64 32 50c14 2 26 12 28 30zM64 60c12-8 26-8 36-2-10 10-24 10-36 2zM66 40C58 30 56 20 60 10c8 8 10 18 6 30z"/><path d="M60 80l-18-18M64 60l24-2" opacity=".5"/><circle cx="44" cy="96" r="7" fill="currentColor"/><circle cx="30" cy="88" r="6" fill="currentColor"/><circle cx="84" cy="82" r="6.5" fill="currentColor"/><path d="M58 104c-4-2-8-4-14-8M58 98c-10-6-20-8-28-10M62 90c8-2 14-4 22-8"/><path d="M92 36l4 6 7 0-6 4 2 7-7-4-6 4 2-7-6-4 7 0z"/></g>',
+    eye:'<g '+S+'><circle cx="60" cy="60" r="40"/><circle cx="60" cy="60" r="17"/><circle cx="60" cy="60" r="7" fill="currentColor"/><path d="M60 43v6M60 71v6M43 60h6M71 60h6M48 48l4 4M68 68l4 4M72 48l-4 4M48 72l4-4" opacity=".7"/><path d="M36 34c8-8 20-12 30-10" opacity=".6"/><circle cx="54" cy="53" r="2.5" fill="#f3e8cf" stroke="none"/><path d="M26 82c10 14 28 20 44 16M30 90c10 8 20 10 30 10" opacity=".45"/></g>',
+    key:'<g '+S+'><circle cx="30" cy="44" r="16"/><path d="M30 34a5 5 0 1 1 0 .1M22 44a5 5 0 1 1 .1 0M38 44a5 5 0 1 1-.1 0M30 54a5 5 0 1 1 0-.1" opacity=".7"/><path d="M46 44h58"/><path d="M84 44v14h6v-8h6v12h8V44"/><path d="M52 40v8M58 40v8" opacity=".6"/><path d="M18 56c-8 16-2 30 12 36"/><path d="M30 86l22 8-6 16-22-8z"/><text x="36" y="104" font-family="Palatino Linotype,serif" font-size="11" fill="currentColor" stroke="none" transform="rotate(20 38 100)">XII</text></g>',
+    ledger:'<g '+S+'><path d="M18 34l44-8 42 10v64l-42-8-44 8z"/><path d="M62 26v66"/><path d="M26 44l28-5M26 52l28-5M26 60l24-4M70 42l26 5M70 50l26 5M70 58l20 4" opacity=".55"/><path d="M80 36v34l5-5 5 5V38" fill="#7c2720" stroke="#7c2720"/><path d="M24 104C50 88 80 70 112 44 96 70 70 88 30 106z"/><path d="M40 98l6 6M52 92l6 6M66 84l6 6" opacity=".6"/></g>'
+  };
+  function art(k, cls){ return '<svg viewBox="0 0 120 120" aria-hidden="true"'+(cls?' class="'+cls+'"':'')+'>'+ART[k]+'</svg>'; }
+
+  var items = [
+    {n:"I",  k:"moth",  t:"Moth, Pressed", short:"Moth", lat:"Noctua miltoniana", acq:"1847", prov:"Found between pp. 212–213 of Paradise Lost, Book IV, Bodley copy.", note:"It had been reading for some time. The passage beneath it was underlined in a hand too small for a human. We have left the book open at that page, out of courtesy."},
+    {n:"II", k:"teeth", t:"Seven Teeth", short:"Teeth", lat:"Dentes, provenance unknown", acq:"1853", prov:"Posted anonymously to the Porter's Lodge in a tin of Fortnum's shortbread.", note:"A pencilled card accompanied them: “Not the Dean's.” The Dean has declined to comment, and has since taken to smiling with his mouth closed."},
+    {n:"III",k:"compass",t:"Library Compass", short:"Compass", lat:"Acus bibliothecaria", acq:"1858", prov:"Won at cards from a Cambridge man, who seemed relieved to lose it.", note:"Does not point north. Points, unfailingly, to the nearest library. Useful to scholars; ruinous to sailors. Twice it has pointed at a person."},
+    {n:"IV", k:"letter",t:"Letter, Unsent", short:"Letter", lat:"Epistula non missa", acq:"1861", prov:"Discovered in a hollow panel of the Senior Common Room.", note:"Addressed simply “To whoever finds the thesis.” The seal remains unbroken. Three Fellows have volunteered to open it; none has yet been brave enough to find the thesis first."},
+    {n:"V",  k:"astrolabe",t:"Astrolabe, Slightly Wrong", short:"Astrolabe", lat:"Astrolabium erratum", acq:"1864", prov:"Bequeathed by Prof. H. Calloway, Chair of Imprecise Sciences.", note:"Beautifully engraved and calibrated for a latitude of 51° 46′ in a city that does not exist. Every few years someone checks. Every few years the city still does not exist."},
+    {n:"VI", k:"ink", t:"Bottomless Inkwell", short:"Inkwell", lat:"Atramentarium infinitum", acq:"1870", prov:"Purchased at auction, Lot 44, “with contents”.", note:"Not refilled since 1871. Has since written two dissertations, a play in five acts, and a great many apologies. The ink is always slightly warm."},
+    {n:"VII",k:"raven", t:"Skull of Horace", short:"Raven", lat:"Corvus corax, ‘Horace’", acq:"1911", prov:"Donated by the Department of Classics on his retirement.", note:"Attended lectures on Thucydides from 1902 until 1911, always from the third window. Failed no examinations, having sat none. Buried with full honours; exhumed with slightly fewer."},
+    {n:"VIII",k:"watch",t:"Watch, Stopped", short:"Watch", lat:"Horologium quiescens", acq:"1877", prov:"Taken from the waistcoat of the Founder, 14 November 1891.", note:"Stopped at 3:17. On the night it stopped, every clock in the East Wing stopped with it. We have wound them since. We have not wound this one. Please do not."},
+    {n:"IX", k:"nightshade",t:"Nightshade, Pressed", short:"Nightshade", lat:"Atropa belladonna", acq:"1882", prov:"Collected on the Botanic Garden's north wall, after hours.", note:"Deadly in every part. Mounted on acid-free card with a note in the Curator's hand: DO NOT LICK. The note is underlined three times, which suggests there was an incident."},
+    {n:"X",  k:"eye",   t:"Glass Eye", short:"Glass Eye", lat:"Oculus vitreus", acq:"1886", prov:"Left behind by a visiting lecturer who departed in some haste.", note:"Hand-blown, Venetian, remarkably lifelike. It is kept facing the wall of the drawer. When the drawer is opened it is not always facing the wall."},
+    {n:"XI", k:"key",   t:"A Small Brass Key", short:"Key", lat:"Clavis minor", acq:"1891", prov:"Found in this drawer. Nobody recalls putting it here.", note:"A tag, tied with red thread, reads XII. You pocket it — the cabinet does not seem to mind. Somewhere to your right, a lock clicks, as if in anticipation."},
+    {n:"XII",k:"ledger",t:"The Founder's Ledger", short:"Locked", lat:"Liber ultimus", acq:"1891", prov:"Drawer XII. Locked by the Founder's own hand; key kept in Drawer XI.", note:"Final entry, 3:17 a.m.: “Every object in this cabinet was sent to me by someone already dead. I have decided to keep up the correspondence.” The next page is blank, and slightly warm."}
+  ];
+
+  var store = { get:function(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set:function(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
+  var seen = store.get("ashgrove-seen") || {}, hasKey = !!seen.XI, current = -1;
+  var grid = $("#drawers"), card = $("#card"), body = $("#cardBody"), cardNo = $("#cardNo"), ledger = $("#ledger");
+  if(!grid || !card || !body) return;
+
+  /* ---- sound: wooden slide & clunk, synthesized on demand ---- */
+  var ac = null;
+  function audio(){ try{ if(!ac){ var C = window.AudioContext || window.webkitAudioContext; if(C) ac = new C(); } if(ac && ac.state === "suspended") ac.resume(); }catch(e){ ac = null; } return ac; }
+  function slide(dur, freq){
+    var a = audio(); if(!a) return;
+    var len = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for(var i=0;i<len;i++){ d[i] = (Math.random()*2-1) * (0.6 + 0.4*Math.sin(i/len*40)); }
+    var src = a.createBufferSource(); src.buffer = buf;
+    var f = a.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = freq; f.Q.value = 1.4;
+    var g = a.createGain(), t = a.currentTime;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t+0.05); g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    src.connect(f); f.connect(g); g.connect(a.destination); src.start(t);
+    var o = a.createOscillator(), og = a.createGain(); o.frequency.value = 90; o.type = "sine";
+    og.gain.setValueAtTime(0.0001, t+dur*0.85); og.gain.exponentialRampToValueAtTime(0.25, t+dur*0.9); og.gain.exponentialRampToValueAtTime(0.0001, t+dur+0.15);
+    o.connect(og); og.connect(a.destination); o.start(t); o.stop(t+dur+0.2);
+  }
+
+  /* ---- build drawers ---- */
+  var slots = [];
+  items.forEach(function(it, i){
+    var slot = document.createElement("div");
+    slot.className = "slot" + (i === 6 ? " ajar" : "");
+    slot.innerHTML = '<div class="tray">'+art(it.k)+'</div>'+
+      '<button class="front" type="button" aria-label="Drawer '+it.n+': '+(it.n==="XII"?"locked":it.short)+'"><span class="plate"><span><b>'+it.n+'</b>'+it.short+'</span></span><span class="'+(it.n==="XII"?"keyhole":"knob")+'"></span></button>';
+    var btn = slot.querySelector(".front");
+    if(btn) btn.addEventListener("click", function(){ toggle(i); });
+    grid.appendChild(slot); slots.push(slot);
+  });
+
+  function renderLedger(){
+    if(!ledger) return;
+    var h = '<span class="lab">Examined</span>', count = 0;
+    items.forEach(function(it){ var on = !!seen[it.n]; if(on) count++; h += '<i class="'+(on?"on":"")+'">'+it.n+'</i>'; });
+    ledger.innerHTML = h;
+    card.classList.toggle("done", count === 12);
+  }
+  function showIntro(){
+    if(cardNo) cardNo.textContent = "Preface";
+    var n = 0; for(var k in seen) if(seen[k]) n++;
+    body.innerHTML = '<div class="intro"><div class="plate-fig">'+art("ledger")+'</div><div class="fig-cap">Fig. 0 — the Cabinet, as bequeathed</div>'+
+      '<h2>To the Reader</h2><p>Twelve drawers of walnut, brass-fitted, made in 1847 by a joiner who asked to be paid in advance and in person. Eleven open freely.</p><p>The twelfth has <em>opinions</em>.</p>'+
+      (n === 12 ? '<p><strong>You have examined all twelve.</strong> The Society thanks you, and asks that you return the key before leaving. It will know.</p>' : '')+
+      '<div class="sig">— E. Marchbanks, Curator</div></div>';
+  }
+  function showItem(i){
+    var it = items[i];
+    if(cardNo) cardNo.textContent = "No. " + it.n;
+    body.innerHTML = '<div class="plate-fig">'+art(it.k)+'</div><div class="fig-cap">Fig. '+it.n+' — drawn from the specimen</div>'+
+      '<h2>'+it.t+'</h2><div class="latin">'+it.lat+'</div>'+
+      '<dl><dt>Acquired</dt><dd>'+it.acq+'</dd><dt>Provenance</dt><dd>'+it.prov+'</dd><dt>Drawer</dt><dd>'+it.n+' of XII</dd></dl>'+
+      '<p class="note">'+it.note+'</p>';
+  }
+  function showLocked(){
+    if(cardNo) cardNo.textContent = "No. XII";
+    body.innerHTML = '<div class="plate-fig"><svg viewBox="0 0 120 120" aria-hidden="true"><g '+S+'><circle cx="60" cy="48" r="16"/><path d="M52 60l-6 40h28l-6-40"/><circle cx="60" cy="60" r="44" stroke-dasharray="2 6"/></g></svg></div><div class="fig-cap">Fig. XII — a keyhole, recently oiled</div>'+
+      '<h2>Locked</h2><div class="latin">Clausum est</div><p class="note">The drawer does not move. The keyhole is small, brass, and freshly oiled — someone expects it to be opened. Perhaps the key is elsewhere in the cabinet.</p>';
+  }
+  function swapCard(){ card.classList.remove("swap"); void card.offsetWidth; card.classList.add("swap"); }
+
+  function toggle(i){
+    var it = items[i];
+    slots.forEach(function(s){ s.classList.remove("ajar"); });
+    if(it.n === "XII" && !hasKey){
+      var s = slots[i]; s.classList.remove("rattle"); void s.offsetWidth; s.classList.add("rattle");
+      slide(0.12, 1800);
+      if(current >= 0){ slots[current].classList.remove("open"); current = -1; }
+      showLocked(); swapCard(); scrollCard(); return;
+    }
+    if(current === i){ slots[i].classList.remove("open"); current = -1; slide(0.35, 380); showIntro(); swapCard(); return; }
+    if(current >= 0) slots[current].classList.remove("open");
+    slots[i].classList.add("open"); current = i; slide(0.5, 520);
+    if(it.n === "XI" && !hasKey){ hasKey = true; var kh = slots[11].querySelector(".keyhole"); if(kh) kh.style.filter = "drop-shadow(0 0 6px #ffd98a)"; }
+    if(it.n === "XII"){ var lab = slots[11].querySelector(".plate span"); if(lab) lab.innerHTML = "<b>XII</b>Ledger"; }
+    seen[it.n] = true; store.set("ashgrove-seen", seen);
+    showItem(i); swapCard(); renderLedger(); scrollCard();
+  }
+  function scrollCard(){
+    if(window.innerWidth > 980) return;
+    setTimeout(function(){ var r = card.getBoundingClientRect(); if(r.top > window.innerHeight * .6) card.scrollIntoView({behavior:"smooth", block:"start"}); }, 650);
+  }
+  if(hasKey){ var lab0 = slots[11].querySelector(".plate span"); if(lab0 && seen.XII) lab0.innerHTML = "<b>XII</b>Ledger"; }
+
+  /* keyboard: arrows move focus across the grid */
+  grid.addEventListener("keydown", function(e){
+    var fronts = Array.prototype.slice.call(grid.querySelectorAll(".front"));
+    var idx = fronts.indexOf(document.activeElement); if(idx < 0) return;
+    var cols = getComputedStyle(grid).gridTemplateColumns.split(" ").length || 4, to = idx;
+    if(e.key === "ArrowRight") to = Math.min(fronts.length-1, idx+1);
+    else if(e.key === "ArrowLeft") to = Math.max(0, idx-1);
+    else if(e.key === "ArrowDown") to = Math.min(fronts.length-1, idx+cols);
+    else if(e.key === "ArrowUp") to = Math.max(0, idx-cols);
+    else return;
+    e.preventDefault(); fronts[to].focus();
+  });
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && current >= 0){ slots[current].classList.remove("open"); current = -1; showIntro(); swapCard(); }
+    else if((e.key === "ArrowRight" || e.key === "ArrowLeft") && !grid.contains(document.activeElement)){
+      var nx = current < 0 ? 0 : (current + (e.key === "ArrowRight" ? 1 : 10)) % 11;
+      toggle(nx);
+    }
+  });
+
+  /* candle */
+  var candle = $("#candle"), tip = $("#candleTip");
+  if(candle) candle.addEventListener("click", function(){
+    var dark = document.body.classList.toggle("dark");
+    if(tip) tip.innerHTML = dark ? "relight it<br>before the eye turns" : "the candle is<br>not decorative";
+    var a = audio(); if(a){ var t = a.currentTime, n = a.createOscillator(), g = a.createGain(); n.type = "triangle"; n.frequency.setValueAtTime(dark ? 300 : 900, t); n.frequency.exponentialRampToValueAtTime(dark ? 80 : 1600, t+.18); g.gain.setValueAtTime(.08, t); g.gain.exponentialRampToValueAtTime(.0001, t+.25); n.connect(g); g.connect(a.destination); n.start(t); n.stop(t+.3); }
+  });
+  /* the candlelight follows the candle */
+  function placeGlow(){
+    var g = document.querySelector(".glow"); if(!g || !candle) return;
+    var r = candle.getBoundingClientRect();
+    g.style.setProperty("--cx", (r.left + r.width/2) / window.innerWidth * 100 + "%");
+    g.style.setProperty("--cy", (r.top + r.height*0.25) / window.innerHeight * 100 + "%");
+  }
+  window.addEventListener("resize", placeGlow); window.addEventListener("scroll", placeGlow, {passive:true}); placeGlow();
+
+  showIntro(); renderLedger();
+})();
+</script>
+</body>
+</html>

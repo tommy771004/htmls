@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Room 4B — rain, records &amp; a sleeping cat</title>
+<style>
+  :root{
+    --dusk:#231a35; --dusk-2:#2f2446; --plum:#4a3663; --lav:#b9a6d9; --warm:#ffb45e; --warm-l:#ffd9a0; --paper:#f6e9c9; --ink:#2b2138;
+    --ui:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    --hand:"MV Boli","Segoe Print","Bradley Hand","Comic Sans MS",cursive;
+  }
+  *{box-sizing:border-box}
+  html{background:#140f1f}
+  body{margin:0;min-height:100vh;color:#e9def7;font-family:var(--ui);
+    background:radial-gradient(90% 70% at 30% 20%,#3a2a55 0%,#1b1429 60%,#120d1c 100%);overflow-x:hidden}
+  .wrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:clamp(16px,2.4vw,34px);align-items:center;max-width:1500px;margin:0 auto;padding:clamp(14px,2.4vw,30px);min-height:100vh}
+  .stage{position:relative;width:100%;max-width:calc(78vh * 4 / 3);aspect-ratio:4/3;justify-self:center;border-radius:18px;overflow:hidden;
+    box-shadow:0 40px 80px -40px rgba(0,0,0,.8),0 0 0 1px rgba(185,166,217,.12)}
+  #room{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #rain{position:absolute;pointer-events:none}
+  #flash{position:absolute;inset:0;background:#dfe6ff;opacity:0;pointer-events:none;mix-blend-mode:screen}
+  .hot{cursor:pointer;outline:none}
+  .hot:focus-visible .hl,.hot:hover .hl{opacity:1}
+  .hl{opacity:0;transition:opacity .3s}
+  .tip{position:absolute;pointer-events:none;font-family:var(--hand);font-size:15px;color:var(--ink);background:var(--paper);padding:3px 10px 4px;border-radius:3px;transform:translate(-50%,-130%) rotate(-3deg);
+    box-shadow:0 4px 10px rgba(0,0,0,.35);opacity:0;transition:opacity .2s;white-space:nowrap}
+  .tip.on{opacity:1}
+  .wake{position:absolute;left:50%;bottom:5%;transform:translateX(-50%);white-space:nowrap;font-family:var(--hand);font-size:clamp(16px,2vw,22px);color:var(--ink);
+    background:var(--paper);border:0;padding:14px 22px 16px;border-radius:4px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.5);rotate:-2deg;min-height:48px}
+  .wake small{display:block;font-family:var(--ui);font-size:12px;color:#6a5a7d;margin-top:2px}
+  .wake[hidden]{display:none}
+
+  aside{align-self:center}
+  .note{position:relative;background:var(--paper);color:var(--ink);padding:18px 20px 16px;border-radius:2px;rotate:1.5deg;box-shadow:0 18px 30px -12px rgba(0,0,0,.6)}
+  .note::before{content:"";position:absolute;left:50%;top:-12px;width:90px;height:24px;transform:translateX(-50%) rotate(-3deg);background:rgba(255,236,190,.55);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .note h1{font-family:var(--hand);font-weight:normal;font-size:30px;line-height:1.1;margin:0}
+  .note .time{font-family:var(--hand);font-size:16px;color:#7a5f8f}
+  .note p{font-size:13.5px;line-height:1.55;margin:.6em 0 0;color:#4a3d58}
+  .mixer{margin-top:22px;background:rgba(35,26,53,.75);border:1px solid rgba(185,166,217,.18);border-radius:14px;padding:14px 16px 8px}
+  .mixer h2{font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;color:var(--lav);margin:0 0 8px;display:flex;justify-content:space-between}
+  .ch{display:grid;grid-template-columns:28px 1fr 38px;align-items:center;gap:10px;min-height:46px}
+  .ch svg{width:24px;height:24px}
+  .ch label{font-family:var(--hand);font-size:15px;color:#f0e6ff;display:block;line-height:1}
+  .ch .v{font-size:12px;color:var(--lav);text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;margin:0;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--warm) var(--p,50%),rgba(185,166,217,.25) var(--p,50%))}
+  input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:rgba(185,166,217,.25)}
+  input[type=range]::-moz-range-progress{height:4px;background:var(--warm)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;background:var(--warm-l);box-shadow:0 0 0 4px rgba(255,180,94,.18)}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:var(--warm-l)}
+  input[type=range]:focus-visible{outline:none}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(255,180,94,.45)}
+  .row{display:flex;gap:8px;margin:10px 0 6px}
+  .btn{flex:1;font:inherit;font-size:13px;min-height:42px;border-radius:10px;border:1px solid rgba(185,166,217,.3);background:transparent;color:#efe6ff;cursor:pointer}
+  .btn:hover,.btn:focus-visible{outline:none;border-color:var(--warm);color:var(--warm-l)}
+  .btn.on{background:var(--warm);color:#2a1a10;border-color:var(--warm)}
+  .keys{font-size:11.5px;color:#9e8fb8;margin-top:10px;line-height:1.6}
+
+  @keyframes steam{0%{transform:translateY(0) scaleX(1);opacity:0}25%{opacity:.55}100%{transform:translateY(-60px) scaleX(1.6);opacity:0}}
+  .steam path{animation:steam 3.6s ease-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+  .steam path:nth-child(2){animation-delay:1.2s}.steam path:nth-child(3){animation-delay:2.4s}
+  @keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.015,1.035)}}
+  #catBody{animation:breathe var(--br,4.2s) ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+  @keyframes tail{0%,100%{transform:rotate(0)}50%{transform:rotate(-7deg)}}
+  #catTail{animation:tail 5s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 20%}
+  #platter{transform-box:fill-box;transform-origin:50% 50%}
+  @media (prefers-reduced-motion:reduce){.steam path,#catBody,#catTail{animation:none}}
+
+  @media (max-width:900px){
+    .wrap{grid-template-columns:1fr;min-height:0;padding:12px}
+    .stage{max-width:100%;border-radius:12px}
+    aside{max-width:520px;width:100%;justify-self:center}
+    .note{rotate:0deg}
+    .keys{display:none}
+    .wake{font-size:14px;padding:8px 14px 9px;bottom:4%}
+    .wake small{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <svg id="room" viewBox="0 0 1200 900" role="img" aria-label="A small room at night: rain on the window, a cat on the sill, a desk lamp, a record player and a mug of tea">
+      <defs>
+        <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b2140"/><stop offset="1" stop-color="#3a2b52"/></linearGradient>
+        <pattern id="paperP" width="36" height="36" patternUnits="userSpaceOnUse"><rect width="36" height="36" fill="none"/><path d="M18 0v36" stroke="#ffffff" stroke-opacity=".025" stroke-width="10"/><circle cx="18" cy="18" r="1.5" fill="#fff" fill-opacity=".05"/></pattern>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141a33"/><stop offset=".6" stop-color="#34284f"/><stop offset="1" stop-color="#7a4a6c"/></linearGradient>
+        <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2733"/><stop offset="1" stop-color="#241822"/></linearGradient>
+        <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5a3c"/><stop offset="1" stop-color="#5e3b28"/></linearGradient>
+        <radialGradient id="lampGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(985 360) scale(560 480)">
+          <stop offset="0" stop-color="#ffcf8a" stop-opacity=".55"/><stop offset=".45" stop-color="#ff9d4d" stop-opacity=".16"/><stop offset="1" stop-color="#ff9d4d" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="coneG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe2a8" stop-opacity=".55"/><stop offset="1" stop-color="#ffb45e" stop-opacity=".08"/></linearGradient>
+        <radialGradient id="winGlow" cx=".5" cy=".5" r=".6"><stop offset="0" stop-color="#8fa0ff" stop-opacity=".2"/><stop offset="1" stop-color="#8fa0ff" stop-opacity="0"/></radialGradient>
+        <clipPath id="glassClip"><rect x="90" y="130" width="420" height="390"/></clipPath>
+      </defs>
+
+      <!-- wall & floor -->
+      <rect width="1200" height="770" fill="url(#wall)"/>
+      <rect width="1200" height="770" fill="url(#paperP)"/>
+      <rect y="760" width="1200" height="14" fill="#2a1d2c"/>
+      <rect y="770" width="1200" height="130" fill="url(#floor)"/>
+      <g stroke="#1b121a" stroke-opacity=".6"><path d="M0 800H1200M0 836H1200M0 872H1200"/><path d="M140 770v30M520 800v36M880 770v30M300 836v36M1010 836v36M660 872v28"/></g>
+      <ellipse cx="300" cy="840" rx="260" ry="34" fill="url(#winGlow)"/>
+
+      <!-- window -->
+      <g id="window" class="hot" tabindex="0" role="button" aria-label="Window: rain" data-tip="rain on glass">
+        <rect x="70" y="110" width="460" height="430" rx="4" fill="#191225"/>
+        <g clip-path="url(#glassClip)">
+          <rect x="90" y="130" width="420" height="390" fill="url(#sky)"/>
+          <circle cx="430" cy="210" r="26" fill="#e9e3ff" opacity=".18"/>
+          <g id="skyline" fill="#120e20"></g>
+          <g id="lit" fill="#ffcf7a"></g>
+          <rect x="90" y="130" width="420" height="390" fill="#9fb0ff" opacity=".05"/>
+        </g>
+        <path d="M300 130V520M90 325H510" stroke="#191225" stroke-width="14"/>
+        <rect x="70" y="110" width="460" height="430" rx="4" fill="none" stroke="#3e2f55" stroke-width="3"/>
+        <rect class="hl" x="64" y="104" width="472" height="442" rx="8" fill="none" stroke="#ffd9a0" stroke-width="3" stroke-dasharray="8 8"/>
+      </g>
+      <!-- sill -->
+      <rect x="50" y="540" width="510" height="22" rx="3" fill="#4b3a5f"/>
+      <rect x="50" y="560" width="510" height="8" fill="#2a1f38"/>
+
+      <!-- radiator -->
+      <g fill="#46395c"><rect x="150" y="610" width="300" height="12" rx="4"/><rect x="150" y="718" width="300" height="12" rx="4"/></g>
+      <g fill="#524468" id="fins"></g>
+      <rect x="440" y="730" width="10" height="40" fill="#3a2e4d"/>
+
+      <!-- cat on the sill, looking out -->
+      <g id="cat" class="hot" tabindex="0" role="button" aria-label="Cat: purring" data-tip="the cat (purrs)">
+        <g id="catBody">
+          <path d="M340 540 C 332 500, 350 452, 392 446 C 434 452, 452 500, 444 540 Z" fill="#140f1c"/>
+          <circle cx="392" cy="428" r="30" fill="#140f1c"/>
+          <path d="M366 414 L 370 380 L 390 402 Z M418 414 L 414 380 L 396 402 Z" fill="#140f1c"/>
+          <path d="M372 404 l2 -12 l8 10z" fill="#3b2640"/>
+          <path d="M444 540 C 452 500, 434 452, 392 446" fill="none" stroke="#ff9d4d" stroke-opacity=".45" stroke-width="3" id="catRim"/>
+          <path d="M422 428 C 420 412, 414 404, 410 400" fill="none" stroke="#ff9d4d" stroke-opacity=".35" stroke-width="2"/>
+        </g>
+        <path id="catTail" d="M442 536 C 478 540, 500 528, 492 508 C 488 498, 476 500, 478 510" fill="none" stroke="#140f1c" stroke-width="12" stroke-linecap="round"/>
+        <ellipse class="hl" cx="400" cy="480" rx="80" ry="92" fill="none" stroke="#ffd9a0" stroke-width="3" stroke-dasharray="8 8"/>
+      </g>
+
+      <!-- clock -->
+      <g id="clock" class="hot" tabindex="0" role="button" aria-label="Wall clock: ticking" data-tip="the clock (ticks)">
+        <circle cx="600" cy="175" r="46" fill="#f3e6c8"/>
+        <circle cx="600" cy="175" r="46" fill="none" stroke="#5a3f2e" stroke-width="7"/>
+        <g stroke="#5a3f2e" stroke-width="3" id="ticks"></g>
+        <line id="hH" x1="600" y1="175" x2="600" y2="150" stroke="#2b2138" stroke-width="5" stroke-linecap="round"/>
+        <line id="mH" x1="600" y1="175" x2="600" y2="140" stroke="#2b2138" stroke-width="3" stroke-linecap="round"/>
+        <line id="sH" x1="600" y1="182" x2="600" y2="136" stroke="#c4453a" stroke-width="1.5"/>
+        <circle cx="600" cy="175" r="3.5" fill="#c4453a"/>
+        <circle class="hl" cx="600" cy="175" r="58" fill="none" stroke="#ffd9a0" stroke-width="3" stroke-dasharray="8 8"/>
+      </g>
+
+      <!-- shelf, books, plant -->
+      <rect x="650" y="298" width="320" height="12" rx="2" fill="url(#wood)"/>
+      <path d="M680 310 l14 22 h6 l-8 -22z M930 310 l-14 22 h-6 l8 -22z" fill="#5e3b28"/>
+      <g>
+        <rect x="664" y="232" width="20" height="66" fill="#7d5fa8"/><rect x="686" y="240" width="16" height="58" fill="#c4745a"/>
+        <rect x="704" y="226" width="22" height="72" fill="#3e6d78"/><rect x="728" y="246" width="14" height="52" fill="#d9b35e"/>
+        <rect x="744" y="236" width="18" height="62" fill="#6b4a8a" transform="rotate(12 753 298)"/>
+        <path d="M672 244h8M708 240h14M708 284h14M690 256h8" stroke="#fff" stroke-opacity=".3" stroke-width="2"/>
+        <rect x="800" y="270" width="54" height="28" rx="4" fill="#2a2036"/><circle cx="827" cy="284" r="9" fill="#453a55"/><circle cx="827" cy="284" r="3" fill="#6b5f7a"/>
+        <path d="M890 262 h44 l-6 36 h-32z" fill="#c26a4a"/>
+        <g fill="#5a8a5c"><ellipse cx="900" cy="252" rx="14" ry="8" transform="rotate(-30 900 252)"/><ellipse cx="926" cy="248" rx="14" ry="8" transform="rotate(25 926 248)"/><ellipse cx="912" cy="238" rx="10" ry="14"/></g>
+        <path d="M896 296 C 888 330, 900 350, 890 390 M928 296 C 940 336, 930 360, 944 400" fill="none" stroke="#4a7a4f" stroke-width="3"/>
+        <g fill="#5a8a5c"><ellipse cx="892" cy="330" rx="7" ry="4"/><ellipse cx="896" cy="360" rx="7" ry="4" transform="rotate(30 896 360)"/><ellipse cx="889" cy="388" rx="7" ry="4"/><ellipse cx="938" cy="340" rx="7" ry="4"/><ellipse cx="934" cy="372" rx="7" ry="4" transform="rotate(-30 934 372)"/><ellipse cx="944" cy="398" rx="7" ry="4"/></g>
+      </g>
+      <!-- poster -->
+      <g transform="rotate(2 1075 185)">
+        <rect x="1000" y="100" width="150" height="190" fill="#e8b7a0"/>
+        <circle cx="1075" cy="175" r="44" fill="#f4d58a"/>
+        <path d="M1000 230 Q 1040 200 1075 226 T 1150 222 V290 H1000Z" fill="#6f4f93"/>
+        <text x="1075" y="272" text-anchor="middle" font-family="MV Boli,Segoe Print,cursive" font-size="15" fill="#fbe8d2">slow sundays</text>
+        <rect x="1060" y="94" width="30" height="12" fill="rgba(255,236,190,.6)"/>
+      </g>
+
+      <!-- desk -->
+      <rect x="640" y="560" width="530" height="24" rx="3" fill="url(#wood)"/>
+      <rect x="660" y="584" width="22" height="186" fill="#4d3021"/><rect x="1128" y="584" width="22" height="186" fill="#4d3021"/>
+      <rect x="880" y="584" width="200" height="52" fill="#5e3b28"/><rect x="960" y="604" width="40" height="6" rx="3" fill="#caa06a"/>
+
+      <!-- record player -->
+      <g id="player" class="hot" tabindex="0" role="button" aria-label="Record player: lo-fi beats" data-tip="the record player">
+        <rect x="660" y="524" width="170" height="36" rx="5" fill="#d9c7a6"/>
+        <rect x="660" y="552" width="170" height="8" fill="#b39c78"/>
+        <ellipse cx="736" cy="524" rx="64" ry="11" fill="#1c1622"/>
+        <g id="platter"><ellipse cx="736" cy="522" rx="60" ry="9.5" fill="#241c2c"/><ellipse cx="736" cy="522" rx="18" ry="3" fill="#e0785a"/><path d="M700 520 h14" stroke="#fff" stroke-opacity=".35" stroke-width="2"/></g>
+        <path d="M812 516 L 812 500 L 770 514" fill="none" stroke="#8d7a60" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="812" cy="516" r="6" fill="#8d7a60"/>
+        <circle cx="676" cy="544" r="4" fill="#4c3f5e"/><circle id="led" cx="690" cy="544" r="3" fill="#553"/>
+        <rect class="hl" x="650" y="496" width="190" height="72" rx="10" fill="none" stroke="#ffd9a0" stroke-width="3" stroke-dasharray="8 8"/>
+      </g>
+
+      <!-- mug with steam -->
+      <g>
+        <path d="M858 516 h40 v34 a10 10 0 0 1 -10 10 h-20 a10 10 0 0 1 -10 -10z" fill="#e8d9c2"/>
+        <path d="M898 524 a12 12 0 0 1 0 24" fill="none" stroke="#e8d9c2" stroke-width="5"/>
+        <ellipse cx="878" cy="517" rx="20" ry="4" fill="#6b3f2a"/>
+        <path d="M864 534 h28" stroke="#c4745a" stroke-width="4"/>
+        <g class="steam" fill="none" stroke="#f3eaff" stroke-opacity=".5" stroke-width="3" stroke-linecap="round">
+          <path d="M872 508 q -8 -12 0 -24 q 8 -12 0 -24"/><path d="M882 508 q 8 -12 0 -24 q -8 -12 0 -24"/><path d="M877 508 q -6 -12 2 -24 q 8 -12 0 -24"/>
+        </g>
+      </g>
+      <!-- notebook -->
+      <path d="M922 556 L 948 532 L 1052 532 L 1030 556 Z" fill="#f2e6cc"/>
+      <path d="M948 532 L 1000 532 L 978 556 L 922 556Z" fill="#fbf2de"/>
+      <path d="M940 548 h30 M950 540 h34 M990 546 h30 M996 540 h30" stroke="#8a7aa8" stroke-width="1.5"/>
+      <path d="M1040 552 L 1080 530" stroke="#c4453a" stroke-width="4" stroke-linecap="round"/>
+
+      <!-- lamp -->
+      <g id="lamp" class="hot" tabindex="0" role="button" aria-label="Desk lamp: on or off" data-tip="the lamp (on / off)">
+        <polygon id="cone" points="960,372 1010,356 1120,560 830,560" fill="url(#coneG)"/>
+        <ellipse cx="1110" cy="556" rx="42" ry="8" fill="#2e2540"/>
+        <path d="M1110 552 L 1146 430 L 1020 346" fill="none" stroke="#3e3356" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="1146" cy="430" r="8" fill="#524468"/>
+        <path d="M1034 326 L 1000 318 L 950 376 L 1018 392 Z" fill="#c4745a"/>
+        <path d="M1000 318 L 1034 326" stroke="#e08f6e" stroke-width="4"/>
+        <ellipse id="bulb" cx="982" cy="382" rx="30" ry="9" fill="#ffe7b0" transform="rotate(14 982 382)"/>
+        <rect class="hl" x="930" y="300" width="240" height="270" rx="12" fill="none" stroke="#ffd9a0" stroke-width="3" stroke-dasharray="8 8"/>
+      </g>
+
+      <!-- light overlays -->
+      <rect id="glow" width="1200" height="900" fill="url(#lampGlow)" style="mix-blend-mode:screen;pointer-events:none"/>
+      <rect id="dark" width="1200" height="900" fill="#0b0716" opacity="0" style="pointer-events:none"/>
+    </svg>
+    <canvas id="rain"></canvas>
+    <div id="flash"></div>
+    <div class="tip" id="tip"></div>
+    <button class="wake" id="wake">tap anything to wake the room<small>sound on — it's all synthesised, nothing is downloaded</small></button>
+  </div>
+
+  <aside>
+    <div class="note">
+      <h1>room 4B,<br>rain &amp; records</h1>
+      <div class="time" id="now">it is 2:14 a.m.</div>
+      <p>Nobody is coming. The deadline can wait until morning. Click things in the room, or mix them here until it sounds like the inside of your head.</p>
+    </div>
+    <div class="mixer" role="group" aria-label="Ambient mixer">
+      <h2><span>Mixtape</span><span id="status">asleep</span></h2>
+      <div class="ch"><svg viewBox="0 0 24 24"><path d="M6 14c0-3 3-6 6-10 3 4 6 7 6 10a6 6 0 0 1-12 0z" fill="none" stroke="#b9a6d9" stroke-width="1.6"/></svg><div><label for="vRain">rain on glass</label><input type="range" id="vRain" min="0" max="100" value="65"></div><span class="v" id="oRain">65</span></div>
+      <div class="ch"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#b9a6d9" stroke-width="1.6"/><circle cx="12" cy="12" r="2.5" fill="#b9a6d9"/></svg><div><label for="vBeat">beats &amp; vinyl crackle</label><input type="range" id="vBeat" min="0" max="100" value="55"></div><span class="v" id="oBeat">55</span></div>
+      <div class="ch"><svg viewBox="0 0 24 24"><path d="M5 18c0-5 3-8 7-8s7 3 7 8zM8 10 7 5l4 3M16 10l1-5-4 3" fill="none" stroke="#b9a6d9" stroke-width="1.6" stroke-linejoin="round"/></svg><div><label for="vPurr">cat, purring</label><input type="range" id="vPurr" min="0" max="100" value="0"></div><span class="v" id="oPurr">0</span></div>
+      <div class="ch"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#b9a6d9" stroke-width="1.6"/><path d="M12 7v5l3 2" fill="none" stroke="#b9a6d9" stroke-width="1.6"/></svg><div><label for="vTick">clock</label><input type="range" id="vTick" min="0" max="100" value="0"></div><span class="v" id="oTick">0</span></div>
+      <div class="ch"><svg viewBox="0 0 24 24"><path d="M13 2 6 13h5l-1 9 7-12h-5z" fill="none" stroke="#b9a6d9" stroke-width="1.6" stroke-linejoin="round"/></svg><div><label for="vStorm">distant storm</label><input type="range" id="vStorm" min="0" max="100" value="0"></div><span class="v" id="oStorm">0</span></div>
+      <div class="row">
+        <button class="btn on" id="lampB" aria-pressed="true">lamp on</button>
+        <button class="btn" id="playB">wake the room</button>
+      </div>
+      <div class="keys">L lamp · space play / sleep · click the cat, the clock, the window or the record player</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const svg = $('#room'), stage = $('#stage');
+  if (!svg || !stage) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (t, a, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p && p.appendChild(e); return e; };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- procedural bits of the scene ----------
+  const sky = $('#skyline'), lit = $('#lit');
+  let x = 90, seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  while (x < 510) {
+    const w = 30 + rnd() * 50, h = (x > 300 && x < 470 ? 40 : 70) + rnd() * (x > 300 && x < 470 ? 70 : 150), top = 520 - h;
+    mk('rect', { x, y: top, width: w, height: h }, sky);
+    if (rnd() < .3) mk('rect', { x: x + w / 2 - 2, y: top - 22, width: 3, height: 22 }, sky);
+    for (let yy = top + 10; yy < 510; yy += 14) for (let xx = x + 6; xx < x + w - 8; xx += 11) if (rnd() < .22) mk('rect', { x: xx, y: yy, width: 5, height: 7, opacity: (.35 + rnd() * .6).toFixed(2), class: 'win' }, lit);
+    x += w + 2;
+  }
+  const fins = $('#fins'); for (let i = 0; i < 13; i++) mk('rect', { x: 158 + i * 22.5, y: 618, width: 14, height: 104, rx: 6 }, fins);
+  const ticks = $('#ticks'); for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; mk('line', { x1: 600 + Math.sin(a) * 36, y1: 175 - Math.cos(a) * 36, x2: 600 + Math.sin(a) * (i % 3 ? 40 : 33), y2: 175 - Math.cos(a) * (i % 3 ? 40 : 33) }, ticks); }
+
+  // ---------- mixer state ----------
+  const CH = ['Rain', 'Beat', 'Purr', 'Tick', 'Storm'];
+  const vol = {};
+  CH.forEach(c => {
+    const r = $('#v' + c), o = $('#o' + c);
+    const upd = () => { vol[c] = +r.value / 100; if (o) o.textContent = r.value; r.style.setProperty('--p', r.value + '%'); applyVol(); visuals(); };
+    if (r) { r.addEventListener('input', upd); vol[c] = +r.value / 100; r.style.setProperty('--p', r.value + '%'); }
+  });
+  function setVol(c, v) { const r = $('#v' + c); if (!r) return; r.value = Math.round(v * 100); r.dispatchEvent(new Event('input')); }
+
+  // ---------- audio engine ----------
+  let ac = null, master, bus = {}, running = false, nextBeat = 0, beatN = 0, schedT = 0, nextTick = 0, tickN = 0, nextThunder = 0;
+  const BPM = 72, SPB = 60 / BPM;
+  function noiseBuf(sec, kind) {
+    const n = Math.floor(ac.sampleRate * sec), b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < n; i++) {
+      const w = Math.random() * 2 - 1;
+      if (kind === 'brown') { last = (last + .02 * w) / 1.02; d[i] = last * 3.5; }
+      else if (kind === 'crackle') d[i] = Math.random() < .0009 ? (Math.random() * 2 - 1) * .9 : (Math.random() * 2 - 1) * .012;
+      else d[i] = w;
+    }
+    return b;
+  }
+  function loop(buf, dest) { const s = ac.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(dest); s.start(); return s; }
+  function initAudio() {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain(); master.gain.value = .9;
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
+    master.connect(comp); comp.connect(ac.destination);
+    CH.forEach(c => { bus[c] = ac.createGain(); bus[c].gain.value = 0; bus[c].connect(master); });
+    // rain: two filtered noise beds
+    const white = noiseBuf(3, 'white');
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 400;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3800;
+    const rg = ac.createGain(); rg.gain.value = .22;
+    loop(white, hp); hp.connect(lp); lp.connect(rg); rg.connect(bus.Rain);
+    const low = ac.createBiquadFilter(); low.type = 'lowpass'; low.frequency.value = 500;
+    const lg = ac.createGain(); lg.gain.value = .5; loop(noiseBuf(4, 'brown'), low); low.connect(lg); lg.connect(bus.Rain);
+    // vinyl crackle, part of the beat channel
+    const cf = ac.createBiquadFilter(); cf.type = 'highpass'; cf.frequency.value = 1200;
+    const cg = ac.createGain(); cg.gain.value = .7; loop(noiseBuf(5, 'crackle'), cf); cf.connect(cg); cg.connect(bus.Beat);
+    // purr: brown noise, amplitude-modulated at ~25 Hz, breathing slowly
+    const pl = ac.createBiquadFilter(); pl.type = 'lowpass'; pl.frequency.value = 220;
+    const am = ac.createGain(); am.gain.value = .5;
+    const lfo = ac.createOscillator(); lfo.frequency.value = 24; const depth = ac.createGain(); depth.gain.value = .5; lfo.connect(depth); depth.connect(am.gain); lfo.start();
+    const breath = ac.createGain(); breath.gain.value = .6;
+    const blfo = ac.createOscillator(); blfo.frequency.value = .28; const bd = ac.createGain(); bd.gain.value = .4; blfo.connect(bd); bd.connect(breath.gain); blfo.start();
+    loop(noiseBuf(4, 'brown'), pl); pl.connect(am); am.connect(breath); const pg = ac.createGain(); pg.gain.value = 2.2; breath.connect(pg); pg.connect(bus.Purr);
+    // storm bed: very low rumble
+    const sl = ac.createBiquadFilter(); sl.type = 'lowpass'; sl.frequency.value = 140;
+    const sg = ac.createGain(); sg.gain.value = .5; loop(noiseBuf(4, 'brown'), sl); sl.connect(sg); sg.connect(bus.Storm);
+    // wow: a shared slow LFO for the keys
+    wow = ac.createOscillator(); wow.frequency.value = .55; wowD = ac.createGain(); wowD.gain.value = 9; wow.connect(wowD); wow.start();
+    keysLP = ac.createBiquadFilter(); keysLP.type = 'lowpass'; keysLP.frequency.value = 1500; keysLP.connect(bus.Beat);
+  }
+  let wow, wowD, keysLP;
+  const CHORDS = [[53, 57, 60, 64, 41], [52, 55, 59, 62, 40], [50, 53, 57, 60, 38], [48, 52, 55, 59, 36]]; // Fmaj7 Em7 Dm7 Cmaj7
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  function key(m, t, dur, g) {
+    const o = ac.createOscillator(), o2 = ac.createOscillator(), e = ac.createGain();
+    o.type = 'sine'; o2.type = 'triangle'; o.frequency.value = mtof(m); o2.frequency.value = mtof(m) * 2;
+    wowD.connect(o.detune); wowD.connect(o2.detune);
+    const g2 = ac.createGain(); g2.gain.value = .12; o2.connect(g2); g2.connect(e); o.connect(e);
+    e.gain.setValueAtTime(0, t); e.gain.linearRampToValueAtTime(g, t + .015); e.gain.exponentialRampToValueAtTime(g * .35, t + .6); e.gain.exponentialRampToValueAtTime(.0008, t + dur);
+    e.connect(keysLP); o.start(t); o2.start(t); o.stop(t + dur + .05); o2.stop(t + dur + .05);
+    o.onended = () => { try { wowD.disconnect(o.detune); wowD.disconnect(o2.detune); e.disconnect(); } catch (_) {} };
+  }
+  function kick(t) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(42, t + .18); g.gain.setValueAtTime(.9, t); g.gain.exponentialRampToValueAtTime(.001, t + .35); o.connect(g); g.connect(bus.Beat); o.start(t); o.stop(t + .4); }
+  let snBuf = null;
+  function hit(t, f, q, len, gain, type) {
+    if (!snBuf) snBuf = noiseBuf(.5, 'white');
+    const s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = snBuf; fl.type = type || 'bandpass'; fl.frequency.value = f; fl.Q.value = q;
+    g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + len);
+    s.connect(fl); fl.connect(g); g.connect(bus.Beat); s.start(t); s.stop(t + len + .02);
+  }
+  function tick(t, hi) {
+    if (!snBuf) snBuf = noiseBuf(.5, 'white');
+    const s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = snBuf; fl.type = 'bandpass'; fl.frequency.value = hi ? 3400 : 2600; fl.Q.value = 9;
+    g.gain.setValueAtTime(1.4, t); g.gain.exponentialRampToValueAtTime(.001, t + .03);
+    s.connect(fl); fl.connect(g); g.connect(bus.Tick); s.start(t); s.stop(t + .05);
+  }
+  function drip(t) {
+    const o = ac.createOscillator(), g = ac.createGain(), f = 1400 + Math.random() * 2600;
+    o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 1.6, t + .04);
+    g.gain.setValueAtTime(.05, t); g.gain.exponentialRampToValueAtTime(.0005, t + .06);
+    o.connect(g); g.connect(bus.Rain); o.start(t); o.stop(t + .07);
+  }
+  function thunder(t) {
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = noiseBuf(5, 'brown'); f.type = 'lowpass'; f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(90, t + 3.5);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1.6, t + .12); g.gain.exponentialRampToValueAtTime(.3, t + 1.2); g.gain.exponentialRampToValueAtTime(.001, t + 4.6);
+    s.connect(f); f.connect(g); g.connect(bus.Storm); s.start(t); s.stop(t + 5);
+  }
+  function scheduler() {
+    if (!running || !ac) return;
+    const ahead = ac.currentTime + .15;
+    while (nextBeat < ahead) {
+      const step = beatN % 8, bar = Math.floor(beatN / 8) % 4, t = nextBeat + (step % 2 ? SPB * .08 : 0);   // swung eighths
+      if (vol.Beat > 0) {
+        if (step === 0) CHORDS[bar].forEach((m, i) => key(m, t + i * .012, SPB * 3.8, i === 4 ? .22 : .1));
+        if (step === 5 && Math.random() < .6) key(CHORDS[bar][3] + 12, t, SPB * 1.2, .05);
+        if (step === 0 || step === 5 || (step === 3 && Math.random() < .3)) kick(t);
+        if (step === 2 || step === 6) hit(t, 1900, .9, .16, .5);
+        hit(t, 8000, .6, .04, step % 2 ? .08 : .14, 'highpass');
+      }
+      nextBeat += SPB / 2; beatN++;
+    }
+    while (nextTick < ahead) { if (vol.Tick > 0) tick(nextTick, tickN % 2 === 0); tickN++; nextTick += 1; }
+    if (vol.Rain > 0) { const n = Math.random() < vol.Rain * .9 ? 1 : 0; for (let i = 0; i < n; i++) drip(ac.currentTime + Math.random() * .12); }
+    if (vol.Storm > 0 && ac.currentTime > nextThunder) {
+      nextThunder = ac.currentTime + 9 + Math.random() * (26 - vol.Storm * 14);
+      flash(); thunder(ac.currentTime + .5 + Math.random() * 1.2);
+    }
+  }
+  function applyVol() {
+    if (!ac) return;
+    const k = { Rain: 1, Beat: .9, Purr: .9, Tick: .5, Storm: 1 };
+    CH.forEach(c => bus[c].gain.setTargetAtTime(running ? vol[c] * vol[c] * k[c] : 0, ac.currentTime, .25));
+  }
+  const status = $('#status'), playB = $('#playB'), wake = $('#wake');
+  function start() {
+    try {
+      if (!ac) initAudio();
+      if (ac.state === 'suspended') ac.resume();
+      running = true; nextBeat = ac.currentTime + .1; nextTick = Math.ceil(ac.currentTime); nextThunder = ac.currentTime + 4;
+      applyVol();
+      if (!schedT) schedT = setInterval(scheduler, 50);
+    } catch (_) { running = true; }
+    if (wake) wake.hidden = true;
+    if (status) status.textContent = 'awake';
+    if (playB) { playB.textContent = 'let it sleep'; playB.classList.add('on'); }
+    visuals();
+  }
+  function stop() {
+    running = false; applyVol();
+    if (status) status.textContent = 'asleep';
+    if (playB) { playB.textContent = 'wake the room'; playB.classList.remove('on'); }
+    visuals();
+  }
+  playB && playB.addEventListener('click', () => running ? stop() : start());
+  wake && wake.addEventListener('click', start);
+
+  // ---------- lamp ----------
+  let lampOn = true;
+  const lampB = $('#lampB');
+  function setLamp(on) {
+    lampOn = on;
+    const g = $('#glow'), c = $('#cone'), b = $('#bulb'), d = $('#dark'), rim = $('#catRim');
+    if (g) g.style.opacity = on ? 1 : 0; if (c) c.style.opacity = on ? 1 : 0;
+    if (b) b.setAttribute('fill', on ? '#ffe7b0' : '#6b5a4a');
+    if (d) d.setAttribute('opacity', on ? 0 : .42);
+    if (rim) rim.style.opacity = on ? 1 : 0;
+    if (lampB) { lampB.textContent = on ? 'lamp on' : 'lamp off'; lampB.classList.toggle('on', on); lampB.setAttribute('aria-pressed', on); }
+    if (ac && running) { const o = ac.createOscillator(), g2 = ac.createGain(), t = ac.currentTime; o.frequency.value = on ? 1800 : 1400; g2.gain.setValueAtTime(.08, t); g2.gain.exponentialRampToValueAtTime(.001, t + .05); o.connect(g2); g2.connect(master); o.start(t); o.stop(t + .06); }
+  }
+  ['glow', 'cone', 'dark'].forEach(id => { const e = document.getElementById(id); if (e) e.style.transition = 'opacity .35s'; });
+  lampB && lampB.addEventListener('click', () => setLamp(!lampOn));
+
+  // ---------- clickable objects ----------
+  const tip = $('#tip');
+  const act = {
+    window: () => setVol('Rain', vol.Rain > .05 ? 0 : .7),
+    cat: () => setVol('Purr', vol.Purr > .05 ? 0 : .75),
+    clock: () => setVol('Tick', vol.Tick > .05 ? 0 : .6),
+    player: () => setVol('Beat', vol.Beat > .05 ? 0 : .6),
+    lamp: () => setLamp(!lampOn)
+  };
+  document.querySelectorAll('.hot').forEach(g => {
+    const fire = () => { if (!running) start(); (act[g.id] || (() => {}))(); };
+    g.addEventListener('click', fire);
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+    const show = () => {
+      if (!tip) return;
+      const r = g.getBoundingClientRect(), s = stage.getBoundingClientRect();
+      tip.textContent = g.dataset.tip || ''; tip.style.left = (r.left + r.width / 2 - s.left) + 'px'; tip.style.top = Math.max(30, r.top - s.top) + 'px'; tip.classList.add('on');
+    };
+    g.addEventListener('pointerenter', show); g.addEventListener('focus', show);
+    g.addEventListener('pointerleave', () => tip && tip.classList.remove('on')); g.addEventListener('blur', () => tip && tip.classList.remove('on'));
+  });
+  addEventListener('keydown', e => {
+    if (e.target && (e.target.tagName === 'INPUT')) return;
+    if (e.key === 'l' || e.key === 'L') setLamp(!lampOn);
+    else if (e.key === ' ' && !(e.target && (e.target.tagName === 'BUTTON' || e.target.classList?.contains('hot')))) { e.preventDefault(); running ? stop() : start(); }
+  });
+
+  // ---------- visuals bound to the mix ----------
+  const catBody = $('#catBody'), led = $('#led');
+  function visuals() {
+    if (catBody) catBody.style.setProperty('--br', (vol.Purr > .05 && running ? 2.2 : 4.2) + 's');
+    if (led) led.setAttribute('fill', running && vol.Beat > .05 ? '#7dffb0' : '#553');
+  }
+
+  // ---------- clock hands (real time) ----------
+  function clock() {
+    const d = new Date(), s = d.getSeconds(), m = d.getMinutes() + s / 60, h = (d.getHours() % 12) + m / 60;
+    const set = (id, a) => { const e = document.getElementById(id); if (e) e.setAttribute('transform', `rotate(${a} 600 175)`); };
+    set('sH', s * 6); set('mH', m * 6); set('hH', h * 30);
+    const n = $('#now');
+    if (n) { const hh = d.getHours(), mm = String(d.getMinutes()).padStart(2, '0'); n.textContent = `it is ${hh % 12 || 12}:${mm} ${hh < 12 ? 'a.m.' : 'p.m.'} — ${hh >= 22 || hh < 5 ? 'go to bed' : hh < 12 ? 'somehow still raining' : 'rain all afternoon'}`; }
+  }
+  clock(); setInterval(clock, 1000);
+
+  // ---------- rain on the glass (canvas over the window pane) ----------
+  const cv = $('#rain'), cx = cv ? cv.getContext('2d') : null, flashEl = $('#flash');
+  let W = 0, H = 0, dpr = 1, streaks = [], drops = [];
+  function place() {
+    if (!cv) return;
+    const pt = svg.createSVGPoint(), m = svg.getScreenCTM(), s = stage.getBoundingClientRect();
+    if (!m) return;
+    pt.x = 90; pt.y = 130; const a = pt.matrixTransform(m); pt.x = 510; pt.y = 520; const b = pt.matrixTransform(m);
+    W = b.x - a.x; H = b.y - a.y;
+    cv.style.left = (a.x - s.left) + 'px'; cv.style.top = (a.y - s.top) + 'px'; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    dpr = Math.min(2, devicePixelRatio || 1); cv.width = W * dpr; cv.height = H * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function flash() {
+    if (!flashEl || reduce) return;
+    flashEl.animate([{ opacity: 0 }, { opacity: .5 }, { opacity: .05 }, { opacity: .35 }, { opacity: 0 }], { duration: 700 });
+  }
+  let last = performance.now(), platA = 0;
+  const platter = $('#platter');
+  function frame(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if (cx && W) {
+      cx.clearRect(0, 0, W, H);
+      const inten = Math.min(1, vol.Rain + vol.Storm * .4), sc = W / 420;
+      const want = Math.floor(inten * 130 * (reduce ? .4 : 1));
+      while (streaks.length < want) streaks.push({ x: Math.random() * W * 1.2, y: Math.random() * -H, v: (500 + Math.random() * 500) * sc, l: (10 + Math.random() * 18) * sc });
+      if (streaks.length > want) streaks.length = want;
+      cx.strokeStyle = 'rgba(200,210,255,.35)'; cx.lineWidth = 1;
+      cx.beginPath();
+      for (const s of streaks) {
+        s.y += s.v * dt; s.x -= s.v * dt * .12;
+        if (s.y > H) { s.y = -s.l - Math.random() * H * .3; s.x = Math.random() * W * 1.2; }
+        cx.moveTo(s.x, s.y); cx.lineTo(s.x + s.l * .12, s.y - s.l);
+      }
+      cx.stroke();
+      // drops that cling and slide down the glass
+      if (Math.random() < inten * .5 && drops.length < 70) drops.push({ x: Math.random() * W, y: Math.random() * H * .8, r: (1.2 + Math.random() * 2.8) * sc, v: 0, trail: [] });
+      for (let i = drops.length - 1; i >= 0; i--) {
+        const d = drops[i];
+        if (d.r > 2.6 * sc && Math.random() < .03) d.v = 30 + Math.random() * 60;
+        if (d.v) { d.trail.push([d.x, d.y]); if (d.trail.length > 24) d.trail.shift(); d.y += d.v * dt * sc; d.x += Math.sin(d.y * .05) * .3; d.v *= .995; }
+        if (d.y > H + 5) { drops.splice(i, 1); continue; }
+        if (d.trail.length > 1) { cx.strokeStyle = 'rgba(210,220,255,.18)'; cx.lineWidth = d.r * .6; cx.beginPath(); d.trail.forEach(([tx, ty], k) => k ? cx.lineTo(tx, ty) : cx.moveTo(tx, ty)); cx.stroke(); }
+        const g = cx.createRadialGradient(d.x - d.r * .3, d.y - d.r * .3, 0, d.x, d.y, d.r);
+        g.addColorStop(0, 'rgba(255,255,255,.7)'); g.addColorStop(.5, 'rgba(180,190,240,.25)'); g.addColorStop(1, 'rgba(40,40,80,.35)');
+        cx.fillStyle = g; cx.beginPath(); cx.arc(d.x, d.y, d.r, 0, 6.283); cx.fill();
+      }
+    }
+    if (platter && running && vol.Beat > .05 && !reduce) { platA = (platA + dt * 200) % 360; platter.style.transform = `translate(${Math.sin(platA * Math.PI / 180) * 1.5}px,0)`; }
+    // window lights blink off one at a time, very occasionally
+    if (Math.random() < .01) { const ws = lit.children; const w = ws[Math.floor(Math.random() * ws.length)]; if (w) w.style.opacity = w.style.opacity === '0' ? '' : '0'; }
+    requestAnimationFrame(frame);
+  }
+  addEventListener('resize', place);
+  if ('ResizeObserver' in window) new ResizeObserver(place).observe(stage);
+  place(); visuals();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

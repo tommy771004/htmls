@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>噪音夏日 NOISE SUMMER #7 — 一本可以亂拖的 zine</title>
+<style>
+:root{
+  --kraft:#c49a67; --kraft2:#a97d4c; --paper:#f3efe4; --yel:#eeff1f; --red:#e0261b; --ink:#111;
+  --imp:Impact,"Haettenschweiler","Arial Black","Microsoft JhengHei",sans-serif;
+  --tim:"Times New Roman",Times,"PMingLiU","新細明體",serif;
+  --cou:"Courier New",Courier,"MingLiU","細明體",monospace;
+  --hei:"Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans TC",sans-serif;
+  --kai:"DFKai-SB","標楷體","BiauKai","Kaiti TC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--kraft)}
+body{min-height:100vh;color:var(--ink);font-family:var(--hei);
+  background-color:var(--kraft);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.04 .9' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35  0 0 0 0 .22  0 0 0 0 .1  0 0 0 .5 -.1'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23f)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 30% 20%,rgba(255,230,190,.35),transparent 60%),
+    radial-gradient(ellipse at 80% 90%,rgba(80,40,10,.3),transparent 60%);
+  overflow-x:hidden}
+
+#board{position:relative;width:100%;height:max(100vh,860px);overflow:clip}
+.piece{position:absolute;left:0;top:0;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;
+  filter:drop-shadow(2px 3px 0 rgba(40,20,0,.28)) drop-shadow(0 6px 8px rgba(40,20,0,.18));transform-origin:50% 50%;will-change:transform;outline:none}
+.piece:focus-visible .paper{outline:3px dashed var(--red);outline-offset:4px}
+.piece.drag{cursor:grabbing;filter:drop-shadow(8px 16px 0 rgba(40,20,0,.25)) drop-shadow(0 18px 18px rgba(40,20,0,.25))}
+.piece.in{animation:drop .5s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes drop{from{opacity:0;translate:0 -60px;scale:1.25}to{opacity:1;translate:0 0;scale:1}}
+.paper{position:relative;background:var(--paper);padding:14px 16px}
+.paper::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.55;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='x'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .35 -.05'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23x)'/%3E%3C/svg%3E")}
+.tape{position:absolute;width:74px;height:24px;background:rgba(240,232,200,.62);box-shadow:0 1px 1px rgba(0,0,0,.12);z-index:2;
+  -webkit-mask:linear-gradient(90deg,transparent 0 2px,#000 2px calc(100% - 2px),transparent 0);
+  background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.2) 0 2px,transparent 2px 5px)}
+.tape.t1{top:-10px;left:50%;margin-left:-37px;transform:rotate(-4deg)}
+.tape.t2{top:-8px;left:-18px;transform:rotate(-38deg)}
+.tape.t3{bottom:-9px;right:-16px;transform:rotate(-30deg)}
+.tape.yel{background-color:rgba(238,255,31,.72)}
+.staple{position:absolute;width:26px;height:6px;border:2px solid #777;border-bottom:0;border-radius:1px;z-index:2;background:linear-gradient(#bbb,#888)}
+
+/* ransom letters */
+.rl .paper{display:grid;place-items:center;padding:.05em .12em;line-height:1;font-size:clamp(64px,8.6vw,138px)}
+.rl.a .paper{background:var(--yel);font-family:var(--imp)}
+.rl.b .paper{background:#fff;font-family:var(--tim);font-weight:700}
+.rl.c .paper{background:var(--ink);color:#fff;font-family:var(--kai)}
+.rl.d .paper{background:var(--red);color:var(--ink);font-family:var(--hei);font-weight:900}
+.rl.b .paper span{border-bottom:6px solid var(--ink)}
+
+/* strip */
+.strip .paper{background:var(--ink);color:var(--paper);display:flex;align-items:baseline;gap:.4em;flex-wrap:wrap;padding:10px 18px}
+.strip b{font-family:var(--imp);font-weight:400;font-size:clamp(34px,3.6vw,58px);letter-spacing:.02em;line-height:.95}
+.strip b i{font-style:normal;color:var(--yel)}
+.strip small{font-family:var(--cou);font-size:13px;letter-spacing:.08em;width:100%}
+.strip small em{font-style:normal;background:var(--yel);color:var(--ink);padding:0 4px}
+
+/* xerox photos */
+.photo .paper{background:#e9e6de;padding:10px 10px 8px}
+.photo svg{display:block;width:100%;height:auto;filter:contrast(1.2)}
+.photo figcaption{font-family:var(--cou);font-size:12.5px;line-height:1.45;margin-top:6px}
+.photo figcaption b{background:var(--ink);color:var(--paper);padding:0 4px;font-weight:400}
+
+/* flyer */
+.flyer .paper{background:var(--ink);color:#fff;padding:18px 18px 16px}
+.flyer .k{font-family:var(--cou);font-size:12px;letter-spacing:.2em;color:var(--yel)}
+.flyer h3{font-family:var(--hei);font-weight:900;font-size:clamp(30px,2.8vw,44px);line-height:1;margin:.2em 0 .1em;letter-spacing:.02em}
+.flyer .en{font-family:var(--imp);font-size:clamp(22px,2vw,30px);letter-spacing:.04em;color:var(--red);line-height:1}
+.flyer .date{font-family:var(--imp);font-size:clamp(46px,4.6vw,76px);line-height:.9;margin:.2em 0;color:#fff;-webkit-text-stroke:0}
+.flyer .date span{color:var(--yel)}
+.flyer ul{list-style:none;font-family:var(--cou);font-size:13px;line-height:1.6;border-top:1px dashed #fff;border-bottom:1px dashed #fff;padding:6px 0;margin:8px 0}
+.flyer ul li::before{content:"✕ ";color:var(--red)}
+.flyer p{font-size:12.5px;line-height:1.5}
+
+/* typed manifesto */
+.memo .paper{font-family:var(--cou);font-size:14px;line-height:1.72;padding:18px 20px;background:#faf8f1;
+  background-image:repeating-linear-gradient(to bottom,transparent 0 23px,rgba(40,90,180,.14) 23px 24px)}
+.memo h4{font-family:var(--imp);font-weight:400;font-size:26px;letter-spacing:.04em;margin-bottom:4px}
+.memo h4 u{text-decoration:none;background:var(--yel);padding:0 6px}
+.memo mark{background:none;color:var(--red);font-weight:700;text-decoration:underline wavy var(--red);text-underline-offset:4px}
+.memo s{text-decoration-color:var(--red);text-decoration-thickness:2px}
+
+/* cassette */
+.tape-j .paper{background:#fff;padding:0;border:0}
+.tape-j .hd{background:var(--red);color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:baseline;font-family:var(--imp);font-size:24px;letter-spacing:.04em}
+.tape-j .hd small{font-family:var(--cou);font-size:11px;letter-spacing:.1em}
+.tape-j ol{list-style:none;padding:10px 14px 12px;font-family:var(--cou);font-size:13px;line-height:1.75}
+.tape-j ol li{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dotted #999}
+.tape-j ol li.side{font-family:var(--imp);font-size:15px;border:0;margin-top:4px;letter-spacing:.06em}
+.tape-j .reel{display:flex;gap:18px;justify-content:center;padding:0 0 12px}
+.tape-j .reel i{width:34px;height:34px;border-radius:50%;border:3px solid var(--ink);background:repeating-conic-gradient(var(--ink) 0 20deg,transparent 20deg 60deg);animation:spin 3s linear infinite paused}
+.tape-j:hover .reel i,.tape-j.drag .reel i{animation-play-state:running}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* sticker */
+.sticker .paper{background:var(--yel);border-radius:50%;aspect-ratio:1;display:grid;place-items:center;text-align:center;padding:10px;border:3px solid var(--ink)}
+.sticker b{font-family:var(--imp);font-weight:400;font-size:clamp(34px,3.2vw,52px);line-height:.85;display:block}
+.sticker span{font-family:var(--hei);font-weight:900;font-size:clamp(16px,1.4vw,22px);display:block}
+.sticker small{font-family:var(--cou);font-size:11px}
+
+/* stamp */
+.stamp .paper{background:transparent;border:4px double var(--red);color:var(--red);font-family:var(--imp);font-size:clamp(20px,1.8vw,28px);letter-spacing:.08em;text-align:center;line-height:1.05;padding:8px 12px;opacity:.9}
+.stamp .paper::after{opacity:.9;mix-blend-mode:screen}
+.stamp small{display:block;font-family:var(--cou);font-size:11px;letter-spacing:.1em}
+.stamp{filter:none}
+
+/* checklist */
+.list .paper{background:#fffef4;font-family:var(--kai);font-size:18px;line-height:1.7;padding:16px 18px 14px 34px;
+  background-image:linear-gradient(90deg,transparent 22px,rgba(224,38,27,.45) 22px 23px,transparent 23px)}
+.list h4{font-family:var(--hei);font-weight:900;font-size:19px;margin-bottom:4px}
+.list li{list-style:none}
+.list li::before{content:"☐ ";font-family:var(--cou)}
+.list li.ok::before{content:"☑ ";color:var(--red)}
+.list li.ok{text-decoration:line-through;text-decoration-color:rgba(224,38,27,.7)}
+
+/* letter */
+.letter .paper{font-family:var(--tim);font-size:15px;line-height:1.6;background:#fff;padding:14px 18px;columns:1}
+.letter h5{font-family:var(--imp);font-weight:400;font-size:16px;letter-spacing:.14em;border-bottom:3px solid var(--ink);margin-bottom:6px}
+.letter p + p{text-align:right;font-family:var(--kai)}
+
+/* toolbar */
+.tools{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) rotate(-1deg);z-index:9999;display:flex;gap:6px;align-items:center;
+  background:rgba(240,232,200,.9);padding:6px 10px;box-shadow:0 3px 8px rgba(40,20,0,.3);max-width:calc(100vw - 20px)}
+.tools button{min-height:40px;padding:0 14px;border:2px solid var(--ink);background:#fff;font-family:var(--cou);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+.tools button:hover{background:var(--yel)}
+.tools button:active{transform:translate(1px,2px)}
+.tools span{font-family:var(--cou);font-size:12px;padding:0 6px}
+
+@media (max-width:819px){
+  #board{height:auto;min-height:100vh}
+  .rl .paper{font-size:clamp(52px,17vw,90px)}
+  .tools span{display:none}
+}
+@media (prefers-reduced-motion:reduce){.piece.in{animation:none}.tape-j .reel i{animation:none}}
+</style>
+</head>
+<body>
+<main id="board" aria-label="拼貼版面：可拖曳的紙片">
+
+  <div class="piece rl a" data-k="c1" tabindex="0" aria-label="噪"><div class="paper"><span>噪</span></div></div>
+  <div class="piece rl b" data-k="c2" tabindex="0" aria-label="音"><div class="paper"><span>音</span></div></div>
+  <div class="piece rl c" data-k="c3" tabindex="0" aria-label="夏"><div class="paper"><span>夏</span></div><i class="tape t1"></i></div>
+  <div class="piece rl d" data-k="c4" tabindex="0" aria-label="日"><div class="paper"><span>日</span></div></div>
+
+  <div class="piece strip" data-k="strip" tabindex="0"><div class="paper"><b>NOISE <i>SUMMER</i> №7</b><small>夏季特刊 · 2026 · <em>NT$0 / FREE</em> · 影印 200 本 · 印壞的 37 本也照發</small></div></div>
+
+  <figure class="piece photo" data-k="amp" tabindex="0"><div class="paper">
+    <svg viewBox="0 0 300 220" aria-label="影印照片：一整面音箱牆" role="img">
+      <defs>
+        <pattern id="hd" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="2.1" fill="#111"/></pattern>
+        <pattern id="hm" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.4" fill="#111"/></pattern>
+        <pattern id="hl" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r=".8" fill="#111"/></pattern>
+      </defs>
+      <rect width="300" height="220" fill="url(#hl)"/>
+      <rect x="0" y="170" width="300" height="50" fill="url(#hm)"/>
+      <g>
+        <rect x="18" y="30" width="120" height="140" fill="#111"/>
+        <rect x="24" y="36" width="108" height="16" fill="#e9e6de"/><rect x="24" y="36" width="108" height="16" fill="url(#hm)"/>
+        <g><circle cx="50" cy="84" r="22" fill="#e9e6de"/><circle cx="106" cy="84" r="22" fill="#e9e6de"/><circle cx="50" cy="136" r="22" fill="#e9e6de"/><circle cx="106" cy="136" r="22" fill="#e9e6de"/></g>
+        <g fill="url(#hd)"><circle cx="50" cy="84" r="22"/><circle cx="106" cy="84" r="22"/><circle cx="50" cy="136" r="22"/><circle cx="106" cy="136" r="22"/></g>
+        <g fill="none" stroke="#e9e6de" stroke-width="2"><circle cx="50" cy="84" r="14"/><circle cx="106" cy="84" r="14"/><circle cx="50" cy="136" r="14"/><circle cx="106" cy="136" r="14"/></g>
+        <circle cx="50" cy="84" r="7" fill="#111"/><circle cx="106" cy="84" r="7" fill="#111"/><circle cx="50" cy="136" r="7" fill="#111"/><circle cx="106" cy="136" r="7" fill="#111"/>
+        <rect x="150" y="60" width="120" height="110" fill="#111"/>
+        <rect x="156" y="66" width="108" height="98" fill="#e9e6de"/><rect x="156" y="66" width="108" height="98" fill="url(#hd)"/>
+        <circle cx="210" cy="115" r="38" fill="#e9e6de"/><circle cx="210" cy="115" r="38" fill="url(#hm)"/><circle cx="210" cy="115" r="26" fill="none" stroke="#111" stroke-width="3"/><circle cx="210" cy="115" r="12" fill="#111"/>
+        <rect x="150" y="30" width="120" height="26" fill="#111"/>
+        <g fill="#e9e6de"><circle cx="166" cy="43" r="4"/><circle cx="182" cy="43" r="4"/><circle cx="198" cy="43" r="4"/><circle cx="214" cy="43" r="4"/></g>
+        <text x="236" y="48" font-family="Impact,Arial Black,sans-serif" font-size="13" fill="#e9e6de">11</text>
+        <path d="M60 170 C 90 200, 160 180, 190 210 S 260 200, 300 215" stroke="#111" stroke-width="4" fill="none"/>
+        <path d="M200 170 C 210 190, 240 190, 250 220" stroke="#111" stroke-width="3" fill="none"/>
+      </g>
+    </svg>
+    <figcaption><b>P.03</b> 耳鳴俱樂部的音箱牆。音量旋鈕做到 11，因為 10 太有禮貌。</figcaption>
+  </div><i class="tape t2"></i><i class="tape t3 yel"></i></figure>
+
+  <div class="piece flyer" data-k="flyer" tabindex="0"><div class="paper">
+    <div class="k">LIVE · 現場 · 不插電是不可能的</div>
+    <h3>地下室現場</h3>
+    <div class="en">BASEMENT SHOW</div>
+    <div class="date">8.16 <span>SAT</span></div>
+    <ul><li>雜音製造所</li><li>耳鳴俱樂部</li><li>冷氣壞掉 (reunion!)</li></ul>
+    <p>入場 NT$300，附一瓶不冰的啤酒。<br>地點：永和某地下室，看到腳踏車堆就對了。</p>
+  </div><i class="staple" style="top:6px;left:50%;margin-left:-13px"></i></div>
+
+  <div class="piece memo" data-k="memo" tabindex="0"><div class="paper">
+    <h4><u>編輯的話</u> / EDITOR</h4>
+    <p>夏天太吵了。蟬在吵、冷氣在吵、樓上在裝潢。所以我們決定<mark>比它們更吵</mark>。</p>
+    <p>本期收錄：三個樂團、兩台壞掉的效果器、一台只會放 B 面的卡帶機，以及一篇 <s>很有深度的</s> 很長的樂評。</p>
+    <p>讀完請傳給下一個人。或拿去墊便當。</p>
+  </div><i class="tape t1 yel"></i></div>
+
+  <div class="piece tape-j" data-k="tape" tabindex="0"><div class="paper">
+    <div class="hd">MIXTAPE C-60 <small>本期附贈（想像中的）</small></div>
+    <ol>
+      <li class="side">SIDE A</li>
+      <li><span>1. 蟬 (Live at 頂樓)</span><span>4:12</span></li>
+      <li><span>2. 電風扇協奏曲</span><span>6:30</span></li>
+      <li><span>3. Feedback Is My Love Language</span><span>3:03</span></li>
+      <li class="side">SIDE B</li>
+      <li><span>4. 冰塊融化的聲音</span><span>9:59</span></li>
+      <li><span>5. 鄰居來敲門</span><span>0:45</span></li>
+      <li><span>6. 7-11 Drone</span><span>23:59</span></li>
+    </ol>
+    <div class="reel" aria-hidden="true"><i></i><i></i></div>
+  </div></div>
+
+  <div class="piece sticker" data-k="free" tabindex="0"><div class="paper"><div><b>FREE</b><span>免費拿一本</span><small>(拿兩本會被瞪)</small></div></div></div>
+
+  <div class="piece stamp" data-k="stamp" tabindex="0"><div class="paper">APPROVED<br>BY NOBODY<small>無人審核 · 品質不保證</small></div></div>
+
+  <div class="piece list" data-k="list" tabindex="0"><div class="paper">
+    <h4>夏日生存清單</h4>
+    <ul><li class="ok">延長線 ×3</li><li class="ok">冰啤酒</li><li>耳塞（永遠忘記帶）</li><li>睡覺</li><li class="ok">再做一期 zine</li></ul>
+  </div><i class="tape t2"></i></div>
+
+  <div class="piece letter" data-k="letter" tabindex="0"><div class="paper">
+    <h5>讀者來信 LETTERS</h5>
+    <p>親愛的編輯：你們上一期把我的名字印錯了，而且印了兩百次。</p>
+    <p>——林小明（不是林小眀）</p>
+  </div></div>
+
+  <figure class="piece photo" data-k="crowd" tabindex="0"><div class="paper">
+    <svg viewBox="0 0 240 150" aria-label="影印照片：台下舉起的手" role="img">
+      <rect width="240" height="150" fill="url(#hd)"/>
+      <ellipse cx="120" cy="10" rx="120" ry="40" fill="url(#hl)"/>
+      <g fill="#e9e6de">
+        <path d="M20 150 L26 88 L22 70 L28 68 L32 84 L34 64 L39 64 L39 86 L44 70 L49 72 L44 96 L42 150Z"/>
+        <path d="M78 150 L82 100 L76 76 L82 74 L88 92 L90 60 L96 60 L96 90 L102 66 L108 68 L100 106 L100 150Z"/>
+        <path d="M150 150 L154 94 L148 62 L155 60 L160 86 L164 50 L170 51 L169 84 L176 58 L182 61 L174 100 L174 150Z"/>
+        <path d="M200 150 L204 104 L200 84 L206 83 L210 98 L214 78 L219 79 L218 100 L226 86 L230 90 L220 112 L222 150Z"/>
+      </g>
+      <g fill="url(#hm)"><circle cx="50" cy="150" r="30"/><circle cx="128" cy="150" r="34"/><circle cx="196" cy="150" r="26"/></g>
+    </svg>
+    <figcaption>台下的手。其中一隻拿著我們的 zine，另一隻拿著被沒收的鼓棒。</figcaption>
+  </div><i class="tape t1"></i></figure>
+</main>
+
+<div class="tools" role="toolbar" aria-label="拼貼工具">
+  <span>✂ 拖曳紙片 / DRAG</span>
+  <button id="shuffle" type="button">亂貼一通 SHUFFLE</button>
+  <button id="reset" type="button">排回去 RESET</button>
+</div>
+
+<script>
+(function(){
+  var board=document.getElementById('board'); if(!board) return;
+  var pieces=[].slice.call(board.querySelectorAll('.piece'));
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* desktop layout: key -> [x%, y%, rot, width% of board] */
+  var D={
+    c1:[4,4,-7,10], c2:[13.5,9,5,9], c3:[22,3,-3,10], c4:[31,9.5,8,9],
+    strip:[5,33,-2.5,33], amp:[42,5,3,26], flyer:[71,7,-4,22], memo:[4,49,1.5,29],
+    tape:[36,50,-3,23], free:[61,40,12,10.5], stamp:[27,41,-14,12], list:[62,58,3.5,17],
+    letter:[80,64,-2,17], crowd:[22,71,-5,15]
+  };
+  var MOB_ORDER=['strip','amp','free','flyer','memo','stamp','tape','list','crowd','letter'];
+  var MOB={strip:[3,92,-2],amp:[6,86,3],free:[62,34,12],flyer:[10,80,-4],memo:[2,94,1.5],stamp:[48,44,-13],tape:[8,82,-3],list:[20,72,3],crowd:[4,78,-4],letter:[8,86,-2]};
+
+  var state={}; // key -> {x,y,r}  (px)
+  var z=10;
+  function isMob(){return window.innerWidth<820;}
+  function place(p){var s=state[p.dataset.k]; if(!s) return; p.style.transform='translate('+s.x+'px,'+s.y+'px) rotate('+s.r+'deg)';}
+
+  function layout(){
+    var W=board.clientWidth;
+    if(!isMob()){
+      board.style.height='';
+      var H=board.clientHeight;
+      pieces.forEach(function(p){var d=D[p.dataset.k]; if(!d) return; p.style.width=(d[3]*W/100)+'px';});
+      pieces.forEach(function(p){var d=D[p.dataset.k]; if(!d) return; var w=p.offsetWidth,h=p.offsetHeight; state[p.dataset.k]={x:Math.min(W-w-8,d[0]*W/100),y:Math.min(Math.max(H,860)-h-70,d[1]*H/100),r:d[2]};});
+    } else {
+      /* title letters in a row */
+      var cw=(W-24)/4.3, y=18;
+      ['c1','c2','c3','c4'].forEach(function(k,i){var p=board.querySelector('[data-k="'+k+'"]'); if(!p) return; p.style.width=cw+'px'; state[k]={x:10+i*cw*1.02,y:y+(i%2?14:0),r:[-7,5,-3,8][i]};});
+      var first=board.querySelector('[data-k="c1"]'); y+= (first?first.offsetHeight:90)+26;
+      MOB_ORDER.forEach(function(k,i){
+        var p=board.querySelector('[data-k="'+k+'"]'); if(!p) return; var m=MOB[k];
+        var w=m[1]*W/100; p.style.width=w+'px';
+        var h=p.offsetHeight, x=Math.min(W-w-6,m[0]*W/100);
+        if(k==='free'||k==='stamp'){ state[k]={x:x,y:y-h*0.55,r:m[2]}; return; }
+        state[k]={x:x,y:y,r:m[2]}; y+=h*0.9+14;
+      });
+      board.style.height=(y+90)+'px';
+    }
+    pieces.forEach(place);
+  }
+  var home={};
+  function snapshotHome(){home=JSON.parse(JSON.stringify(state));}
+
+  /* drag */
+  var drag=null;
+  pieces.forEach(function(p){
+    p.addEventListener('pointerdown',function(e){
+      if(e.button!==0&&e.pointerType==='mouse') return;
+      var s=state[p.dataset.k]; if(!s) return;
+      p.style.zIndex=++z; p.classList.add('drag'); p.classList.remove('in');
+      drag={p:p,s:s,sx:e.clientX,sy:e.clientY,ox:s.x,oy:s.y,r0:s.r,vx:0,lx:e.clientX,id:e.pointerId};
+      try{p.setPointerCapture(e.pointerId);}catch(err){}
+      e.preventDefault();
+    });
+    p.addEventListener('pointermove',function(e){
+      if(!drag||drag.p!==p) return;
+      var W=board.clientWidth,H=board.clientHeight,w=p.offsetWidth,h=p.offsetHeight;
+      drag.s.x=Math.max(0,Math.min(W-w,drag.ox+e.clientX-drag.sx));
+      drag.s.y=Math.max(-10,Math.min(H-h*0.5,drag.oy+e.clientY-drag.sy));
+      drag.vx=drag.vx*0.7+(e.clientX-drag.lx)*0.3; drag.lx=e.clientX;
+      drag.s.r=drag.r0+Math.max(-10,Math.min(10,drag.vx*0.8));
+      place(p);
+    });
+    function end(){
+      if(!drag||drag.p!==p) return;
+      var s=drag.s, settle=drag.r0+(Math.random()*6-3); s.r=settle; drag=null; p.classList.remove('drag'); place(p);
+      if(!reduce&&p.animate){p.animate([{transform:'translate('+s.x+'px,'+s.y+'px) rotate('+(settle+4)+'deg)'},{transform:'translate('+s.x+'px,'+s.y+'px) rotate('+(settle-2.5)+'deg)'},{transform:'translate('+s.x+'px,'+s.y+'px) rotate('+(settle+1)+'deg)'},{transform:'translate('+s.x+'px,'+s.y+'px) rotate('+settle+'deg)'}],{duration:420,easing:'ease-out'});}
+      rustle();
+    }
+    p.addEventListener('pointerup',end); p.addEventListener('pointercancel',end); p.addEventListener('lostpointercapture',end);
+    p.addEventListener('keydown',function(e){
+      var s=state[p.dataset.k]; if(!s) return; var st=e.shiftKey?30:8, mv=true;
+      if(e.key==='ArrowLeft') s.x-=st; else if(e.key==='ArrowRight') s.x+=st; else if(e.key==='ArrowUp') s.y-=st; else if(e.key==='ArrowDown') s.y+=st;
+      else if(e.key==='r'||e.key==='R') s.r+=e.shiftKey?-6:6; else mv=false;
+      if(mv){e.preventDefault();s.x=Math.max(0,Math.min(board.clientWidth-p.offsetWidth,s.x));s.y=Math.max(-10,Math.min(board.clientHeight-p.offsetHeight*0.5,s.y));p.style.zIndex=++z;place(p);}
+    });
+  });
+
+  /* paper rustle — WebAudio noise burst, only after a gesture */
+  var ac=null;
+  function rustle(){
+    try{
+      if(!ac){var A=window.AudioContext||window.webkitAudioContext; if(!A) return; ac=new A();}
+      if(ac.state==='suspended') ac.resume();
+      var len=.16, b=ac.createBuffer(1,Math.floor(ac.sampleRate*len),ac.sampleRate), d=b.getChannelData(0);
+      for(var i=0;i<d.length;i++){d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2)*(Math.random()<.3?1:.35);}
+      var s=ac.createBufferSource(), f=ac.createBiquadFilter(), g=ac.createGain(); f.type='bandpass'; f.frequency.value=2600+Math.random()*1800; f.Q.value=.8; g.gain.value=.16;
+      s.buffer=b; s.connect(f); f.connect(g); g.connect(ac.destination); s.start();
+    }catch(e){}
+  }
+
+  /* torn edges: jagged clip-path per paper */
+  function torn(el,amt){
+    var pts=[],n,i,j=function(){return (Math.random()*amt).toFixed(2);};
+    n=14; for(i=0;i<=n;i++) pts.push((i*100/n).toFixed(2)+'% '+j()+'%');
+    n=10; for(i=1;i<=n;i++) pts.push((100-j())+'% '+(i*100/n).toFixed(2)+'%');
+    n=14; for(i=n-1;i>=0;i--) pts.push((i*100/n).toFixed(2)+'% '+(100-j())+'%');
+    n=10; for(i=n-1;i>0;i--) pts.push(j()+'% '+(i*100/n).toFixed(2)+'%');
+    el.style.clipPath='polygon('+pts.join(',')+')';
+  }
+  pieces.forEach(function(p){
+    var paper=p.querySelector('.paper'); if(!paper) return;
+    if(p.classList.contains('sticker')||p.classList.contains('stamp')) return;
+    torn(paper,p.classList.contains('rl')?3.5:1.6);
+  });
+
+  function shuffle(){
+    var W=board.clientWidth,H=board.clientHeight;
+    pieces.forEach(function(p,i){
+      var w=p.offsetWidth,h=p.offsetHeight,s=state[p.dataset.k]; if(!s) return;
+      s.x=Math.random()*Math.max(0,W-w); s.y=Math.random()*Math.max(0,H-h-80); s.r=Math.random()*30-15;
+      p.style.transition=reduce?'':'transform .6s cubic-bezier(.3,1.3,.5,1) '+(i*25)+'ms'; place(p);
+    });
+    setTimeout(function(){pieces.forEach(function(p){p.style.transition='';});},1000);
+    rustle();
+  }
+  function reset(){
+    state=JSON.parse(JSON.stringify(home));
+    pieces.forEach(function(p,i){p.style.transition=reduce?'':'transform .55s cubic-bezier(.3,1.2,.5,1) '+(i*20)+'ms';place(p);});
+    setTimeout(function(){pieces.forEach(function(p){p.style.transition='';});},900);
+    rustle();
+  }
+  var sb=document.getElementById('shuffle'), rb=document.getElementById('reset');
+  if(sb) sb.addEventListener('click',shuffle);
+  if(rb) rb.addEventListener('click',reset);
+
+  layout(); snapshotHome();
+  pieces.forEach(function(p,i){p.style.zIndex=++z; if(!reduce){p.style.animationDelay=(i*55)+'ms';p.classList.add('in');}});
+  var lastMob=isMob(), rt;
+  window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){layout();snapshotHome();lastMob=isMob();},150);});
+})();
+</script>
+</body>
+</html>

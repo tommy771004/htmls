@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>等高線路線規劃 · 霧稜山區 1:25,000</title>
+<style>
+:root{
+  --paper:#efe6d0; --paper2:#e6dbc0; --green:#2f5d45; --green2:#1f4031; --green3:#7d9a7a; --orange:#e5641a; --ink:#22302a; --mute:#6f7a66;
+  --bahn:Bahnschrift,"DIN Alternate","DIN Condensed","Roboto Condensed","Arial Narrow",sans-serif;
+  --zh:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;
+}
+*{box-sizing:border-box}
+html{background:var(--paper)}
+body{margin:0;color:var(--ink);font-family:var(--bahn),var(--zh);
+  background:radial-gradient(circle at 20% 10%,rgba(255,255,255,.5),transparent 50%),var(--paper)}
+button{font:inherit;color:inherit}
+.wrap{max-width:1360px;margin:0 auto;padding:clamp(14px,2.4vw,28px) clamp(16px,2.4vw,28px) 40px}
+
+header{display:grid;grid-template-columns:1fr auto;gap:12px 24px;align-items:end;border-bottom:3px solid var(--green2);padding-bottom:12px}
+.sheet{font:600 12px/1 var(--bahn);letter-spacing:.18em;color:var(--mute);text-transform:uppercase;font-variation-settings:"wdth" 80;font-stretch:semi-condensed}
+h1{margin:6px 0 0;font:700 clamp(28px,4.2vw,50px)/1 var(--bahn),var(--zh);letter-spacing:.02em;color:var(--green2);font-variation-settings:"wdth" 75;font-stretch:condensed}
+h1 small{font:400 .42em/1 var(--zh);color:var(--mute);margin-left:.6em;letter-spacing:.1em}
+.tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.tb{min-height:42px;padding:0 14px;border:1.5px solid var(--green2);background:transparent;color:var(--green2);font:600 14px/1 var(--bahn),var(--zh);letter-spacing:.06em;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.tb svg{width:16px;height:16px}
+.tb:hover,.tb:focus-visible{background:var(--green2);color:var(--paper);outline:none}
+.tb.pri{background:var(--orange);border-color:var(--orange);color:#fff}
+.tb.pri:hover,.tb.pri:focus-visible{background:#c24f0f;border-color:#c24f0f}
+@media (max-width:760px){header{grid-template-columns:1fr}.tools{justify-content:flex-start}}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:clamp(14px,2vw,24px);margin-top:18px}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.grid > *{min-width:0}
+.mapbox{position:relative;border:2px solid var(--green2);background:var(--paper2);aspect-ratio:16/10;touch-action:manipulation;cursor:crosshair;overflow:hidden}
+.mapbox canvas{position:absolute;inset:0;width:100%;height:100%}
+.mapbox .coord{position:absolute;font:600 10px/1 var(--bahn);color:var(--green2);opacity:.8;letter-spacing:.06em;pointer-events:none}
+.mapbox .hint{position:absolute;left:10px;bottom:10px;background:rgba(239,230,208,.92);border:1px solid var(--green2);padding:6px 10px;font:500 13px/1.4 var(--zh);pointer-events:none;transition:opacity .4s}
+.mapfoot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;font:500 12px/1.4 var(--bahn),var(--zh);color:var(--mute);margin-top:6px;letter-spacing:.04em}
+
+aside{display:flex;flex-direction:column;gap:14px}
+.card{border:2px solid var(--green2);background:rgba(255,255,255,.25);padding:14px}
+.card h2{margin:0 0 10px;font:700 13px/1 var(--bahn),var(--zh);letter-spacing:.16em;color:var(--green2);display:flex;justify-content:space-between;text-transform:uppercase}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--green3);border:1px solid var(--green3)}
+.stats div{background:var(--paper);padding:10px}
+.stats b{display:block;font:700 clamp(24px,2.4vw,30px)/1 var(--bahn);font-variation-settings:"wdth" 80;font-stretch:semi-condensed;color:var(--green2)}
+.stats b small{font-size:.5em;font-weight:500;margin-left:3px;color:var(--mute)}
+.stats span{font:500 12px/1.5 var(--zh);color:var(--mute)}
+.stats .hl b{color:var(--orange)}
+.grade{margin-top:10px;font:500 13px/1.6 var(--zh)}
+.grade b{display:inline-block;background:var(--green2);color:var(--paper);padding:2px 8px;margin-right:6px;font:700 13px/1.4 var(--bahn),var(--zh)}
+.legend{display:grid;gap:8px;font:500 13px/1.3 var(--zh)}
+.legend div{display:flex;align-items:center;gap:10px}
+.legend svg{width:44px;height:14px;flex:none}
+.wps{margin:0;padding:0;list-style:none;font:500 13px/1.5 var(--bahn),var(--zh);max-height:170px;overflow:auto}
+.wps li{display:flex;justify-content:space-between;border-bottom:1px dashed var(--green3);padding:4px 0}
+.wps li span:first-child{color:var(--orange);font-weight:700;margin-right:8px}
+
+.profile{margin-top:18px;border:2px solid var(--green2);background:rgba(255,255,255,.25);padding:12px 12px 6px;position:relative}
+.profile h2{margin:0 0 4px;font:700 13px/1 var(--bahn),var(--zh);letter-spacing:.16em;color:var(--green2);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.profile h2 span{font-weight:500;color:var(--mute);letter-spacing:.04em}
+#prof{display:block;width:100%;height:clamp(170px,22vw,230px);touch-action:none}
+.tip{position:absolute;pointer-events:none;background:var(--green2);color:var(--paper);font:600 12px/1.35 var(--bahn),var(--zh);padding:6px 8px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .15s}
+.tip.on{opacity:1}
+@media (max-width:640px){.mapbox .hint{bottom:auto;top:10px;font-size:12px}h1 small{display:block;margin:8px 0 0}.sheet{line-height:1.4}}
+footer{margin-top:18px;font:500 12px/1.6 var(--zh);color:var(--mute)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="sheet">Sheet 9521-III-NE · 1:25,000 · Contour interval 50 m</div>
+      <h1>霧稜山區 路線規劃<small>等高線地形 · 海拔剖面</small></h1>
+    </div>
+    <div class="tools">
+      <button class="tb" id="undo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3 1 7l4 4M1 7h9a5 5 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>復原</button>
+      <button class="tb" id="clear"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="1.6"/></svg>清除路線</button>
+      <button class="tb pri" id="regen"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 13c3-6 5-8 7-8s3 3 7 1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M1 9c3-4 5-5 7-5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".6"/></svg>新地形</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section>
+      <div class="mapbox" id="mapbox" tabindex="0" aria-label="等高線地圖，點擊加入航點">
+        <canvas id="base"></canvas><canvas id="top"></canvas>
+        <div class="hint" id="hint">點擊地圖加入航點 · 路線即時產生海拔剖面</div>
+      </div>
+      <div class="mapfoot"><span>座標系 TWD97 / TM2（虛構圖幅）</span><span id="cursorInfo">游標：— </span></div>
+    </section>
+
+    <aside>
+      <div class="card">
+        <h2>Route stats <span>路線統計</span></h2>
+        <div class="stats">
+          <div class="hl"><b id="sDist">0<small>km</small></b><span>水平距離</span></div>
+          <div class="hl"><b id="sTime">0:00<small>h</small></b><span>預估時間</span></div>
+          <div><b id="sUp">0<small>m</small></b><span>累積爬升</span></div>
+          <div><b id="sDown">0<small>m</small></b><span>累積下降</span></div>
+          <div><b id="sMax">—<small>m</small></b><span>最高點</span></div>
+          <div><b id="sMin">—<small>m</small></b><span>最低點</span></div>
+        </div>
+        <div class="grade" id="grade"><b>—</b>尚未規劃路線</div>
+      </div>
+      <div class="card">
+        <h2>Waypoints <span>航點</span></h2>
+        <ul class="wps" id="wps"></ul>
+      </div>
+      <div class="card">
+        <h2>Legend <span>圖例</span></h2>
+        <div class="legend">
+          <div><svg viewBox="0 0 44 14"><path d="M0 7 Q11 1 22 7 T44 7" stroke="#1f4031" stroke-width="2" fill="none"/></svg>計曲線（每 250 m）</div>
+          <div><svg viewBox="0 0 44 14"><path d="M0 7 Q11 1 22 7 T44 7" stroke="#2f5d45" stroke-width=".8" fill="none"/></svg>首曲線（每 50 m）</div>
+          <div><svg viewBox="0 0 44 14"><path d="M2 7 H42" stroke="#fff" stroke-width="6"/><path d="M2 7 H42" stroke="#e5641a" stroke-width="3"/></svg>規劃路線</div>
+          <div><svg viewBox="0 0 44 14"><path d="M22 1 L28 12 H16Z" fill="#1f4031"/></svg>三角點 · 山頂</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="profile">
+    <h2>ELEVATION PROFILE 海拔剖面 <span id="profNote">橘色段＝坡度大於 25% · 在剖面上移動可對照地圖位置</span></h2>
+    <svg id="prof" aria-label="海拔剖面圖"></svg>
+    <div class="tip" id="tip"></div>
+  </section>
+  <footer>地形由程序生成，山名為虛構。時間依 Naismith 法則估算（每 5 km 1 小時，每爬升 600 m 另加 1 小時），實際行程請以官方圖資與天候為準。</footer>
+</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const mapbox = $('#mapbox'), base = $('#base'), top = $('#top'), prof = $('#prof'), tip = $('#tip');
+  if (!mapbox || !base || !top || !prof) return;
+  const bctx = base.getContext('2d'), tctx = top.getContext('2d');
+  if (!bctx || !tctx) return;
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const KM_W = 12;            // map width in km
+  const GW = 200, GH = 125;   // height grid
+  const INT = 50, IDX = 250;  // contour interval / index interval
+  const NAMES = ['霧稜山','雲鹿峰','石筍尖','北坑山','鐵杉嶺','白茅鞍'];
+
+  // ---------- terrain ----------
+  let seed = 20260923, H = new Float32Array(GW*GH), hmin = 0, hmax = 0, peaks = [], levels = [];
+  function rng(s){ return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function makeNoise(r){
+    const P = 64, g = new Float32Array(P*P); for (let i = 0; i < g.length; i++) g[i] = r();
+    const sm = t => t*t*(3-2*t);
+    return (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), xf = sm(x-xi), yf = sm(y-yi);
+      const a = g[((yi&63)*P)+(xi&63)], b = g[((yi&63)*P)+((xi+1)&63)], c = g[(((yi+1)&63)*P)+(xi&63)], d = g[(((yi+1)&63)*P)+((xi+1)&63)];
+      return a + (b-a)*xf + (c-a)*yf + (a-b-c+d)*xf*yf; };
+  }
+  function generate(){
+    const r = rng(seed), n = makeNoise(r);
+    const blobs = [...Array(4)].map(() => ({x:.15 + r()*.7, y:.15 + r()*.7, s:.10 + r()*.12, h:.5 + r()*.6}));
+    const ang = r()*Math.PI;
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++){
+      const x = i/(GW-1), y = j/(GH-1)*(GH/GW);
+      let v = 0, a = 1, f = 2.2, tot = 0;
+      for (let o = 0; o < 5; o++){ v += a*n(x*f + o*17.3, y*f + o*9.1); tot += a; a *= .5; f *= 2.05; }
+      v /= tot;
+      // ridge along an angle
+      const rd = Math.abs(Math.sin((x*Math.cos(ang) + y*Math.sin(ang))*5.2 + n(x*3,y*3)*2));
+      v = v*.7 + (1 - rd)*.18;
+      for (const b of blobs){ const dx = x - b.x, dy = y - b.y*(GH/GW); v += b.h * Math.exp(-(dx*dx+dy*dy)/(2*b.s*b.s)) * .45; }
+      H[j*GW+i] = v;
+    }
+    let lo = Infinity, hi = -Infinity; for (const v of H){ if (v < lo) lo = v; if (v > hi) hi = v; }
+    const E0 = 720 + r()*300, E1 = 2650 + r()*650;
+    for (let k = 0; k < H.length; k++){ const t = (H[k]-lo)/(hi-lo); H[k] = E0 + Math.pow(t, 1.25)*(E1-E0); }
+    hmin = E0; hmax = E1;
+    // peaks: local maxima, well separated
+    const cand = [];
+    for (let j = 3; j < GH-3; j++) for (let i = 3; i < GW-3; i++){
+      const v = H[j*GW+i]; let ok = true;
+      for (let dj = -3; dj <= 3 && ok; dj++) for (let di = -3; di <= 3; di++){ if ((di||dj) && H[(j+dj)*GW+i+di] > v){ ok = false; break; } }
+      if (ok) cand.push({i, j, v});
+    }
+    cand.sort((a,b) => b.v - a.v);
+    peaks = [];
+    for (const c of cand){ if (peaks.every(p => Math.hypot(p.i-c.i, p.j-c.j) > 28)) peaks.push(c); if (peaks.length >= 5) break; }
+    if (!peaks.length) peaks.push({i:GW>>1, j:GH>>1, v:H[(GH>>1)*GW+(GW>>1)]});
+    peaks.forEach((p, k) => p.name = NAMES[(k + (seed % 3)) % NAMES.length]);
+    // contour segments per level (marching squares)
+    levels = [];
+    for (let L = Math.ceil(hmin/INT)*INT; L < hmax; L += INT){
+      const segs = [];
+      for (let j = 0; j < GH-1; j++) for (let i = 0; i < GW-1; i++){
+        const a = H[j*GW+i], b = H[j*GW+i+1], c = H[(j+1)*GW+i+1], d = H[(j+1)*GW+i];
+        const idx = (a>L?8:0)|(b>L?4:0)|(c>L?2:0)|(d>L?1:0);
+        if (idx === 0 || idx === 15) continue;
+        const e = [ [i+(L-a)/(b-a), j], [i+1, j+(L-b)/(c-b)], [i+(L-d)/(c-d), j+1], [i, j+(L-a)/(d-a)] ];
+        const T = {1:[[3,2]],2:[[2,1]],3:[[3,1]],4:[[0,1]],5:[[3,0],[2,1]],6:[[0,2]],7:[[3,0]],8:[[3,0]],9:[[0,2]],10:[[0,1],[3,2]],11:[[0,1]],12:[[3,1]],13:[[2,1]],14:[[3,2]]}[idx];
+        for (const t of T) segs.push(e[t[0]][0], e[t[0]][1], e[t[1]][0], e[t[1]][1]);
+      }
+      levels.push({L, idx: L % IDX === 0, segs});
+    }
+  }
+  function elev(nx, ny){ // normalised map coords 0..1
+    const x = Math.min(GW-1.001, Math.max(0, nx*(GW-1))), y = Math.min(GH-1.001, Math.max(0, ny*(GH-1)));
+    const i = Math.floor(x), j = Math.floor(y), fx = x-i, fy = y-j;
+    const a = H[j*GW+i], b = H[j*GW+i+1], c = H[(j+1)*GW+i], d = H[(j+1)*GW+i+1];
+    return a*(1-fx)*(1-fy) + b*fx*(1-fy) + c*(1-fx)*fy + d*fx*fy;
+  }
+
+  // ---------- canvas sizing ----------
+  let W = 0, Hh = 0, dpr = 1, shade = null;
+  function size(){
+    const r = mapbox.getBoundingClientRect(); W = r.width; Hh = r.height; dpr = Math.min(2, window.devicePixelRatio || 1);
+    [base, top].forEach(c => { c.width = Math.round(W*dpr); c.height = Math.round(Hh*dpr); });
+    bctx.setTransform(dpr,0,0,dpr,0,0); tctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function buildShade(){
+    const c = document.createElement('canvas'); c.width = GW; c.height = GH; const x = c.getContext('2d'); if (!x) return null;
+    const img = x.createImageData(GW, GH);
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++){
+      const h = H[j*GW+i], t = (h - hmin)/(hmax - hmin);
+      const dx = (H[j*GW+Math.min(GW-1,i+1)] - H[j*GW+Math.max(0,i-1)]), dy = (H[Math.min(GH-1,j+1)*GW+i] - H[Math.max(0,j-1)*GW+i]);
+      const light = Math.max(-1, Math.min(1, (-dx - dy) / 180));
+      // hypsometric: pale green lowlands -> beige -> pale highlands
+      const r0 = 214 + t*26, g0 = 222 + t*6 - (t>.7?(t-.7)*40:0), b0 = 190 + t*14;
+      const k = (j*GW+i)*4, L = light*22;
+      img.data[k] = r0 + L; img.data[k+1] = g0 + L; img.data[k+2] = b0 + L*.8; img.data[k+3] = 255;
+    }
+    x.putImageData(img, 0, 0); return c;
+  }
+
+  // ---------- drawing ----------
+  let prog = 1;
+  function toPx(gx, gy){ return [gx/(GW-1)*W, gy/(GH-1)*Hh]; }
+  function drawBase(){
+    bctx.clearRect(0,0,W,Hh);
+    if (shade){ bctx.imageSmoothingEnabled = true; bctx.drawImage(shade, 0, 0, W, Hh); }
+    // grid (km)
+    bctx.strokeStyle = 'rgba(31,64,49,.18)'; bctx.lineWidth = 1;
+    const kmPx = W / KM_W;
+    for (let k = 1; k < KM_W; k++){ bctx.beginPath(); bctx.moveTo(k*kmPx, 0); bctx.lineTo(k*kmPx, Hh); bctx.stroke(); }
+    for (let y = kmPx; y < Hh; y += kmPx){ bctx.beginPath(); bctx.moveTo(0, y); bctx.lineTo(W, y); bctx.stroke(); }
+    const sx = W/(GW-1), sy = Hh/(GH-1);
+    const nShow = Math.ceil(levels.length * prog);
+    for (let li = 0; li < nShow; li++){
+      const lv = levels[li], s = lv.segs;
+      bctx.strokeStyle = lv.idx ? '#1f4031' : 'rgba(47,93,69,.75)';
+      bctx.lineWidth = lv.idx ? 1.6 : .7;
+      bctx.beginPath();
+      for (let k = 0; k < s.length; k += 4){ bctx.moveTo(s[k]*sx, s[k+1]*sy); bctx.lineTo(s[k+2]*sx, s[k+3]*sy); }
+      bctx.stroke();
+      // index labels
+      if (lv.idx && prog >= 1 && s.length > 200){
+        const pick = [Math.floor(s.length/4/3)*4, Math.floor(s.length/4*2/3)*4];
+        bctx.font = '600 10px Bahnschrift, "Arial Narrow", sans-serif'; bctx.textAlign = 'center'; bctx.textBaseline = 'middle';
+        for (const p of pick){
+          const x = s[p]*sx, y = s[p+1]*sy; if (x < 20 || x > W-20 || y < 14 || y > Hh-14) continue;
+          const ang = Math.atan2((s[p+3]-s[p+1])*sy, (s[p+2]-s[p])*sx);
+          bctx.save(); bctx.translate(x, y); bctx.rotate(Math.abs(ang) > Math.PI/2 ? ang + Math.PI : ang);
+          const t = String(lv.L); const w = bctx.measureText(t).width + 6;
+          bctx.fillStyle = 'rgba(226,222,196,.95)'; bctx.fillRect(-w/2, -6, w, 12); bctx.fillStyle = '#1f4031'; bctx.fillText(t, 0, .5); bctx.restore();
+        }
+      }
+    }
+    if (prog >= 1){
+      // peaks
+      for (const p of peaks){
+        const [x, y] = toPx(p.i, p.j);
+        bctx.fillStyle = '#1f4031'; bctx.beginPath(); bctx.moveTo(x, y-6); bctx.lineTo(x+5.5, y+4); bctx.lineTo(x-5.5, y+4); bctx.closePath(); bctx.fill();
+        bctx.fillStyle = '#efe6d0'; bctx.beginPath(); bctx.arc(x, y+1, 1.4, 0, 6.3); bctx.fill();
+        bctx.font = '700 13px "Microsoft JhengHei", "PingFang TC", sans-serif'; bctx.textAlign = 'left'; bctx.textBaseline = 'alphabetic';
+        const label = p.name, alt = Math.round(p.v).toLocaleString('en-US') + ' m';
+        const lx = x + 9 > W - 80 ? x - 9 - Math.max(bctx.measureText(label).width, 50) : x + 9;
+        bctx.lineWidth = 3; bctx.strokeStyle = 'rgba(239,230,208,.9)'; bctx.strokeText(label, lx, y - 1); bctx.fillStyle = '#1f4031'; bctx.fillText(label, lx, y - 1);
+        bctx.font = '600 11px Bahnschrift, "Arial Narrow", sans-serif'; bctx.strokeText(alt, lx, y + 11); bctx.fillText(alt, lx, y + 11);
+      }
+      // north arrow + scale
+      const nx = W - 34, ny = 40;
+      bctx.fillStyle = '#1f4031'; bctx.beginPath(); bctx.moveTo(nx, ny-22); bctx.lineTo(nx+8, ny+6); bctx.lineTo(nx, ny); bctx.closePath(); bctx.fill();
+      bctx.strokeStyle = '#1f4031'; bctx.lineWidth = 1.2; bctx.beginPath(); bctx.moveTo(nx, ny-22); bctx.lineTo(nx-8, ny+6); bctx.lineTo(nx, ny); bctx.closePath(); bctx.stroke();
+      bctx.font = '700 12px Bahnschrift, sans-serif'; bctx.textAlign = 'center'; bctx.fillText('N', nx, ny + 20);
+      const km2 = 2*kmPx, bx = W - km2 - 20, by = Hh - 20;
+      bctx.fillStyle = 'rgba(239,230,208,.85)'; bctx.fillRect(bx - 8, by - 20, km2 + 20, 30);
+      for (let k = 0; k < 4; k++){ bctx.fillStyle = k % 2 ? '#efe6d0' : '#1f4031'; bctx.fillRect(bx + k*km2/4, by - 4, km2/4, 5); }
+      bctx.strokeStyle = '#1f4031'; bctx.lineWidth = 1; bctx.strokeRect(bx, by - 4, km2, 5);
+      bctx.fillStyle = '#1f4031'; bctx.font = '600 10px Bahnschrift, sans-serif'; bctx.textAlign = 'center';
+      bctx.fillText('0', bx, by - 9); bctx.fillText('1', bx + km2/2, by - 9); bctx.fillText('2 km', bx + km2, by - 9);
+    }
+  }
+
+  // ---------- route ----------
+  let route = [], hoverT = -1, samples = [], total = 0;
+  function sample(){
+    samples = []; total = 0;
+    if (route.length < 2){ return; }
+    const kmPerNx = KM_W, kmPerNy = KM_W * .625;
+    for (let s = 0; s < route.length - 1; s++){
+      const a = route[s], b = route[s+1];
+      const segKm = Math.hypot((b.x-a.x)*kmPerNx, (b.y-a.y)*kmPerNy);
+      const n = Math.max(2, Math.ceil(segKm / .04));
+      for (let k = (s ? 1 : 0); k <= n; k++){
+        const t = k/n, x = a.x + (b.x-a.x)*t, y = a.y + (b.y-a.y)*t;
+        samples.push({x, y, d: total + segKm*t, h: elev(x, y), wp: k === n ? s+1 : (s === 0 && k === 0 ? 0 : -1)});
+      }
+      total += segKm;
+    }
+  }
+  function drawTop(){
+    tctx.clearRect(0,0,W,Hh);
+    if (!route.length) return;
+    const P = p => [p.x*W, p.y*Hh];
+    tctx.lineJoin = 'round'; tctx.lineCap = 'round';
+    if (route.length > 1){
+      const draw = (w, c) => { tctx.strokeStyle = c; tctx.lineWidth = w; tctx.beginPath(); route.forEach((p, i) => { const [x,y] = P(p); i ? tctx.lineTo(x,y) : tctx.moveTo(x,y); }); tctx.stroke(); };
+      draw(7, 'rgba(255,255,255,.85)'); draw(3.4, '#e5641a');
+      tctx.setLineDash([2, 7]); draw(1.2, '#fff'); tctx.setLineDash([]);
+    }
+    route.forEach((p, i) => {
+      const [x, y] = P(p), last = i === route.length - 1;
+      tctx.fillStyle = i === 0 ? '#1f4031' : last && route.length > 1 ? '#e5641a' : '#fff';
+      tctx.strokeStyle = i === 0 || (last && route.length > 1) ? '#fff' : '#e5641a'; tctx.lineWidth = 2.2;
+      tctx.beginPath(); tctx.arc(x, y, i === 0 || last ? 10 : 7.5, 0, 6.3); tctx.fill(); tctx.stroke();
+      tctx.fillStyle = i === 0 || (last && route.length > 1) ? '#fff' : '#e5641a';
+      tctx.font = `700 ${i === 0 || last ? 11 : 10}px "Microsoft JhengHei", Bahnschrift, sans-serif`; tctx.textAlign = 'center'; tctx.textBaseline = 'middle';
+      tctx.fillText(i === 0 ? '起' : last && route.length > 1 ? '終' : String(i), x, y + .5);
+    });
+    if (hoverT >= 0 && samples.length){
+      const s = samples[hoverT], x = s.x*W, y = s.y*Hh;
+      tctx.strokeStyle = '#1f4031'; tctx.lineWidth = 1; tctx.beginPath(); tctx.arc(x, y, 12, 0, 6.3); tctx.stroke();
+      tctx.fillStyle = '#1f4031'; tctx.beginPath(); tctx.arc(x, y, 4, 0, 6.3); tctx.fill();
+    }
+  }
+  const NS = 'http://www.w3.org/2000/svg';
+  function drawProfile(){
+    const r = prof.getBoundingClientRect(), w = Math.max(200, r.width), h = Math.max(120, r.height);
+    prof.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    const pl = 46, pr = 12, pt = 12, pb = 26, iw = w - pl - pr, ih = h - pt - pb;
+    let out = '';
+    if (samples.length < 2){
+      out = `<rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="none" stroke="#7d9a7a" stroke-dasharray="3 4"/><text x="${w/2}" y="${h/2}" text-anchor="middle" font-family="Microsoft JhengHei, sans-serif" font-size="14" fill="#6f7a66">至少放兩個航點，剖面就會出現</text>`;
+      prof.innerHTML = out; return;
+    }
+    let lo = Infinity, hi = -Infinity; samples.forEach(s => { lo = Math.min(lo, s.h); hi = Math.max(hi, s.h); });
+    const step = hi - lo > 900 ? 250 : hi - lo > 400 ? 100 : 50;
+    lo = Math.floor((lo - 30)/step)*step; hi = Math.ceil((hi + 30)/step)*step;
+    const X = d => pl + d/total*iw, Y = e => pt + (1 - (e - lo)/(hi - lo))*ih;
+    out += `<defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f5d45" stop-opacity=".55"/><stop offset="1" stop-color="#2f5d45" stop-opacity=".06"/></linearGradient>
+      <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V6" stroke="#2f5d45" stroke-opacity=".18"/></pattern></defs>`;
+    for (let e = lo; e <= hi; e += step){ out += `<line x1="${pl}" x2="${w-pr}" y1="${Y(e)}" y2="${Y(e)}" stroke="#7d9a7a" stroke-opacity="${e % (step*2) ? .25 : .5}"/><text x="${pl-6}" y="${Y(e)+3}" text-anchor="end" font-family="Bahnschrift, Arial Narrow, sans-serif" font-size="10" fill="#6f7a66">${e}</text>`; }
+    const kstep = total > 16 ? 4 : total > 8 ? 2 : total > 3 ? 1 : .5;
+    for (let d = 0; d <= total + 1e-6; d += kstep){ out += `<line x1="${X(d)}" x2="${X(d)}" y1="${pt}" y2="${pt+ih}" stroke="#7d9a7a" stroke-opacity=".25"/><text x="${X(d)}" y="${h-8}" text-anchor="middle" font-family="Bahnschrift, Arial Narrow, sans-serif" font-size="10" fill="#6f7a66">${d % 1 ? d.toFixed(1) : d} km</text>`; }
+    const line = samples.map((s, i) => (i ? 'L' : 'M') + X(s.d).toFixed(1) + ' ' + Y(s.h).toFixed(1)).join('');
+    out += `<path d="${line} L${X(total)} ${pt+ih} L${pl} ${pt+ih}Z" fill="url(#pg)"/><path d="${line} L${X(total)} ${pt+ih} L${pl} ${pt+ih}Z" fill="url(#hatch)"/>`;
+    // colour steep sections
+    let steep = '';
+    for (let i = 1; i < samples.length; i++){
+      const a = samples[i-1], b = samples[i], g = Math.abs(b.h - a.h) / Math.max(1e-6, (b.d - a.d)*1000);
+      if (g > .25) steep += `M${X(a.d).toFixed(1)} ${Y(a.h).toFixed(1)}L${X(b.d).toFixed(1)} ${Y(b.h).toFixed(1)}`;
+    }
+    out += `<path d="${line}" fill="none" stroke="#1f4031" stroke-width="2" stroke-linejoin="round" class="pline"/>`;
+    if (steep) out += `<path d="${steep}" fill="none" stroke="#e5641a" stroke-width="3.2" stroke-linecap="round"/>`;
+    samples.forEach(s => { if (s.wp >= 0){ const lab = s.wp === 0 ? '起' : s.wp === route.length-1 ? '終' : s.wp; out += `<circle cx="${X(s.d)}" cy="${Y(s.h)}" r="4" fill="#fff" stroke="#e5641a" stroke-width="2"/><text x="${X(s.d)}" y="${Y(s.h)-9}" text-anchor="middle" font-family="Microsoft JhengHei, Bahnschrift, sans-serif" font-size="11" font-weight="700" fill="#e5641a">${lab}</text>`; } });
+    if (hoverT >= 0){ const s = samples[hoverT]; out += `<line x1="${X(s.d)}" x2="${X(s.d)}" y1="${pt}" y2="${pt+ih}" stroke="#1f4031" stroke-dasharray="3 3"/><circle cx="${X(s.d)}" cy="${Y(s.h)}" r="5" fill="#1f4031"/>`; }
+    out += `<rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="none" stroke="#1f4031"/>`;
+    prof.innerHTML = out;
+    prof._geo = {pl, iw, X, Y};
+  }
+  function stats(){
+    const set = (id, v, u) => { const el = $(id); if (el) el.innerHTML = v + '<small>' + u + '</small>'; };
+    let up = 0, down = 0, mx = -Infinity, mn = Infinity;
+    for (let i = 1; i < samples.length; i++){ const dh = samples[i].h - samples[i-1].h; if (dh > 0) up += dh; else down -= dh; }
+    samples.forEach(s => { mx = Math.max(mx, s.h); mn = Math.min(mn, s.h); });
+    const hrs = total/5 + up/600;
+    set('#sDist', total.toFixed(2), 'km'); set('#sUp', Math.round(up).toLocaleString('en-US'), 'm'); set('#sDown', Math.round(down).toLocaleString('en-US'), 'm');
+    set('#sMax', samples.length ? Math.round(mx).toLocaleString('en-US') : '—', 'm'); set('#sMin', samples.length ? Math.round(mn).toLocaleString('en-US') : '—', 'm');
+    set('#sTime', Math.floor(hrs) + ':' + String(Math.round(hrs%1*60)).padStart(2,'0'), 'h');
+    const g = $('#grade');
+    if (g){
+      if (samples.length < 2) g.innerHTML = '<b>—</b>尚未規劃路線';
+      else { const score = up/ Math.max(.5,total);
+        const lv = hrs < 3 && score < 120 ? ['A 級','郊山健行，帶水和好心情即可。'] : hrs < 6 && score < 200 ? ['B 級','中級山行程，建議攜帶頭燈與行動糧。'] : hrs < 9 ? ['C 級','長程陡升，需要體能與早出發。'] : ['D 級','縱走等級。請認真考慮是否要帶睡袋。'];
+        g.innerHTML = `<b>${lv[0]}</b>${lv[1]}`; }
+    }
+    const wps = $('#wps');
+    if (wps) wps.innerHTML = route.map((p, i) => `<li><span>${i === 0 ? '起點' : i === route.length-1 && route.length > 1 ? '終點' : '航點 ' + i}</span><span>${Math.round(elev(p.x, p.y)).toLocaleString('en-US')} m · ${(p.x*KM_W).toFixed(2)}E ${(p.y*KM_W*.625).toFixed(2)}S</span></li>`).join('') || '<li><span>—</span><span>點地圖新增</span></li>';
+  }
+  function refresh(){ sample(); drawTop(); drawProfile(); stats(); }
+
+  // ---------- interaction ----------
+  mapbox.addEventListener('pointerdown', e => {
+    const r = mapbox.getBoundingClientRect();
+    const x = (e.clientX - r.left)/r.width, y = (e.clientY - r.top)/r.height;
+    if (x < 0 || x > 1 || y < 0 || y > 1) return;
+    route.push({x, y}); hoverT = -1; refresh(); blip(route.length);
+    const hint = $('#hint'); if (hint) hint.style.opacity = '0';
+  });
+  mapbox.addEventListener('pointermove', e => {
+    const r = mapbox.getBoundingClientRect(), x = (e.clientX - r.left)/r.width, y = (e.clientY - r.top)/r.height;
+    const ci = $('#cursorInfo'); if (ci && x >= 0 && x <= 1 && y >= 0 && y <= 1) ci.textContent = `游標：海拔 ${Math.round(elev(x,y)).toLocaleString('en-US')} m · ${(x*KM_W).toFixed(2)} km E, ${(y*KM_W*.625).toFixed(2)} km S`;
+  });
+  mapbox.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' || (e.key === 'z' && (e.ctrlKey || e.metaKey))){ e.preventDefault(); route.pop(); refresh(); }
+  });
+  function profMove(e){
+    if (!prof._geo || samples.length < 2) return;
+    const r = prof.getBoundingClientRect(), vbW = parseFloat((prof.getAttribute('viewBox')||'0 0 1 1').split(' ')[2]);
+    const px = (e.clientX - r.left) * vbW / r.width, d = Math.min(total, Math.max(0, (px - prof._geo.pl)/prof._geo.iw*total));
+    let best = 0; for (let i = 0; i < samples.length; i++) if (Math.abs(samples[i].d - d) < Math.abs(samples[best].d - d)) best = i;
+    hoverT = best; drawTop(); drawProfile();
+    const s = samples[best];
+    if (tip){ tip.innerHTML = `${s.d.toFixed(2)} km · ${Math.round(s.h).toLocaleString('en-US')} m`; tip.style.left = (e.clientX - r.left + 12) + 'px'; tip.style.top = (prof._geo.Y(s.h) * r.height / parseFloat(prof.getAttribute('viewBox').split(' ')[3]) + 12) + 'px'; tip.classList.add('on'); }
+  }
+  prof.addEventListener('pointermove', profMove);
+  prof.addEventListener('pointerdown', profMove);
+  prof.addEventListener('pointerleave', () => { hoverT = -1; drawTop(); drawProfile(); if (tip) tip.classList.remove('on'); });
+  const undo = $('#undo'), clear = $('#clear'), regen = $('#regen');
+  if (undo) undo.addEventListener('click', () => { route.pop(); refresh(); });
+  if (clear) clear.addEventListener('click', () => { route = []; refresh(); });
+  if (regen) regen.addEventListener('click', () => { seed = (seed * 48271 + 11) % 2147483647; build(true); });
+
+  let ac = null;
+  function blip(n){
+    try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ return; }
+    const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(520 + (n % 6)*60, t);
+    g.gain.setValueAtTime(.07, t); g.gain.exponentialRampToValueAtTime(.0001, t + .18);
+    o.connect(g).connect(ac.destination); o.start(t); o.stop(t + .2);
+  }
+
+  // ---------- build / animate ----------
+  function defaultRoute(){
+    // start low, climb to the highest peak, drop to the second peak
+    let low = {v:Infinity}; for (let j = 8; j < GH-8; j += 4) for (let i = 8; i < GW*.35; i += 4){ const v = H[j*GW+i]; if (v < low.v) low = {i, j, v}; }
+    const p1 = peaks[0], p2 = peaks[1] || peaks[0];
+    const N = (i, j) => ({x: i/(GW-1), y: j/(GH-1)});
+    const a = N(low.i, low.j), b = N(p1.i, p1.j), c = N(p2.i, p2.j);
+    const mid = {x:(a.x+b.x)/2 + .04, y:(a.y+b.y)/2 - .06};
+    route = [a, mid, b, {x:(b.x+c.x)/2, y:(b.y+c.y)/2 + .05}, c].map(p => ({x: Math.min(.97, Math.max(.03, p.x)), y: Math.min(.95, Math.max(.05, p.y))}));
+  }
+  let animId = 0;
+  function build(animate){
+    generate(); shade = buildShade(); defaultRoute();
+    cancelAnimationFrame(animId);
+    if (!animate || reduce){ prog = 1; drawBase(); refresh(); return; }
+    const t0 = performance.now(); const full = route.slice(); route = [];
+    refresh();
+    const step = now => {
+      prog = Math.min(1, (now - t0) / 1100);
+      drawBase();
+      if (prog < 1) animId = requestAnimationFrame(step);
+      else { route = full; refresh(); }
+    };
+    animId = requestAnimationFrame(step);
+  }
+  size(); build(true);
+  let rt = 0;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { size(); prog = 1; drawBase(); refresh(); }, 80); });
+})();
+</script>
+</body>
+</html>

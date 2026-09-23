@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planisphere No. 87 — A Turning Chart of the Northern Heavens</title>
+<style>
+:root{
+  --paper:#f5f1e6; --ink:#16150f; --grey:#8b877b; --faint:#d9d3c2; --red:#c2301f;
+  --serif:Georgia,"Times New Roman",Times,serif;
+  --narrow:"Arial Narrow","Helvetica Neue Condensed","Roboto Condensed",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);
+  background-image:radial-gradient(circle at 30% 20%,rgba(255,255,255,.5),transparent 60%),repeating-linear-gradient(0deg,rgba(0,0,0,.012) 0 1px,transparent 1px 3px)}
+.wrap{max-width:1360px;margin:0 auto;padding:clamp(16px,2.6vw,36px) clamp(16px,3vw,40px) 40px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:clamp(20px,3vw,48px);align-items:start}
+.chart{position:relative;width:min(100%,86vh);margin:0 auto}
+svg#sky{width:100%;height:auto;display:block;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+svg#sky.drag{cursor:grabbing}
+#sky text{font-family:var(--narrow)}
+.grid line,.grid circle{stroke:#c9c2ae;stroke-width:.6;fill:none}
+.grid circle.eq{stroke:#a8a18b;stroke-width:.9}
+.ecl{fill:none;stroke:var(--red);stroke-width:1.2;stroke-dasharray:6 4}
+.mw{fill:rgba(22,21,15,.055)}
+.con line{stroke:#6e6a5d;stroke-width:1;transition:stroke .2s}
+.con.on line{stroke:var(--red);stroke-width:2}
+.star{fill:var(--ink);stroke:var(--paper);stroke-width:1.4}
+.con.on .star{fill:var(--red)}
+.clab{font-family:var(--serif)!important;font-style:italic;font-size:13px;fill:#3b392f;letter-spacing:.14em;text-anchor:middle;pointer-events:none}
+.con.on .clab{fill:var(--red)}
+.slab{font-size:10px;fill:#5a574c;letter-spacing:.04em;pointer-events:none}
+.mask{fill:var(--paper);stroke:var(--ink);stroke-width:1.6}
+.mask-tex{fill:url(#hatch);pointer-events:none}
+.ring text{font-size:12px;fill:var(--ink);text-anchor:middle;letter-spacing:.06em}
+.ring .mon{font-family:var(--serif)!important;font-style:italic;font-size:15px;letter-spacing:.16em}
+.ring line{stroke:var(--ink);stroke-width:.8}
+.dir{font-size:15px!important;letter-spacing:.3em;font-weight:700}
+.ptr{stroke:var(--red);stroke-width:2.2}
+
+aside{padding-top:6px}
+.kicker{font-family:var(--narrow);font-size:12px;letter-spacing:.32em;text-transform:uppercase;border-top:2px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 0;display:flex;justify-content:space-between}
+h1{font-weight:400;font-style:italic;font-size:clamp(30px,3.2vw,44px);line-height:1.02;margin:16px 0 8px;letter-spacing:-.01em}
+h1 b{font-style:normal;font-weight:400;display:block;font-size:.5em;letter-spacing:.34em;text-transform:uppercase;margin-bottom:8px;font-family:var(--narrow)}
+.lede{font-size:15px;line-height:1.6;margin:0 0 18px;color:#3c3a31}
+.readout{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
+.readout div{padding:8px 0}
+.readout div+div{border-left:1px solid var(--faint);padding-left:12px}
+.readout small{display:block;font-family:var(--narrow);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--grey)}
+.readout span{font-size:22px;font-variant-numeric:tabular-nums}
+.ctl{margin:14px 0 0;display:grid;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+label.f{font-family:var(--narrow);font-size:11px;letter-spacing:.2em;text-transform:uppercase;display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px}
+input[type=date]{font:inherit;font-family:var(--serif);font-size:15px;height:42px;border:1px solid var(--ink);background:transparent;padding:0 8px;color:var(--ink);border-radius:0}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--red);border:2px solid var(--paper);margin-top:-8px;box-shadow:0 0 0 1px var(--ink)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--red);border:2px solid var(--paper)}
+.b{all:unset;box-sizing:border-box;cursor:pointer;height:42px;padding:0 14px;border:1px solid var(--ink);font-family:var(--narrow);font-size:12px;letter-spacing:.2em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px}
+.b:hover{background:var(--ink);color:var(--paper)}
+.b[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.b:focus-visible,input:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.seg{display:flex}
+.seg .b{border-right-width:0;padding:0 10px}
+.seg .b:last-child{border-right-width:1px}
+.info{margin-top:18px;border-top:2px solid var(--ink);padding-top:10px;min-height:170px}
+.info .nm{font-style:italic;font-size:26px}
+.info .nm small{font-family:var(--narrow);font-style:normal;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--grey);margin-left:8px}
+.info .up{font-family:var(--narrow);font-size:11px;letter-spacing:.2em;text-transform:uppercase;margin-top:2px}
+.info .up b{color:var(--red);font-weight:400}
+.info p{font-size:14.5px;line-height:1.6;margin:8px 0}
+.info ul{list-style:none;padding:0;margin:6px 0 0;font-family:var(--narrow);font-size:12.5px;columns:2;column-gap:14px}
+.info li{display:flex;justify-content:space-between;border-bottom:1px dotted var(--faint);padding:2px 0;break-inside:avoid}
+.legend{display:flex;align-items:center;gap:12px;margin-top:16px;font-family:var(--narrow);font-size:11px;letter-spacing:.1em;color:#4a473d;flex-wrap:wrap}
+.legend svg{height:18px}
+.hint{font-family:var(--narrow);font-size:11px;letter-spacing:.2em;text-transform:uppercase;text-align:center;color:var(--grey);margin-top:10px}
+.colophon{font-size:12px;font-style:italic;color:var(--grey);margin-top:14px;line-height:1.5}
+
+@media (max-width:980px){
+  .wrap{grid-template-columns:1fr}
+  .chart{width:min(100%,640px)}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="chart">
+      <svg id="sky" viewBox="-500 -500 1000 1000" role="img" aria-label="Rotating planisphere of the northern sky">
+        <defs>
+          <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#16150f" stroke-width=".5" opacity=".18"/></pattern>
+          <clipPath id="field"><circle r="380"/></clipPath>
+        </defs>
+        <circle r="470" fill="#efe9da" stroke="#16150f" stroke-width="1.6"/>
+        <g id="disc">
+          <circle r="420" fill="#f7f4ea" stroke="#16150f" stroke-width="1"/>
+          <g id="dring" class="ring"></g>
+          <g clip-path="url(#field)">
+            <path id="mw" class="mw"/>
+            <g id="grid" class="grid"></g>
+            <path id="ecl" class="ecl"/>
+            <g id="cons"></g>
+          </g>
+        </g>
+        <g id="labels"></g>
+        <path id="mask" class="mask" fill-rule="evenodd"/>
+        <path id="maskTex" class="mask-tex" fill-rule="evenodd"/>
+        <g id="hring" class="ring"></g>
+        <g id="dirs"></g>
+        <line id="ptr" class="ptr" x1="0" y1="376" x2="0" y2="470"/>
+      </svg>
+    </div>
+    <p class="hint">Drag the sky to turn it · Tap a constellation to read about it · ← → nudge ten minutes</p>
+  </div>
+
+  <aside>
+    <div class="kicker"><span>Plate 87</span><span>Epoch J2000</span></div>
+    <h1><b>A Planisphere for</b>The Northern Heavens</h1>
+    <p class="lede">Set the date against the hour and the window shows the sky above you: every star printed where it truly sits, give or take a steady hand. The red dashes are the ecliptic, the road the Sun, Moon and planets insist on using.</p>
+    <div class="readout">
+      <div><small>Local mean time</small><span id="rTime">--:--</span></div>
+      <div><small>Sidereal time</small><span id="rLst">--h --m</span></div>
+    </div>
+    <div class="ctl">
+      <div class="row">
+        <label class="f">Date<input type="date" id="date"></label>
+        <label class="f">Latitude<span class="seg" role="group" aria-label="Latitude">
+          <button type="button" class="b" data-lat="25" aria-pressed="true">25°N</button>
+          <button type="button" class="b" data-lat="40" aria-pressed="false">40°N</button>
+          <button type="button" class="b" data-lat="51" aria-pressed="false">51°N</button>
+        </span></label>
+      </div>
+      <label class="f">Hour of the night<input type="range" id="time" min="0" max="1439" step="5" value="1260"></label>
+      <div class="row">
+        <button type="button" class="b" id="now">Now</button>
+        <button type="button" class="b" id="play" aria-pressed="false"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0l9 5-9 5z" fill="currentColor"/></svg>Time-lapse</button>
+      </div>
+    </div>
+    <div class="info" id="info" aria-live="polite"></div>
+    <div class="legend">
+      <svg viewBox="0 0 150 18" aria-hidden="true"><circle cx="8" cy="9" r="6" fill="#16150f"/><circle cx="32" cy="9" r="4.4" fill="#16150f"/><circle cx="54" cy="9" r="3.2" fill="#16150f"/><circle cx="72" cy="9" r="2.2" fill="#16150f"/><circle cx="88" cy="9" r="1.4" fill="#16150f"/><line x1="104" y1="9" x2="146" y2="9" stroke="#c2301f" stroke-dasharray="6 4" stroke-width="1.4"/></svg>
+      <span>Magnitude 0 · 1 · 2 · 3 · 4 — ecliptic</span>
+    </div>
+    <p class="colophon">Positions approximate, precession ignored, atmosphere not included. Refunds are not issued for clouds.</p>
+  </aside>
+</div>
+
+<script>
+(function(){
+"use strict";
+var svg=document.getElementById('sky');if(!svg) return;
+var NS='http://www.w3.org/2000/svg';
+var R=380,DECMIN=-65,D2R=Math.PI/180;
+function rad(dec){return (90-dec)/(90-DECMIN)*R;}
+function P(raH,dec){var th=-raH*15*D2R,r=rad(dec);return [r*Math.sin(th),r*Math.cos(th)];} // disc frame at LST=0
+
+// ---------- catalogue: [name, RA h, Dec °, mag] ----------
+var CONS=[
+ {id:'UMa',n:'Ursa Major',s:'The Great Bear',t:'Seven of its stars make the Big Dipper, which most people mistake for the whole bear. Follow Merak through Dubhe to find Polaris.',st:[['Dubhe',11.062,61.75,1.8],['Merak',11.031,56.38,2.4],['Phecda',11.897,53.69,2.4],['Megrez',12.257,57.03,3.3],['Alioth',12.900,55.96,1.8],['Mizar',13.399,54.93,2.2],['Alkaid',13.792,49.31,1.9]],l:[[0,1],[1,2],[2,3],[3,0],[3,4],[4,5],[5,6]]},
+ {id:'UMi',n:'Ursa Minor',s:'The Little Bear',t:'Home of Polaris, which sits within a degree of the pole and has done the least work of any star on this chart.',st:[['Polaris',2.530,89.26,2.0],['Yildun',17.537,86.59,4.4],['ε UMi',16.766,82.04,4.2],['ζ UMi',15.734,77.79,4.3],['Kochab',14.845,74.16,2.1],['Pherkad',15.345,71.83,3.0],['η UMi',16.292,75.76,4.9]],l:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,3]]},
+ {id:'Cas',n:'Cassiopeia',s:'The Queen',t:'A crooked W, or an M, depending on the hour. The Queen spends half the night upside down as punishment for vanity.',st:[['Caph',0.153,59.15,2.3],['Schedar',0.675,56.54,2.2],['Navi',0.945,60.72,2.5],['Ruchbah',1.430,60.24,2.7],['Segin',1.907,63.67,3.4]],l:[[0,1],[1,2],[2,3],[3,4]]},
+ {id:'Cep',n:'Cepheus',s:'The King',t:'A child’s drawing of a house, standing on its roof near the pole. Faint, patient, married to Cassiopeia.',st:[['Alderamin',21.310,62.59,2.5],['Alfirk',21.478,70.56,3.2],['Errai',23.656,77.63,3.2],['ι Cep',22.828,66.20,3.5],['ζ Cep',22.181,58.20,3.4]],l:[[0,1],[1,2],[2,3],[3,4],[4,0],[0,3]]},
+ {id:'Dra',n:'Draco',s:'The Dragon',t:'Winds between the two Bears. Thuban was the pole star when the pyramids were built; stars, too, lose their jobs.',st:[['Eltanin',17.943,51.49,2.2],['Rastaban',17.507,52.30,2.8],['ξ Dra',17.892,56.87,3.8],['δ Dra',19.209,67.66,3.1],['ζ Dra',17.146,65.71,3.2],['η Dra',16.400,61.51,2.7],['Thuban',14.073,64.38,3.7],['κ Dra',12.558,69.79,3.9],['λ Dra',11.523,69.33,3.8]],l:[[0,1],[1,2],[2,0],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]]},
+ {id:'Cyg',n:'Cygnus',s:'The Swan',t:'Flies down the Milky Way with Deneb for a tail. Also known as the Northern Cross, for those who prefer furniture to birds.',st:[['Deneb',20.690,45.28,1.25],['Sadr',20.370,40.26,2.2],['Albireo',19.512,27.96,3.1],['Gienah',20.770,33.97,2.5],['δ Cyg',19.750,45.13,2.9]],l:[[0,1],[1,2],[4,1],[1,3]]},
+ {id:'Lyr',n:'Lyra',s:'The Lyre',t:'Small, neat, and anchored by Vega, the fifth brightest star in the night sky and the zero-point of the magnitude scale for a century.',st:[['Vega',18.616,38.78,0.03],['ζ Lyr',18.746,37.61,4.3],['δ Lyr',18.908,36.90,4.3],['Sulafat',18.982,32.69,3.2],['Sheliak',18.835,33.36,3.5]],l:[[0,1],[1,2],[2,3],[3,4],[4,1]]},
+ {id:'Aql',n:'Aquila',s:'The Eagle',t:'Altair spins so fast it is squashed into an egg: one day there lasts about nine hours.',st:[['Altair',19.846,8.87,0.77],['Tarazed',19.771,10.61,2.7],['Alshain',19.922,6.41,3.7],['δ Aql',19.425,3.11,3.4],['ζ Aql',19.090,13.86,3.0],['θ Aql',20.188,-0.82,3.2],['λ Aql',19.104,-4.88,3.4]],l:[[4,1],[1,0],[0,2],[2,5],[0,3],[3,6]]},
+ {id:'Ori',n:'Orion',s:'The Hunter',t:'The most recognisable figure in the sky. Betelgeuse, his shoulder, is a red supergiant that will one day explode. Not tonight, probably.',st:[['Betelgeuse',5.919,7.41,0.5],['Rigel',5.242,-8.20,0.13],['Bellatrix',5.419,6.35,1.64],['Mintaka',5.533,-0.30,2.2],['Alnilam',5.604,-1.20,1.7],['Alnitak',5.679,-1.94,1.8],['Saiph',5.796,-9.67,2.1],['Meissa',5.585,9.93,3.4]],l:[[0,5],[5,6],[2,3],[3,1],[3,4],[4,5],[0,7],[7,2],[0,2],[1,6]]},
+ {id:'Tau',n:'Taurus',s:'The Bull',t:'Aldebaran glows red in the bull’s eye; the Pleiades ride on his shoulder like a small cloud that refuses to move.',st:[['Aldebaran',4.599,16.51,0.85],['Elnath',5.438,28.61,1.65],['ζ Tau',5.627,21.14,3.0],['γ Tau',4.330,15.63,3.65],['δ Tau',4.382,17.54,3.8],['ε Tau',4.477,19.18,3.5],['Pleiades',3.791,24.11,2.9]],l:[[2,0],[0,3],[3,4],[4,5],[5,1]]},
+ {id:'Gem',n:'Gemini',s:'The Twins',t:'Castor and Pollux, heads together. Castor is actually six stars pretending to be one.',st:[['Castor',7.577,31.89,1.6],['Pollux',7.755,28.03,1.15],['Alhena',6.629,16.40,1.9],['Mebsuta',6.732,25.13,3.0],['Tejat',6.383,22.51,2.9],['Wasat',7.335,21.98,3.5]],l:[[0,1],[0,3],[3,4],[1,5],[5,2]]},
+ {id:'CMa',n:'Canis Major',s:'The Great Dog',t:'Sirius, the brightest star of the night, 8.6 light-years away and blazing at magnitude −1.46. Hard to miss; many have tried.',st:[['Sirius',6.752,-16.72,-1.46],['Mirzam',6.378,-17.96,2.0],['Adhara',6.977,-28.97,1.5],['Wezen',7.140,-26.39,1.8],['Aludra',7.401,-29.30,2.45]],l:[[1,0],[0,3],[3,2],[3,4]]},
+ {id:'CMi',n:'Canis Minor',s:'The Little Dog',t:'Two stars. That is the whole constellation. Procyon does most of the work.',st:[['Procyon',7.655,5.22,0.34],['Gomeisa',7.453,8.29,2.9]],l:[[0,1]]},
+ {id:'Leo',n:'Leo',s:'The Lion',t:'A backwards question mark for a mane and a triangle for a rump. Regulus sits almost exactly on the ecliptic.',st:[['Regulus',10.140,11.97,1.35],['Denebola',11.818,14.57,2.1],['Algieba',10.333,19.84,2.0],['Zosma',11.235,20.52,2.55],['Chertan',11.237,15.43,3.3],['η Leo',10.122,16.76,3.5],['Adhafera',10.278,23.42,3.4],['ε Leo',9.764,23.77,3.0],['μ Leo',9.879,26.01,3.9]],l:[[0,5],[5,2],[2,6],[6,8],[8,7],[2,3],[3,1],[1,4],[4,0],[3,4]]},
+ {id:'Boo',n:'Boötes',s:'The Herdsman',t:'An ice-cream cone with Arcturus at the tip. Arc to Arcturus from the Dipper’s handle, then speed on to Spica.',st:[['Arcturus',14.261,19.18,-0.05],['Izar',14.750,27.07,2.4],['δ Boo',15.258,33.31,3.5],['Nekkar',15.032,40.39,3.5],['Seginus',14.535,38.31,3.0],['Muphrid',13.911,18.40,2.7]],l:[[0,1],[1,2],[2,3],[3,4],[4,0],[0,5]]},
+ {id:'Vir',n:'Virgo',s:'The Maiden',t:'The second-largest constellation, and mostly faint. Spica is the one you will actually see.',st:[['Spica',13.420,-11.16,0.97],['Porrima',12.694,-1.45,2.7],['Vindemiatrix',13.036,10.96,2.8],['δ Vir',12.927,3.40,3.4],['Zavijava',11.845,1.76,3.6],['ζ Vir',13.578,-0.60,3.4]],l:[[4,1],[1,0],[1,3],[3,2],[3,5],[5,0]]},
+ {id:'CrB',n:'Corona Borealis',s:'The Northern Crown',t:'A small, perfect half-circle of stars. T CrB inside it is due to flare into view any year now, astronomers keep saying.',st:[['Alphecca',15.578,26.71,2.2],['Nusakan',15.464,29.11,3.7],['θ CrB',15.549,31.36,4.1],['γ CrB',15.712,26.30,3.8],['δ CrB',15.827,26.07,4.6],['ε CrB',15.960,26.88,4.2]],l:[[2,1],[1,0],[0,3],[3,4],[4,5]]},
+ {id:'Her',n:'Hercules',s:'The Strongman',t:'The Keystone of four stars is his torso. The great globular cluster M13 hides on its western edge.',st:[['π Her',17.251,36.81,3.2],['η Her',16.714,38.92,3.5],['ζ Her',16.688,31.60,2.8],['ε Her',17.005,30.93,3.9],['Kornephoros',16.504,21.49,2.8],['δ Her',17.250,24.84,3.1]],l:[[0,1],[1,2],[2,3],[3,0],[2,4],[3,5]]},
+ {id:'Sco',n:'Scorpius',s:'The Scorpion',t:'One of the few constellations that looks like its name. Antares means “rival of Mars”, for its colour.',st:[['Antares',16.490,-26.43,1.0],['Dschubba',16.006,-22.62,2.3],['Acrab',16.091,-19.81,2.6],['π Sco',15.981,-26.11,2.9],['σ Sco',16.353,-25.59,2.9],['τ Sco',16.598,-28.22,2.8],['ε Sco',16.836,-34.29,2.3],['μ Sco',16.864,-38.05,3.0],['ζ Sco',16.910,-42.36,3.6],['η Sco',17.203,-43.24,3.3],['Sargas',17.622,-43.00,1.9],['ι Sco',17.793,-40.13,3.0],['κ Sco',17.708,-39.03,2.4],['Shaula',17.560,-37.10,1.6]],l:[[2,1],[1,3],[1,4],[4,0],[0,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13]]},
+ {id:'Sgr',n:'Sagittarius',s:'The Archer',t:'Everyone sees a teapot. The centre of our galaxy lies just off the spout, 26,000 light-years behind the steam.',st:[['Kaus Australis',18.403,-34.38,1.8],['Nunki',18.921,-26.30,2.0],['Ascella',19.043,-29.88,2.6],['Kaus Media',18.350,-29.83,2.7],['Kaus Borealis',18.466,-25.42,2.8],['Alnasl',18.097,-30.42,3.0],['φ Sgr',18.761,-26.99,3.2],['τ Sgr',19.116,-27.67,3.3]],l:[[5,3],[3,0],[0,5],[3,4],[4,6],[6,3],[6,1],[1,7],[7,2],[2,6],[2,0]]},
+ {id:'Peg',n:'Pegasus',s:'The Winged Horse',t:'The Great Square, which borrows one corner from Andromeda and has never given it back.',st:[['Markab',23.079,15.21,2.5],['Scheat',23.063,28.08,2.4],['Algenib',0.221,15.18,2.8],['Alpheratz',0.140,29.09,2.1],['Homam',22.691,10.83,3.4],['Biham',22.170,6.20,3.5],['Enif',21.736,9.88,2.4]],l:[[0,1],[1,3],[3,2],[2,0],[0,4],[4,5],[5,6]]},
+ {id:'And',n:'Andromeda',s:'The Chained Princess',t:'Find Mirach, hop two stars up, and the faint smudge there is the Andromeda Galaxy: 2.5 million years of light landing in your eye.',st:[['δ And',0.656,30.86,3.3],['Mirach',1.162,35.62,2.05],['Almach',2.065,42.33,2.1],['Alpheratz',0.140,29.09,2.1]],l:[[3,0],[0,1],[1,2]]},
+ {id:'Per',n:'Perseus',s:'The Hero',t:'Carries Medusa’s head, marked by Algol, the Demon Star, which dims every 2.87 days as its companion passes in front.',st:[['Mirfak',3.405,49.86,1.8],['Algol',3.136,40.96,2.1],['δ Per',3.715,47.79,3.0],['ε Per',3.964,40.01,2.9],['γ Per',3.080,53.51,2.9],['η Per',2.845,55.90,3.8],['ζ Per',3.902,31.88,2.85]],l:[[5,4],[4,0],[0,2],[2,3],[3,6],[0,1]]},
+ {id:'Aur',n:'Auriga',s:'The Charioteer',t:'A lopsided pentagon led by Capella, the sixth-brightest star, which is really two yellow giants holding hands.',st:[['Capella',5.278,46.00,0.08],['Menkalinan',5.992,44.95,1.9],['θ Aur',5.995,37.21,2.6],['Hassaleh',4.950,33.17,2.7],['Elnath',5.438,28.61,1.65]],l:[[0,1],[1,2],[2,4],[4,3],[3,0]]},
+ {id:'Ari',n:'Aries',s:'The Ram',t:'Three stars and a lot of reputation. Astrologers still start the zodiac here, 2,000 years after the sky moved on.',st:[['Hamal',2.120,23.46,2.0],['Sheratan',1.911,20.81,2.6],['Mesarthim',1.892,19.29,3.9]],l:[[0,1],[1,2]]},
+ {id:'Crv',n:'Corvus',s:'The Crow',t:'A lopsided sail of four stars, south of Virgo. In the myth the crow lied to Apollo, and got stuck up here as a warning.',st:[['Gienah Crv',12.263,-17.54,2.6],['Algorab',12.498,-16.52,2.95],['Kraz',12.573,-23.40,2.65],['Minkar',12.169,-22.62,3.0]],l:[[0,1],[1,2],[2,3],[3,0]]},
+ {id:'Cru',n:'Crux',s:'The Southern Cross',t:'Only peeks over the horizon from the tropics. From 25°N in spring it stands on the southern skyline at midnight.',st:[['Acrux',12.443,-63.10,0.77],['Mimosa',12.795,-59.69,1.25],['Gacrux',12.519,-57.11,1.6],['δ Cru',12.252,-58.75,2.8]],l:[[0,2],[1,3]]},
+ {id:'Cen',n:'Centaurus',s:'The Centaur',t:'Alpha Centauri, the nearest star system to the Sun at 4.4 light-years, barely clears the southern horizon from the tropics.',st:[['Rigil Kent',14.660,-60.83,-0.27],['Hadar',14.064,-60.37,0.6]],l:[[0,1]]},
+ {id:'etc',n:'Lone Bright Stars',s:'without a drawn figure',t:'Bright stars whose constellations are too faint to draw at this scale. Fomalhaut is called “the loneliest star” for good reason.',st:[['Fomalhaut',22.961,-29.62,1.16],['Achernar',1.629,-57.24,0.46],['Canopus',6.399,-52.70,-0.74],['Diphda',0.727,-17.99,2.0],['Alphard',9.460,-8.66,2.0],['Rasalhague',17.582,12.56,2.1],['Cor Caroli',12.934,38.32,2.9]],l:[]}
+];
+
+function el(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs) e.setAttribute(k,attrs[k]);if(parent) parent.appendChild(e);return e;}
+
+// grid: dec circles & RA spokes
+var grid=document.getElementById('grid');
+[60,30,0,-30,-60].forEach(function(d){el('circle',{r:rad(d).toFixed(1),'class':d===0?'eq':''},grid);});
+for(var h=0;h<24;h++){var a=P(h,80),b=P(h,DECMIN);el('line',{x1:a[0].toFixed(1),y1:a[1].toFixed(1),x2:b[0].toFixed(1),y2:b[1].toFixed(1)},grid);}
+
+// ecliptic
+(function(){
+  var e=23.44*D2R,d='';
+  for(var l=0;l<=360;l+=3){var L=l*D2R,dec=Math.asin(Math.sin(e)*Math.sin(L))/D2R,ra=Math.atan2(Math.cos(e)*Math.sin(L),Math.cos(L))/D2R/15;var p=P(ra,dec);d+=(l?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}
+  document.getElementById('ecl').setAttribute('d',d);
+})();
+
+// Milky Way: band between galactic latitudes ±9°
+(function(){
+  var aG=192.859*D2R,dG=27.128*D2R,lN=122.932;
+  function g2e(l,b){l*=D2R;b*=D2R;var ln=lN*D2R;
+    var sd=Math.sin(b)*Math.sin(dG)+Math.cos(b)*Math.cos(dG)*Math.cos(ln-l);
+    var y=Math.cos(b)*Math.sin(ln-l),x=Math.sin(b)*Math.cos(dG)-Math.cos(b)*Math.sin(dG)*Math.cos(ln-l);
+    return [((aG+Math.atan2(y,x))/D2R/15+48)%24,Math.asin(sd)/D2R];}
+  var up='',dn='',l,p,q;
+  for(l=0;l<=360;l+=4){p=P.apply(null,g2e(l,9));up+=(l?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}
+  for(l=360;l>=0;l-=4){q=P.apply(null,g2e(l,-9));dn+='L'+q[0].toFixed(1)+' '+q[1].toFixed(1);}
+  document.getElementById('mw').setAttribute('d',up+dn+'Z');
+})();
+
+// constellations
+var consG=document.getElementById('cons'),labelsG=document.getElementById('labels'),labels=[],pick=[];
+function starR(m){return Math.max(1.3,5.6-1.05*m);}
+CONS.forEach(function(c,ci){
+  var g=el('g',{'class':'con','data-i':ci},consG);c.g=g;
+  var pts=c.st.map(function(s){return P(s[1],s[2]);});
+  c.l.forEach(function(ln){var a=pts[ln[0]],b=pts[ln[1]];el('line',{x1:a[0].toFixed(1),y1:a[1].toFixed(1),x2:b[0].toFixed(1),y2:b[1].toFixed(1)},g);});
+  c.st.forEach(function(s,i){
+    var p=pts[i];el('circle',{'class':'star',cx:p[0].toFixed(1),cy:p[1].toFixed(1),r:starR(s[3]).toFixed(2)},g);
+    pick.push({c:ci,x:p[0],y:p[1]});
+    if(s[3]<1.3&&c.id!=='etc'||c.id==='etc'&&s[3]<1.2) labels.push({x:p[0],y:p[1],t:s[0],cls:'slab',dx:8,dy:-6});
+  });
+  if(c.id!=='etc'){
+    var cx=0,cy=0;pts.forEach(function(p){cx+=p[0];cy+=p[1];});cx/=pts.length;cy/=pts.length;
+    var OFF={UMi:[34,-8],Ori:[34,0],Cep:[0,-22],CrB:[0,-16],Boo:[-10,34],Her:[0,26],Dra:[-16,26],Cas:[0,-18]};var off=OFF[c.id]||[0,22];
+    labels.push({x:cx,y:cy,t:c.n.toUpperCase(),cls:'clab',dx:off[0],dy:off[1],c:ci});
+  }
+});
+labels.forEach(function(L){
+  L.g=el('g',{},labelsG);
+  var t=el('text',{'class':L.cls,x:L.dx,y:L.dy},L.g);t.textContent=L.t;
+  if(L.c!==undefined) L.g.setAttribute('data-c',L.c);
+});
+
+// date ring on the disc
+var dring=document.getElementById('dring');
+var MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'],DIM=[31,28,31,30,31,30,31,31,30,31,30,31];
+var J2000=Date.UTC(2000,0,1,12);
+function dateAngle(m,d){var days=(Date.UTC(2026,m,d)-J2000)/864e5;return -(100.46+0.985647*days);} // H-frame degrees
+function polar(angDeg,r){var a=angDeg*D2R;return [r*Math.sin(a),r*Math.cos(a)];}
+function tangentRot(angDeg){return -angDeg;} // text upright at bottom
+for(var m=0;m<12;m++){
+  for(var d=1;d<=DIM[m];d++){
+    var a=dateAngle(m,d),len=d===1?16:(d%5===0?10:5),p1=polar(a,380),p2=polar(a,380+len);
+    el('line',{x1:p1[0].toFixed(1),y1:p1[1].toFixed(1),x2:p2[0].toFixed(1),y2:p2[1].toFixed(1)},dring);
+    if(d%10===0){var pt=polar(a,404);var tx=el('text',{x:0,y:0,transform:'translate('+pt[0].toFixed(1)+' '+pt[1].toFixed(1)+') rotate('+tangentRot(a).toFixed(1)+')',dy:'4','font-size':'9'},dring);tx.textContent=d;}
+  }
+  var am=dateAngle(m,16),pm=polar(am,404),mt=el('text',{'class':'mon',x:0,y:0,dy:'5',transform:'translate('+pm[0].toFixed(1)+' '+pm[1].toFixed(1)+') rotate('+tangentRot(am).toFixed(1)+')'},dring);mt.textContent=MON[m];
+}
+
+// fixed hour ring
+var hring=document.getElementById('hring');
+for(var q=0;q<96;q++){
+  var T=q/4,a2=15*T,big=q%4===0,pa=polar(a2,420),pb=polar(a2,420+(big?14:6));
+  el('line',{x1:pa[0].toFixed(1),y1:pa[1].toFixed(1),x2:pb[0].toFixed(1),y2:pb[1].toFixed(1)},hring);
+  if(big){var pl=polar(a2,450),lab=T===0?'MIDNIGHT':T===12?'NOON':((T%12)||12)+(T<12?' AM':' PM');
+    var tt=el('text',{x:0,y:0,dy:'4',transform:'translate('+pl[0].toFixed(1)+' '+pl[1].toFixed(1)+') rotate('+tangentRot(a2).toFixed(1)+')','font-size':T%6===0?'13':'11'},hring);tt.textContent=lab;}
+}
+
+// horizon mask for a latitude
+var lat=25;
+function horizon(){
+  var f=lat*D2R,d='';
+  for(var A=0;A<=360;A+=2){
+    var a=A*D2R,dec=Math.asin(Math.cos(f)*Math.cos(a))/D2R,H=Math.atan2(-Math.sin(a),-Math.sin(f)*Math.cos(a));
+    var r=rad(dec);d+=(A?'L':'M')+(r*Math.sin(H)).toFixed(1)+' '+(r*Math.cos(H)).toFixed(1);
+  }
+  return d+'Z';
+}
+function circ(r){return 'M'+(-r)+' 0A'+r+' '+r+' 0 1 0 '+r+' 0A'+r+' '+r+' 0 1 0 '+(-r)+' 0Z';}
+var dirs=document.getElementById('dirs');
+function buildMask(){
+  var hz=horizon();
+  document.getElementById('mask').setAttribute('d',circ(382)+hz);
+  document.getElementById('maskTex').setAttribute('d',circ(382)+hz);
+  dirs.innerHTML='';
+  var f=lat*D2R;
+  [['NORTH',0],['EAST',90],['SOUTH',180],['WEST',270]].forEach(function(o){
+    var A=o[1]*D2R,dec=Math.asin(Math.cos(f)*Math.cos(A))/D2R,H=Math.atan2(-Math.sin(A),-Math.sin(f)*Math.cos(A)),r=rad(dec);
+    var x=r*Math.sin(H),y=r*Math.cos(H),len=Math.hypot(x,y)||1,k=o[0]==='SOUTH'?-18:22;
+    if(o[0]==='SOUTH'){x=0;y=r-18;}else{x+=x/len*k;y+=y/len*k;}
+    var t=el('text',{'class':'dir',x:x.toFixed(1),y:(y+5).toFixed(1),'text-anchor':'middle','fill':'#16150f'},dirs);t.textContent=o[0];
+  });
+  // zenith cross
+  var zr=rad(lat);el('path',{d:'M-7 '+zr.toFixed(1)+'h14M0 '+(zr-7).toFixed(1)+'v14',stroke:'#c2301f','stroke-width':'1.6'},dirs);
+  var zt=el('text',{x:10,y:(zr-8).toFixed(1),'font-size':'10',fill:'#c2301f','letter-spacing':'.2em'},dirs);zt.textContent='ZENITH';
+  var t1=el('text',{x:0,y:-262,'text-anchor':'middle','font-size':'30','font-style':'italic','letter-spacing':'.06em',fill:'#16150f',style:'font-family:Georgia,serif'},dirs);t1.textContent='Planisphere';
+  var t2=el('text',{x:0,y:-232,'text-anchor':'middle','font-size':'12','letter-spacing':'.38em',fill:'#16150f'},dirs);t2.textContent='FOR LATITUDE '+lat+'° NORTH';
+  var t3=el('text',{x:0,y:-196,'text-anchor':'middle','font-size':'11','letter-spacing':'.12em',fill:'#6b675b',style:'font-family:Georgia,serif;font-style:italic'},dirs);t3.textContent='Turn the sky until the date meets the hour. Hold overhead, facing south.';
+  el('path',{d:'M-60 -218H60',stroke:'#16150f','stroke-width':'.8'},dirs);
+  el('path',{d:'M0 -330l7 20h-14z',fill:'#c2301f'},dirs);
+}
+buildMask();
+
+// ---------- time state ----------
+var dateIn=document.getElementById('date'),timeIn=document.getElementById('time');
+var state={y:2026,m:0,d:1,min:21*60};
+function setNow(tonight){var n=new Date();state.y=n.getFullYear();state.m=n.getMonth();state.d=n.getDate();state.min=tonight?21*60:n.getHours()*60+n.getMinutes();syncInputs();render();}
+function syncInputs(){
+  if(dateIn) dateIn.value=state.y+'-'+String(state.m+1).padStart(2,'0')+'-'+String(state.d).padStart(2,'0');
+  if(timeIn) timeIn.value=Math.round(state.min/5)*5%1440;
+}
+function lst(){
+  var days=(Date.UTC(state.y,state.m,state.d)-J2000)/864e5;
+  return ((100.46+0.985647*days+15.0411*(state.min/60))%360+360)%360;
+}
+var disc=document.getElementById('disc'),ptr=document.getElementById('ptr');
+var selected=-1;
+function render(){
+  var L=lst();
+  disc.setAttribute('transform','rotate('+(-L).toFixed(3)+')');
+  var c=Math.cos(-L*D2R),s=Math.sin(-L*D2R);
+  labels.forEach(function(Lb){var x=Lb.x*c-Lb.y*s,y=Lb.x*s+Lb.y*c;Lb.g.setAttribute('transform','translate('+x.toFixed(1)+' '+y.toFixed(1)+')');});
+  var pa=15.0411*(state.min/60),p1=polar(pa,384),p2=polar(pa,470);
+  ptr.setAttribute('x1',p1[0].toFixed(1));ptr.setAttribute('y1',p1[1].toFixed(1));ptr.setAttribute('x2',p2[0].toFixed(1));ptr.setAttribute('y2',p2[1].toFixed(1));
+  var hh=Math.floor(state.min/60)%24,mm=Math.floor(state.min%60);
+  document.getElementById('rTime').textContent=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+  var lh=L/15;document.getElementById('rLst').textContent=Math.floor(lh)+'h '+String(Math.floor((lh%1)*60)).padStart(2,'0')+'m';
+  if(selected>=0) showInfo(selected,true);
+}
+
+// altitude of a constellation's brightest star
+function altOf(raH,dec){
+  var H=(lst()-raH*15)*D2R,f=lat*D2R,d=dec*D2R;
+  return Math.asin(Math.sin(f)*Math.sin(d)+Math.cos(f)*Math.cos(d)*Math.cos(H))/D2R;
+}
+var info=document.getElementById('info');
+function showInfo(ci,quiet){
+  var c=CONS[ci];if(!c||!info) return;
+  var br=c.st.slice().sort(function(a,b){return a[3]-b[3];})[0],alt=altOf(br[1],br[2]);
+  var up=alt>0?'Now <b>above</b> the horizon · '+br[0]+' at '+Math.round(alt)+'°':'Now below the horizon · try another hour';
+  info.innerHTML='<div class="nm">'+c.n+'<small>'+c.s+'</small></div><div class="up">'+up+'</div><p>'+c.t+'</p><ul>'+
+    c.st.slice().sort(function(a,b){return a[3]-b[3];}).slice(0,8).map(function(s){return '<li><span>'+s[0]+'</span><span>'+(s[3]<0?'−'+Math.abs(s[3]).toFixed(2):s[3].toFixed(1))+'</span></li>';}).join('')+'</ul>';
+}
+function select(ci){
+  if(selected>=0&&CONS[selected]) CONS[selected].g.classList.remove('on');
+  labels.forEach(function(L){if(L.c!==undefined) L.g.querySelector('text').style.fill=L.c===ci?'#c2301f':'';});
+  selected=ci;if(ci>=0){CONS[ci].g.classList.add('on');showInfo(ci);}
+}
+
+// ---------- interaction ----------
+function toSvg(e){var r=svg.getBoundingClientRect();return [(e.clientX-r.left)/r.width*1000-500,(e.clientY-r.top)/r.height*1000-500];}
+function nearest(pt){
+  var L=lst(),c=Math.cos(-L*D2R),s=Math.sin(-L*D2R),best=-1,bd=30*30;
+  pick.forEach(function(p){var x=p.x*c-p.y*s,y=p.x*s+p.y*c,d=(x-pt[0])*(x-pt[0])+(y-pt[1])*(y-pt[1]);if(d<bd){bd=d;best=p.c;}});
+  return best;
+}
+var drag=null;
+svg.addEventListener('pointerdown',function(e){
+  var p=toSvg(e);drag={a:Math.atan2(p[0],p[1]),x:e.clientX,y:e.clientY,moved:false,min:state.min};
+  try{svg.setPointerCapture(e.pointerId);}catch(_){}
+  svg.classList.add('drag');
+});
+svg.addEventListener('pointermove',function(e){
+  var p=toSvg(e);
+  if(drag){
+    if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>4) drag.moved=true;
+    if(drag.moved){
+      var a=Math.atan2(p[0],p[1]),da=a-drag.a;
+      if(da>Math.PI) da-=2*Math.PI;if(da<-Math.PI) da+=2*Math.PI;
+      drag.a=a;
+      state.min=((state.min+da/D2R/15.0411*60)%1440+1440)%1440;
+      syncInputs();render();
+    }
+  } else if(e.pointerType==='mouse'){
+    var ci=nearest(p);svg.style.cursor=ci>=0?'pointer':'grab';
+  }
+});
+function endDrag(e){
+  if(drag&&!drag.moved){var ci=nearest(toSvg(e));select(ci>=0?ci:-1);if(ci<0&&info) intro();}
+  drag=null;svg.classList.remove('drag');
+}
+svg.addEventListener('pointerup',endDrag);
+svg.addEventListener('pointercancel',function(){drag=null;svg.classList.remove('drag');});
+
+if(dateIn) dateIn.addEventListener('change',function(){var v=dateIn.value.split('-');if(v.length===3){state.y=+v[0];state.m=+v[1]-1;state.d=+v[2];render();}});
+if(timeIn) timeIn.addEventListener('input',function(){state.min=+timeIn.value;render();});
+var nowB=document.getElementById('now');if(nowB) nowB.addEventListener('click',function(){setNow(false);});
+Array.prototype.forEach.call(document.querySelectorAll('[data-lat]'),function(b){
+  b.addEventListener('click',function(){lat=+b.dataset.lat;Array.prototype.forEach.call(document.querySelectorAll('[data-lat]'),function(x){x.setAttribute('aria-pressed',String(x===b));});buildMask();render();});
+});
+var playing=false,last=0,playB=document.getElementById('play');
+if(playB) playB.addEventListener('click',function(){playing=!playing;playB.setAttribute('aria-pressed',String(playing));last=0;if(playing) requestAnimationFrame(tick);});
+function tick(t){
+  if(!playing) return;
+  var dt=last?Math.min(.1,(t-last)/1000):0;last=t;
+  state.min+=dt*60*1.2; // 1.2 hours per second
+  if(state.min>=1440){state.min-=1440;var nd=new Date(Date.UTC(state.y,state.m,state.d+1));state.y=nd.getUTCFullYear();state.m=nd.getUTCMonth();state.d=nd.getUTCDate();}
+  syncInputs();render();requestAnimationFrame(tick);
+}
+document.addEventListener('keydown',function(e){
+  if(e.target&&e.target.tagName==='INPUT') return;
+  if(e.key==='ArrowRight'){state.min=(state.min+10)%1440;syncInputs();render();}
+  else if(e.key==='ArrowLeft'){state.min=(state.min+1430)%1440;syncInputs();render();}
+  else if(e.key==='n'||e.key==='N'){setNow(false);}
+});
+
+function intro(){
+  if(!info) return;
+  info.innerHTML='<div class="nm">Tonight’s Sky<small>tap any figure</small></div><p>The window is your horizon; its edge is where the ground begins. The red cross marks the point straight overhead. Everything inside the window is up there right now, whether or not the neighbours’ floodlights agree.</p>';
+}
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+setNow(true);
+// open on a well-known figure that is currently up
+var up=-1;[8,5,13,0,17,21].some(function(i){var c=CONS[i],b=c.st[0];if(altOf(b[1],b[2])>20){up=i;return true;}return false;});
+if(up>=0) select(up); else intro();
+// a gentle sweep on load, like turning the wheel to set it
+if(!reduce){
+  var target=state.min,start=performance.now();state.min=(target+1440-150)%1440;
+  (function sweep(t){var k=Math.min(1,(t-start)/1400),e=1-Math.pow(1-k,3);state.min=((target-150+150*e)%1440+1440)%1440;render();if(k<1) requestAnimationFrame(sweep);else{state.min=target;syncInputs();render();}})(start);
+}
+})();
+</script>
+</body>
+</html>

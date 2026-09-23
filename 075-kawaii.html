@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>心情貼紙手帳 · 第 39 週</title>
+<style>
+  :root{
+    --pink:#ffb3cf; --pink-d:#f28bb2; --mint:#bdeedb; --mint-d:#7fd3b5; --lav:#d9ccff; --lav-d:#ab98f0;
+    --butter:#fff1b8; --ink:#6b4a5a; --ink-soft:#a58596; --paper:#fffdf8;
+    --hand:"MV Boli","Comic Sans MS","Chalkboard SE","Microsoft JhengHei","微軟正黑體","PingFang TC",sans-serif;
+    --round:"Comic Sans MS","Chalkboard SE","Microsoft JhengHei","微軟正黑體","PingFang TC",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh;color:var(--ink);font-family:var(--round);
+    background-color:#ffe6ef;
+    background-image:
+      radial-gradient(circle at 12px 12px, rgba(255,255,255,.75) 3.5px, transparent 4px),
+      radial-gradient(circle at 36px 36px, rgba(255,179,207,.45) 3.5px, transparent 4px);
+    background-size:48px 48px;
+    padding:clamp(12px,2vw,28px) clamp(12px,2vw,28px) 24px;
+  }
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;max-width:1360px;margin:0 auto 14px}
+  .title{position:relative;display:inline-block;padding:.35em .9em .3em;background:var(--paper);border-radius:14px;box-shadow:0 3px 0 rgba(107,74,90,.12);transform:rotate(-1.5deg)}
+  .title h1{margin:0;font-family:var(--hand);font-size:clamp(24px,3vw,40px);font-weight:400;letter-spacing:.04em}
+  .title h1 span{color:var(--pink-d)}
+  .tape{position:absolute;height:22px;width:84px;opacity:.85;border-radius:2px;
+    background:repeating-linear-gradient(45deg,var(--mint) 0 8px,#e6fbf2 8px 16px);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .title .tape{left:-26px;top:-8px;transform:rotate(-24deg)}
+  .week{font-family:var(--hand);font-size:15px;color:var(--ink-soft)}
+  .week b{color:var(--ink);font-weight:400}
+
+  .desk{max-width:1360px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:clamp(14px,2vw,28px);align-items:start}
+
+  /* ---------- the journal spread ---------- */
+  .spread{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--pink);border-radius:18px;padding:12px;box-shadow:0 10px 0 #e9a3bd, 0 22px 40px rgba(180,90,130,.25)}
+  .page{position:relative;background-color:var(--paper);
+    background-image:radial-gradient(circle, rgba(165,133,150,.35) 1.1px, transparent 1.4px);background-size:18px 18px;background-position:9px 9px;
+    padding:18px 22px 16px;min-height:640px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:12px}
+  .page.l{border-radius:10px 4px 4px 10px;box-shadow:inset -14px 0 18px -14px rgba(107,74,90,.25)}
+  .page.r{border-radius:4px 10px 10px 4px;box-shadow:inset 14px 0 18px -14px rgba(107,74,90,.25)}
+  .rings{position:absolute;left:50%;top:26px;bottom:26px;width:28px;transform:translateX(-50%);display:flex;flex-direction:column;justify-content:space-around;z-index:3;pointer-events:none}
+  .rings i{display:block;height:12px;border-radius:8px;background:linear-gradient(180deg,#fff,#d8d2da 50%,#b9b0bd);box-shadow:0 2px 2px rgba(0,0,0,.18)}
+  .phead{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;font-family:var(--hand)}
+  .phead h2{margin:0;font-weight:400;font-size:clamp(20px,2vw,28px)}
+  .phead h2 small{font-size:.55em;color:var(--ink-soft);margin-left:.4em}
+  .phead .pg{font-size:13px;color:var(--ink-soft)}
+
+  .day{position:relative;border-radius:12px;border:2px dashed transparent;padding:8px 10px 10px;min-height:190px;cursor:pointer;
+    background:rgba(255,255,255,.55);transition:border-color .2s, background .2s}
+  .day:hover{background:rgba(255,255,255,.8)}
+  .day.sel{border-color:var(--pink-d);background:rgba(255,238,245,.7)}
+  .day:focus-visible{outline:3px solid var(--lav-d);outline-offset:2px}
+  .dh{display:flex;align-items:center;gap:8px;font-family:var(--hand);pointer-events:none}
+  .dh .n{font-size:26px;line-height:1;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--dc,var(--mint));color:var(--ink)}
+  .dh .w{font-size:14px;line-height:1.2}
+  .dh .w small{display:block;color:var(--ink-soft);font-size:11px;letter-spacing:.1em}
+  .today-badge{margin-left:auto;font-size:11px;background:var(--pink-d);color:#fff;border-radius:10px;padding:2px 8px;font-family:var(--round)}
+  .note{display:block;margin-top:6px;font-family:var(--hand);font-size:14px;line-height:1.6;min-height:1.6em;outline:none;cursor:text;
+    background-image:linear-gradient(transparent calc(100% - 1px), rgba(165,133,150,.35) 1px);background-size:100% 1.6em;position:relative;z-index:1;word-break:break-word}
+  .note:empty::before{content:attr(data-ph);color:#c9b3bf}
+  .slots{position:absolute;inset:60px 6px 6px 6px;pointer-events:none}
+
+  /* ---------- summary cell ---------- */
+  .sum{border-radius:12px;padding:10px 12px;background:var(--butter);position:relative;min-height:190px;display:flex;flex-direction:column;gap:8px}
+  .sum .tape{right:-10px;top:-10px;transform:rotate(28deg);background:repeating-linear-gradient(90deg,var(--lav) 0 6px,#f1ecff 6px 12px);width:70px}
+  .sum h3{margin:0;font-family:var(--hand);font-weight:400;font-size:17px}
+  .bar{display:flex;height:22px;border-radius:11px;overflow:hidden;background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 2px rgba(107,74,90,.12)}
+  .bar i{display:block;height:100%;transition:width .5s cubic-bezier(.3,1.4,.5,1)}
+  .cap{font-family:var(--hand);font-size:14px;line-height:1.5;margin:0}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--ink-soft)}
+  .legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--lc);margin-right:4px;vertical-align:-1px}
+  .water{display:grid;grid-template-columns:auto repeat(4,40px);gap:0 2px;align-items:center}
+  .water > span{grid-row:span 2}
+  .water > span{font-family:var(--hand);font-size:13px;margin-right:4px}
+  .drop{width:40px;height:40px;border:0;padding:0;background:none;cursor:pointer;display:grid;place-items:center}
+  .drop svg{width:20px;height:26px;transition:transform .3s cubic-bezier(.3,1.8,.5,1)}
+  .drop path{fill:#fff;stroke:#8cc9f0;stroke-width:2.2}
+  .drop.on path{fill:#a8dcff}
+  .drop.on svg{transform:scale(1.12)}
+  .drop:focus-visible{outline:2px solid var(--lav-d);border-radius:6px}
+
+  /* ---------- sticker sheet ---------- */
+  .sheet{position:sticky;top:14px;background:#fff;border-radius:18px;padding:14px 14px 16px;box-shadow:0 8px 0 #f3d4e0, 0 16px 30px rgba(180,90,130,.18);
+    background-image:linear-gradient(rgba(171,152,240,.12) 1px, transparent 1px),linear-gradient(90deg, rgba(171,152,240,.12) 1px, transparent 1px);background-size:14px 14px}
+  .sheet h2{margin:0 0 2px;font-family:var(--hand);font-weight:400;font-size:20px;display:flex;align-items:center;gap:8px}
+  .sheet h2 em{font-style:normal;font-size:11px;background:var(--lav);border-radius:8px;padding:2px 8px;color:var(--ink)}
+  .sheet p.hint{margin:0 0 10px;font-size:12px;color:var(--ink-soft);line-height:1.5}
+  .stickers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 6px}
+  .sk{border:0;background:none;padding:2px 0 0;cursor:grab;display:flex;flex-direction:column;align-items:center;gap:0;font-family:var(--hand);font-size:12px;color:var(--ink);touch-action:none;border-radius:12px}
+  .sk:focus-visible{outline:2px dashed var(--pink-d)}
+  .sk svg{width:66px;height:66px;transition:transform .25s cubic-bezier(.3,1.8,.5,1)}
+  .sk:hover svg{transform:rotate(-6deg) scale(1.06)}
+  .die{filter:drop-shadow(2.5px 0 0 #fff) drop-shadow(-2.5px 0 0 #fff) drop-shadow(0 2.5px 0 #fff) drop-shadow(0 -2.5px 0 #fff) drop-shadow(0 3px 3px rgba(107,74,90,.22))}
+  .clear{margin-top:12px;width:100%;min-height:42px;border-radius:21px;border:2px solid var(--pink);background:#fff;color:var(--ink);font-family:var(--hand);font-size:14px;cursor:pointer}
+  .clear:hover,.clear:focus-visible{background:#fff0f6;outline:none}
+
+  /* placed stickers */
+  .slots{--sz:70px}
+  .placed{position:absolute;width:var(--sz,58px);height:var(--sz,58px);margin:calc(var(--sz,58px) / -2) 0 0 calc(var(--sz,58px) / -2);pointer-events:auto;cursor:grab;touch-action:none;
+    transform:rotate(var(--r,0deg));z-index:2}
+  .placed svg{width:100%;height:100%;display:block}
+  .placed.pop{animation:pop .55s cubic-bezier(.3,1.6,.5,1)}
+  .placed.wig{animation:wig .5s ease}
+  .placed.gone{animation:gone .35s ease forwards}
+  @keyframes pop{0%{transform:rotate(var(--r)) scale(.2)}55%{transform:rotate(calc(var(--r) - 8deg)) scale(1.22)}80%{transform:rotate(calc(var(--r) + 3deg)) scale(.94)}100%{transform:rotate(var(--r)) scale(1)}}
+  @keyframes wig{0%,100%{transform:rotate(var(--r)) scale(1)}25%{transform:rotate(calc(var(--r) - 12deg)) scale(1.1,.92)}50%{transform:rotate(calc(var(--r) + 10deg)) scale(.94,1.08)}75%{transform:rotate(calc(var(--r) - 4deg))}}
+  @keyframes gone{to{transform:rotate(calc(var(--r) + 40deg)) scale(0);opacity:0}}
+  .ghost{position:fixed;left:0;top:0;width:74px;height:74px;pointer-events:none;z-index:50;margin:-37px 0 0 -37px;transform:rotate(-8deg) scale(1.12);transition:transform .15s}
+  .ghost svg{width:100%;height:100%}
+  .poofs{position:fixed;pointer-events:none;z-index:60}
+  .poofs i{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--pc);animation:poof .6s ease-out forwards}
+  @keyframes poof{from{transform:translate(0,0) scale(1);opacity:1}to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+
+  @media (max-width:1100px){
+    .desk{grid-template-columns:minmax(0,1fr)}
+    .sheet{position:sticky;top:auto;bottom:8px;z-index:20;padding:10px 10px 8px;order:2}
+    .sheet .hint{display:none}
+    .stickers{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:64px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+    .sk{touch-action:pan-x}
+    .sk svg{width:54px;height:54px}
+    .clear{display:none}
+  }
+  @media (max-width:760px){
+    .spread{grid-template-columns:1fr;padding:8px}
+    .rings{display:none}
+    .page{min-height:0;padding:14px 12px;gap:10px}
+    .page.l,.page.r{border-radius:10px}
+    .page.r{margin-top:10px}
+    .day,.sum{min-height:176px}
+    .dh .n{width:34px;height:34px;font-size:21px}
+    .slots{--sz:56px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .placed.pop,.placed.wig{animation:none}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="title"><span class="tape" aria-hidden="true"></span><h1>心情<span>貼紙</span>手帳</h1></div>
+  <div class="week">2026 · <b>九月 第 39 週</b> · 9/21 – 9/27</div>
+</header>
+
+<div class="desk">
+  <section class="spread" aria-label="本週手帳">
+    <div class="rings" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <span class="tape" aria-hidden="true" style="left:18px;top:-6px;transform:rotate(-8deg);z-index:4;background:repeating-linear-gradient(45deg,#ffd6e5 0 7px,#fff 7px 14px)"></span>
+    <span class="tape" aria-hidden="true" style="right:26px;bottom:-4px;transform:rotate(6deg);z-index:4;width:96px;background:repeating-linear-gradient(90deg,#fff1b8 0 10px,#ffe07a 10px 12px)"></span>
+    <div class="page l" id="pageL">
+      <div class="phead"><h2>September <small>九月</small></h2><span class="pg">p.78</span></div>
+    </div>
+    <div class="page r" id="pageR">
+      <div class="phead"><h2>Week 39 <small>好好過</small></h2><span class="pg">p.79</span></div>
+    </div>
+  </section>
+
+  <aside class="sheet" aria-label="貼紙本">
+    <h2>貼紙本 <em>12 款</em></h2>
+    <p class="hint">把貼紙拖到任何一天；點一下貼到選取的日子。貼上去的可以拖著搬家，拖出手帳就撕掉。</p>
+    <div class="stickers" id="stickers"></div>
+    <button class="clear" id="clear" type="button">撕掉全部貼紙</button>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------------- stickers (hand-drawn SVG) ---------------- */
+  const INK = '#5a3b48';
+  const blush = (x1, x2, y) => `<ellipse cx="${x1}" cy="${y}" rx="6" ry="3.6" fill="#ff8fb4" opacity=".7"/><ellipse cx="${x2}" cy="${y}" rx="6" ry="3.6" fill="#ff8fb4" opacity=".7"/>`;
+  const happyEyes = (x1, x2, y) => `<path d="M${x1 - 5} ${y + 2} Q${x1} ${y - 5} ${x1 + 5} ${y + 2}M${x2 - 5} ${y + 2} Q${x2} ${y - 5} ${x2 + 5} ${y + 2}" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  const dotEyes = (x1, x2, y, r = 3.6) => `<circle cx="${x1}" cy="${y}" r="${r}" fill="${INK}"/><circle cx="${x2}" cy="${y}" r="${r}" fill="${INK}"/><circle cx="${x1 + 1.2}" cy="${y - 1.3}" r="1.2" fill="#fff"/><circle cx="${x2 + 1.2}" cy="${y - 1.3}" r="1.2" fill="#fff"/>`;
+  const S = [
+    { id: 'sun', n: '開心', mood: 'good', c: '#ffd35c',
+      svg: `<g fill="#ffc94a">${Array.from({ length: 8 }, (_, i) => `<path d="M50 4 L57 18 L43 18Z" transform="rotate(${i * 45} 50 50)"/>`).join('')}</g><circle cx="50" cy="50" r="30" fill="#ffe27f"/>${happyEyes(40, 60, 47)}<path d="M42 56 Q50 67 58 56Z" fill="${INK}"/><path d="M46 60 Q50 64 54 60" fill="#ff8f9f"/>${blush(33, 67, 57)}` },
+    { id: 'star', n: '超讚', mood: 'good', c: '#ffe46b',
+      svg: `<path d="M50 10 L61 36 L89 38 L67 56 L74 84 L50 69 L26 84 L33 56 L11 38 L39 36Z" fill="#ffe46b" stroke="#ffe46b" stroke-width="10" stroke-linejoin="round"/>${dotEyes(42, 58, 48, 4.2)}<path d="M44 57 Q50 62 56 57" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/>${blush(34, 66, 56)}<path d="M80 12 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#ffb3cf"/>` },
+    { id: 'heart', n: '戀愛', mood: 'good', c: '#ff9ec4',
+      svg: `<path d="M50 86 C18 64 8 46 16 30 C24 14 44 16 50 32 C56 16 76 14 84 30 C92 46 82 64 50 86Z" fill="#ff9ec4"/><path d="M26 32 Q30 24 38 24" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/>${happyEyes(40, 60, 46)}<path d="M46 54 Q50 58 54 54" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/>${blush(32, 68, 54)}` },
+    { id: 'tea', n: '平靜', mood: 'good', c: '#8fdcc2',
+      svg: `<path d="M38 18 Q34 12 40 8M50 18 Q46 10 52 6M62 18 Q58 12 64 8" stroke="#bfe9dc" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="84" rx="38" ry="8" fill="#d9f5ea"/><path d="M76 42 Q92 42 90 56 Q88 68 72 66" stroke="#8fdcc2" stroke-width="8" fill="none"/><path d="M20 32 H80 Q80 78 50 80 Q20 78 20 32Z" fill="#a8e8d2"/><path d="M20 32 H80" stroke="#7fd3b5" stroke-width="4"/><path d="M36 50 Q41 55 46 50M54 50 Q59 55 64 50" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M46 60 Q50 63 54 60" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>${blush(31, 69, 58)}` },
+    { id: 'moon', n: '想睡', mood: 'meh', c: '#c9b6ff',
+      svg: `<path d="M62 12 A38 38 0 1 0 88 66 A30 30 0 1 1 62 12Z" fill="#cdbbff"/><path d="M30 52 h9M47 56 h9" stroke="${INK}" stroke-width="3" stroke-linecap="round"/><path d="M40 66 Q44 69 48 66" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>${blush(28, 56, 62)}<text x="66" y="30" font-family="MV Boli, Comic Sans MS, cursive" font-size="16" fill="#8f7ad6">z</text><text x="76" y="18" font-family="MV Boli, Comic Sans MS, cursive" font-size="12" fill="#8f7ad6">z</text>` },
+    { id: 'drop', n: '難過', mood: 'bad', c: '#9fd3ff',
+      svg: `<path d="M50 8 C36 30 20 46 20 62 A30 30 0 0 0 80 62 C80 46 64 30 50 8Z" fill="#a9d8ff"/><path d="M32 56 Q34 46 42 44" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".7"/>${dotEyes(41, 59, 60)}<path d="M44 74 Q50 68 56 74" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M38 65 q-2 6 1 9" stroke="#5fb1f0" stroke-width="3" fill="none" stroke-linecap="round"/>` },
+    { id: 'tomato', n: '生氣', mood: 'bad', c: '#ff7b7b',
+      svg: `<circle cx="50" cy="56" r="32" fill="#ff7b7b"/><path d="M50 26 L42 16 L50 22 L58 14 L56 26 L66 24 L56 30 L44 30 L34 24Z" fill="#7fcf8f"/><path d="M36 48 L46 53M64 48 L54 53" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/><circle cx="41" cy="58" r="3.4" fill="${INK}"/><circle cx="59" cy="58" r="3.4" fill="${INK}"/><path d="M44 71 Q50 66 56 71" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M76 20 q4 4 0 8M84 22 q4 4 0 8M80 14 q4 4 0 8" stroke="#ff5a6b" stroke-width="3" fill="none" stroke-linecap="round"/>` },
+    { id: 'onigiri', n: '餓了', mood: 'meh', c: '#f3f3f3',
+      svg: `<path d="M50 12 Q58 12 70 34 L86 64 Q92 80 76 84 L24 84 Q8 80 14 64 L30 34 Q42 12 50 12Z" fill="#fff" stroke="#eee" stroke-width="2"/><rect x="34" y="62" width="32" height="22" rx="3" fill="#2f4a3f"/>${dotEyes(40, 60, 46)}<ellipse cx="50" cy="54" rx="4.5" ry="4" fill="${INK}"/><path d="M55 56 q2 6 0 9" stroke="#8fd0ff" stroke-width="2.6" fill="none" stroke-linecap="round"/>${blush(32, 68, 52)}` },
+    { id: 'pudding', n: '好累', mood: 'bad', c: '#ffd89c',
+      svg: `<path d="M26 34 Q50 26 74 34 L82 74 Q86 84 74 84 H26 Q14 84 18 74Z" fill="#ffdfa6"/><path d="M26 34 Q50 26 74 34 L76 44 Q70 50 64 44 Q58 52 50 45 Q42 52 36 44 Q30 50 24 44Z" fill="#b8703f"/><path d="M36 60 a4 4 0 1 1 1 0M58 60 a4 4 0 1 1 1 0" stroke="${INK}" stroke-width="2.6" fill="none"/><path d="M42 72 q4 -4 8 0 q4 4 8 0" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M14 84 H86" stroke="#ffc6da" stroke-width="5" stroke-linecap="round"/>` },
+    { id: 'peach', n: '害羞', mood: 'good', c: '#ffc2a8',
+      svg: `<path d="M50 24 C76 18 90 44 84 64 C78 84 58 88 50 84 C42 88 22 84 16 64 C10 44 24 18 50 24Z" fill="#ffc3a9"/><path d="M50 26 Q46 48 50 84" stroke="#ffa988" stroke-width="3" fill="none"/><path d="M50 24 Q56 8 72 10 Q66 24 50 24Z" fill="#8fd49c"/><circle cx="38" cy="52" r="3.2" fill="${INK}"/><circle cx="58" cy="52" r="3.2" fill="${INK}"/><path d="M45 61 q3 2 6 0" stroke="${INK}" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="30" cy="60" rx="8" ry="4.5" fill="#ff7fa6" opacity=".75"/><ellipse cx="66" cy="60" rx="8" ry="4.5" fill="#ff7fa6" opacity=".75"/><path d="M26 58 l3 -3M30 58 l3 -3M62 58 l3 -3M66 58 l3 -3" stroke="#fff" stroke-width="1.4" opacity=".8"/>` },
+    { id: 'cat', n: '耍廢', mood: 'meh', c: '#d7cfe6',
+      svg: `<path d="M22 40 L26 20 L38 32 H62 L74 20 L78 40 Q90 50 88 70 Q86 84 70 84 H30 Q14 84 12 70 Q10 50 22 40Z" fill="#dcd3ea"/><path d="M28 26 L30 34M72 26 L70 34" stroke="#ffb3cf" stroke-width="4" stroke-linecap="round"/><path d="M36 54 h10M54 54 h10" stroke="${INK}" stroke-width="3" stroke-linecap="round"/><path d="M44 62 q3 4 6 0 q3 4 6 0" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M20 60 H8M20 66 H10M80 60 H92M80 66 H90" stroke="#b9aecb" stroke-width="2" stroke-linecap="round"/><path d="M70 84 Q90 88 90 76" stroke="#cfc4e0" stroke-width="6" fill="none" stroke-linecap="round"/>` },
+    { id: 'storm', n: '傻眼', mood: 'bad', c: '#dfe7f2',
+      svg: `<path d="M24 60 Q8 60 10 46 Q12 34 26 36 Q28 18 48 20 Q62 14 70 30 Q88 28 90 44 Q92 60 76 60Z" fill="#e3ebf6"/><path d="M52 60 L42 76 H52 L46 92 L64 70 H54 L60 60Z" fill="#ffd84a"/><circle cx="40" cy="42" r="5" fill="#fff" stroke="${INK}" stroke-width="2.6"/><circle cx="60" cy="42" r="5" fill="#fff" stroke="${INK}" stroke-width="2.6"/><circle cx="40" cy="42" r="1.8" fill="${INK}"/><circle cx="60" cy="42" r="1.8" fill="${INK}"/><ellipse cx="50" cy="52" rx="3.5" ry="4.5" fill="${INK}"/>` }
+  ];
+  const BY = Object.fromEntries(S.map(s => [s.id, s]));
+  const svgOf = id => `<svg class="die" viewBox="0 0 100 100" aria-hidden="true">${BY[id].svg}</svg>`;
+
+  /* ---------------- days ---------------- */
+  const DAYS = [
+    { d: 21, w: '一', e: 'MON', c: '#bdeedb' }, { d: 22, w: '二', e: 'TUE', c: '#ffd6e5' }, { d: 23, w: '三', e: 'WED', c: '#fff1b8', today: true },
+    { d: 24, w: '四', e: 'THU', c: '#d9ccff' }, { d: 25, w: '五', e: 'FRI', c: '#bdeedb' }, { d: 26, w: '六', e: 'SAT', c: '#ffd6e5' }, { d: 27, w: '日', e: 'SUN', c: '#ffe0c2' }
+  ];
+  const PH = ['今天發生什麼事？', '寫一句就好…', '今天的小確幸是？', '有沒有想吐槽的？', '週五了！', '睡到幾點？', '明天又要上班了…'];
+  const KEY = 'kawaii-journal-075';
+  let state;
+  const DEFAULT = {
+    notes: ['咖啡灑在鍵盤上，Enter 鍵黏黏的', '發薪日！買了草莓大福犒賞自己', '', '', '', '', ''],
+    stk: [
+      [{ id: 'drop', x: .3, y: .45, r: -8 }, { id: 'tomato', x: .72, y: .62, r: 10 }],
+      [{ id: 'heart', x: .28, y: .5, r: 6 }, { id: 'sun', x: .7, y: .42, r: -10 }, { id: 'onigiri', x: .52, y: .8, r: 4 }],
+      [{ id: 'moon', x: .72, y: .7, r: 8 }],
+      [], [], [], []
+    ],
+    water: 3
+  };
+  try { state = JSON.parse(localStorage.getItem(KEY)) || null; } catch (_) { state = null; }
+  if (!state || !Array.isArray(state.stk) || state.stk.length !== 7) state = JSON.parse(JSON.stringify(DEFAULT));
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {} };
+  let selDay = 2;
+
+  const pageL = $('pageL'), pageR = $('pageR');
+  if (!pageL || !pageR) return;
+  const dayEls = DAYS.map((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'day'; el.tabIndex = 0; el.dataset.i = i;
+    el.setAttribute('role', 'group'); el.setAttribute('aria-label', `9月${d.d}日 星期${d.w}`);
+    el.style.setProperty('--dc', d.c);
+    el.innerHTML = `<div class="dh"><span class="n">${d.d}</span><span class="w">星期${d.w}<small>${d.e}</small></span>${d.today ? '<span class="today-badge">今天</span>' : ''}</div>` +
+      `<span class="note" contenteditable="true" spellcheck="false" data-ph="${PH[i]}"></span><div class="slots"></div>`;
+    const note = el.querySelector('.note');
+    note.textContent = state.notes[i] || '';
+    note.addEventListener('input', () => { state.notes[i] = note.textContent.slice(0, 60); save(); });
+    note.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); note.blur(); } e.stopPropagation(); });
+    el.addEventListener('click', e => { if (e.target.closest('.placed') || e.target.closest('.note')) return; select(i); });
+    el.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); select(i); } });
+    (i < 4 ? pageL : pageR).appendChild(el);
+    return el;
+  });
+  // summary cell
+  const sum = document.createElement('div');
+  sum.className = 'sum';
+  sum.innerHTML = `<span class="tape" aria-hidden="true"></span><h3>本週心情</h3><div class="bar" id="bar" aria-hidden="true"></div><p class="cap" id="cap" aria-live="polite"></p><div class="legend" id="legend"></div>
+    <div class="water"><span>今天喝水</span></div>`;
+  pageR.appendChild(sum);
+  const waterBox = sum.querySelector('.water');
+  const drops = Array.from({ length: 8 }, (_, k) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'drop'; b.setAttribute('aria-label', `第 ${k + 1} 杯水`);
+    b.innerHTML = '<svg viewBox="0 0 20 26" aria-hidden="true"><path d="M10 2 C6 9 2 13 2 17 A8 8 0 0 0 18 17 C18 13 14 9 10 2Z"/></svg>';
+    b.addEventListener('click', () => { state.water = state.water === k + 1 ? k : k + 1; save(); paintWater(); blip(500 + k * 60); });
+    waterBox.appendChild(b); return b;
+  });
+  function paintWater() { drops.forEach((b, k) => b.classList.toggle('on', k < state.water)); }
+
+  function select(i) {
+    selDay = i;
+    dayEls.forEach((el, k) => el.classList.toggle('sel', k === i));
+  }
+
+  /* ---------------- placing ---------------- */
+  function renderDay(i, popIdx) {
+    const slots = dayEls[i].querySelector('.slots');
+    slots.textContent = '';
+    state.stk[i].forEach((s, k) => {
+      if (!BY[s.id]) return;
+      const el = document.createElement('div');
+      el.className = 'placed' + (k === popIdx && !reduce ? ' pop' : '');
+      el.style.left = (s.x * 100) + '%'; el.style.top = (s.y * 100) + '%';
+      el.style.setProperty('--r', s.r + 'deg');
+      el.innerHTML = svgOf(s.id);
+      el.setAttribute('aria-label', BY[s.id].n + ' 貼紙');
+      el.dataset.day = i; el.dataset.k = k;
+      el.addEventListener('pointerdown', e => startDrag(e, s.id, { day: i, k, el }));
+      el.addEventListener('animationend', () => el.classList.remove('pop', 'wig'));
+      slots.appendChild(el);
+    });
+  }
+  function addSticker(i, id, x, y) {
+    if (state.stk[i].length >= 9) state.stk[i].shift();
+    state.stk[i].push({ id, x: Math.max(.08, Math.min(.92, x)), y: Math.max(.1, Math.min(.9, y)), r: Math.round(Math.random() * 24 - 12) });
+    save(); renderDay(i, state.stk[i].length - 1); summary(); blip(700 + Math.random() * 200);
+  }
+
+  /* ---------------- drag ---------------- */
+  let drag = null;
+  function startDrag(e, id, from) {
+    if (e.button && e.button !== 0) return;
+    drag = { id, from, x0: e.clientX, y0: e.clientY, moved: false, ghost: null, pid: e.pointerId };
+    e.preventDefault();
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
+  }
+  function onMove(e) {
+    if (!drag) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 6) {
+      drag.moved = true;
+      const g = document.createElement('div'); g.className = 'ghost die'; g.innerHTML = `<svg viewBox="0 0 100 100">${BY[drag.id].svg}</svg>`;
+      document.body.appendChild(g); drag.ghost = g;
+      if (drag.from && drag.from.el) drag.from.el.style.opacity = '.25';
+    }
+    if (drag.ghost) drag.ghost.style.translate = `${e.clientX}px ${e.clientY}px`;
+  }
+  function slotsAt(x, y) {
+    const hit = document.elementFromPoint(x, y);
+    const day = hit && hit.closest ? hit.closest('.day') : null;
+    if (!day) return null;
+    const r = day.querySelector('.slots').getBoundingClientRect();
+    return { i: +day.dataset.i, x: (x - r.left) / r.width, y: (y - r.top) / r.height };
+  }
+  function onUp(e) {
+    if (!drag) return;
+    const d = drag; drag = null;
+    window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onCancel);
+    if (d.ghost) d.ghost.remove();
+    if (!d.moved) {
+      if (d.from && d.from.el) { d.from.el.classList.remove('wig'); void d.from.el.offsetWidth; d.from.el.classList.add('wig'); blip(900); }
+      else { select(selDay); addSticker(selDay, d.id, .2 + Math.random() * .6, .3 + Math.random() * .5); }
+      return;
+    }
+    const tgt = slotsAt(e.clientX, e.clientY);
+    if (d.from && d.from.el) {
+      state.stk[d.from.day].splice(d.from.k, 1);
+      if (!tgt) { save(); poof(e.clientX, e.clientY, BY[d.id].c); renderDay(d.from.day); summary(); return; }
+      renderDay(d.from.day);
+    }
+    if (tgt) { select(tgt.i); addSticker(tgt.i, d.id, tgt.x, tgt.y); }
+    else save();
+  }
+  function onCancel() {
+    if (!drag) return;
+    if (drag.ghost) drag.ghost.remove();
+    if (drag.from && drag.from.el) drag.from.el.style.opacity = '';
+    drag = null;
+    window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onCancel);
+  }
+  function poof(x, y, c) {
+    const box = document.createElement('div'); box.className = 'poofs'; box.style.left = x + 'px'; box.style.top = y + 'px';
+    for (let k = 0; k < 10; k++) {
+      const i = document.createElement('i'), a = k / 10 * Math.PI * 2;
+      i.style.setProperty('--pc', k % 2 ? c : '#ffb3cf'); i.style.setProperty('--dx', Math.cos(a) * 46 + 'px'); i.style.setProperty('--dy', Math.sin(a) * 46 + 'px');
+      box.appendChild(i);
+    }
+    document.body.appendChild(box); setTimeout(() => box.remove(), 700);
+    blip(300);
+  }
+
+  /* ---------------- sheet ---------------- */
+  const sheet = $('stickers');
+  if (sheet) S.forEach(s => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'sk'; b.innerHTML = svgOf(s.id) + s.n;
+    b.setAttribute('aria-label', `${s.n} 貼紙，貼到選取的日子`);
+    b.addEventListener('pointerdown', e => startDrag(e, s.id, null));
+    b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addSticker(selDay, s.id, .2 + Math.random() * .6, .3 + Math.random() * .5); } });
+    sheet.appendChild(b);
+  });
+  const clr = $('clear');
+  if (clr) clr.addEventListener('click', () => {
+    dayEls.forEach((el, i) => el.querySelectorAll('.placed').forEach(p => p.classList.add('gone')));
+    setTimeout(() => { state.stk = state.stk.map(() => []); save(); dayEls.forEach((_, i) => renderDay(i)); summary(); }, 360);
+  });
+
+  /* ---------------- summary ---------------- */
+  function summary() {
+    const counts = {}; let total = 0;
+    state.stk.forEach(day => day.forEach(s => { counts[s.id] = (counts[s.id] || 0) + 1; total++; }));
+    const bar = $('bar'), cap = $('cap'), leg = $('legend');
+    if (bar) bar.innerHTML = S.filter(s => counts[s.id]).map(s => `<i style="width:${counts[s.id] / total * 100}%;background:${s.c}" title="${s.n}"></i>`).join('');
+    const m = { good: 0, meh: 0, bad: 0 };
+    state.stk.forEach(day => day.forEach(s => { m[BY[s.id].mood]++; }));
+    let text;
+    if (!total) text = '還沒有貼紙喔～從貼紙本撕一張下來吧。';
+    else if (m.good >= m.bad && m.good >= m.meh) text = m.bad ? `好心情 ${m.good} 張、壞心情 ${m.bad} 張。整體晴天，偶有陣雨。` : `全部都是好心情！這週是被幸運眷顧的一週 ♡`;
+    else if (m.bad > m.good) text = `這週有點辛苦（${m.bad} 張難過貼紙）。週末記得好好睡一覺，喝杯熱的。`;
+    else text = `這週有點懶洋洋的～耍廢也是一種充電。`;
+    if (cap) cap.textContent = text;
+    if (leg) leg.innerHTML = S.filter(s => counts[s.id]).slice(0, 6).map(s => `<span style="--lc:${s.c}">${s.n}×${counts[s.id]}</span>`).join('');
+  }
+
+  /* ---------------- tiny pop sound (after a gesture) ---------------- */
+  let ac = null;
+  function blip(f) {
+    try {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+      o.type = 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 1.8, t + .08);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.06, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + .16);
+      o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + .18);
+    } catch (_) {}
+  }
+
+  select(2);
+  dayEls.forEach((_, i) => renderDay(i));
+  paintWater();
+  summary();
+})();
+</script>
+</body>
+</html>

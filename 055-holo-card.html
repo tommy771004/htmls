@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEON FAUNA — Series 01 Holo Gallery</title>
+<style>
+:root{
+  --bg:#0a0a10; --ink:#f2f0ff; --dim:#8f8ca8;
+  --black:"Segoe UI Black","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --ui:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --glitter:none;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--ui);
+  background:radial-gradient(ellipse 60% 50% at 50% 55%,#1d1830 0%,transparent 70%),
+    linear-gradient(transparent 0 calc(100% - 1px),rgba(255,255,255,.035) 0) 0 0/100% 48px,
+    linear-gradient(90deg,transparent 0 calc(100% - 1px),rgba(255,255,255,.035) 0) 0 0/48px 100%,var(--bg);overflow-x:hidden}
+header{text-align:center;padding:clamp(22px,4vw,44px) 16px 0}
+.series{font:700 12px/1 var(--ui);letter-spacing:.4em;text-transform:uppercase;color:var(--dim)}
+h1{margin:10px 0 0;font:900 clamp(40px,8vw,104px)/.9 var(--black);letter-spacing:-.03em;text-transform:uppercase;
+  background:linear-gradient(100deg,#ff5fd2,#ffd35f 18%,#6fffb0 36%,#5fd0ff 54%,#b77dff 72%,#ff5fd2 90%);background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:iri 8s linear infinite}
+@keyframes iri{to{background-position:220% 0}}
+.lede{margin:12px auto 0;max-width:520px;color:var(--dim);font-size:15px;line-height:1.5}
+.legend{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:18px 0 0;padding:0;list-style:none}
+.legend li{font:700 11px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;padding:8px 12px;border:1px solid #2c2940;border-radius:999px;color:#c9c5e6;display:flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+/* ---------- gallery ---------- */
+.hand{position:relative;display:flex;justify-content:center;align-items:flex-end;height:clamp(400px,34vw,470px);margin:0 auto;max-width:1400px;padding-bottom:24px}
+.hand .slot{position:absolute;bottom:40px;left:50%;width:clamp(190px,17vw,236px);transform-origin:50% 130%;
+  transform:translateX(-50%) rotate(var(--fan)) translateY(var(--lift,0px));transition:transform .5s cubic-bezier(.2,.9,.2,1);z-index:var(--z)}
+.hand .slot:hover,.hand .slot:focus-within{--lift:-44px;z-index:20}
+@media (max-width:999px){
+  .hand{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px;height:auto;padding:24px 16px 10px;max-width:640px}
+  .hand .slot{position:relative;left:auto;bottom:auto;width:100%;transform:none!important}
+}
+@media (min-width:640px) and (max-width:999px){.hand{grid-template-columns:repeat(3,minmax(0,1fr));max-width:820px}}
+
+.card{--rx:0deg;--ry:0deg;--mx:50%;--my:50%;--o:.45;--gx:0;--gy:0;
+  display:block;width:100%;aspect-ratio:63/88;padding:0;border:0;background:none;cursor:pointer;perspective:900px;container-type:inline-size;color:inherit;font:inherit;touch-action:pan-y}
+.card:focus-visible{outline:none}
+.card:focus-visible .tilt{box-shadow:0 0 0 3px #fff,0 30px 60px rgba(0,0,0,.6)}
+.tilt{position:relative;width:100%;height:100%;border-radius:4.5cqw;transform:rotateX(var(--rx)) rotateY(var(--ry));transform-style:preserve-3d;
+  box-shadow:0 calc(8px + var(--gy)*1px) 30px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.08);will-change:transform}
+.face,.back{position:absolute;inset:0;border-radius:inherit;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.back{transform:rotateY(180deg)}
+.flipped .tilt{transform:rotateY(calc(180deg + var(--ry))) rotateX(var(--rx))}
+.frame{position:absolute;inset:0;background:var(--frame);}
+.frame::after{content:"";position:absolute;inset:2.8cqw;border-radius:3cqw;border:.6cqw solid rgba(255,255,255,.18)}
+.top{position:absolute;left:5cqw;right:5cqw;top:4.6cqw;display:flex;justify-content:space-between;align-items:baseline;z-index:3}
+.nm{font:900 8.2cqw/1 var(--black);letter-spacing:-.02em;color:#fff;text-shadow:0 .6cqw 0 rgba(0,0,0,.35)}
+.pw{font:900 4.4cqw/1 var(--black);color:#fff;white-space:nowrap}
+.pw b{font-size:8cqw;margin-left:1cqw}
+.type{position:absolute;left:5cqw;top:14.6cqw;font:700 3.6cqw/1 var(--ui);letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.75);z-index:3}
+.art{position:absolute;left:5cqw;right:5cqw;top:20cqw;height:60cqw;border-radius:2cqw;overflow:hidden;z-index:2;box-shadow:0 0 0 .8cqw rgba(0,0,0,.35),0 0 0 1.4cqw rgba(255,255,255,.35)}
+.art svg{display:block;width:100%;height:100%}
+.txt{text-align:left;position:absolute;left:5cqw;right:5cqw;top:84cqw;bottom:13cqw;z-index:3;display:flex;flex-direction:column;gap:2cqw}
+.ab{font:700 4.2cqw/1.25 var(--ui);color:#fff}
+.ab em{display:block;font:900 4.6cqw/1.1 var(--black);font-style:normal;margin-bottom:.8cqw;color:var(--acc)}
+.fl{font:italic 400 3.5cqw/1.3 var(--ui);color:rgba(255,255,255,.7);border-top:.4cqw solid rgba(255,255,255,.2);padding-top:1.6cqw;margin-top:auto}
+.foot{position:absolute;left:5cqw;right:5cqw;bottom:4.4cqw;display:flex;justify-content:space-between;font:700 3.2cqw/1 var(--ui);letter-spacing:.08em;color:rgba(255,255,255,.65);z-index:3}
+.foot b{color:#fff}
+
+/* foil layers */
+.foil,.glit,.glare{position:absolute;inset:0;pointer-events:none;border-radius:inherit}
+.foil{mix-blend-mode:color-dodge;opacity:var(--o);z-index:4}
+.glit{mix-blend-mode:color-dodge;opacity:calc(var(--o)*.9);z-index:5;background-image:var(--glitter);background-size:48cqw;background-position:calc(var(--mx)*.3) calc(var(--my)*.3)}
+.glare{z-index:6;mix-blend-mode:overlay;background:radial-gradient(farthest-corner circle at var(--mx) var(--my),rgba(255,255,255,.75) 0%,rgba(255,255,255,.18) 30%,rgba(0,0,0,.35) 90%);opacity:calc(.35 + var(--o)*.6)}
+.art .foil{border-radius:0}
+/* 1. rainbow holo — art only */
+.k-rainbow .art .foil{background:
+  repeating-linear-gradient(0deg,rgba(255,255,255,.1) 0 .6cqw,transparent .6cqw 1.2cqw),
+  repeating-linear-gradient(115deg,#ff3c9d 0%,#ffb03c 4.167%,#d8ff3c 8.333%,#3cffb4 12.5%,#3cc4ff 16.667%,#8f3cff 20.833%,#ff3c9d 25%);
+  background-size:100% 100%,400% 400%;background-position:0 0,var(--mx) var(--my);filter:brightness(.75) contrast(1.6) saturate(1.3)}
+/* 2. cosmos + glitter — whole card */
+.k-cosmos > .tilt > .face > .foil{background:
+  radial-gradient(circle at 20% 30%,#ff4fd8 0,transparent 30%),radial-gradient(circle at 80% 20%,#4fd8ff 0,transparent 32%),
+  radial-gradient(circle at 60% 80%,#8cff4f 0,transparent 30%),radial-gradient(circle at 30% 75%,#ffd24f 0,transparent 26%);
+  background-size:200% 200%;background-position:var(--mx) var(--my);filter:brightness(.7) contrast(1.5)}
+/* 3. reverse holo — frame only (foil sits under the art) */
+.k-reverse > .tilt > .face > .foil{z-index:1;background:
+  repeating-linear-gradient(45deg,rgba(255,255,255,.14) 0 1cqw,transparent 1cqw 2cqw),
+  linear-gradient(115deg,#ff6a3c,#ffe23c 20%,#3cff9c 40%,#3cbcff 60%,#c23cff 80%,#ff6a3c);background-size:100% 100%,300% 300%;background-position:0 0,var(--mx) var(--my);filter:brightness(.8) contrast(1.4)}
+/* 4. common — matte, only a soft glare */
+.k-matte .foil,.k-matte .glit{display:none}
+.k-matte .glare{mix-blend-mode:soft-light;opacity:.5}
+/* 5. sunpillar full art */
+.k-pillar .art{top:0;left:0;right:0;height:100%;border-radius:0;box-shadow:none}
+.k-pillar > .tilt > .face > .foil{background:
+  repeating-linear-gradient(90deg,hsl(0 90% 60%) 0%,hsl(60 90% 60%) 3.333%,hsl(120 90% 60%) 6.667%,hsl(180 90% 60%) 10%,hsl(240 90% 60%) 13.333%,hsl(300 90% 60%) 16.667%,hsl(360 90% 60%) 20%),
+  repeating-linear-gradient(0deg,rgba(0,0,0,.4) 0 .8cqw,transparent .8cqw 3cqw);
+  background-size:500% 100%,100% 100%;background-position:calc(var(--mx)*1.4) 0,0 var(--my);filter:brightness(.7) contrast(1.3) saturate(.9)}
+/* 6. gold etched */
+.k-etched > .tilt > .face > .foil{mix-blend-mode:overlay;background:
+  repeating-linear-gradient(135deg,rgba(255,255,255,.35) 0 .5cqw,transparent .5cqw 1.5cqw),
+  linear-gradient(115deg,#6b4b10,#ffe7a0 30%,#b8862a 45%,#fff4c8 55%,#8a6418 75%,#ffe7a0);background-size:100% 100%,300% 300%;background-position:0 0,var(--mx) var(--my)}
+.k-etched .glit{mix-blend-mode:screen;opacity:calc(var(--o)*.5)}
+
+.back{background:radial-gradient(circle at 50% 50%,#2a2050,#0d0b18 70%)}
+.back::before{content:"";position:absolute;inset:4cqw;border-radius:3cqw;border:.8cqw solid rgba(255,255,255,.15);background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,255,255,.04) 0 6deg,transparent 6deg 12deg)}
+.back .logo{position:absolute;inset:0;display:grid;place-items:center;font:900 26cqw/1 var(--black);letter-spacing:-.05em;
+  background:linear-gradient(115deg,#ff5fd2,#ffd35f,#6fffb0,#5fd0ff,#b77dff);background-size:300% 300%;background-position:var(--mx) var(--my);-webkit-background-clip:text;background-clip:text;color:transparent}
+.back .logo small{position:absolute;bottom:14cqw;font:700 3.6cqw/1 var(--ui);letter-spacing:.4em;color:rgba(255,255,255,.5);-webkit-text-fill-color:rgba(255,255,255,.5)}
+
+.hint{text-align:center;color:var(--dim);font-size:13px;margin:6px 0 0;padding:0 16px}
+.hint kbd{font:inherit;border:1px solid #33304a;border-radius:4px;padding:1px 6px;color:#cfcbe8}
+
+/* ---------- inspect overlay ---------- */
+.ov{position:fixed;inset:0;z-index:50;background:rgba(6,5,12,.86);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .3s}
+.ov.on{opacity:1;pointer-events:auto}
+.ov .stagebox{width:min(78vw,380px,calc((100vh - 170px)*.716));touch-action:none}
+.ov .bar{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.ov .wrap{display:flex;flex-direction:column;align-items:center}
+.pill{min-height:44px;padding:0 20px;border-radius:999px;border:1px solid #3a3656;background:#15131f;color:#fff;font:700 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+.pill:hover,.pill:focus-visible{background:#fff;color:#000;outline:none}
+.ov .meta{margin-top:12px;color:var(--dim);font-size:13px;text-align:center;letter-spacing:.06em}
+footer{text-align:center;color:#5d5a74;font-size:12px;padding:30px 16px 36px;letter-spacing:.06em}
+@media (max-width:520px){.series{letter-spacing:.22em;line-height:1.5}}
+@media (prefers-reduced-motion:reduce){h1{animation:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="series">Series 01 · Booster Gallery · 120 cards</div>
+  <h1>Neon Fauna</h1>
+  <p class="lede">Six pulls from a freshly cracked pack. Tilt them under the light — every rarity has its own foil.</p>
+  <ul class="legend">
+    <li><i style="background:#777"></i>Common · matte</li>
+    <li><i style="background:linear-gradient(90deg,#ff6a3c,#3cbcff)"></i>Reverse holo</li>
+    <li><i style="background:linear-gradient(90deg,#ff3c9d,#3cffb4,#8f3cff)"></i>Holo rare</li>
+    <li><i style="background:radial-gradient(#fff,#4fd8ff)"></i>Secret · cosmos</li>
+    <li><i style="background:linear-gradient(90deg,red,yellow,lime,cyan,blue,magenta)"></i>Full art</li>
+    <li><i style="background:linear-gradient(90deg,#8a6418,#ffe7a0)"></i>Gold etched</li>
+  </ul>
+</header>
+
+<section class="hand" id="hand" aria-label="Card gallery"></section>
+<p class="hint">Move over a card to tilt · tap or <kbd>Enter</kbd> to inspect · in the viewer drag, use <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd>, <kbd>F</kbd> to flip, <kbd>Esc</kbd> to close</p>
+
+<div class="ov" id="ov" role="dialog" aria-modal="true" aria-label="Card viewer">
+  <div class="wrap">
+    <div class="stagebox" id="stagebox"></div>
+    <div class="meta" id="meta"></div>
+    <div class="bar"><button class="pill" id="flip">Flip card</button><button class="pill" id="close">Close</button></div>
+  </div>
+</div>
+<footer>NEON FAUNA is a fictional trading card game. No booster packs were harmed. All foil is CSS.</footer>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const hand = $('#hand'), ov = $('#ov'), stagebox = $('#stagebox'), meta = $('#meta'), flipBtn = $('#flip'), closeBtn = $('#close');
+  if (!hand || !ov || !stagebox) return;
+
+  // ---------- glitter texture ----------
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+    if (x){
+      x.fillStyle = '#000'; x.fillRect(0,0,128,128);
+      for (let i = 0; i < 260; i++){ const v = Math.random(); x.fillStyle = `hsl(${Math.random()*360} 100% ${40 + v*50}%)`; const s = v > .93 ? 2 : 1; x.fillRect(Math.random()*128, Math.random()*128, s, s); }
+      document.documentElement.style.setProperty('--glitter', `url(${c.toDataURL()})`);
+    }
+  } catch(e){}
+
+  // ---------- art ----------
+  const ART = {
+    moth: `<defs><linearGradient id="mA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b1a6b"/><stop offset="1" stop-color="#0c0a2a"/></linearGradient><radialGradient id="mW" cx=".3" cy=".4"><stop offset="0" stop-color="#ffe45c"/><stop offset=".6" stop-color="#ff8a3c"/><stop offset="1" stop-color="#b23c8a"/></radialGradient></defs>
+      <rect width="240" height="200" fill="url(#mA)"/>${[...Array(14)].map((_,i)=>`<circle cx="${(i*53)%240}" cy="${(i*37)%200}" r="${i%3?1:1.8}" fill="#fff" opacity=".6"/>`).join('')}
+      <circle cx="120" cy="100" r="70" fill="#ffe45c" opacity=".12"/>
+      <path d="M120 96 C80 40 20 40 26 90 C30 120 80 118 120 104Z" fill="url(#mW)"/><path d="M120 96 C160 40 220 40 214 90 C210 120 160 118 120 104Z" fill="url(#mW)"/>
+      <path d="M120 106 C90 120 50 150 70 170 C90 184 112 140 120 112Z" fill="#b23c8a"/><path d="M120 106 C150 120 190 150 170 170 C150 184 128 140 120 112Z" fill="#b23c8a"/>
+      <circle cx="66" cy="80" r="13" fill="#2b1a6b"/><circle cx="66" cy="80" r="6" fill="#5ff0ff"/><circle cx="174" cy="80" r="13" fill="#2b1a6b"/><circle cx="174" cy="80" r="6" fill="#5ff0ff"/>
+      <ellipse cx="120" cy="112" rx="9" ry="34" fill="#3a2a1a"/><ellipse cx="120" cy="112" rx="5" ry="30" fill="#6b4a2a"/><circle cx="120" cy="80" r="9" fill="#3a2a1a"/>
+      <path d="M116 74 Q100 46 86 40 M124 74 Q140 46 154 40" stroke="#ffe45c" stroke-width="2.5" fill="none"/>
+      <path d="M36 30 l-10 18 h9 l-8 16 M206 128 l-10 18 h9 l-8 16" stroke="#5ff0ff" stroke-width="3" fill="none" stroke-linejoin="round"/>`,
+    ram: `<defs><linearGradient id="rA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d2a4a"/><stop offset="1" stop-color="#6fb6e8"/></linearGradient></defs>
+      <rect width="240" height="200" fill="url(#rA)"/><path d="M0 170 L50 110 L80 140 L130 80 L180 150 L210 120 L240 160 V200 H0Z" fill="#c8e8ff" opacity=".35"/>
+      <path d="M0 190 L60 150 L110 176 L170 140 L240 180 V200 H0Z" fill="#eaf6ff"/>
+      <g stroke="#0d2a4a" stroke-width="1.2" stroke-linejoin="round">
+      <path d="M92 70 L70 40 L40 46 L28 76 L44 104 L70 100 L62 80 L50 76 L56 62 L72 64Z" fill="#9fdcff"/><path d="M70 40 L40 46 L56 62Z" fill="#dff4ff"/><path d="M28 76 L44 104 L50 76Z" fill="#6ab8e6"/>
+      <path d="M148 70 L170 40 L200 46 L212 76 L196 104 L170 100 L178 80 L190 76 L184 62 L168 64Z" fill="#9fdcff"/><path d="M170 40 L200 46 L184 62Z" fill="#dff4ff"/><path d="M212 76 L196 104 L190 76Z" fill="#6ab8e6"/>
+      <path d="M92 60 L148 60 L156 100 L140 150 L120 162 L100 150 L84 100Z" fill="#f4fbff"/><path d="M92 60 L120 64 L148 60 L140 90 L120 96 L100 90Z" fill="#dff1fb"/><path d="M100 150 L120 162 L140 150 L132 132 L108 132Z" fill="#b9dcef"/></g>
+      <path d="M100 104 l12 4 M140 104 l-12 4" stroke="#0d2a4a" stroke-width="4" stroke-linecap="round"/><circle cx="104" cy="104" r="2" fill="#5ff0ff"/><circle cx="136" cy="104" r="2" fill="#5ff0ff"/>
+      <path d="M112 142 q8 5 16 0" stroke="#0d2a4a" stroke-width="2" fill="none"/>
+      ${[[30,30],[210,26],[120,24],[60,130],[196,138]].map(p=>`<path d="M${p[0]} ${p[1]-6} v12 M${p[0]-6} ${p[1]} h12 M${p[0]-4} ${p[1]-4} l8 8 M${p[0]+4} ${p[1]-4} l-8 8" stroke="#fff" stroke-width="1.4"/>`).join('')}`,
+    koi: `<defs><radialGradient id="kA" cx=".5" cy=".5"><stop offset="0" stop-color="#3a0d0d"/><stop offset="1" stop-color="#120404"/></radialGradient><linearGradient id="kB" x1="0" x2="1"><stop offset="0" stop-color="#fff3e0"/><stop offset="1" stop-color="#ffd9b0"/></linearGradient></defs>
+      <rect width="240" height="200" fill="url(#kA)"/>${[40,70,100].map(r=>`<ellipse cx="120" cy="104" rx="${r*1.5}" ry="${r}" fill="none" stroke="#ff6a3c" stroke-opacity=".18"/>`).join('')}
+      <path d="M40 150 C60 110 110 60 170 70 C200 76 212 96 196 110 C170 132 120 118 90 140 C74 152 60 162 40 150Z" fill="url(#kB)"/>
+      <path d="M92 104 C110 84 140 76 160 84 C150 96 128 104 110 112Z" fill="#ff4a1c"/><path d="M60 140 C70 130 84 128 92 134 C84 144 70 148 60 140Z" fill="#ff4a1c"/><circle cx="182" cy="86" r="4" fill="#1a0a0a"/>
+      <path d="M40 150 C20 140 10 120 20 104 C30 124 36 132 52 140Z" fill="#ff8a3c"/><path d="M40 150 C24 164 18 184 26 196 C36 178 42 168 54 158Z" fill="#ff6a3c"/>
+      <path d="M120 120 C118 140 104 150 96 156 C110 158 126 146 134 126Z" fill="#ffb07a" opacity=".9"/>
+      <path d="M30 104 C22 80 34 60 26 40 C44 58 44 80 36 96 C50 80 48 60 60 50 C62 74 52 92 40 108Z" fill="#ffb03c"/><path d="M34 100 C30 84 36 72 34 60 C42 72 42 86 38 98Z" fill="#fff0a0"/>`,
+    turtle: `<defs><linearGradient id="tA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe3b4"/><stop offset="1" stop-color="#6fa36a"/></linearGradient></defs>
+      <rect width="240" height="200" fill="url(#tA)"/><circle cx="190" cy="40" r="18" fill="#fff6c8"/>
+      <path d="M0 170 Q120 150 240 170 V200 H0Z" fill="#4d7a45"/>
+      <path d="M40 160 Q50 90 120 84 Q190 90 200 160Z" fill="#6b5a3a"/>
+      <g fill="none" stroke="#3e3222" stroke-width="2"><path d="M80 112 l20 -12 20 12 v24 l-20 12 -20 -12z M120 112 l20 -12 20 12 v24 l-20 12 -20 -12z M100 100 l20 -12 20 12"/></g>
+      <path d="M200 150 q24 -8 26 10 q-6 12 -26 6z" fill="#8fb87a"/><circle cx="216" cy="152" r="2.4" fill="#1a1a1a"/>
+      <path d="M58 160 v12 h14 v-12 M160 160 v12 h14 v-12" fill="#8fb87a"/>
+      <path d="M94 84 l10 -30 10 30z M118 80 l14 -40 14 40z M146 86 l8 -22 8 22z" fill="#2f6b3a"/><path d="M128 40 v44" stroke="#3e3222" stroke-width="2"/>
+      <rect x="72" y="70" width="12" height="10" fill="#f4e6c8"/><path d="M70 70 l8 -7 8 7z" fill="#b24a3a"/><rect x="160" y="74" width="10" height="9" fill="#f4e6c8"/><path d="M158 74 l7 -6 7 6z" fill="#b24a3a"/>`,
+    whale: `<defs><radialGradient id="wA" cx=".5" cy=".4"><stop offset="0" stop-color="#1c1a4a"/><stop offset="1" stop-color="#05040f"/></radialGradient><radialGradient id="wG"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#ff8af0"/><stop offset="1" stop-color="#5f3cff" stop-opacity="0"/></radialGradient></defs>
+      <rect width="240" height="335" fill="url(#wA)"/>${[...Array(40)].map((_,i)=>`<circle cx="${(i*67)%240}" cy="${(i*89)%335}" r="${i%5?0.9:1.8}" fill="#fff" opacity="${.3+(i%4)*.18}"/>`).join('')}
+      <path d="M20 190 C40 120 140 100 196 140 C214 152 226 150 234 136 C236 160 226 176 208 182 C170 220 80 232 40 214 C28 208 22 200 20 190Z" fill="#0f0d24" stroke="#8a7dff" stroke-width="1.5"/>
+      <path d="M40 214 C60 222 150 222 196 196" stroke="#8a7dff" stroke-opacity=".5" fill="none"/>
+      <circle cx="110" cy="170" r="34" fill="url(#wG)" opacity=".85"/><path d="M110 170 m-24 0 a24 10 20 1 0 48 0 a24 10 20 1 0 -48 0" fill="none" stroke="#fff" stroke-opacity=".6"/>
+      <path d="M96 164 q14 -12 28 0 q-14 14 -28 0" fill="none" stroke="#fff" stroke-opacity=".5"/>
+      <circle cx="46" cy="184" r="3" fill="#b9b0ff"/><path d="M34 202 Q60 214 92 214 M40 196 Q66 207 98 207 M30 192 Q50 198 64 198" stroke="#8a7dff" stroke-opacity=".45" fill="none"/><path d="M226 142 Q230 118 246 106 Q240 128 238 140 Q248 150 252 168 Q236 158 224 150Z" fill="#0f0d24" stroke="#8a7dff" stroke-width="1.5"/><path d="M120 214 q10 26 -6 40 q18 -6 20 -30" fill="#0f0d24" stroke="#8a7dff"/>
+      <path d="M30 100 q10 -30 40 -40 M200 60 q10 20 0 40" stroke="#b9b0ff" stroke-opacity=".3" fill="none"/>`,
+    fox: `<defs><linearGradient id="fA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1b1026"/><stop offset="1" stop-color="#3a1f2a"/></linearGradient></defs>
+      <rect width="240" height="200" fill="url(#fA)"/>
+      <path d="M120 30 L0 200 H40 Z" fill="#ff5f5f" opacity=".25"/><path d="M120 30 L40 200 H80 Z" fill="#ffd35f" opacity=".25"/><path d="M120 30 L80 200 H120 Z" fill="#6fffb0" opacity=".25"/><path d="M120 30 L120 200 H160 Z" fill="#5fd0ff" opacity=".25"/><path d="M120 30 L160 200 H200 Z" fill="#b77dff" opacity=".25"/>
+      <g stroke="#1b1026" stroke-width="1.2" stroke-linejoin="round">
+      <path d="M60 40 L96 84 L70 100Z" fill="#ff8a3c"/><path d="M180 40 L144 84 L170 100Z" fill="#ff8a3c"/><path d="M66 50 L88 82 L74 92Z" fill="#ffd6b0"/><path d="M174 50 L152 82 L166 92Z" fill="#ffd6b0"/>
+      <path d="M70 100 L96 84 L120 96 L144 84 L170 100 L160 130 L120 170 L80 130Z" fill="#ff7a2c"/>
+      <path d="M96 84 L120 96 L144 84 L130 110 L120 118 L110 110Z" fill="#ffa35c"/>
+      <path d="M80 130 L100 126 L120 170Z" fill="#fff3e6"/><path d="M160 130 L140 126 L120 170Z" fill="#fff3e6"/><path d="M100 126 L120 118 L140 126 L120 170Z" fill="#ffe3cc"/></g>
+      <path d="M94 108 l12 4 M146 108 l-12 4" stroke="#1b1026" stroke-width="4" stroke-linecap="round"/><path d="M114 158 h12 l-6 8z" fill="#1b1026"/>`
+  };
+
+  const CARDS = [
+    {k:'k-reverse',nm:'Emberfin',pw:70,ty:'Fire / Water',acc:'#ffb03c',frame:'linear-gradient(160deg,#5a1a0e,#240806 60%,#3a120a)',art:'koi',
+     ab:['Contradiction','Can be played in the rain. Refuses to explain how.'],fl:'Koi ponds near volcanoes are best visited in oven mitts.',no:'023/120',r:'Rare · Reverse Holo',sym:'◆'},
+    {k:'k-matte',nm:'Mossback',pw:60,ty:'Earth',acc:'#b9f28a',frame:'linear-gradient(160deg,#2c3a22,#151c10 60%,#243018)',art:'turtle',
+     ab:['Patience','Skip your turn. Next turn, skip it again. Win eventually.'],fl:'Three villages live on its shell. None of them have noticed.',no:'088/120',r:'Common',sym:'●'},
+    {k:'k-rainbow',nm:'Voltmoth',pw:90,ty:'Storm',acc:'#5ff0ff',frame:'linear-gradient(160deg,#2a1d5c,#0e0b24 60%,#241a4a)',art:'moth',
+     ab:['Porch Light Panic','Whenever a lamp turns on nearby, gain +30 PWR and lose all dignity.'],fl:'Drawn to every light except the one at the end of the tunnel.',no:'014/120',r:'Holo Rare',sym:'◆◆'},
+    {k:'k-cosmos',nm:'Glacierhorn',pw:140,ty:'Frost',acc:'#9fdcff',frame:'linear-gradient(160deg,#0f2d4a,#07121f 60%,#123452)',art:'ram',
+     ab:['Slow Avalanche','Deal 10 damage now and 200 damage in about four hundred years.'],fl:'Its horns grow one ring per winter. It remembers every one.',no:'057/120',r:'Secret Rare',sym:'★'},
+    {k:'k-pillar',nm:'Nullwhale',pw:200,ty:'Void',acc:'#c9b8ff',frame:'#05040f',art:'whale',full:true,
+     ab:['Deep Hum','All players forget what they were about to say.'],fl:'Swallowed a galaxy by accident. Still digesting.',no:'101/120',r:'Full Art',sym:'★★'},
+    {k:'k-etched',nm:'Prism Fox',pw:110,ty:'Light',acc:'#ffe7a0',frame:'linear-gradient(160deg,#4a3410,#1a1206 55%,#5a4214)',art:'fox',
+     ab:['Split Decision','Name a colour. Prism Fox becomes all of the others.'],fl:'Never photograph it at noon. The rainbow has lawyers.',no:'120/120',r:'Gold Etched',sym:'★★★'}
+  ];
+
+  function cardHTML(c, i){
+    const vb = c.full ? '0 0 240 335' : '0 0 240 200';
+    const artFoil = c.k === 'k-rainbow' ? '<div class="foil"></div>' : '';
+    const faceFoil = c.k === 'k-rainbow' ? '' : '<div class="foil"></div>';
+    return `<div class="tilt"><div class="face" style="--frame:${c.frame};--acc:${c.acc}">
+        <div class="frame"></div>${c.k === 'k-reverse' ? faceFoil : ''}
+        <div class="art"><svg viewBox="${vb}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${ART[c.art]}</svg>${artFoil}</div>
+        <div class="top"><span class="nm">${c.nm}</span><span class="pw">PWR<b>${c.pw}</b></span></div>
+        <div class="type">${c.ty}</div>
+        <div class="txt"><div class="ab"><em>${c.ab[0]}</em>${c.ab[1]}</div><div class="fl">${c.fl}</div></div>
+        <div class="foot"><span>NF-01 · <b>${c.no}</b></span><span>${c.sym} ${c.r}</span></div>
+        ${c.k !== 'k-reverse' ? faceFoil : ''}<div class="glit"></div><div class="glare"></div>
+      </div><div class="back"><div class="logo">NF<small>NEON FAUNA</small></div><div class="glare"></div></div></div>`;
+  }
+
+  // Full art: move text over the art with a scrim
+  const extraCSS = document.createElement('style');
+  extraCSS.textContent = `.k-pillar .txt{top:auto;height:auto;bottom:13cqw;background:linear-gradient(transparent,rgba(5,4,15,.85) 30%);padding:10cqw 3cqw 2cqw;left:0;right:0;padding-left:5cqw;padding-right:5cqw}
+    .k-pillar .top{z-index:7}.k-pillar .txt,.k-pillar .foot,.k-pillar .type{z-index:7}`;
+  document.head.appendChild(extraCSS);
+
+  const n = CARDS.length;
+  const els = CARDS.map((c, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    const f = (i - (n-1)/2);
+    slot.style.setProperty('--fan', (f*9) + 'deg');
+    slot.style.setProperty('--z', String(10 - Math.abs(Math.round(f))));
+    slot.style.marginLeft = (f * 11.5) + 'vw';
+    const b = document.createElement('button');
+    b.className = 'card ' + c.k;
+    b.setAttribute('aria-label', `${c.nm}, ${c.r}. Open viewer.`);
+    b.innerHTML = cardHTML(c, i);
+    slot.appendChild(b); hand.appendChild(slot);
+    return {b, c, hover:false, phase: i*1.3};
+  });
+  // fan offsets only on wide layout
+  function layout(){ const wide = innerWidth >= 1000; els.forEach((e, i) => { e.b.parentElement.style.marginLeft = wide ? ((i - (n-1)/2) * Math.min(11.5, 1500/innerWidth*7.6)) + 'vw' : ''; }); }
+  layout(); addEventListener('resize', layout);
+
+  function setVars(el, px, py, strength){
+    // px,py in 0..1
+    el.style.setProperty('--rx', ((.5 - py) * 26 * strength).toFixed(2) + 'deg');
+    el.style.setProperty('--ry', ((px - .5) * 30 * strength).toFixed(2) + 'deg');
+    el.style.setProperty('--mx', (px*100).toFixed(1) + '%');
+    el.style.setProperty('--my', (py*100).toFixed(1) + '%');
+    el.style.setProperty('--gy', ((py - .5)*20).toFixed(1));
+  }
+  els.forEach(e => {
+    const b = e.b;
+    b.addEventListener('pointermove', ev => {
+      if (ev.pointerType === 'touch') return;
+      const r = b.getBoundingClientRect(); e.hover = true;
+      setVars(b, Math.min(1, Math.max(0, (ev.clientX - r.left)/r.width)), Math.min(1, Math.max(0, (ev.clientY - r.top)/r.height)), 1);
+      b.style.setProperty('--o', '1');
+    });
+    b.addEventListener('pointerleave', () => { e.hover = false; b.style.setProperty('--o', '.45'); });
+    b.addEventListener('click', () => openViewer(e.c));
+  });
+
+  // idle shimmer loop
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let raf = 0;
+  function idle(t){
+    const s = t/1000;
+    els.forEach(e => { if (!e.hover) { setVars(e.b, .5 + Math.sin(s*.7 + e.phase)*.32, .5 + Math.cos(s*.55 + e.phase*1.7)*.28, .45); } });
+    if (vw.active && !vw.drag && !vw.key) setVars(vw.card, .5 + Math.sin(s*.6)*.3, .5 + Math.cos(s*.45)*.25, .6);
+    raf = document.hidden ? 0 : requestAnimationFrame(idle);
+  }
+  if (!reduce) raf = requestAnimationFrame(idle);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !raf && !reduce) raf = requestAnimationFrame(idle); });
+
+  // ---------- viewer ----------
+  const vw = {active:false, card:null, drag:false, key:false, px:.5, py:.5, last:null};
+  function openViewer(c){
+    stagebox.innerHTML = '';
+    const b = document.createElement('div');
+    b.className = 'card ' + c.k; b.style.cursor = 'grab';
+    b.innerHTML = cardHTML(c);
+    b.style.setProperty('--o', '1');
+    stagebox.appendChild(b);
+    vw.card = b; vw.active = true; vw.key = false; vw.px = .5; vw.py = .5;
+    if (meta) meta.textContent = `${c.nm} · ${c.r} · NF-01 ${c.no}`;
+    ov.classList.add('on');
+    vw.last = document.activeElement;
+    setTimeout(() => { if (closeBtn) closeBtn.focus(); }, 50);
+    tone(c.pw);
+  }
+  function closeViewer(){ ov.classList.remove('on'); vw.active = false; if (vw.last && vw.last.focus) vw.last.focus(); }
+  stagebox.addEventListener('pointerdown', ev => { if (!vw.card) return; vw.drag = true; try { stagebox.setPointerCapture(ev.pointerId); } catch(e){} move(ev); });
+  stagebox.addEventListener('pointermove', ev => { if (!vw.card) return; if (vw.drag || ev.pointerType === 'mouse') move(ev); });
+  stagebox.addEventListener('pointerup', () => { vw.drag = false; });
+  stagebox.addEventListener('pointercancel', () => { vw.drag = false; });
+  stagebox.addEventListener('pointerleave', () => { vw.drag = false; });
+  function move(ev){
+    const r = stagebox.getBoundingClientRect();
+    vw.px = Math.min(1, Math.max(0, (ev.clientX - r.left)/r.width)); vw.py = Math.min(1, Math.max(0, (ev.clientY - r.top)/r.height));
+    vw.key = true; setVars(vw.card, vw.px, vw.py, 1.1);
+  }
+  ov.addEventListener('click', ev => { if (ev.target === ov) closeViewer(); });
+  if (closeBtn) closeBtn.addEventListener('click', closeViewer);
+  if (flipBtn) flipBtn.addEventListener('click', () => { if (vw.card) vw.card.classList.toggle('flipped'); });
+  document.addEventListener('keydown', ev => {
+    if (!vw.active) return;
+    if (ev.key === 'Escape') closeViewer();
+    else if (ev.key === 'f' || ev.key === 'F'){ if (vw.card) vw.card.classList.toggle('flipped'); }
+    else if (ev.key.startsWith('Arrow')){
+      ev.preventDefault(); vw.key = true;
+      if (ev.key === 'ArrowLeft') vw.px = Math.max(0, vw.px - .08);
+      if (ev.key === 'ArrowRight') vw.px = Math.min(1, vw.px + .08);
+      if (ev.key === 'ArrowUp') vw.py = Math.max(0, vw.py - .08);
+      if (ev.key === 'ArrowDown') vw.py = Math.min(1, vw.py + .08);
+      setVars(vw.card, vw.px, vw.py, 1.1);
+    }
+  });
+
+  // shimmer sound on open
+  let ac = null;
+  function tone(pw){
+    try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ return; }
+    const t = ac.currentTime, base = 600 + pw*2;
+    [0, .06, .12, .18].forEach((d, i) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = base * [1, 1.25, 1.5, 2][i]; g.gain.setValueAtTime(.0001, t+d); g.gain.exponentialRampToValueAtTime(.05, t+d+.01); g.gain.exponentialRampToValueAtTime(.0001, t+d+.6); o.connect(g).connect(ac.destination); o.start(t+d); o.stop(t+d+.65); });
+  }
+})();
+</script>
+</body>
+</html>

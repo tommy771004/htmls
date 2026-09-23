@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Departures — Port Nowhere International (PNW)</title>
+<style>
+:root{
+  --yellow:#ffcf00;
+  --white:#f3f1e8;
+  --char:#161616;
+  --mono: Consolas, "Lucida Console", Menlo, "SF Mono", "Courier New", monospace;
+  --sans: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --cw: 26px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  min-height:100vh;color:var(--white);font-family:var(--mono);
+  background:
+    radial-gradient(120% 70% at 50% 0%, #2a2a28 0%, #121212 55%, #080808 100%);
+}
+.wrap{max-width:1320px;margin:0 auto;padding:clamp(14px,2.5vw,32px) clamp(16px,2.5vw,32px) 40px}
+
+/* yellow wayfinding band */
+.band{display:flex;align-items:stretch;background:var(--yellow);color:#111;min-height:72px;border-radius:2px;overflow:hidden;box-shadow:0 10px 30px -10px rgba(255,207,0,.25)}
+.band .icon{background:#111;display:grid;place-items:center;padding:0 18px;flex:none}
+.band .icon svg{width:40px;height:40px}
+.band .title{display:flex;flex-direction:column;justify-content:center;padding:6px 18px;flex:1;min-width:0}
+.band h1{margin:0;font-family:var(--sans);font-weight:700;font-size:clamp(26px,4vw,44px);letter-spacing:.02em;line-height:1;text-transform:uppercase}
+.band .langs{font-family:var(--sans);font-size:13px;letter-spacing:.14em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.band .gate-arrow{display:grid;place-items:center;padding:0 18px;border-left:3px solid #111;font-family:var(--sans);font-weight:700;font-size:20px;gap:4px;text-align:center;line-height:1.1}
+.band .gate-arrow svg{width:30px;height:30px}
+
+/* board */
+.board{
+  margin-top:18px;background:#0d0d0d;border-radius:4px;padding:clamp(10px,1.6vw,20px) clamp(8px,1.6vw,22px) clamp(14px,2vw,24px);
+  box-shadow:inset 0 0 0 1px #262626, inset 0 2px 0 #2c2c2c, 0 30px 60px -20px #000, 0 0 0 6px #1b1b1b, 0 0 0 7px #2c2c2c;
+  position:relative;
+}
+.board::before,.board::after{content:"";position:absolute;top:10px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#6a6a6a,#1a1a1a);box-shadow:0 0 0 1px #000}
+.board::before{left:8px}.board::after{right:8px}
+.bhead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:0 2px 12px;border-bottom:1px solid #262626;margin-bottom:10px;flex-wrap:wrap}
+.bhead .ap{font-family:var(--sans);font-size:13px;letter-spacing:.24em;color:#9c9a92;text-transform:uppercase;line-height:1.5}
+.bhead .ap b{color:var(--white);font-size:17px;letter-spacing:.12em;display:block}
+.clockbox{display:flex;align-items:flex-end;gap:10px}
+.clockbox small{font-family:var(--sans);font-size:11px;letter-spacing:.2em;color:#9c9a92;text-align:right;line-height:1.4}
+
+.cols,.row .line{display:flex;align-items:center;gap:calc(var(--cw) * .5)}
+.cols{padding:0 0 8px 0;font-family:var(--sans);font-weight:700;font-size:12px;letter-spacing:.2em;color:var(--yellow);text-transform:uppercase}
+.cols span{flex:none;overflow:hidden;white-space:nowrap}
+.row{padding:5px 0;border-bottom:1px solid #1b1b1b;position:relative}
+.row .line + .line{margin-top:4px}
+.field{display:flex;gap:2px;flex:none}
+.lamp{width:10px;height:10px;border-radius:50%;background:#2b2b2b;box-shadow:inset 0 1px 2px #000;flex:none;margin-left:auto}
+.lamp.on{background:var(--yellow);box-shadow:0 0 8px var(--yellow),0 0 2px #fff inset}
+.lamp.blink{animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{background:#2b2b2b;box-shadow:inset 0 1px 2px #000}}
+
+/* a single flap cell */
+.c{
+  --h: calc(var(--cw) * 1.46);
+  position:relative;width:var(--cw);height:var(--h);flex:none;perspective:calc(var(--cw) * 8);
+  font-family:var(--mono);font-weight:700;font-size:calc(var(--cw) * .98);color:var(--white);
+  border-radius:3px;
+}
+.c.y{color:var(--yellow)}
+.c > span{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:linear-gradient(180deg,#2a2a2a,#1f1f1f)}
+.c > span b{position:absolute;left:0;right:0;height:var(--h);line-height:var(--h);text-align:center;font-weight:700}
+.c .t,.c .ft{top:0;border-radius:3px 3px 0 0;transform-origin:50% 100%}
+.c .b,.c .fb{bottom:0;border-radius:0 0 3px 3px;background:linear-gradient(180deg,#1b1b1b,#232323);transform-origin:50% 0}
+.c .b b,.c .fb b{top:calc(var(--h) / -2)}
+.c .ft{z-index:2}
+.c .fb{z-index:3;visibility:hidden}
+.c::after{ /* hinge */
+  content:"";position:absolute;left:0;right:0;top:50%;height:1px;margin-top:-.5px;background:#050505;z-index:5;box-shadow:0 1px 0 rgba(255,255,255,.04)
+}
+.c::before{ /* axle nubs */
+  content:"";position:absolute;left:-1px;right:-1px;top:50%;height:4px;margin-top:-2px;z-index:6;
+  background:linear-gradient(90deg,#3a3a3a 0 2px,transparent 2px calc(100% - 2px),#3a3a3a calc(100% - 2px));
+}
+.c .t::after,.c .ft::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(0,0,0,.18))}
+
+/* controls */
+.desk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;margin-top:22px;align-items:start}
+.book{background:#151515;border:1px solid #2a2a2a;border-radius:3px;padding:14px 16px}
+.book label{display:block;font-family:var(--sans);font-size:12px;letter-spacing:.22em;color:var(--yellow);text-transform:uppercase;margin-bottom:8px}
+.book .in{display:flex;gap:8px}
+.book input{flex:1;min-width:0;background:#0b0b0b;border:1px solid #333;color:var(--white);font-family:var(--mono);font-weight:700;font-size:18px;letter-spacing:.14em;text-transform:uppercase;padding:0 12px;height:46px;border-radius:2px;outline:none}
+.book input:focus{border-color:var(--yellow)}
+.btn{height:46px;min-width:46px;padding:0 16px;background:var(--yellow);color:#111;border:0;border-radius:2px;font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;color:var(--white);border:1px solid #3a3a3a}
+.btn.ghost[aria-pressed="true"]{border-color:var(--yellow);color:var(--yellow)}
+.btn:focus-visible,.book input:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+.msg{margin-top:10px;font-size:13px;color:#b7b4aa;min-height:1.4em;line-height:1.5}
+.side{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.side .btn{display:flex;align-items:center;gap:10px;justify-content:center}
+.side svg{width:18px;height:18px}
+.notice{margin-top:26px;display:flex;gap:14px;align-items:flex-start;border-top:1px solid #262626;padding-top:14px;font-family:var(--sans);font-size:14px;color:#8f8d85;letter-spacing:.04em;line-height:1.5}
+.notice svg{width:28px;height:28px;flex:none}
+.notice b{color:var(--white);font-weight:700}
+
+@media (max-width:600px){
+  .band .gate-arrow{display:none}
+  .band .icon{padding:0 12px}
+  .band .icon svg{width:30px;height:30px}
+  .desk{grid-template-columns:1fr}
+  .side{flex-direction:row}
+  .side .btn{flex:1}
+  .cols{font-size:10px;letter-spacing:.12em}
+}
+@media (prefers-reduced-motion:reduce){ .lamp.blink{animation:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="band">
+    <div class="icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#ffcf00" d="M44 30.5v-3.2L27 17V6.8C27 5 25.7 3 24 3s-3 2-3 3.8V17L4 27.3v3.2l17-4.7v9.8l-4.4 3.3V42l7.4-2 7.4 2v-3.1L27 35.6v-9.8z" transform="rotate(-45 24 24)"/></svg></div>
+    <div class="title"><h1>Departures</h1><div class="langs">Départs · Abflug · 出發 · Partenze · 出発</div></div>
+    <div class="gate-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="#111" stroke-width="3" stroke-linecap="square"/></svg>Gates<br>A–Y</div>
+  </header>
+
+  <section class="board" aria-label="Departures board">
+    <div class="bhead">
+      <div class="ap"><b>Port Nowhere Int’l · PNW</b>Terminal 2 · All times local</div>
+      <div class="clockbox"><small>LOCAL<br>TIME</small><div class="field" id="clock"></div></div>
+    </div>
+    <div class="cols" id="cols"></div>
+    <div id="rows" aria-live="polite"></div>
+  </section>
+
+  <div class="desk">
+    <form class="book" id="book" autocomplete="off">
+      <label for="dest">Book a flight — type any destination</label>
+      <div class="in"><input id="dest" maxlength="15" placeholder="E.G. NARNIA" spellcheck="false"><button class="btn" type="submit">Add</button></div>
+      <div class="msg" id="msg">Every six seconds a flight boards, calls last, or leaves without you.</div>
+    </form>
+    <div class="side">
+      <button class="btn ghost" id="sound" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path id="wave" d="M16 8c1.6 1.2 1.6 6.8 0 8M19 5c3 2.5 3 11.5 0 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".35"/></svg><span>Clack: off</span></button>
+      <button class="btn ghost" id="shuffle" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h4l8 10h4M4 17h4l2.5-3M13.5 10 16 7h4M18 4l3 3-3 3M18 14l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Next event</span></button>
+    </div>
+  </div>
+
+  <div class="notice">
+    <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="1" y="1" width="26" height="26" rx="3" fill="#ffcf00"/><path d="M14 6v10M14 19.5v2.5" stroke="#111" stroke-width="3" stroke-linecap="square"/></svg>
+    <div><b>Do not leave baggage unattended.</b> Unattended baggage will be removed. Unattended feelings will be announced over the PA system. Solari-type board, 1971 — please do not tap the flaps.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:.-'/";
+  var rowsEl = document.getElementById('rows'), colsEl = document.getElementById('cols'), clockEl = document.getElementById('clock');
+  if (!rowsEl || !colsEl || !clockEl) return;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- flight data ---------- */
+  var POOL = [
+    ['AU 079','EL DORADO','A3'], ['SB 404','ATLANTIS','B7'], ['PP 001','NEVERLAND','C2'], ['HL 108','SHANGRI-LA','A9'],
+    ['AP 011','THE MOON','D1'], ['IX 000','INBOX ZERO','E4'], ['SD 365','SOMEDAY','B2'], ['EW 747','ELSEWHERE','C8'],
+    ['ZZ 999','BACK TO BED','Z1'], ['MO 900','MONDAY','M1'], ['TB 212','TIMBUKTU','D6'], ['WR 950','NARNIA','W4'],
+    ['AV 537','AVALON','A1'], ['FR 500','THE WEEKEND','F5'], ['XN 797','XANADU','X2'], ['UT 516','UTOPIA','U8'],
+    ['CL 009','CLOUD 9','C9'], ['LL 016','LA LA LAND','L3'], ['OZ 939','KANSAS','K7'], ['GD 042','DEEP THOUGHT','G4'],
+    ['HM 101','HOME','H1'], ['PL 314','PI TOWN','P3'], ['AL 101','ALBUQUERQUE','A7'], ['YR 002','NEXT YEAR','Y2']
+  ];
+  var QUIRKS = {'INBOX ZERO':'CANCELLED','UTOPIA':'CANCELLED','MONDAY':'DELAYED','SOMEDAY':'DELAYED','NEXT YEAR':'DELAYED','BACK TO BED':'GATE OPEN','DEEP THOUGHT':'SEE AGENT'};
+  var poolIdx = 0, flightNo = 0;
+  var now = new Date(), baseMin = now.getHours() * 60 + now.getMinutes();
+  var lastT = Math.ceil((baseMin + 4) / 5) * 5;
+  function hhmm(m){ m = ((m % 1440) + 1440) % 1440; return ('0' + Math.floor(m/60)).slice(-2) + ':' + ('0' + (m%60)).slice(-2); }
+  function nextFlight(){
+    var p = POOL[poolIdx++ % POOL.length];
+    lastT += [5,5,10,10,15,20][Math.floor(Math.random()*6)];
+    return {t:lastT, flight:p[0], dest:p[1], gate:p[2], remark:QUIRKS[p[1]] || 'ON TIME', stage:0, id:flightNo++};
+  }
+  var flights = [];
+  for (var i=0;i<8;i++) flights.push(nextFlight());
+  flights[0].remark = 'BOARDING'; flights[0].stage = 1;
+  flights[1].remark = 'GATE OPEN';
+
+  /* ---------- layouts ---------- */
+  var LAYOUTS = {
+    wide: [[['time',5,'Time'],['flight',6,'Flight'],['dest',15,'Destination'],['gate',3,'Gate'],['remark',10,'Remarks']]],
+    mid:  [[['time',5,'Time'],['dest',12,'Destination'],['gate',2,'Gt'],['remark',10,'Remarks']]],
+    narrow: [[['time',5,'Time'],['dest',11,'Dest. / Flight · Status']],[['flight',6,'Flight'],['remark',10,'Remarks']]]
+  };
+  var layoutName = '', cellsByRow = [], clockCells = [];
+
+  /* ---------- flap cell engine ---------- */
+  var active = [];
+  function makeCell(yellow){
+    var c = document.createElement('span');
+    c.className = 'c' + (yellow ? ' y' : '');
+    c.innerHTML = '<span class="t"><b> </b></span><span class="b"><b> </b></span><span class="ft"><b> </b></span><span class="fb"><b> </b></span>';
+    var q = c.querySelectorAll('b');
+    return {el:c, t:q[0], b:q[1], ft:q[2], fb:q[3], ftw:c.querySelector('.ft'), fbw:c.querySelector('.fb'), cur:' ', target:' ', wait:0, busy:false};
+  }
+  var priming = false;
+  function setTarget(cell, ch){
+    ch = (ch || ' ').toUpperCase();
+    if (CHARS.indexOf(ch) < 0) ch = ' ';
+    if (cell.target === ch) return;
+    cell.target = ch;
+    if (priming && !reduce){
+      var k = 1 + Math.floor(Math.random() * 6), ci = CHARS.indexOf(ch);
+      var st = CHARS[((ci - k) % CHARS.length + CHARS.length) % CHARS.length];
+      cell.cur = st; cell.t.textContent = cell.b.textContent = cell.ft.textContent = cell.fb.textContent = st;
+    }
+    cell.wait = Math.floor(Math.random() * 4);
+    if (reduce){ cell.cur = ch; cell.t.textContent = cell.b.textContent = cell.ft.textContent = cell.fb.textContent = ch; return; }
+    if (active.indexOf(cell) < 0) active.push(cell);
+  }
+  var STEP = 64;
+  function flip(cell){
+    var i = CHARS.indexOf(cell.cur), nx = CHARS[(i + 1) % CHARS.length];
+    var cur = cell.cur;
+    cell.busy = true;
+    cell.t.textContent = nx; cell.fb.textContent = nx; cell.ft.textContent = cur; cell.b.textContent = cur;
+    var h = STEP * 0.5;
+    cell.fbw.style.visibility = 'visible';
+    try{
+      cell.ftw.animate([{transform:'rotateX(0deg)'},{transform:'rotateX(-90deg)'}], {duration:h, easing:'ease-in', fill:'forwards'});
+      cell.fbw.animate([{transform:'rotateX(90deg)'},{transform:'rotateX(0deg)'}], {duration:h, delay:h, easing:'ease-out', fill:'both'});
+    }catch(e){}
+    setTimeout(function(){
+      cell.cur = nx;
+      cell.ft.textContent = nx; cell.b.textContent = nx;
+      try { cell.ftw.getAnimations().forEach(function(a){ a.cancel(); }); cell.fbw.getAnimations().forEach(function(a){ a.cancel(); }); } catch(e){}
+      cell.fbw.style.visibility = 'hidden';
+      cell.busy = false;
+    }, STEP + 4);
+  }
+  function tick(){
+    var flipping = 0;
+    for (var i = active.length - 1; i >= 0; i--){
+      var c = active[i];
+      if (c.busy) continue;
+      if (c.cur === c.target){ active.splice(i, 1); continue; }
+      if (c.wait > 0){ c.wait--; continue; }
+      flip(c); flipping++;
+    }
+    if (flipping) clack(flipping);
+  }
+  setInterval(tick, STEP + 8);
+
+  /* ---------- sound ---------- */
+  var ac = null, soundOn = false, noiseBuf = null, lastClack = 0;
+  function initAudio(){
+    var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    if (!ac){ ac = new AC(); var len = Math.floor(ac.sampleRate * 0.03); noiseBuf = ac.createBuffer(1, len, ac.sampleRate); var d = noiseBuf.getChannelData(0); for (var i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 6); }
+    if (ac.state === 'suspended') ac.resume();
+  }
+  function clack(n){
+    if (!soundOn || !ac || document.hidden) return;
+    var t = ac.currentTime; if (t - lastClack < 0.03) return; lastClack = t;
+    try{
+      var voices = Math.min(3, 1 + Math.floor(n / 20));
+      for (var v=0; v<voices; v++){
+        var s = ac.createBufferSource(); s.buffer = noiseBuf;
+        var bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200 + Math.random()*1800; bp.Q.value = 3;
+        var g = ac.createGain(); g.gain.value = Math.min(0.5, 0.12 + n * 0.006);
+        s.connect(bp); bp.connect(g); g.connect(ac.destination);
+        s.start(t + v * 0.012 + Math.random()*0.006);
+      }
+    }catch(e){}
+  }
+  var soundBtn = document.getElementById('sound');
+  if (soundBtn) soundBtn.addEventListener('click', function(){
+    initAudio(); soundOn = !soundOn;
+    soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+    var sp = soundBtn.querySelector('span'); if (sp) sp.textContent = soundOn ? 'Clack: on' : 'Clack: off';
+    var w = document.getElementById('wave'); if (w) w.setAttribute('opacity', soundOn ? '1' : '.35');
+  });
+
+  /* ---------- build board ---------- */
+  function pickLayout(){ var w = window.innerWidth; return w < 600 ? 'narrow' : (w < 1000 ? 'mid' : 'wide'); }
+  function sizeCells(L){
+    var board = rowsEl.getBoundingClientRect().width || 300;
+    var lines = LAYOUTS[L], best = 60;
+    lines.forEach(function(fields){
+      var n = 0; fields.forEach(function(f){ n += f[1]; });
+      var gaps = fields.length - 1;
+      // n cells, (n - fields) inner 2px gaps, gaps*0.5cw field gaps, lamp 10px + 0.5cw
+      var cw = (board - (n - fields.length) * 2 - 18) / (n + gaps * 0.5 + 0.5);
+      best = Math.min(best, cw);
+    });
+    best = Math.max(12, Math.min(34, Math.floor(best)));
+    document.documentElement.style.setProperty('--cw', best + 'px');
+  }
+  function build(){
+    var L = pickLayout();
+    if (L === layoutName) { sizeCells(L); return; }
+    layoutName = L;
+    sizeCells(L);
+    colsEl.innerHTML = '';
+    LAYOUTS[L][0].forEach(function(f){
+      var s = document.createElement('span');
+      s.style.width = 'calc(' + f[1] + ' * var(--cw) + ' + (f[1]-1)*2 + 'px)';
+      s.textContent = f[2]; colsEl.appendChild(s);
+    });
+    rowsEl.innerHTML = ''; cellsByRow = []; active = [];
+    for (var r=0; r<8; r++){
+      var row = document.createElement('div'); row.className = 'row';
+      var rowCells = {};
+      LAYOUTS[L].forEach(function(fields, li){
+        var line = document.createElement('div'); line.className = 'line';
+        fields.forEach(function(f){
+          var fe = document.createElement('div'); fe.className = 'field';
+          rowCells[f[0]] = [];
+          for (var k=0;k<f[1];k++){ var c = makeCell(f[0] === 'dest' || f[0] === 'time'); fe.appendChild(c.el); rowCells[f[0]].push(c); }
+          line.appendChild(fe);
+        });
+        if (li === 0){ var lamp = document.createElement('i'); lamp.className = 'lamp'; line.appendChild(lamp); rowCells.lamp = lamp; }
+        row.appendChild(line);
+      });
+      rowsEl.appendChild(row); cellsByRow.push(rowCells);
+    }
+    var was = priming; priming = true; render(); priming = was;
+  }
+  function writeField(cells, text){
+    if (!cells) return;
+    text = String(text || '').toUpperCase();
+    for (var i=0;i<cells.length;i++) setTarget(cells[i], text[i] || ' ');
+  }
+  function render(){
+    for (var r=0; r<cellsByRow.length; r++){
+      var f = flights[r], rc = cellsByRow[r];
+      if (!f){ ['time','flight','dest','gate','remark'].forEach(function(k){ writeField(rc[k], ''); }); continue; }
+      var gate = f.gate;
+      if (layoutName === 'mid' && gate.length > 2) gate = gate.slice(0,2);
+      writeField(rc.time, hhmm(f.t));
+      writeField(rc.flight, f.flight);
+      writeField(rc.dest, f.dest);
+      writeField(rc.gate, gate);
+      writeField(rc.remark, f.remark);
+      if (rc.lamp){
+        rc.lamp.className = 'lamp' + (f.remark === 'BOARDING' || f.remark === 'LAST CALL' ? ' on' : '') + (f.remark === 'LAST CALL' ? ' blink' : '');
+      }
+    }
+  }
+
+  /* ---------- clock ---------- */
+  function buildClock(){
+    clockEl.innerHTML = ''; clockCells = [];
+    for (var i=0;i<5;i++){ var c = makeCell(true); c.el.style.setProperty('--cw', 'calc(var(--cwc, 26px))'); clockEl.appendChild(c.el); clockCells.push(c); }
+  }
+  function updClock(){ var d = new Date(); var s = ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2); for (var i=0;i<5;i++) setTarget(clockCells[i], s[i]); }
+
+  /* ---------- simulation ---------- */
+  var msg = document.getElementById('msg');
+  function say(t){ if (msg) msg.textContent = t; }
+  function event(){
+    // progress the first flight that is not cancelled
+    var f = flights[0];
+    if (!f) return;
+    if (f.remark === 'CANCELLED' || f.remark === 'DELAYED' || f.remark === 'SEE AGENT'){
+      if (f.remark === 'DELAYED' && Math.random() < .5){ f.remark = 'DELAYED'; }
+      flights.shift(); flights.push(nextFlight());
+      say(f.dest + ' ' + (f.remark === 'CANCELLED' ? 'will not be happening today. Or ever. Please see any agent.' : 'has been quietly removed from the board. It was always going to be later.'));
+    } else if (f.stage === 0){ f.stage = 1; f.remark = 'BOARDING'; say('Flight ' + f.flight + ' to ' + f.dest + ' is now boarding at gate ' + f.gate + '.'); }
+    else if (f.stage === 1){ f.stage = 2; f.remark = 'LAST CALL'; say('Last call for ' + f.flight + ' to ' + f.dest + '. Gate ' + f.gate + ' closes in two minutes. Run, but politely.'); }
+    else if (f.stage === 2){ f.stage = 3; f.remark = 'DEPARTED'; say(f.flight + ' has departed for ' + f.dest + '. If you are reading this at the gate — sorry.'); }
+    else { flights.shift(); flights.push(nextFlight()); if (flights[0].remark === 'ON TIME') flights[0].remark = 'GATE OPEN'; }
+    if (flights[1] && flights[1].remark === 'ON TIME' && Math.random() < .35){ flights[1].remark = 'GATE OPEN'; }
+    render();
+  }
+  var evTimer = setInterval(function(){ if (!document.hidden) event(); }, 6000);
+  var sh = document.getElementById('shuffle');
+  if (sh) sh.addEventListener('click', function(){ initAudioIfOn(); event(); clearInterval(evTimer); evTimer = setInterval(function(){ if (!document.hidden) event(); }, 6000); });
+  function initAudioIfOn(){ if (soundOn) initAudio(); }
+
+  var book = document.getElementById('book'), dest = document.getElementById('dest');
+  if (book && dest){
+    dest.addEventListener('input', function(){
+      var v = dest.value.toUpperCase().split('').filter(function(ch){ return CHARS.indexOf(ch) >= 0; }).join('');
+      if (v !== dest.value) dest.value = v;
+    });
+    book.addEventListener('submit', function(e){
+      e.preventDefault();
+      var v = dest.value.trim().toUpperCase();
+      if (!v){ say('Destination required. "Anywhere but here" is 18 characters; the board only has 15.'); dest.focus(); return; }
+      var num = 10 + Math.floor(Math.random() * 89);
+      var t = flights[1] ? flights[1].t + 1 : lastT + 5;
+      var f = {t:t, flight:'YU 0' + num, dest:v.slice(0,15), gate:'Y1', remark:'ON TIME', stage:0, id:flightNo++};
+      flights.splice(2, 0, f); flights.length = Math.min(flights.length, 8);
+      lastT = Math.max(lastT, flights[flights.length-1].t);
+      render();
+      say('Flight YU 0' + num + ' to ' + f.dest + ' added. Proceed to gate Y1. Pack light; bring snacks.');
+      dest.value = '';
+    });
+  }
+
+  var rt = null;
+  window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(build, 150); });
+  priming = true; buildClock(); build(); updClock(); priming = false;
+  setInterval(updClock, 5000);
+})();
+</script>
+</body>
+</html>

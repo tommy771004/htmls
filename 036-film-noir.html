@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Last Drop — A Harbor City Mystery</title>
+<style>
+:root{
+  --black:#070707; --char:#141414; --ash:#2a2a2a; --smoke:#8b8a86; --silver:#cfccc4; --paper:#ece8de; --red:#b3121b;
+  --type:"Courier New",Courier,"Lucida Console",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--black);color:var(--silver);font-family:var(--type);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+button{font:inherit;color:inherit;cursor:pointer}
+.credit{margin:18px 0 10px;font-size:11px;letter-spacing:.5em;color:#6b6a66;text-align:center;padding:0 16px}
+.screen{position:relative;width:min(1180px,94vw,calc(64vh * 2.39));aspect-ratio:2.39;background:#000;overflow:hidden;box-shadow:0 0 0 1px #1a1a1a,0 30px 80px rgba(0,0,0,.9)}
+.scene{position:absolute;inset:0;width:100%;height:100%;filter:contrast(1.08)}
+.scene svg{width:100%;height:100%;display:block}
+.blinds{position:absolute;inset:-20%;pointer-events:none;mix-blend-mode:screen;opacity:1;
+  background:repeating-linear-gradient(180deg,rgba(236,232,220,.2) 0 20px,rgba(0,0,0,0) 20px 40px);
+  transform:rotate(-14deg) skewX(-18deg);animation:drift 14s ease-in-out infinite alternate;
+  -webkit-mask-image:radial-gradient(ellipse 50% 65% at var(--bx,72%) 50%,#000 15%,transparent 72%);mask-image:radial-gradient(ellipse 50% 65% at var(--bx,72%) 50%,#000 15%,transparent 72%)}
+@keyframes drift{from{translate:-10px 0}to{translate:14px 6px}}
+.vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 80% at 50% 45%,transparent 45%,rgba(0,0,0,.85));}
+canvas.grain,canvas.rain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+canvas.grain{mix-blend-mode:overlay;opacity:.22}
+.flicker{position:absolute;inset:0;pointer-events:none;background:#fff;opacity:0;animation:flick 7s infinite}
+@keyframes flick{0%,93%,100%{opacity:0}94%{opacity:.05}95%{opacity:0}97%{opacity:.035}}
+.fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .45s}
+.fade.on{opacity:1}
+.slate{position:absolute;left:3%;top:5%;font-size:clamp(9px,1vw,12px);letter-spacing:.3em;color:rgba(236,232,222,.7);text-shadow:0 1px 2px #000}
+.narr{position:absolute;left:0;right:0;bottom:0;padding:2.4% 8% 2.8%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.82) 30%);font-size:clamp(14px,1.35vw,18px);line-height:1.6;color:var(--paper);min-height:30%;text-shadow:0 1px 2px #000}
+.narr .cursor{display:inline-block;width:.55em;height:1.05em;background:var(--paper);vertical-align:-.15em;margin-left:2px;animation:cur .9s steps(1) infinite}
+@keyframes cur{50%{opacity:0}}
+.narr em{font-style:normal;color:#fff;border-bottom:1px solid rgba(255,255,255,.4)}
+.narr .r{color:#e0242e}
+
+.deck{width:min(1180px,94vw);display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start;margin:18px 0 30px}
+.choices{display:flex;flex-wrap:wrap;gap:10px}
+.choice{min-height:44px;padding:10px 16px 10px 14px;background:transparent;border:1px solid #4a4945;color:var(--silver);font-size:14px;letter-spacing:.06em;text-align:left;display:flex;gap:10px;align-items:baseline;transition:background .15s,color .15s,border-color .15s;opacity:0;transform:translateY(6px);animation:rise .35s forwards}
+.choice b{color:#6f6e69;font-weight:400}
+.choice:hover,.choice:focus-visible{background:var(--paper);color:#000;border-color:var(--paper);outline:none}
+.choice:hover b,.choice:focus-visible b{color:#555}
+.choice.done{color:#6f6e69;border-style:dashed}
+.choice.accuse{border-color:var(--red);color:#e7c9c9}
+.choice.accuse:hover{background:var(--red);color:#fff;border-color:var(--red)}
+@keyframes rise{to{opacity:1;transform:none}}
+.nb{min-height:44px;padding:0 16px;border:1px solid #4a4945;background:#111;color:var(--silver);font-size:13px;letter-spacing:.14em;white-space:nowrap}
+.nb span{color:#fff}
+.nb.ping{animation:ping .6s}
+@keyframes ping{30%{background:var(--paper);color:#000}}
+.hint{grid-column:1/-1;font-size:11px;color:#5d5c58;letter-spacing:.14em}
+
+.notebook{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:16px}
+.notebook[hidden]{display:none}
+.card{width:min(560px,100%);max-height:86vh;overflow:auto;background:var(--paper);color:#1a1a1a;padding:26px 28px;box-shadow:0 20px 60px #000;position:relative;
+  background-image:repeating-linear-gradient(180deg,transparent 0 27px,rgba(40,80,160,.18) 27px 28px);background-position:0 58px}
+.card::before{content:"";position:absolute;top:0;bottom:0;left:40px;width:1px;background:rgba(179,18,27,.45)}
+.card h3{margin:0 0 14px 26px;font-size:16px;letter-spacing:.3em}
+.card ol{margin:0;padding:0 0 0 26px;list-style:none;font-size:14px;line-height:28px}
+.card li{margin-bottom:0}
+.card li b{letter-spacing:.06em}
+.card .empty{margin-left:26px;font-size:14px;line-height:28px;color:#555}
+.card .close{position:absolute;right:10px;top:8px;min-width:44px;min-height:44px;border:0;background:none;font-size:22px;color:#1a1a1a}
+.redtxt{color:var(--red)}
+
+.stamp{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) rotate(-8deg) scale(2.2);border:5px solid var(--red);color:var(--red);font-size:clamp(22px,4.4vw,56px);font-weight:700;letter-spacing:.2em;padding:.1em .5em;opacity:0;transition:transform .3s cubic-bezier(.6,0,.9,.4),opacity .1s;pointer-events:none;background:rgba(0,0,0,.25)}
+.stamp.on{opacity:.95;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}
+
+@media (max-width:760px){
+  .screen{width:100vw;aspect-ratio:16/10}
+  .narr{display:none}
+  .narrwrap{width:100%;padding:16px 16px 0;font-size:15px;line-height:1.65;color:var(--paper);min-height:7.5em}
+  .narrwrap .cursor{display:inline-block;width:.55em;height:1.05em;background:var(--paper);vertical-align:-.15em;margin-left:2px;animation:cur .9s steps(1) infinite}
+  .narrwrap .r{color:#e0242e}
+  .deck{width:100%;padding:0 16px;grid-template-columns:1fr}
+  .choice{width:100%}
+  .nb{justify-self:start}
+  .blinds{background:repeating-linear-gradient(180deg,rgba(236,232,220,.2) 0 9px,rgba(0,0,0,0) 9px 18px)}
+}
+@media (prefers-reduced-motion:reduce){ .blinds,.flicker{animation:none} }
+</style>
+</head>
+<body>
+<div class="credit">A HARBOR CITY PICTURE · 1949 · NOT PASSED BY THE CENSOR</div>
+<div class="screen" id="screen">
+  <div class="scene" id="scene" aria-hidden="true"></div>
+  <canvas class="rain" id="rain"></canvas>
+  <div class="blinds" id="blinds"></div>
+  <div class="vignette"></div>
+  <canvas class="grain" id="grain"></canvas>
+  <div class="flicker"></div>
+  <div class="slate" id="slate">REEL 1</div>
+  <div class="stamp" id="stamp">CASE CLOSED</div>
+  <div class="narr" id="narrIn"></div>
+  <div class="fade" id="fade"></div>
+</div>
+<div class="narrwrap" id="narrOut"></div>
+<div class="deck">
+  <div class="choices" id="choices" role="group" aria-label="What do you do?"></div>
+  <button class="nb" id="nbBtn" aria-haspopup="dialog">NOTEBOOK <span id="nbCount">0</span>/10</button>
+  <div class="hint">TAP A LINE TO SKIP THE TYPING · KEYS 1–9 CHOOSE · N OPENS THE NOTEBOOK</div>
+</div>
+<div class="notebook" id="notebook" hidden role="dialog" aria-label="Case notebook">
+  <div class="card"><button class="close" id="nbClose" aria-label="Close notebook">×</button><h3>CASE No. 49-1107 — MARSH</h3><div id="nbList"></div></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------- illustrations (1200 × 502) ---------------- */
+  var R = "#b3121b";
+  function wrap(inner, bx){ return {svg:'<svg viewBox="0 0 1200 502" preserveAspectRatio="xMidYMid slice">'+inner+'</svg>', bx:bx}; }
+  var ART = {
+    title: wrap('<rect width="1200" height="502" fill="#0b0b0b"/><rect x="330" y="30" width="540" height="420" fill="#9d9b94"/><g fill="#0b0b0b">'+Array.from({length:14},function(_,i){return '<rect x="330" y="'+(40+i*30)+'" width="540" height="13"/>';}).join("")+'</g><rect x="596" y="30" width="8" height="420" fill="#0b0b0b"/><rect x="330" y="236" width="540" height="8" fill="#0b0b0b"/><path d="M0 502L330 450H870L1200 502Z" fill="#161616"/><rect x="300" y="146" width="600" height="190" fill="#070707" opacity=".82"/><text x="600" y="215" text-anchor="middle" font-family="Courier New" font-weight="700" font-size="74" fill="#ece8de" letter-spacing="10">THE LAST</text><text x="600" y="300" text-anchor="middle" font-family="Courier New" font-weight="700" font-size="74" fill="#ece8de" letter-spacing="10">DR<tspan fill="'+R+'">O</tspan>P</text><path d="M676 318c6 10 10 16 10 21a10 10 0 0 1-20 0c0-5 4-11 10-21z" fill="'+R+'"/>', "50%"),
+    office: wrap('<rect width="1200" height="502" fill="#101010"/><rect x="760" y="40" width="330" height="330" fill="#c9c7bf"/><g fill="#101010">'+Array.from({length:12},function(_,i){return '<rect x="760" y="'+(50+i*27)+'" width="330" height="11"/>';}).join("")+'</g><rect x="918" y="40" width="10" height="330" fill="#101010"/><rect x="740" y="360" width="370" height="16" fill="#1e1e1e"/><rect x="250" y="70" width="190" height="400" fill="#8e8c85"/><rect x="266" y="88" width="158" height="170" fill="#bdbbb3"/><g transform="translate(345 150) scale(-1 1)"><text x="0" y="0" text-anchor="middle" font-family="Courier New" font-weight="700" font-size="24" fill="#2a2a2a">SAM VALE</text><text x="0" y="26" text-anchor="middle" font-family="Courier New" font-size="12" fill="#2a2a2a">PRIVATE INVESTIGATIONS</text></g><path d="M345 200c-24 0-40 8-44 20h88c-4-12-20-20-44-20z" fill="#050505"/><ellipse cx="345" cy="232" rx="16" ry="20" fill="#050505"/><path d="M318 250c-16 30-22 110-26 220h106c-4-110-10-190-26-220z" fill="#050505"/><circle cx="341" cy="243" r="2.6" fill="'+R+'"/><path d="M0 390h620v112H0z" fill="#0a0a0a"/><path d="M40 360h560v34H40z" fill="#1a1a1a"/><path d="M470 300l-26 60h60z" fill="#2c2c2c"/><rect x="470" y="300" width="6" height="60" fill="#2c2c2c"/><circle cx="560" cy="344" r="16" fill="#1f1f1f"/><path d="M548 340h24" stroke="#444" stroke-width="3"/><path d="M84 346c10-26 70-26 80 0z" fill="#1c1c1c"/><path d="M70 350h108" stroke="#1c1c1c" stroke-width="8" stroke-linecap="round"/>', "76%"),
+    shop: wrap('<rect width="1200" height="502" fill="#121212"/><rect x="0" y="330" width="1200" height="172" fill="#0a0a0a"/><g fill="#2a2a2a"><rect x="40" y="250" width="300" height="110"/><rect x="860" y="250" width="300" height="110"/></g><g fill="#bdbab2" opacity=".85"><rect x="50" y="258" width="280" height="36"/><rect x="870" y="258" width="280" height="36"/></g><g fill="#fff"><circle cx="110" cy="276" r="3"/><circle cx="190" cy="270" r="2"/><circle cx="260" cy="280" r="3"/><circle cx="940" cy="274" r="3"/><circle cx="1050" cy="268" r="2"/></g><circle cx="600" cy="120" r="74" fill="#d7d4cc"/><circle cx="600" cy="120" r="74" fill="none" stroke="#050505" stroke-width="10"/><path d="M600 120V66M600 120l-46 26" stroke="#050505" stroke-width="7" stroke-linecap="round"/><path d="M560 80l40 40 26-58M600 120l54 20M600 120l-20 60" stroke="#050505" stroke-width="2"/><rect x="930" y="60" width="160" height="170" fill="#262626"/><rect x="938" y="68" width="144" height="154" fill="#050505"/><path d="M930 60l-70 20v170l70-20z" fill="#3a3a3a"/><circle cx="885" cy="150" r="18" fill="#6a6a6a"/><rect x="390" y="300" width="420" height="30" fill="#2c2c2c"/><rect x="410" y="330" width="20" height="170" fill="#1c1c1c"/><rect x="770" y="330" width="20" height="170" fill="#1c1c1c"/><path d="M540 300c-10-40 10-70 60-74 44-3 70 24 60 74z" fill="#050505"/><ellipse cx="560" cy="292" rx="42" ry="22" fill="#050505"/><path d="M630 296h60l6 6h-66z" fill="#0d0d0d"/><rect x="700" y="268" width="26" height="32" fill="#9a978f" opacity=".85"/><path d="M702 272c4-3 8-3 12 0" stroke="'+R+'" stroke-width="3" fill="none"/><path d="M470 330c4 20 2 40-4 56 10 4 20 4 30 0-8-20-10-40-6-56z" fill="'+R+'" opacity=".9"/>', "30%"),
+    club: wrap('<rect width="1200" height="502" fill="#080808"/><path d="M540 0h120l170 502H370z" fill="#d9d6ce" opacity=".22"/><ellipse cx="600" cy="470" rx="240" ry="28" fill="#d9d6ce" opacity=".25"/><text x="600" y="92" text-anchor="middle" font-family="Segoe Script, Georgia, serif" font-style="italic" font-size="56" fill="#f2efe8" opacity=".95" style="filter:drop-shadow(0 0 10px #fff)">Blue Gardenia</text><rect x="596" y="250" width="8" height="220" fill="#030303"/><ellipse cx="600" cy="244" rx="12" ry="18" fill="#030303"/><rect x="570" y="466" width="60" height="8" fill="#030303"/><path d="M840 330h300v40H840z" fill="#030303"/><path d="M820 300c0-40 60-60 170-60 110 0 160 20 170 60z" fill="#030303"/><rect x="860" y="370" width="16" height="132" fill="#030303"/><rect x="1110" y="370" width="16" height="132" fill="#030303"/><circle cx="930" cy="250" r="20" fill="#030303"/><path d="M905 270h50l10 60h-70z" fill="#030303"/><g fill="#1c1c1c"><rect x="0" y="360" width="330" height="142"/></g><g fill="#2e2e2e"><rect x="40" y="250" width="16" height="60"/><rect x="72" y="236" width="14" height="74"/><rect x="100" y="260" width="18" height="50"/><rect x="134" y="244" width="12" height="66"/><rect x="170" y="256" width="16" height="54"/></g><rect x="0" y="310" width="330" height="10" fill="#262626"/><path d="M220 360v-40h10v40z" fill="#555"/>', "20%"),
+    flat: wrap('<rect width="1200" height="502" fill="#0e0e0e"/><rect x="120" y="40" width="330" height="330" fill="#3a3936"/><rect x="340" y="60" width="60" height="280" fill="#e8e5dd" opacity=".9"/><g font-family="Arial Narrow, Arial" font-weight="700" font-size="42" fill="#0e0e0e" text-anchor="middle"><text x="370" y="120">H</text><text x="370" y="175">O</text><text x="370" y="230">T</text><text x="370" y="285">E</text><text x="370" y="335" opacity=".35">L</text></g><g fill="#0e0e0e">'+Array.from({length:12},function(_,i){return '<rect x="120" y="'+(50+i*27)+'" width="330" height="11"/>';}).join("")+'</g><rect x="0" y="380" width="1200" height="122" fill="#090909"/><path d="M640 240h140v150H640z" fill="#1c1c1c"/><path d="M640 170c0-30 140-30 140 0v80H640z" fill="#1c1c1c"/><path d="M660 180c30-10 70-10 100 0l-6 110c-30 10-60 10-88 0z" fill="#2c2c2c"/><path d="M700 200l20 90" stroke="#161616" stroke-width="4"/><rect x="860" y="300" width="220" height="16" fill="#262626"/><rect x="880" y="316" width="10" height="120" fill="#1a1a1a"/><rect x="1050" y="316" width="10" height="120" fill="#1a1a1a"/><path d="M900 300c0-18 12-26 30-26h30c18 0 30 8 30 26z" fill="#050505"/><path d="M920 272c8-12 46-12 54 0" stroke="#050505" stroke-width="8" fill="none"/><rect x="1000" y="282" width="56" height="18" fill="#b9b6ae"/><path d="M1006 288h40M1006 294h30" stroke="#555" stroke-width="2"/><path d="M520 400h70l-8 90h-54z" fill="#1f1f1f"/><path d="M534 400c6-14 20-18 30-6" fill="#cfccc4"/>', "30%"),
+    precinct: wrap('<rect width="1200" height="502" fill="#131313"/><rect x="760" y="50" width="300" height="240" fill="#a9a69f"/><g fill="#131313">'+Array.from({length:9},function(_,i){return '<rect x="760" y="'+(58+i*26)+'" width="300" height="10"/>';}).join("")+'</g><g fill="#2c2c2c"><rect x="120" y="70" width="110" height="140"/><rect x="250" y="80" width="110" height="140"/></g><g fill="#6d6b66"><rect x="130" y="80" width="90" height="16"/><rect x="260" y="90" width="90" height="16"/></g><g fill="#161616"><circle cx="175" cy="150" r="26"/><circle cx="305" cy="160" r="26"/></g><path d="M380 330h500v40H380z" fill="#1f1f1f"/><path d="M400 370h460v132H400z" fill="#0b0b0b"/><path d="M700 330l40-90h-80z" fill="#e8e5dd" opacity=".08"/><path d="M660 240h80l-14-30h-52z" fill="#3a3a3a"/><rect x="696" y="240" width="8" height="90" fill="#3a3a3a"/><path d="M430 240h140l-10 20H440z" fill="#050505"/><path d="M450 238c0-22 20-34 50-34s50 12 50 34z" fill="#050505"/><ellipse cx="500" cy="276" rx="30" ry="34" fill="#050505"/><path d="M430 330c0-40 30-54 70-54s70 14 70 54z" fill="#050505"/><path d="M606 312c10-4 20-4 30 0v18h-30z" fill="#cfccc4" opacity=".7"/>', "75%"),
+    good: wrap('<rect width="1200" height="502" fill="#16171a"/><rect width="1200" height="260" fill="#2a2b2e"/><circle cx="880" cy="120" r="46" fill="#e9e6de" opacity=".85"/><rect x="0" y="380" width="1200" height="122" fill="#0b0b0b"/><path d="M0 380h1200" stroke="#3a3a3a"/><rect x="300" y="140" width="10" height="240" fill="#050505"/><path d="M280 140h50l-10-24h-30z" fill="#050505"/><path d="M305 150L220 380h170z" fill="#e8e5dd" opacity=".12"/><g fill="#050505"><path d="M700 300c-10 0-16 6-16 14h32c0-8-6-14-16-14z"/><ellipse cx="700" cy="322" rx="8" ry="10"/><path d="M688 332h24l6 48h-12l-6-36-6 36h-12z"/></g><path d="M0 250h140v130H0zM140 280h90v100h-90zM950 230h120v150H950zM1070 270h130v110h-130z" fill="#0f0f0f"/>', "50%"),
+    bad: wrap('<rect width="1200" height="502" fill="#0c0c0c"/><rect x="380" y="60" width="440" height="382" fill="#8e8c85"/><g fill="#0c0c0c">'+Array.from({length:9},function(_,i){return '<rect x="'+(400+i*48)+'" y="60" width="16" height="382"/>';}).join("")+'</g><path d="M560 420c0-60 20-100 40-110 20 10 40 50 40 110z" fill="#050505"/><circle cx="600" cy="290" r="22" fill="#050505"/>', "50%")
+  };
+
+  /* ---------------- story ---------------- */
+  var CLUES = {
+    debt:{t:"Nick Corso, Leo's partner, owed him $20,000. Leo had given him until Friday."},
+    stage:{t:"Vera sang at the Blue Gardenia until midnight, except a fifteen-minute break at 11:15. The shop is twenty minutes away."},
+    lefty:{t:"Leo was left-handed — ink on his left fingers. The gun was in his right hand."},
+    clock:{t:"The shop clock smashed at 11:40. Someone wanted that time remembered."},
+    safe:{t:"The safe was opened, not cracked. Whoever did it knew the combination."},
+    lipstick:{t:"A whiskey glass with Cherry Noir lipstick on the rim. Vera's shade.", red:1},
+    cuff:{t:"Bartender: Nick came in at 11:55, fresh suit, a red stain on his cuff. 'Cut myself shaving.' At midnight.", red:1},
+    pawn:{t:"In Nick's wastebasket: a ticket from Sully's Loans, 11:50 p.m. — 'one red stone, costume.'", red:1},
+    combo:{t:"Pencil rubbing of Nick's phone pad: 12 · 7 · 40. The Marsh safe opens on 12-7-40."},
+    coroner:{t:"Coroner: shot from two feet away, between eleven and midnight. Suicides don't stand back."}
+  };
+  var have = {}, used = {}, visited = {};
+  var SCENES = {
+    start:{art:"title", slate:"REEL 1", text:"Harbor City, 1949. It had been raining for eleven days, and the city had started to take it personally.", ch:[["Roll film","office"]]},
+    office:{art:"office", slate:"SCENE 1 · THE OFFICE", text:"The name on my door reads backwards from the inside. So does most of my life. At a quarter to one she walked in, all hat and heartbreak, lipstick the color of a stop sign. \"Mr. Vale? My husband is dead. The police say he shot himself. Leo never did anything by himself.\"", ch:[["Ask about the husband","vera"]]},
+    vera:{art:"office", slate:"SCENE 1 · THE WIDOW", text:"\"Leo Marsh. Marsh & Corso, jewelers, on Pell Street. They found him at his desk this morning, gun in his hand, the Marsh Ruby gone from the safe.\" She lit a cigarette she didn't want. \"I can pay.\"", ch:[
+      ["\"Did he have enemies?\"","@debt"],["\"Where were you last night, Mrs. Marsh?\"","@stage"],["Take the case","hub"]]},
+    hub:{art:"office", slate:"THE CASE", text:"", ch:"hub"},
+    shop:{art:"shop", slate:"SCENE 2 · MARSH & CORSO, JEWELERS", text:"The shop smelled like brass polish and bad news. The police tape sagged in the damp. Leo's chair was empty now, but the room still remembered him.", ch:[
+      ["Examine the desk","@lefty"],["Look at the wall clock","@clock"],["Check the open safe","@safe"],["Pick up the whiskey glass","@lipstick"],["Back to the car","hub"]]},
+    club:{art:"club", slate:"SCENE 3 · THE BLUE GARDENIA", text:"The Blue Gardenia never closes; it just gets quieter. A piano player was working through something slow, as if he were paid by the minute.", ch:[
+      ["Talk to the piano player","@stage"],["Buy the bartender a drink","@cuff"],["Back to the car","hub"]]},
+    flat:{art:"flat", slate:"SCENE 4 · NICK CORSO'S ROOM", text:"Nick Corso lived above a hotel sign that had given up on the L. The door was the kind you open with a credit card, and I had excellent credit.", ch:[
+      ["Go through the wastebasket","@pawn"],["Rub a pencil over the phone pad","@combo"],["Feel the coat on the chair","@coat"],["Back to the car","hub"]]},
+    precinct:{art:"precinct", slate:"SCENE 5 · 9TH PRECINCT", text:"Lieutenant Brannigan had a face like a closed file. \"It's a suicide, Vale. I've got four hundred open cases and one of them isn't this one.\"", ch:[
+      ["\"What did the coroner say?\"","@coroner"],["Ask about the night watchman","@gus"],["Back to the car","hub"]]},
+    accuse:{art:"precinct", slate:"THE ACCUSATION", text:"I laid my hat on Brannigan's desk. He looked at it like it owed him money. \"All right, Vale. Who did it?\"", ch:[
+      ["Vera Marsh, the widow","who:vera"],["Nick Corso, the partner","who:nick"],["Gus, the night watchman","who:gus"],["Nobody. It was suicide.","who:none"],["Not yet — back to the car","hub"]]},
+    evidence:{art:"precinct", slate:"THE ACCUSATION", text:"\"Corso?\" Brannigan leaned back. \"Prove it. One thing, Vale. Put one thing on this desk that I can't argue with.\"", ch:"evidence"}
+  };
+  var EXTRA = {
+    coat:"The coat on the chair was soaked through — somebody had walked a long way in this rain tonight. Wherever Nick went, it wasn't next door.",
+    gus:"\"Gus? Slept through it with a pint of rye for a pillow. Couldn't hear a tuba in a phone booth.\" The watchman wasn't a killer. He was barely a witness."
+  };
+  var REVEAL = {
+    debt:"\"Nick Corso. Leo's partner.\" She said the name like it was stuck to her shoe. \"He owed Leo twenty thousand dollars. Leo gave him until Friday.\"",
+    stage:"\"On stage at the Blue Gardenia until midnight. Two hundred witnesses and a piano player.\" She paused. \"One break. Quarter past eleven. Fifteen minutes. Powder room.\"",
+    lefty:"Leo's left fingers were stained with fountain-pen ink; a lefty's hand. The police found the gun in his right. Dead men don't switch hands.",
+    clock:"The wall clock was smashed at 11:40, the glass in a neat star. Clocks don't break that tidy on their own. Somebody wanted that minute on the record.",
+    safe:"The safe door hung open like a mouth with nothing to say. No drill marks, no blown lock. Whoever opened it knew the numbers by heart.",
+    lipstick:"A whiskey glass, one finger left, a half-moon of lipstick on the rim. <span class='r'>Cherry Noir.</span> I'd seen that shade twelve hours ago, walking into my office.",
+    cuff:"The bartender polished the same glass for a full minute. \"Corso? Came in at five to midnight, new suit, smelling like a haircut. Had a <span class='r'>red stain</span> on his cuff. Said he cut himself shaving. At midnight.\"",
+    pawn:"Under the cigarette ends: a pawn ticket from Sully's Loans, stamped 11:50 p.m. \"One <span class='r'>red stone</span>, costume.\" Sully never sleeps, and never asks.",
+    combo:"I shaded the phone pad with a pencil. Pressed into the paper, heavy-handed: 12 · 7 · 40. The same numbers that open the Marsh safe.",
+    coroner:"\"Coroner's a romantic,\" Brannigan grunted. \"Says it was fired from two feet away, between eleven and midnight.\" Nobody holds a gun two feet from his own head."
+  };
+  var ENDINGS = {
+    good:{art:"good", slate:"THE END", stamp:"CASE CLOSED", text:"Nick Corso folded like a cheap umbrella. The Marsh Ruby came back from Sully's in an evidence envelope, and Vera paid me in cash and a look I'll remember longer than the money. Outside, for the first time in eleven days, it had stopped raining."},
+    weak:{art:"precinct", slate:"NOT ENOUGH", text:"Brannigan pushed it back across the desk. \"That's a hunch with a hat on, Vale. Bring me something that puts Corso in that shop.\" He was right, and I hated him for it.", retry:1},
+    end_vera:{art:"bad", slate:"THE END", stamp:"WRONG MAN", text:"They gave Vera the chair in March. In April, the Marsh Ruby turned up around the neck of Nick Corso's girlfriend. Some cases you solve too fast, and then they solve you."},
+    end_gus:{art:"bad", slate:"THE END", stamp:"WRONG MAN", text:"Gus got ten years for sleeping on the job. Nick Corso sent him a fruit basket. I still can't look at a pear."},
+    end_none:{art:"good", slate:"THE END", stamp:"FILE CLOSED", text:"I let it go. Suicide, the file said, and files don't argue. Nick Corso bought a new car in June. It was red. It rained for another week, and I didn't mind."}
+  };
+
+  /* ---------------- engine ---------------- */
+  var sceneEl = $("#scene"), slate = $("#slate"), choicesEl = $("#choices"), fade = $("#fade"), stamp = $("#stamp"), blinds = $("#blinds");
+  var narrIn = $("#narrIn"), narrOut = $("#narrOut");
+  function narrEl(){ return window.innerWidth <= 760 ? narrOut : narrIn; }
+  var typing = null, full = "", cur = "start";
+
+  function typeText(html){
+    var el = narrEl(), other = el === narrIn ? narrOut : narrIn;
+    if(other) other.innerHTML = "";
+    if(!el) return;
+    clearInterval(typing); full = html;
+    if(reduce){ el.innerHTML = html; return; }
+    var plain = html, i = 0;
+    typing = setInterval(function(){
+      i += 2;
+      if(plain[i-1] === "<" || plain[i-2] === "<"){ var close = plain.indexOf(">", i - 2); if(close > 0) i = close + 1; }
+      if(i >= plain.length){ clearInterval(typing); typing = null; el.innerHTML = plain; return; }
+      el.innerHTML = safeSlice(plain, i) + '<span class="cursor"></span>';
+    }, 22);
+  }
+  function safeSlice(s, n){ /* avoid cutting inside a tag and close open spans */
+    var out = s.slice(0, n), open = (out.match(/<span/g) || []).length - (out.match(/<\/span>/g) || []).length;
+    var lt = out.lastIndexOf("<"), gt = out.lastIndexOf(">"); if(lt > gt) out = out.slice(0, lt);
+    for(var k=0;k<open;k++) out += "</span>";
+    return out;
+  }
+  function skip(){ if(typing){ clearInterval(typing); typing = null; var el = narrEl(); if(el) el.innerHTML = full; } }
+  [narrIn, narrOut].forEach(function(n){ if(n) n.addEventListener("click", skip); });
+
+  function count(){ var n = 0; for(var k in have) if(have[k]) n++; return n; }
+  function updateNb(ping){ var c = $("#nbCount"), b = $("#nbBtn"); if(c) c.textContent = count(); if(ping && b){ b.classList.remove("ping"); void b.offsetWidth; b.classList.add("ping"); } }
+
+  function setArt(key){
+    var a = ART[key] || ART.office; if(sceneEl) sceneEl.innerHTML = a.svg;
+    if(blinds) blinds.style.setProperty("--bx", a.bx);
+    rainOn = key === "office" || key === "title" || key === "flat";
+  }
+  var moving = false;
+  function go(id, text){
+    if(moving) return; moving = true;
+    skip();
+    if(fade) fade.classList.add("on");
+    setTimeout(function(){ render(id, text); moving = false; if(fade) fade.classList.remove("on"); }, reduce ? 0 : 420);
+  }
+  function hubText(){
+    var n = count();
+    if(n === 0) return "I had a widow, a dead jeweler and a missing ruby. The rain had the rest. Where to first?";
+    if(n < 4) return "Rain on the windshield, "+n+" things in my notebook and not one of them was a friend. Where next?";
+    if(n < 7) return "The notebook was getting heavy — "+n+" entries. A shape was forming in the rain, and I didn't like its face.";
+    return "Nine out of ten detectives would have gone home. I had "+n+" entries and one name I kept underlining.";
+  }
+  function render(id, textOverride){
+    cur = id;
+    if(stamp) stamp.classList.remove("on");
+    var isEnd = !!ENDINGS[id] && !SCENES[id], sc = isEnd ? ENDINGS[id] : SCENES[id];
+    setArt(sc.art);
+    if(slate) slate.textContent = sc.slate;
+    typeText(textOverride || (id === "hub" ? hubText() : sc.text));
+    if(sc.stamp && stamp){ stamp.textContent = sc.stamp; setTimeout(function(){ stamp.classList.add("on"); }, reduce ? 0 : 1600); }
+    var list = [];
+    if(isEnd){
+      if(sc.retry) list = [["Back to the car","hub"]];
+      else list = [["Run it back from the top","restart"], ["Read the notebook","notebook"]];
+    } else if(sc.ch === "hub"){
+      list = [["Drive to Marsh & Corso, Pell Street","shop"],["The Blue Gardenia","club"],["Nick Corso's room over the Hotel","flat"],["9th Precinct","precinct"]];
+      if(count() >= 4) list.push(["Make the accusation","accuse", "accuse"]);
+    } else if(sc.ch === "evidence"){
+      for(var k in CLUES) if(have[k]) list.push([shortName(k), "ev:" + k]);
+      list.push(["Not yet — back to the car","hub"]);
+    } else list = sc.ch;
+    drawChoices(list, id);
+    visited[id] = true;
+  }
+  function shortName(k){
+    return {debt:"The $20,000 debt",stage:"Vera's stage alibi",lefty:"The gun in the wrong hand",clock:"The smashed clock",safe:"The safe opened, not cracked",lipstick:"The lipstick glass",cuff:"Nick's stained cuff",pawn:"Sully's pawn ticket",combo:"The phone-pad numbers",coroner:"The coroner's two feet"}[k];
+  }
+  function drawChoices(list, id){
+    if(!choicesEl) return;
+    choicesEl.innerHTML = "";
+    list.forEach(function(c, i){
+      var b = document.createElement("button"); b.className = "choice" + (c[2] === "accuse" ? " accuse" : "");
+      var tgt = c[1];
+      if(tgt[0] === "@" && (used[id + tgt] )) b.classList.add("done");
+      b.style.animationDelay = (i * 70) + "ms";
+      b.innerHTML = "<b>" + (i + 1) + "</b><span>" + c[0] + "</span>";
+      b.addEventListener("click", function(){ choose(tgt, id); });
+      choicesEl.appendChild(b);
+    });
+  }
+  function choose(tgt, from){
+    if(moving) return;
+    if(tgt === "restart"){ have = {}; used = {}; visited = {}; updateNb(); go("start"); return; }
+    if(tgt === "notebook"){ openNb(); return; }
+    if(tgt[0] === "@"){
+      var key = tgt.slice(1); used[from + tgt] = true;
+      skip();
+      if(REVEAL[key]){ var isNew = !have[key]; have[key] = true; updateNb(isNew); typeText(REVEAL[key] + (isNew ? "" : "")); }
+      else if(EXTRA[key]) typeText(EXTRA[key]);
+      drawChoices(SCENES[from].ch, from);
+      return;
+    }
+    if(tgt.indexOf("who:") === 0){
+      var w = tgt.slice(4);
+      if(w === "nick"){ go("evidence"); return; }
+      go("end_" + w); return;
+    }
+    if(tgt.indexOf("ev:") === 0){
+      var e = tgt.slice(3);
+      go(e === "pawn" || e === "combo" || e === "cuff" ? "good" : "weak"); return;
+    }
+    go(tgt);
+  }
+
+  /* notebook */
+  var nb = $("#notebook"), nbList = $("#nbList");
+  function openNb(){
+    if(!nb || !nbList) return;
+    var items = [];
+    for(var k in CLUES) if(have[k]) items.push('<li><b>'+shortName(k).toUpperCase()+'.</b> <span class="'+(CLUES[k].red ? "redtxt" : "")+'">'+CLUES[k].t+'</span></li>');
+    nbList.innerHTML = items.length ? "<ol>" + items.join("") + "</ol>" : '<p class="empty">Nothing yet but coffee rings.</p>';
+    nb.hidden = false; var c = $("#nbClose"); if(c) c.focus();
+  }
+  function closeNb(){ if(nb) nb.hidden = true; }
+  var nbBtn = $("#nbBtn"); if(nbBtn) nbBtn.addEventListener("click", openNb);
+  var nbClose = $("#nbClose"); if(nbClose) nbClose.addEventListener("click", closeNb);
+  if(nb) nb.addEventListener("click", function(e){ if(e.target === nb) closeNb(); });
+  document.addEventListener("keydown", function(e){
+    if(nb && !nb.hidden){ if(e.key === "Escape" || e.key === "n" || e.key === "N") closeNb(); return; }
+    if(e.key === "n" || e.key === "N"){ openNb(); return; }
+    if(/^[1-9]$/.test(e.key)){ var bs = choicesEl ? choicesEl.querySelectorAll(".choice") : []; var b = bs[+e.key - 1]; if(b) b.click(); }
+    if(e.key === " " && e.target === document.body){ e.preventDefault(); skip(); }
+  });
+
+  /* ---------------- grain + rain ---------------- */
+  var grain = $("#grain"), rain = $("#rain"), gctx = grain && grain.getContext ? grain.getContext("2d") : null, rctx = rain && rain.getContext ? rain.getContext("2d") : null;
+  var rainOn = true, drops = [], gw = 420, gh = 176, gimg = null;
+  function sizeCanvases(){
+    if(grain){ grain.width = gw; grain.height = gh; if(gctx) gimg = gctx.createImageData(gw, gh); }
+    if(rain){ var r = rain.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2); rain.width = Math.max(1, Math.round(r.width * d)); rain.height = Math.max(1, Math.round(r.height * d)); }
+    drops = []; for(var i=0;i<90;i++) drops.push({x:Math.random(), y:Math.random(), v:.012 + Math.random()*.02, l:.03 + Math.random()*.05});
+  }
+  window.addEventListener("resize", sizeCanvases);
+  var last = 0;
+  function loop(t){
+    requestAnimationFrame(loop);
+    if(document.hidden || t - last < 42) return; last = t;
+    if(gctx && gimg && !reduce){
+      var d = gimg.data;
+      for(var i=0;i<d.length;i+=4){ var v = 128 + (Math.random() - .5) * 200 | 0; d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255; }
+      gctx.putImageData(gimg, 0, 0);
+    }
+    if(rctx && rain){
+      var W = rain.width, H = rain.height; rctx.clearRect(0, 0, W, H);
+      if(!rainOn || reduce) return;
+      rctx.strokeStyle = "rgba(220,220,215,.22)"; rctx.lineWidth = Math.max(1, W / 900);
+      rctx.beginPath();
+      drops.forEach(function(p){ p.y += p.v; p.x -= p.v * .18; if(p.y > 1){ p.y = -.1; p.x = Math.random() * 1.1; } rctx.moveTo(p.x*W, p.y*H); rctx.lineTo((p.x - p.l*.18)*W, (p.y + p.l)*H); });
+      rctx.stroke();
+    }
+  }
+  sizeCanvases(); requestAnimationFrame(loop);
+  render("start");
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Levkí — Four Days of Aegean Light</title>
+<style>
+  :root{
+    --lime:#f5f1e8; --lime-2:#ebe4d6; --shade:#d9d0bf;
+    --aegean:#1c5d99; --aegean-d:#123e6b; --aegean-l:#4d8fcc;
+    --terra:#c4623a; --terra-d:#8f4225; --olive:#6d7446; --ink:#2b2a28; --bougain:#c2317a;
+    --display:"Sitka Display","Sitka Heading",Georgia,"Times New Roman",serif;
+    --text:"Sitka Text","Sitka Small",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--lime)}
+  body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--text);background-color:var(--lime);background-image:var(--plaster);overflow-x:hidden}
+  .wrap{max-width:1240px;margin:0 auto;padding:22px clamp(16px,3vw,40px) 60px}
+
+  .meander{height:18px;background-repeat:repeat-x;background-size:36px 18px;opacity:.9}
+  header{text-align:center;padding:18px 0 6px}
+  .eyebrow{font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--terra-d)}
+  h1{font-family:var(--display);font-weight:normal;font-size:clamp(44px,7vw,96px);line-height:.95;margin:.12em 0 .08em;color:var(--aegean-d);letter-spacing:-.01em}
+  h1 span{font-style:italic;color:var(--terra)}
+  .sub{font-style:italic;font-size:clamp(15px,1.5vw,18px);color:#5b574f;margin:0}
+
+  .hero{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.8fr);gap:clamp(20px,3.5vw,54px);align-items:end;margin-top:26px}
+  .arch{position:relative;aspect-ratio:1/1;border-radius:50% 50% 6px 6px / 40% 40% 6px 6px;overflow:hidden;
+    box-shadow:inset var(--rx,14px) 12px 0 rgba(120,100,70,.22), inset calc(var(--rx,14px) * -.35) 0 0 rgba(255,255,255,.4), 0 0 0 16px var(--lime), 0 0 0 17px var(--shade), 0 30px 50px -30px rgba(80,60,30,.45)}
+  .arch #scene{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .pot{height:auto;display:block}
+  .arch .sill{position:absolute;left:-2%;right:-2%;bottom:0;height:5%;background:linear-gradient(#efe9dd,#d8cfbd);box-shadow:0 -2px 0 rgba(0,0,0,.05);z-index:2}
+  .arch .pin{position:absolute;z-index:3;transform:translate(-50%,-100%);pointer-events:none;opacity:0;transition:opacity .5s,left .8s,top .8s}
+  .arch .pin.on{opacity:1}
+  .pin b{display:block;font-family:var(--display);font-weight:normal;font-style:italic;font-size:15px;white-space:nowrap;background:var(--lime);color:var(--aegean-d);padding:4px 10px;border-radius:14px;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+  .pin i{display:block;width:2px;height:22px;margin:0 auto;background:var(--lime)}
+  .pot{position:absolute;bottom:3%;z-index:3;width:13%;pointer-events:none}
+  .pot.l{left:4%}.pot.r{right:4%;transform:scaleX(-1)}
+
+  .almanac{padding-bottom:6px}
+  .clock{font-family:var(--display);font-size:clamp(56px,6vw,84px);line-height:1;color:var(--aegean-d);font-variant-numeric:lining-nums tabular-nums}
+  .clock small{font-size:.32em;color:var(--terra);font-style:italic;margin-left:.3em}
+  .alt{margin:.4em 0 1em;font-style:italic;color:#5b574f;font-size:16px;min-height:3em;line-height:1.5}
+  .facts{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--shade);border-bottom:1px solid var(--shade)}
+  .facts div{padding:10px 0 10px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#7a7266}
+  .facts div+div{padding-left:12px;border-left:1px solid var(--shade)}
+  .facts b{display:block;font-family:var(--display);font-weight:normal;font-size:24px;letter-spacing:0;color:var(--ink);text-transform:none;margin-top:4px}
+  .months{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 4px}
+  .chip{font:inherit;font-size:14px;min-height:40px;min-width:48px;padding:0 12px;border-radius:20px 20px 4px 4px;border:1px solid var(--shade);background:var(--lime);color:var(--ink);cursor:pointer}
+  .chip:hover,.chip:focus-visible{outline:none;border-color:var(--aegean)}
+  .chip.on{background:var(--aegean);color:#fff;border-color:var(--aegean)}
+  .dial{margin-top:14px}
+  .dial label{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#7a7266}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;cursor:pointer;margin:4px 0 0}
+  input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:var(--track,linear-gradient(90deg,#123e6b,#f0a860,#8fd0f5,#f0a860,#123e6b))}
+  input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:linear-gradient(90deg,#123e6b,#f0a860,#8fd0f5,#f0a860,#123e6b)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;margin-top:-10px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff7c8,#f6c040 60%,#e0902a);border:3px solid var(--lime);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+  input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#f6c040;border:3px solid var(--lime)}
+  input[type=range]:focus-visible{outline:2px solid var(--aegean);outline-offset:4px;border-radius:6px}
+  .play{font:inherit;font-size:14px;min-height:44px;padding:0 18px;margin-top:10px;background:none;border:1px solid var(--terra);color:var(--terra-d);border-radius:22px;cursor:pointer}
+  .play:hover,.play:focus-visible{outline:none;background:var(--terra);color:#fff}
+
+  h2{font-family:var(--display);font-weight:normal;font-size:clamp(28px,3.4vw,44px);color:var(--aegean-d);margin:64px 0 6px;text-align:center}
+  .h2sub{text-align:center;font-style:italic;color:#6b655a;margin:0 0 26px}
+  .days{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(12px,2vw,26px)}
+  .door{position:relative;background:var(--lime);border-radius:48% 48% 6px 6px / 22% 22% 6px 6px;padding:clamp(46px,5vw,64px) 18px 18px;
+    box-shadow:inset 0 0 0 1px var(--shade),0 18px 30px -24px rgba(80,60,30,.5)}
+  .door::before{content:"";position:absolute;left:50%;top:14px;transform:translateX(-50%);width:34px;height:34px;border-radius:50%;background:var(--aegean);box-shadow:inset 0 -3px 0 rgba(0,0,0,.15)}
+  .door .dn{position:absolute;left:50%;top:14px;transform:translateX(-50%);width:34px;height:34px;display:grid;place-items:center;color:#fff;font-family:var(--display);font-size:17px}
+  .door h3{font-family:var(--display);font-weight:normal;font-size:22px;margin:0;text-align:center;color:var(--ink)}
+  .door .where{text-align:center;font-style:italic;color:var(--terra);font-size:14px;margin:2px 0 12px}
+  .door ol{list-style:none;margin:0;padding:0}
+  .door li button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:52px 1fr;gap:8px;width:100%;padding:9px 6px;min-height:44px;border-top:1px dashed var(--shade);cursor:pointer;font-size:14.5px;line-height:1.4;border-radius:4px}
+  .door li button:hover,.door li button:focus-visible{background:rgba(28,93,153,.07)}
+  .door li button.on{background:rgba(28,93,153,.12)}
+  .door li time{font-family:var(--display);color:var(--aegean);font-variant-numeric:tabular-nums;font-size:16px}
+  footer{margin-top:40px;text-align:center;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#8b8274}
+
+  @media (max-width:980px){ .days{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:760px){
+    .hero{grid-template-columns:1fr}
+    .arch{aspect-ratio:1/1.12;box-shadow:inset var(--rx,10px) 10px 0 rgba(120,100,70,.22),0 0 0 10px var(--lime),0 0 0 11px var(--shade)}
+    .days{grid-template-columns:1fr}
+    .facts b{font-size:20px}
+  }
+  @media (prefers-reduced-motion:reduce){ .arch .pin{transition:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="meander" id="m1" aria-hidden="true"></div>
+  <header>
+    <div class="eyebrow">An itinerary measured in sunlight · 36.4° N</div>
+    <h1>Levkí, <span>four days</span></h1>
+    <p class="sub">A small white island, a lot of blue, and the exact hour to be in each place.</p>
+  </header>
+
+  <section class="hero">
+    <div class="arch" id="arch">
+      <svg id="scene" viewBox="0 0 1000 1080" preserveAspectRatio="xMidYMid slice" role="img" aria-label="View through an arched window: sea, a white village and a windmill, lit by the sun at the chosen hour"></svg>
+      <div class="pin" id="pin"><b id="pinT">Windmills</b><i></i></div>
+      <svg class="pot l" viewBox="0 0 100 120" aria-hidden="true"><path d="M10 10 Q50 -12 90 12 Q70 30 50 28 Q30 30 10 10z" fill="#3e6a33"/><g fill="#c2317a"><circle cx="22" cy="10" r="7"/><circle cx="38" cy="2" r="8"/><circle cx="58" cy="4" r="7"/><circle cx="76" cy="9" r="7"/><circle cx="48" cy="14" r="6"/></g><path d="M18 34 H82 L74 112 Q50 120 26 112Z" fill="#c4623a"/><path d="M14 26 H86 V38 H14Z" fill="#a85231"/><path d="M26 60 H74" stroke="#8f4225" stroke-width="2"/></svg>
+      <svg class="pot r" viewBox="0 0 100 120" aria-hidden="true"><path d="M20 20 C 30 -4, 70 -4, 80 20" fill="#56753e"/><path d="M50 22 V-2 M50 10 L36 0 M50 8 L64 -2" stroke="#56753e" stroke-width="4"/><path d="M22 34 H78 L70 112 Q50 120 30 112Z" fill="#b8583a"/><path d="M18 26 H82 V38 H18Z" fill="#9b4a2e"/></svg>
+      <div class="sill"></div>
+    </div>
+
+    <div class="almanac">
+      <div class="clock" id="clock">07:10<small id="clockTag">morning</small></div>
+      <p class="alt" id="alt">The sun is 12° above the sea. The whitewash is still cool.</p>
+      <div class="facts">
+        <div>Sunrise<b id="rise">06:12</b></div>
+        <div>Sunset<b id="set">20:31</b></div>
+        <div>Daylight<b id="len">14 h 19</b></div>
+      </div>
+      <div class="months" id="months" role="group" aria-label="Month of travel"></div>
+      <div class="dial">
+        <label for="t"><span>Drag the sun</span><span id="az">Azimuth 90°</span></label>
+        <input type="range" id="t" min="300" max="1320" step="1" value="430" aria-label="Time of day">
+      </div>
+      <button class="play" id="play">Play the whole day</button>
+    </div>
+  </section>
+
+  <h2>The itinerary</h2>
+  <p class="h2sub">Tap a line and the window shows you that hour.</p>
+  <section class="days" id="days"></section>
+
+  <div class="meander" id="m2" aria-hidden="true" style="margin-top:50px"></div>
+  <footer>Levkí is fictional · the sunlight is real (36.4° N, 25.4° E, EEST)</footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const svg = $('#scene'); if (!svg) return;
+  const NS = 'http://www.w3.org/2000/svg';
+
+  // ---------- plaster texture + meander, generated ----------
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 180;
+    const x = c.getContext('2d'), im = x.createImageData(180, 180);
+    for (let i = 0; i < im.data.length; i += 4) { const v = 200 + Math.random() * 55; im.data[i] = v; im.data[i + 1] = v - 4; im.data[i + 2] = v - 14; im.data[i + 3] = Math.random() < .5 ? 14 : 0; }
+    x.putImageData(im, 0, 0);
+    x.globalAlpha = .018; x.strokeStyle = '#9a8f78';
+    for (let i = 0; i < 7; i++) { x.beginPath(); const y = Math.random() * 180; x.moveTo(-10, y); x.bezierCurveTo(60, y - 20, 120, y + 20, 190, y - 8); x.lineWidth = 6 + Math.random() * 14; x.stroke(); }
+    document.body.style.setProperty('--plaster', `url(${c.toDataURL()})`);
+  } catch (_) {}
+  const meander = 'url("data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 18"><path d="M0 16 H30 V2 H8 V11 H22 V7 H14" fill="none" stroke="#1c5d99" stroke-width="2.4"/><path d="M0 1 H36 M0 17.2 H36" stroke="#1c5d99" stroke-width="1.2"/></svg>') + '")';
+  ['#m1', '#m2'].forEach(s => { const e = $(s); if (e) e.style.backgroundImage = meander; });
+
+  // ---------- solar geometry ----------
+  const LAT = 36.4 * Math.PI / 180, LON = 25.4, TZ = 3;     // EEST
+  const rad = Math.PI / 180;
+  let month = 6;                                           // 1-12; the 15th of that month
+  function dayOfYear(m) { return [0, 15, 46, 74, 105, 135, 166, 196, 227, 258, 288, 319, 349][m]; }
+  function sun(minutes) {
+    const n = dayOfYear(month), B = 2 * Math.PI * (n - 81) / 364;
+    const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+    const decl = 23.44 * rad * Math.sin(2 * Math.PI * (284 + n) / 365);
+    const tz = (month >= 4 && month <= 10) ? TZ : 2;
+    const solar = minutes / 60 + (4 * (LON - 15 * tz) + eot) / 60;
+    const H = (solar - 12) * 15 * rad;
+    const sinA = Math.sin(LAT) * Math.sin(decl) + Math.cos(LAT) * Math.cos(decl) * Math.cos(H);
+    const alt = Math.asin(sinA);
+    let az = Math.acos(Math.max(-1, Math.min(1, (Math.sin(decl) - sinA * Math.sin(LAT)) / (Math.cos(alt) * Math.cos(LAT)))));
+    if (H > 0) az = 2 * Math.PI - az;
+    return { alt: alt / rad, az: az / rad };
+  }
+  function riseSet() {
+    let rise = null, set = null, prev = sun(0).alt;
+    for (let m = 1; m <= 1440; m++) {
+      const a = sun(m).alt;
+      if (prev < -.833 && a >= -.833) rise = m;
+      if (prev >= -.833 && a < -.833) set = m;
+      prev = a;
+    }
+    return { rise, set };
+  }
+  const hm = m => String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(Math.round(m % 60) % 60).padStart(2, '0');
+
+  // ---------- scene ----------
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
+  const defs = el('defs', {});
+  const skyG = el('linearGradient', { id: 'sky', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+  const sk = [0, .55, 1].map(o => el('stop', { offset: o }, skyG));
+  const seaG = el('linearGradient', { id: 'sea', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+  const se = [0, 1].map(o => el('stop', { offset: o }, seaG));
+  const glowG = el('radialGradient', { id: 'glow' }, defs);
+  el('stop', { offset: 0, 'stop-color': '#fff6d0', 'stop-opacity': .9 }, glowG);
+  el('stop', { offset: 1, 'stop-color': '#fff6d0', 'stop-opacity': 0 }, glowG);
+
+  const HOR = 600;
+  const sky = el('rect', { x: 0, y: 0, width: 1000, height: HOR + 2, fill: 'url(#sky)' });
+  const stars = el('g', {});
+  for (let i = 0; i < 90; i++) el('circle', { cx: Math.random() * 1000, cy: Math.random() * HOR * .8, r: Math.random() * 1.6 + .3, fill: '#fff' }, stars);
+  const glow = el('circle', { r: 140, fill: 'url(#glow)' });
+  const sunC = el('circle', { r: 30, fill: '#fff4c4' });
+  const moon = el('g', {});
+  el('circle', { cx: 0, cy: 0, r: 22, fill: '#f3f1e4' }, moon); el('circle', { cx: 9, cy: -5, r: 20, fill: '#123e6b', class: 'mshade' }, moon);
+  // far islands
+  const far = el('path', { d: 'M0 588 Q 70 560 150 580 T 300 578 L 330 600 H0Z M560 600 Q 640 556 720 572 Q 800 560 870 590 L 900 600Z', opacity: .9 });
+  const sea = el('rect', { x: 0, y: HOR, width: 1000, height: 520, fill: 'url(#sea)' });
+  const glitter = el('g', {});
+  for (let i = 0; i < 46; i++) el('rect', { x: 0, y: HOR + 6 + Math.pow(i / 46, 1.6) * 300, width: 20 + i * 1.6, height: 2 + i * .06, rx: 1 }, glitter);
+  // headland with village
+  const fg = el('g', { transform: 'translate(1000 1080) scale(1.32) translate(-1000 -1080)' });
+  const land = el('path', { d: 'M1000 640 C 900 610 820 640 760 700 C 700 760 610 790 520 850 C 430 910 300 960 0 1000 V1080 H1000Z' }, fg);
+  const village = el('g', {}, fg);
+  const shadows = el('g', {}, village);
+  const houses = [];
+  const H = [[700, 700, 80, 64], [790, 668, 96, 70], [890, 646, 110, 84], [620, 760, 86, 60], [520, 812, 100, 66], [720, 770, 70, 52], [840, 740, 96, 70], [410, 870, 92, 60], [600, 846, 80, 58], [940, 730, 90, 80], [300, 920, 100, 60], [780, 830, 90, 70], [500, 900, 110, 70], [900, 830, 110, 90], [680, 900, 110, 80]];
+  H.sort((a, b) => a[1] - b[1]).forEach(([x, y, w, h], i) => {
+    const g = el('g', {}, village);
+    const front = el('rect', { x, y: y - h, width: w, height: h, fill: '#f7f3ea' }, g);
+    const side = el('path', { d: `M${x + w} ${y - h} l18 -10 v${h} l-18 10z` }, g);
+    const roof = el('path', { d: `M${x} ${y - h} l18 -10 h${w} l-18 10z`, fill: '#fbf9f3' }, g);
+    const doorC = i % 3 === 0 ? '#1c5d99' : i % 3 === 1 ? '#c4623a' : '#2f7d73';
+    el('rect', { x: x + w * .18, y: y - h * .55, width: w * .16, height: h * .55, fill: doorC, rx: w * .08 }, g);
+    el('rect', { x: x + w * .55, y: y - h * .72, width: w * .18, height: h * .22, fill: doorC }, g);
+    if (i % 4 === 1) el('path', { d: `M${x + w * .6} ${y - h - 4} v-16 h10 v12`, fill: '#efe9dd' }, g);
+    houses.push({ x, y, w, h, side, front, roof });
+  });
+  // church with blue dome
+  const ch = el('g', {}, village);
+  el('rect', { x: 560, y: 690, width: 90, height: 90, fill: '#f7f3ea' }, ch);
+  const dome = el('path', { d: 'M560 692 Q 605 610 650 692Z', fill: '#1c5d99' }, ch);
+  el('path', { d: 'M605 632 v-26 M596 616 h18', stroke: '#1c5d99', 'stroke-width': 4 }, ch);
+  el('rect', { x: 594, y: 730, width: 22, height: 50, rx: 11, fill: '#123e6b' }, ch);
+  const domeHi = el('path', { d: 'M572 690 Q 590 640 612 640', fill: 'none', stroke: '#fff', 'stroke-width': 5, opacity: .35 }, ch);
+  // windmills on the ridge
+  const mills = [];
+  [[870, 600], [950, 612]].forEach(([mx, my]) => {
+    const g = el('g', {}, village);
+    el('path', { d: `M${mx - 22} ${my + 50} L${mx - 16} ${my - 30} H${mx + 16} L${mx + 22} ${my + 50}Z`, fill: '#f6f2e8' }, g);
+    el('path', { d: `M${mx - 18} ${my - 30} Q ${mx} ${my - 56} ${mx + 18} ${my - 30}Z`, fill: '#8a5a3a' }, g);
+    const blades = el('g', { transform: `translate(${mx} ${my - 34})` }, g);
+    for (let k = 0; k < 8; k++) {
+      const b = el('g', { transform: `rotate(${k * 45})` }, blades);
+      el('path', { d: 'M0 0 L0 -58', stroke: '#6d5a44', 'stroke-width': 2 }, b);
+      el('path', { d: 'M1 -18 L16 -20 L14 -56 L1 -58Z', fill: '#f7f3ea', stroke: '#b0a58e', 'stroke-width': .8 }, b);
+    }
+    mills.push(blades);
+  });
+  // cypress and olive
+  el('path', { d: 'M470 850 q-12 -60 0 -120 q12 60 0 120z', fill: '#34472c' }, village);
+  el('path', { d: 'M360 910 q-20 -30 10 -46 q40 -14 60 12 q10 28 -20 36z', fill: '#6d7446' }, village);
+
+  const LOC = {
+    mills: [910, 548], church: [605, 596], cove: [150, 740], village: [760, 640], harbour: [420, 870], sea: [380, 690], terrace: [640, 900]
+  };
+
+  // ---------- colour ramps ----------
+  const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const rgb = a => `rgb(${a[0]},${a[1]},${a[2]})`;
+  const KEYS = [ // altitude → [skyTop, skyMid, horizon, seaTop, seaBottom, land]
+    [-12, '#0b1633', '#16264d', '#23355e', '#12233f', '#0a1528', '#2e3033'],
+    [-4, '#1c2a55', '#5a4a78', '#e0876a', '#4a4c6e', '#1b2440', '#5a4a44'],
+    [2, '#3b6ea8', '#e3a37a', '#f7c98a', '#6b8fb0', '#23466e', '#a07a5c'],
+    [10, '#4f94d4', '#a9d1ec', '#f4dcb2', '#3f86bf', '#1b4e84', '#c6a27c'],
+    [30, '#2f7fd0', '#8cc6ef', '#d8eef8', '#2d78bb', '#154a82', '#cfae86'],
+    [70, '#2477cc', '#7fc0f0', '#cdeaf8', '#2a76bd', '#12457e', '#d3b38c']
+  ].map(k => [k[0], ...k.slice(1).map(hex)]);
+  function ramp(alt) {
+    let i = 0; while (i < KEYS.length - 2 && alt > KEYS[i + 1][0]) i++;
+    const a = KEYS[i], b = KEYS[i + 1], t = Math.max(0, Math.min(1, (alt - a[0]) / (b[0] - a[0])));
+    return a.slice(1).map((c, k) => mix(c, b[k + 1], t));
+  }
+
+  // ---------- render at time ----------
+  let T = 430;
+  const clockEl = $('#clock'), altEl = $('#alt'), azEl = $('#az'), range = $('#t'), arch = $('#arch');
+  function say(alt, az) {
+    if (alt < -6) return 'Night. The sea is a rumour; the tavernas are not.';
+    if (alt < 0) return 'Twilight. Everything white turns briefly apricot.';
+    if (alt < 10) return `The sun is ${Math.round(alt)}° above the horizon. Long shadows, cool steps, good photographs.`;
+    if (alt < 40) return `The sun is ${Math.round(alt)}° up. Swim now, before the stone gets opinions.`;
+    if (alt < 60) return `The sun is ${Math.round(alt)}° up. Lunch in the shade of a vine, not a minute before.`;
+    return `The sun is ${Math.round(alt)}° up — nearly overhead. Siesta is not a suggestion.`;
+  }
+  function render() {
+    const { alt, az } = sun(T);
+    const c = ramp(alt);
+    sk[0].setAttribute('stop-color', rgb(c[0])); sk[1].setAttribute('stop-color', rgb(c[1])); sk[2].setAttribute('stop-color', rgb(c[2]));
+    se[0].setAttribute('stop-color', rgb(c[3])); se[1].setAttribute('stop-color', rgb(c[4]));
+    far.setAttribute('fill', rgb(mix(c[3], [90, 110, 140], .35)));
+    land.setAttribute('fill', rgb(c[5]));
+    // looking south: east (90°) is on the left, west (270°) on the right
+    const sx = 500 + (az - 180) / 130 * 440, sy = HOR - alt * 10;
+    const vis = alt > -1.5;
+    sunC.setAttribute('cx', sx); sunC.setAttribute('cy', sy); glow.setAttribute('cx', sx); glow.setAttribute('cy', sy);
+    sunC.setAttribute('fill', alt < 8 ? '#ffc07a' : '#fff4c4');
+    sunC.style.opacity = glow.style.opacity = vis ? 1 : 0;
+    stars.style.opacity = Math.max(0, Math.min(1, (-alt - 3) / 8));
+    const mx = 500 - (az - 180) / 140 * 300, my = 180 + Math.max(0, alt) * 2;
+    moon.setAttribute('transform', `translate(${mx} ${my})`); moon.style.opacity = alt < -4 ? 1 : 0;
+    const ms = moon.querySelector('.mshade'); if (ms) ms.setAttribute('fill', rgb(c[0]));
+    // glitter path under the sun
+    const gl = Math.max(0, Math.min(1, alt / 6 + .3)) * (alt > -2 ? 1 : 0);
+    [...glitter.children].forEach((r, i) => {
+      const w = +r.getAttribute('width');
+      r.setAttribute('x', sx - w / 2 + Math.sin(i * 2.3 + T * .7) * (6 + i * .8));
+      r.setAttribute('fill', alt < 10 ? '#ffd7a0' : '#ffffff');
+      r.setAttribute('opacity', (gl * (.25 + .6 * ((i * 37) % 11) / 11)).toFixed(2));
+    });
+    // light on the whitewash
+    const lit = Math.max(0, Math.min(1, alt / 25));
+    const warm = alt < 12 && alt > -2 ? (1 - Math.max(0, alt) / 12) : 0;
+    const wall = mix(mix([120, 125, 150], [247, 243, 234], lit), [255, 208, 160], warm * .45);
+    const fromLeft = az < 180;                   // morning: sun in the east (left), lights the left faces
+    const shade = mix(wall, [70, 90, 140], .38 + (1 - lit) * .2);
+    houses.forEach(h => {
+      h.front.setAttribute('fill', rgb(fromLeft ? mix(wall, shade, .15) : wall));
+      h.side.setAttribute('fill', rgb(fromLeft ? shade : mix(wall, [255, 255, 255], .1)));
+      h.roof.setAttribute('fill', rgb(mix(wall, [255, 255, 255], lit * .5)));
+    });
+    // cast shadows: length ~ 1/tan(alt), pointing away from the sun
+    while (shadows.firstChild) shadows.removeChild(shadows.firstChild);
+    if (alt > 1) {
+      const len = Math.min(220, 40 / Math.tan(Math.max(4, alt) * rad));
+      const dx = -Math.sin((az - 180) * rad) * len, dy = Math.abs(Math.cos((az - 180) * rad)) * len * .18;
+      houses.forEach(h => {
+        el('path', { d: `M${h.x} ${h.y} L${h.x + dx} ${h.y + dy} L${h.x + h.w + dx} ${h.y + dy} L${h.x + h.w} ${h.y}Z`, fill: 'rgba(40,50,90,.18)' }, shadows);
+      });
+    }
+    dome.setAttribute('fill', rgb(mix([28, 93, 153], [12, 30, 60], 1 - lit)));
+    domeHi.setAttribute('opacity', (lit * .45).toFixed(2));
+    domeHi.setAttribute('transform', fromLeft ? '' : 'translate(1210 0) scale(-1 1)');
+    // the arch's own reveal throws a shadow opposite the sun
+    if (arch) arch.style.setProperty('--rx', (fromLeft ? -1 : 1) * (alt > 0 ? 18 : 6) + 'px');
+    // text
+    if (clockEl) clockEl.innerHTML = `${hm(T)}<small>${alt < -6 ? 'night' : alt < 0 ? (T < 720 ? 'dawn' : 'dusk') : T < 720 ? 'morning' : T < 1020 ? 'afternoon' : 'evening'}</small>`;
+    if (altEl) altEl.textContent = say(alt, az);
+    if (azEl) azEl.textContent = alt > -1 ? `Sun ${Math.round(alt)}° · az ${Math.round(az)}°` : 'Sun below horizon';
+    if (range && +range.value !== Math.round(T)) range.value = Math.round(T);
+  }
+
+  function almanac() {
+    const { rise, set } = riseSet();
+    const r = $('#rise'), s = $('#set'), l = $('#len');
+    if (r) r.textContent = rise != null ? hm(rise) : '—';
+    if (s) s.textContent = set != null ? hm(set) : '—';
+    if (l && rise != null && set != null) { const d = set - rise; l.textContent = `${Math.floor(d / 60)} h ${String(d % 60).padStart(2, '0')}`; }
+    // slider track coloured by real altitude through the day
+    if (range) {
+      const stops = [];
+      for (let m = 300; m <= 1320; m += 40) { const c = ramp(sun(m).alt); stops.push(`${rgb(c[1])} ${((m - 300) / 1020 * 100).toFixed(1)}%`); }
+      range.style.setProperty('--track', `linear-gradient(90deg,${stops.join(',')})`);
+    }
+  }
+
+  // ---------- months ----------
+  const MONTHS = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'], MNUM = [5, 6, 7, 8, 9, 10];
+  const mBox = $('#months');
+  MONTHS.forEach((m, i) => {
+    const b = document.createElement('button'); b.className = 'chip' + (MNUM[i] === month ? ' on' : ''); b.textContent = m;
+    b.setAttribute('aria-pressed', MNUM[i] === month);
+    b.addEventListener('click', () => {
+      month = MNUM[i];
+      mBox.querySelectorAll('.chip').forEach((x, k) => { x.classList.toggle('on', k === i); x.setAttribute('aria-pressed', k === i); });
+      almanac(); rebuildDays(); render();
+    });
+    mBox && mBox.appendChild(b);
+  });
+
+  // ---------- itinerary (some times are anchored to real sunrise / sunset) ----------
+  const DAYS = [
+    { t: 'Arrival', w: 'Chóra & the windmills', items: [
+      [() => 12 * 60 + 40, 'Ferry noses into the harbour; a man with a cart takes your bags and your trust.', 'harbour'],
+      [() => 14 * 60 + 30, 'Lunch: fava, capers, a tomato that ruins all other tomatoes.', 'village'],
+      [() => 17 * 60, 'Walk the lanes of Chóra. Get lost on purpose; the island is only six km wide.', 'village'],
+      [s => s.set - 25, 'Sunset from the windmills. Everyone claps. You will too.', 'mills'] ] },
+    { t: 'The coves', w: 'Agios Petros & the south coast', items: [
+      [s => s.rise + 20, 'Early swim. The water is glass; the only sound is you, splashing clumsily.', 'cove'],
+      [() => 10 * 60, 'Coffee, Greek, sweet — metrio if you want to be taken seriously.', 'village'],
+      [() => 13 * 60 + 30, 'Too hot for anything but a vine-shaded taverna and grilled octopus.', 'terrace'],
+      [() => 18 * 60 + 10, 'Second swim, warmer. Your shoulders have been warned.', 'cove'] ] },
+    { t: 'By boat', w: 'Round the island by kaíki', items: [
+      [() => 9 * 60 + 30, 'Captain Stélios casts off, sings, overcharges gently.', 'harbour'],
+      [() => 11 * 60 + 45, 'Anchor in a sea cave the colour of mouthwash.', 'sea'],
+      [() => 15 * 60, 'Lunch on board: bread, feta, a disputed amount of ouzo.', 'sea'],
+      [s => s.set - 60, 'Home on the golden hour; every wet shoulder is suddenly beautiful.', 'sea'] ] },
+    { t: 'Slow day', w: 'The monastery & the long lunch', items: [
+      [s => s.rise + 50, 'Climb to Panagía Kalamiótissa before the heat does.', 'church'],
+      [() => 11 * 60, 'Cold watermelon at the top. The nun refuses payment; leave some anyway.', 'church'],
+      [() => 14 * 60 + 15, 'The long lunch. It is currently 14:15; it will still be lunch at 17:00.', 'terrace'],
+      [s => s.set + 55, 'Stars over the terrace. Count them; lose count; begin again.', 'terrace'] ] }
+  ];
+  const daysEl = $('#days');
+  function rebuildDays() {
+    if (!daysEl) return;
+    const rs = riseSet();
+    daysEl.innerHTML = '';
+    DAYS.forEach((d, di) => {
+      const card = document.createElement('article'); card.className = 'door';
+      card.innerHTML = `<span class="dn">${di + 1}</span><h3>${d.t}</h3><div class="where">${d.w}</div><ol></ol>`;
+      const ol = card.querySelector('ol');
+      d.items.forEach(([f, txt, loc]) => {
+        const m = Math.round(f(rs));
+        const li = document.createElement('li'), b = document.createElement('button');
+        b.innerHTML = `<time>${hm(m)}</time><span>${txt}</span>`;
+        b.addEventListener('click', () => {
+          daysEl.querySelectorAll('button.on').forEach(x => x.classList.remove('on')); b.classList.add('on');
+          goTo(m, loc, d.w.split(' & ')[0]);
+          if (innerWidth < 760 && arch) arch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+        li.appendChild(b); ol.appendChild(li);
+      });
+      daysEl.appendChild(card);
+    });
+  }
+  const PINNAME = { mills: 'The windmills', church: 'Panagía Kalamiótissa', cove: 'Agios Petros cove', village: 'Chóra', harbour: 'The harbour', sea: 'Out at sea', terrace: 'Our terrace' };
+  function showPin(loc) {
+    const pin = $('#pin'), pt = $('#pinT'); if (!pin || !arch) return;
+    let p = LOC[loc]; if (!p) { pin.classList.remove('on'); return; }
+    if (loc !== 'sea' && loc !== 'cove') p = [1000 + (p[0] - 1000) * 1.32, 1080 + (p[1] - 1080) * 1.32];
+    // convert viewBox coords (slice) to % of the arch box
+    const W = arch.clientWidth, Hh = arch.clientHeight, s = Math.max(W / 1000, Hh / 1080);
+    const ox = (W - 1000 * s) / 2, oy = (Hh - 1080 * s) / 2;
+    pin.style.left = Math.max(80, Math.min(W - 80, ox + p[0] * s)) + 'px'; pin.style.top = (oy + p[1] * s) + 'px';
+    if (pt) pt.textContent = PINNAME[loc];
+    pin.classList.add('on'); pin.dataset.loc = loc;
+  }
+
+  // ---------- time animation ----------
+  let anim = 0, playing = false;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function goTo(m, loc) {
+    cancelAnimationFrame(anim); playing = false; setPlay();
+    const from = T, t0 = performance.now(), dur = reduce ? 1 : 1600;
+    showPin(loc);
+    const step = now => { const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; T = from + (m - from) * e; render(); if (k < 1) anim = requestAnimationFrame(step); };
+    anim = requestAnimationFrame(step);
+  }
+  const playB = $('#play');
+  function setPlay() { if (playB) playB.textContent = playing ? 'Pause the day' : 'Play the whole day'; }
+  playB && playB.addEventListener('click', () => {
+    playing = !playing; setPlay(); cancelAnimationFrame(anim);
+    if (!playing) return;
+    let last = performance.now();
+    const step = now => { if (!playing) return; T += (now - last) / 1000 * 60; last = now; if (T > 1320) T = 300; render(); anim = requestAnimationFrame(step); };
+    anim = requestAnimationFrame(step);
+  });
+  range && range.addEventListener('input', () => { cancelAnimationFrame(anim); playing = false; setPlay(); T = +range.value; render(); });
+
+  // windmill sails turn in the meltemi
+  let rot = 0, lastW = performance.now();
+  function spin(now) {
+    const dt = Math.min(.1, (now - lastW) / 1000); lastW = now; rot = (rot + dt * 24) % 360;
+    mills.forEach((m, i) => { const tr = m.getAttribute('transform').replace(/ rotate\([^)]*\)/, ''); m.setAttribute('transform', tr + ` rotate(${rot * (i ? .8 : 1)})`); });
+    requestAnimationFrame(spin);
+  }
+  if (!reduce) requestAnimationFrame(spin);
+  addEventListener('resize', () => { const p = $('#pin'); if (p && p.classList.contains('on')) showPin(p.dataset.loc); });
+
+  almanac(); rebuildDays(); render();
+  // open on the first morning: sun climbs from dawn to a swim
+  const rs0 = riseSet();
+  T = rs0.rise - 20; render();
+  setTimeout(() => goTo(rs0.rise + 20 + 60 * 2, 'cove'), 250);
+})();
+</script>
+</body>
+</html>

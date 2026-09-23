@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>紙上四季 · 一座紙雕小山谷</title>
+<style>
+@property --sky1{syntax:'<color>';inherits:true;initial-value:#fbd9b0}
+@property --sky2{syntax:'<color>';inherits:true;initial-value:#fff1dd}
+@property --l1{syntax:'<color>';inherits:true;initial-value:#e6b89a}
+@property --l2{syntax:'<color>';inherits:true;initial-value:#e39a5c}
+@property --l3{syntax:'<color>';inherits:true;initial-value:#d1733b}
+@property --l4{syntax:'<color>';inherits:true;initial-value:#b8502c}
+@property --l5{syntax:'<color>';inherits:true;initial-value:#8e3b24}
+@property --l6{syntax:'<color>';inherits:true;initial-value:#5e2a1c}
+@property --tree{syntax:'<color>';inherits:true;initial-value:#c9612f}
+@property --canopy{syntax:'<color>';inherits:true;initial-value:#d9542b}
+@property --sun{syntax:'<color>';inherits:true;initial-value:#f28a3c}
+@property --roof{syntax:'<color>';inherits:true;initial-value:#7a2e1c}
+@property --accent{syntax:'<color>';inherits:true;initial-value:#b8502c}
+@property --bg{syntax:'<color>';inherits:true;initial-value:#f3e6d3}
+:root{
+  --serif:Georgia,"Noto Serif TC","Songti TC","PMingLiU","新細明體",serif;
+  --ink:#3a2c24;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--serif);color:var(--ink);background:var(--bg);min-height:100vh;transition:--bg 1.2s;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .4  0 0 0 0 .32  0 0 0 0 .22  0 0 0 .08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+.season-spring{--sky1:#fbd8dc;--sky2:#fff6ec;--l1:#e8c7d6;--l2:#d6e6c3;--l3:#afd494;--l4:#8cc27a;--l5:#6aa55e;--l6:#477e47;--tree:#7fb86b;--canopy:#f3b3c4;--sun:#fff0e6;--roof:#c4596d;--accent:#c4596d;--bg:#f7ece8}
+.season-summer{--sky1:#b9e2f3;--sky2:#fbf6e0;--l1:#a3c9de;--l2:#86c6a7;--l3:#56b07e;--l4:#35945f;--l5:#237a4a;--l6:#155f39;--tree:#2c8a56;--canopy:#3c9f5f;--sun:#ffd35c;--roof:#2f6f9f;--accent:#2f7fb0;--bg:#eef3ea}
+.season-autumn{--sky1:#fbd6ac;--sky2:#fff1dd;--l1:#e8bea0;--l2:#e5a066;--l3:#d4773d;--l4:#bb5530;--l5:#903d25;--l6:#5e2a1c;--tree:#c9612f;--canopy:#dd5a2c;--sun:#f28a3c;--roof:#6d2a1a;--accent:#b8502c;--bg:#f5e7d5}
+.season-winter{--sky1:#c9d4e6;--sky2:#f4f6fa;--l1:#dfe6f0;--l2:#c8d3e3;--l3:#b3c0d4;--l4:#eef2f7;--l5:#e4e9f1;--l6:#f8fafc;--tree:#7d8ea4;--canopy:#ffffff;--sun:#fbfcff;--roof:#566a86;--accent:#4f6a90;--bg:#eceff4}
+body{transition:--sky1 1.2s,--sky2 1.2s,--l1 1.2s,--l2 1.2s,--l3 1.2s,--l4 1.2s,--l5 1.2s,--l6 1.2s,--tree 1.2s,--canopy 1.2s,--sun 1.2s,--roof 1.2s,--accent 1.2s,--bg 1.2s}
+
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:14px 24px;flex-wrap:wrap;padding:clamp(16px,3vw,34px) clamp(16px,4vw,48px) clamp(12px,2vw,20px)}
+.brand h1{margin:0;font-weight:normal;font-size:clamp(28px,4vw,50px);letter-spacing:.12em;line-height:1.1}
+.brand p{margin:4px 0 0;font-style:italic;font-size:clamp(13px,1.3vw,16px);color:#6d5a4c}
+.tabs{display:flex;gap:6px;align-items:flex-end}
+.tab{position:relative;min-width:clamp(56px,7vw,76px);min-height:56px;padding:8px 10px 6px;border:0;border-radius:6px 6px 0 0;background:#fffdf8;color:var(--ink);font-family:var(--serif);cursor:pointer;
+  box-shadow:0 2px 0 rgba(0,0,0,.06),0 6px 12px rgba(60,40,20,.12);transition:transform .35s cubic-bezier(.3,1.5,.5,1),background .4s,color .4s;transform:translateY(8px)}
+.tab b{display:block;font-weight:normal;font-size:24px;line-height:1.1}
+.tab small{display:block;font-size:11px;letter-spacing:.14em;font-style:italic;color:#8a7766}
+.tab[aria-pressed="true"]{transform:translateY(0);background:var(--accent);color:#fff}
+.tab[aria-pressed="true"] small{color:rgba(255,255,255,.85)}
+.tab:focus-visible{outline:2px dashed var(--accent);outline-offset:3px}
+.tab:hover{transform:translateY(2px)}
+.tab[aria-pressed="true"]:hover{transform:translateY(0)}
+
+.box{margin:0 clamp(16px,4vw,48px);padding:clamp(8px,1.2vw,14px);background:#fffdf8;border-radius:4px;box-shadow:0 1px 0 rgba(0,0,0,.05),0 24px 50px -18px rgba(60,40,20,.45),0 4px 10px rgba(60,40,20,.1);position:relative}
+.stage{position:relative;height:clamp(420px,68vh,720px);overflow:hidden;border-radius:2px;cursor:grab;touch-action:pan-y;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);background:var(--sky2)}
+.layer{position:absolute;left:-5%;right:-5%;top:-3%;bottom:-2%;will-change:transform;pointer-events:none}
+.layer svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+.layer.d1 svg,.layer.d2 svg,.layer.d3 svg,.layer.d4 svg,.layer.d5 svg,.layer.d6 svg{filter:drop-shadow(0 -1.5px 0 rgba(255,255,255,.45)) drop-shadow(0 7px 9px rgba(40,25,15,.26))}
+.layer.flip svg{animation:flip .9s cubic-bezier(.4,1.6,.5,1) both}
+@keyframes flip{0%{transform:translateY(0)}35%{transform:translateY(26px) scale(1.005)}100%{transform:translateY(0)}}
+#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.grain{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.55;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .45  0 0 0 0 .4  0 0 0 .22 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>")}
+.vign{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 60px rgba(40,25,15,.25),inset 0 0 0 1px rgba(255,255,255,.4)}
+.hint{position:absolute;right:14px;top:12px;font-size:13px;font-style:italic;color:rgba(58,44,36,.7);background:rgba(255,253,248,.7);padding:4px 10px;border-radius:12px;pointer-events:none;transition:opacity .8s}
+
+.card{position:absolute;left:clamp(22px,3vw,40px);bottom:clamp(22px,3vw,40px);width:min(430px,44%);background:#fffdf8;padding:18px 22px 18px;border-radius:2px;transform:rotate(-1deg);
+  box-shadow:0 2px 0 rgba(0,0,0,.04),0 14px 28px -8px rgba(40,25,15,.4);z-index:5}
+.card::before{content:"";position:absolute;left:50%;top:-10px;width:70px;height:20px;margin-left:-35px;background:rgba(255,255,255,.55);box-shadow:0 1px 2px rgba(0,0,0,.1);transform:rotate(2deg)}
+@media (max-width:820px){.card{position:relative;left:auto;bottom:auto;width:auto;margin:16px 4px 0;transform:none}}
+.card .ss{display:flex;align-items:baseline;gap:12px}
+.card .ss b{font-weight:normal;font-size:clamp(46px,5vw,64px);line-height:1;color:var(--accent)}
+.card .ss span{font-style:italic;font-size:18px;color:#6d5a4c}
+.card .ss em{margin-left:auto;font-size:12px;letter-spacing:.14em;color:#8a7766;font-style:normal}
+.card blockquote{margin:10px 0 14px;font-size:clamp(16px,1.5vw,18px);line-height:1.7}
+.terms{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@media (max-width:420px){.terms{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.term{min-height:52px;border:1px solid rgba(58,44,36,.2);background:#fff;border-radius:3px;font-family:var(--serif);color:var(--ink);cursor:pointer;padding:4px 2px;line-height:1.15;transition:background .3s,color .3s,transform .2s}
+.term b{display:block;font-weight:normal;font-size:16px}
+.term small{font-size:11px;color:#8a7766}
+.term[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent);transform:translateY(-2px)}
+.term[aria-pressed="true"] small{color:rgba(255,255,255,.85)}
+.term:focus-visible{outline:2px dashed var(--accent);outline-offset:2px}
+.tdesc{margin:12px 0 0;min-height:1.6em;font-size:15px;color:#5b4a3e}
+.tdesc b{color:var(--accent);font-weight:normal}
+.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 20px;padding:18px clamp(16px,4vw,48px) 28px;font-size:13px;font-style:italic;color:#7b6858}
+@media (prefers-reduced-motion:reduce){.layer.flip svg{animation:none}}
+</style>
+</head>
+<body class="season-autumn">
+<header class="top">
+  <div class="brand"><h1>紙上四季</h1><p>A paper diorama in four seasons · 一座剪出來的小山谷</p></div>
+  <div class="tabs" role="group" aria-label="選擇季節">
+    <button class="tab" type="button" data-s="spring" aria-pressed="false"><b>春</b><small>Spring</small></button>
+    <button class="tab" type="button" data-s="summer" aria-pressed="false"><b>夏</b><small>Summer</small></button>
+    <button class="tab" type="button" data-s="autumn" aria-pressed="true"><b>秋</b><small>Autumn</small></button>
+    <button class="tab" type="button" data-s="winter" aria-pressed="false"><b>冬</b><small>Winter</small></button>
+  </div>
+</header>
+
+<div class="box">
+  <div class="stage" id="stage" aria-label="紙雕風景，移動滑鼠或拖曳可看見層次">
+    <div class="layer d0" data-d="0"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" id="L0"></svg></div>
+    <div class="layer d1" data-d=".12"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" id="L1"></svg></div>
+    <div class="layer d2" data-d=".25"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" id="L2"></svg></div>
+    <div class="layer d3" data-d=".4"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" id="L3"></svg></div>
+    <div class="layer d4" data-d=".56"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" id="L4"></svg></div>
+    <div class="layer d5" data-d=".75"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" id="L5"></svg></div>
+    <canvas id="fx" aria-hidden="true"></canvas>
+    <div class="layer d6" data-d="1"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" id="L6"></svg></div>
+    <div class="grain"></div>
+    <div class="vign"></div>
+    <div class="hint" id="hint">移動滑鼠，看紙片的層次</div>
+  </div>
+  <section class="card" aria-live="polite">
+    <div class="ss"><b id="sName">秋</b><span id="sEn">Autumn</span><em id="today"></em></div>
+    <blockquote id="sLine">每一片落葉，都是剪刀多走的一步。</blockquote>
+    <div class="terms" id="terms" role="group" aria-label="節氣"></div>
+    <p class="tdesc" id="tdesc"></p>
+  </section>
+</div>
+<div class="foot"><span>七層紙 · 一把剪刀 · 零張真的紙</span><span>鍵盤：← → 換季節 · 1–6 換節氣</span></div>
+
+<script>
+(function(){
+  'use strict';
+  var NS = 'http://www.w3.org/2000/svg';
+  var $ = function(id){ return document.getElementById(id); };
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var stage = $('stage'); if(!stage) return;
+
+  /* ---------- seeded geometry ---------- */
+  var s0 = 20260923;
+  function R(){ s0 = (s0 * 1664525 + 1013904223) >>> 0; return s0 / 4294967296; }
+  function rr(a, b){ return a + (b - a) * R(); }
+  function ridge(y0, amp, n, jag){
+    var pts = [];
+    for(var i = 0; i <= n; i++){ var x = -120 + i * (1840 / n); var y = y0 + (R() - .5) * amp + Math.sin(i * .9 + y0) * amp * .25; if(jag && i % 2) y -= amp * rr(.2, .7); pts.push([x, y]); }
+    return pts;
+  }
+  function smoothPath(pts, bottom){
+    var d = 'M' + pts[0][0] + ' ' + bottom + ' L' + pts[0][0] + ' ' + pts[0][1].toFixed(1);
+    for(var i = 0; i < pts.length - 1; i++){ var mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2; d += ' Q' + pts[i][0].toFixed(1) + ' ' + pts[i][1].toFixed(1) + ' ' + mx.toFixed(1) + ' ' + my.toFixed(1); }
+    var l = pts[pts.length - 1]; d += ' L' + l[0] + ' ' + l[1].toFixed(1) + ' L' + l[0] + ' ' + bottom + ' Z';
+    return d;
+  }
+  function sharpPath(pts, bottom){ var d = 'M' + pts[0][0] + ' ' + bottom; pts.forEach(function(p){ d += ' L' + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }); return d + ' L' + pts[pts.length - 1][0] + ' ' + bottom + ' Z'; }
+  function yAt(pts, x){ for(var i = 0; i < pts.length - 1; i++){ if(x >= pts[i][0] && x <= pts[i + 1][0]){ var t = (x - pts[i][0]) / (pts[i + 1][0] - pts[i][0]); return pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t; } } return pts[0][1]; }
+  function el(tag, attrs, parent){ var e = document.createElementNS(NS, tag); for(var k in attrs) e.setAttribute(k, attrs[k]); if(parent) parent.appendChild(e); return e; }
+
+  /* L0 sky */
+  var L0 = $('L0');
+  var defs = el('defs', {}, L0);
+  var lg = el('linearGradient', { id:'sky', x1:0, y1:0, x2:0, y2:1 }, defs);
+  el('stop', { offset:'0', style:'stop-color:var(--sky1)' }, lg); el('stop', { offset:'1', style:'stop-color:var(--sky2)' }, lg);
+  el('rect', { x:-200, y:-200, width:2000, height:1300, fill:'url(#sky)' }, L0);
+  var sunG = el('g', { id:'sunG', style:'transition:transform 1.4s cubic-bezier(.4,1.3,.5,1)' }, L0);
+  el('circle', { cx:0, cy:0, r:92, style:'fill:var(--sun);opacity:.35' }, sunG);
+  el('circle', { cx:0, cy:0, r:66, style:'fill:var(--sun);filter:drop-shadow(0 4px 6px rgba(0,0,0,.12))' }, sunG);
+  [[260, 170, 1], [900, 110, .8], [1380, 250, .9], [620, 260, .6]].forEach(function(c){
+    var g = el('g', { transform:'translate(' + c[0] + ' ' + c[1] + ') scale(' + c[2] + ')', style:'filter:drop-shadow(0 4px 5px rgba(0,0,0,.1))', 'class':'cloud' }, L0);
+    el('path', { d:'M-90 20 Q-92 -8 -60 -8 Q-52 -40 -16 -34 Q6 -60 40 -40 Q76 -44 78 -12 Q104 -6 98 20 Z', fill:'#fffdf8', opacity:.92 }, g);
+  });
+
+  /* L1 far mountains + snowcaps */
+  var L1 = $('L1'), far = ridge(400, 150, 18, true);
+  el('path', { d:sharpPath(far, 1000), style:'fill:var(--l1)' }, L1);
+  var facets = el('g', { fill:'#ffffff', opacity:.2 }, L1);
+  for(var fi = 1; fi < far.length - 1; fi++){
+    var fp = far[fi]; if(fp[1] < far[fi - 1][1] && fp[1] < far[fi + 1][1]){
+      var bx = fp[0] + (far[fi - 1][0] - fp[0]) * .15, by = Math.max(far[fi - 1][1], far[fi + 1][1]) + 60;
+      el('path', { d:'M' + fp[0] + ' ' + fp[1] + ' L' + far[fi - 1][0] + ' ' + far[fi - 1][1] + ' L' + (far[fi - 1][0] + 10) + ' ' + (far[fi - 1][1] + 40) + ' L' + bx + ' ' + by + ' Z' }, facets);
+    }
+  }
+  var caps = el('g', { id:'caps', style:'transition:opacity 1.2s' }, L1);
+  for(var i = 1; i < far.length - 1; i++){
+    var p = far[i]; if(p[1] < far[i - 1][1] && p[1] < far[i + 1][1]){
+      var lx = p[0] + (far[i - 1][0] - p[0]) * .3, ly = p[1] + (far[i - 1][1] - p[1]) * .3, rx = p[0] + (far[i + 1][0] - p[0]) * .3, ry = p[1] + (far[i + 1][1] - p[1]) * .3;
+      el('path', { d:'M' + p[0] + ' ' + p[1] + ' L' + rx + ' ' + ry + ' L' + (rx - 14) + ' ' + (ry + 10) + ' L' + (p[0] + 6) + ' ' + (ry + 2) + ' L' + (lx + 18) + ' ' + (ly + 12) + ' L' + lx + ' ' + ly + ' Z', fill:'#ffffff' }, caps);
+    }
+  }
+  // geese
+  var geese = el('g', { id:'geese', style:'transition:opacity 1s' }, L1);
+  for(i = 0; i < 7; i++){ var gx = 480 + i * 34, gy = 150 + Math.abs(i - 3) * 16; el('path', { d:'M' + (gx - 12) + ' ' + (gy - 4) + ' Q' + (gx - 5) + ' ' + (gy - 8) + ' ' + gx + ' ' + gy + ' Q' + (gx + 5) + ' ' + (gy - 8) + ' ' + (gx + 12) + ' ' + (gy - 4), fill:'none', stroke:'#5b4a3e', 'stroke-width':3, 'stroke-linecap':'round' }, geese); }
+
+  /* L2 rolling hills */
+  var L2 = $('L2'), mid = ridge(520, 90, 10);
+  el('path', { d:smoothPath(mid, 1000), style:'fill:var(--l2)' }, L2);
+
+  /* L3 hill with a row of little trees */
+  var L3 = $('L3'), row = ridge(600, 70, 9);
+  var tg = el('g', {}, L3);
+  for(var x = -80; x < 1700; x += rr(26, 52)){
+    var y = yAt(row, x) + 6, h = rr(26, 48);
+    if(R() < .5) el('path', { d:'M' + x + ' ' + (y - h) + ' L' + (x + h * .32) + ' ' + y + ' L' + (x - h * .32) + ' ' + y + ' Z', style:'fill:var(--tree)' }, tg);
+    else el('ellipse', { cx:x, cy:y - h * .55, rx:h * .3, ry:h * .5, style:'fill:var(--tree)' }, tg);
+  }
+  el('path', { d:smoothPath(row, 1000), style:'fill:var(--l3)' }, L3);
+
+  /* L4 village on a hill */
+  var L4 = $('L4'), vil = ridge(680, 60, 8);
+  var village = el('g', {}, L4);
+  el('path', { d:smoothPath(vil, 1000), style:'fill:var(--l4)' }, L4);
+  var houses = [[640, 1], [720, .8], [880, 1.15], [990, .9], [1080, .75]];
+  var winG = el('g', { id:'windows' });
+  houses.forEach(function(h){
+    var hx = h[0], hy = yAt(vil, hx) + 10, s = h[1];
+    var g = el('g', { transform:'translate(' + hx + ' ' + hy + ') scale(' + s + ')' }, L4);
+    el('rect', { x:-30, y:-46, width:60, height:46, fill:'#fffaf0' }, g);
+    el('path', { d:'M-40 -44 L0 -80 L40 -44 Z', style:'fill:var(--roof)' }, g);
+    el('rect', { x:14, y:-78, width:9, height:20, style:'fill:var(--roof)' }, g);
+    el('rect', { x:-18, y:-32, width:12, height:13, fill:'#f5c451', 'class':'win' }, g);
+    el('rect', { x:6, y:-26, width:12, height:26, style:'fill:var(--roof)', opacity:.8 }, g);
+  });
+  // path winding down the hill
+  el('path', { d:'M880 ' + (yAt(vil, 880) + 12) + ' Q860 760 930 800 T880 920', fill:'none', stroke:'#fffaf0', 'stroke-width':18, opacity:.55, 'stroke-linecap':'round' }, L4);
+
+  /* L5 near hill with big trees (canopy / blossoms / bare branches) */
+  var L5 = $('L5'), near = ridge(760, 70, 7);
+  var trees = [[180, 1.1], [390, .8], [1230, 1], [1440, 1.25], [1560, .8]];
+  var treesG = el('g', {}, L5);
+  trees.forEach(function(t){
+    var tx = t[0], ty = yAt(near, tx) + 12, s = t[1];
+    var g = el('g', { transform:'translate(' + tx + ' ' + ty + ') scale(' + s + ')' }, treesG);
+    el('path', { d:'M-9 0 L-6 -120 Q-30 -150 -58 -160 M-6 -110 L-4 -150 M4 -120 Q20 -150 52 -170 M6 -90 Q40 -110 70 -112 M-6 -80 Q-40 -96 -72 -96', fill:'none', stroke:'#5a3a28', 'stroke-width':7, 'stroke-linecap':'round' }, g);
+    el('path', { d:'M-10 0 L-6 -130 L6 -130 L10 0 Z', fill:'#5a3a28' }, g);
+    var can = el('g', { 'class':'canopy', style:'transition:opacity 1.2s,transform 1.2s;transform-origin:0 -150px' }, g);
+    el('path', { d:'M-95 -120 Q-120 -175 -70 -195 Q-60 -250 0 -250 Q60 -255 72 -200 Q125 -180 98 -125 Q70 -92 0 -100 Q-70 -92 -95 -120 Z', style:'fill:var(--canopy)' }, can);
+    var bl = el('g', { 'class':'bloom', style:'transition:opacity 1.2s' }, can);
+    for(var k = 0; k < 16; k++){ el('circle', { cx:rr(-85, 85), cy:rr(-235, -115), r:rr(5, 10), fill:k % 3 ? '#fff4f6' : '#e98aa3' }, bl); }
+    var snow = el('g', { 'class':'snowb', style:'transition:opacity 1.2s' }, g);
+    el('path', { d:'M-60 -163 Q-40 -170 -20 -150 M20 -150 Q40 -172 56 -172 M40 -114 Q56 -120 72 -116 M-40 -100 Q-58 -104 -74 -100', fill:'none', stroke:'#fff', 'stroke-width':6, 'stroke-linecap':'round' }, snow);
+  });
+  el('path', { d:smoothPath(near, 1000), style:'fill:var(--l5)' }, L5);
+
+  /* L6 foreground: grass + fox */
+  var L6 = $('L6'), fg = ridge(860, 40, 8);
+  var grass = el('g', {}, L6);
+  for(x = -100; x < 1720; x += rr(10, 22)){
+    var edge = Math.min(1, Math.abs(x - 800) / 800), gh = rr(20, 60) + edge * edge * 120;
+    var gy2 = yAt(fg, x) + 8, lean = rr(-18, 18);
+    el('path', { d:'M' + (x - 5) + ' ' + gy2 + ' Q' + (x + lean * .4) + ' ' + (gy2 - gh * .6) + ' ' + (x + lean) + ' ' + (gy2 - gh) + ' Q' + (x + lean * .2 + 3) + ' ' + (gy2 - gh * .5) + ' ' + (x + 6) + ' ' + gy2 + ' Z', style:'fill:var(--l6)' }, grass);
+  }
+  el('path', { d:smoothPath(fg, 1000), style:'fill:var(--l6)' }, L6);
+  var fox = el('g', { transform:'translate(1010 ' + (yAt(fg, 1060) - 58) + ') scale(1.15)', id:'fox' }, L6);
+  el('path', { d:'M34 38 Q6 22 -6 40 Q6 52 34 44 Z', fill:'#d9662b' }, fox);
+  el('path', { d:'M-6 40 Q-2 44 6 46 Q0 36 -6 40 Z', fill:'#fffaf0' }, fox);
+  el('ellipse', { cx:60, cy:38, rx:30, ry:12, fill:'#d9662b' }, fox);
+  el('path', { d:'M82 32 L100 22 L120 32 L100 42 Z', fill:'#d9662b' }, fox);
+  el('path', { d:'M100 42 L120 32 L108 40 Z', fill:'#fffaf0' }, fox);
+  el('path', { d:'M90 27 L93 10 L100 24 Z M98 24 L104 9 L108 27 Z', fill:'#b04f1f' }, fox);
+  el('circle', { cx:105, cy:30, r:2, fill:'#2a1a12' }, fox);
+  [[40, 44], [50, 44], [70, 44], [80, 44]].forEach(function(l){ el('rect', { x:l[0], y:l[1], width:5, height:16, rx:2, fill:'#8a3a18' }, fox); });
+
+  /* ---------- seasons ---------- */
+  var SEASONS = {
+    spring:{ n:'春', en:'Spring', line:'把冬天摺好收進抽屜，拿出一張粉色的紙。', fx:'petal', terms:[['立春','2/4','風先醒了，樹還在賴床。'],['雨水','2/19','雨開始比雪多，傘開始比帽子多。'],['驚蟄','3/5','第一聲春雷，把土裡的蟲叫醒。'],['春分','3/20','晝夜各半，公平得剛剛好。'],['清明','4/4','天清地明，適合想念一個人。'],['穀雨','4/20','雨生百穀，田裡的東西在偷偷長。']] },
+    summer:{ n:'夏', en:'Summer', line:'剪下一整片綠，光從紙縫裡漏進來。', fx:'firefly', terms:[['立夏','5/5','冷氣遙控器重新被找到。'],['小滿','5/21','麥粒漸滿，但還沒有滿。'],['芒種','6/5','有芒的作物該下田了。'],['夏至','6/21','一年裡白晝最長的一天。'],['小暑','7/7','熱，但還只是小熱。'],['大暑','7/22','熱到紙的邊角都捲起來了。']] },
+    autumn:{ n:'秋', en:'Autumn', line:'每一片落葉，都是剪刀多走的一步。', fx:'leaf', terms:[['立秋','8/7','秋天來了，但熱還沒有走。'],['處暑','8/23','暑氣到此為止，說好的。'],['白露','9/7','清晨草葉上有一顆一顆的露水。'],['秋分','9/23','晝夜又一次平分，月亮開始變亮。'],['寒露','10/8','露水變涼，要多帶一件外套。'],['霜降','10/23','第一道霜，楓葉紅透了。']] },
+    winter:{ n:'冬', en:'Winter', line:'白紙本來的顏色，就是雪。', fx:'snow', terms:[['立冬','11/7','冬天開始，棉被升級。'],['小雪','11/22','雪還很小，還很害羞。'],['大雪','12/7','雪下得認真了。'],['冬至','12/21','夜最長，湯圓最圓。'],['小寒','1/5','冷，但還有更冷的在後面。'],['大寒','1/20','一年中最冷的時候，快過年了。']] }
+  };
+  var ORDER = ['spring','summer','autumn','winter'];
+  var cur = 'autumn', termIdx = 3;
+  var layers = Array.prototype.slice.call(stage.querySelectorAll('.layer'));
+  var termsEl = $('terms'), tdesc = $('tdesc');
+
+  function applyDecor(s){
+    var capsE = $('caps'); if(capsE) capsE.style.opacity = s === 'winter' ? 1 : (s === 'spring' ? .35 : 0);
+    var ge = $('geese'); if(ge) ge.style.opacity = s === 'autumn' || s === 'spring' ? 1 : 0;
+    document.querySelectorAll('.canopy').forEach(function(c){ c.style.opacity = s === 'winter' ? 0 : 1; c.style.transform = s === 'winter' ? 'scale(.85)' : 'scale(1)'; });
+    document.querySelectorAll('.bloom').forEach(function(b){ b.style.opacity = s === 'spring' ? 1 : 0; });
+    document.querySelectorAll('.snowb').forEach(function(b){ b.style.opacity = s === 'winter' ? 1 : 0; });
+    document.querySelectorAll('.win').forEach(function(w){ w.setAttribute('fill', s === 'winter' ? '#ffcf5a' : '#f5c451'); });
+  }
+  function placeSun(i){
+    var sg = $('sunG'); if(!sg) return;
+    var t = i / 5, x = 420 + t * 820, y = 370 - Math.sin(t * Math.PI) * 120;
+    sg.setAttribute('transform', 'translate(' + x.toFixed(0) + ' ' + y.toFixed(0) + ')');
+    sg.style.transform = 'translate(' + x.toFixed(0) + 'px,' + y.toFixed(0) + 'px)';
+  }
+  function renderTerms(){
+    var S = SEASONS[cur]; if(!termsEl) return;
+    termsEl.innerHTML = '';
+    S.terms.forEach(function(t, i){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'term'; b.setAttribute('aria-pressed', i === termIdx ? 'true' : 'false');
+      b.innerHTML = '<b>' + t[0] + '</b><small>' + t[1] + '</small>';
+      b.addEventListener('click', function(){ setTerm(i); });
+      termsEl.appendChild(b);
+    });
+  }
+  function setTerm(i){
+    termIdx = i; var t = SEASONS[cur].terms[i];
+    if(termsEl) termsEl.querySelectorAll('.term').forEach(function(b, k){ b.setAttribute('aria-pressed', k === i ? 'true' : 'false'); });
+    if(tdesc) tdesc.innerHTML = '<b>' + t[0] + '</b>　' + t[2];
+    placeSun(i);
+  }
+  function setSeason(s, keepTerm){
+    if(!SEASONS[s]) return;
+    var changed = s !== cur;
+    cur = s;
+    ORDER.forEach(function(k){ document.body.classList.toggle('season-' + k, k === s); });
+    document.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-pressed', t.getAttribute('data-s') === s ? 'true' : 'false'); });
+    var S = SEASONS[s];
+    var set = function(id, v){ var e = $(id); if(e) e.textContent = v; };
+    set('sName', S.n); set('sEn', S.en); set('sLine', S.line);
+    if(!keepTerm) termIdx = 0;
+    renderTerms(); setTerm(termIdx);
+    applyDecor(s);
+    if(changed && !reduce){
+      layers.forEach(function(L, i){ L.classList.remove('flip'); void L.offsetWidth; L.querySelector('svg').style.animationDelay = (i * 70) + 'ms'; L.classList.add('flip'); });
+    }
+    resetParticles();
+  }
+  document.querySelectorAll('.tab').forEach(function(t){ t.addEventListener('click', function(){ setSeason(t.getAttribute('data-s')); }); });
+  document.addEventListener('keydown', function(e){
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    var i = ORDER.indexOf(cur);
+    if(e.key === 'ArrowRight'){ e.preventDefault(); setSeason(ORDER[(i + 1) % 4]); }
+    else if(e.key === 'ArrowLeft'){ e.preventDefault(); setSeason(ORDER[(i + 3) % 4]); }
+    else if(/^[1-6]$/.test(e.key)){ setTerm(+e.key - 1); }
+  });
+
+  /* today's solar term */
+  (function(){
+    var d = new Date(), md = (d.getMonth() + 1) * 100 + d.getDate(), best = null;
+    ORDER.forEach(function(s){ SEASONS[s].terms.forEach(function(t, i){ var p = t[1].split('/'), v = +p[0] * 100 + +p[1]; if(v <= md && (!best || v > best.v)) best = { s:s, i:i, v:v }; }); });
+    if(!best) best = { s:'winter', i:4 };
+    cur = best.s; termIdx = best.i;
+    var td = $('today'); if(td) td.textContent = '今天 · ' + SEASONS[best.s].terms[best.i][0];
+  })();
+
+  /* ---------- parallax ---------- */
+  var tx = 0, ty = 0, cx = 0, cy = 0, lastMove = 0, hintEl = $('hint');
+  stage.addEventListener('pointermove', function(e){
+    var r = stage.getBoundingClientRect();
+    tx = ((e.clientX - r.left) / r.width - .5) * 2; ty = ((e.clientY - r.top) / r.height - .5) * 2;
+    lastMove = performance.now();
+    if(hintEl) hintEl.style.opacity = 0;
+  });
+  stage.addEventListener('pointerleave', function(){ lastMove = 0; });
+  var depths = layers.map(function(L){ return +L.getAttribute('data-d') || 0; });
+
+  /* ---------- particles ---------- */
+  var fx = $('fx'), fctx = fx && fx.getContext ? fx.getContext('2d') : null, W = 0, H = 0, DPR = 1, parts = [];
+  function sizeFx(){ if(!fx) return; DPR = Math.min(window.devicePixelRatio || 1, 2); W = stage.clientWidth; H = stage.clientHeight; fx.width = Math.round(W * DPR); fx.height = Math.round(H * DPR); }
+  function spawn(kind, init){
+    var p = { x:Math.random() * W, y:init ? Math.random() * H : -20, r:0, vr:(Math.random() - .5) * .06, a:Math.random() * 6.28 };
+    if(kind === 'snow'){ p.s = 1.5 + Math.random() * 3.5; p.vy = .35 + p.s * .18; p.vx = (Math.random() - .5) * .3; }
+    else if(kind === 'petal'){ p.s = 4 + Math.random() * 4; p.vy = .5 + Math.random() * .6; p.vx = .3 + Math.random() * .6; }
+    else if(kind === 'leaf'){ p.s = 7 + Math.random() * 6; p.vy = .6 + Math.random() * .7; p.vx = -.2 + Math.random() * .7; p.c = ['#d9542b','#e9893a','#b8402a','#f0b23e'][Math.floor(Math.random() * 4)]; }
+    else { p.y = H * (.45 + Math.random() * .5); p.s = 1.6 + Math.random() * 2; p.vy = (Math.random() - .5) * .2; p.vx = (Math.random() - .5) * .3; p.ph = Math.random() * 6.28; }
+    return p;
+  }
+  function resetParticles(){
+    var k = SEASONS[cur].fx, n = k === 'snow' ? 90 : k === 'firefly' ? 34 : k === 'leaf' ? 26 : 38;
+    if(W < 600) n = Math.round(n * .6);
+    parts = []; for(var i = 0; i < n; i++) parts.push(spawn(k, true));
+  }
+  function leafPath(c, s){
+    c.beginPath(); c.moveTo(0, -s);
+    c.quadraticCurveTo(s * .75, -s * .2, 0, s * .8);
+    c.quadraticCurveTo(-s * .75, -s * .2, 0, -s);
+    c.closePath();
+  }
+  function drawParts(t){
+    if(!fctx) return;
+    fctx.setTransform(DPR, 0, 0, DPR, 0, 0); fctx.clearRect(0, 0, W, H);
+    var k = SEASONS[cur].fx;
+    for(var i = 0; i < parts.length; i++){
+      var p = parts[i];
+      p.a += .02; p.r += p.vr;
+      if(k === 'firefly'){
+        p.x += p.vx + Math.sin(t / 900 + p.ph) * .3; p.y += p.vy + Math.cos(t / 1100 + p.ph) * .2;
+        if(p.x < -10) p.x = W + 10; if(p.x > W + 10) p.x = -10; if(p.y < H * .35) p.vy = Math.abs(p.vy); if(p.y > H) p.vy = -Math.abs(p.vy);
+        var gl = .45 + .55 * Math.max(0, Math.sin(t / 500 + p.ph * 3));
+        var g = fctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.s * 6); g.addColorStop(0, 'rgba(255,240,150,' + (.9 * gl) + ')'); g.addColorStop(1, 'rgba(255,240,150,0)');
+        fctx.fillStyle = g; fctx.beginPath(); fctx.arc(p.x, p.y, p.s * 6, 0, 6.29); fctx.fill();
+        fctx.fillStyle = 'rgba(255,255,220,' + gl + ')'; fctx.beginPath(); fctx.arc(p.x, p.y, p.s, 0, 6.29); fctx.fill();
+        continue;
+      }
+      p.x += p.vx + Math.sin(p.a) * .4; p.y += p.vy;
+      if(p.y > H + 20 || p.x > W + 30 || p.x < -30){ parts[i] = spawn(k, false); parts[i].x = Math.random() * W * 1.1 - W * .1; continue; }
+      fctx.save(); fctx.translate(p.x, p.y); fctx.rotate(p.r);
+      fctx.shadowColor = 'rgba(40,25,15,.25)'; fctx.shadowBlur = 3; fctx.shadowOffsetY = 2;
+      if(k === 'snow'){ fctx.fillStyle = '#ffffff'; fctx.beginPath(); fctx.arc(0, 0, p.s, 0, 6.29); fctx.fill(); }
+      else if(k === 'petal'){ fctx.fillStyle = '#f7b9c8'; fctx.scale(1, .55 + Math.abs(Math.sin(p.a)) * .45); fctx.beginPath(); fctx.ellipse(0, 0, p.s, p.s * .6, 0, 0, 6.29); fctx.fill(); }
+      else { fctx.fillStyle = p.c; fctx.scale(.6 + Math.abs(Math.sin(p.a)) * .4, 1); leafPath(fctx, p.s); fctx.fill(); fctx.shadowColor = 'transparent'; fctx.strokeStyle = 'rgba(90,40,20,.55)'; fctx.lineWidth = 1; fctx.beginPath(); fctx.moveTo(0, -p.s * .7); fctx.lineTo(0, p.s * 1.15); fctx.stroke(); }
+      fctx.restore();
+    }
+  }
+
+  function loop(t){
+    if(!document.hidden){
+      var idle = !lastMove || t - lastMove > 2500;
+      var gx = idle ? Math.sin(t / 3200) * .35 : tx, gy = idle ? Math.cos(t / 4100) * .15 : ty;
+      if(reduce){ gx = idle ? 0 : gx; gy = idle ? 0 : gy; }
+      cx += (gx - cx) * .06; cy += (gy - cy) * .06;
+      for(var i = 0; i < layers.length; i++){ var d = depths[i]; layers[i].style.transform = 'translate3d(' + (-cx * d * 34).toFixed(2) + 'px,' + (-cy * d * 12).toFixed(2) + 'px,0)'; }
+      if(!reduce) drawParts(t);
+    }
+    requestAnimationFrame(loop);
+  }
+  window.addEventListener('resize', function(){ sizeFx(); resetParticles(); });
+  sizeFx();
+  setSeason(cur, true);
+  if(reduce && fctx) drawParts(0);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>七十二候・木版暦</title>
+<style>
+:root{
+  --washi:#efe3c8; --washi2:#e6d6b4; --ai:#1f3a5f; --ai2:#4f7298; --ai3:#9db4c8; --shu:#c9402a; --sumi:#2b2622; --ochre:#c9993c; --moegi:#6f8a4e;
+  --ming:"PMingLiU","新細明體","MingLiU","細明體","Noto Serif TC","Songti TC","Source Han Serif TC",serif;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--sumi);font-family:var(--ming);background:var(--washi);
+  background-image:
+   radial-gradient(ellipse at 20% 10%,rgba(255,255,255,.5),transparent 60%),
+   repeating-linear-gradient(8deg,rgba(120,90,40,.035) 0 1px,transparent 1px 5px),
+   repeating-linear-gradient(97deg,rgba(120,90,40,.025) 0 1px,transparent 1px 9px)}
+.wrap{max-width:1280px;margin:0 auto;padding:clamp(16px,3vw,40px) clamp(16px,3vw,40px) 0}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:3px double var(--sumi);padding-bottom:10px}
+.top h1{margin:0;font-weight:400;font-size:clamp(26px,3.4vw,40px);letter-spacing:.3em}
+.top h1 small{font-size:.42em;letter-spacing:.3em;margin-left:.6em;color:var(--ai2)}
+.top p{margin:0;font-size:14px;letter-spacing:.14em;color:#5a4f40}
+
+.main{display:grid;grid-template-columns:auto minmax(300px,1fr);gap:clamp(20px,4vw,56px);margin-top:clamp(18px,3vw,30px);align-items:start}
+.print{position:relative;width:min(calc((100vh - 150px) * .667),520px);aspect-ratio:2/3;background:var(--washi);
+  box-shadow:0 1px 0 #fff,0 20px 40px -18px rgba(60,40,10,.55),0 0 0 1px rgba(43,38,34,.25);padding:14px}
+.print svg{display:block;width:100%;height:100%;border:1.5px solid var(--sumi)}
+.cart{position:absolute;top:28px;right:28px;background:#f4ead2;border:1.5px solid var(--sumi);padding:10px 6px;writing-mode:vertical-rl;font-size:clamp(16px,2vw,22px);letter-spacing:.18em;line-height:1.2;box-shadow:inset 0 0 0 3px #f4ead2,inset 0 0 0 4px var(--sumi);max-height:70%}
+.cart2{position:absolute;top:28px;right:calc(28px + 3.4em);background:var(--shu);color:#fbeedd;padding:8px 4px;writing-mode:vertical-rl;font-size:12px;letter-spacing:.3em}
+.seal{position:absolute;left:30px;bottom:30px;width:40px;height:40px;background:var(--shu);color:#fbeedd;display:grid;grid-template-columns:1fr 1fr;place-items:center;font-size:15px;line-height:1;padding:3px;border-radius:3px;
+  box-shadow:inset 0 0 0 2px var(--shu),inset 0 0 0 3px rgba(251,238,221,.7);transform:rotate(-2deg);opacity:.92}
+.sign{position:absolute;left:34px;bottom:78px;writing-mode:vertical-rl;font-size:13px;letter-spacing:.2em;color:var(--sumi);background:rgba(239,227,200,.85);padding:6px 3px}
+
+.layer{animation:ink .9s cubic-bezier(.3,.7,.3,1) both}
+@keyframes ink{from{opacity:0;transform:translate(3px,-2px)}to{opacity:1;transform:none}}
+.waves{animation:flow 14s linear infinite}
+@keyframes flow{to{transform:translateX(-40px)}}
+.fly{animation:fly 9s ease-in-out infinite alternate}
+@keyframes fly{to{transform:translate(-18px,6px)}}
+.fall{animation:fall var(--d,7s) linear infinite}
+@keyframes fall{from{transform:translate(0,-40px)}to{transform:translate(-30px,470px)}}
+.glow{animation:glow var(--d,2.4s) ease-in-out infinite}
+@keyframes glow{50%{opacity:.2}}
+.sway{transform-origin:50% 100%;transform-box:fill-box;animation:sway 5s ease-in-out infinite alternate}
+@keyframes sway{from{transform:rotate(-2deg)}to{transform:rotate(3deg)}}
+
+/* info */
+.info{display:grid;grid-template-columns:auto 1fr;gap:10px 26px;align-items:start;padding-top:6px}
+.term{writing-mode:vertical-rl;font-size:clamp(64px,8vw,110px);line-height:1;letter-spacing:.1em;color:var(--ai);position:relative}
+.term small{font-size:.2em;letter-spacing:.4em;color:var(--shu);margin-top:.6em}
+.kou .ord{display:inline-block;background:var(--ai);color:var(--washi);font-size:14px;letter-spacing:.3em;padding:4px 10px 4px 14px}
+.kou h2{margin:12px 0 6px;font-weight:400;font-size:clamp(32px,4vw,50px);letter-spacing:.14em;line-height:1.25}
+.kou .date{font-size:15px;letter-spacing:.12em;color:#6a5c48}
+.kou p{font-size:17px;line-height:1.9;margin:14px 0 0;max-width:22em}
+.kou .n{margin-top:10px;font-size:13px;letter-spacing:.14em;color:var(--shu)}
+.nav{grid-column:1/-1;display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.nb{all:unset;cursor:pointer;height:44px;padding:0 16px;border:1.5px solid var(--sumi);display:inline-flex;align-items:center;gap:8px;font-size:15px;letter-spacing:.2em;background:rgba(255,255,255,.3)}
+.nb:hover{background:var(--ai);color:var(--washi);border-color:var(--ai)}
+.nb:focus-visible,.k:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
+.nb svg{width:12px;height:12px}
+.note{grid-column:1/-1;font-size:13px;line-height:1.8;color:#6a5c48;border-top:1px solid rgba(43,38,34,.3);padding-top:10px;margin-top:6px}
+
+/* scroll strip */
+.stripwrap{margin-top:clamp(24px,4vw,40px);position:relative}
+.stripwrap h3{font-weight:400;font-size:15px;letter-spacing:.4em;margin:0 0 8px}
+.strip{display:flex;gap:10px;overflow-x:auto;padding:8px 2px 14px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--ai2) transparent}
+.grp{flex:none;display:flex;flex-direction:column;align-items:stretch;border-top:4px solid var(--c,var(--ai));background:rgba(255,255,255,.28);padding:6px 6px 8px}
+.grp b{font-weight:400;font-size:15px;letter-spacing:.3em;text-align:center;margin-bottom:6px}
+.grp .ks{display:flex;gap:4px}
+.k{all:unset;cursor:pointer;writing-mode:vertical-rl;font-size:14px;letter-spacing:.08em;line-height:1.1;min-height:120px;width:40px;padding:8px 0;display:flex;align-items:flex-start;justify-content:center;background:#f5ecd6;border:1px solid rgba(43,38,34,.25);position:relative}
+.k:hover{background:#fff6e0}
+.k[aria-current="true"]{background:var(--ai);color:var(--washi)}
+.k.today::after{content:"今";position:absolute;writing-mode:horizontal-tb;bottom:-9px;left:50%;margin-left:-9px;width:18px;height:18px;border-radius:2px;background:var(--shu);color:#fff;font-size:11px;display:grid;place-items:center}
+footer{margin-top:30px;height:90px;position:relative;overflow:hidden}
+footer svg{position:absolute;inset:0;width:100%;height:100%}
+footer p{position:relative;z-index:1;margin:0;padding-top:34px;text-align:center;color:var(--washi);font-size:13px;letter-spacing:.3em}
+
+@media (max-width:900px){
+  .main{grid-template-columns:1fr}
+  .print{width:100%;max-width:520px;margin:0 auto}
+  .top p{display:none}
+}
+@media (max-width:480px){
+  .print{padding:8px}
+  .cart{top:18px;right:18px;font-size:16px}
+  .cart2{top:18px;right:calc(18px + 3.2em)}
+  .seal{left:20px;bottom:20px;width:34px;height:34px;font-size:13px}
+  .sign{left:22px;bottom:62px;font-size:11px}
+  .info{gap:8px 16px}
+  .kou p{font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){.layer,.waves,.fly,.fall,.glow,.sway{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>七十二候<small>木版暦</small></h1>
+    <p>一年分二十四節氣，每一節氣再分三候；五日一候，換一幅畫。</p>
+  </header>
+
+  <div class="main">
+    <figure class="print" id="print" style="margin:0">
+      <svg id="scene" viewBox="0 0 300 450" role="img" aria-label="木版風景"></svg>
+      <div class="cart" id="cart">東風解凍</div>
+      <div class="cart2" id="cart2">七十二候之內</div>
+      <div class="sign" id="sign">雨宮刀・摺</div>
+      <div class="seal" aria-hidden="true"><span>候</span><span>七</span><span>暦</span><span>二</span></div>
+    </figure>
+
+    <section class="info" aria-live="polite">
+      <div class="term" id="term">立春<small id="season">春</small></div>
+      <div class="kou">
+        <span class="ord" id="ord">初候</span>
+        <h2 id="kname">東風解凍</h2>
+        <div class="date" id="kdate"></div>
+        <p id="gloss"></p>
+        <div class="n" id="left"></div>
+      </div>
+      <div class="nav">
+        <button class="nb" type="button" id="prev" aria-label="上一候"><svg viewBox="0 0 12 12"><path d="M8 1 3 6l5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>上一候</button>
+        <button class="nb" type="button" id="today">今日</button>
+        <button class="nb" type="button" id="next" aria-label="下一候">下一候<svg viewBox="0 0 12 12"><path d="M4 1l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+      </div>
+      <p class="note">候名據《逸周書・時訓解》等古籍所載之七十二候；日期為 2026 年概算，每候約五日。古人觀察到「雀入大水為蛤」時是認真的，我們尊重這份浪漫。</p>
+    </section>
+  </div>
+
+  <div class="stripwrap">
+    <h3>一年之卷</h3>
+    <div class="strip" id="strip" aria-label="七十二候一覽"></div>
+  </div>
+</div>
+<footer aria-hidden="true">
+  <svg preserveAspectRatio="xMidYMid slice" viewBox="0 0 400 90"><defs>
+    <pattern id="sgf" width="40" height="20" patternUnits="userSpaceOnUse">
+      <g fill="#1f3a5f" stroke="#efe3c8" stroke-width="1.4"><circle cx="0" cy="10" r="19"/><circle cx="0" cy="10" r="14"/><circle cx="0" cy="10" r="9"/><circle cx="0" cy="10" r="4"/><circle cx="40" cy="10" r="19"/><circle cx="40" cy="10" r="14"/><circle cx="40" cy="10" r="9"/><circle cx="40" cy="10" r="4"/><circle cx="20" cy="20" r="19"/><circle cx="20" cy="20" r="14"/><circle cx="20" cy="20" r="9"/><circle cx="20" cy="20" r="4"/></g></pattern></defs>
+    <g class="waves"><rect x="0" y="0" width="480" height="90" fill="url(#sgf)"/></g></svg>
+  <p>青海波 ・ 萬物循環 ・ 五日一候</p>
+</footer>
+
+<script>
+(function(){
+"use strict";
+function $(id){return document.getElementById(id);}
+var scene=$('scene');if(!scene) return;
+
+// 節氣：名稱、2026 年約略起始日（月、日）、季節
+var TERMS=[
+ ['立春',2,4,'春',['東風解凍','蟄蟲始振','魚陟負冰'],['春風吹來，河面的冰開始消融。','冬眠的蟲子在土裡翻了個身，還不想起床。','魚游近水面，背上還頂著幾片碎冰。'],['wind','earth','fish']],
+ ['雨水',2,18,'春',['獺祭魚','候雁北','草木萌動'],['水獺捕到魚，一條條排在岸邊，像在擺祭品。','大雁收拾行李，啟程北返。','草木冒出新芽，一夜之間綠了一點點。'],['fish','geese','sprouts']],
+ ['驚蟄',3,5,'春',['桃始華','倉庚鳴','鷹化為鳩'],['桃花開了。','黃鸝在枝頭試嗓。','鷹隱去、布穀出現，古人以為是鷹變成了鳩。'],['peach','bird','bird']],
+ ['春分',3,20,'春',['玄鳥至','雷乃發聲','始電'],['燕子從南方回來了。','第一聲春雷滾過天邊。','天上開始有閃電。'],['swallow','thunder','thunder']],
+ ['清明',4,5,'春',['桐始華','田鼠化為鴽','虹始見'],['泡桐開出一樹淡紫。','田鼠躲回洞裡，鵪鶉般的小鳥在田間出沒。','雨後，第一道彩虹出現。'],['paulownia','bird','rainbow']],
+ ['穀雨',4,20,'春',['萍始生','鳴鳩拂其羽','戴勝降于桑'],['水面浮萍一片片生出來。','斑鳩梳理羽毛，催人快快播種。','戴勝鳥停在桑樹上，蠶要開始忙了。'],['sprouts','bird','bird']],
+ ['立夏',5,5,'夏',['螻蟈鳴','蚯蚓出','王瓜生'],['螻蛄在田埂裡叫。','蚯蚓鑽出地面透氣。','王瓜的藤蔓沿著籬笆攀爬。'],['insect','earth','sprouts']],
+ ['小滿',5,21,'夏',['苦菜秀','靡草死','麥秋至'],['苦菜長得正茂盛。','喜陰的細草在烈日下枯萎。','麥子熟了——這是麥的秋天。'],['sprouts','sun','grain']],
+ ['芒種',6,5,'夏',['螳螂生','鵙始鳴','反舌無聲'],['小螳螂成群破卵而出。','伯勞在枝頭尖聲鳴叫。','會學百鳥叫的反舌鳥，忽然安靜了。'],['insect','bird','bird']],
+ ['夏至',6,21,'夏',['鹿角解','蜩始鳴','半夏生'],['公鹿的角脫落了。','蟬開始叫，夏天正式開演。','藥草半夏在仲夏生長。'],['deer','insect','sprouts']],
+ ['小暑',7,7,'夏',['溫風至','蟋蟀居壁','鷹始摯'],['連風都是熱的。','蟋蟀躲到牆角陰涼處。','雛鷹開始練習搏擊。'],['sun','insect','bird']],
+ ['大暑',7,23,'夏',['腐草為螢','土潤溽暑','大雨時行'],['螢火蟲從草叢間飛出，古人以為是腐草所化。','土地濕潤，悶熱難耐。','雷陣雨說來就來。'],['firefly','sun','rain']],
+ ['立秋',8,7,'秋',['涼風至','白露降','寒蟬鳴'],['第一陣涼風吹起。','清晨草葉上有了露水。','寒蟬在樹上鳴叫。'],['wind','dew','insect']],
+ ['處暑',8,23,'秋',['鷹乃祭鳥','天地始肅','禾乃登'],['鷹大量捕鳥，陳列如祭。','天地間開始有了肅殺之氣。','稻穀成熟，可以收割了。'],['bird','moon','grain']],
+ ['白露',9,7,'秋',['鴻雁來','玄鳥歸','群鳥養羞'],['大雁從北方飛來。','燕子飛回南方。','鳥群開始囤糧，準備過冬。'],['geese','swallow','bird']],
+ ['秋分',9,23,'秋',['雷始收聲','蟄蟲坯戶','水始涸'],['雷聲漸漸收起，不再響了。','蟲子用細土封住洞口。','河湖的水開始變淺。'],['moon','earth','moon']],
+ ['寒露',10,8,'秋',['鴻雁來賓','雀入大水為蛤','菊有黃華'],['最後一批大雁，如賓客般抵達。','麻雀不見了，海邊多了花紋相似的蛤蜊。','菊花開出黃花。'],['geese','wave','mum']],
+ ['霜降',10,23,'秋',['豺乃祭獸','草木黃落','蟄蟲咸俯'],['豺狼捕獵，把獵物排開如祭。','草木枯黃，葉子紛紛落下。','蟲子都伏在洞裡，一動也不動。'],['moon','leaves','leaves']],
+ ['立冬',11,7,'冬',['水始冰','地始凍','雉入大水為蜃'],['水面開始結冰。','土地開始凍硬。','野雞少見了，海裡多了花紋相似的大蛤。'],['ice','ice','wave']],
+ ['小雪',11,22,'冬',['虹藏不見','天氣上升地氣下降','閉塞而成冬'],['彩虹藏起來，不再出現。','天地之氣各走各的，不再交融。','萬物閉藏，冬天就這樣成形。'],['cloud','cloud','snow']],
+ ['大雪',12,7,'冬',['鶡鴠不鳴','虎始交','荔挺出'],['寒號鳥也凍得不叫了。','老虎開始求偶。','馬藺草抽出新芽。'],['snow','moon','sprouts']],
+ ['冬至',12,21,'冬',['蚯蚓結','麋角解','水泉動'],['蚯蚓在土裡蜷成一個結。','麋鹿的角脫落。','地底的泉水開始流動。'],['snow','deer','wave']],
+ ['小寒',1,5,'冬',['雁北鄉','鵲始巢','雉始雊'],['大雁開始朝北方動身。','喜鵲開始築巢。','野雞開始鳴叫求偶。'],['geese','bird','bird']],
+ ['大寒',1,20,'冬',['雞始乳','征鳥厲疾','水澤腹堅'],['母雞開始孵小雞。','鷹隼盤旋捕食，又兇又快。','湖澤的冰一路凍到正中央。'],['bird','bird','ice']]
+];
+var ORD=['初候','次候','末候'];
+var SEASON={春:{band:'#e6a3a0',c:'#d98a8a'},夏:{band:'#8fb08a',c:'#5d7a4a'},秋:{band:'#e0874f',c:'#c9602a'},冬:{band:'#9aa4ae',c:'#6c7885'}};
+
+// build 72 entries with day-of-year (frame begins at 立春)
+function doy(m,d){return Math.round((Date.UTC(2026,m-1,d)-Date.UTC(2026,0,1))/864e5);}
+var K=[];
+TERMS.forEach(function(t,ti){
+  var s=doy(t[1],t[2]);if(s<34) s+=365;
+  for(var i=0;i<3;i++) K.push({ti:ti,i:i,term:t[0],season:t[3],name:t[4][i],gloss:t[5][i],motif:t[6][i],start:s+i*5});
+});
+K.forEach(function(k,i){k.end=(i<71?K[i+1].start:K[0].start+365)-1;});
+function fmtDoy(n){var d=new Date(Date.UTC(2026,0,1)+((n%365)+365)%365*864e5);return (d.getUTCMonth()+1)+'月'+d.getUTCDate()+'日';}
+function todayIndex(){
+  var n=new Date(),t=doy(n.getMonth()+1,n.getDate());if(t<34) t+=365;
+  for(var i=71;i>=0;i--) if(t>=K[i].start) return i;return 71;
+}
+
+// ---------- scene drawing ----------
+function R(a,b){return a+Math.random()*(b-a);}
+var MOTIF={
+  wind:function(){var h='<g class="layer fly" style="animation-delay:.5s" fill="none" stroke="#2b2622" stroke-width="1.6" stroke-linecap="round">';
+    for(var i=0;i<5;i++){var y=90+i*26,x=40+i*14;h+='<path d="M'+x+' '+y+' q40 -18 80 0 t80 0 q14 6 8 16 q-8 6 -14 -2"/>';}
+    h+='</g><g class="layer" style="animation-delay:.8s" fill="#e6a3a0">'+[[80,70],[150,120],[210,90],[230,170]].map(function(p){return '<ellipse class="fall" style="--d:'+R(6,10).toFixed(1)+'s" cx="'+p[0]+'" cy="'+p[1]+'" rx="4" ry="2.4"/>';}).join('')+'</g>';return h;},
+  earth:function(){return '<g class="layer" style="animation-delay:.5s"><rect x="0" y="352" width="300" height="98" fill="#8a6a45"/><path d="M0 352 Q75 342 150 352 T300 352" fill="#6f8a4e"/>'+
+    [[60,400],[150,420],[230,395]].map(function(p){return '<path d="M'+p[0]+' '+p[1]+' q10 -10 20 0 q-10 10 -20 0z" fill="#e0b98a" stroke="#2b2622" stroke-width="1"/><path d="M'+(p[0]+10)+' '+(p[1]-6)+' v-40" stroke="#6f8a4e" stroke-width="2"/><ellipse cx="'+(p[0]+16)+'" cy="'+(p[1]-44)+'" rx="7" ry="3" fill="#6f8a4e" transform="rotate(-30 '+(p[0]+16)+' '+(p[1]-44)+')"/>';}).join('')+'</g>';},
+  fish:function(){var h='<g class="layer" style="animation-delay:.6s">';
+    [[90,372,'#c9402a'],[190,392,'#efe3c8']].forEach(function(f){h+='<g class="fly"><path d="M'+f[0]+' '+f[1]+' q24 -16 50 0 q-26 14 -50 0z" fill="'+f[2]+'" stroke="#2b2622" stroke-width="1.2"/><path d="M'+(f[0]+48)+' '+f[1]+' l14 -9 v18z" fill="'+f[2]+'" stroke="#2b2622" stroke-width="1.2"/><circle cx="'+(f[0]+8)+'" cy="'+(f[1]-2)+'" r="1.8" fill="#2b2622"/></g>';});
+    h+='<g fill="#f4f7f8" stroke="#9db4c8" stroke-width="1"><path d="M80 350 l24 -4 l10 6 l-18 5z"/><path d="M170 346 l30 -3 l6 7 l-28 4z"/><path d="M230 356 l20 -2 l4 5 l-20 3z"/></g></g>';return h;},
+  geese:function(){var h='<g class="layer fly" style="animation-delay:.6s" fill="none" stroke="#2b2622" stroke-width="2" stroke-linecap="round">';
+    var pts=[[170,70],[152,82],[188,82],[134,94],[206,94],[116,106],[224,106]];pts.forEach(function(p){h+='<path d="M'+(p[0]-8)+' '+(p[1]+3)+' q8 -8 8 0 q0 -8 8 0"/>';});
+    return h+'</g>'+moonDisc(80,70,24,'#f4ead2',.9);},
+  sprouts:function(){var h='<g class="layer" style="animation-delay:.6s">';
+    for(var i=0;i<14;i++){var x=14+i*21+R(-4,4),hh=R(30,70);h+='<g class="sway"><path d="M'+x+' 450 q'+R(-6,6).toFixed(1)+' -'+(hh/2).toFixed(0)+' 0 -'+hh.toFixed(0)+'" stroke="#5d7a4a" stroke-width="2.2" fill="none"/><ellipse cx="'+(x+6)+'" cy="'+(450-hh+6).toFixed(0)+'" rx="8" ry="3.5" fill="#8fb08a" transform="rotate(-35 '+(x+6)+' '+(450-hh+6).toFixed(0)+')"/><ellipse cx="'+(x-6)+'" cy="'+(450-hh+14).toFixed(0)+'" rx="7" ry="3" fill="#6f8a4e" transform="rotate(35 '+(x-6)+' '+(450-hh+14).toFixed(0)+')"/></g>';}
+    return h+'</g>';},
+  peach:function(){return branch('#e89aa6','#fbe4e6');},
+  paulownia:function(){return branch('#a58cc4','#e8def2');},
+  bird:function(){return '<g class="layer" style="animation-delay:.5s"><path d="M300 150 Q220 160 170 200 Q130 230 100 236" fill="none" stroke="#2b2622" stroke-width="5" stroke-linecap="round"/><path d="M200 180 q10 -26 30 -34 M150 214 q-6 -20 4 -34" stroke="#2b2622" stroke-width="2.4" fill="none"/>'+
+    '<g transform="translate(160 184)"><ellipse cx="0" cy="0" rx="18" ry="13" fill="#c9993c" stroke="#2b2622" stroke-width="1.3"/><circle cx="-13" cy="-9" r="9" fill="#c9993c" stroke="#2b2622" stroke-width="1.3"/><path d="M-22 -9 l-8 2 l8 3z" fill="#2b2622"/><circle cx="-15" cy="-11" r="1.6" fill="#2b2622"/><path d="M14 2 l22 10 l-6 -14z" fill="#4f7298" stroke="#2b2622" stroke-width="1.2"/><path d="M-2 -6 q10 -2 18 6" stroke="#8a6a45" stroke-width="2" fill="none"/><path d="M-4 12 l-2 8 M4 12 l2 8" stroke="#2b2622" stroke-width="1.4"/></g>'+
+    '<g fill="#fbe4e6" stroke="#c9602a" stroke-width=".6"><circle cx="232" cy="164" r="4"/><circle cx="120" cy="230" r="3.5"/><circle cx="270" cy="152" r="3"/></g></g>';},
+  swallow:function(){var h='<g class="layer fly" style="animation-delay:.5s" fill="#1f2a3a">';
+    [[200,110,1],[120,160,.7],[240,200,.55]].forEach(function(s){h+='<g transform="translate('+s[0]+' '+s[1]+') scale('+s[2]+') rotate(-18)"><path d="M0 0 C-20 -12 -44 -10 -60 -2 C-40 -4 -20 0 -6 6 L-30 26 L-20 26 L0 8 L20 26 L30 26 L6 6 C20 0 40 -4 60 -2 C44 -10 20 -12 0 0Z"/><circle cx="0" cy="1" r="3" fill="#c9402a"/></g>';});
+    return h+'</g>';},
+  thunder:function(){return '<g class="layer" style="animation-delay:.4s"><rect x="0" y="0" width="300" height="200" fill="#3d4a5a" opacity=".55"/>'+cloudPuffs(50,'#6c7885','#2b2622')+'<path class="glow" style="--d:1.6s" d="M170 110 l-26 60 h20 l-18 60 l44 -76 h-22 l22 -44z" fill="#f2c94c" stroke="#2b2622" stroke-width="1.5"/></g>';},
+  rainbow:function(){var c=['#c9402a','#e0874f','#e8c15a','#8fb08a','#4f7298','#7a6aa0'],h='<g class="layer" style="animation-delay:.6s" fill="none" stroke-width="6" opacity=".75">';
+    c.forEach(function(col,i){h+='<path d="M'+(30+i*6)+' 300 A'+(120-i*6)+' '+(120-i*6)+' 0 0 1 '+(270-i*6)+' 300" stroke="'+col+'"/>';});return h+'</g>'+rainLines(18,.35);},
+  insect:function(){return '<g class="layer" style="animation-delay:.5s"><path d="M220 450 Q210 300 240 160" stroke="#5d7a4a" stroke-width="5" fill="none"/><path d="M225 330 q-40 -30 -60 -80 M230 260 q30 -30 50 -40" stroke="#6f8a4e" stroke-width="3" fill="none"/>'+
+    '<g transform="translate(232 232) rotate(-12)"><ellipse cx="0" cy="0" rx="9" ry="20" fill="#3a3326"/><path d="M-4 -6 Q-30 10 -18 40 Q-6 20 -2 0Z M4 -6 Q30 10 18 40 Q6 20 2 0Z" fill="rgba(200,220,210,.55)" stroke="#2b2622" stroke-width="1"/><circle cx="-5" cy="-18" r="3" fill="#c9402a"/><circle cx="5" cy="-18" r="3" fill="#c9402a"/></g>'+
+    '<g stroke="#2b2622" stroke-width="1" fill="none" opacity=".7"><path d="M262 214 q8 -4 14 0 M266 222 q10 -4 18 2 M262 230 q8 0 14 6"/></g></g>';},
+  sun:function(){return '<g class="layer" style="animation-delay:.4s"><circle cx="190" cy="110" r="44" fill="#c9402a"/><g stroke="#e0874f" stroke-width="1.4" fill="none" opacity=".7">'+[0,1,2,3].map(function(i){return '<path d="M20 '+(200+i*14)+' q20 -6 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0"/>';}).join('')+'</g></g>';},
+  grain:function(){var h='<g class="layer" style="animation-delay:.5s"><rect x="0" y="330" width="300" height="120" fill="#d8b25e"/>';
+    for(var i=0;i<16;i++){var x=8+i*19,top=R(250,290);h+='<g class="sway"><path d="M'+x+' 450 Q'+(x+4)+' '+(top+40).toFixed(0)+' '+(x+14)+' '+top.toFixed(0)+'" stroke="#8a6a45" stroke-width="1.6" fill="none"/>';for(var g=0;g<6;g++) h+='<ellipse cx="'+(x+13-g*1.2).toFixed(1)+'" cy="'+(top+g*7).toFixed(0)+'" rx="3" ry="5" fill="#c9993c" stroke="#8a6a45" stroke-width=".6"/>';h+='</g>';}
+    return h+'</g>';},
+  deer:function(){return '<g class="layer" style="animation-delay:.6s" fill="#8a5a36" stroke="#2b2622" stroke-width="1.2"><ellipse cx="150" cy="300" rx="40" ry="16"/><path d="M180 296 q12 -24 18 -44 l12 2 q-6 28 -20 48z"/><ellipse cx="206" cy="248" rx="12" ry="7" transform="rotate(-20 206 248)"/><path d="M122 312 l-4 40 M136 314 l0 40 M166 314 l2 40 M178 310 l6 40" stroke-width="3" fill="none"/><circle cx="210" cy="246" r="1.5" fill="#2b2622"/><g fill="#f4ead2" stroke="none"><circle cx="140" cy="296" r="2.5"/><circle cx="152" cy="292" r="2.5"/><circle cx="162" cy="298" r="2.5"/><circle cx="130" cy="302" r="2"/></g></g>';},
+  firefly:function(){var h='<g class="layer" style="animation-delay:.3s"><rect x="0" y="0" width="300" height="450" fill="#15223a" opacity=".78"/>';
+    for(var i=0;i<16;i++){var x=R(20,280),y=R(180,400);h+='<circle class="glow" style="--d:'+R(1.6,3.4).toFixed(1)+'s;animation-delay:'+R(0,2).toFixed(1)+'s" cx="'+x.toFixed(0)+'" cy="'+y.toFixed(0)+'" r="2.4" fill="#f4e27a"/>';}
+    for(var j=0;j<12;j++){var rx=R(0,300);h+='<path d="M'+rx.toFixed(0)+' 450 q'+R(-20,20).toFixed(0)+' -80 '+R(-30,30).toFixed(0)+' -'+R(120,200).toFixed(0)+'" stroke="#0c1424" stroke-width="2.4" fill="none"/>';}
+    return h+'</g>';},
+  rain:function(){return '<g class="layer" style="animation-delay:.3s"><rect x="0" y="0" width="300" height="200" fill="#2b2622" opacity=".45"/></g>'+rainLines(70,.8)+
+    '<g class="layer" style="animation-delay:.8s" fill="#2b2622"><path d="M40 360 q10 -20 20 0 l-2 14 h-16z"/><path d="M50 340 l-18 16 h36z"/><path d="M200 370 q8 -14 16 0 l-2 10 h-12z"/><path d="M208 356 l-16 14 h32z"/></g>';},
+  dew:function(){var h='<g class="layer" style="animation-delay:.5s">';
+    for(var i=0;i<18;i++){var x=R(0,300),hh=R(60,160);h+='<path class="sway" d="M'+x.toFixed(0)+' 450 q'+R(-30,30).toFixed(0)+' -'+(hh/2).toFixed(0)+' '+R(-40,40).toFixed(0)+' -'+hh.toFixed(0)+'" stroke="#6f8a4e" stroke-width="1.6" fill="none"/>';}
+    for(var j=0;j<24;j++) h+='<circle cx="'+R(10,290).toFixed(0)+'" cy="'+R(300,440).toFixed(0)+'" r="'+R(1.4,3).toFixed(1)+'" fill="#f4f7f8" stroke="#9db4c8" stroke-width=".6"/>';
+    return h+'</g>'+moonDisc(210,90,26,'#f4ead2',.85);},
+  moon:function(){var h=moonDisc(200,100,46,'#f4ead2',1)+'<g class="layer" style="animation-delay:.7s">';
+    for(var i=0;i<10;i++){var x=R(10,290),hh=R(90,170);h+='<g class="sway"><path d="M'+x.toFixed(0)+' 450 q'+R(-10,10).toFixed(0)+' -'+(hh*.6).toFixed(0)+' '+R(-24,24).toFixed(0)+' -'+hh.toFixed(0)+'" stroke="#2b2622" stroke-width="1.6" fill="none"/><path d="M'+x.toFixed(0)+' '+(450-hh+4).toFixed(0)+' q-6 18 -2 30 q8 -14 4 -30z" fill="#c9993c" opacity=".9"/></g>';}
+    return h+'</g>';},
+  wave:function(){return '<g class="layer" style="animation-delay:.5s"><path d="M0 450 L0 330 Q60 250 150 250 Q230 250 250 300 Q236 280 212 284 Q196 290 206 310 Q220 330 250 318 Q220 360 150 370 Q60 380 0 450Z" fill="#1f3a5f" stroke="#2b2622" stroke-width="1.5"/>'+
+    '<path d="M60 300 Q120 262 180 262 Q220 264 236 288" fill="none" stroke="#9db4c8" stroke-width="5"/><g fill="#f4f7f8">'+[[236,296],[244,306],[228,286],[250,316],[220,280],[256,326]].map(function(p){return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="5"/>';}).join('')+'</g>'+
+    '<g fill="none" stroke="#f4f7f8" stroke-width="1.2" opacity=".8"><path d="M20 400 q40 -40 90 -50 M40 420 q50 -40 110 -44"/></g></g>';},
+  mum:function(){var h='<g class="layer" style="animation-delay:.5s"><path d="M150 450 Q140 380 160 330 M110 450 Q120 400 90 350 M200 450 Q200 400 230 360" stroke="#5d7a4a" stroke-width="3" fill="none"/>';
+    [[160,320,26],[88,344,20],[232,352,22]].forEach(function(f){h+='<g transform="translate('+f[0]+' '+f[1]+')">';for(var i=0;i<24;i++){var a=i*15;h+='<ellipse cx="0" cy="-'+(f[2]*.55).toFixed(1)+'" rx="2.6" ry="'+(f[2]*.5).toFixed(1)+'" fill="#e8c15a" stroke="#b07a1e" stroke-width=".6" transform="rotate('+a+')"/>';}h+='<circle r="'+(f[2]*.25).toFixed(1)+'" fill="#c9993c"/></g>';});
+    return h+'</g>';},
+  leaves:function(){var h='<g class="layer" style="animation-delay:.4s"><path d="M300 60 Q200 80 150 130 Q120 160 60 170" fill="none" stroke="#2b2622" stroke-width="4" stroke-linecap="round"/><path d="M190 96 q-4 -30 10 -50" stroke="#2b2622" stroke-width="2" fill="none"/></g><g class="layer" style="animation-delay:.9s">';
+    for(var i=0;i<12;i++){var x=R(20,300),y=R(-40,300),c=['#c9402a','#e0874f','#c9993c'][i%3];h+='<path class="fall" style="--d:'+R(7,13).toFixed(1)+'s;animation-delay:-'+R(0,10).toFixed(1)+'s" d="'+maple(x,y,R(6,10))+'" fill="'+c+'"/>';}
+    return h+'</g>';},
+  ice:function(){return '<g class="layer" style="animation-delay:.5s"><rect x="0" y="330" width="300" height="120" fill="#dfe8ee"/><g fill="none" stroke="#9db4c8" stroke-width="1.2"><path d="M0 360 L60 372 L90 350 L150 380 L210 360 L300 390"/><path d="M60 372 L50 420 M150 380 L170 440 M210 360 L240 330 M90 350 L100 330"/></g><g fill="#fff"><path d="M30 400 l20 -6 l10 8 l-24 4z"/><path d="M220 420 l26 -6 l8 7 l-28 5z"/></g></g>';},
+  cloud:function(){var h='<g class="layer" style="animation-delay:.5s">';
+    [[0,130,190,'#f4ead2'],[120,210,180,'#e6d6b4'],[30,290,230,'#f4ead2']].forEach(function(b){h+='<g class="fly"><rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="22" rx="11" fill="'+b[3]+'" stroke="#c9993c" stroke-width="1"/><rect x="'+(b[0]+30)+'" y="'+(b[1]-12)+'" width="'+(b[2]*.5)+'" height="16" rx="8" fill="'+b[3]+'" stroke="#c9993c" stroke-width="1"/></g>';});
+    return h+'</g>';},
+  snow:function(){var h='<g class="layer" style="animation-delay:.3s"><rect x="0" y="0" width="300" height="450" fill="#4a5566" opacity=".35"/><path d="M0 380 Q80 350 160 372 T300 360 V450 H0Z" fill="#f7f8f6"/><g fill="#2b2622"><path d="M210 380 l18 -30 l18 30z"/><rect x="222" y="380" width="12" height="16"/></g><path d="M204 382 l24 -40 l24 40 q-24 -8 -48 0z" fill="#f7f8f6"/></g><g class="layer" style="animation-delay:.6s" fill="#fff">';
+    for(var i=0;i<60;i++) h+='<circle class="fall" style="--d:'+R(8,16).toFixed(1)+'s;animation-delay:-'+R(0,16).toFixed(1)+'s" cx="'+R(0,330).toFixed(0)+'" cy="'+R(-40,420).toFixed(0)+'" r="'+R(1,2.6).toFixed(1)+'"/>';
+    return h+'</g>';}
+};
+function moonDisc(x,y,r,c,o){return '<g class="layer" style="animation-delay:.35s"><circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+c+'" opacity="'+o+'"/><circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="none" stroke="#c9993c" stroke-width="1" opacity=".6"/></g>';}
+function cloudPuffs(y,c,s){var h='';[[60,y],[100,y-14],[140,y],[190,y-10],[230,y+4]].forEach(function(p){h+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="30" fill="'+c+'" stroke="'+s+'" stroke-width="1"/>';});return h;}
+function rainLines(n,o){var h='<g class="layer" style="animation-delay:.6s" stroke="#2b2622" stroke-width=".8" opacity="'+o+'">';for(var i=0;i<n;i++){var x=R(-60,320),y=R(-20,400);h+='<line x1="'+x.toFixed(0)+'" y1="'+y.toFixed(0)+'" x2="'+(x+14).toFixed(0)+'" y2="'+(y+60).toFixed(0)+'"/>';}return h+'</g>';}
+function maple(x,y,s){var p='';for(var i=0;i<10;i++){var a=i/10*Math.PI*2-Math.PI/2,r=i%2?s*.45:s;p+=(i?'L':'M')+(x+Math.cos(a)*r).toFixed(1)+' '+(y+Math.sin(a)*r).toFixed(1);}return p+'Z';}
+function branch(col,light){var h='<g class="layer" style="animation-delay:.5s"><path d="M0 40 Q80 60 130 110 Q170 150 250 160 M90 72 Q110 40 150 30 M140 124 Q150 170 130 210" fill="none" stroke="#2b2622" stroke-width="5" stroke-linecap="round"/></g><g class="layer" style="animation-delay:.9s">';
+  [[60,54],[100,78],[124,102],[150,30],[170,138],[210,152],[244,158],[134,180],[128,206],[118,48]].forEach(function(p,i){
+    var r=i%3?7:9;h+='<g transform="translate('+p[0]+' '+p[1]+')">';for(var k=0;k<5;k++) h+='<circle cx="0" cy="-'+(r*.55).toFixed(1)+'" r="'+(r*.5).toFixed(1)+'" fill="'+(k%2?col:light)+'" stroke="'+col+'" stroke-width=".6" transform="rotate('+(k*72)+')"/>';h+='<circle r="1.8" fill="#c9402a"/></g>';});
+  return h+'</g><g class="layer" style="animation-delay:1.2s" fill="'+light+'" stroke="'+col+'" stroke-width=".5">'+[1,2,3,4,5].map(function(){return '<ellipse class="fall" style="--d:'+R(8,12).toFixed(1)+'s;animation-delay:-'+R(0,8).toFixed(1)+'s" cx="'+R(40,300).toFixed(0)+'" cy="'+R(40,300).toFixed(0)+'" rx="3" ry="2"/>';}).join('')+'</g>';}
+
+function drawScene(k){
+  var S=SEASON[k.season],cold=k.season==='冬'||k.season==='春'&&k.ti<3;
+  var h='<defs><linearGradient id="bk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f3a5f"/><stop offset=".45" stop-color="#1f3a5f" stop-opacity="0"/></linearGradient>'+
+    '<linearGradient id="bk2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+S.band+'" stop-opacity="0"/><stop offset=".55" stop-color="'+S.band+'" stop-opacity=".55"/><stop offset="1" stop-color="'+S.band+'" stop-opacity="0"/></linearGradient>'+
+    '<pattern id="sg" width="40" height="20" patternUnits="userSpaceOnUse"><g fill="#1f3a5f" stroke="#9db4c8" stroke-width="1.1"><circle cx="0" cy="10" r="19"/><circle cx="0" cy="10" r="14"/><circle cx="0" cy="10" r="9"/><circle cx="0" cy="10" r="4"/><circle cx="40" cy="10" r="19"/><circle cx="40" cy="10" r="14"/><circle cx="40" cy="10" r="9"/><circle cx="40" cy="10" r="4"/><circle cx="20" cy="20" r="19"/><circle cx="20" cy="20" r="14"/><circle cx="20" cy="20" r="9"/><circle cx="20" cy="20" r="4"/></g></pattern>'+
+    '<filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/><feColorMatrix values="0 0 0 0 .3  0 0 0 0 .22  0 0 0 0 .1  0 0 0 .22 0"/><feComposite in2="SourceGraphic" operator="in"/></filter></defs>';
+  h+='<rect width="300" height="450" fill="#efe3c8"/>';
+  h+='<g class="layer"><rect y="120" width="300" height="160" fill="url(#bk2)"/><rect width="300" height="200" fill="url(#bk)"/></g>';
+  // mountain
+  h+='<g class="layer" style="animation-delay:.15s"><path d="M10 330 L110 196 Q128 180 146 196 L260 330Z" fill="#4f7298"/>'+(cold?'<path d="M92 220 L110 196 Q128 180 146 196 L166 222 Q154 214 146 226 Q136 212 128 226 Q118 212 108 226 Q100 214 92 220Z" fill="#f7f8f6"/>':'')+
+    '<path d="M0 330 Q60 300 120 318 Q190 336 300 300 V340 H0Z" fill="'+S.c+'" opacity=".85"/></g>';
+  // sea with flowing seigaiha
+  h+='<g class="layer" style="animation-delay:.25s"><rect y="336" width="300" height="114" fill="#1f3a5f"/><g class="waves"><rect x="0" y="340" width="360" height="110" fill="url(#sg)"/></g><path d="M0 338 Q75 330 150 338 T300 338" fill="none" stroke="#efe3c8" stroke-width="2"/></g>';
+  // kasumi mist band
+  h+='<g class="layer" style="animation-delay:.35s" opacity=".9"><rect x="-10" y="286" width="190" height="14" rx="7" fill="#efe3c8"/><rect x="170" y="300" width="150" height="10" rx="5" fill="#efe3c8"/></g>';
+  h+=(MOTIF[k.motif]||MOTIF.cloud)();
+  h+='<rect width="300" height="450" filter="url(#grain)" fill="#000" opacity=".9" pointer-events="none"/>';
+  scene.innerHTML=h;
+  scene.setAttribute('aria-label',k.term+' '+ORD[k.i]+' '+k.name+' 的木版風景');
+}
+
+// ---------- ui ----------
+var cur=0,today=todayIndex();
+var strip=$('strip'),btns=[];
+TERMS.forEach(function(t,ti){
+  var g=document.createElement('div');g.className='grp';g.style.setProperty('--c',SEASON[t[3]].c);
+  g.innerHTML='<b>'+t[0]+'</b><div class="ks"></div>';
+  var ks=g.querySelector('.ks');
+  for(var i=0;i<3;i++){(function(idx){
+    var b=document.createElement('button');b.type='button';b.className='k'+(idx===today?' today':'');b.textContent=K[idx].name;
+    b.setAttribute('aria-label',t[0]+ORD[idx%3]+' '+K[idx].name);
+    b.addEventListener('click',function(){show(idx,true);});
+    ks.appendChild(b);btns[idx]=b;})(ti*3+i);}
+  strip.appendChild(g);
+});
+function show(i,userScroll){
+  cur=(i+72)%72;var k=K[cur];
+  drawScene(k);
+  $('cart').textContent=k.name;
+  $('term').firstChild.textContent=k.term;
+  $('season').textContent=k.season+'之'+['始','中','末'][Math.floor((k.ti%6)/2)];
+  $('ord').textContent=ORD[k.i];
+  $('kname').textContent=k.name;
+  $('kdate').textContent=fmtDoy(k.start)+' – '+fmtDoy(k.end)+'（約）';
+  $('gloss').textContent=k.gloss;
+  var n=new Date(),t=doy(n.getMonth()+1,n.getDate());if(t<34) t+=365;
+  $('left').textContent=cur===today?'今日正值此候・再 '+Math.max(1,k.end-t+1)+' 日換下一候':(cur>today?'距今約 '+(k.start-t)+' 日':'已過 '+(t-k.end)+' 日・明年再會');
+  btns.forEach(function(b,j){b.setAttribute('aria-current',String(j===cur));});
+  var b=btns[cur];
+  if(b&&strip){var target=b.offsetLeft-strip.clientWidth/2+b.offsetWidth/2;strip.scrollTo?strip.scrollTo({left:target,behavior:userScroll?'smooth':'auto'}):(strip.scrollLeft=target);}
+}
+$('prev').addEventListener('click',function(){show(cur-1,true);});
+$('next').addEventListener('click',function(){show(cur+1,true);});
+$('today').addEventListener('click',function(){show(today,true);});
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'){e.preventDefault();show(cur+1,true);}
+  else if(e.key==='ArrowLeft'){e.preventDefault();show(cur-1,true);}
+});
+show(today,false);
+})();
+</script>
+</body>
+</html>

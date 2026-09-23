@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MERIDIAN · Ship Operations Console</title>
+<style>
+:root{
+  --orange:#ff9900; --gold:#ffcc66; --peach:#ffcc99; --tan:#ff9966; --lav:#cc99cc; --violet:#9999ff; --blue:#9999cc; --salmon:#cc6666; --red:#ff3333;
+  --sw:clamp(86px,13vw,190px); --bh:clamp(14px,1.8vw,22px); --gap:5px;
+  --f:"Arial Narrow","Helvetica Neue Condensed","Roboto Condensed","Swiss 721 Condensed","Arial",sans-serif;
+  --c1:var(--orange); --c2:var(--lav); --c3:var(--peach); --c4:var(--violet); --c5:var(--tan); --c6:var(--blue);
+}
+body.red{--c1:#ff3333; --c2:#cc2222; --c3:#ff6655; --c4:#aa1111; --c5:#ff4444; --c6:#dd3322}
+body.yellow{--c1:#ffcc33; --c2:#e6a800; --c3:#ffdd77; --c4:#cc9900; --c5:#ffbb33; --c6:#ddaa22}
+*{box-sizing:border-box}
+html,body{margin:0;background:#000}
+body{color:var(--c1);font-family:var(--f);font-stretch:condensed;text-transform:uppercase;min-height:100vh;padding:clamp(8px,1.4vw,18px);letter-spacing:.02em}
+body *{transition:background-color .35s,color .35s}
+button{font-family:inherit;font-stretch:condensed;text-transform:uppercase;cursor:pointer;border:0;color:#000;letter-spacing:.03em}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+/* ---------- frame pieces ---------- */
+.frame{display:flex;flex-direction:column;gap:var(--gap)}
+.row{display:grid;grid-template-columns:var(--sw) minmax(0,1fr);gap:0 clamp(10px,1.6vw,22px)}
+.side{display:flex;flex-direction:column;gap:var(--gap)}
+.blk{background:var(--c);color:#000;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 10px 4px;font-size:clamp(12px,1.2vw,15px);min-height:44px;font-weight:bold;position:relative}
+.blk.grow{flex:1}
+.elbow{display:grid;grid-template-columns:var(--sw) minmax(0,1fr);height:clamp(52px,7vw,84px)}
+.elbow .cn{background:var(--c);position:relative;color:#000;font-weight:bold;font-size:clamp(12px,1.2vw,15px)}
+.elbow .cn span{position:absolute;right:10px}
+.elbow.bl .cn{border-bottom-left-radius:clamp(40px,6vw,76px) clamp(34px,5vw,64px)}
+.elbow.bl .cn span{top:6px}
+.elbow.tl .cn{border-top-left-radius:clamp(40px,6vw,76px) clamp(34px,5vw,64px)}
+.elbow.tl .cn span{bottom:6px}
+.elbow .rt{position:relative;display:flex;flex-direction:column}
+.elbow.bl .rt{justify-content:flex-end}
+.elbow .bar{display:flex;gap:var(--gap);height:var(--bh);position:relative}
+.elbow .bar i{flex:var(--fl,1);background:var(--bc,var(--c));display:block}
+.elbow .bar i:first-child{background:var(--c)}
+.elbow .bar i:last-child{border-radius:0 calc(var(--bh)/2) calc(var(--bh)/2) 0}
+.elbow .bar b{flex:none;align-self:center;padding:0 8px;font-size:calc(var(--bh) * .95);line-height:1;color:var(--c)}
+.elbow .fil{position:absolute;left:0;width:28px;height:28px}
+.elbow.bl .fil{bottom:var(--bh);background:radial-gradient(circle at 100% 0,transparent 27.5px,var(--c) 28px)}
+.elbow.tl .fil{top:var(--bh);background:radial-gradient(circle at 100% 100%,transparent 27.5px,var(--c) 28px)}
+
+/* boot */
+.boot .blk,.boot .elbow .bar i,.boot .elbow .cn{animation:boot .5s steps(6) both}
+@keyframes boot{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+
+/* ---------- header ---------- */
+.head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 20px;align-items:end;padding:6px 0 10px}
+@media (max-width:760px){.head{grid-template-columns:minmax(0,1fr)}}
+.title{text-align:right;grid-column:2;grid-row:1}
+@media (max-width:760px){.title{grid-column:1}}
+.title h1{margin:0;font-size:clamp(34px,6.4vw,86px);line-height:.9;font-weight:normal;color:var(--c1)}
+.title p{margin:6px 0 0;font-size:clamp(12px,1.3vw,16px);color:var(--c3)}
+.nums{display:grid;grid-template-columns:repeat(8,auto);justify-content:start;gap:2px 14px;font-size:clamp(12px,1.25vw,16px);line-height:1.2;grid-row:1;grid-column:1}
+@media (max-width:760px){.nums{grid-template-columns:repeat(5,auto);grid-row:2}.nums span:nth-child(8n+6),.nums span:nth-child(8n+7),.nums span:nth-child(8n+8){display:none}}
+.nums span{font-variant-numeric:tabular-nums}
+.alerts{display:flex;flex-wrap:wrap;gap:6px;grid-column:1 / -1;align-items:center}
+.pillb{min-height:44px;padding:0 18px 0 22px;border-radius:22px;background:var(--c);font-size:clamp(13px,1.3vw,16px);font-weight:bold;display:inline-flex;align-items:center;justify-content:flex-end;gap:10px}
+.pillb.half{border-radius:0 22px 22px 0}
+.pillb.lefth{border-radius:22px 0 0 22px}
+.pillb:hover{filter:brightness(1.18)}
+.pillb:active{filter:brightness(.8)}
+.cond{color:var(--c3);font-size:clamp(14px,1.5vw,18px);margin-right:auto;display:flex;align-items:center;gap:10px}
+.cond i{width:14px;height:14px;border-radius:50%;background:#33cc66;display:inline-block;box-shadow:0 0 10px #33cc66}
+body.red .cond i{background:#ff3333;box-shadow:0 0 12px #ff3333;animation:blink .5s steps(2) infinite}
+body.yellow .cond i{background:#ffcc33;box-shadow:0 0 12px #ffcc33}
+@keyframes blink{50%{opacity:.2}}
+
+/* ---------- nav ---------- */
+.nav{display:flex;flex-direction:column;gap:var(--gap)}
+.nav button{background:var(--c);min-height:clamp(46px,6.5vh,64px);display:flex;align-items:flex-end;justify-content:flex-end;padding:0 10px 5px;font-size:clamp(12px,1.35vw,17px);font-weight:bold;text-align:right;line-height:1.05}
+.nav button small{display:block;font-size:.72em;opacity:.75}
+.nav button[aria-current="true"]{background:#fff !important;color:#000}
+.nav button:hover{filter:brightness(1.2)}
+
+/* ---------- main ---------- */
+.main{min-height:clamp(460px,62vh,700px);padding:12px 0 16px;position:relative;min-width:0}
+.view[hidden]{display:none}
+.vh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:3px solid var(--c2);padding-bottom:4px;margin-bottom:14px}
+.vh h2{margin:0;font-weight:normal;font-size:clamp(24px,3vw,38px);color:var(--c3)}
+.vh span{color:var(--c4);font-size:clamp(12px,1.2vw,15px)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:10px 18px}
+.tile{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center}
+.tile .cap{grid-row:span 2;width:22px;align-self:stretch;border-radius:11px 0 0 11px;background:var(--c)}
+.tile .nm{font-size:clamp(14px,1.35vw,17px);color:var(--c3)}
+.tile .vl{font-size:clamp(20px,2vw,26px);color:var(--c);font-variant-numeric:tabular-nums;text-align:right}
+.tile .sg{grid-column:2 / 4;display:grid;grid-template-columns:repeat(20,1fr);gap:2px;height:10px}
+.tile .sg i{background:#222}
+.tile .sg i.on{background:var(--c)}
+.tile .nt{grid-column:2 / 4;font-size:12px;color:var(--c5);min-height:14px}
+.tile.warn .vl,.tile.warn .nt{color:var(--red);animation:blink 1s steps(2) infinite}
+.big3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}
+@media (max-width:560px){.big3{grid-template-columns:1fr 1fr}.big3 div:last-child{grid-column:1 / -1}}
+.big3 div{border-left:22px solid var(--c);padding:2px 0 2px 10px}
+.big3 b{display:block;font-weight:normal;font-size:clamp(26px,3.4vw,44px);line-height:1;color:var(--c);font-variant-numeric:tabular-nums}
+.big3 small{font-size:12px;color:var(--c3)}
+.log{list-style:none;margin:0;padding:0;font-size:clamp(12px,1.2vw,15px);line-height:1.5;max-height:9.2em;overflow:hidden;border-top:1px solid #333;padding-top:6px}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:10px;color:var(--c3)}
+.log li b{font-weight:normal;color:var(--c4)}
+.log li.new{animation:flashin .6s steps(3)}
+@keyframes flashin{0%{background:var(--c1);color:#000}}
+
+/* propulsion */
+.prop{display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(14px,3vw,40px);align-items:start}
+@media (max-width:560px){.prop{grid-template-columns:1fr}}
+.core{width:clamp(90px,10vw,120px);height:clamp(300px,44vh,420px);border:4px solid var(--c2);border-radius:60px;padding:14px 12px;display:flex;flex-direction:column-reverse;gap:5px;margin:0 auto;--spd:1.4s;overflow:hidden}
+.core i{flex:1;border-radius:4px;background:#1a2a55;animation:pulse var(--spd) linear infinite}
+@keyframes pulse{0%{background:#1a2a55}10%{background:#9ecbff;box-shadow:0 0 14px #9ecbff}30%{background:#3a5aa8}100%{background:#1a2a55}}
+.factors{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 16px}
+.factors button{width:48px;height:48px;border-radius:24px;background:var(--c4);font-size:20px}
+.factors button[aria-pressed="true"]{background:#fff}
+.readout{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:clamp(14px,1.4vw,18px);align-items:baseline}
+.readout dt{color:var(--c3)}
+.readout dd{margin:0;color:var(--c1);font-size:1.4em;font-variant-numeric:tabular-nums}
+.lbl{color:var(--c4);font-size:14px}
+.quip{margin:14px 0 0;color:var(--c5);font-size:clamp(13px,1.3vw,16px);max-width:40em}
+
+/* shields */
+.shield{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:center}
+@media (max-width:760px){.shield{grid-template-columns:1fr}}
+.shield svg{width:100%;max-height:360px}
+.arc{fill:none;stroke-linecap:round;transition:stroke-width .4s,opacity .4s}
+.qbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px}
+.qbtns button{min-height:48px;background:var(--c);font-size:16px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;padding:0 16px;border-radius:24px}
+.qbtns button span{font-size:20px;font-variant-numeric:tabular-nums}
+
+/* sensors */
+.scope{position:relative;height:clamp(150px,22vh,220px);border:3px solid var(--c2);border-radius:18px;overflow:hidden;background:#05050a}
+.scope canvas{display:block;width:100%;height:100%}
+.contacts{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:4px;font-size:clamp(13px,1.3vw,16px)}
+.contacts li{display:grid;grid-template-columns:4.2em minmax(0,1fr) auto;gap:10px;align-items:baseline;color:var(--c3);border-bottom:1px solid #222;padding:3px 0}
+.contacts li b{color:var(--c1);font-weight:normal}
+.contacts li em{font-style:normal;color:var(--c4)}
+.contacts li.new{animation:flashin .6s steps(3)}
+
+/* crew */
+.crew{width:100%;border-collapse:separate;border-spacing:0 5px;font-size:clamp(13px,1.35vw,17px)}
+.crew td{padding:6px 8px;color:var(--c3);vertical-align:middle}
+.crew td:first-child{border-left:18px solid var(--c);color:var(--c1)}
+.crew td.st{color:var(--c4)}
+.crew button{min-height:40px;min-width:64px;border-radius:20px;background:var(--c5);font-size:14px;font-weight:bold;padding:0 14px}
+@media (max-width:560px){.crew td.dk{display:none}}
+
+/* red alert banner */
+.alertban{position:absolute;inset:12px 0 auto;display:none;justify-content:center;pointer-events:none;z-index:5}
+body.red .alertban{display:flex}
+.alertban div{background:#000;border:4px solid #ff3333;border-radius:40px;padding:8px 30px;font-size:clamp(28px,5vw,60px);color:#ff3333;animation:blink .6s steps(2) infinite;letter-spacing:.12em}
+.foot{font-size:12px;color:var(--c6)}
+@media (prefers-reduced-motion:reduce){.core i{animation:none;background:#3a5aa8}.boot .blk,.boot .elbow .bar i,.boot .elbow .cn{animation:none}}
+</style>
+</head>
+<body class="boot">
+<div class="frame">
+  <!-- TOP FRAME -->
+  <div class="row">
+    <div class="side">
+      <div class="blk" style="--c:var(--c3);min-height:clamp(46px,6vw,70px)">02-2615</div>
+      <div class="blk" style="--c:var(--c2)">03-0115</div>
+    </div>
+    <header class="head">
+      <div class="title"><h1>MERIDIAN · OPS</h1><p>REGISTRY MX-7041 · SHIP OPERATIONS CONSOLE · DECK 1</p></div>
+      <div class="nums" id="nums" aria-hidden="true"></div>
+      <div class="alerts">
+        <span class="cond" aria-live="polite"><i></i><span id="condTxt">CONDITION GREEN</span></span>
+        <button class="pillb lefth" type="button" id="yellowBtn" style="--c:var(--gold)">YELLOW ALERT</button>
+        <button class="pillb" type="button" id="redBtn" style="--c:var(--salmon)">RED ALERT</button>
+        <button class="pillb half" type="button" id="downBtn" style="--c:var(--c6)">STAND DOWN</button>
+      </div>
+    </header>
+  </div>
+  <div class="elbow bl" style="--c:var(--c2)">
+    <div class="cn"><span>04-1968</span></div>
+    <div class="rt"><div class="fil"></div><div class="bar"><i style="--fl:3"></i><i style="--fl:1;--bc:var(--c1)"></i><i style="--fl:5;--bc:var(--c3)"></i><i style="--fl:1;--bc:var(--c4)"></i><i style="--fl:2;--bc:var(--c5)"></i></div></div>
+  </div>
+
+  <!-- BOTTOM FRAME -->
+  <div class="elbow tl" style="--c:var(--c4)">
+    <div class="cn"><span>05-7701</span></div>
+    <div class="rt"><div class="bar"><i style="--fl:2"></i><i style="--fl:6;--bc:var(--c1)"></i><i style="--fl:1;--bc:var(--c3)"></i><b id="clock">00:00:00</b><i style="--fl:2;--bc:var(--c2)"></i></div><div class="fil"></div></div>
+  </div>
+  <div class="row">
+    <nav class="nav" aria-label="Console sections">
+      <button type="button" data-v="status" style="--c:var(--c1)" aria-current="true"><span>STATUS<small>01-A</small></span></button>
+      <button type="button" data-v="prop" style="--c:var(--c3)"><span>DRIVE<small>02-B</small></span></button>
+      <button type="button" data-v="shield" style="--c:var(--c2)"><span>SHIELDS<small>03-C</small></span></button>
+      <button type="button" data-v="sensor" style="--c:var(--c5)"><span>SENSORS<small>04-D</small></span></button>
+      <button type="button" data-v="crew" style="--c:var(--c6)"><span>CREW<small>05-E</small></span></button>
+      <div class="blk grow" style="--c:var(--c4)">06-3321</div>
+    </nav>
+    <main class="main" id="main">
+      <div class="alertban" aria-hidden="true"><div>RED ALERT</div></div>
+
+      <section class="view" id="v-status" aria-label="Ship status">
+        <div class="vh"><h2>SHIP STATUS</h2><span>ALL DECKS REPORTING · PRESS 1–5 TO NAVIGATE</span></div>
+        <div class="big3">
+          <div style="--c:var(--c1)"><b id="shipTime">2419.266</b><small>SHIP TIME · DAY.FRACTION</small></div>
+          <div style="--c:var(--c2)"><b id="aboard">212</b><small>SOULS ABOARD · INCL. 1 CAT</small></div>
+          <div style="--c:var(--c5)"><b>03</b><small>DAYS SINCE LAST INCIDENT (RECORD: 04)</small></div>
+        </div>
+        <div class="tiles" id="tiles"></div>
+        <div class="vh" style="margin-top:20px"><h2 style="font-size:clamp(18px,2vw,24px)">DECK LOG</h2><span>LIVE</span></div>
+        <ul class="log" id="log" aria-live="polite"></ul>
+      </section>
+
+      <section class="view" id="v-prop" aria-label="Drive" hidden>
+        <div class="vh"><h2>DRIVE CORE</h2><span>CRUISE FACTOR SELECT</span></div>
+        <div class="prop">
+          <div class="core" id="core" aria-hidden="true"></div>
+          <div>
+            <div class="lbl">CRUISE FACTOR</div>
+            <div class="factors" id="factors"></div>
+            <dl class="readout">
+              <dt>OUTPUT</dt><dd id="pOut">—</dd>
+              <dt>CORE TEMP</dt><dd id="pTemp">—</dd>
+              <dt>ETA · OUTPOST KEPLER</dt><dd id="pEta">—</dd>
+              <dt>COFFEE CONSUMED / HR</dt><dd id="pCof">—</dd>
+            </dl>
+            <p class="quip" id="pQuip"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="v-shield" aria-label="Shields" hidden>
+        <div class="vh"><h2>DEFLECTOR GRID</h2><span>TOTAL CAPACITY 400 · REROUTE AS NEEDED</span></div>
+        <div class="shield">
+          <svg viewBox="0 0 400 300" aria-label="Ship silhouette with shield quadrants">
+            <ellipse cx="200" cy="150" rx="178" ry="124" fill="none" stroke="#222" stroke-width="2" stroke-dasharray="4 8"/>
+            <path class="arc" id="aF" d="M110 44 A178 124 0 0 1 290 44"/>
+            <path class="arc" id="aS" d="M340 70 A178 124 0 0 1 340 230"/>
+            <path class="arc" id="aA" d="M290 256 A178 124 0 0 1 110 256"/>
+            <path class="arc" id="aP" d="M60 230 A178 124 0 0 1 60 70"/>
+            <g id="ship">
+              <path d="M200 60 L222 120 L222 190 L262 222 L262 236 L220 222 L212 244 L188 244 L180 222 L138 236 L138 222 L178 190 L178 120 Z" fill="#111" stroke="var(--c3)" stroke-width="2.5" stroke-linejoin="round"/>
+              <rect x="192" y="96" width="16" height="40" rx="8" fill="var(--c4)"/>
+              <circle cx="200" cy="160" r="9" fill="none" stroke="var(--c1)" stroke-width="3"/>
+              <rect x="190" y="236" width="20" height="10" rx="3" fill="var(--c5)"/>
+            </g>
+            <text x="200" y="22" text-anchor="middle" fill="var(--c3)" font-size="14">FORE</text>
+            <text x="200" y="290" text-anchor="middle" fill="var(--c3)" font-size="14">AFT</text>
+            <text x="76" y="154" fill="var(--c3)" font-size="14">PORT</text>
+            <text x="324" y="154" text-anchor="end" fill="var(--c3)" font-size="14">STBD</text>
+          </svg>
+          <div>
+            <div class="lbl">REROUTE POWER TO</div>
+            <div class="qbtns">
+              <button type="button" data-q="F" style="--c:var(--c1)">FORE <span id="qF">100</span></button>
+              <button type="button" data-q="A" style="--c:var(--c2)">AFT <span id="qA">100</span></button>
+              <button type="button" data-q="P" style="--c:var(--c3)">PORT <span id="qP">100</span></button>
+              <button type="button" data-q="S" style="--c:var(--c5)">STBD <span id="qS">100</span></button>
+            </div>
+            <button type="button" class="pillb" id="balBtn" style="--c:var(--c6);margin-top:8px;width:100%;justify-content:center">BALANCE GRID</button>
+            <p class="quip" id="sQuip">GRID BALANCED. NOTHING IS SHOOTING AT US. THIS IS THE GOOD KIND OF BORING.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="v-sensor" aria-label="Sensors" hidden>
+        <div class="vh"><h2>LONG RANGE SCAN</h2><span id="scanState">SWEEP IDLE</span></div>
+        <div class="scope"><canvas id="scope"></canvas></div>
+        <button type="button" class="pillb" id="scanBtn" style="--c:var(--c1);margin-top:10px">INITIATE SWEEP</button>
+        <ul class="contacts" id="contacts"></ul>
+      </section>
+
+      <section class="view" id="v-crew" aria-label="Crew" hidden>
+        <div class="vh"><h2>CREW ROSTER</h2><span>SELECT TO PAGE</span></div>
+        <table class="crew"><tbody id="crew"></tbody></table>
+        <p class="quip" id="cQuip">PAGING ETIQUETTE: ONE PAGE PER CREW MEMBER PER HOUR. THE CAT IS EXEMPT AND WILL NOT ANSWER.</p>
+      </section>
+    </main>
+  </div>
+  <div class="elbow bl" style="--c:var(--c6)">
+    <div class="cn"><span>07-0042</span></div>
+    <div class="rt"><div class="fil"></div><div class="bar"><i style="--fl:4"></i><b class="foot">CONSOLE AUDIO: TAP ANY CONTROL</b><i style="--fl:1;--bc:var(--c3)"></i><i style="--fl:3;--bc:var(--c1)"></i></div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setTimeout(function(){ document.body.classList.remove('boot'); }, 900);
+
+  /* ---------- audio ---------- */
+  var ac = null, klaxon = null;
+  function audio(){
+    try{
+      if(!ac){ var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return null; ac = new AC(); }
+      if(ac.state === 'suspended') ac.resume();
+    }catch(e){ ac = null; }
+    return ac;
+  }
+  function tone(f, t, d, v, type){
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .008); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + .02);
+  }
+  function beep(kind){
+    if(!ac || ac.state !== 'running') return;
+    var t = ac.currentTime;
+    try{
+      if(kind === 'nav'){ tone(1240, t, .06, .12); tone(1860, t + .06, .08, .1); }
+      else if(kind === 'lo'){ tone(620, t, .09, .12); tone(460, t + .08, .1, .1); }
+      else if(kind === 'data'){ tone(2400 + Math.random() * 600, t, .03, .04); }
+      else if(kind === 'up'){ tone(900, t, .05, .1); tone(1350, t + .05, .05, .1); tone(1800, t + .1, .08, .1); }
+      else { tone(1500, t, .07, .12); }
+    }catch(e){}
+  }
+  function startKlaxon(){
+    if(!ac || klaxon) return;
+    var fire = function(){
+      if(!ac) return; var t = ac.currentTime;
+      try{
+        var o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(880, t + .55);
+        f.type = 'lowpass'; f.frequency.value = 1800;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.09, t + .05); g.gain.setValueAtTime(.09, t + .5); g.gain.exponentialRampToValueAtTime(0.0001, t + .62);
+        o.connect(f); f.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + .65);
+      }catch(e){}
+    };
+    fire(); klaxon = setInterval(fire, 1100);
+  }
+  function stopKlaxon(){ if(klaxon){ clearInterval(klaxon); klaxon = null; } }
+  document.addEventListener('pointerdown', function(){ audio(); }, { passive:true });
+
+  /* ---------- header numbers ---------- */
+  var nums = $('nums'), numEls = [];
+  var COLS = ['var(--c1)','var(--c3)','var(--c2)','var(--c4)','var(--c5)','#fff'];
+  function rnum(){ var l = [2,2,3,4,4,5,6][Math.floor(Math.random() * 7)]; var s = ''; for(var i = 0; i < l; i++) s += Math.floor(Math.random() * 10); return s; }
+  if(nums){ for(var i = 0; i < 32; i++){ var sp = document.createElement('span'); sp.textContent = rnum(); sp.style.color = COLS[(i * 7 + (i >> 3)) % COLS.length]; nums.appendChild(sp); numEls.push(sp); } }
+
+  /* ---------- status tiles ---------- */
+  var SYS = [
+    { n:'DRIVE CORE', v:92, c:'var(--c1)', nt:'HUMMING IN B-FLAT, AS REQUESTED' },
+    { n:'DEFLECTORS', v:100, c:'var(--c2)', nt:'NOTHING TO DEFLECT' },
+    { n:'LIFE SUPPORT', v:99, c:'var(--c3)', nt:'BREATHE NORMALLY' },
+    { n:'SENSORS', v:87, c:'var(--c5)', nt:'LENS SMUDGE SUSPECTED' },
+    { n:'ART. GRAVITY', v:98, c:'var(--c4)', nt:'DECK 9 SLIGHTLY BOUNCY' },
+    { n:'COMMS ARRAY', v:76, c:'var(--c6)', nt:'14 UNREAD FROM MOTHER' },
+    { n:'REPLICATORS', v:41, c:'var(--c3)', nt:'PRODUCING SOUP. ONLY SOUP.' },
+    { n:'COFFEE RESERVE', v:12, c:'var(--c1)', nt:'CRITICAL · MORALE AT RISK', warn:1 }
+  ];
+  var tiles = $('tiles');
+  SYS.forEach(function(s, i){
+    var d = document.createElement('div'); d.className = 'tile' + (s.warn ? ' warn' : ''); d.style.setProperty('--c', s.c);
+    var seg = ''; for(var k = 0; k < 20; k++) seg += '<i></i>';
+    d.innerHTML = '<span class="cap"></span><span class="nm">' + s.n + '</span><span class="vl"></span><span class="sg">' + seg + '</span><span class="nt">' + s.nt + '</span>';
+    s.el = d; s.vl = d.querySelector('.vl'); s.segs = d.querySelectorAll('.sg i');
+    tiles && tiles.appendChild(d);
+  });
+  function paintTile(s){
+    var v = Math.max(0, Math.min(100, s.cur));
+    s.vl.textContent = v.toFixed(1) + '%';
+    var on = Math.round(v / 5);
+    for(var k = 0; k < 20; k++) s.segs[k].classList.toggle('on', k < on);
+  }
+  SYS.forEach(function(s){ s.cur = s.v; paintTile(s); });
+
+  /* ---------- log ---------- */
+  var LOGS = [
+    'DECK 6 · HYDROPONICS REPORTS TOMATOES ARE "SULKING"',
+    'LIFT 3 · PLAYING THE SAME SONG AGAIN. 41ST TIME TODAY',
+    'GALLEY · SOUFFLE ATTEMPT 14 · STATUS: HOPEFUL',
+    'SENSORS · A COMET WAVED BACK. PROBABLY',
+    "MED BAY · CAPTAIN'S KNEE CLEARED FOR DUTY, NOT FOR DANCING",
+    'SECURITY · CAT LOCATED IN VENT 7-C. CAT DISAGREES',
+    'ASTROMETRICS · NEW STAR CATALOGUED. NAMED "STEVE"',
+    'NAVIGATION · WE ARE EXACTLY WHERE WE THINK WE ARE',
+    'RECREATION · PING-PONG TOURNAMENT, ROUND 3',
+    'ENGINEERING · SOMEONE LABELLED THE BIG RED BUTTON "NO"',
+    'COMMS · INCOMING HAIL. IT IS A SURVEY. DECLINED',
+    'DECK 4 · BIRTHDAY CAKE DETECTED. MORALE +6%',
+    'LIBRARY · OVERDUE BOOK FROM 2391 RETURNED, FINE WAIVED',
+    'LAUNDRY · ONE SOCK UNACCOUNTED FOR. INVESTIGATING'
+  ];
+  var log = $('log'), li0 = 0;
+  function stamp(){ var d = new Date(); return [d.getHours(), d.getMinutes(), d.getSeconds()].map(function(n){ return (n < 10 ? '0' : '') + n; }).join(':'); }
+  function addLog(msg, flash){
+    if(!log) return;
+    var li = document.createElement('li'); if(flash) li.className = 'new';
+    li.innerHTML = '<b>' + stamp() + '</b><span></span>'; li.lastChild.textContent = msg;
+    log.insertBefore(li, log.firstChild);
+    while(log.children.length > 7) log.removeChild(log.lastChild);
+  }
+  for(var j = 0; j < 5; j++){ addLog(LOGS[li0++ % LOGS.length], false); }
+
+  /* ---------- ticking ---------- */
+  var clock = $('clock'), shipTime = $('shipTime'), aboard = $('aboard'), tickN = 0;
+  function tick(){
+    if(document.hidden) return;
+    tickN++;
+    for(var k = 0; k < 5; k++){ var e = numEls[Math.floor(Math.random() * numEls.length)]; if(e) e.textContent = rnum(); }
+    SYS.forEach(function(s){ s.cur = s.v + (Math.random() - .5) * (s.warn ? 3 : 4); paintTile(s); });
+    if(clock) clock.textContent = stamp();
+    if(shipTime){ var d = new Date(); shipTime.textContent = '2419.' + String(Math.floor(((d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 86400) * 1000)).padStart(3, '0'); }
+    if(tickN % 9 === 0){ addLog(LOGS[li0++ % LOGS.length], true); beep('data'); }
+    if(aboard && tickN % 23 === 0){ aboard.textContent = Math.random() < .5 ? '212' : '211'; }
+  }
+  setInterval(tick, 450); tick();
+
+  /* ---------- nav ---------- */
+  var views = { status:$('v-status'), prop:$('v-prop'), shield:$('v-shield'), sensor:$('v-sensor'), crew:$('v-crew') };
+  var navBtns = document.querySelectorAll('.nav button[data-v]'), current = 'status';
+  function show(v){
+    if(!views[v]) return;
+    current = v;
+    Object.keys(views).forEach(function(k){ if(views[k]) views[k].hidden = k !== v; });
+    navBtns.forEach(function(b){ b.setAttribute('aria-current', b.getAttribute('data-v') === v ? 'true' : 'false'); });
+    if(v === 'sensor') startScope(); else stopScope();
+  }
+  navBtns.forEach(function(b){ b.addEventListener('click', function(){ audio(); beep('nav'); show(b.getAttribute('data-v')); }); });
+  document.addEventListener('keydown', function(e){
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    var map = { '1':'status', '2':'prop', '3':'shield', '4':'sensor', '5':'crew' };
+    if(map[e.key]){ audio(); beep('nav'); show(map[e.key]); }
+  });
+
+  /* ---------- alerts ---------- */
+  var condTxt = $('condTxt');
+  function setCond(c){
+    document.body.classList.remove('red', 'yellow');
+    if(c !== 'green') document.body.classList.add(c);
+    if(condTxt) condTxt.textContent = 'CONDITION ' + c.toUpperCase();
+    if(c === 'red'){ startKlaxon(); addLog('ALL HANDS · RED ALERT. THIS IS NOT A DRILL. (IT IS A DRILL.)', true); }
+    else stopKlaxon();
+    if(c === 'yellow') addLog('ALL HANDS · YELLOW ALERT. PUT DOWN THE SOUP.', true);
+    if(c === 'green') addLog('ALL HANDS · STANDING DOWN. RESUME SOUP.', true);
+  }
+  var yb = $('yellowBtn'), rb = $('redBtn'), db = $('downBtn');
+  yb && yb.addEventListener('click', function(){ audio(); beep('lo'); setCond('yellow'); });
+  rb && rb.addEventListener('click', function(){ audio(); setCond('red'); });
+  db && db.addEventListener('click', function(){ audio(); beep('nav'); setCond('green'); });
+
+  /* ---------- propulsion ---------- */
+  var core = $('core'), factors = $('factors'), factor = 4;
+  if(core){ for(var c = 0; c < 18; c++){ var bar = document.createElement('i'); bar.style.animationDelay = (c * .07) + 's'; core.appendChild(bar); } }
+  var QUIPS = ['','IDLING. THE ENGINEERS ARE PLAYING CARDS.','GENTLE CRUISE. TEA WILL NOT SPILL.','COMFORTABLE. MILD HUM IN THE CEILINGS.','STANDARD CRUISE. EVERYONE IS PRETENDING TO WORK.','BRISK. LOOSE ITEMS SHOULD BE, WELL, LESS LOOSE.','FAST. THE CAT HAS MOVED TO A LOWER SHELF.','VERY FAST. ENGINEERING IS NO LONGER PLAYING CARDS.','ALARMING. THE CORE HAS STARTED HUMMING IN A MINOR KEY.','MAXIMUM. PLEASE DO NOT DO THIS FOR LONG. PLEASE.'];
+  function setFactor(f){
+    factor = f;
+    if(factors) factors.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', +b.textContent === f ? 'true' : 'false'); });
+    if(core){ core.style.setProperty('--spd', (2.2 / Math.pow(f, .75)).toFixed(2) + 's'); core.querySelectorAll('i').forEach(function(b, i){ b.style.animationDelay = (i * (.12 / Math.sqrt(f))).toFixed(3) + 's'; }); }
+    var out = Math.round(Math.pow(f, 1.6) * 110), temp = 2000 + f * f * 95, eta = 400 / Math.pow(f, 2.2);
+    var set = function(id, t){ var e = $(id); if(e) e.textContent = t; };
+    set('pOut', out.toLocaleString('en-US') + ' TW');
+    set('pTemp', temp.toLocaleString('en-US') + ' K');
+    set('pEta', eta >= 1 ? eta.toFixed(1) + ' DAYS' : (eta * 24).toFixed(1) + ' HOURS');
+    set('pCof', (f * f * 2.5 + 3).toFixed(0) + ' CUPS');
+    set('pQuip', QUIPS[f]);
+  }
+  if(factors){
+    for(var f = 1; f <= 9; f++){ var b = document.createElement('button'); b.type = 'button'; b.textContent = f; b.setAttribute('aria-label', 'Cruise factor ' + f); factors.appendChild(b); }
+    factors.addEventListener('click', function(e){
+      var b = e.target.closest && e.target.closest('button'); if(!b) return;
+      audio(); var n = +b.textContent;
+      if(ac && ac.state === 'running'){ var t = ac.currentTime; try{ tone(400 + n * 140, t, .08, .12); tone(600 + n * 180, t + .07, .1, .1); }catch(er){} }
+      setFactor(n);
+    });
+  }
+  setFactor(4);
+
+  /* ---------- shields ---------- */
+  var Q = { F:100, A:100, P:100, S:100 };
+  var SQ = { F:'FORE SHIELDS UP. WHATEVER IS AHEAD OF US, WE ARE READY TO BUMP INTO IT POLITELY.', A:'AFT SHIELDS REINFORCED. NOTHING WILL SNEAK UP ON US. EXCEPT THE CAT.', P:'PORT REINFORCED. THE CARGO HAULER "SLOW TUESDAY" HAS BEEN WARNED.', S:'STARBOARD REINFORCED. THE VIEW FROM THE GALLEY IS NOW SLIGHTLY BLUER.' };
+  function paintShields(){
+    var ids = { F:'aF', A:'aA', P:'aP', S:'aS' }, cols = { F:'var(--c1)', A:'var(--c2)', P:'var(--c3)', S:'var(--c5)' };
+    Object.keys(Q).forEach(function(k){
+      var a = $(ids[k]); if(a){ a.style.stroke = cols[k]; a.style.strokeWidth = (3 + Q[k] / 12).toFixed(1); a.style.opacity = (.25 + Q[k] / 220).toFixed(2); }
+      var t = $('q' + k); if(t) t.textContent = Math.round(Q[k]);
+    });
+  }
+  document.querySelectorAll('.qbtns button').forEach(function(b){
+    b.addEventListener('click', function(){
+      audio(); beep('up');
+      var k = b.getAttribute('data-q'), give = Math.min(30, 190 - Q[k]);
+      if(give <= 0){ var sq0 = $('sQuip'); if(sq0) sq0.textContent = 'QUADRANT AT MAXIMUM. THE OTHER QUADRANTS WOULD LIKE A WORD.'; beep('lo'); return; }
+      var others = Object.keys(Q).filter(function(x){ return x !== k; });
+      var pool = 0; others.forEach(function(x){ var take = Math.min(give / 3, Q[x] - 10); Q[x] -= take; pool += take; });
+      Q[k] += pool; paintShields();
+      var sq = $('sQuip'); if(sq) sq.textContent = SQ[k];
+    });
+  });
+  var bal = $('balBtn'); bal && bal.addEventListener('click', function(){ audio(); beep('nav'); Q = { F:100, A:100, P:100, S:100 }; paintShields(); var sq = $('sQuip'); if(sq) sq.textContent = 'GRID BALANCED. NOTHING IS SHOOTING AT US. THIS IS THE GOOD KIND OF BORING.'; });
+  paintShields();
+
+  /* ---------- sensors ---------- */
+  var POOL = [
+    ['ICE COMET','4.2 AU','HARMLESS, PRETTY'],['CARGO HAULER "SLOW TUESDAY"','0.8 AU','FRIENDLY, LATE'],['DERELICT PROBE','2.9 AU','STILL SAYING "HELLO?"'],
+    ['ANOMALY','1.1 AU','LIKELY A SMUDGE ON THE LENS'],['GAS GIANT','7.5 AU','SMELLS, PRESUMABLY'],['LARGE LIFEFORM','3.3 AU','SPACE WHALE? CONFIDENCE 3%'],
+    ['ASTEROID FIELD','5.0 AU','SPARSE. UNLIKE THE MOVIES'],['NAV BEACON','0.4 AU','SELLING EXTENDED WARRANTIES'],['ROGUE MOON','6.1 AU','NO FIXED ADDRESS'],['DUST CLOUD','2.2 AU','SHAPED LIKE A DUCK']
+  ];
+  var scope = $('scope'), sctx = scope && scope.getContext ? scope.getContext('2d') : null, contactsEl = $('contacts');
+  var blips = [], sweepX = -1, sweeping = false, raf = null, sw = 0, sh = 0, dpr = 1;
+  function sizeScope(){ if(!scope) return; dpr = Math.min(window.devicePixelRatio || 1, 2); sw = scope.clientWidth; sh = scope.clientHeight; scope.width = Math.round(sw * dpr); scope.height = Math.round(sh * dpr); }
+  function newContacts(){
+    var pick = POOL.slice().sort(function(){ return Math.random() - .5; }).slice(0, 5);
+    blips = pick.map(function(p, i){ return { x:.08 + Math.random() * .86, y:.18 + Math.random() * .64, p:p, id:'C-' + String(i + 1 + Math.floor(Math.random() * 40)).padStart(2, '0'), seen:false }; });
+    if(contactsEl) contactsEl.innerHTML = '';
+  }
+  function drawScope(){
+    if(!sctx) return;
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sctx.fillStyle = 'rgba(5,5,10,.35)'; sctx.fillRect(0, 0, sw, sh);
+    sctx.strokeStyle = 'rgba(153,153,255,.18)'; sctx.lineWidth = 1;
+    for(var i = 1; i < 10; i++){ sctx.beginPath(); sctx.moveTo(sw * i / 10, 0); sctx.lineTo(sw * i / 10, sh); sctx.stroke(); }
+    for(i = 1; i < 4; i++){ sctx.beginPath(); sctx.moveTo(0, sh * i / 4); sctx.lineTo(sw, sh * i / 4); sctx.stroke(); }
+    var cs = getComputedStyle(document.body);
+    var c1 = cs.getPropertyValue('--c1').trim() || '#ff9900', c3 = cs.getPropertyValue('--c3').trim() || '#ffcc99';
+    if(sweeping){
+      sweepX += sw / 150;
+      var g = sctx.createLinearGradient(sweepX - 60, 0, sweepX, 0); g.addColorStop(0, 'rgba(255,153,0,0)'); g.addColorStop(1, 'rgba(255,153,0,.35)');
+      sctx.fillStyle = g; sctx.fillRect(sweepX - 60, 0, 60, sh);
+      sctx.fillStyle = c1; sctx.fillRect(sweepX, 0, 2, sh);
+      blips.forEach(function(b){ if(!b.seen && b.x * sw <= sweepX){ b.seen = true; reveal(b); } });
+      if(sweepX > sw + 4){ sweeping = false; var st = $('scanState'); if(st) st.textContent = 'SWEEP COMPLETE · ' + blips.length + ' CONTACTS'; }
+    }
+    var tt = performance.now() / 400;
+    blips.forEach(function(b){
+      if(!b.seen) return;
+      var x = b.x * sw, y = b.y * sh, r = 4 + Math.sin(tt + b.x * 9) * 1.5;
+      sctx.fillStyle = c3; sctx.beginPath(); sctx.arc(x, y, r, 0, Math.PI * 2); sctx.fill();
+      sctx.strokeStyle = c3; sctx.globalAlpha = .5; sctx.beginPath(); sctx.arc(x, y, r + 6, 0, Math.PI * 2); sctx.stroke(); sctx.globalAlpha = 1;
+      sctx.fillStyle = c1; sctx.font = '12px "Arial Narrow", Arial, sans-serif'; sctx.fillText(b.id, x + 10, y - 8);
+    });
+    raf = requestAnimationFrame(drawScope);
+  }
+  function reveal(b){
+    beep('data');
+    if(!contactsEl) return;
+    var li = document.createElement('li'); li.className = 'new';
+    li.innerHTML = '<b></b><span></span><em></em>';
+    li.children[0].textContent = b.id; li.children[1].textContent = b.p[0] + ' · ' + b.p[2]; li.children[2].textContent = b.p[1];
+    contactsEl.appendChild(li);
+  }
+  function startSweep(){ newContacts(); sweepX = 0; sweeping = true; var st = $('scanState'); if(st) st.textContent = 'SWEEP IN PROGRESS'; }
+  function startScope(){ sizeScope(); if(!raf && sctx) raf = requestAnimationFrame(drawScope); if(!blips.length) startSweep(); }
+  function stopScope(){ if(raf){ cancelAnimationFrame(raf); raf = null; } }
+  var scanBtn = $('scanBtn'); scanBtn && scanBtn.addEventListener('click', function(){ audio(); beep('up'); startSweep(); });
+  window.addEventListener('resize', function(){ if(current === 'sensor') sizeScope(); });
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) stopScope(); else if(current === 'sensor') startScope(); });
+
+  /* ---------- crew ---------- */
+  var CREW = [
+    ['CAPT. R. ADEYEMI','BRIDGE','ON DUTY','"GO AHEAD." (SHE SOUNDS BUSY.)'],
+    ['CMDR. I. VASQUEZ','DECK 2','ON DUTY','"IF THIS IS ABOUT THE SOUP, NO."'],
+    ['LT. K. OKAFOR','ENGINEERING','TALKING TO THE CORE','"SHH. IT IS ALMOST IN TUNE."'],
+    ['ENS. P. LINDQVIST','DECK 9 (?)','LOST, AGAIN','"WHICH WAY IS AFT?"'],
+    ['DR. M. HALE','MED BAY','ON CALL','"TAKE TWO AND PAGE ME TOMORROW."'],
+    ['CHIEF T. NAKAMURA','GALLEY','SOUFFLE, ATTEMPT 14','"NOT NOW. IT IS RISING."'],
+    ['LT. S. BRANDT','ASTROMETRICS','NAMING STARS','"THAT ONE IS STEVE."'],
+    ['MR. WHISKERS','VENT 7-C','UNAUTHORIZED','(NO RESPONSE. A DISTANT THUD.)']
+  ];
+  var crew = $('crew'), cQuip = $('cQuip');
+  var CC = ['var(--c1)','var(--c2)','var(--c3)','var(--c5)','var(--c4)','var(--c6)'];
+  CREW.forEach(function(p, i){
+    var tr = document.createElement('tr'); tr.style.setProperty('--c', CC[i % CC.length]);
+    tr.innerHTML = '<td></td><td class="dk"></td><td class="st"></td><td style="text-align:right"><button type="button">PAGE</button></td>';
+    tr.children[0].textContent = p[0]; tr.children[1].textContent = p[1]; tr.children[2].textContent = p[2];
+    tr.querySelector('button').setAttribute('aria-label', 'Page ' + p[0]);
+    tr.querySelector('button').addEventListener('click', function(){
+      audio(); beep('nav');
+      if(cQuip) cQuip.textContent = 'PAGING ' + p[0] + '… RESPONSE: ' + p[3];
+      addLog('COMMS · PAGED ' + p[0], true);
+    });
+    crew && crew.appendChild(tr);
+  });
+})();
+</script>
+</body>
+</html>

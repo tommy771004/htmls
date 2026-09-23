@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minuit Velours — Maison Aurèle, Eau de Parfum</title>
+<style>
+  :root{
+    --velvet:#3a0913; --velvet-d:#1f040a; --velvet-l:#6b1426;
+    --champ:#e9d5a9; --champ-l:#f6ead0; --gold:#c6a466; --gold-d:#8d7040;
+    --serif:Constantia,"Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--velvet-d)}
+  body{margin:0;min-height:100vh;color:var(--champ);font-family:var(--serif);font-weight:300;overflow-x:hidden;
+    background:
+      radial-gradient(120% 70% at 18% 40%, rgba(160,40,60,.42), transparent 55%),
+      radial-gradient(90% 60% at 85% 10%, rgba(120,20,40,.35), transparent 60%),
+      linear-gradient(115deg, transparent 0 30%, rgba(0,0,0,.28) 38%, transparent 46%, transparent 60%, rgba(255,120,140,.06) 66%, transparent 72%),
+      linear-gradient(160deg, var(--velvet-l) 0%, var(--velvet) 45%, var(--velvet-d) 100%);
+    background-attachment:fixed}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:var(--grain);opacity:.55;mix-blend-mode:overlay;z-index:0}
+  #mist{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:6}
+  main{position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:clamp(20px,3vw,40px) clamp(16px,4vw,56px) 40px}
+
+  .top{display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:rgba(233,213,169,.7)}
+  .top .mark{font-size:14px;letter-spacing:.5em;color:var(--champ-l)}
+  .top .mark i{font-style:italic;letter-spacing:.1em;text-transform:none;font-size:17px;margin:0 .2em}
+  .hair{height:1px;background:linear-gradient(90deg,transparent,rgba(198,164,102,.6),transparent);margin:16px 0 0}
+
+  .stage{display:grid;grid-template-columns:minmax(260px,.9fr) 1.25fr;gap:clamp(20px,4vw,70px);align-items:center;margin-top:clamp(14px,2.5vw,34px)}
+  .bottle-wrap{position:relative;display:grid;place-items:center;min-height:540px}
+  .bottle-wrap::after{content:"";position:absolute;left:12%;right:12%;bottom:22px;height:40px;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.6),transparent);z-index:-1}
+  #bottle{width:min(100%,330px);height:auto;cursor:pointer;filter:drop-shadow(0 30px 40px rgba(0,0,0,.45));transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
+  #bottle:hover{transform:translateY(-4px)}
+  #bottle:focus-visible{outline:1px solid var(--gold);outline-offset:8px}
+  .spray-hint{position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.36em;text-transform:uppercase;color:rgba(233,213,169,.6)}
+
+  .copy .kicker{font-size:11px;letter-spacing:.5em;text-transform:uppercase;color:var(--gold)}
+  h1{font-weight:300;margin:.3em 0 .1em;font-size:clamp(46px,7.4vw,104px);line-height:.92;letter-spacing:.02em;color:var(--champ-l)}
+  h1 em{display:block;font-style:italic;font-size:.62em;letter-spacing:.04em;color:var(--champ);padding-left:.9em}
+  .lede{max-width:34em;font-size:clamp(15px,1.3vw,17px);line-height:1.75;color:rgba(246,234,208,.82);margin:1.2em 0 0}
+  .lede::first-letter{font-size:2.6em;float:left;line-height:.9;padding:.08em .1em 0 0;color:var(--gold);font-style:italic}
+
+  .comp{display:grid;grid-template-columns:minmax(200px,300px) 1fr;gap:clamp(18px,3vw,40px);align-items:center;margin-top:clamp(22px,3vw,40px)}
+  #pyr{width:100%;height:auto;overflow:visible}
+  #pyr .tier{cursor:pointer;transition:fill-opacity 1.2s ease}
+  #pyr text{font-family:var(--serif);letter-spacing:.3em;font-size:10px;text-transform:uppercase;pointer-events:none;transition:fill 1s}
+  .tiers{display:grid;gap:14px}
+  .tierrow{border-top:1px solid rgba(198,164,102,.28);padding-top:10px;transition:opacity 1.2s ease}
+  .tierrow h3{margin:0 0 6px;font-weight:400;font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold);display:flex;justify-content:space-between;gap:10px}
+  .tierrow h3 span{letter-spacing:.1em;color:rgba(233,213,169,.55);text-transform:none;font-style:italic}
+  .notes{display:flex;flex-wrap:wrap;gap:4px 18px}
+  .note{background:none;border:0;padding:6px 0;min-height:40px;font:inherit;font-size:clamp(17px,1.6vw,21px);color:var(--champ-l);cursor:pointer;letter-spacing:.02em;
+    border-bottom:1px solid transparent;transition:color .6s,border-color .6s}
+  .note:hover,.note:focus-visible,.note.on{outline:none;color:#fff;border-bottom-color:var(--gold)}
+
+  .detail{margin-top:14px;min-height:74px;font-style:italic;font-size:15px;line-height:1.6;color:rgba(246,234,208,.85);border-left:1px solid var(--gold);padding-left:16px;transition:opacity .8s}
+  .detail b{font-style:normal;font-weight:400;letter-spacing:.2em;text-transform:uppercase;font-size:11px;color:var(--gold);display:block;margin-bottom:2px}
+
+  .drydown{margin-top:clamp(40px,6vw,80px);display:grid;grid-template-columns:1fr 1.6fr;gap:clamp(20px,4vw,60px);align-items:end}
+  .drydown h2{font-weight:300;font-size:clamp(30px,3.6vw,48px);margin:0;line-height:1;color:var(--champ-l)}
+  .drydown h2 small{display:block;font-size:11px;letter-spacing:.5em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+  #clock{font-size:clamp(40px,5vw,68px);font-weight:300;color:var(--champ-l);margin:.2em 0 .1em;font-variant-numeric:oldstyle-nums;letter-spacing:.02em}
+  #phase{font-style:italic;font-size:16px;line-height:1.6;color:rgba(246,234,208,.8);min-height:3.2em;margin:0}
+  #chart{width:100%;height:auto;display:block}
+  .scrub{position:relative;margin-top:10px}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;cursor:pointer;margin:0}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:linear-gradient(90deg,var(--gold),rgba(198,164,102,.3))}
+  input[type=range]::-moz-range-track{height:1px;background:var(--gold)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-11px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6dc,var(--gold) 55%,var(--gold-d));border:0;box-shadow:0 0 0 6px rgba(198,164,102,.14),0 4px 10px rgba(0,0,0,.5)}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--gold);border:0}
+  input[type=range]:focus-visible{outline:none}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 8px rgba(198,164,102,.35)}
+  .ticks{position:relative;height:14px;font-size:10px;letter-spacing:.3em;color:rgba(233,213,169,.55);text-transform:uppercase}
+
+  footer{margin-top:clamp(40px,6vw,80px);display:flex;flex-wrap:wrap;gap:18px 40px;justify-content:space-between;align-items:center;border-top:1px solid rgba(198,164,102,.25);padding-top:22px;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:rgba(233,213,169,.6)}
+  .buy{font:inherit;font-size:12px;letter-spacing:.42em;text-transform:uppercase;color:var(--velvet-d);background:linear-gradient(180deg,var(--champ-l),var(--gold));border:0;min-height:48px;padding:0 30px;cursor:pointer;transition:letter-spacing 1s}
+  .buy:hover,.buy:focus-visible{letter-spacing:.5em;outline:none}
+  .price{font-size:22px;letter-spacing:.08em;color:var(--champ-l);text-transform:none}
+
+  /* slow reveal */
+  .rv{opacity:0;filter:blur(6px);transform:translateY(12px);transition:opacity 1.1s ease,filter 1.2s ease,transform 1.4s cubic-bezier(.2,.8,.2,1)}
+  .rv.in{opacity:1;filter:blur(0);transform:none}
+  h1.rv{letter-spacing:.2em}
+  h1.rv.in{letter-spacing:.02em;transition:opacity 1.1s ease,filter 1.2s ease,transform 1.4s,letter-spacing 2.4s cubic-bezier(.2,.8,.2,1)}
+  @media (prefers-reduced-motion:reduce){.rv{transition:opacity .4s}}
+
+  @media (max-width:900px){
+    .stage{grid-template-columns:1fr}
+    .bottle-wrap{min-height:0;padding-bottom:30px}
+    #bottle{width:min(62vw,250px)}
+    .comp{grid-template-columns:1fr}
+    #pyr{max-width:260px;margin:0 auto;display:block}
+    .drydown{grid-template-columns:1fr}
+    .top{font-size:10px;letter-spacing:.24em}
+    .top .hide-s{display:none}
+  }
+  .ticks span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+  .ticks span:first-child{transform:none}.ticks span:last-child{transform:translateX(-100%)}
+</style>
+</head>
+<body>
+<canvas id="mist" aria-hidden="true"></canvas>
+<main>
+  <div class="top rv">
+    <span class="mark">Maison <i>Aurèle</i></span>
+    <span class="hide-s">Parfumeur · Grasse &amp; Paris · depuis 1893</span>
+    <span>Nº 093</span>
+  </div>
+  <div class="hair rv"></div>
+
+  <section class="stage">
+    <div class="bottle-wrap rv">
+      <svg id="bottle" viewBox="0 0 300 520" role="button" tabindex="0" aria-label="Flacon of Minuit Velours — click to spray">
+        <defs>
+          <linearGradient id="glass" x1="0" x2="1">
+            <stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".12" stop-color="#fff" stop-opacity=".08"/>
+            <stop offset=".5" stop-color="#fff" stop-opacity=".03"/><stop offset=".86" stop-color="#fff" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity=".4"/>
+          </linearGradient>
+          <linearGradient id="juice" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#f3d9a0"/><stop offset=".5" stop-color="#d9a860"/><stop offset="1" stop-color="#8f5a2a"/>
+          </linearGradient>
+          <linearGradient id="juiceSide" x1="0" x2="1">
+            <stop offset="0" stop-color="#5a2a10" stop-opacity=".55"/><stop offset=".25" stop-color="#000" stop-opacity="0"/><stop offset=".75" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#5a2a10" stop-opacity=".6"/>
+          </linearGradient>
+          <linearGradient id="goldG" x1="0" x2="1">
+            <stop offset="0" stop-color="#7a5c2c"/><stop offset=".22" stop-color="#f7e3b0"/><stop offset=".45" stop-color="#b8924f"/><stop offset=".7" stop-color="#e9cf92"/><stop offset="1" stop-color="#6d5024"/>
+          </linearGradient>
+          <linearGradient id="capG" x1="0" x2="1">
+            <stop offset="0" stop-color="#1b0308"/><stop offset=".3" stop-color="#5e1222"/><stop offset=".42" stop-color="#8a2338"/><stop offset=".6" stop-color="#3a0913"/><stop offset="1" stop-color="#12020a"/>
+          </linearGradient>
+          <clipPath id="body"><path d="M52 190 Q52 176 66 176 H234 Q248 176 248 190 V470 Q248 492 226 492 H74 Q52 492 52 470Z"/></clipPath>
+        </defs>
+        <!-- cap: faceted velvet-burgundy with gold band -->
+        <path d="M104 18 L196 18 L214 44 L214 118 L196 136 L104 136 L86 118 L86 44Z" fill="url(#capG)"/>
+        <path d="M104 18 L196 18 L214 44 L86 44Z" fill="#fff" opacity=".08"/>
+        <path d="M120 44 L128 44 L128 136 L120 136Z" fill="#fff" opacity=".1"/>
+        <rect x="86" y="118" width="128" height="10" fill="url(#goldG)"/>
+        <!-- collar -->
+        <rect x="112" y="136" width="76" height="26" fill="url(#goldG)"/>
+        <path d="M112 142 H188 M112 150 H188 M112 156 H188" stroke="#5e4520" stroke-width=".8" opacity=".6"/>
+        <rect x="100" y="160" width="100" height="16" rx="3" fill="url(#goldG)"/>
+        <!-- glass body -->
+        <g clip-path="url(#body)">
+          <rect x="40" y="170" width="220" height="330" fill="#2a0810" opacity=".35"/>
+          <rect id="juiceRect" x="40" y="222" width="220" height="280" fill="url(#juice)"/>
+          <rect x="40" y="222" width="220" height="280" fill="url(#juiceSide)"/>
+          <ellipse cx="150" cy="222" rx="110" ry="5" fill="#fff4d8" opacity=".55"/>
+          <rect x="146" y="176" width="8" height="300" fill="#f7e4bb" opacity=".35"/>
+          <rect x="40" y="170" width="220" height="330" fill="url(#glass)"/>
+          <path d="M70 196 V470" stroke="#fff" stroke-width="6" opacity=".22" stroke-linecap="round"/>
+          <path d="M228 200 V300" stroke="#fff" stroke-width="3" opacity=".25" stroke-linecap="round"/>
+        </g>
+        <path d="M52 190 Q52 176 66 176 H234 Q248 176 248 190 V470 Q248 492 226 492 H74 Q52 492 52 470Z" fill="none" stroke="#f6ead0" stroke-opacity=".45" stroke-width="1.5"/>
+        <!-- heavy glass base -->
+        <path d="M60 470 H240 V480 Q240 492 226 492 H74 Q60 492 60 480Z" fill="#fff" opacity=".12"/>
+        <!-- engraved label -->
+        <rect x="92" y="300" width="116" height="92" fill="none" stroke="#3a0913" stroke-opacity=".55"/>
+        <text x="150" y="324" text-anchor="middle" font-family="Constantia,Georgia,serif" font-size="9" letter-spacing="3.5" fill="#3a0913" opacity=".8">MAISON AURÈLE</text>
+        <text x="150" y="350" text-anchor="middle" font-family="Constantia,Georgia,serif" font-size="17" letter-spacing="1.5" fill="#3a0913">Minuit</text>
+        <text x="150" y="369" text-anchor="middle" font-family="Constantia,Georgia,serif" font-size="13" font-style="italic" letter-spacing="1" fill="#3a0913">velours</text>
+        <text x="150" y="384" text-anchor="middle" font-family="Constantia,Georgia,serif" font-size="6.5" letter-spacing="2.5" fill="#3a0913" opacity=".8">EAU DE PARFUM · 100 ML</text>
+      </svg>
+      <div class="spray-hint">Touch the flacon to spray</div>
+    </div>
+
+    <div class="copy">
+      <div class="kicker rv">Eau de Parfum · Collection Nocturne</div>
+      <h1 class="rv">Minuit<em>velours</em></h1>
+      <p class="lede rv">A fragrance for the hour when the party has thinned, the candles have given up, and somebody is still telling the story about Lisbon. It opens bright, turns to rose and iris, and ends as warm skin in a borrowed cashmere coat.</p>
+
+      <div class="comp rv">
+        <svg id="pyr" viewBox="0 0 300 260" aria-label="Olfactory pyramid">
+          <defs>
+            <linearGradient id="tierG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6ead0"/><stop offset="1" stop-color="#c6a466"/></linearGradient>
+          </defs>
+          <path class="tier" data-t="0" d="M150 10 L196 90 L104 90Z" fill="url(#tierG)" fill-opacity=".2" stroke="#c6a466" stroke-width=".8"/>
+          <path class="tier" data-t="1" d="M100 97 L200 97 L243 172 L57 172Z" fill="url(#tierG)" fill-opacity=".2" stroke="#c6a466" stroke-width=".8"/>
+          <path class="tier" data-t="2" d="M53 179 L247 179 L290 254 L10 254Z" fill="url(#tierG)" fill-opacity=".2" stroke="#c6a466" stroke-width=".8"/>
+          <text x="150" y="72" text-anchor="middle">Tête</text>
+          <text x="150" y="140" text-anchor="middle">Cœur</text>
+          <text x="150" y="222" text-anchor="middle">Fond</text>
+        </svg>
+        <div>
+          <div class="tiers" id="tiers"></div>
+          <div class="detail" id="detail" aria-live="polite"><b>The composition</b>Choose a note to read its small biography. Or scrub through the evening below and watch the pyramid burn from the top down.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="drydown">
+    <div class="rv">
+      <h2><small>The drydown</small>An evening, in eight hours</h2>
+      <div id="clock">0 h 00</div>
+      <p id="phase">First spray. The bergamot is shouting; let it.</p>
+    </div>
+    <div class="rv">
+      <svg id="chart" viewBox="0 0 600 190" aria-hidden="true"></svg>
+      <div class="scrub">
+        <input type="range" id="time" min="0" max="1000" step="1" value="0" aria-label="Hours since application">
+        <div class="ticks" id="ticks"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="rv">
+    <span>Concentration 18% · Parfumeur : Hélène Varigny</span>
+    <span class="price">100 ml — €245</span>
+    <button class="buy" id="buy">Reserve a flacon</button>
+  </footer>
+</main>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+
+  // velvet grain: tiny noise tile as data URI
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 140;
+    const x = c.getContext('2d'), im = x.createImageData(140, 140);
+    for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 40; }
+    x.putImageData(im, 0, 0);
+    document.body.style.setProperty('--grain', `url(${c.toDataURL()})`);
+  } catch (_) {}
+
+  const TIERS = [
+    { name: 'Tête', when: '0 – 30 min', notes: [
+      ['Bergamot of Calabria', 'Citrus · Italy', 'Cold-pressed from green fruit in November. Bright, bitter, and gone before you’ve found your coat — which is exactly the point of an overture.'],
+      ['Pink pepper', 'Spice · Réunion', 'Not a pepper, technically. A small, polite sneeze of spice that makes the bergamot sparkle.'],
+      ['Pear nectar', 'Fruit · accord', 'The juice at the bottom of a poached pear. A sweetness that clears its throat before speaking.'] ] },
+    { name: 'Cœur', when: '30 min – 3 h', notes: [
+      ['Turkish rose absolute', 'Floral · Isparta', 'Four tonnes of petals, picked before sunrise, for one kilo of absolute. We apologise to no one.'],
+      ['Orris butter', 'Floral · Florence', 'The root of the iris, dried for three years, then priced accordingly. Powdery, cool, like the inside of a glove.'],
+      ['Black plum', 'Fruit · accord', 'Dark, jammy, slightly boozy. The rose’s disreputable friend from out of town.'] ] },
+    { name: 'Fond', when: '3 h – 8 h +', notes: [
+      ['Oud accord', 'Wood · accord', 'Resinous, smoky, a little animal. Used here the way one uses a baritone: sparingly, underneath.'],
+      ['Tonka bean', 'Balsamic · Venezuela', 'Almond, hay and warm tobacco. The note people lean in to ask about.'],
+      ['Cashmere musk', 'Musk · synthetic', 'The smell of a sweater that has been to the opera and would like to talk about it.'],
+      ['Bourbon vanilla', 'Balsamic · Madagascar', 'The last guest to leave. Still there at breakfast, perfectly composed.'] ] }
+  ];
+
+  // ---------- build tiers ----------
+  const tiersEl = $('#tiers'), detail = $('#detail');
+  const rows = [];
+  TIERS.forEach((t, ti) => {
+    const row = document.createElement('div'); row.className = 'tierrow';
+    row.innerHTML = `<h3>${t.name}<span>${t.when}</span></h3><div class="notes"></div>`;
+    const box = row.querySelector('.notes');
+    t.notes.forEach(n => {
+      const b = document.createElement('button'); b.className = 'note'; b.textContent = n[0];
+      b.addEventListener('click', () => {
+        document.querySelectorAll('.note.on').forEach(e => e.classList.remove('on'));
+        b.classList.add('on');
+        if (detail) {
+          detail.style.opacity = 0;
+          setTimeout(() => { detail.innerHTML = `<b>${t.name} · ${n[1]}</b>${n[2]}`; detail.style.opacity = 1; }, 380);
+        }
+        userTouched = true;
+        const target = [8, 110, 360][ti];
+        animateTo(target);
+      });
+      box.appendChild(b);
+    });
+    tiersEl && tiersEl.appendChild(row); rows.push(row);
+  });
+  document.querySelectorAll('#pyr .tier').forEach(p => p.addEventListener('click', () => {
+    const ti = +p.getAttribute('data-t'); userTouched = true; animateTo([8, 110, 360][ti]);
+    const first = rows[ti] && rows[ti].querySelector('.note'); first && first.click();
+  }));
+
+  // ---------- evaporation model ----------
+  const curve = [
+    t => Math.exp(-t / 28) * (1 - Math.exp(-t / 1.5 - .3)) * 1.05,
+    t => { const rise = 1 / (1 + Math.exp(-(t - 35) / 12)), fall = 1 / (1 + Math.exp((t - 230) / 45)); return rise * fall; },
+    t => { const rise = 1 / (1 + Math.exp(-(t - 170) / 45)); return rise * (1 - t / 1400) * .95 + .04; }
+  ];
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+  const PHASES = [
+    [0, 'First spray. The bergamot is shouting; let it.'],
+    [12, 'The pepper crackles. Someone across the room turns around.'],
+    [35, 'The citrus is leaving the party, politely, without saying goodbye.'],
+    [70, 'The heart opens. Rose and orris take the stage and refuse to give it back.'],
+    [160, 'Plum darkens the rose; underneath, the oud begins to hum.'],
+    [260, 'Drydown. Tonka and cashmere musk — the part people remember you by.'],
+    [400, 'Vanilla, close to the skin. A secret, now, rather than an announcement.']
+  ];
+
+  // chart
+  const chart = $('#chart');
+  const CW = 600, CH = 190, pad = 8;
+  const U = t => Math.log1p(t / 20) / Math.log1p(24);          // 0..1 position on a log-ish time axis
+  const Uinv = u => 20 * (Math.exp(u * Math.log1p(24)) - 1);
+  const X = t => pad + U(t) * (CW - pad * 2);
+  const ticksEl = $('#ticks');
+  if (ticksEl) [[0, 'Spray'], [30, '½ h'], [60, '1 h'], [120, '2 h'], [240, '4 h'], [480, '8 h']].forEach(([t, l]) => {
+    const sp = document.createElement('span'); sp.textContent = l;
+    sp.style.left = `calc(11px + ${(U(t) * 100).toFixed(2)}% - ${(U(t) * 22).toFixed(1)}px)`; ticksEl.appendChild(sp);
+  });   // log-ish time axis: the first hour matters most
+  const Y = v => CH - 24 - v * (CH - 44);
+  function pathFor(i) {
+    let d = '';
+    for (let k = 0; k <= 160; k++) { const t = 480 * Math.pow(k / 160, 2.2); d += (k ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(clamp01(curve[i](t))).toFixed(1); }
+    return d;
+  }
+  const COLS = ['#f6ead0', '#e3b7a4', '#c6a466'];
+  if (chart) {
+    let s = '';
+    [60, 120, 240, 480].forEach(t => { s += `<line x1="${X(t)}" x2="${X(t)}" y1="10" y2="${CH - 24}" stroke="#c6a466" stroke-opacity=".18" stroke-dasharray="2 4"/>`; });
+    TIERS.forEach((t, i) => {
+      const d = pathFor(i);
+      s += `<path d="${d} L${X(480)} ${Y(0)} L${X(0)} ${Y(0)}Z" fill="${COLS[i]}" fill-opacity=".07"/>`;
+      s += `<path class="cv" d="${d}" fill="none" stroke="${COLS[i]}" stroke-width="1.4" stroke-opacity=".9" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>`;
+    });
+    s += `<line x1="0" x2="${CW}" y1="${CH - 24}" y2="${CH - 24}" stroke="#c6a466" stroke-opacity=".5"/>`;
+    s += `<g id="cursor"><line id="cl" y1="6" y2="${CH - 24}" stroke="#f6ead0" stroke-width="1"/>${[0, 1, 2].map(i => `<circle id="cd${i}" r="3.5" fill="${COLS[i]}"/>`).join('')}</g>`;
+    s += ['Tête', 'Cœur', 'Fond'].map((n, i) => `<text x="${[X(3), X(90), X(330)][i]}" y="${CH - 6}" font-family="Constantia,Georgia,serif" font-size="11" letter-spacing="3" fill="${COLS[i]}" text-anchor="middle">${n.toUpperCase()}</text>`).join('');
+    chart.innerHTML = s;
+  }
+
+  const timeEl = $('#time'), clockEl = $('#clock'), phaseEl = $('#phase');
+  const tierPaths = [...document.querySelectorAll('#pyr .tier')], tierTexts = [...document.querySelectorAll('#pyr text')];
+  let T = 0, lastPhase = -1;
+  function render() {
+    const v = curve.map(f => clamp01(f(T)));
+    tierPaths.forEach((p, i) => p.setAttribute('fill-opacity', (.1 + v[i] * .85).toFixed(3)));
+    tierTexts.forEach((tx, i) => tx.setAttribute('fill', v[i] > .45 ? '#2a0610' : '#e9d5a9'));
+    rows.forEach((r, i) => r.style.opacity = (.32 + v[i] * .68).toFixed(3));
+    if (clockEl) { const h = Math.floor(T / 60), m = Math.floor(T % 60); clockEl.textContent = `${h} h ${String(m).padStart(2, '0')}`; }
+    let ph = 0; PHASES.forEach((p, i) => { if (T >= p[0]) ph = i; });
+    if (ph !== lastPhase && phaseEl) {
+      lastPhase = ph; phaseEl.style.transition = 'opacity .6s'; phaseEl.style.opacity = 0;
+      setTimeout(() => { phaseEl.textContent = PHASES[ph][1]; phaseEl.style.opacity = 1; }, 300);
+    }
+    const cl = document.getElementById('cl');
+    if (cl) {
+      const x = X(T); cl.setAttribute('x1', x); cl.setAttribute('x2', x);
+      v.forEach((val, i) => { const c = document.getElementById('cd' + i); if (c) { c.setAttribute('cx', x); c.setAttribute('cy', Y(val)); } });
+    }
+    if (timeEl && document.activeElement !== timeEl) timeEl.value = Math.round(U(T) * 1000);
+    // juice level drops (very) slightly with each hour — vanity detail
+    const jr = document.getElementById('juiceRect'); if (jr) jr.setAttribute('y', (222 + T / 480 * 6 + sprays * .6).toFixed(2));
+  }
+  let userTouched = false, anim = null;
+  function animateTo(target) {
+    const from = T, t0 = performance.now(), dur = 2200;
+    cancelAnimationFrame(anim);
+    const step = now => {
+      const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      T = from + (target - from) * e; render();
+      if (k < 1) anim = requestAnimationFrame(step);
+    };
+    anim = requestAnimationFrame(step);
+  }
+  timeEl && timeEl.addEventListener('input', () => { userTouched = true; cancelAnimationFrame(anim); T = Uinv(+timeEl.value / 1000); render(); });
+
+  // ---------- slow reveal ----------
+  const rvs = [...document.querySelectorAll('.rv')];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  rvs.forEach((el, i) => setTimeout(() => el.classList.add('in'), reduce ? 0 : 60 + Math.min(i, 8) * 95));
+  setTimeout(() => document.querySelectorAll('#chart .cv').forEach((p, i) => {
+    p.style.transition = `stroke-dashoffset ${reduce ? .1 : 2.8}s ${i * .35}s cubic-bezier(.4,0,.2,1)`; p.style.strokeDashoffset = 0;
+  }), 500);
+  // the evening begins by itself, slowly, until someone takes over
+  setTimeout(() => { if (!userTouched) animateTo(48); }, 900);
+
+  // ---------- spray: mist particles + a soft hiss ----------
+  const cv = $('#mist'), cx = cv ? cv.getContext('2d') : null, bottle = $('#bottle');
+  let parts = [], dpr = 1, sprays = 0, ac = null, running = false;
+  function size() { if (!cv) return; dpr = Math.min(2, devicePixelRatio || 1); cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; cx && cx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  addEventListener('resize', size); size();
+  function hiss() {
+    try {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      const len = ac.sampleRate * .5, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(), t = ac.currentTime;
+      src.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = 5200; bp.Q.value = .8;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.22, t + .03); g.gain.exponentialRampToValueAtTime(.001, t + .45);
+      src.connect(bp); bp.connect(g); g.connect(ac.destination); src.start(t); src.stop(t + .5);
+    } catch (_) {}
+  }
+  const SILLAGE = ['Sillage: moderate. Compliments: probable.', 'Two sprays. Elegant. Three would be a statement.', 'Now the lift will smell of you for an hour.', 'The neighbours have noticed. Discreetly, of course.', 'That’s quite enough, darling.'];
+  function spray() {
+    if (!bottle || !cx) return;
+    const r = bottle.getBoundingClientRect(), sx = r.left + r.width * .5, sy = r.top + r.height * .06;
+    for (let i = 0; i < 160; i++) {
+      const a = -Math.PI / 2 + (Math.random() - .5) * 1.4 + (Math.random() < .5 ? -.25 : .25), s = 60 + Math.random() * 240;
+      parts.push({ x: sx + (Math.random() - .5) * 10, y: sy, vx: Math.cos(a) * s + 40, vy: Math.sin(a) * s, life: 1, r: .6 + Math.random() * 2.2, g: Math.random() < .25 });
+    }
+    sprays++; hiss();
+    if (detail) { detail.style.opacity = 0; setTimeout(() => { detail.innerHTML = `<b>Spray nº ${sprays}</b>${SILLAGE[Math.min(sprays - 1, SILLAGE.length - 1)]}`; detail.style.opacity = 1; }, 250); }
+    userTouched = true;
+    if (T > 30) animateTo(0);
+    render();
+    if (!running) { running = true; requestAnimationFrame(tick); }
+  }
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    cx.clearRect(0, 0, innerWidth, innerHeight);
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      p.vx *= 1 - dt * 1.6; p.vy = p.vy * (1 - dt * 1.6) + 14 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * .42;
+      if (p.life <= 0) { parts.splice(i, 1); continue; }
+      cx.globalAlpha = p.life * (p.g ? .95 : .35);
+      cx.fillStyle = p.g ? '#f7e3b0' : '#fff4de';
+      cx.beginPath(); cx.arc(p.x, p.y, p.r * (p.g ? 1 : 2.4 - p.life), 0, 6.283); cx.fill();
+    }
+    cx.globalAlpha = 1;
+    if (parts.length) requestAnimationFrame(tick); else { running = false; cx.clearRect(0, 0, innerWidth, innerHeight); }
+  }
+  if (bottle) {
+    bottle.addEventListener('click', spray);
+    bottle.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); spray(); } });
+  }
+  last = performance.now();
+  const buy = $('#buy');
+  buy && buy.addEventListener('click', () => {
+    buy.textContent = 'Reserved — we will write';
+    if (detail) { detail.innerHTML = '<b>Réservation</b>A flacon has been set aside under your name. A handwritten card will follow, as is customary, some time before the heat death of the universe.'; }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

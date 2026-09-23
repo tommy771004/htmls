@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Study — a Perlin field drawn in ink</title>
+<style>
+:root{
+  --paper:#f2ead8; --paper2:#ebe1ca; --ink:#2b2118; --ink2:#5f5243; --rule:#b8aa8f;
+  --pal:"Palatino Linotype",Palatino,"Book Antiqua","URW Palladio L",Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--paper)}
+body{color:var(--ink);font-family:var(--pal);overflow:hidden;
+  background:
+    radial-gradient(ellipse at 50% 45%,transparent 50%,rgba(120,95,55,.16)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .33 0 0 0 0 .22 0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.008 .03' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .4 0 0 0 0 .25 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23f)'/%3E%3C/svg%3E"),
+    linear-gradient(160deg,var(--paper),var(--paper2))}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+
+.label{position:fixed;left:clamp(18px,4vw,56px);top:clamp(14px,3vh,30px);font-style:italic;pointer-events:none;line-height:1.35}
+.label h1{margin:0;font-weight:400;font-size:clamp(16px,1.5vw,20px);letter-spacing:.02em}
+.label p{margin:2px 0 0;font-size:13px;color:var(--ink2)}
+.meter{position:fixed;left:clamp(18px,4vw,56px);bottom:clamp(12px,2.6vh,26px);font-style:italic;font-size:13px;color:var(--ink2);pointer-events:none;max-width:60vw}
+.meter b{font-weight:400;color:var(--ink);font-variant-numeric:oldstyle-nums}
+
+/* mini controls in the corner */
+.ctl{position:fixed;right:clamp(12px,2.4vw,30px);bottom:clamp(12px,2.4vh,26px);z-index:5;font-size:13px}
+.toggle{display:flex;align-items:center;gap:8px;margin-left:auto;background:rgba(242,234,216,.85);border:1px solid var(--rule);min-height:40px;padding:0 14px;font:italic 14px var(--pal);color:var(--ink);cursor:pointer;backdrop-filter:blur(4px)}
+.toggle svg{transition:transform .5s}
+.ctl.open .toggle svg{transform:rotate(180deg)}
+.panel{position:absolute;right:0;bottom:48px;width:250px;background:rgba(245,238,222,.94);border:1px solid var(--rule);padding:14px 16px 12px;box-shadow:0 10px 30px rgba(60,45,25,.15);backdrop-filter:blur(6px);transform-origin:100% 100%;transition:opacity .45s,transform .45s;opacity:0;transform:translateY(6px) scale(.98);pointer-events:none}
+.ctl.open .panel{opacity:1;transform:none;pointer-events:auto}
+.row{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:2px 8px;margin-bottom:8px}
+.row label{font-style:italic}
+.row output{font-size:12px;color:var(--ink2);font-variant-numeric:oldstyle-nums}
+.row input{grid-column:1/-1}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:transparent;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink2)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--paper);border:1px solid var(--ink);margin-top:-7px}
+input[type=range]::-moz-range-track{height:1px;background:var(--ink2)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--paper);border:1px solid var(--ink)}
+input[type=range]:focus-visible{outline:1px dotted var(--ink);outline-offset:2px}
+.inks{display:flex;gap:8px;margin:2px 0 12px;align-items:center}
+.inks span{font-style:italic;margin-right:auto}
+.sw{width:26px;height:26px;border-radius:50%;border:1px solid var(--rule);cursor:pointer;padding:0;position:relative}
+.sw[aria-pressed=true]::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1px solid var(--ink)}
+.sw:focus-visible{outline:1px dotted var(--ink);outline-offset:6px}
+.btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;border-top:1px solid var(--rule);padding-top:10px}
+.btns button{font:italic 13px var(--pal);background:none;border:1px solid var(--rule);min-height:40px;cursor:pointer;color:var(--ink)}
+.btns button:hover{border-color:var(--ink)}
+.keys{font-size:11.5px;color:var(--ink2);margin:8px 0 0;font-style:italic;text-align:center}
+.toast{position:fixed;left:50%;top:20px;transform:translate(-50%,-8px);font-style:italic;font-size:14px;background:rgba(245,238,222,.95);border:1px solid var(--rule);padding:8px 16px;opacity:0;transition:opacity .6s,transform .6s;pointer-events:none;z-index:6}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (max-width:520px){
+  .label p{font-size:12px}
+  .meter{max-width:48vw;font-size:12px}
+  .panel{width:min(250px,calc(100vw - 24px))}
+}
+</style>
+</head>
+<body>
+<canvas id="cv" aria-label="Generative ink drawing. Drag on the paper to add ink that follows the field."></canvas>
+<div class="label"><h1 id="ttl">Flow Study, No. 17</h1><p id="sub">ink on cotton rag · Perlin field</p></div>
+<div class="meter" aria-live="polite" id="meter">the pen has travelled <b>0</b> metres</div>
+
+<div class="ctl" id="ctl">
+  <div class="panel" id="panel" role="group" aria-label="Drawing parameters">
+    <div class="row"><label for="p-scale">Scale of the field</label><output id="o-scale"></output><input type="range" id="p-scale" min="1" max="12" step=".1" value="3.4"></div>
+    <div class="row"><label for="p-curl">Curl</label><output id="o-curl"></output><input type="range" id="p-curl" min=".5" max="5" step=".1" value="2.2"></div>
+    <div class="row"><label for="p-count">Pens</label><output id="o-count"></output><input type="range" id="p-count" min="200" max="4000" step="100" value="1600"></div>
+    <div class="row"><label for="p-weight">Nib</label><output id="o-weight"></output><input type="range" id="p-weight" min=".3" max="2" step=".05" value=".7"></div>
+    <div class="inks" role="group" aria-label="Ink"><span>Ink</span>
+      <button class="sw" type="button" data-ink="43,33,24" style="background:#2b2118" aria-label="Sepia" aria-pressed="true"></button>
+      <button class="sw" type="button" data-ink="31,42,68" style="background:#1f2a44" aria-label="Indigo" aria-pressed="false"></button>
+      <button class="sw" type="button" data-ink="168,62,40" style="background:#a83e28" aria-label="Vermilion" aria-pressed="false"></button>
+      <button class="sw" type="button" data-ink="70,78,62" style="background:#464e3e" aria-label="Verdigris" aria-pressed="false"></button>
+    </div>
+    <div class="btns"><button type="button" id="b-new">New plate</button><button type="button" id="b-pause">Pause</button><button type="button" id="b-save">Save</button></div>
+    <p class="keys">space pause · N new · S save · drag to ink</p>
+  </div>
+  <button class="toggle" id="toggle" type="button" aria-expanded="false" aria-controls="panel">parameters <svg width="10" height="7" viewBox="0 0 10 7" aria-hidden="true"><path d="M1 6 L5 1 L9 6" fill="none" stroke="#2b2118"/></svg></button>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+'use strict';
+const $=id=>document.getElementById(id);
+const cv=$('cv'); if(!cv) return;
+const cx=cv.getContext('2d');
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- improved Perlin noise (seeded) ---------- */
+const PERM=new Uint8Array(512);
+function mulberry(a){ return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function seedNoise(seed){ const r=mulberry(seed); const p=[...Array(256).keys()]; for(let i=255;i>0;i--){ const j=Math.floor(r()*(i+1)); [p[i],p[j]]=[p[j],p[i]]; } for(let i=0;i<512;i++) PERM[i]=p[i&255]; }
+const fade=t=>t*t*t*(t*(t*6-15)+10);
+const lerp=(a,b,t)=>a+(b-a)*t;
+function grad(h,x,y,z){ h&=15; const u=h<8?x:y, v=h<4?y:(h===12||h===14?x:z); return ((h&1)?-u:u)+((h&2)?-v:v); }
+function noise(x,y,z){
+  const X=Math.floor(x)&255, Y=Math.floor(y)&255, Z=Math.floor(z)&255;
+  x-=Math.floor(x); y-=Math.floor(y); z-=Math.floor(z);
+  const u=fade(x), v=fade(y), w=fade(z);
+  const A=PERM[X]+Y, AA=PERM[A]+Z, AB=PERM[A+1]+Z, B=PERM[X+1]+Y, BA=PERM[B]+Z, BB=PERM[B+1]+Z;
+  return lerp(lerp(lerp(grad(PERM[AA],x,y,z),grad(PERM[BA],x-1,y,z),u),lerp(grad(PERM[AB],x,y-1,z),grad(PERM[BB],x-1,y-1,z),u),v),
+              lerp(lerp(grad(PERM[AA+1],x,y,z-1),grad(PERM[BA+1],x-1,y,z-1),u),lerp(grad(PERM[AB+1],x,y-1,z-1),grad(PERM[BB+1],x-1,y-1,z-1),u),v),w);
+}
+
+/* ---------- parameters ---------- */
+const S={scale:3.4,curl:2.2,count:1600,weight:.7,ink:'43,33,24',seed:17};
+try{ const s=JSON.parse(localStorage.getItem('flowstudy')||'null'); if(s) Object.assign(S,s); }catch(e){}
+function persist(){ try{ localStorage.setItem('flowstudy',JSON.stringify(S)); }catch(e){} }
+const INKNAME={'43,33,24':'sepia','31,42,68':'indigo','168,62,40':'vermilion','70,78,62':'verdigris'};
+
+let W=0,H=0,dpr=1, plate={x:0,y:0,w:0,h:0}, parts=[], z=0, steps=0, travelled=0, paused=false, done=false;
+const BUDGET=1100; // frames of ink before the plate is considered finished
+function size(){
+  dpr=Math.min(2,window.devicePixelRatio||1); W=innerWidth; H=innerHeight;
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+  const m=W<600?{x:18,t:76,b:64}:{x:Math.max(56,W*.06),t:88,b:70};
+  plate={x:m.x,y:m.t,w:W-m.x*2,h:H-m.t-m.b};
+}
+function spawn(p,x,y,hand){
+  p.x=x!=null?x:plate.x+Math.random()*plate.w; p.y=y!=null?y:plate.y+Math.random()*plate.h;
+  p.life=hand?160+Math.random()*120:60+Math.random()*260; p.hand=!!hand; p.a=hand?.16:.05+Math.random()*.05;
+  return p;
+}
+function frameRule(){
+  cx.save(); cx.setTransform(dpr,0,0,dpr,0,0);
+  cx.strokeStyle='rgba(95,82,67,.55)'; cx.lineWidth=.8; cx.strokeRect(plate.x-10.5,plate.y-10.5,plate.w+21,plate.h+21);
+  cx.strokeStyle='rgba(95,82,67,.25)'; cx.strokeRect(plate.x-14.5,plate.y-14.5,plate.w+29,plate.h+29);
+  cx.restore();
+}
+function restart(newSeed){
+  if(newSeed) S.seed=1+Math.floor(Math.random()*9999);
+  seedNoise(S.seed); persist();
+  size(); cx.setTransform(1,0,0,1,0,0); cx.clearRect(0,0,cv.width,cv.height);
+  frameRule();
+  parts=[]; for(let i=0;i<S.count;i++) parts.push(spawn({}));
+  z=0; steps=0; travelled=0; done=false;
+  const t=$('ttl'); if(t) t.textContent=`Flow Study, No. ${S.seed}`;
+  const sb=$('sub'); if(sb) sb.textContent=`${INKNAME[S.ink]||'ink'} on cotton rag · Perlin field, curl ${S.curl.toFixed(1)}`;
+  // pre-warm so the sheet is never blank
+  for(let i=0;i<(reduce?BUDGET:130);i++) step(true);
+}
+function step(force){
+  const sc=S.scale/1000, TAU=Math.PI*2, turns=S.curl, sp=1.1;
+  cx.setTransform(dpr,0,0,dpr,0,0);
+  cx.lineWidth=S.weight; cx.lineCap='round';
+  // group by alpha bucket to keep draw calls low
+  const paths=[new Path2D(),new Path2D(),new Path2D()];
+  const active=done?parts.filter(p=>p.hand):parts;
+  for(const p of active){
+    const a=noise(p.x*sc,p.y*sc,z)*TAU*turns;
+    const nx=p.x+Math.cos(a)*sp, ny=p.y+Math.sin(a)*sp;
+    const b=p.hand?2:(p.a>.075?1:0);
+    paths[b].moveTo(p.x,p.y); paths[b].lineTo(nx,ny);
+    p.x=nx; p.y=ny; p.life--; travelled+=sp;
+    if(p.life<=0||p.x<plate.x||p.y<plate.y||p.x>plate.x+plate.w||p.y>plate.y+plate.h){
+      if(p.hand){ p.dead=true; } else spawn(p);
+    }
+  }
+  parts=parts.filter(p=>!p.dead);
+  cx.strokeStyle=`rgba(${S.ink},.05)`; cx.stroke(paths[0]);
+  cx.strokeStyle=`rgba(${S.ink},.09)`; cx.stroke(paths[1]);
+  cx.strokeStyle=`rgba(${S.ink},.2)`; cx.stroke(paths[2]);
+  z+=.0016; steps++;
+  if(!done&&steps>=BUDGET){ done=true; toast('Plate complete. Drag to add ink, or begin a new plate.'); }
+}
+let last=0;
+function loop(t){
+  if(!paused&&!document.hidden){ step(); }
+  if(t-last>250){ last=t; const m=$('meter'); if(m){ const metres=travelled*0.26/1000; m.innerHTML=done&&!parts.some(p=>p.hand)?`finished · the pen travelled <b>${metres.toFixed(1)}</b> metres`:`the pen has travelled <b>${metres.toFixed(1)}</b> metres${paused?' · paused':''}`; } }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- drawing by hand: ink that obeys the field ---------- */
+let down=false;
+cv.addEventListener('pointerdown',e=>{ down=true; try{ cv.setPointerCapture(e.pointerId); }catch(_){} addInk(e); });
+cv.addEventListener('pointermove',e=>{ if(down) addInk(e); });
+const up=()=>{ down=false; };
+cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
+function addInk(e){ for(let i=0;i<10;i++) parts.push(spawn({},e.clientX+(Math.random()-.5)*14,e.clientY+(Math.random()-.5)*14,true)); }
+
+/* ---------- controls ---------- */
+const ctl=$('ctl'), tg=$('toggle');
+if(tg&&ctl) tg.addEventListener('click',()=>{ const o=!ctl.classList.contains('open'); ctl.classList.toggle('open',o); tg.setAttribute('aria-expanded',String(o)); });
+if(ctl&&innerWidth>900){ ctl.classList.add('open'); if(tg) tg.setAttribute('aria-expanded','true'); }
+const fmt={scale:v=>(+v).toFixed(1),curl:v=>(+v).toFixed(1)+' turns',count:v=>v,weight:v=>(+v).toFixed(2)+' pt'};
+['scale','curl','count','weight'].forEach(k=>{
+  const el=$('p-'+k), o=$('o-'+k); if(!el) return;
+  el.value=S[k]; if(o) o.textContent=fmt[k](S[k]);
+  el.addEventListener('input',()=>{ if(o) o.textContent=fmt[k](el.value); });
+  el.addEventListener('change',()=>{ S[k]=+el.value; restart(false); });
+});
+document.querySelectorAll('.sw').forEach(b=>{
+  b.setAttribute('aria-pressed',String(b.dataset.ink===S.ink));
+  b.addEventListener('click',()=>{ S.ink=b.dataset.ink; document.querySelectorAll('.sw').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); restart(false); });
+});
+const bn=$('b-new'), bp=$('b-pause'), bs=$('b-save');
+function togglePause(){ paused=!paused; if(bp) bp.textContent=paused?'Resume':'Pause'; }
+if(bn) bn.addEventListener('click',()=>restart(true));
+if(bp) bp.addEventListener('click',togglePause);
+function save(){
+  try{
+    const o=document.createElement('canvas'); o.width=cv.width; o.height=cv.height; const c=o.getContext('2d');
+    c.fillStyle='#f2ead8'; c.fillRect(0,0,o.width,o.height); c.drawImage(cv,0,0);
+    c.setTransform(dpr,0,0,dpr,0,0); c.fillStyle='#5f5243'; c.font='italic 13px "Palatino Linotype", Palatino, Georgia, serif';
+    c.fillText(`Flow Study, No. ${S.seed}`,plate.x,H-24);
+    const a=document.createElement('a'); a.download=`flow-study-${S.seed}.png`; a.href=o.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove();
+    toast('Plate saved to your downloads.');
+  }catch(e){ toast('This browser would not let the plate leave the studio.'); }
+}
+if(bs) bs.addEventListener('click',save);
+addEventListener('keydown',e=>{
+  if(e.target.closest&&e.target.closest('input,button')&&e.key===' ') return;
+  if(e.key===' '){ e.preventDefault(); togglePause(); }
+  else if(e.key==='n'||e.key==='N') restart(true);
+  else if(e.key==='s'||e.key==='S') save();
+});
+let tt=0;
+function toast(m){ const t=$('toast'); if(!t) return; t.textContent=m; t.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('on'),2600); }
+let rz=0;
+addEventListener('resize',()=>{ if(Math.abs(innerWidth-W)<2&&Math.abs(innerHeight-H)<120) return; clearTimeout(rz); rz=setTimeout(()=>restart(false),200); });
+
+restart(false);
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

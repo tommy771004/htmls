@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Lancet of Chance — a Voronoi stained-glass window</title>
+<style>
+  :root{
+    --parch:#dccfb2;
+    --parch-dim:#a89c84;
+    --rubric:#c0392b;
+    --gold:#d8a53a;
+    --stone:#27231f;
+    --glow:rgba(60,90,200,.35);
+    --serif:"Palatino Linotype","Book Antiqua",Palatino,"URW Palladio L","Georgia",serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh;color:var(--parch);font-family:var(--serif);
+    background-color:var(--stone);
+    background-image:
+      radial-gradient(60% 55% at 50% 38%, var(--glow), transparent 70%),
+      /* ashlar courses */
+      linear-gradient(0deg, rgba(0,0,0,.35) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,.28) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,.28) 1px, transparent 1px),
+      radial-gradient(120% 80% at 50% 0%, #3a342d, #1c1916 70%);
+    background-size:100% 100%, 100% 64px, 132px 64px, 132px 64px, 100% 100%;
+    background-position:0 0, 0 0, 0 0, 66px 32px, 0 0;
+    transition:background-color 1.2s ease;
+  }
+  body::after{ /* stone grain */
+    content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .nave{
+    position:relative;z-index:1;
+    display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+    gap:clamp(20px,4vw,64px);align-items:center;
+    min-height:100vh;padding:clamp(18px,3vw,40px) clamp(16px,3vw,48px);
+    max-width:1440px;margin:0 auto;
+    overflow:clip; /* clips only the decorative floor light */
+  }
+  /* ---------- manuscript folio ---------- */
+  .folio{max-width:360px;justify-self:end}
+  .rubric{color:var(--rubric);font-variant:small-caps;letter-spacing:.14em;font-size:14px;margin:0 0 .6em}
+  h1{font-weight:400;font-size:clamp(34px,3.6vw,54px);line-height:1.02;margin:0 0 .5em;letter-spacing:.01em}
+  h1 em{display:block;font-size:.5em;color:var(--gold);letter-spacing:.08em;font-variant:small-caps;font-style:italic;margin-top:.35em}
+  .folio p{font-size:16px;line-height:1.65;margin:0 0 1em;color:var(--parch);hyphens:auto}
+  .folio p.first::first-letter{
+    float:left;font-size:3.6em;line-height:.8;padding:.08em .1em 0 0;margin-right:.05em;color:var(--rubric);
+    text-shadow:1px 1px 0 #6b1b12;
+  }
+  .ledger{border-top:1px solid rgba(220,207,178,.25);border-bottom:1px solid rgba(220,207,178,.25);padding:.6em 0;margin:1.2em 0;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:4px;text-align:center}
+  .ledger b{display:block;font-weight:400;font-size:26px;color:var(--gold);font-variant-numeric:oldstyle-nums}
+  .ledger span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--parch-dim)}
+  .colophon{font-style:italic;font-size:13px;color:var(--parch-dim)}
+  .colophon kbd{font-family:var(--serif);font-style:normal;border:1px solid rgba(220,207,178,.35);border-radius:3px;padding:0 .35em;font-size:12px}
+
+  /* ---------- the bay ---------- */
+  .bay{position:relative;display:flex;flex-direction:column;align-items:center}
+  .window{
+    position:relative;
+    height:min(84vh,780px);aspect-ratio:1/2.15;
+    filter:drop-shadow(0 0 30px var(--glow));
+  }
+  .window canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:manipulation}
+  .sill{width:130%;height:14px;margin-top:-4px;border-radius:2px;
+    background:linear-gradient(#8a8074,#5b534a 60%,#3b352f);box-shadow:0 6px 12px rgba(0,0,0,.5)}
+  .floorwrap{position:absolute;left:50%;top:100%;width:300%;height:52vh;transform:translateX(-50%);pointer-events:none;overflow:clip;z-index:-1}
+  canvas.floor{
+    position:absolute;left:33.3%;top:0;width:33.3%;height:100%;
+    transform-origin:50% 0;
+    transform:perspective(600px) rotateX(58deg) skewX(var(--skew,0deg)) scaleY(1.2);
+    filter:blur(7px) saturate(1.4);opacity:.55;mix-blend-mode:screen;
+    transition:transform 1.6s cubic-bezier(.4,0,.2,1);
+  }
+  .beams{position:absolute;left:50%;top:6%;width:120%;height:150%;transform:translateX(-50%) rotate(var(--beam,0deg));transform-origin:50% 0;
+    pointer-events:none;mix-blend-mode:screen;transition:transform 1.6s cubic-bezier(.4,0,.2,1);z-index:2}
+  .beams i{position:absolute;top:0;height:100%;width:18%;
+    background:linear-gradient(180deg, rgba(255,240,215,.0), rgba(255,240,215,.07) 30%, rgba(255,240,215,0) 95%);
+    filter:blur(10px);animation:shaft 9s ease-in-out infinite alternate}
+  .beams i:nth-child(1){left:18%}
+  .beams i:nth-child(2){left:44%;width:12%;animation-delay:-3s}
+  .beams i:nth-child(3){left:64%;animation-delay:-6s}
+  @keyframes shaft{from{opacity:.35}to{opacity:1}}
+  .mote{position:absolute;width:3px;height:3px;border-radius:50%;background:rgba(255,245,220,.8);box-shadow:0 0 6px rgba(255,245,220,.8);
+    animation:float var(--t,14s) linear infinite;animation-delay:var(--dl,0s);opacity:0}
+  @keyframes float{0%{transform:translate(0,0);opacity:0}15%{opacity:.8}85%{opacity:.6}100%{transform:translate(var(--dx,20px),var(--dy,-120px));opacity:0}}
+
+  /* ---------- the glazier's bench ---------- */
+  .bench{max-width:340px;justify-self:start;width:100%}
+  .bench h2{font-weight:400;font-variant:small-caps;letter-spacing:.16em;font-size:15px;color:var(--gold);margin:0 0 1.1em;
+    display:flex;align-items:center;gap:.7em}
+  .bench h2::before,.bench h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(216,165,58,.6),transparent)}
+  .grp{margin-bottom:1.5em}
+  .lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--parch-dim);margin-bottom:.6em}
+  .lbl output{font-size:20px;letter-spacing:0;text-transform:none;color:var(--parch);font-variant-numeric:oldstyle-nums}
+  .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .chip{background:none;border:0;padding:0;cursor:pointer;color:var(--parch-dim);font-family:var(--serif);font-size:11.5px;font-style:italic;text-align:center}
+  .chip .q{display:grid;grid-template-columns:1fr 1fr;aspect-ratio:1;border:3px solid #141214;background:#141214;gap:3px;border-radius:3px 3px 40% 40% / 3px 3px 12% 12%;
+    box-shadow:0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .4s ease, transform .3s ease;margin-bottom:.35em}
+  .chip .q i{display:block}
+  .chip[aria-pressed="true"]{color:var(--parch)}
+  .chip[aria-pressed="true"] .q{box-shadow:0 0 0 1px var(--gold), 0 0 18px var(--chipglow,rgba(80,120,255,.6));transform:translateY(-2px)}
+  .chip:focus-visible{outline:1px dashed var(--gold);outline-offset:4px}
+
+  /* lead-came range */
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;background:transparent;margin:0;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(#5a5a62,#1a1a1e 45%,#3c3c44 55%,#16161a);box-shadow:0 1px 0 rgba(255,255,255,.08)}
+  input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:linear-gradient(#5a5a62,#1a1a1e 45%,#3c3c44 55%,#16161a)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-8px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#d6d6dc,#8a8a94 45%,#4a4a52);box-shadow:0 2px 4px rgba(0,0,0,.6)}
+  input[type=range]::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:radial-gradient(circle at 35% 30%,#d6d6dc,#8a8a94 45%,#4a4a52)}
+  input[type=range]:focus-visible{outline:1px dashed var(--gold);outline-offset:2px}
+
+  .dial{display:block;width:100%;max-width:300px;height:auto;margin:0 auto;overflow:visible}
+  .dial .hr{cursor:pointer}
+  .dial .hr circle.hit{fill:transparent}
+  .dial .hr text{font-family:var(--serif);font-size:12px;fill:var(--parch-dim);font-variant:small-caps;letter-spacing:.08em}
+  .dial .hr.on text{fill:var(--gold)}
+  .dial .hr .pip{fill:#3a342d;stroke:var(--parch-dim);stroke-width:1}
+  .dial .hr.on .pip{fill:var(--gold);stroke:var(--gold)}
+  .dial .hr:focus-visible{outline:none}
+  .dial .hr:focus-visible .pip{stroke:#fff;stroke-width:2}
+  .dial #gnomon{transition:transform 1.4s cubic-bezier(.4,0,.2,1);transform-origin:150px 130px}
+  .hourname{text-align:center;font-style:italic;color:var(--parch);font-size:15px;min-height:1.6em;margin-top:.2em}
+  .hourname b{color:var(--rubric);font-style:normal;font-variant:small-caps;letter-spacing:.1em;font-weight:400}
+
+  .recut{
+    width:100%;min-height:48px;cursor:pointer;font-family:var(--serif);font-size:16px;letter-spacing:.14em;font-variant:small-caps;
+    color:var(--parch);background:linear-gradient(#3a332c,#241f1b);border:1px solid rgba(216,165,58,.5);border-radius:2px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 3px 8px rgba(0,0,0,.4);transition:border-color .3s, color .3s;
+  }
+  .recut:hover,.recut:focus-visible{border-color:var(--gold);color:#fff;outline:none}
+  .hint{font-size:13px;font-style:italic;color:var(--parch-dim);text-align:center;margin-top:.8em}
+
+  @media (max-width:1060px){
+    .nave{grid-template-columns:minmax(0,1fr);justify-items:center;gap:28px}
+    .bay{order:1}
+    .bench{order:2;justify-self:center;max-width:420px}
+    .folio{order:3;justify-self:center;max-width:520px}
+    .window{height:min(64vh,620px)}
+    .floorwrap{height:26vh}
+    canvas.floor{opacity:.22}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .beams i,.mote{animation:none}
+    .mote{display:none}
+  }
+</style>
+</head>
+<body>
+<main class="nave">
+  <section class="folio" aria-label="About this window">
+    <p class="rubric">Fenestra lxxii · Lux per vitrum</p>
+    <h1>The Lancet of Chance<em>a window leaded by nearest neighbour</em></h1>
+    <p class="first">Every shard in this window belongs to whichever seed lies nearest to it. Mathematicians call the result a Voronoi diagram; the glaziers of Chartres had no word for it, and needed none. They simply cut the glass where two claims met, and ran lead along the quarrel.</p>
+    <p>Here the border, the three rosettes and the ground are all cut by the same rule. Only the seeds are placed with intent; the lead finds its own way.</p>
+    <div class="ledger" aria-live="polite">
+      <div><b id="nPanes">0</b><span>panes</span></div>
+      <div><b id="nJoints">0</b><span>solder joints</span></div>
+      <div><b id="nLead">0</b><span>m of lead</span></div>
+    </div>
+    <p class="colophon">Tap the glass to cut a new pane. <kbd>R</kbd> re-cuts the cartoon, <kbd>1</kbd>–<kbd>4</kbd> change the glass, <kbd>←</kbd> <kbd>→</kbd> turn the hours.</p>
+  </section>
+
+  <section class="bay">
+    <div class="window" id="win">
+      <canvas id="glass" aria-label="Stained-glass lancet window; tap to add a pane" role="img"></canvas>
+    </div>
+    <div class="sill"></div>
+    <div class="floorwrap"><canvas class="floor" id="floor"></canvas></div>
+    <div class="beams" aria-hidden="true"><i></i><i></i><i></i></div>
+  </section>
+
+  <aside class="bench" aria-label="The glazier's bench">
+    <h2>The Glazier’s Bench</h2>
+    <div class="grp">
+      <div class="lbl">Glass</div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="grp">
+      <div class="lbl"><label for="dens">Quarrels in the ground</label><output id="densOut">90</output></div>
+      <input type="range" id="dens" min="30" max="220" step="5" value="90">
+    </div>
+    <div class="grp">
+      <div class="lbl">Hour of the office</div>
+      <svg class="dial" id="dial" viewBox="0 0 300 150" aria-label="Choose the hour">
+        <path d="M20 130 A130 130 0 0 1 280 130" fill="none" stroke="rgba(220,207,178,.25)" stroke-width="1"/>
+        <path d="M40 130 A110 110 0 0 1 260 130" fill="none" stroke="rgba(220,207,178,.12)" stroke-width="10"/>
+        <line x1="10" y1="130" x2="290" y2="130" stroke="rgba(220,207,178,.3)"/>
+        <g id="gnomon"><line x1="150" y1="130" x2="150" y2="36" stroke="var(--gold)" stroke-width="2"/><circle cx="150" cy="130" r="5" fill="var(--gold)"/></g>
+        <g id="hours"></g>
+      </svg>
+      <div class="hourname" id="hourName"></div>
+    </div>
+    <button class="recut" id="recut" type="button">Re-cut the cartoon</button>
+    <p class="hint">tap the glass · every click is a new pane</p>
+  </aside>
+</main>
+
+<script>
+(() => {
+  const cv = document.getElementById('glass');
+  const win = document.getElementById('win');
+  const floorCv = document.getElementById('floor');
+  if (!cv || !win || !floorCv) return;
+  const ctx = cv.getContext('2d');
+  const fctx = floorCv.getContext('2d');
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------------- palettes (HSL) ---------------- */
+  const PAL = [
+    { name: 'Chartres', glow: 'rgba(50,90,220,.38)',
+      bg: [[222, 80, 30], [216, 82, 25], [229, 70, 37], [208, 78, 22], [222, 80, 30]], fleck: [[355, 76, 36], [44, 88, 50]],
+      band: [[354, 80, 38], [44, 90, 52]], ring: [[46, 92, 58], [40, 35, 82]],
+      rose: [[354, 80, 38], [44, 90, 50], [150, 60, 28], [210, 85, 40]], heart: [46, 95, 60] },
+    { name: 'Sainte-Chapelle', glow: 'rgba(210,40,60,.34)',
+      bg: [[352, 78, 30], [358, 82, 26], [346, 70, 34], [352, 78, 30], [222, 80, 30]], fleck: [[222, 80, 34], [46, 90, 52]],
+      band: [[222, 80, 32], [46, 90, 52]], ring: [[46, 92, 58], [210, 30, 80]],
+      rose: [[222, 82, 34], [46, 90, 50], [280, 45, 32], [352, 85, 40]], heart: [46, 95, 60] },
+    { name: 'Canterbury', glow: 'rgba(60,170,120,.3)',
+      bg: [[152, 58, 24], [165, 50, 28], [140, 55, 21], [175, 45, 26], [152, 58, 24]], fleck: [[38, 90, 48], [8, 70, 38]],
+      band: [[36, 90, 46], [12, 70, 36]], ring: [[48, 85, 62], [60, 30, 80]],
+      rose: [[36, 90, 46], [8, 72, 38], [190, 60, 34], [150, 60, 32]], heart: [44, 95, 62] },
+    { name: 'York Amethyst', glow: 'rgba(150,70,210,.32)',
+      bg: [[278, 45, 26], [268, 50, 30], [288, 40, 22], [258, 45, 28], [278, 45, 26]], fleck: [[44, 90, 52], [172, 55, 34]],
+      band: [[44, 90, 50], [172, 55, 32]], ring: [[44, 90, 62], [30, 25, 84]],
+      rose: [[44, 90, 50], [172, 55, 34], [330, 55, 38], [258, 60, 40]], heart: [44, 95, 62] }
+  ];
+  let palIdx = 0;
+
+  /* ---------------- hours ---------------- */
+  const HOURS = [
+    { n: 'Lauds', d: 'first light, low in the east', x: .12, y: .52, c: [255, 190, 180], k: .30, skew: 34, beam: -24 },
+    { n: 'Terce', d: 'the third hour; the nave warms', x: .30, y: .34, c: [255, 232, 205], k: .34, skew: 18, beam: -12 },
+    { n: 'Sext', d: 'noon; the glass burns brightest', x: .50, y: .24, c: [255, 252, 238], k: .40, skew: 0, beam: 0 },
+    { n: 'None', d: 'the ninth hour; long gold', x: .70, y: .34, c: [255, 225, 175], k: .34, skew: -18, beam: 12 },
+    { n: 'Vespers', d: 'evening; the reds go last', x: .88, y: .52, c: [255, 160, 100], k: .30, skew: -34, beam: 24 }
+  ];
+  let hour = 2, light = { x: .5, y: .24, c: [255, 252, 238], k: .5 };
+
+  /* ---------------- geometry ---------------- */
+  let W = 0, H = 0, dpr = 1, F = 16;
+  let outline = [], seeds = [], cells = [], glassC, leadC, noisePat = null, flash = [];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = arr => arr[(Math.random() * arr.length) | 0];
+
+  function lancetPts(x, y, w, h, n) {
+    // equilateral pointed arch on a rectangle; returns convex polygon (clockwise on screen)
+    const ys = y + w * 0.866, pts = [];
+    pts.push([x, y + h]);
+    for (let i = 0; i <= n; i++) { const a = Math.PI + (Math.PI / 3) * (i / n); pts.push([x + w + w * Math.cos(a), ys + w * Math.sin(a)]); }
+    for (let i = 1; i <= n; i++) { const a = Math.PI * 5 / 3 + (Math.PI / 3) * (i / n); pts.push([x + w * Math.cos(a), ys + w * Math.sin(a)]); }
+    pts.push([x + w, y + h]);
+    return pts;
+  }
+  function tracePath(c, pts) { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.closePath(); }
+  function inside(p, poly) {
+    let s = 0;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const cr = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+      if (cr !== 0) { if (s === 0) s = Math.sign(cr); else if (Math.sign(cr) !== s) return false; }
+    }
+    return true;
+  }
+  function distToOutline(p) {
+    let m = Infinity;
+    for (let i = 0; i < outline.length; i++) {
+      const a = outline[i], b = outline[(i + 1) % outline.length];
+      const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy || 1;
+      let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L; t = Math.max(0, Math.min(1, t));
+      const ex = a[0] + dx * t - p[0], ey = a[1] + dy * t - p[1];
+      m = Math.min(m, ex * ex + ey * ey);
+    }
+    return Math.sqrt(m);
+  }
+  // walk the outline at even spacing, returning points offset inward by d
+  function walkInset(d, spacing) {
+    const out = [], n = outline.length;
+    const cx = W / 2, cy = H * .6;
+    let carry = 0;
+    for (let i = 0; i < n; i++) {
+      const a = outline[i], b = outline[(i + 1) % n];
+      const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+      if (!L) continue;
+      let nx = -dy / L, ny = dx / L;
+      if ((cx - a[0]) * nx + (cy - a[1]) * ny < 0) { nx = -nx; ny = -ny; }
+      let t = carry;
+      while (t < L) { out.push([a[0] + dx * t / L + nx * d, a[1] + dy * t / L + ny * d]); t += spacing; }
+      carry = t - L;
+    }
+    return out.filter(p => inside(p, outline) && distToOutline(p) > d * .7);
+  }
+
+  function clipHalf(poly, s, o) {
+    const mx = (s.x + o.x) / 2, my = (s.y + o.y) / 2, nx = o.x - s.x, ny = o.y - s.y;
+    const res = [], n = poly.length;
+    for (let i = 0; i < n; i++) {
+      const p = poly[i], q = poly[(i + 1) % n];
+      const dp = (p[0] - mx) * nx + (p[1] - my) * ny, dq = (q[0] - mx) * nx + (q[1] - my) * ny;
+      if (dp <= 0) res.push(p);
+      if ((dp < 0 && dq > 0) || (dp > 0 && dq < 0)) { const t = dp / (dp - dq); res.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]); }
+    }
+    return res;
+  }
+  function computeCells() {
+    cells = seeds.map((s, i) => {
+      const order = [];
+      for (let j = 0; j < seeds.length; j++) if (j !== i) { const o = seeds[j]; order.push([(o.x - s.x) ** 2 + (o.y - s.y) ** 2, j]); }
+      order.sort((p, q) => p[0] - q[0]);
+      let poly = outline, maxR = Infinity;
+      for (const [d2, j] of order) {
+        if (d2 / 4 > maxR) break;
+        poly = clipHalf(poly, s, seeds[j]);
+        if (poly.length < 3) break;
+        maxR = 0; for (const p of poly) maxR = Math.max(maxR, (p[0] - s.x) ** 2 + (p[1] - s.y) ** 2);
+      }
+      return poly;
+    });
+  }
+  function centroid(poly) {
+    let a = 0, cx = 0, cy = 0;
+    for (let i = 0; i < poly.length; i++) {
+      const p = poly[i], q = poly[(i + 1) % poly.length], cr = p[0] * q[1] - q[0] * p[1];
+      a += cr; cx += (p[0] + q[0]) * cr; cy += (p[1] + q[1]) * cr;
+    }
+    if (Math.abs(a) < 1e-6) return null;
+    return [cx / (3 * a), cy / (3 * a)];
+  }
+
+  /* ---------------- design the cartoon ---------------- */
+  let medallions = [];
+  function jitter(hsl, amt) { return [hsl[0] + rnd(-6, 6) * amt, Math.max(0, Math.min(100, hsl[1] + rnd(-6, 6) * amt)), Math.max(6, Math.min(92, hsl[2] + rnd(-5, 5) * amt))]; }
+  function mkSeed(x, y, kind, base) {
+    return { x, y, kind, base, col: jitter(base, 1), ang: rnd(0, Math.PI * 2), streak: rnd(.1, .3), bub: Array.from({ length: (Math.random() * 3) | 0 }, () => [rnd(-.5, .5), rnd(-.5, .5), rnd(.6, 1.8)]) };
+  }
+  function regionColor(x, y) {
+    const P = PAL[palIdx];
+    for (const m of medallions) if (Math.hypot(x - m.x, y - m.y) < m.r) return pick(P.rose);
+    return Math.random() < .12 ? pick(P.fleck) : pick(P.bg);
+  }
+  function design() {
+    const P = PAL[palIdx];
+    seeds = [];
+    const g = W - 2 * F;
+    const d = Math.max(7, g * .03);
+    // border band: pairs of rows → a clean lead line at 2d inside the frame
+    const sp = d * 2.3;
+    walkInset(d, sp).forEach((p, i) => seeds.push(mkSeed(p[0], p[1], 'band', P.band[i % 2])));
+    walkInset(d * 3, sp * 1.7).forEach(p => seeds.push(mkSeed(p[0], p[1], 'edge', pick(P.bg))));
+    // three rosettes
+    const ys = F + g * .866;
+    const top = { x: W / 2, y: F + g * .58, r: g * .23, rings: [6] };
+    const bot = { x: W / 2, y: H - F - g * .34, r: g * .2, rings: [5] };
+    const gapTop = top.y + top.r, gapBot = bot.y - bot.r;
+    const main = { x: W / 2, y: (gapTop + gapBot) / 2, r: Math.min(g * .4, (gapBot - gapTop) / 2 - d * 3), rings: [6, 12] };
+    medallions = [main, top, bot];
+    medallions.forEach(m => {
+      const dr = d * 1.25;
+      const ringN = Math.max(14, Math.round(2 * Math.PI * m.r / (dr * 2.7)));
+      for (let k = 0; k < ringN; k++) {
+        const a = (k / ringN) * Math.PI * 2;
+        seeds.push(mkSeed(m.x + Math.cos(a) * (m.r + dr), m.y + Math.sin(a) * (m.r + dr), 'bgring', pick(P.bg)));
+        seeds.push(mkSeed(m.x + Math.cos(a) * (m.r - dr), m.y + Math.sin(a) * (m.r - dr), 'ring', P.ring[k % 2]));
+      }
+      // rosette: concentric rings of seeds → petal-shaped panes
+      const ri = m.r - 3 * dr;
+      const outerK = Math.round(ringN / 2);
+      seeds.push(mkSeed(m.x, m.y, 'heart', P.heart));
+      const rings = m.rings.concat([outerK]);
+      rings.forEach((k, ri2) => {
+        const rr = ri * (ri2 + 1) / rings.length, off = ri2 % 2 ? Math.PI / k : 0;
+        for (let j = 0; j < k; j++) {
+          const a = off + j / k * Math.PI * 2 - Math.PI / 2;
+          seeds.push(mkSeed(m.x + Math.cos(a) * rr, m.y + Math.sin(a) * rr, 'rose', P.rose[(j % 2) + (ri2 % 2) * 2]));
+        }
+      });
+    });
+    // ground: Poisson-ish scatter, then Lloyd-relaxed
+    const target = +document.getElementById('dens').value || 90;
+    const area = g * (H - 2 * F) * .8;
+    const minD = Math.sqrt(area / target) * .82;
+    const fixedN = seeds.length;
+    const okPos = (x, y) => {
+      if (!inside([x, y], outline) || distToOutline([x, y]) < d * 4.4) return false;
+      for (const m of medallions) if (Math.hypot(x - m.x, y - m.y) < m.r + d * 2.6) return false;
+      return true;
+    };
+    let tries = 0;
+    while (seeds.length - fixedN < target && tries < target * 60) {
+      tries++;
+      const x = rnd(F, W - F), y = rnd(F, H - F);
+      if (!okPos(x, y)) continue;
+      let ok = true;
+      for (let i = fixedN; i < seeds.length; i++) if ((seeds[i].x - x) ** 2 + (seeds[i].y - y) ** 2 < minD * minD) { ok = false; break; }
+      if (ok) seeds.push(mkSeed(x, y, 'bg', Math.random() < .12 ? pick(P.fleck) : pick(P.bg)));
+    }
+    for (let it = 0; it < 2; it++) {
+      computeCells();
+      for (let i = fixedN; i < seeds.length; i++) {
+        const c = centroid(cells[i]);
+        if (c && okPos(c[0], c[1])) { seeds[i].x = c[0]; seeds[i].y = c[1]; }
+      }
+    }
+    computeCells();
+  }
+  function recolor() {
+    const P = PAL[palIdx];
+    let bi = 0;
+    seeds.forEach(s => {
+      let base;
+      if (s.kind === 'band') base = P.band[bi++ % 2];
+      else if (s.kind === 'ring') base = P.ring[(bi++) % 2];
+      else if (s.kind === 'heart') base = P.heart;
+      else if (s.kind === 'rose') base = P.rose[(Math.random() * 4) | 0];
+      else base = Math.random() < .12 ? pick(P.fleck) : pick(P.bg);
+      s.base = base; s.col = jitter(base, 1);
+    });
+  }
+
+  /* ---------------- rendering ---------------- */
+  const hsl = (c, dl = 0, a = 1) => `hsla(${c[0].toFixed(1)},${c[1].toFixed(1)}%,${Math.max(0, Math.min(100, c[2] + dl)).toFixed(1)}%,${a})`;
+  function mkCanvas() { const c = document.createElement('canvas'); c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); return [c, x]; }
+  function makeNoise() {
+    const n = document.createElement('canvas'); n.width = n.height = 160;
+    const x = n.getContext('2d'), im = x.createImageData(160, 160);
+    for (let i = 0; i < im.data.length; i += 4) {
+      const yy = (i / 4 / 160) | 0, v = 128 + (Math.random() - .5) * 90 + Math.sin(yy * .35) * 18;
+      im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255;
+    }
+    x.putImageData(im, 0, 0);
+    return ctx.createPattern(n, 'repeat');
+  }
+  function paintGlass() {
+    const [c, x] = mkCanvas();
+    x.save(); tracePath(x, outline); x.clip();
+    x.fillStyle = '#0d0c10'; x.fillRect(0, 0, W, H);
+    cells.forEach((poly, i) => {
+      if (poly.length < 3) return;
+      const s = seeds[i];
+      tracePath(x, poly);
+      x.fillStyle = hsl(s.col); x.fill();
+      // thickness variation: streak across the pane
+      let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+      poly.forEach(p => { minx = Math.min(minx, p[0]); maxx = Math.max(maxx, p[0]); miny = Math.min(miny, p[1]); maxy = Math.max(maxy, p[1]); });
+      const cx = (minx + maxx) / 2, cy = (miny + maxy) / 2, r = Math.max(maxx - minx, maxy - miny) / 2 + 1;
+      const gx = Math.cos(s.ang) * r, gy = Math.sin(s.ang) * r;
+      const gr = x.createLinearGradient(cx - gx, cy - gy, cx + gx, cy + gy);
+      gr.addColorStop(0, `rgba(255,255,255,${s.streak})`);
+      gr.addColorStop(.45, 'rgba(255,255,255,0)');
+      gr.addColorStop(1, `rgba(0,0,0,${s.streak + .12})`);
+      x.fillStyle = gr; x.fill();
+      // seedy bubbles
+      s.bub.forEach(b => {
+        x.beginPath(); x.ellipse(cx + b[0] * (maxx - minx), cy + b[1] * (maxy - miny), b[2], b[2] * .7, s.ang, 0, Math.PI * 2);
+        x.fillStyle = 'rgba(255,255,255,.35)'; x.fill();
+      });
+    });
+    if (noisePat) { x.globalCompositeOperation = 'soft-light'; x.globalAlpha = .55; x.fillStyle = noisePat; x.fillRect(0, 0, W, H); }
+    x.restore();
+    glassC = c;
+  }
+  function paintLead() {
+    const [c, x] = mkCanvas();
+    const g = W - 2 * F;
+    const lw = Math.max(2.5, g * .014);
+    // stone frame (chamfered moulding)
+    const outer = lancetPts(1, 1, W - 2, H - 1, 48);
+    x.save();
+    x.beginPath();
+    [outer, outline].forEach(pts => { x.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) x.lineTo(pts[i][0], pts[i][1]); x.closePath(); });
+    x.fillStyle = (() => { const gr = x.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, '#6b6358'); gr.addColorStop(.5, '#9a9082'); gr.addColorStop(1, '#5a5249'); return gr; })();
+    x.fill('evenodd');
+    x.restore();
+    x.lineJoin = 'round';
+    tracePath(x, outer); x.strokeStyle = 'rgba(0,0,0,.55)'; x.lineWidth = 2; x.stroke();
+    const mid = lancetPts(F * .45, F * .5, W - F * .9, H - F * .5, 48);
+    tracePath(x, mid); x.strokeStyle = 'rgba(255,255,255,.14)'; x.lineWidth = 1; x.stroke();
+    tracePath(x, outline); x.strokeStyle = 'rgba(0,0,0,.6)'; x.lineWidth = 3; x.stroke();
+
+    x.save(); tracePath(x, outline); x.clip();
+    // cames
+    x.lineCap = 'round';
+    cells.forEach(poly => { if (poly.length < 3) return; tracePath(x, poly); x.strokeStyle = '#141216'; x.lineWidth = lw; x.stroke(); });
+    cells.forEach(poly => { if (poly.length < 3) return; tracePath(x, poly); x.strokeStyle = 'rgba(150,150,165,.16)'; x.lineWidth = 1; x.stroke(); });
+    // iron saddle bars
+    const bars = 6;
+    for (let k = 1; k <= bars; k++) {
+      const y = F + g * .866 * .55 + (H - F - (F + g * .866 * .55)) * k / (bars + 1);
+      x.fillStyle = '#0c0b0d'; x.fillRect(0, y - lw * .6, W, lw * 1.2);
+      x.fillStyle = 'rgba(255,255,255,.07)'; x.fillRect(0, y - lw * .6, W, 1);
+    }
+    x.restore();
+    // solder joints
+    const outKeys = new Set(outline.map(p => Math.round(p[0]) + ',' + Math.round(p[1])));
+    const seen = new Map();
+    cells.forEach(poly => poly.forEach(p => {
+      const k = Math.round(p[0]) + ',' + Math.round(p[1]);
+      if (outKeys.has(k)) return;
+      seen.set(k, p);
+    }));
+    x.fillStyle = '#2a282e';
+    seen.forEach(p => { x.beginPath(); x.arc(p[0], p[1], lw * .75, 0, Math.PI * 2); x.fill(); });
+    x.fillStyle = 'rgba(200,200,215,.22)';
+    seen.forEach(p => { x.beginPath(); x.arc(p[0] - lw * .2, p[1] - lw * .2, lw * .28, 0, Math.PI * 2); x.fill(); });
+    leadC = c;
+    // ledger
+    let per = 0;
+    cells.forEach(poly => { for (let i = 0; i < poly.length; i++) { const p = poly[i], q = poly[(i + 1) % poly.length]; per += Math.hypot(q[0] - p[0], q[1] - p[1]); } });
+    const mPerPx = 2.4 / H;           // pretend the lancet is 2.4 m tall
+    setText('nPanes', cells.filter(p => p.length >= 3).length);
+    setText('nJoints', seen.size);
+    setText('nLead', (per / 2 * mPerPx).toFixed(1));
+  }
+  function setText(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
+
+  let prevSnap = null, fadeT = 1;
+  function frame(now) {
+    if (!glassC || !leadC) return;
+    const t = now / 1000;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(glassC, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // moving light behind the glass
+    const drift = reduce ? 0 : 1;
+    const hx = W * (light.x + Math.sin(t * .23) * .06 * drift), hy = H * (light.y + Math.cos(t * .17) * .05 * drift);
+    ctx.save(); tracePath(ctx, outline); ctx.clip();
+    ctx.globalCompositeOperation = 'lighter';
+    const R = Math.max(W, H) * .55;
+    let gr = ctx.createRadialGradient(hx, hy, 0, hx, hy, R);
+    const [r, g, b] = light.c;
+    gr.addColorStop(0, `rgba(${r},${g},${b},${light.k})`);
+    gr.addColorStop(.35, `rgba(${r},${g},${b},${light.k * .35})`);
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+    // a slow travelling glint, like cloud clearing the sun
+    const gx = ((t * .05) % 1.6 - .3) * W * 1.4;
+    gr = ctx.createLinearGradient(gx - W * .3, 0, gx + W * .3, H * .4);
+    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.07)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+    // freshly cut panes flash
+    flash = flash.filter(f => now - f.t < 900);
+    flash.forEach(f => {
+      const poly = cells[f.i]; if (!poly || poly.length < 3) return;
+      tracePath(ctx, poly); ctx.fillStyle = `rgba(255,250,235,${.6 * (1 - (now - f.t) / 900)})`; ctx.fill();
+    });
+    ctx.globalCompositeOperation = 'multiply';
+    gr = ctx.createRadialGradient(W / 2, H * .5, H * .2, W / 2, H * .5, H * .75);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(40,40,50,1)');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(leadC, 0, 0);
+    if (prevSnap && fadeT < 1) {
+      fadeT = Math.min(1, fadeT + .045);
+      ctx.globalAlpha = 1 - fadeT; ctx.drawImage(prevSnap, 0, 0); ctx.globalAlpha = 1;
+    }
+  }
+  function snapshot() {
+    if (!cv.width) return;
+    const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height;
+    c.getContext('2d').drawImage(cv, 0, 0); prevSnap = c; fadeT = reduce ? 1 : 0;
+  }
+  function paintFloor() {
+    if (!glassC) return;
+    floorCv.width = 240; floorCv.height = 520;
+    fctx.clearRect(0, 0, 240, 520);
+    fctx.save();
+    fctx.translate(0, 0);
+    fctx.drawImage(glassC, 0, 0, 240, 520);
+    fctx.globalCompositeOperation = 'lighter';
+    fctx.globalAlpha = .35; fctx.drawImage(glassC, 0, 0, 240, 520);
+    fctx.restore();
+  }
+
+  function rebuildAll(fade) {
+    if (fade) snapshot();
+    paintGlass(); paintLead(); paintFloor();
+  }
+
+  function resize() {
+    const r = win.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = r.width; H = r.height; F = Math.max(10, W * .055);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    outline = lancetPts(F, F * 1.25, W - 2 * F, H - F * 1.25, 40);
+    if (!noisePat) noisePat = makeNoise();
+    design(); rebuildAll(false);
+  }
+
+  /* ---------------- controls ---------------- */
+  const chipsEl = document.getElementById('chips');
+  const chipBtns = PAL.map((p, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', i === palIdx ? 'true' : 'false');
+    b.setAttribute('aria-label', p.name + ' glass (key ' + (i + 1) + ')');
+    const cols = [p.bg[0], p.band[0], p.rose[1], p.heart];
+    b.innerHTML = '<span class="q">' + cols.map(c => `<i style="background:${hsl(c)}"></i>`).join('') + '</span>' + p.name;
+    b.style.setProperty('--chipglow', p.glow);
+    b.addEventListener('click', () => setPalette(i));
+    if (chipsEl) chipsEl.appendChild(b);
+    return b;
+  });
+  function setPalette(i) {
+    if (i === palIdx) return;
+    palIdx = i;
+    chipBtns.forEach((b, k) => b.setAttribute('aria-pressed', k === i ? 'true' : 'false'));
+    document.documentElement.style.setProperty('--glow', PAL[i].glow);
+    recolor(); rebuildAll(true);
+  }
+
+  const dens = document.getElementById('dens'), densOut = document.getElementById('densOut');
+  let densTimer = 0;
+  if (dens) dens.addEventListener('input', () => {
+    if (densOut) densOut.textContent = dens.value;
+    clearTimeout(densTimer);
+    densTimer = setTimeout(() => { design(); rebuildAll(true); }, 120);
+  });
+
+  const hoursG = document.getElementById('hours'), gnomon = document.getElementById('gnomon'), hourName = document.getElementById('hourName');
+  const NS = 'http://www.w3.org/2000/svg';
+  const hourEls = HOURS.map((h, i) => {
+    const a = Math.PI - (i / (HOURS.length - 1)) * Math.PI;
+    const x = 150 + Math.cos(a) * 110, y = 130 - Math.sin(a) * 110;
+    const g = document.createElementNS(NS, 'g');
+    g.setAttribute('class', 'hr'); g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button'); g.setAttribute('aria-label', h.n);
+    g.innerHTML = `<circle class="hit" cx="${x}" cy="${y}" r="22"/><circle class="pip" cx="${x}" cy="${y}" r="6"/>` +
+      `<text x="${x}" y="${y - 14}" text-anchor="middle">${h.n}</text>`;
+    g.addEventListener('click', () => setHour(i));
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setHour(i); } });
+    if (hoursG) hoursG.appendChild(g);
+    return g;
+  });
+  function setHour(i) {
+    hour = Math.max(0, Math.min(HOURS.length - 1, i));
+    const h = HOURS[hour];
+    hourEls.forEach((g, k) => g.classList.toggle('on', k === hour));
+    if (gnomon) gnomon.style.transform = `rotate(${-90 + hour / (HOURS.length - 1) * 180}deg)`;
+    if (hourName) hourName.innerHTML = `<b>${h.n}</b> — ${h.d}`;
+    document.documentElement.style.setProperty('--skew', h.skew + 'deg');
+    document.documentElement.style.setProperty('--beam', h.beam + 'deg');
+    tweenLight(h);
+  }
+  let lightAnim = 0;
+  function tweenLight(h) {
+    const from = { x: light.x, y: light.y, c: light.c.slice(), k: light.k }, t0 = performance.now();
+    cancelAnimationFrame(lightAnim);
+    const step = now => {
+      const k = Math.min(1, (now - t0) / 1400), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      light = { x: from.x + (h.x - from.x) * e, y: from.y + (h.y - from.y) * e, k: from.k + (h.k - from.k) * e, c: from.c.map((v, j) => v + (h.c[j] - v) * e) };
+      if (k < 1) lightAnim = requestAnimationFrame(step);
+    };
+    lightAnim = requestAnimationFrame(step);
+  }
+
+  const recut = document.getElementById('recut');
+  if (recut) recut.addEventListener('click', () => { design(); rebuildAll(true); });
+
+  cv.addEventListener('pointerdown', e => {
+    const r = cv.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    if (!inside([x, y], outline) || distToOutline([x, y]) < F * .3) return;
+    let kind = 'bg';
+    for (const m of medallions) if (Math.hypot(x - m.x, y - m.y) < m.r) kind = 'rose';
+    seeds.push(mkSeed(x, y, kind, regionColor(x, y)));
+    computeCells();
+    paintGlass(); paintLead(); paintFloor();
+    flash.push({ i: seeds.length - 1, t: performance.now() });
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.target && (e.target.tagName === 'INPUT')) return;
+    if (e.key === 'r' || e.key === 'R') { design(); rebuildAll(true); }
+    else if (/^[1-4]$/.test(e.key)) setPalette(+e.key - 1);
+    else if (e.key === 'ArrowRight') { e.preventDefault(); setHour(hour + 1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); setHour(hour - 1); }
+  });
+
+  // dust motes in the light shafts
+  const beams = document.querySelector('.beams');
+  if (beams && !reduce) for (let i = 0; i < 16; i++) {
+    const m = document.createElement('span'); m.className = 'mote';
+    m.style.left = rnd(15, 85) + '%'; m.style.top = rnd(15, 70) + '%';
+    m.style.setProperty('--t', rnd(10, 20) + 's'); m.style.setProperty('--dl', -rnd(0, 20) + 's');
+    m.style.setProperty('--dx', rnd(-40, 40) + 'px'); m.style.setProperty('--dy', rnd(-160, -60) + 'px');
+    beams.appendChild(m);
+  }
+
+  let running = true, raf = 0;
+  const loop = now => { frame(now); if (running) raf = requestAnimationFrame(loop); };
+  document.addEventListener('visibilitychange', () => {
+    running = !document.hidden;
+    cancelAnimationFrame(raf);
+    if (running) raf = requestAnimationFrame(loop);
+  });
+  let rT = 0;
+  window.addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(resize, 150); });
+
+  setHour(2); light = { x: HOURS[2].x, y: HOURS[2].y, c: HOURS[2].c.slice(), k: HOURS[2].k };
+  resize();
+  raf = requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

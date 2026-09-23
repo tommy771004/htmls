@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHLORINE PONY — we never meant to be loud</title>
+<style>
+:root{
+  --yel:#d8c12e; --yel2:#c9ae1f; --blk:#121110; --rust:#8f3a12; --rust2:#b5521c; --xer:#e6dfc9; --grey:#6e6a5f;
+  --times:"Times New Roman",Times,"Liberation Serif",serif;
+  --cour:"Courier New",Courier,monospace;
+  --narrow:"Arial Narrow","Helvetica Neue Condensed","Roboto Condensed",Arial,sans-serif;
+  --black:"Arial Black","Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--xer);color:var(--blk);font-family:var(--times);cursor:crosshair}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opacity:.6;mix-blend-mode:multiply;
+  background:
+   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .09 0 0 0 0 .05 0 0 0 1.4 -.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+   repeating-linear-gradient(90deg,transparent 0 180px,rgba(0,0,0,.05) 181px,transparent 183px 420px)}
+.p{display:inline-block;will-change:translate}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* ---------- spread 1 ---------- */
+.hero{position:relative;min-height:max(640px,100svh);overflow:clip;background:var(--yel);isolation:isolate}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:
+  repeating-linear-gradient(180deg,transparent 0 3px,rgba(0,0,0,.06) 3px 4px),
+  linear-gradient(100deg,transparent 60%,rgba(143,58,18,.25) 60.5%,transparent 72%)}
+.spine{position:absolute;left:14px;top:0;bottom:0;writing-mode:vertical-rl;transform:rotate(180deg);font:700 11px/1 var(--cour);letter-spacing:.4em;display:flex;justify-content:space-between;padding:20px 0;z-index:5}
+.big{position:absolute;left:4vw;top:2vh;margin:0;font-weight:400;line-height:.8;z-index:2;white-space:nowrap}
+.big .L{font-size:clamp(84px,15.5vw,250px);vertical-align:top}
+.big .L:nth-child(1){font-family:var(--times);font-weight:700;--r:-6deg;rotate:var(--r)}
+.big .L:nth-child(2){font-family:var(--narrow);font-weight:700;transform:scaleY(1.5);transform-origin:top;--r:3deg;rotate:var(--r);margin-left:-.12em}
+.big .L:nth-child(3){font-family:var(--cour);font-weight:700;color:transparent;-webkit-text-stroke:3px var(--blk);--r:0deg;margin-left:-.18em}
+.big .L:nth-child(4){font-family:var(--times);font-style:italic;color:var(--rust);mix-blend-mode:multiply;--r:8deg;rotate:var(--r);margin-left:-.1em;margin-top:.12em}
+.big .L:nth-child(5){font-family:var(--black);font-size:clamp(60px,11vw,170px);background:var(--blk);color:var(--yel);padding:0 .05em;--r:-3deg;rotate:var(--r);margin-top:.3em}
+.big .L:nth-child(6){font-family:var(--times);font-weight:700;--r:-11deg;rotate:var(--r);margin-left:-.05em}
+.big .L:nth-child(7){font-family:var(--narrow);color:transparent;-webkit-text-stroke:2px var(--blk);transform:scaleX(.7);--r:5deg;rotate:var(--r);margin-left:-.2em}
+.big .L:nth-child(8){font-family:var(--cour);font-weight:700;--r:14deg;rotate:var(--r);margin-left:-.3em;margin-top:.2em}
+.pony{position:absolute;right:-2vw;bottom:-6vh;margin:0;font:700 clamp(150px,34vw,560px)/.72 var(--narrow);color:var(--blk);letter-spacing:-.06em;transform:scaleY(1.25);transform-origin:bottom;z-index:1;opacity:.92}
+.pony .p:nth-child(2){color:var(--rust2);mix-blend-mode:multiply}
+.photo{position:absolute;left:30vw;top:36%;width:min(46vw,640px);aspect-ratio:1.45;z-index:3;rotate:-3deg;box-shadow:12px 14px 0 rgba(0,0,0,.85)}
+.photo svg{width:100%;height:100%;display:block}
+.photo figcaption{position:absolute;right:-8px;bottom:-30px;font:700 11px var(--cour);background:var(--xer);padding:4px 8px;rotate:2deg}
+.tape{position:absolute;width:120px;height:30px;background:rgba(236,232,210,.72);z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.deck{position:absolute;left:5vw;bottom:9%;z-index:4;max-width:min(560px,86vw);font:400 clamp(20px,2.3vw,34px)/1.1 var(--cour);background:var(--xer);padding:12px 16px;rotate:1.5deg}
+.deck s{text-decoration-thickness:3px;text-decoration-color:var(--rust2)}
+.deck small{display:block;margin-top:10px;font:italic 15px var(--times)}
+.hint{position:absolute;right:4vw;top:22px;z-index:6;font:700 12px var(--narrow);letter-spacing:.2em;text-transform:uppercase;display:flex;gap:10px;align-items:center}
+.remix{min-height:44px;padding:0 14px;border:2px solid var(--blk);background:var(--blk);color:var(--yel);font:700 13px var(--narrow);letter-spacing:.24em;text-transform:uppercase;rotate:-2deg}
+.remix:hover{background:var(--rust2);border-color:var(--rust2)}
+
+/* ---------- spread 2: the interview ---------- */
+.spread{position:relative;overflow:clip;padding:90px 5vw 120px;display:grid;grid-template-columns:repeat(12,1fr);gap:0 22px}
+.spread::before{content:"";position:absolute;left:-5%;top:260px;width:70%;height:300px;background:var(--yel);rotate:-4deg;z-index:-1;mix-blend-mode:multiply;opacity:.7}
+.intro{grid-column:1/7;font-size:clamp(18px,1.7vw,23px);line-height:1.38;text-align:justify;hyphens:auto;position:relative}
+.intro::first-letter{float:left;font:700 7.6em/.72 var(--times);margin:.02em .06em -.1em -.05em;color:var(--rust2)}
+.vcol{position:absolute;left:61%;top:90px;height:560px;overflow:hidden;writing-mode:vertical-rl;font:700 12px/1.6 var(--cour);letter-spacing:.14em;border-left:2px solid var(--blk);padding-left:8px;white-space:nowrap;align-self:start}
+.qa{grid-column:9/13;grid-row:1/3;font-size:15.5px;line-height:1.45}
+.qa .q{font:700 13px/1.25 var(--narrow);letter-spacing:.18em;text-transform:uppercase;margin:22px 0 6px;padding-top:6px;border-top:3px solid var(--blk)}
+.qa .q:first-child{margin-top:0}
+.qa .a b{font:700 12px var(--cour);background:var(--blk);color:var(--xer);padding:1px 5px;margin-right:6px}
+.qa .a.right{text-align:right}
+.quote{grid-column:1/8;grid-row:2;margin:10px 0 30px;font:italic 700 clamp(46px,7vw,112px)/.86 var(--times);letter-spacing:-.03em;position:relative;z-index:2}
+.quote .p:nth-child(3n){font-family:var(--narrow);font-style:normal;font-weight:700}
+.quote .p:nth-child(4n){color:var(--rust2)}
+.quote .p:nth-child(5n){font-family:var(--cour);font-weight:700;font-style:normal;font-size:.7em}
+.quote cite{display:block;margin-top:18px;font:400 14px var(--cour);font-style:normal;letter-spacing:.1em}
+.more{grid-column:1/6;font-size:15.5px;line-height:1.5;column-count:2;column-gap:22px;column-rule:1px solid var(--blk)}
+.more p{margin:0 0 12px}
+.more .q{font:700 12.5px/1.25 var(--narrow);letter-spacing:.16em;text-transform:uppercase;margin:0 0 4px;break-after:avoid}
+.tiny{grid-column:6/10;align-self:start;margin-top:10px;position:relative;padding:14px 16px;border:2px solid var(--blk);rotate:-1.5deg;background:rgba(230,223,201,.8)}
+.tiny .q{font:700 12.5px/1.25 var(--narrow);letter-spacing:.16em;text-transform:uppercase;margin:0 0 6px}
+.tiny .five{font-size:5px;line-height:6px;text-align:justify;cursor:zoom-in;transition:font-size .4s,line-height .4s}
+.tiny .five.open{font-size:13px;line-height:1.45}
+.tiny .ed{display:block;margin-top:8px;font:700 11px var(--cour);color:var(--rust)}
+.track{grid-column:10/13;align-self:start;margin-top:20px;background:var(--blk);color:var(--yel);padding:16px 16px 18px;rotate:2deg;font:700 13px/1.7 var(--cour)}
+.track h3{margin:0 0 6px;font:700 20px/1 var(--narrow);letter-spacing:.2em;transform:scaleY(1.4);transform-origin:top;margin-bottom:12px}
+.track ol{margin:0;padding-left:22px}
+.track li span{float:right;color:var(--xer)}
+.coffee{position:absolute;width:190px;height:190px;border-radius:50%;border:10px solid rgba(143,58,18,.22);box-shadow:inset 0 0 0 3px rgba(143,58,18,.12);pointer-events:none;mix-blend-mode:multiply}
+.foot{position:relative;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:24px 5vw 40px;border-top:6px solid var(--blk);font:700 12px var(--cour);letter-spacing:.1em}
+.foot .pg{font:700 90px/0.8 var(--times);rotate:180deg}
+
+@media (max-width:900px){
+  .spine{display:none}
+  .big{left:4vw;top:70px;white-space:normal;width:94vw}
+  .photo{left:6vw;width:80vw}
+  .pony{bottom:-3vh}
+  .hint{left:5vw;right:auto;top:16px}
+  .deck{bottom:3%}
+  .spread{grid-template-columns:1fr;padding:60px 18px 80px;gap:0}
+  .intro,.vcol,.qa,.quote,.more,.tiny,.track{grid-column:1;grid-row:auto}
+  .vcol{position:static;height:auto;writing-mode:horizontal-tb;border-left:0;border-top:2px solid var(--blk);padding:8px 0 0;margin:26px 0;white-space:normal}
+  .big .L{font-size:27vw}
+  .big .L:nth-child(5){font-size:19vw}
+  .photo{bottom:auto;top:300px}
+  .pony{font-size:64vw;bottom:-1vh}
+  .tape{display:none}
+  .qa{margin-top:10px}
+  .more{column-count:1}
+  .tiny,.track{margin:26px 4px 0}
+  .quote{margin:50px 0 20px}
+}
+@media (prefers-reduced-motion:reduce){ .p{transition:none} }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="xerox" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency=".55" numOctaves="2" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="7" result="d"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -40 0 0 0 14.5" result="spots"/>
+    <feComposite in="spots" in2="d" operator="atop" result="s2"/>
+    <feMerge><feMergeNode in="d"/><feMergeNode in="s2"/></feMerge>
+  </filter>
+  <pattern id="ht" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="3.5" cy="3.5" r="1.7" fill="#121110"/></pattern>
+</svg>
+
+<header class="hero" id="hero">
+  <div class="spine" aria-hidden="true"><span>ISSUE 31</span><span>FEBRUARY 1995</span><span>$3.95 / CAN $4.95</span><span>NOISE · FILM · PAPER</span></div>
+  <div class="hint"><span>move / drag to push the type</span><button class="remix" id="remix">remix page [R]</button></div>
+  <h1 class="big" id="big" aria-label="Chlorine Pony"><span class="p L">C</span><span class="p L">H</span><span class="p L">L</span><span class="p L">O</span><span class="p L">R</span><span class="p L">I</span><span class="p L">N</span><span class="p L">E</span></h1>
+  <p class="pony" aria-hidden="true"><span class="p">P</span><span class="p">O</span><span class="p">N</span><span class="p">Y</span></p>
+  <figure class="photo" style="margin:0">
+    <svg viewBox="0 0 580 400" aria-label="Xeroxed band photo: three silhouettes and a drum machine in an empty pool">
+      <g filter="url(#xerox)">
+        <rect width="580" height="400" fill="#cfc8b0"/>
+        <path d="M0 250L580 210V400H0z" fill="#9b958a"/>
+        <path d="M0 250L580 210" stroke="#121110" stroke-width="6"/>
+        <g fill="#6f6a60" opacity=".7"><rect x="30" y="60" width="520" height="8"/><rect x="30" y="100" width="520" height="4"/></g>
+        <text x="470" y="190" font-family="Arial Narrow, Arial" font-weight="700" font-size="44" fill="#121110" opacity=".75">9FT</text>
+        <g fill="#121110">
+          <circle cx="140" cy="140" r="42"/><path d="M70 400c0-120 30-190 70-200 40 10 80 80 80 200z"/>
+          <path d="M100 118c10-40 70-50 90-10-20-6-60-8-90 10z" fill="#121110"/>
+          <circle cx="300" cy="120" r="46"/><path d="M220 400c6-140 40-220 80-230 50 10 86 100 90 230z"/>
+          <path d="M252 96c14-10 30 30 48 30s40-40 50-24c-10-40-90-50-98-6z"/>
+          <circle cx="450" cy="160" r="36"/><path d="M390 400c0-110 26-170 60-180 34 10 70 70 70 180z"/>
+          <rect x="400" y="300" width="130" height="60" transform="rotate(-6 465 330)"/>
+        </g>
+        <g fill="#cfc8b0" transform="rotate(-6 465 330)"><rect x="410" y="312" width="12" height="12"/><rect x="428" y="312" width="12" height="12"/><rect x="446" y="312" width="12" height="12"/><rect x="464" y="312" width="12" height="12"/><rect x="484" y="314" width="36" height="8"/></g>
+        <rect width="580" height="400" fill="url(#ht)" opacity=".18"/>
+      </g>
+    </svg>
+    <figcaption>L–R: DANA, MARCO, THEO, GERALD (DRUM MACHINE)</figcaption>
+  </figure>
+  <div class="tape" style="left:calc(30vw - 30px);top:34%;rotate:-28deg"></div>
+  <div class="tape" style="left:calc(30vw + min(46vw,640px) - 90px);top:calc(36% + min(46vw,640px)/1.45 - 10px);rotate:-18deg"></div>
+  <p class="deck" id="deck"><span class="p">we</span> <span class="p"><s>always</s></span> <span class="p">never</span> <span class="p">meant</span> <span class="p">to</span> <span class="p">be</span> <span class="p">loud.</span><small>Chlorine Pony drained a swimming pool, filled it with feedback, and called it a hymnal. Words by R. Okafor. Pictures: whatever the photocopier felt like.</small></p>
+</header>
+
+<section class="spread" id="spread">
+  <div class="coffee" style="left:58%;top:40px"></div>
+  <p class="intro">Chlorine Pony are three people and a drum machine named Gerald, from an Ohio town with two stoplights, one of which has been blinking yellow since 1987. Their fourth record, <i>Swimming Pool Hymns</i>, was recorded in a drained municipal pool in eleven days, and it sounds exactly like that: wet, tiled, echoing and slightly dangerous. We met them in a laundromat off Route 9 because, in Dana's words, it is &ldquo;the only room in town with honest reverb.&rdquo; Marco brought a bag of quarters. Nobody washed anything.</p>
+  <div class="vcol" aria-hidden="true">SIDE A · SIDE B · SIDE C (THERE IS NO SIDE C) · 33⅓ RPM · CHLORINE PONY · SWIMMING POOL HYMNS · SIDE A</div>
+  <div class="qa">
+    <p class="q">Your last album was called <i>Quiet Please</i>. This one is extremely loud. What happened?</p>
+    <p class="a"><b>DANA</b>&ldquo;Quiet Please&rdquo; was a request, not a title. Nobody listened. So we stopped listening too.</p>
+    <p class="q">You recorded in an empty swimming pool.</p>
+    <p class="a right"><b>MARCO</b>The deep end has a natural reverb of 4.2 seconds. The shallow end is where we kept the snacks. You have to respect the zoning.</p>
+    <p class="q">Who, exactly, is Gerald?</p>
+    <p class="a"><b>DANA</b>A Roland drum machine we bought at a garage sale for six dollars. He is the only member who has never been late, never been drunk, and never asked for a solo.</p>
+  </div>
+  <blockquote class="quote" id="quote"><span class="p">IT'S</span> <span class="p">NOT</span> <span class="p">NOISE</span> <span class="p">IF</span> <span class="p">YOU</span> <span class="p">MEAN</span> <span class="p">IT.</span><cite>— DANA, BETWEEN SPIN CYCLES</cite></blockquote>
+  <div class="more">
+    <p class="q">Do you worry about selling out?</p>
+    <p><b>MARCO</b> — We sold out once. A car commercial wanted &ldquo;Lifeguard on Fire.&rdquo; Then they heard it. We still have the fax where they said no.</p>
+    <p class="q">What's next?</p>
+    <p><b>DANA</b> — A tour of every drained pool in the Midwest. Bring a towel. Not for swimming. For crying.</p>
+    <p class="q">Last words?</p>
+    <p><b>GERALD</b> — [four minutes of hi-hat]</p>
+  </div>
+  <div class="tiny">
+    <p class="q">Theo, you've been quiet all afternoon.</p>
+    <p class="five" id="five" title="Click to enlarge (if you must)">THEO — Well, I think of the bass as the floor of the song, and nobody ever thanks the floor, you know, you walk on it all day and you never once say &ldquo;hey floor, great job,&rdquo; and that's fine, that's the job, but when we were in the pool I started thinking about how the pool is also a floor, like, a floor with walls that's waiting to become a lake, and the bass is kind of like the water that isn't there, and when you play in an empty pool you're basically playing the absence of water, which I think is what the whole record is about, the absence of water, or maybe the absence of Gerald's feelings, because he's a drum machine, and I wrote a song about that but they said it was nine minutes too long, which, fair, but also, a floor is as long as the room.</p>
+    <span class="ed">THEO'S ANSWER RAN FOUR MINUTES. WE SET IT IN 5 POINT. YOU'RE WELCOME. — ED. (click it, if you must)</span>
+  </div>
+  <aside class="track">
+    <h3>SWIMMING POOL HYMNS</h3>
+    <ol>
+      <li>Deep End Choir <span>4:12</span></li>
+      <li>Lifeguard on Fire <span>3:03</span></li>
+      <li>Chlorine Eyes <span>5:40</span></li>
+      <li>Gerald (Interlude) <span>0:42</span></li>
+      <li>Towel Song <span>3:33</span></li>
+      <li>No Diving <span>6:06</span></li>
+      <li>Floor (Theo's Song) <span>9:58</span></li>
+    </ol>
+  </aside>
+</section>
+<footer class="foot">
+  <span>CONTINUED ON PAGE 94. THERE IS NO PAGE 94.</span>
+  <span class="pg" aria-hidden="true">31</span>
+  <span>DESIGN: WHOEVER HAD THE SCANNER THAT DAY</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var items = Array.prototype.slice.call(document.querySelectorAll(".p")).map(function(el){ return {el:el, x:0, y:0, vx:0, vy:0, cx:0, cy:0, rot:0}; });
+  var mx = -9999, my = -9999, active = false, running = false;
+  function measure(){
+    items.forEach(function(it){
+      var prev = it.el.style.translate; it.el.style.translate = "0 0";
+      var r = it.el.getBoundingClientRect(); it.cx = r.left + r.width/2 + window.scrollX; it.cy = r.top + r.height/2 + window.scrollY; it.w = r.width;
+      it.el.style.translate = prev;
+    });
+  }
+  function step(){
+    var moving = false;
+    var px = mx + window.scrollX, py = my + window.scrollY;
+    items.forEach(function(it){
+      var R = Math.max(120, Math.min(260, it.w * 1.1));
+      var dx = it.cx - px, dy = it.cy - py, d = Math.sqrt(dx*dx + dy*dy) || 1, tx = 0, ty = 0;
+      if(active && d < R){ var f = Math.pow(1 - d/R, 1.6) * Math.min(90, R * .45); tx = dx/d * f; ty = dy/d * f; }
+      it.vx += (tx - it.x) * .14; it.vy += (ty - it.y) * .14; it.vx *= .72; it.vy *= .72;
+      it.x += it.vx; it.y += it.vy;
+      if(Math.abs(it.vx) + Math.abs(it.vy) + Math.abs(it.x - tx) + Math.abs(it.y - ty) > .08) moving = true;
+      it.el.style.translate = it.x.toFixed(1) + "px " + it.y.toFixed(1) + "px";
+    });
+    if(moving || active) requestAnimationFrame(step); else running = false;
+  }
+  function kick(){ if(!running && !reduce){ running = true; requestAnimationFrame(step); } }
+  function move(e){ mx = e.clientX; my = e.clientY; active = true; kick(); }
+  window.addEventListener("pointermove", move, {passive:true});
+  window.addEventListener("pointerdown", move, {passive:true});
+  window.addEventListener("pointerup", function(e){ if(e.pointerType !== "mouse"){ active = false; kick(); } });
+  document.addEventListener("pointerleave", function(){ active = false; kick(); });
+  window.addEventListener("resize", measure);
+  window.addEventListener("load", measure);
+  measure();
+
+  /* remix: re-deal rotation, fonts and outline treatments for the masthead */
+  var FONTS = ['"Times New Roman",Times,serif','"Arial Narrow",Arial,sans-serif','"Courier New",monospace','"Arial Black",Arial,sans-serif'];
+  var remixBtn = document.getElementById("remix");
+  function remix(){
+    var letters = document.querySelectorAll("#big .L");
+    letters.forEach(function(L){
+      var r = (Math.random() * 30 - 15).toFixed(1) + "deg";
+      L.style.setProperty("--r", r); L.style.rotate = r;
+      L.style.fontFamily = FONTS[Math.random() * FONTS.length | 0];
+      var mode = Math.random();
+      L.style.color = mode < .2 ? "transparent" : mode < .35 ? "var(--rust)" : mode < .45 ? "var(--yel)" : "";
+      L.style.webkitTextStroke = mode < .2 ? "3px var(--blk)" : "";
+      L.style.background = mode >= .35 && mode < .45 ? "var(--blk)" : "";
+      L.style.fontStyle = Math.random() < .25 ? "italic" : "normal";
+      L.style.marginTop = (Math.random() * .3).toFixed(2) + "em";
+    });
+    var q = document.querySelectorAll("#quote .p");
+    q.forEach(function(w){ w.style.rotate = (Math.random() * 10 - 5).toFixed(1) + "deg"; });
+    setTimeout(measure, 30);
+  }
+  if(remixBtn) remixBtn.addEventListener("click", remix);
+  document.addEventListener("keydown", function(e){ if(e.key === "r" || e.key === "R") remix(); });
+
+  var five = document.getElementById("five");
+  if(five) five.addEventListener("click", function(){ five.classList.toggle("open"); setTimeout(measure, 450); });
+})();
+</script>
+</body>
+</html>

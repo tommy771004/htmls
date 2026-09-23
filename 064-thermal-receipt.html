@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>人生便利商店 · 你的一天收據</title>
+<style>
+:root{
+  --paper:#fbfbf7;
+  --ink:#2b2b2b;
+  --fade:#6d6d6a;
+  --counter:#d6d5d1;
+  --mono:"Lucida Console","Lucida Sans Typewriter",Consolas,"MingLiU","細明體",Menlo,"Courier New",monospace;
+  --zhmono:"MingLiU","細明體","Lucida Console",Consolas,"Noto Sans Mono CJK TC","PingFang TC",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  min-height:100vh;color:var(--ink);font-family:var(--mono);
+  background-color:var(--counter);
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .3  0 0 0 0 .3  0 0 0 0 .3  0 0 0 .6 -.1'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.22'/></svg>"),
+    linear-gradient(180deg,#e2e1dd,#cfcec9);
+}
+.shell{max-width:1080px;margin:0 auto;padding:clamp(16px,3vw,36px) clamp(16px,3vw,36px) 60px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:clamp(20px,4vw,56px);align-items:start}
+
+/* ---------- stage: receipt rising out of the printer ---------- */
+.stage{display:flex;flex-direction:column;align-items:center;position:sticky;top:16px;height:calc(100vh - 32px);min-height:520px}
+.cap{font-size:11px;letter-spacing:.3em;color:#77766f;margin-bottom:10px;text-transform:uppercase;text-align:center;flex:none}
+.cap span{display:block;letter-spacing:.14em;text-transform:none;margin-top:4px;font-family:var(--zhmono)}
+.feedzone{flex:1;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column-reverse;align-items:center;scrollbar-width:thin;scrollbar-color:#aaa transparent;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 40px);mask-image:linear-gradient(180deg,transparent 0,#000 40px);padding-top:30px}
+.paperwrap{position:relative;flex:none;width:min(310px,86vw);display:flex;flex-direction:column;align-items:stretch;filter:drop-shadow(0 8px 10px rgba(0,0,0,.14)) drop-shadow(0 1px 1px rgba(0,0,0,.12))}
+.tear{height:10px;background:
+  linear-gradient(135deg,transparent 50%,var(--paper) 50%) 0 0/10px 10px repeat-x,
+  linear-gradient(225deg,transparent 50%,var(--paper) 50%) 0 0/10px 10px repeat-x}
+.paper{
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.035),transparent 8%,transparent 92%,rgba(0,0,0,.04)),
+    var(--paper);
+  padding:14px 18px 22px;font-size:12.5px;line-height:1.55;overflow:hidden;
+}
+.paperwrap.falling{animation:fall 1s cubic-bezier(.5,0,.8,.4) forwards}
+@keyframes fall{0%{transform:none}20%{transform:translateY(8px) rotate(1deg)}100%{transform:translate(-120px,-110%) rotate(-18deg);opacity:0}}
+
+.ln{white-space:pre-wrap;word-break:break-all;animation:burn .35s ease-out}
+@keyframes burn{from{color:rgba(43,43,43,.15)}to{color:inherit}}
+.ln.c{text-align:center}
+.ln.big{font-size:20px;letter-spacing:.14em;font-weight:bold;line-height:1.35;font-family:var(--zhmono)}
+.ln.mid{font-size:15px;letter-spacing:.1em;font-weight:bold;font-family:var(--zhmono)}
+.ln.dim{color:var(--fade)}
+.ln.rule{color:#8c8c88;overflow:hidden;white-space:nowrap;letter-spacing:.04em}
+.row{display:grid;grid-template-columns:1fr 2.4em 4.2em;gap:6px;align-items:baseline}
+.row span:nth-child(2),.row span:nth-child(3){text-align:right;font-variant-numeric:tabular-nums}
+.row .nm{font-family:var(--zhmono);font-weight:bold;color:#1f1f1f}
+.row .sub{display:block;color:var(--fade);font-size:11px;font-weight:normal;padding-left:1em;position:relative}
+.row .sub::before{content:"";position:absolute;left:.2em;top:.2em;width:.5em;height:.55em;border-left:1px solid #aaa;border-bottom:1px solid #aaa}
+.tot{display:flex;justify-content:space-between;font-weight:bold}
+.tot.big{font-size:17px}
+.bar{display:block;width:100%;height:46px;margin:6px 0 2px}
+.qrs{display:flex;justify-content:space-between;gap:14px;margin:8px 0 4px}
+.qrs svg{width:46%;height:auto;image-rendering:pixelated}
+.faint{opacity:.55}
+
+.printer{
+  flex:none;position:relative;width:min(370px,94vw);height:96px;margin-top:-4px;z-index:3;
+  background:linear-gradient(180deg,#3b3c3f 0%,#2a2b2e 30%,#1e1f21 100%);
+  border-radius:14px 14px 22px 22px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -6px 12px rgba(0,0,0,.4), 0 18px 30px -12px rgba(0,0,0,.55);
+}
+.printer::before{ /* slot */
+  content:"";position:absolute;left:24px;right:24px;top:10px;height:9px;border-radius:5px;
+  background:linear-gradient(180deg,#050505,#1c1c1c);box-shadow:0 1px 0 rgba(255,255,255,.12)
+}
+.printer .cutter{position:absolute;left:30px;right:30px;top:6px;height:5px;border-radius:2px;background:repeating-linear-gradient(90deg,#78797c 0 3px,#4b4c4f 3px 6px);opacity:.8}
+.printer .label{position:absolute;left:26px;bottom:18px;font-size:10px;letter-spacing:.3em;color:#8f9094}
+.printer .label b{display:block;color:#c9cacd;font-size:13px;letter-spacing:.12em;margin-bottom:3px}
+.printer .led{position:absolute;right:30px;bottom:24px;display:flex;gap:10px;align-items:center;font-size:9px;letter-spacing:.2em;color:#8f9094}
+.printer .led i{width:8px;height:8px;border-radius:50%;background:#3d5c3a;box-shadow:inset 0 1px 1px rgba(0,0,0,.6)}
+.led .st::after{content:"READY"}
+.printer.busy .led .st::after{content:"PRINTING"}
+.printer.busy .led i{background:#8cff7a;box-shadow:0 0 8px #8cff7a}
+.printer.busy{animation:hum .09s linear infinite}
+@keyframes hum{50%{transform:translateY(.5px)}}
+.feed{position:absolute;left:24px;right:24px;top:10px;height:9px;overflow:hidden;border-radius:5px;pointer-events:none}
+
+/* ---------- POS terminal ---------- */
+.pos{
+  position:sticky;top:16px;background:linear-gradient(180deg,#eeeeeb,#dcdcd8);border-radius:14px;padding:16px;
+  box-shadow:inset 0 1px 0 #fff, 0 1px 0 #b7b6b1, 0 16px 30px -18px rgba(0,0,0,.5);border:1px solid #c3c2bd
+}
+.brand{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.brand b{font-family:var(--zhmono);font-size:15px;letter-spacing:.2em}
+.brand span{font-size:10px;letter-spacing:.24em;color:#77766f}
+.lcd{background:#2b2d2c;color:#e7e8e2;border-radius:6px;padding:10px 12px;box-shadow:inset 0 2px 6px rgba(0,0,0,.6);font-size:12px;line-height:1.6;min-height:74px}
+.lcd .l1{display:flex;justify-content:space-between;color:#9fa29b;font-size:10px;letter-spacing:.14em}
+.lcd .l2{font-size:20px;letter-spacing:.06em;font-variant-numeric:tabular-nums;text-align:right}
+.lcd .l3{color:#c6c8c1;font-family:var(--zhmono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:14px}
+.key{
+  position:relative;min-height:54px;border:0;border-radius:6px;cursor:pointer;padding:6px 4px 5px;
+  background:linear-gradient(180deg,#fafaf8,#e3e3df);color:#262626;font-family:var(--zhmono);font-size:13px;line-height:1.2;
+  box-shadow:0 3px 0 #a9a8a3, 0 4px 6px rgba(0,0,0,.18), inset 0 1px 0 #fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  transition:transform .05s, box-shadow .05s
+}
+.key small{font-family:var(--mono);font-size:9.5px;color:#7a7973;letter-spacing:.04em}
+.key:active,.key.hit{transform:translateY(3px);box-shadow:0 0 0 #a9a8a3, 0 1px 2px rgba(0,0,0,.2), inset 0 1px 0 #fff}
+.key .n{position:absolute;right:5px;top:3px;font-family:var(--mono);font-size:9px;color:#fff;background:#2b2b2b;border-radius:7px;min-width:14px;height:14px;line-height:14px;padding:0 3px;display:none}
+.key.has .n{display:block}
+.key:focus-visible,.fn:focus-visible,input[type=range]:focus-visible{outline:2px solid #2b2b2b;outline-offset:2px}
+.sleep{margin-top:14px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:12px;font-family:var(--zhmono)}
+.sleep output{font-family:var(--mono);font-variant-numeric:tabular-nums;min-width:4.5em;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;height:40px;width:100%;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:#b9b8b3;box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-9px;border-radius:5px;background:linear-gradient(180deg,#fff,#dcdcd8);box-shadow:0 2px 3px rgba(0,0,0,.35)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:#b9b8b3}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:5px;background:#f4f4f2;border:0}
+.fns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.fn{min-height:48px;border:0;border-radius:6px;cursor:pointer;font-family:var(--zhmono);font-size:14px;letter-spacing:.14em;
+  background:linear-gradient(180deg,#46474a,#2b2c2e);color:#f1f1ee;box-shadow:0 3px 0 #111, 0 4px 6px rgba(0,0,0,.25);transition:transform .05s, box-shadow .05s}
+.fn.primary{grid-column:1/-1;background:linear-gradient(180deg,#fafaf8,#e3e3df);color:#1d1d1d;box-shadow:0 3px 0 #8e8d88,0 4px 6px rgba(0,0,0,.2);font-weight:bold;letter-spacing:.3em}
+.fn:active{transform:translateY(3px);box-shadow:0 0 0 #111}
+.fn small{font-family:var(--mono);font-size:10px;letter-spacing:.1em;opacity:.6;margin-left:6px}
+.tip{margin-top:12px;font-size:11px;color:#77766f;line-height:1.6;font-family:var(--zhmono)}
+
+@media (max-width:820px){
+  .shell{grid-template-columns:1fr}
+  .pos{position:relative;top:0}
+  .stage{position:relative;top:0;height:66vh;min-height:430px}
+}
+@media (max-width:400px){
+  .keys{gap:6px}
+  .key{font-size:12px}
+}
+@media (prefers-reduced-motion:reduce){ .ln{animation:none} .printer.busy{animation:none} }
+</style>
+</head>
+<body>
+<div class="shell">
+  <section class="stage" aria-label="收據">
+    <div class="cap">Receipt · 感熱紙 58mm<span>收據往上吐 · 可向上捲動閱讀</span></div>
+    <div class="feedzone" id="feedzone">
+      <div class="paperwrap" id="paperwrap">
+        <div class="tear"></div>
+        <div class="paper" id="paper" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="printer" id="printer" aria-hidden="true">
+      <div class="cutter"></div>
+      <div class="label"><b>TM-L1FE</b>THERMAL · 203 DPI</div>
+      <div class="led"><span class="st"></span><i></i></div>
+    </div>
+  </section>
+
+  <aside class="pos" aria-label="收銀機">
+    <div class="brand"><b>人生便利商店</b><span>POS · 04</span></div>
+    <div class="lcd" id="lcd">
+      <div class="l1"><span>ITEMS 0</span><span>MIN</span></div>
+      <div class="l2">0</div>
+      <div class="l3">歡迎光臨，請刷你的一天。</div>
+    </div>
+    <div class="keys" id="keys"></div>
+    <div class="sleep"><label for="sleep">睡眠</label><input type="range" id="sleep" min="180" max="660" step="15" value="405"><output id="sleepout">6h45m</output></div>
+    <div class="fns">
+      <button class="fn primary" id="print" type="button">列印收據<small>ENTER</small></button>
+      <button class="fn" id="random" type="button">隨機一天</button>
+      <button class="fn" id="tear" type="button">撕下 · 清空</button>
+    </div>
+    <div class="tip">按商品鍵登錄今天做過的事，再按「列印」。<br>一天只有 1,440 分鐘，剩下的會自動歸入「不知去向」。</div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var paper = $('paper'), wrap = $('paperwrap'), printer = $('printer'), keysEl = $('keys'), lcd = $('lcd'), sleep = $('sleep'), sleepOut = $('sleepout');
+  if (!paper || !wrap || !printer || !keysEl || !lcd || !sleep) return;
+
+  var ITEMS = [
+    {k:'coffee', nm:'咖啡', en:'COFFEE', sub:'大杯熱美式・去冰是什麼', min:15},
+    {k:'commute', nm:'通勤', en:'COMMUTE', sub:'擠・站著・聞到別人的早餐', min:45},
+    {k:'meet', nm:'開會', en:'MEETING', sub:'其實寄信就可以', min:60},
+    {k:'slack', nm:'摸魚', en:'SLACK', sub:'看起來很忙的那種', min:30},
+    {k:'lunch', nm:'午餐', en:'LUNCH', sub:'排骨便當・加蛋', min:40},
+    {k:'phone', nm:'滑手機', en:'SCROLL', sub:'只看一下下', min:25},
+    {k:'ot', nm:'加班', en:'OVERTIME', sub:'無加班費・有罪惡感', min:90},
+    {k:'gym', nm:'運動', en:'WORKOUT', sub:'有換衣服就算', min:45},
+    {k:'daze', nm:'發呆', en:'ZONE OUT', sub:'窗外的雲很好看', min:15},
+    {k:'drama', nm:'追劇', en:'BINGE', sub:'下一集自動播放', min:50},
+    {k:'read', nm:'讀書', en:'READ', sub:'讀了三頁，睡著兩次', min:30},
+    {k:'nap', nm:'午睡', en:'NAP', sub:'趴桌・臉上有袖子印', min:20},
+    {k:'chores', nm:'家事', en:'CHORES', sub:'洗衣・摺一半', min:30},
+    {k:'reply', nm:'回訊息', en:'REPLY', sub:'已讀三小時後的補救', min:10},
+    {k:'walk', nm:'散步', en:'WALK', sub:'順便買了雞排', min:25},
+    {k:'worry', nm:'煩惱', en:'WORRY', sub:'還沒發生的事', min:20}
+  ];
+  var cart = {}; // k -> qty
+  var keyEls = {};
+
+  ITEMS.forEach(function(it, i){
+    var b = document.createElement('button');
+    b.className = 'key'; b.type = 'button';
+    b.innerHTML = it.nm + '<small>' + it.min + ' 分</small><i class="n">0</i>';
+    b.setAttribute('aria-label', it.nm + '，' + it.min + ' 分鐘');
+    b.addEventListener('click', function(){ add(it.k); beep(880); });
+    keysEl.appendChild(b); keyEls[it.k] = b;
+  });
+  function byK(k){ for (var i=0;i<ITEMS.length;i++) if (ITEMS[i].k === k) return ITEMS[i]; return null; }
+  function fmtHM(m){ var h = Math.floor(m/60), mm = m % 60; return h + 'h' + (mm < 10 ? '0' : '') + mm + 'm'; }
+  function num(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function used(){ var s = +sleep.value; Object.keys(cart).forEach(function(k){ s += byK(k).min * cart[k]; }); return s; }
+  function add(k){
+    var it = byK(k);
+    if (used() + it.min > 1440){ lcdMsg('超過 24 小時了。你不是時間管理大師。'); return; }
+    cart[k] = (cart[k] || 0) + 1; refresh(); lcdMsg(it.nm + ' × ' + cart[k] + '　' + it.sub);
+  }
+  function lcdMsg(t){ var l3 = lcd.querySelector('.l3'); if (l3) l3.textContent = t; }
+  function refresh(){
+    var n = 0; Object.keys(cart).forEach(function(k){ n += cart[k]; });
+    ITEMS.forEach(function(it){ var e = keyEls[it.k], q = cart[it.k] || 0; e.classList.toggle('has', q > 0); var nn = e.querySelector('.n'); if (nn) nn.textContent = q; });
+    var l1 = lcd.querySelector('.l1 span'), l2 = lcd.querySelector('.l2');
+    if (l1) l1.textContent = 'ITEMS ' + n;
+    if (l2) l2.textContent = num(used()) + ' / 1,440';
+    if (sleepOut) sleepOut.textContent = fmtHM(+sleep.value);
+  }
+  sleep.addEventListener('input', function(){
+    while (used() > 1440){ var ks = Object.keys(cart); if (!ks.length) break; var k = ks[ks.length-1]; cart[k]--; if (!cart[k]) delete cart[k]; }
+    refresh();
+  });
+
+  /* ---------- tiny audio ---------- */
+  var ac = null;
+  function ensureAC(){ try{ if (!ac){ var AC = window.AudioContext || window.webkitAudioContext; if (AC) ac = new AC(); } if (ac && ac.state === 'suspended') ac.resume(); }catch(e){} return ac; }
+  function beep(f){
+    var a = ensureAC(); if (!a) return;
+    try{ var o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = f; g.gain.setValueAtTime(.05, a.currentTime); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + .08); o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + .09); }catch(e){}
+  }
+  var buzz = null;
+  function buzzOn(){
+    if (!ac) return;
+    try{
+      var o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), bp = ac.createBiquadFilter();
+      o.type = 'sawtooth'; o.frequency.value = 118; o2.type = 'square'; o2.frequency.value = 23;
+      var lfo = ac.createGain(); lfo.gain.value = .02; o2.connect(lfo); lfo.connect(g.gain);
+      bp.type = 'bandpass'; bp.frequency.value = 1400; bp.Q.value = 1.2; g.gain.value = .025;
+      o.connect(bp); bp.connect(g); g.connect(ac.destination); o.start(); o2.start();
+      buzz = [o, o2, g];
+    }catch(e){}
+  }
+  function buzzOff(){ if (!buzz) return; try{ buzz[2].gain.setTargetAtTime(0, ac.currentTime, .02); buzz[0].stop(ac.currentTime + .1); buzz[1].stop(ac.currentTime + .1); }catch(e){} buzz = null; }
+
+  /* ---------- barcode & QR ---------- */
+  function rng(seed){ var s = seed >>> 0; return function(){ s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function barcode(seed){
+    var r = rng(seed), x = 4, rects = '';
+    while (x < 236){ var w = 1 + Math.floor(r()*3), gap = 1 + Math.floor(r()*3); rects += '<rect x="'+x+'" y="0" width="'+w+'" height="46"/>'; x += w + gap; }
+    return '<svg class="bar" viewBox="0 0 240 46" preserveAspectRatio="none" fill="#262626" aria-hidden="true">' + rects + '</svg>';
+  }
+  function qr(seed){
+    var n = 25, r = rng(seed), cells = '';
+    function finder(x, y){ return '<rect x="'+x+'" y="'+y+'" width="7" height="7"/><rect x="'+(x+1)+'" y="'+(y+1)+'" width="5" height="5" fill="#fbfbf7"/><rect x="'+(x+2)+'" y="'+(y+2)+'" width="3" height="3"/>'; }
+    for (var y=0;y<n;y++) for (var x=0;x<n;x++){
+      var inF = (x < 8 && y < 8) || (x > n-9 && y < 8) || (x < 8 && y > n-9);
+      if (inF) continue;
+      if (y === 6 || x === 6){ if ((x + y) % 2 === 0) cells += '<rect x="'+x+'" y="'+y+'" width="1" height="1"/>'; continue; }
+      if (r() < .48) cells += '<rect x="'+x+'" y="'+y+'" width="1.02" height="1.02"/>';
+    }
+    return '<svg viewBox="-1 -1 '+(n+2)+' '+(n+2)+'" fill="#262626" shape-rendering="crispEdges" aria-hidden="true">' + finder(0,0) + finder(n-7,0) + finder(0,n-7) + '<rect x="16" y="16" width="5" height="5"/><rect x="17" y="17" width="3" height="3" fill="#fbfbf7"/><rect x="18" y="18" width="1" height="1"/>' + cells + '</svg>';
+  }
+
+  /* ---------- receipt composition ---------- */
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  function compose(){
+    var d = new Date(), roc = d.getFullYear() - 1911, m = d.getMonth() + 1, p1 = m % 2 ? m : m - 1;
+    var seed = Math.floor(Math.random() * 1e9);
+    var r = rng(seed);
+    var inv = 'LF-' + String(Math.floor(r() * 9e7) + 1e7);
+    var rand = String(1000 + Math.floor(r() * 9000));
+    var L = [];
+    function t(txt, cls){ L.push({type:'t', txt:txt, cls:cls || ''}); }
+    function rule(ch){ L.push({type:'t', txt:new Array(60).join(ch || '-'), cls:'rule'}); }
+    t('人生便利商店', 'c big');
+    t('LIFE MART  第 0923 號分店', 'c dim');
+    t(' ', '');
+    t('電子發票證明聯', 'c mid');
+    t(roc + '年' + pad2(p1) + '-' + pad2(p1 + 1) + '月', 'c mid');
+    t(inv, 'c mid');
+    t(d.getFullYear() + '-' + pad2(m) + '-' + pad2(d.getDate()) + ' 23:59:59   格式 25', '');
+    t('隨機碼 ' + rand + '      總計 1,440', '');
+    t('賣方 20260923   買方 你本人', '');
+    L.push({type:'html', html:barcode(seed)});
+    L.push({type:'html', html:'<div class="qrs">' + qr(seed + 7) + qr(seed + 99) + '</div>'});
+    t('退貨請憑電子發票證明聯正本辦理', 'c dim');
+    t('（但今天無法退貨）', 'c dim');
+    rule('=');
+    t('交 易 明 細', 'c mid');
+    rule('-');
+    L.push({type:'html', html:'<div class="row dim"><span>品名</span><span>數量</span><span>分鐘</span></div>'});
+    // sleep first
+    var sl = +sleep.value;
+    L.push({type:'row', nm:'睡眠', sub:sl < 300 ? '手機放在枕頭旁邊' : (sl > 540 ? '被子贏了' : '中間醒來一次看時間'), q:1, m:sl});
+    var total = sl, count = 1;
+    ITEMS.forEach(function(it){ if (cart[it.k]){ L.push({type:'row', nm:it.nm, sub:it.sub, q:cart[it.k], m:it.min * cart[it.k]}); total += it.min * cart[it.k]; count += cart[it.k]; } });
+    var lost = 1440 - total;
+    if (lost > 0){ L.push({type:'row', nm:'不知去向', sub:'應該是滑手機', q:1, m:lost}); count++; }
+    rule('-');
+    L.push({type:'tot', a:'小計  ' + count + ' 項', b:'1,440'});
+    L.push({type:'tot', a:'人生稅 TX 5%', b:'72'});
+    L.push({type:'tot', a:'週三小確幸折抵', b:'-72'});
+    rule('-');
+    L.push({type:'tot big', a:'總計', b:'1,440 分'});
+    t(' ', '');
+    L.push({type:'tot', a:'付款方式', b:'青春'});
+    L.push({type:'tot', a:'找零', b:'一點點耐心'});
+    L.push({type:'tot', a:'載具', b:'/LIFE+42'});
+    rule('-');
+    var mood = [];
+    if (cart.ot) mood.push('疲勞 +' + (cart.ot * 3));
+    if (cart.gym || cart.walk) mood.push('自信 +' + ((cart.gym||0) * 2 + (cart.walk||0)));
+    if (cart.worry) mood.push('焦慮 +' + cart.worry * 2);
+    if (cart.phone && cart.phone > 1) mood.push('眼睛乾 +' + cart.phone);
+    if (cart.coffee) mood.push('心悸 +' + cart.coffee);
+    if (!mood.length) mood.push('平靜 +1');
+    t('會員點數：' + mood.join('、'), '');
+    t('累積 7 點可兌換「早點睡」一次（永不兌換）', 'dim');
+    rule('=');
+    t('本收據不可退換，明天請早。', 'c');
+    t('※ 感熱紙字跡約半年後消失，', 'c dim');
+    t('就像今天。', 'c dim');
+    t(' ', '');
+    t('＊＊＊ 謝謝光臨 ＊＊＊', 'c');
+    return L;
+  }
+
+  function render(line){
+    var e;
+    if (line.type === 't'){ e = document.createElement('div'); e.className = 'ln ' + line.cls; e.textContent = line.txt; }
+    else if (line.type === 'html'){ e = document.createElement('div'); e.className = 'ln'; e.innerHTML = line.html; }
+    else if (line.type === 'row'){ e = document.createElement('div'); e.className = 'ln row'; e.innerHTML = '<span class="nm">' + line.nm + '<span class="sub">' + line.sub + '</span></span><span>' + line.q + '</span><span>' + num(line.m) + '</span>'; }
+    else if (line.type.indexOf('tot') === 0){ e = document.createElement('div'); e.className = 'ln ' + line.type; e.innerHTML = '<span>' + line.a + '</span><span>' + line.b + '</span>'; }
+    if (Math.random() < .12) e.classList.add('faint');
+    return e;
+  }
+
+  var printing = false, timer = null;
+  function print(follow){
+    if (printing) return;
+    printing = true;
+    wrap.classList.remove('falling');
+    paper.innerHTML = '';
+    var L = compose(), i = 0;
+    printer.classList.add('busy');
+    if (follow) buzzOn();
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function step(){
+      if (i >= L.length){ printing = false; printer.classList.remove('busy'); buzzOff(); lcdMsg('列印完成。請取收據，勿忘你的一天。'); return; }
+      paper.appendChild(render(L[i++]));
+      timer = setTimeout(step, reduce ? 0 : (L[i-1].type === 'html' ? 150 : 38));
+    }
+    step();
+  }
+  function tear(){
+    if (printing) return;
+    wrap.classList.add('falling');
+    beep(220);
+    setTimeout(function(){ paper.innerHTML = ''; wrap.classList.remove('falling'); cart = {}; refresh(); lcdMsg('已清空。新的一天，從零分鐘開始。'); }, 950);
+  }
+  function randomDay(){
+    cart = {};
+    var picks = ['coffee','commute','meet','lunch','phone','slack'].concat(ITEMS.map(function(x){ return x.k; }).sort(function(){ return Math.random() - .5; }).slice(0, 5));
+    sleep.value = String(300 + Math.floor(Math.random() * 16) * 15);
+    picks.forEach(function(k){ var it = byK(k); var q = 1 + (Math.random() < .3 ? 1 : 0); for (var j=0;j<q;j++) if (used() + it.min <= 1380) cart[k] = (cart[k] || 0) + 1; });
+    refresh();
+  }
+
+  var pb = $('print'), rb = $('random'), tb = $('tear');
+  if (pb) pb.addEventListener('click', function(){ ensureAC(); print(true); });
+  if (rb) rb.addEventListener('click', function(){ ensureAC(); beep(660); randomDay(); lcdMsg('隨機生成了一天。跟你的也差不多吧？'); print(true); });
+  if (tb) tb.addEventListener('click', function(){ ensureAC(); tear(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && !(e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT'))){ e.preventDefault(); ensureAC(); print(true); }
+  });
+
+  // opening receipt
+  cart = {coffee:2, commute:2, meet:3, lunch:1, slack:1, phone:3, ot:1, worry:1};
+  sleep.value = '375';
+  refresh();
+  lcdMsg('今天的示範收據。按商品鍵換成你的一天。');
+  setTimeout(function(){ print(false); }, 250);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Faces — A Specimen of Bahnschrift &amp; Georgia</title>
+<style>
+:root{
+  --paper:#f3eee1; --paper2:#ebe4d2; --ink:#1d3a2a; --ink2:#46604f; --tint:#d9dfcf; --rule:rgba(29,58,42,.28);
+  --bahn: Bahnschrift, "DIN Alternate", "D-DIN", "Barlow", "Arial Narrow", Arial, sans-serif;
+  --geo: Georgia, "Times New Roman", serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--geo);-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(rgba(29,58,42,.05) 1px,transparent 1.2px);background-size:5px 5px}
+.page{max-width:1240px;margin:0 auto;padding:0 clamp(16px,4vw,48px)}
+.runhead{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px 0 12px;border-bottom:1px solid var(--ink);font:12px var(--bahn);letter-spacing:.18em;text-transform:uppercase;flex-wrap:wrap}
+.runhead b{font-weight:700}
+.sc{font-variant:small-caps;letter-spacing:.08em}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(20px,4vw,56px);padding:28px 0 36px;border-bottom:1px solid var(--rule)}
+.inspect{position:relative;background:var(--paper2);border:1px solid var(--ink);min-height:520px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.inspect .g{font-size:min(46vh,34vw,420px);line-height:1;color:var(--ink);position:relative;z-index:1;transition:none;white-space:nowrap}
+.guide{position:absolute;left:0;right:0;height:0;border-top:1px solid rgba(29,58,42,.45);z-index:2;pointer-events:none}
+.guide span{position:absolute;left:10px;top:-16px;font:10px var(--bahn);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+.guide.base{border-top-color:var(--ink)}
+.guide.asc span{left:auto;right:10px}
+.inspect .meta{position:absolute;left:10px;bottom:8px;right:10px;display:flex;justify-content:space-between;font:11px var(--bahn);letter-spacing:.1em;color:var(--ink2);z-index:3}
+.inspect .cp{position:absolute;right:10px;top:8px;font:11px var(--bahn);letter-spacing:.1em;color:var(--ink2);z-index:3}
+.fam .kick{font:13px var(--bahn);letter-spacing:.3em;text-transform:uppercase;color:var(--ink2)}
+.fam h1{margin:6px 0 4px;font-family:var(--bahn);font-weight:700;font-size:clamp(46px,7vw,104px);line-height:.9;letter-spacing:-.01em}
+.fam h1 em{display:block;font-family:var(--geo);font-weight:400;font-style:italic;font-size:.5em;letter-spacing:0;margin-top:10px}
+.fam p.lede{font-size:17px;line-height:1.55;max-width:44ch;margin:14px 0 20px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-size:14px;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:10px 0;margin-bottom:18px}
+.facts dt{font:12px var(--bahn);letter-spacing:.16em;text-transform:uppercase;color:var(--ink2);padding-top:2px}
+.facts dd{margin:0}
+.ctl{display:grid;grid-template-columns:90px 1fr 110px;align-items:center;gap:10px;margin:6px 0}
+.ctl label{font:12px var(--bahn);letter-spacing:.16em;text-transform:uppercase}
+.ctl output{font:600 13px var(--bahn);text-align:right;white-space:nowrap}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-8px;border-radius:50%;background:var(--paper);border:2px solid var(--ink)}
+input[type=range]::-moz-range-track{height:2px;background:var(--ink)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--paper);border:2px solid var(--ink)}
+input[type=range]:focus-visible{outline:2px dashed var(--ink);outline-offset:2px}
+.inst{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--ink);margin-top:14px}
+.inst button{height:52px;border:0;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);background:transparent;color:var(--ink);font-family:var(--bahn);font-size:24px;cursor:pointer;padding:0}
+.inst button:nth-child(5n){border-right:0}
+.inst button:nth-last-child(-n+5){border-bottom:0}
+.inst button:hover{background:var(--tint)}
+.inst button.on{background:var(--ink);color:var(--paper)}
+.inst button:focus-visible{outline:2px solid var(--ink);outline-offset:-4px}
+.small{font:12px var(--bahn);letter-spacing:.1em;color:var(--ink2);margin-top:6px}
+
+/* sections */
+section.s{padding:36px 0;border-bottom:1px solid var(--rule)}
+.sh{display:flex;align-items:baseline;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.sh .no{font:700 13px var(--bahn);letter-spacing:.2em}
+.sh h2{margin:0;font-weight:400;font-size:clamp(26px,3vw,36px);font-style:italic}
+.sh .tabs{margin-left:auto;display:flex;border:1px solid var(--ink)}
+.tabs button{height:40px;padding:0 16px;border:0;background:transparent;color:var(--ink);cursor:pointer;font:13px var(--bahn);letter-spacing:.12em;text-transform:uppercase}
+.tabs button + button{border-left:1px solid var(--ink)}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.tabs button:focus-visible{outline:2px dashed var(--ink);outline-offset:2px}
+.glyphs{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));border-top:1px solid var(--rule);border-left:1px solid var(--rule)}
+.glyphs button{aspect-ratio:1/1;border:0;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);background:transparent;color:var(--ink);font-size:28px;cursor:pointer;position:relative;padding:0;transition:background .15s}
+.glyphs button:hover,.glyphs button.on{background:var(--ink);color:var(--paper)}
+.glyphs button:focus-visible{outline:2px solid var(--ink);outline-offset:-3px}
+.glyphs.geo button{font-family:var(--geo)}
+.glyphs.bahn button{font-family:var(--bahn)}
+.water{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,48px)}
+.water h3{font:12px var(--bahn);letter-spacing:.24em;text-transform:uppercase;margin:0 0 8px;border-bottom:1px solid var(--ink);padding-bottom:6px;display:flex;justify-content:space-between}
+.wline{display:grid;grid-template-columns:34px 1fr;align-items:baseline;gap:10px;border-bottom:1px dotted var(--rule);padding:4px 0;overflow:hidden}
+.wline small{font:10px var(--bahn);color:var(--ink2);letter-spacing:.08em}
+.wline div{white-space:nowrap;overflow:hidden;text-overflow:clip;line-height:1.15;outline:none}
+.wline div:focus{background:var(--tint)}
+.pair{display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px}
+.pair article{border-top:3px solid var(--ink);padding-top:12px}
+.pair h4{margin:0 0 8px;font-family:var(--bahn);font-weight:700;font-size:26px;line-height:1;letter-spacing:.01em;text-transform:uppercase}
+.pair h4.g{font-family:var(--geo);font-weight:700;text-transform:none;letter-spacing:0}
+.pair p{margin:0;font-size:15px;line-height:1.55}
+.pair p.b{font-family:var(--bahn);font-size:15px}
+.pair .cap{font:11px var(--bahn);letter-spacing:.14em;color:var(--ink2);text-transform:uppercase;margin-top:10px}
+
+/* tester */
+.tester{border:1px solid var(--ink);background:var(--paper2)}
+.tbar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--ink)}
+.tbar .tabs{margin:0}
+.tbar .ctl{grid-template-columns:auto 140px 50px;margin:0}
+.chk{display:flex;align-items:center;gap:8px;font:12px var(--bahn);letter-spacing:.14em;text-transform:uppercase;min-height:40px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--ink)}
+#tt{min-height:200px;padding:18px 20px;font-size:64px;line-height:1.08;outline:none;word-break:break-word}
+#tt:focus{background:#f7f3e8}
+.colophon{padding:30px 0 50px;display:grid;grid-template-columns:1fr 1fr;gap:30px;font-size:14px;line-height:1.6}
+.colophon b{font:12px var(--bahn);letter-spacing:.2em;text-transform:uppercase;display:block;margin-bottom:6px}
+.folio{text-align:center;font:12px var(--bahn);letter-spacing:.3em;padding-bottom:24px}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:minmax(0,1fr)}
+  .inspect{min-height:0;aspect-ratio:1/1}
+  .inspect .g{font-size:min(70vw,360px)}
+  .water{grid-template-columns:minmax(0,1fr)}
+  .pair{grid-template-columns:minmax(0,1fr)}
+  .colophon{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:520px){
+  .runhead span:nth-child(2){display:none}
+  .ctl{grid-template-columns:70px 1fr 92px}
+  .inst button{font-size:20px}
+  .sh .tabs{margin-left:0}
+  .tbar .ctl{grid-template-columns:auto 1fr 44px;width:100%}
+  #tt{font-size:40px}
+  .glyphs{grid-template-columns:repeat(auto-fill,minmax(48px,1fr))}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="runhead"><span><b>Two Faces</b> · Specimen Nº 30</span><span>Printed on the screen you are holding</span><span>Folio 1</span></header>
+
+  <section class="hero">
+    <div class="inspect" id="inspect" aria-live="polite">
+      <div class="guide asc"><span>Ascender</span></div>
+      <div class="guide cap"><span>Cap height</span></div>
+      <div class="guide xh"><span>x-height</span></div>
+      <div class="guide base"><span>Baseline</span></div>
+      <div class="guide desc"><span>Descender</span></div>
+      <div class="g" id="glyph">R</div>
+      <div class="cp" id="cp">U+0052</div>
+      <div class="meta"><span id="gname">LATIN CAPITAL LETTER R</span><span id="ginst">Bahnschrift Bold</span></div>
+    </div>
+    <div class="fam">
+      <div class="kick">A specimen in two voices</div>
+      <h1 id="famName">Bahnschrift<em>&amp; Georgia, its well-read neighbour</em></h1>
+      <p class="lede">One is an engineer’s alphabet descended from German road signs; the other was drawn for the coarse pixels of 1993 and has been reading novels ever since. They share this page reluctantly.</p>
+      <dl class="facts">
+        <dt>Bahnschrift</dt><dd>After DIN 1451 · variable: weight 300–700, width 75–100</dd>
+        <dt>Georgia</dt><dd>Transitional serif for screens · regular, italic, bold, bold italic</dd>
+        <dt>Shared</dt><dd>Both installed on your machine, probably. Neither was consulted.</dd>
+      </dl>
+      <div class="ctl"><label for="wght">Weight</label><input id="wght" type="range" min="300" max="700" step="1" value="700"><output id="wOut">700 Bold</output></div>
+      <div class="ctl"><label for="wdth">Width</label><input id="wdth" type="range" min="75" max="100" step="1" value="100"><output id="dOut">100 Normal</output></div>
+      <div class="inst" id="inst" aria-label="Named instances"></div>
+      <div class="small">15 named instances · click one, or drag the axes (the system snaps to the nearest instance, like a well-trained dog).</div>
+    </div>
+  </section>
+
+  <section class="s">
+    <div class="sh"><span class="no">§ 1</span><h2>Character set</h2>
+      <div class="tabs" role="group" aria-label="Family"><button data-f="bahn" aria-pressed="true">Bahnschrift</button><button data-f="geo" aria-pressed="false">Georgia</button></div></div>
+    <div class="glyphs bahn" id="glyphs"></div>
+  </section>
+
+  <section class="s">
+    <div class="sh"><span class="no">§ 2</span><h2>Waterfall</h2></div>
+    <div class="water">
+      <div><h3><span>Bahnschrift SemiBold</span><span>72–11 pt</span></h3><div id="wfB"></div></div>
+      <div><h3><span>Georgia Regular</span><span>72–11 pt</span></h3><div id="wfG"></div></div>
+    </div>
+  </section>
+
+  <section class="s">
+    <div class="sh"><span class="no">§ 3</span><h2>In company</h2></div>
+    <div class="pair">
+      <article><h4>Platform 9 closed</h4><p>Passengers are kindly requested to proceed to Platform 10, which is, by all reports, identical but with better lighting and a vending machine that accepts coins.</p><div class="cap">Bahnschrift Bold / Georgia 15</div></article>
+      <article><h4 class="g">A Letter, Unsent</h4><p class="b">Dear Georgia — I measured our x-heights again. You are still taller in the evenings. I have attached the numbers. Yours in straight lines, B.</p><div class="cap">Georgia Bold / Bahnschrift 15</div></article>
+      <article><h4 style="font-stretch:75%;font-weight:600">Condensed news</h4><p style="font-style:italic">Local typeface wins award for “most legible at 110 km/h”; celebrates quietly, at a sensible speed, in the right-hand lane.</p><div class="cap">Bahnschrift SemiBold Condensed / Georgia Italic</div></article>
+    </div>
+  </section>
+
+  <section class="s">
+    <div class="sh"><span class="no">§ 4</span><h2>Try them yourself</h2></div>
+    <div class="tester">
+      <div class="tbar">
+        <div class="tabs" role="group" aria-label="Tester family" id="tFam"><button data-f="bahn" aria-pressed="true">Bahnschrift</button><button data-f="geo" aria-pressed="false">Georgia</button></div>
+        <div class="ctl"><label for="tSize">Size</label><input id="tSize" type="range" min="14" max="120" value="64"><output id="tSizeOut">64</output></div>
+        <div class="ctl"><label for="tW">Weight</label><input id="tW" type="range" min="300" max="700" value="400"><output id="tWOut">400</output></div>
+        <label class="chk"><input type="checkbox" id="tItal">Italic</label>
+        <label class="chk"><input type="checkbox" id="tCaps">Caps</label>
+      </div>
+      <div id="tt" contenteditable="true" spellcheck="false" aria-label="Type tester, editable">Sphinx of black quartz, judge my vow.</div>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <div><b>Colophon</b>Set entirely in the two faces under examination, with no external fonts, no images and one small argument about whether Bahnschrift counts as “friendly”. It does, after coffee.</div>
+    <div><b>Keys</b>← → step through glyphs · ↑ ↓ change weight · click any glyph to inspect it · the waterfall lines are editable.</div>
+  </footer>
+  <div class="folio">— 30 —</div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const INST_W = [[300,'Light'],[350,'SemiLight'],[400,'Regular'],[600,'SemiBold'],[700,'Bold']];
+const INST_D = [[75,'Condensed'],[87.5,'SemiCondensed'],[100,'Normal']];
+const snapW = w => INST_W.reduce((a,b) => Math.abs(b[0]-w) < Math.abs(a[0]-w) ? b : a);
+const snapD = d => INST_D.reduce((a,b) => Math.abs(b[0]-d) < Math.abs(a[0]-d) ? b : a);
+const glyph = $('#glyph'), inspect = $('#inspect');
+let fam = 'bahn', ch = 'R', W = 700, D = 100, userTouched = false;
+
+/* ---------- metrics guides, measured from the live font ---------- */
+const mc = document.createElement('canvas').getContext('2d');
+function placeGuides(){
+  if (!glyph || !inspect) return;
+  const fs = parseFloat(getComputedStyle(glyph).fontSize);
+  const family = fam==='bahn' ? getComputedStyle(document.documentElement).getPropertyValue('--bahn') : getComputedStyle(document.documentElement).getPropertyValue('--geo');
+  mc.font = `${fam==='bahn' ? snapW(W)[0] : (W>=550?700:400)} ${fs}px ${family}`;
+  const H = mc.measureText('H').actualBoundingBoxAscent, x = mc.measureText('x').actualBoundingBoxAscent, d = mc.measureText('d').actualBoundingBoxAscent, p = mc.measureText('p').actualBoundingBoxDescent;
+  const ir = inspect.getBoundingClientRect(), gr = glyph.getBoundingClientRect();
+  // baseline: element box top + (line-height 1 → ascent area); use canvas metrics to locate
+  const fm = mc.measureText('Hxp');
+  const asc = fm.fontBoundingBoxAscent || fs*.8, desc = fm.fontBoundingBoxDescent || fs*.2;
+  const base = gr.top - ir.top + (gr.height - (asc+desc))/2 + asc;
+  const set = (cls, y) => { const g = inspect.querySelector('.guide.'+cls); if (g) g.style.top = y.toFixed(1)+'px'; };
+  set('base', base); set('xh', base - x); set('cap', base - H); set('asc', base - d); set('desc', base + p);
+}
+function names(c){
+  const code = c.codePointAt(0);
+  const up = c >= 'A' && c <= 'Z', lo = c >= 'a' && c <= 'z', dg = c >= '0' && c <= '9';
+  const special = { '&':'AMPERSAND','?':'QUESTION MARK','!':'EXCLAMATION MARK','@':'COMMERCIAL AT','%':'PERCENT SIGN','€':'EURO SIGN','$':'DOLLAR SIGN','£':'POUND SIGN','ß':'LATIN SMALL LETTER SHARP S','æ':'LATIN SMALL LETTER AE','ø':'LATIN SMALL LETTER O WITH STROKE','(':'LEFT PARENTHESIS',')':'RIGHT PARENTHESIS','*':'ASTERISK','#':'NUMBER SIGN','.':'FULL STOP',',':'COMMA',';':'SEMICOLON',':':'COLON','—':'EM DASH','“':'LEFT DOUBLE QUOTATION MARK','”':'RIGHT DOUBLE QUOTATION MARK','/':'SOLIDUS','+':'PLUS SIGN','=':'EQUALS SIGN','é':'LATIN SMALL LETTER E WITH ACUTE','ñ':'LATIN SMALL LETTER N WITH TILDE','ü':'LATIN SMALL LETTER U WITH DIAERESIS','→':'RIGHTWARDS ARROW','¶':'PILCROW SIGN','§':'SECTION SIGN','†':'DAGGER' };
+  const nm = up ? 'LATIN CAPITAL LETTER ' + c : lo ? 'LATIN SMALL LETTER ' + c.toUpperCase() : dg ? 'DIGIT ' + ['ZERO','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE'][+c] : (special[c] || 'GLYPH');
+  return { nm, cp: 'U+' + code.toString(16).toUpperCase().padStart(4,'0') };
+}
+function render(){
+  if (!glyph) return;
+  glyph.textContent = ch;
+  if (fam==='bahn') { const w = snapW(W), d = snapD(D); glyph.style.fontFamily = 'var(--bahn)'; glyph.style.fontWeight = w[0]; glyph.style.fontStretch = d[0]+'%'; glyph.style.fontStyle = 'normal';
+    const n = `Bahnschrift ${d[1]==='Normal' ? '' : d[1]+' '}${w[1]}`.replace('  ',' ');
+    $('#ginst').textContent = n; $('#wOut').textContent = `${W} → ${w[1]}`; $('#dOut').textContent = `${D} → ${d[1].replace('Semi','Semi-')}`; }
+  else { const bold = W >= 550; glyph.style.fontFamily = 'var(--geo)'; glyph.style.fontWeight = bold ? 700 : 400; glyph.style.fontStretch = '100%';
+    $('#ginst').textContent = 'Georgia ' + (bold ? 'Bold' : 'Regular'); $('#wOut').textContent = `${W} → ${bold ? 'Bold' : 'Regular'}`; $('#dOut').textContent = 'n/a (Georgia is fixed)'; }
+  const n = names(ch); $('#gname').textContent = n.nm; $('#cp').textContent = n.cp;
+  document.querySelectorAll('#inst button').forEach(b => b.classList.toggle('on', fam==='bahn' && +b.dataset.w === snapW(W)[0] && +b.dataset.d === snapD(D)[0]));
+  requestAnimationFrame(placeGuides);
+}
+
+/* ---------- instance grid ---------- */
+const inst = $('#inst');
+if (inst) INST_D.slice().reverse().forEach(d => INST_W.forEach(w => { const b = document.createElement('button'); b.textContent='Ag'; b.dataset.w = w[0]; b.dataset.d = d[0];
+  b.style.fontWeight = w[0]; b.style.fontStretch = d[0]+'%'; b.title = `${d[1]} ${w[1]}`; b.setAttribute('aria-label', `Bahnschrift ${d[1]} ${w[1]}`);
+  b.addEventListener('click', () => { userTouched = true; fam='bahn'; setGrid('bahn'); W = w[0]; D = d[0]; syncSliders(); render(); }); inst.appendChild(b); }));
+function syncSliders(){ const a=$('#wght'), b=$('#wdth'); if (a) a.value = W; if (b) b.value = D; }
+const wIn = $('#wght'), dIn = $('#wdth');
+if (wIn) wIn.addEventListener('input', () => { userTouched = true; W = +wIn.value; render(); });
+if (dIn) dIn.addEventListener('input', () => { userTouched = true; D = +dIn.value; render(); });
+
+/* ---------- glyph grid ---------- */
+const SET = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789&?!@%€$£ßæøéñü()*#.,;:—“”/+=→¶§†'];
+const grid = $('#glyphs');
+if (grid) SET.forEach((c,i) => { const b = document.createElement('button'); b.textContent = c; b.setAttribute('aria-label', names(c).nm);
+  const pick = () => { userTouched = true; ch = c; grid.querySelectorAll('.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); render(); };
+  b.addEventListener('click', () => { pick(); if (innerWidth < 900 && inspect) inspect.scrollIntoView({ behavior:'smooth', block:'center' }); });
+  b.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') pick(); });
+  grid.appendChild(b); });
+function setGrid(f){ if (grid) grid.className = 'glyphs ' + f; document.querySelectorAll('.sh .tabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.f===f)); }
+document.querySelectorAll('.sh .tabs button').forEach(b => b.addEventListener('click', () => { userTouched = true; fam = b.dataset.f; setGrid(fam); render(); }));
+
+/* ---------- waterfall ---------- */
+const SIZES = [72,48,36,24,18,14,11];
+const LINES = ['Quartz glyphs vex', 'Jumpy zebras fix blowtorch kegs', 'Sphinx of black quartz, judge my vow', 'The quick brown fox had second thoughts about the whole thing', 'Pack my box with five dozen liquor jugs, then label every one of them neatly', 'Waltz, bad nymph, for quick jigs vex — and mind the kerning between the W and the a, please', 'Amazingly few discotheques provide jukeboxes; fewer still provide specimen books, which is a shame because these small sizes are where a typeface earns its keep.'];
+function waterfall(host, family, weight){
+  if (!host) return;
+  SIZES.forEach((s,i) => { const row = document.createElement('div'); row.className='wline';
+    row.innerHTML = `<small>${s}</small><div contenteditable="true" spellcheck="false"></div>`;
+    const d = row.querySelector('div'); d.textContent = LINES[i]; d.style.fontFamily = family; d.style.fontSize = s+'px'; d.style.fontWeight = weight;
+    host.appendChild(row); });
+}
+waterfall($('#wfB'), 'var(--bahn)', 600);
+waterfall($('#wfG'), 'var(--geo)', 400);
+
+/* ---------- tester ---------- */
+const tt = $('#tt'); let tFam = 'bahn';
+function tester(){
+  if (!tt) return;
+  const size = +($('#tSize')||{value:64}).value, w = +($('#tW')||{value:400}).value;
+  $('#tSizeOut').textContent = size; tt.style.fontSize = size+'px';
+  const ital = $('#tItal') && $('#tItal').checked, caps = $('#tCaps') && $('#tCaps').checked;
+  if (tFam==='bahn') { const sw = snapW(w); tt.style.fontFamily='var(--bahn)'; tt.style.fontWeight = sw[0]; tt.style.fontStyle = ital ? 'oblique 8deg' : 'normal'; $('#tWOut').textContent = sw[0]; }
+  else { tt.style.fontFamily='var(--geo)'; tt.style.fontWeight = w>=550 ? 700 : 400; tt.style.fontStyle = ital ? 'italic' : 'normal'; $('#tWOut').textContent = w>=550 ? 700 : 400; }
+  tt.style.textTransform = caps ? 'uppercase' : 'none'; tt.style.letterSpacing = caps ? '.04em' : '0';
+}
+['#tSize','#tW','#tItal','#tCaps'].forEach(id => { const e = $(id); if (e) e.addEventListener('input', tester); });
+document.querySelectorAll('#tFam button').forEach(b => b.addEventListener('click', () => { tFam = b.dataset.f; document.querySelectorAll('#tFam button').forEach(x => x.setAttribute('aria-pressed', x===b)); tester(); }));
+tester();
+
+/* ---------- keyboard ---------- */
+addEventListener('keydown', e => {
+  const t = e.target; if (t && (t.isContentEditable || t.tagName==='INPUT')) return;
+  if (e.key==='ArrowRight' || e.key==='ArrowLeft') { userTouched = true; const i = SET.indexOf(ch); ch = SET[(i + (e.key==='ArrowRight'?1:-1) + SET.length) % SET.length]; render(); }
+  else if (e.key==='ArrowUp' || e.key==='ArrowDown') { e.preventDefault(); userTouched = true; const i = INST_W.findIndex(x => x[0]===snapW(W)[0]); W = INST_W[Math.max(0, Math.min(4, i + (e.key==='ArrowUp'?1:-1)))][0]; syncSliders(); render(); }
+});
+
+/* ---------- idle demo: the weight axis breathes until touched ---------- */
+let demoI = 4, demoDir = -1;
+setInterval(() => {
+  if (userTouched || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  demoI += demoDir; if (demoI <= 0 || demoI >= 4) demoDir *= -1;
+  W = INST_W[demoI][0]; if (demoI===0) { D = D===100 ? 75 : 100; } syncSliders(); render();
+}, 700);
+
+addEventListener('resize', () => requestAnimationFrame(placeGuides));
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render()).catch(()=>{});
+render();
+})();
+</script>
+</body>
+</html>

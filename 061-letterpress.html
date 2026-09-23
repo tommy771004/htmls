@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鉛與紙活版印刷所 · Lead &amp; Linen Press — 名片壓印</title>
+<style>
+:root{
+  --cotton:#f4efe6;
+  --cotton-2:#ebe4d7;
+  --ink:#1c2a4a;
+  --ink-2:#2e4270;
+  --pencil:#6e9fd6;
+  --rule:#b9ad97;
+  --brass:#a8874a;
+  --serif: Constantia, Georgia, "Palatino Linotype", "Noto Serif", serif;
+  --ming: "PMingLiU", "MingLiU", "Noto Serif TC", "Songti TC", "Source Han Serif TC", serif;
+  --kai: "DFKai-SB", "BiauKai", "Kaiti TC", "STKaiti", "PMingLiU", serif;
+  --zh: var(--ming);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  min-height:100vh;
+  background-color:var(--cotton-2);
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .3  0 0 0 0 .22  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.35'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='f'><feTurbulence type='turbulence' baseFrequency='.004 .09' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .45  0 0 0 0 .36  0 0 0 .5 -.12'/></filter><rect width='100%' height='100%' filter='url(%23f)' opacity='.5'/></svg>"),
+    radial-gradient(120% 90% at 30% 10%, #f7f3eb 0%, #ece5d8 60%, #e1d8c7 100%);
+  color:var(--ink);
+  font-family:var(--serif);
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1240px;margin:0 auto;padding:clamp(18px,3vw,40px) clamp(16px,3vw,40px) 60px}
+
+/* ---------- masthead ---------- */
+.mast{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:18px;border-bottom:3px double var(--ink);padding-bottom:14px}
+.mast .l,.mast .r{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-variant:small-caps;color:#4c5670;line-height:1.7}
+.mast .r{text-align:right}
+.mast h1{margin:0;text-align:center;font-weight:normal;line-height:1}
+.mast h1 .en{display:block;font-size:clamp(26px,4.4vw,54px);letter-spacing:.06em;font-variant:small-caps}
+.mast h1 .en i{font-style:italic;font-variant:normal;color:var(--ink-2);padding:0 .12em}
+.mast h1 .zh{display:block;font-family:var(--ming);font-size:clamp(14px,1.6vw,18px);letter-spacing:.9em;margin-top:10px;padding-left:.9em;color:#3b4766}
+.subrule{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-style:italic;color:#6a6456;padding:7px 2px 0;border-top:1px solid var(--ink);margin-top:3px;flex-wrap:wrap}
+
+/* ---------- layout ---------- */
+.stage{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:clamp(20px,3.5vw,56px);margin-top:clamp(20px,3vw,36px);align-items:start}
+
+/* press bed */
+.bed{position:relative}
+.bed-label{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#6a6456;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.bed-label b{font-weight:normal;font-family:var(--zh);letter-spacing:.3em;color:var(--ink)}
+.counter{font-variant-numeric:tabular-nums;font-style:italic;letter-spacing:.08em;text-transform:none}
+.tray{
+  position:relative;padding:clamp(22px,5vw,64px) clamp(14px,4vw,56px);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.35),rgba(0,0,0,.03)),
+    var(--cotton);
+  border:1px solid #d6ccb9;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(0,0,0,.05), 0 1px 0 #fff;
+  perspective:1100px;
+}
+.tray::before{ /* guide pins */
+  content:"";position:absolute;left:50%;top:10px;width:46px;height:6px;margin-left:-23px;
+  background:linear-gradient(90deg,transparent 0 6px,#a79c86 6px 12px,transparent 12px 34px,#a79c86 34px 40px,transparent 40px);
+  opacity:.6;
+}
+.stack{position:absolute;inset:auto 0 0 0;height:0}
+.card-shell{position:relative;width:100%;max-width:600px;margin:0 auto;transform-style:preserve-3d}
+.card-shell .under{position:absolute;inset:0;background:var(--cotton);transform:translate(6px,7px) rotate(1.6deg);box-shadow:0 1px 2px rgba(60,45,20,.25);opacity:0;transition:opacity .3s}
+.card-shell .under.u2{transform:translate(-5px,9px) rotate(-1.1deg)}
+.card-shell.has1 .under.u1,.card-shell.has2 .under.u2{opacity:1}
+
+.card{
+  --depth:1.4;
+  position:relative;container-type:inline-size;
+  width:100%;aspect-ratio:90/54;
+  background-color:#faf7f1;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='c'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .4  0 0 0 0 .3  0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23c)' opacity='.28'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='500' height='300'><filter id='d'><feTurbulence type='turbulence' baseFrequency='.012 .2' numOctaves='2' seed='11'/><feColorMatrix values='0 0 0 0 .6  0 0 0 0 .55  0 0 0 0 .45  0 0 0 .6 -.2'/></filter><rect width='100%' height='100%' filter='url(%23d)' opacity='.35'/></svg>"),
+    linear-gradient(160deg,#fcfaf5,#f3eee4);
+  border-radius:3px;
+  box-shadow:
+    0 1px 0 #e3dccd, 0 2px 0 #d9d1c0, 0 3px 0 var(--edge,#d2c8b5),
+    0 5px 6px rgba(70,55,30,.16), 0 18px 34px -12px rgba(70,55,30,.35);
+  transform-origin:50% 100%;
+  color:var(--ink);
+  overflow:hidden;
+}
+.card.edge{--edge:var(--ink)}
+.card.edge{box-shadow:0 1px 0 var(--ink),0 2px 0 var(--ink),0 3px 0 #0f1830,0 5px 6px rgba(70,55,30,.18),0 18px 34px -12px rgba(70,55,30,.38)}
+.card.slam{animation:slam .78s cubic-bezier(.3,.0,.2,1)}
+@keyframes slam{
+  0%{transform:rotateX(0) translateY(0)}
+  32%{transform:rotateX(24deg) translateY(-10px) scale(1.015);box-shadow:0 30px 40px -18px rgba(70,55,30,.25)}
+  46%{transform:rotateX(0) scale(.975)}
+  56%{transform:rotateX(0) scale(.982)}
+  100%{transform:rotateX(0) scale(1)}
+}
+.tray.jolt{animation:jolt .78s linear}
+@keyframes jolt{0%,44%{transform:none}47%{transform:translateY(2px)}51%{transform:translateY(-1px)}55%,100%{transform:none}}
+
+/* blind frame */
+.frame{position:absolute;inset:5.5cqw;border:.35cqw solid transparent;pointer-events:none;border-radius:1px}
+.inked .frame.on{border-color:rgba(0,0,0,.001)}
+.frame.on{box-shadow:inset .2cqw .25cqw 0 rgba(20,20,30,.14), .15cqw .2cqw 0 rgba(255,255,255,.95), inset -.12cqw -.12cqw 0 rgba(255,255,255,.8), -.12cqw -.12cqw 0 rgba(40,30,20,.09)}
+.card:not(.inked) .frame.on{box-shadow:none;border:.2cqw dashed var(--pencil);opacity:.55}
+
+.type{position:absolute;inset:0;padding:8.5cqw 9cqw;display:flex;flex-direction:column;transition:color .25s}
+.card.inked .type{filter:url(#deboss)}
+.card:not(.inked) .type{color:var(--pencil)}
+.card:not(.inked) .type *{border-color:var(--pencil)!important}
+.card.blind.inked .type{color:#ede7dc}
+.card.blind.inked .type .orn path{fill:#ede7dc}
+
+.zh-name{font-family:var(--zh);font-weight:700;font-size:8.2cqw;letter-spacing:.32em;line-height:1.1;white-space:nowrap}
+.en-name{font-size:3.3cqw;letter-spacing:.3em;text-transform:uppercase;font-variant:small-caps;margin-top:1.4cqw;white-space:nowrap}
+.role{font-style:italic;font-size:2.9cqw;margin-top:1.2cqw;letter-spacing:.03em;white-space:nowrap}
+.orn{width:17cqw;height:auto;margin:2.4cqw auto 1.8cqw;display:block}
+.orn path{fill:currentColor}
+.contacts{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:.6cqw 5cqw;font-size:2.35cqw;letter-spacing:.06em;line-height:1.45}
+.contacts .full{grid-column:1/-1}
+.contacts span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.contacts .zh{font-family:var(--zh);letter-spacing:.14em}
+.contacts small{font-variant:small-caps;letter-spacing:.2em;font-size:1.9cqw;opacity:.8;margin-right:1.2cqw}
+
+/* layout: classic */
+.l-classic .type{align-items:center;text-align:center}
+.l-classic .contacts{width:100%;text-align:center;grid-template-columns:1fr}
+.l-classic .contacts span{display:inline}
+.l-classic .contacts .line{display:flex;justify-content:center;gap:3cqw;white-space:nowrap}
+/* layout: modern */
+.l-modern .type{align-items:flex-start;text-align:left}
+.l-modern .zh-name{font-size:9.6cqw;letter-spacing:.1em}
+.l-modern .orn{display:none}
+.l-modern .bar{display:block}
+.bar{display:none;width:9cqw;height:.9cqw;background:currentColor;margin:2.6cqw 0 0}
+.l-modern .contacts{width:100%;border-top:.25cqw solid currentColor;padding-top:1.8cqw}
+.l-modern .contacts .line{display:contents}
+/* layout: vertical */
+.l-vertical .type{writing-mode:vertical-rl;padding:8cqw 9cqw;align-items:flex-start;flex-direction:column}
+.l-vertical .zh-name{font-size:8.6cqw;letter-spacing:.45em}
+.l-vertical .en-name,.l-vertical .role{margin:0 1.4cqw 0 0}
+.l-vertical .role{white-space:normal;font-size:2.5cqw;max-height:100%}
+.l-vertical .orn{display:none}
+.l-vertical .contacts{margin:0 auto 0 11cqw;display:flex;flex-direction:column;gap:0}
+.l-vertical .contacts .line{display:contents}
+.l-vertical .contacts span{margin-left:1.5cqw;font-size:2.2cqw}
+.l-vertical .contacts .latin{writing-mode:vertical-rl}
+.l-vertical .seal{display:block}
+.seal{display:none;position:absolute;left:8cqw;bottom:8cqw;width:8cqw;height:8cqw;border:.45cqw solid currentColor;writing-mode:horizontal-tb;font-family:var(--zh);font-size:3.1cqw;line-height:1;display:none;place-items:center;text-align:center;letter-spacing:0}
+.l-vertical .seal{display:grid}
+.seal b{font-weight:normal;display:block;width:3.6cqw;word-break:break-all;line-height:1.05}
+
+.proof-tag{position:absolute;right:3cqw;top:2.6cqw;font-family:"Segoe Print","Ink Free","Bradley Hand",cursive;font-size:2.3cqw;color:var(--pencil);transform:rotate(-4deg);opacity:0;transition:opacity .25s;pointer-events:none}
+.card:not(.inked) .proof-tag{opacity:.9}
+
+/* composing stick */
+.stick{margin:clamp(22px,3vw,34px) auto 0;max-width:600px}
+.stick .cap{display:flex;justify-content:space-between;gap:10px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#6a6456;margin-bottom:6px;flex-wrap:wrap}
+.stick .cap em{text-transform:none;letter-spacing:.04em}
+.stick-body{
+  position:relative;display:flex;flex-direction:row-reverse;justify-content:flex-start;gap:1px;padding:9px 12px 9px 26px;min-height:54px;overflow:hidden;
+  background:linear-gradient(180deg,#d9dbde,#9ea3aa 40%,#bfc3c8 60%,#80868e);
+  border-radius:3px 3px 5px 5px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7), inset 0 -2px 3px rgba(0,0,0,.3), 0 3px 6px rgba(40,30,20,.25);
+}
+.stick-body::after{content:"";position:absolute;left:0;top:0;bottom:0;width:18px;background:linear-gradient(90deg,#6f757c,#b4b8be 50%,#7b8189);border-right:1px solid #5a6068}
+.sort{
+  flex:0 0 auto;width:26px;height:36px;display:grid;place-items:center;
+  background:linear-gradient(180deg,#8c8f93,#5f6368 45%,#6d7176);
+  border-radius:1px;box-shadow:inset 1px 0 0 rgba(255,255,255,.25), inset -1px 0 0 rgba(0,0,0,.35);
+  font-family:var(--serif);font-size:22px;color:#202227;text-shadow:0 1px 0 rgba(255,255,255,.3);
+  transform:scaleX(-1);
+}
+.sort.sp{width:10px;background:linear-gradient(180deg,#76797e,#55595e)}
+.sort.new{animation:drop .28s cubic-bezier(.2,1.6,.4,1)}
+@keyframes drop{from{transform:scaleX(-1) translateY(-18px);opacity:0}to{transform:scaleX(-1) translateY(0);opacity:1}}
+.stick-note{font-size:12px;font-style:italic;color:#6a6456;margin-top:8px;text-align:center}
+
+/* ---------- job ticket ---------- */
+.ticket{
+  position:relative;background:#fbf8f2;border:1px solid #cfc4af;padding:22px clamp(16px,2.4vw,28px) 24px;
+  box-shadow:0 1px 0 #fff inset, 0 14px 30px -18px rgba(60,45,20,.45);
+}
+.ticket::before{content:"";position:absolute;left:0;right:0;top:-1px;height:8px;background:
+  radial-gradient(circle at 6px -1px,var(--cotton-2) 4px,transparent 4.5px) 0 0/14px 8px repeat-x}
+.t-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid var(--ink);padding-bottom:8px;margin-bottom:6px;gap:10px}
+.t-head h2{margin:0;font-weight:normal;font-family:var(--ming);font-size:20px;letter-spacing:.4em}
+.t-head h2 small{display:block;font-family:var(--serif);font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-style:italic;color:#6a6456;margin-top:3px}
+.t-no{font-style:italic;font-size:15px;color:#9a2f22;font-variant-numeric:tabular-nums;white-space:nowrap}
+.field{display:grid;grid-template-columns:5.6em 1fr;align-items:end;gap:10px;padding:9px 0 3px;border-bottom:1px dotted var(--rule)}
+.field label{font-size:12px;letter-spacing:.12em;color:#5c6070;line-height:1.3}
+.field label i{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#98917f}
+.field input{width:100%;min-width:0;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);padding:6px 2px;min-height:40px;outline:none;font-family:var(--serif)}
+.field input.zh{font-family:var(--ming);letter-spacing:.12em}
+.field input:focus{background:linear-gradient(transparent 82%,rgba(110,159,214,.2) 82%)}
+.group{margin-top:16px}
+.group h3{margin:0 0 7px;font-weight:normal;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#6a6456;display:flex;gap:8px;align-items:center}
+.group h3::after{content:"";flex:1;border-top:1px solid var(--rule)}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{
+  appearance:none;border:1px solid #bdb19a;background:#f6f1e7;color:var(--ink);font:inherit;font-size:13px;min-height:40px;padding:6px 12px;cursor:pointer;border-radius:2px;
+  display:inline-flex;align-items:center;gap:8px;letter-spacing:.04em;transition:background .15s,box-shadow .15s
+}
+.opt:hover{background:#efe8da}
+.opt[aria-pressed="true"]{background:var(--ink);color:#f4efe6;border-color:var(--ink);box-shadow:inset 0 2px 4px rgba(0,0,0,.4)}
+.opt .sw{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2), 0 0 0 1.5px #f4efe6}
+.opt:focus-visible,.lever:focus-visible,input[type=range]:focus-visible{outline:2px solid var(--pencil);outline-offset:2px}
+
+.pressure{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6a6456}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:linear-gradient(90deg,#cfc5b1,var(--ink));border-radius:2px;box-shadow:inset 0 1px 1px rgba(0,0,0,.25)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3dfa6,var(--brass) 55%,#6f5424);box-shadow:0 2px 3px rgba(0,0,0,.35)}
+input[type=range]::-moz-range-track{height:4px;background:linear-gradient(90deg,#cfc5b1,var(--ink));border-radius:2px}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3dfa6,var(--brass) 55%,#6f5424)}
+.p-note{font-size:13px;font-style:italic;color:#4c5670;margin-top:2px;min-height:1.4em}
+
+.lever{
+  margin-top:20px;width:100%;min-height:62px;border:0;cursor:pointer;position:relative;
+  background:linear-gradient(180deg,#2a3a60,var(--ink) 60%,#141f38);
+  color:#f1eadc;font-family:var(--serif);font-size:18px;letter-spacing:.34em;text-transform:uppercase;
+  border-radius:3px;box-shadow:inset 0 1px 0 rgba(255,255,255,.18), 0 4px 0 #0c1428, 0 10px 18px -6px rgba(10,20,40,.55);
+  display:flex;align-items:center;justify-content:center;gap:14px;transition:transform .08s,box-shadow .08s
+}
+.lever span.zh{font-family:var(--ming);letter-spacing:.5em;font-size:17px}
+.lever:active,.lever.down{transform:translateY(4px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 #0c1428, 0 4px 8px -4px rgba(10,20,40,.5)}
+.lever svg{width:22px;height:22px;flex:none}
+.hint{font-size:12px;color:#7a7362;font-style:italic;text-align:center;margin-top:10px}
+.hint kbd{font-family:Consolas,"Lucida Console",monospace;font-style:normal;font-size:11px;border:1px solid #bdb19a;border-bottom-width:2px;padding:1px 5px;border-radius:2px;background:#f6f1e7}
+
+.colophon{margin-top:clamp(28px,4vw,48px);border-top:1px solid var(--ink);padding-top:10px;display:flex;justify-content:space-between;gap:16px;font-size:12px;color:#6a6456;font-style:italic;flex-wrap:wrap}
+.colophon b{font-style:normal;font-weight:normal;font-variant:small-caps;letter-spacing:.2em;color:var(--ink)}
+
+@media (max-width:860px){
+  .stage{grid-template-columns:1fr}
+  .mast{grid-template-columns:1fr}
+  .mast .l,.mast .r{text-align:center}
+  .mast .l{order:2}.mast .r{order:3}
+}
+@media (max-width:480px){
+  .mast .l,.mast .r{font-size:10px;letter-spacing:.12em}
+  .mast h1 .zh{letter-spacing:.5em;padding-left:.5em}
+  .sort{width:20px;height:30px;font-size:17px}
+  .sort.sp{width:7px}
+  .lever{letter-spacing:.2em;font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){
+  .card.slam,.tray.jolt,.sort.new{animation:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="deboss" x="-4%" y="-6%" width="108%" height="112%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="9" result="noise"/>
+      <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -0.55 0 0 0 1.22" result="speck"/>
+      <feComposite in="SourceGraphic" in2="speck" operator="in" result="inked"/>
+      <feOffset id="fo1" in="SourceAlpha" dx="0" dy="1.4" result="o1"/>
+      <feGaussianBlur in="o1" stdDeviation="0.55" result="o1b"/>
+      <feComposite in="SourceAlpha" in2="o1b" operator="out" result="topEdge"/>
+      <feFlood id="ff1" flood-color="#0a1022" flood-opacity="0.55" result="c1"/>
+      <feComposite in="c1" in2="topEdge" operator="in" result="shade"/>
+      <feOffset id="fo2" in="SourceAlpha" dx="0" dy="1.2" result="o2"/>
+      <feComposite in="o2" in2="SourceAlpha" operator="out" result="lowEdge"/>
+      <feGaussianBlur in="lowEdge" stdDeviation="0.45" result="lowb"/>
+      <feFlood flood-color="#ffffff" flood-opacity="0.95" result="c2"/>
+      <feComposite in="c2" in2="lowb" operator="in" result="hi"/>
+      <feMorphology id="fm" in="SourceAlpha" operator="dilate" radius="1.3" result="dil"/>
+      <feGaussianBlur in="dil" stdDeviation="1.6" result="dilb"/>
+      <feComposite in="dilb" in2="SourceAlpha" operator="out" result="halo"/>
+      <feFlood id="ff3" flood-color="#5d4f36" flood-opacity="0.14" result="c3"/>
+      <feComposite in="c3" in2="halo" operator="in" result="haloC"/>
+      <feMerge><feMergeNode in="haloC"/><feMergeNode in="inked"/><feMergeNode in="shade"/><feMergeNode in="hi"/></feMerge>
+    </filter>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="l">Est. 1962 · Dadaocheng<br>Hand-set · Hand-fed</div>
+    <h1><span class="en">Lead <i>&amp;</i> Linen Press</span><span class="zh">鉛與紙活版印刷所</span></h1>
+    <div class="r">Heidelberg Windmill 1958<br>Cotton 600 g/m² · Duplex</div>
+  </header>
+  <div class="subrule"><span>名片承印 · Calling cards made the slow way</span><span>每一個字，都是反著排的。</span></div>
+
+  <main class="stage">
+    <section class="bed" aria-label="印版台">
+      <div class="bed-label"><b>印版台 · The Bed</b><span class="counter" id="counter">Impression No. 0000</span></div>
+      <div class="tray" id="tray">
+        <div class="card-shell" id="shell">
+          <div class="under u1"></div><div class="under u2"></div>
+          <div class="card l-classic" id="card" role="img" aria-label="名片預覽">
+            <div class="frame on" id="frame"></div>
+            <div class="type" id="type">
+              <div class="zh-name" data-bind="zh">沈墨白</div>
+              <div class="en-name" data-bind="en">Mo-Bai Shen</div>
+              <div class="bar"></div>
+              <svg class="orn" viewBox="0 0 170 18" aria-hidden="true"><path d="M0 8.4h62v1.2H0zM108 8.4h62v1.2h-62zM85 1c3 3.2 7.6 5.3 12.8 7.4C92.6 10.6 88 12.9 85 17c-3-4.1-7.6-6.4-12.8-8.6C77.4 6.3 82 4.2 85 1zm0 4.2c-1.5 1.3-3.4 2.4-5.6 3.3 2.2 1 4.1 2.1 5.6 3.4 1.5-1.3 3.4-2.4 5.6-3.4-2.2-.9-4.1-2-5.6-3.3zM66 9a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0zm33.2 0a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0z"/></svg>
+              <div class="role" data-bind="role">Compositor &amp; Keeper of Sorts · 排字師傅</div>
+              <div class="contacts">
+                <div class="line"><span class="latin"><small>t</small><b style="font-weight:normal" data-bind="tel">+886 2 2555 0187</b></span><span class="latin"><small>e</small><b style="font-weight:normal" data-bind="mail">mobai@leadlinen.tw</b></span></div>
+                <div class="line"><span class="zh full" data-bind="addr">台北市大同區迪化街一段七十二巷三號</span></div>
+              </div>
+              <div class="seal" aria-hidden="true"><b id="sealtxt">墨白</b></div>
+            </div>
+            <div class="proof-tag">proof · 校樣，尚未上機</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stick" aria-label="排字盤">
+        <div class="cap"><span>排字盤 · Composing stick</span><em>set right-to-left, upside down, by hand</em></div>
+        <div class="stick-body" id="stick"></div>
+        <div class="stick-note" id="sticknote">共 0 枚鉛字 · 撿字師傅已就位</div>
+      </div>
+    </section>
+
+    <aside class="ticket" aria-label="工單">
+      <div class="t-head">
+        <h2>印製工單<small>Job ticket</small></h2>
+        <span class="t-no" id="jobno">No. 0417</span>
+      </div>
+      <div class="field"><label for="f-zh">中文姓名<i>Name</i></label><input id="f-zh" class="zh" data-key="zh" maxlength="8" value="沈墨白" autocomplete="off"></div>
+      <div class="field"><label for="f-en">英文姓名<i>Latin</i></label><input id="f-en" data-key="en" maxlength="24" value="Mo-Bai Shen" autocomplete="off"></div>
+      <div class="field"><label for="f-role">職銜<i>Title</i></label><input id="f-role" data-key="role" maxlength="48" value="Compositor &amp; Keeper of Sorts · 排字師傅" autocomplete="off"></div>
+      <div class="field"><label for="f-tel">電話<i>Tel.</i></label><input id="f-tel" data-key="tel" maxlength="24" value="+886 2 2555 0187" autocomplete="off" inputmode="tel"></div>
+      <div class="field"><label for="f-mail">信箱<i>Post</i></label><input id="f-mail" data-key="mail" maxlength="34" value="mobai@leadlinen.tw" autocomplete="off" inputmode="email"></div>
+      <div class="field"><label for="f-addr">地址<i>Address</i></label><input id="f-addr" class="zh" data-key="addr" maxlength="26" value="台北市大同區迪化街一段七十二巷三號" autocomplete="off"></div>
+
+      <div class="group"><h3>版式 · Layout</h3>
+        <div class="opts" data-group="layout">
+          <button class="opt" aria-pressed="true" data-v="classic">古典置中</button>
+          <button class="opt" aria-pressed="false" data-v="modern">左齊摩登</button>
+          <button class="opt" aria-pressed="false" data-v="vertical">直排落款</button>
+        </div>
+      </div>
+      <div class="group"><h3>油墨 · Ink</h3>
+        <div class="opts" data-group="ink">
+          <button class="opt" aria-pressed="true" data-v="#1c2a4a"><span class="sw" style="background:#1c2a4a"></span>普魯士藍</button>
+          <button class="opt" aria-pressed="false" data-v="#34507f"><span class="sw" style="background:#34507f"></span>靛青</button>
+          <button class="opt" aria-pressed="false" data-v="blind"><span class="sw" style="background:#efe9de"></span>盲壓 Blind</button>
+        </div>
+      </div>
+      <div class="group"><h3>字體 · Face</h3>
+        <div class="opts" data-group="face">
+          <button class="opt" aria-pressed="true" data-v="ming">明體 Ming</button>
+          <button class="opt" aria-pressed="false" data-v="kai">楷體 Kai</button>
+          <button class="opt" aria-pressed="false" data-v="edge">染邊 Edge paint</button>
+        </div>
+      </div>
+      <div class="group"><h3>壓力 · Impression</h3>
+        <div class="pressure"><span>Kiss</span><input type="range" id="press" min="0" max="100" value="62" aria-label="壓印深度"><span>Bite</span></div>
+        <div class="p-note" id="pnote"></div>
+      </div>
+      <button class="lever" id="lever" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v13" stroke="#e8d9ae" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="12" cy="3.6" r="2.6" fill="#e8d9ae"/><rect x="4" y="16" width="16" height="4" rx="1" fill="#e8d9ae"/></svg>
+        <span class="zh">上機壓印</span><span>Impress</span>
+      </button>
+      <div class="hint">修改內容後會回到鉛筆校樣 · 按 <kbd>Enter</kbd> 拉下壓桿</div>
+    </aside>
+  </main>
+
+  <footer class="colophon">
+    <span><b>Colophon</b> — 棉漿紙 600 g，雙層對裱；油墨手調，一次一張。</span>
+    <span>凹得太深，老師傅會皺眉；凹得太淺，客人會以為是影印。</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var $ = function(s){ return document.querySelector(s); };
+  var card = $('#card'), shell = $('#shell'), tray = $('#tray'), stick = $('#stick');
+  var counterEl = $('#counter'), lever = $('#lever'), press = $('#press'), pnote = $('#pnote'), stickNote = $('#sticknote');
+  if(!card || !shell || !tray || !stick || !lever || !press) return;
+  var fo1 = document.getElementById('fo1'), fo2 = document.getElementById('fo2'),
+      ff1 = document.getElementById('ff1'), fm = document.getElementById('fm'), ff3 = document.getElementById('ff3');
+
+  var count = 0, busy = false, lastStick = '';
+  try { count = parseInt(localStorage.getItem('llp-count') || '0', 10) || 0; } catch(e) { count = 0; }
+
+  function pad(n){ return ('0000' + n).slice(-4); }
+  function setCounter(){ if(counterEl) counterEl.textContent = 'Impression No. ' + pad(count); }
+  setCounter();
+
+  /* ---- bindings ---- */
+  var inputs = document.querySelectorAll('.field input');
+  function bindAll(){
+    for (var i=0;i<inputs.length;i++){
+      var inp = inputs[i], key = inp.getAttribute('data-key');
+      var el = card.querySelector('[data-bind="'+key+'"]');
+      var v = inp.value.trim();
+      if (el) el.textContent = v || ' ';
+      if (key === 'zh'){
+        var s = document.getElementById('sealtxt');
+        if (s) s.textContent = (v.length > 2 ? v.slice(-2) : v) || '印';
+      }
+    }
+    buildStick();
+  }
+  function unproof(){ card.classList.remove('inked'); }
+  for (var i=0;i<inputs.length;i++){
+    inputs[i].addEventListener('input', function(){ bindAll(); unproof(); });
+    inputs[i].addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); impress(); } });
+  }
+
+  /* ---- composing stick (mirrored sorts) ---- */
+  function buildStick(){
+    var enIn = document.getElementById('f-en');
+    var txt = (enIn ? enIn.value : '').slice(0, 24);
+    if (txt === lastStick) return;
+    var prev = lastStick; lastStick = txt;
+    stick.innerHTML = '';
+    var n = 0;
+    for (var k=0;k<txt.length;k++){
+      var ch = txt[k];
+      var d = document.createElement('span');
+      d.className = 'sort' + (ch === ' ' ? ' sp' : '');
+      d.textContent = ch === ' ' ? '' : ch;
+      if (k >= prev.length || prev[k] !== ch) d.classList.add('new');
+      stick.appendChild(d);
+      if (ch !== ' ') n++;
+    }
+    if (stickNote){
+      var msgs = ['撿字師傅已就位','記得：p 和 q 最容易撿錯','「Mind your p’s and q’s」就是從這裡來的','空鉛也算一枚，別偷懶'];
+      stickNote.textContent = '共 ' + n + ' 枚鉛字 · ' + msgs[n % msgs.length];
+    }
+  }
+
+  /* ---- options ---- */
+  var state = { layout:'classic', ink:'#1c2a4a', face:'ming', edge:false };
+  var groups = document.querySelectorAll('.opts');
+  for (var g=0; g<groups.length; g++){
+    (function(grp){
+      var name = grp.getAttribute('data-group');
+      grp.addEventListener('click', function(e){
+        var b = e.target.closest ? e.target.closest('.opt') : null;
+        if (!b) return;
+        var v = b.getAttribute('data-v');
+        if (name === 'face' && v === 'edge'){
+          state.edge = !state.edge;
+          b.setAttribute('aria-pressed', state.edge ? 'true' : 'false');
+          card.classList.toggle('edge', state.edge);
+          return;
+        }
+        var all = grp.querySelectorAll('.opt');
+        for (var j=0;j<all.length;j++){ if (all[j].getAttribute('data-v') !== 'edge') all[j].setAttribute('aria-pressed', all[j] === b ? 'true' : 'false'); }
+        state[name] = v;
+        apply();
+        unproof();
+      });
+    })(groups[g]);
+  }
+  function apply(){
+    card.classList.remove('l-classic','l-modern','l-vertical');
+    card.classList.add('l-' + state.layout);
+    if (state.ink === 'blind'){ card.classList.add('blind'); }
+    else { card.classList.remove('blind'); card.style.setProperty('--ink', state.ink); card.style.color = state.ink; }
+    card.style.setProperty('--zh', state.face === 'kai' ? 'var(--kai)' : 'var(--ming)');
+  }
+
+  /* ---- pressure ---- */
+  var notes = [
+    [15,'吻印：只親一下紙。老派師傅點頭。'],
+    [40,'輕壓：指腹摸得到，眼睛要側光才看得見。'],
+    [70,'剛好：燈下有影，名片遞出去會被多看兩秒。'],
+    [90,'深咬：客人喜歡，師傅皺眉。'],
+    [101,'壓穿了嗎？背面都浮起來了。']
+  ];
+  function setDepth(){
+    var p = +press.value / 100;
+    var dy = (0.35 + p * 2.2).toFixed(2);
+    if (fo1){ fo1.setAttribute('dy', dy); }
+    if (fo2){ fo2.setAttribute('dy', (0.3 + p * 1.6).toFixed(2)); }
+    if (ff1){ ff1.setAttribute('flood-opacity', (0.25 + p * 0.5).toFixed(2)); }
+    if (fm){ fm.setAttribute('radius', (0.4 + p * 2.2).toFixed(2)); }
+    if (ff3){ ff3.setAttribute('flood-opacity', (0.05 + p * 0.16).toFixed(2)); }
+    var v = +press.value;
+    for (var i=0;i<notes.length;i++){ if (v < notes[i][0]){ if(pnote) pnote.textContent = notes[i][1]; break; } }
+  }
+  press.addEventListener('input', setDepth);
+  setDepth();
+
+  /* ---- sound: a platen thunk ---- */
+  var ac = null;
+  function thunk(){
+    try{
+      if (!ac){ var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return; ac = new AC(); }
+      if (ac.state === 'suspended') ac.resume();
+      var t = ac.currentTime + 0.33;
+      var len = Math.floor(ac.sampleRate * 0.18);
+      var buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+      for (var i=0;i<len;i++){ d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 3); }
+      var src = ac.createBufferSource(); src.buffer = buf;
+      var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+      var g = ac.createGain(); g.gain.value = 0.5;
+      src.connect(lp); lp.connect(g); g.connect(ac.destination); src.start(t);
+      var o = ac.createOscillator(), og = ac.createGain();
+      o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.2);
+      og.gain.setValueAtTime(0.45, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      o.connect(og); og.connect(ac.destination); o.start(t); o.stop(t + 0.3);
+      var c = ac.createOscillator(), cg = ac.createGain();
+      c.type = 'square'; c.frequency.value = 1800;
+      cg.gain.setValueAtTime(0.05, t + 0.02); cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      c.connect(cg); cg.connect(ac.destination); c.start(t + 0.02); c.stop(t + 0.06);
+    }catch(e){}
+  }
+
+  /* ---- the impression ---- */
+  function impress(withSound){
+    if (busy) return;
+    busy = true;
+    if (withSound !== false) thunk();
+    lever.classList.add('down');
+    card.classList.remove('slam'); tray.classList.remove('jolt');
+    void card.offsetWidth;
+    card.classList.add('slam'); tray.classList.add('jolt');
+    setTimeout(function(){
+      card.classList.add('inked');
+      count++; setCounter();
+      try { localStorage.setItem('llp-count', String(count)); } catch(e){}
+      if (count > 0) shell.classList.add('has1');
+      if (count > 1) shell.classList.add('has2');
+    }, 350);
+    setTimeout(function(){ lever.classList.remove('down'); }, 260);
+    setTimeout(function(){ card.classList.remove('slam'); tray.classList.remove('jolt'); busy = false; }, 800);
+  }
+  lever.addEventListener('click', function(){ impress(true); });
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Enter') return;
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'BUTTON')) return;
+    e.preventDefault(); impress(true);
+  });
+
+  var jn = document.getElementById('jobno');
+  if (jn) jn.textContent = 'No. ' + pad(417 + (count % 300));
+
+  bindAll();
+  apply();
+  setTimeout(function(){ impress(false); }, 380);
+})();
+</script>
+</body>
+</html>

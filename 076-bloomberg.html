@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KESTREL TERMINAL — Market Monitor (fictional)</title>
+<style>
+  :root{
+    --bg:#000;--amb:#ffa21f;--amb-d:#b86f0a;--amb-dd:#3a2508;--wht:#e9e6df;--dim:#8a857c;
+    --up:#2bd67b;--dn:#ff4b4b;--yel:#ffd23a;--blue:#4aa3ff;--line:#262219;
+    --mono:Consolas,"Lucida Console","Menlo","DejaVu Sans Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--amb);font-family:var(--mono);font-size:12.5px;line-height:1.35;
+    display:flex;flex-direction:column;min-height:100vh;-webkit-font-smoothing:antialiased}
+  ::selection{background:var(--amb);color:#000}
+  button{font-family:var(--mono)}
+
+  /* ---------- top chrome ---------- */
+  .bar{display:flex;align-items:center;gap:14px;padding:4px 10px;background:#0c0c0c;border-bottom:1px solid var(--line);white-space:nowrap;min-height:30px}
+  .logo{color:#000;background:var(--amb);font-weight:700;padding:1px 7px;letter-spacing:.12em}
+  .bar .w{color:var(--wht)}
+  .bar .sp{flex:1}
+  .live{display:inline-flex;align-items:center;gap:6px;color:var(--up)}
+  .live i{width:7px;height:7px;border-radius:50%;background:var(--up);box-shadow:0 0 6px var(--up);animation:blink 1s steps(2) infinite}
+  .paused .live{color:var(--dn)} .paused .live i{background:var(--dn);box-shadow:0 0 6px var(--dn);animation:none}
+  @keyframes blink{50%{opacity:.25}}
+  .cmd{display:flex;align-items:center;gap:8px;padding:4px 10px;border-bottom:1px solid var(--line);background:#050505}
+  .cmd label{color:var(--wht)}
+  .cmd input{flex:1;min-width:0;background:#000;border:1px solid var(--amb-dd);color:var(--yel);font:inherit;font-size:14px;padding:6px 8px;text-transform:uppercase;caret-color:var(--amb);min-height:36px}
+  .cmd input:focus{outline:none;border-color:var(--amb)}
+  .go{background:#0d6e2f;color:#fff;border:0;padding:0 14px;min-height:36px;font-weight:700;letter-spacing:.08em;cursor:pointer}
+  .go:hover{background:#12883b}
+  .msg{color:var(--wht);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 40%}
+  .fkeys{display:flex;gap:3px;padding:4px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .fk{background:var(--yel);color:#000;border:0;padding:0 10px;min-height:28px;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:.04em}
+  .fk b{color:#8a1b00;margin-right:5px}
+  .fk[aria-pressed="true"]{background:var(--amb);box-shadow:inset 0 -3px 0 #000}
+  .fk.red{background:#c21d1d;color:#fff}.fk.red b{color:#ffd6c8}
+  .fk:focus-visible{outline:2px solid #fff}
+
+  /* ---------- grid ---------- */
+  .grid{flex:1;display:grid;gap:1px;background:var(--line);min-height:0;
+    grid-template-columns:minmax(360px,1.05fr) minmax(0,2fr) minmax(280px,.95fr);
+    grid-template-rows:minmax(0,1fr) minmax(0,.9fr) 236px;
+    grid-template-areas:"watch chart book" "watch chart tape" "news news heat"}
+  .p{background:#000;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
+  .ph{display:flex;align-items:center;gap:8px;padding:3px 8px;background:#141008;border-bottom:1px solid var(--amb-dd);color:var(--amb);text-transform:uppercase;white-space:nowrap;min-height:24px}
+  .ph .n{color:#000;background:var(--amb);padding:0 4px;font-weight:700}
+  .ph .t{color:var(--wht)}
+  .ph .r{margin-left:auto;color:var(--dim);overflow:hidden;text-overflow:ellipsis}
+  .pb{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:#3a2a10 #000}
+  .watch{grid-area:watch}.chart{grid-area:chart}.book{grid-area:book}.tape{grid-area:tape}.news{grid-area:news}.heat{grid-area:heat}
+
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  th{color:var(--dim);font-weight:400;text-align:right;padding:3px 6px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#000;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:3px 6px;text-align:right;white-space:nowrap;color:var(--wht);border-bottom:1px solid #0e0c09}
+  tr.row{cursor:pointer}
+  tr.row:hover td{background:#120d05}
+  tr.row.sel td{background:#2a1a04}
+  tr.row.sel td:first-child{box-shadow:inset 3px 0 0 var(--amb)}
+  td.sym{color:var(--amb);font-weight:700}
+  td.sym small{display:block;color:var(--dim);font-weight:400;font-size:10.5px;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+  .up{color:var(--up)!important}.dn{color:var(--dn)!important}
+  td.fu{animation:fu .7s ease-out}td.fd{animation:fd .7s ease-out}
+  @keyframes fu{from{background:#0f5a31;color:#fff}}
+  @keyframes fd{from{background:#6a1414;color:#fff}}
+  svg.spk{width:64px;height:18px;display:block;margin-left:auto}
+  .idx td{padding:2px 6px}
+  .sub{color:var(--dim);padding:6px 8px 2px;border-top:1px solid var(--line);text-transform:uppercase}
+
+  /* chart */
+  .chartwrap{position:relative;flex:1;min-height:0}
+  .chartwrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:crosshair}
+  .quote{display:flex;gap:18px;align-items:baseline;padding:6px 10px 4px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .quote .big{font-size:26px;color:var(--wht);letter-spacing:-.02em}
+  .quote .nm{color:var(--amb);font-weight:700;font-size:15px}
+  .quote .nm small{color:var(--dim);font-weight:400;font-size:12px;margin-left:6px}
+  .quote .kv{color:var(--dim)} .quote .kv b{color:var(--wht);font-weight:400}
+  .tf{display:flex;gap:2px;margin-left:auto}
+  .tf button{background:#111;color:var(--amb);border:1px solid var(--amb-dd);min-height:26px;padding:0 9px;cursor:pointer;font-size:11.5px}
+  .tf button[aria-pressed="true"]{background:var(--amb);color:#000}
+
+  /* depth */
+  .lad td{position:relative;padding:1px 6px}
+  .lad td:first-child{text-align:right}
+  .lad .bar-b,.lad .bar-a{position:absolute;top:1px;bottom:1px;opacity:.28;z-index:0}
+  .lad .bar-b{right:0;background:var(--up)} .lad .bar-a{left:0;background:var(--dn)}
+  .lad span{position:relative;z-index:1}
+  .lad .mid td{color:var(--yel);text-align:center;border-top:1px solid var(--amb-dd);border-bottom:1px solid var(--amb-dd);background:#0d0902}
+  /* tape */
+  .ts td{padding:1px 6px}
+  .ts tr.new td{animation:fu .9s ease-out}
+  .ts tr.new.s td{animation:fd .9s ease-out}
+  /* news */
+  .nl{list-style:none;margin:0;padding:0}
+  .nl li{display:grid;grid-template-columns:58px 64px 1fr;gap:8px;padding:3px 8px;border-bottom:1px solid #0e0c09;cursor:pointer}
+  .nl li:hover{background:#120d05}
+  .nl .tm{color:var(--dim)} .nl .src{color:var(--blue)} .nl .hd{color:var(--wht)}
+  .nl li.hot .hd{color:var(--yel)}
+  .nl li.new{animation:nflash 1.6s ease-out}
+  @keyframes nflash{0%{background:var(--amb);}15%{background:#3a2508}100%{background:transparent}}
+  /* heatmap */
+  .hm{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;gap:2px;padding:4px;height:100%}
+  .hm div{display:flex;flex-direction:column;justify-content:space-between;padding:4px 5px;color:#fff;min-width:0;overflow:hidden;transition:background .6s}
+  .hm div b{font-size:11px;letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hm div span{font-size:15px}
+  /* ticker tape */
+  .ticker{height:26px;border-top:1px solid var(--amb-dd);background:#0a0703;overflow:hidden;position:relative;white-space:nowrap}
+  .ticker .run{display:inline-block;padding-left:100%;animation:run 60s linear infinite;animation-delay:-14s;line-height:26px}
+  .ticker .run span{margin-right:34px;color:var(--wht)} .ticker .run b{color:var(--amb);font-weight:400;margin-right:6px}
+  .paused .ticker .run{animation-play-state:paused}
+  @keyframes run{to{transform:translateX(-100%)}}
+  .foot{display:flex;gap:16px;padding:3px 10px;color:var(--dim);font-size:11px;border-top:1px solid var(--line);white-space:nowrap;overflow:hidden}
+  .foot b{color:var(--dn);font-weight:400}
+
+  @media (max-width:1100px){
+    body{height:auto}
+    .grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 420px 300px 300px auto;
+      grid-template-areas:"watch watch" "chart chart" "book tape" "news news" "heat heat"}
+    .watch .pb{max-height:none}
+    .heat{height:240px}
+  }
+  @media (max-width:640px){
+    body{font-size:12px}
+    .grid{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 360px 280px 260px 340px 220px;
+      grid-template-areas:"watch" "chart" "book" "tape" "news" "heat"}
+    .hide-s{display:none}
+    .bar .hide-s,.msg{display:none}
+    .quote .big{font-size:22px}
+    .quote .kv.hide-s{display:none}
+    .nl li{grid-template-columns:44px 1fr}
+    .nl .src{display:none}
+    .fk{padding:0 7px;font-size:11px;min-height:40px}
+    svg.spk{width:44px}
+    td.sym small{max-width:96px}
+    .foot span.hide-s{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){ .ticker .run{animation-duration:240s} }
+</style>
+</head>
+<body>
+<div class="bar">
+  <span class="logo">KESTREL</span>
+  <span class="w">MARKET MONITOR</span><span class="hide-s">· MTE (MARE TRANQUILLITATIS EXCHANGE)</span>
+  <span class="sp"></span>
+  <span class="live" id="live"><i></i>LIVE</span>
+  <span class="w" id="clock">13:47:00</span><span class="hide-s">ET</span>
+</div>
+<form class="cmd" id="cmdForm" autocomplete="off">
+  <label for="cmd">&gt;</label>
+  <input id="cmd" type="text" spellcheck="false" placeholder="TICKER, NEWS, HELP" aria-label="Command line">
+  <button class="go" type="submit">&lt;GO&gt;</button>
+  <span class="msg" id="msg">TYPE A TICKER (E.G. <span style="color:var(--yel)">DUCK</span>) AND PRESS &lt;GO&gt;</span>
+</form>
+<nav class="fkeys" aria-label="Function keys">
+  <button class="fk" data-cls="ALL" aria-pressed="true"><b>F1</b>ALL</button>
+  <button class="fk" data-cls="EQTY" aria-pressed="false"><b>F8</b>EQUITY</button>
+  <button class="fk" data-cls="CMDTY" aria-pressed="false"><b>F9</b>CMDTY</button>
+  <button class="fk" data-cls="REIT" aria-pressed="false"><b>F10</b>REIT</button>
+  <button class="fk red" id="pause" aria-pressed="false"><b>ESC</b>PAUSE FEED</button>
+</nav>
+
+<main class="grid">
+  <section class="p watch">
+    <div class="ph"><span class="n">1</span><span class="t">MONITOR</span><span class="r">↑↓ TO MOVE · CLICK TO LOAD</span></div>
+    <div class="pb">
+      <table><thead><tr><th>SECURITY</th><th>LAST</th><th>%CHG</th><th class="hide-s">VOLUME</th><th>INTRADAY</th></tr></thead>
+        <tbody id="wl"></tbody></table>
+      <div class="sub">INDICES · RATES · FX</div>
+      <table class="idx"><tbody id="idx"></tbody></table>
+    </div>
+  </section>
+
+  <section class="p chart">
+    <div class="ph"><span class="n">2</span><span class="t" id="chTitle">GP</span><span class="r" id="chSub">INTRADAY · 1-MIN</span></div>
+    <div class="quote">
+      <span class="nm" id="qSym">NAPS<small>NATIONAL NAP CORP</small></span>
+      <span class="big" id="qPx">0.00</span>
+      <span id="qChg">+0.00 +0.00%</span>
+      <span class="kv">O <b id="qO">0</b></span><span class="kv">H <b id="qH">0</b></span><span class="kv">L <b id="qL">0</b></span><span class="kv hide-s">VOL <b id="qV">0</b></span>
+      <div class="tf" id="tf"><button type="button" data-m="line" aria-pressed="true">LINE</button><button type="button" data-m="bar" aria-pressed="false">OHLC</button></div>
+    </div>
+    <div class="chartwrap"><canvas id="cv" aria-label="Intraday price chart"></canvas></div>
+  </section>
+
+  <section class="p book">
+    <div class="ph"><span class="n">3</span><span class="t">DEPTH</span><span class="r" id="bkSym">NAPS</span></div>
+    <div class="pb"><table class="lad"><thead><tr><th>BID SZ</th><th>BID</th><th>ASK</th><th>ASK SZ</th></tr></thead><tbody id="lad"></tbody></table></div>
+  </section>
+
+  <section class="p tape">
+    <div class="ph"><span class="n">4</span><span class="t">TIME &amp; SALES</span><span class="r" id="tsSym">NAPS</span></div>
+    <div class="pb"><table class="ts"><thead><tr><th>TIME</th><th>PRICE</th><th>SIZE</th><th>COND</th></tr></thead><tbody id="ts"></tbody></table></div>
+  </section>
+
+  <section class="p news">
+    <div class="ph"><span class="n">5</span><span class="t">TOP NEWS</span><span class="r">HEADLINES MOVE PRICES · CLICK TO LOAD SECURITY</span></div>
+    <div class="pb"><ul class="nl" id="nl"></ul></div>
+  </section>
+
+  <section class="p heat">
+    <div class="ph"><span class="n">6</span><span class="t">SECTOR HEAT</span><span class="r">%CHG</span></div>
+    <div class="pb"><div class="hm" id="hm"></div></div>
+  </section>
+</main>
+
+<div class="ticker" aria-hidden="true"><div class="run" id="run"></div></div>
+<div class="foot"><span>KESTREL PROFESSIONAL 7.3</span><b>ALL DATA FICTIONAL · NOT INVESTMENT ADVICE</b><span class="hide-s">LATENCY 0.4MS · FEED MTE-L2</span><span class="hide-s">USER J.DOE &lt;HELP&gt; FOR EXPLANATION</span></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let seed = 20260923;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+  const SECS = [
+    { s: 'NAPS', n: 'NATIONAL NAP CORP', c: 'EQTY', sec: 'NAPPING', p: 142.30, v: .0016 },
+    { s: 'DUCK', n: 'RUBBER DUCK INDUSTRIES', c: 'EQTY', sec: 'BATH', p: 38.12, v: .0022 },
+    { s: 'OATM', n: 'OAT MILK FUT DEC26', c: 'CMDTY', sec: 'BEVERAGE', p: 6.842, v: .0026 },
+    { s: 'UMBR', n: 'UMBRELLA HOLDINGS', c: 'EQTY', sec: 'WEATHER', p: 88.40, v: .0019 },
+    { s: 'SNAX', n: 'MIDNIGHT SNACK CO', c: 'EQTY', sec: 'SNACKS', p: 23.75, v: .0021 },
+    { s: 'SOCK', n: 'LOST SOCK RECOVERY PLC', c: 'EQTY', sec: 'LAUNDRY', p: 4.071, v: .0034 },
+    { s: 'MOON', n: 'LUNAR REAL ESTATE REIT', c: 'REIT', sec: 'LUNAR RE', p: 61.90, v: .0014 },
+    { s: 'BRRR', n: 'AIR CONDITIONING TRUST', c: 'REIT', sec: 'WEATHER', p: 117.25, v: .0015 },
+    { s: 'PLNT', n: 'HOUSEPLANT SURVIVAL INC', c: 'EQTY', sec: 'PLANTS', p: 12.66, v: .0028 },
+    { s: 'KALE', n: 'KALE FUT MAR27', c: 'CMDTY', sec: 'PRODUCE', p: 2.314, v: .0024 },
+    { s: 'TOST', n: 'AVOCADO TOAST INDEX FUT', c: 'CMDTY', sec: 'BRUNCH', p: 15.20, v: .0018 },
+    { s: 'PURR', n: 'CATNIP & CO', c: 'EQTY', sec: 'PETS', p: 57.08, v: .0020 },
+    { s: 'LOAF', n: 'SOURDOUGH STARTER TRUST', c: 'REIT', sec: 'BRUNCH', p: 9.44, v: .0017 }
+  ];
+  const IDX = [
+    { s: 'CATDAQ', p: 9412.55, v: .0006 }, { s: 'NIMBUS 500', p: 5120.40, v: .0005 }, { s: 'SLOTH 30', p: 38211.0, v: .00008 },
+    { s: 'NAP 10Y YLD', p: 4.118, v: .0004, pct: true }, { s: 'COFFEE /LB', p: 3.442, v: .0012 }, { s: 'SHELLS/USD', p: .0831, v: .0015 }
+  ];
+  const NEWS = [
+    ['NAPS', 'NATIONAL NAP CORP RAISES FY GUIDANCE ON "UNPRECEDENTED" SIESTA DEMAND', .022],
+    ['DUCK', 'RUBBER DUCK INDUSTRIES SAYS BATHTUB CHANNEL CHECKS REMAIN "BUOYANT"', .014],
+    ['OATM', 'OAT MILK FUTURES JUMP AFTER BARISTA CONFIRMS "WE\'RE OUT AGAIN"', .031],
+    ['UMBR', 'UMBRELLA HOLDINGS SLIDES AS FORECAST SHOWS SEVEN STRAIGHT SUNNY DAYS', -.027],
+    ['SOCK', 'LOST SOCK RECOVERY LOCATES 1 OF 2 SOCKS; ANALYSTS DEMAND BOTH', -.041],
+    ['SNAX', 'CENTRAL BANK OF SNACKS HOLDS MIDNIGHT RATE AT 2 COOKIES', .009],
+    ['MOON', 'LUNAR REIT TENANTS COMPLAIN OF "NO ATMOSPHERE" IN LOBBY', -.016],
+    ['PLNT', 'HOUSEPLANT SURVIVAL Q3: 14% OF FERNS STILL ALIVE, BEATS EST. 11%', .038],
+    ['BRRR', 'AIR CONDITIONING TRUST UPGRADED TO "CHILL" AT GOLDFISH & CO', .018],
+    ['KALE', 'KALE FUTURES FALL FOR 9TH SESSION; NOBODY SURPRISED', -.022],
+    ['TOST', 'AVOCADO TOAST INDEX HITS RECORD; HOUSEHOLDS DELAY MORTGAGES AGAIN', .026],
+    ['PURR', 'CATNIP & CO HALTED BRIEFLY AFTER CAT WALKS ACROSS TRADING KEYBOARD', -.012],
+    ['LOAF', 'SOURDOUGH STARTER TRUST REPORTS 3RD CONSECUTIVE QUARTER OF RISING', .015],
+    ['NAPS', 'NAPS CEO: "WE ARE NOT ASLEEP AT THE WHEEL, WE ARE RESTING OUR EYES"', -.011],
+    ['DUCK', 'DUCK SHARES DIP ON REPORTS OF SQUEAK-FREE COMPETITOR FROM SWEDEN', -.019],
+    ['OATM', 'OAT MILK: SUPPLY GLUT FEARS AS CITY OPENS 400TH CAFE THIS YEAR', -.024]
+  ];
+
+  /* ---------------- simulated market ---------------- */
+  const OPEN = 9.5 * 60, CLOSE = 16 * 60;
+  let simMin = 13 * 60 + 47, simSec = 0;     // 13:47:00
+  const fmtT = (m, s = 0) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.floor(m % 60)).padStart(2, '0')}:${String(Math.floor(s)).padStart(2, '0')}`;
+  function genHist(sec) {
+    const bars = []; let p = sec.p * (1 + gauss() * .01);
+    sec.prev = p * (1 + gauss() * .008);
+    sec.open = p;
+    for (let m = OPEN; m < simMin; m++) {
+      const o = p; let h = o, l = o;
+      for (let k = 0; k < 4; k++) { p *= 1 + gauss() * sec.v * .55 + (sec.p - p) / sec.p * .004; h = Math.max(h, p); l = Math.min(l, p); }
+      bars.push({ m, o, h, l, c: p, vol: Math.round((400 + rnd() * 2600) * (sec.c === 'CMDTY' ? 3 : 1)) });
+    }
+    bars.push({ m: simMin, o: p, h: p, l: p, c: p, vol: 0 });
+    sec.bars = bars; sec.px = p;
+    sec.vol = bars.reduce((a, b) => a + b.vol, 0);
+    sec.spread = Math.max(sec.p * .0004, sec.p < 10 ? .001 : .01);
+    sec.book = mkBook(sec);
+  }
+  function mkBook(sec) {
+    const tick = sec.p < 10 ? .001 : .01, lv = [];
+    for (let i = 0; i < 5; i++) lv.push({ b: Math.round(50 + rnd() * 900) * 10, a: Math.round(50 + rnd() * 900) * 10 });
+    return { tick, lv };
+  }
+  SECS.forEach(genHist);
+  IDX.forEach(ix => { ix.prev = ix.p * (1 + gauss() * .004); ix.px = ix.p; });
+
+  const dp = p => p >= 1000 ? 2 : p < 1 ? 4 : p < 10 ? 3 : 2;
+  const fmt = (p, d = dp(p)) => p.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmtV = v => v >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(1) + 'K' : String(v);
+  const pct = s => (s.px / s.prev - 1) * 100;
+
+  /* ---------------- watchlist ---------------- */
+  let filter = 'ALL', selIdx = 0;
+  const wl = $('wl');
+  const rows = SECS.map((sec, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'row'; tr.tabIndex = -1;
+    tr.innerHTML = `<td class="sym">${sec.s}<small>${sec.n}</small></td><td class="px"></td><td class="pc"></td><td class="vo hide-s"></td><td><svg class="spk" viewBox="0 0 64 18" preserveAspectRatio="none"><polyline fill="none" stroke-width="1.2"/></svg></td>`;
+    tr.addEventListener('click', () => select(i, true));
+    if (wl) wl.appendChild(tr);
+    sec.row = tr; sec.cPx = tr.querySelector('.px'); sec.cPc = tr.querySelector('.pc'); sec.cVo = tr.querySelector('.vo'); sec.spk = tr.querySelector('polyline');
+    return tr;
+  });
+  function paintRow(sec, dir) {
+    const ch = pct(sec);
+    sec.cPx.textContent = fmt(sec.px);
+    sec.cPc.textContent = (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%';
+    sec.cPc.className = 'pc ' + (ch >= 0 ? 'up' : 'dn');
+    if (sec.cVo) sec.cVo.textContent = fmtV(sec.vol);
+    if (dir && !reduce) { sec.cPx.classList.remove('fu', 'fd'); void sec.cPx.offsetWidth; sec.cPx.classList.add(dir > 0 ? 'fu' : 'fd'); }
+    const b = sec.bars, n = b.length, step = Math.max(1, Math.floor(n / 48));
+    let mn = Infinity, mx = -Infinity; const pts = [];
+    for (let i = 0; i < n; i += step) { mn = Math.min(mn, b[i].c); mx = Math.max(mx, b[i].c); pts.push(b[i].c); }
+    pts.push(sec.px); mn = Math.min(mn, sec.px); mx = Math.max(mx, sec.px);
+    sec.spk.setAttribute('points', pts.map((v, i) => `${(i / (pts.length - 1) * 64).toFixed(1)},${(17 - (v - mn) / (mx - mn || 1) * 16).toFixed(1)}`).join(' '));
+    sec.spk.setAttribute('stroke', ch >= 0 ? '#2bd67b' : '#ff4b4b');
+  }
+  const idxBody = $('idx');
+  IDX.forEach(ix => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="color:var(--amb)">${ix.s}</td><td class="px"></td><td class="pc"></td>`;
+    if (idxBody) idxBody.appendChild(tr);
+    ix.cPx = tr.querySelector('.px'); ix.cPc = tr.querySelector('.pc');
+  });
+  function paintIdx(ix) {
+    ix.cPx.textContent = fmt(ix.px, ix.px > 1000 ? 2 : ix.px < 1 ? 4 : 3) + (ix.pct ? '%' : '');
+    const c = ix.pct ? (ix.px - ix.prev) * 100 : pct(ix);
+    ix.cPc.textContent = ix.pct ? (c >= 0 ? '+' : '') + c.toFixed(1) + 'bp' : (c >= 0 ? '+' : '') + c.toFixed(2) + '%';
+    ix.cPc.className = 'pc ' + (c >= 0 ? 'up' : 'dn');
+  }
+
+  /* ---------------- selection & panels ---------------- */
+  function visible() { return SECS.map((s, i) => i).filter(i => filter === 'ALL' || SECS[i].c === filter); }
+  function select(i, focus) {
+    selIdx = i;
+    rows.forEach((r, k) => r.classList.toggle('sel', k === i));
+    const s = SECS[i];
+    const q = $('qSym'); if (q) q.innerHTML = `${s.s}<small>${s.n} · ${s.c === 'CMDTY' ? 'COMDTY' : s.c === 'REIT' ? 'REIT' : 'US EQUITY'}</small>`;
+    ['bkSym', 'tsSym'].forEach(id => { const e = $(id); if (e) e.textContent = s.s; });
+    const t = $('chTitle'); if (t) t.textContent = `GP ${s.s}`;
+    const ts = $('ts'); if (ts) ts.textContent = '';
+    for (let k = 0; k < 14; k++) addTrade(s, true);
+    paintQuote(); drawChart(); paintBook();
+    if (focus && rows[i].scrollIntoView && innerWidth > 1100) rows[i].scrollIntoView({ block: 'nearest' });
+  }
+  function paintQuote() {
+    const s = SECS[selIdx], b = s.bars, ch = s.px - s.prev, pc = pct(s);
+    const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+    set('qPx', fmt(s.px));
+    const qc = $('qChg'); if (qc) { qc.textContent = `${ch >= 0 ? '+' : ''}${fmt(ch)} ${pc >= 0 ? '+' : ''}${pc.toFixed(2)}%`; qc.className = pc >= 0 ? 'up' : 'dn'; }
+    set('qO', fmt(s.open)); set('qH', fmt(Math.max(...b.map(x => x.h)))); set('qL', fmt(Math.min(...b.map(x => x.l)))); set('qV', fmtV(s.vol));
+  }
+  function paintBook() {
+    const s = SECS[selIdx], lad = $('lad'); if (!lad) return;
+    const t = s.book.tick, bid = Math.floor((s.px - s.spread / 2) / t) * t, ask = bid + Math.max(t, Math.round(s.spread / t) * t);
+    const mx = Math.max(...s.book.lv.map(l => Math.max(l.a, l.b)));
+    let h = '';
+    for (let i = s.book.lv.length - 1; i >= 0; i--) { const l = s.book.lv[i]; h += `<tr><td></td><td></td><td><span class="dn">${fmt(ask + i * t, dp(s.px))}</span></td><td><div class="bar-a" style="width:${(l.a / mx * 100).toFixed(0)}%"></div><span>${l.a.toLocaleString()}</span></td></tr>`; }
+    h += `<tr class="mid"><td colspan="4">SPREAD ${fmt(ask - bid, dp(s.px))} · LAST ${fmt(s.px)}</td></tr>`;
+    s.book.lv.forEach((l, i) => { h += `<tr><td><div class="bar-b" style="width:${(l.b / mx * 100).toFixed(0)}%"></div><span>${l.b.toLocaleString()}</span></td><td><span class="up">${fmt(bid - i * t, dp(s.px))}</span></td><td></td><td></td></tr>`; });
+    lad.innerHTML = h;
+  }
+  const CONDS = ['', '', '', '', 'ISO', 'ODD', 'BLK', 'DRK'];
+  function addTrade(s, quiet) {
+    const ts = $('ts'); if (!ts) return;
+    const up = rnd() > .5, px = s.px * (1 + (rnd() - .5) * .0004);
+    const sz = rnd() < .08 ? Math.round(5000 + rnd() * 40000) : Math.round((1 + rnd() * 30)) * 100;
+    const tr = document.createElement('tr');
+    if (!quiet) tr.className = 'new' + (up ? '' : ' s');
+    const c = sz >= 5000 ? 'BLK' : CONDS[(rnd() * CONDS.length) | 0];
+    tr.innerHTML = `<td style="color:var(--dim)">${fmtT(simMin, simSec)}</td><td class="${up ? 'up' : 'dn'}">${fmt(px)}</td><td style="${sz >= 5000 ? 'color:var(--yel)' : ''}">${sz.toLocaleString()}</td><td style="color:var(--dim)">${c}</td>`;
+    ts.insertBefore(tr, ts.firstChild);
+    while (ts.children.length > 40) ts.lastChild.remove();
+  }
+
+  /* ---------------- chart ---------------- */
+  const cv = $('cv'), ctx = cv ? cv.getContext('2d') : null;
+  let mode = 'line', hoverX = null, CW = 0, CH = 0, dpr = 1;
+  function sizeChart() {
+    if (!cv) return;
+    const r = cv.getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1);
+    CW = r.width; CH = r.height; cv.width = Math.round(CW * dpr); cv.height = Math.round(CH * dpr);
+    drawChart();
+  }
+  function drawChart() {
+    if (!ctx || !CW || !CH) return;
+    const s = SECS[selIdx], b = s.bars;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, CW, CH);
+    const padR = 64, padB = 20, padT = 10, volH = Math.max(30, CH * .16);
+    const pw = CW - padR - 8, ph = CH - padB - padT - volH - 6;
+    let mn = Math.min(...b.map(x => x.l), s.prev), mx = Math.max(...b.map(x => x.h), s.prev);
+    const pad = (mx - mn) * .08 || 1; mn -= pad; mx += pad;
+    const X = m => 8 + (m - OPEN) / (CLOSE - OPEN) * pw;
+    const Y = v => padT + (1 - (v - mn) / (mx - mn)) * ph;
+    // grid
+    ctx.font = '11px Consolas, "Lucida Console", monospace'; ctx.textBaseline = 'middle';
+    ctx.strokeStyle = '#1d180f'; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+    for (let i = 0; i <= 5; i++) {
+      const v = mn + (mx - mn) * i / 5, y = Math.round(Y(v)) + .5;
+      ctx.beginPath(); ctx.moveTo(8, y); ctx.lineTo(8 + pw, y); ctx.stroke();
+      ctx.fillStyle = '#8a857c'; ctx.fillText(fmt(v), 8 + pw + 6, y);
+    }
+    for (let h = 10; h <= 16; h++) {
+      const x = Math.round(X(h * 60)) + .5;
+      ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + ph + volH + 6); ctx.stroke();
+      ctx.fillStyle = '#8a857c'; ctx.textAlign = 'center'; ctx.fillText(`${h}:00`, x, CH - 9); ctx.textAlign = 'left';
+    }
+    ctx.setLineDash([]);
+    // previous close
+    const yp = Math.round(Y(s.prev)) + .5;
+    ctx.strokeStyle = '#4aa3ff'; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(8, yp); ctx.lineTo(8 + pw, yp); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#4aa3ff'; ctx.fillText('PREV ' + fmt(s.prev), 12, yp - 8);
+    // volume
+    const vmax = Math.max(...b.map(x => x.vol), 1), vy0 = padT + ph + 6 + volH;
+    b.forEach(x => {
+      const h = x.vol / vmax * volH;
+      ctx.fillStyle = x.c >= x.o ? 'rgba(43,214,123,.45)' : 'rgba(255,75,75,.45)';
+      ctx.fillRect(X(x.m), vy0 - h, Math.max(1, pw / 390 - .4), h);
+    });
+    if (mode === 'line') {
+      const g = ctx.createLinearGradient(0, padT, 0, padT + ph);
+      g.addColorStop(0, 'rgba(255,162,31,.35)'); g.addColorStop(1, 'rgba(255,162,31,0)');
+      ctx.beginPath(); b.forEach((x, i) => { const px = X(x.m), py = Y(x.c); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+      ctx.lineTo(X(b[b.length - 1].m), padT + ph); ctx.lineTo(X(b[0].m), padT + ph); ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+      ctx.beginPath(); b.forEach((x, i) => { const px = X(x.m), py = Y(x.c); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+      ctx.strokeStyle = '#ffa21f'; ctx.lineWidth = 1.5; ctx.stroke();
+    } else {
+      const w = Math.max(1, pw / 390 * .8);
+      b.forEach(x => {
+        const px = Math.round(X(x.m)) + .5;
+        ctx.strokeStyle = x.c >= x.o ? '#2bd67b' : '#ff4b4b'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px, Y(x.h)); ctx.lineTo(px, Y(x.l)); ctx.moveTo(px - w, Y(x.o)); ctx.lineTo(px, Y(x.o)); ctx.moveTo(px, Y(x.c)); ctx.lineTo(px + w, Y(x.c)); ctx.stroke();
+      });
+    }
+    // 20-bar moving average
+    ctx.beginPath(); let started = false;
+    for (let i = 19; i < b.length; i++) { let a = 0; for (let k = i - 19; k <= i; k++) a += b[k].c; const px = X(b[i].m), py = Y(a / 20); started ? ctx.lineTo(px, py) : (ctx.moveTo(px, py), started = true); }
+    ctx.strokeStyle = 'rgba(233,230,223,.55)'; ctx.lineWidth = 1; ctx.stroke();
+    // last price tag
+    const yl = Y(s.px);
+    ctx.fillStyle = s.px >= s.prev ? '#2bd67b' : '#ff4b4b';
+    ctx.fillRect(8 + pw + 2, yl - 8, padR - 4, 16);
+    ctx.fillStyle = '#000'; ctx.fillText(fmt(s.px), 8 + pw + 6, yl);
+    ctx.fillStyle = 'rgba(255,162,31,.22)'; ctx.fillRect(X(simMin) - .5, padT, 1, ph);
+    // crosshair
+    if (hoverX != null && hoverX > 8 && hoverX < 8 + pw) {
+      const m = Math.round(OPEN + (hoverX - 8) / pw * (CLOSE - OPEN));
+      const bar = b.find(x => x.m === m) || null;
+      ctx.strokeStyle = 'rgba(233,230,223,.5)'; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(hoverX + .5, padT); ctx.lineTo(hoverX + .5, padT + ph + volH + 6); ctx.stroke(); ctx.setLineDash([]);
+      if (bar) {
+        const yy = Y(bar.c);
+        ctx.beginPath(); ctx.arc(X(bar.m), yy, 3, 0, 7); ctx.fillStyle = '#ffd23a'; ctx.fill();
+        const txt = `${fmtT(bar.m)}  O ${fmt(bar.o)}  H ${fmt(bar.h)}  L ${fmt(bar.l)}  C ${fmt(bar.c)}  V ${fmtV(bar.vol)}`;
+        const tw = ctx.measureText(txt).width + 12;
+        const bx = Math.min(Math.max(8, hoverX - tw / 2), 8 + pw - tw);
+        ctx.fillStyle = '#2a1a04'; ctx.fillRect(bx, padT, tw, 18);
+        ctx.fillStyle = '#ffd23a'; ctx.fillText(txt, bx + 6, padT + 9);
+      }
+    }
+  }
+  if (cv) {
+    cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(); hoverX = e.clientX - r.left; drawChart(); });
+    cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(); hoverX = e.clientX - r.left; drawChart(); });
+    cv.addEventListener('pointerleave', () => { hoverX = null; drawChart(); });
+  }
+  const tf = $('tf');
+  if (tf) tf.querySelectorAll('button').forEach(bt => bt.addEventListener('click', () => {
+    mode = bt.dataset.m; tf.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === bt ? 'true' : 'false')); drawChart();
+  }));
+
+  /* ---------------- news ---------------- */
+  const nl = $('nl');
+  let newsI = 0;
+  function pushNews(item, quiet, tm) {
+    if (!nl) return;
+    const [sym, hd, move] = item;
+    const li = document.createElement('li');
+    const hot = Math.abs(move) > .025;
+    li.className = (hot ? 'hot ' : '') + (quiet ? '' : 'new');
+    li.innerHTML = `<span class="tm">${tm || fmtT(simMin, simSec).slice(0, 5)}</span><span class="src">KSTL ${sym}</span><span class="hd">${hot ? '*' : ''}${hd}</span>`;
+    li.addEventListener('click', () => { const i = SECS.findIndex(s => s.s === sym); if (i >= 0) { setMsg(`LOADING ${sym} <GO>`); select(i, true); } });
+    nl.insertBefore(li, nl.firstChild);
+    while (nl.children.length > 30) nl.lastChild.remove();
+    if (!quiet) { const s = SECS.find(x => x.s === sym); if (s) { s.shock = (s.shock || 0) + move; } }
+  }
+  for (let k = 0; k < 8; k++) { const it = NEWS[(k * 5 + 3) % NEWS.length]; pushNews([it[0], it[1], 0], true, fmtT(simMin - 60 + k * 7).slice(0, 5)); }
+  newsI = 2;
+
+  /* ---------------- heat ---------------- */
+  const hm = $('hm');
+  const sectors = [...new Set(SECS.map(s => s.sec))];
+  const hmCells = sectors.map((name, i) => {
+    const d = document.createElement('div');
+    d.innerHTML = `<b>${name}</b><span></span>`;
+    if (i < 1) d.style.gridColumn = 'span 2';
+    if (hm) hm.appendChild(d); return d;
+  });
+  function paintHeat() {
+    sectors.forEach((name, i) => {
+      const m = SECS.filter(s => s.sec === name), c = m.reduce((a, s) => a + pct(s), 0) / m.length;
+      const t = Math.max(-1, Math.min(1, c / 3));
+      const col = t >= 0 ? `rgb(${Math.round(20 + 10 * t)},${Math.round(60 + 110 * t)},${Math.round(40 + 40 * t)})` : `rgb(${Math.round(70 - 130 * t)},${Math.round(26 + 6 * t)},${Math.round(26 + 6 * t)})`;
+      hmCells[i].style.background = col;
+      hmCells[i].querySelector('span').textContent = (c >= 0 ? '+' : '') + c.toFixed(2) + '%';
+    });
+  }
+
+  /* ---------------- ticker tape ---------------- */
+  function paintRun() {
+    const run = $('run'); if (!run) return;
+    run.innerHTML = IDX.concat(SECS).map(x => {
+      const c = x.pct ? (x.px - x.prev) * 100 : pct(x);
+      return `<span><b>${x.s}</b>${fmt(x.px)} <i class="${c >= 0 ? 'up' : 'dn'}" style="font-style:normal">${c >= 0 ? '▲' : '▼'}${Math.abs(c).toFixed(2)}${x.pct ? 'bp' : '%'}</i></span>`;
+    }).join('');
+  }
+
+  /* ---------------- feed ---------------- */
+  let paused = false, feed = 0, lastNews = performance.now(), tickN = 0;
+  function tick() {
+    if (paused) return;
+    tickN++;
+    simSec += 3;
+    if (simSec >= 60) {
+      simSec -= 60; simMin++;
+      if (simMin >= CLOSE) { simMin = OPEN + 5; SECS.forEach(genHist); }
+      SECS.forEach(s => s.bars.push({ m: simMin, o: s.px, h: s.px, l: s.px, c: s.px, vol: 0 }));
+    }
+    const clock = $('clock'); if (clock) clock.textContent = fmtT(simMin, simSec);
+    const n = 3 + ((rnd() * 4) | 0);
+    for (let k = 0; k < n; k++) {
+      const i = (rnd() * SECS.length) | 0, s = SECS[i];
+      const shock = s.shock ? s.shock * .35 : 0; if (s.shock) { s.shock *= .65; if (Math.abs(s.shock) < .0005) s.shock = 0; }
+      const old = s.px;
+      s.px *= 1 + gauss() * s.v + shock;
+      const bar = s.bars[s.bars.length - 1];
+      bar.c = s.px; bar.h = Math.max(bar.h, s.px); bar.l = Math.min(bar.l, s.px);
+      const v = Math.round((50 + rnd() * 600) * (s.c === 'CMDTY' ? 3 : 1)); bar.vol += v; s.vol += v;
+      s.book.lv.forEach(l => { l.b = Math.max(10, l.b + Math.round((rnd() - .5) * 120) * 10); l.a = Math.max(10, l.a + Math.round((rnd() - .5) * 120) * 10); });
+      paintRow(s, Math.sign(s.px - old));
+      if (i === selIdx) addTrade(s);
+    }
+    if (rnd() < .45) addTrade(SECS[selIdx]);
+    IDX.forEach(ix => { ix.px *= 1 + gauss() * ix.v; paintIdx(ix); });
+    paintQuote(); paintBook(); drawChart();
+    if (tickN % 3 === 0) paintHeat();
+    if (tickN % 20 === 0) paintRun();
+    const now = performance.now();
+    if (now - lastNews > 6500 + rnd() * 4000) { lastNews = now; pushNews(NEWS[newsI++ % NEWS.length]); }
+  }
+
+  /* ---------------- command line & keys ---------------- */
+  function setMsg(t) { const m = $('msg'); if (m) m.textContent = t; }
+  const form = $('cmdForm'), cmd = $('cmd');
+  if (form && cmd) form.addEventListener('submit', e => {
+    e.preventDefault();
+    const v = cmd.value.trim().toUpperCase().replace(/<?GO>?$/, '').trim();
+    cmd.value = '';
+    if (!v) return;
+    const i = SECS.findIndex(s => s.s === v || s.n.startsWith(v));
+    if (i >= 0) { if (filter !== 'ALL' && SECS[i].c !== filter) setFilter('ALL'); select(i, true); setMsg(`${SECS[i].s} ${SECS[i].c === 'CMDTY' ? 'COMDTY' : 'US EQUITY'} <GP> LOADED`); }
+    else if (v === 'NEWS' || v === 'N' || v === 'TOP') { pushNews(NEWS[newsI++ % NEWS.length]); setMsg('TOP NEWS REFRESHED'); }
+    else if (v === 'HELP' || v === 'H') setMsg('TICKERS: ' + SECS.map(s => s.s).join(' ') + ' · NEWS · PAUSE');
+    else if (v === 'PAUSE' || v === 'STOP') togglePause();
+    else setMsg(`UNKNOWN SECURITY "${v}" — TRY ${SECS[(rnd() * SECS.length) | 0].s}`);
+  });
+  function setFilter(c) {
+    filter = c;
+    document.querySelectorAll('.fk[data-cls]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cls === c ? 'true' : 'false'));
+    SECS.forEach((s, i) => { rows[i].hidden = !(c === 'ALL' || s.c === c); });
+    if (rows[selIdx].hidden) { const v = visible(); if (v.length) select(v[0]); }
+  }
+  document.querySelectorAll('.fk[data-cls]').forEach(b => b.addEventListener('click', () => setFilter(b.dataset.cls)));
+  function togglePause() {
+    paused = !paused;
+    document.body.classList.toggle('paused', paused);
+    const p = $('pause'); if (p) { p.setAttribute('aria-pressed', paused ? 'true' : 'false'); p.innerHTML = paused ? '<b>ESC</b>RESUME FEED' : '<b>ESC</b>PAUSE FEED'; }
+    const l = $('live'); if (l) l.lastChild.textContent = paused ? 'PAUSED' : 'LIVE';
+  }
+  const pb = $('pause'); if (pb) pb.addEventListener('click', togglePause);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { togglePause(); return; }
+    if (e.target === cmd) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const v = visible(), at = v.indexOf(selIdx);
+      const nx = v[Math.max(0, Math.min(v.length - 1, at + (e.key === 'ArrowDown' ? 1 : -1)))];
+      if (nx != null) select(nx, true);
+    } else if (/^[a-z]$/i.test(e.key) && !e.ctrlKey && !e.metaKey && cmd) { cmd.focus(); }
+  });
+
+  SECS.forEach(s => paintRow(s));
+  IDX.forEach(paintIdx);
+  paintHeat(); paintRun();
+  select(0);
+  sizeChart();
+  window.addEventListener('resize', sizeChart);
+  if (window.ResizeObserver && cv) new ResizeObserver(() => sizeChart()).observe(cv);
+  feed = setInterval(() => { if (!document.hidden) tick(); }, 420);
+})();
+</script>
+</body>
+</html>

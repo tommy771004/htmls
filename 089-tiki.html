@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Leaky Coconut — Tiki Cocktail Builder</title>
+<style>
+:root{
+  --wood:#3a2113; --wood2:#2a170c; --bamboo:#d9b36a; --bamboo-d:#9c7a36; --cream:#fbeed0; --orange:#f26b1d; --green:#1f5d3a; --lagoon:#1aa39a; --pink:#e0457b; --ink:#2b1a0e;
+  --disp:"Juice ITC","Papyrus","Chalkduster","Marker Felt",fantasy;
+  --pap:Papyrus,"Herculanum","Juice ITC",Georgia,fantasy;
+  --body:Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--cream);font-family:var(--pap);min-height:100vh;
+  background:
+   radial-gradient(ellipse at 50% -10%,rgba(255,170,70,.35),transparent 55%),
+   repeating-linear-gradient(90deg,rgba(0,0,0,.18) 0 2px,transparent 2px 120px),
+   repeating-linear-gradient(0deg,rgba(255,220,170,.03) 0 1px,transparent 1px 7px),
+   linear-gradient(var(--wood),var(--wood2))}
+.lights{position:fixed;left:0;right:0;top:0;height:60px;pointer-events:none;z-index:3}
+.lights svg{width:100%;height:60px;display:block}
+.bulb{animation:glow 3s ease-in-out infinite}
+@keyframes glow{50%{opacity:.55}}
+.palm{position:fixed;pointer-events:none;z-index:0;opacity:.9;width:clamp(160px,22vw,340px)}
+.palm.l{left:-40px;bottom:-30px}
+.palm.r{right:-50px;top:40px;transform:scaleX(-1) rotate(20deg)}
+.palm path{transform-origin:10% 100%;animation:sway 6s ease-in-out infinite alternate}
+@keyframes sway{to{transform:rotate(3deg)}}
+
+.wrap{position:relative;z-index:1;max-width:1260px;margin:0 auto;padding:54px clamp(14px,3vw,36px) 40px}
+.sign{text-align:center;margin-bottom:18px}
+.sign h1{margin:0;font-family:var(--disp);font-weight:400;font-size:clamp(46px,7vw,96px);line-height:.95;color:var(--orange);
+  text-shadow:0 0 1px #000,3px 3px 0 var(--wood2),0 0 30px rgba(242,107,29,.45);letter-spacing:.02em}
+.sign p{margin:6px 0 0;font-size:clamp(14px,1.6vw,18px);letter-spacing:.14em;color:var(--bamboo)}
+
+.frame{position:relative;padding:22px;border-radius:6px;
+  background:
+   repeating-linear-gradient(90deg,var(--bamboo) 0 0) top/100% 22px no-repeat,
+   repeating-linear-gradient(90deg,var(--bamboo) 0 0) bottom/100% 22px no-repeat,
+   repeating-linear-gradient(0deg,var(--bamboo) 0 0) left/22px 100% no-repeat,
+   repeating-linear-gradient(0deg,var(--bamboo) 0 0) right/22px 100% no-repeat;
+  box-shadow:0 20px 50px rgba(0,0,0,.55)}
+.pole{position:absolute;pointer-events:none;border-radius:11px;
+  background:linear-gradient(var(--dir,180deg),#f0d593,var(--bamboo) 40%,var(--bamboo-d));
+  -webkit-mask:repeating-linear-gradient(var(--mdir,90deg),#000 0 118px,rgba(0,0,0,.55) 118px 121px,#000 121px 124px);mask:repeating-linear-gradient(var(--mdir,90deg),#000 0 118px,rgba(0,0,0,.55) 118px 121px,#000 121px 124px)}
+.pole.t{left:-8px;right:-8px;top:0;height:22px}
+.pole.b{left:-8px;right:-8px;bottom:0;height:22px}
+.pole.l{top:-8px;bottom:-8px;left:0;width:22px;--dir:90deg;--mdir:180deg}
+.pole.r{top:-8px;bottom:-8px;right:0;width:22px;--dir:90deg;--mdir:180deg}
+.lash{position:absolute;width:30px;height:30px;border-radius:4px;background:repeating-linear-gradient(45deg,#6b4a22 0 3px,#8f6a33 3px 6px);z-index:2}
+.lash.a{left:-4px;top:-4px}.lash.b{right:-4px;top:-4px}.lash.c{left:-4px;bottom:-4px}.lash.d{right:-4px;bottom:-4px}
+
+.bar{display:grid;grid-template-columns:300px minmax(0,1fr) 300px;grid-template-areas:"menu stage tab";gap:0;background:
+  linear-gradient(rgba(20,40,28,.92),rgba(14,30,20,.95)),repeating-linear-gradient(115deg,#1f5d3a 0 10px,#174a2d 10px 20px);border-radius:2px;min-height:560px}
+.menu{grid-area:menu;padding:18px 16px;border-right:2px dashed rgba(217,179,106,.35)}
+.stage{grid-area:stage;padding:18px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+.plank{position:relative;margin:26px 0 18px;padding:12px 30px 14px;text-align:center;border-radius:6px;transform:rotate(-2deg);
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.08) 0 2px,transparent 2px 9px),linear-gradient(#8a5a2b,#5e3a1a);box-shadow:0 10px 20px rgba(0,0,0,.45),inset 0 0 0 3px rgba(0,0,0,.25)}
+.plank::before,.plank::after{content:"";position:absolute;top:-34px;width:2px;height:36px;background:#c9a15a}
+.plank::before{left:22%;transform:rotate(8deg)}.plank::after{right:22%;transform:rotate(-8deg)}
+.plank small{display:block;font-size:11px;letter-spacing:.3em;color:#f2d99a;text-transform:uppercase}
+.plank b{display:block;font-family:var(--disp);font-weight:400;font-size:clamp(28px,3.2vw,42px);color:var(--cream);line-height:1.05;text-shadow:2px 2px 0 #2a170c}
+.tab{grid-area:tab;padding:18px 16px;border-left:2px dashed rgba(217,179,106,.35)}
+h2{font-family:var(--disp);font-weight:400;font-size:28px;margin:0 0 6px;color:var(--bamboo);letter-spacing:.03em}
+h3{font-family:var(--pap);font-size:12px;letter-spacing:.24em;text-transform:uppercase;margin:12px 0 6px;color:#e9c98a;font-weight:700}
+.ings{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.ing{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:7px;padding:5px 8px;min-height:40px;border-radius:20px;background:rgba(251,238,208,.08);border:1px solid rgba(251,238,208,.18);font-size:13px;line-height:1.1;color:var(--cream);transition:transform .12s,background .2s}
+.ing:hover{background:rgba(251,238,208,.18)}
+.ing:active{transform:scale(.95)}
+.ing:focus-visible,.btn:focus-visible,.chip:focus-visible,.min:focus-visible,.gar:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.ing i{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25),0 0 0 1px rgba(0,0,0,.3)}
+.ing small{display:block;font-size:10px;opacity:.65}
+.classics{display:flex;flex-wrap:wrap;gap:5px}
+.chip{all:unset;cursor:pointer;font-family:var(--disp);font-size:17px;padding:4px 12px;min-height:34px;display:inline-flex;align-items:center;border-radius:4px;background:var(--orange);color:var(--wood2);box-shadow:0 3px 0 #9b3d08}
+.chip:active{transform:translateY(2px);box-shadow:0 1px 0 #9b3d08}
+
+.scene{position:relative;width:100%;max-width:520px;flex:none;display:flex;align-items:flex-end;justify-content:center;gap:clamp(10px,4vw,40px);min-height:330px;padding-bottom:18px}
+.scene::after{content:"";position:absolute;left:0;right:0;bottom:0;height:18px;border-radius:3px;background:linear-gradient(#7a4a24,#4e2c14);box-shadow:0 -2px 0 #a06634 inset}
+.tin{width:clamp(110px,14vw,150px);transform-origin:50% 90%}
+.tin.shaking{animation:shake .12s linear infinite}
+@keyframes shake{0%{transform:rotate(-16deg) translateY(-6px)}50%{transform:rotate(14deg) translateY(-16px)}100%{transform:rotate(-16deg) translateY(-6px)}}
+.tin.pour{animation:pour 1.1s ease-in-out}
+@keyframes pour{0%{transform:none}40%,70%{transform:translate(40%,-30%) rotate(78deg)}100%{transform:none}}
+.mug{width:clamp(130px,17vw,180px)}
+.stream{position:absolute;width:10px;border-radius:5px;opacity:0;pointer-events:none}
+.stream.on{animation:stream 1.1s ease-in-out}
+@keyframes stream{0%,35%{opacity:0;transform:scaleY(.2)}45%,70%{opacity:1;transform:none}85%,100%{opacity:0}}
+.frost{opacity:0;transition:opacity 1.2s}
+.frosty .frost{opacity:1}
+.actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+.btn{all:unset;cursor:pointer;font-family:var(--disp);font-size:26px;padding:6px 26px;min-height:44px;display:inline-flex;align-items:center;border-radius:8px;color:var(--wood2);
+  background:linear-gradient(#ffb25a,var(--orange));box-shadow:0 4px 0 #9b3d08,0 8px 18px rgba(0,0,0,.4);letter-spacing:.03em}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #9b3d08}
+.btn.alt{background:linear-gradient(#e6d6ad,var(--bamboo));box-shadow:0 4px 0 var(--bamboo-d);font-size:20px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.gars{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+.gar{all:unset;cursor:pointer;font-size:12px;letter-spacing:.1em;padding:4px 10px;min-height:32px;display:inline-flex;align-items:center;gap:6px;border-radius:16px;border:1px solid rgba(251,238,208,.35)}
+.gar[aria-pressed="true"]{background:var(--lagoon);border-color:var(--lagoon);color:#06231f}
+.gar svg{width:16px;height:16px}
+.msg{font-size:14px;color:var(--bamboo);min-height:1.4em;margin-top:8px;text-align:center}
+
+.card{background:var(--cream);color:var(--ink);border-radius:3px;padding:14px 14px 12px;position:relative;box-shadow:0 6px 16px rgba(0,0,0,.4);transform:rotate(1deg)}
+.card::before{content:"";position:absolute;left:50%;top:-8px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff9a9a,#b3122c);box-shadow:0 2px 3px rgba(0,0,0,.4)}
+.card h4{margin:0;font-family:var(--disp);font-weight:400;font-size:26px;color:#b3122c;line-height:1}
+.card .sub{font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin:4px 0 8px;color:#6b4a22}
+.pours{list-style:none;margin:0;padding:0;font-size:13px;max-height:220px;overflow:auto}
+.pours li{display:grid;grid-template-columns:12px 1fr auto 32px;gap:6px;align-items:center;border-bottom:1px dotted #caa970;padding:2px 0}
+.pours li i{width:10px;height:10px;border-radius:50%}
+.min{all:unset;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;font-size:18px;color:#b3122c}
+.min:hover{background:rgba(179,18,44,.12)}
+.tot{display:flex;justify-content:space-between;margin-top:6px;font-size:13px;font-weight:700}
+.empty{font-style:italic;font-size:13px;color:#6b4a22;margin:6px 0}
+.meter{display:flex;gap:4px;margin:6px 0 2px}
+.meter svg{width:22px;height:26px}
+.verdict{font-size:13.5px;line-height:1.45;margin:6px 0 0;font-family:var(--body);font-style:italic}
+.fine{font-size:11px;color:rgba(251,238,208,.6);text-align:center;margin-top:16px;letter-spacing:.06em}
+
+@media (max-width:1020px){
+  .bar{grid-template-columns:1fr 1fr;grid-template-areas:"stage stage" "menu tab"}
+  .menu{border-right:2px dashed rgba(217,179,106,.35)}
+  .tab{border-left:0}
+  .stage{border-bottom:2px dashed rgba(217,179,106,.35)}
+}
+@media (max-width:640px){
+  .frame{padding:14px}
+  .pole.t,.pole.b{height:14px}.pole.l,.pole.r{width:14px}
+  .frame{background:none}
+  .bar{grid-template-columns:1fr;grid-template-areas:"stage" "tab" "menu"}
+  .menu{border-right:0;border-top:2px dashed rgba(217,179,106,.35)}
+  .scene{min-height:260px}
+  .palm{opacity:.35}
+}
+@media (prefers-reduced-motion:reduce){.bulb,.palm path{animation:none}.tin.shaking{animation:none}}
+</style>
+</head>
+<body>
+<div class="lights" aria-hidden="true"><svg viewBox="0 0 1200 60" preserveAspectRatio="none" id="lights"></svg></div>
+<svg class="palm l" viewBox="0 0 300 300" aria-hidden="true"><g fill="#0f2a1a"><path d="M40 300 C60 220 80 170 120 120 C90 150 40 160 0 150 C40 140 80 120 110 110 C70 100 30 70 10 40 C50 70 100 90 125 100 C120 60 100 20 90 0 C120 30 140 70 140 100 C160 70 200 50 240 45 C200 70 170 90 150 110 C200 110 250 130 290 160 C240 145 190 135 150 125 C120 170 100 230 70 300Z"/></g></svg>
+<svg class="palm r" viewBox="0 0 300 300" aria-hidden="true"><g fill="#0f2a1a"><path d="M40 300 C60 220 80 170 120 120 C90 150 40 160 0 150 C40 140 80 120 110 110 C70 100 30 70 10 40 C50 70 100 90 125 100 C120 60 100 20 90 0 C120 30 140 70 140 100 C160 70 200 50 240 45 C200 70 170 90 150 110 C200 110 250 130 290 160 C240 145 190 135 150 125 C120 170 100 230 70 300Z"/></g></svg>
+
+<div class="wrap">
+  <header class="sign">
+    <h1>The Leaky Coconut</h1>
+    <p>TIKI LOUNGE · RUM EMPORIUM · QUESTIONABLE DECISIONS SINCE 1958</p>
+  </header>
+
+  <div class="frame">
+    <div class="pole t"></div><div class="pole b"></div><div class="pole l"></div><div class="pole r"></div>
+    <i class="lash a"></i><i class="lash b"></i><i class="lash c"></i><i class="lash d"></i>
+    <div class="bar">
+      <section class="menu" aria-label="Ingredients">
+        <h2>The Back Bar</h2>
+        <div id="menu"></div>
+        <h3>…or order a classic</h3>
+        <div class="classics" id="classics"></div>
+      </section>
+
+      <section class="stage" aria-label="Mixing station">
+        <div class="plank"><small>Now pouring</small><b id="now">Mai Tai</b></div>
+        <div class="scene">
+          <svg class="tin" id="tin" viewBox="0 0 120 260" aria-label="Mixing tin">
+            <defs><clipPath id="tinClip"><path d="M14 40 L106 40 L96 250 L24 250Z"/></clipPath>
+              <linearGradient id="steel" x1="0" x2="1"><stop offset="0" stop-color="#9aa3a8"/><stop offset=".35" stop-color="#eef3f5"/><stop offset=".6" stop-color="#b9c2c7"/><stop offset="1" stop-color="#7d868b"/></linearGradient></defs>
+            <path d="M14 40 L106 40 L96 250 L24 250Z" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.55)" stroke-width="2"/>
+            <g clip-path="url(#tinClip)" id="layers"></g>
+            <g clip-path="url(#tinClip)" id="ice"></g>
+            <path d="M8 4 L112 4 L108 44 L12 44Z" fill="url(#steel)" stroke="#5e666b" id="cap" opacity="0"/>
+            <path d="M14 40 L106 40 L96 250 L24 250Z" fill="url(#steel)" class="frost" opacity=".0"/>
+            <path d="M20 46 L30 246" stroke="rgba(255,255,255,.35)" stroke-width="4"/>
+          </svg>
+          <div class="stream" id="stream"></div>
+          <svg class="mug" id="mug" viewBox="0 0 180 260" aria-label="Tiki mug">
+            <defs><clipPath id="mugClip"><rect x="30" y="60" width="120" height="30"/></clipPath></defs>
+            <g id="garnish"></g>
+            <path d="M28 64 Q24 160 34 250 L146 250 Q156 160 152 64Z" fill="#2f7f5e" stroke="#123d2b" stroke-width="3"/>
+            <ellipse cx="90" cy="64" rx="62" ry="12" fill="#1c5a40" stroke="#123d2b" stroke-width="3"/>
+            <ellipse cx="90" cy="66" rx="54" ry="8" fill="#0f2a1c" id="drinkTop"/>
+            <g fill="#123d2b">
+              <path d="M40 96 H140 V110 H40Z"/>
+              <path d="M52 118 Q70 106 84 122 Q70 134 52 122Z"/><path d="M96 122 Q110 106 128 118 Q128 122 128 122 Q110 134 96 122Z"/>
+              <path d="M82 128 L98 128 L104 170 L76 170Z"/>
+              <path d="M52 186 H128 V222 H52Z"/>
+            </g>
+            <g fill="#f2e2b0"><circle cx="68" cy="120" r="5"/><circle cx="112" cy="120" r="5"/>
+              <path d="M58 192 h10 v10 h-10z M72 192 h10 v10 h-10z M86 192 h10 v10 h-10z M100 192 h10 v10 h-10z M114 192 h10 v10 h-10z M58 206 h10 v10 h-10z M72 206 h10 v10 h-10z M86 206 h10 v10 h-10z M100 206 h10 v10 h-10z M114 206 h10 v10 h-10z"/></g>
+            <path d="M34 150 Q20 150 20 180 Q22 200 36 204" fill="none" stroke="#123d2b" stroke-width="4"/>
+            <path d="M146 150 Q160 150 160 180 Q158 200 144 204" fill="none" stroke="#123d2b" stroke-width="4"/>
+          </svg>
+        </div>
+        <div class="actions">
+          <button class="btn" type="button" id="shake">Shake it!</button>
+          <button class="btn alt" type="button" id="dump">Dump</button>
+        </div>
+        <div class="gars" role="group" aria-label="Garnish">
+          <button class="gar" type="button" data-g="umbrella" aria-pressed="true"><svg viewBox="0 0 16 16"><path d="M1 8 Q8 -2 15 8Z" fill="#e0457b"/><path d="M8 8 V15" stroke="currentColor"/></svg>Umbrella</button>
+          <button class="gar" type="button" data-g="pineapple" aria-pressed="true"><svg viewBox="0 0 16 16"><path d="M2 14 L8 3 L14 14Z" fill="#f6d34a"/></svg>Pineapple</button>
+          <button class="gar" type="button" data-g="cherry" aria-pressed="false"><svg viewBox="0 0 16 16"><circle cx="8" cy="10" r="5" fill="#b3122c"/></svg>Cherry</button>
+          <button class="gar" type="button" data-g="mint" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M8 15 C2 10 3 4 8 1 C13 4 14 10 8 15Z" fill="#4caf50"/></svg>Mint</button>
+        </div>
+        <div class="msg" id="msg" aria-live="polite">Pick your pours from the back bar. The tin holds eight ounces of bad ideas.</div>
+      </section>
+
+      <section class="tab" aria-label="Your drink">
+        <h2>Bar Tab</h2>
+        <div class="card" id="card"></div>
+      </section>
+    </div>
+  </div>
+  <p class="fine">Please drink responsibly. The Leaky Coconut accepts no liability for flaming garnishes, lost sandals, or sudden ukulele solos.</p>
+</div>
+
+<script>
+(function(){
+"use strict";
+function $(id){return document.getElementById(id);}
+var ING=[
+  {id:'light',n:'Light rum',c:'#f3ecd0',cat:'Rums',step:.5,abv:40},
+  {id:'dark',n:'Dark rum',c:'#6b3413',cat:'Rums',step:.5,abv:40},
+  {id:'over',n:'Overproof',c:'#c9853a',cat:'Rums',step:.5,abv:75,sub:'151, handle w/ care'},
+  {id:'cura',n:'Curaçao',c:'#f4a93c',cat:'Liqueurs',step:.25,abv:35},
+  {id:'camp',n:'Campari',c:'#c8102e',cat:'Liqueurs',step:.25,abv:25},
+  {id:'lime',n:'Lime',c:'#c8e06a',cat:'Juices',step:.25,abv:0},
+  {id:'pine',n:'Pineapple',c:'#f6d34a',cat:'Juices',step:.5,abv:0},
+  {id:'oj',n:'Orange',c:'#f79a2c',cat:'Juices',step:.5,abv:0},
+  {id:'grape',n:'Grapefruit',c:'#f4a1a0',cat:'Juices',step:.25,abv:0},
+  {id:'pass',n:'Passion fruit',c:'#e8b21c',cat:'Juices',step:.5,abv:0},
+  {id:'simple',n:'Demerara',c:'#d8b27a',cat:'Syrups',step:.25,abv:0},
+  {id:'orgeat',n:'Orgeat',c:'#f1e6d0',cat:'Syrups',step:.25,abv:0,sub:'almond'},
+  {id:'fal',n:'Falernum',c:'#e9d6a7',cat:'Syrups',step:.25,abv:11},
+  {id:'gren',n:'Grenadine',c:'#b3122c',cat:'Syrups',step:.25,abv:0},
+  {id:'cinn',n:'Cinnamon',c:'#b86a2b',cat:'Syrups',step:.25,abv:0},
+  {id:'coco',n:'Coco cream',c:'#fbf6ec',cat:'Syrups',step:.5,abv:0},
+  {id:'ango',n:'Angostura',c:'#5a1a0e',cat:'Bitters',step:.03125,abv:45,sub:'one dash'}
+];
+var BY={};ING.forEach(function(i){BY[i.id]=i;});
+var CLASSICS=[
+  {n:'Mai Tai',by:'Trader Vic, 1944',r:{dark:2,lime:.75,cura:.5,orgeat:.5,simple:.25},v:'The one that started the craze. Tahitian for “out of this world”, which is also where your afternoon went.'},
+  {n:'Zombie',by:'Donn Beach, 1934',r:{light:1.5,dark:1.5,over:1,lime:.75,fal:.5,grape:.5,cinn:.25,gren:.25,ango:.03125},v:'Donn Beach limited it to two per customer. We limit it to one, and a chair.'},
+  {n:'Painkiller',by:'Soggy Dollar Bar, 1970s',r:{dark:2,pine:4,oj:1,coco:1},v:'Invented on a beach you had to swim to. Finish with nutmeg and a nap.'},
+  {n:'Jungle Bird',by:'Kuala Lumpur Hilton, 1978',r:{dark:1.5,camp:.75,pine:1.5,lime:.5,simple:.5},v:'Bitter, fruity, and smug about it. The Campari keeps it honest.'},
+  {n:'Daiquiri',by:'Cuba, c. 1900',r:{light:2,lime:1,simple:.75},v:'Three ingredients, no hiding. The bartender’s handshake.'},
+  {n:'Piña Colada',by:'San Juan, 1954',r:{light:2,pine:3,coco:1.5},v:'Yes, you like it. Nobody is judging you. Much.'},
+  {n:'Hurricane',by:'Pat O’Brien’s, 1940s',r:{light:2,dark:2,pass:2,oj:1,lime:.5,gren:.25},v:'Named for the glass. Behaves like the weather.'}
+];
+var ADJ=['Sunburnt','Haunted','Smuggler’s','Volcanic','Barefoot','Mutinous','Forbidden','Lazy','Shipwrecked','Moonlit','Cursed','Unlicensed'];
+var NOUN=['Accountant','Parrot','Lagoon','Idol','Hammock','Typhoon','Tiki God','Ukulele','Castaway','Flamingo','Outrigger','Hula Lamp'];
+
+var mix={},order=[],shaken=false,served=null;
+var MAX=8;
+
+// ---------- menu ----------
+var menu=$('menu'),cats={};
+ING.forEach(function(i){
+  if(!cats[i.cat]){var h=document.createElement('h3');h.textContent=i.cat;menu.appendChild(h);cats[i.cat]=document.createElement('div');cats[i.cat].className='ings';menu.appendChild(cats[i.cat]);}
+  var b=document.createElement('button');b.type='button';b.className='ing';
+  b.innerHTML='<i style="background:'+i.c+'"></i><span>'+i.n+'<small>'+(i.sub||('+'+fmt(i.step)))+'</small></span>';
+  b.setAttribute('aria-label','Add '+i.n);
+  b.addEventListener('click',function(){add(i.id,i.step);});
+  cats[i.cat].appendChild(b);
+});
+var cl=$('classics');
+CLASSICS.forEach(function(c){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=c.n;b.addEventListener('click',function(){load(c);});cl.appendChild(b);});
+
+function fmt(oz){if(oz<.1) return Math.round(oz/.03125)+' dash'+(Math.round(oz/.03125)>1?'es':'');var w=Math.floor(oz),f=oz-w,fr={0:'',.25:'¼',.5:'½',.75:'¾'}[Math.round(f*4)/4]||'';return (w?w:'')+fr+(w||fr?' oz':'0 oz');}
+function total(){var t=0;for(var k in mix) t+=mix[k];return t;}
+
+function add(id,amt){
+  if(served||shaken) reset(true);
+  if(total()+amt>MAX+1e-6){say('Whoa there, sailor. The tin only holds eight ounces.');splash();return;}
+  mix[id]=(mix[id]||0)+amt;if(order.indexOf(id)<0) order.push(id);
+  pourSound(.25);render();
+  var i=BY[id];say(pick(['A splash of ','In goes the ','Glug. ','Measured, mostly: '])+i.n.toLowerCase()+'.');
+}
+function remove(id){
+  var i=BY[id];mix[id]-=i.step;if(mix[id]<=1e-6){delete mix[id];order.splice(order.indexOf(id),1);}
+  shaken=false;served=null;render();
+}
+function load(c){reset(true);for(var k in c.r){mix[k]=c.r[k];order.push(k);}render();say('One '+c.n+', coming up. Now shake it like you mean it.');}
+function reset(quiet){mix={};order=[];shaken=false;served=null;$('tin').classList.remove('frosty');render();if(!quiet) say('Down the drain. The palm tree out back thanks you.');}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function say(t){var m=$('msg');if(m) m.textContent=t;}
+function splash(){var t=$('tin');if(!t) return;t.animate?t.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:260}):null;}
+
+// ---------- colour ----------
+function hex2rgb(h){var n=parseInt(h.slice(1),16);return [n>>16,(n>>8)&255,n&255];}
+function mixedColor(){
+  var t=0,rgb=[0,0,0];
+  for(var k in mix){var w=mix[k]*(k==='gren'||k==='camp'||k==='ango'?3.2:k==='dark'?1.8:1),c=hex2rgb(BY[k].c);t+=w;rgb[0]+=c[0]*w;rgb[1]+=c[1]*w;rgb[2]+=c[2]*w;}
+  if(!t) return '#0f2a1c';
+  return 'rgb('+rgb.map(function(v){return Math.round(v/t);}).join(',')+')';
+}
+
+// ---------- rendering ----------
+var layersG=$('layers'),iceG=$('ice');
+function renderTin(){
+  var h='',y=250,scale=200/MAX;
+  if(served){layersG.innerHTML='';iceG.innerHTML='';return;}
+  if(shaken){
+    var hh=total()*scale*1.12;
+    h='<rect x="0" y="'+(250-hh).toFixed(1)+'" width="120" height="'+hh.toFixed(1)+'" fill="'+mixedColor()+'"/><rect x="0" y="'+(250-hh).toFixed(1)+'" width="120" height="6" fill="rgba(255,255,255,.55)"/>';
+  } else {
+    order.forEach(function(k){var hh=Math.max(mix[k]*scale,k==='ango'?3:0);y-=hh;h+='<rect x="0" y="'+y.toFixed(1)+'" width="120" height="'+(hh+.6).toFixed(1)+'" fill="'+BY[k].c+'"/>';});
+  }
+  layersG.innerHTML=h;
+  var ice='';if(total()>0){var top=250-total()*scale*(shaken?1.12:1);for(var n=0;n<7;n++){var ix=26+(n%3)*24+(n>2?10:0),iy=Math.max(top+4,238-Math.floor(n/3)*26-(n%2)*8);ice+='<rect x="'+ix+'" y="'+iy+'" width="20" height="18" rx="4" fill="rgba(255,255,255,.28)" stroke="rgba(255,255,255,.6)" transform="rotate('+(n*23%40-20)+' '+(ix+10)+' '+(iy+9)+')"/>';}}
+  iceG.innerHTML=ice;
+}
+function renderMug(){
+  var top=$('drinkTop');if(top) top.setAttribute('fill',served?served.color:'#0f2a1c');
+  var g=$('garnish'),h='';
+  if(served){
+    var on={};Array.prototype.forEach.call(document.querySelectorAll('.gar'),function(b){on[b.dataset.g]=b.getAttribute('aria-pressed')==='true';});
+    h+='<g opacity=".9"><rect x="50" y="52" width="16" height="14" rx="3" fill="rgba(255,255,255,.55)" transform="rotate(-12 58 59)"/><rect x="96" y="54" width="16" height="13" rx="3" fill="rgba(255,255,255,.5)" transform="rotate(14 104 60)"/></g>';
+    h+='<path d="M118 66 L132 0" stroke="#e0457b" stroke-width="4" stroke-linecap="round"/>';
+    if(on.pineapple) h+='<path d="M20 64 L52 30 L64 64Z" fill="#f6d34a" stroke="#b78a10" stroke-width="2"/><path d="M50 30 l-6 -18 M52 30 l4 -20 M54 32 l12 -14" stroke="#3e8e41" stroke-width="4" stroke-linecap="round"/>';
+    if(on.mint) h+='<g fill="#4caf50" stroke="#2e7d32"><path d="M70 60 C60 44 64 30 74 24 C82 32 80 48 70 60Z"/><path d="M76 60 C84 42 96 38 104 40 C102 52 90 60 76 60Z"/></g>';
+    if(on.cherry) h+='<path d="M92 56 Q96 30 110 22" stroke="#6b3413" stroke-width="2" fill="none"/><circle cx="92" cy="58" r="9" fill="#b3122c"/><circle cx="89" cy="55" r="2.5" fill="#ff9a9a"/>';
+    if(on.umbrella) h+='<path d="M100 66 L126 12" stroke="#f2e2b0" stroke-width="2.5"/><path d="M96 20 Q126 -10 160 18 Q142 12 128 16 Q112 10 96 20Z" fill="#e0457b" stroke="#8f1e48" stroke-width="1.5"/><path d="M104 18 L128 6 M128 16 L128 4 M152 16 L130 5" stroke="#8f1e48" stroke-width="1"/>';
+  }
+  g.innerHTML=h;
+}
+function renderCard(){
+  var card=$('card'),t=total();
+  if(served){
+    var s=served,skulls='';
+    for(var i=0;i<5;i++) skulls+='<svg viewBox="0 0 22 26" aria-hidden="true"><path d="M3 4 Q11 -2 19 4 L20 18 Q11 26 2 18Z" fill="'+(i<s.level?'#3a2113':'#e3cfa4')+'"/><circle cx="8" cy="11" r="2.4" fill="'+(i<s.level?'#fbeed0':'#fbeed0')+'"/><circle cx="14" cy="11" r="2.4" fill="#fbeed0"/><path d="M7 18 h8" stroke="#fbeed0" stroke-width="2"/></svg>';
+    card.innerHTML='<h4>'+s.name+'</h4><div class="sub">'+s.sub+'</div>'+pourList(true)+'<div class="tot"><span>Strength</span><span>≈ '+s.abv.toFixed(0)+'% ABV</span></div><div class="meter" aria-label="Strength '+s.level+' of 5">'+skulls+'</div><p class="verdict">'+s.verdict+'</p>';
+  } else if(!t){
+    card.innerHTML='<h4>Nothing yet</h4><div class="sub">the tin is empty & so is your glass</div><p class="empty">Tap bottles on the back bar to pour, or order a classic. Then shake.</p>';
+  } else {
+    card.innerHTML='<h4>Work in progress</h4><div class="sub">'+(shaken?'shaken, not yet served':'unshaken · tap − to take back a pour')+'</div>'+pourList(false)+'<div class="tot"><span>In the tin</span><span>'+fmt(t)+' / 8 oz</span></div>';
+  }
+  Array.prototype.forEach.call(card.querySelectorAll('.min'),function(b){b.addEventListener('click',function(){remove(b.dataset.id);});});
+}
+function pourList(ro){
+  return '<ul class="pours">'+order.map(function(k){return '<li><i style="background:'+BY[k].c+'"></i><span>'+BY[k].n+'</span><span>'+fmt(mix[k])+'</span>'+(ro?'<span></span>':'<button class="min" type="button" data-id="'+k+'" aria-label="Less '+BY[k].n+'">−</button>')+'</li>';}).join('')+'</ul>';
+}
+function render(){renderTin();renderMug();renderCard();var nw=$('now');if(nw) nw.textContent=served?served.name:(total()?'Something Brewing…':'An Empty Tin');var sb=$('shake');if(sb) sb.disabled=!total();}
+
+// ---------- judge the drink ----------
+function judge(){
+  var t=total(),alc=0;for(var k in mix) alc+=mix[k]*BY[k].abv/100;
+  var abv=alc/(t*1.25)*100;
+  var best=null,bs=0;
+  CLASSICS.forEach(function(c){
+    var keys={},dot=0,a=0,b=0;for(var k in mix) keys[k]=1;for(var k2 in c.r) keys[k2]=1;
+    for(var kk in keys){var x=mix[kk]||0,y=c.r[kk]||0;dot+=x*y;a+=x*x;b+=y*y;}
+    var s=dot/Math.sqrt(a*b||1);if(s>bs){bs=s;best=c;}
+  });
+  var sour=(mix.lime||0)+(mix.grape||0)*.6,sweet=(mix.simple||0)+(mix.orgeat||0)+(mix.gren||0)+(mix.fal||0)*.8+(mix.coco||0)*.8+(mix.cinn||0)+(mix.cura||0)*.6;
+  var rum=(mix.light||0)+(mix.dark||0)+(mix.over||0);
+  var level=Math.max(1,Math.min(5,Math.round(abv/5)));
+  var r={abv:abv,level:level,color:mixedColor()};
+  if(best&&bs>.95){r.name=best.n;r.sub='a proper classic · '+best.by;r.verdict=best.v;}
+  else{
+    var hsh=0;order.forEach(function(k){hsh=(hsh*31+k.length*7+Math.round(mix[k]*8))%9973;});
+    r.name='The '+ADJ[hsh%ADJ.length]+' '+NOUN[(hsh>>3)%NOUN.length];
+    r.sub='house original'+(best&&bs>.8?' · a distant cousin of the '+best.n:'');
+    var notes=[];
+    if(!rum) notes.push('No rum? In this economy? The tiki gods are frowning.');
+    else if(abv>20) notes.push('Structurally, this is a fuel. Sip slowly and stay seated.');
+    else if(abv<7) notes.push('Gentle enough for a Tuesday lunch. Suspiciously gentle.');
+    if(sour>0&&sweet>0&&Math.abs(sour-sweet)<.4) notes.push('Sour and sweet are shaking hands — nicely balanced.');
+    else if(sour>sweet+.5) notes.push('Puckers the face like a disappointed aunt. Add some syrup.');
+    else if(sweet>sour+.75) notes.push('Sweet enough to attract local wildlife. A squeeze of lime would help.');
+    if(mix.ango) notes.push('The dash of bitters is doing quiet, heroic work.');
+    if(mix.camp) notes.push('Campari brings a bitter sulk to the party. We respect it.');
+    r.verdict=notes.join(' ')||'Unprecedented. Possibly delicious. Definitely yours.';
+  }
+  return r;
+}
+
+// ---------- shake & serve ----------
+var busy=false;
+var shakeBtn=$('shake');
+if(shakeBtn) shakeBtn.addEventListener('click',function(){
+  if(busy||!total()) return;
+  if(served){reset(true);return;}
+  busy=true;shakeBtn.disabled=true;
+  var tin=$('tin'),cap=$('cap');
+  cap.setAttribute('opacity','1');
+  tin.classList.add('shaking');say(pick(['Shake shake shake…','Twelve hard seconds, the Donn Beach way…','Rattling the ice like a maraca…']));
+  rattle(1.4);
+  setTimeout(function(){
+    tin.classList.remove('shaking');shaken=true;tin.classList.add('frosty');renderTin();
+    setTimeout(function(){
+      cap.setAttribute('opacity','0');
+      var st=$('stream'),mug=$('mug'),scene=tin.parentNode;
+      var r1=tin.getBoundingClientRect(),r2=mug.getBoundingClientRect(),rs=scene.getBoundingClientRect();
+      st.style.left=(r2.left-rs.left+r2.width*.45)+'px';st.style.top=(r1.top-rs.top+r1.height*.05)+'px';st.style.height=Math.max(40,(r2.top-r1.top)+r2.height*.2)+'px';
+      st.style.background='linear-gradient('+mixedColor()+',rgba(255,255,255,.4))';
+      tin.classList.add('pour');st.classList.add('on');pourSound(1);
+      setTimeout(function(){
+        tin.classList.remove('pour');st.classList.remove('on');tin.classList.remove('frosty');
+        served=judge();
+        layersG.innerHTML='';iceG.innerHTML='';
+        render();clink();
+        say(served.sub.indexOf('classic')===0?'Well I’ll be — that’s a textbook '+served.name+'.':'Served: '+served.name+'. Tap “Shake it!” again for another round.');
+        shakeBtn.textContent='Another!';shakeBtn.disabled=false;busy=false;
+      },1150);
+    },350);
+  },1400);
+});
+var dumpB=$('dump');if(dumpB) dumpB.addEventListener('click',function(){if(busy) return;reset(false);if($('shake')) $('shake').textContent='Shake it!';});
+Array.prototype.forEach.call(document.querySelectorAll('.gar'),function(b){b.addEventListener('click',function(){b.setAttribute('aria-pressed',String(b.getAttribute('aria-pressed')!=='true'));renderMug();});});
+var origReset=reset;reset=function(q){origReset(q);var sb=$('shake');if(sb&&!busy) sb.textContent='Shake it!';};
+
+// ---------- sound ----------
+var ac=null;
+function A(){if(!ac){try{var C=window.AudioContext||window.webkitAudioContext;if(C) ac=new C();}catch(e){}}if(ac&&ac.state==='suspended') ac.resume();return ac;}
+function noiseBurst(t,dur,freq,q,gain){
+  var a=ac,len=Math.ceil(a.sampleRate*dur),buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);
+  for(var i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2);
+  var s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();s.buffer=buf;f.type='bandpass';f.frequency.value=freq;f.Q.value=q;g.gain.value=gain;
+  s.connect(f);f.connect(g);g.connect(a.destination);s.start(t);
+}
+function rattle(sec){if(!A()) return;var t0=ac.currentTime;for(var i=0;i<sec*9;i++){var t=t0+i/9;noiseBurst(t,.06,2500+Math.random()*1800,3,.5);noiseBurst(t+.03,.04,4200,5,.25);}}
+function pourSound(sec){if(!A()) return;var t0=ac.currentTime;for(var i=0;i<sec*14;i++){noiseBurst(t0+i/14+Math.random()*.03,.07,300+Math.random()*500,8,.35);}}
+function clink(){if(!A()) return;var t=ac.currentTime;[2637,3520,5274].forEach(function(f,i){var o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.setValueAtTime(.06/(i+1),t);g.gain.exponentialRampToValueAtTime(.0001,t+.8);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.85);});}
+
+// ---------- string lights ----------
+(function(){
+  var s=$('lights');if(!s) return;var h='<path d="M0 8 Q150 44 300 10 Q450 44 600 10 Q750 44 900 10 Q1050 44 1200 8" fill="none" stroke="#1a0f08" stroke-width="2"/>';
+  var cols=['#ffb347','#ff6f61','#7fe0c7','#ffd96a','#f7879a'];
+  for(var i=0;i<24;i++){var x=25+i*48,seg=x%300/300,y=10+Math.sin(seg*Math.PI)*30;h+='<circle class="bulb" cx="'+x+'" cy="'+(y+8)+'" r="6" fill="'+cols[i%5]+'" style="animation-delay:'+(i*.37%3).toFixed(2)+'s;filter:drop-shadow(0 0 6px '+cols[i%5]+')"/>';}
+  s.innerHTML=h;
+})();
+
+// start with a Mai Tai already served so the bar looks alive
+(function(){
+  var c=CLASSICS[0];for(var k in c.r){mix[k]=c.r[k];order.push(k);}shaken=true;served=judge();
+  render();if($('shake')) $('shake').textContent='Another!';
+  say('On the house: a Mai Tai. Build your own from the back bar.');
+})();
+})();
+</script>
+</body>
+</html>

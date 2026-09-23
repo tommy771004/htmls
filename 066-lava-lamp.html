@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groovatron 3000 — The Lava Lamp That Does Nothing, Beautifully</title>
+<style>
+:root{
+  --cream:#f6e4c0;
+  --orange:#f26b1d;
+  --mustard:#e2a324;
+  --brown:#5a2c12;
+  --plum:#5b2379;
+  --glow:#ff8a3c;
+  --wax:#ff6a13;
+  --liq-a:#3b0f5c;
+  --liq-b:#7a2aa8;
+  --treb:"Trebuchet MS","Lucida Grande","Segoe UI",Tahoma,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  min-height:100vh;color:var(--brown);font-family:var(--treb);overflow-x:hidden;
+  background-color:#efd9ad;
+  background-image:
+    radial-gradient(circle at 50% 50%, transparent 0 13px, rgba(90,44,18,.10) 13px 15px, transparent 15px 23px, rgba(242,107,29,.12) 23px 25px, transparent 25px),
+    radial-gradient(circle at 0 0, transparent 0 13px, rgba(90,44,18,.10) 13px 15px, transparent 15px 23px, rgba(226,163,36,.16) 23px 25px, transparent 25px);
+  background-size:56px 56px, 56px 56px;
+  background-position:0 0, 28px 28px;
+}
+.room{position:relative;min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.9fr) minmax(0,1fr);gap:clamp(16px,3vw,40px);align-items:center;padding:clamp(18px,3vw,40px) clamp(16px,3vw,48px) 0;max-width:1400px;margin:0 auto}
+/* super-graphic stripes */
+.stripes{position:fixed;left:-10vw;right:-10vw;top:58%;height:120px;pointer-events:none;z-index:0;transform:rotate(-6deg);
+  background:linear-gradient(180deg,var(--mustard) 0 25%,var(--orange) 25% 50%,#c0401a 50% 75%,var(--brown) 75%);opacity:.9}
+.wallglow{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(40vmax 50vmax at 50% 48%, color-mix(in srgb,var(--glow) 55%, transparent), transparent 70%);mix-blend-mode:screen;transition:opacity 1.2s;opacity:.85}
+body.off .wallglow{opacity:0}
+.room > *{position:relative;z-index:2}
+
+/* copy column */
+.copy .kicker{display:inline-block;background:var(--brown);color:var(--cream);font-size:12px;letter-spacing:.3em;text-transform:uppercase;padding:6px 12px;border-radius:40px;font-weight:bold}
+.copy h1{margin:18px 0 10px;font-weight:bold;font-style:italic;font-size:clamp(46px,6.8vw,104px);line-height:.86;letter-spacing:-.03em;color:var(--cream);
+  text-shadow:.03em .03em 0 var(--mustard),.06em .06em 0 var(--orange),.09em .09em 0 #c0401a,.12em .12em 0 var(--brown)}
+.copy h1 span{display:block;font-size:.5em;letter-spacing:.02em;margin-bottom:.14em}
+.copy .tag{font-size:clamp(17px,1.6vw,21px);font-style:italic;font-weight:bold;max-width:21em;line-height:1.35;margin:26px 0 18px}
+.specs{list-style:none;margin:0;padding:6px 14px;font-size:14px;line-height:1.5;max-width:28em;background:rgba(246,228,192,.93);border-radius:10px;box-shadow:0 8px 20px -12px rgba(90,44,18,.5)}
+.specs li:first-child{border-top:0}
+.specs li{padding:7px 0;border-top:2px dotted rgba(90,44,18,.35);display:flex;gap:10px}
+.specs li b{min-width:7.5em;flex:none;text-transform:uppercase;font-size:11.5px;letter-spacing:.14em;padding-top:2px}
+
+/* the lamp */
+.stage{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:min(88vh,860px);padding-top:10px}
+.lamp{position:relative;width:min(300px,70vw);height:min(76vh,720px);min-height:460px;display:flex;flex-direction:column;align-items:center}
+.cap{width:34%;height:7%;flex:none;clip-path:polygon(22% 0,78% 0,100% 100%,0 100%);
+  background:linear-gradient(90deg,#6a4a12,#e9c25a 28%,#fff0b8 36%,#c9962e 55%,#7c5714 85%,#5a3d0c);border-radius:4px 4px 0 0}
+.glass{position:relative;width:100%;flex:1;clip-path:polygon(33% 0,67% 0,92% 100%,8% 100%);overflow:hidden;
+  background:linear-gradient(180deg,var(--liq-a),var(--liq-b) 70%,color-mix(in srgb,var(--liq-b) 60%, #fff 40%));transition:background 1s}
+.glass canvas{position:absolute;inset:0;width:100%;height:100%;display:block;filter:blur(1.2px) saturate(1.15)}
+.glass .sheen{position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.35) 0%,transparent 16%,rgba(255,255,255,.28) 26%,transparent 34%,transparent 70%,rgba(255,255,255,.12) 78%,transparent 84%,rgba(0,0,0,.4) 100%),
+    radial-gradient(60% 18% at 50% 100%,rgba(255,240,200,.55),transparent 70%)}
+body.off .glass{filter:brightness(.45) saturate(.6)}
+.collar{width:94%;height:2.6%;flex:none;background:linear-gradient(90deg,#6a4a12,#e9c25a 28%,#fff0b8 36%,#c9962e 55%,#7c5714 85%,#5a3d0c);border-radius:3px}
+.base{width:100%;height:24%;flex:none;clip-path:polygon(4% 0,96% 0,72% 55%,100% 100%,0 100%,28% 55%);
+  background:linear-gradient(90deg,#6a4a12,#e9c25a 28%,#fff0b8 36%,#c9962e 55%,#7c5714 85%,#5a3d0c)}
+.base-grille{position:absolute;left:0;right:0;bottom:0;height:24%;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0 9px,rgba(60,30,4,.18) 9px 11px);clip-path:polygon(4% 0,96% 0,72% 55%,100% 100%,0 100%,28% 55%);mix-blend-mode:multiply}
+.shelf{width:min(560px,94vw);height:26px;border-radius:4px;flex:none;
+  background:linear-gradient(180deg,#8a4b22,#5e2e12 60%,#3d1d0a),repeating-linear-gradient(90deg,transparent 0 40px,rgba(0,0,0,.08) 40px 44px);
+  box-shadow:0 18px 30px -12px rgba(60,25,5,.7), inset 0 2px 0 rgba(255,210,150,.35)}
+.hint{margin-top:12px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:bold;opacity:.75;text-align:center}
+.starburst{position:absolute;right:-18px;top:18%;width:104px;height:104px;display:grid;place-items:center;text-align:center;color:var(--cream);font-weight:bold;font-style:italic;line-height:1;transform:rotate(12deg);z-index:3;
+  background:var(--orange);clip-path:polygon(50% 0,59% 13%,75% 7%,77% 23%,93% 25%,87% 40%,100% 50%,87% 60%,93% 75%,77% 77%,75% 93%,59% 87%,50% 100%,41% 87%,25% 93%,23% 77%,7% 75%,13% 60%,0 50%,13% 40%,7% 25%,23% 23%,25% 7%,41% 13%)}
+.starburst small{display:block;font-size:11px;letter-spacing:.12em;font-style:normal}
+.starburst b{font-size:24px}
+
+/* the console: walnut + brushed metal */
+.console{
+  background:linear-gradient(180deg,#6e3a18,#4a230c);border-radius:18px;padding:18px;color:var(--cream);
+  box-shadow:0 20px 40px -18px rgba(60,25,5,.8), inset 0 2px 0 rgba(255,210,150,.25), inset 0 -3px 0 rgba(0,0,0,.3);
+  background-image:repeating-linear-gradient(95deg,rgba(0,0,0,.06) 0 3px,transparent 3px 11px,rgba(255,200,140,.05) 11px 13px,transparent 13px 22px),linear-gradient(180deg,#6e3a18,#4a230c);
+}
+.plate{background:linear-gradient(180deg,#e6dcc8,#b9ad94);color:#3a1e0c;border-radius:10px;padding:14px 16px;box-shadow:inset 0 1px 0 #fff,0 2px 0 rgba(0,0,0,.35)}
+.plate h2{margin:0;font-size:13px;letter-spacing:.3em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.plate h2 i{font-style:normal;font-size:10px;letter-spacing:.14em;opacity:.7}
+.moods{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
+.mood{position:relative;aspect-ratio:1;min-height:44px;border-radius:50%;border:0;cursor:pointer;padding:0;
+  background:radial-gradient(circle at 50% 62%, var(--w) 0 30%, transparent 31%), linear-gradient(180deg,var(--a),var(--b));
+  box-shadow:0 3px 0 rgba(0,0,0,.35), inset 0 2px 3px rgba(255,255,255,.35), inset 0 -4px 6px rgba(0,0,0,.35);transition:transform .15s}
+.mood:hover{transform:translateY(-2px)}
+.mood[aria-checked="true"]{outline:3px solid #3a1e0c;outline-offset:3px}
+.mood:focus-visible{outline:3px dashed #3a1e0c;outline-offset:3px}
+.moodname{margin-top:12px;font-weight:bold;font-style:italic;font-size:20px;line-height:1.1}
+.moodline{font-size:13px;margin-top:4px;min-height:2.7em;line-height:1.35}
+.row2{display:grid;grid-template-columns:1fr auto;gap:16px;margin-top:16px;align-items:center}
+.dialwrap{display:flex;align-items:center;gap:14px}
+.dial{width:112px;height:112px;flex:none;touch-action:none;cursor:grab;border-radius:50%}
+.dial:focus-visible{outline:3px dashed var(--mustard);outline-offset:4px}
+.dialtxt{font-size:11px;letter-spacing:.2em;text-transform:uppercase;line-height:1.6}
+.dialtxt b{display:block;font-size:22px;letter-spacing:0;font-style:italic;text-transform:none;color:var(--mustard)}
+.rocker{width:66px;height:100px;border-radius:10px;border:0;cursor:pointer;position:relative;padding:0;
+  background:#2a1206;box-shadow:inset 0 3px 6px rgba(0,0,0,.6),0 2px 0 rgba(255,210,150,.2)}
+.rocker span{position:absolute;left:7px;right:7px;height:44px;border-radius:7px;display:grid;place-items:center;font-weight:bold;font-size:12px;letter-spacing:.12em;transition:all .15s}
+.rocker .on{top:7px;background:linear-gradient(180deg,#ffb35c,var(--orange));color:#3a1206;box-shadow:0 5px 0 #8a3208}
+.rocker .off{bottom:7px;background:linear-gradient(180deg,#5b3a28,#3f2517);color:#c9a98a;box-shadow:inset 0 2px 3px rgba(0,0,0,.5)}
+body.off .rocker .on{background:linear-gradient(180deg,#5b3a28,#3f2517);color:#c9a98a;box-shadow:inset 0 2px 3px rgba(0,0,0,.5)}
+body.off .rocker .off{background:linear-gradient(180deg,#e9d7b4,#bda881);color:#3a1206;box-shadow:0 -5px 0 #7d6a48}
+.rocker:focus-visible{outline:3px dashed var(--mustard);outline-offset:3px}
+.keys{margin-top:14px;font-size:11.5px;letter-spacing:.08em;opacity:.8;line-height:1.6}
+.keys kbd{font-family:var(--treb);font-weight:bold;background:rgba(255,230,190,.15);border:1px solid rgba(255,230,190,.3);border-radius:4px;padding:0 5px}
+.guarantee{margin-top:14px;display:flex;gap:10px;align-items:center;font-style:italic;font-size:13px;color:#f3d9a8}
+.guarantee svg{width:40px;height:40px;flex:none}
+
+@media (max-width:1000px){
+  .room{grid-template-columns:1fr;justify-items:center;padding-bottom:40px}
+  .copy{display:contents}
+  .copy .kicker{grid-row:1;margin-top:4px}
+  .copy h1{grid-row:2;margin:0;text-align:center}
+  .copy .tag{grid-row:3;margin:0 auto;text-align:center}
+  .stage{min-height:auto;grid-row:4}
+  .console{grid-row:5;width:min(460px,100%)}
+  .specs{grid-row:6;margin:0 auto;text-align:left;width:min(460px,100%)}
+  .room{gap:18px}
+  .lamp{height:62vh;min-height:420px}
+  .starburst{right:-6px;width:88px;height:88px}
+  .starburst b{font-size:20px}
+}
+@media (prefers-reduced-motion:reduce){ .wallglow{transition:none} }
+</style>
+</head>
+<body>
+<div class="stripes" aria-hidden="true"></div>
+<div class="wallglow" aria-hidden="true"></div>
+<main class="room">
+  <section class="copy">
+    <span class="kicker">New for ’71 · Model G-3000</span>
+    <h1><span>The</span>Groovatron</h1>
+    <p class="tag">It doesn’t do anything. It just does it slowly, and in a very nice colour.</p>
+    <ul class="specs">
+      <li><b>Warm-up</b><span>45 minutes. Bring a book. Don’t read it.</span></li>
+      <li><b>Contents</b><span>1 bulb, 52 oz of mysterious wax, 0 instructions you will read.</span></li>
+      <li><b>Finish</b><span>Genuine gold-tone. Genuine-ish.</span></li>
+      <li><b>Mood</b><span>Five factory-approved moods. Tap the glass to stir things up.</span></li>
+    </ul>
+  </section>
+
+  <section class="stage" aria-label="Lava lamp">
+    <div class="lamp" id="lamp">
+      <div class="starburst" aria-hidden="true"><div><small>ONLY</small><b>$29<sup>95</sup></b></div></div>
+      <div class="cap"></div>
+      <div class="glass" id="glass"><canvas id="lava" aria-label="Moving wax blobs"></canvas><div class="sheen"></div></div>
+      <div class="collar"></div>
+      <div class="base"></div>
+      <div class="base-grille"></div>
+    </div>
+    <div class="shelf"></div>
+    <div class="hint">Tap the glass to add heat</div>
+  </section>
+
+  <aside class="console" aria-label="Mood console">
+    <div class="plate">
+      <h2>Mood Selector <i>Fig. 2</i></h2>
+      <div class="moods" id="moods" role="radiogroup" aria-label="Mood"></div>
+      <div class="moodname" id="moodname">Tangerine Dream</div>
+      <div class="moodline" id="moodline">Orange wax, grape soda sky. The original. Pairs with shag carpet.</div>
+    </div>
+    <div class="row2">
+      <div class="dialwrap">
+        <svg class="dial" id="dial" viewBox="0 0 120 120" tabindex="0" role="slider" aria-label="Heat" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60">
+          <defs>
+            <radialGradient id="kg" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fff0c9"/><stop offset=".5" stop-color="#d6ae57"/><stop offset="1" stop-color="#6b4a12"/></radialGradient>
+          </defs>
+          <g id="ticks" stroke="#f6e4c0" stroke-width="2" stroke-linecap="round"></g>
+          <circle cx="60" cy="60" r="36" fill="#2a1206"/>
+          <g id="knob"><circle cx="60" cy="60" r="32" fill="url(#kg)"/><circle cx="60" cy="60" r="24" fill="none" stroke="rgba(80,50,10,.35)" stroke-width="1"/><rect x="57" y="30" width="6" height="18" rx="3" fill="#3a1206"/></g>
+        </svg>
+        <div class="dialtxt">Heat<b id="heatlabel">Groovy</b>drag · arrows</div>
+      </div>
+      <button class="rocker" id="power" type="button" aria-pressed="true" aria-label="Power"><span class="on">ON</span><span class="off">OFF</span></button>
+    </div>
+    <div class="keys"><kbd>1</kbd>–<kbd>5</kbd> moods · <kbd>←</kbd><kbd>→</kbd> heat · <kbd>Space</kbd> power</div>
+    <div class="guarantee"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#e2a324"/><circle cx="20" cy="20" r="14" fill="none" stroke="#5a2c12" stroke-width="1.5" stroke-dasharray="2 2"/><path d="M13 20l5 5 9-10" fill="none" stroke="#5a2c12" stroke-width="3" stroke-linecap="round"/></svg>Satisfaction guaranteed, or your groove back.</div>
+  </aside>
+</main>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var glass = $('glass'), cv = $('lava'), moodsEl = $('moods'), dial = $('dial'), knob = $('knob'), ticks = $('ticks'), power = $('power');
+  if (!glass || !cv || !moodsEl || !dial || !knob || !power) return;
+  var ctx = cv.getContext('2d');
+  if (!ctx) return;
+  var root = document.documentElement;
+
+  var MOODS = [
+    {name:'Tangerine Dream', line:'Orange wax, grape soda sky. The original. Pairs with shag carpet.', wax:[255,106,19], a:'#3b0f5c', b:'#7a2aa8', glow:'#ff8a3c'},
+    {name:'Purple Haze', line:'Magenta in midnight blue. Recommended for staring, humming, not answering the phone.', wax:[232,60,200], a:'#0e1650', b:'#2c4bd1', glow:'#e84ad8'},
+    {name:'Avocado Groove', line:'The colour of your aunt’s fridge, finally at peace with itself.', wax:[204,222,58], a:'#1d3f1b', b:'#4f8a2b', glow:'#d6e05a'},
+    {name:'Harvest Gold', line:'Honey rising through cranberry. Smells faintly of fondue (it does not).', wax:[255,196,26], a:'#5e1005', b:'#c2331b', glow:'#ffb300'},
+    {name:'Midnight Disco', line:'Aqua under a mirror ball. The lamp for people who own two lamps.', wax:[52,224,208], a:'#140829', b:'#43157a', glow:'#37e6d6'}
+  ];
+  var mood = 0, wax = MOODS[0].wax.slice(), waxTarget = wax.slice();
+
+  MOODS.forEach(function(m, i){
+    var b = document.createElement('button');
+    b.className = 'mood'; b.type = 'button'; b.setAttribute('role', 'radio');
+    b.setAttribute('aria-label', m.name); b.setAttribute('aria-checked', i === 0 ? 'true' : 'false');
+    b.style.setProperty('--w', 'rgb(' + m.wax.join(',') + ')'); b.style.setProperty('--a', m.a); b.style.setProperty('--b', m.b);
+    b.addEventListener('click', function(){ setMood(i); });
+    moodsEl.appendChild(b);
+  });
+  function setMood(i){
+    mood = i; var m = MOODS[i];
+    waxTarget = m.wax.slice();
+    root.style.setProperty('--liq-a', m.a); root.style.setProperty('--liq-b', m.b); root.style.setProperty('--glow', m.glow);
+    var bs = moodsEl.querySelectorAll('.mood'); for (var k=0;k<bs.length;k++) bs[k].setAttribute('aria-checked', k === i ? 'true' : 'false');
+    var n = $('moodname'), l = $('moodline'); if (n) n.textContent = m.name; if (l) l.textContent = m.line;
+  }
+
+  /* ---------- heat dial ---------- */
+  var heat = 60, on = true;
+  for (var t=0;t<=10;t++){
+    var ang = (-135 + t * 27) * Math.PI / 180, r1 = 44, r2 = t % 5 === 0 ? 55 : 50;
+    var ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    ln.setAttribute('x1', 60 + Math.sin(ang)*r1); ln.setAttribute('y1', 60 - Math.cos(ang)*r1);
+    ln.setAttribute('x2', 60 + Math.sin(ang)*r2); ln.setAttribute('y2', 60 - Math.cos(ang)*r2);
+    if (ticks) ticks.appendChild(ln);
+  }
+  var LABELS = [[15,'Lukewarm'],[35,'Mellow'],[60,'Groovy'],[85,'Far out'],[101,'Too much, man']];
+  function setHeat(v){
+    heat = Math.max(0, Math.min(100, Math.round(v)));
+    knob.setAttribute('transform', 'rotate(' + (-135 + heat * 2.7) + ' 60 60)');
+    dial.setAttribute('aria-valuenow', heat);
+    var hl = $('heatlabel');
+    for (var i=0;i<LABELS.length;i++) if (heat < LABELS[i][0]){ if (hl) hl.textContent = LABELS[i][1]; break; }
+  }
+  setHeat(60);
+  var dragging = false;
+  function angFromEvent(e){
+    var r = dial.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2;
+    var a = Math.atan2(e.clientX - cx, cy - e.clientY) * 180 / Math.PI;
+    return Math.max(-135, Math.min(135, a));
+  }
+  dial.addEventListener('pointerdown', function(e){ dragging = true; try{ dial.setPointerCapture(e.pointerId); }catch(err){} setHeat((angFromEvent(e) + 135) / 2.7); e.preventDefault(); });
+  dial.addEventListener('pointermove', function(e){ if (dragging) setHeat((angFromEvent(e) + 135) / 2.7); });
+  dial.addEventListener('pointerup', function(){ dragging = false; });
+  dial.addEventListener('pointercancel', function(){ dragging = false; });
+
+  function setPower(v){ on = v; document.body.classList.toggle('off', !on); power.setAttribute('aria-pressed', on ? 'true' : 'false'); click(); }
+  power.addEventListener('click', function(){ setPower(!on); });
+
+  document.addEventListener('keydown', function(e){
+    var tag = e.target && e.target.tagName;
+    if (e.key >= '1' && e.key <= '5'){ setMood(+e.key - 1); }
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ setHeat(heat + 5); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown'){ setHeat(heat - 5); e.preventDefault(); }
+    else if (e.key === ' ' && tag !== 'BUTTON'){ e.preventDefault(); setPower(!on); }
+  });
+
+  /* ---------- a tiny switch click ---------- */
+  var ac = null;
+  function click(){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      if (!ac) ac = new AC(); if (ac.state === 'suspended') ac.resume();
+      var o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime;
+      o.type = 'square'; o.frequency.setValueAtTime(on ? 180 : 120, t0); o.frequency.exponentialRampToValueAtTime(60, t0 + .05);
+      g.gain.setValueAtTime(.12, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + .07);
+      o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0 + .08);
+      if (on){ // the bulb's faint hum
+        var h = ac.createOscillator(), hg = ac.createGain(); h.frequency.value = 60; hg.gain.setValueAtTime(0, t0); hg.gain.linearRampToValueAtTime(.025, t0 + .3); hg.gain.linearRampToValueAtTime(0, t0 + 1.6);
+        h.connect(hg); hg.connect(ac.destination); h.start(t0); h.stop(t0 + 1.7);
+      }
+    }catch(err){}
+  }
+
+  /* ---------- metaball lava ---------- */
+  var W = 0, H = 0, aspect = 1, img = null;
+  function halfWidth(y){ return 0.17 + 0.25 * y; } // glass taper (fraction of width), matches clip-path 33%..8%
+  function resize(){
+    var r = glass.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var scale = 3.2 / dpr;
+    W = Math.max(40, Math.round(r.width * dpr / (scale * dpr)));
+    H = Math.max(80, Math.round(r.height * dpr / (scale * dpr)));
+    cv.width = W; cv.height = H;
+    aspect = H / W;
+    img = ctx.createImageData(W, H);
+  }
+  var blobs = [];
+  function rand(a, b){ return a + Math.random() * (b - a); }
+  function spawn(x, y, r, T){ blobs.push({x:x, y:y, r:r, vx:0, vy:0, T:T, ph:rand(0, 6.28)}); }
+  var seeds = [[.5,.82,.10,.9],[.42,.55,.075,.75],[.58,.35,.065,.62],[.47,.18,.07,.3],[.55,.66,.06,.85],[.5,.45,.05,.55],[.45,.9,.085,.7],[.56,.25,.05,.4]];
+  seeds.forEach(function(s){ spawn(s[0], s[1], s[2], s[3]); });
+  blobs.forEach(function(b){ b.vy = (0.5 - b.T) * 0.05; });
+
+  function physics(dt, time){
+    var hf = on ? (0.25 + heat / 100 * 1.5) : 0;
+    for (var i=0;i<blobs.length;i++){
+      var b = blobs[i];
+      if (b.y > 0.84) b.T += 0.22 * dt * hf; else if (b.y < 0.2) b.T -= 0.2 * dt * (0.6 + hf * .5); else b.T -= 0.018 * dt;
+      if (!on) b.T -= 0.06 * dt;
+      b.T = Math.max(0, Math.min(1.1, b.T));
+      var buoy = (b.T - 0.5) * 0.09 * (0.4 + hf);
+      b.vy += -buoy * dt;
+      b.vy *= Math.pow(0.55, dt);
+      b.vx += Math.sin(time * 0.45 + b.ph) * 0.004 * dt;
+      b.vx *= Math.pow(0.6, dt);
+      b.y += b.vy * dt; b.x += b.vx * dt;
+      var ymin = 0.03 + b.r * .6 / aspect, ymax = 0.97;
+      if (b.y < ymin){ b.y = ymin; b.vy = Math.abs(b.vy) * .2; }
+      if (b.y > ymax){ b.y = ymax; b.vy = -Math.abs(b.vy) * .2; }
+      var hw = halfWidth(b.y) - b.r * .55;
+      if (b.x < 0.5 - hw){ b.x = 0.5 - hw; b.vx = Math.abs(b.vx); }
+      if (b.x > 0.5 + hw){ b.x = 0.5 + hw; b.vx = -Math.abs(b.vx); }
+    }
+  }
+  function render(time){
+    var d = img.data, n = blobs.length, bx = new Float32Array(n + 2), by = new Float32Array(n + 2), br = new Float32Array(n + 2);
+    for (var i=0;i<n;i++){ bx[i] = blobs[i].x; by[i] = blobs[i].y * aspect; br[i] = blobs[i].r * blobs[i].r; }
+    // the warm pool on the bottom and a drip on the cap
+    bx[n] = 0.5; by[n] = 1.05 * aspect; br[n] = 0.26 * 0.26 * (on ? 1 : 1.15);
+    bx[n+1] = 0.5; by[n+1] = -0.01 * aspect; br[n+1] = 0.07 * 0.07;
+    var m = n + 2, wr = wax[0], wg = wax[1], wb = wax[2];
+    var glowK = on ? 1 : 0.35;
+    for (var y=0;y<H;y++){
+      var py = (y + .5) / W, fy = y / H;
+      var hw = halfWidth(fy) + 0.02;
+      var bottomLight = (0.55 + 0.6 * fy) * glowK;
+      for (var x=0;x<W;x++){
+        var px = (x + .5) / W, o = (y * W + x) * 4;
+        if (Math.abs(px - 0.5) > hw){ d[o+3] = 0; continue; }
+        var f = 0;
+        for (var k=0;k<m;k++){ var dx = px - bx[k], dy = py - by[k]; f += br[k] / (dx*dx + dy*dy + 1e-5); }
+        if (f < 0.8){ d[o+3] = 0; continue; }
+        var a = f >= 1.1 ? 1 : (f - 0.8) / 0.3;
+        var core = Math.min(1, (f - 1) * 0.35);
+        var s = 0.62 + 0.3 * core + 0.3 * bottomLight - 0.25 * (1 - a);
+        var rim = a < 1 ? 0.25 : 0;
+        d[o]   = Math.min(255, wr * s + 40 * rim);
+        d[o+1] = Math.min(255, wg * s + 30 * rim);
+        d[o+2] = Math.min(255, wb * s + 20 * rim);
+        d[o+3] = 255 * a;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  /* ---------- poke ---------- */
+  glass.addEventListener('pointerdown', function(e){
+    var r = glass.getBoundingClientRect();
+    var x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    var best = null, bd = 1e9;
+    blobs.forEach(function(b){ var dd = Math.hypot(b.x - x, (b.y - y) * aspect); if (dd < bd){ bd = dd; best = b; } });
+    if (best && bd < 0.2){ best.T = Math.min(1.1, best.T + 0.5); best.vy -= 0.08; }
+    if (blobs.length < 12){ spawn(Math.max(0.5 - halfWidth(y) + .05, Math.min(0.5 + halfWidth(y) - .05, x)), Math.min(.95, Math.max(.1, y)), rand(.035, .06), 0.95); }
+    else { var old = blobs.shift(); }
+  });
+
+  /* ---------- loop ---------- */
+  var last = performance.now(), running = true;
+  function frame(now){
+    if (!running) return;
+    var dt = Math.min(0.05, (now - last) / 1000); last = now;
+    for (var c=0;c<3;c++) wax[c] += (waxTarget[c] - wax[c]) * Math.min(1, dt * 2.5);
+    physics(dt * 1.6, now / 1000);
+    render(now / 1000);
+    requestAnimationFrame(frame);
+  }
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) running = false; else if (!running){ running = true; last = performance.now(); requestAnimationFrame(frame); } });
+  var rt = null;
+  window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(resize, 120); });
+  resize();
+  // pre-roll so the lamp looks "warmed up" on first paint
+  for (var p=0;p<90;p++) physics(0.05, p * 0.05);
+  render(0);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

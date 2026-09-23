@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORBITA Mission Operations — Countdown Display Standard</title>
+<style>
+:root{
+  --red:#e8341c; --ink:#111; --gray:#8a8a86; --rule:#d8d6d0; --paper:#fbfaf7;
+  --h:"Helvetica Neue",Helvetica,Arial,"Nimbus Sans",sans-serif;
+  --mono:"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--h);-webkit-font-smoothing:antialiased}
+.page{max-width:1320px;margin:0 auto;padding:clamp(16px,3vw,44px) clamp(16px,3.4vw,48px) 36px}
+.num{font-variant-numeric:tabular-nums}
+
+/* header */
+.top{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:18px 32px;padding-bottom:14px;border-bottom:3px solid var(--ink)}
+.worm{height:clamp(28px,3.6vw,44px);display:block}
+.worm path{fill:none;stroke:var(--red);stroke-width:21;stroke-linejoin:round;stroke-linecap:butt}
+.top .meta{display:flex;gap:28px;justify-content:flex-end;flex-wrap:wrap;font-size:11px;line-height:1.35}
+.top .meta b{display:block;font-weight:700}
+.top .meta span{color:var(--gray)}
+.sect{font-size:11px;font-weight:700;letter-spacing:.02em;padding:9px 0;display:flex;justify-content:space-between;border-bottom:1px solid var(--ink);gap:14px}
+.sect em{font-style:normal;color:var(--red)}
+
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:0 24px}
+.fig{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:22px 0 10px;display:flex;gap:10px;align-items:center}
+.fig i{font-style:normal;background:var(--ink);color:#fff;padding:2px 6px;letter-spacing:.04em}
+
+/* countdown */
+.count{grid-column:1/9;padding-right:8px}
+.clock{font-weight:700;font-size:clamp(60px,10.4vw,150px);line-height:.86;letter-spacing:-.045em;display:flex;align-items:baseline;white-space:nowrap}
+.clock .sign{color:var(--red);display:inline-block;margin-right:.06em}
+.clock .tenth{font-size:.28em;letter-spacing:0;margin-left:.12em;color:var(--gray);font-weight:700}
+.clock.plus .sign{color:var(--ink)}
+.status{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:14px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;align-items:center}
+.status .lamp{display:inline-flex;align-items:center;gap:8px}
+.status .lamp::before{content:"";width:12px;height:12px;background:var(--red)}
+.status.hold .lamp::before{animation:blink 1s steps(1) infinite}
+.status.go .lamp::before{background:var(--ink)}
+@keyframes blink{50%{opacity:0}}
+.status .dim{color:var(--gray)}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.btn{all:unset;box-sizing:border-box;cursor:pointer;height:44px;padding:0 18px;border:2px solid var(--ink);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;background:#fff}
+.btn:hover{background:var(--ink);color:#fff}
+.btn:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.btn.red{background:var(--red);border-color:var(--red);color:#fff}
+.btn.red:hover{background:var(--ink);border-color:var(--ink)}
+.seg{display:inline-flex}
+.seg .btn{border-right-width:0;padding:0 14px}
+.seg .btn:last-child{border-right-width:2px}
+.seg .btn[aria-pressed="true"]{background:var(--ink);color:#fff}
+.btn svg{width:12px;height:12px}
+
+/* poll */
+.poll{grid-column:9/13;border-left:1px solid var(--ink);padding-left:24px}
+.stations{display:grid;grid-template-columns:1fr 1fr;border-top:2px solid var(--ink)}
+.st{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:10px;min-height:48px;padding:6px 8px 6px 0;border-bottom:1px solid var(--rule);font-size:12px}
+.st:nth-child(odd){border-right:1px solid var(--rule);padding-right:10px}
+.st:nth-child(even){padding-left:10px}
+.st i{width:12px;height:12px;border:2px solid var(--ink);display:block}
+.st b{font-weight:700;letter-spacing:.06em;display:block}
+.st small{display:block;color:var(--gray);font-size:10px;margin-top:1px}
+.st span{font-weight:700;font-size:11px;letter-spacing:.1em;color:var(--gray)}
+.st[data-go="1"] i{background:var(--red);border-color:var(--red)}
+.st[data-go="1"] span{color:var(--ink)}
+.st:hover{background:#f0eee8}
+.st:focus-visible{outline:3px solid var(--red);outline-offset:-3px}
+.pollnote{font-size:11px;color:var(--gray);margin:10px 0 0;line-height:1.45}
+.pollbar{height:6px;background:var(--rule);margin-top:12px;position:relative}
+.pollbar b{position:absolute;left:0;top:0;bottom:0;background:var(--red);width:0;transition:width .25s linear}
+
+/* lower */
+.events{grid-column:1/6}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font-size:10px;text-align:left;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid var(--ink);padding:6px 6px 6px 0}
+td{border-bottom:1px solid var(--rule);padding:8px 6px 8px 0;vertical-align:top;line-height:1.35}
+td:first-child{font-weight:700;white-space:nowrap;width:7.4em}
+td:last-child{color:var(--gray);font-size:10.5px;letter-spacing:.08em;text-align:right;white-space:nowrap}
+tr.past td{color:#b3b1ab}
+tr.past td:first-child{text-decoration:line-through;text-decoration-color:var(--red)}
+tr.now td{background:var(--ink);color:#fff}
+tr.now td:first-child{box-shadow:inset 6px 0 0 var(--red);padding-left:12px}
+tr.now td:last-child{color:#fff}
+.right{grid-column:6/13;border-left:1px solid var(--ink);padding-left:24px}
+.chart{width:100%;height:auto;display:block}
+.chart text{font-family:var(--h);font-size:10px;fill:var(--ink)}
+.chart .ax{stroke:var(--ink);stroke-width:1}
+.chart .gr{stroke:var(--rule);stroke-width:1}
+.chart .plan{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-dasharray:4 4}
+.chart .flown{fill:none;stroke:var(--red);stroke-width:3.5}
+.log{font-size:12px;border-top:2px solid var(--ink);max-height:196px;overflow:auto;margin:0;padding:0;list-style:none}
+.log li{display:grid;grid-template-columns:6.6em 5.2em 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--rule);line-height:1.35}
+.log li b{font-weight:700}
+.log li .who{color:var(--red);font-weight:700;letter-spacing:.04em}
+.log li:first-child{animation:inlog .35s steps(3)}
+@keyframes inlog{from{background:#f5d2cb}}
+.foot{display:flex;justify-content:space-between;align-items:end;margin-top:34px;padding-top:10px;border-top:1px solid var(--ink);font-size:10.5px;gap:14px;flex-wrap:wrap}
+.foot .pg{font-size:26px;font-weight:700;letter-spacing:-.03em}
+.swatches{display:flex;gap:6px;align-items:center}
+.swatches i{width:22px;height:22px;display:block;border:1px solid var(--rule)}
+.note{font-size:11px;line-height:1.5;color:#444;margin:10px 0 0;max-width:46em}
+.note b{color:var(--ink)}
+
+@media (max-width:980px){
+  .count{grid-column:1/-1;padding:0}
+  .poll{grid-column:1/-1;border-left:0;padding-left:0;margin-top:8px}
+  .events{grid-column:1/-1}
+  .right{grid-column:1/-1;border-left:0;padding-left:0}
+}
+@media (max-width:600px){
+  .top{grid-template-columns:1fr;gap:10px}
+  .top .meta{justify-content:flex-start;gap:16px}
+  .sect span:last-child{display:none}
+  .clock{font-size:clamp(40px,15.5vw,80px)}
+  .ctrl .btn{padding:0 12px}
+  .seg .btn{padding:0 10px}
+  .log li{grid-template-columns:5.8em 1fr}
+  .log li .who{grid-column:2}
+  .log li span:last-child{grid-column:1/-1}
+}
+@media (prefers-reduced-motion:reduce){.status.hold .lamp::before{animation:none}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <svg class="worm" viewBox="-2 -2 494 104" aria-label="ORBITA logotype" role="img">
+      <!-- O --><path d="M10 50 C10 20 22 9 40 9 H44 C62 9 74 20 74 50 C74 80 62 91 44 91 H40 C22 91 10 80 10 50 Z"/>
+      <!-- R --><path d="M100 100 V36 C100 18 110 9 128 9 H132 C150 9 160 19 160 34 C160 49 150 58 132 58 H116 L162 100"/>
+      <!-- B --><path d="M190 100 V9 H222 C238 9 246 17 246 29 C246 41 238 50 222 50 H198 M218 50 H226 C242 50 252 59 252 72 C252 85 242 91 226 91 H190"/>
+      <!-- I --><path d="M286 0 V100"/>
+      <!-- T --><path d="M312 9 H388 M350 9 V100"/>
+      <!-- A --><path d="M398 102 L430 22 C436 6 450 6 456 22 L488 102"/>
+    </svg>
+    <div></div>
+    <div class="meta">
+      <div><b>Graphics Standards Manual</b><span>Office for Research of Orbits,<br>Bodies In Transit &amp; Astronautics</span></div>
+      <div><b>Section 7</b><span>Mission Operations<br>Displays</span></div>
+      <div><b>Rev. 4</b><span>Supersedes all<br>previous clocks</span></div>
+    </div>
+  </header>
+  <div class="sect"><span>7.2 &nbsp;Countdown &amp; Timeline &nbsp;<em>■</em>&nbsp; Mission ORBITA-7 “Long Lunch”</span><span>Displays shall be set in Helvetica Bold. No exceptions. Not even for the flight director.</span></div>
+
+  <div class="grid">
+    <section class="count">
+      <div class="fig"><i>Fig. 7.2.1</i> Primary countdown display · live</div>
+      <div class="clock num" id="clock" aria-live="off"><span class="sign">T–</span><span id="hms">00:10:00</span><span class="tenth" id="tenth">.0</span></div>
+      <div class="status" id="status"><span class="lamp" id="lamp">Counting</span><span class="dim num" id="gmt">GMT --:--:--</span><span class="dim">Pad 39-Z · Vehicle ORBITA-7</span></div>
+      <div class="ctrl">
+        <button class="btn red" id="hold" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zM7 1h3v10H7z" fill="currentColor"/></svg>Hold</button>
+        <div class="seg" role="group" aria-label="Clock rate">
+          <button class="btn" type="button" data-rate="1" aria-pressed="true">1×</button>
+          <button class="btn" type="button" data-rate="10" aria-pressed="false">10×</button>
+          <button class="btn" type="button" data-rate="60" aria-pressed="false">60×</button>
+        </div>
+        <button class="btn" id="recycle" type="button">Recycle</button>
+        <button class="btn" id="snd" type="button" aria-pressed="false">Audio: off</button>
+      </div>
+      <p class="note"><b>Rule 7.2.1a.</b> The minus sign is set in ORBITA Red and is never, under any circumstances, a hyphen. The clock holds automatically at T–2:00 until every console reports GO. Tap the consoles on the poll board when you get there — or before, if you’re the optimistic type.</p>
+    </section>
+
+    <aside class="poll">
+      <div class="fig"><i>Fig. 7.2.2</i> GO / NO-GO poll board</div>
+      <div class="stations" id="stations"></div>
+      <div class="pollbar"><b id="pollbar"></b></div>
+      <p class="pollnote" id="pollnote">0 of 8 consoles GO. Poll is taken at T–2:00. Key <b>G</b> polls the room.</p>
+    </aside>
+
+    <section class="events">
+      <div class="fig"><i>Fig. 7.2.3</i> Terminal count &amp; ascent sequence</div>
+      <table>
+        <thead><tr><th>Time</th><th>Event</th><th>Console</th></tr></thead>
+        <tbody id="evbody"></tbody>
+      </table>
+    </section>
+
+    <section class="right">
+      <div class="fig"><i>Fig. 7.2.4</i> Ascent profile · altitude vs. mission time</div>
+      <svg class="chart" id="chart" viewBox="0 0 640 250" aria-label="Ascent profile chart"></svg>
+      <div class="fig"><i>Fig. 7.2.5</i> Air-to-ground loop</div>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </section>
+  </div>
+
+  <footer class="foot">
+    <div class="swatches"><i style="background:var(--red)"></i><i style="background:var(--ink)"></i><i style="background:#fff"></i><span>&nbsp;ORBITA Red · Black · White. Three colours. We tried four once; it was a whole thing.</span></div>
+    <div class="pg">7.2</div>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+function $(id){return document.getElementById(id);}
+var hms=$('hms'),tenth=$('tenth'),clock=$('clock');
+if(!hms||!clock) return;
+
+var EVENTS=[
+  [-600,'Countdown resumes at T–10:00','FLIGHT'],
+  [-540,'Crew access arm retracted','BOOSTER'],
+  [-420,'Guidance goes internal; platform aligned','GUIDO'],
+  [-300,'Vehicle to internal power','EECOM'],
+  [-240,'Coffee maker stowed & latched for ascent','CATERING'],
+  [-180,'Propellant tanks to flight pressure','BOOSTER'],
+  [-120,'Built-in hold · GO / NO-GO poll','FLIGHT'],
+  [-60,'Terminal count · auto-sequence start','GUIDO'],
+  [-31,'Ground sequencer hands off to vehicle','BOOSTER'],
+  [-7,'Main engine start','BOOSTER'],
+  [0,'LIFTOFF','ALL'],
+  [12,'Tower clear · roll program','FIDO'],
+  [62,'Max Q · throttle bucket','BOOSTER'],
+  [150,'Booster cutoff & separation','BOOSTER'],
+  [156,'Second stage ignition','EECOM'],
+  [510,'SECO · orbit insertion','FIDO'],
+  [545,'Crew reports view is, quote, “fine”','CAPCOM']
+];
+var CHATTER={
+  '-540':'Access arm is clear. Pad crew heading for the bunker, and lunch.',
+  '-420':'Platform aligned. We know which way is up, officially.',
+  '-300':'Vehicle is on internal power. The extension cord is going home.',
+  '-240':'Catering confirms coffee maker stowed. Crew morale nominal.',
+  '-180':'Tanks at flight pressure. Everybody stop leaning on things.',
+  '-120':'We are holding at T–two minutes for the poll. Let’s go around the room.',
+  '-60':'Resuming count. Auto-sequence is armed.',
+  '-31':'Vehicle has the count. We are passengers now.',
+  '-7':'Main engine start.',
+  '0':'LIFTOFF. We have liftoff of ORBITA-7, and it has cleared the lunch break.',
+  '12':'Tower clear. Houston would say something here; we say: nice.',
+  '62':'Max Q. Maximum dynamic pressure, minimum small talk.',
+  '150':'Booster sep confirmed. Thank you, booster.',
+  '156':'Second stage is lit and happy.',
+  '510':'SECO. ORBITA-7 is in orbit. Somebody tell the caterer.',
+  '545':'Crew says the view is “fine”. They are engineers.'
+};
+var STATIONS=[
+  ['FLIGHT','Flight Director'],['BOOSTER','Launch vehicle'],['RETRO','Return planning'],['FIDO','Flight dynamics'],
+  ['GUIDO','Guidance'],['EECOM','Electrical & life support'],['SURGEON','Crew health'],['CATERING','Sandwiches, mostly']
+];
+
+var S={t:-600,rate:1,running:true,holdAuto:false,pollOk:false,lastEv:null,snd:false};
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function pad(n){return String(n).padStart(2,'0');}
+function fmtT(sec,withSign){
+  var a=Math.abs(sec),h=Math.floor(a/3600),m=Math.floor(a/60)%60,s=Math.floor(a)%60;
+  return (withSign?(sec<0?'T–':'T+'):'')+pad(h)+':'+pad(m)+':'+pad(s);
+}
+
+// events table
+var body=$('evbody'),rows=[];
+EVENTS.forEach(function(e){
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td class="num">'+(e[0]<0?'T–':'T+')+fmtT(e[0]).slice(3)+'</td><td>'+e[1]+'</td><td>'+e[2]+'</td>';
+  body.appendChild(tr);rows.push(tr);
+});
+
+// poll board
+var stWrap=$('stations'),stEls=[];
+STATIONS.forEach(function(s,i){
+  var b=document.createElement('button');b.type='button';b.className='st';b.dataset.go='0';
+  b.innerHTML='<i></i><div><b>'+s[0]+'</b><small>'+s[1]+'</small></div><span>STBY</span>';
+  b.addEventListener('click',function(){setGo(i,b.dataset.go!=='1');});
+  stWrap.appendChild(b);stEls.push(b);
+});
+function goCount(){return stEls.filter(function(b){return b.dataset.go==='1';}).length;}
+function setGo(i,on,quiet){
+  var b=stEls[i];b.dataset.go=on?'1':'0';b.lastChild.textContent=on?'GO':'STBY';
+  var n=goCount();
+  $('pollbar').style.width=(n/8*100)+'%';
+  $('pollnote').innerHTML=n+' of 8 consoles GO.'+(n===8?' <b>Room is GO for launch.</b>':' Poll is taken at T–2:00. Key <b>G</b> polls the room.');
+  if(!quiet) log(STATIONS[i][0],on?(STATIONS[i][0]==='CATERING'?'Catering is… GO. Sandwiches are secure.':STATIONS[i][0]+' is GO.'):STATIONS[i][0]+' back to standby.');
+  if(on) beep(880,.06);
+  S.pollOk=n===8;
+  if(S.pollOk&&S.holdAuto){
+    log('FLIGHT','All consoles GO. Release the hold, resume the count.');
+    S.holdAuto=false;setTimeout(function(){setRunning(true);},900);
+  }
+}
+var pollTimer=null;
+function pollRoom(){
+  if(pollTimer) return;
+  var i=0;
+  (function next(){
+    while(i<8&&stEls[i].dataset.go==='1') i++;
+    if(i>=8){pollTimer=null;return;}
+    setGo(i,true);i++;
+    pollTimer=setTimeout(next,reduce?80:420);
+  })();
+}
+
+// log
+var logEl=$('log');
+function log(who,msg,at){
+  if(!logEl) return;
+  var li=document.createElement('li');
+  li.innerHTML='<b class="num">'+fmtT(at===undefined?S.t:at,true)+'</b><span class="who">'+who+'</span><span>'+msg+'</span>';
+  logEl.insertBefore(li,logEl.firstChild);
+  while(logEl.children.length>40) logEl.removeChild(logEl.lastChild);
+}
+
+// chart
+var chart=$('chart'),flown=null,marker=null,mlabel=null;
+var CX0=46,CX1=620,CY0=214,CY1=20,TMAX=600,AMAX=240;
+function alt(t){if(t<=0) return 0;var u=Math.min(t,510)/510;return 205*Math.pow(u,1.35)*(1.15-.15*u)+(t>510?(t-510)*.02:0);}
+function sx(t){return CX0+(t/TMAX)*(CX1-CX0);}
+function sy(a){return CY0-(a/AMAX)*(CY0-CY1);}
+(function(){
+  if(!chart) return;
+  var h='';
+  for(var a=0;a<=AMAX;a+=40){h+='<line class="gr" x1="'+CX0+'" x2="'+CX1+'" y1="'+sy(a)+'" y2="'+sy(a)+'"/><text x="'+(CX0-8)+'" y="'+(sy(a)+3)+'" text-anchor="end">'+a+'</text>';}
+  for(var t=0;t<=TMAX;t+=60){h+='<line class="ax" x1="'+sx(t)+'" x2="'+sx(t)+'" y1="'+CY0+'" y2="'+(CY0+5)+'"/><text x="'+sx(t)+'" y="'+(CY0+18)+'" text-anchor="middle">'+(t/60)+'</text>';}
+  h+='<line class="ax" x1="'+CX0+'" x2="'+CX1+'" y1="'+CY0+'" y2="'+CY0+'"/><line class="ax" x1="'+CX0+'" x2="'+CX0+'" y1="'+CY1+'" y2="'+CY0+'"/>';
+  h+='<text x="'+CX0+'" y="12" font-weight="700">ALT km</text><text x="'+CX1+'" y="'+(CY0+34)+'" text-anchor="end" font-weight="700">T+ min</text>';
+  var d='';for(var s=0;s<=TMAX;s+=6){d+=(s?'L':'M')+sx(s).toFixed(1)+' '+sy(alt(s)).toFixed(1);}
+  h+='<path class="plan" d="'+d+'"/><path class="flown" id="flown" d=""/>';
+  [[62,'MAX Q'],[150,'BECO'],[510,'SECO']].forEach(function(m){
+    var x=sx(m[0]),y=sy(alt(m[0]));
+    h+='<line x1="'+x+'" x2="'+x+'" y1="'+y+'" y2="'+(y-26)+'" stroke="#111"/><text x="'+(x+4)+'" y="'+(y-18)+'" font-weight="700">'+m[1]+'</text>';
+  });
+  h+='<g id="mk"><rect x="-6" y="-6" width="12" height="12" fill="#e8341c"/></g><text id="mlab" x="0" y="0" font-weight="700" fill="#e8341c"></text>';
+  chart.innerHTML=h;flown=$('flown');marker=$('mk');mlabel=$('mlab');
+})();
+
+function drawChart(){
+  if(!flown) return;
+  var t=Math.max(0,Math.min(TMAX,S.t)),d='';
+  for(var s=0;s<=t;s+=4){d+=(s?'L':'M')+sx(s).toFixed(1)+' '+sy(alt(s)).toFixed(1);}
+  flown.setAttribute('d',d);
+  var x=sx(t),y=sy(alt(t));
+  marker.setAttribute('transform','translate('+x.toFixed(1)+' '+y.toFixed(1)+')');
+  mlabel.setAttribute('x',(x+10).toFixed(1));mlabel.setAttribute('y',(y-10).toFixed(1));
+  mlabel.textContent=S.t<0?'ON PAD':(alt(S.t).toFixed(1)+' km');
+  if(x>CX1-70) mlabel.setAttribute('x',(x-70).toFixed(1));
+}
+
+// ---------- clock ----------
+var holdBtn=$('hold'),statusEl=$('status'),lamp=$('lamp');
+function setRunning(r){
+  S.running=r;
+  if(holdBtn) holdBtn.innerHTML=r?'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zM7 1h3v10H7z" fill="currentColor"/></svg>Hold':'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>Resume';
+  paintStatus();
+}
+function paintStatus(){
+  if(!statusEl) return;
+  statusEl.classList.toggle('hold',!S.running);
+  statusEl.classList.toggle('go',S.t>=0);
+  lamp.textContent=!S.running?(S.holdAuto?'Built-in hold · awaiting poll':'Hold · hold · hold'):(S.t<0?'Counting':'Mission elapsed time');
+}
+var lastT=S.t;
+function crossed(a,b){ // events in (a,b]
+  EVENTS.forEach(function(e){ if(e[0]>a&&e[0]<=b){ var c=CHATTER[String(e[0])]; if(c) log(e[0]===0?'PAO':e[2]==='ALL'?'FLIGHT':e[2],c,e[0]); if(e[0]===0) rumble(); } });
+}
+function render(){
+  var t=S.t;
+  hms.textContent=fmtT(t);
+  clock.firstChild.textContent=t<0?'T–':'T+';
+  clock.classList.toggle('plus',t>=0);
+  tenth.textContent='.'+Math.floor((Math.abs(t)%1)*10);
+  var cur=-1;EVENTS.forEach(function(e,i){if(t>=e[0]) cur=i;});
+  rows.forEach(function(r,i){r.className=i<cur?'past':i===cur?'now':'';});
+  drawChart();
+}
+var prev=0,lastSec=Math.floor(S.t);
+function loop(now){
+  var dt=prev?Math.min(.1,(now-prev)/1000):0;prev=now;
+  if(S.running){
+    var nt=S.t+dt*S.rate;
+    if(S.t<-120&&nt>=-120&&!S.pollOk){nt=-120;S.holdAuto=true;crossed(S.t,nt);S.t=nt;setRunning(false);}
+    else{crossed(S.t,nt);S.t=nt;}
+    if(S.t>=-10&&S.t<0&&Math.floor(S.t)!==lastSec) beep(1320,.05);
+    lastSec=Math.floor(S.t);
+    if(S.t>3600) S.t=3600;
+    paintStatus();
+  }
+  render();
+  var g=new Date();var gm=$('gmt');if(gm) gm.textContent='GMT '+pad(g.getUTCHours())+':'+pad(g.getUTCMinutes())+':'+pad(g.getUTCSeconds());
+  requestAnimationFrame(loop);
+}
+
+if(holdBtn) holdBtn.addEventListener('click',function(){
+  if(!S.running&&S.holdAuto&&!S.pollOk){log('FLIGHT','Negative. We hold until the room is GO.');return;}
+  setRunning(!S.running);
+  log('FLIGHT',S.running?'Resume the count.':'Hold, hold, hold.');
+});
+Array.prototype.forEach.call(document.querySelectorAll('[data-rate]'),function(b){
+  b.addEventListener('click',function(){
+    S.rate=+b.dataset.rate;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-rate]'),function(x){x.setAttribute('aria-pressed',String(x===b));});
+  });
+});
+var rc=$('recycle');
+if(rc) rc.addEventListener('click',function(){
+  S.t=-600;S.holdAuto=false;S.pollOk=false;
+  stEls.forEach(function(b,i){setGo(i,false,true);});
+  setRunning(true);
+  log('FLIGHT','Recycling to T–10:00. Everybody back to your consoles.');
+});
+
+// ---------- audio ----------
+var ac=null;
+function ensureAC(){
+  if(ac) return ac;
+  try{var A=window.AudioContext||window.webkitAudioContext;if(A) ac=new A();}catch(e){ac=null;}
+  return ac;
+}
+function beep(f,d){
+  if(!S.snd||!ac) return;
+  var o=ac.createOscillator(),g=ac.createGain(),tt=ac.currentTime;
+  o.type='square';o.frequency.value=f;g.gain.setValueAtTime(.0001,tt);g.gain.exponentialRampToValueAtTime(.08,tt+.005);g.gain.exponentialRampToValueAtTime(.0001,tt+d);
+  o.connect(g);g.connect(ac.destination);o.start(tt);o.stop(tt+d+.02);
+}
+function rumble(){
+  if(!S.snd||!ac) return;
+  var len=ac.sampleRate*4,buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0),l=0;
+  for(var i=0;i<len;i++){l=(l+(Math.random()*2-1)*.06)/1.06;d[i]=l*3.2;}
+  var s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain(),tt=ac.currentTime;
+  s.buffer=buf;f.type='lowpass';f.frequency.value=180;
+  g.gain.setValueAtTime(.0001,tt);g.gain.exponentialRampToValueAtTime(.9,tt+.4);g.gain.exponentialRampToValueAtTime(.0001,tt+4);
+  s.connect(f);f.connect(g);g.connect(ac.destination);s.start(tt);
+}
+var sb=$('snd');
+if(sb) sb.addEventListener('click',function(){
+  S.snd=!S.snd;if(S.snd){ensureAC();if(ac&&ac.state==='suspended') ac.resume();beep(880,.08);}
+  sb.textContent='Audio: '+(S.snd?'on':'off');sb.setAttribute('aria-pressed',String(S.snd));
+});
+
+document.addEventListener('keydown',function(e){
+  var tag=e.target&&e.target.tagName;
+  if(e.key==='g'||e.key==='G'){pollRoom();}
+  else if(e.key===' '&&tag!=='BUTTON'){e.preventDefault();if(holdBtn) holdBtn.click();}
+});
+
+log('FLIGHT','Good morning, room. We are counting at T–10:00. Let’s have a boring day.');
+setRunning(true);render();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
