@@ -122,7 +122,8 @@ svg{display:block}
 .row{position:relative;display:grid;grid-template-columns:1fr 78px 76px 58px;gap:8px;align-items:center;width:100%;min-height:62px;padding:8px 0;background:var(--paper);text-align:left;touch-action:pan-y;transition:transform .35s var(--out)}
 .row.drag{transition:none}
 .row:active{background:var(--paper-2)}
-.row .nm b{display:block;font:600 17px/1.25 var(--song)}
+.row .nm{min-width:0}
+.row .nm b{display:block;font:600 17px/1.25 var(--song);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .nm b.long{font-size:14.5px;letter-spacing:-.02em}
 .row .nm small{display:block;margin-top:2px;font:12.5px/1 var(--num);color:var(--ink-3)}
 .row .px{text-align:right;font:600 16px/1 var(--num)}
@@ -253,6 +254,22 @@ svg{display:block}
 .hold-btn span{position:relative;z-index:1;display:block;transition:color .3s}
 .hold-btn.hold span{color:var(--paper)}
 .hint{margin-top:8px;font-size:13px;color:var(--ink-3);text-align:center}
+/* short phones (iPhone SE class): the order ticket must fit without its hold button falling off-screen */
+@media (max-height:740px){
+  #ordSheet{padding-top:4px}
+  #ordSheet .grab{margin-bottom:8px}
+  #ordSheet .seg{margin-top:10px;height:40px}
+  #ordSheet .sess{margin-top:4px}
+  #ordSheet .sess button{height:34px}
+  #ordSheet .ordgrid{margin-top:4px}
+  #ordSheet .ladder button{height:19px}
+  #ordSheet .step{height:44px}
+  #ordSheet .calc{margin-top:6px}
+  #ordSheet .calc div{padding:3px 0}
+  #ordSheet .hold-btn{margin-top:10px;height:50px}
+  #ordSheet .hint{margin-top:6px}
+}
+.page.behind .tape .run{animation-play-state:paused}
 
 .toast{position:absolute;left:18px;right:18px;top:calc(50px + env(safe-area-inset-top));z-index:70;display:flex;align-items:center;gap:12px;min-height:50px;padding:6px 8px 6px 16px;
   background:var(--ink);color:var(--paper);font:600 14.5px/1.4 var(--song);transform:translateY(-150%);visibility:hidden;transition:transform .42s var(--spring),visibility 0s .42s}
@@ -688,13 +705,14 @@ function openDetail(c){
   cur = c; view = {n:60, end:N - 1, cross:null};
   fillDetail();
   var d = $('detail'); d.classList.remove('closing'); d.classList.add('on'); d.setAttribute('aria-hidden', 'false');
+  setTimeout(function(){ if (d.classList.contains('on')) $('main').classList.add('behind'); }, 480);
   $('dscroll').scrollTop = 0; haptic(6); rustle();
   requestAnimationFrame(function(){ sizeCanvases(); draw(); });
   setTimeout(function(){ try { $('back').focus({preventScroll:true}); } catch (e) {} }, 60);
 }
 function closeDetail(){
   var d = $('detail'); if (!d.classList.contains('on')) return;
-  d.classList.add('closing'); d.classList.remove('on'); d.setAttribute('aria-hidden', 'true');
+  d.classList.add('closing'); d.classList.remove('on'); d.setAttribute('aria-hidden', 'true'); $('main').classList.remove('behind');
   setTimeout(function(){ d.classList.remove('closing'); }, 480);
   render();
 }

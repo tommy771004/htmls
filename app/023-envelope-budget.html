@@ -194,6 +194,11 @@ svg{display:block}
 .commit{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:54px;margin-top:18px;border-radius:10px;background:var(--red);color:#fff6ee;font:600 17px/1 var(--tw);letter-spacing:.08em;box-shadow:0 3px 0 #7c2019;transition:transform .1s,box-shadow .1s}
 .commit:active{transform:translateY(3px);box-shadow:0 0 0 #7c2019}
 .commit[disabled]{background:#cfc3aa;box-shadow:0 3px 0 #b2a68c;color:#7a6d55;cursor:default}
+/* the sheet's primary action stays reachable while its list scrolls (month-close has 7+ rows) */
+.sbody .commit{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:2;box-shadow:0 3px 0 #7c2019,0 12px 0 12px var(--paper)}
+.sbody .commit:active{box-shadow:0 0 0 #7c2019,0 12px 0 12px var(--paper)}
+.sbody .commit[disabled]{box-shadow:0 3px 0 #b2a68c,0 12px 0 12px var(--paper)}
+@media (max-height:700px){.keys{gap:8px 16px;margin-top:10px}.key{width:56px;height:56px}}
 .roll{display:flex;align-items:center;gap:12px;min-height:58px;border-bottom:1px dashed rgba(58,39,21,.25)}
 .roll .n{flex:1;font:600 16px/1.2 var(--tw)}
 .roll .n span{display:block;margin-top:3px;font:13px/1.2 var(--ui);color:#7a6d55}

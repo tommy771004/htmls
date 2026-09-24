@@ -84,7 +84,7 @@ svg{display:block}
 .cat{flex:none;height:44px;font:600 24px/44px var(--disp);color:var(--ink-3);scroll-snap-align:start;transition:color .2s}
 .cat.on{color:var(--ink)}
 .cat:active{color:var(--olive)}
-.cats .bar{position:absolute;left:0;bottom:8px;height:6px;border-radius:3px;background:var(--orange);transition:transform .45s var(--spring),width .45s var(--spring);pointer-events:none}
+.cats .bar{position:absolute;left:0;bottom:8px;height:6px;border-radius:3px;background:var(--orange);transition:transform .45s var(--spring);pointer-events:none}
 .menu{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;padding:8px 20px calc(140px + env(safe-area-inset-bottom));position:relative;z-index:5}
 .menu::-webkit-scrollbar{display:none}
 .menu.swap{animation:swap .4s var(--out)}
@@ -235,7 +235,7 @@ svg{display:block}
 /* ---------- orders view ---------- */
 .orders{position:absolute;inset:0;z-index:40;background:var(--lime);transform:translateX(104%);transition:transform .48s var(--out);display:flex;flex-direction:column;visibility:hidden}
 .orders.on{transform:none;visibility:visible}
-.orders::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;background:inherit}
+.orders::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.5;background:inherit}
 .ohd{flex:none;padding:calc(70px + env(safe-area-inset-top)) 16px 0 8px;display:flex;align-items:center;gap:4px}
 .back{width:48px;height:48px;display:grid;place-items:center;border-radius:12px}
 .back:active{background:var(--lime-2)}
@@ -262,7 +262,7 @@ svg{display:block}
 .ticket .bt b{font:600 16px/1 var(--disp)}
 .ticket .serve{height:44px;padding:0 16px;border-radius:12px;background:var(--olive);color:var(--lime);font:600 15px/44px var(--disp)}
 .ticket .serve:active{background:var(--olive-d)}
-.ticket .stamp{position:absolute;right:14px;top:10px;padding:4px 10px;border:2.5px solid var(--orange);border-radius:8px;color:var(--orange);font:700 15px/1.1 var(--disp);transform:rotate(-9deg);opacity:.85;letter-spacing:.1em}
+.ticket .stamp{position:absolute;right:14px;bottom:14px;padding:4px 10px;border:2.5px solid var(--orange);border-radius:8px;color:var(--orange);font:700 15px/1.1 var(--disp);transform:rotate(-9deg);opacity:.85;letter-spacing:.1em}
 .ticket.done .its{color:var(--ink-3)}
 .ticket.stampin .stamp{animation:stamp .35s var(--spring)}
 @keyframes stamp{from{transform:rotate(-9deg) scale(1.8)}}

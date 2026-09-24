@@ -163,7 +163,7 @@ svg{display:block}
 .picklist{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .pick{display:flex;align-items:center;gap:10px;height:54px;padding:0 12px;border-radius:5px;background:#1d1d1a;text-align:left;transition:background-color .15s}
 .pick:active{background:#262622}
-.pick .c{font:700 20px/1 var(--cond);font-stretch:condensed;width:40px;color:var(--ink-2)}
+.pick .c{font:700 20px/1 var(--cond);font-stretch:condensed;min-width:46px;flex:none;color:var(--ink-2)}
 .pick .n{flex:1;font:500 14px/1.1 var(--cjk);color:var(--ink-2)}
 .pick .box{width:20px;height:20px;border-radius:2px;background:#0c0c0a;display:grid;place-items:center}
 .pick .box svg{width:14px;height:14px;opacity:0}
@@ -544,6 +544,7 @@ function removeCur(code){
 function toast(msg, withUndo){
   $('toastMsg').textContent = msg;
   $('toastUndo').style.display = withUndo ? '' : 'none';
+  $('toast').style.bottom = ($('pad').offsetHeight + 10) + 'px'; /* sit just above the keypad, whatever its height */
   $('toast').classList.add('on'); clearTimeout(toastT);
   toastT = setTimeout(function(){ $('toast').classList.remove('on'); undo = null; }, 3600);
 }

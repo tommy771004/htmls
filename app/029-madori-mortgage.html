@@ -612,8 +612,11 @@ $('segMethod').addEventListener('click', function(e){ var b = e.target.closest('
 $('presets').addEventListener('click', function(e){ var b = e.target.closest('[data-pre]'); if (!b) return; var q = PRE[+b.dataset.pre]; Object.keys(q).forEach(function(k){ P[k] = q[k]; }); save('params', P); haptic([6, 20, 6]); tick(); renderCalc(); toast('套用：' + b.textContent); });
 $('saveCmp').addEventListener('click', function(){
   var p = props[cur]; if (!p) return;
+  var sc = {name:p.name, plan:p.plan, price:p.price, down:P.down, rate:P.rate, years:P.years, grace:P.grace, method:P.method, inc:P.inc};
+  var dup = scen.some(function(x){ return ['name', 'price', 'down', 'rate', 'years', 'grace', 'method', 'inc'].every(function(k){ return x[k] === sc[k]; }); });
+  if (dup){ haptic([6, 30, 6]); toast('這組條件已經在比較裡了'); setTab('cmp'); return; }
   if (scen.length >= 3){ haptic([20, 40, 20]); toast('比較最多三組，先刪掉一組'); setTab('cmp'); return; }
-  scen.push({name:p.name, plan:p.plan, price:p.price, down:P.down, rate:P.rate, years:P.years, grace:P.grace, method:P.method, inc:P.inc}); persist();
+  scen.push(sc); persist();
   haptic([8, 30, 8]); thump(); toast('已加入比較：' + p.name); renderCmp();
 });
 

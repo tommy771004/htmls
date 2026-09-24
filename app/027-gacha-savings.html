@@ -432,11 +432,11 @@ $('shelf').addEventListener('pointerdown',function(e){var b=e.target.closest('.c
 $('shelf').addEventListener('scroll',function(){clearTimeout(pressT);},{passive:true});
 $('shelf').addEventListener('click',function(e){var b=e.target.closest('.cp');if(!b)return;if(longed){longed=false;return;}
   if(b.id==='addGoal'){openAdd();return;}var id=b.dataset.id;if(id===cur){openDetail(id);return;}
-  cur=id;pending=0;persist();haptic(8);tick();rebuild(true);render();kick();});
+  cur=id;pending=0;hideToast();persist();haptic(8);tick();rebuild(true);render();kick();});
 
 /* ---------- sheets ---------- */
 var sheet=$('sheet'),scrim=$('scrim'),lastFocus=null,form=null;
-function openSheet(h){lastFocus=document.activeElement;$('sheetBody').innerHTML=h;sheet.style.transform='';sheet.scrollTop=0;sheet.classList.add('on');scrim.classList.add('on');haptic(6);}
+function openSheet(h){hideToast();lastFocus=document.activeElement;$('sheetBody').innerHTML=h;sheet.style.transform='';sheet.scrollTop=0;sheet.classList.add('on');scrim.classList.add('on');haptic(6);}
 function closeSheet(){if(!sheet.classList.contains('on'))return;sheet.classList.remove('on','drag');sheet.style.transform='';scrim.classList.remove('on');form=null;if(lastFocus&&lastFocus.focus)try{lastFocus.focus({preventScroll:true});}catch(e){}}
 scrim.addEventListener('click',closeSheet);
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSheet();});
@@ -488,6 +488,8 @@ $('bookBtn').addEventListener('click',function(){haptic(6);openBook();});
 
 /* ---------- toast ---------- */
 var toastT=null,undoFn=null;
+/* a pending undo belongs to the screen it was raised on: drop it when switching goal or opening a sheet over it */
+function hideToast(){clearTimeout(toastT);undoFn=null;var t=document.getElementById('toast');if(t)t.classList.remove('on');}
 function toast(m,undo){$('toastMsg').textContent=m;undoFn=undo||null;$('undoBtn').style.display=undo?'':'none';var t=$('toast');t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('on');undoFn=null;},undo?4000:2000);}
 $('undoBtn').addEventListener('click',function(){if(undoFn){var f=undoFn;undoFn=null;f();haptic(6);}$('toast').classList.remove('on');});
 

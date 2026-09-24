@@ -100,8 +100,14 @@ input{font:inherit;color:inherit}
 /* ---------- lower: panels ---------- */
 .lower{position:absolute;left:0;right:0;bottom:0;top:max(48%,320px);z-index:1}
 .panel{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:24px 0 calc(34px + env(safe-area-inset-bottom));
-  transition:transform .42s var(--out),visibility 0s .42s;visibility:hidden;transform:translateY(40px)}
-.panel.on{visibility:visible;transform:none;transition:transform .42s var(--out)}
+  transition:transform .42s var(--out),opacity .16s linear,visibility 0s .42s;visibility:hidden;opacity:0;transform:translateY(40px)}
+.panel.on{visibility:visible;opacity:1;transform:none;transition:transform .42s var(--out),opacity .28s .06s linear}
+/* short phones: give the lower panel room so the card rack is not cut by the home indicator */
+@media (max-height:700px){
+  .machine{height:45%;min-height:296px}
+  .lower{top:max(45%,296px)}
+  .panel{padding-top:16px}
+}
 .panel::-webkit-scrollbar{display:none}
 .phead{display:flex;align-items:baseline;justify-content:space-between;padding:0 22px;color:var(--card)}
 .phead h2{font:700 19px/1.2 var(--han);letter-spacing:.2em}
@@ -258,7 +264,8 @@ input{font:inherit;color:inherit}
 .toast button:active{background:rgba(42,26,18,.1)}
 
 @media (prefers-reduced-motion:reduce){
-  .panel,.panel.on{transition:none;transform:none}
+  .panel,.panel.on{transition:opacity .15s linear,visibility 0s .15s;transform:none}
+  .panel.on{transition:opacity .15s linear}
   .machine.shake{animation:none}
   .drum .strip,#hs,.card,.toast,.sheet{transition:none}
 }

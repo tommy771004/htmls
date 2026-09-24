@@ -77,7 +77,10 @@ svg{display:block}
 .rhead{display:flex;justify-content:space-between;align-items:baseline;flex:none}
 .rhead h2{font:700 15px/1.2 var(--sans);letter-spacing:.24em}
 .rhead span{font:12.5px var(--sans);color:var(--ink2)}
-.prizes{flex:1;display:flex;flex-direction:column;justify-content:space-around;margin:6px 0 4px;min-height:0;position:relative}
+.prizes{flex:1;display:flex;flex-direction:column;margin:6px 0 4px;min-height:0;position:relative;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain}
+.prizes::-webkit-scrollbar{display:none}
+/* auto margins spread the rows like space-around, but never push the first row out of reach when space runs short */
+.prizes .pz{margin-block:auto}
 .pz{display:grid;grid-template-columns:76px 1fr;align-items:center;column-gap:8px;padding:2px 0}
 .pz .lab b{display:block;font:700 15px/1.15 var(--sans)}
 .pz .lab small{font:12.5px/1.2 var(--sans);color:var(--ink2)}
@@ -191,6 +194,17 @@ svg{display:block}
 .toast button{color:#ffd7a0;font-weight:700;min-height:28px}
 #confetti{position:absolute;inset:0;z-index:55;pointer-events:none;width:100%;height:100%}
 .home-ind{position:absolute;left:50%;bottom:calc(6px + env(safe-area-inset-bottom)*.3);width:130px;height:5px;margin-left:-65px;border-radius:3px;background:rgba(45,38,18,.55);z-index:45;pointer-events:none}
+/* short phones (iPhone SE): the draw sheet must not spill under its own footer */
+@media (max-height:720px){
+  .period{height:46px}
+  .nums{flex-direction:row;flex-wrap:wrap;justify-content:flex-end;column-gap:12px}
+  .num{font-size:19px}
+  .entry{padding:6px 0 4px}
+  .cells{height:46px}
+  .msg{margin-top:4px}
+  .pad{gap:6px}
+  .k{height:44px}
+}
 @media (prefers-reduced-motion:reduce){
   .folder,.sheet,.toast,.pname .in,.row .face{transition:none!important}
   .scanline.go,.cells.shake{animation:none}

@@ -65,10 +65,13 @@ svg{display:block}
 .vt{position:relative;display:flex;height:44px}
 .vt button{height:44px;padding:0 10px;font-size:15px;font-weight:500;color:var(--ink-3);transition:color .2s}
 .vt button[aria-pressed=true]{color:var(--ink);font-weight:700}
-.vt .bar{position:absolute;left:0;bottom:6px;height:3px;background:var(--ink);transition:transform .45s var(--snap),width .45s var(--snap)}
+.vt .bar{position:absolute;left:0;bottom:6px;width:1px;height:3px;background:var(--ink);transform-origin:0 0;transition:transform .45s var(--snap)}
+.screen.boot .vt .bar,.screen.boot .track{transition:none}
 
 /* ---------- views ---------- */
 .views{position:absolute;left:0;right:0;top:calc(100px + env(safe-area-inset-top));bottom:0;overflow:hidden}
+/* content fades out before the home indicator instead of running underneath it */
+.views::after{content:"";position:absolute;left:0;right:0;bottom:0;z-index:3;height:calc(30px + env(safe-area-inset-bottom));background:linear-gradient(rgba(255,255,255,0),var(--paper) 72%);pointer-events:none}
 @media (display-mode:standalone){.views{top:calc(52px + env(safe-area-inset-top))}}
 .track{position:absolute;inset:0;display:flex;width:200%;transition:transform .55s var(--snap)}
 .view{position:relative;display:flex;flex-direction:column;width:50%;height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;padding-bottom:calc(40px + env(safe-area-inset-bottom))}
@@ -117,6 +120,18 @@ svg{display:block}
 .today-btn{height:44px;font-size:13px;font-weight:600;padding:0 4px;color:var(--ink)}
 .today-btn[hidden]{display:none}
 
+/* short phones: shrink the dial so the upcoming charges and the add button stay above the fold */
+@media (max-height:740px){
+  .total .big{font-size:50px}
+  .dialwrap{width:min(100%,272px);margin-top:4px}
+  .legend{margin-top:2px;padding-top:8px}
+  .legend b{font-size:19px}
+  .soonrow{margin-top:10px}
+  .ctl{padding-top:8px}
+  .center{width:122px;margin-left:-61px}
+  .center .n{font-size:14px}
+  .center .v{font-size:30px}
+}
 /* list view */
 .filters{display:flex;gap:4px;padding:6px 14px 0}
 .filters button{height:44px;padding:0 8px;font-size:15px;color:var(--ink-3);font-weight:500}
@@ -670,8 +685,7 @@ function setView(v, quiet){
 }
 function placeBar(){
   var b = view === 'orbit' ? $('vOrbit') : $('vList');
-  $('vbar').style.width = (b.offsetWidth - 20) + 'px';
-  $('vbar').style.transform = 'translateX(' + (b.offsetLeft + 10) + 'px)';
+  $('vbar').style.transform = 'translateX(' + (b.offsetLeft + 10) + 'px) scaleX(' + (b.offsetWidth - 20) + ')';
 }
 $('vOrbit').addEventListener('click', function(){ setView('orbit'); });
 $('vList').addEventListener('click', function(){ if (playing) stopLapse(); setView('list'); });
@@ -827,7 +841,9 @@ function renderAll(){ renderOrbit(); renderList(); }
 buildDial();
 selId = null;
 renderList(); renderTotals();
+$('screen').classList.add('boot');
 setView(view, true);
+requestAnimationFrame(function(){ requestAnimationFrame(function(){ $('screen').classList.remove('boot'); }); });
 intro();
 window.addEventListener('resize', placeBar);
 document.addEventListener('visibilitychange', function(){ if (!document.hidden) placeBar(); });
