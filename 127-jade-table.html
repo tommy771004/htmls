@@ -392,7 +392,7 @@ function initScene(){
   raycaster=new THREE.Raycaster();pointer=new THREE.Vector2();
   renderer.domElement.addEventListener('pointermove',inspectTile);renderer.domElement.addEventListener('pointerdown',inspectTile);renderer.domElement.addEventListener('pointerleave',()=>$('tileInspect').hidden=true);
   $('hand').addEventListener('pointerover',e=>{const b=e.target.closest('button');hovered=b&&!b.disabled?Number(b.dataset.index):-1;updateSelection();$('tileInspect').hidden=true;});$('hand').addEventListener('pointerout',()=>{hovered=-1;updateSelection();});
-  sceneReady=true;new ResizeObserver(()=>{const h=document.querySelector('.table-controls').offsetHeight;if(h!==controlsHeight){controlsHeight=h;document.querySelector('.arena').style.setProperty('--controls-height',h+'px');syncScene(null,true);}}).observe(document.querySelector('.table-controls'));new ResizeObserver(resize).observe($('scene'));resize();renderer.setAnimationLoop(drawFrame);
+  sceneReady=true;new ResizeObserver(()=>{const h=document.querySelector('.table-controls').offsetHeight;if(h!==controlsHeight){controlsHeight=h;document.querySelector('.arena').style.setProperty('--controls-height',h+'px');syncScene();}}).observe(document.querySelector('.table-controls'));new ResizeObserver(resize).observe($('scene'));resize();renderer.setAnimationLoop(drawFrame);
   renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('renderError').hidden=false;$('renderError').textContent='3D 顯示已中斷，請重新整理頁面以恢復牌桌。';});
 }
 function inspectTile(e){
