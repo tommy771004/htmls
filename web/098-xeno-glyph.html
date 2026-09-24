@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XENOLINGUA — Field Decoder Mk III</title>
+<meta name="description" content="三種筆畫文法生成外星字形，直書顯示並播放傳送音。收錄於 100 Creative HTML Works（098・外星語）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/098-xeno-glyph.html">
+<style>
+  :root{
+    --abyss:#041c1e; --teal:#08302f; --teal-2:#0d403e; --teal-3:#145652; --line:rgba(232,225,207,.14);
+    --bone:#e8e1cf; --bone-d:#b9b19d; --signal:#79e3cf; --warn:#e0a45a;
+    --mono:Consolas,"Lucida Console",Menlo,"DejaVu Sans Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--abyss)}
+  body{margin:0;min-height:100vh;color:var(--bone);font-family:var(--mono);font-size:14px;
+    background:
+      radial-gradient(70% 60% at 70% 30%,rgba(20,86,82,.55),transparent 70%),
+      radial-gradient(50% 50% at 10% 90%,rgba(20,86,82,.35),transparent 70%),
+      var(--abyss);overflow-x:hidden}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;
+    background-image:radial-gradient(rgba(232,225,207,.2) 1px,transparent 1.2px);background-size:22px 22px}
+  .wrap{position:relative;max-width:1360px;margin:0 auto;padding:clamp(14px,2.4vw,30px)}
+  header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 24px;border-bottom:1px solid var(--line);padding-bottom:14px}
+  .brand .k{font-size:11px;letter-spacing:.34em;color:var(--signal)}
+  h1{margin:6px 0 0;font-weight:normal;font-size:clamp(26px,3.6vw,44px);letter-spacing:.16em;line-height:1}
+  h1 span{color:var(--bone-d)}
+  .dialects{display:flex;gap:6px;flex-wrap:wrap}
+  .dia{font:inherit;font-size:12px;letter-spacing:.14em;text-transform:uppercase;min-height:40px;padding:0 14px;background:transparent;color:var(--bone-d);border:1px solid var(--line);border-radius:2px;cursor:pointer}
+  .dia:hover,.dia:focus-visible{outline:none;color:var(--bone);border-color:var(--bone-d)}
+  .dia.on{background:var(--bone);color:var(--abyss);border-color:var(--bone)}
+
+  .main{display:grid;grid-template-columns:340px minmax(0,1fr);gap:clamp(16px,2.4vw,30px);margin-top:20px}
+  .panel{border:1px solid var(--line);background:rgba(8,48,47,.55);padding:16px;border-radius:3px;position:relative}
+  .panel::before,.panel::after{content:"";position:absolute;width:10px;height:10px;border:1px solid var(--signal)}
+  .panel::before{left:-1px;top:-1px;border-right:0;border-bottom:0}.panel::after{right:-1px;bottom:-1px;border-left:0;border-top:0}
+  .lbl{font-size:11px;letter-spacing:.26em;color:var(--bone-d);text-transform:uppercase;display:flex;justify-content:space-between;gap:12px;margin-bottom:8px}
+  textarea{width:100%;min-height:96px;resize:vertical;font:inherit;font-size:17px;line-height:1.4;letter-spacing:.06em;text-transform:uppercase;color:var(--bone);background:rgba(4,28,30,.8);border:1px solid var(--line);border-radius:2px;padding:10px 12px;caret-color:var(--signal)}
+  textarea:focus{outline:none;border-color:var(--signal)}
+  .phr{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+  .ph{font:inherit;font-size:12.5px;text-align:left;min-height:40px;padding:6px 10px;background:transparent;color:var(--bone-d);border:1px dashed var(--line);border-radius:2px;cursor:pointer;letter-spacing:.04em}
+  .ph:hover,.ph:focus-visible{outline:none;color:var(--bone);border-style:solid;border-color:var(--bone-d)}
+  .ph b{color:var(--signal);font-weight:normal;margin-right:6px}
+  .tx{margin-top:16px;display:flex;gap:8px}
+  .go{flex:1;font:inherit;font-size:13px;letter-spacing:.2em;text-transform:uppercase;min-height:46px;background:var(--bone);color:var(--abyss);border:0;border-radius:2px;cursor:pointer}
+  .go:hover,.go:focus-visible{outline:none;background:var(--signal)}
+  .go.ghost{flex:0 0 auto;padding:0 14px;background:transparent;color:var(--bone);border:1px solid var(--line)}
+  .read{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;font-size:11px;letter-spacing:.16em;color:var(--bone-d);text-transform:uppercase}
+  .read b{display:block;font-weight:normal;color:var(--bone);font-size:17px;letter-spacing:.02em;text-transform:none;margin-top:2px}
+  .meter{height:4px;background:var(--line);margin-top:6px}
+  .meter i{display:block;height:100%;background:var(--signal);width:0;transition:width .6s}
+
+  .slate{position:relative;min-height:440px;display:flex;flex-direction:column;padding:0;overflow:hidden;
+    background:
+      linear-gradient(rgba(232,225,207,.035) 1px,transparent 1px) 0 0/100% 32px,
+      radial-gradient(120% 90% at 50% 0%,#0f4643,#062424 70%)}
+  .slate .lbl{padding:14px 16px 0}
+  #out{flex:1;width:100%;min-height:340px;display:block}
+  #out .g path,#out .g circle,#out .g line{fill:none;stroke:var(--bone);stroke-linecap:round;stroke-linejoin:round}
+  #out .g .dot{fill:var(--bone);stroke:none}
+  #out .g.hot path,#out .g.hot circle,#out .g.hot line{stroke:var(--signal);filter:drop-shadow(0 0 6px rgba(121,227,207,.8))}
+  #out .g.hot .dot{fill:var(--signal)}
+  #out .spine{stroke:var(--bone-d);stroke-width:1.2;opacity:.45}
+  #out .draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .55s cubic-bezier(.5,0,.2,1) forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  #out .pop{animation:pop .4s .35s both}
+  @keyframes pop{from{opacity:0;transform:scale(0)}to{opacity:1;transform:none}}
+  #out .dot{transform-box:fill-box;transform-origin:center}
+  #scan{position:absolute;top:0;bottom:0;width:2px;background:var(--signal);box-shadow:0 0 18px 4px rgba(121,227,207,.5);opacity:0;pointer-events:none;left:0}
+  .roman{border-top:1px solid var(--line);padding:12px 16px 14px;font-size:15px;color:var(--bone-d);min-height:74px}
+  .roman b{color:var(--bone);font-weight:normal;letter-spacing:.06em}
+  .roman i{display:block;font-style:normal;color:var(--signal);font-size:13px;margin-top:4px}
+  .tip{position:absolute;pointer-events:none;background:var(--bone);color:var(--abyss);font-size:12px;padding:2px 8px;border-radius:2px;transform:translate(-50%,-140%);opacity:0;transition:opacity .15s;white-space:nowrap}
+  .tip.on{opacity:1}
+
+  .plate{margin-top:clamp(16px,2.4vw,30px)}
+  #rosetta{display:grid;grid-template-columns:repeat(13,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+  .rk{background:rgba(4,28,30,.9);border:0;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font:inherit;color:var(--bone-d);min-height:44px}
+  .rk:hover,.rk:focus-visible{outline:none;background:var(--teal-3);color:var(--bone)}
+  .rk svg{width:100%;max-width:54px;aspect-ratio:1;display:block}
+  .rk svg path,.rk svg circle,.rk svg line{fill:none;stroke:var(--bone);stroke-linecap:round;stroke-linejoin:round}
+  .rk svg .dot{fill:var(--bone);stroke:none}
+  .rk span{font-size:11px;letter-spacing:.1em}
+  footer{margin-top:18px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.14em;color:var(--bone-d);text-transform:uppercase}
+
+  @media (max-width:900px){
+    .main{grid-template-columns:1fr}
+    .slate{order:-1;min-height:320px}
+    #out{min-height:240px}
+    #rosetta{grid-template-columns:repeat(7,1fr)}
+    h1{letter-spacing:.08em}
+    #dname{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){#out .draw{animation-duration:.01s}#out .pop{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="k">LIAISON OFFICE · KEPLER-442b · CASE 098</div>
+      <h1>XENOLINGUA <span>// DECODER MK III</span></h1>
+    </div>
+    <div class="dialects" role="group" aria-label="Dialect" id="dias"></div>
+  </header>
+
+  <section class="main">
+    <div class="panel">
+      <div class="lbl"><label for="in">Human input</label><span id="cnt">0 / 60</span></div>
+      <textarea id="in" maxlength="60" spellcheck="false" autocomplete="off">take me to your librarian</textarea>
+      <div class="phr" id="phr" aria-label="Useful phrases"></div>
+      <div class="tx">
+        <button class="go" id="send">Transmit ▸</button>
+        <button class="go ghost" id="clr" aria-label="Clear input">clr</button>
+      </div>
+      <div class="read">
+        <div>Glyphs<b id="rG">0</b></div>
+        <div>Strokes<b id="rS">0</b></div>
+        <div style="grid-column:1/-1">Diplomatic confidence<b id="rC">—</b><div class="meter"><i id="rM"></i></div></div>
+      </div>
+    </div>
+
+    <div class="panel slate">
+      <div class="lbl"><span>Transmission slate · read ↓ then →</span><span id="dname">lattice</span></div>
+      <svg id="out" role="img" aria-label="Your text, written in the alien script"></svg>
+      <div id="scan"></div>
+      <div class="tip" id="tip"></div>
+      <div class="roman" id="roman"></div>
+    </div>
+  </section>
+
+  <section class="plate panel">
+    <div class="lbl"><span>Rosetta plate — tap a glyph to write it</span><span>26 phonemes · 3 dialects</span></div>
+    <div id="rosetta"></div>
+  </section>
+  <footer><span>All glyphs are generated, not drawn — each dialect has its own grammar of strokes.</span><span>No aliens were consulted.</span></footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const out = $('#out'), inp = $('#in');
+  if (!out || !inp) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- seeded randomness ----------
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+  const DIALECTS = [
+    { id: 'lattice', name: 'Lattice', note: 'straight strokes on a nine-point grid' },
+    { id: 'orbit', name: 'Orbit', note: 'arcs and moons around a hollow centre' },
+    { id: 'root', name: 'Root', note: 'a stem with branching, curling roots' }
+  ];
+  let dia = 0;
+
+  // A glyph is a list of primitives in a 0..100 box: {p:'path', d} | {p:'dot', x, y, r} | {p:'circle', x, y, r}
+  function gLattice(r) {
+    const N = [[20, 20], [50, 20], [80, 20], [20, 50], [50, 50], [80, 50], [20, 80], [50, 80], [80, 80]];
+    const adj = i => N.map((_, j) => j).filter(j => j !== i && Math.abs(N[i][0] - N[j][0]) <= 30 && Math.abs(N[i][1] - N[j][1]) <= 30);
+    let cur = Math.floor(r() * 9); const pts = [cur], len = 3 + Math.floor(r() * 3);
+    for (let k = 0; k < len; k++) { const a = adj(cur).filter(j => !pts.includes(j)); if (!a.length) break; cur = a[Math.floor(r() * a.length)]; pts.push(cur); }
+    const prims = [{ p: 'path', d: 'M' + pts.map(i => N[i].join(' ')).join(' L') }];
+    if (r() < .75) { const s = pts[Math.floor(r() * pts.length)], a = adj(s).filter(j => !pts.includes(j)); if (a.length) { const e = a[Math.floor(r() * a.length)]; prims.push({ p: 'path', d: `M${N[s][0]} ${N[s][1]} L${N[e][0]} ${N[e][1]}` }); } }
+    const end = N[pts[pts.length - 1]];
+    if (r() < .5) prims.push({ p: 'dot', x: end[0], y: end[1], r: 6 });
+    else if (r() < .5) prims.push({ p: 'circle', x: N[pts[0]][0], y: N[pts[0]][1], r: 7 });
+    if (r() < .35) prims.push({ p: 'dot', x: 50 + (r() < .5 ? -1 : 1) * 38, y: 50, r: 3.5 });
+    return prims;
+  }
+  function gOrbit(r) {
+    const prims = [], ring = r() < .5;
+    prims.push(ring ? { p: 'circle', x: 50, y: 50, r: 9 } : { p: 'dot', x: 50, y: 50, r: 5 });
+    const arc = (R, a0, a1) => { const x0 = 50 + R * Math.cos(a0), y0 = 50 + R * Math.sin(a0), x1 = 50 + R * Math.cos(a1), y1 = 50 + R * Math.sin(a1); const large = ((a1 - a0) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) > Math.PI ? 1 : 0; return `M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; };
+    const n = 1 + Math.floor(r() * 2);
+    for (let i = 0; i < n; i++) {
+      const R = i ? 40 : 26 + Math.floor(r() * 3) * 5, q = Math.PI / 4, a0 = Math.floor(r() * 8) * q, span = (2 + Math.floor(r() * 5)) * q;
+      prims.push({ p: 'path', d: arc(R, a0, a0 + span) });
+      if (r() < .6) { const a = a0 + span; prims.push({ p: 'dot', x: 50 + R * Math.cos(a), y: 50 + R * Math.sin(a), r: 4.5 }); }
+    }
+    const ticks = Math.floor(r() * 3);
+    for (let i = 0; i < ticks; i++) { const a = Math.floor(r() * 8) * Math.PI / 4; prims.push({ p: 'path', d: `M${(50 + 14 * Math.cos(a)).toFixed(1)} ${(50 + 14 * Math.sin(a)).toFixed(1)} L${(50 + 47 * Math.cos(a)).toFixed(1)} ${(50 + 47 * Math.sin(a)).toFixed(1)}` }); }
+    return prims;
+  }
+  function gRoot(r) {
+    const prims = [], x = 38 + Math.floor(r() * 3) * 12;
+    prims.push({ p: 'path', d: `M${x} 10 L${x} 90` });
+    const n = 2 + Math.floor(r() * 3), used = new Set();
+    for (let i = 0; i < n; i++) {
+      let y; do { y = 22 + Math.floor(r() * 5) * 14; } while (used.has(y) && used.size < 5); used.add(y);
+      const dir = r() < .5 ? -1 : 1, len = 18 + r() * 22, curl = r() < .5;
+      const ex = x + dir * len, ey = y + (r() < .5 ? -1 : 1) * (8 + r() * 12);
+      prims.push({ p: 'path', d: `M${x} ${y} Q ${x + dir * len * .7} ${y} ${ex.toFixed(1)} ${ey.toFixed(1)}` + (curl ? ` q ${dir * 8} ${(ey - y) > 0 ? 6 : -6} ${dir * 2} ${(ey - y) > 0 ? 12 : -12}` : '') });
+      if (!curl && r() < .5) prims.push({ p: 'dot', x: ex, y: ey, r: 4 });
+    }
+    if (r() < .5) prims.push({ p: 'path', d: `M${x - 10} 10 L${x + 10} 10` });
+    if (r() < .4) prims.push({ p: 'circle', x, y: 90, r: 6 });
+    return prims;
+  }
+  const GEN = [gLattice, gOrbit, gRoot];
+  const sig = g => g.map(p => p.p + (p.d || '') + (p.x || 0) + (p.y || 0)).join('|');
+  let ALPHA = {};
+  function buildAlphabet() {
+    ALPHA = {}; const seen = new Set();
+    for (let c = 65; c <= 90; c++) {
+      let salt = 0, g;
+      do { g = GEN[dia](rng((c * 2654435761) ^ (dia + 1) * 97531 ^ salt * 7919)); salt++; } while (seen.has(sig(g)) && salt < 50);
+      seen.add(sig(g)); ALPHA[String.fromCharCode(c)] = g;
+    }
+    // digits reuse letters with a bar over them — how the Liaison Office counts
+    for (let d = 0; d <= 9; d++) ALPHA[String(d)] = ALPHA[String.fromCharCode(65 + d)].concat([{ p: 'path', d: 'M15 4 L85 4' }]);
+    ALPHA['.'] = [{ p: 'path', d: 'M50 30 L65 50 L50 70 L35 50Z' }];
+    ALPHA['?'] = [{ p: 'circle', x: 50, y: 50, r: 16 }, { p: 'dot', x: 50, y: 50, r: 4 }];
+    ALPHA['!'] = [{ p: 'path', d: 'M50 15 L50 65' }, { p: 'dot', x: 50, y: 82, r: 5 }];
+  }
+  function glyphNodes(g, parent, sw, animate, delay) {
+    let strokes = 0;
+    g.forEach((p, k) => {
+      let e;
+      if (p.p === 'path') e = document.createElementNS(NS, 'path'), e.setAttribute('d', p.d);
+      else if (p.p === 'circle') { e = document.createElementNS(NS, 'circle'); e.setAttribute('cx', p.x); e.setAttribute('cy', p.y); e.setAttribute('r', p.r); }
+      else { e = document.createElementNS(NS, 'circle'); e.setAttribute('cx', p.x); e.setAttribute('cy', p.y); e.setAttribute('r', p.r); e.setAttribute('class', 'dot'); }
+      if (p.p !== 'dot') { e.setAttribute('stroke-width', sw); strokes++; }
+      if (animate) {
+        if (p.p !== 'dot') { e.setAttribute('pathLength', '1'); e.classList.add('draw'); e.style.animationDelay = (delay + k * .09) + 's'; }
+        else { e.classList.add('pop'); e.style.animationDelay = (delay + .3 + k * .05) + 's'; }
+      }
+      parent.appendChild(e);
+    });
+    return strokes;
+  }
+
+  // ---------- phonetics (deterministic per dialect) ----------
+  const SYL = [
+    ['ka', 'vu', 'teth', 'dro', 'e', 'fi', 'gal', 'ha', 'i', 'jor', 'kel', 'lum', 'mi', 'nor', 'o', 'pa', 'qir', 'ra', 'sa', 'tu', 'u', 'vek', 'wo', 'xi', 'ya', 'zet'],
+    ['aa', 'bo', 'ssi', 'dhu', 'ei', 'fo', 'gu', 'hhe', 'io', 'jai', 'koo', 'luu', 'mo', 'nee', 'oa', 'pu', 'kwe', 'rhu', 'soo', 'thi', 'uu', 'voo', 'wai', 'xo', 'yuu', 'zha'],
+    ['ak', 'bur', 'krt', 'dag', 'eh', 'fen', 'grm', 'hak', 'ith', 'jag', 'kor', 'lok', 'mag', 'nak', 'orr', 'pek', 'qat', 'rok', 'sek', 'tuk', 'ung', 'vrk', 'wug', 'xak', 'yrt', 'zog']
+  ];
+  const BACK = {
+    'WE COME IN PEACE': 'we arrive, inside the quiet (the quiet is borrowed)',
+    'TAKE ME TO YOUR LIBRARIAN': 'lead this one to the keeper of the paper tongues',
+    'IS THIS SEAT TAKEN': 'does a body already own this small throne?',
+    'YOUR CAT IS IN CHARGE': 'the small furred governor has been noted and respected',
+    'HELLO': 'the door is open (friendly) (probably)',
+    'HELLO WORLD': 'greeting, round wet rock',
+    'WHERE IS THE BATHROOM': 'which room holds the private weather?'
+  };
+  const PHRASES = ['We come in peace', 'Take me to your librarian', 'Is this seat taken', 'Your cat is in charge', 'Where is the bathroom'];
+
+  // ---------- render ----------
+  let prevKey = '', tokens = [];
+  function tokenize(txt) {
+    return txt.toUpperCase().split(/\s+/).map(w => [...w].filter(ch => ALPHA[ch])).filter(w => w.length);
+  }
+  function render(forceAll) {
+    const txt = inp.value, words = tokenize(txt);
+    const cnt = $('#cnt'); if (cnt) cnt.textContent = txt.length + ' / 60';
+    const flat = words.map(w => w.join('')).join(' ');
+    let common = 0; if (!forceAll) while (common < flat.length && common < prevKey.length && flat[common] === prevKey[common]) common++;
+    prevKey = flat;
+    const W = out.clientWidth || 600, H = out.clientHeight || 340;
+    out.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    while (out.firstChild) out.removeChild(out.firstChild);
+    tokens = [];
+    const maxLen = Math.max(1, ...words.map(w => w.length)), nW = Math.max(1, words.length);
+    // choose how many glyphs fit in one column: long words continue in the next column (the spine hooks over)
+    let best = { s: 0, R: maxLen };
+    for (let R = maxLen; R >= Math.min(3, maxLen); R--) {
+      const cols = words.reduce((n, w) => n + Math.ceil(w.length / R), 0);
+      const s = Math.min(92, (H - 26) / (R + .5), (W - 40) / (cols * 1.3 + (nW - 1) * .45));
+      if (s > best.s + .5) best = { s, R };
+    }
+    const size = Math.max(14, best.s), R = best.R, colW = size * 1.3, gapW = size * .45;
+    const cols = words.reduce((n, w) => n + Math.ceil(w.length / R), 0);
+    const totalW = cols * colW + (nW - 1) * gapW;
+    let cx = (W - totalW) / 2 + (colW - size) / 2;
+    const rows = Math.min(R, maxLen), y0 = Math.max(12, (H - rows * size) / 2);
+    let idx = 0, strokes = 0, animOrder = 0;
+    words.forEach(w => {
+      for (let start = 0; start < w.length; start += R) {
+        const part = w.slice(start, start + R), gx = cx, gy = y0;
+        const spine = document.createElementNS(NS, 'path');
+        const sx = gx - size * .12, top = gy + size * .08, bot = gy + part.length * size - size * .08;
+        spine.setAttribute('d', `M${sx} ${top} L${sx} ${bot}` + (start + R < w.length ? ` Q ${sx} ${bot + size * .35} ${sx + colW * .5} ${bot + size * .35} T ${sx + colW} ${bot}` : ''));
+        spine.setAttribute('class', 'spine'); spine.setAttribute('fill', 'none');
+        out.appendChild(spine);
+        part.forEach((ch, li) => {
+          const g = document.createElementNS(NS, 'g');
+          g.setAttribute('class', 'g');
+          g.setAttribute('transform', `translate(${gx.toFixed(1)} ${(gy + li * size).toFixed(1)}) scale(${(size / 100 * .86).toFixed(4)})`);
+          const animate = idx >= common && !reduce;
+          strokes += glyphNodes(ALPHA[ch], g, Math.max(3.5, 256 / size), animate, animate ? (animOrder++) * .06 : 0);
+          g.dataset.ch = ch;
+          const hit = document.createElementNS(NS, 'rect'); hit.setAttribute('width', 100); hit.setAttribute('height', 100); hit.setAttribute('fill', 'transparent'); g.appendChild(hit);
+          out.appendChild(g); tokens.push(g); idx++;
+        });
+        cx += colW;
+      }
+      cx += gapW;
+      idx++; // the space
+    });
+    const rG = $('#rG'), rS = $('#rS'); if (rG) rG.textContent = tokens.length; if (rS) rS.textContent = strokes;
+    roman(words);
+  }
+  function roman(words) {
+    const el = $('#roman'); if (!el) return;
+    const up = words.map(w => w.join('')).join(' ');
+    if (!words.length) { el.innerHTML = '<b>—</b><i>awaiting human noise</i>'; conf(0); return; }
+    const syl = words.map(w => w.map(ch => /[A-Z]/.test(ch) ? SYL[dia][ch.charCodeAt(0) - 65] : ch === '.' ? '·' : ch === '?' ? '?' : ch === '!' ? '!' : '#').join('')).join(' ');
+    const back = BACK[up.replace(/[.?!]/g, '').trim()];
+    const c = back ? 96 : Math.max(18, 88 - up.length * .9 - (dia === 2 ? 12 : 0));
+    el.innerHTML = `<b>/${syl.slice(0, 140)}/</b><i>back-translation: ${back ? '“' + back + '”' : up.length < 4 ? '“a small noise, possibly a sneeze”' : '“' + fakeBack(up) + '”'}</i>`;
+    conf(c);
+  }
+  function fakeBack(up) {
+    const w = up.split(' ');
+    const bits = ['the tall one', 'wishes', 'a warm liquid', 'kindly', 'regarding', 'the moons', 'immediately', 'with great respect', 'possibly', 'your hat'];
+    let h = 0; for (const c of up) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    const r = rng(h + dia), n = Math.min(6, 2 + w.length);
+    return Array.from({ length: n }, () => bits[Math.floor(r() * bits.length)]).join(' ');
+  }
+  function conf(c) {
+    const rC = $('#rC'), rM = $('#rM');
+    if (rC) rC.textContent = c ? `${Math.round(c)}% ${c > 90 ? '— they will like you' : c > 60 ? '— probably not a war' : '— smile a lot'}` : '—';
+    if (rM) rM.style.width = c + '%';
+  }
+
+  // ---------- rosetta plate ----------
+  function plate() {
+    const box = $('#rosetta'); if (!box) return;
+    box.innerHTML = '';
+    for (let c = 65; c <= 90; c++) {
+      const ch = String.fromCharCode(c), b = document.createElement('button');
+      b.className = 'rk'; b.setAttribute('aria-label', 'Insert glyph for ' + ch);
+      const s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '-6 -6 112 112');
+      glyphNodes(ALPHA[ch], s, 5, !reduce, (c - 65) * .025);
+      b.appendChild(s);
+      const l = document.createElement('span'); l.textContent = ch + ' · ' + SYL[dia][c - 65]; b.appendChild(l);
+      b.addEventListener('click', () => { if (inp.value.length < 60) { inp.value += ch.toLowerCase(); render(); blip(c - 65, 0); } });
+      box.appendChild(b);
+    }
+  }
+
+  // ---------- dialect switch ----------
+  const dias = $('#dias');
+  DIALECTS.forEach((d, i) => {
+    const b = document.createElement('button'); b.className = 'dia' + (i === dia ? ' on' : ''); b.textContent = d.name; b.title = d.note;
+    b.setAttribute('aria-pressed', i === dia);
+    b.addEventListener('click', () => {
+      dia = i; dias.querySelectorAll('.dia').forEach((x, k) => { x.classList.toggle('on', k === i); x.setAttribute('aria-pressed', k === i); });
+      const dn = $('#dname'); if (dn) dn.textContent = 'dialect: ' + d.name.toLowerCase();
+      buildAlphabet(); plate(); render(true);
+    });
+    dias && dias.appendChild(b);
+  });
+  const phr = $('#phr');
+  PHRASES.forEach((p, i) => {
+    const b = document.createElement('button'); b.className = 'ph'; b.innerHTML = `<b>0${i + 1}</b>${p}`;
+    b.addEventListener('click', () => { inp.value = p.toLowerCase(); render(true); });
+    phr && phr.appendChild(b);
+  });
+  inp.addEventListener('input', () => render());
+  const clr = $('#clr'); clr && clr.addEventListener('click', () => { inp.value = ''; render(); inp.focus(); });
+
+  // hover a glyph → show the letter
+  const tip = $('#tip'), slate = document.querySelector('.slate');
+  out.addEventListener('pointermove', e => {
+    const g = e.target.closest && e.target.closest('.g');
+    if (!g || !tip || !slate) { tip && tip.classList.remove('on'); return; }
+    const r = g.getBoundingClientRect(), s = slate.getBoundingClientRect();
+    tip.textContent = g.dataset.ch + ' · /' + (SYL[dia][g.dataset.ch.charCodeAt(0) - 65] || g.dataset.ch) + '/';
+    tip.style.left = (r.left + r.width / 2 - s.left) + 'px'; tip.style.top = (r.top - s.top) + 'px'; tip.classList.add('on');
+  });
+  out.addEventListener('pointerleave', () => tip && tip.classList.remove('on'));
+
+  // ---------- transmit: tones + scan ----------
+  let ac = null, sending = false;
+  const PENT = [0, 3, 5, 7, 10];
+  function blip(n, t0) {
+    try {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      const t = ac.currentTime + (t0 || 0);
+      const base = [220, 196, 164.8][dia], f = base * Math.pow(2, (PENT[n % 5] + 12 * Math.floor(n / 5) % 36) / 12) / 2;
+      const car = ac.createOscillator(), mod = ac.createOscillator(), md = ac.createGain(), g = ac.createGain();
+      car.type = dia === 2 ? 'triangle' : 'sine'; car.frequency.value = f;
+      mod.frequency.value = f * [1.5, 2.01, .5][dia]; md.gain.value = f * [1.2, .6, 2.2][dia];
+      mod.connect(md); md.connect(car.frequency);
+      car.frequency.setValueAtTime(f * (dia === 1 ? 1.06 : 1), t); car.frequency.exponentialRampToValueAtTime(f, t + .12);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.16, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + .32);
+      car.connect(g); g.connect(ac.destination); car.start(t); mod.start(t); car.stop(t + .35); mod.stop(t + .35);
+    } catch (_) {}
+  }
+  const send = $('#send'), scan = $('#scan');
+  send && send.addEventListener('click', () => {
+    if (sending || !tokens.length) return;
+    sending = true; send.textContent = 'Transmitting…';
+    const step = 170;
+    tokens.forEach((g, i) => {
+      setTimeout(() => {
+        tokens.forEach(t => t.classList.remove('hot')); g.classList.add('hot');
+        const ch = g.dataset.ch, n = /[A-Z]/.test(ch) ? ch.charCodeAt(0) - 65 : 26;
+        blip(n);
+        if (scan && slate) { const r = g.getBoundingClientRect(), s = slate.getBoundingClientRect(); scan.style.opacity = 1; scan.style.left = (r.left + r.width / 2 - s.left) + 'px'; }
+      }, i * step);
+    });
+    setTimeout(() => {
+      tokens.forEach(t => t.classList.remove('hot')); if (scan) scan.style.opacity = 0;
+      sending = false; send.textContent = 'Transmit ▸';
+      const rC = $('#rC'); if (rC) rC.textContent = ['Sent. A reply is expected in 1,200 years.', 'Sent. They have left you on read.', 'Sent. Something replied “lol”.'][Math.floor(Math.random() * 3)];
+    }, tokens.length * step + 300);
+  });
+  if (scan) scan.style.transition = 'left .15s linear, opacity .3s';
+
+  let rt = 0; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => render(true), 120); });
+  buildAlphabet(); plate(); render(true);
+  const dn = $('#dname'); if (dn) dn.textContent = 'dialect: lattice';
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Electric Marmalade — Grape Hall, Oct 13·14·15</title>
+<meta name="description" content="演唱會海報：位移濾鏡讓標題液態流動，游標攪動會增加融化程度。收錄於 100 Creative HTML Works（029・60 年代迷幻）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/029-psychedelic.html">
+<style>
+:root{--bg:#6a0dad;--let:#ff6a00;--ink:#2a0033;--acc:#39ff6b;--pink:#ff2fa8;--sun:#ffd400;
+  --blk:"Arial Black","Arial Bold",Gadget,"Helvetica Neue",Arial,sans-serif}
+body.p1{--bg:#ff2fa8;--let:#27d63f;--ink:#3a0a3a;--acc:#ffe000;--pink:#6a0dad;--sun:#ff6a00}
+body.p2{--bg:#0077d9;--let:#ff3b00;--ink:#10003a;--acc:#ffd000;--pink:#ff2fa8;--sun:#39ff6b}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:#12001c;color:#ffe9c7;font-family:var(--blk);overflow-x:hidden;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.oil{position:fixed;inset:-20%;pointer-events:none;filter:blur(40px) saturate(1.4);opacity:.55;
+  background:
+   radial-gradient(28% 32% at 20% 30%,var(--let),transparent 70%),
+   radial-gradient(30% 26% at 78% 24%,var(--pink),transparent 70%),
+   radial-gradient(34% 30% at 64% 76%,var(--acc),transparent 70%),
+   radial-gradient(30% 34% at 24% 80%,var(--bg),transparent 70%);
+  animation:oil 22s ease-in-out infinite alternate}
+@keyframes oil{0%{transform:rotate(0) scale(1)}50%{transform:rotate(40deg) scale(1.15) translate(3%,-2%)}100%{transform:rotate(-30deg) scale(1.05) translate(-3%,3%)}}
+.stage{position:relative;z-index:1;width:min(92vw,calc((100vh - 110px) * .6667),640px);margin:18px 16px 0}
+#poster{display:block;width:100%;height:auto;filter:drop-shadow(0 20px 40px rgba(0,0,0,.6));cursor:crosshair;touch-action:none}
+.deck{position:relative;z-index:1;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;margin:14px 16px 20px;padding:8px 14px;border-radius:40px;background:rgba(20,0,30,.6);border:2px solid var(--let);max-width:calc(100vw - 32px)}
+.deck label{font-size:12px;letter-spacing:.2em;color:var(--sun)}
+.deck input[type=range]{-webkit-appearance:none;appearance:none;width:150px;height:40px;background:transparent}
+.deck input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--acc),var(--let),var(--pink))}
+.deck input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-8px;border-radius:50%;background:var(--sun);border:3px solid var(--ink)}
+.deck input[type=range]::-moz-range-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--acc),var(--let),var(--pink))}
+.deck input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--sun);border:3px solid var(--ink)}
+.deck button{height:40px;padding:0 16px;border-radius:20px;border:3px solid var(--ink);background:var(--let);color:var(--ink);font:14px var(--blk);letter-spacing:.06em;cursor:pointer;transform:rotate(-2deg)}
+.deck button:nth-of-type(2){background:var(--acc);transform:rotate(2deg)}
+.deck button:focus-visible,.deck input:focus-visible{outline:3px dashed var(--sun);outline-offset:3px}
+.hint{position:relative;z-index:1;font:italic 13px Georgia,serif;color:#e6c9ff;margin:-8px 16px 22px;text-align:center}
+@media (prefers-reduced-motion:reduce){ .oil{animation:none} }
+</style>
+</head>
+<body>
+<div class="oil" aria-hidden="true"></div>
+<div class="stage">
+<svg id="poster" viewBox="0 0 600 900" role="img" aria-label="Psychedelic concert poster: The Electric Marmalade, with The Velvet Tortoise and Sunday Soup Orchestra, October 13, 14 and 15 at the Grape Hall">
+  <defs>
+    <filter id="melt" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence id="turb" type="fractalNoise" baseFrequency="0.009 0.022" numOctaves="2" seed="7" result="t">
+        <animate id="turbAnim" attributeName="baseFrequency" dur="16s" values="0.009 0.022;0.014 0.012;0.007 0.026;0.009 0.022" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap id="disp" in="SourceGraphic" in2="t" scale="34" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="wob" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="1" seed="2" result="w">
+        <animate attributeName="seed" dur="3s" values="2;5;9;2" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="w" scale="6"/>
+    </filter>
+    <clipPath id="frameClip"><rect x="22" y="22" width="556" height="856" rx="30"/></clipPath>
+    <path id="arch" d="M66 196 Q300 30 534 196"/>
+    <path id="smile" d="M90 700 Q300 800 510 700"/>
+  </defs>
+
+  <!-- paper + frame -->
+  <rect width="600" height="900" style="fill:var(--ink)"/>
+  <g clip-path="url(#frameClip)">
+    <rect width="600" height="900" style="fill:var(--bg)"/>
+    <g id="rays" style="transform-origin:300px 420px"></g>
+    <g id="rings"></g>
+  </g>
+  <rect x="22" y="22" width="556" height="856" rx="30" fill="none" style="stroke:var(--let)" stroke-width="10"/>
+  <rect x="36" y="36" width="528" height="828" rx="22" fill="none" style="stroke:var(--acc)" stroke-width="4" stroke-dasharray="2 10" stroke-linecap="round"/>
+
+  <!-- top arch -->
+  <text font-family="Arial Black, Arial, sans-serif" font-size="23" letter-spacing="2" style="fill:var(--sun);stroke:var(--ink);paint-order:stroke" stroke-width="6" filter="url(#wob)">
+    <textPath href="#arch" startOffset="50%" text-anchor="middle">THE FAMILY GROOVE PRESENTS</textPath>
+  </text>
+
+  <!-- the melting headline, stretched to fill a lightbulb shape -->
+  <g id="head" filter="url(#melt)">
+    <g font-family="Arial Black, Arial, sans-serif" text-anchor="middle" style="fill:var(--let);stroke:var(--ink);paint-order:stroke" stroke-width="10" stroke-linejoin="round">
+      <text x="300" y="232" font-size="48" textLength="200" lengthAdjust="spacingAndGlyphs">THE</text>
+      <text x="300" y="332" font-size="110" textLength="470" lengthAdjust="spacingAndGlyphs">ELECTRIC</text>
+      <text x="300" y="448" font-size="128" textLength="520" lengthAdjust="spacingAndGlyphs">MARMA</text>
+      <text x="300" y="560" font-size="122" textLength="430" lengthAdjust="spacingAndGlyphs">LADE</text>
+    </g>
+    <g font-family="Arial Black, Arial, sans-serif" text-anchor="middle" style="fill:var(--pink)" opacity=".9">
+      <text x="296" y="326" font-size="110" textLength="470" lengthAdjust="spacingAndGlyphs" style="fill:none;stroke:var(--sun)" stroke-width="2">ELECTRIC</text>
+      <text x="296" y="442" font-size="128" textLength="520" lengthAdjust="spacingAndGlyphs" style="fill:none;stroke:var(--sun)" stroke-width="2">MARMA</text>
+      <text x="296" y="554" font-size="122" textLength="430" lengthAdjust="spacingAndGlyphs" style="fill:none;stroke:var(--sun)" stroke-width="2">LADE</text>
+    </g>
+  </g>
+
+  <!-- supporting acts -->
+  <g font-family="Arial Black, Arial, sans-serif" text-anchor="middle" filter="url(#wob)">
+    <text x="300" y="612" font-size="20" letter-spacing="4" style="fill:var(--sun)">— WITH —</text>
+    <text x="300" y="652" font-size="34" textLength="420" lengthAdjust="spacingAndGlyphs" style="fill:var(--acc);stroke:var(--ink);paint-order:stroke" stroke-width="7">THE VELVET TORTOISE</text>
+    <text x="300" y="690" font-size="28" textLength="380" lengthAdjust="spacingAndGlyphs" style="fill:var(--pink);stroke:var(--ink);paint-order:stroke" stroke-width="7">SUNDAY SOUP ORCHESTRA</text>
+  </g>
+  <text font-family="Arial Black, Arial, sans-serif" font-size="30" letter-spacing="2" style="fill:var(--sun);stroke:var(--ink);paint-order:stroke" stroke-width="7">
+    <textPath href="#smile" startOffset="50%" text-anchor="middle">OCT 13 · 14 · 15</textPath>
+  </text>
+  <g font-family="Arial Black, Arial, sans-serif" text-anchor="middle">
+    <text x="300" y="792" font-size="30" textLength="340" lengthAdjust="spacingAndGlyphs" style="fill:var(--let);stroke:var(--ink);paint-order:stroke" stroke-width="7">THE GRAPE HALL</text>
+    <text x="300" y="822" font-size="13" letter-spacing="2" style="fill:var(--sun)">LIGHTS BY THE HOLY SEE · DANCING · $3.50 AT THE DOOR</text>
+    <text x="300" y="846" font-size="10" letter-spacing="3" style="fill:var(--acc)" opacity=".9">1967 · FG-42 · PLEASE DO NOT EAT THE POSTER</text>
+  </g>
+  <!-- little stars -->
+  <g id="stars" style="fill:var(--sun)"></g>
+</svg>
+</div>
+<div class="deck" role="group" aria-label="Poster controls">
+  <label for="melt">MELT</label><input id="melt" type="range" min="0" max="100" value="45">
+  <button id="pal">NEW COLORWAY</button>
+  <button id="freeze" aria-pressed="false">FREEZE</button>
+</div>
+<p class="hint">Stir the poster with your pointer (or finger). Tap for a new colorway. ← → melt.</p>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+const svg = $('#poster'); if (!svg) return;
+const el = (t,a,p) => { const e = document.createElementNS(NS,t); for (const k in a) e.setAttribute(k,a[k]); if (p) p.appendChild(e); return e; };
+
+// sunburst rays + vibrating rings behind the lettering
+const rays = $('#rays'), rings = $('#rings'), stars = $('#stars');
+if (rays) { const n = 36; for (let i=0;i<n;i++){ const a0 = i/n*Math.PI*2, a1 = (i+.5)/n*Math.PI*2, R = 900;
+  el('path',{d:`M300 420 L${300+Math.cos(a0)*R} ${420+Math.sin(a0)*R} L${300+Math.cos(a1)*R} ${420+Math.sin(a1)*R}Z`,style:`fill:var(${i%2?'--pink':'--bg'})`,opacity:i%2?.55:1},rays); } }
+if (rings) for (let k=9;k>=1;k--) el('circle',{cx:300,cy:420,r:k*34,fill:'none',style:`stroke:var(${k%2?'--acc':'--sun'})`,'stroke-width':k%2?5:2.5,opacity:.55,'stroke-dasharray':k%3?'':'14 8'},rings);
+if (stars) [[70,90],[530,95],[60,600],[545,610],[92,770],[510,760]].forEach(([x,y],i) => { const g = el('g',{transform:`translate(${x} ${y})`},stars); el('path',{d:'M0-16C2-4 4-2 16 0C4 2 2 4 0 16C-2 4-4 2-16 0C-4-2-2-4 0-16Z',style:'fill:var(--sun);stroke:var(--ink)','stroke-width':2},g);
+  const an = el('animateTransform',{attributeName:'transform',type:'rotate',additive:'sum',from:'0',to:(i%2?'-':'')+'360',dur:(8+i)+'s',repeatCount:'indefinite'},g); });
+
+// rotate rays slowly; melt responds to pointer
+const disp = $('#disp'), meltIn = $('#melt');
+let base = 45, stir = 0, t0 = performance.now(), frozen = false, rot = 0, last = performance.now();
+let px = 300, py = 420;
+function setMelt(){ if (disp) disp.setAttribute('scale', (8 + base*.7 + stir*38).toFixed(1)); }
+if (meltIn) meltIn.addEventListener('input', () => { base = +meltIn.value; setMelt(); });
+svg.addEventListener('pointermove', e => {
+  const r = svg.getBoundingClientRect(); const nx = (e.clientX - r.left)/r.width*600, ny = (e.clientY - r.top)/r.height*900;
+  const v = Math.hypot(nx-px, ny-py); px = nx; py = ny; stir = Math.min(1, stir + v/300);
+});
+let downAt = 0; svg.addEventListener('pointerdown', () => { downAt = performance.now(); });
+svg.addEventListener('pointerup', () => { if (performance.now() - downAt < 300) nextPalette(); });
+const PALS = ['p0','p1','p2'];
+let pi = 0;
+function nextPalette(){ document.body.classList.remove(PALS[pi]); pi = (pi+1)%PALS.length; document.body.classList.add(PALS[pi]); stir = 1; }
+const pb = $('#pal'); if (pb) pb.addEventListener('click', nextPalette);
+const fb = $('#freeze'); if (fb) fb.addEventListener('click', () => { frozen = !frozen; fb.setAttribute('aria-pressed', frozen); fb.textContent = frozen ? 'THAW' : 'FREEZE'; try { frozen ? svg.pauseAnimations() : svg.unpauseAnimations(); } catch(_){} });
+addEventListener('keydown', e => {
+  if (e.key==='ArrowRight' || e.key==='ArrowUp') { base = Math.min(100, base+5); }
+  else if (e.key==='ArrowLeft' || e.key==='ArrowDown') { base = Math.max(0, base-5); }
+  else if (e.key==='Enter' && !(document.activeElement && document.activeElement.tagName==='BUTTON')) { nextPalette(); return; }
+  else return;
+  if (meltIn) meltIn.value = base; setMelt();
+});
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reduce) { try { svg.pauseAnimations(); } catch(_){} }
+function frame(now){
+  const dt = Math.min(.05,(now-last)/1000); last = now;
+  if (!frozen && !reduce) { rot += dt*4; if (rays) rays.style.transform = `rotate(${rot.toFixed(2)}deg)`; }
+  stir *= .96; setMelt();
+  requestAnimationFrame(frame);
+}
+setMelt(); requestAnimationFrame(frame);
+document.addEventListener('visibilitychange', () => { last = performance.now(); });
+})();
+</script>
+</body>
+</html>

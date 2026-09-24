@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>~*~ Dave's Cyber Corner ~*~ Welcome!!!</title>
+<meta name="description" content="星空磚紋、跑馬燈、訪客計數器、WebRing 與可留言的留言板。收錄於 100 Creative HTML Works（054・1996 個人首頁）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/054-geocities.html">
+<style>
+html{background:#000}
+body{margin:0;padding:14px 10px 40px;color:#fff;font-family:"Times New Roman",Times,serif;font-size:16px;background-color:#000;background-image:var(--stars,none);cursor:crosshair}
+a{color:#3b8cff}
+a:visited{color:#c77dff}
+a:hover{color:#ff0;background:#f0f}
+.comic{font-family:"Comic Sans MS","Comic Sans","Chalkboard SE","Comic Neue",cursive}
+table.main{width:100%;max-width:780px;margin:0 auto;border-collapse:separate;border-spacing:0;border:3px ridge #c0c0c0;background:#000014}
+td{vertical-align:top}
+.side{width:176px;background:#000050;border-right:3px ridge #c0c0c0;padding:10px 8px}
+.content{padding:12px 16px;min-width:0}
+h1{margin:4px 0 6px;text-align:center;font:700 clamp(26px,6vw,44px)/1.1 "Comic Sans MS","Comic Sans","Chalkboard SE",cursive;letter-spacing:1px;text-shadow:3px 3px 0 #800080}
+h2{font:700 22px/1.2 "Comic Sans MS","Comic Sans","Chalkboard SE",cursive;color:#0ff;margin:22px 0 8px;text-decoration:underline}
+.center{text-align:center}
+.blink{animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{visibility:hidden}}
+.new{display:inline-block;background:#f00;color:#ff0;font:700 11px/1 Arial,sans-serif;padding:2px 4px;transform:rotate(-8deg);animation:blink .6s steps(1) infinite}
+.hr-fire{height:10px;border:0;margin:14px 0;background:linear-gradient(90deg,#f00,#f80,#ff0,#f80,#f00,#f80,#ff0);background-size:200% 100%;animation:fire 1s linear infinite;border-radius:5px;box-shadow:0 0 8px #f60}
+@keyframes fire{to{background-position:200% 0}}
+.hr-rainbow{height:6px;border:0;margin:14px 0;background:linear-gradient(90deg,red,orange,yellow,lime,cyan,blue,magenta,red)}
+marquee{display:block}
+.marq{display:block;background:#000080;color:#ff0;border:2px inset #c0c0c0;padding:4px 0;font:700 15px/1.3 "Comic Sans MS","Comic Sans",cursive}
+.construct{display:flex;align-items:center;gap:10px;justify-content:center;background:repeating-linear-gradient(-45deg,#ffd400 0 16px,#111 16px 32px);padding:6px;margin:10px 0;border:2px outset #c0c0c0}
+.construct span{background:#ffd400;color:#000;font:900 15px/1.2 Arial Black,Arial,sans-serif;padding:6px 10px;border:2px solid #000;text-align:center}
+.construct svg{width:52px;height:44px;background:#ffd400;border:2px solid #000;flex:none}
+.counter{display:inline-flex;gap:2px;background:#222;border:2px inset #999;padding:3px;vertical-align:middle}
+.counter b{display:inline-block;width:18px;height:26px;overflow:hidden;background:linear-gradient(#000 0 48%,#333 48% 52%,#000 52%);color:#3f3;font:700 20px/26px "Courier New",monospace;text-align:center}
+.counter b i{display:block;font-style:normal;transition:transform 1s cubic-bezier(.3,.9,.3,1)}
+.box{border:2px outset #c0c0c0;background:#c0c0c0;color:#000;padding:8px;margin:0 0 12px;font:13px/1.35 Arial,Helvetica,sans-serif}
+.box .ttl{background:linear-gradient(90deg,#000080,#1084d0);color:#fff;font-weight:700;margin:-8px -8px 8px;padding:3px 6px}
+.side ul{list-style:none;margin:0;padding:0}
+.side li{margin:0 0 7px;font-size:15px}
+.side li::before{content:"";display:inline-block;width:10px;height:10px;margin-right:6px;background:radial-gradient(circle at 35% 35%,#fff,#0f0 40%,#060);border-radius:50%}
+.btn{font:13px Arial,sans-serif;background:#c0c0c0;color:#000;border:2px outset #fff;padding:6px 12px;min-height:40px;cursor:pointer}
+.btn:active{border-style:inset}
+.btn:focus-visible{outline:1px dotted #000;outline-offset:-5px}
+.midi{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.midi .scr{flex:1;min-width:120px;background:#000;color:#0f0;font:12px/1.4 "Courier New",monospace;padding:4px 6px;border:2px inset #999;white-space:nowrap;overflow:hidden}
+.about{display:flex;gap:14px;align-items:flex-start}
+.about svg{flex:none;width:96px;height:112px;border:3px ridge #c0c0c0;background:#008080}
+.about p{margin:0 0 8px;line-height:1.45}
+.lime{color:#0f0}.yel{color:#ff0}.pink{color:#f6f}.cyan{color:#0ff}
+.webring{border:3px double #f0f;padding:10px;text-align:center;margin:16px 0;background:#200020}
+.webring .nav{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:8px}
+form.gb{background:#c0c0c0;color:#000;border:2px outset #fff;padding:12px;font:14px Arial,sans-serif}
+form.gb table{width:100%;border-collapse:collapse}
+form.gb td{padding:4px}
+form.gb td:first-child{width:130px;font-weight:700;text-align:right;padding-right:8px;vertical-align:middle}
+form.gb input,form.gb select,form.gb textarea{width:100%;font:14px "Courier New",monospace;border:2px inset #fff;background:#fff;color:#000;padding:4px;min-height:32px;box-sizing:border-box}
+form.gb textarea{height:84px;resize:vertical}
+.smileys{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.smileys button{font:700 14px "Courier New",monospace;background:#ffff80;border:2px outset #fff;min-width:44px;min-height:40px;cursor:pointer}
+.entries{margin-top:16px}
+.entry{border:2px ridge #c0c0c0;margin:0 0 10px;background:#000030}
+.entry .hd{background:#000080;padding:5px 8px;font:700 13px/1.4 Arial,sans-serif;display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px}
+.entry .hd span{color:#ff0}
+.entry .bd{padding:8px 10px;font:15px/1.45 "Comic Sans MS","Comic Sans",cursive;color:#fff;overflow-wrap:anywhere}
+.entry .ft{padding:0 10px 8px;font:12px Arial,sans-serif;color:#9cf}
+.entry.fresh{animation:fresh 2s steps(4)}
+@keyframes fresh{0%,50%{background:#606}100%{background:#000030}}
+.badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:16px}
+.badge{width:88px;height:31px;border:1px solid #888;display:flex;align-items:center;justify-content:center;font:700 9px/1.05 Verdana,Arial,sans-serif;text-align:center;overflow:hidden}
+.foot{text-align:center;font:12px/1.6 Arial,sans-serif;color:#aaa;margin-top:16px}
+.spark{position:fixed;pointer-events:none;width:12px;height:12px;margin:-6px 0 0 -6px;z-index:9;animation:spark .8s linear forwards}
+@keyframes spark{to{transform:translateY(22px) scale(.2) rotate(180deg);opacity:0}}
+.mail{display:inline-block;animation:spin 2.4s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotateY(360deg)}}
+@media (max-width:640px){
+  table.main,table.main > tbody,table.main > tbody > tr,table.main > tbody > tr > td{display:block;width:auto}
+  .side{border-right:0;border-bottom:3px ridge #c0c0c0}
+  .side ul{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+  form.gb td{display:block;width:auto!important;text-align:left!important}
+  .about svg{width:76px;height:90px}
+}
+@media (prefers-reduced-motion:reduce){.blink,.new,.hr-fire,.mail{animation:none}}
+</style>
+</head>
+<body>
+<table class="main" role="presentation">
+<tr>
+<td class="side">
+  <div class="center" style="margin-bottom:10px">
+    <svg viewBox="0 0 150 60" width="150" height="60" role="img" aria-label="Dave's Cyber Corner logo"><defs><linearGradient id="lg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ff0"/><stop offset=".5" stop-color="#f80"/><stop offset="1" stop-color="#f00"/></linearGradient></defs><text x="75" y="28" text-anchor="middle" font-family="Impact,Arial Black,sans-serif" font-size="26" fill="url(#lg)" stroke="#fff" stroke-width=".6">DAVE'S</text><text x="75" y="52" text-anchor="middle" font-family="Comic Sans MS,cursive" font-size="16" fill="#0ff" font-style="italic">cyber corner</text></svg>
+  </div>
+  <div class="box"><div class="ttl">Navigation</div>
+    <ul style="color:#000">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#about">About Me</a></li>
+      <li><a href="#xfiles">X-Files Shrine</a> <span class="new">NEW!</span></li>
+      <li><a href="#links">Kool Links</a></li>
+      <li><a href="#guestbook">Guestbook</a></li>
+      <li><a href="#awards">Awards</a></li>
+    </ul>
+  </div>
+  <div class="box"><div class="ttl">Now Playing</div>
+    <div class="midi">
+      <div class="scr" id="midiScr">dave_theme.mid</div>
+      <button class="btn" id="play" aria-label="Play MIDI">&#9658; Play</button>
+      <button class="btn" id="stop" aria-label="Stop MIDI">&#9632;</button>
+    </div>
+  </div>
+  <div class="box center"><div class="ttl">Email Me!!</div>
+    <svg class="mail" viewBox="0 0 60 40" width="60" height="40" aria-hidden="true"><rect x="2" y="4" width="56" height="34" fill="#fff" stroke="#000" stroke-width="2"/><path d="M2 4 L30 24 L58 4" fill="none" stroke="#000" stroke-width="2"/><rect x="44" y="8" width="10" height="12" fill="#f00"/></svg><br>
+    <span style="font-size:12px">dave_1982 (at) geocities.example</span>
+  </div>
+</td>
+<td class="content">
+  <a id="home"></a>
+  <div class="marq"><marquee scrollamount="5">*** WELCOME to my HOMEPAGE on the INFORMATION SUPERHIGHWAY!!! *** Please sign my guestbook before you leave!!! *** Now with 100% more JavaScript *** Don't forget to bookmark me (Ctrl+D) ***</marquee></div>
+  <h1 id="title" aria-label="Welcome to Dave's Cyber Corner!">Welcome to Dave's Cyber Corner!</h1>
+  <p class="center comic yel" style="margin:0">~*~ Est. 1996 &middot; Best viewed in Netscape Navigator 3.0 at 800x600 ~*~</p>
+
+  <div class="construct"><svg viewBox="0 0 52 44" aria-hidden="true"><rect x="6" y="26" width="30" height="10" fill="#f80" stroke="#000"/><circle cx="12" cy="38" r="5" fill="#000"/><circle cx="30" cy="38" r="5" fill="#000"/><rect x="12" y="16" width="12" height="10" fill="#f80" stroke="#000"/><g id="arm"><path d="M34 28 L44 14 L50 22" stroke="#000" stroke-width="3" fill="none"/><path d="M46 20 l6 4 -2 6 -6 -2z" fill="#000"/></g><circle cx="18" cy="12" r="3" fill="#000"/></svg><span>UNDER CONSTRUCTION<br><small style="font:700 11px Arial">pardon my dust!!</small></span></div>
+
+  <p class="center" style="font:15px/1.6 Arial,sans-serif">You are visitor number <span class="counter" id="counter" aria-live="polite"></span> since 03/14/1996!<br><span class="blink lime comic">*** THANK YOU FOR VISITING ***</span></p>
+
+  <hr class="hr-fire">
+
+  <a id="about"></a>
+  <h2>About Me</h2>
+  <div class="about">
+    <svg viewBox="0 0 96 112" aria-label="A very pixelated photo of Dave" role="img">
+      <rect width="96" height="112" fill="#008080"/>
+      <g shape-rendering="crispEdges">
+        <rect x="30" y="18" width="36" height="8" fill="#5a3a1a"/><rect x="26" y="26" width="44" height="6" fill="#5a3a1a"/>
+        <rect x="28" y="32" width="40" height="30" fill="#f2c79a"/><rect x="36" y="40" width="8" height="6" fill="#000"/><rect x="52" y="40" width="8" height="6" fill="#000"/>
+        <rect x="34" y="38" width="12" height="2" fill="#333"/><rect x="50" y="38" width="12" height="2" fill="#333"/><rect x="44" y="42" width="8" height="2" fill="#333"/>
+        <rect x="40" y="52" width="16" height="4" fill="#c33"/><rect x="40" y="62" width="16" height="6" fill="#f2c79a"/>
+        <rect x="16" y="68" width="64" height="44" fill="#1b4fd8"/><rect x="36" y="76" width="24" height="12" fill="#fff"/><rect x="40" y="80" width="16" height="4" fill="#f00"/>
+      </g>
+    </svg>
+    <div>
+      <p><span class="cyan">Hi!!</span> My name is <b class="yel">Dave</b> and I am <b>15</b>. I live in Ohio with my mom, my sister (who is SO annoying) and our cat <span class="pink">Mr. Pixel</span>.</p>
+      <p>I like: <span class="lime">the X-Files</span>, <span class="lime">Tamagotchi</span> (RIP Blobby, 3 days old), <span class="lime">my 28.8k modem</span>, and making web pages in <b>Notepad</b> because FrontPage is for posers.</p>
+      <p>Please don't pick up the phone while I'm online!!!!!</p>
+    </div>
+  </div>
+
+  <a id="xfiles"></a>
+  <h2>My X-Files Shrine <span class="new">NEW!</span></h2>
+  <p class="comic" style="line-height:1.5">The truth is out there, and it is on <b>this page</b>. I have seen every episode <u>twice</u> on tape. My theory: the cigarette guy is actually <span class="yel">three</span> cigarette guys. Email me if you agree. <span class="blink pink">TRUST NO ONE.</span></p>
+
+  <div class="webring">
+    <b class="yel comic">&#9733; This site is a proud member of the &#9733;</b><br>
+    <span class="comic" style="font-size:20px" id="ringname">Paranormal Teenz WebRing</span>
+    <div class="nav">
+      <button class="btn" data-ring="-1">&lt;&lt; Prev</button><button class="btn" data-ring="0">Random</button><button class="btn" data-ring="1">Next &gt;&gt;</button>
+    </div>
+    <div id="ringmsg" style="font:12px Arial;margin-top:6px;color:#ccc">Site 42 of 117 &middot; hosted by UFO_Kim</div>
+  </div>
+
+  <a id="links"></a>
+  <h2>Kool Links</h2>
+  <ul class="comic" style="line-height:1.7;padding-left:22px">
+    <li><a href="#links">Mike's Mega Mustang Page</a> &mdash; cars!! and a MIDI of the Knight Rider theme</li>
+    <li><a href="#links">The Official Unofficial Hanson Fan Club</a> &mdash; my sister made me put this</li>
+    <li><a href="#links">Cool Fonts 4 Free</a> &mdash; 2,000 fonts, 1,996 of them are Comic Sans</li>
+    <li><a href="#links">Ask Jeeves</a> &mdash; he knows everything, like a butler</li>
+  </ul>
+
+  <hr class="hr-rainbow">
+
+  <a id="guestbook"></a>
+  <h2>&#9998; Sign My Guestbook!!!</h2>
+  <form class="gb" id="gb" autocomplete="off">
+    <table role="presentation">
+      <tr><td><label for="gname">Name:</label></td><td><input id="gname" maxlength="40" required placeholder="xX_Your_Name_Xx"></td></tr>
+      <tr><td><label for="gfrom">Where from:</label></td><td><input id="gfrom" maxlength="40" placeholder="Planet Earth"></td></tr>
+      <tr><td><label for="gfound">How'd you find me?</label></td><td><select id="gfound"><option>AltaVista</option><option>Yahoo!</option><option>WebRing</option><option>A friend</option><option>Pure dumb luck</option></select></td></tr>
+      <tr><td><label for="gmsg">Comments:</label></td><td><textarea id="gmsg" maxlength="400" required placeholder="cool page!!!"></textarea>
+        <div class="smileys" aria-label="Insert smiley"><button type="button">:-)</button><button type="button">;-)</button><button type="button">:-P</button><button type="button">8-)</button><button type="button">&lt;3</button></div></td></tr>
+      <tr><td></td><td><button class="btn" type="submit">Sign Guestbook!</button> <button class="btn" type="reset">Clear</button> <span id="gbnote" style="font-size:12px"></span></td></tr>
+    </table>
+  </form>
+  <div class="entries" id="entries" aria-live="polite"></div>
+
+  <a id="awards"></a>
+  <div class="badges" aria-label="Web badges">
+    <div class="badge" style="background:#000;color:#0f0;font-family:Courier New">NETSCAPE<br>NOW!</div>
+    <div class="badge" style="background:linear-gradient(#fff,#ccc);color:#00f">MADE WITH<br>NOTEPAD</div>
+    <div class="badge" style="background:#ff0;color:#000">&#9888; Y2K<br>COMPLIANT?</div>
+    <div class="badge" style="background:#f0f;color:#fff">GEEK<br>CODE v3</div>
+    <div class="badge" style="background:#008;color:#ff0">COOL SITE<br>OF THE DAY*</div>
+  </div>
+  <p class="foot">*awarded by me<br>&copy; 1996&ndash;1999 Dave. Last updated 11/03/1997. Do NOT steal my graphics (I made them in Paint).<br><span class="blink">This page is Y2K ready (probably)</span></p>
+</td>
+</tr>
+</table>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const store = {
+    get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+    set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  };
+
+  // ---------- star tile background (generated) ----------
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d');
+    if (x){
+      x.fillStyle = '#000010'; x.fillRect(0,0,160,160);
+      let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      for (let i = 0; i < 70; i++){ const g = 120 + rnd()*135|0; x.fillStyle = `rgb(${g},${g},${Math.min(255,g+30)})`; x.fillRect(rnd()*160|0, rnd()*160|0, 1, 1); }
+      for (let i = 0; i < 5; i++){ const px = rnd()*150+5|0, py = rnd()*150+5|0; x.fillStyle = '#fff'; x.fillRect(px,py,1,1); x.fillStyle = '#88f'; x.fillRect(px-1,py,1,1); x.fillRect(px+1,py,1,1); x.fillRect(px,py-1,1,1); x.fillRect(px,py+1,1,1); }
+      document.body.style.setProperty('--stars', `url(${c.toDataURL()})`);
+    }
+  } catch(e){}
+
+  // ---------- rainbow title ----------
+  const title = $('#title');
+  if (title){
+    const cols = ['#f00','#f80','#ff0','#0f0','#0ff','#48f','#f0f'];
+    const txt = title.textContent; title.textContent = '';
+    let k = 0;
+    [...txt].forEach(ch => { const s = document.createElement('span'); s.textContent = ch; s.setAttribute('aria-hidden','true'); if (ch !== ' ') s.style.color = cols[k++ % cols.length]; title.appendChild(s); });
+    let off = 0;
+    setInterval(() => { off++; let j = 0; title.querySelectorAll('span').forEach(s => { if (s.textContent !== ' ') s.style.color = cols[(j++ + off) % cols.length]; }); }, 260);
+  }
+
+  // ---------- hit counter ----------
+  const counter = $('#counter');
+  if (counter){
+    let n = store.get('dave-hits', 4170) + 1 + Math.floor(Math.random()*3);
+    store.set('dave-hits', n);
+    const digits = String(n).padStart(7,'0').split('');
+    counter.innerHTML = digits.map(() => '<b><i>' + [0,1,2,3,4,5,6,7,8,9].join('<br>') + '</i></b>').join('');
+    counter.setAttribute('aria-label', String(n));
+    requestAnimationFrame(() => requestAnimationFrame(() => counter.querySelectorAll('i').forEach((el, i) => { el.style.transitionDelay = (i*0.05) + 's'; el.style.transform = `translateY(${-26*(+digits[i])}px)`; })));
+  }
+
+  // ---------- guestbook ----------
+  const SEED = [
+    {n:'UFO_Kim', f:'Roswell, NM (for real)', h:'WebRing', m:'Hi Dave!! Found you thru the ring. Your shrine is AWESOME but you spelled Mulder wrong twice. :-P Check out my page, it has a spinning skull.', d:'10/31/1997'},
+    {n:'~*~Sk8rGrrl~*~', f:'Sacramento', h:'AltaVista', m:'I was looking for pictures of skateboards and got X-Files instead. Not mad. Cool counter!!! 8-)', d:'09/02/1997'},
+    {n:'Dave\'s Mom', f:'The kitchen', h:'A friend', m:'David, please get off the internet, I need to call Aunt Linda. Also your room is a mess. Nice page sweetie <3', d:'08/15/1997'},
+    {n:'WebMaster_Bob', f:'Cyberspace', h:'Yahoo!', m:'Great site! Would you like to exchange banners? My site is Bob\'s Bargain Bin of Free Clip Art. 50,000 animated GIFs!!!', d:'06/11/1997'},
+    {n:'x_Fox_x', f:'??? (it\'s classified)', h:'Pure dumb luck', m:'The cigarette guy theory is correct. Do not tell anyone else. They are watching this guestbook. ;-)', d:'03/19/1997'}
+  ];
+  const entries = $('#entries'), form = $('#gb');
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function render(list, freshIdx){
+    if (!entries) return;
+    entries.innerHTML = list.map((e, i) => `<div class="entry${i === freshIdx ? ' fresh' : ''}"><div class="hd"><span>${esc(e.n)}</span><em>${esc(e.d)}</em></div><div class="bd">${esc(e.m)}</div><div class="ft">From: ${esc(e.f || 'the Internet')} &middot; Found me via: ${esc(e.h)}</div></div>`).join('');
+  }
+  let mine = store.get('dave-gb', []);
+  if (!Array.isArray(mine)) mine = [];
+  render(mine.concat(SEED));
+  if (form){
+    const ta = $('#gmsg');
+    form.querySelectorAll('.smileys button').forEach(b => b.addEventListener('click', () => { if (!ta) return; ta.value += (ta.value && !/\s$/.test(ta.value) ? ' ' : '') + b.textContent; ta.focus(); }));
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = ($('#gname')||{}).value || '', msg = (ta||{}).value || '';
+      if (!name.trim() || !msg.trim()) return;
+      const now = new Date();
+      const d = String(now.getMonth()+1).padStart(2,'0') + '/' + String(now.getDate()).padStart(2,'0') + '/1998';
+      mine.unshift({n: name.trim(), f: (($('#gfrom')||{}).value || '').trim(), h: ($('#gfound')||{}).value || 'AltaVista', m: msg.trim(), d});
+      mine = mine.slice(0, 20); store.set('dave-gb', mine);
+      render(mine.concat(SEED), 0);
+      form.reset();
+      const note = $('#gbnote'); if (note){ note.textContent = 'THANK YOU!!! You are now famous.'; setTimeout(() => note.textContent = '', 4000); }
+      if (entries) entries.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  }
+
+  // ---------- webring ----------
+  const RING = ['Paranormal Teenz WebRing','The Area 51 Snack Bar','Crop Circle Collectors','Bigfoot Is Real (And Shy)','Alien Abductee Support Group','Men In Black Fan Club','Lake Monster Enthusiasts'];
+  let ri = 0, site = 42;
+  document.querySelectorAll('[data-ring]').forEach(b => b.addEventListener('click', () => {
+    const d = +b.dataset.ring;
+    site = d === 0 ? 1 + Math.floor(Math.random()*117) : ((site - 1 + d + 117) % 117) + 1;
+    ri = d === 0 ? Math.floor(Math.random()*RING.length) : ri;
+    const nm = $('#ringname'), ms = $('#ringmsg');
+    if (nm) nm.textContent = RING[ri];
+    if (ms) ms.textContent = `Site ${site} of 117 · ` + ['404 Not Found (they moved to Angelfire)','hosted by UFO_Kim','this site has a MIDI, turn your speakers down','under construction since 1996','best viewed in Internet Explorer 4 (boo)'][site % 5];
+  }));
+
+  // ---------- MIDI (WebAudio chiptune) ----------
+  let ac = null, timer = null, step = 0;
+  const scr = $('#midiScr');
+  const N = n => 440 * Math.pow(2, (n - 69)/12);
+  const MEL = [72,76,79,76, 74,77,81,77, 72,76,79,84, 83,79,74,0, 69,72,76,72, 71,74,79,74, 72,76,79,76, 72,0,0,0];
+  const BASS = [48,48,55,55, 50,50,57,57, 48,48,55,55, 55,55,50,50, 45,45,52,52, 43,43,50,50, 48,48,55,55, 48,48,48,48];
+  function note(freq, t, dur, type, vol){
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + .02);
+  }
+  function tick(){
+    if (!ac) return;
+    const t = ac.currentTime + .02, i = step % MEL.length;
+    if (MEL[i]) note(N(MEL[i]), t, .17, 'square', .05);
+    note(N(BASS[i]), t, .2, 'triangle', .12);
+    if (i % 4 === 0){ const len = ac.sampleRate*.05, b = ac.createBuffer(1, len, ac.sampleRate), ch = b.getChannelData(0); for (let k = 0; k < len; k++) ch[k] = (Math.random()*2-1)*(1-k/len)*.25; const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination); s.start(t); }
+    step++;
+    if (scr){ const bars = '|'.repeat(1 + (MEL[i] ? (MEL[i]-66)/2|0 : 0)); scr.textContent = '► dave_theme.mid  ' + String(Math.floor(step/8)).padStart(2,'0') + ':' + String(step%8*7).padStart(2,'0') + ' ' + bars; }
+  }
+  const play = $('#play'), stop = $('#stop');
+  if (play) play.addEventListener('click', () => {
+    try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; return; }
+    if (!timer) timer = setInterval(tick, 180);
+  });
+  if (stop) stop.addEventListener('click', () => { clearInterval(timer); timer = null; if (scr) scr.textContent = '■ dave_theme.mid (stopped)'; });
+
+  // ---------- sparkle cursor trail ----------
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let last = 0, live = 0;
+  const cols = ['#ff0','#0ff','#f0f','#fff','#0f0'];
+  function spark(x, y){
+    if (reduce || live > 24) return;
+    const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('viewBox','0 0 12 12'); s.setAttribute('class','spark'); s.setAttribute('aria-hidden','true');
+    s.innerHTML = `<path d="M6 0 L7 5 L12 6 L7 7 L6 12 L5 7 L0 6 L5 5Z" fill="${cols[Math.random()*cols.length|0]}"/>`;
+    s.style.left = x + 'px'; s.style.top = y + 'px';
+    document.body.appendChild(s); live++;
+    s.addEventListener('animationend', () => { s.remove(); live--; });
+  }
+  window.addEventListener('pointermove', e => { const now = performance.now(); if (now - last > 40){ last = now; spark(e.clientX + (Math.random()-.5)*10, e.clientY + (Math.random()-.5)*10); } }, {passive:true});
+  window.addEventListener('pointerdown', e => { for (let i = 0; i < 5; i++) spark(e.clientX + (Math.random()-.5)*30, e.clientY + (Math.random()-.5)*30); }, {passive:true});
+
+  // construction arm wiggle
+  const arm = document.getElementById('arm');
+  if (arm && !reduce){ let a = 0; setInterval(() => { a = a ? 0 : -12; arm.setAttribute('transform', `rotate(${a} 34 28)`); }, 400); }
+})();
+</script>
+</body>
+</html>

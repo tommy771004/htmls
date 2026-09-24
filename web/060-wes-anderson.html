@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grand Hotel Alpenrose — Concierge Reservations</title>
+<meta name="description" content="嚴格中軸對稱的飯店訂房，電梯開門後遞上房號鑰匙牌。收錄於 100 Creative HTML Works（060・對稱粉彩）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/060-wes-anderson.html">
+<style>
+:root{
+  --pink:#f3b5c3; --pink2:#f8d3db; --blush:#fbe6ea; --bur:#7b1e3c; --bur2:#5c1229; --mint:#a9d9c6; --mint2:#cdebdf; --cream:#fbf2e3; --gold:#c9a15a; --ink:#4a1426;
+  --cg:"Century Gothic","Futura","Avenir Next","Avenir","Trebuchet MS",sans-serif;
+}
+*{box-sizing:border-box}
+html{background:var(--pink)}
+body{margin:0;color:var(--ink);font-family:var(--cg);text-align:center;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.18) 0 22px,transparent 22px 44px),
+    linear-gradient(var(--pink2),var(--pink) 40%)}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding:clamp(18px,3vw,34px) 16px 50px}
+.caps{text-transform:uppercase;letter-spacing:.32em}
+.est{font-size:11px;color:var(--bur);margin:0}
+.est span{display:inline-block;margin:0 .8em;color:var(--gold)}
+
+.facade{display:block;width:min(560px,100%);height:auto;margin:16px auto 0}
+h1{margin:10px 0 0;font:700 clamp(28px,5.4vw,56px)/1.05 var(--cg);text-transform:uppercase;letter-spacing:.14em;color:var(--bur)}
+h1 small{display:block;font-size:.3em;letter-spacing:.5em;color:var(--ink);margin-top:10px;font-weight:400}
+.rule{display:flex;align-items:center;justify-content:center;gap:12px;margin:16px auto 0;color:var(--gold);max-width:420px}
+.rule::before,.rule::after{content:"";flex:1;height:0;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold);padding-top:2px}
+.rule svg{width:22px;height:22px}
+
+/* ---------- elevator ---------- */
+.lift{position:relative;margin:clamp(26px,4vw,40px) auto 0;max-width:780px;background:var(--bur);padding:clamp(12px,2vw,18px);border-radius:14px 14px 4px 4px;
+  box-shadow:0 0 0 4px var(--gold),0 0 0 9px var(--bur),0 24px 40px -18px rgba(92,18,41,.7)}
+.indicator{position:relative;width:min(300px,78%);margin:-4px auto 14px;aspect-ratio:2/1}
+.indicator svg{width:100%;height:100%;display:block}
+.needle{transform-origin:150px 140px;transition:transform 1.4s cubic-bezier(.5,0,.2,1)}
+.shaft{position:relative;overflow:hidden;background:var(--cream);border:3px solid var(--gold);border-radius:6px}
+.doors{position:absolute;inset:0;display:flex;pointer-events:none;z-index:5}
+.door{flex:1;background:
+  repeating-linear-gradient(90deg,transparent 0 18px,rgba(123,30,60,.12) 18px 19px),
+  linear-gradient(90deg,var(--mint),var(--mint2) 50%,var(--mint));transition:transform 1.25s cubic-bezier(.6,0,.25,1);position:relative}
+.door.l{border-right:2px solid var(--gold);transform:translateX(-101%)}
+.door.r{border-left:2px solid var(--gold);transform:translateX(101%)}
+.door::after{content:"";position:absolute;top:44%;width:10px;height:70px;background:linear-gradient(var(--gold),#e8cf95,var(--gold));border-radius:5px}
+.door.l::after{right:14px}.door.r::after{left:14px}
+.door i{position:absolute;left:12%;right:12%;top:8%;bottom:8%;border:2px solid rgba(123,30,60,.35)}
+.closed .door.l,.closed .door.r{transform:none}
+.floor-lbl{font-size:10px;color:var(--pink2);margin-top:10px}
+
+.desk{padding:clamp(20px,3.4vw,40px) clamp(14px,3vw,40px) clamp(24px,3vw,36px)}
+.desk h2{margin:0;font:700 13px/1 var(--cg);text-transform:uppercase;letter-spacing:.4em;color:var(--bur)}
+.desk h2 + p{margin:10px auto 0;font-size:14px;line-height:1.6;max-width:460px;color:#7a4a58}
+.rooms{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:14px;margin:24px auto 0;align-items:end;max-width:640px}
+@media (max-width:620px){.rooms{grid-template-columns:1fr;max-width:300px}}
+.room{background:var(--blush);border:2px solid var(--pink);padding:16px 10px 14px;cursor:pointer;border-radius:4px;transition:transform .3s,border-color .3s,background .3s;min-height:44px}
+.room:hover{transform:translateY(-3px)}
+.room svg{width:70%;max-width:120px;height:auto;display:block;margin:0 auto 8px}
+.room b{display:block;font:700 12px/1.3 var(--cg);text-transform:uppercase;letter-spacing:.18em;color:var(--bur)}
+.room span{display:block;font-size:12px;margin-top:6px;color:#8a5a68}
+.room em{display:block;font-style:normal;font-size:13px;margin-top:8px;color:var(--bur);letter-spacing:.1em}
+.room[aria-pressed="true"]{background:var(--mint2);border-color:var(--bur);box-shadow:0 0 0 3px var(--gold) inset}
+.room:focus-visible,.step button:focus-visible,.chk:focus-within,.bell:focus-visible,.again:focus-visible{outline:2px dashed var(--bur);outline-offset:4px}
+
+.row{display:flex;justify-content:center;gap:clamp(18px,6vw,70px);margin-top:26px;flex-wrap:wrap}
+.step{display:flex;flex-direction:column;align-items:center;gap:8px}
+.step > span{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--bur)}
+.step div{display:flex;align-items:center;gap:10px}
+.step button{width:44px;height:44px;border-radius:50%;border:2px solid var(--bur);background:var(--cream);color:var(--bur);font-size:20px;line-height:1;cursor:pointer}
+.step button:active{background:var(--bur);color:var(--cream)}
+.step output{min-width:64px;font:700 30px/1 var(--cg);color:var(--bur)}
+.amen{display:grid;grid-template-columns:1fr 1fr;gap:10px 26px;max-width:600px;margin:26px auto 0;text-align:left}
+@media (max-width:620px){.amen{grid-template-columns:1fr;max-width:320px}}
+.chk{display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer;font-size:13px;line-height:1.35;color:#6d3a4a;padding:4px 6px;border-radius:4px}
+.amen .chk:nth-child(odd){flex-direction:row-reverse;text-align:right}
+@media (max-width:620px){.amen .chk:nth-child(odd){flex-direction:row;text-align:left}}
+.chk input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;border:2px solid var(--bur);border-radius:50%;background:var(--cream);margin:0;display:grid;place-items:center;cursor:pointer}
+.chk input::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--bur);transform:scale(0);transition:transform .2s}
+.chk input:checked::after{transform:scale(1)}
+.chk small{display:block;color:var(--gold);letter-spacing:.1em}
+
+.total{margin:28px auto 0;display:inline-flex;flex-direction:column;gap:6px;padding:14px 28px;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold)}
+.total span{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--bur)}
+.total b{font:700 28px/1 var(--cg);color:var(--bur);letter-spacing:.06em}
+.bellwrap{margin-top:22px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.bell{width:110px;height:84px;border:0;background:none;cursor:pointer;padding:0}
+.bell svg{width:100%;height:100%;display:block;transition:transform .12s}
+.bell:active svg,.bell.ding svg{transform:translateY(3px) scaleY(.96)}
+.bellwrap small{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--bur)}
+
+/* confirmation */
+.confirm{padding:clamp(24px,4vw,44px) 16px}
+.confirm[hidden],.desk[hidden]{display:none}
+.key{display:inline-block;position:relative;margin-top:16px}
+.key svg{width:min(220px,60vw);height:auto;display:block;margin:0 auto;transform-origin:50% 0;animation:swing 3.2s ease-in-out infinite}
+@keyframes swing{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+.slip{max-width:460px;margin:20px auto 0;background:#fff;border:1px solid var(--pink);padding:22px 24px;box-shadow:0 12px 24px -12px rgba(92,18,41,.4);position:relative}
+.slip::before{content:"";position:absolute;inset:6px;border:1px solid var(--gold);pointer-events:none}
+.slip h3{margin:0 0 12px;font:700 12px/1 var(--cg);letter-spacing:.4em;text-transform:uppercase;color:var(--bur)}
+.slip dl{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin:0;font-size:13px;text-align:left}
+.slip dt{text-align:right;color:#9a6a78;text-transform:uppercase;letter-spacing:.14em;font-size:11px;align-self:center}
+.slip dd{margin:0;color:var(--bur);font-weight:700}
+.slip p{margin:14px 0 0;font-size:13px;line-height:1.6;color:#7a4a58;font-style:italic}
+.sig{font:italic 400 22px/1 "Segoe Script","Brush Script MT","Snell Roundhand",cursive;color:var(--bur);margin-top:10px}
+.again{margin-top:22px;min-height:46px;padding:0 26px;border:2px solid var(--bur);background:transparent;color:var(--bur);font:700 12px/1 var(--cg);letter-spacing:.3em;text-transform:uppercase;cursor:pointer}
+.again:hover{background:var(--bur);color:var(--cream)}
+footer{margin-top:34px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--bur);line-height:2}
+@media (prefers-reduced-motion:reduce){.door,.needle{transition-duration:.01s}.key svg{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="est caps">Est. 1911<span>✦</span>Kleinhalden<span>✦</span>Altitude 1,742 m</p>
+
+  <svg class="facade" viewBox="0 0 560 300" role="img" aria-label="The pink facade of the Grand Hotel Alpenrose">
+    <defs><pattern id="win" width="1" height="1"><rect width="100%" height="100%" fill="#cdebdf"/></pattern></defs>
+    <!-- mountains -->
+    <path d="M0 150 L90 60 L150 110 L200 40 L280 120 L360 40 L410 110 L470 60 L560 150 V300 H0Z" fill="#fbe6ea"/>
+    <path d="M200 40 L222 62 L210 60 L200 70 L190 60 L178 62Z M360 40 L382 62 L370 60 L360 70 L350 60 L338 62Z" fill="#fff"/>
+    <!-- funicular lines, mirrored -->
+    <path d="M0 120 L140 190 M560 120 L420 190" stroke="#7b1e3c" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <!-- building -->
+    <rect x="110" y="120" width="340" height="170" fill="#f3b5c3" stroke="#7b1e3c" stroke-width="2"/>
+    <rect x="200" y="80" width="160" height="210" fill="#f8d3db" stroke="#7b1e3c" stroke-width="2"/>
+    <path d="M190 80 L280 34 L370 80Z" fill="#7b1e3c"/>
+    <circle cx="280" cy="64" r="12" fill="#fbf2e3" stroke="#c9a15a" stroke-width="2"/><path d="M280 64 V56 M280 64 L286 66" stroke="#7b1e3c" stroke-width="1.6"/>
+    <path d="M100 120 H460 V128 H100Z M190 80 H370 V87 H190Z" fill="#c9a15a"/>
+    <!-- flags -->
+    <path d="M280 34 V8" stroke="#7b1e3c" stroke-width="2"/><path d="M280 8 L300 13 L280 18Z" fill="#a9d9c6"/>
+    <path d="M120 120 V96 M440 120 V96" stroke="#7b1e3c" stroke-width="2"/><path d="M120 96 L136 100 L120 104Z" fill="#a9d9c6"/><path d="M440 96 L424 100 L440 104Z" fill="#a9d9c6"/>
+    <!-- windows, symmetric -->
+    <g fill="#cdebdf" stroke="#7b1e3c" stroke-width="1.5">
+      <rect x="128" y="140" width="22" height="30"/><rect x="164" y="140" width="22" height="30"/><rect x="374" y="140" width="22" height="30"/><rect x="410" y="140" width="22" height="30"/>
+      <rect x="128" y="190" width="22" height="30"/><rect x="164" y="190" width="22" height="30"/><rect x="374" y="190" width="22" height="30"/><rect x="410" y="190" width="22" height="30"/>
+      <rect x="128" y="240" width="22" height="30"/><rect x="164" y="240" width="22" height="30"/><rect x="374" y="240" width="22" height="30"/><rect x="410" y="240" width="22" height="30"/>
+      <rect x="218" y="100" width="20" height="26"/><rect x="250" y="100" width="20" height="26"/><rect x="290" y="100" width="20" height="26"/><rect x="322" y="100" width="20" height="26"/>
+      <rect x="218" y="146" width="20" height="26"/><rect x="250" y="146" width="20" height="26"/><rect x="290" y="146" width="20" height="26"/><rect x="322" y="146" width="20" height="26"/>
+      <rect x="218" y="192" width="20" height="26"/><rect x="322" y="192" width="20" height="26"/>
+    </g>
+    <!-- entrance + awning -->
+    <path d="M244 290 V236 Q280 206 316 236 V290Z" fill="#7b1e3c"/>
+    <path d="M236 232 H324 L316 244 H244Z" fill="#a9d9c6" stroke="#7b1e3c"/>
+    <path d="M244 244 l6 6 6 -6 6 6 6 -6 6 6 6 -6 6 6 6 -6 6 6 6 -6" fill="none" stroke="#7b1e3c"/>
+    <text x="280" y="212" text-anchor="middle" font-family="Century Gothic, Futura, sans-serif" font-size="9" letter-spacing="3" fill="#7b1e3c" font-weight="700">ALPENROSE</text>
+    <!-- topiaries -->
+    <g fill="#6fb89c"><circle cx="226" cy="274" r="9"/><circle cx="334" cy="274" r="9"/></g><path d="M226 283 V290 M334 283 V290" stroke="#7b1e3c" stroke-width="2"/>
+    <path d="M0 290 H560" stroke="#7b1e3c" stroke-width="3"/>
+  </svg>
+
+  <h1>Grand Hotel Alpenrose<small>Concierge · Reservations by Hand</small></h1>
+  <div class="rule" aria-hidden="true"><svg viewBox="0 0 22 22"><path d="M11 1 L13 9 L21 11 L13 13 L11 21 L9 13 L1 11 L9 9Z" fill="currentColor"/></svg></div>
+
+  <section class="lift" aria-label="Reservation lift">
+    <div class="indicator" aria-hidden="true">
+      <svg viewBox="0 0 300 150">
+        <path d="M20 140 A130 130 0 0 1 280 140Z" fill="#c9a15a"/>
+        <path d="M34 140 A116 116 0 0 1 266 140Z" fill="#fbf2e3"/>
+        <g font-family="Century Gothic, Futura, sans-serif" font-size="15" font-weight="700" fill="#7b1e3c" text-anchor="middle" id="dialnums"></g>
+        <g class="needle" id="needle"><path d="M150 140 L146 136 L150 44 L154 136Z" fill="#7b1e3c"/></g>
+        <circle cx="150" cy="140" r="9" fill="#7b1e3c"/><circle cx="150" cy="140" r="4" fill="#c9a15a"/>
+      </svg>
+    </div>
+    <div class="shaft" id="shaft">
+      <div class="doors" aria-hidden="true"><div class="door l"><i></i></div><div class="door r"><i></i></div></div>
+
+      <form class="desk" id="desk" autocomplete="off">
+        <h2>The Concierge Desk</h2>
+        <p>Kindly select your accommodations. Monsieur Anatole will attend to the remaining particulars, as he has since 1931.</p>
+        <div class="rooms" id="rooms" role="group" aria-label="Room"></div>
+        <div class="row">
+          <div class="step"><span>Nights</span><div><button type="button" data-k="nights" data-d="-1" aria-label="fewer nights">−</button><output id="nights">3</output><button type="button" data-k="nights" data-d="1" aria-label="more nights">+</button></div></div>
+          <div class="step"><span>Guests</span><div><button type="button" data-k="guests" data-d="-1" aria-label="fewer guests">−</button><output id="guests">2</output><button type="button" data-k="guests" data-d="1" aria-label="more guests">+</button></div></div>
+        </div>
+        <div class="amen" id="amen"></div>
+        <div class="total"><span>Total, in Klubecks</span><b id="total">—</b></div>
+        <div class="bellwrap">
+          <button type="submit" class="bell" id="bell" aria-label="Ring the bell to confirm the reservation">
+            <svg viewBox="0 0 110 84" aria-hidden="true"><rect x="10" y="70" width="90" height="10" rx="3" fill="#7b1e3c"/><path d="M18 70 Q18 28 55 28 Q92 28 92 70Z" fill="#c9a15a"/><path d="M28 62 Q30 38 50 34" stroke="#f3e2b8" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="51" y="14" width="8" height="14" fill="#7b1e3c"/><ellipse cx="55" cy="13" rx="11" ry="4" fill="#c9a15a"/></svg>
+          </button>
+          <small>Ring for service</small>
+        </div>
+      </form>
+
+      <div class="confirm" id="confirm" hidden aria-live="polite"></div>
+    </div>
+    <div class="floor-lbl caps" id="floorlbl">Lift No. 2 · Lobby</div>
+  </section>
+
+  <footer>Grand Hotel Alpenrose is entirely imaginary<br>Pastries are, regrettably, also imaginary</footer>
+</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const shaft = $('#shaft'), desk = $('#desk'), confirmEl = $('#confirm'), roomsEl = $('#rooms'), amenEl = $('#amen'), needle = $('#needle'), totalEl = $('#total'), floorLbl = $('#floorlbl'), bell = $('#bell');
+  if (!shaft || !desk || !confirmEl || !roomsEl || !amenEl) return;
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // floor dial: L,1..6 across a half circle
+  const FLOORS = ['L','1','2','3','4','5','6'];
+  const dn = $('#dialnums');
+  const ang = i => Math.PI + .28 + i*(Math.PI - .56)/6;
+  if (dn) dn.innerHTML = FLOORS.map((f, i) => { const a = ang(i); return `<text x="${(150 + 98*Math.cos(a)).toFixed(1)}" y="${(145 + 98*Math.sin(a)).toFixed(1)}">${f}</text>`; }).join('');
+  function setFloor(i){ if (needle) needle.style.transform = `rotate(${((ang(i) - 1.5*Math.PI)*180/Math.PI).toFixed(1)}deg)`; }
+  setFloor(0);
+
+  const ROOMS = [
+    {id:'court', n:'Single', s:'Courtyard view · a very small window', p:180, floor:2,
+     svg:'<rect x="10" y="10" width="100" height="70" fill="#fbf2e3" stroke="#7b1e3c" stroke-width="2"/><rect x="45" y="18" width="30" height="24" fill="#cdebdf" stroke="#7b1e3c"/><rect x="20" y="52" width="46" height="18" fill="#f3b5c3" stroke="#7b1e3c"/><rect x="20" y="46" width="14" height="8" fill="#fff" stroke="#7b1e3c"/><rect x="80" y="50" width="18" height="20" fill="#c9a15a"/>'},
+    {id:'suite', n:'The Imperial Suite', s:'Two balconies · one grand piano · a history', p:640, floor:6,
+     svg:'<rect x="6" y="6" width="108" height="78" fill="#fbf2e3" stroke="#7b1e3c" stroke-width="2"/><path d="M24 40 V18 Q60 2 96 18 V40" fill="#cdebdf" stroke="#7b1e3c"/><rect x="18" y="52" width="84" height="22" fill="#f3b5c3" stroke="#7b1e3c"/><rect x="24" y="46" width="18" height="8" fill="#fff" stroke="#7b1e3c"/><rect x="78" y="46" width="18" height="8" fill="#fff" stroke="#7b1e3c"/><path d="M60 18 V40 M24 29 H96" stroke="#7b1e3c"/><circle cx="60" cy="12" r="3" fill="#c9a15a"/>'},
+    {id:'mount', n:'Double', s:'Mountain view · the good mountain', p:290, floor:4,
+     svg:'<rect x="10" y="10" width="100" height="70" fill="#fbf2e3" stroke="#7b1e3c" stroke-width="2"/><rect x="36" y="16" width="48" height="28" fill="#cdebdf" stroke="#7b1e3c"/><path d="M38 42 L52 26 L60 34 L70 22 L82 42Z" fill="#fff" stroke="#7b1e3c" stroke-width=".8"/><rect x="24" y="52" width="72" height="18" fill="#f3b5c3" stroke="#7b1e3c"/><rect x="30" y="46" width="14" height="8" fill="#fff" stroke="#7b1e3c"/><rect x="76" y="46" width="14" height="8" fill="#fff" stroke="#7b1e3c"/>'}
+  ];
+  const AMEN = [
+    {id:'pastry', n:'A pastry at turndown', s:'+ 12 Kl. per night', p:12, per:true},
+    {id:'bath', n:'A drawn bath at seven sharp', s:'+ 20 Kl. per night', p:20, per:true},
+    {id:'yodel', n:'Wake-up call, sung', s:'+ 8 Kl. per night', p:8, per:true},
+    {id:'discreet', n:'Absolute discretion, no questions', s:'+ 90 Kl. once', p:90, per:false},
+    {id:'lobbyboy', n:'A lobby boy, on call', s:'+ 15 Kl. per night', p:15, per:true},
+    {id:'funi', n:'Funicular from the station', s:'+ 6 Kl. per guest', p:6, per:'guest'}
+  ];
+  let st = {room: 1, nights: 3, guests: 2, amen: new Set(['pastry'])};
+
+  const roomBtns = ROOMS.map((r, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'room';
+    b.innerHTML = `<svg viewBox="0 0 120 90" aria-hidden="true">${r.svg}</svg><b>${r.n}</b><span>${r.s}</span><em>${r.p} Kl. / night</em>`;
+    b.addEventListener('click', () => { st.room = i; paint(); chime(660 + i*110, .06); });
+    roomsEl.appendChild(b); return b;
+  });
+  AMEN.forEach(a => {
+    const l = document.createElement('label'); l.className = 'chk';
+    l.innerHTML = `<input type="checkbox" value="${a.id}" ${st.amen.has(a.id) ? 'checked' : ''}><span>${a.n}<small>${a.s}</small></span>`;
+    const inp = l.querySelector('input');
+    inp.addEventListener('change', () => { inp.checked ? st.amen.add(a.id) : st.amen.delete(a.id); paint(); });
+    amenEl.appendChild(l);
+  });
+  desk.querySelectorAll('.step button').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.k, d = +b.dataset.d;
+    st[k] = Math.max(1, Math.min(k === 'nights' ? 14 : 4, st[k] + d)); paint();
+  }));
+  function total(){
+    let t = ROOMS[st.room].p * st.nights;
+    AMEN.forEach(a => { if (st.amen.has(a.id)) t += a.per === true ? a.p*st.nights : a.per === 'guest' ? a.p*st.guests : a.p; });
+    return t;
+  }
+  const fmt = n => n.toLocaleString('en-US') + ' Kl.';
+  function paint(){
+    roomBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === st.room)));
+    const n = $('#nights'), g = $('#guests'); if (n) n.textContent = st.nights; if (g) g.textContent = st.guests;
+    if (totalEl) totalEl.textContent = fmt(total());
+  }
+  paint();
+
+  // ---------- sound ----------
+  let ac = null;
+  function audio(){ try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
+  function chime(f, v){
+    const a = audio(); if (!a) return; const t = a.currentTime;
+    [1, 2.4, 4.1].forEach((m, k) => { const o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.value = f*m; g.gain.setValueAtTime((v||.12)/(k+1), t); g.gain.exponentialRampToValueAtTime(.0001, t + 1.6 - k*.4); o.connect(g).connect(a.destination); o.start(t); o.stop(t + 1.7); });
+  }
+  function hum(dur){
+    const a = ac; if (!a) return; const t = a.currentTime, o = a.createOscillator(), g = a.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(55, t); o.frequency.linearRampToValueAtTime(70, t + dur);
+    const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 220;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.05, t + .3); g.gain.setValueAtTime(.05, t + dur - .3); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(f).connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .05);
+  }
+
+  // ---------- lift sequence ----------
+  const wait = ms => new Promise(r => setTimeout(r, reduce ? 20 : ms));
+  let busy = false;
+  async function ride(toFloor, swap, label){
+    busy = true;
+    shaft.classList.add('closed'); await wait(1300);
+    swap();
+    hum(1.5); setFloor(toFloor); if (floorLbl) floorLbl.textContent = 'Lift No. 2 · ' + label; await wait(1600);
+    chime(1046, .1); shaft.classList.remove('closed'); await wait(600);
+    busy = false;
+  }
+  const NAMES = ['Mme. Céleste', 'Herr Wolkenstein', 'Lady Pemberton-Ash', 'M. Dufresne'];
+  desk.addEventListener('submit', e => {
+    e.preventDefault(); if (busy) return;
+    audio(); chime(1318, .16);
+    if (bell){ bell.classList.add('ding'); setTimeout(() => bell.classList.remove('ding'), 180); }
+    const r = ROOMS[st.room], num = r.floor*100 + (st.room === 1 ? 1 : 10 + Math.floor(Math.random()*30));
+    const extras = AMEN.filter(a => st.amen.has(a.id)).map(a => a.n.toLowerCase());
+    const note = extras.length ? `We have arranged ${extras.slice(0,-1).join(', ')}${extras.length > 1 ? ' and ' : ''}${extras[extras.length-1]}.` : 'You have requested nothing extra, which is, frankly, admirable.';
+    ride(r.floor, () => {
+      desk.hidden = true; confirmEl.hidden = false;
+      confirmEl.innerHTML = `<h2 class="caps" style="margin:0;font-size:13px;letter-spacing:.4em;color:var(--bur)">Reservation Confirmed</h2>
+        <div class="key"><svg viewBox="0 0 160 220" aria-label="Brass key with tag for room ${num}" role="img">
+          <circle cx="80" cy="14" r="8" fill="none" stroke="#c9a15a" stroke-width="4"/><path d="M80 22 V46" stroke="#c9a15a" stroke-width="3"/>
+          <path d="M30 46 H130 L140 60 V190 Q80 214 20 190 V60Z" fill="#7b1e3c"/><path d="M36 58 H124 L130 66 V184 Q80 204 30 184 V66Z" fill="none" stroke="#c9a15a" stroke-width="2"/>
+          <text x="80" y="92" text-anchor="middle" font-family="Century Gothic, Futura, sans-serif" font-size="11" letter-spacing="3" fill="#f3b5c3">ALPENROSE</text>
+          <text x="80" y="146" text-anchor="middle" font-family="Century Gothic, Futura, sans-serif" font-size="46" font-weight="700" fill="#fbf2e3">${num}</text>
+          <text x="80" y="172" text-anchor="middle" font-family="Century Gothic, Futura, sans-serif" font-size="9" letter-spacing="2" fill="#c9a15a">PLEASE RETURN</text></svg></div>
+        <div class="slip"><h3>Particulars</h3><dl>
+          <dt>Room</dt><dd>${r.n}, No. ${num}</dd><dt>Floor</dt><dd>${FLOORS[r.floor]}</dd>
+          <dt>Nights</dt><dd>${st.nights}</dd><dt>Guests</dt><dd>${st.guests}</dd><dt>Total</dt><dd>${fmt(total())}</dd></dl>
+          <p>${note} Your neighbour on the ${({2:'second',4:'fourth',6:'sixth'})[r.floor] || FLOORS[r.floor]} floor is ${NAMES[Math.floor(Math.random()*NAMES.length)]}, who prefers not to be greeted before noon.</p>
+          <div class="sig">Anatole</div></div>
+        <button class="again" type="button" id="again">Another reservation</button>`;
+      const again = $('#again');
+      if (again){ again.addEventListener('click', () => { if (busy) return; audio(); ride(0, () => { confirmEl.hidden = true; desk.hidden = false; }, 'Lobby'); }); setTimeout(() => again.focus({preventScroll:true}), 50); }
+    }, 'Floor ' + FLOORS[r.floor]);
+  });
+
+  // opening shot: the doors part on arrival
+  shaft.classList.add('closed');
+  setTimeout(() => shaft.classList.remove('closed'), reduce ? 0 : 250);
+})();
+</script>
+</body>
+</html>

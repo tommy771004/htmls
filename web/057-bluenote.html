@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blue Hour Records — Cover Department</title>
+<meta name="description" content="Reid Miles 風封面產生器：5 種版型、7 組雙色調、黑膠滑出。收錄於 100 Creative HTML Works（057・爵士唱片封面）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/057-bluenote.html">
+<style>
+:root{
+  --bg:#141312; --paper:#f1ebdd; --mute:#9a9385; --line:#2c2a27;
+  --fg:"Franklin Gothic Medium","Franklin Gothic","ITC Franklin Gothic","Libre Franklin","Arial Narrow",Arial,sans-serif;
+  --nar:"Arial Narrow","Helvetica Neue Condensed","Roboto Condensed",Arial,sans-serif;
+  --tint:#1d5fa8; --block:#e8a13c;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;color:var(--paper);font-family:var(--nar);overflow-x:hidden}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:1280px;margin:0 auto;padding:clamp(16px,3vw,36px) clamp(16px,3vw,36px) 50px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo .dot{width:42px;height:42px;border-radius:50%;background:var(--tint);position:relative;transition:background .6s}
+.logo .dot::after{content:"";position:absolute;inset:14px;border-radius:50%;background:var(--bg)}
+.logo b{display:block;font:400 26px/1 var(--fg);letter-spacing:-.01em;text-transform:lowercase}
+.logo small{display:block;font:700 11px/1.4 var(--nar);letter-spacing:.3em;text-transform:uppercase;color:var(--mute)}
+header nav{font:700 12px/1 var(--nar);letter-spacing:.24em;text-transform:uppercase;color:var(--mute)}
+header nav b{color:var(--paper)}
+
+.studio{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(24px,4vw,56px);margin-top:clamp(20px,3vw,34px);align-items:start}
+@media (max-width:900px){.studio{grid-template-columns:minmax(0,1fr)}}
+.sleeve{position:relative;width:min(100%,600px);aspect-ratio:1;margin-right:clamp(30px,8%,110px)}
+.vinyl{position:absolute;top:3%;left:3%;width:94%;height:94%;border-radius:50%;
+  background:repeating-radial-gradient(circle at 50% 50%,#0b0b0b 0 2px,#161616 2px 3px),#0b0b0b;box-shadow:0 10px 30px rgba(0,0,0,.6);
+  transform:translateX(18%);transition:transform 1.1s cubic-bezier(.2,.9,.2,1)}
+.vinyl::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 30deg,transparent 0 10%,rgba(255,255,255,.08) 14%,transparent 20% 60%,rgba(255,255,255,.06) 64%,transparent 70%)}
+.vinyl .label{position:absolute;inset:34%;border-radius:50%;background:var(--block);display:grid;place-items:center;text-align:center;color:#111;transition:background .6s;animation:spin 6s linear infinite}
+.vinyl .label span{font:700 clamp(8px,1vw,11px)/1.2 var(--nar);letter-spacing:.12em;text-transform:uppercase;max-width:70%}
+.vinyl .label::after{content:"";position:absolute;width:6%;height:6%;border-radius:50%;background:#0b0b0b;left:47%;top:47%}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sleeve.out .vinyl{transform:translateX(34%)}
+@media (max-width:900px){.sleeve{margin:0 auto 0 0;width:calc(100% - 50px)}.sleeve .vinyl{transform:translateX(12%)}.sleeve.out .vinyl{transform:translateX(16%)}}
+.cover{position:absolute;inset:0;box-shadow:0 20px 50px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.05);background:#111;overflow:hidden}
+.cover svg{display:block;width:100%;height:100%}
+.cover::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.07),transparent 40%,rgba(0,0,0,.15));mix-blend-mode:screen}
+/* slide-in vocabulary */
+.cover .sl,.cover .sr,.cover .su,.cover .sd,.cover .fd{transform-box:fill-box;animation-duration:.9s;animation-timing-function:cubic-bezier(.2,.9,.15,1);animation-fill-mode:both}
+.cover .sl{animation-name:sl}.cover .sr{animation-name:sr}.cover .su{animation-name:su}.cover .sd{animation-name:sd}.cover .fd{animation-name:fd;animation-duration:1.2s}
+@keyframes sl{from{transform:translateX(-110%)}}
+@keyframes sr{from{transform:translateX(110%)}}
+@keyframes su{from{transform:translateY(110%)}}
+@keyframes sd{from{transform:translateY(-110%)}}
+@keyframes fd{from{opacity:0}}
+
+.panel h2{margin:0;font:400 clamp(30px,3.6vw,46px)/.95 var(--fg);letter-spacing:-.015em;text-transform:lowercase}
+.panel h2 span{color:var(--block);transition:color .6s}
+.panel p.intro{color:var(--mute);font-size:16px;line-height:1.5;margin:10px 0 20px;max-width:440px}
+.field{display:block;margin-bottom:14px}
+.field span{display:block;font:700 11px/1 var(--nar);letter-spacing:.26em;text-transform:uppercase;color:var(--mute);margin-bottom:6px}
+.field input{width:100%;background:transparent;border:0;border-bottom:2px solid #3b3833;padding:6px 0 8px;font:400 clamp(22px,2.2vw,28px)/1.1 var(--fg);outline:none;min-height:44px}
+.field input:focus{border-color:var(--block)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 6px}
+.b{min-height:46px;padding:0 18px;background:transparent;border:2px solid var(--paper);font:700 13px/1 var(--nar);letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:background .15s,color .15s}
+.b:hover,.b:focus-visible{background:var(--paper);color:var(--bg);outline:none}
+.b.main{background:var(--block);border-color:var(--block);color:#111}
+.b.main:hover,.b.main:focus-visible{background:var(--paper);border-color:var(--paper)}
+.keys{font-size:13px;color:var(--mute);margin:8px 0 0}
+.keys kbd{font:inherit;border:1px solid #3b3833;padding:0 6px;border-radius:3px;color:var(--paper)}
+.notes{margin-top:26px;border-top:2px solid var(--paper);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px 22px;font-size:14px;line-height:1.45;color:#cfc8b8}
+@media (max-width:480px){.notes{grid-template-columns:1fr}}
+.notes h3{grid-column:1/-1;margin:0;font:700 11px/1 var(--nar);letter-spacing:.3em;text-transform:uppercase;color:var(--mute)}
+.notes dl{margin:0}
+.notes dt{font:400 16px/1.2 var(--fg);color:var(--paper)}
+.notes dd{margin:0 0 8px;font-style:italic}
+.notes p{margin:0}
+
+.catalog{margin-top:clamp(36px,5vw,60px)}
+.catalog h2{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:10px;margin:0 0 16px;font:400 28px/1 var(--fg);text-transform:lowercase}
+.catalog h2 small{font:700 11px/1 var(--nar);letter-spacing:.26em;text-transform:uppercase;color:var(--mute)}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+@media (max-width:480px){.shelf{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.shelf button{padding:0;border:0;background:#111;aspect-ratio:1;cursor:pointer;position:relative;box-shadow:0 8px 20px rgba(0,0,0,.5);transition:transform .25s}
+.shelf button:hover,.shelf button:focus-visible{transform:translateY(-6px) rotate(-1deg);outline:none}
+.shelf button svg{display:block;width:100%;height:100%}
+.shelf button .no{position:absolute;left:0;bottom:-20px;font:700 10px/1 var(--nar);letter-spacing:.2em;color:var(--mute)}
+.shelf{padding-bottom:22px}
+footer{margin-top:30px;color:#6d675c;font-size:12px;letter-spacing:.08em}
+@media (prefers-reduced-motion:reduce){.vinyl .label{animation:none}.cover .sl,.cover .sr,.cover .su,.cover .sd,.cover .fd{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><div class="dot"></div><div><b>blue hour records</b><small>Cover Department · Est. 1958</small></div></div>
+    <nav>High fidelity · <b>12" LP</b> · 33⅓ RPM</nav>
+  </header>
+
+  <div class="studio">
+    <div class="sleeve" id="sleeve">
+      <div class="vinyl"><div class="label"><span id="vlabel">Blue Hour</span></div></div>
+      <div class="cover" id="cover" aria-live="polite"></div>
+    </div>
+
+    <section class="panel">
+      <h2>press a <span>new sleeve.</span></h2>
+      <p class="intro">Type a leader and a title, then let the art department pick the photo, the duotone and the layout. Every sleeve is one of a kind — like the session.</p>
+      <label class="field"><span>Leader</span><input id="artist" maxlength="28" value="Otis Kessel"></label>
+      <label class="field"><span>Album title</span><input id="title" maxlength="34" value="Night Bus to Newark"></label>
+      <div class="btns">
+        <button class="b main" id="press">Press it</button>
+        <button class="b" id="lay">Layout</button>
+        <button class="b" id="col">Colours</button>
+        <button class="b" id="pic">Photo</button>
+        <button class="b" id="rnd">Surprise me</button>
+      </div>
+      <p class="keys">Shortcuts: <kbd>Space</kbd> press · <kbd>L</kbd> layout · <kbd>C</kbd> colours · <kbd>P</kbd> photo</p>
+      <div class="notes" id="notes"></div>
+    </section>
+  </div>
+
+  <section class="catalog">
+    <h2>the catalog <small id="count">BHR 1501 —</small></h2>
+    <div class="shelf" id="shelf"></div>
+  </section>
+  <footer>Blue Hour Records is a fictional label. All photographs are vector illusions; no musicians were photographed without their hats.</footer>
+</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const cover = $('#cover'), shelf = $('#shelf'), notes = $('#notes'), artistI = $('#artist'), titleI = $('#title'), sleeve = $('#sleeve'), vlabel = $('#vlabel');
+  if (!cover || !shelf || !artistI || !titleI) return;
+
+  const PAL = [
+    {t:'#1f63b0', b:'#eaa23a', n:'midnight / brass'},
+    {t:'#b73a2f', b:'#f1e4c3', n:'brick / cream'},
+    {t:'#23805c', b:'#f2c230', n:'jade / mustard'},
+    {t:'#6b3fa3', b:'#f08a4b', n:'plum / tangerine'},
+    {t:'#c9981a', b:'#1b1b1b', n:'ochre / ink'},
+    {t:'#0f8c9c', b:'#e2483d', n:'teal / vermilion'},
+    {t:'#8a8a86', b:'#e6ff3d', n:'slate / chartreuse'}
+  ];
+  const ARTISTS = ['Otis Kessel','Lorraine Batch','Freddie Quill','Cleo Vance','Sonny Pritchard','Ray Maddox','Hattie Brome','Lucius Tarr','Wendell Oakes','Mae Coltrane-Smythe'];
+  const TITLES = ['Night Bus to Newark','Coffee at Four','Minor Inconvenience','Speak Softly, Walk Uptown','Take the Late Train','The Sidewinder’s Cousin','Blue Laundromat','Hard Bop Hard Drive','Somewhere Near Tuesday','Sugar, No Cream'];
+  const INSTR = ['tenor saxophone','trumpet','piano','bass','drums','alto saxophone','trombone','vibraphone','guitar'];
+  const FIRST = ['Duke','Benny','Clara','Moses','Ike','Pearl','Jimmy','Lou','Nat','Ida','Rollo','Teddy'];
+  const LAST = ['Farrow','Hollis','Kemp','Albright','Noon','Pettiford-Lane','Grange','Whitlock','Vail','Rook','Mercer','Ashby'];
+  const TUNES = ['Last Call Blues','Porch Light','Rent Party','Fifth Floor Walk-Up','Nickel Ride','Soft Shoe Sam','The Late Show','Cold Radiator','Ninth Avenue Strut','A Hat Named Harold','Moth Waltz','Sunday Pawnshop'];
+  const STUDIOS = ['a converted laundromat in Hackensack','a dentist’s waiting room in Newark','the back room of Maxie’s Diner','a church basement in Harlem','a parking garage with unusual acoustics'];
+
+  const R = a => a[Math.floor(Math.random()*a.length)];
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let cat = 1501, uid = 0;
+  let state = {layout: 0, pal: 0, pic: 0};
+
+  // ---------- "photographs" (grey silhouettes -> duotone filter) ----------
+  const PICS = [
+    // saxophone close-up
+    `<rect width="300" height="300" fill="url(#lightG)"/>
+     <path d="M190 -10 L205 -10 L210 120 C214 190 200 250 150 262 C106 272 76 246 80 212 L96 214 C96 238 116 252 146 246 C184 238 196 200 194 130Z" fill="#1a1a1a"/>
+     <ellipse cx="88" cy="212" rx="34" ry="14" fill="#0a0a0a" transform="rotate(-12 88 212)"/>
+     ${[40,70,100,130,160].map((y,i)=>`<circle cx="${214 - i*2}" cy="${y}" r="9" fill="#777" stroke="#111" stroke-width="3"/><circle cx="${214-i*2}" cy="${y}" r="4" fill="#ddd"/>`).join('')}
+     <path d="M206 30 C230 60 240 110 232 160" stroke="#bbb" stroke-width="3" fill="none"/>
+     <path d="M0 300 C40 250 60 240 110 250 L120 300Z" fill="#050505"/>
+     <path d="M30 60 C60 40 50 20 80 0" stroke="#fff" stroke-opacity=".25" stroke-width="14" fill="none" stroke-linecap="round"/>`,
+    // trumpet bell
+    `<rect width="300" height="300" fill="url(#lightG)"/>
+     <circle cx="120" cy="150" r="104" fill="#1c1c1c"/><circle cx="120" cy="150" r="88" fill="#3a3a3a"/><circle cx="120" cy="150" r="60" fill="#0c0c0c"/><circle cx="120" cy="150" r="20" fill="#000"/>
+     <path d="M60 94 A80 80 0 0 1 150 72" stroke="#eee" stroke-width="10" fill="none" stroke-linecap="round" opacity=".8"/>
+     <path d="M224 150 H300" stroke="#1c1c1c" stroke-width="26"/><path d="M240 110 v80 M262 110 v80 M284 110 v80" stroke="#111" stroke-width="12"/>
+     <circle cx="240" cy="106" r="10" fill="#aaa"/><circle cx="262" cy="106" r="10" fill="#aaa"/><circle cx="284" cy="106" r="10" fill="#aaa"/>`,
+    // piano keys in perspective
+    `<rect width="300" height="300" fill="#222"/>
+     <path d="M-20 300 L140 60 L330 110 L330 300Z" fill="#e8e8e8"/>
+     ${[...Array(15)].map((_,i)=>{const t=i/14;const x1=-20+160*0+ t*350, x2=140+t*190;return `<path d="M${(-20+t*350).toFixed(1)} 300 L${(140+t*190).toFixed(1)} ${(60+t*50).toFixed(1)}" stroke="#555" stroke-width="2"/>`;}).join('')}
+     ${[1,2,4,5,6,8,9,11,12,13].map(i=>{const t=i/14, t2=(i+.55)/14;return `<path d="M${(140+t*190-8).toFixed(1)} ${(60+t*50).toFixed(1)} L${(40+t*290).toFixed(1)} ${(170+t*30).toFixed(1)} L${(40+t2*290).toFixed(1)} ${(170+t2*30).toFixed(1)} L${(140+t2*190-8).toFixed(1)} ${(60+t2*50).toFixed(1)}Z" fill="#0c0c0c"/>`;}).join('')}
+     <path d="M-20 300 L140 60 L150 50 L-10 300Z" fill="#999"/>
+     <ellipse cx="80" cy="60" rx="120" ry="40" fill="#fff" opacity=".12"/>`,
+    // upright bass: f-hole and strings
+    `<rect width="300" height="300" fill="url(#lightG)"/>
+     <path d="M40 -10 C0 80 10 180 60 320 L300 320 L300 -10Z" fill="#2a2a2a"/>
+     <path d="M160 -10 L150 320 M178 -10 L172 320 M196 -10 L194 320 M214 -10 L216 320" stroke="#ddd" stroke-width="3"/>
+     <path d="M100 60 C80 100 120 130 96 180 C86 200 100 222 112 214" stroke="#050505" stroke-width="10" fill="none" stroke-linecap="round"/>
+     <circle cx="104" cy="62" r="8" fill="#050505"/><circle cx="112" cy="214" r="8" fill="#050505"/>
+     <path d="M140 250 h90 v20 h-90z" fill="#0a0a0a"/>
+     <path d="M250 40 C230 120 250 190 240 280" stroke="#fff" stroke-opacity=".18" stroke-width="30" fill="none"/>`,
+    // musician in profile, hat & smoke
+    `<rect width="300" height="300" fill="url(#lightG)"/>
+     <path d="M70 300 C70 240 90 220 110 210 C104 196 98 184 100 168 C94 164 92 158 96 152 C92 142 96 128 104 120 C100 96 116 70 150 66 C188 62 214 86 214 120 C214 150 204 172 196 190 C220 206 250 230 256 300Z" fill="#111"/>
+     <path d="M86 86 C90 60 120 44 160 44 C200 44 222 60 226 84 C250 86 262 92 258 100 C230 108 90 110 62 100 C58 92 70 88 86 86Z" fill="#050505"/>
+     <path d="M96 168 L64 176" stroke="#ddd" stroke-width="4" stroke-linecap="round"/><circle cx="62" cy="176" r="3" fill="#fff"/>
+     <path d="M60 170 C40 150 70 130 50 110 C32 92 60 70 44 40" stroke="#fff" stroke-opacity=".5" stroke-width="6" fill="none" stroke-linecap="round"/>
+     <path d="M52 150 C70 130 40 110 58 88" stroke="#fff" stroke-opacity=".3" stroke-width="4" fill="none" stroke-linecap="round"/>`
+  ];
+
+  function defs(p, id){
+    const hex = h => [1,3,5].map(i => parseInt(h.slice(i,i+2),16)/255);
+    const d = hex('#0d0d0d'), l = hex(p.t);
+    return `<defs>
+      <radialGradient id="lightG" cx=".65" cy=".3" r=".9"><stop offset="0" stop-color="#f4f4f4"/><stop offset=".55" stop-color="#8c8c8c"/><stop offset="1" stop-color="#2a2a2a"/></radialGradient>
+      <filter id="duo${id}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feColorMatrix type="saturate" values="0" result="g"/>
+        <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="${String(id).replace(/\D/g,'') || 1}" result="n"/>
+        <feColorMatrix in="n" type="matrix" values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .55 0" result="n2"/>
+        <feBlend in="g" in2="n2" mode="overlay" result="gr"/>
+        <feComponentTransfer in="gr"><feFuncR type="table" tableValues="${d[0]} ${l[0]} ${Math.min(1,l[0]+.35)}"/><feFuncG type="table" tableValues="${d[1]} ${l[1]} ${Math.min(1,l[1]+.35)}"/><feFuncB type="table" tableValues="${d[2]} ${l[2]} ${Math.min(1,l[2]+.35)}"/></feComponentTransfer>
+      </filter>
+      <clipPath id="circ${id}"><circle cx="0" cy="0" r="1"/></clipPath>
+    </defs>`;
+  }
+  // photo placed at x,y,w,h with duotone
+  const photo = (id, pic, x, y, w, h, cls, delay) => `<g class="${cls||'fd'}" style="animation-delay:${delay||0}s"><svg x="${x}" y="${y}" width="${w}" height="${h}" viewBox="0 0 300 300" preserveAspectRatio="xMidYMid slice"><g filter="url(#duo${id})">${PICS[pic]}</g></svg></g>`;
+  const T = (x, y, s, txt, o) => `<text x="${x}" y="${y}" font-size="${s}" ${o||''}>${txt}</text>`;
+  const FG = 'font-family="Franklin Gothic Medium, Franklin Gothic, Libre Franklin, Arial Narrow, Arial, sans-serif"';
+  const NAR = 'font-family="Arial Narrow, Roboto Condensed, Arial, sans-serif" font-weight="700"';
+
+  function lum(h){ const c = [1,3,5].map(i => parseInt(h.slice(i,i+2),16)/255); return .2126*c[0] + .7152*c[1] + .0722*c[2]; }
+  function fit(txt, maxW, maxS, ratio){ return Math.min(maxS, maxW / Math.max(1, txt.length * (ratio || .5))); }
+
+  const LAYOUTS = [
+    // 0: photo top, block band, giant lowercase leader
+    (p, a, t, id, pic, no) => `<rect width="600" height="600" fill="#0d0d0d"/>${photo(id,pic,0,0,600,370,'sd',0)}
+      <rect class="sl" style="animation-delay:.15s" x="0" y="370" width="600" height="230" fill="${p.b}"/>
+      <rect class="sr" style="animation-delay:.3s" x="380" y="370" width="220" height="230" fill="${p.t}"/>
+      <g class="su" style="animation-delay:.45s">${T(30, 470, fit(a.toLowerCase(),540,98,.46), esc(a.toLowerCase()), FG+` fill="${lum(p.b) < .2 ? '#f1ebdd' : '#0d0d0d'}" letter-spacing="-2"`)}</g>
+      <g class="fd" style="animation-delay:.7s">${T(32, 530, fit(t.toUpperCase(),330,30,.62), esc(t.toUpperCase()), NAR+` fill="${lum(p.b) > .6 ? '#0d0d0d' : '#f1ebdd'}" letter-spacing="2"`)}${T(404, 580, 16, 'BHR '+no, NAR+' fill="#0d0d0d" letter-spacing="3"')}</g>
+      ${T(560, 38, 14, 'BLUE HOUR', NAR+' fill="#f1ebdd" text-anchor="end" letter-spacing="3"')}`,
+    // 1: stacked title typography, small photo square
+    (p, a, t, id, pic, no) => {
+      const words = t.toUpperCase().split(/\s+/).slice(0,4); const s = Math.min(150, 420 / Math.max(...words.map(w => w.length)) / .52, 310 / (words.length * .88));
+      return `<rect width="600" height="600" fill="#f1ebdd"/>
+      <rect class="sd" x="0" y="0" width="140" height="600" fill="${p.t}"/>
+      ${words.map((w,i)=>`<g class="sr" style="animation-delay:${.12*i}s">${T(160, 120 + i*s*.88, s, esc(w), FG+` fill="${i%2?p.t:'#0d0d0d'}" letter-spacing="-4"`)}</g>`).join('')}
+      ${photo(id,pic,20,440,140,140,'su',.4)}
+      <rect class="sl" style="animation-delay:.5s" x="180" y="520" width="400" height="60" fill="${p.b}"/>
+      <g class="fd" style="animation-delay:.8s">${T(196, 562, fit(a.toUpperCase(),370,30,.56), esc(a.toUpperCase()), NAR+' fill="#0d0d0d" letter-spacing="3"')}
+      ${T(30, 40, 14, 'BHR '+no, NAR+' fill="#f1ebdd" letter-spacing="3"')}</g>`;
+    },
+    // 2: contact sheet grid of tinted photos + band
+    (p, a, t, id, pic, no) => {
+      let g = ''; for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++){ const k = r*4+c; g += `<g class="${['sl','sd','sr','su'][k%4]}" style="animation-delay:${k*.04}s"><svg x="${c*150}" y="${r*130}" width="146" height="126" viewBox="0 0 300 300" preserveAspectRatio="xMidYMid slice"><g filter="url(#duo${id})" transform="translate(${(k%3)*-20} ${(k%2)*-30}) scale(${1 + (k%3)*.15})">${PICS[(pic + (k%5===0?1:0)) % PICS.length]}</g></svg></g>`; }
+      return `<rect width="600" height="600" fill="#0d0d0d"/>${g}
+      <rect class="sl" style="animation-delay:.4s" x="0" y="400" width="600" height="200" fill="#0d0d0d"/>
+      <rect class="sr" style="animation-delay:.5s" x="0" y="400" width="18" height="200" fill="${p.b}"/>
+      <g class="fd" style="animation-delay:.7s">${T(40, 478, fit(t,520,64,.48), esc(t), FG+` fill="${p.b}" letter-spacing="-1"`)}
+      ${T(42, 530, 26, esc(a.toUpperCase()), NAR+' fill="#f1ebdd" letter-spacing="6"')}
+      ${T(42, 572, 13, 'BLUE HOUR RECORDS · BHR '+no+' · HIGH FIDELITY', NAR+` fill="${p.t}" letter-spacing="3"`)}</g>`;
+    },
+    // 3: circle photo on flat colour, vertical leader name
+    (p, a, t, id, pic, no) => `<rect width="600" height="600" fill="${p.b}"/>
+      <rect class="sl" x="0" y="0" width="600" height="96" fill="#0d0d0d"/>
+      <g class="fd" style="animation-delay:.1s"><circle cx="330" cy="330" r="206" fill="#0d0d0d"/></g>
+      <g class="fd" style="animation-delay:.25s"><svg x="130" y="130" width="400" height="400" viewBox="0 0 300 300"><clipPath id="cc${id}"><circle cx="150" cy="150" r="146"/></clipPath><g clip-path="url(#cc${id})"><g filter="url(#duo${id})">${PICS[pic]}</g></g></svg></g>
+      <g class="su" style="animation-delay:.35s"><text transform="translate(92 580) rotate(-90)" font-size="${fit(a.toUpperCase(),470,86,.5)}" ${FG} fill="#0d0d0d" letter-spacing="-2">${esc(a.toUpperCase())}</text></g>
+      <g class="fd" style="animation-delay:.6s">${T(30, 62, fit(t.toLowerCase(),420,40,.48), esc(t.toLowerCase()), FG+' fill="#f1ebdd"')}${T(570, 62, 14, 'BHR '+no, NAR+` fill="${p.b}" text-anchor="end" letter-spacing="3"`)}</g>`,
+    // 4: horizontal stripes with letters spaced across
+    (p, a, t, id, pic, no) => {
+      const L = a.toUpperCase().replace(/[^A-Z0-9 ]/g,'').split(' ')[0].slice(0,8) || 'JAZZ';
+      const step = 560 / L.length;
+      return `<rect width="600" height="600" fill="#0d0d0d"/>${photo(id,pic,0,160,600,300,'fd',0)}
+      <rect class="sl" x="0" y="0" width="600" height="160" fill="${p.t}"/>
+      <rect class="sr" style="animation-delay:.12s" x="0" y="460" width="600" height="140" fill="#f1ebdd"/>
+      <rect class="sl" style="animation-delay:.24s" x="0" y="440" width="600" height="20" fill="${p.b}"/>
+      ${[...L].map((ch,i)=>`<g class="sd" style="animation-delay:${.3 + i*.06}s">${T(20 + i*step + step/2, 136, Math.min(150, step*1.5), esc(ch), FG+' fill="#0d0d0d" text-anchor="middle"')}</g>`).join('')}
+      <g class="fd" style="animation-delay:.8s">${T(30, 530, fit(t,540,52,.47), esc(t), FG+' fill="#0d0d0d" letter-spacing="-1"')}
+      ${T(32, 572, 16, esc(a.toUpperCase()) + '  ·  BHR ' + no, NAR+` fill="${p.t}" letter-spacing="3"`)}</g>`;
+    }
+  ];
+
+  function svgFor(s, id){
+    const p = PAL[s.pal], a = s.a || 'Unknown Leader', t = s.t || 'Untitled';
+    return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(a)} — ${esc(t)}">${defs(p, id)}${LAYOUTS[s.layout](p, a, t, id, s.pic, s.no)}</svg>`;
+  }
+
+  function linerNotes(s){
+    const pick = (arr, n) => arr.slice().sort(() => Math.random() - .5).slice(0, n);
+    const lead = R(['tenor saxophone','trumpet','piano','alto saxophone']);
+    const band = pick(INSTR.filter(i => i !== lead), 3).map(ins => ({n: R(FIRST) + ' ' + R(LAST), i: ins}));
+    const tunes = pick(TUNES, 4);
+    const day = 1 + Math.floor(Math.random()*28), mon = R(['January','March','April','June','September','November']), yr = 1957 + Math.floor(Math.random()*8);
+    const p = PAL[s.pal];
+    return `<h3>Personnel · Side A &amp; B · Liner notes</h3>
+      <dl><dt>${esc(s.a)}</dt><dd>${lead}, leader</dd>${band.map(b => `<dt>${b.n}</dt><dd>${b.i}</dd>`).join('')}</dl>
+      <div><p><b style="color:${p.b}">Side A.</b> ${tunes.slice(0,2).join(' · ')}<br><b style="color:${p.b}">Side B.</b> ${tunes.slice(2).join(' · ')}</p>
+      <p style="margin-top:10px">Recorded ${mon} ${day}, ${yr}, in ${R(STUDIOS)}. Cover photo in ${p.n}. ${R(['The drummer arrived late and swung harder to apologise.','Two takes; the second one had the cough in it, so naturally we kept it.','Nobody knows who ordered the pastrami, but it is audible on track three.','The piano was slightly out of tune, which the leader called “character.”'])}</p></div>`;
+  }
+
+  const history = [];
+  function render(s, push){
+    uid++;
+    s.a = artistI.value.trim() || 'Unknown Leader'; s.t = titleI.value.trim() || 'Untitled';
+    cover.innerHTML = svgFor(s, uid);
+    document.documentElement.style.setProperty('--tint', PAL[s.pal].t);
+    document.documentElement.style.setProperty('--block', PAL[s.pal].b);
+    if (vlabel) vlabel.textContent = s.t;
+    if (notes) notes.innerHTML = linerNotes(s);
+    if (sleeve){ sleeve.classList.remove('out'); void sleeve.offsetWidth; sleeve.classList.add('out'); clearTimeout(render._t); render._t = setTimeout(() => sleeve.classList.remove('out'), 1600); }
+    if (push){
+      history.unshift(Object.assign({}, s));
+      if (history.length > 12) history.pop();
+      drawShelf();
+    }
+  }
+  function drawShelf(){
+    shelf.innerHTML = '';
+    history.forEach((h, i) => {
+      const b = document.createElement('button');
+      b.setAttribute('aria-label', `Load ${h.a} — ${h.t}`);
+      b.innerHTML = svgFor(h, 'h' + (++uid)).replace(/class="(sl|sr|su|sd|fd)"/g, '') + `<span class="no">BHR ${h.no}</span>`;
+      b.addEventListener('click', () => { artistI.value = h.a; titleI.value = h.t; state = Object.assign({}, h); render(state, false); thump(); window.scrollTo({top: 0, behavior: 'smooth'}); });
+      shelf.appendChild(b);
+    });
+    const c = $('#count'); if (c) c.textContent = `BHR 1501 — ${cat - 1} · ${history.length} pressed`;
+  }
+
+  function press(changes){
+    state = Object.assign({}, state, changes, {no: cat++});
+    render(state, true); thump();
+  }
+  const rnd = n => Math.floor(Math.random()*n);
+  const others = (n, cur) => { let v; do { v = rnd(n); } while (n > 1 && v === cur); return v; };
+  const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+  bind('#press', () => press({layout: others(LAYOUTS.length, state.layout), pal: others(PAL.length, state.pal), pic: others(PICS.length, state.pic)}));
+  bind('#lay', () => press({layout: (state.layout + 1) % LAYOUTS.length}));
+  bind('#col', () => press({pal: (state.pal + 1) % PAL.length}));
+  bind('#pic', () => press({pic: (state.pic + 1) % PICS.length}));
+  bind('#rnd', () => { artistI.value = R(ARTISTS); titleI.value = R(TITLES); press({layout: rnd(LAYOUTS.length), pal: rnd(PAL.length), pic: rnd(PICS.length)}); });
+  let typeT = 0;
+  [artistI, titleI].forEach(i => i.addEventListener('input', () => { clearTimeout(typeT); typeT = setTimeout(() => render(state, false), 350); }));
+  document.addEventListener('keydown', e => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON')) return;
+    const k = e.key.toLowerCase();
+    if (k === ' ' || k === 'enter'){ e.preventDefault(); const b = $('#press'); if (b) b.click(); }
+    else if (k === 'l') press({layout: (state.layout + 1) % LAYOUTS.length});
+    else if (k === 'c') press({pal: (state.pal + 1) % PAL.length});
+    else if (k === 'p') press({pic: (state.pic + 1) % PICS.length});
+  });
+
+  // needle-drop thump + a walking bass note (WebAudio, gesture only)
+  let ac = null;
+  function thump(){
+    try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ return; }
+    const t = ac.currentTime;
+    const len = ac.sampleRate * .25, buf = ac.createBuffer(1, len, ac.sampleRate), ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 3) * (Math.random() < .02 ? 1 : .15);
+    const src = ac.createBufferSource(), f = ac.createBiquadFilter(); src.buffer = buf; f.type = 'lowpass'; f.frequency.value = 2400;
+    src.connect(f).connect(ac.destination); src.start(t);
+    const notes = [55, 61.74, 65.41, 73.42]; const n = notes[Math.floor(Math.random()*notes.length)];
+    [0, .32].forEach((d, i) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = i ? n*1.5 : n;
+      g.gain.setValueAtTime(.0001, t + .08 + d); g.gain.exponentialRampToValueAtTime(.35, t + .1 + d); g.gain.exponentialRampToValueAtTime(.0001, t + .5 + d);
+      o.connect(g).connect(ac.destination); o.start(t + .08 + d); o.stop(t + .55 + d); });
+  }
+
+  // seed the shelf with a few pressings so the catalog isn't empty
+  const seeds = [['Lorraine Batch','Coffee at Four',2,5,4],['Freddie Quill','Minor Inconvenience',4,2,1],['Cleo Vance','Sugar, No Cream',3,3,0],['Sonny Pritchard','Hard Bop Hard Drive',1,6,2],['Hattie Brome','Somewhere Near Tuesday',0,1,3]];
+  seeds.forEach(sd => { history.unshift({a:sd[0], t:sd[1], layout:sd[2], pal:sd[3], pic:sd[4], no: cat++}); });
+  state = {layout: 0, pal: 0, pic: 4, no: cat++};
+  history.unshift(Object.assign({}, state, {a: artistI.value, t: titleI.value}));
+  drawShelf();
+  render(state, false);
+})();
+</script>
+</body>
+</html>

@@ -15,9 +15,9 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
     try {
       const path = new URL(req.url, 'http://localhost').pathname;
       if (path === '/health') { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"service":"jade-table","ok":true}'); return; }
-      if (path === '/') { res.writeHead(302, { Location: '/127-jade-table.html' }); res.end(); return; }
+      if (path === '/') { res.writeHead(302, { Location: '/web/127-jade-table.html' }); res.end(); return; }
       // Serve public site assets only, never the server, repository metadata or session data.
-      if (!['GET', 'HEAD'].includes(req.method) || !/^\/(?:index\.html|\d{3}-[\w-]+\.html|favicon\.svg|(?:assets|thumbs|vendor|app)\/[\w./-]+)$/.test(path) || path.split('/').some(p => p.startsWith('.')) || !mime[extname(path)]) {
+      if (!['GET', 'HEAD'].includes(req.method) || !/^\/(?:index\.html|favicon\.svg|(?:web|assets|thumbs|vendor|app)\/[\w./-]+)$/.test(path) || path.split('/').some(p => p.startsWith('.')) || !mime[extname(path)]) {
         res.writeHead(404); res.end('Not found'); return;
       }
       const file = resolve(root, '.' + path);

@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>客廳電子紙看板 · 十六階灰的一天</title>
+<meta name="description" content="16 階灰家用看板：局部更新殘影、全刷黑白閃爍、抖動插畫。收錄於 100 Creative HTML Works（047・電子紙）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/047-e-paper.html">
+<style>
+/* strictly 16 grey levels: #000 #111 #222 #333 #444 #555 #666 #777 #888 #999 #aaa #bbb #ccc #ddd #eee #fff */
+:root{
+  --serif:"Sitka Text","Sitka Small",Georgia,"Noto Serif TC","Songti TC","PMingLiU","新細明體",serif;
+  --head:"Sitka Heading","Sitka Display","Sitka Text",Georgia,"Noto Serif TC","PMingLiU",serif;
+  --paper:#eee; --ink:#111; --mid:#555; --soft:#888; --rule:#bbb;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{min-height:100vh;background:#ccc;font-family:var(--serif);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(14px,3vw,40px) clamp(12px,3vw,40px);
+  background-image:radial-gradient(ellipse 70% 60% at 50% 40%,#ddd,#bbb 90%),repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 2px,transparent 2px 5px)}
+.hook{width:10px;height:10px;border-radius:50%;background:#555;margin-bottom:-2px;box-shadow:0 2px 0 #333}
+.wire{width:2px;height:26px;background:#777}
+/* device */
+.device{width:min(1180px,100%);background:linear-gradient(160deg,#fff 0,#eee 30%,#ddd 100%);border-radius:28px;padding:clamp(14px,2.4vw,30px) clamp(14px,2.4vw,30px) clamp(46px,5vw,64px);
+  box-shadow:0 1px 0 #fff inset,0 -2px 0 #bbb inset,0 30px 60px -20px #444,0 8px 18px #999;position:relative}
+.device::after{content:"";position:absolute;inset:6px;border-radius:23px;border:1px solid #fff;pointer-events:none;opacity:.7}
+.brand{position:absolute;left:50%;bottom:clamp(14px,1.6vw,20px);transform:translateX(-50%);font-family:var(--head);font-size:13px;letter-spacing:.4em;color:#999;text-transform:lowercase}
+.led{position:absolute;right:clamp(24px,3vw,40px);bottom:clamp(20px,2vw,26px);width:8px;height:8px;border-radius:50%;background:#999;box-shadow:inset 0 1px 1px #555}
+.led.on{background:#fff;box-shadow:0 0 6px #fff,inset 0 1px 1px #aaa}
+.hw{position:absolute;left:clamp(20px,3vw,40px);bottom:clamp(8px,1.2vw,14px);display:flex;gap:10px}
+.hw button{width:48px;height:40px;border-radius:12px;border:0;background:linear-gradient(#eee,#ccc);box-shadow:0 3px 0 #999,0 4px 6px #aaa,inset 0 1px 0 #fff;cursor:pointer;display:grid;place-items:center;padding:0}
+.hw button:active{transform:translateY(2px);box-shadow:0 1px 0 #999,inset 0 1px 0 #fff}
+.hw button:focus-visible{outline:2px dashed #333;outline-offset:3px}
+.hw svg{width:20px;height:20px}
+/* screen */
+.screen{position:relative;background:var(--paper);border-radius:4px;overflow:hidden;min-height:clamp(420px,62vh,640px);
+  box-shadow:inset 0 2px 5px #999,inset 0 0 0 1px #bbb;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='table' tableValues='0 .07'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+.page{position:relative;padding:clamp(14px,2vw,24px) clamp(16px,2.4vw,30px) clamp(16px,2vw,24px)}
+.page[hidden]{display:none}
+.ghost{position:absolute;inset:0;pointer-events:none;opacity:.045;filter:blur(.3px);overflow:hidden;z-index:0}
+.ghost .page{display:block !important}
+.live{position:relative;z-index:1}
+.flash{position:absolute;inset:0;z-index:9;pointer-events:none;opacity:0}
+.flash.full{animation:full .72s steps(1) forwards}
+@keyframes full{0%{opacity:1;background:#111}16%{background:#eee}32%{background:#111}48%{background:#eee}64%{background:#111}80%{background:#eee;opacity:1}100%{opacity:0}}
+.flash.part{animation:part .22s steps(1) forwards}
+@keyframes part{0%{opacity:1;background:#111;mix-blend-mode:difference}50%{background:#555}100%{opacity:0}}
+.zone.part{animation:zone .26s steps(1)}
+@keyframes zone{0%{filter:invert(1)}45%{filter:invert(.5) contrast(3)}100%{filter:none}}
+
+.status{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;font-size:12px;color:var(--mid);border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:clamp(10px,1.6vw,18px);letter-spacing:.06em}
+.status span{display:inline-flex;align-items:center;gap:6px}
+.bars{display:inline-flex;gap:2px;align-items:flex-end;height:10px}
+.bars i{width:3px;background:var(--mid)}
+.bat{width:22px;height:10px;border:1.5px solid var(--mid);position:relative;padding:1px}
+.bat::after{content:"";position:absolute;right:-4px;top:2px;width:2px;height:4px;background:var(--mid)}
+.bat i{display:block;height:100%;background:var(--mid)}
+
+/* page 1 */
+.today{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr) minmax(0,1fr);gap:clamp(14px,2.4vw,30px)}
+@media (max-width:860px){.today{grid-template-columns:minmax(0,1fr)}}
+.date .dow{font-family:var(--head);font-size:clamp(16px,1.6vw,19px);color:var(--mid);letter-spacing:.2em}
+.date .day{font-family:var(--head);font-size:clamp(88px,11vw,150px);line-height:.9;letter-spacing:-.02em}
+.date .ym{font-size:clamp(15px,1.4vw,18px);color:var(--mid)}
+.clock{font-family:var(--head);font-size:clamp(40px,4.4vw,56px);margin-top:10px;font-variant-numeric:tabular-nums;display:inline-block}
+.clock small{font-size:13px;color:var(--soft);display:block;font-family:var(--serif);letter-spacing:.1em}
+.wx{display:flex;gap:12px;align-items:center;margin-top:14px;border-top:1px solid var(--rule);padding-top:12px}
+.wx canvas{width:96px;height:72px;image-rendering:pixelated;flex:none}
+.wx b{font-family:var(--head);font-size:30px;font-weight:normal;display:block;line-height:1}
+.wx span{font-size:13px;color:var(--mid);line-height:1.5}
+h2{font-family:var(--head);font-weight:normal;font-size:clamp(20px,2vw,24px);margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:4px}
+h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacing:.1em}
+.sched{list-style:none;margin:0;padding:0}
+.sched li{display:grid;grid-template-columns:3.4em minmax(0,1fr);gap:10px;padding:7px 0;border-bottom:1px dotted var(--rule);font-size:clamp(14px,1.3vw,16px);line-height:1.35}
+.sched li time{font-family:var(--head);font-variant-numeric:tabular-nums;color:var(--mid)}
+.sched li small{display:block;color:var(--soft);font-size:12.5px}
+.sched li.now{background:#ddd;margin:0 -8px;padding:7px 8px;border-bottom-color:transparent}
+.sched li.now time{color:var(--ink)}
+.sched li.past{color:var(--soft)}
+.todo{list-style:none;margin:0;padding:0}
+.todo button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;width:100%;min-height:44px;padding:8px 0;border-bottom:1px dotted var(--rule);cursor:pointer;font-size:clamp(14px,1.3vw,16px);line-height:1.35;align-items:start}
+.todo button:focus-visible{outline:2px dashed var(--mid);outline-offset:2px}
+.todo .box{width:20px;height:20px;border:2px solid var(--ink);margin-top:1px;display:grid;place-items:center}
+.todo .box svg{width:14px;height:14px;opacity:0}
+.todo [aria-checked="true"] .box svg{opacity:1}
+.todo [aria-checked="true"] .t{text-decoration:line-through;color:var(--soft)}
+.todo .t small{display:block;color:var(--soft);font-size:12.5px}
+.count{font-size:12px;color:var(--mid);margin-top:8px}
+.quote{margin-top:clamp(14px,2vw,22px);border-top:2px solid var(--ink);padding-top:12px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center}
+@media (max-width:620px){.quote{grid-template-columns:minmax(0,1fr)}.quote .qm{display:none}}
+.quote .qm{font-family:var(--head);font-size:70px;line-height:.6;color:var(--soft)}
+.quote p{margin:0;font-family:var(--head);font-size:clamp(17px,1.8vw,22px);line-height:1.5}
+.quote cite{display:block;font-style:normal;font-size:12.5px;color:var(--mid);margin-top:2px}
+.msg{font-size:13px;color:var(--mid);border:1px solid var(--rule);padding:6px 10px;line-height:1.55;max-width:260px}
+.msg b{color:var(--ink);font-weight:normal;font-family:var(--head)}
+
+/* page 2 week */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:2px solid var(--ink);border-left:1px solid var(--rule)}
+@media (max-width:760px){.week{grid-template-columns:minmax(0,1fr)}}
+.wd{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);min-height:clamp(160px,42vh,380px);padding:8px}
+@media (max-width:760px){.wd{min-height:0;display:grid;grid-template-columns:5.2em minmax(0,1fr);gap:8px}}
+@media (max-width:560px){.brand{left:auto;right:40px;transform:none;letter-spacing:.2em}}
+.wd h3{white-space:nowrap}
+.wd.is-today{background:#ddd}
+.wd h3{margin:0 0 6px;font-family:var(--head);font-weight:normal;font-size:14px;color:var(--mid);display:flex;gap:6px;align-items:baseline}
+.wd h3 b{font-size:28px;color:var(--ink);font-weight:normal}
+.wd.is-today h3 b{background:var(--ink);color:var(--paper);padding:0 6px}
+.ev{font-size:13px;line-height:1.35;padding:3px 0 3px 8px;border-left:3px solid var(--c,#555);margin-bottom:5px}
+.ev time{display:block;font-size:11px;color:var(--soft)}
+
+/* page 3 quote */
+.big{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(16px,3vw,40px);align-items:center;min-height:clamp(360px,52vh,560px)}
+@media (max-width:760px){.big{grid-template-columns:minmax(0,1fr)}}
+.big canvas{width:100%;aspect-ratio:4/3;image-rendering:pixelated;border:1px solid var(--rule);display:block}
+.big blockquote{margin:0;font-family:var(--head);font-size:clamp(26px,3.6vw,48px);line-height:1.35}
+.big blockquote::before{content:"「";margin-left:-.6em}
+.big blockquote::after{content:"」"}
+.big cite{display:block;font-style:normal;font-size:14px;color:var(--mid);margin-top:14px;letter-spacing:.1em}
+.nav{display:flex;justify-content:center;gap:8px;margin-top:10px}
+.nav i{width:8px;height:8px;border:1.5px solid var(--mid);border-radius:50%}
+.nav i.on{background:var(--mid)}
+.hint{margin-top:18px;font-size:13px;color:#555;text-align:center;letter-spacing:.06em;line-height:1.6}
+.hint kbd{font-family:var(--serif);border:1px solid #888;border-bottom-width:2px;border-radius:3px;padding:0 5px;background:#eee}
+@media (prefers-reduced-motion:reduce){.flash.full{animation-duration:.2s}}
+</style>
+</head>
+<body>
+<div class="hook"></div><div class="wire"></div>
+<div class="device" id="device">
+  <div class="screen" id="screen">
+    <div class="ghost" id="ghost" aria-hidden="true"></div>
+    <div class="live" id="live">
+      <!-- PAGE 1 -->
+      <section class="page" id="p0" aria-label="今天">
+        <div class="status"><span>客廳看板 · 第 1 / 3 頁</span><span><span class="bars"><i style="height:4px"></i><i style="height:7px"></i><i style="height:10px"></i></span>Wi-Fi</span><span><span class="bat"><i style="width:82%"></i></span>82% · 大約還能撐 41 天</span><span id="sync">上次同步 07:00</span></div>
+        <div class="today">
+          <div class="date zone" id="dateZone">
+            <div class="dow" id="dow">星期三</div>
+            <div class="day" id="day">23</div>
+            <div class="ym" id="ym">2026 年 9 月</div>
+            <div class="clock zone" id="clock">08:00<small>每分鐘局部更新一次</small></div>
+            <div class="wx"><canvas id="wx" width="48" height="36" aria-hidden="true"></canvas><div><b>27° / 22°</b><span>多雲時晴 · 降雨 20%<br>適合曬棉被，不適合曬貓</span></div></div>
+          </div>
+          <div>
+            <h2>今日行程 <small>全家共用</small></h2>
+            <ul class="sched" id="sched"></ul>
+          </div>
+          <div>
+            <h2>待辦 <small>點一下打勾</small></h2>
+            <ul class="todo" id="todo"></ul>
+            <div class="count" id="count"></div>
+          </div>
+        </div>
+        <div class="quote zone" id="quoteZone">
+          <span class="qm" aria-hidden="true">“</span>
+          <div><p id="q1">慢慢來，比較快。</p><cite id="c1">— 今日金句 · 按 ⟳ 全刷換一句</cite></div>
+          <div class="msg"><b>留言板</b><br>媽：冰箱的布丁是我的。<br>小安：我沒有吃布丁。<br>爸：……</div>
+        </div>
+      </section>
+
+      <!-- PAGE 2 -->
+      <section class="page" id="p1" aria-label="本週" hidden>
+        <div class="status"><span>客廳看板 · 第 2 / 3 頁</span><span>本週行事曆</span><span id="wkRange"></span></div>
+        <div class="week" id="week"></div>
+      </section>
+
+      <!-- PAGE 3 -->
+      <section class="page" id="p2" aria-label="金句" hidden>
+        <div class="status"><span>客廳看板 · 第 3 / 3 頁</span><span>今日金句 · 十六階灰點陣插圖</span><span>⟳ 換一句</span></div>
+        <div class="big">
+          <canvas id="art" width="160" height="120" aria-label="抖動點陣的山與太陽"></canvas>
+          <div><blockquote id="q2">慢慢來，比較快。</blockquote><cite id="c2">— 家訓第一條</cite></div>
+        </div>
+      </section>
+    </div>
+    <div class="flash" id="flash"></div>
+  </div>
+  <div class="hw">
+    <button type="button" id="prev" aria-label="上一頁"><svg viewBox="0 0 20 20"><path d="M13 4 L6 10 L13 16" fill="none" stroke="#555" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button type="button" id="refresh" aria-label="全刷新並換一句金句"><svg viewBox="0 0 20 20"><path d="M16 10 A6 6 0 1 1 13.5 5.2" fill="none" stroke="#555" stroke-width="2.2" stroke-linecap="round"/><path d="M12 2.5 L15.5 5 L12 7.5" fill="none" stroke="#555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button type="button" id="next" aria-label="下一頁"><svg viewBox="0 0 20 20"><path d="M7 4 L14 10 L7 16" fill="none" stroke="#555" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div class="brand">greyday · 13.3″</div>
+  <div class="led" id="led"></div>
+</div>
+<p class="hint">機身按鈕：<kbd>←</kbd> <kbd>→</kbd> 翻頁（局部更新，會留一點殘影）· <kbd>R</kbd> 全刷（黑白閃三下，殘影清乾淨）</p>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var live = $('live'), ghost = $('ghost'), flash = $('flash'), led = $('led');
+  if(!live || !flash) return;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var pages = [$('p0'), $('p1'), $('p2')], page = 0, busy = false;
+
+  var now = new Date();
+  var DOW = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  var set = function(id, v){ var e = $(id); if(e) e.textContent = v; };
+  set('dow', DOW[now.getDay()]); set('day', now.getDate()); set('ym', now.getFullYear() + ' 年 ' + (now.getMonth() + 1) + ' 月');
+
+  /* schedule */
+  var SCHED = [
+    ['07:30','倒垃圾','藍色那袋是回收，不是早餐'],
+    ['08:10','小安 · 校車','水壺、聯絡簿、另一隻襪子'],
+    ['12:00','爸爸 · 牙醫','他說他沒在怕'],
+    ['16:30','小安 · 鋼琴課','練習時間：比上週多一點點'],
+    ['19:00','晚餐 · 咖哩','第三天了，它越來越好吃'],
+    ['21:30','追劇 · 第 7 集','不准偷看，說的就是你']
+  ];
+  var sched = $('sched');
+  function renderSched(){
+    if(!sched) return; sched.innerHTML = '';
+    var mins = new Date().getHours() * 60 + new Date().getMinutes(), nowMarked = false;
+    SCHED.forEach(function(s, i){
+      var p = s[0].split(':'), m = +p[0] * 60 + +p[1], nx = SCHED[i + 1] ? (+SCHED[i + 1][0].split(':')[0] * 60 + +SCHED[i + 1][0].split(':')[1]) : 24 * 60;
+      var li = document.createElement('li');
+      if(!nowMarked && mins >= m && mins < nx){ li.className = 'now'; nowMarked = true; } else if(mins >= nx) li.className = 'past';
+      li.innerHTML = '<time></time><span></span>';
+      li.firstChild.textContent = s[0]; li.lastChild.textContent = s[1]; var sm = document.createElement('small'); sm.textContent = s[2]; li.lastChild.appendChild(sm);
+      sched.appendChild(li);
+    });
+  }
+  renderSched();
+
+  /* todo */
+  var TODO = [
+    ['繳電費','電子紙很省電，但冰箱不是', false],
+    ['買衛生紙','', true],
+    ['幫盆栽澆水','它已經開始抗議了', false],
+    ['回奶奶的早安圖','要選一張有荷花的', false],
+    ['把貓從鍵盤上抱走','它在寫一封很長的信', false],
+    ['找到遙控器','在沙發縫，永遠在沙發縫', true]
+  ];
+  try{ var sv = JSON.parse(localStorage.getItem('greyday-todo') || 'null'); if(Array.isArray(sv) && sv.length === TODO.length) sv.forEach(function(v, i){ TODO[i][2] = !!v; }); }catch(e){}
+  var todo = $('todo');
+  var CHECK = '<svg viewBox="0 0 14 14"><path d="M2 7.5 L5.5 11 L12 3" fill="none" stroke="#111" stroke-width="2.4" stroke-linecap="square"/></svg>';
+  function renderTodo(){
+    if(!todo) return; todo.innerHTML = '';
+    TODO.forEach(function(t, i){
+      var li = document.createElement('li'), b = document.createElement('button');
+      b.type = 'button'; b.className = 'zone'; b.setAttribute('role', 'checkbox'); b.setAttribute('aria-checked', t[2] ? 'true' : 'false');
+      b.innerHTML = '<span class="box">' + CHECK + '</span><span class="t"></span>';
+      var tt = b.querySelector('.t'); tt.textContent = t[0]; if(t[1]){ var sm = document.createElement('small'); sm.textContent = t[1]; tt.appendChild(sm); }
+      b.addEventListener('click', function(){
+        t[2] = !t[2]; b.setAttribute('aria-checked', t[2] ? 'true' : 'false');
+        partial(b); count();
+        try{ localStorage.setItem('greyday-todo', JSON.stringify(TODO.map(function(x){ return x[2]; }))); }catch(e){}
+      });
+      li.appendChild(b); todo.appendChild(li);
+    });
+    count();
+  }
+  function count(){ var d = TODO.filter(function(t){ return t[2]; }).length; set('count', '完成 ' + d + ' / ' + TODO.length + (d === TODO.length ? ' · 今天可以耍廢了' : d === 0 ? ' · 一切從咖啡開始' : ' · 進度穩定，像電子紙一樣')); }
+  renderTodo();
+
+  /* week */
+  var EV = [
+    [['09:00','阿嬤來訪']],
+    [['18:00','倒資源回收'],['20:00','家庭會議：布丁事件']],
+    [['16:30','鋼琴課'],['19:00','咖哩（第一天）']],
+    [['12:00','牙醫'],['19:00','咖哩（第三天）']],
+    [['07:00','爸爸晨跑（預計）'],['07:05','爸爸回家（實際）']],
+    [['16:30','鋼琴課'],['21:00','電影夜 · 輪到小安選']],
+    [['10:00','大掃除'],['15:00','去公園找秋天']]
+  ];
+  var week = $('week');
+  (function(){
+    if(!week) return;
+    var d0 = new Date(now); var wd = (d0.getDay() + 6) % 7; d0.setDate(d0.getDate() - wd);
+    var names = ['一','二','三','四','五','六','日'], first = null, last = null;
+    for(var i = 0; i < 7; i++){
+      var d = new Date(d0); d.setDate(d0.getDate() + i); if(!first) first = d; last = d;
+      var c = document.createElement('div'); c.className = 'wd' + (d.toDateString() === now.toDateString() ? ' is-today' : '');
+      var h = '<h3><b>' + d.getDate() + '</b>週' + names[i] + '</h3><div>';
+      EV[i].forEach(function(e, k){ h += '<div class="ev" style="--c:' + ['#111','#555','#888'][k % 3] + '"><time>' + e[0] + '</time>' + e[1] + '</div>'; });
+      c.innerHTML = h + '</div>'; week.appendChild(c);
+    }
+    set('wkRange', (first.getMonth() + 1) + '/' + first.getDate() + ' – ' + (last.getMonth() + 1) + '/' + last.getDate());
+  })();
+
+  /* quotes */
+  var Q = [
+    ['慢慢來，比較快。','家訓第一條'],
+    ['今天做不完也沒關係，這塊螢幕明天還在。','看板本人'],
+    ['不動的時候，一點電都不花。這是電子紙的哲學，也是週日的哲學。','爸爸'],
+    ['把每一天都當成全刷：先黑一下，再白回來。','媽媽，在加班後'],
+    ['冰箱裡的布丁，是媽媽的。','媽媽（已公證）'],
+    ['生活不是速度賽，是一塊更新率很低的看板。','小安的作文，老師給了甲'],
+    ['灰色有十六種，心情至少也有十六種。','客廳看板']
+  ];
+  var qi = 0;
+  function showQuote(){ var q = Q[qi % Q.length]; set('q1', q[0]); set('c1', '— ' + q[1] + ' · 按 ⟳ 全刷換一句'); set('q2', q[0]); set('c2', '— ' + q[1]); }
+
+  /* dithering to 16 grey levels */
+  var BAYER = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+  function dither(cv, draw, mode){
+    if(!cv || !cv.getContext) return;
+    var c = cv.getContext('2d'), w = cv.width, h = cv.height;
+    draw(c, w, h);
+    var img = c.getImageData(0, 0, w, h), d = img.data, buf = new Float32Array(w * h);
+    for(var i = 0; i < w * h; i++) buf[i] = d[i * 4] * .3 + d[i * 4 + 1] * .59 + d[i * 4 + 2] * .11;
+    for(var y = 0; y < h; y++) for(var x = 0; x < w; x++){
+      var k = y * w + x, v = buf[k], q;
+      if(mode === 'bayer'){ q = Math.round((v + (BAYER[(y % 4) * 4 + (x % 4)] / 16 - .5) * 17) / 17) * 17; }
+      else {
+        q = Math.round(v / 17) * 17; var err = v - q;
+        if(x + 1 < w) buf[k + 1] += err * 7 / 16;
+        if(y + 1 < h){ if(x > 0) buf[k + w - 1] += err * 3 / 16; buf[k + w] += err * 5 / 16; if(x + 1 < w) buf[k + w + 1] += err / 16; }
+      }
+      q = Math.max(0, Math.min(255, q));
+      d[k * 4] = d[k * 4 + 1] = d[k * 4 + 2] = q; d[k * 4 + 3] = 255;
+    }
+    c.putImageData(img, 0, 0);
+  }
+  function sceneArt(seed){
+    return function(c, w, h){
+      var g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#ffffff'); g.addColorStop(.7, '#9a9a9a'); g.addColorStop(1, '#6a6a6a');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      var sx = w * (.25 + (seed % 5) * .12), sy = h * .38;
+      var sg = c.createRadialGradient(sx, sy, 2, sx, sy, 34); sg.addColorStop(0, '#ffffff'); sg.addColorStop(.35, '#f0f0f0'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = sg; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#e8e8e8'; c.beginPath(); c.arc(sx, sy, 12, 0, 7); c.fill();
+      var layers = [['#b0b0b0', .55, 18], ['#808080', .68, 14], ['#505050', .8, 10], ['#262626', .92, 7]];
+      layers.forEach(function(L, j){
+        var mg = c.createLinearGradient(0, h * L[1] - 30, 0, h); mg.addColorStop(0, L[0]); mg.addColorStop(1, '#101010');
+        c.fillStyle = mg; c.beginPath(); c.moveTo(0, h);
+        for(var x = 0; x <= w; x += 4){ c.lineTo(x, h * L[1] - Math.abs(Math.sin(x / (L[2] + j * 3) + seed + j * 2)) * 18 - Math.sin(x / 7 + j) * 3); }
+        c.lineTo(w, h); c.fill();
+      });
+      c.fillStyle = '#111'; for(var b = 0; b < 3; b++){ var bx = w * .6 + b * 9, by = h * .22 + (b % 2) * 5; c.fillRect(bx, by, 3, 1); c.fillRect(bx + 3, by - 1, 3, 1); }
+    };
+  }
+  function weatherArt(c, w, h){
+    c.fillStyle = '#eeeeee'; c.fillRect(0, 0, w, h);
+    var sg = c.createRadialGradient(30, 13, 1, 30, 13, 14); sg.addColorStop(0, '#333'); sg.addColorStop(1, '#bbb');
+    c.fillStyle = sg; c.beginPath(); c.arc(30, 13, 9, 0, 7); c.fill();
+    c.strokeStyle = '#555'; for(var i = 0; i < 8; i++){ var a = i * Math.PI / 4; c.beginPath(); c.moveTo(30 + Math.cos(a) * 11, 13 + Math.sin(a) * 11); c.lineTo(30 + Math.cos(a) * 14, 13 + Math.sin(a) * 14); c.stroke(); }
+    var cg = c.createLinearGradient(0, 14, 0, 32); cg.addColorStop(0, '#ffffff'); cg.addColorStop(1, '#8c8c8c');
+    c.fillStyle = cg; c.beginPath(); c.arc(16, 24, 7, 0, 7); c.arc(24, 20, 8, 0, 7); c.arc(32, 25, 6, 0, 7); c.rect(10, 24, 28, 7); c.fill();
+    c.strokeStyle = '#222'; c.lineWidth = 1; c.beginPath(); c.moveTo(9, 31); c.lineTo(39, 31); c.stroke();
+  }
+  dither($('wx'), weatherArt, 'bayer');
+  function drawArt(){ dither($('art'), sceneArt(qi), 'fs'); }
+
+  /* refresh mechanics */
+  function blink(){ if(!led) return; led.classList.add('on'); setTimeout(function(){ led.classList.remove('on'); }, 600); }
+  function snapGhost(){
+    if(!ghost) return;
+    var cur = pages[page]; if(!cur) return;
+    var c = cur.cloneNode(true); c.removeAttribute('id'); c.hidden = false;
+    c.querySelectorAll('[id]').forEach(function(e){ e.removeAttribute('id'); });
+    c.querySelectorAll('canvas').forEach(function(e){ e.remove(); });
+    ghost.innerHTML = ''; ghost.appendChild(c);
+  }
+  var pending = null;
+  function done(){ busy = false; if(pending){ var f = pending; pending = null; f(); } }
+  function full(after){
+    if(busy){ pending = function(){ full(after); }; return; } busy = true; blink();
+    flash.className = 'flash'; void flash.offsetWidth; flash.className = 'flash full';
+    setTimeout(function(){ if(after) after(); if(ghost) ghost.innerHTML = ''; }, reduce ? 60 : 380);
+    setTimeout(function(){ flash.className = 'flash'; done(); }, reduce ? 220 : 740);
+  }
+  function partial(el){ el.classList.remove('part'); void el.offsetWidth; el.classList.add('part'); blink(); }
+  function go(n){
+    if(busy){ pending = function(){ go(n); }; return; }
+    n = (n + pages.length) % pages.length; if(n === page) return;
+    busy = true; blink(); snapGhost();
+    flash.className = 'flash'; void flash.offsetWidth; flash.className = 'flash part';
+    setTimeout(function(){
+      pages.forEach(function(p, i){ if(p) p.hidden = i !== n; }); page = n;
+      if(n === 2) drawArt();
+    }, 90);
+    setTimeout(function(){ flash.className = 'flash'; done(); }, 240);
+  }
+  function refresh(){ full(function(){ qi++; showQuote(); if(page === 2) drawArt(); renderSched(); tickClock(true); }); }
+
+  var pv = $('prev'), nx = $('next'), rf = $('refresh');
+  pv && pv.addEventListener('click', function(){ go(page - 1); });
+  nx && nx.addEventListener('click', function(){ go(page + 1); });
+  rf && rf.addEventListener('click', refresh);
+  document.addEventListener('keydown', function(e){
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    if(e.key === 'ArrowRight'){ e.preventDefault(); go(page + 1); }
+    else if(e.key === 'ArrowLeft'){ e.preventDefault(); go(page - 1); }
+    else if(e.key === 'r' || e.key === 'R'){ refresh(); }
+  });
+
+  /* clock: partial refresh once a minute */
+  var lastMin = -1;
+  function tickClock(force){
+    var d = new Date(), m = d.getMinutes();
+    if(m === lastMin && !force) return;
+    var first = lastMin === -1; lastMin = m;
+    var ck = $('clock'); if(!ck) return;
+    ck.firstChild.nodeValue = pad(d.getHours()) + ':' + pad(m);
+    set('sync', '上次同步 ' + pad(d.getHours()) + ':' + pad(m));
+    if(!first && !force) partial(ck);
+    if(!first && m === 0) renderSched();
+  }
+  setInterval(function(){ if(!document.hidden) tickClock(false); }, 5000);
+
+  qi = now.getDate() % Q.length;
+  showQuote(); tickClock(true);
+  // the classic power-on full refresh
+  if(!reduce){ setTimeout(function(){ full(null); }, 250); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Archive of Raw Concrete — 14 Buildings, Poured 1952–1986</title>
+<meta name="description" content="混凝土建築檔案館：14 棟真實粗獷主義建築，可篩選排序，卡片以無緩動硬切滑動。收錄於 100 Creative HTML Works（002・建築粗獷主義）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/002-beton-brut.html">
+<style>
+:root{
+  --c0:#2a2927; --c1:#4a4845; --c2:#6f6c67; --c3:#8f8c86; --c4:#aaa7a0; --c5:#c4c1b9; --c6:#d8d5cd;
+  --rust:#b8481a; --rust2:#d9622b;
+  --heavy:"Arial Black","Arial Bold",Gadget,"Helvetica Neue",Arial,sans-serif;
+  --mono:"Courier New",Courier,"Nimbus Mono PS",monospace;
+  --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  --blotch:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.028' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -.9 .58'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23b)'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--c3)}
+body{font-family:var(--mono);color:var(--c0);background:var(--c3);font-size:14px;line-height:1.45;overflow-wrap:break-word}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+
+/* concrete surfaces */
+.conc{position:relative;background-color:var(--c4);isolation:isolate}
+.conc::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(20,18,16,.55) 0 3.2px, rgba(255,255,255,.18) 3.8px 5px, transparent 5.5px) 0 0/ 96px 72px,
+    repeating-linear-gradient(to bottom, transparent 0 35px, rgba(0,0,0,.10) 35px 36px, rgba(255,255,255,.08) 36px 37px),
+    var(--blotch), var(--noise);
+  background-position: 48px 36px, 0 0, 0 0, 0 0;
+  mix-blend-mode:multiply;opacity:.62}
+.conc.dark{background-color:var(--c1);color:var(--c6)}
+.conc.dark::before{mix-blend-mode:normal;opacity:.42}
+.conc.mid{background-color:var(--c2);color:#e9e6de}
+.conc.light{background-color:var(--c5)}
+.conc.plain::before{background:repeating-linear-gradient(to bottom, transparent 0 35px, rgba(0,0,0,.10) 35px 36px),var(--blotch),var(--noise)}
+
+.wrap{max-width:1440px;margin:0 auto;padding:0 clamp(12px,2.4vw,32px)}
+.note{font-family:var(--mono);font-size:12px;letter-spacing:.02em;text-transform:uppercase}
+.note b{font-weight:700;color:var(--rust)}
+
+/* ---------- strip ---------- */
+.strip{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 0 10px;border-bottom:3px solid var(--c0)}
+
+/* ---------- masthead: stacked masses ---------- */
+.mast{position:relative;padding:18px 0 0;overflow-x:clip}
+.m1{margin-right:10%;padding:clamp(14px,2vw,28px) clamp(14px,2vw,28px) 0;overflow:hidden;animation:slabL .36s steps(4,end) both}
+.m1 h1{font-family:var(--heavy);font-weight:900;font-size:clamp(40px,12.8vw,206px);line-height:.78;letter-spacing:-.05em;text-transform:uppercase;color:var(--c6);margin-bottom:-.06em}
+.m2{margin-left:24%;margin-top:-6px;display:flex;align-items:stretch;animation:slabR .36s .18s steps(4,end) both;position:relative;z-index:2;box-shadow:0 26px 0 -6px rgba(0,0,0,.28)}
+.m2 .txt{flex:1;padding:clamp(12px,1.6vw,22px) clamp(14px,2vw,28px)}
+.m2 h2{font-family:var(--heavy);font-size:clamp(34px,7.8vw,120px);line-height:.82;letter-spacing:-.045em;text-transform:uppercase}
+.m2 .rustband{width:clamp(18px,3vw,44px);background:var(--rust);flex:none;background-image:repeating-linear-gradient(to bottom,transparent 0 18px,rgba(0,0,0,.25) 18px 20px)}
+.m3{display:grid;grid-template-columns:1.1fr 2fr 1fr;gap:0;margin-top:26px;margin-right:6%;animation:slabL .36s .34s steps(4,end) both}
+.m3 > div{padding:16px clamp(14px,2vw,26px);border-right:3px solid var(--c0)}
+.m3 > div:last-child{border-right:0}
+.m3 .lede{font-size:clamp(15px,1.25vw,18px);line-height:1.5;text-transform:none}
+.m3 .lede em{font-style:normal;background:var(--c0);color:var(--c6);padding:0 4px}
+.m3 .kv{font-size:12px;line-height:1.6;text-transform:uppercase}
+.m3 .kv span{display:flex;justify-content:space-between;border-bottom:1px dashed rgba(0,0,0,.45)}
+.pilotis{display:flex;justify-content:space-between;padding:0 8%;margin-right:6%;height:28px}
+.pilotis i{width:clamp(16px,2vw,30px);background:var(--c1);display:block;box-shadow:inset -6px 0 0 rgba(0,0,0,.25)}
+@keyframes slabL{from{transform:translateX(-110%)}to{transform:none}}
+@keyframes slabR{from{transform:translateX(110%)}to{transform:none}}
+
+/* ---------- filter slab ---------- */
+.ctrl{margin-top:0;padding:16px clamp(12px,2vw,24px) 18px;display:grid;grid-template-columns:auto 1fr;gap:10px 22px;align-items:center;border-top:6px solid var(--c0);position:relative;z-index:20}
+.ctrl .lab{font-family:var(--heavy);font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--c6)}
+.ctrl .row{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:40px;padding:0 14px;font-family:var(--mono);font-weight:700;font-size:13px;text-transform:uppercase;background:var(--c5);color:var(--c0);box-shadow:inset 0 -4px 0 rgba(0,0,0,.28);transition:none}
+.chip:hover{background:var(--c6)}
+.chip[aria-pressed="true"]{background:var(--rust);color:#fff;box-shadow:inset 0 4px 0 rgba(0,0,0,.35)}
+.chip:focus-visible{outline:3px solid var(--rust2);outline-offset:2px}
+.chip sup{font-size:10px;opacity:.7;margin-left:3px}
+.count{grid-column:1 / -1;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:2px solid rgba(0,0,0,.5);padding-top:10px;color:var(--c6)}
+.count strong{font-family:var(--heavy);color:var(--rust2);font-size:16px}
+
+/* ---------- slabs grid ---------- */
+.grid{overflow-x:clip;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-flow:dense;gap:10px;padding:10px 0 0;background:var(--c0)}
+.slab{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;min-height:300px;cursor:pointer;overflow:hidden;outline:none}
+.slab.w2{grid-column:span 2}
+.slab.h2{grid-row:span 2}
+.slab:focus-visible{box-shadow:inset 0 0 0 4px var(--rust2)}
+.slab .top{display:flex;justify-content:space-between;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.slab .cat{background:var(--c0);color:var(--c6);padding:1px 6px}
+.slab h3{font-family:var(--heavy);font-weight:900;text-transform:uppercase;letter-spacing:-.04em;line-height:.86;font-size:clamp(28px,2.9vw,44px)}
+.slab.w2 h3{font-size:clamp(34px,4.4vw,68px)}
+.slab .yr{font-family:var(--heavy);font-size:clamp(46px,5vw,84px);letter-spacing:-.06em;line-height:.8;color:rgba(0,0,0,.2);position:absolute;right:10px;bottom:6px;pointer-events:none;z-index:0}
+.conc.dark .yr,.conc.mid .yr{color:rgba(255,255,255,.14)}
+.slab .elev{margin-top:auto;position:relative;z-index:1}
+.slab .elev svg{display:block;width:100%;height:auto;max-height:180px}
+.slab.h2 .elev svg{max-height:340px}
+.slab dl{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:12px;text-transform:uppercase;position:relative;z-index:1}
+.slab dt{opacity:.75}
+.slab dd{font-weight:700}
+.slab dt,.slab dd,.m3 .kv{text-shadow:0 1px 0 rgba(255,255,255,.18)}
+.conc.dark dt,.conc.dark dd,.conc.mid dt,.conc.mid dd{text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.slab .more{display:none;font-size:13px;line-height:1.5;border-top:2px solid currentColor;padding-top:8px;position:relative;z-index:1}
+.slab.open .more{display:block}
+.slab .more b{color:var(--rust)}
+.conc.dark .slab .more b,.slab.conc.dark .more b{color:var(--rust2)}
+.stamp{position:absolute;top:auto;bottom:22%;left:50%;transform:translate(-50%,0) rotate(-11deg);border:4px solid var(--rust);color:var(--rust);font-family:var(--heavy);font-size:clamp(20px,2.2vw,30px);padding:2px 12px;letter-spacing:.04em;text-transform:uppercase;z-index:2;background:rgba(216,213,205,.72);pointer-events:none;white-space:nowrap}
+.conc.dark .stamp{background:rgba(42,41,39,.75);color:var(--rust2);border-color:var(--rust2)}
+.slab.gone h3{text-decoration:line-through;text-decoration-thickness:.09em;text-decoration-color:var(--rust)}
+.slab .hint{font-size:11px;opacity:.7;position:relative;z-index:1}
+
+.empty{grid-column:1 / -1;padding:60px 20px;text-align:center;color:var(--c6);font-family:var(--heavy);font-size:clamp(26px,4vw,48px);text-transform:uppercase;line-height:.95}
+.empty small{display:block;font-family:var(--mono);font-size:13px;margin-top:10px;color:var(--c4)}
+
+/* ---------- foot ---------- */
+footer{margin-top:0;padding:28px 0 36px;border-top:10px solid var(--c0)}
+footer .fx{display:grid;grid-template-columns:2fr 1fr 1fr;gap:20px;align-items:end}
+footer .big{font-family:var(--heavy);font-size:clamp(34px,6vw,92px);line-height:.82;letter-spacing:-.05em;text-transform:uppercase}
+footer .big span{color:var(--rust)}
+
+@media (max-width:1100px){
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  .m1{margin-right:0}.m2{margin-left:10%}.m3{grid-template-columns:1fr;margin-right:0}
+  .m3 > div{border-right:0;border-bottom:3px solid var(--c0)}
+  .pilotis{margin-right:0}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ctrl{grid-template-columns:1fr;position:relative}
+  footer .fx{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .grid{grid-template-columns:1fr}
+  .slab.w2{grid-column:auto}.slab.h2{grid-row:auto}
+  .slab{min-height:0}
+  .strip .note:nth-child(2){display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="strip">
+    <span class="note">Archive of Raw Concrete / <b>Béton Brut</b></span>
+    <span class="note">Sheet 01 of 01 — Scale 1:∞ — Do not scale from drawing</span>
+    <span class="note">Cat. 1952—1986</span>
+  </div>
+
+  <header class="mast">
+    <div class="m1 conc dark"><h1>Concrete</h1></div>
+    <div class="m2 conc light">
+      <div class="txt"><h2>Archive</h2><p class="note" style="margin-top:8px">14 structures · 1 material · 0 apologies</p></div>
+      <div class="rustband" aria-hidden="true"></div>
+    </div>
+    <div class="m3 conc light">
+      <div class="note kv">
+        <span><i>Mix</i><b>C30/37</b></span>
+        <span><i>Formwork</i><b>Douglas fir</b></span>
+        <span><i>Cover</i><b>40 mm</b></span>
+        <span><i>Curing</i><b>28 days</b></span>
+      </div>
+      <p class="lede"><em>Béton brut</em> is French for “raw concrete”. It does not mean “brutal”. The buildings below were designed by optimists, poured by hand, and loved by almost nobody for about forty years. Filter them, open them, respect the formwork.</p>
+      <div class="note kv">
+        <span><i>Standing</i><b id="k-st">—</b></span>
+        <span><i>Demolished</i><b id="k-dm">—</b></span>
+        <span><i>Oldest</i><b>1952</b></span>
+        <span><i>Softest</i><b>None</b></span>
+      </div>
+    </div>
+    <div class="pilotis" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </header>
+
+  <nav class="ctrl conc mid" aria-label="Filter archive">
+    <span class="lab">Use</span>
+    <div class="row" id="f-type"></div>
+    <span class="lab">Status</span>
+    <div class="row" id="f-status"></div>
+    <span class="lab">Order</span>
+    <div class="row" id="f-sort"></div>
+    <div class="count note"><span>Showing <strong id="cnt">14</strong> / 14 slabs</span><span>Click a slab to open its file</span></div>
+  </nav>
+
+  <main class="grid" id="grid" aria-live="polite"></main>
+
+  <footer class="conc light">
+    <div class="wrap fx">
+      <div class="big">Poured 2026.<br>Cures in <span>28</span> days.</div>
+      <p class="note">No buildings were<br>softened in the making<br>of this archive.</p>
+      <p class="note">Set in Arial Black &amp;<br>Courier New.<br>Board-marked by hand.</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var B=[
+    {id:'BA-001',n:'Unité d’Habitation',a:'Le Corbusier',y:1952,c:'Marseille, FR',t:'Housing',s:'Standing',tone:'light',sz:'w2',
+     f:'337 apartments on pilotis, a shopping street on floor 7, and a running track on the roof. The original “vertical village”.',sh:'unite'},
+    {id:'BA-002',n:'Salk Institute',a:'Louis Kahn',y:1965,c:'La Jolla, US',t:'Science',s:'Standing',tone:'',sz:'',
+     f:'Two laboratory wings flank a travertine plaza split by a single water channel aimed at the Pacific.',sh:'salk'},
+    {id:'BA-003',n:'Tricorn Centre',a:'Owen Luder',y:1966,c:'Portsmouth, UK',t:'Commercial',s:'Demolished',tone:'mid',sz:'',
+     f:'Once voted “the ugliest building in Britain”. Demolished <b>2004</b>. Luder: “I did not design it to be liked.”',sh:'tricorn'},
+    {id:'BA-004',n:'Habitat 67',a:'Moshe Safdie',y:1967,c:'Montréal, CA',t:'Housing',s:'Standing',tone:'light',sz:'w2',
+     f:'354 prefabricated boxes stacked like a thesis project that escaped. Which it was: Safdie was 23 when he designed it.',sh:'habitat'},
+    {id:'BA-005',n:'Boston City Hall',a:'Kallmann McKinnell & Knowles',y:1968,c:'Boston, US',t:'Civic',s:'Standing',tone:'dark',sz:'h2',
+     f:'An inverted ziggurat: the building widens as it rises, putting the bureaucracy on top where it can see everything.',sh:'boston'},
+    {id:'BA-006',n:'Preston Bus Station',a:'BDP — Ingham & Wilson',y:1969,c:'Preston, UK',t:'Transport',s:'Standing',tone:'',sz:'w2',
+     f:'Room for 80 double-deckers under curved concrete balconies. Nearly demolished in 2012; listed Grade II in <b>2013</b>.',sh:'preston'},
+    {id:'BA-007',n:'Geisel Library',a:'William Pereira',y:1970,c:'San Diego, US',t:'Science',s:'Standing',tone:'mid',sz:'',
+     f:'A tree of books balanced on sixteen splayed columns. Named for Theodor Geisel — Dr. Seuss — who would have added a hat.',sh:'geisel'},
+    {id:'BA-008',n:'Trellick Tower',a:'Ernő Goldfinger',y:1972,c:'London, UK',t:'Housing',s:'Standing',tone:'light',sz:'h2',
+     f:'31 storeys; the lift tower is separate, joined every third floor by bridges. Once feared, now the most desired flats in West London.',sh:'trellick'},
+    {id:'BA-009',n:'Robin Hood Gardens',a:'Alison & Peter Smithson',y:1972,c:'London, UK',t:'Housing',s:'Demolished',tone:'dark',sz:'',
+     f:'“Streets in the sky”, pulled down from <b>2017</b>. A three-storey section now lives in the V&amp;A, like a pressed flower.',sh:'rhg'},
+    {id:'BA-010',n:'National Theatre',a:'Denys Lasdun',y:1976,c:'London, UK',t:'Culture',s:'Standing',tone:'',sz:'w2',
+     f:'Stacked terraces and two fly towers. Prince Charles compared it to a nuclear power station. The board marks are Douglas fir.',sh:'nt'},
+    {id:'BA-011',n:'Genex Tower',a:'Mihajlo Mitrović',y:1977,c:'Belgrade, RS',t:'Commercial',s:'Standing',tone:'mid',sz:'h2',
+     f:'Two towers, one bridge, and a revolving restaurant that stopped revolving. The western gate of the city, 115 m tall.',sh:'genex'},
+    {id:'BA-012',n:'Barbican Estate',a:'Chamberlin, Powell & Bon',y:1982,c:'London, UK',t:'Culture',s:'Standing',tone:'light',sz:'',
+     f:'Hand-picked concrete: the towers were bush-hammered by workers with pneumatic tools, one square metre at a time.',sh:'barbican'},
+    {id:'BA-013',n:'SESC Pompéia',a:'Lina Bo Bardi',y:1986,c:'São Paulo, BR',t:'Culture',s:'Standing',tone:'',sz:'',
+     f:'Sports towers linked by flying bridges, with windows shaped like “caves”: holes punched as if by a very large, very happy fist.',sh:'sesc'},
+    {id:'BA-014',n:'Kyoto Int. Conference Hall',a:'Sachio Otani',y:1966,c:'Kyoto, JP',t:'Civic',s:'Standing',tone:'dark',sz:'',
+     f:'Trapezoids and inverted trapezoids, a roof borrowed from the gasshō farmhouse and poured in grey.',sh:'kyoto'}
+  ];
+
+  /* ---- massing elevations, viewBox 0 0 120 70 ---- */
+  function R(x,y,w,h,c){return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+(c||'var(--fill)')+'"/>';}
+  function P(pts,c){return '<polygon points="'+pts+'" fill="'+(c||'var(--fill)')+'"/>';}
+  function win(x,y,w,h,cols,rows,ww,wh){var o='';for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){o+=R((x+c*(w/cols)+(w/cols-ww)/2).toFixed(2),(y+r*(h/rows)+(h/rows-wh)/2).toFixed(2),ww,wh,'var(--hole)');}return o;}
+  var SH={
+    unite:function(){return R(8,14,104,40)+win(8,14,104,40,17,6,4.2,4)+[14,30,46,62,78,94].map(function(x){return P(x+',54 '+(x+8)+',54 '+(x+6)+',66 '+(x+2)+',66');}).join('')+R(40,8,10,6)+R(70,10,16,4);},
+    salk:function(){return R(4,26,46,40)+R(70,26,46,40)+win(4,26,46,40,6,4,4,5)+win(70,26,46,40,6,4,4,5)+R(50,64,20,2,'var(--rust)');},
+    tricorn:function(){return P('4,66 4,30 18,22 18,40 30,14 30,40 44,20 50,34 64,10 64,40 80,24 80,44 96,18 96,46 116,34 116,66')+win(10,44,100,18,10,2,5,3);},
+    habitat:function(){var o='',b=[[6,50],[20,50],[34,50],[62,50],[82,50],[12,38],[30,38],[48,42],[72,38],[90,38],[20,26],[40,28],[60,26],[80,26],[30,14],[54,16],[70,14],[46,4]];b.forEach(function(p,i){o+=R(p[0],p[1],16,11)+R(p[0]+3,p[1]+3,6,5,'var(--hole)');});return o+R(2,61,116,5);},
+    boston:function(){return R(28,52,64,14)+R(22,40,76,12)+R(16,28,88,12)+R(10,14,100,14)+win(10,14,100,14,20,2,3,4)+win(16,28,88,12,16,1,3,7)+R(46,58,28,8,'var(--hole)');},
+    preston:function(){var o='';for(var i=0;i<4;i++){o+='<rect x="2" y="'+(12+i*12)+'" width="116" height="7" rx="3.5" fill="var(--fill)"/>'+R(4,19+i*12,112,5,'var(--hole)');}return o+R(2,60,116,6);},
+    geisel:function(){return R(54,56,12,10)+P('36,56 84,56 98,44 22,44')+P('22,44 98,44 106,30 14,30')+P('18,30 102,30 92,18 28,18')+P('34,18 86,18 76,8 44,8')+win(24,32,72,10,12,1,3,6)+win(30,20,60,8,10,1,3,5)+'<line x1="48" y1="56" x2="40" y2="66" stroke="var(--fill)" stroke-width="3"/><line x1="72" y1="56" x2="80" y2="66" stroke="var(--fill)" stroke-width="3"/>';},
+    trellick:function(){return R(56,2,26,64)+win(56,6,26,56,3,18,5,1.6)+R(88,0,14,66)+R(96,0,8,6)+[10,26,42,58].map(function(y){return R(82,y,6,3);}).join('')+R(4,46,50,20)+win(4,46,50,20,8,3,3.5,3);},
+    rhg:function(){return R(4,20,112,40)+win(4,20,112,40,22,5,2.4,1.6)+[26,34,42,50,58].map(function(y){return R(4,y,112,1.4,'var(--hole)');}).join('')+R(4,60,112,6);},
+    nt:function(){return R(4,50,112,16)+R(10,40,94,10)+R(18,32,70,8)+R(26,10,18,22)+R(62,16,20,16)+win(4,50,112,16,1,3,108,1.6)+win(10,40,94,10,1,2,88,1.4);},
+    genex:function(){return R(10,14,24,52)+R(76,2,26,64)+R(34,20,42,8)+'<circle cx="89" cy="0" r="0"/>'+R(84,-2,10,4)+'<ellipse cx="89" cy="2" rx="14" ry="5" fill="var(--fill)"/>'+win(10,14,24,52,3,13,4,1.6)+win(76,10,26,56,3,14,4,1.6)+R(34,23,42,2,'var(--hole)');},
+    barbican:function(){return P('50,66 50,6 58,2 66,6 66,66')+win(50,8,16,56,2,20,5,1.2)+R(4,44,40,22)+R(72,40,44,26)+[46,50,54,58].map(function(y){return '<rect x="4" y="'+y+'" width="40" height="2" fill="var(--hole)"/>';}).join('')+[42,48,54,60].map(function(y){return R(74,y,40,2.2,'var(--hole)');}).join('')+'<path d="M76 40 a4 4 0 0 1 8 0 M88 40 a4 4 0 0 1 8 0 M100 40 a4 4 0 0 1 8 0" fill="var(--fill)"/>';},
+    sesc:function(){var o=R(10,4,26,62)+R(58,14,20,52)+R(88,20,26,46);[[12,10,8,5],[24,18,9,6],[14,30,10,4],[22,42,7,7],[12,54,12,5],[60,22,7,6],[68,34,8,5],[62,48,9,4],[92,28,8,6],[102,38,10,4],[94,50,7,7]].forEach(function(p){o+='<path d="M'+p[0]+' '+(p[1]+p[3])+' l'+(p[2]*.2)+' '+(-p[3])+' l'+(p[2]*.6)+' '+(p[3]*.2)+' l'+(p[2]*.2)+' '+(p[3]*.8)+'z" fill="var(--rust)"/>';});o+='<line x1="36" y1="18" x2="58" y2="26" stroke="var(--fill)" stroke-width="2.5"/><line x1="36" y1="36" x2="58" y2="40" stroke="var(--fill)" stroke-width="2.5"/><line x1="78" y1="30" x2="88" y2="36" stroke="var(--fill)" stroke-width="2.5"/>';return o;},
+    kyoto:function(){return P('10,66 22,30 44,30 56,66')+P('50,66 60,34 78,34 88,66')+P('20,30 48,10 76,30')+P('56,34 84,16 112,34 112,66 88,66')+win(24,40,24,20,4,3,3,3)+win(62,42,14,18,2,3,3,3);}
+  };
+  function elev(k){return '<svg viewBox="0 -4 120 74" preserveAspectRatio="xMidYMax meet" aria-hidden="true">'+(SH[k]?SH[k]():'')+R(-2,66,124,1.2,'var(--line)')+'</svg>';}
+
+  var grid=document.getElementById('grid');
+  if(!grid) return;
+  var state={type:'All',status:'All',sort:'Year ↑'};
+
+  function card(b){
+    var tone=b.tone||'';
+    var dark=tone==='dark'||tone==='mid';
+    var vars=dark?'--fill:#1d1c1a;--hole:#8a867e;--line:#c9c5bc':'--fill:#3b3936;--hole:#b8b4ab;--line:#2a2927';
+    var el=document.createElement('article');
+    el.className='slab conc '+tone+' '+(b.sz||'')+(b.s==='Demolished'?' gone':'');
+    el.tabIndex=0; el.dataset.id=b.id; el.style.cssText=vars;
+    el.setAttribute('aria-expanded','false');
+    el.innerHTML='<div class="top"><span class="cat">'+b.id+'</span><span>'+b.t+'</span></div>'+
+      '<h3>'+b.n+'</h3>'+
+      '<dl><dt>Arch.</dt><dd>'+b.a+'</dd><dt>Loc.</dt><dd>'+b.c+'</dd><dt>Poured</dt><dd>'+b.y+'</dd></dl>'+
+      '<p class="more">'+b.f+'</p>'+
+      '<div class="elev">'+elev(b.sh)+'</div>'+
+      '<span class="yr" aria-hidden="true">'+String(b.y).slice(2)+'</span>'+
+      (b.s==='Demolished'?'<span class="stamp">Demolished</span>':'');
+    return el;
+  }
+  var cards={};
+  B.forEach(function(b){cards[b.id]=card(b);});
+
+  function toggle(el){var o=el.classList.toggle('open');el.setAttribute('aria-expanded',o?'true':'false');}
+  grid.addEventListener('click',function(e){var s=e.target.closest('.slab');if(s)toggle(s);});
+  grid.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('slab')){e.preventDefault();toggle(e.target);}});
+
+  /* filters */
+  function chips(host,key,opts,counts){
+    var h=document.getElementById(host); if(!h) return;
+    h.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='chip'; b.type='button';
+      b.setAttribute('aria-pressed',state[key]===o?'true':'false');
+      b.innerHTML=o+(counts&&counts[o]!=null?'<sup>'+counts[o]+'</sup>':'');
+      b.addEventListener('click',function(){state[key]=o;h.querySelectorAll('.chip').forEach(function(c){c.setAttribute('aria-pressed',c===b?'true':'false');});render(true);});
+      h.appendChild(b);
+    });
+  }
+  function countBy(k){var c={All:B.length};B.forEach(function(b){c[b[k]]=(c[b[k]]||0)+1;});return c;}
+  chips('f-type','type',['All','Housing','Civic','Culture','Science','Commercial','Transport'],countBy('t'));
+  chips('f-status','status',['All','Standing','Demolished'],countBy('s'));
+  chips('f-sort','sort',['Year ↑','Year ↓','A—Z']);
+  var st=document.getElementById('k-st'),dm=document.getElementById('k-dm'),cs=countBy('s');
+  if(st)st.textContent=cs.Standing; if(dm)dm.textContent=cs.Demolished;
+
+  function render(animate){
+    var list=B.filter(function(b){return (state.type==='All'||b.t===state.type)&&(state.status==='All'||b.s===state.status);});
+    list.sort(function(a,b){return state.sort==='A—Z'?a.n.localeCompare(b.n):state.sort==='Year ↓'?b.y-a.y:a.y-b.y;});
+    /* FLIP with hard steps */
+    var before={};
+    if(animate){grid.querySelectorAll('.slab').forEach(function(el){before[el.dataset.id]=el.getBoundingClientRect();});}
+    grid.innerHTML='';
+    list.forEach(function(b){grid.appendChild(cards[b.id]);});
+    if(!list.length){var e=document.createElement('div');e.className='empty';e.innerHTML='No slabs poured<br>to this spec.<small>Try another filter. Concrete is patient.</small>';grid.appendChild(e);}
+    var cnt=document.getElementById('cnt'); if(cnt) cnt.textContent=list.length;
+    if(!animate) return;
+    var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    list.forEach(function(b,i){
+      var el=cards[b.id], r=el.getBoundingClientRect(), p=before[b.id], kf;
+      if(p){var dx=p.left-r.left,dy=p.top-r.top; if(!dx&&!dy) return; kf=[{transform:'translate('+dx+'px,'+dy+'px)'},{transform:'none'}];}
+      else kf=[{transform:'translateX('+(i%2?'':'-')+'110%)'},{transform:'none'}];
+      if(el.animate&&!reduce) el.animate(kf,{duration:280,easing:'steps(4,end)',delay:Math.min(i*30,240),fill:'backwards'});
+    });
+  }
+  render(false);
+})();
+</script>
+</body>
+</html>

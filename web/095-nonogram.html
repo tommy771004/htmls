@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>數織練習簿 · 第 095 頁 — 鉛筆 Nonogram</title>
+<meta name="description" content="4 題經 solver 驗證有唯一解的數織，鉛筆塗黑與打叉。收錄於 100 Creative HTML Works（095・方格紙鉛筆）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/095-nonogram.html">
+<style>
+  :root{
+    --paper:#fbfcf8; --grid:#cfe0ee; --grid-b:#a9c6de; --pencil:#3d3f45; --pencil-l:#7a7d85; --red:#c8442f; --hl:rgba(255,236,120,.35);
+    --mono:Consolas,"Lucida Console",Menlo,"Courier New",monospace;
+    --hand:"Ink Free","Segoe Print","Bradley Hand","DFKai-SB","BiauKai","Kaiti TC","STKaiti",cursive;
+    --zh:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--paper)}
+  body{margin:0;min-height:100vh;color:var(--pencil);font-family:var(--zh);
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--grid-b) 1px,transparent 1px),linear-gradient(90deg,var(--grid-b) 1px,transparent 1px),
+      linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:100px 100px,100px 100px,20px 20px,20px 20px;background-position:-1px -1px}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 40%,transparent 60%,rgba(120,110,80,.1));z-index:0}
+  .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:28px 20px 48px}
+  .margin{position:absolute;top:0;bottom:0;left:max(8px,calc(50% - 560px));width:2px;background:rgba(200,68,47,.35)}
+
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;padding-left:18px}
+  .no{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--pencil-l)}
+  h1{margin:4px 0 0;font-weight:700;font-size:clamp(28px,4.4vw,46px);letter-spacing:.06em;color:#2a2c31}
+  h1 small{font-family:var(--hand);font-weight:normal;font-size:.5em;color:var(--red);margin-left:.4em;letter-spacing:0;display:inline-block;transform:rotate(-4deg)}
+  .meta{font-family:var(--mono);font-size:13px;color:var(--pencil-l);display:flex;gap:18px;align-items:baseline}
+  .meta b{font-size:22px;color:var(--pencil);font-weight:normal}
+
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0 18px}
+  .tab{font:inherit;font-size:14px;min-height:40px;padding:0 14px;border:1.5px solid var(--pencil-l);border-radius:3px 10px 3px 8px;background:rgba(255,255,255,.7);color:var(--pencil);cursor:pointer;display:flex;align-items:center;gap:8px}
+  .tab .sz{font-family:var(--mono);font-size:12px;color:var(--pencil-l)}
+  .tab.on{background:#2f3136;color:#fff;border-color:#2f3136}
+  .tab.on .sz{color:#c9ccd3}
+  .tab .ok{font-family:var(--hand);color:var(--red);font-size:17px}
+
+  .work{display:grid;grid-template-columns:auto minmax(220px,300px);gap:28px clamp(40px,6vw,90px);align-items:start;justify-content:center;margin-top:26px;padding-left:18px}
+  .boardwrap{position:relative;justify-self:start;max-width:100%}
+  #board{display:grid;user-select:none;-webkit-user-select:none;touch-action:none;background:rgba(255,255,255,.88);box-shadow:0 1px 0 rgba(0,0,0,.04),6px 8px 0 rgba(160,170,180,.18)}
+  .cl{font-family:var(--mono);color:var(--pencil);display:flex;font-size:var(--fs);line-height:1.05;transition:color .3s}
+  .cl.row{justify-content:flex-end;align-items:center;gap:.5em;padding:0 .55em 0 .4em;border-bottom:1px solid var(--grid)}
+  .cl.col{flex-direction:column;justify-content:flex-end;align-items:center;gap:.22em;padding:.35em 0 .45em;border-right:1px solid var(--grid)}
+  .cl.done{color:#b9bcc3}
+  .cl.done span{text-decoration:line-through;text-decoration-color:rgba(61,63,69,.55);text-decoration-thickness:1.5px}
+  .cl.hl{background:var(--hl)}
+  .corner{display:flex;align-items:flex-end;justify-content:flex-end;padding:6px;font-family:var(--hand);font-size:13px;color:var(--pencil-l);line-height:1.2;text-align:right}
+  .c{position:relative;border-right:1px solid var(--grid-b);border-bottom:1px solid var(--grid-b);cursor:pointer;background:transparent}
+  .c.hl{background:var(--hl)}
+  .c.cur{outline:2px solid var(--red);outline-offset:-2px;z-index:2}
+  .c.b5r{border-right:2px solid var(--pencil-l)}
+  .c.b5b{border-bottom:2px solid var(--pencil-l)}
+  .c.fl::after{content:"";position:absolute;inset:1px;
+    background:
+      repeating-linear-gradient(118deg,rgba(35,36,42,.92) 0 1.2px,rgba(70,72,80,.78) 1.2px 2.4px),
+      #3a3c42;
+    clip-path:polygon(2% 6%,97% 1%,99% 94%,4% 99%);animation:scrib .16s steps(4) both}
+  @keyframes scrib{from{clip-path:polygon(2% 6%,2% 6%,4% 99%,4% 99%)}to{clip-path:polygon(2% 6%,97% 1%,99% 94%,4% 99%)}}
+  .c.xx::before,.c.xx::after{content:"";position:absolute;left:24%;right:24%;top:50%;height:1.5px;background:var(--pencil-l);border-radius:2px}
+  .c.xx::before{transform:rotate(42deg)}.c.xx::after{transform:rotate(-46deg)}
+  .c.bad::after{background:repeating-linear-gradient(118deg,rgba(200,68,47,.9) 0 1.2px,rgba(200,68,47,.6) 1.2px 2.4px)}
+  #board.won .c.fl::after{background:#1f2024;clip-path:none;animation:ink .5s both;animation-delay:var(--d)}
+  @keyframes ink{0%{transform:scale(.6);opacity:.4}60%{transform:scale(1.08)}100%{transform:none;opacity:1}}
+  #board.won .c.xx::before,#board.won .c.xx::after{opacity:0;transition:opacity .6s}
+
+  .stamp{position:absolute;right:-18px;bottom:-26px;font-family:var(--hand);color:var(--red);font-size:clamp(26px,4vw,40px);transform:rotate(-8deg) scale(.4);opacity:0;pointer-events:none;
+    padding:4px 16px;border:3px solid var(--red);border-radius:50% 45% 52% 48%;background:rgba(251,252,248,.85);transition:transform .5s cubic-bezier(.3,1.7,.5,1),opacity .3s;white-space:nowrap}
+  .stamp.on{opacity:1;transform:rotate(-8deg) scale(1)}
+
+  aside{font-size:15px;line-height:1.7}
+  .tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .btn{font:inherit;font-size:14px;min-height:42px;min-width:42px;padding:0 14px;border:1.5px solid var(--pencil);background:rgba(255,255,255,.8);color:var(--pencil);border-radius:4px 9px 5px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover,.btn:focus-visible{outline:none;background:#fff;box-shadow:2px 3px 0 rgba(61,63,69,.25)}
+  .btn.on{background:#2f3136;color:#fff}
+  .btn svg{width:18px;height:18px}
+  .mode{display:inline-flex;border:1.5px solid var(--pencil);border-radius:4px 9px 5px 10px;overflow:hidden}
+  .mode .btn{border:0;border-radius:0}
+  .notes{font-family:var(--hand);color:#34466a;font-size:18px;line-height:1.55;transform:rotate(-1deg);margin:4px 0 0}
+  .notes p{margin:0 0 10px}
+  .notes em{font-style:normal;color:var(--red)}
+  .notes .arrow{display:block;width:120px;height:40px}
+  .keys{font-family:var(--mono);font-size:12px;color:var(--pencil-l);margin-top:14px;line-height:1.8}
+  .keys kbd{font-family:var(--mono);border:1px solid var(--pencil-l);border-bottom-width:2px;border-radius:3px;padding:0 5px;background:#fff}
+  #msg{font-family:var(--hand);font-size:19px;color:var(--red);min-height:1.6em;margin-top:8px}
+
+  @media (max-width:860px){
+    .work{grid-template-columns:1fr;padding-left:6px}
+    header,.tabs{padding-left:6px;margin-left:0}
+    .boardwrap{justify-self:center}
+    .keys{display:none}
+    .stamp{right:4px;bottom:-30px}
+  }
+</style>
+</head>
+<body>
+<div class="margin" aria-hidden="true"></div>
+<div class="page">
+  <header>
+    <div>
+      <div class="no">EXERCISE BOOK · P.095 · 2B PENCIL ONLY</div>
+      <h1>數織練習簿<small>別偷看答案</small></h1>
+    </div>
+    <div class="meta"><span>用時 <b id="time">00:00</b></span><span>塗黑 <b id="count">0</b></span></div>
+  </header>
+
+  <nav class="tabs" id="tabs" aria-label="選擇題目"></nav>
+
+  <section class="work">
+    <div class="boardwrap">
+      <div id="board" role="grid" aria-label="Nonogram 方格"></div>
+      <div class="stamp" id="stamp">完成！</div>
+    </div>
+    <aside>
+      <div class="tools">
+        <div class="mode" role="group" aria-label="筆的模式">
+          <button class="btn on" id="mFill" aria-pressed="true"><svg viewBox="0 0 20 20"><path d="M3 17l2-6 9-9 4 4-9 9z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 17l2-6 4 4z" fill="currentColor"/></svg>塗黑</button>
+          <button class="btn" id="mCross" aria-pressed="false"><svg viewBox="0 0 20 20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>打叉</button>
+        </div>
+        <button class="btn" id="undo" aria-label="復原"><svg viewBox="0 0 20 20"><path d="M7 5L3 9l4 4M3 9h9a5 5 0 010 10h-2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>復原</button>
+        <button class="btn" id="check">檢查</button>
+        <button class="btn" id="peek">偷看一格</button>
+        <button class="btn" id="clear">擦掉重來</button>
+      </div>
+      <div class="notes">
+        <p>規則：左邊和上面的數字，是那一列／那一行裡<em>連續塗黑</em>的格數，依序排列，中間至少隔一個空格。</p>
+        <p>例如「3 1」＝ 先三格黑，空至少一格，再一格黑。</p>
+        <p>確定是空白的格子就打個叉，腦袋會輕鬆很多。每題都只有一個答案，全靠推理，不用猜。</p>
+        <svg class="arrow" viewBox="0 0 120 40" aria-hidden="true"><path d="M110 8 C 80 30, 40 36, 10 22" fill="none" stroke="#4a5a78" stroke-width="1.8" stroke-linecap="round"/><path d="M18 14 L9 22 L20 27" fill="none" stroke="#4a5a78" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div id="msg" aria-live="polite"></div>
+      <div class="keys">
+        <kbd>←↑→↓</kbd> 移動　<kbd>Space</kbd> 塗黑　<kbd>X</kbd> 打叉<br>
+        <kbd>Z</kbd> 復原　右鍵拖曳 ＝ 打叉
+      </div>
+    </aside>
+  </section>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const board = $('#board');
+  if (!board) return;
+
+  // Every puzzle below was checked with a line-by-line solver: it resolves completely without guessing,
+  // so the solution is unique. Clues are always computed from these grids, never typed by hand.
+  const PUZ = [
+    { id: 'heart', name: '一顆心', hint: '暖身題', rows: [
+      '.#.#.',
+      '#####',
+      '#####',
+      '.###.',
+      '..#..'] },
+    { id: 'cat', name: '一隻貓', hint: '牠在看你', rows: [
+      '.#......#.',
+      '.##....##.',
+      '.########.',
+      '##.####.##',
+      '##.####.##',
+      '##########',
+      '####..####',
+      '.########.',
+      '..######..',
+      '...####...'] },
+    { id: 'umbrella', name: '一把傘', hint: '台北必備', rows: [
+      '.....#....',
+      '...#####..',
+      '..#######.',
+      '.#########',
+      '.#.#.#.#.#',
+      '.....#....',
+      '.....#....',
+      '.....#....',
+      '..#..#....',
+      '...##.....'] },
+    { id: 'whale', name: '一頭鯨魚', hint: '大題目', rows: [
+      '..#.#.#........',
+      '...###.........',
+      '....#..........',
+      '....#..........',
+      '..#######......',
+      '.##########....',
+      '############.##',
+      '##.#########.#.',
+      '##############.',
+      '##############.',
+      '.############..',
+      '..#########....',
+      '....######.....',
+      '......##.......',
+      '...............'] }
+  ];
+  const runs = line => { const r = []; let n = 0; for (const v of line) { if (v === 1) n++; else if (n) { r.push(n); n = 0; } } if (n) r.push(n); return r; };
+
+  // ---------- state ----------
+  let P, R, C, sol, st, rowClues, colClues, cells = [], rowEls = [], colEls = [], hist = [], won = false, cur = { r: 0, c: 0 }, mode = 1;
+  let startT = 0, elapsed = 0, timerOn = false;
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('nono095') || '{}') || {}; } catch (_) { saved = {}; }
+  const persist = () => { try { localStorage.setItem('nono095', JSON.stringify(saved)); } catch (_) {} };
+
+  const tabs = $('#tabs');
+  function drawTabs(active) {
+    if (!tabs) return;
+    tabs.innerHTML = '';
+    PUZ.forEach((p, i) => {
+      const b = document.createElement('button');
+      b.className = 'tab' + (i === active ? ' on' : '');
+      const done = saved[p.id] && saved[p.id].won;
+      b.innerHTML = `<span>${done ? p.name : '第 ' + (i + 1) + ' 題'}</span><span class="sz">${p.rows[0].length}×${p.rows.length}</span>${done ? '<span class="ok">✓</span>' : ''}`;
+      b.setAttribute('aria-label', `第 ${i + 1} 題，${p.rows[0].length} 乘 ${p.rows.length}${done ? '，已完成：' + p.name : ''}`);
+      b.addEventListener('click', () => load(i));
+      tabs.appendChild(b);
+    });
+  }
+
+  function cellSize() {
+    const avail = Math.min(innerWidth - (innerWidth < 860 ? 24 : 460), 680);
+    const maxClueR = Math.max(...rowClues.map(c => c.length)), maxClueC = Math.max(...colClues.map(c => c.length));
+    // clue area measured in "cell-ish" units
+    const est = (avail) / (C + maxClueR * .62 + .6);
+    return Math.max(18, Math.min(C <= 5 ? 64 : C <= 10 ? 50 : 36, Math.floor(est), Math.floor((innerHeight - 330) / (R + maxClueC * .5 + .5))));
+  }
+
+  function load(i) {
+    P = PUZ[i]; R = P.rows.length; C = P.rows[0].length;
+    sol = P.rows.map(r => [...r].map(ch => ch === '#' ? 1 : 0));
+    rowClues = sol.map(runs);
+    colClues = [...Array(C)].map((_, c) => runs(sol.map(r => r[c])));
+    const sv = saved[P.id];
+    st = sv && Array.isArray(sv.st) && sv.st.length === R ? sv.st.map(r => r.slice()) : [...Array(R)].map(() => new Array(C).fill(0));
+    won = !!(sv && sv.won); elapsed = sv && sv.t || 0; hist = []; cur = { r: 0, c: 0 };
+    timerOn = false;
+    build(); drawTabs(i); refresh();
+    const stamp = $('#stamp'); if (stamp) { stamp.classList.toggle('on', won); stamp.textContent = won ? '完成！是' + P.name : '完成！'; }
+    board.classList.toggle('won', won);
+    say(won ? '這一題你已經解開了。可以擦掉重來，或挑下一題。' : P.hint + '：' + C + '×' + R + '。從數字最大的那一列開始想。');
+    try { localStorage.setItem('nono095-last', String(i)); } catch (_) {}
+  }
+
+  function build() {
+    const cs = cellSize();
+    const maxClueR = Math.max(...rowClues.map(c => c.length)), maxClueC = Math.max(...colClues.map(c => c.length));
+    const fs = Math.max(11, Math.min(17, Math.round(cs * .44)));
+    board.style.setProperty('--fs', fs + 'px');
+    const leftW = Math.round(maxClueR * fs * 1.12 + fs * .9), topH = Math.round(maxClueC * fs * 1.28 + fs * .8);
+    board.style.gridTemplateColumns = `${leftW}px repeat(${C}, ${cs}px)`;
+    board.style.gridTemplateRows = `${topH}px repeat(${R}, ${cs}px)`;
+    board.innerHTML = '';
+    const corner = document.createElement('div'); corner.className = 'corner'; corner.textContent = C <= 5 ? '從這裡\n開始 ↘' : '';
+    corner.style.whiteSpace = 'pre'; board.appendChild(corner);
+    colEls = []; rowEls = []; cells = [];
+    colClues.forEach((cl, c) => {
+      const d = document.createElement('div'); d.className = 'cl col';
+      d.innerHTML = (cl.length ? cl : [0]).map(n => `<span>${n}</span>`).join('');
+      if ((c + 1) % 5 === 0 && c < C - 1) d.style.borderRight = '2px solid var(--pencil-l)';
+      board.appendChild(d); colEls.push(d);
+    });
+    for (let r = 0; r < R; r++) {
+      const d = document.createElement('div'); d.className = 'cl row';
+      d.innerHTML = (rowClues[r].length ? rowClues[r] : [0]).map(n => `<span>${n}</span>`).join('');
+      if ((r + 1) % 5 === 0 && r < R - 1) d.style.borderBottom = '2px solid var(--pencil-l)';
+      board.appendChild(d); rowEls.push(d);
+      cells.push([]);
+      for (let c = 0; c < C; c++) {
+        const e = document.createElement('div');
+        e.className = 'c' + ((c + 1) % 5 === 0 && c < C - 1 ? ' b5r' : '') + ((r + 1) % 5 === 0 && r < R - 1 ? ' b5b' : '');
+        e.dataset.r = r; e.dataset.c = c;
+        e.setAttribute('role', 'gridcell');
+        e.style.setProperty('--d', ((r + c) * 28) + 'ms');
+        board.appendChild(e); cells[r].push(e);
+      }
+    }
+    board.tabIndex = 0;
+  }
+
+  function paintCell(r, c) {
+    const e = cells[r][c], v = st[r][c];
+    e.classList.toggle('fl', v === 1);
+    e.classList.toggle('xx', v === 2);
+    e.classList.remove('bad');
+    e.setAttribute('aria-label', `第 ${r + 1} 列第 ${c + 1} 行：${v === 1 ? '塗黑' : v === 2 ? '打叉' : '空白'}`);
+  }
+  function refresh() {
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) paintCell(r, c);
+    for (let r = 0; r < R; r++) lineState(r, -1);
+    for (let c = 0; c < C; c++) lineState(-1, c);
+    counter(); cursor();
+  }
+  const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+  function lineState(r, c) {
+    if (r >= 0) rowEls[r].classList.toggle('done', same(runs(st[r]), rowClues[r]));
+    if (c >= 0) colEls[c].classList.toggle('done', same(runs(st.map(x => x[c])), colClues[c]));
+  }
+  function counter() { const n = st.flat().filter(v => v === 1).length, el = $('#count'); if (el) el.textContent = n; }
+  function cursor() {
+    board.querySelectorAll('.cur,.hl').forEach(e => e.classList.remove('cur', 'hl'));
+    if (!showCursor) return;
+    const e = cells[cur.r] && cells[cur.r][cur.c]; if (e) e.classList.add('cur');
+    rowEls[cur.r] && rowEls[cur.r].classList.add('hl'); colEls[cur.c] && colEls[cur.c].classList.add('hl');
+  }
+  let showCursor = false;
+
+  function set(r, c, v, batch) {
+    if (won || st[r][c] === v) return;
+    batch.push([r, c, st[r][c]]);
+    st[r][c] = v; paintCell(r, c); lineState(r, c);
+    if (!timerOn) { timerOn = true; startT = performance.now() - elapsed * 1000; }
+    if (v === 1) scratch();
+  }
+  function commit(batch) {
+    if (!batch.length) return;
+    hist.push(batch); if (hist.length > 300) hist.shift();
+    counter(); save(); checkWin();
+  }
+  function save() { saved[P.id] = { st, won, t: Math.round(elapsed) }; persist(); }
+  function checkWin() {
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if ((st[r][c] === 1) !== (sol[r][c] === 1)) return;
+    if (timerOn) elapsed = (performance.now() - startT) / 1000;
+    won = true; timerOn = false;
+    board.classList.add('won');
+    const stamp = $('#stamp'); if (stamp) { stamp.textContent = '完成！是' + P.name; stamp.classList.add('on'); }
+    say(`解開了，是${P.name}。用時 ${fmt(elapsed)}。鉛筆可以休息一下了。`);
+    save(); drawTabs(PUZ.indexOf(P)); chord();
+  }
+
+  // ---------- pointer painting ----------
+  let drag = null;
+  const cellAt = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.classList && e.classList.contains('c') && board.contains(e) ? e : null; };
+  board.addEventListener('contextmenu', e => e.preventDefault());
+  board.addEventListener('pointerdown', e => {
+    const el = cellAt(e.clientX, e.clientY); if (!el || won) return;
+    e.preventDefault();
+    const r = +el.dataset.r, c = +el.dataset.c;
+    const m = e.button === 2 ? 2 : mode;
+    const target = st[r][c] === m ? 0 : m;        // the first cell decides: paint or erase
+    drag = { v: target, batch: [], r0: r, c0: c, axis: null };
+    set(r, c, target, drag.batch);
+    cur = { r, c }; showCursor = false; cursor();
+  });
+  addEventListener('pointermove', e => {
+    if (!drag) return;
+    const el = cellAt(e.clientX, e.clientY); if (!el) return;
+    let r = +el.dataset.r, c = +el.dataset.c;
+    if (!drag.axis && (r !== drag.r0 || c !== drag.c0)) drag.axis = r === drag.r0 ? 'row' : c === drag.c0 ? 'col' : 'row';
+    if (drag.axis === 'row') r = drag.r0; else if (drag.axis === 'col') c = drag.c0;
+    // only overwrite cells that match what we're painting over (don't erase X's while filling)
+    if (drag.v !== 0 && st[r][c] !== 0 && st[r][c] !== drag.v) return;
+    set(r, c, drag.v, drag.batch);
+  });
+  const up = () => { if (drag) { commit(drag.batch); drag = null; } };
+  addEventListener('pointerup', up); addEventListener('pointercancel', up);
+
+  // hover crosshair (desktop)
+  board.addEventListener('pointerover', e => {
+    if (e.pointerType !== 'mouse') return;
+    const el = e.target.closest && e.target.closest('.c'); if (!el) return;
+    rowEls.forEach(x => x.classList.remove('hl')); colEls.forEach(x => x.classList.remove('hl'));
+    rowEls[+el.dataset.r].classList.add('hl'); colEls[+el.dataset.c].classList.add('hl');
+  });
+  board.addEventListener('pointerleave', () => { if (!showCursor) { rowEls.forEach(x => x.classList.remove('hl')); colEls.forEach(x => x.classList.remove('hl')); } });
+
+  // ---------- keyboard ----------
+  board.addEventListener('keydown', e => {
+    const k = e.key; let used = true;
+    if (k === 'ArrowRight') cur.c = (cur.c + 1) % C;
+    else if (k === 'ArrowLeft') cur.c = (cur.c + C - 1) % C;
+    else if (k === 'ArrowDown') cur.r = (cur.r + 1) % R;
+    else if (k === 'ArrowUp') cur.r = (cur.r + R - 1) % R;
+    else if (k === ' ' || k === 'Enter') { const b = []; set(cur.r, cur.c, st[cur.r][cur.c] === 1 ? 0 : 1, b); commit(b); }
+    else if (k === 'x' || k === 'X') { const b = []; set(cur.r, cur.c, st[cur.r][cur.c] === 2 ? 0 : 2, b); commit(b); }
+    else used = false;
+    if (used) { e.preventDefault(); showCursor = true; cursor(); }
+  });
+  addEventListener('keydown', e => { if ((e.key === 'z' || e.key === 'Z') && !e.target.closest?.('input')) undo(); });
+  board.addEventListener('focus', () => { showCursor = true; cursor(); });
+  board.addEventListener('blur', () => { showCursor = false; cursor(); });
+
+  // ---------- tools ----------
+  const mFill = $('#mFill'), mCross = $('#mCross');
+  function setMode(m) { mode = m; mFill && (mFill.classList.toggle('on', m === 1), mFill.setAttribute('aria-pressed', m === 1)); mCross && (mCross.classList.toggle('on', m === 2), mCross.setAttribute('aria-pressed', m === 2)); }
+  mFill && mFill.addEventListener('click', () => setMode(1));
+  mCross && mCross.addEventListener('click', () => setMode(2));
+  function undo() {
+    if (won) return;
+    const b = hist.pop(); if (!b) { say('沒有東西可以復原了。'); return; }
+    for (let i = b.length - 1; i >= 0; i--) { const [r, c, v] = b[i]; st[r][c] = v; paintCell(r, c); lineState(r, c); }
+    counter(); save();
+  }
+  const undoB = $('#undo'); undoB && undoB.addEventListener('click', undo);
+  const checkB = $('#check');
+  checkB && checkB.addEventListener('click', () => {
+    if (won) return;
+    let bad = 0;
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+      if ((st[r][c] === 1 && !sol[r][c]) || (st[r][c] === 2 && sol[r][c])) { bad++; cells[r][c].classList.add('bad'); if (st[r][c] === 2) cells[r][c].style.background = 'rgba(200,68,47,.18)'; }
+    }
+    setTimeout(() => cells.flat().forEach(e => { e.classList.remove('bad'); e.style.background = ''; }), 1600);
+    say(bad ? `有 ${bad} 格不對，用紅筆圈起來了。` : '目前為止都沒錯，繼續。');
+  });
+  const peekB = $('#peek');
+  peekB && peekB.addEventListener('click', () => {
+    if (won) return;
+    const wrong = [];
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+      const want = sol[r][c] ? 1 : 2;
+      if (st[r][c] !== want && !(st[r][c] === 0 && want === 2 && false)) wrong.push([r, c, want]);
+    }
+    const fills = wrong.filter(w => w[2] === 1), pick = (fills.length ? fills : wrong)[Math.floor(Math.random() * (fills.length || wrong.length))];
+    if (!pick) return;
+    const b = []; set(pick[0], pick[1], pick[2], b); commit(b);
+    cur = { r: pick[0], c: pick[1] }; showCursor = true; cursor();
+    say('偷看了一格（紅框那格）。我們不會告訴老師。');
+  });
+  const clearB = $('#clear');
+  clearB && clearB.addEventListener('click', () => {
+    st = [...Array(R)].map(() => new Array(C).fill(0)); won = false; elapsed = 0; timerOn = false; hist = [];
+    board.classList.remove('won'); const s = $('#stamp'); s && s.classList.remove('on');
+    refresh(); save(); drawTabs(PUZ.indexOf(P)); say('擦乾淨了。橡皮擦屑請自行吹掉。');
+  });
+
+  function say(t) { const m = $('#msg'); if (m) m.textContent = t; }
+  const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  setInterval(() => {
+    if (timerOn && !won) elapsed = (performance.now() - startT) / 1000;
+    const t = $('#time'); if (t) t.textContent = fmt(elapsed);
+  }, 500);
+
+  // ---------- sound: pencil scratch & a small chord ----------
+  let ac = null, lastScratch = 0;
+  function audio() { try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); return ac; } catch (_) { return null; } }
+  function scratch() {
+    const now = performance.now(); if (now - lastScratch < 45) return; lastScratch = now;
+    const a = audio(); if (!a) return;
+    const len = Math.floor(a.sampleRate * .07), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) * (.6 + .4 * Math.sin(i / 40));
+    const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = buf; f.type = 'highpass'; f.frequency.value = 2400; g.gain.value = .12;
+    s.connect(f); f.connect(g); g.connect(a.destination); s.start();
+  }
+  function chord() {
+    const a = audio(); if (!a) return;
+    [523.25, 659.25, 783.99, 1046.5].forEach((fr, i) => {
+      const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + i * .09;
+      o.type = 'triangle'; o.frequency.value = fr;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.12, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + 1.1);
+      o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 1.2);
+    });
+  }
+
+  let rt = 0;
+  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (P) { build(); refresh(); if (won) board.classList.add('won'); } }, 150); });
+
+  let first = 1;
+  try { const l = parseInt(localStorage.getItem('nono095-last'), 10); if (l >= 0 && l < PUZ.length) first = l; } catch (_) {}
+  load(first);
+})();
+</script>
+</body>
+</html>

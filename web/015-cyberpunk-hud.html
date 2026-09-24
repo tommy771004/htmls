@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BREACH//PROTOCOL — subnet 7 intrusion console</title>
+<meta name="description" content="矩陣解碼小遊戲：行列交替選碼、保證有解、40 秒倒數與故障字。收錄於 100 Creative HTML Works（015・賽博龐克 HUD）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/015-cyberpunk-hud.html">
+<style>
+:root{
+  --y:#fcee0a; --y2:#c9be00; --c:#00f0ff; --r:#ff003c; --k:#050507; --k2:#0c0c11; --k3:#15151c; --dim:#5d5a2a; --txt:#e8e4b0;
+  --cond:"Bahnschrift","Arial Narrow","Roboto Condensed","Helvetica Neue",Arial,sans-serif;
+  --mono:Consolas,"Lucida Console",Menlo,"SFMono-Regular",monospace;
+  --ch:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));
+}
+*{box-sizing:border-box}
+html{background:var(--k)}
+body{
+  margin:0;min-height:100vh;color:var(--txt);font-family:var(--cond);font-stretch:75%;
+  background:
+    radial-gradient(ellipse 60% 50% at 70% 0%,rgba(0,240,255,.08),transparent 70%),
+    radial-gradient(ellipse 50% 40% at 10% 100%,rgba(252,238,10,.07),transparent 70%),
+    linear-gradient(rgba(252,238,10,.035) 1px,transparent 1px) 0 0/100% 4px,
+    linear-gradient(90deg,rgba(0,240,255,.05) 1px,transparent 1px) 0 0/48px 48px,
+    linear-gradient(rgba(0,240,255,.05) 1px,transparent 1px) 0 0/48px 48px,
+    var(--k);
+  overflow-x:clip;
+}
+body::after{ /* scan sweep */
+  content:"";position:fixed;left:0;right:0;top:-20vh;height:20vh;pointer-events:none;z-index:30;
+  background:linear-gradient(transparent,rgba(0,240,255,.05) 80%,rgba(0,240,255,.13) 96%,transparent);
+  animation:sweep 6s linear infinite;
+}
+@keyframes sweep{to{transform:translateY(140vh)}}
+.wrap{max-width:1280px;margin:0 auto;padding:18px 20px 40px;position:relative}
+
+/* ---------- header ---------- */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;border-bottom:1px solid var(--y);padding-bottom:10px;position:relative}
+.top::after{content:"";position:absolute;right:0;bottom:-4px;width:120px;height:7px;background:var(--y);clip-path:polygon(8px 0,100% 0,100% 100%,0 100%)}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand small{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--c)}
+h1{margin:0;font-weight:700;font-size:clamp(40px,6.4vw,84px);line-height:.9;letter-spacing:.02em;color:var(--y);text-transform:uppercase;position:relative;font-stretch:75%}
+.glitch{position:relative;display:inline-block}
+.glitch::before,.glitch::after{content:attr(data-t);position:absolute;inset:0;pointer-events:none}
+.glitch::before{color:var(--c);transform:translate(-3px,0);clip-path:inset(0 0 65% 0);animation:g1 3.2s steps(1) infinite;mix-blend-mode:screen}
+.glitch::after{color:var(--r);transform:translate(3px,0);clip-path:inset(60% 0 0 0);animation:g2 2.7s steps(1) infinite;mix-blend-mode:screen}
+@keyframes g1{0%,86%,100%{transform:translate(0);clip-path:inset(0 0 100% 0)}87%{transform:translate(-5px,-1px);clip-path:inset(10% 0 60% 0)}90%{transform:translate(4px,0);clip-path:inset(50% 0 20% 0)}93%{transform:translate(-2px,1px);clip-path:inset(30% 0 45% 0)}}
+@keyframes g2{0%,78%,100%{transform:translate(0);clip-path:inset(100% 0 0 0)}79%{transform:translate(5px,1px);clip-path:inset(70% 0 5% 0)}83%{transform:translate(-4px,0);clip-path:inset(20% 0 62% 0)}}
+.stats{display:flex;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
+.stat{border:1px solid var(--dim);padding:6px 10px 5px;min-width:96px;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%)}
+.stat b{display:block;font-family:var(--cond);font-size:22px;font-weight:700;color:var(--y);letter-spacing:.04em;min-height:1.2em}
+.ramcells{display:flex;gap:4px;padding-top:5px}
+.ramcells i{width:10px;height:16px;border:1px solid var(--y)}
+.ramcells i.on{background:var(--y)}
+.stat span{color:var(--c);letter-spacing:.14em;font-size:10px}
+
+.timer{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;margin:16px 0 18px;font-family:var(--mono);font-size:12px;letter-spacing:.14em}
+.timer .lab{color:var(--y)}
+.timer .bar{height:10px;border:1px solid var(--y);padding:2px;position:relative}
+.timer .bar i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--y) 0 6px,transparent 6px 8px);transform-origin:0 50%;transition:background .3s}
+.timer .bar.low i{background:repeating-linear-gradient(90deg,var(--r) 0 6px,transparent 6px 8px)}
+.timer .t{font-family:var(--cond);font-size:26px;font-weight:700;color:var(--y);min-width:4.2ch;text-align:right;letter-spacing:.04em}
+.timer .t.low{color:var(--r)}
+
+/* ---------- panels ---------- */
+.grid{display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:22px;align-items:start}
+.panel{background:var(--pc,var(--y));clip-path:var(--ch);padding:1px}
+.panel>.in{background:linear-gradient(180deg,var(--k3),var(--k2));clip-path:var(--ch);position:relative}
+.ph{display:flex;justify-content:space-between;align-items:center;background:var(--pc,var(--y));color:var(--k);padding:6px 26px 5px 14px;font-weight:700;font-size:19px;letter-spacing:.08em;text-transform:uppercase}
+.ph small{font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:.1em}
+.pb{padding:18px}
+.panel.cyan{--pc:var(--c)}
+.panel.red{--pc:var(--r)}
+
+/* matrix */
+.mx{display:grid;grid-template-columns:repeat(6,1fr);gap:0;position:relative;user-select:none;-webkit-user-select:none}
+.cell{appearance:none;background:transparent;border:0;margin:0;padding:0;aspect-ratio:1/1;min-height:44px;font-family:var(--mono);font-size:clamp(17px,2.4vw,24px);color:var(--txt);cursor:default;position:relative;letter-spacing:.04em;transition:color .12s,text-shadow .12s}
+.cell.line{background:rgba(252,238,10,.08)}
+.cell.line.edge-l{box-shadow:inset 1px 0 0 rgba(252,238,10,.5)}
+.cell.line.edge-r{box-shadow:inset -1px 0 0 rgba(252,238,10,.5)}
+.cell.line.edge-t{box-shadow:inset 0 1px 0 rgba(252,238,10,.5)}
+.cell.line.edge-b{box-shadow:inset 0 -1px 0 rgba(252,238,10,.5)}
+.cell.pick{cursor:pointer;color:#fff}
+.cell.cross{background:rgba(0,240,255,.07)}
+.cell.cross.line{background:rgba(0,240,255,.14)}
+.cell.hot{color:var(--c);text-shadow:0 0 12px rgba(0,240,255,.8)}
+.cell.hot::after,.cell.cur::after{content:"";position:absolute;inset:14%;border:1px solid var(--c);clip-path:polygon(0 0,30% 0,30% 2px,70% 2px,70% 0,100% 0,100% 100%,70% 100%,70% calc(100% - 2px),30% calc(100% - 2px),30% 100%,0 100%)}
+.cell.used{color:#3b3a2c}
+.cell.used::before{content:"[ ]";position:absolute;inset:0;display:grid;place-items:center;color:#4a4830;font-size:.8em}
+.cell.used span{visibility:hidden}
+.cell.nope{animation:nope .3s}
+@keyframes nope{25%{transform:translateX(-3px);color:var(--r)}75%{transform:translateX(3px);color:var(--r)}}
+.cell:focus-visible{outline:none}
+.mx.dead .cell{opacity:.35}
+.axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:10px;letter-spacing:.14em}
+
+/* buffer */
+.buf{display:grid;grid-template-columns:repeat(8,minmax(0,52px));gap:8px}
+.slot{height:48px;border:1px dashed #5d5a2a;display:grid;place-items:center;font-family:var(--mono);font-size:19px;color:var(--y)}
+.slot.full{border:1px solid var(--y);background:rgba(252,238,10,.08);animation:slotin .25s steps(3)}
+.slot.ghost{color:rgba(0,240,255,.8);border-color:var(--c);border-style:dashed}
+@keyframes slotin{0%{opacity:0;transform:scale(1.3)}100%{opacity:1;transform:none}}
+.hint{font-family:var(--mono);font-size:11.5px;color:#8f8b5b;margin:12px 0 0;letter-spacing:.06em;line-height:1.6}
+.hint b{color:var(--c);font-weight:400}
+
+/* daemons */
+.dm{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(252,238,10,.15);position:relative}
+.dm:last-child{border-bottom:0}
+.dm .codes{display:flex;gap:6px;flex-wrap:wrap}
+.dm .codes span{font-family:var(--mono);font-size:17px;width:40px;height:34px;display:grid;place-items:center;border:1px solid rgba(232,228,176,.25);color:var(--txt)}
+.dm .codes span.ok{background:var(--c);color:var(--k);border-color:var(--c)}
+.dm .codes span.nx{border-color:var(--c);color:var(--c);box-shadow:0 0 10px rgba(0,240,255,.4)}
+.dm .name{font-size:20px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--txt);text-align:right}
+.dm .name small{display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.06em;color:#8f8b5b;text-transform:none}
+.dm.done{background:linear-gradient(90deg,rgba(0,240,255,.12),transparent)}
+.dm.done .name{color:var(--c)}
+.dm.fail{opacity:.55}
+.dm.fail .name{color:var(--r);text-decoration:line-through}
+.dm .st{position:absolute;left:-6px;top:12px;bottom:12px;width:3px;background:transparent}
+.dm.done .st{background:var(--c)}.dm.fail .st{background:var(--r)}
+.dm.flash{animation:dflash .6s steps(4)}
+@keyframes dflash{0%{transform:translateX(0);filter:none}25%{transform:translateX(6px);filter:hue-rotate(90deg)}50%{transform:translateX(-4px)}75%{transform:translateX(2px);filter:invert(1)}100%{transform:none;filter:none}}
+
+/* log */
+.log{font-family:var(--mono);font-size:12px;line-height:1.7;height:150px;overflow:hidden;color:#9b976a;display:flex;flex-direction:column;justify-content:flex-end}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log .c{color:var(--c)}.log .y{color:var(--y)}.log .r{color:var(--r)}
+.log div:last-child::after{content:"_";animation:blink 1s steps(1) infinite;color:var(--y)}
+@keyframes blink{50%{opacity:0}}
+
+.btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+.btn{appearance:none;border:0;cursor:pointer;min-height:46px;padding:0 26px 0 20px;font-family:var(--cond);font-stretch:75%;font-weight:700;font-size:20px;letter-spacing:.1em;text-transform:uppercase;background:var(--y);color:var(--k);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);transition:background .1s}
+.btn:hover,.btn:focus-visible{background:var(--c);outline:none}
+.btn.ghost{background:transparent;color:var(--y);box-shadow:inset 0 0 0 1px var(--y)}
+.btn.ghost:hover{background:rgba(252,238,10,.12)}
+
+.side{display:grid;gap:22px}
+.rail{position:fixed;top:50%;left:6px;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:rgba(252,238,10,.35);pointer-events:none}
+.rail.r{left:auto;right:6px;transform:translateY(-50%);color:rgba(0,240,255,.3)}
+
+/* result overlay */
+.over{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(5,5,7,.78);backdrop-filter:blur(2px);padding:16px}
+.over[hidden]{display:none}
+.card{width:min(560px,100%);--pc:var(--c)}
+.card.bad{--pc:var(--r)}
+.card .big{font-size:clamp(44px,9vw,76px);font-weight:700;line-height:.95;letter-spacing:.03em;color:var(--pc);text-transform:uppercase;margin:4px 0 12px}
+.card ul{list-style:none;margin:0 0 6px;padding:0;font-family:var(--mono);font-size:13.5px;line-height:1.9}
+.card li::before{content:"› ";color:var(--pc)}
+.card li.x{color:#77735a;text-decoration:line-through}
+.card .quip{font-family:var(--mono);font-size:12.5px;color:#9b976a;border-top:1px dashed #3b3a2c;padding-top:10px;margin-top:10px}
+.over .card{animation:cardin .45s steps(6)}
+@keyframes cardin{0%{clip-path:inset(50% 0 50% 0)}100%{clip-path:inset(0 0 0 0)}}
+
+@media (max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .rail{display:none}
+}
+@media (max-width:520px){
+  .wrap{padding:14px 16px 32px}
+  .pb{padding:12px}
+  .stat{min-width:0;flex:1}
+  .stat b{font-size:19px}
+  .timer{gap:10px}
+  .timer .lab{font-size:10px;letter-spacing:.08em}
+  .slot{height:44px;font-size:15px}
+  .buf{gap:5px;grid-template-columns:repeat(8,minmax(0,1fr))}
+  .dm{grid-template-columns:1fr}
+  .dm .name{text-align:left}
+  .dm .codes span{width:38px}
+  .ph{font-size:17px}
+}
+@media (prefers-reduced-motion:reduce){
+  body::after,.glitch::before,.glitch::after{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="rail" aria-hidden="true">NETWATCH // SUBNET-07 // NODE 0x7F3A // ICE GRADE 3 // DO NOT PANIC</div>
+<div class="rail r" aria-hidden="true">KIROSHI OPTICS HUD OVERLAY // BUILD 2.0.77 // LATENCY 14MS</div>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <small>// JACK-IN SESSION 0x7F3A · SUBNET 07 · NIGHT MARKET SECURITY GRID</small>
+      <h1><span class="glitch" data-t="Breach Protocol">Breach Protocol</span></h1>
+    </div>
+    <div class="stats" aria-live="polite">
+      <div class="stat"><span>EDDIES</span><b id="eddies">0 €$</b></div>
+      <div class="stat"><span>BREACHES</span><b id="wins">0 / 0</b></div>
+      <div class="stat"><span>RAM</span><b id="ram"></b></div>
+    </div>
+  </header>
+
+  <div class="timer" role="timer" aria-live="off">
+    <span class="lab">BREACH TIME REMAINING</span>
+    <div class="bar" id="tbar"><i id="tfill"></i></div>
+    <span class="t" id="tnum">40.00</span>
+  </div>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="mxh">
+      <div class="in">
+        <div class="ph"><span id="mxh">Code Matrix</span><small id="axisTag">SELECT · ROW 1</small></div>
+        <div class="pb">
+          <div class="mx" id="mx" role="grid" aria-label="Code matrix"></div>
+          <div class="axis"><span>X:00–05</span><span id="coord">CURSOR —</span><span>Y:00–05</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="side">
+      <section class="panel" aria-labelledby="bufh">
+        <div class="in">
+          <div class="ph"><span id="bufh">Buffer</span><small id="bufcount">0 / 8</small></div>
+          <div class="pb">
+            <div class="buf" id="buf" aria-live="polite"></div>
+            <p class="hint">Start anywhere on the <b>top row</b>. Each pick flips the lane: row → column → row. Chain the sequences below inside the buffer. Keys: <b>arrows</b> move, <b>enter</b> picks, <b>R</b> re-breach.</p>
+          </div>
+        </div>
+      </section>
+      <section class="panel cyan" aria-labelledby="dmh">
+        <div class="in">
+          <div class="ph"><span id="dmh">Daemons to Upload</span><small>3 DAEMONS</small></div>
+          <div class="pb" id="daemons"></div>
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="logh" style="--pc:#3b3a2c">
+        <div class="in">
+          <div class="ph" style="color:var(--y)"><span id="logh">Trace Log</span><small>tty/07</small></div>
+          <div class="pb"><div class="log" id="log" aria-live="polite"></div>
+            <div class="btns"><button class="btn" id="again" type="button">Re-Breach</button><button class="btn ghost" id="bail" type="button">Jack Out</button></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="over" id="over" hidden role="dialog" aria-modal="true" aria-labelledby="ovt">
+  <div class="panel card" id="card"><div class="in">
+    <div class="ph"><span>Breach Report</span><small id="ovsub">NODE 0x7F3A</small></div>
+    <div class="pb">
+      <div class="big" id="ovt">Breach Successful</div>
+      <ul id="ovlist"></ul>
+      <p class="quip" id="quip"></p>
+      <div class="btns"><button class="btn" id="ovagain" type="button">Next Node</button></div>
+    </div>
+  </div></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $=id=>document.getElementById(id);
+const CODES=['1C','55','BD','E9','7A','FF'];
+const N=6, BUF=8, TIME=40;
+const DAEMON_POOL=[
+  ['DATAMINE_V1','siphon 250 €$ from the vending grid',250],
+  ['DATAMINE_V2','siphon 600 €$, leave a thank-you note',600],
+  ['ICEPICK.EXE','cool the ICE by 2 degrees of sass',150],
+  ['CAMERA_NAP','put 14 cameras to sleep, humanely',300],
+  ['MASS_VULN','everyone on the subnet forgets their password',450],
+  ['TURRET_DIPLOMACY','turrets now shoot compliments',500],
+  ['NOODLE_OVERRIDE','free ramen at every stall till dawn',350],
+  ['ELEVATOR_MUSIC','replace corp anthem with smooth jazz',200]
+];
+const QUIPS_OK=['The ICE never saw you. Neither did your landlord.','Clean exit. Choom, that was surgical.','NetWatch filed it under “weather”.','You left the firewall a one-star review.'];
+const QUIPS_BAD=['The ICE bit back. Walk it off.','Your deck smells like burnt toast now.','Trace got a partial. Maybe change hoodies.','Even the vending machine is laughing at you.'];
+const rnd=n=>Math.floor(Math.random()*n);
+const pick=a=>a[rnd(a.length)];
+
+let M=[], used=[], axis='row', lane=0, buffer=[], daemons=[], done=false, started=false, t0=0, left=TIME, cursor=0, hoverIdx=-1;
+let eddies=0, wins=0, runs=0;
+try{ const s=JSON.parse(localStorage.getItem('breach.stats')||'null'); if(s){ eddies=s.e|0; wins=s.w|0; runs=s.r|0; } }catch(e){}
+function saveStats(){ try{ localStorage.setItem('breach.stats',JSON.stringify({e:eddies,w:wins,r:runs})); }catch(e){} }
+
+/* ---------- audio: tiny synthesized blips ---------- */
+let AC=null;
+function ac(){ if(!AC){ try{ const A=window.AudioContext||window.webkitAudioContext; if(A) AC=new A(); }catch(e){ AC=null; } } if(AC&&AC.state==='suspended') AC.resume().catch(()=>{}); return AC; }
+function blip(f,d,type,v){ const a=AC; if(!a) return; const o=a.createOscillator(), g=a.createGain(); o.type=type||'square'; o.frequency.setValueAtTime(f,a.currentTime); g.gain.setValueAtTime(v||.04,a.currentTime); g.gain.exponentialRampToValueAtTime(.0005,a.currentTime+d); o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+d+.02); }
+
+/* ---------- generation: carve a guaranteed path, then derive daemons from it ---------- */
+function generate(){
+  M=[...Array(N)].map(()=>[...Array(N)].map(()=>pick(CODES)));
+  used=[...Array(N)].map(()=>Array(N).fill(false));
+  // path: alternate row/col starting on row 0
+  const path=[]; const taken=new Set(); let r=0,c=rnd(N); let ax='row';
+  path.push([r,c]); taken.add(r+','+c);
+  for(let i=1;i<BUF-1;i++){
+    let opts=[];
+    if(ax==='row'){ for(let rr=0;rr<N;rr++) if(!taken.has(rr+','+c)) opts.push([rr,c]); ax='col'; }
+    else { for(let cc=0;cc<N;cc++) if(!taken.has(r+','+cc)) opts.push([r,cc]); ax='row'; }
+    if(!opts.length) break;
+    [r,c]=pick(opts); path.push([r,c]); taken.add(r+','+c);
+  }
+  const seq=path.map(([r,c])=>M[r][c]);
+  // three daemons from overlapping windows of the solution (lengths 2,3,3 or 2,3,4)
+  const cuts=[[0,2],[1+rnd(2),3],[3+rnd(2),3+rnd(2)]].map(([s,l])=>[Math.min(s,seq.length-2),l]);
+  const names=[...DAEMON_POOL].sort(()=>Math.random()-.5);
+  daemons=cuts.map(([s,l],i)=>({seq:seq.slice(s,Math.min(seq.length,s+l)),name:names[i][0],desc:names[i][1],pay:names[i][2],state:'wait'}));
+  // de-dup identical daemons
+  daemons=daemons.filter((d,i,a)=>a.findIndex(x=>x.seq.join()===d.seq.join())===i);
+  axis='row'; lane=0; buffer=[]; done=false; started=false; left=TIME; cursor=0; hoverIdx=-1;
+  const mx=$('mx'); if(mx) mx.classList.remove('dead');
+  renderAll();
+  log(`> handshake 0x${(Math.random()*0xFFFF|0).toString(16).toUpperCase().padStart(4,'0')} … <span class="c">ok</span>`);
+  log(`> ICE signature: <span class="y">${pick(['ARASAKA-ish','MILITECH knockoff','homebrew, surprisingly mean','RAVEN microcyb.'])}</span>`);
+}
+
+/* ---------- rendering ---------- */
+function laneCells(){ const out=[]; for(let i=0;i<N;i++) out.push(axis==='row'?[lane,i]:[i,lane]); return out; }
+function renderMatrix(){
+  const mx=$('mx'); if(!mx) return;
+  if(!mx.children.length){
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){ const b=document.createElement('button'); b.className='cell'; b.type='button'; b.dataset.r=r; b.dataset.c=c; b.setAttribute('role','gridcell'); b.innerHTML='<span></span>'; mx.appendChild(b); }
+  }
+  const hv=hoverIdx>=0?laneCells()[hoverIdx]:null;
+  [...mx.children].forEach(b=>{
+    const r=+b.dataset.r, c=+b.dataset.c;
+    b.firstChild.textContent=M[r][c];
+    const inLane=!done&&(axis==='row'?r===lane:c===lane);
+    const isUsed=used[r][c];
+    b.className='cell'+(isUsed?' used':'');
+    if(inLane){ b.classList.add('line'); if(axis==='row'){ if(c===0) b.classList.add('edge-l'); if(c===N-1) b.classList.add('edge-r'); b.classList.add('edge-t'); } else { if(r===0) b.classList.add('edge-t'); b.classList.add('edge-l'); } if(!isUsed) b.classList.add('pick'); }
+    if(hv&&!done){ const [hr,hc]=hv; if(axis==='row'?c===hc:r===hr) b.classList.add('cross'); if(r===hr&&c===hc&&!isUsed) b.classList.add('hot'); }
+    b.setAttribute('aria-label',`${M[r][c]} row ${r+1} column ${c+1}${isUsed?' used':''}${inLane&&!isUsed?' selectable':''}`);
+    b.tabIndex=-1;
+  });
+  const tag=$('axisTag'); if(tag) tag.textContent=done?'SESSION CLOSED':`SELECT · ${axis==='row'?'ROW':'COLUMN'} ${lane+1}`;
+}
+function renderBuffer(){
+  const bf=$('buf'); if(!bf) return;
+  const hv=hoverIdx>=0?laneCells()[hoverIdx]:null;
+  const ghost=hv&&!used[hv[0]][hv[1]]&&!done?M[hv[0]][hv[1]]:null;
+  let h=''; for(let i=0;i<BUF;i++){ if(i<buffer.length) h+=`<div class="slot full">${buffer[i]}</div>`; else if(i===buffer.length&&ghost) h+=`<div class="slot ghost">${ghost}</div>`; else h+='<div class="slot"></div>'; }
+  bf.innerHTML=h;
+  const bc=$('bufcount'); if(bc) bc.textContent=`${buffer.length} / ${BUF}`;
+}
+// how far along each daemon is: longest suffix of buffer that is a prefix of the daemon
+function progress(d,buf){ for(let k=Math.min(d.seq.length-1,buf.length);k>0;k--){ let ok=true; for(let j=0;j<k;j++) if(buf[buf.length-k+j]!==d.seq[j]){ ok=false; break; } if(ok) return k; } return 0; }
+function contains(buf,seq){ outer: for(let i=0;i+seq.length<=buf.length;i++){ for(let j=0;j<seq.length;j++) if(buf[i+j]!==seq[j]) continue outer; return true; } return false; }
+function renderDaemons(){
+  const el=$('daemons'); if(!el) return;
+  const hv=hoverIdx>=0?laneCells()[hoverIdx]:null;
+  el.innerHTML=daemons.map((d,i)=>{
+    const p=d.state==='done'?d.seq.length:progress(d,buffer);
+    const next=hv&&!done&&d.state==='wait'&&!used[hv[0]][hv[1]]&&M[hv[0]][hv[1]]===d.seq[p]?p:-1;
+    return `<div class="dm ${d.state==='done'?'done':d.state==='fail'?'fail':''}" data-i="${i}"><i class="st"></i>
+      <div class="codes">${d.seq.map((s,j)=>`<span class="${j<p?'ok':j===next?'nx':''}">${s}</span>`).join('')}</div>
+      <div class="name">${d.name}<small>${d.desc}</small></div></div>`;
+  }).join('');
+}
+function renderStats(){
+  const e=$('eddies'); if(e) e.textContent=eddies.toLocaleString('en-US')+' €$';
+  const w=$('wins'); if(w) w.textContent=`${wins} / ${runs}`;
+  const ram=$('ram'); if(ram){ const n=Math.min(6,2+Math.floor(wins/2)); ram.innerHTML='<span class="ramcells">'+Array.from({length:6},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join('')+'</span>'; }
+}
+function renderTimer(){
+  const f=$('tfill'), t=$('tnum'), b=$('tbar');
+  const k=Math.max(0,left/TIME);
+  if(f) f.style.transform=`scaleX(${k})`;
+  if(t){ t.textContent=left.toFixed(2); t.classList.toggle('low',left<10); }
+  if(b) b.classList.toggle('low',left<10);
+}
+function renderAll(){ renderMatrix(); renderBuffer(); renderDaemons(); renderStats(); renderTimer(); }
+
+/* ---------- log ---------- */
+function log(html){ const l=$('log'); if(!l) return; const d=document.createElement('div'); d.innerHTML=html; l.appendChild(d); while(l.children.length>7) l.removeChild(l.firstChild); }
+
+/* ---------- actions ---------- */
+function choose(r,c){
+  if(done) return;
+  const inLane=axis==='row'?r===lane:c===lane;
+  const mx=$('mx'); const b=mx&&mx.children[r*N+c];
+  if(!inLane||used[r][c]){ if(b){ b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); } ac(); blip(110,.12,'sawtooth',.05); return; }
+  ac();
+  if(!started){ started=true; t0=performance.now(); log('> <span class="y">trace initiated</span> — clock is running'); }
+  used[r][c]=true; buffer.push(M[r][c]);
+  blip(880+buffer.length*60,.06,'square',.035);
+  log(`> inject <span class="y">${M[r][c]}</span> @ [${r},${c}]`);
+  if(axis==='row'){ axis='col'; lane=c; } else { axis='row'; lane=r; }
+  // resolve daemons
+  daemons.forEach((d,i)=>{
+    if(d.state!=='wait') return;
+    if(contains(buffer,d.seq)){ d.state='done'; log(`> <span class="c">${d.name} uploaded</span>`); setTimeout(()=>{ const el=document.querySelector(`.dm[data-i="${i}"]`); if(el) el.classList.add('flash'); },10); blip(1320,.09,'square',.04); setTimeout(()=>blip(1760,.12,'square',.04),90); }
+    else if(BUF-buffer.length < d.seq.length-progress(d,buffer)){ d.state='fail'; log(`> <span class="r">${d.name} unreachable</span>`); }
+  });
+  // lane exhausted?
+  const free=laneCells().some(([rr,cc])=>!used[rr][cc]);
+  cursor=Math.max(0,laneCells().findIndex(([rr,cc])=>!used[rr][cc]));
+  hoverIdx=-1;
+  renderAll();
+  if(buffer.length>=BUF||daemons.every(d=>d.state!=='wait')||!free) finish(!free&&buffer.length<BUF?'lane':'end');
+}
+function finish(why){
+  if(done) return; done=true; runs++;
+  daemons.forEach(d=>{ if(d.state==='wait') d.state='fail'; });
+  const ok=daemons.filter(d=>d.state==='done');
+  const pay=ok.reduce((a,d)=>a+d.pay,0);
+  eddies+=pay; if(ok.length) wins++;
+  saveStats();
+  const mx=$('mx'); if(mx) mx.classList.add('dead');
+  renderAll();
+  log(why==='time'?'> <span class="r">trace complete — you were seen</span>':why==='bail'?'> <span class="r">jacked out manually</span>':`> session closed · ${ok.length}/${daemons.length} daemons`);
+  if(ok.length){ blip(523,.12,'square',.05); setTimeout(()=>blip(784,.18,'square',.05),110); } else { blip(196,.4,'sawtooth',.06); }
+  setTimeout(()=>showReport(ok,pay,why),why==='bail'?50:650);
+}
+function showReport(ok,pay,why){
+  const ov=$('over'), card=$('card'); if(!ov||!card) return;
+  const good=ok.length>0;
+  card.classList.toggle('bad',!good);
+  $('ovt').textContent=good?(ok.length===daemons.length?'Full Breach':'Breach Successful'):(why==='time'?'Trace Complete':'Breach Failed');
+  $('ovsub').textContent=`${ok.length}/${daemons.length} DAEMONS · +${pay} €$`;
+  $('ovlist').innerHTML=daemons.map(d=>`<li class="${d.state==='done'?'':'x'}">${d.name} — ${d.desc}</li>`).join('');
+  $('quip').textContent=pick(good?QUIPS_OK:QUIPS_BAD);
+  ov.hidden=false; const b=$('ovagain'); if(b) b.focus();
+}
+function closeReport(){ const ov=$('over'); if(ov) ov.hidden=true; }
+
+/* ---------- input ---------- */
+const mx=$('mx');
+if(mx){
+  mx.addEventListener('pointerover',e=>{ const b=e.target.closest('.cell'); if(!b||done) return; const r=+b.dataset.r, c=+b.dataset.c; const idx=axis==='row'?(r===lane?c:-1):(c===lane?r:-1); if(idx!==hoverIdx){ hoverIdx=idx; if(idx>=0) cursor=idx; renderMatrix(); renderBuffer(); renderDaemons(); } const co=$('coord'); if(co) co.textContent=`CURSOR ${String(c).padStart(2,'0')}:${String(r).padStart(2,'0')}`; });
+  mx.addEventListener('pointerleave',()=>{ if(hoverIdx!==-1){ hoverIdx=-1; renderMatrix(); renderBuffer(); renderDaemons(); } });
+  mx.addEventListener('click',e=>{ const b=e.target.closest('.cell'); if(!b) return; choose(+b.dataset.r,+b.dataset.c); });
+}
+addEventListener('keydown',e=>{
+  const ov=$('over');
+  if(ov&&!ov.hidden){ if(e.key==='Enter'||e.key===' '||e.key==='Escape'||e.key==='r'||e.key==='R'){ e.preventDefault(); closeReport(); generate(); } return; }
+  if(e.key==='r'||e.key==='R'){ generate(); return; }
+  if(done) return;
+  const fwd=axis==='row'?['ArrowRight','ArrowLeft']:['ArrowDown','ArrowUp'];
+  if(e.key===fwd[0]||e.key===fwd[1]||['ArrowRight','ArrowLeft','ArrowDown','ArrowUp'].includes(e.key)){
+    e.preventDefault();
+    const dir=(e.key==='ArrowRight'||e.key==='ArrowDown')?1:-1;
+    cursor=((hoverIdx<0?cursor:hoverIdx)+dir+N)%N; hoverIdx=cursor; renderMatrix(); renderBuffer(); renderDaemons();
+    const [r,c]=laneCells()[cursor]; const co=$('coord'); if(co) co.textContent=`CURSOR ${String(c).padStart(2,'0')}:${String(r).padStart(2,'0')}`;
+  }
+  if(e.key==='Enter'||e.key===' '){ e.preventDefault(); const idx=hoverIdx<0?cursor:hoverIdx; const [r,c]=laneCells()[idx]; choose(r,c); }
+});
+const again=$('again'); if(again) again.addEventListener('click',()=>{ ac(); generate(); });
+const bail=$('bail'); if(bail) bail.addEventListener('click',()=>{ if(!done) finish('bail'); });
+const ova=$('ovagain'); if(ova) ova.addEventListener('click',()=>{ closeReport(); generate(); });
+const ovl=$('over'); if(ovl) ovl.addEventListener('click',e=>{ if(e.target===ovl){ closeReport(); } });
+
+/* ---------- clock ---------- */
+function tick(now){
+  if(started&&!done){ left=Math.max(0,TIME-(now-t0)/1000); renderTimer(); if(left<=0) finish('time'); }
+  requestAnimationFrame(tick);
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&started&&!done){ t0=performance.now()-(TIME-left)*1000; } });
+
+generate(); renderStats();
+log('> kiroshi overlay online. <span class="y">awaiting input</span>');
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

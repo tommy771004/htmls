@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>form · farbe · funktion — a bauhaus composition machine</title>
+<meta name="description" content="幾何構成產生器：點擊重組、可鎖定形狀，遵循 Kandinsky 形色規則。收錄於 100 Creative HTML Works（009・包浩斯）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/009-bauhaus.html">
+<style>
+:root{
+  --cream:#efe6d2; --paper:#f6f0e2; --red:#d52b1e; --yel:#f3b61f; --blue:#1f4aa8; --black:#141414; --grey:#cfc5ae;
+  --f:"Century Gothic","Futura","Avenir Next","URW Gothic","Trebuchet MS",sans-serif;
+  --spring:cubic-bezier(.3,1.55,.55,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--paper)}
+body{font-family:var(--f);background:var(--paper);color:var(--black);min-height:100vh;
+  background-image:radial-gradient(rgba(20,20,20,.05) 1px,transparent 1.2px);background-size:6px 6px}
+button{font-family:inherit;color:inherit;cursor:pointer}
+
+.wrap{display:grid;grid-template-columns:auto minmax(300px,380px);gap:clamp(20px,3vw,48px);align-items:start;justify-content:center;padding:clamp(16px,3vw,40px)}
+.stagebox{position:relative}
+.stage{width:min(86vh,58vw);aspect-ratio:1;display:block;background:var(--cream);box-shadow:14px 14px 0 var(--black);cursor:pointer;touch-action:manipulation;outline:none}
+.stage:focus-visible{box-shadow:14px 14px 0 var(--black),0 0 0 4px var(--blue)}
+.stage g.s{transition:transform .95s var(--spring);transform-box:view-box}
+.stage .shape{transition:fill .6s ease}
+.stage .bg{transition:fill .6s ease,opacity .6s ease}
+.stage g.s.locked .shape{stroke:var(--black);stroke-width:3;stroke-dasharray:6 5}
+.stage .gridl{stroke:rgba(20,20,20,.14);stroke-width:1}
+.stagecap{display:flex;justify-content:space-between;margin-top:26px;font-size:13px;letter-spacing:.14em;text-transform:lowercase}
+.stagecap b{font-weight:700}
+
+.side{display:flex;flex-direction:column;gap:22px;padding-top:4px}
+.mast{border-top:14px solid var(--black);padding-top:14px}
+.mast .top{display:flex;gap:6px;margin-bottom:14px}
+.mast .top i{width:26px;height:26px;display:block}
+.mast .top i:nth-child(1){background:var(--red);border-radius:50%}
+.mast .top i:nth-child(2){background:var(--yel);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.mast .top i:nth-child(3){background:var(--blue)}
+h1{font-size:clamp(40px,4.2vw,60px);line-height:.92;letter-spacing:-.02em;font-weight:700;text-transform:lowercase}
+h1 span{display:block}
+h1 span:nth-child(2){color:var(--red);padding-left:.9em}
+h1 span:nth-child(3){padding-left:.4em}
+.lede{font-size:15px;line-height:1.55;margin-top:14px;text-transform:lowercase;max-width:34ch}
+
+.ctl{border-top:3px solid var(--black);padding-top:12px}
+.ctl h2{font-size:11px;letter-spacing:.3em;text-transform:uppercase;font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between}
+.seg{display:flex;gap:0;border:3px solid var(--black)}
+.seg button{flex:1;min-height:44px;border:0;background:transparent;font-size:15px;font-weight:700;border-right:3px solid var(--black);transition:background .2s,color .2s}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--black);color:var(--cream)}
+.seg button:focus-visible,.big:focus-visible,.tog:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--black)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--red);margin-top:-11.5px;border:3px solid var(--black)}
+input[type=range]::-moz-range-track{height:3px;background:var(--black)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--red);border:3px solid var(--black)}
+input[type=range]:focus-visible{outline:3px solid var(--blue)}
+.tog{display:flex;align-items:center;gap:14px;width:100%;min-height:48px;border:3px solid var(--black);background:transparent;padding:0 12px;text-align:left;font-size:14px;text-transform:lowercase}
+.tog .sw{display:flex;gap:4px;flex:none}
+.tog .sw i{width:18px;height:18px;display:block;transition:transform .6s var(--spring)}
+.tog .sw i:nth-child(1){background:var(--yel);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.tog .sw i:nth-child(2){background:var(--red)}
+.tog .sw i:nth-child(3){background:var(--blue);border-radius:50%}
+.tog[aria-pressed="true"]{background:var(--black);color:var(--cream)}
+.tog[aria-pressed="true"] .sw i{transform:rotate(180deg)}
+.tog small{display:block;font-size:11px;opacity:.7}
+.big{min-height:64px;width:100%;border:0;background:var(--red);color:var(--cream);font-size:22px;font-weight:700;letter-spacing:.04em;text-transform:lowercase;display:flex;align-items:center;justify-content:space-between;padding:0 20px;box-shadow:6px 6px 0 var(--black);transition:transform .15s,box-shadow .15s}
+.big:active{transform:translate(6px,6px);box-shadow:0 0 0 var(--black)}
+.big svg{width:30px;height:30px;transition:transform .9s var(--spring)}
+.big:hover svg{transform:rotate(180deg)}
+.hint{font-size:12px;line-height:1.6;text-transform:lowercase;opacity:.8}
+kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 5px;font-size:11px}
+.note{font-size:12.5px;line-height:1.6;border-left:6px solid var(--yel);padding-left:12px;text-transform:lowercase}
+
+@media (max-width:900px){
+  .wrap{grid-template-columns:minmax(0,1fr);justify-items:stretch}
+  .stage{width:100%;box-shadow:8px 8px 0 var(--black)}
+  .stagebox{padding-right:8px}
+  .stagecap{margin-top:18px}
+  .side{order:2}
+}
+@media (prefers-reduced-motion:reduce){.stage g.s{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stagebox">
+    <svg class="stage" id="stage" viewBox="0 0 600 600" role="button" tabindex="0" aria-label="composition stage — click empty space to recompose, click a shape to lock it"></svg>
+    <div class="stagecap"><span>komposition nr. <b id="nr">0000</b></span><span id="stat">16 forms · 0 locked</span></div>
+  </div>
+
+  <aside class="side">
+    <div class="mast">
+      <div class="top" aria-hidden="true"><i></i><i></i><i></i></div>
+      <h1><span>form</span><span>farbe</span><span>funktion</span></h1>
+      <p class="lede">a composition machine after the weimar workshops, 1919–1925. every click pours a new arrangement of circle, square and triangle onto the grid. no ornament was harmed.</p>
+    </div>
+
+    <div class="ctl">
+      <h2><span>raster · grid</span><span id="gv">4 × 4</span></h2>
+      <div class="seg" id="grid"><button data-n="3" aria-pressed="false">3</button><button data-n="4" aria-pressed="true">4</button><button data-n="5" aria-pressed="false">5</button><button data-n="6" aria-pressed="false">6</button></div>
+    </div>
+
+    <div class="ctl">
+      <h2><span>farbe · palette</span></h2>
+      <div class="seg" id="pal"><button data-p="klassik" aria-pressed="true">klassik</button><button data-p="nacht" aria-pressed="false">nacht</button><button data-p="druck" aria-pressed="false">druck</button></div>
+    </div>
+
+    <div class="ctl">
+      <h2><span>dichte · density</span><span id="dv">70%</span></h2>
+      <input type="range" id="dens" min="20" max="100" value="70" aria-label="density">
+    </div>
+
+    <div class="ctl">
+      <button class="tog" id="kand" aria-pressed="false"><span class="sw" aria-hidden="true"><i></i><i></i><i></i></span><span>kandinsky's rule<small>triangle = yellow · square = red · circle = blue</small></span></button>
+    </div>
+
+    <button class="big" id="go">neu komponieren <svg viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="12" fill="none" stroke="currentColor" stroke-width="3"/><path d="M15 3 A12 12 0 0 1 27 15 L15 15Z" fill="currentColor"/></svg></button>
+
+    <p class="hint">click the stage or press <kbd>space</kbd> to recompose · click a form to lock it · <kbd>k</kbd> kandinsky · <kbd>1</kbd>–<kbd>4</kbd> grid</p>
+    <p class="note">in 1923 kandinsky handed every student a questionnaire: match the triangle, square and circle to yellow, red and blue. most agreed with him. the ones who didn't went on to design chairs.</p>
+  </aside>
+</div>
+
+<script>
+(function(){
+  var NS='http://www.w3.org/2000/svg', stage=document.getElementById('stage'); if(!stage) return;
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var PAL={
+    klassik:{bg:'#efe6d2',ink:['#d52b1e','#f3b61f','#1f4aa8','#141414'],light:'#efe6d2',grid:'rgba(20,20,20,.14)'},
+    nacht:{bg:'#141414',ink:['#d52b1e','#f3b61f','#1f4aa8','#efe6d2'],light:'#2a2a2a',grid:'rgba(239,230,210,.12)'},
+    druck:{bg:'#f6f0e2',ink:['#141414','#141414','#d52b1e','#8a8170'],light:'#e2d8c2',grid:'rgba(20,20,20,.12)'}
+  };
+  var S={n:4,pal:'klassik',dens:.7,kand:false,seed:427};
+  var rng;
+  function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+  function pick(a){return a[Math.floor(rng()*a.length)];}
+
+  /* unit shapes centred on 0,0 in a 100x100 box */
+  var SH={
+    circle:'M0 -50A50 50 0 1 1 0 50A50 50 0 1 1 0 -50Z',
+    square:'M-50 -50H50V50H-50Z',
+    half:'M-50 0A50 50 0 0 1 50 0Z',
+    quarter:'M-50 -50A100 100 0 0 1 50 50H-50Z',
+    tri:'M0 -50L50 50H-50Z',
+    ring:'M0 -50A50 50 0 1 1 0 50A50 50 0 1 1 0 -50ZM0 -24A24 24 0 1 0 0 24A24 24 0 1 0 0 -24Z',
+    bar:'M-50 -16H50V16H-50Z',
+    stripes:'M-50 -50H50V-30H-50ZM-50 -10H50V10H-50ZM-50 30H50V50H-50Z',
+    arch:'M-50 50V0A50 50 0 0 1 50 0V50H24V4A24 24 0 0 0 -24 4V50Z',
+    dot:'M0 -22A22 22 0 1 1 0 22A22 22 0 1 1 0 -22Z'
+  };
+  var TYPES=['circle','square','half','quarter','tri','ring','bar','stripes','arch','dot'];
+  var KAND={tri:'#f3b61f',square:'#d52b1e',circle:'#1f4aa8'};
+
+  var cells=[], overlays=[], gridG, bgRect;
+  function el(tag,attrs){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);return e;}
+
+  function build(){
+    stage.innerHTML='';
+    bgRect=el('rect',{x:0,y:0,width:600,height:600,fill:PAL[S.pal].bg,'class':'bg'});stage.appendChild(bgRect);
+    gridG=el('g',{});stage.appendChild(gridG);
+    cells=[];overlays=[];
+    var n=S.n,c=600/n;
+    for(var i=0;i<n*n;i++){
+      var g=el('g',{'class':'s'}),bg=el('rect',{x:-50,y:-50,width:100,height:100,'class':'bg'}),sh=el('path',{'class':'shape'});
+      g.appendChild(bg);g.appendChild(sh);stage.appendChild(g);
+      var cell={g:g,bg:bg,sh:sh,i:i,x:(i%n)*c+c/2,y:Math.floor(i/n)*c+c/2,size:c,type:null,locked:false};
+      g.style.transform='translate('+cell.x+'px,'+cell.y+'px) scale(0)';
+      cells.push(cell);
+    }
+    for(var k=0;k<3;k++){
+      var og=el('g',{'class':'s'}),osh=el('path',{'class':'shape'});og.appendChild(osh);stage.appendChild(og);
+      og.style.transform='translate(300px,300px) scale(0)';
+      overlays.push({g:og,sh:osh,type:null,locked:false,over:true});
+    }
+    drawGrid();
+    [].concat(cells,overlays).forEach(function(o){
+      o.g.addEventListener('click',function(e){e.stopPropagation();o.locked=!o.locked;o.g.classList.toggle('locked',o.locked);status();tick(o.locked?660:440);});
+    });
+  }
+  function drawGrid(){gridG.innerHTML='';var n=S.n,c=600/n;for(var i=1;i<n;i++){gridG.appendChild(el('line',{x1:i*c,y1:0,x2:i*c,y2:600,'class':'gridl',stroke:PAL[S.pal].grid}));gridG.appendChild(el('line',{x1:0,y1:i*c,x2:600,y2:i*c,'class':'gridl',stroke:PAL[S.pal].grid}));}}
+
+  function colorFor(type,avoid){
+    var p=PAL[S.pal];
+    if(S.kand&&KAND[type]) return S.pal==='druck'?(type==='square'?'#d52b1e':'#141414'):KAND[type];
+    var c; do{c=pick(p.ink);}while(c===avoid&&p.ink.length>1); return c;
+  }
+  function setShape(o,type,transform,fill,delay){
+    var d=reduce?0:delay;
+    if(o.type!==type){
+      if(o.type&&!reduce){
+        o.g.style.transitionDelay=d+'ms';
+        o.g.style.transform=o.g.style.transform.replace(/scale\([^)]*\)/,'scale(0)');
+        setTimeout(function(){o.sh.setAttribute('d',SH[type]||'');o.g.style.transitionDelay='0ms';o.g.style.transform=transform;},d+260);
+      } else { o.sh.setAttribute('d',SH[type]||''); o.g.style.transitionDelay=d+'ms'; o.g.style.transform=transform; }
+      o.type=type;
+    } else { o.g.style.transitionDelay=d+'ms'; o.g.style.transform=transform; }
+    o.sh.style.fill=fill;
+  }
+  function compose(newSeed){
+    if(newSeed!==false) S.seed=Math.floor(Math.random()*9999)+1;
+    rng=mulberry(S.seed*97+S.n*7);
+    var p=PAL[S.pal],n=S.n,c=600/n;
+    bgRect.style.fill=p.bg;
+    cells.forEach(function(o,i){
+      var r1=rng(),r2=rng(),r3=rng(),r4=rng(),r5=rng();
+      if(o.locked) return;
+      var show=r1<S.dens, type=show?TYPES[Math.floor(r2*TYPES.length)]:'dot';
+      if(S.kand&&show) type=['circle','square','tri'][Math.floor(r2*3)];
+      var rot=[0,90,180,270][Math.floor(r3*4)], sc=show?(c/100)*(r4<.2?.62:1):0;
+      var tileBg=r5<.45?pick(p.ink.concat([p.light,p.light])):'transparent';
+      var fill=colorFor(type,tileBg);
+      if(tileBg===fill) tileBg=p.light;
+      o.bg.style.fill=tileBg==='transparent'?'rgba(0,0,0,0)':tileBg;
+      var tr='translate('+o.x+'px,'+o.y+'px) rotate('+rot+'deg) scale('+sc.toFixed(3)+')';
+      var delay=((i%n)+Math.floor(i/n))*45;
+      setShape(o,type,tr,fill,delay);
+    });
+    /* big overlays: a large circle, a long bar, a big quarter */
+    var ov=[['circle',1.55],['bar',2.7],['quarter',1.25]];
+    overlays.forEach(function(o,k){
+      var a=rng(),b=rng(),d=rng(),e=rng();
+      if(o.locked) return;
+      var t=ov[k][0], on=a<.75;
+      if(S.kand&&t==='bar') t='tri';
+      var sc=on?ov[k][1]*(c/100)*(.7+b*.5)*(4/n):0;
+      var x=80+d*440,y=80+e*440,rot=Math.floor(rng()*8)*45;
+      var tr='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px) rotate('+rot+'deg) scale('+sc.toFixed(3)+')';
+      var fill=colorFor(t); var guard=0; while((fill==='#141414'||fill==='#efe6d2'||fill==='#8a8170')&&S.pal!=='druck'&&guard++<12) fill=colorFor(t);
+      o.sh.style.mixBlendMode=S.pal==='nacht'?'normal':'multiply'; o.sh.style.opacity=S.pal==='nacht'?'.92':'1';
+      setShape(o,t,tr,fill,420+k*120);
+    });
+    var nr=document.getElementById('nr'); if(nr) nr.textContent=('000'+S.seed).slice(-4);
+    status(); chord();
+  }
+  function status(){var st=document.getElementById('stat');if(!st)return;var L=cells.concat(overlays).filter(function(o){return o.locked;}).length;st.textContent=(S.n*S.n)+' forms · '+L+' locked';}
+
+  /* controls */
+  stage.addEventListener('click',function(){compose();});
+  stage.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();compose();}});
+  document.addEventListener('keydown',function(e){
+    var t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='BUTTON')&&e.key!==' ') return;
+    if(e.key===' '){ if(t&&t.tagName==='BUTTON') return; e.preventDefault(); compose(); }
+    else if(e.key==='k'||e.key==='K'){ toggleKand(); }
+    else if(/^[1-4]$/.test(e.key)){ setGrid(+e.key+2); }
+  });
+  function seg(id,attr,fn){var h=document.getElementById(id);if(!h)return;h.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;h.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b);});fn(b.getAttribute(attr));});}
+  function setGrid(n){S.n=n;var h=document.getElementById('grid');if(h)h.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',+x.dataset.n===n);});var gv=document.getElementById('gv');if(gv)gv.textContent=n+' × '+n;build();requestAnimationFrame(function(){requestAnimationFrame(function(){compose();});});}
+  seg('grid','data-n',function(v){setGrid(+v);});
+  seg('pal','data-p',function(v){S.pal=v;drawGrid();compose(false);});
+  var dens=document.getElementById('dens');
+  if(dens) dens.addEventListener('input',function(){S.dens=dens.value/100;var dv=document.getElementById('dv');if(dv)dv.textContent=dens.value+'%';});
+  if(dens) dens.addEventListener('change',function(){compose(false);});
+  var kb=document.getElementById('kand');
+  function toggleKand(){S.kand=!S.kand;if(kb)kb.setAttribute('aria-pressed',S.kand);compose(false);}
+  if(kb) kb.addEventListener('click',toggleKand);
+  var go=document.getElementById('go'); if(go) go.addEventListener('click',function(){compose();});
+
+  /* sound: each recompose plays a primary-colour chord (after first gesture only) */
+  var ac=null, armed=false;
+  ['pointerdown','keydown'].forEach(function(t){window.addEventListener(t,function(){armed=true;},{capture:true});});
+  function audio(){if(!armed)return null;try{if(!ac){var A=window.AudioContext||window.webkitAudioContext;if(!A)return null;ac=new A();}if(ac.state==='suspended')ac.resume();return ac;}catch(e){return null;}}
+  function tone(f,t0,len,type,vol){var a=ac,o=a.createOscillator(),g=a.createGain();o.type=type||'triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol||.07,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+len);o.connect(g);g.connect(a.destination);o.start(t0);o.stop(t0+len+.05);}
+  function chord(){var a=audio();if(!a)return;var t=a.currentTime,base=[261.6,329.6,392,523.3,440,349.2];for(var i=0;i<3;i++)tone(base[Math.floor(rng()*base.length)],t+i*.07,.6,i===1?'square':'triangle',i===1?.025:.06);}
+  function tick(f){var a=audio();if(!a)return;tone(f,a.currentTime,.12,'square',.03);}
+
+  build(); S.seed=427;
+  requestAnimationFrame(function(){requestAnimationFrame(function(){compose(false);});});
+})();
+</script>
+</body>
+</html>

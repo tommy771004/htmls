@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Hollow Moon — A Three-Card Oracle</title>
+<meta name="description" content="22 張自繪大阿爾克那，三張牌 3D 翻牌、逆位與星塵爆散。收錄於 100 Creative HTML Works（052・神秘塔羅）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/052-tarot.html">
+<style>
+:root{
+  --night:#12081f; --plum:#26103f; --violet:#3b1d5e; --gold:#e3c27a; --gold2:#f6e2a8; --gold3:#a8843f; --ivory:#efe3c8; --mist:#b9a6d6;
+  --serif:"Palatino Linotype","Palatino","Book Antiqua",Georgia,serif;
+  --script:Gabriola,"Apple Chancery","Palatino Linotype",Palatino,serif;
+}
+*{box-sizing:border-box}
+html{background:var(--night)}
+body{margin:0;min-height:100vh;color:var(--ivory);font-family:var(--serif);
+  background:radial-gradient(ellipse 80% 60% at 50% 30%,#2e1450 0%,#1a0b2e 45%,var(--night) 100%) fixed}
+#sky{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+main{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:clamp(20px,4vw,44px) clamp(16px,3vw,32px) 60px}
+
+header{text-align:center}
+.eyebrow{font-variant:small-caps;letter-spacing:.42em;font-size:13px;color:var(--mist);margin:0}
+h1{margin:6px 0 0;font-weight:400;font-variant:small-caps;letter-spacing:.14em;font-size:clamp(34px,6vw,68px);line-height:1;
+  background:linear-gradient(100deg,var(--gold3) 0%,var(--gold2) 30%,var(--gold) 50%,var(--gold2) 70%,var(--gold3) 100%);background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:gilt 9s ease-in-out infinite alternate}
+@keyframes gilt{to{background-position:100% 0}}
+.sub{font-family:var(--script);font-size:clamp(20px,2.4vw,27px);color:var(--mist);margin:18px 0 0;line-height:1.2;font-feature-settings:"ss06"}
+.rule{display:block;margin:16px auto 0;width:min(420px,80%);height:20px}
+
+.table{position:relative;margin:clamp(22px,4vw,40px) auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,220px));justify-content:center;gap:clamp(10px,3.4vw,54px)}
+.slot{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0}
+.slot .pos{text-align:center;font-variant:small-caps;letter-spacing:.3em;font-size:clamp(11px,1.3vw,14px);color:var(--gold);white-space:nowrap}
+.slot .pos b{display:block;text-align:center;font-weight:400;font-family:var(--script);letter-spacing:0;font-variant:normal;font-size:clamp(15px,1.7vw,19px);color:var(--mist);margin-top:2px}
+.card{width:100%;aspect-ratio:200/340;perspective:1200px;cursor:pointer;border:0;padding:0;background:none;display:block;
+  transition:transform .9s cubic-bezier(.2,.8,.2,1),opacity .6s ease;transform:translateY(-60px) scale(.85) rotate(-8deg);opacity:0}
+.card.dealt{transform:none;opacity:1}
+.card:focus-visible{outline:2px solid var(--gold2);outline-offset:6px;border-radius:12px}
+.inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform 1.1s cubic-bezier(.3,1.35,.45,1)}
+.card:hover .inner{transform:translateY(-6px) rotateX(6deg)}
+.card.flipped .inner{transform:rotateY(180deg)}
+.card.flipped:hover .inner{transform:rotateY(180deg) translateY(-4px)}
+.side{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:clamp(7px,1vw,12px);overflow:hidden;
+  box-shadow:0 18px 40px rgba(0,0,0,.55),0 0 0 1px rgba(227,194,122,.35)}
+.side svg{display:block;width:100%;height:100%}
+.face{transform:rotateY(180deg)}
+.back{box-shadow:0 18px 40px rgba(0,0,0,.55),0 0 0 1px rgba(227,194,122,.45),0 0 26px rgba(227,194,122,.08)}
+.card:not(.flipped) .back{animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{50%{box-shadow:0 18px 40px rgba(0,0,0,.55),0 0 0 1px rgba(227,194,122,.6),0 0 34px rgba(227,194,122,.28)}}
+.face.rev .art{transform:rotate(180deg);transform-origin:100px 170px}
+.slot .ori{height:18px;font-family:var(--script);font-size:18px;color:var(--gold2);opacity:0;transition:opacity .8s .6s}
+.slot.show .ori{opacity:1}
+
+.controls{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;margin-top:clamp(20px,3vw,34px)}
+.btn{min-height:46px;padding:0 26px;background:transparent;color:var(--gold2);border:1px solid var(--gold3);border-radius:999px;cursor:pointer;
+  font:400 15px/1 var(--serif);font-variant:small-caps;letter-spacing:.24em;position:relative;transition:background .4s,color .4s}
+.btn::before{content:"";position:absolute;inset:3px;border:1px solid rgba(227,194,122,.25);border-radius:inherit;pointer-events:none}
+.btn:hover,.btn:focus-visible{background:var(--gold);color:var(--night);outline:none}
+.hint{text-align:center;margin:12px 0 0;font-size:13px;color:#8d7cab;letter-spacing:.04em}
+.hint kbd{font:inherit;border:1px solid #5a4380;border-radius:4px;padding:0 6px;color:var(--mist)}
+
+.reading{margin:clamp(28px,4vw,48px) auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,2vw,28px);max-width:1040px}
+@media (max-width:760px){.reading{grid-template-columns:1fr}}
+.leaf{position:relative;padding:22px 22px 20px;background:linear-gradient(180deg,rgba(59,29,94,.55),rgba(38,16,63,.35));border:1px solid rgba(227,194,122,.28);
+  opacity:.35;transition:opacity .9s,transform .9s;transform:translateY(8px)}
+.leaf::before,.leaf::after{content:"";position:absolute;width:14px;height:14px;border:1px solid var(--gold3)}
+.leaf::before{top:6px;left:6px;border-right:0;border-bottom:0}
+.leaf::after{bottom:6px;right:6px;border-left:0;border-top:0}
+.leaf.on{opacity:1;transform:none}
+.leaf h3{margin:0;font-weight:400;font-variant:small-caps;letter-spacing:.2em;font-size:12px;color:var(--mist)}
+.leaf h4{margin:6px 0 0;font-weight:400;font-size:clamp(22px,2.4vw,28px);font-variant:small-caps;letter-spacing:.06em;color:var(--gold2)}
+.leaf h4 i{font-family:var(--script);font-variant:normal;font-size:.72em;color:var(--mist);letter-spacing:0;margin-left:6px}
+.leaf p{margin:10px 0 0;font-size:15.5px;line-height:1.6;color:#e6dac2}
+.leaf .kw{margin-top:12px;font-family:var(--script);font-size:19px;color:var(--gold)}
+.verdict{max-width:760px;margin:clamp(26px,4vw,40px) auto 0;text-align:center;font-family:var(--script);font-size:clamp(22px,2.8vw,30px);line-height:1.35;color:var(--gold2);min-height:2.7em;opacity:0;transition:opacity 1.2s}
+.verdict.on{opacity:1}
+.verdict small{display:block;font-family:var(--serif);font-variant:small-caps;letter-spacing:.34em;font-size:12px;color:var(--mist);margin-bottom:6px}
+footer{text-align:center;margin-top:44px;font-size:12px;letter-spacing:.2em;font-variant:small-caps;color:#7d6c99}
+@media (max-width:520px){
+  .table{gap:10px}
+  .slot .pos{letter-spacing:.14em}
+  .slot .ori{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){h1,.card:not(.flipped) .back{animation:none}.inner{transition-duration:.01s}}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+  <header>
+    <p class="eyebrow">parlour of the</p>
+    <h1>The Hollow Moon</h1>
+    <p class="sub">Shuffle with intention. Choose with your left hand, if you are brave.</p>
+    <svg class="rule" viewBox="0 0 420 20" aria-hidden="true"><g fill="none" stroke="#a8843f" stroke-width="1"><path d="M0 10H170M250 10H420"/><path d="M186 10 a24 24 0 0 0 48 0" /></g><circle cx="210" cy="10" r="6" fill="#e3c27a"/><circle cx="204" cy="8" r="5" fill="#26103f"/><path d="M172 10l6-4 6 4-6 4z M236 10l6-4 6 4-6 4z" fill="#e3c27a"/></svg>
+  </header>
+
+  <section class="table" id="table" aria-label="Three card spread"></section>
+
+  <div class="controls">
+    <button class="btn" id="shuffle">Shuffle &amp; Deal Anew</button>
+    <button class="btn" id="revealAll">Reveal All</button>
+  </div>
+  <p class="hint">Touch a card to turn it · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> or <kbd>Space</kbd> to reveal · <kbd>S</kbd> to shuffle</p>
+
+  <section class="reading" id="reading" aria-live="polite"></section>
+  <p class="verdict" id="verdict"></p>
+  <footer>Twenty-two Major Arcana · drawn fresh each time · for amusement &amp; reflection only</footer>
+</main>
+
+<script>
+(function(){
+  const G = '#e3c27a', G2 = '#f6e2a8', G3 = '#a8843f';
+  const $ = s => document.querySelector(s);
+  const table = $('#table'), reading = $('#reading'), verdictEl = $('#verdict'), shuffleBtn = $('#shuffle'), revealBtn = $('#revealAll');
+  if (!table || !reading || !verdictEl || !shuffleBtn || !revealBtn) return;
+
+  // ---------- drawing primitives ----------
+  const L = (x1,y1,x2,y2,w) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"${w?` stroke-width="${w}"`:''}/>`;
+  const C = (x,y,r,f) => `<circle cx="${x}" cy="${y}" r="${r}"${f?` fill="${f}"`:''}/>`;
+  const P = (d,f) => `<path d="${d}"${f?` fill="${f}"`:''}/>`;
+  const R = (x,y,w,h,f) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${f?` fill="${f}"`:''}/>`;
+  function starPts(cx,cy,Ro,Ri,n,rot){ let p=[]; rot = rot||-Math.PI/2; for(let i=0;i<n*2;i++){ const r=i%2?Ri:Ro, a=rot+i*Math.PI/n; p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1)); } return p.join(' '); }
+  const S = (cx,cy,Ro,Ri,n,f,rot) => `<polygon points="${starPts(cx,cy,Ro,Ri,n,rot)}"${f?` fill="${f}"`:''}/>`;
+  function rays(cx,cy,r1,r2,n,off){ let s=''; for(let i=0;i<n;i++){ const a=(off||0)+i*2*Math.PI/n; s+=L((cx+r1*Math.cos(a)).toFixed(1),(cy+r1*Math.sin(a)).toFixed(1),(cx+r2*Math.cos(a)).toFixed(1),(cy+r2*Math.sin(a)).toFixed(1)); } return s; }
+  const waves = (y,x0,x1) => { let d=`M${x0} ${y}`; for(let x=x0;x<x1;x+=16) d+=` q4 -5 8 0 t8 0`; return P(d); };
+  const cup = (x,y,s) => P(`M${x-9*s} ${y} h${18*s} q0 ${12*s} -${9*s} ${14*s} q-${9*s} -${2*s} -${9*s} -${14*s}z M${x} ${y+14*s} v${7*s} M${x-6*s} ${y+21*s} h${12*s}`);
+  const sword = (x,y,len) => L(x,y,x,y+len)+L(x-9,y+len*.2,x+9,y+len*.2)+P(`M${x-3} ${y} l3 -8 3 8`);
+  const pent = (x,y,r) => C(x,y,r)+S(x,y,r*.9,r*.36,5);
+  const wand = (x,y,len) => L(x,y,x,y+len,2.4)+C(x,y-3,2.4,G)+P(`M${x} ${y+8} l5 -4 M${x} ${y+18} l-5 -4`);
+  const rose = (x,y,r) => { let s=''; for(let i=0;i<5;i++){ const a=-Math.PI/2+i*2*Math.PI/5; s+=C((x+r*.55*Math.cos(a)).toFixed(1),(y+r*.55*Math.sin(a)).toFixed(1),r*.5); } return s+C(x,y,r*.28,G); };
+  const lemn = (x,y,w) => P(`M${x-w} ${y} C${x-w} ${y-w*.55} ${x-w*.2} ${y-w*.55} ${x} ${y} C${x+w*.2} ${y+w*.55} ${x+w} ${y+w*.55} ${x+w} ${y} C${x+w} ${y-w*.55} ${x+w*.2} ${y-w*.55} ${x} ${y} C${x-w*.2} ${y+w*.55} ${x-w} ${y+w*.55} ${x-w} ${y}Z`);
+  const crescent = (x,y,r,f) => P(`M${x} ${y-r} A${r} ${r} 0 1 0 ${x} ${y+r} A${r*.72} ${r*.82} 0 1 1 ${x} ${y-r}Z`, f);
+  const sparkle = (x,y,r) => S(x,y,r,r*.28,4,G2);
+
+  // ---------- the 22 Major Arcana ----------
+  const DECK = [
+   {n:'The Fool',k:'beginnings · trust · the leap',
+    art:()=> C(146,98,14)+rays(146,98,19,27,12)+P('M22 258 L96 258 L110 222 L178 222')+L(64,248,116,128,2.4)+C(121,120,11)+P('M111 118 q10 14 22 0')+rose(52,196,10)+sparkle(46,120,5)+sparkle(160,170,4),
+    u:'A leap with no parachute and excellent vibes. The cliff is not an obstacle — it is the itinerary. Pack light.',
+    r:'You are sprinting along the edge with your eyes shut and calling it spontaneity. Look down once. Just once.'},
+   {n:'The Magician',k:'will · skill · resources',
+    art:()=> lemn(100,100,26)+L(100,126,100,218,2.4)+C(100,124,4,G)+C(100,220,4,G)+P('M78 148 q22 -18 44 0')+cup(46,238,.8)+sword(80,226,34)+wand(120,230,32)+pent(154,248,11)+sparkle(58,110,5)+sparkle(146,110,5),
+    u:'Every tool you need is already on the table: the cup, the blade, the wand, the coin. Stop shopping for a fifth.',
+    r:'Sleight of hand — yours or someone else’s. The trick looks great until somebody counts the cards.'},
+   {n:'The High Priestess',k:'intuition · mystery · the inner voice',
+    art:()=> R(38,104,20,150)+R(142,104,20,150,G)+P('M38 104 h20 M142 104 h20')+`<text x="48" y="186" text-anchor="middle" font-size="16" fill="${G}" stroke="none" font-family="Palatino Linotype,serif">B</text><text x="152" y="186" text-anchor="middle" font-size="16" fill="#26103f" stroke="none" font-family="Palatino Linotype,serif">J</text>`+P('M62 110 q38 26 76 0 v130 q-38 -14 -76 0z')+C(80,140,4)+C(100,150,4)+C(120,140,4)+C(90,176,4)+C(110,176,4)+crescent(100,236,14,G)+C(100,130,9)+L(91,130,109,130),
+    u:'The answer is not in the group chat. It is in the quiet part of the day you keep skipping to check the group chat.',
+    r:'You have been ignoring a hunch so loud it has started paying rent. Evict it or listen to it.'},
+   {n:'The Empress',k:'abundance · nurture · pleasure',
+    art:()=> C(100,150,28)+L(100,178,100,226,2.4)+L(80,204,120,204,2.4)+[...Array(12)].map((_,i)=>{const a=Math.PI+(i+.5)*Math.PI/12;return S(100+52*Math.cos(a),150+52*Math.sin(a)*.9-8,5,2,6,G);}).join('')+P('M40 250 q6 -40 0 -80 M40 196 l-8 -8 M40 212 l8 -8 M40 228 l-8 -8')+P('M160 250 q-6 -40 0 -80 M160 196 l8 -8 M160 212 l-8 -8 M160 228 l8 -8')+C(100,150,10,G),
+    u:'Abundance, growth, a garden that waters itself if you would stop hovering over it. Accept the comfortable chair.',
+    r:'You are tending everybody’s garden but your own. The weeds have noticed and formed a committee.'},
+   {n:'The Emperor',k:'structure · authority · foundations',
+    art:()=> R(58,132,84,112)+R(66,142,68,94)+P('M58 132 q-22 -6 -18 -24 q4 -14 16 -8 q8 6 0 12')+P('M142 132 q22 -6 18 -24 q-4 -14 -16 -8 q-8 6 0 12')+P('M78 204 C70 168 94 158 100 186 C106 158 130 168 122 204 M100 186 V226',)+P('M74 118 l10 -18 8 10 8 -16 8 16 8 -10 10 18z',G)+L(40,244,160,244,2.4),
+    u:'Structure is not a cage; it is scaffolding. Make the spreadsheet. Colour-code it. Rule your small kingdom kindly.',
+    r:'Control has curdled into micromanagement. Loosen your grip on the remote — the others can choose a channel.'},
+   {n:'The Hierophant',k:'tradition · teaching · belonging',
+    art:()=> L(100,92,100,214,2.6)+L(86,112,114,112,2.6)+L(80,132,120,132,2.6)+L(74,152,126,152,2.6)+C(100,88,5,G)+L(60,250,112,208,2)+C(56,254,8)+P('M106 212 h10 v6 M110 212 v10')+L(140,250,88,208,2)+C(144,254,8)+P('M94 212 h-10 v6 M90 212 v10')+C(40,110,4,G)+C(160,110,4,G),
+    u:'Tradition exists for a reason. Ask the elder, read the manual, follow the recipe once before improvising.',
+    r:'These rules were written for somebody else. You are permitted — politely, firmly — to rewrite them.'},
+   {n:'The Lovers',k:'union · alignment · choice',
+    art:()=> C(100,96,16)+rays(100,96,21,32,16)+C(80,184,32)+C(120,184,32)+P('M100 158 A32 32 0 0 1 100 210 A32 32 0 0 1 100 158Z',G)+P('M100 250 l-12 -12 a7 7 0 0 1 12 -9 a7 7 0 0 1 12 9z',G)+P('M52 132 q-14 -20 -4 -34 M148 132 q14 -20 4 -34'),
+    u:'A choice made with the whole heart. Alignment — with a person, a path, or finally with yourself.',
+    r:'Two good options and zero decisions. The menu will not read itself, and the waiter is getting old.'},
+   {n:'The Chariot',k:'willpower · direction · victory',
+    art:()=> P('M52 110 h96 l-10 20 h-76z')+[64,82,100,118,136].map(x=>S(x,118,4,1.6,5,G)).join('')+L(62,130,62,176)+L(138,130,138,176)+R(56,176,88,40)+C(100,196,8,G)+P('M92 196 q-18 -10 -28 2 M108 196 q18 -10 28 2')+C(64,232,16)+rays(64,232,0,16,6)+C(136,232,16)+rays(136,232,0,16,6),
+    u:'Willpower in harness: two horses pulling different directions and you holding both reins, grinning.',
+    r:'You are driving very fast in no particular direction. The horses would like a map.'},
+   {n:'Strength',k:'courage · patience · gentle power',
+    art:()=> lemn(100,96,20)+S(100,184,50,36,18)+C(100,184,30)+C(89,178,3,G)+C(111,178,3,G)+P('M92 196 q8 7 16 0 M100 186 v8')+P('M64 250 q36 -18 72 0'),
+    u:'Gentleness that tames lions. Courage that does not need to shout, because the lion is already listening.',
+    r:'Self-doubt wearing a lion costume. Take it off — you are bigger underneath than the costume.'},
+   {n:'The Hermit',k:'solitude · insight · the inner lamp',
+    art:()=> L(58,252,112,98,2.4)+P('M112 136 l-14 12 h28z')+R(100,148,24,34)+S(112,165,9,5,6,G)+rays(112,165,24,40,10)+P('M30 256 L80 204 L112 236 L140 210 L174 256')+C(50,104,2,G)+C(160,110,2,G)+C(150,96,1.5,G),
+    u:'Step back from the noise. Your lantern only lights the next step — which is, conveniently, all you need.',
+    r:'Solitude has quietly become hiding. Somebody has been waiting a long time for your reply.'},
+   {n:'Wheel of Fortune',k:'cycles · luck · turning points',
+    art:()=> C(100,172,62)+C(100,172,46)+C(100,172,12,G)+rays(100,172,12,46,8,Math.PI/8)+['T','A','R','O'].map((t,i)=>{const a=-Math.PI/2+i*Math.PI/2;return `<text x="${(100+54*Math.cos(a)).toFixed(1)}" y="${(177+54*Math.sin(a)).toFixed(1)}" text-anchor="middle" font-size="12" fill="${G2}" stroke="none" font-family="Palatino Linotype,serif">${t}</text>`;}).join('')+[0,1,2,3].map(i=>{const a=-Math.PI/4+i*Math.PI/2;return C((100+54*Math.cos(a)).toFixed(1),(172+54*Math.sin(a)).toFixed(1),3,G);}).join('')+P('M100 98 l-8 10 h16z',G),
+    u:'The wheel turns. What was down comes up; enjoy the view from the top and tip the operator.',
+    r:'A bad spin, not a bad life. The wheel does not hold grudges, and it is already moving again.'},
+   {n:'Justice',k:'truth · fairness · consequence',
+    art:()=> L(100,96,100,250,2.4)+L(88,226,112,226,2.4)+P('M96 96 l4 -10 4 10')+L(50,124,150,124,2.4)+C(100,124,5,G)+L(50,124,34,172)+L(50,124,66,172)+P('M30 172 q20 16 40 0z',G)+L(150,124,134,164)+L(150,124,166,164)+P('M130 164 q20 16 40 0z',G),
+    u:'Cause meets effect. The receipts are in order and the scales will settle where they should.',
+    r:'Something is off the scale — an unfairness done to you, or a tidy excuse you handed yourself.'},
+   {n:'The Hanged Man',k:'surrender · new perspective · pause',
+    art:()=> L(42,96,158,96,3)+L(56,96,56,78,3)+L(144,96,144,78,3)+L(100,96,100,116)+L(100,116,100,168,2.4)+P('M100 168 L122 150 L101 140')+L(100,168,100,202,2.6)+P('M100 200 L82 186 L100 174 M100 200 L118 186 L100 174')+C(100,216,11)+rays(100,216,15,27,14)+C(100,216,3.5,G)+P('M40 250 q60 -16 120 0'),
+    u:'Hang upside down a while. The view you need is from an angle you have been carefully avoiding.',
+    r:'Stalling, dressed up as patience. It is fine to cut the rope and land on your feet.'},
+   {n:'Death',k:'endings · transformation · release',
+    art:()=> L(26,214,174,214)+R(36,160,18,54)+R(146,160,18,54)+P('M36 160 l9 -12 9 12 M146 160 l9 -12 9 12')+P('M72 214 a28 28 0 0 1 56 0',G)+rays(100,214,34,52,9,Math.PI)+rose(100,138,22)+waves(236,32,168)+waves(252,44,156),
+    u:'Not the end — an ending. Close the old tab so the new one can finally load.',
+    r:'You are clinging to a chapter the book has already finished. The sequel is waiting in the lobby.'},
+   {n:'Temperance',k:'balance · moderation · alchemy',
+    art:()=> cup(64,112,1.3)+cup(136,196,1.3)+P('M70 136 C92 160 108 160 128 196',)+P('M74 140 C94 164 106 166 124 198')+R(84,210,32,32)+P('M100 216 l12 20 h-24z',G)+waves(254,30,170)+S(100,96,8,3,8,G),
+    u:'Mix slowly. Patience, balance, the correct ratio of water to wine and work to rest.',
+    r:'Too much of one thing, too little of another. The recipe needs recalibrating, not replacing.'},
+   {n:'The Devil',k:'attachment · temptation · shadow',
+    art:()=> C(100,116,34)+S(100,116,32,12.5,5,null,Math.PI/2)+P('M70 94 q-16 -18 -6 -34 M130 94 q16 -18 6 -34')+R(78,178,44,30)+L(100,208,60,238)+L(100,208,140,238)+C(56,244,10)+C(144,244,10)+C(60,238,3,G)+C(140,238,3,G)+L(150,160,150,200,2.4)+P('M144 160 q6 -16 12 0z',G),
+    u:'The chains are loose enough to slip off. You just happen to like how they sparkle.',
+    r:'You have noticed the chains. That is the hardest part done — now take one step, then another.'},
+   {n:'The Tower',k:'upheaval · revelation · clearing',
+    art:()=> R(76,120,48,132)+R(94,160,12,20,G)+R(94,200,12,20)+P('M70 120 l12 -22 12 12 12 -14 12 14 12 -8 -4 18z',G).replace('<path','<path transform="rotate(-18 100 110)"')+'<path d="M154 58 l-24 36 h14 l-20 32" stroke="#f6e2a8" stroke-width="3"/>'+[[48,150],[58,190],[146,170],[156,216],[40,228]].map(p=>P(`M${p[0]} ${p[1]} l3 6 -3 3 -3 -3z`,G)).join('')+L(30,252,170,252,2.4),
+    u:'Lightning finds the plan built on sand. Let it fall — you will rebuild on rock, and with a better view.',
+    r:'The collapse you keep postponing is still on the calendar. Evacuate on your own terms.'},
+   {n:'The Star',k:'hope · renewal · serenity',
+    art:()=> S(100,130,38,13,8,G)+S(100,130,24,9,8,'#26103f')+[[46,92],[154,92],[36,146],[164,146],[58,190],[142,190],[100,76]].map(p=>S(p[0],p[1],8,3,8,G2)).join('')+P('M62 214 q-10 20 -30 26 M138 214 q10 20 30 26')+waves(240,26,174)+waves(254,40,160),
+    u:'Hope after the storm. Pour yourself out freely; the sky has a habit of refilling you.',
+    r:'Your light is dimmed, not gone. Clouds are temporary, and so — kindly — is this mood.'},
+   {n:'The Moon',k:'illusion · dreams · the unknown',
+    art:()=> C(100,110,32)+crescent(100,110,26,G)+rays(100,110,36,44,20)+[[74,158],[96,166],[118,156],[132,170]].map(p=>P(`M${p[0]} ${p[1]} q3 6 0 9 q-3 -3 0 -9z`,G)).join('')+R(26,168,20,70)+R(154,168,20,70)+P('M26 168 l10 -12 10 12 M154 168 l10 -12 10 12')+P('M100 256 C80 236 124 222 100 200')+waves(250,24,176),
+    u:'Not everything is what it seems in this light. Walk the path, but test each stone before trusting it.',
+    r:'The fog is lifting. The monster in the corner was, all along, a coat on a chair.'},
+   {n:'The Sun',k:'joy · clarity · vitality',
+    art:()=> C(100,128,32,G)+C(100,128,24)+rays(100,128,38,62,16)+rays(100,128,40,50,16,Math.PI/16)+L(24,226,176,226,2.4)+[48,100,152].map(x=>C(x,210,8,G)+rays(x,210,9,15,10)).join('')+P('M24 226 v30 M60 226 v30 M100 226 v30 M140 226 v30 M176 226 v30'),
+    u:'A pure, uncomplicated yes. Warmth, clarity, a golden afternoon with absolutely nothing due.',
+    r:'The sun is still out. You are simply wearing sunglasses indoors — take them off.'},
+   {n:'Judgement',k:'awakening · reckoning · the call',
+    art:()=> P('M36 86 L122 156 l10 -6 -2 16 -16 2 6 -8 L32 92z',G)+rays(128,156,14,30,9,-Math.PI/2)+R(34,226,34,20)+R(83,226,34,20)+R(132,226,34,20)+[51,100,149].map(x=>C(x,208,8)+P(`M${x-14} 202 l6 6 M${x+14} 202 l-6 6`)).join('')+P('M60 120 h12 M66 114 v12',),
+    u:'A trumpet call. Rise, review the record, and answer the thing that has been calling you for years.',
+    r:'You are your own harshest judge. The court may now adjourn; the verdict was always “try again.”'},
+   {n:'The World',k:'completion · wholeness · arrival',
+    art:()=> `<ellipse cx="100" cy="170" rx="46" ry="70"/><ellipse cx="100" cy="170" rx="38" ry="62"/>`+[...Array(18)].map((_,i)=>{const a=i*Math.PI/9;return P(`M${(100+46*Math.cos(a)).toFixed(1)} ${(170+70*Math.sin(a)).toFixed(1)} l${(6*Math.cos(a+1)).toFixed(1)} ${(6*Math.sin(a+1)).toFixed(1)}`);}).join('')+S(100,170,22,9,8,G)+[[36,100],[164,100],[36,244],[164,244]].map(p=>C(p[0],p[1],9)+C(p[0],p[1],3,G)).join('')+P('M86 104 q14 -8 28 0',G),
+    u:'The circle closes. A chapter completes — take the bow, then walk calmly toward the next stage.',
+    r:'Almost there. One loose thread is keeping the tapestry from finishing. You know which one.'}
+  ];
+  const ROMAN = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];
+  const POS = [['Past','what shaped you'],['Present','where you stand'],['Future','what approaches']];
+
+  function frame(inner){
+    return `<rect x="0" y="0" width="200" height="340" fill="url(#fg)"/>
+      <rect x="8" y="8" width="184" height="324" rx="6" fill="none" stroke="${G}" stroke-width="1.5"/>
+      <rect x="13" y="13" width="174" height="314" rx="4" fill="none" stroke="${G3}" stroke-width=".8"/>
+      ${[[13,13,1,1],[187,13,-1,1],[13,327,1,-1],[187,327,-1,-1]].map(c=>`<path d="M${c[0]} ${c[1]+18*c[3]} q${10*c[2]} ${-4*c[3]} ${18*c[2]} ${-18*c[3]}" fill="none" stroke="${G}" stroke-width="1"/><circle cx="${c[0]+7*c[2]}" cy="${c[1]+7*c[3]}" r="2" fill="${G}"/>`).join('')}${inner}`;
+  }
+  function faceSVG(i){
+    const c = DECK[i];
+    return `<svg viewBox="0 0 200 340" role="img" aria-label="${c.n}"><defs><radialGradient id="fg" cx="50%" cy="46%" r="70%"><stop offset="0" stop-color="#3f2066"/><stop offset=".6" stop-color="#26103f"/><stop offset="1" stop-color="#160a27"/></radialGradient><radialGradient id="halo"><stop offset="0" stop-color="${G}" stop-opacity=".22"/><stop offset="1" stop-color="${G}" stop-opacity="0"/></radialGradient></defs>
+      ${frame('')}
+      <text x="100" y="44" text-anchor="middle" font-family="Palatino Linotype,Palatino,serif" font-size="19" letter-spacing="3" fill="${G2}">${ROMAN[i]}</text>
+      <path d="M70 52 h60" stroke="${G3}" stroke-width=".8"/>
+      <g class="art"><circle cx="100" cy="172" r="84" fill="url(#halo)"/><circle cx="100" cy="172" r="80" fill="none" stroke="${G3}" stroke-width=".6" stroke-dasharray="1 5"/>
+      <g fill="none" stroke="${G}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${c.art()}</g></g>
+      <path d="M30 284 h140" stroke="${G3}" stroke-width=".8"/>
+      <text x="100" y="308" text-anchor="middle" font-family="Palatino Linotype,Palatino,serif" font-size="${c.n.length>15?14:16}" letter-spacing="1.5" fill="${G2}" style="font-variant:small-caps">${c.n}</text></svg>`;
+  }
+  const BACK = `<svg viewBox="0 0 200 340" aria-hidden="true"><defs><radialGradient id="bg" cx="50%" cy="50%" r="70%"><stop offset="0" stop-color="#4a2477"/><stop offset="1" stop-color="#1b0c30"/></radialGradient>
+      <pattern id="dots" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r=".9" fill="${G3}" opacity=".5"/></pattern></defs>
+      <rect width="200" height="340" fill="url(#bg)"/><rect width="200" height="340" fill="url(#dots)"/>
+      <rect x="8" y="8" width="184" height="324" rx="6" fill="none" stroke="${G}" stroke-width="1.5"/>
+      <rect x="15" y="15" width="170" height="310" rx="3" fill="none" stroke="${G3}" stroke-width=".8" stroke-dasharray="2 3"/>
+      <g fill="none" stroke="${G}" stroke-width="1.2">
+        <circle cx="100" cy="170" r="70"/><circle cx="100" cy="170" r="62" stroke="${G3}"/><circle cx="100" cy="170" r="34"/>
+        ${rays(100,170,36,60,24)}
+        <polygon points="${starPts(100,170,62,34,12)}" stroke="${G3}"/>
+      </g>
+      <circle cx="100" cy="170" r="24" fill="${G}"/><circle cx="110" cy="164" r="21" fill="#2d1450"/>
+      <polygon points="${starPts(100,56,14,5,8)}" fill="${G}"/><polygon points="${starPts(100,284,14,5,8)}" fill="${G}"/>
+      <path d="M40 56 h40 M120 56 h40 M40 284 h40 M120 284 h40" stroke="${G3}" stroke-width=".8"/>
+      <circle cx="36" cy="36" r="3" fill="${G}"/><circle cx="164" cy="36" r="3" fill="${G}"/><circle cx="36" cy="304" r="3" fill="${G}"/><circle cx="164" cy="304" r="3" fill="${G}"/></svg>`;
+
+  // ---------- state ----------
+  let draw = [], busy = false;
+  const slots = POS.map((p, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.innerHTML = `<div class="pos">${p[0]}<b>${p[1]}</b></div>
+      <button class="card" aria-label="Card ${i+1}, face down. Reveal ${p[0].toLowerCase()}."><div class="inner"><div class="side back">${BACK}</div><div class="side face"></div></div></button>
+      <div class="ori"></div>`;
+    table.appendChild(slot);
+    const card = slot.querySelector('.card');
+    card.addEventListener('click', () => flip(i));
+    return {slot, card, face: slot.querySelector('.face'), ori: slot.querySelector('.ori')};
+  });
+  const leaves = POS.map((p,i) => { const d = document.createElement('article'); d.className = 'leaf'; reading.appendChild(d); return d; });
+
+  function pick(){
+    const idx = [...Array(22).keys()];
+    for (let i = idx.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+    return idx.slice(0,3).map(n => ({n, rev: Math.random() < .3, open:false}));
+  }
+  function setLeaf(i){
+    const d = draw[i], c = DECK[d.n];
+    leaves[i].className = 'leaf' + (d.open ? ' on' : '');
+    leaves[i].innerHTML = d.open
+      ? `<h3>${POS[i][0]} · ${POS[i][1]}</h3><h4>${c.n}<i>${d.rev ? 'reversed' : 'upright'}</i></h4><p>${d.rev ? c.r : c.u}</p><div class="kw">${c.k}</div>`
+      : `<h3>${POS[i][0]} · ${POS[i][1]}</h3><h4>· · ·</h4><p>This card is still face down. The future is rude like that.</p>`;
+  }
+  function deal(){
+    draw = pick();
+    slots.forEach((s, i) => {
+      s.face.className = 'side face' + (draw[i].rev ? ' rev' : '');
+      s.face.innerHTML = faceSVG(draw[i].n);
+      s.ori.textContent = draw[i].rev ? '— reversed —' : '— upright —';
+      s.slot.classList.remove('show');
+      s.card.setAttribute('aria-label', `Card ${i+1}, face down. Reveal ${POS[i][0].toLowerCase()}.`);
+      setTimeout(() => s.card.classList.add('dealt'), 80 + i*170);
+      setLeaf(i);
+    });
+    verdictEl.classList.remove('on');
+  }
+  function flip(i){
+    const d = draw[i]; if (!d || d.open || busy) return;
+    d.open = true;
+    const s = slots[i];
+    s.card.classList.add('flipped');
+    s.slot.classList.add('show');
+    s.card.setAttribute('aria-label', `${POS[i][0]}: ${DECK[d.n].n}${d.rev?' reversed':''}`);
+    chime(i);
+    const r = s.card.getBoundingClientRect();
+    burst(r.left + r.width/2, r.top + r.height/2, r.width);
+    setTimeout(() => setLeaf(i), 450);
+    if (draw.every(x => x.open)) setTimeout(summarise, 1200);
+  }
+  function summarise(){
+    const revs = draw.filter(d => d.rev).length;
+    const tone = ['The stars align without argument. Go gently, but go.',
+      'One card leans away from you — mind it, and the rest will follow.',
+      'The spread is restless tonight. Move carefully and keep a candle lit.',
+      'Everything is upside-down. Perhaps it is you who should turn around.'][revs];
+    verdictEl.innerHTML = `<small>the hollow moon speaks</small>From ${DECK[draw[0].n].n}, through ${DECK[draw[1].n].n}, toward ${DECK[draw[2].n].n}. ${tone}`;
+    verdictEl.classList.add('on');
+  }
+  function reshuffle(){
+    if (busy) return; busy = true;
+    slots.forEach(s => { s.card.classList.remove('flipped'); s.slot.classList.remove('show'); });
+    whoosh();
+    setTimeout(() => slots.forEach(s => s.card.classList.remove('dealt')), 500);
+    setTimeout(() => { busy = false; deal(); }, 1200);
+  }
+  shuffleBtn.addEventListener('click', reshuffle);
+  revealBtn.addEventListener('click', () => draw.forEach((d, i) => setTimeout(() => flip(i), i*380)));
+  document.addEventListener('keydown', e => {
+    if (e.target && e.target.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
+    if (['1','2','3'].includes(e.key)) flip(+e.key - 1);
+    else if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); const n = draw.findIndex(d => !d.open); if (n >= 0) flip(n); }
+    else if (e.key === 's' || e.key === 'S') reshuffle();
+  });
+
+  // ---------- sound (WebAudio, only after a gesture) ----------
+  let ac = null;
+  function audio(){ try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
+  function chime(i){
+    const a = audio(); if (!a) return;
+    const base = [523.25, 659.25, 783.99][i] || 587.33, t = a.currentTime;
+    [1, 2.01, 3.02].forEach((m, k) => {
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine'; o.frequency.value = base * m;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.12/(k+1), t + .02); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4 - k*.5);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + 2.5);
+    });
+  }
+  function whoosh(){
+    const a = audio(); if (!a) return;
+    const len = a.sampleRate * .6, buf = a.createBuffer(1, len, a.sampleRate), ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = (Math.random()*2-1) * Math.sin(Math.PI * i/len) * .3;
+    const src = a.createBufferSource(), f = a.createBiquadFilter();
+    src.buffer = buf; f.type = 'bandpass'; f.frequency.value = 1400; f.Q.value = .7;
+    src.connect(f).connect(a.destination); src.start();
+  }
+
+  // ---------- starfield + stardust ----------
+  const cv = $('#sky'), ctx = cv && cv.getContext ? cv.getContext('2d') : null;
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W, H, dpr, stars = [], dust = [];
+  function size(){
+    if (!ctx) return;
+    dpr = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+    cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    stars = Array.from({length: Math.round(W*H/5200)}, () => ({x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.3+.2, p:Math.random()*6.28, s:.4+Math.random()*1.6, g:Math.random()<.18}));
+  }
+  function burst(x, y, w){
+    if (!ctx || reduce) return;
+    for (let i = 0; i < 70; i++){
+      const a = Math.random()*6.283, v = .6 + Math.random()*3.2;
+      dust.push({x: x + (Math.random()-.5)*w*.6, y, vx: Math.cos(a)*v, vy: Math.sin(a)*v - 1.2, life: 1, r: .6 + Math.random()*2});
+    }
+  }
+  let t0 = performance.now();
+  function frameLoop(now){
+    const t = (now - t0) / 1000;
+    ctx.clearRect(0,0,W,H);
+    for (const s of stars){
+      const a = .35 + .65 * Math.abs(Math.sin(t*s.s + s.p));
+      ctx.fillStyle = s.g ? `rgba(246,226,168,${a})` : `rgba(210,200,240,${a*.8})`;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill();
+      if (s.r > 1.3 && a > .9){ ctx.strokeStyle = `rgba(246,226,168,${(a-.9)*4})`; ctx.lineWidth=.6; ctx.beginPath(); ctx.moveTo(s.x-6,s.y); ctx.lineTo(s.x+6,s.y); ctx.moveTo(s.x,s.y-6); ctx.lineTo(s.x,s.y+6); ctx.stroke(); }
+    }
+    for (let i = dust.length - 1; i >= 0; i--){
+      const d = dust[i]; d.x += d.vx; d.y += d.vy; d.vy += .03; d.vx *= .985; d.life -= .012;
+      if (d.life <= 0){ dust.splice(i,1); continue; }
+      ctx.fillStyle = `rgba(246,226,168,${d.life})`; ctx.beginPath(); ctx.arc(d.x, d.y, d.r*d.life+.3, 0, 6.283); ctx.fill();
+    }
+    if (!document.hidden && !reduce) raf = requestAnimationFrame(frameLoop); else raf = 0;
+  }
+  let raf = 0;
+  if (ctx){
+    size(); addEventListener('resize', size);
+    if (reduce) frameLoop(performance.now()); else raf = requestAnimationFrame(frameLoop);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && !raf && !reduce) raf = requestAnimationFrame(frameLoop); });
+  }
+
+  deal();
+})();
+</script>
+</body>
+</html>

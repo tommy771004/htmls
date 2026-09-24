@@ -1,0 +1,5 @@
+{
+  "redirects": [
+    { "source": "/:file(\\d{3}-[a-z0-9-]+\\.html)", "destination": "/web/:file", "permanent": true }
+  ]
+}

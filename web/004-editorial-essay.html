@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>慢的練習 — 散文｜《緩刊》第十二期</title>
+<meta name="description" content="原創散文：朱紅首字放大、側欄註腳、閱讀進度與「慢讀」模式。收錄於 100 Creative HTML Works（004・極簡編輯長文）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/004-editorial-essay.html">
+<style>
+:root{
+  --paper:#f6f1e7; --paper2:#efe8da; --ink:#1d1a16; --ink2:#5b554b; --ink3:#8d8577; --red:#c23a22; --redT:rgba(194,58,34,.12);
+  --serif:Georgia,"Palatino Linotype",Palatino,"Book Antiqua","Noto Serif TC","Songti TC","PMingLiU","新細明體",serif;
+  --zh:"Noto Serif TC","Source Han Serif TC","Songti TC","PMingLiU","新細明體",Georgia,serif;
+  --col:34em; --note:15rem; --gap:3rem;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--paper)}
+body{background:var(--paper);color:var(--ink);font-family:var(--zh);font-size:clamp(17px,1.2vw,19px);line-height:2;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(rgba(120,100,70,.06) 1px,transparent 1px);background-size:5px 5px}
+::selection{background:var(--redT)}
+.sc{font-family:var(--serif);font-variant:small-caps;letter-spacing:.08em;text-transform:lowercase}
+.num{font-family:var(--serif);font-variant-numeric:oldstyle-nums}
+
+/* progress */
+.prog{position:fixed;left:0;top:0;height:3px;width:100%;z-index:30;background:transparent}
+.prog i{display:block;height:100%;width:100%;background:var(--red);transform-origin:left;transform:scaleX(0)}
+.meter{position:fixed;right:clamp(12px,2vw,28px);top:14px;z-index:30;font-family:var(--serif);font-size:13px;color:var(--ink2);display:flex;gap:10px;align-items:center;background:rgba(246,241,231,.9);padding:4px 4px 4px 12px;border:1px solid rgba(29,26,22,.12);border-radius:40px;backdrop-filter:blur(4px)}
+.meter b{color:var(--red);font-weight:400;font-variant-numeric:tabular-nums}
+.slow{min-height:40px;min-width:40px;padding:0 14px;border-radius:40px;border:1px solid var(--ink);background:transparent;color:var(--ink);font-family:var(--zh);font-size:14px;cursor:pointer;transition:background .4s,color .4s}
+.slow[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.slow:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+
+/* layout */
+.page{max-width:calc(var(--col) + var(--note) + var(--gap) + 4rem);margin:0 auto;padding:0 clamp(20px,4vw,40px) 6rem;position:relative}
+.col{max-width:var(--col)}
+
+/* masthead */
+.mast{padding-top:clamp(64px,10vh,110px);border-bottom:1px solid var(--ink);padding-bottom:10px;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.mast .sc{font-size:14px;color:var(--ink)}
+.head{padding:clamp(40px,7vh,80px) 0 clamp(28px,5vh,52px);position:relative}
+.kicker{font-size:14px;color:var(--red);margin-bottom:1.2rem}
+h1{font-family:var(--zh);font-weight:700;font-size:clamp(52px,8vw,112px);line-height:1.1;letter-spacing:.08em;margin-left:-.06em}
+h1 .dot{color:var(--red)}
+.dek{font-size:clamp(18px,1.6vw,22px);color:var(--ink2);margin-top:1.1rem;line-height:1.7;max-width:26em}
+.by{display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:2rem;font-size:14px;color:var(--ink2);border-top:1px solid rgba(29,26,22,.2);padding-top:.8rem;max-width:var(--col)}
+.by span b{color:var(--ink);font-weight:700}
+.vmark{position:absolute;right:0;top:clamp(40px,7vh,80px);writing-mode:vertical-rl;font-size:14px;letter-spacing:.5em;color:var(--ink3);border-right:1px solid var(--red);padding-right:10px;height:max-content}
+
+/* body */
+article p{margin:0 0 1.35em;text-align:justify;letter-spacing:.03em;position:relative;transition:opacity .9s ease,filter .9s ease}
+article p.first::first-letter{float:left;font-size:4.15em;line-height:1;margin:.12em .14em 0 -.02em;color:var(--red);font-weight:700}
+h2{font-weight:700;font-size:clamp(22px,1.8vw,26px);letter-spacing:.12em;margin:3.2em 0 1.2em;display:flex;align-items:baseline;gap:.8em}
+h2 .sc{font-size:.72em;color:var(--red);letter-spacing:.14em;font-weight:400}
+h2::after{content:"";flex:1;height:1px;background:rgba(29,26,22,.25);transform:translateY(-.3em)}
+
+/* sidenotes */
+.ref{font-family:var(--serif);font-size:.62em;color:var(--red);vertical-align:super;line-height:0;cursor:pointer;padding:0 .18em;border-radius:3px;transition:background .3s;display:inline-block;min-width:1.2em;text-align:center}
+.ref:focus-visible{outline:1px solid var(--red)}
+.ref.on,.ref:hover{background:var(--red);color:var(--paper)}
+.sn{float:right;clear:right;width:var(--note);margin-right:calc(-1 * (var(--note) + var(--gap)));margin-top:.35em;font-size:13.5px;line-height:1.75;color:var(--ink2);text-align:left;letter-spacing:.02em;padding:.5em .7em;border-left:1px solid rgba(29,26,22,.25);transition:background .35s,border-color .35s,color .35s;position:relative}
+.sn b{font-family:var(--serif);color:var(--red);font-weight:400;margin-right:.4em}
+.sn.on{background:var(--redT);border-color:var(--red);color:var(--ink)}
+.sn i{font-style:normal;font-family:var(--serif)}
+
+/* pull quote */
+blockquote{margin:2.6em 0 2.6em;padding:1.4em 0 1.2em;border-top:2px solid var(--ink);border-bottom:1px solid var(--ink);position:relative}
+blockquote p{font-size:clamp(24px,2.4vw,34px)!important;line-height:1.55!important;text-align:left!important;font-weight:700;letter-spacing:.06em!important;margin:0!important}
+blockquote p::before{content:"「";color:var(--red);margin-left:-1em}
+blockquote p::after{content:"」";color:var(--red)}
+blockquote cite{display:block;font-style:normal;margin-top:.8em;font-size:13px;color:var(--ink3)}
+
+.end{margin-top:3em;text-align:center;color:var(--red);font-size:14px;letter-spacing:.6em}
+.end::before,.end::after{content:"";display:inline-block;width:3em;height:1px;background:var(--red);vertical-align:middle;margin:0 1em}
+.bio{margin-top:3.2em;padding-top:1em;border-top:1px solid var(--ink);font-size:14px;line-height:1.9;color:var(--ink2);max-width:var(--col)}
+.bio b{color:var(--ink)}
+.colophon{margin-top:2.4em;font-size:12px;color:var(--ink3);max-width:var(--col)}
+
+/* slow-reading focus mode */
+body.focus article p:not(.here){opacity:.22;filter:blur(.4px)}
+body.focus article p:not(.here) .sn{opacity:1}
+body.focus article blockquote p:not(.here){opacity:1;filter:none}
+
+.hint{font-size:12px;color:var(--ink3);margin-top:.8rem}
+
+@media (max-width:1060px){
+  :root{--note:12.5rem;--gap:2rem}
+}
+@media (max-width:900px){
+  .page{max-width:40em}
+  .sn{float:none;display:none;width:auto;margin:.6em 0 .8em;clear:none}
+  .sn.show{display:block}
+  .ref{font-size:.7em;min-width:1.7em;min-height:1.7em;line-height:1.7em;vertical-align:.5em;border:1px solid rgba(194,58,34,.35)}
+  .vmark{display:none}
+  .meter .lbl{display:none}
+  .meter{top:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="prog" aria-hidden="true"><i id="bar"></i></div>
+<div class="meter" role="status"><span class="lbl">已讀 <b id="pct">0%</b></span><span>還剩 <b id="mins">9</b> 分鐘</span><button class="slow" id="slow" aria-pressed="false" title="只亮起正在讀的段落">慢讀</button></div>
+
+<div class="page">
+  <header>
+    <div class="mast"><span class="sc">Huan · a quarterly of slow things</span><span>《緩刊》第十二期　<span class="num">2026</span> 秋</span><span class="sc">Essays</span></div>
+    <div class="head">
+      <p class="kicker sc">Essay Nº 12 — On Patience</p>
+      <h1>慢的練習<span class="dot">。</span></h1>
+      <p class="dek">關於等一壺水開、在京都走錯路，以及一顆永遠不在對的時間成熟的酪梨。</p>
+      <div class="by"><span>文／<b>林予安</b></span><span>閱讀時間　約 <span class="num">9</span> 分鐘</span><span>字數　約 <span class="num">2,000</span></span></div>
+      <p class="hint">點選文中的紅色數字可展開側註；右上角「慢讀」只亮起你正在讀的那一段。</p>
+      <div class="vmark" aria-hidden="true">不急　慢慢讀</div>
+    </div>
+  </header>
+
+  <article class="col" id="essay">
+    <p class="first">那年冬天，我的電熱水壺壞了。不是戲劇性的壞法——沒有冒煙，也沒有跳電——它只是某天早上不再亮起那顆小小的藍燈，像一個決定不再回訊息的朋友。我翻出櫃子深處一只母親留下的琺瑯壺，放上瓦斯爐，然後想起一件早已忘記的事：水，其實需要六分鐘才會開。<span class="ref" data-n="1" role="button" tabindex="0" aria-label="側註 1">1</span><span class="sn" id="sn1"><b>1</b>以一公升水、家用瓦斯爐中火計。我量過三次，最短五分四十秒，最長六分二十秒；差別在於我有沒有一直盯著它。</span></p>
+
+    <h2><span class="sc">i.</span>等水開</h2>
+    <p>六分鐘。在那之前，我的早晨是以秒計算的：按下開關，轉身刷牙，回來時水已經在等我。現在換成我等水。起初我站在爐邊滑手機，像在診所候診；第三天，我把手機留在臥室，只是看著壺底一顆一顆浮起的小氣泡。它們先是很害羞，貼著壺壁不肯離開，然後忽然成群結隊地往上跑，最後整壺水像被什麼好消息驚動，嘩地一聲沸騰起來。</p>
+    <p>後來才知道，古人把這幾個階段叫作「蟹眼」、「魚眼」、「松風」。<span class="ref" data-n="2" role="button" tabindex="0" aria-label="側註 2">2</span><span class="sn" id="sn2"><b>2</b>蟹眼、魚眼之說屢見於宋人詠茶詩；「松風」形容將沸未沸時壺中的聲響。陸羽《茶經》則有「一沸、二沸、三沸」之分。</span>古人等水，等出了一整套詞彙；我們則發明了一個按鈕，好讓自己不必知道這些詞。</p>
+
+    <h2><span class="sc">ii.</span>快是一種借貸</h2>
+    <p>我們常說「省時間」，好像時間是可以存起來的東西。但我從沒見過誰把省下的五分鐘存進哪裡，等老了再領出來用。省下的時間，多半立刻被另一件更快的事填滿——像一個永遠在搬家的人，箱子還沒拆，就又開始打包。</p>
+    <p>快，其實比較像借貸。你向未來借一點專注，先把事情做完；利息是那種說不上來的疲倦，每天傍晚五點左右準時寄來帳單。<span class="ref" data-n="3" role="button" tabindex="0" aria-label="側註 3">3</span><span class="sn" id="sn3"><b>3</b>這份帳單從不列明細，也不接受分期。</span></p>
+
+    <blockquote><p>慢不是速度的相反，是注意力的形狀。</p><cite>— 寫在琺瑯壺旁的便利貼，第三天</cite></blockquote>
+
+    <h2><span class="sc">iii.</span>走錯路</h2>
+    <p>有一次我在京都迷路，手機沒電，只好照著電線桿上的町名一路往北走。我錯過了原本要去的寺，卻在一條窄巷裡遇見一間只賣一種豆腐的小店。老闆娘說，豆子要前一晚泡好，清晨四點開始磨，賣完就關門。「賣不完呢？」我問。她想了一下：「那就自己吃掉。」</p>
+    <p>我至今記得那塊豆腐的味道，卻完全想不起那座寺的名字。導航讓我們永遠不會走錯，但也讓我們永遠只抵達預定的地方。<span class="ref" data-n="4" role="button" tabindex="0" aria-label="側註 4">4</span><span class="sn" id="sn4"><b>4</b>心理學家稱之為「意外發現」（<i>serendipity</i>）。導航軟體稱之為「正在重新規劃路線」。</span></p>
+
+    <h2><span class="sc">iv.</span>一顆不熟的酪梨</h2>
+    <p>酪梨是一種專門訓練耐心的水果。今天太硬，明天剛好，後天就黑了——它的「剛好」大約只有九個小時，而且通常落在你睡著的時候。我曾經因此很恨酪梨，直到我明白，它其實在教我一件很簡單的事：有些東西，不會配合你的行程表。<span class="ref" data-n="5" role="button" tabindex="0" aria-label="側註 5">5</span><span class="sn" id="sn5"><b>5</b>流傳甚廣的技巧：把酪梨和香蕉一起放進紙袋，乙烯會加速熟成。我試過，結果是香蕉先壞了。</span></p>
+    <p>植物、麵團、傷口、友誼、一個人的原諒，都有自己的時鐘。你可以把它們放在溫暖的地方，可以輕輕按一下確認，但你不能催。催，只會讓它們在你面前假裝熟了。</p>
+
+    <h2><span class="sc">v.</span>練習</h2>
+    <p>所以我現在把慢當成一種練習，而不是一種天性。像練琴一樣，每天一點點：走路時不戴耳機，吃飯時不看螢幕，寫信先寫草稿，隔一天再寄。<span class="ref" data-n="6" role="button" tabindex="0" aria-label="側註 6">6</span><span class="sn" id="sn6"><b>6</b>這篇文章的初稿寫於三月，定稿於九月。中間它在抽屜裡放了半年，像一顆比較有耐心的酪梨。</span>有些日子練得好；有些日子，我照樣在捷運上把一集影集開兩倍速看完，然後對自己搖搖頭。</p>
+    <p>練習的意思是：允許失敗，並且明天再來。</p>
+
+    <h2><span class="sc">vi.</span>水又開了</h2>
+    <p>今天早上，琺瑯壺照樣花了六分鐘。我照樣站在爐邊，看蟹眼變成魚眼，魚眼變成松風。窗外有人按喇叭，樓下早餐店在喊號碼，城市以它一貫的速度運轉。我什麼也沒做，只是等。</p>
+    <p>水開的時候，我關了火，沒有急著倒。讓它安靜一下——它也等了我很久。</p>
+
+    <div class="end">完</div>
+
+    <div class="bio"><b>林予安</b>　住在台北的編輯與業餘麵包師。相信所有好東西都需要一個晚上：麵團、湯、還有氣話。著有散文集《一公升的六分鐘》。</div>
+    <p class="colophon"><span class="sc">Set in Georgia &amp; system Ming type.</span>　本期《緩刊》無廣告、無演算法推薦，亦無「你可能也喜歡」。讀完了，就去燒一壺水吧。</p>
+  </article>
+</div>
+
+<script>
+(function(){
+  var bar=document.getElementById('bar'), pct=document.getElementById('pct'), mins=document.getElementById('mins');
+  var essay=document.getElementById('essay');
+  var TOTAL=9, ticking=false;
+  function update(){
+    ticking=false;
+    if(!essay) return;
+    var r=essay.getBoundingClientRect(), vh=window.innerHeight;
+    var start=r.top+window.scrollY - vh*0.3, end=r.bottom+window.scrollY - vh*0.8;
+    var p=Math.max(0,Math.min(1,(window.scrollY-start)/Math.max(1,end-start)));
+    if(bar) bar.style.transform='scaleX('+p.toFixed(4)+')';
+    if(pct) pct.textContent=Math.round(p*100)+'%';
+    if(mins) mins.textContent=Math.max(0,Math.ceil(TOTAL*(1-p)));
+    if(document.body.classList.contains('focus')) markHere();
+  }
+  function onScroll(){ if(!ticking){ticking=true;requestAnimationFrame(update);} }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+
+  /* focus mode: highlight the paragraph at reading line */
+  var paras=essay?essay.querySelectorAll('p'):[];
+  function markHere(){
+    var line=window.innerHeight*0.42, best=null, bd=1e9;
+    paras.forEach(function(p){var r=p.getBoundingClientRect(); var d=(r.top<=line&&r.bottom>=line)?0:Math.min(Math.abs(r.top-line),Math.abs(r.bottom-line)); if(d<bd){bd=d;best=p;}});
+    paras.forEach(function(p){p.classList.toggle('here',p===best);});
+  }
+  var slow=document.getElementById('slow');
+  if(slow) slow.addEventListener('click',function(){
+    var on=document.body.classList.toggle('focus');
+    slow.setAttribute('aria-pressed',on?'true':'false');
+    if(on) markHere();
+  });
+
+  /* sidenotes */
+  var mq=window.matchMedia('(max-width:900px)');
+  function link(n,on){
+    var ref=document.querySelector('.ref[data-n="'+n+'"]'), sn=document.getElementById('sn'+n);
+    if(ref) ref.classList.toggle('on',on); if(sn) sn.classList.toggle('on',on);
+  }
+  document.querySelectorAll('.ref').forEach(function(ref){
+    var n=ref.getAttribute('data-n'), sn=document.getElementById('sn'+n);
+    ref.addEventListener('mouseenter',function(){link(n,true);});
+    ref.addEventListener('mouseleave',function(){ if(!ref.classList.contains('pin')) link(n,false);});
+    function act(){
+      if(mq.matches){ if(sn){ var s=sn.classList.toggle('show'); ref.setAttribute('aria-expanded',s?'true':'false'); link(n,s);} }
+      else { var pinned=ref.classList.toggle('pin'); link(n,pinned); if(pinned&&sn){ sn.animate&&sn.animate([{transform:'translateX(6px)'},{transform:'none'}],{duration:400,easing:'ease-out'}); } }
+    }
+    ref.addEventListener('click',act);
+    ref.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();act();}});
+    if(sn){
+      sn.addEventListener('mouseenter',function(){link(n,true);});
+      sn.addEventListener('mouseleave',function(){ if(!ref.classList.contains('pin')) link(n,false);});
+    }
+  });
+  update();
+})();
+</script>
+</body>
+</html>

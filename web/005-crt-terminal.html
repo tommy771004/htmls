@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PHOSPHOR/OS 2.3 — Mulberry Hill Observatory Terminal</title>
+<meta name="description" content="1983 年 CRT 終端：虛擬檔案系統、約 25 個指令、Tab 補完、綠/琥珀/白三種磷光。收錄於 100 Creative HTML Works（005・終端機）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/005-crt-terminal.html">
+<style>
+:root{
+  --ph:#39ff7a; --phD:#1f9a4a; --phG:rgba(57,255,122,.55); --bg:#020a04;
+  --mono:Consolas,"Lucida Console","Menlo","DejaVu Sans Mono","Courier New",monospace;
+}
+body.amber{--ph:#ffb42a;--phD:#a86d0e;--phG:rgba(255,170,40,.55);--bg:#0c0602}
+body.white{--ph:#d9ecff;--phD:#7c8ea3;--phG:rgba(200,225,255,.5);--bg:#05070a}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:#141311;background:radial-gradient(ellipse at 50% 30%,#2a2825,#0d0c0b 70%);font-family:var(--mono);overflow:hidden;color:var(--ph)}
+
+/* bezel */
+.case{position:fixed;inset:clamp(6px,2vw,28px);border-radius:clamp(14px,2.4vw,34px);background:linear-gradient(160deg,#cfc8b6,#b4ac98 40%,#9c947f);padding:clamp(10px,3vw,46px) clamp(10px,3vw,46px) clamp(38px,5vw,70px);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.5),inset 0 -6px 12px rgba(0,0,0,.25),0 30px 60px rgba(0,0,0,.6)}
+.case::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+.inset{position:relative;height:100%;border-radius:clamp(12px,2vw,28px);background:#1a1916;padding:clamp(6px,1.2vw,16px);box-shadow:inset 0 4px 10px rgba(0,0,0,.8),inset 0 -2px 0 rgba(255,255,255,.15)}
+.label{position:absolute;left:clamp(16px,4vw,60px);bottom:clamp(10px,1.6vw,22px);font-family:"Arial Narrow","Arial",sans-serif;font-weight:700;font-size:clamp(10px,1.1vw,14px);letter-spacing:.3em;color:#5a5446;text-shadow:0 1px 0 rgba(255,255,255,.4)}
+.label b{color:#8b2a1c;letter-spacing:.1em}
+.led{position:absolute;right:clamp(16px,4vw,60px);bottom:clamp(12px,1.8vw,24px);display:flex;align-items:center;gap:10px;font-family:"Arial Narrow",Arial,sans-serif;font-size:10px;letter-spacing:.2em;color:#5a5446}
+.led i{width:10px;height:10px;border-radius:50%;background:var(--ph);box-shadow:0 0 8px var(--ph),inset 0 -2px 2px rgba(0,0,0,.3)}
+.vents{position:absolute;left:50%;bottom:clamp(14px,2vw,26px);transform:translateX(-50%);display:flex;gap:5px}
+.vents i{width:clamp(18px,3vw,40px);height:5px;border-radius:3px;background:#6e6757;box-shadow:inset 0 2px 2px rgba(0,0,0,.5)}
+
+/* screen */
+.screen{position:relative;height:100%;border-radius:clamp(10px,3vw,40px)/clamp(10px,4vw,52px);overflow:hidden;background:radial-gradient(ellipse at 50% 45%,color-mix(in srgb,var(--bg) 70%,var(--ph) 6%),var(--bg) 75%);cursor:text}
+.screen::before{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,rgba(0,0,0,.28) 0 1px,transparent 1px 3px)}
+.screen::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;
+  background:radial-gradient(ellipse at 50% 50%,transparent 58%,rgba(0,0,0,.55) 100%),linear-gradient(115deg,rgba(255,255,255,.07) 0 18%,transparent 34%);
+  box-shadow:inset 0 0 60px rgba(0,0,0,.9),inset 0 0 18px var(--phG)}
+.flick{position:absolute;inset:0;z-index:2;pointer-events:none;background:var(--ph);opacity:.018;animation:flick .12s steps(2) infinite}
+@keyframes flick{50%{opacity:.035}}
+.roll{position:absolute;left:0;right:0;height:18%;z-index:2;pointer-events:none;background:linear-gradient(to bottom,transparent,rgba(255,255,255,.035),transparent);animation:roll 6s linear infinite}
+@keyframes roll{from{top:-20%}to{top:110%}}
+
+.term{position:absolute;inset:0;z-index:1;overflow-y:auto;overflow-x:hidden;padding:clamp(14px,3vw,40px) clamp(14px,3.4vw,48px) 20px;font-size:clamp(12.5px,1.25vw,17px);line-height:1.42;
+  text-shadow:0 0 2px var(--ph),0 0 10px var(--phG);scrollbar-width:none;white-space:pre-wrap;word-break:break-word;animation:on .5s ease-out both}
+.term::-webkit-scrollbar{display:none}
+@keyframes on{0%{transform:scaleY(.004) scaleX(.6);filter:brightness(4)}55%{transform:scaleY(.004) scaleX(1);filter:brightness(3)}100%{transform:none;filter:none}}
+.line{min-height:1.42em}
+.dim{color:var(--phD);text-shadow:none}
+.inv{background:var(--ph);color:var(--bg);text-shadow:none;padding:0 .3em}
+.err{text-decoration:underline wavy;text-underline-offset:3px}
+.dir{font-weight:700}
+.big{font-size:.78em;line-height:1.08;display:block}
+.inrow{display:flex;flex-wrap:wrap}
+.prompt{white-space:pre}
+.typed{white-space:pre-wrap;word-break:break-all}
+.cur{display:inline-block;width:.62em;height:1.15em;background:var(--ph);vertical-align:text-bottom;box-shadow:0 0 8px var(--ph);animation:blink 1.05s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.screen.busy .cur{animation:none;opacity:.35}
+#in{position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;font-size:16px}
+
+/* function keys */
+.fkeys{position:absolute;left:clamp(12px,3vw,46px);right:clamp(12px,3vw,46px);bottom:clamp(40px,5.2vw,74px);display:none;gap:6px;z-index:5}
+.fkeys button{flex:1;min-height:40px;border:0;border-radius:5px;background:linear-gradient(#d9d3c2,#b3ab96);color:#3b372d;font-family:var(--mono);font-size:12px;font-weight:700;box-shadow:0 3px 0 #7a735f,inset 0 1px 0 #fff;cursor:pointer}
+.fkeys button:active{transform:translateY(2px);box-shadow:0 1px 0 #7a735f}
+.fkeys small{display:block;font-size:9px;color:#7a735f}
+
+@media (max-width:700px){
+  .case{padding-bottom:98px}
+  .fkeys{display:flex;bottom:44px}
+  .vents{display:none}
+  .label{letter-spacing:.15em}
+}
+@media (prefers-reduced-motion:reduce){.flick,.roll,.term{animation:none}}
+</style>
+</head>
+<body>
+<div class="case">
+  <div class="inset">
+    <div class="screen" id="screen">
+      <div class="flick"></div><div class="roll"></div>
+      <div class="term" id="term" role="log" aria-live="polite"><div id="out"></div><div class="inrow" id="inrow"><span class="prompt" id="prompt"></span><span class="typed" id="typed"></span><span class="cur" aria-hidden="true"></span></div></div>
+      <input id="in" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal input">
+    </div>
+  </div>
+  <div class="fkeys" id="fkeys">
+    <button data-c="help"><small>F1</small>help</button><button data-c="ls"><small>F2</small>ls</button><button data-c="fortune"><small>F3</small>fortune</button><button data-c="cat notes/signal.log"><small>F4</small>signal</button><button data-c="color next"><small>F5</small>color</button>
+  </div>
+  <div class="label">PHOSPHOR <b>VT-83</b></div>
+  <div class="vents" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="led">POWER <i></i></div>
+</div>
+
+<script>
+(function(){
+  var out=document.getElementById('out'), term=document.getElementById('term'), typed=document.getElementById('typed'),
+      promptEl=document.getElementById('prompt'), inp=document.getElementById('in'), screen=document.getElementById('screen');
+  if(!out||!term||!typed||!inp||!promptEl) return;
+
+  /* ---------- filesystem ---------- */
+  var FS={type:'d',c:{
+    home:{type:'d',c:{guest:{type:'d',c:{
+      'README.txt':{type:'f',t:"Welcome, guest.\n\nThis terminal belongs to the Mulberry Hill Radio Observatory,\nelevation 1,140 m, population 3 humans and 1 cat (Parsec).\n\nPlease do not:\n  - touch dish 3 (it knows)\n  - eat food labelled GARY\n  - run 'rm -rf /' (it will not work, but it will hurt our feelings)\n\nType 'help' to begin. Type 'fortune' if you need advice."},
+      '.plan':{type:'f',t:"PLAN for the week of 31 OCT 1983\n\n  * finish the paper on hydrogen line drift\n  * figure out why the coffee machine hums in B-flat\n  * stop talking to the signal\n  * keep talking to the signal (just in case)"},
+      notes:{type:'d',c:{
+        'todo.txt':{type:'f',t:"TODO\n [x] recalibrate dish 1\n [x] recalibrate dish 2\n [ ] recalibrate dish 3   <- it keeps turning back\n [ ] find out who keeps eating my sandwiches\n [ ] reply to the signal (?)\n [ ] buy more tape (9-track, not sticky)"},
+        'signal.log':{type:'f',t:"#  MULBERRY HILL  -  1420.40 MHz  -  AUTOMATED LOG\n1983-10-28 23:02  narrowband spike     SNR 12.1   ID: 6EQUJ5\n1983-10-29 23:06  narrowband spike     SNR 14.8   ID: 6EQUJ5\n1983-10-30 23:10  narrowband spike     SNR 19.3   ID: 6EQUJ5\n1983-10-31 03:14  PATTERN REPEATS WITH 4-MINUTE DRIFT\n1983-10-31 03:14  drift matches our clock, not sidereal time\n1983-10-31 03:15  !! it is not drifting. it is waiting for us.\n\n(try: listen)"},
+        'sandwich-suspects.txt':{type:'f',t:"1. Gary       motive: hungry     alibi: 'was at dish 2'\n2. Dr. Okoro  motive: none       alibi: vegan\n3. Parsec     motive: cat        alibi: none. is a cat."}
+      }},
+      games:{type:'d',c:{
+        'rogue':{type:'x',t:"Segmentation fault (core dumped)\nThe dungeon was not ready for you. Nobody is ever ready for rogue."},
+        'tictactoe':{type:'x',t:"A STRANGE GAME.\nTHE ONLY WINNING MOVE IS NOT TO PLAY.\n\nHOW ABOUT A NICE GAME OF CHESS?"}
+      }},
+      secrets:{type:'d',lock:true,c:{}}
+    }}}},
+    etc:{type:'d',c:{motd:{type:'f',t:"Dish 3 maintenance postponed indefinitely.\nIt asked us to."},hostname:{type:'f',t:"mulberry"}}},
+    bin:{type:'d',c:{}}
+  }};
+  var cwd=['home','guest'];
+  function node(path){var n=FS;for(var i=0;i<path.length;i++){if(!n.c||!n.c[path[i]])return null;n=n.c[path[i]];}return n;}
+  function resolve(arg){
+    if(!arg||arg==='~') return ['home','guest'];
+    var p=arg.charAt(0)==='/'?[]:(arg.indexOf('~/')===0?['home','guest']:cwd.slice());
+    if(arg.indexOf('~/')===0) arg=arg.slice(2);
+    arg.split('/').forEach(function(s){if(!s||s==='.')return;if(s==='..'){p.pop();return;}p.push(s);});
+    return p;
+  }
+  function pathStr(p){var s='/'+p.join('/');return s.replace(/^\/home\/guest/,'~');}
+  function setPrompt(){promptEl.textContent='guest@mulberry:'+pathStr(cwd)+'$ ';}
+
+  /* ---------- printing ---------- */
+  var queue=[], busy=false;
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function print(html,cls,delay){queue.push({h:html,c:cls||'',d:delay==null?14:delay});pump();}
+  function printText(t,cls,delay){String(t).split('\n').forEach(function(l){print(esc(l),cls,delay);});}
+  function pump(){
+    if(busy) return; busy=true; screen.classList.add('busy');
+    (function step(){
+      var it=queue.shift();
+      if(!it){busy=false;screen.classList.remove('busy');scrollDown();return;}
+      var d=document.createElement('div');d.className='line '+it.c;d.innerHTML=it.h;out.appendChild(d);scrollDown();
+      if(it.fn) it.fn();
+      setTimeout(step,it.d);
+    })();
+  }
+  function scrollDown(){term.scrollTop=term.scrollHeight;}
+
+  /* ---------- commands ---------- */
+  var history=[], hi=0;
+  var fortunes=[
+    "You will debug for three hours and find a missing semicolon.\nIt was not missing. It was hiding.",
+    "A watched pot never boils. A watched build always fails.",
+    "The signal you seek is inside the noise. So is most of the noise.",
+    "Do not trust a computer you cannot throw out of a window.",
+    "Today's lucky numbers: 1420, 6EQUJ5, and the one you forgot to carry.",
+    "There are 10 kinds of people in the world. Those who understand binary,\nand those who are having a nice day.",
+    "Your cat has been reading your terminal. Parsec approves.",
+    "Beware of Gary bearing sandwiches."
+  ];
+  var colors=['green','amber','white'], ci=0;
+  var C={
+    help:function(){printText(
+"AVAILABLE COMMANDS\n"+
+"  help               this list\n"+
+"  ls [-a] [dir]      list directory\n"+
+"  cd <dir>           change directory\n"+
+"  pwd                where am I\n"+
+"  cat <file>         print file\n"+
+"  fortune            ask the machine\n"+
+"  whoami  date  uptime  sysinfo\n"+
+"  echo <text>        say something\n"+
+"  cowsay <text>      say something, bovinely\n"+
+"  color [green|amber|white]\n"+
+"  listen             tune dish 3 (audio)\n"+
+"  history  clear\n"+
+"\nTAB completes. UP/DOWN recalls history.",'',10);},
+    ls:function(a){
+      var all=a.indexOf('-a')>-1, args=a.filter(function(x){return x.charAt(0)!=='-';});
+      var p=resolve(args[0]), n=node(p);
+      if(!n){printText('ls: cannot access \''+args[0]+'\': No such file or directory','err');return;}
+      if(n.type!=='d'){printText(args[0]);return;}
+      if(n.lock){printText('ls: cannot open directory \''+args[0]+'\': Permission denied','err');return;}
+      var names=Object.keys(n.c).filter(function(k){return all||k.charAt(0)!=='.';}).sort();
+      if(all) names=['.','..'].concat(names);
+      print(names.map(function(k){var c=n.c[k];return c&&c.type==='d'?'<span class="dir">'+esc(k)+'/</span>':c&&c.type==='x'?esc(k)+'*':esc(k);}).join('    ')||'<span class="dim">(empty)</span>');
+    },
+    cd:function(a){var p=resolve(a[0]),n=node(p);if(!n){printText('cd: '+a[0]+': No such file or directory','err');return;}if(n.type!=='d'){printText('cd: '+a[0]+': Not a directory','err');return;}if(n.lock){printText('cd: '+a[0]+': Permission denied','err');return;}cwd=p;setPrompt();},
+    pwd:function(){printText('/'+cwd.join('/'));},
+    cat:function(a){
+      if(!a[0]){printText('cat: missing operand. (Parsec is the only cat here.)','err');return;}
+      var n=node(resolve(a[0]));
+      if(!n){printText('cat: '+a[0]+': No such file or directory','err');return;}
+      if(n.type==='d'){printText('cat: '+a[0]+': Is a directory',n.lock?'err':'');return;}
+      if(n.type==='x'){printText('cat: '+a[0]+': binary file. Try running ./'+a[0].split('/').pop(),'dim');return;}
+      printText(n.t,'',22);
+    },
+    fortune:function(){printText(fortunes[Math.floor(Math.random()*fortunes.length)],'',40);},
+    whoami:function(){printText('guest   (uid=1001, gid=100, clearance=SANDWICH-ADJACENT)');},
+    date:function(){var d=new Date();printText(d.toDateString().toUpperCase()+' '+d.toTimeString().slice(0,8)+'  (system clock believes it is 1983)');},
+    uptime:function(){var s=Math.floor(performance.now()/1000);printText(' up 14,902 days, '+Math.floor(s/60)+' min, '+(s%60)+' s,  3 users,  load average: 0.42 0.42 0.42');},
+    sysinfo:function(){
+      printText(
+"   ___  _  _  ___   guest@mulberry\n"+
+"  | _ \\| || |/ _ \\  --------------\n"+
+"  |  _/| __ | (_) | OS:     PHOSPHOR/OS 2.3\n"+
+"  |_|  |_||_|\\___/  CPU:    MC68000 @ 8 MHz\n"+
+"                    RAM:    512 KB (plenty)\n"+
+"  VT-83             Disk:   9-track tape x4\n"+
+"                    Dish:   3 of 3 online (1 unwilling)\n"+
+"                    Shell:  psh 1.1\n"+
+"                    Colour: "+colors[ci],'',16);},
+    echo:function(a){printText(a.join(' '));},
+    cowsay:function(a){
+      var m=a.join(' ')||'moo.'; if(m.length>36) m=m.slice(0,36)+'…';
+      var bar=new Array(m.length+3).join('_'), bot=new Array(m.length+3).join('-');
+      printText(' '+bar+'\n< '+m+' >\n '+bot+'\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\       )\\/\\\n                ||----w |\n                ||     ||','',16);},
+    color:function(a){
+      var c=a[0]; if(!c||c==='next'){ci=(ci+1)%3;c=colors[ci];} else {var k=colors.indexOf(c);if(k<0){printText('color: unknown phosphor \''+c+'\'. Try green, amber or white.','err');return;}ci=k;}
+      document.body.classList.remove('amber','white'); if(c!=='green') document.body.classList.add(c);
+      printText('Phosphor switched to P'+({green:'1',amber:'3',white:'4'})[c]+' ('+c+').','dim');},
+    history:function(){history.forEach(function(h,i){printText(('  '+(i+1)).slice(-3)+'  '+h,'',6);});},
+    clear:function(){out.innerHTML='';},
+    sudo:function(){printText('guest is not in the sudoers file. This incident will be reported.\n(To whom? Mostly to Gary.)','err');},
+    rm:function(a){ if(a.join(' ').indexOf('-rf')>-1){printText('rm: refusing to remove \'/\'. We have been through too much together.','err');} else printText('rm: permission denied. Nothing here is disposable.','err');},
+    exit:function(){printText('There is no exit. There is only the terminal.\n(Close the tab, if you must. The cursor will wait.)','dim');},
+    ssh:function(a){printText('ssh: connect to host '+(a[0]||'?')+' port 22: this is 1983, SSH has not been invented yet','err');},
+    man:function(a){printText(a[0]?('No manual entry for '+a[0]+'. The manual is in the break room, under the sandwiches.'):'What manual page do you want?','dim');},
+    vim:function(){printText('You are now trapped in vim. Just kidding. Nobody can prove that.','dim');},
+    emacs:function(){printText('emacs: not enough RAM. It needs 8 MB and a lifetime.','dim');},
+    listen:function(){printText('Tuning dish 3 to 1420.40 MHz ...','dim',260);print('<span class="inv"> RECEIVING </span>','',200);playSignal();printText('. . .  - - -  . . .   (it repeats every 4 minutes)','',60);}
+  };
+  C.ll=function(){C.ls(['-a']);};
+  C.dir=C.ls;
+
+  function run(line){
+    var raw=line.trim();
+    print('<span class="dim">'+esc(promptEl.textContent)+'</span>'+esc(line),'',0);
+    if(!raw) return;
+    history.push(raw); hi=history.length;
+    var parts=raw.split(/\s+/), cmd=parts[0], args=parts.slice(1);
+    if(cmd.indexOf('./')===0){var n=node(resolve(cmd.slice(2)));if(n&&n.type==='x'){printText(n.t,'',40);}else printText('psh: '+cmd+': not executable','err');return;}
+    if(C[cmd]) C[cmd](args); else printText('psh: command not found: '+cmd+'   (try \'help\')','err');
+  }
+
+  /* ---------- input ---------- */
+  function syncTyped(){typed.textContent=inp.value;scrollDown();}
+  inp.addEventListener('input',syncTyped);
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();var v=inp.value;inp.value='';syncTyped();run(v);keyclick(true);}
+    else if(e.key==='ArrowUp'){e.preventDefault();if(hi>0){hi--;inp.value=history[hi]||'';syncTyped();}}
+    else if(e.key==='ArrowDown'){e.preventDefault();if(hi<history.length){hi++;inp.value=history[hi]||'';syncTyped();}}
+    else if(e.key==='Tab'){e.preventDefault();complete();}
+    else if(e.key==='l'&&e.ctrlKey){e.preventDefault();C.clear();}
+    else if(e.key.length===1) keyclick(false);
+  });
+  function complete(){
+    var v=inp.value, parts=v.split(/\s+/);
+    if(parts.length===1){var m=Object.keys(C).filter(function(k){return k.indexOf(parts[0])===0;});if(m.length===1){inp.value=m[0]+' ';}else if(m.length>1){print('<span class="dim">'+m.join('  ')+'</span>');}}
+    else{
+      var last=parts[parts.length-1], slash=last.lastIndexOf('/'), base=slash>-1?last.slice(0,slash+1):'', frag=last.slice(slash+1);
+      var dir=node(base?resolve(base):cwd); if(!dir||dir.type!=='d'||dir.lock) return;
+      var m2=Object.keys(dir.c).filter(function(k){return k.indexOf(frag)===0;});
+      if(m2.length===1){parts[parts.length-1]=base+m2[0]+(dir.c[m2[0]].type==='d'?'/':'');inp.value=parts.join(' ');}
+      else if(m2.length>1){print('<span class="dim">'+m2.join('  ')+'</span>');}
+    }
+    syncTyped();
+  }
+  function focusIn(){ try{inp.focus({preventScroll:true});}catch(e){inp.focus();} }
+  screen.addEventListener('pointerup',function(){ if(!window.getSelection||String(window.getSelection())==='') focusIn(); });
+  document.addEventListener('keydown',function(e){ if(document.activeElement!==inp&&!e.ctrlKey&&!e.metaKey&&(e.key.length===1||e.key==='Enter'||e.key==='ArrowUp')){focusIn();} },true);
+  var fk=document.getElementById('fkeys');
+  if(fk) fk.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;ensureAudio();run(b.getAttribute('data-c'));keyclick(true);});
+
+  /* ---------- sound ---------- */
+  var ac=null;
+  function ensureAudio(){ if(ac) {if(ac.state==='suspended') ac.resume(); return ac;} var A=window.AudioContext||window.webkitAudioContext; if(!A) return null; ac=new A(); return ac; }
+  function keyclick(big){
+    var a=ensureAudio(); if(!a) return;
+    var t=a.currentTime, len=big?0.03:0.012, buf=a.createBuffer(1,Math.floor(a.sampleRate*len),a.sampleRate), d=buf.getChannelData(0);
+    for(var i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);
+    var s=a.createBufferSource(), g=a.createGain(), f=a.createBiquadFilter(); f.type='highpass'; f.frequency.value=big?900:2200;
+    g.gain.value=big?.25:.12; s.buffer=buf; s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+  }
+  function playSignal(){
+    var a=ensureAudio(); if(!a) return;
+    var t=a.currentTime+.1, pat=[1,1,1,3,3,3,1,1,1];
+    var noise=a.createBuffer(1,a.sampleRate*4,a.sampleRate), nd=noise.getChannelData(0); for(var i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
+    var ns=a.createBufferSource(), ng=a.createGain(), nf=a.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=1200; nf.Q.value=.7;
+    ng.gain.setValueAtTime(0,t); ng.gain.linearRampToValueAtTime(.05,t+.3); ng.gain.setValueAtTime(.05,t+3.4); ng.gain.linearRampToValueAtTime(0,t+3.9);
+    ns.buffer=noise; ns.connect(nf); nf.connect(ng); ng.connect(a.destination); ns.start(t); ns.stop(t+4);
+    var x=t+.4;
+    pat.forEach(function(p){var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=880;var dur=p*.09;g.gain.setValueAtTime(0,x);g.gain.linearRampToValueAtTime(.16,x+.01);g.gain.setValueAtTime(.16,x+dur);g.gain.linearRampToValueAtTime(0,x+dur+.02);o.connect(g);g.connect(a.destination);o.start(x);o.stop(x+dur+.05);x+=dur+.12;});
+  }
+
+  /* ---------- boot ---------- */
+  setPrompt();
+  var logo=
+"  ____  _   _  ___  ____  ____  _   _  ___  ____  \n"+
+" |  _ \\| | | |/ _ \\/ ___||  _ \\| | | |/ _ \\|  _ \\ \n"+
+" | |_) | |_| | | | \\___ \\| |_) | |_| | | | | |_) |\n"+
+" |  __/|  _  | |_| |___) |  __/|  _  | |_| |  _ < \n"+
+" |_|   |_| |_|\\___/|____/|_|   |_| |_|\\___/|_| \\_\\";
+  printText('PHOSPHOR BIOS v1.07   (C) 1982 MULBERRY HILL INSTRUMENTS','dim',30);
+  print('MEMORY TEST ... <span id="mem">0 KB</span>','',30);
+  queue[queue.length-1].fn=function(){var m=document.getElementById('mem'),k=0;var iv=setInterval(function(){k+=64;if(m)m.textContent=k+' KB';if(k>=512){clearInterval(iv);if(m)m.textContent='512 KB  OK';}},30);};
+  printText('TAPE 0..3 ONLINE   DISH 1..3 ONLINE (DISH 3: RELUCTANT)','dim',40);
+  print('<span class="big">'+esc(logo)+'</span>','',60);
+  printText('PHOSPHOR/OS 2.3  -  MULBERRY HILL RADIO OBSERVATORY','',20);
+  printText('Last login: Mon Oct 31 03:14:07 1983 from dish3   <-- ?','dim',20);
+  print('Type <span class="inv">help</span> to begin. Something has been left in <span class="inv">notes/</span> for you.','',20);
+  print('&nbsp;','',0);
+  /* auto-demo: type a first command unless the visitor starts first */
+  var demo='cat README.txt', di=0, cancelled=false;
+  inp.addEventListener('keydown',function(){cancelled=true;},true);
+  if(fk) fk.addEventListener('click',function(){cancelled=true;},true);
+  queue.push({h:'',c:'dim',d:0,fn:function(){ if(out.lastChild) out.removeChild(out.lastChild); (function t(){ if(cancelled){return;} if(di<demo.length){inp.value+=demo.charAt(di++);syncTyped();setTimeout(t,38+Math.random()*40);} else setTimeout(function(){ if(cancelled) return; var v=inp.value; inp.value=''; syncTyped(); run(v); },220); })(); }});
+})();
+</script>
+</body>
+</html>

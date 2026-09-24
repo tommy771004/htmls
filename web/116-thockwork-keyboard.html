@@ -1,0 +1,1317 @@
+<!doctype html>
+<!--
+Thockwork / 客製化鍵盤工坊
+Every keycap, switch, stabilizer, plate hole and the case are generated at runtime from the
+layout tables below (60 / 65 / 75). Three.js and GSAP load from pinned jsDelivr URLs; WebGL required.
+Checkout is a demo: nothing is charged and nothing leaves the browser (cart lives in localStorage).
+-->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1b1916">
+<meta name="description" content="Thockwork 客製化鍵盤工坊：每顆鍵帽、每個軸體都由程式即時生成的 3D 鍵盤。換配色、軸體與鍵帽高度，用實體鍵盤試打聽聲音，再加入購物車結帳。">
+<title>Thockwork · 客製化鍵盤工坊</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 27 7 8q.4-2 2.4-2h13.2q2 0 2.4 2l3 19z' fill='%23e6e0d2'/%3E%3Cpath d='M9 9q7 2.4 14 0' fill='none' stroke='%231b1916' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme:dark;
+  --stage:#1b1916;--surface:#272421;--surface-2:#34302c;--edge:rgba(255,246,230,.06);
+  --ink:#eee8dc;--ink-2:rgba(238,232,220,.72);--ink-3:rgba(238,232,220,.48);
+  --cap-top:#e6e0d2;--cap-base:#a9a397;--cap-legend:#2a2826;--warn:#e7a47c;
+  --display:"Avenir Next Condensed","Avenir Next","Arial Narrow","Roboto Condensed",sans-serif;
+  --body:system-ui,-apple-system,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  --bar:76px;--gut:28px;--ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--stage);color:var(--ink);font:15px/1.5 var(--body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--ink-2);outline-offset:2px}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.num{font-variant-numeric:tabular-nums lining-nums}
+
+/* ---------- top bar ---------- */
+.bar{position:fixed;top:0;left:0;right:0;height:var(--bar);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 var(--gut);z-index:5;pointer-events:none}
+.bar>*{pointer-events:auto}
+.brand{justify-self:start;display:flex;align-items:center;gap:10px;font:600 24px/1 var(--display);letter-spacing:.005em;color:var(--ink);text-decoration:none}
+.brand svg{width:28px;height:24px;flex:none}
+.lines{display:flex;gap:2px;padding:4px;border-radius:15px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--edge)}
+.lines button{display:grid;justify-items:center;padding:5px 16px 6px;border-radius:11px;color:var(--ink-3);transition:color .2s,background-color .2s}
+.lines button:hover{color:var(--ink-2)}
+.lines button[aria-pressed=true]{background:var(--surface-2);color:var(--ink)}
+.lines b{font:600 23px/1 var(--display)}
+.lines b i{font-style:normal;font-size:14px;margin-left:1px;opacity:.7}
+.lines small{font-size:11px;line-height:1.2;margin-top:3px}
+.buy{justify-self:end;display:flex;align-items:center;gap:18px}
+.total{font:600 25px/1 var(--display);letter-spacing:.01em}
+.total small{display:block;font:12px/1.3 var(--body);color:var(--ink-3);text-align:right;margin-top:3px;letter-spacing:0}
+.cartbtn{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 15px;border-radius:13px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--edge);font-weight:500;transition:background-color .2s}
+.cartbtn:hover{background:var(--surface-2)}
+
+/* mini keycap (cart count, qty steppers) */
+.kc{position:relative;display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 7px;border-radius:7px;background:var(--cap-base);color:var(--cap-legend);font:700 13px/1 var(--display)}
+.kc::before{content:"";position:absolute;inset:1.5px 3px 4px;border-radius:5px;background:linear-gradient(var(--cap-top),color-mix(in srgb,var(--cap-top) 88%,#000))}
+.kc>span{position:relative;transform:translateY(-1px)}
+.kc.bump::before,.kc.bump>span{transform:translateY(2px)}
+
+/* ---------- bottom dock ---------- */
+.dock{position:fixed;left:16px;right:16px;bottom:16px;z-index:5;display:flex;flex-direction:column;gap:14px;pointer-events:none}
+.dock>*{pointer-events:auto}
+.headline{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:0 12px;pointer-events:none}
+.headline>*{pointer-events:auto}
+.title{margin:0;font:600 46px/1 var(--display);letter-spacing:.004em;white-space:nowrap}
+.title span{color:var(--ink-3);font-weight:500;margin-left:.18em}
+.specs{margin:9px 0 0;color:var(--ink-2);font-size:14px}
+.try{margin:6px 0 0;color:var(--ink-3);font-size:13px;display:flex;align-items:center;gap:8px}
+.try .kc{height:22px;min-width:24px;font-size:11px}
+.views{display:flex;flex:none;gap:2px;padding:4px;border-radius:14px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--edge)}
+.views button{padding:8px 13px;border-radius:10px;color:var(--ink-3);font-size:14px;white-space:nowrap;transition:color .2s,background-color .2s}
+.views button:hover{color:var(--ink-2)}
+.views button[aria-pressed=true]{color:var(--ink);background:var(--surface-2)}
+.views .gap{width:1px;margin:0 3px}
+.bars{display:inline-flex;gap:2px;align-items:flex-end;height:11px;margin-right:6px;vertical-align:-1px}
+.bars i{width:2px;border-radius:2px;background:currentColor;height:4px}
+[aria-pressed=true] .bars i{animation:eq 1.1s ease-in-out infinite}
+[aria-pressed=true] .bars i:nth-child(2){animation-delay:-.4s}
+[aria-pressed=true] .bars i:nth-child(3){animation-delay:-.75s}
+@keyframes eq{0%,100%{height:3px}50%{height:11px}}
+
+.console{border-radius:22px;background:var(--surface);box-shadow:inset 0 1px 0 rgba(255,246,230,.05),inset 0 0 0 1px var(--edge)}
+.tray{overflow:hidden}
+.tray-inner{display:flex;gap:6px;padding:10px 10px 0;overflow-x:auto;scrollbar-width:none}
+.tray-inner::-webkit-scrollbar{display:none}
+.opt{flex:0 0 138px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:12px 12px 11px;border-radius:15px;text-align:left;color:var(--ink-2);transition:background-color .2s,color .2s}
+.opt:hover{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+.opt[aria-pressed=true]{background:var(--surface-2);color:var(--ink)}
+.opt svg{display:block;width:100%;height:44px;margin-bottom:6px;overflow:visible}
+.opt b{font:600 17px/1.15 var(--display);color:var(--ink)}
+.opt small{font-size:12px;color:var(--ink-3);line-height:1.35}
+.opt[aria-pressed=false] svg{opacity:.78}
+.rail{display:flex;align-items:center;gap:8px;padding:8px}
+.segs{flex:1;display:flex;gap:4px;min-width:0}
+.seg{flex:1 1 0;min-width:0;padding:9px 14px;border-radius:14px;text-align:left;transition:background-color .2s}
+.seg:hover{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+.seg[aria-expanded=true]{background:var(--surface-2)}
+.seg small{display:block;font-size:12px;color:var(--ink-3);line-height:1.3}
+.seg b{display:block;font:600 18px/1.25 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* the spacebar: the one primary action, built like a keycap from the current set */
+.space{position:relative;flex:none;min-width:250px;height:58px;padding:0 26px;border-radius:14px;background:var(--cap-base);color:var(--cap-legend);font:600 19px/1 var(--display);letter-spacing:.01em}
+.space::before{content:"";position:absolute;inset:2px 9px 8px;border-radius:10px;background:linear-gradient(color-mix(in srgb,var(--cap-top) 94%,#fff),var(--cap-top) 60%,color-mix(in srgb,var(--cap-top) 90%,#000));box-shadow:inset 0 1px 0 rgba(255,255,255,.28);transition:transform .08s,filter .2s}
+.space>span{position:relative;display:inline-block;transform:translateY(-3px);transition:transform .08s}
+.space:hover::before{filter:brightness(1.05)}
+.space:active::before{transform:translateY(3px)}
+.space:active>span{transform:translateY(0)}
+.space .px{opacity:.62;margin-left:10px}
+
+/* ---------- cart drawer ---------- */
+.scrim{position:fixed;inset:0;z-index:9;background:rgba(8,7,6,.5);opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s}
+.drawer{position:fixed;top:0;right:0;bottom:0;z-index:10;width:min(460px,100%);display:flex;flex-direction:column;background:var(--surface);box-shadow:-1px 0 0 var(--edge);transform:translateX(102%);visibility:hidden;transition:transform .5s var(--ease),visibility .5s}
+body.cart-open .scrim{opacity:1;visibility:visible}
+body.cart-open .drawer{transform:none;visibility:visible}
+.dh{display:flex;align-items:center;justify-content:space-between;padding:22px 24px 6px}
+.dh h2{margin:0;font:600 30px/1 var(--display)}
+.x{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;color:var(--ink-2)}
+.x:hover{background:var(--surface-2);color:var(--ink)}
+.x svg{width:16px;height:16px}
+.steps{display:flex;gap:18px;padding:6px 24px 16px;font-size:13px;color:var(--ink-3)}
+.steps[hidden]{display:none}
+.steps span[aria-current=step]{color:var(--ink);font-weight:600}
+.db{flex:1;overflow-y:auto;padding:4px 24px 24px;overscroll-behavior:contain}
+.df{padding:18px 24px 24px;background:color-mix(in srgb,var(--surface-2) 45%,var(--surface))}
+.df .space{width:100%;min-width:0}
+.item{display:grid;grid-template-columns:118px 1fr;gap:16px;padding:14px 0}
+.item img{width:118px;height:74px;border-radius:12px;object-fit:cover;background:var(--stage)}
+.item h3{margin:0;font:600 19px/1.15 var(--display)}
+.item p{margin:4px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+.item .row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:10px}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button.kc{min-width:30px;height:28px;font-size:15px}
+.qty output{min-width:18px;text-align:center;font-weight:600}
+.link{font-size:13px;color:var(--ink-3);padding:4px 2px}
+.link:hover{color:var(--ink)}
+.line-price{font:600 18px/1 var(--display)}
+.sum{display:grid;grid-template-columns:1fr auto;gap:6px 12px;margin:0 0 16px;font-size:14px;color:var(--ink-2)}
+.sum dd{margin:0;text-align:right}
+.sum .grand{font:600 24px/1.1 var(--display);color:var(--ink);padding-top:6px}
+.empty{padding:40px 0 10px}
+.empty p{margin:0 0 6px;font:600 24px/1.2 var(--display)}
+.empty span{color:var(--ink-2);font-size:14px}
+.form{display:grid;gap:14px;padding-top:6px}
+.field label{display:block;font-size:13px;color:var(--ink-2);margin-bottom:6px}
+.field input,.field textarea{width:100%;height:46px;padding:0 14px;border-radius:12px;border:0;background:var(--stage);box-shadow:inset 0 0 0 1px var(--edge);color:var(--ink);font-size:15px}
+.field textarea{height:76px;padding:11px 14px;resize:none}
+.field input[aria-invalid=true]{box-shadow:inset 0 0 0 1px var(--warn)}
+.field .err{display:block;min-height:0;font-size:12.5px;color:var(--warn);margin-top:5px}
+.field .err:empty{display:none}
+.choose{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choose button{padding:12px 14px;border-radius:13px;text-align:left;background:var(--stage);box-shadow:inset 0 0 0 1px var(--edge);color:var(--ink-2);transition:background-color .2s,color .2s}
+.choose button b{display:block;font:600 17px/1.2 var(--display);color:var(--ink)}
+.choose button small{font-size:12px;color:var(--ink-3)}
+.choose button[aria-pressed=true]{background:var(--surface-2);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink-3)}
+.review h4{margin:18px 0 6px;font:600 16px/1.2 var(--display);color:var(--ink-2)}
+.review p{margin:0;font-size:14px;color:var(--ink-2);line-height:1.6}
+.note{margin:14px 0 0;font-size:12.5px;color:var(--ink-3);line-height:1.6}
+.back{display:inline-block;margin-top:12px}
+.done{padding:36px 0 8px}
+.done .ordno{font:600 40px/1 var(--display);letter-spacing:.01em}
+.done p{color:var(--ink-2);line-height:1.7;margin:14px 0 0}
+
+.flyer{position:fixed;z-index:20;pointer-events:none;border-radius:12px;object-fit:cover}
+.error{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100% - 40px));padding:26px;border-radius:18px;background:var(--surface);line-height:1.7;display:none;z-index:30}
+.error.visible{display:block}
+.error b{display:block;font:600 24px/1.2 var(--display);margin-bottom:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- phone ---------- */
+@media (max-width:760px){
+  :root{--bar:60px;--gut:14px}
+  .bar{grid-template-columns:auto 1fr auto;gap:4px}
+  .brand{font-size:17px;gap:6px}
+  .brand svg{width:22px;height:19px}
+  .lines{justify-self:center;padding:3px}
+  .lines button{padding:5px 7px}
+  .lines b{font-size:18px}
+  .lines small{display:none}
+  .total{display:none}
+  .cartbtn{padding:5px 6px 5px 9px;gap:6px;font-size:13px;white-space:nowrap}
+  .dock{left:10px;right:10px;bottom:10px;gap:10px}
+  .headline{flex-direction:column;align-items:stretch;gap:10px;padding:0 6px}
+  .title{font-size:30px}
+  .specs{font-size:12.5px;margin-top:6px}
+  .try{display:none}
+  .views{overflow-x:auto;scrollbar-width:none;align-self:flex-start;max-width:100%}
+  .views button{padding:7px 10px;font-size:13px}
+  .console{border-radius:18px}
+  .rail{flex-direction:column;align-items:stretch;gap:6px;padding:6px}
+  .segs{overflow-x:auto;scrollbar-width:none}
+  .segs::-webkit-scrollbar{display:none}
+  .seg{flex:0 0 auto;padding:7px 12px}
+  .seg b{font-size:16px}
+  .space{width:100%;min-width:0;height:54px}
+  .opt{flex-basis:122px;padding:10px}
+  .opt svg{height:38px}
+  .item{grid-template-columns:96px 1fr;gap:12px}
+  .item img{width:96px;height:60px}
+}
+@media (max-height:720px) and (min-width:761px){
+  .title{font-size:36px}
+  .opt svg{height:36px}
+}
+@media (prefers-reduced-motion:reduce){
+  .drawer,.scrim{transition:none}
+  [aria-pressed=true] .bars i{animation:none;height:8px}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="stage" aria-label="可旋轉的 3D 鍵盤預覽。拖曳旋轉、滾輪縮放，點擊鍵帽試打。" tabindex="-1"></canvas>
+
+<header class="bar">
+  <a class="brand" href="#" aria-label="Thockwork 首頁">
+    <svg viewBox="0 0 28 24" aria-hidden="true"><path d="M2.5 22.5 5.2 4.6Q5.6 2.5 7.7 2.5h12.6q2.1 0 2.5 2.1l2.7 17.9z" fill="var(--cap-top)"/><path d="M7 5.6q7 2.6 14 0" fill="none" stroke="var(--stage)" stroke-width="1.6" stroke-linecap="round"/></svg>
+    Thockwork
+  </a>
+  <nav class="lines" aria-label="鍵盤尺寸" id="lines"></nav>
+  <div class="buy">
+    <div class="total"><span class="num" id="total">NT$0</span><small>含組裝與調潤</small></div>
+    <button class="cartbtn" id="openCart" aria-haspopup="dialog">購物車 <span class="kc" id="count"><span>0</span></span></button>
+  </div>
+</header>
+
+<div class="dock" id="dock">
+  <div class="headline">
+    <div>
+      <h1 class="title" id="title">TW65<span>墨與紙</span></h1>
+      <p class="specs" id="specs"></p>
+      <p class="try" id="try"><span class="kc"><span>A</span></span><span id="tryText">直接敲你的鍵盤試打，或點 3D 鍵帽</span></p>
+    </div>
+    <div class="views" role="group" aria-label="檢視">
+      <button data-view="hero" aria-pressed="true">展示</button>
+      <button data-view="top" aria-pressed="false">俯視</button>
+      <button data-view="side" aria-pressed="false">側面</button>
+      <span class="gap" aria-hidden="true"></span>
+      <button id="explode" aria-pressed="false">拆解</button>
+      <button id="sound" aria-pressed="true"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>聲音</button>
+    </div>
+  </div>
+  <div class="console">
+    <div class="tray" id="tray"><div class="tray-inner" id="trayInner" role="group"></div></div>
+    <div class="rail">
+      <div class="segs" id="segs"></div>
+      <button class="space" id="add"><span>加入購物車<span class="px num" id="addPrice"></span></span></button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+  <div class="dh">
+    <h2 id="dTitle">購物車</h2>
+    <button class="x" id="closeCart" aria-label="關閉購物車"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="steps" id="steps"><span data-s="cart">1 購物車</span><span data-s="ship">2 收件資訊</span><span data-s="review">3 確認訂單</span></div>
+  <div class="db" id="dBody"></div>
+  <div class="df" id="dFoot"></div>
+</aside>
+
+<div class="error" id="error" role="alert"><b>3D 預覽無法啟動</b>這個頁面需要 WebGL，以及能連到 jsDelivr 載入 Three.js 與 GSAP。請換用新版 Chrome、Edge、Safari 或 Firefox，確認連線後重新整理。</div>
+<p class="sr" aria-live="polite" id="live"></p>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const gsap = window.gsap;
+const $ = (s, r = document) => r.querySelector(s);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const T = d => reduceMotion ? 0 : d;
+const fmt = n => 'NT$' + Math.round(n).toLocaleString('en-US');
+function fail() { $('#error').classList.add('visible'); }
+if (!gsap) { fail(); throw new Error('GSAP unavailable'); }
+
+/* =========================================================================
+   Catalogue
+   ========================================================================= */
+const U = 19.05;                 // key pitch, mm
+const P = 10;                    // plate top, deck space
+const CAP_BASE = P + 6.8;        // keycap skirt at rest
+const TRAVEL = 4;
+const TILT = 6.5 * Math.PI / 180;
+
+const LAYOUTS = {
+  '60': { name: 'TW60', price: 3900 },
+  '65': { name: 'TW65', price: 4600 },
+  '75': { name: 'TW75', price: 5400 },
+};
+const CASES = [
+  { id: 'silver',   name: '霧銀',   note: '噴砂陽極鋁',   color: '#bdbcb7', metal: .82, rough: .44, price: 0 },
+  { id: 'graphite', name: '石墨',   note: '陽極鋁',       color: '#3d3c3a', metal: .78, rough: .4,  price: 0 },
+  { id: 'oxide',    name: '氧化紅', note: '陽極鋁',       color: '#80352a', metal: .74, rough: .36, price: 300 },
+  { id: 'moss',     name: '苔綠',   note: '陽極鋁',       color: '#58624b', metal: .74, rough: .4,  price: 300 },
+  { id: 'bone',     name: '骨白',   note: '電泳塗裝',     color: '#dcd6ca', metal: .08, rough: .5,  price: 500 },
+  { id: 'brass',    name: '黃銅',   note: '實心黃銅 +1.9kg', color: '#b89058', metal: 1, rough: .27, price: 1800 },
+];
+const SETS = [
+  { id: 'sumi',  name: '墨與紙', note: '骨白 · 炭黑 · 朱', alpha: '#e7e1d3', mod: '#2e2c2a', accent: '#b9432e', la: '#2b2926', lm: '#e7e1d3', lx: '#f3e9dc', stage: '#1b1916' },
+  { id: 'moss',  name: '苔庭',   note: '淡苔 · 深苔 · 芥末', alpha: '#d4d6c3', mod: '#4f5c46', accent: '#d2a045', la: '#3b4531', lm: '#e2e4d1', lx: '#2d2a1d', stage: '#151a13' },
+  { id: 'kiln',  name: '窯燒',   note: '陶土 · 磚紅 · 鐵灰', alpha: '#e8caa8', mod: '#8e3f2c', accent: '#34403e', la: '#6c2d20', lm: '#f1ddc5', lx: '#e8caa8', stage: '#1e1511' },
+  { id: 'tide',  name: '退潮',   note: '鹽白 · 深潮 · 浮標橘', alpha: '#d8dfda', mod: '#2f5c5d', accent: '#df7a3b', la: '#2f5c5d', lm: '#dde7e2', lx: '#261d16', stage: '#101817' },
+  { id: 'night', name: '夜行',   note: '全黑 · 側刻灰字', alpha: '#262523', mod: '#1c1b1a', accent: '#262523', la: '#a39c90', lm: '#7b756d', lx: '#c9a46b', stage: '#121211' },
+];
+const PROFILES = {
+  cherry: { name: 'Cherry', note: '低矮 · 圓柱凹面', price: 0,   ix: 2.9, iF: 3.1, iB: 1.7, rB: 1.1, rT: 1.9, bulge: .15, dish: 'cyl', depth: .55,
+            rows: [[9.3, 7], [8.3, 3.5], [7.5, 0], [7.9, -5], [8.2, -7]] },
+  sa:     { name: 'SA',     note: '高挑 · 球面凹', price: 600, ix: 3.1, iF: 3.2, iB: 3.0, rB: 1.6, rT: 4.2, bulge: .7, dish: 'sph', depth: 1.1,
+            rows: [[13.4, 10], [12.2, 5], [11.6, 0], [12.3, -6], [12.9, -9]] },
+  xda:    { name: 'XDA',    note: '均一 · 淺球面', price: 200, ix: 1.6, iF: 1.6, iB: 1.6, rB: 1.5, rT: 3.1, bulge: .2, dish: 'sph', depth: .55,
+            rows: [[9.1, 0], [9.1, 0], [9.1, 0], [9.1, 0], [9.1, 0]] },
+};
+const MATERIALS = {
+  pbt: { name: 'PBT', note: '熱昇華 · 霧面', price: 1900, rough: .64, clear: 0,  sheen: .35 },
+  abs: { name: 'ABS', note: '雙色成型 · 亮面', price: 2600, rough: .24, clear: .35, sheen: 0 },
+};
+const SWITCHES = [
+  { id: 'linear',  name: '絲滑', type: '線性',   force: 45, price: 12, stem: '#c85a45', top: '#eceee9', topO: .42, bottom: '#f1efe9',
+    curve: [[0, 0], [0, 32], [3.7, 47], [3.85, 62], [4, 90]] },
+  { id: 'tactile', name: '段落', type: '段落',   force: 62, price: 15, stem: '#b9843d', top: '#5e574f', topO: .6, bottom: '#2c2a27',
+    curve: [[0, 0], [0, 34], [.55, 62], [1.5, 42], [3.6, 58], [3.85, 70], [4, 90]] },
+  { id: 'clicky',  name: '清脆', type: '有聲段落', force: 60, price: 13, stem: '#3f6e91', top: '#e9e6de', topO: 1,  bottom: '#e9e6de',
+    curve: [[0, 0], [0, 38], [1.6, 60], [1.75, 30], [3.6, 56], [3.85, 70], [4, 90]] },
+  { id: 'silent',  name: '靜音', type: '靜音線性', force: 40, price: 17, stem: '#7a8962', top: '#dfe3db', topO: .72, bottom: '#dfe3db',
+    curve: [[0, 0], [0, 28], [3.5, 41], [3.8, 50], [4, 64]] },
+];
+const byId = (list, id) => list.find(x => x.id === id);
+
+/* ---------- key layouts (widths in u) ---------- */
+const K = (l, w = 1, codes = [], role = 'mod', lg = 'mod') => ({ l, w, codes: [].concat(codes), role, lg });
+const A = ch => K(ch, 1, 'Key' + ch, 'alpha', 'alpha');
+const numRow = () => [['!', '1'], ['@', '2'], ['#', '3'], ['$', '4'], ['%', '5'], ['^', '6'], ['&', '7'], ['*', '8'], ['(', '9'], [')', '0'], ['_', '-', 'Minus'], ['+', '=', 'Equal']]
+  .map(([s, n, c]) => K(s + '\n' + n, 1, c || 'Digit' + n, 'alpha', 'dual'));
+const tabRow = () => [K('Tab', 1.5, 'Tab'), ...'QWERTYUIOP'.split('').map(A), K('{\n[', 1, 'BracketLeft', 'alpha', 'dual'), K('}\n]', 1, 'BracketRight', 'alpha', 'dual'), K('|\n\\', 1.5, 'Backslash', 'mod', 'dual')];
+const capsRow = () => [K('Caps', 1.75, 'CapsLock'), ...'ASDFGHJKL'.split('').map(A), K(':\n;', 1, 'Semicolon', 'alpha', 'dual'), K('"\n\'', 1, 'Quote', 'alpha', 'dual'), K('Enter', 2.25, ['Enter', 'NumpadEnter'], 'accent')];
+const zRow = () => [...'ZXCVBNM'.split('').map(A), K('<\n,', 1, 'Comma', 'alpha', 'dual'), K('>\n.', 1, 'Period', 'alpha', 'dual'), K('?\n/', 1, 'Slash', 'alpha', 'dual')];
+const space = () => K('', 6.25, 'Space', 'alpha', 'none');
+const arrow = (g, c) => K(g, 1, c, 'mod', 'glyph');
+function rowsFor(id) {
+  const bottom65 = [K('Ctrl', 1.25, 'ControlLeft'), K('Win', 1.25, 'MetaLeft'), K('Alt', 1.25, 'AltLeft'), space(), K('Alt', 1, 'AltRight'), K('Fn', 1), K('Ctrl', 1, 'ControlRight'), arrow('←', 'ArrowLeft'), arrow('↓', 'ArrowDown'), arrow('→', 'ArrowRight')];
+  const mid65 = [
+    [...tabRow(), K('PgUp', 1, 'PageUp')],
+    [...capsRow(), K('PgDn', 1, 'PageDown')],
+    [K('Shift', 2.25, 'ShiftLeft'), ...zRow(), K('Shift', 1.75, 'ShiftRight'), arrow('↑', 'ArrowUp'), K('End', 1, 'End')],
+    bottom65,
+  ];
+  if (id === '60') return [
+    [K('Esc', 1, ['Escape', 'Backquote'], 'accent'), ...numRow(), K('Backspace', 2, 'Backspace')],
+    tabRow(), capsRow(),
+    [K('Shift', 2.25, 'ShiftLeft'), ...zRow(), K('Shift', 2.75, 'ShiftRight')],
+    [K('Ctrl', 1.25, 'ControlLeft'), K('Win', 1.25, 'MetaLeft'), K('Alt', 1.25, 'AltLeft'), space(), K('Alt', 1.25, 'AltRight'), K('Win', 1.25, 'MetaRight'), K('Menu', 1.25, 'ContextMenu'), K('Ctrl', 1.25, 'ControlRight')],
+  ];
+  if (id === '65') return [[K('Esc', 1, ['Escape', 'Backquote'], 'accent'), ...numRow(), K('Backspace', 2, 'Backspace'), K('Del', 1, 'Delete')], ...mid65];
+  const fRow = [K('Esc', 1, 'Escape', 'accent'), ...Array.from({ length: 12 }, (_, i) => K('F' + (i + 1), 1, 'F' + (i + 1), (i >= 4 && i < 8) ? 'mod' : 'alpha', 'center')), K('PrtSc', 1, 'PrintScreen'), K('Ins', 1, 'Insert'), K('Del', 1, 'Delete')];
+  return [fRow, [K('~\n`', 1, 'Backquote', 'alpha', 'dual'), ...numRow(), K('Backspace', 2, 'Backspace'), K('Home', 1, 'Home')], ...mid65];
+}
+const KEYCOUNT = Object.fromEntries(Object.keys(LAYOUTS).map(id => [id, rowsFor(id).flat().length]));
+
+/* =========================================================================
+   State, price, persistence
+   ========================================================================= */
+const state = { layout: '65', case: 'silver', set: 'sumi', profile: 'cherry', material: 'pbt', sw: 'tactile', exploded: false, view: 'hero', sound: true };
+const cfgOf = () => ({ layout: state.layout, case: state.case, set: state.set, profile: state.profile, material: state.material, sw: state.sw });
+function priceOf(c) {
+  return LAYOUTS[c.layout].price + byId(CASES, c.case).price + MATERIALS[c.material].price + PROFILES[c.profile].price + byId(SWITCHES, c.sw).price * KEYCOUNT[c.layout];
+}
+const titleOf = c => LAYOUTS[c.layout].name + ' ' + byId(SETS, c.set).name;
+function specsOf(c) {
+  const cs = byId(CASES, c.case), sw = byId(SWITCHES, c.sw);
+  return `${cs.name}${cs.note.replace(/ \+.*/, '')}外殼 · ${sw.name}${sw.type === sw.name ? '' : sw.type}軸 ${sw.force}g × ${KEYCOUNT[c.layout]} · ${PROFILES[c.profile].name} ${MATERIALS[c.material].name} 鍵帽`;
+}
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode: cart stays in memory */ } },
+};
+let cart = store.get('thockwork-cart', []);
+if (!Array.isArray(cart)) cart = [];
+
+/* =========================================================================
+   Renderer, studio, lights
+   ========================================================================= */
+const canvas = $('#stage');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) { fail(); throw e; }
+const coarse = matchMedia('(pointer: coarse)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, coarse ? 1.75 : 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMappingExposure = 1.02;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture;
+scene.environmentIntensity = .5;
+scene.background = new THREE.Color(SETS[0].stage);
+
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 5, 9000);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .075;
+controls.enablePan = false; controls.minDistance = 150; controls.maxDistance = 1250;
+controls.maxPolarAngle = 1.46; controls.minPolarAngle = .05;
+controls.rotateSpeed = .8;
+
+// infinity cove: a floor that curls up into a wall all around, so every angle is "in the studio"
+const covePts = [new THREE.Vector2(.01, 0), new THREE.Vector2(1600, 0)];
+for (let i = 1; i <= 16; i++) { const a = -Math.PI / 2 + i / 16 * Math.PI / 2; covePts.push(new THREE.Vector2(1600 + 700 * Math.cos(a), 700 + 700 * Math.sin(a))); }
+covePts.push(new THREE.Vector2(2300, 4000));
+const coveMat = new THREE.MeshStandardMaterial({ color: '#2a2622', roughness: .96, metalness: 0, side: THREE.DoubleSide });
+const cove = new THREE.Mesh(new THREE.LatheGeometry(covePts, 160), coveMat);
+cove.receiveShadow = true;
+scene.add(cove);
+
+const keyLight = new THREE.SpotLight('#fff3e2', 3.1, 0, .36, .9, 0);
+keyLight.position.set(-560, 980, 560);
+keyLight.target.position.set(10, 0, -30);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048);
+keyLight.shadow.camera.near = 700; keyLight.shadow.camera.far = 2100;
+keyLight.shadow.bias = -.00025; keyLight.shadow.normalBias = .35; keyLight.shadow.radius = 5;
+scene.add(keyLight, keyLight.target);
+const rimLight = new THREE.DirectionalLight('#e9ecee', .9);
+rimLight.position.set(460, 300, -640);
+scene.add(rimLight);
+const fill = new THREE.HemisphereLight('#fff8ee', '#1b1916', .22);
+scene.add(fill);
+
+// soft contact shadow painted once, scaled to the case
+const contactTex = (() => {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+  const x = c.getContext('2d');
+  x.shadowColor = 'rgba(0,0,0,1)'; x.shadowBlur = 26; x.shadowOffsetX = 400;
+  x.fillStyle = '#000'; x.beginPath(); x.roundRect(-400 + 34, 30, 188, 68, 18); x.fill();
+  const t = new THREE.CanvasTexture(c); return t;
+})();
+const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: '#000', alphaMap: contactTex, transparent: true, opacity: .62, depthWrite: false }));
+contact.rotation.x = -Math.PI / 2; contact.position.y = .3;
+scene.add(contact);
+
+/* =========================================================================
+   Materials
+   ========================================================================= */
+const M = {
+  case: new THREE.MeshPhysicalMaterial({ color: '#bdbcb7', metalness: .82, roughness: .44 }),
+  well: new THREE.MeshStandardMaterial({ color: '#131211', roughness: .95 }),
+  pcb: new THREE.MeshStandardMaterial({ color: '#1e2521', roughness: .45, metalness: .15 }),
+  plate: new THREE.MeshStandardMaterial({ color: '#a9a8a3', metalness: .9, roughness: .36 }),
+  hb: new THREE.MeshPhysicalMaterial({ color: '#2c2a27', roughness: .5 }),
+  ht: new THREE.MeshPhysicalMaterial({ color: '#5e574f', roughness: .12, transparent: true, opacity: .6, depthWrite: false }),
+  stem: new THREE.MeshStandardMaterial({ color: '#b9843d', roughness: .42 }),
+  spring: new THREE.MeshStandardMaterial({ color: '#c9a35b', metalness: 1, roughness: .28 }),
+  stab: new THREE.MeshStandardMaterial({ color: '#e8e5dd', roughness: .55 }),
+  wire: new THREE.MeshStandardMaterial({ color: '#d2cdc2', metalness: 1, roughness: .24 }),
+  port: new THREE.MeshStandardMaterial({ color: '#0c0c0b', roughness: .7 }),
+  caps: {},
+};
+for (const r of ['alpha', 'mod', 'accent']) M.caps[r] = new THREE.MeshPhysicalMaterial({ color: '#fff', roughness: .64, sheen: .35, sheenRoughness: .8, sheenColor: new THREE.Color('#ffffff'), side: THREE.DoubleSide });
+
+/* =========================================================================
+   Procedural geometry
+   ========================================================================= */
+// rounded rectangle sampled with a fixed vertex budget, so rings of any size can be stitched together
+function rrPoints(hx, hz, r, cz, K, NX, NZ) {
+  r = Math.max(.05, Math.min(r, hx - .02, hz - .02));
+  const cs = [[hx - r, hz - r], [-hx + r, hz - r], [-hx + r, -hz + r], [hx - r, -hz + r]];
+  const pts = [];
+  for (let c = 0; c < 4; c++) {
+    const [cx, cy] = cs[c];
+    for (let i = 0; i <= K; i++) { const a = (c + i / K) * Math.PI / 2; pts.push([cx + r * Math.cos(a), cz + cy + r * Math.sin(a)]); }
+    const n = c % 2 === 0 ? NX : NZ, [nx, ny] = cs[(c + 1) % 4], a = (c + 1) * Math.PI / 2;
+    const sx = cx + r * Math.cos(a), sy = cy + r * Math.sin(a), ex = nx + r * Math.cos(a), ey = ny + r * Math.sin(a);
+    for (let i = 1; i <= n; i++) { const t = i / (n + 1); pts.push([sx + (ex - sx) * t, cz + sy + (ey - sy) * t]); }
+  }
+  return pts;
+}
+// stitch concentric rings (each an array of [x,y,z]) into one smooth shell, closing on a centre point
+function loft(rings, center, uvFn) {
+  const M_ = rings[0].length, pos = [], uv = [], idx = [];
+  for (const ring of rings) for (const p of ring) { pos.push(p[0], p[1], p[2]); if (uvFn) uv.push(...uvFn(p)); }
+  if (center) { pos.push(...center); if (uvFn) uv.push(...uvFn(center)); }
+  for (let i = 0; i < rings.length - 1; i++) for (let j = 0; j < M_; j++) {
+    const a = i * M_ + j, b = i * M_ + (j + 1) % M_, c = (i + 1) * M_ + j, d = (i + 1) * M_ + (j + 1) % M_;
+    idx.push(a, d, b, a, c, d);
+  }
+  if (center) { const ci = rings.length * M_, base = (rings.length - 1) * M_; for (let j = 0; j < M_; j++) idx.push(base + j, ci, base + (j + 1) % M_); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  if (uvFn) g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+const capCache = new Map();
+function capGeometry(w, profId, rowCls) {
+  const key = profId + '|' + rowCls + '|' + w;
+  if (capCache.has(key)) return capCache.get(key);
+  const p = PROFILES[profId], [H, tiltDeg] = p.rows[rowCls], slope = Math.tan(tiltDeg * Math.PI / 180);
+  const hxB = (w * U - .9) / 2, hzB = (U - .9) / 2;
+  const hxT = hxB - p.ix, hzT = hzB - (p.iF + p.iB) / 2, czT = (p.iB - p.iF) / 2;
+  const bx = hxT - .6, bz = hzT - .6;
+  const K_ = 5, NX = Math.max(2, Math.round(w * 4)), NZ = 3;
+  const yTop = z => H - (z - czT) * slope;
+  const dish = (x, z) => {
+    const nx = x / bx, nz = (z - czT) / bz;
+    return p.dish === 'cyl' ? p.depth / Math.sqrt(w) * Math.max(0, 1 - nx * nx) : p.depth / Math.pow(w, .35) * Math.max(0, 1 - nx * nx - nz * nz);
+  };
+  const ring = (hx, hz, r, cz, yf) => rrPoints(hx, hz, r, cz, K_, NX, NZ).map(([x, z]) => [x, yf(x, z), z]);
+  const rings = [];
+  for (const t of [0, .3, .6, .86]) {
+    const b = Math.sin(Math.PI * t) * p.bulge;
+    rings.push(ring(hxB + (hxT - hxB) * t + b, hzB + (hzT - hzB) * t + b, p.rB + (p.rT - p.rB) * t, czT * t, (x, z) => t * yTop(z)));
+  }
+  rings.push(ring(hxT, hzT, p.rT, czT, (x, z) => yTop(z) - .3));
+  rings.push(ring(hxT - .28, hzT - .28, p.rT - .2, czT, (x, z) => yTop(z) - .03));
+  const top = [ring(bx, bz, p.rT - .6, czT, (x, z) => yTop(z) + .04 - dish(x, z))];
+  for (const s of [.8, .6, .4, .2]) top.push(ring(bx * s, bz * s, (p.rT - .6) * s, czT, (x, z) => yTop(z) + .04 - dish(x, z)));
+  const center = [0, yTop(czT) + .04 - dish(0, czT), czT];
+  const cap = loft([...rings, ...top], center);
+  const lift = r => r.map(([x, y, z]) => [x, y + .07, z]);
+  const legend = loft(top.map(lift), [center[0], center[1] + .07, center[2]], ([x, , z]) => [(x + bx) / (2 * bx), 1 - (z - czT + bz) / (2 * bz)]);
+  const out = { cap, legend };
+  capCache.set(key, out);
+  return out;
+}
+const G = (() => {
+  const hb = new RoundedBoxGeometry(13.8, 5.2, 13.8, 2, .7); hb.translate(0, P - 1.5 - 2.6, 0);
+  const ring3 = (h, r, y) => rrPoints(h, h, r, 0, 3, 1, 1).map(([x, z]) => [x, y, z]);
+  const ht = loft([ring3(7.7, .8, 0), ring3(7.45, .9, 2.4), ring3(5.9, 1.4, 5.6), ring3(5.6, 1.2, 5.9), ring3(3, .7, 5.9)], [0, 5.9, 0]);
+  ht.translate(0, P, 0);
+  const cross = new THREE.Shape();
+  [[-2.05, -.6], [-.6, -.6], [-.6, -2.05], [.6, -2.05], [.6, -.6], [2.05, -.6], [2.05, .6], [.6, .6], [.6, 2.05], [-.6, 2.05], [-.6, .6], [-2.05, .6]].forEach(([x, y], i) => i ? cross.lineTo(x, y) : cross.moveTo(x, y));
+  const cx = new THREE.ExtrudeGeometry(cross, { depth: 3.6, bevelEnabled: false }); cx.rotateX(-Math.PI / 2); cx.translate(0, P + 5.9, 0);
+  const base = new THREE.BoxGeometry(5.6, 3.8, 6.4); base.translate(0, P + 4.1, 0);
+  const stem = mergeGeometries([cx.index ? cx.toNonIndexed() : cx, base.toNonIndexed()]);
+  const helix = new (class extends THREE.Curve { getPoint(t, v = new THREE.Vector3()) { const a = t * Math.PI * 2 * 7; return v.set(2.7 * Math.cos(a), P - 4.6 + t * 7.6, 2.7 * Math.sin(a)); } })();
+  const spring = new THREE.TubeGeometry(helix, 220, .26, 5, false);
+  const stab = new RoundedBoxGeometry(6.6, 9, 11, 2, .6); stab.translate(0, P - 1.2, 0);
+  return { hb, ht, stem, spring, stab };
+})();
+function rrShape(w, h, r, cx = 0, cy = 0, path = new THREE.Shape()) {
+  const x = cx - w / 2, y = cy - h / 2;
+  path.moveTo(x + r, y); path.lineTo(x + w - r, y); path.quadraticCurveTo(x + w, y, x + w, y + r);
+  path.lineTo(x + w, y + h - r); path.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  path.lineTo(x + r, y + h); path.quadraticCurveTo(x, y + h, x, y + h - r);
+  path.lineTo(x, y + r); path.quadraticCurveTo(x, y, x + r, y);
+  return path;
+}
+function roundedPoly(pts, radii) {
+  const s = new THREE.Shape(), n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], r = radii[i];
+    const d1 = [p0[0] - p1[0], p0[1] - p1[1]], d2 = [p2[0] - p1[0], p2[1] - p1[1]];
+    const l1 = Math.hypot(...d1), l2 = Math.hypot(...d2);
+    const a = [p1[0] + d1[0] / l1 * r, p1[1] + d1[1] / l1 * r], b = [p1[0] + d2[0] / l2 * r, p1[1] + d2[1] / l2 * r];
+    i ? s.lineTo(...a) : s.moveTo(...a);
+    s.quadraticCurveTo(p1[0], p1[1], ...b);
+  }
+  s.closePath(); return s;
+}
+const stabOffsets = w => w >= 6 ? [-50, 50] : w >= 2 ? [-11.94, 11.94] : [];
+
+/* ---------- legends ---------- */
+const LEGEND_FONT = '"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif';
+function legendTexture(spec) {
+  const H = 120, W = Math.round((spec.w * U - 7) / (U - 7) * H);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.textBaseline = 'middle';
+  const pad = H * .16;
+  if (spec.lg === 'alpha') { x.font = `600 ${H * .34}px ${LEGEND_FONT}`; x.fillText(spec.l, pad, H * .31); }
+  else if (spec.lg === 'dual') { const [a, b] = spec.l.split('\n'); x.font = `600 ${H * .25}px ${LEGEND_FONT}`; x.fillText(a, pad, H * .27); x.fillText(b, pad, H * .63); }
+  else if (spec.lg === 'mod') { x.font = `600 ${H * .19}px ${LEGEND_FONT}`; x.fillText(spec.l, pad, H * .7); }
+  else if (spec.lg === 'glyph') { x.font = `600 ${H * .32}px ${LEGEND_FONT}`; x.textAlign = 'center'; x.fillText(spec.l, W / 2, H * .5); }
+  else if (spec.lg === 'center') { x.font = `600 ${H * .22}px ${LEGEND_FONT}`; x.textAlign = 'center'; x.fillText(spec.l, W / 2, H * .5); }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  return t;
+}
+
+/* =========================================================================
+   Keyboard assembly
+   ========================================================================= */
+let KB = null;
+const legendColor = (set, role) => role === 'alpha' ? set.la : role === 'mod' ? set.lm : set.lx;
+function buildKeyboard(id) {
+  const rows = rowsFor(id);
+  const fGap = id === '75' ? .25 * U : 0;
+  const rowCls = id === '75' ? [0, 0, 1, 2, 3, 4] : [0, 1, 2, 3, 4];
+  const layoutW = Math.max(...rows.map(r => r.reduce((s, k) => s + k.w, 0))) * U;
+  const layoutD = rows.length * U + fGap;
+  const keys = [];
+  let z = -layoutD / 2 + U / 2;
+  rows.forEach((row, ri) => {
+    let x = -layoutW / 2;
+    for (const spec of row) { keys.push({ spec, w: spec.w, x: x + spec.w * U / 2, z, row: rowCls[ri], role: spec.role, a: { p: 0, hop: 0, s: 1, tilt: 0 }, lastP: -1, down: false }); x += spec.w * U; }
+    z += U + (ri === 0 ? fGap : 0);
+  });
+  const bez = 12, caseW = layoutW + 2 * bez + 4, caseD = layoutD + 2 * bez + 4;
+  const hf = 11, hb = hf + caseD * Math.tan(TILT), hc = (hf + hb) / 2, deckD = caseD / Math.cos(TILT);
+
+  const root = new THREE.Group();
+  // wedge body: side profile extruded along the width
+  const wedgeShape = roundedPoly([[caseD / 2 - 2, 2], [-caseD / 2 + 2, 2], [-caseD / 2 + 2, hb - 2], [caseD / 2 - 2, hf - 2]], [2, 2, 4, 4]);
+  const wg = new THREE.ExtrudeGeometry(wedgeShape, { depth: caseW - 4, bevelEnabled: true, bevelThickness: 2, bevelSize: 2, bevelSegments: 4, curveSegments: 6 });
+  wg.rotateY(-Math.PI / 2); wg.translate((caseW - 4) / 2, 0, 0);
+  const wedge = new THREE.Mesh(wg, M.case); wedge.castShadow = wedge.receiveShadow = true;
+  root.add(wedge);
+  const port = new THREE.Mesh(new RoundedBoxGeometry(9.2, 3.4, 1.2, 2, 1.2), M.port);
+  port.position.set(-layoutW / 2 + 38, hb - 7.5, -caseD / 2 + .2); root.add(port);
+
+  const deck = new THREE.Group(); deck.position.y = hc; deck.rotation.x = TILT; root.add(deck);
+  const bt = 1.2, rimTop = P + 5.4;
+  const rimShape = rrShape(caseW - 2 * bt, deckD - 2 * bt, 7);
+  rimShape.holes.push(rrShape(layoutW + 4 + 2 * bt, layoutD + 4 + 2 * bt, 2.6, 0, 0, new THREE.Path()));
+  const rg = new THREE.ExtrudeGeometry(rimShape, { depth: rimTop - 2 * bt, bevelEnabled: true, bevelThickness: bt, bevelSize: bt, bevelSegments: 3, curveSegments: 10 });
+  rg.rotateX(-Math.PI / 2); rg.translate(0, bt, 0);
+  const rim = new THREE.Mesh(rg, M.case); rim.castShadow = rim.receiveShadow = true; deck.add(rim);
+  const well = new THREE.Mesh(new THREE.PlaneGeometry(layoutW + 4.5, layoutD + 4.5), M.well);
+  well.rotation.x = -Math.PI / 2; well.position.y = .4; deck.add(well);
+
+  const pcb = new THREE.Mesh(new THREE.BoxGeometry(layoutW + 2, 1.6, layoutD + 2), M.pcb);
+  pcb.position.y = P - 6.3; pcb.receiveShadow = true;
+  const pcbGroup = new THREE.Group(); pcbGroup.add(pcb); deck.add(pcbGroup);
+
+  const plateGroup = new THREE.Group(); deck.add(plateGroup);
+  const plateShape = rrShape(layoutW + 3, layoutD + 3, 1.5);
+  const stabKeys = keys.filter(k => k.w >= 2);
+  for (const k of keys) plateShape.holes.push(rrShape(14, 14, .5, k.x, -k.z, new THREE.Path()));
+  for (const k of stabKeys) for (const o of stabOffsets(k.w)) plateShape.holes.push(rrShape(7, 12.2, .5, k.x + o, -k.z, new THREE.Path()));
+  const pg = new THREE.ExtrudeGeometry(plateShape, { depth: 1.5, bevelEnabled: false, curveSegments: 2 });
+  pg.rotateX(-Math.PI / 2); pg.translate(0, P - 1.5, 0);
+  const plate = new THREE.Mesh(pg, M.plate); plate.receiveShadow = true; plate.castShadow = true; plateGroup.add(plate);
+
+  const n = keys.length, m4 = new THREE.Matrix4();
+  const inst = {};
+  for (const part of ['hb', 'ht', 'stem', 'spring']) {
+    const im = new THREE.InstancedMesh(G[part], part === 'hb' ? M.hb : part === 'ht' ? M.ht : M[part], n);
+    keys.forEach((k, i) => im.setMatrixAt(i, m4.makeTranslation(k.x, 0, k.z)));
+    im.instanceMatrix.setUsage(part === 'stem' ? THREE.DynamicDrawUsage : THREE.StaticDrawUsage);
+    if (part === 'ht') im.renderOrder = 2;
+    inst[part] = im; plateGroup.add(im);
+  }
+  if (stabKeys.length) {
+    const sm = new THREE.InstancedMesh(G.stab, M.stab, stabKeys.length * 2);
+    let j = 0;
+    for (const k of stabKeys) for (const o of stabOffsets(k.w)) sm.setMatrixAt(j++, m4.makeTranslation(k.x + o, 0, k.z));
+    plateGroup.add(sm);
+    for (const k of stabKeys) {
+      const o = stabOffsets(k.w)[1];
+      const path = new THREE.CatmullRomCurve3([[-o, P - 3.2, k.z + 2], [-o, P - 3.6, k.z + 6.4], [0, P - 3.6, k.z + 6.6], [o, P - 3.6, k.z + 6.4], [o, P - 3.2, k.z + 2]].map(v => new THREE.Vector3(...v)), false, 'catmullrom', .1);
+      const wire = new THREE.Mesh(new THREE.TubeGeometry(path, 40, .55, 6), M.wire);
+      wire.position.x = k.x; plateGroup.add(wire);
+    }
+  }
+
+  const capsGroup = new THREE.Group(); deck.add(capsGroup);
+  const set = byId(SETS, state.set);
+  for (const k of keys) {
+    const geo = capGeometry(k.w, state.profile, k.row);
+    const g = new THREE.Group(); g.position.set(k.x, CAP_BASE, k.z);
+    const cap = new THREE.Mesh(geo.cap, M.caps[k.role]); cap.castShadow = cap.receiveShadow = true;
+    cap.userData.key = k; g.add(cap);
+    k.g = g; k.cap = cap;
+    if (k.spec.lg !== 'none') {
+      const lm = new THREE.MeshStandardMaterial({ map: legendTexture(k.spec), color: legendColor(set, k.role), transparent: true, roughness: .6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+      const leg = new THREE.Mesh(geo.legend, lm); leg.renderOrder = 1; g.add(leg); k.leg = leg;
+    }
+    capsGroup.add(g);
+  }
+  const codeMap = new Map();
+  for (const k of keys) for (const c of k.spec.codes) if (!codeMap.has(c)) codeMap.set(c, k);
+
+  contact.scale.set(caseW * 1.32, caseD * 1.75, 1);
+  scene.add(root);
+  return { id, root, deck, wedge, rim, capsGroup, plateGroup, pcbGroup, inst, keys, codeMap, caps: keys.map(k => k.cap), caseW, caseD, layoutW, layoutD, hb };
+}
+function disposeKeyboard(kb) {
+  scene.remove(kb.root);
+  kb.root.traverse(o => {
+    if (o.geometry && !o.geometry.userData.keep) {
+      const cached = [...capCache.values()].some(c => c.cap === o.geometry || c.legend === o.geometry) || Object.values(G).includes(o.geometry);
+      if (!cached) o.geometry.dispose();
+    }
+    if (o.isInstancedMesh) o.dispose();
+  });
+  for (const k of kb.keys) if (k.leg) { k.leg.material.map.dispose(); k.leg.material.dispose(); }
+}
+
+/* ---------- apply looks ---------- */
+const col = h => new THREE.Color(h);
+function tweenColor(target, hex, dur, delay = 0) { const c = col(hex); return gsap.to(target, { r: c.r, g: c.g, b: c.b, duration: T(dur), delay: T(delay), ease: 'power2.inOut' }); }
+function mixHex(a, b, t) { return '#' + col(a).lerp(col(b), t).getHexString(); }
+function applySet(dur = 0, delay = 0) {
+  const s = byId(SETS, state.set);
+  tweenColor(M.caps.alpha.color, s.alpha, dur, delay);
+  tweenColor(M.caps.mod.color, s.mod, dur, delay);
+  tweenColor(M.caps.accent.color, s.accent, dur, delay);
+  if (KB) for (const k of KB.keys) if (k.leg) tweenColor(k.leg.material.color, legendColor(s, k.role), dur, delay);
+  tweenColor(scene.background, s.stage, dur * 1.3);
+  tweenColor(coveMat.color, mixHex(s.stage, '#ffffff', .07), dur * 1.3);
+  tweenColor(fill.groundColor, s.stage, dur);
+  const root = document.documentElement;
+  gsap.to(root, {
+    '--stage': s.stage, '--surface': mixHex(s.stage, '#ffffff', .075), '--surface-2': mixHex(s.stage, '#ffffff', .14),
+    '--cap-top': s.id === 'night' ? '#3a3835' : s.alpha, '--cap-base': mixHex(s.id === 'night' ? '#3a3835' : s.alpha, '#000000', .3),
+    '--cap-legend': s.id === 'night' ? '#d8cfbf' : s.la,
+    duration: T(dur * 1.3), ease: 'power2.inOut',
+  });
+  document.querySelector('meta[name=theme-color]').setAttribute('content', s.stage);
+}
+function applyMaterial(dur = 0) {
+  const m = MATERIALS[state.material];
+  for (const mat of Object.values(M.caps)) gsap.to(mat, { roughness: m.rough, clearcoat: m.clear, sheen: m.sheen, duration: T(dur), ease: 'power2.inOut' });
+}
+function applyCase(dur = 0) {
+  const c = byId(CASES, state.case);
+  tweenColor(M.case.color, c.color, dur);
+  gsap.to(M.case, { metalness: c.metal, roughness: c.rough, duration: T(dur), ease: 'power2.inOut' });
+}
+function applySwitch(dur = 0) {
+  const s = byId(SWITCHES, state.sw);
+  tweenColor(M.stem.color, s.stem, dur);
+  tweenColor(M.ht.color, s.top, dur);
+  tweenColor(M.hb.color, s.bottom, dur);
+  gsap.to(M.ht, { opacity: s.topO, duration: T(dur) });
+  M.ht.depthWrite = s.topO >= 1;
+}
+
+/* =========================================================================
+   Camera framing
+   ========================================================================= */
+const VIEWS = {
+  hero:    { dir: [-.46, .6, .66],  ty: 22, k: 1 },
+  top:     { dir: [0, 1, .16],       ty: 8,  k: 1 },
+  side:    { dir: [-1, .17, .1],     ty: 18, k: 1, side: true },
+  explode: { dir: [-.52, .66, .58], ty: 46, k: .96 },
+};
+const ui = { dockH: 300, barH: 76, shift: { y: 0 } };
+function freeFrac() { return Math.max(.3, (innerHeight - ui.barH - ui.dockH - 24) / innerHeight); }
+function fitPose(name, wf = 1, hf = freeFrac(), aspect = innerWidth / innerHeight) {
+  const v = VIEWS[name], dir = new THREE.Vector3(...v.dir).normalize();
+  const tV = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2), tH = tV * aspect;
+  const Rh = v.side ? KB.caseD * .5 + 34 : KB.caseW * .5 + 12;
+  const Rv = v.side ? 60 : name === 'top' ? KB.caseD * .5 + 16 : name === 'explode' ? KB.caseW * .36 : KB.caseW * .3;
+  const framing = innerWidth <= 760
+    ? (name === 'hero' || name === 'explode' ? 1.35 : 1.1)
+    : (name === 'hero' || name === 'explode' ? 1.15 : 1.05);
+  const d = Math.max(Rh / (tH * wf), Rv / (tV * hf)) * v.k * framing;
+  const target = new THREE.Vector3(v.side ? -KB.caseW * .18 : 0, v.ty, 0);
+  return { target, pos: target.clone().addScaledVector(dir, d) };
+}
+function goView(name, dur = 1.15) {
+  state.view = name;
+  const { pos, target } = fitPose(name);
+  gsap.killTweensOf(camera.position); gsap.killTweensOf(controls.target);
+  gsap.to(camera.position, { x: pos.x, y: pos.y, z: pos.z, duration: T(dur), ease: 'power3.inOut' });
+  gsap.to(controls.target, { x: target.x, y: target.y, z: target.z, duration: T(dur), ease: 'power3.inOut' });
+  syncViewButtons();
+}
+function applyViewOffset() {
+  camera.setViewOffset(innerWidth, innerHeight, 0, ui.shift.y, innerWidth, innerHeight);
+  camera.updateProjectionMatrix();
+}
+function measureUI(animate) {
+  ui.barH = $('.bar').offsetHeight;
+  ui.dockH = $('#dock').offsetHeight + 16;
+  const target = (ui.dockH - ui.barH) / 2 + (innerWidth > 760 ? 32 : 0);
+  gsap.to(ui.shift, { y: target, duration: T(animate ? .6 : 0), ease: 'power3.inOut', onUpdate: applyViewOffset });
+}
+
+/* =========================================================================
+   Sound: per-switch synthesis
+   ========================================================================= */
+let ac = null, master = null, noise = null;
+function audio() {
+  if (!ac) {
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      master = ac.createGain(); master.gain.value = .75;
+      const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14;
+      master.connect(comp); comp.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate * .4, ac.sampleRate);
+      const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    } catch (e) { ac = null; }
+  }
+  if (ac && ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function burst(t, { f, q = 1, type = 'bandpass', dur = .04, gain = .4 }) {
+  const s = ac.createBufferSource(); s.buffer = noise;
+  const fl = ac.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+  const g = ac.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  s.connect(fl); fl.connect(g); g.connect(master);
+  s.start(t, Math.random() * .3); s.stop(t + dur + .02);
+}
+function tone(t, { f0, f1 = f0, dur = .05, gain = .3, type = 'sine' }) {
+  const o = ac.createOscillator(); o.type = type;
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  const g = ac.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .02);
+}
+function keySound(up, w) {
+  if (!state.sound || !audio()) return;
+  const t = ac.currentTime + .003, v = .92 + Math.random() * .16, wide = w >= 2 ? .78 : 1;
+  switch (state.sw) {
+    case 'linear':
+      if (!up) { burst(t, { f: 1150 * v * wide, q: .9, dur: .05, gain: .55 }); tone(t, { f0: 190 * v * wide, f1: 92, dur: .07, gain: .34 }); }
+      else burst(t, { f: 2300 * v, q: 1.2, dur: .025, gain: .12 });
+      break;
+    case 'tactile':
+      if (!up) { burst(t, { f: 3200 * v, q: 2, dur: .012, gain: .16 }); burst(t + .026, { f: 1300 * v * wide, q: .9, dur: .05, gain: .5 }); tone(t + .026, { f0: 210 * v * wide, f1: 105, dur: .06, gain: .28 }); }
+      else burst(t, { f: 2600 * v, q: 1.2, dur: .025, gain: .15 });
+      break;
+    case 'clicky':
+      tone(t, { f0: 4300 * v, f1: 3600, dur: .012, gain: up ? .09 : .14, type: 'square' });
+      burst(t, { f: 3600 * v, type: 'highpass', q: .7, dur: .016, gain: up ? .28 : .42 });
+      if (!up) { burst(t + .024, { f: 1600 * v * wide, q: .9, dur: .04, gain: .3 }); tone(t + .024, { f0: 230 * v, f1: 120, dur: .05, gain: .18 }); }
+      break;
+    case 'silent':
+      if (!up) { burst(t, { f: 620 * v * wide, type: 'lowpass', q: .6, dur: .05, gain: .34 }); tone(t, { f0: 150 * v, f1: 82, dur: .06, gain: .2 }); }
+      else burst(t, { f: 900, type: 'lowpass', dur: .02, gain: .05 });
+      break;
+  }
+}
+
+/* =========================================================================
+   Pressing keys
+   ========================================================================= */
+let lastInput = performance.now();
+const markInput = () => { lastInput = performance.now(); ghost.stop(); };
+function press(k, { sound = true, hold = false } = {}) {
+  if (!k || k.down) return;
+  k.down = true;
+  gsap.killTweensOf(k.a, 'p');
+  const bump = state.sw === 'tactile' || state.sw === 'clicky';
+  const tl = gsap.timeline();
+  if (bump) tl.to(k.a, { p: .32, duration: .026, ease: 'power1.in' }).to(k.a, { p: 1, duration: .034, ease: 'power3.in' });
+  else tl.to(k.a, { p: 1, duration: state.sw === 'silent' ? .07 : .055, ease: 'power2.in' });
+  if (sound) keySound(false, k.w);
+  if (!hold) gsap.delayedCall(.11, () => release(k, sound));
+}
+function release(k, sound = true) {
+  if (!k || !k.down) return;
+  k.down = false;
+  gsap.to(k.a, { p: 0, duration: state.sw === 'silent' ? .16 : .12, ease: 'power2.out', overwrite: 'auto' });
+  if (sound) keySound(true, k.w);
+}
+const ghost = {
+  busy: false, calls: [],
+  run() {
+    if (!KB) return;
+    this.busy = true;
+    const word = 'thockwork'.split('').map(c => KB.codeMap.get('Key' + c.toUpperCase()));
+    word.forEach((k, i) => this.calls.push(gsap.delayedCall(i * .17 + Math.random() * .04, () => press(k, { sound: false }))));
+    this.calls.push(gsap.delayedCall(word.length * .17 + .3, () => { this.busy = false; lastInput = performance.now(); }));
+  },
+  stop() { this.calls.forEach(c => c.kill()); this.calls = []; this.busy = false; },
+};
+
+/* =========================================================================
+   Transitions between configurations
+   ========================================================================= */
+let busy = false;
+function waveDelay(k) { return ((k.x + KB.layoutW / 2) / KB.layoutW) * .5 + ((k.z + KB.layoutD / 2) / KB.layoutD) * .18; }
+function dropIn(delay = .25) {
+  for (const k of KB.keys) {
+    k.a.hop = 70;
+    gsap.to(k.a, { hop: 0, duration: T(.85), delay: T(delay + waveDelay(k) * 1.1 + Math.random() * .05), ease: 'bounce.out' });
+  }
+}
+function ripple(amp = 4.5) {
+  if (reduceMotion) return;
+  for (const k of KB.keys) gsap.to(k.a, { hop: amp, tilt: -.05, duration: .17, delay: waveDelay(k), ease: 'sine.out', yoyo: true, repeat: 1 });
+}
+function setProfile(id) {
+  if (id === state.profile) return;
+  state.profile = id;
+  if (state.view !== 'side' && !state.exploded) goView('side');
+  for (const k of KB.keys) {
+    const geo = capGeometry(k.w, id, k.row);
+    const swap = () => { k.cap.geometry = geo.cap; if (k.leg) k.leg.geometry = geo.legend; };
+    if (reduceMotion) { swap(); continue; }
+    gsap.timeline({ delay: waveDelay(k) * .9 + .15 })
+      .to(k.a, { hop: 10, duration: .16, ease: 'power2.out' })
+      .add(swap)
+      .to(k.a, { hop: 0, duration: .45, ease: 'bounce.out' });
+  }
+}
+function setLayout(id) {
+  if (id === state.layout || busy) return;
+  busy = true; state.layout = id;
+  const old = KB;
+  const finish = () => {
+    const oldW = old.caseW, oldD = old.caseD;
+    disposeKeyboard(old);
+    KB = buildKeyboard(id);
+    applySet(0);
+    if (state.exploded) setExplode(true, 0);
+    gsap.from([KB.wedge.scale, KB.rim.scale], { x: oldW / KB.caseW, z: oldD / KB.caseD, duration: T(.7), ease: 'power3.out' });
+    dropIn(.1);
+    goView(state.exploded ? 'explode' : state.view && state.view !== 'side' ? state.view : 'hero', .9);
+    busy = false;
+    renderAll();
+  };
+  if (reduceMotion) return finish();
+  gsap.to(old.keys.map(k => k.a), { hop: 55, s: .001, duration: .32, ease: 'power2.in', stagger: { each: .0035, from: 'end' }, onComplete: finish });
+}
+function setExplode(on, dur = 1) {
+  state.exploded = on;
+  const e = T(dur);
+  gsap.to(KB.capsGroup.position, { y: on ? 44 : 0, duration: e, ease: 'power3.inOut' });
+  gsap.to(KB.plateGroup.position, { y: on ? 20 : 0, duration: e, delay: on ? .05 : 0, ease: 'power3.inOut' });
+  gsap.to(KB.pcbGroup.position, { y: on ? 6 : 0, duration: e, delay: on ? .1 : 0, ease: 'power3.inOut' });
+  $('#explode').setAttribute('aria-pressed', on);
+}
+
+/* =========================================================================
+   UI: options, rail, price
+   ========================================================================= */
+const SEGMENTS = [
+  { id: 'case', label: '外殼', value: () => byId(CASES, state.case).name + ' · ' + byId(CASES, state.case).note.replace(/ \+.*/, '') },
+  { id: 'set', label: '鍵帽配色', value: () => byId(SETS, state.set).name },
+  { id: 'profile', label: '鍵帽高度', value: () => PROFILES[state.profile].name },
+  { id: 'material', label: '鍵帽材質', value: () => MATERIALS[state.material].name + ' ' + MATERIALS[state.material].note.split(' · ')[0] },
+  { id: 'sw', label: '軸體', value: () => byId(SWITCHES, state.sw).name + ' ' + byId(SWITCHES, state.sw).force + 'g' },
+];
+let openSeg = coarse || innerWidth < 761 ? null : 'set';
+const delta = n => n ? '+' + fmt(n) : '已含';
+const svg = (vb, body) => `<svg viewBox="${vb}" aria-hidden="true" preserveAspectRatio="xMinYMid meet">${body}</svg>`;
+function caseSwatch(c) {
+  const hi = mixHex(c.color, '#ffffff', c.metal > .5 ? .38 : .22), lo = mixHex(c.color, '#000000', .35);
+  return svg('0 0 110 44', `<defs><linearGradient id="cg-${c.id}" x2="0" y2="1"><stop offset="0" stop-color="${hi}"/><stop offset=".45" stop-color="${c.color}"/><stop offset="1" stop-color="${lo}"/></linearGradient></defs>
+    <path d="M4 34 7 13Q7.6 9 12 9h86q4.4 0 5 4l3 21q.4 3-3 3H7q-3.4 0-3-3Z" fill="url(#cg-${c.id})"/>
+    <rect x="14" y="14" width="82" height="9" rx="2.5" fill="${mixHex(c.color, '#000000', .55)}"/>
+    <path d="M9 11.5h92" stroke="${mixHex(c.color, '#ffffff', .6)}" stroke-opacity=".6" stroke-width="1" stroke-linecap="round"/>`);
+}
+function setSwatch(s) {
+  const cap = (x, fill, leg, t) => `<rect x="${x}" y="8" width="30" height="30" rx="5" fill="${mixHex(fill, '#000000', .3)}"/><rect x="${x + 4}" y="9.5" width="22" height="21" rx="4" fill="${fill}"/><text x="${x + 9}" y="${t.length > 1 ? 17.5 : 18.5}" fill="${leg}" font-size="${t.length > 1 ? 6.5 : 8.5}" font-weight="600" font-family='${LEGEND_FONT}'>${t}</text>`;
+  return svg('0 0 110 44', cap(0, s.alpha, s.la, 'A') + cap(34, s.mod, s.lm, 'Fn') + cap(68, s.accent, s.lx, 'Esc'));
+}
+function profileSwatch(p) {
+  let body = '';
+  p.rows.forEach(([h, t], i) => {
+    const s = 1.05, x0 = 4 + i * 21, zB = 9.05, zT0 = -zB + p.iB, zT1 = zB - p.iF, czT = (p.iB - p.iF) / 2, sl = Math.tan(t * Math.PI / 180);
+    const Y = z => 40 - (h - (z - czT) * sl) * s, X = z => x0 + (z + zB) * s;
+    body += `<path d="M${X(-zB)} 40 L${X(zT0)} ${Y(zT0)} L${X(zT1)} ${Y(zT1)} L${X(zB)} 40Z" fill="currentColor" stroke="currentColor" stroke-width="${p.rT * .7}" stroke-linejoin="round"/>`;
+  });
+  return svg('0 0 110 44', `<g opacity=".92">${body}</g>`);
+}
+function materialSwatch(id) {
+  const s = byId(SETS, state.set), base = s.alpha;
+  const gloss = id === 'abs'
+    ? `<path d="M40 11 58 11 38 33 22 33Z" fill="#fff" opacity=".32"/><path d="M62 11h6L50 33h-5Z" fill="#fff" opacity=".22"/>`
+    : `<rect x="20" y="10" width="70" height="24" rx="5" fill="url(#grain)" opacity=".5"/>`;
+  return svg('0 0 110 44', `<defs><filter id="gr"><feTurbulence baseFrequency=".9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .35 0"/></filter><pattern id="grain" width="70" height="24" patternUnits="userSpaceOnUse"><rect width="70" height="24" filter="url(#gr)"/></pattern></defs>
+    <rect x="14" y="6" width="82" height="36" rx="7" fill="${mixHex(base, '#000000', .3)}"/><rect x="20" y="8" width="70" height="27" rx="5.5" fill="${base}"/>${gloss}`);
+}
+function switchSwatch(s) {
+  const X = t => 30 + t / 4 * 76, Y = f => 40 - f / 90 * 34;
+  const d = s.curve.map(([t, f], i) => (i ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(f).toFixed(1)).join(' ');
+  return svg('0 0 110 44', `<g fill="${s.stem}"><rect x="4" y="15.5" width="18" height="5" rx="1.6"/><rect x="10.5" y="9" width="5" height="18" rx="1.6"/></g>
+    <rect x="3" y="30" width="20" height="10" rx="2.5" fill="${s.bottom}" opacity=".9"/>
+    <path d="M30 40H106" stroke="currentColor" stroke-opacity=".25" stroke-width="1" stroke-linecap="round"/>
+    <path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`);
+}
+function optionsFor(seg) {
+  const c = cfgOf();
+  if (seg === 'case') return CASES.map(o => ({ v: o.id, on: o.id === c.case, art: caseSwatch(o), name: o.name, sub: o.note.replace(/ \+.*/, '') + ' · ' + delta(o.price) }));
+  if (seg === 'set') return SETS.map(o => ({ v: o.id, on: o.id === c.set, art: setSwatch(o), name: o.name, sub: o.note }));
+  if (seg === 'profile') return Object.entries(PROFILES).map(([id, o]) => ({ v: id, on: id === c.profile, art: profileSwatch(o), name: o.name, sub: o.note + ' · ' + delta(o.price) }));
+  if (seg === 'material') return Object.entries(MATERIALS).map(([id, o]) => ({ v: id, on: id === c.material, art: materialSwatch(id), name: o.name, sub: o.note + ' · ' + fmt(o.price) }));
+  return SWITCHES.map(o => ({ v: o.id, on: o.id === c.sw, art: switchSwatch(o), name: o.name + '軸', sub: `${o.type} ${o.force}g · ${fmt(o.price)}/顆` }));
+}
+function renderTray() {
+  const inner = $('#trayInner');
+  if (!openSeg) { inner.innerHTML = ''; return; }
+  inner.setAttribute('aria-label', SEGMENTS.find(s => s.id === openSeg).label);
+  inner.innerHTML = optionsFor(openSeg).map(o => `<button class="opt" data-seg="${openSeg}" data-v="${o.v}" aria-pressed="${o.on}">${o.art}<b>${o.name}</b><small>${o.sub}</small></button>`).join('');
+}
+function renderSegs() {
+  $('#segs').innerHTML = SEGMENTS.map(s => `<button class="seg" data-seg="${s.id}" aria-expanded="${openSeg === s.id}" aria-controls="tray"><small>${s.label}</small><b>${s.value()}</b></button>`).join('');
+}
+function renderLines() {
+  $('#lines').innerHTML = Object.keys(LAYOUTS).map(id => `<button data-layout="${id}" aria-pressed="${state.layout === id}" aria-label="${LAYOUTS[id].name}，${KEYCOUNT[id]} 鍵"><b>${id}<i>%</i></b><small>${KEYCOUNT[id]} 鍵</small></button>`).join('');
+}
+const priceShown = { v: 0 };
+function renderPrice() {
+  const p = priceOf(cfgOf());
+  gsap.to(priceShown, { v: p, duration: T(.55), ease: 'power2.out', onUpdate: () => { $('#total').textContent = fmt(priceShown.v); $('#addPrice').textContent = fmt(priceShown.v); } });
+}
+function renderHeadline() {
+  const c = cfgOf();
+  $('#title').innerHTML = `${LAYOUTS[c.layout].name}<span>${byId(SETS, c.set).name}</span>`;
+  $('#specs').textContent = specsOf(c);
+}
+function renderAll() { renderLines(); renderSegs(); renderTray(); renderPrice(); renderHeadline(); }
+function syncViewButtons() {
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', !state.exploded && b.dataset.view === state.view));
+}
+function toggleSeg(id) {
+  const tray = $('#tray');
+  const was = openSeg;
+  openSeg = was === id ? null : id;
+  const before = tray.offsetHeight;
+  renderSegs(); renderTray();
+  const after = tray.offsetHeight;
+  if (!reduceMotion && before !== after) gsap.fromTo(tray, { height: before }, { height: after, duration: .38, ease: 'power3.out', clearProps: 'height', onComplete: () => measureUI(true) });
+  measureUI(true);
+}
+
+function choose(seg, v) {
+  markInput();
+  if (seg === 'case') { state.case = v; applyCase(.7); ripple(2.5); }
+  else if (seg === 'set') { state.set = v; ripple(); applySet(.85, .12); }
+  else if (seg === 'profile') setProfile(v);
+  else if (seg === 'material') { state.material = v; applyMaterial(.6); ripple(3); }
+  else if (seg === 'sw') {
+    state.sw = v; applySwitch(.6);
+    if (!state.exploded) { setExplode(true); goView('explode'); }
+    ['KeyA', 'KeyS', 'KeyD'].forEach((c, i) => gsap.delayedCall(.9 + i * .2, () => press(KB.codeMap.get(c))));
+  }
+  renderSegs(); renderTray(); renderPrice(); renderHeadline();
+  $('#live').textContent = specsOf(cfgOf());
+}
+
+/* =========================================================================
+   Cart and checkout
+   ========================================================================= */
+let step = 'cart';
+const ship = { name: '', email: '', phone: '', method: 'home', addr: '', note: '' };
+const SHIPPING = { home: { name: '宅配到府', fee: 120, eta: '2–3 天送達' }, store: { name: '超商取貨', fee: 60, eta: '3–4 天到店' } };
+const cartCount = () => cart.reduce((s, i) => s + i.qty, 0);
+const subtotal = () => cart.reduce((s, i) => s + i.unit * i.qty, 0);
+function saveCart() { store.set('thockwork-cart', cart); $('#count').firstElementChild.textContent = cartCount(); }
+
+function snapshot() {
+  const w = innerWidth, h = innerHeight, dpr = renderer.getPixelRatio();
+  let cw = Math.min(w, h * 1.6) * .9, ch = cw / 1.6;
+  const savedPos = camera.position.clone(), savedTarget = controls.target.clone();
+  camera.clearViewOffset();
+  const { pos, target } = fitPose(state.exploded ? 'explode' : 'hero', cw / w, ch / h);
+  camera.position.copy(pos); camera.lookAt(target); camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+  const c = document.createElement('canvas'); c.width = 400; c.height = 250;
+  c.getContext('2d').drawImage(renderer.domElement, (w - cw) / 2 * dpr, (h - ch) / 2 * dpr, cw * dpr, ch * dpr, 0, 0, 400, 250);
+  camera.position.copy(savedPos); camera.lookAt(savedTarget); applyViewOffset();
+  return c.toDataURL('image/jpeg', .84);
+}
+function addToCart() {
+  markInput();
+  const cfg = cfgOf(), key = JSON.stringify(cfg);
+  const thumb = snapshot();
+  const found = cart.find(i => i.key === key);
+  if (found) found.qty++;
+  else cart.push({ key, cfg, qty: 1, unit: priceOf(cfg), thumb, title: titleOf(cfg), spec: specsOf(cfg) });
+  saveCart();
+  press(KB.codeMap.get('Space'));
+  // the snapshot flies from the spacebar into the counter
+  const from = $('#add').getBoundingClientRect(), to = $('#count').getBoundingClientRect();
+  const img = new Image(); img.src = thumb; img.className = 'flyer'; img.alt = '';
+  const iw = Math.min(200, from.width * .8), ih = iw / 1.6;
+  Object.assign(img.style, { left: from.left + from.width / 2 - iw / 2 + 'px', top: from.top - ih - 10 + 'px', width: iw + 'px', height: ih + 'px' });
+  document.body.appendChild(img);
+  const kc = $('#count');
+  gsap.timeline({ onComplete: () => img.remove() })
+    .to(img, { duration: T(.7), ease: 'power3.in', x: to.left + to.width / 2 - (from.left + from.width / 2), y: to.top + to.height / 2 - (from.top - ih / 2 - 10), scale: .12, borderRadius: 40 })
+    .add(() => { kc.classList.add('bump'); gsap.delayedCall(.12, () => kc.classList.remove('bump')); })
+    .to(img, { opacity: 0, duration: .12 });
+  $('#live').textContent = `已加入購物車：${titleOf(cfg)}，共 ${cartCount()} 件`;
+}
+
+function renderCart() {
+  $('#steps').hidden = step === 'done';
+  document.querySelectorAll('#steps span').forEach(s => {
+    if (s.dataset.s === step) s.setAttribute('aria-current', 'step');
+    else s.removeAttribute('aria-current');
+  });
+  const body = $('#dBody'), foot = $('#dFoot');
+  const fee = cart.length ? SHIPPING[ship.method].fee : 0;
+  const sumBlock = (withShip) => `<dl class="sum"><dt>小計</dt><dd class="num">${fmt(subtotal())}</dd>${withShip ? `<dt>運費（${SHIPPING[ship.method].name}）</dt><dd class="num">${fmt(fee)}</dd>` : ''}<dt class="grand">合計</dt><dd class="grand num">${fmt(subtotal() + (withShip ? fee : 0))}</dd></dl>`;
+  if (step === 'cart') {
+    $('#dTitle').textContent = '購物車';
+    if (!cart.length) {
+      body.innerHTML = `<div class="empty"><p>購物車是空的</p><span>回到工作台選好外殼、配色與軸體，按下空白鍵就會放進來。</span></div>`;
+      foot.innerHTML = `<button class="space" data-act="close"><span>繼續配置</span></button>`;
+      return;
+    }
+    body.innerHTML = cart.map((it, i) => `<div class="item"><img src="${it.thumb}" alt="${it.title} 預覽"><div><h3>${it.title}</h3><p>${it.spec}</p>
+      <div class="row"><div class="qty"><button class="kc" data-act="dec" data-i="${i}" aria-label="減少一件"><span>−</span></button><output class="num" aria-live="polite">${it.qty}</output><button class="kc" data-act="inc" data-i="${i}" aria-label="增加一件"><span>+</span></button><button class="link" data-act="rm" data-i="${i}">移除</button></div>
+      <span class="line-price num">${fmt(it.unit * it.qty)}</span></div></div></div>`).join('');
+    foot.innerHTML = sumBlock(false) + `<button class="space" data-act="to-ship"><span>填寫收件資訊</span></button>`;
+  } else if (step === 'ship') {
+    $('#dTitle').textContent = '收件資訊';
+    const f = (id, label, type = 'text', extra = '') => `<div class="field"><label for="f-${id}">${label}</label><input id="f-${id}" name="${id}" type="${type}" value="${ship[id].replace(/"/g, '&quot;')}" ${extra}><span class="err" id="e-${id}"></span></div>`;
+    body.innerHTML = `<div class="form">
+      ${f('name', '收件人', 'text', 'autocomplete="name"')}
+      ${f('email', 'Email', 'email', 'autocomplete="email" inputmode="email"')}
+      ${f('phone', '手機', 'tel', 'autocomplete="tel" inputmode="tel"')}
+      <div class="field"><label>配送方式</label><div class="choose">${Object.entries(SHIPPING).map(([id, s]) => `<button type="button" data-act="method" data-v="${id}" aria-pressed="${ship.method === id}"><b>${s.name}</b><small>${fmt(s.fee)} · ${s.eta}</small></button>`).join('')}</div></div>
+      ${f('addr', ship.method === 'home' ? '收件地址' : '取貨門市（店名或店號）', 'text', ship.method === 'home' ? 'autocomplete="street-address"' : '')}
+      <div class="field"><label for="f-note">備註（選填）</label><textarea id="f-note" name="note">${ship.note.replace(/</g, '&lt;')}</textarea></div>
+      <button class="link back" data-act="to-cart">← 回購物車</button></div>`;
+    foot.innerHTML = sumBlock(true) + `<button class="space" data-act="to-review"><span>檢查訂單</span></button>`;
+  } else if (step === 'review') {
+    $('#dTitle').textContent = '確認訂單';
+    const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    body.innerHTML = `<div class="review">
+      ${cart.map(it => `<div class="item"><img src="${it.thumb}" alt=""><div><h3>${it.title} × ${it.qty}</h3><p>${it.spec}</p></div></div>`).join('')}
+      <h4>收件</h4><p>${esc(ship.name)} · ${esc(ship.phone)}<br>${esc(ship.email)}<br>${SHIPPING[ship.method].name}：${esc(ship.addr)}${ship.note ? '<br>備註：' + esc(ship.note) : ''}</p>
+      <p class="note">這是示範網站：不會扣款，也不會把資料送到任何地方。按下送出只會在這個瀏覽器產生一張訂單確認。</p>
+      <button class="link back" data-act="to-ship">← 修改收件資訊</button></div>`;
+    foot.innerHTML = sumBlock(true) + `<button class="space" data-act="submit"><span>送出訂單</span></button>`;
+  } else {
+    $('#dTitle').textContent = '訂單成立';
+    const eta = new Date(Date.now() + 14 * 864e5);
+    body.innerHTML = `<div class="done"><div class="ordno num">${ship.orderNo}</div><p>謝謝 ${ship.name.replace(/</g, '&lt;')}。每把鍵盤都在工作台逐顆裝軸、調潤、試打後才出貨，預計 ${eta.getMonth() + 1} 月 ${eta.getDate()} 日前寄出，出貨通知會寄到 ${ship.email.replace(/</g, '&lt;')}。</p><p class="note">示範訂單：沒有扣款，資料只留在這個瀏覽器。</p></div>`;
+    foot.innerHTML = `<button class="space" data-act="close"><span>再組一把</span></button>`;
+  }
+}
+function readForm() {
+  for (const el of document.querySelectorAll('#dBody input, #dBody textarea')) ship[el.name] = el.value.trim();
+}
+function validate() {
+  const rules = {
+    name: v => v ? '' : '請填收件人姓名',
+    email: v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? '' : 'Email 格式看起來不對',
+    phone: v => /^[0-9+\-\s()]{8,}$/.test(v) ? '' : '請填可以聯絡的手機號碼',
+    addr: v => v ? '' : ship.method === 'home' ? '請填收件地址' : '請填取貨門市',
+  };
+  let first = null;
+  for (const [k, fn] of Object.entries(rules)) {
+    const msg = fn(ship[k]), input = $('#f-' + k);
+    $('#e-' + k).textContent = msg; input.setAttribute('aria-invalid', !!msg);
+    if (msg && !first) first = input;
+  }
+  if (first) first.focus();
+  return !first;
+}
+let lastFocus = null;
+function openCart() {
+  markInput(); ghost.stop();
+  if (step === 'done') step = 'cart';
+  lastFocus = document.activeElement;
+  renderCart();
+  document.body.classList.add('cart-open');
+  setTimeout(() => $('#closeCart').focus(), 60);
+}
+function closeCart() {
+  document.body.classList.remove('cart-open');
+  if (step === 'done') step = 'cart';
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+function goStep(s) { step = s; renderCart(); $('#dBody').scrollTop = 0; }
+
+$('#drawer').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act, i = +b.dataset.i;
+  if (act === 'close') closeCart();
+  else if (act === 'inc') { cart[i].qty = Math.min(9, cart[i].qty + 1); saveCart(); renderCart(); }
+  else if (act === 'dec') { if (cart[i].qty > 1) { cart[i].qty--; saveCart(); renderCart(); } else { cart.splice(i, 1); saveCart(); renderCart(); } }
+  else if (act === 'rm') { cart.splice(i, 1); saveCart(); renderCart(); }
+  else if (act === 'to-ship') goStep('ship');
+  else if (act === 'to-cart') { readForm(); goStep('cart'); }
+  else if (act === 'method') { readForm(); ship.method = b.dataset.v; renderCart(); }
+  else if (act === 'to-review') { readForm(); if (validate()) goStep('review'); }
+  else if (act === 'submit') {
+    const d = new Date(), pad = n => String(n).padStart(2, '0');
+    ship.orderNo = `TW${String(d.getFullYear()).slice(2)}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const orders = store.get('thockwork-orders', []); orders.push({ no: ship.orderNo, at: d.toISOString(), items: cart.map(i => ({ title: i.title, qty: i.qty, unit: i.unit })) });
+    store.set('thockwork-orders', orders.slice(-10));
+    cart = []; saveCart(); goStep('done');
+    if (KB) ghost.run();
+  }
+});
+$('#drawer').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const f = [...$('#drawer').querySelectorAll('button,input,textarea')].filter(el => !el.disabled && el.offsetParent);
+  if (!f.length) return;
+  if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+});
+$('#openCart').addEventListener('click', openCart);
+$('#closeCart').addEventListener('click', closeCart);
+$('#scrim').addEventListener('click', closeCart);
+$('#add').addEventListener('click', addToCart);
+
+/* ---------- other UI wiring ---------- */
+$('#lines').addEventListener('click', e => { const b = e.target.closest('[data-layout]'); if (b) { markInput(); setLayout(b.dataset.layout); renderLines(); } });
+$('#segs').addEventListener('click', e => { const b = e.target.closest('[data-seg]'); if (b) toggleSeg(b.dataset.seg); });
+$('#trayInner').addEventListener('click', e => { const b = e.target.closest('.opt'); if (b) choose(b.dataset.seg, b.dataset.v); });
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+  markInput();
+  if (state.exploded) setExplode(false);
+  goView(b.dataset.view);
+}));
+$('#explode').addEventListener('click', () => {
+  markInput();
+  const on = !state.exploded;
+  setExplode(on);
+  goView(on ? 'explode' : 'hero');
+});
+$('#sound').addEventListener('click', () => {
+  state.sound = !state.sound;
+  $('#sound').setAttribute('aria-pressed', state.sound);
+  if (state.sound) { audio(); keySound(false, 1); }
+});
+
+/* ---------- physical keyboard -> 3D keys ---------- */
+const typing = el => el && el.closest && el.closest('input,textarea,select,[contenteditable]');
+addEventListener('keydown', e => {
+  if (document.body.classList.contains('cart-open')) { if (e.key === 'Escape') closeCart(); return; }
+  if (typing(e.target) || e.metaKey && e.code !== 'MetaLeft' && e.code !== 'MetaRight') return;
+  if (!KB) return;
+  const k = KB.codeMap.get(e.code);
+  if (!k) return;
+  const onBody = document.activeElement === document.body || document.activeElement === canvas;
+  if (onBody && (e.code === 'Space' || e.code.startsWith('Arrow') || e.code === 'PageUp' || e.code === 'PageDown' || e.code === 'Home' || e.code === 'End')) e.preventDefault();
+  if (e.repeat) return;
+  audio(); markInput();
+  press(k, { hold: true });
+});
+addEventListener('keyup', e => { if (KB) release(KB.codeMap.get(e.code)); });
+addEventListener('blur', () => { if (KB) KB.keys.forEach(k => release(k, false)); });
+
+/* ---------- pointer: click keycaps ---------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let downAt = null;
+function pick(e) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(KB.caps, false)[0];
+  return hit ? hit.object.userData.key : null;
+}
+canvas.addEventListener('pointerdown', e => { audio(); markInput(); downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+canvas.addEventListener('pointerup', e => {
+  if (!downAt || !KB) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y), quick = performance.now() - downAt.t < 450;
+  downAt = null;
+  if (moved < 6 && quick) press(pick(e));
+});
+let hoverQueued = false;
+canvas.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse' || hoverQueued || !KB) return;
+  hoverQueued = true;
+  requestAnimationFrame(() => { hoverQueued = false; canvas.style.cursor = e.buttons ? 'grabbing' : pick(e) ? 'pointer' : 'grab'; });
+});
+controls.addEventListener('start', () => {
+  gsap.killTweensOf(camera.position); gsap.killTweensOf(controls.target);
+  state.view = null; syncViewButtons(); markInput();
+});
+
+/* =========================================================================
+   Loop
+   ========================================================================= */
+const m4 = new THREE.Matrix4();
+function tick() {
+  controls.update();
+  if (KB) {
+    let dirty = false;
+    KB.keys.forEach((k, i) => {
+      const a = k.a;
+      k.g.position.y = CAP_BASE - a.p * TRAVEL + a.hop;
+      k.g.rotation.x = a.tilt;
+      k.g.scale.setScalar(Math.max(.001, a.s));
+      if (a.p !== k.lastP) { k.lastP = a.p; KB.inst.stem.setMatrixAt(i, m4.makeTranslation(k.x, -a.p * TRAVEL, k.z)); dirty = true; }
+    });
+    if (dirty) KB.inst.stem.instanceMatrix.needsUpdate = true;
+  }
+  renderer.render(scene, camera);
+}
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  measureUI(false);
+  applyViewOffset();
+  if (state.view || state.exploded) {
+    const { pos, target } = fitPose(state.exploded ? 'explode' : state.view);
+    camera.position.copy(pos); controls.target.copy(target);
+  }
+}
+let resizeT = 0;
+addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(resize, 60); });
+new ResizeObserver(() => measureUI(true)).observe($('#dock'));
+
+setInterval(() => {
+  if (reduceMotion || ghost.busy || document.hidden || document.body.classList.contains('cart-open')) return;
+  if (performance.now() - lastInput > 11000) ghost.run();
+}, 1000);
+
+/* =========================================================================
+   Boot
+   ========================================================================= */
+if (coarse) $('#tryText').textContent = '點 3D 鍵帽試打，拖曳旋轉';
+KB = buildKeyboard(state.layout);
+applySet(0); applyCase(0); applyMaterial(0); applySwitch(0);
+renderAll(); saveCart();
+renderer.setSize(innerWidth, innerHeight, false);
+camera.aspect = innerWidth / innerHeight;
+measureUI(false); applyViewOffset();
+{
+  const { pos, target } = fitPose('hero');
+  controls.target.copy(target);
+  const start = target.clone().add(pos.clone().sub(target).applyAxisAngle(new THREE.Vector3(0, 1, 0), -.75).multiplyScalar(1.25));
+  start.y = Math.max(60, start.y * .45);
+  camera.position.copy(reduceMotion ? pos : start);
+  gsap.to(camera.position, { x: pos.x, y: pos.y, z: pos.z, duration: T(2.4), ease: 'power3.inOut' });
+  dropIn(.35);
+}
+renderer.setAnimationLoop(tick);
+</script>
+</body>
+</html>

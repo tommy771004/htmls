@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RT 66 計算機 · 少，但更好 — Weniger, aber besser</title>
+<meta name="description" content="可實際運算的致敬計算機，設計十原則標示對應部位。收錄於 100 Creative HTML Works（068・Dieter Rams / Braun）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/068-braun.html">
+<style>
+:root{
+  --wg:#d9d5ce;
+  --wg-2:#cbc6bd;
+  --wg-3:#b9b3a8;
+  --ink:#1a1918;
+  --mute:#6f6a63;
+  --acc:#f0a31a;
+  --body:#1d1c1b;
+  --key:#3a3431;
+  --key-2:#57504b;
+  --sans: Arial, "Helvetica Neue", Helvetica, "Segoe UI", sans-serif;
+  --zh: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--wg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+.zh{font-family:var(--zh)}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px clamp(16px,4vw,56px);border-bottom:1px solid var(--wg-3);font-size:12px;letter-spacing:.06em;flex-wrap:wrap}
+.top b{font-weight:bold;letter-spacing:.18em}
+.top span{color:var(--mute)}
+.page{max-width:1320px;margin:0 auto;padding:0 clamp(16px,4vw,56px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(24px,5vw,80px)}
+
+/* ---------- product stage ---------- */
+.stage{position:sticky;top:0;height:100vh;min-height:640px;display:flex;align-items:center;justify-content:center}
+.fig{position:absolute;left:0;top:28px;font-size:11px;color:var(--mute);letter-spacing:.08em}
+.fig b{color:var(--ink);font-weight:normal}
+.calc-wrap{position:relative}
+.calc{
+  --w: min(300px, 78vw);
+  position:relative;width:var(--w);aspect-ratio:78/136;border-radius:calc(var(--w) * .045);
+  background:linear-gradient(160deg,#2a2826 0%,var(--body) 40%,#141312 100%);
+  box-shadow:0 1px 0 #3b3835 inset, 0 -1px 0 #000 inset, 0 2px 1px rgba(0,0,0,.25), 0 30px 50px -22px rgba(40,30,20,.65), 0 60px 80px -40px rgba(40,30,20,.4);
+  padding:calc(var(--w) * .075) calc(var(--w) * .07);
+  display:flex;flex-direction:column;
+}
+.solar{height:calc(var(--w) * .1);border-radius:3px;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:2px;background:#0c0b0b;box-shadow:inset 0 1px 2px #000, 0 1px 0 #34312e}
+.solar i{background:linear-gradient(180deg,#3a2c2a,#221a19 60%,#2e2322);border-radius:1px;position:relative;overflow:hidden}
+.solar i::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 5px,rgba(255,255,255,.05) 5px 6px)}
+.brandline{display:flex;justify-content:space-between;align-items:baseline;margin:calc(var(--w) * .035) 0 calc(var(--w) * .03);color:#a8a29a;font-size:calc(var(--w) * .036);letter-spacing:.14em}
+.brandline b{color:#e4e0d9;font-weight:bold;letter-spacing:.24em}
+.lcd{height:calc(var(--w) * .2);border-radius:3px;background:linear-gradient(180deg,#9aa08c,#aeb39f 40%,#a3a893);box-shadow:inset 0 2px 4px rgba(0,0,0,.55), 0 0 0 calc(var(--w) * .012) #0f0e0d, 0 1px 0 calc(var(--w) * .014) #2f2c29;
+  display:flex;align-items:center;justify-content:flex-end;padding:0 calc(var(--w) * .03);position:relative}
+.lcd .ind{position:absolute;left:calc(var(--w) * .03);top:calc(var(--w) * .02);display:flex;flex-direction:column;gap:1px;font-size:calc(var(--w) * .03);font-weight:bold;color:#2b2e25;line-height:1}
+.lcd .ind span{opacity:.08}
+.lcd .ind span.on{opacity:.85}
+.digits{display:flex;gap:calc(var(--w) * .006);height:62%}
+.digits svg{height:100%;width:auto;overflow:visible}
+.seg{fill:#2b2e25;opacity:.07;transition:opacity .04s}
+.seg.on{opacity:.88}
+.keys{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(6,1fr);gap:calc(var(--w) * .035) calc(var(--w) * .04);margin-top:calc(var(--w) * .075);align-items:center;justify-items:center}
+.k{
+  width:calc(var(--w) * .17);aspect-ratio:1;border-radius:50%;border:0;cursor:pointer;padding:0;position:relative;
+  background:radial-gradient(circle at 50% 35%,#4a433f,var(--key) 60%,#2b2624);
+  box-shadow:0 calc(var(--w) * .008) 0 #0b0a0a, 0 calc(var(--w) * .014) calc(var(--w) * .014) rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12);
+  color:#f1eee8;font-family:var(--sans);font-size:calc(var(--w) * .058);display:grid;place-items:center;line-height:1;
+  transition:transform .045s linear, box-shadow .045s linear;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation
+}
+.k.fn{background:radial-gradient(circle at 50% 35%,#6a625c,var(--key-2) 60%,#433c38);font-size:calc(var(--w) * .046)}
+.k.op{font-size:calc(var(--w) * .075);font-weight:bold}
+.k.eq{background:radial-gradient(circle at 50% 35%,#ffc24d,var(--acc) 60%,#d3860a);color:#1a1918;font-weight:bold}
+.k.cl{background:radial-gradient(circle at 50% 35%,#e0dbd3,#c9c2b7 60%,#a9a296);color:#1a1918;font-size:calc(var(--w) * .04);font-weight:bold}
+.k:active,.k.down{transform:translateY(calc(var(--w) * .006));box-shadow:0 calc(var(--w) * .002) 0 #0b0a0a, 0 calc(var(--w) * .004) calc(var(--w) * .006) rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08)}
+.k:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+.k small{font-size:.72em}
+
+/* highlight rings for principles */
+.hl{position:absolute;pointer-events:none;border:1.5px solid var(--acc);border-radius:8px;opacity:0;transition:opacity .25s, inset .3s;box-shadow:0 0 0 4px rgba(240,163,26,.18)}
+.hl.on{opacity:1}
+/* callouts */
+.callout{position:absolute;font-size:11px;line-height:1.35;color:var(--mute);white-space:nowrap;transition:color .2s}
+.callout b{display:block;color:var(--ink);font-weight:bold;letter-spacing:.04em}
+.callout::before{content:"";position:absolute;top:8px;height:1px;background:var(--mute);width:var(--lead,60px)}
+.callout.l{right:calc(100% + 18px);text-align:right}
+.callout.l::before{left:calc(100% + 6px)}
+.callout.r{left:calc(100% + 18px)}
+.callout.r::before{right:calc(100% + 6px)}
+.callout.on{color:var(--ink)}
+.callout.on::before{background:var(--acc);height:2px}
+.callout .dot{position:absolute;top:5px;width:7px;height:7px;border-radius:50%;background:var(--mute)}
+.callout.on .dot{background:var(--acc)}
+.callout.l .dot{left:calc(100% + 6px + var(--lead,60px))}
+.callout.r .dot{right:calc(100% + 6px + var(--lead,60px))}
+
+/* ---------- text column ---------- */
+.text{padding:clamp(28px,6vh,72px) 0 60px}
+.eyebrow{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+h1{font-size:clamp(34px,4.6vw,64px);line-height:1.02;letter-spacing:-.02em;margin:14px 0 6px;font-weight:bold}
+h1 .zh{display:block;font-size:.62em;letter-spacing:.06em;margin-top:10px;font-weight:bold}
+.lede{max-width:34em;font-size:15.5px;color:#3c3935;margin:18px 0 28px}
+.lede .zh{display:block;margin-top:8px;color:var(--ink)}
+.specs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--ink);margin-bottom:44px}
+.specs div{padding:10px 12px 12px 0;border-bottom:1px solid var(--wg-3)}
+.specs dt{font-size:11px;color:var(--mute);letter-spacing:.08em;text-transform:uppercase}
+.specs dd{margin:2px 0 0;font-size:15px;font-weight:bold}
+.specs dd span{font-weight:normal;font-size:12px;color:var(--mute);display:block}
+.ptitle{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--ink);padding-bottom:8px;gap:12px;flex-wrap:wrap}
+.ptitle h2{margin:0;font-size:20px;letter-spacing:.02em}
+.ptitle span{font-size:12px;color:var(--mute)}
+.principles{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
+.pr{border-bottom:1px solid var(--wg-3);padding:14px 0 14px 44px;position:relative;cursor:pointer;outline:none;transition:background .2s}
+.pr .n{position:absolute;left:0;top:14px;font-size:12px;font-weight:bold;color:var(--mute);font-variant-numeric:tabular-nums}
+.pr h3{margin:0;font-size:15px;line-height:1.3}
+.pr h3 .zh{display:block;font-size:13px;color:var(--mute);font-weight:normal;margin-top:2px}
+.pr p{margin:6px 0 0;font-size:13px;color:#4a4641;max-height:0;overflow:hidden;opacity:0;transition:max-height .3s, opacity .3s}
+.pr.on p,.pr:focus-visible p{max-height:8em;opacity:1}
+.pr.on .n,.pr:focus-visible .n{color:var(--ink)}
+.pr.on::after,.pr:focus-visible::after{content:"";position:absolute;left:0;top:34px;width:18px;height:3px;background:var(--acc)}
+.tape{margin-top:40px;display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap;font-size:12px;color:var(--mute)}
+.tape kbd{font-family:var(--sans);font-size:11px;border:1px solid var(--wg-3);background:#e4e0da;border-radius:3px;padding:1px 5px;color:var(--ink)}
+.egg{color:var(--ink);font-weight:bold;min-height:1.5em}
+footer{grid-column:1/-1;border-top:1px solid var(--wg-3);padding:18px 0 28px;font-size:12px;color:var(--mute);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:1100px){ .callout{display:none} }
+@media (max-width:900px){
+  .page{grid-template-columns:minmax(0,1fr)}
+  .stage{position:relative;height:auto;min-height:0;padding:62px 0 10px}
+  .fig{top:14px}
+  .text{padding-top:18px}
+  .specs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .principles{grid-template-columns:1fr}
+  .pr p{max-height:8em;opacity:1}
+}
+@media (prefers-reduced-motion:reduce){ .k,.hl,.pr p{transition:none} }
+</style>
+</head>
+<body>
+<header class="top">
+  <div><b>WENIGER</b>&nbsp;&nbsp;RT 66 · Taschenrechner · <span class="zh">計算機</span></div>
+  <span>Industrial design study · 1987 → 2026</span>
+</header>
+
+<div class="page">
+  <section class="stage" aria-label="RT 66 計算機">
+    <div class="fig">Fig. 1 — <b>RT 66</b>, 78 × 136 × 7 mm, 1:1 at 96 dpi (approximately)</div>
+    <div class="calc-wrap" id="calcwrap">
+      <div class="calc" id="calc">
+        <div class="solar" data-part="solar"><i></i><i></i><i></i><i></i></div>
+        <div class="brandline"><b>WENIGER</b><span>RT 66</span></div>
+        <div class="lcd" id="lcd" data-part="display" aria-live="polite" aria-label="顯示器">
+          <div class="ind"><span id="i-m">M</span><span id="i-e">E</span></div>
+          <div class="digits" id="digits"></div>
+        </div>
+        <div class="keys" id="keys"></div>
+      </div>
+      <div class="hl" id="hl"></div>
+      <div class="callout l" data-c="solar" style="top:6%;--lead:48px"><i class="dot"></i><b>Solarzelle</b><span class="zh">太陽能板 · 四格</span></div>
+      <div class="callout l" data-c="display" style="top:22%;--lead:40px"><i class="dot"></i><b>LCD, 8 Stellen</b><span class="zh">八位液晶</span></div>
+      <div class="callout r" data-c="eq" style="top:88%;--lead:36px"><i class="dot"></i><b>= Taste</b><span class="zh">唯一的顏色</span></div>
+      <div class="callout r" data-c="keys" style="top:52%;--lead:34px"><i class="dot"></i><b>Ø 9 mm, konvex</b><span class="zh">凸面圓鍵</span></div>
+      <div class="callout l" data-c="body" style="top:70%;--lead:40px"><i class="dot"></i><b>ABS, matt schwarz</b><span class="zh">霧面黑機身</span></div>
+    </div>
+  </section>
+
+  <section class="text">
+    <div class="eyebrow">Product · 01 / Principles · 10</div>
+    <h1>Weniger,<br>aber besser.<span class="zh">少，但更好。</span></h1>
+    <p class="lede">A calculator that does twenty-four things and pretends to do none of them. Every key is a circle, every circle is the same size, and only one of them is allowed a colour.
+      <span class="zh">二十四顆一樣大的圓鍵，只有一顆有顏色——因為你只需要知道一件事：答案在哪裡。它能用，請直接按。</span></p>
+    <dl class="specs">
+      <div><dt>尺寸 Size</dt><dd>78 × 136 × 7 mm<span>剛好一隻手</span></dd></div>
+      <div><dt>重量 Weight</dt><dd>90 g<span>比一顆蘋果輕</span></dd></div>
+      <div><dt>電源 Power</dt><dd>Solar<span>+ LR54 備用</span></dd></div>
+      <div><dt>顯示 Display</dt><dd>8-digit LCD<span>七段式</span></dd></div>
+      <div><dt>按鍵 Keys</dt><dd>24 × Ø 9 mm<span>行程 0.6 mm</span></dd></div>
+      <div><dt>顏色 Colours</dt><dd>2<span>黑，與一點橘黃</span></dd></div>
+    </dl>
+
+    <div class="ptitle"><h2>Ten principles <span class="zh">設計十誡</span></h2><span>Hover or tap — the part it describes lights up.</span></div>
+    <ol class="principles" id="principles"></ol>
+
+    <div class="tape">
+      <div>Keyboard works too: <kbd>0–9</kbd> <kbd>+ − × ÷</kbd> <kbd>Enter</kbd> <kbd>Esc</kbd> <kbd>⌫</kbd> <kbd>%</kbd></div>
+      <div class="egg" id="egg"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>An homage to the ET 66 pocket calculator (1987) and to Dieter Rams’ ten principles for good design. Fictional brand; the principles are his.</span>
+    <span class="zh">做得越少，越難。</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var keysEl = $('keys'), digitsEl = $('digits'), calc = $('calc'), wrap = $('calcwrap'), hl = $('hl'), list = $('principles');
+  if (!keysEl || !digitsEl || !calc || !wrap || !list) return;
+
+  /* ---------- 7-segment display ---------- */
+  var SEG = { // a b c d e f g
+    '0':'1111110','1':'0110000','2':'1101101','3':'1111001','4':'0110011','5':'1011011','6':'1011111','7':'1110000','8':'1111111','9':'1111011',
+    '-':'0000001',' ':'0000000','E':'1001111','r':'0000101','o':'0011101','h':'0010111','L':'0001110'
+  };
+  var PATHS = ['M3 1h12l-2 3H5z','M15.5 2l1 1-1 10.5-2.5-2.5 1-8z','M15 15l-1 10.5-1 1-2-3 1-8z','M2 27l3-3h8l2 3z','M1 26.5l.5-10 2-1.5 1 8-2.5 3.5z','M2.3 13l1-10 2.4 2-.8 8.5-2 1.5z','M4 14.3l2-1.6h7l1.8 1.6-2 1.6H6z'];
+  var digitEls = [];
+  for (var i=0;i<8;i++){
+    var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('viewBox', '0 0 21 28'); s.setAttribute('aria-hidden', 'true');
+    var segs = [];
+    PATHS.forEach(function(d){ var p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d); p.setAttribute('class', 'seg'); p.setAttribute('transform', 'skewX(-6) translate(2 0)'); s.appendChild(p); segs.push(p); });
+    var dp = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dp.setAttribute('cx', '18.5'); dp.setAttribute('cy', '26'); dp.setAttribute('r', '1.5'); dp.setAttribute('class', 'seg'); s.appendChild(dp);
+    digitsEl.appendChild(s); digitEls.push({segs:segs, dp:dp});
+  }
+  function show(str){
+    // str like "-123.45" -> right aligned, dot attaches to previous digit
+    var chars = [], dots = [];
+    for (var k=0;k<str.length;k++){ var c = str[k]; if (c === '.'){ if (chars.length) dots[chars.length-1] = true; else { chars.push('0'); dots[0] = true; } } else { chars.push(c); } }
+    while (chars.length < 8){ chars.unshift(' '); dots.unshift(false); }
+    for (var j=0;j<8;j++){
+      var code = SEG[chars[j]] || SEG[' '];
+      for (var q=0;q<7;q++) digitEls[j].segs[q].classList.toggle('on', code[q] === '1');
+      digitEls[j].dp.classList.toggle('on', !!dots[j]);
+    }
+    var lcd = $('lcd'); if (lcd) lcd.setAttribute('aria-label', '顯示 ' + str);
+  }
+
+  /* ---------- calculator logic ---------- */
+  var cur = '0', acc = null, op = null, fresh = true, lastOp = null, lastVal = null, mem = 0, err = false, clrOnce = false, mrcOnce = false;
+  function num(){ return parseFloat(cur); }
+  function fmt(v){
+    if (!isFinite(v) || Math.abs(v) >= 1e8){ err = true; return 'E'; }
+    if (v === 0) return '0';
+    var s = String(parseFloat(v.toPrecision(8)));
+    if (s.indexOf('e') >= 0) s = v.toFixed(7);
+    var digits = s.replace('-', '').replace('.', '');
+    if (digits.length > 8){ var intLen = String(Math.floor(Math.abs(v))).length; s = String(parseFloat(v.toFixed(Math.max(0, 8 - intLen)))); }
+    return s;
+  }
+  function apply(a, o, b){ if (o === '+') return a + b; if (o === '-') return a - b; if (o === '*') return a * b; if (o === '/') return b === 0 ? Infinity : a / b; return b; }
+  function render(){
+    show(err ? 'E' : cur);
+    var im = $('i-m'), ie = $('i-e'); if (im) im.classList.toggle('on', mem !== 0); if (ie) ie.classList.toggle('on', err);
+    var egg = $('egg');
+    if (egg) egg.textContent = cur === '0.7734' ? '倒過來看。我們都做過。 hELLO.' : (cur === '1987' ? 'ET 66, 1987. 好年份。' : (err ? '太大了。少，但更好。' : ''));
+  }
+  function press(k){
+    if (k !== 'c') clrOnce = false;
+    if (k !== 'mrc') mrcOnce = false;
+    if (err && k !== 'c') return;
+    if (/^[0-9]$/.test(k)){
+      if (fresh){ cur = k; fresh = false; }
+      else if (cur.replace('-', '').replace('.', '').length < 8){ cur = cur === '0' ? k : cur + k; }
+    } else if (k === '.'){
+      if (fresh){ cur = '0.'; fresh = false; } else if (cur.indexOf('.') < 0) cur += '.';
+    } else if (k === '+' || k === '-' || k === '*' || k === '/'){
+      if (op && !fresh){ var r = apply(acc, op, num()); cur = fmt(r); acc = err ? 0 : r; }
+      else acc = num();
+      op = k; fresh = true; lastOp = null;
+    } else if (k === '='){
+      if (op){ var b = fresh && lastVal !== null && op === null ? lastVal : num(); var r2 = apply(acc, op, num()); lastOp = op; lastVal = num(); cur = fmt(r2); op = null; acc = null; }
+      else if (lastOp){ cur = fmt(apply(num(), lastOp, lastVal)); }
+      fresh = true;
+    } else if (k === '%'){
+      var v = num();
+      cur = fmt(op && (op === '+' || op === '-') ? acc * v / 100 : v / 100); fresh = true;
+    } else if (k === 'sqrt'){ var sv = num(); if (sv < 0){ err = true; } else cur = fmt(Math.sqrt(sv)); fresh = true; }
+    else if (k === 'neg'){ if (cur !== '0') cur = cur[0] === '-' ? cur.slice(1) : '-' + cur; }
+    else if (k === 'back'){ if (!fresh){ cur = cur.length > 1 ? cur.slice(0, -1) : '0'; if (cur === '-') cur = '0'; } }
+    else if (k === 'c'){
+      if (clrOnce || err || fresh){ cur = '0'; acc = null; op = null; lastOp = null; err = false; fresh = true; clrOnce = false; }
+      else { cur = '0'; fresh = true; clrOnce = true; }
+    } else if (k === 'm+'){ mem += num(); fresh = true; }
+    else if (k === 'm-'){ mem -= num(); fresh = true; }
+    else if (k === 'mrc'){ if (mrcOnce){ mem = 0; mrcOnce = false; } else { cur = fmt(mem); fresh = true; mrcOnce = true; } }
+    render();
+  }
+
+  /* ---------- keys ---------- */
+  var LAYOUT = [
+    ['c','C/CE','cl'],['mrc','MRC','fn'],['m-','M−','fn'],['m+','M+','fn'],
+    ['sqrt','√','fn'],['%','%','fn'],['neg','+/−','fn'],['/','÷','fn op'],
+    ['7','7'],['8','8'],['9','9'],['*','×','fn op'],
+    ['4','4'],['5','5'],['6','6'],['-','−','fn op'],
+    ['1','1'],['2','2'],['3','3'],['+','+','fn op'],
+    ['0','0'],['.','.','op'],['back','▸','fn op'],['=','=','eq op']
+  ];
+  var keyEls = {};
+  LAYOUT.forEach(function(d){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'k' + (d[2] ? ' ' + d[2] : '');
+    b.textContent = d[1]; b.setAttribute('data-k', d[0]);
+    b.setAttribute('aria-label', {c:'清除', mrc:'記憶讀取', 'm-':'記憶減', 'm+':'記憶加', sqrt:'開根號', '%':'百分比', neg:'正負', '/':'除', '*':'乘', '-':'減', '+':'加', back:'退格', '=':'等於', '.':'小數點'}[d[0]] || d[1]);
+    if (d[0] === '=') b.setAttribute('data-part', 'eq');
+    b.addEventListener('pointerdown', function(){ tick(d[0] === '=' ? 1 : 0); });
+    b.addEventListener('click', function(){ press(d[0]); });
+    keysEl.appendChild(b); keyEls[d[0]] = b;
+  });
+  var KMAP = {'Enter':'=', '=':'=', 'Escape':'c', 'Delete':'c', 'Backspace':'back', '*':'*', 'x':'*', 'X':'*', '/':'/', '+':'+', '-':'-', '%':'%', '.':'.', ',':'.'};
+  document.addEventListener('keydown', function(e){
+    if (e.target && e.target.tagName === 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) return;
+    var k = /^[0-9]$/.test(e.key) ? e.key : KMAP[e.key];
+    if (!k) return;
+    e.preventDefault();
+    var el = keyEls[k]; if (el){ el.classList.add('down'); setTimeout(function(){ el.classList.remove('down'); }, 90); }
+    tick(k === '=' ? 1 : 0); press(k);
+  });
+
+  /* ---------- precise click ---------- */
+  var ac = null, buf = null;
+  function tick(heavy){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      if (!ac){ ac = new AC(); var len = Math.floor(ac.sampleRate * .012); buf = ac.createBuffer(1, len, ac.sampleRate); var d = buf.getChannelData(0); for (var i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 8); }
+      if (ac.state === 'suspended') ac.resume();
+      var s = ac.createBufferSource(); s.buffer = buf;
+      var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = heavy ? 1800 : 3200; f.Q.value = 2;
+      var g = ac.createGain(); g.gain.value = heavy ? .5 : .35;
+      s.connect(f); f.connect(g); g.connect(ac.destination); s.start();
+    }catch(err){}
+  }
+
+  /* ---------- principles ---------- */
+  var P = [
+    ['Good design is innovative','好的設計是創新的','太陽能供電在 1987 年不是噱頭，是少換一次電池。','solar'],
+    ['Good design makes a product useful','好的設計讓產品實用','二十四顆鍵，每一顆都會被按到。沒有一顆是裝飾。','keys'],
+    ['Good design is aesthetic','好的設計是美的','凸面圓鍵的弧度，剛好接住指腹。美，是用出來的。','keys'],
+    ['Good design makes a product understandable','好的設計讓產品易懂','唯一有顏色的是「=」。你不用讀說明書就知道答案在哪。','eq'],
+    ['Good design is unobtrusive','好的設計是不張揚的','霧面黑機身。它躺在桌上，不跟你的咖啡搶鏡頭。','body'],
+    ['Good design is honest','好的設計是誠實的','顯示器就是顯示器。沒有假鍍鉻，沒有假裝比它更聰明。','display'],
+    ['Good design is long-lasting','好的設計是耐久的','三十九年後，它還在某人的抽屜裡，還能算出房租。','body'],
+    ['Good design is thorough down to the last detail','好的設計周全至每個細節','連小數點的位置都校過：它貼著數字的右下角，不多一像素。','display'],
+    ['Good design is environmentally friendly','好的設計是環保的','光就夠了。少一顆電池，就少一顆電池。','solar'],
+    ['Good design is as little design as possible','好的設計是盡可能少的設計','少，但更好。這一整台，就是這句話。','all']
+  ];
+  P.forEach(function(p, i){
+    var li = document.createElement('li');
+    li.className = 'pr'; li.tabIndex = 0; li.setAttribute('data-part', p[3]);
+    li.innerHTML = '<span class="n">' + ('0' + (i+1)).slice(-2) + '</span><h3>' + p[0] + '<span class="zh">' + p[1] + '</span></h3><p class="zh">' + p[2] + '</p>';
+    list.appendChild(li);
+  });
+  var active = null;
+  function highlight(part, li){
+    var items = list.querySelectorAll('.pr'); for (var i=0;i<items.length;i++) items[i].classList.toggle('on', items[i] === li);
+    var cs = document.querySelectorAll('.callout'); for (var j=0;j<cs.length;j++) cs[j].classList.toggle('on', cs[j].getAttribute('data-c') === part);
+    if (!hl) return;
+    if (!part){ hl.classList.remove('on'); return; }
+    var target = part === 'all' || part === 'body' ? calc : (part === 'keys' ? keysEl : (part === 'eq' ? keyEls['='] : calc.querySelector('[data-part="' + part + '"]')));
+    if (!target){ hl.classList.remove('on'); return; }
+    var wr = wrap.getBoundingClientRect(), tr = target.getBoundingClientRect(), pad = part === 'eq' ? 6 : 8;
+    hl.style.left = (tr.left - wr.left - pad) + 'px'; hl.style.top = (tr.top - wr.top - pad) + 'px';
+    hl.style.width = (tr.width + pad*2) + 'px'; hl.style.height = (tr.height + pad*2) + 'px';
+    hl.style.borderRadius = part === 'eq' ? '50%' : (part === 'body' || part === 'all' ? '18px' : '8px');
+    hl.classList.add('on');
+  }
+  list.addEventListener('mouseover', function(e){ var li = e.target.closest ? e.target.closest('.pr') : null; if (li && li !== active){ active = li; highlight(li.getAttribute('data-part'), li); } });
+  list.addEventListener('mouseleave', function(){ active = null; highlight(null, null); });
+  list.addEventListener('click', function(e){ var li = e.target.closest ? e.target.closest('.pr') : null; if (li){ active = li; highlight(li.getAttribute('data-part'), li); } });
+  list.addEventListener('focusin', function(e){ var li = e.target.closest ? e.target.closest('.pr') : null; if (li){ active = li; highlight(li.getAttribute('data-part'), li); } });
+  window.addEventListener('resize', function(){ if (active) highlight(active.getAttribute('data-part'), active); });
+
+  // opening: a small sum, as if someone just used it
+  render();
+  var seq = ['1','9','8','7'], si = 0;
+  var iv = setInterval(function(){ if (si >= seq.length){ clearInterval(iv); return; } var el = keyEls[seq[si]]; if (el){ el.classList.add('down'); setTimeout(function(){ el.classList.remove('down'); }, 90); } press(seq[si++]); }, 220);
+})();
+</script>
+</body>
+</html>

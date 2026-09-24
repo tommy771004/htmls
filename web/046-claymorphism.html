@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>數字果凍島 · 黏土數學小遊戲</title>
+<meta name="description" content="兒童加減與比大小：膨脹黏土按鈕、果凍彈跳、星星計分。收錄於 100 Creative HTML Works（046・黏土風）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/046-claymorphism.html">
+<style>
+:root{
+  --sky:#7cc8ff; --sky-d:#4fa9ec; --sky-l:#bfe5ff;
+  --orange:#ff9f43; --orange-d:#ee7d1c;
+  --lemon:#ffe066; --lemon-d:#f2c230;
+  --mint:#7be0b4; --pink:#ff8fb1; --cream:#fff8ec; --ink:#23325a;
+  --f:"Segoe UI Black","Segoe UI","Arial Rounded MT Bold","Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans TC",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--f);font-weight:900;color:var(--ink);min-height:100vh;background:var(--sky);overflow-x:hidden;
+  background-image:radial-gradient(circle at 12% 18%,rgba(255,255,255,.35) 0 90px,transparent 91px),radial-gradient(circle at 88% 82%,rgba(255,255,255,.22) 0 140px,transparent 141px),radial-gradient(circle at 80% 10%,rgba(255,224,102,.35) 0 60px,transparent 61px)}
+button{font-family:inherit;font-weight:900;color:inherit;cursor:pointer;border:0}
+.clay{border-radius:36px;background:var(--bgc,var(--cream));
+  box-shadow:inset -8px -10px 18px rgba(0,0,0,.14),inset 8px 10px 16px rgba(255,255,255,.75),10px 16px 28px rgba(20,60,110,.25)}
+.blob{position:fixed;border-radius:50%;pointer-events:none;z-index:0;
+  box-shadow:inset -10px -12px 22px rgba(0,0,0,.12),inset 10px 12px 20px rgba(255,255,255,.55);animation:float 7s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-18px) rotate(8deg)}}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:clamp(14px,3vw,34px) clamp(14px,3vw,34px) 40px}
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:space-between;margin-bottom:clamp(14px,2.4vw,26px)}
+.logo{display:flex;align-items:center;gap:14px}
+.logo h1{margin:0;font-size:clamp(30px,5vw,56px);line-height:1;color:#fff;letter-spacing:.02em;
+  text-shadow:0 3px 0 var(--sky-d),0 6px 0 rgba(20,60,110,.25)}
+.logo small{display:block;font-size:clamp(12px,1.4vw,15px);color:var(--ink);opacity:.75;margin-top:6px;letter-spacing:.06em}
+.modes{display:flex;gap:10px;padding:8px;border-radius:30px;--bgc:#aee0ff}
+.mode{min-height:48px;padding:0 20px;border-radius:24px;background:transparent;font-size:17px;transition:transform .2s}
+.mode[aria-pressed="true"]{--bgc:var(--orange);background:var(--orange);color:#fff;
+  box-shadow:inset -4px -5px 10px rgba(0,0,0,.18),inset 4px 5px 8px rgba(255,255,255,.5),4px 6px 12px rgba(20,60,110,.22)}
+.mode:focus-visible,.ans:focus-visible,.big:focus-visible{outline:4px dashed #fff;outline-offset:4px}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:clamp(16px,2.4vw,28px);align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.board{padding:clamp(18px,3vw,34px);position:relative}
+.qlabel{display:flex;justify-content:space-between;align-items:center;font-size:15px;color:#6a7aa3;margin-bottom:6px;gap:10px;flex-wrap:wrap}
+.dots{display:flex;gap:6px}
+.dots i{width:16px;height:16px;border-radius:50%;background:#e4e9f4;box-shadow:inset -2px -3px 4px rgba(0,0,0,.12),inset 2px 2px 3px rgba(255,255,255,.8)}
+.dots i.ok{background:var(--orange)}
+.dots i.no{background:#b8c3dc}
+.dots i.now{background:var(--lemon);animation:jelly .9s infinite}
+.q{font-size:clamp(56px,11vw,120px);line-height:1.05;text-align:center;margin:8px 0 6px;letter-spacing:.02em}
+.q .op{color:var(--orange)}
+.q .qm{display:inline-block;min-width:1.1em;color:var(--sky-d);animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-8px) rotate(-4deg)}}
+.tray{display:flex;justify-content:center;align-items:center;gap:clamp(12px,3vw,34px);flex-wrap:wrap;min-height:110px;padding:14px;border-radius:30px;--bgc:#eef7ff;margin:8px 0 22px}
+.grp{display:flex;flex-wrap:wrap;gap:8px;max-width:min(230px,40%);justify-content:center}
+.ball{width:clamp(28px,4.2vw,40px);aspect-ratio:1;border-radius:50%;background:var(--c);
+  box-shadow:inset -4px -5px 8px rgba(0,0,0,.18),inset 4px 4px 6px rgba(255,255,255,.7),2px 4px 6px rgba(20,60,110,.2);animation:pop .45s cubic-bezier(.3,1.8,.5,1) both}
+.ball.gone{animation:away .7s ease-in forwards}
+@keyframes pop{from{transform:scale(0)}}
+@keyframes away{to{transform:translateY(-60px) scale(.3) rotate(90deg);opacity:0}}
+.tray .sym{font-size:clamp(30px,5vw,48px);color:#8fa0c6}
+.answers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,2vw,22px)}
+.ans{min-height:clamp(96px,14vw,130px);border-radius:40px;font-size:clamp(44px,7vw,72px);color:#fff;background:var(--c);
+  box-shadow:inset -8px -10px 16px rgba(0,0,0,.18),inset 8px 10px 14px rgba(255,255,255,.55),8px 14px 22px rgba(20,60,110,.28);
+  text-shadow:0 3px 0 rgba(0,0,0,.15);transition:transform .15s;position:relative}
+.ans:hover{transform:translateY(-4px) scale(1.03)}
+.ans:active{transform:scale(.94,.9)}
+.ans .k{position:absolute;left:18px;top:12px;font-size:14px;opacity:.7;text-shadow:none}
+.ans.right{animation:jelly .8s}
+.ans.wrong{animation:shake .5s;filter:saturate(.3) brightness(1.05)}
+@keyframes jelly{0%{transform:scale(1)}25%{transform:scale(1.18,.84)}45%{transform:scale(.9,1.12)}65%{transform:scale(1.06,.95)}80%{transform:scale(.98,1.02)}100%{transform:scale(1)}}
+@keyframes shake{20%{transform:translateX(-12px) rotate(-3deg)}40%{transform:translateX(10px) rotate(2deg)}60%{transform:translateX(-7px)}80%{transform:translateX(4px)}}
+
+.side{display:flex;flex-direction:column;gap:18px}
+.pet{padding:18px;display:flex;flex-direction:column;align-items:center;--bgc:#fff4d6}
+.pet svg{width:170px;height:150px;overflow:visible}
+.pet .body{transform-origin:85px 140px}
+.pet.happy .body{animation:jelly .8s}
+.pet.sad .body{animation:shake .5s}
+.pet.idle .body{animation:breathe 2.6s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.03,.97)}}
+.bubble{margin-top:8px;padding:10px 16px;border-radius:22px;--bgc:#fff;font-size:16px;text-align:center;min-height:44px;line-height:1.4}
+.stats{padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px;--bgc:#e6f6ff}
+.stat{padding:12px;border-radius:24px;text-align:center;--bgc:#fff}
+.stat b{display:block;font-size:34px;line-height:1.1;color:var(--orange-d)}
+.stat span{font-size:13px;color:#6a7aa3}
+.star{display:inline-block;width:1em;height:1em;vertical-align:-.12em}
+
+.celebrate{position:fixed;inset:0;display:grid;place-items:center;background:rgba(40,110,180,.45);z-index:20;opacity:0;pointer-events:none;transition:opacity .3s;padding:16px}
+.celebrate.on{opacity:1;pointer-events:auto}
+.celebrate .clay{padding:30px 34px;text-align:center;max-width:420px;width:100%;--bgc:var(--cream);transform:scale(.6);transition:transform .5s cubic-bezier(.3,1.7,.5,1)}
+.celebrate.on .clay{transform:scale(1)}
+.celebrate h2{margin:0 0 6px;font-size:40px}
+.celebrate p{margin:4px 0 18px;font-size:18px;color:#5a6a93}
+.bigstars{display:flex;justify-content:center;gap:10px;margin:10px 0 8px}
+.bigstars svg{width:70px;height:70px}
+.big{min-height:60px;padding:0 34px;border-radius:30px;background:var(--orange);color:#fff;font-size:22px;
+  box-shadow:inset -6px -7px 12px rgba(0,0,0,.18),inset 6px 7px 10px rgba(255,255,255,.5),6px 10px 18px rgba(20,60,110,.25)}
+.big:active{transform:scale(.95,.9)}
+.bit{position:fixed;z-index:30;pointer-events:none;border-radius:40%;box-shadow:inset -3px -4px 6px rgba(0,0,0,.18),inset 3px 3px 5px rgba(255,255,255,.6)}
+@media (min-width:901px) and (min-height:700px){body{display:flex;align-items:center}.wrap{width:100%}}
+.tip{font-size:13px;color:#fff;opacity:.9;text-align:center;margin-top:14px}
+@media (prefers-reduced-motion:reduce){.blob,.q .qm,.pet.idle .body,.dots i.now{animation:none}}
+</style>
+</head>
+<body>
+<div class="blob" style="width:120px;height:120px;left:-30px;top:40%;background:var(--lemon)"></div>
+<div class="blob" style="width:80px;height:80px;right:4%;top:22%;background:var(--pink);animation-delay:-2s"></div>
+<div class="blob" style="width:160px;height:160px;right:-50px;bottom:-40px;background:var(--mint);animation-delay:-4s"></div>
+<div class="wrap">
+  <header>
+    <div class="logo"><div><h1>數字果凍島</h1><small>捏一捏、數一數，答對果凍會跳舞</small></div></div>
+    <div class="modes clay" role="group" aria-label="選擇遊戲">
+      <button class="mode" type="button" data-m="add" aria-pressed="true">加法</button>
+      <button class="mode" type="button" data-m="sub" aria-pressed="false">減法</button>
+      <button class="mode" type="button" data-m="cmp" aria-pressed="false">比大小</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <main class="board clay" aria-live="polite">
+      <div class="qlabel"><span id="qno">第 1 題 / 10</span><span class="dots" id="dots" aria-hidden="true"></span></div>
+      <div class="q" id="q" aria-label="題目"></div>
+      <div class="tray clay" id="tray" aria-label="數數看的小球"></div>
+      <div class="answers" id="answers"></div>
+    </main>
+    <aside class="side">
+      <div class="pet clay idle" id="pet">
+        <svg viewBox="0 0 170 150" aria-hidden="true">
+          <ellipse cx="85" cy="142" rx="58" ry="7" fill="rgba(20,60,110,.18)"/>
+          <g class="body">
+            <path d="M22 132 Q10 70 46 38 Q85 6 124 38 Q160 70 148 132 Q85 146 22 132 Z" fill="#ffb25b"/>
+            <path d="M34 110 Q30 70 56 52" stroke="rgba(255,255,255,.6)" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <path d="M140 128 Q150 90 136 60" stroke="rgba(0,0,0,.08)" stroke-width="14" fill="none" stroke-linecap="round"/>
+            <g id="eyes"><ellipse cx="66" cy="78" rx="8" ry="11" fill="#23325a"/><ellipse cx="104" cy="78" rx="8" ry="11" fill="#23325a"/><circle cx="68" cy="74" r="3" fill="#fff"/><circle cx="106" cy="74" r="3" fill="#fff"/></g>
+            <path id="mouth" d="M72 100 Q85 112 98 100" stroke="#23325a" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <ellipse cx="52" cy="96" rx="9" ry="5" fill="#ff7f8f" opacity=".55"/><ellipse cx="118" cy="96" rx="9" ry="5" fill="#ff7f8f" opacity=".55"/>
+            <path d="M85 20 Q88 6 100 8" stroke="#7be0b4" stroke-width="6" fill="none" stroke-linecap="round"/>
+          </g>
+        </svg>
+        <div class="bubble clay" id="bubble">嗨！我是小凍。一起數數看吧！</div>
+      </div>
+      <div class="stats clay">
+        <div class="stat clay"><b id="stars">0</b><span>
+          <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6.5 7 .8-5.2 4.8 1.5 7L12 17.6 5.7 21l1.5-7L2 9.3l7-.8z" fill="#ffc83d"/></svg> 星星</span></div>
+        <div class="stat clay"><b id="streak">0</b><span>連續答對</span></div>
+      </div>
+    </aside>
+  </div>
+  <p class="tip">小提示：可以用鍵盤 1、2、3 選答案</p>
+</div>
+
+<div class="celebrate" id="cele" role="dialog" aria-label="這一回合結束了">
+  <div class="clay">
+    <h2 id="celeT">好棒！</h2>
+    <div class="bigstars" id="bigstars"></div>
+    <p id="celeP">十題裡答對了 0 題</p>
+    <button class="big" id="again" type="button">再玩一次</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var qEl = $('q'), tray = $('tray'), answers = $('answers'), dots = $('dots'), qno = $('qno'), pet = $('pet'), bubble = $('bubble');
+  if(!qEl || !answers) return;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var mode = 'add', idx = 0, results = [], cur = null, locked = false, stars = 0, streak = 0, tries = 0;
+  try{ stars = parseInt(localStorage.getItem('jelly-stars') || '0', 10) || 0; }catch(e){}
+  var COLORS = ['var(--orange)','var(--sky-d)','var(--pink)'];
+
+  /* sound */
+  var ac = null;
+  function audio(){ try{ if(!ac){ var AC = window.AudioContext || window.webkitAudioContext; if(AC) ac = new AC(); } if(ac && ac.state === 'suspended') ac.resume(); }catch(e){ ac = null; } }
+  function note(f, t, d, type, v){ var o = ac.createOscillator(), g = ac.createGain(); o.type = type || 'triangle'; o.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v || .18, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + .05); }
+  function sfx(kind){
+    if(!ac || ac.state !== 'running') return; var t = ac.currentTime;
+    try{
+      if(kind === 'ok'){ [523, 659, 784, 1047].forEach(function(f, i){ note(f, t + i * .08, .25); }); }
+      else if(kind === 'no'){ note(300, t, .18, 'sine', .2); note(220, t + .12, .28, 'sine', .2); }
+      else if(kind === 'boing'){ var o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(520, t + .12); o.frequency.exponentialRampToValueAtTime(260, t + .3); g.gain.setValueAtTime(.2, t); g.gain.exponentialRampToValueAtTime(.0001, t + .35); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + .4); }
+      else if(kind === 'win'){ [523, 659, 784, 659, 784, 1047].forEach(function(f, i){ note(f, t + i * .12, .3, 'square', .07); }); }
+    }catch(e){}
+  }
+
+  function rnd(a, b){ return a + Math.floor(Math.random() * (b - a + 1)); }
+  function make(){
+    var a, b, ans, opts, text;
+    if(mode === 'add'){ a = rnd(1, 7); b = rnd(1, 10 - a); ans = a + b; text = [a, '+', b]; }
+    else if(mode === 'sub'){ a = rnd(3, 10); b = rnd(1, a - 1); ans = a - b; text = [a, '−', b]; }
+    else { a = rnd(1, 10); b = Math.random() < .2 ? a : rnd(1, 10); ans = a > b ? '>' : a < b ? '<' : '='; text = [a, '?', b]; }
+    if(mode === 'cmp') opts = ['<', '=', '>'];
+    else {
+      var set = [ans]; while(set.length < 3){ var d = ans + [-2, -1, 1, 2][rnd(0, 3)]; if(d >= 0 && d <= 12 && set.indexOf(d) < 0) set.push(d); }
+      opts = set.sort(function(){ return Math.random() - .5; });
+    }
+    return { a:a, b:b, ans:ans, opts:opts, text:text };
+  }
+  function drawDots(){
+    if(!dots) return; dots.innerHTML = '';
+    for(var i = 0; i < 10; i++){ var d = document.createElement('i'); if(results[i] === true) d.className = 'ok'; else if(results[i] === false) d.className = 'no'; else if(i === idx) d.className = 'now'; dots.appendChild(d); }
+  }
+  function balls(n, color, delay0){
+    var g = document.createElement('div'); g.className = 'grp';
+    for(var i = 0; i < n; i++){ var b = document.createElement('span'); b.className = 'ball'; b.style.setProperty('--c', color); b.style.animationDelay = ((delay0 || 0) + i * .06) + 's'; g.appendChild(b); }
+    return g;
+  }
+  function sym(t){ var s = document.createElement('span'); s.className = 'sym'; s.textContent = t; return s; }
+  function render(){
+    cur = make(); locked = false; tries = 0;
+    if(qno) qno.textContent = '第 ' + (idx + 1) + ' 題 / 10';
+    var t = cur.text;
+    qEl.innerHTML = t[0] + ' <span class="op">' + (mode === 'cmp' ? '' : t[1]) + '</span>' + (mode === 'cmp' ? '<span class="qm">?</span> ' : ' ') + t[2] + (mode === 'cmp' ? '' : ' = <span class="qm">?</span>');
+    qEl.setAttribute('aria-label', mode === 'cmp' ? t[0] + ' 和 ' + t[2] + ' 誰比較大？' : t[0] + (t[1] === '+' ? ' 加 ' : ' 減 ') + t[2] + ' 等於多少？');
+    if(tray){
+      tray.innerHTML = '';
+      if(mode === 'add'){ tray.appendChild(balls(cur.a, 'var(--orange)')); tray.appendChild(sym('+')); tray.appendChild(balls(cur.b, 'var(--lemon-d)', cur.a * .06)); }
+      else if(mode === 'sub'){
+        var g = balls(cur.a, 'var(--sky-d)'); tray.appendChild(g);
+        var bs = g.querySelectorAll('.ball');
+        setTimeout(function(){ for(var i = cur.a - cur.b; i < cur.a; i++){ if(bs[i]) bs[i].classList.add('gone'); } }, reduce ? 0 : 900);
+      } else { tray.appendChild(balls(cur.a, 'var(--orange)')); tray.appendChild(sym('vs')); tray.appendChild(balls(cur.b, 'var(--pink)', .2)); }
+    }
+    answers.innerHTML = '';
+    cur.opts.forEach(function(o, i){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'ans';
+      b.style.setProperty('--c', COLORS[i]);
+      b.innerHTML = '<span class="k">' + (i + 1) + '</span>' + o;
+      b.setAttribute('aria-label', '答案 ' + o);
+      b.addEventListener('click', function(){ pick(b, o); });
+      answers.appendChild(b);
+    });
+    drawDots();
+  }
+  var PRAISE = ['答對了！果凍跳舞！','好厲害！','你是數字魔法師！','啵～答對！','完全正確！','哇！手指都不用算！'];
+  var OOPS = ['差一點點，再數一次看看？','沒關係，果凍也常算錯。','再試一次，你可以的！'];
+  function say(t){ if(bubble){ bubble.textContent = t; } }
+  function mood(m){
+    if(!pet) return; pet.classList.remove('happy', 'sad', 'idle'); void pet.offsetWidth; pet.classList.add(m);
+    var mouth = $('mouth');
+    if(mouth) mouth.setAttribute('d', m === 'sad' ? 'M72 108 Q85 98 98 108' : m === 'happy' ? 'M68 96 Q85 120 102 96' : 'M72 100 Q85 112 98 100');
+    if(m !== 'idle') setTimeout(function(){ if(pet.classList.contains(m)) mood('idle'); }, 1200);
+  }
+  function pick(btn, o){
+    if(locked) return; audio();
+    if(o === cur.ans){
+      locked = true;
+      btn.classList.add('right'); sfx('ok'); confetti(btn);
+      if(tries === 0){ stars++; streak++; results[idx] = true; } else { streak = 0; results[idx] = false; }
+      try{ localStorage.setItem('jelly-stars', String(stars)); }catch(e){}
+      updStats(); mood('happy'); say(PRAISE[rnd(0, PRAISE.length - 1)] + (tries ? '（第二次才對，也很好）' : ''));
+      var qm = qEl.querySelector('.qm'); if(qm){ qm.textContent = o; qm.style.animation = 'jelly .8s'; qm.style.color = 'var(--orange-d)'; }
+      setTimeout(next, 1250);
+    } else {
+      tries++; streak = 0; updStats();
+      btn.classList.remove('wrong'); void btn.offsetWidth; btn.classList.add('wrong'); btn.disabled = true;
+      sfx('no'); mood('sad'); say(OOPS[rnd(0, OOPS.length - 1)]);
+    }
+  }
+  function updStats(){ var s = $('stars'), k = $('streak'); if(s) s.textContent = stars; if(k) k.textContent = streak; }
+  function next(){
+    idx++;
+    if(idx >= 10){ finish(); return; }
+    render();
+  }
+  var STAR = '<svg viewBox="0 0 24 24"><path d="M12 2l3 6.5 7 .8-5.2 4.8 1.5 7L12 17.6 5.7 21l1.5-7L2 9.3l7-.8z" fill="FILL" stroke="#e0a800" stroke-width="1" stroke-linejoin="round"/></svg>';
+  function finish(){
+    drawDots();
+    var ok = results.filter(function(r){ return r === true; }).length;
+    var n = ok >= 9 ? 3 : ok >= 6 ? 2 : ok >= 3 ? 1 : 0;
+    var bs = $('bigstars'); if(bs){ bs.innerHTML = ''; for(var i = 0; i < 3; i++){ var d = document.createElement('div'); d.innerHTML = STAR.replace('FILL', i < n ? '#ffc83d' : '#e4e9f4'); if(!reduce) d.style.animation = 'pop .5s ' + (i * .2 + .3) + 's cubic-bezier(.3,1.8,.5,1) both'; bs.appendChild(d); } }
+    var t = $('celeT'), p = $('celeP');
+    if(t) t.textContent = ['再捏一次吧！','有進步喔！','好棒！','果凍國王！'][n];
+    if(p) p.textContent = '十題裡一次就答對 ' + ok + ' 題';
+    var c = $('cele'); if(c){ c.classList.add('on'); var ag = $('again'); if(ag) ag.focus(); }
+    sfx('win'); mood('happy'); say('這一回合結束囉！');
+  }
+  function restart(){ idx = 0; results = []; var c = $('cele'); if(c) c.classList.remove('on'); render(); mood('idle'); say(mode === 'cmp' ? '哪一邊比較多？張大嘴巴的那邊比較大！' : mode === 'sub' ? '減法就是讓小球飛走！' : '數一數，全部有幾顆？'); }
+  var ag = $('again'); if(ag) ag.addEventListener('click', function(){ audio(); sfx('boing'); restart(); });
+
+  function confetti(from){
+    if(reduce) return;
+    var r = from.getBoundingClientRect(), cols = ['#ff9f43','#ffe066','#7cc8ff','#ff8fb1','#7be0b4'];
+    for(var i = 0; i < 18; i++){
+      var b = document.createElement('div'); b.className = 'bit';
+      var s = 10 + Math.random() * 14; b.style.cssText = 'width:' + s + 'px;height:' + s + 'px;background:' + cols[i % 5] + ';left:' + (r.left + r.width / 2) + 'px;top:' + (r.top + r.height / 2) + 'px';
+      document.body.appendChild(b);
+      var a = Math.random() * Math.PI * 2, d = 80 + Math.random() * 140;
+      var an = b.animate([{ transform:'translate(-50%,-50%) scale(.3)' }, { transform:'translate(' + (Math.cos(a) * d - s / 2) + 'px,' + (Math.sin(a) * d - 60 - s / 2) + 'px) scale(1) rotate(' + (Math.random() * 360) + 'deg)', offset:.6 }, { transform:'translate(' + (Math.cos(a) * d * 1.1 - s / 2) + 'px,' + (Math.sin(a) * d + 80) + 'px) scale(.6)', opacity:0 }], { duration:900 + Math.random() * 300, easing:'cubic-bezier(.2,.8,.4,1)' });
+      (function(el){ an.onfinish = function(){ el.remove(); }; })(b);
+    }
+  }
+
+  document.querySelectorAll('.mode').forEach(function(b){
+    b.addEventListener('click', function(){
+      audio(); sfx('boing');
+      mode = b.getAttribute('data-m');
+      document.querySelectorAll('.mode').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      restart();
+    });
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    var c = $('cele');
+    if(c && c.classList.contains('on')) return;
+    if(/^[1-3]$/.test(e.key)){ var b = answers.querySelectorAll('.ans')[+e.key - 1]; if(b && !b.disabled) b.click(); }
+  });
+  if(pet) pet.addEventListener('click', function(){ audio(); sfx('boing'); mood('happy'); say(['戳我會癢啦！','我是柳橙口味的。','你知道嗎？10 = 5 + 5 喔！','我今天吃了三顆小球，還剩幾顆？'][rnd(0, 3)]); });
+  updStats();
+  render();
+})();
+</script>
+</body>
+</html>

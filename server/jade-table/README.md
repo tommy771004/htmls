@@ -1,10 +1,10 @@
 # 青雀真人麻將
 
-頁面：`/127-jade-table.html`，遊戲敘事分類。單人與真人共用 `assets/jade-table/engine.mjs`；房號、身份、洗牌、出牌、搶牌與計台由伺服器裁定。只傳各玩家可見的牌。
+頁面：`/web/127-jade-table.html`，遊戲敘事分類。單人與真人共用 `assets/jade-table/engine.mjs`；房號、身份、洗牌、出牌、搶牌與計台由伺服器裁定。只傳各玩家可見的牌。
 
 ## 執行與驗證
 
-需要 Node.js 22 以上。根目錄執行 `npm ci`，再 `npm start`，開啟 `http://127.0.0.1:8127/127-jade-table.html`。未提供資料庫時只有本機記憶體模式。
+需要 Node.js 22 以上。根目錄執行 `npm ci`，再 `npm start`，開啟 `http://127.0.0.1:8127/web/127-jade-table.html`。未提供資料庫時只有本機記憶體模式。
 
 `npm run test:mahjong` 驗證行牌／結算與跨實例四人房、手牌保密、越權拒絕和重連。若 `.env.local` 已有 `DATABASE_URL`，執行 `node --env-file=.env.local --test server/jade-table/game.test.mjs` 可驗證真實 Neon；測試只新增隨機房間，兩小時後失效。
 

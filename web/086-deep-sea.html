@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>下潛：從海面到一萬零九百三十五公尺</title>
+<meta name="description" content="從海面捲動下潛到 10,935 m：五個水層、15 種真實生物、探照燈。收錄於 100 Creative HTML Works（086・深海）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/086-deep-sea.html">
+<style>
+:root{
+  --f:"Segoe UI Light","Segoe UI","Microsoft JhengHei Light","Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans TC","Helvetica Neue",sans-serif;
+  --num:"Segoe UI Light","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --cyan:#6ff6ff; --green:#8dffc0; --text:#e8f7ff;
+  --mx:50vw; --my:50vh; --dark:0;
+}
+*{box-sizing:border-box}
+html{background:#000}
+body{margin:0;font-family:var(--f);font-weight:300;color:var(--text);background:#000;overflow-x:hidden}
+canvas#snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+.dark{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:var(--dark);
+  background:radial-gradient(circle 170px at var(--mx) var(--my),rgba(0,0,0,0) 0,rgba(0,0,0,.25) 45%,rgba(0,4,10,.94) 100%)}
+
+/* ---------- surface ---------- */
+.surface{position:relative;height:100vh;min-height:560px;overflow:hidden;
+  background:linear-gradient(180deg,#f6d8b4 0%,#f2c6a0 18%,#bfdbe6 34%,#9ed3e6 36%,#48b3d8 37%,#2d95c4 60%,#1f78b0 100%)}
+.sun{position:absolute;left:68%;top:12%;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,#fff8e6,#ffe1a8 55%,rgba(255,220,160,0) 72%)}
+.waves{position:absolute;left:0;right:0;top:calc(36% - 18px);height:40px;overflow:hidden}
+.waves svg{position:absolute;left:0;width:200%;height:40px;animation:wave 9s linear infinite}
+.waves svg.b{animation-duration:14s;opacity:.6;top:4px}
+@keyframes wave{to{transform:translateX(-50%)}}
+.boat{position:absolute;left:18%;top:calc(36% - 58px);width:clamp(120px,16vw,200px);animation:bob 4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(4px) rotate(-1.2deg)}}
+.rays{position:absolute;left:-20%;right:-20%;top:36%;bottom:0;opacity:.35;
+  background:repeating-linear-gradient(100deg,rgba(255,255,255,0) 0 60px,rgba(255,255,255,.35) 80px,rgba(255,255,255,0) 110px 190px);
+  -webkit-mask:linear-gradient(#000,transparent 85%);mask:linear-gradient(#000,transparent 85%);animation:sway 12s ease-in-out infinite alternate;transform-origin:50% 0}
+@keyframes sway{from{transform:skewX(-6deg)}to{transform:skewX(6deg)}}
+.intro{position:absolute;left:0;right:0;top:44%;text-align:center;padding:0 20px}
+.intro small{display:block;font-size:13px;letter-spacing:.5em;opacity:.8;margin-bottom:10px}
+.intro h1{margin:0;font-weight:200;font-size:clamp(64px,13vw,180px);letter-spacing:.14em;line-height:1;text-shadow:0 10px 40px rgba(0,40,80,.35);padding-left:.14em}
+.intro p{margin:14px auto 0;font-size:clamp(15px,1.8vw,20px);letter-spacing:.12em;max-width:32em}
+.cue{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);text-align:center;font-size:12px;letter-spacing:.4em;opacity:.85}
+.cue svg{display:block;margin:8px auto 0;width:18px;height:28px;animation:cue 1.8s ease-in-out infinite}
+@keyframes cue{50%{transform:translateY(6px)}}
+
+/* ---------- ocean ---------- */
+.ocean{position:relative}
+.zone{position:relative;padding:60px 6vw 80px clamp(96px,14vw,220px)}
+.zone .zh{position:relative;max-width:520px;z-index:7}
+.blk{display:flex;align-items:center;gap:clamp(24px,4vw,60px);position:relative}
+.blk.r{flex-direction:row-reverse;justify-content:flex-start}
+.blk.l{padding-left:4vw}
+.zh .rng{font-family:var(--num);font-size:13px;letter-spacing:.3em;opacity:.7}
+.zh h2{margin:6px 0 6px;font-weight:200;font-size:clamp(36px,5vw,64px);letter-spacing:.08em;line-height:1.05}
+.zh h2 span{font-size:.36em;letter-spacing:.2em;opacity:.65;margin-left:.6em;font-family:var(--num)}
+.zh p{margin:0;font-size:15px;line-height:1.8;opacity:.85;max-width:30em}
+
+.cr{position:relative;width:var(--w,260px);max-width:100%;flex:none}
+.cr .body,.cr .glow{position:absolute;left:0;top:0;width:100%;height:auto;display:block;overflow:visible}
+.cr .body{z-index:2;opacity:0;transform:translateY(30px);transition:opacity 1.6s ease,transform 1.6s ease;cursor:pointer}
+.cr .glow{z-index:8;pointer-events:none;opacity:0;transition:opacity 2.4s ease .4s}
+.blk.seen .body{opacity:1;transform:none}
+.blk.seen .glow{opacity:1}
+.blk.seen .card{opacity:1;transform:none}
+.cr .glow .g{filter:url(#bloom);animation:twinkle var(--t,3.2s) ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.55}50%{opacity:1}}
+.cr.pulse .glow .g{animation:burst 1.2s ease-out}
+@keyframes burst{0%{opacity:1}20%{opacity:1;transform:scale(1.02)}100%{opacity:.6}}
+.card{position:relative;z-index:7;width:min(300px,78vw);opacity:0;transform:translateY(16px);transition:opacity 1.2s ease .5s,transform 1.2s ease .5s;
+  border-left:1px solid rgba(160,230,255,.5);padding:2px 0 2px 16px}
+.card .d{font-family:var(--num);font-size:12px;letter-spacing:.2em;color:var(--cyan)}
+.card h3{margin:4px 0 2px;font-weight:300;font-size:24px;letter-spacing:.06em}
+.card h3 small{font-size:12px;opacity:.6;letter-spacing:.04em;margin-left:8px;font-style:italic;font-family:var(--num)}
+.card p{margin:6px 0 0;font-size:14px;line-height:1.75;opacity:.85}
+.mark{position:relative;z-index:7;display:flex;align-items:center;gap:14px;font-family:var(--num);font-size:12px;letter-spacing:.2em;opacity:.7}
+.mark::after{content:"";flex:1;border-top:1px dashed rgba(200,240,255,.35)}
+
+.floor{position:absolute;left:0;right:0;bottom:0;height:220px;z-index:3;
+  background:radial-gradient(ellipse 60% 100% at 30% 100%,#1b1612 40%,transparent 41%),radial-gradient(ellipse 70% 90% at 80% 100%,#15110e 45%,transparent 46%),linear-gradient(transparent 60%,#120f0c 60%)}
+.end{position:relative;z-index:7;text-align:center;padding:120px 0 300px}
+.end .big{font-family:var(--num);font-weight:200;font-size:clamp(56px,10vw,140px);letter-spacing:.02em;line-height:1;color:#fff}
+.end .big small{font-size:.3em;letter-spacing:.2em;margin-left:.2em}
+.end p{max-width:34em;margin:16px auto 0;font-size:16px;line-height:1.9;opacity:.9}
+.end button{all:unset;cursor:pointer;margin-top:26px;display:inline-flex;align-items:center;gap:10px;border:1px solid rgba(160,230,255,.6);padding:0 22px;height:46px;border-radius:23px;letter-spacing:.2em;font-size:14px}
+.end button:hover,.end button:focus-visible{background:rgba(111,246,255,.12);outline:none}
+
+/* ---------- gauge ---------- */
+.gauge{position:fixed;left:clamp(16px,2.4vw,34px);top:50%;transform:translateY(-50%);z-index:9;display:flex;gap:14px;align-items:stretch;height:min(70vh,560px);pointer-events:none}
+.track{position:relative;width:2px;background:rgba(220,245,255,.25)}
+.track i{position:absolute;left:-4px;width:10px;height:1px;background:rgba(220,245,255,.6)}
+.track b{position:absolute;left:-6px;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 14px var(--cyan)}
+.track em{position:absolute;left:12px;font-style:normal;font-family:var(--num);font-size:10px;opacity:.6;transform:translateY(-50%);white-space:nowrap}
+.readout{display:none}
+.hud{position:fixed;right:clamp(16px,2.4vw,34px);top:clamp(16px,3vh,30px);z-index:9;text-align:right;pointer-events:none;text-shadow:0 2px 12px rgba(0,0,0,.4)}
+.hud .dep{font-family:var(--num);font-weight:200;font-size:clamp(36px,4.4vw,60px);line-height:1;letter-spacing:.01em}
+.hud .dep small{font-size:.36em;margin-left:4px}
+.hud .zn{font-size:14px;letter-spacing:.3em;margin-top:6px}
+.hud dl{display:grid;grid-template-columns:auto auto;gap:3px 12px;margin:10px 0 0;font-size:12px;justify-content:end}
+.hud dt{opacity:.6}
+.hud dd{margin:0;font-family:var(--num);min-width:6.5em}
+.tip{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9;font-size:12px;letter-spacing:.2em;opacity:0;transition:opacity .8s;pointer-events:none;white-space:nowrap}
+.tip.on{opacity:.75}
+
+@media (max-width:760px){
+  .gauge{display:none}
+  .hud{left:12px;right:12px;top:10px;text-align:left;display:flex;align-items:center;gap:12px;background:rgba(0,20,40,.35);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:8px 14px;border-radius:26px;border:1px solid rgba(200,240,255,.2)}
+  .hud .dep{font-size:26px}
+  .hud .zn{margin:0;font-size:12px;letter-spacing:.14em}
+  .hud dl{display:none}
+  .zone{padding:96px 20px 60px}
+  .blk,.blk.r{flex-direction:column;align-items:flex-start;gap:18px;padding-left:0}
+  .blk .cr{align-self:center;width:min(var(--w),78vw)}
+  .card{width:auto}
+  .end{padding:80px 0 260px}
+  .tip{font-size:11px;letter-spacing:.1em}
+}
+@media (prefers-reduced-motion:reduce){
+  .waves svg,.rays,.boat,.cue svg,.cr .glow .g{animation:none}
+  .cr .body,.cr .glow,.card{transition:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="bloom" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</svg>
+<canvas id="snow" aria-hidden="true"></canvas>
+<div class="dark" aria-hidden="true"></div>
+
+<section class="surface" aria-label="海面">
+  <div class="sun"></div>
+  <div class="rays"></div>
+  <svg class="boat" viewBox="0 0 200 70" aria-hidden="true"><path d="M8 44 H192 L176 66 H30 Z" fill="#1d3448"/><rect x="60" y="24" width="70" height="20" fill="#f4f1ea"/><rect x="68" y="30" width="10" height="7" fill="#1d3448"/><rect x="84" y="30" width="10" height="7" fill="#1d3448"/><rect x="100" y="30" width="10" height="7" fill="#1d3448"/><rect x="92" y="8" width="16" height="16" fill="#e8543c"/><path d="M150 44 V10 L176 44" fill="none" stroke="#1d3448" stroke-width="3"/><path d="M162 26 V58" stroke="#f4f1ea" stroke-width="2"/></svg>
+  <div class="waves" aria-hidden="true">
+    <svg class="b" viewBox="0 0 1200 40" preserveAspectRatio="none"><path d="M0 20 Q75 6 150 20 T300 20 T450 20 T600 20 T750 20 T900 20 T1050 20 T1200 20 V40 H0Z" fill="#2d95c4"/></svg>
+    <svg viewBox="0 0 1200 40" preserveAspectRatio="none"><path d="M0 22 Q50 12 100 22 T200 22 T300 22 T400 22 T500 22 T600 22 T700 22 T800 22 T900 22 T1000 22 T1100 22 T1200 22 V40 H0Z" fill="#48b3d8"/></svg>
+  </div>
+  <div class="intro">
+    <small>挑戰者深淵 · 馬里亞納海溝</small>
+    <h1>下潛</h1>
+    <p>從海面到一萬零九百三十五公尺。<br>每往下十公尺，就多一個大氣壓。</p>
+  </div>
+  <div class="cue">往下捲動<svg viewBox="0 0 18 28" aria-hidden="true"><rect x="1" y="1" width="16" height="26" rx="8" fill="none" stroke="currentColor"/><circle cx="9" cy="8" r="2" fill="currentColor"/></svg></div>
+</section>
+
+<main class="ocean" id="ocean"></main>
+
+<div class="gauge" aria-hidden="true"><div class="track" id="track"></div></div>
+<div class="hud" aria-live="off">
+  <div class="dep"><span id="dep">0</span><small>m</small></div>
+  <div class="zn" id="zn">海面</div>
+  <dl><dt>水壓</dt><dd id="pr">1 atm</dd><dt>水溫</dt><dd id="tp">27 °C</dd><dt>陽光</dt><dd id="lt">100%</dd></dl>
+</div>
+<div class="tip" id="tip">移動游標或點擊畫面，用探照燈照亮黑暗；點生物會發光</div>
+
+<script>
+(function(){
+"use strict";
+var ocean=document.getElementById('ocean');
+if(!ocean) return;
+var root=document.documentElement;
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var ZONES=[
+  {d0:0,d1:200,h:1300,name:'透光帶',en:'EPIPELAGIC',bg:['#1f78b0','#175f93'],txt:'陽光還照得到的地方。海洋裡九成的生物擠在這薄薄的一層，而你現在只下潛了全程的百分之二。'},
+  {d0:200,d1:1000,h:2300,name:'暮光帶',en:'MESOPELAGIC',bg:['#175f93','#06203d'],txt:'光線一路衰減，到一千公尺只剩最後一絲藍。這裡的居民開始自己發光——有的是為了求偶，有的是為了隱形。'},
+  {d0:1000,d1:4000,h:2600,name:'午夜帶',en:'BATHYPELAGIC',bg:['#06203d','#020a15'],txt:'從這裡開始，永遠是黑夜。你看到的每一點光，都是某個生物的決定。移動探照燈看看周圍。'},
+  {d0:4000,d1:6000,h:1500,name:'深淵帶',en:'ABYSSOPELAGIC',bg:['#020a15','#01040a'],txt:'水溫接近冰點，水壓是海面的四百到六百倍。海床上的居民靠從上面緩緩飄落的「海雪」過活。'},
+  {d0:6000,d1:10935,h:2500,name:'超深淵帶',en:'HADAL',bg:['#01040a','#000000'],txt:'只存在於海溝裡的世界，名字來自希臘神話的冥府。人類去過月球的次數，比來過這裡還多。'}
+];
+var TOTAL=1;
+
+// ---------- creatures: body + glow markup sharing a viewBox ----------
+var C=[
+ {d:60,side:'l',w:230,vb:'0 0 200 200',n:'翻車魚',sci:'Mola mola',body:'<path d="M92 50 L106 2 L124 52Z M92 150 L108 198 L124 146Z" fill="#8ea9b8"/><path d="M40 100 C40 58 72 40 104 40 C140 40 168 64 168 100 C168 136 140 160 104 160 C72 160 40 142 40 100Z" fill="#a9c0cc"/><path d="M42 72 Q30 86 36 100 Q28 114 42 128" fill="none" stroke="#7e98a8" stroke-width="8" stroke-linecap="round"/><circle cx="142" cy="88" r="7" fill="#243746"/><circle cx="144" cy="86" r="2" fill="#fff"/><path d="M164 100 q6 2 0 6" stroke="#5d7584" stroke-width="3" fill="none"/><path d="M118 100 q10 -10 18 2" stroke="#7e98a8" stroke-width="3" fill="none"/>',glow:'',txt:'世界上最重的硬骨魚之一，可達兩公噸，一次產卵約三億顆。常側躺在海面曬太陽，看起來像一顆忘了長尾巴的巨大頭。'},
+ {d:150,side:'r',w:360,vb:'0 0 300 160',n:'鬼蝠魟',sci:'Mobula birostris',body:'<path d="M150 42 C118 42 60 60 2 108 C60 100 112 108 150 128 C188 108 240 100 298 108 C240 60 182 42 150 42Z" fill="#17334c"/><path d="M136 44 C132 30 126 24 118 22 M164 44 C168 30 174 24 182 22" stroke="#17334c" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M150 126 C152 140 150 152 146 160" stroke="#17334c" stroke-width="3" fill="none"/><path d="M120 70 Q150 86 180 70" stroke="#2c5575" stroke-width="3" fill="none"/>',glow:'',txt:'翼展可達七公尺，腦容量與體重的比例在魚類中名列前茅。有研究認為牠們能認出鏡子裡的自己。'},
+ {d:380,side:'l',w:300,vb:'0 0 300 180',n:'燈籠魚',sci:'Myctophidae',body:fishSchool('#3d5d78'),glow:fishSchoolGlow(),t:'2.4s',txt:'深海數量最多的脊椎動物之一。每天入夜游上淺層覓食、天亮再沉回深處，是地球上規模最大的日常遷徙。'},
+ {d:520,side:'r',w:110,vb:'0 0 80 420',n:'管水母',sci:'Siphonophorae',body:siphoBody(),glow:siphoGlow(),t:'4s',txt:'看起來是一隻，其實是一整個群體，由許多分工的個體串成。有的長度超過四十公尺，比藍鯨還長。'},
+ {d:660,side:'l',w:420,vb:'0 0 400 170',n:'大王魷',sci:'Architeuthis dux',body:squidBody(),glow:'<circle class="g" cx="248" cy="84" r="3" fill="#bfe9ff"/>',txt:'眼睛直徑可達二十七公分，是動物界最大的眼睛之一，大到能在黑暗中看見抹香鯨逼近時攪動的微光。'},
+ {d:760,side:'r',w:240,vb:'0 0 220 120',n:'桶眼魚',sci:'Macropinna microstoma',body:'<path d="M20 64 C40 44 90 38 150 50 C172 54 186 62 190 66 C186 72 170 80 150 82 C90 92 40 84 20 64Z" fill="#26343f"/><path d="M20 64 L2 48 L6 64 L2 80Z" fill="#26343f"/><path d="M96 50 C96 18 170 10 184 42 C188 52 186 60 180 64" fill="rgba(170,255,225,.12)" stroke="rgba(190,255,235,.55)" stroke-width="2"/><path d="M90 84 L100 110 M120 84 L126 104" stroke="#26343f" stroke-width="5"/>',glow:'<ellipse class="g" cx="138" cy="36" rx="9" ry="14" fill="#5dffa7"/><ellipse class="g" cx="158" cy="34" rx="8" ry="13" fill="#5dffa7" style="--t:3.6s"/>',txt:'頭部是透明的圓頂，兩隻綠色的管狀眼睛藏在裡面，平常往上看，找到獵物時會整個轉向前方。'},
+ {d:920,side:'l',w:200,vb:'0 0 180 180',n:'吸血鬼烏賊',sci:'Vampyroteuthis infernalis',body:'<path d="M90 20 C120 20 132 50 128 78 C150 96 170 128 172 160 C140 150 116 156 90 172 C64 156 40 150 8 160 C10 128 30 96 52 78 C48 50 60 20 90 20Z" fill="#4a1414"/><path d="M60 44 C44 34 36 40 34 50 M120 44 C136 34 144 40 146 50" stroke="#4a1414" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M52 90 L30 154 M72 96 L64 164 M108 96 L116 164 M128 90 L150 154" stroke="#2c0909" stroke-width="3"/>',glow:'<circle class="g" cx="74" cy="64" r="6" fill="#7fb8ff"/><circle class="g" cx="106" cy="64" r="6" fill="#7fb8ff"/><circle class="g" cx="10" cy="160" r="4" fill="#6ff6ff" style="--t:2.2s"/><circle class="g" cx="170" cy="160" r="4" fill="#6ff6ff" style="--t:2.6s"/><circle class="g" cx="90" cy="172" r="4" fill="#6ff6ff" style="--t:2.9s"/>',txt:'不吸血，也不是烏賊，自己獨立成一個目。受威脅時會把斗篷翻過來把自己罩住，再噴出一團發光的黏液，趁亂離開。'},
+ {d:1700,side:'r',w:520,vb:'0 0 500 180',n:'抹香鯨',sci:'Physeter macrocephalus',body:'<path d="M20 50 C20 30 40 22 70 22 H200 C260 22 330 50 400 84 C430 98 450 104 470 96 L496 70 L488 104 L500 138 L468 114 C440 118 410 118 380 116 C300 112 220 124 150 124 C90 124 50 118 30 104 C18 94 20 70 20 50Z" fill="#2d3842"/><path d="M40 112 L150 116" stroke="#1a2229" stroke-width="3"/><circle cx="150" cy="66" r="4" fill="#0c1116"/>',glow:'',txt:'為了追捕大王魷，牠們能潛到兩千公尺以下、閉氣超過一小時。那顆巨大的方頭裡裝著鯨腦油，是很好的聲納透鏡。'},
+ {d:2100,side:'l',w:250,vb:'0 0 220 180',n:'深海鮟鱇',sci:'Melanocetus johnsonii',body:'<path d="M30 100 C30 56 70 34 120 40 C170 46 196 80 190 116 C184 150 150 166 110 164 C66 162 30 142 30 100Z" fill="#1f1a1d"/><path d="M190 110 L214 88 L212 140 Z" fill="#1f1a1d"/><path d="M34 88 C60 96 70 118 40 132" fill="#0d0a0c"/><path d="M36 92 l6 10 l4 -12 l6 12 l4 -12 l6 12 M40 130 l6 -10 l4 12 l6 -12 l4 12" stroke="#e9e4d6" stroke-width="2" fill="none"/><circle cx="84" cy="72" r="5" fill="#b8c7cf"/><path d="M96 44 C90 16 64 4 40 14" stroke="#1f1a1d" stroke-width="3" fill="none"/>',glow:'<circle class="g" cx="38" cy="16" r="7" fill="#aef6ff"/>',t:'1.8s',txt:'頭上那根「釣竿」末端住著發光細菌，在黑暗中誘惑獵物游進嘴裡。雄魚小得多，找到雌魚後會咬住不放，最後和她融為一體。'},
+ {d:3000,side:'r',w:200,vb:'0 0 160 160',n:'小飛象章魚',sci:'Grimpoteuthis',body:'<path d="M80 18 C112 18 124 44 122 70 C140 90 150 116 146 136 C124 126 104 134 80 146 C56 134 36 126 14 136 C10 116 20 90 38 70 C36 44 48 18 80 18Z" fill="#e7a58f"/><path d="M40 46 C22 32 10 40 12 54 C14 64 30 62 42 58Z M120 46 C138 32 150 40 148 54 C146 64 130 62 118 58Z" fill="#f0b8a2"/><circle cx="66" cy="66" r="5" fill="#2a1612"/><circle cx="94" cy="66" r="5" fill="#2a1612"/>',glow:'',txt:'靠頭頂兩片像大耳朵的鰭慢慢「飛」行。是已知棲息最深的章魚之一，最深紀錄接近七千公尺。'},
+ {d:3800,side:'l',w:480,vb:'0 0 500 220',n:'鐵達尼號殘骸',sci:'RMS Titanic, 1912',body:'<path d="M20 200 L60 70 L430 90 C460 92 480 110 486 140 L490 200 Z" fill="#3a2c24"/><path d="M60 70 L430 90" stroke="#6b4c3a" stroke-width="3"/><path d="M80 100 H440 M80 130 H460" stroke="#2a1f19" stroke-width="2"/><g fill="#1b1410"><circle cx="120" cy="116" r="4"/><circle cx="160" cy="116" r="4"/><circle cx="200" cy="117" r="4"/><circle cx="240" cy="118" r="4"/><circle cx="280" cy="118" r="4"/><circle cx="320" cy="119" r="4"/><circle cx="360" cy="120" r="4"/><circle cx="400" cy="121" r="4"/></g><path d="M64 70 V52 M100 72 V54 M140 74 V56 M64 54 L140 58" stroke="#6b4c3a" stroke-width="2"/><path d="M200 90 v18 M260 92 v22 M330 95 v14 M420 96 v26" stroke="#8a5a3c" stroke-width="3" stroke-linecap="round"/><path d="M0 206 Q120 190 250 204 T500 202 V220 H0Z" fill="#1a1512"/>',glow:'',txt:'三千八百公尺。1912 年沉沒，1985 年才被找到。船身上垂掛的「鏽柱」是吃鐵的細菌群落，它們正以自己的步調把船慢慢吃掉。'},
+ {d:4600,side:'r',w:280,vb:'0 0 260 150',n:'三腳架魚',sci:'Bathypterois grallator',body:'<path d="M40 60 C70 46 150 44 200 54 C220 58 234 62 240 66 C232 72 214 76 196 76 C150 80 80 78 40 70Z" fill="#6b6f73"/><path d="M40 64 L16 52 L22 66 L14 80Z" fill="#6b6f73"/><path d="M110 76 L80 146 M150 76 L190 146 M60 70 L34 146" stroke="#8b8f93" stroke-width="2.5"/><path d="M188 52 C200 30 214 20 230 16 M196 54 C212 36 228 30 246 30" stroke="#8b8f93" stroke-width="1.5" fill="none"/><circle cx="214" cy="60" r="2.5" fill="#222"/><path d="M0 146 H260" stroke="#2a241f" stroke-width="4"/>',glow:'',txt:'用三根延長的鰭條像腳架一樣站在海床上，面向水流一動也不動，等食物自己漂進嘴裡。深海最有耐心的釣客。'},
+ {d:5300,side:'l',w:220,vb:'0 0 200 120',n:'海豬',sci:'Scotoplanes',body:'<path d="M20 80 C20 50 60 40 110 42 C160 44 184 60 182 82 C180 100 150 104 100 104 C56 104 20 100 20 80Z" fill="rgba(240,170,190,.8)"/><path d="M60 46 C54 24 46 14 36 10 M76 44 C74 22 70 12 64 6" stroke="rgba(240,170,190,.9)" stroke-width="4" fill="none" stroke-linecap="round"/><g stroke="rgba(230,150,175,.95)" stroke-width="5" stroke-linecap="round"><path d="M40 100 l-4 14 M64 104 l-2 14 M92 104 v14 M120 104 l2 14 M148 102 l4 14 M170 94 l6 12"/></g>',glow:'',txt:'名字叫豬，其實是一種海參。常常幾百隻成群在海床上散步，一路吃著沉積物裡的有機碎屑。'},
+ {d:8100,side:'r',w:260,vb:'0 0 220 100',n:'馬里亞納獅子魚',sci:'Pseudoliparis swirei',body:'<path d="M30 50 C30 26 60 18 90 22 C140 28 190 40 214 50 C190 60 140 72 90 78 C60 82 30 74 30 50Z" fill="rgba(245,225,230,.6)"/><path d="M70 30 C110 26 170 38 210 50 M70 70 C110 74 170 62 210 50" stroke="rgba(255,240,245,.5)" stroke-width="1.5" fill="none"/><circle cx="52" cy="44" r="4" fill="#3a2a2e"/><path d="M60 58 C70 62 84 62 96 58" stroke="rgba(200,160,170,.8)" stroke-width="2" fill="none"/>',glow:'',txt:'半透明、軟綿綿，部分骨頭沒有完全鈣化，才能承受八百倍的大氣壓。目前拍到最深的魚，大約在八千三百公尺。'},
+ {d:10300,side:'l',w:200,vb:'0 0 160 100',n:'端足類',sci:'Hirondellea gigas',body:'<path d="M20 60 C20 36 50 24 80 24 C112 24 140 36 146 56 C140 66 120 70 100 70 H40 C28 70 20 68 20 60Z" fill="rgba(240,230,210,.75)"/><g stroke="rgba(200,185,160,.9)" stroke-width="2"><path d="M50 26 V70 M66 24 V70 M82 24 V70 M98 26 V70 M114 30 V68"/></g><path d="M40 70 l-6 20 M58 70 l-2 22 M76 70 v22 M94 70 l2 22 M112 68 l6 20 M146 54 C156 44 158 34 154 24 M144 58 C158 56 160 48 158 40" stroke="rgba(230,215,190,.9)" stroke-width="2" fill="none"/><circle cx="136" cy="44" r="3" fill="#3a2f22"/>',glow:'',txt:'在挑戰者深淵的海底也找得到牠們。體內有能分解纖維素的酵素，一根沉到海溝底的樹枝，對牠們來說是一場盛宴。'}
+];
+
+function fishSchool(col){
+  var pts=[[40,40],[110,24],[190,46],[70,100],[150,90],[230,110],[120,150]],h='';
+  pts.forEach(function(p,i){var s=i%2?.9:1.1;h+='<g transform="translate('+p[0]+' '+p[1]+') scale('+s+')"><path d="M0 0 C10 -8 34 -8 44 0 C34 8 10 8 0 0Z" fill="'+col+'"/><path d="M0 0 L-10 -7 L-8 0 L-10 7Z" fill="'+col+'"/><circle cx="36" cy="-1" r="2.4" fill="#0b1824"/></g>';});
+  return h;
+}
+function fishSchoolGlow(){
+  var pts=[[40,40],[110,24],[190,46],[70,100],[150,90],[230,110],[120,150]],h='';
+  pts.forEach(function(p,i){var s=i%2?.9:1.1;h+='<g transform="translate('+p[0]+' '+p[1]+') scale('+s+')" class="g" style="--t:'+(2+i*.3).toFixed(1)+'s">';for(var k=0;k<5;k++) h+='<circle cx="'+(8+k*6)+'" cy="4.5" r="1.4" fill="#8df7ff"/>';h+='</g>';});
+  return h;
+}
+function siphoBody(){
+  var h='<path d="M40 0 C60 80 20 160 44 240 C62 300 24 360 40 420" stroke="rgba(170,220,255,.35)" stroke-width="2" fill="none"/>';
+  for(var i=0;i<14;i++){var yy=12+i*28,xx=40+Math.sin(i*.9)*14;h+='<ellipse cx="'+xx.toFixed(1)+'" cy="'+yy+'" rx="9" ry="11" fill="rgba(150,210,255,.18)" stroke="rgba(190,235,255,.5)" stroke-width="1"/>';}
+  return h;
+}
+function siphoGlow(){
+  var h='';
+  for(var i=0;i<14;i++){var yy=12+i*28,xx=40+Math.sin(i*.9)*14;h+='<circle class="g" cx="'+xx.toFixed(1)+'" cy="'+(yy+4)+'" r="2.4" fill="'+(i%3?'#6ff6ff':'#a58bff')+'" style="--t:'+(2+i%4*.7).toFixed(1)+'s"/>';}
+  return h;
+}
+function squidBody(){
+  var h='<path d="M10 84 L40 64 L40 104 Z" fill="#8a3527"/><path d="M34 84 C34 70 60 62 120 64 C180 66 220 70 236 76 C246 80 246 88 236 92 C220 98 180 102 120 104 C60 106 34 98 34 84Z" fill="#9c4030"/><circle cx="248" cy="84" r="16" fill="#8a3527"/><circle cx="248" cy="84" r="9" fill="#e8eef0"/><circle cx="249" cy="84" r="5" fill="#111"/>';
+  var arms=[[-18,90],[-10,100],[-4,110],[4,112],[10,104],[18,96]];
+  arms.forEach(function(a){h+='<path d="M260 84 C300 '+(84+a[0])+' 330 '+(84+a[0]*1.6)+' '+(260+a[1])+' '+(84+a[0]*2.2)+'" stroke="#8a3527" stroke-width="5" fill="none" stroke-linecap="round"/>';});
+  h+='<path d="M262 80 C320 40 360 60 398 30" stroke="#8a3527" stroke-width="3" fill="none"/><path d="M262 90 C320 130 360 110 398 150" stroke="#8a3527" stroke-width="3" fill="none"/><ellipse cx="396" cy="30" rx="8" ry="4" fill="#8a3527"/><ellipse cx="396" cy="150" rx="8" ry="4" fill="#8a3527"/>';
+  return h;
+}
+
+// ---------- build (flow layout; depth mapped from real positions) ----------
+var BLOCKS=C.map(function(c){return {type:'cr',d:c.d,c:c};});
+BLOCKS.push({type:'mark',d:8849,txt:'8,849 m · 若把聖母峰倒放進海裡，峰頂會停在這裡'});
+BLOCKS.push({type:'mark',d:2250,txt:'2,250 m · 抹香鯨的下潛紀錄就在這附近'});
+BLOCKS.sort(function(a,b){return a.d-b.d;});
+var crs=[],blockEls=[];
+ZONES.forEach(function(z,zi){
+  var el=document.createElement('section');el.className='zone';
+  el.style.background='linear-gradient('+z.bg[0]+','+z.bg[1]+')';
+  el.innerHTML='<div class="zh"><div class="rng">'+z.d0.toLocaleString()+' – '+z.d1.toLocaleString()+' m</div><h2>'+z.name+'<span>'+z.en+'</span></h2><p>'+z.txt+'</p></div>';
+  BLOCKS.forEach(function(b){
+    if(b.d<z.d0||b.d>=z.d1) return;
+    var blk=document.createElement('div');
+    if(b.type==='mark'){blk.className='mark';blk.textContent=b.txt;}
+    else{
+      var c=b.c;blk.className='blk '+c.side;
+      var cr=document.createElement('div');cr.className='cr';
+      cr.style.setProperty('--w',c.w+'px');
+      var vb=c.vb.split(' ');cr.style.aspectRatio=vb[2]+'/'+vb[3];
+      cr.innerHTML='<svg class="body" viewBox="'+c.vb+'" role="img" aria-label="'+c.n+'">'+c.body+'</svg>'+(c.glow?'<svg class="glow" viewBox="'+c.vb+'" aria-hidden="true" style="--t:'+(c.t||'3.2s')+'">'+c.glow+'</svg>':'');
+      var card=document.createElement('div');card.className='card';
+      card.innerHTML='<div class="d">'+c.d.toLocaleString()+' m</div><h3>'+c.n+'<small>'+c.sci+'</small></h3><p>'+c.txt+'</p>';
+      blk.appendChild(cr);blk.appendChild(card);
+      crs.push({el:cr,card:card,c:c});
+      cr.addEventListener('click',function(){pulse(cr);});
+    }
+    el.appendChild(blk);blockEls.push({el:blk,d:b.d,z:z,zel:el});
+  });
+  if(zi===ZONES.length-1){
+    var end=document.createElement('div');end.className='end';
+    end.innerHTML='<div class="big">10,935<small>m</small></div><p>你抵達了海洋最深處。水壓約一千零九十個大氣壓，相當於一頭大象站在你的拇指上。<br>1960 年，兩個人乘著「的里雅斯特號」第一次來到這裡；他們在海底待了二十分鐘，看見一片灰。</p><button type="button" id="up">浮上水面 ↑</button>';
+    el.appendChild(end);
+    var floor=document.createElement('div');floor.className='floor';el.appendChild(floor);
+  }
+  ocean.appendChild(el);z.el=el;
+});
+
+var ANCH=[];
+function absTop(el){return el.getBoundingClientRect().top+window.scrollY;}
+function layout(){
+  var narrow=window.innerWidth<760,scale=narrow?.8:1;
+  blockEls.forEach(function(b){b.el.style.marginTop='0px';});
+  ZONES.forEach(function(z){z.el.style.minHeight=(z.h*scale)+'px';});
+  var oTop=absTop(ocean);
+  blockEls.forEach(function(b){
+    var zTop=absTop(b.zel);
+    var want=zTop+(b.d-b.z.d0)/(b.z.d1-b.z.d0)*b.z.h*scale;
+    var cur=absTop(b.el);
+    b.el.style.marginTop=Math.max(narrow?56:48,want-cur)+'px';
+  });
+  ANCH=[];
+  ZONES.forEach(function(z){
+    ANCH.push([absTop(z.el)-oTop,z.d0]);
+    blockEls.forEach(function(b){if(b.z===z) ANCH.push([absTop(b.el)-oTop,b.d]);});
+  });
+  var endEl=ocean.querySelector('.end');
+  if(endEl) ANCH.push([absTop(endEl)-oTop+120,10935]);
+  ANCH.sort(function(a,b){return a[0]-b[0];});
+  TOTAL=ocean.offsetHeight;
+  buildGauge();
+}
+function yToDepth(py){
+  if(py<=0||!ANCH.length) return 0;
+  for(var i=1;i<ANCH.length;i++){var a=ANCH[i-1],b=ANCH[i];if(py<=b[0]) return a[1]+(py-a[0])/Math.max(1,b[0]-a[0])*(b[1]-a[1]);}
+  return 10935;
+}
+function depthToY(d){
+  for(var i=1;i<ANCH.length;i++){var a=ANCH[i-1],b=ANCH[i];if(d<=b[1]) return a[0]+(d-a[1])/Math.max(1e-6,b[1]-a[1])*(b[0]-a[0]);}
+  return TOTAL;
+}
+
+// reveal
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('seen');io.unobserve(e.target);}});},{rootMargin:'0px 0px -12% 0px'});
+  crs.forEach(function(o){io.observe(o.el.parentNode);});
+} else crs.forEach(function(o){o.el.parentNode.classList.add('seen');});
+
+// ---------- gauge ----------
+var track=document.getElementById('track'),dot=null;
+function buildGauge(){
+  if(!track) return;
+  track.innerHTML='';
+  [0,200,1000,4000,6000,10935].forEach(function(d){
+    var p=depthToY(d)/TOTAL*100,t=document.createElement('i');t.style.top=p+'%';track.appendChild(t);
+    var l=document.createElement('em');l.style.top=p+'%';l.textContent=d.toLocaleString()+' m';track.appendChild(l);
+  });
+  dot=document.createElement('b');track.appendChild(dot);
+}
+var depEl=document.getElementById('dep'),znEl=document.getElementById('zn'),prEl=document.getElementById('pr'),tpEl=document.getElementById('tp'),ltEl=document.getElementById('lt');
+function lerp(a,b,t){return a+(b-a)*t;}
+function temp(d){var P=[[0,27],[200,18],[1000,5],[4000,1.8],[6000,1.4],[10935,2.4]];for(var i=1;i<P.length;i++) if(d<=P[i][0]) return lerp(P[i-1][1],P[i][1],(d-P[i-1][0])/(P[i][0]-P[i-1][0]));return 2.4;}
+var curDepth=0,surfaceEl=document.querySelector('.surface');
+var tip=document.getElementById('tip'),tipDone=false;
+function onScroll(){
+  var surfaceH=surfaceEl?surfaceEl.offsetHeight:0;
+  var mid=window.scrollY+window.innerHeight*.5-surfaceH;
+  var d=Math.max(0,Math.min(10935,yToDepth(mid)));
+  if(window.scrollY>200&&window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-4) d=10935;
+  curDepth=d;
+  if(depEl) depEl.textContent=Math.round(d).toLocaleString();
+  var zi=0;for(var i=0;i<ZONES.length;i++) if(d>=ZONES[i].d0) zi=i;
+  if(znEl) znEl.textContent=mid<0?'海面':ZONES[zi].name;
+  if(prEl) prEl.textContent=Math.round(1+d/10.06).toLocaleString()+' atm';
+  if(tpEl) tpEl.textContent=temp(d).toFixed(1)+' °C';
+  var light=d<=0?100:100*Math.exp(-d/43);
+  if(ltEl) ltEl.textContent=d>1000?'無':light>=1?Math.round(light)+'%':light>=.001?light.toFixed(3)+'%':'< 0.001%';
+  if(dot) dot.style.top=(Math.max(0,Math.min(1,mid/TOTAL))*100)+'%';
+  var dark=d<150?0:Math.min(.86,(d-150)/850*.86);
+  root.style.setProperty('--dark',dark.toFixed(3));
+  if(tip) tip.classList.toggle('on',d>700&&d<5000&&!tipDone);
+}
+window.addEventListener('scroll',onScroll,{passive:true});
+var rz=0;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){layout();onScroll();},150);});
+layout();
+
+// flashlight
+var mx=window.innerWidth/2,my=window.innerHeight/2;
+function setLight(x,y){mx=x;my=y;root.style.setProperty('--mx',x+'px');root.style.setProperty('--my',y+'px');}
+window.addEventListener('pointermove',function(e){if(e.pointerType==='mouse'){setLight(e.clientX,e.clientY);if(curDepth>700) tipDone=true;}});
+window.addEventListener('pointerdown',function(e){setLight(e.clientX,e.clientY);if(curDepth>700) tipDone=true;});
+setLight(mx,my);
+
+// sonar ping + pulse
+var ac=null;
+function ping(){
+  try{if(!ac){var A=window.AudioContext||window.webkitAudioContext;if(!A) return;ac=new A();}if(ac.state==='suspended') ac.resume();}catch(e){return;}
+  var t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain(),dl=ac.createDelay(),fb=ac.createGain();
+  o.type='sine';o.frequency.setValueAtTime(1480,t);o.frequency.exponentialRampToValueAtTime(1380,t+1.2);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.18,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+1.4);
+  dl.delayTime.value=.32;fb.gain.value=.35;
+  o.connect(g);g.connect(ac.destination);g.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(ac.destination);
+  o.start(t);o.stop(t+1.5);
+}
+function pulse(cr){cr.classList.remove('pulse');void cr.offsetWidth;cr.classList.add('pulse');ping();}
+
+var up=document.getElementById('up');
+if(up) up.addEventListener('click',function(){window.scrollTo({top:0,behavior:reduce?'auto':'smooth'});});
+
+// ---------- marine snow ----------
+var cv=document.getElementById('snow'),cx=cv&&cv.getContext?cv.getContext('2d'):null;
+var P=[],W=0,H=0,dpr=1,lastY=window.scrollY;
+function size(){if(!cx) return;dpr=Math.min(2,window.devicePixelRatio||1);W=window.innerWidth;H=window.innerHeight;cv.width=W*dpr;cv.height=H*dpr;cx.setTransform(dpr,0,0,dpr,0,0);}
+function seed(){P=[];var n=Math.round(Math.min(160,W*H/9000));for(var i=0;i<n;i++) P.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+.3,v:Math.random()*.25+.05,a:Math.random()*.6+.2,p:Math.random()*6});}
+function frame(){
+  if(!cx) return;
+  var sy=window.scrollY,dy=sy-lastY;lastY=sy;
+  cx.clearRect(0,0,W,H);
+  var vis=Math.min(1,curDepth/300);
+  if(vis>0.01){
+    cx.fillStyle='#dff6ff';
+    for(var i=0;i<P.length;i++){
+      var q=P[i];q.y+=q.v-dy*(.35+q.r*.25);q.p+=.01;q.x+=Math.sin(q.p)*.15;
+      if(q.y<-5){q.y=H+5;q.x=Math.random()*W;}if(q.y>H+5){q.y=-5;q.x=Math.random()*W;}
+      cx.globalAlpha=q.a*vis;cx.beginPath();cx.arc(q.x,q.y,q.r,0,6.283);cx.fill();
+    }
+    cx.globalAlpha=1;
+  }
+  requestAnimationFrame(frame);
+}
+size();seed();window.addEventListener('resize',function(){size();seed();});
+onScroll();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

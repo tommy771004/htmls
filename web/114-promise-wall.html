@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2d3026">
+<meta name="description" content="山中咖啡館的一面承諾牆。寫下一句話，挑選紙條、便利貼、卡片或木牌，親手貼上牆。">
+<title>山中留話｜3D 承諾牆</title>
+<style>
+:root{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;color:#f5eee0;background:#272c26}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}button,textarea{font:inherit}button{cursor:pointer}button:focus-visible,textarea:focus-visible{outline:2px solid #eecb88;outline-offset:3px}#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#scene.dragging{cursor:grabbing}#scene.hovering{cursor:pointer}.shade{position:fixed;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(17,26,21,.53),transparent 32%,transparent 75%,rgba(23,26,21,.2)),linear-gradient(0deg,rgba(16,24,20,.55),transparent 26%,transparent 78%,rgba(15,24,19,.27))}.top{position:fixed;left:clamp(18px,3.2vw,52px);top:clamp(18px,3.3vw,45px);z-index:2;pointer-events:none;text-shadow:0 2px 18px #1b251d}.eyebrow{margin:0 0 7px;color:#f1d4a4;font-size:11px;font-weight:700;letter-spacing:.34em}.top h1{margin:0;font-family:Georgia,"Noto Serif TC",serif;font-weight:500;font-size:clamp(34px,4.3vw,66px);line-height:1.13;letter-spacing:.09em}.top .sub{margin:11px 0 0;font-size:13px;letter-spacing:.12em;color:#f5e5cd;line-height:1.65}.top .index{display:inline-block;margin-top:19px;padding-top:11px;border-top:1px solid rgba(255,237,199,.6);font:11px/1.6 ui-monospace,monospace;letter-spacing:.15em;color:#f4d6a4}.help{position:fixed;left:clamp(18px,3.2vw,52px);bottom:clamp(18px,3vw,40px);z-index:2;padding:11px 0;color:#fff0d5;font-size:11px;letter-spacing:.1em;text-shadow:0 2px 10px #18221b;pointer-events:none}.help span{display:block;margin-top:4px;color:#e2d5bc}.compose{position:fixed;z-index:4;right:clamp(18px,3vw,44px);top:50%;transform:translateY(-42%);width:min(355px,calc(100vw - 36px));padding:24px;background:rgba(249,239,219,.96);color:#413b30;box-shadow:0 24px 65px rgba(19,23,18,.36),inset 0 0 0 1px #fff5df;backdrop-filter:blur(18px);border:1px solid #d7c49f}.compose:before{content:"";position:absolute;top:11px;bottom:11px;left:11px;right:11px;border:1px solid rgba(116,89,53,.19);pointer-events:none}.compose .kicker{margin:0 0 10px;color:#946e40;font-size:10px;font-weight:800;letter-spacing:.28em}.compose h2{margin:0 0 8px;font:normal 27px Georgia,"Noto Serif TC",serif;letter-spacing:.04em}.compose .intro{margin:0 0 20px;color:#796e5d;font-size:12px;line-height:1.75}.compose label.field{display:block;color:#61543f;font-size:12px;font-weight:700;letter-spacing:.08em}.compose textarea{display:block;width:100%;height:106px;resize:vertical;margin-top:9px;padding:13px 14px;border:1px solid #cbb999;border-radius:2px;background:#fffaf0;color:#44372b;line-height:1.55;font-size:15px}.compose textarea::placeholder{color:#a99a84}.char{margin:7px 0 17px;text-align:right;color:#9b8b73;font:11px ui-monospace,monospace}.style-label{display:block;margin-bottom:9px;color:#61543f;font-size:12px;font-weight:700;letter-spacing:.08em}.styles{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.style{border:1px solid #cdbda3;border-radius:2px;background:#f7efdf;color:#4e4538;padding:9px 2px 8px;font-size:11px;line-height:1.2}.style[aria-pressed="true"]{border-color:#79573b;box-shadow:inset 0 0 0 1px #79573b;background:#f2e4c7}.swatch{display:block;height:24px;width:32px;margin:0 auto 8px;box-shadow:1px 2px 3px #876e5140;transform:rotate(-5deg)}.style:nth-child(1) .swatch{height:17px;margin-top:4px;margin-bottom:11px;background:#f4e9cf}.style:nth-child(2) .swatch{background:#e7bd77}.style:nth-child(3) .swatch{height:22px;background:#cad4c5}.style:nth-child(4) .swatch{height:19px;margin-top:3px;margin-bottom:10px;background:#8e6442}.post{display:block;width:100%;margin-top:20px;padding:14px;border:0;background:#3f584a;color:#fff7e6;font-size:13px;font-weight:700;letter-spacing:.18em;transition:background .2s,transform .2s}.post:hover{background:#2f493a;transform:translateY(-2px)}.post:active{transform:translateY(0)}.fine{margin:12px 0 0;color:#8c7d69;font-size:11px;line-height:1.5}.feedback{min-height:18px;margin:9px 0 0;color:#8d4735;font-size:11px;line-height:1.5}.mobile-open,.mobile-close{display:none}.detail{position:fixed;z-index:5;inset:0;display:grid;place-items:center;padding:20px;background:rgba(20,28,22,.62);backdrop-filter:blur(10px)}.detail[hidden],.compose[hidden]{display:none}.detail-card{position:relative;width:min(470px,100%);max-height:min(75vh,680px);overflow:auto;padding:38px 40px 31px;background:#f2e7cf;color:#413527;border:1px solid #f9f0dc;box-shadow:0 30px 80px #0d1712a8;transform:rotate(-1deg)}.detail-card.sticky{background:#efc687}.detail-card.card{background:#cfdbd1}.detail-card.wood{background:#9a704b;color:#fff3dd;border-color:#b8895e}.detail-card .label{display:block;font-size:11px;font-weight:800;letter-spacing:.26em;opacity:.64}.detail-card blockquote{margin:27px 0 34px;font:normal clamp(21px,4vw,30px)/1.65 Georgia,"Noto Serif TC",serif;white-space:pre-wrap;overflow-wrap:anywhere}.detail-card .foot{display:flex;align-items:center;justify-content:space-between;gap:15px;border-top:1px solid currentColor;padding-top:15px;font-size:11px;opacity:.72;letter-spacing:.1em}.detail-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}.detail-actions button{padding:8px 10px;border:1px solid currentColor;background:transparent;color:inherit;font-size:11px}.detail-actions #removeNote{color:#7f352d}.detail-card.wood .detail-actions #removeNote{color:#ffe3c8}.detail-x{position:absolute;right:15px;top:12px;width:32px;height:32px;border:0;background:transparent;color:inherit;font-size:23px}.error{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;width:min(440px,calc(100vw - 30px));padding:24px;background:#f6ead7;color:#533a2d;text-align:center;box-shadow:0 18px 50px #1b211c}.error[hidden]{display:none}@media(max-width:780px){.top{top:calc(18px + env(safe-area-inset-top));left:18px}.top h1{font-size:37px}.top .sub{font-size:11px;max-width:230px}.top .index{margin-top:12px;font-size:10px}.help{left:18px;bottom:calc(82px + env(safe-area-inset-bottom));font-size:10px}.mobile-open{display:block;position:fixed;z-index:3;left:16px;right:16px;bottom:calc(15px + env(safe-area-inset-bottom));width:calc(100% - 32px);padding:16px;border:1px solid #e5d0a5;background:#f4e7cb;color:#3e4f3e;box-shadow:0 9px 25px #18251e80;font-weight:800;letter-spacing:.16em}.compose{top:auto;bottom:0;left:0;right:0;transform:none;width:100%;max-height:92dvh;overflow:auto;padding:27px 25px calc(25px + env(safe-area-inset-bottom));border-radius:18px 18px 0 0}.compose:not(.open){display:none}.mobile-close{display:block;position:absolute;top:18px;right:19px;border:0;background:transparent;color:#56452f;font-size:25px}.compose .intro{margin-bottom:13px}.compose textarea{height:88px}.detail-card{padding:32px 28px 25px}.shade{background:linear-gradient(180deg,#16221965,transparent 35%,transparent 65%,#16221966)}}@media(prefers-reduced-motion:reduce){.post{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="scene" tabindex="0" aria-label="山中咖啡館的 3D 承諾牆。拖曳環視，滾輪或雙指縮放，點擊便條閱讀。鍵盤方向鍵環視，加減鍵縮放。"></canvas>
+<div class="shade" aria-hidden="true"></div>
+<header class="top"><p class="eyebrow">A PROMISE, LEFT IN THE MOUNTAINS</p><h1>山中留話</h1><p class="sub">在這面牆上，留下一句想對自己說的話。</p><span class="index" id="count">牆上已有 00 句承諾</span></header>
+<div class="help">拖曳環視　·　滾輪縮放　·　點一下便條細讀<span>手機可單指移動、雙指縮放</span></div>
+<button class="mobile-open" id="mobileOpen" type="button">＋ 寫下一句承諾</button>
+<section class="compose" id="compose" aria-label="新增承諾">
+  <button class="mobile-close" id="mobileClose" type="button" aria-label="關閉新增表單">×</button>
+  <p class="kicker">YOUR NOTE / 你的留話</p><h2>把這句話貼上牆</h2><p class="intro">山路會有盡頭，但寫下來的心意，可以在這裡停一會兒。</p>
+  <form id="form"><label class="field" for="promise">我的承諾<textarea id="promise" maxlength="90" required placeholder="例如：每個月留一天，走進山裡。"></textarea></label><p class="char"><span id="charCount">0</span> / 90</p>
+  <span class="style-label" id="styleLabel">挑一張便條</span><div class="styles" role="group" aria-labelledby="styleLabel">
+    <button class="style" type="button" data-style="strip" aria-pressed="false"><span class="swatch"></span>紙條</button>
+    <button class="style" type="button" data-style="sticky" aria-pressed="true"><span class="swatch"></span>便利貼</button>
+    <button class="style" type="button" data-style="card" aria-pressed="false"><span class="swatch"></span>卡片</button>
+    <button class="style" type="button" data-style="wood" aria-pressed="false"><span class="swatch"></span>木牌</button>
+  </div><button class="post" type="submit">貼上承諾牆　↗</button><p class="feedback" id="feedback" role="status"></p><p class="fine">你寫的便條只保存在這台裝置的瀏覽器裡。</p></form>
+</section>
+<div class="detail" id="detail" hidden role="dialog" aria-modal="true" aria-labelledby="detailText"><div class="detail-card" id="detailCard"><button class="detail-x" id="detailClose" type="button" aria-label="關閉便條">×</button><span class="label" id="detailLabel"></span><blockquote id="detailText"></blockquote><div class="foot"><span id="detailDate"></span><span>山中留話</span></div><div class="detail-actions"><button id="removeNote" type="button" hidden>從這台裝置移除</button><button id="detailBack" type="button">返回牆面</button></div></div></div>
+<div class="error" id="error" hidden role="alert">無法載入 3D 場景。請確認已連線且瀏覽器支援 WebGL，然後重新整理。</div>
+<script type="module">
+let THREE;
+try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); }
+catch (e) { document.getElementById('error').hidden=false; throw e; }
+
+const $=id=>document.getElementById(id);
+const canvas=$('scene'), form=$('form'), input=$('promise'), feedback=$('feedback');
+let renderer;
+try { renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'}); }
+catch(e){ $('error').hidden=false; throw e; }
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.36;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color('#343e35');
+scene.fog=new THREE.FogExp2('#596858',.021);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,100);
+const hemi=new THREE.HemisphereLight(0xd5e1d3,0x625342,1.35);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffd69a,2.15);sun.position.set(-4,7,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.bias=-.00025;scene.add(sun);
+const lamp=new THREE.PointLight(0xffb76d,45,11,2);lamp.position.set(3.6,5.7,2.3);scene.add(lamp);
+const lamp2=new THREE.PointLight(0xffd9a4,20,9,2);lamp2.position.set(-5.2,5.2,2);scene.add(lamp2);
+const mat=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+const walnut=mat('#6b4932'), darkWood=mat('#443524'), paleWood=mat('#9b7047'), bronze=mat('#b48b56',.45,.68), plaster=mat('#c3ad8b'), floorMat=mat('#64503b');
+const boxGeo=new THREE.BoxGeometry(1,1,1);
+function box(parent,material,x,y,z,w,h,d,cast=false){const mesh=new THREE.Mesh(boxGeo,material);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);mesh.castShadow=cast;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
+function plane(parent,material,x,y,z,w,h){const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),material);mesh.position.set(x,y,z);parent.add(mesh);return mesh;}
+function cylinder(parent,material,x,y,z,rTop,rBottom,height,segments=16){const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBottom,height,segments),material);mesh.position.set(x,y,z);mesh.castShadow=true;parent.add(mesh);return mesh;}
+function seeded(n){let x=Math.sin(n*127.1+18.8)*43758.5453;return x-Math.floor(x);}
+function canvasTexture(canvas){const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);return t;}
+
+// The distant peaks are painted into one blurred canvas; the wall and notes stay sharp.
+function landscapeTexture(){const c=document.createElement('canvas');c.width=1024;c.height=768;const g=c.getContext('2d');const grad=g.createLinearGradient(0,0,0,768);grad.addColorStop(0,'#b8c4b6');grad.addColorStop(.62,'#e3cdb0');grad.addColorStop(1,'#8b9e88');g.fillStyle=grad;g.fillRect(0,0,1024,768);g.filter='blur(7px)';for(let layer=0;layer<5;layer++){const base=350+layer*95;g.fillStyle=['#9aa998','#809584','#698270','#536b5a','#3d594a'][layer];g.beginPath();g.moveTo(0,768);for(let x=0;x<=1024;x+=8){const peak=Math.sin(x*.009+layer)*45+Math.sin(x*.021+layer*2)*20+Math.sin(x*.003+layer)*67;g.lineTo(x,base-peak);}g.lineTo(1024,768);g.fill();}g.filter='none';const mist=g.createLinearGradient(0,425,0,768);mist.addColorStop(0,'#f6ddbd00');mist.addColorStop(.55,'#f3e3c888');mist.addColorStop(1,'#f5e4ca00');g.fillStyle=mist;g.fillRect(0,425,1024,343);return canvasTexture(c);}
+const mountain=new THREE.MeshBasicMaterial({map:landscapeTexture(),fog:false});
+plane(scene,mountain,-7.3,3.4,-2.75,4.45,5.2);plane(scene,mountain,7.3,3.4,-2.75,4.45,5.2);
+// Plaster wall, wood frame, surrounding cafe floor and two tall windows.
+box(scene,plaster,0,3.25,-.42,10.25,6.35,.62);
+box(scene,darkWood,0,6.52,-.08,11.1,.38,.95,true);
+box(scene,darkWood,0,.05,.1,11.1,.42,1.05,true);
+for(const x of [-5.35,5.35])box(scene,darkWood,x,3.25,.08,.35,6.45,.9,true);
+box(scene,paleWood,0,5.98,.23,10.22,.11,.18);
+box(scene,paleWood,0,.71,.23,10.22,.17,.22);
+const floor=box(scene,floorMat,0,-.3,1.5,22,.25,11);floor.receiveShadow=true;
+for(let i=-10;i<=10;i++)box(scene,darkWood,i*1.05,-.17,1.5,.018,.02,11);
+for(const x of [-7.35,7.35]){box(scene,darkWood,x,3.4,-2.43,4.72,.25,.32);box(scene,darkWood,x,3.4,-2.42,.21,5.25,.33);box(scene,darkWood,x-2.25,3.4,-2.42,.21,5.25,.33);box(scene,darkWood,x+2.25,3.4,-2.42,.21,5.25,.33);box(scene,darkWood,x,3.45,-2.4,4.7,.09,.25);box(scene,darkWood,x,3.4,-2.4,.09,5.25,.25);}
+// Wall grain is an actual canvas map with fine uneven plaster specks.
+{const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#c7b293';g.fillRect(0,0,512,512);for(let i=0;i<15000;i++){const v=seeded(i+23);g.fillStyle=i%2?'rgba(90,70,48,.055)':'rgba(255,246,218,.07)';g.fillRect(seeded(i*3)*512,seeded(i*7)*512,1+v*3,1+v*2);}const t=canvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(3,2);plaster.map=t;plaster.needsUpdate=true;}
+
+// Pendant shades, soft bulbs and a little foreground coffee-table silhouette.
+for(const x of [-6.25,6.25]){box(scene,darkWood,x,6.6,1.45,.028,.95,.028);const shade=new THREE.Mesh(new THREE.CylinderGeometry(.2,.68,.42,24,1,true),new THREE.MeshStandardMaterial({color:'#4b5a4b',side:THREE.DoubleSide,roughness:.8}));shade.position.set(x,5.88,1.45);scene.add(shade);const bulb=new THREE.Mesh(new THREE.SphereGeometry(.18,16,10),new THREE.MeshBasicMaterial({color:'#ffd89b'}));bulb.position.set(x,5.67,1.45);scene.add(bulb);}
+const table=box(scene,walnut,-5.8,-.12,5.8,3.8,.18,2.1,true);table.rotation.y=.18;
+cylinder(scene,mat('#d7c8aa'),-5.8,.03,5.5,.23,.18,.32);
+cylinder(scene,mat('#473c32'),-5.8,.2,5.5,.16,.16,.015);
+cylinder(scene,mat('#d7c8aa'),-5.8,-.02,5.5,.32,.32,.035);
+const pot=cylinder(scene,mat('#876450'),5.5,-.03,5.1,.35,.25,.48);
+for(let i=0;i<8;i++){const leaf=new THREE.Mesh(new THREE.SphereGeometry(1,8,6),mat(i%2?'#42644c':'#587451'));leaf.scale.set(.12,.36,.07);leaf.position.set(5.5+Math.sin(i*2.4)*.24,.48+seeded(i)*.26,5.1+Math.cos(i*2.4)*.22);leaf.rotation.z=Math.sin(i*2.4)*.55;scene.add(leaf);}
+
+const STYLES={strip:{name:'紙條',w:1.7,h:.72,color:'#f4ead2',ink:'#554535'},sticky:{name:'便利貼',w:1.38,h:1.32,color:'#edc985',ink:'#54432e'},card:{name:'卡片',w:1.72,h:1.07,color:'#ced9ce',ink:'#3f5149'},wood:{name:'木牌',w:1.83,h:.84,color:'#986a45',ink:'#fff2dc'}};
+let selectedStyle='sticky', notes=[], saved=[], focused=null, focusedFrom=null;
+const noteMeshes=[];
+function textureForNote(note){const s=STYLES[note.style],c=document.createElement('canvas');c.width=768;c.height=512;const g=c.getContext('2d');g.fillStyle=s.color;g.fillRect(0,0,c.width,c.height);
+  if(note.style==='wood'){for(let i=0;i<80;i++){g.strokeStyle=i%3?'#704a31':'#b8885d';g.globalAlpha=.12+seeded(i)*.22;g.lineWidth=1+seeded(i+34)*3;const y=seeded(i*4)*512;g.beginPath();g.moveTo(0,y);g.bezierCurveTo(250,y+seeded(i+2)*18,510,y-15,768,y+seeded(i+11)*9);g.stroke();}g.globalAlpha=1;g.strokeStyle='#eacaa08c';g.lineWidth=4;g.strokeRect(23,23,722,466);}
+  else {for(let i=0;i<9500;i++){g.fillStyle=i%2?'rgba(112,80,42,.035)':'rgba(255,255,255,.07)';g.fillRect(seeded(i*11)*768,seeded(i*17)*512,1.2,1.2);}if(note.style==='card'){g.strokeStyle='#75948588';g.lineWidth=5;g.strokeRect(29,27,710,458);}if(note.style==='strip'){g.strokeStyle='#b9a27d66';g.lineWidth=2;g.beginPath();g.moveTo(30,420);g.lineTo(738,420);g.stroke();}}
+  g.fillStyle=s.ink;g.font='700 20px ui-sans-serif,"Noto Sans TC",sans-serif';g.fillText('山 中 留 話',48,62);g.globalAlpha=.56;g.font='17px Georgia,serif';g.textAlign='right';g.fillText('A PROMISE TO KEEP',719,62);g.globalAlpha=1;g.textAlign='left';
+  // Wrap by measured canvas width, including CJK text and explicit newlines.
+  const wrap=(size)=>{g.font=`${note.style==='wood'?'600':'500'} ${size}px Georgia,"Noto Serif TC","PingFang TC",serif`;const out=[];for(const para of note.text.split('\n')){let line='';for(const ch of para){if(g.measureText(line+ch).width>650&&line){out.push(line);line=ch;}else line+=ch;}out.push(line);}return out;};
+  let size=note.style==='sticky'?42:45,lines=wrap(size);while((lines.length>5||lines.length*size*1.38>317)&&size>25){size-=2;lines=wrap(size);}g.font=`${note.style==='wood'?'600':'500'} ${size}px Georgia,"Noto Serif TC","PingFang TC",serif`;g.textBaseline='middle';let y=252-(lines.length-1)*size*.69;for(const line of lines){g.fillText(line,56,y,655);y+=size*1.38;}
+  g.globalAlpha=.52;g.font='19px ui-monospace,monospace';g.textAlign='right';g.fillText(note.demo?'MOUNTAIN CAFÉ':'MY PROMISE',717,466);g.globalAlpha=1;return canvasTexture(c);}
+function createNote(note,animate=false){const s=STYLES[note.style];const group=new THREE.Group();group.position.set(note.x,note.y,.39);group.rotation.z=note.rot;scene.add(group);
+  let backing;if(note.style==='wood'){backing=box(group,walnut,0,0,-.045,s.w,s.h,.105,true);for(const x of [-s.w*.43,s.w*.43]){const nail=new THREE.Mesh(new THREE.SphereGeometry(.038,8,6),bronze);nail.position.set(x,s.h*.36,.022);group.add(nail);}}
+  else {backing=box(group,mat(note.style==='card'?'#899f95':'#c2a47a'),0,-.025,-.026,s.w+.035,s.h+.035,.035,true);if(note.style==='sticky'){const curl=new THREE.Mesh(new THREE.PlaneGeometry(.22,.22),new THREE.MeshStandardMaterial({color:'#f7dba1',side:THREE.DoubleSide,roughness:1}));curl.position.set(s.w*.42,-s.h*.42,.029);curl.rotation.y=-.4;curl.rotation.z=.12;group.add(curl);}}
+  const front=new THREE.Mesh(new THREE.PlaneGeometry(s.w,s.h),new THREE.MeshStandardMaterial({map:textureForNote(note),roughness:note.style==='wood'?.83:1,side:THREE.DoubleSide}));front.position.z=.028;front.castShadow=true;front.userData.note=note;group.add(front);noteMeshes.push(front);note.group=group;note.front=front;
+  if(note.style==='strip'){const tape=new THREE.Mesh(new THREE.PlaneGeometry(.34,.18),new THREE.MeshStandardMaterial({color:'#c7b9a1',transparent:true,opacity:.77,side:THREE.DoubleSide,roughness:1}));tape.position.set(0,s.h*.48,.06);tape.rotation.z=-.08;group.add(tape);}else if(note.style==='card'){const pin=new THREE.Mesh(new THREE.SphereGeometry(.065,12,8),mat('#bd704d',.38));pin.position.set(0,s.h*.43,.08);group.add(pin);}
+  if(animate){group.position.set(note.x,note.y+.65,2.4);group.rotation.set(-.3,.28,note.rot+.27);group.scale.setScalar(.7);note.animation={t:0,duration:1.15};}notes.push(note);updateCount();return note;}
+const examples=[
+  ['下次上山，記得慢慢走。','strip',-3.65,4.92,-.07],['每週留一晚，陪家人吃飯。','sticky',-1.9,4.65,.045],['把說出口的謝謝，說得更勤一些。','card',.25,4.9,-.035],['好好睡覺，也是一種勇敢。','wood',2.8,4.83,.055],
+  ['今年學會照顧一株植物。','sticky',-3.64,3.24,-.065],['每一個晴天，都出去曬太陽。','strip',1.48,3.47,-.045],['再試一次，哪怕很小步。','sticky',3.55,3.03,.065],
+  ['留一杯咖啡的時間給自己。','wood',-3.5,1.65,.045],['去做一直想做的那件小事。','sticky',1.55,1.72,-.05],['讓心裡有一盞燈。','card',3.65,1.57,.035]
+];
+examples.forEach((a,i)=>createNote({id:'demo-'+i,text:a[0],style:a[1],x:a[2]+(seeded(i*13)-.5)*.12,y:a[3]+(seeded(i*17)-.5)*.1,rot:a[4],demo:true}));
+const KEY='mountain-promise-wall:v1';
+try {const data=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(data)){for(const raw of data.slice(0,80)){if(!raw||typeof raw.text!=='string'||!STYLES[raw.style])continue;const x=Number(raw.x),y=Number(raw.y),rot=Number(raw.rot);if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(rot))continue;const note={id:String(raw.id),text:raw.text.slice(0,90),style:raw.style,x:THREE.MathUtils.clamp(x,-4.2,4.2),y:THREE.MathUtils.clamp(y,1.2,5.3),rot:THREE.MathUtils.clamp(rot,-.2,.2),date:String(raw.date||''),demo:false};if(note.text.trim()){saved.push(note);createNote(note);}}}}catch(e){feedback.textContent='目前無法讀取這台裝置之前寫下的便條。';}
+function updateCount(){$('count').textContent=`牆上已有 ${String(notes.length).padStart(2,'0')} 句承諾`;}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(saved.map(({id,text,style,x,y,rot,date})=>({id,text,style,x,y,rot,date}))));return true;}catch(e){feedback.textContent='瀏覽器無法保存便條，請確認儲存空間或隱私設定。';return false;}}
+function findSpot(style){const s=STYLES[style];let best=null;for(let i=0;i<170;i++){const x=-4.05+seeded(i*47+notes.length*8)*8.1,y=1.25+seeded(i*31+notes.length*5)*4.05;let nearest=Infinity;for(const n of notes){const nx=Math.abs(n.x-x)/(STYLES[n.style].w/2+s.w/2+.18),ny=Math.abs(n.y-y)/(STYLES[n.style].h/2+s.h/2+.13);nearest=Math.min(nearest,Math.max(nx,ny));}if(!best||nearest>best.score)best={x,y,score:nearest};if(nearest>1.12)break;}return best;}
+function saveNew(text,style){const spot=findSpot(style);if(!spot||spot.score<.68){feedback.textContent='牆上暫時沒有空位了。';return;}const note={id:'n-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),text,style,x:spot.x,y:spot.y,rot:(Math.random()-.5)*.13,date:new Date().toLocaleDateString('zh-TW'),demo:false};saved.push(note);if(!persist()){saved.pop();return;}createNote(note,true);feedback.textContent='已把你的承諾貼上牆。';form.reset();$('charCount').textContent='0';if(matchMedia('(max-width:780px)').matches){$('compose').classList.remove('open');$('mobileOpen').focus();}}
+form.addEventListener('submit',e=>{e.preventDefault();const text=input.value.trim();if(!text){feedback.textContent='先寫下一句承諾吧。';input.focus();return;}saveNew(text,selectedStyle);});
+input.addEventListener('input',()=>{$('charCount').textContent=String(input.value.length);feedback.textContent='';});
+document.querySelectorAll('.style').forEach(button=>button.addEventListener('click',()=>{selectedStyle=button.dataset.style;document.querySelectorAll('.style').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));}));
+$('mobileOpen').addEventListener('click',()=>{$('compose').classList.add('open');input.focus();});
+$('mobileClose').addEventListener('click',()=>{$('compose').classList.remove('open');$('mobileOpen').focus();});
+
+// Restrained orbit around the wall, with damping on both mouse and touch.
+let targetYaw=0,yaw=0,targetPitch=.055,pitch=.055,targetDistance=innerWidth<780?15.5:12.3,distance=targetDistance;
+let center=new THREE.Vector3(0,3.2,0),targetCenter=center.clone();
+const pointers=new Map();let pointerStart=null,dragged=false,pinchStart=0,pinchDistance=0;
+function focusView(note){focusedFrom={yaw:targetYaw,pitch:targetPitch,distance:targetDistance,center:targetCenter.clone()};targetCenter.set(note.x,note.y,.2);targetDistance=3.45;targetYaw=THREE.MathUtils.clamp(note.x*.035,-.18,.18);targetPitch=.018;}
+function resetView(){if(focusedFrom){targetYaw=focusedFrom.yaw;targetPitch=focusedFrom.pitch;targetDistance=focusedFrom.distance;targetCenter.copy(focusedFrom.center);focusedFrom=null;}else{targetCenter.set(0,3.2,0);targetDistance=innerWidth<780?15.5:12.3;}focused=null;}
+function pointerPositions(){return [...pointers.values()];}
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1){pointerStart={x:e.clientX,y:e.clientY};dragged=false;canvas.classList.add('dragging');}if(pointers.size===2){const p=pointerPositions();pinchStart=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);pinchDistance=targetDistance;dragged=true;}});
+canvas.addEventListener('pointermove',e=>{const old=pointers.get(e.pointerId);if(!old)return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){const p=pointerPositions();const now=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);targetDistance=THREE.MathUtils.clamp(pinchDistance*pinchStart/Math.max(now,20),3.1,24);return;}if(pointerStart&&Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>5)dragged=true;if(dragged){if(focused)resetView();targetYaw=THREE.MathUtils.clamp(targetYaw-(e.clientX-old.x)*.0032,-.62,.62);targetPitch=THREE.MathUtils.clamp(targetPitch+(e.clientY-old.y)*.0027,-.25,.3);}});
+function endPointer(e){const wasClick=pointers.size===1&&!dragged&&pointerStart&&Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)<6;pointers.delete(e.pointerId);if(!pointers.size){canvas.classList.remove('dragging');pointerStart=null;}if(wasClick)pickNote(e.clientX,e.clientY);}
+canvas.addEventListener('pointerup',endPointer);canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);canvas.classList.remove('dragging');pointerStart=null;});
+canvas.addEventListener('wheel',e=>{e.preventDefault();targetDistance=THREE.MathUtils.clamp(targetDistance*Math.exp(e.deltaY*.001),3.1,24);},{passive:false});
+canvas.addEventListener('keydown',e=>{const step=.12;if(e.key==='ArrowLeft')targetYaw=THREE.MathUtils.clamp(targetYaw+step,-.62,.62);else if(e.key==='ArrowRight')targetYaw=THREE.MathUtils.clamp(targetYaw-step,-.62,.62);else if(e.key==='ArrowUp')targetPitch=THREE.MathUtils.clamp(targetPitch-step,-.25,.3);else if(e.key==='ArrowDown')targetPitch=THREE.MathUtils.clamp(targetPitch+step,-.25,.3);else if(e.key==='+'||e.key==='=')targetDistance=THREE.MathUtils.clamp(targetDistance*.85,3.1,24);else if(e.key==='-'||e.key==='_')targetDistance=THREE.MathUtils.clamp(targetDistance*1.15,3.1,24);else if(e.key==='Enter'){pickNote(innerWidth/2,innerHeight/2);}else return;e.preventDefault();});
+const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
+function intersect(x,y){mouse.set(x/innerWidth*2-1,-y/innerHeight*2+1);raycaster.setFromCamera(mouse,camera);return raycaster.intersectObjects(noteMeshes,false)[0]?.object.userData.note||null;}
+function pickNote(x,y){const note=intersect(x,y);if(!note){if(focused)resetView();return;}focused=note;focusView(note);$('detailCard').className='detail-card '+note.style;$('detailLabel').textContent=note.demo?'牆上原有的話 · '+STYLES[note.style].name:'我的承諾 · '+STYLES[note.style].name;$('detailText').textContent=note.text;$('detailDate').textContent=note.demo?'山中咖啡館':note.date||'今天';$('removeNote').hidden=note.demo;$('detail').hidden=false;$('detailClose').focus();}
+function closeDetail(){$('detail').hidden=true;resetView();canvas.focus();}
+$('detailClose').addEventListener('click',closeDetail);$('detailBack').addEventListener('click',closeDetail);$('detail').addEventListener('click',e=>{if(e.target===$('detail'))closeDetail();});
+$('removeNote').addEventListener('click',()=>{if(!focused||focused.demo)return;const note=focused;const at=saved.findIndex(n=>n.id===note.id);if(at<0)return;saved.splice(at,1);if(!persist()){saved.splice(at,0,note);return;}scene.remove(note.group);note.front.material.map.dispose();note.front.material.dispose();noteMeshes.splice(noteMeshes.indexOf(note.front),1);notes.splice(notes.indexOf(note),1);updateCount();closeDetail();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('detail').hidden)closeDetail();else $('compose').classList.remove('open');}});
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));if(!focused)targetDistance=innerWidth<780?15.5:12.3;}
+addEventListener('resize',resize);
+const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+let last=performance.now();
+function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;const d=1-Math.exp(-7*dt);yaw+=(targetYaw-yaw)*d;pitch+=(targetPitch-pitch)*d;distance+=(targetDistance-distance)*d;center.lerp(targetCenter,d);camera.position.set(center.x+Math.sin(yaw)*Math.cos(pitch)*distance,center.y+Math.sin(pitch)*distance,center.z+Math.cos(yaw)*Math.cos(pitch)*distance);camera.lookAt(center);
+  for(const n of notes){if(!n.animation)continue;const a=n.animation;a.t=Math.min(1,a.t+dt/(reduced?.25:a.duration));const t=a.t;const settle=1-Math.pow(1-t,3);n.group.position.z=2.4+( .39-2.4)*settle;n.group.position.y=n.y+.65*(1-settle)+Math.sin(t*20)*.08*(1-t);n.group.rotation.x=-.3*(1-settle)+Math.sin(t*18)*.08*(1-t);n.group.rotation.y=.28*(1-settle);n.group.rotation.z=n.rot+.27*(1-settle)+Math.sin(t*22)*.055*(1-t);n.group.scale.setScalar(.7+.3*settle);if(t>=1)delete n.animation;}
+  renderer.render(scene,camera);}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 100 號 · 煙火終章</title>
+<meta name="description" content="河岸夜空 9 種煙火，「放一百發」每發標上一件作品的風格名。收錄於 100 Creative HTML Works（100・煙火終章）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/100-fireworks.html">
+<style>
+  :root{
+    --night:#040716; --gold:#f3c969; --gold-l:#ffe7a8; --gold-d:#b98a2e; --ink:#e9e4d6;
+    --serif:Georgia,"PMingLiU","新細明體","Noto Serif TC","Songti TC",serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--night);color:var(--ink);font-family:var(--serif);overflow:hidden}
+  canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+  #fx{touch-action:none;cursor:crosshair}
+  #refl{pointer-events:none;opacity:.62;filter:blur(.7px)}
+  #flash{position:fixed;inset:0;pointer-events:none;background:radial-gradient(80% 60% at 50% 35%,rgba(255,220,160,.35),transparent 70%);opacity:0}
+
+  .title{position:fixed;left:clamp(18px,4vw,56px);top:clamp(18px,4vh,48px);max-width:min(460px,calc(100vw - 36px));pointer-events:none;z-index:3;
+    transition:opacity 1.2s}
+  .title .no{font-size:12px;letter-spacing:.42em;color:var(--gold);text-transform:uppercase;font-variant:small-caps}
+  .title h1{margin:.2em 0 .15em;font-weight:normal;font-size:clamp(40px,6.4vw,88px);line-height:1;letter-spacing:.08em;
+    background:linear-gradient(180deg,var(--gold-l),var(--gold) 50%,var(--gold-d));-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 22px rgba(243,201,105,.25))}
+  .title p{margin:0;font-size:clamp(14px,1.3vw,16px);line-height:1.8;color:rgba(233,228,214,.78)}
+  .title p em{font-style:italic;color:var(--gold-l)}
+  .count{position:fixed;right:clamp(18px,4vw,56px);top:clamp(18px,4vh,48px);text-align:right;z-index:3;pointer-events:none;font-variant-numeric:oldstyle-nums}
+  .count b{display:block;font-weight:normal;font-size:clamp(34px,4.6vw,60px);color:var(--gold-l);line-height:1;font-style:italic}
+  .count span{font-size:12px;letter-spacing:.3em;color:rgba(233,228,214,.65)}
+  #tag{position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:3;pointer-events:none;text-align:center;opacity:0;transition:opacity .4s;white-space:nowrap}
+  #tag .n{font-size:clamp(46px,8vw,110px);font-style:italic;color:var(--gold-l);line-height:1;text-shadow:0 0 30px rgba(243,201,105,.5)}
+  #tag .s{font-size:clamp(16px,2vw,24px);letter-spacing:.3em;color:var(--ink);margin-top:6px}
+
+  .dock{position:fixed;left:50%;bottom:clamp(12px,3vh,28px);transform:translateX(-50%);z-index:4;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;
+    width:max-content;max-width:calc(100vw - 20px);padding:10px;border-radius:999px;background:rgba(6,10,28,.32);border:1px solid rgba(243,201,105,.22);transition:opacity .8s}
+  .chip{font:inherit;font-size:15px;min-height:42px;min-width:42px;padding:0 14px;border-radius:999px;border:1px solid rgba(233,228,214,.2);background:transparent;color:var(--ink);cursor:pointer;letter-spacing:.08em}
+  .chip:hover,.chip:focus-visible{outline:none;border-color:var(--gold);color:var(--gold-l)}
+  .chip.on{border-color:var(--gold);color:var(--night);background:var(--gold)}
+  .go{font:inherit;font-size:16px;letter-spacing:.2em;min-height:46px;padding:0 22px;border-radius:999px;border:0;cursor:pointer;color:#2a1a00;
+    background:linear-gradient(180deg,var(--gold-l),var(--gold) 60%,var(--gold-d));box-shadow:0 0 24px rgba(243,201,105,.35)}
+  .go:hover,.go:focus-visible{outline:none;box-shadow:0 0 34px rgba(243,201,105,.6)}
+  .go:disabled{opacity:.5;cursor:default}
+  .snd{font-size:13px;letter-spacing:.1em}
+  .hint{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;pointer-events:none;font-style:italic;letter-spacing:.3em;color:rgba(233,228,214,.55);font-size:15px;transition:opacity 1s}
+  .end{position:fixed;left:50%;top:64%;transform:translate(-50%,0);z-index:3;text-align:center;pointer-events:none;opacity:0;transition:opacity 2.4s;width:min(90vw,720px)}
+  .end.on{opacity:1}
+  .end p{margin:0;font-size:clamp(17px,2.1vw,24px);line-height:1.9;letter-spacing:.14em;color:var(--ink);text-shadow:0 2px 16px rgba(0,0,0,.8)}
+  .end small{display:block;margin-top:10px;font-size:12px;letter-spacing:.4em;color:var(--gold)}
+  body.show .title{opacity:.18}
+  @media (max-width:640px){
+    .dock{border-radius:22px;gap:6px;padding:8px}
+    .chip{font-size:14px;padding:0 10px;min-height:40px}
+    .go{padding:0 14px;font-size:15px;letter-spacing:.12em}
+    .title p{display:none}
+    #tag{top:24%}
+  }
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<canvas id="fx" aria-label="Night sky. Click or tap to launch a firework."></canvas>
+<canvas id="refl" aria-hidden="true"></canvas>
+<div id="flash"></div>
+
+<header class="title">
+  <div class="no">No. 100 · Finale</div>
+  <h1>煙火終章</h1>
+  <p>一百個頁面，最後一個只做一件事：在夜空裡放煙火。<br>點哪裡，就往哪裡放。按「一百發」，把前面九十九個一起送上天。<em>比 101 少一層，剛剛好。</em></p>
+</header>
+<div class="count"><b id="cnt">0</b><span>發 · SHELLS</span></div>
+<div id="tag"><div class="n" id="tagN">001</div><div class="s" id="tagS">瑞士國際主義</div></div>
+<div class="hint" id="hint">點 擊 夜 空</div>
+<div class="end" id="end"><p>一百種樣子，都放完了。<br>謝謝你看到最後。</p><small>— FIN · 100 / 100 —</small></div>
+
+<div class="dock" id="dock" role="toolbar" aria-label="煙火種類">
+  <button class="chip on" data-k="mix">隨機</button>
+  <button class="chip" data-k="peony">牡丹</button>
+  <button class="chip" data-k="chrys">菊花</button>
+  <button class="chip" data-k="willow">金柳</button>
+  <button class="chip" data-k="ring">光環</button>
+  <button class="chip" data-k="heart">愛心</button>
+  <button class="chip" data-k="glitter">閃爍</button>
+  <button class="chip" data-k="hundred">100</button>
+  <button class="go" id="finale">放一百發</button>
+  <button class="chip snd" id="snd" aria-pressed="true" aria-label="聲音開關">♪ 開</button>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const bg = $('#bg'), fx = $('#fx'), rf = $('#refl');
+  if (!bg || !fx || !rf) return;
+  const bx = bg.getContext('2d'), cx = fx.getContext('2d'), rx = rf.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = 0, H = 0, DPR = 1, HOR = 0, mobile = false;
+
+  const STYLES = ['瑞士國際主義','建築粗獷主義','蒸汽波','極簡編輯長文','終端機','雜誌拼貼','玻璃擬態','手繪筆記','包浩斯','新擬物','8-bit 街機','裝飾藝術','孟菲斯','捲動敘事','賽博龐克 HUD','日系無印','孔版印刷','擬物收音機','維多利亞大報','生成流場',
+    'Y2K 液態金屬','動態字體','等角小鎮','暗色開發者','北歐家具','工程藍圖','植物標本館','經典 Mac','六〇年代迷幻','字體樣本','構成主義','暗黑學院','太陽龐克','電子雞','Isotype 圖像統計','黑色電影','普普漫畫','九〇年代 Grunge','新粗獷','極光冥想',
+    '打字機 ASCII','台味極繁','水墨山水','LCARS 星艦','紙雕層次','黏土風','電子紙','文字時鐘','放射年曆','原子時代','運動品牌','神秘塔羅','台灣廟宇','1996 個人首頁','全息卡','等高線','爵士唱片','TE 鼓機','示波器','對稱粉彩',
+    '活版印刷','捷運導視','翻牌看板','熱感收據','藏寶圖','熔岩燈','故障藝術','Braun 計算機','重力沙盒','培養皿','黑板證明','彩繪玻璃','低多邊形','霓虹招牌','可愛貼紙','金融終端','樂譜','伊斯蘭幾何','天氣海報','時尚大刊',
+    '片頭設計','元素週期表','歐普藝術','NASA 手冊','維多利亞馬戲','深海','印刷星圖','街頭塗鴉','提基酒吧','浮世繪','1-bit 抖動','降臨曆','奢華香水','傅立葉周轉圓','方格紙數織','地中海','Lo-fi 房間','外星語','魔術方塊','煙火終章'];
+  const PAL = [
+    ['#ffd36b', '#fff1c2'], ['#ff5a5f', '#ffc2b0'], ['#6bc8ff', '#e0f6ff'], ['#b98cff', '#f0e2ff'], ['#63f2a8', '#dfffee'],
+    ['#ff8ad0', '#ffe0f2'], ['#ffffff', '#fff6dc'], ['#ffa24a', '#ffe0b8']
+  ];
+
+  // ---------- background: sky, stars, skyline, river ----------
+  function paintBg() {
+    const g = bx.createLinearGradient(0, 0, 0, HOR);
+    g.addColorStop(0, '#02040e'); g.addColorStop(.55, '#07102a'); g.addColorStop(1, '#1a1f45');
+    bx.fillStyle = g; bx.fillRect(0, 0, W, HOR);
+    let seed = 100; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < W * H / 3500; i++) { const y = r() * HOR * .92; bx.fillStyle = `rgba(255,248,230,${(.15 + r() * .6) * (1 - y / HOR)})`; bx.fillRect(r() * W, y, r() < .1 ? 1.6 : 1, r() < .1 ? 1.6 : 1); }
+    // city: low blocks, and a tall tower of stacked segments (one floor short of the famous one)
+    const base = HOR;
+    bx.fillStyle = '#060a1c';
+    let x = 0;
+    while (x < W) { const w = 14 + r() * 50, h = 10 + r() * (mobile ? 40 : 70) * (1 - Math.abs(x / W - .6)); bx.fillRect(x, base - h, w, h + 1); x += w; }
+    const tx = W * (mobile ? .72 : .7), tw = Math.min(46, W * .06), seg = Math.min(24, W * .035, H * .028), tb = base - seg * 2.2;
+    bx.fillRect(tx - tw * .7, tb, tw * 1.4, seg * 2.2);
+    for (let i = 0; i < 8; i++) {
+      const y = tb - (i + 1) * seg;
+      bx.beginPath(); bx.moveTo(tx - tw * .42, y + seg); bx.lineTo(tx - tw * .55, y + 2); bx.lineTo(tx + tw * .55, y + 2); bx.lineTo(tx + tw * .42, y + seg); bx.closePath(); bx.fill();
+      bx.fillStyle = 'rgba(255,214,140,.55)'; for (let k = 0; k < 5; k++) bx.fillRect(tx - tw * .4 + k * tw * .19, y + seg * .45, 2, 2); bx.fillStyle = '#060a1c';
+    }
+    const top = tb - 8 * seg;
+    bx.fillRect(tx - tw * .3, top - seg * .9, tw * .6, seg * .9);
+    bx.fillRect(tx - 1.5, top - seg * 3.2, 3, seg * 2.4);
+    bx.fillStyle = '#ff4a4a'; bx.beginPath(); bx.arc(tx, top - seg * 3.2, 2.2, 0, 7); bx.fill();
+    // windows twinkle in the low blocks
+    for (let i = 0; i < W / 6; i++) { bx.fillStyle = `rgba(255,${190 + r() * 50},${120 + r() * 60},${.25 + r() * .5})`; bx.fillRect(r() * W, base - 6 - r() * 50, 1.5, 1.5); }
+    // river
+    const wg = bx.createLinearGradient(0, HOR, 0, H);
+    wg.addColorStop(0, '#0b1433'); wg.addColorStop(1, '#02030a');
+    bx.fillStyle = wg; bx.fillRect(0, HOR, W, H - HOR);
+    bx.fillStyle = 'rgba(255,214,140,.08)'; bx.fillRect(0, HOR, W, 1);
+  }
+
+  function resize() {
+    DPR = Math.min(mobileCheck() ? 1.5 : 1.6, devicePixelRatio || 1);
+    W = innerWidth; H = innerHeight; mobile = W < 640;
+    HOR = Math.round(H * (mobile ? .8 : .78));
+    [bg, fx, rf].forEach(c => { c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); });
+    [bx, cx, rx].forEach(c => c.setTransform(DPR, 0, 0, DPR, 0, 0));
+    paintBg();
+  }
+  function mobileCheck() { return innerWidth < 640; }
+
+  // ---------- sound ----------
+  let ac = null, soundOn = true, master = null, noiseB = null;
+  let gestured = false;
+  ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => { gestured = true; }, { capture: true }));
+  function audio() {
+    if (!soundOn || !gestured) return null;
+    try {
+      if (!ac) {
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        master = ac.createGain(); master.gain.value = .6;
+        const comp = ac.createDynamicsCompressor(); master.connect(comp); comp.connect(ac.destination);
+        const n = ac.sampleRate * 2; noiseB = ac.createBuffer(1, n, ac.sampleRate); const d = noiseB.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      }
+      if (ac.state === 'suspended') ac.resume();
+      return ac;
+    } catch (_) { return null; }
+  }
+  function whistle(dur) {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime, o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(700 + Math.random() * 300, t); o.frequency.exponentialRampToValueAtTime(1800 + Math.random() * 900, t + dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.025, t + .1); g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .05);
+  }
+  function boom(size, pan) {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime + .02, s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = noiseB; f.type = 'lowpass'; f.frequency.setValueAtTime(1800, t); f.frequency.exponentialRampToValueAtTime(90, t + 1.4);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.9 * size, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + 2);
+    let out = g;
+    if (a.createStereoPanner) { const p = a.createStereoPanner(); p.pan.value = pan; g.connect(p); out = p; }
+    s.connect(f); f.connect(g); out.connect(master); s.start(t, Math.random()); s.stop(t + 2.1);
+    const o = a.createOscillator(), og = a.createGain(); o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(35, t + .5);
+    og.gain.setValueAtTime(.7 * size, t); og.gain.exponentialRampToValueAtTime(.001, t + .7); o.connect(og); og.connect(master); o.start(t); o.stop(t + .75);
+  }
+  function crackle(n) {
+    const a = audio(); if (!a) return;
+    for (let i = 0; i < n; i++) {
+      const t = a.currentTime + .4 + Math.random() * 1.2, s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+      s.buffer = noiseB; f.type = 'highpass'; f.frequency.value = 3000; g.gain.setValueAtTime(.12 + Math.random() * .12, t); g.gain.exponentialRampToValueAtTime(.001, t + .03);
+      s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random()); s.stop(t + .04);
+    }
+  }
+  const sndB = $('#snd');
+  sndB && sndB.addEventListener('click', e => { e.stopPropagation(); soundOn = !soundOn; sndB.textContent = soundOn ? '♪ 開' : '♪ 關'; sndB.setAttribute('aria-pressed', soundOn); if (master) master.gain.value = soundOn ? .6 : 0; });
+
+  // ---------- particles ----------
+  const rockets = [], parts = [];
+  const MAXP = () => (mobile ? 2200 : 4200) * (reduce ? .4 : 1);
+  let shells = 0;
+  const cntEl = $('#cnt');
+  function launch(tx, ty, kind, opts = {}) {
+    const x0 = opts.x0 != null ? opts.x0 : tx + (Math.random() - .5) * W * .08;
+    const dur = (opts.fast ? .55 : .75) + Math.random() * .25 + (HOR - ty) / H * .35;
+    rockets.push({ x: x0, y: HOR, sx: x0, sy: HOR, tx, ty, t: 0, dur, kind, pal: opts.pal || PAL[Math.floor(Math.random() * PAL.length)], label: opts.label, size: opts.size || 1 });
+    whistle(dur * .9);
+    shells++; if (cntEl) cntEl.textContent = shells;
+  }
+  function spark(x, y, vx, vy, col, life, o = {}) {
+    if (parts.length > MAXP()) return;
+    parts.push({ x, y, vx, vy, col, life, max: life, size: o.size || 1.6, drag: o.drag || .985, grav: o.grav == null ? 55 : o.grav, trail: o.trail || 0, strobe: o.strobe || 0, split: o.split || 0, tx: o.tx, ty: o.ty, px: x, py: y });
+  }
+  function burst(r) {
+    const { x, y, pal, size } = r, S = Math.min(W, H) / 900 * size * (mobile ? 1.25 : 1);
+    const kind = r.kind === 'mix' ? ['peony', 'chrys', 'willow', 'ring', 'glitter', 'peony', 'chrys', 'palm'][Math.floor(Math.random() * 8)] : r.kind;
+    const N = (mobile ? .65 : 1) * (reduce ? .5 : 1);
+    boom(Math.min(1.2, .6 + size * .3), (x / W - .5) * 1.4);
+    flash(size * (kind === 'willow' ? .5 : .8));
+    if (kind === 'peony' || kind === 'chrys' || kind === 'glitter') {
+      const n = Math.round((kind === 'chrys' ? 150 : 120) * N), sp = (kind === 'chrys' ? 260 : 230) * S;
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2, u = Math.cbrt(Math.random() * .3 + .7), v = sp * u;
+        spark(x, y, Math.cos(a) * v, Math.sin(a) * v, i % 5 ? pal[0] : pal[1], 1.5 + Math.random() * .7, { trail: kind === 'chrys' ? 1 : 0, strobe: kind === 'glitter' ? 1 : 0, size: kind === 'glitter' ? 1.3 : 1.8 });
+      }
+      if (kind === 'glitter') crackle(24);
+      if (kind === 'peony') for (let i = 0; i < 26 * N; i++) { const a = Math.random() * 6.283, v = sp * .38; spark(x, y, Math.cos(a) * v, Math.sin(a) * v, '#ffffff', 1.1, { size: 1.4 }); }
+    } else if (kind === 'willow') {
+      const n = Math.round(110 * N), sp = 170 * S;
+      for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, v = sp * (.7 + Math.random() * .3); spark(x, y, Math.cos(a) * v, Math.sin(a) * v - 20, i % 3 ? '#ffc861' : '#fff0c0', 3.2 + Math.random(), { trail: 2.5, drag: .975, grav: 38, size: 1.5 }); }
+      crackle(10);
+    } else if (kind === 'ring') {
+      const n = Math.round(90 * N), sp = 210 * S, tilt = Math.random() * Math.PI, sq = .35 + Math.random() * .4;
+      for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, cx0 = Math.cos(a), cy0 = Math.sin(a) * sq, c = Math.cos(tilt), s = Math.sin(tilt); spark(x, y, (cx0 * c - cy0 * s) * sp, (cx0 * s + cy0 * c) * sp, pal[0], 1.6, { size: 2 }); }
+      for (let i = 0; i < 30 * N; i++) { const a = Math.random() * 6.283; spark(x, y, Math.cos(a) * sp * .3, Math.sin(a) * sp * .3, pal[1], 1, {}); }
+    } else if (kind === 'palm') {
+      const arms = 7;
+      for (let k = 0; k < arms; k++) { const a = -Math.PI / 2 + (k / arms - .5) * 2.6 + (Math.random() - .5) * .2; for (let j = 0; j < 14 * N; j++) { const v = 200 * S * (.55 + j / 30); spark(x, y, Math.cos(a) * v, Math.sin(a) * v, j % 2 ? '#ffd36b' : '#ffe9b0', 2.2, { trail: 1.5, drag: .978, grav: 70, size: 2 }); } }
+    } else if (kind === 'heart') {
+      const n = Math.round(120 * N), sc = 11 * S;
+      for (let i = 0; i < n; i++) { const t = i / n * Math.PI * 2, hx = 16 * Math.pow(Math.sin(t), 3), hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)); spark(x, y, hx * sc, hy * sc, i % 4 ? '#ff6b8b' : '#ffd0dc', 1.8, { drag: .96, grav: 22, size: 2 }); }
+    } else if (kind === 'hundred') {
+      const pts = hundredPts(), w = Math.min(W * (mobile ? .8 : .42), 640), s = w / 300;
+      pts.forEach((p, i) => spark(x, y, 0, 0, i % 6 ? '#ffd36b' : '#fff4d0', 4.2 + Math.random() * .8, { tx: x + (p[0] - 150) * s, ty: y + (p[1] - 60) * s, size: mobile ? 1.8 : 2.2, grav: 8 }));
+      crackle(30);
+    }
+    if (r.label) labelAt(x, y, r.label);
+  }
+  // sample the shape of "100" from an offscreen canvas
+  let HUNDRED = null;
+  function hundredPts() {
+    if (HUNDRED) return HUNDRED;
+    const c = document.createElement('canvas'); c.width = 300; c.height = 120;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.font = 'italic bold 118px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('100', 150, 64);
+    const d = g.getImageData(0, 0, 300, 120).data, pts = [];
+    for (let y = 0; y < 120; y += 3) for (let x = 0; x < 300; x += 3) if (d[(y * 300 + x) * 4 + 3] > 128) pts.push([x + Math.random() * 3, y + Math.random() * 3]);
+    const step = Math.max(1, Math.floor(pts.length / (mobile ? 380 : 620)));
+    HUNDRED = pts.filter((_, i) => i % step === 0);
+    return HUNDRED;
+  }
+  const labels = [];
+  function labelAt(x, y, text) { labels.push({ x, y, text, t: 0 }); }
+
+  const flashEl = $('#flash');
+  function flash(k) { if (!flashEl || reduce) return; flashEl.animate([{ opacity: Math.min(.9, k) }, { opacity: 0 }], { duration: 700, easing: 'ease-out' }); }
+
+  // ---------- main loop ----------
+  let last = performance.now(), T = 0;
+  function frame(now) {
+    const dt = Math.min(.04, (now - last) / 1000); last = now; T += dt;
+    // fade previous frame toward transparent: this is what leaves trails
+    // trails are drawn from each spark's recent history, so the canvas can be cleared cleanly every frame
+    cx.globalCompositeOperation = 'source-over';
+    cx.clearRect(0, 0, W, H);
+    cx.globalCompositeOperation = 'lighter';
+    // rockets
+    for (let i = rockets.length - 1; i >= 0; i--) {
+      const r = rockets[i]; r.t += dt / r.dur;
+      const e = 1 - Math.pow(1 - Math.min(1, r.t), 2.2);
+      const nx = r.sx + (r.tx - r.sx) * e, ny = r.sy + (r.ty - r.sy) * e;
+      r.h = r.h || []; r.h.push([nx, ny]); if (r.h.length > 14) r.h.shift();
+      for (let k = 1; k < r.h.length; k++) { cx.strokeStyle = `rgba(255,220,160,${(k / r.h.length) * .85})`; cx.lineWidth = 1 + k / r.h.length; cx.beginPath(); cx.moveTo(r.h[k - 1][0], r.h[k - 1][1]); cx.lineTo(r.h[k][0], r.h[k][1]); cx.stroke(); }
+      if (Math.random() < .7) spark(nx, ny, (Math.random() - .5) * 20, 30 + Math.random() * 30, '#ffb45e', .45, { size: 1.1, grav: 40 });
+      r.x = nx; r.y = ny;
+      if (r.t >= 1) { rockets.splice(i, 1); burst(r); }
+    }
+    // particles
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      p.life -= dt;
+      if (p.life <= 0) { parts.splice(i, 1); continue; }
+      if (!p.h) p.h = []; p.h.push(p.x, p.y); if (p.h.length > (p.trail ? Math.round(16 * p.trail) * 2 / 2 : 6)) p.h.splice(0, 2);
+      if (p.tx != null) {
+        const age = p.max - p.life;
+        if (age < .8) { const k = 1 - Math.pow(1 - age / .8, 3); p.x = p.x + (p.tx - p.x) * Math.min(1, k * .35 + .08); p.y = p.y + (p.ty - p.y) * Math.min(1, k * .35 + .08); }
+        else { p.vy += p.grav * dt; p.y += p.vy * dt; p.x += Math.sin(T * 3 + i) * .08; }
+      } else {
+        const dr = Math.pow(p.drag, dt * 60);
+        p.vx *= dr; p.vy = p.vy * dr + p.grav * dt;
+        p.x += p.vx * dt; p.y += p.vy * dt;
+      }
+      const k = p.life / p.max;
+      let a = Math.min(1, k * 1.6);
+      if (p.strobe) a *= Math.random() < .5 ? 1 : .1;
+      if (p.tx != null && p.max - p.life > 1) a *= .7 + .3 * Math.sin(T * 20 + i);
+      cx.globalAlpha = a;
+      if (p.h.length >= 4 && p.tx == null) {
+        cx.strokeStyle = p.col; cx.lineWidth = p.size * (p.trail ? .9 : .7);
+        const ga = cx.globalAlpha; cx.globalAlpha = ga * (p.trail ? .55 : .35);
+        cx.beginPath(); cx.moveTo(p.h[0], p.h[1]); for (let q = 2; q < p.h.length; q += 2) cx.lineTo(p.h[q], p.h[q + 1]); cx.lineTo(p.x, p.y); cx.stroke();
+        cx.globalAlpha = ga;
+      }
+      cx.fillStyle = p.col;
+      const s = p.size * (.6 + k * .6);
+      cx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
+    }
+    cx.globalAlpha = 1;
+    // labels written into the sky, in Georgia gold
+    cx.globalCompositeOperation = 'source-over';
+    for (let i = labels.length - 1; i >= 0; i--) {
+      const l = labels[i]; l.t += dt;
+      if (l.t > 1.8) { labels.splice(i, 1); continue; }
+      cx.globalAlpha = Math.min(1, l.t * 3) * Math.max(0, 1 - (l.t - 1) / .8) * .9;
+      cx.fillStyle = '#ffe7a8'; cx.font = `${mobile ? 12 : 14}px Georgia, "PMingLiU", serif`; cx.textAlign = 'center';
+      cx.fillText(l.text, l.x, l.y + 4 - l.t * 6);
+    }
+    cx.globalAlpha = 1;
+    // river reflection: mirror the sky above the horizon, in rippling strips
+    rx.clearRect(0, 0, W, H);
+    const depth = H - HOR, step = 3;
+    for (let y = 0; y < depth; y += step) {
+      const src = HOR - (y + step) * 3.3; if (src < 0) break;
+      const off = Math.sin(y * .09 + T * 2.2) * (1.5 + y * .06);
+      rx.globalAlpha = Math.max(0, .95 - .55 * y / depth);
+      rx.drawImage(fx, 0, src * DPR, W * DPR, step * 3.3 * DPR, off, HOR + y + step, W, -step);
+    }
+    rx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- interaction ----------
+  let kind = 'mix', lastUser = 0;
+  const hint = $('#hint');
+  fx.addEventListener('pointerdown', e => {
+    if (finaleOn) return;
+    lastUser = performance.now();
+    hint && (hint.style.opacity = 0);
+    const ty = Math.min(e.clientY, HOR - 40);
+    launch(e.clientX, Math.max(60, ty), kind);
+  });
+  document.querySelectorAll('.chip[data-k]').forEach(b => b.addEventListener('click', () => {
+    kind = b.dataset.k; document.querySelectorAll('.chip[data-k]').forEach(x => x.classList.toggle('on', x === b));
+    lastUser = performance.now();
+    launch(W * (.3 + Math.random() * .4), H * (.22 + Math.random() * .2), kind);
+  }));
+  addEventListener('keydown', e => {
+    if (e.target && e.target.tagName === 'BUTTON') return;
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); lastUser = performance.now(); launch(W * (.15 + Math.random() * .7), H * (.18 + Math.random() * .3), kind); }
+    if (e.key === 'f' || e.key === 'F') startFinale();
+  });
+
+  // ---------- the finale: one shell for each of the hundred pages ----------
+  let finaleOn = false;
+  const tag = $('#tag'), tagN = $('#tagN'), tagS = $('#tagS'), end = $('#end'), goB = $('#finale'), dock = $('#dock');
+  function startFinale() {
+    if (finaleOn) return;
+    finaleOn = true; lastUser = performance.now(); document.body.classList.add('show');
+    if (goB) goB.disabled = true; if (end) end.classList.remove('on');
+    if (hint) hint.style.opacity = 0;
+    if (tag) tag.style.opacity = 1;
+    let t = 0;
+    for (let i = 0; i < 99; i++) {
+      const k = i / 98;
+      t += (reduce ? 260 : 620 - 470 * Math.pow(k, .7));      // slow at first, then a torrent
+      setTimeout(() => {
+        const n = i + 1, nx = W * (.12 + Math.random() * .76), ny = H * (mobile ? .26 : .14) + Math.random() * H * .34;
+        const kinds = ['peony', 'chrys', 'ring', 'glitter', 'palm', 'willow'];
+        launch(nx, ny, n % 10 === 0 ? 'willow' : kinds[n % kinds.length], { label: `${String(n).padStart(3, '0')} ${STYLES[i]}`, pal: PAL[n % PAL.length], size: .85 + (n / 99) * .35 });
+        if (tagN) tagN.textContent = String(n).padStart(3, '0');
+        if (tagS) tagS.textContent = STYLES[i];
+      }, t);
+    }
+    // No. 100: a curtain of gold willows, then the number itself
+    const tEnd = t + 900;
+    setTimeout(() => {
+      const n = mobile ? 5 : 9;
+      for (let j = 0; j < n; j++) setTimeout(() => launch(W * ((j + .5) / n), H * (.16 + (j % 2) * .06), 'willow', { x0: W * ((j + .5) / n), size: 1.15 }), j * 90);
+      if (tagN) tagN.textContent = '100'; if (tagS) tagS.textContent = STYLES[99];
+    }, tEnd);
+    setTimeout(() => { if (tag) tag.style.opacity = 0; launch(W / 2, H * (mobile ? .36 : .34), 'hundred', { x0: W / 2, size: 1.3 }); }, tEnd + 1600);
+    setTimeout(() => { if (end) end.classList.add('on'); }, tEnd + 3400);
+    setTimeout(() => {
+      finaleOn = false; if (goB) { goB.disabled = false; goB.textContent = '再放一次'; }
+      document.body.classList.remove('show');
+    }, tEnd + 9000);
+    setTimeout(() => { if (end) end.classList.remove('on'); }, tEnd + 14000);
+  }
+  goB && goB.addEventListener('click', startFinale);
+
+  // ambient: if nobody is clicking, the sky keeps itself company
+  setInterval(() => {
+    if (finaleOn || reduce || document.hidden) return;
+    if (performance.now() - lastUser > 7000 && Math.random() < .55) launch(W * (.15 + Math.random() * .7), H * (.16 + Math.random() * .3), 'mix');
+  }, 1400);
+
+  addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(frame);
+  // opening salvo, so the sky is never empty
+  const open = [[.3, .3, 'peony', 0], [.68, .22, 'chrys', 180], [.5, .16, 'willow', 420]];
+  if (!reduce) open.forEach(([x, y, k, d]) => setTimeout(() => launch(W * x, H * y, k, { x0: W * x, fast: true }), d));
+  else launch(W * .5, H * .25, 'peony');
+  setTimeout(() => { if (hint && shells <= 3) hint.style.opacity = 1; }, 3500);
+  if (hint) hint.style.opacity = 0;
+})();
+</script>
+</body>
+</html>

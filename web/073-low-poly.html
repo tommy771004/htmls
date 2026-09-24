@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Facets at Dusk — low-poly terrain generator</title>
+<meta name="description" content="夕陽低多邊形山谷持續飛行，六角控制鈕調地勢水位光線。收錄於 100 Creative HTML Works（073・低多邊形）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/073-low-poly.html">
+<style>
+  :root{
+    --ink:#fff4ea;
+    --dim:rgba(255,236,220,.66);
+    --peach:#ffb07c;
+    --coral:#ef7b67;
+    --plum:#3a2450;
+    --ui:"Segoe UI Semilight","Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:#2c2350;color:var(--ink);font-family:var(--ui);font-weight:300;overflow:hidden}
+  canvas#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  canvas#scene.drag{cursor:grabbing}
+
+  .title{position:fixed;left:clamp(16px,3.4vw,52px);top:clamp(16px,4vh,44px);pointer-events:none;max-width:min(560px,70vw)}
+  .kicker{font-size:12px;letter-spacing:.42em;text-transform:uppercase;color:var(--dim);margin:0 0 .9em;display:flex;align-items:center;gap:.8em}
+  .kicker svg{width:18px;height:16px}
+  h1{margin:0;font-weight:200;font-family:"Segoe UI Light","Segoe UI",var(--ui);font-size:clamp(44px,7.4vw,112px);line-height:.9;letter-spacing:-.035em;
+    text-shadow:0 2px 30px rgba(80,20,60,.35)}
+  h1 b{font-weight:600;font-family:"Segoe UI Semibold","Segoe UI",var(--ui);letter-spacing:-.05em;
+    background:linear-gradient(115deg,#fff1dc 0 38%,#ffc89a 38% 62%,#ff9a78 62%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-shadow:0 1px 8px rgba(40,10,40,.6);margin:.9em 0 0;font-size:clamp(13px,1.1vw,15px);color:var(--dim);letter-spacing:.02em;line-height:1.5}
+
+  .stats{position:fixed;right:clamp(16px,3.4vw,52px);top:clamp(16px,4vh,44px);text-align:right;pointer-events:none;display:grid;gap:14px}
+  .stat span{display:block;font-size:10.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--dim)}
+  .stat b{font-weight:300;font-size:clamp(20px,2vw,28px);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .stat b small{font-size:.5em;color:var(--dim);margin-left:.2em;letter-spacing:.1em}
+
+  /* ---------- faceted control strip ---------- */
+  .strip{
+    position:fixed;left:50%;bottom:clamp(12px,3vh,30px);transform:translateX(-50%);
+    display:flex;align-items:flex-end;gap:clamp(14px,2.2vw,34px);
+    padding:14px 22px 14px;max-width:calc(100vw - 24px);
+    background:linear-gradient(160deg,rgba(40,24,62,.72) 0 50%,rgba(52,30,74,.72) 50%);
+    clip-path:polygon(18px 0,calc(100% - 30px) 0,100% 22px,calc(100% - 12px) 100%,0 100%,0 26px);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  }
+  .grp{display:flex;flex-direction:column;gap:7px}
+  .grp > span{font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+  .row{display:flex;gap:4px}
+  .ic{
+    width:44px;height:44px;border:0;padding:0;cursor:pointer;background:transparent;color:var(--ink);position:relative;
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+    background:linear-gradient(135deg,rgba(255,255,255,.10) 0 50%,rgba(255,255,255,.04) 50%);
+    transition:background .35s ease, transform .25s cubic-bezier(.3,1.5,.5,1);
+  }
+  .ic svg{width:26px;height:26px;display:block;margin:auto}
+  .ic:hover{background:linear-gradient(135deg,rgba(255,255,255,.2) 0 50%,rgba(255,255,255,.09) 50%)}
+  .ic[aria-pressed="true"]{background:linear-gradient(135deg,var(--peach) 0 50%,var(--coral) 50%);color:#3a1d3f;transform:translateY(-3px)}
+  .ic:focus-visible{outline:none;background:linear-gradient(135deg,#fff 0 50%,#ffd9c2 50%);color:#3a1d3f}
+  .reroll{
+    min-width:118px;height:44px;border:0;cursor:pointer;font-family:var(--ui);font-size:14px;color:#3a1d3f;letter-spacing:.06em;
+    background:linear-gradient(120deg,#ffe0b8 0 45%,#ffc28f 45% 72%,#ff9f7c 72%);
+    clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);padding:0 18px;
+    display:flex;align-items:center;gap:8px;justify-content:center;transition:filter .2s;
+  }
+  .reroll:hover,.reroll:focus-visible{filter:brightness(1.1);outline:none}
+  .reroll b{font-weight:600;font-variant-numeric:tabular-nums}
+  .hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(clamp(12px,3vh,30px) + 102px);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);pointer-events:none;white-space:nowrap;transition:opacity 1s}
+
+  @media (max-width:760px){
+    .strip{flex-wrap:wrap;justify-content:center;gap:10px 16px;padding:12px 14px;width:calc(100vw - 20px);
+      clip-path:polygon(14px 0,calc(100% - 20px) 0,100% 16px,100% 100%,0 100%,0 18px)}
+    .ic{width:40px;height:44px}
+    .ic svg{width:22px;height:22px}
+    .reroll{min-width:0;height:44px}
+    .stats{top:auto;bottom:auto;right:16px;top:calc(clamp(16px,4vh,44px) + 150px);gap:8px}
+    .stat b{font-size:18px}
+    .hint{display:none}
+    .title{max-width:calc(100vw - 32px)}
+  }
+</style>
+</head>
+<body>
+<canvas id="scene" aria-label="Animated low-poly landscape at sunset. Drag to look around." role="img"></canvas>
+
+<header class="title">
+  <p class="kicker"><svg viewBox="0 0 18 16" aria-hidden="true"><path d="M0 16 7 3l4 7 3-4 4 10z" fill="#ffb07c"/><path d="M7 3l4 7-4 6z" fill="#ef7b67"/></svg>Terrain N° 073 · Generator</p>
+  <h1>Facets<br>at <b>Dusk</b></h1>
+  <p class="sub" id="sub">A valley folded out of triangles, flown at golden hour.</p>
+</header>
+
+<div class="stats" aria-live="polite">
+  <div class="stat"><span>Highest peak</span><b id="sPeak">0<small>M</small></b></div>
+  <div class="stat"><span>Triangles</span><b id="sTri">0</b></div>
+  <div class="stat"><span>Distance flown</span><b id="sDist">0.0<small>KM</small></b></div>
+</div>
+
+<p class="hint" id="hint">drag to look around · space to hover</p>
+
+<nav class="strip" aria-label="Terrain controls">
+  <div class="grp"><span>Relief</span><div class="row" id="gRelief"></div></div>
+  <div class="grp"><span>Water</span><div class="row" id="gSea"></div></div>
+  <div class="grp"><span>Light</span><div class="row" id="gLight"></div></div>
+  <div class="grp"><span>Flight</span><div class="row">
+    <button class="ic" id="fly" aria-pressed="true" aria-label="Fly / hover (space)"><svg viewBox="0 0 26 26" aria-hidden="true"><path id="flyIcon" d="M6 20 13 5l7 15-7-4z" fill="currentColor"/></svg></button>
+    <button class="reroll" id="reroll" type="button" aria-label="New seed (R)">Seed <b id="seedNo">#0000</b></button>
+  </div></div>
+</nav>
+
+<script>
+(() => {
+  const cv = document.getElementById('scene');
+  if (!cv) return;
+  const ctx = cv.getContext('2d', { alpha: false });
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------------- noise ---------------- */
+  let perm = new Uint8Array(512), seed = 4187;
+  function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function reseed(s) {
+    const r = mulberry(s), p = Array.from({ length: 256 }, (_, i) => i);
+    for (let i = 255; i > 0; i--) { const j = (r() * (i + 1)) | 0; [p[i], p[j]] = [p[j], p[i]]; }
+    for (let i = 0; i < 512; i++) perm[i] = p[i & 255];
+    jitterCache.clear();
+  }
+  const fade = t => t * t * t * (t * (t * 6 - 15) + 10);
+  function grad(h, x, y) { const g = h & 7; const u = g < 4 ? x : y, v = g < 4 ? y : x; return ((g & 1) ? -u : u) + ((g & 2) ? -2 * v : 2 * v); }
+  function noise(x, y) {
+    const X = Math.floor(x) & 255, Y = Math.floor(y) & 255; x -= Math.floor(x); y -= Math.floor(y);
+    const u = fade(x), v = fade(y), A = perm[X] + Y, B = perm[X + 1] + Y;
+    const l = (a, b, t) => a + t * (b - a);
+    return l(l(grad(perm[A], x, y), grad(perm[B], x - 1, y), u), l(grad(perm[A + 1], x, y - 1), grad(perm[B + 1], x - 1, y - 1), u), v) * .5;
+  }
+  const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const jitterCache = new Map();
+  function hash2(i, j) { let h = (i * 374761393 + j * 668265263 + seed * 97) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+
+  /* ---------------- presets ---------------- */
+  const RELIEF = [
+    { n: 'Meadow', amp: 1.4, ridge: 0 }, { n: 'Hills', amp: 2.6, ridge: .15 }, { n: 'Ridges', amp: 4.2, ridge: .45 },
+    { n: 'Alps', amp: 6.2, ridge: .7 }, { n: 'Karakoram', amp: 8.6, ridge: .9 }
+  ];
+  const SEA = [{ n: 'Dry', v: -9 }, { n: 'River', v: .35 }, { n: 'Lakes', v: .9 }, { n: 'Fjords', v: 1.7 }];
+  const LIGHTS = [
+    { n: 'Golden hour', sub: 'A valley folded out of triangles, flown at golden hour.',
+      sky: [[44, 32, 86], [122, 58, 112], [228, 104, 94], [255, 184, 112]], sun: [255, 214, 140], sunY: .05, sunVis: 1,
+      amb: [92, 56, 110], key: [255, 170, 110], fog: [240, 150, 116], water: [70, 60, 128], stars: 0 },
+    { n: 'Afterglow', sub: 'The sun has gone; the peaks keep a little of it.',
+      sky: [[28, 24, 66], [86, 44, 108], [196, 78, 110], [242, 136, 96]], sun: [255, 150, 120], sunY: -.02, sunVis: .35,
+      amb: [70, 48, 104], key: [230, 110, 120], fog: [200, 100, 120], water: [52, 44, 104], stars: .35 },
+    { n: 'Blue hour', sub: 'Everything turns to slate and violet. Stars come out over the ridges.',
+      sky: [[10, 14, 44], [26, 38, 88], [62, 78, 138], [120, 108, 160]], sun: [190, 200, 255], sunY: -.08, sunVis: 0,
+      amb: [40, 46, 92], key: [120, 130, 200], fog: [84, 90, 146], water: [30, 38, 84], stars: 1 }
+  ];
+  let relief = 3, sea = 1, lightIdx = 0;
+  let L = JSON.parse(JSON.stringify(LIGHTS[0]));
+  let ampNow = RELIEF[relief].amp, ridgeNow = RELIEF[relief].ridge, seaNow = SEA[sea].v;
+
+  /* ---------------- terrain ---------------- */
+  const COLS = 40, ROWS = 44, SP = 1;
+  const meander = k => Math.sin(k * .045) * 4.5 + Math.sin(k * .013 + 1) * 3;
+  function heightAt(xw, kw) {
+    const fx = xw * .11, fz = kw * .11;
+    let n = 0, a = 1, f = 1, norm = 0;
+    for (let o = 0; o < 4; o++) { n += noise(fx * f + 13.1, fz * f + 7.7) * a; norm += a; a *= .5; f *= 2.03; }
+    n /= norm;                                        // ~ -0.5 .. 0.5
+    const r = 1 - Math.abs(noise(fx * .8 + 51, fz * .8 + 3) * 2); // ridged
+    let h = (n + .5) * (1 - ridgeNow) + r * r * ridgeNow;
+    const v = smooth(1.2, 11, Math.abs(xw - meander(kw)));   // valley along the river
+    return (h * (.18 + .82 * v)) * ampNow + v * ampNow * .15;
+  }
+  function vert(i, k) {   // i: column, k: absolute row index
+    const key = i * 100000 + k;
+    let j = jitterCache.get(key);
+    if (!j) { j = [(hash2(i, k) - .5) * .7, (hash2(k, i + 999) - .5) * .7]; jitterCache.set(key, j); if (jitterCache.size > 20000) jitterCache.clear(); }
+    return j;
+  }
+
+  /* ---------------- camera ---------------- */
+  let W = 0, H = 0, dpr = 1, f = 600, cx = 0, cy = 0;
+  let travel = 0, speed = 2.2, flying = !reduce, yaw = 0, yawTarget = 0, dist = 0;
+  const pitch = .24, camH = 6.4;
+
+  function resize() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = innerWidth; H = innerHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    f = Math.max(W, H * 1.1) * .62;
+    cx = W / 2; cy = H * (W < 700 ? .5 : .52);
+  }
+
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const rgb = c => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
+
+  // palette by altitude (0..1)
+  const BANDS = [
+    [0.00, [232, 168, 120]], // sand
+    [0.10, [206, 120, 92]],  // warm grass
+    [0.32, [150, 82, 100]],  // heather
+    [0.55, [98, 64, 104]],   // rock
+    [0.78, [120, 96, 132]],  // high rock
+    [0.86, [255, 222, 204]]  // peach-lit snow
+  ];
+  function bandColor(t) {
+    for (let i = BANDS.length - 1; i >= 0; i--) if (t >= BANDS[i][0]) return BANDS[i][1];
+    return BANDS[0][1];
+  }
+
+  // precomputed star field
+  const stars = Array.from({ length: 140 }, (_, i) => [hash2(i, 7), hash2(i, 13) * .55, .4 + hash2(i, 19) * 1.3]);
+  // low-poly clouds
+  const clouds = Array.from({ length: 6 }, (_, i) => ({ x: hash2(i, 3), y: .08 + hash2(i, 5) * .22, w: .1 + hash2(i, 9) * .14, s: .004 + hash2(i, 11) * .006 }));
+
+  let peak = 0;
+  function draw(t) {
+    const horizon = cy - f * Math.tan(pitch);
+    // ---------- sky ----------
+    const g = ctx.createLinearGradient(0, 0, 0, horizon + 40);
+    g.addColorStop(0, rgb(L.sky[0])); g.addColorStop(.45, rgb(L.sky[1])); g.addColorStop(.8, rgb(L.sky[2])); g.addColorStop(1, rgb(L.sky[3]));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    if (L.stars > .01) {
+      ctx.fillStyle = '#fff';
+      stars.forEach(s => {
+        const tw = .6 + .4 * Math.sin(t * 1.3 + s[0] * 50);
+        ctx.globalAlpha = L.stars * tw * .8 * (1 - s[1] / .6);
+        ctx.fillRect(s[0] * W, s[1] * horizon, s[2], s[2]);
+      });
+      ctx.globalAlpha = 1;
+    }
+    // sun (faceted disc) + glow
+    const sunYaw = W < 700 ? .18 : .38;
+    const sx = cx + f * Math.tan(sunYaw - yaw), sy = horizon - L.sunY * H * 1.4;
+    const glow = ctx.createRadialGradient(sx, horizon, 0, sx, horizon, Math.max(W, H) * .7);
+    glow.addColorStop(0, `rgba(${L.sun[0] | 0},${L.sun[1] | 0},${L.sun[2] | 0},${.55 * Math.max(.25, L.sunVis)})`);
+    glow.addColorStop(.35, `rgba(${L.sun[0] | 0},${L.sun[1] | 0},${L.sun[2] | 0},${.12 * Math.max(.2, L.sunVis)})`);
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, horizon + 60);
+    if (L.sunVis > .02) {
+      const R = Math.min(W, H) * .075, n = 9;
+      for (let i = 0; i < n; i++) {
+        const a0 = i / n * Math.PI * 2 + .2, a1 = (i + 1) / n * Math.PI * 2 + .2;
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + Math.cos(a0) * R, sy + Math.sin(a0) * R); ctx.lineTo(sx + Math.cos(a1) * R, sy + Math.sin(a1) * R); ctx.closePath();
+        const sh = .86 + .14 * Math.cos(a0 - 2.4);
+        ctx.fillStyle = `rgba(${Math.min(255, L.sun[0] * sh + 20) | 0},${L.sun[1] * sh | 0},${L.sun[2] * sh * .9 | 0},${L.sunVis})`;
+        ctx.fill();
+      }
+    }
+    // clouds: flat faceted slivers
+    clouds.forEach((c, i) => {
+      const x = (((c.x + t * c.s * (reduce ? 0 : 1)) % 1.4) - .2) * W - yaw * f * .3, y = c.y * horizon, w = c.w * W, h = w * .12;
+      const top = mix(L.sky[3], [255, 255, 255], .25), bot = mix(L.sky[1], L.sky[2], .5);
+      ctx.fillStyle = `rgba(${top[0] | 0},${top[1] | 0},${top[2] | 0},.55)`;
+      ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x + w * .3, y - h * .6); ctx.lineTo(x + w * .55, y); ctx.lineTo(x + w * .78, y - h); ctx.lineTo(x + w, y + h); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = `rgba(${bot[0] | 0},${bot[1] | 0},${bot[2] | 0},.5)`;
+      ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w * .6, y + h * 1.8); ctx.closePath(); ctx.fill();
+    });
+    // distant range (silhouette layers)
+    for (let layer = 0; layer < 2; layer++) {
+      const col = mix(L.fog, L.sky[1], layer ? .1 : .4);
+      ctx.fillStyle = rgb(col);
+      ctx.beginPath(); ctx.moveTo(0, H);
+      const n = Math.max(10, Math.round(W / 42)), step = W / (n - 1);
+      for (let i = 0; i < n; i++) {
+        const xx = i * step, u = (xx - W / 2) / 720 + yaw * 1.2 + layer * 3.3;
+        const hh = (Math.abs(noise(u * 5.5 + layer * 9, 4.2)) * 1.6 + noise(u * 13 + 2, 1.1) * .35 + .15) * H * (layer ? .05 : .07);
+        ctx.lineTo(xx, horizon - Math.max(2, hh));
+      }
+      ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+    }
+
+    // ---------- terrain ----------
+    const base = Math.floor(travel), frac = travel - base;
+    const camX = meander(travel + 2) * .9;
+    const camY = camH + Math.max(seaNow, heightAt(camX, travel + 2)) * .55;
+    const cyaw = Math.cos(yaw), syaw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const sunDir = norm3([Math.sin(sunYaw) * .9, .28 + L.sunY * 2.5, Math.cos(sunYaw)]);
+    const P = new Array((ROWS + 1) * (COLS + 1));
+    const Y = new Float32Array((ROWS + 1) * (COLS + 1));
+    const WX = new Float32Array(P.length), WZ = new Float32Array(P.length);
+    peak = 0;
+    for (let r = 0; r <= ROWS; r++) {
+      const k = base + r;
+      for (let c = 0; c <= COLS; c++) {
+        const j = vert(c, k);
+        const xw = (c - COLS / 2) * SP + j[0] + camX * 0, kw = k + j[1];
+        let h = heightAt(xw, kw);
+        peak = Math.max(peak, h);
+        const wet = h < seaNow;
+        if (wet) h = seaNow + (reduce ? 0 : Math.sin(t * 1.6 + c * 1.7 + k * 2.3) * .05);
+        const idx = r * (COLS + 1) + c;
+        Y[idx] = wet ? -1e-4 - h : h;   // negative sign flag for water (h always > -9)
+        WX[idx] = xw; WZ[idx] = kw;
+        // camera space
+        let x = xw - camX, y = h - camY, z = (kw - travel) + 1.2;
+        const x2 = x * cyaw - z * syaw, z2 = x * syaw + z * cyaw;
+        const y3 = y * cp + z2 * sp, z3 = -y * sp + z2 * cp;
+        P[idx] = z3 > .15 ? [cx + f * x2 / z3, cy - f * y3 / z3, z3] : null;
+      }
+    }
+    const fogStart = ROWS * .3, fogEnd = ROWS * .95;
+    const ampRef = Math.max(1, ampNow * 1.1);
+    let tri = 0;
+    ctx.lineJoin = 'round'; ctx.lineWidth = .8;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      for (let c = 0; c < COLS; c++) {
+        const i00 = r * (COLS + 1) + c, i10 = i00 + 1, i01 = i00 + COLS + 1, i11 = i01 + 1;
+        const flip = ((c + base + r) & 1) === 0;
+        const tris = flip ? [[i00, i10, i11], [i00, i11, i01]] : [[i00, i10, i01], [i10, i11, i01]];
+        for (const T of tris) {
+          const a = P[T[0]], b = P[T[1]], d = P[T[2]];
+          if (!a || !b || !d) continue;
+          // screen cull
+          const minx = Math.min(a[0], b[0], d[0]), maxx = Math.max(a[0], b[0], d[0]);
+          if (maxx < -20 || minx > W + 20) continue;
+          const ya = Y[T[0]], yb = Y[T[1]], yd = Y[T[2]];
+          const water = ya < 0 && yb < 0 && yd < 0;
+          const ha = Math.abs(ya), hb = Math.abs(yb), hd = Math.abs(yd);
+          // normal
+          const ux = WX[T[1]] - WX[T[0]], uy = hb - ha, uz = WZ[T[1]] - WZ[T[0]];
+          const vx = WX[T[2]] - WX[T[0]], vy = hd - ha, vz = WZ[T[2]] - WZ[T[0]];
+          let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+          if (ny < 0) { nx = -nx; ny = -ny; nz = -nz; }
+          const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl;
+          const lam = Math.max(0, nx * sunDir[0] + ny * sunDir[1] + nz * sunDir[2]);
+          let col;
+          if (water) {
+            const sparkle = Math.max(0, 1 - Math.abs((a[0] + b[0] + d[0]) / 3 - sx) / (W * .16));
+            col = mix(L.water, L.sky[2], .18 + (1 - ny) * 6 + (hash2(c, base + r) - .5) * .12);
+            col = mix(col, L.sun, sparkle * sparkle * .85 * Math.max(.3, L.sunVis));
+          } else {
+            const hm = (ha + hb + hd) / 3;
+            const alt = Math.max(0, (hm - seaNow)) / ampRef;
+            const bc = bandColor(alt + (hash2(c, base + r) - .5) * .06);
+            const lit = [L.amb[0] / 255 + L.key[0] / 255 * lam * 1.05, L.amb[1] / 255 + L.key[1] / 255 * lam * 1.05, L.amb[2] / 255 + L.key[2] / 255 * lam * 1.05];
+            col = [bc[0] * lit[0], bc[1] * lit[1], bc[2] * lit[2]];
+          }
+          const z = (a[2] + b[2] + d[2]) / 3;
+          const fz = smooth(fogStart, fogEnd, z);
+          col = mix(col, L.fog, Math.pow(fz, 1.3) * .92);
+          // far rows fade in from the horizon so new land never pops
+          if (r > ROWS - 4) col = mix(col, L.fog, (r - (ROWS - 4)) / 4);
+          const s = rgb(col);
+          ctx.fillStyle = s; ctx.strokeStyle = s;
+          ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(d[0], d[1]); ctx.closePath();
+          ctx.fill(); ctx.stroke();
+          tri++;
+        }
+      }
+    }
+    return tri;
+  }
+  function norm3(v) { const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; }
+
+  /* ---------------- UI ---------------- */
+  const $ = id => document.getElementById(id);
+  const mtn = h => { // low-poly mountain icon with facet shading
+    const top = 22 - h;
+    return `<svg viewBox="0 0 26 26" aria-hidden="true"><path d="M2 23 ${9} ${top} 13 ${top + 4} 24 23z" fill="currentColor" opacity=".55"/><path d="M9 ${top} 13 ${top + 4} 10 23 2 23z" fill="currentColor"/>${h > 12 ? `<path d="M9 ${top} 11 ${top + 3} 8 ${top + 3}z" fill="#fff" opacity=".85"/>` : ''}</svg>`;
+  };
+  const wave = n => `<svg viewBox="0 0 26 26" aria-hidden="true"><path d="M2 20 8 8 14 16 19 9 24 20z" fill="currentColor" opacity=".35"/>${n > 0 ? `<path d="M2 ${24 - n * 3.2} L8 ${22.5 - n * 3.2} L14 ${24 - n * 3.2} L19 ${22.5 - n * 3.2} L24 ${24 - n * 3.2} V24 H2z" fill="currentColor"/>` : '<path d="M4 23h18" stroke="currentColor" stroke-width="1.5"/>'}</svg>`;
+  const sunIc = i => `<svg viewBox="0 0 26 26" aria-hidden="true"><path d="M2 18h22" stroke="currentColor" stroke-width="1.5"/>${i === 0 ? '<path d="M13 8 18 11 18 16 8 16 8 11z" fill="currentColor"/>' : i === 1 ? '<path d="M7 18 10 13 16 13 19 18z" fill="currentColor"/><path d="M5 22h16" stroke="currentColor" stroke-width="1" opacity=".5"/>' : '<path d="M15 5a6 6 0 1 0 5 9 5 5 0 0 1-5-9z" fill="currentColor"/><path d="M6 8l1 2 2 1-2 1-1 2-1-2-2-1 2-1z" fill="currentColor" opacity=".7"/>'}</svg>`;
+
+  function group(el, items, iconFn, getIdx, setIdx, label) {
+    if (!el) return [];
+    return items.map((it, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'ic'; b.innerHTML = iconFn(i);
+      b.setAttribute('aria-label', label + ': ' + it.n); b.title = it.n;
+      b.setAttribute('aria-pressed', i === getIdx() ? 'true' : 'false');
+      b.addEventListener('click', () => { setIdx(i); refresh(); });
+      el.appendChild(b); return b;
+    });
+  }
+  let bR = [], bS = [], bL = [];
+  function refresh() {
+    bR.forEach((b, i) => b.setAttribute('aria-pressed', i === relief ? 'true' : 'false'));
+    bS.forEach((b, i) => b.setAttribute('aria-pressed', i === sea ? 'true' : 'false'));
+    bL.forEach((b, i) => b.setAttribute('aria-pressed', i === lightIdx ? 'true' : 'false'));
+  }
+  bR = group($('gRelief'), RELIEF, i => mtn(4 + i * 4), () => relief, i => { relief = i; }, 'Relief');
+  bS = group($('gSea'), SEA, i => wave(i), () => sea, i => { sea = i; }, 'Water');
+  bL = group($('gLight'), LIGHTS, i => sunIc(i), () => lightIdx, i => setLight(i), 'Light');
+
+  function setLight(i) {
+    lightIdx = i;
+    const sub = $('sub'); if (sub) sub.textContent = LIGHTS[i].sub;
+    document.body.style.background = rgb(LIGHTS[i].sky[0]);
+  }
+  const lerpObj = (cur, tgt, k) => {
+    for (const key in tgt) {
+      if (Array.isArray(tgt[key])) {
+        if (Array.isArray(tgt[key][0])) tgt[key].forEach((c, i) => { for (let j = 0; j < 3; j++) cur[key][i][j] += (c[j] - cur[key][i][j]) * k; });
+        else for (let j = 0; j < 3; j++) cur[key][j] += (tgt[key][j] - cur[key][j]) * k;
+      } else if (typeof tgt[key] === 'number') cur[key] += (tgt[key] - cur[key]) * k;
+    }
+  };
+
+  const flyBtn = $('fly'), flyIcon = $('flyIcon');
+  function setFly(v) {
+    flying = v;
+    if (flyBtn) flyBtn.setAttribute('aria-pressed', v ? 'true' : 'false');
+    if (flyIcon) flyIcon.setAttribute('d', v ? 'M6 20 13 5l7 15-7-4z' : 'M8 6h3v14H8zM15 6h3v14h-3z');
+  }
+  if (flyBtn) flyBtn.addEventListener('click', () => setFly(!flying));
+  setFly(flying);
+
+  function newSeed() {
+    seed = 1000 + Math.floor(Math.random() * 8999);
+    reseed(seed);
+    const s = $('seedNo'); if (s) s.textContent = '#' + seed;
+  }
+  const rr = $('reroll'); if (rr) rr.addEventListener('click', newSeed);
+  reseed(seed); { const s = $('seedNo'); if (s) s.textContent = '#' + seed; }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === ' ') { e.preventDefault(); setFly(!flying); }
+    else if (e.key === 'r' || e.key === 'R') newSeed();
+    else if (/^[1-5]$/.test(e.key)) { relief = +e.key - 1; refresh(); }
+    else if (e.key === 'ArrowLeft') yawTarget = Math.max(-.55, yawTarget - .12);
+    else if (e.key === 'ArrowRight') yawTarget = Math.min(.55, yawTarget + .12);
+  });
+
+  // drag to look around
+  let drag = null;
+  cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y0: yawTarget }; cv.classList.add('drag'); try { cv.setPointerCapture(e.pointerId); } catch (_) {} const h = $('hint'); if (h) h.style.opacity = '0'; });
+  cv.addEventListener('pointermove', e => { if (!drag) return; yawTarget = Math.max(-.55, Math.min(.55, drag.y0 - (e.clientX - drag.x) / W * 1.2)); });
+  const up = () => { drag = null; cv.classList.remove('drag'); };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+  /* ---------------- loop ---------------- */
+  let last = performance.now(), running = true, raf = 0, statT = 0;
+  function loop(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    const k = 1 - Math.pow(.02, dt);
+    ampNow += (RELIEF[relief].amp - ampNow) * k * 1.4;
+    ridgeNow += (RELIEF[relief].ridge - ridgeNow) * k * 1.4;
+    seaNow += (SEA[sea].v - seaNow) * (sea === 0 || seaNow < -2 ? 1 : k * 1.4);
+    lerpObj(L, LIGHTS[lightIdx], k);
+    yaw += (yawTarget - yaw) * k * 2;
+    if (flying) { travel += speed * dt; dist += speed * dt * .12; }
+    const tri = draw(now / 1000);
+    if (now - statT > 250) {
+      statT = now;
+      const p = $('sPeak'); if (p) p.innerHTML = Math.round(Math.max(0, peak - Math.max(0, seaNow)) * 412 + 180).toLocaleString('en-US') + '<small>M</small>';
+      const t = $('sTri'); if (t) t.textContent = tri.toLocaleString('en-US');
+      const d = $('sDist'); if (d) d.innerHTML = dist.toFixed(1) + '<small>KM</small>';
+    }
+    if (running) raf = requestAnimationFrame(loop);
+  }
+  document.addEventListener('visibilitychange', () => {
+    running = !document.hidden; cancelAnimationFrame(raf);
+    if (running) { last = performance.now(); raf = requestAnimationFrame(loop); }
+  });
+  window.addEventListener('resize', resize);
+  resize();
+  raf = requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

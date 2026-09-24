@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>潮汐捷運 路網圖與路線規劃 · Tide Metro</title>
+<meta name="description" content="五線虛構路網圖，含轉乘懲罰的最短路線與導視牌乘車步驟。收錄於 100 Creative HTML Works（062・捷運導視）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/062-metro-wayfinding.html">
+<style>
+:root{
+  --ink:#1d1d1f;
+  --grey:#6b6e73;
+  --line:#e4e5e7;
+  --bg:#ffffff;
+  --R:#e3312d; --B:#0a6fc2; --G:#119a4b; --O:#f39a1e; --Y:#f5c400;
+  --sans: Bahnschrift, "DIN Alternate", "DIN Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --zh: "Microsoft JhengHei", "微軟正黑體", "PingFang TC", "Noto Sans TC", "Heiti TC", sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:var(--zh);-webkit-font-smoothing:antialiased}
+button,select{font:inherit;color:inherit}
+
+/* ---- signage header ---- */
+.top{background:#1f2124;color:#fff;display:flex;align-items:center;gap:18px;padding:0 clamp(16px,3vw,36px);min-height:64px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px;padding:10px 0}
+.logo svg{width:38px;height:38px;flex:none}
+.logo b{font-size:20px;letter-spacing:.14em;font-weight:700;display:block;line-height:1.1}
+.logo span{font-family:var(--sans);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:#b9bcc2;display:block}
+.pills{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;padding:8px 0}
+.pill{font-family:var(--sans);font-weight:700;font-size:14px;min-width:30px;height:30px;padding:0 8px;border-radius:15px;display:inline-grid;place-items:center;color:#fff;letter-spacing:.02em}
+.pill.Y{color:#1f2124}
+.clock{font-family:var(--sans);font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:.04em;padding-left:18px;border-left:1px solid #43464b;line-height:1}
+.clock small{display:block;font-size:10px;letter-spacing:.28em;color:#9da1a8;margin-top:4px}
+
+.strip{display:flex;gap:0;height:6px}
+.strip i{flex:1}
+
+/* ---- layout ---- */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:0;min-height:calc(100vh - 70px)}
+.mapwrap{position:relative;min-width:0;border-right:1px solid var(--line);display:flex;flex-direction:column}
+.map-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:18px clamp(16px,2.5vw,30px) 6px;flex-wrap:wrap}
+.map-head h1{margin:0;font-size:clamp(22px,2.4vw,32px);letter-spacing:.08em;font-weight:700}
+.map-head h1 small{font-family:var(--sans);font-weight:400;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--grey);display:block;margin-top:4px}
+.hint{font-size:13px;color:var(--grey);display:flex;align-items:center;gap:8px}
+.hint .swipe{display:none}
+.hint .dot{width:12px;height:12px;border-radius:50%;border:3px solid var(--ink);background:#fff;display:inline-block}
+.scroller{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh - 150px);margin:0 auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:10px clamp(16px,2.5vw,30px) 16px;border-top:1px solid var(--line);font-size:13px}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend em{font-style:normal;font-family:var(--sans);color:var(--grey);font-size:11px;letter-spacing:.1em}
+.legend .sw{width:26px;height:6px;border-radius:3px}
+
+/* map styling */
+.ln{fill:none;stroke-width:9;stroke-linejoin:round;stroke-linecap:round;transition:opacity .4s}
+.dim .ln{opacity:.14}
+.dim .st .ring{opacity:.35}
+.dim .lbl{opacity:.35}
+.lbl{transition:opacity .4s}
+.lbl .zh{font-family:var(--zh);font-size:15px;font-weight:700;fill:var(--ink)}
+.lbl .en{font-family:var(--sans);font-size:9.5px;fill:var(--grey);letter-spacing:.04em}
+.lbl.on{opacity:1!important}
+.lbl.on .zh{font-size:16px}
+.st{cursor:pointer}
+.st .hit{fill:transparent}
+.st .ring{fill:#fff;stroke-width:3.5;transition:transform .2s;transform-box:fill-box;transform-origin:center}
+.st:hover .ring,.st:focus .ring{transform:scale(1.35)}
+.st:focus{outline:none}
+.st:focus-visible .hit{stroke:#1f2124;stroke-width:2;stroke-dasharray:3 3}
+.st.on .ring{opacity:1!important}
+.route path{fill:none;stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
+.route path.case{stroke:#fff;stroke-width:18}
+.mark{pointer-events:none}
+.mark text{font-family:var(--sans);font-weight:700;font-size:11px;fill:#fff;letter-spacing:.06em}
+.train{pointer-events:none}
+
+/* ---- planner (sign panel) ---- */
+.plan{display:flex;flex-direction:column;background:#f6f6f7}
+.plan-head{background:#1f2124;color:#fff;padding:16px 22px 14px;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.plan-head h2{margin:0;font-size:19px;letter-spacing:.18em}
+.plan-head span{font-family:var(--sans);font-size:11px;letter-spacing:.3em;color:#9da1a8;text-transform:uppercase}
+.od{padding:16px 22px 6px;display:grid;grid-template-columns:1fr 46px;gap:8px;align-items:center}
+.od .fields{display:grid;gap:8px}
+.od label{display:grid;grid-template-columns:44px 1fr;align-items:center;background:#fff;border:1px solid #d8d9dc;border-radius:6px;min-height:48px;overflow:hidden}
+.od label b{height:100%;display:grid;place-items:center;font-size:13px;color:#fff;background:#1f2124;letter-spacing:.1em}
+.od label.to b{background:#55585e}
+.od select{appearance:none;-webkit-appearance:none;border:0;background:transparent;padding:0 12px;height:46px;font-size:16px;font-weight:700;cursor:pointer;min-width:0;width:100%}
+.od select:focus-visible{outline:2px solid var(--B);outline-offset:-2px}
+.swap{width:46px;height:104px;border:1px solid #d8d9dc;border-radius:6px;background:#fff;cursor:pointer;display:grid;place-items:center}
+.swap:hover{background:#eceef0}
+.swap svg{width:20px;height:20px}
+.summary{margin:10px 22px 0;padding:14px 16px;background:#fff;border:1px solid #d8d9dc;border-radius:6px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;text-align:center}
+.summary div{display:flex;flex-direction:column;gap:2px}
+.summary b{font-family:var(--sans);font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.summary b small{font-size:13px;font-weight:400;margin-left:2px}
+.summary span{font-size:11px;color:var(--grey);letter-spacing:.14em}
+.summary div+div{border-left:1px solid var(--line)}
+.steps{list-style:none;margin:14px 22px 0;padding:0 0 20px;position:relative}
+.step{position:relative;padding:0 0 16px 46px;min-height:44px;opacity:0;transform:translateY(6px);animation:in .35s ease-out forwards}
+@keyframes in{to{opacity:1;transform:none}}
+.step .spine{position:absolute;left:15px;top:22px;bottom:-4px;width:8px;border-radius:4px}
+.step .node{position:absolute;left:8px;top:2px;width:22px;height:22px;border-radius:50%;background:#fff;border:4px solid #1f2124}
+.step.end .node{background:#1f2124}
+.step h4{margin:0;font-size:16px;letter-spacing:.06em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.step h4 em{font-style:normal;font-family:var(--sans);font-weight:400;font-size:11px;color:var(--grey);letter-spacing:.06em}
+.ride{margin-top:6px;font-size:14px;line-height:1.55;color:#34363a}
+.ride .code{font-family:var(--sans);font-weight:700;font-size:12px;color:#fff;border-radius:10px;padding:1px 7px;margin-right:4px;display:inline-block}
+.ride .code.Y{color:#1f2124}
+.ride small{display:block;color:var(--grey);font-size:12px;margin-top:3px}
+.tip{margin-top:6px;font-size:12px;color:#55585e;background:#fff;border-left:3px solid #1f2124;padding:6px 9px;line-height:1.5}
+.empty{margin:18px 22px;color:var(--grey);font-size:14px;line-height:1.7}
+.foot{margin-top:auto;padding:12px 22px 16px;font-size:11px;color:var(--grey);border-top:1px solid var(--line);font-family:var(--sans);letter-spacing:.06em;line-height:1.6}
+
+@media (max-width:980px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .mapwrap{border-right:0}
+  svg#map{min-width:820px;max-height:none}
+  .clock{display:none}
+  .hint{flex-wrap:wrap}
+  .hint .swipe{display:inline}
+}
+@media (max-width:480px){
+  .pills{margin-left:0}
+  .top{padding-bottom:4px}
+  .od,.summary,.steps{margin-left:0;margin-right:0}
+  .od{padding:14px 16px 6px}
+  .summary{margin:10px 16px 0}
+  .steps{margin:14px 16px 0}
+  .summary b{font-size:26px}
+}
+@media (prefers-reduced-motion:reduce){ .step{animation:none;opacity:1;transform:none} }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo">
+    <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#fff"/><path d="M6 25c4-5 8-5 12 0s8 5 12 0 4-3 4-3" fill="none" stroke="#1f2124" stroke-width="4" stroke-linecap="round"/><path d="M8 15h24" stroke="#e3312d" stroke-width="4" stroke-linecap="round"/></svg>
+    <div><b>潮汐捷運</b><span>Tide Metro · 路網</span></div>
+  </div>
+  <div class="pills" id="pills"></div>
+  <div class="clock" id="clock">--:--<small>營運中 IN SERVICE</small></div>
+</header>
+<div class="strip" id="strip"></div>
+
+<div class="main">
+  <section class="mapwrap">
+    <div class="map-head">
+      <h1>路網圖<small>System Map · 2026 秋季版</small></h1>
+      <div class="hint"><i class="dot"></i>點車站設定起點，再點一站設定終點<span class="swipe">· 地圖可左右滑動</span></div>
+    </div>
+    <div class="scroller" id="scroller">
+      <svg id="map" viewBox="0 0 1020 720" role="application" aria-label="潮汐捷運路網圖">
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#f1f2f3" stroke-width="1"/></pattern>
+        </defs>
+        <rect width="1020" height="720" fill="url(#grid)"/>
+        <path d="M0 470 C120 450 150 520 260 520 S 330 640 420 700 L420 720 L0 720Z" fill="#eaf3fa"/>
+        <text x="40" y="640" font-family="Bahnschrift, Arial, sans-serif" font-size="12" letter-spacing="6" fill="#9cc3e2">潮 汐 灣 · TIDE BAY</text>
+        <g id="lines"></g>
+        <g id="route" class="route"></g>
+        <g id="stations"></g>
+        <g id="labels"></g>
+        <g id="marks"></g>
+        <circle id="train" class="train" r="7" fill="#fff" stroke="#1f2124" stroke-width="4" opacity="0"/>
+      </svg>
+    </div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <aside class="plan" aria-label="路線規劃">
+    <div class="plan-head"><h2>路線規劃</h2><span>Journey Planner</span></div>
+    <div class="od">
+      <div class="fields">
+        <label class="from"><b>起</b><select id="from" aria-label="起點"></select></label>
+        <label class="to"><b>訖</b><select id="to" aria-label="終點"></select></label>
+      </div>
+      <button class="swap" id="swap" type="button" aria-label="起訖對調"><svg viewBox="0 0 24 24"><path d="M8 4v16M8 4 4 8M8 4l4 4M16 20V4M16 20l-4-4M16 20l4-4" fill="none" stroke="#1f2124" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="summary" id="summary">
+      <div><b id="s-min">--</b><span>分鐘 MIN</span></div>
+      <div><b id="s-stops">--</b><span>站數 STOPS</span></div>
+      <div><b id="s-fare">--</b><span>票價 NT$</span></div>
+    </div>
+    <ol class="steps" id="steps"></ol>
+    <div class="foot">班距 尖峰 3–4 分 · 離峰 6–8 分 · 末班 00:00<br>轉乘時間已含步行。請勿奔跑，手扶梯會記得你。</div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  var NS = 'http://www.w3.org/2000/svg';
+  var $ = function(id){ return document.getElementById(id); };
+  var map = $('map'), gLines = $('lines'), gRoute = $('route'), gSt = $('stations'), gLbl = $('labels'), gMarks = $('marks'), train = $('train');
+  var selFrom = $('from'), selTo = $('to'), stepsEl = $('steps');
+  if (!map || !gLines || !gRoute || !gSt || !gLbl || !selFrom || !selTo || !stepsEl) return;
+
+  /* ---------- data ---------- */
+  var ST = {
+    dt:['燈塔角','Lighthouse Pt.',200,60,'w'], lm:['老碼頭','Old Pier',280,140,'w'], dx:['大學城','University Town',360,220,'ne'],
+    zc:['早餐店','Breakfast Shop',430,290,'w'], zy:['中央','Central',500,360,'ne'], zs:['準時站','On-Time',570,430,'ne'],
+    ys:['夜市','Night Market',640,500,'se'], nm:['南門','South Gate',640,580,'se'], mb:['末班車站','Last Train',640,660,'e'],
+    cs:['茶山','Tea Hills',340,60,'e'], dw:['動物園','Zoo',420,140,'w'], sd:['書店街','Bookshop St.',500,220,'ne'],
+    wx:['午睡公園','Nap Park',500,290,'e'], sw:['失物招領','Lost & Found',500,430,'w'], hb:['河濱公園','Riverside',500,500,'se'],
+    sm:['水門','Water Gate',500,580,'sw'], yf:['雨傘工廠','Umbrella Works',500,660,'e'],
+    ms:['美術館','Museum',620,220,'n'], sz:['市政府','City Hall',740,360,'ne'], lj:['老街','Old Street',380,500,'s'], mk:['廟口','Temple Gate',260,360,'sw'],
+    xg:['西港','West Harbour',60,360,'n'], dc:['渡船頭','Ferry Pier',160,360,'n'], dh:['豆花巷','Douhua Lane',380,360,'n'],
+    jb:['加班大樓','Overtime Tower',620,360,'n'], kx:['科學園區','Science Park',860,360,'ne'], dn:['東岸','East Bank',960,360,'s'],
+    wq:['溫泉','Hot Springs',920,120,'se'], tq:['天橋下','Footbridge',860,180,'e'], jc:['舊唱片行','Old Records',860,270,'e'],
+    ty:['體育館','Stadium',860,450,'e'], mc:['貓咪咖啡','Cat Café',780,580,'se'], gj:['國際機場','Airport',360,660,'nw']
+  };
+  var LINES = [
+    {id:'B', name:'河岸線', en:'Riverside Line', pts:['xg','dc','mk','dh','zy','jb','sz','kx','dn']},
+    {id:'G', name:'茶山線', en:'Tea Hills Line', pts:['cs','dw','sd','wx','zy','sw','hb','sm','yf']},
+    {id:'O', name:'夜貓線', en:'Night Owl Line', pts:['wq','tq','jc','kx','ty',[860,500],'mc','nm','sm',[440,580],'gj']},
+    {id:'R', name:'潮汐線', en:'Tide Line', pts:['dt','lm','dx','zc','zy','zs','ys','nm','mb']},
+    {id:'Y', name:'環狀線', en:'Circle Line', loop:true, pts:['dx','sd','ms',[660,220],[740,300],'sz',[740,420],[660,500],'ys','hb','lj',[340,500],[260,420],'mk',[260,300],[340,220]]}
+  ];
+  var COLOR = {R:'#e3312d',B:'#0a6fc2',G:'#119a4b',O:'#f39a1e',Y:'#f5c400'};
+  var TIPS = {
+    zy:'中央站轉乘通道長 280 公尺，是全市最長的散步路線。',
+    zs:'全線唯一從未誤點的車站——因為它只是個名字。',
+    sw:'你昨天遺失的雨傘，八成在這裡，或在雨傘工廠。',
+    ys:'出站後請先吃，再決定要不要回家。',
+    mb:'不管幾點到，這站永遠讓人覺得是末班車。',
+    wx:'月台長椅特別長，請勿坐過站。',
+    jb:'本站夜間不停靠：燈永遠亮著，但沒有人真的在。',
+    mc:'本站站長是一隻橘貓，驗票閘門請勿刷牠。',
+    gj:'國際線請提早兩小時；潮汐線請提早兩分鐘。',
+    dh:'甜的鹹的都有，請勿在車廂內討論。',
+    dn:'東岸終點站，河的另一邊就是明天。',
+    wq:'下車請注意月台溫度，眼鏡會起霧。',
+    yf:'全市雨傘的故鄉，也是它們的最終歸宿。',
+    dt:'末端站。再往前只剩海與燈塔。'
+  };
+  var ORDER = ['R','B','G','O','Y'];
+
+  /* ---------- helpers ---------- */
+  function el(tag, attrs, parent){ var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  function P(p){ return typeof p === 'string' ? [ST[p][2], ST[p][3]] : p; }
+  function pathD(pts){ return pts.map(function(p,i){ return (i?'L':'M') + p[0] + ' ' + p[1]; }).join(' '); }
+  function lineById(id){ for (var i=0;i<LINES.length;i++) if (LINES[i].id === id) return LINES[i]; return null; }
+
+  /* ---------- graph ---------- */
+  var ADJ = {}; var LINEOF = {};
+  Object.keys(ST).forEach(function(k){ ADJ[k] = []; LINEOF[k] = []; });
+  LINES.forEach(function(L){
+    var pts = L.pts.slice(); if (L.loop) pts.push(pts[0]);
+    var lastSt = null, seg = [];
+    pts.forEach(function(p){
+      seg.push(P(p));
+      if (typeof p === 'string'){
+        if (lastSt !== null){
+          var geo = seg.slice(), len = 0;
+          for (var i=1;i<geo.length;i++) len += Math.hypot(geo[i][0]-geo[i-1][0], geo[i][1]-geo[i-1][1]);
+          var min = Math.max(2, Math.round(len/38));
+          ADJ[lastSt].push({to:p, line:L.id, min:min, geo:geo, dir:1});
+          ADJ[p].push({to:lastSt, line:L.id, min:min, geo:geo.slice().reverse(), dir:-1});
+        }
+        if (LINEOF[p].indexOf(L.id) < 0) LINEOF[p].push(L.id);
+        lastSt = p; seg = [P(p)];
+      }
+    });
+  });
+
+  function dijkstra(a, b){
+    var TRANSFER = 4;
+    var dist = {}, prev = {}, Q = [];
+    function key(s,l){ return s + '|' + l; }
+    LINEOF[a].forEach(function(l){ dist[key(a,l)] = 0; Q.push(key(a,l)); });
+    var done = {};
+    while (Q.length){
+      Q.sort(function(x,y){ return dist[x]-dist[y]; });
+      var u = Q.shift(); if (done[u]) continue; done[u] = 1;
+      var parts = u.split('|'), s = parts[0], l = parts[1];
+      if (s === b) { return build(u); }
+      ADJ[s].forEach(function(e){
+        var c = dist[u] + e.min + (e.line !== l ? TRANSFER : 0);
+        var k = key(e.to, e.line);
+        if (dist[k] === undefined || c < dist[k]){ dist[k] = c; prev[k] = {from:u, edge:e}; Q.push(k); }
+      });
+    }
+    return null;
+    function build(end){
+      var edges = [], k = end;
+      while (prev[k]){ edges.unshift({from:prev[k].from.split('|')[0], e:prev[k].edge}); k = prev[k].from; }
+      return {total:dist[end], edges:edges};
+    }
+  }
+
+  /* ---------- draw base map ---------- */
+  var lineEls = {};
+  LINES.forEach(function(L){
+    var pts = L.pts.map(P); if (L.loop) pts.push(pts[0]);
+    lineEls[L.id] = el('path', {d:pathD(pts) + (L.loop?' Z':''), stroke:COLOR[L.id], class:'ln'}, gLines);
+  });
+  var stEls = {}, lblEls = {};
+  Object.keys(ST).forEach(function(k){
+    var s = ST[k], x = s[2], y = s[3], lines = LINEOF[k], inter = lines.length > 1;
+    var g = el('g', {class:'st', tabindex:'0', role:'button', 'aria-label':s[0] + ' ' + s[1], 'data-id':k}, gSt);
+    el('circle', {cx:x, cy:y, r:24, class:'hit'}, g);
+    if (inter) el('circle', {cx:x, cy:y, r:10.5, class:'ring', stroke:'#1f2124', 'stroke-width':4.5}, g);
+    else el('circle', {cx:x, cy:y, r:6.5, class:'ring', stroke:COLOR[lines[0]]}, g);
+    stEls[k] = g;
+    var pos = s[4], dx = 0, dy = 0, anchor = 'middle', off = inter ? 17 : 13;
+    if (pos.indexOf('e') >= 0){ dx = off; anchor = 'start'; }
+    if (pos.indexOf('w') >= 0){ dx = -off; anchor = 'end'; }
+    var zy, ey;
+    if (pos.indexOf('n') === 0){ zy = y - off - 12; ey = y - off + 0; if (pos.length > 1){ zy = y - off - 6; ey = y - off + 6; } }
+    else if (pos.indexOf('s') === 0){ zy = y + off + 14; ey = y + off + 26; if (pos.length > 1){ zy = y + off + 8; ey = y + off + 20; } }
+    else { zy = y + 1; ey = y + 13; }
+    if (pos === 'n'){ zy = y - off - 14; ey = y - off - 2; }
+    var t = el('text', {class:'lbl', 'text-anchor':anchor}, gLbl);
+    var t1 = el('tspan', {x:x+dx, y:zy, class:'zh'}, t); t1.textContent = s[0];
+    var t2 = el('tspan', {x:x+dx, y:ey, class:'en'}, t); t2.textContent = s[1];
+    lblEls[k] = t;
+  });
+  // terminus line bullets
+  LINES.forEach(function(L){
+    if (L.loop) return;
+    var ends = [L.pts[0], L.pts[L.pts.length-1]];
+    ends.forEach(function(sid, i){
+      var p = P(sid), q = P(L.pts[i ? L.pts.length-2 : 1]);
+      var vx = p[0]-q[0], vy = p[1]-q[1], m = Math.hypot(vx,vy) || 1;
+      var cx = p[0] + vx/m*30, cy = p[1] + vy/m*30;
+      if (sid === 'dn') { cx = p[0] + 30; cy = p[1]; }
+      var g = el('g', {class:'mark'}, gMarks);
+      el('rect', {x:cx-13, y:cy-10, width:26, height:20, rx:10, fill:COLOR[L.id]}, g);
+      var tx = el('text', {x:cx, y:cy+4, 'text-anchor':'middle'}, g); tx.textContent = L.id;
+      if (L.id === 'Y') tx.setAttribute('fill', '#1f2124');
+    });
+  });
+  var yg = el('g', {class:'mark'}, gMarks);
+  el('rect', {x:287, y:250, width:26, height:20, rx:10, fill:COLOR.Y}, yg);
+  var yt = el('text', {x:300, y:264, 'text-anchor':'middle', fill:'#1f2124'}, yg); yt.textContent = 'Y';
+
+  /* ---------- header chrome ---------- */
+  var pills = $('pills'), strip = $('strip'), legend = $('legend');
+  ORDER.forEach(function(id){
+    var L = lineById(id);
+    if (pills){ var p = document.createElement('span'); p.className = 'pill ' + id; p.style.background = COLOR[id]; p.textContent = id; p.title = L.name; pills.appendChild(p); }
+    if (strip){ var s = document.createElement('i'); s.style.background = COLOR[id]; strip.appendChild(s); }
+    if (legend){ var l = document.createElement('span'); l.innerHTML = '<i class="sw" style="background:'+COLOR[id]+'"></i>' + id + ' ' + L.name + ' <em>' + L.en + '</em>'; legend.appendChild(l); }
+  });
+  function tick(){ var c = $('clock'); if (!c) return; var d = new Date(); var hh = ('0'+d.getHours()).slice(-2), mm = ('0'+d.getMinutes()).slice(-2); c.firstChild.nodeValue = hh + ':' + mm; }
+  tick(); setInterval(tick, 15000);
+
+  /* ---------- selects ---------- */
+  var keys = Object.keys(ST).sort(function(a,b){ return ST[a][0].localeCompare(ST[b][0], 'zh-Hant'); });
+  [selFrom, selTo].forEach(function(sel){
+    keys.forEach(function(k){ var o = document.createElement('option'); o.value = k; o.textContent = ST[k][0] + '  ' + LINEOF[k].join('·'); sel.appendChild(o); });
+  });
+
+  /* ---------- route rendering ---------- */
+  var anim = null, trainAnim = null;
+  function code(id){ return '<span class="code '+id+'" style="background:'+COLOR[id]+'">'+id+'</span>'; }
+  function directionOf(leg){
+    var L = lineById(leg.line);
+    if (L.loop){ return leg.dir > 0 ? '順時針（內環）' : '逆時針（外環）'; }
+    var stations = L.pts.filter(function(p){ return typeof p === 'string'; });
+    return '往 ' + ST[leg.dir > 0 ? stations[stations.length-1] : stations[0]][0];
+  }
+  function plan(a, b){
+    if (anim) cancelAnimationFrame(anim); if (trainAnim) cancelAnimationFrame(trainAnim);
+    gRoute.innerHTML = ''; stepsEl.innerHTML = ''; train.setAttribute('opacity', 0);
+    Object.keys(stEls).forEach(function(k){ stEls[k].classList.remove('on'); lblEls[k].classList.remove('on'); });
+    if (a === b){
+      map.classList.remove('dim');
+      setSummary('0','0','0');
+      stepsEl.innerHTML = '<li class="empty">起點與終點相同。恭喜，你已經到了——不用刷卡。</li>';
+      return;
+    }
+    var r = dijkstra(a, b);
+    if (!r){ return; }
+    // group into legs
+    var legs = [];
+    r.edges.forEach(function(x){
+      var last = legs[legs.length-1];
+      if (last && last.line === x.e.line && last.dir === x.e.dir){ last.to = x.e.to; last.stops.push(x.e.to); last.geo = last.geo.concat(x.e.geo.slice(1)); last.min += x.e.min; }
+      else legs.push({line:x.e.line, dir:x.e.dir, from:x.from, to:x.e.to, stops:[x.e.to], geo:x.e.geo.slice(), min:x.e.min});
+    });
+    var stops = r.edges.length;
+    var fare = Math.min(65, 20 + Math.floor(Math.max(0, stops - 2) / 3) * 5);
+    setSummary(String(r.total), String(stops), String(fare));
+    map.classList.add('dim');
+
+    // mark stations on route
+    [a].concat(r.edges.map(function(x){ return x.e.to; })).forEach(function(k){ stEls[k].classList.add('on'); lblEls[k].classList.add('on'); });
+
+    // draw route paths with staged dash animation
+    var paths = [];
+    legs.forEach(function(leg){
+      var d = pathD(leg.geo);
+      el('path', {d:d, class:'case'}, gRoute);
+      var p = el('path', {d:d, stroke:COLOR[leg.line]}, gRoute);
+      var len = p.getTotalLength();
+      p.style.strokeDasharray = len + ' ' + len; p.style.strokeDashoffset = len;
+      paths.push({el:p, len:len});
+    });
+    // bring stations of route above route
+    var total = paths.reduce(function(s,p){ return s + p.len; }, 0) || 1;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var dur = reduce ? 1 : Math.min(1500, 450 + total * 0.9), t0 = null;
+    function frame(ts){
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - k, 2), acc = e * total;
+      paths.forEach(function(p){ var v = Math.max(0, Math.min(p.len, acc)); p.el.style.strokeDashoffset = p.len - v; acc -= p.len; });
+      if (k < 1) anim = requestAnimationFrame(frame); else { anim = null; runTrain(paths, total); }
+    }
+    anim = requestAnimationFrame(frame);
+
+    // steps
+    var html = '';
+    var delay = 0;
+    function li(cls, inner, color){ html += '<li class="step '+cls+'" style="animation-delay:'+delay+'ms">' + (color ? '<i class="spine" style="background:'+color+'"></i>' : '') + '<i class="node"></i>' + inner + '</li>'; delay += 110; }
+    legs.forEach(function(leg, i){
+      var L = lineById(leg.line), s = ST[leg.from];
+      var head = i === 0 ? '<h4>' + s[0] + ' <em>' + s[1] + ' · 出發</em></h4>' : '<h4>' + s[0] + ' <em>轉乘 Transfer · 約 4 分</em></h4>';
+      var tip = TIPS[leg.from] && i > 0 ? '<div class="tip">' + TIPS[leg.from] + '</div>' : '';
+      li('', head + '<div class="ride">' + code(leg.line) + L.name + '　' + directionOf(leg) + '<small>搭乘 ' + leg.stops.length + ' 站 · 約 ' + leg.min + ' 分鐘 · 下車：' + ST[leg.to][0] + '</small></div>' + tip, COLOR[leg.line]);
+    });
+    var e = ST[b];
+    li('end', '<h4>' + e[0] + ' <em>' + e[1] + ' · 抵達</em></h4>' + (TIPS[b] ? '<div class="tip">' + TIPS[b] + '</div>' : '<div class="ride"><small>祝旅途愉快。下車時請帶走你的雨傘。</small></div>'));
+    stepsEl.innerHTML = html;
+  }
+  function setSummary(m, s, f){ var a = $('s-min'), b = $('s-stops'), c = $('s-fare'); if (a) a.textContent = m; if (b) b.textContent = s; if (c) c.textContent = f; }
+
+  function runTrain(paths, total){
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !paths.length) return;
+    train.setAttribute('opacity', 1);
+    var speed = 0.11, t0 = null;
+    function f(ts){
+      if (document.hidden){ trainAnim = requestAnimationFrame(f); return; }
+      if (t0 === null) t0 = ts;
+      var d = ((ts - t0) * speed) % (total + 120);
+      if (d > total) d = total;
+      var acc = d;
+      for (var i=0;i<paths.length;i++){
+        if (acc <= paths[i].len || i === paths.length-1){
+          var pt = paths[i].el.getPointAtLength(Math.min(acc, paths[i].len));
+          train.setAttribute('cx', pt.x); train.setAttribute('cy', pt.y);
+          train.setAttribute('stroke', paths[i].el.getAttribute('stroke'));
+          break;
+        }
+        acc -= paths[i].len;
+      }
+      trainAnim = requestAnimationFrame(f);
+    }
+    trainAnim = requestAnimationFrame(f);
+  }
+
+  /* ---------- interaction ---------- */
+  var picking = 'from';
+  function go(){ plan(selFrom.value, selTo.value); }
+  function pick(k){
+    if (picking === 'from'){ selFrom.value = k; picking = 'to'; showPending(k); }
+    else { selTo.value = k; picking = 'from'; go(); }
+  }
+  function showPending(k){
+    if (anim) cancelAnimationFrame(anim); if (trainAnim) cancelAnimationFrame(trainAnim);
+    gRoute.innerHTML = ''; train.setAttribute('opacity', 0);
+    map.classList.add('dim');
+    Object.keys(stEls).forEach(function(x){ stEls[x].classList.toggle('on', x === k); lblEls[x].classList.toggle('on', x === k); });
+    setSummary('--','--','--');
+    stepsEl.innerHTML = '<li class="empty">起點：<b>' + ST[k][0] + '</b>。<br>現在點選終點站——或在上方選單挑一站。</li>';
+  }
+  gSt.addEventListener('click', function(e){
+    var g = e.target.closest ? e.target.closest('.st') : null;
+    if (g) pick(g.getAttribute('data-id'));
+  });
+  gSt.addEventListener('keydown', function(e){
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var g = e.target.closest ? e.target.closest('.st') : null;
+    if (g){ e.preventDefault(); pick(g.getAttribute('data-id')); }
+  });
+  selFrom.addEventListener('change', function(){ picking = 'to'; go(); });
+  selTo.addEventListener('change', function(){ picking = 'from'; go(); });
+  var swap = $('swap');
+  if (swap) swap.addEventListener('click', function(){ var t = selFrom.value; selFrom.value = selTo.value; selTo.value = t; picking = 'from'; go(); });
+
+  // centre mobile scroller on the hub
+  var sc = $('scroller');
+  function centre(){ if (sc && sc.scrollWidth > sc.clientWidth) sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) * 0.45; }
+  centre(); window.addEventListener('resize', centre);
+
+  selFrom.value = 'dt'; selTo.value = 'wq';
+  setTimeout(go, 150);
+})();
+</script>
+</body>
+</html>
