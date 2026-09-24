@@ -5,7 +5,8 @@ import { neon } from '@neondatabase/serverless';
 const memory = new Map();
 export class RoomStore {
   constructor() {
-    this.sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+    const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+    this.sql = sql ? (...args) => sql(...args).catch(() => { throw Error('牌桌資料庫暫時無法使用，請稍後重試。'); }) : null;
     this.ready = !!this.sql || !process.env.VERCEL;
   }
   async create(code, room) {

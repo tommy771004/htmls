@@ -134,7 +134,7 @@
 | 121 | [121-camera-blueprint.html](https://htmls-ruddy.vercel.app/121-camera-blueprint.html) | 生成藝術 · 程式渲染產品動畫 | R6 旁軸相機藍圖拆解：正視圖描邊 → 轉 3/4 視角 → 鏡頭、快門簾、捲片軸、觀景窗、底片室依序爆炸並標註 → 收回成尺寸標註正視圖；零件、標註與時間軸都是可編輯的 JSON | 純 Canvas 2D，不載入外部資源；同一幀號必得同一份顯示清單（畫面附雜湊）；以 WebCodecs 逐幀編碼合成 60fps MP4，或輸出 PNG 幀序列 ZIP，需新版 Chrome／Edge |
 | 124 | [124-ashwing.html](https://htmls-ruddy.vercel.app/124-ashwing.html) | 遊戲敘事 · 3D 軌道射擊 | 灰燼之翼 ASHWING：致敬《鐵甲飛龍》的第一關，騎龍沿固定航道從赤砂峽谷穿過沉沒神殿；前右後左 360 度視角切換、按住掃過多重鎖定追蹤雷射、畫面內閃避彈幕，敵人依 100 BPM 小節與地形起伏編排，終點是翼核 → 脊核 → 眼三階段的頭目骸天鯨；D Hijaz 民族風管弦樂與音效皆為 WebAudio 即時合成 | 單檔 HTML；Three.js 由 CDN 載入（失敗時改用站內 vendor），需 WebGL；桌機鍵鼠或手機觸控 |
 | 125 | [125-spacewalk.html](https://htmls-ruddy.vercel.app/125-spacewalk.html) | 介面風格 · AI 科普個人品牌 | 太空漫步：人物主視覺、AI Agent／Vibe Coding／AI Tools 白話卡片、四階段學習路線、個人介紹與可複製的第一個提問 | 單頁 HTML 搭配兩張站內原創插畫；不需外部程式庫 |
-| 127 | [127-jade-table.html](https://htmls-ruddy.vercel.app/127-jade-table.html) | 遊戲敘事 · 3D 十六張麻將 | 青雀 JADE TABLE：墨綠金邊牌桌，與三位 AI 摸打牌、碰胡判定、聽牌提示、20 秒代打與 Web Audio 合成音效 | 單檔 HTML；Three.js 優先使用站內 vendor、CDN 備援；本機簡化練習局，無花牌、吃槓、正式台數或真人連線 |
+| 127 | [127-jade-table.html](https://htmls-ruddy.vercel.app/127-jade-table.html) | 遊戲敘事 · 3D 十六張麻將 | 青雀 JADE TABLE：真人好友房或三位 AI；144 張吃碰槓胡、補花、宣告聽牌、逐項計台、30 秒重連與 Web Audio 音效 | 需 HTTP 與 WebGL；共用規則引擎；真人房由 Vercel WebSocket＋Neon 管理，詳見 [後端部署說明](server/jade-table/README.md) |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。

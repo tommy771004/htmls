@@ -100,3 +100,9 @@
 ## 驗收素材範圍
 
 只需針對新增行為選少量主路徑／關鍵失敗驗證：吃只上家；明／暗／加槓後牌數守恆；搶槓先胡後不補；雙人同胡按座位單響；花補牌和保留16；一個固定胡型逐項台数与付款0和。若使用完整台表，分解、宣告狀態與付款分支不可用UI文字冒充實作。
+
+## 真人部署決策
+
+2026-09-24 核對 [Vercel WebSockets 官方文件](https://vercel.com/docs/functions/websockets)：目前所有方案提供 Beta WebSocket，可匯出 Node HTTP server 搭配 `ws`。連線會受 Function 時限限制，重連不保證回到同實例，因此房間不能只存記憶體。
+
+採使用者既有 Neon PostgreSQL，依 [Neon 官方 serverless driver](https://github.com/neondatabase/serverless) 使用參數化 HTTPS SQL；每次動作以房間版本 compare-and-swap 重試，只有成功持久化的狀態才傳給玩家。每秒同步在線房間，客戶端30秒內重連。這是小型好友房的實作，並未加入配對、帳號排名、永久回放或現金交易。

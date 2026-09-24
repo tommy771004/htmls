@@ -117,7 +117,7 @@
 - [118 點燈人 · LAMPLIGHTER](https://htmls-ruddy.vercel.app/118-lamplighter.html): 第三人稱 3D 動作平台遊戲。先以三張美術規格圖定調再實作；霧湖遺跡三區關卡、點燈開月門、影魅與石燈守 AI、三段揮燈連擊與打擊停頓，GTAO、bloom、色彩分級與 Web Audio 合成音效；需連線載入 Three.js
 - [119 WELL · 俄羅斯方塊](https://htmls-ruddy.vercel.app/119-tetris.html): Canvas 落塊遊戲。10×20 棋盤、七種經典配色方塊、Wall Kick 旋轉、硬降與落點預覽；消行計分、每 10 行升級加速，手機附觸控按鍵
 - [124 灰燼之翼 · ASHWING](https://htmls-ruddy.vercel.app/124-ashwing.html): 3D 軌道射擊。致敬《鐵甲飛龍》的第一關：鏡頭沿航道自動推進，前右後左 360 度切換視角、多重鎖定追蹤雷射與畫面內閃避；敵人隨 100 BPM 節拍與峽谷、神殿地形出場，終點是三階段弱點的頭目骸天鯨；需連線載入 Three.js
-- [127 青雀 · JADE TABLE](https://htmls-ruddy.vercel.app/127-jade-table.html): 3D 十六張麻將練習局。與三位 AI 摸打牌、碰／胡判定、聽牌提示、超時代打、局末結算與合成音效；本機簡化規則，無花牌、吃槓、正式台數或真人連線
+- [127 青雀 · JADE TABLE](https://htmls-ruddy.vercel.app/127-jade-table.html): 3D 台灣十六張麻將。真人好友房或三位 AI；吃碰明暗加槓、搶槓、補花、宣告聽牌、逐項台數結算、30 秒重連與超時代打。青雀桌規依神來也公開台表；Vercel WebSocket 權威後端、Neon 儲存牌局
 
 ### 品牌頁面
 
