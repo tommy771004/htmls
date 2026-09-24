@@ -74,9 +74,10 @@ input{font:inherit;color:inherit}
 .screen.dark .stripes{opacity:.9}
 
 .views{position:absolute;inset:0;z-index:5}
-.view{position:absolute;inset:0;padding-top:calc(110px + env(safe-area-inset-top));padding-bottom:calc(88px + env(safe-area-inset-bottom));transition:transform .5s var(--out)}
-.view[hidden]{display:block;visibility:hidden;pointer-events:none}
-.view.off-l{transform:translateX(-30%)} .view.off-r{transform:translateX(30%)}
+.view{position:absolute;inset:0;padding-top:calc(110px + env(safe-area-inset-top));padding-bottom:calc(88px + env(safe-area-inset-bottom));transition:transform .5s var(--out),opacity .3s var(--out)}
+/* the outgoing view slides + fades, and only turns invisible once the slide is over */
+.view[hidden]{display:block;visibility:hidden;pointer-events:none;transition:transform .5s var(--out),opacity .3s var(--out),visibility 0s .5s}
+.view.off-l{transform:translateX(-30%);opacity:0} .view.off-r{transform:translateX(30%);opacity:0}
 
 /* ---------- dig view ---------- */
 .dividers{position:relative;z-index:6;display:flex;gap:6px;padding:0 14px;height:56px;align-items:flex-end;overflow-x:auto;scrollbar-width:none}
@@ -133,6 +134,17 @@ input{font:inherit;color:inherit}
 .tr .n{font:italic 700 15px/1 var(--serif);color:rgba(224,165,38,.8)}
 .tr .d{font-size:13px;font-variant-numeric:tabular-nums;color:rgba(246,230,198,.5)}
 .tr.on{color:var(--mustard);background:#2a1d16}
+.side{display:flex;justify-content:space-between;padding:10px 10px 4px;font:italic 700 13px/1 var(--serif);letter-spacing:.14em;color:rgba(224,165,38,.7);border-bottom:1px solid #2c211b}
+.side span{font:500 12px/1 var(--sans);letter-spacing:0;font-style:normal;color:rgba(246,230,198,.45)}
+.tr .eq{display:inline-flex;gap:2px;align-items:flex-end;height:12px;margin-left:8px;vertical-align:-1px}
+.tr .eq i{width:3px;height:12px;background:var(--mustard);animation:eq .9s ease-in-out infinite alternate;transform-origin:bottom}
+.tr .eq i:nth-child(2){animation-delay:-.3s}.tr .eq i:nth-child(3){animation-delay:-.6s}
+@keyframes eq{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
+.rows .foot{padding:18px 22px 26px;text-align:center;font-size:12px;color:rgba(246,230,198,.45);letter-spacing:.04em}
+.rows .foot b{display:block;font:italic 700 15px/1.4 var(--serif);color:rgba(224,165,38,.7);letter-spacing:.1em}
+.sheet h3{display:flex;align-items:baseline}
+.sx{margin-left:auto;align-self:center;height:40px;padding:0 4px 0 12px;font:600 15px/1 var(--sans);font-style:normal;color:rgba(26,20,17,.64)}
+.sx:active{color:var(--black)}
 .hint{margin:10px 22px 0;font-size:13px;color:rgba(246,230,198,.55)}
 
 /* ---------- list view ---------- */
@@ -209,10 +221,12 @@ input{font:inherit;color:inherit}
 @media (max-height:740px){
   .info{height:132px} .info .meta{display:none}
   .crate{height:calc(100% - 56px - 132px)}
-  .deck{margin:18px 40px 0}
+  .deck{margin:12px 60px 0}
+  .deckbar{margin-top:8px} .np{margin-top:8px}
 }
 @media (prefers-reduced-motion:reduce){
-  .sl,.view,.sheet,.toast,.dividers button,.tape,.rw .fr{transition-duration:.01s}
+  .sl,.view,.view[hidden],.sheet,.toast,.dividers button,.tape,.rw .fr{transition-duration:.01s;transition-delay:0s}
+  .tr .eq i{animation:none}
 }
 </style>
 </head>
@@ -666,7 +680,11 @@ function renderDeckInfo(){
   $('npS').textContent = playing ? '正在播放 '+ts[at.i].n+'　'+mmss(at.off)+' / '+mmss(ts[at.i].d)+'　'+rpm+' 轉' : (armA > .5 ? '唱臂懸在溝紋上方，放開就會落針' : '把右邊的唱臂拖到唱片上，放開落針');
   $('liftBtn').disabled = !playing && armA < .5;
   var h = '';
-  ts.forEach(function(t, i){ h += '<button class="tr'+(playing && i===at.i?' on':'')+'" data-t="'+i+'"><span class="n">'+(i<Math.ceil(ts.length/2)?'A':'B')+(i<Math.ceil(ts.length/2)?i+1:i+1-Math.ceil(ts.length/2))+'</span><span>'+esc(t.n)+'</span><span class="d">'+mmss(t.d)+'</span></button>'; });
+  var half = Math.ceil(ts.length/2), sideLen = function(a, b){ return ts.slice(a, b).reduce(function(s, t){ return s + t.d; }, 0); };
+  ts.forEach(function(t, i){
+    if (i === 0) h += '<div class="side">SIDE A<span>'+half+' 首 · '+mmss(sideLen(0, half))+'</span></div>';
+    if (i === half) h += '<div class="side">SIDE B<span>'+(ts.length-half)+' 首 · '+mmss(sideLen(half))+'</span></div>';
+    h += '<button class="tr'+(playing && i===at.i?' on':'')+'" data-t="'+i+'"><span class="n">'+(i<half?'A':'B')+(i<half?i+1:i+1-half)+'</span><span>'+esc(t.n)+(playing && i===at.i?'<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>':'')+'</span><span class="d">'+mmss(t.d)+'</span></button>'; });
   if ($('tracks').dataset.sig !== loaded.id + (playing ? at.i : 'x')){ $('tracks').innerHTML = h; $('tracks').dataset.sig = loaded.id + (playing ? at.i : 'x'); }
 }
 function posToAngle(p){ var L = tracksLen(loaded); return A_OUT + (A_IN - A_OUT)*Math.min(1, p/L); }
@@ -771,7 +789,7 @@ function renderList(){
   if (!list.length){ $('rows').innerHTML = '<div class="none">'+(listF === 'want' ? '沒有想要的唱片，真知足。' : '清單是空的。')+'</div>'; return; }
   $('rows').innerHTML = list.map(function(r){
     return '<div class="rw" data-id="'+r.id+'"><button class="del" data-del="'+r.id+'">移除</button><button class="fr" data-open="'+r.id+'">'+cover(r, false)+'<span class="tt"><b>'+esc(r.t)+'</b><span>'+esc(r.a)+'，'+r.y+'　'+(r.own?'品相 '+r.c:'想要')+'</span></span><span class="pr">'+money(r.p)+'<small>'+GENRES.filter(function(g){ return g[0]===r.g; })[0][1]+'</small></span></button></div>';
-  }).join('');
+  }).join('') + '<div class="foot"><b>— End of Stock —</b>'+list.length+' 張 · 向左滑可以移除</div>';
 }
 document.querySelector('.filters').addEventListener('click', function(e){
   var b = e.target.closest('button'); if (!b) return; listF = b.dataset.f; haptic(5);
@@ -828,7 +846,7 @@ var sheet = $('sheet'), scrim = $('scrim'), sbody = $('sbody'), lastFocus = null
 var draft = null;
 function openAdd(){
   draft = {id:'u'+Date.now().toString(36), t:'', a:'', y:1978, g:genre === 'all' ? 'pop' : genre, p:1200, c:'VG+', src:'剛剛入手', own:true, st:STYLES[Math.floor(Math.random()*STYLES.length)], ink:Math.floor(Math.random()*INKS.length)};
-  var h = '<h3>New In<small>新進唱片</small></h3>';
+  var h = '<h3>New In<small>新進唱片</small><button class="sx" id="fClose">取消</button></h3>';
   h += '<div class="prev"><div id="pv"></div><p>封面會用兩色印刷，換個配色或印版看看。</p></div>';
   h += '<label class="fld"><span>專輯名稱</span><input id="fT" maxlength="30" placeholder="例如：童年" autocomplete="off"></label>';
   h += '<label class="fld"><span>歌手</span><input id="fA" maxlength="30" placeholder="例如：張艾嘉" autocomplete="off"></label>';
@@ -853,6 +871,7 @@ sbody.addEventListener('input', function(e){
 });
 sbody.addEventListener('click', function(e){
   var b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'fClose'){ closeSheet(); return; }
   var grp = b.parentNode;
   if (grp.id === 'oG') draft.g = b.dataset.g;
   if (grp.id === 'oO') draft.own = b.dataset.o === '1';

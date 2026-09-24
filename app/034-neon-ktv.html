@@ -138,7 +138,7 @@ svg{display:block}
 .stabs{position:relative;display:flex;gap:4px;margin-top:12px}
 .stabs button{height:44px;padding:0 14px;font:700 19px var(--wei);color:var(--ink3);transition:color .2s}
 .stabs button[aria-selected=true]{color:var(--pink)}
-.stabs .mk{position:absolute;bottom:4px;left:0;height:3px;border-radius:2px;background:var(--pink);transition:transform .4s var(--spring),width .4s var(--spring)}
+.stabs .mk{position:absolute;bottom:4px;left:0;width:100px;height:3px;border-radius:2px;background:var(--pink);transform-origin:0 50%;transition:transform .4s var(--spring)}
 .langs{display:flex;gap:2px;margin:6px 0 4px}
 .langs button{min-height:40px;padding:0 12px;border-radius:10px;font-size:14px;color:var(--ink2)}
 .langs button[aria-pressed=true]{color:#1d120f;background:var(--warm);font-weight:600}
@@ -146,7 +146,7 @@ svg{display:block}
 .song+.song{box-shadow:inset 0 1px 0 rgba(248,233,220,.07)}
 .song .i{flex:1;min-width:0}
 .song b{display:block;font:700 21px/1.3 var(--wei);letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.song small{display:block;font-size:13px;color:var(--ink2)}
+.song small{display:block;font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .song small em{font:700 13px var(--nar);font-style:normal;color:var(--org);letter-spacing:.03em}
 .song .num{width:34px;font:700 26px var(--nar);color:var(--ink3);text-align:center;flex:none}
 .song.now .num{color:var(--pink)}
@@ -156,6 +156,7 @@ svg{display:block}
 .ib.pk{color:var(--pink)}
 .ib:disabled{opacity:.3}
 .empty{padding:30px 0;text-align:center;color:var(--ink3)}
+.qfoot{padding:18px 0 6px;text-align:center;font-size:13px;color:var(--ink3);box-shadow:inset 0 1px 0 rgba(248,233,220,.07)}
 .scoreBox{padding:4px 22px calc(26px + env(safe-area-inset-bottom));text-align:center}
 .scoreBox svg{width:100%;height:150px;overflow:visible}
 .scoreBox p{font-size:15px;color:var(--ink2)}
@@ -463,10 +464,10 @@ function libBody(){var list=SONGS.filter(function(s){return(lang==='全部'||s.l
   '<div class="langs">'+['全部','國語','台語','粵語'].map(function(x){return '<button data-lang="'+x+'" aria-pressed="'+(x===lang)+'">'+x+'</button>'}).join('')+'</div>'+
   (list.length?list.map(function(s){var b=best[s.id];return '<div class="song"><div class="i"><b>'+s.t+'</b><small>'+s.a+'　'+s.l+'　<em>'+s.bpm+' BPM</em>'+(b?'　最高 <em>'+b+'</em>':'')+'</small></div><button class="ib" data-jump="'+s.id+'" aria-label="插播 '+s.t+'">'+IC.jump+'</button><button class="ib pk" data-add="'+s.id+'" aria-label="點 '+s.t+'">'+IC.add+'</button></div>'}).join(''):'<p class="empty">找不到「'+q+'」，換個關鍵字</p>')}
 function qBody(){return queue.map(function(id,i){var s=BYID[id];return '<div class="song'+(i===0?' now':'')+'"><span class="num">'+(i===0?'唱':i)+'</span><div class="i"><b>'+s.t+'</b><small>'+s.a+'　'+s.l+(i===0?'　<em>正在唱</em>':'')+'</small></div>'+
-  (i===0?'<button class="ib pk" data-restart="1" aria-label="從頭唱">'+IC.play+'</button>':'<button class="ib" data-up="'+i+'" aria-label="往前移" '+(i<2?'disabled':'')+'>'+IC.up+'</button><button class="ib" data-rm="'+i+'" aria-label="移除 '+s.t+'">'+IC.del+'</button>')+'</div>'}).join('')+(queue.length<2?'<p class="empty">只剩這一首，去歌庫多點幾首</p>':'')}
+  (i===0?'<button class="ib pk" data-restart="1" aria-label="從頭唱">'+IC.play+'</button>':'<button class="ib" data-up="'+i+'" aria-label="往前移" '+(i<2?'disabled':'')+'>'+IC.up+'</button><button class="ib" data-rm="'+i+'" aria-label="移除 '+s.t+'">'+IC.del+'</button>')+'</div>'}).join('')+(queue.length<2?'<p class="empty">只剩這一首，去歌庫多點幾首</p>':'<p class="qfoot">還有 '+(queue.length-1)+' 首待唱 · 按 ↑ 可以插隊往前</p>')}
 function refreshBook(keepFocus){$('sheadIn').innerHTML=bookHead();$('sbody').innerHTML=bookTab==='lib'?libBody():qBody();placeMk();
   if(keepFocus){var i=$('qIn');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}}
-function placeMk(){var sel=$('sheadIn').querySelector('[aria-selected=true]'),mk=$('mk');if(sel&&mk){mk.style.width=(sel.offsetWidth-28)+'px';mk.style.transform='translateX('+(sel.offsetLeft+14)+'px)'}}
+function placeMk(){var sel=$('sheadIn').querySelector('[aria-selected=true]'),mk=$('mk');if(sel&&mk){mk.style.transform='translateX('+(sel.offsetLeft+14)+'px) scaleX('+((sel.offsetWidth-28)/100).toFixed(3)+')'}}
 function openBook(tab){if(tab)bookTab=tab;openSheet(bookHead(),bookTab==='lib'?libBody():qBody(),true);placeMk()}
 $('handle').addEventListener('click',function(){if(!hDragged)openBook()});
 var hDragged=false;(function(){var sy=0,on=false,h=$('handle');h.addEventListener('pointerdown',function(e){on=true;hDragged=false;sy=e.clientY});h.addEventListener('pointermove',function(e){if(on&&sy-e.clientY>30){on=false;hDragged=true;openBook();setTimeout(function(){hDragged=false},300)}});h.addEventListener('pointerup',function(){on=false});h.addEventListener('pointercancel',function(){on=false})})();

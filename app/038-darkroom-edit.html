@@ -92,6 +92,10 @@ svg{display:block}
 .hist.on{display:block}
 .frame .hist canvas{position:static;width:100%;height:100%;display:block;background:none}
 .hist .clip{position:absolute;left:6px;right:6px;bottom:3px;display:flex;justify-content:space-between;font:10px/1 var(--mono);color:var(--t2)}
+.frame.small .hist{transform:scale(.62);transform-origin:0 100%;left:6px;bottom:6px;padding-bottom:6px}
+.frame.small .hist .clip{display:none}
+.frame.small .tag{top:6px;font-size:10px;padding:3px 4px;letter-spacing:.04em}
+.frame.small .tag.l{left:6px}.frame.small .tag.r{right:6px}
 .exif{flex:none;text-align:center;font:11px/1 var(--mono);color:var(--t3);padding-bottom:8px}
 
 .panel{flex:none;padding:6px 18px 4px;min-height:112px;background:var(--g1)}
@@ -614,6 +618,7 @@ $('tools').addEventListener('click', function(e){
   tool = b.dataset.t; save('tool', tool); haptic(5); tickS();
   document.querySelectorAll('.tool').forEach(function(x){ x.setAttribute('aria-selected', x.dataset.t === tool); });
   renderPanel(); schedule();
+  b.scrollIntoView({inline:'center', block:'nearest', behavior: reduce ? 'auto' : 'smooth'});
 });
 function refreshLabels(){
   $('panel').querySelectorAll('.fader').forEach(function(el){ placeFader(el); var lab = el.previousElementSibling.querySelector('.mono'), f = el.dataset.k; lab.textContent = fmtV(f, edits[cur][f]) + (f === 'exp' ? ' EV' : ''); });
@@ -829,7 +834,9 @@ function clock(){ var d = new Date(); $('clock').textContent = d.getHours() + ':
 clock(); setInterval(clock, 20000);
 if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 15 * b.level).toFixed(1)); }).catch(function(){});
 $('hist').classList.toggle('on', showHist); $('histBtn').setAttribute('aria-pressed', showHist);
-var ro = window.ResizeObserver ? new ResizeObserver(function(){ schedule(); }) : null;
+// when a tall tool panel squeezes the photo, the overlays go compact instead of covering the picture
+function fitOverlays(){ var f = $('frame'); f.classList.toggle('small', f.clientHeight < 260); }
+var ro = window.ResizeObserver ? new ResizeObserver(function(){ fitOverlays(); schedule(); }) : null;
 if (ro) ro.observe($('frame')); else window.addEventListener('resize', function(){ schedule(); });
 loadPhoto();
 })();

@@ -54,13 +54,14 @@ img{display:block;-webkit-user-drag:none;user-select:none}
 }
 @media (min-width:521px) and (max-width:860px){.label{display:none}}
 
-.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;font:500 16px/1 var(--hel);color:var(--ink);pointer-events:none}
+.status{position:absolute;top:0;left:0;right:0;z-index:45;background:#fff;display:flex;align-items:center;justify-content:space-between;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;font:500 16px/1 var(--hel);color:var(--ink);pointer-events:none}
 .status .g{display:flex;gap:6px;align-items:center}
 @media (display-mode:standalone){.status{display:none}}
 .home{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:130px;height:5px;margin-left:-65px;border-radius:3px;background:var(--ink);z-index:80;pointer-events:none}
 
 /* ---------- head: the two words are the navigation ---------- */
-.head{position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(52px + env(safe-area-inset-top)) 16px 6px 24px;display:flex;align-items:center;background:rgba(255,255,255,.96)}
+.head{position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(52px + env(safe-area-inset-top)) 16px 28px 24px;display:flex;align-items:center;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,0);transition:box-shadow .3s var(--soft)}
+.head.sc{box-shadow:0 1px 0 #ececea}
 .words{position:relative;display:flex;gap:6px;flex:1}
 .words button{height:48px;padding:0 6px;margin-left:-6px;font:300 30px/48px var(--hel);letter-spacing:.02em;color:var(--faint);transition:color .35s var(--soft)}
 .words button + button{margin-left:10px}
@@ -75,7 +76,7 @@ img{display:block;-webkit-user-drag:none;user-select:none}
 .views{position:absolute;inset:0}
 .view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:calc(128px + env(safe-area-inset-top)) 0 calc(56px + env(safe-area-inset-bottom));visibility:hidden;overscroll-behavior:contain}
 .view.on{visibility:visible;animation:settle .5s var(--out)}
-@keyframes settle{from{transform:translateX(var(--from,18px))}to{transform:none}}
+@keyframes settle{from{transform:translateX(var(--from,18px));opacity:0}to{transform:none;opacity:1}}
 
 /* ---------- moments ---------- */
 .day{padding:0 24px;margin-top:34px}
@@ -135,7 +136,11 @@ img{display:block;-webkit-user-drag:none;user-select:none}
 .dirrow:active{background:var(--wash)}
 
 /* ---------- album page ---------- */
-.apage{position:absolute;inset:0;z-index:25;background:#fff;transform:translateX(102%);visibility:hidden;transition:transform .5s var(--out),visibility 0s .5s;overflow-y:auto;overflow-x:hidden;padding:calc(50px + env(safe-area-inset-top)) 0 calc(56px + env(safe-area-inset-bottom))}
+.apage{position:absolute;inset:0;z-index:25;background:#fff;transform:translateX(102%);visibility:hidden;transition:transform .5s var(--out),visibility 0s .5s;overflow-y:auto;overflow-x:hidden;padding:calc(48px + env(safe-area-inset-top)) 0 calc(56px + env(safe-area-inset-bottom))}
+.abar{position:sticky;top:0;z-index:3;display:flex;align-items:center;height:48px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,0);transition:box-shadow .3s var(--soft)}
+.abar .at{position:absolute;left:96px;right:96px;text-align:center;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transform:translateY(6px);transition:opacity .25s var(--soft),transform .25s var(--out);pointer-events:none}
+.abar.sc{box-shadow:0 1px 0 #ececea}
+.abar.sc .at{opacity:1;transform:none}
 .apage.on{transform:none;visibility:visible;transition:transform .5s var(--out)}
 .back{display:flex;align-items:center;gap:2px;height:44px;margin-left:12px;padding:0 10px 0 4px;font-size:16px}
 .back svg{width:22px;height:22px}
@@ -203,7 +208,7 @@ img{display:block;-webkit-user-drag:none;user-select:none}
 
 @media (prefers-reduced-motion:reduce){
   .view.on{animation:none}
-  .lbimg.anim,.apage,.sheet,.toast,.cube,.lbtop,.lblabel,.lbbar,.ph img{transition-duration:.01s}
+  .lbimg.anim,.apage,.sheet,.toast,.cube,.lbtop,.lblabel,.lbbar,.ph img,.head,.abar,.abar .at{transition-duration:.01s}
   .flash.go{animation-duration:.01s}
 }
 </style>
@@ -574,10 +579,12 @@ function renderAlbumPage(){
   var acts = '';
   if (a.id === 'del' && ps.length) acts = '<div class="aacts"><button class="txtbtn" data-act="restoreAll">全部還原</button><button class="txtbtn" data-act="purge">永久清除</button></div>';
   else if (a.user) acts = '<div class="aacts"><button class="txtbtn" data-act="rename">改名</button><button class="txtbtn" data-act="drop">撤展</button></div>';
-  $('apage').innerHTML = '<button class="back" id="aBack"><svg viewBox="0 0 22 22"><path d="M13.5 4.5 7 11l6.5 6.5" stroke="#111" stroke-width="1.3" fill="none"/></svg>相簿</button>'+
+  $('apage').innerHTML = '<div class="abar" id="abar"><button class="back" id="aBack"><svg viewBox="0 0 22 22"><path d="M13.5 4.5 7 11l6.5 6.5" stroke="#111" stroke-width="1.3" fill="none"/></svg>相簿</button><span class="at">'+esc(a.name)+'</span></div>'+
     '<div class="ahead"><h2>'+esc(a.name)+'</h2><p>'+ps.length+' 件'+(a.id === 'del' ? '，30 天後自動清除' : a.id === 'fav' ? '，貼了紅點的作品' : '')+'</p>'+acts+'</div>'+
     (ps.length ? masonry(ps, 2, a.id) : '<p class="endnote">這間還是空的。在照片上按「展間」把它掛進來。</p>');
 }
+$('apage').addEventListener('scroll', function(){ var b = $('abar'); if (b) b.classList.toggle('sc', this.scrollTop > 60); }, {passive:true});
+['v-moments','v-albums'].forEach(function(id){ $(id).addEventListener('scroll', function(){ if (this.classList.contains('on')) document.querySelector('.head').classList.toggle('sc', this.scrollTop > 4); }, {passive:true}); });
 $('apage').addEventListener('click', function(e){
   if (e.target.closest('#aBack')){ haptic(5); closeAlbum(); return; }
   var b = e.target.closest('[data-act]'); if (!b) return; var act = b.dataset.act;
@@ -768,6 +775,7 @@ function switchTab(t){
   document.querySelectorAll('.words [role=tab]').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.tab === t); });
   document.querySelectorAll('.view').forEach(function(v){ var on = v.id === 'v-'+t; v.classList.toggle('on', on); if (on) v.style.setProperty('--from', (dir*22)+'px'); });
   $('densBtn').style.visibility = t === 'moments' ? '' : 'hidden';
+  document.querySelector('.head').classList.toggle('sc', $('v-'+t).scrollTop > 4);
   closeAlbum(); refresh();
 }
 document.querySelectorAll('.words [role=tab]').forEach(function(b){ b.addEventListener('click', function(){ switchTab(b.dataset.tab); }); });

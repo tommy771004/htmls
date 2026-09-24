@@ -70,8 +70,10 @@ svg{display:block}
 .ladder{position:absolute;right:14px;top:22px;width:28px;bottom:160px;pointer-events:none}
 .ladder span{position:absolute;right:10px;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:rgba(20,20,20,.18)}
 .ladder span.cur{background:none}
-.riblbl{position:absolute;right:8px;width:40px;text-align:center;top:calc(var(--rl,60px) + 6px);font:600 12px/1 var(--gill);color:var(--ink);transition:top .9s var(--spring);pointer-events:none;z-index:2}
-.ribbon{position:absolute;right:20px;top:0;width:16px;height:var(--rl,60px);background:var(--ink);transform-origin:50% 0;clip-path:polygon(0 0,100% 0,100% 100%,50% calc(100% - 9px),0 100%);transition:height .9s var(--spring);cursor:pointer;z-index:2}
+.riblbl{position:absolute;right:8px;width:40px;text-align:center;top:0;transform:translateY(calc(var(--rl,60px) + 6px));font:600 12px/1 var(--gill);color:var(--ink);transition:transform .9s var(--spring);pointer-events:none;z-index:2}
+/* the ribbon is a full-height strip that slides down from under the top edge (transform only, no height animation) */
+.ribbon{position:absolute;right:20px;top:0;width:16px;height:100%;overflow:hidden;transform-origin:50% 0;pointer-events:none;z-index:2}
+.ribbon::before{content:"";position:absolute;inset:0;background:var(--ink);clip-path:polygon(0 0,100% 0,100% 100%,50% calc(100% - 9px),0 100%);transform:translateY(calc(var(--rl,60px) - 100%));transition:transform .9s var(--spring)}
 .ribbon.swing{animation:swing 1.3s var(--out)}
 @keyframes swing{20%{transform:rotate(7deg)}45%{transform:rotate(-4deg)}70%{transform:rotate(2deg)}}
 .ribbtn{position:absolute;right:6px;top:0;width:44px;height:calc(var(--rl,60px) + 8px);z-index:3}
@@ -166,7 +168,7 @@ svg{display:block}
 .act button.quiet{background:none;color:var(--ink2);box-shadow:none;text-decoration:none}
 .act button:active{opacity:.8}
 .filt{position:relative;display:grid;grid-template-columns:repeat(4,1fr);height:44px;margin:0 4px 10px}
-.filt .ov{position:absolute;top:4px;bottom:4px;left:0;width:25%;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);transition:left .45s var(--spring)}
+.filt .ov{position:absolute;top:4px;bottom:4px;left:0;width:25%;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);transition:transform .45s var(--spring)}
 .filt button{position:relative;font-weight:600;font-size:15px;color:var(--ink2)}
 .filt button[aria-pressed=true]{color:var(--ink)}
 .lib{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 10px}
@@ -193,7 +195,7 @@ svg{display:block}
   .spines{height:132px;padding-top:20px}.spine,.addsp{height:108px}.spine .b span{font-size:10px;letter-spacing:0}.shelf{padding-top:8px}.play{width:92px;height:56px}.skip{height:48px}.tblk .na{display:none}.tools button{min-height:50px}.series{padding:4px 0 8px;min-height:31px}
 }
 @media (prefers-reduced-motion:reduce){
-  .ribbon,.spine,.sheet,.toast,.filt .ov,.band{transition-duration:.01s}
+  .ribbon,.ribbon::before,.riblbl,.spine,.sheet,.toast,.filt .ov,.band{transition-duration:.01s}
   .ribbon.swing{animation:none}
   .skip:active,.skip.f:active,.spine:active{transform:none}
 }
@@ -551,12 +553,18 @@ var libF='全部';
 function openLib(){
   var cats=['全部','小說','推理','散文'];
   var list=BOOKS.filter(function(b){ return libF==='全部'||b.g===libF; });
-  var body='<div class="filt" id="filt"><i class="ov" style="left:'+(cats.indexOf(libF)*25)+'%"></i>'+cats.map(function(c){ return '<button data-c="'+c+'" aria-pressed="'+(c===libF)+'">'+c+'</button>'; }).join('')+'</div><div class="lib">'
+  function libBody(){ var list=BOOKS.filter(function(b){ return libF==='全部'||b.g===libF; }); return '<div class="lib">'
+    + list.map(function(b){ var on=st.shelf.indexOf(b.id)>=0, g=GEN[b.g];
+      return '<button class="mini" data-id="'+b.id+'" style="--mg:'+g.c+';--on-m:'+g.on+'" aria-label="'+esc(b.t)+(on?'，在書架上':'')+'"><i class="a"></i><span class="b"><b>'+esc(b.t)+'</b><span>'+esc(b.a)+'</span></span><i class="c"><i></i></i>'+(on?'<span class="on"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>書架</span>':'')+'</button>'; }).join('')+'</div>'; }
+  var body='<div class="filt" id="filt"><i class="ov" style="transform:translateX('+(cats.indexOf(libF)*100)+'%)"></i>'+cats.map(function(c){ return '<button data-c="'+c+'" aria-pressed="'+(c===libF)+'">'+c+'</button>'; }).join('')+'</div><div class="lib">'
     + list.map(function(b){ var on=st.shelf.indexOf(b.id)>=0, g=GEN[b.g];
       return '<button class="mini" data-id="'+b.id+'" style="--mg:'+g.c+';--on-m:'+g.on+'" aria-label="'+esc(b.t)+(on?'，在書架上':'')+'"><i class="a"></i><span class="b"><b>'+esc(b.t)+'</b><span>'+esc(b.a)+'</span></span><i class="c"><i></i></i>'+(on?'<span class="on"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>書架</span>':'')+'</button>'; }).join('')+'</div>';
   openSheet('<h4 id="shT">書庫</h4><p>'+BOOKS.length+' 本 · 點一本放上書架並開始聽</p>', body);
   $('shBody').onclick=function(e){
-    var c=e.target.closest('#filt button'); if(c){ libF=c.dataset.c; haptic(5); var y=$('shBody').scrollTop; openLib(); $('shBody').scrollTop=y; return; }
+    var c=e.target.closest('#filt button'); if(c){ if(c.dataset.c===libF) return; libF=c.dataset.c; haptic(5);
+      var ov=document.querySelector('#filt .ov'); if(ov) ov.style.transform='translateX('+(cats.indexOf(libF)*100)+'%)';
+      document.querySelectorAll('#filt button').forEach(function(x){ x.setAttribute('aria-pressed', x===c); });
+      var tmp=document.createElement('div'); tmp.innerHTML=libBody(); var old=document.querySelector('#shBody .lib'); if(old) old.replaceWith(tmp.firstChild); return; }
     var m=e.target.closest('.mini'); if(!m) return; var id=m.dataset.id;
     if(st.shelf.indexOf(id)<0){ st.shelf.push(id); persist(); renderShelf(); toast('《'+book(id).t+'》放上書架'); }
     closeSheet(); switchBook(id);

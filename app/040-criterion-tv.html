@@ -65,7 +65,7 @@ svg{display:block}
 .view{position:absolute;inset:0;display:flex;flex-direction:column}
 .view[hidden]{display:none}
 .view.enter{animation:vin .4s var(--out)}
-@keyframes vin{from{transform:translateX(var(--dx,30px))}to{transform:none}}
+@keyframes vin{from{transform:translateX(var(--dx,30px));opacity:0}to{transform:none;opacity:1}}
 
 /* day strip */
 .days{flex:none;display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px 10px;gap:2px}
@@ -78,7 +78,7 @@ svg{display:block}
 /* EPG */
 .epg{flex:1;min-height:0;overflow:auto;position:relative;overscroll-behavior:contain;scrollbar-width:none}
 .epg::-webkit-scrollbar{display:none}
-.grid{position:relative}
+.grid{position:relative;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 .ruler{position:sticky;top:0;z-index:6;display:flex;height:34px;background:var(--bk)}
 .corner{position:sticky;left:0;z-index:7;flex:none;width:76px;background:var(--bk);font:700 11px/34px var(--cond);letter-spacing:.2em;color:var(--gr2);padding-left:14px}
 .ticks{position:relative;flex:none}
@@ -87,6 +87,7 @@ svg{display:block}
 .ticks span.h{color:var(--wh)}
 .ticks span.m::before{height:8px;top:13px}
 .ticks span.m{font-size:12px;color:var(--gr2)}
+.ticks span.hid{visibility:hidden}
 .nowflag{position:absolute;top:5px;z-index:2;background:var(--red);color:var(--wh);font:700 13px/24px var(--cond);padding:0 6px;letter-spacing:.06em;transform:translateX(-50%);white-space:nowrap}
 .row{display:flex;height:92px}
 .ch{position:sticky;left:0;z-index:5;flex:none;width:76px;background:var(--bk);padding:8px 8px 8px 14px;display:flex;flex-direction:column;justify-content:space-between;border-right:3px solid var(--bk)}
@@ -113,7 +114,7 @@ svg{display:block}
 .pg.essay.live{background:var(--bk3);color:var(--wh)}
 .pg .mk{position:absolute;right:8px;top:8px;display:flex;gap:4px}
 .pg .mk svg{width:13px;height:13px}
-.nowline{position:absolute;top:34px;bottom:0;width:2px;margin-left:-1px;background:var(--red2);z-index:4;pointer-events:none}
+.nowline{position:absolute;top:34px;bottom:calc(84px + env(safe-area-inset-bottom));width:2px;margin-left:-1px;background:var(--red2);z-index:4;pointer-events:none}
 .jump{position:absolute;right:16px;bottom:calc(26px + env(safe-area-inset-bottom));z-index:8;height:48px;padding:0 16px 0 12px;background:var(--red);color:var(--wh);display:flex;align-items:center;gap:8px;font:700 15px/1 var(--cond);letter-spacing:.12em;transition:transform .35s var(--spring),visibility 0s;clip-path:polygon(0 0,100% 0,100% 100%,10px 100%,0 calc(100% - 10px))}
 .jump[hidden]{display:flex;transform:translateY(90px);visibility:hidden;transition:transform .3s,visibility 0s .3s}
 .jump:active{background:#6f1414}
@@ -158,6 +159,7 @@ svg{display:block}
 .rem .x{flex:none;width:56px;display:grid;place-items:center;color:var(--gr)}
 .rem .x:active{color:var(--wh);background:var(--bk2)}
 .remempty{padding:30px 20px;color:var(--gr);font-size:14px;line-height:1.8}
+.remfoot{padding:18px 20px;font:400 12.5px/1.5 var(--cjk);color:var(--gr2);letter-spacing:.04em}
 
 .home{position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(243,242,239,.7);z-index:30;pointer-events:none}
 
@@ -391,9 +393,11 @@ $('days').addEventListener('click', function(e){ var b = e.target.closest('[data
 /* ---------- EPG ---------- */
 var W = (END-START)*PXM;
 function isRem(film, at){ return rems.some(function(r){ return r.film===film && Math.abs(r.at - at) < 60000; }); }
+// a ruler label that would poke out from under the red NOW flag is hidden, like a real EPG
+function tickUnderFlag(m, nm){ var tx = (m-START)*PXM, nx = (nm-START)*PXM; return tx < nx + 30 && tx + 46 > nx - 30; }
 function renderEPG(scrollIt){
   var sc = schedule(dayOff), nm = dayOff===0 ? nowMin() : -1, h = '<div class="ruler"><div class="corner">CH</div><div class="ticks" style="width:'+W+'px">';
-  for(var m=START; m<END; m+=30){ h += '<span class="'+(m%60?'m':'h')+'" style="left:'+((m-START)*PXM)+'px">'+hm(m)+'</span>'; }
+  for(var m=START; m<END; m+=30){ h += '<span class="'+(m%60?'m':'h')+(nm >= START && nm < END && tickUnderFlag(m, nm) ? ' hid' : '')+'" data-m="'+m+'" style="left:'+((m-START)*PXM)+'px">'+hm(m)+'</span>'; }
   if(nm >= START && nm < END) h += '<span class="nowflag" id="nowflag" style="left:'+((nm-START)*PXM)+'px">'+hm(Math.floor(nm))+'</span>';
   h += '</div></div>';
   sc.forEach(function(row, ci){ var ch = CH[ci]; h += '<div class="row"><div class="ch"><b>'+ch.n+'</b><span>'+(ch.sn||ch.name)+'</span></div><div class="progs" style="width:'+W+'px">';
@@ -509,7 +513,7 @@ function renderRems(){
   if(!up.length){ $('remlist').innerHTML = '<p class="remempty">沒有提醒。<br>在影片資訊裡打開「開播前提醒」，時間到了這裡會通知你。</p>'; return; }
   $('remlist').innerHTML = up.map(function(r){ var f = FILM[r.film], d = new Date(r.at), mins = Math.round((r.at-nowT)/60000), off = Math.round((dayBase(0).getTime() - new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime())/-86400000);
     var cd = mins > 0 ? (mins >= 1440 ? Math.floor(mins/1440)+' 天後' : mins >= 60 ? Math.floor(mins/60)+' 時 '+(mins%60)+' 分' : mins+' 分後') : '播出中';
-    return '<div class="rem"><button class="open" data-no="'+r.film+'" data-at="'+r.at+'" data-ci="'+r.ch+'"><span class="tm">'+hm(d.getHours()*60+d.getMinutes())+'<small>'+(off===0?'今天':off===1?'明天':(d.getMonth()+1)+'/'+d.getDate())+'</small></span><span class="tx"><b>'+f.t+'</b><span>CH'+CH[r.ch].n+' '+CH[r.ch].name+' · No. '+f.no+'</span></span><span class="cd'+(mins<=0?' on':'')+'">'+cd+'</span></button><button class="x" data-del="'+r.at+'_'+r.film+'" aria-label="取消提醒 '+f.t+'">'+I.x+'</button></div>'; }).join('');
+    return '<div class="rem"><button class="open" data-no="'+r.film+'" data-at="'+r.at+'" data-ci="'+r.ch+'"><span class="tm">'+hm(d.getHours()*60+d.getMinutes())+'<small>'+(off===0?'今天':off===1?'明天':(d.getMonth()+1)+'/'+d.getDate())+'</small></span><span class="tx"><b>'+f.t+'</b><span>CH'+CH[r.ch].n+' '+CH[r.ch].name+' · No. '+f.no+'</span></span><span class="cd'+(mins<=0?' on':'')+'">'+cd+'</span></button><button class="x" data-del="'+r.at+'_'+r.film+'" aria-label="取消提醒 '+f.t+'">'+I.x+'</button></div>'; }).join('') + '<p class="remfoot">開播前 '+lead+' 分鐘通知 · 播完三小時後自動清除</p>';
 }
 $('remlist').addEventListener('click', function(e){ var x = e.target.closest('[data-del]'); if(x){ var p = x.dataset.del.split('_'); haptic([8,30,8]); toggleRem(+p[1], 0, +p[0]); return; }
   var o = e.target.closest('.open'); if(o){ haptic(6); var at = +o.dataset.at, no = +o.dataset.no, a = airings(no).filter(function(s){ return Math.abs(s.at-at) < 60000; })[0]; showFilm(FILM[no], a); } });
@@ -535,7 +539,7 @@ function refresh(){ renderEPG(false); renderShelf(); renderRems(); }
 /* ---------- clock ---------- */
 function tick(){ now = new Date(); var t = hm(now.getHours()*60+now.getMinutes()); $('clock').textContent = t; $('bigClock').textContent = t; $('dayLbl').textContent = MON[now.getMonth()]+' '+now.getDate();
   if(document.hidden) return; var nm = nowMin(), nl = $('nowline'), nf = $('nowflag');
-  if(nl && dayOff===0){ nl.style.left = (CHW+(nm-START)*PXM)+'px'; nf.style.left = ((nm-START)*PXM)+'px'; nf.textContent = hm(Math.floor(nm)); }
+  if(nl && dayOff===0){ nl.style.left = (CHW+(nm-START)*PXM)+'px'; nf.style.left = ((nm-START)*PXM)+'px'; nf.textContent = hm(Math.floor(nm)); document.querySelectorAll('.ticks span[data-m]').forEach(function(sp){ sp.classList.toggle('hid', tickUnderFlag(+sp.dataset.m, nm)); }); }
   checkRems(); if(view==='rem') renderRems(); }
 setInterval(tick, 20000);
 document.addEventListener('visibilitychange', function(){ if(!document.hidden){ tick(); renderEPG(false); } });

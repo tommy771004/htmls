@@ -140,8 +140,10 @@ svg{display:block}
 
 /* crate view */
 .crateV{background:var(--pool-2)}
-.crateV.enter{animation:slideIn .45s var(--out)}
-@keyframes slideIn{from{transform:translateX(40px)}}
+.crateV.enter{animation:slideIn .42s var(--out)}
+@keyframes slideIn{from{transform:translateX(30%);opacity:0}}
+.crateV.leave{animation:slideOut .3s var(--out) forwards;pointer-events:none}
+@keyframes slideOut{to{transform:translateX(30%);opacity:0}}
 .chead{display:flex;align-items:center;gap:6px;height:58px;padding:6px 16px 0 8px}
 .back{width:48px;height:48px;display:grid;place-items:center;border-radius:12px}
 .back svg{width:26px;height:26px}
@@ -166,8 +168,8 @@ svg{display:block}
 /* sheet */
 .scrim{position:absolute;inset:0;z-index:50;background:rgba(6,40,56,.45);opacity:0;pointer-events:none;transition:opacity .3s}
 .scrim.on{opacity:1;pointer-events:auto}
-.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;background:var(--white);color:var(--ink);border-radius:26px 26px 0 0;padding:8px 22px calc(24px + env(safe-area-inset-bottom));transform:translateY(105%);visibility:hidden;transition:transform .5s var(--spring);touch-action:none}
-.sheet.on{transform:none;visibility:visible}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;background:var(--white);color:var(--ink);border-radius:26px 26px 0 0;padding:8px 22px calc(24px + env(safe-area-inset-bottom));transform:translateY(105%);visibility:hidden;transition:transform .5s var(--spring),visibility 0s .5s;touch-action:none}
+.sheet.on{transform:none;visibility:visible;transition:transform .5s var(--spring)}
 .sheet.drag{transition:none}
 .sheet .grab{width:40px;height:5px;border-radius:3px;background:rgba(12,58,74,.25);margin:4px auto 14px}
 .turn{position:relative;height:210px;margin:0 -22px;background:var(--coral);display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -197,7 +199,7 @@ svg{display:block}
 @media (prefers-reduced-motion:reduce){
   .water g,.card.playing .rec .spin,.cb.play.on .spin,.turn.on .plat .spin{animation:none}
   .card,.card .sleeve,.card .rec,.sheet,.toast,.turn .arm{transition-duration:.01s}
-  .crateV.enter{animation:none}
+  .crateV.enter,.crateV.leave{animation:none}
 }
 </style>
 </head>
@@ -386,7 +388,7 @@ function cover(tr, uid){
 function vinyl(tr){
   var g = '';
   for (var i = 0; i < 9; i++) g += '<circle cx="50" cy="50" r="' + (22 + i * 2.8) + '" fill="none" stroke="#1d2a2e" stroke-width=".6"/>';
-  return '<svg viewBox="0 0 100 100"><g class="spin"><circle cx="50" cy="50" r="49.5" fill="#0d1417"/>' + g + '<path d="M22 30a34 34 0 0 1 20-14" stroke="#51666c" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="50" cy="50" r="17" fill="' + tr.lbl + '"/><text x="50" y="47" text-anchor="middle" font-family="Futura,sans-serif" font-style="italic" font-weight="700" font-size="5.4" fill="#0c3a4a">' + tr.en.slice(0, 18) + '</text><text x="50" y="58" text-anchor="middle" font-family="Futura,sans-serif" font-size="4" fill="#0c3a4a">33⅓ · ' + tr.y + '</text><circle cx="50" cy="50" r="1.6" fill="#0d1417"/></g></svg>';
+  return '<svg viewBox="0 0 100 100"><g class="spin"><circle cx="50" cy="50" r="49.5" fill="#0d1417"/>' + g + '<path d="M22 30a34 34 0 0 1 20-14" stroke="#51666c" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="50" cy="50" r="17" fill="' + tr.lbl + '"/><text x="50" y="47" text-anchor="middle" font-family="Futura,sans-serif" font-style="italic" font-weight="700" font-size="5.4" fill="#0c3a4a"' + (tr.en.length > 11 ? ' textLength="28" lengthAdjust="spacingAndGlyphs"' : '') + '>' + tr.en.slice(0, 18) + '</text><text x="50" y="58" text-anchor="middle" font-family="Futura,sans-serif" font-size="4" fill="#0c3a4a">33⅓ · ' + tr.y + '</text><circle cx="50" cy="50" r="1.6" fill="#0d1417"/></g></svg>';
 }
 
 /* ---------- music engine ---------- */
@@ -685,9 +687,9 @@ function renderCrate(){
   paintPlaying();
 }
 function openCrate(){
-  renderCrate(); $('vCrate').hidden = false; var v = $('vCrate'); v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); haptic(6); $('fromCrate').focus({preventScroll:true});
+  renderCrate(); $('vCrate').hidden = false; var v = $('vCrate'); v.classList.remove('enter', 'leave'); void v.offsetWidth; v.classList.add('enter'); haptic(6); $('fromCrate').focus({preventScroll:true});
 }
-function closeCrate(){ $('vCrate').hidden = true; haptic(5); renderDeck(); $('toCrate').focus({preventScroll:true}); }
+function closeCrate(){ var v = $('vCrate'); v.classList.remove('enter'); v.classList.add('leave'); setTimeout(function(){ if (v.classList.contains('leave')){ v.hidden = true; v.classList.remove('leave'); } }, reduce ? 0 : 300); haptic(5); renderDeck(); $('toCrate').focus({preventScroll:true}); }
 $('toCrate').addEventListener('click', openCrate);
 $('fromCrate').addEventListener('click', closeCrate);
 $('sorts').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; st.sort = b.dataset.s; save('state', st); renderCrate(); haptic(5); });
