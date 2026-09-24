@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+<defs>
+  <radialGradient id="sky"><stop stop-color="#263958"/><stop offset=".66" stop-color="#111b31"/><stop offset="1" stop-color="#080d1c"/></radialGradient>
+  <radialGradient id="glow"><stop stop-color="#f8e0a1" stop-opacity=".8"/><stop offset="1" stop-color="#f8e0a1" stop-opacity="0"/></radialGradient>
+  <linearGradient id="metal" x2="1" y2="1"><stop stop-color="#f1dba3"/><stop offset=".5" stop-color="#977949"/><stop offset="1" stop-color="#e1c184"/></linearGradient>
+  <linearGradient id="cab" x2="1" y2="1"><stop stop-color="#344765"/><stop offset="1" stop-color="#101b32"/></linearGradient>
+</defs>
+<rect width="640" height="400" fill="url(#sky)"/>
+<rect x="14" y="14" width="612" height="372" rx="14" fill="none" stroke="#e5cc8b" stroke-opacity=".24"/>
+<g fill="#cad4e8" opacity=".7"><circle cx="100" cy="87" r="2"/><circle cx="174" cy="160" r="1.3"/><circle cx="540" cy="98" r="1.5"/><circle cx="486" cy="236" r="1.1"/><circle cx="81" cy="304" r="1.4"/><circle cx="588" cy="326" r="1.2"/></g>
+<text x="40" y="60" fill="#edd299" font-family="sans-serif" letter-spacing="7" font-size="18">STAR VAULT</text>
+<text x="41" y="80" fill="#aeb9ce" font-family="sans-serif" letter-spacing="2" font-size="10">ASTRAL RELIC COLLECTION</text>
+<ellipse cx="320" cy="343" rx="172" ry="30" fill="#060b15" opacity=".7"/>
+<ellipse cx="320" cy="324" rx="90" ry="14" fill="url(#metal)"/>
+<rect x="233" y="230" width="174" height="96" rx="16" fill="url(#cab)" stroke="url(#metal)" stroke-width="9"/>
+<ellipse cx="320" cy="238" rx="84" ry="18" fill="url(#metal)"/>
+<circle cx="320" cy="184" r="78" fill="#7bc6dd" fill-opacity=".19" stroke="#e6c986" stroke-width="5"/>
+<circle cx="293" cy="190" r="13" fill="#87c5d5"/><circle cx="327" cy="178" r="13" fill="#ba9bd8"/><circle cx="353" cy="209" r="13" fill="#dfbd83"/><circle cx="308" cy="218" r="13" fill="#b4d0c7"/>
+<ellipse cx="320" cy="105" rx="23" ry="6" fill="url(#metal)"/><path d="M309 101V88h22v13" fill="url(#metal)"/>
+<circle cx="320" cy="275" r="37" fill="#0b1222" stroke="url(#metal)" stroke-width="7"/>
+<circle cx="320" cy="275" r="24" fill="#e4c987"/><circle cx="320" cy="275" r="13" fill="#526e82"/>
+<circle cx="320" cy="275" r="85" fill="url(#glow)"/>
+<circle cx="320" cy="275" r="51" fill="none" stroke="#eed293" stroke-opacity=".7" stroke-width="2"/>
+<path d="M320 203l5 17 17 5-17 5-5 17-5-17-17-5 17-5z" fill="#fff3ca"/>
+<text x="429" y="300" fill="#f1dbac" font-family="serif" font-size="31" letter-spacing="3">星匣</text>
+<text x="430" y="323" fill="#b8c5d4" font-family="sans-serif" font-size="11" letter-spacing="2">命運，正在轉動。</text>
+</svg>
