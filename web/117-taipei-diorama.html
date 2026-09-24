@@ -97,10 +97,10 @@ canvas.addEventListener('pointerdown',e=>{dragging=true;px=e.clientX;py=e.client
 canvas.addEventListener('pointermove',e=>{if(!dragging)return;targetYaw+=(e.clientX-px)*.003;targetPitch=THREE.MathUtils.clamp(targetPitch-(e.clientY-py)*.003,THREE.MathUtils.degToRad(18),THREE.MathUtils.degToRad(70));px=e.clientX;py=e.clientY});
 function stopDrag(){dragging=false;canvas.classList.remove('dragging')}canvas.addEventListener('pointerup',stopDrag);canvas.addEventListener('pointercancel',stopDrag);
 canvas.addEventListener('wheel',e=>{e.preventDefault();targetDistance=THREE.MathUtils.clamp(targetDistance+e.deltaY*.018,18,82)},{passive:false});
-document.querySelectorAll('[data-place]').forEach(button=>button.addEventListener('click',()=>{const p=button.dataset.place;const point=p==='101'?[5.5,1.5,-3.7]:p==='cks'?[-5,1,4.15]:[3.35,1,4.15];targetFocus.set(...point);targetDistance=Math.max(21,homeDistance()*.62)}));
-canvas.addEventListener('dblclick',()=>{targetFocus.set(0,.9,0);targetDistance=homeDistance()});
+document.querySelectorAll('[data-place]').forEach(button=>button.addEventListener('click',()=>{const p=button.dataset.place;const point=p==='101'?[5.5,1.5,-3.7]:p==='cks'?[-5,1,4.15]:[3.35,1,4.15];targetFocus.set(...point);targetDistance=Math.max(21,homeDistance()*.62);snap=reduced}));
+canvas.addEventListener('dblclick',()=>{targetFocus.set(0,.9,0);targetDistance=homeDistance();snap=reduced});
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();targetDistance=homeDistance();renderer.setSize(innerWidth,innerHeight)});
-let first=true;function animate(){requestAnimationFrame(animate);yaw+=(targetYaw-yaw)*.09;pitch+=(targetPitch-pitch)*.09;distance+=(targetDistance-distance)*.09;focus.lerp(targetFocus,.09);positionCamera();renderer.render(scene,camera);if(first){document.getElementById('loading').remove();first=false}}animate();
+let first=true,last=performance.now(),snap=false;const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;function animate(now=performance.now()){requestAnimationFrame(animate);const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;const k=snap?1:1-Math.exp(-5.66*dt);snap=false;yaw+=(targetYaw-yaw)*k;pitch+=(targetPitch-pitch)*k;distance+=(targetDistance-distance)*k;focus.lerp(targetFocus,k);positionCamera();renderer.render(scene,camera);if(first){document.getElementById('loading').remove();first=false}}animate();
 </script>
 </body>
 </html>

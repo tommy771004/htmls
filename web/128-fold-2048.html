@@ -46,14 +46,14 @@ select{border:1px solid var(--line);background:#fff9;border-radius:8px;color:var
 .cells{display:grid;grid-template-columns:repeat(var(--size),1fr);grid-template-rows:repeat(var(--size),1fr);gap:var(--gap)}
 .cell{border-radius:9px;background:var(--empty);box-shadow:inset 0 1px 3px #63696112}
 .tile{position:absolute;display:grid;place-items:center;border-radius:9px;background:var(--fill);color:var(--tile-ink);font-weight:750;letter-spacing:-.06em;font-variant-numeric:tabular-nums;box-shadow:0 3px 0 #4f483619,0 5px 12px #413a2410;will-change:transform;isolation:isolate}
-.tile.spawn{animation:spawn .36s cubic-bezier(.19,1.35,.35,1) both}
-.tile.merge{animation:merge .36s ease-out both;z-index:2}
-.tile.merge::after{content:"";position:absolute;inset:-4px;border:2px solid currentColor;border-radius:12px;pointer-events:none;animation:merge-ring .42s ease-out both}
-.spark{position:absolute;z-index:3;width:5px;height:5px;border-radius:50%;background:var(--glow);box-shadow:0 0 9px 2px var(--glow);pointer-events:none;animation:spark .42s ease-out both}
+.tile.spawn{animation:spawn .24s cubic-bezier(.19,1.35,.35,1) both}
+.tile.merge{animation:merge .26s ease-out both;z-index:2}
+.tile.merge::after{content:"";position:absolute;inset:-4px;border:2px solid currentColor;border-radius:12px;pointer-events:none;animation:merge-ring .32s ease-out both}
+.spark{position:absolute;z-index:3;width:5px;height:5px;border-radius:50%;background:var(--glow);box-shadow:0 0 9px 2px var(--glow);pointer-events:none;animation:spark .34s ease-out both}
 .board.move-bump{animation:board-bump .26s ease-out}
 .board.impact{animation:board-impact .35s ease-out}
 .score.plus strong{animation:score-pop .42s cubic-bezier(.2,1.4,.3,1)}
-@keyframes spawn{0%{opacity:0;transform:translateY(12px) scale(.35) rotate(-5deg)}62%{opacity:1;transform:translateY(-3px) scale(1.13) rotate(2deg)}100%{transform:translateY(0) scale(1) rotate(0)}}
+@keyframes spawn{0%{opacity:0;transform:translateY(6px) scale(.75) rotate(-3deg)}62%{opacity:1;transform:translateY(-2px) scale(1.08) rotate(1deg)}100%{transform:translateY(0) scale(1) rotate(0)}}
 @keyframes merge{0%{filter:brightness(1.45);transform:scale(.9)}38%{filter:brightness(1.12);transform:scale(1.2) rotate(2deg)}68%{filter:brightness(1);transform:scale(.96) rotate(-1deg)}100%{transform:scale(1) rotate(0)}}
 @keyframes merge-ring{0%{opacity:.8;transform:scale(.75)}100%{opacity:0;transform:scale(1.55)}}
 @keyframes spark{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) translate(var(--dx),var(--dy)) scale(.1)}}
@@ -144,7 +144,7 @@ const TILE_COLORS={
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const safeNum=n=>Number.isSafeInteger(n)&&n>=0;
 const emptyStats=()=>({games:0,wins:0,totalMoves:0,highestTile:0});
-let stats=emptyStats(),bests={},settings={sound:true,haptic:true},game,sessionStart=Date.now(),animating=false,queued=null,pendingMode=null,audio=null,pointerStart=null;
+let stats=emptyStats(),bests={},settings={sound:true,haptic:true},game,sessionStart=Date.now(),animating=false,queued=[],slides=[],pendingMode=null,audio=null,pointerStart=null;
 
 // ENGINE START: board calculations do not read or write the interface.
 function emptyBoard(size){return Array.from({length:size},()=>Array(size).fill(0))}
@@ -210,7 +210,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify({version:1,game,best
 function newGame(mode){
   const size=MODES[mode].size;let board=emptyBoard(size);board=spawnTile(board).board;board=spawnTile(board).board;
   game={mode,board,score:0,moves:0,elapsedMs:0,hasWon:false,status:'playing',history:null};
-  sessionStart=Date.now();stats.games++;queued=null;animating=false;hideOverlay();save();renderAll();$('board').focus();
+  sessionStart=Date.now();stats.games++;queued.length=0;animating=false;hideOverlay();save();renderAll();$('board').focus();
 }
 function timeText(ms){const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
 function renderInfo(){
@@ -261,7 +261,7 @@ function playSound(merged){
 }
 function requestMove(direction){
   if(!game||game.status!=='playing'||!$('overlay').hidden)return;
-  if(animating){queued=direction;return}
+  if(animating){if(queued.length<2)queued.push(direction);for(const a of slides)a.finish();return}
   for(const el of $('tiles').children)if(el.classList.contains('tile'))el.classList.remove('spawn','merge');
   const before=cloneBoard(game.board),result=moveBoard(before,direction);
   if(!result.moved)return;
@@ -281,7 +281,7 @@ function requestMove(direction){
   const merges=[...new Map(result.events.filter(e=>e.merged).map(e=>[e.to.join(','),e.to])).values()];
   const release=()=>{
     animating=false;renderInfo();
-    if(game.status!=='playing')showEnd();else if(queued){const next=queued;queued=null;requestMove(next)}
+    if(game.status!=='playing'){queued.length=0;showEnd()}else if(queued.length)requestMove(queued.shift())
   };
   const finish=()=>{
     renderBoard(spawnAt[0]||null,merges);renderInfo();
@@ -293,7 +293,7 @@ function requestMove(direction){
       playSound(true);if(settings.haptic&&navigator.vibrate)navigator.vibrate(12);
     }
     $('announce').textContent='合併增加 '+result.scoreGained+' 分，目前 '+game.score+' 分。';
-    if(reduced.matches)setTimeout(release,0);else setTimeout(release,190);
+    slides=[];setTimeout(release,0);
   };
   playSound(false);
   if(reduced.matches||!Element.prototype.animate){finish();return}
@@ -309,14 +309,15 @@ function requestMove(direction){
       {transform:'translate3d(0,0,0) scale(.97)'},
       {transform:'translate3d('+(dx+ox)+'px,'+(dy+oy)+'px,0) scale(1.035)',offset:.78},
       {transform:'translate3d('+dx+'px,'+dy+'px,0) scale(1)'}
-    ],{duration:220+Math.min(40,Math.hypot(dx,dy)*.08),easing:'cubic-bezier(.23,.78,.23,1)',fill:'forwards'});
+    ],{duration:140+Math.min(30,Math.hypot(dx,dy)*.06),easing:'cubic-bezier(.23,.78,.23,1)',fill:'forwards'});
   }).filter(Boolean);
+  slides=animations;
   Promise.all(animations.map(a=>a.finished.catch(()=>{}))).then(finish);
 }
 function undo(){
   if(animating||!game.history)return;
   const old=game.history;game.board=cloneBoard(old.board);game.score=old.score;game.moves=old.moves;game.elapsedMs=old.elapsedMs;game.hasWon=old.hasWon;game.status='playing';game.history=null;
-  sessionStart=Date.now();queued=null;hideOverlay();save();renderAll();$('announce').textContent='已撤銷上一步。';$('board').focus();
+  sessionStart=Date.now();queued.length=0;hideOverlay();save();renderAll();$('announce').textContent='已撤銷上一步。';$('board').focus();
 }
 function hideOverlay(){$('overlay').hidden=true}
 function showOverlay(tag,title,text,statsHtml,primary,primaryAction,secondary,secondaryAction){

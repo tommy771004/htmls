@@ -1349,7 +1349,7 @@ class Wisp {
         break;
       }
       case 'alert':
-        this.vel.multiplyScalar(Math.exp(-6 * dt)); this.pos.y += Math.sin(this.t * 30) * .004;
+        this.vel.multiplyScalar(Math.exp(-6 * dt)); this.pos.y += Math.sin(this.t * 30) * .24 * dt;
         if (this.t > .45) { this.state = 'chase'; this.t = 0; }
         break;
       case 'chase': {
@@ -1663,7 +1663,7 @@ document.querySelectorAll('.tb').forEach(b => {
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
 });
 let padPrev = {};
-function pollInput() {
+function pollInput(dt) {
   let x = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
   let y = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
   x += touch.x; y += touch.y;
@@ -1676,7 +1676,7 @@ function pollInput() {
     if (!gp) continue;
     const ax = (i) => Math.abs(gp.axes[i] || 0) > .18 ? gp.axes[i] : 0, btn = i => !!(gp.buttons[i] && gp.buttons[i].pressed), edge = i => btn(i) && !padPrev[i];
     x += ax(0); y -= ax(1);
-    if (ax(2) || ax(3)) { Cam.yaw -= ax(2) * .045; Cam.pitch = clamp(Cam.pitch + ax(3) * .03, -.22, 1.1); Cam.lastInput = G.clock; }
+    if (ax(2) || ax(3)) { Cam.yaw -= ax(2) * 2.7 * dt; Cam.pitch = clamp(Cam.pitch + ax(3) * 1.8 * dt, -.22, 1.1); Cam.lastInput = G.clock; } // 角速度 × dt，高刷新率螢幕不會轉得比較快
     jumpP = jumpP || edge(0); jumpH = jumpH || btn(0); atk = atk || edge(2) || edge(7); dash = dash || edge(1) || edge(6); inter = inter || btn(3) || btn(5);
     if (edge(9)) { if (G.state === 'playing') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'title') startGame(); }
     padPrev = {}; gp.buttons.forEach((b, i) => { padPrev[i] = b.pressed; });
@@ -1824,7 +1824,7 @@ function approach2(v, tx, tz, maxD) { const dx = tx - v.x, dz = tz - v.z, d = Ma
 
 function updatePlayer(dt) {
   P.invuln -= dt; P.hurtT -= dt; P.dashCD -= dt; P.atkCD -= dt; P.coyote -= dt; P.jumpBuf -= dt;
-  if (P.dead) { P.deadT += dt; P.vel.x *= .9; P.vel.z *= .9; }
+  if (P.dead) { P.deadT += dt; const f = Math.pow(.9, dt * 120); P.vel.x *= f; P.vel.z *= f; }
   const controllable = G.state === 'playing' && !P.dead && !P.respawning && P.hurtT <= 0;
   const fx = -Math.sin(Cam.yaw), fz = -Math.cos(Cam.yaw), rx = Math.cos(Cam.yaw), rz = -Math.sin(Cam.yaw);
   let mx = 0, mz = 0;
@@ -1937,7 +1937,7 @@ function animateHero(dt, t) {
   // 燈籠單擺（位置式約束）
   H.root.updateMatrixWorld(true);
   const anchor = H.tip.getWorldPosition(tmpV2);
-  const lp = P.lanternPos, vx = (lp.x - P.lanternPrev.x) * .965, vy = (lp.y - P.lanternPrev.y) * .965, vz = (lp.z - P.lanternPrev.z) * .965;
+  const lp = P.lanternPos, lanternDamp = Math.pow(.965, dt * 60), vx = (lp.x - P.lanternPrev.x) * lanternDamp, vy = (lp.y - P.lanternPrev.y) * lanternDamp, vz = (lp.z - P.lanternPrev.z) * lanternDamp;
   P.lanternPrev.copy(lp);
   lp.x += vx; lp.y += vy - 9.8 * dt * dt; lp.z += vz;
   tmpV.subVectors(lp, anchor); const len = tmpV.length() || 1; lp.copy(anchor).addScaledVector(tmpV, .05 / len);
@@ -2333,7 +2333,7 @@ function frame(now) {
   const t = U_TIME.value;
   const playing = G.state === 'playing';
   if (G.state !== 'paused') {
-    if (playing) pollInput(); else { pressed.clear(); mouseAttack = false; touch.pressed = {}; Object.assign(input, { x: 0, y: 0, jumpPressed: false, jumpHeld: false, attack: false, dash: false, interact: false }); }
+    if (playing) pollInput(raw); else { pressed.clear(); mouseAttack = false; touch.pressed = {}; Object.assign(input, { x: 0, y: 0, jumpPressed: false, jumpHeld: false, attack: false, dash: false, interact: false }); }
     if (dt > 0) {
       // 平台與主角在同一個子步驟裡更新，載運位移才不會重複累加
       const steps = Math.ceil(dt / (1 / 90)), h = dt / steps;

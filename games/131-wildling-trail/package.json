@@ -1,0 +1,30 @@
+{
+  "name": "wildling-trail",
+  "private": true,
+  "version": "1.0.0",
+  "description": "野靈旅記 · WILDLING TRAIL — 原創怪獸收集 RPG（作品 131）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "validate": "vitest run tests/unit/content.test.ts",
+    "build": "vite build && node scripts/inline-build.mjs",
+    "preview": "vite preview",
+    "test:e2e": "playwright test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.4",
+    "typescript": "5.9.3",
+    "vite": "7.3.6",
+    "vitest": "3.2.7"
+  }
+}
