@@ -125,18 +125,21 @@ svg{display:block}
 .compose{display:flex;align-items:center;gap:12px;margin:4px 18px 4px;min-height:52px;width:calc(100% - 36px);border-radius:14px;padding:0 16px;background:rgba(242,244,236,.55);color:var(--mute);font-size:15px;text-align:left}
 .compose:active{background:rgba(242,244,236,.8)}
 .feed{padding:0 18px}
-.feed .note .body .dn{display:inline-block;color:var(--chest);font-weight:700}
+.note .body .dn{display:inline-block;color:var(--chest);font-weight:700;padding:8px 3px;margin:-8px -3px;vertical-align:baseline}
 .feed .thumb{flex:none;width:44px;height:44px}
 
 /* ---------- detail ---------- */
-.detail{position:absolute;inset:0;z-index:30;background:var(--glaze);transform:translateX(104%);transition:transform .45s var(--out);display:flex;flex-direction:column;visibility:hidden}
-.detail.on{transform:none;visibility:visible}
+.detail{position:absolute;inset:0;z-index:30;background:var(--glaze);transform:translateX(104%);transition:transform .45s var(--out),visibility 0s .45s;display:flex;flex-direction:column;visibility:hidden}
+.detail.on{transform:none;visibility:visible;transition:transform .45s var(--out)}
 .detail .crk{opacity:.8}
 .dtop{position:relative;z-index:2;flex:none;display:flex;align-items:center;height:calc(104px + env(safe-area-inset-top));padding:calc(48px + env(safe-area-inset-top)) 8px 0}
 .ibtn{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;flex:none}
 .ibtn:active{background:rgba(67,34,15,.08)}
 .ibtn.on .bowlf{fill:var(--chest)}
-.dtop .sp{flex:1}
+.dtop .sp{flex:1;min-width:0;text-align:center;font:700 17px/44px var(--song);letter-spacing:.08em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .25s var(--out)}
+.dtop.titled .sp{opacity:1;transform:none}
+.dtop::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:rgba(67,34,15,.14);opacity:0;transition:opacity .2s}
+.dtop.titled::after{opacity:1}
 .dscroll{position:relative;z-index:1;flex:1;overflow-y:auto;overflow-x:hidden;padding:0 22px calc(110px + env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior:contain}
 .dscroll::-webkit-scrollbar{display:none}
 .dhero{display:flex;flex-direction:column;align-items:center;text-align:center}
@@ -172,8 +175,8 @@ svg{display:block}
 .cookbtn:active{background:var(--chest)}
 
 /* ---------- cooking mode ---------- */
-.cook{position:absolute;inset:0;z-index:60;background:var(--pool);color:var(--slip);display:flex;flex-direction:column;transform:translateY(104%);transition:transform .5s var(--out);visibility:hidden}
-.cook.on{transform:none;visibility:visible}
+.cook{position:absolute;inset:0;z-index:60;background:var(--pool);color:var(--slip);display:flex;flex-direction:column;transform:translateY(104%);transition:transform .5s var(--out),visibility 0s .5s;visibility:hidden}
+.cook.on{transform:none;visibility:visible;transition:transform .5s var(--out)}
 .ctop{flex:none;display:flex;align-items:center;gap:6px;height:calc(104px + env(safe-area-inset-top));padding:calc(48px + env(safe-area-inset-top)) 8px 0 8px}
 .ctop .t{flex:1;min-width:0;font:700 17px/1.2 var(--song);letter-spacing:.1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cook .ibtn:active{background:rgba(242,244,236,.12)}
@@ -239,7 +242,7 @@ textarea:focus{box-shadow:inset 0 0 0 2px var(--cel)}
 
 @media (prefers-reduced-motion:reduce){
   .view.in{animation:none}
-  .detail,.cook,.sheet,.toast,.prog i{transition:none}
+  .detail,.cook,.sheet,.toast,.prog i,.dtop .sp,.dtop::after{transition:none}
   .plate .dish,.page .big{transform:none !important}
 }
 </style>
@@ -290,9 +293,9 @@ textarea:focus{box-shadow:inset 0 0 0 2px var(--cel)}
 
       <section class="detail" id="detail" aria-label="食譜" aria-hidden="true">
         <canvas class="crk" id="crk2" aria-hidden="true"></canvas>
-        <div class="dtop">
+        <div class="dtop" id="dtop">
           <button class="ibtn" id="back" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7" fill="none" stroke="#43220f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17.5" cy="12" r="1.8" fill="#f2f4ec" stroke="#43220f" stroke-width="1.1"/></svg></button>
-          <span class="sp"></span>
+          <span class="sp" id="dTitle" aria-hidden="true"></span>
           <button class="ibtn" id="favT" aria-pressed="false" aria-label="收藏"><svg width="26" height="26" viewBox="0 0 26 26"><path class="bowlf" d="M3.5 11h19a9.5 8.5 0 0 1-19 0z" fill="none" stroke="#43220f" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 21.5h8" stroke="#43220f" stroke-width="1.8" stroke-linecap="round"/><circle cx="13" cy="6.3" r="2" fill="#f2f4ec" stroke="#43220f" stroke-width="1.2"/></svg></button>
           <button class="ibtn" id="shareB" aria-label="分享"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M10 5H5.5v13.5H19V14" fill="none" stroke="#43220f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 12l7-7M13.5 5H19v5.5" fill="none" stroke="#43220f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="5" r="1.8" fill="#f2f4ec" stroke="#43220f" stroke-width="1.1"/></svg></button>
         </div>
@@ -587,6 +590,7 @@ function step(d){
   var k = sv / r.serv; $('sOut').textContent = sv + ' 人份';
   document.querySelectorAll('.ing').forEach(function(b){ var g = r.ing[+b.dataset.ing]; b.querySelector('.q').textContent = qty(g[1], g[2], k); });
 }
+$('dscroll').addEventListener('scroll', function(){ $('dtop').classList.toggle('titled', $('dscroll').scrollTop > 240); }, {passive:true});
 $('dscroll').addEventListener('click', function(e){
   var b = e.target.closest('[data-ing]'); if (!b) return;
   var i = +b.dataset.ing, ck = checks[curR.id] = checks[curR.id] || [], at = ck.indexOf(i);
@@ -595,7 +599,7 @@ $('dscroll').addEventListener('click', function(e){
   b.querySelector('.ck').innerHTML = '<circle cx="11" cy="11" r="9" fill="' + (on ? '#7fa590' : 'none') + '" stroke="#43220f" stroke-width="1.4"/>' + (on ? '<path d="M6.8 11.2l2.9 2.9 5.6-6" fill="none" stroke="#f2f4ec" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' : '');
 });
 function openDetail(id){
-  curR = R(id); renderDetail(); $('dscroll').scrollTop = 0;
+  curR = R(id); renderDetail(); $('dscroll').scrollTop = 0; $('dTitle').textContent = curR.name; $('dtop').classList.remove('titled');
   $('detail').classList.add('on'); $('detail').setAttribute('aria-hidden', 'false');
   setTimeout(function(){ crackCanvas($('crk2'), 7, .12); }, 30);
   $('back').focus({preventScroll:true});

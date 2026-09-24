@@ -50,7 +50,7 @@ svg{display:block}
 }
 @media (min-width:521px) and (max-width:880px){.caption{display:none}}
 
-.status{position:absolute;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+.status{position:absolute;top:0;left:0;right:0;z-index:47;display:flex;align-items:center;justify-content:space-between;
   height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 16px/1 var(--av);color:var(--cream);pointer-events:none}
 .status .g{display:flex;gap:6px;align-items:center}
 @media (display-mode:standalone){.status{display:none}}
@@ -75,6 +75,8 @@ svg{display:block}
 .tile .nm svg{width:16px;height:16px;flex:none}
 .tile .nm span{overflow:hidden;text-overflow:ellipsis}
 .tile .place{position:absolute;right:10px;top:10px;font:600 12.5px/1 var(--round);color:var(--wool-ink);background:rgba(243,234,210,.85);padding:5px 8px;border-radius:8px}
+/* left-column tiles carry their city tag on the left so the hotpot in the middle never covers it */
+.grid:not(.spot) .tile:nth-child(odd) .place{right:auto;left:10px}
 .tile .mouth{transform-box:fill-box;transform-origin:50% 50%}
 .tile.talk .mouth{animation:talk .26s ease-in-out infinite alternate}
 @keyframes talk{from{transform:scaleY(.35)}to{transform:scaleY(1.25)}}
@@ -183,9 +185,14 @@ svg{display:block}
 .inv:active{transform:translateY(2px);box-shadow:0 1px 0 #a67d22}
 .inv[disabled]{opacity:.45}
 
+/* ended: the call layer is covered, so its idle loops stop */
+.screen:has(.ended.on) .tile *,.screen:has(.ended.on) .pot *{animation-play-state:paused}
+
 /* ended */
 .ended{position:absolute;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:30px;text-align:center;background:var(--fiber),var(--felt-lo)}
-.ended.on{display:flex}
+.ended.on{display:flex;animation:endIn .45s ease-out}
+@keyframes endIn{from{opacity:0}}
+.ended.on svg{animation:plop .6s var(--spring)}
 .ended svg{width:180px;height:150px}
 .ended h2{font:700 26px var(--round);letter-spacing:.08em}
 .ended p{font:15px/1.7 var(--round);color:#e3dcc3}
@@ -199,7 +206,7 @@ svg{display:block}
   .tile.talk .edge rect,.tile .eyes,.tile .sway,.pot .steam path,.tile.talk .mouth{animation:none}
   .pip,.sheet,.tray,.toast{transition:none!important}
   .fly{animation:none;display:none}
-  .pot .drop{animation:none}
+  .pot .drop,.ended.on,.ended.on svg{animation:none}
 }
 </style>
 </head>

@@ -119,6 +119,10 @@ svg{display:block}
 .preview b{color:var(--chalk);font-weight:600;margin-right:6px}
 .preview button{display:block;min-height:32px;color:var(--chalk-2);font-size:14px;text-align:left}
 
+/* end of feed: a strip of tape with a hand-written note */
+.feedend{margin:6px auto 0;padding:10px 20px 0;text-align:center;font-size:13px;line-height:1.5;color:var(--chalk-2)}
+.feedend span{display:block;width:max-content;margin:0 auto 6px;padding:4px 18px 6px;background:var(--tape);color:#5a4a22;font:400 17px/1.2 var(--hand);transform:rotate(-2deg);opacity:.9}
+
 /* me page */
 .meh{display:flex;align-items:center;gap:16px;padding:6px 24px 10px}
 .meh svg{width:76px;height:76px}
@@ -188,7 +192,7 @@ svg{display:block}
 .story .shade{position:absolute;left:0;right:0;top:0;height:170px;background:linear-gradient(rgba(0,0,0,.45),transparent);pointer-events:none}
 .bars{position:absolute;left:12px;right:12px;top:calc(54px + env(safe-area-inset-top));display:flex;gap:4px;z-index:2}
 .bars span{flex:1;height:3px;border-radius:1.5px;background:rgba(255,255,255,.35);overflow:hidden}
-.bars i{display:block;height:100%;width:0;background:#fff}
+.bars i{display:block;height:100%;width:100%;background:#fff;transform:scaleX(0);transform-origin:0 50%}
 .story .who{position:absolute;left:14px;right:8px;top:calc(66px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px;z-index:2;color:#fff}
 .story .who svg{width:34px;height:34px}
 .story .who b{font-size:15px;font-weight:600}
@@ -474,7 +478,7 @@ function postHTML(p, i){
 }
 function renderFeed(){
   const ps = allPosts();
-  $('feed').innerHTML = ps.map(postHTML).join('');
+  $('feed').innerHTML = ps.map(postHTML).join('') + (ps.length ? `<p class="feedend"><span>桌面到底了</span>最近 14 天的 ${ps.length} 張都在這裡</p>` : '');
   $('headS').textContent = `桌上 ${ps.length} 張`;
 }
 function renderMe(){
@@ -620,7 +624,7 @@ function showFrame(){
   $('stAv').innerHTML = avatar(s.u); $('stName').textContent = s.u === ME ? '你' : s.u;
   $('stAgo').textContent = `${(st.ui * 3 + st.fi * 2 + 1)} 小時`;
   $('stNote').textContent = f.n;
-  $('stBars').innerHTML = s.f.map((_, i) => `<span><i style="width:${i < st.fi ? 100 : 0}%"></i></span>`).join('');
+  $('stBars').innerHTML = s.f.map((_, i) => `<span><i style="transform:scaleX(${i < st.fi ? 1 : 0})"></i></span>`).join('');
   $('stReact').classList.remove('on');
   st.t = 0;
   if (!seen.includes(s.u)){ seen.push(s.u); persist(); }
@@ -631,7 +635,7 @@ function stLoop(ts){
   const dt = st.last ? Math.min(64, ts - st.last) : 0; st.last = ts;
   if (document.hidden || st.hold) return;
   st.t += dt;
-  const bar = $('stBars').children[st.fi]; if (bar) bar.firstChild.style.width = Math.min(100, st.t / DUR * 100) + '%';
+  const bar = $('stBars').children[st.fi]; if (bar) bar.firstChild.style.transform = 'scaleX(' + Math.min(1, st.t / DUR).toFixed(4) + ')';
   if (st.t >= DUR) stepStory(1);
 }
 function stepStory(d){

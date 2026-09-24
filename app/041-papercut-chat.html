@@ -69,6 +69,7 @@ svg{display:block}
 .chat-view.drag{transition:none}
 
 .ic{width:44px;height:44px;display:grid;place-items:center;flex:none;border-radius:12px;color:var(--ink);transition:transform .2s var(--spring)}
+.ic[hidden]{display:none}
 .ic:active{transform:scale(.88) rotate(-6deg)}
 .ic svg{width:26px;height:26px}
 
@@ -115,6 +116,8 @@ svg{display:block}
 .ci.pinned::after{content:"";position:absolute;right:0;top:12px;width:6px;height:18px;background:var(--kaki);clip-path:polygon(0 0,100% 0,100% 100%,0 80%)}
 .none{padding:40px 30px;text-align:center;color:var(--ink-2);font-size:15px}
 .none svg{width:96px;height:96px;margin:0 auto 12px}
+.lend{display:flex;align-items:center;justify-content:center;gap:8px;padding:22px 24px 8px;font-size:13px;color:var(--ink-3);text-align:center}
+.lend svg{width:14px;height:14px;flex:none}
 
 /* ---------- chat ---------- */
 .chead{display:flex;align-items:center;gap:6px;padding:2px 8px 8px 6px;border-bottom:0;position:relative;z-index:3;background:var(--rice)}
@@ -183,7 +186,8 @@ svg{display:block}
 .mic.rec{color:var(--kaki)}
 .recbar{position:absolute;inset:0 0 auto 0;height:60px;display:flex;align-items:center;gap:12px;padding:8px 64px 0 18px;background:var(--rice);visibility:hidden}
 .recbar.on{visibility:visible}
-.recbar .dot{width:12px;height:12px;background:var(--kaki);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);animation:blink 1s steps(2) infinite}
+.recbar .dot{width:12px;height:12px;background:var(--kaki);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.recbar.on .dot{animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{background:var(--ink)}}
 .recbar time{font:700 15px/1 var(--font);font-variant-numeric:tabular-nums;width:40px}
 .recwave{flex:1;height:34px;display:flex;align-items:center;justify-content:flex-end;gap:2px;overflow:hidden}
@@ -245,7 +249,7 @@ svg{display:block}
 .home{position:absolute;left:50%;bottom:7px;width:132px;height:5px;margin-left:-66px;border-radius:3px;background:var(--ink);opacity:.7;z-index:90;pointer-events:none}
 
 @media (prefers-reduced-motion:reduce){
-  .m.new .paper,.react,.typingb i,.recbar .dot{animation:none}
+  .m.new .paper,.react,.typingb i,.recbar.on .dot{animation:none}
   .view,.chat-view,.sheet,.drawer,.picker,.toast,.ci,.tog::after,.filters button i{transition-duration:.01s}
   .ic:active,.stks button:active,.picker button:active{transform:none}
 }
@@ -553,6 +557,7 @@ function renderList(){
       '<span class="bot"><span class="pv' + (typing[id] ? ' typing' : '') + '">' + (typing[id] ? '輸入中…' : esc(preview(id))) + '</span><span class="mk">' + (mute ? I_MUTE : '') + '</span>' + (un ? '<span class="badge">' + BADGE + '<span>' + un + '</span></span>' : '') + '</span></span></button></div>';
   });
   if (!ids.length) h = '<div class="none">' + stickerSvg(q ? 'cat' : 'plum') + (q ? '找不到「' + esc(q) + '」' : filter === 'unread' ? '全部讀完了，泡杯茶吧' : '還沒有群組對話') + '</div>';
+  else if (!q && filter === 'all') h += '<p class="lend"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 6V4.5a3.5 3.5 0 0 1 7 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2 6h10v7H2z" fill="currentColor"/></svg>共 ' + ids.length + ' 個對話 · 訊息僅存在這支手機</p>';
   el.innerHTML = h;
 }
 $('q').addEventListener('input', renderList);
@@ -752,6 +757,7 @@ $('stks').innerHTML = Object.keys(ST).map(function(k){ return '<button data-st="
 function openDrawer(){ $('drawer').style.transform = ''; $('drawer').classList.add('on'); $('stkBtn').setAttribute('aria-expanded', 'true'); haptic(6); snip(); }
 function closeDrawer(){ $('drawer').classList.remove('on', 'drag'); $('drawer').style.transform = ''; $('stkBtn').setAttribute('aria-expanded', 'false'); }
 $('stkBtn').addEventListener('click', function(){ if ($('drawer').classList.contains('on')) closeDrawer(); else { try { $('inp').blur(); } catch (e) {} openDrawer(); } });
+$('msgs').addEventListener('click', function(){ if ($('drawer').classList.contains('on')) closeDrawer(); });
 $('stks').addEventListener('click', function(e){ var b = e.target.closest('[data-st]'); if (!b || !cur) return; closeDrawer(); send({t:'sticker', st: b.dataset.st}); slap(); });
 dragDismiss($('drawer'), function(){ return $('drawer').classList.contains('on'); }, closeDrawer, 'button');
 

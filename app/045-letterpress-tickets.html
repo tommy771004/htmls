@@ -60,6 +60,10 @@ input,select{font:inherit;color:inherit}
 .status{position:absolute;top:0;left:0;right:0;z-index:60;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;display:flex;align-items:center;justify-content:space-between;
   font:700 16px/1 Georgia,serif;color:var(--stock);pointer-events:none;font-variant-numeric:lining-nums tabular-nums}
 .status.dark{color:var(--ink)}
+/* once a view scrolls, the status bar gets its own strip so the clock never sits on top of ticket text */
+.status::before{content:"";position:absolute;inset:0 0 -10px;z-index:-1;background:linear-gradient(var(--cloth) 78%,rgba(31,28,24,0));opacity:0;transition:opacity .2s}
+.status.dark::before{background:linear-gradient(var(--stock) 78%,rgba(223,228,180,0))}
+.status.solid::before{opacity:1}
 .status.dark svg{fill:var(--ink)}
 .status .g{display:flex;align-items:center;gap:6px}
 .status svg{fill:var(--stock)}
@@ -114,7 +118,7 @@ input,select{font:inherit;color:inherit}
 .stub{position:relative;height:124px;padding:12px 9px 10px;color:var(--ink);display:flex;flex-direction:column;justify-content:space-between;
   clip-path:polygon(0 0,100% 0,100% 100%,0 100%,0 94%,3% 90%,0 85%,4% 79%,0 73%,3% 67%,0 61%,4% 55%,0 49%,3% 43%,0 37%,4% 31%,0 25%,3% 19%,0 13%,4% 7%)}
 .stub:nth-child(3n+1){transform:rotate(-3deg)}.stub:nth-child(3n+2){transform:rotate(2deg) translateY(6px)}.stub:nth-child(3n){transform:rotate(-1deg)}
-.stub .adm{font-size:9px;letter-spacing:.14em}
+.stub .adm{font-size:10px;letter-spacing:.1em;white-space:nowrap}
 .stub b{font:700 13px/1.3 var(--han);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .stub .sn{font:700 11px/1.2 var(--mono);color:var(--verm)}
 .stub .d{font:700 12px/1 Georgia,serif;color:var(--ink2)}
@@ -333,7 +337,7 @@ input,select{font:inherit;color:inherit}
 .toast button{min-height:40px;padding:0 10px;color:var(--verm);font-weight:700}
 
 @media (prefers-reduced-motion:reduce){
-  .view,.view.on,.layer,.layer.on,.sheet,.tab,.toast,.toast.on,.tk{transition:none}
+  .view,.view.on,.layer,.layer.on,.sheet,.tab,.toast,.toast.on,.tk,.status::before{transition:none}
   .view.l,.view.r{transform:none}
   .stub.new,.ent.stampin,.film .hole.pop,.opt.drawn .bx path{animation:none}
 }
@@ -521,7 +525,10 @@ function go(v){
 function tone(){
   var light = (cur === 'prog' && !$('detail').classList.contains('on')) || $('seats').classList.contains('on');
   $('status').classList.toggle('dark', light); $('home').classList.toggle('dark', light);
+  var layer = $('detail').classList.contains('on') || $('seats').classList.contains('on');
+  $('status').classList.toggle('solid', !layer && $('v-'+cur).scrollTop > 6);
 }
+ORDER.forEach(function(k){ $('v-'+k).addEventListener('scroll', function(){ if (k === cur) tone(); }, { passive:true }); });
 tabEls.forEach(function(t){ t.addEventListener('click', function(){ haptic(6); sTick(); closeLayers(); go(t.dataset.v); }); });
 
 /* ---------- program ---------- */
