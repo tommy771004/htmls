@@ -12,7 +12,7 @@ export const TRAINER_LIST: TrainerDef[] = [
     id: 'ranger',
     name: '守林人・朔',
     party: [
-      { species: 'mistsnail', level: 8 },
+      { species: 'mistsnail', level: 7 },
       { species: 'cinderow', level: 9 },
     ],
     reward: 300,
@@ -22,9 +22,9 @@ export const TRAINER_LIST: TrainerDef[] = [
     id: 'boss',
     name: '場主・嵐',
     party: [
-      { species: 'cinderow', level: 11 },
+      { species: 'cinderow', level: 10 },
       { species: 'mistsnail', level: 11 },
-      { species: 'verdmoth', level: 13 },
+      { species: 'verdmoth', level: 12 },
     ],
     reward: 1000,
     winFlags: ['bossDefeated'],

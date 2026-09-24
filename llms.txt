@@ -125,6 +125,7 @@
 - [127 青雀 · JADE TABLE](https://htmls-ruddy.vercel.app/web/127-jade-table.html): 3D 台灣十六張麻將。真人好友房或三位 AI；吃碰明暗加槓、搶槓、補花、宣告聽牌、逐項台數結算、30 秒重連與超時代打。青雀桌規依神來也公開台表；Vercel WebSocket 權威後端、Neon 儲存牌局
 - [128 FOLD 2048 · 數字合併遊戲](https://htmls-ruddy.vercel.app/web/128-fold-2048.html): 極簡數字益智。滑動或方向鍵合併數字；五種棋盤模式、單步撤銷、自動儲存、最佳分數與勝負結算，手機直向也能遊玩
 - [130 THE SNAKE KNOWS · 自覺貪食蛇](https://htmls-ruddy.vercel.app/web/130-snake-aware.html): 自覺敘事貪食蛇。蛇會評論玩家、打破第四面牆；分數越高，畫面故障、穿牆、反向操作、點心移位與規則談判接連發生，支援鍵盤和手機觸控
+- [131 野靈旅記 · WILDLING TRAIL](https://htmls-ruddy.vercel.app/web/131-wildling-trail.html): 原創像素怪獸收集 RPG。三選一初始夥伴、草地遭遇、回合制戰鬥與捕捉、升級學招與兩階段進化，打贏守林人與場主後通關；鍵盤與手機觸控，自動存檔，單檔離線
 
 ### 品牌頁面
 

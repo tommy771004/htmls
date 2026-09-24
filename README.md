@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 130，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111 件使用本地 Three.js 模組，需透過網站伺服器開啟。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 131，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -139,6 +139,7 @@
 | 128 | [128-fold-2048.html](https://htmls-ruddy.vercel.app/web/128-fold-2048.html) | 遊戲敘事 · 極簡數字益智 | FOLD 2048：滑動或方向鍵合併數字；五種棋盤模式、單步撤銷、自動儲存、最佳分數與勝負結算，手機直向也能遊玩 | 單檔 HTML，不載入外部資源；進度與最佳分數存在本機瀏覽器 |
 | 129 | [129-orbit-os.html](https://htmls-ruddy.vercel.app/web/129-orbit-os.html) | 介面風格 · macOS 風格桌面系統 | ORBIT OS：可拖曳、縮放與最小化視窗；共用檔案資料的 Finder 和終端機、離線瀏覽器、可換主題、Web Audio 合成音樂，以及可挖掘建造的體素遊戲 | 單檔 HTML，無外部資源；檔案與遊戲進度保存在本機瀏覽器 |
 | 130 | [130-snake-aware.html](https://htmls-ruddy.vercel.app/web/130-snake-aware.html) | 遊戲敘事 · 自覺貪食蛇 | THE SNAKE KNOWS：方向鍵、WASD、觸控滑動或螢幕按鍵操作；蛇會評論玩家，分數提高後畫面故障、穿牆、反向操作、點心移位，並與玩家談判規則 | 單檔 HTML，不載入外部資源；最佳分數存在本機瀏覽器 |
+| 131 | [131-wildling-trail.html](https://htmls-ruddy.vercel.app/web/131-wildling-trail.html) | 遊戲敘事 · 原創怪獸收集 RPG | 野靈旅記 WILDLING TRAIL：四張相連的格子地圖、8 種原創怪獸、12 個招式與三屬性相剋；三選一初始夥伴，遭遇、戰鬥、捕捉、升級學招與兩階段進化，擊敗守林人取得資格後挑戰場主，通關後可以自由探索 | 由 `games/131-wildling-trail/` 建置成單檔 HTML，不載入外部資源；存檔在本機瀏覽器 |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。

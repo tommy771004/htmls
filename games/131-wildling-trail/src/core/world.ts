@@ -7,8 +7,14 @@ export interface WarpDef {
   to: string;
   dest: { x: number; y: number };
   facing: Dir;
-  /** 缺少旗標時擋住並顯示對話，不會切換地圖。 */
-  requires?: { flag: string; speaker: string; text: string };
+  /** 依序檢查；第一個缺少的旗標會擋住並顯示對話，不會切換地圖。 */
+  requires?: GateRule[];
+}
+
+export interface GateRule {
+  flag: string;
+  speaker: string;
+  text: string;
 }
 
 export type EntityKind = 'npc' | 'sign' | 'item' | 'terminal';
@@ -109,7 +115,7 @@ export function isWalkable(map: MapDef, flags: Flags, x: number, y: number): boo
 
 export type MoveResult =
   | { kind: 'blocked' }
-  | { kind: 'gate'; warp: WarpDef }
+  | { kind: 'gate'; warp: WarpDef; rule: GateRule }
   | { kind: 'step'; x: number; y: number; warp: WarpDef | null; grass: boolean };
 
 /** 嘗試往 dir 走一格。只有真的走進去才會回傳 step。 */
@@ -117,7 +123,8 @@ export function resolveMove(map: MapDef, flags: Flags, x: number, y: number, dir
   const next = stepFrom(x, y, dir);
   if (!isWalkable(map, flags, next.x, next.y)) return { kind: 'blocked' };
   const warp = warpAt(map, next.x, next.y);
-  if (warp?.requires && !flags[warp.requires.flag]) return { kind: 'gate', warp };
+  const rule = warp?.requires?.find((r) => !flags[r.flag]);
+  if (warp && rule) return { kind: 'gate', warp, rule };
   const tile = tileAt(map, next.x, next.y)!;
   return { kind: 'step', x: next.x, y: next.y, warp, grass: tile.grass };
 }

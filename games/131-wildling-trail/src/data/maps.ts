@@ -30,9 +30,9 @@ const village: MapDef = {
   ],
   warps: [
     { x: 9, y: 0, to: 'route', dest: { x: 9, y: 21 }, facing: 'up',
-      requires: { flag: 'gotStarter', speaker: '小楓', text: '外面的草叢住著野生怪獸，沒有夥伴很危險！先去廣場找禾老師吧。' } },
+      requires: [{ flag: 'gotStarter', speaker: '小楓', text: '外面的草叢住著野生怪獸，沒有夥伴很危險！先去廣場找禾老師吧。' }] },
     { x: 10, y: 0, to: 'route', dest: { x: 10, y: 21 }, facing: 'up',
-      requires: { flag: 'gotStarter', speaker: '小楓', text: '外面的草叢住著野生怪獸，沒有夥伴很危險！先去廣場找禾老師吧。' } },
+      requires: [{ flag: 'gotStarter', speaker: '小楓', text: '外面的草叢住著野生怪獸，沒有夥伴很危險！先去廣場找禾老師吧。' }] },
   ],
   entities: [
     { id: 'tutor', kind: 'npc', name: '禾老師', x: 10, y: 7, facing: 'down', sprite: 'char.tutor', script: 'tutor' },
@@ -44,6 +44,11 @@ const village: MapDef = {
     { id: 'clinicSign', kind: 'sign', name: '告示牌', x: 3, y: 5, facing: 'down', sprite: 'obj.sign', script: 'clinicSign' },
   ],
 };
+
+const ROUTE_GATE = [
+  { flag: 'firstCatch', speaker: '巡林員', text: '森林的規矩：先學會捕捉野生怪獸，才能進霧苔林。在草叢裡用晶籠試試看吧！' },
+  { flag: 'healedAfterCatch', speaker: '巡林員', text: '抓到了？很好！不過你的夥伴看起來很累。先回芽口村找蘇護士治療，順便到阿良的攤位補些晶籠再來。' },
+];
 
 const route: MapDef = {
   id: 'route',
@@ -78,9 +83,9 @@ const route: MapDef = {
     { x: 9, y: 22, to: 'village', dest: { x: 9, y: 1 }, facing: 'down' },
     { x: 10, y: 22, to: 'village', dest: { x: 10, y: 1 }, facing: 'down' },
     { x: 7, y: 0, to: 'forest', dest: { x: 9, y: 18 }, facing: 'up',
-      requires: { flag: 'firstCatch', speaker: '巡林員', text: '森林的規矩：先學會捕捉野生怪獸，才能進霧苔林。在草叢裡用晶籠試試看吧！' } },
+      requires: ROUTE_GATE },
     { x: 8, y: 0, to: 'forest', dest: { x: 10, y: 18 }, facing: 'up',
-      requires: { flag: 'firstCatch', speaker: '巡林員', text: '森林的規矩：先學會捕捉野生怪獸，才能進霧苔林。在草叢裡用晶籠試試看吧！' } },
+      requires: ROUTE_GATE },
   ],
   entities: [
     { id: 'routeSign', kind: 'sign', name: '告示牌', x: 6, y: 21, facing: 'down', sprite: 'obj.sign', script: 'routeSign' },
@@ -129,9 +134,9 @@ const forest: MapDef = {
     { x: 9, y: 19, to: 'route', dest: { x: 7, y: 1 }, facing: 'down' },
     { x: 10, y: 19, to: 'route', dest: { x: 8, y: 1 }, facing: 'down' },
     { x: 10, y: 0, to: 'arena', dest: { x: 7, y: 9 }, facing: 'up',
-      requires: { flag: 'hasPermit', speaker: '石門衛', text: '這裡是石冠挑戰場的入口。只有通過守林人朔試煉、拿到挑戰許可的人才能進去。' } },
+      requires: [{ flag: 'hasPermit', speaker: '石門衛', text: '這裡是石冠挑戰場的入口。只有通過守林人朔試煉、拿到挑戰許可的人才能進去。' }] },
     { x: 11, y: 0, to: 'arena', dest: { x: 7, y: 9 }, facing: 'up',
-      requires: { flag: 'hasPermit', speaker: '石門衛', text: '這裡是石冠挑戰場的入口。只有通過守林人朔試煉、拿到挑戰許可的人才能進去。' } },
+      requires: [{ flag: 'hasPermit', speaker: '石門衛', text: '這裡是石冠挑戰場的入口。只有通過守林人朔試煉、拿到挑戰許可的人才能進去。' }] },
   ],
   entities: [
     { id: 'ranger', kind: 'npc', name: '守林人・朔', x: 10, y: 3, facing: 'down', sprite: 'char.ranger', script: 'ranger' },
