@@ -660,6 +660,7 @@ html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .kinds,html:no
       <li><a href="125-spacewalk.html">太空漫步 · AI 科普筆記</a>｜<span class="g">個人品牌科普網站</span>｜<span class="c">介面風格</span><p class="d">用白話認識 AI Agent、Vibe Coding、AI Tools；跟著四階段學習路線動手，複製第一個提問開始探索</p></li>
       <li><a href="126-star-vault.html">星匣 · STAR VAULT</a>｜<span class="g">3D 轉蛋抽卡</span>｜<span class="c">遊戲敘事</span><p class="d">程序化星匣與角色：球體滾落、稀有光芒預告、蓄力停頓與破殼揭曉；單抽十連、漸進保底、角色圖鑑與本機進度</p></li>
       <li><a href="127-jade-table.html">青雀 · JADE TABLE</a>｜<span class="g">3D 十六張麻將</span>｜<span class="c">遊戲敘事</span><p class="d">墨綠金邊牌桌，與三位 AI 進行十六張練習局；洗牌摸打、碰胡優先判定、聽牌提示、超時代打與合成音效</p></li>
+      <li><a href="128-fold-2048.html">FOLD 2048 · 數字合併遊戲</a>｜<span class="g">極簡數字益智</span>｜<span class="c">遊戲敘事</span><p class="d">滑動或方向鍵合併數字；五種棋盤模式、單步撤銷、自動儲存、最佳分數與勝負結算，手機直向也能遊玩</p></li>
     </ol>
     <h2 id="appCatalogTitle">App 目錄</h2>
     <!-- App 資料：href 為「app/三位數編號-關鍵字.html」，.c 必須是 CATS.app 其中之一 -->
@@ -993,7 +994,7 @@ function tabLink(w, cls){
 function genreLine(w){
   return esc(w.genre)+(w.genre !== w.category ? '<span class="sep">·</span>'+esc(w.category) : '');
 }
-function thumbFile(w){ if (w.kind === 'app') return 'thumbs/app/'+w.num+'.jpg'; return 'thumbs/'+w.num+(['103','104','105','106','107','108','109','110','111','112','113','114','115','116','117','118','119','120','124','126'].includes(w.id) ? '.svg' : '.jpg'); }
+function thumbFile(w){ if (w.kind === 'app') return 'thumbs/app/'+w.num+'.jpg'; return 'thumbs/'+w.num+(['103','104','105','106','107','108','109','110','111','112','113','114','115','116','117','118','119','120','124','126','128'].includes(w.id) ? '.svg' : '.jpg'); }
 function cardHTML(w, i){
   return '<article class="card" style="--i:'+Math.min(i, 8)+'">'+
     '<div class="thumb"><span class="fallback">'+w.num+'</span>'+

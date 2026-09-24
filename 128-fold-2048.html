@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4f1eb">
+<meta name="description" content="FOLD 2048：可用鍵盤、滑鼠拖曳與手機滑動遊玩的數字合併遊戲。支援撤銷、多種棋盤、分數與自動儲存。">
+<title>FOLD 2048｜數字合併遊戲</title>
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/128-fold-2048.html">
+<style>
+:root{color-scheme:light;--paper:#f4f1eb;--ink:#282b2e;--muted:#777c7c;--line:#d8d8d1;--accent:#b9634c;--board:#d8d7cf;--empty:#c9c9c1;--gap:10px;font-family:"Avenir Next","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink)}
+body{background-image:radial-gradient(#3037360b .7px,transparent .7px);background-size:8px 8px}
+button,select{font:inherit}
+button{cursor:pointer}
+button:focus-visible,select:focus-visible,.board:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+button:disabled{cursor:not-allowed;opacity:.45}
+.app{max-width:1160px;min-height:100dvh;margin:auto;padding:30px clamp(18px,4vw,56px) 32px;display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,520px);grid-template-rows:auto 1fr auto;column-gap:clamp(32px,6vw,95px)}
+header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:17px;gap:12px}
+.wordmark{display:flex;align-items:center;gap:12px;font-size:12px;letter-spacing:.28em;font-weight:800}
+.mark{display:grid;grid-template-columns:repeat(2,9px);grid-template-rows:repeat(2,9px);gap:2px;transform:rotate(-12deg)}
+.mark i{display:block;background:var(--accent);border-radius:2px}.mark i:nth-child(2){opacity:.75}.mark i:nth-child(3){opacity:.48}
+.head-right{font-size:11px;letter-spacing:.18em;color:var(--muted);text-align:right}
+.head-right b{color:var(--accent);font-weight:700}
+.story{align-self:center;padding:36px 0 20px}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.25em;color:var(--accent)}
+h1{font:500 clamp(82px,11vw,148px)/.94 Georgia,"Songti TC",serif;letter-spacing:-.09em;margin:14px 0 0}
+h1 span{color:var(--accent)}
+.lede{font:400 clamp(19px,2vw,27px)/1.45 Georgia,"Songti TC",serif;margin:28px 0 8px;letter-spacing:.02em}
+.sub{max-width:360px;color:var(--muted);font-size:13px;line-height:1.8;margin:0}
+.scores{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:360px;margin-top:34px}
+.score{min-height:85px;padding:13px 16px;border:1px solid var(--line);border-radius:12px;background:#ffffff82}
+.score small{display:block;font-size:10px;letter-spacing:.18em;color:var(--muted)}
+.score strong{display:block;margin-top:7px;font:600 30px/1.1 "Avenir Next",system-ui,sans-serif;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.score.plus strong{color:var(--accent)}
+.guide{border-top:1px solid var(--line);max-width:360px;margin-top:31px;padding-top:19px;display:grid;grid-template-columns:60px 1fr;gap:10px;color:var(--muted);font-size:12px;line-height:1.6}
+.guide b{color:var(--ink);font-weight:700;letter-spacing:.1em}
+.play{align-self:center;width:100%;padding:31px 0 26px}
+.play-top{display:flex;justify-content:space-between;align-items:end;gap:14px;margin-bottom:13px}
+.play-top label{display:block;font-size:10px;color:var(--muted);letter-spacing:.2em;font-weight:700;margin-bottom:6px}
+select{border:1px solid var(--line);background:#fff9;border-radius:8px;color:var(--ink);min-height:38px;padding:6px 30px 6px 10px;max-width:100%;font-size:13px}
+.mode-note{font-size:11px;color:var(--muted);text-align:right;line-height:1.4}
+.board{width:100%;aspect-ratio:1;position:relative;padding:12px;border:1px solid #bcbcb3;border-radius:18px;background:var(--board);box-shadow:0 18px 45px #44473518,inset 0 2px 1px #ffffffa8;touch-action:none;user-select:none;-webkit-user-select:none;outline:none}
+.cells,.tiles{position:absolute;inset:12px}
+.cells{display:grid;grid-template-columns:repeat(var(--size),1fr);grid-template-rows:repeat(var(--size),1fr);gap:var(--gap)}
+.cell{border-radius:9px;background:var(--empty);box-shadow:inset 0 1px 3px #63696112}
+.tile{position:absolute;display:grid;place-items:center;border-radius:9px;background:var(--fill);color:var(--tile-ink);font-weight:750;letter-spacing:-.06em;font-variant-numeric:tabular-nums;box-shadow:0 3px 0 #4f483619,0 5px 12px #413a2410;will-change:transform}
+.tile.spawn{animation:spawn .19s cubic-bezier(.2,.8,.2,1.2) both}
+.tile.merge{animation:merge .23s ease-out both}
+@keyframes spawn{from{opacity:.2;scale:.65}70%{scale:1.05}to{opacity:1;scale:1}}
+@keyframes merge{50%{scale:1.12}to{scale:1}}
+.gain{height:21px;color:var(--accent);font-weight:800;font-size:12px;text-align:right;margin:5px 2px 0;opacity:0}
+.gain.show{animation:gain .65s ease-out}
+@keyframes gain{0%{opacity:0;transform:translateY(6px)}25%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
+.controls{display:grid;grid-template-columns:1fr 1fr auto auto;gap:9px;margin-top:4px}
+.control{min-height:47px;border:1px solid var(--line);border-radius:9px;background:#fff9;color:var(--ink);font-size:12px;font-weight:700;letter-spacing:.04em;padding:8px 12px;white-space:nowrap}
+.control:hover:not(:disabled){background:white;border-color:#a6a9a0}
+.control.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.control.primary:hover{background:#45494b}
+.control.icon{width:47px;padding:0;font-size:20px;font-weight:400}
+.footnote{font-size:11px;color:var(--muted);line-height:1.6;margin:12px 0 0;min-height:18px}
+footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:13px;display:flex;justify-content:space-between;gap:12px;color:#8d918e;font-size:10px;letter-spacing:.12em}
+.overlay{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:18px;background:#20272bb5;backdrop-filter:blur(5px)}
+.overlay[hidden]{display:none}
+.modal{width:min(100%,410px);background:var(--paper);border-radius:16px;padding:28px;box-shadow:0 30px 100px #10151950}
+.modal-tag{font-size:10px;letter-spacing:.23em;color:var(--accent);font-weight:800}
+.modal h2{font:500 36px/1.15 Georgia,"Songti TC",serif;margin:10px 0}
+.modal p{font-size:13px;line-height:1.7;color:var(--muted);margin:0}
+.modal-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:20px 0 22px}
+.modal-stats div{padding:12px;border:1px solid var(--line);border-radius:9px;background:#fff8}
+.modal-stats small{display:block;font-size:10px;color:var(--muted);letter-spacing:.12em}
+.modal-stats b{display:block;font-size:22px;margin-top:4px;font-variant-numeric:tabular-nums}
+.modal-actions{display:flex;gap:8px;margin-top:24px}
+.modal-actions button{flex:1}
+dialog{border:0;border-radius:16px;padding:0;max-width:min(410px,calc(100vw - 36px));width:100%;background:var(--paper);color:var(--ink);box-shadow:0 30px 100px #10151950}
+dialog::backdrop{background:#20272bb5;backdrop-filter:blur(5px)}
+.dialog-inner{padding:27px}
+.dialog-inner h2{font:500 30px Georgia,"Songti TC",serif;margin:0 0 18px}
+.setting-row{display:flex;justify-content:space-between;align-items:center;gap:15px;border-top:1px solid var(--line);padding:15px 0;font-size:13px}
+.setting-row input{width:20px;height:20px;accent-color:var(--accent)}
+.small-note{font-size:11px;color:var(--muted);line-height:1.7}
+.stat-list{display:grid;grid-template-columns:1fr auto;gap:12px 20px;font-size:13px;border-top:1px solid var(--line);padding-top:18px}
+.stat-list span{color:var(--muted)}.stat-list b{text-align:right;font-variant-numeric:tabular-nums}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:790px){.app{display:block;min-height:100dvh;padding:15px 16px 22px;max-width:530px}.story{padding:23px 0 10px}.story h1{font-size:clamp(76px,23vw,112px);margin-top:7px}.lede{font-size:20px;margin:12px 0 4px}.sub{font-size:12px}.scores{margin-top:16px;max-width:none}.score{min-height:67px;padding:9px 13px}.score strong{font-size:26px;margin-top:3px}.guide{display:none}.play{padding:13px 0 12px}.board{max-width:480px;margin:auto}.head-right{font-size:9px}.controls{grid-template-columns:1fr 1fr auto auto}footer{margin-top:8px}}
+@media(max-width:350px){:root{--gap:7px}.app{padding-left:12px;padding-right:12px}.board{padding:8px}.cells,.tiles{inset:8px}.control{padding:6px 8px;font-size:11px}.control.icon{width:44px}.head-right{display:none}}
+@media(prefers-reduced-motion:reduce){.tile.spawn,.tile.merge,.gain.show{animation:none}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header><div class="wordmark"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span> FOLD / NUMBER GAME</div><div class="head-right"><b>01—04</b> · 合併每一個可能</div></header>
+  <section class="story" aria-label="遊戲資訊">
+    <div class="eyebrow">A QUIET LITTLE NUMBER GAME</div>
+    <h1>20<span>48</span></h1>
+    <p class="lede">移動方塊，讓相同的數字相遇。</p>
+    <p class="sub">每一步都讓棋盤更擁擠，也讓下一次合併更接近。想辦法做出 2048，然後決定要不要繼續。</p>
+    <div class="scores"><div class="score" id="scoreBox"><small>目前分數 / SCORE</small><strong id="score">0</strong></div><div class="score"><small>最佳紀錄 / BEST</small><strong id="best">0</strong></div></div>
+    <div class="guide"><b>操作</b><span>方向鍵或 W A S D；在棋盤內以滑鼠拖曳、手機滑動。相同數字每回合只能合併一次。</span></div>
+  </section>
+  <section class="play" aria-label="2048 遊戲">
+    <div class="play-top"><div><label for="mode">遊戲模式 / MODE</label><select id="mode"><option value="classic">經典 · 4 × 4</option><option value="easy">寬鬆 · 5 × 5</option><option value="expert">極限 · 3 × 3</option><option value="challenge">挑戰 · 200 步</option><option value="endless">無盡 · 4 × 4</option></select></div><div class="mode-note" id="modeNote">抵達 2048 即完成挑戰</div></div>
+    <div class="board" id="board" tabindex="0" role="grid" aria-label="2048 棋盤，使用方向鍵移動"><div class="cells" id="cells" aria-hidden="true"></div><div class="tiles" id="tiles" aria-hidden="true"></div></div>
+    <div class="gain" id="gain" aria-hidden="true"></div>
+    <div class="controls"><button class="control" id="undo" type="button">↶　撤銷一步</button><button class="control primary" id="new" type="button">重新開始</button><button class="control icon" id="settings" type="button" aria-label="設定">⚙</button><button class="control icon" id="stats" type="button" aria-label="統計">▥</button></div>
+    <p class="footnote"><span id="moveInfo">已走 0 步</span><span id="timeInfo"> · 00:00</span><span id="limitInfo"></span></p>
+  </section>
+  <footer><span>FOLD 2048 · SINGLE FILE EDITION</span><span>進度保存在這台裝置</span></footer>
+</main>
+<div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal"><div class="modal-tag" id="modalTag"></div><h2 id="modalTitle"></h2><p id="modalText"></p><div class="modal-stats" id="modalStats" hidden></div><div class="modal-actions"><button class="control" id="modalSecondary" type="button"></button><button class="control primary" id="modalPrimary" type="button"></button></div></div></div>
+<dialog id="settingsDialog"><div class="dialog-inner"><h2>遊戲設定</h2><label class="setting-row">合併音效 <input id="sound" type="checkbox" checked></label><label class="setting-row">觸覺回饋 <input id="haptic" type="checkbox" checked></label><p class="small-note">觸覺回饋只在瀏覽器支援時生效。系統偏好減少動態效果時，方塊動畫會自動停用。</p><button class="control primary" id="closeSettings" type="button">完成</button></div></dialog>
+<dialog id="statsDialog"><div class="dialog-inner"><h2>遊戲統計</h2><div class="stat-list" id="statList"></div><p class="small-note">最佳分數依遊戲模式分開紀錄。重開遊戲不會清除紀錄。</p><button class="control primary" id="closeStats" type="button">返回遊戲</button></div></dialog>
+<div class="sr-only" id="announce" aria-live="polite"></div>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY='fold2048:v1';
+const MODES={
+  classic:{size:4,note:'抵達 2048 即完成挑戰'},
+  easy:{size:5,note:'更寬敞的 5 × 5 棋盤'},
+  expert:{size:3,note:'狹窄的 3 × 3 棋盤'},
+  challenge:{size:4,note:'在 200 步內抵達 2048',limit:200},
+  endless:{size:4,note:'達到 2048 後繼續合併',endless:true}
+};
+const TILE_COLORS={
+  2:['#f7f4ec','#514b43'],4:['#f1e8d8','#514b43'],8:['#edcda9','#514338'],
+  16:['#e7b695','#4e4039'],32:['#d98f79','#fffaf2'],64:['#bf7162','#fffaf2'],
+  128:['#a299b1','#fff'],256:['#818eae','#fff'],512:['#657e9e','#fff'],
+  1024:['#536f88','#fff'],2048:['#385f71','#fff']
+};
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+const safeNum=n=>Number.isSafeInteger(n)&&n>=0;
+const emptyStats=()=>({games:0,wins:0,totalMoves:0,highestTile:0});
+let stats=emptyStats(),bests={},settings={sound:true,haptic:true},game,sessionStart=Date.now(),animating=false,queued=null,pendingMode=null,audio=null,pointerStart=null;
+
+// ENGINE START: board calculations do not read or write the interface.
+function emptyBoard(size){return Array.from({length:size},()=>Array(size).fill(0))}
+function cloneBoard(board){return board.map(row=>row.slice())}
+function spawnTile(board,rng=Math.random){
+  const next=cloneBoard(board),empty=[];
+  for(let r=0;r<next.length;r++)for(let c=0;c<next.length;c++)if(!next[r][c])empty.push([r,c]);
+  if(!empty.length)return {board:next,at:null};
+  const at=empty[Math.floor(rng()*empty.length)];
+  next[at[0]][at[1]]=rng()<.9?2:4;
+  return {board:next,at};
+}
+function moveBoard(board,direction){
+  const n=board.length,next=emptyBoard(n),events=[];let gained=0;
+  for(let line=0;line<n;line++){
+    const position=i=>direction==='left'?[line,i]:direction==='right'?[line,n-1-i]:direction==='up'?[i,line]:[n-1-i,line];
+    const entries=[];
+    for(let i=0;i<n;i++){const at=position(i),value=board[at[0]][at[1]];if(value)entries.push({at,value})}
+    let target=0;
+    for(let i=0;i<entries.length;){
+      const a=entries[i],b=entries[i+1],to=position(target++);
+      if(b&&a.value===b.value){
+        next[to[0]][to[1]]=a.value*2;gained+=a.value*2;
+        events.push({from:a.at,to,merged:true},{from:b.at,to,merged:true});
+        i+=2;
+      }else{next[to[0]][to[1]]=a.value;events.push({from:a.at,to,merged:false});i++}
+    }
+  }
+  const moved=board.some((row,r)=>row.some((value,c)=>value!==next[r][c]));
+  return {board:next,moved,scoreGained:gained,events};
+}
+function isGameOver(board){
+  const n=board.length;
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)
+    if(!board[r][c]||(r+1<n&&board[r][c]===board[r+1][c])||(c+1<n&&board[r][c]===board[r][c+1]))return false;
+  return true;
+}
+function maxTile(board){return Math.max(...board.flat())}
+// ENGINE END
+
+function validBoard(board,size){
+  return Array.isArray(board)&&board.length===size&&board.every(row=>Array.isArray(row)&&row.length===size&&row.every(v=>v===0||(safeNum(v)&&v>=2&&Number.isInteger(Math.log2(v)))));
+}
+function validGame(g){
+  return g&&MODES[g.mode]&&validBoard(g.board,MODES[g.mode].size)&&safeNum(g.score)&&safeNum(g.moves)&&safeNum(g.elapsedMs)&&typeof g.hasWon==='boolean'&&['playing','won','over'].includes(g.status);
+}
+function load(){
+  try{
+    const data=JSON.parse(localStorage.getItem(KEY));
+    if(!data||data.version!==1)return false;
+    if(data.stats&&typeof data.stats==='object')for(const k of Object.keys(stats))if(safeNum(data.stats[k]))stats[k]=data.stats[k];
+    if(data.bests&&typeof data.bests==='object')for(const k of Object.keys(MODES))if(safeNum(data.bests[k]))bests[k]=data.bests[k];
+    if(data.settings&&typeof data.settings==='object')settings={sound:data.settings.sound!==false,haptic:data.settings.haptic!==false};
+    if(!validGame(data.game))return false;
+    game={...data.game,history:null};
+    if(data.game.history&&validBoard(data.game.history.board,MODES[game.mode].size)&&safeNum(data.game.history.score)&&safeNum(data.game.history.moves)&&safeNum(data.game.history.elapsedMs))game.history=data.game.history;
+    sessionStart=Date.now();return true;
+  }catch(e){return false}
+}
+function elapsed(){return game.elapsedMs+(game.status==='playing'?Date.now()-sessionStart:0)}
+function freezeTime(){if(game.status==='playing')game.elapsedMs=elapsed();sessionStart=Date.now()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({version:1,game,bests,stats,settings}))}catch(e){$('announce').textContent='無法儲存進度，請確認瀏覽器允許本機儲存。'}}
+function newGame(mode){
+  const size=MODES[mode].size;let board=emptyBoard(size);board=spawnTile(board).board;board=spawnTile(board).board;
+  game={mode,board,score:0,moves:0,elapsedMs:0,hasWon:false,status:'playing',history:null};
+  sessionStart=Date.now();stats.games++;queued=null;animating=false;hideOverlay();save();renderAll();$('board').focus();
+}
+function timeText(ms){const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function renderInfo(){
+  $('score').textContent=game.score.toLocaleString();$('best').textContent=(bests[game.mode]||0).toLocaleString();
+  $('mode').value=game.mode;$('modeNote').textContent=MODES[game.mode].note;
+  $('moveInfo').textContent='已走 '+game.moves+' 步';$('timeInfo').textContent=' · '+timeText(elapsed());
+  $('limitInfo').textContent=MODES[game.mode].limit?' · 剩餘 '+Math.max(0,MODES[game.mode].limit-game.moves)+' 步':'';
+  $('undo').disabled=animating||!game.history;$('new').disabled=animating;$('mode').disabled=animating;
+}
+function renderCells(){
+  const size=MODES[game.mode].size;$('board').style.setProperty('--size',size);
+  $('cells').innerHTML='';
+  for(let i=0;i<size*size;i++){$('cells').appendChild(Object.assign(document.createElement('div'),{className:'cell'}))}
+}
+function metrics(){
+  const size=game.board.length,layer=$('tiles'),gap=parseFloat(getComputedStyle($('cells')).gap)||10;
+  return {size,gap,unit:(layer.clientWidth-gap*(size-1))/size};
+}
+function renderBoard(spawnAt=null,merged=[]){
+  const {size,gap,unit}=metrics(),mergedKeys=new Set(merged.map(p=>p.join(','))),layer=$('tiles');layer.innerHTML='';
+  for(let r=0;r<size;r++)for(let c=0;c<size;c++){
+    const value=game.board[r][c];if(!value)continue;
+    const el=document.createElement('div'),colors=TILE_COLORS[value]||['#273f50','#fff'];
+    el.className='tile'+(spawnAt&&spawnAt[0]===r&&spawnAt[1]===c?' spawn':'')+(mergedKeys.has(r+','+c)?' merge':'');
+    el.textContent=value.toLocaleString('en-US');el.dataset.row=r;el.dataset.col=c;
+    el.style.cssText='left:'+(c*(unit+gap))+'px;top:'+(r*(unit+gap))+'px;width:'+unit+'px;height:'+unit+'px;--fill:'+colors[0]+';--tile-ink:'+colors[1]+';font-size:'+Math.min(unit*.42,value>=1024?unit*.28:unit*.42)+'px';
+    layer.appendChild(el);
+  }
+  $('board').setAttribute('aria-label','2048 '+size+' 乘 '+size+' 棋盤。'+game.board.map(row=>row.map(v=>v||'空').join('、')).join('；'));
+}
+function renderAll(){renderCells();renderBoard();renderInfo()}
+function playSound(merged){
+  if(!settings.sound)return;
+  try{
+    audio ||= new (window.AudioContext||window.webkitAudioContext)();
+    if(audio.state==='suspended')audio.resume();
+    const now=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();
+    o.type='sine';o.frequency.setValueAtTime(merged?520:300,now);o.frequency.exponentialRampToValueAtTime(merged?760:260,now+.11);
+    g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(merged?.035:.018,now+.01);g.gain.exponentialRampToValueAtTime(.0001,now+.14);
+    o.connect(g);g.connect(audio.destination);o.start(now);o.stop(now+.15);
+  }catch(e){}
+}
+function requestMove(direction){
+  if(!game||game.status!=='playing'||!$('overlay').hidden)return;
+  if(animating){queued=direction;return}
+  const before=cloneBoard(game.board),result=moveBoard(before,direction);
+  if(!result.moved)return;
+  game.history={board:before,score:game.score,moves:game.moves,elapsedMs:elapsed(),hasWon:game.hasWon,status:'playing'};
+  game.board=spawnTile(result.board).board;
+  const spawnAt=[];for(let r=0;r<game.board.length;r++)for(let c=0;c<game.board.length;c++)if(!result.board[r][c]&&game.board[r][c])spawnAt.push([r,c]);
+  game.score+=result.scoreGained;game.moves++;stats.totalMoves++;stats.highestTile=Math.max(stats.highestTile,maxTile(game.board));
+  bests[game.mode]=Math.max(bests[game.mode]||0,game.score);
+  if(!game.hasWon&&maxTile(game.board)>=2048){
+    game.hasWon=true;stats.wins++;
+    if(!MODES[game.mode].endless){freezeTime();game.status='won'}
+  }
+  if(game.status==='playing'&&MODES[game.mode].limit&&game.moves>=MODES[game.mode].limit){freezeTime();game.status='over'}
+  if(game.status==='playing'&&isGameOver(game.board)){freezeTime();game.status='over'}
+  save();animating=true;renderInfo();
+  const merges=[...new Map(result.events.filter(e=>e.merged).map(e=>[e.to.join(','),e.to])).values()];
+  const finish=()=>{
+    renderBoard(spawnAt[0]||null,merges);animating=false;renderInfo();
+    if(result.scoreGained){$('gain').textContent='+'+result.scoreGained;$('gain').classList.remove('show');void $('gain').offsetWidth;$('gain').classList.add('show')}
+    $('announce').textContent='合併增加 '+result.scoreGained+' 分，目前 '+game.score+' 分。';
+    if(game.status!=='playing')showEnd();else if(queued){const next=queued;queued=null;requestMove(next)}
+  };
+  playSound(result.scoreGained>0);
+  if(result.scoreGained&&settings.haptic&&navigator.vibrate)navigator.vibrate(12);
+  if(reduced.matches||!Element.prototype.animate){finish();return}
+  const {gap,unit}=metrics();
+  const animations=[...$('tiles').children].map(el=>{
+    const from=[Number(el.dataset.row),Number(el.dataset.col)];
+    const event=result.events.find(e=>e.from[0]===from[0]&&e.from[1]===from[1]);
+    if(!event)return null;
+    const dx=(event.to[1]-from[1])*(unit+gap),dy=(event.to[0]-from[0])*(unit+gap);
+    return el.animate([{transform:'translate3d(0,0,0)'},{transform:'translate3d('+dx+'px,'+dy+'px,0)'}],{duration:140,easing:'ease-out',fill:'forwards'});
+  }).filter(Boolean);
+  Promise.all(animations.map(a=>a.finished.catch(()=>{}))).then(finish);
+}
+function undo(){
+  if(animating||!game.history)return;
+  const old=game.history;game.board=cloneBoard(old.board);game.score=old.score;game.moves=old.moves;game.elapsedMs=old.elapsedMs;game.hasWon=old.hasWon;game.status='playing';game.history=null;
+  sessionStart=Date.now();queued=null;hideOverlay();save();renderAll();$('announce').textContent='已撤銷上一步。';$('board').focus();
+}
+function hideOverlay(){$('overlay').hidden=true}
+function showOverlay(tag,title,text,statsHtml,primary,primaryAction,secondary,secondaryAction){
+  $('modalTag').textContent=tag;$('modalTitle').textContent=title;$('modalText').textContent=text;
+  $('modalStats').hidden=!statsHtml;$('modalStats').innerHTML=statsHtml||'';
+  $('modalPrimary').textContent=primary;$('modalPrimary').onclick=primaryAction;
+  $('modalSecondary').hidden=!secondary;$('modalSecondary').textContent=secondary||'';$('modalSecondary').onclick=secondaryAction||hideOverlay;
+  $('overlay').hidden=false;$('modalPrimary').focus();
+}
+function summaryHtml(){return '<div><small>本局分數</small><b>'+game.score.toLocaleString()+'</b></div><div><small>最大方塊</small><b>'+maxTile(game.board).toLocaleString()+'</b></div><div><small>移動步數</small><b>'+game.moves+'</b></div><div><small>遊玩時間</small><b>'+timeText(elapsed())+'</b></div>'}
+function showEnd(){
+  if(game.status==='won')showOverlay('NEW MILESTONE','你做到了，2048。','每次合併都讓這個數字更靠近。要繼續向 4096 前進嗎？',summaryHtml(),'繼續遊玩',()=>{game.status='playing';sessionStart=Date.now();hideOverlay();save();renderInfo();$('board').focus()},'新的一局',()=>newGame(game.mode));
+  else if(game.status==='over')showOverlay('THE BOARD IS FULL','這局先到這裡。',MODES[game.mode].limit&&game.moves>=MODES[game.mode].limit?'已用完 200 步挑戰額度。':'棋盤已滿，沒有可以合併的相鄰方塊。',summaryHtml(),'再玩一次',()=>newGame(game.mode),'返回棋盤',hideOverlay);
+}
+function confirmNew(mode){
+  pendingMode=mode;
+  if(game.moves===0||game.status!=='playing'){newGame(mode);return}
+  showOverlay('START AGAIN','開始新的一局？','目前棋盤進度會被取代；最佳分數與累積統計仍會保留。','',
+    '重新開始',()=>newGame(pendingMode),'保留這局',()=>{$('mode').value=game.mode;hideOverlay();$('board').focus()});
+}
+$('new').onclick=()=>confirmNew(game.mode);
+$('undo').onclick=undo;
+$('mode').onchange=e=>confirmNew(e.target.value);
+$('board').addEventListener('pointerdown',e=>{pointerStart={x:e.clientX,y:e.clientY,id:e.pointerId};$('board').setPointerCapture(e.pointerId)});
+$('board').addEventListener('pointerup',e=>{
+  if(!pointerStart||e.pointerId!==pointerStart.id)return;
+  const dx=e.clientX-pointerStart.x,dy=e.clientY-pointerStart.y;pointerStart=null;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<25)return;
+  if(Math.abs(dx)>Math.abs(dy)*1.15)requestMove(dx>0?'right':'left');
+  else if(Math.abs(dy)>Math.abs(dx)*1.15)requestMove(dy>0?'down':'up');
+});
+$('board').addEventListener('pointercancel',()=>{pointerStart=null});
+document.addEventListener('keydown',e=>{
+  if(!$('overlay').hidden||$('settingsDialog').open||$('statsDialog').open||document.activeElement===$('mode'))return;
+  const direction={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',a:'left',s:'down',d:'right'}[e.key];
+  if(direction){e.preventDefault();requestMove(direction)}
+  if(e.key==='Escape'&&$('overlay').hidden){$('board').focus()}
+});
+$('overlay').addEventListener('click',e=>{if(e.target===$('overlay')&&game.status==='playing')hideOverlay()});
+$('settings').onclick=()=>{$('sound').checked=settings.sound;$('haptic').checked=settings.haptic;$('settingsDialog').showModal()};
+$('sound').onchange=e=>{settings.sound=e.target.checked;save()};
+$('haptic').onchange=e=>{settings.haptic=e.target.checked;save()};
+$('closeSettings').onclick=()=>$('settingsDialog').close();
+$('stats').onclick=()=>{$('statList').innerHTML='<span>已玩局數</span><b>'+stats.games+'</b><span>達成 2048</span><b>'+stats.wins+'</b><span>累計移動</span><b>'+stats.totalMoves+'</b><span>最高方塊</span><b>'+stats.highestTile.toLocaleString()+'</b>';$('statsDialog').showModal()};
+$('closeStats').onclick=()=>$('statsDialog').close();
+new ResizeObserver(()=>{if(game&&!animating)renderBoard()}).observe($('board'));
+setInterval(()=>{if(game&&game.status==='playing')$('timeInfo').textContent=' · '+timeText(elapsed())},1000);
+addEventListener('pagehide',()=>{if(game){freezeTime();save()}});
+if(load()){renderAll();if(game.status!=='playing')showEnd()}else newGame('classic');
+})();
+</script>
+</body>
+</html>

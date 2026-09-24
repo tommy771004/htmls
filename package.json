@@ -1,0 +1,16 @@
+{
+  "name": "creative-html-works",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/jade-table/server.mjs",
+    "test:mahjong": "node --test server/jade-table/game.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "ws": "8.21.3",
+    "@neondatabase/serverless": "1.1.0"
+  }
+}

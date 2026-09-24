@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+<rect width="640" height="400" fill="#f4f1eb"/>
+<g fill="#494e4e" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="3"><text x="38" y="45">FOLD / NUMBER GAME</text><text x="497" y="45">01—04</text></g>
+<path d="M38 63h564" stroke="#d6d7d0"/>
+<text x="38" y="197" fill="#282b2e" font-family="Georgia,serif" font-size="98">20</text><text x="145" y="197" fill="#b9634c" font-family="Georgia,serif" font-size="98">48</text>
+<text x="41" y="226" fill="#777c7c" font-family="sans-serif" font-size="14">移動方塊，讓相同的數字相遇。</text>
+<rect x="39" y="256" width="114" height="70" rx="11" fill="#fff" fill-opacity=".75" stroke="#d8d8d1"/>
+<text x="53" y="277" fill="#777c7c" font-family="sans-serif" font-size="9">SCORE</text>
+<text x="53" y="310" fill="#282b2e" font-family="sans-serif" font-size="27" font-weight="700">2,416</text>
+<rect x="164" y="256" width="114" height="70" rx="11" fill="#fff" fill-opacity=".75" stroke="#d8d8d1"/>
+<text x="178" y="277" fill="#777c7c" font-family="sans-serif" font-size="9">BEST</text>
+<text x="178" y="310" fill="#282b2e" font-family="sans-serif" font-size="27" font-weight="700">4,120</text>
+<rect x="316" y="76" width="286" height="286" rx="16" fill="#d8d7cf" stroke="#bcbcb3"/>
+<g fill="#c9c9c1">
+<rect x="328" y="88" width="60" height="60" rx="7"/><rect x="395" y="88" width="60" height="60" rx="7"/><rect x="462" y="88" width="60" height="60" rx="7"/><rect x="529" y="88" width="60" height="60" rx="7"/>
+<rect x="328" y="155" width="60" height="60" rx="7"/><rect x="395" y="155" width="60" height="60" rx="7"/><rect x="462" y="155" width="60" height="60" rx="7"/><rect x="529" y="155" width="60" height="60" rx="7"/>
+<rect x="328" y="222" width="60" height="60" rx="7"/><rect x="395" y="222" width="60" height="60" rx="7"/><rect x="462" y="222" width="60" height="60" rx="7"/><rect x="529" y="222" width="60" height="60" rx="7"/>
+<rect x="328" y="289" width="60" height="60" rx="7"/><rect x="395" y="289" width="60" height="60" rx="7"/><rect x="462" y="289" width="60" height="60" rx="7"/><rect x="529" y="289" width="60" height="60" rx="7"/>
+</g>
+<g font-family="Arial,sans-serif" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central">
+<rect x="328" y="88" width="60" height="60" rx="7" fill="#f7f4ec"/><text x="358" y="118" fill="#514b43">2</text>
+<rect x="395" y="155" width="60" height="60" rx="7" fill="#e7b695"/><text x="425" y="185" fill="#4e4039">16</text>
+<rect x="462" y="222" width="60" height="60" rx="7" fill="#a299b1"/><text x="492" y="252" fill="#fff">128</text>
+<rect x="529" y="289" width="60" height="60" rx="7" fill="#385f71"/><text x="559" y="319" fill="#fff" font-size="19">2048</text>
+</g>
+<path d="M38 366h264" stroke="#d6d7d0"/><text x="39" y="386" fill="#8d918e" font-family="sans-serif" font-size="9" letter-spacing="2">A QUIET LITTLE NUMBER GAME</text>
+</svg>
