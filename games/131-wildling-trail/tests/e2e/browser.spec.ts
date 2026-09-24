@@ -45,7 +45,7 @@ async function noHorizontalOverflow(page: Page): Promise<void> {
       if (rect.right > vw + 1 || rect.left < -1) offenders.push(`${el.tagName}.${el.className}`);
     }
     // 文字不得溢出所在的容器
-    for (const el of document.querySelectorAll<HTMLElement>('#sheet .lbl, #sheet .text, #sheet .right, .hud .name')) {
+    for (const el of document.querySelectorAll<HTMLElement>('#sheet .lbl, #sheet .text, #sheet .right, #bbox .lbl, #bbox .right, #bbox .bpick button, .hud .name')) {
       if (el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).textOverflow !== 'ellipsis') offenders.push(`文字溢出 ${el.className}`);
     }
     return { sw: document.documentElement.scrollWidth, vw, offenders };
@@ -118,7 +118,8 @@ test.describe('桌機 1440×900', () => {
       await enter();
       await page.waitForTimeout(250);
     }
-    await expect(page.locator('.cmds button')).toHaveCount(4);
+    await expect(page.locator('#bbox .bpick button')).toHaveCount(4);
+    await expect(page.locator('#sheet')).toBeHidden();
     await noHorizontalOverflow(page);
     // 逃跑（右下）
     await page.keyboard.press('ArrowDown');
@@ -195,6 +196,78 @@ test.describe('手機 390×844', () => {
     }
     await page.locator('[data-btn="cancel"]').tap();
     expect((await probe(page)).mode).toBe('explore');
+    expect(problems).toEqual([]);
+  });
+
+  test('戰鬥：訊息、指令與招式都在畫面框內，畫面不會比探索時小', async ({ page }) => {
+    const problems = watch(page);
+    await page.goto('/?seed=42');
+    await page.waitForFunction(() => (window as any).__wildling?.app.mode === 'title');
+    const tapA = () => page.locator('[data-btn="confirm"]').tap();
+    await tapA();
+    await page.waitForFunction(() => (window as any).__wildling.app.mode === 'dialog');
+    await readDialogs(page, tapA);
+    expect((await probe(page)).mode).toBe('explore');
+    const exploreWidth = (await page.locator('#frame').boundingBox())!.width;
+    // 直接給一隻夥伴並站到草叢裡，只測戰鬥版面
+    await page.evaluate(() => {
+      const app = (window as any).__wildling.app;
+      app.p.flags.gotStarter = true;
+      app.giveMonster('wickling', 8);
+      app.p.player = { map: 'route', x: 4, y: 3, facing: 'left' };
+    });
+    for (let i = 0; i < 120 && !(await probe(page)).battle; i++) {
+      await page.locator(`[data-btn="${i % 2 ? 'left' : 'right'}"]`).tap();
+      await page.waitForTimeout(200);
+    }
+    await page.waitForFunction(() => (window as any).__wildling.app.mode === 'battle', null, { timeout: 10_000 });
+    for (let i = 0; i < 20 && (await probe(page)).phase !== 'command'; i++) {
+      await tapA();
+      await page.waitForTimeout(250);
+    }
+    await page.waitForTimeout(300);
+
+    // 手帳收起，戰鬥框在畫面框裡，畫面框和控制區不重疊
+    await expect(page.locator('#sheet')).toBeHidden();
+    const frame = (await page.locator('#frame').boundingBox())!;
+    const screen = (await page.locator('#screen').boundingBox())!;
+    const bbox = (await page.locator('#bbox').boundingBox())!;
+    const pad = (await page.locator('#pad').boundingBox())!;
+    expect(bbox.y).toBeGreaterThanOrEqual(screen.y + screen.height - 1);
+    expect(bbox.y + bbox.height).toBeLessThanOrEqual(frame.y + frame.height + 1);
+    expect(frame.y + frame.height).toBeLessThanOrEqual(pad.y + 1);
+    expect(frame.width).toBeGreaterThanOrEqual(exploreWidth);
+    await expect(page.locator('#bbox .bmsg')).toContainText('要做什麼');
+    await expect(page.locator('#bbox .bpick button')).toHaveCount(4);
+    await noHorizontalOverflow(page);
+
+    // 點「招式」：左邊 2×2 招式、右邊次數與屬性，十字鍵在格子裡移動
+    await page.locator('#bbox .bpick button').first().tap();
+    await expect(page.locator('#bbox .bmoves button').first()).toBeVisible();
+    await expect(page.locator('#bbox .binfo')).toContainText('次數');
+    await noHorizontalOverflow(page);
+    const count = await page.locator('#bbox .bmoves button').count();
+    if (count >= 2) {
+      await page.locator('[data-btn="right"]').tap();
+      await expect(page.locator('#bbox .bmoves button').nth(1)).toHaveClass(/sel/);
+    }
+    // 取消回到指令，再打開背包：清單蓋滿整個畫面框
+    await page.locator('[data-btn="cancel"]').tap();
+    await expect(page.locator('#bbox .bpick button')).toHaveCount(4);
+    await page.locator('#bbox .bpick button').nth(1).tap();
+    await expect(page.locator('#bbox .bover .row')).not.toHaveCount(0);
+    const overlay = (await page.locator('#bbox .bover').boundingBox())!;
+    expect(Math.abs(overlay.height - frame.height)).toBeLessThanOrEqual(2);
+    expect(Math.abs((await page.locator('#frame').boundingBox())!.height - frame.height)).toBeLessThanOrEqual(1);
+    await noHorizontalOverflow(page);
+    await page.locator('[data-btn="cancel"]').tap();
+    await expect(page.locator('#bbox')).not.toHaveClass(/overlay/);
+
+    // 出招後訊息在戰鬥框內逐句顯示，點一下前進
+    await page.locator('#bbox .bpick button').first().tap();
+    await page.locator('#bbox .bmoves button').first().tap();
+    await page.waitForFunction(() => (window as any).__wildling.app.battle?.phase !== 'panel');
+    await expect(page.locator('#bbox .bmsg')).toBeVisible();
     expect(problems).toEqual([]);
   });
 

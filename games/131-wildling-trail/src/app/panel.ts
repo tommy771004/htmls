@@ -12,6 +12,8 @@ export interface PanelSpec {
   onSide?: (delta: -1 | 1) => void;
   qty?: () => QtyVM;
   layout?: PanelVM['layout'];
+  /** 以格子排列時的欄數；上下移動一整列，左右在同一列內移動。 */
+  columns?: number;
   cursor?: number;
 }
 
@@ -38,6 +40,10 @@ export class Panel {
 
   press(button: Button): PanelResult {
     const n = this.clamp();
+    const cols = this.spec.columns ?? 1;
+    if (cols > 1 && n > 0 && (button === 'up' || button === 'down' || button === 'left' || button === 'right')) {
+      return this.moveInGrid(button, n, cols);
+    }
     switch (button) {
       case 'up':
         if (n === 0) return 'none';
@@ -64,6 +70,19 @@ export class Panel {
     }
   }
 
+  /** 格子移動：碰到邊緣就停住，不會繞回另一邊。 */
+  private moveInGrid(button: 'up' | 'down' | 'left' | 'right', n: number, cols: number): PanelResult {
+    const col = this.cursor % cols;
+    let next = this.cursor;
+    if (button === 'up') next = this.cursor - cols;
+    else if (button === 'down') next = this.cursor + cols;
+    else if (button === 'left') next = col > 0 ? this.cursor - 1 : -1;
+    else next = col < cols - 1 ? this.cursor + 1 : -1;
+    if (next < 0 || next >= n) return 'none';
+    this.cursor = next;
+    return 'cursor';
+  }
+
   vm(): PanelVM {
     this.clamp();
     const { spec } = this;
@@ -76,6 +95,7 @@ export class Panel {
       hint: typeof spec.hint === 'function' ? spec.hint() : spec.hint,
       qty: spec.qty?.(),
       layout: spec.layout,
+      columns: spec.columns,
     };
   }
 }

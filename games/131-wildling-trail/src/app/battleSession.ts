@@ -232,6 +232,7 @@ export class BattleSession {
     return new Panel({
       kind: 'moves',
       title: '招式',
+      columns: 2,
       rows: (): ListRow[] => {
         if (exhausted()) {
           return [{ label: STRUGGLE.name, right: '—', sub: '無屬性・招式用盡時使用', tone: 'warn' }];

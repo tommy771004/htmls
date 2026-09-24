@@ -1,4 +1,5 @@
-/* 野靈旅記：上方是像素畫面，下方是一頁旅行手帳，手機再加上一組實體感按鍵。 */
+/* 野靈旅記：上方是像素畫面，下方是一頁旅行手帳，手機再加上一組實體感按鍵。
+   戰鬥時手帳收起，訊息與指令改放在畫面框內下方（掌機式戰鬥框）。 */
 :root {
   --ink: #2b2118;
   --ink-2: #5a4a34;
@@ -17,6 +18,9 @@
   --pad-h: 0px;
   --sheet-min: 236px;
   --w: min(100%, 960px, calc((100dvh - var(--sheet-min) - var(--pad-h) - 44px) * 4 / 3));
+  /* 戰鬥框的高度（相對於畫面寬度）；整個框的高度 = 寬度 × (3/4 + 這個比例) */
+  --bbox-h: 36cqw;
+  --bbox-ratio: 0.36;
   color-scheme: light;
 }
 
@@ -48,22 +52,34 @@ button { font: inherit; color: inherit; }
 }
 
 /* ---------- 畫面 ---------- */
-#screen {
+#frame {
   position: relative;
   width: var(--w);
-  aspect-ratio: 4 / 3;
   flex: none;
   container-type: inline-size;
-  background: #0f0c09;
+  background: #120e0a;
   border-radius: 6px;
   box-shadow: 0 0 0 3px #120e0a, 0 0 0 5px #6b5536, 0 10px 24px rgba(0, 0, 0, 0.45);
   overflow: hidden;
 }
+#screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  container-type: inline-size;
+  background: #0f0c09;
+  overflow: hidden;
+}
+
+/* 戰鬥中：手帳收起，畫面框變成「場景＋戰鬥框」，並用上手帳讓出來的高度 */
+#app.in-battle { --w: min(100%, 960px, calc((100dvh - var(--pad-h) - 44px) / (0.75 + var(--bbox-ratio)))); }
+#app.in-battle #sheet { display: none; }
+#app.in-battle #frame { margin-block: auto; }
 #game, #game canvas { width: 100%; height: 100%; display: block; }
 #game canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 
 #fade {
-  position: absolute; inset: 0; background: #0f0c09; opacity: 0; pointer-events: none;
+  position: absolute; inset: 0; z-index: 5; background: #0f0c09; opacity: 0; pointer-events: none;
   transition: opacity 180ms linear;
 }
 #fade.on { opacity: 1; }
@@ -213,10 +229,61 @@ img.px { image-rendering: pixelated; image-rendering: crisp-edges; }
 .qty .short { color: var(--bad); font-weight: 700; }
 .qty button { min-width: 44px; min-height: 40px; border: 2px solid var(--ink); border-radius: 6px; background: #fbf5e6; font-weight: 800; cursor: pointer; }
 
-/* 戰鬥 */
-.cmds { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
-.cmds button { min-height: 44px; border: 2px solid var(--ink); border-radius: 8px; background: #fbf5e6; font-weight: 800; font-size: 16px; cursor: pointer; }
-.cmds button.sel { background: var(--ink); color: var(--paper); }
+/* ---------- 戰鬥框（畫面框內下方） ---------- */
+#bbox {
+  height: var(--bbox-h);
+  display: flex;
+  gap: 1.4cqw;
+  padding: 1.4cqw;
+  background: #2b2118;
+  border-top: 0.6cqw solid #6b5536;
+  font-size: clamp(14px, 4.3cqw, 30px);
+  line-height: 1.45;
+}
+#bbox[hidden] { display: none; }
+.bwin {
+  position: relative;
+  min-width: 0;
+  background: var(--paper);
+  border: 0.6cqw solid #c9b489;
+  border-radius: 1.6cqw;
+  box-shadow: inset 0 0 0 0.4cqw #fbf5e6;
+  padding: 1.6cqw 2.6cqw;
+}
+.bmsg { flex: 1 1 0; overflow: hidden; }
+.bmsg .text { overflow-wrap: anywhere; }
+.bmsg .more { position: absolute; right: 2.4cqw; bottom: 1.4cqw; margin: 0; }
+.bmsg.dlg { cursor: pointer; }
+.bpick { flex: 0 0 44%; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 0.6cqw 1.4cqw; padding: 1.2cqw 1.6cqw; }
+.bpick.one { grid-template-columns: 1fr; }
+.bpick button {
+  position: relative; min-width: 0; min-height: 0; padding: 0 0 0 1.1em; border: 0; border-radius: 1cqw;
+  background: transparent; text-align: left; font-weight: 800; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bpick button.sel { background: rgba(43, 33, 24, 0.09); }
+.bpick button.sel::before { content: "▶"; position: absolute; left: 0.15em; top: 50%; transform: translateY(-50%); font-size: 0.62em; color: var(--accent); }
+.bpick button.off { color: var(--muted); }
+.bmoves { flex: 1 1 0; }
+.bmoves button { font-size: 0.92em; }
+.binfo { flex: 0 0 31%; display: flex; flex-direction: column; justify-content: center; gap: 0.4cqw; font-size: 0.78em; line-height: 1.3; }
+.binfo .pp { display: flex; justify-content: space-between; gap: 1cqw; font-weight: 800; font-variant-numeric: tabular-nums; }
+.binfo .pp.low { color: var(--bad); }
+.binfo .type { font-weight: 800; }
+.binfo .t-flame { color: var(--flame); } .binfo .t-tide { color: var(--tide); } .binfo .t-moss { color: var(--moss); }
+.binfo .sub { color: var(--ink-2); overflow-wrap: anywhere; }
+
+/* 背包、隊伍、學招等清單：蓋滿整個畫面框（戰鬥框本身留在原位，框的大小不變） */
+.bover {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 12px 34px;
+  font-size: 16px; line-height: 1.4;
+  background:
+    linear-gradient(90deg, transparent 0 22px, rgba(184, 67, 42, 0.28) 22px 23px, transparent 23px),
+    repeating-linear-gradient(0deg, transparent 0 27px, rgba(160, 130, 80, 0.14) 27px 28px),
+    var(--paper);
+}
+.bover .bmsg { flex: none; background: none; border: 0; box-shadow: none; padding: 0; }
 
 /* 通關 */
 .cleared h2 { margin: 0; font-size: 22px; font-family: "Songti TC", "Noto Serif TC", "PMingLiU", serif; }
