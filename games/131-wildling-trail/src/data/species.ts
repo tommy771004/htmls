@@ -8,8 +8,8 @@ export const SPECIES_LIST: SpeciesDef[] = [
     id: 'wickling', name: '燭尾', type: 'flame',
     base: { hp: 44, atk: 58, def: 42, spd: 62 }, catchRate: 0.45, expYield: 64,
     learnset: [
-      { level: 1, move: 'spark' }, { level: 1, move: 'warmup' },
-      { level: 7, move: 'scorch' }, { level: 10, move: 'leech' }, { level: 13, move: 'blaze' },
+      { level: 1, move: 'spark' }, { level: 1, move: 'warmup' }, { level: 5, move: 'leech' },
+      { level: 7, move: 'scorch' }, { level: 13, move: 'blaze' },
     ],
     sprite: sprite('wickling'),
     dex: '尾巴尖端點著一小簇永不熄滅的火。夜裡會把尾巴捲起來當燈。',
@@ -18,7 +18,7 @@ export const SPECIES_LIST: SpeciesDef[] = [
     id: 'bubblet', name: '泡鰭', type: 'tide',
     base: { hp: 52, atk: 48, def: 56, spd: 48 }, catchRate: 0.45, expYield: 64,
     learnset: [
-      { level: 1, move: 'bubble' }, { level: 1, move: 'jet' },
+      { level: 1, move: 'bubble' }, { level: 1, move: 'jet' }, { level: 5, move: 'vine' },
       { level: 7, move: 'lull' }, { level: 13, move: 'surge' },
     ],
     sprite: sprite('bubblet'),
@@ -28,7 +28,7 @@ export const SPECIES_LIST: SpeciesDef[] = [
     id: 'mossum', name: '苔團', type: 'moss',
     base: { hp: 58, atk: 52, def: 58, spd: 38 }, catchRate: 0.45, expYield: 64,
     learnset: [
-      { level: 1, move: 'vine' }, { level: 1, move: 'warmup' },
+      { level: 1, move: 'vine' }, { level: 1, move: 'warmup' }, { level: 5, move: 'bubble' },
       { level: 7, move: 'leech' }, { level: 10, move: 'spore' }, { level: 13, move: 'gale' },
     ],
     sprite: sprite('mossum'),
