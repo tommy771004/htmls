@@ -91,6 +91,7 @@
 - [091 Two Inks](https://htmls-ruddy.vercel.app/091-dither-3d.html): 1-bit 抖動渲染。WebGL raymarch 五種 SDF 標本，雙墨 Bayer 抖動即時渲染
 - [100 煙火終章](https://htmls-ruddy.vercel.app/100-fireworks.html): 煙火終章。河岸夜空 9 種煙火，「放一百發」每發標上一件作品的風格名
 - [116 Thockwork · 客製化鍵盤工坊](https://htmls-ruddy.vercel.app/116-thockwork-keyboard.html): 程序化 Three.js 鍵盤。逐顆生成鍵帽、軸體與外殼，切換配列、配色、材質與軸體，旋轉試打並體驗本機示範購物車；需連線載入 Three.js 與 GSAP
+- [121 R6 · 旁軸相機藍圖拆解](https://htmls-ruddy.vercel.app/121-camera-blueprint.html): 程式渲染產品藍圖動畫。深藍底白線稿的旁軸底片相機：正視圖描邊、轉 3/4 視角、五個零件依序爆炸標註、收回成尺寸標註正視圖；可決定性時間軸，輸出 60fps PNG 幀序列與 MP4
 
 ### 遊戲敘事
 
@@ -111,6 +112,8 @@
 - [112 Sunport Railway · 陽港模型鐵道](https://htmls-ruddy.vercel.app/112-sunport-railway.html): 桌上 HO 比例積木鐵道。環線列車、調車場、轉車盤、工業區、港口、小鎮車流與晝夜燈火；拖曳桌前實體拉桿和按鈕操作
 - [113 Dustbound Frontier · 塵境西部](https://htmls-ruddy.vercel.app/113-dustbound-frontier.html): 程序化體素西部世界。動態區塊、沙漠與峽谷、小鎮建築、NPC 巡邏交談、方塊挖掘建造與晝夜循環
 - [115 WIND · 草原](https://htmls-ruddy.vercel.app/115-windfield.html): 沉浸式 Three.js 草原。12 萬株 InstancedMesh 草葉隨雙層 shader 風場擺動，可調太陽與風力、阻尼視角與自動巡遊
+- [118 點燈人 · LAMPLIGHTER](https://htmls-ruddy.vercel.app/118-lamplighter.html): 第三人稱 3D 動作平台遊戲。先以三張美術規格圖定調再實作；霧湖遺跡三區關卡、點燈開月門、影魅與石燈守 AI、三段揮燈連擊與打擊停頓，GTAO、bloom、色彩分級與 Web Audio 合成音效；需連線載入 Three.js
+- [119 WELL · 俄羅斯方塊](https://htmls-ruddy.vercel.app/119-tetris.html): Canvas 落塊遊戲。10×20 棋盤、七種經典配色方塊、Wall Kick 旋轉、硬降與落點預覽；消行計分、每 10 行升級加速，手機附觸控按鍵
 
 ### 品牌頁面
 
@@ -155,6 +158,7 @@
 ### 擬物器物
 
 - [117 掌心之城 · 台北 3D 立體模型](https://htmls-ruddy.vercel.app/117-taipei-diorama.html): 程序化桌上城市模型。台北 101、中正紀念堂與國父紀念館周圍是夜間街廓與低多邊形山系；可環繞、縮放與聚焦地標；需連線載入 Three.js
+- [120 汴河長卷 · 3D 清明上河圖](https://htmls-ruddy.vercel.app/120-qingming-scroll.html): 立體絹本長卷。鏡頭沿汴河由右往左展卷，分郊野、漕運、虹橋、城郭四章，逾千名人物、漕船與城樓；可拖曳環視、切換四時辰光影、開啟合成市聲水聲風聲；需連線載入 Three.js
 
 - [018 Aurelle 胡桃木收音機](https://htmls-ruddy.vercel.app/018-skeuo-radio.html): 擬物。旋鈕調頻、真空管暖機、調諧魔眼，6 個 WebAudio 合成電台
 - [026 Cal. 26-B 機芯藍圖](https://htmls-ruddy.vercel.app/026-blueprint.html): 工程藍圖。程序化齒輪組以真實擺頻運轉，懸停零件顯示規格，附零件表與標題欄

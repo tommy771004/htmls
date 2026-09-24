@@ -1,0 +1,257 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" font-family="'Segoe UI','Microsoft JhengHei','PingFang TC',sans-serif">
+<title>點燈人 · 美術規格 A · 主角與對手</title>
+<defs>
+  <radialGradient id="bg" cx=".3" cy=".55" r=".9">
+    <stop offset="0" stop-color="#22384a"/>
+    <stop offset=".6" stop-color="#15212f"/>
+    <stop offset="1" stop-color="#0b111a"/>
+  </radialGradient>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#8fa9b3" stroke-width=".5" opacity=".12"/></pattern>
+  <radialGradient id="warm" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#fff1c9" stop-opacity=".95"/>
+    <stop offset=".16" stop-color="#ffb04a" stop-opacity=".62"/>
+    <stop offset=".5" stop-color="#ff7a2e" stop-opacity=".16"/>
+    <stop offset="1" stop-color="#ff6a2b" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="cyan" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#dcffff" stop-opacity=".95"/>
+    <stop offset=".3" stop-color="#8ff6ff" stop-opacity=".35"/>
+    <stop offset="1" stop-color="#8ff6ff" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="cloak" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#4e201c"/>
+    <stop offset=".45" stop-color="#8c3d30"/>
+    <stop offset=".8" stop-color="#b85a3e"/>
+    <stop offset="1" stop-color="#e58a57"/>
+  </linearGradient>
+  <linearGradient id="hood" x1="0" y1="0" x2="1" y2=".2">
+    <stop offset="0" stop-color="#5a241f"/>
+    <stop offset=".6" stop-color="#94412f"/>
+    <stop offset="1" stop-color="#df8455"/>
+  </linearGradient>
+  <linearGradient id="scarf" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#a99d86"/><stop offset=".7" stop-color="#e7d8b6"/><stop offset="1" stop-color="#fff0cf"/>
+  </linearGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff4d6"/><stop offset=".6" stop-color="#ffd98a"/><stop offset="1" stop-color="#ffb04a"/>
+  </linearGradient>
+  <filter id="blur8" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+  <filter id="blur3" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
+  <filter id="cloth" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency=".9 .04" numOctaves="2" seed="4" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .22 0" result="a"/>
+    <feComposite in="a" in2="SourceGraphic" operator="in" result="t"/>
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="t"/></feMerge>
+  </filter>
+  <filter id="grain" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="9"/>
+    <feColorMatrix type="saturate" values="0"/>
+    <feComponentTransfer><feFuncA type="table" tableValues="0 .08"/></feComponentTransfer>
+  </filter>
+  <g id="wisp">
+    <path d="M0-34C20-34 30-18 28 0C26 16 16 22 10 34L6 26 2 44-4 28-10 40-12 24C-22 18-28 10-28-2C-28-20-18-34 0-34Z" fill="#1b1426"/>
+    <path d="M-20-6C-14-24 10-30 22-16C8-24-10-20-20-6Z" fill="#3a2f55" opacity=".7"/>
+    <circle cx="-9" cy="-6" r="12" fill="url(#cyan)"/><circle cx="9" cy="-6" r="12" fill="url(#cyan)"/>
+    <ellipse cx="-9" cy="-6" rx="3" ry="4.4" fill="#e6ffff"/><ellipse cx="9" cy="-6" rx="3" ry="4.4" fill="#e6ffff"/>
+  </g>
+  <!-- flat hero silhouette for turnarounds: origin at feet -->
+  <g id="heroFront">
+    <path d="M-16 0V-22M16 0V-22" stroke="#26262c" stroke-width="16" stroke-linecap="round"/>
+    <path d="M-62-14C-56-80-40-132-22-152H22C40-132 56-80 62-14C30-2-30-2-62-14Z" fill="#8c3d30"/>
+    <path d="M-44-150C-30-160 30-160 44-150C40-138-40-138-44-150Z" fill="#e7d8b6"/>
+    <path d="M-40-150C-48-196-26-236 0-252C26-236 48-196 40-150C20-140-20-140-40-150Z" fill="#94412f"/>
+    <ellipse cx="0" cy="-186" rx="26" ry="30" fill="#150f14"/>
+    <ellipse cx="0" cy="-184" rx="17" ry="22" fill="#efe3c8"/>
+    <rect x="-9" y="-194" width="5" height="12" rx="2.5" fill="#241a1a"/><rect x="4" y="-194" width="5" height="12" rx="2.5" fill="#241a1a"/>
+  </g>
+</defs>
+
+<rect width="1600" height="1000" fill="url(#bg)"/>
+<rect width="1600" height="1000" fill="url(#grid)"/>
+
+<!-- ============ BIG HERO ILLUSTRATION ============ -->
+<g>
+  <circle cx="698" cy="520" r="340" fill="url(#warm)" opacity=".7"/>
+  <ellipse cx="470" cy="560" rx="170" ry="300" fill="#ff9a4a" opacity=".07" filter="url(#blur8)"/>
+  <ellipse cx="400" cy="884" rx="250" ry="34" fill="#ffb04a" opacity=".14" filter="url(#blur8)"/>
+  <ellipse cx="380" cy="884" rx="150" ry="18" fill="#05080b" opacity=".75" filter="url(#blur3)"/>
+</g>
+<g transform="translate(380 880)">
+  <!-- boots -->
+  <path d="M-34-4C-40-4-40-40-30-44H-10C-4-40-4-4-10-4Z" fill="#26262c"/>
+  <path d="M14-4C8-4 8-40 18-44H38C44-40 44-4 38-4Z" fill="#303038"/>
+  <path d="M-34-6H-8M14-6H40" stroke="#4a4a52" stroke-width="3" stroke-linecap="round"/>
+  <!-- scarf tail flowing back-left -->
+  <path d="M-40-392C-90-380-150-350-190-300-170-330-160-300-200-270-140-290-100-330-50-356Z" fill="url(#scarf)" filter="url(#cloth)"/>
+  <!-- cloak: bell shape, rounded shoulders -->
+  <path d="M-130-30C-120-170-96-300-60-386C-40-404 40-404 60-386 96-300 120-170 130-30 90-12 40-6 0-6-40-6-90-12-130-30Z" fill="url(#cloak)" filter="url(#cloth)"/>
+  <!-- cloak hem: uneven, worn -->
+  <path d="M-130-30C-116-34-104-22-92-30-80-20-66-32-52-24-40-34-24-18-10-26 4-16 18-30 32-22 46-32 60-18 74-28 88-18 100-30 116-22L130-30" fill="none" stroke="#3f1814" stroke-width="7" stroke-linejoin="round"/>
+  <!-- fold lines -->
+  <g fill="none" stroke="#5a221d" stroke-width="5" stroke-linecap="round" opacity=".7">
+    <path d="M-40-340C-60-240-80-150-86-40"/><path d="M10-330C0-230-4-140 0-30"/><path d="M60-310C74-220 88-140 96-40"/>
+  </g>
+  <!-- moon rim light (cool, left) -->
+  <path d="M-130-30C-120-170-96-300-60-386" fill="none" stroke="#9fc0c8" stroke-width="4" opacity=".8" stroke-linecap="round"/>
+  <!-- belt + ember pouch -->
+  <path d="M-106-178C-40-164 40-164 110-180" fill="none" stroke="#3a2a22" stroke-width="10"/>
+  <rect x="44" y="-190" width="46" height="44" rx="10" fill="#5e4430"/>
+  <path d="M46-186H88V-172C70-166 60-166 46-172Z" fill="#735638"/>
+  <circle cx="67" cy="-160" r="6" fill="#ffb04a"/><circle cx="67" cy="-160" r="18" fill="url(#warm)"/>
+  <!-- scarf wrap at neck -->
+  <path d="M-72-392C-40-420 44-420 76-392 70-370 40-360 0-360-40-360-66-368-72-392Z" fill="url(#scarf)"/>
+  <path d="M-60-380C-30-392 30-392 64-380" fill="none" stroke="#a99d86" stroke-width="3"/>
+  <!-- hood: rounded cone, tip bends back -->
+  <path d="M-80-392C-100-470-80-552-30-600-8-622 10-640 2-668 40-640 58-600 70-560 92-500 94-440 80-392 40-374-40-374-80-392Z" fill="url(#hood)" filter="url(#cloth)"/>
+  <path d="M-80-392C-100-470-80-552-30-600" fill="none" stroke="#9fc0c8" stroke-width="3.5" opacity=".7" stroke-linecap="round"/>
+  <path d="M70-560C92-500 94-440 80-392" fill="none" stroke="#ffc07a" stroke-width="5" opacity=".8" stroke-linecap="round"/>
+  <!-- hood opening + mask -->
+  <ellipse cx="18" cy="-470" rx="60" ry="72" fill="#150f14"/>
+  <ellipse cx="24" cy="-466" rx="40" ry="52" fill="#efe3c8"/>
+  <path d="M24-518C48-514 64-490 64-466 58-490 44-508 24-518Z" fill="#fff6e2" opacity=".8"/>
+  <rect x="6" y="-486" width="9" height="24" rx="4.5" fill="#241a1a"/><rect x="34" y="-486" width="9" height="24" rx="4.5" fill="#241a1a"/>
+  <path d="M-12-500C0-520 30-530 50-520" fill="none" stroke="#3a1814" stroke-width="10" opacity=".5"/>
+  <!-- arm + mitten -->
+  <path d="M70-300C96-300 120-290 134-270" fill="none" stroke="#7c3529" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="140" cy="-266" r="18" fill="#e7d8b6"/>
+  <!-- pole: over shoulder to lantern -->
+  <path d="M60-190 290-470" stroke="#5a3d2a" stroke-width="12" stroke-linecap="round"/>
+  <path d="M60-190 290-470" stroke="#8a6444" stroke-width="3" stroke-linecap="round" transform="translate(-3 -1)"/>
+  <path d="M290-470C302-484 318-480 318-464" fill="none" stroke="#8a6a44" stroke-width="5" stroke-linecap="round"/>
+  <path d="M318-464V-434" stroke="#8a6a44" stroke-width="3"/>
+</g>
+<!-- lantern (big) -->
+<g transform="translate(698 510)">
+  <circle r="170" fill="url(#warm)"/>
+  <path d="M-28-66H28L36-52H-36Z" fill="#5a3d22"/>
+  <path d="M-12-80H12V-66H-12Z" fill="#7a5832"/>
+  <circle cy="-86" r="9" fill="none" stroke="#8a6a44" stroke-width="4"/>
+  <path d="M-34-52H34V44H-34Z" fill="url(#glass)"/>
+  <path d="M-12-52H12V44H-12Z" fill="#fff8e6" opacity=".85"/>
+  <path d="M-34-52V44M34-52V44M-12-52V44M12-52V44" stroke="#6b4a2a" stroke-width="5"/>
+  <path d="M-6 30C-10 10 0 0 2-16 8 0 14 10 8 30Z" fill="#ff8a3a"/>
+  <path d="M-2 28C-4 18 0 12 2 4 6 14 8 20 4 28Z" fill="#fff1c9"/>
+  <path d="M-38 44H38L30 58H-30Z" fill="#5a3d22"/>
+  <path d="M-36-52H36" stroke="#c6934f" stroke-width="3"/>
+</g>
+
+<!-- shape-language guides on the big hero -->
+<g fill="none" stroke="#efe6d2" stroke-width="1.2" stroke-dasharray="6 6" opacity=".45">
+  <path d="M382 212 520 870H244Z"/>
+  <circle cx="698" cy="510" r="96"/>
+  <circle cx="402" cy="410" r="84"/>
+</g>
+
+<!-- ============ HEADER ============ -->
+<g font-family="Georgia,'PMingLiU',serif" fill="#efe6d2">
+  <text x="48" y="64" font-size="13" letter-spacing="4" fill="#ffb04a">LAMPLIGHTER · ART SPEC A</text>
+  <text x="48" y="104" font-size="34">主角 · 點燈人</text>
+  <text x="48" y="136" font-size="16" fill="#b8c6c6">身高 1.2 m｜圓 + 三角｜燈籠＝視覺重心</text>
+</g>
+
+<!-- ============ TURNAROUND ============ -->
+<g transform="translate(800 160)">
+  <text x="0" y="0" font-size="12" letter-spacing="3" fill="#ffb04a">TURNAROUND · 三視圖（同比例）</text>
+  <rect x="0" y="16" width="760" height="330" fill="#0b111a" opacity=".45" stroke="#8fa9b3" stroke-opacity=".25"/>
+  <path d="M20 300H740" stroke="#8fa9b3" stroke-opacity=".4"/>
+  <!-- front -->
+  <g transform="translate(140 300)"><use href="#heroFront"/></g>
+  <!-- side -->
+  <g transform="translate(360 300)">
+    <path d="M-10 0V-22M10 0V-22" stroke="#26262c" stroke-width="16" stroke-linecap="round"/>
+    <path d="M-44-14C-40-80-30-132-18-152H18C34-132 48-80 50-14C20-2-20-2-44-14Z" fill="#8c3d30"/>
+    <path d="M-30-150H32C30-140-26-140-30-150Z" fill="#e7d8b6"/>
+    <path d="M-36-150C-40-196-30-230-4-244-14-256-24-262-34-258-20-270 4-262 16-242 38-222 44-186 34-150 10-140-20-140-36-150Z" fill="#94412f"/>
+    <ellipse cx="22" cy="-186" rx="12" ry="26" fill="#150f14"/><ellipse cx="26" cy="-184" rx="7" ry="20" fill="#efe3c8"/>
+    <path d="M20-120 120-230" stroke="#5a3d2a" stroke-width="6" stroke-linecap="round"/>
+    <path d="M120-230V-212" stroke="#8a6a44" stroke-width="2"/>
+    <rect x="106" y="-212" width="28" height="40" fill="#ffd98a"/><path d="M104-214H136M104-172H136" stroke="#5a3d22" stroke-width="5"/>
+  </g>
+  <!-- back -->
+  <g transform="translate(600 300)">
+    <path d="M-16 0V-22M16 0V-22" stroke="#26262c" stroke-width="16" stroke-linecap="round"/>
+    <path d="M-62-14C-56-80-40-132-22-152H22C40-132 56-80 62-14C30-2-30-2-62-14Z" fill="#7a3328"/>
+    <path d="M-40-150C-48-196-26-236 0-252C26-236 48-196 40-150C20-140-20-140-40-150Z" fill="#84382b"/>
+    <path d="M-44-150C-30-160 30-160 44-150C40-138-40-138-44-150Z" fill="#cdbf9f"/>
+    <path d="M-8-146C-20-110-30-90-24-60-14-90-4-110 6-140Z" fill="#cdbf9f"/>
+    <rect x="-18" y="-100" width="36" height="30" rx="7" fill="#5e4430"/>
+  </g>
+  <!-- height marker -->
+  <g stroke="#efe6d2" stroke-opacity=".6"><path d="M50 300V48M44 48H56M44 300H56"/></g>
+  <text x="60" y="176" font-size="13" fill="#efe6d2" transform="rotate(-90 60 176)" text-anchor="middle">1.2 m</text>
+  <g font-size="13" fill="#b8c6c6" text-anchor="middle"><text x="140" y="328">正面</text><text x="360" y="328">側面（燈竿前傾 45°）</text><text x="600" y="328">背面（圍巾尾 + 餘燼袋）</text></g>
+</g>
+
+<!-- ============ LANTERN CLOSE-UP ============ -->
+<g transform="translate(800 540)">
+  <text x="0" y="0" font-size="12" letter-spacing="3" fill="#ffb04a">LANTERN · 燈籠</text>
+  <rect x="0" y="16" width="230" height="330" fill="#0b111a" opacity=".45" stroke="#8fa9b3" stroke-opacity=".25"/>
+  <g transform="translate(115 170) scale(1.25)">
+    <circle r="110" fill="url(#warm)" opacity=".8"/>
+    <path d="M-28-66H28L36-52H-36Z" fill="#5a3d22"/><circle cy="-80" r="9" fill="none" stroke="#8a6a44" stroke-width="4"/>
+    <path d="M-34-52H34V44H-34Z" fill="url(#glass)"/><path d="M-12-52H12V44H-12Z" fill="#fff8e6" opacity=".85"/>
+    <path d="M-34-52V44M34-52V44M-12-52V44M12-52V44" stroke="#6b4a2a" stroke-width="5"/>
+    <path d="M-38 44H38L30 58H-30Z" fill="#5a3d22"/><path d="M-36-52H36" stroke="#c6934f" stroke-width="3"/>
+  </g>
+  <g font-size="12" fill="#d9d3c3"><text x="14" y="300">黃銅框 #6B4A2A｜玻璃 #FFD98A</text><text x="14" y="320">燈芯 #FFF1C9（HDR &gt; 1，觸發 bloom）</text></g>
+</g>
+
+<!-- ============ SHAPE NOTES ============ -->
+<g transform="translate(1060 540)" fill="#efe6d2">
+  <text x="0" y="0" font-size="12" letter-spacing="3" fill="#ffb04a">SHAPE LANGUAGE · 造型語彙</text>
+  <g font-size="15">
+    <text x="0" y="40">▲ 三角：兜帽錐＋鐘形斗篷</text>
+    <text x="0" y="62" font-size="13" fill="#b8c6c6">穩定、好讀，遠看也認得出</text>
+    <text x="0" y="100">● 圓：頭部開口、燈籠光暈</text>
+    <text x="0" y="122" font-size="13" fill="#b8c6c6">柔和、友善；與敵人的尖刺相反</text>
+    <text x="0" y="160">◐ 冷暖邊光</text>
+    <text x="0" y="182" font-size="13" fill="#b8c6c6">背月側：冷青勾邊｜朝燈側：暖橘受光</text>
+    <text x="0" y="220">✦ 動態</text>
+    <text x="0" y="242" font-size="13" fill="#b8c6c6">燈籠以單擺晃動，斗篷落地會壓扁回彈</text>
+    <text x="0" y="280">✕ 禁止</text>
+    <text x="0" y="302" font-size="13" fill="#b8c6c6">寫實五官、金屬高光塑膠感、純黑陰影</text>
+  </g>
+</g>
+
+<!-- ============ RIVALS ============ -->
+<g transform="translate(1340 540)">
+  <text x="0" y="0" font-size="12" letter-spacing="3" fill="#ffb04a">RIVALS · 對手</text>
+  <rect x="0" y="16" width="220" height="330" fill="#0b111a" opacity=".45" stroke="#8fa9b3" stroke-opacity=".25"/>
+  <g transform="translate(60 96) scale(1.15)"><circle r="60" fill="url(#cyan)" opacity=".35"/><use href="#wisp"/></g>
+  <text x="112" y="100" font-size="15" fill="#efe6d2">影魅</text>
+  <text x="112" y="120" font-size="12" fill="#b8c6c6">尖、碎、拖尾</text>
+  <text x="112" y="138" font-size="12" fill="#b8c6c6">巡邏→察覺→撲擊</text>
+  <!-- sentinel: stone lantern with cyan eye -->
+  <g transform="translate(60 322)">
+    <ellipse cy="2" rx="40" ry="8" fill="#05080b" opacity=".6"/>
+    <path d="M-30 0H30L24-16H-24Z" fill="#4b5659"/>
+    <rect x="-12" y="-60" width="24" height="44" fill="#56626a"/>
+    <path d="M-34-60H34L26-74H-26Z" fill="#5f6c72"/>
+    <rect x="-24" y="-110" width="48" height="36" fill="#49545a"/>
+    <rect x="-10" y="-102" width="20" height="18" fill="#8ff6ff"/>
+    <circle cy="-93" r="30" fill="url(#cyan)" opacity=".7"/>
+    <path d="M-40-110H40L0-140Z" fill="#5f6c72"/><circle cy="-144" r="6" fill="#5f6c72"/>
+  </g>
+  <text x="112" y="246" font-size="15" fill="#efe6d2">石燈守</text>
+  <text x="112" y="266" font-size="12" fill="#b8c6c6">不動，蓄力射出</text>
+  <text x="112" y="284" font-size="12" fill="#b8c6c6">冷光彈，可被揮燈打散</text>
+</g>
+
+<!-- ============ CHARACTER PALETTE ============ -->
+<g transform="translate(0 936)">
+  <rect width="1600" height="64" fill="#070b10" opacity=".85"/>
+  <g font-size="11" fill="#d9d3c3" font-family="Consolas,monospace">
+    <rect x="40" y="14" width="36" height="36" fill="#9b4636"/><text x="84" y="30">斗篷</text><text x="84" y="45" fill="#8b979a">#9B4636</text>
+    <rect x="190" y="14" width="36" height="36" fill="#4e201c"/><text x="234" y="30">斗篷暗部</text><text x="234" y="45" fill="#8b979a">#4E201C</text>
+    <rect x="340" y="14" width="36" height="36" fill="#e7d8b6"/><text x="384" y="30">圍巾</text><text x="384" y="45" fill="#8b979a">#E7D8B6</text>
+    <rect x="490" y="14" width="36" height="36" fill="#efe3c8"/><text x="534" y="30">面具</text><text x="534" y="45" fill="#8b979a">#EFE3C8</text>
+    <rect x="640" y="14" width="36" height="36" fill="#150f14"/><text x="684" y="30">兜帽內</text><text x="684" y="45" fill="#8b979a">#150F14</text>
+    <rect x="790" y="14" width="36" height="36" fill="#5a3d2a"/><text x="834" y="30">燈竿</text><text x="834" y="45" fill="#8b979a">#5A3D2A</text>
+    <rect x="940" y="14" width="36" height="36" fill="#26262c"/><text x="984" y="30">靴</text><text x="984" y="45" fill="#8b979a">#26262C</text>
+    <rect x="1090" y="14" width="36" height="36" fill="#9fc0c8"/><text x="1134" y="30">月光邊</text><text x="1134" y="45" fill="#8b979a">#9FC0C8</text>
+    <rect x="1240" y="14" width="36" height="36" fill="#ffb04a"/><text x="1284" y="30">燈焰</text><text x="1284" y="45" fill="#8b979a">#FFB04A</text>
+    <rect x="1390" y="14" width="36" height="36" fill="#1b1426"/><text x="1434" y="30">影墨</text><text x="1434" y="45" fill="#8b979a">#1B1426</text>
+  </g>
+</g>
+<rect width="1600" height="1000" filter="url(#grain)"/>
+</svg>

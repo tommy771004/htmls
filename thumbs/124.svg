@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="灰燼之翼：騎龍穿越赤砂峽谷的軌道射擊縮圖">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#34181a"/><stop offset=".42" stop-color="#c0603a"/><stop offset=".7" stop-color="#eaae78"/><stop offset="1" stop-color="#f4c894"/></linearGradient>
+    <radialGradient id="sun" cx=".45" cy=".63" r=".32"><stop stop-color="#fff2d4" stop-opacity=".95"/><stop offset="1" stop-color="#fff2d4" stop-opacity="0"/></radialGradient>
+    <linearGradient id="floor" x2="0" y2="1"><stop stop-color="#e6ae74"/><stop offset="1" stop-color="#c47e4c"/></linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <g transform="translate(498 96)" opacity=".8"><ellipse rx="70" ry="13" fill="none" stroke="#f6dcc0" stroke-width="5" opacity=".55" transform="rotate(-16)"/><circle r="33" fill="#e8ccb2"/><path d="M-33 0a33 33 0 0 0 66 0" fill="#c9a28e" opacity=".6"/><path d="M-67 20 67 -19" stroke="#f6dcc0" stroke-width="5" opacity=".55" stroke-dasharray="0 38 66 200"/></g>
+  <rect width="640" height="400" fill="url(#sun)"/>
+  <path d="M0 252h38l12-14h46l8 12h60l10-16h52l8 14h64l10-12h70l10 16h56l8-14h58l12 12h58l10-10h40V400H0Z" fill="#d7976a"/>
+  <path d="M0 400 236 262h168l236 138Z" fill="url(#floor)"/>
+  <path d="m236 262 44 16-60 30Zm168 0-38 22 64 22Zm-104 32 40 0 20 34-78 6Z" fill="#d49258" opacity=".6"/>
+  <path d="M0 0h70l84 96 96 166L0 400Z" fill="#a4472f"/>
+  <path d="m0 52 118 64 86 90L0 262Z" fill="#c9683f"/><path d="m0 176 186 52 64 34L0 338Z" fill="#8c3e2a"/><path d="M70 0h60l24 96Z" fill="#b95b3b"/><path d="m0 262 250 0L0 400Z" fill="#7d3524" opacity=".7"/>
+  <path d="M640 0h-60l-92 108-94 154 246 138Z" fill="#b35533"/>
+  <path d="m640 62-118 70-78 80 196 58Z" fill="#d27b4a"/><path d="m640 196-176 42-70 24 246 80Z" fill="#9c4a32"/><path d="M580 0h-44l-48 108Z" fill="#c46c44"/>
+  <path d="M266 263q2-60 54-64 52 4 54 64h-13q-3-47-41-50-38 3-41 50Z" fill="#9c4a32"/>
+  <g fill="#8c3e2a"><rect x="196" y="214" width="15" height="52"/><rect x="432" y="206" width="17" height="60"/><rect x="164" y="190" width="18" height="84"/></g>
+  <g fill="#d89a64"><rect x="191" y="208" width="25" height="7"/><rect x="427" y="200" width="27" height="7"/><rect x="158" y="184" width="30" height="8"/></g>
+  <g fill="#e8d4a8" stroke="#6a2a18" stroke-width=".6">
+    <path d="m262 176-20 5 20-9 20 9Z"/><path d="m330 160-18 5 18-8 18 8Z"/><path d="m398 182-17 4 17-7 17 7Z"/>
+  </g>
+  <g fill="#ff8a3a"><circle cx="262" cy="177" r="2.4"/><circle cx="330" cy="161" r="2.2"/><circle cx="398" cy="182" r="2"/></g>
+  <g fill="none" stroke-linecap="round">
+    <path d="M318 312C278 280 240 224 262 177" stroke="#46e6d0" stroke-width="5" opacity=".45"/><path d="M318 312C278 280 240 224 262 177" stroke="#e6fffb" stroke-width="1.6"/>
+    <path d="M322 310C356 266 318 198 330 161" stroke="#46e6d0" stroke-width="5" opacity=".45"/><path d="M322 310C356 266 318 198 330 161" stroke="#e6fffb" stroke-width="1.6"/>
+  </g>
+  <g fill="none" stroke="#9af5ec" stroke-width="1.6"><rect x="-10" y="-10" width="20" height="20" transform="translate(262 177) rotate(45)"/><rect x="-10" y="-10" width="20" height="20" transform="translate(330 161) rotate(45)"/><rect x="-9" y="-9" width="18" height="18" transform="translate(398 182) rotate(45)"/></g>
+  <g transform="translate(320 318)">
+    <path d="M-6-4-92-26-70-8-100-4-60 8-12 8Z" fill="#86b8aa"/><path d="M6-4 92-26 70-8 100-4 60 8 12 8Z" fill="#86b8aa"/>
+    <path d="M-8-3-92-26M-12 6-100-4M8-3 92-26M12 6 100-4" stroke="#eadcbc" stroke-width="1.6"/>
+    <path d="M0 8 6 40 2 62-4 40Z" fill="#2c5c64"/><path d="m2 60 8 8-8 6-8-6Z" fill="#3f8088"/>
+    <ellipse cy="2" rx="15" ry="13" fill="#3f8088"/><path d="M-9-6 0-12 9-6 0-2Z" fill="#1d3a44"/>
+    <path d="M-5-10 0-34 5-10Z" fill="#2c5c64"/><rect x="-3" y="-20" width="6" height="9" fill="#8a3a26"/><path d="M-3-34 0-42 3-34Z" fill="#eadcbc"/>
+  </g>
+  <circle cx="394" cy="224" r="15" fill="none" stroke="#f2fbf8" stroke-width="1.4"/><path d="M405 213l6-6m-34 0 6 6m0 22-6 6m34 0-6-6" stroke="#f2fbf8" stroke-width="1.4"/>
+  <g transform="translate(596 352)"><circle r="26" fill="#1b0b08" fill-opacity=".35" stroke="#f2fbf8" stroke-opacity=".75"/><path d="M0 0-18.4-18.4A26 26 0 0 1 18.4-18.4Z" fill="#9af5ec" fill-opacity=".28"/><path d="m-18.4 18.4 36.8-36.8m-36.8 0 36.8 36.8" stroke="#f2fbf8" stroke-opacity=".45"/><path d="M-30 0a30 30 0 0 0 30 30" fill="none" stroke="#ffbf6b" stroke-width="3"/><g fill="#ffbf6b"><circle cx="-12" cy="-14" r="2"/><circle cx="4" cy="-18" r="2"/><circle cx="-14" cy="12" r="2"/></g></g>
+  <text x="28" y="44" fill="#ffbf6b" font-family="sans-serif" font-size="11" letter-spacing="4">EPISODE 1 · CRIMSON GORGE</text>
+  <text x="26" y="94" fill="#f6ecd9" font-family="sans-serif" font-weight="700" font-size="48" letter-spacing="5">灰燼之翼</text>
+  <text x="29" y="119" fill="#9af5ec" font-family="sans-serif" font-size="12" letter-spacing="9">ASHWING · № 124</text>
+</svg>

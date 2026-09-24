@@ -1,0 +1,933 @@
+<!doctype html>
+<!--
+可調參數（在下方 CONFIG 修改）：
+  scrollSpeed    自動展卷速度（場景單位／秒），預設 2.3，約 3 分鐘看完全卷
+  crowd          人物、牲口與車轎數量倍率，0.4–1.5，預設 1
+  inkLine        墨線濃度，0–1.5，預設 1
+  maxPixelRatio  渲染解析度上限，預設 1.5
+  startTime      初始時辰：mao 卯、wu 午、you 酉、xu 戌
+所有屋舍、橋、船、人物、樹木、山巒、紙紋與聲音都由程式生成；唯一外部依賴為 CDN Three.js。
+-->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2c251c">
+<meta name="description" content="3D 立體版《清明上河圖》：沿汴河展卷橫移，郊野、漕運、虹橋、城郭四章；絹本水墨調、時辰光影與合成市聲水聲風聲。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/120-qingming-scroll.html">
+<title>汴河長卷｜3D 清明上河圖</title>
+<style>
+:root{--mount:#3b3326;--mount2:#29231a;--gold:#b59868;--silk:#ece2c9;--ink:#2a251f;--seal:#a8382b;--top:58px;--bot:96px;
+  --kai:"Kaiti TC","BiauKai","DFKai-SB","標楷體","STKaiti","KaiTi","Noto Serif TC","Songti TC",serif;
+  --ming:"Noto Serif TC","Songti TC","PMingLiU","新細明體","Source Han Serif TC",serif;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:var(--mount2);color:var(--silk);font-family:var(--ming);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+.band{position:fixed;left:0;right:0;z-index:4;background:
+  radial-gradient(circle at 30% 40%,rgba(214,184,124,.075) 0 1.4px,transparent 1.9px) 0 0/13px 13px,
+  radial-gradient(circle at 70% 60%,rgba(0,0,0,.2) 0 1.4px,transparent 1.9px) 6px 6px/13px 13px,
+  linear-gradient(180deg,#453a2b,#2b241b)}
+.top{top:0;height:calc(var(--top) + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) max(18px,env(safe-area-inset-right,0px)) 0 max(18px,env(safe-area-inset-left,0px));display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:inset 0 -1px 0 #0007}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.seal{flex:none;width:30px;height:30px;background:var(--seal);color:#f3e6cf;font-family:var(--kai);font-size:17px;display:grid;place-items:center;border-radius:3px;box-shadow:inset 0 0 0 2px #f3e6cf38,inset 0 0 7px #5a100a;line-height:1}
+h1{margin:0;font-family:var(--kai);font-weight:400;font-size:22px;letter-spacing:.3em;white-space:nowrap;line-height:1.1}
+.brand small{display:block;font-size:11px;letter-spacing:.28em;color:#bda77f;margin-top:3px;white-space:nowrap}
+.ctrls{display:flex;align-items:center;gap:16px}
+.grp{display:flex;align-items:center;gap:4px}
+.cap{font-size:11px;color:#bda77f;letter-spacing:.2em;margin-right:5px;white-space:nowrap}
+.note{font-size:11px;color:#bda77f;letter-spacing:.14em;margin-left:6px;min-width:5.2em;white-space:nowrap}
+.tb{appearance:none;border:1px solid #b5986859;background:#0000002b;border-radius:2px;min-width:30px;height:30px;padding:0 6px;font-family:var(--kai);font-size:16px;cursor:pointer;color:#e6d8b8;transition:background .2s,border-color .2s,color .2s,opacity .2s;line-height:1}
+.tb:hover{border-color:var(--gold)}
+.tb[aria-pressed="true"]{background:var(--silk);color:var(--ink);border-color:var(--silk)}
+.tb:focus-visible,.play:focus-visible,.ch:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#sndBtn{min-width:40px}
+#sndBtn[aria-pressed="true"]{background:var(--seal);border-color:var(--seal);color:#f7ead2}
+.snd.off .chip{opacity:.42}
+.stage{position:fixed;left:0;right:0;top:calc(var(--top) + env(safe-area-inset-top,0px));bottom:calc(var(--bot) + env(safe-area-inset-bottom,0px));background:#e3d8bf;overflow:hidden}
+.stage::before,.stage::after{content:"";position:absolute;left:0;right:0;height:5px;z-index:2;pointer-events:none;background:linear-gradient(#7d653f,#c8ad76 45%,#6f5a39)}
+.stage::before{top:0}.stage::after{bottom:0}
+#scene{display:block;width:100%;height:100%;touch-action:none;cursor:grab;outline:none}
+#scene.drag{cursor:grabbing}
+.inscr{position:absolute;top:24px;right:clamp(18px,3vw,46px);z-index:1;writing-mode:vertical-rl;display:flex;gap:12px;align-items:flex-start;color:var(--ink);pointer-events:none;font-family:var(--kai);text-shadow:0 0 9px rgba(241,233,214,.95),0 0 3px rgba(241,233,214,.95);transition:opacity .55s ease,filter .55s ease,color .9s,text-shadow .9s}
+.inscr.swap{opacity:0;filter:blur(7px)}
+.inscr .no{font-size:13px;letter-spacing:.42em;color:#5f5040}
+.inscr h2{margin:0;font-weight:400;font-size:clamp(34px,4.3vw,62px);letter-spacing:.2em;line-height:1}
+.inscr .sub{margin:0;font-size:clamp(14px,1.35vw,18px);letter-spacing:.22em;line-height:1.55;max-height:min(22em,62vh)}
+.inscr .stamp{align-self:flex-start;background:var(--seal);color:#f5e8d0;font-size:13px;letter-spacing:.1em;padding:5px 3px;border-radius:2px;text-shadow:none;box-shadow:inset 0 0 0 1.5px #f5e8d040}
+body.night .inscr{color:#efe4c8;text-shadow:0 0 10px rgba(18,20,28,.95),0 0 3px rgba(18,20,28,.9)}
+body.night .inscr .no{color:#cdb88e}
+.unroll{position:absolute;inset:0;z-index:3;display:grid;place-items:center;background:
+  radial-gradient(ellipse at 50% 50%,#ece3cd 30%,#d9cba9 100%);clip-path:inset(0 0 0 0);transition:clip-path 2.9s cubic-bezier(.55,.05,.25,1)}
+.unroll.open{clip-path:inset(0 100% 0 0)}
+.unroll p{margin:0;font-family:var(--kai);font-size:18px;letter-spacing:.5em;color:#5a4b39;text-align:center;line-height:1.9;padding:0 24px}
+.unroll.err p{letter-spacing:.12em;color:#7a2a20;max-width:30em}
+.rod{position:absolute;top:-6px;bottom:-6px;left:100%;width:20px;margin-left:-10px;z-index:4;border-radius:10px;pointer-events:none;
+  background:linear-gradient(90deg,#3b2a1d,#8c6b47 38%,#b08a5c 50%,#6d5035 70%,#2e2117);box-shadow:0 0 14px #0008;transition:left 2.9s cubic-bezier(.55,.05,.25,1),opacity .6s 2.9s}
+.rod.open{left:0;opacity:0}
+.bot{bottom:0;height:calc(var(--bot) + env(safe-area-inset-bottom,0px));padding:10px max(18px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:16px;box-shadow:inset 0 1px 0 #0007}
+.play{flex:none;width:56px;height:56px;border-radius:50%;border:1px solid var(--gold);background:radial-gradient(circle at 35% 30%,#5d4b33,#2a2219);font-family:var(--kai);color:#f0e2c4;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;gap:3px}
+.play b{font-weight:400;font-size:21px}.play small{font-size:9px;letter-spacing:.12em;color:#bda77f}
+.tl{flex:1;min-width:0;position:relative;height:74px}
+#mini{position:absolute;left:0;top:0;width:100%;height:42px;cursor:pointer;box-shadow:0 0 0 1px #b598687a,0 2px 7px #0007;touch-action:none;border-radius:1px}
+.view{position:absolute;top:-3px;height:48px;border:1.5px solid rgba(176,58,44,.92);background:rgba(176,58,44,.09);pointer-events:none;border-radius:1px;min-width:6px}
+.mk{position:absolute;top:36px;width:12px;height:12px;margin-left:-6px;background:var(--seal);border-radius:2px;pointer-events:none;box-shadow:0 0 0 1.5px #f1e3c7}
+.chs{position:absolute;left:0;right:0;top:48px;height:26px}
+.ch{position:absolute;top:0;height:26px;appearance:none;background:none;border:0;border-right:1px solid #b5986844;color:#b9a27a;font-family:var(--kai);font-size:14px;letter-spacing:.18em;cursor:pointer;white-space:nowrap;overflow:hidden;padding:0 4px;display:flex;align-items:center;justify-content:center;gap:.35em;transition:color .3s}
+.ch b{font-weight:400;color:#c9705e}
+.ch:hover,.ch[aria-current="true"]{color:#f4e7cb}
+.ch[aria-current="true"] b{color:#ff9d84}
+.hint{flex:none;font-size:11px;color:#a8946f;letter-spacing:.12em;line-height:1.75;text-align:right;white-space:nowrap}
+.hint kbd{font:inherit;color:#d9c7a1}
+@media (max-width:980px){.note,.cap{display:none}}
+@media (max-width:780px){.hint{display:none}.brand small{display:none}}
+@media (max-width:560px){:root{--top:52px;--bot:86px}
+  .top{padding-left:12px;padding-right:12px;gap:8px}.brand{gap:7px}h1{font-size:16px;letter-spacing:.14em}
+  .seal{width:25px;height:25px;font-size:14px}.ctrls{gap:8px}.grp{gap:3px}
+  .tb{min-width:26px;height:28px;font-size:14px;padding:0 3px}#sndBtn{min-width:32px}
+  .bot{gap:10px;padding-left:12px;padding-right:12px}.play{width:48px;height:48px}.play b{font-size:18px}
+  .ch{font-size:12px;letter-spacing:.04em;gap:.2em}.inscr{top:14px;right:12px;gap:8px}.inscr .sub{font-size:13px}}
+@media (max-width:370px){.brand h1{display:none}}
+@media (prefers-reduced-motion:reduce){.unroll,.rod,.inscr{transition:none}}
+</style>
+</head>
+<body>
+<header class="band top">
+  <div class="brand"><span class="seal" aria-hidden="true">汴</span><div><h1>汴河長卷</h1><small>清明上河 · 立體展卷</small></div></div>
+  <div class="ctrls">
+    <div class="grp" role="group" aria-label="時辰">
+      <span class="cap">時辰</span>
+      <button class="tb tod" data-t="mao" aria-pressed="false" title="卯時 · 晨霧初開">卯</button>
+      <button class="tb tod" data-t="wu" aria-pressed="false" title="午時 · 日正當中">午</button>
+      <button class="tb tod" data-t="you" aria-pressed="false" title="酉時 · 夕照西斜">酉</button>
+      <button class="tb tod" data-t="xu" aria-pressed="false" title="戌時 · 華燈初上">戌</button>
+      <span class="note" id="todNote" aria-live="polite"></span>
+    </div>
+    <div class="grp snd off" id="sndGrp" role="group" aria-label="環境音">
+      <button class="tb" id="sndBtn" aria-pressed="false" title="環境音開關">聲</button>
+      <button class="tb chip" data-layer="crowd" aria-pressed="true" title="市集人聲">市</button>
+      <button class="tb chip" data-layer="water" aria-pressed="true" title="汴河水聲">水</button>
+      <button class="tb chip" data-layer="wind" aria-pressed="true" title="郊野風聲">風</button>
+    </div>
+  </div>
+</header>
+
+<main class="stage" id="stage">
+  <canvas id="scene" tabindex="0" aria-label="3D 汴河長卷。拖曳可環視，滾輪縮放，左右方向鍵沿河移動"></canvas>
+  <div class="inscr" id="inscr" aria-live="polite">
+    <span class="no" id="cNo">第壹章</span>
+    <h2 id="cTitle">郊野</h2>
+    <p class="sub" id="cSub"></p>
+    <span class="stamp" id="cSeal">春寒</span>
+  </div>
+  <div class="unroll" id="unroll"><p id="loadMsg">研墨鋪絹…</p></div>
+  <div class="rod" id="rod" aria-hidden="true"></div>
+</main>
+
+<footer class="band bot">
+  <button class="play" id="play" aria-label="展卷"><b id="playK">展</b><small id="playS">展卷</small></button>
+  <div class="tl" role="group" aria-label="章節時間軸（由右往左展讀）">
+    <canvas id="mini" aria-label="全卷縮圖，點擊或拖曳可跳到該處"></canvas>
+    <div class="view" id="view"></div>
+    <div class="mk" id="mk"></div>
+    <div class="chs" id="chs"></div>
+  </div>
+  <div class="hint">拖曳環視 · 滾輪縮放 · <kbd>Shift</kbd>＋滾輪移卷<br><kbd>空白鍵</kbd> 展停 · <kbd>1</kbd>–<kbd>4</kbd> 章節 · <kbd>←</kbd><kbd>→</kbd> 沿河</div>
+</footer>
+
+<script type="module">
+const CONFIG={scrollSpeed:2.3,crowd:1,inkLine:1,maxPixelRatio:1.5,startTime:'wu'};
+const $=id=>document.getElementById(id);
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function fail(msg){const u=$('unroll');u.classList.add('err');$('loadMsg').textContent=msg}
+let THREE;
+try{THREE=await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js')}
+catch(e){fail('無法載入 Three.js。請確認網路連線後重新整理。');throw e}
+const canvas=$('scene'),stageEl=$('stage');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'})}
+catch(e){fail('此瀏覽器無法建立 WebGL，請改用支援 WebGL 的瀏覽器。');throw e}
+const small=Math.min(innerWidth,innerHeight)<700;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;
+
+// ─── 基本工具 ───────────────────────────────────────────
+const TAU=Math.PI*2,V3=THREE.Vector3,UP=new V3(0,1,0),C=c=>new THREE.Color(c);
+let sd=20260924;
+const rnd=()=>{sd=(sd*1664525+1013904223)>>>0;return sd/4294967296};
+const R=(a,b)=>a+(b-a)*rnd(),pick=a=>a[Math.floor(rnd()*a.length)];
+const clamp=(v,a,b)=>v<a?a:v>b?b:v,lerp=(a,b,t)=>a+(b-a)*t;
+const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
+const angDiff=(a,b)=>{let d=(a-b)%TAU;if(d>Math.PI)d-=TAU;if(d<-Math.PI)d+=TAU;return d};
+const h1=n=>{const s=Math.sin(n*127.1+311.7)*43758.5453;return s-Math.floor(s)};
+const n1=x=>{const i=Math.floor(x),f=x-i,u=f*f*(3-2*f);return lerp(h1(i),h1(i+1),u)};
+const fbm1=(x,o=4)=>{let s=0,a=.5,f=1,t=0;for(let i=0;i<o;i++){s+=a*n1(x*f+i*17.3);t+=a;f*=2.07;a*=.5}return s/t};
+const h2=(x,z)=>{const s=Math.sin(x*127.1+z*311.7)*43758.5453;return s-Math.floor(s)};
+const n2=(x,z)=>{const i=Math.floor(x),j=Math.floor(z),fx=x-i,fz=z-j,u=fx*fx*(3-2*fx),v=fz*fz*(3-2*fz);return lerp(lerp(h2(i,j),h2(i+1,j),u),lerp(h2(i,j+1),h2(i+1,j+1),u),v)};
+const rot=(lx,lz,ry)=>[lx*Math.cos(ry)+lz*Math.sin(ry),-lx*Math.sin(ry)+lz*Math.cos(ry)];
+
+// ─── 汴河、道路與章節（p 為展卷進度，世界座標 x = -p，鏡頭由右往左）───
+const RZ=[-42,-40,-38,-34,-26,-14,-5,-2,0,-2,-30,-66,-80,-84,-86,-86,-86];
+const RW=[8,8,9,10,13,20,25,27,26,24,20,16,14,14,14,14,14];
+const DZ=[22,20,18,17,17,18,20,23,25,23,16,10,10,10,10,10,10];
+function cat(arr,p){const f=(p+80)/40,i=Math.floor(f),t=f-i,g=k=>arr[clamp(k,0,arr.length-1)],a=g(i-1),b=g(i),c=g(i+1),d=g(i+2);return .5*(2*b+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t)}
+const riverZ=p=>cat(RZ,p),riverW=p=>cat(RW,p),roadZ=p=>cat(DZ,p),focusZ=p=>cat(DZ,p)-4;
+const backRoad=p=>riverZ(p)-riverW(p)/2-6;
+const slope=(f,p)=>f(p+.5)-f(p-.5);
+const PSTART=16,PEND=404,BRIDGE_P=262,WALL_P=338,CROSS=[362,395,428];
+const BX=-BRIDGE_P,BZ=riverZ(BRIDGE_P),BW=riverW(BRIDGE_P),AS=BW/2+.6,BS=AS+2.4,BH=5.5;
+const archY=s=>(BH-.5)*(1-(s/AS)**2)-.2;
+const deckY=s=>{const a=Math.abs(s);return a<=AS?archY(s)+.5:a<=BS?lerp(.3,0,(a-AS)/(BS-AS)):0};
+const WATER=-.95;
+const CH=[
+  {k:'壹',name:'郊野',tag:'春寒',line:'寒林漠漠春猶淺，驢隊馱薪入汴京。',from:0,to:110,at:24},
+  {k:'貳',name:'汴河',tag:'漕運',line:'千帆銜尾泊長堤，縴夫聲裡米船西。',from:110,to:215,at:150},
+  {k:'參',name:'虹橋',tag:'市聲',line:'飛梁無柱跨長波，橋上行人似水多。',from:215,to:312,at:BRIDGE_P},
+  {k:'肆',name:'城郭',tag:'街市',line:'譙樓高處角聲遠，十里長街酒旆斜。',from:312,to:420,at:352},
+];
+const inRiver=(p,z,m=0)=>Math.abs(z-riverZ(p))<riverW(p)/2+m;
+const onWall=(p,z,m=0)=>Math.abs(p-WALL_P)<4.6+m&&z>-44&&z<96;
+function onStreet(p,z,m=0){
+  if(Math.abs(z-roadZ(p))<2.7+m)return true;
+  if(p>122&&p<306&&Math.abs(z-backRoad(p))<2+m)return true;
+  if(p>341){if(Math.abs(z+16)<2+m||Math.abs(z-34)<2+m)return true;for(const c of CROSS)if(Math.abs(p-c)<2+m&&z>-46&&z<60)return true}
+  if(Math.abs(p-BRIDGE_P)<4.6+m&&z>BZ-BS-2.5&&z<roadZ(p))return true;
+  return false}
+const landOK=(p,z,m=0)=>!inRiver(p,z,m+.9)&&!onStreet(p,z,m)&&!onWall(p,z,m);
+
+// ─── 幾何工具（程序建模、頂點色、合併）───────────────────
+function paint(g,col){if(g.index)g=g.toNonIndexed();const c=C(col),n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){a[i*3]=c.r;a[i*3+1]=c.g;a[i*3+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));if(!g.attributes.normal)g.computeVertexNormals();return g}
+const O=new THREE.Object3D();
+function pose(g,p=[0,0,0],r=[0,0,0],s=1){O.position.fromArray(p);O.rotation.set(r[0],r[1],r[2]);typeof s==='number'?O.scale.setScalar(s):O.scale.fromArray(s);O.updateMatrix();return g.applyMatrix4(O.matrix)}
+const part=(g,col,p,r,s)=>paint(pose(g,p,r,s),col);
+function merge(list){let n=0;for(const g of list)n+=g.attributes.position.count;const P=new Float32Array(n*3),N=new Float32Array(n*3),Cc=new Float32Array(n*3);let o=0;
+  for(const g of list){P.set(g.attributes.position.array,o);N.set(g.attributes.normal.array,o);Cc.set(g.attributes.color.array,o);o+=g.attributes.position.count*3}
+  const m=new THREE.BufferGeometry();m.setAttribute('position',new THREE.BufferAttribute(P,3));m.setAttribute('normal',new THREE.BufferAttribute(N,3));m.setAttribute('color',new THREE.BufferAttribute(Cc,3));m.computeBoundingSphere();return m}
+function sheet(rows){const a=[];for(let i=0;i<rows.length-1;i++){const A=rows[i],B=rows[i+1];for(let j=0;j<A.length-1;j++){const p=A[j],q=A[j+1],r=B[j],s=B[j+1];a.push(p.x,p.y,p.z,r.x,r.y,r.z,q.x,q.y,q.z,q.x,q.y,q.z,r.x,r.y,r.z,s.x,s.y,s.z)}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(a,3));g.computeVertexNormals();return g}
+function tris(a){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(a,3));g.computeVertexNormals();return g}
+const TILE='#56624f',RIDGE='#2f342e',GABLE='#d4c8ab';
+// 懸山頂：中國屋面的凹曲線，兩端微微生起
+function gableGeo(steep,lift,tile,ridge,gable){
+  const side=sg=>{const rows=[];for(let i=0;i<=6;i++){const t=i/6,row=[];for(let j=0;j<=6;j++){const s=j/3-1;row.push(new V3(s*.5,Math.pow(t,steep)+lift*Math.abs(s)**3*(1-t),sg*.5*(1-t)))}rows.push(row)}return rows};
+  const parts=[paint(sheet(side(1)),tile),paint(sheet(side(-1)),tile)];
+  for(const sx of [-.44,.44]){const a=[];for(let i=0;i<12;i++){const z1=.46-i*.0767,z2=.46-(i+1)*.0767,y1=Math.pow(1-Math.abs(z1)/.5,steep)-.02,y2=Math.pow(1-Math.abs(z2)/.5,steep)-.02;a.push(sx,0,z1,sx,Math.max(0,y1),z1,sx,Math.max(0,y2),z2,sx,0,z1,sx,Math.max(0,y2),z2,sx,0,z2)}parts.push(paint(tris(a),gable))}
+  parts.push(part(new THREE.BoxGeometry(1.02,.09,.08),ridge,[0,1.01,0]));
+  for(const sx of [-.5,.5])parts.push(part(new THREE.BoxGeometry(.07,.2,.1),ridge,[sx,1.07,0],[0,0,-sx*.7]));
+  return merge(parts)}
+// 廡殿頂：四坡凹曲面，翼角起翹
+function hipGeo(steep,lift,rx,tile,ridge){
+  const K=6,M=6,parts=[],Y=(t,s)=>Math.pow(t,steep)+lift*Math.abs(s)**3*Math.pow(1-t,1.5);
+  for(const sg of [1,-1]){const rows=[];for(let i=0;i<=K;i++){const t=i/K,hx=.5-(.5-rx)*t,row=[];for(let j=0;j<=M;j++){const s=j/M*2-1;row.push(new V3(s*hx,Y(t,s),sg*.5*(1-t)))}rows.push(row)}parts.push(paint(sheet(rows),tile))}
+  for(const sg of [1,-1]){const rows=[];for(let i=0;i<=K;i++){const t=i/K,hz=.5*(1-t),x=sg*(.5-(.5-rx)*t),row=[];for(let j=0;j<=M;j++){const s=j/M*2-1;row.push(new V3(x,Y(t,s),s*hz))}rows.push(row)}parts.push(paint(sheet(rows),tile))}
+  parts.push(part(new THREE.BoxGeometry(rx*2+.04,.08,.07),ridge,[0,1,0]));
+  for(const sx of [-rx,rx])parts.push(part(new THREE.BoxGeometry(.06,.18,.09),ridge,[sx,1.06,0],[0,0,-Math.sign(sx)*.55]));
+  return merge(parts)}
+function personParts(kind,o=[0,0,0],robe='#ffffff'){
+  const [x,y,z]=o,skin='#9a8268',hair='#2e2924',straw='#cdb98f',g=[];
+  if(kind==='sit'){g.push(part(new THREE.CylinderGeometry(.24,.4,.62,6),robe,[x,y+.31,z]));g.push(part(new THREE.CylinderGeometry(.23,.25,.36,6),robe,[x,y+.8,z]));g.push(part(new THREE.IcosahedronGeometry(.15,0),skin,[x,y+1.1,z]));g.push(part(new THREE.BoxGeometry(.2,.13,.22),hair,[x,y+1.24,z]));return g}
+  g.push(part(new THREE.CylinderGeometry(.18,.33,1.08,6),robe,[x,y+.54,z]));
+  g.push(part(new THREE.CylinderGeometry(.25,.19,.34,6),robe,[x,y+1.24,z]));
+  g.push(part(new THREE.IcosahedronGeometry(.15,0),skin,[x,y+1.55,z]));
+  if(kind==='hat')g.push(part(new THREE.ConeGeometry(.42,.2,8),straw,[x,y+1.72,z]));
+  else g.push(part(new THREE.BoxGeometry(.2,.17,.22),hair,[x,y+1.7,z-.01]));
+  if(kind==='porter'){g.push(part(new THREE.BoxGeometry(.05,.05,1.9),'#4f3f30',[x,y+1.43,z]));for(const s of [-1,1])g.push(part(new THREE.BoxGeometry(.4,.42,.36),'#a48a5c',[x,y+.95,z+s*.84]))}
+  return g}
+const personGeo=k=>merge(personParts(k));
+function donkeyGeo(){const c='#7c7264',g=[];
+  g.push(part(new THREE.BoxGeometry(.44,.46,1.05),c,[0,.86,0]));
+  for(const sx of [-.14,.14])for(const sz of [-.38,.38])g.push(part(new THREE.BoxGeometry(.1,.64,.1),c,[sx,.32,sz]));
+  g.push(part(new THREE.BoxGeometry(.18,.52,.2),c,[0,1.18,.56],[.55,0,0]));
+  g.push(part(new THREE.BoxGeometry(.2,.22,.46),c,[0,1.4,.84],[.35,0,0]));
+  for(const sx of [-.06,.06])g.push(part(new THREE.BoxGeometry(.05,.22,.05),c,[sx,1.58,.7]));
+  for(const sx of [-.36,.36])g.push(part(new THREE.BoxGeometry(.3,.36,.62),'#4a4038',[sx,.98,0]));
+  g.push(part(new THREE.BoxGeometry(.56,.18,.6),'#8c7552',[0,1.18,0]));
+  return merge(g)}
+function horseGeo(){const c='#6e604f',g=[];
+  g.push(part(new THREE.BoxGeometry(.5,.6,1.5),c,[0,1.25,0]));
+  for(const sx of [-.17,.17])for(const sz of [-.55,.55])g.push(part(new THREE.BoxGeometry(.12,.98,.12),c,[sx,.49,sz]));
+  g.push(part(new THREE.BoxGeometry(.24,.75,.3),c,[0,1.72,.78],[.6,0,0]));
+  g.push(part(new THREE.BoxGeometry(.24,.28,.62),c,[0,1.98,1.1],[.5,0,0]));
+  g.push(part(new THREE.BoxGeometry(.08,.7,.1),c,[0,1.1,-.8],[-.3,0,0]));
+  g.push(...personParts('cap',[0,1.11,-.05]).slice(1));
+  g.push(part(new THREE.CylinderGeometry(.22,.36,.7,6),'#ffffff',[0,1.85,-.05]));
+  return merge(g)}
+function oxCartGeo(){const ox='#6a5a48',wd='#7f6247',g=[];
+  g.push(part(new THREE.BoxGeometry(.66,.72,1.45),ox,[0,1,1.4]));
+  for(const sx of [-.22,.22])for(const sz of [.9,1.9])g.push(part(new THREE.BoxGeometry(.14,.66,.14),ox,[sx,.33,sz]));
+  g.push(part(new THREE.BoxGeometry(.36,.4,.5),ox,[0,1.05,2.3],[.4,0,0]));
+  for(const sx of [-.2,.2])g.push(part(new THREE.BoxGeometry(.05,.05,.32),'#d8ccb0',[sx,1.32,2.3],[0,sx*2,0]));
+  g.push(part(new THREE.BoxGeometry(1.5,.5,2.4),wd,[0,1.05,-1.1]));
+  g.push(part(new THREE.CylinderGeometry(.85,.85,2.2,10,1,true,Math.PI/2,Math.PI),'#a8956f',[0,1.3,-1.1],[Math.PI/2,0,0]));
+  for(const sx of [-.82,.82])g.push(part(new THREE.CylinderGeometry(.62,.62,.12,10),'#463a2e',[sx,.62,-1.1],[0,0,Math.PI/2]));
+  for(const sx of [-.4,.4])g.push(part(new THREE.BoxGeometry(.07,.07,1.8),wd,[sx,1.05,.7]));
+  return merge(g)}
+function handcartGeo(){const wd='#7f6247',g=[];
+  g.push(part(new THREE.BoxGeometry(.9,.35,1.5),wd,[0,.8,.4]));g.push(part(new THREE.BoxGeometry(.8,.55,1.2),'#a48a5c',[0,1.25,.4]));
+  g.push(part(new THREE.CylinderGeometry(.5,.5,.12,10),'#463a2e',[0,.5,.6],[0,0,Math.PI/2]));
+  for(const sx of [-.35,.35])g.push(part(new THREE.BoxGeometry(.06,.06,1.4),wd,[sx,.85,-.9],[-.15,0,0]));
+  g.push(...personParts('hat',[0,0,-1.72]));
+  return merge(g)}
+function camelGeo(){const c='#a88f6c',g=[];
+  g.push(part(new THREE.BoxGeometry(.62,.72,1.7),c,[0,1.85,0]));
+  for(const sz of [-.42,.42])g.push(part(new THREE.IcosahedronGeometry(.36,0),c,[0,2.3,sz],[0,0,0],[1,1.15,1]));
+  for(const sx of [-.2,.2])for(const sz of [-.62,.62])g.push(part(new THREE.BoxGeometry(.14,1.5,.14),c,[sx,.75,sz]));
+  g.push(part(new THREE.BoxGeometry(.24,1,.26),c,[0,2.25,1.05],[.75,0,0]));
+  g.push(part(new THREE.BoxGeometry(.24,.26,.52),c,[0,2.62,1.5],[.2,0,0]));
+  g.push(part(new THREE.BoxGeometry(.95,.42,.5),'#6f604f',[0,2.1,0]));
+  return merge(g)}
+function sedanGeo(){const g=[];
+  g.push(part(new THREE.BoxGeometry(.95,1.1,1.1),'#7a5a3e',[0,1.3,0]));
+  g.push(part(new THREE.ConeGeometry(.9,.5,4),'#4f594b',[0,2.1,0],[0,Math.PI/4,0]));
+  for(const a of [-.5,.2,.7])g.push(part(new THREE.BoxGeometry(.05,.9,.05),'#8d9a6c',[a*.4,2.5,a*.3],[a*.6,0,-a*.7]));
+  for(const sx of [-.52,.52])g.push(part(new THREE.BoxGeometry(.07,.07,3.6),'#4f3f30',[sx,1.3,0]));
+  for(const sz of [-1.55,1.55])g.push(...personParts('cap',[0,0,sz],'#e6dfcf'));
+  return merge(g)}
+function hull(L,W,D,cH,cD){const N=14,rows=[],deck=[];
+  for(let i=0;i<=N;i++){const t=i/N,z=(t-.5)*L,e=Math.abs(2*t-1),hw=W/2*Math.max(.16,Math.sqrt(Math.max(0,1-e**2.6))),top=.45+.6*e**3,bot=-D+D*.8*e**2.2;
+    rows.push([new V3(-hw,top,z),new V3(-hw*.9,(top+bot)/2,z),new V3(-hw*.4,bot,z),new V3(hw*.4,bot,z),new V3(hw*.9,(top+bot)/2,z),new V3(hw,top,z)]);
+    deck.push([new V3(-hw*.97,top-.1,z),new V3(hw*.97,top-.1,z)])}
+  const g=[paint(sheet(rows),cH),paint(sheet(deck),cD)];
+  for(const r of [rows[0],rows[N]]){const a=[],c0=r[0];for(let j=1;j<r.length-1;j++)a.push(c0.x,c0.y,c0.z,r[j].x,r[j].y,r[j].z,r[j+1].x,r[j+1].y,r[j+1].z);g.push(paint(tris(a),cH))}
+  return g}
+// 漕船：隧道形篷艙、船尾舵樓、人字桅（過橋時放倒）
+function grainGeo(low){const g=hull(13,3.6,1,'#5c4836','#7e6448');
+  g.push(part(new THREE.CylinderGeometry(1.5,1.5,6.4,10,1,true,Math.PI/2,Math.PI),'#a8946e',[0,.35,.3],[Math.PI/2,0,0]));
+  for(const z of [-2.9,3.5])g.push(part(new THREE.CircleGeometry(1.5,10,0,Math.PI),'#8e7b5a',[0,.35,z]));
+  g.push(part(new THREE.BoxGeometry(2.6,1.4,2.2),'#76604a',[0,1.05,-4.2]));
+  g.push(part(new THREE.BoxGeometry(3.1,.14,2.7),'#4f5a4b',[0,1.8,-4.2]));
+  g.push(part(new THREE.BoxGeometry(.14,1.5,1.1),'#4a3a2c',[0,-.1,-6.9]));
+  const mast=[];for(const sx of [-.75,.75])mast.push(part(new THREE.CylinderGeometry(.07,.1,8.6,5).translate(0,4.3,0),'#3f3429',[sx,0,0],[0,0,sx*.085]));
+  mast.push(part(new THREE.BoxGeometry(1.1,.12,.12),'#3f3429',[0,6.5,0]));
+  const m=merge(mast);pose(m,[0,low?1.9:.5,1.4],[low?-1.2:0,0,0]);g.push(m);
+  return merge(g)}
+function passGeo(roof){const g=hull(11.5,3.2,.9,'#5e4a38','#80664a');
+  g.push(part(new THREE.BoxGeometry(2.5,1.5,6.2),'#8a6c4e',[0,1.1,-.3]));
+  g.push(part(new THREE.BoxGeometry(2.56,.35,5.6),'#3e3a33',[0,1.3,-.3]));
+  g.push(pose(roof.clone(),[0,1.82,-.3],[0,Math.PI/2,0],[7,1.1,3.4]));
+  g.push(part(new THREE.BoxGeometry(.12,1.3,1),'#4a3a2c',[0,-.1,-6]));
+  g.push(...personParts('hat',[0,.4,4.2]));
+  return merge(g)}
+function skiffGeo(){const g=hull(6,1.5,.5,'#5e4a38','#80664a');
+  g.push(part(new THREE.CylinderGeometry(.72,.72,2.2,8,1,true,Math.PI/2,Math.PI),'#a8946e',[0,.4,-.2],[Math.PI/2,0,0]));
+  g.push(...personParts('hat',[0,.35,-2.1]));
+  g.push(part(new THREE.CylinderGeometry(.03,.03,4.6,4),'#3f3429',[.35,1.3,-1.6],[.55,0,.18]));
+  return merge(g)}
+function bareTreeGeo(seed0){const save=sd;sd=seed0;const parts=[],col='#4a4036';
+  const br=(a,dir,len,r,depth)=>{const b=a.clone().addScaledVector(dir,len);
+    const g=new THREE.CylinderGeometry(r*.66,r,len,depth>1?5:3,1,true);g.translate(0,len/2,0);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(UP,dir));g.translate(a.x,a.y,a.z);parts.push(paint(g,col));
+    if(!depth)return;const n=depth>=3?2:(rnd()<.55?2:3);
+    for(let k=0;k<n;k++){const ax=new V3(R(-1,1),0,R(-1,1)).cross(dir);if(ax.lengthSq()<1e-4)ax.set(1,0,0);ax.normalize();
+      const nd=dir.clone().applyAxisAngle(ax,R(.35,.85)*(k%2?1:-1));nd.y+=R(-.08,.28);nd.normalize();br(b,nd,len*R(.58,.8),r*.62,depth-1)}};
+  br(new V3(),new V3(R(-.14,.14),1,R(-.14,.14)).normalize(),R(2.6,3.4),R(.24,.3),4);sd=save;return merge(parts)}
+function willowGeo(seed0){const save=sd;sd=seed0;const p=[],trunk='#4d4338',lean=R(-.25,.25);
+  p.push(part(new THREE.CylinderGeometry(.2,.32,3.6,6),trunk,[lean*1.8,1.8,0],[0,0,-lean]));
+  const top=new V3(lean*3.6,3.5,0);
+  for(let k=0;k<5;k++){const a=k/5*TAU+R(-.3,.3),d=new V3(Math.cos(a)*.8,1,Math.sin(a)*.8).normalize(),len=R(1.6,2.4),g=new THREE.CylinderGeometry(.07,.13,len,4,1,true).translate(0,len/2,0);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(UP,d));g.translate(top.x,top.y,top.z);p.push(paint(g,trunk))}
+  for(let k=0;k<13;k++){const a=R(0,TAU),r=R(.4,2.4),len=R(2.4,4.2);p.push(part(new THREE.ConeGeometry(R(.24,.42),len,5),rnd()<.5?'#a6ad89':'#959f7b',[top.x+Math.cos(a)*r,top.y+R(1.1,1.9)-len/2,Math.sin(a)*r],[Math.PI+R(-.12,.12),R(0,TAU),R(-.12,.12)]))}
+  sd=save;return merge(p)}
+function leafyGeo(seed0){const save=sd;sd=seed0;const p=[];
+  p.push(part(new THREE.CylinderGeometry(.18,.3,3.4,6),'#4d4338',[0,1.7,0]));
+  for(let k=0;k<6;k++)p.push(part(new THREE.IcosahedronGeometry(R(.9,1.5),0),pick(['#6c7a5e','#76825f','#5f6d55']),[R(-1.2,1.2),R(3.5,5.4),R(-1.2,1.2)],[R(0,3),R(0,3),0]));
+  sd=save;return merge(p)}
+function umbGeo(){const g=[];
+  g.push(part(new THREE.ConeGeometry(1.7,.6,12,1,true),'#ffffff',[0,2.95,0]));
+  g.push(part(new THREE.CylinderGeometry(.045,.045,2.95,4),'#4b3d30',[0,1.47,0]));
+  g.push(part(new THREE.BoxGeometry(1.7,.75,.85),'#7a6048',[0,.375,.95]));
+  g.push(part(new THREE.BoxGeometry(.4,.2,.3),'#a58b5f',[-.45,.85,.95]));g.push(part(new THREE.BoxGeometry(.35,.16,.35),'#6f7a62',[.3,.83,.9]));g.push(part(new THREE.BoxGeometry(.3,.25,.25),'#c7b890',[.05,.87,1.12]));
+  return merge(g)}
+function shedGeo(){const g=[];
+  for(const sx of [-1.2,1.2])for(const sz of [-.9,.9])g.push(part(new THREE.BoxGeometry(.09,2.3,.09),'#5a4836',[sx,1.15,sz]));
+  g.push(part(new THREE.BoxGeometry(2.9,.08,2.3),'#b3a07a',[0,2.25,0],[.16,0,0]));
+  g.push(part(new THREE.BoxGeometry(2.2,.7,.8),'#7a6048',[0,.35,.2]));
+  g.push(part(new THREE.BoxGeometry(.5,.18,.4),'#c9b891',[-.6,.79,.2]));g.push(part(new THREE.BoxGeometry(.6,.14,.4),'#8f9a80',[.4,.77,.2]));
+  return merge(g)}
+
+// ─── 場景、材質與批次（InstancedMesh）────────────────────
+const scene=new THREE.Scene();
+scene.fog=new THREE.Fog(0xe5dac1,150,540);
+const MAT={
+  tint:new THREE.MeshLambertMaterial({color:'#ffffff'}),
+  vc:new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true}),
+  vc2:new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true,side:THREE.DoubleSide}),
+  doorLit:new THREE.MeshLambertMaterial({color:'#4a3b2c',emissive:'#ffae55',emissiveIntensity:0}),
+  lantern:new THREE.MeshLambertMaterial({color:'#c9774a',emissive:'#ff8c3a',emissiveIntensity:.15}),
+};
+const D=new THREE.Object3D();D.rotation.order='YXZ';
+const CHUNK=90,ALLB=[];
+class Batch{
+  constructor(geo,mat,shadow=true){this.g=geo;this.m=mat;this.sh=shadow;this.items=[];ALLB.push(this)}
+  add(x,y,z,ry=0,sx=1,sy=sx,sz=sx,col='#ffffff',rx=0,rz=0){D.position.set(x,y,z);D.rotation.set(rx,ry,rz);D.scale.set(sx,sy,sz);D.updateMatrix();this.items.push([D.matrix.clone(),C(col)])}
+  addM(m,col){this.items.push([m.clone(),C(col)])}
+  build(){const groups=new Map();for(const it of this.items){const k=Math.floor(it[0].elements[12]/CHUNK);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(it)}
+    for(const items of groups.values()){const im=new THREE.InstancedMesh(this.g,this.m,items.length);items.forEach((it,i)=>{im.setMatrixAt(i,it[0]);im.setColorAt(i,it[1])});im.castShadow=this.sh;im.receiveShadow=true;im.computeBoundingSphere();scene.add(im)}
+    this.items=null}
+}
+class Dyn{
+  constructor(geo,mat,cap){this.im=new THREE.InstancedMesh(geo,mat,cap);this.cap=cap;this.n=0;this.im.count=0;this.im.frustumCulled=false;this.im.castShadow=true;this.im.receiveShadow=true;this.im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(this.im)}
+  alloc(col){if(this.n>=this.cap)return -1;const i=this.n++;this.im.setColorAt(i,C(col));this.im.count=this.n;return i}
+  set(i,x,y,z,ry,s=1,lean=0){D.position.set(x,y,z);D.rotation.set(lean,ry,0);D.scale.setScalar(s);D.updateMatrix();this.im.setMatrixAt(i,D.matrix)}
+}
+const boxG=new THREE.BoxGeometry(1,1,1).translate(0,.5,0),cylG=new THREE.CylinderGeometry(1,1,1,6).translate(0,.5,0);
+const roofGeo=gableGeo(1.5,.07,TILE,RIDGE,GABLE);
+const furrow=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');g.fillStyle='#f2ecdd';g.fillRect(0,0,128,128);g.strokeStyle='rgba(96,90,64,.5)';for(let i=0;i<14;i++){g.lineWidth=1+Math.random()*1.2;g.beginPath();for(let x=0;x<=128;x+=8)g.lineTo(x,i*9.14+4+Math.sin(x*.08+i)*1.1);g.stroke()}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t})();
+const B={
+  box:new Batch(boxG,MAT.tint),log:new Batch(cylG,MAT.tint),
+  door:new Batch(boxG,MAT.tint,false),doorLit:new Batch(boxG,MAT.doorLit,false),
+  roof:new Batch(roofGeo,MAT.vc2),thatch:new Batch(gableGeo(1.08,0,'#a39170','#6f624a','#cbbd9c'),MAT.vc2),
+  hip:new Batch(hipGeo(1.55,.13,.2,TILE,RIDGE),MAT.vc2),
+  umb:new Batch(umbGeo(),MAT.vc2),shed:new Batch(shedGeo(),MAT.vc2),
+  lan:new Batch(new THREE.CylinderGeometry(.21,.21,.38,8),MAT.lantern,false),
+  field:new Batch(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),new THREE.MeshLambertMaterial({map:furrow,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}),false),
+  hay:new Batch(paint(new THREE.ConeGeometry(1,1.6,7).translate(0,.8,0),'#b9a577'),MAT.vc),
+  bare:[11,23,37,51].map(s=>new Batch(bareTreeGeo(s),MAT.vc)),
+  willow:[5,19].map(s=>new Batch(willowGeo(s),MAT.vc)),
+  leafy:[7,29].map(s=>new Batch(leafyGeo(s),MAT.vc)),
+};
+const PEOPLE={cap:1,hat:1,porter:1,sit:1};
+const DY={
+  cap:new Dyn(personGeo('cap'),MAT.vc,2200),hat:new Dyn(personGeo('hat'),MAT.vc,1800),porter:new Dyn(personGeo('porter'),MAT.vc,420),sit:new Dyn(personGeo('sit'),MAT.vc,300),
+  donkey:new Dyn(donkeyGeo(),MAT.vc,80),horse:new Dyn(horseGeo(),MAT.vc,60),ox:new Dyn(oxCartGeo(),MAT.vc2,30),cart:new Dyn(handcartGeo(),MAT.vc,50),camel:new Dyn(camelGeo(),MAT.vc,16),sedan:new Dyn(sedanGeo(),MAT.vc,16),
+  grain:new Dyn(grainGeo(false),MAT.vc2,90),grainLow:new Dyn(grainGeo(true),MAT.vc2,4),pass:new Dyn(passGeo(roofGeo),MAT.vc2,50),skiff:new Dyn(skiffGeo(),MAT.vc2,60),
+};
+const WALLS=['#e2d7bd','#d8ccb0','#e6dcc6','#cdbf9f','#d9cfb7'],WOODW=['#8e6f51','#80634a','#9b7b5a','#86684d'];
+const ROOFT=['#ffffff','#eef0e8','#e2e6dc','#f4efe2','#d6dbcf','#c9cfc2'];
+const ROBES=['#e9e2d0','#e3dcc8','#d8d0bc','#7d8c90','#6e7c80','#8f9a8c','#a38a62','#8d7a60','#6b5e50','#b7a17c','#4d5256','#c9bea5','#9aa7a8','#b3a58c'];
+const UMB=['#efe7d3','#e2d5b8','#d4c5a2','#c7b691','#e8e0cc'];
+const mapHouses=[],mapTrees=[],glow=[],flags=[],movers=[],boats=[],tows=[];
+
+// ─── 佔地檢查 ──────────────────────────────────────────
+const occ=new Map(),bk=p=>Math.floor(p/12);
+function free(p0,p1,z0,z1){for(let k=bk(p0);k<=bk(p1);k++){const a=occ.get(k);if(!a)continue;for(const r of a)if(p0<r[1]&&p1>r[0]&&z0<r[3]&&z1>r[2])return false}return true}
+function claim(p0,p1,z0,z1){const r=[p0,p1,z0,z1];for(let k=bk(p0);k<=bk(p1);k++){if(!occ.has(k))occ.set(k,[]);occ.get(k).push(r)}}
+function rectOK(p,z,hp,hz,m=.3){for(const a of [-1,0,1])for(const b of [-1,0,1])if(!landOK(p+a*hp,z+b*hz,m))return false;return free(p-hp,p+hp,z-hz,z+hz)}
+
+// ─── 建物 ─────────────────────────────────────────────
+const _q=new THREE.Quaternion(),_m=new THREE.Matrix4(),_s=new V3(),_d=new V3();
+function beam(A,Bp,r,col,batch=B.log){_d.subVectors(Bp,A);const len=_d.length();if(len<1e-4)return;_q.setFromUnitVectors(UP,_d.divideScalar(len));_s.set(r,len,r);_m.compose(A,_q,_s);batch.addM(_m,col)}
+function lantern(x,y,z){B.lan.add(x,y,z);glow.push(x,y,z)}
+function door(x,z,ry,w,d,h,f=.4){const [dx,dz]=rot(0,d/2+.04,ry);(rnd()<.45?B.doorLit:B.door).add(x+dx,0,z+dz,ry,Math.min(w*f,2.2),h*.7,.08,'#3a3129');
+  if(w>4.6)for(const s of [-1,1]){const [wx,wz]=rot(s*w*.32,d/2+.04,ry);B.door.add(x+wx,h*.4,z+wz,ry,w*.15,h*.3,.07,'#5b4b3b')}}
+function house(p,z,ry,w,d,o={}){
+  const shopX=o.shop?2.1:0,hp=Math.abs(Math.cos(ry))*w/2+Math.abs(Math.sin(ry))*(d/2+shopX/2),hz=Math.abs(Math.sin(ry))*w/2+Math.abs(Math.cos(ry))*(d/2+shopX/2);
+  const [ox,oz]=rot(0,shopX/2,ry),pc=p-ox,zc=z+oz;
+  if(!o.force&&!rectOK(pc,zc,hp+.25,hz+.25))return false;
+  claim(pc-hp-.25,pc+hp+.25,zc-hz-.25,zc+hz+.25);mapHouses.push([p,z,Math.max(hp,hz)*2]);
+  const x=-p,style=o.style||'plain';
+  if(style==='thatch'){const h=o.h||R(2.1,2.6),gf=rnd()<.4;B.box.add(x,0,z,ry,w,h,d,pick(['#cbbd9c','#c2b392','#d3c6a8']));B.thatch.add(x,h-.05,z,ry+(gf?Math.PI/2:0),gf?d+1:w+1,R(1.9,2.4),gf?w+.9:d+.9,pick(ROOFT));door(x,z,ry,w,d,h,.34);return true}
+  const h=o.h||R(2.8,3.4);
+  B.box.add(x,-.1,z,ry,w+.35,.32,d+.35,'#a1957c');
+  B.box.add(x,0,z,ry,w,h,d,o.wall||pick(WALLS));
+  let top=h;
+  if(style==='tall'){
+    B.hip.add(x,h-.1,z,ry,w+1.7,.85,d+1.7,pick(ROOFT));
+    const w2=w*.86,d2=d*.8,h2=R(2.4,2.8);B.box.add(x,h+.3,z,ry,w2,h2,d2,o.wall2||pick(WOODW));
+    const [bx,bz]=rot(0,d2/2+.35,ry);B.box.add(x+bx,h+.3,z+bz,ry,w2*.96,.1,.7,'#6e5540');B.box.add(x+bx,h+.4,z+bz,ry,w2*.96,.5,.07,'#5e4836');
+    (o.hipTop?B.hip:B.roof).add(x,h+.3+h2-.05,z,ry,w2+1.5,R(1.9,2.3),d2+1.4,pick(ROOFT));top=h+.3+h2;
+    for(const s of [-1,1]){const [lx,lz]=rot(s*(w/2+.25),d/2+.6,ry);lantern(x+lx,h-.7,z+lz)}
+  }else{const gf=o.gf??(rnd()<.35);B.roof.add(x,h-.05,z,ry+(gf?Math.PI/2:0),gf?d+1.1:w+1.3,o.rh||R(1.5,2.1),gf?w+1.3:d+1.1,pick(ROOFT))}
+  door(x,z,ry,w,d,h);
+  if(o.shop){const [ax,az]=rot(0,d/2+1,ry);B.box.add(x+ax,h*.74,z+az,ry,w*.94,.07,2.05,pick(['#9c7d5c','#b09a74','#8a6d50','#a8a08a']),.3);
+    for(const s of [-1,1]){const [px,pz]=rot(s*w*.44,d/2+1.85,ry);B.box.add(x+px,0,z+pz,ry,.1,h*.62,.1,'#5a4836')}
+    const [cx,cz]=rot(0,d/2+.55,ry);B.box.add(x+cx,0,z+cz,ry,w*.55,.8,.5,'#7a5e44');
+    for(let k=0;k<3;k++){const [gx,gz]=rot(R(-w*.22,w*.22),d/2+.55,ry);B.box.add(x+gx,.8,z+gz,R(0,3),R(.25,.45),R(.12,.3),R(.25,.4),pick(['#c7b890','#8f9a80','#a58b5f','#d9cdb2']))}
+    if(rnd()<.6){const [kx,kz]=rot(R(-w*.2,w*.2),d/2+.18,ry);folk(pick(['cap','hat']),x+kx,0,z+kz,ry)}}
+  return {h,top}}
+function row(p0,p1,zf,side,o={}){
+  let p=p0+R(0,3);
+  while(p<p1){const w=R(o.w0||4.2,o.w1||7.2),pc=p+w/2;
+    if(o.skipP&&o.skipP(pc)){p+=R(1.5,3);continue}
+    let d=R(o.d0||4,o.d1||6.2);if(o.dmax)d=Math.min(d,o.dmax(pc));
+    if(d<3.3||rnd()<(o.gap||0)){p+=R(2,6);continue}
+    const zc=zf(pc)+side*((o.set||3.1)+d/2),ry=(side>0?Math.PI:0)+Math.atan(slope(zf,pc));
+    house(pc,zc,ry,w,d,{style:o.style?o.style(pc):'plain',shop:o.shop?rnd()<o.shop:false,h:o.h?o.h():undefined});
+    p+=w+R(o.g0??.2,o.g1??1.4)}}
+function signTex(text,vert,bg,fg,bd){const n=[...text].length,cw=84,c=document.createElement('canvas');c.width=vert?100:cw*n+44;c.height=vert?cw*n+44:100;const g=c.getContext('2d');
+  g.fillStyle=bg;g.fillRect(0,0,c.width,c.height);g.strokeStyle=bd;g.lineWidth=6;g.strokeRect(7,7,c.width-14,c.height-14);g.fillStyle=fg;g.font='66px "Kaiti TC","BiauKai","DFKai-SB","STKaiti","KaiTi","Noto Serif TC",serif';g.textAlign='center';g.textBaseline='middle';
+  [...text].forEach((ch,i)=>vert?g.fillText(ch,50,22+cw/2+i*cw+2):g.fillText(ch,22+cw/2+i*cw,52));
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return [t,n]}
+function board(text,x,y,z,ry,o={}){const vert=o.vert!==false,[t,n]=signTex(text,vert,o.bg||'#2f2a24',o.fg||'#eadcbc',o.bd||'#8a6d4a'),u=o.u||.5,w=vert?.84:u*n+.44,h=vert?u*n+.44:.84;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshLambertMaterial({map:t,side:THREE.DoubleSide}));m.position.set(x,y+h/2,z);m.rotation.y=ry;m.castShadow=true;scene.add(m);
+  if(o.legs){const [lx,lz]=rot(0,-.06,ry);for(const s of [-1,1]){const [px,pz]=rot(s*w*.38,0,ry);B.box.add(x+px+lx,0,z+pz+lz,ry,.08,y+.2,.08,'#3c3128')}}return h}
+function flag(text,x,z,ry,hgt=7.4){beam(new V3(x,0,z),new V3(x,hgt+.3,z),.075,'#4b3d30');
+  const [t,n]=signTex(text,true,'#ebe4d1','#2a2520','#6e8288'),w=1.05,H=.6*n+.5,piv=new THREE.Group();piv.position.set(x,hgt,z);piv.rotation.y=ry;scene.add(piv);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,H),new THREE.MeshLambertMaterial({map:t,side:THREE.DoubleSide}));m.position.set(w/2+.08,-H/2,0);m.castShadow=true;piv.add(m);
+  const bar=new THREE.Mesh(new THREE.BoxGeometry(w+.25,.07,.07),new THREE.MeshLambertMaterial({color:'#3f3429'}));bar.position.set(w/2+.08,.02,0);piv.add(bar);
+  flags.push({g:piv,ry,ph:R(0,TAU)})}
+// 彩樓歡門：店前以竹木紮成的高架門樓
+function festiveGate(x,z,ry,w,hgt){const P=(lx,y,lz)=>{const [a,b]=rot(lx,lz,ry);return new V3(x+a,y,z+b)};
+  const xs=[-w/2,-w/6,w/6,w/2];for(const lx of xs)beam(P(lx,0,0),P(lx,hgt,0),.09,'#6a5238');
+  for(const y of [hgt*.55,hgt*.8,hgt])beam(P(-w/2-.3,y,0),P(w/2+.3,y,0),.07,'#6a5238');
+  beam(P(-w/2,hgt,0),P(0,hgt+1.4,0),.07,'#6a5238');beam(P(w/2,hgt,0),P(0,hgt+1.4,0),.07,'#6a5238');beam(P(-w/6,hgt*.8,0),P(0,hgt+1.4,0),.05,'#6a5238');beam(P(w/6,hgt*.8,0),P(0,hgt+1.4,0),.05,'#6a5238');
+  for(let i=0;i<9;i++){const lx=-w/2+i*w/8,q=P(lx,hgt*.8-.05,0);B.box.add(q.x,q.y-.6,q.z,ry,.26,.6,.04,pick(['#b36a55','#7f9585','#c8b27c','#8f6f8a']))}
+  for(const lx of [-w/2,w/2]){const q=P(lx,hgt*.55-.5,.15);lantern(q.x,q.y,q.z)}}
+
+// ─── 人物與移動 ─────────────────────────────────────────
+function folk(kind,x,y,z,ry,o={}){const d=DY[kind],i=d.alloc(o.col||pick(ROBES));if(i>=0)d.set(i,x,y,z,ry,o.sc??(rnd()<.06?.66:R(.93,1.06)),o.lean||0);return i}
+const roadPath=(zf,lane)=>({pos:s=>[-s,0,zf(s)+lane],yaw:(s,d)=>Math.atan2(-d,d*slope(zf,s))});
+const lineX=(zc,lane=0)=>({pos:s=>[-s,0,zc+lane],yaw:(s,d)=>d>0?-Math.PI/2:Math.PI/2});
+const lineZ=(p0,lane=0,yf=null)=>({pos:s=>[-p0+lane,yf?yf(s):0,s],yaw:(s,d)=>d>0?0:Math.PI});
+function walker(kind,path,a,b,o={}){const d=DY[kind],i=d.alloc(o.col||pick(kind in PEOPLE?ROBES:['#ffffff','#e7dfd2','#d0c6b6','#bdb2a1']));if(i<0)return null;
+  const m={d,i,path,a,b,s:o.s??R(a,b),dir:o.dir??(rnd()<.5?1:-1),v:o.v??R(.75,1.3),ph:R(0,TAU),sc:o.sc??(kind in PEOPLE?(rnd()<.07?.66:R(.93,1.07)):R(.95,1.05)),lean:o.lean||0,bob:o.bob??(kind in PEOPLE?.07:.03),wait:0,pc:o.pc??(a+b)/2,span:o.span??(b-a)/2,noWait:!!o.noWait};
+  m.h=path.yaw(m.s,m.dir);const [x,y,z]=path.pos(m.s);d.set(i,x,y,z,m.h,m.sc,m.lean);movers.push(m);return m}
+const N=n=>Math.round(n*CONFIG.crowd);
+const kindMix=(pp=.1,ph=.38)=>{const r=rnd();return r<pp?'porter':r<pp+ph?'hat':'cap'};
+function roadCrowd(p0,p1,n,o={}){const zf=o.zf||roadZ;for(let i=0;i<n;i++){const len=R(14,60),a=R(p0,Math.max(p0,p1-len)),b=Math.min(p1,a+len);walker(o.kind||kindMix(o.pp,o.ph),o.zc!=null?lineX(o.zc,R(-o.lw,o.lw)):roadPath(zf,R(-2.1,2.1)*(o.lw??1)),a,b)}}
+function crossCrowd(pc,z0,z1,n){for(let i=0;i<n;i++){const len=R(12,40),a=R(z0,Math.max(z0,z1-len)),b=Math.min(z1,a+len);walker(kindMix(),lineZ(pc,R(-1.5,1.5)),a,b,{pc,span:0})}}
+function boatYaw(p,dir){const s=slope(riverZ,p);return dir>0?Math.atan2(-1,s):Math.atan2(1,-s)}
+function boat(kind,p,zo,dir,o={}){const d=DY[kind],i=d.alloc(o.col||pick(['#ffffff','#ece6da','#dcd4c4','#f2ede2']));if(i<0)return null;
+  const b={d,i,p,zo,dir,v:o.v||0,a:o.a??p,b:o.b??p,ph:R(0,TAU),h:boatYaw(p,dir),fixZ:o.fixZ,drift:o.drift||0};boats.push(b);
+  d.set(i,-p,WATER,b.fixZ??riverZ(p)+zo,b.h);return b}
+function crewOn(bt,n,y=.5){const cs=Math.cos(bt.h),sn=Math.sin(bt.h),x=-bt.p,z=bt.fixZ??riverZ(bt.p)+bt.zo;for(let k=0;k<n;k++){const lz=R(-5,5.5),lx=R(-1,1);folk(rnd()<.6?'hat':'cap',x+lx*cs+lz*sn,WATER+y,z-lx*sn+lz*cs,R(0,TAU))}}
+
+// ─── 地面、汴河、山巒、霧 ─────────────────────────────────
+function buildGround(){
+  const p0=-150,p1=590,z0=-178,z1=112,st=1.5,nx=Math.round((p1-p0)/st),nz=Math.round((z1-z0)/st),cnt=(nx+1)*(nz+1);
+  const pos=new Float32Array(cnt*3),col=new Float32Array(cnt*3),idx=[];
+  const cBase=C('#d6c8a4'),cField=C('#c3bf94'),cRoad=C('#e6dabb'),cBank=C('#aa9b78'),cBed=C('#8d876c'),cDark=C('#c4b48f'),cCity=C('#ddd0b0'),t=new THREE.Color();
+  let k=0;
+  for(let j=0;j<=nz;j++){const z=z0+j*st;for(let i=0;i<=nx;i++){const p=p0+i*st,rz=riverZ(p),rw=riverW(p),d=Math.abs(z-rz)-rw/2;
+    let y=-2.3*(1-sstep(-3.6,.6,d));y+=sstep(4,14,d)*sstep(-58,-150,z)*(n2(p*.025,z*.025)*7-1.5);
+    t.copy(cBase).lerp(cDark,n2(p*.09,z*.09)*.55);
+    if(p<125)t.lerp(cField,sstep(.42,.7,n2(p*.03+5,z*.03))*.65*(1-sstep(95,125,p)));
+    if(z<-55)t.lerp(cField,sstep(.45,.7,n2(p*.02+9,z*.02))*.45);
+    if(p>341&&z>-46&&z<60)t.lerp(cCity,.45);
+    let road=(1-sstep(2.2,3.4,Math.abs(z-roadZ(p))))*.85;
+    if(p>122&&p<306)road=Math.max(road,(1-sstep(1.5,2.7,Math.abs(z-backRoad(p))))*.75);
+    if(p>341){road=Math.max(road,(1-sstep(1.5,2.6,Math.abs(z+16)))*.75,(1-sstep(1.5,2.6,Math.abs(z-34)))*.7);for(const c of CROSS)if(z>-46&&z<60)road=Math.max(road,(1-sstep(1.4,2.5,Math.abs(p-c)))*.7)}
+    if(Math.abs(p-BRIDGE_P)<5&&z>BZ-BS-3&&z<roadZ(p))road=Math.max(road,(1-sstep(3.5,5,Math.abs(p-BRIDGE_P)))*.8);
+    t.lerp(cRoad,road);t.lerp(cBank,(1-sstep(.4,3.6,d))*.8);if(d<-.4)t.lerp(cBed,sstep(-.4,-2.4,d));
+    pos[k*3]=-p;pos[k*3+1]=y;pos[k*3+2]=z;col[k*3]=t.r;col[k*3+1]=t.g;col[k*3+2]=t.b;k++}}
+  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){const a=j*(nx+1)+i,b=a+1,c=a+nx+1,d=c+1;idx.push(a,b,c,b,d,c)}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();
+  const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true}));m.receiveShadow=true;scene.add(m)}
+let waterTex;
+function buildWater(){
+  const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#b9bca4';g.fillRect(0,0,512,512);g.lineCap='round';
+  for(let i=0;i<240;i++){const x=R(0,512),y=R(0,512),len=R(22,70),amp=R(1.4,3.6),lw=R(.7,1.8),al=R(.18,.42);g.strokeStyle=`rgba(64,74,64,${al})`;g.lineWidth=lw;
+    for(const ox of [-512,0,512])for(const oy of [-512,0,512]){g.beginPath();for(let k=0;k<=14;k++){const tt=k/14,px=x+ox+tt*len,py=y+oy+Math.sin(tt*Math.PI*2+i)*amp;k?g.lineTo(px,py):g.moveTo(px,py)}g.stroke()}}
+  waterTex=new THREE.CanvasTexture(c);waterTex.wrapS=waterTex.wrapT=THREE.RepeatWrapping;waterTex.colorSpace=THREE.SRGBColorSpace;waterTex.anisotropy=4;
+  const pos=[],uv=[],nor=[],idx=[];let n=0;
+  for(let p=-150;p<=590;p+=2){const rz=riverZ(p),hw=riverW(p)/2+1.2;pos.push(-p,WATER,rz-hw,-p,WATER,rz+hw);uv.push(p/16,-hw/16,p/16,hw/16);nor.push(0,1,0,0,1,0);if(n){const a=(n-1)*2;idx.push(a,a+2,a+1,a+1,a+2,a+3)}n++}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));geo.setIndex(idx);
+  const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({map:waterTex}));m.receiveShadow=true;scene.add(m)}
+const mountMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide});
+function buildMountains(){
+  for(const l of [{z:-152,amp:26,sc:34,top:'#768274',o:1.3},{z:-205,amp:44,sc:56,top:'#8d968a',o:4.1},{z:-272,amp:64,sc:82,top:'#a3a899',o:7.7},{z:-350,amp:92,sc:120,top:'#b5b5a5',o:2.9}]){
+    const pos=[],col=[],idx=[],ct=C(l.top),cb=C('#d8cfb9');let n=0;
+    for(let p=-340;p<=800;p+=3){const nn=fbm1(p/l.sc+l.o,5),h=l.amp*(sstep(.28,.8,nn)**1.25*.9+.1)+(fbm1(p/7+l.o*3,3)-.5)*l.amp*.1,zz=l.z+(n1(p/40+l.o)-.5)*16,sh=.82+.34*fbm1(p/11+l.o,2);
+      pos.push(-p,h-4,zz,-p,-12,zz);col.push(ct.r*sh,ct.g*sh,ct.b*sh,cb.r,cb.g,cb.b);if(n){const a=(n-1)*2;idx.push(a,a+2,a+1,a+1,a+2,a+3)}n++}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);scene.add(new THREE.Mesh(g,mountMat))}}
+const mists=[];
+function buildMist(){
+  const c=document.createElement('canvas');c.width=256;c.height=64;const g=c.getContext('2d'),img=g.createImageData(256,64);
+  for(let y=0;y<64;y++)for(let x=0;x<256;x++){const a=Math.exp(-(((y-32)/13)**2))*sstep(0,70,x)*sstep(256,186,x)*(.55+.45*n2(x/17,y/8));const i=(y*256+x)*4;img.data[i]=img.data[i+1]=img.data[i+2]=255;img.data[i+3]=a*255}
+  g.putImageData(img,0,0);const t=new THREE.CanvasTexture(c);
+  const add=(p,y,z,w,h,op)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,opacity:op}));m.position.set(-p,y,z);m.renderOrder=2;scene.add(m);mists.push({m,base:op,x:-p,ph:R(0,TAU)})};
+  for(let p=-80;p<=540;p+=R(34,52))add(p,R(5,14),R(-140,-80),R(100,170),R(12,20),R(.5,.8));
+  for(let p=-40;p<=520;p+=R(55,85))add(p,R(8,20),R(-195,-160),R(140,220),R(20,30),R(.5,.75));
+  for(let p=-40;p<=520;p+=R(70,100))add(p,R(22,36),R(-255,-225),R(180,260),R(24,34),R(.4,.6));
+  for(let p=-40;p<=120;p+=R(24,40))add(p,R(1.2,3),R(-44,26),R(40,70),R(5,8),R(.35,.55))}
+
+// ─── 第一章 郊野：寒林、茅舍、田畝、驢隊 ────────────────────
+function bare(p,z,s=R(1.05,1.65)){pick(B.bare).add(-p,0,z,R(0,TAU),s,s*R(.9,1.12),s,pick(['#ffffff','#e8e2d8','#d6cfc2']));mapTrees.push([p,z])}
+function willow(p,z,s=R(1,1.35)){pick(B.willow).add(-p,0,z,R(0,TAU),s,s,s,pick(['#ffffff','#eef0e2','#dfe3d2']));mapTrees.push([p,z])}
+function leafy(p,z,s=R(.85,1.25)){pick(B.leafy).add(-p,0,z,R(0,TAU),s,s,s,pick(['#ffffff','#e9ecdf','#d7dccd']));mapTrees.push([p,z])}
+function scatter(p0,p1,z0,z1,n,fn,m=1.3){let c=0;for(let k=0;k<n*8&&c<n;k++){const p=R(p0,p1),z=R(z0,z1);if(!landOK(p,z,m)||!free(p-m,p+m,z-m,z+m))continue;fn(p,z);claim(p-m*.55,p+m*.55,z-m*.55,z+m*.55);c++}}
+function fields(p0,p1,z0,z1,n){let c=0;for(let k=0;k<n*10&&c<n;k++){const p=R(p0,p1),z=R(z0,z1),w=R(9,22),d=R(6,14),ry=R(-.18,.18);if(!rectOK(p,z,w/2,d/2,.8))continue;B.field.add(-p,.03,z,ry,w,1,d,pick(['#d8d0aa','#c9c69c','#dccfa9','#c2bc92','#cfc8a0']));claim(p-w/2,p+w/2,z-d/2,z+d/2);c++}}
+function fence(pc,zc,rx,rz,a0,a1){let prev=null;for(let a=a0;a<=a1;a+=.32){const p=pc+Math.cos(a)*rx,z=zc+Math.sin(a)*rz,ok=landOK(p,z,.2);if(ok){beam(new V3(-p,0,z),new V3(-p,.95,z),.05,'#5e503f');if(prev)for(const y of [.35,.72])beam(new V3(-prev[0],y,prev[1]),new V3(-p,y,z),.035,'#6a5a46')}prev=ok?[p,z]:null}}
+function hamlet(pc,zc,n){let placed=0;for(let k=0;k<n*10&&placed<n;k++){const a=R(0,TAU),r=R(0,8.5),p=pc+Math.cos(a)*r,z=zc+Math.sin(a)*r*.7,ry=pick([0,Math.PI/2,Math.PI,-Math.PI/2])+R(-.12,.12);if(house(p,z,ry,R(3.4,5),R(3,4),{style:'thatch'}))placed++}
+  const a0=R(0,TAU);fence(pc,zc,12.5,9,a0,a0+R(2.2,3.8));
+  for(let k=0;k<2;k++){const p=pc+R(-8,8),z=zc+R(-7,7);if(rectOK(p,z,1,1,.2)){B.hay.add(-p,0,z,0,R(.8,1.2),R(.9,1.2),R(.8,1.2));claim(p-1,p+1,z-1,z+1)}}
+  for(let k=0;k<n;k++)for(let t=0;t<6;t++){const p=pc+R(-7,7),z=zc+R(-5,5);if(landOK(p,z,.2)&&free(p-.5,p+.5,z-.5,z+.5)){folk(pick(['cap','hat','sit']),-p,0,z,R(0,TAU));break}}}
+function buildCh1(){
+  for(const [pc,zc,n] of [[4,-6,5],[36,6,4],[62,-16,5],[90,1,4],[20,33,3],[74,34,3],[48,-27,3],[-24,4,4]])hamlet(pc,zc,n);
+  // 茶棚與酒旆，行旅入城前的歇腳處
+  const tp=97,tz=roadZ(tp)+5;B.shed.add(-tp,0,tz,Math.PI,1.1,1,1.1);claim(tp-2,tp+2,tz-1.6,tz+1.6);flag('茶',-(tp+2.3),tz+.2,Math.PI*.5,6.2);
+  for(let k=0;k<4;k++)folk('sit',-(tp+R(-1,1)),0,tz+R(-1.4,-.6),R(0,TAU));
+  for(const [p,s] of [[100,-1],[104,1],[108,-1]])house(p,roadZ(p)+s*6.4,s>0?Math.PI:0,R(5,6.5),R(4.5,5.5),{shop:rnd()<.5});
+  fields(-45,112,-26,46,30);
+  // 開卷寒林：老樹夾道
+  scatter(-40,34,-8,roadZ(0)-3,22,(p,z)=>bare(p,z,R(1.2,1.8)),1.4);scatter(-40,34,roadZ(0)+4,40,8,(p,z)=>bare(p,z,R(.95,1.3)),1.6);
+  scatter(34,112,-30,roadZ(80)-3,30,(p,z)=>rnd()<.8?bare(p,z):leafy(p,z),1.4);scatter(34,112,roadZ(80)+4,44,9,(p,z)=>rnd()<.7?bare(p,z,R(.95,1.3)):leafy(p,z),1.6);
+  for(let p=-50;p<125;p+=R(9,15))for(const s of [-1,1]){if(rnd()<.35)continue;const z=riverZ(p)+s*(riverW(p)/2+R(1.5,4));if(landOK(p,z,.4)&&free(p-1,p+1,z-1,z+1)){willow(p,z);claim(p-.8,p+.8,z-.8,z+.8)}}
+  // 驢隊馱炭入城、掃墓歸來的轎隊
+  for(let k=0;k<6;k++)walker('donkey',roadPath(roadZ,-.9+(k%2)*.5),-30,112,{s:40+k*2.3,dir:1,v:.62,noWait:true});
+  walker('hat',roadPath(roadZ,.6),-30,112,{s:53.5,dir:1,v:.62,noWait:true});walker('cap',roadPath(roadZ,-1.6),-30,112,{s:38,dir:1,v:.62,noWait:true});
+  walker('sedan',roadPath(roadZ,.4),-20,110,{s:78,dir:1,v:.7,noWait:true});
+  for(const [ds,ln] of [[3.2,-.9],[4.2,1.1],[-3.4,.2]])walker('cap',roadPath(roadZ,ln),-20,110,{s:78+ds,dir:1,v:.7,noWait:true});
+  walker('horse',roadPath(roadZ,-1.3),-20,110,{s:72,dir:1,v:.7,noWait:true});walker('horse',roadPath(roadZ,1.2),-20,110,{s:85,dir:1,v:.7,noWait:true});
+  roadCrowd(-30,112,N(46),{ph:.55});
+  for(let k=0;k<4;k++)walker('porter',roadPath(roadZ,R(-2,2)),-20,112);
+  for(const p of [18,52,86])boat('skiff',p,R(-2,2),rnd()<.5?1:-1)}
+
+// ─── 第二、三章 汴河、虹橋 ────────────────────────────────
+const DOCKS=[[127,134],[150,156],[176,183],[203,209],[232,238],[285,291]];
+const inDock=pc=>DOCKS.some(([a,b])=>pc>a-3&&pc<b+3);
+function stall(p,z,ry,kind){if(!rectOK(p,z,1.7,1.7,.1))return;claim(p-1.7,p+1.7,z-1.7,z+1.7);
+  if(kind==='shed')B.shed.add(-p,0,z,ry,1,1,1);else B.umb.add(-p,0,z,ry,R(.9,1.15),R(.95,1.1),R(.9,1.15),pick(UMB));
+  const [vx,vz]=rot(.5,.2,ry);folk(pick(['cap','hat']),-p+vx,0,z+vz,ry);
+  const nc=Math.floor(R(0,3.2));for(let k=0;k<nc;k++){const [cx,cz]=rot(R(-1,1),R(1.9,2.6),ry);folk(kindMix(.06,.35),-p+cx,0,z+cz,ry+Math.PI+R(-.5,.5))}}
+function buildBridge(){
+  const N_=30,rowsT=[],rowsL=[],rowsR=[],rowsB=[],W2=3.5;
+  for(let i=0;i<=N_;i++){const s=-BS+2*BS*i/N_,y=deckY(s)+.18,z=BZ+s;rowsT.push([new V3(BX+W2,y,z),new V3(BX-W2,y,z)]);rowsL.push([new V3(BX-W2,y,z),new V3(BX-W2,y-.42,z)]);rowsR.push([new V3(BX+W2,y-.42,z),new V3(BX+W2,y,z)]);rowsB.push([new V3(BX-W2,y-.42,z),new V3(BX+W2,y-.42,z)])}
+  scene.add(Object.assign(new THREE.Mesh(merge([paint(sheet(rowsT),'#8f7253'),paint(sheet(rowsL),'#6a523d'),paint(sheet(rowsR),'#6a523d'),paint(sheet(rowsB),'#5a4533')]),MAT.vc2),{castShadow:true,receiveShadow:true}));
+  // 編木拱：兩組折線拱骨交錯排列
+  const sysA=[],sysB=[];for(let k=0;k<=5;k++){const s=-AS+2*AS*k/5;sysA.push([s,archY(s)-.35])}for(let k=0;k<=4;k++){const s=-AS+2*AS*k/4;sysB.push([s,archY(s)-.62])}
+  for(let j=0;j<9;j++){const x=BX-3.2+j*.8,sys=j%2?sysA:sysB;for(let k=0;k<sys.length-1;k++)beam(new V3(x,sys[k][1],BZ+sys[k][0]),new V3(x,sys[k+1][1],BZ+sys[k+1][0]),.17,'#6b523b')}
+  for(const sys of [sysA,sysB])for(const [s,y] of sys)beam(new V3(BX+3.6,y+.05,BZ+s),new V3(BX-3.6,y+.05,BZ+s),.13,'#5b4532');
+  for(const sg of [-1,1])B.box.add(BX,-1.4,BZ+sg*(AS-.3),0,8,1.5,2.4,'#9a8e76');
+  // 欄杆與燈籠
+  for(const sx of [-3.35,3.35]){let prev=null;for(let s=-BS;s<=BS+.01;s+=BS/9){const y=deckY(s)+.18,cur=new V3(BX+sx,y+.95,BZ+s);B.box.add(BX+sx,y,BZ+s,0,.13,.95,.13,'#5d4834');if(prev)beam(prev,cur,.06,'#5d4834');prev=cur}
+    for(const s of [-8,0,8])lantern(BX+sx*1.02,deckY(s)+1.3,BZ+s)}
+  // 華表
+  for(const sx of [-4.4,4.4])for(const sg of [-1,1]){const z=BZ+sg*(BS+.8);beam(new V3(BX+sx,0,z),new V3(BX+sx,8.6,z),.17,'#54432f');B.box.add(BX+sx,7.6,z,0,.14,.26,1.6,'#54432f');B.box.add(BX+sx,8.6,z,0,.3,.28,.5,'#3a3129')}
+  claim(BRIDGE_P-4.7,BRIDGE_P+4.7,BZ-BS-2.5,roadZ(BRIDGE_P));
+  // 橋上攤販與倚欄看船的人
+  for(const [s,side] of [[-10.5,1],[-7.2,-1],[-3.6,1],[3.4,-1],[7,1],[10.4,-1]]){const y=deckY(s)+.18;B.umb.add(BX+side*2.55,y-.15,BZ+s,-side*Math.PI/2,.72,.8,.72,pick(UMB));folk('cap',BX+side*2.85,y,BZ+s-.4,-side*Math.PI/2)}
+  for(let k=0;k<N(30);k++){const s=R(-9,9),side=rnd()<.62?1:-1,y=deckY(s)+.18;folk(kindMix(.03,.35),BX+side*R(2.7,3.05),y,BZ+s,side*Math.PI/2+R(-.4,.4),{lean:R(0,.2)})}
+  const sF=roadZ(BRIDGE_P)-2.2-BZ,sB=backRoad(BRIDGE_P)+1.6-BZ;
+  for(let k=0;k<N(110);k++){const lane=R(-2.2,2.2),len=R(8,sF-sB),a=R(sB,sF-len);walker(kindMix(.1,.35),lineZ(BRIDGE_P,lane,s=>deckY(s-BZ)+.18),BZ+a,BZ+a+len,{pc:BRIDGE_P,span:0})}
+  walker('donkey',lineZ(BRIDGE_P,-1,s=>deckY(s-BZ)+.18),BZ+sB,BZ+sF,{pc:BRIDGE_P,span:0,v:.5});
+  walker('cart',lineZ(BRIDGE_P,1.2,s=>deckY(s-BZ)+.18),BZ+sB,BZ+sF,{pc:BRIDGE_P,span:0,v:.45});
+  // 橋下：放倒桅杆、撐篙過橋的漕船
+  const bb=boat('grainLow',BRIDGE_P-9,1.2,1);
+  for(const [lx,lz,lean] of [[-.8,-1.4,.3],[.9,-.2,.35],[0,1.4,.25],[-.6,2.8,.2],[.7,-3.5,.3]]){const cs=Math.cos(bb.h),sn=Math.sin(bb.h),x=BX+9+lx*cs+lz*sn,z=riverZ(BRIDGE_P-9)+1.2-lx*sn+lz*cs;folk(rnd()<.5?'hat':'cap',x,WATER+1.85,z,bb.h+R(-.6,.6),{lean});beam(new V3(x+R(-.4,.4),WATER+3.2,z),new V3(x+R(-2,2),WATER-.6,z+R(-2,2)),.035,'#3f3429')}
+  for(const [lx,lz] of [[1.1,-4.5],[-1.1,-4],[0,5.5]]){const cs=Math.cos(bb.h),sn=Math.sin(bb.h);folk('cap',BX+9+lx*cs+lz*sn,WATER+.45,riverZ(BRIDGE_P-9)+1.2-lx*sn+lz*cs,R(0,TAU))}
+  // 橋頭廣場攤棚
+  for(const [dp,zz,k] of [[-7,BZ+BS+1.5,'umb'],[7,BZ+BS+1.2,'shed'],[-6.5,BZ+BS+4.2,'shed'],[6.8,BZ+BS+4.6,'umb'],[-6.8,BZ-BS-.2,'umb'],[6.5,BZ-BS-.6,'umb']])stall(BRIDGE_P+dp,zz,dp>0?-Math.PI/2:Math.PI/2,k)}
+function special(p,side,w,d,o,deco){const zc=roadZ(p)+side*(3.9+d/2),ry=side>0?Math.PI:0;const r=house(p,zc,ry,w,d,{...o,force:true});if(deco)deco(-p,zc,ry,r)}
+function buildCh23(){
+  buildBridge();
+  // 虹橋南岸的十千腳店、對岸酒樓
+  special(BRIDGE_P-13,-1,9,5.6,{style:'tall'},(x,z,ry,r)=>{festiveGate(x,z+5.6/2+1.6,ry,7,r.h+1.2);board('十千腳店',x-2.2,r.h-1.05,z+5.6/2+.12,0,{vert:false,u:.55});flag('天之美祿',x+5.4,z+4,Math.PI*.45,8.4);for(let k=0;k<6;k++)folk('sit',x+R(-3,3),0,z+5.6/2+R(.8,2.2),R(0,TAU))});
+  special(BRIDGE_P+13,-1,8,5.8,{style:'tall',hipTop:true},(x,z,ry,r)=>{board('新酒',x+2.6,.3,z+5.8/2+1.7,0,{legs:true,u:.5});flag('新酒',x-4.6,z+4.2,Math.PI*.55,8)});
+  special(172,-1,7,6,{style:'tall'},(x,z,ry,r)=>{flag('新酒',x+4.3,z+4.2,Math.PI*.5,7.6)});
+  special(142,-1,6.5,6,{shop:true},(x,z)=>{flag('茶',x-3.8,z+4.4,Math.PI*.5,6.4)});
+  {const p=198,zc=backRoad(p)-2.6-2.75;house(p,zc,0,7.5,5.5,{style:'tall',force:true});board('久住王員外家',-p+2.6,.9,zc+3.4,0,{legs:true,u:.45})}
+  row(111,312,roadZ,-1,{set:3.9,dmax:pc=>roadZ(pc)-3.9-(riverZ(pc)+riverW(pc)/2+1.1),style:pc=>rnd()<(pc>215?.3:.14)?'tall':'plain',shop:.55,skipP:pc=>inDock(pc)||Math.abs(pc-BRIDGE_P)<7.5});
+  row(111,312,roadZ,1,{set:3.9,gap:.25,d0:3.6,d1:5.6,style:()=>rnd()<.08?'tall':'plain',shop:.45,h:()=>R(2.6,3.1),skipP:pc=>Math.abs(pc-BRIDGE_P)<5});
+  row(124,305,backRoad,-1,{set:2.6,gap:.1,style:()=>rnd()<.13?'tall':'plain',shop:.3});
+  row(124,305,p=>backRoad(p)-11.5,-1,{set:.4,gap:.35,d0:4,d1:6});
+  // 碼頭：搬運米袋的腳夫
+  for(const [a,b] of DOCKS){const pc=(a+b)/2,z0=riverZ(pc)+riverW(pc)/2-.6,z1=roadZ(pc)-2.8;
+    for(let k=0;k<3;k++)walker(rnd()<.6?'porter':'cap',lineZ(pc,R(-1.8,1.8)),z0,z1,{pc,span:0,v:R(.6,.9)});
+    for(let k=0;k<4;k++)B.box.add(-(pc+R(-2.5,2.5)),0,z1-R(.8,2),R(0,3),R(.7,1),R(.5,.7),R(.6,.8),pick(['#b39c70','#a38c62','#c2ad80']));
+    folk('cap',-(pc+2.6),0,z0+2,Math.PI/2)}
+  // 兩岸柳與木樁護岸
+  for(let p=110;p<312;p+=R(8,13))for(const s of [-1,1]){if(rnd()<.2)continue;const z=riverZ(p)+s*(riverW(p)/2+R(1.1,2.4));if(landOK(p,z,.2)&&free(p-1,p+1,z-1,z+1)&&!(s>0&&inDock(p))){willow(p,z,R(.95,1.25));claim(p-.9,p+.9,z-.9,z+.9)}}
+  for(let p=112;p<318;p+=1.25){if(Math.abs(p-BRIDGE_P)<5)continue;for(const s of [-1,1]){const z=riverZ(p)+s*(riverW(p)/2-.55);B.log.add(-p,-1.5,z,0,.13,1.65+h1(p*3+s)*.35,.13,'#5d4b3a')}}
+  // 泊船與行船
+  for(let p=114;p<310;p+=R(9,12.5)){if(Math.abs(p-BRIDGE_P)<10)continue;const w=riverW(p);const b=boat(rnd()<.62?'grain':'pass',p,w/2-2.5,rnd()<.5?1:-1);if(b&&rnd()<.7)crewOn(b,Math.floor(R(1,3.5)))}
+  for(let p=118;p<306;p+=R(10,15)){if(Math.abs(p-BRIDGE_P)<10)continue;const w=riverW(p);const b=boat(rnd()<.55?'grain':(rnd()<.5?'pass':'skiff'),p,-w/2+2.4,rnd()<.5?1:-1);if(b&&rnd()<.6)crewOn(b,Math.floor(R(1,3)))}
+  for(const [p,zo,kind,a,b] of [[140,-.5,'grain',115,245],[190,3.2,'pass',115,245],[225,1,'skiff',115,248],[165,5,'skiff',115,245],[292,1,'skiff',274,318],[205,-1.8,'skiff',115,245],[300,-3,'pass',276,318]])boat(kind,p,zo,rnd()<.5?1:-1,{v:R(.35,.7),a,b});
+  // 縴夫拉船逆水而上
+  for(const start of [140,205]){const g={a:118,b:246,p:start,v:.55,trk:[],boat:null};for(let k=0;k<5;k++)g.trk.push(DY.hat.alloc(pick(ROBES)));g.boat=boat('grain',start-19,0,1,{});g.boat.tow=true;
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(12*3),3));g.rope=new THREE.Line(geo,new THREE.LineBasicMaterial({color:'#3b342b'}));g.rope.frustumCulled=false;scene.add(g.rope);tows.push(g)}
+  // 街市攤販與行人
+  for(let p=112;p<312;p+=R(5,11)){const s=rnd()<.5?1:-1;stall(p,roadZ(p)+s*3.5,s>0?Math.PI:0,rnd()<.62?'umb':'shed')}
+  for(let p=126;p<304;p+=R(12,22)){const z=backRoad(p)+2.9;stall(p,z,Math.PI,rnd()<.5?'umb':'shed')}
+  roadCrowd(110,215,N(150));roadCrowd(215,312,N(175),{pp:.12});
+  roadCrowd(124,305,N(95),{zf:backRoad,lw:.8});
+  for(const [p0,p1,k,n] of [[112,212,'ox',2],[220,310,'ox',2],[112,310,'cart',6],[112,310,'horse',4],[112,310,'donkey',5],[112,310,'sedan',2]])for(let i=0;i<n;i++)walker(k,roadPath(roadZ,R(-1.4,1.4)),p0,p1,{v:R(.45,.75)});
+  scatter(110,312,30,56,24,(p,z)=>rnd()<.7?leafy(p,z):bare(p,z,R(1,1.35)),1.6);
+  scatter(110,312,34,52,16,(p,z)=>house(p,z,Math.PI+R(-.1,.1),R(4.5,6.5),R(4,5.5),{h:R(2.5,3)}),3)}
+
+// ─── 第四章 城郭：城門、譙樓、街市 ─────────────────────────
+function wallSeg(za,zb,H,Tb,Tt,y0=0){const g=new THREE.BoxGeometry(Tb,H,zb-za).translate(-WALL_P,y0+H/2,(za+zb)/2),p=g.attributes.position;for(let i=0;i<p.count;i++)if(p.getY(i)>y0+H/2)p.setX(i,-WALL_P+(p.getX(i)+WALL_P)*Tt/Tb);g.computeVertexNormals();return paint(g,'#bcae8c')}
+function buildCh4(){
+  const x0=-WALL_P,gz=10,gw=6.6,H=9,T=8,Tt=5.6;
+  const wall=new THREE.Mesh(merge([wallSeg(-40,gz-gw/2,H,T,Tt),wallSeg(gz+gw/2,96,H,T,Tt),wallSeg(gz-gw/2-.2,gz+gw/2+.2,H-5.4,T*.82,Tt,5.4)]),MAT.vc);wall.castShadow=wall.receiveShadow=true;scene.add(wall);
+  for(const sg of [-1,1]){beam(new V3(x0+T*.42,0,gz+sg*(gw/2-.1)),new V3(x0+T*.42,5.4,gz+sg*(gw/2-.8)),.18,'#4f3e2d');beam(new V3(x0-T*.42,0,gz+sg*(gw/2-.1)),new V3(x0-T*.42,5.4,gz+sg*(gw/2-.8)),.18,'#4f3e2d')}
+  B.box.add(x0,5.1,gz,0,T*.86,.35,gw-1.2,'#4f3e2d');
+  for(let z=-39;z<95;z+=2.1)for(const sx of [-1,1])if(Math.abs(z-gz)>9.5)B.box.add(x0+sx*(Tt/2-.25),H,z,0,.5,.85,1.1,'#ad9f7d');
+  // 譙樓：重簷廡殿，平座迴廊
+  B.box.add(x0,H,gz,0,Tt+.5,.45,19,'#a39576');
+  B.box.add(x0,H+.45,gz,0,Tt-1.3,3.3,15.5,'#86664a');
+  for(const sx of [-1,1])for(let z=gz-7.4;z<=gz+7.45;z+=2.45)B.log.add(x0+sx*(Tt/2-.25),H+.45,z,0,.18,3.3,.18,'#5b3f2d');
+  for(const sx of [-1,1])B.box.add(x0+sx*(Tt/2-.15),H+.45,gz,0,.08,.7,16.5,'#5e4836');
+  B.hip.add(x0,H+3.55,gz,Math.PI/2,19.5,1.25,Tt+2.2,'#ffffff');
+  B.box.add(x0,H+4.1,gz,0,Tt-2.2,2.5,12.6,'#7d5e44');
+  B.hip.add(x0,H+6.45,gz,Math.PI/2,16,3.2,Tt+1.2,'#ffffff');
+  for(const z of [gz-8,gz+8])for(const sx of [-1,1])lantern(x0+sx*(Tt/2+.6),H+2.9,z);
+  board('譙樓',x0+(Tt-2.2)/2+.06,H+4.9,gz,Math.PI/2,{vert:false,u:.6});
+  B.box.add(x0,H,-40,0,T+1,4,6,'#b3a585');B.roof.add(x0,H+4,-40,Math.PI/2,7,1.8,T+1.6);
+  claim(WALL_P-4.6,WALL_P+4.6,-44,96);
+  // 城外：駱駝商隊穿門而入
+  row(312,333,roadZ,-1,{set:3.9,shop:.5,style:()=>rnd()<.25?'tall':'plain'});row(312,333,roadZ,1,{set:3.9,shop:.4});
+  for(let k=0;k<4;k++)walker('camel',roadPath(roadZ,-.6+(k%2)*.8),300,372,{s:318+k*2.6,dir:1,v:.5,noWait:true});
+  walker('cap',roadPath(roadZ,1.4),300,372,{s:329,dir:1,v:.5,noWait:true});
+  // 城內：正店、香鋪、匹帛鋪、醫家、解庫
+  const R0=10;
+  const shopSpecial=(p,w,d,o,deco)=>{const zc=R0-3.9-d/2;const r=house(p,zc,0,w,d,{...o,force:true});deco&&deco(-p,zc,r,d)};
+  shopSpecial(373,12,8,{style:'tall',hipTop:true},(x,z,r,d)=>{festiveGate(x,z+d/2+1.7,0,10,r.h+1.6);board('孫羊店',x-.1,r.h-1.05,z+d/2+.12,0,{vert:false,u:.6});for(const sx of [-3.8,3.8])board('正店',x+sx,1.1,z+d/2+2.4,0,{legs:true,u:.5,bg:'#e9dfc6',fg:'#2a2520',bd:'#9b3b2c'});flag('新酒',x-6.8,z+d/2+2,Math.PI*.5,9.2);for(let k=0;k<8;k++)folk(kindMix(.05,.3),x+R(-5,5),0,z+d/2+R(2.5,4.5),R(0,TAU))});
+  shopSpecial(352,7,6,{shop:true},(x,z,r,d)=>board('劉家上色沉檀揀香',x+2.5,.3,z+d/2+2.5,0,{legs:true,u:.4}));
+  shopSpecial(386,6.5,6,{shop:true},(x,z,r,d)=>board('王家羅明匹帛鋪',x-2.4,.3,z+d/2+2.5,0,{legs:true,u:.4}));
+  shopSpecial(403,7,6.5,{style:'tall'},(x,z,r,d)=>board('趙太丞家',x+2.4,.3,z+d/2+.9,0,{legs:true,u:.48}));
+  shopSpecial(415,6,6,{shop:true},(x,z,r,d)=>board('解',x+2.2,r.h*.35,z+d/2+.1,0,{u:.7,bg:'#e6dcc4',fg:'#2a2520',bd:'#6d5a45'}));
+  const skipX=pc=>CROSS.some(c=>Math.abs(pc-c)<5.2)||Math.abs(pc-WALL_P)<8;
+  row(343,510,()=>R0,-1,{set:3.9,style:()=>rnd()<.34?'tall':'plain',shop:.72,skipP:skipX,d0:5,d1:7});
+  row(343,510,()=>R0,1,{set:3.9,gap:.3,shop:.5,skipP:skipX,d0:4.2,d1:5.6,h:()=>R(2.5,2.9)});
+  row(343,510,()=>-16,1,{set:2.6,skipP:skipX,d0:4.5,d1:6.2});
+  row(343,510,()=>-16,-1,{set:2.6,skipP:skipX,style:()=>rnd()<.2?'tall':'plain',shop:.4});
+  row(343,510,()=>-30,-1,{set:1.8,skipP:skipX,gap:.2});
+  row(343,510,()=>-43,-1,{set:1.5,skipP:skipX,gap:.3,style:()=>rnd()<.15?'tall':'plain'});
+  row(343,510,()=>34,-1,{set:2.6,skipP:skipX,shop:.35});
+  row(343,510,()=>34,1,{set:2.6,skipP:skipX,gap:.2});
+  for(let p=345;p<510;p+=R(5,10)){const s=rnd()<.5?1:-1;stall(p,R0+s*3.5,s>0?Math.PI:0,rnd()<.6?'umb':'shed')}
+  for(let p=346;p<510;p+=R(10,18)){const s=rnd()<.5?1:-1;stall(p,-16+s*2.9,s>0?Math.PI:0,'umb')}
+  for(let p=350;p<505;p+=14){beam(new V3(-p,0,R0+2.95),new V3(-p,3.8,R0+2.95),.06,'#4b3d30');lantern(-p,3.6,R0+2.95)}
+  scatter(343,510,-13,-1,26,(p,z)=>leafy(p,z,R(.8,1.1)),1.6);scatter(343,510,-46,-24,24,(p,z)=>rnd()<.5?leafy(p,z):willow(p,z),1.6);scatter(312,340,-40,50,16,(p,z)=>rnd()<.6?leafy(p,z):bare(p,z),1.6);
+  roadCrowd(300,510,N(250),{pp:.12});
+  roadCrowd(343,510,N(80),{zc:-16,lw:1.4});roadCrowd(343,510,N(55),{zc:34,lw:1.4});
+  for(const c of CROSS)crossCrowd(c,-44,58,N(24));
+  for(const [k,n] of [['ox',3],['cart',6],['horse',6],['sedan',3],['donkey',4]])for(let i=0;i<n;i++)walker(k,roadPath(roadZ,R(-1.4,1.4)),305,505,{v:R(.45,.75)});
+  for(const p of [360,392,430,470])boat(rnd()<.5?'grain':'pass',p,R(-2,2),rnd()<.5?1:-1)}
+
+// ─── 遠景：散落村落、田畝與林子 ──────────────────────────
+function buildBackground(){
+  for(let p=-60;p<540;p+=R(26,42)){const z=R(-132,-60);if(!inRiver(p,z,8))hamlet(p,z,Math.floor(R(2,5)))}
+  fields(-80,540,-140,-45,70);
+  for(let p=112;p<312;p+=R(30,48)){const z=R(52,84);hamlet(p,z,Math.floor(R(3,5)))}
+  fields(110,540,40,96,34);
+  scatter(110,540,42,96,70,(p,z)=>{const r=rnd();r<.45?leafy(p,z):r<.8?bare(p,z,R(1,1.4)):willow(p,z)},1.6);
+  scatter(-80,540,-142,-45,190,(p,z)=>{const r=rnd();r<.45?bare(p,z,R(1,1.5)):r<.75?leafy(p,z):willow(p,z)},1.6);
+  scatter(-80,110,36,70,30,(p,z)=>bare(p,z),1.6);fields(-60,110,36,72,10);
+  scatter(312,520,40,70,20,(p,z)=>leafy(p,z),1.6)}
+
+buildGround();buildWater();buildMountains();buildMist();
+buildCh1();buildCh23();buildCh4();buildBackground();
+for(const b of ALLB)b.build();
+for(const d of Object.values(DY)){d.im.instanceMatrix.needsUpdate=true;if(d.im.instanceColor)d.im.instanceColor.needsUpdate=true}
+const glowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,220,160,1)');gr.addColorStop(.25,'rgba(255,170,90,.55)');gr.addColorStop(1,'rgba(255,140,60,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
+const glowGeo=new THREE.BufferGeometry();glowGeo.setAttribute('position',new THREE.Float32BufferAttribute(glow,3));
+const glowMat=new THREE.PointsMaterial({map:glowTex,size:5.2,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,color:'#ffb266',opacity:0});
+const glowPts=new THREE.Points(glowGeo,glowMat);glowPts.renderOrder=3;scene.add(glowPts);
+
+// ─── 光線與時辰 ─────────────────────────────────────────
+const hemi=new THREE.HemisphereLight('#efe9da','#bca98a',1.9);scene.add(hemi);
+const sun=new THREE.DirectionalLight('#fff3de',2.7);sun.castShadow=true;sun.shadow.mapSize.set(small?1024:2048,small?1024:2048);
+Object.assign(sun.shadow.camera,{left:-95,right:95,top:95,bottom:-95,near:10,far:560});sun.shadow.bias=-.0005;sun.shadow.normalBias=.04;scene.add(sun,sun.target);
+const TOD={
+  mao:{n:'卯時',s:'晨霧初開',dir:[.82,.3,.48],sun:'#ffd6b2',si:2.3,sky:'#dfe2e0',gnd:'#b8aa8c',hi:1.75,bg:'#ebe6d8',fog:'#e6e1d3',fn:105,ff:420,paper:'#f3ecdc',stain:'#d9c7a3',ink:'#2d2a26',night:0,mist:1,mount:'#ffffff'},
+  wu:{n:'午時',s:'日正當中',dir:[.3,.9,.45],sun:'#fff3de',si:2.7,sky:'#efe9da',gnd:'#bca98a',hi:1.9,bg:'#efe6d1',fog:'#ebe1cb',fn:150,ff:540,paper:'#f6ecd8',stain:'#d8c29a',ink:'#2a2622',night:0,mist:.45,mount:'#ffffff'},
+  you:{n:'酉時',s:'夕照西斜',dir:[-.85,.26,.42],sun:'#ffae6a',si:2.5,sky:'#e2cdb2',gnd:'#a78d6e',hi:1.5,bg:'#eed9bd',fog:'#e8d2b4',fn:120,ff:470,paper:'#f7e3c7',stain:'#cfae84',ink:'#2e2620',night:.22,mist:.75,mount:'#f2dcc2'},
+  xu:{n:'戌時',s:'華燈初上',dir:[-.3,.85,.42],sun:'#9fb3d8',si:.75,sky:'#5a6682',gnd:'#2f2c2a',hi:1.05,bg:'#2f3441',fog:'#353a47',fn:100,ff:430,paper:'#bab8be',stain:'#8d8579',ink:'#15171c',night:1,mist:.5,mount:'#6d7383'},
+};
+const mk=t=>({dir:new V3(...t.dir).normalize(),sun:C(t.sun),si:t.si,sky:C(t.sky),gnd:C(t.gnd),hi:t.hi,bg:C(t.bg),fog:C(t.fog),fn:t.fn,ff:t.ff,paper:C(t.paper),stain:C(t.stain),ink:C(t.ink),night:t.night,mist:t.mist,mount:C(t.mount)});
+let todKey=TOD[CONFIG.startTime]?CONFIG.startTime:'wu',tgt=mk(TOD[todKey]),cur=mk(TOD[todKey]);
+function lerpTod(k){cur.dir.lerp(tgt.dir,k).normalize();for(const c of ['sun','sky','gnd','bg','fog','paper','stain','ink','mount'])cur[c].lerp(tgt[c],k);for(const n of ['si','hi','fn','ff','night','mist'])cur[n]+= (tgt[n]-cur[n])*k}
+
+// ─── 後製：絹本紙紋、墨線、邊緣暈染 ─────────────────────────
+const camera=new THREE.PerspectiveCamera(30,1,1,1100);
+const depthTex=new THREE.DepthTexture(1,1);depthTex.type=THREE.UnsignedIntType;
+const rt=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:(devicePixelRatio||1)>1.4?2:4,depthTexture:depthTex});
+const post=new THREE.ShaderMaterial({
+  uniforms:{tColor:{value:rt.texture},tDepth:{value:depthTex},uRes:{value:new THREE.Vector2(1,1)},uNear:{value:camera.near},uFar:{value:camera.far},uPx:{value:1},uInkAmt:{value:CONFIG.inkLine},uPaper:{value:new V3(1,1,1)},uStain:{value:new V3(1,1,1)},uInkCol:{value:new V3()},uNight:{value:0}},
+  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
+  fragmentShader:`precision highp float;
+uniform sampler2D tColor,tDepth;uniform vec2 uRes;uniform float uNear,uFar,uPx,uInkAmt,uNight;uniform vec3 uPaper,uStain,uInkCol;varying vec2 vUv;
+float hash(vec2 p){vec3 p3=fract(vec3(p.xyx)*.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);}
+float fbm(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){s+=a*noise(p);p=p*2.03+vec2(3.1,1.7);a*=.5;}return s;}
+float vz(vec2 uv){float d=texture2D(tDepth,uv).x;return uNear*uFar/((uFar-uNear)*d-uFar);}
+float iz(vec2 uv){return -1./vz(uv);}
+vec3 srgb(vec3 c){return pow(max(c,0.),vec3(.4545));}
+float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
+float L(vec2 uv){return lum(srgb(texture2D(tColor,uv).rgb));}
+void main(){
+  vec2 px=uPx/uRes;
+  vec2 jit=(vec2(noise(vUv*uRes*.03),noise(vUv*uRes*.03+9.1))-.5)*px*1.8;
+  vec2 uv=vUv+jit;
+  float c=iz(uv),l=iz(uv-vec2(px.x,0.)),r=iz(uv+vec2(px.x,0.)),t=iz(uv+vec2(0.,px.y)),b=iz(uv-vec2(0.,px.y));
+  float lap=(abs(l+r-2.*c)+abs(t+b-2.*c))/max(c,1e-6);
+  float e1=smoothstep(.012,.06,lap);
+  float gl=abs(L(uv-vec2(px.x,0.))-L(uv+vec2(px.x,0.)))+abs(L(uv-vec2(0.,px.y))-L(uv+vec2(0.,px.y)));
+  float e2=smoothstep(.12,.32,gl);
+  float dist=-vz(vUv);
+  float fade=1.-smoothstep(150.,560.,dist)*.88;
+  float edge=max(e1,e2*.5)*fade*(.6+.6*noise(vUv*uRes*.018+3.));
+  vec3 cc=srgb(texture2D(tColor,vUv).rgb);
+  float lc=lum(cc);
+  vec3 col=mix(vec3(lc),cc,.72);
+  col=mix(col,lc*vec3(1.05,1.,.88),.14);
+  col*=uPaper;
+  vec2 q=vUv*vec2(uRes.x/uRes.y,1.);
+  float grain=fbm(q*7.)*.55+noise(q*240.)*.22+noise(q*vec2(1500.,5.))*.12+noise(q*vec2(5.,1400.))*.11;
+  col*=.9+.15*grain;
+  float stain=smoothstep(.5,.82,fbm(q*2.2+11.));
+  col=mix(col,col*uStain,stain*.3);
+  col=mix(col,uInkCol,clamp(edge*uInkAmt,0.,.8));
+  vec2 e=abs(vUv*2.-1.);
+  float v=pow(e.x,10.)+pow(e.y,6.);
+  v+=(fbm(q*4.5+2.)-.5)*.5*smoothstep(0.,.35,v);
+  col=mix(col,col*uStain*.8,smoothstep(.08,1.,v));
+  gl_FragColor=vec4(col,1.);
+}`,depthTest:false,depthWrite:false});
+const postScene=new THREE.Scene(),postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),post));
+
+// ─── 鏡頭：展卷橫移 + 拖曳環視 ────────────────────────────
+const DEF_YAW=.17,DEF_PITCH=small?.5:.45,LOOK=small?.22:.28;
+let camP=PSTART,tgtP=PSTART,playing=false,ended=false,yawO=0,pitch=DEF_PITCH,zoom=1,tYaw=0,tPitch=DEF_PITCH,tZoom=1,lastInput=-1e9;
+const baseDist=()=>92*clamp(1.55/camera.aspect,1,2.2);
+const ptrs=new Map();let pinch0=0,zoom0=1;
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('drag');lastInput=performance.now();if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);zoom0=tZoom}});
+canvas.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;lastInput=performance.now();
+  if(ptrs.size===1){tYaw=clamp(tYaw-dx*.0045,-1.25,1.25);tPitch=clamp(tPitch+dy*.0035,.12,1.28)}
+  else if(ptrs.size===2&&pinch0>0){const [a,b]=[...ptrs.values()];tZoom=clamp(zoom0*pinch0/Math.max(20,Math.hypot(a.x-b.x,a.y-b.y)),.35,1.8)}});
+const pUp=e=>{ptrs.delete(e.pointerId);if(!ptrs.size)canvas.classList.remove('drag');pinch0=0};
+canvas.addEventListener('pointerup',pUp);canvas.addEventListener('pointercancel',pUp);
+canvas.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();const horiz=Math.abs(e.deltaX)>Math.abs(e.deltaY);
+  if(e.shiftKey)tgtP=clamp(tgtP+(e.deltaY||e.deltaX)*.07,PSTART,PEND);else if(horiz)tgtP=clamp(tgtP-e.deltaX*.07,PSTART,PEND);else tZoom=clamp(tZoom*Math.exp(e.deltaY*.0011),.35,1.8)},{passive:false});
+canvas.addEventListener('dblclick',()=>{tYaw=0;tPitch=DEF_PITCH;tZoom=1});
+function goChapter(i){tgtP=clamp(CH[i].at,PSTART,PEND);ended=false;updPlay()}
+function togglePlay(){if(ended){tgtP=PSTART;ended=false;playing=true}else playing=!playing;lastInput=-1e9;updPlay()}
+function updPlay(){$('playK').textContent=ended?'重':playing?'停':'展';$('playS').textContent=ended?'重展':playing?'暫停':'展卷';$('play').setAttribute('aria-label',ended?'從頭重新展卷':playing?'暫停展卷':'開始展卷')}
+$('play').addEventListener('click',togglePlay);
+addEventListener('keydown',e=>{const tag=e.target&&e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA')return;
+  if(e.code==='Space'&&tag!=='BUTTON'){e.preventDefault();togglePlay()}
+  else if(e.key==='ArrowLeft'){e.preventDefault();tgtP=clamp(tgtP+14,PSTART,PEND);lastInput=performance.now()}
+  else if(e.key==='ArrowRight'){e.preventDefault();tgtP=clamp(tgtP-14,PSTART,PEND);lastInput=performance.now()}
+  else if(/^[1-4]$/.test(e.key))goChapter(+e.key-1)});
+
+// ─── 章節、時間軸縮圖 ────────────────────────────────────
+const MP0=-8,MP1=428,MZ0=-74,MZ1=46;
+const chWrap=$('chs'),chBtns=CH.map((c,i)=>{const b=document.createElement('button');b.className='ch';b.innerHTML=`<b>${c.k}</b>${c.name}`;b.title=`第${c.k}章 ${c.name} · ${c.tag}`;b.style.left=(1-(c.to-MP0)/(MP1-MP0))*100+'%';b.style.width=(c.to-c.from)/(MP1-MP0)*100+'%';b.addEventListener('click',()=>goChapter(i));chWrap.appendChild(b);return b});
+let curCh=-1,swapT=0;
+function showChapter(i,instant){const c=CH[i],el=$('inscr');chBtns.forEach((b,j)=>b.setAttribute('aria-current',j===i?'true':'false'));
+  const apply=()=>{$('cNo').textContent='第'+c.k+'章';$('cTitle').textContent=c.name;$('cSub').textContent=c.line;$('cSeal').textContent=c.tag;el.classList.remove('swap')};
+  clearTimeout(swapT);if(instant||reduceMotion){apply();return}el.classList.add('swap');swapT=setTimeout(apply,560)}
+const mini=$('mini');
+function drawMini(){const r=mini.getBoundingClientRect(),w=Math.max(10,Math.round(r.width)),h=Math.max(10,Math.round(r.height)),d=Math.min(2,devicePixelRatio||1);mini.width=w*d;mini.height=h*d;const g=mini.getContext('2d');g.setTransform(d,0,0,d,0,0);
+  const X=p=>w*(1-(p-MP0)/(MP1-MP0)),Y=z=>h*(z-MZ0)/(MZ1-MZ0),gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#e6dabf');gr.addColorStop(1,'#d6c8a6');g.fillStyle=gr;g.fillRect(0,0,w,h);
+  g.fillStyle='rgba(112,122,104,.5)';g.beginPath();for(let p=MP0;p<=MP1;p+=2)g.lineTo(X(p),Y(riverZ(p)-riverW(p)/2));for(let p=MP1;p>=MP0;p-=2)g.lineTo(X(p),Y(riverZ(p)+riverW(p)/2));g.closePath();g.fill();
+  g.strokeStyle='rgba(150,128,90,.55)';g.lineWidth=1;g.beginPath();for(let p=MP0;p<=MP1;p+=2)g.lineTo(X(p),Y(roadZ(p)));g.stroke();
+  g.fillStyle='rgba(78,88,68,.42)';for(const [p,z] of mapTrees)if(z>MZ0&&z<MZ1&&p>MP0&&p<MP1)g.fillRect(X(p)-.7,Y(z)-.7,1.4,1.4);
+  g.fillStyle='rgba(46,52,46,.78)';const sx=w/(MP1-MP0);for(const [p,z,s] of mapHouses)if(z>MZ0&&z<MZ1&&p>MP0&&p<MP1)g.fillRect(X(p)-s*sx/2,Y(z)-1,Math.max(1.3,s*sx),2);
+  g.strokeStyle='#3a2f24';g.lineWidth=1.8;g.beginPath();g.moveTo(X(BRIDGE_P),Y(BZ-BS));g.quadraticCurveTo(X(BRIDGE_P)-4,Y(BZ),X(BRIDGE_P),Y(BZ+BS));g.stroke();
+  g.fillStyle='#6d5c45';g.fillRect(X(WALL_P)-1.5,Y(-40),3,h);
+  g.strokeStyle='rgba(140,60,44,.5)';g.setLineDash([2,3]);for(const c of CH.slice(1)){g.beginPath();g.moveTo(X(c.from),0);g.lineTo(X(c.from),h);g.stroke()}g.setLineDash([])}
+const pFromX=cx=>{const r=mini.getBoundingClientRect();return clamp(MP0+(1-(cx-r.left)/r.width)*(MP1-MP0),PSTART,PEND)};
+let scrub=false;
+mini.addEventListener('pointerdown',e=>{scrub=true;mini.setPointerCapture(e.pointerId);tgtP=pFromX(e.clientX);ended=false;updPlay()});
+mini.addEventListener('pointermove',e=>{if(scrub)tgtP=pFromX(e.clientX)});
+mini.addEventListener('pointerup',()=>scrub=false);mini.addEventListener('pointercancel',()=>scrub=false);
+
+// ─── 時辰切換 ───────────────────────────────────────────
+const todBtns=[...document.querySelectorAll('.tod')];
+function setTod(k){todKey=k;tgt=mk(TOD[k]);todBtns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===k?'true':'false'));$('todNote').textContent=TOD[k].n+' · '+TOD[k].s}
+todBtns.forEach(b=>b.addEventListener('click',()=>setTod(b.dataset.t)));setTod(todKey);
+
+// ─── 環境音（WebAudio 即時合成：市集人聲、水聲、風聲）──────────
+const Snd={ctx:null,on:false,want:{crowd:true,water:true,wind:true},lvl:{crowd:0,water:0,wind:0},bell:0,next:{call:0,clap:0,drip:0,lap:0,bell:0},
+  init(){const A=window.AudioContext||window.webkitAudioContext;if(!A)return false;
+    const ctx=this.ctx=new A(),M=Math.random,sr=ctx.sampleRate,master=this.master=ctx.createGain();master.gain.value=0;
+    const comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;master.connect(comp);comp.connect(ctx.destination);
+    const buf=(sec,kind)=>{const b=ctx.createBuffer(2,sec*sr,sr);for(let c=0;c<2;c++){const d=b.getChannelData(c);let l=0,b0=0,b1=0,b2=0;for(let i=0;i<d.length;i++){const w=M()*2-1;if(kind==='brown'){l=(l+.02*w)/1.02;d[i]=l*3.2}else if(kind==='pink'){b0=.99765*b0+w*.099046;b1=.963*b1+w*.2965164;b2=.57*b2+w*1.0526913;d[i]=(b0+b1+b2+w*.1848)*.16}else d[i]=w*.5}}return b};
+    const white=buf(4,'white'),pink=buf(5,'pink'),brown=buf(6,'brown');
+    const src=(b,off=0)=>{const s=ctx.createBufferSource();s.buffer=b;s.loop=true;s.start(0,off);return s};
+    const filt=(type,f,Q)=>{const n=ctx.createBiquadFilter();n.type=type;n.frequency.value=f;n.Q.value=Q;return n};
+    const gain=v=>{const g=ctx.createGain();g.gain.value=v;return g};
+    const lfo=(f,amt,target)=>{const o=ctx.createOscillator();o.frequency.value=f;const g=gain(amt);o.connect(g);g.connect(target);o.start()};
+    const ir=ctx.createBuffer(2,sr*2.2,sr);for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<d.length;i++)d[i]=(M()*2-1)*Math.pow(1-i/d.length,3)}
+    const verb=this.verb=ctx.createConvolver();verb.buffer=ir;const vg=gain(.35);verb.connect(vg);vg.connect(master);
+    const L=this.L={};for(const k of ['crowd','water','wind']){L[k]=gain(0);L[k].connect(master)}
+    {const a=src(brown),lp=filt('lowpass',380,.5),g=gain(.9);a.connect(lp);lp.connect(g);g.connect(L.water);lfo(.09,.35,g.gain);
+     const b=src(white,1.3),bp=this.lapBP=filt('bandpass',950,1.1),g2=this.lap=gain(0);b.connect(bp);bp.connect(g2);g2.connect(L.water)}
+    {const a=src(pink,.7),bp=filt('bandpass',520,.55),g=gain(.55);a.connect(bp);bp.connect(g);g.connect(L.wind);lfo(.045,260,bp.frequency);lfo(.071,.28,g.gain);
+     const b=src(white,2.2),bp2=filt('bandpass',1900,5),g2=gain(.05);b.connect(bp2);bp2.connect(g2);g2.connect(L.wind);lfo(.12,.045,g2.gain);lfo(.03,500,bp2.frequency)}
+    this.voices=[];for(let i=0;i<7;i++){const s=src(pink,M()*4),f1=filt('bandpass',450+M()*350,2.6),f2=filt('bandpass',1100+M()*800,4),g=gain(0);s.connect(f1);s.connect(f2);f1.connect(g);f2.connect(g);
+      if(ctx.createStereoPanner){const pan=ctx.createStereoPanner();pan.pan.value=M()*1.6-.8;g.connect(pan);pan.connect(L.crowd)}else g.connect(L.crowd);this.voices.push({g,f1,f2,t:0})}
+    {const s=src(pink,3.3),bp=filt('bandpass',650,.9),g=gain(.16);s.connect(bp);bp.connect(g);g.connect(L.crowd)}
+    const cb=this.click=ctx.createBuffer(1,Math.floor(sr*.05),sr),cd=cb.getChannelData(0);for(let i=0;i<cd.length;i++)cd[i]=(M()*2-1)*Math.pow(1-i/cd.length,6);
+    this.timer=setInterval(()=>this.tick(),110);return true},
+  async set(v){if(v&&!this.ctx&&!this.init())return false;this.on=v;if(!this.ctx)return true;const t=this.ctx.currentTime;if(v){try{await this.ctx.resume()}catch(e){}this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(.85,t,.4)}else{this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(0,t,.2)}return true},
+  tick(){const ctx=this.ctx;if(!ctx||ctx.state!=='running')return;const now=ctx.currentTime,ahead=now+.35,M=Math.random,base={crowd:.95,water:.8,wind:.55},w={};
+    for(const k of ['crowd','water','wind']){w[k]=this.on&&this.want[k]?this.lvl[k]:0;this.L[k].gain.setTargetAtTime(w[k]*base[k],now,.5)}
+    if(w.crowd>.02)for(const v of this.voices){if(v.t<now)v.t=now+M()*.3;while(v.t<ahead){if(M()<.16){v.t+=.3+M()*1.2;continue}const d=.07+M()*.18,a=.04+M()*.13;v.g.gain.setTargetAtTime(a,v.t,.02);v.g.gain.setTargetAtTime(0,v.t+d,.035);v.f1.frequency.setValueAtTime(380+M()*520,v.t);v.f2.frequency.setValueAtTime(1000+M()*1100,v.t);v.t+=d+.03+M()*.1}}
+    if(w.crowd>.15&&now>this.next.call){this.call(now+.05);this.next.call=now+2.5+M()*6/Math.max(.3,w.crowd)}
+    if(w.crowd>.3&&now>this.next.clap){this.clap(now+.05);this.next.clap=now+6+M()*10}
+    if(w.water>.02&&now>this.next.lap){const t=now+.05;this.lap.gain.setTargetAtTime(.05+M()*.09,t,.18);this.lap.gain.setTargetAtTime(0,t+.35+M()*.4,.35);this.lapBP.frequency.setValueAtTime(700+M()*600,t);this.next.lap=now+.6+M()*1.6}
+    if(w.water>.1&&now>this.next.drip){this.drip(now+.05);this.next.drip=now+.25+M()*1.4}
+    if(this.bell>.3&&w.crowd>0&&now>this.next.bell){this.ding(now+.05);this.next.bell=now+1+M()*2.5}},
+  out(g,rev){if(this.ctx.createStereoPanner){const p=this.ctx.createStereoPanner();p.pan.value=Math.random()*1.4-.7;g.connect(p);g=p}g.connect(this.L[rev?'crowd':'water']);if(rev)g.connect(this.verb)},
+  call(t){const ctx=this.ctx,M=Math.random,o=ctx.createOscillator();o.type='sawtooth';const f0=170+M()*140,fA=ctx.createBiquadFilter();fA.type='bandpass';fA.frequency.value=750;fA.Q.value=5;const fB=ctx.createBiquadFilter();fB.type='bandpass';fB.frequency.value=1150+M()*300;fB.Q.value=7;
+    const g=ctx.createGain();g.gain.value=0;o.connect(fA);o.connect(fB);fA.connect(g);fB.connect(g);this.out(g,true);
+    const vib=ctx.createOscillator();vib.frequency.value=5+M()*1.5;const vg=ctx.createGain();vg.gain.value=f0*.018;vib.connect(vg);vg.connect(o.frequency);
+    const n=2+Math.floor(M()*3),vol=.05+M()*.05;let tt=t;o.frequency.setValueAtTime(f0,tt);
+    for(let i=0;i<n;i++){const last=i===n-1,d=last?.55+M()*.5:.16+M()*.16,f=f0*(1+(M()-.3)*.35);o.frequency.linearRampToValueAtTime(f,tt+.04);g.gain.setTargetAtTime(vol,tt,.02);if(last)o.frequency.linearRampToValueAtTime(f*(.72+M()*.2),tt+d);fA.frequency.setValueAtTime(600+M()*450,tt);g.gain.setTargetAtTime(0,tt+d,.05);tt+=d+.05+M()*.06}
+    o.start(t);vib.start(t);o.stop(tt+.6);vib.stop(tt+.6)},
+  clap(t){const ctx=this.ctx,n=2+(Math.random()<.4?1:0);for(let k=0;k<n;k++){const s=ctx.createBufferSource();s.buffer=this.click;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=2300;bp.Q.value=6;const g=ctx.createGain();g.gain.value=.5;s.connect(bp);bp.connect(g);this.out(g,true);s.start(t+k*.16)}},
+  drip(t){const ctx=this.ctx,o=ctx.createOscillator(),g=ctx.createGain(),f=900+Math.random()*800;o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.6,t+.08);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.03,t+.01);g.gain.exponentialRampToValueAtTime(.0005,t+.14);o.connect(g);this.out(g,false);o.start(t);o.stop(t+.16)},
+  ding(t){const ctx=this.ctx,f=1400+Math.random()*300;for(const [r,a] of [[1,.022],[2.76,.01]]){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f*r;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.005);g.gain.exponentialRampToValueAtTime(.0003,t+.7);o.connect(g);g.connect(this.L.crowd);o.start(t);o.stop(t+.75)}},
+};
+const sndGrp=$('sndGrp'),sndBtn=$('sndBtn');
+sndBtn.addEventListener('click',async()=>{const v=!Snd.on;const ok=await Snd.set(v);if(!ok){sndBtn.title='此瀏覽器不支援 WebAudio';return}sndBtn.setAttribute('aria-pressed',v?'true':'false');sndGrp.classList.toggle('off',!v)});
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.layer;Snd.want[k]=!Snd.want[k];b.setAttribute('aria-pressed',Snd.want[k]?'true':'false')}));
+document.addEventListener('visibilitychange',()=>{if(!Snd.ctx)return;if(document.hidden)Snd.ctx.suspend();else if(Snd.on)Snd.ctx.resume()});
+const CHW=[{crowd:.12,water:.35,wind:1},{crowd:.55,water:1,wind:.55},{crowd:1,water:.85,wind:.35},{crowd:.95,water:.25,wind:.3}];
+function soundMix(p){const w={crowd:0,water:0,wind:0};let tot=0;CH.forEach((c,i)=>{const m=sstep(c.from-18,c.from+18,p)*(1-sstep(c.to-18,c.to+18,p))+(i===0&&p<c.from?1:0)+(i===3&&p>c.to?1:0);tot+=m;for(const k in w)w[k]+=CHW[i][k]*m});
+  const nf=1-cur.night*.55;for(const k in w)w[k]/=Math.max(tot,1e-3);w.crowd*=nf*clamp(1.25-zoom*.3,.6,1.15);Snd.lvl=w;Snd.bell=sstep(90,60,p)*(1-cur.night)}
+
+// ─── 尺寸 ───────────────────────────────────────────────
+let W=1,H=1,DPR=1;
+function resize(){const r=stageEl.getBoundingClientRect();W=Math.max(1,Math.round(r.width));H=Math.max(1,Math.round(r.height));DPR=Math.min(devicePixelRatio||1,CONFIG.maxPixelRatio,W*H>1.3e6?1.25:9);
+  renderer.setPixelRatio(DPR);renderer.setSize(W,H,false);const rw=Math.round(W*DPR),rh=Math.round(H*DPR);rt.setSize(rw,rh);post.uniforms.uRes.value.set(rw,rh);post.uniforms.uPx.value=Math.max(1,DPR*.9);camera.aspect=W/H;camera.updateProjectionMatrix();drawMini()}
+addEventListener('resize',resize);resize();
+
+// ─── 每幀更新 ────────────────────────────────────────────
+const tmpRGB={r:0,g:0,b:0},focus=new V3(),look=new V3();
+const setU=(u,c)=>{c.getRGB(tmpRGB,THREE.SRGBColorSpace);u.value.set(tmpRGB.r,tmpRGB.g,tmpRGB.b)};
+let last=performance.now(),time=0,started=false;
+function updateMovers(dt){
+  const lo=camP-150,hi=camP+150;
+  for(const m of movers){if(m.pc+m.span<lo||m.pc-m.span>hi)continue;
+    if(!m.noWait){if(m.wait>0){m.wait-=dt;continue}if(Math.random()<dt*.035)m.wait=1+Math.random()*3.5}
+    m.s+=m.dir*m.v*dt;if(m.s>m.b){m.s=m.b;m.dir=-1}else if(m.s<m.a){m.s=m.a;m.dir=1}
+    const pp=m.path.pos(m.s),ty=m.path.yaw(m.s,m.dir);m.h+=angDiff(ty,m.h)*Math.min(1,dt*4.5);
+    m.d.set(m.i,pp[0],pp[1]+Math.abs(Math.sin(time*m.v*5.5+m.ph))*m.bob,pp[2],m.h,m.sc,m.lean)}
+  for(const b of boats){if(b.tow||b.p<lo||b.p>hi)continue;
+    if(b.v){b.p+=b.dir*b.v*dt;if(b.p>b.b)b.dir=-1;else if(b.p<b.a)b.dir=1;b.h+=angDiff(boatYaw(b.p,b.dir),b.h)*Math.min(1,dt*.6)}
+    const dp=b.drift?Math.sin(time*.12+b.ph)*b.drift:0,z=b.fixZ??riverZ(b.p+dp)+b.zo;D.position.set(-(b.p+dp),WATER+Math.sin(time*.9+b.ph)*.06,z);D.rotation.set(Math.sin(time*.7+b.ph)*.018,b.h,Math.sin(time*.8+b.ph*2)*.025);D.scale.setScalar(1);D.updateMatrix();b.d.im.setMatrixAt(b.i,D.matrix)}
+  for(const g of tows){g.p+=g.v*dt;if(g.p>g.b)g.p=g.a;const f=sstep(g.a,g.a+7,g.p)*(1-sstep(g.b-7,g.b,g.p)),sc=Math.max(.001,f);
+    const trkZ=p=>riverZ(p)-riverW(p)/2-1.05;let lead=null;
+    g.trk.forEach((i,k)=>{const p=g.p-k*1.7,x=-p,z=trkZ(p)+(k%2?.4:-.3),y=Math.abs(Math.sin(time*3.4+k))*.05;DY.hat.set(i,x,y,z,Math.atan2(-1,slope(trkZ,p)),sc,.42);if(!k)lead=[x,1.35,z]});
+    const bp=g.p-19,bz=riverZ(bp)-riverW(bp)/2+7,bh=boatYaw(bp,1);g.boat.p=bp;D.position.set(-bp,WATER+Math.sin(time*.9)*.05,bz);D.rotation.set(0,bh,0);D.scale.setScalar(sc);D.updateMatrix();g.boat.d.im.setMatrixAt(g.boat.i,D.matrix);
+    const top=[-bp+Math.sin(bh)*1.4,WATER+.5+8.6*sc,bz+Math.cos(bh)*1.4],arr=g.rope.geometry.attributes.position.array;
+    for(let k=0;k<12;k++){const t=k/11;arr[k*3]=lerp(top[0],lead[0],t);arr[k*3+1]=lerp(top[1],lead[1],t)-Math.sin(t*Math.PI)*.9;arr[k*3+2]=lerp(top[2],lead[2],t)}
+    g.rope.geometry.attributes.position.needsUpdate=true;g.rope.visible=f>.6}
+  for(const d of Object.values(DY))d.im.instanceMatrix.needsUpdate=true}
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(.05,(now-last)/1000);last=now;time+=dt;
+  lerpTod(1-Math.exp(-dt*1.8));
+  if(playing&&!ptrs.size&&!scrub){tgtP+=CONFIG.scrollSpeed*dt;if(tgtP>=PEND){tgtP=PEND;if(camP>PEND-1.5){playing=false;ended=true;updPlay()}}}
+  const far=Math.abs(tgtP-camP)>40;camP+=(tgtP-camP)*(1-Math.exp(-dt*(far?1.5:2.4)));
+  const idle=now-lastInput>6500,kr=1-Math.exp(-dt*(idle?.5:6));
+  if(idle){tYaw+=(0-tYaw)*kr;tPitch+=(DEF_PITCH-tPitch)*kr;tZoom+=(1-tZoom)*kr}
+  const kc=1-Math.exp(-dt*6);yawO+=(tYaw-yawO)*kc;pitch+=(tPitch-pitch)*kc;zoom+=(tZoom-zoom)*kc;
+  focus.set(-camP,1.5,focusZ(camP));
+  const yaw=DEF_YAW+yawO,dist=baseDist()*zoom,cp=Math.cos(pitch);
+  camera.position.set(focus.x+Math.sin(yaw)*cp*dist,focus.y+Math.sin(pitch)*dist+Math.sin(time*.25)*.35,focus.z+Math.cos(yaw)*cp*dist);
+  look.set(focus.x-Math.sin(yaw)*dist*LOOK,focus.y,focus.z-Math.cos(yaw)*dist*LOOK);camera.lookAt(look);
+  sun.position.copy(focus).addScaledVector(cur.dir,260);sun.target.position.copy(focus);sun.color.copy(cur.sun);sun.intensity=cur.si;
+  hemi.color.copy(cur.sky);hemi.groundColor.copy(cur.gnd);hemi.intensity=cur.hi;
+  scene.fog.color.copy(cur.fog);scene.fog.near=cur.fn;scene.fog.far=cur.ff;renderer.setClearColor(cur.bg,1);
+  mountMat.color.copy(cur.mount);
+  for(const m of mists){m.m.material.color.copy(cur.fog);m.m.material.opacity=m.base*cur.mist;m.m.position.x=m.x+Math.sin(time*.03+m.ph)*6}
+  MAT.lantern.emissiveIntensity=.15+cur.night*2.4;MAT.doorLit.emissiveIntensity=cur.night*1.5;glowMat.opacity=cur.night*.9;
+  document.body.classList.toggle('night',cur.night>.5);
+  setU(post.uniforms.uPaper,cur.paper);setU(post.uniforms.uStain,cur.stain);setU(post.uniforms.uInkCol,cur.ink);post.uniforms.uNight.value=cur.night;
+  waterTex.offset.x=-time*.012;
+  for(const f of flags)f.g.rotation.y=f.ry+Math.sin(time*1.1+f.ph)*.22;
+  updateMovers(dt);
+  renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCam);
+  let ci=0;for(let i=0;i<CH.length;i++)if(camP>=CH[i].from-4)ci=i;if(ci!==curCh){showChapter(ci,curCh<0);curCh=ci}
+  const hs=dist*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect,span=MP1-MP0;
+  $('view').style.left=clamp((1-(camP+hs-MP0)/span)*100,0,100)+'%';$('view').style.width=clamp(2*hs/span*100,1,100)+'%';$('mk').style.left=(1-(camP-MP0)/span)*100+'%';
+  if(Snd.ctx)soundMix(camP);
+  if(!started){started=true;$('loadMsg').textContent='';requestAnimationFrame(()=>{$('unroll').classList.add('open');$('rod').classList.add('open');setTimeout(()=>{$('unroll').remove();if(!reduceMotion){playing=true;updPlay()}},reduceMotion?50:2600)})}
+}
+updPlay();requestAnimationFrame(frame);
+</script>
+</body>
+</html>

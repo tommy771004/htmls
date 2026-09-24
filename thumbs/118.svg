@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="點燈人 3D 動作遊戲縮圖：霧湖、月門、燈台與提燈的主角">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#0f1726"/><stop offset=".5" stop-color="#2a4152"/><stop offset=".86" stop-color="#6b8791"/><stop offset="1" stop-color="#c9ad96"/></linearGradient>
+    <linearGradient id="lake" x2="0" y2="1"><stop stop-color="#5f7b83"/><stop offset=".25" stop-color="#34515b"/><stop offset="1" stop-color="#0b171e"/></linearGradient>
+    <radialGradient id="warm"><stop stop-color="#fff1c9"/><stop offset=".2" stop-color="#ffb04a" stop-opacity=".6"/><stop offset="1" stop-color="#ff6a2b" stop-opacity="0"/></radialGradient>
+    <radialGradient id="moon"><stop stop-color="#e7eee6" stop-opacity=".4"/><stop offset="1" stop-color="#8fb0b8" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="640" height="226" fill="url(#sky)"/>
+  <circle cx="470" cy="70" r="110" fill="url(#moon)"/><circle cx="470" cy="70" r="19" fill="#f2ead7"/>
+  <path d="M0 200 70 182 150 194 250 168 330 190 430 172 520 192 600 176 640 184V226H0Z" fill="#8499a0"/>
+  <path d="M0 214 110 202 230 212 350 198 470 214 560 204 640 210V226H0Z" fill="#627d88"/>
+  <rect y="226" width="640" height="174" fill="url(#lake)"/>
+  <path fill-rule="evenodd" d="M262 150H378V228H262ZM320 152A36 36 0 1 0 320 224A36 36 0 1 0 320 152Z" fill="#435f6c"/>
+  <path d="M256 144H384L378 151H262Z" fill="#344d59"/><circle cx="320" cy="188" r="36" fill="#a9b8b2" opacity=".35"/>
+  <g fill="#4f6b77"><rect x="96" y="176" width="11" height="52"/><rect x="124" y="184" width="11" height="44"/><rect x="90" y="170" width="52" height="7"/></g>
+  <rect x="430" y="196" width="20" height="46" fill="#3c4e55"/><path d="M424 196H456L452 188H428Z" fill="#56676b"/>
+  <circle cx="440" cy="174" r="70" fill="url(#warm)"/><path d="M432 188C430 176 438 172 440 162 443 172 449 176 447 188Z" fill="#fff1c9"/>
+  <g fill="#ffb04a" opacity=".55"><rect x="432" y="250" width="16" height="3" rx="1.5"/><rect x="428" y="262" width="24" height="2.5" rx="1.2"/><rect x="434" y="276" width="12" height="2" rx="1"/></g>
+  <g><ellipse cx="398" cy="262" rx="24" ry="6" fill="#646c67"/><ellipse cx="360" cy="286" rx="32" ry="8" fill="#5c6663"/><ellipse cx="312" cy="314" rx="40" ry="10" fill="#5a6461"/></g>
+  <path d="M0 330 170 322 280 334 290 400H0Z" fill="#1c2a31"/><path d="M0 330 170 322 280 334 260 342 0 344Z" fill="#6f7874"/>
+  <g transform="translate(188 334)">
+    <ellipse cx="4" rx="18" ry="4" fill="#05080b" opacity=".6"/>
+    <path d="M-14-4C-12-24-8-38-1-45 7-38 12-24 14-4 5-1-5-1-14-4Z" fill="#9b4636"/>
+    <path d="M-8-38C-9-52-3-60 3-65 1-55 10-50 8-38 3-35-3-35-8-38Z" fill="#8a3a2e"/>
+    <path d="M6-34 40-70" stroke="#5a3d2a" stroke-width="3"/>
+    <circle cx="40" cy="-58" r="46" fill="url(#warm)"/><rect x="35" y="-66" width="10" height="14" fill="#ffd98a"/>
+  </g>
+  <g transform="translate(250 262)"><path d="M0-15C9-15 13-8 13 0 12 7 8 10 5 15L3 12 1 19-2 13-5 17-6 11C-10 8-13 4-13-1-13-9-8-15 0-15Z" fill="#1b1426"/><circle cx="-4" cy="-3" r="1.6" fill="#dcffff"/><circle cx="4" cy="-3" r="1.6" fill="#dcffff"/></g>
+</svg>

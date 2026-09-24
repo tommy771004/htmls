@@ -1,0 +1,1302 @@
+<!doctype html>
+<!--
+R6 旁軸相機 · 藍圖拆解動畫
+  - 全部線條由程式計算：零件是 JSON 資料（輪廓 + 擠出範圍），逐幀投影、背面剔除、畫家演算法遮擋。
+  - 可決定性：frame → t = frame / fps → 顯示清單（display list）→ 點陣化。同一份場景資料與幀號，必定得到同一份顯示清單（右下角 SCENE # 為其雜湊）。
+  - 輸出：PNG 幀序列（資料夾或 ZIP），或以 WebCodecs 逐幀編碼、內建 MP4 muxer 合成 60fps 影片。
+  - 自動化：?frame=720 直接停在指定幀；window.R6 暴露 buildFrame / renderFrame / digest / exportMP4 / exportFrames。
+-->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071630">
+<title>R6 · 旁軸相機藍圖拆解｜程式渲染的 60fps 產品動畫</title>
+<meta name="description" content="用程式逐幀渲染的底片相機技術藍圖：正視圖描邊、轉 3/4 視角、五個零件依序爆炸標註、收回成尺寸標註正視圖；可決定性時間軸，輸出 PNG 幀序列與 MP4。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/121-camera-blueprint.html">
+<style>
+:root{
+  --bg:#050f22;--panel:#0a1a36;--panel2:#0d2144;--line:#dfe9ff;--dim:#8aa3cc;--mute:#5d7399;--rule:#1d3563;--cyan:#5fe3ff;--warn:#ffcf6b;
+  --mono:"Cascadia Mono","Consolas","SFMono-Regular",ui-monospace,"Courier New",monospace;
+  --cjk:"Microsoft JhengHei","PingFang TC","Noto Sans TC","Heiti TC",sans-serif;
+  --num:"Bahnschrift","DIN Alternate","Arial Narrow",Arial,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--line);font:13px/1.55 var(--mono);min-height:100vh;padding:0 clamp(12px,2.4vw,32px) 40px}
+a{color:var(--cyan)}
+button,select,input,textarea{font:inherit;color:inherit}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px 28px;flex-wrap:wrap;padding:22px 0 16px;border-bottom:1px solid var(--rule);max-width:1480px;margin:0 auto}
+.top .back{display:inline-block;font-size:11px;letter-spacing:.18em;text-decoration:none;color:var(--dim);margin-bottom:10px}
+.top .back:hover{color:var(--cyan)}
+.top h1{margin:0;font:600 clamp(22px,3vw,34px)/1.1 var(--cjk);letter-spacing:.04em}
+.top h1 b{font:500 .62em var(--num);letter-spacing:.2em;color:var(--cyan);margin-right:.6em;vertical-align:.18em}
+.top p{margin:6px 0 0;color:var(--dim);font-family:var(--cjk);max-width:62ch}
+.spec{display:grid;grid-template-columns:auto auto;gap:2px 14px;font-size:11px;color:var(--dim);letter-spacing:.06em}
+.spec dt{color:var(--mute)}.spec dd{margin:0;color:var(--line)}
+.stagewrap{max-width:max(560px,min(1480px,calc((100vh - 320px)*16/9)));margin:18px auto 0}
+.stage{position:relative;aspect-ratio:16/9;width:100%;background:#081a36;border:1px solid var(--rule);overflow:hidden}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage .busy{position:absolute;inset:auto 12px 12px auto;font-size:11px;letter-spacing:.14em;color:var(--warn);background:#050f22cc;padding:4px 10px;border:1px solid #ffcf6b55}
+.transport{display:grid;grid-template-columns:auto 1fr auto;gap:10px 16px;align-items:center;padding:12px 0 6px}
+.btns{display:flex;gap:6px}
+.tbtn{width:40px;height:36px;border:1px solid var(--rule);background:var(--panel);cursor:pointer;display:grid;place-items:center;border-radius:2px}
+.tbtn:hover,.tbtn:focus-visible{border-color:var(--cyan);outline:none}
+.tbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6}
+.tbtn[aria-pressed="true"]{background:var(--panel2);color:var(--cyan)}
+.scrub{position:relative;min-width:0}
+.shots{display:flex;height:22px;margin-bottom:4px}
+.shots button{position:relative;border:0;border-left:1px solid var(--rule);background:transparent;color:var(--mute);font-size:10px;letter-spacing:.12em;text-align:left;padding:0 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shots button:hover{color:var(--line)}
+.shots button.on{color:var(--cyan);background:linear-gradient(#5fe3ff14,transparent)}
+input[type=range]{width:100%;margin:0;accent-color:var(--cyan);height:22px;cursor:pointer}
+.tc{font:500 13px var(--num);letter-spacing:.08em;text-align:right;white-space:nowrap}
+.tc small{display:block;font:10px var(--mono);color:var(--mute);letter-spacing:.1em}
+.hint{font-size:11px;color:var(--mute);letter-spacing:.04em;margin:2px 0 0}
+.hint kbd{font:inherit;border:1px solid var(--rule);padding:0 5px;border-radius:2px;color:var(--dim)}
+.panels{max-width:1480px;margin:22px auto 0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px}
+.panel{border:1px solid var(--rule);background:linear-gradient(var(--panel),#081733);padding:16px 18px 18px;min-width:0}
+.panel h2{margin:0 0 12px;font:600 11px var(--mono);letter-spacing:.24em;color:var(--dim);display:flex;justify-content:space-between;gap:12px}
+.panel h2 span{color:var(--cyan)}
+.tbl{width:100%;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:560px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #16305a;vertical-align:top;white-space:nowrap}
+th{font-weight:400;color:var(--mute);font-size:10px;letter-spacing:.16em}
+td .zh{font-family:var(--cjk);font-size:13px}
+td .en{color:var(--dim);font-size:10px;letter-spacing:.12em;display:block}
+tr.live td{background:#5fe3ff0d}
+tr.live td:first-child{box-shadow:inset 2px 0 var(--cyan)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+.row label{font-size:11px;color:var(--dim);letter-spacing:.08em;display:flex;gap:8px;align-items:center}
+select,.num{background:var(--panel2);border:1px solid var(--rule);height:34px;padding:0 8px;border-radius:2px}
+.num{width:84px}
+.act{height:38px;padding:0 16px;border:1px solid var(--cyan);background:#5fe3ff14;color:var(--cyan);cursor:pointer;letter-spacing:.08em;border-radius:2px}
+.act:hover:not(:disabled){background:#5fe3ff2a}
+.act.ghost{border-color:var(--rule);background:transparent;color:var(--line)}
+.act:disabled{opacity:.4;cursor:not-allowed}
+.bar{height:6px;background:#0f2550;margin:12px 0 8px;position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;width:0;background:var(--cyan)}
+.log{font-size:11px;color:var(--dim);min-height:3.2em;white-space:pre-wrap;word-break:break-all;margin:0}
+.log .err{color:#ff8f8f}
+details{margin-top:14px;border-top:1px solid var(--rule);padding-top:12px}
+summary{cursor:pointer;color:var(--dim);letter-spacing:.12em;font-size:11px}
+textarea{width:100%;min-height:340px;margin-top:10px;background:#061329;border:1px solid var(--rule);padding:10px;font:12px/1.45 var(--mono);resize:vertical;color:#cfe0ff;tab-size:2}
+.note{font-family:var(--cjk);color:var(--dim);font-size:12px;margin:8px 0 0}
+@media (max-width:900px){.panels{grid-template-columns:1fr}}
+@media (max-width:560px){
+  .transport{grid-template-columns:1fr auto}
+  .scrub{grid-column:1/-1;grid-row:1}
+  .shots button{font-size:9px;padding:0 3px;letter-spacing:.04em}
+  .spec{display:none}
+  .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <a class="back" href="index.html">← 100 CREATIVE HTML WORKS · 121</a>
+    <h1><b>R6</b>旁軸相機 · 藍圖拆解</h1>
+    <p>整部片都由程式逐幀算出，沒有用到任何點陣圖、影像或影片生成模型。30 秒內依序完成：正視圖描邊、轉到 3/4 視角、五個零件依序拉開並加上標註，最後收回成一張標好尺寸的正視圖。</p>
+  </div>
+  <dl class="spec">
+    <dt>RATE</dt><dd id="sRate">60 fps</dd>
+    <dt>LENGTH</dt><dd id="sLen">1800 frames · 30.000 s</dd>
+    <dt>INPUT #</dt><dd id="sInput">—</dd>
+    <dt>RASTER</dt><dd>Canvas 2D · vector only</dd>
+  </dl>
+</header>
+
+<section class="stagewrap" aria-label="動畫播放器">
+  <div class="stage"><canvas id="view" role="img" aria-label="R6 旁軸相機藍圖動畫畫面"></canvas><div class="busy" id="busy" hidden>RENDERING…</div></div>
+  <div class="transport">
+    <div class="btns">
+      <button class="tbtn" id="bPrev" aria-label="上一幀" title="上一幀（←）"><svg viewBox="0 0 16 16"><path d="M11 3 5 8l6 5M4 3v10"/></svg></button>
+      <button class="tbtn" id="bPlay" aria-label="播放" aria-pressed="false" title="播放 / 暫停（空白鍵）"><svg viewBox="0 0 16 16" id="playIco"><path d="M5 3v10l8-5Z"/></svg></button>
+      <button class="tbtn" id="bNext" aria-label="下一幀" title="下一幀（→）"><svg viewBox="0 0 16 16"><path d="m5 3 6 5-6 5M12 3v10"/></svg></button>
+    </div>
+    <div class="scrub">
+      <div class="shots" id="shots"></div>
+      <input type="range" id="scrub" min="0" max="1799" step="1" value="0" aria-label="幀位置">
+    </div>
+    <div class="tc"><span id="tc">00:00.000</span><small id="fc">F 0000 / 1799</small></div>
+  </div>
+  <p class="hint"><kbd>空白</kbd> 播放／暫停　<kbd>←</kbd><kbd>→</kbd> 逐幀　<kbd>Shift</kbd>＋方向鍵 跳 1 秒　<kbd>1</kbd>–<kbd>4</kbd> 跳到鏡頭　網址加 <code>?frame=720</code> 直接停在該幀</p>
+</section>
+
+<section class="panels">
+  <article class="panel">
+    <h2>零件資料 PARTS <span id="liveShot">—</span></h2>
+    <div class="tbl"><table>
+      <thead><tr><th>#</th><th>零件</th><th>拆解方向 · 距離</th><th>時間窗</th><th>圖元</th></tr></thead>
+      <tbody id="partRows"></tbody>
+    </table></div>
+    <details>
+      <summary>編輯場景 JSON（零件、標註、時間軸都在這裡）</summary>
+      <textarea id="json" spellcheck="false" aria-label="場景 JSON"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="act" id="bApply">套用並重算</button>
+        <button class="act ghost" id="bReset">還原預設</button>
+      </div>
+      <p class="log" id="jsonLog"></p>
+    </details>
+  </article>
+  <article class="panel">
+    <h2>輸出 RENDER <span id="codecInfo">—</span></h2>
+    <div class="row">
+      <label>解析度 <select id="res">
+        <option value="1280x720">1280 × 720</option>
+        <option value="1920x1080" selected>1920 × 1080</option>
+        <option value="2560x1440">2560 × 1440</option>
+      </select></label>
+      <label>幀 <input class="num" id="fFrom" type="number" min="0" value="0" aria-label="起始幀"> – <input class="num" id="fTo" type="number" min="0" value="1799" aria-label="結束幀"></label>
+    </div>
+    <div class="row">
+      <button class="act" id="bMp4">合成 MP4 影片</button>
+      <button class="act ghost" id="bZip">PNG 幀序列 · ZIP</button>
+      <button class="act ghost" id="bDir" hidden>PNG 幀序列 · 寫入資料夾</button>
+      <button class="act ghost" id="bStop" disabled>停止</button>
+    </div>
+    <div class="bar"><i id="prog"></i></div>
+    <p class="log" id="log">還沒開始輸出。輸出時每一幀都照幀號重新計算，不看播放速度。</p>
+    <p class="note">影片用瀏覽器的 WebCodecs 逐幀編碼，時間戳一律是幀號 × 1/60 秒，再由頁內的 MP4 muxer 寫成檔案，不經過螢幕錄影。ZIP 內附 manifest.json，記錄每一幀的顯示清單雜湊，可用來核對兩次輸出是否一致。</p>
+  </article>
+</section>
+
+<script>
+'use strict';
+/* ================================================================
+   1. 場景資料：所有零件、標註、時間軸都是可序列化的 JSON。
+      單位：mm。座標：x 向右、y 向上、z 朝向正視圖的觀者（鏡頭朝 +z）。
+      prism：在 plane 平面上的 2D 輪廓 shape，沿法線方向擠出 span。
+        plane 'xy' → 輪廓 (x,y)、沿 z 擠出；'xz' → 輪廓 (x,z)、沿 y；'yz' → 輪廓 (y,z)、沿 x。
+      housed:true 表示藏在機身內，只在拆解時淡入。
+   ================================================================ */
+const DEFAULT_SCENE = {
+  meta:{model:'R6', title:'RANGEFINDER CAMERA · TYPE R6', dwg:'R6-EXP-121', rev:'C', scale:'1 : 1', note:'W 138 × H 77 × D 38 mm · 560 g'},
+  timeline:{
+    fps:60, duration:30,
+    shots:[
+      {id:'draw',    t0:0,  t1:8,  code:'01', en:'FRONT ELEVATION · LINE BUILD', zh:'正視圖描繪'},
+      {id:'turn',    t0:8,  t1:12, code:'02', en:'ROTATE TO 3/4 VIEW',           zh:'旋轉至 3/4 視角'},
+      {id:'explode', t0:12, t1:24, code:'03', en:'EXPLODED ASSEMBLY',            zh:'分件爆炸圖'},
+      {id:'final',   t0:24, t1:30, code:'04', en:'DIMENSIONED ELEVATION',        zh:'尺寸標註正視圖'}
+    ],
+    camera:[
+      {t:0,    yaw:0,  pitch:0,  zoom:1,    pan:[0,3]},
+      {t:8.2,  yaw:0,  pitch:0,  zoom:1,    pan:[0,3],   ease:'inOutCubic'},
+      {t:11.7, yaw:34, pitch:21, zoom:0.6,  pan:[14,-4], ease:'inOutSine'},
+      {t:24.6, yaw:40, pitch:24, zoom:0.6,  pan:[14,-4], ease:'inOutCubic'},
+      {t:27.7, yaw:0,  pitch:0,  zoom:0.9,  pan:[0,-4]},
+      {t:30,   yaw:0,  pitch:0,  zoom:0.9,  pan:[0,-4]}
+    ],
+    sheet:{t0:0, dur:1.2},
+    explodeOut:{start:12.4, stagger:2.0, dur:1.55, labelDelay:1.1, labelDur:0.85},
+    explodeIn:{start:24.3, stagger:0.22, dur:1.25, labelOut:23.95, labelOutDur:0.45},
+    dims:{t0:27.8, stagger:0.3, dur:0.9}
+  },
+  view:{pxPerMm:5.9},
+  construct:[
+    {id:'lensH', a:[-38,-6,44], b:[30,-6,44],  show:[[0.7,8.6],[27.4,30]], layer:'top'},
+    {id:'lensV', a:[-4,-38,44], b:[-4,26,44],  show:[[0.9,8.6],[27.4,30]], layer:'top'},
+    {id:'optic', a:[-4,-6,-24], b:[-4,-6,138], show:[[12.1,24.4]]}
+  ],
+  parts:[
+    {id:'body', no:'P-00', zh:'機身', en:'BODY SHELL', draw:[1.3,3.1], prims:[
+      {t:'prism', plane:'xz', shape:{k:'rrect', w:138, h:33, r:12}, at:[0,0], span:[-36,18]},
+      {t:'panel', pts:[[-56.5,-35,16.55],[56.5,-35,16.55],[56.5,17.2,16.55],[-56.5,17.2,16.55]], n:[0,0,1], hatch:{angle:62, gap:2.4, alpha:0.13}}
+    ]},
+    {id:'top', no:'P-00', zh:'頂蓋', en:'TOP COVER', draw:[2.2,4.1], prims:[
+      {t:'prism', plane:'xz', shape:{k:'rrect', w:137, h:32, r:11.5}, at:[0,0], span:[18,38.5]},
+      {t:'prism', plane:'xz', shape:{k:'rect', w:19, h:18}, at:[-2,-1], span:[38.5,40.4]},
+      {t:'prism', plane:'xz', shape:{k:'rect', w:21, h:3}, at:[-2,-8.5], span:[40.4,41.7]},
+      {t:'prism', plane:'xz', shape:{k:'rect', w:21, h:3}, at:[-2,6.5], span:[40.4,41.7]},
+      {t:'prism', plane:'xy', shape:{k:'rrect', w:10, h:8, r:1.2}, at:[-23.25,28], span:[15.6,16.6], decals:[
+        {t:'line', pts:[[-26.4,26,16.62],[-24.2,30.4,16.62]], n:[0,0,1], style:'thin'}]},
+      {t:'prism', plane:'xy', shape:{k:'rect', w:16, h:8.5}, at:[21,28], span:[15.6,16.5], hatch:{angle:90, gap:1.15, alpha:0.3}},
+      {t:'prism', plane:'xy', shape:{k:'rrect', w:21, h:13.5, r:2}, at:[46,28], span:[15.6,16.7], decals:[
+        {t:'line', pts:[[38.6,23.6,16.72],[42.4,32.4,16.72]], n:[0,0,1], style:'thin'},
+        {t:'line', pts:[[41.2,23.6,16.72],[43.6,29.2,16.72]], n:[0,0,1], style:'thin'}]},
+      {t:'ring', c:[-8,30.6,16.05], r:3.1, axis:'z', style:'cyan'},
+      {t:'prism', plane:'yz', shape:{k:'circle', r:2.4}, at:[10,0], span:[68.4,72.6]},
+      {t:'prism', plane:'yz', shape:{k:'circle', r:2.4}, at:[10,0], span:[-72.6,-68.4]}
+    ]},
+    {id:'lens', no:'P-01', zh:'鏡頭', en:'LENS ASSEMBLY', spec:'50 mm f/2 · 6 ELEMENTS / 4 GROUPS', draw:[3.3,5.6],
+      explode:{dir:[0,0,1], dist:74, spin:{axis:'z', deg:-28, at:[-4,-6,0], until:0.45}},
+      label:{anchor:[-19,-22,44], dx:-120, dy:150},
+      prims:[
+      {t:'prism', plane:'xy', shape:{k:'circle', r:24}, at:[-4,-6], span:[16.5,19.2]},
+      {t:'prism', plane:'xy', shape:{k:'circle', r:25}, at:[-4,-6], span:[19.2,26.5], decals:[
+        {t:'gen', c:[-4,-6,0], axis:'z', r:25.05, a0:20, a1:23.2, count:11, from:50, to:130, style:'thin'}]},
+      {t:'prism', plane:'xy', shape:{k:'scallop', r:26, d:0.7, n:48}, at:[-4,-6], span:[26.5,32.5]},
+      {t:'prism', plane:'xy', shape:{k:'rrect', w:9, h:5.5, r:2.4}, at:[-4,-32.5], span:[27.2,32]},
+      {t:'prism', plane:'xy', shape:{k:'scallop', r:24.6, d:0.55, n:24}, at:[-4,-6], span:[32.5,38.5]},
+      {t:'prism', plane:'xy', shape:{k:'circle', r:23}, at:[-4,-6], span:[38.5,43.5], decals:[
+        {t:'ring', c:[-4,-6,43.52], r:19.4, axis:'z', style:'thin'}]},
+      {t:'prism', plane:'xy', shape:{k:'circle', r:17}, at:[-4,-6], span:[43,43.9], decals:[
+        {t:'ring', c:[-4,-6,43.92], r:12.4, axis:'z', style:'thin'},
+        {t:'ring', c:[-4,-6,43.92], r:6.8, axis:'z', style:'thin'},
+        {t:'arc', c:[-4,-6,43.93], r:14.6, axis:'z', from:112, to:152, style:'line'},
+        {t:'arc', c:[-4,-6,43.93], r:10.8, axis:'z', from:118, to:140, style:'thin'}]}
+    ]},
+    {id:'ctrl', no:'P-00', zh:'操作件', en:'CONTROLS', draw:[4.4,6.5], prims:[
+      {t:'prism', plane:'xz', shape:{k:'scallop', r:10.5, d:0.6, n:30}, at:[-38,3], span:[38.5,45], decals:[
+        {t:'ticks', c:[-38,45.02,3], axis:'y', r0:7.3, r1:9.5, count:12, from:0, to:330, style:'thin'}]},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:6.4}, at:[-38,3], span:[45,45.9]},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:6.2}, at:[-55,-3], span:[38.5,41.5]},
+      {t:'prism', plane:'xz', shape:{k:'poly', pts:[[-59,-1],[-55,3],[-51,-1.5],[-46,-9],[-24,-12.5],[-22.5,-15.5],[-25.5,-17.5],[-49,-14]]}, at:[0,0], span:[41.5,43.1]},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:2.4}, at:[-24.4,-15], span:[43.1,46.4]},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:3.4}, at:[-55,-3], span:[43.1,47.6], decals:[
+        {t:'ring', c:[-55,47.62,-3], r:1.9, axis:'y', style:'thin'}]},
+      {t:'ring', c:[-46.5,38.52,9], r:2.8, axis:'y', style:'thin'},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:7.5}, at:[52,1], span:[38.5,41]},
+      {t:'prism', plane:'xz', shape:{k:'scallop', r:7, d:0.5, n:22}, at:[52,1], span:[41,46.4]},
+      {t:'prism', plane:'xz', shape:{k:'rrect', w:5, h:13, r:2.2}, at:[52,-5], span:[46.4,47.5]},
+      {t:'prism', plane:'xy', shape:{k:'rrect', w:5, h:9, r:1.6}, at:[27,6], span:[16.5,18.2]},
+      {t:'prism', plane:'xy', shape:{k:'circle', r:3.3}, at:[27,-18], span:[16.5,19]}
+    ]},
+    {id:'shutter', no:'P-02', zh:'快門簾', en:'FOCAL-PLANE SHUTTER', spec:'CLOTH CURTAIN · 1 s – 1/1000 s', draw:[0,0],
+      explode:{dir:[0.85,0.2,-0.49], dist:122},
+      label:{anchor:[32,12.8,-5], dx:90, dy:-150},
+      prims:[
+      {t:'prism', plane:'xy', shape:{k:'rect', w:70, h:40}, at:[-4,-6], span:[-7.5,-6], housed:true, decals:[
+        {t:'rect', c:[-4,-6,-5.97], w:36, h:24, axis:'z', style:'line'},
+        {t:'hatchline', from:[-39,-25,-5.97], to:[-2,-25,-5.97], h:38, step:2.5, style:'thin'},
+        {t:'line', pts:[[-2,-25.5,-5.96],[-2,13.5,-5.96]], n:[0,0,1], style:'cyan'}]},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:4.5}, at:[-40,-5], span:[-27,11], housed:true},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:4.5}, at:[32,-5], span:[-27,11], housed:true},
+      {t:'prism', plane:'xz', shape:{k:'scallop', r:5.8, d:0.6, n:16}, at:[32,-5], span:[11,12.8], housed:true},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:3}, at:[-40,-5], span:[11,13.6], housed:true}
+    ]},
+    {id:'spool', no:'P-03', zh:'捲片軸', en:'TAKE-UP SPOOL', spec:'3-SLOT CORE · 18T DRIVE GEAR', draw:[0,0],
+      explode:{dir:[-1,0.12,0], dist:72, spin:{axis:'y', deg:220, at:[-56,0,-4]}},
+      label:{anchor:[-56,19,-4], dx:-80, dy:-120},
+      prims:[
+      {t:'prism', plane:'xz', shape:{k:'circle', r:6}, at:[-56,-4], span:[-27,13], housed:true, decals:[
+        {t:'gen', c:[-56,0,-4], axis:'y', r:6.05, a0:-21, a1:7, count:3, from:0, to:240, style:'line'}]},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:9.5}, at:[-56,-4], span:[-28.5,-27], housed:true},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:9.5}, at:[-56,-4], span:[13,14.5], housed:true},
+      {t:'prism', plane:'xz', shape:{k:'scallop', r:7.5, d:0.6, n:18}, at:[-56,-4], span:[14.5,16.5], housed:true},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:2.2}, at:[-56,-4], span:[16.5,19], housed:true}
+    ]},
+    {id:'finder', no:'P-04', zh:'觀景窗', en:'RANGEFINDER VIEWFINDER', spec:'0.72× · 69.25 mm BASE · 3 FRAME PAIRS', draw:[0,0],
+      explode:{dir:[0,1,0.06], dist:60},
+      label:{anchor:[57,35,-1], dx:110, dy:-80},
+      prims:[
+      {t:'prism', plane:'xz', shape:{k:'rect', w:30, h:22}, at:[42,-1], span:[21,35], housed:true},
+      {t:'prism', plane:'xy', shape:{k:'circle', r:6.2}, at:[46,28], span:[10,14.5], housed:true, decals:[
+        {t:'ring', c:[46,28,14.52], r:4.2, axis:'z', style:'thin'}]},
+      {t:'prism', plane:'xy', shape:{k:'circle', r:5.4}, at:[46,28], span:[-16.5,-12], housed:true},
+      {t:'prism', plane:'xz', shape:{k:'rect', w:9, h:9}, at:[20,2], span:[23.5,32.5], housed:true, decals:[
+        {t:'line', pts:[[15.5,32.52,-2.5],[24.5,32.52,6.5]], n:[0,1,0], style:'cyan'}]},
+      {t:'prism', plane:'yz', shape:{k:'circle', r:3.4}, at:[28,3], span:[-24,15.5], housed:true},
+      {t:'prism', plane:'xz', shape:{k:'rect', w:8, h:8}, at:[-23.25,6], span:[24,32], housed:true, decals:[
+        {t:'line', pts:[[-27.25,32.02,2],[-19.25,32.02,10]], n:[0,1,0], style:'thin'}]},
+      {t:'prism', plane:'xy', shape:{k:'rect', w:16, h:9}, at:[21,28], span:[10.4,11.2], housed:true, decals:[
+        {t:'line', pts:[[14.6,25.6,11.22],[14.6,24.4,11.22],[16.4,24.4,11.22]], n:[0,0,1], style:'cyan'},
+        {t:'line', pts:[[27.4,25.6,11.22],[27.4,24.4,11.22],[25.6,24.4,11.22]], n:[0,0,1], style:'cyan'},
+        {t:'line', pts:[[14.6,30.4,11.22],[14.6,31.6,11.22],[16.4,31.6,11.22]], n:[0,0,1], style:'cyan'},
+        {t:'line', pts:[[27.4,30.4,11.22],[27.4,31.6,11.22],[25.6,31.6,11.22]], n:[0,0,1], style:'cyan'}]}
+    ]},
+    {id:'chamber', no:'P-05', zh:'底片室', en:'FILM CHAMBER', spec:'135 CASSETTE · PRESSURE PLATE · BOTTOM LOAD', draw:[2.5,3.5],
+      explode:{dir:[0,-1,0], dist:64},
+      label:{anchor:[50,16.6,-3], dx:150, dy:70},
+      prims:[
+      {t:'prism', plane:'xz', shape:{k:'rrect', w:138, h:33, r:12}, at:[0,0], span:[-38.5,-36]},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:12.5}, at:[50,-3], span:[-27,12], housed:true, decals:[
+        {t:'gen', c:[50,0,-3], axis:'y', r:12.55, a0:-24, a1:9, count:2, from:250, to:290, style:'thin'}]},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:12.9}, at:[50,-3], span:[12,13.3], housed:true},
+      {t:'prism', plane:'xz', shape:{k:'circle', r:3.6}, at:[50,-3], span:[13.3,16.6], housed:true},
+      {t:'prism', plane:'xz', shape:{k:'rect', w:7, h:5}, at:[38.5,-8.5], span:[-25,10], housed:true},
+      {t:'prism', plane:'xy', shape:{k:'poly', pts:[[38,-25],[38,10],[16,10],[12,-2],[-6,-2],[-9,-5],[-9,-25]]}, at:[0,0], span:[-10.8,-10.3], housed:true, decals:[
+        {t:'holes', from:[16,-23.4,-10.28], step:4.75, count:5, w:2, h:1.4, dy:0, style:'thin'},
+        {t:'holes', from:[16,8.4,-10.28], step:4.75, count:5, w:2, h:1.4, dy:0, style:'thin'},
+        {t:'holes', from:[-6,-23.4,-10.28], step:4.75, count:4, w:2, h:1.4, dy:0, style:'thin'}]},
+      {t:'prism', plane:'xy', shape:{k:'rrect', w:62, h:30, r:2}, at:[-4,-6], span:[-13.8,-12.4], housed:true, decals:[
+        {t:'rect', c:[-4,-6,-12.38], w:44, h:22, axis:'z', style:'thin'}]}
+    ]}
+  ],
+  dims:[
+    {id:'W',    kind:'lin', axis:'x', a:[-69,-38.5,16.5], b:[69,-38.5,16.5], at:-66,  text:'138'},
+    {id:'H',    kind:'lin', axis:'y', a:[69,-38.5,16.5],  b:[69,38.5,16.5],  at:86,   text:'77'},
+    {id:'BASE', kind:'lin', axis:'x', a:[-23.25,32,16.6], b:[46,34.75,16.7], at:57,   text:'69.25', note:'RF BASE'},
+    {id:'AXIS', kind:'lin', axis:'y', a:[-69,-38.5,16.5], b:[-30,-6,44],     at:-84,  text:'32.5',  note:'OPT. AXIS'},
+    {id:'LENS', kind:'dia', c:[-4,-6,44], r:26, ang:-50, lead:[30,-25], text:'Ø 52'}
+  ]
+};
+/* ================================================================
+   2. 數學工具：緩動、關鍵影格、時間窗。全部是純函式，不讀時鐘也不用亂數。
+   ================================================================ */
+const EASE = {
+  linear:s=>s,
+  inOutCubic:s=>s<.5?4*s*s*s:1-Math.pow(-2*s+2,3)/2,
+  inOutQuart:s=>s<.5?8*s*s*s*s:1-Math.pow(-2*s+2,4)/2,
+  inOutSine:s=>-(Math.cos(Math.PI*s)-1)/2,
+  outCubic:s=>1-Math.pow(1-s,3),
+  inCubic:s=>s*s*s
+};
+const clamp01 = v => v<0?0:v>1?1:v;
+const lerp = (a,b,s) => a+(b-a)*s;
+const smooth = (a,b,v) => { const s=clamp01((v-a)/(b-a)); return s*s*(3-2*s); };
+const win = (t,t0,dur) => dur<=0 ? (t>=t0?1:0) : clamp01((t-t0)/dur);
+const DEG = Math.PI/180;
+
+function sampleTrack(keys, t){
+  if (t<=keys[0].t) return mixKeys(keys[0], keys[0], 0);
+  for (let i=0;i<keys.length-1;i++){
+    const a=keys[i], b=keys[i+1];
+    if (t<b.t) return mixKeys(a, b, (EASE[a.ease]||EASE.inOutCubic)((t-a.t)/(b.t-a.t)));
+  }
+  const z=keys[keys.length-1]; return mixKeys(z, z, 0);
+}
+function mixKeys(a, b, s){
+  const o={};
+  for (const k in a){
+    if (k==='t'||k==='ease') continue;
+    const va=a[k], vb=b[k]===undefined?va:b[k];
+    o[k]=Array.isArray(va)?va.map((x,i)=>lerp(x,vb[i],s)):lerp(va,vb,s);
+  }
+  return o;
+}
+
+/* 正投影相機：yaw 繞 y 軸、pitch 俯角。e 指向觀者，r / u 為螢幕右 / 上。畫面座標固定以 1920×1080 計。 */
+function makeCam(c, pxPerMm){
+  const sy=Math.sin(c.yaw*DEG), cy=Math.cos(c.yaw*DEG), sp=Math.sin(c.pitch*DEG), cp=Math.cos(c.pitch*DEG);
+  const e=[sy*cp, sp, cy*cp], r=[cy,0,-sy], u=[-sy*sp, cp, -cy*sp], k=pxPerMm*c.zoom, pan=c.pan;
+  return {e, r, u, k, pan, yaw:c.yaw, pitch:c.pitch,
+    sx:p=>960+k*(p[0]*r[0]+p[2]*r[2]-pan[0]),
+    sy:p=>540-k*(p[0]*u[0]+p[1]*u[1]+p[2]*u[2]-pan[1]),
+    depth:p=>p[0]*e[0]+p[1]*e[1]+p[2]*e[2],
+    facing:n=>n[0]*e[0]+n[1]*e[1]+n[2]*e[2]};
+}
+
+/* ================================================================
+   3. 幾何編譯：場景 JSON → 頂點、面、邊（含鄰接面與銳利度）。
+      每次套用新資料只編譯一次；逐幀只做變換、剔除與投影。
+   ================================================================ */
+const PLANES = {
+  xy:{U:[1,0,0], V:[0,1,0], W:[0,0,1]},
+  xz:{U:[1,0,0], V:[0,0,1], W:[0,1,0]},
+  yz:{U:[0,1,0], V:[0,0,1], W:[1,0,0]}
+};
+const AXES = {x:[1,0,0], y:[0,1,0], z:[0,0,1]};
+const p3 = (pl,u,v,w) => [pl.U[0]*u+pl.V[0]*v+pl.W[0]*w, pl.U[1]*u+pl.V[1]*v+pl.W[1]*w, pl.U[2]*u+pl.V[2]*v+pl.W[2]*w];
+const circleSegs = r => Math.max(24, Math.min(96, Math.round(r*3)));
+
+function shapePts(sh){
+  const out=[];
+  if (sh.k==='circle'){
+    const n=sh.n||circleSegs(sh.r);
+    for (let i=0;i<n;i++){ const a=Math.PI/2+i/n*Math.PI*2; out.push({u:sh.r*Math.cos(a), v:sh.r*Math.sin(a), sharp:false}); }
+  } else if (sh.k==='rect' || (sh.k==='rrect' && !(sh.r>0))){
+    const w=sh.w/2, h=sh.h/2;
+    [[-w,-h],[w,-h],[w,h],[-w,h]].forEach(p=>out.push({u:p[0], v:p[1], sharp:true}));
+  } else if (sh.k==='rrect'){
+    const w=sh.w/2, h=sh.h/2, r=Math.min(sh.r, w, h), seg=10;
+    [[w-r,-h+r,-90],[w-r,h-r,0],[-w+r,h-r,90],[-w+r,-h+r,180]].forEach(([cx,cy,a0])=>{
+      for (let i=0;i<=seg;i++){ const a=(a0+i/seg*90)*DEG; out.push({u:cx+r*Math.cos(a), v:cy+r*Math.sin(a), sharp:false}); }
+    });
+  } else if (sh.k==='scallop'){
+    const n=sh.n, step=Math.PI*2/n;
+    for (let i=0;i<n;i++){
+      const a=Math.PI/2+i*step;
+      out.push({u:(sh.r-sh.d)*Math.cos(a), v:(sh.r-sh.d)*Math.sin(a), sharp:true});
+      for (const f of [.28,.5,.72]) out.push({u:sh.r*Math.cos(a+f*step), v:sh.r*Math.sin(a+f*step), sharp:false});
+    }
+  } else if (sh.k==='poly'){
+    sh.pts.forEach(p=>out.push({u:p[0], v:p[1], sharp:true}));
+  } else throw new Error('未知的輪廓 shape.k：'+sh.k);
+  let area=0;
+  for (let i=0;i<out.length;i++){ const a=out[i], b=out[(i+1)%out.length]; area+=a.u*b.v-b.u*a.v; }
+  if (area<0) out.reverse();
+  return out;
+}
+
+/* 2D 凸多邊形內的平行線（Cyrus–Beck 裁切）。用於磨砂窗、皮革紋。 */
+function hatch2D(poly, angleDeg, gap){
+  let ar=0; for (let i=0;i<poly.length;i++){ const a=poly[i], b=poly[(i+1)%poly.length]; ar+=a[0]*b[1]-b[0]*a[1]; }
+  if (ar<0) poly=poly.slice().reverse();
+  const d=[Math.cos(angleDeg*DEG), Math.sin(angleDeg*DEG)], m=[-d[1], d[0]];
+  let lo=Infinity, hi=-Infinity;
+  for (const p of poly){ const o=p[0]*m[0]+p[1]*m[1]; lo=Math.min(lo,o); hi=Math.max(hi,o); }
+  const lines=[];
+  for (let o=Math.ceil(lo/gap)*gap; o<=hi; o+=gap){
+    const base=[m[0]*o, m[1]*o]; let t0=-1e6, t1=1e6;
+    for (let i=0;i<poly.length;i++){
+      const a=poly[i], b=poly[(i+1)%poly.length];
+      const ex=b[0]-a[0], ey=b[1]-a[1], nx=ey, ny=-ex;              // CCW 多邊形的外法線
+      const den=d[0]*nx+d[1]*ny, num=(base[0]-a[0])*nx+(base[1]-a[1])*ny;
+      if (Math.abs(den)<1e-12){ if (num>0){ t0=1; t1=0; break; } continue; }
+      const tt=-num/den;
+      if (den<0) t0=Math.max(t0,tt); else t1=Math.min(t1,tt);
+    }
+    if (t1-t0>1e-6) lines.push([[base[0]+d[0]*t0, base[1]+d[1]*t0],[base[0]+d[0]*t1, base[1]+d[1]*t1]]);
+  }
+  return lines;
+}
+
+function circPt(c, axis, r, a){
+  const ca=Math.cos(a*DEG)*r, sa=Math.sin(a*DEG)*r;
+  if (axis==='z') return [c[0]+ca, c[1]+sa, c[2]];
+  if (axis==='y') return [c[0]+ca, c[1], c[2]-sa];
+  return [c[0], c[1]+ca, c[2]-sa];
+}
+function compileDecal(d){
+  const out=[], n=d.n||(d.axis?AXES[d.axis]:null), style=d.style||'thin';
+  const seg=(from,to,count)=>{ const pts=[]; for (let i=0;i<=count;i++) pts.push(circPt(d.c,d.axis,d.r,from+(to-from)*i/count)); return pts; };
+  switch (d.t){
+    case 'line': out.push({pts:d.pts, n, style}); break;
+    case 'ring': { const pts=seg(90,450,64); pts.pop(); out.push({pts, n, style, closed:true}); break; }
+    case 'arc':  out.push({pts:seg(d.from,d.to,Math.max(6,Math.round(Math.abs(d.to-d.from)/4))), n, style}); break;
+    case 'rect': {
+      const w=d.w/2, h=d.h/2, c=d.c;
+      const q=d.axis==='z'?[[c[0]-w,c[1]-h,c[2]],[c[0]+w,c[1]-h,c[2]],[c[0]+w,c[1]+h,c[2]],[c[0]-w,c[1]+h,c[2]]]
+                         :[[c[0]-w,c[1],c[2]-h],[c[0]+w,c[1],c[2]-h],[c[0]+w,c[1],c[2]+h],[c[0]-w,c[1],c[2]+h]];
+      out.push({pts:q, n, style, closed:true}); break;
+    }
+    case 'ticks':
+      for (let i=0;i<d.count;i++){ const a=d.from+(d.to-d.from)*i/Math.max(1,d.count-1); out.push({pts:[circPt(d.c,d.axis,d.r0,a),circPt(d.c,d.axis,d.r1,a)], n, style}); }
+      break;
+    case 'gen':
+      for (let i=0;i<d.count;i++){
+        const a=d.from+(d.to-d.from)*i/Math.max(1,d.count-1), ax=AXES[d.axis];
+        const p=circPt([0,0,0],d.axis,1,a);
+        const at=s=>[d.c[0]+p[0]*d.r+ax[0]*s, d.c[1]+p[1]*d.r+ax[1]*s, d.c[2]+p[2]*d.r+ax[2]*s];
+        out.push({pts:[at(d.a0),at(d.a1)], n:p, style});
+      }
+      break;
+    case 'hatchline':
+      for (let x=d.from[0]; x<=d.to[0]+1e-9; x+=d.step) out.push({pts:[[x,d.from[1],d.from[2]],[x,d.from[1]+d.h,d.from[2]]], n:[0,0,1], style});
+      break;
+    case 'holes':
+      for (let i=0;i<d.count;i++){
+        const x=d.from[0]+i*d.step, y=d.from[1]+i*(d.dy||0), z=d.from[2], w=d.w/2, h=d.h/2;
+        out.push({pts:[[x-w,y-h,z],[x+w,y-h,z],[x+w,y+h,z],[x-w,y+h,z]], n:[0,0,1], style, closed:true});
+      }
+      break;
+    default: throw new Error('未知的 decal 類型：'+d.t);
+  }
+  return out;
+}
+
+function compilePrim(pr){
+  if (pr.t==='prism'){
+    const pl=PLANES[pr.plane]; if (!pl) throw new Error('未知的 plane：'+pr.plane);
+    const prof=shapePts(pr.shape), n=prof.length, at=pr.at||[0,0], w0=pr.span[0], w1=pr.span[1];
+    const A=[], B=[], sideN=[];
+    for (const p of prof){ A.push(p3(pl,p.u+at[0],p.v+at[1],w0)); B.push(p3(pl,p.u+at[0],p.v+at[1],w1)); }
+    for (let i=0;i<n;i++){
+      const a=prof[i], b=prof[(i+1)%n], du=b.u-a.u, dv=b.v-a.v, l=Math.hypot(du,dv)||1;
+      sideN.push(p3(pl,dv/l,-du/l,0));
+    }
+    const decals=[]; (pr.decals||[]).forEach(d=>decals.push(...compileDecal(d)));
+    if (pr.hatch){
+      const poly=prof.map(p=>[p.u+at[0], p.v+at[1]]);
+      hatch2D(poly, pr.hatch.angle, pr.hatch.gap).forEach(([a,b])=>
+        decals.push({pts:[p3(pl,a[0],a[1],w1+0.02), p3(pl,b[0],b[1],w1+0.02)], n:pl.W, style:'hatch', alpha:pr.hatch.alpha}));
+    }
+    const all=A.concat(B), c=[0,1,2].map(k=>all.reduce((s,p)=>s+p[k],0)/all.length);
+    return {kind:'prism', A, B, sideN, capA:pl.W.map(v=>-v), capB:pl.W, sharp:prof.map(p=>p.sharp), n, decals, centroid:c, housed:!!pr.housed, hull:all};
+  }
+  if (pr.t==='panel'){
+    const P=pr.pts, o=P[0], nn=pr.n;
+    const ax=norm(sub(P[1],o)), ay=cross(nn,ax);
+    const poly=P.map(p=>{ const q=sub(p,o); return [dot(q,ax), dot(q,ay)]; });
+    const decals=[];
+    if (pr.hatch) hatch2D(poly, pr.hatch.angle, pr.hatch.gap).forEach(([a,b])=>{
+      const to3=q=>[o[0]+ax[0]*q[0]+ay[0]*q[1], o[1]+ax[1]*q[0]+ay[1]*q[1], o[2]+ax[2]*q[0]+ay[2]*q[1]];
+      decals.push({pts:[to3(a),to3(b)], n:nn, style:'hatch', alpha:pr.hatch.alpha});
+    });
+    const c=[0,1,2].map(k=>P.reduce((s,p)=>s+p[k],0)/P.length);
+    return {kind:'decals', decals, centroid:c, housed:!!pr.housed};
+  }
+  const decals=compileDecal(pr);
+  const pts=decals.flatMap(d=>d.pts);
+  return {kind:'decals', decals, centroid:[0,1,2].map(k=>pts.reduce((s,p)=>s+p[k],0)/pts.length), housed:!!pr.housed};
+}
+function sub(a,b){ return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
+function dot(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+function cross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function norm(a){ const l=Math.hypot(a[0],a[1],a[2])||1; return [a[0]/l,a[1]/l,a[2]/l]; }
+
+/* 整份場景編譯：零件的拆解順序、每個圖元的描繪時間窗都在這裡由資料推算。 */
+function compileScene(S){
+  const T=S.timeline, EO=T.explodeOut, EI=T.explodeIn;
+  const exploding=S.parts.filter(p=>p.explode);
+  const parts=S.parts.map(p=>{
+    const prims=p.prims.map(compilePrim);
+    const drawn=prims.filter(q=>!q.housed), dn=drawn.length, d0=p.draw?p.draw[0]:0, d1=p.draw?p.draw[1]:0, span=Math.max(0,d1-d0);
+    drawn.forEach((q,i)=>{ q.w0=d0+span*0.5*(dn>1?i/(dn-1):0); q.wd=span*0.5; });
+    prims.filter(q=>q.housed).forEach(q=>{ q.w0=0; q.wd=0; });
+    const cp={src:p, prims};
+    const k=exploding.indexOf(p);
+    if (k>=0){
+      const ex=p.explode, dir=norm(ex.dir);
+      cp.ex={dir, dist:ex.dist, spin:ex.spin||null,
+        out:ex.out!=null?ex.out:EO.start+k*EO.stagger, outDur:ex.outDur||EO.dur,
+        back:ex.back!=null?ex.back:EI.start+(exploding.length-1-k)*EI.stagger, backDur:ex.backDur||EI.dur, order:k};
+      cp.ex.label=cp.ex.out+EO.labelDelay;
+    }
+    return cp;
+  });
+  return {S, parts, frames:Math.round(T.duration*T.fps)};
+}
+
+/* 零件在時間 t 的變換：沿 dir 平移，並可繞軸自轉（例：鏡頭卸下時的卡口扭轉）。 */
+function explodeState(cp, t){
+  const ex=cp.ex; if (!ex) return {prog:0, X:p=>p, N:n=>n};
+  const po=EASE.inOutCubic(win(t,ex.out,ex.outDur)), pb=EASE.inOutCubic(win(t,ex.back,ex.backDur));
+  const prog=po*(1-pb), off=ex.dir.map(v=>v*ex.dist*prog);
+  let rot=null;
+  if (ex.spin){ const s=ex.spin; rot={axis:s.axis, at:s.at, a:s.deg*DEG*EASE.inOutSine(clamp01(prog/(s.until||1)))}; }
+  const R=(v,at)=>{
+    if (!rot||rot.a===0) return v;
+    const c=Math.cos(rot.a), s=Math.sin(rot.a), o=at||[0,0,0], x=v[0]-o[0], y=v[1]-o[1], z=v[2]-o[2];
+    if (rot.axis==='z') return [o[0]+x*c-y*s, o[1]+x*s+y*c, o[2]+z];
+    if (rot.axis==='y') return [o[0]+x*c+z*s, o[1]+y, o[2]-x*s+z*c];
+    return [o[0]+x, o[1]+y*c-z*s, o[2]+y*s+z*c];
+  };
+  return {prog, X:p=>{ const q=R(p,rot&&rot.at); return [q[0]+off[0], q[1]+off[1], q[2]+off[2]]; }, N:n=>R(n,null)};
+}
+/* ================================================================
+   4. 逐幀建構：frame → 顯示清單（ops）。這一層決定每一幀「畫什麼」，
+      座標固定在 1920×1080 虛擬畫面；點陣化交給 paint()。
+   ================================================================ */
+const EPS = 1e-5;
+const STYLE = {
+  edge:{c:'line', w:1.35, a:.95}, line:{c:'line', w:1.05, a:.85}, thin:{c:'line', w:.8, a:.55},
+  hatch:{c:'line', w:.7, a:.14}, cyan:{c:'cyan', w:1.1, a:.9}
+};
+const COLORS = {line:'#e9f1ff', cyan:'#5fe3ff', fill:'#0b2350', ink:'#ffffff', mute:'#8fa7cf', sheet:'#c9d8f5'};
+const FONTS = {
+  mono:'"Cascadia Mono","Consolas","SFMono-Regular",ui-monospace,"Courier New",monospace',
+  cjk:'"Microsoft JhengHei","PingFang TC","Noto Sans TC","Heiti TC",sans-serif',
+  num:'"Bahnschrift","DIN Alternate","Arial Narrow",Arial,sans-serif'
+};
+
+function hull(xs, ys){
+  const idx=xs.map((_,i)=>i).sort((a,b)=>xs[a]-xs[b]||ys[a]-ys[b]);
+  const cr=(o,a,b)=>(xs[a]-xs[o])*(ys[b]-ys[o])-(ys[a]-ys[o])*(xs[b]-xs[o]);
+  const lo=[], up=[];
+  for (const i of idx){ while (lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],i)<=0) lo.pop(); lo.push(i); }
+  for (let j=idx.length-1;j>=0;j--){ const i=idx[j]; while (up.length>=2&&cr(up[up.length-2],up[up.length-1],i)<=0) up.pop(); up.push(i); }
+  lo.pop(); up.pop();
+  const out=[]; lo.concat(up).forEach(i=>out.push(xs[i],ys[i])); return out;
+}
+
+/* 依長度裁切折線：q ∈ [0,1]。描邊動畫與標註延伸都用它。 */
+function trimPath(p, closed, q){
+  if (q>=1) return {p, closed, tip:null};
+  const pts=closed?p.concat([p[0],p[1]]):p;
+  let L=0; const seg=[];
+  for (let i=2;i<pts.length;i+=2){ const l=Math.hypot(pts[i]-pts[i-2], pts[i+1]-pts[i-1]); seg.push(l); L+=l; }
+  let rem=L*q; const out=[pts[0],pts[1]];
+  for (let i=0;i<seg.length;i++){
+    const x0=pts[i*2], y0=pts[i*2+1], x1=pts[i*2+2], y1=pts[i*2+3];
+    if (rem>=seg[i]){ out.push(x1,y1); rem-=seg[i]; continue; }
+    const s=seg[i]?rem/seg[i]:0; out.push(x0+(x1-x0)*s, y0+(y1-y0)*s); break;
+  }
+  return {p:out, closed:false, tip:[out[out.length-2], out[out.length-1]]};
+}
+function pushPath(F, p, closed, style, alpha, q, dash, pen){
+  if (q<=0||alpha<=0.002||p.length<4) return;
+  const r=trimPath(p, closed, q), s=STYLE[style]||STYLE.thin;
+  F.ops.push({o:'L', p:r.p, z:r.closed?1:0, c:s.c, w:s.w, a:s.a*alpha, d:dash||''});
+  if (r.tip&&pen) F.tip=r.tip;
+}
+function pushText(F, x, y, str, o){
+  if (!str) return;
+  F.ops.push({o:'T', x, y, s:o.s||12, f:o.f||'mono', t:str, c:o.c||'line', a:o.a==null?1:o.a, al:o.al||'left', ls:o.ls||0, wt:o.wt||400, r:o.r||0});
+}
+const typeOn = (str, q) => q>=0.999 ? str : str.slice(0, Math.floor(str.length*clamp01(q)+1e-6));
+
+function loopChains(n, vis){
+  let first=-1; for (let i=0;i<n;i++) if (!vis(i)){ first=i; break; }
+  if (first<0){ const all=[]; for (let i=0;i<n;i++) all.push(i); return [{idx:all, closed:true}]; }
+  const out=[]; let cur=null;
+  for (let k=1;k<=n;k++){
+    const i=(first+k)%n;
+    if (vis(i)){ if (!cur){ cur=[i]; out.push({idx:cur, closed:false}); } cur.push((i+1)%n); }
+    else cur=null;
+  }
+  return out;
+}
+
+function emitPrim(F, it, cam, t){
+  const {pm, es, a}=it;
+  const p=pm.wd>0?clamp01((t-pm.w0)/pm.wd):1;
+  if (p<=0) return;
+  if (pm.kind==='prism'){
+    const n=pm.n, ax=it.ax, ay=it.ay, bx=it.bx, by=it.by;
+    const fa=cam.facing(es.N(pm.capA))>EPS, fb=cam.facing(es.N(pm.capB))>EPS;
+    const fs=pm.sideN.map(v=>cam.facing(es.N(v))>EPS);
+    const fillA=smooth(.7,1,p)*a;
+    if (fillA>0.002) F.ops.push({o:'F', p:hull(ax.concat(bx), ay.concat(by)), c:'fill', a:fillA});
+    const chains=[];
+    const loop=(xs,ys,capFront)=>loopChains(n, i=>capFront||fs[i]).forEach(ch=>{
+      const q=[]; ch.idx.forEach(i=>q.push(xs[i],ys[i])); chains.push({p:q, z:ch.closed});
+    });
+    loop(bx,by,fb);
+    for (let i=0;i<n;i++){
+      const prev=(i-1+n)%n, vis=pm.sharp[i]?(fs[prev]||fs[i]):(fs[prev]!==fs[i]);
+      if (vis) chains.push({p:[ax[i],ay[i],bx[i],by[i]], z:false});
+    }
+    loop(ax,ay,fa);
+    const m=chains.length;
+    chains.forEach((ch,j)=>pushPath(F, ch.p, ch.z, 'edge', a, clamp01((p-.45*(m>1?j/(m-1):0))/.55), '', true));
+  }
+  const pd=clamp01((p-.35)/.65);
+  for (const d of pm.decals){
+    let fa=1;
+    if (d.n){ const f=cam.facing(es.N(d.n)); if (f<=0.03) continue; fa=smooth(.03,.2,f); }
+    const q=[]; for (const v of d.pts){ const w=es.X(v); q.push(cam.sx(w), cam.sy(w)); }
+    const s=STYLE[d.style]||STYLE.thin;
+    pushPath(F, q, !!d.closed, d.style, a*fa*(d.alpha!=null?d.alpha/s.a:1), pd, '', true);
+  }
+}
+
+/* 前後關係：兩個圖元若在某軸上可分離（AABB 不重疊），分離面靠觀者那側的一定在前。
+   不可分離時：內藏零件（housed）在後，讓機身填色遮住還在機身裡的部分；其餘比中心深度。
+   依此建有向圖，Kahn 拓撲排序；遇到循環時取最遠者打破。 */
+function orderItems(items, e){
+  const n=items.length, TOL=0.8;
+  const axes=[0,1,2].filter(a=>Math.abs(e[a])>1e-3).sort((a,b)=>Math.abs(e[b])-Math.abs(e[a]));
+  const succ=Array.from({length:n},()=>[]), indeg=new Int32Array(n);
+  for (let i=0;i<n;i++){
+    const I=items[i];
+    for (let j=i+1;j<n;j++){
+      const J=items[j];
+      if (I.sb[2]<J.sb[0]||J.sb[2]<I.sb[0]||I.sb[3]<J.sb[1]||J.sb[3]<I.sb[1]) continue;
+      let rel=0;
+      for (const a of axes){
+        if (I.bb[3+a]<=J.bb[a]+TOL){ rel=e[a]>0?-1:1; break; }
+        if (J.bb[3+a]<=I.bb[a]+TOL){ rel=e[a]>0?1:-1; break; }
+      }
+      if (!rel&&I.pm.housed!==J.pm.housed) rel=I.pm.housed?-1:1;
+      if (!rel) rel=(I.depth-J.depth||I.seq-J.seq)<=0?-1:1;
+      if (rel<0){ succ[i].push(j); indeg[j]++; } else { succ[j].push(i); indeg[i]++; }
+    }
+  }
+  const done=new Uint8Array(n), out=[];
+  for (let k=0;k<n;k++){
+    let best=-1;
+    for (let i=0;i<n;i++) if (!done[i]&&indeg[i]===0&&(best<0||items[i].depth<items[best].depth||(items[i].depth===items[best].depth&&items[i].seq<items[best].seq))) best=i;
+    if (best<0) for (let i=0;i<n;i++) if (!done[i]&&(best<0||items[i].depth<items[best].depth)) best=i;
+    done[best]=1; out.push(items[best]); for (const s2 of succ[best]) indeg[s2]--;
+  }
+  return out;
+}
+
+function arrowHead(F, x, y, ux, uy, sc){
+  const L=12*sc, H=3.3*sc, bx=x-ux*L, by=y-uy*L;
+  F.ops.push({o:'F', p:[x,y,bx-uy*H,by+ux*H,bx+uy*H,by-ux*H], c:'cyan', a:.95});
+}
+
+function emitDim(F, d, q, cam){
+  if (q<=0) return;
+  const P=v=>[cam.sx(v), cam.sy(v)];
+  const q1=clamp01(q/.35), q2=clamp01((q-.25)/.4), q3=clamp01((q-.55)/.45);
+  const gap=1.4, over=2.4;
+  if (d.kind==='lin'){
+    const X=d.axis==='x', z=Math.max(d.a[2], d.b[2]);
+    const ends=[d.a,d.b].map(pt=>{
+      const base=X?pt[1]:pt[0], sg=Math.sign(d.at-base)||1;
+      const s=X?[pt[0], base+sg*gap, z]:[base+sg*gap, pt[1], z];
+      const e=X?[pt[0], d.at+sg*over, z]:[d.at+sg*over, pt[1], z];
+      const m=X?[pt[0], d.at, z]:[d.at, pt[1], z];
+      return {s:P(s), e:P(e), m:P(m)};
+    });
+    ends.forEach(E=>pushPath(F, [E.s[0],E.s[1],E.e[0],E.e[1]], false, 'cyan', .75, q1, '', true));
+    const [m0,m1]=[ends[0].m, ends[1].m], cx=(m0[0]+m1[0])/2, cy=(m0[1]+m1[1])/2;
+    pushPath(F, [cx,cy,m0[0],m0[1]], false, 'cyan', 1, q2, '', true);
+    pushPath(F, [cx,cy,m1[0],m1[1]], false, 'cyan', 1, q2, '', true);
+    if (q2>=1){
+      const L=Math.hypot(m1[0]-m0[0], m1[1]-m0[1])||1, ux=(m1[0]-m0[0])/L, uy=(m1[1]-m0[1])/L, sc=smooth(.8,1,q);
+      arrowHead(F, m0[0], m0[1], -ux, -uy, .6+.4*sc); arrowHead(F, m1[0], m1[1], ux, uy, .6+.4*sc);
+    }
+    const r=X?0:-90, ox=X?0:-10, oy=X?-10:0;
+    pushText(F, cx+ox, cy+oy, typeOn(d.text,q3), {s:21, f:'num', c:'ink', al:'center', r, ls:1});
+    if (d.note) pushText(F, cx+ox+(X?0:-22), cy+oy+(X?-24:0), typeOn(d.note,q3), {s:10.5, c:'cyan', al:'center', r, ls:2.5, a:.85});
+  } else if (d.kind==='dia'){
+    const ca=Math.cos(d.ang*DEG), sa=Math.sin(d.ang*DEG), c=d.c;
+    const P1=[c[0]+d.r*ca, c[1]+d.r*sa, c[2]], P2=[c[0]-d.r*ca, c[1]-d.r*sa, c[2]];
+    const L1=[P1[0]+d.lead[0], P1[1]+d.lead[1], c[2]], sg=Math.sign(d.lead[0])||1, L2=[L1[0]+sg*20, L1[1], c[2]];
+    const s1=P(P1), s2=P(P2), sc=P(c), l1=P(L1), l2=P(L2);
+    pushPath(F, [sc[0],sc[1],s1[0],s1[1]], false, 'cyan', 1, q1);
+    pushPath(F, [sc[0],sc[1],s2[0],s2[1]], false, 'cyan', 1, q1);
+    pushPath(F, [s1[0],s1[1],l1[0],l1[1],l2[0],l2[1]], false, 'cyan', .85, q2, '', true);
+    if (q1>=1){
+      const L=Math.hypot(s1[0]-s2[0], s1[1]-s2[1])||1, ux=(s1[0]-s2[0])/L, uy=(s1[1]-s2[1])/L, k=.6+.4*smooth(.3,.5,q);
+      arrowHead(F, s1[0], s1[1], ux, uy, k); arrowHead(F, s2[0], s2[1], -ux, -uy, k);
+    }
+    pushText(F, (l1[0]+l2[0])/2, l1[1]-9, typeOn(d.text,q3), {s:21, f:'num', c:'ink', al:'center', ls:1});
+  }
+}
+
+function emitLabel(F, cp, es, cam, q, alpha){
+  const lb=cp.src.label, ex=cp.ex; if (!lb||q<=0) return;
+  const w=es.X(lb.anchor), A=[cam.sx(w), cam.sy(w)], E=[A[0]+lb.dx, A[1]+lb.dy];
+  const R=17, Lsh=262;
+  let sg=lb.dx<0?-1:1;
+  if (sg>0&&E[0]+R+Lsh>1856) sg=-1; else if (sg<0&&E[0]-R-Lsh<64) sg=1;
+  F.ops.push({o:'D', x:A[0], y:A[1], r:3.2, c:'cyan', a:alpha*smooth(0,.1,q)});
+  const len=Math.hypot(E[0]-A[0], E[1]-A[1])||1, ux=(E[0]-A[0])/len, uy=(E[1]-A[1])/len;
+  pushPath(F, [A[0],A[1],E[0]-ux*R,E[1]-uy*R], false, 'cyan', alpha, clamp01(q/.38));
+  const qc=clamp01((q-.3)/.25);
+  if (qc>0){
+    const circ=[]; for (let i=0;i<=40;i++){ const a=-Math.PI/2+i/40*Math.PI*2; circ.push(E[0]+R*Math.cos(a), E[1]+R*Math.sin(a)); }
+    pushPath(F, circ, false, 'cyan', alpha, qc);
+  }
+  pushPath(F, [E[0]+sg*R,E[1],E[0]+sg*(R+Lsh),E[1]], false, 'cyan', alpha*.9, clamp01((q-.42)/.3));
+  const qt=clamp01((q-.55)/.45), x0=E[0]+sg*(R+10), al=sg>0?'left':'right';
+  pushText(F, E[0], E[1]+5.5, typeOn(String(ex.order+1).padStart(2,'0'),clamp01((q-.5)/.2)), {s:15, f:'num', c:'cyan', al:'center', a:alpha, wt:600});
+  pushText(F, x0, E[1]-10, typeOn(cp.src.zh,qt), {s:25, f:'cjk', c:'ink', al, a:alpha, wt:600, ls:2});
+  pushText(F, E[0]+sg*(R+Lsh), E[1]-10, typeOn(cp.src.no,qt), {s:11, c:'cyan', al:sg>0?'right':'left', a:alpha*.9, ls:2});
+  pushText(F, x0, E[1]+20, typeOn(cp.src.en,qt), {s:12, c:'cyan', al, a:alpha, ls:2.4});
+  pushText(F, x0, E[1]+38, typeOn(cp.src.spec||'',qt), {s:10.5, c:'mute', al, a:alpha, ls:1.2});
+}
+
+function emitChrome(F, S, t, f, cam, shot, si){
+  const T=S.timeline, ps=EASE.outCubic(win(t,T.sheet.t0,T.sheet.dur));
+  pushPath(F, [24,24,1896,24,1896,1056,24,1056], true, 'thin', .8, ps);
+  pushPath(F, [40,40,1880,40,1880,1040,40,1040], true, 'line', .9, ps);
+  for (let i=1;i<8;i++){ const x=40+i*230; pushPath(F,[x,24,x,40],false,'thin',.6,ps); pushPath(F,[x,1040,x,1056],false,'thin',.6,ps); }
+  for (let i=1;i<4;i++){ const y=40+i*250; pushPath(F,[24,y,40,y],false,'thin',.6,ps); pushPath(F,[1880,y,1896,y],false,'thin',.6,ps); }
+  const ta=smooth(.7,1.4,t);
+  if (ta<=0) return;
+  // 標題欄
+  const X0=1380, X1=1880, Y0=944, Y1=1040, rows=[Y0, Y0+32, Y0+64, Y1];
+  pushPath(F, [X0,Y1,X0,Y0,X1,Y0], false, 'line', ta, 1);
+  rows.slice(1,3).forEach(y=>pushPath(F,[X0,y,X1,y],false,'thin',ta,1));
+  [[1720,Y0,Y1],[1560,Y0+64,Y1],[1790,Y0+32,Y0+64]].forEach(([x,a,b])=>pushPath(F,[x,a,x,b],false,'thin',ta,1));
+  const cell=(x,y,lab,val,o)=>{ pushText(F,x+8,y+11,lab,{s:8.5,c:'mute',a:ta,ls:1.6}); pushText(F,x+8,y+27,val,Object.assign({s:12.5,a:ta,ls:1},o||{})); };
+  const tc=(()=>{ const s=f/T.fps, m=Math.floor(s/60), r=s-m*60; return String(m).padStart(2,'0')+':'+r.toFixed(3).padStart(6,'0'); })();
+  cell(X0,Y0,'TITLE',S.meta.title,{s:12});
+  cell(1720,Y0,'DWG NO.',S.meta.dwg,{c:'cyan'});
+  cell(X0,Y0+32,'SHOT',shot.code+' · '+shot.en,{s:11.5});
+  cell(1720,Y0+32,'REV',S.meta.rev); cell(1790,Y0+32,'SCALE',S.meta.scale);
+  cell(X0,Y0+64,'FRAME · TC',String(f).padStart(4,'0')+' · '+tc,{f:'num',s:14});
+  cell(1560,Y0+64,'SCENE #','@@DIGEST@@',{c:'cyan',f:'num',s:14});
+  cell(1720,Y0+64,'RATE',T.fps+' FPS · 1/'+T.fps+' s',{f:'num',s:14});
+  // 左上鏡頭字卡
+  const sq=win(t, shot.t0+(si===0?.8:0), .7);
+  pushText(F, 72, 132, shot.code, {s:64, f:'num', c:'cyan', a:ta*.95, wt:300});
+  pushText(F, 158, 96, typeOn(shot.en, sq), {s:13, c:'line', a:ta, ls:3.2});
+  pushText(F, 158, 128, typeOn(shot.zh, sq), {s:22, f:'cjk', c:'ink', a:ta, ls:3, wt:600});
+  const sp=clamp01((t-shot.t0)/(shot.t1-shot.t0));
+  pushPath(F, [158,146,478,146], false, 'thin', ta*.7, 1);
+  pushPath(F, [158,146,158+320*sp,146], false, 'cyan', ta, 1);
+  T.shots.forEach((s,i)=>F.ops.push({o:'D', x:158+i*14, y:162, r:3, c:i===si?'cyan':'mute', a:ta*(i===si?1:.5)}));
+  // 左下比例尺（隨縮放即時變化）
+  const k=cam.k, bx=72, by=1004;
+  for (let i=0;i<5;i++) if (i%2===0) F.ops.push({o:'F', p:[bx+i*10*k,by-5,bx+(i+1)*10*k,by-5,bx+(i+1)*10*k,by,bx+i*10*k,by], c:'line', a:ta*.8});
+  pushPath(F, [bx,by-5,bx+50*k,by-5,bx+50*k,by,bx,by], true, 'line', ta, 1);
+  pushText(F, bx, by+19, '0', {s:11, f:'num', a:ta*.8});
+  pushText(F, bx+50*k, by+19, '50 mm', {s:11, f:'num', a:ta*.8, al:'center'});
+  pushText(F, bx, by-14, 'SCALE · '+(k/S.view.pxPerMm*100).toFixed(0)+'%', {s:9.5, c:'mute', a:ta, ls:2});
+  // 右上軸向指示
+  const ox=1800, oy=120;
+  [['X',[1,0,0]],['Y',[0,1,0]],['Z',[0,0,1]]].forEach(([nm,v])=>{
+    const dx=dot(v,cam.r)*34, dy=-dot(v,cam.u)*34, l=Math.hypot(dx,dy);
+    if (l<3){ F.ops.push({o:'D', x:ox, y:oy, r:2.2, c:'cyan', a:ta}); const c=[]; for (let i=0;i<=24;i++){ const a=i/24*Math.PI*2; c.push(ox+7*Math.cos(a), oy+7*Math.sin(a)); } pushPath(F,c,false,'cyan',ta,1); pushText(F,ox+12,oy-9,nm,{s:11,f:'num',c:'cyan',a:ta}); return; }
+    pushPath(F, [ox,oy,ox+dx,oy+dy], false, nm==='Z'?'cyan':'line', ta, 1);
+    arrowHead(F, ox+dx, oy+dy, dx/l, dy/l, .55);
+    pushText(F, ox+dx*1.35, oy+dy*1.35+4, nm, {s:11, f:'num', c:nm==='Z'?'cyan':'line', a:ta, al:'center'});
+  });
+  pushText(F, ox, oy+62, 'YAW '+cam.yaw.toFixed(1)+'°  PITCH '+cam.pitch.toFixed(1)+'°', {s:9.5, c:'mute', a:ta, al:'center', ls:1.5});
+}
+
+function buildFrame(C, f){
+  const S=C.S, T=S.timeline, t=f/T.fps;
+  const F={ops:[{o:'bg'}], tip:null, t, f};
+  const cam=makeCam(sampleTrack(T.camera, t), S.view.pxPerMm);
+  let si=T.shots.findIndex(s=>t>=s.t0&&t<s.t1); if (si<0) si=t<T.shots[0].t0?0:T.shots.length-1;
+  const shot=T.shots[si];
+  // 輔助中心線（青色點鏈線）：layer 'top' 畫在零件之上，其餘在零件之下
+  const construct=layer=>{ for (const cl of S.construct||[]){
+    if ((cl.layer==='top')!==(layer==='top')) continue;
+    for (const [a,b] of cl.show){
+      if (t<a||t>b) continue;
+      const q=EASE.outCubic(win(t,a,.9)), fo=1-win(t,b-.5,.5);
+      const P=[cam.sx(cl.a),cam.sy(cl.a),cam.sx(cl.b),cam.sy(cl.b)];
+      if (Math.hypot(P[2]-P[0],P[3]-P[1])>4) pushPath(F, P, false, 'cyan', .6*fo, q, 'center');
+    }
+  } };
+  construct('under');
+  // 零件：變換 → 以 AABB 分離軸決定前後，拓撲排序後依序畫（前景面以底色填滿，遮住後方線條）
+  const items=[]; let seq=0;
+  for (const cp of C.parts){
+    const es=explodeState(cp,t); cp._es=es;
+    for (const pm of cp.prims){
+      seq++;
+      let a=1;
+      if (pm.housed){ a=smooth(.01,.1,es.prog); if (a<=0.002) continue; }
+      if (t<pm.w0) continue;
+      const it={pm, es, a, seq, depth:cam.depth(es.X(pm.centroid))};
+      const W=pm.kind==='prism'?(it.A=pm.A.map(es.X), it.B=pm.B.map(es.X), it.A.concat(it.B)):pm.decals.flatMap(d=>d.pts).map(es.X);
+      if (pm.kind==='prism'){ it.ax=it.A.map(cam.sx); it.ay=it.A.map(cam.sy); it.bx=it.B.map(cam.sx); it.by=it.B.map(cam.sy); }
+      const bb=[Infinity,Infinity,Infinity,-Infinity,-Infinity,-Infinity], sb=[Infinity,Infinity,-Infinity,-Infinity];
+      for (const w of W){
+        for (let k=0;k<3;k++){ if (w[k]<bb[k]) bb[k]=w[k]; if (w[k]>bb[k+3]) bb[k+3]=w[k]; }
+        const x=cam.sx(w), y=cam.sy(w); if (x<sb[0]) sb[0]=x; if (y<sb[1]) sb[1]=y; if (x>sb[2]) sb[2]=x; if (y>sb[3]) sb[3]=y;
+      }
+      it.bb=bb; it.sb=sb; items.push(it);
+    }
+  }
+  for (const it of orderItems(items, cam.e)) emitPrim(F, it, cam, t);
+  construct('top');
+  // 拆解軌跡與零件標註
+  const EI=T.explodeIn, EO=T.explodeOut;
+  for (const cp of C.parts){
+    if (!cp.ex||!cp.src.label) continue;
+    const es=cp._es, lo=win(t,EI.labelOut,EI.labelOutDur);
+    if (es.prog>0.002){
+      const h=cp.src.label.anchor, w=es.X(h);
+      pushPath(F, [cam.sx(h),cam.sy(h),cam.sx(w),cam.sy(w)], false, 'cyan', .5*smooth(0,.12,es.prog), 1, 'dash');
+    }
+    const lq=EASE.outCubic(win(t,cp.ex.label,EO.labelDur))*(1-EASE.inCubic(lo));
+    emitLabel(F, cp, es, cam, lq, 1);
+  }
+  // 尺寸標註
+  const D=T.dims;
+  (S.dims||[]).forEach((d,i)=>emitDim(F, d, win(t, D.t0+i*D.stagger, D.dur), cam));
+  // 繪圖筆尖
+  if (F.tip){
+    const [x,y]=F.tip;
+    pushPath(F,[x-11,y,x+11,y],false,'cyan',.9,1); pushPath(F,[x,y-11,x,y+11],false,'cyan',.9,1);
+    const c=[]; for (let i=0;i<=20;i++){ const a=i/20*Math.PI*2; c.push(x+5*Math.cos(a), y+5*Math.sin(a)); } pushPath(F,c,false,'cyan',.9,1);
+    const mx=(x-960)/cam.k+cam.pan[0], my=(540-y)/cam.k+cam.pan[1];
+    pushText(F, x+14, y-10, 'X '+mx.toFixed(1)+'  Y '+my.toFixed(1), {s:10, c:'cyan', a:.8, f:'num', ls:.5});
+  }
+  emitChrome(F, S, t, f, cam, shot, si);
+  // 雜湊：對整份顯示清單（不含雜湊欄本身）取 FNV-1a，寫回標題欄
+  F.digest=digestOps(F.ops);
+  for (const op of F.ops) if (op.o==='T'&&op.t==='@@DIGEST@@') op.t=F.digest;
+  F.shot=si; F.cam=cam;
+  return F;
+}
+
+function digestOps(ops){
+  let h=0x811c9dc5;
+  const num=v=>{ let x=Math.round(v*16)|0; for (let i=0;i<4;i++){ h^=x&255; h=Math.imul(h,16777619); x>>>=8; } };
+  const str=s=>{ for (let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } };
+  for (const op of ops){
+    for (const k in op){
+      const v=op[k];
+      if (typeof v==='number') num(v); else if (typeof v==='string') str(v); else if (v&&v.length) for (let i=0;i<v.length;i++) num(v[i]);
+    }
+  }
+  return (h>>>0).toString(16).padStart(8,'0');
+}
+function hashText(s){ let h=0x811c9dc5; for (let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(16).padStart(8,'0'); }
+
+/* ================================================================
+   5. 點陣化：顯示清單 → Canvas 2D。背景網格依解析度快取。
+   ================================================================ */
+const bgCache = new Map();
+function background(W, H){
+  const key=W+'x'+H; if (bgCache.has(key)) return bgCache.get(key);
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const g=c.getContext('2d'), k=Math.min(W/1920,H/1080), ox=(W-1920*k)/2, oy=(H-1080*k)/2;
+  // 純色底（不用漸層）：漸層的 dithering 會讓每張 PNG 膨脹到 MB 級，平塗加網格可壓到十分之一以下
+  g.fillStyle='#081a3a'; g.fillRect(0,0,W,H);
+  g.setTransform(k,0,0,k,ox,oy);
+  g.fillStyle='#0a1f45'; g.fillRect(40,40,1840,1000);
+  g.lineWidth=1;
+  for (let x=40;x<=1880;x+=23){ g.strokeStyle=(x-40)%115===0?'rgba(150,190,255,.10)':'rgba(150,190,255,.042)'; g.beginPath(); g.moveTo(x,40); g.lineTo(x,1040); g.stroke(); }
+  for (let y=40;y<=1040;y+=25){ g.strokeStyle=(y-40)%125===0?'rgba(150,190,255,.10)':'rgba(150,190,255,.042)'; g.beginPath(); g.moveTo(40,y); g.lineTo(1880,y); g.stroke(); }
+  bgCache.set(key,c); return c;
+}
+const DASH = {'':[], dash:[7,6], center:[22,5,3,5]};
+function paint(ctx, F, W, H){
+  const k=Math.min(W/1920,H/1080), ox=(W-1920*k)/2, oy=(H-1080*k)/2;
+  ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1;
+  ctx.drawImage(background(W,H),0,0);
+  ctx.setTransform(k,0,0,k,ox,oy);
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  for (const op of F.ops){
+    if (op.o==='L'){
+      ctx.globalAlpha=op.a; ctx.strokeStyle=COLORS[op.c]; ctx.lineWidth=op.w; ctx.setLineDash(DASH[op.d]||[]);
+      const p=op.p; ctx.beginPath(); ctx.moveTo(p[0],p[1]); for (let i=2;i<p.length;i+=2) ctx.lineTo(p[i],p[i+1]); if (op.z) ctx.closePath(); ctx.stroke();
+    } else if (op.o==='F'){
+      ctx.globalAlpha=op.a; ctx.fillStyle=COLORS[op.c];
+      const p=op.p; ctx.beginPath(); ctx.moveTo(p[0],p[1]); for (let i=2;i<p.length;i+=2) ctx.lineTo(p[i],p[i+1]); ctx.closePath(); ctx.fill();
+      if (op.c==='fill'){ ctx.strokeStyle=COLORS.fill; ctx.lineWidth=1; ctx.setLineDash([]); ctx.stroke(); }
+    } else if (op.o==='D'){
+      ctx.globalAlpha=op.a; ctx.fillStyle=COLORS[op.c]; ctx.beginPath(); ctx.arc(op.x,op.y,op.r,0,Math.PI*2); ctx.fill();
+    } else if (op.o==='T'){
+      ctx.globalAlpha=op.a; ctx.fillStyle=COLORS[op.c];
+      ctx.font=op.wt+' '+op.s+'px '+FONTS[op.f]; ctx.textAlign=op.al; ctx.textBaseline='alphabetic';
+      if ('letterSpacing' in ctx) ctx.letterSpacing=op.ls+'px';
+      if (op.r){ ctx.save(); ctx.translate(op.x,op.y); ctx.rotate(op.r*DEG); ctx.fillText(op.t,0,0); ctx.restore(); }
+      else ctx.fillText(op.t,op.x,op.y);
+    }
+  }
+  ctx.globalAlpha=1; ctx.setLineDash([]);
+  if ('letterSpacing' in ctx) ctx.letterSpacing='0px';
+}
+/* ================================================================
+   6. 播放器：播放只決定「現在顯示第幾幀」，畫面內容永遠由 buildFrame(幀號) 算出。
+   ================================================================ */
+const $ = id => document.getElementById(id);
+const clone = o => JSON.parse(JSON.stringify(o));
+let SCENE = clone(DEFAULT_SCENE), C = compileScene(SCENE), inputHash = hashText(JSON.stringify(SCENE));
+const view = $('view'), vctx = view.getContext('2d', {alpha:false});
+const P = {frame:0, playing:false, t0:0, f0:0, busy:false, raf:0};
+
+function pretty(v, ind){
+  ind=ind||'';
+  const flat=JSON.stringify(v);
+  if (flat.length<=96 || !v || typeof v!=='object') return flat;
+  const nx=ind+'  ';
+  if (Array.isArray(v)){
+    if (v.every(x=>typeof x!=='object'||x===null||(Array.isArray(x)&&x.every(y=>typeof y!=='object')))) return flat;
+    return '[\n'+v.map(x=>nx+pretty(x,nx)).join(',\n')+'\n'+ind+']';
+  }
+  return '{\n'+Object.keys(v).map(k=>nx+JSON.stringify(k)+': '+pretty(v[k],nx)).join(',\n')+'\n'+ind+'}';
+}
+
+function fmtTC(f){ const s=f/SCENE.timeline.fps, m=Math.floor(s/60); return String(m).padStart(2,'0')+':'+(s-m*60).toFixed(3).padStart(6,'0'); }
+function fmtVec(v){ return '['+v.map(x=>(Math.round(x*100)/100).toString()).join(', ')+']'; }
+
+function buildShots(){
+  const T=SCENE.timeline, box=$('shots'); box.innerHTML='';
+  T.shots.forEach((s,i)=>{
+    const b=document.createElement('button'); b.type='button';
+    b.style.flex=String(s.t1-s.t0);
+    b.textContent=s.code+' '+s.zh; b.title=s.code+' · '+s.en+'（'+s.t0+'–'+s.t1+' s）';
+    b.addEventListener('click',()=>{ stop(); setFrame(Math.round(s.t0*T.fps)); });
+    box.appendChild(b);
+  });
+}
+function buildRows(){
+  const tb=$('partRows'); tb.innerHTML='';
+  C.parts.forEach(cp=>{
+    const p=cp.src, tr=document.createElement('tr'), ex=cp.ex;
+    tr.dataset.id=p.id;
+    const prims=p.prims.length, housed=p.prims.filter(q=>q.housed).length;
+    tr.innerHTML='<td>'+(ex?String(ex.order+1).padStart(2,'0'):'—')+'</td>'+
+      '<td><span class="zh"></span><span class="en"></span></td>'+
+      '<td>'+(ex?fmtVec(ex.dir)+' × '+ex.dist+' mm'+(ex.spin?'<span class="en">自轉 '+ex.spin.axis+' '+ex.spin.deg+'°</span>':''):'固定')+'</td>'+
+      '<td>'+(ex?ex.out.toFixed(2)+' → '+(ex.back+ex.backDur).toFixed(2)+' s':'描繪 '+(p.draw||[0,0]).map(v=>v.toFixed(1)).join('–')+' s')+'</td>'+
+      '<td>'+prims+(housed?'<span class="en">'+housed+' 內藏</span>':'')+'</td>';
+    tr.querySelector('.zh').textContent=p.zh+' '+p.no;
+    tr.querySelector('.en').textContent=p.en;
+    tb.appendChild(tr);
+  });
+}
+function syncMeta(){
+  const T=SCENE.timeline;
+  $('scrub').max=C.frames-1; $('fTo').max=C.frames-1; $('fFrom').max=C.frames-1;
+  if (+$('fTo').value>C.frames-1||!$('fTo').dataset.touched) $('fTo').value=C.frames-1;
+  $('sRate').textContent=T.fps+' fps';
+  $('sLen').textContent=C.frames+' frames · '+(C.frames/T.fps).toFixed(3)+' s';
+  $('sInput').textContent=inputHash;
+  buildShots(); buildRows();
+}
+
+function sizeCanvas(){
+  const r=view.getBoundingClientRect(), dpr=Math.min(2, window.devicePixelRatio||1);
+  const w=Math.max(320,Math.round(r.width*dpr)), h=Math.max(180,Math.round(r.height*dpr));
+  if (view.width!==w||view.height!==h){ view.width=w; view.height=h; }
+}
+let lastShot=-1;
+function draw(){
+  const F=buildFrame(C, P.frame);
+  paint(vctx, F, view.width, view.height);
+  $('scrub').value=P.frame;
+  $('tc').textContent=fmtTC(P.frame);
+  $('fc').textContent='F '+String(P.frame).padStart(4,'0')+' / '+(C.frames-1)+' · #'+F.digest;
+  if (F.shot!==lastShot){
+    lastShot=F.shot;
+    [...$('shots').children].forEach((b,i)=>b.classList.toggle('on', i===F.shot));
+    const s=SCENE.timeline.shots[F.shot]; $('liveShot').textContent=s.code+' · '+s.zh;
+  }
+  const t=F.t;
+  [...$('partRows').children].forEach((tr,i)=>{
+    const cp=C.parts[i], d=cp.src.draw;
+    const live=(cp._es&&cp._es.prog>0.001)||(d&&t>=d[0]&&t<=d[1]);
+    tr.classList.toggle('live', !!live);
+  });
+  return F;
+}
+function setFrame(f){ P.frame=Math.max(0,Math.min(C.frames-1,Math.round(f))); draw(); }
+function tick(now){
+  if (!P.playing) return;
+  let f=P.f0+Math.floor((now-P.t0)*SCENE.timeline.fps/1000);
+  if (f>=C.frames){ P.t0=now; P.f0=0; f=0; }
+  if (f!==P.frame){ P.frame=f; draw(); }
+  P.raf=requestAnimationFrame(tick);
+}
+function play(){ if (P.busy) return; if (P.frame>=C.frames-1) P.frame=0; P.playing=true; P.t0=performance.now(); P.f0=P.frame; setPlayIcon(); P.raf=requestAnimationFrame(tick); }
+function stop(){ P.playing=false; cancelAnimationFrame(P.raf); setPlayIcon(); }
+function setPlayIcon(){
+  $('bPlay').setAttribute('aria-pressed', P.playing?'true':'false');
+  $('bPlay').setAttribute('aria-label', P.playing?'暫停':'播放');
+  $('playIco').innerHTML=P.playing?'<path d="M5 3v10M11 3v10"/>':'<path d="M5 3v10l8-5Z"/>';
+}
+
+$('bPlay').addEventListener('click',()=>P.playing?stop():play());
+$('bPrev').addEventListener('click',()=>{ stop(); setFrame(P.frame-1); });
+$('bNext').addEventListener('click',()=>{ stop(); setFrame(P.frame+1); });
+$('scrub').addEventListener('input',e=>{ stop(); setFrame(+e.target.value); });
+document.addEventListener('keydown',e=>{
+  if (e.target.closest('textarea,input,select')||e.metaKey||e.ctrlKey||e.altKey) return;
+  const fps=SCENE.timeline.fps;
+  if (e.code==='Space'){ e.preventDefault(); P.playing?stop():play(); }
+  else if (e.key==='ArrowLeft'){ e.preventDefault(); stop(); setFrame(P.frame-(e.shiftKey?fps:1)); }
+  else if (e.key==='ArrowRight'){ e.preventDefault(); stop(); setFrame(P.frame+(e.shiftKey?fps:1)); }
+  else if (e.key==='Home'){ stop(); setFrame(0); }
+  else if (e.key==='End'){ stop(); setFrame(C.frames-1); }
+  else if (/^[1-9]$/.test(e.key)){ const s=SCENE.timeline.shots[+e.key-1]; if (s){ stop(); setFrame(Math.round(s.t0*fps)); } }
+});
+new ResizeObserver(()=>{ sizeCanvas(); draw(); }).observe(view);
+
+// 場景 JSON 編輯
+$('json').value=pretty(SCENE);
+function applyScene(obj){
+  const next=compileScene(obj);
+  SCENE=obj; C=next; inputHash=hashText(JSON.stringify(SCENE));
+  syncMeta(); lastShot=-1; setFrame(Math.min(P.frame, C.frames-1));
+}
+$('bApply').addEventListener('click',()=>{
+  const log=$('jsonLog');
+  try{ applyScene(JSON.parse($('json').value)); log.textContent='已套用。INPUT # '+inputHash+'，共 '+C.frames+' 幀。'; }
+  catch(err){ log.innerHTML=''; const s=document.createElement('span'); s.className='err'; s.textContent='無法套用：'+err.message; log.appendChild(s); }
+});
+$('bReset').addEventListener('click',()=>{ $('json').value=pretty(DEFAULT_SCENE); applyScene(clone(DEFAULT_SCENE)); $('jsonLog').textContent='已還原預設場景。'; });
+$('fTo').addEventListener('input',e=>{ e.target.dataset.touched='1'; });
+
+syncMeta();
+sizeCanvas();
+(function boot(){
+  const q=new URLSearchParams(location.search), f=q.get('frame'), t=q.get('t');
+  const start=()=>{
+    if (f!=null) setFrame(+f);
+    else if (t!=null) setFrame(+t*SCENE.timeline.fps);
+    else { setFrame(0); if (!matchMedia('(prefers-reduced-motion: reduce)').matches && !q.has('still')) play(); else setFrame(Math.round(29*SCENE.timeline.fps)); }
+  };
+  (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(start);
+})();
+/* ================================================================
+   7. 輸出：逐幀重算 → PNG 幀序列（ZIP / 資料夾），或 WebCodecs 編碼 + 頁內 MP4 muxer。
+      影片時間戳一律 = 幀號 × 1e6 / fps 微秒，與播放速度、機器快慢無關。
+   ================================================================ */
+const CRC_T = (()=>{ const t=new Uint32Array(256); for (let n=0;n<256;n++){ let c=n; for (let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(b){ let c=0xFFFFFFFF; for (let i=0;i<b.length;i++) c=CRC_T[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+
+/* 僅儲存（不壓縮）的 ZIP；檔案時間固定，同樣輸入得到同樣的 ZIP 位元組 */
+class ZipWriter{
+  constructor(){ this.parts=[]; this.dir=[]; this.off=0; }
+  add(name, bytes){
+    const nm=new TextEncoder().encode(name), crc=crc32(bytes), h=new DataView(new ArrayBuffer(30));
+    const DATE=((2026-1980)<<9)|(9<<5)|24;
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+    h.setUint16(10,0,true); h.setUint16(12,DATE,true); h.setUint32(14,crc,true); h.setUint32(18,bytes.length,true); h.setUint32(22,bytes.length,true);
+    h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+    this.parts.push(h.buffer, nm, new Blob([bytes]));
+    this.dir.push({nm, crc, size:bytes.length, off:this.off, DATE});
+    this.off+=30+nm.length+bytes.length;
+  }
+  finish(){
+    let cd=0; const start=this.off;
+    for (const e of this.dir){
+      const h=new DataView(new ArrayBuffer(46));
+      h.setUint32(0,0x02014b50,true); h.setUint16(4,20,true); h.setUint16(6,20,true); h.setUint16(8,0x0800,true); h.setUint16(10,0,true);
+      h.setUint16(12,0,true); h.setUint16(14,e.DATE,true); h.setUint32(16,e.crc,true); h.setUint32(20,e.size,true); h.setUint32(24,e.size,true);
+      h.setUint16(28,e.nm.length,true); h.setUint32(42,e.off,true);
+      this.parts.push(h.buffer, e.nm); cd+=46+e.nm.length;
+    }
+    const z=new DataView(new ArrayBuffer(22));
+    z.setUint32(0,0x06054b50,true); z.setUint16(8,this.dir.length,true); z.setUint16(10,this.dir.length,true); z.setUint32(12,cd,true); z.setUint32(16,start,true);
+    this.parts.push(z.buffer);
+    return new Blob(this.parts,{type:'application/zip'});
+  }
+}
+
+/* ---------- 最小 MP4（ISO BMFF）muxer：單一視訊軌，moov 置於檔尾 ---------- */
+function mp4Mux(o){
+  const enc=new TextEncoder();
+  const u8=n=>new Uint8Array([n&255]);
+  const u16=n=>new Uint8Array([(n>>8)&255,n&255]);
+  const u32=n=>new Uint8Array([(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255]);
+  const cat=arr=>{ const L=arr.reduce((s,a)=>s+a.length,0), out=new Uint8Array(L); let p=0; for (const a of arr){ out.set(a,p); p+=a.length; } return out; };
+  const box=(type,...pl)=>{ const body=cat(pl); return cat([u32(body.length+8), enc.encode(type), body]); };
+  const full=(type,v,flags,...pl)=>box(type, u8(v), u8(flags>>16), u16(flags&0xffff), ...pl);
+  const matrix=cat([0x00010000,0,0,0,0x00010000,0,0,0,0x40000000].map(u32));
+  const N=o.samples.length, fps=o.fps, durMs=Math.round(N*1000/fps);
+  const ftyp=box('ftyp', enc.encode('isom'), u32(512), enc.encode('isom'), enc.encode('iso2'), enc.encode(o.kind==='avc'?'avc1':'vp09'), enc.encode('mp41'));
+  const total=o.samples.reduce((s,x)=>s+x.data.length,0);
+  const mdatHead=cat([u32(total+8), enc.encode('mdat')]);
+  const name=new Uint8Array(32); const nm=enc.encode('R6 blueprint renderer'); name[0]=nm.length; name.set(nm,1);
+  const cfg=o.kind==='avc' ? box('avcC', o.desc)
+    : full('vpcC',1,0, u8(o.vp.profile), u8(o.vp.level), u8((8<<4)|(1<<1)|0), u8(1), u8(1), u8(1), u16(0));
+  const entry=box(o.kind==='avc'?'avc1':'vp09', new Uint8Array(6), u16(1), u16(0), u16(0), new Uint8Array(12),
+    u16(o.w), u16(o.h), u32(0x00480000), u32(0x00480000), u32(0), u16(1), name, u16(0x18), u16(0xffff), cfg, box('pasp',u32(1),u32(1)));
+  // 解碼順序 = 輸出順序；若編碼器用了 B 幀（顯示時間 ≠ 解碼序），補 ctts
+  const pts=o.samples.map(s=>Math.round(s.ts*fps/1e6)), off=pts.map((p,i)=>p-i), needCtts=off.some(v=>v!==0);
+  const ctts=[]; if (needCtts){ let run=null; off.forEach(v=>{ if (run&&run.v===v) run.n++; else { run={v,n:1}; ctts.push(run); } }); }
+  const keys=[]; o.samples.forEach((s,i)=>{ if (s.key) keys.push(i+1); });
+  const stbl=box('stbl',
+    full('stsd',0,0,u32(1),entry),
+    full('stts',0,0,u32(1),u32(N),u32(1)),
+    ...(needCtts?[full('ctts',off.some(v=>v<0)?1:0,0,u32(ctts.length),...ctts.flatMap(r=>[u32(r.n),u32(r.v)]))]:[]),
+    full('stss',0,0,u32(keys.length),...keys.map(u32)),
+    full('stsc',0,0,u32(1),u32(1),u32(N),u32(1)),
+    full('stsz',0,0,u32(0),u32(N),...o.samples.map(s=>u32(s.data.length))),
+    full('stco',0,0,u32(1),u32(ftyp.length+8)));
+  const moov=box('moov',
+    full('mvhd',0,0,u32(0),u32(0),u32(1000),u32(durMs),u32(0x00010000),u16(0x0100),u16(0),u32(0),u32(0),matrix,new Uint8Array(24),u32(2)),
+    box('trak',
+      full('tkhd',0,3,u32(0),u32(0),u32(1),u32(0),u32(durMs),u32(0),u32(0),u16(0),u16(0),u16(0),u16(0),matrix,u32(o.w<<16),u32(o.h<<16)),
+      box('mdia',
+        full('mdhd',0,0,u32(0),u32(0),u32(fps),u32(N),u16(0x55c4),u16(0)),
+        full('hdlr',0,0,u32(0),enc.encode('vide'),u32(0),u32(0),u32(0),enc.encode('VideoHandler\0')),
+        box('minf',
+          full('vmhd',0,1,u16(0),u16(0),u16(0),u16(0)),
+          box('dinf', full('dref',0,0,u32(1), full('url ',0,1))),
+          stbl))));
+  return new Blob([ftyp, mdatHead, ...o.samples.map(s=>s.data), moov], {type:'video/mp4'});
+}
+
+async function pickCodec(w, h, fps){
+  if (typeof VideoEncoder==='undefined') return null;
+  const bitrate=Math.round(w*h*fps*0.1);
+  const cands=[
+    {codec:'avc1.640033', kind:'avc'}, {codec:'avc1.64002A', kind:'avc'}, {codec:'avc1.4D4033', kind:'avc'},
+    {codec:'avc1.42E033', kind:'avc'}, {codec:'vp09.00.51.08', kind:'vp9', vp:{profile:0, level:51}}
+  ];
+  for (const c of cands){
+    const cfg={codec:c.codec, width:w, height:h, bitrate, framerate:fps, latencyMode:'quality'};
+    if (c.kind==='avc') cfg.avc={format:'avc'};
+    try{ const s=await VideoEncoder.isConfigSupported(cfg); if (s.supported) return Object.assign({cfg}, c); }catch(e){}
+  }
+  return null;
+}
+
+const X = {abort:false};
+function nextTick(){ return new Promise(r=>setTimeout(r,0)); }
+function logLine(msg, err){ const l=$('log'); l.innerHTML=''; const s=document.createElement('span'); if (err) s.className='err'; s.textContent=msg; l.appendChild(s); }
+function setProgress(q){ $('prog').style.width=(q*100).toFixed(2)+'%'; }
+function lockUI(on){
+  P.busy=on; if (on) stop();
+  $('busy').hidden=!on;
+  ['bMp4','bZip','bDir','bApply','bReset','res'].forEach(id=>$(id).disabled=on);
+  $('bStop').disabled=!on;
+}
+function readJob(){
+  const [w,h]=$('res').value.split('x').map(Number);
+  let from=Math.max(0,Math.min(C.frames-1,Math.round(+$('fFrom').value||0))), to=Math.max(0,Math.min(C.frames-1,Math.round(+$('fTo').value)));
+  if (isNaN(to)) to=C.frames-1; if (to<from) [from,to]=[to,from];
+  return {w,h,from,to};
+}
+function saveBlob(blob, name){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
+}
+function makeRenderer(w, h){
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+  return {cv, ctx:cv.getContext('2d',{alpha:false})};
+}
+
+async function exportMP4(job, opt){
+  opt=opt||{};
+  const {w,h,from,to}=job, fps=SCENE.timeline.fps, n=to-from+1;
+  const pick=await pickCodec(w,h,fps);
+  if (!pick) throw new Error('這個瀏覽器沒有可用的 WebCodecs 視訊編碼器（請改用新版 Chrome / Edge），或改輸出 PNG 幀序列。');
+  const R=makeRenderer(w,h), samples=[]; let desc=null, fail=null;
+  const encd=new VideoEncoder({
+    output:(ch,meta)=>{
+      const b=new Uint8Array(ch.byteLength); ch.copyTo(b);
+      samples.push({data:b, ts:ch.timestamp, key:ch.type==='key'});
+      const d=meta&&meta.decoderConfig&&meta.decoderConfig.description;
+      if (d&&!desc) desc=d instanceof ArrayBuffer?new Uint8Array(d.slice(0)):new Uint8Array(d.buffer.slice(d.byteOffset,d.byteOffset+d.byteLength));
+    },
+    error:e=>{ fail=e; }
+  });
+  encd.configure(pick.cfg);
+  const digests=[];
+  for (let f=from, i=0; f<=to; f++, i++){
+    if (X.abort) { encd.close(); throw new Error('已停止。'); }
+    if (fail) throw fail;
+    const F=buildFrame(C,f); paint(R.ctx,F,w,h); digests.push(F.digest);
+    const vf=new VideoFrame(R.cv,{timestamp:Math.round(i*1e6/fps), duration:Math.round(1e6/fps)});
+    encd.encode(vf,{keyFrame:i%fps===0}); vf.close();
+    while (encd.encodeQueueSize>4){ await new Promise(r=>{ let done=false; const fin=()=>{ if(!done){ done=true; encd.removeEventListener('dequeue',fin); r(); } }; encd.addEventListener('dequeue',fin); setTimeout(fin,40); }); }
+    if (i%6===0){ setProgress(i/n); logLine('編碼中 '+pick.codec+' · 幀 '+f+' / '+to+' · #'+F.digest); await nextTick(); }
+  }
+  await encd.flush(); encd.close();
+  if (fail) throw fail;
+  if (pick.kind==='avc'&&!desc) throw new Error('編碼器沒有回傳 avcC 設定，無法封裝 MP4。');
+  const blob=mp4Mux({samples, w, h, fps, kind:pick.kind, desc, vp:pick.vp});
+  setProgress(1);
+  const name='r6-blueprint_'+w+'x'+h+'_'+fps+'fps_f'+from+'-'+to+'.mp4';
+  logLine('完成：'+name+' · '+n+' 幀 · '+(n/fps).toFixed(3)+' s · '+(blob.size/1048576).toFixed(1)+' MB · '+pick.codec+' · INPUT #'+inputHash);
+  if (!opt.noSave) saveBlob(blob, name);
+  return {blob, name, codec:pick.codec, frames:n, digests};
+}
+
+function manifest(job, digests){
+  const fps=SCENE.timeline.fps;
+  return JSON.stringify({generator:'121-camera-blueprint.html', input_hash:inputHash, fps, width:job.w, height:job.h, from:job.from, to:job.to,
+    pattern:'r6_%05d.png',
+    ffmpeg:'ffmpeg -framerate '+fps+' -start_number '+job.from+' -i r6_%05d.png -c:v libx264 -pix_fmt yuv420p -crf 14 r6.mp4',
+    frames:digests.map((d,i)=>({frame:job.from+i, t:+((job.from+i)/fps).toFixed(6), digest:d}))}, null, 1);
+}
+async function exportFrames(job, mode, opt){
+  opt=opt||{};
+  const {w,h,from,to}=job, n=to-from+1, R=makeRenderer(w,h), digests=[];
+  let dir=null, zip=null;
+  if (mode==='dir') dir=await window.showDirectoryPicker({mode:'readwrite', id:'r6-frames'});
+  else zip=new ZipWriter();
+  for (let f=from, i=0; f<=to; f++, i++){
+    if (X.abort) throw new Error('已停止。');
+    const F=buildFrame(C,f); paint(R.ctx,F,w,h); digests.push(F.digest);
+    const blob=await new Promise(r=>R.cv.toBlob(r,'image/png'));
+    const name='r6_'+String(f).padStart(5,'0')+'.png';
+    if (dir){ const fh=await dir.getFileHandle(name,{create:true}), ws=await fh.createWritable(); await ws.write(blob); await ws.close(); }
+    else zip.add(name, new Uint8Array(await blob.arrayBuffer()));
+    if (i%3===0){ setProgress(i/n); logLine('輸出 PNG · 幀 '+f+' / '+to+' · #'+F.digest); await nextTick(); }
+  }
+  const man=manifest(job, digests);
+  if (dir){ const fh=await dir.getFileHandle('manifest.json',{create:true}), ws=await fh.createWritable(); await ws.write(man); await ws.close(); }
+  setProgress(1);
+  if (dir){ logLine('完成：'+n+' 張 PNG 與 manifest.json 已寫入所選資料夾。'); return {frames:n, digests}; }
+  zip.add('manifest.json', new TextEncoder().encode(man));
+  const blob=zip.finish(), name='r6-frames_'+w+'x'+h+'_f'+from+'-'+to+'.zip';
+  logLine('完成：'+name+' · '+n+' 張 PNG · '+(blob.size/1048576).toFixed(1)+' MB（內附 manifest.json 與 ffmpeg 指令）');
+  if (!opt.noSave) saveBlob(blob, name);
+  return {blob, name, frames:n, digests};
+}
+
+async function runJob(kind){
+  if (P.busy) return;
+  X.abort=false; lockUI(true); setProgress(0);
+  const job=readJob();
+  try{ if (kind==='mp4') await exportMP4(job); else await exportFrames(job, kind); }
+  catch(err){ if (err&&err.name==='AbortError') logLine('已取消選擇資料夾。'); else logLine((err&&err.message)||String(err), true); }
+  finally{ lockUI(false); }
+}
+$('bMp4').addEventListener('click',()=>runJob('mp4'));
+$('bZip').addEventListener('click',()=>runJob('zip'));
+if ('showDirectoryPicker' in window){ $('bDir').hidden=false; $('bDir').addEventListener('click',()=>runJob('dir')); }
+$('bStop').addEventListener('click',()=>{ X.abort=true; });
+pickCodec(1920,1080,60).then(p=>{ $('codecInfo').textContent=p?p.codec+(p.kind==='avc'?' · H.264':' · VP9'):'無 WebCodecs'; if (!p) $('bMp4').disabled=true; });
+
+/* 自動化介面：同一幀號永遠得到同一份顯示清單。 */
+window.R6 = {
+  get scene(){ return clone(SCENE); }, get frames(){ return C.frames; }, get fps(){ return SCENE.timeline.fps; }, get inputHash(){ return inputHash; },
+  buildFrame:f=>buildFrame(C,f),
+  digest:f=>buildFrame(C,f).digest,
+  renderFrame:(canvas,f)=>{ const F=buildFrame(C,f); paint(canvas.getContext('2d',{alpha:false}),F,canvas.width,canvas.height); return F.digest; },
+  setScene:obj=>applyScene(obj),
+  seek:f=>{ stop(); setFrame(f); },
+  exportMP4:(job,opt)=>exportMP4(Object.assign(readJob(),job||{}),opt),
+  exportFrames:(job,mode,opt)=>exportFrames(Object.assign(readJob(),job||{}),mode||'zip',opt)
+};
+</script>
+</body>
+</html>

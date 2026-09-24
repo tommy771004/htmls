@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="汴河長卷：3D 清明上河圖縮圖">
+  <defs>
+    <linearGradient id="silk" x2="0" y2="1"><stop stop-color="#efe5cc"/><stop offset="1" stop-color="#dccdaa"/></linearGradient>
+    <radialGradient id="edge" cx=".5" cy=".5" r=".75"><stop offset=".62" stop-color="#8a6a3c" stop-opacity="0"/><stop offset="1" stop-color="#6e5230" stop-opacity=".42"/></radialGradient>
+    <linearGradient id="water" x2="0" y2="1"><stop stop-color="#b3b89f"/><stop offset="1" stop-color="#c3c4ab"/></linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#silk)"/>
+  <path d="M0 150 60 112 104 128 160 84 214 122 262 106 318 70 372 116 420 98 468 124 520 88 590 120 640 104V190H0Z" fill="#b7b8a6" opacity=".55"/>
+  <path d="M0 170 48 148 92 160 150 128 206 158 258 142 300 150 350 126 410 156 470 138 530 158 600 134 640 150V206H0Z" fill="#8f978a" opacity=".6"/>
+  <path d="M0 196C120 180 220 200 330 188S520 176 640 190V214H0Z" fill="#e8dfc8" opacity=".85"/>
+  <path d="M0 232C130 214 250 236 360 224S540 210 640 222V290C520 280 410 300 300 292S110 280 0 296Z" fill="url(#water)"/>
+  <g stroke="#6d7564" stroke-width="1.1" fill="none" opacity=".5"><path d="M40 252q14-4 28 0t28 0"/><path d="M180 266q14-4 28 0t28 0"/><path d="M420 246q14-4 28 0t28 0"/><path d="M520 272q14-4 28 0t28 0"/><path d="M110 280q12-3 24 0"/></g>
+  <path d="M232 300C262 214 358 214 390 296" fill="none" stroke="#5d4632" stroke-width="10"/>
+  <path d="M232 300C262 214 358 214 390 296" fill="none" stroke="#8f7253" stroke-width="5"/>
+  <g stroke="#4a3a2a" stroke-width="1.6"><path d="M246 272v-12M262 250v-12M280 236v-12M298 229v-12M316 229v-12M334 234v-12M352 246v-12M370 264v-12"/><path d="M246 260 262 238 280 224 298 217 316 217 334 222 352 234 370 252" fill="none"/></g>
+  <g fill="#ece3cf" stroke="#3a3128" stroke-width="1"><ellipse cx="272" cy="228" rx="15" ry="4"/><ellipse cx="344" cy="226" rx="15" ry="4"/></g>
+  <g fill="#3f3830"><circle cx="258" cy="244" r="2.4"/><circle cx="268" cy="236" r="2.4"/><circle cx="286" cy="226" r="2.4"/><circle cx="300" cy="222" r="2.4"/><circle cx="312" cy="221" r="2.4"/><circle cx="326" cy="224" r="2.4"/><circle cx="338" cy="230" r="2.4"/><circle cx="356" cy="240" r="2.4"/></g>
+  <g><path d="M60 262h92l-8 12H68Z" fill="#5c4836"/><path d="M78 262q30-22 58 0" fill="#a8946e" stroke="#3a3128"/><path d="M112 262 118 196M118 196l6 66" stroke="#3f3429" stroke-width="2"/></g>
+  <g><path d="M438 276h104l-9 12h-86Z" fill="#5c4836"/><path d="M456 276q34-24 66 0" fill="#a8946e" stroke="#3a3128"/><path d="M430 262 540 246" stroke="#3f3429" stroke-width="2"/></g>
+  <path d="M520 238h40l-5 7h-30Z" fill="#5e4a38"/>
+  <g stroke="#2f342e" stroke-width="1.2">
+    <path d="M18 334 60 318h90l40 16Z" fill="#56624f"/><rect x="34" y="334" width="140" height="30" fill="#e2d7bd"/><rect x="92" y="342" width="18" height="22" fill="#3a3129"/>
+    <path d="M196 344 224 326h86l30 18Z" fill="#56624f"/><rect x="210" y="344" width="118" height="26" fill="#d8ccb0"/>
+    <path d="M404 316 436 294h96l32 22Z" fill="#4f5a4b"/><rect x="420" y="316" width="130" height="22" fill="#86664a"/><path d="M412 338 440 324h90l30 14Z" fill="#56624f"/><rect x="424" y="338" width="122" height="30" fill="#e6dcc6"/>
+    <path d="M572 346 596 330h44v16Z" fill="#56624f"/><rect x="584" y="346" width="56" height="24" fill="#d9cfb7"/>
+  </g>
+  <g fill="#443d34"><path d="M160 318h3v12h-3zM168 320h3v10h-3zM350 312h3v14h-3zM362 314h3v12h-3zM376 316h3v12h-3zM560 318h3v12h-3z"/></g>
+  <g stroke="#4a4036" stroke-width="2.2" fill="none" stroke-linecap="round"><path d="M28 240v-50m0 14-14-18m14 6 12-20"/></g>
+  <rect width="640" height="400" fill="url(#edge)"/>
+  <rect x="0" y="0" width="640" height="10" fill="#3b3326"/><rect x="0" y="390" width="640" height="10" fill="#3b3326"/>
+  <rect x="0" y="10" width="640" height="2" fill="#b59868"/><rect x="0" y="388" width="640" height="2" fill="#b59868"/>
+  <g font-family="'Kaiti TC','BiauKai','DFKai-SB','STKaiti',serif" fill="#2a251f">
+    <text x="596" y="54" font-size="38" writing-mode="tb" letter-spacing="8">汴河長卷</text>
+  </g>
+  <rect x="582" y="262" width="30" height="30" rx="3" fill="#a8382b"/>
+  <text x="597" y="284" text-anchor="middle" font-family="'Kaiti TC','BiauKai','DFKai-SB','STKaiti',serif" font-size="18" fill="#f3e6cf">汴</text>
+  <text x="26" y="42" font-family="sans-serif" font-size="12" letter-spacing="4" fill="#6a5a45">QINGMING · SCROLL № 120</text>
+</svg>

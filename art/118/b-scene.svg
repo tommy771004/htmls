@@ -1,0 +1,261 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" font-family="'Segoe UI','Microsoft JhengHei','PingFang TC',sans-serif">
+<title>點燈人 · 美術規格 B · 場景關鍵圖（霧湖遺跡・藍調時刻）</title>
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="560" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#0f1726"/>
+    <stop offset=".42" stop-color="#2a4152"/>
+    <stop offset=".76" stop-color="#6b8791"/>
+    <stop offset=".93" stop-color="#b9a695"/>
+    <stop offset="1" stop-color="#d4b69c"/>
+  </linearGradient>
+  <linearGradient id="lake" x1="0" y1="560" x2="0" y2="1000" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#6f8a90"/>
+    <stop offset=".12" stop-color="#3c5963"/>
+    <stop offset=".5" stop-color="#1f3640"/>
+    <stop offset="1" stop-color="#0c161d"/>
+  </linearGradient>
+  <radialGradient id="moonHalo" cx="1130" cy="190" r="300" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#e7eee6" stop-opacity=".55"/>
+    <stop offset=".25" stop-color="#b9cfd0" stop-opacity=".22"/>
+    <stop offset="1" stop-color="#8fb0b8" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="warm" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#fff1c9" stop-opacity=".95"/>
+    <stop offset=".18" stop-color="#ffb04a" stop-opacity=".6"/>
+    <stop offset=".55" stop-color="#ff7a2e" stop-opacity=".16"/>
+    <stop offset="1" stop-color="#ff6a2b" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="cyan" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#dcffff" stop-opacity=".9"/>
+    <stop offset=".3" stop-color="#8ff6ff" stop-opacity=".35"/>
+    <stop offset="1" stop-color="#8ff6ff" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="stoneTop" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#7d8581"/>
+    <stop offset="1" stop-color="#4f5a5b"/>
+  </linearGradient>
+  <linearGradient id="stoneFace" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#3b4a50"/>
+    <stop offset="1" stop-color="#141e24"/>
+  </linearGradient>
+  <linearGradient id="cloak" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#5e2621"/>
+    <stop offset=".6" stop-color="#9b4636"/>
+    <stop offset="1" stop-color="#d0704a"/>
+  </linearGradient>
+  <filter id="blur6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+  <filter id="blur14" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+  <filter id="blur3"><feGaussianBlur stdDeviation="2.2"/></filter>
+  <filter id="mist" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency=".0028 .018" numOctaves="4" seed="7"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 .78  0 0 0 0 .85  0 0 0 0 .84  0 0 0 1.8 -.72"/>
+    <feGaussianBlur stdDeviation="3"/>
+  </filter>
+  <filter id="grain" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="3"/>
+    <feColorMatrix type="saturate" values="0"/>
+    <feComponentTransfer><feFuncA type="table" tableValues="0 .09"/></feComponentTransfer>
+  </filter>
+  <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="3" seed="11" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="6"/>
+  </filter>
+  <radialGradient id="vig" cx=".5" cy=".48" r=".75">
+    <stop offset=".55" stop-color="#05090d" stop-opacity="0"/>
+    <stop offset="1" stop-color="#05090d" stop-opacity=".72"/>
+  </radialGradient>
+  <pattern id="stars" width="220" height="160" patternUnits="userSpaceOnUse">
+    <circle cx="20" cy="30" r="1" fill="#dfe8e6" opacity=".7"/><circle cx="130" cy="18" r=".8" fill="#dfe8e6" opacity=".5"/>
+    <circle cx="180" cy="96" r="1.1" fill="#dfe8e6" opacity=".6"/><circle cx="70" cy="120" r=".7" fill="#dfe8e6" opacity=".45"/>
+  </pattern>
+  <linearGradient id="starFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="bandFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".35" stop-color="#fff"/><stop offset=".65" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <mask id="bandA"><rect x="0" y="420" width="1600" height="190" fill="url(#bandFade)"/></mask>
+  <mask id="bandB"><rect x="0" y="540" width="1600" height="120" fill="url(#bandFade)"/></mask>
+  <mask id="starMask"><rect width="1600" height="560" fill="url(#starFade)"/></mask>
+  <g id="wisp">
+    <path d="M0-34C20-34 30-18 28 0C26 16 16 22 10 34L6 26 2 44-4 28-10 40-12 24C-22 18-28 10-28-2C-28-20-18-34 0-34Z" fill="#1b1426"/>
+    <path d="M-20-6C-14-24 10-30 22-16C8-24-10-20-20-6Z" fill="#3a2f55" opacity=".7"/>
+    <circle cx="-9" cy="-6" r="12" fill="url(#cyan)"/><circle cx="9" cy="-6" r="12" fill="url(#cyan)"/>
+    <ellipse cx="-9" cy="-6" rx="3" ry="4.4" fill="#e6ffff"/><ellipse cx="9" cy="-6" rx="3" ry="4.4" fill="#e6ffff"/>
+  </g>
+</defs>
+
+<!-- SKY -->
+<rect width="1600" height="560" fill="url(#sky)"/>
+<rect width="1600" height="560" fill="url(#stars)" mask="url(#starMask)"/>
+<circle cx="1130" cy="190" r="300" fill="url(#moonHalo)"/>
+<circle cx="1130" cy="190" r="44" fill="#f2ead7"/>
+<g fill="#c9c6b4" opacity=".35"><ellipse cx="1118" cy="178" rx="13" ry="9"/><ellipse cx="1144" cy="204" rx="9" ry="7"/><ellipse cx="1136" cy="170" rx="5" ry="4"/></g>
+
+<!-- FAR MOUNTAINS (atmospheric perspective: lighter + cooler with distance) -->
+<path d="M0 500 70 470 150 488 260 430 350 470 420 452 520 492 600 470 700 505 820 468 930 498 1030 440 1120 476 1210 455 1320 492 1430 446 1520 478 1600 460V560H0Z" fill="#8499a0" opacity=".75"/>
+<path d="M0 530 90 505 190 522 300 490 380 515 470 500 560 530 640 515 760 540 880 512 1000 536 1110 505 1230 530 1340 510 1460 534 1600 512V560H0Z" fill="#627d88"/>
+<rect x="0" y="420" width="1600" height="190" filter="url(#mist)" opacity=".8" mask="url(#bandA)"/>
+
+<!-- LAKE -->
+<rect y="560" width="1600" height="440" fill="url(#lake)"/>
+<!-- moon streak reflection -->
+<g fill="#e9e6d6" opacity=".55" filter="url(#blur3)">
+  <rect x="1106" y="572" width="48" height="3" rx="1.5"/><rect x="1098" y="590" width="62" height="3" rx="1.5" opacity=".8"/>
+  <rect x="1112" y="610" width="40" height="3" rx="1.5" opacity=".7"/><rect x="1094" y="634" width="70" height="2.6" rx="1.3" opacity=".55"/>
+  <rect x="1116" y="662" width="34" height="2.4" rx="1.2" opacity=".45"/><rect x="1100" y="698" width="58" height="2.4" rx="1.2" opacity=".35"/>
+  <rect x="1120" y="740" width="30" height="2" rx="1" opacity=".25"/>
+</g>
+
+<!-- DISTANT UNLIT BEACON + COLONNADE (fogged) -->
+<g fill="#4f6b77">
+  <rect x="236" y="470" width="26" height="128"/><rect x="226" y="462" width="46" height="12"/>
+  <rect x="306" y="486" width="26" height="112"/><rect x="296" y="478" width="46" height="12"/>
+  <rect x="220" y="448" width="130" height="16"/>
+  <path d="M376 598V512L384 500 392 516 402 506V598Z"/>
+  <rect x="446" y="530" width="26" height="68"/><path d="M446 530 452 520 460 528 472 518V530Z"/>
+  <rect x="200" y="592" width="300" height="14" fill="#435e6a"/>
+  <!-- unlit beacon: cold silhouette -->
+  <rect x="566" y="498" width="14" height="72"/><path d="M556 498H590L584 486H562Z"/><rect x="560" y="566" width="26" height="8"/>
+</g>
+<g opacity=".28" transform="translate(0 1196) scale(1 -1)" filter="url(#blur3)"><rect x="220" y="592" width="300" height="10" fill="#8aa1a8"/></g>
+
+<!-- MOON GATE (destination) -->
+<g>
+  <path fill-rule="evenodd" d="M632 384H968V582H632ZM800 382A92 92 0 1 0 800 566A92 92 0 1 0 800 382Z" fill="#435f6c"/>
+  <path d="M800 382A92 92 0 0 1 892 474" fill="none" stroke="#9fb4b7" stroke-width="2.5" opacity=".7"/>
+  <path d="M620 372H980L966 388H634Z" fill="#344d59"/>
+  <path d="M614 372H986" stroke="#a7b9ba" stroke-width="2" opacity=".6"/>
+  <rect x="604" y="578" width="392" height="16" fill="#3a525d"/>
+  <g stroke="#3b5663" stroke-width="2" opacity=".8"><path d="M632 420H700M900 420H968M632 460H690M910 460H968M632 510H700M900 510H968M632 548H720M880 548H968"/></g>
+  <!-- light through the gate: faint sky -->
+  <circle cx="800" cy="474" r="92" fill="#a9b8b2" opacity=".35"/>
+</g>
+<g opacity=".25" filter="url(#blur6)"><path d="M632 596H968V760H632Z" fill="#415b66"/></g>
+<rect x="0" y="540" width="1600" height="120" filter="url(#mist)" opacity=".6" mask="url(#bandB)"/>
+
+<!-- LIT BEACON (right) -->
+<g>
+  <ellipse cx="1090" cy="612" rx="54" ry="12" fill="#2d4148"/>
+  <path d="M1066 612V520H1114V612Z" fill="#3c4e55"/>
+  <path d="M1066 520V612H1080V520Z" fill="#c07a45" opacity=".45"/>
+  <path d="M1050 520H1130L1120 500H1060Z" fill="#56676b"/>
+  <path d="M1050 520H1130" stroke="#ffc27a" stroke-width="3" opacity=".8"/>
+  <circle cx="1090" cy="470" r="200" fill="url(#warm)"/>
+  <path d="M1072 500C1068 476 1082 468 1086 444C1092 462 1104 470 1100 450C1112 468 1112 488 1106 500Z" fill="#ffb04a"/>
+  <path d="M1080 500C1078 486 1088 478 1090 464C1096 478 1102 486 1098 500Z" fill="#fff1c9"/>
+  <!-- warm reflection -->
+  <g filter="url(#blur6)" opacity=".75">
+    <rect x="1074" y="622" width="32" height="7" rx="3" fill="#ffb04a"/><rect x="1066" y="642" width="48" height="5" rx="2.5" fill="#ffb04a" opacity=".7"/>
+    <rect x="1078" y="664" width="26" height="5" rx="2.5" fill="#ff8a3a" opacity=".6"/><rect x="1070" y="692" width="40" height="4" rx="2" fill="#ff8a3a" opacity=".45"/>
+    <rect x="1080" y="726" width="22" height="4" rx="2" fill="#ff7a2e" opacity=".3"/>
+  </g>
+</g>
+
+<!-- STEPPING STONES (lit from beacon on the far side, from lantern on the near side) -->
+<g>
+  <g transform="translate(1034 660)"><ellipse rx="40" ry="10" cy="8" fill="#1e2d33"/><ellipse rx="40" ry="10" fill="#6b706a"/><path d="M-40 0A40 10 0 0 0 40 0" fill="none" stroke="#f0a060" stroke-width="2" opacity=".55"/></g>
+  <g transform="translate(962 700)"><ellipse rx="50" ry="12" cy="10" fill="#1d2b31"/><ellipse rx="50" ry="12" fill="#646c67"/><path d="M-50 0A50 12 0 0 0 50 0" fill="none" stroke="#e59a5e" stroke-width="2" opacity=".35"/></g>
+  <g transform="translate(870 748)"><ellipse rx="62" ry="15" cy="13" fill="#1b282e"/><ellipse rx="62" ry="15" fill="#5c6663"/><ellipse rx="30" ry="6" cx="-10" cy="-2" fill="#6e8a59" opacity=".6"/></g>
+  <g transform="translate(750 800)"><ellipse rx="76" ry="18" cy="16" fill="#18252b"/><ellipse rx="76" ry="18" fill="#5a6461"/><ellipse rx="38" ry="7" cx="14" cy="-3" fill="#6e8a59" opacity=".55"/></g>
+  <g transform="translate(612 852)"><ellipse rx="92" ry="22" cy="20" fill="#16222a"/><ellipse rx="92" ry="22" fill="#626a64"/><ellipse rx="92" ry="22" fill="#ffb04a" opacity=".12"/></g>
+  <g stroke="#9ab2b5" stroke-width="1.4" fill="none" opacity=".35">
+    <ellipse cx="612" cy="878" rx="118" ry="26"/><ellipse cx="750" cy="822" rx="98" ry="22"/><ellipse cx="870" cy="768" rx="80" ry="18"/>
+  </g>
+</g>
+
+<!-- WISPS (cold, jagged, lurking) -->
+<g transform="translate(700 690) scale(.9)"><circle r="70" fill="url(#cyan)" opacity=".35"/><use href="#wisp"/></g>
+<g transform="translate(1250 720) scale(1.05)"><circle r="80" fill="url(#cyan)" opacity=".3"/><use href="#wisp"/></g>
+<g transform="translate(330 572) scale(.45)" opacity=".7"><circle r="80" fill="url(#cyan)" opacity=".3"/><use href="#wisp"/></g>
+
+<!-- FOREGROUND PLATFORM -->
+<g>
+  <path d="M0 818 60 806 320 800 520 812 560 830 560 1000H0Z" fill="url(#stoneFace)"/>
+  <path d="M0 818 60 806 320 800 520 812 560 830 520 842 300 846 60 842 0 846Z" fill="url(#stoneTop)" filter="url(#rough)"/>
+  <path d="M40 812C110 800 200 804 250 808C210 816 120 818 40 820Z" fill="#6f8a5b" opacity=".8"/>
+  <path d="M360 810C420 806 480 812 520 818C470 822 410 820 360 816Z" fill="#6f8a5b" opacity=".6"/>
+  <g stroke="#0b1216" stroke-width="3" opacity=".7"><path d="M180 846V1000M390 846 386 1000M0 920H180M180 950H386M386 900H560"/></g>
+  <!-- broken pillar stump with AO at the base -->
+  <ellipse cx="116" cy="812" rx="52" ry="11" fill="#0c1418" opacity=".7" filter="url(#blur6)"/>
+  <rect x="82" y="700" width="68" height="112" fill="#3a4a51"/>
+  <path d="M82 700 94 686 110 698 124 680 140 694 150 688V700Z" fill="#4a5a60"/>
+  <rect x="82" y="700" width="14" height="112" fill="#6c7d82" opacity=".5"/>
+  <rect x="136" y="700" width="14" height="112" fill="#e89a58" opacity=".22"/>
+  <!-- lantern light pool (warm, only near the source) -->
+  <ellipse cx="470" cy="820" rx="170" ry="30" fill="#ffb04a" opacity=".22" filter="url(#blur14)"/>
+</g>
+
+<!-- HERO (small, back-3/4, facing the path) -->
+<g transform="translate(430 818)">
+  <ellipse cx="4" cy="0" rx="34" ry="7" fill="#070c0f" opacity=".75" filter="url(#blur3)"/>
+  <path d="M-8-2V-14M10-2V-14" stroke="#23252b" stroke-width="9" stroke-linecap="round"/>
+  <path d="M-30-10C-26-44-18-72-4-86C10-72 26-44 30-10C12-4-12-4-30-10Z" fill="url(#cloak)"/>
+  <path d="M-30-10C-24-12-20-8-14-12-8-8-2-12 4-9 10-12 18-8 30-10" fill="none" stroke="#4c1d19" stroke-width="3"/>
+  <path d="M-16-70C-10-80 12-82 18-68C10-62-6-62-16-70Z" fill="#e7d8b6"/>
+  <path d="M16-70C22-66 26-58 22-48" stroke="#e7d8b6" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M-16-72C-18-96-6-114 8-124C4-106 22-96 18-72C8-66-6-66-16-72Z" fill="#8a3a2e"/>
+  <path d="M4-110C8-100 18-92 18-74" stroke="#d9794d" stroke-width="3" fill="none" opacity=".8"/>
+  <!-- pole + lantern -->
+  <path d="M14-66 86-138" stroke="#5a3d2a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M86-138V-118" stroke="#8a6a44" stroke-width="2"/>
+  <circle cx="86" cy="-100" r="120" fill="url(#warm)"/>
+  <path d="M74-118H98L102-108 100-84H72L70-108Z" fill="#6b4a2a"/>
+  <path d="M76-110H96V-88H76Z" fill="#ffd98a"/>
+  <path d="M80-106H92V-92H80Z" fill="#fff4d6"/>
+  <path d="M72-84H100L96-78H76Z" fill="#6b4a2a"/>
+</g>
+
+<!-- FOREGROUND REEDS (framing, darkest values) -->
+<g fill="#0a1217">
+  <path d="M1600 1000V760C1580 800 1566 860 1560 1000Z"/>
+  <path d="M1540 1000C1536 900 1520 820 1490 770 1508 830 1516 910 1516 1000Z"/>
+  <path d="M1500 1000C1480 920 1448 870 1420 850 1442 890 1466 940 1474 1000Z"/>
+  <path d="M1590 1000C1568 900 1570 850 1600 790V1000Z"/>
+  <path d="M1452 1000C1440 950 1420 920 1390 902 1414 936 1428 966 1430 1000Z"/>
+  <ellipse cx="1500" cy="780" rx="6" ry="22" transform="rotate(-18 1500 780)"/>
+</g>
+
+<rect width="1600" height="1000" filter="url(#grain)"/>
+<rect width="1600" height="1000" fill="url(#vig)"/>
+
+<!-- ANNOTATIONS -->
+<g font-size="15" fill="#efe6d2" paint-order="stroke" stroke="#0b1218" stroke-width="3" stroke-linejoin="round">
+  <g font-family="Georgia,'PMingLiU',serif">
+    <text x="48" y="64" font-size="13" letter-spacing="4" fill="#ffb04a">LAMPLIGHTER · ART SPEC B</text>
+    <text x="48" y="104" font-size="34">場景關鍵圖 · 霧湖遺跡</text>
+    <text x="48" y="136" font-size="16" fill="#b8c6c6">藍調時刻｜冷環境 × 暖光源｜霧中剪影</text>
+  </g>
+  <g stroke="#efe6d2" stroke-width="1" fill="none" opacity=".75" paint-order="normal">
+    <path d="M1130 238V300H1300"/><path d="M968 420H1030V360H1300"/><path d="M1114 470H1300"/>
+    <path d="M700 650V600H520V270H348"/><path d="M520 720H660"/><path d="M430 700V650H90V270H262"/>
+  </g>
+  <g>
+    <text x="1308" y="304">月光＝主光源（前方右上・逆光，冷）</text>
+    <text x="1308" y="324" fill="#b8c6c6" font-size="13">陰影朝鏡頭拉長，物件只勾冷邊</text>
+    <text x="1308" y="364">月門＝終點，全場最大剪影</text>
+    <text x="1308" y="384" fill="#b8c6c6" font-size="13">霧距 40–60 m 淡入天色</text>
+    <text x="1308" y="474">燈台＝唯一飽和暖色 + bloom</text>
+    <text x="1308" y="494" fill="#b8c6c6" font-size="13">點亮後照亮周圍石面與水面</text>
+    <text x="348" y="236" text-anchor="start">影魅：黑紫剪影 + 冷青眼</text>
+    <text x="348" y="256" fill="#b8c6c6" font-size="13">在暗處也要讀得出來</text>
+    <text x="98" y="236">主角永遠帶一團暖光</text>
+    <text x="98" y="256" fill="#b8c6c6" font-size="13">燈籠是畫面最亮點</text>
+  </g>
+</g>
+
+<!-- PALETTE STRIP -->
+<g transform="translate(0 936)">
+  <rect width="1600" height="64" fill="#070b10" opacity=".82"/>
+  <g font-size="11" fill="#d9d3c3" font-family="Consolas,monospace">
+    <rect x="40" y="14" width="36" height="36" fill="#141c2b"/><text x="84" y="30">夜靛</text><text x="84" y="45" fill="#8b979a">#141C2B</text>
+    <rect x="170" y="14" width="36" height="36" fill="#24434c"/><text x="214" y="30">湖青</text><text x="214" y="45" fill="#8b979a">#24434C</text>
+    <rect x="300" y="14" width="36" height="36" fill="#3d5a6b"/><text x="344" y="30">霧藍</text><text x="344" y="45" fill="#8b979a">#3D5A6B</text>
+    <rect x="430" y="14" width="36" height="36" fill="#8fa9b3"/><text x="474" y="30">天光</text><text x="474" y="45" fill="#8b979a">#8FA9B3</text>
+    <rect x="560" y="14" width="36" height="36" fill="#d4b69c"/><text x="604" y="30">暮霞</text><text x="604" y="45" fill="#8b979a">#D4B69C</text>
+    <rect x="690" y="14" width="36" height="36" fill="#7d8581"/><text x="734" y="30">石灰岩</text><text x="734" y="45" fill="#8b979a">#7D8581</text>
+    <rect x="820" y="14" width="36" height="36" fill="#6f8a5b"/><text x="864" y="30">青苔</text><text x="864" y="45" fill="#8b979a">#6F8A5B</text>
+    <rect x="950" y="14" width="36" height="36" fill="#9b4636"/><text x="994" y="30">鏽紅斗篷</text><text x="994" y="45" fill="#8b979a">#9B4636</text>
+    <rect x="1080" y="14" width="36" height="36" fill="#ffb04a"/><text x="1124" y="30">燈焰</text><text x="1124" y="45" fill="#8b979a">#FFB04A</text>
+    <rect x="1210" y="14" width="36" height="36" fill="#fff1c9"/><text x="1254" y="30">燈芯</text><text x="1254" y="45" fill="#8b979a">#FFF1C9</text>
+    <rect x="1340" y="14" width="36" height="36" fill="#1b1426"/><text x="1384" y="30">影墨</text><text x="1384" y="45" fill="#8b979a">#1B1426</text>
+    <rect x="1470" y="14" width="36" height="36" fill="#8ff6ff"/><text x="1514" y="30">魅眼</text><text x="1514" y="45" fill="#8b979a">#8FF6FF</text>
+  </g>
+</g>
+</svg>

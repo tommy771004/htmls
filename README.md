@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上後續的第 103–117 件互動作品，以及另外 100 個獨立手機 App 原型；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111 件使用本地 Three.js 模組，需透過網站伺服器開啟。
+原始 100 個獨立單檔 HTML 加上後續的第 103–121 件互動作品，以及另外 100 個獨立手機 App 原型；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111 件使用本地 Three.js 模組，需透過網站伺服器開啟。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -128,6 +128,10 @@
 | 115 | [115-windfield.html](https://htmls-ruddy.vercel.app/115-windfield.html) | 介面風格 · 沉浸式草原 | WIND：12 萬株獨立草葉的 shader 風浪、漸層與背光，平滑遠景、天空散射、可調日照風力與阻尼漫遊 | 單檔 HTML；僅 Three.js 由 CDN 載入，需連線及 WebGL2；60fps 為效能目標，依裝置而異 |
 | 116 | [116-thockwork-keyboard.html](https://htmls-ruddy.vercel.app/116-thockwork-keyboard.html) | 生成藝術 · 客製化 3D 鍵盤 | Thockwork：程序生成每顆鍵帽、軸體與外殼；可選 60／65／75 配列、外殼、配色、鍵帽與軸體，旋轉試打並加入購物車 | 單檔 HTML；Three.js 與 GSAP 由 CDN 載入，需連線及 WebGL；購物車與結帳僅為本機示範，不會扣款或送出資料 |
 | 117 | [117-taipei-diorama.html](https://htmls-ruddy.vercel.app/117-taipei-diorama.html) | 擬物器物 · 台北 3D 模型 | 掌心之城：台北 101、中正紀念堂、國父紀念館、夜間街廓與盆地山系；拖曳環繞、滾輪縮放與地標聚焦 | 單檔 HTML；Three.js 由 CDN 載入，需連線及 WebGL |
+| 118 | [118-lamplighter.html](https://htmls-ruddy.vercel.app/118-lamplighter.html) | 遊戲敘事 · 第三人稱 3D 動作平台 | 點燈人：先畫主角、場景、介面三張美術規格（art/118/）再實作；霧湖遺跡三區關卡、點亮三座燈台打開月門，影魅巡邏／察覺／蓄力撲擊 AI 與石燈守光彈，三段揮燈連擊、打擊停頓與鏡頭震動，GTAO＋bloom＋色彩分級，Web Audio 合成全部音效 | 單檔 HTML；Three.js 與官方 addons 由 CDN 載入，需連線及 WebGL；內顯自動降畫質 |
+| 119 | [119-tetris.html](https://htmls-ruddy.vercel.app/119-tetris.html) | 遊戲敘事 · Canvas 俄羅斯方塊 | WELL：10×20 棋盤、七種經典配色方塊、Wall Kick 順時針旋轉、硬降與落點預覽；消 1／2／3／4 行得 100／300／500／800 分，每 10 行升級加速 | 單檔 HTML，不載入外部資源；最高分存在本機瀏覽器 |
+| 120 | [120-qingming-scroll.html](https://htmls-ruddy.vercel.app/120-qingming-scroll.html) | 擬物器物 · 3D 清明上河圖 | 汴河長卷：沿汴河展卷橫移的立體長卷，郊野、漕運、虹橋、城郭四章與章節時間軸；絹本水墨後製、四時辰光影、合成市聲水聲風聲 | 單檔 HTML；Three.js 由 CDN 載入，需連線及 WebGL；環境音為 WebAudio 即時合成，需點擊開啟 |
+| 121 | [121-camera-blueprint.html](https://htmls-ruddy.vercel.app/121-camera-blueprint.html) | 生成藝術 · 程式渲染產品動畫 | R6 旁軸相機藍圖拆解：正視圖描邊 → 轉 3/4 視角 → 鏡頭、快門簾、捲片軸、觀景窗、底片室依序爆炸並標註 → 收回成尺寸標註正視圖；零件、標註與時間軸都是可編輯的 JSON | 純 Canvas 2D，不載入外部資源；同一幀號必得同一份顯示清單（畫面附雜湊）；以 WebCodecs 逐幀編碼合成 60fps MP4，或輸出 PNG 幀序列 ZIP，需新版 Chrome／Edge |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。
