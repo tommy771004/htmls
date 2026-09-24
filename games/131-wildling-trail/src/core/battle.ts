@@ -77,7 +77,7 @@ export function stageMultiplier(stage: number): number {
 }
 
 export function expReward(enemy: MonsterInstance, kind: BattleKind): number {
-  const base = Math.floor((getSpecies(enemy.species).expYield * enemy.level) / 5);
+  const base = Math.floor((getSpecies(enemy.species).expYield * enemy.level) / 4);
   return kind === 'trainer' ? Math.floor(base * 1.5) : base;
 }
 
@@ -108,7 +108,7 @@ export class Battle {
   readonly enemy: MonsterInstance[];
   readonly bag: Bag;
   private readonly rng: Rng;
-  private readonly ai: 'wild' | 'smart';
+  readonly ai: 'wild' | 'smart';
   private readonly canStoreCatch: boolean;
 
   pActive: number;
@@ -612,7 +612,7 @@ export function chooseEnemyAction(battle: Battle, rng: Rng): EnemyAction {
     });
   });
   const pool = useful.length > 0 ? useful : usable;
-  if (battle.kind === 'wild' || rng.chance(0.25)) {
+  if (battle.ai === 'wild' || rng.chance(0.25)) {
     return { kind: 'move', slot: pool[rng.int(0, pool.length - 1)] };
   }
   let best = pool[0];

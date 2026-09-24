@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2b2118">
+<meta name="description" content="野靈旅記：原創像素怪獸收集 RPG。三選一初始夥伴、格子移動探索四張地圖、回合制戰鬥與捕捉、升級學招與兩階段進化，一路挑戰到石冠場主。桌機鍵盤與手機觸控都能玩，單檔離線。">
+<title>野靈旅記 WILDLING TRAIL · 原創怪獸收集 RPG</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22 shape-rendering=%22crispEdges%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%232b2118%22/%3E%3Cpath fill=%22%23f4ead2%22 d=%22M4 3h2v2H4zM10 3h2v2h-2zM3 5h10v6H3zM5 11h6v2H5z%22/%3E%3Cpath fill=%22%23c95a20%22 d=%22M5 7h2v2H5zM9 7h2v2H9z%22/%3E%3C/svg%3E">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/131-wildling-trail.html">
+</head>
+<body>
+<main id="app">
+  <section id="screen" aria-label="遊戲畫面">
+    <div id="game"></div>
+    <div id="hud-enemy" class="hud enemy" hidden></div>
+    <div id="hud-player" class="hud player" hidden></div>
+    <div id="logo" hidden>
+      <p class="logo-kicker">原創怪獸收集 RPG</p>
+      <h1>野靈旅記</h1>
+      <p class="logo-en">WILDLING TRAIL</p>
+    </div>
+    <div id="banner" hidden></div>
+    <div id="toast" role="status" hidden></div>
+    <div id="fade"></div>
+  </section>
+  <section id="sheet" aria-live="polite"></section>
+  <nav id="pad" aria-label="觸控操作">
+    <div class="dpad">
+      <button type="button" data-btn="up" aria-label="上"><span>▲</span></button>
+      <button type="button" data-btn="left" aria-label="左"><span>◀</span></button>
+      <button type="button" data-btn="right" aria-label="右"><span>▶</span></button>
+      <button type="button" data-btn="down" aria-label="下"><span>▼</span></button>
+    </div>
+    <button type="button" class="menu-btn" data-btn="menu" aria-label="選單">選單</button>
+    <div class="ab">
+      <button type="button" class="b" data-btn="cancel" aria-label="取消">B</button>
+      <button type="button" class="a" data-btn="confirm" aria-label="確認">A</button>
+    </div>
+  </nav>
+</main>
+<noscript><p style="padding:16px">需要啟用 JavaScript 才能遊玩野靈旅記。</p></noscript>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
