@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="台北 3D 桌上模型縮圖">
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#27343b"/><stop offset="1" stop-color="#10191d"/></linearGradient><linearGradient id="side" x2=".5" y2="1"><stop stop-color="#aa9371"/><stop offset="1" stop-color="#344449"/></linearGradient></defs>
+  <rect width="640" height="400" fill="url(#sky)"/>
+  <ellipse cx="330" cy="346" rx="255" ry="38" fill="#091215" opacity=".7"/>
+  <path d="M70 247 315 130 575 247 328 367Z" fill="#b9aa88"/>
+  <path d="M70 247 328 367 328 391 70 268Z" fill="#726753"/>
+  <path d="M328 367 575 247 575 269 328 391Z" fill="url(#side)"/>
+  <path d="M93 248 315 142 551 248 328 354Z" fill="#45665a"/>
+  <path d="M125 242 315 151 520 247 327 338Z" fill="#526b5d"/>
+  <path d="M116 237 154 178 184 221 211 158 251 201 281 161 303 173 315 152 337 172 364 148 390 193 421 170 452 219 492 226 527 248 326 341Z" fill="#34564e"/>
+  <path d="M145 252 185 232 366 318 326 338Z" fill="#34454a"/><path d="M187 219 221 203 406 289 371 307Z" fill="#34454a"/><path d="M222 194 253 179 440 269 409 284Z" fill="#34454a"/><path d="M273 173 286 167 477 256 459 263Z" fill="#34454a"/>
+  <path d="M192 232 206 225 396 312 381 319Z" fill="#8fa398" opacity=".6"/>
+  <g fill="#7d948f"><path d="m206 239 16-8 0-35-16 8Z"/><path d="m225 248 17-8v-48l-17 9Z"/><path d="m250 260 15-8v-31l-15 7Z"/><path d="m287 283 18-9v-56l-18 9Z"/><path d="m386 267 15-7v-43l-15 8Z"/><path d="m412 276 14-7v-33l-14 8Z"/></g>
+  <g fill="#e8b878"><rect x="212" y="211" width="4" height="5"/><rect x="233" y="203" width="4" height="5"/><rect x="233" y="215" width="4" height="5"/><rect x="256" y="230" width="4" height="5"/><rect x="294" y="236" width="4" height="5"/><rect x="294" y="248" width="4" height="5"/><rect x="294" y="261" width="4" height="5"/><rect x="393" y="231" width="4" height="5"/><rect x="418" y="245" width="4" height="5"/></g>
+  <path d="m365 178 46-22 51 24-48 23Z" fill="#879e97"/><path d="m375 174 33-16 0-82-33 16Z" fill="#5f9d98"/><path d="m408 158 39 17 0-82-39-17Z" fill="#377277"/><g fill="#d9b579"><path d="m373 96 36-17 40 17-39 19Z"/><path d="m373 114 36-17 40 17-39 19Z"/><path d="m373 132 36-17 40 17-39 19Z"/><path d="m373 150 36-17 40 17-39 19Z"/></g><path d="m403 78 11-5 12 5-11 6Z" fill="#e5c98e"/><path d="M414 74V42" stroke="#e5c98e" stroke-width="3"/>
+  <path d="m157 282 31-15 34 17-32 16Z" fill="#e4e5d9"/><path d="m164 272 24-12 27 14-25 13Z" fill="#e4e5d9"/><path d="m160 259 27-14 29 15-28 14Z" fill="#2c6184"/><path d="m171 260 16-8 17 8-17 8Z" fill="#397fa0"/><path d="m120 289 21-10 20 10-21 10Z" fill="#cb874f"/><path d="m224 302 22-11 21 10-22 11Z" fill="#cb874f"/>
+  <path d="m329 292 41-20 46 22-43 21Z" fill="#e2d2a2"/><path d="m319 277 49-24 54 26-51 25Z" fill="#e5be70"/><path d="m335 276 34-17 38 19-36 18Z" fill="#f4d58d"/><path d="m329 319 35-17 34 16-36 18Z" fill="#4d9aa1"/>
+  <text x="30" y="46" fill="#d8b480" font-family="sans-serif" font-size="12" letter-spacing="4">TAIPEI · DIORAMA № 117</text>
+  <text x="30" y="86" fill="#f4ede0" font-family="sans-serif" font-weight="700" font-size="44">掌心之城</text>
+  <text x="31" y="113" fill="#b8c9c2" font-family="sans-serif" font-size="13" letter-spacing="2">A CITY IN MINIATURE</text>
+</svg>

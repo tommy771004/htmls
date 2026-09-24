@@ -154,6 +154,8 @@
 
 ### 擬物器物
 
+- [117 掌心之城 · 台北 3D 立體模型](https://htmls-ruddy.vercel.app/117-taipei-diorama.html): 程序化桌上城市模型。台北 101、中正紀念堂與國父紀念館周圍是夜間街廓與低多邊形山系；可環繞、縮放與聚焦地標；需連線載入 Three.js
+
 - [018 Aurelle 胡桃木收音機](https://htmls-ruddy.vercel.app/018-skeuo-radio.html): 擬物。旋鈕調頻、真空管暖機、調諧魔眼，6 個 WebAudio 合成電台
 - [026 Cal. 26-B 機芯藍圖](https://htmls-ruddy.vercel.app/026-blueprint.html): 工程藍圖。程序化齒輪組以真實擺頻運轉，懸停零件顯示規格，附零件表與標題欄
 - [034 咕咕蛋](https://htmls-ruddy.vercel.app/034-tamagotchi.html): 電子雞。32×16 LCD 殘影寵物：A/B/C 鍵照原版操作，會孵化、生病、長大
