@@ -44,7 +44,7 @@ const groups={terrain:[],buildings:[],roads:[]};let surface,photoMap;
 model.scene.traverse(obj=>{if(!obj.isMesh)return;obj.material.side=THREE.DoubleSide;if(obj.name.startsWith('Terrain')){surface=obj;photoMap=obj.material.map;groups.terrain.push(obj)}else if(obj.name.startsWith('Cut'))groups.terrain.push(obj);else if(obj.name==='Buildings')groups.buildings.push(obj);else if(obj.name==='Roads'){groups.roads.push(obj);obj.visible=false}});
 if(!surface||!groups.buildings.length)throw Error('模型缺少必要圖層');
 const marker=new THREE.Mesh(new THREE.SphereGeometry(11,16,12),new THREE.MeshBasicMaterial({color:0xb44929}));marker.position.set(0,42,0);scene.add(marker);
-let lastFit=1;function fit(){return Math.max(.68,.9/(host.clientWidth/host.clientHeight))}
+let lastFit=1;function fit(){return Math.max(.78,.9/(host.clientWidth/host.clientHeight))}
 function draw(){renderer.render(scene,camera)}
 function view(type){controls.target.set(0,0,0);camera.position.set(...(type==='top'?[0,3500,.001]:[1900,2300,2700]));camera.position.multiplyScalar(fit());lastFit=fit();controls.update();document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===type)));draw()}
 function resize(){const w=host.clientWidth,h=host.clientHeight;const nextFit=fit();camera.position.sub(controls.target).multiplyScalar(nextFit/lastFit).add(controls.target);lastFit=nextFit;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();draw()}

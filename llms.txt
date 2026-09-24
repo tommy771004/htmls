@@ -144,6 +144,8 @@
 
 ### 資料科學
 
+- [135 名古屋，一公里。 · 地景切片](https://htmls-ruddy.vercel.app/web/135-nagoya-terrain.html): 國土地理院 DEM／空照與 PLATEAU 名古屋市 2022 建物、道路；真實公尺尺度圓盤地形，分層檢視、投影比對、標註存圖，附 Blender 與重跑腳本。
+
 - [014 一座城市如何變熱](https://htmls-ruddy.vercel.app/web/014-scrollytelling.html): 資料新聞捲動敘事。報紙風捲動敘事：sticky 圖表隨段落在 7 個狀態間補間轉場
 - [035 河口市的一天](https://htmls-ruddy.vercel.app/web/035-isotype.html): Isotype 圖像統計。60 個人形隨 24 小時刻度重新上色，符號逐一排入五張統計表
 - [049 一年 · 三百六十五格](https://htmls-ruddy.vercel.app/web/049-radial-year.html): 放射狀年曆。365 天放射熱度圖，懸停高亮同週與同星期幾，三組資料切換

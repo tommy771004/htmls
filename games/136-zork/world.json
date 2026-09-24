@@ -1,0 +1,1792 @@
+{
+  "rooms": {
+    "CAROU": {
+      "name": "Round room",
+      "text": "You are in a circular room, with passages off in eight directions.  Your compass needle is spinning wildly, and you can't get your bearings.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "CAVE4"
+        },
+        "SOUTH": {
+          "to": "CAVE4"
+        },
+        "EAST": {
+          "to": "MGRAI"
+        },
+        "WEST": {
+          "to": "PASS1"
+        },
+        "NW": {
+          "to": "CANY1"
+        },
+        "NE": {
+          "to": "PASS5"
+        },
+        "SE": {
+          "to": "PASS4"
+        },
+        "SW": {
+          "to": "MAZE1"
+        },
+        "OUT": {
+          "to": "PASS3"
+        }
+      }
+    },
+    "MTROL": {
+      "name": "The Troll Room",
+      "text": "You are in a small room with passages off in all directions.  Bloodstains  and deep scratches (perhaps made by an axe) mar the walls.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "CELLA"
+        },
+        "EAST": {
+          "to": "CRAW4",
+          "flag": "TROLL-FLAG",
+          "blocked": "The troll fends you off with a menacing gesture."
+        },
+        "NORTH": {
+          "to": "PASS1",
+          "flag": "TROLL-FLAG",
+          "blocked": "The troll fends you off with a menacing gesture."
+        },
+        "SOUTH": {
+          "to": "MAZE1",
+          "flag": "TROLL-FLAG",
+          "blocked": "The troll fends you off with a menacing gesture."
+        }
+      }
+    },
+    "RAVI1": {
+      "name": "Deep Ravine",
+      "text": "You are in a deep ravine at a crossing with a east-west crawlway.  Some  stone steps are at the south of the ravine and a steep staircase descends.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "PASS1"
+        },
+        "DOWN": {
+          "to": "RESES"
+        },
+        "EAST": {
+          "to": "CHAS1"
+        },
+        "WEST": {
+          "to": "CRAW1"
+        }
+      }
+    },
+    "PASS1": {
+      "name": "East-West Passage",
+      "text": "You are in a narrow east-west passageway.  There is a narrow stairway  leading down at the north end of the room.",
+      "lit": false,
+      "points": 5,
+      "exits": {
+        "EAST": {
+          "to": "CAROU"
+        },
+        "WEST": {
+          "to": "MTROL"
+        },
+        "DOWN": {
+          "to": "RAVI1"
+        },
+        "NORTH": {
+          "to": "RAVI1"
+        }
+      }
+    },
+    "NHOUS": {
+      "name": "North of House.",
+      "text": "You are facing the north side of a white house.  There is no door here,  and all the windows are barred.",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "WHOUS"
+        },
+        "EAST": {
+          "to": "EHOUS"
+        },
+        "NORTH": {
+          "to": "FORE3"
+        }
+      }
+    },
+    "SHOUS": {
+      "name": "South of House.",
+      "text": "You are facing the south side of a white house. There is no door here,  and all the windows are barred.",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "WHOUS"
+        },
+        "EAST": {
+          "to": "EHOUS"
+        },
+        "SOUTH": {
+          "to": "FORE2"
+        }
+      }
+    },
+    "FORE1": {
+      "name": "Forest",
+      "text": "You are in a forest, with trees in all directions around you.",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "FORE1"
+        },
+        "EAST": {
+          "to": "FORE3"
+        },
+        "SOUTH": {
+          "to": "FORE2"
+        },
+        "WEST": {
+          "to": "FORE1"
+        }
+      }
+    },
+    "WHOUS": {
+      "name": "West of House.",
+      "text": "You are in an open field west of a big white house, with a closed, locked  front door.",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "NHOUS"
+        },
+        "SOUTH": {
+          "to": "SHOUS"
+        },
+        "WEST": {
+          "to": "FORE1"
+        }
+      }
+    },
+    "EHOUS": {
+      "name": "Behind House.",
+      "text": "",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "NHOUS"
+        },
+        "SOUTH": {
+          "to": "SHOUS"
+        },
+        "EAST": {
+          "to": "CLEAR"
+        },
+        "WEST": {
+          "to": "KITCH",
+          "flag": "KITCHEN-WINDOW"
+        },
+        "ENTER": {
+          "to": "KITCH",
+          "flag": "KITCHEN-WINDOW"
+        }
+      }
+    },
+    "FORE3": {
+      "name": "Forest",
+      "text": "You are in a dimly lit forest, with large trees all around.  To the  east, there appears to be sunlight.",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "FORE2"
+        },
+        "EAST": {
+          "to": "CLEAR"
+        },
+        "SOUTH": {
+          "to": "CLEAR"
+        },
+        "WEST": {
+          "to": "NHOUS"
+        }
+      }
+    },
+    "FORE2": {
+      "name": "Forest",
+      "text": "You are in a dimly lit forest, with large trees all around.  To the  east, there appears to be sunlight.",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "SHOUS"
+        },
+        "EAST": {
+          "to": "CLEAR"
+        },
+        "SOUTH": {
+          "to": "FORE2"
+        },
+        "WEST": {
+          "to": "FORE1"
+        }
+      }
+    },
+    "KITCH": {
+      "name": "Kitchen",
+      "text": "",
+      "lit": true,
+      "points": 10,
+      "exits": {
+        "EAST": {
+          "to": "EHOUS",
+          "flag": "KITCHEN-WINDOW"
+        },
+        "WEST": {
+          "to": "LROOM"
+        },
+        "EXIT": {
+          "to": "EHOUS",
+          "flag": "KITCHEN-WINDOW"
+        },
+        "UP": {
+          "to": "ATTIC"
+        }
+      }
+    },
+    "CLEAR": {
+      "name": "Clearing",
+      "text": "",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "SW": {
+          "to": "EHOUS"
+        },
+        "NORTH": {
+          "to": "CLEAR"
+        },
+        "EAST": {
+          "to": "CLEAR"
+        },
+        "WEST": {
+          "to": "FORE3"
+        },
+        "SOUTH": {
+          "to": "FORE2"
+        },
+        "DOWN": {
+          "to": "MAZ11",
+          "flag": "KEY-FLAG"
+        }
+      }
+    },
+    "LROOM": {
+      "name": "Living Room",
+      "text": "",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "KITCH"
+        },
+        "WEST": {
+          "to": "BLROO",
+          "flag": "MAGIC-FLAG",
+          "blocked": "The door is nailed shut."
+        },
+        "DOWN": {
+          "to": "CELLA",
+          "flag": "TRAP-DOOR"
+        }
+      }
+    },
+    "ATTIC": {
+      "name": "Attic",
+      "text": "You are in the attic.  The only exit is stairs that lead down.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "DOWN": {
+          "to": "KITCH"
+        }
+      }
+    },
+    "BLROO": {
+      "name": "Strange Passage",
+      "text": "You are in a long passage.  To the south is one entrance.  On the east there  is an old wooden door, with a large hole in it (about cyclops sized).",
+      "lit": false,
+      "points": 10,
+      "exits": {
+        "SOUTH": {
+          "to": "CYCLO-R"
+        },
+        "EAST": {
+          "to": "LROOM"
+        }
+      }
+    },
+    "CELLA": {
+      "name": "Cellar",
+      "text": "",
+      "lit": false,
+      "points": 25,
+      "exits": {
+        "EAST": {
+          "to": "MTROL"
+        },
+        "SOUTH": {
+          "to": "CHAS2"
+        }
+      }
+    },
+    "CHAS2": {
+      "name": "West of Chasm",
+      "text": "You are on the west edge of a chasm, the bottom of which cannot be  seen. The east side is sheer rock, providing no exits.  A narrow passage  goes west, and the path you are on continues to the north and south.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "CELLA"
+        },
+        "NORTH": {
+          "to": "CRAW4"
+        },
+        "SOUTH": {
+          "to": "GALLE"
+        }
+      }
+    },
+    "CRAW4": {
+      "name": "North-South Crawlway",
+      "text": "You are in a north-south crawlway; a passage goes to the east also.  There is a hole above, but it provides no opportunities for climbing.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "CHAS2"
+        },
+        "SOUTH": {
+          "to": "STUDI"
+        },
+        "EAST": {
+          "to": "MTROL"
+        }
+      }
+    },
+    "MAZE1": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "MTROL"
+        },
+        "NORTH": {
+          "to": "MAZE1"
+        },
+        "SOUTH": {
+          "to": "MAZE2"
+        },
+        "EAST": {
+          "to": "MAZE4"
+        }
+      }
+    },
+    "MAZE2": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "MAZE1"
+        },
+        "NORTH": {
+          "to": "MAZE4"
+        },
+        "EAST": {
+          "to": "MAZE3"
+        }
+      }
+    },
+    "MAZE4": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "MAZE3"
+        },
+        "NORTH": {
+          "to": "MAZE1"
+        },
+        "EAST": {
+          "to": "DEAD1"
+        }
+      }
+    },
+    "MAZE3": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "MAZE2"
+        },
+        "NORTH": {
+          "to": "MAZE4"
+        },
+        "UP": {
+          "to": "MAZE5"
+        }
+      }
+    },
+    "MAZE5": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "DEAD2"
+        },
+        "NORTH": {
+          "to": "MAZE3"
+        },
+        "SW": {
+          "to": "MAZE6"
+        }
+      }
+    },
+    "DEAD1": {
+      "name": "Dead end.",
+      "text": "Dead end.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "MAZE4"
+        }
+      }
+    },
+    "DEAD2": {
+      "name": "Dead end.",
+      "text": "Dead end.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "MAZE5"
+        }
+      }
+    },
+    "MAZE6": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "DOWN": {
+          "to": "MAZE5"
+        },
+        "EAST": {
+          "to": "MAZE7"
+        },
+        "WEST": {
+          "to": "MAZE6"
+        },
+        "UP": {
+          "to": "MAZE9"
+        }
+      }
+    },
+    "MAZE7": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "UP": {
+          "to": "MAZ14"
+        },
+        "WEST": {
+          "to": "MAZE6"
+        },
+        "NE": {
+          "to": "DEAD1"
+        },
+        "EAST": {
+          "to": "MAZE8"
+        },
+        "SOUTH": {
+          "to": "MAZ15"
+        }
+      }
+    },
+    "MAZE9": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "MAZE6"
+        },
+        "EAST": {
+          "to": "MAZ11"
+        },
+        "DOWN": {
+          "to": "MAZ10"
+        },
+        "SOUTH": {
+          "to": "MAZ13"
+        },
+        "WEST": {
+          "to": "MAZ12"
+        },
+        "NW": {
+          "to": "MAZE9"
+        }
+      }
+    },
+    "MAZ14": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "MAZ15"
+        },
+        "NW": {
+          "to": "MAZ14"
+        },
+        "NE": {
+          "to": "MAZE7"
+        },
+        "SOUTH": {
+          "to": "MAZE7"
+        }
+      }
+    },
+    "MAZE8": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NE": {
+          "to": "MAZE7"
+        },
+        "WEST": {
+          "to": "MAZE8"
+        },
+        "SE": {
+          "to": "DEAD3"
+        }
+      }
+    },
+    "MAZ15": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "MAZ14"
+        },
+        "SOUTH": {
+          "to": "MAZE7"
+        },
+        "NE": {
+          "to": "CYCLO-R"
+        }
+      }
+    },
+    "DEAD3": {
+      "name": "Dead end.",
+      "text": "Dead end.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "MAZE8"
+        }
+      }
+    },
+    "MAZ11": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "DOWN": {
+          "to": "MAZ10"
+        },
+        "NW": {
+          "to": "MAZ13"
+        },
+        "SW": {
+          "to": "MAZ12"
+        },
+        "UP": {
+          "to": "CLEAR",
+          "flag": "KEY-FLAG",
+          "blocked": "The grating is locked"
+        }
+      }
+    },
+    "MAZ10": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "MAZE9"
+        },
+        "WEST": {
+          "to": "MAZ13"
+        },
+        "UP": {
+          "to": "MAZ11"
+        }
+      }
+    },
+    "MAZ13": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "MAZE9"
+        },
+        "DOWN": {
+          "to": "MAZ12"
+        },
+        "SOUTH": {
+          "to": "MAZ10"
+        },
+        "WEST": {
+          "to": "MAZ11"
+        }
+      }
+    },
+    "MAZ12": {
+      "name": "You are in a maze of twisty little passages, all alike.",
+      "text": "You are in a maze of twisty little passages, all alike.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "MAZE5"
+        },
+        "SW": {
+          "to": "MAZ11"
+        },
+        "EAST": {
+          "to": "MAZ13"
+        },
+        "UP": {
+          "to": "MAZE9"
+        },
+        "NORTH": {
+          "to": "DEAD4"
+        }
+      }
+    },
+    "DEAD4": {
+      "name": "Dead end.",
+      "text": "Dead end.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "MAZ12"
+        }
+      }
+    },
+    "CYCLO-R": {
+      "name": "Cyclops Room",
+      "text": "",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "MAZ15"
+        },
+        "NORTH": {
+          "to": "BLROO",
+          "flag": "MAGIC-FLAG",
+          "blocked": "The north wall is solid rock."
+        },
+        "UP": {
+          "to": "TREAS-R",
+          "flag": "CYCLOPS-FLAG",
+          "blocked": "The cyclops doesn't look like he'll let you past."
+        }
+      }
+    },
+    "RESES": {
+      "name": "Reservoir South",
+      "text": "",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "RAVI1",
+          "flag": "EGYPT-FLAG",
+          "blocked": "The coffin will not fit through this passage."
+        },
+        "WEST": {
+          "to": "STREA"
+        },
+        "CROSS": {
+          "to": "RESEN",
+          "flag": "LOW-TIDE",
+          "blocked": "You are not equipped for swimming."
+        },
+        "NORTH": {
+          "to": "RESEN",
+          "flag": "LOW-TIDE",
+          "blocked": "You are not equipped for swimming."
+        },
+        "UP": {
+          "to": "CANY1",
+          "flag": "EGYPT-FLAG",
+          "blocked": "The stairs are too steep for carrying the coffin."
+        }
+      }
+    },
+    "CHAS1": {
+      "name": "Chasm",
+      "text": "A chasm runs southwest to northeast.  You are on the south edge; the  path exits to the south and to the east.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "RAVI1"
+        },
+        "EAST": {
+          "to": "PASS5"
+        }
+      }
+    },
+    "CRAW1": {
+      "name": "Rocky Crawl",
+      "text": "You are in a crawlway with a three-foot high ceiling.  Your footing is  very unsure here due to the assortment of rocks underfoot.  Passages can be  seen in the east, west, and northwest corners of the passage.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "RAVI1"
+        },
+        "EAST": {
+          "to": "DOME"
+        },
+        "NW": {
+          "to": "EGYPT"
+        }
+      }
+    },
+    "DOME": {
+      "name": "Dome Room",
+      "text": "",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "CRAW1"
+        },
+        "DOWN": {
+          "to": "MTORC",
+          "flag": "DOME-FLAG",
+          "blocked": "You cannot go down without fracturing many bones."
+        },
+        "CLIMB": {
+          "to": "MTORC",
+          "flag": "DOME-FLAG",
+          "blocked": "You cannot go down without fracturing many bones."
+        }
+      }
+    },
+    "EGYPT": {
+      "name": "Egyptian Room",
+      "text": "You are in a room which looks like an Egyptian tomb.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "UP": {
+          "to": "ICY"
+        },
+        "EAST": {
+          "to": "CRAW1",
+          "flag": "EGYPT-FLAG",
+          "blocked": "The passage is too narrow to accomodate coffins."
+        }
+      }
+    },
+    "RESEN": {
+      "name": "Reservoir North",
+      "text": "",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "ATLAN"
+        },
+        "CROSS": {
+          "to": "RESES",
+          "flag": "LOW-TIDE",
+          "blocked": "You are not equipped for swimming."
+        },
+        "SOUTH": {
+          "to": "RESES",
+          "flag": "LOW-TIDE",
+          "blocked": "You are not equipped for swimming."
+        }
+      }
+    },
+    "CANY1": {
+      "name": "Deep Canyon",
+      "text": "You are along the south edge of a deep canyon.  Passages lead off  to the east, south, and southeast.  You can here the sound of  flowing water below.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SE": {
+          "to": "RESES"
+        },
+        "EAST": {
+          "to": "DAM-R"
+        },
+        "SOUTH": {
+          "to": "CAROU"
+        }
+      }
+    },
+    "STREA": {
+      "name": "Stream",
+      "text": "You are standing on a path alongside a flowing stream.  The path  travels to the north and the east.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "RESES"
+        },
+        "NORTH": {
+          "to": "ICY"
+        }
+      }
+    },
+    "ATLAN": {
+      "name": "Atlantis Room",
+      "text": "You are in an ancient room, long buried by the Reservoir.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SE": {
+          "to": "RESEN"
+        },
+        "UP": {
+          "to": "CAVE1"
+        }
+      }
+    },
+    "ICY": {
+      "name": "Glacier Room",
+      "text": "",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "STREA"
+        },
+        "EAST": {
+          "to": "EGYPT"
+        },
+        "WEST": {
+          "to": "RUBYR",
+          "flag": "GLACIER-FLAG"
+        }
+      }
+    },
+    "RUBYR": {
+      "name": "Ruby Room",
+      "text": "You are in a small chamber behind the remains of the Great Glacier.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "ICY"
+        }
+      }
+    },
+    "CAVE1": {
+      "name": "Cave",
+      "text": "You are in a small cave with an entrance to the north and a stairway  leading down.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "MIRR1"
+        },
+        "DOWN": {
+          "to": "ATLAN"
+        }
+      }
+    },
+    "DAM-R": {
+      "name": "Dam",
+      "text": "",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "CANY1"
+        },
+        "EAST": {
+          "to": "CAVE3"
+        },
+        "NORTH": {
+          "to": "LOBBY"
+        }
+      }
+    },
+    "CHAS3": {
+      "name": "Ancient Chasm",
+      "text": "A chasm, evidently produced by an ancient river, runs through the  cave here.  Passages lead off in all directions.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "ECHO"
+        },
+        "EAST": {
+          "to": "CHAS3"
+        },
+        "NORTH": {
+          "to": "DEAD5"
+        },
+        "WEST": {
+          "to": "DEAD6"
+        }
+      }
+    },
+    "PASS5": {
+      "name": "North-South Passage",
+      "text": "You are in a high north-south passage, which forks to the northeast.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "CHAS1"
+        },
+        "NE": {
+          "to": "ECHO"
+        },
+        "SOUTH": {
+          "to": "CAROU"
+        }
+      }
+    },
+    "CAVE3": {
+      "name": "Damp Cave",
+      "text": "You are in a cave.  Passages exit to the south and to the east, but the  cave narrows to a tiny crack to the west.  The earth is particularly  damp here.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "ECHO"
+        },
+        "EAST": {
+          "to": "DAM-R"
+        }
+      }
+    },
+    "ECHO": {
+      "name": "Loud Room",
+      "text": "You are in a large room with a ceiling which cannot be detected from  the ground. There is a narrow passage from east to west and a stone  stairway leading upward.  The room is extremely noisy.  In fact, it is  difficult to hear yourself think.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "CHAS3"
+        },
+        "WEST": {
+          "to": "PASS5"
+        },
+        "UP": {
+          "to": "CAVE3"
+        }
+      }
+    },
+    "PASS3": {
+      "name": "Cold Passage",
+      "text": "You are in a cold and damp corridor where a long east-west passageway  intersects with a northward path.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "MIRR1"
+        },
+        "WEST": {
+          "to": "SLIDE"
+        },
+        "NORTH": {
+          "to": "CRAW2"
+        }
+      }
+    },
+    "CRAW2": {
+      "name": "Steep Crawlway",
+      "text": "You are in a steep and narrow crawlway.  There are two exits nearby to  the south and southwest.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "MIRR1"
+        },
+        "SW": {
+          "to": "PASS3"
+        }
+      }
+    },
+    "MIRR1": {
+      "name": "Mirror Room",
+      "text": "",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "PASS3"
+        },
+        "NORTH": {
+          "to": "CRAW2"
+        },
+        "EAST": {
+          "to": "CAVE1"
+        }
+      }
+    },
+    "PASS4": {
+      "name": "Winding Passage",
+      "text": "You are in a winding passage.  It seems that there is only an exit on the  east end although the whirring from the carousel room can be heard faintly  to the north.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "MIRR2"
+        }
+      }
+    },
+    "CRAW3": {
+      "name": "Narrow Crawlway",
+      "text": "You are in a narrow crawlway.  The crawlway leads from north to south.  However the south passage divides to the south and southwest.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "CAVE2"
+        },
+        "SW": {
+          "to": "MIRR2"
+        },
+        "NORTH": {
+          "to": "MGRAI"
+        }
+      }
+    },
+    "CAVE2": {
+      "name": "Cave",
+      "text": "You are in a tiny cave with entrances west and north, and a dark,  forbidding staircase leading down.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "CRAW3"
+        },
+        "WEST": {
+          "to": "MIRR2"
+        },
+        "DOWN": {
+          "to": "LLD1"
+        }
+      }
+    },
+    "MIRR2": {
+      "name": "Mirror Room",
+      "text": "",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "PASS4"
+        },
+        "NORTH": {
+          "to": "CRAW3"
+        },
+        "EAST": {
+          "to": "CAVE2"
+        }
+      }
+    },
+    "LLD1": {
+      "name": "Entrance to Hades",
+      "text": "",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "LLD2",
+          "flag": "LLD-FLAG",
+          "blocked": "Some invisible force prevents you from passing through the gate."
+        },
+        "UP": {
+          "to": "CAVE2"
+        },
+        "ENTER": {
+          "to": "LLD2",
+          "flag": "LLD-FLAG",
+          "blocked": "Some invisible force prevents you from passing through the gate."
+        }
+      }
+    },
+    "MGRAI": {
+      "name": "Grail Room",
+      "text": "You are standing in a small circular room with a pedestal.  A set of  stairs leads up, and passages leave to the east and west.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "CAROU"
+        },
+        "EAST": {
+          "to": "CRAW3"
+        },
+        "UP": {
+          "to": "TEMP1"
+        }
+      }
+    },
+    "SLIDE": {
+      "name": "Slide Room",
+      "text": "You are in a small chamber, which appears to have been part of a coal  mine. On the south wall of the chamber the letters \"Granite Wall\" are  etched in the rock. To the east is a long passage and there is a steep  metal slide twisting downward. From the appearance of the slide, an  attempt to climb up it would be impossible.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "PASS3"
+        },
+        "DOWN": {
+          "to": "CELLA"
+        }
+      }
+    },
+    "MTORC": {
+      "name": "Torch Room",
+      "text": "",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "MTORC"
+        },
+        "DOWN": {
+          "to": "CRAW4"
+        }
+      }
+    },
+    "STUDI": {
+      "name": "Studio",
+      "text": "You are in what appears to have been an artist's studio.  The walls and  floors are splattered with paints of 69 different colors.  Strangely  enough, nothing of value is hanging here.  At the north and northwest of  the room are open doors (also covered with paint).  An extremely dark  and narrow chimney leads up from a fireplace; although you might be able  to get up it, it seems unlikely you could get back down.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "CRAW4"
+        },
+        "NW": {
+          "to": "GALLE"
+        },
+        "UP": {
+          "to": "KITCH",
+          "flag": "LIGHT-LOAD",
+          "blocked": "The chimney is too narrow for you and all of your baggage."
+        }
+      }
+    },
+    "GALLE": {
+      "name": "Gallery",
+      "text": "You are in an art gallery (apparently the painter generated more than  mess).  Most of the paintings which were here have been stolen by  vandals with exceptional taste.  The vandals left through either the  north or south exits.",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "CHAS2"
+        },
+        "SOUTH": {
+          "to": "STUDI"
+        }
+      }
+    },
+    "CAVE4": {
+      "name": "Engravings Cave",
+      "text": "You have entered a cave with passages leading north and southeast.  There  are old engravings on the walls here.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "NORTH": {
+          "to": "CAROU"
+        },
+        "SE": {
+          "to": "RIDDL"
+        }
+      }
+    },
+    "DEAD5": {
+      "name": "Dead end",
+      "text": "Dead end",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SW": {
+          "to": "CHAS3"
+        }
+      }
+    },
+    "DEAD6": {
+      "name": "Dead end",
+      "text": "Dead end",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EAST": {
+          "to": "CHAS3"
+        }
+      }
+    },
+    "RIDDL": {
+      "name": "Riddle Room",
+      "text": "This is a room which is bare on all sides.  There is an exit down.  To the east is a  great door made of stone.  Above the stone, the following words are written:  'No man shall enter this room without solving this riddle:    What is tall as a house,            round as a cup,            and all the king's horses can't draw it up?'",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "DOWN": {
+          "to": "CAVE4"
+        },
+        "EAST": {
+          "to": "MPEAR",
+          "flag": "RIDDLE-FLAG",
+          "blocked": "Your way is blocked by an invisible force."
+        }
+      }
+    },
+    "MPEAR": {
+      "name": "Pearl Room",
+      "text": "This is a room the size of a broom closet which appears to be  a dead end.  The only exit is to the west.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "EXIT": {
+          "to": "RIDDL"
+        },
+        "WEST": {
+          "to": "RIDDL"
+        }
+      }
+    },
+    "LLD2": {
+      "name": "Land of the Living Dead",
+      "text": "You have entered the Land of the Living Dead, a large desolate room.  Although it is apparently uninhabited, you can hear the sounds of  thousands of lost souls weeping and moaning.  In the east corner are  stacked the remains of dozens of previous adventurers who were less  fortunate than yourself (so far).",
+      "lit": true,
+      "points": 30,
+      "exits": {
+        "EXIT": {
+          "to": "LLD1"
+        },
+        "WEST": {
+          "to": "LLD1"
+        }
+      }
+    },
+    "TEMP1": {
+      "name": "Temple",
+      "text": "You are in the west end of a large temple.  On the south wall is an  ancient inscription, probably a prayer in a long-forgotten language.  The north wall is granite.  The entrance at the west end of the room is  through huge marble pillars.",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "MGRAI"
+        },
+        "EAST": {
+          "to": "TEMP2"
+        }
+      }
+    },
+    "TEMP2": {
+      "name": "Altar",
+      "text": "You are in the east end of a large temple.  In front of you is what  appears to be an altar.",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "WEST": {
+          "to": "TEMP1"
+        }
+      }
+    },
+    "LOBBY": {
+      "name": "Dam Lobby",
+      "text": "This room appears to have been the waiting room for groups touring  the dam.  There are exits here to the north and east marked 'Private',  though the doors are open, and an exit to the south.",
+      "lit": true,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "DAM-R"
+        },
+        "NORTH": {
+          "to": "MAINT",
+          "flag": "NOT-DROWNED",
+          "blocked": "The room is full of water:  if you enter, you'll drown."
+        },
+        "EAST": {
+          "to": "MAINT",
+          "flag": "NOT-DROWNED",
+          "blocked": "The room is full of water:  if you enter, you'll drown."
+        }
+      }
+    },
+    "MAINT": {
+      "name": "Maintenance Room",
+      "text": "You are in what appears to have been the maintenance room for Flood  Control Dam #3, judging by the assortment of tool chests around the  room.  Apparently, this room has been ransacked recently, for most of  the valuable equipment is gone. On the wall in front of you is a panel  of buttons, which are labelled in EBCDIC. However, they are of different  color: Red, Brown, Yellow, and Blue. The doors to this room are in the  west and south ends.",
+      "lit": false,
+      "points": 0,
+      "exits": {
+        "SOUTH": {
+          "to": "LOBBY"
+        },
+        "WEST": {
+          "to": "LOBBY"
+        }
+      }
+    },
+    "TREAS-R": {
+      "name": "Treasure Room",
+      "text": "This is a large room, whose north wall is solid granite.  A number of  discarded bags, which crumble at your touch, are scattered about on the  floor.",
+      "lit": false,
+      "points": 25,
+      "exits": {
+        "DOWN": {
+          "to": "CYCLO-R"
+        }
+      }
+    }
+  },
+  "objects": {
+    "WINDO": {
+      "name": "",
+      "text": "",
+      "initial": "EHOUS",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "FOOD": {
+      "name": ".lunch",
+      "text": "Sack smelling of hot peppers, is here.",
+      "initial": "KITCH",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "BOTTL": {
+      "name": "bottle",
+      "text": "A clear glass bottle is here.",
+      "initial": "KITCH",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "TROPH": {
+      "name": "trophy case",
+      "text": "There is a trophy case here.",
+      "initial": "LROOM",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "WATER": {
+      "name": "water",
+      "text": "Water",
+      "initial": "BOTTL",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "ROPE": {
+      "name": "rope",
+      "text": "There is a large coil of rope here.",
+      "initial": "ATTIC",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "KNIFE": {
+      "name": "knife",
+      "text": "There is a nasty-looking knife lying here.",
+      "initial": "ATTIC",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "DOOR": {
+      "name": "",
+      "text": "",
+      "initial": "LROOM",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "LAMP": {
+      "name": "lamp",
+      "text": "There is a brass lantern here.",
+      "initial": "LROOM",
+      "find": 0,
+      "deposit": 0,
+      "light": -1,
+      "read": ""
+    },
+    "RUG": {
+      "name": "carpet",
+      "text": "",
+      "initial": "LROOM",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "PILE": {
+      "name": "pile of leaves",
+      "text": "There is a pile of leaves on the ground.",
+      "initial": "CLEAR",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "TROLL": {
+      "name": "",
+      "text": "A nasty-looking troll, brandishing a bloody axe, blocks all passages  out of the room.",
+      "initial": "MTROL",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "BONES": {
+      "name": "",
+      "text": "A skeleton is lying here, beside a burned-out lantern and a rusty knife.",
+      "initial": "MAZE5",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "KEYS": {
+      "name": "set of skeleton keys",
+      "text": "There is a set of skeleton keys here.",
+      "initial": "MAZE5",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "BAGCO": {
+      "name": "bag of coins",
+      "text": "An old leather bag, bulging with coins, is here.",
+      "initial": "MAZE5",
+      "find": 10,
+      "deposit": 5,
+      "light": 0,
+      "read": ""
+    },
+    "BAR": {
+      "name": "platinum bar",
+      "text": "There is a large platinum bar here.",
+      "initial": "ECHO",
+      "find": 12,
+      "deposit": 10,
+      "light": 0,
+      "read": ""
+    },
+    "PEARL": {
+      "name": "pearl necklace",
+      "text": "There is a pearl necklace here with hundreds of large pearls.",
+      "initial": "MPEAR",
+      "find": 9,
+      "deposit": 5,
+      "light": 0,
+      "read": ""
+    },
+    "GRATE": {
+      "name": "",
+      "text": "",
+      "initial": "CLEAR",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "TRUNK": {
+      "name": "trunk with jewels",
+      "text": "There is an old trunk here, bulging with assorted jewels.",
+      "initial": "RESES",
+      "find": 15,
+      "deposit": 8,
+      "light": 0,
+      "read": ""
+    },
+    "COFFI": {
+      "name": "gold coffin",
+      "text": "There is a solid-gold (heavy) coffin, used for the burial of Ramses II, here.",
+      "initial": "EGYPT",
+      "find": 3,
+      "deposit": 7,
+      "light": 0,
+      "read": ""
+    },
+    "ICE": {
+      "name": "",
+      "text": "A mass of ice fills the western half of the room.",
+      "initial": "ICY",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "REFLE": {
+      "name": "",
+      "text": "",
+      "initial": "MIRR2",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "GHOST": {
+      "name": "",
+      "text": "",
+      "initial": "LLD1",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "RUBY": {
+      "name": "ruby",
+      "text": "There is a moby ruby lying on the floor.",
+      "initial": "RUBYR",
+      "find": 15,
+      "deposit": 8,
+      "light": 0,
+      "read": ""
+    },
+    "TRIDE": {
+      "name": "diamond trident",
+      "text": "Neptune's own diamond trident is here.",
+      "initial": "ATLAN",
+      "find": 4,
+      "deposit": 11,
+      "light": 0,
+      "read": ""
+    },
+    "TORCH": {
+      "name": "torch",
+      "text": "There is an ivory torch here.",
+      "initial": "MTORC",
+      "find": 14,
+      "deposit": 6,
+      "light": 1,
+      "read": ""
+    },
+    "GRAIL": {
+      "name": "grail",
+      "text": "There is an extremely valuable (perhaps original) grail here.",
+      "initial": "MGRAI",
+      "find": 2,
+      "deposit": 5,
+      "light": 1,
+      "read": ""
+    },
+    "BELL": {
+      "name": "bell",
+      "text": "There is a small brass bell here.",
+      "initial": "TEMP1",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "BOOK": {
+      "name": "book",
+      "text": "There is a large black book here.",
+      "initial": "TEMP2",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": "COMMANDMENT #12592  Say to all ye who go about on the face of our land  intoning unto all ye meet:   \"Hello sailor\",  now and even unto the ends of the earth. For verily  by the wrath of the gods shalt thou repent thy sin.  And surely thy eye shall be put out with a sharp stick.  Depart hence thou monster with bad breath."
+    },
+    "CANDL": {
+      "name": "pair of candles",
+      "text": "There are two candles here.",
+      "initial": "TEMP2",
+      "find": 0,
+      "deposit": 0,
+      "light": 1,
+      "read": ""
+    },
+    "DAM": {
+      "name": "",
+      "text": "",
+      "initial": "DAM-R",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "BOLT": {
+      "name": "",
+      "text": "",
+      "initial": "DAM-R",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "BUBBL": {
+      "name": "",
+      "text": "",
+      "initial": "DAM-R",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "MATCH": {
+      "name": "matchbook",
+      "text": "There is a matchbook whose cover says 'Visit Beautiful FCD#3' here.",
+      "initial": "LOBBY",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "GUIDE": {
+      "name": "guidebook",
+      "text": "There are tour guidebooks here.",
+      "initial": "LOBBY",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": "\"                Guide Book to                  Flood Control Dam #3      Flood Control Dam #3 (FCD#3) was constructed in year 783  of the Great Underground Empire to harness the destructive  power of the Frigid River.  This work was supported by a grant  of 37 million zorkmids from the Central Bureaucracy and  your omnipotent local tyrant Lord Dimwit Flathead the Excessive.  This impressive structure is composed of 3.7 cubic feet  of concrete, is 256 feet tall from the center, and 193 feet  wide at the top.  The reservoir created behind the dam has  a volume of 37 million cubic feet, an area of 12 million  square feet, and a shore line of 3.6 million feet.    The construction of FCD#3 took 112 days from ground  breaking to the dedication. It required a work force of  384 slaves, 34 slave drivers, 12 engineers, 2 turtle doves,  and a partridge in a pear tree. The work was managed by  a command team composed of 2345 bureaucrats, 2347 secretaries  (at least two of which can type), 12,256 paper shufflers,  52,469 rubber stampers, 245,193 red tape processors, and  nearly one million dead trees.    We will now point out some of the more interesting features  of FCD#3 as we conduct you on a guided tour of the facilities:          1) You start your tour here in the Dam Lobby.             You will notice on your right that ........."
+    },
+    "BUTTO": {
+      "name": "",
+      "text": "",
+      "initial": "MAINT",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "LEAK": {
+      "name": "",
+      "text": "",
+      "initial": "MAINT",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "SCREW": {
+      "name": "screwdriver",
+      "text": "There is a screwdriver here.",
+      "initial": "MAINT",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "WRENC": {
+      "name": "wrench",
+      "text": "There is a wrench here.",
+      "initial": "MAINT",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "PUTTY": {
+      "name": "tube",
+      "text": "There is an object which looks like a tube of toothpaste here.",
+      "initial": "MAINT",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "CYCLO": {
+      "name": "",
+      "text": "",
+      "initial": "CYCLO-R",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    },
+    "CHALI": {
+      "name": "chalice",
+      "text": "There is a silver chalice, intricately engraved, here.",
+      "initial": "TREAS-R",
+      "find": 10,
+      "deposit": 10,
+      "light": 0,
+      "read": ""
+    },
+    "PAINT": {
+      "name": "painting",
+      "text": "A masterpiece by a neglected genius is here.",
+      "initial": "GALLE",
+      "find": 4,
+      "deposit": 7,
+      "light": 0,
+      "read": ""
+    },
+    "THIEF": {
+      "name": "",
+      "text": "There is a suspicious-looking individual, holding a bag, leaning against  one wall.",
+      "initial": "CAROU",
+      "find": 0,
+      "deposit": 0,
+      "light": 0,
+      "read": ""
+    }
+  }
+}
