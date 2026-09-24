@@ -92,7 +92,7 @@ canvas#snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-
 .readout{display:none}
 .hud{position:fixed;right:clamp(16px,2.4vw,34px);top:clamp(16px,3vh,30px);z-index:9;text-align:right;pointer-events:none;text-shadow:0 2px 12px rgba(0,0,0,.4)}
 .hud .dep{font-family:var(--num);font-weight:200;font-size:clamp(36px,4.4vw,60px);line-height:1;letter-spacing:.01em}
-.hud .dep small{font-size:.36em;margin-left:4px}
+.hud .dep small{font-size:max(.36em,11px);margin-left:4px}
 .hud .zn{font-size:14px;letter-spacing:.3em;margin-top:6px}
 .hud dl{display:grid;grid-template-columns:auto auto;gap:3px 12px;margin:10px 0 0;font-size:12px;justify-content:end}
 .hud dt{opacity:.6}
@@ -165,7 +165,7 @@ var ZONES=[
   {d0:200,d1:1000,h:2300,name:'暮光帶',en:'MESOPELAGIC',bg:['#175f93','#06203d'],txt:'光線一路衰減，到一千公尺只剩最後一絲藍。這裡的居民開始自己發光——有的是為了求偶，有的是為了隱形。'},
   {d0:1000,d1:4000,h:2600,name:'午夜帶',en:'BATHYPELAGIC',bg:['#06203d','#020a15'],txt:'從這裡開始，永遠是黑夜。你看到的每一點光，都是某個生物的決定。移動探照燈看看周圍。'},
   {d0:4000,d1:6000,h:1500,name:'深淵帶',en:'ABYSSOPELAGIC',bg:['#020a15','#01040a'],txt:'水溫接近冰點，水壓是海面的四百到六百倍。海床上的居民靠從上面緩緩飄落的「海雪」過活。'},
-  {d0:6000,d1:10935,h:2500,name:'超深淵帶',en:'HADAL',bg:['#01040a','#000000'],txt:'只存在於海溝裡的世界，名字來自希臘神話的冥府。人類去過月球的次數，比來過這裡還多。'}
+  {d0:6000,d1:10935,h:2500,name:'超深淵帶',en:'HADAL',bg:['#01040a','#000000'],txt:'只存在於海溝裡的世界，名字來自希臘神話的冥府。直到 2019 年以前，走上月球的人（十二位）都比到過這裡的人（三位）還多。'}
 ];
 var TOTAL=1;
 
@@ -179,7 +179,7 @@ var C=[
  {d:760,side:'r',w:240,vb:'0 0 220 120',n:'桶眼魚',sci:'Macropinna microstoma',body:'<path d="M20 64 C40 44 90 38 150 50 C172 54 186 62 190 66 C186 72 170 80 150 82 C90 92 40 84 20 64Z" fill="#26343f"/><path d="M20 64 L2 48 L6 64 L2 80Z" fill="#26343f"/><path d="M96 50 C96 18 170 10 184 42 C188 52 186 60 180 64" fill="rgba(170,255,225,.12)" stroke="rgba(190,255,235,.55)" stroke-width="2"/><path d="M90 84 L100 110 M120 84 L126 104" stroke="#26343f" stroke-width="5"/>',glow:'<ellipse class="g" cx="138" cy="36" rx="9" ry="14" fill="#5dffa7"/><ellipse class="g" cx="158" cy="34" rx="8" ry="13" fill="#5dffa7" style="--t:3.6s"/>',txt:'頭部是透明的圓頂，兩隻綠色的管狀眼睛藏在裡面，平常往上看，找到獵物時會整個轉向前方。'},
  {d:920,side:'l',w:200,vb:'0 0 180 180',n:'吸血鬼烏賊',sci:'Vampyroteuthis infernalis',body:'<path d="M90 20 C120 20 132 50 128 78 C150 96 170 128 172 160 C140 150 116 156 90 172 C64 156 40 150 8 160 C10 128 30 96 52 78 C48 50 60 20 90 20Z" fill="#4a1414"/><path d="M60 44 C44 34 36 40 34 50 M120 44 C136 34 144 40 146 50" stroke="#4a1414" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M52 90 L30 154 M72 96 L64 164 M108 96 L116 164 M128 90 L150 154" stroke="#2c0909" stroke-width="3"/>',glow:'<circle class="g" cx="74" cy="64" r="6" fill="#7fb8ff"/><circle class="g" cx="106" cy="64" r="6" fill="#7fb8ff"/><circle class="g" cx="10" cy="160" r="4" fill="#6ff6ff" style="--t:2.2s"/><circle class="g" cx="170" cy="160" r="4" fill="#6ff6ff" style="--t:2.6s"/><circle class="g" cx="90" cy="172" r="4" fill="#6ff6ff" style="--t:2.9s"/>',txt:'不吸血，也不是烏賊，自己獨立成一個目。受威脅時會把斗篷翻過來把自己罩住，再噴出一團發光的黏液，趁亂離開。'},
  {d:1700,side:'r',w:520,vb:'0 0 500 180',n:'抹香鯨',sci:'Physeter macrocephalus',body:'<path d="M20 50 C20 30 40 22 70 22 H200 C260 22 330 50 400 84 C430 98 450 104 470 96 L496 70 L488 104 L500 138 L468 114 C440 118 410 118 380 116 C300 112 220 124 150 124 C90 124 50 118 30 104 C18 94 20 70 20 50Z" fill="#2d3842"/><path d="M40 112 L150 116" stroke="#1a2229" stroke-width="3"/><circle cx="150" cy="66" r="4" fill="#0c1116"/>',glow:'',txt:'為了追捕大王魷，牠們能潛到兩千公尺以下、閉氣超過一小時。那顆巨大的方頭裡裝著鯨腦油，是很好的聲納透鏡。'},
- {d:2100,side:'l',w:250,vb:'0 0 220 180',n:'深海鮟鱇',sci:'Melanocetus johnsonii',body:'<path d="M30 100 C30 56 70 34 120 40 C170 46 196 80 190 116 C184 150 150 166 110 164 C66 162 30 142 30 100Z" fill="#1f1a1d"/><path d="M190 110 L214 88 L212 140 Z" fill="#1f1a1d"/><path d="M34 88 C60 96 70 118 40 132" fill="#0d0a0c"/><path d="M36 92 l6 10 l4 -12 l6 12 l4 -12 l6 12 M40 130 l6 -10 l4 12 l6 -12 l4 12" stroke="#e9e4d6" stroke-width="2" fill="none"/><circle cx="84" cy="72" r="5" fill="#b8c7cf"/><path d="M96 44 C90 16 64 4 40 14" stroke="#1f1a1d" stroke-width="3" fill="none"/>',glow:'<circle class="g" cx="38" cy="16" r="7" fill="#aef6ff"/>',t:'1.8s',txt:'頭上那根「釣竿」末端住著發光細菌，在黑暗中誘惑獵物游進嘴裡。雄魚小得多，找到雌魚後會咬住不放，最後和她融為一體。'},
+ {d:2100,side:'l',w:250,vb:'0 0 220 180',n:'深海鮟鱇',sci:'Melanocetus johnsonii',body:'<path d="M30 100 C30 56 70 34 120 40 C170 46 196 80 190 116 C184 150 150 166 110 164 C66 162 30 142 30 100Z" fill="#1f1a1d"/><path d="M190 110 L214 88 L212 140 Z" fill="#1f1a1d"/><path d="M34 88 C60 96 70 118 40 132" fill="#0d0a0c"/><path d="M36 92 l6 10 l4 -12 l6 12 l4 -12 l6 12 M40 130 l6 -10 l4 12 l6 -12 l4 12" stroke="#e9e4d6" stroke-width="2" fill="none"/><circle cx="84" cy="72" r="5" fill="#b8c7cf"/><path d="M96 44 C90 16 64 4 40 14" stroke="#1f1a1d" stroke-width="3" fill="none"/>',glow:'<circle class="g" cx="38" cy="16" r="7" fill="#aef6ff"/>',t:'1.8s',txt:'頭上那根「釣竿」末端住著發光細菌，在黑暗中誘惑獵物游進嘴裡。雄魚小得多；在角鮟鱇等親戚裡，雄魚找到雌魚後會咬住不放、最後和她融為一體，這一種的雄魚則只是暫時依附。'},
  {d:3000,side:'r',w:200,vb:'0 0 160 160',n:'小飛象章魚',sci:'Grimpoteuthis',body:'<path d="M80 18 C112 18 124 44 122 70 C140 90 150 116 146 136 C124 126 104 134 80 146 C56 134 36 126 14 136 C10 116 20 90 38 70 C36 44 48 18 80 18Z" fill="#e7a58f"/><path d="M40 46 C22 32 10 40 12 54 C14 64 30 62 42 58Z M120 46 C138 32 150 40 148 54 C146 64 130 62 118 58Z" fill="#f0b8a2"/><circle cx="66" cy="66" r="5" fill="#2a1612"/><circle cx="94" cy="66" r="5" fill="#2a1612"/>',glow:'',txt:'靠頭頂兩片像大耳朵的鰭慢慢「飛」行。是已知棲息最深的章魚之一，最深紀錄接近七千公尺。'},
  {d:3800,side:'l',w:480,vb:'0 0 500 220',n:'鐵達尼號殘骸',sci:'RMS Titanic, 1912',body:'<path d="M20 200 L60 70 L430 90 C460 92 480 110 486 140 L490 200 Z" fill="#3a2c24"/><path d="M60 70 L430 90" stroke="#6b4c3a" stroke-width="3"/><path d="M80 100 H440 M80 130 H460" stroke="#2a1f19" stroke-width="2"/><g fill="#1b1410"><circle cx="120" cy="116" r="4"/><circle cx="160" cy="116" r="4"/><circle cx="200" cy="117" r="4"/><circle cx="240" cy="118" r="4"/><circle cx="280" cy="118" r="4"/><circle cx="320" cy="119" r="4"/><circle cx="360" cy="120" r="4"/><circle cx="400" cy="121" r="4"/></g><path d="M64 70 V52 M100 72 V54 M140 74 V56 M64 54 L140 58" stroke="#6b4c3a" stroke-width="2"/><path d="M200 90 v18 M260 92 v22 M330 95 v14 M420 96 v26" stroke="#8a5a3c" stroke-width="3" stroke-linecap="round"/><path d="M0 206 Q120 190 250 204 T500 202 V220 H0Z" fill="#1a1512"/>',glow:'',txt:'三千八百公尺。1912 年沉沒，1985 年才被找到。船身上垂掛的「鏽柱」是吃鐵的細菌群落，它們正以自己的步調把船慢慢吃掉。'},
  {d:4600,side:'r',w:280,vb:'0 0 260 150',n:'三腳架魚',sci:'Bathypterois grallator',body:'<path d="M40 60 C70 46 150 44 200 54 C220 58 234 62 240 66 C232 72 214 76 196 76 C150 80 80 78 40 70Z" fill="#6b6f73"/><path d="M40 64 L16 52 L22 66 L14 80Z" fill="#6b6f73"/><path d="M110 76 L80 146 M150 76 L190 146 M60 70 L34 146" stroke="#8b8f93" stroke-width="2.5"/><path d="M188 52 C200 30 214 20 230 16 M196 54 C212 36 228 30 246 30" stroke="#8b8f93" stroke-width="1.5" fill="none"/><circle cx="214" cy="60" r="2.5" fill="#222"/><path d="M0 146 H260" stroke="#2a241f" stroke-width="4"/>',glow:'',txt:'用三根延長的鰭條像腳架一樣站在海床上，面向水流一動也不動，等食物自己漂進嘴裡。深海最有耐心的釣客。'},
@@ -359,15 +359,18 @@ var cv=document.getElementById('snow'),cx=cv&&cv.getContext?cv.getContext('2d'):
 var P=[],W=0,H=0,dpr=1,lastY=window.scrollY;
 function size(){if(!cx) return;dpr=Math.min(2,window.devicePixelRatio||1);W=window.innerWidth;H=window.innerHeight;cv.width=W*dpr;cv.height=H*dpr;cx.setTransform(dpr,0,0,dpr,0,0);}
 function seed(){P=[];var n=Math.round(Math.min(160,W*H/9000));for(var i=0;i<n;i++) P.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+.3,v:Math.random()*.25+.05,a:Math.random()*.6+.2,p:Math.random()*6});}
-function frame(){
+var lastT=0;
+function frame(now){
   if(!cx) return;
   var sy=window.scrollY,dy=sy-lastY;lastY=sy;
+  // drift is time-based (same speed at 60/120 Hz), clamped after tab switches; reduced motion keeps only the scroll parallax
+  var k=lastT?Math.min(3,(now-lastT)/16.667):1;lastT=now;if(reduce) k=0;
   cx.clearRect(0,0,W,H);
   var vis=Math.min(1,curDepth/300);
   if(vis>0.01){
     cx.fillStyle='#dff6ff';
     for(var i=0;i<P.length;i++){
-      var q=P[i];q.y+=q.v-dy*(.35+q.r*.25);q.p+=.01;q.x+=Math.sin(q.p)*.15;
+      var q=P[i];q.y+=q.v*k-dy*(.35+q.r*.25);q.p+=.01*k;q.x+=Math.sin(q.p)*.15*k;
       if(q.y<-5){q.y=H+5;q.x=Math.random()*W;}if(q.y>H+5){q.y=-5;q.x=Math.random()*W;}
       cx.globalAlpha=q.a*vis;cx.beginPath();cx.arc(q.x,q.y,q.r,0,6.283);cx.fill();
     }

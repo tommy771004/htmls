@@ -82,7 +82,7 @@ body{
   box-shadow:inset 0 6px 14px rgba(0,0,0,.9),inset 0 -2px 0 rgba(120,255,140,.15),0 1px 0 #fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;border:0;padding:0;color:var(--neon)}
 .podlcd:focus-visible{outline:2px dashed var(--ice2);outline-offset:6px}
 #time{width:96px;height:36px;filter:drop-shadow(0 0 4px rgba(87,255,42,.8))}
-.podlbl{font:9px/1 var(--ui);letter-spacing:.2em;color:#6cdc4e;opacity:.85}
+.podlbl{font:10px/1 var(--ui);letter-spacing:.2em;color:#6cdc4e;opacity:.85}
 .stateico{width:14px;height:14px}
 
 .lcd{flex:1;min-width:0;border-radius:14px 40px 14px 14px;padding:10px 14px 10px;position:relative;
@@ -92,8 +92,8 @@ body{
 .lcd::before{content:"";position:absolute;left:-10%;top:-60%;width:80%;height:120%;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,0));pointer-events:none;z-index:2}
 .marquee{overflow:hidden;white-space:nowrap;font:bold 13px/20px var(--ui);letter-spacing:.06em;text-shadow:0 0 6px rgba(87,255,42,.7);
   border-bottom:1px solid rgba(87,255,42,.2);-webkit-mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
-.marquee span{display:inline-block;padding-left:100%;animation:mq 16s linear infinite}
-@keyframes mq{to{transform:translateX(-100%)}}
+.marquee span{display:inline-block;animation:mq 16s linear infinite;will-change:transform}
+@keyframes mq{to{transform:translateX(-50%)}}
 .meta{display:flex;gap:12px;align-items:center;font-size:10px;letter-spacing:.08em;color:#4fa83c;margin:6px 0 4px;flex-wrap:wrap}
 .meta b{color:var(--neon);font-size:12px;text-shadow:0 0 5px rgba(87,255,42,.6)}
 .led{padding:1px 5px;border:1px solid rgba(87,255,42,.25);border-radius:3px;opacity:.35}
@@ -101,7 +101,7 @@ body{
 .vmode{margin-left:auto;color:var(--ice);opacity:.8}
 .viswrap{position:relative;height:92px;cursor:pointer}
 #vis{display:block;width:100%;height:100%}
-.clutter{position:absolute;left:8px;top:74px;display:flex;flex-direction:column;gap:3px;font:bold 8px/1 var(--ui);color:#3f4a57;opacity:.7}
+.clutter{position:absolute;left:8px;top:74px;display:flex;flex-direction:column;gap:3px;font:bold 10px/1 var(--ui);color:#3f4a57;opacity:.7}
 
 .sliders{display:grid;grid-template-columns:1fr 150px 100px;gap:16px;margin:16px 0 6px;align-items:center}
 .sl label{display:block;font:italic 700 10px/1 var(--disp);letter-spacing:.18em;text-transform:uppercase;color:#2b3947;margin-bottom:2px;text-shadow:0 1px 0 #fff}
@@ -123,7 +123,7 @@ input[type=range]:focus-visible{outline:2px dashed #2a86c9;outline-offset:2px}
 .tbtn.play{width:66px;height:54px;border-radius:30px;background:radial-gradient(circle at 50% 30%,#eaffe0,#8dff6a 45%,#2fa312 100%);box-shadow:0 3px 0 #1d6b0a,0 6px 14px rgba(40,160,20,.45),inset 0 2px 0 rgba(255,255,255,.9)}
 .tbtn.play:active,.tbtn.play.pressed{box-shadow:0 0 0 #1d6b0a,inset 0 2px 5px rgba(0,60,0,.5)}
 .tbtn:focus-visible{outline:2px dashed #2a86c9;outline-offset:3px}
-.tbtn kbd{position:absolute;bottom:-17px;font:9px/1 var(--ui);color:#3d5064;letter-spacing:.1em}
+.tbtn kbd{position:absolute;bottom:-17px;font:10px/1 var(--ui);color:#3d5064;letter-spacing:.1em}
 .tflex{flex:1}
 .toggle{height:40px;padding:0 12px;border-radius:20px;border:0;cursor:pointer;font:italic 700 11px/1 var(--disp);letter-spacing:.14em;color:#2b3947;
   background:linear-gradient(180deg,#f7fafc,#c7d1db 55%,#eef3f7);box-shadow:inset 0 1px 0 #fff,0 2px 0 #7f8c9b,0 3px 6px rgba(18,50,90,.25);display:flex;align-items:center;gap:7px}
@@ -138,16 +138,19 @@ input[type=range]:focus-visible{outline:2px dashed #2a86c9;outline-offset:2px}
   box-shadow:inset 0 2px 0 #fff,inset 0 -2px 0 rgba(40,52,66,.35),0 16px 30px -12px rgba(18,50,90,.5)}
 .win h3{margin:0 0 10px;display:flex;align-items:center;gap:10px;font:italic 700 12px/1 var(--disp);letter-spacing:.2em;text-transform:uppercase;color:#243140}
 .win h3::after{content:"";flex:1;height:6px;border-radius:3px;background:repeating-linear-gradient(90deg,rgba(40,52,66,.5) 0 1px,rgba(255,255,255,.9) 1px 3px);opacity:.6}
-.eqfield{display:grid;grid-template-columns:44px 10px repeat(10,minmax(0,1fr));flex:1;min-height:150px;border-radius:12px;padding:8px 4px 20px;touch-action:none;position:relative;
+.eqfield{display:grid;grid-template-columns:44px 32px repeat(10,minmax(0,1fr));flex:1;min-height:150px;border-radius:12px;padding:8px 4px 20px;touch-action:none;position:relative;
   background:linear-gradient(180deg,#07130c,#0b1c12);box-shadow:inset 0 3px 10px rgba(0,0,0,.85),0 1px 0 #fff}
-.eqfield canvas{position:absolute;left:52px;right:4px;top:8px;height:calc(100% - 28px);width:calc(100% - 56px);pointer-events:none}
+.eqfield canvas{position:absolute;left:80px;right:4px;top:8px;height:calc(100% - 28px);width:calc(100% - 84px);pointer-events:none}
 .band{position:relative;display:flex;justify-content:center;outline:none}
 .band .groove{position:absolute;top:0;bottom:0;width:4px;border-radius:2px;background:#16261b;box-shadow:inset 0 1px 2px #000}
 .band .knob{position:absolute;left:50%;width:24px;height:12px;margin-left:-12px;margin-top:-6px;border-radius:6px;
   background:linear-gradient(180deg,#fff,#dfe6ee 40%,#8795a5 60%,#f1f5f9);box-shadow:0 1px 3px #000;z-index:2}
 .band:focus-visible .knob{box-shadow:0 0 0 2px var(--ice2),0 0 10px var(--ice2)}
-.band span{position:absolute;bottom:-16px;font:9px/1 var(--ui);color:#6cdc4e;white-space:nowrap}
+.band span{position:absolute;bottom:-16px;font:10px/1 var(--ui);color:#6cdc4e;white-space:nowrap}
 .band.pre span{color:var(--ice)}
+.eqdb{position:absolute;left:44px;top:8px;bottom:20px;width:30px;font:bold 10px/1 var(--ui);letter-spacing:-.03em;color:#3f8f30;pointer-events:none}
+.eqdb span{position:absolute;left:0;transform:translateY(-50%)}
+.eqdb span:nth-child(1){top:0}.eqdb span:nth-child(2){top:50%}.eqdb span:nth-child(3){top:100%}
 .eqctl{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .preset{height:40px;padding:0 11px;border:0;border-radius:14px;cursor:pointer;font:700 10px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#243140;
   background:linear-gradient(180deg,#fff,#d5dde6 50%,#f1f5f9);box-shadow:inset 0 1px 0 #fff,0 2px 0 #7f8c9b}
@@ -156,6 +159,8 @@ input[type=range]:focus-visible{outline:2px dashed #2a86c9;outline-offset:2px}
 .preset:focus-visible{outline:2px dashed #2a86c9;outline-offset:2px}
 
 .eq{display:flex;flex-direction:column}
+.eqsw{display:flex;gap:8px;margin:-2px 0 10px}
+.eqsw .toggle{height:32px;padding:0 12px;font-size:10px}
 .pl ol{list-style:none;margin:0;padding:6px;border-radius:12px;background:#07130c;box-shadow:inset 0 3px 10px rgba(0,0,0,.85),0 1px 0 #fff;counter-reset:t}
 .pl li button{width:100%;min-height:40px;display:flex;align-items:center;gap:8px;padding:4px 8px;border:0;background:transparent;color:#4cc93a;font:12px/1.2 var(--ui);text-align:left;cursor:pointer;border-radius:6px}
 .pl li button:hover{background:rgba(87,255,42,.08)}
@@ -200,11 +205,12 @@ input[type=range]:focus-visible{outline:2px dashed #2a86c9;outline-offset:2px}
   .toggles{width:100%;display:flex;gap:8px;margin-top:14px}
   .eqfield{grid-template-columns:34px 4px repeat(10,minmax(0,1fr))}
   .eqfield canvas{left:42px;width:calc(100% - 46px)}
-  .band span{font-size:8px}
+  .band span{letter-spacing:-.04em}
+  .eqdb{display:none}
 }
 @media (prefers-reduced-motion:reduce){
-  .amp::before,.pod::after,.amp .shine::after,.spark,.brand sup{animation:none}
-  .marquee span{animation-duration:40s}
+  .amp::before,.pod::after,.amp .shine::after,.spark,.brand sup,.marquee span{animation:none}
+  .marquee{text-overflow:ellipsis}
 }
 </style>
 </head>
@@ -247,7 +253,7 @@ input[type=range]:focus-visible{outline:2px dashed #2a86c9;outline-offset:2px}
         </button>
       </div>
       <div class="lcd">
-        <div class="marquee" aria-live="polite"><span id="mq">*** ChromAmp 2000 *** press X or the green button to play ***</span></div>
+        <div class="marquee" aria-live="polite"><span id="mq">*** ChromAmp 2000 *** press X or the green button to play ***&nbsp;&nbsp;*** ChromAmp 2000 *** press X or the green button to play ***&nbsp;&nbsp;</span></div>
         <div class="meta"><span><b id="kbps">128</b> kbps</span><span class="hz"><b>44</b> kHz</span><span class="led on" id="stereo">stereo</span><span class="led mono">mono</span><span class="vmode" id="vmode">VIS: BARS</span></div>
         <div class="viswrap" id="viswrap" title="Click to change visualization"><canvas id="vis"></canvas></div>
       </div>
@@ -277,6 +283,7 @@ input[type=range]:focus-visible{outline:2px dashed #2a86c9;outline-offset:2px}
   <div class="lower">
     <section class="win eq" aria-label="Equalizer">
       <h3>Graphic Equalizer</h3>
+      <div class="eqsw"><button class="toggle" id="bEqOn" aria-pressed="true"><i></i>ON</button><button class="toggle" id="bEqAuto" aria-pressed="false" title="Auto-load a preset per track"><i></i>AUTO</button></div>
       <div class="eqfield" id="eqfield"><canvas id="eqc"></canvas></div>
       <div class="eqctl" id="presets"></div>
     </section>
@@ -355,7 +362,10 @@ function renderList(){
 }
 function setMarquee(){
   const tr = TRACKS[cur], m = $('#mq');
-  if (m) m.textContent = `${cur+1}. ${tr.a} - ${tr.t} (${fmt(tr.dur)})  ***  ${tr.bpm} BPM  ***  `;
+  if (!m) return;
+  const one = `${cur+1}. ${tr.a} - ${tr.t} (${fmt(tr.dur)})\u00a0\u00a0***\u00a0\u00a0${tr.bpm} BPM\u00a0\u00a0***\u00a0\u00a0`;
+  m.textContent = one + one; // two copies → translateX(-50%) loops with no seam
+  m.style.animationDuration = Math.max(8, m.scrollWidth / 2 / 55).toFixed(1) + 's';
 }
 
 /* ---------- 7-seg time ---------- */
@@ -420,7 +430,7 @@ function initAudio(){
   applyEQ(); applyVol(); applyBal();
 }
 const dbFromSlider = v => v; // stored in dB already
-function applyEQ(){ if (!ctx) return; eqNodes.forEach((b,i)=> b.gain.setTargetAtTime(eqVals[i], ctx.currentTime, .03)); pre.gain.setTargetAtTime(Math.pow(10, preamp/20), ctx.currentTime, .03); }
+function applyEQ(){ if (!ctx) return; eqNodes.forEach((b,i)=> b.gain.setTargetAtTime(eqOn ? eqVals[i] : 0, ctx.currentTime, .03)); pre.gain.setTargetAtTime(eqOn ? Math.pow(10, preamp/20) : 1, ctx.currentTime, .03); }
 function applyVol(){ const v = $('#vol'); if (ctx && v) vol.gain.setTargetAtTime(Math.pow(+v.value/100, 1.6)*.9, ctx.currentTime, .02); }
 function applyBal(){ const b = $('#bal'); if (ctx && b && pan.pan) pan.pan.setTargetAtTime(+b.value/100, ctx.currentTime, .02); }
 
@@ -471,8 +481,9 @@ function start(){
   playing = true; paused = false;
   step = 0; bar = 0; nextTime = ctx.currentTime + .06;
   if (!schedTimer) schedTimer = setInterval(() => { if (playing && !paused && ctx) schedule(); }, 25);
-  setMarquee(); renderList(); drawState();
+  setMarquee(); renderList(); drawState(); autoEQ();
 }
+function autoEQ(){ if (!eqAuto || !presWrap) return; const b = [...presWrap.querySelectorAll('.preset')].find(x => x.textContent === AUTO[cur]); if (b && !b.classList.contains('on')) b.click(); }
 function pause(){ if (!playing) return; paused = !paused; if (!paused && ctx) { nextTime = ctx.currentTime + .05; } drawState(); }
 function stop(){ playing = false; paused = false; elapsed = 0; drawState(); }
 function next(d){
@@ -492,6 +503,8 @@ on('#bNext','click', () => next(1));
 on('#bPrev','click', () => next(-1));
 on('#bShuf','click', e => { shuffle = !shuffle; e.currentTarget.setAttribute('aria-pressed', shuffle); });
 on('#bRep','click', e => { repeat = !repeat; e.currentTarget.setAttribute('aria-pressed', repeat); });
+on('#bEqOn','click', e => { eqOn = !eqOn; e.currentTarget.setAttribute('aria-pressed', eqOn); if (eqc) eqc.style.opacity = eqOn ? 1 : .35; applyEQ(); });
+on('#bEqAuto','click', e => { eqAuto = !eqAuto; e.currentTarget.setAttribute('aria-pressed', eqAuto); autoEQ(); });
 on('#podlcd','click', () => { showRemain = !showRemain; const l=$('#podlbl'); if (l) l.textContent = showRemain?'REMAINING':'ELAPSED'; lastTimeStr=''; drawTime(); });
 on('#vol','input', applyVol); on('#bal','input', applyBal);
 on('#seek','input', e => { elapsed = (+e.target.value/1000) * TRACKS[cur].dur; lastTimeStr=''; });
@@ -522,8 +535,11 @@ if (eqf) {
   const mk = (label, i, cls) => { const d=document.createElement('div'); d.className='band'+(cls?' '+cls:''); d.tabIndex=0; d.setAttribute('role','slider'); d.setAttribute('aria-label', label);
     d.innerHTML='<div class="groove"></div><div class="knob"></div><span></span>'; d.querySelector('span').textContent = label; d.dataset.i=i; eqf.appendChild(d); bands.push(d); return d; };
   mk('PRE', -1, 'pre'); const spacer=document.createElement('div'); eqf.appendChild(spacer);
+  const db=document.createElement('div'); db.className='eqdb'; db.setAttribute('aria-hidden','true'); db.innerHTML='<span>+12db</span><span>+0db</span><span>-12db</span>'; eqf.appendChild(db);
   EQF.forEach((f,i) => mk(f>=1000? (f/1000)+'K' : String(f), i));
 }
+let eqOn = true, eqAuto = false;
+const AUTO = ['Dial-Up','Club','Aero','Club','Laptop Spkr','Civic Bass','Aero'];
 const valOf = i => i<0 ? preamp : eqVals[i];
 function setBand(i, v){ v = Math.max(-12, Math.min(12, Math.round(v))); if (i<0) preamp=v; else eqVals[i]=v; }
 function layoutEQ(){
@@ -565,6 +581,7 @@ markPreset('Flat');
 /* ---------- visualizer ---------- */
 const cv = $('#vis'), g = cv ? cv.getContext('2d') : null;
 const MODES = ['BARS','SCOPE','MIRROR']; let mode = 0;
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
 let W=0,H=0, peaks = new Array(40).fill(0), fdata = null, tdata = null;
 function resize(){
   if (!cv) return; const r = cv.getBoundingClientRect(), dpr = devicePixelRatio||1;
@@ -601,14 +618,14 @@ function drawVis(now){
     for (let i=0;i<N;i++){ const f0 = 40*Math.pow(16000/40, i/N), f1 = 40*Math.pow(16000/40,(i+1)/N);
       let a = Math.floor(f0/nyq*fdata.length), b = Math.max(a+1, Math.floor(f1/nyq*fdata.length)), m=0; for (let j=a;j<b;j++) m=Math.max(m,fdata[j]); vals[i]=m/255; }
   } else {
-    const t = now/1000;
+    const t = RM.matches ? 0 : now/1000; // idle shimmer freezes under reduced motion
     for (let i=0;i<N;i++) vals[i] = .12 + .1*Math.sin(t*2.2 + i*.45) + .06*Math.sin(t*3.7 - i*.8) + (playing? 0 : .03);
   }
   if (MODES[mode]==='SCOPE') {
     g.strokeStyle='#57ff2a'; g.lineWidth=2; g.shadowColor='#57ff2a'; g.shadowBlur=8; g.beginPath();
     for (let x=0;x<=W;x+=2){ let y;
       if (live) { const j = Math.floor(x/W*(tdata.length-1)); y = H/2 + (tdata[j]-128)/128*H*.9; }
-      else { const t=now/1000; y = H/2 + Math.sin(x*.05 + t*4)*H*.12*Math.sin(t*.7+x*.01); }
+      else { const t=RM.matches ? 0 : now/1000; y = H/2 + Math.sin(x*.05 + t*4)*H*.12*Math.sin(t*.7+x*.01); }
       x ? g.lineTo(x,y) : g.moveTo(x,y); }
     g.stroke(); g.shadowBlur=0; return;
   }

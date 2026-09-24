@@ -21,8 +21,9 @@
   .plate h1 i{color:var(--yellow)}
   .plate p{margin:0;font-size:15px;line-height:1.55;color:var(--dim);font-style:italic}
   .eq{margin-top:14px;font-size:clamp(17px,1.7vw,21px);color:var(--ink);font-family:"Cambria Math",Cambria,serif;white-space:nowrap}
-  .eq sup{font-size:.62em}
-  .eq sub{font-size:.62em}
+  .eq sup{font-size:max(.62em,10.5px)}
+  .eq sub{font-size:max(.62em,10.5px)}
+  .eq+.eq{margin-top:4px;color:var(--dim)}
 
   .terms{position:fixed;right:clamp(16px,3vw,40px);top:clamp(16px,3vw,36px);width:270px;z-index:2;pointer-events:none;
     font-variant-numeric:tabular-nums;border-top:1px solid rgba(95,212,255,.4)}
@@ -70,6 +71,7 @@
   <h1>Any doodle is just <i>circles</i> in a hurry.</h1>
   <p>Draw one continuous line. When you lift, the discrete Fourier transform takes it apart into spinning circles, each turning at a whole-number speed, and puts it back together tip-to-tail.</p>
   <div class="eq">X<sub>k</sub> = Σ<sub>n</sub> x<sub>n</sub> e<sup>−2πikn/N</sup></div>
+  <div class="eq" title="The inverse transform: each term is one circle of radius |X_k|/N turning k times per lap">x(t) = Σ<sub>k</sub> (X<sub>k</sub>/N) e<sup>ikt</sup></div>
 </div>
 
 <aside class="terms" aria-label="Largest Fourier terms">

@@ -196,7 +196,12 @@
 
   // ---------- turning ----------
   const queue = []; let busy = false, history = [], moveCount = 0, t0 = 0, timing = false, wasScrambled = false;
-  function turn(name, record = true, fast = false) { queue.push({ name, record, fast }); if (!busy) next(); }
+  function turn(name, record = true, fast = false) {
+    // half turns (WCA notation "R2") are queued as two quarter turns
+    if (name.endsWith('2')) { queue.push({ name: name[0], record, fast }, { name: name[0], record, fast }); }
+    else queue.push({ name, record, fast });
+    if (!busy) next();
+  }
   function next() {
     const job = queue.shift();
     if (!job) { busy = false; afterIdle(); return; }
@@ -261,10 +266,11 @@
   function scramble() {
     if (busy) return;
     const faces = 'UDLRFB'; let last = '', axisLast = -1; const seq = [];
-    while (seq.length < 22) {
+    while (seq.length < 20) {
       const f = faces[Math.floor(Math.random() * 6)];
       if (f === last || (MOVES[f].axis === axisLast && seq.length && MOVES[seq[seq.length - 1][0]].axis === axisLast && Math.random() < .7)) continue;
-      seq.push(f + (Math.random() < .5 ? "'" : '')); last = f; axisLast = MOVES[f].axis;
+      const q = Math.random(); // quarter, prime or half turn, as in a WCA scramble
+      seq.push(f + (q < .36 ? "'" : q < .72 ? '' : '2')); last = f; axisLast = MOVES[f].axis;
     }
     history = []; moveCount = 0; timing = false; if (tm) tm.textContent = '0:00.0';
     seq.forEach(m => turn(m, false, true));
@@ -273,7 +279,7 @@
     click();
   }
   let scrambleSeq = [];
-  const inv = m => m.endsWith("'") ? m[0] : m + "'";
+  const inv = m => m.endsWith('2') ? m : m.endsWith("'") ? m[0] : m + "'";
   $('#scr') && $('#scr').addEventListener('click', scramble);
   $('#undo') && $('#undo').addEventListener('click', () => {
     if (busy || !history.length) return;
@@ -321,7 +327,8 @@
   let last = performance.now();
   function loop(now) {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
-    if (!dragging && (Math.abs(vx) > .01 || Math.abs(vy) > .01)) { rx = Math.max(-88, Math.min(88, rx + vx)); ry += vy; vx *= .92; vy *= .92; view(); }
+    const k = dt * 60; // fling inertia tuned for 60 Hz, scaled by elapsed time
+    if (!dragging && (Math.abs(vx) > .01 || Math.abs(vy) > .01)) { rx = Math.max(-88, Math.min(88, rx + vx * k)); ry += vy * k; vx *= Math.pow(.92, k); vy *= Math.pow(.92, k); view(); }
     else if (!dragging && !reduce && !busy && queue.length === 0) { ry += dt * 4; view(); }
     requestAnimationFrame(loop);
   }

@@ -57,6 +57,9 @@ body.off .wallglow{opacity:0}
 .glass{position:relative;width:100%;flex:1;clip-path:polygon(33% 0,67% 0,92% 100%,8% 100%);overflow:hidden;
   background:linear-gradient(180deg,var(--liq-a),var(--liq-b) 70%,color-mix(in srgb,var(--liq-b) 60%, #fff 40%));transition:background 1s}
 .glass canvas{position:absolute;inset:0;width:100%;height:100%;display:block;filter:blur(1.2px) saturate(1.15)}
+.glass .coil{position:absolute;left:30%;right:30%;bottom:1.2%;height:5.5%;pointer-events:none;opacity:.55;
+  background:repeating-linear-gradient(90deg,transparent 0 7px,rgba(60,40,20,.75) 7px 9px);
+  -webkit-mask:radial-gradient(50% 50% at 50% 50%,transparent 58%,#000 62% 92%,transparent 96%);mask:radial-gradient(50% 50% at 50% 50%,transparent 58%,#000 62% 92%,transparent 96%)}
 .glass .sheen{position:absolute;inset:0;pointer-events:none;
   background:
     linear-gradient(90deg,rgba(0,0,0,.35) 0%,transparent 16%,rgba(255,255,255,.28) 26%,transparent 34%,transparent 70%,rgba(255,255,255,.12) 78%,transparent 84%,rgba(0,0,0,.4) 100%),
@@ -102,7 +105,7 @@ body.off .glass{filter:brightness(.45) saturate(.6)}
 .dialtxt b{display:block;font-size:22px;letter-spacing:0;font-style:italic;text-transform:none;color:var(--mustard)}
 .rocker{width:66px;height:100px;border-radius:10px;border:0;cursor:pointer;position:relative;padding:0;
   background:#2a1206;box-shadow:inset 0 3px 6px rgba(0,0,0,.6),0 2px 0 rgba(255,210,150,.2)}
-.rocker span{position:absolute;left:7px;right:7px;height:44px;border-radius:7px;display:grid;place-items:center;font-weight:bold;font-size:12px;letter-spacing:.12em;transition:all .15s}
+.rocker span{position:absolute;left:7px;right:7px;height:44px;border-radius:7px;display:grid;place-items:center;font-weight:bold;font-size:12px;letter-spacing:.12em;transition:background .15s,color .15s,box-shadow .15s}
 .rocker .on{top:7px;background:linear-gradient(180deg,#ffb35c,var(--orange));color:#3a1206;box-shadow:0 5px 0 #8a3208}
 .rocker .off{bottom:7px;background:linear-gradient(180deg,#5b3a28,#3f2517);color:#c9a98a;box-shadow:inset 0 2px 3px rgba(0,0,0,.5)}
 body.off .rocker .on{background:linear-gradient(180deg,#5b3a28,#3f2517);color:#c9a98a;box-shadow:inset 0 2px 3px rgba(0,0,0,.5)}
@@ -139,8 +142,8 @@ body.off .rocker .off{background:linear-gradient(180deg,#e9d7b4,#bda881);color:#
     <h1><span>The</span>Groovatron</h1>
     <p class="tag">It doesn’t do anything. It just does it slowly, and in a very nice colour.</p>
     <ul class="specs">
-      <li><b>Warm-up</b><span>45 minutes. Bring a book. Don’t read it.</span></li>
-      <li><b>Contents</b><span>1 bulb, 52 oz of mysterious wax, 0 instructions you will read.</span></li>
+      <li><b>Warm-up</b><span>Two to three hours. Bring a book. Don’t read it.</span></li>
+      <li><b>Contents</b><span>1 × 40 W appliance bulb, 1 wire coil, 52 oz of mysterious wax, 0 instructions you will read.</span></li>
       <li><b>Finish</b><span>Genuine gold-tone. Genuine-ish.</span></li>
       <li><b>Mood</b><span>Five factory-approved moods. Tap the glass to stir things up.</span></li>
     </ul>
@@ -150,7 +153,7 @@ body.off .rocker .off{background:linear-gradient(180deg,#e9d7b4,#bda881);color:#
     <div class="lamp" id="lamp">
       <div class="starburst" aria-hidden="true"><div><small>ONLY</small><b>$29<sup>95</sup></b></div></div>
       <div class="cap"></div>
-      <div class="glass" id="glass"><canvas id="lava" aria-label="Moving wax blobs"></canvas><div class="sheen"></div></div>
+      <div class="glass" id="glass"><canvas id="lava" aria-label="Moving wax blobs"></canvas><i class="coil" aria-hidden="true"></i><div class="sheen"></div></div>
       <div class="collar"></div>
       <div class="base"></div>
       <div class="base-grille"></div>
@@ -360,23 +363,28 @@ body.off .rocker .off{background:linear-gradient(180deg,#e9d7b4,#bda881);color:#
   });
 
   /* ---------- loop ---------- */
-  var last = performance.now(), running = true;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var last = performance.now(), running = !reduce, until = 0;
+  // reduced motion: hold a still, warmed-up frame; only let the wax move for a few seconds after you touch a control
+  function kick(){ if (!reduce) return; until = performance.now() + 3500; if (!running && !document.hidden){ running = true; last = performance.now(); requestAnimationFrame(frame); } }
+  ['pointerdown','click','keydown'].forEach(function(t){ document.addEventListener(t, kick); });
   function frame(now){
     if (!running) return;
+    if (reduce && now > until){ running = false; return; }
     var dt = Math.min(0.05, (now - last) / 1000); last = now;
     for (var c=0;c<3;c++) wax[c] += (waxTarget[c] - wax[c]) * Math.min(1, dt * 2.5);
     physics(dt * 1.6, now / 1000);
     render(now / 1000);
     requestAnimationFrame(frame);
   }
-  document.addEventListener('visibilitychange', function(){ if (document.hidden) running = false; else if (!running){ running = true; last = performance.now(); requestAnimationFrame(frame); } });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) running = false; else if (!running && (!reduce || performance.now() < until)){ running = true; last = performance.now(); requestAnimationFrame(frame); } });
   var rt = null;
-  window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(resize, 120); });
+  window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ resize(); render(performance.now() / 1000); }, 120); });
   resize();
   // pre-roll so the lamp looks "warmed up" on first paint
   for (var p=0;p<90;p++) physics(0.05, p * 0.05);
   render(0);
-  requestAnimationFrame(frame);
+  if (running) requestAnimationFrame(frame);
 })();
 </script>
 </body>

@@ -92,12 +92,13 @@ button{font:inherit;color:inherit;border:0;background:var(--bg);cursor:pointer;-
 .sw{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
 .sw small{display:block;color:var(--mut);font-weight:400;font-size:12px}
 .tg{width:62px;height:34px;border-radius:20px;box-shadow:var(--inS);position:relative;flex:none;background:var(--bg)}
-.tg::after{content:"";position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:50%;background:var(--bg);box-shadow:3px 3px 6px var(--dk),-3px -3px 6px var(--lt);transition:left .35s cubic-bezier(.4,1.5,.5,1),background .3s}
-.tg[aria-checked="true"]::after{left:32px;background:radial-gradient(circle,var(--dig) 0 4px,#e9edf4 5px)}
+.tg::after{content:"";position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:50%;background:var(--bg);box-shadow:3px 3px 6px var(--dk),-3px -3px 6px var(--lt);transition:transform .35s cubic-bezier(.4,1.5,.5,1),background .3s}
+.tg[aria-checked="true"]::after{transform:translateX(28px);background:radial-gradient(circle,var(--dig) 0 4px,#e9edf4 5px)}
 .tg[aria-checked="true"]{box-shadow:var(--inS),inset 0 0 0 20px rgba(91,111,214,.08)}
 
 /* history */
 .hist{grid-column:1 / -1;border-radius:22px;box-shadow:var(--inS);padding:14px 16px}
+.hist .lab{flex-wrap:wrap;gap:4px 12px;line-height:1.5}
 .hist ul{list-style:none;display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 .hist button{min-height:40px;padding:0 14px;border-radius:12px;box-shadow:var(--upS);font-size:13px;letter-spacing:.04em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:box-shadow .16s}
 .hist button:active{box-shadow:var(--inS)}
@@ -167,7 +168,7 @@ button{font:inherit;color:inherit;border:0;background:var(--bg);cursor:pointer;-
   </section>
 </main>
 
-<p class="foot">所有密碼都在你的瀏覽器裡用 <b>crypto.getRandomValues</b> 產生，不會上傳到任何地方。<br>破解時間以每秒一百億次猜測估算——大約是一整櫃顯示卡加上一位很有耐心的壞人。</p>
+<p class="foot">所有密碼都在你的瀏覽器裡用 <b>crypto.getRandomValues</b> 產生，不會上傳到任何地方。<br>破解時間以離線攻擊、每秒一百億次猜測估算（平均猜到一半就中）——大約是一整櫃顯示卡加上一位很有耐心的壞人。</p>
 <div class="toast" id="toast" role="status" aria-live="polite"><i></i><span id="toastT">已複製</span></div>
 
 <script>
@@ -204,7 +205,7 @@ button{font:inherit;color:inherit;border:0;background:var(--bg);cursor:pointer;-
     var units=[[1,'秒'],[60,'分鐘'],[3600,'小時'],[86400,'天'],[31557600,'年']],u=units[0];
     for(var i=0;i<units.length;i++) if(sec>=units[i][0]) u=units[i];
     var v=sec/u[0];
-    if(u[1]==='年'){var big=[[1e16,'京'],[1e12,'兆'],[1e8,'億'],[1e4,'萬']];for(var k=0;k<big.length;k++){if(v>=big[k][0]){var q=v/big[k][0];if(q>=1e4&&k===0) return '比宇宙年齡還久上好幾輪';return '約 '+(q<10?q.toFixed(1):Math.round(q))+' '+big[k][1]+'年';}}}
+    if(u[1]==='年'){var big=[[1e16,'京'],[1e12,'兆'],[1e8,'億'],[1e4,'萬']],age=1.38e10,cmp=v>age*2?'（宇宙年齡的'+(v/age>=1e4?'上萬':' '+Math.round(v/age)+' ')+'倍）':'';for(var k=0;k<big.length;k++){if(v>=big[k][0]){var q=v/big[k][0];if(q>=1e4&&k===0) return '比宇宙年齡（138 億年）還久上好幾輪';return '約 '+(q<10?q.toFixed(1):Math.round(q))+' '+big[k][1]+'年'+cmp;}}}
     if(sec<1) return '一眨眼就被猜中';
     return '約 '+(v<10?v.toFixed(1):Math.round(v))+' '+u[1];
   }

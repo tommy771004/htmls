@@ -27,6 +27,9 @@ body{font:12px/1.35 var(--f);color:#000;overflow:hidden;user-select:none;-webkit
 .mt.open img{filter:invert(1)}
 .mt img{width:16px;height:16px;image-rendering:pixelated}
 .clock{margin-left:auto;display:flex;align-items:center;font-weight:700;padding:0 6px}
+/* Application menu (current app icon) sits at the far right of the System 7 menu bar */
+.mt.app{padding:0 8px}
+.mt.app .menu{left:auto;right:0}
 .menu{position:absolute;top:21px;left:0;min-width:200px;background:#fff;border:1px solid #000;box-shadow:2px 2px 0 #000;padding:2px 0;display:none;z-index:600;font-weight:400}
 .mt.open .menu{display:block}
 .mi{display:flex;justify-content:space-between;gap:24px;padding:2px 16px;white-space:nowrap;cursor:default;color:#000}
@@ -44,6 +47,8 @@ body{font:12px/1.35 var(--f);color:#000;overflow:hidden;user-select:none;-webkit
 .icon.sel span{background:#000;color:#fff}
 .icon:focus-visible{outline:none}
 .icon:focus-visible span{outline:1px dotted #000;outline-offset:1px}
+/* the Trash always lives in the bottom-right corner of the desktop */
+.icon.trashdesk{position:fixed;right:14px;bottom:12px}
 .icon.open img{opacity:.55;filter:none;background:repeating-conic-gradient(#000 0 25%,#fff 0 50%) 0 0/2px 2px}
 
 /* windows */
@@ -115,6 +120,10 @@ body{font:12px/1.35 var(--f);color:#000;overflow:hidden;user-select:none;-webkit
 @media (max-width:600px){
   .mt{padding:0 8px}
   .clock{display:none}
+  .mt.app{margin-left:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  .zr{display:none}
 }
 </style>
 </head>
@@ -222,6 +231,7 @@ let trashFull = true;
 const DESK = [['hd','Macintosh HD','hd'],['projects','Projects','folder'],['about','About Me','person'],['contact','Contact','mail'],['trash','Trash','trashfull']];
 const iconsEl = $('#icons');
 DESK.forEach(([id,label,ic]) => { const b = document.createElement('button'); b.className='icon'; b.dataset.open=id; b.dataset.desk=id; b.setAttribute('role','listitem');
+  if (id === 'trash') b.classList.add('trashdesk');
   b.innerHTML = `<img src="${ICON[ic]}" alt=""><span>${label}</span>`; iconsEl.appendChild(b); });
 
 /* icon interaction: select on press, open on double-click (single tap on touch) */
@@ -240,7 +250,9 @@ screen.addEventListener('keydown', e => { const ic = e.target.closest && e.targe
 
 /* ---------- zoom rects ---------- */
 // the classic zoom rectangles: CSS-timed outlines so they never stall
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
 function zoomRects(from, to, cb){
+  if (RM.matches) { if (cb) cb(); return; } // no zooming outlines under reduced motion
   const n = 8, made = [];
   for (let k=0;k<=n;k++){ const t = k/n;
     const d = document.createElement('div'); d.className='zr';
@@ -345,22 +357,30 @@ const MENUS = [
   { label:'File', items:[['Open', () => { const s = document.querySelector('.icon.sel'); if (s && s.dataset.open) openWin(s.dataset.open, s); else beep(); }, '⌘O'], ['Close Window', () => closeWin(topWin()), '⌘W'], '-', ['Get Info', () => openWin('about'), '⌘I'], ['Print…', null], '-', ['Put Away', null]] },
   { label:'Edit', items:[['Undo', null, '⌘Z'], '-', ['Cut', null, '⌘X'], ['Copy', null, '⌘C'], ['Paste', null, '⌘V'], ['Show Clipboard', () => beep()]] },
   { label:'View', items:[['by Small Icon', () => beep(660)], ['by Icon', () => beep(660)], ['by Name', () => beep(660)], ['by Vibe', () => beep(990)]] },
+  { label:'Label', items:[['None', () => beep(660)], '-', ['Essential', () => beep(700)], ['Hot', () => beep(740)], ['In Progress', () => beep(780)], ['Cool', () => beep(820)], ['Personal', () => beep(860)], ['Project 1', () => beep(900)], ['Project 2', () => beep(940)]] },
   { label:'Special', items:[['Clean Up Desktop', cleanUp], ['Empty Trash', emptyTrash], '-', ['Restart', restart], ['Shut Down', shutDown]] }
 ];
-const mb = $('#menubar');
+// Application menu: the frontmost app is the Finder
+MENUS.push({ app:true, label:`<img src="${ICON.happy}" alt="Application menu: Finder">`, items:[['Hide Finder', null], ['Hide Others', () => beep()], ['Show All', null], '-', ['✓ Finder', () => beep(660)]] });
+const mb = $('#menubar'); let appMenu = null;
 MENUS.forEach(m => {
   const t = document.createElement('button'); t.className='mt'; t.innerHTML = m.label; t.setAttribute('aria-haspopup','true');
   const menu = document.createElement('div'); menu.className='menu'; menu.setAttribute('role','menu');
   m.items.forEach(it => { if (it === '-') { const s = document.createElement('div'); s.className='sepm'; menu.appendChild(s); return; }
     const d = document.createElement('div'); d.className = 'mi' + (it[1] ? '' : ' dis'); d.setAttribute('role','menuitem'); d.innerHTML = `<span>${it[0]}</span><kbd>${it[2]||''}</kbd>`;
-    if (it[1]) d.addEventListener('click', ev => { ev.stopPropagation(); let n = 0; const fl = setInterval(() => { d.classList.toggle('hl'); if (++n >= 4) { clearInterval(fl); closeMenus(); it[1](); } }, 50); });
+    if (it[1]) d.addEventListener('click', ev => { ev.stopPropagation(); if (RM.matches) { closeMenus(); it[1](); return; } let n = 0; const fl = setInterval(() => { d.classList.toggle('hl'); if (++n >= 4) { clearInterval(fl); closeMenus(); it[1](); } }, 50); });
     menu.appendChild(d); });
   t.appendChild(menu);
-  t.addEventListener('pointerdown', e => { e.stopPropagation(); const was = t.classList.contains('open'); closeMenus(); if (!was) t.classList.add('open'); });
-  t.addEventListener('keydown', e => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); const was = t.classList.contains('open'); closeMenus(); if (!was) t.classList.add('open'); } });
-  mb.appendChild(t);
+  const openIt = () => { const was = t.classList.contains('open'); closeMenus(); if (was) return; t.classList.add('open');
+    // keep pulled-down menus on screen on narrow displays
+    menu.style.left = ''; const r = menu.getBoundingClientRect(); if (r.right > innerWidth - 4 && !m.app) menu.style.left = Math.round(innerWidth - 4 - r.right) + 'px'; };
+  t.addEventListener('pointerdown', e => { e.stopPropagation(); openIt(); });
+  t.addEventListener('keydown', e => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); openIt(); } });
+  if (m.app) t.classList.add('app');
+  if (m.app) appMenu = t; else mb.appendChild(t);
 });
 const clk = document.createElement('div'); clk.className='clock'; mb.appendChild(clk);
+if (appMenu) mb.appendChild(appMenu);
 const tick = () => { const d = new Date(); clk.textContent = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }; tick(); setInterval(tick, 10000);
 function closeMenus(){ document.querySelectorAll('.mt.open').forEach(m => m.classList.remove('open')); }
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.menubar')) closeMenus(); });

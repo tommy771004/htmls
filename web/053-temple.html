@@ -162,7 +162,7 @@ footer{text-align:center;font:400 12px/1.8 var(--kai);color:#8b6a55;padding:10px
   <div class="lintel">
     <div class="fret"><svg viewBox="0 0 230 22" preserveAspectRatio="none" aria-hidden="true"><path d="M0 11 H10 V3 H24 V17 H16 V9 M24 11 H38 V3 H52 V17 H44 V9 M52 11 H66 V3 H80 V17 H72 V9 M80 11 H94 V3 H108 V17 H100 V9 M108 11 H122 V3 H136 V17 H128 V9 M136 11 H150 V3 H164 V17 H156 V9 M164 11 H178 V3 H192 V17 H184 V9 M192 11 H206 V3 H220 V17 H212 V9 M220 11 H230" fill="none" stroke="#e0ad4a" stroke-width="1.6"/></svg></div>
     <div class="plaque" role="img" aria-label="天恩宮">
-      <span class="v">歲次丙午</span><span class="main" aria-hidden="true">宮恩天</span><span class="v">信眾敬獻</span>
+      <span class="v">信眾敬獻</span><span class="main" aria-hidden="true">宮恩天</span><span class="v">歲次丙午</span>
     </div>
     <div class="fret"><svg viewBox="0 0 230 22" preserveAspectRatio="none" aria-hidden="true" style="transform:scaleX(-1)"><path d="M0 11 H10 V3 H24 V17 H16 V9 M24 11 H38 V3 H52 V17 H44 V9 M52 11 H66 V3 H80 V17 H72 V9 M80 11 H94 V3 H108 V17 H100 V9 M108 11 H122 V3 H136 V17 H128 V9 M136 11 H150 V3 H164 V17 H156 V9 M164 11 H178 V3 H192 V17 H184 V9 M192 11 H206 V3 H220 V17 H212 V9 M220 11 H230" fill="none" stroke="#e0ad4a" stroke-width="1.6"/></svg></div>
   </div>
@@ -396,7 +396,7 @@ footer{text-align:center;font:400 12px/1.8 var(--kai);color:#8b6a55;padding:10px
         sticknum.textContent = '第' + CN[current] + '籤';
         stick.style.transform = 'translateY(-38px)';
         clack(.2);
-        msg.innerHTML = `搖出<em>第${CN[current]}籤</em>。還須擲筊確認，得聖筊方為神明所指之籤。`;
+        msg.innerHTML = `搖出<em>第${CN[current]}籤</em>。還須擲筊確認，得聖筊方為神明所指之籤（許多廟宇要連得三個聖筊，本宮從簡）。`;
         await wait(reduce ? 50 : 900); moveTube(false);
         setStep(3);
       } else if (step === 3){

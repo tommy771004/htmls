@@ -44,7 +44,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 .masses{display:flex;gap:4px}
 .m{min-width:64px;min-height:44px;background:transparent;border:1px solid rgba(159,179,200,.22);color:var(--hud);font-family:var(--mono);font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 6px}
 .m i{display:block;border-radius:50%;background:radial-gradient(circle,#fff,var(--c) 60%,transparent 70%)}
-.m em{font-style:normal;color:var(--hud-dim);font-size:9.5px}
+.m em{font-style:normal;color:var(--hud-dim);font-size:10px}
 .m[aria-pressed="true"]{border-color:var(--hot);color:var(--hot);background:rgba(252,255,164,.06)}
 .m:focus-visible,.b:focus-visible{outline:1px dashed var(--hot);outline-offset:2px}
 .br{right:16px;bottom:16px;width:250px}
@@ -77,6 +77,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
   .bl .lbl,.br .lbl{display:none}
   .box.bl{padding:6px}
 }
+@media (prefers-reduced-motion:reduce){ .readout,.flash{transition:none} }
 </style>
 </head>
 <body>
@@ -98,6 +99,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     <tr><td>E_total</td><td id="t-e">0</td></tr>
     <tr><td>ΔE / E₀</td><td id="t-de">0.000%</td></tr>
     <tr><td>|P|</td><td id="t-p">0</td></tr>
+    <tr><td>L_z</td><td id="t-l">0</td></tr>
     <tr><td>MERGERS</td><td id="t-m">0</td></tr>
     <tr><td>RATE</td><td id="t-r">1.0×</td></tr>
   </table>
@@ -205,10 +207,11 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
   var booms = [];
   function boom(n){ booms.push({x:n.x, y:n.y, r:0, a:1}); var f = $('flash'); if (f){ f.classList.add('on'); setTimeout(function(){ f.classList.remove('on'); }, 500); } thud(); }
   function energy(){
-    var K = 0, U = 0, px = 0, py = 0;
-    for (var i=0;i<B.length;i++){ var a = B[i]; K += .5 * a.m * (a.vx*a.vx + a.vy*a.vy); px += a.m * a.vx; py += a.m * a.vy;
+    var K = 0, U = 0, px = 0, py = 0, L = 0;
+    for (var i=0;i<B.length;i++){ var a = B[i]; K += .5 * a.m * (a.vx*a.vx + a.vy*a.vy); px += a.m * a.vx; py += a.m * a.vy; L -= a.m * (a.x * a.vy - a.y * a.vx); // screen y points down, so flip for a right-handed z
+
       for (var j=i+1;j<B.length;j++){ var b = B[j], dx = b.x - a.x, dy = b.y - a.y; U -= a.m * b.m / Math.sqrt(dx*dx + dy*dy + EPS2); } }
-    return {E:K + U, P:Math.hypot(px, py)};
+    return {E:K + U, P:Math.hypot(px, py), L:L};
   }
 
   /* ---------- scenarios ---------- */
@@ -329,7 +332,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     if (E0 === null && B.length) E0 = en.E;
     var de = E0 ? (en.E - E0) / Math.abs(E0) * 100 : 0;
     var set = function(id, v){ var el = $(id); if (el) el.textContent = v; };
-    set('t-t', t.toFixed(3)); set('t-n', String(B.length)); set('t-e', en.E.toFixed(5)); set('t-p', en.P.toExponential(2));
+    set('t-t', t.toFixed(3)); set('t-n', String(B.length)); set('t-e', en.E.toFixed(5)); set('t-p', en.P.toExponential(2)); set('t-l', (Math.abs(en.L) < 5e-12 ? 0 : en.L).toFixed(5));
     set('t-de', (de >= 0 ? '+' : '') + de.toFixed(4) + '%'); set('t-m', String(mergers)); set('t-r', rate.toFixed(2) + '×');
     var deEl = $('t-de'); if (deEl) deEl.classList.toggle('warn', Math.abs(de) > .5);
     history.push(de); if (history.length > 120) history.shift();
@@ -349,8 +352,8 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     if (!running) return;
     var elapsed = Math.min(50, now - last); last = now;
     frames++; if (now - fpsT > 1000){ fps = frames; frames = 0; fpsT = now; var f = $('t-fps'); if (f) f.textContent = fps + ' fps'; }
-    // fade trails (long exposure)
-    gT.globalCompositeOperation = 'destination-out'; gT.fillStyle = 'rgba(0,0,0,.018)'; gT.fillRect(0, 0, W, H); gT.globalCompositeOperation = 'source-over';
+    // fade trails (long exposure) — per-millisecond, so 60 Hz and 120 Hz screens fade alike; a paused sim keeps its exposure
+    if (!paused){ gT.globalCompositeOperation = 'destination-out'; gT.fillStyle = 'rgba(0,0,0,' + (1 - Math.pow(1 - .018, elapsed / 16.7)).toFixed(4) + ')'; gT.fillRect(0, 0, W, H); gT.globalCompositeOperation = 'source-over'; }
     if (!paused && B.length){
       var sub = Math.max(1, Math.round(10 * rate)), dt = 0.0022 * elapsed / 16.7;
       gT.lineCap = 'round';
@@ -377,7 +380,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
       gF.fillStyle = gl; gF.beginPath(); gF.arc(sc[0], sc[1], r * 3.2, 0, Math.PI*2); gF.fill();
       if (q.m >= .25){ gF.strokeStyle = 'rgba(159,179,200,.35)'; gF.lineWidth = 1; gF.beginPath(); gF.arc(sc[0], sc[1], r * 3.2 + 6, -.6, .6); gF.stroke(); gF.fillStyle = 'rgba(159,179,200,.6)'; gF.font = '10px Consolas, monospace'; gF.fillText('m ' + q.m.toFixed(2), sc[0] + r*3.2 + 10, sc[1] + 3); }
     }
-    for (var bi=booms.length-1; bi>=0; bi--){ var bo = booms[bi], bs = toScreen(bo.x, bo.y); bo.r += 3; bo.a -= .03; if (bo.a <= 0){ booms.splice(bi, 1); continue; }
+    for (var bi=booms.length-1; bi>=0; bi--){ var bo = booms[bi], bs = toScreen(bo.x, bo.y); bo.r += 3 * elapsed / 16.7; bo.a -= .03 * elapsed / 16.7; if (bo.a <= 0){ booms.splice(bi, 1); continue; }
       gF.strokeStyle = 'rgba(252,255,164,' + bo.a + ')'; gF.lineWidth = 2; gF.beginPath(); gF.arc(bs[0], bs[1], bo.r, 0, Math.PI*2); gF.stroke(); }
     if (drag){
       var pts = predict();
@@ -403,6 +406,8 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     for (var i=0;i<B.length;i++){ var b = B[i], a = toScreen(prev[i][0], prev[i][1]), c = toScreen(b.x, b.y); gT.strokeStyle = cmap(0.18 + Math.hypot(b.vx, b.vy) / 1.7 * .82); gT.lineWidth = 2.4; gT.lineCap = 'round'; gT.globalAlpha = .35 + .65 * s / 260; gT.beginPath(); gT.moveTo(a[0], a[1]); gT.lineTo(c[0], c[1]); gT.stroke(); } }
     gT.globalAlpha = 1; })();
   telemetry();
+  // reduced motion: open on the still long-exposure frame; RUN (or P / Space) starts the simulation
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) setPause(true);
   requestAnimationFrame(frame);
 })();
 </script>

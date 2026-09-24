@@ -59,7 +59,7 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
 .dim .lbl{opacity:.35}
 .lbl{transition:opacity .4s}
 .lbl .zh{font-family:var(--zh);font-size:15px;font-weight:700;fill:var(--ink)}
-.lbl .en{font-family:var(--sans);font-size:9.5px;fill:var(--grey);letter-spacing:.04em}
+.lbl .en{font-family:var(--sans);font-size:10.5px;fill:var(--grey);letter-spacing:.04em}
 .lbl.on{opacity:1!important}
 .lbl.on .zh{font-size:16px}
 .st{cursor:pointer}
@@ -103,6 +103,7 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
 .step .node{position:absolute;left:8px;top:2px;width:22px;height:22px;border-radius:50%;background:#fff;border:4px solid #1f2124}
 .step.end .node{background:#1f2124}
 .step h4{margin:0;font-size:16px;letter-spacing:.06em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.step h4 .sc{font-family:var(--sans);font-weight:700;font-size:11px;letter-spacing:.02em;border:2px solid;border-radius:4px;padding:0 4px;line-height:16px;background:#fff}
 .step h4 em{font-style:normal;font-family:var(--sans);font-weight:400;font-size:11px;color:var(--grey);letter-spacing:.06em}
 .ride{margin-top:6px;font-size:14px;line-height:1.55;color:#34363a}
 .ride .code{font-family:var(--sans);font-weight:700;font-size:12px;color:#fff;border-radius:10px;padding:1px 7px;margin-right:4px;display:inline-block}
@@ -353,6 +354,13 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
 
   /* ---------- route rendering ---------- */
   var anim = null, trainAnim = null;
+  // 車站編號：線別字母 + 兩位數序號（如 R01、B05），轉乘站每條線各有一個
+  function stCode(sid, line){
+    var L = lineById(line), n = 0, list = L.pts.filter(function(p){ return typeof p === 'string'; });
+    n = list.indexOf(sid) + 1;
+    return n ? line + (n < 10 ? '0' : '') + n : '';
+  }
+  function scTag(sid, line){ var c = stCode(sid, line); return c ? '<span class="sc" style="border-color:'+COLOR[line]+'">' + c + '</span>' : ''; }
   function code(id){ return '<span class="code '+id+'" style="background:'+COLOR[id]+'">'+id+'</span>'; }
   function directionOf(leg){
     var L = lineById(leg.line);
@@ -415,12 +423,12 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
     function li(cls, inner, color){ html += '<li class="step '+cls+'" style="animation-delay:'+delay+'ms">' + (color ? '<i class="spine" style="background:'+color+'"></i>' : '') + '<i class="node"></i>' + inner + '</li>'; delay += 110; }
     legs.forEach(function(leg, i){
       var L = lineById(leg.line), s = ST[leg.from];
-      var head = i === 0 ? '<h4>' + s[0] + ' <em>' + s[1] + ' · 出發</em></h4>' : '<h4>' + s[0] + ' <em>轉乘 Transfer · 約 4 分</em></h4>';
+      var head = i === 0 ? '<h4>' + s[0] + ' ' + scTag(leg.from, leg.line) + ' <em>' + s[1] + ' · 出發</em></h4>' : '<h4>' + s[0] + ' ' + scTag(leg.from, legs[i-1].line) + scTag(leg.from, leg.line) + ' <em>轉乘 Transfer · 約 4 分</em></h4>';
       var tip = TIPS[leg.from] && i > 0 ? '<div class="tip">' + TIPS[leg.from] + '</div>' : '';
       li('', head + '<div class="ride">' + code(leg.line) + L.name + '　' + directionOf(leg) + '<small>搭乘 ' + leg.stops.length + ' 站 · 約 ' + leg.min + ' 分鐘 · 下車：' + ST[leg.to][0] + '</small></div>' + tip, COLOR[leg.line]);
     });
     var e = ST[b];
-    li('end', '<h4>' + e[0] + ' <em>' + e[1] + ' · 抵達</em></h4>' + (TIPS[b] ? '<div class="tip">' + TIPS[b] + '</div>' : '<div class="ride"><small>祝旅途愉快。下車時請帶走你的雨傘。</small></div>'));
+    li('end', '<h4>' + e[0] + ' ' + scTag(b, legs[legs.length-1].line) + ' <em>' + e[1] + ' · 抵達</em></h4>' + (TIPS[b] ? '<div class="tip">' + TIPS[b] + '</div>' : '<div class="ride"><small>祝旅途愉快。下車時請帶走你的雨傘。</small></div>'));
     stepsEl.innerHTML = html;
   }
   function setSummary(m, s, f){ var a = $('s-min'), b = $('s-stops'), c = $('s-fare'); if (a) a.textContent = m; if (b) b.textContent = s; if (c) c.textContent = f; }

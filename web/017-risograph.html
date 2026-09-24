@@ -61,6 +61,7 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--sans);
 .bars i{position:relative;display:block;width:4cqw;height:100%;background:currentColor}
 .stack svg{width:100%;height:100%;overflow:visible}
 .stack{left:8cqw;top:54cqw;width:44cqw;height:31cqw}
+@container (max-width:420px){.info{font-size:2.9cqw;line-height:1.25}}
 .num{left:5cqw;bottom:1.2cqw;font-family:"Segoe Print","Ink Free","Bradley Hand",cursive;font-size:2.6cqw;color:#4d4a47;transform:rotate(-3deg);mix-blend-mode:multiply;z-index:4;position:absolute}
 
 /* ---------- side panels ---------- */
@@ -113,12 +114,13 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--sans);
   <aside class="panel left" aria-label="Print specification">
     <h2>Print spec</h2>
     <div class="swatch" aria-hidden="true"><i></i><i></i></div>
-    <p>Two drums, two passes, zero apologies. Where the inks overlap they multiply into a purple nobody ordered but everybody wants.</p>
+    <p>Two ink drums, one colour each, zero apologies. Where the inks overlap they multiply into a purple nobody ordered but everybody wants.</p>
     <dl class="spec">
       <dt>Ink 1</dt><dd>Fluorescent Pink</dd>
       <dt>Ink 2</dt><dd>Medium Blue</dd>
       <dt>Paper</dt><dd>Munken Pure 120gsm, slightly warm</dd>
-      <dt>Size</dt><dd>A2 · 420 × 594 mm</dd>
+      <dt>Size</dt><dd>A3 · 297 × 420 mm (the biggest sheet a riso drum takes)</dd>
+      <dt>Screen</dt><dd>Master 600 dpi, grain touch on</dd>
       <dt>Edition</dt><dd id="ed">37 / 100, hand numbered</dd>
     </dl>
   </aside>
@@ -214,21 +216,24 @@ poster.addEventListener('pointerleave',()=>{ active=false; tgt.x=0; tgt.y=0; tgt
 poster.addEventListener('pointerdown',e=>{ try{ poster.setPointerCapture(e.pointerId); }catch(_){} });
 poster.addEventListener('pointerup',e=>{ if(e.pointerType!=='mouse'){ active=false; tgt.x=0; tgt.y=0; tgt.r=0; } });
 
-function frame(){
-  t+=1/60;
+let lastTs=0;
+function frame(ts){
+  /* time-based: same drift speed on 60 Hz and 120 Hz screens; clamp the gap after a hidden tab */
+  const dt=lastTs?Math.min(.1,(ts-lastTs)/1000):1/60; lastTs=ts;
+  t+=dt;
   // idle: the drum breathes a little, like a real machine
   const idleX=active||locked||reduce?0:Math.sin(t*.7)*1.6, idleY=active||locked||reduce?0:Math.cos(t*.5)*1.1;
   const L=locked?0:1;
   const gx=(tgt.x+idleX+base.x+nudge.x)*L, gy=(tgt.y+idleY+base.y+nudge.y)*L, gr=(tgt.r+base.r)*L;
-  const k=reduce?1:.12;
+  const k=reduce?1:1-Math.pow(1-.12,dt*60);
   cur.x+=(gx-cur.x)*k; cur.y+=(gy-cur.y)*k; cur.r+=(gr-cur.r)*k;
   const s=poster.clientWidth/600; // offsets are designed for a 600px sheet
   blue.style.transform=`translate(${(cur.x*s).toFixed(2)}px,${(cur.y*s).toFixed(2)}px) rotate(${cur.r.toFixed(3)}deg)`;
   pink.style.transform=`translate(${(-cur.x*.18*s).toFixed(2)}px,${(-cur.y*.18*s).toFixed(2)}px)`;
-  // 600px sheet ≈ 420mm → 0.7 mm/px
-  const ox=$('ox'), oy=$('oy'), ok=$('ok'), st=$('st');
-  if(ox) ox.textContent=mmStr(cur.x*.7); if(oy) oy.textContent=mmStr(cur.y*.7); if(ok) ok.textContent=(cur.r>=0?'+':'')+cur.r.toFixed(2);
-  if(st) st.textContent=status(Math.hypot(cur.x,cur.y)*.7);
+  // 600px sheet ≈ 297mm (A3) → 0.495 mm/px
+  const MM=.495, ox=$('ox'), oy=$('oy'), ok=$('ok'), st=$('st');
+  if(ox) ox.textContent=mmStr(cur.x*MM); if(oy) oy.textContent=mmStr(cur.y*MM); if(ok) ok.textContent=(cur.r>=0?'+':'')+cur.r.toFixed(2);
+  if(st) st.textContent=status(Math.hypot(cur.x,cur.y)*MM);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

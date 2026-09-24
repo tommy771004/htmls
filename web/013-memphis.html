@@ -73,7 +73,7 @@ h1 .small{font-size:.42em;letter-spacing:.02em;display:inline-block;background:v
 .vibe:focus-visible,.gen:focus-visible,.mini:focus-visible,.cnt button:focus-visible{outline:3px dashed var(--coral);outline-offset:4px}
 
 .range{position:relative;height:44px;display:flex;align-items:center}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 12px),linear-gradient(90deg,var(--mint),var(--yellow),var(--coral));border:3px solid var(--ink);border-radius:0;margin:0;cursor:pointer}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 12px),linear-gradient(90deg,var(--mint),var(--yellow),var(--coral));border:3px solid var(--ink);border-radius:0;margin:0;cursor:pointer}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;background:var(--pink);border:3px solid var(--ink);border-radius:50%;box-shadow:3px 3px 0 var(--ink);cursor:grab}
 input[type=range]::-moz-range-thumb{width:28px;height:28px;background:var(--pink);border:3px solid var(--ink);border-radius:50%;box-shadow:3px 3px 0 var(--ink)}
 input[type=range]:focus-visible{outline:3px dashed var(--coral);outline-offset:6px}
@@ -176,7 +176,7 @@ footer svg{flex:0 0 auto}
       <span class="row" aria-hidden="true"><span class="l" style="--d:5;color:var(--coral)">M</span><span class="l" style="--d:6;color:var(--mint)">I</span><span class="l" style="--d:7;color:var(--yellow)">X</span><span class="small">machine</span></span>
     </h1>
     <p class="tag">Playlists for people who own <em>at least one inflatable chair.</em> Pick a vibe, crank the energy, press the big yellow button.</p>
-    <div class="sticker" aria-hidden="true"><div>EST.<b>1986</b>MILANO<br>-ISH</div></div>
+    <div class="sticker" aria-hidden="true"><div>EST.<b>1981</b>MILANO<br>-ISH</div></div>
   </header>
 
   <section class="deck blk p-stripes" aria-labelledby="deckTitle">
@@ -395,11 +395,15 @@ function burst(x,y,n){
     parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,r:rnd(0,6.28),vr:rnd(-.25,.25),s:rnd(7,15),k:Math.floor(Math.random()*4),c:cols[Math.floor(Math.random()*cols.length)],l:0}); }
   if(!raf) raf=requestAnimationFrame(tick);
 }
-function tick(){
+let lastT=0;
+function tick(now){
+  /* physics in 60 fps units scaled by real elapsed time, so 120 Hz screens do not double the speed */
+  const k=lastT?Math.min(3,(now-lastT)/16.667):1; lastT=now;
+  const damp=Math.pow(.985,k);
   cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,innerWidth,innerHeight);
   parts=parts.filter(p=>p.y<innerHeight+40&&p.l<400);
   for(const p of parts){
-    p.l++; p.vy+=.35; p.vx*=.985; p.vy*=.985; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr;
+    p.l+=k; p.vy+=.35*k; p.vx*=damp; p.vy*=damp; p.x+=p.vx*k; p.y+=p.vy*k; p.r+=p.vr*k;
     cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.fillStyle=p.c; cx.strokeStyle='#111'; cx.lineWidth=2;
     if(p.k===0){ cx.beginPath(); cx.moveTo(0,-p.s/2); cx.lineTo(p.s/2,p.s/2); cx.lineTo(-p.s/2,p.s/2); cx.closePath(); cx.fill(); cx.stroke(); }
     else if(p.k===1){ cx.beginPath(); cx.arc(0,0,p.s/2.4,0,6.283); cx.fill(); cx.stroke(); }
@@ -407,7 +411,7 @@ function tick(){
     else { cx.fillRect(-p.s/2,-p.s/5,p.s,p.s/2.5); cx.strokeRect(-p.s/2,-p.s/5,p.s,p.s/2.5); }
     cx.restore();
   }
-  if(parts.length) raf=requestAnimationFrame(tick); else { raf=0; cx.clearRect(0,0,innerWidth,innerHeight); }
+  if(parts.length) raf=requestAnimationFrame(tick); else { raf=0; lastT=0; cx.clearRect(0,0,innerWidth,innerHeight); }
 }
 
 /* ---- boot ---- */

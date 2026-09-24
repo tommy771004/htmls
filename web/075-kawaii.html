@@ -38,9 +38,9 @@
 
   /* ---------- the journal spread ---------- */
   .spread{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--pink);border-radius:18px;padding:12px;box-shadow:0 10px 0 #e9a3bd, 0 22px 40px rgba(180,90,130,.25)}
-  .page{position:relative;background-color:var(--paper);
+  .page{position:relative;background-color:var(--paper);min-width:0;
     background-image:radial-gradient(circle, rgba(165,133,150,.35) 1.1px, transparent 1.4px);background-size:18px 18px;background-position:9px 9px;
-    padding:18px 22px 16px;min-height:640px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:12px}
+    padding:18px 22px 16px;min-height:640px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 1fr 1fr;gap:12px}
   .page.l{border-radius:10px 4px 4px 10px;box-shadow:inset -14px 0 18px -14px rgba(107,74,90,.25)}
   .page.r{border-radius:4px 10px 10px 4px;box-shadow:inset 14px 0 18px -14px rgba(107,74,90,.25)}
   .rings{position:absolute;left:50%;top:26px;bottom:26px;width:28px;transform:translateX(-50%);display:flex;flex-direction:column;justify-content:space-around;z-index:3;pointer-events:none}
@@ -59,6 +59,8 @@
   .dh .n{font-size:26px;line-height:1;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--dc,var(--mint));color:var(--ink)}
   .dh .w{font-size:14px;line-height:1.2}
   .dh .w small{display:block;color:var(--ink-soft);font-size:11px;letter-spacing:.1em}
+  .hol-badge{margin-left:auto;font-size:11px;color:#e0476f;border:1.5px solid #f5a3b9;border-radius:10px;padding:1px 7px;font-family:var(--round);white-space:nowrap}
+  .day.hol .dh .n{color:#e0476f}
   .today-badge{margin-left:auto;font-size:11px;background:var(--pink-d);color:#fff;border-radius:10px;padding:2px 8px;font-family:var(--round)}
   .note{display:block;margin-top:6px;font-family:var(--hand);font-size:14px;line-height:1.6;min-height:1.6em;outline:none;cursor:text;
     background-image:linear-gradient(transparent calc(100% - 1px), rgba(165,133,150,.35) 1px);background-size:100% 1.6em;position:relative;z-index:1;word-break:break-word}
@@ -134,6 +136,9 @@
     .day,.sum{min-height:176px}
     .dh .n{width:34px;height:34px;font-size:21px}
     .slots{--sz:56px}
+    .water{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .water > span{grid-row:auto;grid-column:1/-1;margin:0 0 2px}
+    .drop{width:100%;height:36px}
   }
   @media (prefers-reduced-motion:reduce){
     .placed.pop,.placed.wig{animation:none}
@@ -209,9 +214,9 @@
   /* ---------------- days ---------------- */
   const DAYS = [
     { d: 21, w: '一', e: 'MON', c: '#bdeedb' }, { d: 22, w: '二', e: 'TUE', c: '#ffd6e5' }, { d: 23, w: '三', e: 'WED', c: '#fff1b8', today: true },
-    { d: 24, w: '四', e: 'THU', c: '#d9ccff' }, { d: 25, w: '五', e: 'FRI', c: '#bdeedb' }, { d: 26, w: '六', e: 'SAT', c: '#ffd6e5' }, { d: 27, w: '日', e: 'SUN', c: '#ffe0c2' }
+    { d: 24, w: '四', e: 'THU', c: '#d9ccff' }, { d: 25, w: '五', e: 'FRI', c: '#bdeedb', hol: '中秋節' }, { d: 26, w: '六', e: 'SAT', c: '#ffd6e5' }, { d: 27, w: '日', e: 'SUN', c: '#ffe0c2' }
   ];
-  const PH = ['今天發生什麼事？', '寫一句就好…', '今天的小確幸是？', '有沒有想吐槽的？', '週五了！', '睡到幾點？', '明天又要上班了…'];
+  const PH = ['今天發生什麼事？', '寫一句就好…', '今天的小確幸是？', '有沒有想吐槽的？', '中秋連假！要烤肉嗎？', '睡到幾點？', '明天又要上班了…'];
   const KEY = 'kawaii-journal-075';
   let state;
   const DEFAULT = {
@@ -233,10 +238,10 @@
   if (!pageL || !pageR) return;
   const dayEls = DAYS.map((d, i) => {
     const el = document.createElement('div');
-    el.className = 'day'; el.tabIndex = 0; el.dataset.i = i;
-    el.setAttribute('role', 'group'); el.setAttribute('aria-label', `9月${d.d}日 星期${d.w}`);
+    el.className = 'day' + (d.hol ? ' hol' : ''); el.tabIndex = 0; el.dataset.i = i;
+    el.setAttribute('role', 'group'); el.setAttribute('aria-label', `9月${d.d}日 星期${d.w}` + (d.hol ? ' ' + d.hol : ''));
     el.style.setProperty('--dc', d.c);
-    el.innerHTML = `<div class="dh"><span class="n">${d.d}</span><span class="w">星期${d.w}<small>${d.e}</small></span>${d.today ? '<span class="today-badge">今天</span>' : ''}</div>` +
+    el.innerHTML = `<div class="dh"><span class="n">${d.d}</span><span class="w">星期${d.w}<small>${d.e}</small></span>${d.today ? '<span class="today-badge">今天</span>' : ''}${d.hol ? `<span class="hol-badge">${d.hol}</span>` : ''}</div>` +
       `<span class="note" contenteditable="true" spellcheck="false" data-ph="${PH[i]}"></span><div class="slots"></div>`;
     const note = el.querySelector('.note');
     note.textContent = state.notes[i] || '';

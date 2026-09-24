@@ -73,7 +73,7 @@ body{
 .colo .note{font-size:.6em;line-height:1.9;color:var(--ink-2);margin:0 .9em 0 0;max-block-size:calc(100% - 1em);font-family:var(--kai)}
 .colo .stamps{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-right:.4em;block-size:auto}
 
-.painter{position:absolute;display:flex;flex-direction:row-reverse;gap:8px;align-items:flex-start;writing-mode:vertical-rl;color:var(--ink);font-size:clamp(14px,2.2vh,19px);letter-spacing:.2em;text-shadow:0 0 1px rgba(28,26,23,.5);pointer-events:none}
+.painter{position:absolute;display:flex;flex-direction:row;gap:8px;align-items:flex-start;writing-mode:vertical-rl;color:var(--ink);font-size:clamp(14px,2.2vh,19px);letter-spacing:.2em;text-shadow:0 0 1px rgba(28,26,23,.5);pointer-events:none}
 
 /* rollers */
 .roller{position:absolute;top:-16px;bottom:-16px;width:26px;z-index:3;pointer-events:none;
@@ -132,7 +132,7 @@ body{
   <button class="btn" id="poemBtn" type="button">換一首詩</button>
   <div class="mini" id="mini" aria-label="卷軸縮圖，點擊跳轉" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><canvas id="mcv"></canvas><div class="win" id="win"></div></div>
 </div>
-<div class="foot"><span>第 <b id="seedNo">—</b> 卷 · 歲次丙午 秋</span><span>神來之筆 <b id="blots">0</b> 滴</span><span>鍵盤：← → 展卷 · N 重新揮毫</span></div>
+<div class="foot"><span>第 <b id="seedNo">—</b> 卷 · 歲次<span id="gz">丙午</span> <span id="season">秋</span></span><span>神來之筆 <b id="blots">0</b> 滴</span><span>鍵盤：← → 展卷 · N 重新揮毫</span></div>
 
 <script>
 (function(){
@@ -157,6 +157,11 @@ body{
       note:'漁火一點，是全卷唯一不用墨畫的東西。' }
   ];
   var poemIdx = 0, seed = 0, blotCount = 0;
+  // 題跋落款用當下的干支紀年與季節（以國曆月份粗分四季）
+  var NOW = new Date(), YR = NOW.getFullYear(), MO = NOW.getMonth() + 1;
+  var GZ = '甲乙丙丁戊己庚辛壬癸'.charAt(((YR - 4) % 10 + 10) % 10) + '子丑寅卯辰巳午未申酉戌亥'.charAt(((YR - 4) % 12 + 12) % 12);
+  var SEASON = MO >= 3 && MO <= 5 ? '春' : MO >= 6 && MO <= 8 ? '夏' : MO >= 9 && MO <= 11 ? '秋' : '冬';
+  (function(){ var g = $('gz'), s = $('season'); if(g) g.textContent = GZ; if(s) s.textContent = SEASON; })();
 
   /* ---------- rng / noise ---------- */
   function mulberry(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -388,8 +393,8 @@ body{
     if(colo){
       var lines = p.lines.map(function(l){ return '<span>' + l + '</span>'; }).join('');
       colo.innerHTML = '<div class="ttl">' + p.a + '〈' + p.t + '〉</div><div class="poem">' + lines + '</div>' +
-        '<div class="note">右錄' + p.a + '〈' + p.t + '〉。' + p.note + '山水為亂數所寫，第' + toHan(seed % 100000) + '卷，未經任何一隻手。歲次丙午秋日記。</div>' +
-        '<div class="stamps"><div class="seal round" aria-hidden="true"><span>丙</span><span>午</span></div><div class="seal red-text" aria-hidden="true"><span>墨</span><span>戲</span><span>亂</span><span>數</span></div></div>';
+        '<div class="note">右錄' + p.a + '〈' + p.t + '〉。' + p.note + '山水為亂數所寫，第' + toHan(seed % 100000) + '卷，未經任何一隻手。歲次' + GZ + SEASON + '日記。</div>' +
+        '<div class="stamps"><div class="seal round" aria-hidden="true"><span>' + GZ.charAt(0) + '</span><span>' + GZ.charAt(1) + '</span></div><div class="seal red-text" aria-hidden="true"><span>墨</span><span>戲</span><span>亂</span><span>數</span></div></div>';
     }
   }
   function toHan(n){
@@ -435,9 +440,10 @@ body{
     var t0 = performance.now(), last = 0, DUR = reduce ? 1 : 1600;
     ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.fillStyle = 'rgba(20,18,16,.85)'; ctx.beginPath(); ctx.arc(x, y, 3 + Math.random() * 3, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    (function step(now){
-      var p = Math.min(1, (now - t0) / DUR), e = 1 - Math.pow(1 - p, 3);
-      ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    // 墨是逐層疊上去的：固定 96 層（約 60fps × 1.6 秒），不論螢幕更新率或分頁切換，暈開的深淺都一樣。
+    var LAYERS = 96, drawn = 0;
+    function paint(p){
+      var e = 1 - Math.pow(1 - p, 3);
       subs.forEach(function(s){
         var r = 2 + Rm * s[2] * e;
         var gr = ctx.createRadialGradient(s[0], s[1], 0, s[0], s[1], r);
@@ -447,6 +453,11 @@ body{
       });
       // capillary fringe
       if(p - last > .08){ last = p; for(var k = 0; k < 6; k++){ var a2 = Math.random() * Math.PI * 2, rr2 = Rm * e * (.8 + Math.random() * .5); ctx.strokeStyle = 'rgba(20,18,16,.05)'; ctx.lineWidth = .7; ctx.beginPath(); ctx.moveTo(x + Math.cos(a2) * rr2 * .7, y + Math.sin(a2) * rr2 * .7); ctx.lineTo(x + Math.cos(a2) * rr2 * 1.1, y + Math.sin(a2) * rr2 * 1.1); ctx.stroke(); } }
+    }
+    (function step(now){
+      var p = Math.min(1, (now - t0) / DUR), target = Math.round(p * LAYERS);
+      ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      while(drawn < target){ drawn++; paint(drawn / LAYERS); }
       ctx.restore();
       if(p < 1) requestAnimationFrame(step); else updateMini();
     })(t0);

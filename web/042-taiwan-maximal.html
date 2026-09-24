@@ -181,6 +181,12 @@ button{font-family:inherit;font-weight:700;cursor:pointer;color:inherit}
 .ticket .no{font-family:var(--kai);font-weight:900;font-size:96px;line-height:1;color:var(--red);-webkit-text-stroke:2px var(--ink);text-shadow:4px 4px 0 var(--ink);margin:4px 0 8px}
 .ticket p{margin:6px 0;font-family:var(--kai);font-weight:400;font-size:17px;line-height:1.45}
 .ticket .go{margin-top:10px}
+@media (prefers-reduced-motion:reduce){
+  .bulb,.hang,.sign,.burst{animation:none}
+  .burst{transform:rotate(12deg)}
+  .led .scroll{animation:none;transform:translateY(-50%);left:10px}
+  .pad,.ticket,.scrim{transition-duration:.01s}
+}
 </style>
 </head>
 <body>
@@ -249,7 +255,7 @@ button{font-family:inherit;font-weight:700;cursor:pointer;color:inherit}
   <header><h2>你的茄芷袋<small>點菜單 · 桌號：站著吃</small></h2><button class="x" id="closePad" type="button" aria-label="關閉">✕</button></header>
   <ul class="lines" id="lines"></ul>
   <div class="spice"><p>辣度（老闆會看心情）</p><div class="chips" id="chips">
-    <button type="button" aria-pressed="true">不辣</button><button type="button" aria-pressed="false">小辣</button><button type="button" aria-pressed="false">大辣</button><button type="button" aria-pressed="false">老闆的辣</button>
+    <button type="button" aria-pressed="true">不辣</button><button type="button" aria-pressed="false">小辣</button><button type="button" aria-pressed="false">中辣</button><button type="button" aria-pressed="false">大辣</button><button type="button" aria-pressed="false">老闆的辣</button>
   </div></div>
   <div class="checkout"><div class="sum"><span>總共（現金找零自己數）</span><b id="sum">$0</b></div><button class="go" id="payBtn" type="button" disabled>結帳拿號碼牌</button></div>
 </aside>
@@ -443,7 +449,7 @@ button{font-family:inherit;font-weight:700;cursor:pointer;color:inherit}
     ticketNo++;
     var tn = $('#tno'), tm = $('#tmsg'), tw = $('#twait');
     if(tn) tn.textContent = String(ticketNo).padStart(3, '0');
-    var spiceMsg = { '不辣':'不辣，老闆偷偷多撒了一點胡椒。', '小辣':'小辣，老闆的小辣是別人的中辣。', '大辣':'大辣，請準備一杯冬瓜檸檬。', '老闆的辣':'老闆的辣，老闆看了你一眼說「確定？」' }[spice] || '';
+    var spiceMsg = { '不辣':'不辣，老闆偷偷多撒了一點胡椒。', '小辣':'小辣，老闆的小辣是別人的中辣。', '中辣':'中辣，老闆多舀了半匙辣油。', '大辣':'大辣，請準備一杯冬瓜檸檬。', '老闆的辣':'老闆的辣，老闆看了你一眼說「確定？」' }[spice] || '';
     if(tm) tm.textContent = '共 ' + tt.n + ' 樣，$' + tt.t + '。' + spiceMsg;
     if(tw) tw.textContent = '預計等待：' + ['一首五月天的時間。','滑完一輪限時動態。','隔壁射完十發氣球。','老闆講完一通電話。'][ticketNo % 4];
     order = {}; save(); render();

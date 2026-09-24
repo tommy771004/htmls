@@ -80,9 +80,9 @@ h1 .l2{display:flex;align-items:center;justify-content:center;gap:.4em;font-size
 .datebox{position:relative;padding:14px 22px 12px;border:1px solid var(--gold);outline:1px solid rgba(201,162,75,.45);outline-offset:4px}
 .datebox::before{content:"";position:absolute;left:50%;top:-10px;width:14px;height:14px;background:var(--ink2);border:1px solid var(--gold);transform:translateX(-50%) rotate(45deg)}
 .datebox .day{display:block;font-size:clamp(48px,9vw,74px);line-height:1}
-.datebox .mo{display:block;font-size:clamp(9.5px,1.3vw,11px);letter-spacing:.34em;padding-left:.34em;margin-top:6px;color:var(--gold-hi)}
+.datebox .mo{display:block;font-size:clamp(10.5px,1.3vw,11px);letter-spacing:.34em;padding-left:.34em;margin-top:6px;color:var(--gold-hi)}
 .venue{font-size:clamp(11px,1.6vw,13px);letter-spacing:.3em;line-height:2.1;color:var(--gold-hi);margin:26px 0 0}
-.venue small{display:block;color:var(--ivory2);letter-spacing:.26em;font-size:.88em}
+.venue small{display:block;color:var(--ivory2);letter-spacing:.26em;font-size:max(10.5px,.88em)}
 
 .program{list-style:none;margin:30px auto 0;padding:0;max-width:430px;display:grid;gap:12px}
 .program li{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;font-size:clamp(10.5px,1.5vw,12px);letter-spacing:.22em;color:var(--ivory2);line-height:1.7}
@@ -128,7 +128,7 @@ h1 .l2{display:flex;align-items:center;justify-content:center;gap:.4em;font-size
 .opt{position:relative;display:flex;align-items:center;gap:12px;min-height:46px;padding:10px 14px;border:1px solid rgba(42,36,25,.35);cursor:pointer;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;line-height:1.5;transition:background .35s,border-color .35s,color .35s}
 .opt input{position:absolute;opacity:0;pointer-events:none}
 .opt .dia{flex:0 0 auto;width:12px;height:12px;border:1px solid var(--soot);transform:rotate(45deg);transition:background .3s}
-.opt small{display:block;font-size:.85em;letter-spacing:.12em;text-transform:none;font-style:italic;color:#6d5f45}
+.opt small{display:block;font-size:max(10.5px,.85em);letter-spacing:.12em;text-transform:none;font-style:italic;color:#6d5f45}
 .opt:hover{border-color:var(--gold-lo)}
 .opt:has(input:checked){background:var(--ink);color:var(--gold-hi);border-color:var(--ink)}
 .opt:has(input:checked) small{color:var(--ivory2)}
@@ -228,9 +228,9 @@ h1 .l2{display:flex;align-items:center;justify-content:center;gap:.4em;font-size
     </svg>
 
     <div class="when">
-      <div class="side l caps"><b>Saturday</b>New Year’s Eve</div>
+      <div class="side l caps"><b>Friday</b>New Year’s Eve</div>
       <div class="datebox"><span class="day gold-text">31</span><span class="mo caps">Dec · MCMXXVI</span></div>
-      <div class="side r caps"><b>Half past nine</b>sharp-ish</div>
+      <div class="side r caps"><b>Half past nine</b>o’clock, sharp-ish</div>
     </div>
 
     <p class="venue caps">The Crystal Salon<small>Fortieth floor · Hotel Marquise<br>Park Avenue · New York</small></p>

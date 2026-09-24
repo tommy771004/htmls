@@ -125,6 +125,7 @@ body{margin:0;background:#231915;color:var(--ink);font-family:var(--serif);
 .foot{text-align:center;margin-top:clamp(20px,3vw,34px);font-size:13px}
 .foot .w{font-size:clamp(18px,2.2vw,26px);letter-spacing:.2em}
 .foot p{margin:6px 0 0;font-style:italic}
+.foot .doors{font-style:normal;font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:10px;line-height:1.6}
 .printer{font-size:10px;letter-spacing:.24em;text-transform:uppercase;margin-top:14px;opacity:.7}
 
 @media (max-width:860px){
@@ -143,7 +144,7 @@ body{margin:0;background:#231915;color:var(--ink);font-family:var(--serif);
   .h-circus{filter:drop-shadow(3px 3px 0 rgba(184,35,27,.85))}
   .h-name{text-shadow:3px 3px 0 var(--ink)}
 }
-@media (prefers-reduced-motion:reduce){.rays{animation:none}.ticket.print{animation:none}}
+@media (prefers-reduced-motion:reduce){.rays{animation:none}.ticket.print{animation:none}.flag{animation:none}.ticket .stub{transition:opacity .3s}.ticket .stub.torn{transform:none}}
 </style>
 </head>
 <body>
@@ -235,6 +236,7 @@ body{margin:0;background:#231915;color:var(--ink);font-family:var(--serif);
   <footer class="foot">
     <span class="w">Every Night This Week · Rain or Shine · Mostly Shine</span>
     <p>The tent is on the common, behind the church, beside the goat.</p>
+    <p class="doors">Doors open half an hour before each performance · Carriages may be ordered for 10 o’clock · Under the distinguished patronage of the Mayor &amp; Corporation</p>
     <div class="printer">Printed by J. Hobbs &amp; Sons, Wood-Letter Printers · Please do not paste over this bill</div>
   </footer>
 </main>

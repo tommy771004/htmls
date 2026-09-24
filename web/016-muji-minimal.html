@@ -106,6 +106,8 @@ nav a{color:var(--ink2);text-decoration:none}
 .clock .hh{top:52px;width:3px;height:28px;background:#3b3733;margin-left:-.5px}
 .clock .mm{top:40px;width:2px;height:40px;background:#3b3733}
 .clock .ss{top:36px;width:1px;height:48px;background:var(--shu);transform-origin:50% 44px;margin-left:.5px}
+.clock .ss.sweep{animation:sweep 60s linear infinite}
+@keyframes sweep{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .clock .pin{left:77px;top:78px;width:6px;height:6px;border-radius:50%;background:var(--shu)}
 /* lamp */
 .lamp .glow{left:18px;top:60px;width:124px;height:84px;background:radial-gradient(ellipse 50% 60% at 50% 10%,rgba(255,226,160,.55),transparent 70%);opacity:.8;transition:opacity 1.6s var(--slow)}
@@ -191,6 +193,8 @@ footer{border-top:1px solid var(--line);padding:30px 0 60px;font-size:12px;color
 @media (prefers-reduced-motion:reduce){
   .item{transition-duration:.01s}
   .candle .flame{animation:none}
+  .clock .ss.sweep{animation:none}
+  .lines li{animation:none}
 }
 </style>
 </head>
@@ -261,18 +265,18 @@ const OBJ={
   candle:'<div class="halo"></div><div class="glass"><div class="wax"></div></div><div class="wick"></div><div class="flame"></div>'
 };
 const ITEMS=[
-  {id:1,o:'mug',cat:'kitchen',zh:'白瓷馬克杯',jp:'白磁マグカップ',note:'早上的第一杯，不需要花紋。',mat:'瓷',size:'容量 350ml',price:390,sh:24},
-  {id:2,o:'carafe',cat:'kitchen',zh:'玻璃水瓶',jp:'耐熱ガラスピッチャー',note:'看得見水還剩多少，也是一種安心。',mat:'耐熱玻璃',size:'1.0L',price:590,sh:22},
-  {id:3,o:'board',cat:'kitchen',zh:'橡木砧板',jp:'オーク材まな板',note:'刀痕，會慢慢變成它的年輪。',mat:'橡木',size:'30 × 24 cm',price:1290,sh:26},
-  {id:4,o:'tote',cat:'carry',zh:'亞麻托特包',jp:'麻トートバッグ',note:'裝得下一顆高麗菜和一本書。',mat:'亞麻 100%',size:'38 × 40 cm',price:690,sh:16},
-  {id:5,o:'note-o',cat:'carry',zh:'牛皮紙筆記本',jp:'クラフトノート',note:'空白，是最好的內容。',mat:'再生紙',size:'A5・80 頁',price:120,sh:24},
-  {id:6,o:'clock',cat:'living',zh:'靜音掛鐘',jp:'掛け時計',note:'秒針很安靜。您也可以。',mat:'鋁、玻璃',size:'直徑 25 cm',price:1490,sh:0},
-  {id:7,o:'lamp',cat:'living',zh:'紙罩桌燈',jp:'デスクライト',note:'只照亮需要的那一小塊。',mat:'鋼、和紙',size:'高 42 cm',price:1990,sh:18},
-  {id:8,o:'bowl',cat:'kitchen',zh:'白瓷飯碗',jp:'白磁茶碗',note:'一碗飯的份量，剛剛好。',mat:'瓷',size:'直徑 12 cm',price:250,sh:32},
-  {id:9,o:'chop',cat:'kitchen',zh:'竹筷與筷架',jp:'竹箸と箸置き',note:'兩根竹子，一塊小陶。',mat:'孟宗竹、陶',size:'23 cm',price:180,sh:44},
-  {id:10,o:'stool',cat:'living',zh:'橡木圓凳',jp:'オーク材スツール',note:'坐著，放書，墊腳，都行。',mat:'橡木',size:'高 44 cm',price:2490,sh:14},
-  {id:11,o:'flask',cat:'carry',zh:'不鏽鋼保溫瓶',jp:'ステンレス保温ボトル',note:'下午三點，茶還是熱的。',mat:'不鏽鋼',size:'350ml',price:790,sh:20},
-  {id:12,o:'candle',cat:'living',zh:'玻璃杯蠟燭',jp:'グラスキャンドル',note:'無香。只有光。',mat:'大豆蠟、玻璃',size:'約燃燒 30 小時',price:450,sh:24}
+  {id:1,o:'mug',cat:'kitchen',zh:'白瓷馬克杯',jp:'白磁マグカップ',note:'早上的第一杯，不需要花紋。',mat:'瓷',size:'容量 350ml',price:390,sh:24,org:'日本・美濃'},
+  {id:2,o:'carafe',cat:'kitchen',zh:'玻璃水瓶',jp:'耐熱ガラスピッチャー',note:'看得見水還剩多少，也是一種安心。',mat:'耐熱玻璃',size:'1.0L',price:590,sh:22,org:'日本'},
+  {id:3,o:'board',cat:'kitchen',zh:'橡木砧板',jp:'オーク材まな板',note:'刀痕，會慢慢變成它的年輪。',mat:'橡木',size:'30 × 24 cm',price:1290,sh:26,org:'越南'},
+  {id:4,o:'tote',cat:'carry',zh:'亞麻托特包',jp:'麻トートバッグ',note:'裝得下一顆高麗菜和一本書。',mat:'亞麻 100%',size:'38 × 40 cm',price:690,sh:16,org:'立陶宛（麻）'},
+  {id:5,o:'note-o',cat:'carry',zh:'牛皮紙筆記本',jp:'クラフトノート',note:'空白，是最好的內容。',mat:'再生紙',size:'A5・80 頁',price:120,sh:24,org:'台灣'},
+  {id:6,o:'clock',cat:'living',zh:'靜音掛鐘',jp:'掛け時計',note:'秒針很安靜。您也可以。',mat:'鋁、玻璃',size:'直徑 25 cm',price:1490,sh:0,org:'日本（機芯）'},
+  {id:7,o:'lamp',cat:'living',zh:'紙罩桌燈',jp:'デスクライト',note:'只照亮需要的那一小塊。',mat:'鋼、和紙',size:'高 42 cm',price:1990,sh:18,org:'日本（和紙）'},
+  {id:8,o:'bowl',cat:'kitchen',zh:'白瓷飯碗',jp:'白磁茶碗',note:'一碗飯的份量，剛剛好。',mat:'瓷',size:'直徑 12 cm',price:250,sh:32,org:'日本・有田'},
+  {id:9,o:'chop',cat:'kitchen',zh:'竹筷與筷架',jp:'竹箸と箸置き',note:'兩根竹子，一塊小陶。',mat:'孟宗竹、陶',size:'23 cm',price:180,sh:44,org:'台灣'},
+  {id:10,o:'stool',cat:'living',zh:'橡木圓凳',jp:'オーク材スツール',note:'坐著，放書，墊腳，都行。',mat:'橡木',size:'高 44 cm',price:2490,sh:14,org:'台灣'},
+  {id:11,o:'flask',cat:'carry',zh:'不鏽鋼保溫瓶',jp:'ステンレス保温ボトル',note:'下午三點，茶還是熱的。',mat:'不鏽鋼',size:'350ml',price:790,sh:20,org:'中國'},
+  {id:12,o:'candle',cat:'living',zh:'玻璃杯蠟燭',jp:'グラスキャンドル',note:'無香。只有光。',mat:'大豆蠟、玻璃',size:'約燃燒 30 小時',price:450,sh:24,org:'台灣'}
 ];
 const fmt=n=>'NT$ '+n.toLocaleString('en-US');
 
@@ -290,7 +294,7 @@ if(grid){
       <h3 class="nm">${it.zh}</h3>
       <div class="jp">${it.jp}</div>
       <p class="note">${it.note}</p>
-      <dl class="spec"><dt>素材</dt><dd>${it.mat}</dd><dt>尺寸</dt><dd>${it.size}</dd></dl>
+      <dl class="spec"><dt>素材</dt><dd>${it.mat}</dd><dt>尺寸</dt><dd>${it.size}</dd><dt>產地</dt><dd>${it.org}</dd></dl>
       <div class="buy"><span class="price"><small style="margin:0 4px 0 0">NT$</small>${it.price.toLocaleString('en-US')}<small>含稅</small></span>
         <button class="add" type="button" data-id="${it.id}" aria-label="將${it.zh}加入清單"></button></div>
     </article>`).join('');
@@ -355,15 +359,23 @@ const cb=$('closeList'); if(cb) cb.addEventListener('click',closeList);
 if(scrim) scrim.addEventListener('click',closeList);
 addEventListener('keydown',e=>{ if(e.key==='Escape'&&drawer&&drawer.classList.contains('on')) closeList(); });
 
-/* ---- the clock tells the real time, slowly ---- */
+/* ---- the clock tells the real time, slowly ----
+   a silent wall clock has a sweep movement: the second hand glides instead of ticking.
+   CSS runs the glide, phased to the real second; reduced motion falls back to one step per second. */
+const RM=matchMedia('(prefers-reduced-motion: reduce)');
 function clock(){
-  const d=new Date(), s=d.getSeconds(), m=d.getMinutes()+s/60, h=(d.getHours()%12)+m/60;
+  const d=new Date(), s=d.getSeconds()+d.getMilliseconds()/1000, m=d.getMinutes()+s/60, h=(d.getHours()%12)+m/60;
   document.querySelectorAll('.clock').forEach(c=>{
     const hh=c.querySelector('.hh'), mm=c.querySelector('.mm'), ss=c.querySelector('.ss');
-    if(hh) hh.style.transform=`rotate(${h*30}deg)`; if(mm) mm.style.transform=`rotate(${m*6}deg)`; if(ss) ss.style.transform=`rotate(${s*6}deg)`;
+    if(hh) hh.style.transform=`rotate(${h*30}deg)`; if(mm) mm.style.transform=`rotate(${m*6}deg)`;
+    if(!ss) return;
+    if(RM.matches){ ss.classList.remove('sweep'); ss.style.animationDelay=''; ss.style.transform=`rotate(${Math.floor(s)*6}deg)`; }
+    else if(!ss.classList.contains('sweep')){ ss.style.transform=''; ss.style.animationDelay=`-${s.toFixed(3)}s`; ss.classList.add('sweep'); }
   });
 }
 clock(); setInterval(clock,1000);
+/* re-phase the sweep after the tab was hidden (timers and animations can drift) */
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ document.querySelectorAll('.clock .ss').forEach(ss=>{ ss.classList.remove('sweep'); void ss.offsetWidth; }); clock(); } });
 
 syncButtons(); renderList();
 })();

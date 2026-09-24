@@ -123,6 +123,8 @@ foot,.foot{display:block;margin-top:34px;font-size:12px;color:var(--mute);border
   var seed = 2025; function R(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
   function gauss(){ return (R() + R() + R() - 1.5) / 1.5; }
   var EVENTS = [
+    [1, 28, '除夕圍爐，吃到走不動', { steps:3180, sleep:5.4, coffee:1 }],
+    [1, 29, '大年初一走春，跟著阿嬤拜了三間廟', { steps:15820, sleep:9.6, coffee:1 }], [1, 30, '', { steps:9406, sleep:9.9, coffee:1 }], [1, 31, '', { steps:7702, sleep:10.3, coffee:1 }],
     [2, 9, '爬七星山，腿到隔天還在抖', { steps:28431, sleep:9.1, coffee:1 }],
     [3, 10, '重感冒第一天，只走到冰箱', { steps:640, sleep:11.2, coffee:0 }],
     [3, 11, '', { steps:820, sleep:10.4, coffee:0 }], [3, 12, '', { steps:1310, sleep:10, coffee:0 }], [3, 13, '', { steps:2400, sleep:9.2, coffee:1 }],
@@ -222,7 +224,9 @@ foot,.foot{display:block;margin-top:34px;font-size:12px;color:var(--mute);border
     if(cD) cD.textContent = '2025 全年';
     if(cV) cV.textContent = M.fmt(key === 'steps' ? Math.round(avg) : Math.round(avg * 10) / 10);
     if(cU) cU.textContent = M.avgLbl + '（' + M.unit + '）';
-    if(cN) cN.textContent = key === 'steps' ? '大約是從台北走到屏東，再走回來兩次' : key === 'sleep' ? '還算及格，除了六月那一週' : '咖啡因含量：足以讓一匹馬寫完專案';
+    // 以步幅 0.75 公尺換算；台北到屏東走路約 370 公里，來回約 740 公里
+    var km = Math.round(sum * .75 / 1000);
+    if(cN) cN.textContent = key === 'steps' ? '全年約 ' + km.toLocaleString('en-US') + ' 公里，差不多是台北到屏東來回 ' + Math.round(km / 740) + ' 趟' : key === 'sleep' ? '還算及格，除了六月那一週' : '咖啡因含量：足以讓一匹馬寫完專案';
   }
 
   /* ---------- notes list ---------- */

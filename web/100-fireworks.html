@@ -173,9 +173,9 @@
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.025, t + .1); g.gain.linearRampToValueAtTime(0, t + dur);
     o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .05);
   }
-  function boom(size, pan) {
+  function boom(size, pan, delay = 0) {
     const a = audio(); if (!a) return;
-    const t = a.currentTime + .02, s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    const t = a.currentTime + .02 + delay, s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
     s.buffer = noiseB; f.type = 'lowpass'; f.frequency.setValueAtTime(1800, t); f.frequency.exponentialRampToValueAtTime(90, t + 1.4);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.9 * size, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + 2);
     let out = g;
@@ -215,7 +215,8 @@
     const { x, y, pal, size } = r, S = Math.min(W, H) / 900 * size * (mobile ? 1.25 : 1);
     const kind = r.kind === 'mix' ? ['peony', 'chrys', 'willow', 'ring', 'glitter', 'peony', 'chrys', 'palm'][Math.floor(Math.random() * 8)] : r.kind;
     const N = (mobile ? .65 : 1) * (reduce ? .5 : 1);
-    boom(Math.min(1.2, .6 + size * .3), (x / W - .5) * 1.4);
+    // light arrives first; the report follows (~343 m/s), later for shells that break higher
+    boom(Math.min(1.2, .6 + size * .3), (x / W - .5) * 1.4, .12 + Math.max(0, HOR - y) / HOR * .45);
     flash(size * (kind === 'willow' ? .5 : .8));
     if (kind === 'peony' || kind === 'chrys' || kind === 'glitter') {
       const n = Math.round((kind === 'chrys' ? 150 : 120) * N), sp = (kind === 'chrys' ? 260 : 230) * S;
@@ -265,9 +266,12 @@
   function flash(k) { if (!flashEl || reduce) return; flashEl.animate([{ opacity: Math.min(.9, k) }, { opacity: 0 }], { duration: 700, easing: 'ease-out' }); }
 
   // ---------- main loop ----------
-  let last = performance.now(), T = 0;
+  let last = performance.now(), T = 0, hAcc = 0;
   function frame(now) {
     const dt = Math.min(.04, (now - last) / 1000); last = now; T += dt;
+    // trails are position histories: sample them at a fixed 60 Hz so they are the same length on 120 Hz screens
+    hAcc += dt; const rec = hAcc >= .0165; if (rec) hAcc = Math.min(hAcc - .0165, .0165);
+    const f60 = dt * 60;
     // fade previous frame toward transparent: this is what leaves trails
     // trails are drawn from each spark's recent history, so the canvas can be cleared cleanly every frame
     cx.globalCompositeOperation = 'source-over';
@@ -278,9 +282,9 @@
       const r = rockets[i]; r.t += dt / r.dur;
       const e = 1 - Math.pow(1 - Math.min(1, r.t), 2.2);
       const nx = r.sx + (r.tx - r.sx) * e, ny = r.sy + (r.ty - r.sy) * e;
-      r.h = r.h || []; r.h.push([nx, ny]); if (r.h.length > 14) r.h.shift();
+      r.h = r.h || []; if (rec || !r.h.length) { r.h.push([nx, ny]); if (r.h.length > 14) r.h.shift(); }
       for (let k = 1; k < r.h.length; k++) { cx.strokeStyle = `rgba(255,220,160,${(k / r.h.length) * .85})`; cx.lineWidth = 1 + k / r.h.length; cx.beginPath(); cx.moveTo(r.h[k - 1][0], r.h[k - 1][1]); cx.lineTo(r.h[k][0], r.h[k][1]); cx.stroke(); }
-      if (Math.random() < .7) spark(nx, ny, (Math.random() - .5) * 20, 30 + Math.random() * 30, '#ffb45e', .45, { size: 1.1, grav: 40 });
+      if (Math.random() < .7 * f60) spark(nx, ny, (Math.random() - .5) * 20, 30 + Math.random() * 30, '#ffb45e', .45, { size: 1.1, grav: 40 });
       r.x = nx; r.y = ny;
       if (r.t >= 1) { rockets.splice(i, 1); burst(r); }
     }
@@ -289,11 +293,11 @@
       const p = parts[i];
       p.life -= dt;
       if (p.life <= 0) { parts.splice(i, 1); continue; }
-      if (!p.h) p.h = []; p.h.push(p.x, p.y); if (p.h.length > (p.trail ? Math.round(16 * p.trail) * 2 / 2 : 6)) p.h.splice(0, 2);
+      if (!p.h) p.h = []; if (rec) { p.h.push(p.x, p.y); if (p.h.length > (p.trail ? Math.round(16 * p.trail) * 2 / 2 : 6)) p.h.splice(0, 2); }
       if (p.tx != null) {
         const age = p.max - p.life;
-        if (age < .8) { const k = 1 - Math.pow(1 - age / .8, 3); p.x = p.x + (p.tx - p.x) * Math.min(1, k * .35 + .08); p.y = p.y + (p.ty - p.y) * Math.min(1, k * .35 + .08); }
-        else { p.vy += p.grav * dt; p.y += p.vy * dt; p.x += Math.sin(T * 3 + i) * .08; }
+        if (age < .8) { const k = 1 - Math.pow(1 - age / .8, 3), f = 1 - Math.pow(1 - Math.min(1, k * .35 + .08), f60); p.x = p.x + (p.tx - p.x) * f; p.y = p.y + (p.ty - p.y) * f; }
+        else { p.vy += p.grav * dt; p.y += p.vy * dt; p.x += Math.sin(T * 3 + i) * .08 * f60; }
       } else {
         const dr = Math.pow(p.drag, dt * 60);
         p.vx *= dr; p.vy = p.vy * dr + p.grav * dt;

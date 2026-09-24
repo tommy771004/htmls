@@ -150,7 +150,7 @@ figcaption{font-family:var(--times);font-style:italic;font-size:12px;text-align:
     <div class="rule-tt"></div>
     <div class="dateline">
       <span>No. <span id="no">4,096</span></span>
-      <span id="date">London, Tuesday, September 23, 1886</span>
+      <span id="date">London, Thursday, September 23, 1886</span>
       <span class="ed" id="edname">Late Edition</span>
       <span>Price One Penny</span>
       <button class="stop" id="stop" type="button">Stop the Presses!</button>
@@ -181,7 +181,7 @@ const W={
   place:['the Royal Society','Whitechapel','the Crystal Palace','Paddington Station','the Bank of England','a Mayfair Drawing-Room','the Reading Room of the British Museum','the Athenæum Club'],
   emo:['WILD ENTHUSIASM','GRAVE ALARM','UNSEEMLY GIGGLING','PATRIOTIC FERVOUR','GENTEEL PANIC','PROFOUND BEWILDERMENT'],
   react:['PARLIAMENT IN UPROAR','A BISHOP FAINTS','THE QUEEN IS NOT AMUSED','PUNCH-CARD SHARES SOAR','LADIES ADVISED TO REMAIN INDOORS','THE LUDDITES CLAIM VINDICATION','THE ARMY IS PUT ON ALERT','SCOTLAND YARD BAFFLED'],
-  who:['Lord Kelvin','an eminent physician','Mrs. Lovelace’s solicitor','a cabman of long experience','the Archbishop of Canterbury','a Mr. Holmes, of Baker Street','the Astronomer Royal'],
+  who:['Sir William Thomson','an eminent physician','Mrs. Lovelace’s solicitor','a cabman of long experience','the Archbishop of Canterbury','a Mr. Holmes, of Baker Street','the Astronomer Royal'],
   said:['It is merely a passing fad','We were warned, and we did not listen','I, for one, welcome it','Has anyone tried turning it off and on again?','The children must on no account be told','It shall never replace the humble clerk','I have seen the future, and it is buffering'],
   city:['LONDON','MANCHESTER','EDINBURGH','BIRMINGHAM','LIVERPOOL'],
   inst:['the Royal Society','the Institution of Civil Engineers','the Board of Trade','the Admiralty','the Worshipful Company of Clockmakers'],
@@ -210,8 +210,10 @@ const ADS=[
 ];
 const WX=['Fog, thickening towards evening; a light drizzle of Data from the west.','Fair, becoming Cloudy; occasional Streams.','Gales in the Channel; packets delayed.','A heavy Downpour of Spam expected over the Midlands.','Unseasonably warm; Engines advised to rest.'];
 const STK=[['Punch-Cards','104½','firm'],['Brass Cogs','88¼','easier'],['Steam Futures','131','buoyant'],['Consols of Cloud','97⅝','nervous'],['Telegraph Ords.','56','flat']];
-const CAPS=['The Engine in question, as sketched by our Artist from a respectful distance.','A Difference Engine at rest. It was not, our Artist insists, looking at him.','The accused, photographed in the dock. It declined to comment.','Our Artist’s impression of “the Cloud,” from memory.'];
+const CAPS=['The Engine in question, as sketched by our Artist from a respectful distance.','A Difference Engine at rest. It was not, our Artist insists, looking at him.','The accused, sketched in the dock by our Artist. It declined to comment.','Our Artist’s impression of “the Cloud,” from memory.'];
 const EDS=['Late Edition','Special Edition','Extra!','Final Edition','Evening Edition','Midnight Extra'];
+const WEEK=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+let filed='Monday'; // datelines name the day the despatch was filed: the eve of the issue
 const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -228,7 +230,7 @@ function leadStory(){
   const decks=[pick(W.react), `Scenes of ${pick(W.emo).toLowerCase()} at ${place}.`, `${who.toUpperCase()} DECLARES: “${pn(said).toUpperCase()}”`, `The Markets ${pick(W.market).toLowerCase()}.`];
   const s=subj.replace(/^The |^A |^An /,m=>m.toLowerCase());
   const body=[
-    `${pick(W.city)}, ${pick(DAYS).toUpperCase()}. — It was with no small astonishment that the gentlemen of ${inst} learned, at half-past four o’clock yesterday afternoon, that ${s} had ${past}. The news, conveyed by an out-of-breath junior clerk, was received first with silence, then with brandy.`,
+    `${pick(W.city)}, ${filed.toUpperCase()}. — ${pick([`It was with no small astonishment that the gentlemen of ${inst} learned, at half-past four o’clock this afternoon, that ${s} had ${past}.`,`Considerable excitement prevailed among the gentlemen of ${inst} when it became known, shortly before five o’clock this afternoon, that ${s} had ${past}.`,`Word reached ${inst} late this afternoon that ${s} had ${past}.`])} The news, conveyed by an out-of-breath junior clerk, was received first with silence, then with brandy.`,
     `Our Correspondent, who reached ${place} shortly after the event, found a considerable crowd assembled. A gentleman in a tall hat was heard to remark that he “had always suspected something of the kind,” and a lady fainted twice, the second time, it is believed, for effect.`,
     `Asked for an opinion, ${who} said only: “${pn(said)}” The Engine itself, when approached by our Correspondent, printed a single line upon its tape — “PLEASE HOLD. YOUR ENQUIRY IS IMPORTANT TO US.” — and would say no more.`,
     `Questions are expected in the House on Thursday. In the meantime the public is urged to remain calm, to keep its punch-cards dry, and on no account to feed the Engine after midnight.`
@@ -277,6 +279,9 @@ function answers(){
 
 function render(full){
   const smalls=shuffle(SMALL), ads=shuffle(ADS);
+  // no Sunday papers: a Sunday draw goes to press on the Monday
+  const d=new Date(1886,0,1+Math.floor(Math.random()*360)); let wd=d.getDay(); if(wd===0){ d.setDate(d.getDate()+1); wd=1; }
+  filed=WEEK[(wd+6)%7];
   const c1=$('c1'), c2=$('c2'), c3=$('c3'), c4=$('c4');
   if(!c1||!c2||!c3||!c4) return;
   c1.innerHTML=composeLead();
@@ -286,7 +291,6 @@ function render(full){
   // ears & dateline
   const wx=$('wx'); if(wx) wx.textContent=pick(WX);
   const st=pick(STK), sk=$('stock'); if(sk) sk.textContent=`${st[0]} ${st[1]}, ${st[2]}.`;
-  const d=new Date(1886,0,1+Math.floor(Math.random()*360)); let wd=d.getDay(); if(wd===0){ d.setDate(d.getDate()+1); wd=1; }
   const dt=$('date'); if(dt) dt.textContent=`London, ${DAYS[wd-1]}, ${MON[d.getMonth()]} ${d.getDate()}, 1886`;
   const n=$('no'); if(n) n.textContent=no.toLocaleString('en-GB');
   const en=$('edname'); if(en) en.textContent=full===0?'Late Edition':pick(EDS);
@@ -303,7 +307,7 @@ function newEdition(){
 }
 const stop=$('stop'); if(stop) stop.addEventListener('click',newEdition);
 addEventListener('keydown',e=>{
-  if((e.key==='n'||e.key==='N')&&!e.target.closest('input,textarea')) newEdition();
+  if((e.key==='n'||e.key==='N')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.target.closest('input,textarea')) newEdition();
   if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('story')){ e.preventDefault(); spike(e.target); }
 });
 // spike a single story: re-set just that block

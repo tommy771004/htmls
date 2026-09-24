@@ -71,6 +71,9 @@ input[type=range]{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 .icons.go svg{animation:put .18s linear forwards}
 @keyframes put{to{opacity:1;transform:none}}
 .icons svg.half{clip-path:inset(0 50% 0 0)}
+.icons svg:nth-child(5n){margin-right:10px} /* Isotype rows are counted in fives */
+.src{grid-column:2;margin:-8px 0 16px;font-size:12.5px;color:var(--mute);letter-spacing:.04em}
+.tno{margin:0 0 6px;font:700 14px/1.2 var(--h);letter-spacing:.14em;color:var(--mute)}
 .note{grid-column:2;margin:10px 0 18px;font-size:15px;color:var(--ink);border-left:4px solid var(--red);padding-left:12px}
 
 .colophon{display:grid;grid-template-columns:300px 1fr;gap:40px;padding-top:26px;font-size:13px;color:var(--mute)}
@@ -83,7 +86,8 @@ input[type=range]{position:absolute;width:1px;height:1px;opacity:0;pointer-event
   .mast{grid-template-columns:auto 1fr}
   .key{grid-column:1/-1;text-align:left}
   .now,.thead,.row,.colophon{grid-template-columns:1fr;gap:12px}
-  .note{grid-column:1}
+  .note,.src{grid-column:1}
+  .icons svg:nth-child(5n){margin-right:7px}
   .crowd{grid-template-columns:repeat(10,1fr);gap:8px 8px}
   .icons svg{width:26px;height:26px}
   .icons svg.tall{width:13px}
@@ -139,6 +143,7 @@ input[type=range]{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 
   <section class="now" aria-label="此刻全城在做什麼">
     <div>
+      <p class="tno">第 1 表　此刻全城在做什麼</p>
       <div class="clock" id="clock">07<small>:00 時</small></div>
       <p class="caption" id="caption"></p>
       <ul class="legend" id="legend"></ul>
@@ -268,19 +273,19 @@ input[type=range]{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     {no:"第 2 表", t:"早上怎麼出門", unit:"walk", unitTxt:"每個符號 ＝ 2 萬人次（單程）", rows:[
       ["捷運","metro","var(--red)",32,"萬人次"],["機車","scooter","var(--ochre)",26,"萬人次"],["公車","bus","var(--blue)",14,"萬人次"],
       ["汽車","car","var(--black)",12,"萬人次"],["走路","walk","var(--green)",9,"萬人次"],["腳踏車","bike","var(--green)",5,"萬人次"]], per:2,
-      note:"機車與捷運加起來，佔了早晨的一半以上。騎腳踏車的人最少，但抵達時心情最好（未列入統計）。"},
+      src:"資料：河口市交通局旅次調查，2026 年 9 月平日 06–10 時。", note:"機車與捷運加起來，佔了早晨的一半以上。騎腳踏車的人最少，但抵達時心情最好（未列入統計）。"},
     {no:"第 3 表", t:"一天喝掉的飲料", unit:"boba", unitTxt:"每個符號 ＝ 2 萬杯", rows:[
       ["珍珠奶茶","boba","var(--ochre)",22,"萬杯","半糖少冰佔 61%"],["咖啡","coffee","var(--black)",18,"萬杯","其中 4 萬杯在早上九點前"],["無糖綠茶","tea","var(--green)",13,"萬瓶","多數在喝完珍奶後購買"]], per:2,
-      note:"珍奶贏了。一直都是。"},
+      src:"資料：河口市飲料商業同業公會門市銷售回報，樣本 1,480 店。", note:"珍奶贏了。一直都是。"},
     {no:"第 4 表", t:"一天丟掉的東西", unit:"bag", unitTxt:"每個符號 ＝ 50 公噸", rows:[
       ["一般垃圾","bag","var(--black)",900,"公噸"],["資源回收","recycle","var(--blue)",700,"公噸"],["廚餘","compost","var(--green)",375,"公噸"]], per:50,
-      note:"廚餘的一半，來自第 3 表剩下的珍珠。"},
+      src:"資料：河口市環境保護局清運磅秤紀錄（日平均）。", note:"廚餘的一半，來自第 3 表剩下的珍珠。"},
     {no:"第 5 表", t:"一天之中的人生大事", unit:"box", unitTxt:"每個符號 ＝ 10 件", rows:[
       ["新生兒","baby","var(--red)",220,"人"],["結婚","rings","var(--ochre)",120,"對"],["搬家","box","var(--grey)",300,"戶"]], per:10,
-      note:"搬家比出生多，出生比結婚多。紙箱業者是這座城市最穩定的受益者。"},
+      src:"資料：戶政事務所出生及結婚登記、遷入登記（日平均）。", note:"搬家比出生多，出生比結婚多。紙箱業者是這座城市最穩定的受益者。"},
     {no:"第 6 表", t:"同住一城", unit:"cat", unitTxt:"每個符號 ＝ 1 萬", rows:[
       ["家貓","cat","var(--ochre)",21,"萬隻"],["家犬","dog","var(--black)",19,"萬隻"],["14 歲以下兒童","child","var(--red)",16.5,"萬人"]], per:1,
-      note:"河口市的寵物比小孩多。貓比狗多——牠們對此並不驚訝。"}
+      src:"資料：寵物登記系統與戶籍人口統計，2026 年 6 月底。", note:"河口市的寵物比小孩多。貓比狗多——牠們對此並不驚訝。"}
   ];
   var host = $("#tables");
   var rowsToAnimate = [];
@@ -310,6 +315,7 @@ input[type=range]{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     var wrapNote = document.createElement("div"); wrapNote.className = "row"; wrapNote.style.borderTop = "0";
     wrapNote.appendChild(document.createElement("div")); wrapNote.appendChild(note); note.style.gridColumn = "auto";
     sec.appendChild(wrapNote);
+    if(tb.src){ var sw = document.createElement("div"); sw.className = "row"; sw.style.borderTop = "0"; sw.style.padding = "0"; var sp2 = document.createElement("p"); sp2.className = "src"; sp2.style.gridColumn = "auto"; sp2.textContent = tb.src; sw.appendChild(document.createElement("div")); sw.appendChild(sp2); sec.appendChild(sw); }
     host.appendChild(sec);
   });
   if("IntersectionObserver" in window && !reduce){

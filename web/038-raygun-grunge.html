@@ -52,6 +52,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .hint{position:absolute;right:4vw;top:22px;z-index:6;font:700 12px var(--narrow);letter-spacing:.2em;text-transform:uppercase;display:flex;gap:10px;align-items:center}
 .remix{min-height:44px;padding:0 14px;border:2px solid var(--blk);background:var(--blk);color:var(--yel);font:700 13px var(--narrow);letter-spacing:.24em;text-transform:uppercase;rotate:-2deg}
 .remix:hover{background:var(--rust2);border-color:var(--rust2)}
+/* newsstand UPC box, the one rectangle on the cover nobody was allowed to deconstruct */
+.upc{position:absolute;right:4vw;top:84px;z-index:6;background:#fff;padding:6px 8px 4px;rotate:3deg;font:700 10px/1 var(--cour);text-align:center;box-shadow:3px 3px 0 rgba(0,0,0,.6)}
+.upc svg{display:block;width:118px;height:44px}
+.upc span{display:flex;justify-content:space-between;letter-spacing:.12em;margin-top:2px}
 
 /* ---------- spread 2: the interview ---------- */
 .spread{position:relative;overflow:clip;padding:90px 5vw 120px;display:grid;grid-template-columns:repeat(12,1fr);gap:0 22px}
@@ -90,7 +94,8 @@ button{font:inherit;color:inherit;cursor:pointer}
   .big{left:4vw;top:70px;white-space:normal;width:94vw}
   .photo{left:6vw;width:80vw}
   .pony{bottom:-3vh}
-  .hint{left:5vw;right:auto;top:16px}
+  .hint{left:5vw;right:5vw;top:16px;justify-content:space-between}
+  .upc{display:none}
   .deck{bottom:3%}
   .spread{grid-template-columns:1fr;padding:60px 18px 80px;gap:0}
   .intro,.vcol,.qa,.quote,.more,.tiny,.track{grid-column:1;grid-row:auto}
@@ -123,6 +128,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 <header class="hero" id="hero">
   <div class="spine" aria-hidden="true"><span>ISSUE 31</span><span>FEBRUARY 1995</span><span>$3.95 / CAN $4.95</span><span>NOISE · FILM · PAPER</span></div>
   <div class="hint"><span>move / drag to push the type</span><button class="remix" id="remix">remix page [R]</button></div>
+  <div class="upc" aria-hidden="true"><svg id="upc" viewBox="0 0 95 44" preserveAspectRatio="none"></svg><span><b>0</b><b>74470</b><b>81635</b><b>5</b></span></div>
   <h1 class="big" id="big" aria-label="Chlorine Pony"><span class="p L">C</span><span class="p L">H</span><span class="p L">L</span><span class="p L">O</span><span class="p L">R</span><span class="p L">I</span><span class="p L">N</span><span class="p L">E</span></h1>
   <p class="pony" aria-hidden="true"><span class="p">P</span><span class="p">O</span><span class="p">N</span><span class="p">Y</span></p>
   <figure class="photo" style="margin:0">
@@ -148,7 +154,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     <figcaption>L–R: DANA, MARCO, THEO, GERALD (DRUM MACHINE)</figcaption>
   </figure>
   <div class="tape" style="left:calc(30vw - 30px);top:34%;rotate:-28deg"></div>
-  <div class="tape" style="left:calc(30vw + min(46vw,640px) - 90px);top:calc(36% + min(46vw,640px)/1.45 - 10px);rotate:-18deg"></div>
+  <div class="tape" style="left:calc(30vw + min(46vw,640px) - 90px);top:calc(36% - 16px);rotate:24deg"></div>
   <p class="deck" id="deck"><span class="p">we</span> <span class="p"><s>always</s></span> <span class="p">never</span> <span class="p">meant</span> <span class="p">to</span> <span class="p">be</span> <span class="p">loud.</span><small>Chlorine Pony drained a swimming pool, filled it with feedback, and called it a hymnal. Words by R. Okafor. Pictures: whatever the photocopier felt like.</small></p>
 </header>
 
@@ -210,7 +216,31 @@ button{font:inherit;color:inherit;cursor:pointer}
       it.el.style.translate = prev;
     });
   }
-  function step(){
+  /* UPC-A: 0 74470 81635 5 (check digit computed) (left digits odd parity, right digits even), drawn as 95 modules */
+  (function(){
+    var svg = document.getElementById("upc"); if(!svg) return;
+    var L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
+    var d = "074470816355", bits = "101";
+    for(var i=0;i<6;i++) bits += L[+d[i]];
+    bits += "01010";
+    for(var j=6;j<12;j++) bits += L[+d[j]].replace(/./g, function(c){ return c === "1" ? "0" : "1"; });
+    bits += "101";
+    var out = "";
+    for(var k=0;k<bits.length;k++) if(bits[k] === "1"){ var guard = k < 3 || (k >= 45 && k < 50) || k >= 92; out += '<rect x="'+k+'" y="0" width="1" height="'+(guard ? 44 : 38)+'" fill="#121110"/>'; }
+    svg.innerHTML = out;
+  })();
+
+  var lastT = 0, acc = 0, STEP = 1000/60;
+  function step(now){
+    /* fixed 60 Hz physics so the springs feel the same on 60/120/144 Hz screens */
+    acc += Math.min(100, lastT ? now - lastT : STEP); lastT = now;
+    var n = 0; while(acc >= STEP && n < 6){ tick(); acc -= STEP; n++; }
+    if(n >= 6) acc = 0;
+    items.forEach(function(it){ it.el.style.translate = it.x.toFixed(1) + "px " + it.y.toFixed(1) + "px"; });
+    if(stepMoving || active) requestAnimationFrame(step); else { running = false; lastT = 0; acc = 0; }
+  }
+  var stepMoving = false;
+  function tick(){
     var moving = false;
     var px = mx + window.scrollX, py = my + window.scrollY;
     items.forEach(function(it){
@@ -220,9 +250,8 @@ button{font:inherit;color:inherit;cursor:pointer}
       it.vx += (tx - it.x) * .14; it.vy += (ty - it.y) * .14; it.vx *= .72; it.vy *= .72;
       it.x += it.vx; it.y += it.vy;
       if(Math.abs(it.vx) + Math.abs(it.vy) + Math.abs(it.x - tx) + Math.abs(it.y - ty) > .08) moving = true;
-      it.el.style.translate = it.x.toFixed(1) + "px " + it.y.toFixed(1) + "px";
     });
-    if(moving || active) requestAnimationFrame(step); else running = false;
+    stepMoving = moving;
   }
   function kick(){ if(!running && !reduce){ running = true; requestAnimationFrame(step); } }
   function move(e){ mx = e.clientX; my = e.clientY; active = true; kick(); }

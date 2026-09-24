@@ -39,9 +39,10 @@ canvas#sky{position:absolute;inset:0;width:100%;height:100%;display:block}
 /* win95 windows */
 .win{position:absolute;z-index:8;background:var(--win);color:#000;padding:3px;
   box-shadow:inset -1px -1px 0 var(--winDD),inset 1px 1px 0 var(--win),inset -2px -2px 0 var(--winD),inset 2px 2px 0 var(--winL),8px 10px 0 rgba(26,0,51,.45);font-size:12px}
-.win .bar{background:linear-gradient(90deg,var(--title1),var(--title2));color:#fff;font-weight:700;display:flex;align-items:center;justify-content:space-between;padding:3px 3px 3px 6px;gap:8px;font-size:12px}
+.win .bar{background:var(--title1);/* 1996 = Windows 95: solid navy caption, gradients arrived with 98 */color:#fff;font-weight:700;display:flex;align-items:center;justify-content:space-between;padding:3px 3px 3px 6px;gap:8px;font-size:12px}
 .win .bar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.win .x{display:flex;gap:2px}
+.win .x{display:flex;gap:0}
+.win .x i:last-child{margin-left:2px}
 .win .x i{width:16px;height:14px;background:var(--win);box-shadow:inset -1px -1px 0 #000,inset 1px 1px 0 #fff,inset -2px -2px 0 var(--winD);display:grid;place-items:center;font-style:normal;color:#000;font-size:10px;line-height:1;font-weight:700}
 .win .body{padding:10px 10px 8px}
 .sunk{box-shadow:inset 1px 1px 0 var(--winD),inset -1px -1px 0 #fff,inset 2px 2px 0 #000,inset -2px -2px 0 var(--win);background:#fff}
@@ -108,7 +109,7 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
   .osd{font-size:13px}
 }
 @media (max-height:640px) and (min-width:761px){.title{top:8%}}
-@media (prefers-reduced-motion:reduce){.band,.pa div{animation:none}.pa div{left:10px}}
+@media (prefers-reduced-motion:reduce){.band,.pa div,.osd .blink{animation:none}.pa div{left:10px}}
 </style>
 </head>
 <body>
@@ -150,7 +151,7 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
 
   <div class="vhs" aria-hidden="true">
     <div class="scan"></div><div class="band"></div><div class="vig"></div>
-    <div class="osd tl"><span class="blink">▶</span> PLAY&nbsp;&nbsp;SP</div>
+    <div class="osd tl"><span class="blink">▶</span> PLAY&nbsp;&nbsp;SP<br><span id="ctr" style="font-variant-numeric:tabular-nums">0:47:12</span></div>
     <div class="osd tr" id="osd">AM 3:14<br>JAN. 01 1996</div>
   </div>
 </div>
@@ -161,7 +162,7 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
   var ctx=cv.getContext('2d');
   var W=0,H=0,dpr=1;
   var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function size(){dpr=Math.min(window.devicePixelRatio||1,2);W=cv.clientWidth;H=cv.clientHeight;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureDir();}
+  function size(){dpr=Math.min(window.devicePixelRatio||1,2);W=cv.clientWidth;H=cv.clientHeight;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureDir();dirty=true;}
   window.addEventListener('resize',size);
 
   /* sky presets: [top, mid, horizon, floor, gridColor, sunTop, sunBottom, palm] */
@@ -183,6 +184,7 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
     cur.sun=a.sun+(b.sun-a.sun)*f;
     cur.name=(f<.5?a:b).n;
     cur.night=Math.max(0,Math.min(1,(T-.5)/.25));
+    dirty=true;
     document.documentElement.style.setProperty('--palm',cur.c[7]);
     var ph=document.getElementById('phase'); if(ph) ph.textContent=cur.name;
     var hx=document.getElementById('hex'); if(hx) hx.textContent=cur.hex;
@@ -192,12 +194,13 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
   var stars=[]; for(var s=0;s<140;s++) stars.push([Math.random(),Math.random()*.6,Math.random()*1.4+.3,Math.random()*6]);
   var mts=[]; (function(){var x=0;while(x<1.05){mts.push([x,Math.random()]);x+=.03+Math.random()*.05;}})();
 
-  var off=0,last=0;
+  var off=0,last=0,dirty=true;
   function frame(ts){
     var dt=Math.min(50,ts-(last||ts)); last=ts;
     if(!reduce) off=(off+dt*0.00042)%1;
     if(autoOn){ T=(T+dt*0.00003)%1; if(slider) slider.value=Math.round(T*1000); computeSky(); }
-    draw(ts);
+    /* reduced motion: the scene is static, repaint only when the sky or size changes */
+    if(!reduce||dirty){ draw(reduce?0:ts); dirty=false; }
     requestAnimationFrame(frame);
   }
   function draw(ts){
@@ -217,7 +220,8 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
     ctx.shadowBlur=0;
     /* stripe cuts */
     ctx.globalCompositeOperation='destination-out';
-    for(var k=0;k<9;k++){var yy=cy+R*0.05+k*R*0.11+ (off*R*0.11); var hh=2+k*1.3; ctx.fillRect(cx-R-2,yy,2*R+4,hh);}
+    /* thickness follows position, so a stripe born at the top starts at 0 px and the loop has no seam */
+    for(var k=0;k<10;k++){var pos=k+off, yy=cy+R*0.05+pos*R*0.11, hh=pos*1.45; if(hh>0.2) ctx.fillRect(cx-R-2,yy,2*R+4,hh);}
     ctx.globalCompositeOperation='source-over';
     ctx.restore();
     /* redraw sky behind cut stripes */
@@ -292,6 +296,9 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
   var osd=document.getElementById('osd');
   function clock(){ if(!osd) return; var d=new Date(); var h=d.getHours(), ap=h<12?'AM':'PM', hh=h%12||12; osd.innerHTML=ap+' '+hh+':'+('0'+d.getMinutes()).slice(-2)+'<br>'+['JAN.','FEB.','MAR.','APR.','MAY','JUN.','JUL.','AUG.','SEP.','OCT.','NOV.','DEC.'][d.getMonth()]+' '+('0'+d.getDate()).slice(-2)+' 1996'; }
   clock(); setInterval(clock,10000);
+  /* VCR tape counter (H:MM:SS), runs while the tape plays */
+  var ctr=document.getElementById('ctr'), ctr0=47*60+12, t0=Date.now();
+  setInterval(function(){ if(!ctr||document.hidden) return; var s=ctr0+Math.floor((Date.now()-t0)/1000); ctr.textContent=Math.floor(s/3600)+':'+('0'+Math.floor(s/60)%60).slice(-2)+':'+('0'+s%60).slice(-2); },1000);
 
   /* muzak: detuned maj7 pad, tape wobble */
   var audio=null, master=null, padTimer=null, muzakOn=false;

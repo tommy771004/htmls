@@ -33,7 +33,7 @@
 
   header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-top:3px solid var(--fg);padding-top:10px}
   .city{font-family:var(--zhb);font-weight:700;font-size:clamp(22px,2.4vw,34px);letter-spacing:.2em;line-height:1.1}
-  .city small{display:block;font-family:var(--light);font-weight:300;font-size:.42em;letter-spacing:.42em;margin-top:.5em}
+  .city small{display:block;font-family:var(--light);font-weight:300;font-size:max(.42em,10.5px);letter-spacing:.42em;margin-top:.5em}
   .meta{text-align:right;font-size:clamp(12px,1vw,14px);letter-spacing:.14em;line-height:1.7;font-family:var(--light),var(--zh)}
   .meta b{font-family:var(--black);font-weight:900;letter-spacing:.04em}
 
@@ -56,7 +56,7 @@
   .facts li:nth-child(even){padding-left:14px}
   .facts span{font-size:12px;letter-spacing:.24em;font-family:var(--zh);opacity:.8}
   .facts b{font-family:var(--black);font-weight:900;font-size:clamp(22px,2.2vw,32px);letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
-  .facts b small{font-family:var(--light);font-weight:300;font-size:.5em;letter-spacing:.05em}
+  .facts b small{font-family:var(--light);font-weight:300;font-size:max(.5em,11px);letter-spacing:.05em}
   .facts svg{width:22px;height:22px;transition:transform 1s cubic-bezier(.4,1.6,.5,1)}
 
   /* week strip */
@@ -136,7 +136,7 @@
       c: ['#b5c1cc', '#7c8a99', '#121c27', '#eef2f6'], quip: '天空今天沒有意見，你也可以沒有。' },
     { w: '五', d: '9/25', k: 'storm', name: '雷陣雨', en: 'Thunderstorms', hi: 21, lo: 17, now: 19, feel: 18, hum: 92, wind: 32, dir: 250, pop: 90, uv: '1 低量', rise: '05:49', set: '17:54',
       c: ['#3a2d5c', '#140f24', '#f3eaff', '#ffe14d'], quip: '午後雷聲大、雨點也大。請把插頭拔掉，把情緒收好。' },
-    { w: '六', d: '9/26', k: 'rain', name: '大雨', en: 'Heavy rain', hi: 18, lo: 14, now: 16, feel: 14, hum: 97, wind: 22, dir: 280, pop: 100, uv: '0 無', rise: '05:49', set: '17:53',
+    { w: '六', d: '9/26', k: 'rain', name: '大雨', en: 'Heavy rain', hi: 18, lo: 14, now: 16, feel: 14, hum: 97, wind: 22, dir: 280, pop: 100, uv: '0 低量', rise: '05:49', set: '17:53',
       c: ['#2a6293', '#0d2944', '#e6f3ff', '#9fd6ff'], quip: '樂觀的人看到彩虹，悲觀的人看到濕襪子。今天兩者都帶。' },
     { w: '日', d: '9/27', k: 'fog', name: '霧', en: 'Dense fog', hi: 15, lo: 11, now: 12, feel: 11, hum: 99, wind: 3, dir: 90, pop: 30, uv: '1 低量', rise: '05:50', set: '17:52',
       c: ['#e2e4e0', '#b5bab4', '#353b37', '#ffffff'], quip: '能見度五十公尺。適合慢慢走，也適合不回訊息。' },
@@ -170,7 +170,7 @@
     f.innerHTML = `
       <li><span>體感溫度</span><b>${d.feel}°</b></li>
       <li><span>濕度</span><b>${d.hum}<small>%</small></b></li>
-      <li><span>風 · ${dn}風</span><b><svg viewBox="0 0 22 22" style="transform:rotate(${d.dir}deg)" aria-hidden="true"><path d="M11 2 17 18 11 14 5 18Z" fill="currentColor"/></svg>${d.wind}<small>km/h</small></b></li>
+      <li><span>風 · ${dn}風</span><b><svg viewBox="0 0 22 22" style="transform:rotate(${d.dir + 180}deg)" aria-hidden="true"><path d="M11 2 17 18 11 14 5 18Z" fill="currentColor"/></svg>${d.wind}<small>km/h</small></b></li>
       <li><span>降雨機率</span><b>${d.pop}<small>%</small></b></li>
       <li><span>紫外線</span><b>${d.uv.split(' ')[0]}<small>${d.uv.split(' ')[1]}</small></b></li>
       <li><span>日出 / 日落</span><b style="font-size:clamp(18px,1.7vw,24px)">${d.rise}<small>/ ${d.set}</small></b></li>`;
@@ -268,7 +268,7 @@
       }
       ctx.restore();
       ctx.fillStyle = 'rgba(255,255,240,.6)';
-      parts.forEach(p => { p.y -= p.v * dt; p.x += Math.sin(t + p.ph) * .2; if (p.y < -5) { p.y = H + 5; p.x = R(0, W); } ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); });
+      parts.forEach(p => { p.y -= p.v * dt; p.x += Math.sin(t + p.ph) * 12 * dt; if (p.y < -5) { p.y = H + 5; p.x = R(0, W); } ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); });
     }
     if (clouds.length) {
       const col = kind === 'storm' ? 'rgba(20,14,36,.55)' : kind === 'rain' ? 'rgba(10,30,52,.45)' : kind === 'snow' ? 'rgba(255,255,255,.55)' : kind === 'partly' ? 'rgba(255,255,255,.75)' : 'rgba(235,240,245,.45)';

@@ -182,7 +182,7 @@ body{min-height:100vh;color:var(--ink);font-family:var(--hei);
     <div class="k">LIVE · 現場 · 不插電是不可能的</div>
     <h3>地下室現場</h3>
     <div class="en">BASEMENT SHOW</div>
-    <div class="date">8.16 <span>SAT</span></div>
+    <div class="date">8.15 <span>SAT</span></div>
     <ul><li>雜音製造所</li><li>耳鳴俱樂部</li><li>冷氣壞掉 (reunion!)</li></ul>
     <p>入場 NT$300，附一瓶不冰的啤酒。<br>地點：永和某地下室，看到腳踏車堆就對了。</p>
   </div><i class="staple" style="top:6px;left:50%;margin-left:-13px"></i></div>
@@ -192,10 +192,11 @@ body{min-height:100vh;color:var(--ink);font-family:var(--hei);
     <p>夏天太吵了。蟬在吵、冷氣在吵、樓上在裝潢。所以我們決定<mark>比它們更吵</mark>。</p>
     <p>本期收錄：三個樂團、兩台壞掉的效果器、一台只會放 B 面的卡帶機，以及一篇 <s>很有深度的</s> 很長的樂評。</p>
     <p>讀完請傳給下一個人。或拿去墊便當。</p>
+    <p style="font-size:12px;margin-top:6px">Ⓐ 反版權：歡迎翻印，請勿拿去賣。</p>
   </div><i class="tape t1 yel"></i></div>
 
   <div class="piece tape-j" data-k="tape" tabindex="0"><div class="paper">
-    <div class="hd">MIXTAPE C-60 <small>本期附贈（想像中的）</small></div>
+    <div class="hd">MIXTAPE C-90 <small>本期附贈（想像中的）</small></div>
     <ol>
       <li class="side">SIDE A</li>
       <li><span>1. 蟬 (Live at 頂樓)</span><span>4:12</span></li>
@@ -378,8 +379,9 @@ body{min-height:100vh;color:var(--ink);font-family:var(--hei);
 
   layout(); snapshotHome();
   pieces.forEach(function(p,i){p.style.zIndex=++z; if(!reduce){p.style.animationDelay=(i*55)+'ms';p.classList.add('in');}});
-  var lastMob=isMob(), rt;
-  window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){layout();snapshotHome();lastMob=isMob();},150);});
+  /* only re-lay out when the width really changes: mobile URL-bar show/hide fires resize on scroll and must not undo the visitor's collage */
+  var lastW=window.innerWidth, rt;
+  window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){ if(window.innerWidth===lastW) return; lastW=window.innerWidth; layout();snapshotHome();},150);});
 })();
 </script>
 </body>

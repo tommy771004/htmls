@@ -115,11 +115,11 @@ body.party .orb{animation-duration:6s}
 
 /* toggles */
 .tg{position:relative;width:54px;height:32px;border-radius:40px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);flex:none;transition:background .35s}
-.tg::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:40px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.3);transition:left .55s var(--spring),width .25s ease}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:40px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.3);transition:transform .55s var(--spring),width .25s ease}
 .tg:active::after{width:32px}
 .tg[aria-checked="true"]{background:linear-gradient(90deg,#8e7bff,#b46bff)}
-.tg[aria-checked="true"]::after{left:25px}
-.tg[aria-checked="true"]:active::after{left:17px}
+.tg[aria-checked="true"]::after{transform:translateX(22px)}
+.tg[aria-checked="true"]:active::after{transform:translateX(14px)}
 
 /* lights */
 .lights{list-style:none;display:flex;flex-direction:column;gap:6px}
@@ -164,10 +164,10 @@ input[type=range]:focus-visible{outline:2px solid #fff;outline-offset:2px;border
 .track b{font-weight:400;font-size:16px;display:block}
 .track small{color:var(--mut);font-size:13px}
 .bars{display:flex;gap:3px;align-items:flex-end;height:18px;margin-top:8px}
-.bars i{width:3px;background:#c9bfff;border-radius:2px;height:20%;transition:height .2s}
+.bars i{width:3px;background:#c9bfff;border-radius:2px;height:100%;transform:scaleY(.2);transform-origin:bottom;transition:transform .2s}
 .music.play .bars i{animation:eq .9s ease-in-out infinite alternate}
 .bars i:nth-child(2){animation-delay:-.3s!important}.bars i:nth-child(3){animation-delay:-.6s!important}.bars i:nth-child(4){animation-delay:-.1s!important}.bars i:nth-child(5){animation-delay:-.45s!important}
-@keyframes eq{from{height:15%}to{height:100%}}
+@keyframes eq{from{transform:scaleY(.15)}to{transform:scaleY(1)}}
 .mctl{display:flex;gap:8px;margin-top:10px;align-items:center}
 .mctl .icb.big{min-width:48px;min-height:48px;border-radius:50%;background:rgba(255,255,255,.9);color:#231a52}
 
@@ -178,6 +178,7 @@ input[type=range]:focus-visible{outline:2px solid #fff;outline-offset:2px;border
 .chart{display:flex;gap:3px;align-items:flex-end;height:64px;margin-top:10px}
 .chart i{flex:1;border-radius:3px 3px 0 0;background:linear-gradient(to top,rgba(157,140,255,.35),rgba(201,191,255,.9));transform-origin:bottom;animation:grow .9s var(--spring) both}
 .chart i.now{background:linear-gradient(to top,rgba(255,194,122,.5),#ffc27a)}
+.chart i.fut{background:none;border:1px dashed rgba(201,191,255,.35);border-bottom:0}
 @keyframes grow{from{transform:scaleY(0)}}
 .axis{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:4px}
 
@@ -303,9 +304,9 @@ input[type=range]:focus-visible{outline:2px solid #fff;outline-offset:2px;border
 
     <section class="card glass c-energy" aria-label="用電">
       <h2><span>今日用電</span><span>比昨天 −12%</span></h2>
-      <div class="kwh"><b>6.8</b><small>度 · 約 NT$27</small></div>
+      <div class="kwh"><b id="kwh">6.8</b><small id="kwhS">度 · 約 NT$23</small></div>
       <div class="chart" id="chart"></div>
-      <div class="axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>現在</span></div>
+      <div class="axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24 時</span></div>
     </section>
 
     <section class="card glass c-lock" aria-label="門鎖">
@@ -448,7 +449,10 @@ input[type=range]:focus-visible{outline:2px solid #fff;outline-offset:2px;border
 
   /* energy */
   var chart=$('chart');
-  if(chart){var h=[18,12,10,9,9,11,22,40,38,26,20,24,34,30,22,20,26,44,58,66,72,60,48,52],now=new Date().getHours();chart.innerHTML=h.map(function(v,i){return '<i style="height:'+v+'%;animation-delay:'+(i*25)+'ms"'+(i===Math.min(23,now)?' class="now"':'')+'></i>';}).join('');}
+  /* hours that have not happened yet are drawn as dashed forecast outlines; the total only counts the hours so far */
+  if(chart){var h=[18,12,10,9,9,11,22,40,38,26,20,24,34,30,22,20,26,44,58,66,72,60,48,52],now=new Date().getHours(),used=0;
+    chart.innerHTML=h.map(function(v,i){if(i<=now) used+=v*(i===now?new Date().getMinutes()/60:1)*0.0125;return '<i style="height:'+v+'%;animation-delay:'+(i*25)+'ms"'+(i===now?' class="now"':i>now?' class="fut" title="預測"':'')+'></i>';}).join('');
+    if($('kwh')) $('kwh').textContent=used.toFixed(1); if($('kwhS')) $('kwhS').textContent='度 · 約 NT$'+Math.round(used*3.4);}
 
   /* lock */
   var locked=true;

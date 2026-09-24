@@ -59,7 +59,7 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
   .orb{width:min(78vw,340px)}
   .legend{gap:10px;font-size:12px}
 }
-@media (prefers-reduced-motion:reduce){ canvas#aur{opacity:.6} }
+@media (prefers-reduced-motion:reduce){ canvas#aur{opacity:.6} .fadeSwap{animation:none} .note,.rounds span,.go{transition:none} }
 </style>
 </head>
 <body>
@@ -125,8 +125,8 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
   var $ = function(s){ return document.querySelector(s); };
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   var PH = [
-    {k:"in",   n:"吸氣", d:4, sub:"用鼻子，慢慢吸進來", c:"#5cffc0"},
-    {k:"hold", n:"屏息", d:7, sub:"輕輕停住，肩膀放鬆", c:"#8fd3ff"},
+    {k:"in",   n:"吸氣", d:4, sub:"閉上嘴，用鼻子安靜地吸", c:"#5cffc0"},
+    {k:"hold", n:"屏息", d:7, sub:"停住，舌尖輕抵上門牙後方", c:"#8fd3ff"},
     {k:"out",  n:"吐氣", d:8, sub:"用嘴巴，呼——出來", c:"#a47cff"}
   ];
   var CYCLE = 19, rounds = 4;
@@ -221,7 +221,11 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
     else if(e.key === "Escape" && state !== "idle"){ state = "idle"; if(goBtn) goBtn.textContent = "開始"; setText(phaseEl, "靜下來", true); setText(countEl, " ", false); setText(subEl, "點一下光，開始", true); drawDots(0); padTo(0, 1.5, 400); }
   });
   var nR = $("#nRounds");
-  function setRounds(n){ if(state === "run") return; rounds = Math.max(1, Math.min(8, n)); if(nR) nR.textContent = rounds; drawDots(0); }
+  function setRounds(n){
+    if(state === "run") return; rounds = Math.max(1, Math.min(8, n)); if(nR) nR.textContent = rounds; drawDots(0);
+    /* Weil's own guidance: no more than 4 breaths at a time for the first month */
+    if(state === "idle") setText(subEl, rounds > 4 ? "初學第一個月，建議一次 4 輪以內" : "點一下光，開始", true);
+  }
   var mi = $("#minus"), pl = $("#plus");
   if(mi) mi.addEventListener("click", function(){ setRounds(rounds - 1); });
   if(pl) pl.addEventListener("click", function(){ setRounds(rounds + 1); });
@@ -232,9 +236,9 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
   });
 
   /* ---------- per-frame breathing logic ---------- */
-  var intensity = .5;
+  var intensity = .5, lastNow = 0;
   function update(now){
-    var t = now / 1000;
+    var t = now / 1000, dt = Math.min(.1, lastNow ? (now - lastNow) / 1000 : 1/60); lastNow = now;
     if(state === "run"){
       elapsed = (now - t0) / 1000;
       var cyc = Math.floor(elapsed / CYCLE);
@@ -243,7 +247,7 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
         var within = elapsed - cyc * CYCLE, pi = within < 4 ? 0 : within < 11 ? 1 : 2;
         var pStart = pi === 0 ? 0 : pi === 1 ? 4 : 11, p = PH[pi], prog = (within - pStart) / p.d;
         if(pi === 0) breath = .55 + .45 * ease(prog);
-        else if(pi === 1) breath = 1 + .012 * Math.sin(t * 3);
+        else if(pi === 1) breath = 1 + (reduce ? 0 : .012 * Math.sin(t * 3));
         else breath = 1 - .45 * ease(prog);
         if(pi !== lastPhase){
           lastPhase = pi; setText(phaseEl, p.n, true); setText(subEl, p.sub, true); drawDots(cyc);
@@ -256,7 +260,7 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
         if(dot){ dot.setAttribute("cx", (Math.cos(ang) * R).toFixed(1)); dot.setAttribute("cy", (Math.sin(ang) * R).toFixed(1)); }
       }
     } else if(state === "idle" || state === "done"){
-      breath += ((.6 + .05 * Math.sin(t * 1.1)) - breath) * .05;
+      breath += ((.6 + (reduce ? 0 : .05 * Math.sin(t * 1.1))) - breath) * (1 - Math.pow(.95, dt * 60)); /* same settle speed at any refresh rate */
     }
     intensity = .35 + breath * .65;
     if(blob) blob.setAttribute("d", blobPath(breath, reduce ? 0 : t));
@@ -318,7 +322,7 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
     if(now - lastDraw < 33) return; lastDraw = now;
     var t = now / 1000; drawSky(t); drawAurora(t);
   }
-  document.addEventListener("visibilitychange", function(){ if(document.hidden && state === "run") pause(); });
+  document.addEventListener("visibilitychange", function(){ if(document.hidden && state === "run") pause(); lastNow = 0; });
   resize(); drawDots(0); requestAnimationFrame(frame);
 })();
 </script>

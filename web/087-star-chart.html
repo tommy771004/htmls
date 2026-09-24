@@ -38,6 +38,7 @@ svg#sky.drag{cursor:grabbing}
 .ring line{stroke:var(--ink);stroke-width:.8}
 .dir{font-size:15px!important;letter-spacing:.3em;font-weight:700}
 .ptr{stroke:var(--red);stroke-width:2.2}
+.declab{font-size:10px;fill:#8b877b;letter-spacing:.04em;pointer-events:none}
 
 aside{padding-top:6px}
 .kicker{font-family:var(--narrow);font-size:12px;letter-spacing:.32em;text-transform:uppercase;border-top:2px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 0;display:flex;justify-content:space-between}
@@ -82,6 +83,15 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
   .wrap{grid-template-columns:1fr}
   .chart{width:min(100%,640px)}
 }
+/* on a phone the 1000-unit chart shrinks to ~360px: print the type larger so it stays legible */
+@media (max-width:560px){
+  .clab{font-size:19px;letter-spacing:.08em}
+  .slab{font-size:16px}
+  .ring text{font-size:16px}
+  .ring .mon{font-size:21px}
+  .dir{font-size:19px!important;letter-spacing:.2em}
+  .declab{font-size:15px}
+}
 </style>
 </head>
 <body>
@@ -104,7 +114,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
             <g id="cons"></g>
           </g>
         </g>
-        <g id="labels"></g>
+        <g id="labels" clip-path="url(#field)"></g>
         <path id="mask" class="mask" fill-rule="evenodd"/>
         <path id="maskTex" class="mask-tex" fill-rule="evenodd"/>
         <g id="hring" class="ring"></g>
@@ -161,11 +171,11 @@ var CONS=[
  {id:'UMa',n:'Ursa Major',s:'The Great Bear',t:'Seven of its stars make the Big Dipper, which most people mistake for the whole bear. Follow Merak through Dubhe to find Polaris.',st:[['Dubhe',11.062,61.75,1.8],['Merak',11.031,56.38,2.4],['Phecda',11.897,53.69,2.4],['Megrez',12.257,57.03,3.3],['Alioth',12.900,55.96,1.8],['Mizar',13.399,54.93,2.2],['Alkaid',13.792,49.31,1.9]],l:[[0,1],[1,2],[2,3],[3,0],[3,4],[4,5],[5,6]]},
  {id:'UMi',n:'Ursa Minor',s:'The Little Bear',t:'Home of Polaris, which sits within a degree of the pole and has done the least work of any star on this chart.',st:[['Polaris',2.530,89.26,2.0],['Yildun',17.537,86.59,4.4],['ε UMi',16.766,82.04,4.2],['ζ UMi',15.734,77.79,4.3],['Kochab',14.845,74.16,2.1],['Pherkad',15.345,71.83,3.0],['η UMi',16.292,75.76,4.9]],l:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,3]]},
  {id:'Cas',n:'Cassiopeia',s:'The Queen',t:'A crooked W, or an M, depending on the hour. The Queen spends half the night upside down as punishment for vanity.',st:[['Caph',0.153,59.15,2.3],['Schedar',0.675,56.54,2.2],['Navi',0.945,60.72,2.5],['Ruchbah',1.430,60.24,2.7],['Segin',1.907,63.67,3.4]],l:[[0,1],[1,2],[2,3],[3,4]]},
- {id:'Cep',n:'Cepheus',s:'The King',t:'A child’s drawing of a house, standing on its roof near the pole. Faint, patient, married to Cassiopeia.',st:[['Alderamin',21.310,62.59,2.5],['Alfirk',21.478,70.56,3.2],['Errai',23.656,77.63,3.2],['ι Cep',22.828,66.20,3.5],['ζ Cep',22.181,58.20,3.4]],l:[[0,1],[1,2],[2,3],[3,4],[4,0],[0,3]]},
+ {id:'Cep',n:'Cepheus',s:'The King',t:'A child’s drawing of a house, standing on its roof near the pole. Faint, patient, married to Cassiopeia.',st:[['Alderamin',21.310,62.59,2.5],['Alfirk',21.478,70.56,3.2],['Errai',23.656,77.63,3.2],['ι Cep',22.828,66.20,3.5],['ζ Cep',22.181,58.20,3.4]],l:[[0,1],[1,2],[2,3],[3,4],[4,0],[1,3]]},
  {id:'Dra',n:'Draco',s:'The Dragon',t:'Winds between the two Bears. Thuban was the pole star when the pyramids were built; stars, too, lose their jobs.',st:[['Eltanin',17.943,51.49,2.2],['Rastaban',17.507,52.30,2.8],['ξ Dra',17.892,56.87,3.8],['δ Dra',19.209,67.66,3.1],['ζ Dra',17.146,65.71,3.2],['η Dra',16.400,61.51,2.7],['Thuban',14.073,64.38,3.7],['κ Dra',12.558,69.79,3.9],['λ Dra',11.523,69.33,3.8]],l:[[0,1],[1,2],[2,0],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]]},
  {id:'Cyg',n:'Cygnus',s:'The Swan',t:'Flies down the Milky Way with Deneb for a tail. Also known as the Northern Cross, for those who prefer furniture to birds.',st:[['Deneb',20.690,45.28,1.25],['Sadr',20.370,40.26,2.2],['Albireo',19.512,27.96,3.1],['Gienah',20.770,33.97,2.5],['δ Cyg',19.750,45.13,2.9]],l:[[0,1],[1,2],[4,1],[1,3]]},
  {id:'Lyr',n:'Lyra',s:'The Lyre',t:'Small, neat, and anchored by Vega, the fifth brightest star in the night sky and the zero-point of the magnitude scale for a century.',st:[['Vega',18.616,38.78,0.03],['ζ Lyr',18.746,37.61,4.3],['δ Lyr',18.908,36.90,4.3],['Sulafat',18.982,32.69,3.2],['Sheliak',18.835,33.36,3.5]],l:[[0,1],[1,2],[2,3],[3,4],[4,1]]},
- {id:'Aql',n:'Aquila',s:'The Eagle',t:'Altair spins so fast it is squashed into an egg: one day there lasts about nine hours.',st:[['Altair',19.846,8.87,0.77],['Tarazed',19.771,10.61,2.7],['Alshain',19.922,6.41,3.7],['δ Aql',19.425,3.11,3.4],['ζ Aql',19.090,13.86,3.0],['θ Aql',20.188,-0.82,3.2],['λ Aql',19.104,-4.88,3.4]],l:[[4,1],[1,0],[0,2],[2,5],[0,3],[3,6]]},
+ {id:'Aql',n:'Aquila',s:'The Eagle',t:'Altair spins so fast it is squashed into an egg: one day there lasts under eight hours.',st:[['Altair',19.846,8.87,0.77],['Tarazed',19.771,10.61,2.7],['Alshain',19.922,6.41,3.7],['δ Aql',19.425,3.11,3.4],['ζ Aql',19.090,13.86,3.0],['θ Aql',20.188,-0.82,3.2],['λ Aql',19.104,-4.88,3.4]],l:[[4,1],[1,0],[0,2],[2,5],[0,3],[3,6]]},
  {id:'Ori',n:'Orion',s:'The Hunter',t:'The most recognisable figure in the sky. Betelgeuse, his shoulder, is a red supergiant that will one day explode. Not tonight, probably.',st:[['Betelgeuse',5.919,7.41,0.5],['Rigel',5.242,-8.20,0.13],['Bellatrix',5.419,6.35,1.64],['Mintaka',5.533,-0.30,2.2],['Alnilam',5.604,-1.20,1.7],['Alnitak',5.679,-1.94,1.8],['Saiph',5.796,-9.67,2.1],['Meissa',5.585,9.93,3.4]],l:[[0,5],[5,6],[2,3],[3,1],[3,4],[4,5],[0,7],[7,2],[0,2],[1,6]]},
  {id:'Tau',n:'Taurus',s:'The Bull',t:'Aldebaran glows red in the bull’s eye; the Pleiades ride on his shoulder like a small cloud that refuses to move.',st:[['Aldebaran',4.599,16.51,0.85],['Elnath',5.438,28.61,1.65],['ζ Tau',5.627,21.14,3.0],['γ Tau',4.330,15.63,3.65],['δ Tau',4.382,17.54,3.8],['ε Tau',4.477,19.18,3.5],['Pleiades',3.791,24.11,2.9]],l:[[2,0],[0,3],[3,4],[4,5],[5,1]]},
  {id:'Gem',n:'Gemini',s:'The Twins',t:'Castor and Pollux, heads together. Castor is actually six stars pretending to be one.',st:[['Castor',7.577,31.89,1.6],['Pollux',7.755,28.03,1.15],['Alhena',6.629,16.40,1.9],['Mebsuta',6.732,25.13,3.0],['Tejat',6.383,22.51,2.9],['Wasat',7.335,21.98,3.5]],l:[[0,1],[0,3],[3,4],[1,5],[5,2]]},
@@ -195,6 +205,9 @@ function el(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k i
 var grid=document.getElementById('grid');
 [60,30,0,-30,-60].forEach(function(d){el('circle',{r:rad(d).toFixed(1),'class':d===0?'eq':''},grid);});
 for(var h=0;h<24;h++){var a=P(h,80),b=P(h,DECMIN);el('line',{x1:a[0].toFixed(1),y1:a[1].toFixed(1),x2:b[0].toFixed(1),y2:b[1].toFixed(1)},grid);}
+// declination figures printed along the 0h meridian, as on a real planisphere disc
+[60,30,0,-30,-60].forEach(function(d){var p=P(0,d);var t=el('text',{'class':'declab',x:(p[0]+4).toFixed(1),y:(p[1]-3).toFixed(1)},grid);t.textContent=(d>0?'+':d<0?'−':'')+Math.abs(d)+'°';});
+(function(){var p=P(0,-62);var t=el('text',{'class':'declab',x:(p[0]+4).toFixed(1),y:(p[1]+12).toFixed(1)},grid);t.textContent='0ʰ';})();
 
 // ecliptic
 (function(){

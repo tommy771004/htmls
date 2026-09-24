@@ -94,6 +94,11 @@
     .keys{display:none}
     .stamp{right:4px;bottom:-30px}
   }
+  @media (prefers-reduced-motion:reduce){
+    .c.fl::after,#board.won .c.fl::after{animation:none}
+    .stamp,.cl,#board.won .c.xx::before,#board.won .c.xx::after{transition:none}
+    .stamp{transform:rotate(-8deg)}
+  }
 </style>
 </head>
 <body>

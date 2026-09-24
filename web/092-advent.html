@@ -110,7 +110,7 @@
   <header>
     <div class="overline">Mistletoe Lane · Est. 1911 · No. 092</div>
     <h1>Twenty-Four Small Doors</h1>
-    <p class="sub">A printed advent calendar in the old manner: one door a day until Christmas Eve. It is not December. Open them anyway — nobody from the calendar authority is watching.</p>
+    <p class="sub" id="sub">A printed advent calendar in the old manner: one door a day until Christmas Eve. It is not December. Open them anyway — nobody from the calendar authority is watching.</p>
   </header>
 
   <div class="frame">
@@ -390,7 +390,11 @@
   (() => {
     const now = new Date(), y = now.getMonth() === 11 && now.getDate() > 25 ? now.getFullYear() + 1 : now.getFullYear();
     const days = Math.ceil((new Date(y, 11, 25) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
-    const f = $('#foot');
+    const f = $('#foot'), sub = $('#sub');
+    // the joke only holds outside Advent: in December the calendar tells the truth about which door is due
+    if (sub && now.getMonth() === 11) sub.textContent = now.getDate() <= 24
+      ? `A printed advent calendar in the old manner: one door a day until Christmas Eve. Today is door ${now.getDate()}. The others will still be there tomorrow.`
+      : 'A printed advent calendar in the old manner: all twenty-four doors are due. Open whichever you missed.';
     if (f) f.textContent = days === 0 ? '— it is Christmas Day. Put the calendar down and eat something —'
       : `— ${days} sleep${days === 1 ? '' : 's'} until Christmas · with the compliments of the Mistletoe Lane Printing Society —`;
   })();

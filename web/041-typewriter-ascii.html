@@ -144,7 +144,7 @@ kbd{font-family:inherit;border:1px solid var(--ink-soft);border-bottom-width:2px
   border-top:1px solid rgba(255,255,255,.7);
   box-shadow:0 1px 2px rgba(0,0,0,.35);
   z-index:3}
-.scale i{position:absolute;top:0;font-style:normal;font-size:8px;line-height:8px;color:#2b2822;transform:translateX(-50%);font-family:var(--mono)}
+.scale i{position:absolute;top:0;font-style:normal;font-size:9px;line-height:8px;color:#2b2822;transform:translateX(-50%);font-family:var(--mono)}
 .platen{position:absolute;left:50%;bottom:0;height:var(--platH);font-size:var(--fs);width:calc(46ch + 60px);transform:translateX(-50%);z-index:2;
   border-radius:10px;
   background:linear-gradient(to bottom,#0c0b09 0,#3b3833 22%,#1a1815 45%,#0a0908 80%,#23201c 100%);
@@ -158,8 +158,8 @@ kbd{font-family:inherit;border:1px solid var(--ink-soft);border-bottom-width:2px
 .lever::before{content:"";position:absolute;left:-8px;top:-5px;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3a352e,#0d0c0a 70%);box-shadow:0 0 0 1.5px #c9c2b3}
 .guide{position:absolute;left:50%;bottom:calc(var(--platH) - 8px);width:30px;height:24px;margin-left:-15px;z-index:4;pointer-events:none;transition:transform .05s linear}
 .guide svg{display:block;width:100%;height:100%;overflow:visible}
-.guide .cur{animation:blink 1s steps(1) infinite;opacity:0}
-.guide.idle .cur{opacity:1}
+.guide .cur{opacity:0}
+.guide.idle .cur{opacity:1;animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
 .hammer{transform-origin:15px 40px}
 .guide.hit .hammer{animation:ham .09s ease-out}
@@ -177,9 +177,10 @@ kbd{font-family:inherit;border:1px solid var(--ink-soft);border-bottom-width:2px
 .decal strong{font-size:clamp(15px,2.6vw,20px);letter-spacing:.42em;font-weight:bold;text-shadow:0 1px 0 #000,0 -1px 0 rgba(255,235,180,.25)}
 .keys{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.2vw,10px)}
 .krow{display:flex;gap:clamp(4px,1vw,9px)}
-.krow:nth-child(2){margin-left:clamp(8px,2vw,18px)}
-.krow:nth-child(3){margin-left:clamp(16px,4vw,36px)}
-.key{width:clamp(23px,6.4vw,33px);height:clamp(23px,6.4vw,33px);border-radius:50%;display:grid;place-items:center;font-weight:bold;font-size:clamp(9px,2.3vw,12px);color:#efe7d2;
+.krow:nth-child(1){margin-left:clamp(12px,3vw,20px)}
+.krow:nth-child(3){margin-left:clamp(8px,2vw,18px)}
+.krow:nth-child(4){margin-left:clamp(16px,4vw,36px)}
+.key{width:clamp(23px,6.4vw,33px);height:clamp(23px,6.4vw,33px);border-radius:50%;display:grid;place-items:center;font-weight:bold;font-size:clamp(10px,2.6vw,12px);color:#efe7d2;
   background:radial-gradient(circle at 50% 35%,#35312a,#0b0a08 72%);
   box-shadow:0 0 0 2px #c9c2b3,0 0 0 3px #5b564d,0 4px 0 2px #050403,0 5px 5px 2px rgba(0,0,0,.4);
   transition:transform .05s,box-shadow .05s}
@@ -190,13 +191,13 @@ kbd{font-family:inherit;border:1px solid var(--ink-soft);border-bottom-width:2px
 .status b{color:var(--red);font-weight:bold}
 #kb{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none}
 footer{margin-top:34px;border-top:1px solid rgba(29,27,23,.35);padding-top:10px;font-size:11px;letter-spacing:.12em;color:var(--ink-soft);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;text-transform:uppercase}
-@media (prefers-reduced-motion:reduce){.ln .hit{animation:none}.paper{transition:opacity .3s}}
+@media (prefers-reduced-motion:reduce){.ln .hit,.guide.hit .hammer{animation:none}.guide.idle .cur{animation:none}.paper{transition:opacity .3s}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="mast">
-    <div class="mast-top"><span>Halcyon No. 5 &middot; Elite 10-pitch</span><span>Ribbon: black / <b>red</b></span><span>Portfolio of six plates</span></div>
+    <div class="mast-top"><span>Halcyon No. 5 &middot; Elite 12-pitch</span><span>Ribbon: black / <b>red</b></span><span>Portfolio of six plates</span></div>
     <div class="mast-row"><h1 id="h1">The Carriage <span class="r">Returns.</span></h1>
     <p>Six pictures made of nothing but letters, typed live, one strike at a time. Pick a plate from the index. When the machine is done, take a turn yourself &mdash; there is no delete key.</p></div>
     <div class="stamp">Typed, not<br>printed</div>
@@ -257,7 +258,7 @@ footer{margin-top:34px;border-top:1px solid rgba(29,27,23,.35);padding-top:10px;
     </aside>
   </main>
 
-  <footer><span>Set in Courier New, struck by hand</span><span>Margin bell rings at column 35</span><span>No plates were harmed</span></footer>
+  <footer><span>Set in Courier New, struck by hand</span><span>Margin bell rings at column 35 &middot; no 1 key: type a lowercase l</span><span>No plates were harmed</span></footer>
   <input id="kb" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type on the page">
 </div>
 
@@ -427,7 +428,8 @@ footer{margin-top:34px;border-top:1px solid rgba(29,27,23,.35);padding-top:10px;
 
   /* ---------------- keyboard art ---------------- */
   var keyMap = {};
-  ['QWERTYUIOP','ASDFGHJKL;','ZXCVBNM,.?'].forEach(function(row){
+  // Period layout: no "1" key (typists used a lowercase l) and the "2" sits over the Q/W gap.
+  ['234567890-','QWERTYUIOP','ASDFGHJKL;','ZXCVBNM,.?'].forEach(function(row){
     var r = document.createElement('div'); r.className = 'krow';
     row.split('').forEach(function(ch){ var k = document.createElement('div'); k.className = 'key'; k.textContent = ch; keyMap[ch] = k; r.appendChild(k); });
     keysEl && keysEl.appendChild(r);

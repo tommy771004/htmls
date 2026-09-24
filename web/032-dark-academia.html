@@ -46,7 +46,7 @@ main.study{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr)
 .candle .flame{transform-origin:37px 44px;animation:flame 1.4s ease-in-out infinite}
 @keyframes flame{0%,100%{transform:scale(1,1) skewX(0)}20%{transform:scale(.94,1.06) skewX(3deg)}45%{transform:scale(1.04,.95) skewX(-2deg)}70%{transform:scale(.97,1.08) skewX(2deg)}}
 .candle .halo{animation:flick 2.1s infinite}
-body.dark .slot:nth-child(10) .knob{background:radial-gradient(circle at 40% 40%,#fff,#9ff3dc 30%,#1d6b5a 75%);box-shadow:0 0 14px 5px rgba(120,240,210,.55);transition:all 2s 1.2s}
+body.dark .slot:nth-child(10) .knob{background:radial-gradient(circle at 40% 40%,#fff,#9ff3dc 30%,#1d6b5a 75%);box-shadow:0 0 14px 5px rgba(120,240,210,.55);transition:background 2s 1.2s,box-shadow 2s 1.2s}
 body.dark .candle .flame,body.dark .candle .halo{opacity:0;animation:none}
 .candle .smoke{opacity:0}
 body.dark .candle .smoke{animation:smoke 2.4s ease-out forwards}
@@ -84,7 +84,7 @@ body.dark .candle .smoke{animation:smoke 2.4s ease-out forwards}
 .slot.open .front{transform:translateY(48%) scale(1.07);box-shadow:inset 0 2px 0 rgba(255,215,170,.25),inset 0 -3px 0 rgba(0,0,0,.4),0 22px 26px rgba(0,0,0,.7)}
 .plate{width:62%;max-width:150px;padding:3px;border-radius:3px;background:linear-gradient(180deg,#f3d893,#a97a2c 50%,#7a531a);box-shadow:0 1px 2px rgba(0,0,0,.6)}
 .plate span{display:block;background:#efe3c6;border-radius:1px;padding:3% 4%;font:italic 600 clamp(10px,1.05vw,14px)/1.15 var(--serif);text-align:center;box-shadow:inset 0 0 6px rgba(120,80,30,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.plate b{display:block;font:700 clamp(9px,.8vw,11px)/1.2 var(--serif);letter-spacing:.2em;font-style:normal;color:var(--oxblood)}
+.plate b{display:block;font:700 clamp(10px,.8vw,11px)/1.2 var(--serif);letter-spacing:.16em;font-style:normal;color:var(--oxblood)}
 .knob{width:clamp(12px,1.6vw,20px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1c0,#d5a24a 40%,#6d4712 80%);box-shadow:0 2px 3px rgba(0,0,0,.7)}
 .keyhole{width:clamp(12px,1.6vw,20px);aspect-ratio:.6;background:radial-gradient(circle at 50% 30%,#0b0603 28%,transparent 30%),linear-gradient(#0b0603,#0b0603) 50% 80%/28% 55% no-repeat;border-radius:2px;position:relative}
 .keyhole::before{content:"";position:absolute;inset:-5px -7px;border-radius:40%;background:radial-gradient(circle at 35% 30%,#f7e2a4,#b8852f 55%,#6d4712);z-index:-1}
@@ -122,7 +122,7 @@ body.dark .candle .smoke{animation:smoke 2.4s ease-out forwards}
 .ledger i.on{color:var(--ink)}
 .ledger i.on::after{content:"";position:absolute;left:-2px;right:-2px;top:52%;height:1.5px;background:var(--oxblood);transform:rotate(-8deg)}
 .stamp{position:absolute;right:22px;top:84px;width:92px;height:92px;opacity:0;transform:rotate(-16deg) scale(1.6);pointer-events:none;color:var(--oxblood);mix-blend-mode:multiply}
-.card.done .stamp{opacity:.8;transform:rotate(-16deg) scale(1);transition:all .3s cubic-bezier(.6,0,.9,.4)}
+.card.done .stamp{opacity:.8;transform:rotate(-16deg) scale(1);transition:opacity .3s cubic-bezier(.6,0,.9,.4),transform .3s cubic-bezier(.6,0,.9,.4)}
 
 footer{max-width:1260px;margin:70px auto 0;text-align:center;font:italic 13px/1.6 var(--serif);color:#8f7f5d;position:relative;z-index:2}
 
@@ -239,8 +239,8 @@ footer{max-width:1260px;margin:70px auto 0;text-align:center;font:italic 13px/1.
     {n:"IV", k:"letter",t:"Letter, Unsent", short:"Letter", lat:"Epistula non missa", acq:"1861", prov:"Discovered in a hollow panel of the Senior Common Room.", note:"Addressed simply “To whoever finds the thesis.” The seal remains unbroken. Three Fellows have volunteered to open it; none has yet been brave enough to find the thesis first."},
     {n:"V",  k:"astrolabe",t:"Astrolabe, Slightly Wrong", short:"Astrolabe", lat:"Astrolabium erratum", acq:"1864", prov:"Bequeathed by Prof. H. Calloway, Chair of Imprecise Sciences.", note:"Beautifully engraved and calibrated for a latitude of 51° 46′ in a city that does not exist. Every few years someone checks. Every few years the city still does not exist."},
     {n:"VI", k:"ink", t:"Bottomless Inkwell", short:"Inkwell", lat:"Atramentarium infinitum", acq:"1870", prov:"Purchased at auction, Lot 44, “with contents”.", note:"Not refilled since 1871. Has since written two dissertations, a play in five acts, and a great many apologies. The ink is always slightly warm."},
-    {n:"VII",k:"raven", t:"Skull of Horace", short:"Raven", lat:"Corvus corax, ‘Horace’", acq:"1911", prov:"Donated by the Department of Classics on his retirement.", note:"Attended lectures on Thucydides from 1902 until 1911, always from the third window. Failed no examinations, having sat none. Buried with full honours; exhumed with slightly fewer."},
-    {n:"VIII",k:"watch",t:"Watch, Stopped", short:"Watch", lat:"Horologium quiescens", acq:"1877", prov:"Taken from the waistcoat of the Founder, 14 November 1891.", note:"Stopped at 3:17. On the night it stopped, every clock in the East Wing stopped with it. We have wound them since. We have not wound this one. Please do not."},
+    {n:"VII",k:"raven", t:"Skull of Horace", short:"Raven", lat:"Corvus corax, ‘Horace’", acq:"1881", prov:"Donated by the Department of Classics on his retirement.", note:"Attended lectures on Thucydides from 1872 until 1881, always from the third window. Failed no examinations, having sat none. Buried with full honours; exhumed with slightly fewer."},
+    {n:"VIII",k:"watch",t:"Watch, Stopped", short:"Watch", lat:"Horologium quiescens", acq:"1891", prov:"Taken from the waistcoat of the Founder, 14 November 1891.", note:"Stopped at 3:17. On the night it stopped, every clock in the East Wing stopped with it. We have wound them since. We have not wound this one. Please do not."},
     {n:"IX", k:"nightshade",t:"Nightshade, Pressed", short:"Nightshade", lat:"Atropa belladonna", acq:"1882", prov:"Collected on the Botanic Garden's north wall, after hours.", note:"Deadly in every part. Mounted on acid-free card with a note in the Curator's hand: DO NOT LICK. The note is underlined three times, which suggests there was an incident."},
     {n:"X",  k:"eye",   t:"Glass Eye", short:"Glass Eye", lat:"Oculus vitreus", acq:"1886", prov:"Left behind by a visiting lecturer who departed in some haste.", note:"Hand-blown, Venetian, remarkably lifelike. It is kept facing the wall of the drawer. When the drawer is opened it is not always facing the wall."},
     {n:"XI", k:"key",   t:"A Small Brass Key", short:"Key", lat:"Clavis minor", acq:"1891", prov:"Found in this drawer. Nobody recalls putting it here.", note:"A tag, tied with red thread, reads XII. You pocket it — the cabinet does not seem to mind. Somewhere to your right, a lock clicks, as if in anticipation."},
@@ -301,7 +301,7 @@ footer{max-width:1260px;margin:70px auto 0;text-align:center;font:italic 13px/1.
     if(cardNo) cardNo.textContent = "No. " + it.n;
     body.innerHTML = '<div class="plate-fig">'+art(it.k)+'</div><div class="fig-cap">Fig. '+it.n+' — drawn from the specimen</div>'+
       '<h2>'+it.t+'</h2><div class="latin">'+it.lat+'</div>'+
-      '<dl><dt>Acquired</dt><dd>'+it.acq+'</dd><dt>Provenance</dt><dd>'+it.prov+'</dd><dt>Drawer</dt><dd>'+it.n+' of XII</dd></dl>'+
+      '<dl><dt>Accession</dt><dd>ASH.'+it.acq+'.'+String(i+1).padStart(3,"0")+'</dd><dt>Acquired</dt><dd>'+it.acq+'</dd><dt>Provenance</dt><dd>'+it.prov+'</dd><dt>Drawer</dt><dd>'+it.n+' of XII</dd></dl>'+
       '<p class="note">'+it.note+'</p>';
   }
   function showLocked(){
@@ -330,7 +330,7 @@ footer{max-width:1260px;margin:70px auto 0;text-align:center;font:italic 13px/1.
   }
   function scrollCard(){
     if(window.innerWidth > 980) return;
-    setTimeout(function(){ var r = card.getBoundingClientRect(); if(r.top > window.innerHeight * .6) card.scrollIntoView({behavior:"smooth", block:"start"}); }, 650);
+    setTimeout(function(){ var r = card.getBoundingClientRect(); if(r.top > window.innerHeight * .6) card.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"}); }, 650);
   }
   if(hasKey){ var lab0 = slots[11].querySelector(".plate span"); if(lab0 && seen.XII) lab0.innerHTML = "<b>XII</b>Ledger"; }
 

@@ -143,8 +143,26 @@ function drawWall(){
   var g=wc.createLinearGradient(0,H*.55,0,H);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(10,6,4,.55)');
   wc.fillStyle=g;wc.fillRect(0,0,W,H);
   for(var s=0;s<6;s++){var sx=rnd()*W,sw=30+rnd()*60,sh=H*(.2+rnd()*.4);wc.save();wc.translate(sx,0);wc.scale(1,sh/sw);var gr=wc.createRadialGradient(0,0,0,0,0,sw);gr.addColorStop(0,'rgba(20,14,10,.28)');gr.addColorStop(1,'rgba(20,14,10,0)');wc.fillStyle=gr;wc.beginPath();wc.arc(0,0,sw,0,6.283);wc.fill();wc.restore();}
+  councilSign();
   var v=wc.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.75);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.45)');
   wc.fillStyle=v;wc.fillRect(0,0,W,H);
+}
+
+// the council's enamel sign screwed to every legal wall (and usually tagged over)
+function councilSign(){
+  var sw=W<760?150:176,sh=sw*.62,sx=W-sw-(W<760?14:34),sy=W<760?H*.6:H*.2;
+  wc.save();wc.translate(sx,sy);wc.rotate(-.015);
+  wc.fillStyle='rgba(0,0,0,.35)';wc.fillRect(3,4,sw,sh);
+  wc.fillStyle='#eef0ea';wc.fillRect(0,0,sw,sh);
+  wc.fillStyle='#1d5e3a';wc.fillRect(0,0,sw,sh*.3);
+  wc.strokeStyle='#1d5e3a';wc.lineWidth=2;wc.strokeRect(4,sh*.3+3,sw-8,sh*.7-7);
+  wc.fillStyle='#fff';wc.textAlign='center';wc.textBaseline='middle';
+  wc.font='700 '+(sw*.1).toFixed(1)+'px Arial, sans-serif';wc.fillText('LEGAL WALL',sw/2,sh*.15);
+  wc.fillStyle='#1b1b1b';wc.font='700 '+(sw*.062).toFixed(1)+'px Arial, sans-serif';
+  ['Permit No. 088 · Open 24 h','No hate · No names of the living','Buffed every Monday, 7 am'].forEach(function(l,i){wc.fillText(l,sw/2,sh*(.46+i*.16),sw-14);});
+  wc.fillStyle='#777';[[6,6],[sw-6,6],[6,sh-6],[sw-6,sh-6]].forEach(function(p){wc.beginPath();wc.arc(p[0],p[1],2.2,0,6.283);wc.fill();});
+  wc.fillStyle='rgba(120,60,20,.35)';wc.fillRect(sw-8,8,2,sh*.5); // rust streak from a screw
+  wc.restore();
 }
 
 // ---------- spray engine ----------
@@ -241,6 +259,11 @@ function introPiece(){
   var word=W<560?'WALL':'WALLSPACE';
   var fs=Math.min(W*.8/(word.length*.55),H*.3,230);
   var sk=.18;
+  // fit the real rendered width (fallback fonts are much wider than Impact) and keep it on screen
+  var mc=document.createElement('canvas').getContext('2d');mc.font='400 '+fs+'px Impact, "Arial Black", sans-serif';
+  var ww=(mc.measureText(word).width+fs*.5)*(1+sk*.5);
+  if(ww>W*.94){fs*=W*.94/ww;ww=W*.94;}
+  cx=Math.max(ww/2+W*.03,Math.min(cx,W-ww/2-W*.03));
   var base={size:fs,skew:sk};
   function o(extra){var r={};for(var k in base) r[k]=base[k];for(var k2 in extra) r[k2]=extra[k2];return r;}
   stencilJob(word,cx,cy,o({color:'#141414',dx:fs*.07,dy:fs*.07,dur:.07,stroke:fs*.14}));
@@ -283,7 +306,7 @@ paint.addEventListener('pointerleave',function(){if(cur) cur.style.display='none
 var cansEl=document.getElementById('cans'),canBtns=[];
 COLORS.forEach(function(c,i){
   var b=document.createElement('button');b.type='button';b.className='can';b.setAttribute('role','radio');b.setAttribute('aria-label',c[0]);b.title=c[0]+' ('+((i+1)%10)+')';
-  b.innerHTML='<svg viewBox="0 0 34 74" aria-hidden="true"><rect x="12" y="2" width="10" height="7" rx="2" fill="#ddd"/><rect x="13.5" y="0" width="7" height="4" rx="1" fill="'+c[1]+'"/><path d="M6 20 Q6 10 17 9 Q28 10 28 20Z" fill="'+c[1]+'"/><rect x="5" y="19" width="24" height="52" rx="3" fill="#2a2a2a"/><rect x="5" y="30" width="24" height="26" fill="'+c[1]+'"/><rect x="5" y="19" width="24" height="3" fill="#555"/><rect x="8" y="22" width="3" height="46" fill="rgba(255,255,255,.18)"/><text x="17" y="46" text-anchor="middle" font-family="Impact,Arial Black,sans-serif" font-size="8" fill="'+(i===0?'#eee':'#111')+'" transform="rotate(-90 17 43)">'+c[0].split(' ')[0].toUpperCase().slice(0,6)+'</text></svg>';
+  b.innerHTML='<svg viewBox="0 0 34 74" aria-hidden="true"><rect x="12" y="2" width="10" height="7" rx="2" fill="#ddd"/><rect x="13.5" y="0" width="7" height="4" rx="1" fill="'+c[1]+'"/><path d="M6 20 Q6 10 17 9 Q28 10 28 20Z" fill="'+c[1]+'"/><rect x="5" y="19" width="24" height="52" rx="3" fill="#2a2a2a"/><rect x="5" y="25" width="24" height="38" fill="'+c[1]+'"/><rect x="5" y="19" width="24" height="3" fill="#555"/><rect x="8" y="22" width="3" height="46" fill="rgba(255,255,255,.18)"/><text x="17" y="47.5" text-anchor="middle" font-family="Impact,Arial Black,sans-serif" font-size="10" fill="'+(i===0?'#eee':'#111')+'" transform="rotate(-90 17 44)">'+c[0].split(' ')[0].toUpperCase().slice(0,6)+'</text></svg>';
   b.addEventListener('click',function(){pickColor(i);});
   cansEl.appendChild(b);canBtns.push(b);
 });

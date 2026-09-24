@@ -19,7 +19,7 @@ body.night{background:linear-gradient(180deg,#2e2b52 0%,#46406e 55%,#4d5f7a 100%
 .app{height:100vh;height:100dvh;display:grid;grid-template-rows:auto 1fr auto}
 header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:18px 22px 0;flex-wrap:wrap;position:relative;z-index:2}
 .title h1{margin:0;font-size:clamp(22px,2.6vw,32px);letter-spacing:.04em;line-height:1.1}
-.title h1 small{font-size:.45em;letter-spacing:.2em;color:var(--coral);display:block;margin-bottom:6px;text-transform:uppercase}
+.title h1 small{font-size:max(10px,.45em);letter-spacing:.2em;color:var(--coral);display:block;margin-bottom:6px;text-transform:uppercase}
 .title p{margin:6px 0 0;font-size:13px;color:var(--ink2);font-weight:400}
 body.night .title p{color:#cfc8ea}
 .stats{display:flex;gap:10px;flex-wrap:wrap}
@@ -44,7 +44,7 @@ body.night .tools{background:rgba(40,36,72,.82)}
 .tool:hover{transform:translateY(-3px)}
 .tool[aria-pressed=true]{background:var(--mint);transform:translateY(-4px)}
 body.night .tool[aria-pressed=true]{background:#5a5392}
-.tool kbd{font:400 9px/1 var(--f);opacity:.5}
+.tool kbd{font:400 10px/1 var(--f);opacity:.55}
 .tool:focus-visible,.nightbtn:focus-visible{outline:2px solid var(--coral);outline-offset:2px}
 .sep{width:1px;background:rgba(59,57,80,.12);margin:6px 2px}
 .nightbtn{border:0;border-radius:18px;min-width:64px;height:66px;cursor:pointer;background:var(--lav);color:var(--ink);font:600 12px/1 var(--f);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
@@ -67,7 +67,7 @@ body.night .hint{color:#bdb5e0}
   .hint{display:none}
   .diary{left:12px;bottom:8px;font-size:12px}
 }
-@media (prefers-reduced-motion:reduce){ .tool,.chip i::after{transition:none} }
+@media (prefers-reduced-motion:reduce){ .tool,.chip i::after,.diary{transition:none} }
 </style>
 </head>
 <body>
@@ -256,15 +256,44 @@ function drawRoad(i,j,h){
   if (nU && !nV || (!nU && !nV)) { const a=P(i,j+.5,z), b=P(i+1,j+.5,z); g.beginPath(); g.moveTo(a[0],a[1]); g.lineTo(b[0],b[1]); g.stroke(); }
   if (nV && !nU) { const a=P(i+.5,j,z), b=P(i+.5,j+1,z); g.beginPath(); g.moveTo(a[0],a[1]); g.lineTo(b[0],b[1]); g.stroke(); }
   g.setLineDash([]);
+  // raised curb / sidewalk edge wherever the road doesn't continue
+  g.strokeStyle = night ? 'rgba(210,205,235,.55)' : '#e4e2ef'; g.lineWidth = Math.max(1.5, TW*.045);
+  [[i-1,j,P(i,j,z),P(i,j+1,z)],[i+1,j,P(i+1,j,z),P(i+1,j+1,z)],[i,j-1,P(i,j,z),P(i+1,j,z)],[i,j+1,P(i,j+1,z),P(i+1,j+1,z)]].forEach(([a,b,p0,p1]) => {
+    if (isR(a,b)) return; g.beginPath(); g.moveTo(p0[0],p0[1]); g.lineTo(p1[0],p1[1]); g.stroke(); });
   if (nU && nV) { // crossing: zebra
     g.fillStyle='rgba(255,255,255,.75)';
     for (let k=0;k<4;k++){ const u=i+.18+k*.18; poly([P(u,j+.05,z),P(u+.08,j+.05,z),P(u+.08,j+.2,z),P(u,j+.2,z)], 'rgba(255,255,255,.75)'); }
   }
 }
-function drawCar(now){
-  // little cars cruise along any road tile
-  const roads = []; for (let i=0;i<N;i++) for (let j=0;j<N;j++) if (grid[i][j]&&grid[i][j].type==='road'&&!grid[i][j].dying) roads.push([i,j]);
-  return roads;
+const isRoad = (a,b) => a>=0&&b>=0&&a<N&&b<N&&grid[a][b]&&grid[a][b].type==='road'&&!grid[a][b].dying;
+const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+function spawnCar(car){
+  const roads = []; for (let i=0;i<N;i++) for (let j=0;j<N;j++) if (isRoad(i,j)) roads.push([i,j]);
+  if (!roads.length) { car.i = -1; return; }
+  const [i,j] = roads[Math.floor(Math.random()*roads.length)];
+  const opts = DIRS.filter(([a,b]) => isRoad(i+a,j+b)); const d = opts.length ? opts[Math.floor(Math.random()*opts.length)] : [1,0];
+  car.i = i; car.j = j; car.di = d[0]; car.dj = d[1]; car.t = Math.random();
+}
+// cars follow connected road tiles: straight on when possible, turn at junctions, U-turn at dead ends
+function moveCar(car, dt){
+  if (car.i < 0 || !isRoad(car.i, car.j)) { spawnCar(car); return; }
+  car.t += dt*car.v; if (car.t < 1) return;
+  car.t -= 1;
+  const ni = car.i + car.di, nj = car.j + car.dj;
+  if (!isRoad(ni, nj)) { car.di = -car.di; car.dj = -car.dj; return; }
+  car.i = ni; car.j = nj;
+  const opts = DIRS.filter(([a,b]) => !(a===-car.di && b===-car.dj) && isRoad(ni+a, nj+b));
+  if (!opts.length) return; // dead end ahead: U-turn happens next tile
+  const straight = opts.find(([a,b]) => a===car.di && b===car.dj);
+  const d = straight && Math.random() < .6 ? straight : opts[Math.floor(Math.random()*opts.length)];
+  car.di = d[0]; car.dj = d[1];
+}
+// soft sun shadow cast toward the back-right (light from the front-left)
+function groundShadow(i,j,type,h){
+  const len = ({house:.35,cafe:.35,tower:.9,tree:.25,fount:.08})[type]*Math.min(1,h), a = type==='tree' ? .28 : .16;
+  if (len < .02) return;
+  g.fillStyle = night ? 'rgba(20,16,50,.18)' : 'rgba(59,57,80,.10)';
+  poly([P(i+a,j+a),P(i+1-a,j+a),P(i+1-a+len*.3,j+a-len),P(i+a+len*.3,j+a-len)], g.fillStyle);
 }
 const PAINT = { house:drawHouse, cafe:drawCafe, tower:drawTower, tree:drawTree, fount:drawFountain };
 
@@ -281,11 +310,13 @@ function drawClouds(dt){
 
 /* ---------- main render ---------- */
 let last = performance.now();
-const cars = Array.from({length:3},(_,k)=>({ idx:k*5, t:0, dir:1 }));
+const cars = Array.from({length:3},(_,k)=>({ i:-1, j:0, di:1, dj:0, t:0, v:1.1 + k*.25, col:['#ff8f7a','#8fb8f0','#ffc86b'][k] }));
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
 function render(now){
   const dt = Math.min(.05,(now-last)/1000); last = now;
+  const rm = RM.matches, tnow = rm ? 0 : now; // decorative motion (sway, steam, spray, clouds) freezes under reduced motion
   g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
-  drawClouds(dt);
+  drawClouds(rm ? 0 : dt);
   glows.length = 0;
   // island slab
   const d = .32;
@@ -302,27 +333,28 @@ function render(now){
   }
   // roads first (flat)
   for (let i=0;i<N;i++) for (let j=0;j<N;j++){ const c=grid[i][j]; if (c && c.type==='road'){ if (c.dying && now-c.dying>250){ grid[i][j]=null; continue;} drawRoad(i,j,1); } }
-  // cars
-  const roads = drawCar(now);
   // hover tile
   const hv = hover || (kbdActive ? cursor : null);
   if (hv){ const [i,j]=hv; poly([P(i,j,.02),P(i+1,j,.02),P(i+1,j+1,.02),P(i,j+1,.02)], tool==='bull'?'rgba(255,143,122,.35)':'rgba(255,255,255,.45)');
-    g.save(); g.setLineDash([5,4]); g.lineWidth=2; g.strokeStyle = tool==='bull' ? '#ff8f7a' : (night?'#fff':'#3b3950'); g.lineDashOffset = -now*.02;
+    g.save(); g.setLineDash([5,4]); g.lineWidth=2; g.strokeStyle = tool==='bull' ? '#ff8f7a' : (night?'#fff':'#3b3950'); g.lineDashOffset = -tnow*.02;
     poly([P(i,j,.02),P(i+1,j,.02),P(i+1,j+1,.02),P(i,j+1,.02)], null, g.strokeStyle); g.stroke(); g.restore(); }
+  // ground shadows first, so they never smear over buildings further back
+  for (let i=0;i<N;i++) for (let j=0;j<N;j++){ const c=grid[i][j]; if (!c || c.type==='road' || c.dying || now < c.born) continue;
+    groundShadow(i,j,c.type, rm ? 1 : Math.min(1,(now-c.born)/750)); }
   // buildings in painter's order
   for (let s=0; s<=2*(N-1); s++) for (let i=0;i<N;i++){ const j=s-i; if (j<0||j>=N) continue;
     const c = grid[i][j];
     if (c && c.type!=='road') {
-      let h = elastic((now - c.born)/750);
+      let h = rm ? (now >= c.born ? 1 : 0) : elastic((now - c.born)/750);
       if (c.dying) { const t=(now-c.dying)/320; if (t>=1){ grid[i][j]=null; continue; } h = 1 - t*t; }
-      if (h > 0.001) PAINT[c.type](i,j,h,c.seed,now);
+      if (h > 0.001) PAINT[c.type](i,j,h,c.seed,tnow);
     }
     // ghost preview
-    if (hv && hv[0]===i && hv[1]===j && tool!=='bull' && tool!=='road' && !(c && c.type===tool)) { g.globalAlpha=.4; PAINT[tool](i,j,1,7,now); g.globalAlpha=1; }
+    if (hv && hv[0]===i && hv[1]===j && tool!=='bull' && tool!=='road' && !(c && c.type===tool)) { g.globalAlpha=.4; PAINT[tool](i,j,1,7,tnow); g.globalAlpha=1; }
     // cars drawn on their tile in order
-    cars.forEach(car => { if (!roads.length) return; const rt = roads[car.idx % roads.length]; if (rt[0]===i && rt[1]===j) drawOneCar(car, rt, now); });
+    cars.forEach(car => { if (car.i===i && car.j===j && isRoad(i,j)) drawOneCar(car); });
   }
-  cars.forEach(car => { car.t += dt*1.4; if (car.t>=1){ car.t=0; car.idx = (car.idx + 1) % Math.max(1, roads.length); } });
+  cars.forEach(car => { if (!rm) moveCar(car, dt); else if (car.i < 0 || !isRoad(car.i, car.j)) spawnCar(car); });
   // dust
   dust = dust.filter(p => now - p.t < 700);
   dust.forEach(p => { const k=(now-p.t)/700; const [x,y]=P(p.i+Math.cos(p.a)*p.s*.5*k, p.j+Math.sin(p.a)*p.s*.5*k, .05+k*.1);
@@ -336,15 +368,17 @@ function render(now){
   }
   requestAnimationFrame(render);
 }
-function drawOneCar(car, rt, now){
-  const [i,j] = rt; const along = (car.idx%2) ? 'u' : 'v';
-  const u = along==='u' ? i + car.t : i + .5 + .12, v = along==='u' ? j + .5 + .12 : j + car.t;
-  const col = ['#ff8f7a','#8fb8f0','#ffc86b'][car.idx%3];
+function drawOneCar(car){
+  const { i, j, di, dj } = car; const along = di ? 'u' : 'v';
+  // keep to the right-hand lane (Taiwan drives on the right)
+  const k = car.t - .5, lane = .14;
+  const u = i + .5 + di*k - dj*lane, v = j + .5 + dj*k + di*lane;
+  const col = car.col;
   const l=.14, w=.08;
   const u0 = along==='u'? u-l : u-w, u1 = along==='u'? u+l : u+w, v0 = along==='u'? v-w : v-l, v1 = along==='u'? v+w : v+l;
   prism(u0,v0,u1,v1,.02,.1,shade(col,1.1),col,shade(col,.8));
   prism(u0+(u1-u0)*.25,v0+(v1-v0)*.25,u1-(u1-u0)*.25,v1-(v1-v0)*.25,.1,.16,'#e9f6ff','#cfe6f5','#b4d2e6');
-  if (night) { const [x,y]=P(along==='u'?u1:u, along==='u'?v:v1, .06); g.fillStyle='rgba(255,230,150,.9)'; g.beginPath(); g.arc(x,y,2,0,Math.PI*2); g.fill(); }
+  if (night) { const [x,y]=P(along==='u'?(di>0?u1:u0):u, along==='u'?v:(dj>0?v1:v0), .06); g.fillStyle='rgba(255,230,150,.9)'; g.beginPath(); g.arc(x,y,2,0,Math.PI*2); g.fill(); }
 }
 
 /* ---------- input ---------- */

@@ -38,7 +38,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:
 .row label{font-style:italic}
 .row output{font-size:12px;color:var(--ink2);font-variant-numeric:oldstyle-nums}
 .row input{grid-column:1/-1}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:transparent;margin:0;cursor:pointer}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0;cursor:pointer}
 input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink2)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--paper);border:1px solid var(--ink);margin-top:-7px}
 input[type=range]::-moz-range-track{height:1px;background:var(--ink2)}
@@ -60,6 +60,7 @@ input[type=range]:focus-visible{outline:1px dotted var(--ink);outline-offset:2px
   .meter{max-width:48vw;font-size:12px}
   .panel{width:min(250px,calc(100vw - 24px))}
 }
+@media (prefers-reduced-motion:reduce){ .panel,.toast,.toggle svg{transition:none} }
 </style>
 </head>
 <body>
@@ -117,7 +118,8 @@ function persist(){ try{ localStorage.setItem('flowstudy',JSON.stringify(S)); }c
 const INKNAME={'43,33,24':'sepia','31,42,68':'indigo','168,62,40':'vermilion','70,78,62':'verdigris'};
 
 let W=0,H=0,dpr=1, plate={x:0,y:0,w:0,h:0}, parts=[], z=0, steps=0, travelled=0, paused=false, done=false;
-const BUDGET=1100; // frames of ink before the plate is considered finished
+const BUDGET=1100; // pen steps (run at a fixed 60 per second) before the plate is considered finished
+const MM=.26; // one CSS pixel of plate = 0.26 mm of paper
 function size(){
   dpr=Math.min(2,window.devicePixelRatio||1); W=innerWidth; H=innerHeight;
   cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
@@ -143,7 +145,7 @@ function restart(newSeed){
   parts=[]; for(let i=0;i<S.count;i++) parts.push(spawn({}));
   z=0; steps=0; travelled=0; done=false;
   const t=$('ttl'); if(t) t.textContent=`Flow Study, No. ${S.seed}`;
-  const sb=$('sub'); if(sb) sb.textContent=`${INKNAME[S.ink]||'ink'} on cotton rag · Perlin field, curl ${S.curl.toFixed(1)}`;
+  const sb=$('sub'); if(sb) sb.textContent=`${INKNAME[S.ink]||'ink'} on cotton rag · Perlin field, curl ${S.curl.toFixed(1)} · ${Math.round(plate.w*MM)} × ${Math.round(plate.h*MM)} mm`;
   // pre-warm so the sheet is never blank
   for(let i=0;i<(reduce?BUDGET:130);i++) step(true);
 }
@@ -171,10 +173,13 @@ function step(force){
   z+=.0016; steps++;
   if(!done&&steps>=BUDGET){ done=true; toast('Plate complete. Drag to add ink, or begin a new plate.'); }
 }
-let last=0;
+let last=0, prevT=0, acc=0;
 function loop(t){
-  if(!paused&&!document.hidden){ step(); }
-  if(t-last>250){ last=t; const m=$('meter'); if(m){ const metres=travelled*0.26/1000; m.innerHTML=done&&!parts.some(p=>p.hand)?`finished · the pen travelled <b>${metres.toFixed(1)}</b> metres`:`the pen has travelled <b>${metres.toFixed(1)}</b> metres${paused?' · paused':''}`; } }
+  // fixed 60 steps/s whatever the display rate, so a 120 Hz screen does not finish the plate twice as fast
+  const dt=prevT?Math.min(.1,Math.max(0,(t-prevT)/1000)):0; prevT=t;
+  if(!paused&&!document.hidden){ acc+=dt*60; let n=0; while(acc>=1&&n<3){ step(); acc--; n++; } if(acc>=1) acc=0; }
+  else acc=0;
+  if(t-last>250){ last=t; const m=$('meter'); if(m){ const metres=travelled*MM/1000; m.innerHTML=done&&!parts.some(p=>p.hand)?`finished · the pen travelled <b>${metres.toFixed(1)}</b> metres`:`the pen has travelled <b>${metres.toFixed(1)}</b> metres${paused?' · paused':''}`; } }
   requestAnimationFrame(loop);
 }
 
@@ -190,7 +195,7 @@ function addInk(e){ for(let i=0;i<10;i++) parts.push(spawn({},e.clientX+(Math.ra
 const ctl=$('ctl'), tg=$('toggle');
 if(tg&&ctl) tg.addEventListener('click',()=>{ const o=!ctl.classList.contains('open'); ctl.classList.toggle('open',o); tg.setAttribute('aria-expanded',String(o)); });
 if(ctl&&innerWidth>900){ ctl.classList.add('open'); if(tg) tg.setAttribute('aria-expanded','true'); }
-const fmt={scale:v=>(+v).toFixed(1),curl:v=>(+v).toFixed(1)+' turns',count:v=>v,weight:v=>(+v).toFixed(2)+' pt'};
+const fmt={scale:v=>(+v).toFixed(1),curl:v=>(+v).toFixed(1)+' turns',count:v=>v,weight:v=>(v*MM).toFixed(2)+' mm'};
 ['scale','curl','count','weight'].forEach(k=>{
   const el=$('p-'+k), o=$('o-'+k); if(!el) return;
   el.value=S[k]; if(o) o.textContent=fmt[k](S[k]);
@@ -218,6 +223,7 @@ function save(){
 if(bs) bs.addEventListener('click',save);
 addEventListener('keydown',e=>{
   if(e.target.closest&&e.target.closest('input,button')&&e.key===' ') return;
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
   if(e.key===' '){ e.preventDefault(); togglePause(); }
   else if(e.key==='n'||e.key==='N') restart(true);
   else if(e.key==='s'||e.key==='S') save();

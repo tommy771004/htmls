@@ -50,7 +50,9 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
 .q .qm{display:inline-block;min-width:1.1em;color:var(--sky-d);animation:bob 1.6s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-8px) rotate(-4deg)}}
 .tray{display:flex;justify-content:center;align-items:center;gap:clamp(12px,3vw,34px);flex-wrap:wrap;min-height:110px;padding:14px;border-radius:30px;--bgc:#eef7ff;margin:8px 0 22px}
-.grp{display:flex;flex-wrap:wrap;gap:8px;max-width:min(230px,40%);justify-content:center}
+/* 計數珠照「五個一排」排（像十格框），小朋友一眼就看得出 5 和幾 */
+.grp{display:grid;grid-template-columns:repeat(var(--cols,5),auto);gap:8px;justify-content:center}
+@media (max-width:480px){.tray{gap:10px;padding:14px 8px}.grp{gap:5px}.grp .ball{width:22px}}
 .ball{width:clamp(28px,4.2vw,40px);aspect-ratio:1;border-radius:50%;background:var(--c);
   box-shadow:inset -4px -5px 8px rgba(0,0,0,.18),inset 4px 4px 6px rgba(255,255,255,.7),2px 4px 6px rgba(20,60,110,.2);animation:pop .45s cubic-bezier(.3,1.8,.5,1) both}
 .ball.gone{animation:away .7s ease-in forwards}
@@ -200,7 +202,7 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
     for(var i = 0; i < 10; i++){ var d = document.createElement('i'); if(results[i] === true) d.className = 'ok'; else if(results[i] === false) d.className = 'no'; else if(i === idx) d.className = 'now'; dots.appendChild(d); }
   }
   function balls(n, color, delay0){
-    var g = document.createElement('div'); g.className = 'grp';
+    var g = document.createElement('div'); g.className = 'grp'; g.style.setProperty('--cols', Math.max(1, Math.min(5, n)));
     for(var i = 0; i < n; i++){ var b = document.createElement('span'); b.className = 'ball'; b.style.setProperty('--c', color); b.style.animationDelay = ((delay0 || 0) + i * .06) + 's'; g.appendChild(b); }
     return g;
   }

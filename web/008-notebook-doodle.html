@@ -135,7 +135,7 @@ h2 .hl{white-space:nowrap}
   .tbl td,.tbl th{padding:0 6px}
   .grind p{font-size:15px}
 }
-@media (prefers-reduced-motion:reduce){.hl{transition:none}}
+@media (prefers-reduced-motion:reduce){.hl{transition:none}.num.bump{animation:none}}
 </style>
 </head>
 <body>
@@ -275,14 +275,15 @@ h2 .hl{white-space:nowrap}
     watch:function(){var o=[P(circ(48,58,38,38,1.4)),P(circ(48,58,31,31,.8),'thin'),P(line(40,16,56,16)),P(line(48,16,48,20)),P(line(74,28,80,22)),P(line(48,58,48,36,.6),'red'),P(line(48,58,62,64,.6))];
       for(var i=0;i<12;i++){var a=i/12*6.283;o.push(P(line(48+Math.cos(a)*27,58+Math.sin(a)*27,48+Math.cos(a)*31,58+Math.sin(a)*31,.3),'thin'));}return o;},
     v60:function(){var o=[
-      P(poly([[60,40],[150,150],[240,40]])),P(line(56,40,244,40)),P(line(40,40,260,40,.8)),
-      P(poly([[70,40],[76,26],[88,40],[96,26],[108,40],[116,26],[128,40],[136,26],[148,40],[156,26],[168,40],[176,26],[188,40],[196,26],[208,40],[216,26],[228,40]],.8),'thin'),
-      P(line(120,150,180,150)),P(line(126,150,126,164)),P(line(174,150,174,164)),
-      P(poly([[92,58],[130,120]],1),'thin'),P(poly([[150,48],[150,130]],1),'thin'),P(poly([[208,58],[170,120]],1),'thin'),
+      /* V60 = 60° cone: half-width 64 over 110 height (tan 30°), spiral ribs, one big hole, flat base plate */
+      P(poly([[86,40],[150,150],[214,40]])),P(line(82,40,218,40)),P(line(72,40,228,40,.8)),
+      P(poly([[92,40],[97,27],[106,40],[111,27],[120,40],[125,27],[134,40],[139,27],[148,40],[153,27],[162,40],[167,27],[176,40],[181,27],[190,40],[195,27],[204,40]],.8),'thin'),
+      P(line(104,150,196,150)),P(line(110,150,110,164)),P(line(190,150,190,164)),P(circ(150,153,6,2.5,.3),'thin'),
+      P(poly([[104,52],[118,72],[124,96],[136,124]],.8),'thin'),P(poly([[132,46],[142,70],[144,98],[148,132]],.8),'thin'),P(poly([[176,48],[180,70],[170,98],[160,128]],.8),'thin'),P(poly([[204,54],[196,74],[180,100],[166,122]],.8),'thin'),
       P(poly([[96,176],[84,230],[82,290],[100,318],[200,318],[218,290],[216,230],[204,176]])),P(line(90,176,210,176)),
       P(poly([[218,210],[246,214],[250,260],[222,280]])),
       P(line(100,300,200,300,.6),'thin')];
-      o.push(T(236,110,'← 濾紙要','red'),T(236,130,'先沖濕','red'));
+      o.push(T(192,108,'← 濾紙要','red'),T(204,128,'先沖濕','red'));
       return o;},
     table:function(el){var b=el.getBoundingClientRect(),w=Math.max(200,b.width),h=Math.max(100,b.height);el.setAttribute('viewBox','0 0 '+f(w)+' '+f(h));
       var tbl=el.parentNode.querySelector('table'),rows=tbl?tbl.rows:[],o=[],y=0;
@@ -364,7 +365,7 @@ h2 .hl{white-space:nowrap}
     if(!v60) return;
     ['brewCoffee','brewBed','brewDrop'].forEach(function(id){var e=document.getElementById(id);if(e)e.remove();});
     var clip=document.getElementById('srvClip');
-    if(!clip){var defs=document.createElementNS(NS,'defs');defs.setAttribute('data-keep','1');defs.innerHTML='<clipPath id="srvClip"><path d="M97 178 L86 230 L84 290 L101 316 L199 316 L216 290 L214 230 L203 178 Z"/></clipPath><clipPath id="coneClip"><path d="M62 42 L150 148 L238 42 Z"/></clipPath>';v60.insertBefore(defs,v60.firstChild);}
+    if(!clip){var defs=document.createElementNS(NS,'defs');defs.setAttribute('data-keep','1');defs.innerHTML='<clipPath id="srvClip"><path d="M97 178 L86 230 L84 290 L101 316 L199 316 L216 290 L214 230 L203 178 Z"/></clipPath><clipPath id="coneClip"><path d="M88 42 L150 148 L212 42 Z"/></clipPath>';v60.insertBefore(defs,v60.firstChild);}
     coffeeRect=document.createElementNS(NS,'rect');coffeeRect.id='brewCoffee';coffeeRect.setAttribute('x','80');coffeeRect.setAttribute('width','140');coffeeRect.setAttribute('y','318');coffeeRect.setAttribute('height','0');coffeeRect.setAttribute('class','fillc');coffeeRect.setAttribute('clip-path','url(#srvClip)');coffeeRect.setAttribute('data-keep','1');
     bedRect=document.createElementNS(NS,'rect');bedRect.id='brewBed';bedRect.setAttribute('x','60');bedRect.setAttribute('width','180');bedRect.setAttribute('y','150');bedRect.setAttribute('height','0');bedRect.setAttribute('class','water');bedRect.setAttribute('clip-path','url(#coneClip)');bedRect.setAttribute('data-keep','1');
     drop=document.createElementNS(NS,'path');drop.id='brewDrop';drop.setAttribute('d','M150 156 q-4 8 0 10 q4 -2 0 -10');drop.setAttribute('class','brown');drop.style.opacity='0';drop.setAttribute('data-keep','1');

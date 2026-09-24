@@ -111,10 +111,11 @@
   .hm div span{font-size:15px}
   /* ticker tape */
   .ticker{height:26px;border-top:1px solid var(--amb-dd);background:#0a0703;overflow:hidden;position:relative;white-space:nowrap}
-  .ticker .run{display:inline-block;padding-left:100%;animation:run 60s linear infinite;animation-delay:-14s;line-height:26px}
+  /* content is rendered twice and scrolled by exactly one copy (-50%), so the loop has no gap or jump */
+  .ticker .run{display:inline-block;animation:run 90s linear infinite;animation-delay:-14s;line-height:26px}
   .ticker .run span{margin-right:34px;color:var(--wht)} .ticker .run b{color:var(--amb);font-weight:400;margin-right:6px}
   .paused .ticker .run{animation-play-state:paused}
-  @keyframes run{to{transform:translateX(-100%)}}
+  @keyframes run{to{transform:translateX(-50%)}}
   .foot{display:flex;gap:16px;padding:3px 10px;color:var(--dim);font-size:11px;border-top:1px solid var(--line);white-space:nowrap;overflow:hidden}
   .foot b{color:var(--dn);font-weight:400}
 
@@ -140,7 +141,11 @@
     td.sym small{max-width:96px}
     .foot span.hide-s{display:none}
   }
-  @media (prefers-reduced-motion:reduce){ .ticker .run{animation-duration:240s} }
+  @media (prefers-reduced-motion:reduce){
+    .ticker{overflow-x:auto;scrollbar-width:none}
+    .ticker .run{animation:none;padding-left:10px}
+    .live i{animation:none}
+  }
 </style>
 </head>
 <body>
@@ -158,10 +163,10 @@
   <span class="msg" id="msg">TYPE A TICKER (E.G. <span style="color:var(--yel)">DUCK</span>) AND PRESS &lt;GO&gt;</span>
 </form>
 <nav class="fkeys" aria-label="Function keys">
-  <button class="fk" data-cls="ALL" aria-pressed="true"><b>F1</b>ALL</button>
+  <button class="fk" data-cls="ALL" aria-pressed="true">ALL</button>
   <button class="fk" data-cls="EQTY" aria-pressed="false"><b>F8</b>EQUITY</button>
   <button class="fk" data-cls="CMDTY" aria-pressed="false"><b>F9</b>CMDTY</button>
-  <button class="fk" data-cls="REIT" aria-pressed="false"><b>F10</b>REIT</button>
+  <button class="fk" data-cls="REIT" aria-pressed="false">REIT</button>
   <button class="fk red" id="pause" aria-pressed="false"><b>ESC</b>PAUSE FEED</button>
 </nav>
 
@@ -351,9 +356,13 @@
     const qc = $('qChg'); if (qc) { qc.textContent = `${ch >= 0 ? '+' : ''}${fmt(ch)} ${pc >= 0 ? '+' : ''}${pc.toFixed(2)}%`; qc.className = pc >= 0 ? 'up' : 'dn'; }
     set('qO', fmt(s.open)); set('qH', fmt(Math.max(...b.map(x => x.h)))); set('qL', fmt(Math.min(...b.map(x => x.l)))); set('qV', fmtV(s.vol));
   }
+  function nbbo(s) {
+    const t = s.book.tick, bid = Math.floor((s.px - s.spread / 2) / t) * t;
+    return { t, bid, ask: bid + Math.max(t, Math.round(s.spread / t) * t) };
+  }
   function paintBook() {
     const s = SECS[selIdx], lad = $('lad'); if (!lad) return;
-    const t = s.book.tick, bid = Math.floor((s.px - s.spread / 2) / t) * t, ask = bid + Math.max(t, Math.round(s.spread / t) * t);
+    const { t, bid, ask } = nbbo(s);
     const mx = Math.max(...s.book.lv.map(l => Math.max(l.a, l.b)));
     let h = '';
     for (let i = s.book.lv.length - 1; i >= 0; i--) { const l = s.book.lv[i]; h += `<tr><td></td><td></td><td><span class="dn">${fmt(ask + i * t, dp(s.px))}</span></td><td><div class="bar-a" style="width:${(l.a / mx * 100).toFixed(0)}%"></div><span>${l.a.toLocaleString()}</span></td></tr>`; }
@@ -364,7 +373,8 @@
   const CONDS = ['', '', '', '', 'ISO', 'ODD', 'BLK', 'DRK'];
   function addTrade(s, quiet) {
     const ts = $('ts'); if (!ts) return;
-    const up = rnd() > .5, px = s.px * (1 + (rnd() - .5) * .0004);
+    // prints hit the inside quote: buyer-initiated at the ask (green), seller-initiated at the bid (red)
+    const up = rnd() > .5, q = nbbo(s), px = up ? q.ask : q.bid;
     const sz = rnd() < .08 ? Math.round(5000 + rnd() * 40000) : Math.round((1 + rnd() * 30)) * 100;
     const tr = document.createElement('tr');
     if (!quiet) tr.className = 'new' + (up ? '' : ' s');
@@ -511,10 +521,11 @@
   /* ---------------- ticker tape ---------------- */
   function paintRun() {
     const run = $('run'); if (!run) return;
-    run.innerHTML = IDX.concat(SECS).map(x => {
+    const html = IDX.concat(SECS).map(x => {
       const c = x.pct ? (x.px - x.prev) * 100 : pct(x);
       return `<span><b>${x.s}</b>${fmt(x.px)} <i class="${c >= 0 ? 'up' : 'dn'}" style="font-style:normal">${c >= 0 ? '▲' : '▼'}${Math.abs(c).toFixed(2)}${x.pct ? 'bp' : '%'}</i></span>`;
     }).join('');
+    run.innerHTML = reduce ? html : html + html;
   }
 
   /* ---------------- feed ---------------- */

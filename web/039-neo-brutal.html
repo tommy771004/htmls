@@ -63,6 +63,9 @@ h1 span{display:inline-block;background:var(--pink);border:4px solid var(--ink);
 .tag{border:2px solid var(--ink);padding:2px 7px;font-weight:700}
 .who{width:28px;height:28px;border:2px solid var(--ink);border-radius:50%;display:grid;place-items:center;font:900 12px var(--h);background:var(--yel)}
 .due{margin-left:auto}
+.due.hot{background:#ff3b30;color:#fff;border:2px solid var(--ink);padding:1px 6px}
+.no{font:700 11px/1 "Courier New",monospace;letter-spacing:.02em;opacity:.75}
+.col[data-c="done"] .due.hot{visibility:hidden}
 .x,.mv{position:absolute;top:-3px;right:-3px;width:40px;height:40px;border:3px solid var(--ink);background:var(--white);font:900 18px/1 var(--h);cursor:pointer;display:none;padding:0}
 .card:hover .x,.card:focus-within .x{display:block}
 .x:hover{background:#ff3b30;color:#fff}
@@ -94,6 +97,11 @@ h1 span{display:inline-block;background:var(--pink);border:4px solid var(--ink);
   .list{min-height:70px}
   .x{display:block}
   .card{padding-right:44px}
+}
+@media (prefers-reduced-motion:reduce){
+  .slam,.banner.on,.col.over .count{animation:none}
+  .card:hover{transform:none;box-shadow:5px 5px 0 var(--ink)}
+  .ghost{transform:none}
 }
 </style>
 </head>
@@ -167,11 +175,12 @@ h1 span{display:inline-block;background:var(--pink);border:4px solid var(--ink);
   function makeCard(x){
     var li = document.createElement("li");
     li.className = "card"; li.tabIndex = 0; li.dataset.id = x.id;
-    li.innerHTML = '<span class="grip" aria-hidden="true"></span><p class="t"></p><div class="meta"><span class="tag"></span><span class="who"></span><span class="due"></span></div><span class="stamp">搞定！</span><button class="x" type="button" aria-label="刪除卡片">×</button>';
+    li.innerHTML = '<span class="grip" aria-hidden="true"></span><p class="t"></p><div class="meta"><span class="no"></span><span class="tag"></span><span class="who"></span><span class="due"></span></div><span class="stamp">搞定！</span><button class="x" type="button" aria-label="刪除卡片">×</button>';
     li.querySelector(".t").textContent = x.t;
     var tag = li.querySelector(".tag"); tag.textContent = "#" + x.g; tag.style.background = TAGC[x.g] || "#fff";
     var who = li.querySelector(".who"); who.textContent = x.w; who.style.background = WHOC[x.w] || "#fff";
-    li.querySelector(".due").textContent = "期限 " + x.d;
+    var due = li.querySelector(".due"); due.textContent = "期限 " + x.d; due.classList.toggle("hot", x.d === "今天");
+    li.querySelector(".no").textContent = "DL-" + ((parseInt(x.id.slice(1), 10) || 0) + 1); /* issue key, like any real tracker */
     li.setAttribute("aria-label", x.t + "，" + x.g + "，負責：" + x.w);
     li.querySelector(".x").addEventListener("click", function(e){ e.stopPropagation(); removeCard(li); });
     li.addEventListener("pointerdown", startDrag);
@@ -194,7 +203,7 @@ h1 span{display:inline-block;background:var(--pink);border:4px solid var(--ink);
     });
     data = next;
     var n = {todo:0, doing:0, done:0}; data.forEach(function(x){ n[x.c]++; });
-    COLS.forEach(function(c){ var col = lists[c].parentNode; var ct = col.querySelector(".count"); if(ct) ct.textContent = n[c]; });
+    COLS.forEach(function(c){ var col = lists[c].parentNode; var ct = col.querySelector(".count"); if(ct) ct.textContent = c === "doing" ? n[c] + " / " + WIP : n[c]; });
     var doing = lists.doing.parentNode, over = n.doing > WIP;
     doing.classList.toggle("over", over);
     var wip = $("#wip"); if(wip) wip.textContent = over ? "超過上限！" + n.doing + " / " + WIP + "，先完成一張再說。" : "上限 3 張。人只有一顆腦。";

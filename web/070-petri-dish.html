@@ -215,6 +215,7 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
     census(pop);
   }
   function census(pop){
+    dirty = true;
     if (pop === undefined){ pop = 0; for (var k=0;k<N*N;k++) pop += cur[k]; }
     var set = function(id, v){ var e = $(id); if (e) e.textContent = v; };
     set('pop', pop.toLocaleString('en')); set('born', born); set('died', died); set('genlbl', gen.toLocaleString('en'));
@@ -297,7 +298,10 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
   }
 
   /* ---------- view / zoom ---------- */
-  var ZOOMS = [{n:'4× / 0.10', vis:164, um:200}, {n:'10× / 0.25', vis:100, um:50}, {n:'40× / 0.65', vis:52, um:10}];
+  // one lattice cell ≈ 4 µm; the scale bar is drawn at that true size for each objective
+  var UM_PER_CELL = 4;
+  var ZOOMS = [{n:'4× / 0.10', vis:164, um:100}, {n:'10× / 0.25', vis:100, um:50}, {n:'40× / 0.65', vis:52, um:20}];
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches, dirty = true;
   var zi = 1, vis = ZOOMS[1].vis, visTarget = vis, size = 600, dpr = 1;
   function fit(){
     var r = field.getBoundingClientRect(); dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -309,13 +313,16 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
     var l = $('objlbl'); if (l) l.textContent = ZOOMS[i].n;
     var bs = document.querySelectorAll('.objbtn'); for (var k=0;k<bs.length;k++) bs[k].setAttribute('aria-pressed', +bs[k].getAttribute('data-z') === i ? 'true' : 'false');
     var sl = $('slbl'); if (sl) sl.textContent = ZOOMS[i].um + ' µm';
-    focus = 38 * (Math.random() < .5 ? -1 : 1); applyFocus(); settleFocus();
+    focus = reduce ? 0 : 38 * (Math.random() < .5 ? -1 : 1); applyFocus(); settleFocus();
+    if (reduce) vis = visTarget;
+    dirty = true;
   }
 
   /* ---------- render ---------- */
   var tPhase = 1;
-  function render(){
-    vis += (visTarget - vis) * .12;
+  function render(dt){
+    vis += (visTarget - vis) * (1 - Math.pow(.88, (dt || 16.7) / 16.7));
+    if (Math.abs(visTarget - vis) < .01) vis = visTarget;
     var cell = size / vis, ox = size/2 - C*cell, oy = size/2 - C*cell;
     ctx.drawImage(bg, 0, 0);
     // outside-dish shading
@@ -338,7 +345,7 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
       ctx.drawImage(img, cxp - s/2, cyp - s/2, s, s);
     }
     ctx.globalAlpha = 1;
-    var sb = $('sbar'); if (sb){ var px = (ZOOMS[zi].um / (ZOOMS[zi].um * 1.0)) * 0; sb.style.width = Math.round((size/dpr) * .12) + 'px'; }
+    var sb = $('sbar'); if (sb){ sb.style.width = Math.round(ZOOMS[zi].um / UM_PER_CELL * (size/dpr) / vis) + 'px'; }
   }
 
   /* ---------- growth chart ---------- */
@@ -389,7 +396,7 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
     for (var dy=-rad; dy<=rad; dy++) for (var dx=-rad; dx<=rad; dx++){
       var x = c[0] + dx, y = c[1] + dy; if (x < 1 || y < 1 || x >= N-1 || y >= N-1) continue;
       var i = y*N + x; if (!inDish[i]) continue;
-      if (rad === 0 || Math.random() < .6){ cur[i] = 1; prev[i] = 1; }
+      if (rad === 0 || Math.random() < .6){ cur[i] = 1; prev[i] = 1; dirty = true; }
     }
   }
   field.addEventListener('pointerdown', function(e){ drawing = true; lastCell = cellAt(e); seedAt(lastCell); try{ field.setPointerCapture(e.pointerId); }catch(err){} drip(); });
@@ -453,19 +460,22 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
     if (!active) return;
     var dt = Math.min(100, now - last); last = now;
     if (running){ acc += dt; if (acc >= period){ acc = 0; stepLife(); tPhase = 0; } }
-    tPhase = Math.min(1, tPhase + dt / Math.max(120, Math.min(period * .8, 500)));
-    render();
+    tPhase = reduce ? 1 : Math.min(1, tPhase + dt / Math.max(120, Math.min(period * .8, 500)));
+    // only repaint while something is changing (cells fading, zoom settling, new cells)
+    if (dirty || tPhase < 1 || vis !== visTarget){ dirty = tPhase < 1; render(dt); }
     requestAnimationFrame(loop);
   }
   document.addEventListener('visibilitychange', function(){ if (document.hidden) active = false; else if (!active){ active = true; last = performance.now(); requestAnimationFrame(loop); } });
   var rt = null;
-  window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ fit(); drawChart(); }, 120); });
+  window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ fit(); dirty = true; drawChart(); }, 120); });
 
   fit();
   inoculate(SEEDS[0]);
   for (var w=0; w<12; w++) stepLife();
   prev.set(cur);
-  focus = 60; applyFocus(); settleFocus();
+  focus = reduce ? 0 : 60; applyFocus(); settleFocus();
+  // reduced motion: the culture waits on the slide until you press Incubate or Step
+  if (reduce) setRun(false);
   requestAnimationFrame(loop);
 })();
 </script>

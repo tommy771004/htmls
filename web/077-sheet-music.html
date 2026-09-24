@@ -392,7 +392,7 @@
 
   /* ---------------- tempo ---------------- */
   const bpmEl = document.getElementById('bpm');
-  const TERMS = [[60, 'Largo'], [72, 'Adagio'], [84, 'Andantino'], [108, 'Andante'], [120, 'Moderato'], [156, 'Allegro'], [999, 'Presto']];
+  const TERMS = [[60, 'Largo'], [72, 'Adagio'], [96, 'Andante'], [108, 'Andantino'], [120, 'Moderato'], [156, 'Allegro'], [999, 'Presto']];
   const qIcon = '<svg viewBox="0 0 10 18" aria-hidden="true"><ellipse cx="4" cy="14.5" rx="3.6" ry="2.6" transform="rotate(-22 4 14.5)" fill="currentColor"/><path d="M7.3 14 V1" stroke="currentColor" stroke-width="1.1"/></svg>';
   function paintTempo() {
     const b = bpmEl ? +bpmEl.value : 92;

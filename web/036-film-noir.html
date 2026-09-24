@@ -31,7 +31,12 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
 @keyframes flick{0%,93%,100%{opacity:0}94%{opacity:.05}95%{opacity:0}97%{opacity:.035}}
 .fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .45s}
 .fade.on{opacity:1}
-.slate{position:absolute;left:3%;top:5%;font-size:clamp(9px,1vw,12px);letter-spacing:.3em;color:rgba(236,232,222,.7);text-shadow:0 1px 2px #000}
+/* changeover cue: the "cigarette burn" a projectionist watches for in the top-right corner */
+.cue{position:absolute;right:6%;top:9%;width:clamp(12px,2.2vw,26px);aspect-ratio:1;border-radius:50%;pointer-events:none;opacity:0;
+  background:radial-gradient(circle,rgba(250,248,240,.95) 0 48%,rgba(250,248,240,.35) 62%,transparent 72%)}
+.cue.on{animation:cue .25s steps(1) 2}
+@keyframes cue{0%{opacity:.9}50%{opacity:0}}
+.slate{position:absolute;left:3%;top:5%;font-size:clamp(10px,1vw,12px);letter-spacing:.3em;color:rgba(236,232,222,.7);text-shadow:0 1px 2px #000}
 .narr{position:absolute;left:0;right:0;bottom:0;padding:2.4% 8% 2.8%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.82) 30%);font-size:clamp(14px,1.35vw,18px);line-height:1.6;color:var(--paper);min-height:30%;text-shadow:0 1px 2px #000}
 .narr .cursor{display:inline-block;width:.55em;height:1.05em;background:var(--paper);vertical-align:-.15em;margin-left:2px;animation:cur .9s steps(1) infinite}
 @keyframes cur{50%{opacity:0}}
@@ -81,7 +86,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
   .nb{justify-self:start}
   .blinds{background:repeating-linear-gradient(180deg,rgba(236,232,220,.2) 0 9px,rgba(0,0,0,0) 9px 18px)}
 }
-@media (prefers-reduced-motion:reduce){ .blinds,.flicker{animation:none} }
+@media (prefers-reduced-motion:reduce){ .blinds,.flicker,.nb.ping,.cue.on{animation:none} .choice{animation:none;opacity:1;transform:none} .stamp,.fade{transition:none} }
 </style>
 </head>
 <body>
@@ -97,6 +102,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
   <div class="stamp" id="stamp">CASE CLOSED</div>
   <div class="narr" id="narrIn"></div>
   <div class="fade" id="fade"></div>
+  <div class="cue" id="cue" aria-hidden="true"></div>
 </div>
 <div class="narrwrap" id="narrOut"></div>
 <div class="deck">
@@ -226,6 +232,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
     if(moving) return; moving = true;
     skip();
     if(fade) fade.classList.add("on");
+    var cue = $("#cue"); if(cue && !reduce){ cue.classList.remove("on"); void cue.offsetWidth; cue.classList.add("on"); }
     setTimeout(function(){ render(id, text); moving = false; if(fade) fade.classList.remove("on"); }, reduce ? 0 : 420);
   }
   function hubText(){
@@ -326,6 +333,11 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
     drops = []; for(var i=0;i<90;i++) drops.push({x:Math.random(), y:Math.random(), v:.012 + Math.random()*.02, l:.03 + Math.random()*.05});
   }
   window.addEventListener("resize", sizeCanvases);
+  window.addEventListener("resize", function(){ /* crossing the 760px breakpoint moves the narration box */
+    var el = narrEl(), o = el === narrIn ? narrOut : narrIn;
+    if(!el || !o || !o.innerHTML) return;
+    if(typing){ clearInterval(typing); typing = null; } el.innerHTML = full; o.innerHTML = "";
+  });
   var last = 0;
   function loop(t){
     requestAnimationFrame(loop);

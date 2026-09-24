@@ -30,6 +30,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--geo);-webkit-fon
 .guide.base{border-top-color:var(--ink)}
 .guide.asc span{left:auto;right:10px}
 .inspect .meta{position:absolute;left:10px;bottom:8px;right:10px;display:flex;justify-content:space-between;font:11px var(--bahn);letter-spacing:.1em;color:var(--ink2);z-index:3}
+.inspect .ratio{position:absolute;left:10px;top:8px;font:11px var(--bahn);letter-spacing:.1em;color:var(--ink2);z-index:3}
 .inspect .cp{position:absolute;right:10px;top:8px;font:11px var(--bahn);letter-spacing:.1em;color:var(--ink2);z-index:3}
 .fam .kick{font:13px var(--bahn);letter-spacing:.3em;text-transform:uppercase;color:var(--ink2)}
 .fam h1{margin:6px 0 4px;font-family:var(--bahn);font-weight:700;font-size:clamp(46px,7vw,104px);line-height:.9;letter-spacing:-.01em}
@@ -131,6 +132,7 @@ section.s{padding:36px 0;border-bottom:1px solid var(--rule)}
       <div class="guide desc"><span>Descender</span></div>
       <div class="g" id="glyph">R</div>
       <div class="cp" id="cp">U+0052</div>
+      <div class="ratio" id="ratio" title="x-height as a proportion of cap height, measured live">x/H 0.70</div>
       <div class="meta"><span id="gname">LATIN CAPITAL LETTER R</span><span id="ginst">Bahnschrift Bold</span></div>
     </div>
     <div class="fam">
@@ -158,8 +160,8 @@ section.s{padding:36px 0;border-bottom:1px solid var(--rule)}
   <section class="s">
     <div class="sh"><span class="no">§ 2</span><h2>Waterfall</h2></div>
     <div class="water">
-      <div><h3><span>Bahnschrift SemiBold</span><span>72–11 pt</span></h3><div id="wfB"></div></div>
-      <div><h3><span>Georgia Regular</span><span>72–11 pt</span></h3><div id="wfG"></div></div>
+      <div><h3><span>Bahnschrift SemiBold</span><span>72–11 px</span></h3><div id="wfB"></div></div>
+      <div><h3><span>Georgia Regular</span><span>72–11 px</span></h3><div id="wfG"></div></div>
     </div>
   </section>
 
@@ -219,6 +221,7 @@ function placeGuides(){
   const base = gr.top - ir.top + (gr.height - (asc+desc))/2 + asc;
   const set = (cls, y) => { const g = inspect.querySelector('.guide.'+cls); if (g) g.style.top = y.toFixed(1)+'px'; };
   set('base', base); set('xh', base - x); set('cap', base - H); set('asc', base - d); set('desc', base + p);
+  const ra = $('#ratio'); if (ra && H) ra.textContent = `x/H ${(x/H).toFixed(2)} · desc ${(p/fs).toFixed(2)} em`;
 }
 function names(c){
   const code = c.codePointAt(0);
@@ -255,7 +258,7 @@ const SET = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789&
 const grid = $('#glyphs');
 if (grid) SET.forEach((c,i) => { const b = document.createElement('button'); b.textContent = c; b.setAttribute('aria-label', names(c).nm);
   const pick = () => { userTouched = true; ch = c; grid.querySelectorAll('.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); render(); };
-  b.addEventListener('click', () => { pick(); if (innerWidth < 900 && inspect) inspect.scrollIntoView({ behavior:'smooth', block:'center' }); });
+  b.addEventListener('click', () => { pick(); if (innerWidth < 900 && inspect) inspect.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'center' }); });
   b.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') pick(); });
   grid.appendChild(b); });
 function setGrid(f){ if (grid) grid.className = 'glyphs ' + f; document.querySelectorAll('.sh .tabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.f===f)); }
@@ -298,8 +301,9 @@ addEventListener('keydown', e => {
 
 /* ---------- idle demo: the weight axis breathes until touched ---------- */
 let demoI = 4, demoDir = -1;
-setInterval(() => {
-  if (userTouched || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+const demo = setInterval(() => {
+  if (userTouched) { clearInterval(demo); return; } // stop the idle demo for good once the reader takes over
+  if (document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   demoI += demoDir; if (demoI <= 0 || demoI >= 4) demoDir *= -1;
   W = INST_W[demoI][0]; if (demoI===0) { D = D===100 ? 75 : 100; } syncSliders(); render();
 }, 700);

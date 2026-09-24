@@ -24,7 +24,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:
 .plates{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid var(--k)}
 .plates button{all:unset;cursor:pointer;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:15px;border-right:2px solid var(--k);gap:1px}
 .plates button:last-child{border-right:0}
-.plates button small{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.plates button small{font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
 .plates button[aria-pressed="true"]{background:var(--k);color:var(--w)}
 .plates button:focus-visible,.row button:focus-visible{outline:3px solid var(--k);outline-offset:-6px}
 .plates button[aria-pressed="true"]:focus-visible{outline-color:var(--w)}
@@ -48,6 +48,8 @@ input[type=range]:focus-visible{outline:2px dashed var(--k);outline-offset:2px}
 .label h2{margin:4px 0 2px;font-size:22px;letter-spacing:-.03em;font-weight:700}
 .label .med{font-size:11px;margin:0 0 8px;font-style:italic}
 .label .txt{font-size:12.5px;line-height:1.45;margin:0}
+.label .aft{font-size:11px;margin:0 0 6px}
+.label .dim{font-size:10px;letter-spacing:.06em;margin:8px 0 0;padding-top:6px;border-top:1px solid var(--k);font-variant-numeric:tabular-nums}
 .hint{position:fixed;right:clamp(14px,2.4vw,32px);top:clamp(14px,2.4vw,32px);background:var(--k);color:var(--w);font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;padding:8px 10px;z-index:2}
 
 @media (max-width:760px){
@@ -93,8 +95,10 @@ input[type=range]:focus-visible{outline:2px dashed var(--k);outline-offset:2px}
 <aside class="label" aria-live="polite">
   <div class="no" id="lNo">Plate I · 2026</div>
   <h2 id="lTitle">Swell</h2>
+  <p class="aft" id="lAft">After Victor Vasarely, <i>Vega</i> series (1957–)</p>
   <p class="med" id="lMed">Canvas, 1-bit, a chessboard with ambitions</p>
   <p class="txt" id="lTxt">The squares did not move. Your eyes are just being dramatic.</p>
+  <p class="dim" id="lDim">Dimensions variable · Acc. no. 083.1</p>
 </aside>
 
 <script>
@@ -110,18 +114,24 @@ var pointer={x:0,y:0,tx:0,ty:0,set:false};
 var t=0,last=0;
 
 var PLATES=[
-  {t:'Swell',med:'Canvas, 1-bit, a chessboard with ambitions',txt:'The squares did not move. Your eyes are just being dramatic.',d:22,x:62},
-  {t:'Current',med:'Canvas, 1-bit, parallel lines under duress',txt:'Forty perfectly parallel lines walked into a sine function. Only some of them walked out.',d:34,x:55},
-  {t:'Moiré',med:'Canvas, 1-bit, two sets of rings, one grudge',txt:'Two perfectly innocent sets of circles. Overlap them and they commit a crime. Move the pointer to be an accomplice.',d:30,x:50},
-  {t:'Vortex',med:'Canvas, 1-bit, 48 wedges, no exits',txt:'Stare at the middle for ten seconds, then look at your hand. We apologise in advance.',d:24,x:60}
+  {t:'Swell',a:'After Victor Vasarely, <i>Vega</i> series (1957–)',med:'Canvas, 1-bit, a chessboard with ambitions',txt:'The squares did not move. Your eyes are just being dramatic.',d:22,x:62},
+  {t:'Current',a:'After Bridget Riley, <i>Current</i> (1964)',med:'Canvas, 1-bit, parallel lines under duress',txt:'Forty perfectly parallel lines walked into a sine function. Only some of them walked out.',d:34,x:55},
+  {t:'Moiré',a:'After the moiré studies of Gerald Oster (1960s)',med:'Canvas, 1-bit, two sets of rings, one grudge',txt:'Two perfectly innocent sets of circles. Overlap them and they commit a crime. Move the pointer to be an accomplice.',d:30,x:50},
+  {t:'Vortex',a:'After Bridget Riley, <i>Blaze</i> series (1962–64)',med:'Canvas, 1-bit, 48 wedges, no exits',txt:'Stare at the middle for ten seconds, then look at your hand. We apologise in advance.',d:24,x:60}
 ];
 
+function dimLabel(){
+  var el=document.getElementById('lDim');if(!el) return;
+  // wall-label style: dimensions of the "canvas" right now, in cm at 96 css px per inch
+  el.textContent='Dimensions variable (now '+(W/37.8).toFixed(1)+' × '+(H/37.8).toFixed(1)+' cm) · Acc. no. 083.'+(S.plate+1);
+}
 function resize(){
   DPR=Math.min(window.devicePixelRatio||1,2);
   W=window.innerWidth;H=window.innerHeight;
   cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
   ctx.setTransform(DPR,0,0,DPR,0,0);
   if(!pointer.set){pointer.x=pointer.tx=W*(W<760?.5:.58);pointer.y=pointer.ty=H*(W<760?.42:.46);}
+  dimLabel();
   draw();
 }
 
@@ -230,7 +240,8 @@ function draw(){
 }
 function frame(now){
   var dt=last?Math.min(.05,(now-last)/1000):0;last=now;
-  pointer.x+=(pointer.tx-pointer.x)*.12;pointer.y+=(pointer.ty-pointer.y)*.12;
+  var ease=1-Math.pow(.88,dt*60); // same glide at 60 Hz and 120 Hz
+  pointer.x+=(pointer.tx-pointer.x)*ease;pointer.y+=(pointer.ty-pointer.y)*ease;
   if(!S.frozen) t+=dt*(S.tempo/35);
   draw();
   requestAnimationFrame(frame);
@@ -255,6 +266,8 @@ function setPlate(p){
   if($('lTitle')) $('lTitle').textContent=P.t;
   if($('lMed')) $('lMed').textContent=P.med;
   if($('lTxt')) $('lTxt').textContent=P.txt;
+  if($('lAft')) $('lAft').innerHTML=P.a;
+  dimLabel();
 }
 Array.prototype.forEach.call(document.querySelectorAll('.plates button'),function(b){b.addEventListener('click',function(){setPlate(+b.dataset.p);});});
 function toggleFreeze(){S.frozen=!S.frozen;var b=$('freeze');if(b) b.setAttribute('aria-pressed',String(S.frozen));}

@@ -138,7 +138,7 @@ section{padding-top:calc(var(--base)*10)}
 
 footer{margin-top:calc(var(--base)*14);background:var(--blue);color:#fff;padding:calc(var(--base)*4) 0 calc(var(--base)*3)}
 footer .g{align-items:end}
-footer .fbig{grid-column:1 / span 8;font-size:clamp(56px,12vw,200px);font-weight:700;letter-spacing:-.075em;line-height:.78}
+footer .fbig{grid-column:1 / span 6;font-size:clamp(56px,12vw,200px);font-weight:700;letter-spacing:-.075em;line-height:.78}
 footer .fcol{grid-column:span 2;font-size:12px}
 footer .fcol b{display:block}
 .colophon{grid-column:1 / -1;border-top:1px solid #fff;margin-top:calc(var(--base)*3);padding-top:8px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11px}
@@ -205,7 +205,7 @@ footer .fcol b{display:block}
     <div class="logo">RASTER<i>&thinsp;26</i><br><span style="font-weight:400">Systematic Design</span></div>
     <div class="meta small">International<br>Conference on<br>Grids &amp; Systems</div>
     <div class="meta small">Kongresshaus<br>Claridenstrasse 5<br>8002 Zürich</div>
-    <div class="meta small">Local time<br><b id="clock" style="font-variant-numeric:tabular-nums">--:--:--</b><br>CET</div>
+    <div class="meta small">Local time<br><b id="clock" style="font-variant-numeric:tabular-nums">--:--:--</b><br><span id="tz">CEST</span> · UTC<span id="utc">+2</span></div>
     <div class="ctrl">
       <button class="gridbtn" id="gridbtn" aria-pressed="false" title="Toggle grid (G)"><span class="sq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span><span class="lbl">Grid <kbd>G</kbd></span></button>
     </div>
@@ -216,7 +216,7 @@ footer .fcol b{display:block}
   <div class="g hero">
     <div class="rule" style="animation-delay:.05s"></div>
     <div class="kicker"><span>International Conference</span><span>on Systematic Design</span><span class="blue">Nr. 14 — The Invisible Structure</span></div>
-    <div class="dates">14.—16.<br>October<br>2026</div>
+    <div class="dates">14.–16.<br>October<br>2026</div>
     <div class="place">Kongresshaus<br>Zürich<br>Switzerland</div>
 
     <div class="stage">
@@ -248,7 +248,7 @@ footer .fcol b{display:block}
   </section>
 
   <section class="g" id="programme">
-    <div class="sh"><div class="n">B</div><h2>Programme</h2><p class="aside small">All times CET. Doors open 30 minutes early. Coffee is served strictly on the half hour.</p></div>
+    <div class="sh"><div class="n">B</div><h2>Programme</h2><p class="aside small">All times CEST (UTC+2). Doors open 30 minutes early. Coffee is served strictly on the half hour.</p></div>
     <div class="days" role="tablist" id="days">
       <button class="day" role="tab" aria-selected="true" data-d="0"><b>14</b><span>Wed<br>Structure</span></button>
       <button class="day" role="tab" aria-selected="false" data-d="1"><b>15</b><span>Thu<br>Rhythm</span></button>
@@ -265,9 +265,9 @@ footer .fcol b{display:block}
   <section class="g" id="tickets">
     <div class="sh"><div class="n">D</div><h2>Registration</h2><p class="aside small">Prices in CHF, VAT included. Students with valid ID. Refunds granted for reasons of kerning only.</p></div>
     <div class="tix">
-      <div class="tk"><div class="price">180<sup>CHF</sup></div><h3>Student</h3><ul><li>All talks, three days</li><li>Reader, 96 pages</li><li>Lunch, standing</li></ul><button data-t="Student">Register</button></div>
-      <div class="tk hi"><div class="price blue">640<sup>CHF</sup></div><h3>Full Pass</h3><ul><li>All talks and one workshop</li><li>Reader and poster series</li><li>Dinner at the Zunfthaus</li></ul><button data-t="Full Pass">Register</button></div>
-      <div class="tk"><div class="price">290<sup>CHF</sup></div><h3>Single Day</h3><ul><li>One day of talks</li><li>Reader, 96 pages</li><li>Lunch, seated</li></ul><button data-t="Single Day">Register</button></div>
+      <div class="tk"><div class="price">180.–<sup>CHF</sup></div><h3>Student</h3><ul><li>All talks, three days</li><li>Reader, 96 pages</li><li>Lunch, standing</li></ul><button data-t="Student">Register</button></div>
+      <div class="tk hi"><div class="price blue">640.–<sup>CHF</sup></div><h3>Full Pass</h3><ul><li>All talks and one workshop</li><li>Reader and poster series</li><li>Dinner at the Zunfthaus</li></ul><button data-t="Full Pass">Register</button></div>
+      <div class="tk"><div class="price">290.–<sup>CHF</sup></div><h3>Single Day</h3><ul><li>One day of talks</li><li>Reader, 96 pages</li><li>Lunch, seated</li></ul><button data-t="Single Day">Register</button></div>
     </div>
   </section>
 </main>
@@ -278,6 +278,7 @@ footer .fcol b{display:block}
       <div class="fbig">Raster<br>26</div>
       <div class="fcol"><b>Organised by</b>Verein für<br>Systematische<br>Gestaltung</div>
       <div class="fcol"><b>Contact</b>office@raster26.ch<br>+41 44 000 26 26</div>
+      <div class="fcol"><b>Getting there</b>S-Bahn to Zürich Enge,<br>5 min on foot.<br>Venue step-free.</div>
       <div class="colophon"><span>Set in Helvetica / Arial Bold. Grid 12 × 20 px gutter × 8 px baseline.</span><span>© 2026 RASTER. Flush left, ragged right.</span></div>
     </div>
   </div>
@@ -299,7 +300,18 @@ footer .fcol b{display:block}
       var d=new Date(); clock.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(function(n){return String(n).padStart(2,'0');}).join(':');
     }
   }
-  tick(); setInterval(tick,1000);
+  /* Zürich switches CET/CEST: derive the label from the real offset (14.–16. Oct is still summer time) */
+  var tzEl=$('#tz'), utcEl=$('#utc');
+  function zone(){
+    try{
+      var p=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Zurich',timeZoneName:'longOffset'}).formatToParts(new Date());
+      var off=(p.filter(function(x){return x.type==='timeZoneName';})[0]||{}).value||'GMT+01:00';
+      var h=parseInt(off.replace('GMT',''),10)||1;
+      if(tzEl) tzEl.textContent = h===2?'CEST':'CET';
+      if(utcEl) utcEl.textContent = '+'+h;
+    }catch(e){}
+  }
+  zone(); tick(); setInterval(tick,1000);
 
   /* grid overlay */
   var overlay=$('#overlay'), cols=$('#cols'), btn=$('#gridbtn'), spec=$('#spec');

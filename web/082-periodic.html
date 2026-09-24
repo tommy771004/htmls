@@ -32,7 +32,7 @@ h1{margin:0;font-family:var(--zh);font-weight:700;font-size:clamp(28px,3.6vw,44p
 
 /* ---------- table ---------- */
 .scroller{position:relative}
-.table{display:grid;grid-template-columns:repeat(18,minmax(0,1fr));grid-template-rows:repeat(7,auto) 14px repeat(2,auto);gap:4px;position:relative}
+.table{display:grid;grid-template-columns:repeat(18,minmax(0,1fr));grid-template-rows:auto repeat(7,auto) 14px repeat(2,auto);gap:4px;position:relative}
 .cell{all:unset;box-sizing:border-box;position:relative;aspect-ratio:1/1.1;background:#fff;border-radius:6px;cursor:pointer;
   --c:var(--c-unknown);--s:1;
   background:linear-gradient(180deg,color-mix(in srgb,var(--c) var(--mix,30%),#fff),color-mix(in srgb,var(--c) calc(var(--mix,30%) - 12%),#fff));
@@ -42,7 +42,7 @@ h1{margin:0;font-family:var(--zh);font-weight:700;font-size:clamp(28px,3.6vw,44p
 .cell .z{position:absolute;left:5px;top:3px;font-family:var(--num);font-size:10px;font-weight:600;color:rgba(29,33,41,.62)}
 .cell .sym{font-family:var(--num);font-weight:700;font-size:clamp(15px,1.7vw,22px);line-height:1;margin-top:6px;letter-spacing:-.01em}
 .cell .nm{font-family:var(--zh);font-size:11px;margin-top:2px;line-height:1.1}
-.cell .ms{font-family:var(--num);font-size:8.5px;color:rgba(29,33,41,.55);margin-top:1px}
+.cell .ms{font-family:var(--num);font-size:10px;letter-spacing:-.02em;color:rgba(29,33,41,.6);margin-top:1px}
 .cell:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 .cell.big{z-index:5;box-shadow:inset 0 -3px 0 var(--c),0 10px 24px -6px rgba(20,24,35,.35)}
 .cell.sel{box-shadow:inset 0 0 0 2px var(--ink),inset 0 -4px 0 var(--c),0 12px 26px -8px rgba(20,24,35,.4);z-index:6}
@@ -51,14 +51,15 @@ h1{margin:0;font-family:var(--zh);font-weight:700;font-size:clamp(28px,3.6vw,44p
 .table.filtering .cell:not(.match){opacity:.18;filter:grayscale(1)}
 .cell.ph{cursor:default;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 20%,#fff) 0 4px,#fff 4px 8px);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 60%,#fff)}
 .cell.ph .sym{font-size:11px;font-weight:600}
-.glabel{font-family:var(--num);font-size:10px;color:var(--ink2);text-align:center;align-self:end;padding-bottom:2px;font-weight:600}
-.plabel{position:absolute;left:-22px;font-family:var(--num);font-size:10px;color:var(--ink2);font-weight:600}
+.glabel{font-family:var(--num);font-size:11px;color:var(--ink2);text-align:center;align-self:end;padding-bottom:1px;font-weight:600;line-height:1.2}
+.glabel small{display:block;font-size:10px;font-weight:500;opacity:.7}
+.plabel{position:absolute;left:-20px;top:50%;transform:translateY(-50%);font-family:var(--num);font-size:11px;color:var(--ink2);font-weight:600}
 @keyframes cellin{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:scale(var(--s))}}
 .cell.in{animation:cellin .45s cubic-bezier(.2,.8,.3,1) both;animation-delay:calc(var(--i) * 6ms)}
 
 /* ---------- detail ---------- */
 .detail{background:#fff;border:1px solid var(--line);border-radius:12px;display:grid;grid-template-columns:auto 1fr auto;gap:14px 18px;padding:14px 16px;align-items:start;box-shadow:0 8px 24px -16px rgba(20,24,35,.35)}
-.table .dslot{grid-column:3/13;grid-row:1/4;position:relative;margin:0 8px 10px}
+.table .dslot{grid-column:3/13;grid-row:2/5;position:relative;margin:0 8px 10px}
 .dslot .detail{position:absolute;inset:0;overflow:hidden;align-content:center}
 .tile{--c:var(--c-unknown);width:104px;aspect-ratio:1/1.12;border-radius:10px;padding:8px 10px;position:relative;display:flex;flex-direction:column;justify-content:flex-end;
   background:linear-gradient(160deg,color-mix(in srgb,var(--c) 55%,#fff),var(--c));color:#15181f;transition:background .3s}
@@ -71,7 +72,7 @@ h1{margin:0;font-family:var(--zh);font-weight:700;font-size:clamp(28px,3.6vw,44p
 .chip{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f0f1ec;color:var(--ink)}
 .chip.cat{background:color-mix(in srgb,var(--c) 30%,#fff);box-shadow:inset 0 0 0 1px var(--c)}
 .conf{font-family:Consolas,"Lucida Console",Menlo,monospace;font-size:13px;color:var(--ink)}
-.conf sup{font-size:9px}
+.conf sup{font-size:10px}
 .note{margin:6px 0 0;font-size:13.5px;line-height:1.55;max-width:34em;color:#3a3f4a;font-family:var(--zh)}
 .bohr{width:132px;height:132px;flex:none;align-self:center}
 .stats{display:none;flex-direction:column;gap:6px;align-self:center;border-left:1px solid var(--line);padding-left:16px}
@@ -101,7 +102,7 @@ h1{margin:0;font-family:var(--zh);font-weight:700;font-size:clamp(28px,3.6vw,44p
   .dmobile{display:grid}
   .scroller{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:10px 16px 14px 36px;scroll-padding-left:36px;
     background:linear-gradient(90deg,var(--bg),transparent 16px) left/24px 100% no-repeat local}
-  .table{width:900px}
+  .table{width:1060px}
   .hint{display:flex;align-items:center;gap:6px}
 }
 @media (max-width:520px){
@@ -283,6 +284,10 @@ function pos(z){
 }
 
 var massNum=MASS.map(function(m){return parseFloat(m.replace(/[\[\]]/g,''));});
+// most abundant isotope (mass number), used for the neutron count; others: rounded standard weight / longest-lived isotope
+var ISO=[1,4,7,9,11,12,14,16,19,20,23,24,27,28,31,32,35,40,39,40,45,48,51,52,55,56,59,58,63,64,69,74,75,80,79,84,85,88,89,90,93,98,98,102,103,106,107,114,115,120,121,130,127,132,133,138,139,140,141,142,145,152,153,158,159,164,165,166,169,174,175,180,181,184,187,192,193,195,197,202,205,208,209];
+ISO[89]=232;ISO[90]=231;ISO[91]=238;
+function neutrons(z){return (ISO[z-1]||Math.round(massNum[z-1]))-z;}
 function massColor(z){
   var t=Math.pow(massNum[z-1]/294,.75);
   var a=[255,238,186],b=[196,64,86],c=[58,32,96];
@@ -295,16 +300,20 @@ var els=[],frag=document.createDocumentFragment(),mode='cat';
 for(var z=1;z<=118;z++){
   var P=pos(z),b=document.createElement('button');
   b.type='button';b.className='cell in';b.setAttribute('role','gridcell');
-  b.style.gridColumn=P.col;b.style.gridRow=P.row;b.style.setProperty('--i',z);
+  b.style.gridColumn=P.col;b.style.gridRow=P.row+1;b.style.setProperty('--i',z);
   b.dataset.z=z;b.dataset.cat=catOf(z);b.tabIndex=z===1?0:-1;
   b.setAttribute('aria-label',ZH[z-1]+' '+SYM[z-1]+'，原子序 '+z);
   b.innerHTML='<span class="z">'+z+'</span><span class="sym">'+SYM[z-1]+'</span><span class="nm">'+ZH[z-1]+'</span><span class="ms">'+MASS[z-1]+'</span>';
   frag.appendChild(b);els[z]=b;
 }
 [['57–71','鑭系',6,'lanth'],['89–103','錒系',7,'actin']].forEach(function(p){
-  var d=document.createElement('div');d.className='cell ph';d.style.gridColumn=3;d.style.gridRow=p[2];d.style.setProperty('--c',CATS[p[3]].c);
+  var d=document.createElement('div');d.className='cell ph';d.style.gridColumn=3;d.style.gridRow=p[2]+1;d.style.setProperty('--c',CATS[p[3]].c);
   d.innerHTML='<span class="sym">'+p[0]+'</span><span class="nm">'+p[1]+'</span>';d.setAttribute('aria-hidden','true');frag.appendChild(d);
 });
+// group numbers (IUPAC 1–18, with the old CAS A/B names underneath) and period numbers
+var CAS=['IA','IIA','IIIB','IVB','VB','VIB','VIIB','VIIIB','VIIIB','VIIIB','IB','IIB','IIIA','IVA','VA','VIA','VIIA','VIIIA'];
+for(var g=1;g<=18;g++){var gl=document.createElement('div');gl.className='glabel';gl.style.gridColumn=g;gl.style.gridRow=1;gl.innerHTML=g+'<small>'+CAS[g-1]+'</small>';gl.setAttribute('aria-hidden','true');frag.appendChild(gl);}
+for(var pr=1;pr<=7;pr++){var pl=document.createElement('div');pl.className='plabel';pl.style.gridColumn='1 / span 1';pl.style.gridRow=(pr+1)+' / span 1';pl.textContent=pr;pl.setAttribute('aria-hidden','true');frag.appendChild(pl);}
 table.appendChild(frag);
 setTimeout(function(){for(var z=1;z<=118;z++) els[z].classList.remove('in');},1400);
 
@@ -382,9 +391,9 @@ function show(z){
   var sh=shells(z).join('・');
   var html='<div class="tile" style="--c:'+col+'"><span class="tz">'+z+'</span><span class="ts">'+SYM[z-1]+'</span><span class="tm">'+MASS[z-1]+'</span></div>'+
     '<div class="info"><h2>'+ZH[z-1]+'<small>'+SYM[z-1]+' · 第 '+P.period+' 週期'+(P.row<8?' · 第 '+P.col+' 族':'')+'</small></h2>'+
-    '<div class="chips"><span class="chip cat" style="--c:'+C.c+'">'+C.zh+'</span><span class="chip">'+st.zh+'</span><span class="chip nchip">中子 '+(Math.round(massNum[z-1])-z)+'</span><span class="chip">殼層 '+sh+'</span></div>'+
+    '<div class="chips"><span class="chip cat" style="--c:'+C.c+'">'+C.zh+'</span><span class="chip">'+st.zh+'</span><span class="chip nchip">中子 '+neutrons(z)+'</span><span class="chip">殼層 '+sh+'</span></div>'+
     '<div class="conf">'+confStr(z)+'</div><p class="note">'+note+'</p></div>'+
-    '<div class="stats"><div><b>'+z+'</b>質子</div><div><b>'+(Math.round(massNum[z-1])-z)+'</b>中子（最常見）</div><div><b>'+z+'</b>電子</div></div>'+bohr(z);
+    '<div class="stats"><div><b>'+z+'</b>質子</div><div><b>'+neutrons(z)+'</b>中子（最常見）</div><div><b>'+z+'</b>電子</div></div>'+bohr(z);
   if(dD) dD.innerHTML=html;
   if(dM) dM.innerHTML=html;
 }

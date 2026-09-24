@@ -75,7 +75,7 @@ body.yellow .cond i{background:#ffcc33;box-shadow:0 0 12px #ffcc33}
 /* ---------- nav ---------- */
 .nav{display:flex;flex-direction:column;gap:var(--gap)}
 .nav button{background:var(--c);min-height:clamp(46px,6.5vh,64px);display:flex;align-items:flex-end;justify-content:flex-end;padding:0 10px 5px;font-size:clamp(12px,1.35vw,17px);font-weight:bold;text-align:right;line-height:1.05}
-.nav button small{display:block;font-size:.72em;opacity:.75}
+.nav button small{display:block;font-size:max(10px,.72em);opacity:.75}
 .nav button[aria-current="true"]{background:#fff !important;color:#000}
 .nav button:hover{filter:brightness(1.2)}
 
@@ -152,7 +152,7 @@ body.yellow .cond i{background:#ffcc33;box-shadow:0 0 12px #ffcc33}
 body.red .alertban{display:flex}
 .alertban div{background:#000;border:4px solid #ff3333;border-radius:40px;padding:8px 30px;font-size:clamp(28px,5vw,60px);color:#ff3333;animation:blink .6s steps(2) infinite;letter-spacing:.12em}
 .foot{font-size:12px;color:var(--c6)}
-@media (prefers-reduced-motion:reduce){.core i{animation:none;background:#3a5aa8}.boot .blk,.boot .elbow .bar i,.boot .elbow .cn{animation:none}}
+@media (prefers-reduced-motion:reduce){.core i{animation:none;background:#3a5aa8}.tile.warn .vl,.tile.warn .nt,body.red .cond i,.alertban div{animation:none}.log li.new,.contacts li.new{animation:none}.boot .blk,.boot .elbow .bar i,.boot .elbow .cn{animation:none}}
 </style>
 </head>
 <body class="boot">
@@ -496,31 +496,33 @@ body.red .alertban{display:flex}
     ['ASTEROID FIELD','5.0 AU','SPARSE. UNLIKE THE MOVIES'],['NAV BEACON','0.4 AU','SELLING EXTENDED WARRANTIES'],['ROGUE MOON','6.1 AU','NO FIXED ADDRESS'],['DUST CLOUD','2.2 AU','SHAPED LIKE A DUCK']
   ];
   var scope = $('scope'), sctx = scope && scope.getContext ? scope.getContext('2d') : null, contactsEl = $('contacts');
-  var blips = [], sweepX = -1, sweeping = false, raf = null, sw = 0, sh = 0, dpr = 1;
+  var blips = [], sweepX = -1, sweeping = false, raf = null, sw = 0, sh = 0, dpr = 1, lastT = 0;
   function sizeScope(){ if(!scope) return; dpr = Math.min(window.devicePixelRatio || 1, 2); sw = scope.clientWidth; sh = scope.clientHeight; scope.width = Math.round(sw * dpr); scope.height = Math.round(sh * dpr); }
   function newContacts(){
     var pick = POOL.slice().sort(function(){ return Math.random() - .5; }).slice(0, 5);
     blips = pick.map(function(p, i){ return { x:.08 + Math.random() * .86, y:.18 + Math.random() * .64, p:p, id:'C-' + String(i + 1 + Math.floor(Math.random() * 40)).padStart(2, '0'), seen:false }; });
     if(contactsEl) contactsEl.innerHTML = '';
   }
-  function drawScope(){
+  function drawScope(now){
     if(!sctx) return;
+    // time-based: one sweep ≈ 2.5 s on any refresh rate; clamp dt after tab switches
+    var dt = lastT ? Math.min(50, now - lastT) : 16.7; lastT = now;
     sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    sctx.fillStyle = 'rgba(5,5,10,.35)'; sctx.fillRect(0, 0, sw, sh);
+    sctx.fillStyle = 'rgba(5,5,10,' + (1 - Math.pow(.65, dt / 16.7)).toFixed(3) + ')'; sctx.fillRect(0, 0, sw, sh);
     sctx.strokeStyle = 'rgba(153,153,255,.18)'; sctx.lineWidth = 1;
     for(var i = 1; i < 10; i++){ sctx.beginPath(); sctx.moveTo(sw * i / 10, 0); sctx.lineTo(sw * i / 10, sh); sctx.stroke(); }
     for(i = 1; i < 4; i++){ sctx.beginPath(); sctx.moveTo(0, sh * i / 4); sctx.lineTo(sw, sh * i / 4); sctx.stroke(); }
     var cs = getComputedStyle(document.body);
     var c1 = cs.getPropertyValue('--c1').trim() || '#ff9900', c3 = cs.getPropertyValue('--c3').trim() || '#ffcc99';
     if(sweeping){
-      sweepX += sw / 150;
+      sweepX += sw / 150 * (dt / 16.7);
       var g = sctx.createLinearGradient(sweepX - 60, 0, sweepX, 0); g.addColorStop(0, 'rgba(255,153,0,0)'); g.addColorStop(1, 'rgba(255,153,0,.35)');
       sctx.fillStyle = g; sctx.fillRect(sweepX - 60, 0, 60, sh);
       sctx.fillStyle = c1; sctx.fillRect(sweepX, 0, 2, sh);
       blips.forEach(function(b){ if(!b.seen && b.x * sw <= sweepX){ b.seen = true; reveal(b); } });
       if(sweepX > sw + 4){ sweeping = false; var st = $('scanState'); if(st) st.textContent = 'SWEEP COMPLETE · ' + blips.length + ' CONTACTS'; }
     }
-    var tt = performance.now() / 400;
+    var tt = reduce ? 0 : now / 400;
     blips.forEach(function(b){
       if(!b.seen) return;
       var x = b.x * sw, y = b.y * sh, r = 4 + Math.sin(tt + b.x * 9) * 1.5;
@@ -540,7 +542,7 @@ body.red .alertban{display:flex}
   }
   function startSweep(){ newContacts(); sweepX = 0; sweeping = true; var st = $('scanState'); if(st) st.textContent = 'SWEEP IN PROGRESS'; }
   function startScope(){ sizeScope(); if(!raf && sctx) raf = requestAnimationFrame(drawScope); if(!blips.length) startSweep(); }
-  function stopScope(){ if(raf){ cancelAnimationFrame(raf); raf = null; } }
+  function stopScope(){ if(raf){ cancelAnimationFrame(raf); raf = null; } lastT = 0; }
   var scanBtn = $('scanBtn'); scanBtn && scanBtn.addEventListener('click', function(){ audio(); beep('up'); startSweep(); });
   window.addEventListener('resize', function(){ if(current === 'sensor') sizeScope(); });
   document.addEventListener('visibilitychange', function(){ if(document.hidden) stopScope(); else if(current === 'sensor') startScope(); });

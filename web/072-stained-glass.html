@@ -145,8 +145,7 @@
     .bench{order:2;justify-self:center;max-width:420px}
     .folio{order:3;justify-self:center;max-width:520px}
     .window{height:min(64vh,620px)}
-    .floorwrap{height:26vh}
-    canvas.floor{opacity:.22}
+    .floorwrap{display:none} /* on the stacked layout the "floor" is where the bench sits; the pool of light would wash over the controls */
   }
   @media (prefers-reduced-motion:reduce){
     .beams i,.mote{animation:none}
@@ -521,8 +520,9 @@
   }
   function setText(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
 
-  let prevSnap = null, fadeT = 1;
+  let prevSnap = null, fadeT = 1, lastNow = 0;
   function frame(now) {
+    const dtms = Math.min(100, lastNow ? now - lastNow : 16.7); lastNow = now;
     if (!glassC || !leadC) return;
     const t = now / 1000;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -541,8 +541,8 @@
     gr.addColorStop(.35, `rgba(${r},${g},${b},${light.k * .35})`);
     gr.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
-    // a slow travelling glint, like cloud clearing the sun
-    const gx = ((t * .05) % 1.6 - .3) * W * 1.4;
+    // a slow travelling glint, like cloud clearing the sun (held still under reduced motion)
+    const gx = reduce ? .5 * W : ((t * .05) % 1.6 - .3) * W * 1.4;
     gr = ctx.createLinearGradient(gx - W * .3, 0, gx + W * .3, H * .4);
     gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.07)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
@@ -560,7 +560,7 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(leadC, 0, 0);
     if (prevSnap && fadeT < 1) {
-      fadeT = Math.min(1, fadeT + .045);
+      fadeT = Math.min(1, fadeT + dtms / 370);   // ~0.37 s cross-fade, independent of refresh rate
       ctx.globalAlpha = 1 - fadeT; ctx.drawImage(prevSnap, 0, 0); ctx.globalAlpha = 1;
     }
   }
@@ -699,7 +699,7 @@
   const loop = now => { frame(now); if (running) raf = requestAnimationFrame(loop); };
   document.addEventListener('visibilitychange', () => {
     running = !document.hidden;
-    cancelAnimationFrame(raf);
+    cancelAnimationFrame(raf); lastNow = 0;
     if (running) raf = requestAnimationFrame(loop);
   });
   let rT = 0;

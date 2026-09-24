@@ -68,7 +68,7 @@ td.n{width:36px;text-align:center;font-family:var(--nar);font-weight:700}
 .tblock{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:2px solid var(--ln);font-size:11px}
 .tblock > div{border-right:1px solid var(--ln2);border-bottom:1px solid var(--ln2);padding:5px 8px;min-height:44px}
 .tblock > div:nth-child(3n){border-right:0}
-.tblock span{display:block;font:700 9.5px var(--nar);letter-spacing:.16em;color:var(--ln2)}
+.tblock span{display:block;font:700 10px var(--nar);letter-spacing:.16em;color:var(--ln2)}
 .tblock .big{grid-column:1/-1;font:700 17px/1.15 var(--nar);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:14px}
 .tblock .big svg{width:62px;height:30px;flex:0 0 auto}
 .tblock .dn{font:700 15px var(--nar);letter-spacing:.08em}
@@ -100,9 +100,11 @@ td.n{width:36px;text-align:center;font-family:var(--nar);font-weight:700}
   body{padding:10px}
   .sheet{padding:26px 22px}
   .grid{grid-template-columns:minmax(0,1fr);min-height:0}
-  .draw{border-right:0;border-bottom:1px solid var(--ln2);padding-top:84px}
+  .draw{border-right:0;border-bottom:1px solid var(--ln2)}
   #dwg{max-height:none}
-  .ctl{top:auto;bottom:auto;right:auto;left:18px;top:52px}
+  .draw{padding-top:14px}
+  .draw h1{position:static;margin:0 8px 10px}
+  .ctl{position:static;margin:0 8px 6px}
   .notes{position:static;margin-top:6px;max-width:none}
   .zones.lft,.zones.rgt{display:none}
 }
@@ -194,14 +196,14 @@ const P = {
   barrel:[228,262], center:[332,300], third:[414,284], fourth:[446,338], escape:[426,392], pallet:[386,438], balance:[312,478], crown:[505,262]
 };
 const PARTS = [
-  { id:'plate',   n:1,  name:'Mainplate',          qty:1,  mat:'Brass, rhodium plated', dims:'Ø 30.00 × 1.80', rate:'—', note:'Everything else is its problem.' },
-  { id:'barrel',  n:2,  name:'Barrel & mainspring', qty:1, mat:'Brass / Co-Ni alloy', dims:'Ø 9.50 · 90 T', rate:'1 rev / 8 h', note:'Stores Monday’s winding for Wednesday. Power reserve 42 h.' },
-  { id:'center',  n:3,  name:'Center wheel',       qty:1,  mat:'CuBe, gilt', dims:'Ø 7.00 · 70 T · pinion 10 L', rate:'1 rev / h', note:'Carries the minute hand and most of the responsibility.' },
+  { id:'plate',   n:1,  name:'Mainplate',          qty:1,  mat:'Brass, rhodium plated', dims:'Ø 25.60 × 1.80 (11½‴)', rate:'—', note:'Everything else is its problem.' },
+  { id:'barrel',  n:2,  name:'Barrel & mainspring', qty:1, mat:'Brass / Co-Ni alloy', dims:'Ø 9.50 · 90 T', rate:'1 rev / 9 h', note:'Stores Monday’s winding for Wednesday. Power reserve 42 h.' },
+  { id:'center',  n:3,  name:'Center wheel',       qty:1,  mat:'CuBe, gilt', dims:'Ø 7.00 · 64 T · pinion 10 L', rate:'1 rev / h', note:'Carries the minute hand and most of the responsibility.' },
   { id:'third',   n:4,  name:'Third wheel',        qty:1,  mat:'CuBe, gilt', dims:'Ø 5.20 · 60 T · pinion 8 L', rate:'1 rev / 7.5 min', note:'Middle management of the gear train. Nobody knows what it does, yet it is essential.' },
   { id:'fourth',  n:5,  name:'Fourth wheel',       qty:1,  mat:'CuBe, gilt', dims:'Ø 4.80 · 80 T · pinion 8 L', rate:'1 rev / min', note:'Drives the seconds hand. Knows exactly how long that meeting was.' },
   { id:'escape',  n:6,  name:'Escape wheel',       qty:1,  mat:'Steel, polished', dims:'Ø 3.00 · 15 club teeth', rate:'1 rev / 6 s', note:'Releases energy one polite tooth at a time.' },
   { id:'pallet',  n:7,  name:'Pallet fork',        qty:1,  mat:'Steel + 2 ruby pallets', dims:'L 4.60', rate:'18,000 beats / h', note:'Says no, then yes, eighteen thousand times an hour.' },
-  { id:'balance', n:8,  name:'Balance & hairspring', qty:1, mat:'CuBe rim / Ni-Fe spring', dims:'Ø 10.20 · 280° ampl.', rate:'2.5 Hz', note:'The heartbeat. Do not touch it with your thumb. We can tell.' },
+  { id:'balance', n:8,  name:'Balance & hairspring', qty:1, mat:'CuBe rim / Ni-Fe spring', dims:'Ø 6.80 · 280° ampl.', rate:'2.5 Hz', note:'The heartbeat. Do not touch it with your thumb. We can tell.' },
   { id:'crown',   n:9,  name:'Crown & winding wheel', qty:1, mat:'Steel, knurled', dims:'Ø 2.20 · 22 T', rate:'on demand', note:'The only part you are allowed to touch.' },
   { id:'screws',  n:10, name:'Plate screws',       qty:4,  mat:'Steel, flame-blued', dims:'M 0.8 × 1.2', rate:'—', note:'Flame-blued at 290 °C. Mostly for vanity; also for holding things.' },
   { id:'jewels',  n:11, name:'Jewels',             qty:17, mat:'Synthetic ruby', dims:'Ø 0.95–1.30', rate:'—', note:'Seventeen rubies. Not an investment. Please stop asking.' }
@@ -225,15 +227,16 @@ function spinner(g, cx, cy){ const s = el('g',{},g); rot[g.dataset.id] = { el:s,
 // 2 barrel
 { const [x,y]=P.barrel; const g=part('barrel'); el('circle',{cx:x,cy:y,r:96,class:'hit'},g); const s=spinner(g,x,y);
   el('path',{d:gear(x,y,95,90,4.5),class:'l1'},s); circ(s,x,y,86,'l2');
-  el('path',{d:saw(x,y,58,28,5,false),class:'l1'},s); // ratchet wheel on top
   el('path',{d:spiral(x,y,14,50,5.5),class:'l2','stroke-dasharray':'2 3'},s);
-  circ(s,x,y,14,'l1'); el('path',{d:`M${x-9} ${y-9}h18v18h-18z`,class:'l2'},s);
+  // ratchet wheel + arbor square stay put while running (held by the click); only the drum turns
+  el('path',{d:saw(x,y,58,28,5,false),class:'l1'},g);
+  circ(g,x,y,14,'l1'); el('path',{d:`M${x-9} ${y-9}h18v18h-18z`,class:'l2'},g);
   // click spring (static)
   el('path',{d:`M${x+34} ${y-58} q 22 -10 30 8 q -8 4 -16 -2`,class:'l1'},g);
 }
 // 3 center
 { const [x,y]=P.center; const g=part('center'); el('circle',{cx:x,cy:y,r:71,class:'hit'},g); const s=spinner(g,x,y);
-  el('path',{d:gear(x,y,70,70,4),class:'l1'},s); circ(s,x,y,60,'l2'); el('path',{d:windows(x,y,16,57,4,8),class:'l1'},s);
+  el('path',{d:gear(x,y,70,64,4),class:'l1'},s); circ(s,x,y,60,'l2'); el('path',{d:windows(x,y,16,57,4,8),class:'l1'},s);
   el('path',{d:gear(x,y,13,10,3.2),class:'l1'},s); }
 // 4 third
 { const [x,y]=P.third; const g=part('third'); el('circle',{cx:x,cy:y,r:53,class:'hit'},g); const s=spinner(g,x,y);
@@ -291,15 +294,15 @@ function arrowLine(x1,y1,x2,y2,delay){
 function text(x,y,t,delay,anchor='middle',rotate=0){ const e = el('text',{x,y,class:'dimt fade-in','text-anchor':anchor,style:`animation-delay:${delay}s`,transform:rotate?`rotate(${rotate} ${x} ${y})`:''},dims); e.textContent=t; return e; }
 // overall diameter
 { const y = O[1]-R-38; [O[0]-R, O[0]+R].forEach(x => el('path',{d:`M${x} ${O[1]-4}V${y-8}`,class:'l2 draw-in',style:`--len:${R+44};animation-delay:.1s`},dims));
-  arrowLine(O[0]-R,y,O[0]+R,y,.35); text(O[0], y-7, 'Ø 30.00  (11½‴)', .9); }
+  arrowLine(O[0]-R,y,O[0]+R,y,.35); text(O[0], y-7, 'Ø 25.60  (11½‴)', .9); }
 // balance diameter, left
 { const [x,y]=P.balance; const X = x-68, X2 = x+68, Y = y+100; [X,X2].forEach(xx => el('path',{d:`M${xx} ${y+6}V${Y+8}`,class:'l2 draw-in',style:`--len:110;animation-delay:.7s`},dims));
-  arrowLine(X,Y,X2,Y,.9); text(x, Y+16, 'Ø 10.20', 1.4); }
+  arrowLine(X,Y,X2,Y,.9); text(x, Y+16, 'Ø 6.80', 1.4); }
 // centre distance barrel–center
 { const [ax,ay]=P.barrel, [bx,by]=P.center; const nx = -(by-ay), ny = (bx-ax); const nl=Math.hypot(nx,ny); const off=-120;
   const ox = nx/nl*off, oy = ny/nl*off;
   el('path',{d:`M${ax} ${ay}L${ax+ox*1.05} ${ay+oy*1.05}M${bx} ${by}L${bx+ox*1.05} ${by+oy*1.05}`,class:'l2 draw-in',style:`--len:130;animation-delay:.5s`},dims);
-  arrowLine(ax+ox,ay+oy,bx+ox,by+oy,.6); const mx=(ax+bx)/2+ox, my=(ay+by)/2+oy; const ang = Math.atan2(by-ay,bx-ax)*180/Math.PI; text(mx, my-6, '10.45', 1.2, 'middle', ang); }
+  arrowLine(ax+ox,ay+oy,bx+ox,by+oy,.6); const mx=(ax+bx)/2+ox, my=(ay+by)/2+oy; const ang = Math.atan2(by-ay,bx-ax)*180/Math.PI; text(mx, my-6, '5.53', 1.2, 'middle', ang); }
 // plate thickness note leader
 { el('path',{d:`M${O[0]-R*.62} ${O[1]+R*.78} L${O[0]-R-10} ${O[1]+R+20} H${O[0]-R-70}`,class:'dim draw-in',style:`--len:200;animation-delay:1.1s`},dims);
   text(O[0]-R-70, O[1]+R+14, 'THK 1.80', 2, 'start'); }
@@ -351,10 +354,10 @@ addEventListener('keydown', e => {
 });
 
 /* ---------- motion ---------- */
-let running = true, simT = 0, last = performance.now(), lastBeat = -1;
+let running = !matchMedia('(prefers-reduced-motion: reduce)').matches, simT = 0, last = performance.now(), lastBeat = -1;
 const runBtn = $('#run'), tickBtn = $('#tick');
 function toggleRun(){ running = !running; if (runBtn) { runBtn.textContent = running ? '❚❚ Hold' : '▶ Run'; runBtn.setAttribute('aria-pressed', running); } }
-if (runBtn) runBtn.addEventListener('click', toggleRun);
+if (runBtn) { runBtn.addEventListener('click', toggleRun); if (!running) { runBtn.textContent = '▶ Run'; runBtn.setAttribute('aria-pressed', false); } }
 let actx = null, audioOn = false;
 if (tickBtn) tickBtn.addEventListener('click', () => {
   audioOn = !audioOn; tickBtn.setAttribute('aria-pressed', audioOn);
@@ -379,10 +382,10 @@ function frame(now){
   const escDeg = (bi + (1 - Math.pow(1-hop,3))) * 12;  // 12° per beat (15 teeth)
   setR('escape', escDeg);
   setR('fourth', -escDeg/10);
-  setR('third', escDeg/80);
-  setR('center', -escDeg/480);
-  setR('barrel', escDeg/3840);
-  setR('crown', -escDeg/1200);
+  setR('third', escDeg/75);        // 1 rev / 7.5 min
+  setR('center', -escDeg/600);     // 1 rev / h
+  setR('barrel', escDeg/5400);     // 1 rev / 9 h (90 T → 10-leaf pinion)
+  // crown & winding wheel only turn when winding — they are decoupled from the going train
   const osc = Math.sin(simT * Math.PI * 2 * 2.5);
   setR('balance', osc * 140);
   setR('hair', osc * 18);

@@ -71,6 +71,7 @@ input[type=range]:focus-visible{outline:3px solid var(--blue)}
 .big:hover svg{transform:rotate(180deg)}
 .hint{font-size:12px;line-height:1.6;text-transform:lowercase;opacity:.8}
 kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 5px;font-size:11px}
+.imprint{border-top:1px solid var(--black);padding-top:8px;letter-spacing:.04em;opacity:.7}
 .note{font-size:12.5px;line-height:1.6;border-left:6px solid var(--yel);padding-left:12px;text-transform:lowercase}
 
 @media (max-width:900px){
@@ -119,6 +120,7 @@ kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 
     <button class="big" id="go">neu komponieren <svg viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="12" fill="none" stroke="currentColor" stroke-width="3"/><path d="M15 3 A12 12 0 0 1 27 15 L15 15Z" fill="currentColor"/></svg></button>
 
     <p class="hint">click the stage or press <kbd>space</kbd> to recompose · click a form to lock it · <kbd>k</kbd> kandinsky · <kbd>1</kbd>–<kbd>4</kbd> grid</p>
+    <p class="hint imprint">druck: staatliches bauhaus in weimar · werkstatt für wandmalerei · format din a4 (din 476, 1922)</p>
     <p class="note">in 1923 kandinsky handed every student a questionnaire: match the triangle, square and circle to yellow, red and blue. most agreed with him. the ones who didn't went on to design chairs.</p>
   </aside>
 </div>
@@ -206,7 +208,7 @@ kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 
     cells.forEach(function(o,i){
       var r1=rng(),r2=rng(),r3=rng(),r4=rng(),r5=rng();
       if(o.locked) return;
-      var show=r1<S.dens, type=show?TYPES[Math.floor(r2*TYPES.length)]:'dot';
+      var show=r1<S.dens; o.shown=show; var type=show?TYPES[Math.floor(r2*TYPES.length)]:'dot';
       if(S.kand&&show) type=['circle','square','tri'][Math.floor(r2*3)];
       var rot=[0,90,180,270][Math.floor(r3*4)], sc=show?(c/100)*(r4<.2?.62:1):0;
       var tileBg=r5<.45?pick(p.ink.concat([p.light,p.light])):'transparent';
@@ -222,7 +224,7 @@ kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 
     overlays.forEach(function(o,k){
       var a=rng(),b=rng(),d=rng(),e=rng();
       if(o.locked) return;
-      var t=ov[k][0], on=a<.75;
+      var t=ov[k][0], on=a<.75; o.shown=on;
       if(S.kand&&t==='bar') t='tri';
       var sc=on?ov[k][1]*(c/100)*(.7+b*.5)*(4/n):0;
       var x=80+d*440,y=80+e*440,rot=Math.floor(rng()*8)*45;
@@ -234,7 +236,7 @@ kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 
     var nr=document.getElementById('nr'); if(nr) nr.textContent=('000'+S.seed).slice(-4);
     status(); chord();
   }
-  function status(){var st=document.getElementById('stat');if(!st)return;var L=cells.concat(overlays).filter(function(o){return o.locked;}).length;st.textContent=(S.n*S.n)+' forms · '+L+' locked';}
+  function status(){var st=document.getElementById('stat');if(!st)return;var all=cells.concat(overlays),L=all.filter(function(o){return o.locked;}).length,F=all.filter(function(o){return o.shown!==false;}).length;st.textContent=F+' forms · '+L+' locked';}
 
   /* controls */
   stage.addEventListener('click',function(){compose();});

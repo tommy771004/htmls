@@ -120,7 +120,7 @@ body{
   <header class="band">
     <div class="icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#ffcf00" d="M44 30.5v-3.2L27 17V6.8C27 5 25.7 3 24 3s-3 2-3 3.8V17L4 27.3v3.2l17-4.7v9.8l-4.4 3.3V42l7.4-2 7.4 2v-3.1L27 35.6v-9.8z" transform="rotate(-45 24 24)"/></svg></div>
     <div class="title"><h1>Departures</h1><div class="langs">Départs · Abflug · 出發 · Partenze · 出発</div></div>
-    <div class="gate-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="#111" stroke-width="3" stroke-linecap="square"/></svg>Gates<br>A–Y</div>
+    <div class="gate-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="#111" stroke-width="3" stroke-linecap="square"/></svg>Gates<br>A–Z</div>
   </header>
 
   <section class="board" aria-label="Departures board">
@@ -174,7 +174,10 @@ body{
   function nextFlight(){
     var p = POOL[poolIdx++ % POOL.length];
     lastT += [5,5,10,10,15,20][Math.floor(Math.random()*6)];
-    return {t:lastT, flight:p[0], dest:p[1], gate:p[2], remark:QUIRKS[p[1]] || 'ON TIME', stage:0, id:flightNo++};
+    var fl = {t:lastT, flight:p[0], dest:p[1], gate:p[2], remark:QUIRKS[p[1]] || 'ON TIME', stage:0, id:flightNo++};
+    // 真實看板的延誤會給預計時間（EXP 19:40）；SOMEDAY 維持無限期的 DELAYED
+    if (p[1] === 'MONDAY' || p[1] === 'NEXT YEAR'){ fl.remark = 'DELAYED'; fl.exp = lastT + [25,40,55,80][Math.floor(Math.random()*4)]; }
+    return fl;
   }
   var flights = [];
   for (var i=0;i<8;i++) flights.push(nextFlight());
@@ -335,7 +338,7 @@ body{
       writeField(rc.flight, f.flight);
       writeField(rc.dest, f.dest);
       writeField(rc.gate, gate);
-      writeField(rc.remark, f.remark);
+      writeField(rc.remark, f.remark === 'DELAYED' && f.exp ? 'EXP ' + hhmm(f.exp) : f.remark);
       if (rc.lamp){
         rc.lamp.className = 'lamp' + (f.remark === 'BOARDING' || f.remark === 'LAST CALL' ? ' on' : '') + (f.remark === 'LAST CALL' ? ' blink' : '');
       }
@@ -362,7 +365,8 @@ body{
       say(f.dest + ' ' + (f.remark === 'CANCELLED' ? 'will not be happening today. Or ever. Please see any agent.' : 'has been quietly removed from the board. It was always going to be later.'));
     } else if (f.stage === 0){ f.stage = 1; f.remark = 'BOARDING'; say('Flight ' + f.flight + ' to ' + f.dest + ' is now boarding at gate ' + f.gate + '.'); }
     else if (f.stage === 1){ f.stage = 2; f.remark = 'LAST CALL'; say('Last call for ' + f.flight + ' to ' + f.dest + '. Gate ' + f.gate + ' closes in two minutes. Run, but politely.'); }
-    else if (f.stage === 2){ f.stage = 3; f.remark = 'DEPARTED'; say(f.flight + ' has departed for ' + f.dest + '. If you are reading this at the gate — sorry.'); }
+    else if (f.stage === 2){ f.stage = 3; f.remark = 'GATE CLSD'; say('Gate ' + f.gate + ' is now closed. The door will not reopen, no matter how sincerely you knock.'); }
+    else if (f.stage === 3){ f.stage = 4; f.remark = 'DEPARTED'; say(f.flight + ' has departed for ' + f.dest + '. If you are reading this at the gate — sorry.'); }
     else { flights.shift(); flights.push(nextFlight()); if (flights[0].remark === 'ON TIME') flights[0].remark = 'GATE OPEN'; }
     if (flights[1] && flights[1].remark === 'ON TIME' && Math.random() < .35){ flights[1].remark = 'GATE OPEN'; }
     render();

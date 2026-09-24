@@ -31,6 +31,7 @@ body{margin:0;color:var(--sumi);font-family:var(--ming);background:var(--washi);
 .cart2{position:absolute;top:28px;right:calc(28px + 3.4em);background:var(--shu);color:#fbeedd;padding:8px 4px;writing-mode:vertical-rl;font-size:12px;letter-spacing:.3em}
 .seal{position:absolute;left:30px;bottom:30px;width:40px;height:40px;background:var(--shu);color:#fbeedd;display:grid;grid-template-columns:1fr 1fr;place-items:center;font-size:15px;line-height:1;padding:3px;border-radius:3px;
   box-shadow:inset 0 0 0 2px var(--shu),inset 0 0 0 3px rgba(251,238,221,.7);transform:rotate(-2deg);opacity:.92}
+.kiwame{position:absolute;left:78px;bottom:33px;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--sumi);color:var(--sumi);display:grid;place-items:center;font-size:12px;line-height:1;background:rgba(239,227,200,.85);opacity:.85}
 .sign{position:absolute;left:34px;bottom:78px;writing-mode:vertical-rl;font-size:13px;letter-spacing:.2em;color:var(--sumi);background:rgba(239,227,200,.85);padding:6px 3px}
 
 .layer{animation:ink .9s cubic-bezier(.3,.7,.3,1) both}
@@ -88,6 +89,7 @@ footer p{position:relative;z-index:1;margin:0;padding-top:34px;text-align:center
   .cart2{top:18px;right:calc(18px + 3.2em)}
   .seal{left:20px;bottom:20px;width:34px;height:34px;font-size:13px}
   .sign{left:22px;bottom:62px;font-size:11px}
+  .kiwame{left:62px;bottom:24px;width:20px;height:20px;font-size:11px}
   .info{gap:8px 16px}
   .kou p{font-size:16px}
 }
@@ -107,6 +109,7 @@ footer p{position:relative;z-index:1;margin:0;padding-top:34px;text-align:center
       <div class="cart" id="cart">東風解凍</div>
       <div class="cart2" id="cart2">七十二候之內</div>
       <div class="sign" id="sign">雨宮刀・摺</div>
+      <div class="kiwame" title="極印：江戶後期出版審查通過的圓形小印" aria-hidden="true">極</div>
       <div class="seal" aria-hidden="true"><span>候</span><span>七</span><span>暦</span><span>二</span></div>
     </figure>
 

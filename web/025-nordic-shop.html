@@ -119,6 +119,7 @@ main.pdp{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:c
 .price small{font-family:var(--zh);font-size:13px;color:var(--mut)}
 .price .delta{font-size:13px;color:var(--sage-dk);font-family:var(--zh);opacity:0;transition:opacity .4s}
 .price .delta.on{opacity:1}
+.inst{font-size:12.5px;color:var(--mut);margin-top:2px}
 .lead{color:#57534b;margin:14px 0 26px;max-width:40ch;font-size:15.5px}
 .opt{border-top:1px solid var(--line);padding:18px 0}
 .opt h2{font-size:13px;font-weight:400;letter-spacing:.14em;margin:0 0 12px;color:var(--mut);display:flex;justify-content:space-between}
@@ -127,7 +128,7 @@ main.pdp{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:c
 .sw{width:44px;height:44px;border-radius:50%;border:0;padding:0;cursor:pointer;position:relative;background:var(--c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
 .sw.wd{background:repeating-linear-gradient(80deg,rgba(60,30,10,.12) 0 1px,transparent 1px 4px),linear-gradient(135deg,rgba(255,255,255,.25),transparent 60%),var(--c)}
 .sw.fb{background:radial-gradient(rgba(0,0,0,.12) 1px,transparent 1.4px) 0 0/4px 4px,var(--c)}
-.sw::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1px solid var(--ink);opacity:0;transform:scale(.85);transition:.3s}
+.sw::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1px solid var(--ink);opacity:0;transform:scale(.85);transition:opacity .3s,transform .3s}
 .sw[aria-pressed=true]::after{opacity:1;transform:scale(1)}
 .sw:hover{transform:translateY(-2px)}
 .sw .ltd{position:absolute;top:-8px;right:-14px;background:#c88e6f;color:#fff;font-size:10px;line-height:1;padding:3px 5px;border-radius:8px;letter-spacing:.05em;white-space:nowrap}
@@ -232,6 +233,7 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
     <h1>Sova<small>休憩椅</small></h1>
     <div class="rating"><svg viewBox="0 0 80 14" aria-hidden="true"><g fill="#5f6f5b"><path id="st" d="M7 0l2 4.6 5 .5-3.8 3.3 1.1 4.9L7 10.8 2.7 13.3l1.1-4.9L0 5.1l5-.5z"/><use href="#st" x="16"/><use href="#st" x="32"/><use href="#st" x="48"/></g><path d="M71 0l2 4.6 5 .5-3.8 3.3 1.1 4.9L71 10.8V0z" fill="#5f6f5b"/><path d="M71 0v10.8l-4.3 2.5 1.1-4.9L64 5.1l5-.5z" fill="#d6cfbf"/></svg>4.6 · 212 則評價，其中 3 則抱怨「坐太久起不來」</div>
     <div class="price"><span id="price">NT$ 12,800</span><span class="delta" id="delta"></span></div>
+    <div class="inst">含稅 · 信用卡 12 期 0 利率，每期 <span id="perMo">NT$ 1,067</span> 起</div>
     <p class="lead">一張讓人忘記時間的椅子。實木框架、手工縫製坐墊，坐下之後，你會開始考慮取消今晚的所有行程。</p>
 
     <div class="opt">
@@ -252,8 +254,8 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
       <svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span>木框保固十年。坐墊套可拆洗。</span>
     </div>
 
-    <details open><summary>材質與保養</summary><p>實心木材來自永續認證林地，樹齡比你的 Wi-Fi 密碼還老。每半年用植物油擦拭一次；跟它說說話也可以，我們沒有證據說沒用。</p></details>
-    <details><summary>尺寸</summary><dl><dt>寬</dt><dd>68 cm</dd><dt>深</dt><dd>74 cm</dd><dt>高</dt><dd>82 cm（座高 41 cm）</dd><dt>重量</dt><dd>9.4 kg，一隻手搬得動，但請用兩隻</dd></dl></details>
+    <details open><summary>材質與保養</summary><p>實心木材來自 FSC® 認證林地，樹齡比你的 Wi-Fi 密碼還老。每半年用植物油擦拭一次；跟它說說話也可以，我們沒有證據說沒用。</p></details>
+    <details><summary>尺寸</summary><dl><dt>寬</dt><dd>68 cm</dd><dt>深</dt><dd>74 cm</dd><dt>高</dt><dd>82 cm（座高 41 cm）</dd><dt>重量</dt><dd>9.4 kg，一隻手搬得動，但請用兩隻</dd><dt>承重</dt><dd>110 kg（EN 12520 測試）</dd><dt>商品編號</dt><dd id="sku">SOVA-LC-OAK-OAT</dd></dl></details>
     <details><summary>運送與退貨</summary><p>30 天試坐期內可免費退貨。唯一條件：請不要讓貓先坐過，因為牠不會同意退貨。</p></details>
   </section>
 </main>
@@ -345,6 +347,8 @@ function refresh(){
   const d = $('#delta'); if (d) { d.textContent = wood.add ? (wood.add>0 ? `${wood.name} +${wood.add.toLocaleString()}` : `${wood.name} −${(-wood.add).toLocaleString()}`) : ''; d.classList.toggle('on', !!wood.add); }
   set('#eta', fab.ltd ? '限量色，約 2–3 週' : wood.id==='walnut' ? '7–10 個工作天' : '3–5 個工作天');
   set('#qty', qty);
+  set('#perMo', fmt(Math.ceil(unit()*qty/12)));
+  set('#sku', `SOVA-LC-${wood.id.slice(0,3).toUpperCase()}-${fab.id.slice(0,3).toUpperCase()}`);
 }
 function setWood(w){ wood = w; refresh(); }
 function setFab(f){ fab = f; refresh(); }
@@ -390,7 +394,7 @@ on('#add','click', e => {
   btn.classList.add('done'); setTimeout(() => btn.classList.remove('done'), 1500);
   // swatch flies to the cart
   const cb = $('#cartBtn');
-  if (cb) {
+  if (cb && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const a = btn.getBoundingClientRect(), b = cb.getBoundingClientRect();
     const f = document.createElement('div'); f.className='fly';
     f.style.background = `conic-gradient(${wood.c} 0 50%, ${fab.c} 50% 100%)`;

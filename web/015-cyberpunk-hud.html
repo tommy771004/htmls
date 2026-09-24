@@ -170,7 +170,9 @@ h1{margin:0;font-weight:700;font-size:clamp(40px,6.4vw,84px);line-height:.9;lett
   .ph{font-size:17px}
 }
 @media (prefers-reduced-motion:reduce){
-  body::after,.glitch::before,.glitch::after{animation:none}
+  body::after,.glitch::before,.glitch::after,.log div:last-child::after{animation:none}
+  body::after{display:none}
+  .dm.flash,.cell.nope,.slot.full{animation:none}
 }
 </style>
 </head>

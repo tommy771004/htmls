@@ -120,8 +120,10 @@ h2{font-size:clamp(30px,4.2vw,48px);letter-spacing:-.035em;line-height:1.08;font
 .big{font-size:64px;font-weight:600;letter-spacing:-.05em;line-height:1;margin:6px 0 10px;background:linear-gradient(180deg,#fff,#8f8bb8);-webkit-background-clip:text;background-clip:text;color:transparent}
 .big small{font-size:.4em;letter-spacing:-.02em;color:var(--mut);-webkit-text-fill-color:var(--mut)}
 .bars{display:flex;align-items:flex-end;gap:4px;height:60px;margin-top:20px}
-.bars i{flex:1;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--v),rgba(79,141,255,.25));height:var(--h);animation:grow 1.2s cubic-bezier(.2,.9,.3,1) both;animation-delay:calc(var(--k) * 40ms)}
-@keyframes grow{from{height:4%}}
+.bars i{flex:1;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--v),rgba(79,141,255,.25));height:var(--h);transform-origin:50% 100%;transform:scaleY(.04)}
+/* bars grow (transform only) once the card is actually revealed, not while it is still below the fold */
+.reveal.in .bars i{animation:grow 1.2s cubic-bezier(.2,.9,.3,1) both;animation-delay:calc(300ms + var(--k) * 40ms)}
+@keyframes grow{from{transform:scaleY(.04)}to{transform:none}}
 .mini{margin-top:18px;border:1px solid var(--line);border-radius:12px;background:#09090f;font:12.5px/1.75 var(--mono);padding:10px 12px;overflow:hidden}
 .mini .del{background:rgba(255,107,129,.08);color:#ff9aab;display:block;margin:0 -12px;padding:0 12px}
 .mini .add{background:rgba(74,222,128,.08);color:#8ff0b3;display:block;margin:0 -12px;padding:0 12px}
@@ -163,6 +165,9 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   .gh{display:none}
   .hero{padding-top:56px}
   .tbody{height:300px;font-size:11px;padding:12px}
+  /* keep the aligned columns of CLI output intact: scroll sideways like a real narrow terminal instead of reflowing */
+  .tbody .ln{white-space:pre;word-break:normal}
+  .inrow input{font-size:16px} /* avoids iOS focus zoom */
   .inrow{padding:0 12px;font-size:12.5px}
   .tbar .ttl{font-size:11px;transform:none}
   .tbar i:nth-child(n+2){display:none}
@@ -173,7 +178,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){
   .beam,.radar .sweep,.radar .blip,.caret{animation:none}
   .reveal{opacity:1;transform:none;transition:none}
-  .bars i{animation:none}
+  .bars i,.reveal.in .bars i{animation:none;transform:none}
 }
 </style>
 </head>
@@ -208,7 +213,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   <div class="demo" id="demo">
     <div class="glowframe">
       <div class="term">
-        <div class="tbar"><i></i><i></i><i></i><span class="ttl">zsh — ~/acme/payments-api</span></div>
+        <div class="tbar"><i></i><i></i><i></i><span class="ttl">payments-api — -zsh — 100×24</span></div>
         <div class="tbody" id="out" aria-live="polite"></div>
         <label class="inrow"><span class="pr">❯</span><input id="cmd" placeholder="type a command, e.g. drift diff prod staging" autocomplete="off" spellcheck="false" aria-label="Terminal input"></label>
       </div>

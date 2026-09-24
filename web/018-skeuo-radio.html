@@ -56,7 +56,7 @@ body{
 .frets i{width:13%;height:100%;background:linear-gradient(90deg,#3a1d0b,#6b3c1d 30%,#7a4623 50%,#4a2610 80%,#2f1608);box-shadow:4px 0 8px rgba(0,0,0,.35)}
 .badge{position:absolute;left:50%;top:50%;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;background:var(--brassgrad);box-shadow:0 6px 14px rgba(0,0,0,.5),inset 0 0 0 4px rgba(120,85,30,.6),inset 0 0 0 7px rgba(255,235,170,.5);display:grid;place-items:center;text-align:center}
 .badge b{font-style:italic;font-weight:400;font-size:26px;color:#3b2508;text-shadow:0 1px 0 rgba(255,240,190,.6);line-height:1}
-.badge small{display:block;font-family:var(--narrow);font-size:9.5px;letter-spacing:.3em;color:#5a3f12;margin-top:4px}
+.badge small{display:block;font-family:var(--narrow);font-size:10px;letter-spacing:.24em;color:#5a3f12;margin-top:4px}
 
 /* right column */
 .ctl{display:flex;flex-direction:column;gap:16px}
@@ -78,8 +78,8 @@ body{
 .dial .scaletext{position:absolute;inset:0;pointer-events:none;color:#3a2508}
 .scaletext span{position:absolute;transform:translateX(-50%);white-space:nowrap}
 .scaletext .num{top:69%;font-family:var(--narrow);font-weight:700;font-size:clamp(11px,1.5vw,15px)}
-.scaletext .call{top:28%;font-style:italic;font-size:clamp(9.5px,1.2vw,12px)}
-.scaletext .head{left:50%;top:9%;font-family:var(--narrow);font-size:clamp(8.5px,1vw,10.5px);letter-spacing:.3em;text-transform:uppercase}
+.scaletext .call{top:28%;font-style:italic;font-size:clamp(10px,1.2vw,12px)}
+.scaletext .head{left:50%;top:9%;font-family:var(--narrow);font-size:10px;letter-spacing:clamp(.12em,.3vw,.3em);text-transform:uppercase}
 .scaletext .brandmk{left:6%;top:86%;transform:none;font-style:italic;font-size:10px;color:#5a3f12}
 .scaletext .kc{left:auto;right:4%;top:86%;transform:none;font-family:var(--narrow);font-size:10px;letter-spacing:.2em;color:#5a3f12}
 .dial .glass{position:absolute;inset:0;background:linear-gradient(170deg,rgba(255,255,255,.35),rgba(255,255,255,0) 35%,rgba(255,255,255,0) 70%,rgba(255,255,255,.12));pointer-events:none}
@@ -123,7 +123,7 @@ body{
   .grille{min-height:150px;order:2}
   .ctl{display:contents}
   .eyerow{order:0}.dial{order:1;height:120px}.plate{order:3}.knobs{order:4}.hintline{order:5}
-  .badge{width:86px;height:86px;margin:-43px 0 0 -43px}.badge b{font-size:20px}
+  .badge{width:86px;height:86px;margin:-43px 0 0 -43px}.badge b{font-size:20px}.badge small{letter-spacing:.08em}
   .knob{width:88px;height:88px}
   .feet{left:30px;right:30px}.feet i{width:50px}
   .log{display:block;width:auto;max-width:360px;margin:40px auto 30px;transform:rotate(1deg)}
@@ -190,9 +190,9 @@ const F0=540, F1=1600;
 const STATIONS=[
   {f:560, call:'WSWG', show:'The Swing Shift', note:'with Dot Calloway & the Night Owls'},
   {f:740, call:'KBLU', show:'Midnight Blues Parlor', note:'slow organ, slower talk'},
-  {f:880, call:'W2AUR', show:'Amateur Morse Net', note:'CQ CQ, is anybody out there'},
+  {f:880, call:'WKEY', show:'Code Class of the Air', note:'copy along with W2AUR: CQ CQ, is anybody out there'},
   {f:1010,call:'WCLS', show:'Nocturne Hour', note:'strings, celesta, dim lights'},
-  {f:1230,call:'WWVX', show:'Standard Time Signal', note:'a tick for every second you waste'},
+  {f:1230,call:'KTIK', show:'Observatory Time Signal', note:'relayed from Naval Observatory time; a tick for every second you waste'},
   {f:1420,call:'KSPK', show:'Theremin Mystery Theatre', note:'something is in the attic'}
 ];
 

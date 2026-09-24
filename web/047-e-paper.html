@@ -121,7 +121,7 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
 .nav i.on{background:var(--mid)}
 .hint{margin-top:18px;font-size:13px;color:#555;text-align:center;letter-spacing:.06em;line-height:1.6}
 .hint kbd{font-family:var(--serif);border:1px solid #888;border-bottom-width:2px;border-radius:3px;padding:0 5px;background:#eee}
-@media (prefers-reduced-motion:reduce){.flash.full{animation-duration:.2s}}
+@media (prefers-reduced-motion:reduce){.flash.full{animation:fullR .2s steps(1) forwards}@keyframes fullR{0%{opacity:.6;background:#bbb}100%{opacity:0}}}
 </style>
 </head>
 <body>
@@ -138,7 +138,7 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
             <div class="dow" id="dow">星期三</div>
             <div class="day" id="day">23</div>
             <div class="ym" id="ym">2026 年 9 月</div>
-            <div class="clock zone" id="clock">08:00<small>每分鐘局部更新一次</small></div>
+            <div class="clock zone" id="clock">08:00<small>每分鐘局部更新 · 整點全刷</small></div>
             <div class="wx"><canvas id="wx" width="48" height="36" aria-hidden="true"></canvas><div><b>27° / 22°</b><span>多雲時晴 · 降雨 20%<br>適合曬棉被，不適合曬貓</span></div></div>
           </div>
           <div>
@@ -354,7 +354,7 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
     c.querySelectorAll('canvas').forEach(function(e){ e.remove(); });
     ghost.innerHTML = ''; ghost.appendChild(c);
   }
-  var pending = null;
+  var pending = null, turns = 0;
   function done(){ busy = false; if(pending){ var f = pending; pending = null; f(); } }
   function full(after){
     if(busy){ pending = function(){ full(after); }; return; } busy = true; blink();
@@ -372,7 +372,8 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
       pages.forEach(function(p, i){ if(p) p.hidden = i !== n; }); page = n;
       if(n === 2) drawArt();
     }, 90);
-    setTimeout(function(){ flash.className = 'flash'; done(); }, 240);
+    // 真的電子紙連續局部刷新會越積越多殘影，所以每翻 6 頁補一次全刷
+    setTimeout(function(){ flash.className = 'flash'; done(); if(++turns % 6 === 0) full(null); }, 240);
   }
   function refresh(){ full(function(){ qi++; showQuote(); if(page === 2) drawArt(); renderSched(); tickClock(true); }); }
 
@@ -396,8 +397,7 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
     var ck = $('clock'); if(!ck) return;
     ck.firstChild.nodeValue = pad(d.getHours()) + ':' + pad(m);
     set('sync', '上次同步 ' + pad(d.getHours()) + ':' + pad(m));
-    if(!first && !force) partial(ck);
-    if(!first && m === 0) renderSched();
+    if(!first && !force){ if(m === 0) full(renderSched); else partial(ck); }
   }
   setInterval(function(){ if(!document.hidden) tickClock(false); }, 5000);
 

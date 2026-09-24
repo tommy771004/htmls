@@ -47,6 +47,7 @@
   .facts div{padding:10px 0 10px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#7a7266}
   .facts div+div{padding-left:12px;border-left:1px solid var(--shade)}
   .facts b{display:block;font-family:var(--display);font-weight:normal;font-size:24px;letter-spacing:0;color:var(--ink);text-transform:none;margin-top:4px}
+.seaw{margin:8px 0 0;font-size:13px;font-style:italic;color:#7a7266}
   .months{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 4px}
   .chip{font:inherit;font-size:14px;min-height:40px;min-width:48px;padding:0 12px;border-radius:20px 20px 4px 4px;border:1px solid var(--shade);background:var(--lime);color:var(--ink);cursor:pointer}
   .chip:hover,.chip:focus-visible{outline:none;border-color:var(--aegean)}
@@ -114,6 +115,7 @@
         <div>Sunset<b id="set">20:31</b></div>
         <div>Daylight<b id="len">14 h 19</b></div>
       </div>
+      <p class="seaw" id="seaw">Sea ≈ 22 °C · meltemi on some afternoons</p>
       <div class="months" id="months" role="group" aria-label="Month of travel"></div>
       <div class="dial">
         <label for="t"><span>Drag the sun</span><span id="az">Azimuth 90°</span></label>
@@ -344,6 +346,10 @@
     if (r) r.textContent = rise != null ? hm(rise) : '—';
     if (s) s.textContent = set != null ? hm(set) : '—';
     if (l && rise != null && set != null) { const d = set - rise; l.textContent = `${Math.floor(d / 60)} h ${String(d % 60).padStart(2, '0')}`; }
+    // typical Cyclades sea-surface temperature and wind for the month (climatological averages)
+    const SEA = [0, 16, 15, 15, 16, 19, 22, 24, 25, 24, 22, 19, 17][month];
+    const WIND = month === 7 || month === 8 ? 'meltemi blowing, often force 5–7' : month === 6 || month === 9 ? 'meltemi on some afternoons' : 'no meltemi to speak of';
+    const sw = $('#seaw'); if (sw) sw.textContent = `Sea ≈ ${SEA} °C · ${WIND}`;
     // slider track coloured by real altitude through the day
     if (range) {
       const stops = [];
@@ -441,7 +447,7 @@
     playing = !playing; setPlay(); cancelAnimationFrame(anim);
     if (!playing) return;
     let last = performance.now();
-    const step = now => { if (!playing) return; T += (now - last) / 1000 * 60; last = now; if (T > 1320) T = 300; render(); anim = requestAnimationFrame(step); };
+    const step = now => { if (!playing) return; T += Math.min(.1, (now - last) / 1000) * 60; /* clamped: no leap after a background tab */ last = now; if (T > 1320) T = 300; render(); anim = requestAnimationFrame(step); };
     anim = requestAnimationFrame(step);
   });
   range && range.addEventListener('input', () => { cancelAnimationFrame(anim); playing = false; setPlay(); T = +range.value; render(); });

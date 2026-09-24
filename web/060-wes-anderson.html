@@ -22,10 +22,11 @@ button,input{font:inherit;color:inherit}
 .caps{text-transform:uppercase;letter-spacing:.32em}
 .est{font-size:11px;color:var(--bur);margin:0}
 .est span{display:inline-block;margin:0 .8em;color:var(--gold)}
+@media (max-width:440px){.est{letter-spacing:.14em}.est span{margin:0 .45em}h1 small{letter-spacing:.3em}}
 
 .facade{display:block;width:min(560px,100%);height:auto;margin:16px auto 0}
 h1{margin:10px 0 0;font:700 clamp(28px,5.4vw,56px)/1.05 var(--cg);text-transform:uppercase;letter-spacing:.14em;color:var(--bur)}
-h1 small{display:block;font-size:.3em;letter-spacing:.5em;color:var(--ink);margin-top:10px;font-weight:400}
+h1 small{display:block;font-size:max(10px,.3em);letter-spacing:.5em;color:var(--ink);margin-top:10px;font-weight:400}
 .rule{display:flex;align-items:center;justify-content:center;gap:12px;margin:16px auto 0;color:var(--gold);max-width:420px}
 .rule::before,.rule::after{content:"";flex:1;height:0;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold);padding-top:2px}
 .rule svg{width:22px;height:22px}
@@ -75,7 +76,7 @@ h1 small{display:block;font-size:.3em;letter-spacing:.5em;color:var(--ink);margi
 .chk{display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer;font-size:13px;line-height:1.35;color:#6d3a4a;padding:4px 6px;border-radius:4px}
 .amen .chk:nth-child(odd){flex-direction:row-reverse;text-align:right}
 @media (max-width:620px){.amen .chk:nth-child(odd){flex-direction:row;text-align:left}}
-.chk input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;border:2px solid var(--bur);border-radius:50%;background:var(--cream);margin:0;display:grid;place-items:center;cursor:pointer}
+.chk input{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;border:2px solid var(--bur);border-radius:50%;background:var(--cream);margin:0;display:grid;place-items:center;cursor:pointer}
 .chk input::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--bur);transform:scale(0);transition:transform .2s}
 .chk input:checked::after{transform:scale(1)}
 .chk small{display:block;color:var(--gold);letter-spacing:.1em}

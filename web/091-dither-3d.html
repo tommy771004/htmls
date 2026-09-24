@@ -44,7 +44,7 @@
   button{font:inherit;font-size:12px;min-width:40px;min-height:40px;padding:0 10px;background:var(--ink);color:var(--paper);border:2px solid var(--paper);cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
   button:hover,button:focus-visible{outline:none;background:repeating-conic-gradient(var(--paper) 0 25%, var(--ink) 0 50%) 0 0/2px 2px;color:var(--paper);text-shadow:0 0 0 var(--ink),1px 0 var(--ink),-1px 0 var(--ink),0 1px var(--ink),0 -1px var(--ink)}
   button.on{background:var(--paper);color:var(--ink);text-shadow:none}
-  #matrix{display:grid;gap:0;border:2px solid var(--paper);width:max-content;max-width:100%;font-size:9px;line-height:1}
+  #matrix{display:grid;gap:0;border:2px solid var(--paper);width:max-content;max-width:100%;font-size:10px;line-height:1}
   #matrix i{font-style:normal;display:grid;place-items:center;width:26px;height:18px;border-right:1px solid var(--paper);border-bottom:1px solid var(--paper)}
   #matrix.m8 i{width:26px;height:15px}
   #matrix .dark{background:var(--paper);color:var(--ink)}
@@ -52,6 +52,7 @@
   .hint{position:absolute;right:22px;bottom:22px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;background:var(--ink);border:2px solid var(--paper);padding:6px 9px;z-index:2}
   .blink{animation:blink 1s steps(1) infinite}
   @keyframes blink{50%{opacity:0}}
+  @media (prefers-reduced-motion:reduce){.blink{animation:none}}
   #nogl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:12px;display:none}
 
   @media (max-width:760px){
@@ -158,8 +159,9 @@
   });
 
   function bayerVal(x, y, n) { // integer rank 0..n*n-1
-    let v = 0, mask = n >> 1;
-    for (let bit = 0; mask; mask >>= 1, bit++) {
+    // classic Bayer index: interleave the bits starting from the least significant (matches the shader's b2/b4/b8)
+    let v = 0;
+    for (let mask = 1; mask < n; mask <<= 1) {
       const xb = (x & mask) ? 1 : 0, yb = (y & mask) ? 1 : 0;
       v = (v << 2) | ((xb ^ yb) << 1 | yb);
     }
@@ -532,8 +534,9 @@ void main(){
     const dt = Math.min(.05, (now - last) / 1000); last = now;
     clock += dt;
     if (!drag) {
-      S.yaw += S.vy; S.pitch = Math.max(-1.2, Math.min(1.2, S.pitch + S.vp));
-      S.vy *= .93; S.vp *= .9;
+      const k = dt * 60; // inertia tuned for 60 Hz, applied per elapsed time so 120 Hz screens spin the same
+      S.yaw += S.vy * k; S.pitch = Math.max(-1.2, Math.min(1.2, S.pitch + S.vp * k));
+      S.vy *= Math.pow(.93, k); S.vp *= Math.pow(.9, k);
       if (S.spin) S.yaw += dt * .35;
       S.pitch += (.75 - S.pitch) * dt * .4;
     }

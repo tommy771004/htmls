@@ -38,10 +38,10 @@ body{background:#141311;background:radial-gradient(ellipse at 50% 30%,#2a2825,#0
   box-shadow:inset 0 0 60px rgba(0,0,0,.9),inset 0 0 18px var(--phG)}
 .flick{position:absolute;inset:0;z-index:2;pointer-events:none;background:var(--ph);opacity:.018;animation:flick .12s steps(2) infinite}
 @keyframes flick{50%{opacity:.035}}
-.roll{position:absolute;left:0;right:0;height:18%;z-index:2;pointer-events:none;background:linear-gradient(to bottom,transparent,rgba(255,255,255,.035),transparent);animation:roll 6s linear infinite}
-@keyframes roll{from{top:-20%}to{top:110%}}
+.roll{position:absolute;left:0;right:0;top:0;height:18%;z-index:2;pointer-events:none;background:linear-gradient(to bottom,transparent,rgba(255,255,255,.035),transparent);animation:roll 6s linear infinite;will-change:transform}
+@keyframes roll{from{transform:translateY(-112%)}to{transform:translateY(612%)}}
 
-.term{position:absolute;inset:0;z-index:1;overflow-y:auto;overflow-x:hidden;padding:clamp(14px,3vw,40px) clamp(14px,3.4vw,48px) 20px;font-size:clamp(12.5px,1.25vw,17px);line-height:1.42;
+.term{position:absolute;inset:0 0 calc(clamp(8px,1.6vw,20px) + 2.2em) 0;z-index:1;overflow-y:auto;overflow-x:hidden;padding:clamp(14px,3vw,40px) clamp(14px,3.4vw,48px) 12px;font-size:clamp(12.5px,1.25vw,17px);line-height:1.42;
   text-shadow:0 0 2px var(--ph),0 0 10px var(--phG);scrollbar-width:none;white-space:pre-wrap;word-break:break-word;animation:on .5s ease-out both}
 .term::-webkit-scrollbar{display:none}
 @keyframes on{0%{transform:scaleY(.004) scaleX(.6);filter:brightness(4)}55%{transform:scaleY(.004) scaleX(1);filter:brightness(3)}100%{transform:none;filter:none}}
@@ -57,13 +57,16 @@ body{background:#141311;background:radial-gradient(ellipse at 50% 30%,#2a2825,#0
 .cur{display:inline-block;width:.62em;height:1.15em;background:var(--ph);vertical-align:text-bottom;box-shadow:0 0 8px var(--ph);animation:blink 1.05s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
 .screen.busy .cur{animation:none;opacity:.35}
+/* VT-style 25th status line */
+.stat{position:absolute;left:clamp(14px,3.4vw,48px);right:clamp(14px,3.4vw,48px);bottom:clamp(8px,1.6vw,20px);z-index:1;display:flex;justify-content:space-between;gap:1em;font-size:clamp(11px,1vw,14px);line-height:1.6;padding:0 .5em;background:var(--ph);color:var(--bg);opacity:.82;text-shadow:none;white-space:nowrap;overflow:hidden;box-shadow:0 0 8px var(--phG)}
+.stat span{overflow:hidden;text-overflow:ellipsis}
 #in{position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;font-size:16px}
 
 /* function keys */
 .fkeys{position:absolute;left:clamp(12px,3vw,46px);right:clamp(12px,3vw,46px);bottom:clamp(40px,5.2vw,74px);display:none;gap:6px;z-index:5}
 .fkeys button{flex:1;min-height:40px;border:0;border-radius:5px;background:linear-gradient(#d9d3c2,#b3ab96);color:#3b372d;font-family:var(--mono);font-size:12px;font-weight:700;box-shadow:0 3px 0 #7a735f,inset 0 1px 0 #fff;cursor:pointer}
 .fkeys button:active{transform:translateY(2px);box-shadow:0 1px 0 #7a735f}
-.fkeys small{display:block;font-size:9px;color:#7a735f}
+.fkeys small{display:block;font-size:10px;color:#6a6350}
 
 @media (max-width:700px){
   .case{padding-bottom:98px}
@@ -71,7 +74,7 @@ body{background:#141311;background:radial-gradient(ellipse at 50% 30%,#2a2825,#0
   .vents{display:none}
   .label{letter-spacing:.15em}
 }
-@media (prefers-reduced-motion:reduce){.flick,.roll,.term{animation:none}}
+@media (prefers-reduced-motion:reduce){.flick,.roll,.term,.cur{animation:none}}
 </style>
 </head>
 <body>
@@ -80,6 +83,7 @@ body{background:#141311;background:radial-gradient(ellipse at 50% 30%,#2a2825,#0
     <div class="screen" id="screen">
       <div class="flick"></div><div class="roll"></div>
       <div class="term" id="term" role="log" aria-live="polite"><div id="out"></div><div class="inrow" id="inrow"><span class="prompt" id="prompt"></span><span class="typed" id="typed"></span><span class="cur" aria-hidden="true"></span></div></div>
+      <div class="stat" aria-hidden="true"><span>ON LINE &#183; 9600 BAUD 7E1</span><span id="stp">P1 &#183; 80&#215;24</span></div>
       <input id="in" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal input">
     </div>
   </div>
@@ -197,7 +201,7 @@ body{background:#141311;background:radial-gradient(ellipse at 50% 30%,#2a2825,#0
     fortune:function(){printText(fortunes[Math.floor(Math.random()*fortunes.length)],'',40);},
     whoami:function(){printText('guest   (uid=1001, gid=100, clearance=SANDWICH-ADJACENT)');},
     date:function(){var d=new Date();printText(d.toDateString().toUpperCase()+' '+d.toTimeString().slice(0,8)+'  (system clock believes it is 1983)');},
-    uptime:function(){var s=Math.floor(performance.now()/1000);printText(' up 14,902 days, '+Math.floor(s/60)+' min, '+(s%60)+' s,  3 users,  load average: 0.42 0.42 0.42');},
+    uptime:function(){var s=Math.floor(performance.now()/1000),days=Math.floor((Date.now()-Date.UTC(1983,9,31,3,14))/864e5);printText(' up '+days.toLocaleString('en-US')+' days, '+Math.floor(s/60)+' min, '+(s%60)+' s,  3 users,  load average: 0.42 0.42 0.42');},
     sysinfo:function(){
       printText(
 "   ___  _  _  ___   guest@mulberry\n"+
@@ -217,7 +221,8 @@ body{background:#141311;background:radial-gradient(ellipse at 50% 30%,#2a2825,#0
     color:function(a){
       var c=a[0]; if(!c||c==='next'){ci=(ci+1)%3;c=colors[ci];} else {var k=colors.indexOf(c);if(k<0){printText('color: unknown phosphor \''+c+'\'. Try green, amber or white.','err');return;}ci=k;}
       document.body.classList.remove('amber','white'); if(c!=='green') document.body.classList.add(c);
-      printText('Phosphor switched to P'+({green:'1',amber:'3',white:'4'})[c]+' ('+c+').','dim');},
+      var pn='P'+({green:'1',amber:'3',white:'4'})[c], sp=document.getElementById('stp'); if(sp) sp.textContent=pn+' \u00b7 80\u00d724';
+      printText('Phosphor switched to '+pn+' ('+c+').','dim');},
     history:function(){history.forEach(function(h,i){printText(('  '+(i+1)).slice(-3)+'  '+h,'',6);});},
     clear:function(){out.innerHTML='';},
     sudo:function(){printText('guest is not in the sudoers file. This incident will be reported.\n(To whom? Mostly to Gary.)','err');},
@@ -225,7 +230,8 @@ body{background:#141311;background:radial-gradient(ellipse at 50% 30%,#2a2825,#0
     exit:function(){printText('There is no exit. There is only the terminal.\n(Close the tab, if you must. The cursor will wait.)','dim');},
     ssh:function(a){printText('ssh: connect to host '+(a[0]||'?')+' port 22: this is 1983, SSH has not been invented yet','err');},
     man:function(a){printText(a[0]?('No manual entry for '+a[0]+'. The manual is in the break room, under the sandwiches.'):'What manual page do you want?','dim');},
-    vim:function(){printText('You are now trapped in vim. Just kidding. Nobody can prove that.','dim');},
+    vim:function(){printText('psh: vim: not found. It will be written in 1991.\nTry vi. Then try to leave vi.','dim');},
+    vi:function(){printText('You are now trapped in vi. Type :q! to... no, that will not work here either.','dim');},
     emacs:function(){printText('emacs: not enough RAM. It needs 8 MB and a lifetime.','dim');},
     listen:function(){printText('Tuning dish 3 to 1420.40 MHz ...','dim',260);print('<span class="inv"> RECEIVING </span>','',200);playSignal();printText('. . .  - - -  . . .   (it repeats every 4 minutes)','',60);}
   };

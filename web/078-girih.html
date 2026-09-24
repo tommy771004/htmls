@@ -31,9 +31,10 @@
   .corner{position:absolute;width:34px;height:34px;z-index:2}
   .corner svg{width:100%;height:100%}
   .c1{left:-4px;top:-4px}.c2{right:-4px;top:-4px}.c3{left:-4px;bottom:-4px}.c4{right:-4px;bottom:-4px}
-  .sheen{position:absolute;inset:0;pointer-events:none;mix-blend-mode:soft-light;
-    background:linear-gradient(115deg,transparent 30%,rgba(255,240,200,.35) 45%,transparent 60%);background-size:250% 100%;animation:sheen 9s ease-in-out infinite}
-  @keyframes sheen{0%{background-position:120% 0}100%{background-position:-120% 0}}
+  /* sheen travels by transform (compositor) instead of repainting background-position every frame */
+  .sheen{position:absolute;top:0;bottom:0;left:-150%;width:400%;pointer-events:none;mix-blend-mode:soft-light;will-change:transform;
+    background:linear-gradient(100deg,transparent 45%,rgba(255,240,200,.35) 50%,transparent 55%);animation:sheen 9s ease-in-out infinite}
+  @keyframes sheen{0%{transform:translateX(37.5%)}100%{transform:translateX(-37.5%)}}
 
   /* ---------- the pattern book (sidebar) ---------- */
   .book{background:linear-gradient(180deg,#f1e7cc,#e6d8b4);color:#2a1f10;padding:24px 22px 20px;position:relative;
@@ -51,6 +52,7 @@
   .tb{border:1px solid rgba(120,80,20,.35);background:rgba(255,255,255,.35);cursor:pointer;padding:6px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;
     font-family:var(--serif);font-size:11px;color:#3b2a14;min-height:74px}
   .tb svg{width:40px;height:40px}
+  .tb small{font-size:10px;letter-spacing:.04em;opacity:.7;font-variant-numeric:lining-nums}
   .tb[aria-pressed="true"]{background:#1a2556;color:var(--cream);border-color:#1a2556}
   .tb[aria-pressed="true"] svg path{stroke:var(--gold)}
   .tb:focus-visible{outline:2px solid #8b5a1f;outline-offset:2px}
@@ -147,12 +149,12 @@
   /* ---------------- tilings: lattice + motif of regular polygons ---------------- */
   // each motif polygon: {c:[x,y], n, R (circumradius), rot (angle of vertex 0), k: type index}
   const TILINGS = [
-    { name: 'Octagram', fold: 8, scale: 1.0, a: [1, 0], b: [0, 1], motif: [{ c: [0, 0], n: 4, R: 1 / S2, rot: Math.PI / 4, k: 0 }], ang: 67.5 },
+    { name: 'Octagram', vc: '4.4.4.4', fold: 8, scale: 1.0, a: [1, 0], b: [0, 1], motif: [{ c: [0, 0], n: 4, R: 1 / S2, rot: Math.PI / 4, k: 0 }], ang: 67.5 },
     (() => { const s = 1, L = s * (1 + S2), R8 = s / (2 * Math.sin(Math.PI / 8));
-      return { name: 'Khatam', fold: 8, scale: 1 / L * 1.9, a: [L, 0], b: [0, L], motif: [{ c: [0, 0], n: 8, R: R8, rot: Math.PI / 8, k: 0 }, { c: [L / 2, L / 2], n: 4, R: s / S2, rot: 0, k: 1 }], ang: 67.5 }; })(),
-    { name: 'Hexagram', fold: 6, scale: .85, a: [S3, 0], b: [S3 / 2, 1.5], motif: [{ c: [0, 0], n: 6, R: 1, rot: Math.PI / 2, k: 0 }], ang: 60 },
+      return { name: 'Khatam', vc: '4.8.8', fold: 8, scale: 1 / L * 1.9, a: [L, 0], b: [0, L], motif: [{ c: [0, 0], n: 8, R: R8, rot: Math.PI / 8, k: 0 }, { c: [L / 2, L / 2], n: 4, R: s / S2, rot: 0, k: 1 }], ang: 67.5 }; })(),
+    { name: 'Hexagram', vc: '6.6.6', fold: 6, scale: .85, a: [S3, 0], b: [S3 / 2, 1.5], motif: [{ c: [0, 0], n: 6, R: 1, rot: Math.PI / 2, k: 0 }], ang: 60 },
     (() => { const s = 1, A = s / (2 * Math.tan(Math.PI / 12)), D = 2 * A, R12 = s / (2 * Math.sin(Math.PI / 12));
-      return { name: 'Twelve', fold: 12, scale: 1 / D * 2.1, a: [D, 0], b: [D / 2, D * S3 / 2], motif: [
+      return { name: 'Twelve', vc: '3.12.12', fold: 12, scale: 1 / D * 2.1, a: [D, 0], b: [D / 2, D * S3 / 2], motif: [
         { c: [0, 0], n: 12, R: R12, rot: Math.PI / 12, k: 0 },
         { c: [D / 2, D / (2 * S3)], n: 3, R: s / S3, rot: Math.PI / 6, k: 1 },
         { c: [D, D / S3], n: 3, R: s / S3, rot: Math.PI / 2, k: 1 }], ang: 72 }; })()
@@ -289,8 +291,8 @@
   const tbs = TILINGS.map((T, i) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'tb'; b.setAttribute('aria-pressed', i === ti ? 'true' : 'false');
-    b.setAttribute('aria-label', `${T.name} tiling (key ${i + 1})`);
-    b.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true">${icons[i]}</svg>${T.name}`;
+    b.setAttribute('aria-label', `${T.name} tiling, vertex figure ${T.vc} (key ${i + 1})`);
+    b.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true">${icons[i]}</svg>${T.name}<small>${T.vc}</small>`;
     b.addEventListener('click', () => setTiling(i));
     if (tilEl) tilEl.appendChild(b);
     return b;
