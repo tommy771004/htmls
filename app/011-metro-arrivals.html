@@ -34,7 +34,7 @@ ol,ul{list-style:none}
 .stage{position:relative;width:100%;height:100vh;height:100dvh}
 .backdrop,.caption{display:none}
 .device{position:relative;width:100%;height:100%}
-.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper);isolation:isolate}
+.screen{position:absolute;inset:0;overflow:hidden;overflow:clip;background:var(--paper);isolation:isolate}
 @media (min-width:521px){
   body{background:#d9d7cf}
   .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
@@ -89,6 +89,10 @@ ol,ul{list-style:none}
 .strip{margin:12px 0 0;padding:0 0 6px;position:relative}
 .strip svg{width:100%;height:118px;overflow:visible}
 .strip text{font:600 12px var(--sign);fill:var(--ink)}
+.live{display:flex;align-items:center;gap:8px;margin:0 20px 10px;font:600 13px/1.2 var(--sign);color:var(--mute)}
+.live i{width:8px;height:8px;border-radius:50%;background:#008659;flex:none}
+.live span:first-of-type{color:var(--ink)}
+.live #liveT{margin-left:auto;font-variant-numeric:tabular-nums}
 .plats{padding:0 16px;display:grid;gap:14px;margin-top:6px}
 .plat{border-radius:10px;overflow:hidden;background:#fff}
 .band{display:flex;align-items:center;gap:10px;padding:0 14px;height:48px}
@@ -136,9 +140,9 @@ ol,ul{list-style:none}
 /* ---------- lines ---------- */
 .lsel{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:16px 16px 0}
 .lsel button{height:58px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px;padding-bottom:6px;font:600 12px/1 var(--sign);color:var(--mute)}
-.lsel button i{display:block;width:100%;height:6px;border-radius:3px;transition:height .25s var(--spring)}
+.lsel button i{display:block;width:100%;height:16px;border-radius:3px;transform:scaleY(.375);transform-origin:50% 100%;transition:transform .25s var(--spring)}
 .lsel button[aria-selected=true]{color:var(--ink);font-weight:800}
-.lsel button[aria-selected=true] i{height:16px}
+.lsel button[aria-selected=true] i{transform:none}
 .lhead{padding:18px 20px 6px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
 .lhead h2{font:700 28px/1.1 var(--sign);letter-spacing:.04em}
 .lhead p{font:500 14px/1.3 var(--sign);color:var(--mute);margin-top:4px}
@@ -149,10 +153,11 @@ ol,ul{list-style:none}
 .stl li{height:66px}
 .stl button{width:100%;height:66px;display:grid;grid-template-columns:80px 1fr auto;align-items:center;text-align:left;padding-right:18px}
 .stl button:active{background:var(--soft)}
-.stl .nm{grid-column:2;min-width:0}
+.stl .nm{grid-column:2;min-width:0;align-self:start;padding-top:22px}
+.stl .nm>span.r1{display:flex;align-items:center;gap:6px;min-width:0;color:var(--ink)}
 .stl .nm b{display:block;font:700 17px/1.2 var(--sign);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stl .nm>span{display:block;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stl .xs{display:flex;gap:4px;margin-top:3px}
+.stl .xs{display:flex;gap:4px;flex:none}
 .stl .xs .code{min-width:34px;height:19px;font-size:11px;border-width:2.5px;border-radius:4px}
 .stl .eta{font:700 15px/1.25 var(--sign);text-align:right;font-variant-numeric:tabular-nums}
 .stl .eta span{display:flex;align-items:center;justify-content:flex-end;gap:5px;white-space:nowrap}
@@ -246,7 +251,7 @@ ol,ul{list-style:none}
 .toast.on{transform:none;visibility:visible}
 .toast button{margin-left:auto;height:40px;padding:0 12px;color:#f8b61c;font-weight:800}
 @media (prefers-reduced-motion:reduce){
-  .track,.nav .ind,.sheet,.toast,.rec .mv,.swap svg{transition-duration:.01s!important}
+  .track,.nav .ind,.sheet,.toast,.rec .mv,.swap svg,.lsel button i{transition-duration:.01s!important}
   .ft .fa,.ft .fb{animation:none;display:none}
   .press:active,.codes button:active .code{transform:none}
 }
@@ -320,6 +325,7 @@ ol,ul{list-style:none}
             </div>
             <div class="favs" id="favs"></div>
             <div class="strip"><svg id="strip" aria-label="即時列車位置"></svg></div>
+            <p class="live" id="live"><i></i><span>營運正常</span><span id="liveT"></span></p>
             <div class="plats" id="plats"></div>
             <div class="xfer" id="xfer"></div>
           </section>
@@ -656,7 +662,7 @@ function renderMap(){
   $('lName').textContent = l.zh; $('lEn').textContent = l.en; $('lHw').textContent = Math.round(l.H / 60 * 10) / 10 + ' 分';
   $('stl').innerHTML = l.st.map(function(s, i){
     var xs = ST[s[1]].lines.filter(function(x){ return x.l.id !== l.id; }).map(function(x){ return badge(x.l, x.i); }).join('');
-    return '<li><button data-st="'+esc(s[1])+'"><span class="nm"><b>'+s[1]+'</b><span>'+codeOf(l, i)+'　'+s[2]+'</span>'+(xs ? '<span class="xs">'+xs+'</span>' : '')+'</span><span class="eta" data-i="'+i+'"></span></button></li>';
+    return '<li><button data-st="'+esc(s[1])+'"><span class="nm"><span class="r1"><b>'+s[1]+'</b>'+(xs ? '<span class="xs">'+xs+'</span>' : '')+'</span><span>'+codeOf(l, i)+'　'+s[2]+'</span></span><span class="eta" data-i="'+i+'"></span></button></li>';
   }).join('');
   var H = l.st.length * ROW, rail = $('rail');
   rail.setAttribute('height', H); rail.setAttribute('viewBox', '0 0 64 ' + H); rail.style.height = H + 'px';
@@ -857,12 +863,14 @@ function loop(ts){
   raf = requestAnimationFrame(loop);
   if (S.tab === 0) drawTrains();
   if (S.tab === 1) updateMap(false);
-  if (ts - last > 250){ last = ts; if (S.tab === 0) updateArr(false); else if (S.tab === 1) updateMap(true); }
+  if (ts - last > 250){ last = ts; if (S.tab === 0){ updateArr(false); var d = new Date(), lt = '更新於 ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0'); if ($('liveT').textContent !== lt) $('liveT').textContent = lt; } else if (S.tab === 1) updateMap(true); }
 }
 document.addEventListener('visibilitychange', function(){ if (document.hidden) cancelAnimationFrame(raf); else { cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); } });
 window.addEventListener('resize', function(){ drawStripBase(); });
 
-renderArr(); renderMap(); renderPlan(); setTab(S.tab, true);
+renderArr(); renderMap(); renderPlan();
+$('track').style.transition = $('ind').style.transition = 'none'; setTab(S.tab, true);
+requestAnimationFrame(function(){ requestAnimationFrame(function(){ $('track').style.transition = $('ind').style.transition = ''; }); });
 raf = requestAnimationFrame(loop);
 })();
 </script>

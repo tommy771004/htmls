@@ -39,7 +39,7 @@ svg{display:block}
 .stage{position:relative;width:100%;height:100vh;height:100dvh}
 .backdrop,.caption{display:none}
 .device{position:relative;width:100%;height:100%}
-.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper) var(--grain);isolation:isolate}
+.screen{position:absolute;inset:0;overflow:hidden;overflow:clip;background:var(--paper) var(--grain);isolation:isolate}
 @media (min-width:521px){
   body{background:#e3e4d8}
   .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
@@ -55,7 +55,7 @@ svg{display:block}
 @media (min-width:521px) and (max-width:880px){.caption{display:none}}
 
 /* ---------- status ---------- */
-.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;font:700 16px/1 var(--gill);color:var(--navy);pointer-events:none}
+.status{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 30px 0 34px;font:700 16px/1 var(--gill);color:var(--navy);pointer-events:none;background:var(--paper) var(--grain)}
 .status .g{display:flex;gap:6px;align-items:center}
 @media (display-mode:standalone){.status{display:none}}
 .home{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:132px;height:5px;margin-left:-66px;border-radius:3px;background:var(--navy);z-index:45;pointer-events:none}
@@ -603,7 +603,7 @@ function renderPlates(){
   var late = daysSince(f) - f.every;
   $('feat').innerHTML = '<div class="featwrap"><div class="feat"><button class="fplant" data-open="'+f.id+'" aria-label="打開 '+esc(f.name)+'"></button><div>'+
     '<span class="pno">'+pno(f)+' · 最渴的一株</span><b class="pname">'+esc(f.name)+'</b><span class="psp">'+SP[f.sp].n+' · '+f.room+'</span>'+dropsHTML(moist(f))+
-    '<span class="late">'+(late > 0 ? '晚了 '+Math.ceil(late)+' 天沒澆' : ago(daysSince(f))+'澆過')+'</span>'+
+    '<span class="late">'+(late >= 1 ? '晚了 '+Math.floor(late)+' 天沒澆' : late > 0 ? '今天該澆了' : ago(daysSince(f))+'澆過')+'</span>'+
     '<button class="quick" data-water="'+f.id+'"><svg viewBox="0 0 18 18"><path d="M9 2C9 2 3.5 8.5 3.5 11.5a5.5 5.5 0 0 0 11 0C14.5 8.5 9 2 9 2z" fill="none" stroke="#16254d" stroke-width="2"/></svg>澆一下</button></div></div>'+
     (thirsty(f) ? '<span class="stamp" aria-hidden="true">口渴</span>' : '')+'</div>';
   mountPlant($('feat').querySelector('.fplant'), f);
@@ -666,7 +666,7 @@ function renderDetail(){
       '<div class="fact"><dt>位置</dt><dd>'+p.room+'</dd></div>'+
       '<div class="fact"><dt>光線</dt><dd>'+sp.light+'</dd></div>'+
       '<div class="fact"><dt>上次澆水</dt><dd id="dLast">'+ago(daysSince(p))+'</dd></div>'+
-      '<div class="fact"><dt>下次</dt><dd id="dNext">'+(nd.getMonth()+1)+'/'+nd.getDate()+' 星期'+WD[nd.getDay()]+'</dd></div>'+
+      '<div class="fact"><dt>下次</dt><dd id="dNext">'+nextTx(p)+'</dd></div>'+
       '<div class="fact"><dt>幾天澆一次</dt><dd><div class="step"><button data-ev="-1" aria-label="少一天"><svg viewBox="0 0 20 20"><path d="M4 10.5c4-.8 8-.8 12 0" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></button><output id="dEv">'+p.every+' 天</output><button data-ev="1" aria-label="多一天"><svg viewBox="0 0 20 20"><path d="M4 10.5c4-.8 8-.8 12 0M10.2 4c-.6 4-.6 8 0 12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></button></div></dd></div>'+
     '</dl>'+
     '<h3 class="sub">近 30 天</h3><div class="strip">'+strip+'</div><div class="striplbl"><span>30 天前</span><span>今天</span></div>'+
@@ -679,7 +679,7 @@ function refreshDetailNumbers(){
   $('dPct').innerHTML = Math.round(m*100)+'<small>%</small>';
   var dd = $('dDrops'); if (dd) dd.outerHTML = dropsHTML(m).replace('class="drops"','class="drops" id="dDrops" style="justify-content:center"');
   $('dLast').textContent = ago(daysSince(cur));
-  var nd = new Date(dueAt(cur)); $('dNext').textContent = (nd.getMonth()+1)+'/'+nd.getDate()+' 星期'+WD[nd.getDay()];
+  $('dNext').textContent = nextTx(cur);
 }
 $('detail').addEventListener('click', function(e){
   if (e.target.closest('#backBtn')){ haptic(6); closeDetail(); return; }
@@ -799,6 +799,7 @@ $('who').addEventListener('click', function(e){ var b = e.target.closest('[data-
   });
 })();
 
+function nextTx(p){ var t = dueAt(p), nd = new Date(t), over = Math.floor((Date.now() - t)/DAY); return over >= 1 ? '逾期 '+over+' 天（'+(nd.getMonth()+1)+'/'+nd.getDate()+'）' : (nd.getMonth()+1)+'/'+nd.getDate()+' 星期'+WD[nd.getDay()]; }
 // ---------- remind ----------
 function renderRemind(){
   var now = Date.now(), end = dayStart(now) + DAY;

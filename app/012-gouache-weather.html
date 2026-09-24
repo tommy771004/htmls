@@ -31,7 +31,7 @@ svg{display:block}
 .stage{position:relative;width:100%;height:100vh;height:100dvh}
 .backdrop,.caption{display:none}
 .device{position:relative;width:100%;height:100%}
-.screen{position:absolute;inset:0;overflow:hidden;background:var(--s0);isolation:isolate}
+.screen{position:absolute;inset:0;overflow:hidden;overflow:clip;background:var(--s0);isolation:isolate}
 @media (min-width:521px){
   .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
   .backdrop{display:block;position:fixed;inset:0;z-index:0}
@@ -97,9 +97,10 @@ svg{display:block}
 .topbtn svg *{fill:currentColor}
 
 .dots{position:absolute;z-index:8;left:0;right:0;bottom:calc(206px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:4px}
-.dots button{width:26px;height:30px;display:grid;place-items:center}
-.dots i{display:block;width:8px;height:7px;border-radius:50% 45% 55% 48%;background:#fffaf0;opacity:.45;transition:width .35s var(--spring),opacity .3s}
-.dots button.on i{width:22px;opacity:1;border-radius:6px 4px 5px 7px}
+.dots{gap:0}
+.dots button{width:34px;height:36px;display:grid;place-items:center}
+.dots i{display:block;width:22px;height:7px;background:#fffaf0;opacity:.45;clip-path:inset(0 7px round 4px 3.5px);transition:clip-path .35s var(--spring),opacity .3s}
+.dots button.on i{opacity:1;clip-path:inset(0 0 round 6px 4px 5px 7px)}
 
 /* scrubber */
 .scrub{position:absolute;z-index:8;left:0;right:0;bottom:calc(74px + env(safe-area-inset-bottom));height:126px;padding:0 22px;touch-action:none;cursor:ew-resize;color:#fffaf0}
@@ -137,7 +138,7 @@ svg{display:block}
 .sheet .edge{position:absolute;left:0;right:0;bottom:calc(100% - 1px);height:22px;width:100%}
 .sheet .edge path{fill:var(--slab)}
 .grab{width:44px;height:5px;border-radius:3px;background:rgba(255,250,240,.45);margin:4px auto 10px;flex:none}
-.sbody{overflow:auto;padding:0 22px 30px;overscroll-behavior:contain;touch-action:pan-y}
+.sbody{overflow:auto;padding:0 22px 40px;overscroll-behavior:contain;touch-action:pan-y}
 .sheet h3{font:600 30px/1.1 var(--cond);letter-spacing:.03em;margin:4px 0 12px;display:flex;align-items:baseline;gap:10px}
 .sheet h3 small{font:500 15px/1 var(--sans);color:rgba(255,250,240,.66)}
 
@@ -170,6 +171,7 @@ svg{display:block}
 .addgrid button:active{transform:scale(.96);background:rgba(255,250,240,.16)}
 .addgrid button span{font:500 13px/1 var(--cond);letter-spacing:.1em;color:rgba(255,250,240,.55)}
 .addgrid svg *{fill:#f6c86a}
+.src{margin-top:20px;padding-top:12px;border-top:1px solid rgba(255,250,240,.14);font-size:12px;line-height:1.5;color:rgba(255,250,240,.5)}
 .empty{font-size:14px;color:rgba(255,250,240,.55);padding:8px 0}
 
 .toast{position:absolute;left:50%;top:calc(60px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,-160px);transition:transform .45s var(--spring);
@@ -187,7 +189,7 @@ svg{display:block}
 }
 @media (prefers-reduced-motion:reduce){
   .rainfall,.blades{animation:none}
-  .track.anim,.sheet,.toast,.dots i{transition-duration:.01s}
+  .track.anim,.sheet,.toast,.dots i,.scrim,#nowBtn{transition-duration:.01s}
   .flash.on{animation:none}
 }
 </style>
@@ -605,6 +607,7 @@ function render(){
   rootStyle.setProperty('--stars', (night*(1-w.cover)).toFixed(2));
   rootStyle.setProperty('--lit', Math.min(1, night*1.2).toFixed(2));
   rootStyle.setProperty('--rain', Math.min(1, w.rain*1.1).toFixed(2));
+  var rf = document.querySelector('.rainfall'); if (rf) rf.style.animationPlayState = w.rain > .02 ? 'running' : 'paused';
   /* sun & moon on painted arcs */
   var sr = 5.7, ss = 17.95, p = (hh - sr)/(ss - sr);
   var sunG = $('sunG'), moonG = $('moonG');
@@ -816,7 +819,8 @@ function openTen(){
   var w = curW || wx(id, tAbs()), t = w.day;
   var feels = w.temp + (t.hum - 60)/12;
   h += '<div class="facts"><div>日出<b>05:42</b></div><div>日落<b>17:53</b></div><div>體感<b>'+deg(feels)+'°</b></div>'+
-       '<div>濕度<b>'+t.hum+'%</b></div><div>風<b>東北 '+t.wind+' 級</b></div><div>紫外線<b>'+t.uv+'</b></div></div>';
+       '<div>濕度<b>'+t.hum+'%</b></div><div>風<b>東北 '+t.wind+' 級</b></div><div>紫外線<b>'+t.uv+'</b></div></div>'+
+       '<p class="src">降雨機率低於 20% 不顯示 · 資料每小時更新，上次更新 '+new Date().getHours()+':'+String(new Date().getMinutes()).padStart(2,'0')+'</p>';
   openSheet('ten', h);
 }
 $('tenBtn').addEventListener('click', openTen);
@@ -896,6 +900,7 @@ function frame(now){
   if (curW && curW.storm && !reduce && now - lastStorm > 5200 + Math.random()*4000){
     lastStorm = now; var f = $('flash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
   }
+  if (reduce) return; // clouds are static under reduced motion: one frame is enough
   raf = requestAnimationFrame(frame);
 }
 document.addEventListener('visibilitychange', function(){

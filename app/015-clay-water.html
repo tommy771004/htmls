@@ -45,7 +45,7 @@ svg{display:block}
 .stage{position:relative;width:100%;height:100vh;height:100dvh}
 .backdrop,.caption,.cam{display:none}
 .device{position:relative;width:100%;height:100%}
-.screen{position:absolute;inset:0;overflow:hidden;background:var(--orange);isolation:isolate}
+.screen{position:absolute;inset:0;overflow:hidden;overflow:clip;background:var(--orange);isolation:isolate}
 @media (min-width:521px){
   body{background:#e8712a}
   .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
@@ -210,7 +210,7 @@ svg{display:block}
 .shbtns .pour{background:var(--orange);box-shadow:var(--orange-in),var(--clay-drop);color:var(--ink)}
 
 .toast{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));z-index:70;display:flex;align-items:center;gap:6px;max-width:340px;padding:0 6px 0 18px;height:48px;border-radius:24px;
-  background:var(--ink);color:var(--clay);font-size:14px;transform:translate(-50%,-90px);transition:transform .45s var(--jelly);white-space:nowrap}
+  background:var(--ink);color:var(--clay);font-size:14px;transform:translate(-50%,-150px);transition:transform .45s var(--jelly);white-space:nowrap}
 .toast.on{transform:translate(-50%,0)}
 .toast button{height:40px;padding:0 14px;border-radius:20px;color:var(--orange-l);font:400 14px/1 var(--round)}
 .toast button[hidden]{display:none}
@@ -599,7 +599,7 @@ function renderAll(){
   var tot = totalToday(), g = settings.goal, pct = Math.round(tot / g * 100);
   $('total').textContent = fmt(tot);
   $('goalL').textContent = '目標 ' + fmt(g) + ' ml';
-  $('leftL').textContent = tot >= g ? '超過目標 ' + fmt(tot - g) + ' ml' : '還差 ' + fmt(g - tot) + ' ml，約 ' + Math.ceil((g - tot) / 250) + ' 杯';
+  $('leftL').innerHTML = tot >= g ? '超過目標 ' + fmt(tot - g) + ' ml' : '還差 ' + fmt(g - tot) + ' ml，<span style="white-space:nowrap">約 ' + Math.ceil((g - tot) / 250) + ' 杯</span>';
   var p = $('pct'); p.textContent = pct + '%'; p.classList.toggle('done', tot >= g);
   $('streakN').textContent = '連續 ' + streak() + ' 天';
   $('dTitle').textContent = '今天 ' + logs.length + ' 杯';
@@ -671,6 +671,7 @@ $('pct').addEventListener('click', function(){ openDrawer(true); $('dbody').scro
 var drawer = $('drawer'), scrim = $('scrim'), dOpen = false;
 function openDrawer(on){
   dOpen = on; drawer.classList.toggle('open', on); drawer.style.transform = '';
+  if (!on){ var db = $('dbody'); if (db.scrollTop) db.scrollTo({top:0, behavior: reduce ? 'auto' : 'smooth'}); }
   scrim.classList.toggle('on', on || sheetOn);
   $('moreT').textContent = on ? '收起' : '紀錄';
   $('moreBtn').setAttribute('aria-label', on ? '收起紀錄' : '展開紀錄');

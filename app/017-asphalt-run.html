@@ -33,7 +33,7 @@ svg{display:block}
 .stage{position:relative;width:100%;height:100vh;height:100dvh}
 .backdrop,.caption,.cam{display:none}
 .device{position:relative;width:100%;height:100%}
-.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--asp)}
+.screen{position:absolute;inset:0;overflow:hidden;overflow:clip;isolation:isolate;background:var(--asp)}
 .screen::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .6 0 0 0 0 .58 0 0 0 0 .55 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
 @media (min-width:521px){
@@ -54,7 +54,7 @@ svg{display:block}
 @media (min-width:521px) and (max-width:900px){.caption{display:none}}
 
 /* status */
-.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(47px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:italic 800 17px/1 var(--cond);pointer-events:none}
+.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(47px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:italic 800 17px/1 var(--cond);pointer-events:none;background:linear-gradient(var(--asp) 72%,rgba(0,0,0,0))}
 .status .g{display:flex;gap:6px;align-items:center}
 @media (display-mode:standalone){.status{display:none}}
 
@@ -99,7 +99,7 @@ svg{display:block}
 .week .hd span{font-size:14px;color:var(--ink2)}
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:120px;margin-top:12px;align-items:end}
 .day{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
-.day i{display:block;width:70%;min-height:4px;background:var(--asp3);transform:skewX(-12deg);transition:height .6s var(--snap)}
+.day i{display:block;width:70%;min-height:4px;background:var(--asp3);transform:skewX(-12deg)}
 .day.has i{background:var(--or)}
 .day.today span{color:var(--ink)}
 .day span{font-size:13px;color:var(--ink3);font-weight:700}
@@ -110,7 +110,7 @@ svg{display:block}
 .ph .sum{text-align:right;font-size:13px;color:var(--ink2)}
 .ph .sum b{display:block;font:italic 800 26px/1 var(--cond);color:var(--ink)}
 .seg{position:relative;display:grid;grid-template-columns:repeat(4,1fr);height:44px;margin:0 2px 8px}
-.seg .knob{position:absolute;top:4px;bottom:4px;left:0;width:25%;background:var(--or);transform:skewX(-14deg);transition:left .42s var(--snap)}
+.seg .knob{position:absolute;top:4px;bottom:4px;left:0;width:25%;background:var(--or);transform:translateX(var(--kx,0%)) skewX(-14deg);transition:transform .42s var(--snap)}
 .seg button{position:relative;z-index:1;font-weight:700;font-size:14px;color:var(--ink2);transition:color .2s}
 .seg button[aria-pressed=true]{color:var(--asp)}
 .mon{font:italic 900 22px/1 var(--cond);color:var(--ink3);margin:22px 0 4px;letter-spacing:.02em}
@@ -123,7 +123,7 @@ svg{display:block}
 .run-row .d{font:italic 900 40px/1 var(--cond);white-space:nowrap;text-align:right;padding-right:4px}
 .run-row .d i{font-size:15px;color:var(--ink2);margin-left:2px}
 .run-row b{font-size:15px;display:block}
-.run-row span{font-size:13px;color:var(--ink2)}
+.run-row span{font-size:13px;line-height:1.45;color:var(--ink2)}
 .run-row svg{width:56px;height:46px}
 .empty{padding:60px 10px;text-align:center;color:var(--ink2)}
 .empty b{display:block;font:italic 900 40px/1 var(--cond);color:var(--ink);margin-bottom:8px}
@@ -163,7 +163,7 @@ svg{display:block}
 .goal span{font-size:14px;color:var(--ink2);font-weight:700;padding-bottom:8px}
 .goal span b{display:block;font:italic 800 26px/1 var(--cond);color:var(--ink)}
 .goalbar{position:relative;height:18px;margin:14px 0 0;background:var(--asp3);transform:skewX(-14deg);overflow:hidden}
-.goalbar i{position:absolute;inset:0 auto 0 0;background:var(--or);transition:width .7s var(--snap)}
+.goalbar i{position:absolute;inset:0;background:var(--or);transform-origin:0 50%;transition:transform .7s var(--snap)}
 .wk{margin-top:26px}
 .wk .hd{display:flex;justify-content:space-between;align-items:baseline}
 .wk .hd b{font:italic 900 24px/1 var(--cond)}
@@ -176,7 +176,8 @@ svg{display:block}
 .pbg div .it{display:block;font-size:44px;line-height:1.05}
 .pbg div .it i{font-size:20px;margin-left:3px;color:var(--ink2)}
 .pbg div small{display:block}
-.pbg div small{font-size:13px;color:var(--ink3)}
+.pbg div small{font-size:13px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pbg div{min-width:0}
 
 /* tab bar */
 .tabbar{position:absolute;left:0;right:0;bottom:0;z-index:20;height:calc(78px + env(safe-area-inset-bottom));padding:0 8px env(safe-area-inset-bottom);display:grid;grid-template-columns:1fr 1fr 104px 1fr 1fr;align-items:start;background:#1d1b19}
@@ -351,7 +352,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:30px;border:0;background:v
         <section class="page" id="p-stats" hidden aria-label="數據">
           <div class="ph"><h2>數據</h2></div>
           <button class="goal" id="goalBtn" aria-label="調整每週目標"><b class="it" id="stWeek">0</b><span>/ <b id="stGoal">25</b>本週公里 · 點此調整目標</span></button>
-          <div class="goalbar"><i id="goalFill" style="width:0"></i></div>
+          <div class="goalbar"><i id="goalFill" style="transform:scaleX(0)"></i></div>
           <div class="wk"><div class="hd"><b>十二週里程</b><span id="wkPick">點長條看單週</span></div><svg id="wkChart" viewBox="0 0 354 170"></svg></div>
           <div class="pbs"><h3>個人最佳</h3><div class="pbg" id="pbg"></div></div>
         </section>
@@ -504,6 +505,9 @@ function runTime(r){ return r.splits.reduce(function(a,b){ return a+b; },0); }
 function fmtPace(sec){ if(!isFinite(sec)||sec<=0) return '-'; sec=Math.round(sec); return Math.floor(sec/60)+'′'+String(sec%60).padStart(2,'0')+'″'; }
 function fmtT(sec){ sec=Math.max(0,Math.round(sec)); var h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60; return (h? h+':'+String(m).padStart(2,'0') : m)+':'+String(s).padStart(2,'0'); }
 var WD = ['日','一','二','三','四','五','六'];
+// masthead is set for a condensed face; if the fallback font is wider, step the size down so the issue date never clips
+function fitMast(){ var m=document.querySelector('.mast'); if(!m||!m.clientWidth) return; var h=m.querySelector('h1'), i=m.querySelector('.iss'), fs=124; h.style.fontSize=''; while(fs>72 && h.offsetWidth+i.offsetWidth>m.clientWidth){ fs-=4; h.style.fontSize=fs+'px'; } }
+addEventListener('resize', fitMast);
 function fmtDate(t){ var d=new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' 週'+WD[d.getDay()]; }
 function title(r){ var h=new Date(r.t).getHours(); return r.dist>=15 ? '長距離 LSD' : h<10 ? '晨跑' : h<17 ? '午後跑' : '夜跑'; }
 function glyph(ri, w, h, col){ var r=ROUTES[ri]; return '<svg viewBox="0 0 360 300" preserveAspectRatio="xMidYMid meet" width="'+w+'" height="'+h+'" aria-hidden="true"><path d="'+r.d+'" fill="none" stroke="'+(col||'#ff5a1f')+'" stroke-width="22" stroke-linejoin="round"/></svg>'; }
@@ -512,7 +516,7 @@ function weekKm(ws){ return runs.filter(function(r){ return r.t>=ws && r.t<ws+7*
 /* ---------- navigation ---------- */
 var ORDER = ['cover','log','replay','stats'], cur='cover';
 function go(p){
-  if(p===cur) { $('p-'+p).scrollTo({top:0, behavior:'smooth'}); return; }
+  if(p===cur) { $('p-'+p).scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}); return; }
   var back = ORDER.indexOf(p) < ORDER.indexOf(cur);
   $('p-'+cur).hidden = true; var el=$('p-'+p); el.hidden=false; el.classList.remove('in','rev'); void el.offsetWidth; el.classList.add('in'); if(back) el.classList.add('rev');
   cur = p;
@@ -526,7 +530,7 @@ document.querySelectorAll('.tab').forEach(function(t){ t.addEventListener('click
 function drawCover(){
   var now=Date.now(), ws=weekStart(now), wk=weekKm(ws);
   var d=new Date(), start=new Date(d.getFullYear(),0,1), issue=Math.ceil(((d-start)/DAY + start.getDay()+1)/7);
-  $('issNo').textContent = issue; $('issDate').textContent = d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0');
+  $('issNo').textContent = issue; $('issDate').textContent = d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0'); fitMast();
   var mStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
   var mk = runs.filter(function(r){ return r.t>=mStart; }).reduce(function(a,r){ return a+r.dist; },0);
   $('tagline').innerHTML = (d.getMonth()+1)+' 月已跑 <b>'+mk.toFixed(1)+' 公里</b>，共 '+runs.filter(function(r){ return r.t>=mStart; }).length+' 次出門。';
@@ -542,7 +546,7 @@ function drawCover(){
     $('cvPBl').textContent = '最新 · '+ROUTES[ri].n+' '+title(last);
   } else { m.innerHTML = contours(0); $('cvPB').textContent=''; $('cvPBl').textContent='還沒有紀錄，按 GO 出門'; }
   $('toc').innerHTML = runs.slice(0,3).map(function(r){
-    return '<button data-id="'+r.id+'"><span class="it">'+r.dist.toFixed(1)+'</span><div><b>'+esc(ROUTES[r.r].n)+' '+title(r)+'</b><span>'+fmtDate(r.t)+' · '+fmtT(runTime(r))+'</span></div><em>'+fmtPace(runTime(r)/r.dist)+'</em></button>';
+    return '<button data-id="'+r.id+'"><span class="it">'+r.dist.toFixed(1)+'</span><div><b>'+esc(ROUTES[r.r].n)+' '+title(r)+'</b><span>'+fmtDate(r.t)+' · 用時 '+fmtT(runTime(r))+'</span></div><em>'+fmtPace(runTime(r)/r.dist)+'</em></button>';
   }).join('') || '<p class="empty">目錄是空的。</p>';
   var days=''; var today=startOfDay(now);
   var kms=[]; for(var i=0;i<7;i++){ var ds=ws+i*DAY; kms.push(runs.filter(function(r){ return r.t>=ds && r.t<ds+DAY; }).reduce(function(a,r){ return a+r.dist; },0)); }
@@ -561,7 +565,7 @@ function drawLog(){
   list.forEach(function(r){
     var d=new Date(r.t), mk=d.getFullYear()+'-'+d.getMonth();
     if(mk!==lastM){ lastM=mk; html += '<p class="mon">'+(d.getMonth()+1)+' 月 '+['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][d.getMonth()]+'</p>'; }
-    html += '<div class="rw"><div class="del"><span>刪除</span></div><button class="run-row" data-id="'+r.id+'"><span class="d">'+r.dist.toFixed(1)+'<i>km</i></span><div><b>'+esc(ROUTES[r.r].n)+' · '+title(r)+'</b><span>'+fmtDate(r.t)+' · '+fmtT(runTime(r))+' · '+fmtPace(runTime(r)/r.dist)+'/km</span></div>'+glyph(r.r,56,46,'#6d6861')+'</button></div>';
+    html += '<div class="rw"><div class="del"><span>刪除</span></div><button class="run-row" data-id="'+r.id+'"><span class="d">'+r.dist.toFixed(1)+'<i>km</i></span><div><b>'+esc(ROUTES[r.r].n)+' · '+title(r)+'</b><span>'+fmtDate(r.t)+' · 用時 '+fmtT(runTime(r))+'<br>配速 '+fmtPace(runTime(r)/r.dist)+'/km</span></div>'+glyph(r.r,56,46,'#6d6861')+'</button></div>';
   });
   $('logList').innerHTML = html || '<div class="empty"><b>空白頁</b>這個距離還沒有紀錄。</div>';
   var tot=list.reduce(function(a,r){ return a+r.dist; },0);
@@ -570,7 +574,7 @@ function drawLog(){
 $('seg').addEventListener('click', function(e){
   var b=e.target.closest('button'); if(!b) return; filt=b.dataset.f; haptic(5);
   var bs=[].slice.call(this.querySelectorAll('button')); bs.forEach(function(x){ x.setAttribute('aria-pressed', x===b); });
-  this.querySelector('.knob').style.left = (bs.indexOf(b)*25)+'%'; drawLog();
+  this.querySelector('.knob').style.setProperty('--kx', (bs.indexOf(b)*100)+'%'); drawLog();
 });
 (function(){
   var row=null, sx=0, sy=0, dx=0, mode=null, pid=null;
@@ -668,7 +672,7 @@ var wkSel = 11;
 function drawStats(){
   var ws=weekStart(Date.now()), wk=weekKm(ws);
   $('stWeek').textContent = wk.toFixed(1); $('stGoal').textContent = settings.goal;
-  $('goalFill').style.width = Math.min(100, wk/settings.goal*100)+'%';
+  $('goalFill').style.transform = 'scaleX('+Math.min(1, wk/settings.goal).toFixed(4)+')';
   var weeks=[]; for(var i=11;i>=0;i--) weeks.push({ws:ws-i*7*DAY, km:weekKm(ws-i*7*DAY)});
   var mx=Math.max(settings.goal*1.2, Math.max.apply(null, weeks.map(function(w){ return w.km; }))), H=140, bw=20, gap=(354-12*bw)/11, svg='';
   var gy = H - settings.goal/mx*H + 10;

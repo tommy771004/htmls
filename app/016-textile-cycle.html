@@ -32,7 +32,7 @@ svg{display:block}
 .stage{position:relative;width:100%;height:100vh;height:100dvh}
 .backdrop,.label,.speaker{display:none}
 .device{position:relative;width:100%;height:100%}
-.screen{position:absolute;inset:0;overflow:hidden;background:var(--mustard);container-type:size;isolation:isolate}
+.screen{position:absolute;inset:0;overflow:hidden;overflow:clip;background:var(--mustard);container-type:size;isolation:isolate}
 @media (min-width:521px){
   body{background:#c8583a}
   .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
@@ -147,7 +147,7 @@ svg{display:block}
 .strip{display:grid;grid-template-columns:62px 1fr 44px;align-items:center;gap:8px;min-height:56px}
 .strip .when{font:600 14px/1.2 var(--futura)}
 .strip .when small{display:block;font:400 12px/1.3 var(--sans);color:var(--brown)}
-.bar{position:relative;height:26px;border-radius:4px;overflow:hidden;background:var(--mustard-d);transition:width .5s var(--out)}
+.bar{position:relative;height:26px;border-radius:4px;overflow:hidden;background:var(--mustard-d)}
 .bar i{position:absolute;top:0;bottom:0}
 .bar .bp{left:0;background:var(--rust)}
 .bar .bf{background:var(--linen)}
@@ -330,6 +330,8 @@ svg{display:block}
             <span><i style="background:repeating-linear-gradient(135deg,var(--rust) 0 3px,var(--mustard) 3px 7px)"></i>預測月經</span>
             <span><i style="background:var(--linen)"></i>易孕期</span>
             <span><i style="background:var(--clay)"></i>排卵日</span>
+            <span><i style="background:none;box-shadow:inset 0 0 0 2.5px var(--ink)"></i>今天</span>
+            <span><i style="background:linear-gradient(var(--brown),var(--brown)) 50% 78%/12px 3px no-repeat"></i>有記錄症狀</span>
           </div>
           <div class="msum" id="msum"></div>
         </section>

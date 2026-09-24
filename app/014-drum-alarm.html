@@ -35,7 +35,7 @@ svg{display:block}
 .stage{position:relative;width:100%;height:100vh;height:100dvh}
 .backdrop,.caption{display:none}
 .device{position:relative;width:100%;height:100%}
-.screen{position:absolute;inset:0;overflow:hidden;background:linear-gradient(180deg,#10201b 0%,#0f1a17 38%,#0c1512 100%);isolation:isolate}
+.screen{position:absolute;inset:0;overflow:hidden;overflow:clip;background:linear-gradient(180deg,#10201b 0%,#0f1a17 38%,#0c1512 100%);isolation:isolate}
 @media (min-width:521px){
   body{background:#0a1210}
   .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:24px}
@@ -54,7 +54,7 @@ svg{display:block}
 .stars{position:absolute;left:0;right:0;top:0;height:260px;z-index:0;pointer-events:none}
 
 /* status bar */
-.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:600 15px/1 var(--sans);letter-spacing:.02em;pointer-events:none}
+.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:600 15px/1 var(--sans);letter-spacing:.02em;pointer-events:none;background:linear-gradient(#10201b 64%,rgba(16,32,27,0))}
 .status .g{display:flex;gap:6px;align-items:center}
 @media (display-mode:standalone){.status{display:none}}
 .topfade{position:absolute;top:0;left:0;right:0;height:calc(58px + env(safe-area-inset-top));z-index:35;pointer-events:none;background:linear-gradient(180deg,#0f1f1a 55%,rgba(15,31,26,0))}
@@ -141,7 +141,7 @@ svg{display:block}
 .listhead h2{font:500 15px var(--sans)}
 .alist{border-radius:22px;overflow:hidden;background:var(--panel)}
 .arow{position:relative;overflow:hidden}
-.arow+.arow{box-shadow:inset 0 1px 0 rgba(239,230,216,.07)}
+.arow+.arow::before{content:"";position:absolute;left:18px;right:0;top:0;height:1px;background:rgba(239,230,216,.09);z-index:2;pointer-events:none}
 .arow .del{position:absolute;right:0;top:0;bottom:0;width:92px;background:#8c3b2c;color:#fbe9dc;font-size:15px;font-weight:600}
 .arow .front{position:relative;display:flex;align-items:center;gap:10px;padding:12px 14px 12px 18px;background:var(--panel);touch-action:pan-y;transition:transform .35s var(--out)}
 .arow.drag .front{transition:none}
@@ -181,9 +181,9 @@ svg{display:block}
 .fader{position:relative;width:48px;height:156px;touch-action:none;cursor:ns-resize;outline:none}
 .fader:focus-visible{outline:2px solid var(--moon);outline-offset:2px;border-radius:12px}
 .fader .groove{position:absolute;left:50%;top:8px;bottom:8px;width:6px;margin-left:-3px;border-radius:3px;background:#223830;overflow:hidden}
-.fader .fill{position:absolute;left:0;right:0;bottom:0;border-radius:3px;background:linear-gradient(0deg,var(--light),var(--moon))}
-.fader .cap{position:absolute;left:50%;width:30px;height:12px;margin-left:-15px;border-radius:6px;background:var(--ink);box-shadow:0 2px 3px -1px rgba(0,0,0,.6)}
-.fader .fill,.fader .cap{transition:height .5s var(--out),bottom .5s var(--out)}
+.fader .fill{position:absolute;left:0;right:0;bottom:0;height:100%;transform:scaleY(0);transform-origin:50% 100%;border-radius:3px;background:linear-gradient(0deg,var(--light),var(--moon))}
+.fader .cap{position:absolute;left:50%;bottom:2px;width:30px;height:12px;margin-left:-15px;border-radius:6px;background:var(--ink);box-shadow:0 2px 3px -1px rgba(0,0,0,.6)}
+.fader .fill,.fader .cap{transition:transform .5s var(--out)}
 .fader.drag .fill,.fader.drag .cap{transition:none}
 .presets{margin-top:10px;border-radius:22px;background:var(--panel);overflow:hidden}
 .prow{display:flex;align-items:center}
@@ -647,7 +647,9 @@ var dH=new Drum($('dH'),{count:24,value:cfg.h,format:pad,onChange:drumChanged,on
 var dM=new Drum($('dM'),{count:60,value:cfg.m,format:pad,onChange:drumChanged,onSettle:saveCfg,tick:clickTick});
 function saveCfg(){cfg.h=dH.value();cfg.m=dM.value();save('cfg',cfg)}
 function drumChanged(){var now=new Date(),nm=now.getHours()*60+now.getMinutes(),t=dH.value()*60+dM.value(),d=mod(t-nm-15,1440);
-  var c=Math.floor(d/90);$('cycles').innerHTML='現在躺下，約可睡 <b>'+durZh(d)+'</b>，'+(c?'約 '+c+' 個睡眠週期':'不到一個週期');renderWin()}
+  var c=Math.floor(d/90);
+  if(d>720){var b6=mod(t-15-540,1440),b5=mod(t-15-450,1440);$('cycles').innerHTML='想睡滿 5–6 個週期，建議 <b>'+pad(Math.floor(b6/60))+':'+pad(b6%60)+'</b> 或 <b>'+pad(Math.floor(b5/60))+':'+pad(b5%60)+'</b> 上床'}
+  else $('cycles').innerHTML='現在躺下，約可睡 <b>'+durZh(d)+'</b>，'+(c?'約 '+c+' 個睡眠週期':'不到一個週期');renderWin()}
 function renderWin(){var t=dH.value()*60+dM.value();$('winTxt').textContent=cfg.win?'會在 '+hm(t-cfg.win)+' 到 '+hm(t)+' 之間，偵測到淺眠就叫醒你':'準時在 '+hm(t)+' 響鈴'}
 function renderSeg(){var bs=$('winSeg').querySelectorAll('button'),i=0;bs.forEach(function(b,j){var on=+b.dataset.w===cfg.win;b.setAttribute('aria-pressed',on);if(on)i=j});$('winSeg').querySelector('.knob').style.transform='translateX('+(i*100)+'%)';renderWin()}
 $('winSeg').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;cfg.win=+b.dataset.w;save('cfg',cfg);renderSeg();haptic(5)});
@@ -756,7 +758,7 @@ $('timers').addEventListener('click',function(e){var b=e.target.closest('button'
 setInterval(function(){if(playing)updTimer()},1000);
 function renderMixer(){$('mixer').innerHTML=CH.map(function(ch){return '<div class="ch" data-k="'+ch.k+'"><svg class="ic" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+ch.ic+'</svg><div class="fader" tabindex="0" role="slider" aria-label="'+ch.n+'音量" aria-valuemin="0" aria-valuemax="100"><div class="groove"><div class="fill"></div></div><div class="cap"></div></div><div class="pc">0</div><div class="nm">'+ch.n+'</div></div>'}).join('');updMixer()}
 function updMixer(){CH.forEach(function(ch){var el=$('mixer').querySelector('[data-k="'+ch.k+'"]'),v=mix[ch.k],f=el.querySelector('.fader');
-  el.querySelector('.fill').style.height=(v*100).toFixed(1)+'%';el.querySelector('.cap').style.bottom='calc('+(v*100).toFixed(1)+'% * (140/156) + 2px)';el.querySelector('.pc').textContent=Math.round(v*100);f.setAttribute('aria-valuenow',Math.round(v*100))})}
+  el.querySelector('.fill').style.transform='scaleY('+v.toFixed(3)+')';el.querySelector('.cap').style.transform='translateY('+(-v*140).toFixed(1)+'px)';el.querySelector('.pc').textContent=Math.round(v*100);f.setAttribute('aria-valuenow',Math.round(v*100))})}
 (function(){var cur=null,k=null,lastQ=-1;
 $('mixer').addEventListener('pointerdown',function(e){var f=e.target.closest('.fader');if(!f)return;cur=f;k=f.parentNode.dataset.k;f.classList.add('drag');try{f.setPointerCapture(e.pointerId)}catch(_){}set(e)});
 $('mixer').addEventListener('pointermove',function(e){if(cur)set(e)});

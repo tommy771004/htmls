@@ -31,7 +31,7 @@ svg{display:block}
 .stage{position:relative;width:100%;height:100vh;height:100dvh}
 .backdrop,.caption{display:none}
 .device{position:relative;width:100%;height:100%}
-.screen{position:absolute;inset:0;overflow:hidden;background:var(--paper);isolation:isolate;display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
+.screen{position:absolute;inset:0;overflow:hidden;overflow:clip;background:var(--paper);isolation:isolate;display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
 .screen input{-webkit-user-select:text;user-select:text}
 @media (min-width:521px){
   body{background:#0b7a47}
@@ -70,7 +70,7 @@ svg{display:block}
 /* today */
 .hero{display:flex;align-items:flex-end;justify-content:space-between;padding:4px 2px 10px}
 .hero .k{font:800 13px/1 var(--disp);color:var(--ink2);letter-spacing:.1em}
-.hero .big{font:800 58px/1 var(--disp);letter-spacing:.01em;margin-top:6px}
+.hero .big{font:800 58px/1 var(--disp);letter-spacing:.01em;margin-top:6px;white-space:nowrap}
 .hero .big small{font-size:18px;margin-left:4px;letter-spacing:.04em}
 .hero .of{font:700 13px/1.2 var(--sans);color:var(--ink2);margin-top:4px}
 .sticker{flex:none;width:112px;height:76px;background:var(--o);color:var(--ink);transform:rotate(-5deg);display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -149,7 +149,7 @@ svg{display:block}
 .bars .goal{position:absolute;left:0;right:0;border-top:2px dashed var(--o2);pointer-events:none}
 .bars .goal span{position:absolute;right:0;top:-18px;font:800 11px/1 var(--disp);color:var(--o2);background:#fff;padding:2px 0 2px 4px}
 .bar{height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;cursor:pointer;min-height:44px}
-.bar .stk{display:flex;flex-direction:column-reverse;transition:height .6s var(--out)}
+.bar .stk{display:flex;flex-direction:column-reverse}
 .bar .stk i{display:block}
 .bar .d{font:800 13px/1 var(--disp);text-align:center;padding-top:8px;color:var(--ink2)}
 .bar[aria-pressed=true] .d{color:var(--ink)}
@@ -220,12 +220,16 @@ svg{display:block}
 .vf .pkg{position:absolute;inset:0;transition:filter .3s}
 .vf .pkg svg{width:100%;height:100%}
 .vf.dim .pkg{filter:brightness(.55) saturate(.8)}
-.vf .laser{position:absolute;left:8%;right:8%;height:3px;background:#ff3b2f;top:20%;animation:laser 1.5s ease-in-out infinite alternate}
-@keyframes laser{from{top:22%}to{top:78%}}
+/* the laser sweeps with transform only: ::before is as tall as the sweep band and draws the 3px line at its top edge */
+.vf .laser{position:absolute;left:8%;right:8%;top:22%;bottom:22%;pointer-events:none}
+.vf .laser::before{content:"";position:absolute;left:0;right:0;top:0;height:100%;background:linear-gradient(var(--lc,#ff3b2f) 0 3px,transparent 3px);animation:laser 1.5s ease-in-out infinite alternate}
+.scan:not(.on) .laser::before{animation-play-state:paused}
+@keyframes laser{from{transform:translateY(-1.5px)}to{transform:translateY(calc(100% - 1.5px))}}
 .vf .corner{position:absolute;width:34px;height:34px;border:5px solid #fff}
 .vf .c1{left:10px;top:10px;border-right:0;border-bottom:0}.vf .c2{right:10px;top:10px;border-left:0;border-bottom:0}
 .vf .c3{left:10px;bottom:10px;border-right:0;border-top:0}.vf .c4{right:10px;bottom:10px;border-left:0;border-top:0}
-.vf.hit .laser{animation:none;top:50%;background:var(--o)}
+.vf.hit .laser{--lc:var(--o)}
+.vf.hit .laser::before{animation:none;transform:translateY(calc(50% - 1.5px))}
 .scan .hint{text-align:center;font:700 14px/1.5 var(--sans);margin:16px 20px 0;color:#cfe0d5;min-height:42px}
 .scan .acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 20px calc(30px + env(safe-area-inset-bottom))}
 .scan .acts button{height:54px;font:800 15px/1 var(--disp);letter-spacing:.1em}
@@ -270,7 +274,7 @@ svg{display:block}
 
 @media (prefers-reduced-motion:reduce){
   .view.enter{animation:none}
-  .vf .laser{animation:none;top:50%}
+  .vf .laser::before{animation:none;transform:translateY(calc(50% - 1.5px))}
   .bento .fill,.ring .arc,.bar .stk,.row .fr{transition:none}
   .sheet,.scan,.toast{transition-duration:.01s}
 }
