@@ -595,7 +595,7 @@ function seedRoll(id, n, daysAgo, s){
     var sp = clamp(Math.round(correctIdx(h) + (r() < .7 ? 0 : (r() < .5 ? -1 : 1)) * (1 + Math.floor(r() * 2))), 0, 10);
     frames.push({n:i + 1, s:Math.floor(r() * 1e9), h:+h.toFixed(1), sp:sp, t:now - daysAgo * DAY + i * 3600e3 * (.3 + r())});
   }
-  return {id:id, frames:frames, dev:now - (daysAgo - 2) * DAY};
+  return {id:id, frames:frames, dev:now - (daysAgo - 2) * DAY, demo:true};
 }
 var rolls = load('rolls', null);
 if (!Array.isArray(rolls)){
@@ -603,8 +603,7 @@ if (!Array.isArray(rolls)){
 }
 var cam = load('cam', null);
 if (!cam || !Array.isArray(cam.frames)){
-  var sr = seedRoll('cur', 9, 3, 303);
-  cam = {frames:sr.frames, count:9, cocked:false, speed:7, heading:176};
+  cam = {frames:[], count:0, cocked:false, speed:7, heading:176};
 }
 var nextId = load('nid', 3);
 function persist(){ save('rolls', rolls); save('cam', cam); save('nid', nextId); }
@@ -781,7 +780,7 @@ var REST = 136, END = 14, lvAng = REST, lastTick = 0;
 function setLever(a){ lvAng = a; $('lever').style.transform = 'rotate(' + a.toFixed(1) + 'deg)'; }
 setLever(REST);
 function finishAdvance(){
-  if (cam.frames.length >= 36){ return; }
+  if (cam.cocked || cam.frames.length >= 36){ return; }
   cam.cocked = true; cam.count = cam.frames.length + 1; persist(); renderCounter(); haptic([6, 30, 10]);
 }
 function leverBlocked(){
@@ -793,7 +792,7 @@ function springBack(){ var w = $('leverWrap'); w.classList.add('back'); setLever
 (function(){
   var arm = $('lever'), down = false, a0 = 0, moved = false, blocked = false;
   function angle(e){ var r = $('leverWrap').getBoundingClientRect(); return Math.atan2(e.clientY - r.top, e.clientX - r.left) * 180 / Math.PI; }
-  arm.addEventListener('pointerdown', function(e){ e.stopPropagation(); down = true; moved = false; blocked = false; a0 = angle(e); try { arm.setPointerCapture(e.pointerId); } catch(_){} });
+  arm.addEventListener('pointerdown', function(e){ e.stopPropagation(); if (autoBusy || down) return; down = true; moved = false; blocked = false; a0 = angle(e); try { arm.setPointerCapture(e.pointerId); } catch(_){} });
   arm.addEventListener('pointermove', function(e){
     if (!down || blocked) return; var a = (angle(e) + 360) % 360; if (!moved && Math.abs(wrap(a - a0)) < 5) return;
     if (!moved){ moved = true; if (leverBlocked()){ blocked = true; return; } }
@@ -808,7 +807,10 @@ function springBack(){ var w = $('leverWrap'); w.classList.add('back'); setLever
     else if (!cam.cocked) { toast('要拉到底才會上片'); }
     lastTick = 0; springBack();
   }
-  arm.addEventListener('pointerup', up); arm.addEventListener('pointercancel', up);
+  function cancel(){ if (!down) return; down = false; blocked = false; moved = false; lastTick = 0; springBack(); }
+  arm.addEventListener('pointerup', up); arm.addEventListener('pointercancel', cancel);
+  arm.addEventListener('lostpointercapture', cancel);
+  window.addEventListener('blur', cancel);
   arm.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); autoAdvance(); } });
 })();
 var autoBusy = false;
@@ -844,22 +846,26 @@ $('fire').addEventListener('click', function(){
 /* ---------- rewind crank ---------- */
 var rewAng = 0, rewDone = 0;
 (function(){
-  var r = $('rewind'), down = false, a0 = 0, moved = false, acc = 0;
+  var r = $('rewind'), down = false, a0 = 0, moved = false, acc = 0, ready = false;
   function angle(e){ var b = r.getBoundingClientRect(); return Math.atan2(e.clientY - (b.top + b.height / 2), e.clientX - (b.left + b.width / 2)) * 180 / Math.PI; }
-  r.addEventListener('pointerdown', function(e){ down = true; moved = false; a0 = angle(e); acc = 0; r.classList.add('out'); try { r.setPointerCapture(e.pointerId); } catch(_){} });
+  r.addEventListener('pointerdown', function(e){ if (down || devBusy) return; down = true; moved = false; ready = false; a0 = angle(e); acc = 0; r.classList.add('out'); try { r.setPointerCapture(e.pointerId); } catch(_){} });
   r.addEventListener('pointermove', function(e){
     if (!down) return; var a = angle(e), da = wrap(a - a0); a0 = a; if (Math.abs(da) > 2) moved = true;
     if (!cam.frames.length) return;
     acc += Math.abs(da); rewAng += da; $('rewSpin').style.transform = 'rotate(' + rewAng.toFixed(1) + 'deg)';
     var k = Math.floor(acc / 24); if (k !== rewDone){ rewDone = k; sndTick(); haptic(2); }
-    if (acc > 720){ down = false; acc = 0; r.classList.remove('out'); develop(); }
+    if (acc > 720 && !ready){ ready = true; haptic([8, 30, 8]); }
   });
   function up(){
     if (!down) return; down = false; r.classList.remove('out');
+    if (ready){ ready = false; acc = 0; develop(); return; }
     if (!moved){ if (!cam.frames.length) toast('機內沒有底片可以倒'); else toast('轉兩圈倒片，或在底片盒按「倒片沖洗」', '打開底片盒', openBox); haptic(8); }
     else if (cam.frames.length) toast('再轉快一點，要轉滿兩圈');
   }
-  r.addEventListener('pointerup', up); r.addEventListener('pointercancel', up);
+  function cancel(){ down = false; ready = false; acc = 0; r.classList.remove('out'); }
+  r.addEventListener('pointerup', up); r.addEventListener('pointercancel', cancel);
+  r.addEventListener('lostpointercapture', cancel);
+  window.addEventListener('blur', cancel);
 })();
 
 /* ---------- photo rendering ---------- */
@@ -919,20 +925,21 @@ function rollById(id){ for (var i = 0; i < rolls.length; i++) if (rolls[i].id ==
 function renderBox(){
   var html = '<div class="cans" role="tablist" aria-label="底片">';
   html += '<button class="can" role="tab" data-roll="cur" aria-selected="'+(view.roll === 'cur')+'">'+canSVG(cam.frames.length + '/36', true)+'<span>機內</span></button>';
-  for (var i = rolls.length - 1; i >= 0; i--){ var r = rolls[i]; html += '<button class="can" role="tab" data-roll="'+r.id+'" aria-selected="'+(view.roll === r.id)+'">'+canSVG(r.frames.length + ' 張', false)+'<span>'+fmtDate(r.dev).slice(5)+'</span></button>'; }
+  for (var i = rolls.length - 1; i >= 0; i--){ var r = rolls[i]; html += '<button class="can" role="tab" data-roll="'+r.id+'" aria-selected="'+(view.roll === r.id)+'">'+canSVG(r.frames.length + ' 張', false)+'<span>'+(r.demo ? '示範 ' : '')+fmtDate(r.dev).slice(5)+'</span></button>'; }
   html += '</div>';
   if (view.roll === 'cur'){
     $('sheetT').innerHTML = '機內底片 <small>還沒沖洗，看不到</small>';
     html += '<p class="rollmeta">已拍 <b>'+cam.frames.length+'</b> 張，剩 <b>'+(36 - cam.frames.length)+'</b> 張。潛影要沖洗後才會出現。</p>';
     html += contactHTML(cam.frames, true);
     html += '<div class="tank" id="tank"><svg width="40" height="44" viewBox="0 0 40 44" aria-hidden="true"><rect x="6" y="8" width="28" height="34" rx="3" fill="#0e0c0a"/><rect x="3" y="3" width="34" height="8" rx="2" fill="#5d5d58"/><path d="M14 18h12M14 24h12M14 30h12" stroke="#f2b705" stroke-width="2" stroke-linecap="square"/></svg><div><b id="tankT">沖洗罐</b><span id="tankS">D-76 顯影 · 20°C</span></div></div>';
-    html += '<button class="act" id="devBtn"'+(cam.frames.length ? '' : ' disabled')+'>'+iconRewind()+'倒片沖洗</button>';
+    html += '<button class="act" id="devBtn"'+(cam.frames.length && !devBusy ? '' : ' disabled')+'>'+iconRewind()+(devBusy ? '倒片中…' : '倒片沖洗')+'</button>';
+    if (devBusy) html += '<button class="quiet" id="cancelDev">取消沖洗</button>';
   } else {
     var roll = rollById(view.roll);
     if (!roll){ view.roll = 'cur'; return renderBox(); }
     $('sheetT').innerHTML = '印樣 <small>'+fmtDate(roll.dev)+' 沖洗</small>';
     var counts = [0,0,0]; roll.frames.forEach(function(f){ counts[SCENES.indexOf(sceneOf(f.h))]++; });
-    html += '<p class="rollmeta"><b>'+roll.frames.length+'</b> 張 · 基隆 '+counts[0]+' · 九份 '+counts[1]+' · 淡水 '+counts[2]+'　點一格放大</p>';
+    html += '<p class="rollmeta">'+(roll.demo ? '示範影像 · ' : '')+'<b>'+roll.frames.length+'</b> 張 · 基隆 '+counts[0]+' · 九份 '+counts[1]+' · 淡水 '+counts[2]+'　點一格放大</p>';
     html += contactHTML(roll.frames, false);
     html += '<button class="quiet warn" id="dropRoll" style="margin:14px auto 0">'+iconCut()+'丟掉整卷</button>';
   }
@@ -986,6 +993,7 @@ $('sheetBody').addEventListener('click', function(e){
   if (t.dataset.roll){ view.roll = t.dataset.roll; view.frame = -1; haptic(6); renderBox(); return; }
   if (t.dataset.f !== undefined){ view.frame = +t.dataset.f; haptic(8); renderPrint(); return; }
   if (t.id === 'devBtn') { develop(); return; }
+  if (t.id === 'cancelDev') { cancelDevelop(); return; }
   if (t.id === 'pBack'){ view.frame = -1; renderBox(); return; }
   if (t.id === 'pPrev') return stepPrint(-1);
   if (t.id === 'pNext') return stepPrint(1);
@@ -1001,23 +1009,29 @@ $('sheetBody').addEventListener('click', function(e){
     toast('整卷已丟掉', '復原', function(){ rolls.splice(i2, 0, r2); view.roll = r2.id; persist(); if (sheet.classList.contains('on')) renderBox(); renderCounter(); });
   }
 });
-var devBusy = false;
+var devBusy = false, devRaf = 0;
+function cancelDevelop(){
+  if (!devBusy) return;
+  devBusy = false; cancelAnimationFrame(devRaf);
+  animateDisc(cam.count * 32); view.roll = 'cur'; renderBox();
+  toast('沖洗已取消，機內底片仍保留');
+}
 function develop(){
   if (devBusy || !cam.frames.length) return; devBusy = true;
-  var n = cam.frames.length, roll = {id:'r' + (nextId++), frames:cam.frames.slice(), dev:Date.now()};
+  var n = cam.frames.length, roll = {id:'r' + nextId, frames:cam.frames.slice(), dev:Date.now()};
   // rewind: counter spins back, crank spins
   if (!sheet.classList.contains('on')) openBox();
   view.roll = 'cur'; renderBox();
-  var btn = $('devBtn'); if (btn){ btn.disabled = true; btn.lastChild.textContent = '倒片中…'; }
-  var t0 = performance.now(), dur = reduce ? 300 : 1500, lastK = -1;
+  var t0 = performance.now(), dur = reduce ? 300 : 1500, lastK = -1, startAng = rewAng;
   (function f(t){
-    var p = clamp((t - t0) / dur, 0, 1); rewAng += 14; $('rewSpin').style.transform = 'rotate(' + rewAng.toFixed(1) + 'deg)';
+    if (!devBusy) return;
+    var p = clamp((t - t0) / dur, 0, 1); rewAng = startAng + p * 720; $('rewSpin').style.transform = 'rotate(' + rewAng.toFixed(1) + 'deg)';
     var k = Math.floor(p * 26); if (k !== lastK){ lastK = k; sndTick(); }
     discAng = cam.count * 32 * (1 - p); setDisc(discAng);
     var tt = $('tankS'); if (tt) tt.textContent = p < .5 ? '倒片 ' + Math.round(n * (1 - p * 2)) + ' 張' : '顯影中 ' + Math.round((p - .5) * 200) + '%';
-    if (p < 1) requestAnimationFrame(f);
+    if (p < 1) devRaf = requestAnimationFrame(f);
     else {
-      rolls.push(roll); cam.frames = []; cam.count = 0; cam.cocked = false; persist(); renderCounter(); devBusy = false;
+      rolls.push(roll); nextId++; cam.frames = []; cam.count = 0; cam.cocked = false; persist(); renderCounter(); devBusy = false;
       haptic([10, 40, 10, 40, 30]); view.roll = roll.id; view.frame = -1; renderBox();
       toast('沖好了：' + n + ' 張印樣，新底片已裝好');
     }
@@ -1031,6 +1045,7 @@ function openBox(){
 }
 function closeBox(){
   if (!sheet.classList.contains('on')) return;
+  if (devBusy) cancelDevelop();
   sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on');
   if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
 }

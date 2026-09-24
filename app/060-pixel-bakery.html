@@ -230,7 +230,7 @@ function upIcon(ctx, id){ ctx.clearRect(0,0,16,16); var f = function(c,x,y,w,h){
 
 /* ================= state ================= */
 var st = load('state', null);
-function fresh(){ return {g:132, tot:5846, baked:2104, taps:388, lv:{pin:0,app:3,mix:1,kiln:0,van:0,stall:0,shop:0}, br:2, t:Date.now(), play:8460, snd:true, hap:true}; }
+function fresh(){ return {g:0, tot:0, baked:0, taps:0, lv:{pin:0,app:0,mix:0,kiln:0,van:0,stall:0,shop:0}, br:1, t:Date.now(), play:0, snd:true, hap:true}; }
 if(!st || typeof st.g!=='number' || !st.lv) st = fresh();
 UPS.forEach(function(u){ if(typeof st.lv[u.id]!=='number') st.lv[u.id] = 0; });
 function haptic(p){ if(!st.hap) return; try{ navigator.vibrate && navigator.vibrate(p||8); }catch(e){} }

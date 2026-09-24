@@ -87,6 +87,7 @@ h1 .l3{-webkit-text-stroke:3px var(--k);color:transparent}
 .fld{flex:1;min-width:0;position:relative;border-bottom:3px solid #333;display:flex;align-items:flex-end}
 .fld:focus-within{border-color:var(--o)}
 .fld input{width:100%;min-width:0;background:transparent;border:0;font:400 clamp(40px,5vw,58px)/1 var(--disp);padding:4px 0 6px;text-align:left;outline:none;-moz-appearance:textfield;appearance:textfield}
+.fld input[aria-invalid="true"]{color:#bb3b27}
 .fld input::-webkit-outer-spin-button,.fld input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .fld i{font:italic 900 12px/1 var(--blk);color:var(--g2);padding-bottom:12px;padding-left:4px;letter-spacing:.06em}
 .sep{font:400 44px/1 var(--disp);align-self:flex-end;padding-bottom:10px;color:var(--o)}
@@ -225,6 +226,7 @@ footer strong em{font-style:normal;color:var(--o)}
       </div>
     </div>
     <p class="hint">提示：在任何欄位按 ↑ / ↓ 微調，結果即時更新。</p>
+    <p class="hint" id="inputStatus" role="status" aria-live="polite"></p>
   </section>
 
   <section class="res" aria-live="polite">
@@ -312,9 +314,18 @@ footer strong em{font-style:normal;color:var(--o)}
 
   function readTime(){ return clamp(num(el.th,0),0,99)*3600 + clamp(num(el.tm,0),0,59)*60 + clamp(num(el.ts,0),0,59); }
   function readPace(){ return clamp(num(el.pm,5),1,30)*60 + clamp(num(el.ps,0),0,59); }
+  function validInputs(){
+    const fields = [[el.km,'距離',0.1,500,mode!=='dist'],[el.th,'小時',0,99,mode!=='time'],[el.tm,'分鐘',0,59,mode!=='time'],[el.ts,'秒',0,59,mode!=='time'],[el.pm,'配速分鐘',1,30,mode!=='pace'],[el.ps,'配速秒',0,59,mode!=='pace']];
+    const bad = [];
+    fields.forEach(([input,label,min,max,active]) => { const value=Number(input.value); const invalid=active && (input.value.trim()==='' || !Number.isFinite(value) || value<min || value>max); input.setAttribute('aria-invalid',String(invalid)); if(invalid) bad.push(label+'（'+min+'–'+max+'）'); });
+    if(!bad.length && mode!=='time' && readTime()===0) bad.push('完賽時間須大於 0 秒');
+    $('#inputStatus').textContent = bad.length ? '請修正 '+bad.join('、')+'；結果尚未更新。' : '';
+    return !bad.length;
+  }
 
   let lastBig = '';
   function calc(anim){
+    if(!validInputs()) return;
     let km = clamp(num(el.km,10),0.1,500), t = readTime(), p = readPace();
     if (mode === 'pace'){ t = Math.max(t,1); p = t/km; }
     else if (mode === 'time'){ t = p*km; }
@@ -371,8 +382,8 @@ footer strong em{font-style:normal;color:var(--o)}
   [el.km,el.th,el.tm,el.ts,el.pm,el.ps].forEach(i => {
     i.addEventListener('input', () => calc(false));
     i.addEventListener('blur', () => {
-      // normalise overflowed seconds / minutes on blur
-      if (i === el.ts || i === el.tm || i === el.ps){ const v = clamp(Math.round(num(i,0)),0,59); i.value = v; }
+      const bounds = i === el.km ? [0.1,500,10] : i === el.th ? [0,99,0] : i === el.pm ? [1,30,5] : [0,59,0];
+      i.value = i === el.km ? clamp(num(i,bounds[2]),bounds[0],bounds[1]) : clamp(Math.round(num(i,bounds[2])),bounds[0],bounds[1]);
       calc(false);
     });
   });

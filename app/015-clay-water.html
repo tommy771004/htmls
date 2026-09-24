@@ -359,7 +359,8 @@ var $ = function(id){ return document.getElementById(id); };
 var KEY = 'app015:';
 function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
 function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
-var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var motionQuery = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+var reduce = !!(motionQuery && motionQuery.matches);
 var fmt = function(n){ return Math.round(n).toLocaleString('en-US'); };
 var settings = load('settings', {goal:2000, weight:56, tilt:false, remind:true, sound:true});
 function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
@@ -491,14 +492,19 @@ function draw(){
   btl.style.transform = reduce ? '' : 'rotate(' + (theta * 57.3).toFixed(2) + 'deg)';
 }
 function energy(){ var e = Math.abs(thetaV) + Math.abs(phiV) + Math.abs(theta - (dragging ? thetaT : tiltInput)) + Math.abs(phi + theta) + Math.abs(levelT - level) * 3; for (var i = 0; i < N; i++) e += Math.abs(wv[i]) * .5 + Math.abs(wh[i]); return e + bubbles.length + splash.length; }
+function settleWater(){
+  running = false; level = levelT; theta = thetaV = thetaT = phi = phiV = 0;
+  wh.fill(0); wv.fill(0); bubbles.length = 0; splash.length = 0; draw();
+}
 function loop(t){
-  if (document.hidden){ running = false; return; }
+  if (document.hidden || reduce){ running = false; return; }
   var dt = Math.min(.033, (t - (lastT || t)) / 1000 || .016); lastT = t;
   step(dt); draw();
   if (energy() < .004 && !dragging && !settings.tilt){ running = false; return; }
   requestAnimationFrame(loop);
 }
-function kick(){ if (!running){ running = true; lastT = 0; requestAnimationFrame(loop); } }
+function kick(){ if (!reduce && !running){ running = true; lastT = 0; requestAnimationFrame(loop); } }
+if (motionQuery) motionQuery.addEventListener('change', function(e){ reduce = e.matches; if (reduce) settleWater(); });
 document.addEventListener('visibilitychange', function(){ if (!document.hidden) kick(); });
 
 /* drag the bottle to slosh */
@@ -530,6 +536,7 @@ function setTilt(on){
 /* ---------- pour ---------- */
 var dropEl = $('drop');
 function pour(ml, k){
+  reduce = !!(motionQuery && motionQuery.matches);
   var entry = {t:now.getHours() * 60 + now.getMinutes(), ml:ml, k:k};
   var d = new Date(); entry.t = d.getHours() * 60 + d.getMinutes();
   var before = totalToday();
@@ -538,6 +545,7 @@ function pour(ml, k){
   var hitGoal = before < settings.goal && totalToday() >= settings.goal;
   var fall = function(){
     levelT = fillFrac();
+    if (reduce){ settleWater(); if (hitGoal) setTimeout(function(){ bloop(true); haptic([10, 40, 10, 40, 20]); toast('今天的水喝滿了，讚'); }, 380); return; }
     var x = W / 2 + (Math.random() - .5) * 20;
     poke(x, 1.4 + ml / 300);
     for (var i = 0; i < 7; i++) splash.push({x:x, y:H - 6 - level * H * .8, vx:(Math.random() - .5) * 160, vy:-120 - Math.random() * 160, r:2 + Math.random() * 2.5, floor:H - 6 - level * H * .8 + 4});

@@ -564,7 +564,7 @@ function bindTop(){
     else if (dy < -120) fling('super', dx, dy);
     else { c.classList.add('settle'); dx = dy = 0; paint(); c.style.transform = ''; [sR, sL, sU].forEach(function(s){ s.style.opacity = 0; }); if (cardEls[1]) cardEls[1].style.transform = ''; }
   }
-  c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+  c.addEventListener('pointerup', up); c.addEventListener('pointercancel', function(){ if(!down) return; down = false; c.classList.add('settle'); dx = dy = 0; paint(); c.style.transform = ''; [sR,sL,sU].forEach(function(s){ s.style.opacity = 0; }); if(cardEls[1]) cardEls[1].style.transform = ''; });
   c.addEventListener('keydown', function(e){ if (e.key === 'ArrowRight') decide('like'); if (e.key === 'ArrowLeft') decide('pass'); if (e.key === 'ArrowUp') decide('super'); if (e.key === 'Enter') openProfile(+c.dataset.id); });
 }
 var busy = false;

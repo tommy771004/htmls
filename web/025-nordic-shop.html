@@ -137,6 +137,7 @@ main.pdp{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:c
 .qty output{min-width:26px;text-align:center;font-family:var(--lat);font-size:18px}
 .cta{flex:1;min-width:200px;height:52px;border:0;border-radius:30px;background:var(--ink);color:var(--paper);font-size:15.5px;letter-spacing:.14em;cursor:pointer;position:relative;overflow:hidden;transition:background .3s}
 .cta:hover{background:#45423c}
+.cta:disabled{opacity:.5;cursor:not-allowed}
 .cta .ok{position:absolute;inset:0;display:grid;place-items:center;background:var(--sage-dk);transform:translateY(100%);transition:transform .45s cubic-bezier(.5,0,.1,1)}
 .cta.done .ok{transform:none}
 .ship{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13.5px;color:#57534b;margin:10px 0 20px}
@@ -184,7 +185,8 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
 .fly{position:fixed;width:26px;height:26px;border-radius:50%;z-index:60;pointer-events:none;box-shadow:0 4px 10px rgba(0,0,0,.2)}
 
 @media (max-width:900px){
-  nav.cats{display:none}
+  header{height:auto;min-height:72px;flex-wrap:wrap;gap:0 20px;padding-top:8px}
+  nav.cats{order:3;display:flex;flex:0 0 100%;overflow-x:auto;white-space:nowrap;gap:20px;padding:4px 0 10px;scrollbar-width:thin}
   main.pdp{grid-template-columns:minmax(0,1fr)}
   .gal{position:relative;top:0}
   .notes{grid-template-columns:1fr 1fr}
@@ -192,7 +194,7 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
 }
 @media (max-width:520px){
   .bar{font-size:11.5px;letter-spacing:.02em}
-  header{height:62px;gap:12px}
+  header{min-height:62px;gap:0 12px}
   .logo{font-size:24px}
   .logo small{display:none}
   .thumbs{gap:6px}
@@ -206,9 +208,8 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
 <div class="bar">全館滿 NT$ 20,000 免運 · 30 天試坐，不合適就讓它回家</div>
 <header>
   <a class="logo" href="#top">stilla<i></i><small>靜物家具</small></a>
-  <nav class="cats" aria-label="商品分類"><a href="#top">客廳</a><a class="on" href="#top">椅子</a><a href="#top">餐桌</a><a href="#top">燈具</a><a href="#top">織品</a><a href="#top">故事</a></nav>
+  <nav class="cats" aria-label="頁面導覽"><a class="on" href="#top">Sova 休憩椅</a><a href="#materials">材質與保養</a><a href="#shipping">運送與退貨</a><a href="#notes">設計筆記</a></nav>
   <div class="hr">
-    <button class="icon" aria-label="搜尋"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg></button>
     <button class="icon" id="cartBtn" aria-label="購物車"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span class="badge" id="badge">0</span></button>
   </div>
 </header>
@@ -252,13 +253,13 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
       <svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span>木框保固十年。坐墊套可拆洗。</span>
     </div>
 
-    <details open><summary>材質與保養</summary><p>實心木材來自永續認證林地，樹齡比你的 Wi-Fi 密碼還老。每半年用植物油擦拭一次；跟它說說話也可以，我們沒有證據說沒用。</p></details>
+    <details id="materials" open><summary>材質與保養</summary><p>實心木材來自永續認證林地，樹齡比你的 Wi-Fi 密碼還老。每半年用植物油擦拭一次；跟它說說話也可以，我們沒有證據說沒用。</p></details>
     <details><summary>尺寸</summary><dl><dt>寬</dt><dd>68 cm</dd><dt>深</dt><dd>74 cm</dd><dt>高</dt><dd>82 cm（座高 41 cm）</dd><dt>重量</dt><dd>9.4 kg，一隻手搬得動，但請用兩隻</dd></dl></details>
-    <details><summary>運送與退貨</summary><p>30 天試坐期內可免費退貨。唯一條件：請不要讓貓先坐過，因為牠不會同意退貨。</p></details>
+    <details id="shipping"><summary>運送與退貨</summary><p>30 天試坐期內可免費退貨。唯一條件：請不要讓貓先坐過，因為牠不會同意退貨。</p></details>
   </section>
 </main>
 
-<section class="notes" aria-label="設計筆記">
+<section class="notes" id="notes" aria-label="設計筆記">
   <div><h2><small>設計筆記</small>Made slowly,<br>for sitting slowly.</h2></div>
   <div class="note"><b>01</b><h3>低矮的扶手</h3><p>剛好放得下一杯咖啡，放不下筆電。這是刻意的。</p></div>
   <div class="note"><b>02</b><h3>六根靠背木條</h3><p>我們試過五根和七根。五根太冷淡，七根太熱情。</p></div>
@@ -267,11 +268,11 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
 <footer><span>© 2026 stilla 靜物家具 · 台北 / 馬爾默</span><span>本頁所有家具皆由 CSS 手工打造，未砍伐任何一棵樹</span></footer>
 
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" aria-label="購物車" aria-hidden="true">
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="購物車" aria-hidden="true" inert>
   <div class="dh"><h2>購物車</h2><button class="icon" id="closeCart" aria-label="關閉購物車"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
   <div class="free" id="free">再 NT$ 20,000 即可免運<i id="freeBar"></i></div>
   <div class="items" id="items"></div>
-  <div class="df"><div class="sum"><span>小計</span><b id="sub">NT$ 0</b></div><button class="cta" id="checkout" style="width:100%">前往結帳</button></div>
+  <div class="df"><div class="sum"><span>小計</span><b id="sub">NT$ 0</b></div><button class="cta" id="checkout" style="width:100%" disabled>模擬結帳</button></div>
 </aside>
 
 <script>
@@ -362,11 +363,27 @@ addEventListener('keydown', e => {
 
 // ---- cart ----
 const drawer = $('#drawer'), scrim = $('#scrim'), badge = $('#badge');
-function openCart(v){ if (!drawer || !scrim) return; drawer.classList.toggle('on', v); scrim.classList.toggle('on', v); drawer.setAttribute('aria-hidden', !v); }
+let cartFocus = null;
+function openCart(v){
+  if (!drawer || !scrim || drawer.classList.contains('on')===v) return;
+  if(v) cartFocus = document.activeElement;
+  drawer.classList.toggle('on', v); scrim.classList.toggle('on', v);
+  drawer.setAttribute('aria-hidden', String(!v)); drawer.inert = !v;
+  if(v) $('#closeCart').focus();
+  else if(cartFocus && cartFocus.isConnected) cartFocus.focus();
+}
 on('#cartBtn','click', () => openCart(true));
 on('#closeCart','click', () => openCart(false));
 on('#scrim','click', () => openCart(false));
-on('#checkout','click', e => { const b = e.currentTarget; b.textContent = '這只是展示頁，錢包安全 ✓'; setTimeout(() => b.textContent = '前往結帳', 1800); });
+on('#checkout','click', e => { if(!cart.length) return; const b = e.currentTarget; b.textContent = '此頁僅示範購物車，沒有付款流程 ✓'; setTimeout(() => b.textContent = '模擬結帳', 1800); });
+drawer && drawer.addEventListener('keydown', e => {
+  if(e.key!=='Tab') return;
+  const controls=[...drawer.querySelectorAll('button:not(:disabled),a[href]')];
+  if(!controls.length) return;
+  const first=controls[0], last=controls[controls.length-1];
+  if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+});
 function renderCart(){
   const items = $('#items'); if (!items) return;
   const n = cart.reduce((s,i) => s+i.qty, 0), total = cart.reduce((s,i) => s + i.qty*i.price, 0);
@@ -376,10 +393,11 @@ function renderCart(){
     const d = document.createElement('div'); d.className='item';
     d.innerHTML = `<div class="mini"><div class="chair">${chairHTML()}</div></div><div><h3>Sova 休憩椅 × ${it.qty}</h3><p>${it.w.name} · ${it.f.name}</p><p>${fmt(it.price*it.qty)}</p></div><button class="rm" aria-label="移除">移除</button>`;
     paint(d.querySelector('.chair'), it.w, it.f);
-    d.querySelector('.rm').addEventListener('click', () => { cart.splice(idx,1); renderCart(); });
+    d.querySelector('.rm').addEventListener('click', () => { cart.splice(idx,1); renderCart(); const next=items.querySelectorAll('.rm'); (next[Math.min(idx,next.length-1)] || $('#closeCart')).focus(); });
     items.appendChild(d);
   });
   const s = $('#sub'); if (s) s.textContent = fmt(total);
+  const checkout = $('#checkout'); if(checkout) checkout.disabled = !cart.length;
   const free = $('#free'), bar = $('#freeBar');
   if (free && bar) { const left = 20000 - total; free.firstChild.textContent = left > 0 ? `再 ${fmt(left)} 即可免運` : '已達免運門檻，運費我們請 ✓'; bar.style.setProperty('--p', Math.min(100, total/200) + '%'); }
 }

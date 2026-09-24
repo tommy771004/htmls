@@ -384,7 +384,7 @@ $('grid').addEventListener('pointerdown', function(e){
   var dial = e.target.closest('.dial'); if (!dial) return;
   var cell = dial.closest('.cell'), t = byId(cell.dataset.id); if (!t) return;
   ac();
-  drag = {t:t, cell:cell, dial:dial, a0:angleAt(dial, e), acc:0, base:remain(t), moved:false, t0:e.timeStamp, was:t.st, lastMin:Math.floor(remain(t)/60), id:e.pointerId};
+  drag = {t:t, cell:cell, dial:dial, a0:angleAt(dial, e), acc:0, base:remain(t), moved:false, t0:e.timeStamp, was:t.st, old:{st:t.st,left:t.left,end:t.end,set:t.set}, lastMin:Math.floor(remain(t)/60), id:e.pointerId};
   drag.lp = setTimeout(function(){ if (drag && !drag.moved){ var tt = drag.t; drag = null; haptic(20); openEdit(tt); } }, 560);
   dial.setPointerCapture(e.pointerId);
 });
@@ -416,7 +416,7 @@ function endDrag(e){
   persist(); update();
 }
 $('grid').addEventListener('pointerup', endDrag);
-$('grid').addEventListener('pointercancel', endDrag);
+$('grid').addEventListener('pointercancel', function(e){ if(!drag || e.pointerId !== drag.id) return; clearTimeout(drag.lp); var d=drag; drag=null; d.cell.classList.remove('dragging'); Object.assign(d.t,d.old); update(); });
 function clack(){ var a = AC; if (!a) return; var t = a.currentTime, o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.setValueAtTime(2400, t); o.frequency.exponentialRampToValueAtTime(900, t+.018); g.gain.setValueAtTime(.05, t); g.gain.exponentialRampToValueAtTime(.001, t+.03); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+.04); }
 function tapKnob(t){
   if (t.st === 'ring'){ silence(t); return; }

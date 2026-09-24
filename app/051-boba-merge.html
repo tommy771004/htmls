@@ -315,8 +315,8 @@ function paintSnd(){
 }
 
 // ---------- game state ----------
-var N = 4, grid, tiles = {}, nextId = 1, score = 0, best = load('best', 2360), undos = 3, stack = [], over = false, won = false, busy = false;
-var seen = load('seen', [1, 2, 3, 4, 5, 6]), stats = load('stats', {games:12, merges:486, top:6});
+var N = 4, grid, tiles = {}, nextId = 1, score = 0, best = load('best', 0), undos = 3, stack = [], over = false, won = false, busy = false, demoMode = false;
+var seen = load('seen', [1, 2]), stats = load('stats', {games:0, merges:0, top:1});
 var cell = 76, gap = 10, pad = 10;
 var tray = $('tray');
 function layout(){
@@ -351,15 +351,15 @@ function build(m){
   grid = [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]];
   m.forEach(function(row, r){ row.forEach(function(v, c){ if (v) makeTile(r, c, v, false); }); });
 }
-function persist(){ save('game', {m:matrix(), score:score, undos:undos, stack:stack, over:over, won:won}); }
+function persist(){ save('game', {m:matrix(), score:score, undos:undos, stack:stack, over:over, won:won, demo:demoMode}); }
 function newGame(){
   grid = [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]];
   Object.keys(tiles).forEach(function(id){ tiles[id].el.remove(); }); tiles = {};
-  score = 0; undos = 3; stack = []; over = false; won = false;
+  score = 0; undos = 3; stack = []; over = false; won = false; demoMode = false;
   spawn(); spawn(); stats.games++; save('stats', stats); hud(); persist();
 }
 function hud(){
-  $('score').textContent = score; if (score > best){ best = score; save('best', best); } $('best').textContent = best;
+  $('score').textContent = score; $('scoreBox').querySelector('small').textContent = demoMode ? '示範分數' : '分數'; if (!demoMode && score > best){ best = score; save('best', best); } $('best').textContent = best;
   $('undoN').textContent = undos; $('undoBtn').disabled = !stack.length || !undos;
   var top = 1; Object.keys(tiles).forEach(function(id){ top = Math.max(top, tiles[id].lv); });
   var nx = Math.min(MAX, top + 1);
@@ -398,13 +398,12 @@ function move(dir){ // 0 up 1 right 2 down 3 left
     merges.forEach(function(p){
       var o = p[0], t = p[1]; t.el.remove(); delete tiles[t.id];
       o.lv++; paintTile(o); o.el.classList.remove('pop'); void o.el.offsetWidth; o.el.classList.add('pop');
-      gained += Math.pow(2, o.lv); stats.merges++; topLv = Math.max(topLv, o.lv);
-      if (seen.indexOf(o.lv) < 0){ seen.push(o.lv); save('seen', seen); setTimeout(function(){ toast('解鎖新飲料：' + D[o.lv].n); }, 200); }
+      gained += Math.pow(2, o.lv); if(!demoMode) stats.merges++; topLv = Math.max(topLv, o.lv);
+      if (!demoMode && seen.indexOf(o.lv) < 0){ seen.push(o.lv); save('seen', seen); setTimeout(function(){ toast('解鎖新飲料：' + D[o.lv].n); }, 200); }
       if (o.lv === MAX && !won){ won = true; setTimeout(winSheet, 500); }
     });
     if (topLv){ bloop(topLv); haptic(topLv >= 7 ? [14, 30, 20] : 10); }
-    if (topLv > stats.top){ stats.top = topLv; }
-    save('stats', stats);
+    if (!demoMode){ if (topLv > stats.top) stats.top = topLv; save('stats', stats); }
     if (gained){ score += gained; floatPlus(gained); }
     spawn(); hud();
     if (!canMove()){ over = true; setTimeout(overSheet, 420); sad(); haptic([30, 60, 30]); }
@@ -461,7 +460,7 @@ function overSheet(){
     '<button class="go" data-act="again">再搖一局</button>' + (stack.length && undos ? '<button class="go" data-act="undo" style="background:#8e5a33;box-shadow:inset 2px 3px 0 rgba(255,255,255,.2),0 5px 0 #5a3018">撤銷一步，救回來</button>' : ''));
 }
 function winSheet(){ fanfare(); openSheet('<div class="hero">' + cup(MAX) + '</div><h2>珍奶之王誕生</h2><p>' + D[MAX].d + '</p><button class="go" data-act="close">繼續合，刷分數</button>'); }
-function newSheet(){ openSheet('<h2>重新開始？</h2><p>目前 ' + score + ' 分。這局會被收掉，最高分會留著。</p><button class="go" data-act="again">倒掉，重搖一杯</button>'); }
+function newSheet(){ openSheet('<h2>重新開始？</h2><p>目前 ' + score + ' 分。這局會被收掉，個人最高分會留著。</p><button class="go" data-act="again">倒掉，重搖一杯</button><button class="go" data-act="demo" style="margin-top:10px;background:#8e5a33">試玩預置示範盤</button>'); }
 function dexSheet(focus){
   var h = '<h2>飲料圖鑑</h2><p>已解鎖 ' + seen.length + ' / ' + MAX + '</p><div class="stats"><div><b>' + stats.games + '</b><span>局數</span></div><div><b>' + stats.merges + '</b><span>合成次數</span></div><div><b>' + D[stats.top].n.slice(0, 4) + '</b><span>最大杯</span></div></div><div class="dex">';
   for (var i = 1; i <= MAX; i++){ var lk = seen.indexOf(i) < 0; h += '<div class="' + (lk ? 'lk' : '') + '"' + (i === focus ? ' id="dexF"' : '') + '>' + cup(i) + '<b>' + (lk ? '？？？' : D[i].n) + '</b><small>' + Math.pow(2, i) + '</small></div>'; }
@@ -472,6 +471,7 @@ function dexSheet(focus){
 sheet.addEventListener('click', function(e){
   var b = e.target.closest('[data-act]'); if (!b) return; var a = b.dataset.act; haptic(8);
   if (a === 'again'){ closeSheet(); newGame(); toast('新的一局，加油'); }
+  if (a === 'demo'){ closeSheet(); demoMode = true; build([[1,2,0,0],[3,1,0,1],[4,3,2,0],[5,6,4,2]]); score = 412; undos = 3; stack = []; over = false; won = false; hud(); persist(); toast('正在試玩示範盤，分數不計入個人統計'); }
   if (a === 'undo'){ closeSheet(); undo(); }
   if (a === 'close') closeSheet();
   if (a === 'dex') dexSheet();
@@ -485,11 +485,8 @@ $('chain').addEventListener('click', function(e){ var b = e.target.closest('[dat
 // ---------- boot ----------
 paintSnd(); layout();
 var g = load('game', null);
-if (g && g.m && g.m.length === 4){ grid = [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]; build(g.m); score = g.score || 0; undos = g.undos == null ? 3 : g.undos; stack = g.stack || []; over = !!g.over; won = !!g.won; }
-else { // a warm seeded board so the first screen already has a game going
-  grid = [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]];
-  build([[1,2,0,0],[3,1,0,1],[4,3,2,0],[5,6,4,2]]); score = 412;
-}
+if (g && g.m && g.m.length === 4){ grid = [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]; build(g.m); score = g.score || 0; undos = g.undos == null ? 3 : g.undos; stack = g.stack || []; over = !!g.over; won = !!g.won; demoMode = !!g.demo; }
+else { grid = [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]; build([[0,0,0,0],[0,1,0,0],[0,0,2,0],[0,0,0,0]]); persist(); }
 hud();
 window.addEventListener('resize', layout);
 })();

@@ -454,10 +454,10 @@ function snapPip(){ var b = bounds(); px = corner % 2 ? b.x1 : b.x0; py = corner
 })();
 
 /* ---------- controls ---------- */
-function setMicUI(){ var b = $('micBtn'); b.classList.toggle('off', !me.mic); b.setAttribute('aria-pressed', !me.mic); b.querySelector('.slash').style.display = me.mic ? 'none' : ''; $('micLbl').textContent = me.mic ? '靜音' : '已靜音'; pip.classList.toggle('muted', !me.mic); }
-function setCamUI(){ var b = $('camBtn'); b.classList.toggle('off', !me.cam); b.setAttribute('aria-pressed', !me.cam); b.querySelector('.slash').style.display = me.cam ? 'none' : ''; $('camLbl').textContent = me.cam ? '鏡頭' : '鏡頭關'; pip.classList.toggle('camoff', !me.cam); }
-function toggleCam(){ me.cam = !me.cam; save('me', me); setCamUI(); thump(); haptic(me.cam ? 8 : [6,30,6]); toast(me.cam ? '大家看得到你了' : '鏡頭關掉，拉上窗簾'); }
-$('micBtn').addEventListener('click', function(){ me.mic = !me.mic; save('me', me); setMicUI(); thump(); haptic(me.mic ? 8 : [6,30,6]); toast(me.mic ? '麥克風打開' : '你已靜音'); });
+function setMicUI(){ var b = $('micBtn'); b.classList.toggle('off', !me.mic); b.setAttribute('aria-pressed', !me.mic); b.querySelector('.slash').style.display = me.mic ? 'none' : ''; $('micLbl').textContent = me.mic ? '模擬靜音' : '示範靜音'; pip.classList.toggle('muted', !me.mic); }
+function setCamUI(){ var b = $('camBtn'); b.classList.toggle('off', !me.cam); b.setAttribute('aria-pressed', !me.cam); b.querySelector('.slash').style.display = me.cam ? 'none' : ''; $('camLbl').textContent = me.cam ? '模擬鏡頭' : '示範關閉'; pip.classList.toggle('camoff', !me.cam); }
+function toggleCam(){ me.cam = !me.cam; save('me', me); setCamUI(); thump(); haptic(me.cam ? 8 : [6,30,6]); toast(me.cam ? '示範鏡頭已開啟・不會使用真實相機' : '示範鏡頭已關閉'); }
+$('micBtn').addEventListener('click', function(){ me.mic = !me.mic; save('me', me); setMicUI(); thump(); haptic(me.mic ? 8 : [6,30,6]); toast(me.mic ? '示範麥克風已開啟・不會收音' : '示範麥克風已靜音'); });
 $('camBtn').addEventListener('click', toggleCam);
 setMicUI(); setCamUI();
 

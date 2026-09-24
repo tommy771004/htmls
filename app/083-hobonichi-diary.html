@@ -336,9 +336,9 @@ function mount(){
   $('tNext').disabled = false;
 }
 function bindPage(){
-  var ta = $('ta'), tmr = 0;
-  if (ta) ta.addEventListener('input', function(){ clearTimeout(tmr); tmr = setTimeout(function(){ var e = entry(cur); e.t = ta.value; setEntry(cur, e); }, 250); });
-  if (ta) ta.addEventListener('blur', function(){ var e = entry(cur); if (e.t !== ta.value){ e.t = ta.value; setEntry(cur, e); } });
+  var ta = $('ta'), tmr = 0, day = cur;
+  if (ta) ta.addEventListener('input', function(){ var value = ta.value; clearTimeout(tmr); tmr = setTimeout(function(){ var e = entry(day); e.t = value; setEntry(day, e); }, 250); });
+  if (ta) ta.addEventListener('blur', function(){ var e = entry(day); if (e.t !== ta.value){ e.t = ta.value; setEntry(day, e); } });
 }
 book.addEventListener('click', function(e){
   var b = e.target.closest('[data-act]'); if (!b || !pageEl || !pageEl.contains(b)) return;
@@ -394,7 +394,7 @@ function flip(dir, target, dragState){
     if (!down) return; down = false; if (!st || !st.finish) return;
     var ok = st.p > .32 || (st.dir > 0 ? vx < -.5 : vx > .5); st.finish(ok); st = null;
   }
-  book.addEventListener('pointerup', up); book.addEventListener('pointercancel', up);
+  book.addEventListener('pointerup', up); book.addEventListener('pointercancel', function(){ if(!down) return; down = false; if(st && st.finish) st.finish(false); st = null; });
 })();
 $('tPrev').addEventListener('click', function(){ flip(-1); });
 $('tNext').addEventListener('click', function(){ flip(1); });

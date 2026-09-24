@@ -58,7 +58,7 @@ body.night .hint{color:#bdb5e0}
   .chip{flex:1;min-width:0;padding:7px 9px 8px;border-radius:12px}
   .chip b{font-size:17px}
   .chip span{font-size:10px;letter-spacing:0}
-  .tools{gap:0;padding:6px;margin:0 8px 10px;border-radius:20px;max-width:calc(100vw - 16px);flex-wrap:nowrap}
+  .tools{gap:0;padding:6px;margin:0 8px 10px;border-radius:20px;max-width:calc(100vw - 16px);width:calc(100vw - 16px);flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin}
   .tool{min-width:42px;width:42px;height:58px;padding:2px;font-size:11px}
   .tool svg{width:30px;height:28px}
   .tool kbd{display:none}
@@ -67,7 +67,7 @@ body.night .hint{color:#bdb5e0}
   .hint{display:none}
   .diary{left:12px;bottom:8px;font-size:12px}
 }
-@media (prefers-reduced-motion:reduce){ .tool,.chip i::after{transition:none} }
+@media (prefers-reduced-motion:reduce){ .tool,.chip i::after,.diary{transition:none} }
 </style>
 </head>
 <body>
@@ -121,6 +121,8 @@ const ICONS = {
 /* ---------- world ---------- */
 const grid = Array.from({length:N}, () => Array(N).fill(null));
 let tool = 'house', night = false;
+const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
+let reduce = motionQuery.matches;
 let hover = null, cursor = [4,4], dust = [];
 const rnd = (i,j,k=0) => { const x = Math.sin(i*127.1 + j*311.7 + k*74.7)*43758.5453; return x - Math.floor(x); };
 function put(i,j,type, delay=0, quiet=false){
@@ -128,14 +130,15 @@ function put(i,j,type, delay=0, quiet=false){
   const cur = grid[i][j];
   if (type === 'bull') {
     if (!cur) return false;
+    if (reduce){grid[i][j]=null;return true;}
     cur.dying = performance.now(); puff(i,j,10); return true;
   }
   if (cur && !cur.dying && cur.type === type) return false;
-  grid[i][j] = { type, born: performance.now() + delay, seed: Math.floor(rnd(i,j,performance.now()%97)*1000) };
+  grid[i][j] = { type, born: performance.now() + (reduce ? -1000 : delay), seed: Math.floor(rnd(i,j,performance.now()%97)*1000) };
   if (type !== 'road' && !quiet) setTimeout(() => puff(i,j,8), delay + 60);
   return true;
 }
-function puff(i,j,n){ for (let k=0;k<n;k++) dust.push({ i:i+.5, j:j+.5, a:Math.random()*Math.PI*2, s:.4+Math.random()*.9, t:performance.now(), r:3+Math.random()*4 }); }
+function puff(i,j,n){ if(reduce) return; for (let k=0;k<n;k++) dust.push({ i:i+.5, j:j+.5, a:Math.random()*Math.PI*2, s:.4+Math.random()*.9, t:performance.now(), r:3+Math.random()*4 }); }
 
 // seed the starter town
 const START = [
@@ -152,6 +155,7 @@ function resize(){
   W = r.width; H = r.height; cv.width = Math.max(1,W*dpr); cv.height = Math.max(1,H*dpr);
   TW = Math.max(26, Math.min(W*(W<600?.98:.9)/N, (H*.94)/(N*.5 + 1.7)));
   TH = TW/2; ox = W/2; oy = H/2 - N*TH/2 + TW*.5;
+  invalidate();
 }
 addEventListener('resize', resize);
 const P = (u,v,z=0) => [ox + (u-v)*TW/2, oy + (u+v)*TH/2 - z*TW];
@@ -280,10 +284,13 @@ function drawClouds(dt){
 }
 
 /* ---------- main render ---------- */
-let last = performance.now();
+let last = performance.now(), frameId = 0;
 const cars = Array.from({length:3},(_,k)=>({ idx:k*5, t:0, dir:1 }));
 function render(now){
-  const dt = Math.min(.05,(now-last)/1000); last = now;
+  frameId = 0;
+  if(document.hidden) return;
+  const dt = reduce ? 0 : Math.min(.05,(now-last)/1000); last = now;
+  const visualTime = reduce ? 0 : now;
   g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
   drawClouds(dt);
   glows.length = 0;
@@ -307,18 +314,18 @@ function render(now){
   // hover tile
   const hv = hover || (kbdActive ? cursor : null);
   if (hv){ const [i,j]=hv; poly([P(i,j,.02),P(i+1,j,.02),P(i+1,j+1,.02),P(i,j+1,.02)], tool==='bull'?'rgba(255,143,122,.35)':'rgba(255,255,255,.45)');
-    g.save(); g.setLineDash([5,4]); g.lineWidth=2; g.strokeStyle = tool==='bull' ? '#ff8f7a' : (night?'#fff':'#3b3950'); g.lineDashOffset = -now*.02;
+    g.save(); g.setLineDash([5,4]); g.lineWidth=2; g.strokeStyle = tool==='bull' ? '#ff8f7a' : (night?'#fff':'#3b3950'); g.lineDashOffset = -visualTime*.02;
     poly([P(i,j,.02),P(i+1,j,.02),P(i+1,j+1,.02),P(i,j+1,.02)], null, g.strokeStyle); g.stroke(); g.restore(); }
   // buildings in painter's order
   for (let s=0; s<=2*(N-1); s++) for (let i=0;i<N;i++){ const j=s-i; if (j<0||j>=N) continue;
     const c = grid[i][j];
     if (c && c.type!=='road') {
-      let h = elastic((now - c.born)/750);
+      let h = reduce ? 1 : elastic((now - c.born)/750);
       if (c.dying) { const t=(now-c.dying)/320; if (t>=1){ grid[i][j]=null; continue; } h = 1 - t*t; }
-      if (h > 0.001) PAINT[c.type](i,j,h,c.seed,now);
+      if (h > 0.001) PAINT[c.type](i,j,h,c.seed,visualTime);
     }
     // ghost preview
-    if (hv && hv[0]===i && hv[1]===j && tool!=='bull' && tool!=='road' && !(c && c.type===tool)) { g.globalAlpha=.4; PAINT[tool](i,j,1,7,now); g.globalAlpha=1; }
+    if (hv && hv[0]===i && hv[1]===j && tool!=='bull' && tool!=='road' && !(c && c.type===tool)) { g.globalAlpha=.4; PAINT[tool](i,j,1,7,visualTime); g.globalAlpha=1; }
     // cars drawn on their tile in order
     cars.forEach(car => { if (!roads.length) return; const rt = roads[car.idx % roads.length]; if (rt[0]===i && rt[1]===j) drawOneCar(car, rt, now); });
   }
@@ -334,7 +341,12 @@ function render(now){
     glows.forEach((pts,k) => { if (rnd(k,3) > .3) poly(pts, '#ffe19a'); });
     g.shadowBlur=0;
   }
-  requestAnimationFrame(render);
+  if(!reduce) frameId=requestAnimationFrame(render);
+}
+function invalidate(){
+  if(document.hidden) return;
+  if(reduce) render(performance.now());
+  else if(!frameId){last=performance.now();frameId=requestAnimationFrame(render);}
 }
 function drawOneCar(car, rt, now){
   const [i,j] = rt; const along = (car.idx%2) ? 'u' : 'v';
@@ -356,11 +368,11 @@ function tileAt(cx, cy){
 }
 let painting = false, lastPainted = '', kbdActive = false;
 cv.addEventListener('pointermove', e => { hover = tileAt(e.clientX, e.clientY); kbdActive = false;
-  if (painting && hover) { const k = hover.join(','); if (k!==lastPainted){ lastPainted=k; if (put(hover[0],hover[1],tool)) { blip(); update(); } } } });
-cv.addEventListener('pointerleave', () => { hover = null; });
+  if (painting && hover) { const k = hover.join(','); if (k!==lastPainted){ lastPainted=k; if (put(hover[0],hover[1],tool)) { blip(); update(); } } } invalidate(); });
+cv.addEventListener('pointerleave', () => { hover = null; invalidate(); });
 cv.addEventListener('pointerdown', e => { const t = tileAt(e.clientX, e.clientY); if (!t) return; painting = true; lastPainted = t.join(',');
   try { cv.setPointerCapture(e.pointerId); } catch(_){}
-  if (put(t[0],t[1],tool)) { blip(); update(); } });
+  if (put(t[0],t[1],tool)) { blip(); update(); invalidate(); } });
 const endPaint = () => { painting = false; };
 cv.addEventListener('pointerup', endPaint); cv.addEventListener('pointercancel', endPaint);
 
@@ -368,8 +380,8 @@ addEventListener('keydown', e => {
   const t = TOOLS.find(x => x.key === e.key); if (t) { setTool(t.id); return; }
   if (e.key==='n' || e.key==='N') { toggleNight(); return; }
   const mv = { ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0] }[e.key];
-  if (mv) { e.preventDefault(); kbdActive = true; cursor = [Math.max(0,Math.min(N-1,cursor[0]+mv[0])), Math.max(0,Math.min(N-1,cursor[1]+mv[1]))]; return; }
-  if ((e.key==='Enter' || e.key===' ') && (!document.activeElement || document.activeElement===document.body)) { e.preventDefault(); kbdActive = true; if (put(cursor[0],cursor[1],tool)) { blip(); update(); } }
+  if (mv) { e.preventDefault(); kbdActive = true; cursor = [Math.max(0,Math.min(N-1,cursor[0]+mv[0])), Math.max(0,Math.min(N-1,cursor[1]+mv[1]))]; invalidate(); return; }
+  if ((e.key==='Enter' || e.key===' ') && (!document.activeElement || document.activeElement===document.body)) { e.preventDefault(); kbdActive = true; if (put(cursor[0],cursor[1],tool)) { blip(); update(); invalidate(); } }
 });
 
 /* ---------- sound: tiny pluck on place ---------- */
@@ -389,7 +401,7 @@ function blip(){
 
 /* ---------- toolbar ---------- */
 const tb = $('#tools');
-function setTool(id){ tool = id; if (tb) tb.querySelectorAll('.tool').forEach(b => b.setAttribute('aria-pressed', b.dataset.id===id)); }
+function setTool(id){ tool = id; if (tb) tb.querySelectorAll('.tool').forEach(b => b.setAttribute('aria-pressed', b.dataset.id===id)); invalidate(); }
 if (tb) {
   TOOLS.forEach(t => { const b = document.createElement('button'); b.className='tool'; b.dataset.id=t.id; b.setAttribute('aria-pressed', t.id===tool);
     b.innerHTML = `<svg viewBox="0 0 36 34">${ICONS[t.id]}</svg>${t.name}<kbd>${t.key}</kbd>`; b.addEventListener('click', () => setTool(t.id)); tb.appendChild(b); });
@@ -398,7 +410,7 @@ if (tb) {
   nb.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15 3a9 9 0 1 0 6 13A7 7 0 0 1 15 3z" fill="#3b3950"/></svg>夜晚'; nb.addEventListener('click', toggleNight); tb.appendChild(nb);
 }
 function toggleNight(){ night = !night; document.body.classList.toggle('night', night);
-  const nb = $('#nightbtn'); if (nb) { nb.setAttribute('aria-pressed', night); nb.lastChild.textContent = night ? '白天' : '夜晚'; } say(); }
+  const nb = $('#nightbtn'); if (nb) { nb.setAttribute('aria-pressed', night); nb.lastChild.textContent = night ? '白天' : '夜晚'; } say(); invalidate(); }
 
 /* ---------- stats + diary ---------- */
 function count(){ const c = {house:0,cafe:0,tower:0,tree:0,fount:0,road:0}; let lonely=0;
@@ -434,10 +446,12 @@ function pick(){
   return lastMsg = x;
 }
 function say(){ if (!dtext || !diary) return; diary.classList.add('swap'); setTimeout(() => { dtext.textContent = pick(); diary.classList.remove('swap'); }, 380); }
-setInterval(say, 5200);
+setInterval(() => {if(!document.hidden) say();}, 5200);
 
 resize(); update(); setTimeout(update, 2400);
-requestAnimationFrame(render);
+motionQuery.addEventListener('change', e => { reduce=e.matches; if(reduce){if(frameId) cancelAnimationFrame(frameId);frameId=0;dust=[];for(let i=0;i<N;i++) for(let j=0;j<N;j++) if(grid[i][j]&&grid[i][j].dying) grid[i][j]=null;}last=performance.now();invalidate(); });
+document.addEventListener('visibilitychange', () => {if(document.hidden){if(frameId) cancelAnimationFrame(frameId);frameId=0;}else{last=performance.now();invalidate();}});
+invalidate();
 })();
 </script>
 </body>

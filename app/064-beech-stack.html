@@ -330,8 +330,8 @@ function hud(){
 // ---------- loop ----------
 var last = 0, raf = 0;
 function frame(t){
-  raf = requestAnimationFrame(frame);
-  if (document.hidden){ last = t; return; }
+  raf = 0;
+  if (document.hidden){ last = 0; return; }
   var dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
   if (state !== 'over' && !fall) tSwing += dt;
   if (fall){
@@ -345,6 +345,7 @@ function frame(t){
   tower.forEach(function(b){ if (b.sq && b.sq > 0) b.sq = Math.max(0, b.sq - dt * 5); });
   cam += (camT - cam) * Math.min(1, dt * (reduce ? 60 : 5));
   draw();
+  raf = requestAnimationFrame(frame);
 }
 
 // ---------- drawing ----------
@@ -549,6 +550,7 @@ resize(); reset();
 })();
 window.addEventListener('resize', function(){ resize(); camT = cam = Math.max(0, targetTop - topY()); });
 raf = requestAnimationFrame(frame);
+document.addEventListener('visibilitychange', function(){ if(document.hidden){ cancelAnimationFrame(raf); raf = 0; last = 0; } else if(!raf) raf = requestAnimationFrame(frame); });
 })();
 </script>
 </body>

@@ -71,10 +71,10 @@ canvas#tank{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:n
 .tabs{position:relative;display:grid;grid-template-columns:repeat(4,1fr);margin-top:8px}
 .tab{height:46px;font-size:15px;color:var(--ink3);transition:color .2s}
 .tab[aria-selected=true]{color:var(--ink);font-weight:600}
-.tabs .leaf{position:absolute;bottom:4px;left:0;width:25%;height:10px;pointer-events:none;transition:transform .45s var(--spring)}
+.tabs .leaf{position:absolute;bottom:4px;left:0;width:25%;height:10px;pointer-events:none;transition:transform 200ms var(--out)}
 .tabs .leaf svg{width:34px;height:10px;margin:0 auto}
 .panes{flex:1;min-height:0;position:relative;overflow:hidden;overflow:clip;touch-action:pan-y}
-.track{display:flex;height:100%;transition:transform .45s var(--out)}
+.track{display:flex;height:100%;transition:transform 240ms var(--out)}
 .track.drag{transition:none}
 .pane{flex:0 0 100%;height:100%;overflow-y:auto;overflow-x:hidden;padding:14px 20px calc(var(--pad,440px) + 30px + env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior:contain}
 .pane::-webkit-scrollbar{display:none}
@@ -559,9 +559,9 @@ $('wqPane').addEventListener('click',function(e){var b=e.target.closest('.wq');i
 
 /* ---------- feeding ---------- */
 function todayStart(){var d=new Date();d.setHours(0,0,0,0);return d.getTime();}
-function feed(x){var wt=waterTop();if(x==null)x=W*(.3+Math.random()*.4);for(var i=0;i<14;i++)flakes.push({x:x+(Math.random()-.5)*40,y:wt+Math.random()*4,s:Math.random()*6,r:0});sprinkle();haptic([6,20,6]);
-  var lastF=st.feeds[0];if(!lastF||Date.now()-lastF.t>60000){st.feeds.unshift({t:Date.now(),f:st.food});st.feeds=st.feeds.slice(0,40);persist();renderFeed();
-    var n=st.feeds.filter(function(f){return f.t>=todayStart();}).length;toast(n>2?'今天第 '+n+' 次了，小心硝酸鹽':'餵了'+FOOD[st.food]+'・今天第 '+n+' 次');}}
+function feed(x){var lastF=st.feeds[0];if(lastF&&Date.now()-lastF.t<60000){toast('一分鐘內已餵過，稍後再餵');return;}var wt=waterTop();if(x==null)x=W*(.3+Math.random()*.4);for(var i=0;i<14;i++)flakes.push({x:x+(Math.random()-.5)*40,y:wt+Math.random()*4,s:Math.random()*6,r:0});sprinkle();haptic([6,20,6]);
+  st.feeds.unshift({t:Date.now(),f:st.food});st.feeds=st.feeds.slice(0,40);persist();renderFeed();
+  var n=st.feeds.filter(function(f){return f.t>=todayStart();}).length;toast(n>2?'今天第 '+n+' 次了，小心硝酸鹽':'餵了'+FOOD[st.food]+'・今天第 '+n+' 次');}
 function renderFeed(){var t0=todayStart(),today=st.feeds.filter(function(f){return f.t>=t0;}),n=today.length,p=Math.min(1,n/2);
   $('feedN').innerHTML=n+'<small>/ 2 次</small>';$('feedHint').textContent=n>2?'今天餵多了，明天少一點':n===2?'今天餵飽了':'每次兩分鐘內吃完的量';
   var C=2*Math.PI*38;$('feedRing').innerHTML='<circle cx="46" cy="46" r="38" fill="none" stroke="rgba(239,231,212,.1)" stroke-width="7"/><circle cx="46" cy="46" r="38" fill="none" stroke="'+(n>2?'#e8a37a':'#8cc06a')+'" stroke-width="7" stroke-linecap="round" stroke-dasharray="'+(C*p).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 46 46)"/><path d="M34 50c4 6 20 6 24 0" fill="none" stroke="#e6d6b0" stroke-width="2" stroke-linecap="round"/><circle cx="40" cy="42" r="2" fill="#d6965a"/><circle cx="47" cy="39" r="2" fill="#d6965a"/><circle cx="53" cy="43" r="2" fill="#d6965a"/>';
@@ -617,7 +617,7 @@ sheet.addEventListener('click',function(e){if(e.target.closest('#saveWQ')&&edit)
 /* ---------- toast + clock ---------- */
 var toastT=null;
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('on');},2000);}
-function tick(){var d=new Date();$('clock').textContent=d.getHours()+':'+pad(d.getMinutes());var days=Math.floor((Date.now()-st.start)/864e5);$('tankMeta').textContent='60P 石組・第 '+days+' 天';}
+function tick(){var d=new Date();$('clock').textContent=d.getHours()+':'+pad(d.getMinutes());var days=Math.floor((Date.now()-st.start)/864e5);$('tankMeta').textContent='示範水族箱・60P 石組・第 '+days+' 天';}
 function renderAll(){renderDial();renderWQ();renderFeed();renderChange();}
 tick();setInterval(function(){tick();renderDial();},30000);
 setInterval(function(){if(document.hidden)return;var set=st.wq.temp[st.wq.temp.length-1];tempNow+=(set-tempNow)*.2+(Math.random()-.5)*.08;},4000);

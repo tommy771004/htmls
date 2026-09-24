@@ -535,7 +535,7 @@ var moved = false;
   function move(e){ if (!drag) return; dy = e.clientY - sy; if (Math.abs(dy) > 6) moved = true; var y = Math.max(0, base + dy); folder.style.transform = 'translateY(' + y + 'px)'; }
   function end(e){ if (!drag) return; drag = false; folder.classList.remove('drag'); var v = dy / Math.max(1, e.timeStamp - t0);
     if (moved){ if (folderOpen) setFolder(!(dy > folder.offsetHeight * .3 || v > .6)); else setFolder(dy < -80 || v < -.5); } else folder.style.transform = ''; setTimeout(function(){ moved = false; }, 0); }
-  [$('ftab'), document.querySelector('.fhead')].forEach(function(el){ el.addEventListener('pointerdown', function(e){ if (e.target.closest('#addInv')) return; start(e); }); el.addEventListener('pointermove', move); el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); });
+  [$('ftab'), document.querySelector('.fhead')].forEach(function(el){ el.addEventListener('pointerdown', function(e){ if (e.target.closest('#addInv')) return; start(e); }); el.addEventListener('pointermove', move); el.addEventListener('pointerup', end); el.addEventListener('pointercancel', function(){ drag = false; moved = true; folder.classList.remove('drag'); folder.style.transform = ''; setTimeout(function(){ moved = false; }, 0); }); });
 })();
 $('ffilter').addEventListener('click', function(e){ var b = e.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; [].forEach.call(this.children, function(x){ x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); }); renderFolder(); tick(); haptic(4); });
 // swipe rows
@@ -545,7 +545,7 @@ $('ffilter').addEventListener('click', function(e){ var b = e.target.closest('[d
   list.addEventListener('pointermove', function(e){ if (!row) return; var mx = e.clientX - sx, my = e.clientY - sy; if (!axis && (Math.abs(mx) > 8 || Math.abs(my) > 8)) axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
     if (axis !== 'x') return; row.classList.add('drag'); dx = Math.max(-110, Math.min(0, mx + (row.classList.contains('open') ? -88 : 0))); row.querySelector('.face').style.transform = 'translateX(' + dx + 'px)'; });
   function end(){ if (!row) return; var r = row; row = null; r.classList.remove('drag'); if (axis !== 'x') return; justDragged = true; setTimeout(function(){ justDragged = false; }, 60); var open = dx < -44; r.classList.toggle('open', open); r.querySelector('.face').style.transform = open ? 'translateX(-88px)' : ''; if (open) haptic(6); }
-  list.addEventListener('pointerup', end); list.addEventListener('pointercancel', end);
+  list.addEventListener('pointerup', end); list.addEventListener('pointercancel', function(){ if(!row) return; row.classList.remove('drag'); row.querySelector('.face').style.transform = row.classList.contains('open') ? 'translateX(-88px)' : ''; row = null; axis = ''; });
   list.addEventListener('click', function(e){ var d = e.target.closest('[data-del]'); if (d){ del(+d.dataset.del); return; } if (justDragged) return; var r = e.target.closest('.row'); if (r && r.classList.contains('open')){ closeRows(); } });
 })();
 function closeRows(except){ document.querySelectorAll('.row.open').forEach(function(r){ if (r !== except){ r.classList.remove('open'); r.querySelector('.face').style.transform = ''; } }); }

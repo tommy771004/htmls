@@ -257,7 +257,7 @@ svg{display:block}
         <h2>EXCHANGE <small>匯率板</small></h2>
         <span class="sp"></span>
         <button class="ibtn" id="snd" aria-label="翻牌聲音"></button>
-        <button class="ibtn" id="refresh" aria-label="更新匯率"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 0 1 8.5 6H23l-4 5-4-5h2.3A6 6 0 0 0 6.3 10.4L3.7 9A9 9 0 0 1 12 3Zm-8 12 4-5 4 5H9.7a6 6 0 0 0 11-1.4l2.6 1.4A9 9 0 0 1 3.5 15z"/></svg></button>
+        <button class="ibtn" id="refresh" aria-label="重新產生示範匯率"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 0 1 8.5 6H23l-4 5-4-5h2.3A6 6 0 0 0 6.3 10.4L3.7 9A9 9 0 0 1 12 3Zm-8 12 4-5 4 5H9.7a6 6 0 0 0 11-1.4l2.6 1.4A9 9 0 0 1 3.5 15z"/></svg></button>
       </header>
 
       <section class="base big" aria-label="基準金額">
@@ -265,7 +265,7 @@ svg{display:block}
           <div class="who"><em id="baseName">新台幣</em><div class="line code" id="baseCode"></div></div>
           <div class="amtwrap"><div class="line" id="baseAmt"></div><i class="caret" aria-hidden="true"></i></div>
         </div>
-        <div class="meta"><span id="rateNote">台灣銀行即期賣出參考</span><b id="stamp">09/23 14:05</b></div>
+        <div class="meta"><span id="rateNote">固定起始值・頁內模擬匯率</span><b id="stamp">09/23 14:05</b></div>
       </section>
 
       <section class="board" aria-label="換算看板">
@@ -515,7 +515,7 @@ function bindRow(slot){
       setTimeout(function(){ slot.wrap.classList.remove('sw'); }, reduce ? 0 : 330);
     }
   }
-  row.addEventListener('pointerup', end); row.addEventListener('pointercancel', end);
+  row.addEventListener('pointerup', end); row.addEventListener('pointercancel', function(){ clearTimeout(lp); row.classList.remove('hold','drag'); row.style.transform = ''; slot.wrap.classList.remove('sw'); pid = null; mode = 'scroll'; });
   row.addEventListener('click', function(e){
     if (fired || mode === 'swipe') { e.preventDefault(); return; }
     setBase(slot.c);
@@ -592,7 +592,7 @@ $('refresh').addEventListener('click', function(){
   renderBase(true);
   slots.forEach(function(s){ s.amt.now('', true); });
   renderRows(true);
-  toast('已更新 ' + $('stamp').textContent + ' 匯率');
+  toast('已重新產生示範匯率・非即時報價');
 });
 
 // ---------- sheets ----------
@@ -646,7 +646,7 @@ function openDetail(code){
   var cashB = (spot * .985).toFixed(dec + 1), cashS = (spot * 1.0175).toFixed(dec + 1), spB = (spot * .995).toFixed(dec + 1), spS = spot.toFixed(dec + 1);
   openSheet(
     '<h4 id="sheetT">' + code + ' <small>' + CUR[code].n + '</small></h4>' +
-    '<p class="sub">1 ' + code + ' = ' + (+r.toFixed(dp)) + ' ' + S.base + '　近 30 日走勢，按住圖表可讀值</p>' +
+    '<p class="sub">頁內模擬報價・非即時來源。1 ' + code + ' = ' + (+r.toFixed(dp)) + ' ' + S.base + '　示範走勢，按住圖表可讀值</p>' +
     '<div class="chart" id="chart"><svg id="chartSvg" viewBox="0 0 340 150" preserveAspectRatio="none"></svg><div class="rd" id="chartRd"></div></div>' +
     '<dl class="quotes"><div><dt>現金買入</dt><dd>' + cashB + '</dd></div><div><dt>現金賣出</dt><dd>' + cashS + '</dd></div><div><dt>即期買入</dt><dd>' + spB + '</dd></div><div><dt>即期賣出</dt><dd>' + spS + '</dd></div></dl>' +
     '<div class="sact"><button class="signbtn" id="dBase"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 2l5 6H9v8H5V8H2zm10 20-5-6h3V8h4v8h3z"/></svg>設為基準幣</button>' +

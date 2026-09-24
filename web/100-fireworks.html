@@ -56,6 +56,7 @@
     .title p{display:none}
     #tag{top:24%}
   }
+  @media (prefers-reduced-motion:reduce){.title,#tag,.dock,.hint,.end{transition:none}body.show .title{opacity:1}}
 </style>
 </head>
 <body>
@@ -94,7 +95,8 @@
   const bg = $('#bg'), fx = $('#fx'), rf = $('#refl');
   if (!bg || !fx || !rf) return;
   const bx = bg.getContext('2d'), cx = fx.getContext('2d'), rx = rf.getContext('2d');
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
+  let reduce = motionQuery.matches;
   let W = 0, H = 0, DPR = 1, HOR = 0, mobile = false;
 
   const STYLES = ['瑞士國際主義','建築粗獷主義','蒸汽波','極簡編輯長文','終端機','雜誌拼貼','玻璃擬態','手繪筆記','包浩斯','新擬物','8-bit 街機','裝飾藝術','孟菲斯','捲動敘事','賽博龐克 HUD','日系無印','孔版印刷','擬物收音機','維多利亞大報','生成流場',
@@ -146,6 +148,7 @@
     [bg, fx, rf].forEach(c => { c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); });
     [bx, cx, rx].forEach(c => c.setTransform(DPR, 0, 0, DPR, 0, 0));
     paintBg();
+    if(reduce) drawStaticBursts();
   }
   function mobileCheck() { return innerWidth < 640; }
 
@@ -196,11 +199,22 @@
   sndB && sndB.addEventListener('click', e => { e.stopPropagation(); soundOn = !soundOn; sndB.textContent = soundOn ? '♪ 開' : '♪ 關'; sndB.setAttribute('aria-pressed', soundOn); if (master) master.gain.value = soundOn ? .6 : 0; });
 
   // ---------- particles ----------
-  const rockets = [], parts = [];
+  const rockets = [], parts = [], staticBursts = [];
   const MAXP = () => (mobile ? 2200 : 4200) * (reduce ? .4 : 1);
   let shells = 0;
   const cntEl = $('#cnt');
+  function drawStaticBursts(){
+    cx.clearRect(0,0,W,H);rx.clearRect(0,0,W,H);
+    staticBursts.forEach(b => {
+      const radius=Math.min(W,H)*(mobile?.075:.095), color=b.pal[0];
+      cx.save();cx.strokeStyle=color;cx.fillStyle=b.pal[1];cx.lineWidth=2;
+      for(let i=0;i<16;i++){const a=i*Math.PI/8,r1=radius*.27,r2=radius*(i%2?.76:1);cx.beginPath();cx.moveTo(b.x+Math.cos(a)*r1,b.y+Math.sin(a)*r1);cx.lineTo(b.x+Math.cos(a)*r2,b.y+Math.sin(a)*r2);cx.stroke();cx.beginPath();cx.arc(b.x+Math.cos(a)*r2,b.y+Math.sin(a)*r2,2,0,Math.PI*2);cx.fill();}
+      if(b.label){cx.font=(mobile?12:14)+'px Georgia,serif';cx.textAlign='center';cx.fillText(b.label,b.x,b.y+radius+24);}
+      cx.restore();
+    });
+  }
   function launch(tx, ty, kind, opts = {}) {
+    if(reduce){shells++;if(cntEl) cntEl.textContent=shells;staticBursts.push({x:tx,y:ty,pal:opts.pal||PAL[shells%PAL.length],label:opts.label});if(staticBursts.length>8) staticBursts.shift();drawStaticBursts();return;}
     const x0 = opts.x0 != null ? opts.x0 : tx + (Math.random() - .5) * W * .08;
     const dur = (opts.fast ? .55 : .75) + Math.random() * .25 + (HOR - ty) / H * .35;
     rockets.push({ x: x0, y: HOR, sx: x0, sy: HOR, tx, ty, t: 0, dur, kind, pal: opts.pal || PAL[Math.floor(Math.random() * PAL.length)], label: opts.label, size: opts.size || 1 });
@@ -265,8 +279,10 @@
   function flash(k) { if (!flashEl || reduce) return; flashEl.animate([{ opacity: Math.min(.9, k) }, { opacity: 0 }], { duration: 700, easing: 'ease-out' }); }
 
   // ---------- main loop ----------
-  let last = performance.now(), T = 0;
+  let last = performance.now(), T = 0, frameId = 0;
   function frame(now) {
+    frameId = 0;
+    if(document.hidden || reduce) return;
     const dt = Math.min(.04, (now - last) / 1000); last = now; T += dt;
     // fade previous frame toward transparent: this is what leaves trails
     // trails are drawn from each spark's recent history, so the canvas can be cleared cleanly every frame
@@ -335,8 +351,9 @@
       rx.drawImage(fx, 0, src * DPR, W * DPR, step * 3.3 * DPR, off, HOR + y + step, W, -step);
     }
     rx.globalAlpha = 1;
-    requestAnimationFrame(frame);
+    frameId = requestAnimationFrame(frame);
   }
+  function startFrame(){if(!document.hidden&&!reduce&&!frameId){last=performance.now();frameId=requestAnimationFrame(frame);}}
 
   // ---------- interaction ----------
   let kind = 'mix', lastUser = 0;
@@ -361,18 +378,31 @@
 
   // ---------- the finale: one shell for each of the hundred pages ----------
   let finaleOn = false;
+  let finaleTimers = [];
   const tag = $('#tag'), tagN = $('#tagN'), tagS = $('#tagS'), end = $('#end'), goB = $('#finale'), dock = $('#dock');
+  function later(fn,delay){const id=setTimeout(() => {finaleTimers=finaleTimers.filter(x => x!==id);fn();},delay);finaleTimers.push(id);}
+  function cancelFinale(){finaleTimers.forEach(clearTimeout);finaleTimers=[];finaleOn=false;if(goB)goB.disabled=false;if(tag)tag.style.opacity=0;document.body.classList.remove('show');}
   function startFinale() {
     if (finaleOn) return;
+    finaleTimers.forEach(clearTimeout);finaleTimers=[];
     finaleOn = true; lastUser = performance.now(); document.body.classList.add('show');
     if (goB) goB.disabled = true; if (end) end.classList.remove('on');
     if (hint) hint.style.opacity = 0;
     if (tag) tag.style.opacity = 1;
+    if(reduce){
+      staticBursts.length=0;
+      for(let i=0;i<7;i++) launch(W*(.14+i*.12),H*(.3+(i%2)*.1),'hundred',{pal:PAL[i%PAL.length]});
+      if(tagN) tagN.textContent='100';if(tagS) tagS.textContent=STYLES[99];
+      if(end) end.classList.add('on');
+      finaleOn=false;if(goB){goB.disabled=false;goB.textContent='再看一次';}
+      document.body.classList.remove('show');
+      return;
+    }
     let t = 0;
     for (let i = 0; i < 99; i++) {
       const k = i / 98;
-      t += (reduce ? 260 : 620 - 470 * Math.pow(k, .7));      // slow at first, then a torrent
-      setTimeout(() => {
+      t += 620 - 470 * Math.pow(k, .7);      // slow at first, then a torrent
+      later(() => {
         const n = i + 1, nx = W * (.12 + Math.random() * .76), ny = H * (mobile ? .26 : .14) + Math.random() * H * .34;
         const kinds = ['peony', 'chrys', 'ring', 'glitter', 'palm', 'willow'];
         launch(nx, ny, n % 10 === 0 ? 'willow' : kinds[n % kinds.length], { label: `${String(n).padStart(3, '0')} ${STYLES[i]}`, pal: PAL[n % PAL.length], size: .85 + (n / 99) * .35 });
@@ -382,18 +412,18 @@
     }
     // No. 100: a curtain of gold willows, then the number itself
     const tEnd = t + 900;
-    setTimeout(() => {
+    later(() => {
       const n = mobile ? 5 : 9;
-      for (let j = 0; j < n; j++) setTimeout(() => launch(W * ((j + .5) / n), H * (.16 + (j % 2) * .06), 'willow', { x0: W * ((j + .5) / n), size: 1.15 }), j * 90);
+      for (let j = 0; j < n; j++) later(() => launch(W * ((j + .5) / n), H * (.16 + (j % 2) * .06), 'willow', { x0: W * ((j + .5) / n), size: 1.15 }), j * 90);
       if (tagN) tagN.textContent = '100'; if (tagS) tagS.textContent = STYLES[99];
     }, tEnd);
-    setTimeout(() => { if (tag) tag.style.opacity = 0; launch(W / 2, H * (mobile ? .36 : .34), 'hundred', { x0: W / 2, size: 1.3 }); }, tEnd + 1600);
-    setTimeout(() => { if (end) end.classList.add('on'); }, tEnd + 3400);
-    setTimeout(() => {
+    later(() => { if (tag) tag.style.opacity = 0; launch(W / 2, H * (mobile ? .36 : .34), 'hundred', { x0: W / 2, size: 1.3 }); }, tEnd + 1600);
+    later(() => { if (end) end.classList.add('on'); }, tEnd + 3400);
+    later(() => {
       finaleOn = false; if (goB) { goB.disabled = false; goB.textContent = '再放一次'; }
       document.body.classList.remove('show');
     }, tEnd + 9000);
-    setTimeout(() => { if (end) end.classList.remove('on'); }, tEnd + 14000);
+    later(() => { if (end) end.classList.remove('on'); }, tEnd + 14000);
   }
   goB && goB.addEventListener('click', startFinale);
 
@@ -404,8 +434,10 @@
   }, 1400);
 
   addEventListener('resize', resize);
+  document.addEventListener('visibilitychange',() => {if(document.hidden){if(frameId) cancelAnimationFrame(frameId);frameId=0;cancelFinale();}else startFrame();});
+  motionQuery.addEventListener('change',e => {reduce=e.matches;if(reduce){if(frameId) cancelAnimationFrame(frameId);frameId=0;cancelFinale();rockets.length=0;parts.length=0;labels.length=0;staticBursts.length=0;drawStaticBursts();}else{staticBursts.length=0;cx.clearRect(0,0,W,H);startFrame();}});
   resize();
-  requestAnimationFrame(frame);
+  startFrame();
   // opening salvo, so the sky is never empty
   const open = [[.3, .3, 'peony', 0], [.68, .22, 'chrys', 180], [.5, .16, 'willow', 420]];
   if (!reduce) open.forEach(([x, y, k, d]) => setTimeout(() => launch(W * x, H * y, k, { x0: W * x, fast: true }), d));

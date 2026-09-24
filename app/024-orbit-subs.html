@@ -65,12 +65,12 @@ svg{display:block}
 .vt{position:relative;display:flex;height:44px}
 .vt button{height:44px;padding:0 10px;font-size:15px;font-weight:500;color:var(--ink-3);transition:color .2s}
 .vt button[aria-pressed=true]{color:var(--ink);font-weight:700}
-.vt .bar{position:absolute;left:0;bottom:6px;height:3px;background:var(--ink);transition:transform .45s var(--snap),width .45s var(--snap)}
+.vt .bar{position:absolute;left:0;bottom:6px;height:3px;background:var(--ink);transition:transform 200ms var(--snap)}
 
 /* ---------- views ---------- */
 .views{position:absolute;left:0;right:0;top:calc(100px + env(safe-area-inset-top));bottom:0;overflow:hidden}
 @media (display-mode:standalone){.views{top:calc(52px + env(safe-area-inset-top))}}
-.track{position:absolute;inset:0;display:flex;width:200%;transition:transform .55s var(--snap)}
+.track{position:absolute;inset:0;display:flex;width:200%;transition:transform 240ms var(--snap)}
 .view{position:relative;display:flex;flex-direction:column;width:50%;height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;padding-bottom:calc(40px + env(safe-area-inset-bottom))}
 .view::-webkit-scrollbar{display:none}
 .screen[data-view=list] .track{transform:translateX(-50%)}
@@ -525,7 +525,7 @@ function intro(){
     }
     offset = Math.round(offset); renderOrbit();
   }
-  d.addEventListener('pointerup', end); d.addEventListener('pointercancel', end);
+  d.addEventListener('pointerup', end); d.addEventListener('pointercancel', function(){ dragging = false; offset = Math.round(offset); renderOrbit(); });
 })();
 function select(id){
   if (selId === id){ openDetail(id); return; }
@@ -634,7 +634,7 @@ $('filters').addEventListener('click', function(e){
     }
     mode = '';
   }
-  rows.addEventListener('pointerup', end); rows.addEventListener('pointercancel', end);
+  rows.addEventListener('pointerup', end); rows.addEventListener('pointercancel', function(){ if(row){ row.classList.remove('drag'); row.style.transform = ''; row = null; mode = ''; } });
   rows.addEventListener('click', function(e){
     var r = e.target.closest('.row'); if (!r || r.dataset.swiped) return;
     haptic(5); openDetail(r.dataset.id);

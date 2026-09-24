@@ -495,7 +495,7 @@ function seed(){
     plans[6-k].forEach(function(p){ L.push({id:'e'+(id++), day:key, meal:p[0], food:p[1], qty:p[2]}); }); }
   return L;
 }
-var log = load('log', null); if(!Array.isArray(log) || !log.length || !log.some(function(e){return FOOD[e.food];})) log = seed();
+var log = load('log', null); if(!Array.isArray(log)) log = seed();
 log = log.filter(function(e){ return FOOD[e.food]; });
 var goal = +load('goal', 1900) || 1900;
 var split = load('split', 'bal'); if(!SPLITS[split]) split = 'bal';
@@ -597,17 +597,19 @@ $('meals').addEventListener('keydown', function(e){ var o = e.target.closest('[d
   if(e.key==='Enter'){ o.click(); } if(e.key==='Delete'||e.key==='Backspace'){ removeEntry(o.dataset.open); } });
 /* swipe to delete */
 (function(){
-  var fr = null, sx = 0, sy = 0, dx = 0, base = 0, axis = null;
-  $('meals').addEventListener('pointerdown', function(e){ var f = e.target.closest('.fr'); if(!f) return; closeOpenRows(f); fr = f; sx = e.clientX; sy = e.clientY; dx = 0; axis = null; base = f.classList.contains('open') ? -96 : 0; delete f.dataset.swiped; });
-  $('meals').addEventListener('pointermove', function(e){ if(!fr) return; var mx = e.clientX - sx, my = e.clientY - sy;
+  var fr = null, sx = 0, sy = 0, dx = 0, base = 0, axis = null, pointer = null;
+  $('meals').addEventListener('pointerdown', function(e){ var f = e.target.closest('.fr'); if(!f||fr) return; closeOpenRows(f); fr = f; pointer = e.pointerId; sx = e.clientX; sy = e.clientY; dx = 0; axis = null; base = f.classList.contains('open') ? -96 : 0; delete f.dataset.swiped; });
+  $('meals').addEventListener('pointermove', function(e){ if(!fr||e.pointerId!==pointer) return; var mx = e.clientX - sx, my = e.clientY - sy;
     if(!axis){ if(Math.abs(mx) > 8 || Math.abs(my) > 8){ axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y'; if(axis==='x'){ fr.classList.add('drag'); try{ fr.setPointerCapture(e.pointerId); }catch(_){} } } }
     if(axis==='x'){ dx = mx; var x = Math.min(0, Math.max(-150, base + dx)); fr.style.transform = 'translateX('+x+'px)'; fr.dataset.swiped = 1; } });
-  function end(){ if(!fr) return; var f = fr; fr = null; f.classList.remove('drag'); if(axis!=='x'){ return; }
+  function end(e){ if(!fr||e.pointerId!==pointer) return; var f = fr; fr = null; pointer = null; f.classList.remove('drag'); if(axis!=='x'){ return; }
     var x = base + dx; if(x < -130){ removeEntry(f.dataset.open); return; }
     if(x < -48){ f.classList.add('open'); f.style.transform = 'translateX(-96px)'; haptic(10); var b = f.parentNode.querySelector('.del'); if(b) b.tabIndex = 0; }
     else { f.classList.remove('open'); f.style.transform = ''; }
     setTimeout(function(){ delete f.dataset.swiped; }, 60); }
-  $('meals').addEventListener('pointerup', end); $('meals').addEventListener('pointercancel', end);
+  function cancel(){ if(!fr)return; fr.classList.remove('drag'); fr.style.transform = base ? 'translateX(-96px)' : ''; delete fr.dataset.swiped; fr = null; pointer = null; axis = null; }
+  $('meals').addEventListener('pointerup', end); $('meals').addEventListener('pointercancel', function(e){ if(e.pointerId===pointer)cancel(); });
+  $('meals').addEventListener('lostpointercapture', function(e){ if(e.pointerId===pointer)cancel(); }); window.addEventListener('blur',cancel);
 })();
 function closeOpenRows(except){ document.querySelectorAll('.fr.open').forEach(function(f){ if(f!==except){ f.classList.remove('open'); f.style.transform=''; } }); }
 var undoBuf = null;
@@ -700,9 +702,9 @@ function drawPkg(f){ var c = PKC[f.cat];
 function openScan(){ var s = $('scan'); s.classList.add('on'); s.setAttribute('aria-hidden','false'); haptic(8); newScanTarget(); setTimeout(function(){ $('scanClose').focus({preventScroll:true}); }, 60); }
 function newScanTarget(){ clearTimeout(scanT); scanIdx = (scanIdx + 1 + Math.floor(Math.random()*5)) % F.length; scanFood = FOOD[F[scanIdx][0]];
   drawPkg(scanFood); var vf = $('vf'); vf.classList.remove('hit'); vf.classList.toggle('dim', $('torch').getAttribute('aria-pressed')!=='true');
-  $('scanHint').textContent = '對準條碼，保持不動…';
+  $('scanHint').textContent = '示範掃描：對準畫面條碼，保持不動…';
   scanT = setTimeout(function(){ if(!$('scan').classList.contains('on')) return; vf.classList.add('hit'); beep(); haptic([6,20,6]);
-    $('scanHint').textContent = '讀到 '+scanFood.bc+' · '+scanFood.name; setTimeout(function(){ if($('scan').classList.contains('on')) openFood(scanFood.id); }, 380); }, reduce ? 500 : 1500); }
+    $('scanHint').textContent = '示範讀到 '+scanFood.bc+' · '+scanFood.name; setTimeout(function(){ if($('scan').classList.contains('on')) openFood(scanFood.id); }, 380); }, reduce ? 500 : 1500); }
 function closeScan(){ var s = $('scan'); if(!s.classList.contains('on')) return; clearTimeout(scanT); s.classList.remove('on'); s.setAttribute('aria-hidden','true'); }
 $('scanBtn').addEventListener('click', function(){ audio(); openScan(); });
 $('scanClose').addEventListener('click', function(){ closeScan(); haptic(5); $('scanBtn').focus({preventScroll:true}); });
@@ -770,8 +772,12 @@ document.querySelectorAll('.tab').forEach(function(t){ t.addEventListener('click
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(sheet.classList.contains('on')) closeSheet(); else closeScan(); } });
 
 function renderAll(){ renderToday(); if(cur==='week') renderWeek(); if(cur==='lib') renderLib(); }
-function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+function tickClock(){
+  var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+  if(dkey(d)!==TK){ today=d; TK=dkey(d); selDay=TK; $('dDate').textContent=(d.getMonth()+1)+'/'+d.getDate(); $('dDow').textContent='星期'+DOW[d.getDay()]; renderAll(); }
+}
 tickClock(); setInterval(tickClock, 15000);
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) tickClock(); });
 $('dDate').textContent = (today.getMonth()+1)+'/'+today.getDate(); $('dDow').textContent = '星期'+DOW[today.getDay()];
 buildBento(); renderToday(); renderGoal(); persist();
 })();

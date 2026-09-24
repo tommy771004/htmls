@@ -158,7 +158,8 @@ canvas#snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-
 var ocean=document.getElementById('ocean');
 if(!ocean) return;
 var root=document.documentElement;
-var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var motionQuery=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)');
+var reduce=!!(motionQuery&&motionQuery.matches);
 
 var ZONES=[
   {d0:0,d1:200,h:1300,name:'透光帶',en:'EPIPELAGIC',bg:['#1f78b0','#175f93'],txt:'陽光還照得到的地方。海洋裡九成的生物擠在這薄薄的一層，而你現在只下潛了全程的百分之二。'},
@@ -326,9 +327,10 @@ function onScroll(){
   var dark=d<150?0:Math.min(.86,(d-150)/850*.86);
   root.style.setProperty('--dark',dark.toFixed(3));
   if(tip) tip.classList.toggle('on',d>700&&d<5000&&!tipDone);
+  if(reduce) drawSnow(0,0);
 }
 window.addEventListener('scroll',onScroll,{passive:true});
-var rz=0;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){layout();onScroll();},150);});
+var rz=0;window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){layout();size();seed();onScroll();},150);});
 layout();
 
 // flashlight
@@ -356,28 +358,30 @@ if(up) up.addEventListener('click',function(){window.scrollTo({top:0,behavior:re
 
 // ---------- marine snow ----------
 var cv=document.getElementById('snow'),cx=cv&&cv.getContext?cv.getContext('2d'):null;
-var P=[],W=0,H=0,dpr=1,lastY=window.scrollY;
+var P=[],W=0,H=0,dpr=1,lastY=window.scrollY,lastFrame=0,snowFrame=0;
 function size(){if(!cx) return;dpr=Math.min(2,window.devicePixelRatio||1);W=window.innerWidth;H=window.innerHeight;cv.width=W*dpr;cv.height=H*dpr;cx.setTransform(dpr,0,0,dpr,0,0);}
 function seed(){P=[];var n=Math.round(Math.min(160,W*H/9000));for(var i=0;i<n;i++) P.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+.3,v:Math.random()*.25+.05,a:Math.random()*.6+.2,p:Math.random()*6});}
-function frame(){
+function drawSnow(dt,dy){
   if(!cx) return;
-  var sy=window.scrollY,dy=sy-lastY;lastY=sy;
   cx.clearRect(0,0,W,H);
   var vis=Math.min(1,curDepth/300);
   if(vis>0.01){
     cx.fillStyle='#dff6ff';
     for(var i=0;i<P.length;i++){
-      var q=P[i];q.y+=q.v-dy*(.35+q.r*.25);q.p+=.01;q.x+=Math.sin(q.p)*.15;
+      var q=P[i];if(!reduce){q.y+=q.v*dt*60-dy*(.35+q.r*.25);q.p+=dt*.6;q.x+=Math.sin(q.p)*.15*dt*60;}
       if(q.y<-5){q.y=H+5;q.x=Math.random()*W;}if(q.y>H+5){q.y=-5;q.x=Math.random()*W;}
       cx.globalAlpha=q.a*vis;cx.beginPath();cx.arc(q.x,q.y,q.r,0,6.283);cx.fill();
     }
     cx.globalAlpha=1;
   }
-  requestAnimationFrame(frame);
 }
-size();seed();window.addEventListener('resize',function(){size();seed();});
+function frame(now){snowFrame=0;if(!cx||document.hidden||reduce) return;var dt=lastFrame?Math.min(.05,(now-lastFrame)/1000):0;lastFrame=now;var sy=window.scrollY,dy=sy-lastY;lastY=sy;drawSnow(dt,dy);snowFrame=requestAnimationFrame(frame);}
+function startSnow(){if(!cx||document.hidden||reduce||snowFrame)return;lastFrame=0;lastY=window.scrollY;snowFrame=requestAnimationFrame(frame);}
+size();seed();
 onScroll();
-requestAnimationFrame(frame);
+startSnow();
+document.addEventListener('visibilitychange',function(){if(document.hidden){if(snowFrame)cancelAnimationFrame(snowFrame);snowFrame=0;}else startSnow();});
+if(motionQuery)motionQuery.addEventListener('change',function(e){reduce=e.matches;if(reduce){if(snowFrame)cancelAnimationFrame(snowFrame);snowFrame=0;drawSnow(0,0);}else startSnow();});
 })();
 </script>
 </body>

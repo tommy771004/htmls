@@ -249,8 +249,8 @@ tr.best td:nth-child(4){color:var(--red)}
       </div>
 
       <div class="dhead">
-        <h1><i id="recDot" class="rec"></i><span id="pageTitle">騎乘</span></h1>
-        <div class="sensors" aria-label="感測器已連線">
+        <h1><i id="recDot" class="rec"></i><span id="pageTitle">模擬騎乘</span></h1>
+        <div class="sensors" aria-label="示範感測器數值，未連接實體裝置">
           <svg viewBox="0 0 20 20" aria-label="GPS"><path d="M4 10l6-6 2 2-6 6zM9 9l6-6 2 2-6 6zM6 12l2 2M3 17c0-2 1-4 3-5M3 17c2 0 4-1 5-3" stroke="#111210" stroke-width="2" fill="none" stroke-linecap="square"/></svg>
           <svg viewBox="0 0 20 20" aria-label="心率帶"><path d="M10 17 3 10V5h3l1-1h2l1 1 1-1h2l1 1h3v5z" fill="#d62518"/></svg>
           <svg viewBox="0 0 20 20" aria-label="踏頻器"><circle cx="10" cy="10" r="7" stroke="#111210" stroke-width="2.4" fill="none"/><path d="M10 10 15 6" stroke="#111210" stroke-width="2.4"/><rect x="8.5" y="8.5" width="3" height="3" fill="#111210"/></svg>
@@ -548,7 +548,7 @@ setInterval(function(){
 }, 500);
 
 // ---------- pages: swipe ----------
-var TITLES = ['騎乘','心率','圈數','爬坡'];
+var TITLES = ['模擬騎乘','模擬心率','模擬圈數','模擬爬坡'];
 function goPage(p, silent){
   p = Math.max(0, Math.min(3, p)); var ch = p !== page; page = p;
   $('pages').style.transform = 'translateX('+(-p*25)+'%)';

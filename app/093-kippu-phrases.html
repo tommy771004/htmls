@@ -407,7 +407,8 @@ function say(p, btn){
     var v = speechSynthesis.getVoices().filter(function(x){ return /ja/i.test(x.lang); })[0]; if (v) u.voice = v;
     if (speakingBtn) speakingBtn.classList.remove('speaking');
     speakingBtn = btn; if (btn) btn.classList.add('speaking');
-    u.onend = u.onerror = function(){ if (btn) btn.classList.remove('speaking'); };
+    u.onend = function(){ if (btn) btn.classList.remove('speaking'); };
+    u.onerror = function(){ if (btn) btn.classList.remove('speaking'); toast('朗讀失敗，仍可直接閱讀文字'); };
     setTimeout(function(){ if (btn) btn.classList.remove('speaking'); }, 400 + text.length*260);
     speechSynthesis.speak(u);
     if (!v) toast('這台裝置沒有日語語音，改用系統預設');

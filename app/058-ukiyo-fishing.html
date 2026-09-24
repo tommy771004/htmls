@@ -545,12 +545,13 @@ function landed(){
 (function(){
   var sea = $('sea'), mb = $('mainBtn');
   sea.addEventListener('pointerdown', function(e){ if (sheet.classList.contains('on')) return; sea.setPointerCapture(e.pointerId); audio(); startCharge(); });
-  sea.addEventListener('pointerup', endCharge); sea.addEventListener('pointercancel', endCharge);
+  sea.addEventListener('pointerup', endCharge); sea.addEventListener('pointercancel', cancelCharge);
   mb.addEventListener('pointerdown', function(e){ mb.setPointerCapture(e.pointerId); audio(); startCharge(); });
-  mb.addEventListener('pointerup', endCharge); mb.addEventListener('pointercancel', endCharge);
+  mb.addEventListener('pointerup', endCharge); mb.addEventListener('pointercancel', cancelCharge);
   mb.addEventListener('keydown', function(e){ if ((e.key === ' ' || e.key === 'Enter') && !e.repeat){ e.preventDefault(); startCharge(); } });
   mb.addEventListener('keyup', function(e){ if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); endCharge(); } });
 })();
+function cancelCharge(){ G.charging = false; G.power = 0; G.holding = false; $('mainBtn').classList.remove('down'); gauge('power', 0, ''); if(G.mode === 'idle') say('按住蓄力，放開拋竿'); }
 $('sndBtn').addEventListener('click', function(){ settings.sound = !settings.sound; save('settings', settings); sndIcon(); haptic(6); if (settings.sound){ audio(); tick(); } else stopSea(); });
 function sndIcon(){
   $('sndIc').innerHTML = '<path d="M4 10h5l6-5v16l-6-5H4z" fill="currentColor"/>' + (settings.sound ? '<path d="M18 9c2 2 2 6 0 8M21 6c4 4 4 10 0 14" stroke="currentColor" stroke-width="2" fill="none"/>' : '<path d="M18 9l6 8M24 9l-6 8" stroke="currentColor" stroke-width="2"/>');

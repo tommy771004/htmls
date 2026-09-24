@@ -450,11 +450,11 @@ document.addEventListener('visibilitychange', function(){ if (!document.hidden) 
 /* ---------- compass gestures ---------- */
 var dragging = false;
 (function(){
-  var el = $('cmpInst'), mode = null, lastA = 0;
+  var el = $('cmpInst'), mode = null, lastA = 0, startHeading = 0, startBezel = null;
   function ang(e){ var b = el.getBoundingClientRect(); return Math.atan2(e.clientX - b.left - b.width / 2, -(e.clientY - b.top - b.height / 2)) * R2D; }
   el.addEventListener('pointerdown', function(e){
     var b = el.getBoundingClientRect(), r = Math.hypot(e.clientX - b.left - b.width / 2, e.clientY - b.top - b.height / 2) / (b.width / 2);
-    mode = r > .86 ? 'bezel' : 'body'; lastA = ang(e); dragging = true; el.setPointerCapture(e.pointerId);
+    if (dragging) return; mode = r > .86 ? 'bezel' : 'body'; lastA = ang(e); startHeading = target; startBezel = st.bezel; dragging = true; el.setPointerCapture(e.pointerId);
     if (mode === 'bezel' && st.bezel === null){ st.bezel = Math.round(shown); }
   });
   el.addEventListener('pointermove', function(e){
@@ -463,7 +463,7 @@ var dragging = false;
     else if (!sensor){ target = norm(target - d); }
   });
   function up(){ if (!dragging) return; dragging = false; if (mode === 'bezel'){ st.bezel = Math.round(st.bezel / 3) * 3 % 360; } st.heading = Math.round(target); persist(); mode = null; }
-  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', function(){ if (!dragging) return; dragging = false; target = startHeading; st.bezel = startBezel; mode = null; });
   el.tabIndex = 0;
   el.addEventListener('keydown', function(e){ if (e.key === 'ArrowLeft'){ target = norm(target - 5); e.preventDefault(); } if (e.key === 'ArrowRight'){ target = norm(target + 5); e.preventDefault(); } });
 })();
@@ -479,7 +479,7 @@ $('aBezel').addEventListener('click', function(){
   el.addEventListener('pointerdown', function(e){ if (sensor) return; on = true; sx = e.clientX; sy = e.clientY; s0 = tiltT.slice(); el.setPointerCapture(e.pointerId); });
   el.addEventListener('pointermove', function(e){ if (!on) return; tiltT = [Math.max(-9, Math.min(9, s0[0] - (e.clientY - sy) / 22)), Math.max(-9, Math.min(9, s0[1] - (e.clientX - sx) / 22))]; });
   function up(){ on = false; }
-  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', function(){ if (on){ tiltT = s0.slice(); on = false; } });
 })();
 $('lZero').addEventListener('click', function(){ st.lvlOff = [tilt[0], tilt[1]]; persist(); haptic([8, 30, 8]); toast('以目前角度為零點'); });
 $('lFlat').addEventListener('click', function(){ tiltT = [st.lvlOff[0], st.lvlOff[1]]; haptic(6); });
@@ -496,7 +496,7 @@ $('qCal').addEventListener('click', function(){
 });
 
 /* ---------- sensors ---------- */
-var hasEvents = false;
+var hasEvents = false, listening = false;
 function onOrient(e){
   var h = e.webkitCompassHeading != null ? e.webkitCompassHeading : (e.alpha != null ? 360 - e.alpha : null);
   if (h == null) return;
@@ -506,10 +506,10 @@ function onOrient(e){
 }
 $('aSensor').addEventListener('click', function(){
   haptic(6);
-  if (sensor){ sensor = false; window.removeEventListener('deviceorientation', onOrient); $('sensLbl').textContent = '模擬'; this.setAttribute('aria-pressed', 'false'); toast('改用模擬：拖曳羅盤轉身'); return; }
+  if (sensor || listening){ sensor = false; listening = false; window.removeEventListener('deviceorientation', onOrient); $('sensLbl').textContent = '模擬'; this.setAttribute('aria-pressed', 'false'); toast('改用模擬：拖曳羅盤轉身'); return; }
   var D = window.DeviceOrientationEvent;
   if (!D){ toast('這台裝置沒有方位感測器'); return; }
-  var start = function(){ window.addEventListener('deviceorientation', onOrient); setTimeout(function(){ if (!hasEvents) toast('沒有收到感測器資料，維持模擬'); }, 1500); };
+  var start = function(){ hasEvents = false; listening = true; $('sensLbl').textContent = '等待感測器'; window.addEventListener('deviceorientation', onOrient); setTimeout(function(){ if (!listening || hasEvents) return; listening = false; window.removeEventListener('deviceorientation', onOrient); $('sensLbl').textContent = '模擬'; toast('沒有收到感測器資料，維持模擬'); }, 1500); };
   if (typeof D.requestPermission === 'function'){ D.requestPermission().then(function(r){ if (r === 'granted') start(); else toast('未取得感測器權限'); }).catch(function(){ toast('未取得感測器權限'); }); }
   else start();
 });

@@ -355,6 +355,7 @@ function nearest(pt){
 }
 var drag=null;
 svg.addEventListener('pointerdown',function(e){
+  stopIntro();
   var p=toSvg(e);drag={a:Math.atan2(p[0],p[1]),x:e.clientX,y:e.clientY,moved:false,min:state.min};
   try{svg.setPointerCapture(e.pointerId);}catch(_){}
   svg.classList.add('drag');
@@ -381,26 +382,29 @@ function endDrag(e){
 svg.addEventListener('pointerup',endDrag);
 svg.addEventListener('pointercancel',function(){drag=null;svg.classList.remove('drag');});
 
-if(dateIn) dateIn.addEventListener('change',function(){var v=dateIn.value.split('-');if(v.length===3){state.y=+v[0];state.m=+v[1]-1;state.d=+v[2];render();}});
-if(timeIn) timeIn.addEventListener('input',function(){state.min=+timeIn.value;render();});
-var nowB=document.getElementById('now');if(nowB) nowB.addEventListener('click',function(){setNow(false);});
+if(dateIn) dateIn.addEventListener('change',function(){stopIntro();var v=dateIn.value.split('-');if(v.length===3){state.y=+v[0];state.m=+v[1]-1;state.d=+v[2];render();}});
+if(timeIn) timeIn.addEventListener('input',function(){stopIntro();state.min=+timeIn.value;render();});
+var nowB=document.getElementById('now');if(nowB) nowB.addEventListener('click',function(){stopIntro();setNow(false);});
 Array.prototype.forEach.call(document.querySelectorAll('[data-lat]'),function(b){
   b.addEventListener('click',function(){lat=+b.dataset.lat;Array.prototype.forEach.call(document.querySelectorAll('[data-lat]'),function(x){x.setAttribute('aria-pressed',String(x===b));});buildMask();render();});
 });
-var playing=false,last=0,playB=document.getElementById('play');
-if(playB) playB.addEventListener('click',function(){playing=!playing;playB.setAttribute('aria-pressed',String(playing));last=0;if(playing) requestAnimationFrame(tick);});
+var playing=false,last=0,playFrame=0,introFrame=0,playB=document.getElementById('play');
+function stopIntro(){if(introFrame) cancelAnimationFrame(introFrame);introFrame=0;}
+if(playB) playB.addEventListener('click',function(){stopIntro();playing=!playing;playB.setAttribute('aria-pressed',String(playing));last=0;if(playing){if(!playFrame) playFrame=requestAnimationFrame(tick);}else if(playFrame){cancelAnimationFrame(playFrame);playFrame=0;}});
 function tick(t){
+  playFrame=0;
   if(!playing) return;
   var dt=last?Math.min(.1,(t-last)/1000):0;last=t;
   state.min+=dt*60*1.2; // 1.2 hours per second
   if(state.min>=1440){state.min-=1440;var nd=new Date(Date.UTC(state.y,state.m,state.d+1));state.y=nd.getUTCFullYear();state.m=nd.getUTCMonth();state.d=nd.getUTCDate();}
-  syncInputs();render();requestAnimationFrame(tick);
+  syncInputs();render();playFrame=requestAnimationFrame(tick);
 }
+document.addEventListener('visibilitychange',function(){if(document.hidden&&playing){playing=false;if(playFrame) cancelAnimationFrame(playFrame);playFrame=0;if(playB) playB.setAttribute('aria-pressed','false');}});
 document.addEventListener('keydown',function(e){
   if(e.target&&e.target.tagName==='INPUT') return;
-  if(e.key==='ArrowRight'){state.min=(state.min+10)%1440;syncInputs();render();}
-  else if(e.key==='ArrowLeft'){state.min=(state.min+1430)%1440;syncInputs();render();}
-  else if(e.key==='n'||e.key==='N'){setNow(false);}
+  if(e.key==='ArrowRight'){stopIntro();state.min=(state.min+10)%1440;syncInputs();render();}
+  else if(e.key==='ArrowLeft'){stopIntro();state.min=(state.min+1430)%1440;syncInputs();render();}
+  else if(e.key==='n'||e.key==='N'){stopIntro();setNow(false);}
 });
 
 function intro(){
@@ -415,7 +419,7 @@ if(up>=0) select(up); else intro();
 // a gentle sweep on load, like turning the wheel to set it
 if(!reduce){
   var target=state.min,start=performance.now();state.min=(target+1440-150)%1440;
-  (function sweep(t){var k=Math.min(1,(t-start)/1400),e=1-Math.pow(1-k,3);state.min=((target-150+150*e)%1440+1440)%1440;render();if(k<1) requestAnimationFrame(sweep);else{state.min=target;syncInputs();render();}})(start);
+  (function sweep(t){var k=Math.min(1,(t-start)/1400),e=1-Math.pow(1-k,3);state.min=((target-150+150*e)%1440+1440)%1440;render();if(k<1) introFrame=requestAnimationFrame(sweep);else{introFrame=0;state.min=target;syncInputs();render();}})(start);
 }
 })();
 </script>

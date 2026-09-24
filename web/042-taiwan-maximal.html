@@ -221,7 +221,7 @@ button{font-family:inherit;font-weight:700;cursor:pointer;color:inherit}
     </div>
     <div class="side">
       <div class="led" aria-label="跑馬燈"><div class="scroll">歡迎光臨 ★ 雞排比你的臉還大 ★ 臭豆腐臭到隔壁攤是正常的 ★ 機車請停遠一點 ★ 行動支付 可 ★ 老闆今天心情好 加辣免費 ★</div></div>
-      <div class="queue" aria-live="polite"><span class="num" id="qnum">043</span><span class="lb">目前叫號 · 雞排攤</span><span class="ahead" id="qahead">你前面還有 12 位</span></div>
+      <div class="queue" aria-live="polite"><span class="num" id="qnum">043</span><span class="lb">目前叫號 · 夜市示範</span><span class="ahead" id="qahead">取號後顯示等待人數</span></div>
       <div class="pay"><span class="k">點餐說明：</span>按 <b>＋</b> 就丟進你的<b>茄芷袋</b>。招牌可以拍一下，老闆會回你。袋子裝滿了就去<b>結帳</b>拿號碼牌。</div>
     </div>
   </div>
@@ -245,7 +245,7 @@ button{font-family:inherit;font-weight:700;cursor:pointer;color:inherit}
 </div>
 
 <div class="scrim" id="scrim"></div>
-<aside class="pad" id="pad" aria-label="點餐單" aria-hidden="true">
+<aside class="pad" id="pad" role="dialog" aria-modal="true" aria-label="點餐單" aria-hidden="true" inert>
   <header><h2>你的茄芷袋<small>點菜單 · 桌號：站著吃</small></h2><button class="x" id="closePad" type="button" aria-label="關閉">✕</button></header>
   <ul class="lines" id="lines"></ul>
   <div class="spice"><p>辣度（老闆會看心情）</p><div class="chips" id="chips">
@@ -253,12 +253,12 @@ button{font-family:inherit;font-weight:700;cursor:pointer;color:inherit}
   </div></div>
   <div class="checkout"><div class="sum"><span>總共（現金找零自己數）</span><b id="sum">$0</b></div><button class="go" id="payBtn" type="button" disabled>結帳拿號碼牌</button></div>
 </aside>
-<div class="ticket" id="ticket" role="dialog" aria-label="號碼牌">
+<div class="ticket" id="ticket" role="dialog" aria-modal="true" aria-label="號碼牌" aria-hidden="true" inert>
   <div class="hole"></div>
   <div class="lbl">號 碼 牌</div>
   <div class="no" id="tno">047</div>
   <p id="tmsg">叫到號碼要大聲說「有」。</p>
-  <p id="twait">預計等待：一首五月天的時間。</p>
+  <p id="twait">取號後顯示前方等待人數 · 此頁模擬叫號</p>
   <button class="go" id="tclose" type="button">好，我去旁邊等</button>
 </div>
 
@@ -288,17 +288,22 @@ button{font-family:inherit;font-weight:700;cursor:pointer;color:inherit}
     { id:'s10', name:'射氣球', sub:'十發 · 射中三個送香腸', cls:'y', stk:[['circ','必中<br>大概','left:10px;top:60px;transform:rotate(-12deg)']], items:[
       ['射氣球十發','i-balloon',50,'準心是歪的，不是你的錯'],['加五發','i-balloon',25,'輸不起的人請按這裡'] ] }
   ];
-  /* queue board */
-  (function(){
-    var q = document.getElementById('qnum'), a = document.getElementById('qahead'), box = q && q.parentNode, n = 43, ahead = 12;
-    if(!q) return;
-    setInterval(function(){
-      if(document.hidden) return;
-      n++; ahead = ahead > 1 ? ahead - 1 : 9 + Math.floor(Math.random()*8);
-      q.textContent = String(n % 1000).padStart(3,'0'); if(a) a.textContent = '你前面還有 ' + ahead + ' 位';
-      box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash');
-    }, 7000);
-  })();
+  /* one shared demonstration queue for the board and printed tickets */
+  var queueNow = 43, nextTicket = 55, myTicket = null;
+  var q = document.getElementById('qnum'), qa = document.getElementById('qahead'), queueBox = q && q.parentNode;
+  function renderQueue(){
+    if(q) q.textContent = String(queueNow % 1000).padStart(3,'0');
+    var ahead = myTicket == null ? null : Math.max(0, myTicket - queueNow - 1);
+    if(qa) qa.textContent = ahead == null ? '取號後顯示等待人數' : queueNow >= myTicket ? '已叫到您的號碼' : '您前面還有 ' + ahead + ' 位';
+    var wait = document.getElementById('twait');
+    if(wait && ahead != null) wait.textContent = queueNow >= myTicket ? '已叫到您的號碼 · 此頁模擬' : '前方尚有 ' + ahead + ' 位 · 此頁模擬叫號';
+  }
+  setInterval(function(){
+    if(document.hidden || queueNow >= nextTicket) return;
+    queueNow++; renderQueue();
+    if(queueBox){ queueBox.classList.remove('flash'); void queueBox.offsetWidth; queueBox.classList.add('flash'); }
+  }, 7000);
+  renderQueue();
   var SHOUTS = ['好喔～','一份～！','馬上來！','要辣嗎？','內用外帶？','帥哥等一下喔','美女等一下喔','加一份！','排一下喔～','謝謝光臨！'];
   var KICKS = ['欸欸欸不要拍招牌','招牌很貴餒','要點什麼啦','拍了就要買喔','我都有看到喔'];
   var ITEMS = {};
@@ -337,7 +342,7 @@ button{font-family:inherit;font-weight:700;cursor:pointer;color:inherit}
   });
 
   /* order state */
-  var order = {}, spice = '不辣', ticketNo = 46 + Math.floor(Math.random() * 30);
+  var order = {}, spice = '不辣', ticketNo = 0;
   try{ var saved = JSON.parse(localStorage.getItem('hl-night-market') || 'null'); if(saved && typeof saved === 'object'){ Object.keys(saved).forEach(function(k){ if(ITEMS[k] && saved[k] > 0) order[k] = Math.min(99, saved[k] | 0); }); } }catch(e){}
   function save(){ try{ localStorage.setItem('hl-night-market', JSON.stringify(order)); }catch(e){} }
   var badge = $('#badge'), cnt = $('#cnt'), sumTop = $('#sumTop'), sumEl = $('#sum'), lines = $('#lines'), payBtn = $('#payBtn');
@@ -418,12 +423,12 @@ button{font-family:inherit;font-weight:700;cursor:pointer;color:inherit}
   /* drawer */
   var pad = $('#pad'), scrim = $('#scrim'), ticket = $('#ticket');
   var lastFocus = null;
-  function openPad(){ if(!pad) return; lastFocus = document.activeElement; render(); pad.classList.add('on'); pad.setAttribute('aria-hidden','false'); scrim && scrim.classList.add('on'); var c = $('#closePad'); c && c.focus(); }
-  function closePad(){ if(!pad) return; pad.classList.remove('on'); pad.setAttribute('aria-hidden','true'); scrim && scrim.classList.remove('on'); if(lastFocus && lastFocus.focus) lastFocus.focus(); }
+  function openPad(){ if(!pad || pad.classList.contains('on')) return; lastFocus = document.activeElement; render(); pad.classList.add('on'); pad.setAttribute('aria-hidden','false'); pad.inert = false; scrim && scrim.classList.add('on'); var c = $('#closePad'); c && c.focus(); }
+  function closePad(restore){ if(!pad || !pad.classList.contains('on')) return; pad.classList.remove('on'); pad.setAttribute('aria-hidden','true'); pad.inert = true; scrim && scrim.classList.remove('on'); if(restore !== false && lastFocus && lastFocus.isConnected && lastFocus.focus) lastFocus.focus(); }
   bag && bag.addEventListener('click', openPad);
   var ob = $('#openBtn'); ob && ob.addEventListener('click', openPad);
   var cp = $('#closePad'); cp && cp.addEventListener('click', closePad);
-  scrim && scrim.addEventListener('click', function(){ closePad(); closeTicket(); });
+  scrim && scrim.addEventListener('click', function(){ if(ticket && ticket.classList.contains('on')) closeTicket(); else closePad(); });
   lines && lines.addEventListener('click', function(e){
     var b = e.target.closest && e.target.closest('button[data-k]'); if(!b) return;
     var k = b.getAttribute('data-k'); order[k] = Math.max(0, Math.min(99, (order[k] || 0) + (+b.getAttribute('data-d'))));
@@ -437,21 +442,32 @@ button{font-family:inherit;font-weight:700;cursor:pointer;color:inherit}
     chips.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
     spice = b.textContent;
   });
-  function closeTicket(){ if(ticket){ ticket.classList.remove('on'); } }
+  function closeTicket(){ if(!ticket || !ticket.classList.contains('on')) return; ticket.classList.remove('on'); ticket.setAttribute('aria-hidden','true'); ticket.inert = true; scrim && scrim.classList.remove('on'); var target = lastFocus && lastFocus.isConnected ? lastFocus : bag; if(target && target.focus) target.focus(); }
   payBtn && payBtn.addEventListener('click', function(){
     var tt = totals(); if(!tt.n) return;
-    ticketNo++;
+    ticketNo = ++nextTicket; myTicket = ticketNo;
     var tn = $('#tno'), tm = $('#tmsg'), tw = $('#twait');
     if(tn) tn.textContent = String(ticketNo).padStart(3, '0');
     var spiceMsg = { '不辣':'不辣，老闆偷偷多撒了一點胡椒。', '小辣':'小辣，老闆的小辣是別人的中辣。', '大辣':'大辣，請準備一杯冬瓜檸檬。', '老闆的辣':'老闆的辣，老闆看了你一眼說「確定？」' }[spice] || '';
     if(tm) tm.textContent = '共 ' + tt.n + ' 樣，$' + tt.t + '。' + spiceMsg;
-    if(tw) tw.textContent = '預計等待：' + ['一首五月天的時間。','滑完一輪限時動態。','隔壁射完十發氣球。','老闆講完一通電話。'][ticketNo % 4];
+    renderQueue();
     order = {}; save(); render();
-    closePad(); scrim && scrim.classList.add('on');
-    if(ticket){ ticket.classList.add('on'); var tc = $('#tclose'); tc && tc.focus(); }
+    closePad(false); scrim && scrim.classList.add('on');
+    if(ticket){ ticket.classList.add('on'); ticket.setAttribute('aria-hidden','false'); ticket.inert = false; var tc = $('#tclose'); tc && tc.focus(); }
   });
-  var tcl = $('#tclose'); tcl && tcl.addEventListener('click', function(){ closeTicket(); scrim && scrim.classList.remove('on'); });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ closePad(); closeTicket(); scrim && scrim.classList.remove('on'); } });
+  var tcl = $('#tclose'); tcl && tcl.addEventListener('click', closeTicket);
+  document.addEventListener('keydown', function(e){
+    var active = ticket && ticket.classList.contains('on') ? ticket : pad && pad.classList.contains('on') ? pad : null;
+    if(!active) return;
+    if(e.key === 'Escape'){ e.preventDefault(); if(active === ticket) closeTicket(); else closePad(); }
+    if(e.key === 'Tab'){
+      var focusable = Array.prototype.slice.call(active.querySelectorAll('button:not(:disabled),a[href]'));
+      if(!focusable.length) return;
+      var first = focusable[0], last = focusable[focusable.length-1];
+      if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    }
+  });
 })();
 </script>
 </body>

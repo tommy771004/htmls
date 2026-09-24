@@ -320,7 +320,7 @@ function seed(){function led(pairs){return pairs.map(function(p){return{t:dAgo(p
     {id:'g5',n:'墾丁衝浪課',target:6800,col:'p',ic:'surf',done:dAgo(34),opened:true,log:led([[34,1800],[48,2000],[60,3000]])},
     {id:'g6',n:'機車換新胎',target:3200,col:'y',ic:'wheel',done:dAgo(70),opened:true,log:led([[70,1200],[80,2000]])}
   ];}
-var goals=load('goals',null);if(!Array.isArray(goals)||!goals.length)goals=seed();
+var goals=load('goals',null);if(!Array.isArray(goals))goals=seed();
 var cur=load('cur','g1');var pending=0;
 function persist(){save('goals',goals);save('cur',cur);}
 function G(id){for(var i=0;i<goals.length;i++)if(goals[i].id===id)return goals[i];return null;}
@@ -360,10 +360,11 @@ function draw(){var c=cx;c.setTransform(DPR,0,0,DPR,0,0);c.clearRect(0,0,D,D);
   c.strokeStyle='rgba(90,16,48,.18)';c.setLineDash([4,6]);c.lineWidth=1.5;var yl=D*.14;c.beginPath();c.moveTo(D*.5-Math.sqrt(Math.max(0,(D/2)*(D/2)-(D/2-yl)*(D/2-yl)))+10,yl);c.lineTo(D*.5+Math.sqrt(Math.max(0,(D/2)*(D/2)-(D/2-yl)*(D/2-yl)))-10,yl);c.stroke();c.setLineDash([]);
   for(var i=0;i<balls.length;i++)coinDraw(balls[i]);
   if(!balls.length){c.fillStyle='rgba(90,16,48,.45)';c.font='700 15px "Hiragino Maru Gothic ProN","Yuanti TC",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(goal()?'投第一枚硬幣':'新增一個目標',D/2,D/2);}}
-var raf=0,idle=0;
-function frame(){raf=0;if(document.hidden)return;if(shake>0){shake--;balls.forEach(function(b){b.px-=(Math.random()-.5)*3;b.py+=Math.random()*4;});}
-  phys(1);draw();var moving=balls.some(function(b){return Math.abs(b.x-b.px)+Math.abs(b.y-b.py)>.05;});idle=moving?0:idle+1;if(idle<30)raf=requestAnimationFrame(frame);}
-function kick(){idle=0;if(!raf&&!document.hidden)raf=requestAnimationFrame(frame);}
+var raf=0,idle=0,physLast=0,physCarry=0;
+function frame(ts){raf=0;if(document.hidden){physLast=0;physCarry=0;return;}if(!physLast)physLast=ts;physCarry+=Math.min(32,Math.max(0,ts-physLast));physLast=ts;
+  while(physCarry>=1000/60){if(shake>0){shake--;balls.forEach(function(b){b.px-=(Math.random()-.5)*3;b.py+=Math.random()*4;});}phys(1);physCarry-=1000/60;}
+  draw();var moving=balls.some(function(b){return Math.abs(b.x-b.px)+Math.abs(b.y-b.py)>.05;});idle=moving?0:idle+1;if(idle<30)raf=requestAnimationFrame(frame);else{physLast=0;physCarry=0;}}
+function kick(){idle=0;if(!raf&&!document.hidden){physLast=0;physCarry=0;raf=requestAnimationFrame(frame);}}
 function drop(k,count){var sc=D/300;for(var i=0;i<count;i++){(function(i){setTimeout(function(){var r=DEN[k].r*sc,x=D/2+(Math.random()-.5)*30,y=r+4;balls.push({x:x,y:y,px:x-(Math.random()-.5)*2,py:y-2,r:r,k:k,a:Math.random()*6});kick();},i*(RM.matches?0:45));})(i);}}
 $('globe').addEventListener('pointerdown',function(){if(!balls.length)return;shake=RM.matches?0:16;haptic([6,20,6]);clink();kick();});
 
@@ -401,18 +402,18 @@ var crank=$('crank'),arm=$('arm'),ang=0,acc=0,dragging=false,lastA=0,busy=false;
 function setArm(a){arm.style.transform='rotate('+a+'deg)';}
 function angAt(e){var r=crank.getBoundingClientRect();return Math.atan2(e.clientY-(r.top+r.height/2),e.clientX-(r.left+r.width/2))*180/Math.PI;}
 crank.addEventListener('pointerdown',function(e){if(busy)return;dragging=true;acc=0;lastA=angAt(e);crank.classList.add('drag');try{crank.setPointerCapture(e.pointerId);}catch(x){}haptic(5);});
-crank.addEventListener('pointermove',function(e){if(!dragging)return;var a=angAt(e),d=a-lastA;if(d>180)d-=360;if(d<-180)d+=360;lastA=a;if(d<0)d*=.15;var before=Math.floor(acc/30);acc+=d;ang+=d;setArm(ang);if(Math.floor(acc/30)>before){tick();haptic(3);}if(acc>=330){dragging=false;crank.classList.remove('drag');commit();}});
-function endCrank(){if(!dragging)return;dragging=false;crank.classList.remove('drag');if(acc<15){autoTurn();}else if(acc<330){ang-=acc;setArm(ang);haptic([10,30,10]);}}
+crank.addEventListener('pointermove',function(e){if(!dragging)return;var a=angAt(e),d=a-lastA;if(d>180)d-=360;if(d<-180)d+=360;lastA=a;if(d<0)d*=.15;var before=Math.floor(acc/30);acc+=d;ang+=d;setArm(ang);if(Math.floor(acc/30)>before){tick();haptic(3);}});
+function endCrank(){if(!dragging)return;dragging=false;crank.classList.remove('drag');if(acc>=330){commit();}else if(acc<15){autoTurn();}else{ang-=acc;setArm(ang);haptic([10,30,10]);}}
 crank.addEventListener('pointerup',endCrank);crank.addEventListener('pointercancel',function(){if(!dragging)return;dragging=false;crank.classList.remove('drag');ang-=acc;setArm(ang);});
 crank.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();autoTurn();}});
 function autoTurn(){if(busy)return;var start=ang,t0=performance.now(),dur=RM.matches?1:700,ticks=0;busy=true;crank.classList.add('drag');
   (function step(t){var p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3);ang=start+360*e;setArm(ang);var tk=Math.floor(e*12);if(tk>ticks){ticks=tk;tick();}if(p<1)requestAnimationFrame(step);else{crank.classList.remove('drag');busy=false;commit();}})(performance.now());}
 function commit(){var g=goal();if(!g){toast('先新增一個目標',null);return;}
   if(!pending){haptic([20,40,20]);toast('先投幣再轉',null);return;}
-  var was=saved(g),v=pending;pending=0;g.log.unshift({t:Date.now(),a:v});persist();
+  var was=saved(g),v=pending,entry={t:Date.now(),a:v};pending=0;g.log.unshift(entry);persist();
   var before=balls.length,now=tokensFor(g),add=Math.max(1,now-before);drop(denomFor(v),Math.min(add,40));chaching();haptic([10,30,16]);
   if(was<g.target&&saved(g)>=g.target){g.done=Date.now();persist();setTimeout(function(){fanfare();haptic([30,60,30,60,60]);toast('存滿了！扭蛋掉出來了',null);},500);}
-  else toast('存入 NT$'+money(v),function(){var i=g.log.indexOf(g.log.filter(function(x){return x.a===v;})[0]);if(i>=0)g.log.splice(i,1);persist();rebuild(true);render();kick();});
+  else toast('存入 NT$'+money(v),function(){var i=g.log.indexOf(entry);if(i>=0)g.log.splice(i,1);persist();rebuild(true);render();kick();});
   render();}
 
 /* ---------- capsule open ---------- */

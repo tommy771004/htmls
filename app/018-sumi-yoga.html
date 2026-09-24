@@ -717,7 +717,7 @@ function frame(t){
   }
   if (!reduce) $('enso').style.setProperty('--b', (.8 + .2 * S.br).toFixed(3));
   $('bigfig').innerHTML = '<path d="M14 196C70 192 140 198 190 193" stroke="' + MOSS + '" stroke-opacity=".5" stroke-width="3.4" fill="none" stroke-linecap="round" filter="url(#wash)"/><path d="' + figurePath(S.cur, reduce ? 0 : S.br) + '" fill="' + INK + '" filter="url(#brush)"/>';
-  S.raf = requestAnimationFrame(frame);
+  if (S.playing || S.tw < 1) S.raf = requestAnimationFrame(frame);
 }
 function loop(){ if (!S.raf){ S.last = 0; S.raf = requestAnimationFrame(frame); } }
 function startPractice(c){
@@ -734,16 +734,16 @@ function stopPractice(save_){
   setTimeout(function(){ if (pr.classList.contains('off-b')){ pr.hidden = true; cancelAnimationFrame(S.raf); S.raf = 0; } }, reduce ? 0 : 560);
   renderWeek();
 }
-function addMinutes(sec){ var k = dkey(TODAY); rec[k] = (rec[k] || 0) + Math.max(1, Math.round(sec / 60)); save('rec', rec); }
+function addMinutes(sec){ if (sec < 20) return; var k = dkey(TODAY); rec[k] = (rec[k] || 0) + Math.max(1, Math.round(sec / 60)); save('rec', rec); }
 function finish(){
   S.playing = false; addMinutes(S.elapsed);
-  var m = Math.max(1, Math.round(S.elapsed / 60));
-  $('doneTxt').textContent = S.course.n + '・' + S.course.seq.length + ' 式・' + m + ' 分鐘';
+  var m = S.elapsed < 20 ? 0 : Math.max(1, Math.round(S.elapsed / 60));
+  $('doneTxt').textContent = S.course.n + '・' + S.course.seq.length + ' 式・' + (m ? m + ' 分鐘' : '未滿 20 秒，未記錄');
   $('done').classList.add('on'); bowl(1, .14); setTimeout(function(){ bowl(1.5, .08); }, 700); haptic([20, 60, 20, 60, 30]);
   S.elapsed = 0; renderWeek();
 }
 $('pPlay').addEventListener('click', function(){
-  S.playing = !S.playing; playIcon(S.playing); this.setAttribute('aria-label', S.playing ? '暫停' : '繼續'); haptic(8); if (S.playing){ tock(); loop(); }
+  S.playing = !S.playing; playIcon(S.playing); this.setAttribute('aria-label', S.playing ? '暫停' : '繼續'); haptic(8); if (S.playing){ tock(); loop(); } else { cancelAnimationFrame(S.raf); S.raf = 0; S.last = 0; $('brN').textContent = '停'; }
 });
 $('pNext').addEventListener('click', function(){ if (S.i < S.course.seq.length - 1){ setPose(S.i + 1); bowl(1, .08); haptic(6); } else finish(); loop(); });
 $('pPrev').addEventListener('click', function(){ if (S.i > 0){ setPose(S.i - 1); bowl(.9, .08); haptic(6); } else { S.left = S.course.seq[0][1]; renderTime(); haptic([5, 30, 5]); } loop(); });
@@ -760,7 +760,7 @@ $('pSound').addEventListener('click', function(){ settings.sound = !settings.sou
   });
   st.addEventListener('pointercancel', function(){ on = false; });
 })();
-document.addEventListener('visibilitychange', function(){ if (!document.hidden && !$('practice').hidden) loop(); });
+document.addEventListener('visibilitychange', function(){ if (document.hidden){ cancelAnimationFrame(S.raf); S.raf = 0; S.last = 0; } else if (!$('practice').hidden && S.playing) loop(); });
 document.addEventListener('keydown', function(e){
   if (e.key !== 'Escape') return;
   if (sheet.classList.contains('on')) closeSheet();

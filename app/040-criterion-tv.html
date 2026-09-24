@@ -481,10 +481,10 @@ function renderShelf(){
 }
 $('shelf').addEventListener('click', function(e){ var s = e.target.closest('.spine'); if(!s || s.dataset.dragged) { if(s) delete s.dataset.dragged; return; } s.classList.add('pull'); haptic(6); projector(); showFilm(FILM[+s.dataset.no]); });
 document.querySelectorAll('[data-sort]').forEach(function(b){ b.addEventListener('click', function(){ sortMode = b.dataset.sort; document.querySelectorAll('[data-sort]').forEach(function(x){ x.setAttribute('aria-pressed', x===b); }); haptic(5); renderShelf(); }); });
-(function(){ var hold = null, drag = null, sx = 0, sy = 0;
+(function(){ var hold = null, drag = null, beforeDrag = null, sx = 0, sy = 0;
   function rects(){ return Array.prototype.map.call($('shelf').querySelectorAll('.spine'), function(el){ return {el:el, r:el.getBoundingClientRect()}; }); }
   $('shelf').addEventListener('pointerdown', function(e){ var s = e.target.closest('.spine'); if(!s || sortMode!=='mine') return; sx = e.clientX; sy = e.clientY;
-    hold = setTimeout(function(){ drag = s; s.classList.add('lift'); s.dataset.dragged = 1; haptic([10,20,10]); try{ s.setPointerCapture(e.pointerId); }catch(_){} }, 320); });
+    hold = setTimeout(function(){ beforeDrag = shelf.slice(); drag = s; s.classList.add('lift'); s.dataset.dragged = 1; haptic([10,20,10]); try{ s.setPointerCapture(e.pointerId); }catch(_){} }, 320); });
   $('shelf').addEventListener('pointermove', function(e){ if(hold && !drag && (Math.abs(e.clientX-sx) > 8 || Math.abs(e.clientY-sy) > 8)){ clearTimeout(hold); hold = null; }
     if(!drag) return; e.preventDefault(); drag.style.transform = 'translate('+(e.clientX-sx)+'px,'+(e.clientY-sy-22)+'px) rotate(-2deg)';
     var rs = rects(), target = null; rs.forEach(function(o){ if(o.el!==drag && e.clientX > o.r.left && e.clientX < o.r.right && e.clientY > o.r.top - 20 && e.clientY < o.r.bottom + 20) target = o.el; });
@@ -496,7 +496,7 @@ document.querySelectorAll('[data-sort]').forEach(function(b){ b.addEventListener
       before.forEach(function(b){ if(b[0]===drag) return; var r2 = b[0].getBoundingClientRect(), dx = b[1]-r2.left, dy = b[2]-r2.top; if(!dx && !dy) return; b[0].style.transition='none'; b[0].style.transform='translate('+dx+'px,'+dy+'px)'; requestAnimationFrame(function(){ b[0].style.transition=''; b[0].style.transform=''; }); });
       haptic(4); } });
   function end(){ clearTimeout(hold); hold = null; if(!drag) return; var d = drag; drag = null; d.classList.remove('lift'); d.style.transform=''; persist(); setTimeout(function(){ delete d.dataset.dragged; }, 50); }
-  $('shelf').addEventListener('pointerup', end); $('shelf').addEventListener('pointercancel', end);
+  $('shelf').addEventListener('pointerup', end); $('shelf').addEventListener('pointercancel', function(){ clearTimeout(hold); hold = null; if(!drag) return; drag.classList.remove('lift'); drag.style.transform = ''; drag = null; if(beforeDrag) shelf = beforeDrag; beforeDrag = null; renderShelf(); });
   $('shelf').addEventListener('contextmenu', function(e){ e.preventDefault(); });
 })();
 

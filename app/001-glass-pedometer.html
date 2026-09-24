@@ -245,6 +245,14 @@ svg{display:block}
 .toast{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));z-index:60;transform:translate(-50%,calc(-100% - 90px));visibility:hidden;transition:transform .45s var(--spring),visibility 0s .45s;padding:11px 18px;border-radius:22px;font-size:14px;font-weight:600;white-space:nowrap;--glass:rgba(40,30,26,.6)}
 .toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--spring)}
 
+@media (max-width:520px) and (max-height:620px){
+  .large{margin-bottom:10px}
+  .ringwrap{width:210px;height:210px;margin-top:0}
+  .ringwrap>svg{width:100%;height:100%}
+  .steps{font-size:48px}
+  .walk{margin-top:12px}
+}
+
 @media (prefers-reduced-motion:reduce){
   .page.enter{animation:none}
   .scene .layer,#hiker{transition:none}
@@ -326,7 +334,7 @@ svg{display:block}
         <!-- TODAY -->
         <section class="page" id="p-today" data-title="今天" aria-label="今天">
           <div class="large">
-            <div><h2>今天</h2><p class="sub" id="dateLbl">9 月 23 日 星期三</p></div>
+            <div><h2>今天</h2><p class="sub" id="dateLbl">9 月 23 日 星期三</p><p class="sub">示範健走 · 非裝置計步</p></div>
             <button class="roundbtn glass" id="goalBtn" aria-label="調整每日目標">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V5.5c3-2 5.5 1.8 9 .2 1.6-.7 3-.8 5-.2v8.5c-2-.6-3.4-.5-5 .2-3.5 1.6-6-2.2-9-.2"/></svg>
             </button>
@@ -354,7 +362,7 @@ svg{display:block}
           <div class="stats glass">
             <div class="stat"><div class="v" id="km">0.0</div><div class="l">公里</div></div>
             <div class="stat"><div class="v" id="kcal">0</div><div class="l">大卡</div></div>
-            <div class="stat"><div class="v" id="mins">0</div><div class="l">活動分鐘</div></div>
+            <div class="stat"><div class="v" id="mins">0</div><div class="l">推估分鐘</div></div>
           </div>
 
           <div class="card glass">
@@ -373,13 +381,13 @@ svg{display:block}
           <div class="large"><div><h2>路線</h2><p class="sub">台北近郊的五條步道</p></div></div>
           <div class="carousel" id="carousel"></div>
           <div class="dots" id="dots"></div>
-          <p class="sect">最近走過</p>
+          <p class="sect">示範走訪</p>
           <div class="list glass" id="recent"></div>
         </section>
 
         <!-- TRENDS -->
         <section class="page" id="p-trends" data-title="趨勢" aria-label="趨勢" hidden>
-          <div class="large"><div><h2>趨勢</h2><p class="sub" id="rangeLbl"></p></div></div>
+          <div class="large"><div><h2>趨勢</h2><p class="sub" id="rangeLbl"></p><p class="sub">過往日期為示範資料</p></div></div>
           <div class="seg glass" id="seg" data-v="week" role="group" aria-label="區間">
             <span class="knob"></span>
             <button data-v="week" aria-pressed="true">週</button>
@@ -398,7 +406,7 @@ svg{display:block}
           <div class="large"><div><h2>我</h2><p class="sub">身體資料只存在這台裝置</p></div></div>
           <div class="profile glass">
             <svg class="av" viewBox="0 0 62 62"><circle cx="31" cy="31" r="31" fill="#e9b48c"/><path d="M8 62c2-12 11-18 23-18s21 6 23 18z" fill="#4c5f53"/><circle cx="31" cy="26" r="11" fill="#fbe0c6"/><path d="M19 24c1-9 8-13 14-12 6 0 11 5 10 12-3-4-8-5-12-5s-9 1-12 5z" fill="#3a2621"/></svg>
-            <div><b>林予安</b><span id="streak">連續 0 天達標</span></div>
+            <div><b>示範旅人</b><span id="streak">連續 0 天達標</span></div>
           </div>
           <p class="sect">身體</p>
           <div class="list glass" style="margin-top:0">
@@ -448,6 +456,7 @@ function load(k, d){ try { var v = localStorage.getItem(KEY+k); return v === nul
 function save(k, v){ try { localStorage.setItem(KEY+k, JSON.stringify(v)); } catch(e){} }
 var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 var fmt = function(n){ return Math.round(n).toLocaleString('en-US'); };
+var CADENCE = 108;
 
 var settings = load('settings', {goal:10000, stride:68, weight:62, haptic:true, notify:true});
 function haptic(p){ if (!settings.haptic) return; try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
@@ -467,21 +476,24 @@ if (!history){
     history[dayKey(d)] = Math.round((weekend ? 9800 : 7200) + (rnd() - .42) * 6400);
   }
 }
-var hours = load('hours:'+TODAY, null);
-if (!hours){
-  hours = new Array(24).fill(0);
-  var now = new Date().getHours();
-  var shape = [0,0,0,0,0,0,120,640,980,420,300,380,760,520,280,340,420,610,880,540,220,90,0,0];
-  for (var h = 0; h < 24; h++) if (h < now) hours[h] = Math.round(shape[h] * (.7 + rnd() * .6));
-}
+var hours = load('hours:'+TODAY, null) || new Array(24).fill(0);
 function todaySteps(){ return hours.reduce(function(a, b){ return a + b; }, 0); }
 function persist(){ history[TODAY] = todaySteps(); save('history', history); save('hours:'+TODAY, hours); }
+function refreshDay(){
+  var next = new Date(); next.setHours(0,0,0,0);
+  if (dayKey(next) === TODAY) return false;
+  persist(); today = next; TODAY = dayKey(next);
+  hours = load('hours:'+TODAY, null) || new Array(24).fill(0);
+  stepFraction = 0; lastStep = null;
+  $('dateLbl').textContent = (today.getMonth()+1)+' 月 '+today.getDate()+' 日 星期'+WD[today.getDay()];
+  renderAll(); return true;
+}
 
 // ---------- status bar ----------
-function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+var WD = ['日','一','二','三','四','五','六'];
+function tickClock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); refreshDay(); }
 tickClock(); setInterval(tickClock, 15000);
 if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(3, 18.4 * b.level).toFixed(1)); }).catch(function(){});
-var WD = ['日','一','二','三','四','五','六'];
 $('dateLbl').textContent = (today.getMonth()+1)+' 月 '+today.getDate()+' 日 星期'+WD[today.getDay()];
 
 // ---------- scene: parallax + hiker on the trail ----------
@@ -521,11 +533,11 @@ function renderToday(){
   var km = s * settings.stride / 100000;
   $('km').textContent = km.toFixed(1);
   $('kcal').textContent = fmt(km * settings.weight * 0.72);
-  $('mins').textContent = fmt(s / 105);
+  $('mins').textContent = fmt(s / CADENCE);
   placeHiker(p);
   var left = g - s;
   $('trailTtl').textContent = left > 0 ? '還差 '+fmt(left)+' 步登頂' : '今天已經登頂';
-  $('trailDs').textContent = left > 0 ? '背景山徑上的白點就是你，約再走 '+Math.ceil(left / 105)+' 分鐘' : '多走的步數畫在外圈的杏色第二圈';
+  $('trailDs').textContent = left > 0 ? '背景山徑上的白點就是你，約再走 '+Math.ceil(left / CADENCE)+' 分鐘' : '多走的步數畫在外圈的杏色第二圈';
   renderHours();
 }
 function renderHours(){
@@ -542,28 +554,40 @@ function renderHours(){
 }
 
 // ---------- walking simulation ----------
-var walking = false, walkT = null, cadPhase = 0, lastStep = 0, cadRaf = null;
+var walking = false, walkT = null, cadPhase = 0, lastStep = null, stepFraction = 0, cadRaf = null, lastCadFrame = null;
+function advanceWalk(){
+  if (!walking || document.hidden){ lastStep = null; return; }
+  refreshDay();
+  var now = performance.now();
+  if (lastStep === null){ lastStep = now; return; }
+  var elapsed = Math.max(0, Math.min(1000, now - lastStep));
+  lastStep = now;
+  stepFraction += elapsed * CADENCE / 60000;
+  var add = Math.floor(stepFraction);
+  if (!add) return;
+  stepFraction -= add;
+  var before = todaySteps();
+  hours[new Date().getHours()] += add;
+  persist(); renderToday();
+  if (before < settings.goal && todaySteps() >= settings.goal){
+    haptic([20, 60, 20, 60, 40]);
+    if (settings.notify) toast('登頂了！今天達成 '+fmt(settings.goal)+' 步');
+  }
+}
 function setWalking(on){
+  if (walking === on) return;
+  if (walking) advanceWalk();
   walking = on;
   var b = $('walkBtn');
   b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
   $('walkLbl').textContent = on ? '暫停' : '開始健走';
   $('walkIc').innerHTML = on ? '<rect x="6.5" y="5" width="4" height="14" rx="1.4"/><rect x="13.5" y="5" width="4" height="14" rx="1.4"/>' : '<path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.4-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/>';
-  clearInterval(walkT);
+  clearInterval(walkT); lastStep = null; lastCadFrame = null;
+  cancelAnimationFrame(cadRaf);
   if (on){
     haptic([10, 40, 10]);
-    walkT = setInterval(function(){
-      if (document.hidden) return;
-      var before = todaySteps();
-      var add = 3 + Math.round(Math.random() * 2);   // ~110 steps / min at this tick rate
-      hours[new Date().getHours()] += add;
-      persist(); renderToday();
-      if (before < settings.goal && todaySteps() >= settings.goal){
-        haptic([20, 60, 20, 60, 40]);
-        if (settings.notify) toast('登頂了！今天達成 '+fmt(settings.goal)+' 步');
-      }
-    }, 1600);
-    loopCadence();
+    if (!document.hidden){ lastStep = performance.now(); if (current === 'today') loopCadence(); }
+    walkT = setInterval(advanceWalk, 200);
   } else {
     haptic(6);
     $('cadLbl').textContent = '未在步行';
@@ -572,17 +596,19 @@ function setWalking(on){
 }
 function loopCadence(){
   cancelAnimationFrame(cadRaf);
-  (function f(){
-    if (!walking) return;
-    if (!document.hidden){
-      cadPhase += .16;
+  lastCadFrame = null;
+  (function f(t){
+    if (!walking || document.hidden || current !== 'today') return;
+    if (lastCadFrame !== null){
+      cadPhase += Math.min(100, t - lastCadFrame) * CADENCE / 60000 * Math.PI * 2;
+    }
+    lastCadFrame = t;
       var d = 'M0 9';
       for (var x = 0; x <= 54; x += 3) d += 'L'+x+' '+(9 + Math.sin(x / 4.5 + cadPhase) * 6 * Math.sin((x / 54) * Math.PI)).toFixed(1);
       $('cadPath').setAttribute('d', d);
-      $('cadLbl').textContent = (106 + Math.round(Math.sin(cadPhase / 7) * 5))+' 步／分';
-    }
+      $('cadLbl').textContent = CADENCE+' 步／分';
     cadRaf = requestAnimationFrame(f);
-  })();
+  })(performance.now());
 }
 $('walkBtn').addEventListener('click', function(){ setWalking(!walking); });
 
@@ -715,7 +741,7 @@ $('resetBtn').addEventListener('click', function(){
   var b = this;
   if (!resetArm){ b.textContent = '再按一次確認清除'; haptic([8, 30, 8]); resetArm = setTimeout(function(){ resetArm = null; b.textContent = '清除今天的步數'; }, 2600); return; }
   clearTimeout(resetArm); resetArm = null; b.textContent = '清除今天的步數';
-  hours = new Array(24).fill(0); setWalking(false); persist(); renderAll(); toast('今天的步數已清除'); haptic(20);
+  hours = new Array(24).fill(0); setWalking(false); stepFraction = 0; persist(); renderAll(); toast('今天的步數已清除'); haptic(20);
 });
 
 // ---------- goal sheet with draggable ruler ----------
@@ -828,6 +854,8 @@ function switchTab(p){
   var page = $('p-'+p); page.hidden = false;
   page.classList.remove('enter','back'); void page.offsetWidth; page.classList.add('enter'); if (to < from) page.classList.add('back');
   current = p;
+  if (p !== 'today'){ cancelAnimationFrame(cadRaf); lastCadFrame = null; }
+  else if (walking && !document.hidden) loopCadence();
   document.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.p === p); });
   moveLens(to, true); haptic(5);
   $('navT').textContent = page.dataset.title;
@@ -850,7 +878,15 @@ $('pages').addEventListener('click', function(e){
   var r = e.target.closest('[data-route]'); if (r) { haptic(6); openRoute(+r.dataset.route); }
 });
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
-document.addEventListener('visibilitychange', function(){ if (!document.hidden && walking) loopCadence(); });
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden){
+    lastStep = null; lastCadFrame = null; cancelAnimationFrame(cadRaf);
+    if (walking){ $('cadLbl').textContent = '背景暫停'; $('cadPath').setAttribute('d', 'M0 9H54'); }
+  } else {
+    refreshDay();
+    if (walking){ lastStep = performance.now(); if (current === 'today') loopCadence(); }
+  }
+});
 
 function renderAll(){ renderToday(); renderRoutes(); renderTrends(); renderMe(); }
 persist(); renderAll(); moveLens(0, false);

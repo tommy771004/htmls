@@ -102,10 +102,10 @@ svg{display:block}
 .flags svg{width:16px;height:16px}
 .hint{margin-top:14px;font-size:13px;color:var(--ink-3)}
 .opts{position:relative;margin-top:8px;transition:height .4s var(--out)}
-.opt{position:absolute;left:0;right:0;top:0;height:58px;display:block;width:100%;text-align:left;transition:transform .7s var(--spring)}
+.opt{position:absolute;left:0;right:0;top:0;height:58px;display:block;width:100%;text-align:left;transition:transform 240ms var(--out)}
 .opt .track{position:absolute;inset:0;border-radius:3px;overflow:hidden}
-.opt .fill{position:absolute;left:0;top:0;bottom:0;width:0;transition:width .8s var(--spring)}
-.opt .runner{position:absolute;top:50%;width:26px;height:30px;margin-top:-15px;transition:left .8s var(--spring);pointer-events:none}
+.opt .fill{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:left center;transition:transform 240ms var(--out)}
+.opt .runner{position:absolute;left:0;top:50%;width:26px;height:30px;margin-top:-15px;transition:transform 240ms var(--out);pointer-events:none}
 .opt .lab{position:absolute;left:14px;right:84px;top:0;bottom:0;display:flex;align-items:center;gap:8px;font:600 16px/1.2 var(--sans);color:var(--ink)}
 .opt .lab .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .opt .lab svg{flex:none;width:20px;height:20px}
@@ -335,8 +335,8 @@ function optsHtml(p){
     var pct = tot ? Math.round(c[i]/tot*100) : 0, col = PAL[i % PAL.length], w = show ? pct : 0;
     var isMine = mine.indexOf(i) > -1;
     return '<button class="opt'+(isMine?' mine':'')+'" data-p="'+p.id+'" data-o="'+i+'" style="transform:translateY('+(rank[i]*ROW)+'px)" aria-pressed="'+isMine+'" aria-label="'+esc(o)+(show?'，'+c[i]+' 票':'')+'">'+
-      '<span class="track" style="background:'+TINT[i % TINT.length]+'"><span class="fill" style="background:'+col+';width:'+w+'%"></span></span>'+
-      (i === lead && pct >= 18 ? '<span class="runner" style="left:calc('+w+'% - 32px)">'+picto('run', '#fff')+'</span>' : '')+
+      '<span class="track" style="background:'+TINT[i % TINT.length]+'"><span class="fill" style="background:'+col+';transform:scaleX('+(w/100)+')"></span></span>'+
+      (i === lead && pct >= 18 ? '<span class="runner" data-pct="'+w+'">'+picto('run', '#fff')+'</span>' : '')+
       '<span class="lab">'+(isMine ? '<svg viewBox="0 0 20 20"><path d="M2 10.5l3-3 3.5 3.5L15 4.5l3 3-9.5 9.5z" fill="'+INK+'"/></svg>' : '')+'<span class="t">'+esc(o)+'</span></span>'+
       '<span class="pct num">'+(show ? pct+'%<small>'+c[i]+' 票</small>' : '<small>投這個</small>')+'</span>'+
     '</button>';
@@ -380,9 +380,12 @@ function renderDeck(keepId){
   var ls = list(), deck = $('deck');
   var cur = keepId || currentId();
   deck.innerHTML = ls.length ? ls.map(cardHtml).join('') : '<div class="empty" style="width:100%">'+picto('cheer', '#3d6454')+'<p>'+(filter==='open'?'現在沒有進行中的投票。<br>從下面拉出抽屜建立一個。':filter==='closed'?'還沒有結束的投票。':'你還沒發起過投票。')+'</p></div>';
+  positionRunners(deck);
   if (cur){ var el = deck.querySelector('[data-id="'+cur+'"]'); if (el) deck.scrollLeft = el.offsetLeft - 20; }
   updPager(); renderCounts();
 }
+function runnerX(r){ return 'translateX(' + (r.parentNode.querySelector('.track').clientWidth * Number(r.dataset.pct) / 100 - 32) + 'px)'; }
+function positionRunners(root){ root.querySelectorAll('.runner').forEach(function(r){ r.style.transform = runnerX(r); }); }
 function renderCounts(){
   $('cOpen').textContent = polls.filter(isOpen).length;
   $('cClosed').textContent = polls.filter(function(p){ return !isOpen(p); }).length;
@@ -391,16 +394,27 @@ function renderCounts(){
 function updateCard(id){
   var p = find(id), el = $('deck').querySelector('[data-id="'+id+'"]'); if (!p || !el) return;
   var box = el.querySelector('.opts'), st = el.querySelector('.cin').scrollTop;
-  var old = {}; box.querySelectorAll('.opt').forEach(function(b){ old[b.dataset.o] = b.querySelector('.fill').style.width; });
+  var old = {}; box.querySelectorAll('.opt').forEach(function(b){
+    var runner = b.querySelector('.runner');
+    old[b.dataset.o] = {opt:getComputedStyle(b).transform, fill:getComputedStyle(b.querySelector('.fill')).transform, runner:runner ? getComputedStyle(runner).transform : null};
+  });
   var tmp = document.createElement('div'); tmp.innerHTML = cardHtml(p); var nc = tmp.firstChild;
-  // keep old bar widths/positions, then animate to new ones
   var targets = [];
-  nc.querySelectorAll('.opt').forEach(function(b){ var f = b.querySelector('.fill'); targets.push([b.dataset.o, f.style.width, b.style.transform]); f.style.width = old[b.dataset.o] || '0%'; });
-  var oldT = {}; box.querySelectorAll('.opt').forEach(function(b){ oldT[b.dataset.o] = b.style.transform; });
-  nc.querySelectorAll('.opt').forEach(function(b){ b.style.transform = oldT[b.dataset.o] || b.style.transform; });
+  nc.querySelectorAll('.opt').forEach(function(b){
+    var f = b.querySelector('.fill'), runner = b.querySelector('.runner'), from = old[b.dataset.o];
+    targets.push({option:b, opt:b.style.transform, fill:f.style.transform, runner:runner, hasRunner:!!(from && from.runner)});
+    if (from){ b.style.transform = from.opt; f.style.transform = from.fill; if (runner && from.runner) runner.style.transform = from.runner; }
+  });
   el.replaceWith(nc); nc.querySelector('.cin').scrollTop = st;
-  void nc.offsetWidth;
-  requestAnimationFrame(function(){ targets.forEach(function(t){ var b = nc.querySelector('.opt[data-o="'+t[0]+'"]'); if (!b) return; b.querySelector('.fill').style.width = t[1]; b.style.transform = t[2]; }); });
+  targets.forEach(function(t){ if (t.runner && !t.hasRunner){ t.runner.style.transition = 'none'; t.runner.style.transform = runnerX(t.runner); } });
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    if (!nc.isConnected) return;
+    targets.forEach(function(t){
+      t.option.style.transform = t.opt;
+      t.option.querySelector('.fill').style.transform = t.fill;
+      if (t.runner){ if (!t.hasRunner) t.runner.style.transition = ''; t.runner.style.transform = runnerX(t.runner); }
+    });
+  }); });
   renderCounts();
 }
 function find(id){ for (var i = 0; i < polls.length; i++) if (polls[i].id === id) return polls[i]; return null; }
@@ -586,7 +600,7 @@ $('filters').querySelectorAll('.fl').forEach(function(b){ var on = b.dataset.f =
 renderDeck();
 requestAnimationFrame(moveRibbon);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveRibbon);
-window.addEventListener('resize', function(){ moveRibbon(); updPager(); });
+window.addEventListener('resize', function(){ moveRibbon(); updPager(); positionRunners($('deck')); });
 })();
 </script>
 </body>

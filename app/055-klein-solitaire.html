@@ -71,8 +71,9 @@ svg{display:block}
 .slot svg{width:44%;height:auto;opacity:.35}
 .slot.stock{cursor:pointer}
 .slot.stock svg{opacity:.55;width:52%}
-.card{position:absolute;left:0;top:0;border-radius:6px;transition:left .26s var(--snap),top .26s var(--snap);cursor:grab;will-change:left,top}
-.card.drag{transition:none;cursor:grabbing}
+.card{position:absolute;left:0;top:0;border-radius:6px;transition:left .26s var(--snap),top .26s var(--snap);cursor:grab}
+.card.drag{transition:none;cursor:grabbing;will-change:transform}
+.card.settle{transition:transform .26s var(--snap)}
 .card .f,.card .b{position:absolute;inset:0;border-radius:6px}
 .card .f{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(0,0,0,.1),0 1px 1px rgba(0,10,50,.35);overflow:hidden}
 .card.red .f{color:var(--zhu)}
@@ -135,7 +136,8 @@ canvas.win{position:absolute;inset:0;z-index:30;width:100%;height:100%;cursor:po
 .home{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom));width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(255,255,255,.75);z-index:95;pointer-events:none}
 @media (max-width:360px){.card .c{font-size:24px}.card .r{font-size:15px}}
 @media (prefers-reduced-motion:reduce){
-  .card{transition:none}
+.card{transition:none}
+.card.settle{transition:none}
   .card.flipin .f,.card.no{animation:none}
   .sheet,.toast,.tog::after{transition-duration:.01s}
 }
@@ -402,7 +404,7 @@ function autoCollect(){
     if (!c.up) return;
     if (loc.pile !== 't' && loc.k !== p.length - 1) return;
     var ids = p.slice(loc.k).map(function(x){ return x.id; });
-    st = {loc:loc, ids:ids, x:e.clientX, y:e.clientY, moved:false, pid:e.pointerId, org:ids.map(function(i){ return {l:parseFloat(els[i].style.left), t:parseFloat(els[i].style.top), z:els[i].style.zIndex}; })};
+    st = {loc:loc, ids:ids, x:e.clientX, y:e.clientY, dx:0, dy:0, moved:false, pid:e.pointerId, org:ids.map(function(i){ return {l:parseFloat(els[i].style.left), t:parseFloat(els[i].style.top), z:els[i].style.zIndex}; })};
     try { board.setPointerCapture(e.pointerId); } catch(_){}
   });
   board.addEventListener('pointermove', function(e){
@@ -410,27 +412,36 @@ function autoCollect(){
     var dx = e.clientX - st.x, dy = e.clientY - st.y;
     if (!st.moved && Math.hypot(dx, dy) < 7) return;
     if (!st.moved){ st.moved = true; st.ids.forEach(function(i, k){ var el = els[i]; el.classList.add('drag', 'lift'); el.style.zIndex = 3000 + k; }); haptic(4); }
-    st.ids.forEach(function(i, k){ var el = els[i]; el.style.left = (st.org[k].l + dx) + 'px'; el.style.top = (st.org[k].t + dy) + 'px'; });
+    st.dx = dx; st.dy = dy;
+    st.ids.forEach(function(i){ els[i].style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0)'; });
   });
   function end(e){
     if (!st) return;
     var s = st; st = null;
-    s.ids.forEach(function(i){ els[i].classList.remove('drag', 'lift'); });
     if (!s.moved){
       if (e.type === 'pointercancel') return;
       if (!smart(s.loc)) refuse(s.ids);
       return;
     }
     // drop target from the dragged card's centre
-    var el = els[s.ids[0]], cx = parseFloat(el.style.left) + L.cw / 2, cy = parseFloat(el.style.top) + L.ch / 2, c = srcPile(s.loc)[s.loc.k], target = null, bestD = 1e9;
+    var cx = s.org[0].l + s.dx + L.cw / 2, cy = s.org[0].t + s.dy + L.ch / 2, c = srcPile(s.loc)[s.loc.k], target = null, bestD = 1e9;
     if (s.ids.length === 1) for (var f = 0; f < 4; f++){ var fx = L.x(3 + f) + L.cw / 2, fy = L.ch / 2, d = Math.hypot(cx - fx, cy - fy); if (d < L.cw * 1.1 && canFound(c, f) && d < bestD){ bestD = d; target = {pile:'f', i:f}; } }
     if (!target) for (var ci = 0; ci < 7; ci++){
       if (s.loc.pile === 't' && ci === s.loc.i) continue;
       var tx = L.x(ci) + L.cw / 2, dxx = Math.abs(cx - tx);
       if (dxx < L.cw * .9 && cy > L.ty - L.ch * .3 && canTab(c, ci) && dxx < bestD){ bestD = dxx; target = {pile:'t', i:ci}; }
     }
+    if (e.type === 'pointercancel') target = null;
     if (target) move(s.loc, target);
-    else { s.ids.forEach(function(i, k){ var e2 = els[i]; e2.style.left = s.org[k].l + 'px'; e2.style.top = s.org[k].t + 'px'; setTimeout(function(){ e2.style.zIndex = s.org[k].z; }, 260); }); if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 30) { snd('bad'); haptic([10, 40, 10]); } }
+    s.ids.forEach(function(i, k){
+      var e2 = els[i];
+      // Render has placed accepted cards; offset from that target back to the dragged position.
+      e2.style.transform = 'translate3d(' + (s.org[k].l + s.dx - parseFloat(e2.style.left)) + 'px,' + (s.org[k].t + s.dy - parseFloat(e2.style.top)) + 'px,0)';
+      e2.classList.remove('drag', 'lift'); e2.classList.add('settle');
+      void e2.offsetWidth; e2.style.transform = '';
+      setTimeout(function(){ e2.classList.remove('settle'); if (!target) e2.style.zIndex = s.org[k].z; }, reduce ? 0 : 260);
+    });
+    if (!target && e.type !== 'pointercancel' && Math.hypot(s.dx, s.dy) > 30){ snd('bad'); haptic([10, 40, 10]); }
   }
   board.addEventListener('pointerup', end); board.addEventListener('pointercancel', end);
 })();

@@ -452,9 +452,11 @@ function wakeAudio(){ if (!AC){ try { AC = new (window.AudioContext || window.we
     if (!on) return; on = false; p.classList.remove('drag');
     if (!moved){ tapAt(e); return; }
     if (reduce || Math.abs(vel) < .02) return;
-    (function spin(){ vel *= .94; if (Math.abs(vel) < .004) return; setView(view - vel * 16 / 15 / 1.0027379 * 36e5); raf = requestAnimationFrame(spin); })();
+    var prev = 0, lambda = -Math.log(.94) / 16;
+    function spin(ts){ if(document.hidden) return; if(!prev){ prev = ts; raf = requestAnimationFrame(spin); return; } var dt = Math.min(32,Math.max(0,ts-prev)); prev = ts; var factor = Math.exp(-lambda*dt), degrees = vel*(1-factor)/lambda; vel *= factor; setView(view - degrees / 15 / 1.0027379 * 36e5); if(Math.abs(vel)>=.004) raf = requestAnimationFrame(spin); }
+    raf = requestAnimationFrame(spin);
   }
-  p.addEventListener('pointerup', end); p.addEventListener('pointercancel', end);
+  p.addEventListener('pointerup', end); p.addEventListener('pointercancel', function(){ if(!on) return; on = false; p.classList.remove('drag'); setView(v0); });
 })();
 function tapAt(e){
   var r = $('plani').getBoundingClientRect(), x = VB.x + (e.clientX - r.left) * VB.w / r.width, y = VB.y + (e.clientY - r.top) * VB.h / r.height;
@@ -491,8 +493,8 @@ function drawRuler(k){
   R_.svg.innerHTML = out;
 }
 Object.keys(RUL).forEach(function(k){
-  var R_ = RUL[k], on = false, lx = 0, lt = 0, vel = 0, acc = 0, raf = 0;
-  R_.el.addEventListener('pointerdown', function(e){ wakeAudio(); cancelAnimationFrame(raf); on = true; lx = e.clientX; lt = e.timeStamp; vel = 0; acc = 0; R_.el.setPointerCapture(e.pointerId); });
+  var R_ = RUL[k], on = false, lx = 0, lt = 0, vel = 0, acc = 0, raf = 0, viewStart = 0;
+  R_.el.addEventListener('pointerdown', function(e){ wakeAudio(); cancelAnimationFrame(raf); on = true; lx = e.clientX; lt = e.timeStamp; vel = 0; acc = 0; viewStart = view; R_.el.setPointerCapture(e.pointerId); });
   R_.el.addEventListener('pointermove', function(e){
     if (!on) return; var dx = e.clientX - lx, dt = Math.max(1, e.timeStamp - lt); vel = vel * .5 + (dx / dt) * .5; lx = e.clientX; lt = e.timeStamp;
     move(-dx);
@@ -501,9 +503,9 @@ Object.keys(RUL).forEach(function(k){
     if (k === 'day'){ acc += px / R_.px; var whole = Math.trunc(acc); if (whole){ acc -= whole; setView(view + whole * 864e5); tickSound(); haptic(2); } }
     else setView(view + px / R_.px * 6e4);
   }
-  function end(){ if (!on) return; on = false; if (reduce) return; (function glide(){ vel *= .93; if (Math.abs(vel) < .02){ if (k === 'time') snap(); return; } move(-vel * 16); raf = requestAnimationFrame(glide); })(); }
+  function end(){ if (!on) return; on = false; if (reduce) return; var prev = 0, lambda = -Math.log(.93)/16; function glide(ts){ if(document.hidden) return; if(!prev){ prev = ts; raf = requestAnimationFrame(glide); return; } var dt = Math.min(32,Math.max(0,ts-prev)); prev = ts; var factor = Math.exp(-lambda*dt), px = vel*(1-factor)/lambda; vel *= factor; move(-px); if(Math.abs(vel)<.02){ if(k==='time') snap(); return; } raf = requestAnimationFrame(glide); } raf = requestAnimationFrame(glide); }
   function snap(){ var s = 5 * 6e4, t = view + TZ * 3600e3; setView(Math.round(t / s) * s - TZ * 3600e3); }
-  R_.el.addEventListener('pointerup', end); R_.el.addEventListener('pointercancel', end);
+  R_.el.addEventListener('pointerup', end); R_.el.addEventListener('pointercancel', function(){ if(!on) return; on = false; acc = 0; setView(viewStart); });
   R_.el.addEventListener('keydown', function(e){
     var step = k === 'day' ? 864e5 : 10 * 6e4;
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ setView(view + step); e.preventDefault(); }

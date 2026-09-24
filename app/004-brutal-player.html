@@ -467,7 +467,7 @@ function play(){
   plays[tr.id] = (plays[tr.id] || 0) + (pos < .5 ? 1 : 0); persist();
   paintPlay(); loop();
 }
-function pause(){ pos = position(); stopSrc(); playing = false; paintPlay(); }
+function pause(){ pos = position(); stopSrc(); playing = false; cancelAnimationFrame(raf); paintPlay(); drawWave(); }
 function ended(){ playing = false; src = null; pos = 0; step(1, true); }
 function step(dir, auto){
   if (!queue.length) return;
@@ -518,7 +518,7 @@ var vuEls = [];
 function meter(c, p){
   var lvl;
   if (playing && an){ an.getByteTimeDomainData(tbuf); var s = 0; for (var i = 0; i < tbuf.length; i++){ var v = (tbuf[i] - 128) / 128; s += v * v; } lvl = Math.sqrt(s / tbuf.length) * 3.2; }
-  else lvl = c.env[Math.min(c.env.length - 1, Math.floor(p * c.env.length))] * .9 * (opts.vol / 100);
+  else lvl = 0;
   var n = Math.round(Math.min(1, lvl) * 20);
   for (var j = 0; j < 20; j++) vuEls[j].classList.toggle('on', j < n);
 }
@@ -546,12 +546,15 @@ var raf = 0;
 function loop(){
   cancelAnimationFrame(raf);
   (function f(){
-    if (!playing && !scratching) return;
-    if (!document.hidden) drawWave();
+    if ((!playing && !scratching) || document.hidden) return;
+    drawWave();
     raf = requestAnimationFrame(f);
   })();
 }
-document.addEventListener('visibilitychange', function(){ if (!document.hidden && playing) loop(); });
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden) cancelAnimationFrame(raf);
+  else if (playing || scratching) loop();
+});
 
 $('playBtn').addEventListener('click', function(){ haptic(playing ? 6 : [6, 20, 6]); if (playing) pause(); else play(); });
 $('nextBtn').addEventListener('click', function(){ haptic(8); ac(); step(1); });
@@ -570,19 +573,18 @@ $('vol').addEventListener('input', function(){ opts.vol = +this.value; if (maste
 // ---------- scratch ----------
 var scratching = false;
 (function(){
-  var w = $('wave'), was = false, lastX = 0, lastT = 0, lastGrain = 0, sp = 0;
+  var w = $('wave'), was = false, lastX = 0, lastT = 0, lastGrain = 0, startPos = 0, pointer = null;
   w.addEventListener('pointerdown', function(e){
-    if (!curTrack()) return;
+    if (!curTrack() || scratching) return;
     ac();
-    scratching = true; was = playing;
+    scratching = true; was = playing; startPos = position(); pointer = e.pointerId;
     if (playing){ pos = position(); stopSrc(); playing = false; }
     lastX = e.clientX; lastT = e.timeStamp;
-    var r = w.getBoundingClientRect(); sp = (e.clientX - r.left) / r.width;
     try { w.setPointerCapture(e.pointerId); } catch(err){}
     haptic(4); loop();
   });
   w.addEventListener('pointermove', function(e){
-    if (!scratching) return;
+    if (!scratching || e.pointerId !== pointer) return;
     var tr = curTrack(), r = w.getBoundingClientRect();
     var p = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
     var dt = Math.max(1, e.timeStamp - lastT), dx = e.clientX - lastX;
@@ -592,11 +594,18 @@ var scratching = false;
     lastX = e.clientX; lastT = e.timeStamp;
     drawWave();
   });
-  function end(){
-    if (!scratching) return; scratching = false;
+  function end(e){
+    if (!scratching || e.pointerId !== pointer) return; scratching = false; pointer = null;
     if (was) play(); else drawWave();
   }
-  w.addEventListener('pointerup', end); w.addEventListener('pointercancel', end);
+  function cancel(){
+    if (!scratching) return;
+    scratching = false; pointer = null; pos = startPos;
+    if (was) play(); else drawWave();
+  }
+  w.addEventListener('pointerup', end); w.addEventListener('pointercancel', cancel);
+  w.addEventListener('lostpointercapture', cancel);
+  window.addEventListener('blur', cancel);
   w.addEventListener('keydown', function(e){
     var tr = curTrack(); if (!tr) return;
     if (e.key === 'ArrowRight'){ seek(position() + 2); e.preventDefault(); }
@@ -693,7 +702,15 @@ var dragMoved = false;
     renderAll();
     setTimeout(function(){ dragMoved = false; }, 50);
   }
-  list.addEventListener('pointerup', end); list.addEventListener('pointercancel', end);
+  function cancel(){
+    if (!row) return;
+    row.classList.remove('lift'); row = null;
+    rows.forEach(function(r){ r.style.transform = ''; });
+    setTimeout(function(){ dragMoved = false; }, 50);
+  }
+  list.addEventListener('pointerup', end); list.addEventListener('pointercancel', cancel);
+  list.addEventListener('lostpointercapture', cancel);
+  window.addEventListener('blur', cancel);
 })();
 
 // ---------- library ----------

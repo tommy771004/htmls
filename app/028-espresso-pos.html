@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="吧台">
 <title>吧台 · 咖啡店點單 POS</title>
-<meta name="description" content="1960 年代義式吧台風格的咖啡店點單機：分類橫向捲動、客製甜度冰塊、杯子飛進購物車、拉桿付款、印出電子發票。收錄於 100 Creative HTML Works（App 028・六〇年代義式吧台）。">
+<meta name="description" content="1960 年代義式吧台風格的咖啡店點單示範：分類橫向捲動、客製甜度冰塊、拉桿模擬付款與示範收據。收錄於 100 Creative HTML Works（App 028・六〇年代義式吧台）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/app/028-espresso-pos.html">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234b5626'/%3E%3Cpath d='M0 0h64v16H0z' fill='%23dd5f1d'/%3E%3Cpath d='M8 16a4 4 0 0 0 8 0M24 16a4 4 0 0 0 8 0M40 16a4 4 0 0 0 8 0M56 16a4 4 0 0 0 8 0' fill='%23dd5f1d'/%3E%3Cpath d='M16 16a4 4 0 0 0 8 0M32 16a4 4 0 0 0 8 0M48 16a4 4 0 0 0 8 0' fill='%23eef0e2'/%3E%3Cpath d='M19 32h26l-2.4 15c-.5 3-3 5-6 5h-9.2c-3 0-5.5-2-6-5z' fill='%23eef0e2'/%3E%3Cpath d='M45 36c6 0 6 8 0 8' fill='none' stroke='%23eef0e2' stroke-width='3'/%3E%3Cellipse cx='32' cy='32' rx='13' ry='2.6' fill='%23b06f35'/%3E%3C/svg%3E">
 <style>
@@ -226,9 +226,14 @@ svg{display:block}
 .paper .thx{text-align:center;margin-top:14px;font:600 14px/1.4 var(--disp);color:var(--orange-d)}
 .next{flex:none;margin:14px 0 calc(28px + env(safe-area-inset-bottom));height:58px;padding:0 44px;border-radius:18px;background:var(--orange);color:#fff;font:600 18px/58px var(--disp)}
 .next:active{background:var(--orange-d)}
+.print:not(.complete) .next{visibility:hidden}
 .paying{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--lime);font:600 20px/1.2 var(--disp);background:var(--olive)}
 .paying svg{width:130px;height:130px}
 .paying[hidden]{display:none}
+.paying .pay-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:0 20px}
+.paying .pay-actions button{min-height:44px;padding:8px 16px;border:2px solid var(--lime);border-radius:12px;color:var(--lime);font-size:14px}
+.paying .pay-actions button:focus-visible{outline-color:var(--lime)}
+.paying small{max-width:280px;text-align:center;font:13px/1.5 var(--text);color:#d9dcc4}
 .paying .drip{animation:drip .8s linear infinite}
 @keyframes drip{from{transform:translateY(-6px)}to{transform:translateY(20px)}}
 
@@ -317,10 +322,10 @@ svg{display:block}
         <span class="go" id="cartGo">這一單</span>
       </button>
 
-      <section class="orders" id="orders" aria-label="今日訂單">
+      <section class="orders" id="orders" aria-label="示範訂單">
         <div class="ohd">
           <button class="back" id="closeOrders" aria-label="回到點單"><svg viewBox="0 0 26 26" fill="none" stroke="#27281a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 5l-8 8 8 8"/></svg></button>
-          <h2>今日訂單</h2>
+          <h2>示範訂單</h2>
         </div>
         <div class="oscroll" id="oscroll">
           <div class="kpis" id="kpis"></div>
@@ -338,13 +343,15 @@ svg{display:block}
         <div class="body" id="sheetBody"></div>
       </div>
 
-      <section class="print" id="print" aria-label="發票">
+      <section class="print" id="print" aria-label="示範付款與收據">
         <div class="slot" aria-hidden="true"></div>
         <div class="paperwrap"><div class="paper" id="paper"></div></div>
         <button class="next" id="nextBtn">下一位客人</button>
         <div class="paying" id="paying" hidden>
           <svg viewBox="0 0 130 130" aria-hidden="true"><rect x="28" y="10" width="74" height="22" rx="6" fill="#343d19"/><rect x="44" y="32" width="42" height="12" rx="4" fill="#27281a"/><rect x="61" y="44" width="3" height="14" fill="#5a3418" class="drip"/><rect x="67" y="44" width="3" height="14" fill="#5a3418" class="drip" style="animation-delay:.4s"/><path d="M40 78h50l-4 30c-.6 5-4.6 8-9.6 8H53.6c-5 0-9-3-9.6-8z" fill="#eef0e2"/><path d="M40.6 84h48.8l-.8 6H41.4z" fill="#dd5f1d"/><path d="M90 86c10 0 10 14 0 14" fill="none" stroke="#eef0e2" stroke-width="5"/><ellipse cx="65" cy="78" rx="25" ry="5" fill="#5a3418"/></svg>
           <span id="payingText">萃取付款中…</span>
+          <small>這是頁內點單示範，不會實際扣款或開立發票。</small>
+          <div class="pay-actions"><button id="payFail" type="button">模擬失敗</button><button id="payRetry" type="button" hidden>重試示範付款</button><button id="payCancel" type="button">取消付款</button></div>
         </div>
       </section>
 
@@ -564,7 +571,7 @@ if (!Array.isArray(orders)){
     var a = names[i % names.length], b = names[(i*5+3) % names.length], its = [{ id:a[0], o:a[1], qty:a[2] }];
     if (i % 3 !== 1) its.push({ id:b[0], o:b[1], qty:1 });
     var tot = its.reduce(function(s, x){ return s + unitPrice(item(x.id), x.o)*x.qty; }, 0);
-    orders.push({ no:33+i, t:times[i], type: i % 3 === 0 ? 'out' : 'in', items:its, total:tot, pay:['cash','card','easy','mobile'][i%4], done: i < 11 });
+    orders.push({ no:33+i, t:times[i], type: i % 3 === 0 ? 'out' : 'in', items:its, total:tot, pay:['cash','card','easy','mobile'][i%4], done: i < 11, demo:true });
   }
   save('orders', orders);
 }
@@ -798,55 +805,75 @@ function bindLines(){
 /* ---------- lever ---------- */
 function bindLever(){
   var lv = $('lever'), knob = $('lvKnob'), fill = $('lvFill'), lbl = $('lvLbl'); if (!lv) return;
-  var dragging = false, sx = 0, x = 0, max = 0, lastStep = 0;
+  var dragging = false, sx = 0, x = 0, max = 0, lastStep = 0, pid = null;
   function set(v, anim){ x = v; knob.style.transition = anim ? 'transform .45s var(--spring)' : 'none'; fill.style.transition = anim ? 'width .45s var(--spring)' : 'none'; knob.style.transform = 'translateX('+x+'px)'; fill.style.width = (72 + x)+'px'; knob.setAttribute('aria-valuenow', Math.round(max ? x/max*100 : 0)); }
-  knob.addEventListener('pointerdown', function(e){ ac(); dragging = true; sx = e.clientX - x; max = lv.clientWidth - 72; try{ knob.setPointerCapture(e.pointerId); }catch(err){} haptic(4); e.stopPropagation(); });
+  knob.addEventListener('pointerdown', function(e){ if (dragging || paying || !e.isPrimary) return; ac(); dragging = true; pid = e.pointerId; sx = e.clientX - x; max = lv.clientWidth - 72; try{ knob.setPointerCapture(e.pointerId); }catch(err){} haptic(4); e.stopPropagation(); });
   knob.addEventListener('pointermove', function(e){
-    if (!dragging) return; var v = Math.max(0, Math.min(max, e.clientX - sx)); set(v, false);
+    if (!dragging || e.pointerId !== pid) return; var v = Math.max(0, Math.min(max, e.clientX - sx)); set(v, false);
     var step = Math.floor(v/max*10); if (step !== lastStep){ lastStep = step; ratchet(); haptic(2); }
   });
-  function end(){
-    if (!dragging) return; dragging = false;
-    if (x >= max*.9){ set(max, true); lv.classList.add('done'); lbl.textContent = '付款中'; pay(); }
+  function end(e){
+    if (!dragging || e.pointerId !== pid) return; dragging = false; pid = null;
+    if (x >= max*.9){ set(max, true); lv.classList.add('done'); lbl.textContent = '示範付款中'; pay(); }
     else { set(0, true); lastStep = 0; }
   }
-  knob.addEventListener('pointerup', end); knob.addEventListener('pointercancel', end);
-  knob.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === 'ArrowRight'){ e.preventDefault(); max = lv.clientWidth - 72; set(max, true); lv.classList.add('done'); pay(); } });
+  function cancel(e){ if (!dragging || (e && e.pointerId !== undefined && e.pointerId !== pid)) return; dragging = false; pid = null; set(0, true); lastStep = 0; }
+  knob.addEventListener('pointerup', end); knob.addEventListener('pointercancel', cancel);
+  knob.addEventListener('lostpointercapture', cancel); window.addEventListener('blur', function(){ if (knob.isConnected) cancel(); });
+  knob.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === 'ArrowRight'){ e.preventDefault(); if (paying) return; max = lv.clientWidth - 72; set(max, true); lv.classList.add('done'); pay(); } });
   lv.addEventListener('click', function(e){ if (e.target === knob || knob.contains(e.target)) return; if (!lv.classList.contains('done')){ haptic([4,30,4]); var k = knob; set(Math.min(40, lv.clientWidth - 72), true); setTimeout(function(){ if (!lv.classList.contains('done') && k.isConnected) set(0, true); }, 260); toast('把拉桿往右拉到底', null); } });
 }
 
 /* ---------- pay + receipt ---------- */
-var paying = false;
+var paying = false, payTimer = 0, payAttempt = 0;
+function cancelPay(){
+  payAttempt++; clearTimeout(payTimer); payTimer = 0; paying = false;
+  $('print').classList.remove('on','complete'); $('paying').hidden = true;
+  var lv = $('lever'); if (lv) lv.classList.remove('done');
+  renderCart(); openCart(); toast('已取消示範付款，購物車已保留', null);
+}
+function failPay(){
+  if (!paying) return;
+  payAttempt++; clearTimeout(payTimer); payTimer = 0; paying = false;
+  $('payingText').textContent = '示範付款失敗';
+  $('payFail').hidden = true; $('payRetry').hidden = false;
+  try{ $('payRetry').focus({ preventScroll:true }); }catch(e){}
+}
 function pay(){
-  if (paying || !cart.length) return; paying = true;
+  if (paying || !cart.length) return;
   var tot = cartTotal();
-  if (cfg.pay === 'cash' && cfg.recv && cfg.recv < tot){ paying = false; return; }
+  if (cfg.pay === 'cash' && cfg.recv && cfg.recv < tot){ toast('收現金額不足', null); return; }
+  paying = true; var attempt = ++payAttempt;
   haptic([10,30,10,30,18]); pump();
-  var order = { no:nextNo, t: hhmm(new Date()), type:cfg.type, items: cart.map(function(l){ return { id:l.id, o:l.o, qty:l.qty }; }), total:tot, pay:cfg.pay, done:false, sub:cartSub(), cup:cfg.cup, recv:cfg.recv, carrier:cfg.carrier };
+  var at = Date.now();
+  var order = { no:nextNo, at:at, t:hhmm(new Date(at)), type:cfg.type, items: cart.map(function(l){ return { id:l.id, o:l.o, qty:l.qty }; }), total:tot, pay:cfg.pay, done:false, sub:cartSub(), cup:cfg.cup, recv:cfg.recv, carrier:cfg.carrier };
   closeSheet();
-  var pr = $('print'); pr.classList.add('on'); $('paying').hidden = false;
-  $('payingText').textContent = { cash:'收現中…', easy:'嗶一下悠遊卡…', mobile:'等待行動支付…', card:'刷卡中…' }[cfg.pay] || '付款中…';
-  $('paper').innerHTML = receipt(order); $('paper').classList.remove('feed');
-  setTimeout(function(){
+  var pr = $('print'); pr.classList.add('on'); pr.classList.remove('complete'); $('paying').hidden = false;
+  $('payFail').hidden = false; $('payRetry').hidden = true;
+  $('payingText').textContent = { cash:'模擬收現中…', easy:'模擬感應中…', mobile:'模擬行動支付中…', card:'模擬刷卡中…' }[cfg.pay] || '示範付款中…';
+  $('paper').innerHTML = ''; $('paper').classList.remove('feed');
+  payTimer = setTimeout(function(){
+    if (!paying || attempt !== payAttempt) return;
+    payTimer = 0; paying = false;
     $('paying').hidden = true; ding(); haptic(20);
-    var p = $('paper'); void p.offsetWidth; p.classList.add('feed');
+    var p = $('paper'); p.innerHTML = receipt(order); void p.offsetWidth; p.classList.add('feed'); pr.classList.add('complete');
     orders.push(order); save('orders', orders);
     nextNo++; save('no', nextNo);
     cart = []; save('cart', cart); cfg.recv = 0; cfg.cup = false; save('cfg', cfg);
-    renderCart(); renderOrders(); paying = false;
+    renderCart(); renderOrders();
     try{ $('nextBtn').focus({ preventScroll:true }); }catch(e){}
   }, reduce ? 300 : 1300);
 }
 function hhmm(d){ return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function receipt(o){
-  var d = new Date(), roc = d.getFullYear() - 1911, m = d.getMonth()+1, p0 = m % 2 ? m : m-1;
-  var inv = 'KB-' + String(52810000 + o.no*37).slice(0,8), rnd = String(1000 + (o.no*7919) % 9000);
-  var h = '<div class="shop">吧台 Bar</div><div class="ti">電子發票證明聯</div><div class="per">'+roc+'年'+String(p0).padStart(2,'0')+'-'+String(p0+1).padStart(2,'0')+'月</div><div class="no">'+inv+'</div>'+
-    '<div class="kv"><span>'+d.getFullYear()+'-'+String(m).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+hhmm(d)+'</span><span>格式 25</span></div>'+
-    '<div class="kv"><span>隨機碼 '+rnd+'</span><span>總計 '+o.total+'</span></div>'+
-    '<div class="kv"><span>賣方 53718426</span><span>'+(o.carrier ? '載具 '+esc(o.carrier) : '')+'</span></div>'+
+  var d = new Date(o.at || Date.now()), m = d.getMonth()+1;
+  var h = '<div class="shop">吧台 Bar</div><div class="ti">示範點單收據</div><div class="per">非正式發票・不可用於付款</div><div class="no">No.'+String(o.no).padStart(3,'0')+'</div>'+
+    '<div class="kv"><span>'+d.getFullYear()+'-'+String(m).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+hhmm(d)+'</span><span>示範資料</span></div>'+
+    '<div class="kv"><span>頁內模擬付款</span><span>總計 '+o.total+'</span></div>'+
+    '<div class="kv"><span>不含商家／稅籍資料</span><span>'+(o.carrier ? '輸入載具 '+esc(o.carrier) : '')+'</span></div>'+
     '<svg class="bars" viewBox="0 0 240 40" preserveAspectRatio="none">'+bars(o.no)+'</svg>'+
     '<div class="qr">'+qr(o.no*13+1)+qr(o.no*29+7)+'</div>'+
+    '<div style="text-align:center;font-size:11px">裝飾圖樣・不可掃描</div>'+
     '<div class="cut"></div>';
   o.items.forEach(function(x){ var it = item(x.id); h += '<div class="it"><span>'+it.name+(x.qty>1?' ×'+x.qty:'')+'<br><small style="color:#777">'+(optText(it, x.o)||'')+'</small></span><span>'+(unitPrice(it, x.o)*x.qty)+'</span></div>'; });
   if (o.cup) h += '<div class="it"><span>自備杯折扣</span><span>-'+(o.sub - o.total)+'</span></div>';
@@ -866,6 +893,9 @@ function qr(seed){
   return s + fin(0,0) + fin(14,0) + fin(0,14) + '</svg>';
 }
 $('nextBtn').addEventListener('click', function(){ ac(); click(); haptic(8); $('print').classList.remove('on'); var lv = $('lever'); if (lv) lv.classList.remove('done'); toast('No.'+String(nextNo-1).padStart(3,'0')+' 已送進吧台', null); });
+$('payCancel').addEventListener('click', cancelPay);
+$('payFail').addEventListener('click', failPay);
+$('payRetry').addEventListener('click', pay);
 
 /* ---------- orders ---------- */
 var ofil = 'all';
@@ -874,7 +904,7 @@ function renderOrders(){
   var cups = orders.reduce(function(s, o){ return s + o.items.reduce(function(a, x){ return a + (item(x.id) && item(x.id).cat !== 'sweet' ? x.qty : 0); }, 0); }, 0);
   var pend = orders.filter(function(o){ return !o.done; }).length;
   $('pendingCnt').textContent = pend; $('pendingCnt').style.display = pend ? '' : 'none';
-  $('kpis').innerHTML = '<div class="kpi"><div class="v num">'+money(rev)+'</div><div class="l">今日營業額</div></div><div class="kpi"><div class="v num">'+cups+'</div><div class="l">杯飲料</div></div><div class="kpi"><div class="v o num">'+pend+'</div><div class="l">製作中</div></div>';
+  $('kpis').innerHTML = '<div class="kpi"><div class="v num">'+money(rev)+'</div><div class="l">示範累計</div></div><div class="kpi"><div class="v num">'+cups+'</div><div class="l">杯飲料</div></div><div class="kpi"><div class="v o num">'+pend+'</div><div class="l">製作中</div></div>';
   var hrs = {}; for (var h = 7; h <= 20; h++) hrs[h] = 0;
   orders.forEach(function(o){ var hh = +o.t.slice(0,2); if (hrs[hh] !== undefined) hrs[hh] += o.total; });
   var mx = Math.max.apply(null, Object.keys(hrs).map(function(k){ return hrs[k]; }).concat([1])), nowH = new Date().getHours(), svg = '';
@@ -883,11 +913,11 @@ function renderOrders(){
     svg += '<rect x="'+x+'" y="'+(70-hgt)+'" width="15" height="'+hgt+'" rx="2" fill="'+(+k === nowH ? '#dd5f1d' : '#6d7a3a')+'"/>';
     if (i % 2 === 0) svg += '<text x="'+(x+7.5)+'" y="88" text-anchor="middle">'+k+'</text>';
   });
-  $('hours').innerHTML = '<svg viewBox="0 0 356 92" aria-label="每小時營業額">'+svg+'</svg>';
+  $('hours').innerHTML = '<svg viewBox="0 0 356 92" aria-label="示範訂單每小時金額">'+svg+'</svg>';
   var list = orders.slice().reverse().filter(function(o){ return ofil === 'all' || (ofil === 'make' ? !o.done : o.done); });
   $('olist').innerHTML = list.length ? list.map(function(o){
     return '<div class="ticket'+(o.done?' done':'')+'" data-no="'+o.no+'"><div><div class="no num">'+String(o.no).padStart(3,'0')+'</div><div class="tm">'+o.t+'</div><div class="tp">'+(o.type==='out'?'外帶':'內用')+'</div></div>'+
-      '<div><div class="its">'+o.items.map(function(x){ var it = item(x.id); return it ? it.name + (x.qty>1?' ×'+x.qty:'') + '<small style="color:#7b7d62"> '+optText(it, x.o)+'</small>' : ''; }).join('<br>')+'</div>'+
+      '<div><div class="its">'+(o.demo ? '<small>預置範例 · </small>' : '')+o.items.map(function(x){ var it = item(x.id); return it ? it.name + (x.qty>1?' ×'+x.qty:'') + '<small style="color:#7b7d62"> '+optText(it, x.o)+'</small>' : ''; }).join('<br>')+'</div>'+
       '<div class="bt"><b class="num">'+money(o.total)+'</b>'+(o.done ? '' : '<button class="serve" data-serve="'+o.no+'">出杯</button>')+'</div></div>'+
       (o.done ? '<span class="stamp">已出杯</span>' : '')+'</div>';
   }).join('') : '<p class="empty-cart">這裡沒有訂單</p>';

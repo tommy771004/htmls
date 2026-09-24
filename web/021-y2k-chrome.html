@@ -518,6 +518,8 @@ const PRESETS = {
 };
 const eqf = $('#eqfield'), eqc = $('#eqc');
 const bands = [];
+let eqAnimFrame = 0;
+function stopEQAnim(){ if (eqAnimFrame) cancelAnimationFrame(eqAnimFrame); eqAnimFrame = 0; }
 if (eqf) {
   const mk = (label, i, cls) => { const d=document.createElement('div'); d.className='band'+(cls?' '+cls:''); d.tabIndex=0; d.setAttribute('role','slider'); d.setAttribute('aria-label', label);
     d.innerHTML='<div class="groove"></div><div class="knob"></div><span></span>'; d.querySelector('span').textContent = label; d.dataset.i=i; eqf.appendChild(d); bands.push(d); return d; };
@@ -544,6 +546,7 @@ function drawEQCurve(){
 if (eqf) {
   let drag = false;
   const hit = e => {
+    stopEQAnim();
     const r = eqf.getBoundingClientRect();
     let best=null, bd=1e9; bands.forEach(b => { const br=b.getBoundingClientRect(); const d=Math.abs(e.clientX-(br.left+br.width/2)); if (d<bd){bd=d;best=b;} });
     if (!best) return; const br = best.getBoundingClientRect();
@@ -552,14 +555,16 @@ if (eqf) {
   eqf.addEventListener('pointerdown', e => { drag=true; try{eqf.setPointerCapture(e.pointerId);}catch(_){} hit(e); });
   eqf.addEventListener('pointermove', e => { if (drag) hit(e); });
   const end = () => drag=false; eqf.addEventListener('pointerup', end); eqf.addEventListener('pointercancel', end);
-  bands.forEach(b => b.addEventListener('keydown', e => { const i=+b.dataset.i; if (e.key==='ArrowUp'||e.key==='ArrowRight'){setBand(i,valOf(i)+1);} else if (e.key==='ArrowDown'||e.key==='ArrowLeft'){setBand(i,valOf(i)-1);} else return; e.preventDefault(); markPreset(null); layoutEQ(); }));
+  bands.forEach(b => b.addEventListener('keydown', e => { const i=+b.dataset.i; if (e.key==='ArrowUp'||e.key==='ArrowRight'){stopEQAnim();setBand(i,valOf(i)+1);} else if (e.key==='ArrowDown'||e.key==='ArrowLeft'){stopEQAnim();setBand(i,valOf(i)-1);} else return; e.preventDefault(); markPreset(null); layoutEQ(); }));
 }
 const presWrap = $('#presets');
 function markPreset(name){ if (!presWrap) return; presWrap.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.textContent===name)); }
 if (presWrap) Object.keys(PRESETS).forEach(n => { const b=document.createElement('button'); b.className='preset'; b.textContent=n; b.addEventListener('click', () => {
+  stopEQAnim();
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){ PRESETS[n].forEach((v,i) => eqVals[i]=v); layoutEQ(); markPreset(n); return; }
   const from = eqVals.slice(), to = PRESETS[n]; let t0 = performance.now();
-  const anim = now => { const k = Math.min(1,(now-t0)/260); for (let i=0;i<10;i++) eqVals[i] = from[i] + (to[i]-from[i])*(1-Math.pow(1-k,3)); layoutEQ(); if (k<1) requestAnimationFrame(anim); else { for (let i=0;i<10;i++) eqVals[i]=to[i]; layoutEQ(); } };
-  requestAnimationFrame(anim); markPreset(n); }); presWrap.appendChild(b); });
+  const anim = now => { eqAnimFrame=0; const k = Math.min(1,(now-t0)/260); for (let i=0;i<10;i++) eqVals[i] = from[i] + (to[i]-from[i])*(1-Math.pow(1-k,3)); layoutEQ(); if (k<1) eqAnimFrame=requestAnimationFrame(anim); else { for (let i=0;i<10;i++) eqVals[i]=to[i]; layoutEQ(); } };
+  eqAnimFrame=requestAnimationFrame(anim); markPreset(n); }); presWrap.appendChild(b); });
 markPreset('Flat');
 
 /* ---------- visualizer ---------- */

@@ -610,9 +610,26 @@ filter = b.dataset.f; haptic(6);
 $('chips').querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b));
 renderList();
 });
-let sw = null;
+let sw = null, swipeBlocked = false;
+const swipePointers = new Set();
+function cancelSwipe(){
+  if (!sw) return;
+  const s = sw; sw = null;
+  if (!s.on) return;
+  s.it.classList.add('slide'); s.it.style.transform = '';
+  s.row.classList.remove('armed');
+  s.it.dataset.swiped = '1';
+  setTimeout(() => { delete s.it.dataset.swiped; }, 50);
+  if (s.it.hasPointerCapture && s.it.hasPointerCapture(s.id)) s.it.releasePointerCapture(s.id);
+}
+document.addEventListener('pointerdown', e => {
+  swipePointers.add(e.pointerId);
+  if (swipePointers.size > 1){ swipeBlocked = true; cancelSwipe(); }
+}, true);
 $('list').addEventListener('pointerdown', e => {
+if (swipeBlocked || swipePointers.size !== 1) return;
 const it = e.target.closest('.item'); if (!it) return;
+cancelSwipe();
 sw = {it, row: it.parentNode, x: e.clientX, y: e.clientY, dx: 0, on: false, id: e.pointerId, moved: false};
 });
 $('list').addEventListener('pointermove', e => {
@@ -629,8 +646,8 @@ sw.it.style.transform = `translateX(${sw.dx}px)`;
 const armed = sw.dx < -sw.row.offsetWidth * .38;
 if (armed !== sw.row.classList.contains('armed')){ sw.row.classList.toggle('armed', armed); haptic(armed ? 12 : 4); }
 });
-function endSwipe(){
-if (!sw) return;
+function finishSwipe(e){
+if (!sw || e.pointerId !== sw.id || swipeBlocked) return;
 const s = sw; sw = null;
 if (!s.on) return;
 s.it.classList.add('slide');
@@ -645,8 +662,13 @@ s.it.style.transform = ''; s.row.classList.remove('armed');
 }
 s.it.dataset.swiped = '1'; setTimeout(() => { delete s.it.dataset.swiped; }, 50);
 }
-$('list').addEventListener('pointerup', endSwipe);
-$('list').addEventListener('pointercancel', endSwipe);
+$('list').addEventListener('pointerup', finishSwipe);
+$('list').addEventListener('pointercancel', e => { if (sw && e.pointerId === sw.id) cancelSwipe(); });
+$('list').addEventListener('lostpointercapture', e => { if (sw && e.pointerId === sw.id) cancelSwipe(); });
+document.addEventListener('pointerup', e => { if (sw && e.pointerId === sw.id) cancelSwipe(); swipePointers.delete(e.pointerId); if (!swipePointers.size) swipeBlocked = false; });
+document.addEventListener('pointercancel', e => { if (sw && e.pointerId === sw.id) cancelSwipe(); swipePointers.delete(e.pointerId); if (!swipePointers.size) swipeBlocked = false; });
+window.addEventListener('blur', () => { cancelSwipe(); swipePointers.clear(); swipeBlocked = false; });
+document.addEventListener('visibilitychange', () => { if (document.hidden) cancelSwipe(); });
 $('list').addEventListener('click', e => {
 const it = e.target.closest('.item'); if (!it || it.dataset.swiped) return;
 haptic(6); openDetail(+it.dataset.id);

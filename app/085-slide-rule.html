@@ -404,7 +404,7 @@ function setVal(el, s){ el.textContent = s; el.classList.toggle('sm', s.length >
 /* ---------- gestures ---------- */
 var drag = null;
 function startDrag(kind, e){
-  audio(); drag = { kind:kind, y:e.clientY, t:e.timeStamp, lastTick:null };
+  audio(); drag = { kind:kind, y:e.clientY, t:e.timeStamp, lastTick:null, x:st.x, free:st.free };
   $('slidewin').classList.remove('glide'); $('cursor').classList.remove('glide');
   try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err){}
   haptic(4);
@@ -431,9 +431,10 @@ function moveDrag(e){
 }
 function endDrag(){ if (!drag) return; drag = null; friction(false, 0); persist(); }
 $('cursor').addEventListener('pointerdown', function(e){ e.stopPropagation(); startDrag('cursor', e); });
-$('cursor').addEventListener('pointermove', moveDrag); $('cursor').addEventListener('pointerup', endDrag); $('cursor').addEventListener('pointercancel', endDrag);
+$('cursor').addEventListener('pointermove', moveDrag); $('cursor').addEventListener('pointerup', endDrag); $('cursor').addEventListener('pointercancel', cancelDrag);
 $('slidewin').addEventListener('pointerdown', function(e){ startDrag('slide', e); });
-$('slidewin').addEventListener('pointermove', moveDrag); $('slidewin').addEventListener('pointerup', endDrag); $('slidewin').addEventListener('pointercancel', endDrag);
+$('slidewin').addEventListener('pointermove', moveDrag); $('slidewin').addEventListener('pointerup', endDrag); $('slidewin').addEventListener('pointercancel', cancelDrag);
+function cancelDrag(){ if(!drag) return; st.x = drag.x; st.free = drag.free; drag = null; friction(false, 0); place(false); }
 $('stator').addEventListener('pointerdown', function(e){
   // tap on a stator face: cursor jumps there with a spring
   var r = rule.getBoundingClientRect(), np = Math.max(0, Math.min(L, e.clientY - r.top - PAD)), dy = np - p;

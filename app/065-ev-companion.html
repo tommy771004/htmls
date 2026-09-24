@@ -250,10 +250,10 @@ svg{display:block}
       </div>
 
       <header class="head">
-        <div class="name"><b>灰石</b><span>BGC-2718</span>
+        <div class="name"><b>灰石</b><span>示範車輛 · BGC-2718</span>
           <button class="where" id="where" aria-label="停車位置"><svg viewBox="0 0 14 18" class="ic"><path d="M7 17C3 12 1.5 9.3 1.5 6.5a5.5 5.5 0 0 1 11 0C12.5 9.3 11 12 7 17z"/><circle class="led" cx="7" cy="6.5" r="1.6"/></svg><span id="whereT">信義區 松壽路 B3</span></button>
         </div>
-        <div class="hero"><b id="heroN">0</b><small id="heroU">km</small><span id="heroS">預估續航</span></div>
+        <div class="hero"><b id="heroN">0</b><small id="heroU">km</small><span id="heroS">模擬預估續航</span></div>
       </header>
 
       <div class="carbox" id="carbox">
@@ -524,10 +524,10 @@ knob.addEventListener('pointerdown', function(e){
   if (!S.locked){ var b = blockers(); if (b.length){ haptic([30, 40, 30]); toast('請先關上'+b.join('、'), true); return; } }
   knob.classList.remove('rel'); void knob.offsetWidth; knob.classList.add('hold'); haptic(6);
   clearTimeout(holdT);
-  holdT = setTimeout(function(){ held = true; knob.classList.remove('hold'); knob.classList.add('rel'); toggleLock(); }, reduced ? 300 : 760);
+  holdT = setTimeout(function(){ held = true; knob.classList.remove('hold'); knob.classList.add('rel'); }, reduced ? 300 : 760);
 });
 function cancelHold(){ clearTimeout(holdT); if (knob.classList.contains('hold')){ knob.classList.remove('hold'); knob.classList.add('rel'); if (!held) toast(S.locked ? '按住不放，解鎖' : '按住不放，上鎖'); } }
-knob.addEventListener('pointerup', cancelHold); knob.addEventListener('pointerleave', cancelHold); knob.addEventListener('pointercancel', cancelHold);
+knob.addEventListener('pointerup', function(){ var ready = held; cancelHold(); held = false; if(ready) toggleLock(); }); knob.addEventListener('pointerleave', function(){ cancelHold(); held = false; }); knob.addEventListener('pointercancel', function(){ cancelHold(); held = false; });
 knob.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); if (!S.locked && blockers().length){ toast('請先關上'+blockers().join('、'), true); return; } toggleLock(); } });
 knob.addEventListener('contextmenu', function(e){ e.preventDefault(); });
 function toggleLock(){

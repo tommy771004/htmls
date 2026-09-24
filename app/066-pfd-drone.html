@@ -331,6 +331,7 @@ function bindStick(el, thumb, v){
 bindStick($('stL'), $('thL'), L); bindStick($('stR'), $('thR'), R);
 document.addEventListener('keydown', function(e){ if (e.target.tagName === 'INPUT') return; KEYS[e.key.toLowerCase()] = true; if (e.key === 'Escape') closeSheet(); if (/^arrow/.test(e.key.toLowerCase()) && !sheet.classList.contains('on')) e.preventDefault(); });
 document.addEventListener('keyup', function(e){ KEYS[e.key.toLowerCase()] = false; });
+window.addEventListener('blur', function(){ KEYS = {}; L.x = L.y = R.x = R.y = 0; $('thL').style.transform = $('thR').style.transform = ''; });
 function inputs(){
   var lx = L.x, ly = L.y, rx = R.x, ry = R.y;
   if (KEYS.w) ly = -1; if (KEYS.s) ly = 1; if (KEYS.a) lx = -1; if (KEYS.d) lx = 1;
@@ -345,12 +346,13 @@ function inputs(){
   function frame(){
     if (!on) return; var p = Math.min(1, (performance.now() - t0) / 900);
     ring.setAttribute('stroke-dashoffset', (100 - p * 100).toFixed(1));
-    if (p >= 1) { on = false; ring.setAttribute('stroke-dashoffset', 100); if (D.flying || D.taking) land(); else takeoff(); return; }
+    if (p >= 1) return;
     raf = requestAnimationFrame(frame);
   }
   function down(e){ if (e && e.preventDefault) e.preventDefault(); on = true; t0 = performance.now(); ring.setAttribute('stroke', D.flying ? '#ffb000' : '#3ee06b'); try{ el.setPointerCapture(e.pointerId); }catch(er){} haptic(5); beep(660, .05, .04); raf = requestAnimationFrame(frame); }
-  function up(){ if (!on) return; on = false; cancelAnimationFrame(raf); ring.setAttribute('stroke-dashoffset', 100); toast(D.flying ? '按住直到綠圈走滿才會降落' : '按住直到綠圈走滿才會起飛'); haptic([15, 30, 15]); }
-  el.addEventListener('pointerdown', down); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  function up(){ if (!on) return; var ready = performance.now() - t0 >= 900; on = false; cancelAnimationFrame(raf); ring.setAttribute('stroke-dashoffset', 100); if(ready){ if (D.flying || D.taking) land(); else takeoff(); } else { toast(D.flying ? '按住直到綠圈走滿才會降落' : '按住直到綠圈走滿才會起飛'); haptic([15, 30, 15]); } }
+  function cancel(){ if(!on) return; on = false; cancelAnimationFrame(raf); ring.setAttribute('stroke-dashoffset', 100); }
+  el.addEventListener('pointerdown', down); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', cancel);
   el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
   el.addEventListener('keydown', function(e){ if ((e.key === 'Enter' || e.key === ' ') && !on && !e.repeat) { e.preventDefault(); on = true; t0 = performance.now(); raf = requestAnimationFrame(frame); } });
   el.addEventListener('keyup', function(e){ if (e.key === 'Enter' || e.key === ' ') up(); });

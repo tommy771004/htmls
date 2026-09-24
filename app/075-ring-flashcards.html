@@ -373,21 +373,11 @@ function seedDecks(){
     mk('屋台','やたい','攤販','屋台がたくさん並んでいる。','攤販排成一整排。'),
     mk('タピオカ','タピオカ','珍珠（粉圓）','タピオカミルクティーを一つ。','一杯珍珠奶茶。')
   ]};
-  // give some cards history so the schedule is lived-in
-  var s = 75; function rnd(){ s = (s * 16807) % 2147483647; return s / 2147483647; }
-  [d1, d2, d3].forEach(function(d, di){
-    d.cards.forEach(function(c, i){
-      if (i < d.cards.length - (di === 0 ? 4 : 3)){
-        c.seen = true; c.n = 1 + Math.floor(rnd() * 4); c.ef = +(2.1 + rnd() * .7).toFixed(2); c.iv = [1, 3, 6, 11, 18][Math.min(4, c.n)];
-        c.due = TODAY + Math.floor(rnd() * 5) - 2; c.lapses = rnd() > .75 ? 1 + Math.floor(rnd() * 3) : 0;
-      }
-    });
-  });
+  [d1, d2, d3].forEach(function(d){ d.sample = true; });
   return [d1, d2, d3];
 }
 var decks = load('decks', null) || seedDecks();
-var log = load('log', null);
-if (!log){ log = {}; var s2 = 11; for (var i = 1; i <= 20; i++){ s2 = (s2 * 16807) % 2147483647; if (i === 6 || i === 13) continue; var n = 8 + Math.floor(s2 / 2147483647 * 22); log[TODAY - i] = {n:n, ok:Math.round(n * (.72 + (s2 % 20) / 100))}; } }
+var log = load('log', null) || {};
 function persist(){ save('decks', decks); save('log', log); }
 
 /* ---------- SM-2 ---------- */
@@ -459,7 +449,7 @@ function renderHome(){
     return '<button class="bundle" data-deck="' + i + '" aria-label="' + esc(d.name) + '，今天 ' + (du + nw) + ' 張">' +
       '<span class="pile"><span class="pc" style="background:' + PAPERS[PKEYS[(PKEYS.indexOf(d.paper) + 2) % 6]] + '"></span><span class="pc" style="background:' + PAPERS[PKEYS[(PKEYS.indexOf(d.paper) + 1) % 6]] + '"></span>' +
       '<span class="pc" style="background:' + p + '"><span class="hole"></span><span class="w" lang="ja">' + esc(top ? top.f : '空白') + '</span><span class="m">' + esc(top ? top.m : '還沒有卡片') + '</span></span>' + IC.ring + '</span>' +
-      '<span class="info"><b>' + esc(d.name) + '</b><span>' + d.cards.length + ' 張・新卡 ' + newCards(d).length + '</span><span class="due">' + (du + nw) + '<small>張待複習</small></span></span></button>';
+      '<span class="info"><b>' + esc(d.name) + (d.sample ? ' <small>範本</small>' : '') + '</b><span>' + d.cards.length + ' 張・新卡 ' + newCards(d).length + '</span><span class="due">' + (du + nw) + '<small>張待複習</small></span></span></button>';
   }).join('');
   $('shelf').innerHTML = h;
   $('dueAll').textContent = due; $('cardsAll').textContent = all; $('streak').textContent = streak(); $('retAll').textContent = retention() + '%';

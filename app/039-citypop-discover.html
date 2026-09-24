@@ -625,7 +625,7 @@ function undo(){
     c.style.transform = POS[0]; c.querySelectorAll('.stamp').forEach(function(s){ s.style.opacity = 0; });
     if (nx) nx.style.transform = POS[1];
   }
-  $('deck').addEventListener('pointerup', end); $('deck').addEventListener('pointercancel', end);
+  $('deck').addEventListener('pointerup', end); $('deck').addEventListener('pointercancel', function(){ if(!card) return; var c = card; card = null; c.classList.remove('drag'); c.style.transform = POS[0]; c.querySelectorAll('.stamp').forEach(function(s){ s.style.opacity = 0; }); var nx = $('deck').querySelector('.card[data-id="' + deckIds[1] + '"]'); if(nx){ nx.style.transition = ''; nx.style.transform = POS[1]; } });
   $('deck').addEventListener('click', function(e){
     if (e.target.id === 'reshuffle'){ st.skipped = st.skipped.filter(function(id){ return BY[id].tod !== st.tod; }); save('state', st); buildDeck(); renderTimes(); renderDeck(); haptic([8, 30, 8]); }
     if (e.target.id === 'goCrate2') openCrate();

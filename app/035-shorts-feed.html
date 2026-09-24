@@ -509,15 +509,16 @@ function drawSlide(s){
 }
 
 /* ---------- playback loop ---------- */
-var paused = false, speed = 1, last = 0, scrubbing = false;
+var paused = false, speed = 1, last = 0, scrubbing = false, raf = 0;
 function loop(ts){
-  if (document.hidden){ last = 0; return requestAnimationFrame(loop); }
+  raf = 0; if (document.hidden){ last = 0; return; }
   var dt = last ? Math.min(.05, (ts - last) / 1000) : 0; last = ts;
   var s = slides[cur];
   if (s && !paused && !scrubbing && !sheetOn){ s.t += dt * speed * (reduce ? .5 : 1); drawSlide(s); }
-  requestAnimationFrame(loop);
+  raf = requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
+raf = requestAnimationFrame(loop);
+document.addEventListener('visibilitychange', function(){ if(document.hidden){ cancelAnimationFrame(raf); raf = 0; last = 0; } else if(!raf) raf = requestAnimationFrame(loop); });
 function fmtT(x){ x = Math.floor(x); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0'); }
 
 function setCur(i){

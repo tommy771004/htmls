@@ -103,11 +103,11 @@ input[type=range]:focus-visible{outline:2px dashed var(--k);outline-offset:2px}
 var cv=document.getElementById('c');if(!cv||!cv.getContext) return;
 var ctx=cv.getContext('2d');
 var W=0,H=0,DPR=1;
-var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-var S={plate:0,dens:22,dist:62,tempo:reduce?0:35,frozen:false};
-var tempoEl=document.getElementById('tempo');if(tempoEl&&reduce){tempoEl.value=0;}
+var motionQuery=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)');
+var reduce=!!(motionQuery&&motionQuery.matches);
+var S={plate:0,dens:22,dist:62,tempo:35,frozen:false};
 var pointer={x:0,y:0,tx:0,ty:0,set:false};
-var t=0,last=0;
+var t=0,last=0,frameId=0;
 
 var PLATES=[
   {t:'Swell',med:'Canvas, 1-bit, a chessboard with ambitions',txt:'The squares did not move. Your eyes are just being dramatic.',d:22,x:62},
@@ -228,19 +228,24 @@ function draw(){
   ctx.fillStyle='#fafafa';ctx.fillRect(0,0,W,H);
   FN[S.plate]();
 }
+function canAnimate(){return !document.hidden&&!reduce&&!S.frozen;}
+function needsFrame(){return S.tempo>0||Math.abs(pointer.tx-pointer.x)>.25||Math.abs(pointer.ty-pointer.y)>.25;}
+function stopFrame(){if(frameId) cancelAnimationFrame(frameId);frameId=0;}
+function startFrame(){if(canAnimate()&&needsFrame()&&!frameId){last=0;frameId=requestAnimationFrame(frame);}else if(!canAnimate()||!needsFrame()) draw();}
 function frame(now){
+  frameId=0;if(!canAnimate()) return;
   var dt=last?Math.min(.05,(now-last)/1000):0;last=now;
-  pointer.x+=(pointer.tx-pointer.x)*.12;pointer.y+=(pointer.ty-pointer.y)*.12;
-  if(!S.frozen) t+=dt*(S.tempo/35);
-  draw();
-  requestAnimationFrame(frame);
+  var follow=1-Math.exp(-dt*8);
+  pointer.x+=(pointer.tx-pointer.x)*follow;pointer.y+=(pointer.ty-pointer.y)*follow;
+  t+=dt*(S.tempo/35);
+  draw();if(needsFrame()) frameId=requestAnimationFrame(frame);
 }
 
 // ---------- controls ----------
 function $(id){return document.getElementById(id);}
 function bindRange(id,key){
   var el=$(id),o=$('o-'+id);if(!el) return;
-  el.addEventListener('input',function(){S[key]=+el.value;if(o) o.textContent=el.value;});
+  el.addEventListener('input',function(){S[key]=+el.value;if(o) o.textContent=el.value;startFrame();});
 }
 bindRange('dens','dens');bindRange('dist','dist');bindRange('tempo','tempo');
 var ROMAN=['I','II','III','IV'];
@@ -255,14 +260,15 @@ function setPlate(p){
   if($('lTitle')) $('lTitle').textContent=P.t;
   if($('lMed')) $('lMed').textContent=P.med;
   if($('lTxt')) $('lTxt').textContent=P.txt;
+  if(!canAnimate()) draw();
 }
 Array.prototype.forEach.call(document.querySelectorAll('.plates button'),function(b){b.addEventListener('click',function(){setPlate(+b.dataset.p);});});
-function toggleFreeze(){S.frozen=!S.frozen;var b=$('freeze');if(b) b.setAttribute('aria-pressed',String(S.frozen));}
+function toggleFreeze(){S.frozen=!S.frozen;var b=$('freeze');if(b) b.setAttribute('aria-pressed',String(S.frozen));if(S.frozen){stopFrame();draw();}else startFrame();}
 function toggleInvert(){var on=document.body.classList.toggle('inv');var b=$('invert');if(b) b.setAttribute('aria-pressed',String(on));}
 if($('freeze')) $('freeze').addEventListener('click',toggleFreeze);
 if($('invert')) $('invert').addEventListener('click',toggleInvert);
 
-function aim(e){pointer.tx=e.clientX;pointer.ty=e.clientY;pointer.set=true;}
+function aim(e){if(reduce||S.frozen) return;pointer.tx=e.clientX;pointer.ty=e.clientY;pointer.set=true;startFrame();}
 cv.addEventListener('pointermove',function(e){if(e.pointerType==='mouse'||e.buttons) aim(e);});
 cv.addEventListener('pointerdown',function(e){aim(e);try{cv.setPointerCapture(e.pointerId);}catch(_){}});
 document.addEventListener('keydown',function(e){
@@ -274,8 +280,10 @@ document.addEventListener('keydown',function(e){
   else if(e.key==='ArrowLeft'){setPlate((S.plate+3)%4);}
 });
 window.addEventListener('resize',resize);
+document.addEventListener('visibilitychange',function(){if(document.hidden) stopFrame();else startFrame();});
+if(motionQuery) motionQuery.addEventListener('change',function(e){reduce=e.matches;if(reduce){stopFrame();draw();}else startFrame();});
 resize();
-requestAnimationFrame(frame);
+startFrame();
 })();
 </script>
 </body>

@@ -547,13 +547,15 @@ list.addEventListener('click',function(e){if(swiped){swiped=false;return;}var c=
 function trash(id){var i=-1;tasks.forEach(function(t,k){if(t.id===id)i=k;});if(i<0)return;var t=tasks.splice(i,1)[0];bin.unshift(t);if(st.cur===id)st.cur=(tasks[0]||{}).id||'';persist();renderTasks();renderFocus();renderStats();haptic([10,30,10]);
   balloon('丟進資源回收筒',t.n,function(){var j=bin.indexOf(t);if(j>=0)bin.splice(j,1);tasks.splice(Math.min(i,tasks.length),0,t);persist();renderTasks();renderStats();});}
 var swiped=false;
-(function(){var sx=0,sy=0,it=null,dx=0,dir=0;
-  list.addEventListener('pointerdown',function(e){var item=e.target.closest('.item');if(!item)return;it=item;sx=e.clientX;sy=e.clientY;dx=0;dir=0;});
-  list.addEventListener('pointermove',function(e){if(!it)return;var x=e.clientX-sx,y=e.clientY-sy;if(!dir){if(Math.abs(x)>10&&Math.abs(x)>Math.abs(y)){dir=1;it.classList.add('drag');try{list.setPointerCapture(e.pointerId);}catch(z){}}else if(Math.abs(y)>10){it=null;return;}else return;}
+(function(){var sx=0,sy=0,it=null,dx=0,dir=0,pointer=null;
+  list.addEventListener('pointerdown',function(e){var item=e.target.closest('.item');if(!item||it)return;it=item;pointer=e.pointerId;sx=e.clientX;sy=e.clientY;dx=0;dir=0;});
+  list.addEventListener('pointermove',function(e){if(!it||e.pointerId!==pointer)return;var x=e.clientX-sx,y=e.clientY-sy;if(!dir){if(Math.abs(x)>10&&Math.abs(x)>Math.abs(y)){dir=1;it.classList.add('drag');try{list.setPointerCapture(e.pointerId);}catch(z){}}else if(Math.abs(y)>10){it=null;pointer=null;return;}else return;}
     dx=Math.min(0,Math.max(-120,x+(it.classList.contains('open')?-84:0)));it.querySelector('.row').style.transform='translateX('+dx+'px)';});
-  function end(){if(!it)return;var item=it;it=null;item.classList.remove('drag');if(!dir)return;swiped=true;setTimeout(function(){swiped=false;},60);var row=item.querySelector('.row');
+  function end(e){if(!it||e.pointerId!==pointer)return;var item=it;it=null;pointer=null;item.classList.remove('drag');if(!dir)return;swiped=true;setTimeout(function(){swiped=false;},60);var row=item.querySelector('.row');
     if(dx<-110){trash(item.dataset.id);return;}if(dx<-42){row.style.transform='translateX(-84px)';item.classList.add('open');haptic(5);}else{row.style.transform='';item.classList.remove('open');}}
-  list.addEventListener('pointerup',end);list.addEventListener('pointercancel',end);})();
+  function cancel(){if(!it)return;it.classList.remove('drag');it.querySelector('.row').style.transform=it.classList.contains('open')?'translateX(-84px)':'';it=null;pointer=null;dir=0;}
+  list.addEventListener('pointerup',end);list.addEventListener('pointercancel',function(e){if(e.pointerId===pointer)cancel();});
+  list.addEventListener('lostpointercapture',function(e){if(e.pointerId===pointer)cancel();});window.addEventListener('blur',cancel);})();
 $('clearBtn').addEventListener('click',function(){var done=tasks.filter(function(t){return t.ok;});if(!done.length){balloon('沒有已完成的任務','勾選完成後再來清除。');haptic([20,40,20]);return;}
   tasks=tasks.filter(function(t){return !t.ok;});bin=done.concat(bin);if(!T(st.cur))st.cur=(tasks[0]||{}).id||'';persist();renderTasks();renderFocus();renderStats();haptic([10,30,10]);
   balloon('清除 '+done.length+' 項','已移到資源回收筒。',function(){done.forEach(function(t){var j=bin.indexOf(t);if(j>=0)bin.splice(j,1);});tasks=tasks.concat(done);persist();renderTasks();renderStats();});});

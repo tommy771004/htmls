@@ -431,16 +431,6 @@ var PARTY = load('party', null) || [
 ];
 function persist(){ if (S.hist.length > 60) S.hist.length = 60; save('state', S); save('party', PARTY); }
 function modOf(score){ return Math.floor((score - 10) / 2); }
-if (!S.hist.length){
-  var now = Date.now();
-  S.hist = [
-    {t:now - 6e5, lb:'長弓 命中', ex:'1d20+7', dice:[{s:20, v:17}], mod:7, tot:24, crit:0},
-    {t:now - 5.6e5, lb:'長弓 傷害', ex:'1d8+4', dice:[{s:8, v:6}], mod:4, tot:10, crit:0},
-    {t:now - 3e5, lb:'敏捷豁免', ex:'1d20+6 優勢', dice:[{s:20, v:4, drop:1}, {s:20, v:20}], mod:6, tot:26, crit:1},
-    {t:now - 1.2e5, lb:'', ex:'4d6', dice:[{s:6, v:5}, {s:6, v:2}, {s:6, v:6}, {s:6, v:3}], mod:0, tot:16, crit:0}
-  ].reverse();
-}
-
 /* ---------- audio: bone on vellum ---------- */
 var ac = null, nb = null;
 function audio(){ try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e){ ac = null; } return ac; }
@@ -518,6 +508,7 @@ function roll(opts){
   var crit = d20.length === 1 && dice.filter(function(d){ return d.s === 20; }).length <= 2 ? (d20[0].v === 20 ? 1 : d20[0].v === 1 ? -1 : 0) : 0;
   var ex = opts.ex || (poolExpr() || '') + (mode && S.pool[20] ? (mode > 0 ? ' 優勢' : ' 劣勢') : '');
   pending = {t:Date.now(), lb:opts.lb || '', ex:ex, dice:dice.map(function(d){ var o = {s:d.s, v:d.v}; if (d.drop) o.drop = 1; return o; }), mod:mod, tot:tot, crit:crit};
+  S.hist.unshift(pending); persist();
   // launch
   var tr = $('tray'), W = tr.clientWidth, H = tr.clientHeight, pad = 44;
   var vx0 = opts.vx, vy0 = opts.vy;
@@ -532,12 +523,12 @@ function roll(opts){
   });
   if (reduce){ settleAll(); return; }
   rolling = true; lastT = 0; haptic([12, 20, 8]); clack(.6);
-  requestAnimationFrame(step);
+  if (document.hidden) settleAll(); else requestAnimationFrame(step);
 }
 var t0 = 0;
 function step(ts){
   if (!rolling) return;
-  if (document.hidden){ lastT = 0; requestAnimationFrame(step); return; }
+  if (document.hidden){ settleAll(); return; }
   if (!lastT){ lastT = ts; t0 = ts; }
   var dt = Math.min(.033, (ts - lastT) / 1000); lastT = ts;
   var tr = $("tray"), W = tr.clientWidth, H = tr.clientHeight, R = 31, m = 14 + R, moving = false, bumps = 0;
@@ -580,7 +571,7 @@ function settleAll(){
   });
   clack(.5, true);
   if (pending){
-    S.hist.unshift(pending); persist(); showResult(pending, true);
+    showResult(pending, true);
     if (pending.crit > 0){ chime(); haptic([20, 40, 20, 40, 40]); } else haptic(pending.crit < 0 ? [60] : [8, 30, 8]);
     pending = null;
   }

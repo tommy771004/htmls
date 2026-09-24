@@ -636,7 +636,7 @@ function openDetail(id){
   var films = pass ? '<div class="films">'+e.films.map(function(f, i){ var fd = dOff(e.off + i); return '<button class="film" data-f="'+i+'" aria-label="第 '+(i+1)+' 場'+(t.punches[i] ? '，已打洞' : '，點一下打洞入場')+'"><span class="no">'+(i+1)+'</span><span><b>'+f[0]+'</b><small>'+md(fd)+' '+f[1]+'</small></span>'+(t.punches[i] ? '<i class="hole"></i>' : '')+'</button>'; }).join('')+'</div>' : '';
   $('ptwrap').innerHTML =
     '<div class="pt" id="pt"><div class="m paper'+(pass ? '' : ' mnotch')+'" id="ptm"><div class="adm"><span>ADMIT '+(t.seats && t.seats.length > 1 ? 'TWO' : 'ONE')+'</span><span>入場券</span></div>'+
-    '<p class="cat">'+e.ic+' · '+e.cat+'</p><h2>'+esc(e.t)+'</h2><div class="rule"></div>'+
+    '<p class="cat">'+e.ic+' · '+e.cat+' · 示範票券・不具入場效力</p><h2>'+esc(e.t)+'</h2><div class="rule"></div>'+
     '<div class="date"><b>'+d.getDate()+'</b><span><em>'+MOE[d.getMonth()]+' '+d.getFullYear()+'</em>'+WDE[d.getDay()]+' · '+e.time+'</span></div>'+info+films+'</div>'+
     (pass ? '' : '<div class="s paper notch" id="pts" aria-label="存根，往下拉撕開"><div class="l">存根 COUNTERFOIL<b>'+t.serial+'</b></div><div class="r">'+md(d)+' '+e.time+'<strong>'+seatTxt(t)+'</strong></div></div>')+'</div>'+
     (pass ? '<p class="tearhint">'+IC.handR+'每一場入場時，點一下那一格打洞</p>' : '<p class="tearhint">'+IC.handR+'到了門口，把存根往下拉，沿虛線撕開</p>')+
@@ -658,13 +658,13 @@ function wireTear(){
     if (p > .05){ s.classList.add('torn-t'); m.classList.add('torn-b'); m.classList.remove('mnotch'); }
     s.style.transform = 'translate('+(dx * .5)+'px,'+(dy * .8)+'px) rotate('+((dx >= 0 ? 1 : -1) * p * 9)+'deg)';
     s.style.transformOrigin = dx >= 0 ? '0 0' : '100% 0';
-    if (p >= 1 && !done){ done = true; on = false; tearOff(s, dx); }
+    s.dataset.ready = p >= 1 ? '1' : '';
   });
-  function end(){ if (!on) return; on = false; if (done) return;
+  function end(){ if (!on) return; on = false; if (done) return; if(s.dataset.ready === '1'){ done = true; tearOff(s, dx); return; }
     s.style.transition = 'transform .45s var(--spring)'; s.style.transform = '';
     setTimeout(function(){ if (!done){ s.classList.remove('torn-t'); m.classList.add('mnotch'); m.classList.remove('torn-b'); } }, 300);
   }
-  s.addEventListener('pointerup', end); s.addEventListener('pointercancel', end);
+  s.addEventListener('pointerup', end); s.addEventListener('pointercancel', function(){ if(!on) return; s.dataset.ready = ''; end(); });
   s.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); if (!done){ done = true; s.classList.add('torn-t'); m.classList.add('torn-b'); tearOff(s, 20); } } });
   s.tabIndex = 0; s.setAttribute('role', 'button');
 }

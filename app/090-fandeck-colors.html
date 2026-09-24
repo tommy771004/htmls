@@ -384,25 +384,25 @@ function layout(){
   }
   var idx = Math.round(pos); if (idx !== lastTickIdx){ lastTickIdx = idx; click(3600, .12); }
 }
-var raf = 0;
-function anim(){
-  raf = 0; var moving = false;
+var raf = 0, lastAnim = 0;
+function anim(ts){
+  raf = 0; var moving = false, dt = lastAnim ? Math.min(32,Math.max(0,ts-lastAnim)) : 16; lastAnim = ts;
   if (!dragging){
-    if (Math.abs(vel) > .002){ pos += vel; vel *= .92; moving = true; }
-    else { var tgt = Math.round(pos); var dd = tgt - pos; if (Math.abs(dd) > .002){ pos += dd * .22; moving = true; } else pos = tgt; }
-    var mx = STRIPS.length - 1; if (pos < 0){ pos += (0 - pos) * .3; vel = 0; } if (pos > mx){ pos += (mx - pos) * .3; vel = 0; }
+    if (Math.abs(vel) > .002){ var decay = -Math.log(.92)/16, factor = Math.exp(-decay*dt); pos += (vel/16)*(1-factor)/decay; vel *= factor; moving = true; }
+    else { var tgt = Math.round(pos); var dd = tgt - pos; if (Math.abs(dd) > .002){ pos += dd * (1-Math.pow(.78,dt/16)); moving = true; } else pos = tgt; }
+    var mx = STRIPS.length - 1, spring = 1-Math.pow(.7,dt/16); if (pos < 0){ pos += (0 - pos) * spring; vel = 0; } if (pos > mx){ pos += (mx - pos) * spring; vel = 0; }
   }
-  if (Math.abs(openTarget - open) > .003){ open += (openTarget - open) * .16; moving = true; } else open = openTarget;
+  if (Math.abs(openTarget - open) > .003){ open += (openTarget - open) * (1-Math.pow(.84,dt/16)); moving = true; } else open = openTarget;
   layout();
   if (moving && !document.hidden) raf = requestAnimationFrame(anim); else if (!dragging) save('pos', Math.round(pos));
 }
-function kick(){ if (!raf) raf = requestAnimationFrame(anim); }
+function kick(){ if (!raf && !document.hidden){ lastAnim = 0; raf = requestAnimationFrame(anim); } }
 function turnTo(i){ vel = 0; var start = pos; if (reduce){ pos = i; layout(); return; } var t0 = performance.now();
   (function go(t){ var k = Math.min(1, (t - t0) / 420), e = 1 - Math.pow(1 - k, 3); pos = start + (i - start) * e; layout(); if (k < 1) requestAnimationFrame(go); else save('pos', i); })(t0); }
 var dragging = false, sx = 0, sy = 0, sp = 0, lx = 0, lt = 0, moved = false, downEl = null;
 wrap.addEventListener('pointerdown', function(e){
   if (e.target.closest('.rivet')) return;
-  dragging = true; moved = false; sx = lx = e.clientX; sy = e.clientY; sp = pos; lt = e.timeStamp; vel = 0; downEl = e.target;
+  if(dragging || !e.isPrimary) return; dragging = true; moved = false; sx = lx = e.clientX; sy = e.clientY; sp = pos; lt = e.timeStamp; vel = 0; downEl = e.target;
   try{ wrap.setPointerCapture(e.pointerId); }catch(er){}
 });
 wrap.addEventListener('pointermove', function(e){
@@ -424,7 +424,7 @@ function up(e){
   } else { vel = Math.max(-1.2, Math.min(1.2, vel)); haptic(3); }
   kick();
 }
-wrap.addEventListener('pointerup', up); wrap.addEventListener('pointercancel', function(){ dragging = false; kick(); });
+wrap.addEventListener('pointerup', up); wrap.addEventListener('pointercancel', function(){ if(!dragging) return; dragging = false; pos = sp; vel = 0; kick(); });
 function pick(c){
   if (mode === 1){ slots[activeSlot] = c.code; save('slots', slots); renderContrast(); click(2400, .3); haptic(6); if (activeSlot === 'a'){ activeSlot = 'b'; renderContrast(); setMode(1); } return; }
   if (c === cur){ openChip(c); return; }

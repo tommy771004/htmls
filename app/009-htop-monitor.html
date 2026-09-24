@@ -408,10 +408,11 @@ function step(){
   });
 }
 function memUse(){
-  var app = procs.reduce(function(a, p){ return a + p.mem; }, 0) / 1024 * .72;
+  var total = 16, app = Math.min(12, procs.reduce(function(a, p){ return a + p.mem; }, 0) / 1024 * .72);
   var wired = 2.2, comp = Math.max(.2, app * .12), used = app + wired + comp;
-  var total = 16, free = Math.max(.3, total - used - cache);
-  return {app:app, wired:wired, comp:comp, cache:cache, free:free, used:used, total:total, pressure:Math.min(1, (used) / total)};
+  var cached = Math.min(cache, Math.max(0, total - used));
+  var free = Math.max(0, total - used - cached);
+  return {app:app, wired:wired, comp:comp, cache:cached, free:free, used:used, total:total, pressure:Math.min(1, used / total)};
 }
 
 // ---------- rendering helpers ----------
@@ -455,7 +456,7 @@ function renderCpu(){
   });
   patch($('cores'), items);
   var m = memUse();
-  $('memM').innerHTML = meter('Mem', [{v:m.app / 16, c:'kg'}, {v:(m.wired + m.comp) / 16, c:'kb'}, {v:m.cache / 16, c:'ky'}], m.used.toFixed(2) + 'G/16.0G', n);
+  $('memM').innerHTML = meter('Mem', [{v:m.app / 16, c:'kg'}, {v:(m.wired + m.comp) / 16, c:'kb'}, {v:m.cache / 16, c:'ky'}], (m.used + m.cache).toFixed(2) + 'G/16.0G', n);
   var swp = procs.some(function(p){ return p.name === 'ffmpeg'; }) ? 612 : 128;
   $('swpM').innerHTML = meter('Swp', [{v:swp / 2048, c:'kr'}], swp + 'M/2.00G', n);
   var run = procs.filter(function(p){ return p.st === 'R'; }).length, thr = procs.reduce(function(a, p){ return a + p.thr; }, 0);

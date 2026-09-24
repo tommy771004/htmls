@@ -558,16 +558,16 @@ window.addEventListener('pointerup', function(e){
 // ---------- crown: wind the power reserve ----------
 function wireCrown(){
   var cr = $('crown'); if (!cr) return;
-  var on = false, ly = 0, acc = 0;
-  cr.addEventListener('pointerdown', function(e){ on = true; ly = e.clientY; acc = 0; e.stopPropagation(); try { cr.setPointerCapture(e.pointerId); } catch(x){} });
+  var on = false, ly = 0, acc = 0, startPower = 0, cancelled = false;
+  cr.addEventListener('pointerdown', function(e){ on = true; ly = e.clientY; acc = 0; startPower = power; cancelled = false; e.stopPropagation(); try { cr.setPointerCapture(e.pointerId); } catch(x){} });
   cr.addEventListener('pointermove', function(e){
     if (!on) return; acc += Math.abs(e.clientY - ly); ly = e.clientY;
     while (acc > 9){ acc -= 9; if (power < 100){ power = Math.min(100, power + 1.4); click(5200, .18, .01); haptic(3); } else { haptic([20]); } }
     var hp = $('hPower'); if (hp){ var t = hp.getAttribute('transform').replace(/rotate\([^)]*\)/, 'rotate(' + f(-120 + 240 * power / 100) + ')'); hp.setAttribute('transform', t); }
   });
   function end(){ if (!on) return; on = false; persist(); toast('動力儲存 ' + Math.round(power * .72) + ' 小時'); }
-  cr.addEventListener('pointerup', end); cr.addEventListener('pointercancel', end);
-  cr.addEventListener('click', function(){ if (acc === 0 && !on){ power = Math.min(100, power + 4); click(5200, .2, .01); haptic(4); persist(); renderWatch(false); } });
+  cr.addEventListener('pointerup', end); cr.addEventListener('pointercancel', function(){ if(!on) return; on = false; cancelled = true; power = startPower; renderWatch(false); });
+  cr.addEventListener('click', function(){ if (acc === 0 && !on && !cancelled){ power = Math.min(100, power + 4); click(5200, .2, .01); haptic(4); persist(); renderWatch(false); } });
 }
 
 // ---------- live hands ----------

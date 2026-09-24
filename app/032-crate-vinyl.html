@@ -712,7 +712,7 @@ function returnArm(){
 }
 var armDrag = false;
 (function(){
-  var deck = $('deck');
+  var deck = $('deck'), armStart = 0, resumeAfterCancel = false;
   function angFrom(e){
     var r = deckSvg.getBoundingClientRect(), x = (e.clientX - r.left)/r.width*366, y = (e.clientY - r.top)/r.height*360;
     var a = Math.atan2(PIV.x - x, y - PIV.y)*180/Math.PI;
@@ -724,7 +724,7 @@ var armDrag = false;
     var n = needleAt(armA), dArm = Math.hypot(x - n.x, y - n.y);
     var along = Math.abs((x - PIV.x)*Math.cos(armA*Math.PI/180) + (y - PIV.y)*Math.sin(armA*Math.PI/180));
     if (dArm > 70 && !(along < 22 && Math.hypot(x-PIV.x, y-PIV.y) < ARM)) return;
-    armDrag = true; deck.setPointerCapture(e.pointerId); ensureAudio();
+    armDrag = true; armStart = armA; resumeAfterCancel = playing; deck.setPointerCapture(e.pointerId); ensureAudio();
     if (playing){ stopPlay(false); spinDown = rpm/60; loop(); }
     haptic(6);
   });
@@ -737,7 +737,7 @@ var armDrag = false;
     if (armA >= A_OUT - .5 && armA <= A_IN){ pos = angleToPos(Math.max(A_OUT, armA)); spinDown = 0; startPlay(); }
     else { if (armA < A_OUT) { returnArm(); } renderDeckInfo(); }
   }
-  deck.addEventListener('pointerup', up); deck.addEventListener('pointercancel', up);
+  deck.addEventListener('pointerup', up); deck.addEventListener('pointercancel', function(){ if(!armDrag) return; armDrag = false; setArm(armStart); spinDown = 0; if(resumeAfterCancel) startPlay(); else renderDeckInfo(); });
 })();
 $('liftBtn').addEventListener('click', function(){
   if (!loaded) return;
@@ -798,7 +798,7 @@ document.querySelector('.filters').addEventListener('click', function(e){
     }
     mode = null;
   }
-  rows.addEventListener('pointerup', end); rows.addEventListener('pointercancel', end);
+  rows.addEventListener('pointerup', end); rows.addEventListener('pointercancel', function(){ if(!rw) return; rw.classList.remove('drag'); rw.querySelector('.fr').style.transform = rw === openRow ? 'translateX(-96px)' : ''; rw = null; mode = null; });
   rows.addEventListener('click', function(e){
     var d = e.target.closest('[data-del]');
     if (d){ removeRec(d.dataset.del); return; }

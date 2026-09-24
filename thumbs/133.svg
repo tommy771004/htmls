@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+<defs>
+<radialGradient id="bg"><stop stop-color="#163846"/><stop offset=".55" stop-color="#0a1d2b"/><stop offset="1" stop-color="#030a13"/></radialGradient>
+<linearGradient id="glass" x2="1" y2="1"><stop stop-color="#a7efff" stop-opacity=".36"/><stop offset=".55" stop-color="#3c819a" stop-opacity=".22"/><stop offset="1" stop-color="#a7efff" stop-opacity=".32"/></linearGradient>
+<filter id="glow"><feGaussianBlur stdDeviation="9"/></filter>
+</defs>
+<rect width="640" height="400" fill="url(#bg)"/>
+<ellipse cx="404" cy="205" rx="212" ry="145" fill="#39bde5" opacity=".1" filter="url(#glow)"/>
+<text x="39" y="51" fill="#d9f9ff" font-family="Arial,sans-serif" font-size="20" font-weight="600" letter-spacing="7">HALION</text>
+<text x="40" y="173" fill="#e8f7fb" font-family="Arial,sans-serif" font-size="38" font-weight="300" letter-spacing="-2">THREE PARTS.</text>
+<text x="40" y="215" fill="#9cecff" font-family="Arial,sans-serif" font-size="38" font-weight="300" letter-spacing="-2">ONE MIND.</text>
+<text x="41" y="245" fill="#9cbdc9" font-family="Arial,sans-serif" font-size="8" letter-spacing="3">H-01 / CONCEPT NEURAL INTERFACE</text>
+<g transform="translate(414 202) rotate(-9)">
+<rect x="-150" y="-101" width="300" height="202" rx="20" fill="#5cb5cd" opacity=".19" filter="url(#glow)"/>
+<rect x="-150" y="-101" width="300" height="202" rx="20" fill="url(#glass)" stroke="#b0effb" stroke-width="3"/>
+<rect x="-138" y="-89" width="276" height="178" rx="13" fill="none" stroke="#98e3f3" opacity=".55"/>
+<g fill="none" stroke="#8de1ee" opacity=".75" stroke-width="1.3"><circle r="50"/><circle r="42"/><circle r="34"/><circle r="26"/><circle r="18"/>
+<path d="M-137-71h39l26 17h27m-92 4h32l25 18h34m-91 46h41l29-17h21m-91 46h38l25-18h28M137-71H98L72-54H45m92 4h-32L80-32H46m91 46H96L67-3H46m91 46H99L74 25H46"/></g>
+<g fill="#9cecff"><circle cx="-47" cy="-54" r="3"/><circle cx="-45" cy="-32" r="3"/><circle cx="-45" cy="-3" r="3"/><circle cx="-47" cy="25" r="3"/><circle cx="47" cy="-54" r="3"/><circle cx="45" cy="-32" r="3"/><circle cx="45" cy="-3" r="3"/><circle cx="47" cy="25" r="3"/></g>
+</g>
+<text x="40" y="362" fill="#7cabb9" font-family="monospace" font-size="9" letter-spacing="3">GLASS  /  COIL  /  SILICON</text>
+<path d="M39 335H601" stroke="#89d8e9" stroke-opacity=".3"/>
+</svg>

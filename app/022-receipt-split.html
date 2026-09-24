@@ -546,7 +546,7 @@ function endDrag(e){
   toast(has ? `${p.n} 不吃 ${d.it.n}` : `${d.it.n} 算 ${p.n} 一份`);
 }
 $('paper').addEventListener('pointerup', endDrag);
-$('paper').addEventListener('pointercancel', endDrag);
+$('paper').addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id){ drag.gh.remove(); $('stamps').querySelectorAll('.stp').forEach(b => b.classList.remove('hot')); drag = null; } });
 
 /* ---------- stamps row ---------- */
 $('stamps').addEventListener('click', e => {

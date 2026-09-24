@@ -704,7 +704,7 @@ function snap(d){ detent = d; drawer.style.transform = 'translateY(' + detentY(d
     else [0, 1, 2].forEach(function(d){ var dd = Math.abs(detentY(d) - y); if (dd < bd){ bd = dd; best = d; } });
     snap(best); haptic(5);
   }
-  grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+  grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', function(){ if(!drag) return; drag = false; drawer.classList.remove('drag'); snap(detent); });
 })();
 
 // ---------- modal sheet ----------

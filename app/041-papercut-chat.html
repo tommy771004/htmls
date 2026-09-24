@@ -676,8 +676,8 @@ function renderMsgs(newId){
 }
 function subLine(){
   var c = CONTACTS[cur], s = $('cSub');
-  if (typing[cur]){ s.textContent = (c.group && typing[cur] !== true ? CONTACTS[typing[cur]].n + ' ' : '') + '輸入中…'; s.className = 'typing'; }
-  else { s.textContent = c.group ? c.members.length + 1 + ' 位成員' : (D.mute.indexOf(cur) >= 0 ? '已靜音' : '上線中'); s.className = ''; }
+  if (typing[cur]){ s.textContent = (c.group && typing[cur] !== true ? CONTACTS[typing[cur]].n + ' ' : '') + '示範輸入中…'; s.className = 'typing'; }
+  else { s.textContent = '示範對話・僅存於此裝置'; s.className = ''; }
 }
 function openChat(id){
   cur = id; var c = CONTACTS[id];

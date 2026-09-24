@@ -92,7 +92,8 @@ input[type=range]:focus-visible{outline:1px dotted var(--ink);outline-offset:2px
 const $=id=>document.getElementById(id);
 const cv=$('cv'); if(!cv) return;
 const cx=cv.getContext('2d');
-const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
+let reduce=motionQuery.matches;
 
 /* ---------- improved Perlin noise (seeded) ---------- */
 const PERM=new Uint8Array(512);
@@ -117,7 +118,10 @@ function persist(){ try{ localStorage.setItem('flowstudy',JSON.stringify(S)); }c
 const INKNAME={'43,33,24':'sepia','31,42,68':'indigo','168,62,40':'vermilion','70,78,62':'verdigris'};
 
 let W=0,H=0,dpr=1, plate={x:0,y:0,w:0,h:0}, parts=[], z=0, steps=0, travelled=0, paused=false, done=false;
-const BUDGET=1100; // frames of ink before the plate is considered finished
+const BUDGET=1100; // fixed 60 Hz drawing steps before the plate is finished
+let frameId=0, lastTick=0, accumulator=0, meterAt=0;
+function stopLoop(){ if(frameId) cancelAnimationFrame(frameId); frameId=0; lastTick=0; accumulator=0; }
+function startLoop(){ if(!frameId&&!reduce&&!paused&&!document.hidden&&(!done||parts.some(p=>p.hand))) frameId=requestAnimationFrame(loop); }
 function size(){
   dpr=Math.min(2,window.devicePixelRatio||1); W=innerWidth; H=innerHeight;
   cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
@@ -136,6 +140,7 @@ function frameRule(){
   cx.restore();
 }
 function restart(newSeed){
+  stopLoop();
   if(newSeed) S.seed=1+Math.floor(Math.random()*9999);
   seedNoise(S.seed); persist();
   size(); cx.setTransform(1,0,0,1,0,0); cx.clearRect(0,0,cv.width,cv.height);
@@ -146,6 +151,7 @@ function restart(newSeed){
   const sb=$('sub'); if(sb) sb.textContent=`${INKNAME[S.ink]||'ink'} on cotton rag · Perlin field, curl ${S.curl.toFixed(1)}`;
   // pre-warm so the sheet is never blank
   for(let i=0;i<(reduce?BUDGET:130);i++) step(true);
+  updateMeter(); startLoop();
 }
 function step(force){
   const sc=S.scale/1000, TAU=Math.PI*2, turns=S.curl, sp=1.1;
@@ -171,11 +177,20 @@ function step(force){
   z+=.0016; steps++;
   if(!done&&steps>=BUDGET){ done=true; toast('Plate complete. Drag to add ink, or begin a new plate.'); }
 }
-let last=0;
+function updateMeter(){
+  const m=$('meter'); if(!m) return;
+  const metres=travelled*0.26/1000;
+  m.innerHTML=done&&!parts.some(p=>p.hand)?`finished · the pen travelled <b>${metres.toFixed(1)}</b> metres`:`the pen has travelled <b>${metres.toFixed(1)}</b> metres${paused?' · paused':''}`;
+}
 function loop(t){
-  if(!paused&&!document.hidden){ step(); }
-  if(t-last>250){ last=t; const m=$('meter'); if(m){ const metres=travelled*0.26/1000; m.innerHTML=done&&!parts.some(p=>p.hand)?`finished · the pen travelled <b>${metres.toFixed(1)}</b> metres`:`the pen has travelled <b>${metres.toFixed(1)}</b> metres${paused?' · paused':''}`; } }
-  requestAnimationFrame(loop);
+  frameId=0;
+  if(reduce||paused||document.hidden) return;
+  const dt=lastTick?Math.min(.1,(t-lastTick)/1000):1/60;
+  lastTick=t; accumulator+=dt*60;
+  const count=Math.min(6,Math.floor(accumulator)); accumulator-=count;
+  for(let i=0;i<count;i++) step();
+  if(t-meterAt>250 || (done&&!parts.some(p=>p.hand))){ meterAt=t; updateMeter(); }
+  startLoop();
 }
 
 /* ---------- drawing by hand: ink that obeys the field ---------- */
@@ -184,7 +199,11 @@ cv.addEventListener('pointerdown',e=>{ down=true; try{ cv.setPointerCapture(e.po
 cv.addEventListener('pointermove',e=>{ if(down) addInk(e); });
 const up=()=>{ down=false; };
 cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
-function addInk(e){ for(let i=0;i<10;i++) parts.push(spawn({},e.clientX+(Math.random()-.5)*14,e.clientY+(Math.random()-.5)*14,true)); }
+function addInk(e){
+  for(let i=0;i<10;i++) parts.push(spawn({},e.clientX+(Math.random()-.5)*14,e.clientY+(Math.random()-.5)*14,true));
+  if(reduce){ for(let i=0;i<12;i++) step(true); updateMeter(); }
+  else startLoop();
+}
 
 /* ---------- controls ---------- */
 const ctl=$('ctl'), tg=$('toggle');
@@ -202,7 +221,7 @@ document.querySelectorAll('.sw').forEach(b=>{
   b.addEventListener('click',()=>{ S.ink=b.dataset.ink; document.querySelectorAll('.sw').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); restart(false); });
 });
 const bn=$('b-new'), bp=$('b-pause'), bs=$('b-save');
-function togglePause(){ paused=!paused; if(bp) bp.textContent=paused?'Resume':'Pause'; }
+function togglePause(){ paused=!paused; if(bp) bp.textContent=paused?'Resume':'Pause'; if(paused) stopLoop(); else startLoop(); updateMeter(); }
 if(bn) bn.addEventListener('click',()=>restart(true));
 if(bp) bp.addEventListener('click',togglePause);
 function save(){
@@ -226,9 +245,14 @@ let tt=0;
 function toast(m){ const t=$('toast'); if(!t) return; t.textContent=m; t.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('on'),2600); }
 let rz=0;
 addEventListener('resize',()=>{ if(Math.abs(innerWidth-W)<2&&Math.abs(innerHeight-H)<120) return; clearTimeout(rz); rz=setTimeout(()=>restart(false),200); });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopLoop(); else startLoop(); });
+motionQuery.addEventListener('change',e=>{
+  reduce=e.matches;
+  if(reduce){ stopLoop(); while(!done) step(true); updateMeter(); }
+  else startLoop();
+});
 
 restart(false);
-requestAnimationFrame(loop);
 })();
 </script>
 </body>

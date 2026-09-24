@@ -745,16 +745,21 @@ function startRun(){
 function curPace(){ var hill = R0.ri===2 ? 30*Math.sin((R0.d % 3.2)/3.2*Math.PI*2) : 0; return settings.target + R0.noise + hill; }
 function runLoop(ts){
   if(!R0) return;
+  R0.raf=0;
+  if(document.hidden || R0.paused){R0.last=0;return;}
   var dt = Math.min(0.25, (ts-(R0.last||ts))/1000); R0.last=ts;
-  if(!document.hidden && !R0.paused){
     var sd = dt*settings.speed; R0.noise += (Math.random()-.5)*sd*0.9; R0.noise *= 0.995; R0.noise=Math.max(-25,Math.min(25,R0.noise));
     var p=curPace(); R0.t += sd; var before=R0.d; R0.d += sd/p;
     if(Math.floor(R0.d) > Math.floor(before)){ R0.splits.push(Math.round(R0.t-R0.lastSplitT)); R0.lastSplitT=R0.t; tone(988,0.12,'square',0.07); tone(1480,0.2,'square',0.07,0.14); haptic([20,60,20]); toast('第 '+Math.floor(R0.d)+' 公里 '+fmtPace(R0.splits[R0.splits.length-1])); }
     if(settings.metro){ R0.beatAcc += dt; var beat = 60/cadence(p); if(R0.beatAcc>=beat){ R0.beatAcc-=beat; tick(); } }
     updRun();
-  }
   R0.raf=requestAnimationFrame(runLoop);
 }
+document.addEventListener('visibilitychange',function(){
+  if(!R0)return;
+  if(document.hidden){cancelAnimationFrame(R0.raf);R0.raf=0;R0.last=0;}
+  else if(!R0.paused && !R0.raf){R0.last=0;R0.raf=requestAnimationFrame(runLoop);}
+});
 function cadence(p){ return Math.round(Math.max(150, Math.min(190, 172 + (330-p)*0.2))); }
 function updRun(){
   var r=ROUTES[R0.ri], p=curPace(), f=(R0.d % r.len)/r.len, laps=Math.floor(R0.d/r.len);
@@ -769,6 +774,8 @@ $('bPause').addEventListener('click', function(){
   $('runState').textContent = R0.paused?'暫停中':'LIVE'; $('runState').classList.toggle('paused', R0.paused); $('pLbl').textContent = R0.paused?'繼續':'暫停';
   $('pulse').classList.toggle('on', !R0.paused);
   $('pIco').innerHTML = R0.paused ? '<path d="M7 4l14 8-14 8z" fill="currentColor"/>' : '<g fill="currentColor" transform="skewX(-10) translate(2 0)"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></g>';
+  if(R0.paused){cancelAnimationFrame(R0.raf);R0.raf=0;R0.last=0;}
+  else if(!document.hidden && !R0.raf){R0.last=0;R0.raf=requestAnimationFrame(runLoop);}
 });
 $('bLap').addEventListener('click', function(){
   if(!R0) return; var prev = R0.laps.length? R0.laps[R0.laps.length-1] : {t:0,d:0};
@@ -777,11 +784,13 @@ $('bLap').addEventListener('click', function(){
   void prev;
 });
 (function(){
-  var b=$('bEnd'), h=$('hold'), anim=null, timer=null;
-  function down(){ if(!R0) return; haptic(6); if(h.animate){ anim=h.animate([{transform:'scaleX(0)'},{transform:'scaleX(1)'}],{duration:900,fill:'forwards'}); } timer=setTimeout(finish, 900); }
-  function up(){ clearTimeout(timer); if(anim){ anim.cancel(); anim=null; } }
-  b.addEventListener('pointerdown', down); b.addEventListener('pointerup', up); b.addEventListener('pointerleave', up); b.addEventListener('pointercancel', up);
-  b.addEventListener('click', function(){ if(R0 && !timer) {} toast('長按一秒結束'); });
+  var b=$('bEnd'), h=$('hold'), anim=null, started=0, pointer=null, completed=false;
+  function down(e){ if(!R0||pointer!==null)return; pointer=e.pointerId;started=performance.now();completed=false;haptic(6);if(h.animate)anim=h.animate([{transform:'scaleX(0)'},{transform:'scaleX(1)'}],{duration:900,fill:'forwards'});try{b.setPointerCapture(e.pointerId)}catch(_){} }
+  function cancel(){ pointer=null;started=0;if(anim){anim.cancel();anim=null;} }
+  function up(e){ if(e.pointerId!==pointer)return;var ready=performance.now()-started>=900;cancel();if(ready){completed=true;finish();} }
+  b.addEventListener('pointerdown', down); b.addEventListener('pointerup', up); b.addEventListener('pointerleave', function(e){if(e.pointerId===pointer)cancel();}); b.addEventListener('pointercancel', function(e){if(e.pointerId===pointer)cancel();});
+  b.addEventListener('lostpointercapture', function(e){if(e.pointerId===pointer)cancel();});window.addEventListener('blur',cancel);
+  b.addEventListener('click', function(){ if(completed){completed=false;return;} if(R0)toast('長按一秒結束'); });
   b.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); finish(); } });
 })();
 function finish(){

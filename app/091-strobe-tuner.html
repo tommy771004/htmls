@@ -443,7 +443,8 @@ function selectString(k, quiet){ S.sel = k; save('sel', k); pegEls.forEach(funct
     bendPluck(freqOf(midi(strings()[on])) * Math.pow(2, nv / 1200));
   });
   function up(){ if (on == null) return; save('det', S.det); on = null; }
-  $('head').addEventListener('pointerup', up); $('head').addEventListener('pointercancel', up);
+  function cancelPeg(){ if (on == null) return; dets()[on] = sd; var g = pegEls[on] && pegEls[on].querySelector('g'); if (g) g.setAttribute('transform', 'rotate(' + (sd * 3).toFixed(1) + ')'); stopPluck(); sig = 0; source = 'none'; on = null; }
+  $('head').addEventListener('pointerup', up); $('head').addEventListener('pointercancel', cancelPeg);
   $('head').addEventListener('keydown', function(e){
     var p = e.target.closest('.peg'); if (!p) return; var k = +p.dataset.k, d = dets();
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown'){ e.preventDefault(); if (k !== S.sel) selectString(k); d[k] += e.key === 'ArrowUp' ? 1 : -1; save('det', S.det); sig = Math.max(sig, .8); source = 'pluck'; }
@@ -569,7 +570,6 @@ window.addEventListener('resize', sizeStrobe);
 })();
 
 buildMeter(); renderHead(); sizeStrobe();
-sig = .95; source = 'pluck'; // the tuner opens mid-pluck so the strobe is already drifting
 raf = requestAnimationFrame(loop);
 })();
 </script>

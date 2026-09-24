@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="捷運到站">
-<title>捷運到站 · 交通即時到站</title>
+<title>捷運到站 · 示範到站推算</title>
 <meta name="description" content="把台北捷運月台的導引標誌放進口袋：翻牌倒數、在路線圖上移動的列車、車廂擁擠度、收藏車站與起訖規劃。收錄於 100 Creative HTML Works（App 011・車站導引標誌）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/app/011-metro-arrivals.html">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbfbf7'/%3E%3Crect y='40' width='64' height='8' fill='%23e3002c'/%3E%3Cpath d='M22 10h20a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V16a6 6 0 0 1 6-6zm0 6v8h20v-8z' fill='%23121212' fill-rule='evenodd'/%3E%3Crect y='52' width='64' height='12' fill='%23121212'/%3E%3C/svg%3E">
@@ -87,6 +87,7 @@ ol,ul{list-style:none}
 .favs button.on{background:var(--ink);color:#fff}
 .favs button.find{background:none;padding:0 8px;color:var(--ink);font-weight:700}
 .strip{margin:12px 0 0;padding:0 0 6px;position:relative}
+.strip .demo{padding:0 20px;font:500 13px/1.45 var(--sign);color:var(--mute)}
 .strip svg{width:100%;height:118px;overflow:visible}
 .strip text{font:600 12px var(--sign);fill:var(--ink)}
 .plats{padding:0 16px;display:grid;gap:14px;margin-top:6px}
@@ -319,7 +320,7 @@ ol,ul{list-style:none}
               </div>
             </div>
             <div class="favs" id="favs"></div>
-            <div class="strip"><svg id="strip" aria-label="即時列車位置"></svg></div>
+            <div class="strip"><p class="demo">示範班次・到站時間為模擬推算，非即時資訊</p><svg id="strip" aria-label="模擬列車位置"></svg></div>
             <div class="plats" id="plats"></div>
             <div class="xfer" id="xfer"></div>
           </section>
@@ -758,24 +759,26 @@ $('recs').addEventListener('click', function(e){
 // swipe-left to reveal delete
 var swipedAt = 0;
 (function(){
-  var mv = null, sx = 0, sy = 0, dx = 0, open = null, lock = 0;
+  var mv = null, sx = 0, sy = 0, dx = 0, open = null, lock = 0, pointer = null, wasOpen = false;
   $('recs').addEventListener('click', function(e){ if (Date.now() - swipedAt < 350){ e.stopPropagation(); e.preventDefault(); } }, true);
-  $('recs').addEventListener('pointerdown', function(e){ var m = e.target.closest('.mv'); if (!m) return; mv = m; sx = e.clientX; sy = e.clientY; dx = 0; lock = 0; });
+  $('recs').addEventListener('pointerdown', function(e){ var m = e.target.closest('.mv'); if (!m || mv) return; mv = m; pointer = e.pointerId; wasOpen = m === open; sx = e.clientX; sy = e.clientY; dx = 0; lock = 0; });
   $('recs').addEventListener('pointermove', function(e){
-    if (!mv) return; var x = e.clientX - sx, y = e.clientY - sy;
+    if (!mv || e.pointerId !== pointer) return; var x = e.clientX - sx, y = e.clientY - sy;
     if (!lock){ if (Math.abs(x) > 8) lock = 1; else if (Math.abs(y) > 8){ lock = 2; } }
     if (lock !== 1) return;
     var base = mv === open ? -88 : 0; dx = Math.max(-120, Math.min(0, base + x));
     mv.classList.add('drag'); mv.style.transform = 'translateX(' + dx + 'px)';
   });
-  function end(){
-    if (!mv) return; mv.classList.remove('drag');
+  function end(e){
+    if (!mv || e.pointerId !== pointer) return; mv.classList.remove('drag');
     if (lock === 1){ if (dx < -44){ if (open && open !== mv) open.style.transform = ''; mv.style.transform = 'translateX(-88px)'; open = mv; haptic(6); } else { mv.style.transform = ''; if (open === mv) open = null; }
       swipedAt = Date.now();
     }
-    mv = null;
+    mv = null; pointer = null;
   }
-  $('recs').addEventListener('pointerup', end); $('recs').addEventListener('pointercancel', end);
+  function cancel(){ if (!mv) return; mv.classList.remove('drag'); mv.style.transform = wasOpen ? 'translateX(-88px)' : ''; mv = null; pointer = null; lock = 0; }
+  $('recs').addEventListener('pointerup', end); $('recs').addEventListener('pointercancel', function(e){ if (e.pointerId === pointer) cancel(); });
+  window.addEventListener('blur', cancel);
 })();
 
 // ---------- sheet ----------

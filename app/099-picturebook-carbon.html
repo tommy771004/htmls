@@ -200,7 +200,7 @@ svg{display:block}
 <body>
 <div class="stage">
   <div class="backdrop" aria-hidden="true"><canvas id="bd"></canvas></div>
-  <div class="caption"><h1>小樹</h1><p>每天少排一點碳，繪本裡的小樹就多長一枝、多開幾片葉子。</p></div>
+  <div class="caption"><h1>小樹</h1><p>以頁內假設係數估算生活選擇，繪本裡的小樹會跟著紀錄生長；數值不是實測排放。</p></div>
   <div class="device">
     <div class="screen" id="screen">
       <div class="grain" aria-hidden="true"><svg><filter id="gr"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .55  0 0 0 0 .55  0 0 0 0 .5  0 0 0 .5 0"/></filter><rect width="100%" height="100%" filter="url(#gr)"/></svg></div>
@@ -333,32 +333,24 @@ function dayKey(d){ return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.
 var today = new Date(); today.setHours(0, 0, 0, 0);
 var TK = dayKey(today);
 var goal = load('goal', 2);
-var entries = load('e:' + TK, null);
-if (!entries){
-  var ts = today.getTime();
-  entries = [
-    {o:'mrt', t:ts + 8.3 * 36e5}, {o:'cup', t:ts + 10.2 * 36e5}, {o:'veg', t:ts + 12.4 * 36e5},
-    {o:'mrt', t:ts + 18.1 * 36e5}, {o:'chicken', t:ts + 19.3 * 36e5}, {o:'ac26', t:ts + 21.5 * 36e5}
-  ].filter(function(e){ return e.t <= Date.now() + 36e5; });
-}
-// seeded history: per day, per category [emitted, usual]
-var hist = load('hist', null);
-if (!hist){
-  hist = {}; var sd = 99, r = function(){ sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
-  for (var i = 1; i <= 20; i++){
-    var d = new Date(today); d.setDate(d.getDate() - i);
-    var better = i < 8 ? .62 : .82;
-    hist[dayKey(d)] = {
-      move:[1.5 * (better + r() * .3), 1.5], food:[3.6 * (better + r() * .35), 3.8], power:[1.8 * (better + r() * .3), 1.9], life:[.3 * (better + r() * .5), .5 + (r() < .1 ? 7 : 0)]
-    };
-    if (i === 5) hist[dayKey(d)].life = [1, 7.4];
-  }
-}
+var entries = load('e:' + TK, []);
+if (!Array.isArray(entries)) entries = [];
+var hist = load('hist', {});
+if (!hist || typeof hist !== 'object' || Array.isArray(hist)) hist = {};
 function persist(){ save('e:' + TK, entries); save('hist', hist); }
 function todayCats(){
   var o = {move:[0, 0], food:[0, 0], power:[0, 0], life:[0, 0]};
   entries.forEach(function(e){ var p = OPT[e.o]; o[p.cat][0] += p.k; o[p.cat][1] += p.b; });
   return o;
+}
+function rollDay(){
+  var now = new Date(); now.setHours(0, 0, 0, 0);
+  var key = dayKey(now); if (key === TK) return;
+  if (entries.length) hist[TK] = todayCats();
+  today = now; TK = key; entries = load('e:' + TK, []); if (!Array.isArray(entries)) entries = [];
+  save('hist', hist);
+  $('dateL').textContent = cnNum(now.getMonth() + 1) + '月' + cnNum(now.getDate()) + '日・星期' + WD[now.getDay()];
+  renderToday(); renderWeek(); paintTree(false);
 }
 function sums(c){ var em = 0, us = 0; for (var k in c){ em += c[k][0]; us += c[k][1]; } return {em:em, us:us, sv:us - em}; }
 function allSaved(){ var t = sums(todayCats()).sv; for (var k in hist) t += sums(hist[k]).sv; return t; }
@@ -464,7 +456,7 @@ function renderToday(){
   var tc = todayCats(), s = sums(tc);
   $('savedV').textContent = fx(Math.max(0, s.sv));
   $('savedV').style.color = s.sv < 0 ? 'var(--warm)' : '';
-  $('todaySub').textContent = s.sv >= 0 ? '排出 ' + fx(s.em) + ' 公斤，平常的我會排 ' + fx(s.us) + ' 公斤。' : '今天比平常多排了 ' + fx(-s.sv) + ' 公斤，明天再試試。';
+  $('todaySub').textContent = (s.sv >= 0 ? '排出 ' + fx(s.em) + ' 公斤，平常的我會排 ' + fx(s.us) + ' 公斤。' : '今天比平常多排了 ' + fx(-s.sv) + ' 公斤，明天再試試。') + ' 頁內係數為示範假設，非實測。';
   var p = Math.max(0, Math.min(1, s.sv / goal));
   $('goalSvg').innerHTML = '<path d="M6 14c40-3 80 3 120-1s80 3 118 0" stroke="#dfe6da" stroke-width="10" stroke-linecap="round" fill="none"/>' +
     (p > 0 ? '<path d="M6 14c40-3 80 3 120-1s80 3 118 0" stroke="#8cbf73" stroke-width="10" stroke-linecap="round" fill="none" pathLength="100" stroke-dasharray="' + (p * 100).toFixed(1) + ' 200"/>' : '') +
@@ -480,12 +472,12 @@ function renderToday(){
 }
 function addEntry(id){
   var before = sums(todayCats()).sv;
-  entries.push({o:id, t:Date.now()}); persist();
+  var added = {o:id, t:Date.now()}; entries.push(added); persist();
   var after = sums(todayCats()).sv, o = OPT[id], d = o.b - o.k;
   renderToday(); paintTree(true); renderWeek();
   pluck(d > 0 ? [67, 71, 74] : [62, 60]); haptic(d > 0 ? [8, 40, 12] : 10);
   if (before < goal && after >= goal){ setTimeout(function(){ pluck([72, 76, 79, 84]); toast('達成今天的目標，小樹結果子了'); }, 500); haptic([20, 60, 20, 60, 30]); }
-  else toast(o.n + (d > 0 ? '・少排 ' + fx(d) + ' 公斤' : d < 0 ? '・多排 ' + fx(-d) + ' 公斤' : '・和平常一樣'), function(){ var k = entries.lastIndexOf(entries.filter(function(e){ return e.o === id; }).pop()); if (k > -1){ entries.splice(k, 1); persist(); renderToday(); paintTree(true); renderWeek(); } });
+  else toast(o.n + (d > 0 ? '・少排 ' + fx(d) + ' 公斤' : d < 0 ? '・多排 ' + fx(-d) + ' 公斤' : '・和平常一樣'), function(){ var k = entries.indexOf(added); if (k > -1){ entries.splice(k, 1); persist(); renderToday(); paintTree(true); renderWeek(); } });
 }
 $('ents').addEventListener('click', function(e){
   var b = e.target.closest('[data-del]'); if (!b) return;
@@ -624,6 +616,8 @@ function paintBackdrop(){
 /* ---------- init ---------- */
 (function(){ var d = new Date(); $('dateL').textContent = cnNum(d.getMonth() + 1) + '月' + cnNum(d.getDate()) + '日・星期' + WD[d.getDay()]; })();
 renderToday(); renderWeek(); sizeScene(); moveLoop(); paintBackdrop();
+setInterval(rollDay, 30000);
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) rollDay(); });
 var rt = null; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ sizeScene(); moveLoop(); paintBackdrop(); }, 150); });
 if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').style.transform = 'scaleX(' + Math.max(.15, b.level) + ')'; $('batt').style.transformOrigin = '3px 6px'; }).catch(function(){});
 })();

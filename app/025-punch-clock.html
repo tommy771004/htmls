@@ -537,7 +537,7 @@ function endDrag(){
     an.onfinish = function(){ d.clone.remove(); d.el.classList.remove('gone'); };
   }
 }
-rack.addEventListener('pointerup', endDrag); rack.addEventListener('pointercancel', endDrag);
+rack.addEventListener('pointerup', endDrag); rack.addEventListener('pointercancel', function(){ if(!drag) return; var d = drag; drag = null; if(d.clone) d.clone.remove(); if(d.el) d.el.classList.remove('gone'); setTimeout(function(){ suppressClick = false; }, 60); });
 rack.addEventListener('click', function(e){
   if (suppressClick){ e.preventDefault(); return; }
   var c = e.target.closest('.card'); if (!c) return; haptic();

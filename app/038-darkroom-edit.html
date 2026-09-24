@@ -681,14 +681,14 @@ function setCmp(on){
 $('cmpBtn').addEventListener('click', function(){ setCmp(!cmp); tickS(); });
 $('histBtn').addEventListener('click', function(){ showHist = !showHist; save('hist', showHist); $('hist').classList.toggle('on', showHist); this.setAttribute('aria-pressed', showHist); haptic(5); schedule(); });
 (function(){
-  var sp = $('split'), fr = $('frame'), dragging = false, hold = null, px = 0, py = 0;
-  sp.addEventListener('pointerdown', function(e){ dragging = true; sp.setPointerCapture(e.pointerId); e.stopPropagation(); });
+  var sp = $('split'), fr = $('frame'), dragging = false, hold = null, px = 0, py = 0, splitStart = 0;
+  sp.addEventListener('pointerdown', function(e){ dragging = true; splitStart = split; sp.setPointerCapture(e.pointerId); e.stopPropagation(); });
   sp.addEventListener('pointermove', function(e){
     if (!dragging) return; var r = fr.getBoundingClientRect();
     split = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); sp.style.left = (split * 100) + '%'; sp.setAttribute('aria-valuenow', Math.round(split * 100)); schedule(true);
   });
   sp.addEventListener('pointerup', function(){ dragging = false; schedule(); });
-  sp.addEventListener('pointercancel', function(){ dragging = false; });
+  sp.addEventListener('pointercancel', function(){ dragging = false; split = splitStart; sp.style.left = (split * 100) + '%'; sp.setAttribute('aria-valuenow', Math.round(split * 100)); schedule(); });
   sp.addEventListener('keydown', function(e){ var d = e.key === 'ArrowLeft' ? -.05 : e.key === 'ArrowRight' ? .05 : 0; if (d){ split = Math.max(0, Math.min(1, split + d)); sp.style.left = split * 100 + '%'; schedule(); } });
   $('photo').addEventListener('pointerdown', function(e){
     if (e.target.closest('.split')) return;

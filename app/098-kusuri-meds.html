@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="藥袋">
 <title>藥袋 · 用藥提醒</title>
-<meta name="description" content="印成藥局藥袋的用藥提醒：七日藥盒掀蓋服藥、每一種藥一只藥袋、剩餘數量與補藥、服藥時間提醒與紀錄印章。收錄於 100 Creative HTML Works（App 098・日本藥局藥袋印刷）。">
+<meta name="description" content="藥局藥袋風格的頁內用藥紀錄互動原型：七日藥盒、示範藥袋、頁面開啟時提醒與紀錄印章。非醫療用途。收錄於 100 Creative HTML Works（App 098・日本藥局藥袋印刷）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/app/098-kusuri-meds.html">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbfbf7'/%3E%3Crect x='9' y='9' width='46' height='46' fill='none' stroke='%231c7a4c' stroke-width='3'/%3E%3Crect x='13' y='13' width='38' height='38' fill='none' stroke='%231c7a4c' stroke-width='1.2'/%3E%3Cellipse cx='32' cy='34' rx='13' ry='8' fill='%23d23a2f' transform='rotate(-30 32 34)'/%3E%3C/svg%3E">
 <style>
@@ -311,15 +311,15 @@ svg{display:block}
           <rect x="24" y="24" width="312" height="452" fill="none" stroke="#1c7a4c" stroke-width="2"/>
           <text x="180" y="120" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,Hiragino Mincho ProN,serif" font-size="72" fill="#1c7a4c" letter-spacing="10">內服藥</text>
           <path d="M60 170h240" stroke="#1d2320" stroke-width="2"/>
-          <text x="180" y="160" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="26" fill="#1d2320">林淑芬　女士</text>
+          <text x="180" y="160" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="26" fill="#1d2320">示範藥袋</text>
           <g font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="24" fill="#1d2320">
             <rect x="50" y="210" width="260" height="56" fill="none" stroke="#1d2320" stroke-width="2"/>
             <path d="M115 210v56M180 210v56M245 210v56" stroke="#1d2320" stroke-width="1.5"/>
             <text x="82" y="246" text-anchor="middle">早</text><text x="147" y="246" text-anchor="middle">午</text><text x="212" y="246" text-anchor="middle">晚</text><text x="277" y="246" text-anchor="middle">睡前</text>
             <text x="60" y="320">一日　次　每次　顆</text>
-            <text x="60" y="366" fill="#d23a2f">服藥後請勿開車</text>
+            <text x="60" y="366" fill="#d23a2f">請依實際醫囑</text>
           </g>
-          <text x="180" y="450" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="22" fill="#1c7a4c">杏林藥局</text>
+          <text x="180" y="450" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="22" fill="#1c7a4c">虛構範例</text>
         </g>
       </defs>
       <rect width="1600" height="1000" fill="#d8ddd3"/>
@@ -352,8 +352,8 @@ svg{display:block}
       </div>
 
       <header class="head">
-        <div class="title">藥袋<small id="dateLine">115年9月23日（三）</small></div>
-        <div class="who"><b>林淑芬<span>女士</span></b><small>杏林藥局・調劑 09/20</small></div>
+        <div class="title">藥袋・示範原型<small id="dateLine">115年9月23日（三）</small></div>
+        <div class="who"><b>虛構範例<span>藥袋</span></b><small>頁內示範排程・非醫囑</small></div>
       </header>
 
       <nav class="nav" role="tablist" aria-label="主要分頁">
@@ -364,7 +364,7 @@ svg{display:block}
 
       <main class="pages">
         <section class="page" id="p-box" aria-label="藥盒">
-          <div class="cell next"><div class="k">下次</div><div class="v" id="next"></div></div>
+          <div class="cell next"><div class="k">待記錄・示範排程</div><div class="v" id="next"></div></div>
           <div class="boxwrap">
             <div class="boxhead"><b>七日藥盒</b><span id="boxHint">點一格掀開蓋子</span></div>
             <div class="pillbox" id="pillbox"></div>
@@ -378,24 +378,24 @@ svg{display:block}
         </section>
 
         <section class="page" id="p-log" aria-label="紀錄" hidden>
-          <div class="score"><div class="n" id="pct">96<small>%</small></div><p>近 28 天按時服藥<br>連續 <b id="streak">5</b> 天全數服用</p></div>
+          <div class="score"><div class="n" id="pct">—</div><p><span id="scoreDesc">尚無個人紀錄</span><br>連續 <b id="streak">0</b> 天全數記錄</p></div>
           <div class="cal" id="cal"></div>
           <div class="legend">
-            <span><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="13" fill="none" stroke="#d23a2f" stroke-width="2"/><text x="18" y="18" dy=".36em" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="14" fill="#d23a2f">服</text></svg>全部服用</span>
-            <span><svg viewBox="0 0 36 36"><path d="M18 5a13 13 0 0 1 0 26" fill="none" stroke="#d23a2f" stroke-width="2"/><path d="M18 5a13 13 0 0 0 0 26" fill="none" stroke="#d23a2f" stroke-width="2" stroke-dasharray="3 3"/></svg>漏了幾次</span>
-            <span><svg viewBox="0 0 36 36"><path d="M10 10l16 16M26 10 10 26" stroke="#9aa19c" stroke-width="2"/></svg>整天沒吃</span>
+            <span><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="13" fill="none" stroke="#d23a2f" stroke-width="2"/><text x="18" y="18" dy=".36em" text-anchor="middle" font-family="Toppan Bunkyu Midashi Mincho,serif" font-size="14" fill="#d23a2f">服</text></svg>全部已記錄</span>
+            <span><svg viewBox="0 0 36 36"><path d="M18 5a13 13 0 0 1 0 26" fill="none" stroke="#d23a2f" stroke-width="2"/><path d="M18 5a13 13 0 0 0 0 26" fill="none" stroke="#d23a2f" stroke-width="2" stroke-dasharray="3 3"/></svg>部分已記錄</span>
+            <span><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="13" fill="none" stroke="#9aa19c" stroke-width="1.5" stroke-dasharray="2 4"/></svg>未記錄</span>
           </div>
           <div class="sect">提醒時間<small>到點會在上方提醒</small></div>
           <div id="settings"></div>
-          <div class="pharm"><b>杏林藥局</b>台北市大安區和平東路二段 118 號<br>藥師　陳怡君　(02) 2701-5566</div>
+          <div class="pharm"><b>示範藥袋</b>虛構藥名與排程，沒有實際調劑藥局。<br>本頁僅在開啟時顯示提醒；用藥請依實際醫囑。</div>
         </section>
       </main>
       <div class="home-ind" aria-hidden="true"></div>
 
       <div class="notice" id="notice" role="alert">
         <svg viewBox="0 0 30 30" fill="currentColor"><path d="M15 3a2 2 0 0 1 2 2v1.2a8 8 0 0 1 6 7.8v5l2.5 3.5h-21L7 19v-5a8 8 0 0 1 6-7.8V5a2 2 0 0 1 2-2z"/><path d="M11.5 24.5h7a3.5 3.5 0 0 1-7 0z"/><rect x="13.6" y="10" width="2.8" height="7" fill="#fff"/><rect x="13.6" y="18.5" width="2.8" height="2.6" fill="#fff"/></svg>
-        <p id="noticeT"><b>晚餐後的藥還沒吃</b>18:30・3 顆</p>
-        <button class="btn red" id="noticeGo">去服藥</button>
+        <p id="noticeT"><b>示範時段尚未記錄</b>18:30・3 顆</p>
+        <button class="btn red" id="noticeGo">查看藥盒</button>
       </div>
 
       <div class="scrim" id="scrim"></div>
@@ -426,12 +426,12 @@ var SHAPES = ['round','oval','capsule'];
 /* ---------- data ---------- */
 var meds = load('meds', null);
 if (!Array.isArray(meds)) meds = [
-  {id:1, name:'脈優錠', sub:'5 mg', use:'高血壓', color:'white', shape:'round', slots:[1,0,0,0], per:1, stock:24, warn:'起身放慢，避免頭暈'},
-  {id:2, name:'庫魯化錠', sub:'500 mg', use:'血糖', color:'white', shape:'oval', slots:[1,0,1,0], per:1, stock:52, warn:'飯後立即服用，減少腸胃不適'},
-  {id:3, name:'保栓通膜衣錠', sub:'75 mg', use:'預防血栓', color:'pink', shape:'round', slots:[1,0,0,0], per:1, stock:5, warn:'刷牙出血或黑便請告知醫師'},
-  {id:4, name:'素果膜衣錠', sub:'20 mg', use:'膽固醇', color:'peach', shape:'oval', slots:[0,0,0,1], per:1, stock:30, warn:'避免大量飲用葡萄柚汁'},
-  {id:5, name:'氧化鎂錠', sub:'250 mg', use:'軟便・胃酸', color:'white', shape:'round', slots:[1,1,1,0], per:1, stock:70, warn:'與其他藥物間隔一小時'},
-  {id:6, name:'魚油軟膠囊', sub:'1000 mg', use:'保健', color:'amber', shape:'capsule', slots:[0,0,1,0], per:1, stock:41, warn:''}
+  {id:1, name:'脈優錠', sub:'示範 5 mg', use:'示範藥品', color:'white', shape:'round', slots:[1,0,0,0], per:1, stock:24, warn:'虛構藥品；實際注意事項請依醫囑'},
+  {id:2, name:'庫魯化錠', sub:'示範 500 mg', use:'示範藥品', color:'white', shape:'oval', slots:[1,0,1,0], per:1, stock:52, warn:'虛構藥品；實際注意事項請依醫囑'},
+  {id:3, name:'保栓通膜衣錠', sub:'示範 75 mg', use:'示範藥品', color:'pink', shape:'round', slots:[1,0,0,0], per:1, stock:5, warn:'虛構藥品；實際注意事項請依醫囑'},
+  {id:4, name:'素果膜衣錠', sub:'示範 20 mg', use:'示範藥品', color:'peach', shape:'oval', slots:[0,0,0,1], per:1, stock:30, warn:'虛構藥品；實際注意事項請依醫囑'},
+  {id:5, name:'氧化鎂錠', sub:'示範 250 mg', use:'示範藥品', color:'white', shape:'round', slots:[1,1,1,0], per:1, stock:70, warn:'虛構藥品；實際注意事項請依醫囑'},
+  {id:6, name:'魚油軟膠囊', sub:'示範 1000 mg', use:'示範品項', color:'amber', shape:'capsule', slots:[0,0,1,0], per:1, stock:41, warn:'虛構品項；實際資訊請依包裝'}
 ];
 var settings = load('settings', null) || {times:['08:00','12:30','18:30','22:00'], remind:true, sound:true};
 var nextId = meds.reduce(function(a, m){ return Math.max(a, m.id); }, 0) + 1;
@@ -447,26 +447,8 @@ function slotCount(s){ return slotMeds(s).reduce(function(a, m){ return a + m.pe
 
 // log: { 'Y-M-D': { slotIndex: 'HH:MM' } }
 var log = load('log', null);
-if (!log || typeof log !== 'object'){
-  log = {}; var seed = 98;
-  var rnd = function(){ seed = seed * 16807 % 2147483647; return seed / 2147483647; };
-  for (var i = 34; i >= 1; i--){
-    var d = addDays(TODAY, -i), k = dkey(d), rec = {};
-    for (var s = 0; s < 4; s++){
-      if (!slotCount(s)) continue;
-      var miss = rnd() < .045 || (i === 2 && s === 3) || (i === 9 && rnd() < .9);
-      if (!miss) rec[s] = fmtM(mins(settings.times[s]) + Math.round((rnd() - .3) * 40));
-    }
-    log[k] = rec;
-  }
-  var tk = dkey(TODAY), nm = nowMin(), rt = {}, pend = -1;
-  for (var s2 = 0; s2 < 4; s2++){ if (slotCount(s2) && mins(settings.times[s2]) <= nm) pend = s2; }
-  for (var s3 = 0; s3 < 4; s3++){
-    if (!slotCount(s3)) continue;
-    if (mins(settings.times[s3]) <= nm && s3 !== pend) rt[s3] = fmtM(mins(settings.times[s3]) + 9 + s3 * 4);
-  }
-  log[tk] = rt;
-}
+if (!log || typeof log !== 'object') log = {};
+var firstRecordDay = Object.keys(log).filter(function(k){ return Object.keys(log[k] || {}).length; }).map(function(k){ var p=k.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }).sort(function(a,b){ return a-b; })[0] || null;
 function persist(){ save('meds', meds); save('log', log); save('settings', settings); }
 
 /* ---------- drawing ---------- */
@@ -527,7 +509,7 @@ function status(d, s){
   if (!cnt) return 'empty';
   if (rec[s]) return 'taken';
   var diff = Math.round((d - TODAY) / 864e5);
-  if (diff < 0) return 'missed';
+  if (diff < 0) return 'unrecorded';
   if (diff > 0) return 'future';
   var t = mins(settings.times[s]), n = nowMin();
   if (n < t - 60) return 'upcoming';
@@ -555,6 +537,8 @@ function renderBox(){
 function takeSlot(k, s, silent){
   var rec = log[k] = log[k] || {};
   if (rec[s]) return;
+  if (!rec._need) rec._need = [0,1,2,3].filter(function(i){ return slotCount(i) > 0; }).length;
+  var kd = k.split('-'), recordedDay = new Date(+kd[0],+kd[1]-1,+kd[2]); if(!firstRecordDay || recordedDay < firstRecordDay) firstRecordDay = recordedDay;
   rec[s] = fmtM(nowMin());
   slotMeds(s).forEach(function(m){ m.stock = Math.max(0, m.stock - m.per); });
   persist();
@@ -562,7 +546,9 @@ function takeSlot(k, s, silent){
 }
 function untake(k, s){
   var rec = log[k]; if (!rec || !rec[s]) return;
-  delete rec[s]; slotMeds(s).forEach(function(m){ m.stock += m.per; }); persist();
+  delete rec[s]; if (![0,1,2,3].some(function(i){ return rec[i]; })) delete log[k];
+  firstRecordDay = Object.keys(log).filter(function(key){ return [0,1,2,3].some(function(i){ return log[key][i]; }); }).map(function(key){ var p=key.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }).sort(function(a,b){ return a-b; })[0] || null;
+  slotMeds(s).forEach(function(m){ m.stock += m.per; }); persist();
 }
 $('pillbox').addEventListener('click', function(e){
   var c = e.target.closest('.comp'); if (!c) return;
@@ -575,8 +561,8 @@ $('pillbox').addEventListener('click', function(e){
     openComp[id] = 1; click(); haptic(6); renderBox();
     if (st === 'future') $('boxHint').textContent = '還沒到星期' + WK[d.getDay()] + '，先看看就好';
     else if (st === 'taken') $('boxHint').textContent = SLOTF[s] + '已在 ' + log[k][s] + ' 服用';
-    else if (st === 'missed') $('boxHint').textContent = '這格漏服了，點一下補記';
-    else $('boxHint').textContent = '再點一下，把藥倒出來服用';
+    else if (st === 'unrecorded' && d < TODAY) $('boxHint').textContent = '再點一下，確認補記這個時段';
+    else $('boxHint').textContent = '再點一下，確認已服用並記錄';
     return;
   }
   if (st === 'future'){ delete openComp[id]; click(); haptic(5); renderBox(); $('boxHint').textContent = '點一格掀開蓋子'; return; }
@@ -599,11 +585,11 @@ function renderNext(){
   var ms = slotMeds(target.s), t = mins(settings.times[target.s]), when;
   var tomorrow = dkey(target.day) !== tk;
   if (tomorrow) when = '明天';
-  else if (target.due) when = n > t ? '晚了 ' + dur(n - t) : '現在';
+  else if (target.due) when = n > t ? '已過排程 ' + dur(n - t) : '現在';
   else when = '還有 ' + dur(t - n);
   $('next').innerHTML = '<div class="row"><div><div class="when">' + SLOTF[target.s] + '<span>' + settings.times[target.s] + '</span></div>' +
     '<div class="what">' + when + '・<b>' + slotCount(target.s) + ' 顆</b>・' + ms.map(function(m){ return m.name.replace(/膜衣錠|軟膠囊|錠/, ''); }).join('、') + '</div></div>' +
-    (!tomorrow && target.due ? '<button class="btn" data-take="' + target.s + '">服用</button>' : '') + '</div>';
+    (!tomorrow && target.due ? '<button class="btn" data-take="' + target.s + '">記錄服用</button>' : '') + '</div>';
 }
 function dur(m){ m = Math.max(0, Math.round(m)); var h = Math.floor(m / 60), r = m % 60; return (h ? h + ' 小時 ' : '') + (r || !h ? r + ' 分' : ''); }
 function renderSlots(){
@@ -615,7 +601,7 @@ function renderSlots(){
     var right;
     if (st === 'taken') right = '<div class="st"><b>已服</b>' + rec[s] + '</div>';
     else if (st === 'upcoming') right = '<div class="st wait"><b>' + settings.times[s] + '</b>還沒到</div>';
-    else right = '<button class="btn' + (st === 'late' ? ' red' : '') + '" data-take="' + s + '">' + (st === 'late' ? '補服' : '服用') + '</button>';
+    else right = '<button class="btn' + (st === 'late' ? ' red' : '') + '" data-take="' + s + '">' + (st === 'late' ? '補記' : '記錄服用') + '</button>';
     h += '<div class="slot"><div class="ic">' + SLOTICON[s] + '</div><div><div class="nm">' + SLOTF[s] + '<span>' + settings.times[s] + '</span></div><div class="ps">' + pills + '<span>&nbsp;' + slotCount(s) + ' 顆</span></div></div>' + right + '</div>';
   }
   $('slots').innerHTML = h;
@@ -645,7 +631,7 @@ function renderBags(){
       '<div class="stock"><div class="ln"><span>剩餘</span><b>' + m.stock + '<small>顆・約 ' + days + ' 天</small></b></div><div class="ticks' + (low ? ' low' : '') + '">' + ticks + '</div></div>' +
       '<div class="acts"><button class="btn' + (low ? ' red' : '') + '" data-refill="' + m.id + '"><svg viewBox="0 0 18 18" fill="currentColor"><rect x="7.6" y="2" width="2.8" height="14"/><rect x="2" y="7.6" width="14" height="2.8"/></svg>補藥</button>' +
       '<button class="btn del" data-del="' + m.id + '" aria-label="刪除 ' + esc(m.name) + '"><svg viewBox="0 0 18 18" fill="currentColor"><rect x="2" y="4" width="14" height="2.4"/><rect x="6.5" y="1.5" width="5" height="2.4"/><path d="M4 7.6h10l-1 9H5z"/></svg></button></div>' +
-      '<div class="foot">林淑芬 女士・處方 台大醫院 家醫科・調劑日 115/09/20・28 日份</div>' +
+      '<div class="foot">示範藥袋・虛構藥名與排程；請以實際醫囑為準</div>' +
       '</div></div></div></article>';
   }).join('') + '<button class="addbag" id="addBag"><svg viewBox="0 0 22 22" fill="currentColor"><rect x="9.6" y="2" width="2.8" height="18"/><rect x="2" y="9.6" width="18" height="2.8"/></svg>新增一只藥袋</button>';
 }
@@ -667,8 +653,9 @@ $('bags').addEventListener('click', function(e){
 
 /* ---------- log ---------- */
 function dayState(d){
-  var rec = log[dkey(d)] || {}, need = 0, got = 0;
-  for (var s = 0; s < 4; s++){ if (slotCount(s)){ need++; if (rec[s]) got++; } }
+  var rec = log[dkey(d)] || {}, need = rec._need || 0, got = 0;
+  for (var s = 0; s < 4; s++){ if (rec[s]) got++; }
+  if (!need && got) need = Math.max(got, [0,1,2,3].filter(function(i){ return slotCount(i) > 0; }).length);
   return {need:need, got:got};
 }
 function renderLog(){
@@ -678,13 +665,15 @@ function renderLog(){
   var need = 0, got = 0;
   for (var j = 0; j < 28; j++){
     var d = addDays(start, j), st = dayState(d), isT = j === 27, mark;
-    if (!isT){ need += st.need; got += st.got; }
-    if (isT) mark = st.got === st.need ? STAMP : st.got ? HALF : '<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="13" fill="none" stroke="#9aa19c" stroke-width="1.5" stroke-dasharray="2 4"/></svg>';
-    else mark = st.got === st.need ? STAMP : st.got ? HALF : CROSS;
-    h += '<div class="day" aria-label="' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + st.got + '/' + st.need + '"><span class="d">' + d.getDate() + '</span>' + mark + '</div>';
+    if (!isT && st.need){ need += st.need; got += st.got; }
+    if (st.need && st.got === st.need) mark = STAMP;
+    else if (st.got) mark = HALF;
+    else mark = '<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="13" fill="none" stroke="#9aa19c" stroke-width="1.5" stroke-dasharray="2 4"/></svg>';
+    h += '<div class="day" aria-label="' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + (st.need ? st.got + '/' + st.need : '未記錄') + '"><span class="d">' + d.getDate() + '</span>' + mark + '</div>';
   }
   $('cal').innerHTML = h;
-  $('pct').innerHTML = (need ? Math.round(got / need * 100) : 100) + '<small>%</small>';
+  $('pct').innerHTML = need ? Math.round(got / need * 100) + '<small>%</small>' : '—';
+  $('scoreDesc').textContent = need ? '近 28 天已開始紀錄的時段' : '尚無已完成的個人紀錄';
   var streak = 0;
   for (var k = 1; k < 60; k++){ var st2 = dayState(addDays(TODAY, -k)); if (st2.need && st2.got === st2.need) streak++; else break; }
   $('streak').textContent = streak;
@@ -693,7 +682,7 @@ function renderLog(){
     sh += '<div class="set"><div class="ic">' + SLOTICON[s] + '</div><div class="nm">' + SLOTF[s] + '<small>' + slotCount(s) + ' 顆・' + slotMeds(s).length + ' 種</small></div>' +
       '<div class="step"><button data-tm="' + s + '" data-dv="-15" aria-label="' + SLOTF[s] + '提早 15 分"><svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="5.8" width="12" height="2.4"/></svg></button><output>' + settings.times[s] + '</output><button data-tm="' + s + '" data-dv="15" aria-label="' + SLOTF[s] + '延後 15 分"><svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="5.8" width="12" height="2.4"/><rect x="5.8" y="1" width="2.4" height="12"/></svg></button></div></div>';
   }
-  sh += '<div class="set"><div class="ic"><svg viewBox="0 0 34 34" fill="currentColor"><path d="M17 4a2 2 0 0 1 2 2v1.3a8 8 0 0 1 6 7.7v5l2.5 3.8h-21L9 20v-5a8 8 0 0 1 6-7.7V6a2 2 0 0 1 2-2z"/><path d="M13.5 26.5h7a3.5 3.5 0 0 1-7 0z"/></svg></div><div class="nm">到點提醒<small>在上方跳出紅框通知</small></div><button class="sw" role="switch" id="swRemind" aria-checked="' + settings.remind + '" aria-label="到點提醒"></button></div>';
+  sh += '<div class="set"><div class="ic"><svg viewBox="0 0 34 34" fill="currentColor"><path d="M17 4a2 2 0 0 1 2 2v1.3a8 8 0 0 1 6 7.7v5l2.5 3.8h-21L9 20v-5a8 8 0 0 1 6-7.7V6a2 2 0 0 1 2-2z"/><path d="M13.5 26.5h7a3.5 3.5 0 0 1-7 0z"/></svg></div><div class="nm">到點提醒<small id="remindScope">僅在此頁開啟時，於上方顯示提醒；關閉頁面後不會通知。</small></div><button class="sw" role="switch" id="swRemind" aria-checked="' + settings.remind + '" aria-label="到點提醒" aria-describedby="remindScope"></button></div>';
   sh += '<div class="set"><div class="ic"><svg viewBox="0 0 34 34" fill="currentColor"><path d="M5 13h6l8-7v22l-8-7H5z"/><path d="M23 11a8 8 0 0 1 0 12" stroke="currentColor" stroke-width="2.6" fill="none"/></svg></div><div class="nm">藥盒聲音<small>掀蓋與蓋章的聲響</small></div><button class="sw" role="switch" id="swSound" aria-checked="' + settings.sound + '" aria-label="藥盒聲音"></button></div>';
   $('settings').innerHTML = sh;
 }
@@ -702,7 +691,7 @@ $('settings').addEventListener('click', function(e){
   if (b){
     var s = +b.dataset.tm, v = mins(settings.times[s]) + (+b.dataset.dv);
     var lo = s ? mins(settings.times[s - 1]) + 60 : 300, hi = s < 3 ? mins(settings.times[s + 1]) - 60 : 23 * 60 + 45;
-    if (v < lo || v > hi){ haptic([6, 40, 6]); toast(v < lo ? '和前一次至少隔一小時' : '和下一次至少隔一小時'); return; }
+    if (v < lo || v > hi){ haptic([6, 40, 6]); toast('示範排程的相鄰時段需保留一小時間距'); return; }
     settings.times[s] = fmtM(v); persist(); click(); haptic(4); renderAll(); return;
   }
   if (e.target.closest('#swRemind')){ settings.remind = !settings.remind; persist(); haptic(8); renderLog(); checkRemind(true); }
@@ -804,7 +793,7 @@ function checkRemind(force){
   if (due < 0){ n.classList.remove('on'); noticeSlot = -1; return; }
   if (due !== noticeSlot || force){
     noticeSlot = due;
-    $('noticeT').innerHTML = '<b>' + SLOTF[due] + '的藥還沒吃</b>' + settings.times[due] + '・' + slotCount(due) + ' 顆';
+    $('noticeT').innerHTML = '<b>' + SLOTF[due] + '示範時段尚未記錄</b>' + settings.times[due] + '・' + slotCount(due) + ' 顆';
     n.classList.add('on'); if (ac) chime(); haptic([20, 60, 20]);
     clearTimeout(noticeT); noticeT = setTimeout(function(){ n.classList.remove('on'); }, 8000);
   }
@@ -853,11 +842,12 @@ function renderAll(){ renderNext(); renderBox(); renderSlots(); renderBags(); re
 function tickClock(){
   var d = new Date(); $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
   var t = new Date(); t.setHours(0, 0, 0, 0);
-  if (t - TODAY !== 0){ TODAY = t; }
+  var changed = t - TODAY !== 0; if (changed) TODAY = t;
   $('dateLine').textContent = (d.getFullYear() - 1911) + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日（' + WK[d.getDay()] + '）';
+  return changed;
 }
 tickClock();
-setInterval(function(){ tickClock(); renderNext(); renderSlots(); checkRemind(); }, 30000);
+setInterval(function(){ if(tickClock()) renderAll(); else { renderNext(); renderSlots(); } checkRemind(); }, 30000);
 if (navigator.getBattery) navigator.getBattery().then(function(b){ $('batt').setAttribute('width', Math.max(2, 15 * b.level).toFixed(1)); }).catch(function(){});
 renderAll();
 setTimeout(function(){ checkRemind(); }, 1400);

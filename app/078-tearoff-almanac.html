@@ -563,7 +563,7 @@ function frontHTML(d){
     '<div class="row1"><span class="mon">' + MON[o.m] + '</span><span class="yr"><b>' + o.y + '</b><br>民國' + (o.y - 1911) + '年</span></div>' +
     '<div class="bigrow"><span class="vert l">' + lunarTxt + '</span><span class="num">' + o.day + '</span><span class="vert r">' + (L ? L.yearName + '年' : '') + '　<b>' + o.gz + '日</b></span></div>' +
     '<div class="wkrow"><span class="wk">星期' + WK[o.wd] + '</span><span class="wk-en">' + WKE[o.wd] + '</span></div>' +
-    '<div class="mark">' + marks + '</div>' +
+    '<div class="mark">' + marks + '</div><small style="display:block;text-align:center;margin:2px 0 8px">宜忌與天氣為頁內示範資料</small>' +
     '<div class="yj"><div><span class="seal"><span>宜</span></span><ul>' + o.yi.slice(0, 4).map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul></div>' +
     '<div><span class="seal ji"><span>忌</span></span><ul>' + o.ji.slice(0, 4).map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul></div></div>' +
     '<div class="info"><span>沖<b>' + o.chong + '</b>　煞<b>' + o.sha + '</b></span><span>建除 <b>' + JC[o.jc] + '日</b></span></div>' +
@@ -585,7 +585,7 @@ function backHTML(d){
   var o = info(d), st = sunTimes(d), ma = moonAge(d), list = todos[o.k] || [];
   var nt = nextTerm(d);
   var phase = ma < .03 || ma > .97 ? '新月' : ma < .22 ? '眉月' : ma < .28 ? '上弦' : ma < .47 ? '盈凸' : ma < .53 ? '滿月' : ma < .72 ? '虧凸' : ma < .78 ? '下弦' : '殘月';
-  return '<div class="bk"><h3>今日簡報<small>' + (o.m + 1) + '/' + o.day + '（' + WK[o.wd] + '）</small></h3>' +
+  return '<div class="bk"><h3>示範簡報<small>' + (o.m + 1) + '/' + o.day + '（' + WK[o.wd] + '）</small></h3>' +
     '<div class="wx">' + wxSVG(o.rain) + '<div><div class="t">' + o.lo + '–' + o.hi + '<small>°C</small></div><div class="s">臺北　降雨機率 ' + o.rain + '%' + (o.rain >= 50 ? '，帶傘' : o.hi >= 32 ? '，防曬補水' : '') + '</div></div></div>' +
     '<div class="sky"><div><svg viewBox="0 0 24 24" fill="none" stroke="#1c1816" stroke-width="2"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 4v5M9.5 6.5 12 4l2.5 2.5"/></svg><b>' + st[0] + '</b><span>日出</span></div>' +
     '<div><svg viewBox="0 0 24 24" fill="none" stroke="#1c1816" stroke-width="2"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 4v5M9.5 6.5 12 9l2.5-2.5"/></svg><b>' + st[1] + '</b><span>日落</span></div>' +
@@ -668,7 +668,7 @@ function endDrag(e){
   if (!drag) return;
   var d = drag; drag = null;
   if (!d.on){ if (e.type === 'pointerup') openDetail(); return; }
-  if (d.armed){ tearOff(d.dx >= 0 ? 1 : -1); }
+  if (d.armed && e.type === 'pointerup'){ tearOff(d.dx >= 0 ? 1 : -1); }
   else { topEl.classList.add('back-spring'); topEl.style.transform = ''; $('ripPath').setAttribute('d', ''); }
 }
 topEl.addEventListener('pointerup', endDrag);

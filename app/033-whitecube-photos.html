@@ -681,7 +681,7 @@ function go(dir){
       else { zx = zy = 0; zs = 1; applyZ(true); }
     }
   }
-  st.addEventListener('pointerup', end); st.addEventListener('pointercancel', end);
+  st.addEventListener('pointerup', end); st.addEventListener('pointercancel', function(e){ if(!pts[e.pointerId]) return; delete pts[e.pointerId]; if(mode === 'pinch' && start){ zs = start.s; zx = start.zx; zy = start.zy; } else if(mode === 'pan' && start){ zx = start.zx; zy = start.zy; } else if(mode === 'swipe'){ zs = 1; zx = zy = 0; } mode = null; $('lb').querySelector('.lbbg').style.opacity = ''; applyZ(true); });
   st.addEventListener('wheel', function(e){ e.preventDefault(); var r = st.getBoundingClientRect(), ox = e.clientX - r.left - box.x - zx, oy = e.clientY - r.top - box.y - zy, ns = Math.max(1, Math.min(5, zs*(e.deltaY < 0 ? 1.12 : .89)));
     zx -= ox*(ns/zs - 1); zy -= oy*(ns/zs - 1); zs = ns; if (zs <= 1.001){ zs = 1; zx = zy = 0; } applyZ(false); }, {passive:false});
 })();

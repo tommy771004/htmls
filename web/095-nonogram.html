@@ -40,7 +40,9 @@
   .tab .ok{font-family:var(--hand);color:var(--red);font-size:17px}
 
   .work{display:grid;grid-template-columns:auto minmax(220px,300px);gap:28px clamp(40px,6vw,90px);align-items:start;justify-content:center;margin-top:26px;padding-left:18px}
-  .boardwrap{position:relative;justify-self:start;max-width:100%}
+  .boardwrap{position:relative;justify-self:start;max-width:100%;min-width:0}
+  .boardscroll{max-width:100%;width:max-content;overflow-x:auto;overflow-y:hidden;padding-bottom:10px;scrollbar-width:thin}
+  .boardscroll:focus-visible{outline:2px solid var(--red);outline-offset:2px}
   #board{display:grid;user-select:none;-webkit-user-select:none;touch-action:none;background:rgba(255,255,255,.88);box-shadow:0 1px 0 rgba(0,0,0,.04),6px 8px 0 rgba(160,170,180,.18)}
   .cl{font-family:var(--mono);color:var(--pencil);display:flex;font-size:var(--fs);line-height:1.05;transition:color .3s}
   .cl.row{justify-content:flex-end;align-items:center;gap:.5em;padding:0 .55em 0 .4em;border-bottom:1px solid var(--grid)}
@@ -90,7 +92,7 @@
   @media (max-width:860px){
     .work{grid-template-columns:1fr;padding-left:6px}
     header,.tabs{padding-left:6px;margin-left:0}
-    .boardwrap{justify-self:center}
+    .boardwrap{justify-self:center;width:100%}
     .keys{display:none}
     .stamp{right:4px;bottom:-30px}
   }
@@ -111,7 +113,7 @@
 
   <section class="work">
     <div class="boardwrap">
-      <div id="board" role="grid" aria-label="Nonogram 方格"></div>
+      <div class="boardscroll" role="region" aria-label="數織題盤，可水平捲動" tabindex="0"><div id="board" role="grid" aria-label="Nonogram 方格"></div></div>
       <div class="stamp" id="stamp">完成！</div>
     </div>
     <aside>

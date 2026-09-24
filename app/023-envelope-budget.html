@@ -524,7 +524,7 @@ function allocate(v, envId, fromEl){
     else { ghost.remove(); toast('放開在信封上才會分配'); }
     ghost = null;
   }
-  piles.addEventListener('pointerup', up); piles.addEventListener('pointercancel', up);
+  piles.addEventListener('pointerup', up); piles.addEventListener('pointercancel', function(){ down = null; dragging = false; if(over) over.classList.remove('target'); over = null; if(ghost) ghost.remove(); ghost = null; });
   piles.addEventListener('keydown', function(e){ var p = e.target.closest('.pile'); if (p && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); var v = +p.dataset.v; if (M().cash[v]){ picked = picked === v ? 0 : v; $('stack').classList.toggle('picking', !!picked); renderTray(); } } });
 })();
 
@@ -626,7 +626,7 @@ function bindRows(){
       if (dx < -110){ row.style.transform = 'translateX(-110%)'; setTimeout(function(){ delExp(+row.dataset.id); }, 200); }
       else row.style.transform = '';
     }
-    row.addEventListener('pointerup', up); row.addEventListener('pointercancel', up);
+    row.addEventListener('pointerup', up); row.addEventListener('pointercancel', function(){ on = false; row.classList.remove('drag'); row.style.transform = ''; });
   });
 }
 function delExp(id){

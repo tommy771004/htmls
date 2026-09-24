@@ -558,7 +558,7 @@ var aim = null;
     last = [ball.x, ball.y]; var v = 18 + a.p * 112; ball.vx = a.dx * v; ball.vy = a.dy * v; strokes++; updStrokes(); sPutt(a.p); haptic(12);
     $('tip').textContent = '第 ' + strokes + ' 桿';
   }
-  c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+  c.addEventListener('pointerup', up); c.addEventListener('pointercancel', function(){ on = false; aim = null; $('tip').textContent = '已取消這次擊球'; });
   c.tabIndex = 0;
   c.addEventListener('keydown', function(e){
     if (!H || sunk || moving()) return;

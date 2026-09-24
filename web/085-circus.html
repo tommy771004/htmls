@@ -368,7 +368,7 @@ if(buy) buy.addEventListener('click',function(){
   var when={mat:'Matinée · 2 o’clock',eve:'Evening · 7 o’clock',mid:'Midnight · 12 o’clock (you were warned)'}[state.show];
   var tk=document.createElement('div');tk.className='ticket print';
   tk.innerHTML='<div class="main"><div class="adm"><small>Magnussen’s Grand Circus</small>ADMIT '+(['','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE','TEN','ELEVEN','TWELVE'][p.heads]||p.heads)+'</div>'+
-    '<div class="row"><span><b>'+state.seat.toUpperCase()+'</b>seating</span><span><b>'+when.split(' · ')[0].toUpperCase()+'</b>'+when.split(' · ').slice(1).join(' · ')+'</span><span><b>'+lsd(p.pence).toUpperCase()+'</b>paid in full</span></div>'+
+    '<div class="row"><span><b>'+state.seat.toUpperCase()+'</b>seating</span><span><b>'+when.split(' · ')[0].toUpperCase()+'</b>'+when.split(' · ').slice(1).join(' · ')+'</span><span><b>'+lsd(p.pence).toUpperCase()+'</b>fare preview</span></div>'+
     '<div class="row"><span>'+parts+'</span><span class="serial">No. '+String(state.serial).padStart(6,'0')+'</span></div>'+
     '<div class="warn">'+WARN[state.seat]+'</div></div>'+
     '<div class="stub" role="button" tabindex="0" aria-label="Tear off the stub"><span class="w">Stub</span><span class="serial">'+String(state.serial).padStart(6,'0')+'</span><small>tear here, gently</small></div>';

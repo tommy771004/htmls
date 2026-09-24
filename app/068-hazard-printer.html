@@ -585,11 +585,11 @@ function startNext(p){
 /* hold to stop */
 (function(){
   var b = $('stopBtn'), fl = $('stopF'), t0 = 0, raf2 = 0, on = false;
-  function tick(){ var k = Math.min(1, (performance.now() - t0)/1200); fl.style.width = (k*100)+'%'; b.classList.toggle('arm', k > .5); if (k >= 1){ on = false; fire(); return; } if (on) raf2 = requestAnimationFrame(tick); }
+  function tick(){ var k = Math.min(1, (performance.now() - t0)/1200); fl.style.width = (k*100)+'%'; b.classList.toggle('arm', k > .5); if (k >= 1) return; if (on) raf2 = requestAnimationFrame(tick); }
   function fire(){ var p = cur(), f = jf(p); fl.style.width = '0'; b.classList.remove('arm'); if (!f) return; beep(440, .5, .08, 0, 'sawtooth'); haptic([40,40,40]); addLog(p.id+' 手動停止：'+f.nm); p.st = 'idle'; p.job = null; p.paused = false; p.noz[1] = 0; p.bed[1] = 0; cacheKey = ''; persist(); ui(); toast('已停止，這一件作廢'); }
   b.addEventListener('pointerdown', function(e){ if (b.disabled) return; ac(); on = true; t0 = performance.now(); beep(700, .08, .04); haptic(10); try{ b.setPointerCapture(e.pointerId); }catch(err){} raf2 = requestAnimationFrame(tick); });
   function cancel(){ if (!on) return; on = false; cancelAnimationFrame(raf2); fl.style.width = '0'; b.classList.remove('arm'); }
-  b.addEventListener('pointerup', cancel); b.addEventListener('pointercancel', cancel); b.addEventListener('pointerleave', cancel);
+  b.addEventListener('pointerup', function(){ var ready = on && performance.now() - t0 >= 1200; cancel(); if(ready) fire(); }); b.addEventListener('pointercancel', cancel); b.addEventListener('pointerleave', cancel);
   b.addEventListener('click', function(e){ if (e.detail === 0 && !b.disabled){ fire(); } });
 })();
 

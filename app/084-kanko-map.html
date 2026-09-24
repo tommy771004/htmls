@@ -473,12 +473,12 @@ function flyTo(wx, wy, s, dur){
   })(t0);
 }
 (function(){
-  var ptrs = {}, last = null, moved = false, vx = 0, vy = 0, lt = 0, pinch = null, inert = 0, downT = 0;
+  var ptrs = {}, last = null, moved = false, vx = 0, vy = 0, lt = 0, pinch = null, inert = 0, downT = 0, startView = null;
   map.addEventListener('pointerdown', function(e){
     cancelAnimationFrame(anim); cancelAnimationFrame(inert);
     ptrs[e.pointerId] = {x:e.clientX, y:e.clientY};
     var ids = Object.keys(ptrs);
-    if (ids.length === 1){ last = {x:e.clientX, y:e.clientY}; moved = false; vx = vy = 0; lt = e.timeStamp; downT = e.timeStamp; }
+    if (ids.length === 1){ startView = {s:view.s, x:view.x, y:view.y}; last = {x:e.clientX, y:e.clientY}; moved = false; vx = vy = 0; lt = e.timeStamp; downT = e.timeStamp; }
     if (ids.length === 2){ var a = ptrs[ids[0]], b = ptrs[ids[1]]; pinch = {d:Math.hypot(a.x - b.x, a.y - b.y), s:view.s}; moved = true; }
   });
   map.addEventListener('pointermove', function(e){
@@ -499,8 +499,8 @@ function flyTo(wx, wy, s, dur){
   function up(e){
     if (!ptrs[e.pointerId]) return;
     delete ptrs[e.pointerId];
-    if (Object.keys(ptrs).length) { pinch = null; var k = Object.keys(ptrs)[0]; last = {x:ptrs[k].x, y:ptrs[k].y}; return; }
-    map.classList.remove('grabbing'); pinch = null;
+    if (Object.keys(ptrs).length) { pinch = null; vx = vy = 0; lt = e.timeStamp; var k = Object.keys(ptrs)[0]; last = {x:ptrs[k].x, y:ptrs[k].y}; return; }
+    map.classList.remove('grabbing'); pinch = null; startView = null;
     if (!moved){
       var el = document.elementFromPoint(e.clientX, e.clientY), g = el && el.closest && el.closest('[data-spot]');
       if (g) selectSpot(+g.getAttribute('data-spot'), true);
@@ -508,12 +508,20 @@ function flyTo(wx, wy, s, dur){
     }
     persistView();
     if (reduce || e.timeStamp - lt > 80) return;
-    (function glide(){
-      vx *= .93; vy *= .93; view.x += vx * 16; view.y += vy * 16; apply();
-      if (Math.abs(vx) + Math.abs(vy) > .02) inert = requestAnimationFrame(glide); else persistView();
-    })();
+    var prev = 0, decay = -Math.log(.93) / 16;
+    function glide(ts){
+      if (!prev){ prev = ts; inert = requestAnimationFrame(glide); return; }
+      var dt = Math.min(32, Math.max(0, ts - prev)); prev = ts;
+      var factor = Math.exp(-decay * dt);
+      view.x += vx * (1 - factor) / decay; view.y += vy * (1 - factor) / decay;
+      vx *= factor; vy *= factor; apply();
+      if (Math.abs(vx) + Math.abs(vy) > .02 && !document.hidden) inert = requestAnimationFrame(glide); else { inert = 0; persistView(); }
+    }
+    inert = requestAnimationFrame(glide);
   }
-  map.addEventListener('pointerup', up); map.addEventListener('pointercancel', up);
+  function cancel(e){ if (!ptrs[e.pointerId]) return; ptrs = {}; last = null; pinch = null; moved = false; vx = vy = 0; map.classList.remove('grabbing'); cancelAnimationFrame(inert); inert = 0; clearTimeout(saveT); if (startView){ view = startView; startView = null; apply(); save('view', view); } }
+  map.addEventListener('pointerup', up); map.addEventListener('pointercancel', cancel);
+  document.addEventListener('visibilitychange', function(){ if (document.hidden){ cancelAnimationFrame(inert); inert = 0; persistView(); } });
   map.addEventListener('wheel', function(e){ e.preventDefault(); var r = map.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top); }, {passive:false});
 })();
 $('zin').addEventListener('click', function(){ haptic(5); zoomAt(1.3, VW / 2, (VH - drawerVisible()) / 2 + 40); });

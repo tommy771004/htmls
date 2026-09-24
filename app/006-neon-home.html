@@ -91,8 +91,8 @@ svg{display:block}
 .plan svg{width:100%;height:auto;overflow:visible;touch-action:manipulation}
 .room-floor{cursor:pointer;transition:fill .3s}
 .room-floor:hover{fill:rgba(245,228,0,.07)}
-.lightc{transform-box:fill-box;transform-origin:center;transform:scale(.001);transition:transform .7s var(--out),opacity .4s}
-.lit .lightc{transform:scale(1)}
+.lightc{transform-box:fill-box;transform-origin:center;transform:scale(.95);opacity:0;transition:transform 200ms var(--out),opacity 200ms var(--out)}
+.lit .lightc{transform:scale(1);opacity:1}
 .lit.flick .lightc{animation:flick .5s steps(1)}
 @keyframes flick{0%{opacity:0}20%{opacity:.9}35%{opacity:.1}55%{opacity:1}70%{opacity:.3}100%{opacity:1}}
 .plan text{font-family:var(--cjk);pointer-events:none}
@@ -261,7 +261,7 @@ svg{display:block}
   .scan{animation:none;display:none}
   .page.in{animation:none}
   .wm.glitch::before,.wm.glitch::after{animation:none;visibility:hidden}
-  .lightc{transition:opacity .2s}
+  .lightc{transform:scale(1);transition:opacity 200ms var(--out)}
   .lit.flick .lightc{animation:none}
   .sheet,.toast,.tg i::after{transition-duration:.01s}
 }
@@ -421,7 +421,8 @@ function $(id){ return document.getElementById(id); }
 function haptic(p){ try{ navigator.vibrate && navigator.vibrate(p||8) }catch(e){} }
 function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function pad(n){ return String(n).padStart(2, '0'); }
-var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
+var reduce = motionQuery.matches;
 
 // ---------- rooms (plan units, metres) ----------
 var ROOMS = [
@@ -734,29 +735,39 @@ function renderLog(){
   $('log').innerHTML = S.log.slice(0, 6).map(function(l){ return '<li><time>' + l.t + '</time><span><b>' + esc(l.who) + '</b>　' + esc(l.ev) + '</span><span class="tag' + (l.how === 'AUTO' ? '' : l.how === '臨時碼' ? ' r' : '') + '">' + esc(l.how) + '</span></li>'; }).join('');
 }
 (function(){
-  var h = $('hold'), ring = $('ring'), start = 0, raf = 0, active = false;
+  var h = $('hold'), ring = $('ring'), start = 0, raf = 0, active = false, pointer = null, source = null;
   function frame(){
     if (!active) return;
     var p = Math.min(1, (performance.now() - start) / 1000);
     ring.setAttribute('stroke-dashoffset', (100 - p * 100).toFixed(1));
-    if (p >= 1) { active = false; h.classList.remove('pressing'); ring.setAttribute('stroke-dashoffset', 100);
-      if (S.lock.locked) setLock(false, '阿凱', 'APP', '遠端解鎖'); else setLock(true, '阿凱', 'APP', '遠端上鎖');
-      toast(S.lock.locked ? '大門已上鎖' : '已解鎖，30 秒後自動上鎖'); return; }
+    if (p >= 1) return;
     if (p > .02 && Math.round(p * 100) % 12 === 0) haptic(3);
     raf = requestAnimationFrame(frame);
   }
-  function down(e){ e.preventDefault(); active = true; start = performance.now(); h.classList.add('pressing'); try{ h.setPointerCapture(e.pointerId); }catch(er){} tone(220, .05, 'square', .03); raf = requestAnimationFrame(frame); }
+  function down(e){
+    if (active) return;
+    e.preventDefault(); active = true; pointer = e.pointerId; source = 'pointer'; start = performance.now(); h.classList.add('pressing');
+    try{ h.setPointerCapture(e.pointerId); }catch(er){}
+    tone(220, .05, 'square', .03); raf = requestAnimationFrame(frame);
+  }
+  function reset(){ active = false; pointer = null; source = null; cancelAnimationFrame(raf); h.classList.remove('pressing'); ring.setAttribute('stroke-dashoffset', 100); }
   function up(){
     if (!active) return; active = false; cancelAnimationFrame(raf); h.classList.remove('pressing');
     var p = (performance.now() - start) / 1000;
-    ring.setAttribute('stroke-dashoffset', 100);
-    if (p < 1) { sErr(); haptic([20, 30, 20]); toast('請按住不放，直到外框走完一圈', null, true); }
+    reset();
+    if (p >= 1){
+      if (S.lock.locked) setLock(false, '阿凱', 'APP', '示範解鎖'); else setLock(true, '阿凱', 'APP', '示範上鎖');
+      toast(S.lock.locked ? '大門已上鎖（示範）' : '已解鎖（示範），30 秒後自動上鎖');
+    } else { sErr(); haptic([20, 30, 20]); toast('請按住不放，直到外框走完一圈', null, true); }
   }
   h.addEventListener('pointerdown', down);
-  h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up); h.addEventListener('lostpointercapture', up);
+  h.addEventListener('pointerup', function(e){ if (source === 'pointer' && e.pointerId === pointer) up(); });
+  h.addEventListener('pointercancel', function(e){ if (source === 'pointer' && e.pointerId === pointer) reset(); });
+  h.addEventListener('lostpointercapture', function(e){ if (source === 'pointer' && e.pointerId === pointer) reset(); });
+  window.addEventListener('blur', reset);
   h.addEventListener('contextmenu', function(e){ e.preventDefault(); });
-  h.addEventListener('keydown', function(e){ if ((e.key === 'Enter' || e.key === ' ') && !active && !e.repeat) { e.preventDefault(); active = true; start = performance.now(); raf = requestAnimationFrame(frame); } });
-  h.addEventListener('keyup', function(e){ if (e.key === 'Enter' || e.key === ' ') up(); });
+  h.addEventListener('keydown', function(e){ if ((e.key === 'Enter' || e.key === ' ') && !active && !e.repeat) { e.preventDefault(); active = true; source = 'keyboard'; start = performance.now(); h.classList.add('pressing'); raf = requestAnimationFrame(frame); } });
+  h.addEventListener('keyup', function(e){ if ((e.key === 'Enter' || e.key === ' ') && source === 'keyboard') up(); });
 })();
 function renderCodes(){
   $('codes').innerHTML = S.codes.length ? S.codes.map(function(c, i){ return '<div class="code"><b>' + c.c + '</b><span>' + esc(c.note) + '</span><button data-del="' + i + '" aria-label="刪除訪客碼 ' + c.c + '"><svg viewBox="0 0 16 16"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="square"/></svg></button></div>'; }).join('') : '<p class="hint" style="padding:12px 0">沒有有效的訪客碼</p>';
@@ -781,11 +792,9 @@ $('newCode').addEventListener('click', function(){
   });
 });
 // door cam
-var camOn = false, camLast = 0, noiseSeed = 1;
-function camFrame(ts){
-  if (!camOn || document.hidden) { camOn = false; return; }
-  requestAnimationFrame(camFrame);
-  if (ts - camLast < 80) return; camLast = ts;
+var camOn = false, camLast = 0, noiseSeed = 1, camRaf = 0, camClock = 0;
+function camStamp(){ var d = new Date(); $('camTs').textContent = 'CAM-01 27F ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+function drawCam(ts, moving){
   var cv = $('cam'); var c = cv._c || (cv._c = setupCanvas(cv)); if (!c) return;
   var x = c.x, W = c.w, H = c.h, vx = W * .5, vy = H * .46;
   x.fillStyle = '#0d0b07'; x.fillRect(0, 0, W, H);
@@ -799,14 +808,34 @@ function camFrame(ts){
   x.fillStyle = 'rgba(245,228,0,.55)'; [.2, .45].forEach(function(k){ var yy = vy * k, ww = (1 - k) * 40 + 8; x.fillRect(vx - ww / 2, yy, ww, 3); });
   // door frames on sides
   x.strokeStyle = '#3b3421'; x.lineWidth = 2; x.strokeRect(W * .08, H * .2, W * .1, H * .62); x.strokeRect(W * .82, H * .2, W * .1, H * .62);
-  // noise + scanlines
-  x.fillStyle = 'rgba(239,233,210,.08)';
-  for (var i = 0; i < 260; i++) { noiseSeed = (noiseSeed * 16807) % 2147483647; var nx = noiseSeed % W; noiseSeed = (noiseSeed * 16807) % 2147483647; x.fillRect(nx, noiseSeed % H, 1.5, 1.5); }
+  if (moving){
+    x.fillStyle = 'rgba(239,233,210,.08)';
+    for (var i = 0; i < 260; i++) { noiseSeed = (noiseSeed * 16807) % 2147483647; var nx = noiseSeed % W; noiseSeed = (noiseSeed * 16807) % 2147483647; x.fillRect(nx, noiseSeed % H, 1.5, 1.5); }
+  }
+  // Static scanlines preserve the camera treatment without a moving image.
   x.fillStyle = 'rgba(0,0,0,.28)'; for (var y = 0; y < H; y += 3) x.fillRect(0, y, W, 1);
-  var band = (ts / 18) % (H + 40) - 20; x.fillStyle = 'rgba(245,228,0,.05)'; x.fillRect(0, band, W, 16);
-  var d = new Date(); $('camTs').textContent = 'CAM-01 27F ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  if (moving){ var band = (ts / 18) % (H + 40) - 20; x.fillStyle = 'rgba(245,228,0,.05)'; x.fillRect(0, band, W, 16); }
 }
-function startCam(){ if (camOn) return; camOn = true; $('cam')._c = null; requestAnimationFrame(camFrame); }
+function camFrame(ts){
+  camRaf = 0;
+  if (!camOn || document.hidden) return;
+  reduce = motionQuery.matches;
+  if (reduce){ drawCam(0, false); return; }
+  if (ts - camLast >= 80){ camLast = ts; drawCam(ts, true); }
+  camRaf = requestAnimationFrame(camFrame);
+}
+function startCam(){
+  if (camOn || document.hidden) return;
+  camOn = true; camLast = 0; $('cam')._c = null; camStamp(); camClock = setInterval(camStamp, 1000);
+  reduce = motionQuery.matches;
+  if (reduce) drawCam(0, false); else camRaf = requestAnimationFrame(camFrame);
+}
+function stopCam(){ camOn = false; clearInterval(camClock); camClock = 0; if (camRaf) cancelAnimationFrame(camRaf); camRaf = 0; }
+motionQuery.addEventListener('change', function(e){
+  reduce = e.matches; if (!camOn) return;
+  if (reduce){ if (camRaf) cancelAnimationFrame(camRaf); camRaf = 0; drawCam(0, false); }
+  else if (!camRaf){ camLast = 0; camRaf = requestAnimationFrame(camFrame); }
+});
 
 // ---------- scenes ----------
 function sceneDesc(sc){
@@ -936,7 +965,7 @@ function switchTab(p){
   haptic(5); sTick(); glitch();
   if (p === 'map') drawLoad();
   if (p === 'clima') { drawTemp(); }
-  if (p === 'gate') startCam(); else camOn = false;
+  if (p === 'gate') startCam(); else stopCam();
 }
 $('hud').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b) switchTab(b.dataset.p); });
 $('hud').addEventListener('keydown', function(e){ if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; var i = (ORDER.indexOf(cur) + (e.key === 'ArrowRight' ? 1 : 3)) % 4; switchTab(ORDER[i]); document.querySelector('.hud button[data-p="' + ORDER[i] + '"]').focus(); });
@@ -948,8 +977,8 @@ setInterval(function(){ if (!document.hidden && Math.random() < .5) glitch(); },
 // ---------- clock + resize ----------
 function tick(){ var d = new Date(); $('clock').textContent = d.getHours() + ':' + pad(d.getMinutes()); }
 tick(); setInterval(tick, 15000);
-var rzT = 0; window.addEventListener('resize', function(){ clearTimeout(rzT); rzT = setTimeout(function(){ drawLoad(); drawTemp(); $('cam')._c = null; }, 120); });
-document.addEventListener('visibilitychange', function(){ if (!document.hidden && cur === 'gate') startCam(); });
+var rzT = 0; window.addEventListener('resize', function(){ clearTimeout(rzT); rzT = setTimeout(function(){ drawLoad(); drawTemp(); $('cam')._c = null; if (camOn && reduce) drawCam(0, false); }, 120); });
+document.addEventListener('visibilitychange', function(){ if (document.hidden) stopCam(); else if (cur === 'gate') startCam(); });
 
 // ---------- init ----------
 buildPlan(); buildRGrid(); buildGauge();

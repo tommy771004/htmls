@@ -102,8 +102,8 @@ svg{display:block}
 .pol .cap{min-height:74px;padding:12px 4px 14px;font:400 21px/1.25 var(--hand);color:#2b2a6a}
 .pol .tape{position:absolute;left:50%;top:-12px;width:96px;height:26px;margin-left:-48px;background:var(--tape);opacity:.82;transform:rotate(var(--tr,-3deg));
   clip-path:polygon(0 8%,4% 0,8% 10%,12% 0,88% 0,92% 10%,96% 0,100% 8%,100% 92%,96% 100%,92% 90%,88% 100%,12% 100%,8% 90%,4% 100%,0 92%)}
-.pol .stick{position:absolute;right:-10px;bottom:52px;width:58px;height:58px;transform:rotate(14deg) scale(0);transition:transform .45s var(--spring);pointer-events:none}
-.pol.liked .stick{transform:rotate(14deg) scale(1)}
+.pol .stick{position:absolute;right:-10px;bottom:52px;width:58px;height:58px;transform:rotate(14deg) scale(.95);opacity:0;transition:transform 160ms var(--out),opacity 160ms var(--out);pointer-events:none}
+.pol.liked .stick{transform:rotate(14deg) scale(1);opacity:1}
 .burst{position:absolute;left:50%;top:50%;width:130px;height:130px;margin:-65px 0 0 -65px;pointer-events:none;opacity:0}
 .burst.go{animation:burst .9s var(--out)}
 @keyframes burst{0%{opacity:1;transform:scale(.2) rotate(-20deg)}30%{opacity:1;transform:scale(1.15) rotate(6deg)}55%{transform:scale(.95) rotate(0)}80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:translate(120px,150px) scale(.35) rotate(18deg)}}
@@ -262,7 +262,8 @@ svg{display:block}
 .toast.on{transform:translate(-50%,0) rotate(-2deg);opacity:1;visibility:visible;transition:transform .4s var(--spring),opacity .2s}
 
 @media (prefers-reduced-motion:reduce){
-  .page,.pol,.sheet,.story,.camview,.toast,.pol .stick,.sto .fr{transition-duration:.01s!important}
+  .page,.pol,.sheet,.story,.camview,.toast,.sto .fr{transition-duration:.01s!important}
+  .pol .stick{transform:rotate(14deg) scale(1);transition:opacity 160ms var(--out)}
   .burst.go,.dev.on .pol,.flash.go{animation:none}
   .dev .ph svg{transition:none}
 }
@@ -496,7 +497,8 @@ function setLike(id, on, fromPhoto){
     const p = findPost(id), b = art.querySelector('.like');
     b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.querySelector('.n').textContent = p.likes + (on ? 1 : 0);
     const pol = art.querySelector('.pol');
-    if (on && fromPhoto && !reduce){ pop(id); setTimeout(() => pol.classList.add('liked'), 720); } else pol.classList.toggle('liked', on);
+    pol.classList.toggle('liked', on);
+    if (on && fromPhoto && !reduce) pop(id);
   }
   if (on){ haptic([6, 40, 12]); pluck(); } else haptic(6);
   renderMe();

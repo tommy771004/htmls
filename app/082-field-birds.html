@@ -649,7 +649,7 @@ function endSw(){
     setTimeout(() => { if (i < 0) return; lastGone = logs.splice(i, 1)[0]; persist(); renderJournal(); haptic([10, 30, 10]); toast('劃掉一筆紀錄', () => { if (lastGone){ logs.push(lastGone); lastGone = null; persist(); renderJournal(); } }); }, reduce ? 0 : 220);
   } else s.in.style.transform = '';
 }
-$('journal').addEventListener('pointerup', endSw); $('journal').addEventListener('pointercancel', endSw);
+$('journal').addEventListener('pointerup', endSw); $('journal').addEventListener('pointercancel', () => { if(!sw) return; sw.in.classList.remove('drag'); sw.in.style.transform = ''; sw = null; });
 
 /* ---------- nav ---------- */
 function go(t){

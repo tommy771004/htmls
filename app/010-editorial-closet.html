@@ -452,16 +452,18 @@ function renderDeck(){
   });
 }
 function bindCard(el, p){
-  var sx = 0, sy = 0, dx = 0, dy = 0, t0 = 0, drag = false;
+  var sx = 0, sy = 0, dx = 0, dy = 0, t0 = 0, drag = false, pointer = null;
   var sk = el.querySelector('.stamp.keep'), ss = el.querySelector('.stamp.skip');
-  el.addEventListener('pointerdown', function(e){ drag = true; sx = e.clientX; sy = e.clientY; dx = dy = 0; t0 = e.timeStamp; el.classList.add('drag'); try{ el.setPointerCapture(e.pointerId); }catch(er){} });
-  el.addEventListener('pointermove', function(e){ if (!drag) return; dx = e.clientX - sx; dy = (e.clientY - sy) * .4;
+  el.addEventListener('pointerdown', function(e){ if (drag) return; drag = true; pointer = e.pointerId; sx = e.clientX; sy = e.clientY; dx = dy = 0; t0 = e.timeStamp; el.classList.add('drag'); try{ el.setPointerCapture(e.pointerId); }catch(er){} });
+  el.addEventListener('pointermove', function(e){ if (!drag || e.pointerId !== pointer) return; dx = e.clientX - sx; dy = (e.clientY - sy) * .4;
     el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (dx * .06) + 'deg)';
     sk.style.opacity = Math.max(0, Math.min(1, dx / 90)); ss.style.opacity = Math.max(0, Math.min(1, -dx / 90)); });
-  function end(e){ if (!drag) return; drag = false; el.classList.remove('drag'); var v = dx / Math.max(1, e.timeStamp - t0);
+  function end(e){ if (!drag || e.pointerId !== pointer) return; drag = false; pointer = null; el.classList.remove('drag'); var v = dx / Math.max(1, e.timeStamp - t0);
     if (dx > 100 || v > .7) fly(el, p, 1); else if (dx < -100 || v < -.7) fly(el, p, -1);
     else { el.style.transform = ''; sk.style.opacity = ss.style.opacity = 0; } }
-  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  function cancel(){ if (!drag) return; drag = false; pointer = null; el.classList.remove('drag'); el.style.transform = ''; sk.style.opacity = ss.style.opacity = 0; }
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', cancel);
+  el.addEventListener('lostpointercapture', cancel); window.addEventListener('blur', cancel);
 }
 var lastDecision = null;
 function fly(el, p, dir){

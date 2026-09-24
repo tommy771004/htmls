@@ -877,7 +877,7 @@ function openAdd(){
       habits.push(h); save('habits', habits);
       scratch(.5, 2400, .2, 8); haptic(14);
       closeSheet(); renderAll(); switchTab('today', true);
-      var pg = $('p-today'); setTimeout(function(){ pg.scrollTo({ top: pg.scrollHeight, behavior:'smooth' }); }, 60);
+      var pg = $('p-today'); setTimeout(function(){ pg.scrollTo({ top: pg.scrollHeight, behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }, 60);
       toast('畫好了「'+name+'」', null);
     }
   };

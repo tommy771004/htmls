@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#040c15">
+<meta name="description" content="HALION H-01 概念腦機介面晶片：以 Three.js 即時呈現玻璃封裝、感應線圈與訊號核心的逐層拆解。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/133-halion.html">
+<title>HALION — THREE PARTS. ONE MIND.</title>
+<style>
+:root{color-scheme:dark;--ink:#edf5fa;--muted:#9aafbb;--line:#5e829047;--ice:#9cecff;--bg:#040c15;font-family:Arial,"Helvetica Neue",system-ui,-apple-system,"PingFang TC",sans-serif;font-synthesis:none}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);overflow-x:hidden}button,a{font:inherit}button{cursor:pointer}a{color:inherit}button:focus-visible,a:focus-visible{outline:2px solid var(--ice);outline-offset:5px}
+.scene{position:fixed;inset:0;z-index:0;overflow:hidden;background:radial-gradient(ellipse 36% 49% at 64% 49%,#17394b 0%,#0a1c2b 38%,transparent 100%),linear-gradient(120deg,#040a12,#08131d 56%,#040911)}
+.scene:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#020811ad,transparent 41%,transparent 72%,#02081151),linear-gradient(0deg,#020710d9,transparent 24%,transparent 76%,#02071055)}
+#chipCanvas{width:100%;height:100%;display:block;position:relative;z-index:1}
+.grain{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.24;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23fff' filter='url(%23n)' opacity='.18' d='M0 0h180v180H0z'/%3E%3C/svg%3E")}
+.fallback-chip{display:none;position:absolute;z-index:1;left:50%;top:51%;width:min(58vw,570px);aspect-ratio:1.55;transform:translate(-30%,-50%) rotate(-8deg);border:2px solid #b6f1ffa3;border-radius:25px;background:linear-gradient(145deg,#d4faff35,#5dc4de10 54%,#a6edfb1c);box-shadow:inset 0 0 0 13px #82dffb12,0 0 80px #72dfff37;place-items:center}.fallback-chip:before{content:"";position:absolute;inset:8%;border:1px solid #b6f1ff57;border-radius:16px}.fallback-chip:after{content:"";width:29%;aspect-ratio:1;border:13px double #98eaff9c;border-radius:50%;box-shadow:0 0 0 20px #82dffb18,0 0 36px #7be2ff80}
+body.no-webgl .fallback-chip{display:grid}body.no-webgl #chipCanvas{display:none}
+.frame{position:fixed;inset:22px;z-index:3;pointer-events:none;border:1px solid #a2dce51a}.frame:before,.frame:after{content:"";position:absolute;width:45px;height:45px;border-color:#a6edff69;border-style:solid}.frame:before{left:-1px;top:-1px;border-width:1px 0 0 1px}.frame:after{right:-1px;bottom:-1px;border-width:0 1px 1px 0}
+.topbar{position:fixed;z-index:12;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:37px clamp(30px,5.2vw,86px);pointer-events:none}.brand{pointer-events:auto;text-decoration:none;font-size:24px;font-weight:600;letter-spacing:.35em;line-height:1}.brand-mark{display:inline-flex;width:25px;height:25px;margin-right:11px;vertical-align:-5px;border:1px solid #9cecff;border-radius:50%;align-items:center;justify-content:center}.brand-mark:after{content:"";width:10px;height:10px;border:1px solid #9cecff;border-radius:50%;box-shadow:0 0 12px #6adfff}
+.menu-button{pointer-events:auto;border:1px solid #9de7f75c;background:#091725a8;color:var(--ink);border-radius:100px;display:flex;align-items:center;gap:18px;padding:12px 17px 12px 21px;font-size:10px;letter-spacing:.23em}.menu-button:hover{background:#163344}.menu-bars{display:grid;gap:5px}.menu-bars i{display:block;width:18px;height:1px;background:var(--ice)}.menu-bars i:last-child{width:11px;margin-left:auto}
+.menu-panel{position:fixed;z-index:11;right:clamp(24px,5vw,82px);top:92px;width:min(330px,calc(100vw - 48px));padding:23px;background:#081621f5;border:1px solid #86d8e67a;box-shadow:0 24px 90px #000b;backdrop-filter:blur(16px)}.menu-panel[hidden]{display:none}.menu-panel p{margin:0 0 20px;color:var(--ice);font-size:10px;letter-spacing:.28em}.menu-panel a{display:flex;justify-content:space-between;text-decoration:none;border-top:1px solid var(--line);padding:16px 0;font-size:15px;letter-spacing:.08em}.menu-panel a:hover{color:var(--ice)}.menu-panel small{color:var(--muted);font-size:10px;letter-spacing:.16em}
+.hero-copy,.closing-copy{position:fixed;z-index:4;left:clamp(34px,8.5vw,150px);top:50%;width:min(54vw,720px);transform:translateY(-45%);pointer-events:none;transition:opacity .38s ease,translate .38s ease}.hero-copy{opacity:1}.closing-copy{opacity:0;visibility:hidden;width:min(43vw,600px);text-align:left}.hero-copy.is-hidden,.closing-copy.is-hidden{opacity:0;visibility:hidden;translate:0 16px}.closing-copy.is-visible{opacity:1;visibility:visible;pointer-events:auto;translate:0 0}
+.eyebrow,.chapter-no,.micro,.technical .tag,.closing-copy .tag{color:var(--ice);font-size:10px;letter-spacing:.34em;font-weight:500}.hero-copy .eyebrow{margin:0 0 27px}.hero-copy h1{font-size:clamp(55px,6.5vw,108px);line-height:.95;font-weight:300;letter-spacing:-.073em;margin:0;white-space:nowrap}.hero-copy h1 em{display:block;font-style:normal;color:#b5e6f1}.hero-copy .lead{max-width:380px;margin:34px 0 0;color:#bad0d9;font-size:15px;line-height:1.75;font-weight:300;letter-spacing:.025em}.hero-copy .lead strong{font-weight:500;color:#f2fcff}
+.scroll-cue{position:fixed;z-index:4;left:clamp(34px,8.5vw,150px);bottom:64px;display:flex;align-items:center;gap:17px;color:#c8dce3;font-size:10px;letter-spacing:.27em;transition:opacity .3s}.scroll-cue i{display:block;width:1px;height:53px;background:linear-gradient(var(--ice),transparent)}
+.technical{position:fixed;z-index:5;left:clamp(34px,8.5vw,150px);top:52%;width:min(330px,30vw);transform:translateY(-50%);pointer-events:none}.note{position:absolute;top:50%;left:0;width:100%;opacity:0;visibility:hidden;transform:translateY(calc(-50% + 15px));transition:opacity .3s,transform .3s,visibility .3s}.note.is-active{opacity:1;visibility:visible;transform:translateY(-50%)}.note .rule{display:block;width:58px;height:1px;margin:20px 0 23px;background:var(--ice);box-shadow:0 0 12px #86edff}.note h2{font-weight:300;font-size:clamp(27px,3.1vw,45px);line-height:1.14;letter-spacing:-.055em;margin:0 0 17px}.note p{font-weight:300;font-size:13px;line-height:1.8;letter-spacing:.09em;color:#bdd1d9;margin:0;max-width:28ch}.note .index{display:block;margin-top:28px;color:#7e9faa;font:11px ui-monospace,SFMono-Regular,monospace;letter-spacing:.15em}
+.readout{position:fixed;right:clamp(34px,6vw,90px);top:151px;z-index:4;text-align:right;pointer-events:none;transition:opacity .3s}.readout .chapter-no{display:block;margin-bottom:9px}.readout .chapter{font-weight:300;letter-spacing:.13em;font-size:11px;color:#c5dce3}.readout .track{height:1px;width:98px;background:#7daab069;margin:16px 0 0 auto}.readout .track i{display:block;height:1px;width:0;background:var(--ice);box-shadow:0 0 10px var(--ice)}
+.bottomline{position:fixed;z-index:4;left:clamp(34px,5.2vw,86px);right:clamp(34px,5.2vw,86px);bottom:37px;display:flex;align-items:end;justify-content:space-between;gap:20px;color:#7f9aa6;font:10px ui-monospace,SFMono-Regular,monospace;letter-spacing:.19em;pointer-events:none}.bottomline .measure{display:flex;align-items:center;gap:12px}.bottomline .measure i{height:5px;width:5px;border-radius:50%;background:var(--ice);box-shadow:0 0 10px var(--ice)}
+.closing-copy .tag{margin:0 0 22px}.closing-copy h2{font-size:clamp(55px,6.8vw,105px);font-weight:300;line-height:1;letter-spacing:-.075em;margin:0}.closing-copy h2 span{color:#a9e8f3}.closing-copy p:not(.tag){font-size:15px;color:#bdd1d9;line-height:1.8;max-width:400px;margin:26px 0 29px;font-weight:300}.cta{display:inline-flex;gap:35px;align-items:center;text-decoration:none;border:1px solid #98e5f48a;background:#0f2b3a9c;padding:17px 18px 17px 22px;color:#eefbff;font-size:11px;letter-spacing:.2em;pointer-events:auto}.cta:hover{background:#1b4a5c}.cta b{font-size:21px;font-weight:300;line-height:0}
+#story{position:relative;z-index:2;height:740vh;pointer-events:none}.anchor{position:absolute;left:0;width:1px;height:1px}.anchor.top{top:0}.anchor.architecture{top:15%}.anchor.core{top:43%}.anchor.end{top:96%}
+@media(max-width:800px){.frame{inset:12px}.topbar{padding:25px 28px}.brand{font-size:17px;letter-spacing:.27em}.brand-mark{width:19px;height:19px;margin-right:7px;vertical-align:-4px}.brand-mark:after{width:7px;height:7px}.menu-button{padding:10px 12px 10px 14px;font-size:9px;gap:11px}.hero-copy{left:8vw;top:28%;width:85vw;transform:none}.hero-copy .eyebrow{margin-bottom:20px}.hero-copy h1{font-size:clamp(43px,10.5vw,78px)}.hero-copy .lead{font-size:13px;max-width:270px;margin-top:22px}.technical{left:8vw;top:auto;bottom:6%;width:82vw;transform:none}.note{top:auto;bottom:0;transform:translateY(14px);max-width:360px}.note.is-active{transform:translateY(0)}.note .rule{margin:11px 0 14px}.note h2{font-size:26px;margin-bottom:9px}.note p{font-size:11px;line-height:1.5;max-width:36ch}.note .index{display:none}.readout{right:8vw;top:19%;}.readout .track{display:none}.readout .chapter{font-size:9px}.scroll-cue{left:8vw;bottom:105px}.scroll-cue i{height:32px}.bottomline{left:8vw;right:8vw;bottom:26px;font-size:8px}.bottomline .measure{display:none}.closing-copy{left:8vw;top:18%;transform:none;text-align:left;width:84vw}.closing-copy h2{font-size:clamp(54px,11vw,84px)}.closing-copy p:not(.tag){margin:17px 0 22px;font-size:12px;max-width:260px}.fallback-chip{width:83vw;top:56%;transform:translate(-50%,-50%) rotate(-8deg)}.scene{background:radial-gradient(ellipse 83% 37% at 52% 55%,#17394b 0%,#0a1c2b 42%,transparent 100%),#040c15}}
+@media(max-width:400px){.hero-copy h1{font-size:43px}.technical{bottom:6%}.note h2{font-size:22px}.note p{font-size:10px}.closing-copy{top:17%}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hero-copy,.closing-copy,.note,.scroll-cue{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="scene" aria-hidden="true"><canvas id="chipCanvas"></canvas><div class="fallback-chip"></div><div class="grain"></div></div>
+<div class="frame" aria-hidden="true"></div>
+<header class="topbar"><a class="brand" href="#start" aria-label="HALION，回到開頭"><span class="brand-mark" aria-hidden="true"></span>HALION</a><button class="menu-button" id="menuButton" type="button" aria-expanded="false" aria-controls="menuPanel">MENU <span class="menu-bars" aria-hidden="true"><i></i><i></i></span></button></header>
+<nav class="menu-panel" id="menuPanel" aria-label="頁面導覽" hidden><p>EXPLORE / H-01</p><a href="#start">The vision <small>01</small></a><a href="#architecture">Glass enclosure <small>02</small></a><a href="#core">Signal core <small>03</small></a><a href="#end">One mind <small>04</small></a></nav>
+<main id="story" aria-label="HALION H-01 晶片捲動拆解"><span class="anchor top" id="start"></span><span class="anchor architecture" id="architecture"></span><span class="anchor core" id="core"></span><span class="anchor end" id="end"></span></main>
+<section class="hero-copy" id="heroCopy" aria-label="產品介紹"><p class="eyebrow">H-01 / CONCEPT NEURAL INTERFACE</p><h1>THREE PARTS.<em>ONE MIND.</em></h1><p class="lead">An architecture for the moment <strong>intention becomes interaction.</strong><br>一枚晶片，三層相互對話的結構。</p></section>
+<div class="scroll-cue" id="scrollCue" aria-hidden="true"><i></i><span>SCROLL TO DISCOVER</span></div>
+<div class="technical" id="technical" aria-live="off">
+  <div class="note" data-note="0"><span class="tag">01 / ENCLOSURE</span><span class="rule"></span><h2>Glass, held in light.</h2><p>微透光封裝承載精細蝕刻路徑，讓訊號結構在表面浮現。</p><span class="index">A · CRYSTAL SHELL</span></div>
+  <div class="note" data-note="1"><span class="tag">01 / ENCLOSURE</span><span class="rule"></span><h2>A surface that listens.</h2><p>環繞中央的感測薄膜從外層分離，露出獨立的接觸節點。</p><span class="index">B · NEURAL MEMBRANE</span></div>
+  <div class="note" data-note="2"><span class="tag">02 / COUPLING</span><span class="rule"></span><h2>Energy, in a circle.</h2><p>中央環形線圈形成視覺與結構核心，依自己的節奏向前展開。</p><span class="index">C · INDUCTION COIL</span></div>
+  <div class="note" data-note="3"><span class="tag">02 / COUPLING</span><span class="rule"></span><h2>Every point connected.</h2><p>細密感測陣列逐點展開，連接線圈與下方的訊號層。</p><span class="index">D · SENSOR ARRAY</span></div>
+  <div class="note" data-note="4"><span class="tag">03 / COMPUTE</span><span class="rule"></span><h2>Built beneath it all.</h2><p>深色矽基板穩定承托上層結構；冷藍導線描出內部路徑。</p><span class="index">E · SILICON SUBSTRATE</span></div>
+  <div class="note" data-note="5"><span class="tag">03 / COMPUTE</span><span class="rule"></span><h2>One quiet centre.</h2><p>訊號核心最後抵達定位，讓分層的構造成為一個完整系統。</p><span class="index">F · SIGNAL PROCESSOR</span></div>
+</div>
+<div class="readout" id="readout" aria-hidden="true"><span class="chapter-no" id="chapterNo">00 / 03</span><span class="chapter" id="chapterName">SYSTEM / SEALED</span><div class="track"><i id="progressFill"></i></div></div>
+<section class="closing-copy" id="closingCopy" aria-label="結語"><p class="tag">HALION / H-01</p><h2>DIFFERENT<br>BY <span>DESIGN.</span></h2><p>Three distinct systems, brought back into one. The next interface begins with understanding what lies within.</p><a class="cta" href="#start">REPLAY THE REVEAL <b aria-hidden="true">↗</b></a></section>
+<div class="bottomline"><span>HALION © 2026 · CONCEPT STUDY</span><span class="measure"><i></i> REAL-TIME ARCHITECTURE / 3D</span><span id="percent">000% / 100%</span></div>
+<script type="module">
+const $=id=>document.getElementById(id),mobile=matchMedia('(max-width:800px)').matches,reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const menu=$('menuPanel'),menuButton=$('menuButton');
+function setMenu(open){menu.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));menuButton.firstChild.textContent=open?'CLOSE ':'MENU '}
+menuButton.addEventListener('click',()=>setMenu(menu.hidden));menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>setMenu(false)));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu.hidden){setMenu(false);menuButton.focus()}});
+document.addEventListener('pointerdown',e=>{if(!menu.hidden&&!menu.contains(e.target)&&!menuButton.contains(e.target))setMenu(false)});
+
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const ease=x=>{x=clamp(x);return x*x*(3-2*x)};
+const travel=(p,a,b)=>ease((p-a)/(b-a));
+const starts=[.135,.235,.335,.435,.535,.635],ends=[.22,.32,.42,.52,.62,.72];
+let target=0,current=0,raf=0,renderer,scene,camera,rig,pieces=[];
+const notes=[...document.querySelectorAll('.note')];
+function updateInterface(p){
+  const showHero=p<.105,showEnd=p>.875;
+  $('heroCopy').classList.toggle('is-hidden',!showHero);$('heroCopy').setAttribute('aria-hidden',String(!showHero));
+  $('closingCopy').classList.toggle('is-visible',showEnd);$('closingCopy').setAttribute('aria-hidden',String(!showEnd));
+  $('scrollCue').style.opacity=p<.08?'1':'0';$('readout').style.opacity=showEnd?'0':'1';
+  const idx=ends.findIndex((v,i)=>p>=v&&p<(ends[i+1]??.79));
+  notes.forEach((note,i)=>{const on=i===idx&&p<.79;note.classList.toggle('is-active',on);note.setAttribute('aria-hidden',String(!on))});
+  let chapter=p<.12?0:p<.335?1:p<.535?2:p<.875?3:0;
+  $('chapterNo').textContent=String(chapter).padStart(2,'0')+' / 03';
+  $('chapterName').textContent=p>=.79&&p<.875?'SYSTEM / REASSEMBLY':['SYSTEM / SEALED','GLASS / ENCLOSURE','FIELD / COUPLING','SILICON / COMPUTE'][chapter];
+  $('progressFill').style.width=(p*100).toFixed(1)+'%';$('percent').textContent=String(Math.round(p*100)).padStart(3,'0')+'% / 100%';
+}
+function setTarget(){target=clamp(scrollY/Math.max(1,document.documentElement.scrollHeight-innerHeight));updateInterface(target);if(renderer&&!raf)raf=requestAnimationFrame(frame)}
+addEventListener('scroll',setTarget,{passive:true});addEventListener('resize',setTarget,{passive:true});
+function roundedShape(w,h,r){let s=new THREE.Shape(),x=-w/2,y=-h/2;s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);return s}
+let THREE;
+try{THREE=await import(location.protocol==='file:'?'https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js':'../vendor/three-0.186.0/three.module.js')}catch(error){document.body.classList.add('no-webgl');setTarget()}
+if(THREE){
+  try{
+    renderer=new THREE.WebGLRenderer({canvas:$('chipCanvas'),alpha:true,antialias:!mobile,powerPreference:'high-performance'});
+    renderer.setClearColor(0x000000,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.75;renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.25:1.75));
+    scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(34,1,.1,100);rig=new THREE.Group();scene.add(rig);
+    scene.add(new THREE.AmbientLight(0x9dc9e0,1.75));const key=new THREE.DirectionalLight(0xb7edff,3.8);key.position.set(-2,5,8);scene.add(key);const rim=new THREE.PointLight(0x38bbf7,65,24);rim.position.set(4,-2,3);scene.add(rim);const rear=new THREE.PointLight(0xa4a8ff,28,20);rear.position.set(-4,2,-4);scene.add(rear);
+    const glass=new THREE.MeshPhysicalMaterial({color:0x9bd7e8,metalness:.08,roughness:.16,transparent:true,opacity:.18,depthWrite:false,side:THREE.DoubleSide,clearcoat:1,clearcoatRoughness:.08});
+    const edge=new THREE.MeshStandardMaterial({color:0xb7e9f3,metalness:.74,roughness:.18,emissive:0x2a687b,emissiveIntensity:.55});
+    const dark=new THREE.MeshStandardMaterial({color:0x102938,metalness:.68,roughness:.25});
+    const mid=new THREE.MeshStandardMaterial({color:0x254c5e,metalness:.66,roughness:.28});
+    const silver=new THREE.MeshStandardMaterial({color:0xa8c7d5,metalness:.85,roughness:.16});
+    const bright=new THREE.MeshStandardMaterial({color:0x9befff,emissive:0x2aacca,emissiveIntensity:1.2,metalness:.44,roughness:.22});
+    const lineMat=new THREE.LineBasicMaterial({color:0x74ddec,transparent:true,opacity:.67});
+    const dimLine=new THREE.LineBasicMaterial({color:0x6ab4c2,transparent:true,opacity:.45});
+    function plate(parent,w,h,r,d,mat,z=0){const geom=new THREE.ExtrudeGeometry(roundedShape(w,h,r),{depth:d,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:2,curveSegments:6,steps:1});const mesh=new THREE.Mesh(geom,mat);mesh.position.z=z-d/2;parent.add(mesh);return mesh}
+    function outline(parent,w,h,r,z,mat=lineMat){let points=roundedShape(w,h,r).getPoints(12).map(p=>new THREE.Vector3(p.x,p.y,z));parent.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points),mat))}
+    function box(parent,w,h,d,x,y,z,mat){let m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);parent.add(m);return m}
+    function ring(parent,r,tube,z,mat=bright){let m=new THREE.Mesh(new THREE.TorusGeometry(r,tube,6,mobile?56:100),mat);m.position.z=z;parent.add(m);return m}
+    function route(parent,coords,mat=lineMat){let pts=coords.map(v=>new THREE.Vector3(...v));parent.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat))}
+    function group(z){let g=new THREE.Group();g.position.z=z;rig.add(g);return g}
+    // Each assembly, including its inner elements, has its own scroll window.
+    const shell=group(.28);plate(shell,5.25,3.38,.36,.16,glass);outline(shell,5.29,3.42,.39,.12);outline(shell,4.93,3.06,.31,.18,dimLine);
+    for(let side of [-1,1])for(let i=0;i<(mobile?7:13);i++){let y=-1.28+i*(2.56/(mobile?6:12)),x=side*(2.17-(i%3)*.11);route(shell,[[x,y,.18],[x-side*.35,y,.18],[x-side*.48,y+(i%2?.12:-.12),.18]],i%3?dimLine:lineMat)}
+    for(let i=0;i<4;i++){let x=-1.85+i*1.22;box(shell,.1,.22,.018,x,1.39,.19,bright);box(shell,.1,.22,.018,x,-1.39,.19,bright)}
+    pieces.push({object:shell,x:-.9,y:.65,z:1.6,rx:-.09});
+    const membrane=group(.22);ring(membrane,1.01,.013,.1,silver);ring(membrane,.85,.009,.1,bright);ring(membrane,.69,.009,.1,dimLine);
+    for(let i=0;i<(mobile?16:32);i++){let a=i*Math.PI*2/(mobile?16:32),x=Math.cos(a),y=Math.sin(a);route(membrane,[[x*.72,y*.72,.1],[x*1.06,y*1.06,.1]],i%4?dimLine:lineMat);let dot=new THREE.Mesh(new THREE.SphereGeometry(.027,6,4),bright);dot.position.set(x*1.07,y*1.07,.1);membrane.add(dot)}
+    pieces.push({object:membrane,x:-.2,y:.85,z:2.35,rx:.07});
+    const coil=group(.035);plate(coil,4.55,2.8,.31,.14,mid);outline(coil,4.55,2.8,.31,.11,dimLine);
+    for(let i=0;i<5;i++)ring(coil,.43+i*.155,.025,.14,i%2?edge:bright);
+    for(let i=0;i<12;i++){let a=i*Math.PI/6;route(coil,[[Math.cos(a)*1.16,Math.sin(a)*1.16,.15],[Math.cos(a)*1.65,Math.sin(a)*1.07,.15]],dimLine)}
+    pieces.push({object:coil,x:.4,y:-.15,z:.6,rx:.04});
+    const sensors=group(-.025);for(let side of [-1,1])for(let i=0;i<(mobile?4:7);i++){let y=-1+i*(2/(mobile?3:6)),x=side*1.65;box(sensors,.18,.13,.09,x,y,.15,silver);route(sensors,[[x-side*.13,y,.2],[x-side*.45,y,.2],[x-side*.56,y*.53,.2]],dimLine)}
+    for(let i=0;i<4;i++)box(sensors,.27,.09,.08,-.58+i*.39,-1.1,.15,bright);
+    pieces.push({object:sensors,x:1.3,y:-.7,z:1.7,rx:-.06});
+    const substrate=group(-.25);plate(substrate,5.02,3.18,.32,.15,dark);outline(substrate,5.02,3.18,.32,.11,lineMat);outline(substrate,4.55,2.75,.22,.12,dimLine);
+    for(let row of [-1,1])for(let i=0;i<(mobile?7:13);i++){let x=-1.96+i*(3.92/(mobile?6:12));route(substrate,[[x,row*1.35,.14],[x,row*(1.1-(i%3)*.075),.14],[x*.63,row*.49,.14]],i%4?dimLine:lineMat)}
+    for(let i=0;i<16;i++)box(substrate,.08,.15,.025,-2.16+i*.29,-1.46,.15,i%4?edge:bright);
+    pieces.push({object:substrate,x:.25,y:-.85,z:-1.6,rx:.08});
+    const processor=group(-.11);plate(processor,1.47,1.47,.12,.19,silver);plate(processor,1.22,1.22,.09,.035,dark,.13);outline(processor,1.17,1.17,.08,.18,lineMat);
+    for(let i=0;i<8;i++){let v=-.49+i*.14;box(processor,.08,.045,.04,-.76,v,.16,edge);box(processor,.08,.045,.04,.76,v,.16,edge);box(processor,.045,.08,.04,v,-.76,.16,edge);box(processor,.045,.08,.04,v,.76,.16,edge)}
+    ring(processor,.32,.015,.18,bright);pieces.push({object:processor,x:.75,y:.55,z:1.7,rx:-.04});
+    const dust=new THREE.BufferGeometry(),count=mobile?35:90,arr=new Float32Array(count*3);for(let i=0;i<count;i++){arr[i*3]=(Math.random()-.5)*17;arr[i*3+1]=(Math.random()-.5)*10;arr[i*3+2]=-2-Math.random()*6}dust.setAttribute('position',new THREE.BufferAttribute(arr,3));scene.add(new THREE.Points(dust,new THREE.PointsMaterial({color:0x8ed0e9,size:.014,transparent:true,opacity:.35})));
+    function resize(){let w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.position.set(0,0,mobile?25:11.7);camera.updateProjectionMatrix();if(!raf)raf=requestAnimationFrame(frame)}
+    addEventListener('resize',resize,{passive:true});resize();setTarget();
+  }catch(error){console.error('HALION 3D fallback:',error);document.body.classList.add('no-webgl');renderer=undefined;setTarget()}
+}
+function frame(){raf=0;if(!renderer)return;let delta=target-current;current=reduced?target:current+delta*.16;
+  if(Math.abs(target-current)<.0002)current=target;
+  // 0.79–0.94: a measured reunion, while the camera remains nearly fixed.
+  let reunite=travel(current,.79,.94),growth=(mobile?.99:.73)+(mobile?.06:.09)*travel(current,.12,.72);
+  rig.scale.setScalar(growth-(mobile?.06:.09)*reunite);rig.position.x=mobile?0:2;rig.position.y=mobile?-2.05:0;
+  rig.rotation.y=(mobile?-.18:-.25)-(mobile?.07:.15)*travel(current,.16,.72)+(mobile?.07:.15)*reunite;
+  rig.rotation.x=(mobile?.12:.18)+(mobile?.03:.08)*travel(current,.33,.72)-(mobile?.03:.08)*reunite;
+  pieces.forEach((part,i)=>{let t=travel(current,starts[i],ends[i])*(1-reunite);part.object.position.x=part.x*t*(mobile?.25:1);part.object.position.y=part.y*t*(mobile?.4:1);part.object.position.z=[.28,.22,.035,-.025,-.25,-.11][i]+part.z*t*(mobile?.48:1);part.object.rotation.x=part.rx*t});
+  camera.position.z=(mobile?25:11.7)-(.55*travel(current,.13,.72))+.55*reunite;camera.lookAt(0,0,0);
+  renderer.render(scene,camera);
+  if(Math.abs(target-current)>.0002)raf=requestAnimationFrame(frame)
+}
+setTarget();
+</script>
+</body>
+</html>
