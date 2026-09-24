@@ -818,10 +818,11 @@ $('noticeGo').addEventListener('click', function(){
 });
 (function(){
   var n = $('notice'), sy = 0, on = false;
-  n.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; on = true; sy = e.clientY; n.setPointerCapture(e.pointerId); });
+  n.addEventListener('pointerdown', function(e){ if (e.target.closest('button')) return; on = true; sy = e.clientY; n.style.transition = 'none'; n.setPointerCapture(e.pointerId); });
   n.addEventListener('pointermove', function(e){ if (on && e.clientY < sy) n.style.transform = 'translateY(' + (e.clientY - sy) + 'px)'; });
+  n.addEventListener('pointercancel', function(){ if (!on) return; on = false; n.style.transition = ''; n.style.transform = ''; });
   n.addEventListener('pointerup', function(e){
-    if (!on) return; on = false; n.style.transform = '';
+    if (!on) return; on = false; n.style.transition = ''; n.style.transform = '';
     if (sy - e.clientY > 30){ n.classList.remove('on'); if (noticeSlot > -1){ dismissed[dkey(TODAY) + noticeSlot] = 1; save('dismissed', dismissed); } }
   });
 })();

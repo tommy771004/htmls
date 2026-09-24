@@ -51,7 +51,7 @@ svg{display:block}
 @media (display-mode:standalone){.status{display:none}}
 
 .pages{position:absolute;inset:0;z-index:2}
-.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain;padding-bottom:calc(172px + env(safe-area-inset-bottom))}
 .page::-webkit-scrollbar{display:none}
 .page[hidden]{display:none}
 .page.in{animation:pin .4s var(--boing)}
@@ -95,6 +95,9 @@ svg{display:block}
 .k-sleep{background:var(--blu)}
 .k-other{background:var(--grn)}
 .key.run{box-shadow:inset 0 0 0 5px var(--wht)}
+.key.run svg.ic{width:56px;height:56px;right:-2px;top:-14px}
+.key.run b{font-size:17px}
+.key.run .t{font-size:30px}
 .k-diaper.run{box-shadow:inset 0 0 0 5px var(--blk)}
 .side{position:relative;display:flex;gap:6px;margin-top:6px}
 .side i{font-style:normal;min-width:34px;height:30px;display:grid;place-items:center;border:3px solid var(--wht);border-radius:15px;font-size:13px}
@@ -210,8 +213,8 @@ svg{display:block}
         <section class="page" id="p-today" aria-label="今天">
           <div class="scene">
             <svg class="world" viewBox="0 0 390 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-              <g class="sky-day"><circle cx="330" cy="150" r="26" fill="#e2231a" stroke="#1a1a1a" stroke-width="4"/><path d="M36 170a22 22 0 0 1 40-10 18 18 0 0 1 32 10 14 14 0 0 1 0 28H42a14 14 0 0 1-6-28z" fill="#fff" stroke="#1a1a1a" stroke-width="4"/></g>
-              <g class="sky-night"><path d="M334 128a26 26 0 1 0 22 40 20 20 0 1 1-22-40z" fill="#ffcf00" stroke="#1a1a1a" stroke-width="4"/><g fill="#fff" stroke="#1a1a1a" stroke-width="3"><path d="M60 150l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/><path d="M270 110l3 6 6 .5-4.5 4 1.4 6-5.9-3.4-5.9 3.4 1.4-6-4.5-4 6-.5z"/></g></g>
+              <g class="sky-day"><circle cx="336" cy="214" r="24" fill="#e2231a" stroke="#1a1a1a" stroke-width="4"/><path transform="translate(82 36)" d="M36 170a22 22 0 0 1 40-10 18 18 0 0 1 32 10 14 14 0 0 1 0 28H42a14 14 0 0 1-6-28z" fill="#fff" stroke="#1a1a1a" stroke-width="4"/></g>
+              <g class="sky-night"><path transform="translate(2 62)" d="M334 128a26 26 0 1 0 22 40 20 20 0 1 1-22-40z" fill="#ffcf00" stroke="#1a1a1a" stroke-width="4"/><g fill="#fff" stroke="#1a1a1a" stroke-width="3" transform="translate(70 60)"><path d="M60 150l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/><path d="M270 110l3 6 6 .5-4.5 4 1.4 6-5.9-3.4-5.9 3.4 1.4-6-4.5-4 6-.5z"/></g></g>
               <path d="M-10 262C80 236 150 240 200 252S320 270 400 244V310H-10z" fill="#1f8a3a" stroke="#1a1a1a" stroke-width="4"/>
             </svg>
             <div class="name"><b>小湯圓</b><span id="age"></span></div>

@@ -70,6 +70,8 @@ svg{display:block}
 .scene .ttl span{display:block;margin-top:6px;font:16px/1 var(--w);color:#3f4a36}
 .stageLbl{position:absolute;right:18px;top:calc(58px + env(safe-area-inset-top));text-align:right;font:15px/1.4 var(--w);color:#3f4a36;pointer-events:none}
 .stageLbl b{display:block;font:400 22px/1.2 var(--w);color:var(--ink)}
+.scene .ttl,.stageLbl{text-shadow:0 0 3px rgba(246,244,236,.95),0 0 8px rgba(246,244,236,.8)}
+@media (max-width:400px){.stageLbl span{font-size:14px}.scene .ttl span{font-size:15px}}
 
 /* pages */
 .pages{position:absolute;left:0;right:0;bottom:0;top:calc(var(--sh,46%) - 26px);z-index:3;perspective:1400px}

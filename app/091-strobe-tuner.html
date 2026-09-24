@@ -146,6 +146,8 @@ svg{display:block}
 .opts b{font:600 16px var(--zh)}
 .opts span{font:500 14px var(--fut);letter-spacing:.1em;color:var(--txt-2)}
 .opts .on b{color:var(--red)}
+.opts .on span::after{content:"";display:inline-block;width:6px;height:11px;margin:0 2px 0 12px;border:solid var(--red);border-width:0 2px 2px 0;transform:rotate(45deg) translateY(-3px)}
+.inst .nm span::after{content:"";display:inline-block;width:6px;height:6px;margin-left:8px;border:solid var(--txt-2);border-width:0 1.6px 1.6px 0;transform:translateY(-3px) rotate(45deg)}
 .wide{width:100%;height:52px;margin-top:16px;border-radius:14px;background:#2a2725;font:600 15px var(--zh);letter-spacing:.08em}
 .wide:active{background:#34302d}
 
@@ -349,7 +351,8 @@ function buildMeter(){
   }
   var z0 = pt(-2.2, r + 1), z1 = pt(2.2, r + 1);
   h += '<path d="M' + z0[0] + ' ' + z0[1] + 'A' + (r + 1) + ' ' + (r + 1) + ' 0 0 1 ' + z1[0] + ' ' + z1[1] + '" stroke="#ff3a24" stroke-width="4" fill="none"/>';
-  h += '<g id="needle"><path d="M' + (cxm - 2) + ' ' + cy + 'L' + (cxm - .6) + ' ' + (cy - r + 6) + 'L' + (cxm + .6) + ' ' + (cy - r + 6) + 'L' + (cxm + 2) + ' ' + cy + 'z" fill="url(#chrH)"/></g>';
+  h += '<clipPath id="nclip"><rect x="-40" y="-40" width="442" height="' + (40 + 90) + '"/></clipPath>';
+  h += '<g clip-path="url(#nclip)"><g id="needle"><path d="M' + (cxm - 2) + ' ' + cy + 'L' + (cxm - .6) + ' ' + (cy - r + 6) + 'L' + (cxm + .6) + ' ' + (cy - r + 6) + 'L' + (cxm + 2) + ' ' + cy + 'z" fill="url(#chrH)"/></g></g>';
   h += '<rect x="' + (cxm - 60) + '" y="' + 82 + '" width="120" height="14" rx="7" fill="#0a0909"/>';
   h += '<text x="' + cxm + '" y="' + 91 + '" text-anchor="middle" style="font:500 11px Futura,sans-serif;letter-spacing:.3em;fill:#6d6a64">CENTS</text>';
   $('meter').innerHTML = h; needle = document.getElementById('needle');
@@ -475,7 +478,7 @@ $('micBtn').addEventListener('click', function(){
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false}}).then(function(st){
     mic = st; var src = ac.createMediaStreamSource(st); an = ac.createAnalyser(); an.fftSize = 4096; micBuf = new Float32Array(an.fftSize); src.connect(an);
     source = 'mic'; if (ref){ refOff(); paintRef(); }
-    $('micBtn').classList.add('on'); $('micBtn').setAttribute('aria-pressed', 'true'); toast('正在聽，撥一根弦');
+    $('micBtn').classList.add('on'); $('micBtn').setAttribute('aria-pressed', 'true'); toast('正在聽，撥一根弦'); wake();
   }).catch(function(){ toast('沒有麥克風權限，改用撥弦模擬'); });
 });
 function stopMic(){ if (!mic) return; try{ mic.getTracks().forEach(function(t){ t.stop(); }); }catch(e){} mic = null; an = null; if (source === 'mic') source = 'none'; $('micBtn').classList.remove('on'); $('micBtn').setAttribute('aria-pressed', 'false'); }
@@ -544,6 +547,7 @@ function loop(t){
   var ok = live && Math.abs(sigCents) <= 2 && source !== 'ref';
   $('lamp').classList.toggle('on', ok || (source === 'ref' && live));
   if (ok){ inTuneT += dt; if (inTuneT > 600){ markDone(); inTuneT = -99999; } } else if (inTuneT > 0 || !live) inTuneT = 0;
+  if (source === 'none' && sig < .005 && Math.abs(nAng + 58) < .05 && !an){ cancelAnimationFrame(raf); raf = 0; return; }
   if (live && Math.abs(sigCents) > 6){ var dn = doneOf(), ix = dn.indexOf(S.sel); if (ix >= 0 && source === 'pluck'){ dn.splice(ix, 1); save('done', S.done); renderHead(); } }
 }
 function markDone(){
@@ -553,8 +557,10 @@ function markDone(){
   if (dn.length >= s.length) toast('全部調準了，可以開始彈了');
   else { toast(s[S.sel].replace('#', '♯') + ' 調準了'); var nx = -1; for (var k = 1; k <= s.length; k++){ var j = (S.sel + k) % s.length; if (dn.indexOf(j) < 0){ nx = j; break; } } if (nx >= 0) setTimeout(function(){ selectString(nx, true); }, 900); }
 }
-document.addEventListener('visibilitychange', function(){ cancelAnimationFrame(raf); if (!document.hidden){ last = performance.now(); raf = requestAnimationFrame(loop); } });
-window.addEventListener('resize', sizeStrobe);
+document.addEventListener('visibilitychange', function(){ cancelAnimationFrame(raf); raf = 0; if (!document.hidden) wake(); });
+function wake(){ if (raf || document.hidden) return; last = performance.now(); raf = requestAnimationFrame(loop); }
+['pointerdown', 'pointermove', 'keydown', 'click'].forEach(function(ev){ document.addEventListener(ev, function(){ if (ev !== 'pointermove' || source !== 'none') wake(); }, true); });
+window.addEventListener('resize', function(){ sizeStrobe(); wake(); });
 
 // backdrop disc (desktop only)
 (function(){

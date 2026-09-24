@@ -91,8 +91,8 @@ svg{display:block}
 .fold svg{border-radius:calc(var(--is)*.05)!important}
 .ic.isfold .art::after{display:none}
 
-.dots{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:9px;height:22px;z-index:3;transition:transform .38s var(--out)}
-.dots button{width:14px;height:22px;display:grid;place-items:center}
+.dots{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:1px;height:22px;z-index:3;transition:transform .38s var(--out)}
+.dots button{width:28px;height:32px;margin:-5px -3px;display:grid;place-items:center}
 .dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35)}
 .dots button[aria-current=true] i{background:#fff}
 .dots svg{opacity:.45}
@@ -103,7 +103,7 @@ svg{display:block}
   box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -2px 0 rgba(0,0,0,.3)}
 .dock .shelf::after{content:"";position:absolute;left:0;right:0;bottom:0;height:10px;background:linear-gradient(rgba(255,255,255,.25),rgba(0,0,0,.35))}
 .dock .ic .lb{margin-top:4px}
-.homebar{position:absolute;left:50%;bottom:0;width:180px;height:24px;margin-left:-90px;z-index:70;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px}
+.homebar{position:absolute;left:50%;bottom:0;width:180px;height:34px;margin-left:-90px;z-index:70;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px}
 .homebar i{width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.85)}
 
 /* spotlight page */
@@ -348,7 +348,7 @@ function persist(){ save('layout', L); save('wp', wp); save('notes', notesTxt); 
 /* ---------- geometry ---------- */
 var W = 390, H = 800, CW, IS, RH, ROWS, TOP = 12, PAD = 8, page = 0, edit = false;
 function geo(){ var sc = $('screen'); W = sc.clientWidth; H = sc.clientHeight; CW = (W - PAD*2)/4; IS = Math.min(62, Math.round(CW - 28)); RH = IS + 34;
-  var vpH = H - (22) - 96 - 26; ROWS = Math.max(4, Math.min(6, Math.floor((vpH - TOP)/RH)));
+  var vpH = H - (22) - 96 - 26 - Math.max(0, IS - 36); // keep the page dots clear of the dock icons, which rise above the shelf ROWS = Math.max(4, Math.min(6, Math.floor((vpH - TOP)/RH)));
   var vp = $('vp'); vp.style.height = vpH+'px'; $('dots').style.top = (22 + vpH)+'px';
   sc.style.setProperty('--cw', CW+'px'); sc.style.setProperty('--is', IS+'px'); }
 function cap(){ return ROWS*4; }

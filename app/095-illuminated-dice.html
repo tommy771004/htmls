@@ -160,7 +160,7 @@ svg{display:block}
 .hp button svg{width:20px;height:20px}
 .hp button:active{background:rgba(92,60,30,.12)}
 .hpbar{height:8px;margin:6px 6px 0;border-radius:4px;background:rgba(91,65,40,.18);overflow:hidden}
-.hpbar i{display:block;height:100%;background:var(--verm);border-radius:4px;transition:width .35s var(--out)}
+.hpbar i{display:block;height:100%;width:100%;background:var(--verm);border-radius:4px;transform-origin:0 50%;transition:transform .35s var(--out)}
 .sect{margin:22px 0 8px;display:flex;align-items:baseline;gap:10px}
 .sect b{font:400 36px/.8 var(--hand);color:var(--verm)}
 .sect span{font:400 18px/1 var(--kai);letter-spacing:.08em}
@@ -626,16 +626,18 @@ function crest(){
     '<circle cx="43" cy="52" r="6" fill="#f0d587"/></svg>';
 }
 function renderChar(){
-  var c = PARTY[S.char], hpPct = Math.max(0, c.hp / c.hpMax * 100);
+  var c = PARTY[S.char], hpPct = Math.max(0, c.hp / c.hpMax * 100), prevPct = renderChar.pc === S.char && renderChar.prev != null ? renderChar.prev : hpPct;
   var h = '<div class="who">' + crest() + '<div><h2>' + esc(c.name) + '<small>' + esc(c.en) + '</small></h2><p>' + esc(c.cls) + '・' + c.lv + ' 級・' + esc(c.home) + '</p>' +
     '<div class="party">' + PARTY.map(function(p, i){ return '<button data-pc="' + i + '" aria-pressed="' + (i === S.char) + '">' + esc(p.name) + '</button>'; }).join('') + '</div></div></div>';
-  h += '<div class="vit"><div class="box"><span>生命值</span><div class="hp"><button data-hp="-1" aria-label="受傷一點"><svg viewBox="0 0 20 20"><path d="M4.5 10.5c3.5-.8 7.5-.8 11 0" stroke="#2c1c10" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><b>' + c.hp + '<small>/' + c.hpMax + '</small></b><button data-hp="1" aria-label="治療一點"><svg viewBox="0 0 20 20"><path d="M4.5 10.5c3.5-.8 7.5-.8 11 0M10 4.5c.6 3.5.6 7.5 0 11" stroke="#2c1c10" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></div><div class="hpbar"><i style="width:' + hpPct + '%"></i></div></div>' +
+  h += '<div class="vit"><div class="box"><span>生命值</span><div class="hp"><button data-hp="-1" aria-label="受傷一點"><svg viewBox="0 0 20 20"><path d="M4.5 10.5c3.5-.8 7.5-.8 11 0" stroke="#2c1c10" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><b>' + c.hp + '<small>/' + c.hpMax + '</small></b><button data-hp="1" aria-label="治療一點"><svg viewBox="0 0 20 20"><path d="M4.5 10.5c3.5-.8 7.5-.8 11 0M10 4.5c.6 3.5.6 7.5 0 11" stroke="#2c1c10" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></div><div class="hpbar"><i style="transform:scaleX(' + (prevPct / 100).toFixed(3) + ')"></i></div></div>' +
     '<div class="box"><span>護甲</span><b>' + c.ac + '</b></div><div class="box"><span>先攻</span><b>' + sg(c.init) + '</b></div></div>';
   h += '<div class="sect"><b>A</b><span>屬性</span><em>點一下擲檢定</em></div><div class="abil">' + Object.keys(c.ab).map(function(k){ var m = modOf(c.ab[k]); return '<button data-ab="' + k + '" aria-label="' + k + '檢定 ' + sg(m) + '"><div class="n">' + k + '</div><div class="m">' + sg(m) + '</div><div class="s">' + c.ab[k] + '</div></button>'; }).join('') + '</div>';
   h += '<div class="sect"><b>B</b><span>攻擊與法術</span></div><ul class="atk">' + c.atk.map(function(a, i){ return '<li><div class="nm">' + esc(a.n) + '<small>' + esc(a.d) + '</small></div>' + (a.hit != null ? '<button data-hit="' + i + '" aria-label="' + esc(a.n) + '命中">' + sg(a.hit) + '</button>' : '<span></span>') + '<button class="dmg" data-dmg="' + i + '" aria-label="' + esc(a.n) + '傷害">' + esc(a.dmg) + '</button></li>'; }).join('') + '</ul>';
   h += '<div class="sect"><b>C</b><span>先攻與速度</span></div><div class="vit" style="grid-template-columns:1fr 1fr"><button class="box" data-init="1" aria-label="擲先攻"><span>擲先攻</span><b>1d20' + sg(c.init) + '</b></button><div class="box"><span>速度</span><b>' + c.speed + '<small> 呎</small></b></div></div>';
   h += '<div class="sect"><b>D</b><span>背景</span></div><p class="notes"><b>' + esc(c.note.charAt(0)) + '</b>' + esc(c.note.slice(1)) + '</p>';
   $('charBody').innerHTML = h;
+  var bi = $('charBody').querySelector('.hpbar i'); if (bi && prevPct !== hpPct){ void bi.offsetWidth; bi.style.transform = 'scaleX(' + (hpPct / 100).toFixed(3) + ')'; }
+  renderChar.prev = hpPct; renderChar.pc = S.char;
 }
 function parseDmg(s){ var m = /^(\d+)d(\d+)([+-]\d+)?$/.exec(s); return m ? {n:+m[1], s:+m[2], mod:+(m[3] || 0)} : null; }
 function rollFor(pool, mod, lb, ex, mode){

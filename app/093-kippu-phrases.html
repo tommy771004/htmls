@@ -118,8 +118,12 @@ svg{display:block}
 /* punch hole: cut from the left edge, clear of all text */
 .tk .hole{position:absolute;left:-1px;top:50%;width:15px;height:18px;margin-top:-9px;background:var(--night);clip-path:polygon(0 0,100% 30%,100% 70%,0 100%);transform:scaleX(0);transform-origin:left;transition:transform .28s var(--spring)}
 .tk.fav .hole{transform:scaleX(1)}
-.tk .stamp{position:absolute;right:14px;top:34px;font:600 12px/1 var(--jp);color:#a3372e;border:2px solid #a3372e;padding:4px 5px 3px;border-radius:50%;transform:rotate(-12deg);opacity:.85;letter-spacing:.05em;display:none}
+.tk .stamp{position:absolute;right:88px;top:6px;font:600 12px/1 var(--jp);color:#a3372e;border:2px solid #a3372e;padding:4px 5px 3px;border-radius:50%;transform:rotate(-12deg);opacity:.85;letter-spacing:.05em;display:none}
 .tk.fav .stamp{display:block}
+.tk.stamping .stamp{animation:stampIn .34s var(--spring)}
+@keyframes stampIn{from{opacity:0;transform:rotate(-12deg) scale(1.8)}}
+.endline{display:flex;align-items:center;gap:10px;margin:18px 6px 0;color:#7f9c88;font:400 12px/1 var(--jp);letter-spacing:.14em}
+.endline::before,.endline::after{content:"";flex:1;height:0;border-top:2px dotted #3d4a40}
 .empty{margin:40px 10px;text-align:center;color:#a9c4ae;font-size:15px;line-height:1.7}
 
 /* coupon book (favourites) */
@@ -130,7 +134,7 @@ svg{display:block}
 /* ---------- enlarged ticket ---------- */
 .big{position:absolute;inset:0;z-index:70;background:rgba(10,10,9,.94);visibility:hidden;opacity:0;transition:opacity .3s,visibility 0s .3s}
 .big.on{visibility:visible;opacity:1;transition:opacity .3s}
-.big .tk{position:absolute;left:50%;top:50%;width:var(--bw,760px);height:var(--bh,350px);margin:0;padding:22px 30px 18px 40px;display:flex;flex-direction:column;justify-content:center;transform:translate(-50%,-50%) rotate(90deg) scale(.55);transition:transform .55s var(--spring);clip-path:polygon(24px 0,100% 0,100% 100%,0 100%,0 24px)}
+.big .tk{position:absolute;left:50%;top:calc(50% + 22px);width:var(--bw,760px);height:var(--bh,350px);margin:0;padding:22px 30px 18px 40px;display:flex;flex-direction:column;justify-content:center;transform:translate(-50%,-50%) rotate(90deg) scale(.55);transition:transform .55s var(--spring);clip-path:polygon(24px 0,100% 0,100% 100%,0 100%,0 24px)}
 .big.on .tk{transform:translate(-50%,-50%) rotate(90deg) scale(1)}
 .big.flat .tk{transform:translate(-50%,-50%) scale(1)}
 .big .tk .top{font-size:15px;position:absolute;left:44px;right:30px;top:20px}
@@ -138,6 +142,9 @@ svg{display:block}
 .big .tk .ro{font-size:18px}
 .big .tk .zh{font-size:20px;margin-top:10px}
 .big .tk .please{position:absolute;left:44px;right:30px;bottom:18px;display:flex;justify-content:space-between;font:400 14px/1.2 var(--jp);color:var(--ink-2)}
+.big .tk .please span:last-child{white-space:nowrap;margin-left:10px}
+.big.flat .tk .please{font-size:12px;bottom:14px}
+.big.flat .tk .ro{font-size:15px}
 .big .hint{position:absolute;left:0;right:0;bottom:calc(26px + env(safe-area-inset-bottom));text-align:center;color:#a9c4ae;font-size:13px}
 .big .bigacts{position:absolute;top:calc(56px + env(safe-area-inset-top));right:14px;display:flex;gap:4px}
 .big .bigacts button{height:44px;padding:0 12px;display:flex;align-items:center;gap:6px;color:var(--kippu);font-size:14px}
@@ -178,6 +185,7 @@ svg{display:block}
   .list.slide{animation:none}
   .train,.big .tk,.sheet,.toast,.tk .hole,.tk{transition-duration:.01s}
   .acts button.speaking svg .wave{animation:none}
+  .tk.stamping .stamp{animation:none}
 }
 </style>
 </head>
@@ -387,7 +395,7 @@ function render(dir){
     html = '<div class="shead"><b>搜尋「'+esc(query)+'」</b><span>'+res.length+' 張</span></div>'+(res.length ? res.map(ticket).join('') : '<p class="empty">找不到這句。<br>按右上角自己印一張。</p>');
   } else {
     var s = sit === 'mine' ? {zh:'自訂', jp:'私の'} : sitOf(sit), list = sit === 'mine' ? custom : all().filter(function(p){ return p.sit === sit; });
-    html = '<div class="shead"><b>'+s.zh+'<span lang="ja">'+s.jp+'</span></b><span>'+list.length+' 張車票</span></div>'+(list.length ? list.map(ticket).join('') : '<p class="empty">這站還沒有車票。</p>');
+    html = '<div class="shead"><b>'+s.zh+'<span lang="ja">'+s.jp+'</span></b><span>'+list.length+' 張車票</span></div>'+(list.length ? list.map(ticket).join('') + '<p class="endline" lang="ja">終点　'+s.jp+'　以上 '+list.length+' 枚</p>' : '<p class="empty">這站還沒有車票。</p>');
   }
   L.innerHTML = html; L.scrollTop = 0;
   if (dir && !reduce){ L.classList.remove('slide'); L.style.setProperty('--from', (dir*34)+'px'); void L.offsetWidth; L.classList.add('slide'); }
@@ -417,7 +425,7 @@ function say(p, btn){
 function toggleFav(p, card){
   var i = favs.indexOf(p.id);
   if (i >= 0){ favs.splice(i, 1); haptic(6); toast('從回數券拿出來了'); }
-  else { favs.unshift(p.id); punch(); haptic([14,20,6]); toast('剪票，收進回數券'); }
+  else { favs.unshift(p.id); punch(); haptic([14,20,6]); toast('剪票，收進回數券'); if (card){ card.classList.remove('stamping'); void card.offsetWidth; card.classList.add('stamping'); } }
   save('favs', favs);
   if (card && view !== 'book'){ card.classList.toggle('fav', i < 0); var b = card.querySelector('[data-act=fav]'); b.classList.toggle('on', i < 0); b.setAttribute('aria-label', i < 0 ? '取消收藏' : '剪票收藏'); $('favN').textContent = favs.length; $('favN').style.display = favs.length ? '' : 'none'; }
   else render(0);
@@ -455,7 +463,7 @@ $('list').addEventListener('pointerdown', function(e){ var t = e.target.closest(
 var bigP = null, flat = false;
 function openBig(p){
   bigP = p; var sc = $('screen'), W = sc.clientWidth, H = sc.clientHeight;
-  var bw = flat ? W - 32 : H - 150, bh = flat ? Math.min(360, H*.5) : W - 40;
+  var bw = flat ? W - 32 : H - 190, bh = flat ? Math.min(420, H*.58) : W - 40;
   var len = reading(p).length, fs = Math.max(26, Math.min(56, (bw - 70)/Math.max(6, len)*1.9));
   $('big').style.setProperty('--bw', bw+'px'); $('big').style.setProperty('--bh', bh+'px'); $('big').style.setProperty('--bf', fs.toFixed(0)+'px');
   var s = p.sit === 'mine' ? {jp:'私の', to:'メモ'} : sitOf(p.sit);
