@@ -45,7 +45,8 @@ input{font:inherit;color:inherit}
 .page.on{display:block;animation:through .34s var(--decel)}
 @keyframes through{from{opacity:.35;transform:scale(.965)}to{opacity:1;transform:none}}
 .page::-webkit-scrollbar{display:none}
-.appbar{display:flex;align-items:center;gap:4px;padding:8px 8px 4px 20px;min-height:64px}
+.appbar{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:4px;padding:8px 8px 4px 20px;min-height:64px;background:var(--surface);transition:background-color .25s var(--emph),box-shadow .25s}
+.page.lifted .appbar{background:var(--surface-container);box-shadow:0 1px 0 var(--outline-variant)}
 .appbar h1{flex:1;font-size:28px;font-weight:600;letter-spacing:-.01em;line-height:1.1}
 .appbar h1 small{display:block;font-size:13px;font-weight:500;color:var(--on-surface-variant);letter-spacing:.01em;margin-bottom:2px}
 .ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--on-surface-variant);transition:background-color .2s}
@@ -119,6 +120,9 @@ input{font:inherit;color:inherit}
 .card h3 span{font-size:13px;font-weight:500;color:var(--on-surface-variant)}
 .bars{margin-top:12px;height:120px;position:relative;touch-action:pan-y}
 .bars svg{width:100%;height:100%}
+.bx{position:relative;height:16px;margin-top:4px;font:500 11px/16px var(--num);color:var(--on-surface-variant)}
+.bx span{position:absolute;top:0;transform:translateX(-50%)}
+.item .tx span i{font-style:normal;opacity:.8}
 .tip{position:absolute;top:-6px;transform:translateX(-50%);padding:6px 10px;border-radius:8px;background:var(--inverse-surface);color:var(--inverse-on-surface);font:600 13px/1.2 var(--num);white-space:nowrap;pointer-events:none;visibility:hidden}
 .tip.on{visibility:visible}
 .walls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:8px 16px 0}
@@ -130,12 +134,12 @@ input{font:inherit;color:inherit}
 .wall[aria-pressed=true]::after{box-shadow:inset 0 0 0 4px var(--primary),inset 0 0 0 7px var(--surface)}
 .sec{padding:24px 20px 8px;font-size:14px;font-weight:600;color:var(--primary)}
 .tones{padding:0 16px}
-.tones .r{display:grid;grid-template-columns:52px repeat(11,1fr);align-items:center;margin-bottom:4px}
+.tones .r{display:grid;grid-template-columns:60px repeat(11,1fr);align-items:center;margin-bottom:4px}
 .tones .r span{font-size:12px;color:var(--on-surface-variant);font-weight:500}
 .tones .r i{height:28px;display:block;transition:background-color .45s var(--emph)}
 .tones .r i:nth-child(2){border-radius:10px 0 0 10px}
 .tones .r i:last-child{border-radius:0 10px 10px 0}
-.tones .scale{display:grid;grid-template-columns:52px repeat(11,1fr);font:500 10px/1 var(--num);color:var(--on-surface-variant);text-align:center;margin-top:6px}
+.tones .scale{display:grid;grid-template-columns:60px repeat(11,1fr);font:500 10px/1 var(--num);color:var(--on-surface-variant);text-align:center;margin-top:6px}
 .lrow{display:flex;align-items:center;gap:16px;width:100%;min-height:72px;padding:8px 20px;text-align:left}
 .lrow:active{background:color-mix(in srgb,var(--on-surface) 8%,transparent)}
 .lrow .tx{flex:1}
@@ -182,6 +186,7 @@ input{font:inherit;color:inherit}
 .nav button:active .pill{background:color-mix(in srgb,var(--on-surface) 10%,transparent)}
 .add{position:absolute;inset:0;z-index:80;background:var(--surface);visibility:hidden;display:flex;flex-direction:column;padding-top:calc(38px + env(safe-area-inset-top));clip-path:inset(0 0 0 0 round 0px)}
 .add.open{visibility:visible}
+.add.closing{pointer-events:none}
 .add::before{content:"";position:absolute;inset:0;background:var(--primary-container);opacity:0;pointer-events:none;z-index:5;transition:opacity .28s var(--emph)}
 .add.fromfab::before{opacity:1;transition:none}
 .add .top{display:flex;align-items:center;padding:4px 8px}
@@ -208,6 +213,7 @@ input{font:inherit;color:inherit}
 .cats button[aria-pressed=true]{color:var(--on-surface)}
 .cats button[aria-pressed=true] .ck{transform:none;opacity:1;animation:spin 14s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.add:not(.open) .ck,.add:not(.open) .big::after{animation-play-state:paused}
 .fields{display:flex;gap:8px;padding:8px 16px 0;align-items:stretch}
 .tf{flex:1;position:relative;height:52px;border-radius:12px 12px 0 0;background:var(--surface-container-highest);box-shadow:inset 0 -1px 0 var(--on-surface-variant)}
 .tf:focus-within{box-shadow:inset 0 -2px 0 var(--primary)}
@@ -219,7 +225,7 @@ input{font:inherit;color:inherit}
 .dsel button+button{box-shadow:inset 1px 0 0 var(--outline)}
 .dsel button[aria-pressed=true]{background:var(--secondary-container);color:var(--on-secondary-container)}
 .pad{margin-top:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px calc(26px + env(safe-area-inset-bottom))}
-.pad button{height:58px;border-radius:29px;background:var(--surface-container-high);font:500 26px/1 var(--num);color:var(--on-surface);display:grid;place-items:center;transition:border-radius .16s var(--emph),background-color .16s}
+.pad button{height:clamp(46px,7.6vh,58px);border-radius:29px;background:var(--surface-container-high);font:500 26px/1 var(--num);color:var(--on-surface);display:grid;place-items:center;transition:border-radius .16s var(--emph),background-color .16s}
 .pad button:active{border-radius:12px;background:var(--secondary-container)}
 .pad button svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .pad .bk{background:var(--tertiary-container);color:var(--on-tertiary-container)}
@@ -316,7 +322,7 @@ input{font:inherit;color:inherit}
           </div></div>
           <div class="donutwrap"><svg id="donut" viewBox="0 0 250 250"></svg><div class="dcenter"><span id="dLbl">本月支出</span><b id="dVal">0</b><em id="dSub">&nbsp;</em></div></div>
           <div class="legend" id="legend"></div>
-          <div class="card"><h3>每日支出 <span id="avgDay">日均 0</span></h3><div class="bars" id="bars"><svg id="barSvg" viewBox="0 0 330 120" preserveAspectRatio="none"></svg><div class="tip" id="tip"></div></div></div>
+          <div class="card"><h3>每日支出 <span id="avgDay">日均 0</span></h3><div class="bars" id="bars"><svg id="barSvg" viewBox="0 0 330 120" preserveAspectRatio="none"></svg><div class="tip" id="tip"></div></div><div class="bx" id="bx" aria-hidden="true"></div></div>
         </section>
 
         <!-- 主題 -->
@@ -572,8 +578,9 @@ $('waveSvg').innerHTML =
 }
 let waveRaf = 0, waveLast = 0;
 function waveLoop(t){
+if (!$('p-list').classList.contains('on')){ waveRaf = 0; return; }
 waveRaf = requestAnimationFrame(waveLoop);
-if (document.hidden || !$('p-list').classList.contains('on')) return;
+if (document.hidden) return;
 if (t - waveLast < 33) return; waveLast = t;
 wavePh -= .09; drawWave();
 }
@@ -599,10 +606,11 @@ html += `<div class="day"><span>${lbl}</span><span>${net < 0 ? '−' : '+'}${fmt
 }
 const c = catOf(t.type, t.cat);
 html += `<div class="row" data-id="${t.id}"><div class="bin"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13M10.5 11v5M13.5 11v5"/></svg></div>` +
-`<button class="item${t.id === freshId ? ' fresh' : ''}" data-id="${t.id}">${icon(t.type, t.cat)}<span class="tx"><b>${esc(t.note || c.n)}</b><span>${c.n}</span></span><span class="amt ${t.type}">${t.type === 'in' ? '+' : '−'}${fmt(t.amt)}</span></button></div>`;
+`<button class="item${t.id === freshId ? ' fresh' : ''}" data-id="${t.id}">${icon(t.type, t.cat)}<span class="tx"><b>${esc(t.note || c.n)}</b><span>${c.n}<i> · ${acct(t)}</i></span></span><span class="amt ${t.type}">${t.type === 'in' ? '+' : '−'}${fmt(t.amt)}</span></button></div>`;
 });
 $('list').innerHTML = html;
 }
+const acct = t => t.type === 'in' ? '台新帳戶' : t.cat === 'move' ? '悠遊卡' : (t.cat === 'shop' || t.cat === 'home' || t.cat === 'med') ? '信用卡' : t.id % 3 ? '現金' : 'LINE Pay';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 $('chips').addEventListener('click', e => {
 const b = e.target.closest('.chip'); if (!b) return;
@@ -711,6 +719,7 @@ b += `<rect data-i="${i}" x="${(i * w + w * .18).toFixed(2)}" y="${(112 - hgt).t
 });
 b += `<path d="M0 116H330" stroke="var(--outline-variant)" stroke-width="1.5" stroke-linecap="round"/>`;
 $('barSvg').innerHTML = b; barDays = days;
+$('bx').innerHTML = [1, 8, 15, 22, dim].map(d => `<span style="left:${((d - .5) / dim * 100).toFixed(2)}%">${viewM + 1}/${d}</span>`).join('');
 const used = isNow ? today.getDate() : dim;
 $('avgDay').textContent = '日均 ' + fmt(days.reduce((a, v) => a + v, 0) / used);
 }
@@ -776,14 +785,15 @@ openSheet(`<div class="sh-h"><h2 id="shT">重設示範帳目？</h2></div><p cla
 });
 function go(pid){
 document.querySelectorAll('.nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.p === pid));
-document.querySelectorAll('.page').forEach(p => { const on = p.id === pid; if (on && !p.classList.contains('on')){ p.classList.add('on'); p.scrollTop = 0; } else if (!on) p.classList.remove('on'); });
+document.querySelectorAll('.page').forEach(p => { const on = p.id === pid; if (on && !p.classList.contains('on')){ p.classList.add('on'); p.scrollTop = 0; p.classList.remove('lifted'); } else if (!on) p.classList.remove('on'); });
 $('fab').classList.toggle('away', pid === 'p-theme');
 $('fab').classList.remove('mini');
 if (pid === 'p-stats') renderStats();
+if (pid === 'p-list' && !reduce && !waveRaf) waveRaf = requestAnimationFrame(waveLoop);
 if (pid === 'p-theme') requestAnimationFrame(() => setSlider(state.budget));
 }
 document.querySelector('.nav').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; haptic(6); go(b.dataset.p); });
-document.querySelectorAll('.page').forEach(p => { let ly = 0; p.addEventListener('scroll', () => { const y = p.scrollTop; if (Math.abs(y - ly) > 6){ $('fab').classList.toggle('mini', y > ly && y > 40); ly = y; } }, {passive: true}); });
+document.querySelectorAll('.page').forEach(p => { let ly = 0; p.addEventListener('scroll', () => { const y = p.scrollTop; p.classList.toggle('lifted', y > 8); if (Math.abs(y - ly) > 6){ $('fab').classList.toggle('mini', y > ly && y > 40); ly = y; } }, {passive: true}); });
 let entry = {type: 'out', cat: 'food', amt: '', ago: 0};
 function renderCats(){
 $('cats').innerHTML = CATS[entry.type].map(c => `<button data-k="${c.k}" aria-pressed="${entry.cat === c.k}"><span class="sh"><svg class="ck" viewBox="0 0 44 44"><path d="${COOKIE}"/></svg>${icon(entry.type, c.k)}</span>${c.n}</button>`).join('');
@@ -799,8 +809,9 @@ const b = $('typeTabs').querySelector('[aria-selected=true]'), ind = $('tabInd')
 ind.style.width = (b.offsetWidth - 20) + 'px'; ind.style.left = '0px';
 ind.style.transform = `translateX(${b.offsetLeft + 10}px)`;
 }
-let lastFocusAdd = null;
+let lastFocusAdd = null, addT = 0;
 function openAdd(){
+clearTimeout(addT); $('add').classList.remove('closing');
 entry = {type: 'out', cat: 'food', amt: '', ago: 0};
 $('noteIn').value = '';
 $('typeTabs').querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === 'out'));
@@ -822,8 +833,8 @@ const add = $('add'); if (!add.classList.contains('open')) return;
 const s = screen.getBoundingClientRect(), f = $('fab').getBoundingClientRect();
 add.style.transition = reduce ? 'none' : 'clip-path .38s var(--accel)';
 add.style.clipPath = `inset(${f.top - s.top}px ${s.right - f.right}px ${s.bottom - f.bottom}px ${f.left - s.left}px round 16px)`;
-add.classList.add('fromfab');
-setTimeout(() => { add.classList.remove('open', 'fromfab'); add.style.clipPath = ''; }, reduce ? 0 : 380);
+add.classList.add('fromfab', 'closing');
+addT = setTimeout(() => { add.classList.remove('open', 'fromfab', 'closing'); add.style.clipPath = ''; }, reduce ? 0 : 380);
 if (lastFocusAdd) try { lastFocusAdd.focus({preventScroll: true}); } catch (_) {}
 }
 $('fab').addEventListener('click', openAdd);
@@ -880,7 +891,7 @@ const t = tx.find(x => x.id === id); if (!t) return;
 const c = catOf(t.type, t.cat), d = parse(t.d);
 openSheet(`<div class="sh-h"><h2 id="shT">${esc(t.note || c.n)}</h2><button class="ib" data-del="${t.id}" aria-label="刪除這筆"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13M10.5 11v5M13.5 11v5"/></svg></button></div>
 <div class="sh-amt">${icon(t.type, t.cat)}<b>${t.type === 'in' ? '+' : '−'}${fmt(t.amt)}</b></div>
-<div class="kv"><div><span>日期</span>${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${WD[d.getDay()]}</div><div><span>類型</span>${t.type === 'in' ? '收入' : '支出'}</div></div>
+<div class="kv"><div><span>日期</span>${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${WD[d.getDay()]}</div><div><span>類型</span>${t.type === 'in' ? '收入' : '支出'}</div><div><span>帳戶</span>${acct(t)}</div></div>
 <div class="sec" style="padding-top:8px">改分類</div>
 <div class="recat">${CATS[t.type].map(x => `<button data-re="${x.k}" data-id="${t.id}" aria-pressed="${x.k === t.cat}">${icon(t.type, x.k)}${x.n}</button>`).join('')}</div>
 <button class="fill" data-act="close">完成</button>`);

@@ -87,16 +87,19 @@ svg{display:block}
 .page::-webkit-scrollbar{display:none}
 .page[hidden]{display:none}
 .page.enter{animation:pageIn .42s var(--out)}
+.page.enter>*{animation:fadeIn .3s ease-out}
+@keyframes fadeIn{from{opacity:0}}
 .page.enter.back{animation-name:pageInBack}
 @keyframes pageIn{from{transform:translateX(26px)}}
 @keyframes pageInBack{from{transform:translateX(-26px)}}
 
 /* collapsing iOS large title */
-.navbar{position:absolute;top:0;left:0;right:0;z-index:20;height:calc(50px + env(safe-area-inset-top));display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;
+.navbar{position:absolute;top:0;left:0;right:0;z-index:20;height:calc(94px + env(safe-area-inset-top));display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;
   pointer-events:none;opacity:0;transition:opacity .2s}
-.navbar.on{opacity:1}
-.navbar .bar{position:absolute;inset:0;border-radius:0}
-.navbar .t{position:relative;font:600 15px/1 var(--sans);margin-bottom:-26px}
+.navbar.solid{opacity:1}
+.navbar .bar{position:absolute;inset:0;border-radius:0;box-shadow:inset 0 -1px 0 rgba(255,236,214,.14)}
+.navbar .t{position:relative;font:600 17px/1 var(--sans);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .3s var(--out)}
+.navbar.on .t{opacity:1;transform:none}
 .large{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:0 2px 18px}
 .large h2{font:700 34px/1.05 var(--round);letter-spacing:-.015em;text-shadow:0 1px 2px rgba(60,20,10,.25)}
 .large .sub{font-size:14px;color:var(--ink-2);margin-top:6px}
@@ -171,7 +174,12 @@ svg{display:block}
 .big .l{margin-top:6px;font-size:14px;color:var(--ink-2)}
 .chart{margin-top:14px;border-radius:24px;padding:14px 12px 10px}
 .chart svg{width:100%;height:190px;overflow:visible;touch-action:pan-y}
-.chart .bar{transition:height .5s var(--spring),y .5s var(--spring)}
+.chart .bar{transform-box:fill-box;transform-origin:50% 100%}
+.chart.grow .bar{animation:barUp .55s var(--spring) backwards;animation-delay:calc(var(--i) * 28ms)}
+@keyframes barUp{from{transform:scaleY(0)}}
+.chart .goal{font:600 10px/1 var(--sans);fill:var(--ink);paint-order:stroke;stroke:rgba(90,44,34,.75);stroke-width:3px;stroke-linejoin:round}
+.big .delta{display:inline-block;margin-left:8px;font-weight:600;color:#cfe3c6}
+.big .delta.down{color:#ffc9b3}
 .chart .ax{font-size:11px;fill:var(--ink-3)}
 .tip{font:600 13px/1 var(--sans)}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
@@ -224,6 +232,8 @@ svg{display:block}
 .sheet.on{transform:translateY(0)}
 .sheet.drag{transition:none}
 .grab{width:40px;height:5px;border-radius:3px;background:rgba(255,241,222,.4);margin:0 auto 14px}
+.sheetx{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:rgba(255,241,222,.14);color:var(--ink-2);transition:transform .18s var(--out),background-color .2s}
+.sheetx:active{transform:scale(.88);background:rgba(255,241,222,.26)}
 .sheet h4{font:600 20px/1.2 var(--round);text-align:center}
 .sheet .hint{font-size:13px;color:var(--ink-2);text-align:center;margin-top:4px}
 .goalnum{margin-top:18px;text-align:center;font:700 52px/1 var(--round);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -246,7 +256,8 @@ svg{display:block}
 .toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--spring)}
 
 @media (prefers-reduced-motion:reduce){
-  .page.enter{animation:none}
+  .page.enter,.page.enter>*,.chart.grow .bar{animation:none}
+  .navbar .t{transition:opacity .2s}
   .scene .layer,#hiker{transition:none}
   .tabbar .lens,.seg .knob,.sheet,.toast,.switch::after{transition-duration:.01s}
   .tabbar .lens.stretch{animation:none}
@@ -385,8 +396,8 @@ svg{display:block}
             <button data-v="week" aria-pressed="true">週</button>
             <button data-v="month" aria-pressed="false">月</button>
           </div>
-          <div class="big"><div class="v" id="avg">0</div><div class="l" id="avgLbl">每日平均步數</div></div>
-          <div class="chart glass"><svg id="chart" viewBox="0 0 330 190" preserveAspectRatio="none"></svg></div>
+          <div class="big"><div class="v" id="avg">0</div><div class="l"><span id="avgLbl">每日平均步數</span><span class="delta" id="delta"></span></div></div>
+          <div class="chart glass" id="chartBox"><svg id="chart" viewBox="0 0 330 190" preserveAspectRatio="none"></svg></div>
           <div class="kv">
             <div class="glass"><div class="v" id="best">0</div><div class="l" id="bestLbl">最佳一天</div></div>
             <div class="glass"><div class="v" id="hit">0</div><div class="l">達標天數</div></div>
@@ -432,6 +443,7 @@ svg{display:block}
       <div class="scrim" id="scrim"></div>
       <div class="sheet glass" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT">
         <div class="grab"></div>
+        <button class="sheetx" id="sheetX" aria-label="關閉"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9"/></svg></button>
         <div id="sheetBody"></div>
       </div>
       <div class="toast glass" id="toast" role="status"></div>
@@ -643,9 +655,10 @@ function openRoute(i){
 
 // ---------- trends ----------
 var range = 'week', tipIdx = -1;
-function series(){
+function series(off){
   var n = range === 'week' ? 7 : 30, out = [];
-  for (var i = n - 1; i >= 0; i--){
+  off = off || 0;
+  for (var i = n - 1 + off; i >= off; i--){
     var d = new Date(today); d.setDate(d.getDate() - i);
     var v = i === 0 ? todaySteps() : (history[dayKey(d)] || 0);
     out.push({d:d, v:v});
@@ -656,16 +669,18 @@ function renderTrends(){
   var s = series(), n = s.length, max = Math.max.apply(null, s.map(function(x){ return x.v; }).concat([settings.goal])) * 1.08;
   var sum = s.reduce(function(a, x){ return a + x.v; }, 0), best = s.reduce(function(a, x){ return x.v > a.v ? x : a; }, s[0]);
   $('avg').textContent = fmt(sum / n);
+  var ps = series(n), prev = ps.reduce(function(a, x){ return a + x.v; }, 0), dl = $('delta');
+  if (ps.filter(function(x){ return x.v > 0; }).length >= n * .8){ var pc = Math.round((sum - prev) / prev * 100); dl.textContent = (pc === 0 ? '與前' : (pc > 0 ? '↑ ' : '↓ ')+Math.abs(pc)+'%　比前')+(range === 'week' ? ' 7 ' : ' 30 ')+'天'+(pc === 0 ? '持平' : ''); dl.classList.toggle('down', pc < 0); } else dl.textContent = '';
   $('best').textContent = fmt(best.v);
   $('bestLbl').textContent = '最佳一天 · '+(best.d.getMonth()+1)+'/'+best.d.getDate();
   $('hit').textContent = s.filter(function(x){ return x.v >= settings.goal; }).length+' / '+n;
   $('rangeLbl').textContent = range === 'week' ? '最近 7 天' : '最近 30 天';
   var H = 160, w = 330 / n, gap = range === 'week' ? 12 : 3, out = '';
   var gy = H - settings.goal / max * H;
-  out += '<path d="M0 '+gy.toFixed(1)+'H330" stroke="rgba(255,241,222,.4)" stroke-width="1" stroke-dasharray="3 5"/>';
+  out += '<path d="M0 '+gy.toFixed(1)+'H330" stroke="rgba(255,241,222,.4)" stroke-width="1" stroke-dasharray="3 5"/><text class="goal" x="330" y="'+(gy - 5).toFixed(1)+'" text-anchor="end">目標 '+fmt(settings.goal)+'</text>';
   s.forEach(function(x, i){
     var bh = Math.max(3, x.v / max * H), sel = i === tipIdx;
-    out += '<rect class="bar" data-i="'+i+'" x="'+(i * w + gap / 2).toFixed(1)+'" y="'+(H - bh).toFixed(1)+'" width="'+(w - gap).toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="'+Math.min(range === 'week' ? 7 : 2, bh / 2).toFixed(1)+'" fill="'+(sel ? '#f4b37c' : x.v >= settings.goal ? '#fff1de' : 'rgba(255,241,222,.42)')+'"/>';
+    out += '<rect class="bar" style="--i:'+i+'" data-i="'+i+'" x="'+(i * w + gap / 2).toFixed(1)+'" y="'+(H - bh).toFixed(1)+'" width="'+(w - gap).toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="'+Math.min(range === 'week' ? 7 : 2, bh / 2).toFixed(1)+'" fill="'+(sel ? '#f4b37c' : x.v >= settings.goal ? '#fff1de' : 'rgba(255,241,222,.42)')+'"/>';
     if (range === 'week') out += '<text class="ax" x="'+(i * w + w / 2).toFixed(1)+'" y="182" text-anchor="middle">'+WD[x.d.getDay()]+'</text>';
     else if (i % 7 === 0) out += '<text class="ax" x="'+(i * w).toFixed(1)+'" y="182">'+(x.d.getMonth()+1)+'/'+x.d.getDate()+'</text>';
   });
@@ -677,7 +692,8 @@ function renderTrends(){
 }
 $('seg').addEventListener('click', function(e){
   var b = e.target.closest('button'); if (!b) return;
-  range = b.dataset.v; tipIdx = -1; this.dataset.v = range;
+  if (range === b.dataset.v) return;
+  range = b.dataset.v; tipIdx = -1; this.dataset.v = range; growBars();
   this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
   haptic(6); renderTrends();
 });
@@ -686,6 +702,8 @@ $('chart').addEventListener('pointerdown', function(e){
   var i = Math.max(0, Math.min(n - 1, Math.floor((e.clientX - r.left) / r.width * n)));
   tipIdx = tipIdx === i ? -1 : i; haptic(4); renderTrends();
 });
+
+function growBars(){ var c = $('chartBox'); c.classList.remove('grow'); void c.offsetWidth; c.classList.add('grow'); }
 
 // ---------- me ----------
 function streak(){
@@ -786,6 +804,7 @@ function closeSheet(){
   if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
 }
 scrim.addEventListener('click', closeSheet);
+$('sheetX').addEventListener('click', closeSheet);
 (function(){
   var sy = 0, dy = 0, t0 = 0, dragging = false;
   sheet.addEventListener('pointerdown', function(e){
@@ -833,7 +852,7 @@ function switchTab(p){
   $('navT').textContent = page.dataset.title;
   document.querySelector('.scene').classList.toggle('quiet', p !== 'today');
   onScroll.call(page);
-  if (p === 'trends') renderTrends();
+  if (p === 'trends') { renderTrends(); growBars(); }
   if (p === 'me') renderMe();
 }
 $('tabbar').addEventListener('click', function(e){ var t = e.target.closest('.tab'); if (t) switchTab(t.dataset.p); });
@@ -842,7 +861,7 @@ $('tabbar').addEventListener('keydown', function(e){
   var i = ORDER.indexOf(current) + (e.key === 'ArrowRight' ? 1 : -1);
   i = (i + ORDER.length) % ORDER.length; switchTab(ORDER[i]); document.querySelector('.tab[data-p="'+ORDER[i]+'"]').focus();
 });
-function onScroll(){ var y = this.scrollTop; $('navbar').classList.toggle('on', y > 44); parallax(y); }
+function onScroll(){ var y = this.scrollTop, nb = $('navbar'); nb.classList.toggle('solid', y > 4); nb.classList.toggle('on', y > 44); parallax(y); }
 document.querySelectorAll('.page').forEach(function(p){ p.addEventListener('scroll', onScroll, {passive:true}); });
 
 // delegated taps inside pages

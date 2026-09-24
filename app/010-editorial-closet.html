@@ -51,7 +51,7 @@ svg{display:block}
 @media (min-width:521px) and (max-width:900px){.caption{display:none}}
 
 .status{position:absolute;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
-  height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 16px/1 var(--gill);color:var(--ink);pointer-events:none}
+  height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;font:600 16px/1 var(--gill);color:var(--ink);pointer-events:none;background:var(--paper)}
 .status .g{display:flex;gap:6px;align-items:center}
 @media (display-mode:standalone){.status{display:none}}
 
@@ -71,7 +71,7 @@ svg{display:block}
 .page.enter::after{animation-direction:reverse}
 
 /* running head + folio */
-.run{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0 10px;font:14px/1 var(--gill);color:var(--ink-2)}
+.run{position:sticky;top:0;z-index:5;background:var(--paper);display:flex;justify-content:space-between;align-items:baseline;padding:6px 0 10px;font:14px/1 var(--gill);color:var(--ink-2)}
 .run b{font:400 22px/1 var(--caslon);color:var(--ink);letter-spacing:.01em}
 .folio{position:absolute;bottom:calc(88px + env(safe-area-inset-bottom));font:400 14px var(--caslon);color:var(--ink-3)}
 
