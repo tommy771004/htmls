@@ -79,9 +79,17 @@ body{
   .dpad{grid-template-columns:repeat(3,42px);grid-template-rows:repeat(3,42px)}
   .round{transform:scale(.93)}
 }
+@media (max-width:340px){
+  .dpad{grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,40px)}
+  .controls{gap:8px}
+  .ab{gap:0}
+  #modelTxt canvas{max-width:112px;height:auto!important}
+  #pwrTxt canvas{max-width:70px;height:auto!important}
+}
 </style>
 </head>
 <body>
+<h1 style="position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">STAR DODGE</h1>
 <main class="stage">
   <aside class="side left" aria-label="High score table">
     <div class="panel-wrap"><div class="panel pink" id="hiPanel"></div></div>

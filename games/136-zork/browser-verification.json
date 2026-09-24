@@ -1,0 +1,25 @@
+{
+  "completed": "2026-09-24T15:41:16.071Z",
+  "actions": 411,
+  "score": 285,
+  "treasures": [
+    "BAGCO",
+    "CHALI",
+    "PAINT",
+    "TRUNK",
+    "RUBY",
+    "TORCH",
+    "COFFI",
+    "TRIDE",
+    "PEARL",
+    "BAR",
+    "GRAIL"
+  ],
+  "visited": 64,
+  "reloadPreserved": true,
+  "errors": [],
+  "finalResources": {
+    "geometries": 10,
+    "textures": 1
+  }
+}

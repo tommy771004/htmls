@@ -135,6 +135,11 @@
     .dh .n{width:34px;height:34px;font-size:21px}
     .slots{--sz:56px}
   }
+  @media (max-width:340px){
+    .spread{grid-template-columns:minmax(0,1fr)}
+    .page{grid-template-columns:minmax(0,1fr);min-width:0}
+    .sum{grid-column:auto}
+  }
   @media (prefers-reduced-motion:reduce){
     .placed.pop,.placed.wig{animation:none}
   }

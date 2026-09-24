@@ -107,9 +107,9 @@ body{
   .band .gate-arrow{display:none}
   .band .icon{padding:0 12px}
   .band .icon svg{width:30px;height:30px}
-  .desk{grid-template-columns:1fr}
-  .side{flex-direction:row}
-  .side .btn{flex:1}
+  .desk{grid-template-columns:minmax(0,1fr)}
+  .side{flex-direction:row;flex-wrap:wrap}
+  .side .btn{flex:1 1 110px;min-width:0}
   .cols{font-size:10px;letter-spacing:.12em}
 }
 @media (prefers-reduced-motion:reduce){ .lamp.blink{animation:none} }

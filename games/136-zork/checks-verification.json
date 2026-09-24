@@ -1,0 +1,13 @@
+{
+  "completed": "2026-09-24T15:28:07.660Z",
+  "results": [
+    "lamp blackout, dark movement death, checkpoint scene restore",
+    "underground outer wall blocks continuous walking",
+    "flood death swaps rendered chunk and restores checkpoint inventory",
+    "enemy senses/chases, guard reduces damage, four melee strikes defeat troll",
+    "enemy loses unlit fleeing target, searches, returns to patrol",
+    "390×844 mobile title, touch controls, inventory and no horizontal overflow"
+  ],
+  "errors": [],
+  "externalRequests": []
+}

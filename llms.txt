@@ -128,6 +128,8 @@
 - [131 野靈旅記 · WILDLING TRAIL](https://htmls-ruddy.vercel.app/web/131-wildling-trail.html): 原創像素怪獸收集 RPG。三選一初始夥伴、草地遭遇、回合制戰鬥與捕捉、升級學招與兩階段進化，打贏守林人與場主後通關；鍵盤與手機觸控，自動存檔，單檔離線
 - [132 回航工廠 · REUSABLE ROCKET FACTORY](https://htmls-ruddy.vercel.app/web/132-reusable-rocket-factory.html): Three.js 可回收火箭製造模擬。工站有限產能與出料佇列、AGV 往返配送、工人移動執勤、總裝與軌道運輸、發射分離和助推器著陸；B-01 回廠整備後再次進入組裝與發射。支援自由／跟隨視角與 1／4／16 倍速
 
+- [136 Zork · 帝國的餘燼](https://htmls-ruddy.vercel.app/web/136-zork.html): 第一人稱 Three.js 動作冒險。1977 Zork 285 的 80 房間、11 寶物與原始地圖條件；提燈、限載、鏡面、水壩及冥界謎題，即時近戰與追擊 AI，分塊場景、安全點、本機存檔。全部模型與聲音由程式生成。
+
 ### 品牌頁面
 
 - [012 The Meridian Ball](https://htmls-ruddy.vercel.app/web/012-art-deco.html): 裝飾藝術。1926 跨年晚宴邀請函：扇形展開、金屬光澤掃過，RSVP 產生座位與徽章

@@ -128,7 +128,9 @@ h3{font-family:var(--pap);font-size:12px;letter-spacing:.24em;text-transform:upp
   .frame{padding:14px}
   .pole.t,.pole.b{height:14px}.pole.l,.pole.r{width:14px}
   .frame{background:none}
-  .bar{grid-template-columns:1fr;grid-template-areas:"stage" "tab" "menu"}
+  .bar{grid-template-columns:minmax(0,1fr);grid-template-areas:"stage" "tab" "menu"}
+  .ings{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ing{min-width:0}
   .menu{border-right:0;border-top:2px dashed rgba(217,179,106,.35)}
   .scene{min-height:260px}
   .palm{opacity:.35}

@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 137，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 137，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -144,6 +144,7 @@
 | 133 | [133-halion.html](https://htmls-ruddy.vercel.app/web/133-halion.html) | 品牌頁面 · Three.js 腦機晶片發表頁 | HALION：冷藍玻璃封裝與中央線圈；六段捲動區間依序拆解三層主結構和內部件，零件到位後顯示說明，結尾重新合攏 | 需 WebGL；手機降低幾何細節與解析度；不支援 WebGL 時顯示靜態晶片，本站透過本地 Three.js 模組載入 |
 | 134 | [134-golden-retriever.html](https://htmls-ruddy.vercel.app/web/134-golden-retriever.html) | 擬物器物 · Blender 黃金獵犬建模紀錄 | 由空場景建構站立犬隻，依序展示大塊造型、融合細分、材質與三點光；提供 1500×1250 渲染圖與 Blender 原始檔 | BlenderMCP 建模；體素融合、細分曲面與互動模式 Sculpt 平滑修順接縫 |
 | 135 | [135-nagoya-terrain.html](https://htmls-ruddy.vercel.app/web/135-nagoya-terrain.html) | 資料科學 · 真實地理資料地形標本 | 名古屋，一公里：國土地理院 DEM、空照與 PLATEAU 建物／道路，圓盤地景分層檢視、輪廓比對與含來源存圖 | 附 Blender、GLB 與重跑腳本；LOD1 建物、真實公尺尺度，需 HTTP / WebGL |
+| 136 | [136-zork.html](https://htmls-ruddy.vercel.app/web/136-zork.html) | 遊戲敘事 · 第一人稱 3D 動作冒險 | Zork：帝國的餘燼。1977 年 285 分版本的 80 房間、11 寶物與原始謎題，程序化森林／地下城、即時戰鬥、視線 AI、提燈及安全點 | 本地 Three.js；HTTP／WebGL；localStorage 存檔；[原始碼、驗證與改編差異](games/136-zork/README.md) |
 | 137 | [137-notion-workspace.html](https://htmls-ruddy.vercel.app/web/137-notion-workspace.html) | Notion 風格工作區 | 留白工作室：巢狀頁面樹與區塊編輯、slash 指令、拖曳／鍵盤排序、表格／看板資料庫、本機保存、復原與 Markdown 匯出 | |
 
 ## 較弱的 7 件（誠實版）

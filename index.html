@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>100 Creative HTML Works｜100 種風格的單頁網頁設計作品集</title>
-<meta name="description" content="134 件網頁作品（含 2 份教學簡報）與 100 個獨立手機 App 原型：瑞士國際主義、蒸汽波、水墨山水、果凍骰子，以及 HALION 腦機晶片。">
+<meta name="description" content="135 件網頁作品（含 2 份教學簡報）與 100 個獨立手機 App 原型：瑞士國際主義、蒸汽波、水墨山水、果凍骰子，以及 HALION 腦機晶片。">
 <meta name="google-site-verification" content="6KE8Qp5p0dXMp1etepmmhRmw7fG_SRwVuBampfeCL5M" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/">
@@ -14,7 +14,7 @@
 <meta property="og:locale" content="zh_TW">
 <meta property="og:url" content="https://htmls-ruddy.vercel.app/">
 <meta property="og:title" content="Creative HTML Works｜100 多種風格的單頁網頁設計作品集">
-<meta property="og:description" content="134 件網頁作品（含 2 份教學簡報）與 100 個手機 App 原型：從瑞士國際主義、蒸汽波到 HALION 腦機晶片。">
+<meta property="og:description" content="135 件網頁作品（含 2 份教學簡報）與 100 個手機 App 原型：從瑞士國際主義、蒸汽波到 HALION 腦機晶片。">
 <meta property="og:image" content="https://htmls-ruddy.vercel.app/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -33,14 +33,14 @@
    "name": "100 Creative HTML Works",
    "alternateName": "100 種風格的單頁網頁設計作品集",
    "inLanguage": "zh-Hant",
-   "description": "134 件網頁作品（含 2 份教學簡報）與 100 個獨立手機 App 原型，包括桃花源記互動閱讀、果凍骰子與 HALION 腦機晶片。"
+   "description": "135 件網頁作品（含 2 份教學簡報）與 100 個獨立手機 App 原型，包括桃花源記互動閱讀、果凍骰子與 HALION 腦機晶片。"
   },
   {
    "@type": "CollectionPage",
    "@id": "https://htmls-ruddy.vercel.app/#page",
    "url": "https://htmls-ruddy.vercel.app/",
    "name": "100 Creative HTML Works｜100 種風格的單頁網頁設計作品集",
-   "description": "134 件網頁作品（含 2 份教學簡報）與 100 個獨立手機 App 原型，包括桃花源記互動閱讀、果凍骰子與 HALION 腦機晶片。",
+   "description": "135 件網頁作品（含 2 份教學簡報）與 100 個獨立手機 App 原型，包括桃花源記互動閱讀、果凍骰子與 HALION 腦機晶片。",
    "inLanguage": "zh-Hant",
    "isPartOf": {
     "@id": "https://htmls-ruddy.vercel.app/#website"
@@ -92,7 +92,7 @@
      "name": "這是什麼？",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "100 Creative HTML Works 目前收錄 134 個網頁作品（含 2 份 AI 工程化教學簡報）與 100 個可獨立開啟的手機 App 原型。部分 3D 作品以 Three.js 即時渲染，場景素材由程式生成。"
+      "text": "100 Creative HTML Works 目前收錄 135 個網頁作品（含 2 份 AI 工程化教學簡報）與 100 個可獨立開啟的手機 App 原型。部分 3D 作品以 Three.js 即時渲染，場景素材由程式生成。"
      }
     },
     {
@@ -279,9 +279,12 @@ kbd{display:inline-block;min-width:22px;padding:1px 6px;font:12px/1.5 var(--mono
 .seg .lbl{display:none}
 @media (min-width:768px){.seg .lbl{display:inline}}
 
-.cats{display:flex;gap:4px;margin:14px -2px 0;padding:2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.cats-wrap{position:relative}
+.cats-wrap::after{content:"→";position:absolute;right:0;top:14px;width:34px;height:38px;display:grid;place-items:center;color:var(--text-2);background:linear-gradient(90deg,transparent,var(--bg) 45%);pointer-events:none;font-size:18px}
+.cats-wrap.at-end::after,.cats-wrap.no-overflow::after{display:none}
+.cats{display:flex;gap:4px;margin:14px -2px 0;padding:2px 34px 2px 2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .cats::-webkit-scrollbar{display:none}
-@media (min-width:1024px){.cats{flex-wrap:wrap;overflow:visible}}
+@media (min-width:1024px){.cats{flex-wrap:wrap;overflow:visible;padding-right:2px}.cats-wrap::after{display:none}}
 .cat{display:inline-flex;align-items:center;gap:6px;flex:none;height:34px;padding:0 14px;border-radius:var(--r-pill);font-size:14px;color:var(--text-2);white-space:nowrap;transition:background-color var(--dur-hover),color var(--dur-hover),transform var(--dur-press) var(--ease-out)}
 .cat:hover{color:var(--text);background:var(--fill)}
 .cat .n{font-size:12px;color:var(--text-3)}
@@ -435,7 +438,7 @@ footer.site .keys span{display:inline-flex;align-items:center;gap:5px}
 
 /* ---------- static catalog (no-JS / crawlers) & about ---------- */
 @counter-style pad3{system:extends decimal;pad:3 "0"}
-html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .kinds,html:not(.js) .controls,html:not(.js) .cats,html:not(.js) .statusbar{display:none}
+html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .kinds,html:not(.js) .controls,html:not(.js) .cats-wrap,html:not(.js) .statusbar{display:none}
 .js .catalog{display:none}
 .catalog h2{margin:0 0 12px;font:600 24px/1.3 var(--serif)}
 .catalog ol+h2{margin-top:36px}
@@ -501,7 +504,7 @@ html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .kinds,html:no
     <button data-theme-set="light" aria-pressed="false" aria-label="淺色模式" title="淺色模式"><svg class="ico"><use href="#i-sun"/></svg></button>
     <button data-theme-set="dark" aria-pressed="false" aria-label="深色模式" title="深色模式"><svg class="ico"><use href="#i-moon"/></svg></button>
   </div>
-  <p class="lede"><span><span id="nCore">134</span> 件網頁作品（含 <span id="nExtra">2</span> 份 AI 教學簡報）與 <span id="nApps">100</span> 個手機 App 原型。</span><span>App 都能直接操作：手機上全螢幕，桌機上裝進手機外框。</span></p>
+  <p class="lede"><span><span id="nCore">135</span> 件網頁作品（含 <span id="nExtra">2</span> 份 AI 教學簡報）與 <span id="nApps">100</span> 個手機 App 原型。</span><span>App 都能直接操作：手機上全螢幕，桌機上裝進手機外框。</span></p>
 </header>
 
 <main class="wrap">
@@ -525,7 +528,7 @@ html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .kinds,html:no
       </div>
     </div>
   </div>
-  <div class="cats" id="cats" role="group" aria-label="分類"></div>
+  <div class="cats-wrap" id="catsWrap"><div class="cats" id="cats" role="group" aria-label="分類"></div></div>
   <div class="statusbar">
     <div class="l" id="statusL" aria-live="polite"></div>
     <button class="linkbtn" id="btnCopy" title="複製全部作品的檔名、風格與說明（Tab 分隔）"><svg class="ico" id="copyIco"><use href="#i-copy"/></svg><span id="copyLbl">複製清單</span></button>
@@ -668,6 +671,7 @@ html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .kinds,html:no
       <li><a href="web/133-halion.html">HALION · THREE PARTS. ONE MIND.</a>｜<span class="g">Three.js 腦機晶片產品網站</span>｜<span class="c">品牌頁面</span><p class="d">冷藍玻璃晶片即時渲染；隨捲動依序拆解封裝、感應線圈和矽基板，各內部件獨立抵達並淡入說明，結尾重新合攏。</p></li>
       <li><a href="web/134-golden-retriever.html">一身金色 · GOLDEN STUDY</a>｜<span class="g">Blender 黃金獵犬建模紀錄</span>｜<span class="c">擬物器物</span><p class="d">透過 BlenderMCP 從空場景建立站立的黃金獵犬：27 個基礎部件、體素融合與細分、程序毛色和 75 片飾毛；可查看四階段預覽，下載 1500×1250 成品圖及 Blender 原始檔。</p></li>
       <li><a href="web/135-nagoya-terrain.html">名古屋，一公里。 · 地景切片</a>｜<span class="g">真實地理資料 · Blender 地形標本</span>｜<span class="c">資料科學</span><p class="d">國土地理院標高與空照、PLATEAU 4,756 個實際建物與 1,127 個道路，重建愛知県体育館周邊半徑 1 km 的圓盤地景；分層檢視、輪廓對齊比對、含出典存圖，以及 Blender 模型與重跑腳本下載。</p></li>
+      <li><a href="web/136-zork.html">Zork · 帝國的餘燼</a>｜<span class="g">第一人稱 3D 動作冒險</span>｜<span class="c">遊戲敘事</span><p class="d">重返 1977 年 Zork 285：80 個原始房間、11 件寶物、提燈照明與搬運謎題；程序化森林與地下帝國、即時刀戰、敵人視線 AI、安全點及本機存檔。</p></li>
       <li><a href="web/137-notion-workspace.html">留白工作室 · Notion 風格工作區</a>｜<span class="g">Notion 風格 · 區塊式編輯器</span>｜<span class="c">專案範例</span><p class="d">側邊欄巢狀頁面樹、文字／標題／待辦／列表／程式碼／圖片區塊、slash 指令、Tab 縮排、拖曳排序、復原重做，以及共用資料的表格與看板；本機自動儲存與 Markdown 匯出。</p></li>
     </ol>
     <h2 id="appCatalogTitle">App 目錄</h2>
@@ -782,7 +786,7 @@ html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .kinds,html:no
 <section class="wrap about" aria-labelledby="aboutTitle">
   <h2 id="aboutTitle">關於這個作品集</h2>
   <div class="faq">
-    <div class="qa"><h3>這是什麼？</h3><p>100 Creative HTML Works 目前收錄 134 個網頁作品（含 2 份 AI 工程化教學簡報）與 100 個可獨立開啟的手機 App 原型。部分 3D 作品以 Three.js 即時渲染，場景素材由程式生成。</p></div>
+    <div class="qa"><h3>這是什麼？</h3><p>100 Creative HTML Works 目前收錄 135 個網頁作品（含 2 份 AI 工程化教學簡報）與 100 個可獨立開啟的手機 App 原型。部分 3D 作品以 Three.js 即時渲染，場景素材由程式生成。</p></div>
     <div class="qa"><h3>作品之間有什麼規則？</h3><p>設計零重複：版面結構、配色、字體搭配與動效語彙不能有兩件雷同，不是同一個模板換色。題材與互動形式自由，包含作品集、小遊戲、視覺實驗、工具與資料視覺化。</p></div>
     <div class="qa"><h3>有用到外部資源嗎？可以離線開啟嗎？</h3><p>前 100 件網頁作品與 100 個 App 原型都不載入外部資源：只用系統字，圖像以 CSS、SVG、Canvas 繪製，聲音以 WebAudio 即時合成，下載單一檔案就能離線開啟。101、102 兩份簡報會從 Google Fonts 載入字型。</p></div>
     <div class="qa"><h3>品質怎麼驗收？</h3><p>以 headless Chrome 在 1440×900 與 390×844 兩種尺寸自動檢查每件作品，並模擬滑鼠移動、點擊、按鍵與滾輪，確認沒有 uncaught exception、console.error、外部網路請求與手機水平溢出，100 件全部通過；另外逐件人工檢視桌機與手機截圖。</p></div>
@@ -962,15 +966,27 @@ function setKind(k){
   introDone = false; render();
 }
 function renderCats(){
+  var cats = $('cats'), oldScroll = cats.scrollLeft;
   var mine = kindWorks(), favN = mine.filter(function(w){ return state.favs.has(w.id); }).length;
   var counts = {ALL:mine.length, FAVORITES:favN};
   mine.forEach(function(w){ counts[w.category] = (counts[w.category]||0) + 1; });
-  $('cats').innerHTML = ['ALL','FAVORITES'].concat(CATS[state.kind]).map(function(c){
+  cats.innerHTML = ['ALL','FAVORITES'].concat(CATS[state.kind]).map(function(c){
     return '<button class="cat" data-cat="'+esc(c)+'" aria-pressed="'+(state.cat===c)+'">'+
       (c==='FAVORITES'?icon('heart', favN?'fill':''):'')+
       '<span>'+esc(catLabel(c))+'</span><span class="n">'+(counts[c]||0)+'</span></button>';
   }).join('');
+  cats.scrollLeft = oldScroll;
+  syncCatsHint();
 }
+function syncCatsHint(){
+  var cats = $('cats'), wrap = $('catsWrap'), overflow = cats.scrollWidth > cats.clientWidth + 2;
+  var endPadding = parseFloat(getComputedStyle(cats).paddingRight) || 0;
+  wrap.classList.toggle('no-overflow', !overflow);
+  wrap.classList.toggle('at-end', overflow && cats.scrollLeft + cats.clientWidth >= cats.scrollWidth - endPadding - 2);
+  cats.setAttribute('aria-label', overflow ? '分類，可左右滑動查看更多' : '分類');
+}
+$('cats').addEventListener('scroll', syncCatsHint, {passive:true});
+window.addEventListener('resize', syncCatsHint);
 function renderControls(){
   var mine = kindWorks(), first = mine[0].num, last = mine[mine.length-1].num;
   $('sortLbl').textContent = state.sort === 'asc' ? first+' → '+last : last+' → '+first;
@@ -1151,11 +1167,18 @@ $('pvFrame').addEventListener('load', function(){ $('pvLoading').classList.add('
 
 // ---------- critique dialog ----------
 var modalHideT = {};
-function openModal(id){ var m = $(id); clearTimeout(modalHideT[id]); m.classList.remove('out'); lastFocus = document.activeElement; m.hidden = false; document.body.style.overflow = 'hidden'; var c = m.querySelector('[data-close]'); if (c) c.focus({preventScroll:true}); }
+var modalInerted = [];
+function openModal(id){
+  var m = $(id); clearTimeout(modalHideT[id]); m.classList.remove('out'); lastFocus = document.activeElement; m.hidden = false;
+  modalInerted = Array.from(document.body.children).filter(function(el){ return el !== m && !el.inert; });
+  modalInerted.forEach(function(el){ el.inert = true; });
+  document.body.style.overflow = 'hidden'; var c = m.querySelector('[data-close]'); if (c) c.focus({preventScroll:true});
+}
 function closeModal(id){
   var m = $(id); if (m.hidden || m.classList.contains('out')) return;
   m.classList.add('out');
   modalHideT[id] = setTimeout(function(){ m.hidden = true; m.classList.remove('out'); if (!state.current) document.body.style.overflow = ''; }, 150);
+  modalInerted.forEach(function(el){ el.inert = false; }); modalInerted = [];
   if (lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
 }
 function anyModal(){ var m = $('critModal'); return !m.hidden && !m.classList.contains('out') ? 'critModal' : null; }
@@ -1239,6 +1262,15 @@ $('pvFav').addEventListener('click', function(){ if (state.current) toggleFav(st
 document.addEventListener('keydown', function(e){
   var tag = (e.target.tagName || '').toLowerCase();
   var typing = tag === 'input' || tag === 'textarea' || e.target.isContentEditable;
+  if (e.key === 'Tab' && anyModal()){
+    var modal = $(anyModal());
+    var focusable = Array.from(modal.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(function(el){ return !el.disabled && el.getClientRects().length; });
+    if (focusable.length){
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))){ last.focus(); e.preventDefault(); }
+      else if (!e.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))){ first.focus(); e.preventDefault(); }
+    }
+  }
   if (e.key === 'Escape'){
     var m = anyModal();
     if (m) { closeModal(m); e.preventDefault(); return; }

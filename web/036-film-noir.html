@@ -71,7 +71,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
 .stamp.on{opacity:.95;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}
 
 @media (max-width:760px){
-  .screen{width:100vw;aspect-ratio:16/10}
+  .screen{width:100%;aspect-ratio:16/10}
   .narr{display:none}
   .narrwrap{width:100%;padding:16px 16px 0;font-size:15px;line-height:1.65;color:var(--paper);min-height:7.5em}
   .narrwrap .cursor{display:inline-block;width:.55em;height:1.05em;background:var(--paper);vertical-align:-.15em;margin-left:2px;animation:cur .9s steps(1) infinite}
@@ -85,6 +85,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
 </style>
 </head>
 <body>
+<h1 style="position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">The Last Drop — A Harbor City Mystery</h1>
 <div class="credit">A HARBOR CITY PICTURE · 1949 · NOT PASSED BY THE CENSOR</div>
 <div class="screen" id="screen">
   <div class="scene" id="scene" aria-hidden="true"></div>

@@ -2,8 +2,9 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%23131b19%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%228%22 fill=%22%23d5e6c3%22/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>微光之家 — 智慧家居控制面板</title>
+<title>微光之家 — 光學家居控制台</title>
 <meta name="description" content="智慧家居面板：可拖曳溫控圓盤、四種情境會改變背景漸層球。收錄於 100 Creative HTML Works（007・玻璃擬態）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/web/007-glassmorphism.html">
 <style>
@@ -226,6 +227,13 @@ input[type=range]:focus-visible{outline:2px solid #fff;outline-offset:2px;border
   .win{height:150px}
 }
 @media (prefers-reduced-motion:reduce){.orb,.chart i,.music.play .cover,.music.play .bars i{animation:none!important}}
+
+/* Optical console: glass is the control, rather than a card treatment. */
+:root{--bg1:#111f23;--bg2:#1e333a;--acc:#a8e4da;--mut:#acbfbd;--txt:#edf4ed}
+body{background:radial-gradient(ellipse at 40% 15%,#375057,transparent 70%),#111f23}.orbs{opacity:.28}.orb{animation:none}.glass{background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border:0;border-radius:0;box-shadow:none}.glass:before{display:none}.side{border-right:1px solid #72918a44;top:24px}.brand{font-family:Georgia,serif;font-size:21px}.main{gap:24px}.card{border-top:1px solid #72918a66;padding:20px 0}.c-thermo{grid-column:span 8;grid-row:span 2;position:relative;overflow:hidden;background:radial-gradient(ellipse at 45% 40%,#64837933,transparent 70%)}.c-scenes{grid-column:span 4;grid-row:span 2}.scenes{grid-template-columns:1fr}.scene{min-height:74px;border-radius:0;flex-direction:row;align-items:center;justify-content:flex-start;gap:18px}.scene small{margin-top:5px}.c-lights,.c-curtain,.c-music,.c-energy,.c-lock,.c-air{grid-column:span 4;grid-row:auto}.dial{width:min(100%,420px);margin:0 auto;filter:drop-shadow(10px 26px 15px #0006)}.dial .read b{text-shadow:0 2px 3px #0008;font-size:clamp(54px,7vw,82px)}.dial .read small{color:#d9ece5;text-shadow:0 1px 6px #102125}.optic-label{text-align:center;font:10px/1.7 ui-monospace,monospace;letter-spacing:.2em;color:#a7bdb7;margin:8px 0 16px}.chip{border-radius:4px}.chip[aria-pressed=true]{background:#d5e9db;color:#1e3735}.demo-scope{border:0;border-left:2px solid #87aa9f;border-radius:0;background:#a9cab309}.pill{font-size:11px;border:1px solid #72918a44!important;border-radius:3px;padding:6px 9px}.tg[aria-checked=true]{background:#527c70}.tg:after{background:linear-gradient(135deg,#fff,#b4c8c1);box-shadow:inset 1px 1px 2px white,1px 2px 3px #0006}.toast.glass{background:#1e3835;border:1px solid #a7bdb7;border-radius:8px}.hello h1{font-size:clamp(30px,4vw,48px)}.hello h1 b{background:none;color:#edf4ed}.room[aria-selected=true]{background:#c6ddca20;border-radius:3px}.chart i{animation:none}.c-thermo h2{padding:0 14px}.who{border-radius:3px}.thermo-foot{padding:12px 14px 0}.c-curtain .win{min-height:180px}
+@media(max-width:1180px){.c-thermo{grid-column:span 8}.c-scenes{grid-column:span 4}.c-lights,.c-curtain,.c-music,.c-energy,.c-lock,.c-air{grid-column:span 6}}
+@media(max-width:860px){.side{border-right:0;border-bottom:1px solid #72918a66;padding:10px 0}.main{gap:18px}.c-thermo{grid-column:1/-1;grid-row:auto}.c-scenes{grid-column:1/-1;grid-row:auto}.scenes{grid-template-columns:repeat(2,minmax(0,1fr))}.scene{padding:12px;gap:10px}.dial{width:min(100%,380px)}}
+@media(max-width:540px){.c-lights,.c-curtain,.c-music,.c-energy,.c-lock,.c-air{grid-column:1/-1}.pills{gap:5px}.hello{gap:12px}.app{padding:14px 20px 30px}.dial{width:100%}.c-thermo h2{padding:0}.scene small{font-size:10px}}
 </style>
 </head>
 <body>
@@ -248,20 +256,35 @@ input[type=range]:focus-visible{outline:2px solid #fff;outline-offset:2px;border
     <section class="card glass c-thermo" aria-label="空調">
       <h2><span>空調 · <span id="roomName">客廳</span></span><span id="hum">濕度 58%</span></h2>
       <div class="dial" id="dial" role="slider" tabindex="0" aria-label="設定溫度" aria-valuemin="16" aria-valuemax="30" aria-valuenow="24.5">
-        <svg viewBox="0 0 200 200" aria-hidden="true">
-          <defs>
-            <linearGradient id="arcG" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#6fd3ff"/><stop offset=".55" stop-color="#b08bff"/><stop offset="1" stop-color="#ff9a6b"/></linearGradient>
-            <filter id="glow"><feGaussianBlur stdDeviation="3"/></filter>
-          </defs>
-          <g id="ticks"></g>
-          <path id="track" d="" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="12" stroke-linecap="round"/>
-          <path id="arcGlow" d="" fill="none" stroke="url(#arcG)" stroke-width="12" stroke-linecap="round" filter="url(#glow)" opacity=".7"/>
-          <path id="arc" d="" fill="none" stroke="url(#arcG)" stroke-width="12" stroke-linecap="round"/>
-          <circle id="knob" r="11" fill="#fff" stroke="rgba(120,100,255,.6)" stroke-width="3"/>
-        </svg>
+<svg viewBox="0 0 200 200" aria-hidden="true">
+<defs>
+ <linearGradient id="arcG"><stop stop-color="#9df0dd"/><stop offset="1" stop-color="#f9e4b0"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="2"/></filter>
+ <radialGradient id="glassBody" cx=".36" cy=".2" r=".9"><stop stop-color="#eaffee" stop-opacity=".33"/><stop offset=".42" stop-color="#c1e8dd" stop-opacity=".04"/><stop offset=".8" stop-color="#94c6b9" stop-opacity=".12"/><stop offset=".94" stop-color="#effff8" stop-opacity=".65"/><stop offset="1" stop-color="#638980" stop-opacity=".25"/></radialGradient>
+ <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".25" stop-color="#bfffee"/><stop offset=".42" stop-color="#668488"/><stop offset=".6" stop-color="#ffe7b2"/><stop offset=".76" stop-color="#c1baff"/><stop offset="1" stop-color="#f6fff5"/></linearGradient>
+ <radialGradient id="mapGradient"><stop offset=".05" stop-color="#808080"/><stop offset=".65" stop-color="#97a1a1"/><stop offset="1" stop-color="#ef3020"/></radialGradient>
+ <filter id="refract" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+  <feImage href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cdefs%3E%3CradialGradient id='r'%3E%3Cstop offset='0' stop-color='%23808080'/%3E%3Cstop offset='.5' stop-color='%23808080'/%3E%3Cstop offset='.85' stop-color='%23c05580'/%3E%3Cstop offset='1' stop-color='%23ff0080'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='200' height='200' fill='url(%23r)'/%3E%3C/svg%3E" result="lensMap"/>
+  <feDisplacementMap in="SourceGraphic" in2="lensMap" scale="20" xChannelSelector="R" yChannelSelector="G"/>
+ </filter>
+ <clipPath id="lensClip"><circle cx="100" cy="100" r="76"/></clipPath>
+ <pattern id="ruled" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M0 0H12M0 0V12" fill="none" stroke="#b9d2c6" stroke-width=".25"/></pattern>
+ <g id="sceneLines"><rect x="10" y="10" width="180" height="180" fill="url(#ruled)"/><path d="M0 150L200 40" stroke="#c2d3b4" stroke-width="10" opacity=".32"/><path d="M0 156L200 46" stroke="#e8c796" stroke-width="1"/><path d="M38 0V200M150 0V200" stroke="#bdd3c4" stroke-width=".8"/></g>
+</defs>
+<use href="#sceneLines" opacity=".23"/>
+<circle cx="101" cy="104" r="78" fill="#051d1e" opacity=".6"/>
+<g clip-path="url(#lensClip)"><use href="#sceneLines" filter="url(#refract)" opacity=".7" transform="translate(-12 -12) scale(1.12)"/></g>
+<circle cx="100" cy="100" r="77" fill="url(#glassBody)" stroke="url(#edge)" stroke-width="2.5"/>
+<circle cx="100" cy="100" r="73.5" fill="none" stroke="#c6a6fa" stroke-width=".75" opacity=".8"/>
+<circle cx="100.7" cy="99.5" r="75" fill="none" stroke="#b7ffcf" stroke-width=".7"/>
+<path d="M33 85 A69 69 0 0 1 115 33" fill="none" stroke="#fff" stroke-width="2" opacity=".7"/>
+<path d="M71 167 A70 70 0 0 0 168 95" fill="none" stroke="#e8c69d" stroke-width="2.4" opacity=".75"/>
+<g id="glassRotor"><path d="M100 31V42" stroke="#effff8" stroke-width="2.2"/><path d="M46 60Q40 100 50 129" stroke="#fff" opacity=".14" stroke-width="7" fill="none"/></g>
+<g id="ticks"></g><path id="track" fill="none" stroke="#d1e5d233" stroke-width="1"/><path id="arcGlow" fill="none" stroke="url(#arcG)" stroke-width="2" filter="url(#glow)"/><path id="arc" fill="none" stroke="url(#arcG)" stroke-width="1.5"/><circle id="knob" r="4" fill="url(#glassBody)" stroke="#edffef" stroke-width="1"/>
+</svg>
         <div class="read"><div><b id="temp">24.5<sup>°C</sup></b><small id="tstat">冷氣 · 目前 26.1°</small></div></div>
       </div>
-      <div class="modes" id="modes"><button class="chip" aria-pressed="true" data-m="冷氣">冷氣</button><button class="chip" aria-pressed="false" data-m="暖氣">暖氣</button><button class="chip" aria-pressed="false" data-m="除濕">除濕</button><button class="chip" aria-pressed="false" data-m="自動">自動</button></div>
+      <p class="optic-label">OPTICAL CONTROL / 01<br>轉動玻璃，調整室內溫度</p><div class="modes" id="modes"><button class="chip" aria-pressed="true" data-m="冷氣">冷氣</button><button class="chip" aria-pressed="false" data-m="暖氣">暖氣</button><button class="chip" aria-pressed="false" data-m="除濕">除濕</button><button class="chip" aria-pressed="false" data-m="自動">自動</button></div>
       <div class="thermo-foot"><span>預計 <b id="eta">18 分鐘</b> 到達</span><span>今晚省電 <b>0.8 度</b></span></div>
     </section>
 
@@ -400,7 +423,7 @@ input[type=range]:focus-visible{outline:2px solid #fff;outline-offset:2px;border
     if(arc) arc.setAttribute('d',arcPath(A0,Math.max(A0+.01,a))); if(arcGlow) arcGlow.setAttribute('d',arcPath(A0,Math.max(A0+.01,a)));
     var k=polar(a,rad); if(knob){knob.setAttribute('cx',k[0]);knob.setAttribute('cy',k[1]);}
     if($('temp')) $('temp').innerHTML=v.toFixed(1)+'<sup>°C</sup>';
-    if(dial) dial.setAttribute('aria-valuenow',v);
+    if(dial) {dial.setAttribute('aria-valuenow',v);dial.setAttribute('aria-valuetext',v+' 度');} if($('glassRotor')) $('glassRotor').setAttribute('transform','rotate('+a+' 100 100)');
     var diff=Math.abs(r.cur-v); if($('eta')) $('eta').textContent=diff<.3?'已到達':Math.round(diff*8+4)+' 分鐘';
     if($('tstat')) $('tstat').textContent=mode+' · 目前 '+r.cur.toFixed(1)+'°';
     /* cool/warm tint on orb 2 */

@@ -927,7 +927,7 @@ function frame(now){
   const hs=dist*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect,span=MP1-MP0;
   $('view').style.left=clamp((1-(camP+hs-MP0)/span)*100,0,100)+'%';$('view').style.width=clamp(2*hs/span*100,1,100)+'%';$('mk').style.left=(1-(camP-MP0)/span)*100+'%';
   if(Snd.ctx)soundMix(camP);
-  if(!started){started=true;$('loadMsg').textContent='';requestAnimationFrame(()=>{$('unroll').classList.add('open');$('rod').classList.add('open');const u=$('unroll'),drop=()=>u.remove();u.addEventListener('transitionend',drop,{once:true});setTimeout(drop,reduceMotion?50:3000);setTimeout(()=>{if(!reduceMotion){playing=true;updPlay()}},reduceMotion?50:2600)})}
+  if(!started){started=true;$('loadMsg').textContent='畫卷徐徐展開…';requestAnimationFrame(()=>{$('unroll').classList.add('open');$('rod').classList.add('open');const u=$('unroll'),drop=()=>u.remove();u.addEventListener('transitionend',drop,{once:true});setTimeout(drop,reduceMotion?50:3000);setTimeout(()=>{if(!reduceMotion){playing=true;updPlay()}},reduceMotion?50:2600)})}
 }
 updPlay();requestAnimationFrame(frame);
 </script>

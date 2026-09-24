@@ -1,0 +1,2553 @@
+[
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "WHOUS",
+    "to": "NHOUS"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "NHOUS",
+    "to": "EHOUS"
+  },
+  {
+    "kind": "act",
+    "verb": "open",
+    "id": "WINDO",
+    "arg": "",
+    "room": "EHOUS",
+    "to": "EHOUS"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "EHOUS",
+    "to": "KITCH"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "KITCH",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "LAMP",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "light",
+    "id": "LAMP",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "LROOM",
+    "to": "KITCH"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "KITCH",
+    "to": "ATTIC"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "KNIFE",
+    "arg": "",
+    "room": "ATTIC",
+    "to": "ATTIC"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "ROPE",
+    "arg": "",
+    "room": "ATTIC",
+    "to": "ATTIC"
+  },
+  {
+    "kind": "move",
+    "dir": "DOWN",
+    "room": "ATTIC",
+    "to": "KITCH"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "KITCH",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "move",
+    "id": "RUG",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "open",
+    "id": "DOOR",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  },
+  {
+    "kind": "move",
+    "dir": "DOWN",
+    "room": "LROOM",
+    "to": "CELLA"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "CELLA",
+    "to": "MTROL"
+  },
+  {
+    "kind": "throw",
+    "id": "TROLL",
+    "room": "MTROL"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "KNIFE",
+    "arg": "",
+    "room": "MTROL",
+    "to": "MTROL"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MTROL",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZE1",
+    "to": "MAZE2"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE2",
+    "to": "MAZE3"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "MAZE3",
+    "to": "MAZE5"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "KEYS",
+    "arg": "",
+    "room": "MAZE5",
+    "to": "MAZE5"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "BAGCO",
+    "arg": "",
+    "room": "MAZE5",
+    "to": "MAZE5"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "MAZE5",
+    "to": "MAZE6"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE6",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZE7",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "MAZ15",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "act",
+    "verb": "say",
+    "id": "CYCLO",
+    "arg": "sinbad",
+    "room": "CYCLO-R",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "CYCLO-R",
+    "to": "TREAS-R"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "CHALI",
+    "arg": "",
+    "room": "TREAS-R",
+    "to": "TREAS-R"
+  },
+  {
+    "kind": "move",
+    "dir": "DOWN",
+    "room": "TREAS-R",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CYCLO-R",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "BLROO",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "deposit",
+    "id": "TROPH",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "LROOM",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "BLROO",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "CYCLO-R",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZ15",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MAZE7",
+    "to": "MAZE6"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "MAZE6",
+    "to": "MAZE9"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE9",
+    "to": "MAZ11"
+  },
+  {
+    "kind": "act",
+    "verb": "open",
+    "id": "GRATE",
+    "arg": "",
+    "room": "MAZ11",
+    "to": "MAZ11"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "MAZ11",
+    "to": "CLEAR"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CLEAR",
+    "to": "EHOUS"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "EHOUS",
+    "to": "KITCH"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "KITCH",
+    "to": "LROOM"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "LROOM",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "BLROO",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "CYCLO-R",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZ15",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "MAZE7",
+    "to": "DEAD1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "DEAD1",
+    "to": "MAZE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MAZE4",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MAZE1",
+    "to": "MTROL"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MTROL",
+    "to": "CELLA"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CELLA",
+    "to": "CHAS2"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CHAS2",
+    "to": "GALLE"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "PAINT",
+    "arg": "",
+    "room": "GALLE",
+    "to": "GALLE"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "GALLE",
+    "to": "CHAS2"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "CHAS2",
+    "to": "CELLA"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "CELLA",
+    "to": "MTROL"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MTROL",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZE1",
+    "to": "MAZE2"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE2",
+    "to": "MAZE3"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "MAZE3",
+    "to": "MAZE5"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "MAZE5",
+    "to": "MAZE6"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE6",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZE7",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "MAZ15",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CYCLO-R",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "BLROO",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "deposit",
+    "id": "TROPH",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "LROOM",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "BLROO",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "CYCLO-R",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZ15",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "MAZE7",
+    "to": "DEAD1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "DEAD1",
+    "to": "MAZE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MAZE4",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MAZE1",
+    "to": "MTROL"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MTROL",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "DOWN",
+    "room": "PASS1",
+    "to": "RAVI1"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "RAVI1",
+    "to": "CRAW1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "CRAW1",
+    "to": "DOME"
+  },
+  {
+    "kind": "act",
+    "verb": "tie",
+    "id": "RAIL",
+    "arg": "",
+    "room": "DOME",
+    "to": "DOME"
+  },
+  {
+    "kind": "move",
+    "dir": "DOWN",
+    "room": "DOME",
+    "to": "MTORC"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "TORCH",
+    "arg": "",
+    "room": "MTORC",
+    "to": "MTORC"
+  },
+  {
+    "kind": "move",
+    "dir": "DOWN",
+    "room": "MTORC",
+    "to": "CRAW4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "CRAW4",
+    "to": "MTROL"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MTROL",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NW",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NW",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NW",
+    "room": "CAROU",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MAZE1",
+    "to": "MTROL"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MTROL",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "CANY1",
+    "to": "DAM-R"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "DAM-R",
+    "to": "LOBBY"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "LOBBY",
+    "to": "MAINT"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "WRENC",
+    "arg": "",
+    "room": "MAINT",
+    "to": "MAINT"
+  },
+  {
+    "kind": "act",
+    "verb": "button",
+    "id": "BUTTO",
+    "arg": "yellow",
+    "room": "MAINT",
+    "to": "MAINT"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAINT",
+    "to": "LOBBY"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "LOBBY",
+    "to": "DAM-R"
+  },
+  {
+    "kind": "act",
+    "verb": "turn",
+    "id": "DAM",
+    "arg": "",
+    "room": "DAM-R",
+    "to": "DAM-R"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "DAM-R",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SE",
+    "room": "CANY1",
+    "to": "RESES"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "TRUNK",
+    "arg": "",
+    "room": "RESES",
+    "to": "RESES"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "RESES",
+    "to": "STREA"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "STREA",
+    "to": "ICY"
+  },
+  {
+    "kind": "act",
+    "verb": "throw",
+    "id": "ICE",
+    "arg": "",
+    "room": "ICY",
+    "to": "ICY"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "ICY",
+    "to": "RUBYR"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "RUBY",
+    "arg": "",
+    "room": "RUBYR",
+    "to": "RUBYR"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "RUBYR",
+    "to": "ICY"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "ICY",
+    "to": "STREA"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "TORCH",
+    "arg": "",
+    "room": "STREA",
+    "to": "STREA"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "STREA",
+    "to": "RESES"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "RESES",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS5"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "PASS5",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS5"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "PASS5",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS5"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "PASS5",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS5"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "PASS5",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS5"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "PASS5",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZE1",
+    "to": "MAZE2"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE2",
+    "to": "MAZE3"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "MAZE3",
+    "to": "MAZE5"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "MAZE5",
+    "to": "MAZE6"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE6",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZE7",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "MAZ15",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CYCLO-R",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "BLROO",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "deposit",
+    "id": "TROPH",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "drop",
+    "id": "WRENC",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "LROOM",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "BLROO",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "CYCLO-R",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZ15",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "MAZE7",
+    "to": "DEAD1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "DEAD1",
+    "to": "MAZE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MAZE4",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MAZE1",
+    "to": "MTROL"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MTROL",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "DOWN",
+    "room": "PASS1",
+    "to": "RAVI1"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "RAVI1",
+    "to": "CRAW1"
+  },
+  {
+    "kind": "move",
+    "dir": "NW",
+    "room": "CRAW1",
+    "to": "EGYPT"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "COFFI",
+    "arg": "",
+    "room": "EGYPT",
+    "to": "EGYPT"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "EGYPT",
+    "to": "ICY"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "ICY",
+    "to": "STREA"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "STREA",
+    "to": "RESES"
+  },
+  {
+    "kind": "move",
+    "dir": "CROSS",
+    "room": "RESES",
+    "to": "RESEN"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "RESEN",
+    "to": "ATLAN"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "TRIDE",
+    "arg": "",
+    "room": "ATLAN",
+    "to": "ATLAN"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "ATLAN",
+    "to": "CAVE1"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE1",
+    "to": "MIRR1"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MIRR1",
+    "to": "PASS3"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "PASS3",
+    "to": "SLIDE"
+  },
+  {
+    "kind": "move",
+    "dir": "DOWN",
+    "room": "SLIDE",
+    "to": "CELLA"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "CELLA",
+    "to": "MTROL"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MTROL",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZE1",
+    "to": "MAZE2"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE2",
+    "to": "MAZE3"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "MAZE3",
+    "to": "MAZE5"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "MAZE5",
+    "to": "MAZE6"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE6",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZE7",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "MAZ15",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CYCLO-R",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "BLROO",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "deposit",
+    "id": "TROPH",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "LROOM",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "BLROO",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "CYCLO-R",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZ15",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "MAZE7",
+    "to": "DEAD1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "DEAD1",
+    "to": "MAZE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MAZE4",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MAZE1",
+    "to": "MTROL"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MTROL",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAROU",
+    "to": "PASS5"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "PASS5",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAROU",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "SE",
+    "room": "CAVE4",
+    "to": "RIDDL"
+  },
+  {
+    "kind": "act",
+    "verb": "say",
+    "id": "RIDDLE",
+    "arg": "well",
+    "room": "RIDDL",
+    "to": "RIDDL"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "RIDDL",
+    "to": "MPEAR"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "PEARL",
+    "arg": "",
+    "room": "MPEAR",
+    "to": "MPEAR"
+  },
+  {
+    "kind": "move",
+    "dir": "EXIT",
+    "room": "MPEAR",
+    "to": "RIDDL"
+  },
+  {
+    "kind": "move",
+    "dir": "DOWN",
+    "room": "RIDDL",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "CANY1",
+    "to": "DAM-R"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "DAM-R",
+    "to": "CAVE3"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CAVE3",
+    "to": "ECHO"
+  },
+  {
+    "kind": "act",
+    "verb": "say",
+    "id": "VOICE",
+    "arg": "echo",
+    "room": "ECHO",
+    "to": "ECHO"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "BAR",
+    "arg": "",
+    "room": "ECHO",
+    "to": "ECHO"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "ECHO",
+    "to": "PASS5"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "PASS5",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS5"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "PASS5",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CANY1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CANY1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "CAVE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE4",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS4"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS4",
+    "to": "MIRR2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MIRR2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MGRAI",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "PASS5"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "PASS5",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CAROU",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZE1",
+    "to": "MAZE2"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE2",
+    "to": "MAZE3"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "MAZE3",
+    "to": "MAZE5"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "MAZE5",
+    "to": "MAZE6"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MAZE6",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZE7",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "MAZ15",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CYCLO-R",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "BLROO",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "deposit",
+    "id": "TROPH",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "LROOM",
+    "to": "BLROO"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "BLROO",
+    "to": "CYCLO-R"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "CYCLO-R",
+    "to": "MAZ15"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "MAZ15",
+    "to": "MAZE7"
+  },
+  {
+    "kind": "move",
+    "dir": "NE",
+    "room": "MAZE7",
+    "to": "DEAD1"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "DEAD1",
+    "to": "MAZE4"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MAZE4",
+    "to": "MAZE1"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "MAZE1",
+    "to": "MTROL"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "MTROL",
+    "to": "PASS1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "PASS1",
+    "to": "CAROU"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "CAROU",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "GRAIL",
+    "arg": "",
+    "room": "MGRAI",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "MGRAI",
+    "to": "TEMP1"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "BELL",
+    "arg": "",
+    "room": "TEMP1",
+    "to": "TEMP1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "TEMP1",
+    "to": "TEMP2"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "BOOK",
+    "arg": "",
+    "room": "TEMP2",
+    "to": "TEMP2"
+  },
+  {
+    "kind": "act",
+    "verb": "take",
+    "id": "CANDL",
+    "arg": "",
+    "room": "TEMP2",
+    "to": "TEMP2"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "TEMP2",
+    "to": "TEMP1"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "TEMP1",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "MGRAI",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "SOUTH",
+    "room": "CRAW3",
+    "to": "CAVE2"
+  },
+  {
+    "kind": "move",
+    "dir": "DOWN",
+    "room": "CAVE2",
+    "to": "LLD1"
+  },
+  {
+    "kind": "act",
+    "verb": "light",
+    "id": "CANDL",
+    "arg": "",
+    "room": "LLD1",
+    "to": "LLD1"
+  },
+  {
+    "kind": "act",
+    "verb": "exorcise",
+    "id": "GHOST",
+    "arg": "",
+    "room": "LLD1",
+    "to": "LLD1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "LLD1",
+    "to": "LLD2"
+  },
+  {
+    "kind": "move",
+    "dir": "EXIT",
+    "room": "LLD2",
+    "to": "LLD1"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "LLD1",
+    "to": "CAVE2"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CAVE2",
+    "to": "CRAW3"
+  },
+  {
+    "kind": "move",
+    "dir": "NORTH",
+    "room": "CRAW3",
+    "to": "MGRAI"
+  },
+  {
+    "kind": "move",
+    "dir": "UP",
+    "room": "MGRAI",
+    "to": "TEMP1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "TEMP1",
+    "to": "TEMP2"
+  },
+  {
+    "kind": "act",
+    "verb": "pray",
+    "id": "ALTAR",
+    "arg": "",
+    "room": "TEMP2",
+    "to": "FORE1"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "FORE1",
+    "to": "FORE3"
+  },
+  {
+    "kind": "move",
+    "dir": "EAST",
+    "room": "FORE3",
+    "to": "CLEAR"
+  },
+  {
+    "kind": "move",
+    "dir": "SW",
+    "room": "CLEAR",
+    "to": "EHOUS"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "EHOUS",
+    "to": "KITCH"
+  },
+  {
+    "kind": "move",
+    "dir": "WEST",
+    "room": "KITCH",
+    "to": "LROOM"
+  },
+  {
+    "kind": "act",
+    "verb": "deposit",
+    "id": "TROPH",
+    "arg": "",
+    "room": "LROOM",
+    "to": "LROOM"
+  }
+]

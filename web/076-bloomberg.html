@@ -140,10 +140,16 @@
     td.sym small{max-width:96px}
     .foot span.hide-s{display:none}
   }
+  @media (max-width:340px){
+    .bar{flex-wrap:wrap;gap:4px 8px}
+    .bar .sp{display:none}
+    .foot{white-space:normal;flex-wrap:wrap;gap:4px 10px}
+  }
   @media (prefers-reduced-motion:reduce){ .ticker .run{animation-duration:240s} }
 </style>
 </head>
 <body>
+<h1 style="position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">KESTREL TERMINAL — Market Monitor</h1>
 <div class="bar">
   <span class="logo">KESTREL</span>
   <span class="w">MARKET MONITOR</span><span class="hide-s">· MTE (MARE TRANQUILLITATIS EXCHANGE)</span>
