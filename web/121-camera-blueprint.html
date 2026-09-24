@@ -47,12 +47,12 @@ button,select,input,textarea{font:inherit;color:inherit}
 .tbtn[aria-pressed="true"]{background:var(--panel2);color:var(--cyan)}
 .scrub{position:relative;min-width:0}
 .shots{display:flex;height:22px;margin-bottom:4px}
-.shots button{position:relative;border:0;border-left:1px solid var(--rule);background:transparent;color:var(--mute);font-size:10px;letter-spacing:.12em;text-align:left;padding:0 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shots button{position:relative;border:0;border-left:1px solid var(--rule);background:transparent;color:var(--mute);font-size:11px;letter-spacing:.12em;text-align:left;padding:0 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shots button:hover{color:var(--line)}
 .shots button.on{color:var(--cyan);background:linear-gradient(#5fe3ff14,transparent)}
 input[type=range]{width:100%;margin:0;accent-color:var(--cyan);height:22px;cursor:pointer}
 .tc{font:500 13px var(--num);letter-spacing:.08em;text-align:right;white-space:nowrap}
-.tc small{display:block;font:10px var(--mono);color:var(--mute);letter-spacing:.1em}
+.tc small{display:block;font:11px var(--mono);color:var(--mute);letter-spacing:.1em}
 .hint{font-size:11px;color:var(--mute);letter-spacing:.04em;margin:2px 0 0}
 .hint kbd{font:inherit;border:1px solid var(--rule);padding:0 5px;border-radius:2px;color:var(--dim)}
 .panels{max-width:1480px;margin:22px auto 0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px}
@@ -62,9 +62,9 @@ input[type=range]{width:100%;margin:0;accent-color:var(--cyan);height:22px;curso
 .tbl{width:100%;overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:12px;min-width:560px}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #16305a;vertical-align:top;white-space:nowrap}
-th{font-weight:400;color:var(--mute);font-size:10px;letter-spacing:.16em}
+th{font-weight:400;color:var(--mute);font-size:11px;letter-spacing:.16em}
 td .zh{font-family:var(--cjk);font-size:13px}
-td .en{color:var(--dim);font-size:10px;letter-spacing:.12em;display:block}
+td .en{color:var(--dim);font-size:11px;letter-spacing:.12em;display:block}
 tr.live td{background:#5fe3ff0d}
 tr.live td:first-child{box-shadow:inset 2px 0 var(--cyan)}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
@@ -87,7 +87,8 @@ textarea{width:100%;min-height:340px;margin-top:10px;background:#061329;border:1
 @media (max-width:560px){
   .transport{grid-template-columns:1fr auto}
   .scrub{grid-column:1/-1;grid-row:1}
-  .shots button{font-size:9px;padding:0 3px;letter-spacing:.04em}
+  .shots{height:30px}
+  .shots button{font-size:11px;padding:0 4px;letter-spacing:.02em}
   .spec{display:none}
   .hint{display:none}
 }
@@ -195,7 +196,7 @@ const DEFAULT_SCENE = {
     sheet:{t0:0, dur:1.2},
     explodeOut:{start:12.4, stagger:2.0, dur:1.55, labelDelay:1.1, labelDur:0.85},
     explodeIn:{start:24.3, stagger:0.22, dur:1.25, labelOut:23.95, labelOutDur:0.45},
-    dims:{t0:27.8, stagger:0.3, dur:0.9}
+    dims:{t0:27.75, stagger:0.22, dur:0.75}
   },
   view:{pxPerMm:5.9},
   construct:[
@@ -766,6 +767,9 @@ function emitChrome(F, S, t, f, cam, shot, si){
   for (let i=1;i<4;i++){ const y=40+i*250; pushPath(F,[24,y,40,y],false,'thin',.6,ps); pushPath(F,[1880,y,1896,y],false,'thin',.6,ps); }
   const ta=smooth(.7,1.4,t);
   if (ta<=0) return;
+  // 圖框分區代號：上下為 1–8，左右為 D–A（與實際工程圖紙相同，由左下起算）
+  for (let i=0;i<8;i++){ const x=40+i*230+115; pushText(F,x,36,String(i+1),{s:10,f:'num',c:'mute',a:ta,al:'center'}); pushText(F,x,1052,String(i+1),{s:10,f:'num',c:'mute',a:ta,al:'center'}); }
+  for (let i=0;i<4;i++){ const y=40+i*250+125+4, L='DCBA'[i]; pushText(F,32,y,L,{s:10,f:'num',c:'mute',a:ta,al:'center'}); pushText(F,1888,y,L,{s:10,f:'num',c:'mute',a:ta,al:'center'}); }
   // 標題欄
   const X0=1380, X1=1880, Y0=944, Y1=1040, rows=[Y0, Y0+32, Y0+64, Y1];
   pushPath(F, [X0,Y1,X0,Y0,X1,Y0], false, 'line', ta, 1);
@@ -780,6 +784,16 @@ function emitChrome(F, S, t, f, cam, shot, si){
   cell(X0,Y0+64,'FRAME · TC',String(f).padStart(4,'0')+' · '+tc,{f:'num',s:14});
   cell(1560,Y0+64,'SCENE #','@@DIGEST@@',{c:'cyan',f:'num',s:14});
   cell(1720,Y0+64,'RATE',T.fps+' FPS · 1/'+T.fps+' s',{f:'num',s:14});
+  // 第三角投影符號＋單位（標題欄左側的獨立小格）
+  const PX=1270, PY=Y0+32;
+  pushPath(F,[X0,PY,PX,PY,PX,Y1],false,'thin',ta,1);
+  pushText(F,PX+8,PY+11,'PROJ. · UNIT',{s:8.5,c:'mute',a:ta,ls:1.6});
+  const cy0=PY+42, cx0=PX+24;
+  pushPath(F,[cx0-14,cy0-7,cx0+2,cy0-11,cx0+2,cy0+11,cx0-14,cy0+7],true,'line',ta,1);
+  pushPath(F,[cx0-18,cy0,cx0+6,cy0],false,'thin',ta,1,'center');
+  const ring=(r)=>{ const c=[]; for (let i=0;i<=28;i++){ const a=i/28*Math.PI*2; c.push(cx0+34+r*Math.cos(a), cy0+r*Math.sin(a)); } return c; };
+  pushPath(F,ring(11),false,'line',ta,1); pushPath(F,ring(5),false,'line',ta,1);
+  pushText(F,X0-8,cy0+5,'mm',{s:13,f:'num',a:ta,al:'right'});
   // 左上鏡頭字卡
   const sq=win(t, shot.t0+(si===0?.8:0), .7);
   pushText(F, 72, 132, shot.code, {s:64, f:'num', c:'cyan', a:ta*.95, wt:300});
@@ -1076,7 +1090,7 @@ sizeCanvas();
   const start=()=>{
     if (f!=null) setFrame(+f);
     else if (t!=null) setFrame(+t*SCENE.timeline.fps);
-    else { setFrame(0); if (!matchMedia('(prefers-reduced-motion: reduce)').matches && !q.has('still')) play(); else setFrame(Math.round(29*SCENE.timeline.fps)); }
+    else { setFrame(0); if (!matchMedia('(prefers-reduced-motion: reduce)').matches && !q.has('still')) play(); else setFrame(C.frames-1); }
   };
   (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(start);
 })();

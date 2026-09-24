@@ -818,7 +818,7 @@ function updCamera(dt){phi=damp(phi,phiT,8,dt);const dx=-Math.sin(phi),dz=-Math.
   camera.position.set(P.lp.x*.5-dx*9.4,P.lp.y*.5+3.1,P.lp.z*.5-dz*9.4);_v2.set(camera.position.x+dx*30,camera.position.y-.9,camera.position.z+dz*30);
   _m.lookAt(camera.position,_v2,UP);camera.quaternion.setFromRotationMatrix(_m);
   camera.rotateZ(clamp(-railK*speedNow*.9,-.12,.12)*Math.cos(phi)-P.vel.x*.004);
-  if(shake>0){camera.position.x+=(rnd()-.5)*shake*.7;camera.position.y+=(rnd()-.5)*shake*.7;shake=Math.max(0,shake-dt*2.4)}
+  if(shake>0){const sk=shake*(RMQ.matches?.12:.7);camera.position.x+=(rnd()-.5)*sk;camera.position.y+=(rnd()-.5)*sk;shake=Math.max(0,shake-dt*2.4)}
   camera.updateMatrixWorld();camLocal.copy(camera.position);camera.getWorldPosition(camW)}
 const aimPoint=new V3();
 function updAim(){raycaster.setFromCamera({x:ret.x/W*2-1,y:-(ret.y/H)*2+1},camera);aimPoint.copy(raycaster.ray.direction).multiplyScalar(160).add(raycaster.ray.origin);railSpace.worldToLocal(aimPoint)}
@@ -865,6 +865,7 @@ function updBullets(dt){const pl=P.lp;for(let i=0;i<BUL.n;){BUL.L[i]-=dt;const i
 
 /* ---------- HUD：簡潔科幻線框 ---------- */
 const FONT='Bahnschrift,"DIN Alternate","Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif';
+const RMQ=matchMedia('(prefers-reduced-motion: reduce)');
 const LINE='rgba(242,252,248,.94)',DIM='rgba(242,236,220,.7)',CY='#9af5ec',AM='#ffbf6b',RD='#ff5b3d';
 const msgs={banner:null,hint:null,pops:[]};
 function banner(top,main,sub,warn=false){msgs.banner={top,main,sub,warn,t:0}}
@@ -873,8 +874,9 @@ function popup(lp,text){const w=lp.clone();railSpace.localToWorld(w);msgs.pops.p
 function popupScreen(text){msgs.pops.push({sx:W/2,sy:H*.62,text,t:0,big:true})}
 function txt(g,s,x,y,size,col,weight=500,align='left',ls=0){g.font=`${weight} ${size}px ${FONT}`;g.fillStyle=col;g.textAlign=align;if('letterSpacing'in g)g.letterSpacing=ls+'px';g.fillText(s,x,y)}
 function drawHUD(dt){const g=hud,u=UI;g.setTransform(DPR,0,0,DPR,0,0);g.clearRect(0,0,W,H);
-  if(flashT>0){g.fillStyle=`rgba(255,238,210,${flashT*.85})`;g.fillRect(0,0,W,H)}
+  if(flashT>0){g.fillStyle=`rgba(255,238,210,${flashT*(RMQ.matches?.3:.85)})`;g.fillRect(0,0,W,H)}
   if(state!=='play'&&state!=='paused')return;
+  {const sh=g.createLinearGradient(0,0,0,96*u);sh.addColorStop(0,'rgba(40,14,6,.38)');sh.addColorStop(1,'rgba(40,14,6,0)');g.fillStyle=sh;g.fillRect(0,0,W,96*u)}
   g.textBaseline='middle';g.lineJoin='round';g.shadowColor='rgba(46,14,4,.6)';g.shadowBlur=5;
   if(dmgFlash>0){const gr=g.createRadialGradient(W/2,H/2,Math.min(W,H)*.28,W/2,H/2,Math.max(W,H)*.75);gr.addColorStop(0,'rgba(255,50,20,0)');gr.addColorStop(1,`rgba(255,50,20,${.5*dmgFlash})`);g.fillStyle=gr;g.fillRect(0,0,W,H)}
   const pad=20*u;

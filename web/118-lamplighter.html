@@ -312,6 +312,8 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
   var note=document.getElementById('bootNote');
   try{var c=document.createElement('canvas');if(!(c.getContext('webgl2')||c.getContext('webgl'))){note.textContent='這台裝置或瀏覽器沒有啟用 WebGL，無法執行 3D 遊戲。';window.__lampNoGL=true}}catch(e){}
   setTimeout(function(){if(!window.__lampReady&&!window.__lampNoGL){note.textContent='Three.js 仍在載入。若一直停在這裡，請確認網路可以連到 cdn.jsdelivr.net 後重新整理。'}},15000);
+  // 模組（含 Three.js 附加模組）在 load 事件前就會執行完；此時仍未就緒且沒有其他錯誤訊息，代表 CDN 載入失敗
+  addEventListener('load',function(){if(!window.__lampReady&&!window.__lampNoGL&&!note.textContent){note.textContent='無法從 cdn.jsdelivr.net 載入 Three.js，請確認網路連線後重新整理。'}});
 })();
 </script>
 
@@ -1721,8 +1723,13 @@ function updateCamera(dt, t) {
     Cam.trauma = Math.max(0, Cam.trauma - dt * 1.9);
   }
   Cam.fovKick = damp(Cam.fovKick, 0, 5, dt);
-  const fov = 56 + (reducedMotion ? 0 : Cam.fovKick);
+  const fov = baseFov() + (reducedMotion ? 0 : Cam.fovKick);
   if (Math.abs(camera.fov - fov) > .01) { camera.fov = fov; camera.updateProjectionMatrix(); }
+}
+// 直式手機的水平視角只有約 28°，看不到前方的路：放寬垂直 FOV，讓水平視角至少約 40°（上限 70°）
+function baseFov() {
+  const a = innerWidth / Math.max(1, innerHeight);
+  return a >= 1 ? 56 : clamp(2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(20)) / a)), 56, 70);
 }
 // 標題畫面：緩慢環繞主角的展示鏡頭（構圖對齊規格 B：主角在左下、月門與月亮在遠方）
 function titleCamera(t) {
@@ -2262,7 +2269,7 @@ function startGame() {
   $('toast').classList.remove('show');
   canvas.focus({ preventScroll: true });
   if (camera.view && camera.view.enabled) camera.clearViewOffset();
-  camera.fov = 56; camera.updateProjectionMatrix();
+  camera.fov = baseFov(); camera.updateProjectionMatrix();
 }
 function pauseGame() {
   if (G.state !== 'playing') return;

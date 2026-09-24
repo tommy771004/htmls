@@ -34,12 +34,13 @@
 const CONFIG={buildingDensity:.82,windowLightRatio:.34,cameraElevation:34,cameraAzimuth:42};
 let THREE;
 try{THREE=await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js')}
-catch(error){document.getElementById('loading').remove();document.getElementById('error').hidden=false;throw error}
+catch(e){try{THREE=await import('../vendor/three-0.186.0/three.module.js')}
+catch(error){document.getElementById('loading').remove();document.getElementById('error').hidden=false;throw error}}
 const canvas=document.getElementById('scene');
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'})}
 catch(error){document.getElementById('loading').remove();document.getElementById('error').hidden=false;throw error}
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.45;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.45;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x11171c);scene.fog=new THREE.FogExp2(0x11171c,.011);
 const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,130);
 const ambient=new THREE.HemisphereLight(0xc9def0,0x34432d,1.5);scene.add(ambient);
@@ -76,31 +77,52 @@ for(let i=0;i<2;i++){const meshes=windowMatrices[i];const windows=new THREE.Inst
 // Sparse street trees keep intersections legible.
 for(let x=-8;x<=8;x+=2)for(let z=-8;z<=8;z+=2)if(!reserved(x,z)&&rand((x+11)*97+z)> .77)tree(x+.6,z+.6,.14);
 // Taipei 101: tapering bamboo sections, corner fins and the long spire.
-function taipei101(){const g=new THREE.Group();g.position.set(5.5,0,-3.7);scene.add(g);box(g,m.walk,0,.4,0,3.1,.13,3.1);box(g,m.ink,0,.59,0,1.45,.3,1.45);for(let i=0;i<8;i++){const y=.83+i*.65,scale=1.18-i*.043;box(g,m.tealDark,0,y+.26,0,scale,.52,scale);box(g,m.teal,0,y+.27,0,scale*.9,.44,scale*.9);box(g,m.gold,0,y+.57,0,scale+ .12,.075,scale+.12);for(const sx of [-1,1])for(const sz of [-1,1])box(g,m.tealDark,sx*scale*.43,y+.27,sz*scale*.43,.09,.55,.09)}box(g,m.ink,0,6.16,0,.76,.32,.76);box(g,m.teal,0,6.45,0,.58,.35,.58);cylinder(g,m.gold,0,6.82,0,.23,.3,.48,8);cylinder(g,m.ink,0,7.35,0,.09,.13,.7,8);cone(g,m.gold,0,7.78,0,.15,.38,8);plaque('台北 101',5.5,-1.76,2.2)}
+function frustum(parent,material,x,y,z,bottom,top,height){const o=cylinder(parent,material,x,y,z,top/Math.SQRT2,bottom/Math.SQRT2,height,4);o.rotation.y=Math.PI/4;return o}
+function taipei101(){const g=new THREE.Group();g.position.set(5.5,0,-3.7);scene.add(g);box(g,m.walk,0,.4,0,3.1,.13,3.1);box(g,m.ink,-1.05,.56,.55,.9,.24,1.5);frustum(g,m.tealDark,0,.61,0,1.5,1.2,.4);
+  // Eight 8-floor modules that each flare outward toward the top, like stacked bamboo joints / 斗.
+  for(let i=0;i<8;i++){const y=.83+i*.65,scale=1.18-i*.043;frustum(g,m.tealDark,0,y+.27,0,scale*.84,scale*1.02,.54);frustum(g,m.teal,0,y+.27,0,scale*.76,scale*.93,.46);box(g,m.gold,0,y+.57,0,scale+.1,.075,scale+.1);for(const sx of [-1,1])for(const sz of [-1,1]){const f=box(g,m.tealDark,sx*scale*.42,y+.27,sz*scale*.42,.08,.55,.08);f.rotation.set(sz*.1,0,-sx*.1)}
+    if(i===0)for(const sx of [-1,1])for(const sz of [-1,1])cylinder(g,m.gold,sx*scale*.52,y+.08,sz*scale*.52,.07,.07,.02,10)}box(g,m.ink,0,6.16,0,.76,.32,.76);box(g,m.teal,0,6.45,0,.58,.35,.58);cylinder(g,m.gold,0,6.82,0,.23,.3,.48,8);cylinder(g,m.ink,0,7.35,0,.09,.13,.7,8);cone(g,m.gold,0,7.78,0,.15,.38,8);plaque('台北 101',5.5,-1.76,2.2)}
 taipei101();
 // Chiang Kai-shek Memorial Hall: axial forecourt, octagonal blue roof, paired halls.
 function roof(parent,material,x,y,z,r,h,segments=4){cone(parent,material,x,y,z,r,h,segments,segments===4?Math.PI/4:Math.PI/8)}
 function cks(){const g=new THREE.Group();g.position.set(-5,0,4.15);scene.add(g);box(g,m.walk,0,.38,0,5.65,.13,5.3);box(g,m.sand,0,.465,.85,4.9,.03,3.25,false);for(let z=.2;z<=2.05;z+=.36)box(g,m.lane,0,.485,z,2.2,.013,.028,false);
   box(g,m.stone,0,.57,-1.23,2.45,.25,2.1);for(let i=0;i<4;i++)box(g,m.white,0,.735+i*.11,-.32+i*.17,2.1-i*.17,.09,1.03-i*.12);box(g,m.white,0,1.55,-1.23,1.76,1.62,1.5);for(const x of [-.7,.7])for(const z of [-1.88,-.58])cylinder(g,m.white,x,1.4,z,.08,.08,1.25,8);box(g,m.blueDark,0,2.44,-1.23,2.45,.15,2.28);roof(g,m.blue,0,2.88,-1.23,1.65,.77,8);roof(g,m.blueDark,0,3.07,-1.23,1.02,.34,8);cone(g,m.gold,0,3.28,-1.23,.09,.22,8);
-  for(const side of [-1,1]){const x=side*1.9;box(g,m.stone,x,.59,.28,1.53,.37,1.47);for(const xx of [-.51,0,.51])box(g,m.white,x+xx,.92,.75,.12,.58,.12);box(g,m.orange,x,1.31,.28,1.85,.11,1.76);roof(g,m.orange,x,1.71,.28,1.43,.72,4);box(g,m.gold,x,1.43,.28,1.9,.05,1.82)}for(const x of [-2.55,2.55])for(const z of [-1.4,-.4,.6,1.55])tree(-5+x,4.15+z,.17);plaque('中正紀念堂',-5,7.02,2.55)}
+  for(const side of [-1,1]){const x=side*1.9;box(g,m.stone,x,.59,.28,1.53,.37,1.47);for(const xx of [-.51,0,.51])box(g,m.white,x+xx,.92,.75,.12,.58,.12);box(g,m.orange,x,1.31,.28,1.85,.11,1.76);roof(g,m.orange,x,1.71,.28,1.43,.72,4);box(g,m.gold,x,1.43,.28,1.9,.05,1.82)}for(const x of [-2.55,2.55])for(const z of [-1.4,-.4,.6,1.55])tree(-5+x,4.15+z,.17);
+  // Liberty Square gate (自由廣場牌樓): white five-arch gateway with a blue double roof at the front of the plaza.
+  box(g,m.white,0,.72,2.38,2.7,.58,.26);for(const [x,w,h] of [[-1.05,.26,.3],[-.53,.28,.36],[0,.38,.44],[.53,.28,.36],[1.05,.26,.3]])box(g,m.ink,x,.44+h/2+.02,2.38,w,h,.28,false);
+  box(g,m.blueDark,0,1.05,2.38,2.95,.07,.44);box(g,m.blue,0,1.12,2.38,2.6,.1,.36);box(g,m.blueDark,0,1.22,2.38,1.3,.07,.4);box(g,m.blue,0,1.29,2.38,1.1,.1,.32);box(g,m.gold,0,1.36,2.38,1.0,.03,.05,false);
+  plaque('中正紀念堂',-5,7.02,2.55)}
 cks();
 // Sun Yat-sen Memorial Hall: broad golden eaves, reflecting pool and lawn.
-function sys(){const g=new THREE.Group();g.position.set(3.35,0,4.15);scene.add(g);box(g,m.walk,0,.39,0,5.25,.13,5.25);box(g,m.grass,0,.47,1.13,4.7,.045,2.52);box(g,m.water,0,.5,1.46,2.8,.026,.7);box(g,m.waterLight,0,.519,1.46,2.48,.006,.018,false);box(g,m.stone,0,.59,-.62,3.65,.25,2.67);box(g,m.white,0,1.13,-.62,2.95,.92,2.07);for(const x of [-1.25,-.62,0,.62,1.25])box(g,m.stone,x,1.08,.47,.1,.82,.15);box(g,m.ink,0,1.33,.46,.47,.5,.02);box(g,m.gold,0,1.67,-.62,3.82,.12,2.82);roof(g,m.gold,0,2.23,-.62,2.64,1.04,4);box(g,m.orange,0,1.78,-.62,3.95,.09,2.95);for(const x of [-2.18,2.18])for(const z of [-1.5,-.5,.6,1.85])tree(3.35+x,4.15+z,.17);plaque('國父紀念館',3.35,7.1,2.55)}
+function sys(){const g=new THREE.Group();g.position.set(3.35,0,4.15);scene.add(g);box(g,m.walk,0,.39,0,5.25,.13,5.25);box(g,m.grass,0,.47,1.13,4.7,.045,2.52);box(g,m.water,0,.5,1.46,2.8,.026,.7);box(g,m.waterLight,0,.519,1.46,2.48,.006,.018,false);box(g,m.stone,0,.59,-.62,3.65,.25,2.67);box(g,m.white,0,1.13,-.62,2.95,.92,2.07);for(const x of [-1.25,-.62,0,.62,1.25])box(g,m.stone,x,1.08,.47,.1,.82,.15);box(g,m.ink,0,1.33,.46,.47,.5,.02);box(g,m.gold,0,1.67,-.62,3.82,.12,2.82);roof(g,m.gold,0,2.23,-.62,2.64,1.04,4);box(g,m.orange,0,1.78,-.62,3.95,.09,2.95);
+  // The hall's signature: eave corners sweep upward (翹角).
+  for(const sx of [-1,1])for(const sz of [-1,1]){const c=cone(g,m.orange,sx*1.98,1.93,-.62+sz*1.46,.13,.56,4);c.rotation.set(sz*.8,0,-sx*.8)}for(const x of [-2.18,2.18])for(const z of [-1.5,-.5,.6,1.85])tree(3.35+x,4.15+z,.17);plaque('國父紀念館',3.35,7.1,2.55)}
 sys();
 // Small lamp posts mark the promenade without adding large light sources.
 for(const [x,z] of [[-8,0],[-6,0],[-4,0],[0,-8],[2,-8],[4,-8],[8,0],[8,2]]){cylinder(scene,m.ink,x,.55,z,.025,.032,.4,6);box(scene,m.warm,x,.77,z,.1,.09,.1,false)}
 // Damped orbit, zoom and landmark focus. Default view keeps all three districts in frame.
 const focus=new THREE.Vector3(0,.9,0),targetFocus=new THREE.Vector3(0,.9,0);const homeDistance=()=>Math.max(31,31/camera.aspect);let yaw=THREE.MathUtils.degToRad(CONFIG.cameraAzimuth),pitch=THREE.MathUtils.degToRad(CONFIG.cameraElevation),distance=homeDistance(),targetYaw=yaw,targetPitch=pitch,targetDistance=distance;
 function positionCamera(){const cp=Math.cos(pitch);camera.position.set(focus.x+Math.sin(yaw)*cp*distance,focus.y+Math.sin(pitch)*distance,focus.z+Math.cos(yaw)*cp*distance);camera.lookAt(focus)}
-let dragging=false,px=0,py=0;
-canvas.addEventListener('pointerdown',e=>{dragging=true;px=e.clientX;py=e.clientY;canvas.classList.add('dragging');canvas.setPointerCapture(e.pointerId)});
-canvas.addEventListener('pointermove',e=>{if(!dragging)return;targetYaw+=(e.clientX-px)*.003;targetPitch=THREE.MathUtils.clamp(targetPitch-(e.clientY-py)*.003,THREE.MathUtils.degToRad(18),THREE.MathUtils.degToRad(70));px=e.clientX;py=e.clientY});
-function stopDrag(){dragging=false;canvas.classList.remove('dragging')}canvas.addEventListener('pointerup',stopDrag);canvas.addEventListener('pointercancel',stopDrag);
-canvas.addEventListener('wheel',e=>{e.preventDefault();targetDistance=THREE.MathUtils.clamp(targetDistance+e.deltaY*.018,18,82)},{passive:false});
-document.querySelectorAll('[data-place]').forEach(button=>button.addEventListener('click',()=>{const p=button.dataset.place;const point=p==='101'?[5.5,1.5,-3.7]:p==='cks'?[-5,1,4.15]:[3.35,1,4.15];targetFocus.set(...point);targetDistance=Math.max(21,homeDistance()*.62);snap=reduced}));
-canvas.addEventListener('dblclick',()=>{targetFocus.set(0,.9,0);targetDistance=homeDistance();snap=reduced});
-window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();targetDistance=homeDistance();renderer.setSize(innerWidth,innerHeight)});
-let first=true,last=performance.now(),snap=false;const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;function animate(now=performance.now()){requestAnimationFrame(animate);const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;const k=snap?1:1-Math.exp(-5.66*dt);snap=false;yaw+=(targetYaw-yaw)*k;pitch+=(targetPitch-pitch)*k;distance+=(targetDistance-distance)*k;focus.lerp(targetFocus,k);positionCamera();renderer.render(scene,camera);if(first){document.getElementById('loading').remove();first=false}}animate();
+let dragging=false,px=0,py=0;const touches=new Map();let pinch=0;
+const spread=()=>{const [a,b]=[...touches.values()];return Math.hypot(a.x-b.x,a.y-b.y)};
+canvas.addEventListener('pointerdown',e=>{touches.set(e.pointerId,{x:e.clientX,y:e.clientY});if(touches.size===2){pinch=spread();dragging=false;return}dragging=true;px=e.clientX;py=e.clientY;canvas.classList.add('dragging');canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{if(touches.has(e.pointerId))touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  // Two-finger pinch zooms on touch screens (the wheel handles desktop).
+  if(touches.size===2){const d=spread();if(pinch>0&&d>0)targetDistance=THREE.MathUtils.clamp(targetDistance*pinch/d,18,82);pinch=d;wake();return}
+  if(!dragging)return;wake();targetYaw+=(e.clientX-px)*.003;targetPitch=THREE.MathUtils.clamp(targetPitch-(e.clientY-py)*.003,THREE.MathUtils.degToRad(18),THREE.MathUtils.degToRad(70));px=e.clientX;py=e.clientY});
+function stopDrag(e){touches.delete(e.pointerId);if(touches.size<2)pinch=0;if(touches.size===1){const [t]=touches.values();px=t.x;py=t.y;dragging=true;return}dragging=false;canvas.classList.remove('dragging')}canvas.addEventListener('pointerup',stopDrag);canvas.addEventListener('pointercancel',stopDrag);
+canvas.addEventListener('wheel',e=>{e.preventDefault();targetDistance=THREE.MathUtils.clamp(targetDistance+e.deltaY*.018,18,82);wake()},{passive:false});
+document.querySelectorAll('[data-place]').forEach(button=>button.addEventListener('click',()=>{const p=button.dataset.place;const point=p==='101'?[5.5,1.5,-3.7]:p==='cks'?[-5,1,4.15]:[3.35,1,4.15];targetFocus.set(...point);targetDistance=Math.max(21,homeDistance()*.62);snap=reduced;wake()}));
+canvas.addEventListener('dblclick',()=>{targetFocus.set(0,.9,0);targetDistance=homeDistance();snap=reduced;wake()});
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();targetDistance=homeDistance();renderer.setSize(innerWidth,innerHeight);wake()});
+// The scene is static, so frames are drawn only while the camera is still easing; the loop sleeps otherwise.
+let first=true,last=performance.now(),snap=false,running=false;const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function wake(){if(running||document.hidden)return;running=true;last=performance.now();requestAnimationFrame(animate)}
+function animate(now=performance.now()){const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;const k=snap?1:1-Math.exp(-5.66*dt);snap=false;yaw+=(targetYaw-yaw)*k;pitch+=(targetPitch-pitch)*k;distance+=(targetDistance-distance)*k;focus.lerp(targetFocus,k);positionCamera();renderer.render(scene,camera);if(first){document.getElementById('loading').remove();first=false}
+  const settled=Math.abs(targetYaw-yaw)<1e-4&&Math.abs(targetPitch-pitch)<1e-4&&Math.abs(targetDistance-distance)<1e-3&&focus.distanceToSquared(targetFocus)<1e-6;
+  if(settled||document.hidden){running=false;return}requestAnimationFrame(animate)}
+document.addEventListener('visibilitychange',wake);
+running=true;requestAnimationFrame(animate);
 </script>
 </body>
 </html>

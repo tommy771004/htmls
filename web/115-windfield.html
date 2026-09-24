@@ -18,12 +18,11 @@ actual frame rate depends on the device and browser.
     .grain{position:fixed;inset:0;pointer-events:none;opacity:.1;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.3'/%3E%3C/svg%3E")}
     .top,.bottom{position:fixed;left:clamp(20px,4vw,68px);right:clamp(20px,4vw,68px);display:flex;justify-content:space-between;gap:20px;pointer-events:none}.top{top:clamp(20px,4vw,48px);align-items:flex-start}.bottom{bottom:clamp(20px,4vw,42px);align-items:flex-end;color:var(--milk);text-shadow:0 1px 2px rgba(18,32,24,.6),0 0 16px rgba(18,32,24,.5)}.top>* ,.bottom>*{pointer-events:auto}
     .eyebrow,.micro,.control-label{font-family:ui-sans-serif,system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.24em;text-transform:uppercase}.eyebrow{margin:0 0 13px;display:flex;align-items:center;gap:10px}.eyebrow:before{content:"";width:30px;height:1px;background:currentColor}h1{font-size:clamp(35px,5vw,76px);font-weight:400;line-height:1.08;letter-spacing:-.055em;margin:0;text-shadow:0 1px 20px rgba(247,243,219,.55)}h1 em{font-style:italic;font-weight:400}.subtitle{font-size:clamp(12px,1.2vw,15px);letter-spacing:.09em;line-height:1.8;margin:17px 0 0;max-width:430px;text-shadow:0 1px 14px rgba(247,243,219,.75)}
-    .panel{width:222px;padding:17px 19px;border:1px solid rgba(38,60,50,.2);background:var(--glass);backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px);box-shadow:0 8px 30px rgba(35,59,45,.06)}.panel-title{font-family:ui-sans-serif,system-ui,sans-serif;font-size:10px;letter-spacing:.2em;font-weight:700;margin:0 0 18px;display:flex;justify-content:space-between}.panel-title span{opacity:.5}.control{display:block;margin:12px 0}.control-label{display:flex;justify-content:space-between;letter-spacing:.13em}.control-label output{letter-spacing:0;font-weight:500}input[type=range]{display:block;width:100%;height:18px;margin:5px 0 0;accent-color:#697e59;cursor:pointer}
+    .panel{width:222px;padding:17px 19px;border:1px solid rgba(38,60,50,.2);background:var(--glass);backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px);box-shadow:0 8px 30px rgba(35,59,45,.06)}.panel-title{font-family:ui-sans-serif,system-ui,sans-serif;font-size:10px;letter-spacing:.2em;font-weight:700;margin:0 0 18px;display:flex;justify-content:space-between}.panel-title span{opacity:.5}.control{display:block;margin:12px 0}.control-label{display:flex;justify-content:space-between;letter-spacing:.13em}.control-label output{letter-spacing:0;font-weight:500}input[type=range]{display:block;width:100%;height:24px;margin:2px 0 -3px;accent-color:#697e59;cursor:pointer}
     .note{display:flex;flex-direction:column;gap:9px}.note .micro{font-size:10px}.note .serif{font-size:14px;letter-spacing:.04em}.divider{display:inline-block;height:1px;width:38px;background:currentColor;opacity:.5;margin:4px 0}.readout{text-align:right}.readout strong{display:block;font-size:clamp(26px,3.5vw,49px);font-weight:400;line-height:1;letter-spacing:-.065em}.readout small{font-family:ui-sans-serif,system-ui,sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase}.readout .line{display:block;width:100%;height:1px;background:currentColor;opacity:.3;margin:11px 0}.hint{margin-top:7px;font-size:12px;letter-spacing:.06em}
     .error{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(400px,calc(100% - 40px));padding:22px;text-align:center;background:var(--milk);border:1px solid #8f9a8c;line-height:1.7;display:none}.error.visible{display:block}
     @media(max-width:700px){.top,.bottom{left:18px;right:18px}.top{top:20px}.bottom{bottom:22px}.panel{width:min(180px,44vw);padding:12px}.panel-title{margin-bottom:8px}.subtitle{max-width:190px}.control{margin:6px 0}.eyebrow{font-size:9px;letter-spacing:.14em}.note .serif,.hint{font-size:11px}.readout strong{font-size:25px}}@media(max-width:470px){h1{font-size:35px}.panel{width:150px}.subtitle{display:none}.note .serif{max-width:160px}.readout .line{margin:7px 0}}@media(prefers-reduced-motion:reduce){#flare{transition:none}}
   </style>
-  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
 </head>
 <body>
   <canvas id="scene" aria-label="隨風擺動的互動草原"></canvas><div id="flare"></div><div class="grain"></div>
@@ -39,7 +38,9 @@ actual frame rate depends on the device and browser.
   <footer class="bottom"><div class="note"><span class="micro">An open field · rendered in real time</span><span class="divider"></span><span class="serif">滑鼠移動視角 · 滾輪前進 · 閒置時巡遊</span></div><div class="readout"><strong id="blade-count">120,000</strong><small>individual blades</small><span class="line"></span><div class="hint" id="travel">漫遊中 · 0 m</div></div></footer>
   <div class="error" id="error" role="alert">此頁需要支援 WebGL2 的瀏覽器與網路連線，才能載入 Three.js 並呈現草原。</div>
   <script type="module">
-    import * as THREE from 'three';
+    let THREE;
+    try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); }
+    catch { try { THREE = await import('../vendor/three-0.186.0/three.module.js'); } catch (cause) { document.getElementById('error').classList.add('visible'); throw cause; } }
 
     const CONFIG = Object.freeze({ GRASS_COUNT:120000, WIND_STRENGTH:0.85, SUN_AZIMUTH_DEG:44, SUN_ELEVATION_DEG:24, MAX_PIXEL_RATIO:1.25 });
     const canvas = document.getElementById('scene');
@@ -91,6 +92,9 @@ actual frame rate depends on the device and browser.
           float fine=noise(base.xz*.21-vec2(uTime*.29,uTime*.17));
           float front=smoothstep(.35,.72,broad);
           float wave=(broad*.65+fine*.35-.42)*(.45+front*.75);
+          // Real blades arch under their own weight: a per-blade static lean along the blade's face normal.
+          vec3 facing=(modelMatrix*instanceMatrix*vec4(0.,0.,1.,0.)).xyz;float tall=length((instanceMatrix*vec4(0.,1.,0.,0.)).xyz);
+          float lean=(.12+.3*hash(base.xz*.71))*tall;wp.xz+=normalize(facing.xz+1e-4)*lean*bladeHeight*bladeHeight;wp.y-=lean*.35*bladeHeight*bladeHeight;
           wp.xz+=vec2(.76,.48)*wave*uWind*pow(bladeHeight,1.7)*.45;
           vHeight=bladeHeight;vSeed=hash(base.xz*.137);vDistance=distance(uCamera.xz,base.xz);
           vWorld=wp.xyz;vWave=wave;vFacing=dot(normalize(vec3(.76,0.,.48)),normalize(uCamera-base));
@@ -104,6 +108,7 @@ actual frame rate depends on the device and browser.
           vec3 root=vec3(.095,.20,.09), tip=vec3(.67,.70,.29);
           vec3 color=mix(root,tip,pow(vHeight,.83));
           color*=.84+.3*vSeed+.12*vWave;
+          float dry=step(.9,fract(vSeed*7.31));color=mix(color,vec3(.62,.56,.34)*(.55+.45*vHeight),dry*.65);
           float back=max(0.,dot(normalize(uSun),normalize(uCamera-vWorld)));
           float transmit=pow(back,3.)*(.21+.45*vHeight);
           color+=vec3(.25,.29,.045)*transmit;
@@ -122,7 +127,7 @@ actual frame rate depends on the device and browser.
       let x=(rand(i,1)-.5)*132,z=(rand(i,2)-.5)*160-25;
       // An additional near-camera belt keeps close blades dense without extending GPU cost to the horizon.
       if(i<CONFIG.GRASS_COUNT*.35){x=(rand(i,3)-.5)*38;z=(rand(i,4)-.5)*88-20;}
-      const h=.44+rand(i,5)*.62, w=.055+rand(i,6)*.065;
+      const h=.44+rand(i,5)*.62, w=.045+rand(i,6)*.055;
       dummy.position.set(x,terrainHeight(x,z)-.015,z);
       dummy.rotation.set(0,rand(i,7)*Math.PI*2,0);
       dummy.scale.set(w,h,1);dummy.updateMatrix();grass.setMatrixAt(i,dummy.matrix);
@@ -231,7 +236,7 @@ actual frame rate depends on the device and browser.
       state.yaw+= (state.targetYaw-state.yaw)*k;state.pitch+=(state.targetPitch-state.pitch)*k;state.dolly+=(state.targetDolly-state.dolly)*k;
       const x=Math.sin(state.dolly*.021)*.55,z=9-state.dolly;
       camera.position.set(x,terrainHeight(x,z)+1.05,z);
-      const dir=new THREE.Vector3(Math.sin(state.yaw)*Math.cos(state.pitch),Math.sin(state.pitch),-Math.cos(state.yaw)*Math.cos(state.pitch));
+      const pitch=state.pitch+(camera.aspect<.8?-.13:0),dir=new THREE.Vector3(Math.sin(state.yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(state.yaw)*Math.cos(pitch));
       camera.lookAt(camera.position.clone().add(dir));sky.position.copy(camera.position);
       grassUniforms.uTime.value=elapsed;groundUniforms.uTime.value=elapsed;
       grassUniforms.uCamera.value.copy(camera.position);groundUniforms.uCamera.value.copy(camera.position);
