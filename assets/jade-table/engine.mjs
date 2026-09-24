@@ -11,6 +11,7 @@ export const TAI_TABLE = [
   ['小／大三元', '4／8', '兩龍刻一龍將／三龍刻；不重複三元台'], ['小／大四喜', '8／16', '三風刻一風將／四風刻；大四喜不計門圈風'], ['槓上開花', 1, '暗槓、加槓或補花自摸；明槓補牌不可自摸'], ['搶槓', 1, '搶加槓胡，算加槓者放銃'], ['海底自摸', 1, '最後活牌自摸'],
   ['人胡／地胡／天胡', '8／16／24', '首輪首棄放銃／閒家首次摸牌自摸／莊家起手胡'], ['七搶一／八仙過海', 8, '花胡依來源逐家結算；配牌花胡另四台'], ['莊家／連莊', '1＋2N', '每筆涉及莊家的付款另加，最多連九']
 ];
+const CLAIM_PRIORITY = { win: 3, openKong: 2, pung: 2, chow: 1, pass: 0 };
 const four = fn => Array.from({ length: 4 }, (_, p) => fn(p));
 const count = (hand, t) => hand.filter(x => x === t).length;
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -41,7 +42,7 @@ function flowerItems(flowers, wind) {
   return items;
 }
 // Score every decomposition and every possible use of the winning tile, then choose the best.
-export function scoreHand({ hand, melds = [], flowers = [], wind = 0, roundWind = 0, tile, selfDraw = false, source = '', lastTile = false, declared = false, earthReady = false, heaven = false, earth = false, human = false }) {
+export function scoreHand({ hand, melds = [], flowers = [], wind = 0, roundWind = 0, tile, selfDraw = false, source = '', lastTile = false, declared = false, earthReady = false, heaven = false, earth = false, human = false, flowerRob = false }) {
   const before = hand.slice(); before.splice(before.lastIndexOf(tile), 1);
   const waits = waitingTiles(before, melds), closed = melds.every(m => m.closed), exposedFive = melds.length === 5 && melds.every(m => !m.closed);
   let best = null;
@@ -52,7 +53,7 @@ export function scoreHand({ hand, melds = [], flowers = [], wind = 0, roundWind 
       const items = [], add = (name, tai) => items.push({ name, tai });
       const groups = [...melds, ...split.groups], triples = groups.filter(g => g.type !== 'chow').map(g => g.tiles[0]);
       const dragons = triples.filter(t => t >= 31).length, windTriples = triples.filter(t => t >= 27 && t < 31).length;
-      const concealed = groups.filter((g, i) => g.type !== 'chow' && g.closed && (selfDraw || use < 0 || i !== melds.length + use)).length;
+      const concealed = groups.filter((g, i) => g.type !== 'chow' && g.closed && (selfDraw || flowerRob || use < 0 || i !== melds.length + use)).length;
       const tiles = hand.concat(melds.flatMap(m => m.tiles)), suits = new Set(tiles.filter(t => t < 27).map(t => Math.floor(t / 9))), honors = tiles.some(t => t >= 27);
       if (heaven) add('天胡', 24); else if (earth) add('地胡', 16); else if (human) add('人胡', 8);
       if (earthReady && !human) { add('地聽', 4); if (selfDraw) add('地聽自摸', 2); }
@@ -67,9 +68,9 @@ export function scoreHand({ hand, melds = [], flowers = [], wind = 0, roundWind 
       const middle = group?.type === 'chow' && group.tiles[1] === tile;
       const edge = group?.type === 'chow' && (group.tiles[0] % 9 === 0 && tile % 9 === 2 || group.tiles[0] % 9 === 6 && tile % 9 === 6);
       if (!exposedFive && waits.length === 1) { if (use < 0) add('單吊', 1); else if (middle) add('嵌張', 1); else if (edge) add('邊張', 1); }
-      if (!selfDraw && !flowers.length && !honors && groups.every(g => g.type === 'chow') && use >= 0 && !middle && !edge && waits.length > 1) add('平胡', 2);
+      if (!selfDraw && !flowerRob && !flowers.length && !honors && groups.every(g => g.type === 'chow') && use >= 0 && !middle && !edge && waits.length > 1) add('平胡', 2);
       items.push(...flowerItems(flowers, wind));
-      if (selfDraw && ['flower', 'closedKong', 'addedKong'].includes(source)) add('槓上開花', 1);
+      if ((selfDraw || flowerRob) && ['flower', 'closedKong', 'addedKong'].includes(source)) add('槓上開花', 1);
       if (source === 'robKong') add('搶槓', 1);
       if (selfDraw && lastTile) add('海底自摸', 1);
       const tai = items.reduce((n, x) => n + x.tai, 0);
@@ -195,7 +196,10 @@ export class MahjongGame {
       const match = this.options(p).find(o => o.kind === action.kind && (o.tile === undefined || o.tile === action.tile) && (!o.tiles || same(o.tiles, action.tiles)));
       if (action.kind !== 'pass' && !match) throw Error('不能執行這個吃碰槓胡動作。');
       this.markPass(p, action); s.responses[p] = match || { kind: 'pass' };
-      if (s.offers.every((opts, q) => !opts.length || s.responses[q])) this.resolve(now);
+      // Resolve as soon as no unanswered player can beat the selected claim.
+      const rank = (q, o) => CLAIM_PRIORITY[o.kind] * 4 - (q - s.last.p + 4) % 4;
+      const best = Math.max(-Infinity, ...s.responses.flatMap((o, q) => o && o.kind !== 'pass' ? [rank(q, o)] : []));
+      if (s.offers.every((opts, q) => s.responses[q] || opts.every(o => rank(q, o) < best))) this.resolve(now);
       return;
     }
     if (s.phase !== 'playing' || s.turn !== p) throw Error('還沒輪到你。');
@@ -222,7 +226,7 @@ export class MahjongGame {
   remove(p, tiles) { for (const t of tiles) { const i = this.state.hands[p].indexOf(t); if (i < 0) throw Error('手牌不足。'); this.state.hands[p].splice(i, 1); } }
   resolve(now) {
     const s = this.state, from = s.last.p, t = s.last.t;
-    const priorities = { win: 3, openKong: 2, pung: 2, chow: 1, pass: 0 };
+    const priorities = CLAIM_PRIORITY;
     const claims = [1, 2, 3].map(d => ({ p: (from + d) % 4, action: s.responses[(from + d) % 4] })).filter(x => x.action && x.action.kind !== 'pass').sort((a, b) => priorities[b.action.kind] - priorities[a.action.kind]);
     const claim = claims[0];
     if (claim?.action.kind === 'win') {
@@ -269,7 +273,7 @@ export class MahjongGame {
     const delta = [0, 0, 0, 0], payments = []; let scoring = { tai: 0, items: [] };
     if (winner >= 0) {
       const wind = (winner - this.dealer + 4) % 4, tile = s.hands[winner].at(-1), selfDraw = from < 0 || flower?.branch === 'collect';
-      scoring = scoreHand({ hand: s.hands[winner], melds: s.melds[winner], flowers: flower ? [] : s.flowers[winner], wind, roundWind: Math.floor(this.rotations / 4) % 4, tile, selfDraw, source, lastTile: !this.liveCount(), declared: s.declared[winner], earthReady: s.earthReady[winner], heaven: winner === this.dealer && s.discardCount.every(n => n === 0) && !s.anyCall, earth: winner !== this.dealer && selfDraw && s.drawCount[winner] === 1 && s.discardCount[winner] === 0 && !s.melds[winner].length, human: from >= 0 && s.discardCount[from] === 1 && !s.anyCall && source === 'discard' });
+      scoring = scoreHand({ hand: s.hands[winner], melds: s.melds[winner], flowers: flower ? [] : s.flowers[winner], wind, roundWind: Math.floor(this.rotations / 4) % 4, tile, selfDraw, source, flowerRob: flower?.branch === 'rob', lastTile: !this.liveCount(), declared: s.declared[winner], earthReady: s.earthReady[winner], heaven: winner === this.dealer && s.discardCount.every(n => n === 0) && !s.anyCall, earth: winner !== this.dealer && selfDraw && s.drawCount[winner] === 1 && s.discardCount[winner] === 0 && !s.melds[winner].length, human: from >= 0 && s.discardCount[from] === 1 && !s.anyCall && source === 'discard' });
       const normalWin = !!scoring; scoring ||= { tai: 0, items: [] };
       if (flower) { const flowerTai = 8 + (flower.initial ? 4 : 0); scoring = { ...scoring, tai: scoring.tai + flowerTai, items: [...scoring.items, { name: flower.branch === 'eight' ? '八仙過海' : '七搶一', tai: 8 }, ...(flower.initial ? [{ name: '配牌花胡', tai: 4 }] : [])] }; }
       const payers = from < 0 || flower?.branch === 'collect' && normalWin ? [0, 1, 2, 3].filter(p => p !== winner) : [from];
@@ -296,7 +300,7 @@ export class MahjongGame {
       hands: ids.map(p => p === viewer || s.phase === 'ended' && p === winner ? s.hands[p].slice() : Array(s.hands[p].length).fill(null)),
       melds: ids.map(p => s.melds[p].map(m => ({ ...m, from: relative(m.from), tiles: m.closed && p !== viewer && !(s.phase === 'ended' && p === winner) ? m.tiles.map(() => null) : m.tiles.slice() }))),
       flowers: ids.map(p => s.flowers[p].slice()), discards: ids.map(p => s.discards[p].slice()), declared: ids.map(p => s.declared[p]),
-      options: this.options(viewer).map(o => ({ ...o })), canDiscard: s.phase === 'playing' && s.turn === viewer, canPass: s.phase === 'reaction' && s.offers[viewer].length > 0 && !s.responses[viewer],
+      passedWin: s.passed[viewer].length > 0, options: this.options(viewer).map(o => ({ ...o })), canDiscard: s.phase === 'playing' && s.turn === viewer, canPass: s.phase === 'reaction' && s.offers[viewer].length > 0 && !s.responses[viewer],
       last: s.last ? { p: relative(s.last.p), t: s.last.t, rob: !!s.rob } : null, log: s.log.slice(),
       result: s.result ? { ...s.result, winner: relative(s.result.winner), from: relative(s.result.from), delta: ids.map(p => s.result.delta[p]), payments: s.result.payments.map(p => ({ ...p, from: relative(p.from), to: relative(p.to) })) } : null
     };

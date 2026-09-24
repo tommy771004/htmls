@@ -92,7 +92,7 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
           if (msg.type === 'RECONNECT') {
             seat = room.players.findIndex(p => typeof msg.token === 'string' && msg.token.length === 64 && p?.token === msg.token && !p.bot);
             const p = room.players[seat];
-            if (!p || (p.disconnectedAt && Date.now() - p.disconnectedAt > 30000) || (!p.disconnectedAt && Date.now() - p.lastSeen > 60000)) throw Error('重連憑證已失效，請重新加入房間。');
+            if (!p || (p.disconnectedAt && Date.now() - p.disconnectedAt > 30000) || (!p.disconnectedAt && Date.now() - p.lastSeen > 30000)) throw Error('重連憑證已失效，請重新加入房間。');
             p.connection = ws.id; p.disconnectedAt = 0; p.lastSeen = Date.now();
           } else {
             if (room.game) throw Error('牌局已開始，不能中途加入。');

@@ -29,10 +29,14 @@ test('台灣十六張行牌與逐筆結算', () => {
   s.hands[1] = [3, 4]; s.hands[2] = [5, 5];
   s.hands[3] = [0, 1, 2, 9, 10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23, 5];
   g.openReactions(Date.now()); const claimId = g.actionId;
-  g.act(1, { kind: 'chow', tiles: [3, 4, 5] }, claimId);
-  g.act(2, { kind: 'pung', tile: 5 }, claimId);
   g.act(3, { kind: 'win' }, claimId);
-  assert.equal(s.result.winner, 3); assert.equal(s.melds.flat().length, 0);
+  assert.equal(s.phase, 'ended'); assert.equal(s.result.winner, 3); assert.equal(s.melds.flat().length, 0);
+  g = game(); s = g.state; s.last = { p: 0, t: 5 }; s.discards[0] = [5];
+  s.hands[1] = [0, 1, 2, 9, 10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23, 5];
+  s.hands[3] = s.hands[1].slice();
+  g.openReactions(Date.now()); g.act(3, { kind: 'win' }, g.actionId);
+  assert.equal(s.phase, 'reaction');
+  g.act(1, { kind: 'win' }, g.actionId); assert.equal(s.result.winner, 1);
   g = game(); s = g.state; s.melds[0] = [{ type: 'pung', tiles: [5, 5, 5], closed: false, from: 2 }]; s.hands[0] = [5];
   s.hands[1] = [3, 4, 9, 10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23, 27, 27];
   g.act(0, { kind: 'addedKong', tile: 5 }, g.actionId);
@@ -46,6 +50,17 @@ test('台灣十六張行牌與逐筆結算', () => {
   g.finish(1, -1, 'normal');
   assert.deepEqual(s.result.payments.map(p => p.amount), [520, 500, 500]);
   assert.equal(s.result.delta.reduce((a, b) => a + b, 0), 0);
+
+  // A replacement tile in 七搶一 is drawn physically, although only the flower loser pays.
+  g = game(); s = g.state;
+  s.hands[0] = [0, 0, 3, 3, 3, 4, 4, 4, 6, 6, 6, 32, 32, 32];
+  s.melds[0] = [{ type: 'pung', tiles: [28, 28, 28], closed: false, from: 1 }];
+  s.discardCount = [2, 2, 2, 2];
+  g.finish(0, 1, 'flower', { payer: 1, branch: 'rob', initial: false });
+  assert.ok(s.result.scoring.items.some(i => i.name === '四暗刻' && i.tai === 5));
+  assert.ok(s.result.scoring.items.some(i => i.name === '槓上開花' && i.tai === 1));
+  assert.deepEqual(s.result.payments.map(p => p.from), [1]);
+  assert.ok(!s.result.scoring.items.some(i => i.name.includes('自摸')));
 
   g = new MahjongGame({ bots: [true, true, true, true] }); g.startRound();
   for (let n = 1; g.state.phase !== 'ended' && n < 500; n++) {
@@ -76,11 +91,17 @@ test('跨伺服器四人房：隱藏手牌、拒絕越權與斷線重連', { tim
   for (let i = 1; i < 4; i++) { const c = await client(i % 2); c.send({ type: 'JOIN_ROOM', code: owner.code, name: `測試${i}` }); await c.next(m => m.type === 'ROOM_JOINED'); }
   a.send({ type: 'START_GAME' });
   const states = await Promise.all(clients.map(c => c.next(m => m.type === 'STATE_SYNC' && m.state)));
-  for (const m of states) { assert.ok(m.state.hands[0].every(Number.isInteger)); assert.ok(m.state.hands.slice(1).flat().every(x => x === null)); assert.equal(m.state.wall, undefined); assert.ok(m.room.players.every(p => !('token' in p))); }
+  for (const [seat, m] of states.entries()) { assert.equal(m.state.names[0], seat === 0 ? '測試東' : `測試${seat}`); assert.equal(m.state.dealer, (4 - seat) % 4); assert.equal(m.state.turn, (4 - seat) % 4); assert.ok(m.state.hands[0].every(Number.isInteger)); assert.ok(m.state.hands.slice(1).flat().every(x => x === null)); assert.equal(m.state.wall, undefined); assert.ok(m.room.players.every(p => !('token' in p))); }
   clients[1].send({ type: 'ACTION', actionId: states[1].state.actionId, action: { kind: 'discard', index: 0 }, seat: 0 });
   assert.match((await clients[1].next(m => m.type === 'ERROR')).message, /還沒輪到/);
   a.send({ type: 'ACTION', actionId: states[0].state.actionId, action: { kind: 'discard', index: 0 } });
   await clients[2].next(m => m.type === 'STATE_SYNC' && m.state?.actionId > states[0].state.actionId);
   a.ws.terminate(); const resumed = await client(1); resumed.send({ type: 'RECONNECT', code: owner.code, token: owner.token });
   assert.equal((await resumed.next(m => m.type === 'ROOM_JOINED')).seat, 0);
+  const replaced = new Promise(resolve => resumed.ws.once('close', resolve));
+  const replacement = await client(0);
+  replacement.send({ type: 'RECONNECT', code: owner.code, token: owner.token });
+  await replacement.next(m => m.type === 'ROOM_JOINED');
+  assert.equal(await replaced, 4001); // A moved session closes instead of controlling two seats.
+  assert.ok((await replacement.next(m => m.type === 'STATE_SYNC' && m.state)).state.hands[0].every(Number.isInteger));
 });
