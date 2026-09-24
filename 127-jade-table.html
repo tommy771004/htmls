@@ -84,7 +84,7 @@ function render(prior=null){if(!state)return;$('remaining').textContent=state.re
 for(let p=0;p<4;p++){const seat=$('seat'+p);seat.querySelector('strong').textContent=names[p]+(p===0?(names[p]==='你'?'':' · 你'):state.bots[p]?' · AI':'');seat.querySelector('.wind').textContent=winds[(p-state.dealer+4)%4]+(p===state.dealer?' · 莊':'');seat.querySelector('.avatar').textContent=p===0?'你':names[p].slice(0,1);$('score'+p).textContent=state.scores[p].toLocaleString();seat.classList.toggle('active',state.phase!=='ended'&&state.turn===p);seat.querySelector('small').lastChild.textContent=state.declared[p]?' 分 · 聽':' 分';}
 const handKey=JSON.stringify([state.hands[0],drawnIndex]);if(handKey!==lastHand){$('hand').innerHTML=state.hands[0].map((t,i)=>`<button class="tile${i===drawnIndex?' drawn':''}" data-index="${i}" aria-label="${tileName(t)}${i===drawnIndex?'，剛摸到':''}" aria-pressed="false">${tileImage(t)}</button>`).join('');lastHand=handKey;}
 $('melds').innerHTML=(state.melds[0].length?state.melds[0].map(m=>'<span class="meld-group" title="'+(m.closed?'暗槓':m.type==='chow'?'吃':m.type==='pung'?'碰':'槓')+'">'+m.tiles.map(tileImage).join('')+'</span>').join(''):'<span>尚無副露</span>')+(state.flowers[0].length?'<span class="flower-label">花</span>'+state.flowers[0].map(tileImage).join(''):'');$('log').replaceChildren(...state.log.map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));renderControls();syncScene(prior);}
-function applyState(next){$('tileInspect').hidden=true;const prior=state;pending=false;if(!prior||prior.actionId!==next.actionId||JSON.stringify(prior.hands[0])!==JSON.stringify(next.hands[0])){selected=-1;if($('choices').open)$('choices').close();}state=next;names=state.names;drawnIndex=state.drawn;render(prior);
+function applyState(next){const prior=state;if(!prior||prior.actionId!==next.actionId)$('tileInspect').hidden=true;pending=false;if(!prior||prior.actionId!==next.actionId||JSON.stringify(prior.hands[0])!==JSON.stringify(next.hands[0])){selected=-1;if($('choices').open)$('choices').close();}state=next;names=state.names;drawnIndex=state.drawn;render(prior);
 if(networkMode&&!online)setStatus('連線中斷，正在重連；伺服器仍繼續計時。');else if(state.phase==='ended')setStatus(state.result.winner<0?'本局流局，莊家續莊。':`${names[state.result.winner]}${state.result.flower?'花胡':state.result.from<0?'自摸':'胡牌'}，本局結算。`);else if(state.canPass)setStatus(`可回應${names[state.last.p]}的${tileName(state.last.t)}${state.last.rob?'（加槓）':''}。`);else if(state.phase==='reaction')setStatus('等待其他玩家回應…');else if(state.canDiscard)setStatus(state.options.some(o=>o.kind==='win')?'可以胡牌！請選擇胡或繼續出牌。':'輪到你了，請選一張牌打出。');else setStatus(`${names[state.turn]}正在思考…`);
 if(prior&&state.log[0]!==prior.log[0]){const message=state.log[0]||'';if(message.includes('打出')){/* impact audio is timed to the tile landing */}else if(message.includes('槓')&&!message.includes('準備')){sound('pung');burst('槓');tableEffect('claim');}else if(message.includes('碰')){sound('pung');burst('碰');tableEffect('claim');}else if(message.includes('吃')){sound('pung');burst('吃');tableEffect('claim');}}
 if(state.phase==='ended'&&lastResult!==`${networkMode}:${state.round}`){lastResult=`${networkMode}:${state.round}`;showResult();}}
@@ -112,7 +112,7 @@ setInterval(()=>{if(!networkMode&&localGame&&!pauseAt&&localGame.tick())applySta
 
 // Persistent meshes keep network snapshots from interrupting tile movement.
 const pieces=new Map(), effects=[];
-let handMeshes=[],discardOrigin=null,tableBase,centerBase,tableCenter=0,portrait=false,viewWidth=1,viewHeight=1,viewRound=0;
+let handMeshes=[],discardOrigin=null,tableBase,centerBase,pulseLight,tableCenter=0,portrait=false,viewWidth=1,viewHeight=1,viewRound=0;
 let raycaster,pointer,hovered=-1,shakeUntil=0,shakePower=0;
 const ease=t=>1-Math.pow(1-t,3);
 function box(w,h,d,mat,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
@@ -209,7 +209,7 @@ function tableEffect(kind,origin=null){
   const particles=new THREE.Points(geometry,material);scene.add(particles);
   const ring=new THREE.Mesh(new THREE.RingGeometry(.92,1,64),new THREE.MeshBasicMaterial({color:0xf3ca75,transparent:true,opacity:.65,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.copy(at);ring.position.y=.19;scene.add(ring);
   effects.push({particles,ring,at,vel,time:performance.now(),duration:big?1500:kind==='claim'?850:500,big});
-  shakeUntil=performance.now()+(big?600:160);shakePower=big?.11:.025;
+  shakeUntil=performance.now()+(big?600:160);shakePower=big?3:1.4;
 }
 function drawFrame(now){
   if(document.hidden)return;
@@ -220,13 +220,14 @@ function drawFrame(now){
     else if(u.hand){const to=u.baseY+(u.lift||0);m.position.y+=(to-m.position.y)*(reduced?1:.22);m.rotation.x=.48;}
     else if(u.bounce){const t=(now-u.bounce)/160;if(t<1)m.position.y=u.baseY+Math.sin(t*Math.PI)*.1*(1-t);else{m.position.y=u.baseY;u.bounce=0;}}
   }
+  pulseLight.intensity=0;
   for(let i=effects.length-1;i>=0;i--){const e=effects[i],t=(now-e.time)/e.duration;
     if(t>=1){scene.remove(e.particles,e.ring);e.particles.geometry.dispose();e.particles.material.dispose();e.ring.geometry.dispose();e.ring.material.dispose();effects.splice(i,1);continue;}
-    const pos=e.particles.geometry.attributes.position;
+    if(e.big)pulseLight.intensity=Math.max(pulseLight.intensity,Math.sin(t*Math.PI)*55);const pos=e.particles.geometry.attributes.position;
     e.vel.forEach((v,j)=>{const a=e.big?t*4:0,c=Math.cos(a),s=Math.sin(a);pos.setXYZ(j,e.at.x+(v.x*c-v.z*s)*t*2,e.at.y+Math.sin(t*Math.PI)*v.y*(e.big?2:1),e.at.z+(v.x*s+v.z*c)*t*2);});pos.needsUpdate=true;e.particles.material.opacity=(1-t)*.85;e.ring.scale.setScalar(.3+t*(e.big?9:3));e.ring.material.opacity=(1-t)*.5;
   }
   if(latestMesh){highlight.visible=true;highlight.position.copy(latestMesh.position);highlight.position.y=.18;highlight.rotation.z=latestMesh.rotation.y;highlight.material.opacity=reduced?.35:.3+Math.sin(now*.004)*.12;}else highlight.visible=false;
-  const pulse=now<shakeUntil?Math.sin(now*.065)*shakePower*(shakeUntil-now)/600:0;if(pulse)camera.setViewOffset(viewWidth,viewHeight,pulse*viewWidth,0,viewWidth,viewHeight);else if(camera.view?.enabled)camera.clearViewOffset();
+  const pulse=now<shakeUntil?Math.sin(now*.065)*shakePower*(shakeUntil-now)/600:0;if(pulse)camera.setViewOffset(viewWidth,viewHeight,pulse,0,viewWidth,viewHeight);else if(camera.view?.enabled)camera.clearViewOffset();
   layoutHits();renderer.render(scene,camera);
 }
 function initScene(){
@@ -236,7 +237,7 @@ function initScene(){
   tableBase=new THREE.Group();scene.add(tableBase);const wood=makeMat('#13271e',.25,.4),gold=makeMat('#a88a48',.55,.32),felt=makeMat('#176347',0,.98);
   box(36,.8,32,wood,0,-.8,0,tableBase);box(35.4,.12,31.4,gold,0,-.34,0,tableBase);box(35,.22,31,felt,0,-.24,0,tableBase);
   const cloth=document.createElement('canvas');cloth.width=cloth.height=256;const ctx=cloth.getContext('2d');ctx.fillStyle='#0b3928';ctx.fillRect(0,0,256,256);for(let y=0;y<256;y+=2){ctx.fillStyle=y%4?'#124932':'#0d3a28';ctx.fillRect(0,y,256,1);}const clothMap=new THREE.CanvasTexture(cloth);clothMap.wrapS=clothMap.wrapT=THREE.RepeatWrapping;clothMap.repeat.set(15,15);clothMap.colorSpace=THREE.SRGBColorSpace;felt.map=clothMap;felt.color.set('#ffffff');
-  centerBase=new THREE.Group();scene.add(centerBase);box(3.7,.17,3.9,wood,0,.04,0,centerBase);box(3.5,.05,3.7,gold,0,.15,0,centerBase);box(3.35,.05,3.55,makeMat('#0d2d24',.1,.5),0,.19,0,centerBase);
+  pulseLight=new THREE.PointLight('#ffd586',0,25,2);pulseLight.position.set(0,4,0);scene.add(pulseLight);centerBase=new THREE.Group();scene.add(centerBase);box(3.7,.17,3.9,wood,0,.04,0,centerBase);box(3.5,.05,3.7,gold,0,.15,0,centerBase);box(3.35,.05,3.55,makeMat('#0d2d24',.1,.5),0,.19,0,centerBase);
   const shape=new THREE.Shape(),w=.82,d=1.18,r=.045;shape.moveTo(-w/2+r,-d/2);shape.lineTo(w/2-r,-d/2);shape.quadraticCurveTo(w/2,-d/2,w/2,-d/2+r);shape.lineTo(w/2,d/2-r);shape.quadraticCurveTo(w/2,d/2,w/2-r,d/2);shape.lineTo(-w/2+r,d/2);shape.quadraticCurveTo(-w/2,d/2,-w/2,d/2-r);shape.lineTo(-w/2,-d/2+r);shape.quadraticCurveTo(-w/2,-d/2,-w/2+r,-d/2);
   tileGeo=new THREE.ExtrudeGeometry(shape,{depth:.22,bevelEnabled:true,bevelThickness:.035,bevelSize:.03,bevelSegments:2,steps:1,curveSegments:3});const uv=tileGeo.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,(uv.getX(i)+w/2)/w,(uv.getY(i)+d/2)/d);tileGeo.rotateX(-Math.PI/2);tileGeo.translate(0,-.11,0);baseMat=makeMat('#e4dfc8',0,.35);
   const back=document.createElement('canvas');back.width=128;back.height=180;const b=back.getContext('2d');b.fillStyle='#bb8734';b.fillRect(0,0,128,180);b.strokeStyle='#e2bb68';b.lineWidth=5;b.strokeRect(9,9,110,162);b.strokeStyle='#986d29';b.lineWidth=2;b.strokeRect(15,15,98,150);const backMap=new THREE.CanvasTexture(back);backMap.colorSpace=THREE.SRGBColorSpace;backMat=new THREE.MeshStandardMaterial({map:backMap,roughness:.4});
@@ -257,7 +258,7 @@ function resize(){
   viewWidth=$('scene').clientWidth;viewHeight=$('scene').clientHeight;if(!viewWidth||!viewHeight)return;
   portrait=viewWidth<800&&viewHeight>viewWidth;renderer.setSize(viewWidth,viewHeight,false);const aspect=viewWidth/viewHeight,halfW=portrait?10:Math.max(16.8,11.6*aspect),halfH=halfW/aspect;
   camera.left=-halfW;camera.right=halfW;camera.top=halfH;camera.bottom=-halfH;camera.position.set(0,32,portrait?9:18);camera.lookAt(0,0,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();camera.clearViewOffset();
-  tableCenter=portrait?screenPoint(viewWidth/2,viewHeight*.29,.3).z:-1.5;centerBase.position.z=tableCenter;tableBase.scale.set(portrait?.58:Math.max(1,(halfW*2-.8)/36),1,portrait?1.6:1);
+  tableCenter=portrait?screenPoint(viewWidth/2,viewHeight*.29,.3).z:-1.5;centerBase.position.z=tableCenter;pulseLight.position.z=tableCenter;tableBase.scale.set(portrait?.58:Math.max(1,(halfW*2-.8)/36),1,portrait?1.6:1);
   const q=project(new THREE.Vector3(0,.5,tableCenter));document.querySelector('.center').style.left=q.x+'px';document.querySelector('.center').style.top=q.y+'px';
   syncScene(null,true);
 }
