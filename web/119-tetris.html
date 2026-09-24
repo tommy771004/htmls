@@ -3,9 +3,11 @@
 WELL · 俄羅斯方塊
   棋盤 10 欄 × 20 列，Canvas 繪製，requestAnimationFrame 60fps 迴圈。
   七種方塊一律以 4×4 陣列定義（1 有方塊、0 空），配色 I 青、O 黃、T 紫、S 綠、Z 紅、J 藍、L 橙。
-  出塊採 7-bag 隨機（每 7 塊各出現一次，順序隨機），從頂部中央生成。
-  計分：1 行 100、2 行 300、3 行 500、4 行 800；每消 10 行升一級，下落速度隨等級加快。
-  旋轉為順時針，碰到邊界或已有方塊時依序嘗試左右 1 格、（I 方塊）左右 2 格的 Wall Kick 偏移，都不行才往上 1 格。
+  依 Tetris Guideline：7-bag 隨機、預告 3–5 塊、暫存（Hold，每塊限一次）、落點陰影（Ghost）。
+  旋轉採 SRS（Super Rotation System）順／逆時針與官方 Wall Kick 表；落地等待 0.5 秒，最多重置 15 次。
+  計分（× 等級）：1 行 100、2 行 300、3 行 500、4 行 800；T-Spin 400／800／1200／1600、Mini 100／200；
+  困難消行連續成立時 Back-to-Back ×1.5、連擊 50 × 連擊數、全消另有加分；軟降每格 1 分、硬降每格 2 分。
+  每消 10 行升一級，重力依 Guideline 曲線加快；長按左右 DAS 167ms、ARR 33ms。
   不載入任何外部資源；最高分存在本機瀏覽器。
 -->
 <html lang="zh-Hant">
@@ -14,7 +16,7 @@ WELL · 俄羅斯方塊
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0c11">
 <title>WELL · 俄羅斯方塊</title>
-<meta name="description" content="Canvas 俄羅斯方塊：10×20 棋盤、七種經典配色方塊、Wall Kick 旋轉、硬降、消行計分與等級加速。收錄於 100 Creative HTML Works（119・遊戲敘事）。">
+<meta name="description" content="Canvas 俄羅斯方塊：10×20 棋盤、七種經典配色方塊、SRS 旋轉與 Wall Kick、暫存、預告佇列、T-Spin 與 Back-to-Back 計分、等級加速。收錄於 100 Creative HTML Works（119・遊戲敘事）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/web/119-tetris.html">
 <style>
 :root{
@@ -45,8 +47,8 @@ button{font:inherit;color:inherit}
   height:100vh;height:100dvh;
   display:grid;
   grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
-  grid-template-rows:auto minmax(0,1fr) auto;
-  grid-template-areas:"brand stage next" "stats stage legend" ". pad .";
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+  grid-template-areas:"brand stage next" "hold stage next" "stats stage legend" ". pad .";
   column-gap:clamp(24px,4vw,64px);row-gap:0;
   padding:32px max(24px,env(safe-area-inset-right)) 32px max(24px,env(safe-area-inset-left));
   align-content:center;
@@ -54,13 +56,14 @@ button{font:inherit;color:inherit}
 .brand{grid-area:brand;justify-self:end;align-self:start;width:min(100%,240px)}
 .stats{grid-area:stats;justify-self:end;align-self:start;width:min(100%,240px);margin-top:28px}
 .stage{grid-area:stage;align-self:center;justify-self:center;position:relative}
+.hold{grid-area:hold;justify-self:end;align-self:start;width:min(100%,240px);margin-top:28px}
 .next{grid-area:next;justify-self:start;align-self:start;width:min(100%,220px)}
 .legend{grid-area:legend;justify-self:start;align-self:start;width:min(100%,220px);margin-top:28px}
 .pad{display:none}
 #board{touch-action:none}
 /* 有鍵盤以外的觸控平板：寬螢幕也顯示按鈕列 */
 @media (pointer:coarse) and (min-width:761px) and (min-height:700px) and (orientation:landscape){
-  .pad{grid-area:pad;display:grid;grid-template-columns:repeat(5,64px);gap:10px;justify-content:center;margin-top:20px}
+  .pad{grid-area:pad;display:grid;grid-template-columns:repeat(6,64px);gap:10px;justify-content:center;margin-top:20px}
 }
 
 /* ---- brand ---- */
@@ -129,7 +132,8 @@ button{font:inherit;color:inherit}
   background:linear-gradient(180deg,#121620,#0d1017);
   display:flex;align-items:center;justify-content:center;padding:14px;
 }
-#next{display:block}
+#next,#hold{display:block}
+.box-note{margin-top:7px;font-size:11px;color:var(--faint);letter-spacing:.06em}
 
 /* ---- legend ---- */
 .keys{margin:12px 0 0;padding:0;list-style:none;border-top:1px solid var(--rule)}
@@ -152,10 +156,10 @@ kbd{
 /* ---- narrow / touch ---- */
 @media (max-width:760px), (max-width:1180px) and (orientation:portrait){
   .app{
-    grid-template-columns:auto minmax(0,1fr);
-    grid-template-rows:auto auto minmax(0,1fr) auto;
-    grid-template-areas:"brand brand" "next stats" "stage stage" "pad pad";
-    column-gap:14px;row-gap:10px;
+    grid-template-columns:minmax(0,1fr) auto auto minmax(0,1fr);
+    grid-template-rows:auto auto auto minmax(0,1fr) auto;
+    grid-template-areas:"brand brand brand brand" "stats stats stats stats" ". stage hold ." ". stage next ." "pad pad pad pad";
+    column-gap:0;row-gap:10px;
     padding:max(12px,env(safe-area-inset-top)) 16px max(12px,env(safe-area-inset-bottom));
     align-content:start;
   }
@@ -168,8 +172,11 @@ kbd{
   .frame::before,.frame::after{display:none}
   .frame{padding:4px}
   .overlay{inset:4px;padding:12px}
-  .next{justify-self:start;align-self:stretch;width:auto;display:flex;flex-direction:column}
-  .next-box{margin-top:6px;padding:6px 8px;flex:1}
+  .next,.hold{justify-self:start;align-self:start;width:auto;margin:0 0 0 10px}
+  .next-box{margin-top:5px;padding:6px}
+  .box-note{display:none}
+  .stage{grid-row:3 / 5}
+  .next .zh,.hold .zh{display:none}
   .stats{
     justify-self:stretch;align-self:stretch;width:auto;margin-top:0;
     display:grid;grid-template-columns:1.35fr 1fr 1fr 1.35fr;column-gap:10px;
@@ -184,7 +191,7 @@ kbd{
   .legend{display:none}
   .card h2{font-size:30px}
   .final strong{font-size:40px}
-  .pad{grid-area:pad;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .pad{grid-area:pad;display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
 }
 @media (max-width:760px), (max-width:1180px) and (orientation:portrait){
   .pad{justify-self:center;width:min(100%,480px)}
@@ -195,7 +202,8 @@ kbd{
 /* 橫向手機等矮螢幕：側欄精簡，按鍵說明收起 */
 @media (min-width:761px) and (max-height:600px) and (orientation:landscape){
   .app{padding-top:16px;padding-bottom:16px}
-  .brand .eyebrow,.brand .sub,.meter-note,.keys,.legend > .label,.ticks{display:none}
+  .brand .eyebrow,.brand .sub,.meter-note,.keys,.legend > .label,.ticks,.box-note{display:none}
+  .hold{margin-top:12px}
   .brand h1{margin:0;font-size:40px}
   .stats,.legend{margin-top:12px}
   .stat{padding:8px 0 9px}
@@ -232,6 +240,12 @@ kbd{
     <p class="sub">俄羅斯方塊 · 10 × 20</p>
   </header>
 
+  <section class="hold" aria-label="暫存方塊">
+    <span class="label">Hold<span class="zh"> 暫存</span></span>
+    <div class="next-box"><canvas id="hold" width="60" height="40" role="img" aria-label="暫存區：空"></canvas></div>
+    <div class="box-note">每塊限換一次</div>
+  </section>
+
   <section class="stats" aria-label="成績">
     <div class="stat big"><span class="label">Score<span class="zh"> 分數</span></span><span class="value" id="score">0</span></div>
     <div class="duo">
@@ -253,7 +267,7 @@ kbd{
       <div class="overlay" id="overlay">
         <div class="card" id="cardReady">
           <h2>WELL</h2>
-          <p>填滿一整行即可消除，<br>每消 10 行升一級、越落越快。</p>
+          <p>填滿一整行即可消除，<br>每消 10 行升一級、越落越快。<br>T-Spin 與連續四行消除有額外加分。</p>
           <button class="go" id="startBtn" type="button">開始遊戲</button>
           <span class="hintkey">或按任意鍵開始</span>
         </div>
@@ -274,7 +288,7 @@ kbd{
   </section>
 
   <section class="next" aria-label="下一個方塊">
-    <span class="label">Next 下一個</span>
+    <span class="label">Next<span class="zh"> 下一個</span></span>
     <div class="next-box"><canvas id="next" width="60" height="40" role="img" aria-label="下一個方塊預覽"></canvas></div>
   </section>
 
@@ -282,10 +296,12 @@ kbd{
     <span class="label">Controls 操作</span>
     <ul class="keys">
       <li>左右移動<span><kbd>←</kbd> <kbd>→</kbd></span></li>
-      <li>加速下落<kbd>↓</kbd></li>
-      <li>順時針旋轉<kbd>↑</kbd></li>
-      <li>直接落底<kbd>Space</kbd></li>
-      <li>暫停<kbd>P</kbd></li>
+      <li>軟降（每格 1 分）<kbd>↓</kbd></li>
+      <li>硬降（每格 2 分）<kbd>Space</kbd></li>
+      <li>順時針旋轉<span><kbd>↑</kbd> <kbd>X</kbd></span></li>
+      <li>逆時針旋轉<kbd>Z</kbd></li>
+      <li>暫存<span><kbd>C</kbd> <kbd>Shift</kbd></span></li>
+      <li>暫停<span><kbd>P</kbd> <kbd>Esc</kbd></span></li>
     </ul>
     <div class="toggles">
       <button class="toggle" type="button" id="soundBtn" aria-pressed="true">音效 開</button>
@@ -294,6 +310,7 @@ kbd{
   </section>
 
   <nav class="pad" id="pad" aria-label="觸控操作">
+    <button type="button" data-act="hold" class="holdk" aria-label="暫存"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 12h6"/></svg></button>
     <button type="button" data-act="left" aria-label="左移"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
     <button type="button" data-act="rotate" aria-label="旋轉"><svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.05-4.95"/><path d="M19 4v4h-4"/></svg></button>
     <button type="button" data-act="down" aria-label="加速下落"><svg viewBox="0 0 24 24"><path d="M12 5v13"/><path d="M6 12l6 6 6-6"/></svg></button>
@@ -313,12 +330,17 @@ kbd{
 
 /* ================= 常數 ================= */
 var COLS = 10, ROWS = 20;
+// Tetris Guideline 計分（皆乘上當時等級）：一般消行、T-Spin、T-Spin Mini、全消
 var LINE_SCORE = [0, 100, 300, 500, 800];
+var TSPIN_SCORE = [400, 800, 1200, 1600];
+var MINI_SCORE = [100, 200, 400];
+var PC_SCORE = [0, 800, 1200, 1800, 2000];
+var QUEUE_LEN = 6;           // 內部保留的預告數（畫面顯示 3 或 5 個）
 var LINES_PER_LEVEL = 10;
 var LOCK_DELAY = 500;        // 落地後等待多久固定（ms）
 var LOCK_RESETS = 15;        // 落地後移動／旋轉可重置等待的次數上限
-var DAS = 160, ARR = 45;     // 長按左右：啟動延遲與重複間隔（ms）
-var SOFT_DROP = 32;          // 按住下方向鍵時的下落間隔（ms）
+var DAS = 167, ARR = 33;     // 長按左右：啟動延遲與重複間隔（ms，約 10 與 2 幀）
+var SOFT_DROP_FACTOR = 20;   // 軟降速度 = 重力的 20 倍
 var CLEAR_MS = 260;          // 消行動畫長度（ms）
 var RESTART_GUARD = 650;     // Game Over 後多久才接受重新開始按鍵（ms）
 
@@ -357,9 +379,20 @@ var SHAPES = {
 var ROT_BOX = { I:4, O:0, T:3, S:3, Z:3, J:3, L:3 };
 // I 青、O 黃、T 紫、S 綠、Z 紅、J 藍、L 橙
 var COLORS = { I:'#2fd3e6', O:'#f4cf3a', T:'#a45cf0', S:'#46c96a', Z:'#ef4c4c', J:'#3e6ff0', L:'#f5962c' };
-// 旋轉失敗時依序嘗試的偏移（dx, dy；dy 為負代表往上）
-// 先原地，再左右各 1 格，I 方塊再試左右各 2 格；左右都不行時才往上 1 格（貼地或貼著方塊堆旋轉時用）
-var KICKS = [[0,0],[-1,0],[1,0],[-2,0],[2,0],[0,-1],[-1,-1],[1,-1]];
+// SRS（Super Rotation System）Wall Kick 表：狀態 0 生成、1 右（R）、2 倒置、3 左（L）
+// 表內 y 以「往上為正」書寫（與官方表相同），套用時再反轉成畫面座標
+var KICK_JLSTZ = {
+  '0>1':[[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]], '1>0':[[0,0],[1,0],[1,-1],[0,2],[1,2]],
+  '1>2':[[0,0],[1,0],[1,-1],[0,2],[1,2]],     '2>1':[[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]],
+  '2>3':[[0,0],[1,0],[1,1],[0,-2],[1,-2]],    '3>2':[[0,0],[-1,0],[-1,-1],[0,2],[-1,2]],
+  '3>0':[[0,0],[-1,0],[-1,-1],[0,2],[-1,2]],  '0>3':[[0,0],[1,0],[1,1],[0,-2],[1,-2]]
+};
+var KICK_I = {
+  '0>1':[[0,0],[-2,0],[1,0],[-2,-1],[1,2]],   '1>0':[[0,0],[2,0],[-1,0],[2,1],[-1,-2]],
+  '1>2':[[0,0],[-1,0],[2,0],[-1,2],[2,-1]],   '2>1':[[0,0],[1,0],[-2,0],[1,-2],[-2,1]],
+  '2>3':[[0,0],[2,0],[-1,0],[2,1],[-1,-2]],   '3>2':[[0,0],[-2,0],[1,0],[-2,-1],[1,2]],
+  '3>0':[[0,0],[1,0],[-2,0],[1,-2],[-2,1]],   '0>3':[[0,0],[-1,0],[2,0],[-1,2],[2,-1]]
+};
 
 var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -367,6 +400,7 @@ var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-moti
 function $(id){ return document.getElementById(id); }
 var boardCv = $('board'), bctx = boardCv.getContext('2d');
 var nextCv = $('next'), nctx = nextCv.getContext('2d');
+var holdCv = $('hold'), hctx = holdCv.getContext('2d');
 var el = {
   score:$('score'), level:$('level'), lines:$('lines'), best:$('best'),
   meter:$('meter'), meterNote:$('meterNote'),
@@ -423,6 +457,7 @@ var sfx = {
   move:   function(){ tone(420, 0.04, 'square', 0.018); },
   rotate: function(){ tone(640, 0.06, 'triangle', 0.045, 0, 820); },
   // 落地：短促的「咚」，低頻下滑，再疊一層略高的音讓小喇叭也聽得到
+  hold:   function(){ tone(520, 0.07, 'sine', 0.05, 0, 390); tone(780, 0.05, 'sine', 0.025, 0.05); },
   lock:   function(){ tone(180, 0.12, 'sine', 0.16, 0, 70); tone(360, 0.05, 'triangle', 0.035, 0, 180); },
   hard:   function(){ tone(130, 0.18, 'sine', 0.22, 0, 48); tone(260, 0.06, 'triangle', 0.05, 0, 120); tone(1400, 0.02, 'square', 0.015); },
   // 消行：叮噹鐘聲往上疊成大三和弦；消越多行，起音越高、音也越多
@@ -436,7 +471,8 @@ var sfx = {
 };
 
 /* ================= 遊戲狀態 ================= */
-var board, piece, nextType, bag;
+var board, piece, queue, bag, holdType, canHold;
+var combo, b2b;                   // 連續消行數（-1 表示中斷）、上一次是否為「困難消行」
 var score, lines, level, best = parseInt(load('best','0'), 10) || 0;
 var state = 'ready';              // ready | play | pause | over
 var gravityAcc, lockTimer, lockResets, resting;
@@ -452,12 +488,18 @@ function refillBag(){
   for (var i = bag.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = bag[i]; bag[i] = bag[j]; bag[j] = t; }
 }
 function takeType(){ if (!bag || !bag.length) refillBag(); return bag.pop(); }
+function fillQueue(){ while (queue.length < QUEUE_LEN) queue.push(takeType()); }
 
 function cloneMatrix(m){ return m.map(function(r){ return r.slice(); }); }
 // 順時針旋轉 4×4 陣列左上角 n×n 的範圍，其餘格子維持 0
 function rotateCW(m, n){
   var out = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
   for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) out[r][c] = m[n - 1 - c][r];
+  return out;
+}
+function rotateCCW(m, n){
+  var out = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+  for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) out[r][c] = m[c][n - 1 - r];
   return out;
 }
 // 有方塊的格子範圍（列與欄的最小、最大索引）
@@ -482,15 +524,14 @@ function collides(m, x, y){
   return false;
 }
 
-function spawn(){
-  var type = nextType;
-  nextType = takeType();
+function spawn(type){
+  if (!type){ type = queue.shift(); fillQueue(); canHold = true; }
   var m = cloneMatrix(SHAPES[type]);
   var x = Math.floor((COLS - 4) / 2);     // 4×4 框置中：I 佔第 3–6 欄、O 佔第 4–5 欄
   var y = -bounds(m).minR;                // 最上面一列方塊貼齊棋盤頂端（I 在陣列第二列，所以往上一格）
-  piece = { type:type, m:m, x:x, y:y };
+  piece = { type:type, m:m, x:x, y:y, r:0, lowest:y, spin:null };
   gravityAcc = 0; lockTimer = 0; lockResets = 0; resting = false;
-  drawNext();
+  drawNext(); drawHold();
   if (collides(m, x, y)){ gameOver(); return false; }
   return true;
 }
@@ -498,11 +539,11 @@ function spawn(){
 function reset(){
   board = newBoard();
   bag = null; refillBag();
+  queue = []; fillQueue(); holdType = null; canHold = true; combo = -1; b2b = false;
   score = 0; lines = 0; level = 1;
   clearing = null;
   fx.particles.length = 0; fx.trails.length = 0; fx.pops.length = 0; fx.banner = null; fx.shake = 0; fx.flash = 0;
   playTime = 0;
-  nextType = takeType();
   updateHud(true);
   spawn();
 }
@@ -515,7 +556,7 @@ function gravityInterval(){
 
 /* ================= 動作 ================= */
 function onLockSurfaceMoved(){
-  // 已經落地時若成功移動或旋轉，重新計算固定等待（有次數上限，避免無限拖延）
+  // 已經落地時若成功移動或旋轉，重新計算固定等待（Guideline 的 Move Reset：最多 15 次，降到新的最低列才重新計數）
   if (resting && lockResets < LOCK_RESETS){ lockTimer = 0; lockResets++; }
   resting = collides(piece.m, piece.x, piece.y + 1);
 }
@@ -524,21 +565,25 @@ function tryMove(dx){
   if (!canAct()) return false;
   if (collides(piece.m, piece.x + dx, piece.y)) return false;
   piece.x += dx;
+  piece.spin = null;
   onLockSurfaceMoved();
   sfx.move();
   return true;
 }
 
-function tryRotate(){
+function tryRotate(dir){
+  dir = dir || 1;                           // 1 = 順時針、-1 = 逆時針
   var box = piece && ROT_BOX[piece.type];
   if (!canAct() || !box) return false;
-  var m = rotateCW(piece.m, box);
-  for (var i = 0; i < KICKS.length; i++){
-    var dx = KICKS[i][0], dy = KICKS[i][1];
-    // I 方塊需要較大的偏移，其他方塊略過 ±2 的嘗試
-    if (piece.type !== 'I' && Math.abs(dx) === 2) continue;
+  var m = dir > 0 ? rotateCW(piece.m, box) : rotateCCW(piece.m, box);
+  var to = (piece.r + dir + 4) % 4;
+  var kicks = (piece.type === 'I' ? KICK_I : KICK_JLSTZ)[piece.r + '>' + to];
+  for (var i = 0; i < kicks.length; i++){
+    var dx = kicks[i][0], dy = -kicks[i][1];
     if (!collides(m, piece.x + dx, piece.y + dy)){
-      piece.m = m; piece.x += dx; piece.y += dy;
+      piece.m = m; piece.x += dx; piece.y += dy; piece.r = to;
+      piece.spin = piece.type === 'T' ? { kick:i } : null;
+      if (piece.y > piece.lowest){ piece.lowest = piece.y; lockResets = 0; }
       onLockSurfaceMoved();
       sfx.rotate();
       return true;
@@ -547,9 +592,12 @@ function tryRotate(){
   return false;
 }
 
-function softStep(){
+function softStep(byPlayer){
   if (!collides(piece.m, piece.x, piece.y + 1)){
     piece.y++;
+    piece.spin = null;
+    if (byPlayer) addScore(1);                            // 軟降每格 1 分
+    if (piece.y > piece.lowest){ piece.lowest = piece.y; lockResets = 0; }
     resting = collides(piece.m, piece.x, piece.y + 1);
     if (!resting) lockTimer = 0;
     return true;
@@ -578,12 +626,42 @@ function hardDrop(){
     }
     fx.shake = 1;
   }
+  if (toY > fromY) piece.spin = null;
+  addScore((toY - fromY) * 2);                            // 硬降每格 2 分
   piece.y = toY;
   sfx.hard();
   lockPiece(true);
 }
 
 function canAct(){ return state === 'play' && piece && !clearing; }
+function addScore(n){ if (n > 0){ score += n; updateHud(true); } }
+
+// 暫存（Hold）：每塊方塊落地前只能用一次，換出來的方塊回到生成方向
+function doHold(){
+  if (!canAct() || !canHold) return;
+  var t = piece.type;
+  canHold = false;
+  if (holdType){ var h = holdType; holdType = t; spawn(h); }
+  else { holdType = t; spawn(); canHold = false; }
+  sfx.hold();
+  drawHold();
+}
+
+// T-Spin 判定（三角規則）：最後一個動作是旋轉，且 T 中心周圍四角至少三格被佔（牆與地板也算）
+// 朝向的兩角都被佔才是完整 T-Spin，否則為 Mini；用到 SRS 第五組偏移時一律算完整
+function tSpinKind(){
+  if (piece.type !== 'T' || !piece.spin) return null;
+  var corners = [[0,0],[0,2],[2,2],[2,0]];                  // 左上、右上、右下、左下（3×3 框內）
+  var filled = corners.map(function(p){
+    var x = piece.x + p[1], y = piece.y + p[0];
+    return x < 0 || x >= COLS || y >= ROWS || (y >= 0 && !!board[y][x]);
+  });
+  var count = filled.filter(Boolean).length;
+  if (count < 3) return null;
+  var front = [[0,1],[1,2],[2,3],[3,0]][piece.r];          // 依朝向取「T 尖端那一側」的兩角
+  if ((filled[front[0]] && filled[front[1]]) || piece.spin.kick === 4) return 'full';
+  return 'mini';
+}
 
 function eachCell(m, fn){
   for (var r = 0; r < m.length; r++) for (var c = 0; c < m[r].length; c++) if (m[r][c]) fn(r, c);
@@ -591,10 +669,12 @@ function eachCell(m, fn){
 
 function lockPiece(fromHard){
   var topOut = false;
+  var spin = tSpinKind();
   eachCell(piece.m, function(r, c){
     var y = piece.y + r, x = piece.x + c;
     if (y < 0) topOut = true; else board[y][x] = piece.type;
   });
+  lastLockY = Math.max(1, piece.y + 1);
   if (!fromHard) sfx.lock();
   piece = null;
   if (topOut){ gameOver(); return; }
@@ -604,13 +684,22 @@ function lockPiece(fromHard){
     if (board[y].every(function(v){ return v; })) full.push(y);
   }
   if (full.length){
-    clearing = { rows:full, t:0 };
+    clearing = { rows:full, t:0, spin:spin };
     burst(full);
     sfx.clear(full.length);
   } else {
+    combo = -1;
+    if (spin){
+      var gain = (spin === 'full' ? TSPIN_SCORE[0] : MINI_SCORE[0]) * level;
+      score += gain;
+      fx.pops.push({ text:(spin === 'full' ? 'T-SPIN' : 'T-SPIN MINI') + ' +' + gain, y:piece0Y(), life:1, big:false });
+      updateHud();
+    }
     spawn();
   }
 }
+var lastLockY = 10;
+function piece0Y(){ return lastLockY; }
 
 function finishClear(){
   var rows = clearing.rows, n = rows.length;
@@ -618,15 +707,31 @@ function finishClear(){
   board = board.filter(function(_, y){ return rows.indexOf(y) === -1; });
   for (var i = 0; i < n; i++) board.unshift(emptyRow());
 
-  var gained = LINE_SCORE[n];
+  var spin = clearing.spin;
+  var base = spin === 'full' ? TSPIN_SCORE[n] : spin === 'mini' ? MINI_SCORE[Math.min(n, 2)] : LINE_SCORE[n];
+  var hard = n === 4 || !!spin;                           // 困難消行：四行或任何 T-Spin 消行
+  var isB2B = hard && b2b;
+  var gained = base * level;
+  if (isB2B) gained = Math.floor(gained * 1.5);            // Back-to-Back ×1.5
+  b2b = hard;
+  combo++;
+  if (combo > 0) gained += 50 * combo * level;             // 連擊：50 × 連擊數 × 等級
+  var perfect = board.every(function(row){ return row.every(function(v){ return !v; }); });
+  if (perfect) gained += PC_SCORE[n] * level;              // 全消（Perfect Clear）
   var prevLevel = level;
   score += gained;
   lines += n;
   level = 1 + Math.floor(lines / LINES_PER_LEVEL);
 
   var names = ['', '單行', '雙行', '三行', '四行'];
-  fx.pops.push({ text:names[n] + ' +' + gained, y:rows[0] + (n - 1) / 2, life:1, big:n === 4 });
-  if (n === 4) fx.flash = 1;
+  var label = (spin === 'full' ? 'T-SPIN ' : spin === 'mini' ? 'T-SPIN MINI ' : '') + (n === 4 && !spin ? 'TETRIS' : names[n]);
+  var extra = [];
+  if (isB2B) extra.push('B2B');
+  if (combo > 0) extra.push(combo + ' COMBO');
+  if (perfect) extra.push('PERFECT CLEAR');
+  fx.pops.push({ text:label + ' +' + gained.toLocaleString('en-US'), sub:extra.join(' · '), y:rows[0] + (n - 1) / 2, life:1, big:n === 4 || !!spin || perfect });
+  if (n === 4 || perfect) fx.flash = 1;
+  announce(label + (extra.length ? '，' + extra.join('，') : '') + '，得 ' + gained + ' 分');
   if (level > prevLevel){
     fx.banner = { text:'LEVEL ' + level, life:1 };
     sfx.level();
@@ -741,12 +846,13 @@ function layout(){
   var c, nc;
   if (narrow){
     // 先給預覽窗一個暫定尺寸，量出上方資訊列高度後再算棋盤
-    nc = 15;
-    sizeCanvas(nextCv, nc * 4.4, nc * 2.8);
+    // 直式：棋盤右側一欄放暫存與預告（仿手機版俄羅斯方塊），寬度先扣掉
+    nc = W < 360 ? 10 : 11;
+    var sideW = nc * 4.4 + 14 + (parseFloat(cs.columnGap) || 10);
     var gap = parseFloat(cs.rowGap) || 10;
-    var info = Math.max(outerH(document.querySelector('.next')), outerH(document.querySelector('.stats')));
+    var info = outerH(document.querySelector('.stats'));
     var availH = H - padY - outerH(document.querySelector('.brand')) - info - outerH($('pad')) - gap * 3 - frameLip;
-    var availW = W - padX - frameLip;
+    var availW = W - padX - frameLip - sideW;
     c = Math.floor(Math.min(availW / COLS, availH / ROWS));
     c = Math.max(12, Math.min(c, 40));
   } else {
@@ -760,10 +866,14 @@ function layout(){
   cell = c;
   dpr = Math.min(window.devicePixelRatio || 1, 2.5);
   sizeCanvas(boardCv, COLS * cell, ROWS * cell);
-  sizeCanvas(nextCv, nc * 4.4, nc * 2.8);
-  nextCv._cell = nc;
+  var show = narrow ? 3 : (H >= 780 ? 5 : 3);
+  var nw = nc * 4.4, nh = nc * 2.8 + (show - 1) * nc * 0.66 * 2.9;
+  sizeCanvas(nextCv, nw, nh);
+  nextCv._cell = nc; nextCv._show = show; nextCv._w = nw; nextCv._h = nh;
+  sizeCanvas(holdCv, nc * 4.4, nc * 2.8);
+  holdCv._cell = nc;
   buildSprites();
-  drawNext();
+  drawNext(); drawHold();
   dirty = true;
 }
 function sizeCanvas(cv, w, h){
@@ -971,6 +1081,13 @@ function render(now){
     ctx.strokeText(pp.text, W / 2, ty);
     ctx.fillStyle = pp.big ? '#f0c35a' : '#f4f1ea';
     ctx.fillText(pp.text, W / 2, ty);
+    if (pp.sub){
+      ctx.font = '600 ' + Math.round(cell * 0.46) + 'px Bahnschrift, "DIN Alternate", sans-serif';
+      var sy2 = ty + cell * (pp.big ? 0.8 : 0.66);
+      ctx.strokeText(pp.sub, W / 2, sy2);
+      ctx.fillStyle = '#9fd8ff';
+      ctx.fillText(pp.sub, W / 2, sy2);
+    }
   });
   ctx.globalAlpha = 1;
 
@@ -993,24 +1110,47 @@ function render(now){
   }
 }
 
+// 預覽窗：第一個以原尺寸顯示，其後依序縮小排列（Guideline 的 Next Queue）
+function drawPieceAt(ctx, type, cx, cy, c, tiles, alpha){
+  var m = SHAPES[type], b = bounds(m);
+  var w = (b.maxC - b.minC + 1) * c, h = (b.maxR - b.minR + 1) * c;
+  var ox = cx - w / 2, oy = cy - h / 2;
+  if (alpha !== undefined) ctx.globalAlpha = alpha;
+  eachCell(m, function(r, cc){ ctx.drawImage(tiles[type], ox + (cc - b.minC) * c, oy + (r - b.minR) * c, c, c); });
+  ctx.globalAlpha = 1;
+}
+function glow(ctx, col, cx, cy, rad, a){
+  var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+  g.addColorStop(0, rgba(col, a)); g.addColorStop(1, rgba(col, 0));
+  ctx.fillStyle = g; ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+}
 function drawNext(){
-  var nc = nextCv._cell || cell;
-  var W = nc * 4.4, H = nc * 2.8;
+  var nc = nextCv._cell || cell, show = nextCv._show || 1;
+  var W = nextCv._w || nc * 4.4, H = nextCv._h || nc * 2.8;
   nctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   nctx.clearRect(0, 0, W, H);
-  if (!nextType || !sprites._next) return;
-  var m = SHAPES[nextType], b = bounds(m);
-  var minR = b.minR, minC = b.minC;
-  var w = (b.maxC - minC + 1) * nc, h = (b.maxR - minR + 1) * nc;
-  var ox = (W - w) / 2, oy = (H - h) / 2;
-  var col = COLORS[nextType];
-  var g = nctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * 0.5);
-  g.addColorStop(0, rgba(col, 0.16)); g.addColorStop(1, rgba(col, 0));
-  nctx.fillStyle = g; nctx.fillRect(0, 0, W, H);
-  eachCell(m, function(r, c){
-    nctx.drawImage(sprites._next[nextType], ox + (c - minC) * nc, oy + (r - minR) * nc, nc, nc);
-  });
-  nextCv.setAttribute('aria-label', '下一個方塊：' + nextType);
+  if (!queue || !queue.length || !sprites._next) return;
+  var first = nc * 2.8, sc = nc * 0.66, slot = sc * 2.9;
+  glow(nctx, COLORS[queue[0]], W / 2, first / 2, W * 0.5, 0.16);
+  drawPieceAt(nctx, queue[0], W / 2, first / 2, nc, sprites._next);
+  for (var i = 1; i < show; i++){
+    var cy = first + (i - 0.5) * slot;
+    nctx.fillStyle = 'rgba(160,172,196,0.10)';
+    nctx.fillRect(W * 0.25, first + (i - 1) * slot, W * 0.5, 1);
+    drawPieceAt(nctx, queue[i], W / 2, cy, sc, sprites._next, 0.9 - i * 0.08);
+  }
+  nextCv.setAttribute('aria-label', '接下來的方塊：' + queue.slice(0, show).join('、'));
+}
+function drawHold(){
+  var nc = holdCv._cell || cell;
+  var W = nc * 4.4, H = nc * 2.8;
+  hctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  hctx.clearRect(0, 0, W, H);
+  if (!holdType || !sprites._next){ holdCv.setAttribute('aria-label', '暫存區：空'); return; }
+  // 本塊已用過暫存時灰掉，提示這一塊不能再換
+  if (canHold) glow(hctx, COLORS[holdType], W / 2, H / 2, W * 0.5, 0.14);
+  drawPieceAt(hctx, holdType, W / 2, H / 2, nc, sprites._next, canHold ? 1 : 0.32);
+  holdCv.setAttribute('aria-label', '暫存區：' + holdType + (canHold ? '' : '（本塊已使用）'));
 }
 
 /* ================= 特效 ================= */
@@ -1059,9 +1199,13 @@ function press(act){
     dasDir = act === 'left' ? -1 : 1; dasTimer = 0; arrTimer = 0;
     tryMove(dasDir);
   } else if (act === 'down'){
-    if (!held.down){ held.down = true; if (canAct() && softStep()) gravityAcc = 0; }
+    if (!held.down){ held.down = true; if (canAct() && softStep(true)) gravityAcc = 0; }
   } else if (act === 'rotate'){
-    tryRotate();
+    tryRotate(1);
+  } else if (act === 'ccw'){
+    tryRotate(-1);
+  } else if (act === 'hold'){
+    doHold();
   } else if (act === 'drop'){
     hardDrop();
   }
@@ -1079,11 +1223,13 @@ function release(act){
 }
 function releaseAll(){ held.left = held.right = held.down = false; dasDir = 0; }
 
-// ← → 移動、↓ 加速下落、↑ 順時針旋轉、空白鍵直接落底
-var KEYMAP = { ArrowLeft:'left', ArrowRight:'right', ArrowDown:'down', ArrowUp:'rotate', ' ':'drop', Spacebar:'drop' };
+// Guideline 標準鍵位：← → 移動、↓ 軟降、空白鍵硬降、↑／X 順時針、Z 逆時針、C／Shift 暫存
+var KEYMAP = { ArrowLeft:'left', ArrowRight:'right', ArrowDown:'down', ArrowUp:'rotate', ' ':'drop', Spacebar:'drop',
+  x:'rotate', X:'rotate', z:'ccw', Z:'ccw', c:'hold', C:'hold', Shift:'hold' };
 // 中文輸入法攔截時 e.key 會變成 "Process"，改用實體按鍵位置 e.code 判斷
-var CODEMAP = { ArrowLeft:'left', ArrowRight:'right', ArrowDown:'down', ArrowUp:'rotate', Space:'drop' };
-var IGNORE = { Tab:1, Shift:1, Control:1, Alt:1, Meta:1, CapsLock:1, ContextMenu:1, OS:1 };
+var CODEMAP = { ArrowLeft:'left', ArrowRight:'right', ArrowDown:'down', ArrowUp:'rotate', Space:'drop',
+  KeyX:'rotate', KeyZ:'ccw', KeyC:'hold', ShiftLeft:'hold', ShiftRight:'hold' };
+var IGNORE = { Tab:1, Control:1, Alt:1, Meta:1, CapsLock:1, ContextMenu:1, OS:1 };
 function actionOf(e){ return KEYMAP[e.key] || CODEMAP[e.code]; }
 
 document.addEventListener('keydown', function(e){
@@ -1182,13 +1328,14 @@ function update(dt){
     }
   }
 
-  // 重力
-  var interval = held.down ? Math.min(SOFT_DROP, gravityInterval()) : gravityInterval();
+  // 重力（按住 ↓ 時為 20 倍速軟降，每格加 1 分）
+  var soft = held.down;
+  var interval = soft ? gravityInterval() / SOFT_DROP_FACTOR : gravityInterval();
   gravityAcc += dt;
   var steps = 0;
   while (gravityAcc >= interval && steps < ROWS){
     gravityAcc -= interval; steps++;
-    if (!softStep()){ gravityAcc = 0; break; }
+    if (!softStep(soft)){ gravityAcc = 0; break; }
   }
 
   // 落地等待固定
@@ -1231,14 +1378,15 @@ function frame(now){
     var step = cell * 0.9;
     while (e.clientX - g.ax >= step){ g.ax += step; tryMove(1); g.moved = true; }
     while (g.ax - e.clientX >= step){ g.ax -= step; tryMove(-1); g.moved = true; }
-    while (e.clientY - g.ay >= step){ g.ay += step; if (canAct()) softStep(); g.moved = true; }
+    while (e.clientY - g.ay >= step){ g.ay += step; if (canAct()) softStep(true); g.moved = true; }
   });
   function end(e){
     if (!g || e.pointerId !== g.id) return;
     var dt = performance.now() - g.t0, dx = e.clientX - g.x0, dy = e.clientY - g.y0;
     if (state === 'play'){
       if (dy > cell * 2.5 && dt < 260 && Math.abs(dy) > Math.abs(dx) * 1.5) hardDrop();
-      else if (!g.moved && Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 320) tryRotate();
+      else if (-dy > cell * 2.5 && dt < 320 && Math.abs(dy) > Math.abs(dx) * 1.5) doHold();   // 快速上滑：暫存
+      else if (!g.moved && Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 320) tryRotate(1);
     }
     g = null;
   }
@@ -1270,7 +1418,7 @@ syncSoundButtons();
 board = demoBoard();
 score = 0; lines = 0; level = 1;
 refillBag();
-nextType = takeType();
+queue = []; fillQueue(); holdType = null; canHold = true;
 updateHud(true);
 layout();
 // 行動瀏覽器首次量測時視窗寬度可能尚未穩定，載入完成後再量一次

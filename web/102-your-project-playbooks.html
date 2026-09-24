@@ -273,7 +273,6 @@
 
   hr.rule-bright { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
 
-  .cover-mark .hi { color: var(--phosphor); }
 
   .slide.active .stagger > * { opacity: 0; animation: fadeUp 0.45s cubic-bezier(0.23, 1, 0.32, 1) both; }
   .slide.active .stagger > *:nth-child(1) { animation-delay: 0.05s; }
@@ -298,6 +297,51 @@
     .slide { padding: 64px 40px 48px 40px; }
     .row { gap: 32px; }
     .toc { grid-template-columns: 1fr; }
+  }
+
+  /* phone: slides become vertically scrollable single-column pages */
+  @media (max-width: 720px) {
+    .slide { padding: 52px 18px 52px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+    .slide > * { flex-shrink: 0; }
+    .slide-header { flex-wrap: wrap; gap: 6px 12px; margin-bottom: 18px; }
+    .slide-header .slide-num { order: 0; }
+    .slide-header .right-note { order: 1; margin-left: auto; font-size: 11px; max-width: 58%; }
+    .slide-header .title-inline { order: 2; flex: 1 1 100%; font-size: 30px; }
+    .slide-header .title-inline .zh { display: block; margin: 6px 0 0; }
+    h1.display { font-size: clamp(40px, 11.5vw, 52px); }
+    .lead { font-size: 21px; }
+    .lead-zh { font-size: 15px; }
+    .row, .recap-slide .row { flex-direction: column; gap: 28px; }
+    .grid, .grid.cols-3 { grid-template-columns: minmax(0, 1fr); }
+    .cell { min-height: 0; padding: 20px 18px; }
+    .cell h3 { font-size: 23px; }
+    .toc { gap: 8px; }
+    .toc-item { flex-wrap: wrap; }
+    .toc-item .t { min-width: 0; }
+    ul.bullets li, .recap-slide ul.bullets li { font-size: 20px; }
+    .terminal { font-size: 12px; padding: 22px 16px 18px; }
+    .shift { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .shift-col { padding: 22px 20px; }
+    .shift-col h3 { font-size: 26px; }
+    .shift-arrow { justify-self: center; transform: rotate(90deg); font-size: 22px; }
+    .stack { flex: none; }
+    .stack .layer { flex: none; grid-template-columns: 26px minmax(0, 1fr); gap: 6px 12px; padding: 14px 16px; }
+    .stack .layer .name .zh { display: block; margin: 4px 0 0; }
+    .stack .layer .tag { grid-column: 2; justify-self: start; white-space: normal; }
+    .diagram-slide { padding: 52px 12px 48px; }
+    .diagram-slide .diagram-frame { flex: none; height: min(64vh, 520px); overflow-x: auto; overflow-y: hidden; }
+    .diagram-slide .diagram-frame svg { min-width: 900px; }
+    .diagram-slide .diagram-frame::after { content: ''; flex: 0 0 10px; }
+    .cover-mark { position: static; align-self: flex-start; margin-bottom: 22px; }
+    .cover-footer { position: static; margin-top: auto; padding-top: 36px; flex-direction: column; align-items: flex-start; gap: 16px; }
+    .cover-footer > div { text-align: left !important; }
+    .meta-row { flex-wrap: wrap; gap: 8px 20px; }
+    .chrome-top .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .chrome-top .session { flex-shrink: 0; margin-left: 12px; }
+    .chrome-bottom { gap: 12px; }
+    .chrome-bottom .crumbs { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chrome-bottom .counter { flex-shrink: 0; }
+    .chrome-bottom .nav-hint { display: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1243,6 +1287,7 @@
     if (i >= total) i = total - 1;
     slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
     current = i;
+    slides[i].scrollTop = 0;
     counter.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
     const title = slides[i].dataset.title || '';
     crumbs.textContent = '~/ai-full-stack · your-project · ' + (title || ('slide-' + (i + 1))).toLowerCase().replace(/\s+/g, '-');
@@ -1350,9 +1395,11 @@
   });
 
   let touchStartX = 0;
-  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  let touchInFrame = false;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; touchInFrame = !!e.target.closest('.diagram-frame'); }, { passive: true });
   document.addEventListener('touchend', (e) => {
     const dx = e.changedTouches[0].clientX - touchStartX;
+    if (touchInFrame) return;
     if (Math.abs(dx) > 40) { if (dx < 0) next(); else prev(); }
   });
 

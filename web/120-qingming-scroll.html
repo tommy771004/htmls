@@ -144,7 +144,7 @@ const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function fail(msg){const u=$('unroll');u.classList.add('err');$('loadMsg').textContent=msg}
 let THREE;
 try{THREE=await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js')}
-catch(e){fail('無法載入 Three.js。請確認網路連線後重新整理。');throw e}
+catch(e){try{THREE=await import('../vendor/three-0.186.0/three.module.js')}catch(e2){fail('無法載入 Three.js。請確認網路連線後重新整理。');throw e2}}
 const canvas=$('scene'),stageEl=$('stage');
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'})}
@@ -909,7 +909,7 @@ function frame(now){
   const kc=1-Math.exp(-dt*6);yawO+=(tYaw-yawO)*kc;pitch+=(tPitch-pitch)*kc;zoom+=(tZoom-zoom)*kc;
   focus.set(-camP,1.5,focusZ(camP));
   const yaw=DEF_YAW+yawO,dist=baseDist()*zoom,cp=Math.cos(pitch);
-  camera.position.set(focus.x+Math.sin(yaw)*cp*dist,focus.y+Math.sin(pitch)*dist+Math.sin(time*.25)*.35,focus.z+Math.cos(yaw)*cp*dist);
+  camera.position.set(focus.x+Math.sin(yaw)*cp*dist,focus.y+Math.sin(pitch)*dist+(reduceMotion?0:Math.sin(time*.25)*.35),focus.z+Math.cos(yaw)*cp*dist);
   look.set(focus.x-Math.sin(yaw)*dist*LOOK,focus.y,focus.z-Math.cos(yaw)*dist*LOOK);camera.lookAt(look);
   sun.position.copy(focus).addScaledVector(cur.dir,260);sun.target.position.copy(focus);sun.color.copy(cur.sun);sun.intensity=cur.si;
   hemi.color.copy(cur.sky);hemi.groundColor.copy(cur.gnd);hemi.intensity=cur.hi;

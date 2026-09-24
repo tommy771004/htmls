@@ -268,6 +268,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
+window.__thockworkBooted = true;
 const gsap = window.gsap;
 const $ = (s, r = document) => r.querySelector(s);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -404,7 +405,7 @@ scene.background = new THREE.Color(SETS[0].stage);
 const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 5, 9000);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true; controls.dampingFactor = .075;
-controls.enablePan = false; controls.minDistance = 150; controls.maxDistance = 1250;
+controls.enablePan = false; controls.minDistance = 150; controls.maxDistance = 2600;   // portrait phones need ~1800 to frame the 75% board; 1250 clipped it
 controls.maxPolarAngle = 1.46; controls.minPolarAngle = .05;
 controls.rotateSpeed = .8;
 
@@ -523,7 +524,10 @@ function capGeometry(w, profId, rowCls) {
   const cap = loft([...rings, ...top], center);
   const lift = r => r.map(([x, y, z]) => [x, y + .07, z]);
   const legend = loft(top.map(lift), [center[0], center[1] + .07, center[2]], ([x, , z]) => [(x + bx) / (2 * bx), 1 - (z - czT + bz) / (2 * bz)]);
-  const out = { cap, legend };
+  // homing bump (F / J): a short raised bar near the front edge of the dish, following the row's sculpt angle
+  const zb = czT + bz * .58, bump = new RoundedBoxGeometry(5, 1, 1.2, 2, .42);
+  bump.rotateX(Math.atan(slope)); bump.translate(0, yTop(zb) + .04 - dish(0, zb) + .18, zb);
+  const out = { cap, legend, bump };
   capCache.set(key, out);
   return out;
 }
@@ -665,6 +669,7 @@ function buildKeyboard(id) {
     const cap = new THREE.Mesh(geo.cap, M.caps[k.role]); cap.castShadow = cap.receiveShadow = true;
     cap.userData.key = k; g.add(cap);
     k.g = g; k.cap = cap;
+    if (k.spec.codes.includes('KeyF') || k.spec.codes.includes('KeyJ')) { const b = new THREE.Mesh(geo.bump, M.caps[k.role]); b.castShadow = true; g.add(b); k.bump = b; }
     if (k.spec.lg !== 'none') {
       const lm = new THREE.MeshStandardMaterial({ map: legendTexture(k.spec), color: legendColor(set, k.role), transparent: true, roughness: .6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
       const leg = new THREE.Mesh(geo.legend, lm); leg.renderOrder = 1; g.add(leg); k.leg = leg;
@@ -682,7 +687,7 @@ function disposeKeyboard(kb) {
   scene.remove(kb.root);
   kb.root.traverse(o => {
     if (o.geometry && !o.geometry.userData.keep) {
-      const cached = [...capCache.values()].some(c => c.cap === o.geometry || c.legend === o.geometry) || Object.values(G).includes(o.geometry);
+      const cached = [...capCache.values()].some(c => c.cap === o.geometry || c.legend === o.geometry || c.bump === o.geometry) || Object.values(G).includes(o.geometry);
       if (!cached) o.geometry.dispose();
     }
     if (o.isInstancedMesh) o.dispose();
@@ -747,7 +752,7 @@ function fitPose(name, wf = 1, hf = freeFrac(), aspect = innerWidth / innerHeigh
   const Rh = v.side ? KB.caseD * .5 + 34 : KB.caseW * .5 + 12;
   const Rv = v.side ? 60 : name === 'top' ? KB.caseD * .5 + 16 : name === 'explode' ? KB.caseW * .36 : KB.caseW * .3;
   const framing = innerWidth <= 760
-    ? (name === 'hero' || name === 'explode' ? 1.35 : 1.1)
+    ? (name === 'hero' || name === 'explode' ? (aspect < .7 ? 1.12 : 1.35) : 1.1)
     : (name === 'hero' || name === 'explode' ? 1.15 : 1.05);
   const d = Math.max(Rh / (tH * wf), Rv / (tV * hf)) * v.k * framing;
   const target = new THREE.Vector3(v.side ? -KB.caseW * .18 : 0, v.ty, 0);
@@ -882,7 +887,7 @@ function setProfile(id) {
   if (state.view !== 'side' && !state.exploded) goView('side');
   for (const k of KB.keys) {
     const geo = capGeometry(k.w, id, k.row);
-    const swap = () => { k.cap.geometry = geo.cap; if (k.leg) k.leg.geometry = geo.legend; };
+    const swap = () => { k.cap.geometry = geo.cap; if (k.leg) k.leg.geometry = geo.legend; if (k.bump) k.bump.geometry = geo.bump; };
     if (reduceMotion) { swap(); continue; }
     gsap.timeline({ delay: waveDelay(k) * .9 + .15 })
       .to(k.a, { hop: 10, duration: .16, ease: 'power2.out' })
@@ -1312,6 +1317,10 @@ measureUI(false); applyViewOffset();
   dropIn(.35);
 }
 renderer.setAnimationLoop(tick);
+</script>
+<script>
+// 靜態 import 的 Three.js 附加模組若從 CDN 載入失敗，整個 module 不會執行：load 後仍沒啟動就顯示說明
+addEventListener('load', function(){ if (!window.__thockworkBooted){ document.getElementById('error').classList.add('visible'); document.getElementById('dock').style.display = 'none'; } });
 </script>
 </body>
 </html>

@@ -32,7 +32,8 @@
 <script type="module">
 let THREE;
 try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); }
-catch (e) { document.getElementById('error').hidden=false; throw e; }
+catch { try { THREE = await import('../vendor/three-0.186.0/three.module.js'); }
+  catch (e) { document.getElementById('error').hidden=false; throw e; } }
 
 const $=id=>document.getElementById(id);
 const canvas=$('scene'), form=$('form'), input=$('promise'), feedback=$('feedback');
@@ -45,7 +46,7 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.36;
 renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.type=THREE.PCFShadowMap;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color('#343e35');
 scene.fog=new THREE.FogExp2('#596858',.021);
