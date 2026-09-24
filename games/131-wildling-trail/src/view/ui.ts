@@ -1,8 +1,8 @@
-// DOM 介面：下方的旅行手帳（對話、選單、戰鬥指令）與畫面上的 HUD。
+// DOM 介面：下方的旅行手帳（對話、選單）、戰鬥時畫面框內的戰鬥框，以及畫面上的 HUD。
 // 只讀取 GameApp 的 view model；點擊項目會轉成 app.select() 或按鍵。
 
 import type { GameApp } from '../app/game';
-import type { BattleVM, Button, ListRow, PanelVM } from '../app/types';
+import type { BattleVM, Button, DialogVM, ListRow, PanelVM } from '../app/types';
 import type { SideView } from '../core/battle';
 import { getMap } from '../data/maps';
 import { SPECIES_LIST, getSpecies } from '../data/species';
@@ -64,8 +64,19 @@ class Typer {
   }
 }
 
+/** 一次畫面更新要放進容器的內容。 */
+interface View {
+  key: string;
+  html: () => string;
+  typed: { serial: number; text: string } | null;
+  overlay?: boolean;
+}
+
 export class DomUI {
   readonly sheet = document.getElementById('sheet')!;
+  private readonly bbox = document.getElementById('bbox')!;
+  private readonly root = document.getElementById('app')!;
+  private inBattle = false;
   private readonly hudEnemy = document.getElementById('hud-enemy')!;
   private readonly hudPlayer = document.getElementById('hud-player')!;
   private readonly logo = document.getElementById('logo')!;
@@ -83,7 +94,7 @@ export class DomUI {
     private readonly actions: { press: (b: Button) => void; select: (i: number) => void },
   ) {
     this.typer.onChange = () => this.paintTyper();
-    this.sheet.addEventListener('click', (e) => {
+    const onClick = (e: MouseEvent) => {
       const el = (e.target as HTMLElement).closest<HTMLElement>('[data-i],[data-press]');
       if (el?.dataset.i !== undefined) {
         this.actions.select(Number(el.dataset.i));
@@ -94,7 +105,14 @@ export class DomUI {
         return;
       }
       if ((e.target as HTMLElement).closest('.dlg')) this.actions.press('confirm');
-    });
+    };
+    this.sheet.addEventListener('click', onClick);
+    this.bbox.addEventListener('click', onClick);
+  }
+
+  /** 目前內容畫在哪裡：戰鬥時是畫面框內的戰鬥框，其他時候是手帳。 */
+  private get host(): HTMLElement {
+    return this.inBattle ? this.bbox : this.sheet;
   }
 
   get typing(): boolean {
@@ -123,6 +141,7 @@ export class DomUI {
   }
 
   fatal(message: string): void {
+    this.setBattleLayout(false);
     this.sheet.innerHTML = `<div class="fatal"><p class="err">遊戲發生錯誤，已經停止。</p><p>${esc(message)}</p><p>存檔不會因此遺失。</p><button type="button" onclick="location.reload()">重新載入</button></div>`;
     this.sheetKey = 'fatal';
   }
@@ -135,78 +154,116 @@ export class DomUI {
     const mode = app.mode;
     document.documentElement.classList.toggle('reduced', app.settings.reducedMotion);
     this.logo.hidden = mode !== 'title';
+    // 轉場時維持原本的版面，等畫面全黑、狀態切換後才換成戰鬥框或手帳。
     if (mode === 'transition') return;
+    this.setBattleLayout(mode === 'battle' || mode === 'result' || (mode === 'dialog' && app.battle !== null));
 
-    let key: string;
-    let html: () => string;
-    let typed: { serial: number; text: string } | null = null;
+    const view = this.inBattle ? this.battleView() : this.sheetView();
+    if (view.key !== this.sheetKey) {
+      this.sheetKey = view.key;
+      const host = this.host;
+      if (this.inBattle) this.bbox.classList.toggle('overlay', view.overlay === true);
+      host.innerHTML = view.html();
+      this.typerTarget = host.querySelector('.typed');
+      this.moreEl = host.querySelector('.more');
+      if (view.typed) this.typer.start(view.typed.serial, view.typed.text, app.settings.instantText);
+      else this.typer.start(-1, '', true);
+      this.paintTyper();
+      host.querySelector('.row.sel, .card.sel')?.scrollIntoView({ block: 'nearest' });
+    }
+    this.renderHud();
+  }
 
-    switch (mode) {
+  private setBattleLayout(on: boolean): void {
+    if (on === this.inBattle) return;
+    this.inBattle = on;
+    this.root.classList.toggle('in-battle', on);
+    this.bbox.hidden = !on;
+    // 換容器時清空另一邊，避免兩邊同時有可點的項目。
+    (on ? this.sheet : this.bbox).innerHTML = '';
+    this.bbox.classList.remove('overlay');
+    this.sheetKey = '';
+  }
+
+  /** 手帳：探索、對話、選單、標題與通關。 */
+  private sheetView(): View {
+    const app = this.app;
+    switch (app.mode) {
       case 'title':
       case 'menu': {
         const vm = app.topPanel!.vm();
-        key = `panel|${JSON.stringify(vm)}`;
-        html = () => this.panelHtml(vm);
-        break;
+        return { key: `panel|${JSON.stringify(vm)}`, html: () => this.panelHtml(vm), typed: null };
       }
       case 'dialog': {
         const vm = app.dialog!.vm();
-        key = `dlg|${vm.serial}|${vm.choice ? JSON.stringify(vm.choice) : ''}`;
-        typed = { serial: vm.serial, text: vm.text };
-        html = () => {
-          const choices = vm.choice
-            ? `<div class="choices">${vm.choice.options
-                .map((o, i) => `<button type="button" data-i="${i}" class="${i === vm.choice!.cursor ? 'sel' : ''}">${esc(o)}</button>`)
-                .join('')}</div>`
-            : '';
-          return `<div class="dlg">${vm.speaker ? `<span class="speaker">${esc(vm.speaker)}</span>` : ''}<div class="text-wrap"><span class="text typed"></span>${vm.more || !vm.choice ? '<span class="more" hidden>▼</span>' : ''}</div>${choices}</div>`;
+        return {
+          key: `dlg|${vm.serial}|${vm.choice ? JSON.stringify(vm.choice) : ''}`,
+          typed: { serial: vm.serial, text: vm.text },
+          html: () => {
+            const choices = vm.choice
+              ? `<div class="choices">${vm.choice.options
+                  .map((o, i) => `<button type="button" data-i="${i}" class="${i === vm.choice!.cursor ? 'sel' : ''}">${esc(o)}</button>`)
+                  .join('')}</div>`
+              : '';
+            return `<div class="dlg">${vm.speaker ? `<span class="speaker">${esc(vm.speaker)}</span>` : ''}<div class="text-wrap"><span class="text typed"></span>${vm.more || !vm.choice ? '<span class="more" hidden>▼</span>' : ''}</div>${choices}</div>`;
+          },
         };
-        break;
-      }
-      case 'battle': {
-        const vm = app.battle!.vm();
-        key = `battle|${vm.phase}|${vm.serial}|${vm.text}|${JSON.stringify(vm.commands)}|${JSON.stringify(vm.panel)}`;
-        if (vm.phase === 'events') typed = { serial: vm.serial, text: vm.text };
-        html = () => this.battleHtml(vm);
-        break;
-      }
-      case 'result': {
-        const vm = app.battle!.resultVM();
-        key = `result|${vm.serial}|${JSON.stringify(vm.panel)}`;
-        if (!vm.panel) typed = { serial: vm.serial + 1_000_000, text: vm.text };
-        html = () =>
-          vm.panel
-            ? `<div class="dlg" style="flex:none"><div class="text">${esc(vm.text)}</div></div>${this.panelHtml(vm.panel)}`
-            : `<div class="dlg"><div class="text-wrap"><span class="text typed"></span><span class="more" hidden>▼</span></div></div>`;
-        break;
       }
       case 'cleared': {
         const vm = app.clearedVM();
-        key = `cleared|${JSON.stringify(vm)}`;
-        html = () => `<div class="cleared sheet-scroll"><div class="kicker">石冠挑戰・通過</div><h2>旅程告一段落</h2>
+        return {
+          key: `cleared|${JSON.stringify(vm)}`,
+          typed: null,
+          html: () => `<div class="cleared sheet-scroll"><div class="kicker">石冠挑戰・通過</div><h2>旅程告一段落</h2>
           <dl><dt>遊玩時間</dt><dd>${esc(vm.playTime)}</dd><dt>圖鑑</dt><dd>見過 ${vm.seen}・捕捉 ${vm.caught}／${vm.total}</dd>
           <dt>夥伴</dt><dd>${vm.party.map((m) => `${esc(m.name)} Lv.${m.level}`).join('、')}</dd></dl>
           <div class="goal"><p>謝謝你陪野靈們走完這段路。按確認繼續自由探索，把圖鑑填滿吧。</p></div>
-          <button type="button" class="opt" data-press="confirm">繼續自由探索</button></div>`;
-        break;
+          <button type="button" class="opt" data-press="confirm">繼續自由探索</button></div>`,
+        };
       }
-      default: {
-        key = `explore|${this.exploreKey()}`;
-        html = () => this.exploreHtml();
-      }
+      default:
+        return { key: `explore|${this.exploreKey()}`, html: () => this.exploreHtml(), typed: null };
     }
+  }
 
-    if (key !== this.sheetKey) {
-      this.sheetKey = key;
-      this.sheet.innerHTML = html();
-      this.typerTarget = this.sheet.querySelector('.typed');
-      this.moreEl = this.sheet.querySelector('.more');
-      if (typed) this.typer.start(typed.serial, typed.text, app.settings.instantText);
-      else this.typer.start(-1, '', true);
-      this.paintTyper();
-      this.sheet.querySelector('.row.sel, .card.sel')?.scrollIntoView({ block: 'nearest' });
+  /** 戰鬥框：訊息在左、指令或招式在右；背包、隊伍等清單蓋滿整個畫面框。 */
+  private battleView(): View {
+    const app = this.app;
+    const mode = app.mode;
+    if (mode === 'dialog') {
+      const vm = app.dialog!.vm();
+      return {
+        key: `bdlg|${vm.serial}|${vm.choice ? JSON.stringify(vm.choice) : ''}`,
+        typed: { serial: vm.serial, text: vm.text },
+        html: () => this.battleDialogHtml(vm),
+      };
     }
-    this.renderHud();
+    if (mode === 'result') {
+      const vm = app.battle!.resultVM();
+      if (vm.panel) {
+        const panel = vm.panel;
+        return {
+          key: `bresult|${vm.serial}|${JSON.stringify(panel)}`,
+          typed: null,
+          overlay: true,
+          html: () => `<div class="bover"><div class="bwin bmsg"><div class="text">${esc(vm.text)}</div></div>${this.panelHtml(panel)}</div>`,
+        };
+      }
+      return {
+        key: `bresult|${vm.serial}`,
+        typed: { serial: vm.serial + 1_000_000, text: vm.text },
+        html: () => this.messageHtml(),
+      };
+    }
+    const vm = app.battle!.vm();
+    const key = `battle|${vm.phase}|${vm.serial}|${vm.text}|${JSON.stringify(vm.commands)}|${JSON.stringify(vm.panel)}`;
+    if (vm.phase === 'panel' && vm.panel) {
+      const panel = vm.panel;
+      if (panel.kind === 'moves') return { key, typed: null, html: () => this.movesHtml(panel) };
+      return { key, typed: null, overlay: true, html: () => `<div class="bover">${this.panelHtml(panel)}</div>` };
+    }
+    if (vm.phase === 'command' && vm.commands) return { key, typed: null, html: () => this.commandHtml(vm) };
+    return { key, typed: vm.phase === 'events' ? { serial: vm.serial, text: vm.text } : null, html: () => this.messageHtml() };
   }
 
   // ---------- 探索 ----------
@@ -267,15 +324,51 @@ export class DomUI {
 
   // ---------- 戰鬥 ----------
 
-  private battleHtml(vm: BattleVM): string {
-    if (vm.phase === 'panel' && vm.panel) return this.panelHtml(vm.panel);
-    if (vm.phase === 'command' && vm.commands) {
-      const cmds = vm.commands.labels
-        .map((l, i) => `<button type="button" data-i="${i}" class="${i === vm.commands!.cursor ? 'sel' : ''}">${esc(l)}</button>`)
-        .join('');
-      return `<div class="dlg"><div class="text">${esc(vm.text)}</div><div class="cmds">${cmds}</div></div>`;
-    }
-    return `<div class="dlg"><div class="text-wrap"><span class="text typed"></span><span class="more" hidden>▼</span></div></div>`;
+  /** 只有訊息：整條戰鬥框都是文字，點一下等於確認。 */
+  private messageHtml(): string {
+    return `<div class="bwin bmsg dlg"><span class="text typed"></span><span class="more" hidden>▼</span></div>`;
+  }
+
+  private pickHtml(labels: string[], cursor: number, extra = ''): string {
+    const buttons = labels
+      .map((l, i) => `<button type="button" data-i="${i}" class="${i === cursor ? 'sel' : ''}">${esc(l)}</button>`)
+      .join('');
+    return `<div class="bwin bpick${extra}">${buttons}</div>`;
+  }
+
+  private commandHtml(vm: BattleVM): string {
+    return `<div class="bwin bmsg"><div class="text">${esc(vm.text)}</div></div>${this.pickHtml(vm.commands!.labels, vm.commands!.cursor)}`;
+  }
+
+  private battleDialogHtml(vm: DialogVM): string {
+    const msg = `<div class="bwin bmsg${vm.choice ? '' : ' dlg'}"><span class="text typed"></span>${vm.more || !vm.choice ? '<span class="more" hidden>▼</span>' : ''}</div>`;
+    return vm.choice ? msg + this.pickHtml(vm.choice.options, vm.choice.cursor, ' one') : msg;
+  }
+
+  /** 招式：左邊 2×2 選招，右邊是選中招式的次數、屬性與威力。 */
+  private movesHtml(vm: PanelVM): string {
+    const buttons = vm.rows
+      .map((r, i) => `<button type="button" data-i="${i}" class="${[i === vm.cursor ? 'sel' : '', r.disabled ? 'off' : ''].filter(Boolean).join(' ')}">${esc(r.label)}</button>`)
+      .join('');
+    const row = vm.rows[vm.cursor];
+    const [type = '', power = ''] = (row?.sub ?? '').split('・');
+    const typeCls = { 焰: 't-flame', 潮: 't-tide', 苔: 't-moss' }[type] ?? '';
+    const [pp, max] = (row?.right ?? '').split('/').map(Number);
+    const low = Number.isFinite(pp) && Number.isFinite(max) && pp <= Math.floor(max / 4);
+    const typeLabel = type.endsWith('屬性') ? type : `${type}屬性`;
+    // 招式全部用完時，右邊直接說明為什麼只剩「拚命」。
+    const info = vm.hint
+      ? `<div class="sub">${esc(vm.hint)}</div>`
+      : row
+        ? `<div class="pp${low ? ' low' : ''}"><span>次數</span><span>${esc(row.right ?? '')}</span></div>
+           <div class="type ${typeCls}">${esc(typeLabel)}</div><div class="sub">${esc(power)}</div>
+           ${(vm.detail?.lines[1] ?? '')
+             .split('・')
+             .filter((part) => part && part !== '優先度 +0')
+             .map((part) => `<div class="sub">${esc(part)}</div>`)
+             .join('')}`
+        : '';
+    return `<div class="bwin bpick bmoves">${buttons}</div><div class="bwin binfo">${info}</div>`;
   }
 
   private hudHtml(v: SideView, player: boolean): string {

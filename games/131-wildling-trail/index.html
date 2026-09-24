@@ -11,6 +11,7 @@
 </head>
 <body>
 <main id="app">
+  <div id="frame">
   <section id="screen" aria-label="遊戲畫面">
     <div id="game"></div>
     <div id="hud-enemy" class="hud enemy" hidden></div>
@@ -22,8 +23,10 @@
     </div>
     <div id="banner" hidden></div>
     <div id="toast" role="status" hidden></div>
-    <div id="fade"></div>
   </section>
+  <section id="bbox" aria-live="polite" hidden></section>
+  <div id="fade"></div>
+  </div>
   <section id="sheet" aria-live="polite"></section>
   <nav id="pad" aria-label="觸控操作">
     <div class="dpad">

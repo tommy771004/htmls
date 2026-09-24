@@ -73,6 +73,7 @@ export interface PanelVM {
   hint?: string;
   qty?: QtyVM;
   layout?: 'list' | 'starter';
+  columns?: number;
 }
 
 export interface DialogVM {
