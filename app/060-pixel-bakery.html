@@ -89,7 +89,7 @@ canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
 .it+.it{box-shadow:0 -3px 0 -0px #3d2416}
 .it:active{background:#3d2416}
 .it .ic{flex:none;width:48px;height:48px;display:grid;place-items:center}
-.it .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.it .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;overflow:hidden}
 .it .co{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .it.no .tx,.it.no .co,.it.no .ic{opacity:.45}
 .it.shake{animation:shake .3s steps(6)}
@@ -389,7 +389,7 @@ function renderWin(){ var L = $('list'); L.innerHTML = '';
       var sub = u.tap ? '每下 +'+fmt(breadNow().p*(1+lv+1)*(1+.1*(st.br-1)))+'G' : '每個 +'+fmtR(u.r*(1+.25*(st.br-1)))+'/s';
       L.appendChild(row({no:!can, data:{u:u.id}, aria:u.n+' 等級 '+lv+'，花費 '+fmt(c)+' 金幣', icon:iconCanvas(function(x){ upIcon(x, u.id); }), name:u.n+(lv?' x'+lv:''), sub:sub, r1:fmtG(c), r1c:can?C.gd2:C.dim})); }); }
   else if(mode==='bread'){ BREADS.forEach(function(b, i){ var owned = i < st.br, next = i === st.br, can = next && st.g >= b.u;
-      L.appendChild(row({no:!owned && !can, data:{b:i}, aria:b.n+(owned?' 已解鎖':' 解鎖需要 '+fmt(b.u)+' 金幣'), icon:iconCanvas(function(x){ bread(x, owned||next ? b : {t:b.t, k:'none', c:['#4a2c16','#4a2c16','#3a200e']}, 4, 5); }), name: owned || next ? b.n : '？？？', sub: owned ? '每個 '+fmt(b.p)+'G'+(i===st.br-1?'・主打':'') : next ? '每個 '+fmt(b.p)+'G・全店收入 +25%' : '先解鎖上一款', r1: owned ? '已上架' : fmtG(b.u), r1c: owned ? C.grn : can ? C.gd2 : C.dim})); }); }
+      L.appendChild(row({no:!owned && !can, data:{b:i}, aria:b.n+(owned?' 已解鎖':' 解鎖需要 '+fmt(b.u)+' 金幣'), icon:iconCanvas(function(x){ bread(x, owned||next ? b : {t:b.t, k:'none', c:['#4a2c16','#4a2c16','#3a200e']}, 4, 5); }), name: owned || next ? b.n : '？？？', sub: owned ? '每個 '+fmt(b.p)+'G'+(i===st.br-1?'・主打':'') : next ? '每個 '+fmt(b.p)+'G・全店 +25%' : '先解鎖上一款', r1: owned ? '已上架' : fmtG(b.u), r1c: owned ? C.grn : can ? C.gd2 : C.dim})); }); }
   else if(mode==='book'){ var secs = Math.floor(st.play), hh = Math.floor(secs/3600), mm = Math.floor(secs%3600/60);
     [['總收入', fmt(st.tot)+'G'], ['出爐', fmt(st.baked)+' 個'], ['點擊', fmt(st.taps)+' 次'], ['每秒', fmtR(rate())+'G'], ['每下', fmt(tapVal())+'G'], ['營業', hh+'時'+mm+'分']].forEach(function(p){ var r = document.createElement('div'); r.className = 'it'; r.style.minHeight = '44px'; r.appendChild(mk(p[0], C.dim, {size:12, s:2})); var sp = document.createElement('span'); sp.style.flex = '1'; r.appendChild(sp); r.appendChild(mk(p[1], C.cr, {size:12, s:2})); L.appendChild(r); });
     L.appendChild(row({data:{t:'snd'}, icon:iconCanvas(function(x){ x.fillStyle=C.cr; x.fillRect(3,6,3,4); x.fillRect(6,4,2,8); x.fillRect(8,2,1,12); if(st.snd){ x.fillStyle=C.gd2; x.fillRect(11,5,1,6); x.fillRect(13,3,1,10); } }), aria:'音效 '+(st.snd?'開':'關'), name:'音效', sub:'8-bit 方波', r1: st.snd ? '開' : '關', r1c: st.snd ? C.grn : C.dim}));

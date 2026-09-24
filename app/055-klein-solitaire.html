@@ -70,8 +70,10 @@ svg{display:block}
 .slot{position:absolute;border-radius:6px;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28);display:grid;place-items:center}
 .slot svg{width:44%;height:auto;opacity:.35}
 .slot.stock{cursor:pointer}
+.slot.waste{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12)}
+.stockN{position:absolute;left:0;top:0;z-index:1;font:700 11px/14px var(--serif);color:#dfe6ff;opacity:.8;font-variant-numeric:tabular-nums;pointer-events:none}
 .slot.stock svg{opacity:.55;width:52%}
-.card{position:absolute;left:0;top:0;border-radius:6px;transition:left .26s var(--snap),top .26s var(--snap);cursor:grab;will-change:left,top}
+.card{position:absolute;left:0;top:0;border-radius:6px;transition:transform .26s var(--snap);cursor:grab;will-change:transform}
 .card.drag{transition:none;cursor:grabbing}
 .card .f,.card .b{position:absolute;inset:0;border-radius:6px}
 .card .f{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(0,0,0,.1),0 1px 1px rgba(0,10,50,.35);overflow:hidden}
@@ -88,7 +90,7 @@ svg{display:block}
 .card.flipin .f{animation:flipin .3s var(--snap)}
 @keyframes flipin{from{transform:scaleX(.1)}to{transform:scaleX(1)}}
 .card.hint .f{box-shadow:inset 0 0 0 3px var(--zhu),0 1px 1px rgba(0,10,50,.35)}
-.card.no{animation:no .32s}
+.card.no .f{animation:no .32s}
 @keyframes no{25%{transform:translateX(-5px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
 .card.lift .f{box-shadow:inset 0 0 0 1px rgba(0,0,0,.1),0 6px 8px -3px rgba(0,10,50,.55)}
 
@@ -136,7 +138,7 @@ canvas.win{position:absolute;inset:0;z-index:30;width:100%;height:100%;cursor:po
 @media (max-width:360px){.card .c{font-size:24px}.card .r{font-size:15px}}
 @media (prefers-reduced-motion:reduce){
   .card{transition:none}
-  .card.flipin .f,.card.no{animation:none}
+  .card.flipin .f,.card.no .f{animation:none}
   .sheet,.toast,.tog::after{transition-duration:.01s}
 }
 </style>
@@ -272,6 +274,7 @@ function faceHTML(c){ return '<div class="f"><span class="r">' + RANK[c.r] + '</
 function build(){
   board.innerHTML = '<div class="slot stock" id="slotStock" role="button" tabindex="0" aria-label="抽牌"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 1 2.1 5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="M3 18.5 7.4 17l-.6-4.6" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></div>' +
     [0,1,2,3].map(function(i){ return '<div class="slot" id="slotF' + i + '"><svg viewBox="0 0 16 16" style="color:#fff">' + SUIT[i] + '</svg></div>'; }).join('') +
+    '<div class="slot waste" id="slotW" aria-hidden="true"></div><span class="stockN" id="stockN" aria-hidden="true"></span>' +
     [0,1,2,3,4,5,6].map(function(i){ return '<div class="slot" id="slotT' + i + '"></div>'; }).join('');
   for (var s = 0; s < 4; s++) for (var r = 1; r <= 13; r++){
     var c = {s:s, r:r}, el = document.createElement('div');
@@ -284,7 +287,9 @@ function metrics(){
   var W = board.clientWidth, H = board.clientHeight, gap = 5, cw = Math.floor((W - gap * 6) / 7), ch = Math.round(cw * 1.42);
   L = {W:W, H:H, gap:gap, cw:cw, ch:ch, x:function(i){ return i * (cw + gap); }, ty:ch + 16};
 }
-function place(el, x, y, z){ el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.zIndex = z; el.style.width = L.cw + 'px'; el.style.height = L.ch + 'px'; }
+// cards move on the compositor: position lives in a translate, mirrored in el._x/_y for dragging
+function mv(el, x, y){ el._x = x; el._y = y; el.style.transform = 'translate(' + x + 'px,' + y + 'px)'; }
+function place(el, x, y, z){ mv(el, x, y); el.style.zIndex = z; el.style.width = L.cw + 'px'; el.style.height = L.ch + 'px'; }
 function colOffsets(col){
   var downs = 0, ups = 0; col.forEach(function(c){ if (c.up) ups++; else downs++; });
   var avail = L.H - L.ty - L.ch - 6, dOff = Math.min(8, L.cw * .16), uOff = Math.min(Math.round(L.ch * .34), ups > 1 ? (avail - downs * dOff) / (ups - 1) : 30);
@@ -293,7 +298,8 @@ function colOffsets(col){
 function render(){
   metrics();
   var sl = function(id, x, y){ var e = $(id); e.style.left = x + 'px'; e.style.top = y + 'px'; e.style.width = L.cw + 'px'; e.style.height = L.ch + 'px'; };
-  sl('slotStock', L.x(0), 0);
+  sl('slotStock', L.x(0), 0); sl('slotW', L.x(1), 0);
+  var sn = $('stockN'); sn.textContent = G.stock.length ? G.stock.length : ''; sn.style.transform = 'translate(' + (L.x(0) + L.cw / 2) + 'px,' + (L.ch + 1) + 'px) translateX(-50%)';
   for (var i = 0; i < 4; i++) sl('slotF' + i, L.x(3 + i), 0);
   for (i = 0; i < 7; i++) sl('slotT' + i, L.x(i), L.ty);
   G.stock.forEach(function(c, k){ var e = els[c.id]; e.classList.add('down'); place(e, L.x(0) + Math.min(k, 3) * .6 * 0, 0, 10 + k); });
@@ -402,7 +408,7 @@ function autoCollect(){
     if (!c.up) return;
     if (loc.pile !== 't' && loc.k !== p.length - 1) return;
     var ids = p.slice(loc.k).map(function(x){ return x.id; });
-    st = {loc:loc, ids:ids, x:e.clientX, y:e.clientY, moved:false, pid:e.pointerId, org:ids.map(function(i){ return {l:parseFloat(els[i].style.left), t:parseFloat(els[i].style.top), z:els[i].style.zIndex}; })};
+    st = {loc:loc, ids:ids, x:e.clientX, y:e.clientY, moved:false, pid:e.pointerId, org:ids.map(function(i){ return {l:els[i]._x || 0, t:els[i]._y || 0, z:els[i].style.zIndex}; })};
     try { board.setPointerCapture(e.pointerId); } catch(_){}
   });
   board.addEventListener('pointermove', function(e){
@@ -410,7 +416,7 @@ function autoCollect(){
     var dx = e.clientX - st.x, dy = e.clientY - st.y;
     if (!st.moved && Math.hypot(dx, dy) < 7) return;
     if (!st.moved){ st.moved = true; st.ids.forEach(function(i, k){ var el = els[i]; el.classList.add('drag', 'lift'); el.style.zIndex = 3000 + k; }); haptic(4); }
-    st.ids.forEach(function(i, k){ var el = els[i]; el.style.left = (st.org[k].l + dx) + 'px'; el.style.top = (st.org[k].t + dy) + 'px'; });
+    st.ids.forEach(function(i, k){ var el = els[i]; mv(el, st.org[k].l + dx, st.org[k].t + dy); });
   });
   function end(e){
     if (!st) return;
@@ -422,7 +428,7 @@ function autoCollect(){
       return;
     }
     // drop target from the dragged card's centre
-    var el = els[s.ids[0]], cx = parseFloat(el.style.left) + L.cw / 2, cy = parseFloat(el.style.top) + L.ch / 2, c = srcPile(s.loc)[s.loc.k], target = null, bestD = 1e9;
+    var el = els[s.ids[0]], cx = el._x + L.cw / 2, cy = el._y + L.ch / 2, c = srcPile(s.loc)[s.loc.k], target = null, bestD = 1e9;
     if (s.ids.length === 1) for (var f = 0; f < 4; f++){ var fx = L.x(3 + f) + L.cw / 2, fy = L.ch / 2, d = Math.hypot(cx - fx, cy - fy); if (d < L.cw * 1.1 && canFound(c, f) && d < bestD){ bestD = d; target = {pile:'f', i:f}; } }
     if (!target) for (var ci = 0; ci < 7; ci++){
       if (s.loc.pile === 't' && ci === s.loc.i) continue;
@@ -430,7 +436,7 @@ function autoCollect(){
       if (dxx < L.cw * .9 && cy > L.ty - L.ch * .3 && canTab(c, ci) && dxx < bestD){ bestD = dxx; target = {pile:'t', i:ci}; }
     }
     if (target) move(s.loc, target);
-    else { s.ids.forEach(function(i, k){ var e2 = els[i]; e2.style.left = s.org[k].l + 'px'; e2.style.top = s.org[k].t + 'px'; setTimeout(function(){ e2.style.zIndex = s.org[k].z; }, 260); }); if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 30) { snd('bad'); haptic([10, 40, 10]); } }
+    else { s.ids.forEach(function(i, k){ var e2 = els[i]; mv(e2, s.org[k].l, s.org[k].t); setTimeout(function(){ e2.style.zIndex = s.org[k].z; }, 260); }); if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 30) { snd('bad'); haptic([10, 40, 10]); } }
   }
   board.addEventListener('pointerup', end); board.addEventListener('pointercancel', end);
 })();

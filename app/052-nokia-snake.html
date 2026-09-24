@@ -127,7 +127,8 @@ svg{display:block}
 .toast button{height:40px;padding:0 12px;color:var(--paper)}
 
 @media (max-height:700px){
-  .top{height:30px} .lens{padding:12px 14px 28px} .pad{gap:10px;padding-top:8px} .keys{gap:8px 12px} .navrow .kc,.navi,.rock{height:50px}
+  .top{height:30px} .lens{padding:12px 14px 28px} .pad{gap:10px;padding-top:8px} .keys{gap:8px 12px} .navrow .kc,.navi{height:50px}
+  .rock{height:60px} /* rocker keeps two 30px halves so each direction stays tappable */
 }
 @media (prefers-reduced-motion:reduce){
   .sheet,.toast{transition-duration:.01s}
@@ -254,13 +255,20 @@ function center(s, y, v){ text(s, Math.floor((LW - textW(s))/2), y, v); }
 /* ---------- display with ghosting ---------- */
 var cv = $('lcd'), cx = cv.getContext('2d'), box = $('lcdbox');
 var CW = 0, CH = 0, dpr = 1;
-function sizeLCD(){ dpr = Math.min(2, devicePixelRatio || 1); CW = box.clientWidth; CH = box.clientHeight; cv.width = Math.round(CW*dpr); cv.height = Math.round(CH*dpr); }
+function sizeLCD(){ dpr = Math.min(2, devicePixelRatio || 1); CW = box.clientWidth; CH = box.clientHeight; cv.width = Math.round(CW*dpr); cv.height = Math.round(CH*dpr); lcdForce = true; }
+var lcdForce = true;
 var light = 1, lightTarget = 1, lightTimer = 0;
 var BG_OFF = [158,174,98], BG_ON = [181,207,106], INK = [29,38,16];
 function blit(dt){
   var up = .55, dn = [.4, .16, .07][ghost];
   var k1 = 1 - Math.pow(1-up, dt*60), k2 = 1 - Math.pow(1-dn, dt*60);
   light += (lightTarget - light)*Math.min(1, dt*5);
+  // idle frames (menu/pause with ghosting fully settled and backlight steady): nothing to repaint
+  if (!lcdForce && Math.abs(lightTarget - light) < .003){
+    var still = true; for (var q=0;q<fb.length;q++){ if (Math.abs(fb[q] - I[q]) > .004){ still = false; break; } }
+    if (still) return;
+  }
+  lcdForce = false;
   var bg = BG_OFF.map(function(v, i){ return Math.round(v + (BG_ON[i]-v)*light); });
   var bgs = 'rgb('+bg+')';
   box.style.backgroundColor = bgs;
@@ -623,20 +631,24 @@ sbody.addEventListener('click', function(e){
 
 /* ---------- desktop backdrop: the LCD, magnified, with a slow snake ---------- */
 var bd = $('bd'), bx = bd.getContext('2d'), bdSnake = [], bdT = 0;
-function bdSize(){ var d = Math.min(2, devicePixelRatio||1); bd.width = innerWidth*d; bd.height = innerHeight*d; }
+var bdDirty = true, bdRaf = 0;
+function bdSize(){ var d = Math.min(2, devicePixelRatio||1); bd.width = innerWidth*d; bd.height = innerHeight*d; bdDirty = true; bdKick(); }
 function drawBackdrop(dt){
   if (!bd.offsetParent && getComputedStyle(bd.parentNode).display === 'none') return;
   var P = 22*Math.min(2, devicePixelRatio||1), cols = Math.ceil(bd.width/P), rows = Math.ceil(bd.height/P);
   bdT += dt;
   if (!bdSnake.length){ for (var i=0;i<26;i++) bdSnake.push([4 - i, Math.floor(rows*.72)]); bdSnake.dir = [1,0]; bdSnake.acc = 0; }
   bdSnake.acc += dt;
-  if (!reduce && bdSnake.acc > .16){
+  var stepped = false;
+  if (!reduce && bdSnake.acc > .16){ stepped = true;
     bdSnake.acc = 0; var h = bdSnake[0], d = bdSnake.dir;
     if (Math.random() < .08) d = Math.random() < .5 ? [d[1], -d[0]] : [-d[1], d[0]];
     var nx = h[0] + d[0], ny = h[1] + d[1];
     if (ny < 2 || ny > rows - 3){ d = [d[1] || 1, 0]; nx = h[0] + d[0]; ny = h[1]; }
     bdSnake.dir = d; bdSnake.unshift([(nx + cols) % cols, ny]); bdSnake.pop();
   }
+  // the backdrop only changes when the snake steps (every 160 ms) or after a resize, so skip the ~2700-cell repaint otherwise
+  if (!stepped && !bdDirty) return; bdDirty = false;
   bx.fillStyle = '#8f9d57'; bx.fillRect(0,0,bd.width,bd.height);
   bx.fillStyle = 'rgba(29,38,16,.07)';
   for (var y=0;y<rows;y++) for (var x=0;x<cols;x++) bx.fillRect(x*P+2, y*P+2, P-4, P-4);
@@ -644,11 +656,15 @@ function drawBackdrop(dt){
   bdSnake.forEach(function(s){ bx.fillRect(s[0]*P+2, s[1]*P+2, P-4, P-4); });
 }
 var bdLast = performance.now();
-(function bdLoop(now){
+function bdLoop(now){
+  bdRaf = 0;
   var dt = Math.min(.2, (now - bdLast)/1000); bdLast = now;
-  if (!document.hidden && innerWidth >= 521) drawBackdrop(dt);
-  requestAnimationFrame(bdLoop);
-})(bdLast);
+  if (document.hidden || innerWidth < 521) return; // phone layout / background tab: stop; resize or visibilitychange restarts it
+  drawBackdrop(dt);
+  if (!reduce) bdRaf = requestAnimationFrame(bdLoop);
+}
+function bdKick(){ if (!bdRaf && !document.hidden && innerWidth >= 521){ bdLast = performance.now(); bdRaf = requestAnimationFrame(bdLoop); } }
+document.addEventListener('visibilitychange', bdKick);
 
 /* ---------- clock & boot ---------- */
 function tick(){ var n = new Date(); $('clock').textContent = n.getHours()+':'+String(n.getMinutes()).padStart(2,'0'); }

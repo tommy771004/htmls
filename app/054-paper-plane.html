@@ -253,6 +253,9 @@ var best=load('best',0),totalStars=load('stars',9),skin=load('skin','kraft'),log
 if(!logs){logs=[{d:'9/22 21:14',s:18,st:3,w:'士林'},{d:'9/22 21:02',s:7,st:1,w:'關渡'},{d:'9/21 18:40',s:23,st:4,w:'大稻埕'},{d:'9/20 22:31',s:11,st:2,w:'北投'}];best=Math.max(best,23)}
 var PLACES=[[0,'淡水河口'],[5,'關渡'],[10,'北投'],[15,'士林'],[20,'大稻埕'],[26,'西門町'],[32,'中正紀念堂'],[40,'大安森林'],[50,'信義 101']];
 function place(s){var p=PLACES[0][1];PLACES.forEach(function(q){if(s>=q[0])p=q[1]});return p}
+var titleY=0,pScale=1.7;
+/* the idle plane floats below the best-score line; on short phones H*.42 would sit on top of that text */
+function measureTitle(){var b=$('bestTx').getBoundingClientRect(),sc=$('screen').getBoundingClientRect();titleY=Math.max(H*.42,b.bottom-sc.top+48)}
 var state='title',plane={y:0,vy:0,rot:0},obs=[],score=0,starsRun=0,scroll=0,speed=150,spawnX=0,deadT=0,lastPlace='',paused=false,pops=[];
 function skinObj(){return SKINS.filter(function(s){return s.id===skin})[0]||SKINS[0]}
 
@@ -271,22 +274,23 @@ function lanSprite(h,r){var w=64,a=mk(w+16,h+16),c=a[0],x=a[1];x.translate(8,0);
   paperize(x,w+16,h+16);return c}
 
 /* ---------- game logic ---------- */
-function reset(){score=0;starsRun=0;speed=150;obs=[];pops=[];plane.y=H*.42;plane.vy=0;plane.rot=0;spawnX=W+80;lastPlace='';setScore()}
+function reset(){score=0;starsRun=0;speed=150;obs=[];pops=[];plane.y=state==='title'&&titleY?titleY:H*.42;plane.vy=0;plane.rot=0;spawnX=W+80;lastPlace='';setScore()}
 function setScore(){$('score').textContent=score;$('starN').textContent=starsRun;var p=place(score);if(p!==lastPlace){var d=$('dist');d.textContent=p;if(lastPlace&&!reduce){d.classList.remove('flip');void d.offsetWidth;d.classList.add('flip')}lastPlace=p}}
 function spawn(){var gap=Math.max(150,232-score*3),top=H*.2,bot=H-GROUND-60,cy=top+gap/2+Math.random()*Math.max(10,bot-top-gap),r=Math.random,gt=cy-gap/2,gb=cy+gap/2;
   obs.push({x:spawnX,w:64,gt:gt,gb:gb,top:lanSprite(gt,r),bot:bldSprite(H-GROUND-gb+6,r),passed:false,star:Math.random()<.55?{y:cy,got:false}:null})}
 function flap(){if(paused)return;if(state==='title'){startGame();return}if(state!=='play')return;plane.vy=-400;SFX.flap();haptic(6)}
-function startGame(){AC();closeSheet();reset();state='play';$('title').hidden=true;$('menu').hidden=true;$('hud').hidden=false;$('starsHud').hidden=false;$('pause').hidden=false;plane.vy=-400;SFX.flap();haptic(8)}
+function startGame(){AC();closeSheet();reset();state='play';$('title').hidden=true;$('menu').hidden=true;$('hud').hidden=false;$('starsHud').hidden=false;$('pause').hidden=false;plane.vy=-400;SFX.flap();haptic(8);run()}
 function die(){if(state!=='play')return;state='dead';deadT=0;SFX.crash();haptic([30,40,60]);plane.vy=-220}
 function gameOver(){state='over';totalStars+=starsRun;save('stars',totalStars);var nb=score>best;if(nb){best=score;save('best',best)}
   var d=new Date();logs.unshift({d:(d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes()),s:score,st:starsRun,w:place(score)});logs=logs.slice(0,30);save('logs',logs);
   var unlock=SKINS.filter(function(s){return s.need>totalStars-starsRun&&s.need<=totalStars});
   openSheet('<h3>'+(nb&&score>0?'新紀錄！':'墜落了')+'</h3><p>飛到了</p>','<div class="where">'+place(score)+'</div><div class="big"><div><b>'+score+'</b><small>這次</small></div><div class="sm"><b>'+best+'</b><small>最佳</small></div><div class="sm"><b>+'+starsRun+'</b><small>紙星星</small></div></div>'+(unlock.length?'<p class="where" style="color:#2e1d10">解鎖了「'+unlock.map(function(s){return s.n}).join('、')+'」</p>':'')+'<button class="fold" id="again">再摺一架</button><button class="textbtn" id="toTitle">回到起點</button>',
     function(b){$('again').addEventListener('click',function(){closeSheet(true);startGame()});$('toTitle').addEventListener('click',function(){closeSheet()})},toTitle)}
-function toTitle(){if(state==='play')return;state='title';reset();$('title').hidden=false;$('menu').hidden=false;$('hud').hidden=true;$('starsHud').hidden=true;$('pause').hidden=true;$('bestTx').textContent='最佳紀錄 '+best+'　紙星星 '+totalStars}
+function toTitle(){if(state==='play')return;state='title';reset();$('title').hidden=false;$('menu').hidden=false;$('hud').hidden=true;$('starsHud').hidden=true;$('pause').hidden=true;$('bestTx').textContent='最佳紀錄 '+best+'　紙星星 '+totalStars;measureTitle();plane.y=titleY;run()}
 function hit(o){var px=W*.3,py=plane.y,r=11;if(px+r<o.x+6||px-r>o.x+o.w-6)return false;return py-r<o.gt||py+r>o.gb}
 function update(dt){
-  if(state==='title'){scroll+=dt*60;plane.y=H*.42+Math.sin(performance.now()/500)*10;plane.rot=Math.sin(performance.now()/700)*.08;return}
+  pScale+=((state==='title'?1.7:1.25)-pScale)*Math.min(1,dt*9);
+  if(state==='title'){if(reduce){plane.y=titleY;plane.rot=0;return}scroll+=dt*60;plane.y=titleY+Math.sin(performance.now()/500)*10;plane.rot=Math.sin(performance.now()/700)*.08;return}
   if(state==='play'||state==='dead'){plane.vy=Math.min(620,plane.vy+1500*dt);plane.y+=plane.vy*dt}
   if(state==='play'){speed=150+Math.min(110,score*4);scroll+=speed*dt;plane.rot=Math.max(-.5,Math.min(1.1,plane.vy/560));
     obs.forEach(function(o){o.x-=speed*dt});spawnX-=speed*dt;if(spawnX<W+40){spawn();spawnX+=Math.max(190,236-score*2)}
@@ -310,14 +314,16 @@ function draw(){if(!W)return;g.drawImage(sky,0,0,W,H);
   obs.forEach(function(o){var tw=o.top.width/DPR,th=o.top.height/DPR;g.drawImage(o.top,o.x-8,0,tw,th);var bw=o.bot.width/DPR,bh=o.bot.height/DPR;g.drawImage(o.bot,o.x-8,o.gb-8,bw,bh);if(o.star&&!o.star.got)drawStar(o.x+o.w/2,o.star.y,t)});
   pops.forEach(function(p){drawStar(p.x,p.y-p.t*60,p.t*6,1-p.t/.6)});
   drawLayer(layers[3],scroll);
-  if(state!=='over'||true)drawPlane(g,W*.3,plane.y,plane.rot,skinObj(),state==='title'?1.7:1.25);
+  if(state!=='over'||true)drawPlane(g,W*.3,plane.y,plane.rot,skinObj(),pScale);
   if(state==='play'&&plane.vy<-150&&!reduce){g.strokeStyle='rgba(255,244,224,.55)';g.lineWidth=2;g.lineCap='round';for(k=0;k<3;k++){g.beginPath();g.moveTo(W*.3-26-k*4,plane.y+6+k*6);g.lineTo(W*.3-44-k*8,plane.y+10+k*7);g.stroke()}}}
 var raf=0,last=0;
-function frame(ts){raf=0;if(document.hidden)return;var dt=Math.min(.033,(ts-last)/1000||0);last=ts;if(!paused)update(dt);draw();raf=requestAnimationFrame(frame)}
+function frame(ts){raf=0;if(document.hidden)return;var dt=Math.min(.033,(ts-last)/1000||0);last=ts;if(!paused)update(dt);draw();
+  if(reduce&&state==='title'&&Math.abs(pScale-1.7)<.01)return; // reduced motion: the title scene is a still frame, no need to keep repainting
+  raf=requestAnimationFrame(frame)}
 function run(){if(!raf){last=performance.now();raf=requestAnimationFrame(frame)}}
 document.addEventListener('visibilitychange',function(){if(document.hidden){if(state==='play')setPause(true)}else run()});
 function resize(){var r=$('screen').getBoundingClientRect();if(!r.width)return;DPR=Math.min(2,window.devicePixelRatio||1);var nw=r.width,nh=r.height;if(nw===W&&nh===H)return;W=nw;H=nh;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);g.setTransform(DPR,0,0,DPR,0,0);skinPat={};buildScene();
-  if(state!=='play'){reset()}draw()}
+  measureTitle();if(state!=='play'){reset()}draw()}
 window.addEventListener('resize',function(){resize();drawBackdrop()});
 
 /* ---------- input ---------- */
@@ -345,7 +351,7 @@ function skinThumb(c,s){var d=Math.min(2,window.devicePixelRatio||1);c.width=120
   x.beginPath();x.moveTo(20,0);x.lineTo(-8,1);x.lineTo(-14,9);x.closePath();x.fillStyle=s.bot;x.fill();x.strokeStyle='rgba(46,29,16,.55)';x.lineWidth=.5;x.beginPath();x.moveTo(20,0);x.lineTo(-16,-12);x.lineTo(-8,1);x.lineTo(-14,9);x.closePath();x.stroke();x.restore()}
 function openHangar(){openSheet('<h3>換紙</h3><p>收集紙星星解鎖　目前 '+totalStars+' 顆</p>','<div class="skins">'+SKINS.map(function(s){var lk=s.need>totalStars;return '<button class="skin'+(lk?' lock':'')+'" data-s="'+s.id+'" aria-pressed="'+(s.id===skin)+'"><canvas></canvas><b>'+s.n+'</b><small>'+(lk?'還差 '+(s.need-totalStars)+' 顆星':s.id===skin?'正在用':'點一下換上')+'</small></button>'}).join('')+'</div>',
   function(b){b.querySelectorAll('.skin').forEach(function(el){skinThumb(el.querySelector('canvas'),SKINS.filter(function(s){return s.id===el.dataset.s})[0])})})}
-sheet.addEventListener('click',function(e){var x=e.target.closest('.skin');if(x){var s=SKINS.filter(function(k){return k.id===x.dataset.s})[0];if(s.need>totalStars){haptic([20,40,20]);toast('再收集 '+(s.need-totalStars)+' 顆星星');return}skin=s.id;save('skin',skin);haptic([6,30,6]);sheet.querySelectorAll('.skin').forEach(function(el){var on=el===x;el.setAttribute('aria-pressed',on);var sk=SKINS.filter(function(k){return k.id===el.dataset.s})[0];el.querySelector('small').textContent=sk.need>totalStars?'還差 '+(sk.need-totalStars)+' 顆星':on?'正在用':'點一下換上'});toast('換上「'+s.n+'」')}
+sheet.addEventListener('click',function(e){var x=e.target.closest('.skin');if(x){var s=SKINS.filter(function(k){return k.id===x.dataset.s})[0];if(s.need>totalStars){haptic([20,40,20]);toast('再收集 '+(s.need-totalStars)+' 顆星星');return}skin=s.id;save('skin',skin);draw();haptic([6,30,6]);sheet.querySelectorAll('.skin').forEach(function(el){var on=el===x;el.setAttribute('aria-pressed',on);var sk=SKINS.filter(function(k){return k.id===el.dataset.s})[0];el.querySelector('small').textContent=sk.need>totalStars?'還差 '+(sk.need-totalStars)+' 顆星':on?'正在用':'點一下換上'});toast('換上「'+s.n+'」')}
   var d=e.target.closest('[data-del]');if(d){var i=+d.dataset.del,item=logs.splice(i,1)[0];save('logs',logs);renderLogs();haptic([10,40,10]);toast('已刪除 '+item.d+' 的航程')}
   if(e.target.closest('[data-tog]')){var k=e.target.closest('[data-tog]').dataset.tog;settings[k]=!settings[k];save('set',settings);e.target.closest('[data-tog]').setAttribute('aria-checked',settings[k]);haptic(6);if(k==='sound'&&settings.sound){AC();SFX.star()}}
   if(e.target.closest('#resetBest')){best=0;save('best',0);$('bestTx').textContent='最佳紀錄 0　紙星星 '+totalStars;haptic(8);toast('最佳紀錄已歸零')}});

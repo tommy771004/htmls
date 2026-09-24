@@ -406,9 +406,14 @@ function draw(now){
   ctx.restore();
 }
 var raf = 0;
-function loop(now){ raf = 0; if (document.hidden) return; draw(now); tickTime(); raf = requestAnimationFrame(loop); }
-function kick(){ if (!raf && !document.hidden) raf = requestAnimationFrame(loop); }
+var idleT = 0;
+function busyFx(now){ if (settings.sweep && !reduce) return true; if (fx.ripples.length || fx.flash || (fx.press && fx.press.i >= 0)) return true; for (var k in fx.reveal) if (fx.reveal[k] > now) return true; return false; }
+function loop(now){ raf = 0; if (document.hidden) return; draw(now); tickTime();
+  // sweep off (or reduced motion) and nothing in flight: the scope is a still image, so drop to a 1 s tick for the clock
+  if (busyFx(now)) raf = requestAnimationFrame(loop); else { clearTimeout(idleT); idleT = setTimeout(kick, 1000); } }
+function kick(){ clearTimeout(idleT); if (!raf && !document.hidden) raf = requestAnimationFrame(loop); }
 document.addEventListener('visibilitychange', kick);
+document.addEventListener('pointerdown', kick, true); document.addEventListener('keydown', kick, true);
 
 // ---------- input ----------
 (function(){
@@ -536,7 +541,7 @@ if (!G || !G.cells || G.cells.length !== G.rows*G.cols){
   save('game', G);
 }
 layout(); hud(); setSub(G.over === 1 ? 'win' : G.over === -1 ? 'lose' : 'play');
-if (typeof ResizeObserver !== 'undefined') new ResizeObserver(function(){ layout(); }).observe($('scope')); else addEventListener('resize', layout);
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(function(){ layout(); kick(); }).observe($('scope')); else addEventListener('resize', function(){ layout(); kick(); });
 kick();
 })();
 </script>

@@ -87,7 +87,8 @@ svg{display:block}
 .pr.ok{background:var(--zhu);color:var(--paper);border-radius:2px}
 .pr.has{color:var(--zhu);box-shadow:inset 0 0 0 2.5px var(--zhu);border-radius:2px}
 .pr.no{color:#8d8f92}
-.stick{position:absolute;left:28px;width:218px;height:56px;margin-top:-4px;background:linear-gradient(#56595c,#3f4144);border-radius:4px;box-shadow:inset 0 2px 0 rgba(0,0,0,.25),inset 0 -1px 0 rgba(255,255,255,.12);transition:top .45s var(--out);z-index:0}
+.stick{position:absolute;left:28px;width:218px;height:56px;margin-top:-4px;background:linear-gradient(#56595c,#3f4144);border-radius:4px;box-shadow:inset 0 2px 0 rgba(0,0,0,.25),inset 0 -1px 0 rgba(255,255,255,.12);z-index:0}
+.stick.slide{transition:transform .45s var(--out)}
 .cell,.rn{z-index:1}
 .slot{position:absolute;inset:3px;border-radius:3px;background:rgba(0,0,0,.18)}
 .sortf{position:absolute;inset:0;border-radius:3px;display:grid;place-items:center;background:linear-gradient(160deg,#a6a9ac,#85888b 55%,#76797c);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -3px 0 rgba(40,42,44,.35),0 2px 0 #2c2e30}
@@ -177,6 +178,15 @@ svg{display:block}
   .cell{width:44px;height:44px}.pr,.sortf span{font-size:29px}.stick{left:23px;width:199px;height:52px}.sort{height:44px}.ttl span{display:none}
   .seal{width:46px;height:46px;font-size:17px}.ttl b{font-size:22px}.mode{margin:2px 0 0}.mode button{height:36px}
   .ctl button{height:46px}.ctl{margin-bottom:8px}.leg{display:none}
+}
+/* iPhone SE-class screens: 24 sorts in 8 columns (3 rows) and a tighter proof so the whole case clears the home indicator */
+@media (max-height:680px){
+  .proof{grid-template-columns:22px repeat(4,40px) 22px;row-gap:4px}
+  .cell{width:40px;height:40px}.pr,.sortf span{font-size:27px}.stick{width:183px;height:48px}
+  .note{min-height:24px;margin-top:2px}
+  .tray{grid-template-columns:repeat(8,1fr);gap:5px;padding:5px}
+  .sort{height:40px}.sort span{font-size:26px}
+  .case{padding-top:8px}
 }
 @media (prefers-reduced-motion:reduce){
   .cell .in,.stick,.sheet,.toast,.mode button::before{transition-duration:.01s}
@@ -348,7 +358,7 @@ function renderAll(){
   CASE=caseChars(); renderProof(); renderTray(); renderCtl();
 }
 function renderProof(){
-  var h='', rowNow=G.done? -1 : G.g.length;
+  var h='', rowNow=G.done? -1 : G.g.length, oldStick=$('stick'), oldTop=oldStick? parseFloat(oldStick.style.top) : null;
   for(var r=0;r<6;r++){
     h+='<span class="rn'+(r===rowNow?' now':'')+'">'+CN[r+1]+'</span>';
     for(var c=0;c<4;c++){
@@ -362,12 +372,15 @@ function renderProof(){
   }
   if(rowNow>=0) h+='<i class="stick" id="stick" style="top:'+(rowNow*(cellH()+gapH())+ (cellH()-cellH())) +'px"></i>';
   $('proof').innerHTML=h;
+  // the proof is rebuilt each render, so slide the composing stick from its old row (FLIP) instead of letting it jump
+  var st=$('stick'); if(st && oldTop!=null && !matchMedia('(prefers-reduced-motion: reduce)').matches){ var dy=oldTop-parseFloat(st.style.top);
+    if(dy){ st.style.transform='translateY('+dy+'px)'; void st.offsetWidth; st.classList.add('slide'); st.style.transform=''; } }
   var n=$('note');
   if(G.done){ var a=answer(); n.innerHTML = G.won ? '印成了：<b>'+a+'</b> · <button id="seeDef">看典故</button>' : '答案是 <b>'+a+'</b> · <button id="seeDef">看典故</button>'; $('seeDef').onclick=function(){ openResult(); }; }
   else n.innerHTML = G.g.length ? '還有 '+(6-G.g.length)+' 次付印機會' : '揀四個字付印：<span style="color:var(--zhu)">朱底</span>字位對，<span style="color:var(--zhu)">朱框</span>有此字';
 }
-function cellH(){ return window.matchMedia('(max-height:720px)').matches ? 44 : 48; }
-function gapH(){ return 5; }
+function cellH(){ return window.matchMedia('(max-height:680px)').matches ? 40 : window.matchMedia('(max-height:720px)').matches ? 44 : 48; }
+function gapH(){ return window.matchMedia('(max-height:680px)').matches ? 4 : 5; }
 function keyState(){
   var st={}; G.g.forEach(function(gs){ var sc=score(gs); gs.split('').forEach(function(ch,i){ st[ch]=Math.max(st[ch]===undefined?-1:st[ch], sc[i]); }); }); return st;
 }

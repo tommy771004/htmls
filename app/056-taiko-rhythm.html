@@ -92,6 +92,7 @@ svg{display:block}
 .hud{position:absolute;left:0;right:0;top:calc(46px + env(safe-area-inset-top));z-index:10;padding:0 16px 0 8px}
 .hrow{display:flex;align-items:center;gap:6px;min-height:48px}
 .hrow .ttl{flex:1;font:400 22px/1.1 var(--xk);color:var(--gold-l);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrow .tm{font:600 13px/1 var(--num);font-variant-numeric:tabular-nums;color:#a78c62;margin-right:6px}
 .hrow .sc{font:700 24px/1 var(--num);font-variant-numeric:tabular-nums;color:var(--paper)}
 .gauge{position:relative;display:flex;align-items:center;gap:8px;margin:2px 0 0 8px}
 .gauge b{font:400 20px/1 var(--xk);color:var(--gold)}
@@ -243,6 +244,7 @@ svg{display:block}
           <div class="hrow">
             <button class="pausebtn" id="pauseBtn" aria-label="暫停"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M6 3.5v15M16 3.5v15" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></button>
             <span class="ttl" id="pTitle">大甲媽祖遶境</span>
+            <span class="tm" id="pTime" aria-label="剩餘時間">0:00</span>
             <span class="sc" id="pScore">0</span>
           </div>
           <div class="gauge"><b>魂</b><div class="gbar"><i id="gFill"></i><em></em></div></div>
@@ -476,6 +478,9 @@ function frame(){
   if (!G) return;
   if (document.hidden){ pauseGame(); return; }
   var n = now();
+  // particle/pop lifetimes advance by real elapsed time, so 90/120 Hz screens don't play them at 1.5–2x speed
+  var rem = Math.max(0, Math.ceil(G.end - Math.max(0, n))); if (rem !== G.remS){ G.remS = rem; $('pTime').textContent = '−' + Math.floor(rem / 60) + ':' + String(rem % 60).padStart(2, '0'); }
+  var tnow = performance.now(), fdt = G.lastF ? Math.min(.05, (tnow - G.lastF) / 1000) : 1 / 60, fk = fdt * 60; G.lastF = tnow;
   cx.setTransform(DPR, 0, 0, DPR, 0, 0); cx.clearRect(0, 0, W, H);
   // count-in
   var ci = Math.ceil(-(n - G.s16 * 16) / (G.s16 * 4));
@@ -503,14 +508,14 @@ function frame(){
   }
   // fx
   G.fx = G.fx.filter(function(p){
-    p.life -= 1 / 60; if (p.life <= 0) return false;
+    p.life -= fdt; if (p.life <= 0) return false;
     if (p.ring){ var k = 1 - p.life / p.max; cx.globalAlpha = p.life / p.max; cx.strokeStyle = p.c; cx.lineWidth = 4 * (1 - k) + 1; cx.beginPath(); cx.arc(p.x, p.y, 30 + k * 34, 0, 7); cx.stroke(); cx.globalAlpha = 1; return true; }
-    p.x += p.vx; p.y += p.vy; p.vy += .22; p.r *= .985;
-    cx.globalAlpha = Math.min(1, p.life * 2); cx.fillStyle = p.c; cx.save(); cx.translate(p.x, p.y); cx.rotate(p.a += p.va); cx.fillRect(-p.r, -p.r / 2.4, p.r * 2, p.r / 1.2); cx.restore(); cx.globalAlpha = 1;
+    p.x += p.vx * fk; p.y += p.vy * fk; p.vy += .22 * fk; p.r *= Math.pow(.985, fk);
+    cx.globalAlpha = Math.min(1, p.life * 2); cx.fillStyle = p.c; cx.save(); cx.translate(p.x, p.y); cx.rotate(p.a += p.va * fk); cx.fillRect(-p.r, -p.r / 2.4, p.r * 2, p.r / 1.2); cx.restore(); cx.globalAlpha = 1;
     return true;
   });
   G.pops = G.pops.filter(function(p){
-    p.life -= 1 / 60; if (p.life <= 0) return false;
+    p.life -= fdt; if (p.life <= 0) return false;
     var k = 1 - p.life / .55;
     cx.globalAlpha = Math.min(1, p.life * 3); cx.fillStyle = p.c; cx.font = '400 ' + (p.big ? 40 : 30) + 'px ' + XK;
     cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(p.t, p.x, judgeY - 58 - k * 18); cx.globalAlpha = 1; return true;
