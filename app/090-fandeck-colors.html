@@ -68,7 +68,8 @@ svg{display:block}
 .modes button.on{color:var(--tx)}
 .modes .ind{position:absolute;bottom:0;height:3px;border-radius:2px;background:var(--cur);transition:transform .4s var(--spring),width .4s var(--spring),background-color .35s;left:0}
 .bench{flex:1 1 auto;min-height:0;position:relative;overflow:hidden}
-.pane{position:absolute;inset:0;overflow-y:auto;padding:14px 16px 10px;visibility:hidden;transform:translateX(24px);transition:transform .35s var(--out),visibility 0s .35s;scrollbar-width:none}
+/* 面板底部淡出，捲動內容不會在扇面上方被硬切 */
+.pane{position:absolute;inset:0;overflow-y:auto;padding:14px 16px 24px;-webkit-mask-image:linear-gradient(#000 calc(100% - 20px),transparent);mask-image:linear-gradient(#000 calc(100% - 20px),transparent);visibility:hidden;transform:translateX(24px);transition:transform .35s var(--out),visibility 0s .35s;scrollbar-width:none}
 .pane::-webkit-scrollbar{display:none}
 .pane.on{visibility:visible;transform:none;transition:transform .35s var(--out),visibility 0s}
 
@@ -123,16 +124,17 @@ svg{display:block}
 .empty{padding:30px 0;text-align:center;color:var(--tx2);font:14px/1.7 var(--cjk)}
 
 /* fan */
-.fanwrap{flex:none;position:relative;height:clamp(300px,47cqh,400px);touch-action:none;overflow:hidden}
+/* 自成一個堆疊層：色條的 z-index 最高到 200，不可蓋過抽屜（51）與提示 */
+.fanwrap{flex:none;position:relative;z-index:1;height:clamp(300px,47cqh,400px);touch-action:none;overflow:hidden}
 .fan{position:absolute;left:50%;bottom:calc(34px + env(safe-area-inset-bottom));width:0;height:0}
-.strip{position:absolute;left:-29px;bottom:-12px;width:58px;height:var(--L,320px);transform-origin:29px calc(100% - 12px);border-radius:5px 5px 4px 4px;overflow:hidden;
+.fan .strip{position:absolute;left:-29px;bottom:-12px;width:58px;height:var(--L,320px);transform-origin:29px calc(100% - 12px);border-radius:5px 5px 4px 4px;overflow:hidden;
   display:flex;flex-direction:column;background:#e9e7e1;will-change:transform}
-.strip .c{flex:1;position:relative;display:flex;align-items:flex-end;padding:0 5px 3px;font:600 9.5px/1 var(--gill);letter-spacing:.02em}
-.strip .c.sel::after{content:"";position:absolute;inset:3px;border:2px solid currentColor;border-radius:3px}
-.strip .foot{flex:none;height:52px;background:#ecebe6;color:#2a2a27;padding:5px 5px 0;display:flex;flex-direction:column;gap:1px}
-.strip .foot b{font:600 11px/1.15 var(--cjk)}
-.strip .foot small{font:9.5px var(--gill);color:#6b6963}
-.strip .foot i{margin-top:auto;margin-bottom:9px;align-self:center;width:9px;height:9px;border-radius:50%;background:#2a2a27}
+.fan .strip .c{flex:1;position:relative;display:flex;align-items:flex-end;padding:0 5px 3px;font:600 10px/1 var(--gill);letter-spacing:.02em}
+.fan .strip .c.sel::after{content:"";position:absolute;inset:3px;border:2px solid currentColor;border-radius:3px}
+.fan .strip .foot{flex:none;height:52px;background:#ecebe6;color:#2a2a27;padding:5px 5px 0;display:flex;flex-direction:column;gap:1px}
+.fan .strip .foot b{font:600 11px/1.15 var(--cjk)}
+.fan .strip .foot small{font:10px var(--gill);color:#6b6963}
+.fan .strip .foot i{margin-top:auto;margin-bottom:9px;align-self:center;width:9px;height:9px;border-radius:50%;background:#2a2a27}
 .rivet{position:absolute;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));width:48px;height:48px;margin-left:-24px;border-radius:50%;z-index:300;display:flex;align-items:center;justify-content:center}
 .rivet span{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#f4f3ef,#a9a7a0 60%,#6e6c66);box-shadow:0 1px 1px rgba(0,0,0,.6)}
 .rivet:active span{transform:scale(.9)}
@@ -368,7 +370,7 @@ fan.innerHTML = STRIPS.map(function(s){
     '<div class="foot"><b>' + s.n + '</b><small>' + String(s.i * 10).padStart(3, '0') + '</small><i></i></div></div>';
 }).join('');
 stripEls = [].slice.call(fan.children);
-function sizeFan(){ var h = wrap.clientHeight; L = Math.max(220, Math.min(340, h - 40)); fan.style.setProperty('--L', L + 'px'); }
+function sizeFan(){ var h = wrap.clientHeight; L = Math.max(220, Math.min(340, h - 62)); /* 扇頂留出提示文字的位置 */ fan.style.setProperty('--L', L + 'px'); }
 function markSel(){ fan.querySelectorAll('.c.sel').forEach(function(x){ x.classList.remove('sel'); }); var el = fan.querySelector('[data-code="' + cur.code + '"]'); if (el) el.classList.add('sel'); }
 var lastTickIdx = Math.round(pos);
 function layout(){

@@ -351,6 +351,11 @@ function ghostLayer(buf, W, H){
   for (var y = 0; y < buf.h; y++) for (var x = 0; x < buf.w; x++) g.fillRect(x * p + gap, y * p + gap, p - gap * 2, p - gap * 2);
   return (ghostCache[key] = c);
 }
+function lit8(b, w, h, x, y){
+  var n = 0;
+  for (var j = y - 1; j <= y + 1; j++) for (var i = x - 1; i <= x + 1; i++) if ((i !== x || j !== y) && i >= 0 && j >= 0 && i < w && j < h && b[j * w + i]) n++;
+  return n;
+}
 function paint(buf, c, cx){
   var W = c.width, H = c.height; if (!W || !H) return;
   var p = W / buf.w, gap = Math.max(.35, p * .12), s = p - gap * 2;
@@ -359,9 +364,15 @@ function paint(buf, c, cx){
   var b = buf.b, w = buf.w, h = buf.h, x, y;
   cx.fillStyle = 'rgba(27,35,23,.17)';
   var ox = p * .3, oy = p * .42;
-  for (y = 0; y < h; y++) for (x = 0; x < w; x++) if (b[y * w + x]) cx.fillRect(x * p + gap + ox, y * p + gap + oy, s, s);
+  /* 反白區（軟鍵標籤、選取列）內不投影，否則陰影會糊進反白字的筆畫 */
+  for (y = 0; y < h; y++) for (x = 0; x < w; x++) if (b[y * w + x] && lit8(b, w, h, x, y) < 5) cx.fillRect(x * p + gap + ox, y * p + gap + oy, s, s);
   cx.fillStyle = '#1b2317';
-  for (y = 0; y < h; y++) for (x = 0; x < w; x++) if (b[y * w + x]) cx.fillRect(x * p + gap, y * p + gap, s, s);
+  for (y = 0; y < h; y++) for (x = 0; x < w; x++) if (b[y * w + x]){
+    /* 反白區把點與點之間的縫補起來，讓反白字（未亮的點）清楚浮出 */
+    var dense = lit8(b, w, h, x, y) >= 5;
+    var ew = dense && x + 1 < w && b[y * w + x + 1] ? gap * 2 : 0, eh = dense && y + 1 < h && b[(y + 1) * w + x] ? gap * 2 : 0;
+    cx.fillRect(x * p + gap, y * p + gap, s + ew, s + eh);
+  }
 }
 function sizeLCD(){
   var w = Math.floor($('lcdbox').clientWidth); if (!w) return;
@@ -783,8 +794,7 @@ function compose(){
 }
 
 /* ================= render loop ================= */
-var dirty = true, rafId = 0, lastT = 0, tickN = 0;
-function needsLoop(){ return !!S.plot || !!S.edit || S.mode === 'run' || S.flash >= 0; }
+var dirty = true, rafId = 0, lastT = 0, tickN = 0, blinkT = 0;
 function frame(t){
   rafId = 0;
   if (document.hidden) return;
@@ -797,9 +807,12 @@ function frame(t){
     if (S.plot.t >= tot) S.plot = null;
     dirty = true;
   }
-  if (S.edit || S.mode === 'run' || S.plot || S.flash >= 0) dirty = true;
+  if (S.plot || S.flash >= 0) dirty = true;
   if (dirty){ compose(); paint(L, cv, ctx); dirty = false; }
-  if (needsLoop()) rafId = requestAnimationFrame(frame); else lastT = 0;
+  /* 描圖／閃爍時逐幀；只剩游標閃爍時改用 500ms 計時，不再每幀重繪 */
+  clearTimeout(blinkT);
+  if (S.plot || S.flash >= 0) rafId = requestAnimationFrame(frame);
+  else { lastT = 0; if (S.edit || S.mode === 'run') blinkT = setTimeout(kick, 505 - performance.now() % 500); }
 }
 function kick(){ dirty = true; if (!rafId && !document.hidden) rafId = requestAnimationFrame(frame); }
 document.addEventListener('visibilitychange', function(){ if (!document.hidden) { lastT = 0; kick(); } });

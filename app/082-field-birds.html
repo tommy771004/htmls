@@ -56,6 +56,11 @@ i.it,.lat{font-family:var(--bask);font-style:italic}
 @media (display-mode:standalone){.status{display:none}}
 .home{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:132px;height:5px;margin-left:-66px;border-radius:3px;background:var(--ink);opacity:.8;z-index:96;pointer-events:none}
 
+/* 捲動時在頂欄下方出現一條細線（iOS 導覽列的邊緣），不捲動時不顯示 */
+.status::after,.dtop::after{content:"";position:absolute;left:22px;right:22px;bottom:0;height:1px;background:linear-gradient(90deg,var(--ink-3) 40%,transparent 0) 0 0/6px 1px repeat-x;opacity:0;transition:opacity .2s}
+.screen.edge .status::after,.detail.edge .dtop::after{opacity:1}
+.detail.on~.status::after{opacity:0}
+
 /* pages */
 .page{position:absolute;left:0;right:0;top:calc(48px + env(safe-area-inset-top));bottom:calc(78px + env(safe-area-inset-bottom));overflow-y:auto;overflow-x:hidden;z-index:2;scrollbar-width:none;overscroll-behavior:contain;transition:transform .45s var(--ease),opacity .3s}
 .page::-webkit-scrollbar{display:none}
@@ -206,7 +211,7 @@ i.it,.lat{font-family:var(--bask);font-style:italic}
 .toast button{color:#e7b9a6;text-decoration:underline;text-underline-offset:3px;min-height:30px}
 
 @media (prefers-reduced-motion:reduce){
-  .page,.detail,.sheet,.toast,.nav .stroke,.check .tk,.ck .tk,.entry .in,.pl{transition-duration:.01s!important}
+  .page,.detail,.sheet,.toast,.nav .stroke,.check .tk,.ck .tk,.entry .in,.pl,.status::after,.dtop::after{transition-duration:.01s!important}
 }
 </style>
 </head>
@@ -683,7 +688,17 @@ function tick(){ const d = new Date(); $('clock').textContent = d.getHours() + '
 tick(); setTimeout(function t(){ tick(); setTimeout(t, 60000 - Date.now() % 60000); }, 60000 - Date.now() % 60000);
 
 renderFilters(); renderPlates(); renderJournal();
+/* 頂欄邊線：內容捲到頂欄下方時才出現 */
+(function(){
+  const scr = $('screen'), det = $('detail');
+  const syncEdge = () => { const pg = scr.classList.contains('jr') ? $('pJournal') : $('pPlates'); scr.classList.toggle('edge', pg.scrollTop > 4 && !det.classList.contains('on')); };
+  ['pPlates','pJournal'].forEach(id => $(id).addEventListener('scroll', syncEdge, {passive:true}));
+  $('dscroll').addEventListener('scroll', () => det.classList.toggle('edge', $('dscroll').scrollTop > 4), {passive:true});
+  new MutationObserver(() => { syncEdge(); if (!det.classList.contains('on')) det.classList.remove('edge'); }).observe(scr, {attributes:true, attributeFilter:['class']});
+  new MutationObserver(syncEdge).observe(det, {attributes:true, attributeFilter:['class']});
 })();
+})();
+
 </script>
 </body>
 </html>

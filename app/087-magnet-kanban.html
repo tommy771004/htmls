@@ -94,7 +94,9 @@ svg{display:block}
 .ctab[aria-selected=true]{color:var(--ink)}
 .ctab[aria-selected=true] .n{color:var(--blue)}
 .ctab .loop{position:absolute;inset:3px -2px;width:calc(100% + 4px);height:42px;pointer-events:none;overflow:visible}
-.ctab .loop path{fill:none;stroke:var(--blue);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+.ctab .loop path{fill:none;stroke:var(--blue);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:0}
+/* 圓頭線段在 dashoffset:1 時仍會留下一個小點，未選取時直接隱藏 */
+.ctab[aria-selected=true] .loop path,.ctab.hot .loop path{opacity:1}
 .ctab[aria-selected=true] .loop path{stroke-dashoffset:0;animation:draw .45s var(--out)}
 .ctab.hot{color:var(--red)}
 .ctab.hot .loop path{stroke:var(--red);stroke-dashoffset:0;animation:none}
@@ -463,6 +465,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeSheet(
   sheet.addEventListener('pointerup',end);sheet.addEventListener('pointercancel',end);})();
 
 function dueOpts(sel){var o=[['今天',addDays(0)],['明天',addDays(1)],['週五',nextWeekday(5)],['下週一',nextWeekday(1)],['不急','']],h='';
+  var seen={};o=o.filter(function(x){if(x[1]&&seen[x[1]])return false;seen[x[1]]=1;return true;}); /* 週四時「明天」就是「週五」，同一天只留一個選項 */
   var matched=false;o.forEach(function(x){var on=x[1]===sel;if(on)matched=true;h+='<button class="opt" role="radio" data-due="'+x[1]+'" aria-checked="'+on+'">'+x[0]+'</button>';});
   return h+'<input class="datein" type="date" id="dueIn" aria-label="指定日期" value="'+(matched?'':sel)+'">';}
 function openForm(n,col){var edit=!!n;form=n?{id:n.id,t:n.t,c:n.c,who:n.who,due:n.due,col:n.col}:{id:null,t:'',c:'y',who:filt.who||'me',due:addDays(1),col:col||COLS[cur].k};
