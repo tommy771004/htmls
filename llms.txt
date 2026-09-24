@@ -197,6 +197,8 @@
 
 ### 專案範例
 
+- [137 留白工作室 · Notion 風格工作區](https://htmls-ruddy.vercel.app/web/137-notion-workspace.html): 巢狀頁面樹與區塊式編輯器，支援 slash 指令、Tab 縮排、拖曳排序、表格與看板、復原重做、本機儲存及 Markdown 匯出。
+
 - [105 Northstar Sales CRM](https://htmls-ruddy.vercel.app/web/105-sales-crm.html): 深色高密度業務儀表板。Companies 表格、案件看板、預測、篩選、新增公司與 CSV 匯出；使用示意資料
 
 ### 創意藝術
