@@ -135,7 +135,7 @@
 | 124 | [124-ashwing.html](https://htmls-ruddy.vercel.app/124-ashwing.html) | 遊戲敘事 · 3D 軌道射擊 | 灰燼之翼 ASHWING：致敬《鐵甲飛龍》的第一關，騎龍沿固定航道從赤砂峽谷穿過沉沒神殿；前右後左 360 度視角切換、按住掃過多重鎖定追蹤雷射、畫面內閃避彈幕，敵人依 100 BPM 小節與地形起伏編排，終點是翼核 → 脊核 → 眼三階段的頭目骸天鯨；D Hijaz 民族風管弦樂與音效皆為 WebAudio 即時合成 | 單檔 HTML；Three.js 由 CDN 載入（失敗時改用站內 vendor），需 WebGL；桌機鍵鼠或手機觸控 |
 | 125 | [125-spacewalk.html](https://htmls-ruddy.vercel.app/125-spacewalk.html) | 介面風格 · AI 科普個人品牌 | 太空漫步：人物主視覺、AI Agent／Vibe Coding／AI Tools 白話卡片、四階段學習路線、個人介紹與可複製的第一個提問 | 單頁 HTML 搭配兩張站內原創插畫；不需外部程式庫 |
 | 127 | [127-jade-table.html](https://htmls-ruddy.vercel.app/127-jade-table.html) | 遊戲敘事 · 3D 十六張麻將 | 青雀 JADE TABLE：真人好友房或三位 AI；144 張吃碰槓胡、補花、宣告聽牌、逐項計台、30 秒重連與 Web Audio 音效 | 需 HTTP 與 WebGL；共用規則引擎；真人房由 Vercel WebSocket＋Neon 管理，詳見 [後端部署說明](server/jade-table/README.md) |
-| 129 | [129-orbit-os.html](https://htmls-ruddy.vercel.app/129-orbit-os.html) | 復古數位 · macOS 風格桌面系統 | ORBIT OS：可拖曳、縮放與最小化視窗；共用檔案資料的 Finder 和終端機、離線瀏覽器、可換主題、Web Audio 合成音樂，以及可挖掘建造的體素遊戲 | 單檔 HTML，無外部資源；檔案與遊戲進度保存在本機瀏覽器 |
+| 129 | [129-orbit-os.html](https://htmls-ruddy.vercel.app/129-orbit-os.html) | 介面風格 · macOS 風格桌面系統 | ORBIT OS：可拖曳、縮放與最小化視窗；共用檔案資料的 Finder 和終端機、離線瀏覽器、可換主題、Web Audio 合成音樂，以及可挖掘建造的體素遊戲 | 單檔 HTML，無外部資源；檔案與遊戲進度保存在本機瀏覽器 |
 | 130 | [130-snake-aware.html](https://htmls-ruddy.vercel.app/130-snake-aware.html) | 遊戲敘事 · 自覺貪食蛇 | THE SNAKE KNOWS：方向鍵、WASD、觸控滑動或螢幕按鍵操作；蛇會評論玩家，分數提高後畫面故障、穿牆、反向操作、點心移位，並與玩家談判規則 | 單檔 HTML，不載入外部資源；最佳分數存在本機瀏覽器 |
 
 ## 較弱的 7 件（誠實版）
