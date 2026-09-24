@@ -65,9 +65,9 @@ svg{display:block}
 .pages{position:absolute;inset:0;z-index:1}
 .page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   padding:calc(52px + env(safe-area-inset-top)) 14px calc(142px + env(safe-area-inset-bottom));
-  transition:transform .42s var(--out),visibility 0s .42s;visibility:hidden;transform:translateX(18%);scrollbar-width:none}
+  transition:transform .42s var(--out),opacity .2s linear,visibility 0s .42s;visibility:hidden;opacity:0;transform:translateX(18%);scrollbar-width:none}
 .page::-webkit-scrollbar{display:none}
-.page.on{visibility:visible;transform:none;transition:transform .42s var(--out),visibility 0s}
+.page.on{visibility:visible;opacity:1;transform:none;transition:transform .42s var(--out),opacity .26s linear .1s,visibility 0s}
 .page.left{transform:translateX(-18%)}
 
 /* header */
@@ -715,7 +715,7 @@ function drawChart(){
   for (var h = 0; h <= 24; h++){ var x = L + W * h / 24; c.strokeStyle = h % 6 === 0 ? 'rgba(160,70,40,.55)' : 'rgba(160,70,40,.2)'; c.lineWidth = h % 6 === 0 ? 1.2 : .6; c.beginPath(); c.moveTo(x, T); c.lineTo(x, B); c.stroke(); }
   for (var k = 0; k <= 8; k++){ var y = B - H * k / 8; c.strokeStyle = k % 2 === 0 ? 'rgba(160,70,40,.45)' : 'rgba(160,70,40,.18)'; c.lineWidth = k % 2 === 0 ? 1 : .6; c.beginPath(); c.moveTo(L, y); c.lineTo(R, y); c.stroke(); }
   c.fillStyle = '#8a4a2c'; c.font = '600 11px "PT Sans Narrow",sans-serif'; c.textAlign = 'center';
-  [0,6,12,18,24].forEach(function(h){ c.fillText(String(h).padStart(2,'0') + ':00', L + W * h / 24, B + 16); });
+  [0,6,12,18,24].forEach(function(h){ var ta = c.textAlign; if (h === 24) c.textAlign = 'right'; c.fillText(String(h).padStart(2,'0') + ':00', L + W * h / 24 + (h === 24 ? 4 : 0), B + 16); c.textAlign = ta; });
   c.textAlign = 'right'; [0,2,4,6,8].forEach(function(v){ c.fillText(v, L - 6, B - H * v / 8 + 4); });
   function pen(key, col, scale, width){
     c.strokeStyle = col; c.lineWidth = width; c.lineJoin = 'round'; c.lineCap = 'round'; c.beginPath(); var started = false;

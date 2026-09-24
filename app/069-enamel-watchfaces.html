@@ -58,7 +58,7 @@ svg{display:block}
 .hdr .sp{flex:1}
 .ib{height:44px;min-width:44px;display:grid;place-items:center;border-radius:12px;padding:0 6px;font-size:14px;color:var(--enamel);transition:background-color .2s}
 .ib:active{background:rgba(246,245,239,.1)}
-.sync{display:flex;align-items:center;gap:6px;padding:0 12px;height:36px;border-radius:18px;background:var(--enamel);color:var(--steel);font-weight:700;font-size:14px;position:relative;overflow:hidden;transition:background-color .2s}
+.sync{display:flex;align-items:center;justify-content:center;min-width:116px;gap:6px;padding:0 12px;height:36px;border-radius:18px;background:var(--enamel);color:var(--steel);font-weight:700;font-size:14px;position:relative;overflow:hidden;transition:background-color .2s}
 .sync:active{background:#dcdcd2}
 .sync .bar{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--gold2);transform-origin:left;transform:scaleX(0);z-index:0}
 .sync span,.sync svg{position:relative;z-index:1}
@@ -587,7 +587,9 @@ function tickHands(force){
   }
 }
 var raf = 0;
-function loop(){ raf = 0; if (document.hidden) return; tickHands(false); raf = requestAnimationFrame(loop); }
+var lastBeat = -1;
+// hands move in 1/8 s beats (or whole seconds), so only touch the SVG when a new beat starts
+function loop(){ raf = 0; if (document.hidden) return; var beat = Math.floor(Date.now() / 125); if (beat !== lastBeat){ lastBeat = beat; tickHands(false); } raf = requestAnimationFrame(loop); }
 document.addEventListener('visibilitychange', function(){ if (!document.hidden && !raf) raf = requestAnimationFrame(loop); });
 
 // ---------- my faces sheet ----------

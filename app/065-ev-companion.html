@@ -106,8 +106,8 @@ svg{display:block}
 
 /* ---------- panel ---------- */
 .panelwrap{position:absolute;left:0;right:0;bottom:calc(76px + env(safe-area-inset-bottom));height:216px;z-index:5}
-.panel{position:absolute;inset:0;padding:0 22px;transition:transform .5s var(--out),visibility 0s .5s;visibility:hidden;transform:translateX(30px)}
-.panel.on{visibility:visible;transform:none;transition:transform .5s var(--out)}
+.panel{position:absolute;inset:0;padding:0 22px;transition:transform .5s var(--out),opacity .22s linear,visibility 0s .5s;visibility:hidden;opacity:0;transform:translateX(30px);pointer-events:none}
+.panel.on{visibility:visible;opacity:1;pointer-events:auto;transform:none;transition:transform .5s var(--out),opacity .3s linear .12s}
 .panel.left{transform:translateX(-30px)}
 .row{display:flex;align-items:center;gap:8px}
 
@@ -201,7 +201,7 @@ svg{display:block}
 .sbody{overflow-y:auto;overscroll-behavior:contain;padding:0 24px;touch-action:pan-y}
 .sbody::-webkit-scrollbar{display:none}
 .sh-t{font:200 26px/1.2 var(--f);letter-spacing:.1em}
-.sh-p{margin-top:8px;font:300 14px/1.6 var(--f);color:var(--tx2)}
+.sh-p{margin:8px 0 10px;font:300 14px/1.6 var(--f);color:var(--tx2)}
 .sw{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:60px;text-align:left;font:400 16px/1.3 var(--f)}
 .sw small{display:block;font:300 13px/1.4 var(--f);color:var(--tx2)}
 .sw .k{position:relative;width:52px;height:30px;flex:none;border-radius:15px;background:#3a3631;box-shadow:inset 0 1px 2px rgba(0,0,0,.5);transition:background .3s}
@@ -337,10 +337,10 @@ svg{display:block}
           <g class="mirror" id="mirL" style="transform-origin:27px 136px"><path d="M27 130L11 127C6 127 5 138 11 139L27 142Z" fill="#48433d"/></g>
           <g class="mirror" id="mirR" style="transform-origin:173px 136px"><path d="M173 130L189 127C194 127 195 138 189 139L173 142Z" fill="#48433d"/></g>
           <!-- tire pressures -->
-          <g class="tires" font-family="Avenir Next,sans-serif" font-weight="300" font-size="13" fill="#a39c91" text-anchor="middle">
+          <g class="tires" font-family="Avenir Next,sans-serif" font-weight="400" font-size="22" fill="#c8c2b8" text-anchor="middle">
             <text x="-24" y="96" id="tp0">2.5</text><text x="224" y="96" id="tp1">2.5</text><text x="-24" y="326" id="tp2">2.4</text><text x="224" y="326" id="tp3">2.5</text>
-            <text x="-24" y="112" font-size="9" letter-spacing="1.5" fill="#8a8378">BAR</text><text x="224" y="112" font-size="9" letter-spacing="1.5" fill="#8a8378">BAR</text>
-            <text x="-24" y="342" font-size="9" letter-spacing="1.5" fill="#8a8378">BAR</text><text x="224" y="342" font-size="9" letter-spacing="1.5" fill="#8a8378">BAR</text>
+            <text x="-24" y="112" font-size="14" letter-spacing="1.5" fill="#8a8378">BAR</text><text x="224" y="112" font-size="14" letter-spacing="1.5" fill="#8a8378">BAR</text>
+            <text x="-24" y="342" font-size="14" letter-spacing="1.5" fill="#8a8378">BAR</text><text x="224" y="342" font-size="14" letter-spacing="1.5" fill="#8a8378">BAR</text>
           </g>
         </svg>
       </div>
@@ -443,13 +443,18 @@ function lockSvg(l){ return l ? '<g class="ic" style="stroke:#1d1b18;stroke-widt
   : '<g class="ic" style="stroke:#1d1b18;stroke-width:1.5"><rect x="8" y="13" width="14" height="11" rx="2"/><path d="M10.5 13V9.5a4.5 4.5 0 0 1 8.6-1.8"/></g><circle cx="15" cy="18.5" r="1.7" fill="#5f9d77"/>'; }
 
 /* ---------- hero number ---------- */
-var tab = 0, heroCur = 0, heroRaf = 0;
+var tab = 0, heroCur = 0, heroRaf = 0, heroTab = 0;
 function heroTarget(){ if (tab === 0) return Math.round(S.ch.level * 5.9); if (tab === 1) return S.clim.temp; return Math.floor(S.ch.level); }
 function renderHero(anim){
   var tgt = heroTarget(), dec = tab === 1 ? 1 : 0;
   $('heroU').textContent = tab === 0 ? 'km' : tab === 1 ? '°C' : '%';
   $('heroS').textContent = tab === 0 ? '預估續航 · 電量 '+Math.floor(S.ch.level)+'%' : tab === 1 ? (S.clim.on ? '空調運轉中 · 車外 29°' : '車內 31° · 車外 29°') : (S.ch.charging ? '充電中 · 上限 '+S.ch.limit+'%' : '電池 · 上限 '+S.ch.limit+'%');
   cancelAnimationFrame(heroRaf);
+  // a different tab means a different unit: swap the figure with a short rise instead of counting km into °C
+  if (heroTab !== tab){ heroTab = tab; heroCur = tgt; $('heroN').textContent = tgt.toFixed(dec);
+    var hero = document.querySelector('.hero');
+    if (anim && !reduced && hero.animate) hero.animate([{opacity:0, transform:'translateY(8px)'}, {opacity:1, transform:'none'}], {duration:380, easing:'cubic-bezier(.2,.8,.2,1)'});
+    return; }
   if (!anim || reduced){ heroCur = tgt; $('heroN').textContent = tgt.toFixed(dec); return; }
   var from = heroCur, t0 = performance.now();
   (function step(t){ var p = Math.min(1, (t - t0) / 700), e = 1 - Math.pow(1 - p, 3); heroCur = from + (tgt - from) * e; $('heroN').textContent = heroCur.toFixed(dec); if (p < 1) heroRaf = requestAnimationFrame(step); })(t0);

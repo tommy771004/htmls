@@ -81,7 +81,7 @@ canvas#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cur
 .grab{height:22px;display:grid;place-items:center;cursor:grab}
 .grab i{width:40px;height:5px;border-radius:3px;background:#d6c7b0}
 .sh{font:300 34px/1.1 var(--f);text-align:center;margin-top:4px}
-.sub{text-align:center;color:var(--ink-2);font-size:15px;margin-top:6px;font-weight:400}
+.sub{text-align:center;color:var(--ink-2);font-size:15px;margin-top:6px;font-weight:400;text-wrap:balance}
 .big3{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;text-align:center}
 .big3 b{display:block;font:300 34px/1 var(--f);font-variant-numeric:tabular-nums}
 .big3 span{display:block;font:400 13px/1.3 var(--f);color:var(--ink-2);margin-top:6px}
@@ -329,11 +329,18 @@ function hud(){
 
 // ---------- loop ----------
 var last = 0, raf = 0;
+function paused(){ return sheet.classList.contains('on'); }
+function kick(){ if (!raf && !document.hidden){ last = performance.now(); raf = requestAnimationFrame(frame); } }
 function frame(t){
-  raf = requestAnimationFrame(frame);
-  if (document.hidden){ last = t; return; }
+  raf = 0;
+  if (document.hidden) return;
   var dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
-  if (state !== 'over' && !fall) tSwing += dt;
+  // the swing (and the whole scene) holds still while a sheet is up, like a real pause
+  var busy = fall || pieces.length || floats.length || Math.abs(camT - cam) > .5 || tower.some(function(b){ return b.sq > 0; });
+  if (paused() && !busy) return;
+  if (state === 'over' && !busy){ draw(); return; }
+  raf = requestAnimationFrame(frame);
+  if (state !== 'over' && !fall && !paused()) tSwing += dt;
   if (fall){
     fall.vy += 2600 * dt; fall.y += fall.vy * dt; fall.rot *= Math.pow(.0001, dt);
     if (fall.y + BH / 2 >= topY()){ fall.y = topY() - BH / 2; land(); }
@@ -458,7 +465,7 @@ document.addEventListener('keydown', function(e){
   if (e.key === 'Escape'){ closeSheet(); return; }
   if ((e.key === ' ' || e.key === 'Enter') && !sheet.classList.contains('on') && e.target === document.body){ e.preventDefault(); if (state === 'over') restart(); else drop(); }
 });
-function restart(){ closeSheet(); reset(); haptic(8); knock(1.3, .2); }
+function restart(){ closeSheet(); reset(); haptic(8); knock(1.3, .2); kick(); }
 $('restartBtn').addEventListener('click', function(e){ e.stopPropagation(); restart(); });
 $('menuBtn').addEventListener('click', function(e){ e.stopPropagation(); showMenu(); });
 
@@ -466,12 +473,13 @@ $('menuBtn').addEventListener('click', function(e){ e.stopPropagation(); showMen
 var sheet = $('sheet'), scrim = $('scrim'), lastFocus = null;
 function openSheet(html){
   lastFocus = document.activeElement; $('sbody').innerHTML = html;
-  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6);
+  sheet.style.transform = ''; sheet.classList.add('on'); scrim.classList.add('on'); haptic(6); kick();
 }
 function closeSheet(){
   if (!sheet.classList.contains('on')) return;
   sheet.classList.remove('on', 'drag'); sheet.style.transform = ''; scrim.classList.remove('on');
   if (state === 'over') reset();
+  kick();
   if (lastFocus && lastFocus.focus) try { lastFocus.focus({preventScroll:true}); } catch(e){}
 }
 scrim.addEventListener('click', closeSheet);
@@ -547,8 +555,9 @@ resize(); reset();
   camT = cam = Math.max(0, targetTop - topY());
   hud();
 })();
-window.addEventListener('resize', function(){ resize(); camT = cam = Math.max(0, targetTop - topY()); });
-raf = requestAnimationFrame(frame);
+window.addEventListener('resize', function(){ resize(); camT = cam = Math.max(0, targetTop - topY()); draw(); kick(); });
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) kick(); });
+kick();
 })();
 </script>
 </body>

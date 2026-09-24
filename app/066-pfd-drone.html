@@ -116,15 +116,17 @@ svg{display:block}
 /* sheet */
 .scrim{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .3s}
 .scrim.on{opacity:1;pointer-events:auto}
-.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:88%;display:flex;flex-direction:column;background:#0d0d0d;border-radius:24px 24px 0 0;box-shadow:0 -1px 0 #2a2a2a;
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:88%;min-height:min(62%,540px);display:flex;flex-direction:column;background:#0d0d0d;border-radius:24px 24px 0 0;box-shadow:0 -1px 0 #2a2a2a;
   padding:8px 18px calc(20px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .48s var(--spring);touch-action:none}
 .sheet.on{transform:none}
 .sheet.drag{transition:none}
 .grab{flex:none;width:40px;height:5px;border-radius:3px;background:#3a3a3a;margin:0 auto 10px}
 .sbody{overflow-y:auto;min-height:0;margin:0 -18px;padding:0 18px;scrollbar-width:none}
-.stabs{display:flex;gap:18px;margin-bottom:12px}
-.stabs button{height:44px;font:700 22px/1 var(--din);letter-spacing:.08em;color:var(--w3);display:flex;align-items:center;gap:6px;transition:color .15s}
-.stabs button small{font:500 13px/1 var(--cjk);letter-spacing:.1em}
+.stabs{display:flex;justify-content:space-between;gap:4px;margin-bottom:12px;box-shadow:inset 0 -1px 0 #1e1e1e}
+.stabs button{position:relative;height:46px;font:700 clamp(17px,5vw,21px)/1 var(--din);letter-spacing:.06em;color:var(--w3);display:flex;align-items:center;gap:4px;white-space:nowrap;transition:color .15s}
+.stabs button small{font:500 11px/1.1 var(--cjk);letter-spacing:.06em;width:1.1em;white-space:normal}
+.stabs button::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--cyan);transform:scaleX(0);transition:transform .25s var(--out)}
+.stabs button[aria-selected=true]::after{transform:none}
 .stabs button[aria-selected=true]{color:var(--cyan)}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#222;border-radius:10px;overflow:hidden}
 .kv div{background:#111;padding:10px 12px}
@@ -174,7 +176,7 @@ svg{display:block}
 @media (max-height:720px){.stick{width:min(118px,31vw)}.tko{width:66px;height:66px}.mbtn{height:40px}.ctl{padding-top:4px}}
 @media (prefers-reduced-motion:reduce){
   .warn.on{animation:none}
-  .sheet,.toast,.modes .kn,.sw2 i::after{transition-duration:.01s}
+  .sheet,.toast,.modes .kn,.sw2 i::after,.stabs button::after{transition-duration:.01s}
 }
 </style>
 </head>
@@ -528,7 +530,10 @@ function drawPFD(c){
   x.font = font(18); boxText(x, pad(Math.round(D.hdg) % 360).padStart(3, '0') + '°', cx, hy - 2, 52, 22, '#f2f2f2');
   // mode text
   x.font = font(13, 600); x.textAlign = 'right'; x.fillStyle = D.armed ? '#3ee06b' : '#d0d0d0';
-  x.fillText(D.rth ? 'RTH ' + D.rth.toUpperCase() : D.landing ? 'AUTO LAND' : D.taking ? 'AUTO T/O' : D.flying ? 'HOVER HOLD' : 'ON GROUND', ax + aw - 12, ay + ah - 12);
+  var mt = D.rth ? 'RTH ' + D.rth.toUpperCase() : D.landing ? 'AUTO LAND' : D.taking ? 'AUTO T/O' : D.flying ? 'HOVER HOLD' : 'ON GROUND', mw = x.measureText(mt).width;
+  // annunciator sits on its own black plate so the pitch ladder never runs through it
+  var mf = x.fillStyle; x.fillStyle = 'rgba(0,0,0,.82)'; x.fillRect(ax + aw - 18 - mw, ay + ah - 22, mw + 12, 20); x.fillStyle = mf;
+  x.fillText(mt, ax + aw - 12, ay + ah - 12);
 }
 function rr(x, X, Y, W, H, r){ x.moveTo(X + r, Y); x.arcTo(X + W, Y, X + W, Y + H, r); x.arcTo(X + W, Y + H, X, Y + H, r); x.arcTo(X, Y + H, X, Y, r); x.arcTo(X, Y, X + W, Y, r); x.closePath(); }
 

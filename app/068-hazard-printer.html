@@ -122,7 +122,7 @@ svg{display:block}
 .big:active{background:var(--yel-d);transform:scale(.98)}
 .big[disabled]{background:var(--blk-3);color:var(--wht-3);cursor:default}
 .hold{position:relative;height:70px;border-radius:4px;background:var(--blk-2);color:var(--org);font:700 22px/1 var(--din);overflow:hidden;box-shadow:inset 0 0 0 2px var(--org)}
-.hold .f{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--org)}
+.hold .f{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--org);transform:scaleX(0);transform-origin:left}
 .hold span{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px}
 .hold span small{font:11px/1 var(--text);color:var(--wht-2)}
 .hold.arm span,.hold.arm span small{color:var(--blk)}
@@ -164,9 +164,11 @@ svg{display:block}
 .qrow canvas{width:58px;height:58px}
 .qrow .nm{font:600 15px/1.25 var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .qrow .fn{font:11px/1.3 var(--mono);color:var(--wht-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.qrow .mt{display:flex;align-items:center;gap:6px;font:12px/1.3 var(--mono);color:var(--wht-2);margin-top:3px}
+.qrow .mt{display:flex;align-items:center;gap:5px;font:11px/1.3 var(--mono);letter-spacing:-.02em;color:var(--wht-2);margin-top:3px}
 .qrow .mt i{width:10px;height:10px;border-radius:2px;flex:none}
+.qrow .mt span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .qrow .ix{font:700 30px/1 var(--din);color:var(--wht-3);text-align:right}
+.qrow .ix small{display:block;margin-top:3px;font:600 11px/1 var(--text);color:var(--yel);letter-spacing:.08em}
 .qrow:first-child .ix{color:var(--yel)}
 .addq{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:64px;margin-top:6px;border-radius:4px;background:var(--blk);color:var(--yel);font:700 22px/1 var(--din);box-shadow:inset 0 0 0 2px var(--blk-3)}
 .addq:active{background:var(--blk-2)}
@@ -174,6 +176,7 @@ svg{display:block}
 .empty{padding:40px 10px;text-align:center;color:var(--wht-3)}
 
 /* rocker nav */
+.navfade{position:absolute;left:0;right:0;bottom:0;z-index:19;height:calc(104px + env(safe-area-inset-bottom));pointer-events:none;background:linear-gradient(rgba(21,20,18,0),var(--blk) 34px)}
 .rocker{position:absolute;left:14px;right:14px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:20;height:66px;display:grid;grid-template-columns:1fr 1fr;background:var(--blk-3);border-radius:6px;padding:4px;overflow:hidden}
 .rocker .knob{position:absolute;left:4px;top:4px;bottom:4px;width:calc(50% - 4px);border-radius:3px;background:var(--yel);transition:transform .45s var(--spring)}
 .rocker.q .knob{transform:translateX(100%)}
@@ -292,6 +295,7 @@ svg{display:block}
         </section>
       </div>
 
+      <div class="navfade" aria-hidden="true"></div>
       <nav class="rocker" id="rocker" aria-label="切換頁面">
         <span class="knob" aria-hidden="true"></span>
         <button class="on" data-pg="s" aria-pressed="true"><svg viewBox="0 0 22 22"><path d="M3 3h16v11H3z" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M7 19h8" stroke="currentColor" stroke-width="2.4"/><path d="M8 11h6V8H8z" fill="currentColor"/></svg>狀態</button>
@@ -475,11 +479,12 @@ function drawHead(x, y, p){
 }
 
 /* ---------- simulation ---------- */
-var last = performance.now(), raf = 0, lastUi = 0;
+var last = performance.now(), raf = 0, lastUi = 0, pagesEl = $('pages');
 function frame(now){
   var dt = Math.min(.1, (now - last)/1000); last = now;
   step(dt);
-  draw();
+  if (!pagesEl.classList.contains('q')) draw();   // the chamber is off-screen on the queue page
+
   if (now - lastUi > 250){ lastUi = now; ui(); }
   raf = requestAnimationFrame(frame);
 }
@@ -585,10 +590,10 @@ function startNext(p){
 /* hold to stop */
 (function(){
   var b = $('stopBtn'), fl = $('stopF'), t0 = 0, raf2 = 0, on = false;
-  function tick(){ var k = Math.min(1, (performance.now() - t0)/1200); fl.style.width = (k*100)+'%'; b.classList.toggle('arm', k > .5); if (k >= 1){ on = false; fire(); return; } if (on) raf2 = requestAnimationFrame(tick); }
-  function fire(){ var p = cur(), f = jf(p); fl.style.width = '0'; b.classList.remove('arm'); if (!f) return; beep(440, .5, .08, 0, 'sawtooth'); haptic([40,40,40]); addLog(p.id+' 手動停止：'+f.nm); p.st = 'idle'; p.job = null; p.paused = false; p.noz[1] = 0; p.bed[1] = 0; cacheKey = ''; persist(); ui(); toast('已停止，這一件作廢'); }
+  function tick(){ var k = Math.min(1, (performance.now() - t0)/1200); fl.style.transform = 'scaleX('+k.toFixed(3)+')'; b.classList.toggle('arm', k > .5); if (k >= 1){ on = false; fire(); return; } if (on) raf2 = requestAnimationFrame(tick); }
+  function fire(){ var p = cur(), f = jf(p); fl.style.transform = ''; b.classList.remove('arm'); if (!f) return; beep(440, .5, .08, 0, 'sawtooth'); haptic([40,40,40]); addLog(p.id+' 手動停止：'+f.nm); p.st = 'idle'; p.job = null; p.paused = false; p.noz[1] = 0; p.bed[1] = 0; cacheKey = ''; persist(); ui(); toast('已停止，這一件作廢'); }
   b.addEventListener('pointerdown', function(e){ if (b.disabled) return; ac(); on = true; t0 = performance.now(); beep(700, .08, .04); haptic(10); try{ b.setPointerCapture(e.pointerId); }catch(err){} raf2 = requestAnimationFrame(tick); });
-  function cancel(){ if (!on) return; on = false; cancelAnimationFrame(raf2); fl.style.width = '0'; b.classList.remove('arm'); }
+  function cancel(){ if (!on) return; on = false; cancelAnimationFrame(raf2); fl.style.transform = ''; b.classList.remove('arm'); }
   b.addEventListener('pointerup', cancel); b.addEventListener('pointercancel', cancel); b.addEventListener('pointerleave', cancel);
   b.addEventListener('click', function(e){ if (e.detail === 0 && !b.disabled){ fire(); } });
 })();
@@ -635,8 +640,8 @@ function renderQueue(){
   $('qlist').innerHTML = queue.length ? queue.map(function(q, i){ var f = file(q.key);
     return '<div class="qrow" data-i="'+i+'"><button class="del" data-del="'+i+'" aria-label="移除 '+f.nm+'">移除</button><div class="face">'+
       '<span class="handle" data-h="'+i+'" role="button" tabindex="0" aria-label="拖曳排序 '+f.nm+'，可用上下鍵"><svg viewBox="0 0 18 24"><path d="M2 5h14v3H2zM2 10.5h14v3H2zM2 16h14v3H2z" fill="#8a8478"/></svg></span>'+
-      '<canvas data-k="'+q.key+'"></canvas><div style="min-width:0"><div class="nm">'+esc(f.nm)+'</div><div class="fn">'+esc(f.fn)+'</div><div class="mt"><i style="background:'+f.col+'"></i>'+f.mat+' · '+f.min+' 分 · '+f.g+' g</div></div>'+
-      '<div class="ix">'+(i === 0 ? '下一件' : String(i+1).padStart(2,'0'))+'</div></div></div>'; }).join('') : '<p class="empty">佇列清空了。從檔案庫挑一件吧。</p>';
+      '<canvas data-k="'+q.key+'"></canvas><div style="min-width:0"><div class="nm">'+esc(f.nm)+'</div><div class="fn">'+esc(f.fn)+'</div><div class="mt"><i style="background:'+f.col+'"></i><span>'+f.mat+' · '+f.min+' 分 · '+f.g+' g</span></div></div>'+
+      '<div class="ix">'+String(i+1).padStart(2,'0')+(i === 0 ? '<small>下一件</small>' : '')+'</div></div></div>'; }).join('') : '<p class="empty">佇列清空了。從檔案庫挑一件吧。</p>';
   $('qlist').querySelectorAll('canvas').forEach(function(c){ thumb(c, file(c.dataset.k)); });
   $('qCnt').textContent = queue.length;
   var ix = $('qlist').querySelector('.qrow:first-child .ix'); if (ix) ix.style.fontSize = '20px';

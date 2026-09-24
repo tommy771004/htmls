@@ -63,7 +63,7 @@ canvas#tank{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:n
   transform:translateY(var(--y,420px));transition:transform .5s var(--spring);display:flex;flex-direction:column;
   box-shadow:inset 0 1px 0 rgba(239,231,212,.12),0 -6px 14px -10px rgba(0,0,0,.6)}
 .drawer.drag{transition:none}
-.dhead{flex:none;padding:8px 20px 0;touch-action:none;cursor:grab}
+.dhead{flex:none;padding:8px 20px 0;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
 .grip{width:40px;height:5px;border-radius:3px;background:rgba(239,231,212,.25);margin:0 auto 10px}
 .ttl{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .ttl h1{font:300 24px/1 var(--sans);letter-spacing:.2em}
@@ -76,7 +76,7 @@ canvas#tank{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:n
 .panes{flex:1;min-height:0;position:relative;overflow:hidden;overflow:clip;touch-action:pan-y}
 .track{display:flex;height:100%;transition:transform .45s var(--out)}
 .track.drag{transition:none}
-.pane{flex:0 0 100%;height:100%;overflow-y:auto;overflow-x:hidden;padding:14px 20px calc(var(--pad,440px) + 30px + env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior:contain}
+.pane{flex:0 0 100%;height:100%;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 14px);mask-image:linear-gradient(to bottom,transparent 0,#000 14px);overflow-y:auto;overflow-x:hidden;padding:14px 20px calc(var(--pad,440px) + 30px + env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior:contain}
 .pane::-webkit-scrollbar{display:none}
 
 /* light */
@@ -481,7 +481,7 @@ function snapY(n){var h=screenEl.clientHeight;return n==='low'?h-150:n==='high'?
 function snap(n){snapName=n;save('snap',n);var y=snapY(n);drawer.style.setProperty('--y',y+'px');drawer.style.setProperty('--pad',y+'px');$('track').style.setProperty('--pad',y+'px');var ps=document.querySelectorAll('.pane');for(var i=0;i<ps.length;i++)ps[i].style.setProperty('--pad',y+'px');}
 (function(){var sy=0,y0=0,t0=0,on=false,moved=false,dy=0,pid=0;var dh=$('dhead');
   dh.addEventListener('pointerdown',function(e){on=true;moved=false;sy=e.clientY;dy=0;t0=e.timeStamp;y0=snapY(snapName);pid=e.pointerId;});
-  dh.addEventListener('pointermove',function(e){if(!on)return;dy=e.clientY-sy;if(!moved&&Math.abs(dy)<6)return;if(!moved){moved=true;drawer.classList.add('drag');try{dh.setPointerCapture(pid);}catch(x){}}
+  window.addEventListener('pointermove',function(e){if(!on||e.pointerId!==pid)return;dy=e.clientY-sy;if(!moved&&Math.abs(dy)<6)return;if(!moved){moved=true;drawer.classList.add('drag');try{dh.setPointerCapture(pid);}catch(x){}}
     var y=y0+dy,lo=snapY('high'),hi=snapY('low');if(y<lo)y=lo-(lo-y)/5;if(y>hi)y=hi+(y-hi)/5;drawer.style.setProperty('--y',y+'px');});
   function end(e){if(!on)return;on=false;drawer.classList.remove('drag');if(!moved){return;}
     var v=dy/Math.max(1,e.timeStamp-t0),y=y0+dy,names=['high','mid','low'],best='mid',bd=1e9;
@@ -490,7 +490,7 @@ function snap(n){snapName=n;save('snap',n);var y=snapY(n);drawer.style.setProper
     snap(best);haptic(6);
     dh.addEventListener('click',kill,true);setTimeout(function(){dh.removeEventListener('click',kill,true);},50);}
   function kill(e){e.stopPropagation();e.preventDefault();}
-  dh.addEventListener('pointerup',end);dh.addEventListener('pointercancel',end);})();
+  window.addEventListener('pointerup',end);window.addEventListener('pointercancel',end);})();
 
 /* ---------- tabs + swipe ---------- */
 var tab=load('tab',0),track=$('track');

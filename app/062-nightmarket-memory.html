@@ -100,6 +100,8 @@ svg{display:block}
 .card .fc span{font:400 13px/1.1 var(--yp);color:var(--ink);white-space:nowrap}
 .card.up .in{transform:rotateY(180deg)}
 .card:active:not(.up) .in{transform:scale(.94)}
+.grid.deal .card{animation:deal .42s var(--boing) both;animation-delay:calc(var(--d) * 22ms)}
+@keyframes deal{from{opacity:0;transform:translateY(-14px) scale(.9)}to{opacity:1;transform:none}}
 .card.done .fc{background:#fff4cf;box-shadow:inset 0 0 0 2.5px var(--bulb-d)}
 .card.done .in{animation:jump .55s var(--boing)}
 @keyframes jump{0%{transform:rotateY(180deg)}40%{transform:rotateY(180deg) translateY(-8px) scale(1.06)}100%{transform:rotateY(180deg)}}
@@ -178,7 +180,7 @@ svg{display:block}
   .card .fc span{font-size:11px}
 }
 @media (prefers-reduced-motion:reduce){
-  .sway,.chase .b.on .glass,.bulbs .b.pop,.card.done .in,.card.miss .in,.stars .s{animation:none}
+  .sway,.chase .b.on .glass,.bulbs .b.pop,.card.done .in,.card.miss .in,.stars .s,.grid.deal .card{animation:none}
   .card .in,.card,.sheet,.tag,.toast{transition-duration:.01s}
   .shout.go{animation-duration:1.4s;animation-timing-function:steps(1)}
 }
@@ -324,7 +326,8 @@ function newGame(preview){
   deck = shuffle(picks.concat(picks)).map((f, i) => ({f, i, up: false, done: false}));
   const g = $('grid'), L = LV[lv];
   g.style.gridTemplateColumns = `repeat(${L.c},1fr)`; g.style.gridTemplateRows = `repeat(${L.r},1fr)`;
-  g.innerHTML = deck.map(c => `<button class="card" data-i="${c.i}" role="gridcell" aria-label="第 ${c.i + 1} 張，蓋著"><span class="in"><span class="bk"></span><span class="fc">${art(c.f)}<span>${FOOD[c.f].n}</span>${STAMP}</span></span></button>`).join('');
+  g.classList.remove('deal'); g.innerHTML = deck.map(c => `<button class="card" style="--d:${c.i}" data-i="${c.i}" role="gridcell" aria-label="第 ${c.i + 1} 張，蓋著"><span class="in"><span class="bk"></span><span class="fc">${art(c.f)}<span>${FOOD[c.f].n}</span>${STAMP}</span></span></button>`).join('');
+  void g.offsetWidth; g.classList.add('deal'); clearTimeout(g._dt); g._dt = setTimeout(() => g.classList.remove('deal'), 1100);
   document.querySelector('.bulbs').classList.remove('chase');
   $('bPeek').disabled = false;
   renderBulbs(n, 0); hud();
