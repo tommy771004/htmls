@@ -66,7 +66,7 @@ input{font:inherit;color:inherit}
 .stopall:active{transform:scale(.95);background:#f4e2cb}
 .stopall[disabled]{opacity:.45}
 
-.wall{position:absolute;z-index:5;left:0;right:0;top:calc(124px + env(safe-area-inset-top));bottom:calc(92px + env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;padding:14px 10px 20px}
+.wall{position:absolute;z-index:5;left:0;right:0;top:calc(124px + env(safe-area-inset-top));bottom:calc(98px + env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;padding:14px 10px 20px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 6px}
 .cell{position:relative;display:flex;flex-direction:column;align-items:center;padding:6px 0 10px}
 .dial{position:relative;width:150px;height:150px;touch-action:none;cursor:grab;border-radius:50%}
@@ -91,7 +91,12 @@ input{font:inherit;color:inherit}
 .plate{margin-top:8px;min-width:120px;padding:5px 14px 6px;border-radius:9px 9px 16px 16px;background:var(--chrome);text-align:center;box-shadow:inset 0 1px 0 #fff,0 1px 0 rgba(29,59,52,.25)}
 .plate b{display:block;font:800 15px/1.25 var(--round);color:var(--teal);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tm{margin-top:6px;font:800 28px/1 var(--heavy);font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--teal)}
-.st{margin-top:3px;font-size:13px;font-weight:700;color:var(--teal2);height:18px}
+.st{margin-top:3px;font-size:13px;font-weight:700;color:var(--teal2);height:18px;white-space:nowrap}
+.st small{font:800 13px/1 var(--heavy);font-variant-numeric:tabular-nums;opacity:.8}
+.cell[data-new]{animation:knobIn .5s var(--spring) both}
+@keyframes knobIn{from{opacity:0;transform:scale(.7)}}
+.lgday{display:flex;justify-content:space-between;margin:14px 0 2px;font-size:13px;font-weight:800;color:var(--teal2)}
+.lgday:first-of-type{margin-top:4px}
 .cell.run .st{color:var(--red2)}
 .cell.pause .tm{color:var(--teal2)}
 .cell.ring .plate{background:var(--red)}
@@ -107,7 +112,7 @@ input{font:inherit;color:inherit}
 .socket svg *{fill:var(--teal2)}
 
 /* chrome base with push buttons */
-.base{position:absolute;z-index:20;left:0;right:0;bottom:0;height:calc(92px + env(safe-area-inset-bottom));padding:14px 16px env(safe-area-inset-bottom);background:var(--red);display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.base{position:absolute;z-index:20;left:0;right:0;bottom:0;height:calc(98px + env(safe-area-inset-bottom));padding:14px 16px env(safe-area-inset-bottom);background:var(--red);display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .base::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:var(--chrome)}
 .push{height:58px;margin-top:6px;border-radius:10px;background:var(--chrome);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:15px;color:var(--teal);
   box-shadow:0 3px 0 #7d2620,inset 0 1px 0 #fff;transition:transform .08s,box-shadow .08s}
@@ -181,6 +186,7 @@ input{font:inherit;color:inherit}
   .sheet,.toast,.bell{transition-duration:.01s}
   .cell.ring .knob{animation:none}
   .cell.gone{transition:none}
+  .cell[data-new]{animation:none}
 }
 </style>
 </head>
@@ -312,15 +318,16 @@ var CAP = {
 function render(){
   var g = $('grid'), h = '';
   timers.forEach(function(t){
-    h += '<div class="cell" data-id="'+t.id+'"><div class="dial" tabindex="0" role="slider" aria-label="'+esc(t.n)+' 旋鈕，轉動設定時間，點一下開始或暫停，長按編輯" aria-valuemin="0" aria-valuemax="'+MAXSEC+'">'+FACE+
+    h += '<div class="cell" data-id="'+t.id+'"'+(t.id === freshKnob ? ' data-new' : '')+'><div class="dial" tabindex="0" role="slider" aria-label="'+esc(t.n)+' 旋鈕，轉動設定時間，點一下開始或暫停，長按編輯" aria-valuemin="0" aria-valuemax="'+MAXSEC+'">'+FACE+
       '<div class="knob"><div class="flutes"><i class="ptr"></i></div><div class="cap"><i></i></div></div></div>'+
       '<div class="plate"><b>'+esc(t.n)+'</b></div><div class="tm"></div><div class="st"></div></div>';
   });
   if (timers.length < MAX) h += '<div class="cell"><button class="socket" id="addKnob" aria-label="裝一顆新旋鈕"><svg width="28" height="28" viewBox="0 0 28 28"><rect x="11.5" y="3" width="5" height="22" rx="2.5"/><rect x="3" y="11.5" width="22" height="5" rx="2.5"/></svg>裝旋鈕</button></div>';
-  g.innerHTML = h;
+  g.innerHTML = h; freshKnob = null;
   update();
 }
-var lastSec = {};
+var lastSec = {}, freshKnob = null;
+function hm(ms){ var d = new Date(ms); return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
 function update(){
   var running = 0, ringing = [];
   timers.forEach(function(t){
@@ -332,7 +339,8 @@ function update(){
     if (!c) return;
     c.className = 'cell ' + t.st + (c.classList.contains('dragging') ? ' dragging' : '');
     c.querySelector('.tm').textContent = fmt(r);
-    c.querySelector('.st').textContent = t.st === 'run' ? (r >= 3600 ? '走了，超過一小時' : '倒數中') : t.st === 'pause' ? '暫停' : t.st === 'ring' ? '時間到！' : r > 0 ? '點一下開始' : '轉動設定';
+    var stx = t.st === 'run' ? (r >= 3600 ? '超過一小時' : '倒數中') + ' <small>· ' + hm(t.end) + ' 響</small>' : t.st === 'pause' ? '暫停 <small>· 共 ' + fmtShort(t.set) + '</small>' : t.st === 'ring' ? '時間到！' : r > 0 ? '點一下開始' : '轉動設定';
+    if (c._st !== stx){ c._st = stx; c.querySelector('.st').innerHTML = stx; }
     c.querySelector('.flutes').style.transform = 'rotate('+((r/60)*6).toFixed(2)+'deg)';
     c.querySelector('.wedge').setAttribute('d', wedgePath(r));
     c.querySelector('.cap i').innerHTML = t.st === 'run' ? CAP.run : t.st === 'ring' ? CAP.ring : CAP.stop;
@@ -465,7 +473,10 @@ function paint(){
   } else if (kind === 'log'){
     h += '<h3>今天煮了什麼</h3><div class="sub">響過鈴的計時都記在這裡。</div>';
     if (!logs.length) h += '<div class="none">還沒有紀錄。</div>';
-    logs.slice(0, 20).forEach(function(l){ var d = new Date(l.t); h += '<div class="lg"><span class="when">'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+'</span><b>'+esc(l.n)+'</b><span class="d">'+fmtShort(l.s)+'</span></div>'; });
+    var lastD = '', td = new Date(); td.setHours(0,0,0,0);
+    logs.slice(0, 20).forEach(function(l){ var d = new Date(l.t), d0 = new Date(l.t); d0.setHours(0,0,0,0); var diff = Math.round((td - d0)/864e5), lab = diff === 0 ? '今天' : diff === 1 ? '昨天' : (d.getMonth()+1)+'月'+d.getDate()+'日';
+      if (lab !== lastD){ lastD = lab; var n = logs.slice(0, 20).filter(function(x){ var y = new Date(x.t); y.setHours(0,0,0,0); return +y === +d0; }).length; h += '<div class="lgday"><span>'+lab+'</span><span>'+n+' 道</span></div>'; }
+      h += '<div class="lg"><span class="when">'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+'</span><b>'+esc(l.n)+'</b><span class="d">'+fmtShort(l.s)+'</span></div>'; });
     if (logs.length) h += '<button class="big ghost" id="clearLog" style="margin-top:18px">清空紀錄</button>';
   } else if (kind === 'bells'){
     h += '<h3>鈴聲</h3><div class="sub">點一下會先試聽。</div>';
@@ -499,7 +510,7 @@ sbody.addEventListener('click', function(e){
       if (!idle.length){ toast('六顆都在走，先停一顆'); haptic([20,40,20]); return; }
       timers.splice(timers.indexOf(idle[0]), 1, t);
     } else timers.push(t);
-    persist(); render(); closeSheet(); haptic([6,30,10]); toast('裝好「'+p.n+'」，轉一下或點一下開始');
+    freshKnob = t.id; persist(); render(); closeSheet(); haptic([6,30,10]); toast('裝好「'+p.n+'」，轉一下或點一下開始');
     return;
   }
   if (b.dataset.cm){ draft.m = Math.max(1, Math.min(180, draft.m + (+b.dataset.cm))); $('cMin').textContent = draft.m+'分'; haptic(3); return; }

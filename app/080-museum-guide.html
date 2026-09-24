@@ -146,7 +146,9 @@ svg{display:block}
 .wall .nav.l{left:8px}.wall .nav.r{right:8px}
 .wall .nav button{width:44px;height:44px;display:grid;place-items:center;color:inherit}
 .wall .nav button:active{opacity:.6}
-.wall .roomtag{position:absolute;top:22px;left:20px;font:13px/1.3 var(--mix);opacity:.85}
+.wall .shx{position:absolute;top:12px;right:10px;width:40px;height:40px;display:grid;place-items:center;color:inherit;border-radius:50%;transition:background-color .15s}
+.wall .shx:active{background:rgba(0,0,0,.12)}
+.wall .roomtag{position:absolute;top:22px;left:20px;right:60px;font:13px/1.3 var(--mix);opacity:.85}
 .lbl{padding:22px 24px 8px;max-width:420px}
 .lbl .no{font:400 15px/1 var(--op);color:var(--ink2)}
 .lbl h2{font:300 30px/1.2 var(--cjk);letter-spacing:.04em;margin-top:10px}
@@ -346,7 +348,7 @@ function renderPlan(){ var fl = FLOORS[floor], h = '';
   fl.doors.forEach(function(d){ if(d[1] > 410) h += '<rect x="'+d[0]+'" y="'+(d[1]-3)+'" width="'+d[2]+'" height="12" fill="#f3f2ee"/>'; });
   if(fl.entry) h += '<path d="M'+fl.entry[0]+' 438v-22m-6 7 6-7 6 7" fill="none" stroke="#151515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text class="rn" x="'+(fl.entry[0]+12)+'" y="434" font-size="11" fill="#151515">入口</text><path d="M268 392l7-12 7 12z" fill="#151515"/><text class="rn" x="286" y="392" font-size="11" fill="#5b5a56">你在這裡</text>';
   EX.forEach(function(e){ var r = ROOMS[e.room]; if(r.f !== floor) return; var v = seen.indexOf(e.id) >= 0;
-    h += '<g class="mk'+(zoomRoom && zoomRoom!==e.room?' off':'')+'" data-id="'+e.id+'" role="button" tabindex="0" aria-label="展品 '+e.id+' '+e.t+(v?'，已看':'')+'"><circle cx="'+e.x+'" cy="'+e.y+'" r="13" fill="'+(v?'#151515':'#fbfaf7')+'" stroke="#151515" stroke-width="2"/>'+
+    h += '<g class="mk'+(zoomRoom && zoomRoom!==e.room?' off':'')+'" data-id="'+e.id+'" role="button" tabindex="0" aria-label="展品 '+e.id+' '+e.t+(v?'，已看':'')+'"><circle class="hit" cx="'+e.x+'" cy="'+e.y+'" r="24" fill="#000" fill-opacity="0"/><circle cx="'+e.x+'" cy="'+e.y+'" r="13" fill="'+(v?'#151515':'#fbfaf7')+'" stroke="#151515" stroke-width="2"/>'+
       '<text x="'+e.x+'" y="'+e.y+'" text-anchor="middle" dominant-baseline="central" fill="'+(v?'#fbfaf7':'#151515')+'">'+e.id+'</text>'+(favs.indexOf(e.id)>=0?'<path d="M'+(e.x+8)+' '+(e.y-17)+'h8v10l-4-3-4 3z" fill="'+RED+'" stroke="#fbfaf7" stroke-width="1"/>':'')+'</g>'; });
   $('plan').innerHTML = h; $('plan').classList.toggle('focus', !!zoomRoom); setVB(vb);
   var n = EX.filter(function(e){ return ROOMS[e.room].f===floor; }).length, rc = Object.keys(ROOMS).filter(function(k){ return ROOMS[k].f===floor; }).length;
@@ -419,7 +421,7 @@ function bars(){ var s = '', r = 5; function rnd(){ r = (r*16807)%2147483647; re
 var BARS = bars();
 function openEx(id){ var e = BY[id], r = ROOMS[e.room]; cur = id; if(!seenHas(id)){ seen.push(id); persist(); }
   var ids = EX.map(function(x){ return x.id; }), i = ids.indexOf(id), prev = EX[(i-1+EX.length)%EX.length], next = EX[(i+1)%EX.length], fav = favs.indexOf(id) >= 0;
-  var h = '<div class="wall" style="background:'+r.c+';color:'+r.t+'"><i class="grab"></i><div class="roomtag">'+r.f+' 樓 · 展間 '+e.room+' '+r.n+'</div>'+obj(id, r.t)+
+  var h = '<div class="wall" style="background:'+r.c+';color:'+r.t+'"><i class="grab"></i><button class="shx" data-close aria-label="關閉標籤"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 4l10 10M14 4 4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><div class="roomtag">'+r.f+' 樓 · 展間 '+e.room+' '+r.n+'</div>'+obj(id, r.t)+
     '<div class="nav l"><button data-go="'+prev.id+'" aria-label="上一件：'+prev.t+'"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M12.5 3.5 6 10l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>'+
     '<div class="nav r"><button data-go="'+next.id+'" aria-label="下一件：'+next.t+'"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M7.5 3.5 14 10l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div>'+
     '<div class="lbl"><div class="no">'+String(id).padStart(2,'0')+'</div><h2>'+e.t+'</h2><div class="mk2">'+e.mk+'</div><div class="meta">'+e.yr+'<br>'+e.mat+'<br>'+e.dim+'</div><p>'+e.d+'</p><div class="acc">館藏號 '+e.acc+'</div></div>'+
@@ -436,7 +438,7 @@ function openEx(id){ var e = BY[id], r = ROOMS[e.room]; cur = id; if(!seenHas(id
 }
 function closeSheet(){ if(!sheet.classList.contains('on')) return; sheet.classList.remove('on','drag'); sheet.style.transform=''; scrim.classList.remove('on'); scrim.style.opacity=''; var was = cur; cur = null; updPl(); if(lastFocus && lastFocus.focus && document.contains(lastFocus)) lastFocus.focus({preventScroll:true}); }
 scrim.addEventListener('click', closeSheet);
-$('sb').addEventListener('click', function(e){ var b = e.target.closest('button'); if(!b) return;
+$('sb').addEventListener('click', function(e){ var b = e.target.closest('button'); if(!b) return; if(b.hasAttribute('data-close')){ closeSheet(); return; }
   if(b.id==='playBtn'){ haptic(6); actx(); if(pl.id===cur && pl.on) pause(); else play(cur); }
   else if(b.id==='sayBtn'){ speak = !speak; persist(); haptic(5); if(!speak) hush(); else if(pl.on && pl.id===cur) say(BY[cur].tr[cueAt(pl.t)]); openEx(cur); }
   else if(b.dataset.cue != null){ haptic(4); if(pl.id !== cur){ pl = {id:cur, t:0, on:false, cue:-1}; } pl.t = CUES[+b.dataset.cue] + .01; if(!pl.on) play(cur); else updPl(true); }

@@ -72,7 +72,7 @@ svg{display:block}
 .page::-webkit-scrollbar{display:none}
 .page[hidden]{display:none}
 .page.in{animation:pin .4s var(--out)}
-@keyframes pin{from{transform:translateY(18px)}}
+@keyframes pin{from{transform:translateY(18px);opacity:.4}}
 
 /* path */
 .unit{position:relative;width:100%;aspect-ratio:390/560}
@@ -157,7 +157,7 @@ svg{display:block}
 .x:active{background:rgba(0,0,0,.06)}
 .prog{position:relative;height:16px}
 .prog i{position:absolute;left:0;right:0;top:7px;border-top:2.5px dashed #a79a70}
-.prog b{position:absolute;left:0;top:4px;height:8px;border-radius:4px;background:var(--grn);transition:width .5s var(--out)}
+.prog b{position:absolute;left:0;top:4px;width:100%;height:8px;border-radius:4px;background:var(--grn);transform-origin:0 50%;transition:transform .5s var(--out)}
 .lh .hc{display:flex;align-items:center;gap:4px;font:700 20px/1 var(--cond);color:var(--red)}
 .lh .hc svg{width:26px;height:24px}
 .qwrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-top:18px;scrollbar-width:none}
@@ -240,7 +240,7 @@ svg{display:block}
 @media (prefers-reduced-motion:reduce){
   .page.in,.qk svg.hop,.done svg.bb,.tile.pop,.sb.new svg .edge,.sb.new svg .body{animation:none}
   .knot.cur .run{animation:none}
-  .lesson,.fb,.sheet,.toast,.seg .k{transition-duration:.01s}
+  .lesson,.fb,.sheet,.toast,.seg .k,.prog b{transition-duration:.01s}
 }
 </style>
 </head>
@@ -283,7 +283,7 @@ svg{display:block}
       </nav>
 
       <section class="lesson" id="lesson" role="dialog" aria-label="課程">
-        <div class="lh"><button class="x" id="quit" aria-label="離開課程"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M5 5l12 12M17 5 5 17" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button><div class="prog"><i></i><b id="progB" style="width:0"></b></div><span class="hc" id="lHearts"></span></div>
+        <div class="lh"><button class="x" id="quit" aria-label="離開課程"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M5 5l12 12M17 5 5 17" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button><div class="prog"><i></i><b id="progB" style="transform:scaleX(0)"></b></div><span class="hc" id="lHearts"></span></div>
         <div class="qwrap" id="qwrap"></div>
         <button class="check" id="check" disabled>檢查</button>
         <div class="fb" id="fb"><h3 id="fbT"></h3><p id="fbP"></p><button id="fbGo">繼續</button></div>
@@ -505,7 +505,7 @@ function startLesson(u, k, review){
 }
 function lHearts(){ $('lHearts').innerHTML=heartSVG(S.hearts>0)+(L&&L.review?'∞':S.hearts); }
 function renderQ(){
-  lHearts(); $('progB').style.width=(L.i/L.qs.length*100)+'%';
+  lHearts(); $('progB').style.transform='scaleX('+(L.i/L.qs.length).toFixed(3)+')';
   var q=L.qs[L.i], U=UNITS[L.u], h='<div class="qk">'+unitBadge(L.u,'full').replace('<svg','<svg id="qBadge"')+'第 '+(L.u+1)+' 關 · '+U.n+(L.review?' · 複習':'')+'</div>';
   L.sel=null; L.built=[]; L.checked=false;
   if(q.t==='to'){
@@ -552,7 +552,7 @@ $('fbGo').addEventListener('click', function(){
   renderQ();
 });
 function endLesson(pass){
-  $('progB').style.width= pass?'100%':$('progB').style.width;
+  if(pass)$('progB').style.transform='scaleX(1)';
   var u=L.u, gained=0, unitDone=false, perfect=pass&&L.right===L.qs.length;
   if(pass){
     gained = L.review ? 5 : 10 + (perfect?5:0); S.xp+=gained;

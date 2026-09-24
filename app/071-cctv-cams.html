@@ -149,6 +149,16 @@ ul{list-style:none}
 .ev time em{display:block;font-style:normal;color:var(--red)}
 .ev+.ev .go{border-top:1px solid #1d261e}
 .empty{padding:20px 16px;color:var(--ph-2);font-size:14px}
+.day{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:baseline;padding:12px 16px 6px;background:var(--bg);font:600 13px var(--zh);color:var(--ph);letter-spacing:.08em;border-bottom:1px solid #1d261e}
+.day small{font:12px var(--mono);color:var(--ph-3);letter-spacing:0}
+.evs .end{padding:18px 16px 8px;text-align:center;font:12px/1.6 var(--mono);color:var(--ph-3)}
+.ev.new .mv{animation:evin .45s var(--out) both}
+@keyframes evin{from{opacity:0;transform:translateY(-10px)}}
+.ev.out .mv{transform:translateX(-100%)!important;opacity:0;transition:transform .26s ease-in,opacity .26s ease-in}
+.ev.out .del{opacity:0;transition:opacity .2s}
+.talk.on i{animation:lvl .5s ease-in-out infinite alternate;transform-origin:50% 100%}
+.talk i:nth-child(3){animation-delay:-.1s}.talk i:nth-child(4){animation-delay:-.35s}.talk i:nth-child(5){animation-delay:-.2s}.talk i:nth-child(6){animation-delay:-.45s}.talk i:nth-child(7){animation-delay:-.05s}.talk i:nth-child(8){animation-delay:-.3s}
+@keyframes lvl{from{transform:scaleY(.5)}to{transform:scaleY(2.4)}}
 
 .home-ind{position:absolute;left:50%;bottom:calc(7px + env(safe-area-inset-bottom)*.3);width:128px;height:5px;margin-left:-64px;border-radius:3px;background:var(--ph-2);z-index:25;pointer-events:none}
 
@@ -190,7 +200,8 @@ ul{list-style:none}
 .toast button{margin-left:auto;height:38px;padding:0 12px;font:600 14px var(--zh);color:var(--red)}
 @media (prefers-reduced-motion:reduce){
   .seg i,.flt i,.sheet,.toast,.ev .mv{transition-duration:.01s!important}
-  .flash.go,.pin.bad{animation:none}
+  .flash.go,.pin.bad,.ev.new .mv,.talk.on i{animation:none}
+  .ev.out .mv,.ev.out .del{transition-duration:.01s!important}
   .dk:active{transform:none}
 }
 </style>
@@ -480,11 +491,17 @@ function renderEvents(){
   var list = S.events.filter(function(e){ return S.filt === 'all' || e.type === S.filt; }).sort(function(a, b){ return b.t - a.t; });
   var un = S.events.filter(function(e){ return !e.seen; }).length;
   $('evN').textContent = S.events.length + ' 筆' + (un ? ' · ' + un + ' 未看' : '');
+  var today = new Date(); today.setHours(0, 0, 0, 0); var lastDay = null;
   $('evs').innerHTML = list.length ? list.map(function(e){
-    return '<li class="ev" data-id="' + e.id + '"><button class="del" data-del="' + e.id + '">刪除</button><div class="mv"><button class="go" data-go="' + e.id + '"><canvas width="224" height="140"></canvas><span><b>' + e.title + '</b><span>CH' + (e.cam + 1) + ' ' + CAMS[e.cam].n + ' · ' + e.sub + '</span></span><time>' + hms(e.t).slice(0, 5) + (e.seen ? '' : '<em>未看</em>') + '</time></button></div></li>';
-  }).join('') : '<li class="empty">這個分類目前沒有事件。</li>';
+    var d0 = new Date(e.t); d0.setHours(0, 0, 0, 0); var hd = '';
+    if (+d0 !== lastDay){ lastDay = +d0; var diff = Math.round((today - d0) / 864e5), cnt = list.filter(function(x){ var dx = new Date(x.t); dx.setHours(0, 0, 0, 0); return +dx === +d0; }).length;
+      hd = '<li class="day">' + (diff === 0 ? '今天' : diff === 1 ? '昨天' : (d0.getMonth() + 1) + '月' + d0.getDate() + '日') + '<small>' + (d0.getMonth() + 1) + '/' + d0.getDate() + ' · ' + cnt + ' 筆</small></li>'; }
+    return hd + '<li class="ev' + (freshId === e.id ? ' new' : '') + '" data-id="' + e.id + '"><button class="del" data-del="' + e.id + '">刪除</button><div class="mv"><button class="go" data-go="' + e.id + '"><canvas width="224" height="140"></canvas><span><b>' + e.title + '</b><span>CH' + (e.cam + 1) + ' ' + CAMS[e.cam].n + ' · ' + e.sub + '</span></span><time>' + hms(e.t).slice(0, 5) + (e.seen ? '' : '<em>未看</em>') + '</time></button></div></li>';
+  }).join('') + '<li class="end">— 已顯示 24 小時內全部事件 —<br>雲端錄影保存 7 天 · 左滑刪除</li>' : '<li class="empty">這個分類目前沒有事件。</li>';
+  freshId = null;
   $('evs').querySelectorAll('.ev').forEach(function(li){ var e = byId(li.dataset.id); render(li.querySelector('canvas'), e.cam, e.t + 8000, {still:true}); });
 }
+var freshId = null;
 function byId(id){ for (var i = 0; i < S.events.length; i++) if (S.events[i].id === id) return S.events[i]; return null; }
 $('flt').addEventListener('click', function(e){
   var b = e.target.closest('[data-f]'); if (!b) return; S.filt = b.dataset.f; haptic(6);
@@ -495,8 +512,11 @@ var swipedAt = 0;
 $('evs').addEventListener('click', function(e){
   if (Date.now() - swipedAt < 350) return;
   var d = e.target.closest('[data-del]'), g = e.target.closest('[data-go]');
-  if (d){ var id = d.dataset.del, k = -1; S.events.forEach(function(x, i){ if (x.id === id) k = i; }); if (k < 0) return; var rm = S.events.splice(k, 1)[0]; save('events', S.events); renderEvents(); drawTL(); haptic([14, 40, 14]);
-    toast('已刪除事件錄影', function(){ S.events.splice(k, 0, rm); save('events', S.events); renderEvents(); drawTL(); }); return; }
+  if (d){ var id = d.dataset.del, k = -1, li = d.closest('.ev'); S.events.forEach(function(x, i){ if (x.id === id) k = i; }); if (k < 0 || li.classList.contains('out')) return; li.classList.add('out'); haptic([14, 40, 14]);
+    var cancel = false;
+    setTimeout(function(){ if (cancel) return; var k2 = -1; S.events.forEach(function(x, i){ if (x.id === id) k2 = i; }); if (k2 < 0) return; k = k2; rm = S.events.splice(k, 1)[0]; save('events', S.events); renderEvents(); drawTL(); }, reduce ? 0 : 260);
+    var rm = null;
+    toast('已刪除事件錄影', function(){ if (!rm){ cancel = true; li.classList.remove('out'); return; } S.events.splice(k, 0, rm); freshId = rm.id; save('events', S.events); renderEvents(); drawTL(); }); return; }
   if (g) openEvent(byId(g.dataset.go));
 });
 (function(){
@@ -587,7 +607,7 @@ setInterval(function(){
   if (document.hidden || Math.random() > .5) return;
   var L = LIVE_EVENTS[Math.random() * LIVE_EVENTS.length | 0], e = {id:'e' + Date.now(), t:Date.now() + 8000, cam:L[0], type:L[1], title:L[2], sub:L[3], seen:false};
   S.events.unshift(e); S.events = S.events.slice(0, 30); save('events', S.events);
-  setTimeout(function(){ renderEvents(); drawTL(); if (S.arm){ beep(1760, .06); beep(1760, .06, .12); haptic([20, 60, 20]); } toast('CH' + (e.cam + 1) + ' ' + CAMS[e.cam].n + '：' + e.title); alertCam = e.cam; alertUntil = Date.now() + 5000; }, 8000);
+  setTimeout(function(){ freshId = e.id; renderEvents(); drawTL(); if (S.arm){ beep(1760, .06); beep(1760, .06, .12); haptic([20, 60, 20]); } toast('CH' + (e.cam + 1) + ' ' + CAMS[e.cam].n + '：' + e.title); alertCam = e.cam; alertUntil = Date.now() + 5000; }, 8000);
 }, 45000);
 var alertCam = -1, alertUntil = 0;
 

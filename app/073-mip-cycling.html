@@ -72,8 +72,8 @@ svg{display:block}
 @keyframes blink{50%{background:transparent}}
 .sensors{display:flex;gap:10px;align-items:center}
 .sensors svg{width:20px;height:20px}
-.segs{position:relative;z-index:2;flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px 16px 0}
-.segs button{height:26px;display:flex;align-items:flex-start}
+.segs{position:relative;z-index:3;flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:0 16px;margin-bottom:-12px}
+.segs button{height:44px;padding-top:6px;display:flex;align-items:flex-start}
 .segs button::before{content:"";display:block;width:100%;height:6px;background:var(--dith)}
 .segs button[aria-selected=true]::before{background:var(--ink)}
 
@@ -128,7 +128,7 @@ svg{display:block}
 .zrow{display:grid;grid-template-columns:34px 1fr 64px;align-items:center;gap:8px;height:34px}
 .zrow b{font:700 17px/1 var(--dinc)}
 .zrow .bar{height:18px;position:relative}
-.zrow .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--dith);transition:width .6s}
+.zrow .bar i{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--dith);transform-origin:0 50%;transition:transform .6s cubic-bezier(.2,.9,.3,1)}
 .zrow.cur .bar i{background:var(--red)}
 .zrow span{font:700 17px/1 var(--din);text-align:right;font-variant-numeric:tabular-nums}
 .chart{border-top:3px solid var(--ink);padding-top:8px}
@@ -483,7 +483,9 @@ function renderHR(){
   $('hr2').textContent = Math.round(R.hr);
   $('zBig').textContent = 'Z'+(z+1); $('zName').textContent = ZN[z]+'，'+Math.round(R.hr/set.maxhr*100)+'% 最大心率';
   var tot = R.zt.reduce(function(a, b){ return a + b; }, 0) || 1, mx = Math.max.apply(null, R.zt);
-  $('zones').innerHTML = R.zt.map(function(t, i){ return '<div class="zrow'+(i === z ? ' cur' : '')+'"><b>Z'+(i+1)+'</b><div class="bar"><i style="width:'+(t/mx*100).toFixed(1)+'%"></i></div><span>'+fmtT(t)+'</span></div>'; }).reverse().join('');
+  var zr = $('zones').children;
+  if (zr.length !== R.zt.length) $('zones').innerHTML = R.zt.map(function(t, i){ return '<div class="zrow"><b>Z'+(i+1)+'</b><div class="bar"><i style="transform:scaleX(0)"></i></div><span></span></div>'; }).reverse().join('');
+  R.zt.forEach(function(t, i){ var row = zr[R.zt.length - 1 - i]; row.classList.toggle('cur', i === z); row.querySelector('i').style.transform = 'scaleX('+(t/mx).toFixed(3)+')'; row.lastChild.textContent = fmtT(t); });
   var hs = R.hrs.slice(-240), lo = 90, hi = 190, pts = hs.map(function(h, i){ return (i/(239)*340).toFixed(1)+','+(150 - (h - lo)/(hi - lo)*150).toFixed(1); }).join(' ');
   var bands = ''; [.6,.7,.8,.9].forEach(function(p, i){ var y = 150 - (p*set.maxhr - lo)/(hi - lo)*150; bands += '<path d="M0 '+y.toFixed(1)+'H340" stroke="#111210" stroke-width="1" stroke-dasharray="2 4"/><text x="336" y="'+(y - 3).toFixed(1)+'" text-anchor="end" font-size="11" font-family="DIN Condensed, DIN Alternate, sans-serif" font-weight="700" fill="#111210">Z'+(i+2)+'</text>'; });
   $('hrChart').innerHTML = bands + '<polyline points="'+pts+'" fill="none" stroke="#d62518" stroke-width="3" stroke-linejoin="bevel" vector-effect="non-scaling-stroke"/>';

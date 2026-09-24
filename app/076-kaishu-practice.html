@@ -45,7 +45,7 @@ svg{display:block}
 }
 @media (min-width:521px) and (max-width:860px){.caption{display:none}}
 
-.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:600 16px/1 var(--sans);color:var(--paper);pointer-events:none}
+.status{position:absolute;top:0;left:0;right:0;z-index:40;height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 28px 0 32px;display:flex;align-items:center;justify-content:space-between;font:600 16px/1 var(--sans);color:var(--paper);pointer-events:none;background:var(--felt)}
 .status .gl{display:flex;gap:6px;align-items:center}
 @media (display-mode:standalone){.status{display:none}}
 
@@ -66,7 +66,7 @@ svg{display:block}
 .meta .bst b{display:block;font:400 22px/1.1 var(--kai);color:var(--shu-l)}
 
 /* paper */
-.paperwrap{position:relative;width:min(358px,calc(100cqw - 32px),52cqh);aspect-ratio:1;margin:0 auto}
+.paperwrap{position:relative;width:min(358px,calc(100cqw - 32px),max(240px,calc(100cqh - 400px)));aspect-ratio:1;margin:0 auto}
 .paper{position:absolute;inset:0;background:var(--paper);border-radius:2px;overflow:hidden;touch-action:none;box-shadow:0 2px 3px -1px rgba(0,0,0,.5)}
 .paper svg,.paper canvas{position:absolute;inset:0;width:100%;height:100%}
 .paper canvas{cursor:crosshair}
@@ -135,7 +135,7 @@ svg{display:block}
 .works{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
 .work{position:relative}
 .work canvas{width:100%;aspect-ratio:1;background:#f0e6c4;display:block;border-radius:2px}
-.work .ws{position:absolute;right:4px;top:4px;padding:3px 4px;background:var(--shu);color:var(--paper);font:400 12px/1 var(--kai);border-radius:2px;writing-mode:vertical-rl}
+.work .ws{position:absolute;right:4px;top:4px;width:20px;padding:3px 0;text-align:center;word-break:break-all;background:var(--shu);color:var(--paper);font:400 13px/1.1 var(--kai);border-radius:2px}
 .work p{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5b5238;margin-top:2px}
 .work p button{width:36px;height:36px;display:grid;place-items:center;color:#6f6446;border-radius:50%}
 .work p button:active{background:var(--paper2)}

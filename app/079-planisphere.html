@@ -144,8 +144,8 @@ svg{display:block}
 .acts .sec[aria-pressed=true]{color:var(--hl);box-shadow:inset 0 0 0 1px var(--hl)}
 .cat h3{font:400 24px/1.2 var(--cjk);letter-spacing:.06em}
 .cat .sub{font-size:13px;color:var(--ink-2);margin-top:4px}
-.crow{display:flex;align-items:center;gap:14px;width:100%;min-height:62px;padding:8px 0;text-align:left;border-radius:10px}
-.crow + .crow{box-shadow:inset 0 1px 0 rgba(201,162,78,.12)}
+.crow{position:relative;display:flex;align-items:center;gap:14px;width:100%;min-height:62px;padding:8px 0;text-align:left;transition:background-color .15s}
+.crow + .crow::before{content:"";position:absolute;left:60px;right:0;top:0;height:1px;background:rgba(201,162,78,.14)}
 .crow svg{width:46px;height:46px;flex:none}
 .crow svg.seen{width:14px;height:14px;display:inline-block}
 .crow .m{flex:1;min-width:0}
@@ -213,6 +213,7 @@ svg{display:block}
 <script>
 (function(){
 'use strict';
+var stopInertia = [];
 var $ = function(id){ return document.getElementById(id); };
 var KEY = 'app079:';
 function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
@@ -423,7 +424,7 @@ function render(){
   var hk = Math.floor(view / 36e5); if (lastHourTick !== null && hk !== lastHourTick) { tickSound(); haptic(3); } lastHourTick = hk;
 }
 function brightest(c){ return c.s.slice().sort(function(a, b){ return a[3] - b[3]; })[0]; }
-function setView(ms, fromLive){ view = ms; if (!fromLive) live = false; render(); }
+function setView(ms, fromLive){ view = ms; if (!fromLive){ live = false; nowTok++; } render(); }
 
 /* ---------- audio: brass tick ---------- */
 var AC = null;
@@ -455,6 +456,7 @@ function wakeAudio(){ if (!AC){ try { AC = new (window.AudioContext || window.we
     (function spin(){ vel *= .94; if (Math.abs(vel) < .004) return; setView(view - vel * 16 / 15 / 1.0027379 * 36e5); raf = requestAnimationFrame(spin); })();
   }
   p.addEventListener('pointerup', end); p.addEventListener('pointercancel', end);
+  stopInertia.push(function(){ cancelAnimationFrame(raf); });
 })();
 function tapAt(e){
   var r = $('plani').getBoundingClientRect(), x = VB.x + (e.clientX - r.left) * VB.w / r.width, y = VB.y + (e.clientY - r.top) * VB.h / r.height;
@@ -504,6 +506,7 @@ Object.keys(RUL).forEach(function(k){
   function end(){ if (!on) return; on = false; if (reduce) return; (function glide(){ vel *= .93; if (Math.abs(vel) < .02){ if (k === 'time') snap(); return; } move(-vel * 16); raf = requestAnimationFrame(glide); })(); }
   function snap(){ var s = 5 * 6e4, t = view + TZ * 3600e3; setView(Math.round(t / s) * s - TZ * 3600e3); }
   R_.el.addEventListener('pointerup', end); R_.el.addEventListener('pointercancel', end);
+  stopInertia.push(function(){ cancelAnimationFrame(raf); });
   R_.el.addEventListener('keydown', function(e){
     var step = k === 'day' ? 864e5 : 10 * 6e4;
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ setView(view + step); e.preventDefault(); }
@@ -512,9 +515,11 @@ Object.keys(RUL).forEach(function(k){
 });
 
 /* ---------- buttons ---------- */
+var nowTok = 0;
 $('nowBtn').addEventListener('click', function(){
-  var from = view, to = Date.now(), t0 = performance.now(), dur = reduce ? 1 : 700; live = true; haptic([6, 30, 6]);
-  (function f(t){ var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); view = from + (to - from) * e; render(); if (k < 1) requestAnimationFrame(f); else { live = true; render(); } })(t0);
+  stopInertia.forEach(function(f){ f(); });
+  var from = view, to = Date.now(), t0 = performance.now(), dur = reduce ? 1 : 700, tok = ++nowTok; live = true; haptic([6, 30, 6]);
+  (function f(t){ if (tok !== nowTok) return; var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); view = from + (to - from) * e; render(); if (k < 1) requestAnimationFrame(f); else { live = true; render(); } })(t0);
   toast('回到此刻：臺北的天空');
 });
 setInterval(function(){ if (live && !document.hidden){ view = Date.now(); render(); } }, 30000);
