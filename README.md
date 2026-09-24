@@ -140,7 +140,7 @@
 | 129 | [129-orbit-os.html](https://htmls-ruddy.vercel.app/web/129-orbit-os.html) | 介面風格 · macOS 風格桌面系統 | ORBIT OS：可拖曳、縮放與最小化視窗；共用檔案資料的 Finder 和終端機、離線瀏覽器、可換主題、Web Audio 合成音樂，以及可挖掘建造的體素遊戲 | 單檔 HTML，無外部資源；檔案與遊戲進度保存在本機瀏覽器 |
 | 130 | [130-snake-aware.html](https://htmls-ruddy.vercel.app/web/130-snake-aware.html) | 遊戲敘事 · 自覺貪食蛇 | THE SNAKE KNOWS：方向鍵、WASD、觸控滑動或螢幕按鍵操作；蛇會評論玩家，分數提高後畫面故障、穿牆、反向操作、點心移位，並與玩家談判規則 | 單檔 HTML，不載入外部資源；最佳分數存在本機瀏覽器 |
 | 131 | [131-wildling-trail.html](https://htmls-ruddy.vercel.app/web/131-wildling-trail.html) | 遊戲敘事 · 原創怪獸收集 RPG | 野靈旅記 WILDLING TRAIL：四張相連的格子地圖、8 種原創怪獸、12 個招式與三屬性相剋；三選一初始夥伴，遭遇、戰鬥、捕捉、升級學招與兩階段進化，擊敗守林人取得資格後挑戰場主，通關後可以自由探索 | 由 `games/131-wildling-trail/` 建置成單檔 HTML，不載入外部資源；存檔在本機瀏覽器 |
-| 134 | [134-golden-retriever.html](https://htmls-ruddy.vercel.app/web/134-golden-retriever.html) | 擬物器物 · Blender 黃金獵犬建模紀錄 | 由空場景建構站立犬隻，依序展示大塊造型、融合細分、材質與三點光；提供 1500×1250 渲染圖與 Blender 原始檔 | BlenderMCP 建模；Sculpt 操作在背景模式失敗，改以體素融合與平滑修改器修順接縫 |
+| 134 | [134-golden-retriever.html](https://htmls-ruddy.vercel.app/web/134-golden-retriever.html) | 擬物器物 · Blender 黃金獵犬建模紀錄 | 由空場景建構站立犬隻，依序展示大塊造型、融合細分、材質與三點光；提供 1500×1250 渲染圖與 Blender 原始檔 | BlenderMCP 建模；體素融合、細分曲面與互動模式 Sculpt 平滑修順接縫 |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。
