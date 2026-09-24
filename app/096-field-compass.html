@@ -286,7 +286,7 @@ var $ = function(id){ return document.getElementById(id); };
 var KEY = 'app096:';
 function load(k, d){ try { var v = localStorage.getItem(KEY + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } }
 function save(k, v){ try { localStorage.setItem(KEY + k, JSON.stringify(v)); } catch(e){} }
-function haptic(p){ try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
+function haptic(p){ if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; try { navigator.vibrate && navigator.vibrate(p || 8); } catch(e){} }
 var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 var R2D = 180 / Math.PI, D2R = Math.PI / 180;
 
