@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 138，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 141，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -147,6 +147,9 @@
 | 136 | [136-zork.html](https://htmls-ruddy.vercel.app/web/136-zork.html) | 遊戲敘事 · 第一人稱 3D 動作冒險 | Zork：帝國的餘燼。1977 年 285 分版本的 80 房間、11 寶物與原始謎題，程序化森林／地下城、即時戰鬥、視線 AI、提燈及安全點 | 本地 Three.js；HTTP／WebGL；localStorage 存檔；[原始碼、驗證與改編差異](games/136-zork/README.md) |
 | 137 | [137-notion-workspace.html](https://htmls-ruddy.vercel.app/web/137-notion-workspace.html) | Notion 風格工作區 | 留白工作室：巢狀頁面樹與區塊編輯、slash 指令、拖曳／鍵盤排序、表格／看板資料庫、本機保存、復原與 Markdown 匯出 | |
 | 138 | [138-bloom-desktop.html](https://htmls-ruddy.vercel.app/web/138-bloom-desktop.html) | Windows 11 風格 Web 桌面 | Bloom：拖曳縮放視窗、共用檔案系統與終端機、離線瀏覽器、主題、合成音樂、可挖掘建造的 WebGL 體素遊戲；單檔零外部資源 | |
+| 139 | [139-tideborn-island.html](web/139-tideborn-island.html) | 程序化 3D 海島 | 潮生島：中央高地、環島沙灘、礁島、放射狀路網；大小／高度／種子可調；五種職業的骨架 glTF 村民、尋路作息、交談搬貨交易、資源任務、製作市集、等級建築與本機存檔；使用本地 Three.js，需 HTTP 伺服器 | |
+| 140 | [140-cumulus-line.html](https://htmls-ruddy.vercel.app/web/140-cumulus-line.html) | 遊戲敘事 · 水彩浮島電車模擬 | 浮雲鐵道：駕駛室視角開電車跨越浮島與海上拱橋；P5～B7／EB 一桿式主控制器、馬達響應與坡度、以急動度與側向加速度換算舒適度並換成小費、茶杯液面即時傾斜、平穩連續倍率與中斷後的平衡提示、定點停車；雲梯線與星汐線兩條路線、晴日／午夜光照（車窗暖光、島上燈火、螢火與燈塔）、機廠小鎮整備馬達／懸吊／加掛客車與塗裝；水彩後製著色器 | 使用本地 Three.js 模組，需透過網站伺服器開啟（直接開檔改由 CDN 載入）；需 WebGL |
+| 141 | [141-between-worlds.html](web/141-between-worlds.html) | 生成藝術 · 光點變形 | 萬物之間：12,000 粒光在星系、遞迴樹、蝴蝶與自訂文字之間平滑變形；指尖擾動、合成和弦、暫停、PNG 明信片與減少動態效果支援；純 Canvas，無外部依賴 | |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。

@@ -3,5 +3,9 @@
     "allow": [
       "Bash(awk -F: '$1>12')"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ],
+  "enableAllProjectMcpServers": true
 }
