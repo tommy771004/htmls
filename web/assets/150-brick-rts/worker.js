@@ -48,8 +48,54 @@ function canTraverse(tile, movement) {
   return tile.walkClass === movement || tile.walkClass === "both";
 }
 
+// packages/content/footprints.ts
+var obstacleFootprints = {
+  house: { x: -15, y: -15, width: 250, depth: 230 },
+  "town-center": { x: -15, y: -15, width: 300, depth: 300 },
+  tree: { x: -20, y: -20, width: 100, depth: 100 },
+  rock: { x: 0, y: 0, width: 65, depth: 70 },
+  gold: { x: 0, y: 0, width: 65, depth: 70 },
+  berries: { x: 0, y: 0, width: 65, depth: 70 },
+  hunt: { x: 0, y: 0, width: 65, depth: 70 },
+  livestock: { x: 0, y: 0, width: 65, depth: 70 }
+};
+var townCenterBlocking = [
+  [15, 15, 65, 165],
+  [205, 15, 255, 165],
+  [10, 10, 26, 26],
+  [240, 10, 256, 26],
+  [10, 180, 26, 196],
+  [240, 180, 256, 196],
+  // Arch flanks reach past the visible opening: 3D clearance for a villager on the plinth.
+  [65, 150, 97, 175],
+  [173, 150, 205, 175],
+  [14, 190, 62, 198],
+  [20, 198, 54, 201],
+  [210, 210, 252, 252],
+  [265, 270, 271, 276]
+];
+function check(o, radius) {
+  if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
+}
+function obstacleBounds(o, radius = 0) {
+  check(o, radius);
+  const f = obstacleFootprints[o.kind];
+  return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
+}
+function obstacleRects(o, radius = 0) {
+  check(o, radius);
+  if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
+  return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
+}
+
 // packages/sim/vision.ts
-var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 300, shareVision: false, rememberStaticObjects: true };
+function footprintTiles(o) {
+  if (o.kind !== "house" && o.kind !== "town-center") return [tileAt(o.x, o.y)];
+  const [x0, y0, x1, y1] = obstacleBounds(o), tiles = [];
+  for (let ty = Math.max(0, Math.floor(y0 / 100)); ty <= Math.min(15, Math.floor((y1 - 1) / 100)); ty++) for (let tx = Math.max(0, Math.floor(x0 / 100)); tx <= Math.min(15, Math.floor((x1 - 1) / 100)); tx++) tiles.push(ty * 16 + tx);
+  return tiles;
+}
+var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 300, townCenterRadius: 300, shareVision: false, rememberStaticObjects: true };
 function createVision() {
   return Array.from({ length: 2 }, () => ({ explored: [], visible: [], known: [], resources: [] }));
 }
@@ -64,13 +110,14 @@ function updateVision(visions, map, units, tick2, sharing = [[0], [1]]) {
   };
   for (const u of units) reveal(u.player, u.x, u.y, visionRules.unitRadius);
   for (const o of map.obstacles) if (o.kind === "house") reveal(o.red ? 1 : 0, o.x + 100, o.y + 100, visionRules.houseRadius);
+  else if (o.kind === "town-center") reveal(o.red ? 1 : 0, o.x + 135, o.y + 135, visionRules.townCenterRadius);
   for (let player = 0; player < 2; player++) {
     const vision = visions[player], visible = new Set(sharing[player].flatMap((id) => [...own[id]]));
     vision.resources = map.resources.filter((r) => r.status === "available" && visible.has(tileAt(r.x, r.y))).map((r) => ({ ...r }));
     vision.visible = [...visible].sort((a, b) => a - b);
     vision.explored = [.../* @__PURE__ */ new Set([...vision.explored, ...vision.visible])].sort((a, b) => a - b);
-    const known = new Map(vision.known.filter((k) => !["hunt", "livestock"].includes(k.obstacle.kind) && !visible.has(tileAt(k.obstacle.x, k.obstacle.y))).map((k) => [k.obstacle.id, k]));
-    for (const obstacle of map.obstacles) if (visible.has(tileAt(obstacle.x, obstacle.y))) known.set(obstacle.id, { obstacle: { ...obstacle }, lastSeenTick: tick2 });
+    const known = new Map(vision.known.filter((k) => !["hunt", "livestock"].includes(k.obstacle.kind) && !footprintTiles(k.obstacle).some((id) => visible.has(id))).map((k) => [k.obstacle.id, k]));
+    for (const obstacle of map.obstacles) if (footprintTiles(obstacle).some((id) => visible.has(id))) known.set(obstacle.id, { obstacle: { ...obstacle }, lastSeenTick: tick2 });
     vision.known = [...known.values()].sort((a, b) => a.obstacle.id < b.obstacle.id ? -1 : a.obstacle.id > b.obstacle.id ? 1 : 0);
   }
 }
@@ -119,22 +166,6 @@ function cancelReservation(account, id) {
   r.status = "cancelled";
 }
 
-// packages/content/footprints.ts
-var obstacleFootprints = {
-  house: { x: -15, y: -15, width: 250, depth: 230 },
-  tree: { x: -20, y: -20, width: 100, depth: 100 },
-  rock: { x: 0, y: 0, width: 65, depth: 70 },
-  gold: { x: 0, y: 0, width: 65, depth: 70 },
-  berries: { x: 0, y: 0, width: 65, depth: 70 },
-  hunt: { x: 0, y: 0, width: 65, depth: 70 },
-  livestock: { x: 0, y: 0, width: 65, depth: 70 }
-};
-function obstacleBounds(o, radius = 0) {
-  const f = obstacleFootprints[o.kind];
-  if (!f || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
-  return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
-}
-
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 32, speedPerTick: 5 };
 var startingResourceRules = { provenance: "design_default", maxApproachDistance: 1200, maxNearestDistanceDifference: 500, minimum: { tree: 300, stone: 250, gold: 250, berries: 150 } };
@@ -152,7 +183,7 @@ function makeMap(seed, layout = "meadow") {
 }
 function generateCandidate(seed, layout) {
   let rng = seed || 1;
-  let obstacles = [{ kind: "house", x: 300, y: 400 }, { kind: "house", x: 1100, y: 400, red: true }];
+  let obstacles = [{ kind: "town-center", x: 265, y: 350 }, { kind: "town-center", x: 1065, y: 350, red: true }];
   for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) {
     rng ^= rng << 13;
     rng ^= rng >>> 17;
@@ -164,14 +195,14 @@ function generateCandidate(seed, layout) {
   if (layout === "coast") obstacles = obstacles.filter((o) => o.y < 1e3);
   if (layout === "acceptance") obstacles = [...obstacles.slice(0, 2), { kind: "tree", x: 150, y: 250 }, { kind: "tree", x: 1350, y: 250 }, { kind: "rock", x: 500, y: 1100 }, { kind: "rock", x: 1050, y: 1100 }];
   const guaranteed = [{ kind: "tree", x: 150, y: 850 }, { kind: "tree", x: 1350, y: 850 }, { kind: "rock", x: 150, y: 1100 }, { kind: "rock", x: 1350, y: 1100 }];
-  obstacles = obstacles.filter((o) => o.kind === "house" || !guaranteed.some((g) => Math.abs(g.x - o.x) < 140 && Math.abs(g.y - o.y) < 140));
+  obstacles = obstacles.filter((o) => isBuilding(o) || !guaranteed.some((g) => Math.abs(g.x - o.x) < 140 && Math.abs(g.y - o.y) < 140));
   obstacles.push(...guaranteed);
   obstacles.push({ kind: "gold", x: 550, y: 200 }, { kind: "gold", x: 950, y: 200 }, { kind: "berries", x: 250, y: 1e3 }, { kind: "berries", x: 1250, y: 1e3 });
   const map = { obstacles, blocked: [], tiles: createTiles(layout, seed), resources: [], navigationRevision: 0, generationAttempt: 0 };
   obstacles.forEach((o, index) => {
     o.id = `obstacle-${index}`;
     map.tiles[tileAt(o.x, o.y)].obstacleRefs.push(o.id);
-    if (o.kind !== "house") {
+    if (!isBuilding(o)) {
       const kind = o.kind === "rock" ? "stone" : o.kind;
       const id = `resource-${index}`, capacity = terrainRules.resourceCapacity[kind];
       map.resources.push({ id, kind, x: o.x, y: o.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: o.id, depletedAt: null });
@@ -194,6 +225,9 @@ function generateCandidate(seed, layout) {
   for (let i = 0; i < 961; i++) if (!clearSegment(map, position(i), position(i))) map.blocked.push(i);
   return map;
 }
+function isBuilding(o) {
+  return o.kind === "house" || o.kind === "town-center";
+}
 function bounds(o) {
   return obstacleBounds(o, navigationRules.radius);
 }
@@ -209,8 +243,7 @@ function clearSegment(map, a, b, movement = "land") {
     const x = tile.id % 16 * 100, y = Math.floor(tile.id / 16) * 100, r = navigationRules.radius;
     if (intersects(a, b, [x - r, y - r, x + 100 + r, y + 100 + r])) return false;
   }
-  for (const o of map.obstacles) {
-    const [x0, y0, x1, y1] = bounds(o);
+  for (const o of map.obstacles) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
     let lo = 0, hi = 1;
     for (const [start, delta, min, max] of [[a.x, b.x - a.x, x0, x1], [a.y, b.y - a.y, y0, y1]]) {
       if (delta === 0) {
@@ -383,10 +416,10 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, simulationVersion: 9 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, simulationVersion: 10 });
 function createState(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
-  const state = { version: 9, layout, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed, layout), pathJobs: [], seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [{ id: 1, player: 0, x: 350, y: 700, target: null }, { id: 2, player: 0, x: 450, y: 700, target: null }, { id: 3, player: 0, x: 400, y: 800, target: null }, { id: 4, player: 1, x: 1150, y: 700, target: null }], queue: [], log: [] };
+  const state = { version: 10, layout, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed, layout), pathJobs: [], seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [{ id: 1, player: 0, x: 350, y: 700, target: null }, { id: 2, player: 0, x: 450, y: 700, target: null }, { id: 3, player: 0, x: 400, y: 800, target: null }, { id: 4, player: 1, x: 1150, y: 700, target: null }], queue: [], log: [] };
   updateVision(state.vision, state.map, state.units, 0);
   return state;
 }
@@ -479,13 +512,13 @@ function replay(seed, commands, ticks, layout = "meadow") {
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-9", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-10", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-9" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-10" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 9 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (s.version !== 10 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   const rebuilt = replay(s.seed, s.log, s.tick, s.layout);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);

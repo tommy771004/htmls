@@ -10,7 +10,7 @@ export function militaryBuildingParts(kind:MilitaryBuilding,v:BuildingVisual):Bu
  if(kind==='archery-range'){
   for(const x of [.1,2.5]){add(`fence-post-${x}`,1,x,.12,.16,.13,2.1,.5,wood);}
   add('backstop',1,.1,.12,.16,2.53,.18,1.1,wood);
-  for(const x of [.36,1.67]){add(`target-leg-${x}`,2,x+.23,.75,.16,.1,.2,.75,wood);add(`target-board-${x}`,2,x,.72,.83,.56,.16,.6,'#cfbd87');add(`target-ring-${x}`,3,x+.1,.89,.93,.36,.03,.4,'#aa5c48');add(`target-center-${x}`,3,x+.2,.93,1.03,.16,.03,.2,'#e5d4a8');}
+  for(const x of [.36,1.67]){add(`target-leg-${x}`,2,x+.23,.75,.16,.1,.2,.75,wood);add(`target-board-${x}`,2,x,.72,.83,.56,.16,.6,'#cfbd87');add(`target-ring-${x}`,3,x+.1,.88,.93,.36,.03,.4,'#aa5c48');add(`target-center-${x}`,3,x+.2,.91,1.03,.16,.03,.2,'#e5d4a8');}
   add('arrow-rack',3,.22,2.3,.16,.7,.27,.4,wood);
   for(let i=0;i<4;i++)add(`arrow-${i}`,3,.3+i*.14,2.4,.56,.03,.03,.42,'#d2be8f');
  }else{
@@ -21,13 +21,13 @@ export function militaryBuildingParts(kind:MilitaryBuilding,v:BuildingVisual):Bu
    add('drill-floor',1,.3,1.85,.16,2.1,.85,.08,'#a59a76');
    add('weapon-rack',3,.3,.5,.16,.15,1.1,.75,wood);
    for(let i=0;i<3;i++){add(`spear-shaft-${i}`,3,.32,.6+i*.3,.16,.04,.04,1.15,wood);add(`spear-point-${i}`,3,.28,.58+i*.3,1.31,.12,.08,.2,'#bdc5bd');}
-   for(const x of [.5,1.05,1.6]){add(`shield-support-${x}`,3,x,1.9,.24,.08,.15,.62,wood);add(`shield-${x}`,3,x-.08,2.02,.43,.36,.08,.44,team);add(`shield-boss-${x}`,3,x+.04,2.11,.57,.1,.04,.12,'#bca36f');}
+   for(const x of [.5,1.05,1.6]){add(`shield-support-${x}`,3,x,1.9,.24,.08,.15,.62,wood);add(`shield-${x}`,3,x-.08,2.02,.43,.36,.08,.44,team);add(`shield-boss-${x}`,3,x+.04,2.1,.57,.1,.04,.12,'#bca36f');}
   }else{
    for(const x of [.15,1.75]){add(`stall-divider-${x}`,1,x,.35,.16,.1,1.3,.65,wood);add(`hay-${x}`,3,x+.16,.4,.16,.62,.55,.3,'#beac69',true);}
    add('trough-base',3,.6,2.03,.16,1.5,.4,.12,wood);
    for(const z of [2.03,2.35])add(`trough-rim-${z}`,3,.6,z,.28,1.5,.08,.2,wood);
    for(const x of [.6,2.02])add(`trough-end-${x}`,3,x,2.11,.28,.08,.24,.2,wood);
-   add('trough-water',3,.69,2.12,.29,1.32,.22,.035,'#6a9297');
+   add('trough-water',3,.69,2.12,.28,1.32,.22,.035,'#6a9297');
    add('saddle-rack',3,2.48,.9,.16,.12,.15,.85,wood);add('spare-saddle',3,2.3,.84,1.01,.45,.4,.16,'#716045');
   }
  }

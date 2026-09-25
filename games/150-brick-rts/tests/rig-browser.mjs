@@ -26,6 +26,20 @@ for(const kind of ['barracks','archery-range','stable']){
 }
 await page.locator('#building-age').selectOption('2');
 console.log('PASS twelve military age models, opposite views, construction and damage restoration');
+for(const kind of ['lumber-camp','mining-camp','mill','farm','town-center','market','smithy']){
+ await page.locator('#building-kind').selectOption(kind);let previous;
+ for(const age of ['1','2','3','4']){
+  await page.locator('#building-age').selectOption(age);
+  const intactAge=await page.locator('#scene').screenshot();if(previous)assert.notDeepEqual(intactAge,previous,kind+' age '+age+' must change the rendered model');previous=intactAge;
+  await page.screenshot({path:output+`economic-${kind}-age-${age}.png`,fullPage:true});
+  await page.locator('#turn').click();await page.screenshot({path:output+`economic-${kind}-age-${age}-side.png`,fullPage:true});for(let i=0;i<3;i++)await page.locator('#turn').click();
+  for(const progress of ['0','20','40','60','100'])await page.locator('#building-progress').selectOption(progress);
+  for(const health of ['35','0','100'])await page.locator('#building-health').selectOption(health);
+  assert.ok((await page.locator('#scene').screenshot()).equals(intactAge),kind+' age '+age+' restores exactly');
+ }
+}
+await page.locator('#building-age').selectOption('2');
+console.log('PASS twenty-eight economic age models, opposite views, construction and damage restoration');
 await page.locator('#building-kind').selectOption('house');assert.ok((await page.locator('#scene').screenshot()).equals(intact),'house restored after economic assets');
 const lodStats={};for(const [name,clicks] of [['near',0],['medium',3],['far',3]]){for(let i=0;i<clicks;i++)await page.locator('#far').click();await page.waitForFunction(level=>document.querySelector('#stats').textContent.includes('LOD '+level),name);const text=await page.locator('#stats').textContent();lodStats[name]=Number(text.match(/Triangles (\d+)/)[1]);await page.screenshot({path:output+`lod-${name}.png`,fullPage:true});}assert.ok(lodStats.near>lodStats.medium&&lodStats.medium>lodStats.far,JSON.stringify(lodStats));await page.locator('#focus-house').click();assert.ok((await page.locator('#scene').screenshot()).equals(intact),'near detail restores exactly');fs.writeFileSync(output+'lod-stats.json',JSON.stringify(lodStats,null,2));console.log('PASS detail triangle reduction and restoration '+JSON.stringify(lodStats));
 assert.deepEqual(await page.evaluate(()=>window.renderEvents),[]);assert.equal(await page.locator('#error').isVisible(),false);

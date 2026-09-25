@@ -39,12 +39,13 @@ try {
  await page.locator('#rules-inspector summary').click();await page.locator('#seed').fill('260925');await page.locator('#restart').click();await waitNotice('已建立新沙盒');assert.equal(await page.locator('#hash').innerText(),initial);
  await page.locator('#move').click();await waitNotice('已排入');await page.locator('#step').click();await page.waitForFunction(()=>document.querySelector('#tick').textContent==='1');
  await page.locator('#restart').click();await waitNotice('已建立新沙盒');
- await page.locator('#target-x').fill('4');await page.locator('#target-y').fill('5');await page.locator('#move').click();await waitNotice('占地');assert.equal(await page.locator('#hash').innerText(),initial);
+ await page.locator('#target-x').fill('3');await page.locator('#target-y').fill('4.5');await page.locator('#move').click();await waitNotice('占地');assert.equal(await page.locator('#hash').innerText(),initial);
  await page.locator('#target-x').fill('3.5');await page.locator('#target-y').fill('3');await page.locator('#move').click();await waitNotice('已排入');
  await page.evaluate(()=>{window.routeSamples=[];new MutationObserver(()=>{const m=document.querySelector('#position').textContent.match(/\(([\d.]+), ([\d.]+)\)/);if(m)window.routeSamples.push([Number(m[1]),Number(m[2])]);}).observe(document.querySelector('#position'),{childList:true});});
  await page.locator('#pause').click();await page.waitForFunction(()=>document.querySelector('#position').textContent.includes('(3.5, 3.0)')&&document.querySelector('#position').textContent.includes('待命'),{},{timeout:25000});await page.locator('#pause').click();
- const samples=await page.evaluate(()=>window.routeSamples);assert.ok(samples.length>30);assert.ok(samples.some(([x])=>x<2.6||x>5.6));assert.ok(samples.every(([x,y])=>!(x>=2.6&&x<=5.6&&y>=3.6&&y<=6.4)));
- await page.screenshot({path:output+`house-route-${viewport.width}.png`,fullPage:true});
+ const samples=await page.evaluate(()=>window.routeSamples);// Route crosses the town-center gate on its centre line and never enters a hall pier.
+ assert.ok(samples.length>30);assert.ok(samples.some(([x,y])=>x===4&&y>=5&&y<=5.25));assert.ok(samples.every(([x,y])=>!(y>=3.6&&y<=5.2&&((x>=2.7&&x<=3.35)||(x>=4.65&&x<=5.3)))));
+ await page.screenshot({path:output+`town-center-route-${viewport.width}.png`,fullPage:true});
  await page.locator('#replay').click();await waitNotice('重播一致');
  const beforeFailure=await page.locator('#hash').innerText();
  await page.evaluate(()=>window.testWorkers.at(-1).dispatchEvent(new ErrorEvent('error',{message:'injected worker transport failure',cancelable:true})));

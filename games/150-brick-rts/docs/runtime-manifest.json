@@ -1,6 +1,6 @@
 {
   "schemaVersion": 9,
-  "rulesetHash": "ae7376fc",
+  "rulesetHash": "7d1ea936",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -131,6 +131,7 @@
     "provenance": "design_default",
     "unitRadius": 400,
     "houseRadius": 300,
+    "townCenterRadius": 300,
     "shareVision": false,
     "rememberStaticObjects": true
   },

@@ -236,6 +236,61 @@ main.pdp{grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr);gap:clamp(28
 @media(max-width:900px){header{height:auto}.product-heading{margin-top:26px}.product-heading h1{font-size:80px}main.pdp{grid-template-columns:1fr}.gal{position:relative;top:auto}.stage{aspect-ratio:1.12;max-height:none}.stage .chair{width:43%}.info{max-width:none}.notes{grid-template-columns:1fr 1fr}.product-heading p{font-size:19px}.notes h2{font-size:38px}}
 @media(max-width:520px){.product-heading{align-items:start;margin-bottom:24px}.product-heading h1{font-size:70px}.product-heading h1 small{display:block;margin:14px 0 0;font-size:13px}.product-heading p{max-width:118px;font-size:16px;margin-top:26px}.stage{aspect-ratio:.97;border-top-left-radius:70px}.stage .chair{width:50%}.tag{left:24px;top:22px}.detail-nav{gap:0}.detail-nav>span{font-size:9px}.detail-nav button{padding:0 9px}.thumbs{gap:7px}.thumb span{font-size:9px;left:5px}.thumb .chair{width:43%;bottom:-27%}.notes{grid-template-columns:1fr}.notes h2{font-size:36px}.material-readout{font-size:10px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}.chair{--t:0s}}
+
+/* Gallery pass (SiteInspire e-commerce: Stereoscope / Tekt): centred mark, one wide stage
+   that owns the fold with the name set as marginalia, the configurator laid out below as a desk. */
+header{display:grid;grid-template-columns:1fr auto 1fr;gap:24px}
+header .logo{order:2;justify-self:center}
+nav.cats{order:1;font-size:13px;gap:24px}
+nav.cats a.on{border-bottom:0;padding-bottom:0}
+header .hr{order:3;justify-self:end;margin-left:0}
+.crumbs{padding-top:18px}
+main.pdp{display:block;padding-top:14px}
+.gal{position:static;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);column-gap:clamp(28px,4vw,64px);align-items:start}
+.gal .stage{grid-column:1/-1;aspect-ratio:auto;height:min(68svh,46vw);max-height:none;min-height:420px}
+.gal .detail-nav{grid-column:1;grid-row:2}
+.gal .detail-caption{grid-column:1;grid-row:3}
+.gal .thumbs{grid-column:2;grid-row:2/4;margin-top:16px}
+.gal .material-readout{grid-column:2;grid-row:4}
+.stage .chair{width:auto;height:84%;bottom:8%}
+.stage .plant{width:auto;height:46%;left:13%;bottom:30%}
+.stage .window{right:12%;top:11%;width:15%;height:44%}
+.stage .rug{left:32%;right:32%;bottom:6%;height:15%}
+.stage .mark{position:absolute;left:clamp(40px,4vw,64px);top:clamp(38px,4.4vw,56px);z-index:4;margin:0;font:400 clamp(44px,4.6vw,68px)/.9 var(--lat);letter-spacing:-.045em;color:var(--ink)}
+.stage .mark small{display:block;font:300 13px/1.4 var(--zh);letter-spacing:.24em;color:var(--mut);margin-top:16px}
+.stage .tag{top:auto;left:clamp(28px,3vw,40px);bottom:22px;font-size:11px;letter-spacing:.14em}
+.stage:not([data-detail=all]) .mark{opacity:.25;transition:opacity var(--motion) ease}
+.stage .mark{transition:opacity var(--motion) ease}
+.info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:clamp(28px,4vw,64px);margin-top:56px;padding-top:34px;border-top:1px solid var(--line)}
+.desk-a .config-heading{margin:10px 0 18px}
+.desk-a .lead{margin-bottom:0}
+.desk-b .opt:first-child{border-top:0;padding-top:0}
+.desk-c .buy{margin-top:0;flex-wrap:nowrap}
+.desk-c .cta{min-width:0}
+.desk-d{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:inherit;margin-top:40px;align-items:start}
+.desk-d details,.desk-d details:last-of-type{border-bottom:1px solid var(--line)}
+@media(max-width:1050px){.info{grid-template-columns:1fr 1fr}.desk-c{grid-column:1/-1;max-width:560px;margin-top:10px}}
+@media(max-width:900px){
+  header{grid-template-columns:1fr auto;gap:0 16px}
+  header .logo{order:0;justify-self:start}
+  header .hr{order:0}
+  nav.cats{order:3;grid-column:1/-1}
+  .gal{grid-template-columns:1fr}
+  .gal .stage{height:auto;aspect-ratio:1.05;min-height:0}
+  .gal .detail-nav,.gal .detail-caption,.gal .thumbs,.gal .material-readout{grid-column:1;grid-row:auto}
+  .gal .thumbs{margin-top:0}
+  .stage .window{right:9%;width:26%;height:36%}
+  .stage .plant{left:6%;height:38%}
+  .stage .rug{left:14%;right:14%}
+  .stage .chair{height:74%}
+  .info,.desk-d{grid-template-columns:1fr}
+  .desk-c{grid-column:auto;max-width:none}
+  .desk-b .opt:first-child{border-top:1px solid var(--line);padding-top:20px}
+  .desk-d{margin-top:24px}
+  .desk-d details{border-bottom:0}
+  .desk-d details:last-of-type{border-bottom:1px solid var(--line)}
+}
+@media(max-width:520px){.gal .stage{aspect-ratio:.8}.stage .mark{left:30px;top:30px;font-size:40px}.stage .mark small{font-size:11px;letter-spacing:.16em;margin-top:10px}.stage .chair{height:60%;bottom:9%}.stage .plant{left:9%;height:30%;bottom:34%}.stage .window{top:22%;height:30%}.stage .tag{display:none}}
 </style>
 </head>
 <body>
@@ -249,11 +304,11 @@ main.pdp{grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr);gap:clamp(28
 </header>
 <div class="crumbs">首頁<span>/</span>椅子<span>/</span>休憩椅<span>/</span>Sova</div>
 
-<section class="product-heading" aria-labelledby="product-title"><div><div class="kicker">STILLA / OBJECT STUDY 01</div><h1 id="product-title">Sova<small>留一點時間，給自己。</small></h1></div><p>Made slowly.<br>For sitting slowly.</p></section>
 <main class="pdp" id="top">
   <section class="gal" aria-label="商品圖">
     <div class="stage" id="stage" data-detail="all">
-      <div class="tag"><b>Sova</b>材質研究 / CSS 作品</div>
+      <h1 class="mark" id="product-title">Sova<small>留一點時間，給自己。</small></h1>
+      <div class="tag">材質研究 01 · 以 CSS 繪製</div>
       <div class="window"></div>
       <div class="light"></div>
       <div class="rug"></div>
@@ -265,12 +320,15 @@ main.pdp{grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr);gap:clamp(28
     <div class="thumbs" id="thumbs"></div><div class="material-readout"><span>四款木色 · 同一個輪廓</span><span id="materialReadout">瑞典橡木 / 燕麥色</span></div>
   </section>
 
-  <section class="info">
+  <section class="info" aria-labelledby="product-title">
+    <div class="desk desk-a">
     <div class="kicker">LOUNGE CHAIR · 2026 秋季</div>
     <div class="config-heading"><h2>你的 Sova</h2><span>互動商品展示</span></div>
     <div class="price"><span id="price">NT$ 12,800</span><span class="delta" id="delta"></span></div>
     <p class="lead">一張讓人忘記時間的椅子。實木框架、手工縫製坐墊，坐下之後，你會開始考慮取消今晚的所有行程。</p>
+    </div>
 
+    <div class="desk desk-b">
     <div class="opt">
       <h2>木材 <b id="woodName">瑞典橡木</b></h2>
       <div class="sws" id="woods"></div>
@@ -279,7 +337,9 @@ main.pdp{grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr);gap:clamp(28
       <h2>織品 <b id="fabName">燕麥色 · 羊毛混紡</b></h2>
       <div class="sws" id="fabs"></div>
     </div>
+    </div>
 
+    <div class="desk desk-c">
     <div class="buy">
       <div class="qty"><button id="minus" aria-label="減少數量">−</button><output id="qty">1</output><button id="plus" aria-label="增加數量">+</button></div>
       <button class="cta" id="add">加入購物車<span class="ok" aria-hidden="true">已放進購物車 ✓</span></button>
@@ -288,10 +348,13 @@ main.pdp{grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr);gap:clamp(28
       <svg viewBox="0 0 24 24"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/></svg><span>現貨，<b style="font-weight:400" id="eta">3–5 個工作天</b>送達，含到府組裝（其實只需要鎖四顆螺絲）。</span>
       <svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span>木框保固十年。坐墊套可拆洗。</span>
     </div>
+    </div>
 
+    <div class="desk desk-d">
     <details id="materials" open><summary>材質與保養</summary><p>實心木材來自永續認證林地，樹齡比你的 Wi-Fi 密碼還老。每半年用植物油擦拭一次；跟它說說話也可以，我們沒有證據說沒用。</p></details>
     <details><summary>尺寸</summary><dl><dt>寬</dt><dd>68 cm</dd><dt>深</dt><dd>74 cm</dd><dt>高</dt><dd>82 cm（座高 41 cm）</dd><dt>重量</dt><dd>9.4 kg，一隻手搬得動，但請用兩隻</dd></dl></details>
     <details id="shipping"><summary>運送與退貨</summary><p>30 天試坐期內可免費退貨。唯一條件：請不要讓貓先坐過，因為牠不會同意退貨。</p></details>
+    </div>
   </section>
 </main>
 

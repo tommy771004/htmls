@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {makeMap,validateMap,harvestMapResource,clearSegment} from '../packages/sim/navigation.ts';
+import {makeMap,validateMap,harvestMapResource,clearSegment,isBuilding} from '../packages/sim/navigation.ts';
 import {resourceDefinitions,terrainRules} from '../packages/sim/terrain.ts';
 import {createVision,updateVision,projectVision} from '../packages/sim/vision.ts';
 test('coastal resources cover seven kinds with explicit method, yield and finite capacity',()=>{
@@ -14,7 +14,7 @@ test('animal proxies block movement until depleted; fish do not block navigation
  assert.equal(fish.obstacleId,null);assert.equal(clearSegment(map,fish,fish,'water'),true);
 });
 test('visible resource projection cannot leak hidden capacity or living-animal memory',()=>{
- const map=makeMap(7,'coast'),visions=createVision(),animal=map.resources.find(r=>r.kind==='hunt')!;map.obstacles=map.obstacles.filter(o=>o.kind!=='house');
+ const map=makeMap(7,'coast'),visions=createVision(),animal=map.resources.find(r=>r.kind==='hunt')!;map.obstacles=map.obstacles.filter(o=>!isBuilding(o));
  updateVision(visions,map,[{player:0,x:animal.x,y:animal.y}],0);assert.ok(projectVision(visions[0]).resources.some(r=>r.id===animal.id));
  updateVision(visions,map,[],1);assert.equal(projectVision(visions[0]).resources.length,0);assert.ok(!visions[0].known.some(k=>k.obstacle.kind==='hunt'||k.obstacle.kind==='livestock'));
  const before=projectVision(visions[0]);harvestMapResource(map,animal.id,1,2);updateVision(visions,map,[],2);assert.deepEqual(projectVision(visions[0]),before);

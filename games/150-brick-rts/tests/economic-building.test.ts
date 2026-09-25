@@ -38,3 +38,10 @@ test('military ages change structure and upper additions retain physical support
   assert.equal(new Set(idsByAge).size,4,kind+' must have structural age differences independent of color/height');
  }
 });
+
+test('economic ages change structure, not only height or color',()=>{
+ for(const kind of economicBuildings){
+  const byAge=([1,2,3,4] as const).map(ageVariant=>economicBuildingParts(kind,{ageVariant,progress:100,health:100,red:false}).map(p=>p.id).sort().join('|'));
+  assert.equal(new Set(byAge).size,4,kind+' needs distinct part sets per age');
+ }
+});

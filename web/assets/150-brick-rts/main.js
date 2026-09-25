@@ -53,12 +53,13 @@ function canTraverse(tile, movement) {
 
 // apps/web/fog-debug.ts
 var labels = ["\u672A\u63A2\u7D22", "\u5DF2\u63A2\u7D22\uFF0F\u76EE\u524D\u4E0D\u53EF\u898B", "\u76EE\u524D\u53EF\u898B"];
+var buildingNames = { house: "\u4F4F\u5B85", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
 function fogCellSummary(view, x, y) {
   if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x > 15 || y < 0 || y > 15) return "\u8ACB\u8F38\u5165 0\u201315 \u7684\u6574\u6578\u683C\u5EA7\u6A19\u3002";
   const id = y * 16 + x, state2 = view.fog[id];
   if (state2 === void 0) return "\u7B49\u5F85\u8996\u91CE\u8CC7\u6599\u3002";
-  const memories = state2 === 0 ? [] : view.known.filter((k) => tileAt(k.obstacle.x, k.obstacle.y) === id && k.obstacle.kind === "house");
-  return `\u683C (${x}, ${y}) \xB7 ${labels[state2]} \xB7 \u6295\u5F71 tick ${view.tick}` + memories.map((k) => `\uFF1B${k.obstacle.red ? "\u7D05\u65B9" : "\u85CD\u65B9"}\u4F4F\u5B85\uFF1A\u6700\u5F8C\u770B\u898B tick ${k.lastSeenTick}\uFF08${view.tick - k.lastSeenTick} ticks \u524D\uFF09`).join("");
+  const memories = state2 === 0 ? [] : view.known.filter((k) => tileAt(k.obstacle.x, k.obstacle.y) === id && k.obstacle.kind in buildingNames);
+  return `\u683C (${x}, ${y}) \xB7 ${labels[state2]} \xB7 \u6295\u5F71 tick ${view.tick}` + memories.map((k) => `\uFF1B${k.obstacle.red ? "\u7D05\u65B9" : "\u85CD\u65B9"}${buildingNames[k.obstacle.kind]}\uFF1A\u6700\u5F8C\u770B\u898B tick ${k.lastSeenTick}\uFF08${view.tick - k.lastSeenTick} ticks \u524D\uFF09`).join("");
 }
 function mountFogDebugger(root, getView) {
   const grid = root.querySelector(".fog-grid"), info = root.querySelector(".fog-cell-info"), memories = root.querySelector(".fog-memories");
@@ -80,8 +81,8 @@ function mountFogDebugger(root, getView) {
     });
     grid.setAttribute("aria-label", `\u85CD\u65B9 16\xD716 \u8996\u91CE\uFF1A\u672A\u63A2\u7D22 ${view.fog.filter((v) => v === 0).length} \u683C\uFF0C\u820A\u8996\u91CE ${view.fog.filter((v) => v === 1).length} \u683C\uFF0C\u76EE\u524D\u53EF\u898B ${view.fog.filter((v) => v === 2).length} \u683C\u3002`);
     info.textContent = fogCellSummary(view, x.value === "" ? NaN : Number(x.value), y.value === "" ? NaN : Number(y.value));
-    const houses = view.known.filter((k) => k.obstacle.kind === "house" && view.fog[tileAt(k.obstacle.x, k.obstacle.y)] > 0);
-    memories.textContent = houses.length ? houses.map((k) => `${k.obstacle.red ? "\u7D05\u65B9" : "\u85CD\u65B9"}\u4F4F\u5B85 (${Math.floor(k.obstacle.x / 100)}, ${Math.floor(k.obstacle.y / 100)})\uFF1A\u6700\u5F8C\u770B\u898B tick ${k.lastSeenTick}`).join("\uFF1B") : "\u5C1A\u7121\u5DF2\u77E5\u4F4F\u5B85\u3002";
+    const houses = view.known.filter((k) => k.obstacle.kind in buildingNames);
+    memories.textContent = houses.length ? houses.map((k) => `${k.obstacle.red ? "\u7D05\u65B9" : "\u85CD\u65B9"}${buildingNames[k.obstacle.kind]} (${Math.floor(k.obstacle.x / 100)}, ${Math.floor(k.obstacle.y / 100)})\uFF1A\u6700\u5F8C\u770B\u898B tick ${k.lastSeenTick}`).join("\uFF1B") : "\u5C1A\u7121\u5DF2\u77E5\u5EFA\u7BC9\u3002";
   }
   root.addEventListener("toggle", update);
   x.addEventListener("input", update);
@@ -195,9 +196,12 @@ function buildingStuds(parts) {
 }
 
 // apps/web/brick-geometries.ts
+function archOpening(width, height) {
+  return { radius: Math.min(width * 0.32, height * 0.35), spring: height * 0.55 };
+}
 function createArchGeometry(T, width, height, depth) {
   if (![width, height, depth].every((n) => Number.isFinite(n) && n > 0)) throw Error("\u62F1\u4EF6\u5C3A\u5BF8\u5FC5\u9808\u70BA\u6709\u9650\u6B63\u6578");
-  const half = width / 2, radius = Math.min(width * 0.32, height * 0.35), spring = height * 0.55;
+  const half = width / 2, { radius, spring } = archOpening(width, height);
   const shape = new T.Shape();
   shape.moveTo(-half, 0);
   shape.lineTo(-half, height);
@@ -228,8 +232,8 @@ function militaryBuildingParts(kind, v) {
     for (const x of [0.36, 1.67]) {
       add(`target-leg-${x}`, 2, x + 0.23, 0.75, 0.16, 0.1, 0.2, 0.75, wood);
       add(`target-board-${x}`, 2, x, 0.72, 0.83, 0.56, 0.16, 0.6, "#cfbd87");
-      add(`target-ring-${x}`, 3, x + 0.1, 0.89, 0.93, 0.36, 0.03, 0.4, "#aa5c48");
-      add(`target-center-${x}`, 3, x + 0.2, 0.93, 1.03, 0.16, 0.03, 0.2, "#e5d4a8");
+      add(`target-ring-${x}`, 3, x + 0.1, 0.88, 0.93, 0.36, 0.03, 0.4, "#aa5c48");
+      add(`target-center-${x}`, 3, x + 0.2, 0.91, 1.03, 0.16, 0.03, 0.2, "#e5d4a8");
     }
     add("arrow-rack", 3, 0.22, 2.3, 0.16, 0.7, 0.27, 0.4, wood);
     for (let i = 0; i < 4; i++) add(`arrow-${i}`, 3, 0.3 + i * 0.14, 2.4, 0.56, 0.03, 0.03, 0.42, "#d2be8f");
@@ -247,7 +251,7 @@ function militaryBuildingParts(kind, v) {
       for (const x of [0.5, 1.05, 1.6]) {
         add(`shield-support-${x}`, 3, x, 1.9, 0.24, 0.08, 0.15, 0.62, wood);
         add(`shield-${x}`, 3, x - 0.08, 2.02, 0.43, 0.36, 0.08, 0.44, team);
-        add(`shield-boss-${x}`, 3, x + 0.04, 2.11, 0.57, 0.1, 0.04, 0.12, "#bca36f");
+        add(`shield-boss-${x}`, 3, x + 0.04, 2.1, 0.57, 0.1, 0.04, 0.12, "#bca36f");
       }
     } else {
       for (const x of [0.15, 1.75]) {
@@ -257,7 +261,7 @@ function militaryBuildingParts(kind, v) {
       add("trough-base", 3, 0.6, 2.03, 0.16, 1.5, 0.4, 0.12, wood);
       for (const z of [2.03, 2.35]) add(`trough-rim-${z}`, 3, 0.6, z, 0.28, 1.5, 0.08, 0.2, wood);
       for (const x of [0.6, 2.02]) add(`trough-end-${x}`, 3, x, 2.11, 0.28, 0.08, 0.24, 0.2, wood);
-      add("trough-water", 3, 0.69, 2.12, 0.29, 1.32, 0.22, 0.035, "#6a9297");
+      add("trough-water", 3, 0.69, 2.12, 0.28, 1.32, 0.22, 0.035, "#6a9297");
       add("saddle-rack", 3, 2.48, 0.9, 0.16, 0.12, 0.15, 0.85, wood);
       add("spare-saddle", 3, 2.3, 0.84, 1.01, 0.45, 0.4, 0.16, "#716045");
     }
@@ -584,7 +588,7 @@ function createDetailController(T) {
 var economicBuildings = ["lumber-camp", "mining-camp", "mill", "farm", "town-center", "market", "smithy"];
 function economicBuildingParts(kind, v) {
   if (!economicBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u7D93\u6FDF\u5EFA\u7BC9\u5916\u89C0");
-  const p = [], team = v.red ? "#b85c47" : "#456e87", wood = "#94734c", stone = "#aaa994", height = 1.28 + (v.ageVariant - 1) * 0.16;
+  const p = [], age = v.ageVariant, team = v.red ? "#b85c47" : "#456e87", wood = "#94734c", stone = "#aaa994", brass = "#bca068", water = "#6a9297", height = 1.28 + (age - 1) * 0.16;
   const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, kind === "farm" ? "#806b49" : "#b3aa8c");
   if (kind === "farm") {
@@ -595,20 +599,53 @@ function economicBuildingParts(kind, v) {
         add(`grain-${row}-${col}`, 3, 0.22 + col * 0.47, 0.21 + row * 0.65, 0.52, 0.14, 0.14, 0.13, "#c0ad67");
       }
     }
-    add("boundary-back", 1, 0, 0, 0.16, 2.7, 0.08, 0.12, wood);
-    add("boundary-front", 1, 0, 2.62, 0.16, 2.7, 0.08, 0.12, wood);
+    if (age <= 2) {
+      add("boundary-back", 1, 0, 0, 0.16, 2.7, 0.08, 0.12, wood);
+      add("boundary-front", 1, 0, 2.62, 0.16, 2.7, 0.08, 0.12, wood);
+    } else {
+      add("wall-back", 1, 0, 0, 0.16, 2.7, 0.08, 0.24, stone);
+      for (const [x, w] of [[0, 1.08], [1.62, 1.08]]) add(`wall-front-${x}`, 1, x, 2.62, 0.16, w, 0.08, 0.24, stone);
+      for (const x of [1.08, 1.46]) add(`gate-pier-${x}`, 1, x, 2.58, 0.16, 0.16, 0.16, 0.56, stone, true);
+    }
+    if (age >= 2) {
+      for (const x of [0, 2.62]) add(age >= 3 ? `wall-side-${x}` : `boundary-side-${x}`, 1, x, 0.08, 0.16, 0.08, 2.54, age >= 3 ? 0.24 : 0.12, age >= 3 ? stone : wood);
+      for (const x of [-0.12, 2.72]) for (const z of [-0.12, 2.72]) add(`fence-post-${x}-${z}`, 1, x, z, 0.16, 0.1, 0.1, age >= 3 ? 0.56 : 0.45, age >= 3 ? stone : wood);
+    }
+    if (age === 4) {
+      add("gate-lintel", 1, 1.08, 2.58, 0.72, 0.54, 0.16, 0.16, team, true);
+      add("scarecrow-post", 3, 1.3, 1.24, 0.16, 0.06, 0.06, 0.64, wood);
+      add("scarecrow-arms", 3, 1.1, 1.24, 0.8, 0.46, 0.06, 0.06, wood);
+      add("scarecrow-head", 3, 1.25, 1.19, 0.86, 0.16, 0.16, 0.22, "#c7b27a");
+      add("scarecrow-hat", 3, 1.2, 1.15, 1.08, 0.26, 0.24, 0.06, "#6d563d");
+    }
   } else {
-    const roofY = height + (kind === "mill" ? 0.96 : 0.16);
-    for (const x of [0.1, 2.4]) for (const z of [0.1, 1.8]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, roofY - 0.16, v.ageVariant >= 3 ? stone : wood);
+    const hallHeight = 1.6 + (age - 1) * 0.16, towerTop = 0.16 + (age >= 3 ? 6 : 5) * 0.4, roofY = kind === "mill" ? towerTop : kind === "town-center" ? hallHeight + 0.16 : height + 0.16, masonry = kind !== "town-center", postBase = masonry && age >= 2 ? 0.4 : 0.16;
+    for (const x of [0.1, 2.4]) for (const z of [0.1, 1.8]) add(`post-${x}-${z}`, 1, x, z, postBase, 0.16, 0.16, roofY - postBase, age >= 3 ? stone : wood);
     add("back-brace", 1, 0.1, 0.1, roofY - 0.24, 2.46, 0.14, 0.24, wood);
     if (kind === "market") {
       for (let stripe = 0; stripe < 6; stripe++) add(`awning-${stripe}`, 2, -0.05 + stripe * 0.48, -0.05, roofY, 0.48, 2.25, 0.16, stripe % 2 ? "#e4d4ab" : team);
-    } else for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, -0.05 + level * 0.28, -0.05, roofY + level * 0.16, 2.9 - level * 0.56, 2.25, 0.16, v.ageVariant === 1 ? "#b8a074" : team, true);
+    } else for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, -0.05 + level * 0.28, -0.05, roofY + level * 0.16, 2.9 - level * 0.56, 2.25, 0.16, age === 1 ? "#b8a074" : team, true);
+    if (masonry && age >= 2) for (const x of [0.1, 2.4]) for (const z of [0.1, 1.8]) add(`footing-${x}-${z}`, 1, x - 0.02, z - 0.02, 0.16, 0.2, 0.2, 0.24, stone);
+    if (masonry && age >= 3) {
+      if (kind !== "smithy") add("stone-plinth", 1, 0.28, 0.1, 0.16, 2.1, 0.14, 0.48, stone, true);
+      for (const x of [-0.04, 2.56]) for (const z of [0.3, 1.46]) add(`buttress-${x}-${z}`, 1, x, z, 0.16, 0.14, 0.3, roofY - 0.16, stone);
+    }
     if (kind === "lumber-camp") {
       for (let row = 0; row < 3; row++) for (let layer = 0; layer < 2; layer++) add(`log-${row}-${layer}`, 3, 0.25, 0.3 + row * 0.28, 0.16 + layer * 0.2, 1.6, 0.22, 0.2, wood, true);
       for (const x of [0.55, 1.75]) add(`saw-leg-${x}`, 3, x, 2.15, 0.16, 0.14, 0.32, 0.45, "#66563e");
       add("saw-worktop", 3, 0.35, 2.08, 0.61, 1.8, 0.48, 0.12, wood);
       add("saw-blade", 3, 0.9, 2.24, 0.73, 0.85, 0.06, 0.14, "#b8c0b9");
+      if (age >= 2) {
+        add("chopping-block", 3, 2, 0.9, 0.16, 0.35, 0.35, 0.3, "#7c674b", true);
+        add("axe-handle", 3, 2.15, 1.05, 0.46, 0.05, 0.05, 0.4, wood);
+        add("axe-head", 3, 2.08, 1.04, 0.78, 0.2, 0.07, 0.08, "#b8c0b9");
+      }
+      if (age === 4) {
+        add("crane-mast", 3, 2.5, 2.3, 0.16, 0.16, 0.16, roofY + 0.32, wood);
+        add("crane-jib", 3, 1.2, 2.3, roofY + 0.48, 1.46, 0.16, 0.16, wood);
+        add("crane-rope", 3, 1.34, 2.36, roofY - 0.32, 0.04, 0.04, 0.8, "#8c8879");
+        add("crane-hook", 3, 1.28, 2.3, roofY - 0.44, 0.16, 0.16, 0.12, "#76817d");
+      }
     } else if (kind === "mining-camp") {
       add("hopper-base", 3, 0.35, 0.4, 0.16, 1.7, 0.9, 0.16, wood);
       for (const x of [0.35, 1.89]) add(`hopper-wall-${x}`, 3, x, 0.4, 0.32, 0.16, 0.9, 0.55, wood);
@@ -616,26 +653,62 @@ function economicBuildingParts(kind, v) {
       for (let i = 0; i < 6; i++) add(`ore-${i}`, 3, 0.59 + i % 3 * 0.39, 0.62 + Math.floor(i / 3) * 0.32, 0.32, 0.3, 0.26, 0.25, i % 2 ? stone : "#c0a557", true);
       add("pick-handle", 3, 2.42, 0.8, 0.16, 0.06, 0.06, 1.05, wood);
       add("pick-head", 3, 2.2, 0.8, 1.12, 0.5, 0.08, 0.1, "#b8c0b9");
+      if (age >= 2) {
+        for (const z of [2.3, 2.62]) add(`rail-${z}`, 1, 0.7, z, 0.16, 1.1, 0.06, 0.06, "#76817d");
+        add("cart-body", 3, 1, 2.26, 0.22, 0.5, 0.46, 0.3, "#7c674b");
+        add("cart-ore", 3, 1.08, 2.34, 0.52, 0.34, 0.3, 0.12, "#c0a557", true);
+      }
+      if (age === 4) {
+        for (const x of [0.4, 1.94]) add(`headframe-leg-${x}`, 3, x, 2.42, 0.16, 0.16, 0.16, roofY + 0.12, wood);
+        add("headframe-beam", 3, 0.4, 2.42, roofY + 0.28, 1.7, 0.16, 0.16, wood);
+        add("headframe-wheel", 3, 1.1, 2.44, roofY + 0.44, 0.3, 0.12, 0.3, "#76817d");
+        add("headframe-rope", 3, 1.23, 2.48, 1.2, 0.04, 0.04, roofY - 0.92, "#8c8879");
+        add("headframe-bucket", 3, 1.13, 2.38, 0.96, 0.24, 0.24, 0.24, "#7c674b");
+      }
     } else if (kind === "mill") {
-      for (let course = 0; course < 6; course++) add(`mill-tower-${course}`, 1, 0.85, 0.6, 0.16 + course * 0.4, 1, 1, 0.4, course % 2 ? stone : "#c4bfa8", true);
-      const hubY = height + 0.75;
+      for (let course = 0; course < (age >= 3 ? 6 : 5); course++) add(`mill-tower-${course}`, 1, 0.85, 0.6, 0.16 + course * 0.4, 1, 1, 0.4, course % 2 ? stone : "#c4bfa8", true);
+      const hubY = towerTop - 0.5;
       add("axle", 3, 1.28, 1.6, hubY, 0.14, 0.83, 0.14, wood);
       add("blade-vertical", 3, 1.26, 2.37, hubY - 1.12, 0.18, 0.1, 2.4, "#d6c6a0");
       add("blade-horizontal", 3, 0.15, 2.48, hubY, 2.4, 0.1, 0.18, "#d6c6a0");
       add("hub", 3, 1.19, 2.33, hubY - 0.04, 0.32, 0.29, 0.28, "#7c674b");
       for (const x of [0.22, 2.13]) add(`grain-bag-${x}`, 3, x, 0.7, 0.16, 0.38, 0.4, 0.48, "#c5b285", true);
+      if (age >= 2) {
+        add("sail-cloth-upper", 3, 1.44, 2.39, hubY + 0.36, 0.3, 0.06, 0.84, "#e8dcc0");
+        add("sail-cloth-lower", 3, 0.96, 2.39, hubY - 1, 0.3, 0.06, 0.8, "#e8dcc0");
+      }
+      if (age === 4) {
+        const base = roofY + 0.48;
+        add("cupola-base", 2, 1, 0.6, base, 0.8, 0.8, 0.16, stone);
+        for (const x of [1, 1.68]) for (const z of [0.6, 1.28]) add(`cupola-post-${x}-${z}`, 3, x, z, base + 0.16, 0.12, 0.12, 0.4, stone);
+        add("cupola-cap", 3, 0.92, 0.52, base + 0.56, 0.96, 0.96, 0.16, team, true);
+        add("vane-pole", 4, 1.38, 0.98, base + 0.72, 0.04, 0.04, 0.5, "#76817d");
+        add("vane-arrow", 4, 1.42, 0.98, base + 1.06, 0.3, 0.03, 0.12, brass);
+      }
     } else if (kind === "town-center") {
-      for (const x of [0.15, 2.05]) add(`hall-pier-${x}`, 1, x, 0.15, 0.16, 0.5, 1.5, height, stone, true);
-      add("entrance-lintel", 1, 0.65, 1.5, 0.16, 1.4, 0.25, height - 0.16, stone, false, "arch");
-      for (let level = 0; level < 3; level++) add(`entrance-step-${level}`, 3, 0.8, 2.15 + level * 0.18, 0.16, 0.95, 0.18, 0.24 - level * 0.08, "#c8bea4");
-      const towerBase = roofY + 0.48;
-      add("belfry-floor", 3, 0.87, 0.65, towerBase, 0.96, 0.85, 0.16, stone, true);
-      for (const x of [0.91, 1.63]) for (const z of [0.69, 1.25]) add(`belfry-pillar-${x}-${z}`, 3, x, z, towerBase + 0.16, 0.12, 0.12, 0.65, stone);
-      add("belfry-top", 3, 0.8, 0.58, towerBase + 0.81, 1.1, 1, 0.16, team, true);
-      add("bell-hanger", 3, 1.33, 0.98, towerBase + 0.55, 0.05, 0.05, 0.26, wood);
-      add("bell", 3, 1.2, 0.88, towerBase + 0.4, 0.3, 0.28, 0.22, "#bca068");
+      for (const x of [0.15, 2.05]) add(`hall-pier-${x}`, 1, x, 0.15, 0.16, 0.5, 1.5, hallHeight, stone, true);
+      add("entrance-lintel", 1, 0.65, 1.5, 0.16, 1.4, 0.25, 1.6, stone, false, "arch");
+      if (hallHeight > 1.6) add("entrance-course", 1, 0.65, 1.5, 1.76, 1.4, 0.25, hallHeight - 1.6, stone);
+      add("entrance-paving", 3, 0.95, 1.75, 0.16, 0.8, 1.05, 0.02, "#c8bea4");
+      if (age >= 2) {
+        let towerBase = roofY + 0.48;
+        if (age >= 3) for (let course = 0; course < 2; course++) add(`tower-course-${course}`, 2, 0.87, 0.65, towerBase + course * 0.32, 0.96, 0.85, 0.32, stone);
+        if (age >= 3) towerBase += 0.64;
+        add("belfry-floor", 3, 0.87, 0.65, towerBase, 0.96, 0.85, 0.16, stone, true);
+        for (const x of [0.91, 1.63]) for (const z of [0.69, 1.25]) add(`belfry-pillar-${x}-${z}`, 3, x, z, towerBase + 0.16, 0.12, 0.12, 0.65, stone);
+        add("belfry-top", 3, 0.8, 0.58, towerBase + 0.81, 1.1, 1, 0.16, team, true);
+        add("bell-hanger", 3, 1.33, 0.98, towerBase + 0.55, 0.05, 0.05, 0.26, wood);
+        add("bell", 3, 1.2, 0.88, towerBase + 0.4, 0.3, 0.28, 0.22, brass);
+        if (age === 4) {
+          const top = towerBase + 0.97;
+          add("spire-0", 3, 0.95, 0.73, top, 0.8, 0.7, 0.16, team, true);
+          add("spire-1", 3, 1.1, 0.88, top + 0.16, 0.5, 0.4, 0.16, team);
+          add("spire-2", 3, 1.23, 0.98, top + 0.32, 0.24, 0.2, 0.24, team);
+          add("spire-finial", 4, 1.31, 1.04, top + 0.56, 0.08, 0.08, 0.3, brass);
+        }
+      }
       add("notice-board", 3, 0.14, 1.9, 0.72, 0.48, 0.08, 0.4, wood);
-      add("notice-paper", 3, 0.2, 1.99, 0.78, 0.34, 0.025, 0.27, "#e5d9b3");
+      add("notice-paper", 3, 0.2, 1.98, 0.78, 0.34, 0.025, 0.27, "#e5d9b3");
       add("cargo-crate", 3, 2.1, 2.1, 0.16, 0.42, 0.42, 0.38, wood, true);
     } else if (kind === "market") {
       for (const x of [0.24, 1.94]) {
@@ -647,6 +720,15 @@ function economicBuildingParts(kind, v) {
       for (const x of [1.99, 2.36]) {
         add(`scale-wire-${x}`, 3, x, 1.48, 0.9, 0.025, 0.025, 0.2, "#8c8879");
         add(`scale-pan-${x}`, 3, x - 0.05, 1.43, 0.87, 0.13, 0.13, 0.04, "#b8b3a0");
+      }
+      if (age >= 2) for (let stripe = 0; stripe < 6; stripe++) add(`valance-${stripe}`, 2, -0.05 + stripe * 0.48, 2.14, roofY - 0.12, 0.48, 0.06, 0.12, stripe % 2 ? team : "#e4d4ab");
+      if (age >= 3) add("arcade-arch", 1, 0.28, 1.8, 0.16, 2.1, 0.16, roofY - 0.16, stone, false, "arch");
+      if (age === 4) {
+        const base = roofY + 0.16;
+        add("pavilion-floor", 2, 0.95, 0.55, base, 0.9, 0.9, 0.12, stone);
+        for (const x of [0.99, 1.69]) for (const z of [0.59, 1.29]) add(`pavilion-post-${x}-${z}`, 3, x, z, base + 0.12, 0.12, 0.12, 0.44, wood);
+        add("pavilion-roof", 3, 0.87, 0.47, base + 0.56, 1.06, 1.06, 0.16, team, true);
+        add("pavilion-finial", 4, 1.36, 0.96, base + 0.72, 0.08, 0.08, 0.26, brass);
       }
     } else if (kind === "smithy") {
       add("forge-back", 1, 0.28, 0.22, 0.16, 1.05, 0.3, 1.05, stone, true);
@@ -661,17 +743,34 @@ function economicBuildingParts(kind, v) {
       add("bellows", 3, 1.34, 0.56, 0.16, 0.65, 0.5, 0.25, "#927052");
       add("coal-bin", 3, 0.25, 2.14, 0.16, 0.65, 0.42, 0.22, "#665940");
       for (let i = 0; i < 3; i++) add(`coal-${i}`, 3, 0.31 + i * 0.17, 2.21, 0.38, 0.13, 0.22, 0.1, "#424944");
+      if (age >= 2) {
+        add("quench-trough", 3, 1.2, 1.26, 0.16, 0.7, 0.36, 0.24, wood);
+        add("quench-water", 3, 1.26, 1.32, 0.4, 0.58, 0.24, 0.02, water);
+      }
+      if (age >= 3) add("side-wall", 1, 2.4, 0.28, 0.16, 0.16, 1.5, 0.8, stone, true);
+      if (age === 4) {
+        add("race-channel", 1, 2.58, 0.62, 0.16, 0.26, 0.82, 0.08, wood);
+        add("race-water", 1, 2.6, 0.64, 0.24, 0.22, 0.78, 0.04, water);
+        add("wheel-axle", 3, 2.56, 1.02, 0.66, 0.06, 0.08, 0.08, wood);
+        add("wheel-paddle-vertical", 3, 2.62, 0.98, 0.28, 0.12, 0.16, 0.8, wood);
+        add("wheel-paddle-horizontal", 3, 2.62, 0.68, 0.6, 0.12, 0.76, 0.16, wood);
+        add("wheel-hub", 3, 2.6, 0.94, 0.56, 0.16, 0.24, 0.24, "#76817d");
+      }
     }
   }
   add("marker-pole", 4, 2.65, 2.7, 0.16, 0.06, 0.06, kind === "farm" ? 0.65 : height + 0.6, wood);
   add("marker-flag", 4, 2.34, 2.7, kind === "farm" ? 0.61 : height + 0.44, 0.32, 0.05, 0.22, team);
   if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: wood, studs: false }))];
-  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "marker-flag" || a.id === "roof-2" || a.id === "awning-2" || a.id === "awning-4" || a.id.startsWith("grain-") || a.id === "blade-horizontal"));
+  const built = p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20)));
+  if (v.health >= 50) return built;
+  const roofTop = built.find((a) => a.id === "roof-2"), loaded = roofTop && built.some((a) => a !== roofTop && Math.abs(a.y - roofTop.y - roofTop.h) < 1e-8 && a.x < roofTop.x + roofTop.w && a.x + a.w > roofTop.x && a.z < roofTop.z + roofTop.d && a.z + a.d > roofTop.z);
+  return built.filter((a) => !(a.id === "marker-flag" || a.id === "roof-2" && !loaded || /^(awning|valance)-[24]$/.test(a.id) || a.id.startsWith("grain-") || a.id === "blade-horizontal" || a.id.endsWith("-finial") || a.id === "vane-arrow"));
 }
 
 // packages/content/footprints.ts
 var obstacleFootprints = {
   house: { x: -15, y: -15, width: 250, depth: 230 },
+  "town-center": { x: -15, y: -15, width: 300, depth: 300 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
   gold: { x: 0, y: 0, width: 65, depth: 70 },
@@ -679,10 +778,34 @@ var obstacleFootprints = {
   hunt: { x: 0, y: 0, width: 65, depth: 70 },
   livestock: { x: 0, y: 0, width: 65, depth: 70 }
 };
+var townCenterBlocking = [
+  [15, 15, 65, 165],
+  [205, 15, 255, 165],
+  [10, 10, 26, 26],
+  [240, 10, 256, 26],
+  [10, 180, 26, 196],
+  [240, 180, 256, 196],
+  // Arch flanks reach past the visible opening: 3D clearance for a villager on the plinth.
+  [65, 150, 97, 175],
+  [173, 150, 205, 175],
+  [14, 190, 62, 198],
+  [20, 198, 54, 201],
+  [210, 210, 252, 252],
+  [265, 270, 271, 276]
+];
+var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 } };
+function check(o, radius) {
+  if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
+}
 function obstacleBounds(o, radius = 0) {
+  check(o, radius);
   const f = obstacleFootprints[o.kind];
-  if (!f || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
   return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
+}
+function obstacleRects(o, radius = 0) {
+  check(o, radius);
+  if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
+  return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
 }
 
 // apps/web/building-parts.ts
@@ -706,10 +829,10 @@ function buildingParts(visual) {
   const roofBase = wallTop, roof = age === 1 ? "#b8a074" : age === 2 ? team : "#677681", levels = age === 1 ? 3 : 4;
   for (let level = 0; level < levels; level++) for (let row = 0; row < 5; row++) add(`roof-${level}-${row}`, 2, -0.2 + level * 0.25, -0.2 + row * 0.5, roofBase + level * 0.18, 2.5 - level * 0.5, 0.5, 0.18, roof, true);
   add("door", 3, 0.76, 1.98, 0.16, 0.48, 0.06, 0.92, "#685740");
-  add("door-handle", 3, 0.81, 2.045, 0.61, 0.055, 0.03, 0.07, "#c2a664");
+  add("door-handle", 3, 0.81, 2.04, 0.61, 0.055, 0.03, 0.07, "#c2a664");
   for (const x of [0.13, 1.47]) {
     add(`window-frame-${x}`, 3, x, 1.99, 0.76, 0.38, 0.06, 0.38, "#786b55");
-    add(`window-glass-${x}`, 3, x + 0.04, 2.055, 0.8, 0.3, 0.025, 0.29, "#334b4e");
+    add(`window-glass-${x}`, 3, x + 0.04, 2.05, 0.8, 0.3, 0.025, 0.29, "#334b4e");
   }
   if (age >= 2) {
     add("chimney", 3, 1.5, 0.3, wallTop, 0.4, 0.4, 0.95, "#b1aa95");
@@ -753,7 +876,7 @@ function makeMap(seed, layout = "meadow") {
 }
 function generateCandidate(seed, layout) {
   let rng = seed || 1;
-  let obstacles = [{ kind: "house", x: 300, y: 400 }, { kind: "house", x: 1100, y: 400, red: true }];
+  let obstacles = [{ kind: "town-center", x: 265, y: 350 }, { kind: "town-center", x: 1065, y: 350, red: true }];
   for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) {
     rng ^= rng << 13;
     rng ^= rng >>> 17;
@@ -765,14 +888,14 @@ function generateCandidate(seed, layout) {
   if (layout === "coast") obstacles = obstacles.filter((o) => o.y < 1e3);
   if (layout === "acceptance") obstacles = [...obstacles.slice(0, 2), { kind: "tree", x: 150, y: 250 }, { kind: "tree", x: 1350, y: 250 }, { kind: "rock", x: 500, y: 1100 }, { kind: "rock", x: 1050, y: 1100 }];
   const guaranteed = [{ kind: "tree", x: 150, y: 850 }, { kind: "tree", x: 1350, y: 850 }, { kind: "rock", x: 150, y: 1100 }, { kind: "rock", x: 1350, y: 1100 }];
-  obstacles = obstacles.filter((o) => o.kind === "house" || !guaranteed.some((g) => Math.abs(g.x - o.x) < 140 && Math.abs(g.y - o.y) < 140));
+  obstacles = obstacles.filter((o) => isBuilding(o) || !guaranteed.some((g) => Math.abs(g.x - o.x) < 140 && Math.abs(g.y - o.y) < 140));
   obstacles.push(...guaranteed);
   obstacles.push({ kind: "gold", x: 550, y: 200 }, { kind: "gold", x: 950, y: 200 }, { kind: "berries", x: 250, y: 1e3 }, { kind: "berries", x: 1250, y: 1e3 });
   const map = { obstacles, blocked: [], tiles: createTiles(layout, seed), resources: [], navigationRevision: 0, generationAttempt: 0 };
   obstacles.forEach((o, index) => {
     o.id = `obstacle-${index}`;
     map.tiles[tileAt(o.x, o.y)].obstacleRefs.push(o.id);
-    if (o.kind !== "house") {
+    if (!isBuilding(o)) {
       const kind = o.kind === "rock" ? "stone" : o.kind;
       const id = `resource-${index}`, capacity = terrainRules.resourceCapacity[kind];
       map.resources.push({ id, kind, x: o.x, y: o.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: o.id, depletedAt: null });
@@ -795,6 +918,9 @@ function generateCandidate(seed, layout) {
   for (let i = 0; i < 961; i++) if (!clearSegment(map, position(i), position(i))) map.blocked.push(i);
   return map;
 }
+function isBuilding(o) {
+  return o.kind === "house" || o.kind === "town-center";
+}
 function bounds(o) {
   return obstacleBounds(o, navigationRules.radius);
 }
@@ -810,8 +936,7 @@ function clearSegment(map, a, b, movement = "land") {
     const x = tile.id % 16 * 100, y = Math.floor(tile.id / 16) * 100, r = navigationRules.radius;
     if (intersects(a, b, [x - r, y - r, x + 100 + r, y + 100 + r])) return false;
   }
-  for (const o of map.obstacles) {
-    const [x0, y0, x1, y1] = bounds(o);
+  for (const o of map.obstacles) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
     let lo = 0, hi = 1;
     for (const [start, delta, min, max] of [[a.x, b.x - a.x, x0, x1], [a.y, b.y - a.y, y0, y1]]) {
       if (delta === 0) {
@@ -1028,6 +1153,12 @@ async function createScene(canvas2, onFailure, options = {}) {
   scene2.add(staticGroup);
   const batches = /* @__PURE__ */ new Map();
   let muted = false, baseHeight = 0, worldTiles = createTiles();
+  let platforms = [];
+  function standingLift(x, y) {
+    let lift = 0;
+    for (const p of platforms) if (x >= p.x0 - 25 && x <= p.x1 + 25 && y >= p.y0 - 25 && y <= p.y1 + 25) lift = Math.max(lift, p.height);
+    return lift;
+  }
   function staticPart(geo, color, x, y, z) {
     if (muted) color = "#737b72";
     const key = geo.uuid + color;
@@ -1055,8 +1186,8 @@ async function createScene(canvas2, onFailure, options = {}) {
   }
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
-  function house(x, z, red = false) {
-    const parts = previewBuildingKind === "house" ? buildingParts({ ...previewBuilding, red }) : militaryBuildings.includes(previewBuildingKind) ? militaryBuildingParts(previewBuildingKind, { ...previewBuilding, red }) : economicBuildingParts(previewBuildingKind, { ...previewBuilding, red });
+  function house(x, z, red = false, obstacleKind = "house") {
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, parts = kind === "house" ? buildingParts({ ...previewBuilding, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...previewBuilding, red }) : economicBuildingParts(kind, { ...previewBuilding, red });
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -1072,6 +1203,10 @@ async function createScene(canvas2, onFailure, options = {}) {
     baseHeight = 0;
     const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile, id) => ({ ...tile, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
     worldTiles = map.tiles;
+    platforms = map.obstacles.flatMap((o) => {
+      const p = walkablePlatforms[o.kind];
+      return p ? [{ x0: o.x + p.rect[0], y0: o.y + p.rect[1], x1: o.x + p.rect[2], y1: o.y + p.rect[3], height: p.height }] : [];
+    });
     let rng = seed || 1;
     for (const tile of map.tiles) {
       const x = tile.id % 16, z = Math.floor(tile.id / 16);
@@ -1085,7 +1220,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y)] !== 2;
       const x = o.x / 100, z = o.y / 100;
-      if (o.kind === "house") house(x, z, o.red);
+      if (o.kind === "house" || o.kind === "town-center") house(x, z, o.red, o.kind);
       else if (o.kind === "tree") {
         brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8, "#80664b", false);
         brick(x - 0.2, z - 0.2, 0.7, 1, 1, 0.4, "#67835a");
@@ -1190,7 +1325,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       const u = units.get(data.id) ?? unit(data.id, data.player);
       const dx = data.x / 100 - u.group.position.x, dz = data.y / 100 - u.group.position.z;
       if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
-      u.group.position.set(data.x / 100, groundHeight(worldTiles, data.x, data.y) / 100, data.y / 100);
+      u.group.position.set(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100);
       u.ring.visible = data.id === selected2;
       u.moving = data.navigation === "moving";
     }
@@ -1249,7 +1384,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u5EFA\u7BC9");
     focus.x = 4;
     focus.y = 1;
-    focus.z = 5;
+    focus.z = 4.85;
     zoom = 2.5;
     cameraUpdate();
   }, focusPreviewUnit: (id) => {
@@ -1300,7 +1435,7 @@ async function createScene(canvas2, onFailure, options = {}) {
 }
 
 // packages/sim/vision.ts
-var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 300, shareVision: false, rememberStaticObjects: true };
+var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 300, townCenterRadius: 300, shareVision: false, rememberStaticObjects: true };
 
 // packages/sim/economy.ts
 var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100 };
@@ -1318,7 +1453,7 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, simulationVersion: 9 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, simulationVersion: 10 });
 
 // packages/sim/protocol.ts
 function decodeView(r) {

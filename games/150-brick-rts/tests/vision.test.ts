@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createVision,updateVision,projectVision,unitVisible} from '../packages/sim/vision.ts';
-import {makeMap} from '../packages/sim/navigation.ts';
+import {makeMap,isBuilding} from '../packages/sim/navigation.ts';
 import {createState,hash,serialize,deserialize,replay,submit,tick,rulesetHash} from '../packages/sim/sim.ts';
 import {createService,decodeView} from '../packages/sim/protocol.ts';
 
@@ -13,7 +13,7 @@ test('unexplored, visible and explored-unseen are distinct and enemy movement le
  const frozen=projectVision(visions[0]);enemy.x=500;updateVision(visions,map,[{player:0,x:1400,y:1400},enemy],2);assert.deepEqual(projectVision(visions[0]),frozen);
 });
 test('last-seen static objects freeze and disappear only upon revisiting their cell',()=>{
- const map=makeMap(7);map.obstacles=map.obstacles.filter(o=>o.kind!=='house');const object=map.obstacles[0],visions=createVision();
+ const map=makeMap(7);map.obstacles=map.obstacles.filter(o=>!isBuilding(o));const object=map.obstacles[0],visions=createVision();
  updateVision(visions,map,[{player:0,x:object.x,y:object.y}],10);const remembered=visions[0].known.find(k=>k.obstacle.id===object.id)!;assert.equal(remembered.lastSeenTick,10);
  updateVision(visions,map,[],11);map.obstacles=map.obstacles.filter(o=>o!==object);updateVision(visions,map,[],12);assert.deepEqual(visions[0].known.find(k=>k.obstacle.id===object.id),remembered);
  updateVision(visions,map,[{player:0,x:object.x,y:object.y}],13);assert.equal(visions[0].known.some(k=>k.obstacle.id===object.id),false);
@@ -31,4 +31,13 @@ test('exploration survives saves and command replay; old snapshot version is rej
  const s=createState(7);submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitId:1,x:1100,y:900}});for(let i=0;i<220;i++)tick(s);
  assert.deepEqual(deserialize(serialize(s)).vision,s.vision);assert.equal(hash(replay(s.seed,s.log,s.tick)),hash(s));
  const old=JSON.parse(serialize(s));old.format='brick-sandbox-4';assert.throws(()=>deserialize(JSON.stringify(old)),/版本/);
+});
+
+test('a large building is remembered when any footprint tile is seen, not only its anchor corner',()=>{
+ const map=makeMap(260925),red=map.obstacles.find(o=>o.kind==='town-center'&&o.red)!,visions=createVision();
+ // Observer sees the south-east corner of the hall; the anchor tile (top-left) is more than 400 away.
+ const observer={player:0,x:red.x+285,y:red.y+620};
+ updateVision(visions,map,[observer],5);
+ assert.equal(visions[0].visible.includes(Math.floor(red.y/100)*16+Math.floor(red.x/100)),false);
+ assert.equal(visions[0].known.find(k=>k.obstacle.id===red.id)?.lastSeenTick,5);
 });

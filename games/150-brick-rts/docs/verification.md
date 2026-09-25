@@ -130,3 +130,11 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## C：軍事建築時代輪廓
 
 兵營／靶場／馬廄的四種結構外觀、支撐與狀態還原驗證見 [military-ages-verification.md](military-ages-verification.md)。76 項單元測試與模型瀏覽器檢查通過；仍為檢視頁外觀，C in_progress。
+
+## C：建築凸點接合
+
+建築凸點改依當前零件遮擋與邊界生成，驗證見 [building-studs-verification.md](building-studs-verification.md)。78 項測試、模型與正式沙盒瀏覽器回歸通過；不構成新可玩里程碑或完整 C 驗收。
+
+## C：經濟／城鎮建築時代輪廓與承托
+
+七類經濟／城鎮建築的四時代結構，以及全建築零件連回地基的測試，驗證見 [economic-ages-verification.md](economic-ages-verification.md)。80 項測試、模型與正式沙盒瀏覽器回歸都通過。模型測試第一次執行時發生一次非注入的 context loss，已保留診斷，根因不明。這一輪仍然只改檢視頁外觀，不構成新的可玩里程碑。

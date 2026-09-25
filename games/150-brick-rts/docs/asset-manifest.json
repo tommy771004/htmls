@@ -279,9 +279,10 @@
       ],
       "previewOnlyStates": [
         "five construction phases",
-        "intact/damaged/bounded rubble/restored"
+        "intact/damaged/bounded rubble/restored",
+        "four structural age variants: timber shed; stone footings and chopping block; masonry plinth and side piers; jib crane"
       ],
-      "status": "initial economic asset; no production or navigation integration; full age detail matrix and work animation pending"
+      "status": "four original structural age silhouettes; ART_DETAIL_MATRIX near detail and work states still pending; inspector only, no production/trade/research, navigation or work animation"
     },
     {
       "id": "mining-camp",
@@ -303,9 +304,10 @@
       ],
       "previewOnlyStates": [
         "five construction phases",
-        "intact/damaged/bounded rubble/restored"
+        "intact/damaged/bounded rubble/restored",
+        "four structural age variants: timber shed; stone footings and rail cart; masonry plinth and side piers; headframe with hanging bucket"
       ],
-      "status": "initial economic asset; no production or navigation integration; full age detail matrix and work animation pending"
+      "status": "four original structural age silhouettes; ART_DETAIL_MATRIX near detail and work states still pending; inspector only, no production/trade/research, navigation or work animation"
     },
     {
       "id": "mill",
@@ -327,9 +329,10 @@
       ],
       "previewOnlyStates": [
         "five construction phases",
-        "intact/damaged/bounded rubble/restored"
+        "intact/damaged/bounded rubble/restored",
+        "four structural age variants: five-course tower; footings and sail cloth; six-course tower with masonry plinth and piers; roof cupola and weathervane"
       ],
-      "status": "initial economic asset; no production or navigation integration; full age detail matrix and work animation pending"
+      "status": "four original structural age silhouettes; ART_DETAIL_MATRIX near detail and work states still pending; inspector only, no production/trade/research, navigation or work animation"
     },
     {
       "id": "farm",
@@ -351,9 +354,10 @@
       ],
       "previewOnlyStates": [
         "five construction phases",
-        "intact/damaged/bounded rubble/restored"
+        "intact/damaged/bounded rubble/restored",
+        "four structural age variants: open rails; fenced plot with corner posts; stone boundary with gate piers; gate lintel and scarecrow"
       ],
-      "status": "initial economic asset; no production or navigation integration; full age detail matrix and work animation pending"
+      "status": "four original structural age silhouettes; ART_DETAIL_MATRIX near detail and work states still pending; inspector only, no production/trade/research, navigation or work animation"
     },
     {
       "id": "town-center",
@@ -375,9 +379,10 @@
       ],
       "previewOnlyStates": [
         "five construction phases",
-        "intact/damaged/bounded rubble/restored"
+        "intact/damaged/bounded rubble/restored",
+        "four structural age variants: hall without belfry; belfry; belfry raised on two masonry courses; stepped spire and finial"
       ],
-      "status": "initial civic asset; static visual only, no production/trade/research; navigation and full age detail matrix pending"
+      "status": "four original structural age silhouettes; ART_DETAIL_MATRIX near detail and work states still pending; inspector only, no production/trade/research, navigation or work animation"
     },
     {
       "id": "market",
@@ -399,9 +404,10 @@
       ],
       "previewOnlyStates": [
         "five construction phases",
-        "intact/damaged/bounded rubble/restored"
+        "intact/damaged/bounded rubble/restored",
+        "four structural age variants: open stalls; footings and awning valance; masonry plinth, side piers and open front arcade; roof pavilion"
       ],
-      "status": "initial civic asset; static visual only, no production/trade/research; navigation and full age detail matrix pending"
+      "status": "four original structural age silhouettes; ART_DETAIL_MATRIX near detail and work states still pending; inspector only, no production/trade/research, navigation or work animation"
     },
     {
       "id": "smithy",
@@ -423,9 +429,10 @@
       ],
       "previewOnlyStates": [
         "five construction phases",
-        "intact/damaged/bounded rubble/restored"
+        "intact/damaged/bounded rubble/restored",
+        "four structural age variants: timber forge shed; footings and quench trough; masonry side wall and piers; paddle wheel and race"
       ],
-      "status": "initial civic asset; static visual only, no production/trade/research; navigation and full age detail matrix pending"
+      "status": "four original structural age silhouettes; ART_DETAIL_MATRIX near detail and work states still pending; inspector only, no production/trade/research, navigation or work animation"
     },
     {
       "id": "cavalry",
@@ -538,7 +545,7 @@
     "full village set",
     "mounted and remaining military silhouettes",
     "simulation integration for construction/damage/repair",
-    "four-age variants for the remaining building set",
+    "four-age variants for buildings not yet modeled",
     "full LOD hierarchy",
     "military equipment and mount sockets",
     "simulation integration for work/combat/death/carry animation",

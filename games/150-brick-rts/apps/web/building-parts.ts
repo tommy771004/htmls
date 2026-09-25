@@ -22,8 +22,8 @@ export function buildingParts(visual:BuildingVisual):BuildingPart[]{
  const roofBase=wallTop,roof=age===1?'#b8a074':age===2?team:'#677681',levels=age===1?3:4;
  for(let level=0;level<levels;level++)for(let row=0;row<5;row++)add(`roof-${level}-${row}`,2,-.2+level*.25,-.2+row*.5,roofBase+level*.18,2.5-level*.5,.5,.18,roof,true);
  add('door',3,.76,1.98,.16,.48,.06,.92,'#685740');
- add('door-handle',3,.81,2.045,.61,.055,.03,.07,'#c2a664');
- for(const x of [.13,1.47]){add(`window-frame-${x}`,3,x,1.99,.76,.38,.06,.38,'#786b55');add(`window-glass-${x}`,3,x+.04,2.055,.8,.3,.025,.29,'#334b4e');}
+ add('door-handle',3,.81,2.04,.61,.055,.03,.07,'#c2a664');
+ for(const x of [.13,1.47]){add(`window-frame-${x}`,3,x,1.99,.76,.38,.06,.38,'#786b55');add(`window-glass-${x}`,3,x+.04,2.05,.8,.3,.025,.29,'#334b4e');}
  if(age>=2){add('chimney',3,1.5,.3,wallTop,.4,.4,.95,'#b1aa95');add('chimney-cap',3,1.46,.26,wallTop+.95,.48,.48,.1,'#78796b');}
  if(age>=3){add('stone-door-header',3,.6,1.97,.16,.8,.15,1.28,'#d0ceba',false,'arch');add('roof-ridge',3,.7,-.2,roofBase+.72,.7,2.5,.16,team,true);}
  if(age===4){for(const z of [.05,1.55]){add(`dormer-base-${z}`,3,.5,z,roofBase+.36,.5,.4,.64,'#c9c4ae');add(`dormer-cap-${z}`,3,.45,z-.04,roofBase+1,.6,.48,.16,team,true);}add('cargo-platform',3,.75,.7,.16,.5,.6,.12,'#96764c');}

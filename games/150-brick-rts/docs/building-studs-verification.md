@@ -12,7 +12,9 @@
 
 `npm run build` 通過。`npm test` 78/78 通過，原始結果在 test-results/building-studs-tests.log。新增測試覆蓋完整遮蓋、圓柱中心未被覆蓋但邊緣相交、上方空隙、下方零件、窄磚、移除上層還原，以及十一類建築四時代與施工／損壞狀態的有限座標及確定性。
 
-瀏覽器與截圖證據待本輪完成後補記。
+模型瀏覽器 test:rig-browser 在 Chromium 151.0.7922.34 通過，包括十二種軍事建築的雙角度截圖、施工／損壞還原、近中遠切換與故障重新載入。人工檢視 military-barracks-age-4.png，屋脊與通風亭的凸點穿插已消除；修改前截圖保留為 studs-before-barracks-age-4.png。既有測試場景的三角形觀測為 near 42,744、medium 32,712、far 14,152；上一輪相同測試 near 52,344、medium 42,312、far 14,152。不同 LOD 的相機畫面不同，這些數字不是固定視錐效能比較，也不構成目標硬體 FPS 證據。
+
+正式沙盒 test:browser 在 Chromium 151.0.7922.34 全部通過：1440／390 視窗的移動、存讀與重播、迷霧探索與退離、地形高度與海岸拒絕、地圖還原、Worker 故障復原、模型頁、WebGL context loss、render exception 暫停與存檔復原、無 WebGL2 及分類搜尋。亦人工檢視 house-age-2.png。git diff --check 通過。
 
 ## 界線
 

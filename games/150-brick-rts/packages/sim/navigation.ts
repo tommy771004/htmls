@@ -1,4 +1,4 @@
-import {obstacleBounds} from '../content/footprints.ts';
+import {obstacleBounds,obstacleRects} from '../content/footprints.ts';
 import type {ObstacleKind} from '../content/footprints.ts';
 // Engineering defaults, not values from the reference game.
 import {createTiles,tileAt,canTraverse,terrainRules,extractResource,resourceDefinitions} from './terrain.ts';
@@ -19,24 +19,26 @@ export function makeMap(seed:number,layout:MapLayout='meadow'):MapData{
  throw Error(`地圖生成失敗（${terrainRules.generationAttempts} 次）：${lastErrors.join('；')}`);
 }
 function generateCandidate(seed:number,layout:MapLayout):MapData{
- let rng=seed||1;let obstacles:Obstacle[]=[{kind:'house',x:300,y:400},{kind:'house',x:1100,y:400,red:true}];
+ let rng=seed||1;// Starting town centers: gate centers sit on grid columns 400/1200 and face the spawn row, 65 units clear.
+ let obstacles:Obstacle[]=[{kind:'town-center',x:265,y:350},{kind:'town-center',x:1065,y:350,red:true}];
  for(let x=0;x<16;x++)for(let y=0;y<16;y++){rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;const v=(rng>>>0)/4294967296;
  if((x<2||y<2||x>13||y>13)&&v<.34)obstacles.push({kind:'tree',x:x*100+12,y:y*100+12});
  else if(v<.028&&Math.abs(x-8)<3&&y>3)obstacles.push({kind:'rock',x:x*100,y:y*100});}
  if(layout==='coast')obstacles=obstacles.filter(o=>o.y<1000);
  if(layout==='acceptance')obstacles=[...obstacles.slice(0,2),{kind:'tree',x:150,y:250},{kind:'tree',x:1350,y:250},{kind:'rock',x:500,y:1100},{kind:'rock',x:1050,y:1100}];
  const guaranteed:Obstacle[]=[{kind:'tree',x:150,y:850},{kind:'tree',x:1350,y:850},{kind:'rock',x:150,y:1100},{kind:'rock',x:1350,y:1100}];
- obstacles=obstacles.filter(o=>o.kind==='house'||!guaranteed.some(g=>Math.abs(g.x-o.x)<140&&Math.abs(g.y-o.y)<140));obstacles.push(...guaranteed);
+ obstacles=obstacles.filter(o=>isBuilding(o)||!guaranteed.some(g=>Math.abs(g.x-o.x)<140&&Math.abs(g.y-o.y)<140));obstacles.push(...guaranteed);
  obstacles.push({kind:'gold',x:550,y:200},{kind:'gold',x:950,y:200},{kind:'berries',x:250,y:1000},{kind:'berries',x:1250,y:1000});
  const map:MapData={obstacles,blocked:[],tiles:createTiles(layout,seed),resources:[],navigationRevision:0,generationAttempt:0};
  obstacles.forEach((o,index)=>{o.id=`obstacle-${index}`;map.tiles[tileAt(o.x,o.y)].obstacleRefs.push(o.id);
- if(o.kind!=='house'){const kind:ResourceKind=o.kind==='rock'?'stone':o.kind;const id=`resource-${index}`,capacity=terrainRules.resourceCapacity[kind];map.resources.push({id,kind,x:o.x,y:o.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:o.id,depletedAt:null});map.tiles[tileAt(o.x,o.y)].resourceRefs.push(id);}});
+ if(!isBuilding(o)){const kind=(o.kind==='rock'?'stone':o.kind) as ResourceKind;const id=`resource-${index}`,capacity=terrainRules.resourceCapacity[kind];map.resources.push({id,kind,x:o.x,y:o.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:o.id,depletedAt:null});map.tiles[tileAt(o.x,o.y)].resourceRefs.push(id);}});
  const addResource=(kind:'hunt'|'livestock'|'fish',x:number,y:number)=>{const id=`resource-${kind}-${x}-${y}`,capacity=terrainRules.resourceCapacity[kind],obstacleId=kind==='fish'?null:`obstacle-${kind}-${x}-${y}`;if(obstacleId&&kind!=='fish'){map.obstacles.push({id:obstacleId,kind,x,y});map.tiles[tileAt(x,y)].obstacleRefs.push(obstacleId);}map.resources.push({id,kind,x,y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId,depletedAt:null});map.tiles[tileAt(x,y)].resourceRefs.push(id);};
  for(const x of [300,1200])addResource('livestock',x,900);for(const x of [500,1000])addResource('hunt',x,1000);
  if(layout==='coast')for(const x of [300,1200])addResource('fish',x,1450);
  if(layout==='acceptance')for(const y of [300,1200])addResource('fish',800,y);
  for(let i=0;i<961;i++)if(!clearSegment(map,position(i),position(i)))map.blocked.push(i);return map;
 }
+export function isBuilding(o:Obstacle){return o.kind==='house'||o.kind==='town-center';}
 function bounds(o:Obstacle):[number,number,number,number]{return obstacleBounds(o,navigationRules.radius);}
 // Slab intersection includes contact: center-lines cannot clip expanded footprints.
 export function clearSegment(map:MapData,a:Point,b:Point,movement:'land'|'water'='land'):boolean{
@@ -52,7 +54,7 @@ export function clearSegment(map:MapData,a:Point,b:Point,movement:'land'|'water'
  const x=(tile.id%16)*100,y=Math.floor(tile.id/16)*100,r=navigationRules.radius;
  if(intersects(a,b,[x-r,y-r,x+100+r,y+100+r]))return false;
  }
- for(const o of map.obstacles){const [x0,y0,x1,y1]=bounds(o);let lo=0,hi=1;
+ for(const o of map.obstacles)for(const [x0,y0,x1,y1] of obstacleRects(o,navigationRules.radius)){let lo=0,hi=1;
  for(const [start,delta,min,max] of [[a.x,b.x-a.x,x0,x1],[a.y,b.y-a.y,y0,y1]]){
  if(delta===0){if(start<min||start>max){lo=2;break;}}else{const t0=(min-start)/delta,t1=(max-start)/delta;lo=Math.max(lo,Math.min(t0,t1));hi=Math.min(hi,Math.max(t0,t1));}}
  if(lo<=hi)return false;
