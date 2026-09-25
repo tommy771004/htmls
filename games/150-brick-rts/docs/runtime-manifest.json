@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 14,
-  "rulesetHash": "889026ee",
+  "schemaVersion": 15,
+  "rulesetHash": "93b1d368",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -297,6 +297,39 @@
       "x": 135,
       "y": 215
     }
+  },
+  "combat": {
+    "provenance": "design_default",
+    "units": {
+      "villager": {
+        "hp": 25,
+        "damage": 1,
+        "range": 50,
+        "cooldown": 30,
+        "sight": 0
+      },
+      "militia": {
+        "hp": 45,
+        "damage": 6,
+        "range": 50,
+        "cooldown": 20,
+        "sight": 350
+      },
+      "archer": {
+        "hp": 30,
+        "damage": 4,
+        "range": 250,
+        "cooldown": 30,
+        "sight": 400
+      }
+    },
+    "buildings": {
+      "town-center": 400,
+      "house": 150,
+      "barracks": 300
+    },
+    "corpseTicks": 40,
+    "hitFlashTicks": 6
   },
   "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; units hold one node and reserve the next (no overlap, no pass-through), wait, yield, trade stations and replan within bounded limits"
 }

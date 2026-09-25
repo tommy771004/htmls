@@ -52,12 +52,15 @@ assert.equal(await page.evaluate(()=>scrollY),0,'arrow keys did not scroll the p
 await page.evaluate(()=>scrollTo(0,0));
 await page.locator('#selected').click();await page.keyboard.press('ArrowDown');await page.waitForTimeout(200);assert.ok(await page.evaluate(()=>scrollY)>0,'arrow keys scroll the page outside the scene');
 await page.keyboard.press('Digit1');await page.keyboard.press('KeyF');assert.match(await text('notice'),/鏡頭已對準/);await page.locator('#reset-view').click();
-// 11. Phone touch: tap a villager to select it, tap the ground to order a move.
+// 11. Speed: 4x runs 80 ticks per second without skipping; back to 1x.
+await page.locator('#speed').selectOption('4');assert.match(await text('notice'),/4×/);const t0=Number(await text('tick'));await page.locator('#pause').click();await page.waitForTimeout(1000);await page.locator('#pause').click();
+const ran=Number(await text('tick'))-t0;assert.ok(ran>=40,`4x advanced ${ran} ticks in ~1s`);await page.locator('#speed').selectOption('1');
+// 12. Phone touch: tap a villager to select it, tap the ground to order a move.
 const phone=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});const touch=await phone.newPage();touch.on('pageerror',e=>errors.push(e.message));
 await touch.goto(origin+'/web/150-brick-rts.html');await touch.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
 const tapAt=async(wx,wy,wz)=>{await touch.evaluate(()=>scrollTo(0,0));const r=await touch.locator('#map').boundingBox(),halfH=Math.max(10.5,12/(r.width/r.height)),scale=r.height/(2*halfH),dx=wx-8,dz=wz-8;await touch.touchscreen.tap(r.x+r.width/2+(dx-dz)*Math.SQRT1_2*scale,r.y+r.height/2-(-.5*dx+Math.SQRT1_2*wy-.5*dz)*scale);await touch.waitForTimeout(150);};
 await tapAt(9,0,9);assert.match(await touch.locator('#notice').innerText(),/移動指令已排入/);
 await touch.screenshot({path:out+'controls-touch-390.png'});await phone.close();
 assert.deepEqual(errors,[]);
-console.log('PASS box select, shift toggle, Ctrl groups, Esc, input isolation, context menu, group right-click through gate, S stop, HUD drag, empty-ground deselect, camera pan/focus, touch tap move; '+browser.version());
+console.log('PASS box select, shift toggle, Ctrl groups, Esc, input isolation, context menu, group right-click through gate, S stop, HUD drag, empty-ground deselect, camera pan/focus, 4x speed, touch tap move; '+browser.version());
 }finally{await browser.close();server.close();}

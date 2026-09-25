@@ -14,7 +14,7 @@ export const startingResourceRules={provenance:'design_default',maxApproachDista
 export type Point={x:number;y:number};
 // progress: construction stage in percent (0,20,..,100) for player buildings; absent means complete.
 // age: owner's age (1-4) for player buildings, drives the rendered age variant only.
-export type Obstacle={id?:string;kind:ObstacleKind;x:number;y:number;red?:boolean;progress?:number;age?:number};
+export type Obstacle={id?:string;kind:ObstacleKind;x:number;y:number;red?:boolean;progress?:number;age?:number;damaged?:boolean};
 export type MapData={obstacles:Obstacle[];blocked:number[];tiles:Tile[];resources:ResourceNode[];navigationRevision:number;generationAttempt:number};
 export type PathJob={movement?:'land'|'water';unitId:number;start:number;goal:number;target:Point;frontier:number[];head:number;parents:number[];status:'searching'|'found'|'unreachable';path:Point[]};
 export function makeMap(seed:number,layout:MapLayout='meadow'):MapData{

@@ -17,7 +17,8 @@
     "test:controls": "node tests/controls-browser.mjs",
     "test:economy": "node --experimental-strip-types tests/first-use-economy.mjs",
     "test:build": "node --experimental-strip-types tests/first-use-build.mjs",
-    "test:production": "node --experimental-strip-types tests/first-use-production.mjs"
+    "test:production": "node --experimental-strip-types tests/first-use-production.mjs",
+    "test:combat": "node --experimental-strip-types tests/first-use-combat.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

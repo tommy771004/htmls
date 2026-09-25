@@ -10,13 +10,14 @@ import {placementProblem,buildKinds,buildingRules} from '../../packages/sim/buil
 import {trainBlocker} from '../../packages/sim/production.ts';
 import type {BuildKind} from '../../packages/sim/buildings.ts';
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
-let state:View={seed:rules.settings.seed,layout:'meadow',terrain:[],tick:0,units:[],economy:{stock:{food:0,wood:0,gold:0,stone:0},populationUsed:0,populationReserved:0,populationCap:0,age:1},buildings:[],transactions:[],fog:[],known:[],resources:[],stateHash:'—'};
+let state:View={seed:rules.settings.seed,layout:'meadow',terrain:[],tick:0,units:[],corpses:[],outcome:null,economy:{stock:{food:0,wood:0,gold:0,stone:0},populationUsed:0,populationReserved:0,populationCap:0,age:1},buildings:[],transactions:[],fog:[],known:[],resources:[],stateHash:'—'};
 const resourceNames:Record<string,string>={food:'食物',wood:'木材',gold:'黃金',stone:'石頭'};
 const workLabel:Record<string,string>={toSource:'前往採集',gathering:'採集中',toDropoff:'送返城鎮中心',toSite:'前往工地',building:'施工中'};
 const buildingNames:Record<string,string>={house:'住宅',barracks:'兵營','town-center':'城鎮中心'};
 let placing:BuildKind|null=null,selectedBuilding:string|null=null,lastTransaction=0,preview:{x:number;y:number;problem:string|null}|null=null;
 let scene:Awaited<ReturnType<typeof createScene>>|null=null,graphicsFailed=false;
-let selected=new Set<number>([1]),running=false,last=0,accumulator=0,advancing=false,connected=false;
+// speed: sim ticks per 50 ms of wall time; every tick still runs, in order.
+let speed=1,selected=new Set<number>([1]),running=false,last=0,accumulator=0,advancing=false,connected=false;
 const notice=(s:string)=>{el('notice').textContent=s;};
 const canvas=el<HTMLCanvasElement>('map');
 const fogDebugger=mountFogDebugger(el<HTMLDetailsElement>('fog-debug'),()=>state);
@@ -28,15 +29,18 @@ function render(){
  el('tick').textContent=String(state.tick);el('hash').textContent=state.stateHash;
  // HUD numbers come straight from the Worker's account projection; nothing is counted in the page.
  const e=state.economy;el('stock').textContent=state.stateHash==='—'?'資源載入中…':`${ageNames[e.age]} · 食物 ${e.stock.food} · 木材 ${e.stock.wood} · 黃金 ${e.stock.gold} · 石頭 ${e.stock.stone} · 人口 ${e.populationUsed}/${e.populationCap}`;
- renderBuild();renderBuilding();reportTransactions();
+ renderBuild();renderBuilding();reportTransactions();renderOutcome();
  const chosen=state.units.filter(u=>selected.has(u.id)).sort((a,b)=>a.id-b.id);
  el('selection-list').textContent=chosen.length>1?chosen.map(u=>`${unitNames[u.kind]} ${u.id} (${(u.x/100).toFixed(1)}, ${(u.y/100).toFixed(1)})：${activity(u)}`).join('　'):'';
  const u=chosen[0];if(!u){el('position').textContent='未選取村民';return;}
  el('position').textContent=`${chosen.length>1?`${chosen.length} 名選取 · `:''}${unitNames[u.kind]} ${u.id} · (${(u.x/100).toFixed(1)}, ${(u.y/100).toFixed(1)}) · ${activity(u)}`;
 }
-function activity(u:View['units'][number]){const doing=u.work&&u.navigation!=='waiting'&&u.navigation!=='stuck'?workLabel[u.work]:statusLabel[u.navigation];return u.cargo?`${doing} · 攜帶${resourceNames[u.cargo.resource]} ${u.cargo.amount}`:doing;}
+function activity(u:View['units'][number]){const doing=u.action===1?'攻擊中':u.work&&u.navigation!=='waiting'&&u.navigation!=='stuck'?workLabel[u.work]:statusLabel[u.navigation];const life=u.hp<u.maxHp?` · 生命 ${u.hp}/${u.maxHp}`:'';return (u.cargo?`${doing} · 攜帶${resourceNames[u.cargo.resource]} ${u.cargo.amount}`:doing)+life;}
+async function attack(target:{kind:'unit';id:number}|{kind:'building';id:string},label:string){const unitIds=[...selected].sort((a,b)=>a-b);if(!unitIds.length){notice('請先選取單位。');return;}
+ try{await client.request({kind:'attack',unitIds,target});notice(`${names(unitIds)} 攻擊${label}。${running?'':'按「開始模擬」執行。'}`);}catch(e){notice((e as Error).message);}}
+function enemyBuildingAt(x:number,y:number){const p={x:Math.round(x*100),y:Math.round(y*100)};return state.known.map(k=>k.obstacle).find(o=>(o.kind==='house'||o.kind==='barracks'||o.kind==='town-center')&&o.red&&(()=>{const [x0,y0,x1,y1]=obstacleBounds(o);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;})());}
 const statusLabel:Record<string,string>={idle:'待命',searching:'尋路中',moving:'移動中',waiting:'等待讓路',unreachable:'無法到達，停在最近點',stuck:'受阻停止'};
-function setRunning(v:boolean){running=v;accumulator=0;last=0;el('pause').textContent=v?'暫停模擬':'開始模擬';el('pause').setAttribute('aria-pressed',String(v));el('run-state').textContent=v?'模擬運行中 · 20 Hz':'已暫停 · 等待指令';el<HTMLButtonElement>('step').disabled=!connected||graphicsFailed||v;}
+function setRunning(v:boolean){running=v;accumulator=0;last=0;el('pause').textContent=v?'暫停模擬':'開始模擬';el('pause').setAttribute('aria-pressed',String(v));el('run-state').textContent=v?`模擬運行中 · ${20*speed} ticks／秒`:'已暫停 · 等待指令';el<HTMLButtonElement>('step').disabled=!connected||graphicsFailed||v;}
 // Selection is UI state only; the Worker never sees it. Only own (blue) units can be selected.
 function select(ids:Iterable<number>){if(selectedBuilding&&[...ids].length)selectedBuilding=null;const own=new Set(state.units.filter(u=>u.player===0).map(u=>u.id));selected=new Set([...ids].filter(id=>own.size===0||own.has(id)));
  document.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(b=>b.setAttribute('aria-pressed',String(selected.has(Number(b.dataset.unit)))));
@@ -57,8 +61,11 @@ function renderBuild(){for(const k of buildKinds){const b=el<HTMLButtonElement>(
 function renderBuilding(){const panel=el('building-panel'),b=state.buildings.find(b=>b.id===selectedBuilding);panel.hidden=!b;if(!b)return;
  const builders=state.units.filter(u=>u.work==='building'||u.work==='toSite').length;
  el('building-title').textContent=buildingNames[b.kind]??b.kind;const housing=buildingRules.capacity[b.kind as keyof typeof buildingRules.capacity]??0;
- el('building-status').textContent=b.complete?(housing?`已完工 · 提供人口 ${housing}`:'已完工'):`施工中 ${Math.floor(b.work*100/b.required)}%（全體施工中的村民：${builders} 名）`;
+ el('building-status').textContent=(b.hp<b.maxHp?`生命 ${b.hp}/${b.maxHp} · `:'')+(b.complete?(housing?`已完工 · 提供人口 ${housing}`:'已完工'):`施工中 ${Math.floor(b.work*100/b.required)}%（全體施工中的村民：${builders} 名）`);
  renderProduction(b);const cancel=el<HTMLButtonElement>('cancel-build');cancel.hidden=b.complete;cancel.textContent=b.kind in buildingNames&&!b.complete?`取消建造（退回 ${costText(b.kind as BuildKind)}）`:'取消建造';}
+// Conquest result from the Worker; the sim refuses further orders, so the only action offered is a new game.
+function renderOutcome(){const o=state.outcome,box=el('result');box.hidden=!o;if(!o)return;const won=o.winner===0;
+ el('result-title').textContent=won?'勝利':o.winner===null?'雙方同歸於盡':'戰敗';el('result-detail').textContent=`tick ${o.tick}：${won?'紅方已沒有任何單位與建築。':'藍方已沒有任何單位與建築。'}`;if(running)setRunning(false);}
 function reportTransactions(){for(const t of state.transactions)if(t.sequence>lastTransaction){lastTransaction=t.sequence;if(!t.ok)notice(`指令在 tick ${t.tick} 未執行：${t.error}`);}}
 function selectBuilding(id:string|null){selectedBuilding=id;if(id)select([]);render();}
 function buildingAt(x:number,y:number){const p={x:Math.round(x*100),y:Math.round(y*100)};return state.known.map(k=>k.obstacle).find(o=>(o.kind==='house'||o.kind==='barracks'||o.kind==='town-center')&&!o.red&&(()=>{const [x0,y0,x1,y1]=obstacleBounds(o);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;})());}
@@ -112,7 +119,10 @@ canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed)return;
  if(placing){e.preventDefault();if(e.button!==0){stopPlacing('已取消放置。');return;}const g=scene.pickGround(e.clientX,e.clientY);if(g.x===undefined||g.y===undefined)return;
   const p=placeAt(placing,g.x,g.y);if(p.problem){notice(`不能放在這裡：${p.problem}`);return;}const k=placing;if(!e.shiftKey)stopPlacing();void build(k,p.x,p.y);return;}
  if(e.button===2){e.preventDefault();endDrag();const hit=scene.pickGround(e.clientX,e.clientY);if(hit.x===undefined||hit.y===undefined||hit.x<.5||hit.x>15.5||hit.y<.5||hit.y>15.5){notice('請在地圖內側的地面按右鍵。');return;}
-  if(selectedBuilding&&!selected.size){const b=state.buildings.find(b=>b.id===selectedBuilding);if(b?.complete&&Object.values(rules.production).includes(b.kind))void rally(b.id,hit.x,hit.y);else notice('這棟建築沒有集結點。');return;}const site=buildingAt(hit.x,hit.y),own=site?state.buildings.find(b=>b.id===site.id):undefined;if(own&&!own.complete&&selected.size){void construct(own.id);return;}
+  if(selectedBuilding&&!selected.size){const b=state.buildings.find(b=>b.id===selectedBuilding);if(b?.complete&&Object.values(rules.production).includes(b.kind))void rally(b.id,hit.x,hit.y);else notice('這棟建築沒有集結點。');return;}// Enemy unit under the cursor, then enemy building: attack orders.
+  if(selected.size){const u=scene.pick(e.clientX,e.clientY);const foe=u.unitId!==undefined?state.units.find(v=>v.id===u.unitId&&v.player!==0):undefined;if(foe){void attack({kind:'unit',id:foe.id},`紅方${unitNames[foe.kind]}`);return;}
+   const fort=enemyBuildingAt(hit.x,hit.y);if(fort){void attack({kind:'building',id:fort.id!},`紅方${buildingNames[fort.kind]}`);return;}}
+  const site=buildingAt(hit.x,hit.y),own=site?state.buildings.find(b=>b.id===site.id):undefined;if(own&&!own.complete&&selected.size){void construct(own.id);return;}
   const r=resourceAt(hit.x,hit.y);if(r){void gather(r.id);return;}void move(hit.x,hit.y);return;}
  if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId,box:false};canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;if(!drag.box&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>=4)drag.box=true;if(drag.box)showBox(drag.x,drag.y,e.clientX,e.clientY);});
@@ -144,10 +154,12 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();if(!graphicsFailed)scene?
 el('zoom-in').onclick=()=>scene?.zoom(.2);el('zoom-out').onclick=()=>scene?.zoom(-.2);el('rotate-view').onclick=()=>scene?.rotate();el('reset-view').onclick=()=>scene?.resetCamera();
 document.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(b=>b.onclick=e=>{const id=Number(b.dataset.unit);if(e.shiftKey)toggle(id);else choose(id);});
 el('stop').onclick=()=>void stop();renderGroups();
+el('result-restart').onclick=()=>el('restart').click();
 for(const k of buildKinds)el(`build-${k}`).onclick=()=>{if(buildBlocker(k))return;placing=k;preview=null;notice(`在場景中移動滑鼠選擇${buildingNames[k]}的位置。`);render();};
 el('cancel-build').onclick=async()=>{const b=state.buildings.find(b=>b.id===selectedBuilding);if(!b)return;try{await client.request({kind:'cancelBuild',buildingId:b.id});notice(`已取消${buildingNames[b.kind]}，退回 ${costText(b.kind as BuildKind)}。`);selectBuilding(null);}catch(e){notice((e as Error).message);}};
 el('move').onclick=()=>{const x=el<HTMLInputElement>('target-x'),y=el<HTMLInputElement>('target-y');if(x.reportValidity()&&y.reportValidity()&&x.value!==''&&y.value!=='')move(Number(x.value),Number(y.value));else notice('請輸入 0.5 到 15.5 之間的座標。');};
 el('pause').onclick=()=>setRunning(!running);
+el<HTMLSelectElement>('speed').onchange=e=>{speed=Number((e.target as HTMLSelectElement).value);accumulator=0;if(running)setRunning(true);notice(`模擬速度 ${speed}×（每秒 ${20*speed} ticks，不跳過任何 tick）。`);};
 el('step').onclick=async()=>{try{await client.request({kind:'advance',count:1});}catch(e){setRunning(false);notice((e as Error).message);}};
 el('restart').onclick=async()=>{setRunning(false);try{const input=el<HTMLInputElement>('seed');if(input.value==='')throw Error('請輸入種子');await client.request({kind:'reset',seed:Number(input.value),layout:el<HTMLSelectElement>('layout').value as MapLayout});choose(1);notice('已建立新沙盒。先前的手動存檔仍然保留。');}catch(e){notice((e as Error).message);}};
 el('save').onclick=async()=>{try{const result=await client.request({kind:'snapshot'});localStorage.setItem('brick-rts:sandbox:1',result.snapshot!);notice(`已儲存 tick ${result.tick} 的沙盒。`);}catch(e){notice(`儲存失敗：${(e as Error).message}。先前存檔保留。`);}};
@@ -163,7 +175,7 @@ new ResizeObserver(()=>render()).observe(canvas.parentElement!);
 function frame(time:number){
  if(running){if(last)accumulator+=time-last;last=time;
   if(accumulator>1000){setRunning(false);notice('模擬落後超過 1 秒，已暫停；未跳過任何 tick。');}
-  else if(!advancing&&accumulator>=50){const count=Math.floor(accumulator/50);accumulator-=count*50;advancing=true;
+  else if(!advancing&&accumulator>=50/speed){const count=Math.min(20,Math.floor(accumulator*speed/50));accumulator-=count*50/speed;advancing=true;
    void client.request({kind:'advance',count}).catch(e=>{setRunning(false);notice((e as Error).message);}).finally(()=>{advancing=false;});}
  }
  if(!graphicsFailed){try{scene?.draw(time);}catch(error){graphicsError(`3D 繪圖失敗：${(error as Error).message}`);}}

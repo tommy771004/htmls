@@ -63,7 +63,7 @@ try {
  await fogPage.addInitScript(()=>{const NativeWorker=window.Worker;window.Worker=class extends NativeWorker{constructor(...args){super(...args);this.addEventListener('message',event=>{if(event.data.ok)window.lastFogView=event.data;});}};});
  await fogPage.goto(origin+'/web/150-brick-rts.html');await fogPage.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
  // UNIT_STRIDE in packages/sim/protocol.ts (locked by tests/worker.test.ts).
- const fogUnits=()=>fogPage.evaluate(()=>Array.from(new Int32Array(window.lastFogView.positions)).filter((_,i)=>i%12===0));
+ const fogUnits=()=>fogPage.evaluate(()=>Array.from(new Int32Array(window.lastFogView.positions)).filter((_,i)=>i%15===0));
  await fogPage.locator('#fog-debug summary').click();await fogPage.locator('[name="fog-x"]').fill('11');await fogPage.locator('[name="fog-y"]').fill('4');assert.doesNotMatch(await fogPage.locator('.fog-memories').textContent(),/紅方/);
  assert.deepEqual(await fogUnits(),[1,2,3]);await fogPage.screenshot({path:output+'fog-unexplored.png',fullPage:true});
  await fogPage.locator('#target-x').fill('11');await fogPage.locator('#target-y').fill('9');await fogPage.locator('#move').click();await fogPage.waitForFunction(()=>document.querySelector('#notice').textContent.includes('已排入'));await fogPage.locator('#pause').click();await fogPage.waitForFunction(()=>document.querySelector('#position').textContent.includes('(11.0, 9.0)')&&document.querySelector('#position').textContent.includes('待命'),{},{timeout:30000});await fogPage.locator('#pause').click();

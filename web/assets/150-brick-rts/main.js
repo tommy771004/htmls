@@ -1203,8 +1203,8 @@ async function createScene(canvas2, onFailure, options = {}) {
   }
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
-  function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2) {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
+  function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2, health = 100) {
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -1237,7 +1237,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y)] !== 2;
       const x = o.x / 100, z = o.y / 100;
-      if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2);
+      if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
       else if (o.kind === "tree") {
         brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8, "#80664b", false);
         brick(x - 0.2, z - 0.2, 0.7, 1, 1, 0.4, "#67835a");
@@ -1280,6 +1280,8 @@ async function createScene(canvas2, onFailure, options = {}) {
     }
   }
   const units = /* @__PURE__ */ new Map();
+  const fallen = /* @__PURE__ */ new Map();
+  const barBack = new T.MeshBasicMaterial({ color: "#2d3a33" }), barGeo = new T.BoxGeometry(0.5, 0.05, 0.05);
   const ringGeo = new T.RingGeometry(0.4, 0.47, 32);
   ringGeo.rotateX(-Math.PI / 2);
   geometry.set("ring", ringGeo);
@@ -1287,6 +1289,14 @@ async function createScene(canvas2, onFailure, options = {}) {
   function unit(id, player, kind = "villager") {
     const group = new T.Group();
     scene2.add(group);
+    const bar = new T.Group();
+    bar.position.y = 1.42;
+    bar.visible = false;
+    const back = new T.Mesh(barGeo, barBack);
+    const fill = new T.Mesh(barGeo, new T.MeshBasicMaterial({ color: player === 0 ? "#5f9a6a" : "#c0604c" }));
+    fill.position.z = 0.012;
+    bar.add(back, fill);
+    group.add(bar);
     const rig = createCharacterRig(T, player, box2, material);
     if (!options.assetPreview && kind !== "villager") rig.dress(kind === "militia" ? "swordsman" : "archer");
     rig.equip(previewTool);
@@ -1295,7 +1305,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     const ring = new T.Mesh(ringGeo, ringMaterial);
     ring.position.y = 0.025;
     group.add(ring);
-    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none" });
+    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill });
     return units.get(id);
   }
   let previewRole = "villager";
@@ -1346,7 +1356,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       u.group.position.set(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100);
       u.ring.visible = selected2.has(data.id);
       u.moving = data.navigation === "moving";
-      if (!options.assetPreview && data.work === "gathering" && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
+      if (!options.assetPreview && (data.work === "gathering" || data.action === 1) && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
       if (!options.assetPreview) {
         const gathering = data.work === "gathering" && !u.moving, activity2 = u.moving ? data.cargo ? "carry" : "walk" : gathering ? "work" : "idle";
         const weapon = data.kind === "militia" ? "sword" : data.kind === "archer" ? "bow" : "none", tool = data.cargo && activity2 !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food: "basket" }[data.workResource ?? "food"] : weapon;
@@ -1354,8 +1364,29 @@ async function createScene(canvas2, onFailure, options = {}) {
           u.rig.equip(tool);
           u.tool = tool;
         }
-        u.activity = activity2;
+        const next = data.action === 1 && !u.moving ? "attack" : data.action === 2 && !u.moving ? "hit" : activity2;
+        if (next !== u.activity) u.poseStart = performance.now();
+        u.activity = next;
+        const share = Math.max(0, data.hp) / Math.max(1, data.maxHp);
+        u.bar.visible = share < 1;
+        u.fill.scale.x = Math.max(1e-3, share);
+        u.fill.position.x = -0.25 * (1 - share);
+        u.bar.rotation.y = angle - u.group.rotation.y;
       }
+    }
+    const lying = new Set((view.corpses ?? []).map((c) => c.id));
+    for (const [id, f] of fallen) if (!lying.has(id)) {
+      scene2.remove(f.group);
+      fallen.delete(id);
+    }
+    for (const c of view.corpses ?? []) if (!fallen.has(c.id)) {
+      const group = new T.Group();
+      const rig = createCharacterRig(T, c.player, box2, material);
+      if (c.kind !== "villager") rig.dress(c.kind === "militia" ? "swordsman" : "archer");
+      group.add(rig.root);
+      group.position.set(c.x / 100, groundHeight(worldTiles, c.x, c.y) / 100, c.y / 100);
+      scene2.add(group);
+      fallen.set(c.id, { group, rig, start: performance.now() });
     }
   }
   const raycaster = new T.Raycaster(), ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
@@ -1393,9 +1424,10 @@ async function createScene(canvas2, onFailure, options = {}) {
     resize();
     for (const u of units.values()) {
       const pose = options.assetPreview ? previewPose : u.activity;
-      u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : time);
+      u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : pose === "hit" ? time - u.poseStart : time);
       u.ring.visible = [...units].some(([id, v]) => v === u && selected2.has(id)) && pose !== "death";
     }
+    for (const f of fallen.values()) f.rig.pose("death", time - f.start);
     renderer.render(scene2, camera);
   }
   canvas2.addEventListener("webglcontextlost", (event) => {
@@ -1526,6 +1558,19 @@ var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 
 // packages/sim/economy.ts
 var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100, carryCapacity: 10, gatherTicks: { food: 20, wood: 20, gold: 25, stone: 25 }, workReach: 50, dropoffReach: 50 };
 
+// packages/sim/stats.ts
+var combatRules = {
+  provenance: "design_default",
+  units: {
+    villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0 },
+    militia: { hp: 45, damage: 6, range: 50, cooldown: 20, sight: 350 },
+    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400 }
+  },
+  buildings: { "town-center": 400, house: 150, barracks: 300 },
+  corpseTicks: 40,
+  hitFlashTicks: 6
+};
+
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
 var unitKinds = ["villager", "militia", "archer"];
@@ -1602,15 +1647,15 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 14 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, simulationVersion: 15 });
 
 // packages/sim/protocol.ts
-var UNIT_STRIDE = 12;
+var UNIT_STRIDE = 15;
 var STRIDE = UNIT_STRIDE;
 function decodeView(r) {
   const values = new Int32Array(r.positions), units = [];
-  for (let i = 0; i < values.length; i += STRIDE) units.push({ kind: unitKinds[values[i + 11]], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] } });
-  return { seed: r.seed, layout: r.layout, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, units };
+  for (let i = 0; i < values.length; i += STRIDE) units.push({ kind: unitKinds[values[i + 11]], hp: values[i + 12], maxHp: values[i + 13], action: values[i + 14], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] } });
+  return { seed: r.seed, layout: r.layout, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, units };
 }
 
 // apps/web/worker-client.ts
@@ -1703,7 +1748,7 @@ var SimulationClient = class {
 
 // apps/web/main.ts
 var el = (id) => document.getElementById(id);
-var state = { seed: rules.settings.seed, layout: "meadow", terrain: [], tick: 0, units: [], economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1 }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014" };
+var state = { seed: rules.settings.seed, layout: "meadow", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1 }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014" };
 var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
 var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D" };
 var buildingNames2 = { house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
@@ -1713,6 +1758,7 @@ var lastTransaction = 0;
 var preview = null;
 var scene = null;
 var graphicsFailed = false;
+var speed = 1;
 var selected = /* @__PURE__ */ new Set([1]);
 var running = false;
 var last = 0;
@@ -1742,6 +1788,7 @@ function render() {
   renderBuild();
   renderBuilding();
   reportTransactions();
+  renderOutcome();
   const chosen = state.units.filter((u2) => selected.has(u2.id)).sort((a, b) => a.id - b.id);
   el("selection-list").textContent = chosen.length > 1 ? chosen.map((u2) => `${unitNames[u2.kind]} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
   const u = chosen[0];
@@ -1752,8 +1799,29 @@ function render() {
   el("position").textContent = `${chosen.length > 1 ? `${chosen.length} \u540D\u9078\u53D6 \xB7 ` : ""}${unitNames[u.kind]} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
 }
 function activity(u) {
-  const doing = u.work && u.navigation !== "waiting" && u.navigation !== "stuck" ? workLabel[u.work] : statusLabel[u.navigation];
-  return u.cargo ? `${doing} \xB7 \u651C\u5E36${resourceNames[u.cargo.resource]} ${u.cargo.amount}` : doing;
+  const doing = u.action === 1 ? "\u653B\u64CA\u4E2D" : u.work && u.navigation !== "waiting" && u.navigation !== "stuck" ? workLabel[u.work] : statusLabel[u.navigation];
+  const life = u.hp < u.maxHp ? ` \xB7 \u751F\u547D ${u.hp}/${u.maxHp}` : "";
+  return (u.cargo ? `${doing} \xB7 \u651C\u5E36${resourceNames[u.cargo.resource]} ${u.cargo.amount}` : doing) + life;
+}
+async function attack(target, label) {
+  const unitIds = [...selected].sort((a, b) => a - b);
+  if (!unitIds.length) {
+    notice("\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\u3002");
+    return;
+  }
+  try {
+    await client.request({ kind: "attack", unitIds, target });
+    notice(`${names2(unitIds)} \u653B\u64CA${label}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u57F7\u884C\u3002"}`);
+  } catch (e) {
+    notice(e.message);
+  }
+}
+function enemyBuildingAt(x, y) {
+  const p = { x: Math.round(x * 100), y: Math.round(y * 100) };
+  return state.known.map((k) => k.obstacle).find((o) => (o.kind === "house" || o.kind === "barracks" || o.kind === "town-center") && o.red && (() => {
+    const [x0, y0, x1, y1] = obstacleBounds(o);
+    return p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
+  })());
 }
 var statusLabel = { idle: "\u5F85\u547D", searching: "\u5C0B\u8DEF\u4E2D", moving: "\u79FB\u52D5\u4E2D", waiting: "\u7B49\u5F85\u8B93\u8DEF", unreachable: "\u7121\u6CD5\u5230\u9054\uFF0C\u505C\u5728\u6700\u8FD1\u9EDE", stuck: "\u53D7\u963B\u505C\u6B62" };
 function setRunning(v) {
@@ -1762,7 +1830,7 @@ function setRunning(v) {
   last = 0;
   el("pause").textContent = v ? "\u66AB\u505C\u6A21\u64EC" : "\u958B\u59CB\u6A21\u64EC";
   el("pause").setAttribute("aria-pressed", String(v));
-  el("run-state").textContent = v ? "\u6A21\u64EC\u904B\u884C\u4E2D \xB7 20 Hz" : "\u5DF2\u66AB\u505C \xB7 \u7B49\u5F85\u6307\u4EE4";
+  el("run-state").textContent = v ? `\u6A21\u64EC\u904B\u884C\u4E2D \xB7 ${20 * speed} ticks\uFF0F\u79D2` : "\u5DF2\u66AB\u505C \xB7 \u7B49\u5F85\u6307\u4EE4";
   el("step").disabled = !connected || graphicsFailed || v;
 }
 function select(ids) {
@@ -1810,11 +1878,20 @@ function renderBuilding() {
   const builders = state.units.filter((u) => u.work === "building" || u.work === "toSite").length;
   el("building-title").textContent = buildingNames2[b.kind] ?? b.kind;
   const housing = buildingRules.capacity[b.kind] ?? 0;
-  el("building-status").textContent = b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders} \u540D\uFF09`;
+  el("building-status").textContent = (b.hp < b.maxHp ? `\u751F\u547D ${b.hp}/${b.maxHp} \xB7 ` : "") + (b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders} \u540D\uFF09`);
   renderProduction(b);
   const cancel = el("cancel-build");
   cancel.hidden = b.complete;
   cancel.textContent = b.kind in buildingNames2 && !b.complete ? `\u53D6\u6D88\u5EFA\u9020\uFF08\u9000\u56DE ${costText(b.kind)}\uFF09` : "\u53D6\u6D88\u5EFA\u9020";
+}
+function renderOutcome() {
+  const o = state.outcome, box2 = el("result");
+  box2.hidden = !o;
+  if (!o) return;
+  const won = o.winner === 0;
+  el("result-title").textContent = won ? "\u52DD\u5229" : o.winner === null ? "\u96D9\u65B9\u540C\u6B78\u65BC\u76E1" : "\u6230\u6557";
+  el("result-detail").textContent = `tick ${o.tick}\uFF1A${won ? "\u7D05\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002" : "\u85CD\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002"}`;
+  if (running) setRunning(false);
 }
 function reportTransactions() {
   for (const t of state.transactions) if (t.sequence > lastTransaction) {
@@ -2088,6 +2165,19 @@ canvas.addEventListener("pointerdown", (e) => {
       else notice("\u9019\u68DF\u5EFA\u7BC9\u6C92\u6709\u96C6\u7D50\u9EDE\u3002");
       return;
     }
+    if (selected.size) {
+      const u = scene.pick(e.clientX, e.clientY);
+      const foe = u.unitId !== void 0 ? state.units.find((v) => v.id === u.unitId && v.player !== 0) : void 0;
+      if (foe) {
+        void attack({ kind: "unit", id: foe.id }, `\u7D05\u65B9${unitNames[foe.kind]}`);
+        return;
+      }
+      const fort = enemyBuildingAt(hit.x, hit.y);
+      if (fort) {
+        void attack({ kind: "building", id: fort.id }, `\u7D05\u65B9${buildingNames2[fort.kind]}`);
+        return;
+      }
+    }
     const site = buildingAt(hit.x, hit.y), own = site ? state.buildings.find((b) => b.id === site.id) : void 0;
     if (own && !own.complete && selected.size) {
       void construct(own.id);
@@ -2238,6 +2328,7 @@ document.querySelectorAll("[data-unit]").forEach((b) => b.onclick = (e) => {
 });
 el("stop").onclick = () => void stop();
 renderGroups();
+el("result-restart").onclick = () => el("restart").click();
 for (const k of buildKinds) el(`build-${k}`).onclick = () => {
   if (buildBlocker(k)) return;
   placing = k;
@@ -2262,6 +2353,12 @@ el("move").onclick = () => {
   else notice("\u8ACB\u8F38\u5165 0.5 \u5230 15.5 \u4E4B\u9593\u7684\u5EA7\u6A19\u3002");
 };
 el("pause").onclick = () => setRunning(!running);
+el("speed").onchange = (e) => {
+  speed = Number(e.target.value);
+  accumulator = 0;
+  if (running) setRunning(true);
+  notice(`\u6A21\u64EC\u901F\u5EA6 ${speed}\xD7\uFF08\u6BCF\u79D2 ${20 * speed} ticks\uFF0C\u4E0D\u8DF3\u904E\u4EFB\u4F55 tick\uFF09\u3002`);
+};
 el("step").onclick = async () => {
   try {
     await client.request({ kind: "advance", count: 1 });
@@ -2367,9 +2464,9 @@ function frame(time) {
     if (accumulator > 1e3) {
       setRunning(false);
       notice("\u6A21\u64EC\u843D\u5F8C\u8D85\u904E 1 \u79D2\uFF0C\u5DF2\u66AB\u505C\uFF1B\u672A\u8DF3\u904E\u4EFB\u4F55 tick\u3002");
-    } else if (!advancing && accumulator >= 50) {
-      const count = Math.floor(accumulator / 50);
-      accumulator -= count * 50;
+    } else if (!advancing && accumulator >= 50 / speed) {
+      const count = Math.min(20, Math.floor(accumulator * speed / 50));
+      accumulator -= count * 50 / speed;
       advancing = true;
       void client.request({ kind: "advance", count }).catch((e) => {
         setRunning(false);

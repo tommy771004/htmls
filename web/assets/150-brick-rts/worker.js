@@ -165,7 +165,7 @@ var rules = {
 var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100, carryCapacity: 10, gatherTicks: { food: 20, wood: 20, gold: 25, stone: 25 }, workReach: 50, dropoffReach: 50 };
 var zero = () => ({ food: 0, wood: 0, gold: 0, stone: 0 });
 function createAccount(populationUsed) {
-  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero() } };
+  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero(), lost: zero() } };
 }
 function reserve(account, id, entryId) {
   const entry2 = rules.entries.find((e) => e.id === entryId);
@@ -192,6 +192,25 @@ function commitReservation(account, id) {
   account.populationUsed += r.population;
   r.status = "committed";
 }
+function forfeitReservation(account, id) {
+  const r = account.reservations.find((r2) => r2.id === id);
+  if (!r || r.status !== "reserved") throw Error("\u9810\u7559\u9805\u76EE\u4E0D\u5B58\u5728\u6216\u5DF2\u7D50\u675F");
+  account.populationReserved -= r.population;
+  r.status = "forfeited";
+}
+
+// packages/sim/stats.ts
+var combatRules = {
+  provenance: "design_default",
+  units: {
+    villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0 },
+    militia: { hp: 45, damage: 6, range: 50, cooldown: 20, sight: 350 },
+    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400 }
+  },
+  buildings: { "town-center": 400, house: 150, barracks: 300 },
+  corpseTicks: 40,
+  hitFlashTicks: 6
+};
 
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 128, speedPerTick: 5, maxGroupSize: 40, waitLimit: 8, queueWaitFactor: 4, detourLimit: 12, stuckTicks: 300, arrivalRadius: 150 };
@@ -388,16 +407,16 @@ function validateStartingResources(map) {
         const obstacle = map.obstacles.find((o) => o.id === resource.obstacleId);
         if (!obstacle) return { id: resource.id, remaining: resource.remaining, distance: Infinity, approach: null };
         const [x0, y0, x1, y1] = bounds(obstacle);
-        let distance = Infinity, approach = null;
+        let distance = Infinity, approach2 = null;
         for (let i = 0; i < 961; i++) {
           if (!Number.isFinite(distances[i])) continue;
           const p = position(i), gap2 = Math.max(x0 - p.x, 0, p.x - x1) + Math.max(y0 - p.y, 0, p.y - y1);
           if (gap2 > 0 && gap2 <= 50 && distances[i] < distance) {
             distance = distances[i];
-            approach = p;
+            approach2 = p;
           }
         }
-        return { id: resource.id, remaining: resource.remaining, distance, approach };
+        return { id: resource.id, remaining: resource.remaining, distance, approach: approach2 };
       }).filter((n) => n.distance <= startingResourceRules.maxApproachDistance);
       const available = nodes.reduce((sum, n) => sum + n.remaining, 0), nearestDistance = nodes.length ? Math.min(...nodes.map((n) => n.distance)) : null;
       if (available < minimum) errors.push(`\u73A9\u5BB6 ${player} \u8D77\u59CB ${kind} \u53EF\u9054\u5BB9\u91CF\u4E0D\u8DB3\uFF1A${available}/${minimum}`);
@@ -499,7 +518,7 @@ function nodeAt(p) {
 function makeUnit(id, player, x, y, kind = "villager") {
   const node = nodeAt({ x, y });
   if (node < 0) throw Error("\u55AE\u4F4D\u5FC5\u9808\u7AD9\u5728\u5C0E\u822A\u7BC0\u9EDE\u4E0A");
-  return { id, player, kind, x, y, node, next: null, path: [], goal: null, target: null, navigation: "idle", wait: 0, detours: 0, partial: false, order: 0, outcome: null };
+  return { id, player, kind, hp: combatRules.units[kind].hp, hitTick: -1, x, y, node, next: null, path: [], goal: null, target: null, navigation: "idle", wait: 0, detours: 0, partial: false, order: 0, outcome: null };
 }
 function search(start) {
   const parent = Array(NODES).fill(-2);
@@ -777,7 +796,7 @@ function recomputeCapacity(s, player) {
 }
 function initBuildings(s) {
   for (const o of s.map.obstacles) if (o.kind === "town-center") {
-    s.buildings.push({ id: o.id, kind: "town-center", player: o.red ? 1 : 0, x: o.x, y: o.y, work: 0, required: 0, complete: true, reservationId: null, queue: [], rally: null });
+    s.buildings.push({ id: o.id, kind: "town-center", player: o.red ? 1 : 0, x: o.x, y: o.y, work: 0, required: 0, complete: true, reservationId: null, queue: [], rally: null, hp: combatRules.buildings["town-center"], maxHp: combatRules.buildings["town-center"] });
     o.age = s.ages[o.red ? 1 : 0];
   }
   for (const p of [0, 1]) recomputeCapacity(s, p);
@@ -786,7 +805,7 @@ function placeBuilding(s, player, kind, x, y, reservationId) {
   const problem = authoritativeProblem(s, player, kind, x, y);
   if (problem) throw Error(problem);
   reserve(s.accounts[player], reservationId, kind);
-  const b = { id: `building-${s.nextBuildingId++}`, kind, player, x, y, work: 0, required: buildingRules.required[kind], complete: false, reservationId, queue: [], rally: null };
+  const b = { id: `building-${s.nextBuildingId++}`, kind, player, x, y, work: 0, required: buildingRules.required[kind], complete: false, reservationId, queue: [], rally: null, hp: 1, maxHp: combatRules.buildings[kind] };
   s.buildings.push(b);
   const o = { id: b.id, kind, x, y, progress: 0, age: s.ages[player], ...player ? { red: true } : {} };
   s.map.obstacles.push(o);
@@ -798,6 +817,8 @@ function addWork(s, b) {
   if (b.complete) return false;
   b.work++;
   const o = obstacleOf(s, b);
+  const gained = Math.floor(b.work * b.maxHp / b.required) - Math.floor((b.work - 1) * b.maxHp / b.required);
+  b.hp = Math.min(b.maxHp, b.hp + gained);
   if (b.work >= b.required) {
     b.complete = true;
     commitReservation(s.accounts[b.player], b.reservationId);
@@ -824,12 +845,12 @@ function cancelBuilding(s, player, id) {
 var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building"];
 var NODES2 = 961;
 var gap = (p, [x0, y0, x1, y1]) => Math.max(x0 - p.x, 0, p.x - x1) + Math.max(y0 - p.y, 0, p.y - y1);
-function ring(map, o, reach) {
+function ring(map, o, reach2) {
   const box = obstacleBounds(o, 25), out = [];
   for (let n = 0; n < NODES2; n++) {
     if (map.blocked.includes(n)) continue;
     const d = gap(position(n), box);
-    if (d > 0 && d <= reach) out.push(n);
+    if (d > 0 && d <= reach2) out.push(n);
   }
   return out;
 }
@@ -1102,7 +1123,157 @@ function stepProduction(s) {
     b.queue.shift();
     const p = position(node), u = makeUnit(s.nextUnitId++, b.player, p.x, p.y, unitKindOf[item.entryId]);
     s.units.push(u);
-    if (b.rally) commandMove(s, [u.id], b.rally);
+    if (b.rally && nearest(s.map, b.rally, false) >= 0) commandMove(s, [u.id], b.rally);
+  }
+}
+
+// packages/sim/combat.ts
+var REPATH = 20;
+function buildingBox(s, b) {
+  const o = s.map.obstacles.find((o2) => o2.id === b.id);
+  return o ? obstacleBounds(o) : null;
+}
+function reach(p, t) {
+  if (!Array.isArray(t)) return Math.max(Math.abs(p.x - t.x), Math.abs(p.y - t.y));
+  return Math.max(t[0] - p.x, 0, p.x - t[2], t[1] - p.y, 0, p.y - t[3]);
+}
+function resolve(s, t) {
+  if (t.kind === "unit") {
+    const u = s.units.find((u2) => u2.id === t.id);
+    return u ? { player: u.player, shape: { x: u.x, y: u.y }, tiles: [tileAt(u.x, u.y)] } : null;
+  }
+  const b = s.buildings.find((b2) => b2.id === t.id), box = b && buildingBox(s, b);
+  if (!b || !box) return null;
+  const tiles = [];
+  for (let ty = Math.floor(box[1] / 100); ty <= Math.floor((box[3] - 1) / 100); ty++) for (let tx = Math.floor(box[0] / 100); tx <= Math.floor((box[2] - 1) / 100); tx++) tiles.push(ty * 16 + tx);
+  return { player: b.player, shape: box, tiles };
+}
+function targetProblem(s, player, t) {
+  const r = resolve(s, t);
+  if (!r) return "\u627E\u4E0D\u5230\u76EE\u6A19";
+  if (r.player === player) return "\u4E0D\u80FD\u653B\u64CA\u5DF1\u65B9";
+  const seen = new Set(s.vision[player].visible);
+  if (!r.tiles.some((id) => seen.has(id))) return "\u627E\u4E0D\u5230\u76EE\u6A19";
+  return null;
+}
+function commandAttack(s, unitIds, t) {
+  for (const id of unitIds) {
+    cancelMovement(s, id);
+    delete s.works[id];
+    s.attacks[id] = { target: t, cooldown: 0, auto: false, repath: 0, firedTick: -1 };
+  }
+}
+function clearAttacks(s, unitIds) {
+  for (const id of unitIds) delete s.attacks[id];
+}
+function approach(s, u, shape) {
+  const range = combatRules.units[u.kind].range, out = [];
+  for (let n = 0; n < 961; n++) {
+    if (s.map.blocked.includes(n)) continue;
+    const p = position(n), d = reach(p, shape);
+    if (d <= range && (Array.isArray(shape) || d > 0)) out.push(n);
+  }
+  const held2 = new Set(s.units.filter((v) => v !== u && v.next === null && !v.path.length).map((v) => v.node)), free = out.filter((n) => !held2.has(n));
+  return free.length ? free : out;
+}
+function killUnit(s, u) {
+  const a = s.accounts[u.player], c = s.cargo[u.id];
+  if (c) {
+    a.ledger.lost[c.resource] += c.amount;
+    delete s.cargo[u.id];
+  }
+  delete s.works[u.id];
+  delete s.attacks[u.id];
+  cancelMovement(s, u.id);
+  a.populationUsed--;
+  s.units = s.units.filter((v) => v !== u);
+  s.corpses.push({ id: u.id, player: u.player, kind: u.kind, x: u.x, y: u.y, tick: s.tick });
+}
+function destroyBuilding(s, b) {
+  const a = s.accounts[b.player];
+  if (!b.complete && b.reservationId) forfeitReservation(a, b.reservationId);
+  for (const q of b.queue) forfeitReservation(a, q.reservationId);
+  const o = s.map.obstacles.find((o2) => o2.id === b.id);
+  s.map.obstacles = s.map.obstacles.filter((v) => v !== o);
+  for (const t of s.map.tiles) t.obstacleRefs = t.obstacleRefs.filter((r) => r !== b.id);
+  s.buildings = s.buildings.filter((v) => v !== b);
+  refreshNavigation(s.map, obstacleBounds(o, navigationRules.radius));
+  recomputeCapacity(s, b.player);
+}
+function damage(s, t, amount) {
+  if (t.kind === "unit") {
+    const u = s.units.find((u2) => u2.id === t.id);
+    u.hp -= amount;
+    u.hitTick = s.tick;
+    if (u.hp <= 0) killUnit(s, u);
+    return;
+  }
+  const b = s.buildings.find((b2) => b2.id === t.id);
+  b.hp -= amount;
+  const o = s.map.obstacles.find((o2) => o2.id === b.id);
+  if (b.hp * 2 < b.maxHp) o.damaged = true;
+  if (b.hp <= 0) destroyBuilding(s, b);
+}
+function stepCombat(s) {
+  s.corpses = s.corpses.filter((c) => s.tick - c.tick < combatRules.corpseTicks);
+  const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
+  for (const u of [...s.units].sort((a, b) => a.id - b.id)) {
+    const sight = combatRules.units[u.kind].sight;
+    if (!sight || s.attacks[u.id] || s.works[u.id] || u.next !== null || u.path.length || busy.has(u.id)) continue;
+    const seen = new Set(s.vision[u.player].visible);
+    let best = null, dist = Infinity;
+    for (const e of s.units) if (e.player !== u.player && seen.has(tileAt(e.x, e.y))) {
+      const d = reach(u, e);
+      if (d <= sight && (d < dist || d === dist && best && e.id < best.id)) {
+        best = e;
+        dist = d;
+      }
+    }
+    if (best) s.attacks[u.id] = { target: { kind: "unit", id: best.id }, cooldown: 0, auto: true, repath: 0, firedTick: -1 };
+  }
+  for (const id of Object.keys(s.attacks).map(Number).sort((a, b) => a - b)) {
+    const a = s.attacks[id], u = s.units.find((u2) => u2.id === id);
+    if (!a || !u) continue;
+    if (targetProblem(s, u.player, a.target)) {
+      delete s.attacks[id];
+      cancelMovement(s, u.id);
+      Object.assign(u, { path: [], goal: null, target: null, navigation: u.next === null ? "idle" : "moving" });
+      continue;
+    }
+    const r = resolve(s, a.target), stats = combatRules.units[u.kind];
+    if (a.cooldown > 0) a.cooldown--;
+    if (reach(u, r.shape) <= stats.range) {
+      if (u.next !== null) continue;
+      if (u.path.length || busy.has(u.id)) {
+        cancelMovement(s, u.id);
+        u.path = [];
+        u.goal = null;
+        u.target = null;
+      }
+      u.navigation = "idle";
+      if (a.cooldown === 0) {
+        a.cooldown = stats.cooldown;
+        a.firedTick = s.tick;
+        damage(s, a.target, stats.damage);
+      }
+      continue;
+    }
+    if (u.next !== null) continue;
+    if (a.repath > 0 && (u.path.length || busy.has(u.id))) {
+      a.repath--;
+      continue;
+    }
+    const nodes = approach(s, u, r.shape);
+    if (!nodes.length) {
+      delete s.attacks[id];
+      continue;
+    }
+    routeTo(s, u, nodes);
+    a.repath = REPATH;
+  }
+  if (!s.outcome) {
+    const alive = [0, 1].filter((p) => s.units.some((u) => u.player === p) || s.buildings.some((b) => b.player === p));
+    if (alive.length < 2) s.outcome = { winner: alive.length === 1 ? alive[0] : null, defeated: [0, 1].filter((p) => !alive.includes(p)), tick: s.tick };
   }
 }
 
@@ -1119,10 +1290,10 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 14 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, simulationVersion: 15 });
 function createState(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
-  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, version: 14, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed, layout), pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [makeUnit(1, 0, 350, 700), makeUnit(2, 0, 450, 700), makeUnit(3, 0, 400, 800), makeUnit(4, 1, 1150, 700)], queue: [], log: [] };
+  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, version: 15, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed, layout), pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [makeUnit(1, 0, 350, 700), makeUnit(2, 0, 450, 700), makeUnit(3, 0, 400, 800), makeUnit(4, 1, 1150, 700)], queue: [], log: [] };
   initBuildings(state);
   updateVision(state.vision, state.map, state.units, 0);
   return state;
@@ -1133,19 +1304,25 @@ function submit(state, c) {
   if (!Number.isSafeInteger(c.sequence) || c.sequence !== state.sequence[c.playerId] + 1) throw Error("\u91CD\u8907\u6216\u932F\u5E8F\u547D\u4EE4");
   if (!Number.isSafeInteger(c.targetTick) || c.targetTick <= state.tick || c.targetTick > state.tick + 200) throw Error("\u547D\u4EE4\u5DF2\u904E\u671F\u6216\u904E\u9060");
   if (!c.payload) throw Error("\u7F3A\u5C11 payload");
-  if (c.commandType === "move" || c.commandType === "stop" || c.commandType === "gather" || c.commandType === "build" || c.commandType === "construct") {
+  if (state.outcome) throw Error("\u5C0D\u5C40\u5DF2\u7D50\u675F\uFF1A\u8ACB\u518D\u958B\u4E00\u5C40");
+  if (c.commandType === "move" || c.commandType === "stop" || c.commandType === "gather" || c.commandType === "build" || c.commandType === "construct" || c.commandType === "attack") {
     const ids = c.payload.unitIds;
     if (!Array.isArray(ids) || !ids.length || ids.length > navigationRules.maxGroupSize || !ids.every((id, i) => Number.isSafeInteger(id) && (i === 0 || id > ids[i - 1]))) throw Error(`\u55AE\u4F4D\u6E05\u55AE\u9700\u70BA 1\u2013${navigationRules.maxGroupSize} \u500B\u905E\u589E\u4E14\u4E0D\u91CD\u8907\u7684 ID`);
     for (const id of ids) {
       const u = state.units.find((u2) => u2.id === id);
       if (!u || u.player !== c.playerId) throw Error("\u4E0D\u53EF\u63A7\u5236\u6575\u65B9\u6216\u4E0D\u5B58\u5728\u7684\u55AE\u4F4D");
-      if (c.commandType !== "move" && c.commandType !== "stop" && u.kind !== "villager") throw Error("\u53EA\u6709\u6751\u6C11\u80FD\u63A1\u96C6\u6216\u5EFA\u9020");
+      if (c.commandType !== "move" && c.commandType !== "stop" && c.commandType !== "attack" && u.kind !== "villager") throw Error("\u53EA\u6709\u6751\u6C11\u80FD\u63A1\u96C6\u6216\u5EFA\u9020");
     }
   }
   if (c.commandType === "move") {
     for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > 1550) throw Error("\u76EE\u6A19\u8D85\u51FA\u5730\u5716");
     if (!clearSegment(state.map, c.payload, c.payload)) throw Error("\u76EE\u6A19\u4F4D\u65BC\u5EFA\u7BC9\u3001\u8CC7\u6E90\u6216\u4E0D\u53EF\u901A\u884C\u5730\u5F62\u7684\u5360\u5730\u5167");
   } else if (c.commandType === "stop") {
+  } else if (c.commandType === "attack") {
+    const t = c.payload.target;
+    if (!t || !["unit", "building"].includes(t.kind)) throw Error("\u7121\u6548\u7684\u653B\u64CA\u76EE\u6A19");
+    const problem = targetProblem(state, c.playerId, t);
+    if (problem) throw Error(problem);
   } else if (c.commandType === "build") {
     const { kind, x, y } = c.payload;
     if (!buildKinds.includes(kind)) throw Error("\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E");
@@ -1164,6 +1341,7 @@ function submit(state, c) {
     } else {
       if (!b.complete) throw Error("\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5");
       for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > 1550) throw Error("\u96C6\u7D50\u9EDE\u8D85\u51FA\u5730\u5716");
+      if (!clearSegment(state.map, c.payload, c.payload)) throw Error("\u96C6\u7D50\u9EDE\u4E0D\u80FD\u8A2D\u5728\u5EFA\u7BC9\u3001\u8CC7\u6E90\u6216\u4E0D\u53EF\u901A\u884C\u5730\u5F62\u4E0A");
     }
   } else if (c.commandType === "construct" || c.commandType === "cancelBuild") {
     const b = state.buildings.find((b2) => b2.id === c.payload.buildingId);
@@ -1191,6 +1369,15 @@ function tick(s) {
   s.queue.sort((a, b) => a.targetTick - b.targetTick || a.playerId - b.playerId || a.sequence - b.sequence);
   while (s.queue.length && s.queue[0].targetTick === s.tick) {
     const c = s.queue.shift();
+    if (c.commandType === "attack") {
+      if (!targetProblem(s, c.playerId, c.payload.target)) commandAttack(s, c.payload.unitIds, c.payload.target);
+      else {
+        clearAttacks(s, c.payload.unitIds);
+        commandStop(s, c.payload.unitIds);
+      }
+      continue;
+    }
+    if (c.commandType === "move" || c.commandType === "stop" || c.commandType === "gather" || c.commandType === "build" || c.commandType === "construct") clearAttacks(s, c.payload.unitIds);
     if (c.commandType === "move") {
       clearWork(s, c.payload.unitIds);
       commandMove(s, c.payload.unitIds, { x: c.payload.x, y: c.payload.y });
@@ -1265,6 +1452,7 @@ function tick(s) {
   }
   stepProduction(s);
   const stats = stepMovement(s);
+  stepCombat(s);
   stepWork(s);
   updateVision(s.vision, s.map, s.units, s.tick);
   return stats;
@@ -1284,20 +1472,20 @@ function replay(seed, commands, ticks, layout = "meadow") {
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-14", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-15", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-14" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-15" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 14 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (s.version !== 15 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   const rebuilt = replay(s.seed, s.log, s.tick, s.layout);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);
 }
 
 // packages/sim/protocol.ts
-var UNIT_STRIDE = 12;
+var UNIT_STRIDE = 15;
 var STRIDE = UNIT_STRIDE;
 function createService() {
   let state = createState(260925), lastId = 0;
@@ -1310,6 +1498,7 @@ function createService() {
       if (!op || typeof op.kind !== "string") throw Error("\u7F3A\u5C11 operation");
       let accepted, commands, snapshot, replayMatches;
       switch (op.kind) {
+        case "attack":
         case "move":
         case "stop":
         case "gather":
@@ -1322,7 +1511,7 @@ function createService() {
           if (state.log.length >= 1e4) throw Error("\u5DF2\u9054\u6C99\u76D2 10000 \u6307\u4EE4\u4E0A\u9650\uFF0C\u8ACB\u5132\u5B58\u6216\u91CD\u5EFA");
           {
             const envelope = { acceptedTick: state.tick, protocolVersion: 1, rulesetHash, playerId: 0, sequence: state.sequence[0] + 1, targetTick: state.tick + 1 };
-            const command = op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
+            const command = op.kind === "attack" ? { ...envelope, commandType: "attack", payload: { unitIds: op.unitIds, target: op.target } } : op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
             submit(state, command);
             accepted = command;
           }
@@ -1359,13 +1548,16 @@ function createService() {
       const positions = new Int32Array(visibleUnits.length * STRIDE);
       visibleUnits.forEach((u, i) => {
         const own = u.player === 0, w = own ? state.works[u.id] : void 0, c = own ? state.cargo[u.id] : void 0;
-        const src = w?.kind === "gather" && w.phase === "gathering" ? state.map.resources.find((r) => r.id === w.resourceId) : void 0, box = src?.obstacleId ? state.map.obstacles.find((o) => o.id === src.obstacleId) : void 0, [bx0, by0, bx1, by1] = box ? obstacleBounds(box) : [0, 0, 0, 0], target = box ? { x: Math.round((bx0 + bx1) / 2), y: Math.round((by0 + by1) / 2) } : u.target;
-        positions.set([u.id, u.player, u.x, u.y, target?.x ?? -1, target?.y ?? -1, navigationStates.indexOf(u.navigation), w ? workPhases.indexOf(w.phase) : 0, c ? resources.indexOf(c.resource) : -1, c?.amount ?? 0, w?.kind === "gather" ? resources.indexOf(resourceDefinitions[state.map.resources.find((r) => r.id === w.resourceId).kind].yield) : -1, unitKinds.indexOf(u.kind)], i * STRIDE);
+        const src = w?.kind === "gather" && w.phase === "gathering" ? state.map.resources.find((r) => r.id === w.resourceId) : void 0, box = src?.obstacleId ? state.map.obstacles.find((o) => o.id === src.obstacleId) : void 0, [bx0, by0, bx1, by1] = box ? obstacleBounds(box) : [0, 0, 0, 0];
+        const fight = state.attacks[u.id], foe = fight?.target.kind === "unit" ? state.units.find((v) => v.id === fight.target.id) : void 0, site = fight?.target.kind === "building" ? state.map.obstacles.find((o) => o.id === fight.target.id) : void 0, sb = site ? obstacleBounds(site) : null;
+        const target = box ? { x: Math.round((bx0 + bx1) / 2), y: Math.round((by0 + by1) / 2) } : foe ? { x: foe.x, y: foe.y } : sb ? { x: Math.round((sb[0] + sb[2]) / 2), y: Math.round((sb[1] + sb[3]) / 2) } : u.target;
+        const action = fight && fight.firedTick >= 0 && state.tick - fight.firedTick < 10 ? 1 : u.hitTick >= 0 && state.tick - u.hitTick < combatRules.hitFlashTicks ? 2 : 0;
+        positions.set([u.id, u.player, u.x, u.y, target?.x ?? -1, target?.y ?? -1, navigationStates.indexOf(u.navigation), w ? workPhases.indexOf(w.phase) : 0, c ? resources.indexOf(c.resource) : -1, c?.amount ?? 0, w?.kind === "gather" ? resources.indexOf(resourceDefinitions[state.map.resources.find((r) => r.id === w.resourceId).kind].yield) : -1, unitKinds.indexOf(u.kind), u.hp, combatRules.units[u.kind].hp, action], i * STRIDE);
       });
       const account = state.accounts[0], economy = { stock: { ...account.stock }, populationUsed: account.populationUsed, populationReserved: account.populationReserved, populationCap: account.populationCap, age: state.ages[0] };
-      return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, economy, buildings: state.buildings.filter((b) => b.player === 0).map(({ id, kind, x, y, work, required, complete, queue, rally }) => ({ id, kind, x, y, work, required, complete, queue: queue.map(({ id: id2, entryId, work: work2, required: required2 }) => ({ id: id2, entryId, work: work2, required: required2 })), rally })), transactions: state.transactions.filter((t) => t.playerId === 0).slice(-5).map(({ sequence, tick: tick2, ok, error }) => ({ sequence, tick: tick2, ok, ...error ? { error } : {} })), ...projectVision(state.vision[0]), accepted, commands, snapshot, replayMatches };
+      return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, economy, corpses: state.corpses.filter((c) => c.player === 0 || state.vision[0].visible.includes(tileAt(c.x, c.y))).map((c) => ({ ...c })), outcome: state.outcome ? { ...state.outcome } : null, buildings: state.buildings.filter((b) => b.player === 0).map(({ id, kind, x, y, work, required, complete, queue, rally, hp, maxHp }) => ({ id, kind, x, y, work, required, complete, hp, maxHp, queue: queue.map(({ id: id2, entryId, work: work2, required: required2 }) => ({ id: id2, entryId, work: work2, required: required2 })), rally })), transactions: state.transactions.filter((t) => t.playerId === 0).slice(-5).map(({ sequence, tick: tick2, ok, error }) => ({ sequence, tick: tick2, ok, ...error ? { error } : {} })), ...projectVision(state.vision[0]), accepted, commands, snapshot, replayMatches };
     } catch (error) {
-      return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: ["move", "stop", "gather", "build", "construct"].includes(req?.operation?.kind) ? req.operation.unitIds?.[0] : void 0 };
+      return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: ["attack", "move", "stop", "gather", "build", "construct"].includes(req?.operation?.kind) ? req.operation.unitIds?.[0] : void 0 };
     }
   };
 }

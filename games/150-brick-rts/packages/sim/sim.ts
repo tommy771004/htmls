@@ -6,6 +6,7 @@ import type {Account} from './economy.ts';
 import {terrainRules,terrainDefinitions,resourceDefinitions} from './terrain.ts';
 import {rules} from '../content/rules.ts';
 import {footprintContract} from '../content/footprints.ts';
+import {combatRules} from './stats.ts';
 import {makeMap,clearSegment,navigationRules,startingResourceRules} from './navigation.ts';
 import type {MapData} from './navigation.ts';
 import {makeUnit,commandMove,commandStop,stepMovement} from './movement.ts';
@@ -14,6 +15,8 @@ import {commandGather,commandBuild,clearWork,stepWork,gatherable} from './work.t
 import {initBuildings,placeBuilding,cancelBuilding,authoritativeProblem,buildKinds} from './buildings.ts';
 import type {Building,BuildKind} from './buildings.ts';
 import {enqueue,dequeue,stepProduction,trainable} from './production.ts';
+import {commandAttack,clearAttacks,stepCombat,targetProblem} from './combat.ts';
+import type {Attack,Corpse,Outcome,Target} from './combat.ts';
 import type {Work,Cargo} from './work.ts';
 import {tileAt} from './terrain.ts';
 export type {Unit} from './movement.ts';
@@ -27,14 +30,15 @@ export type CancelBuildCommand=Envelope&{commandType:'cancelBuild';payload:{buil
 export type TrainCommand=Envelope&{commandType:'train';payload:{buildingId:string;entryId:string}};
 export type CancelTrainCommand=Envelope&{commandType:'cancelTrain';payload:{buildingId:string;itemId:number}};
 export type RallyCommand=Envelope&{commandType:'rally';payload:{buildingId:string;x:number;y:number}};
-export type Command=MoveCommand|StopCommand|GatherCommand|BuildCommand|ConstructCommand|CancelBuildCommand|TrainCommand|CancelTrainCommand|RallyCommand|Envelope&{commandType:'reserve';payload:{entryId:string}}|Envelope&{commandType:'cancelReservation';payload:{reservationId:string}};
+export type AttackCommand=Envelope&{commandType:'attack';payload:{unitIds:number[];target:Target}};
+export type Command=AttackCommand|MoveCommand|StopCommand|GatherCommand|BuildCommand|ConstructCommand|CancelBuildCommand|TrainCommand|CancelTrainCommand|RallyCommand|Envelope&{commandType:'reserve';payload:{entryId:string}}|Envelope&{commandType:'cancelReservation';payload:{reservationId:string}};
 export type LoggedCommand=Command&{acceptedTick:number};
 export type TransactionResult={tick:number;playerId:number;sequence:number;ok:boolean;error?:string};
-export type State={navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;version:14;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
+export type State={navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;version:15;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
 function canonical(value:unknown):string {if(value===null||typeof value!=='object')return JSON.stringify(value);if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical((value as Record<string,unknown>)[k])).join(',')+'}';}
 export function hash(value:unknown):string{let h=2166136261;for(const c of canonical(value)){h=Math.imul(h^c.charCodeAt(0),16777619);}return (h>>>0).toString(16).padStart(8,'0');}
-export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,simulationVersion:14});
-export function createState(seed:number,layout:MapLayout='meadow'):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');const state:State={buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,version:14,works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(1)],transactions:[],map:makeMap(seed,layout),pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[makeUnit(1,0,350,700),makeUnit(2,0,450,700),makeUnit(3,0,400,800),makeUnit(4,1,1150,700)],queue:[],log:[]};initBuildings(state);updateVision(state.vision,state.map,state.units,0);return state;}
+export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,simulationVersion:15});
+export function createState(seed:number,layout:MapLayout='meadow'):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');const state:State={buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,version:15,works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(1)],transactions:[],map:makeMap(seed,layout),pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[makeUnit(1,0,350,700),makeUnit(2,0,450,700),makeUnit(3,0,400,800),makeUnit(4,1,1150,700)],queue:[],log:[]};initBuildings(state);updateVision(state.vision,state.map,state.units,0);return state;}
 // xorshift32; renderers never advance this stream.
 export function nextRandom(state:State):number{let n=state.rng;n^=n<<13;n^=n>>>17;n^=n<<5;state.rng=n>>>0;return state.rng;}
 export function submit(state:State, c:Command):void {
@@ -43,15 +47,17 @@ export function submit(state:State, c:Command):void {
  if(!Number.isSafeInteger(c.sequence)||c.sequence!==state.sequence[c.playerId]+1)throw Error('重複或錯序命令');
  if(!Number.isSafeInteger(c.targetTick)||c.targetTick<=state.tick||c.targetTick>state.tick+200)throw Error('命令已過期或過遠');
  if(!c.payload)throw Error('缺少 payload');
- if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='build'||c.commandType==='construct'){
+ if(state.outcome)throw Error('對局已結束：請再開一局');
+ if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='build'||c.commandType==='construct'||c.commandType==='attack'){
  const ids=c.payload.unitIds;
  if(!Array.isArray(ids)||!ids.length||ids.length>navigationRules.maxGroupSize||!ids.every((id,i)=>Number.isSafeInteger(id)&&(i===0||id>ids[i-1])))throw Error(`單位清單需為 1–${navigationRules.maxGroupSize} 個遞增且不重複的 ID`);
- for(const id of ids){const u=state.units.find(u=>u.id===id);if(!u||u.player!==c.playerId)throw Error('不可控制敵方或不存在的單位');if(c.commandType!=='move'&&c.commandType!=='stop'&&u.kind!=='villager')throw Error('只有村民能採集或建造');}
+ for(const id of ids){const u=state.units.find(u=>u.id===id);if(!u||u.player!==c.playerId)throw Error('不可控制敵方或不存在的單位');if(c.commandType!=='move'&&c.commandType!=='stop'&&c.commandType!=='attack'&&u.kind!=='villager')throw Error('只有村民能採集或建造');}
  }
  if(c.commandType==='move'){
  for(const k of ['x','y'] as const)if(!Number.isSafeInteger(c.payload[k])||c.payload[k]<50||c.payload[k]>1550)throw Error('目標超出地圖');
  if(!clearSegment(state.map,c.payload,c.payload))throw Error('目標位於建築、資源或不可通行地形的占地內');
  }else if(c.commandType==='stop'){}
+ else if(c.commandType==='attack'){const t=c.payload.target;if(!t||!['unit','building'].includes(t.kind))throw Error('無效的攻擊目標');const problem=targetProblem(state,c.playerId,t);if(problem)throw Error(problem);}
  else if(c.commandType==='build'){
  const {kind,x,y}=c.payload;if(!buildKinds.includes(kind))throw Error('未知的建築種類');
  const problem=authoritativeProblem(state,c.playerId,kind,x,y);if(problem)throw Error(problem);
@@ -62,7 +68,8 @@ export function submit(state:State, c:Command):void {
  const b=state.buildings.find(b=>b.id===c.payload.buildingId);if(!b||b.player!==c.playerId)throw Error('找不到這棟己方建築');
  if(c.commandType==='train'){const problem=trainable(state,c.playerId,b,c.payload.entryId);if(problem)throw Error(problem);}
  else if(c.commandType==='cancelTrain'){if(!b.queue.some(q=>q.id===c.payload.itemId))throw Error('佇列項目已完成或不存在');}
- else{if(!b.complete)throw Error('建築尚未完工');for(const k of ['x','y'] as const)if(!Number.isSafeInteger(c.payload[k])||c.payload[k]<50||c.payload[k]>1550)throw Error('集結點超出地圖');}
+ else{if(!b.complete)throw Error('建築尚未完工');for(const k of ['x','y'] as const)if(!Number.isSafeInteger(c.payload[k])||c.payload[k]<50||c.payload[k]>1550)throw Error('集結點超出地圖');
+ if(!clearSegment(state.map,c.payload,c.payload))throw Error('集結點不能設在建築、資源或不可通行地形上');}
  }
  else if(c.commandType==='construct'||c.commandType==='cancelBuild'){
  const b=state.buildings.find(b=>b.id===c.payload.buildingId);if(!b||b.player!==c.playerId)throw Error('找不到這棟己方建築');if(b.complete)throw Error('建築已完工');
@@ -83,6 +90,8 @@ export function tick(s:State):{expanded:number} {
  s.tick++;
  s.queue.sort((a,b)=>a.targetTick-b.targetTick||a.playerId-b.playerId||a.sequence-b.sequence);
  while(s.queue.length&&s.queue[0].targetTick===s.tick){const c=s.queue.shift()!;
+ if(c.commandType==='attack'){if(!targetProblem(s,c.playerId,c.payload.target))commandAttack(s,c.payload.unitIds,c.payload.target);else{clearAttacks(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);}continue;}
+ if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='build'||c.commandType==='construct')clearAttacks(s,c.payload.unitIds);
  if(c.commandType==='move'){clearWork(s,c.payload.unitIds);commandMove(s,c.payload.unitIds,{x:c.payload.x,y:c.payload.y});continue;}
  if(c.commandType==='stop'){clearWork(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);continue;}
  // Re-validated at execution: the resource may have run out since the order was accepted.
@@ -103,6 +112,7 @@ export function tick(s:State):{expanded:number} {
  stepProduction(s);
  // Deterministic movement: shared search budget, node reservations, waiting and bounded replans.
  const stats=stepMovement(s);
+ stepCombat(s);
  stepWork(s);
  updateVision(s.vision,s.map,s.units,s.tick);
  return stats;
@@ -116,12 +126,12 @@ export function replay(seed:number,commands:LoggedCommand[],ticks:number,layout:
  }
  while(s.tick<ticks)tick(s);return s;
 }
-export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-14',rulesetHash,state:s,checksum:hash(s)});}
+export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-15',rulesetHash,state:s,checksum:hash(s)});}
 export function deserialize(raw:string):State{
  const v=JSON.parse(raw);
- if(!v||v.format!=='brick-sandbox-14'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
+ if(!v||v.format!=='brick-sandbox-15'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
  const s=v.state as State;
- if(s.version!==14||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
+ if(s.version!==15||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
  const rebuilt=replay(s.seed,s.log,s.tick,s.layout);
  if(hash(rebuilt)!==hash(s))throw Error('存檔狀態無法由命令重建');
  return structuredClone(s);

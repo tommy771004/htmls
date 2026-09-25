@@ -7,7 +7,9 @@ export type Navigation='idle'|'searching'|'moving'|'waiting'|'unreachable'|'stuc
 export const navigationStates:readonly Navigation[]=['idle','searching','moving','waiting','unreachable','stuck'];
 export type UnitKind='villager'|'militia'|'archer';
 export const unitKinds:readonly UnitKind[]=['villager','militia','archer'];
-export type Unit={id:number;player:number;kind:UnitKind;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;detours:number;partial:boolean;order:number;outcome:'stuck'|null};
+import {combatRules} from './stats.ts';
+// hp: current hit points (combatRules.units[kind].hp at spawn); hitTick: last tick it took damage.
+export type Unit={id:number;player:number;kind:UnitKind;hp:number;hitTick:number;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;detours:number;partial:boolean;order:number;outcome:'stuck'|null};
 type Search={frontier:number[];head:number;parent:number[]};
 export type GroupJob=Search&{kind:'group';id:number;unitIds:number[];goal:number;starts:number[];held:number[];slots:number[];status:'searching'|'done'};
 // targets: any of these nodes ends the search (work slots, drop-off ring); found is the one reached.
@@ -36,7 +38,7 @@ export function neighbours(map:MapData,id:number):number[]{
  return out;
 }
 export function nodeAt(p:Point):number{const x=(p.x-50)/50,y=(p.y-50)/50;return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&x<SIDE&&y>=0&&y<SIDE?y*SIDE+x:-1;}
-export function makeUnit(id:number,player:number,x:number,y:number,kind:UnitKind='villager'):Unit{const node=nodeAt({x,y});if(node<0)throw Error('單位必須站在導航節點上');return {id,player,kind,x,y,node,next:null,path:[],goal:null,target:null,navigation:'idle',wait:0,detours:0,partial:false,order:0,outcome:null};}
+export function makeUnit(id:number,player:number,x:number,y:number,kind:UnitKind='villager'):Unit{const node=nodeAt({x,y});if(node<0)throw Error('單位必須站在導航節點上');return {id,player,kind,hp:combatRules.units[kind].hp,hitTick:-1,x,y,node,next:null,path:[],goal:null,target:null,navigation:'idle',wait:0,detours:0,partial:false,order:0,outcome:null};}
 function search(start:number):Search{const parent=Array(NODES).fill(-2);parent[start]=-1;return {frontier:[start],head:0,parent};}
 function held(units:Unit[],except:Set<number>){const nodes=new Set<number>();for(const u of units)if(!except.has(u.id)){nodes.add(u.node);if(u.next!==null)nodes.add(u.next);}return [...nodes].sort((a,b)=>a-b);}
 function cancel(s:MovementState,id:number){

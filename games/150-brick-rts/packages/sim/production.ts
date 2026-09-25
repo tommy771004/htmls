@@ -1,7 +1,7 @@
 import {obstacleBounds} from '../content/footprints.ts';
 import {rules,resources} from '../content/rules.ts';
 import {reserve,cancelReservation,commitReservation} from './economy.ts';
-import {position,navigationRules} from './navigation.ts';
+import {position,navigationRules,nearest} from './navigation.ts';
 import {makeUnit,commandMove} from './movement.ts';
 import type {UnitKind,MovementState} from './movement.ts';
 import type {Building,BuildingState} from './buildings.ts';
@@ -72,6 +72,7 @@ export function stepProduction(s:ProductionState){
   const node=exitNode(s,b);if(node<0)continue;
   commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();
   const p=position(node),u=makeUnit(s.nextUnitId++,b.player,p.x,p.y,unitKindOf[item.entryId]);s.units.push(u);
-  if(b.rally)commandMove(s,[u.id],b.rally);
+  // A rally point later covered by a building (or otherwise unstandable) is skipped, never an error.
+  if(b.rally&&nearest(s.map,b.rally,false)>=0)commandMove(s,[u.id],b.rally);
  }
 }

@@ -6,13 +6,15 @@ import {refreshNavigation,navigationRules} from './navigation.ts';
 import type {MapData,Obstacle} from './navigation.ts';
 import type {Unit} from './movement.ts';
 import {tileAt} from './terrain.ts';
+import {combatRules} from './stats.ts';
 import type {Tile} from './terrain.ts';
 // Player buildings (design_default engineering rules, not reference-game values).
 export type BuildKind='house'|'barracks';
 export const buildKinds:readonly BuildKind[]=['house','barracks'];
 // queue: production/research in order (only the first advances); rally: where finished units walk.
 export type QueueItem={id:number;entryId:string;reservationId:string;work:number;required:number};
-export type Building={id:string;kind:BuildKind|'town-center';player:number;x:number;y:number;work:number;required:number;complete:boolean;reservationId:string|null;queue:QueueItem[];rally:{x:number;y:number}|null};
+// hp: structure points; a foundation starts at 1 and gains hit points in step with construction work.
+export type Building={id:string;kind:BuildKind|'town-center';player:number;x:number;y:number;work:number;required:number;complete:boolean;reservationId:string|null;queue:QueueItem[];rally:{x:number;y:number}|null;hp:number;maxHp:number};
 // capacity: population housed when complete (hard cap rules.settings.populationCap). One builder adds one
 // work point per tick; required = entry time (s) x tick rate. Positions snap to the 50-unit grid.
 export const buildingRules={provenance:'design_default',capacity:{'town-center':5,house:5,barracks:0},grid:50,
@@ -41,25 +43,27 @@ export function authoritativeProblem(s:BuildingState,player:number,kind:BuildKin
 }
 export function stageOf(b:Building){return b.complete?100:Math.min(80,Math.floor(b.work*5/b.required)*20);}
 function obstacleOf(s:BuildingState,b:Building){return s.map.obstacles.find(o=>o.id===b.id);}
-function recomputeCapacity(s:BuildingState,player:number){
+export function recomputeCapacity(s:BuildingState,player:number){
  const housed=s.buildings.filter(b=>b.player===player&&b.complete).reduce((t,b)=>t+buildingRules.capacity[b.kind],0);
  s.accounts[player].populationCap=Math.min(rules.settings.populationCap,housed);
 }
 export function initBuildings(s:BuildingState){
- for(const o of s.map.obstacles)if(o.kind==='town-center'){s.buildings.push({id:o.id!,kind:'town-center',player:o.red?1:0,x:o.x,y:o.y,work:0,required:0,complete:true,reservationId:null,queue:[],rally:null});o.age=s.ages[o.red?1:0];}
+ for(const o of s.map.obstacles)if(o.kind==='town-center'){s.buildings.push({id:o.id!,kind:'town-center',player:o.red?1:0,x:o.x,y:o.y,work:0,required:0,complete:true,reservationId:null,queue:[],rally:null,hp:combatRules.buildings['town-center'],maxHp:combatRules.buildings['town-center']});o.age=s.ages[o.red?1:0];}
  for(const p of [0,1])recomputeCapacity(s,p);
 }
 // Pays up front (reservation), places a blocking foundation and updates navigation. Throws before any change.
 export function placeBuilding(s:BuildingState,player:number,kind:BuildKind,x:number,y:number,reservationId:string):Building{
  const problem=authoritativeProblem(s,player,kind,x,y);if(problem)throw Error(problem);
  reserve(s.accounts[player],reservationId,kind);
- const b:Building={id:`building-${s.nextBuildingId++}`,kind,player,x,y,work:0,required:buildingRules.required[kind],complete:false,reservationId,queue:[],rally:null};
+ const b:Building={id:`building-${s.nextBuildingId++}`,kind,player,x,y,work:0,required:buildingRules.required[kind],complete:false,reservationId,queue:[],rally:null,hp:1,maxHp:combatRules.buildings[kind]};
  s.buildings.push(b);const o:Obstacle={id:b.id,kind,x,y,progress:0,age:s.ages[player],...(player?{red:true}:{})};s.map.obstacles.push(o);s.map.tiles[tileAt(x,y)].obstacleRefs.push(b.id);
  refreshNavigation(s.map,obstacleBounds(o,navigationRules.radius));return b;
 }
 // One tick of work by one builder. Returns true when this call completed the building.
 export function addWork(s:BuildingState,b:Building):boolean{
  if(b.complete)return false;b.work++;const o=obstacleOf(s,b)!;
+ // Hit points follow the share of work done (damage taken meanwhile stays taken).
+ const gained=Math.floor(b.work*b.maxHp/b.required)-Math.floor((b.work-1)*b.maxHp/b.required);b.hp=Math.min(b.maxHp,b.hp+gained);
  if(b.work>=b.required){b.complete=true;commitReservation(s.accounts[b.player],b.reservationId!);delete o.progress;recomputeCapacity(s,b.player);return true;}
  o.progress=stageOf(b);return false;
 }

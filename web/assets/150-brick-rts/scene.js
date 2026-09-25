@@ -1067,8 +1067,8 @@ async function createScene(canvas, onFailure, options = {}) {
   }
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
-  function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2) {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
+  function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2, health = 100) {
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -1101,7 +1101,7 @@ async function createScene(canvas, onFailure, options = {}) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y)] !== 2;
       const x = o.x / 100, z = o.y / 100;
-      if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2);
+      if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
       else if (o.kind === "tree") {
         brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8, "#80664b", false);
         brick(x - 0.2, z - 0.2, 0.7, 1, 1, 0.4, "#67835a");
@@ -1144,6 +1144,8 @@ async function createScene(canvas, onFailure, options = {}) {
     }
   }
   const units = /* @__PURE__ */ new Map();
+  const fallen = /* @__PURE__ */ new Map();
+  const barBack = new T.MeshBasicMaterial({ color: "#2d3a33" }), barGeo = new T.BoxGeometry(0.5, 0.05, 0.05);
   const ringGeo = new T.RingGeometry(0.4, 0.47, 32);
   ringGeo.rotateX(-Math.PI / 2);
   geometry.set("ring", ringGeo);
@@ -1151,6 +1153,14 @@ async function createScene(canvas, onFailure, options = {}) {
   function unit(id, player, kind = "villager") {
     const group = new T.Group();
     scene.add(group);
+    const bar = new T.Group();
+    bar.position.y = 1.42;
+    bar.visible = false;
+    const back = new T.Mesh(barGeo, barBack);
+    const fill = new T.Mesh(barGeo, new T.MeshBasicMaterial({ color: player === 0 ? "#5f9a6a" : "#c0604c" }));
+    fill.position.z = 0.012;
+    bar.add(back, fill);
+    group.add(bar);
     const rig = createCharacterRig(T, player, box, material);
     if (!options.assetPreview && kind !== "villager") rig.dress(kind === "militia" ? "swordsman" : "archer");
     rig.equip(previewTool);
@@ -1159,7 +1169,7 @@ async function createScene(canvas, onFailure, options = {}) {
     const ring = new T.Mesh(ringGeo, ringMaterial);
     ring.position.y = 0.025;
     group.add(ring);
-    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none" });
+    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill });
     return units.get(id);
   }
   let previewRole = "villager";
@@ -1210,7 +1220,7 @@ async function createScene(canvas, onFailure, options = {}) {
       u.group.position.set(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100);
       u.ring.visible = selected.has(data.id);
       u.moving = data.navigation === "moving";
-      if (!options.assetPreview && data.work === "gathering" && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
+      if (!options.assetPreview && (data.work === "gathering" || data.action === 1) && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
       if (!options.assetPreview) {
         const gathering = data.work === "gathering" && !u.moving, activity = u.moving ? data.cargo ? "carry" : "walk" : gathering ? "work" : "idle";
         const weapon = data.kind === "militia" ? "sword" : data.kind === "archer" ? "bow" : "none", tool = data.cargo && activity !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food: "basket" }[data.workResource ?? "food"] : weapon;
@@ -1218,8 +1228,29 @@ async function createScene(canvas, onFailure, options = {}) {
           u.rig.equip(tool);
           u.tool = tool;
         }
-        u.activity = activity;
+        const next = data.action === 1 && !u.moving ? "attack" : data.action === 2 && !u.moving ? "hit" : activity;
+        if (next !== u.activity) u.poseStart = performance.now();
+        u.activity = next;
+        const share = Math.max(0, data.hp) / Math.max(1, data.maxHp);
+        u.bar.visible = share < 1;
+        u.fill.scale.x = Math.max(1e-3, share);
+        u.fill.position.x = -0.25 * (1 - share);
+        u.bar.rotation.y = angle - u.group.rotation.y;
       }
+    }
+    const lying = new Set((view.corpses ?? []).map((c) => c.id));
+    for (const [id, f] of fallen) if (!lying.has(id)) {
+      scene.remove(f.group);
+      fallen.delete(id);
+    }
+    for (const c of view.corpses ?? []) if (!fallen.has(c.id)) {
+      const group = new T.Group();
+      const rig = createCharacterRig(T, c.player, box, material);
+      if (c.kind !== "villager") rig.dress(c.kind === "militia" ? "swordsman" : "archer");
+      group.add(rig.root);
+      group.position.set(c.x / 100, groundHeight(worldTiles, c.x, c.y) / 100, c.y / 100);
+      scene.add(group);
+      fallen.set(c.id, { group, rig, start: performance.now() });
     }
   }
   const raycaster = new T.Raycaster(), ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
@@ -1257,9 +1288,10 @@ async function createScene(canvas, onFailure, options = {}) {
     resize();
     for (const u of units.values()) {
       const pose = options.assetPreview ? previewPose : u.activity;
-      u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : time);
+      u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : pose === "hit" ? time - u.poseStart : time);
       u.ring.visible = [...units].some(([id, v]) => v === u && selected.has(id)) && pose !== "death";
     }
+    for (const f of fallen.values()) f.rig.pose("death", time - f.start);
     renderer.render(scene, camera);
   }
   canvas.addEventListener("webglcontextlost", (event) => {

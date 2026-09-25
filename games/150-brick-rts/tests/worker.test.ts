@@ -22,6 +22,6 @@ test('a replacement worker recovers precisely the acknowledged command/tick hist
 });
 
 test('raw position buffers use the stride that tests/browser.mjs hard-codes',()=>{
- assert.equal(UNIT_STRIDE,12,'update tests/browser.mjs fogUnits when the projection changes');
+ assert.equal(UNIT_STRIDE,15,'update tests/browser.mjs fogUnits when the projection changes');
  const h=harness();const r=h.call({kind:'reset',seed:7});assert.equal(new Int32Array(r.positions).length,UNIT_STRIDE*decodeView(r).units.length);
 });

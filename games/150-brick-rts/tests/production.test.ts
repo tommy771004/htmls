@@ -56,3 +56,14 @@ test('production survives save/load and replays to the same hash',()=>{
  const s=createState(260925),id=tc(s).id;order(s,'train',{buildingId:id,entryId:'villager'});order(s,'train',{buildingId:id,entryId:'villager'});run(s,300);
  const restored=deserialize(serialize(s));run(s,600);run(restored,600);assert.equal(hash(s),hash(restored));assert.equal(hash(s),hash(replay(s.seed,s.log,s.tick)));assert.equal(s.units.filter(u=>u.player===0).length,5);
 });
+
+test('a rally point on a building is refused; one covered later by a new building is skipped without error',()=>{
+ const s=createState(260925),t=tc(s),other=s.map.obstacles.find(o=>o.kind==='town-center'&&o.red)!;
+ assert.throws(()=>order(s,'rally',{buildingId:t.id,x:t.x+50,y:t.y+100}),/集結點不能設在/);
+ // Set a valid rally point, then place a house over it before the villager comes out.
+ s.vision[0].explored=Array.from({length:256},(_,i)=>i);let spot=null as null|{x:number;y:number};
+ for(let y=650;y<=1100&&!spot;y+=50)for(let x=500;x<=1000;x+=50)if(!authoritativeProblem(s,0,'house',x,y)){spot={x,y};break;}
+ order(s,'rally',{buildingId:t.id,x:spot!.x+100,y:spot!.y+100});order(s,'train',{buildingId:t.id,entryId:'villager'});tick(s);
+ order(s,'build',{unitIds:[1],kind:'house',x:spot!.x,y:spot!.y});run(s,450);
+ assert.ok(s.units.some(u=>u.id===5),'the villager came out');assert.ok(other);
+});
