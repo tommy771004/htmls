@@ -163,6 +163,7 @@
 - [086 下潛](https://htmls-ruddy.vercel.app/web/086-deep-sea.html): 深海。從海面捲動下潛到 10,935 m：五個水層、15 種真實生物、探照燈
 - [087 The Northern Heavens](https://htmls-ruddy.vercel.app/web/087-star-chart.html): 印刷星圖。約 170 顆真實亮星的星座盤，依恆星時對齊，可切換緯度
 - [094 Circles in a Hurry](https://htmls-ruddy.vercel.app/web/094-fourier.html): 傅立葉周轉圓。隨手畫的線用 DFT 周轉圓重現，圓的數量可調
+- [149 一指之間 · Powers of Ten](https://htmls-ruddy.vercel.app/web/149-powers-of-ten.html): 62 個數量級連續縮放。從孩子的掌心往外到可觀測宇宙邊緣、往裡到夸克與普朗克長度：真實行星位置、臺灣地形、DNA 雙螺旋、碳原子電子雲，視野與光穿越時間即時換算
 
 ### 東方在地
 
@@ -206,6 +207,7 @@
 - [105 Northstar Sales CRM](https://htmls-ruddy.vercel.app/web/105-sales-crm.html): 深色高密度業務儀表板。Companies 表格、案件看板、預測、篩選、新增公司與 CSV 匯出；使用示意資料
 
 ### 創意藝術
+- [142 曦光城堡 · Aurielle Castle](https://htmls-ruddy.vercel.app/web/142-aurielle-castle.html)：完整童話城堡 3D 模型，淡色石牆、藍色尖頂、金色飾件與暖光拱窗。自由旋轉、四種視角、日夜光照及標準 glTF 下載。
 
 - [111 Jelly Dice · 果凍骰子工房](https://htmls-ruddy.vercel.app/web/111-jelly-dice.html): 程序化半透明果凍骰子。六種口味、1–5 顆同時擲出、碰撞與回彈、滑鼠及觸控戳壓與拖曳
 

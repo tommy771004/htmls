@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>存摺 · 完整財務儀表板</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%275%27 fill=%27%2316302a%27/%3E%3Crect x=%275%27 y=%275%27 width=%2722%27 height=%2722%27 rx=%272%27 fill=%27%23e6ede4%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%276.5%27 fill=%27none%27 stroke=%27%23b5412c%27 stroke-width=%272.2%27/%3E%3C/svg%3E">
+<meta name="description" content="翻開一本存摺看完整財務：收入、支出、利潤、淨現金流量、現金餘額與預算對比實際，含每月收支、支出明細、近期交易與日期／分類篩選；個人、企業、新創三本範例帳，可匯入自己的 CSV。">
+<style>
+:root{
+  --desk:#16302a;--desk-2:#10251f;--paper:#e6ede4;--paper-2:#d9e3d6;--paper-3:#cbd8c8;--slip:#f4f8f2;
+  --ink:#1c3a2e;--ink-2:#4d6a5e;--ink-3:#7b9488;--rule:#c8d6c5;--guil:#8fbcaf;--thread:#8aa99b;
+  --verm:#b5412c;--ochre:#8a5a12;--inc:#00866a;--exp:#b25f16;--tab:#b3c6b2;--tab-h:#c6d5c4;
+  --sans:"PingFang TC","Heiti TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+  --serif:"Songti TC","STSong","Noto Serif TC","PMingLiU",serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{background:var(--desk)}
+body{margin:0;min-height:100vh;color:var(--ink);font:14px/1.55 var(--sans);-webkit-font-smoothing:antialiased;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(160deg,#1d3d34 0%,var(--desk) 30%,var(--desk-2) 100%)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:2px}
+.desk{max-width:1400px;margin:0 auto;padding:26px 24px 34px}
+
+/* ---------- 索引標籤（書頁上緣） ---------- */
+.tabs{display:flex;justify-content:space-between;gap:18px;padding:0 30px;position:relative;z-index:2}
+.tab-group{display:flex;gap:2px;align-items:flex-end}
+.tab{border:0;background:var(--tab);padding:9px 22px 8px;min-height:38px;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 100%,0 100%);
+  color:var(--ink);font-size:13.5px;letter-spacing:.02em;transition:background-color .18s var(--ease),padding .18s var(--ease);white-space:nowrap}
+.tab:hover{background:var(--tab-h)}
+.tab[aria-selected="true"]{background:var(--paper);font-weight:600;padding-top:12px;margin-bottom:-1px;min-height:43px}
+.tab .sub{display:block;font-size:11px;font-weight:400;color:var(--ink-2);line-height:1.2}
+
+/* ---------- 存摺本體 ---------- */
+.book{display:grid;grid-template-columns:1fr 26px 1fr;position:relative;
+  filter:drop-shadow(0 16px 18px rgba(4,16,12,.42))}
+.page{position:relative;display:flex;flex-direction:column;background-color:var(--paper);padding:0 0 22px;min-width:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.3' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .2 0 0 0 0 .15 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E")}
+.page-l{border-radius:5px 0 0 5px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.3' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .2 0 0 0 0 .15 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E"),linear-gradient(90deg,rgba(28,58,46,0) 86%,rgba(28,58,46,.09) 100%)}
+.page-r{border-radius:0 5px 5px 0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.3' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .2 0 0 0 0 .15 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E"),linear-gradient(270deg,rgba(28,58,46,0) 86%,rgba(28,58,46,.09) 100%)}
+.spine{background:linear-gradient(90deg,#d3ddd0,#c3d1c0 50%,#d3ddd0);position:relative}
+.spine::before{content:"";position:absolute;inset:18px 0;left:calc(50% - 2px);width:4px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='22'%3E%3Cline x1='2' y1='3' x2='2' y2='13' stroke='%238aa99b' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") repeat-y}
+.inner{padding:0 30px}
+
+/* 頁首防偽底紋帶 */
+.band{position:relative;padding:24px 30px 20px;min-height:148px;overflow:hidden;border-radius:5px 0 0 0}
+.page-r .band{border-radius:0 5px 0 0}
+.band .guil{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.band .rosette{position:absolute;right:34px;top:14px;width:124px;height:124px;pointer-events:none}
+.band-text{position:relative;max-width:calc(100% - 150px)}
+.kind{margin:0 0 4px;font-size:12.5px;color:var(--ink-2)}
+h1,h2.title{font-family:var(--serif);font-weight:700;margin:0;line-height:1.2;letter-spacing:.04em}
+h1{font-size:32px}
+h2.title{font-size:26px}
+.acct{display:flex;flex-wrap:wrap;gap:4px 22px;margin:12px 0 0;font-size:13px}
+.acct div{display:flex;gap:7px;align-items:baseline}
+.acct dt{color:var(--ink-2)}
+.acct dd{margin:0}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:0}
+.seal{position:absolute;right:36px;top:18px;width:116px;height:116px;transform:rotate(-11deg);transform-origin:50% 50%}
+
+/* 篩選列 */
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 30px;background:var(--paper-2);font-size:13px}
+.filters label{display:flex;align-items:center;gap:7px;color:var(--ink-2)}
+.sel{appearance:none;-webkit-appearance:none;border:0;border-radius:3px;background:var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%231c3a2e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center;
+  padding:6px 26px 6px 10px;color:var(--ink);min-height:32px;max-width:100%}
+.sel:hover{background-color:var(--slip)}
+.to{color:var(--ink-2)}
+.textbtn{border:0;background:none;color:var(--ink);padding:6px 4px;border-radius:3px;text-decoration:underline;text-decoration-color:var(--ink-3);text-underline-offset:3px}
+.textbtn:hover{color:var(--verm);text-decoration-color:currentColor}
+
+/* KPI */
+.hero{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:22px;align-items:end;padding:22px 30px 6px}
+.lab{font-size:13px;color:var(--ink-2);margin:0}
+.lab small{font-size:11.5px;color:var(--ink-2)}
+.hero-num{font-size:54px;font-weight:600;line-height:1.02;letter-spacing:-.01em;margin:4px 0 6px;white-space:nowrap}
+.hero-num .cur,.kpi .cur{font-size:.36em;font-weight:500;color:var(--ink-2);margin-right:.35em;letter-spacing:0}
+.cap{font-size:12.5px;color:var(--ink-2);margin:0}
+.delta{font-size:12.5px;margin:3px 0 0;white-space:nowrap}
+.delta.good{color:var(--ink)}
+.delta.bad{color:var(--verm)}
+.delta.flat{color:var(--ink-2)}
+.balchart{position:relative;height:124px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:14px 30px 0;padding:16px 0 14px;background:
+  linear-gradient(var(--rule),var(--rule)) top/100% 1px no-repeat}
+.kpi{padding:0 14px;min-width:0}
+.kpi+.kpi{box-shadow:inset 1px 0 0 var(--rule)}
+.kpi:first-child{padding-left:0}
+.kpi .v{font-size:23px;font-weight:600;line-height:1.15;margin:4px 0 2px;white-space:nowrap}
+.kpi .v .cur{font-size:.5em}
+.kpi svg{display:block;width:100%;height:26px;margin-top:6px}
+
+/* 區塊 */
+.block{padding:18px 30px 6px}
+.bhead{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 16px;margin-bottom:10px}
+.bhead h3{margin:0;font-family:var(--serif);font-size:19px;letter-spacing:.04em}
+.bhead .meta{font-size:12.5px;color:var(--ink-2)}
+.bhead .push{margin-left:auto}
+.legend{display:flex;gap:14px;font-size:12.5px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;overflow:visible}
+.chart .hit{fill:transparent;cursor:crosshair;outline:none}
+.chart .hit:focus-visible{fill:rgba(28,58,46,.07)}
+.axis text{font:11px var(--sans);fill:var(--ink-2);font-variant-numeric:tabular-nums}
+.grid line{stroke:var(--rule);stroke-width:1;shape-rendering:crispEdges}
+.tablev{overflow-x:auto;margin:4px 0 8px}
+.tablev table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+.tablev th,.tablev td{padding:5px 8px;text-align:right;white-space:nowrap}
+.tablev th:first-child,.tablev td:first-child{text-align:left}
+.tablev thead th{color:var(--ink-2);font-weight:500;box-shadow:inset 0 -1px 0 var(--rule)}
+.tablev tbody tr:nth-child(even){background:rgba(203,216,200,.35)}
+
+/* 預算 */
+.budget{display:grid;gap:2px}
+.brow{display:grid;grid-template-columns:78px minmax(0,1fr) 112px 40px 54px;gap:12px;align-items:center;padding:6px 0;border-radius:3px}
+.brow:hover{background:rgba(203,216,200,.45)}
+.brow .nm{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track{position:relative;height:12px;background:var(--paper-3);border-radius:0 3px 3px 0}
+.track .fill{position:absolute;left:0;top:0;bottom:0;background:#3f6a5a;border-radius:0 4px 4px 0;transition:width .5s var(--ease)}
+.track .over{position:absolute;top:0;bottom:0;background:var(--verm);border-radius:0 4px 4px 0;transition:left .5s var(--ease),width .5s var(--ease)}
+.track .mark{position:absolute;left:66.667%;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--ink);border-radius:1px}
+.brow .num{font-size:12px;text-align:right;color:var(--ink-2);white-space:nowrap}
+.brow .num b{color:var(--ink);font-weight:600}
+.brow .pc{font-size:12px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.st{font-size:12.5px;white-space:nowrap;display:flex;align-items:center;gap:4px;justify-content:flex-start}
+.st svg{width:14px;height:14px;flex:none}
+.st.ok{color:var(--ink)}.st.near{color:var(--ochre)}.st.over{color:var(--verm);font-weight:600}
+.bscale{display:grid;grid-template-columns:78px minmax(0,1fr) 112px 40px 54px;gap:12px;font-size:11px;color:var(--ink-2);margin-top:4px}
+.bscale span{position:relative;height:16px}
+.bscale em{position:absolute;font-style:normal;transform:translateX(-50%);white-space:nowrap}
+
+/* 右頁：匯入匯出 */
+.io{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 30px;background:var(--paper-2)}
+.iobtn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:3px;background:var(--paper);padding:7px 12px 7px 10px;font-size:13px;min-height:34px;transition:background-color .15s var(--ease)}
+.iobtn:hover{background:var(--slip)}
+.iobtn svg{width:17px;height:17px;flex:none;transition:transform .2s var(--ease)}
+.iobtn:hover svg{transform:translateX(2px)}
+.iobtn input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.iobtn:focus-within{outline:2px solid var(--ink);outline-offset:2px}
+.iostat{flex-basis:100%;font-size:12.5px;color:var(--ink-2);margin:2px 0 0;min-height:1.4em}
+.iostat .textbtn{font-size:12.5px;padding:0 2px}
+
+/* 支出明細 */
+.brk{display:grid;gap:1px}
+.krow{display:grid;grid-template-columns:minmax(64px,120px) minmax(0,1fr) 84px 44px;gap:12px;align-items:center;border:0;background:none;padding:6px 6px;margin:0 -6px;text-align:left;border-radius:3px;width:calc(100% + 12px)}
+.krow:hover,.krow:focus-visible{background:rgba(203,216,200,.5)}
+.krow .nm{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.krow .bar{height:12px;position:relative}
+.krow .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--exp);border-radius:0 4px 4px 0;transition:width .5s var(--ease)}
+.krow.other .bar i{background:#c89865}
+.krow .amt{font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.krow .pct{font-size:12px;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.empty{font-size:13px;color:var(--ink-2);padding:10px 0 14px;margin:0}
+
+/* 交易明細（存摺列印行） */
+.search{border:0;border-radius:3px;background:var(--paper-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Ccircle cx='6' cy='6' r='4.3' fill='none' stroke='%234d6a5e' stroke-width='1.6'/%3E%3Cpath d='M9.3 9.3l3.2 3.2' stroke='%234d6a5e' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat 9px center;padding:6px 10px 6px 30px;min-height:32px;width:190px;max-width:100%}
+.search:focus{background-color:var(--slip)}
+.ledger{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.ledger col.c-d{width:56px}.ledger col.c-o,.ledger col.c-i{width:98px}.ledger col.c-b{width:112px}
+.ledger th{font-weight:500;color:var(--ink-2);font-size:12px;text-align:right;padding:6px 6px;box-shadow:inset 0 -1px 0 var(--ink-3)}
+.ledger th:nth-child(-n+2){text-align:left}
+.ledger td{padding:0 6px;height:33px;box-shadow:inset 0 -1px 0 var(--rule);white-space:nowrap}
+.ledger td.d{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.ledger td.m{overflow:hidden;text-overflow:ellipsis}
+.ledger td.m span{color:var(--ink-2);font-size:12px;margin-left:6px}
+.ledger td.n{text-align:right;font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.ledger td.o{color:var(--verm)}
+.ledger td.b{color:var(--ink-2)}
+.ledger tr.mon td{height:30px;font-family:var(--serif);font-weight:700;font-size:13px;color:var(--ink);box-shadow:none;padding-top:8px;letter-spacing:.04em}
+.ledger tr.fresh td{animation:print .9s var(--ease)}
+@keyframes print{from{background:rgba(143,188,175,.45)}to{background:transparent}}
+.more{display:flex;justify-content:center;align-items:center;gap:14px;padding:14px 0 4px;font-size:12.5px;color:var(--ink-2)}
+.morebtn{border:0;border-radius:3px;background:var(--ink);color:var(--paper);padding:8px 16px;font-size:13px;min-height:36px;transition:background-color .15s var(--ease)}
+.morebtn:hover{background:#2b5242}
+.folio{font-size:11.5px;color:var(--ink-2);text-align:center;margin:auto 0 0;padding-top:18px;font-family:var(--serif);letter-spacing:.1em}
+
+.cf{font-size:13.5px}
+.cf .r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:6px 0;box-shadow:inset 0 -1px 0 var(--rule)}
+.cf .r span:last-child{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.cf .r.sub{color:var(--ink-2);font-size:13px;padding-left:16px}
+.cf .r.neg span:last-child{color:var(--verm)}
+.cf .r.tot{font-weight:600;box-shadow:none;border-bottom:3px double var(--ink);padding-top:9px}
+.cf .r.tot span:last-child{font-size:16px}
+.colophon{color:#9fbcb1;text-align:center;font-size:12.5px;margin:26px 16px 0}
+
+/* 提示框 */
+#tip{position:fixed;left:0;top:0;z-index:20;pointer-events:none;background:var(--slip);color:var(--ink);border-radius:3px;padding:8px 11px;font-size:12.5px;min-width:130px;
+  box-shadow:0 3px 8px -2px rgba(16,37,31,.35);transform:translate(-9999px,0)}
+#tip .t{font-weight:600;margin-bottom:4px}
+#tip .r{display:flex;align-items:center;gap:8px;line-height:1.7;white-space:nowrap}
+#tip .r b{font-variant-numeric:tabular-nums;min-width:66px;text-align:right}
+#tip .r i{display:inline-block;width:12px;height:2px;border-radius:1px}
+
+@media (max-width:1100px){
+  .book{grid-template-columns:1fr;filter:drop-shadow(0 12px 14px rgba(4,16,12,.4))}
+  .page-l{border-radius:5px 5px 0 0}.page-r{border-radius:0 0 5px 5px}
+  .page-r .band{border-radius:0}
+  .page-l,.page-r{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.3' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .2 0 0 0 0 .15 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E")}
+  .spine{height:22px;background:linear-gradient(180deg,#d3ddd0,#c3d1c0 50%,#d3ddd0)}
+  .spine::before{inset:auto 18px;top:calc(50% - 2px);left:18px;width:auto;height:4px;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='4'%3E%3Cline x1='3' y1='2' x2='13' y2='2' stroke='%238aa99b' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x}
+  .tabs{flex-wrap:wrap;padding:0 14px}
+}
+@media (max-width:640px){
+  .desk{padding:16px 12px 26px}
+  .tabs{padding:0 6px;gap:8px}
+  .tab-group{overflow-x:auto;max-width:100%;scrollbar-width:none}
+  .tab{padding:8px 13px 7px;font-size:13px}
+  .band{padding:18px 18px 16px;min-height:0}
+  .band-text{max-width:calc(100% - 84px)}
+  .seal{width:78px;height:78px;right:14px;top:14px}
+  .band .rosette{width:88px;height:88px;right:10px;top:9px}
+  h1{font-size:25px}h2.title{font-size:22px}
+  .acct{gap:2px 14px;font-size:12.5px}
+  .filters,.io{padding:10px 18px}
+  .hero{grid-template-columns:1fr;gap:6px;padding:18px 18px 0}
+  .hero-num{font-size:46px}
+  .kpis{grid-template-columns:1fr 1fr;margin:12px 18px 0;row-gap:16px}
+  .kpi:nth-child(3){padding-left:0;box-shadow:none}
+  .block{padding:16px 18px 4px}
+  .brow,.bscale{grid-template-columns:60px minmax(0,1fr) 38px 50px;gap:8px}
+  .brow .num{display:none}.bscale .n{display:none}
+  .krow{grid-template-columns:78px minmax(0,1fr) 74px;gap:8px}
+  .krow .pct{display:none}
+  .ledger col.c-d{width:44px}.ledger col.c-o,.ledger col.c-i{width:76px}.ledger col.c-b{width:0}
+  .ledger .b{display:none}
+  .ledger td,.ledger th{padding-left:4px;padding-right:4px}
+  .ledger td.n{font-size:12px}
+  .search{width:100%}
+  .filters #rangeTabs{flex-basis:100%;gap:4px;overflow:visible}
+  .filters .tab{clip-path:none;border-radius:3px;background:var(--paper);min-height:32px;padding:5px 0;margin:0;flex:1;font-size:13px}
+  .filters .tab:hover{background:var(--slip)}
+  .filters .tab[aria-selected="true"]{background:var(--ink);color:var(--paper);padding:5px 0;min-height:32px;margin:0}
+  .bhead .push{margin-left:0;flex-basis:100%}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+</style></head><body>
+<div class="desk">
+  <nav class="tabs" aria-label="帳本與期間">
+    <div class="tab-group" role="tablist" aria-label="帳本" id="bookTabs"></div>
+    <div class="tab-group" role="tablist" aria-label="期間" id="rangeTabs">
+      <button class="tab" role="tab" data-range="3">近 3 月</button><button class="tab" role="tab" data-range="6">近 6 月</button><button class="tab" role="tab" data-range="12">近 12 月</button><button class="tab" role="tab" data-range="custom">自訂</button>
+    </div>
+  </nav>
+  <main class="book">
+    <section class="page page-l" aria-label="總覽">
+      <header class="band">
+        <svg class="guil" id="guilL" viewBox="0 0 640 150" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <svg class="rosette" id="roseL" viewBox="-60 -60 120 120" aria-hidden="true"></svg>
+        <div class="band-text">
+          <p class="kind">存摺 · 完整財務儀表板</p>
+          <h1 id="bookName">林家帳本</h1>
+          <dl class="acct"><div><dt>戶名</dt><dd id="holder"></dd></div><div><dt>帳號</dt><dd class="mono" id="acctNo"></dd></div><div><dt>期間</dt><dd id="periodTxt"></dd></div></dl>
+        </div>
+        <svg class="seal" id="seal" viewBox="0 0 120 120" role="img" aria-label="範例資料印章"></svg>
+      </header>
+      <div class="filters">
+        <label for="fromM">期間</label><select class="sel" id="fromM" aria-label="起始月份"></select><span class="to">至</span><select class="sel" id="toM" aria-label="結束月份"></select>
+        <label for="catSel" style="margin-left:6px">分類</label><select class="sel" id="catSel"></select>
+        <button class="textbtn" id="clearCat" hidden>清除分類</button>
+      </div>
+      <div class="hero">
+        <div>
+          <p class="lab">現金餘額</p>
+          <p class="hero-num" id="kBal"></p>
+          <p class="cap" id="kBalCap"></p>
+          <p class="delta" id="kBalDelta"></p>
+        </div>
+        <div class="chart balchart" id="balChart" aria-label="月底現金餘額走勢"></div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <section class="block" id="trendBlock">
+        <div class="bhead"><h3>每月收支</h3><div class="legend"><span><i style="background:var(--inc)"></i>收入</span><span><i style="background:var(--exp)"></i>支出</span></div><button class="textbtn push" data-view="trend">表格檢視</button></div>
+        <div class="chart" id="trendChart"></div>
+        <div class="tablev" id="trendTable" hidden></div>
+      </section>
+      <section class="block" id="budgetBlock">
+        <div class="bhead"><h3>預算對比實際</h3><span class="meta" id="budgetMeta"></span></div>
+        <div class="budget" id="budget"></div>
+        <div class="bscale" aria-hidden="true"><span></span><span><em style="left:0">0%</em><em style="left:33.333%">50%</em><em style="left:66.667%">預算 100%</em><em style="left:100%">150%</em></span><span class="n"></span><span></span><span></span></div>
+      </section>
+      <section class="block">
+        <div class="bhead"><h3>現金流量摘要</h3><span class="meta" id="cfMeta"></span></div>
+        <div class="cf" id="cf"></div>
+      </section>
+      <p class="folio">第 3 頁</p>
+    </section>
+    <div class="spine" aria-hidden="true"></div>
+    <section class="page page-r" aria-label="交易明細">
+      <header class="band">
+        <svg class="guil" id="guilR" viewBox="0 0 640 150" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div class="band-text">
+          <p class="kind">存款往來明細</p>
+          <h2 class="title">交易明細</h2>
+          <dl class="acct"><div><dt>本期筆數</dt><dd id="txCount"></dd></div><div><dt>存入</dt><dd id="txIn"></dd></div><div><dt>支出</dt><dd id="txOut"></dd></div></dl>
+        </div>
+      </header>
+      <div class="io">
+        <label class="iobtn"><input type="file" id="csvFile" accept=".csv,text/csv"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M5 2.5h6l3.5 3.5v9.5h-9.5z" fill="#c3d2c0"/><path d="M11 2.5V6h3.5" fill="none" stroke="#1c3a2e" stroke-width="1.3" stroke-linejoin="round"/><path d="M1.5 10h7.5m-2.6-2.6L9 10l-2.6 2.6" fill="none" stroke="#1c3a2e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>匯入 CSV</label>
+        <button class="iobtn" id="tplBtn"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3.5 2.5h7l3.5 3.5v9.5h-10.5z" fill="#c3d2c0"/><path d="M10.5 2.5V6H14" fill="none" stroke="#1c3a2e" stroke-width="1.3" stroke-linejoin="round"/><path d="M6 9h5M6 11.5h5M6 14h3" stroke="#1c3a2e" stroke-width="1.5" stroke-linecap="round"/></svg>下載範本</button>
+        <button class="iobtn" id="expBtn"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M2.5 2.5h6l3.5 3.5v9.5h-9.5z" fill="#c3d2c0"/><path d="M8.5 2.5V6H12" fill="none" stroke="#1c3a2e" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 11h8.5m-2.6-2.6L16.5 11l-2.6 2.6" fill="none" stroke="#1c3a2e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>匯出篩選結果</button>
+        <p class="iostat" id="ioStat" role="status" aria-live="polite">CSV 欄位：日期, 類型（收入／支出／資金流入／資金流出）, 分類, 金額, 摘要</p>
+      </div>
+      <section class="block" id="brkBlock">
+        <div class="bhead"><h3 id="brkTitle">支出明細</h3><span class="meta" id="brkMeta"></span></div>
+        <div class="brk" id="brk"></div>
+      </section>
+      <section class="block">
+        <div class="bhead"><h3>近期交易</h3><span class="meta" id="ledMeta"></span><input class="search push" type="search" id="q" placeholder="搜尋摘要或分類" aria-label="搜尋交易"></div>
+        <table class="ledger" id="ledger"><colgroup><col class="c-d"><col><col class="c-o"><col class="c-i"><col class="c-b"></colgroup>
+          <thead><tr><th>日期</th><th>摘要</th><th>支出</th><th>存入</th><th class="b">結餘</th></tr></thead><tbody id="ledBody"></tbody></table>
+        <div class="more"><span id="shown"></span><button class="morebtn" id="moreBtn">再印 25 筆</button></div>
+      </section>
+      <p class="folio">第 4 頁</p>
+    </section>
+  </main>
+  <p class="colophon">三本帳皆為虛構範例數據 · 下載範本改成自己的數字，再匯入即可替換</p>
+</div>
+<div id="tip" role="tooltip" aria-hidden="true"></div>
+<script>
+'use strict';
+/* ====== 範例資料：替換成你自己的數字 ====== */
+// books：每一本帳。opening 期初餘額；budgets 各支出分類的「每月」預算；
+// rules 產生交易的規則：t 類型（收入／支出／資金流入／資金流出）、c 分類、m 摘要（陣列時隨機挑一個）、
+//   a 金額 [最小, 最大]、n 每月筆數 [最小, 最大]（省略為 1）、d 固定日期、on 只出現在這些月份、
+//   every 每幾個月一次、g 每月成長率；season 為每年某月（'02'）某分類的倍率；on 可寫 '2026-03' 或每年的 '02'。
+// 不想寫規則的話：按「下載範本」拿到 CSV，改成自己的帳再「匯入 CSV」。
+const DATA = {
+  start:'2024-09', months:24,
+  books:{
+    personal:{label:'個人財務', name:'林家帳本', holder:'林家', account:'0917-338-204561', opening:286000,
+      budgets:{房租:22000,餐飲:16000,交通:6800,日用:6500,水電網路:3000,保險:6200,娛樂:5500,教育:3000,醫療:1200,旅遊:6500,人情:3000},
+      season:{'02':{餐飲:1.4},'12':{娛樂:1.6,日用:1.3}},
+      rules:[
+        {t:'收入',c:'薪資',m:'月薪 · 啟明設計',a:[62000,62000],d:5},
+        {t:'收入',c:'薪資',m:'月薪 · 仁愛診所',a:[48000,48000],d:10},
+        {t:'收入',c:'接案',m:['插畫接案 · 出版社','網站維護 · 咖啡店','翻譯稿費'],a:[5000,26000],n:[0,2]},
+        {t:'收入',c:'利息',m:'活存利息',a:[180,260],d:21},
+        {t:'收入',c:'獎金',m:'年終獎金',a:[124000,124000],d:23,on:['01']},
+        {t:'支出',c:'房租',m:'房租 · 永和',a:[22000,22000],d:1},
+        {t:'支出',c:'餐飲',m:['早餐 · 巷口','午餐便當','晚餐 · 家樂福','咖啡','全聯採買','外送','家庭聚餐'],a:[80,1100],n:[20,28]},
+        {t:'支出',c:'交通',m:['悠遊卡加值','加油','高鐵 · 台北至台中','計程車','停車費'],a:[60,1490],n:[7,11]},
+        {t:'支出',c:'日用',m:['寶雅','IKEA','屈臣氏','網購 · 生活用品'],a:[120,1800],n:[4,7]},
+        {t:'支出',c:'水電網路',m:'網路 · 光世代',a:[999,999],d:18},
+        {t:'支出',c:'水電網路',m:'電費 · 台電',a:[1300,2900],d:22,every:2},
+        {t:'支出',c:'水電網路',m:'水費 · 台水',a:[380,560],d:26,every:2},
+        {t:'支出',c:'保險',m:'保費 · 壽險與醫療險',a:[6180,6180],d:15},
+        {t:'支出',c:'娛樂',m:['電影','串流訂閱','演唱會','Switch 遊戲'],a:[270,2800],n:[2,5]},
+        {t:'支出',c:'教育',m:['線上課程','書店 · 誠品','英文家教'],a:[300,2400],n:[1,3]},
+        {t:'支出',c:'醫療',m:['診所掛號','牙醫','藥局'],a:[150,1800],n:[0,2]},
+        {t:'支出',c:'旅遊',m:['花蓮兩天一夜','機票 · 沖繩','住宿 · 沖繩'],a:[12000,24000],n:[1,2],on:['02','07']},
+        {t:'支出',c:'人情',m:['喜宴禮金','同事生日','探病伴手禮'],a:[1200,3600],n:[0,1]},
+        {t:'支出',c:'人情',m:'春節紅包',a:[24000,24000],d:14,on:['02']},
+        {t:'資金流出',c:'投資',m:'定期定額 · 台灣50',a:[10000,10000],d:6}
+      ]},
+    business:{label:'企業', name:'禾豐文具股份有限公司', holder:'禾豐文具', account:'0512-006-118830', opening:12400000,
+      budgets:{進貨成本:3900000,薪資:1880000,租金:380000,物流:330000,行銷:260000,水電雜支:90000,稅費:110000},
+      season:{'09':{銷貨收入:1.3},'12':{銷貨收入:1.12},'01':{銷貨收入:1.1,進貨成本:1.15},'02':{銷貨收入:1.2},'07':{進貨成本:1.3},'08':{銷貨收入:1.35,物流:1.25}},
+      rules:[
+        {t:'收入',c:'銷貨收入',m:['誠品書店 訂單','金石堂 訂單','學校採購 · 新北','momo 平台撥款','蝦皮 撥款','企業禮品訂單','博客來 撥款'],a:[80000,420000],n:[24,32]},
+        {t:'收入',c:'其他收入',m:['廢紙回收','展場補助'],a:[3000,18000],n:[0,1]},
+        {t:'支出',c:'進貨成本',m:['紙品進貨 · 永豐','筆類進貨 · 日系代理','包材進貨','手帳內頁代工'],a:[180000,560000],n:[8,12]},
+        {t:'支出',c:'薪資',m:'薪資 · 38 人',a:[1620000,1620000],d:5},
+        {t:'支出',c:'薪資',m:'勞健保與勞退',a:[238000,238000],d:10},
+        {t:'支出',c:'租金',m:'倉庫租金 · 五股',a:[260000,260000],d:1},
+        {t:'支出',c:'租金',m:'門市租金 · 公館',a:[120000,120000],d:1},
+        {t:'支出',c:'物流',m:['新竹物流','黑貓宅急便','超商店到店'],a:[18000,62000],n:[6,10]},
+        {t:'支出',c:'行銷',m:['社群廣告','開學季陳列','網紅開箱合作','型錄印刷'],a:[20000,110000],n:[3,6]},
+        {t:'支出',c:'水電雜支',m:['電費','水費','清潔','文具耗材'],a:[6000,24000],n:[4,7]},
+        {t:'支出',c:'稅費',m:'營業稅',a:[160000,260000],d:15,every:2},
+        {t:'資金流入',c:'貸款',m:'銀行貸款撥款',a:[3000000,3000000],d:12,on:['2025-11']},
+        {t:'資金流出',c:'貸款',m:'銀行貸款還款',a:[150000,150000],d:20},
+        {t:'資金流出',c:'設備',m:'設備購置 · 自動貼標機',a:[880000,880000],d:18,on:['2026-03']}
+      ]},
+    startup:{label:'新創公司', name:'浮標科技 Buoy Labs', holder:'浮標科技', account:'0808-512-770214', opening:9800000,
+      budgets:{薪資:2400000,雲端服務:220000,行銷:380000,辦公室:210000,軟體訂閱:60000,法務會計:70000,差旅:80000},
+      season:{'04':{行銷:1.6},'05':{差旅:2.2}},
+      rules:[
+        {t:'收入',c:'訂閱收入',m:'訂閱收入 · 金流撥款',a:[120000,150000],n:[4,4],g:.05},
+        {t:'收入',c:'訂閱收入',m:'年約客戶 · 預收',a:[360000,900000],n:[0,1],g:.03},
+        {t:'收入',c:'顧問專案',m:['導入顧問 · 物流業','資料串接專案'],a:[150000,420000],n:[0,1]},
+        {t:'資金流入',c:'募資',m:'種子輪 · 募資入帳',a:[28000000,28000000],d:16,on:['2024-12']},
+        {t:'資金流入',c:'募資',m:'種子輪延伸 · 募資入帳',a:[30000000,30000000],d:12,on:['2026-03']},
+        {t:'支出',c:'薪資',m:'薪資',a:[1700000,1700000],d:5,g:.015},
+        {t:'支出',c:'薪資',m:'勞健保與勞退',a:[250000,250000],d:10,g:.015},
+        {t:'支出',c:'雲端服務',m:['AWS 帳單','Vercel','Datadog','模型 API 用量'],a:[12000,45000],n:[4,5],g:.03},
+        {t:'支出',c:'行銷',m:['搜尋廣告','產品發表會','內容行銷外包','展會攤位'],a:[20000,95000],n:[4,8]},
+        {t:'支出',c:'辦公室',m:'辦公室租金 · 松山',a:[180000,180000],d:1},
+        {t:'支出',c:'辦公室',m:['茶水點心','清潔','網路專線'],a:[2000,9000],n:[2,4]},
+        {t:'支出',c:'軟體訂閱',m:['Figma','Notion','GitHub','Linear','Slack'],a:[1800,16000],n:[5,7]},
+        {t:'支出',c:'法務會計',m:['記帳事務所','律師諮詢','專利申請'],a:[18000,65000],n:[1,2]},
+        {t:'支出',c:'差旅',m:['客戶拜訪 · 台中','東京展會','高鐵票'],a:[6000,48000],n:[1,4]},
+        {t:'資金流出',c:'設備',m:'開發用筆電',a:[72000,96000],n:[2,3],on:['2025-10','2026-04']}
+      ]}
+  }
+};
+/* ====== 範例資料結束 ====== */
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf=new Intl.NumberFormat('zh-TW');
+const reduce=matchMedia('(prefers-reduced-motion: reduce)');
+const INFLOW=new Set(['收入','資金流入']);
+const trim=s=>s.includes('.')?s.replace(/0+$/,'').replace(/\.$/,''):s;
+// 大數字用萬／億：386,420 → 38.6 萬；12,840,000 → 1,284 萬
+function wan(v){const s=v<0?'−':'';v=Math.abs(v);let r;
+  if(v>=1e8)r=trim((v/1e8).toFixed(2))+' 億';else if(v>=1e6)r=nf.format(Math.round(v/1e4))+' 萬';else if(v>=1e4)r=trim((v/1e4).toFixed(1))+' 萬';else r=nf.format(Math.round(v));
+  return s+r}
+const full=v=>(v<0?'−':'')+nf.format(Math.abs(Math.round(v)));
+const monLabel=k=>{const [y,m]=k.split('-');return `${y}/${m}`};
+const monZh=k=>{const [y,m]=k.split('-');return `${y} 年 ${+m} 月`};
+
+function hashStr(s){let h=2166136261;for(const ch of s){h^=ch.codePointAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){return()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function monthRange(a,b){const out=[];let [y,m]=a.split('-').map(Number);const [by,bm]=b.split('-').map(Number);
+  while(y<by||(y===by&&m<=bm)){out.push(y+'-'+String(m).padStart(2,'0'));if(++m>12){m=1;y++}}return out}
+const dim=k=>{const [y,m]=k.split('-').map(Number);return new Date(y,m,0).getDate()};
+function addMonths(k,n){const [y,m]=k.split('-').map(Number);const d=new Date(y,m-1+n,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+
+function buildBook(key){
+  const src=DATA.books[key], R=rng(hashStr(key)), tx=[];
+  const months=monthRange(DATA.start,addMonths(DATA.start,DATA.months-1));
+  const pick=a=>Array.isArray(a)?a[Math.floor(R()*a.length)]:a;
+  months.forEach((mk,mi)=>{
+    const season=(src.season||{})[mk.slice(5)]||{};
+    src.rules.forEach(r=>{
+      if(r.on&&!r.on.includes(mk)&&!r.on.includes(mk.slice(5)))return;
+      if(r.every&&mi%r.every)return;
+      const n=r.n?r.n[0]+Math.floor(R()*(r.n[1]-r.n[0]+1)):1;
+      for(let i=0;i<n;i++){
+        const f=(season[r.c]||1)*Math.pow(1+(r.g||0),mi);
+        let a=r.a[0]+(r.a[1]-r.a[0])*R();
+        if(r.a[0]===r.a[1]&&f===1)a=r.a[0];
+        else{a*=f;a=a<1000?Math.round(a/5)*5:a<100000?Math.round(a/10)*10:Math.round(a/100)*100}
+        const day=Math.min(r.d||1+Math.floor(R()*dim(mk)),dim(mk));
+        tx.push({d:mk+'-'+String(day).padStart(2,'0'),t:r.t,c:r.c,a,m:pick(r.m)});
+      }
+    });
+  });
+  return finalize({key,label:src.label,name:src.name,holder:src.holder,account:src.account,opening:src.opening,budgets:{...src.budgets},est:{},tx,custom:false});
+}
+function finalize(b){
+  b.tx.sort((x,y)=>x.d<y.d?-1:x.d>y.d?1:0);
+  let bal=b.opening;b.tx.forEach((t,i)=>{t.i=i;bal+=(INFLOW.has(t.t)?1:-1)*t.a;t.bal=bal});
+  const first=b.tx[0].d.slice(0,7), last=b.tx[b.tx.length-1].d.slice(0,7);
+  b.months=monthRange(first,last);
+  b.eom={};let run=b.opening,j=0;
+  b.months.forEach(mk=>{while(j<b.tx.length&&b.tx[j].d.slice(0,7)<=mk){run=b.tx[j].bal;j++}b.eom[mk]=run});
+  b.catType={};b.tx.forEach(t=>{if(!(t.c in b.catType))b.catType[t.c]=t.t});
+  Object.keys(b.budgets).forEach(c=>{if(!(c in b.catType))b.catType[c]='支出'});
+  return b;
+}
+
+/* ---------- 狀態 ---------- */
+const books={};Object.keys(DATA.books).forEach(k=>books[k]=null);
+const getBook=k=>books[k]||(books[k]=k==='custom'?null:buildBook(k));
+const state={key:'personal',range:'12',from:'',to:'',cat:'',q:'',shown:25};
+let book=getBook('personal');
+try{const saved=JSON.parse(localStorage.getItem('passbook144:custom')||'null');if(saved&&Array.isArray(saved.tx)&&saved.tx.length){books.custom=finalize(saved);state.key='custom';book=books.custom}}catch(e){}
+
+/* ---------- 防偽底紋與印章 ---------- */
+function drawGuilloche(svg,seed){
+  const W=640,H=150,ph=(seed%97)/97*6.28;let p='',q='';
+  for(let i=0;i<20;i++){let d='',e='';
+    for(let x=0;x<=W;x+=5){
+      const y=H*.5+H*.3*Math.sin(x*.017+i*.3+ph)*Math.cos(x*.0058-i*.12)+H*.06*Math.sin(x*.081+i*.63);
+      const z=H*.5+H*.28*Math.sin(-x*.015+i*.27-ph)*Math.cos(x*.0071+i*.1)+H*.05*Math.sin(x*.069-i*.5);
+      d+=(x?'L':'M')+x+' '+y.toFixed(1);e+=(x?'L':'M')+x+' '+z.toFixed(1)}
+    p+=`<path d="${d}"/>`;q+=`<path d="${e}"/>`}
+  svg.innerHTML=`<g fill="none" stroke="var(--guil)" stroke-width=".6" vector-effect="non-scaling-stroke" opacity=".55">${p}</g><g fill="none" stroke="#a9c7b6" stroke-width=".5" vector-effect="non-scaling-stroke" opacity=".45">${q}</g>`;
+}
+function drawRosette(svg,seed){
+  const k=5+seed%4;let d='';
+  for(let s=0;s<=720;s++){const t=s/720*Math.PI*2*3,R=38,r=R/k*1.6,dd=22;
+    const x=(R-r)*Math.cos(t)+dd*Math.cos((R-r)/r*t),y=(R-r)*Math.sin(t)-dd*Math.sin((R-r)/r*t);d+=(s?'L':'M')+x.toFixed(2)+' '+y.toFixed(2)}
+  svg.innerHTML=`<path d="${d}" fill="none" stroke="var(--guil)" stroke-width=".6" opacity=".7"/><circle r="56" fill="none" stroke="var(--guil)" stroke-width=".6" opacity=".6"/>`;
+}
+function drawSeal(word,ring){
+  $('#seal').innerHTML=`<defs><filter id="inkf" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="7" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.6 2.05" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in"/></filter>
+    <path id="ringPath" d="M60 60m-45.5 0a45.5 45.5 0 1 1 91 0a45.5 45.5 0 1 1 -91 0"/></defs>
+    <g filter="url(#inkf)" fill="none" stroke="#b5412c"><circle cx="60" cy="60" r="55" stroke-width="3.6"/><circle cx="60" cy="60" r="37" stroke-width="1.6"/>
+    <text font-family="var(--sans)" font-size="10.5" fill="#b5412c" stroke="none" letter-spacing="1.5"><textPath href="#ringPath" startOffset="0">${esc(ring)}</textPath></text>
+    <text x="60" y="61" text-anchor="middle" dominant-baseline="central" font-family="var(--serif)" font-weight="700" font-size="${word.length>2?20:27}" fill="#b5412c" stroke="none" letter-spacing="2">${esc(word)}</text></g>`;
+  $('#seal').setAttribute('aria-label',word+'資料印章');
+  if(!reduce.matches)$('#seal').animate([{transform:'rotate(-11deg) scale(1.18)'},{transform:'rotate(-13deg) scale(.96)',offset:.55},{transform:'rotate(-11deg) scale(1)'}],{duration:420,easing:'cubic-bezier(.2,.7,.2,1)'});
+}
+
+/* ---------- 篩選 ---------- */
+function applyRange(){
+  const ms=book.months;
+  if(state.range!=='custom'){const n=+state.range;state.to=ms[ms.length-1];state.from=ms[Math.max(0,ms.length-n)]}
+  if(!ms.includes(state.from))state.from=ms[0];if(!ms.includes(state.to))state.to=ms[ms.length-1];
+  if(state.from>state.to)[state.from,state.to]=[state.to,state.from];
+}
+const inR=(t,a,b)=>{const k=t.d.slice(0,7);return k>=a&&k<=b};
+const pick=(a,b)=>book.tx.filter(t=>inR(t,a,b)&&(!state.cat||t.c===state.cat));
+function totals(list){const o={in:0,out:0,fin:0};list.forEach(t=>{if(t.t==='收入')o.in+=t.a;else if(t.t==='支出')o.out+=t.a;else o.fin+=(t.t==='資金流入'?1:-1)*t.a});o.profit=o.in-o.out;o.net=o.profit+o.fin;return o}
+function prevPeriod(){const ms=book.months,i=ms.indexOf(state.from),len=ms.indexOf(state.to)-i+1;return i-len<0?null:{from:ms[i-len],to:ms[i-1],len}}
+function monthly(list,months){const map={};months.forEach(m=>map[m]={in:0,out:0,fin:0});list.forEach(t=>{const o=map[t.d.slice(0,7)];if(!o)return;if(t.t==='收入')o.in+=t.a;else if(t.t==='支出')o.out+=t.a;else o.fin+=(t.t==='資金流入'?1:-1)*t.a});
+  return months.map(m=>{const o=map[m];return{m,in:o.in,out:o.out,profit:o.in-o.out,net:o.in-o.out+o.fin,bal:book.eom[m]}})}
+
+/* ---------- 共用：數字補間、提示框 ---------- */
+function tween(el,to,fmt){
+  const from=+el.dataset.v||0;el.dataset.v=to;
+  const put=v=>{const s=fmt(v);el.innerHTML=`<span class="cur">NT$</span>${esc(s)}`};
+  if(reduce.matches||from===to||!el.dataset.ready){el.dataset.ready=1;put(to);return}
+  const t0=performance.now(),D=520;cancelAnimationFrame(el._raf);
+  const step=now=>{const k=Math.min(1,(now-t0)/D),e=1-Math.pow(1-k,3);put(from+(to-from)*e);if(k<1)el._raf=requestAnimationFrame(step)};
+  el._raf=requestAnimationFrame(step);clearTimeout(el._to);el._to=setTimeout(()=>put(to),D+200);
+}
+const tip=$('#tip');
+function showTip(x,y,title,rows){
+  tip.textContent='';const h=document.createElement('div');h.className='t';h.textContent=title;tip.append(h);
+  rows.forEach(([color,label,val])=>{const r=document.createElement('div');r.className='r';const i=document.createElement('i');i.style.background=color||'transparent';const b=document.createElement('b');b.textContent=val;const s=document.createElement('span');s.textContent=label;r.append(i,b,s);tip.append(r)});
+  const w=tip.offsetWidth,hh=tip.offsetHeight;let L=x+14,T=y-hh-12;if(L+w>innerWidth-8)L=x-w-14;if(L<8)L=8;if(T<8)T=y+16;
+  tip.style.transform=`translate(${L}px,${T}px)`;
+}
+const hideTip=()=>{tip.style.transform='translate(-9999px,0)'};
+function tipAt(el,title,rows){const r=el.getBoundingClientRect();showTip(r.left+r.width/2,r.top+8,title,rows)}
+
+function niceStep(v){const p=Math.pow(10,Math.floor(Math.log10(v))),n=v/p;return(n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p}
+function roundTop(x,y,w,h,r){if(h<=0)return'';r=Math.min(r,w/2,h);return`M${x} ${y+h}V${y+r}Q${x} ${y} ${x+r} ${y}H${x+w-r}Q${x+w} ${y} ${x+w} ${y+r}V${y+h}Z`}
+function rise(g,dist){if(reduce.matches||!g.animate)return;g.animate([{transform:`translateY(${dist}px)`},{transform:'translateY(0)'}],{duration:560,easing:'cubic-bezier(.2,.7,.2,1)'})}
+
+/* ---------- 每月收支（成對長條） ---------- */
+function drawTrend(rows){
+  const el=$('#trendChart'),W=Math.max(260,el.clientWidth),H=236,m={t:10,r:6,b:30,l:54},pw=W-m.l-m.r,ph=H-m.t-m.b;
+  const max=Math.max(1,...rows.map(r=>Math.max(r.in,r.out))),step=niceStep(max/4),top=Math.ceil(max/step)*step;
+  const y=v=>m.t+ph-v/top*ph,band=pw/rows.length,bw=Math.max(3,Math.min(22,(band*.72-2)/2)),every=band<34?2:1;
+  let grid='',ax='',bars='',hits='';
+  for(let v=0;v<=top+1e-9;v+=step){grid+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`;ax+=`<text x="${m.l-8}" y="${y(v)}" text-anchor="end" dominant-baseline="central">${esc(v?wan(v):'0')}</text>`}
+  rows.forEach((r,i)=>{const cx=m.l+band*i+band/2;
+    bars+=`<path fill="var(--inc)" d="${roundTop(cx-bw-1,y(r.in),bw,ph+m.t-y(r.in),4)}"/><path fill="var(--exp)" d="${roundTop(cx+1,y(r.out),bw,ph+m.t-y(r.out),4)}"/>`;
+    const mm=+r.m.slice(5);
+    if(i%every===0||rows.length<=6)ax+=`<text x="${cx}" y="${H-m.b+16}" text-anchor="middle">${mm===1||i===0?r.m.slice(2,4)+'/'+mm:mm+'月'}</text>`;
+    hits+=`<rect class="hit" data-i="${i}" x="${m.l+band*i}" y="${m.t}" width="${band}" height="${ph}" tabindex="0" aria-label="${esc(monZh(r.m))} 收入 ${full(r.in)} 元，支出 ${full(r.out)} 元"/>`;
+  });
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="每月收入與支出"><defs><clipPath id="clipT"><rect x="0" y="0" width="${W}" height="${m.t+ph}"/></clipPath></defs>
+    <g class="grid">${grid}</g><rect class="hl" x="0" y="${m.t}" width="${band}" height="${ph}" fill="rgba(28,58,46,.06)" visibility="hidden"/><g clip-path="url(#clipT)"><g class="bars">${bars}</g></g><g class="axis">${ax}</g>${hits}</svg>`;
+  rise(el.querySelector('.bars'),ph);
+  const hl=el.querySelector('.hl');
+  const show=(rect,ev)=>{const r=rows[+rect.dataset.i];hl.setAttribute('x',rect.getAttribute('x'));hl.setAttribute('visibility','visible');
+    const rowsT=[['var(--inc)','收入',full(r.in)],['var(--exp)','支出',full(r.out)],['','利潤',full(r.profit)],['','淨現金流量',full(r.net)]];
+    ev?showTip(ev.clientX,ev.clientY,monZh(r.m),rowsT):tipAt(rect,monZh(r.m),rowsT)};
+  el.querySelectorAll('.hit').forEach(h=>{h.addEventListener('pointermove',e=>show(h,e));h.addEventListener('focus',()=>show(h));
+    const off=()=>{hl.setAttribute('visibility','hidden');hideTip()};h.addEventListener('pointerleave',off);h.addEventListener('blur',off)});
+  $('#trendTable').innerHTML=`<table><thead><tr><th>月份</th><th>收入</th><th>支出</th><th>利潤</th><th>淨現金流量</th><th>月底餘額</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${monLabel(r.m)}</td><td>${full(r.in)}</td><td>${full(r.out)}</td><td>${full(r.profit)}</td><td>${full(r.net)}</td><td>${full(r.bal)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+/* ---------- 現金餘額走勢（單線） ---------- */
+function drawBalance(rows){
+  const el=$('#balChart'),W=Math.max(220,el.clientWidth),H=124,m={t:22,r:8,b:20,l:8},pw=W-m.l-m.r,ph=H-m.t-m.b;
+  const vals=rows.map(r=>r.bal),lo=Math.min(...vals),hi=Math.max(...vals),pad=(hi-lo)*.12||Math.abs(hi)*.05||1,a=lo-pad,b=hi+pad;
+  const x=i=>m.l+(rows.length<2?pw/2:i/(rows.length-1)*pw),y=v=>m.t+ph-(v-a)/(b-a)*ph;
+  const pts=rows.map((r,i)=>[x(i),y(r.bal)]),line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('');
+  const area=line+`L${pts[pts.length-1][0].toFixed(1)} ${m.t+ph}L${pts[0][0].toFixed(1)} ${m.t+ph}Z`,last=pts[pts.length-1];
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="月底現金餘額走勢">
+    <line x1="${m.l}" x2="${W-m.r}" y1="${m.t+ph}" y2="${m.t+ph}" stroke="var(--rule)"/>
+    <path d="${area}" fill="var(--ink)" opacity=".1"/><path class="ln" d="${line}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <g class="axis"><text x="${m.l}" y="${H-4}">${monLabel(rows[0].m)}</text><text x="${W-m.r}" y="${H-4}" text-anchor="end">${monLabel(rows[rows.length-1].m)}</text>
+    <text x="${Math.min(last[0],W-m.r)}" y="${Math.max(11,last[1]-12)}" text-anchor="end" style="fill:var(--ink);font-weight:600">${esc(wan(rows[rows.length-1].bal))}</text></g>
+    <line class="xh" x1="0" x2="0" y1="${m.t}" y2="${m.t+ph}" stroke="var(--ink-2)" visibility="hidden"/>
+    <circle class="dot" cx="${last[0]}" cy="${last[1]}" r="4.5" fill="var(--ink)" stroke="var(--paper)" stroke-width="2"/>
+    <rect class="hit" x="${m.l}" y="0" width="${pw}" height="${H}" tabindex="0" aria-label="月底現金餘額，左右方向鍵逐月查看"/></svg>`;
+  const svg=el.querySelector('svg'),xh=el.querySelector('.xh'),dot=el.querySelector('.dot'),hit=el.querySelector('.hit');let cur=rows.length-1;
+  const ln=el.querySelector('.ln');if(!reduce.matches&&ln.animate){const L=ln.getTotalLength();ln.animate([{strokeDasharray:`${L} ${L}`,strokeDashoffset:L},{strokeDasharray:`${L} ${L}`,strokeDashoffset:0}],{duration:700,easing:'cubic-bezier(.2,.7,.2,1)'})}
+  const at=(i,ev)=>{cur=i;const p=pts[i];xh.setAttribute('x1',p[0]);xh.setAttribute('x2',p[0]);xh.setAttribute('visibility','visible');dot.setAttribute('cx',p[0]);dot.setAttribute('cy',p[1]);
+    const r=rows[i],rr=[['var(--ink)','月底餘額',full(r.bal)],['','當月淨現金流量',full(r.net)]];
+    if(ev)showTip(ev.clientX,ev.clientY,monZh(r.m),rr);else{const b=svg.getBoundingClientRect();showTip(b.left+p[0]*b.width/W,b.top+p[1]*b.height/H,monZh(r.m),rr)}};
+  const reset=()=>{xh.setAttribute('visibility','hidden');dot.setAttribute('cx',last[0]);dot.setAttribute('cy',last[1]);hideTip()};
+  hit.addEventListener('pointermove',e=>{const b=svg.getBoundingClientRect(),px=(e.clientX-b.left)*W/b.width;let best=0;pts.forEach((p,i)=>{if(Math.abs(p[0]-px)<Math.abs(pts[best][0]-px))best=i});at(best,e)});
+  hit.addEventListener('pointerleave',reset);hit.addEventListener('blur',reset);hit.addEventListener('focus',()=>at(cur));
+  hit.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();at(Math.max(0,Math.min(rows.length-1,cur+(e.key==='ArrowLeft'?-1:1))))}});
+}
+
+function spark(vals,color){
+  if(vals.length<2)vals=[vals[0]||0,vals[0]||0];
+  const W=120,H=26,lo=Math.min(...vals),hi=Math.max(...vals),r=hi-lo||1,x=i=>2+i/(vals.length-1)*(W-6),y=v=>3+(1-(v-lo)/r)*(H-6);
+  const d=vals.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join('');
+  return`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="#9db4a9" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/><circle cx="${x(vals.length-1)}" cy="${y(vals[vals.length-1])}" r="2.6" fill="${color}"/></svg>`;
+}
+const arrow=(d)=>d>0?'▲':d<0?'▼':'■';
+function deltaHTML(cur,prev,upGood,pct,prevLabel){
+  if(prev==null)return['flat','無前期資料可比較'];
+  const d=cur-prev,sp=/^\d/.test(prevLabel)?' ':'';if(Math.abs(d)<.5||(pct&&prev>0&&Math.abs(d)/prev<.0005))return['flat',`■ 與${sp}${prevLabel}持平`];
+  const good=(d>0)===upGood,val=pct&&prev>0&&cur>=0?trim((Math.abs(d)/prev*100).toFixed(1))+'%':wan(Math.abs(d));
+  return[good?'good':'bad',`${arrow(d)} ${val} 較${sp}${prevLabel}`];
+}
+
+/* ---------- 主繪製 ---------- */
+function render(opts={}){
+  applyRange();
+  const b=book,list=pick(state.from,state.to),T=totals(list),pp=prevPeriod(),P=pp?totals(pick(pp.from,pp.to)):null;
+  const months=monthRange(state.from,state.to),rows=monthly(list,months),len=months.length,prevLabel=pp?`前 ${len} 個月`:'';
+  // 頁首
+  $('#bookName').textContent=b.name;$('#holder').textContent=b.holder;$('#acctNo').textContent=b.account;
+  $('#periodTxt').textContent=`${monLabel(state.from)} 至 ${monLabel(state.to)}`;
+  document.title=`${b.name} · 存摺 · 完整財務儀表板`;
+  if(opts.book){drawGuilloche($('#guilL'),hashStr(b.name));drawGuilloche($('#guilR'),hashStr(b.name)+31);drawRosette($('#roseL'),hashStr(b.name));drawSeal(b.custom?'自訂':'範例',b.custom?'自訂資料 · 匯入 CSV · 自訂資料 · ':`${b.label} · 範例數據 · ${b.label} · `)}
+  // 分頁籤
+  $$('#bookTabs .tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.book===state.key));
+  $$('#rangeTabs .tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.range===state.range));
+  // 月份選單
+  const opt=m=>`<option value="${m}">${monZh(m)}</option>`;
+  $('#fromM').innerHTML=b.months.map(opt).join('');$('#toM').innerHTML=b.months.map(opt).join('');$('#fromM').value=state.from;$('#toM').value=state.to;
+  const groups={收入:[],支出:[],資金流入:[],資金流出:[]};Object.entries(b.catType).forEach(([c,t])=>groups[t].push(c));
+  $('#catSel').innerHTML='<option value="">全部分類</option>'+Object.entries(groups).filter(g=>g[1].length).map(([t,cs])=>`<optgroup label="${t}">${cs.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>`).join('');
+  $('#catSel').value=state.cat;$('#clearCat').hidden=!state.cat;
+  // 現金餘額（不受分類篩選影響）
+  const bal=b.eom[state.to],pbal=pp?b.eom[pp.to]:(state.from===b.months[0]?b.opening:b.eom[addMonths(state.from,-1)]);
+  tween($('#kBal'),bal,wan);
+  $('#kBalCap').textContent=`NT$ ${full(bal)} · 截至 ${monZh(state.to)}底${state.cat?' · 不受分類篩選影響':''}`;
+  const bd=deltaHTML(bal,pbal,true,false,pp?`${monLabel(pp.to)} 底`:'期初');$('#kBalDelta').className='delta '+bd[0];$('#kBalDelta').textContent=bd[1];
+  drawBalance(rows);
+  // 四個 KPI
+  const K=[['收入','in',true,true,'var(--inc)',''],['支出','out',false,true,'var(--exp)',''],['利潤','profit',true,false,'var(--ink)','收入減支出'],['淨現金流量','net',true,false,'var(--ink)','含投資、貸款等資金進出']];
+  const box=$('#kpis');if(!box.children.length)box.innerHTML=K.map(k=>`<div class="kpi" data-k="${k[1]}"${k[5]?` title="${k[5]}"`:''}><p class="lab">${k[0]}</p><p class="v"></p><p class="delta"></p><div class="sp"></div></div>`).join('');
+  K.forEach(([name,key,upGood,pct,color])=>{const el=box.querySelector(`[data-k="${key}"]`);tween(el.querySelector('.v'),T[key],wan);
+    const d=deltaHTML(T[key],P?P[key]:null,upGood,pct,prevLabel);el.querySelector('.delta').className='delta '+d[0];el.querySelector('.delta').textContent=d[1];
+    el.querySelector('.sp').innerHTML=spark(rows.map(r=>r[key]),color)});
+  // 圖表
+  drawTrend(rows);
+  // 預算
+  renderBudget(list,len);
+  renderCash();
+  // 右頁
+  const txIn=list.filter(t=>INFLOW.has(t.t)).reduce((s,t)=>s+t.a,0),txOut=list.filter(t=>!INFLOW.has(t.t)).reduce((s,t)=>s+t.a,0);
+  $('#txCount').textContent=nf.format(list.length)+' 筆';$('#txIn').textContent='NT$ '+wan(txIn);$('#txOut').textContent='NT$ '+wan(txOut);
+  renderBreakdown(list);renderLedger(opts.more);
+}
+
+function renderBudget(list,len){
+  const spent={};list.forEach(t=>{if(t.t==='支出')spent[t.c]=(spent[t.c]||0)+t.a});
+  let cats=Object.keys(book.budgets).filter(c=>!state.cat||c===state.cat);
+  Object.keys(spent).forEach(c=>{if(!(c in book.budgets)&&(!state.cat||c===state.cat))cats.push(c)});
+  const el=$('#budget');
+  if(!cats.length){el.innerHTML='<p class="empty">這個分類沒有支出預算。</p>';$('#budgetMeta').textContent='';return}
+  const rows=cats.map(c=>{const bud=(book.budgets[c]||0)*len,act=spent[c]||0,r=bud?act/bud:(act?9:0);return{c,bud,act,r}}).sort((a,b)=>b.r-a.r);
+  const tb=rows.reduce((s,r)=>s+r.bud,0),ta=rows.reduce((s,r)=>s+r.act,0),nOver=rows.filter(r=>r.r>1).length;
+  $('#budgetMeta').textContent=`${len} 個月合計 · 總預算使用率 ${tb?Math.round(ta/tb*100):0}% · ${nOver?`超支 ${nOver} 項`:'沒有超支'}${Object.keys(book.est).length?' · 部分預算依匯入資料估算':''}`;
+  const icon={ok:'<svg viewBox="0 0 14 14"><path d="M2.5 7.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    near:'<svg viewBox="0 0 14 14"><path d="M7 2.2v6.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="11.4" r="1.2" fill="currentColor"/></svg>',
+    over:'<svg viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'};
+  el.innerHTML=rows.map(r=>{const st=r.r>1?'over':r.r>=.9?'near':'ok',lab={ok:'正常',near:'接近',over:'超支'}[st];
+    const w=Math.min(r.r,1)/1.5*100,ow=r.r>1?(Math.min(r.r,1.5)-1)/1.5*100:0;
+    return`<div class="brow" data-c="${esc(r.c)}" tabindex="0"><span class="nm">${esc(r.c)}</span><span class="track"><i class="fill" style="width:${w.toFixed(2)}%"></i>${ow?`<i class="over" style="left:calc(${(100/1.5).toFixed(3)}% + 2px);width:calc(${ow.toFixed(2)}% - 2px)"></i>`:''}<i class="mark"></i></span>
+      <span class="num"><b>${wan(r.act)}</b> / ${wan(r.bud)}</span><span class="pc">${r.bud?(Math.abs(r.r-1)<.005&&r.r!==1?(r.r*100).toFixed(1):Math.round(r.r*100))+'%':'無'}</span><span class="st ${st}">${icon[st]}${lab}</span></div>`}).join('');
+  el.querySelectorAll('.brow').forEach(row=>{const r=rows.find(x=>x.c===row.dataset.c);const rr=()=>[['','實際',full(r.act)],['','預算',full(r.bud)],['',r.act>r.bud?'超出':'剩餘',full(Math.abs(r.bud-r.act))]];
+    row.addEventListener('pointermove',e=>showTip(e.clientX,e.clientY,r.c,rr()));row.addEventListener('pointerleave',hideTip);row.addEventListener('focus',()=>tipAt(row,r.c,rr()));row.addEventListener('blur',hideTip)});
+}
+
+function renderCash(){
+  const all=book.tx.filter(t=>inR(t,state.from,state.to)),o=totals(all),fin={};
+  all.forEach(t=>{if(t.t==='資金流入'||t.t==='資金流出'){fin[t.c]=(fin[t.c]||0)+(t.t==='資金流入'?1:-1)*t.a}});
+  const open=state.from===book.months[0]?book.opening:book.eom[addMonths(state.from,-1)],close=book.eom[state.to];
+  const sg=v=>(v<0?'− ':'+ ')+nf.format(Math.abs(Math.round(v)));
+  let h=`<div class="r"><span>期初現金 · ${monLabel(state.from)} 初</span><span>${full(open)}</span></div>
+    <div class="r"><span>收入</span><span>${sg(o.in)}</span></div><div class="r neg"><span>支出</span><span>${sg(-o.out)}</span></div>
+    <div class="r sub"><span>營業淨額（利潤）</span><span>${sg(o.profit)}</span></div>`;
+  Object.entries(fin).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).forEach(([c,v])=>{h+=`<div class="r${v<0?' neg':''}"><span>${esc(c)}（資金${v<0?'流出':'流入'}）</span><span>${sg(v)}</span></div>`});
+  h+=`<div class="r tot"><span>期末現金 · ${monLabel(state.to)} 底</span><span>${full(close)}</span></div>`;
+  $('#cf').innerHTML=h;$('#cfMeta').textContent=state.cat?'整本帳對帳，不受分類篩選影響':'期初加減本期進出，等於期末餘額';
+}
+function renderBreakdown(list){
+  const out=list.filter(t=>t.t==='支出'||(state.cat&&t.t==='資金流出'));
+  const byMemo=!!state.cat,g={};out.forEach(t=>{const k=byMemo?t.m:t.c;g[k]=(g[k]||0)+t.a});
+  let rows=Object.entries(g).sort((a,b)=>b[1]-a[1]);const total=rows.reduce((s,r)=>s+r[1],0);
+  if(rows.length>8){const rest=rows.slice(7).reduce((s,r)=>s+r[1],0);rows=rows.slice(0,7).concat([['其他 '+(rows.length-7)+' 項',rest,true]])}
+  $('#brkTitle').textContent=byMemo?`支出明細 · ${state.cat}`:'支出明細';
+  $('#brkMeta').textContent=total?`合計 NT$ ${wan(total)} · ${byMemo?'依摘要':'依分類'}${byMemo?'':' · 點一列即篩選'}`:'';
+  const el=$('#brk');
+  if(!rows.length){el.innerHTML='<p class="empty">這段期間沒有支出紀錄。</p>';return}
+  const max=rows[0][1];
+  el.innerHTML=rows.map(([k,v,other])=>`<button class="krow${other?' other':''}" data-k="${esc(k)}" ${other?'data-other="1"':''}><span class="nm">${esc(k)}</span><span class="bar"><i style="width:${(v/max*100).toFixed(2)}%"></i></span><span class="amt">${full(v)}</span><span class="pct">${trim((v/total*100).toFixed(1))}%</span></button>`).join('');
+  el.querySelectorAll('.krow').forEach(btn=>{const v=g[btn.dataset.k]??rows.find(r=>r[0]===btn.dataset.k)[1];
+    const rr=()=>[['var(--exp)','金額',full(v)],['','占比',trim((v/total*100).toFixed(1))+'%']];
+    btn.addEventListener('pointermove',e=>showTip(e.clientX,e.clientY,btn.dataset.k,rr()));btn.addEventListener('pointerleave',hideTip);btn.addEventListener('blur',hideTip);
+    btn.addEventListener('click',()=>{hideTip();if(btn.dataset.other)return;if(byMemo){state.q=btn.dataset.k;$('#q').value=state.q;state.shown=25;renderLedger()}else{state.cat=btn.dataset.k;state.shown=25;render()}})});
+}
+
+function ledgerList(){const q=state.q.trim().toLowerCase();return pick(state.from,state.to).filter(t=>!q||t.m.toLowerCase().includes(q)||t.c.toLowerCase().includes(q)).reverse()}
+function renderLedger(more){
+  const all=ledgerList(),show=all.slice(0,state.shown),start=more?state.shown-25:0;let html='',lastM='';
+  show.forEach((t,i)=>{const mk=t.d.slice(0,7);if(mk!==lastM){html+=`<tr class="mon${i>=start&&more?' fresh':''}"><td colspan="5">${monZh(mk)}</td></tr>`;lastM=mk}
+    const inflow=INFLOW.has(t.t);
+    html+=`<tr class="${more&&i>=start?'fresh':''}"><td class="d">${t.d.slice(5).replace('-','/')}</td><td class="m" title="${esc(t.m)} · ${esc(t.c)}">${esc(t.m)}<span>${esc(t.c)}</span></td><td class="n o">${inflow?'':full(t.a)}</td><td class="n">${inflow?full(t.a):''}</td><td class="n b">${full(t.bal)}</td></tr>`});
+  $('#ledBody').innerHTML=html||'<tr><td colspan="5" class="empty" style="height:auto;padding:14px 6px">沒有符合條件的交易。</td></tr>';
+  $('#ledMeta').textContent=state.q?`搜尋「${state.q}」`:'由新到舊';
+  $('#shown').textContent=`顯示 ${Math.min(state.shown,all.length)} / ${all.length} 筆`;
+  $('#moreBtn').hidden=state.shown>=all.length;
+}
+
+/* ---------- CSV ---------- */
+function parseCSV(text){text=text.replace(/^﻿/,'');const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+    else if(ch==='"')q=true;else if(ch===','){row.push(f);f=''}
+    else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f=''}else f+=ch}
+  if(f||row.length){row.push(f);rows.push(row)}return rows.filter(r=>r.some(c=>c.trim()))}
+const TYPE={'收入':'收入','income':'收入','支出':'支出','expense':'支出','資金流入':'資金流入','資金流出':'資金流出','期初餘額':'期初餘額','opening':'期初餘額','預算':'預算','budget':'預算'};
+function importCSV(text,fileName){
+  const rows=parseCSV(text);let start=rows.length&&/日期|date/i.test(rows[0][0]||'')?1:0;
+  const tx=[],budgets={};let opening=0,skipped=0;
+  rows.slice(start).forEach(r=>{const [d='',ty='',c='',amt='',memo='']=r.map(s=>String(s).trim());const t=TYPE[ty]||TYPE[ty.toLowerCase()];const a=Number(amt.replace(/[,\s]|NT\$|元/g,''));
+    if(!t||!isFinite(a)||amt===''){skipped++;return}
+    if(t==='期初餘額'){opening=a;return}
+    if(t==='預算'){if(c)budgets[c]=Math.abs(a);else skipped++;return}
+    const dm=d.replace(/[./]/g,'-').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);if(!dm||+dm[2]<1||+dm[2]>12){skipped++;return}
+    tx.push({d:`${dm[1]}-${dm[2].padStart(2,'0')}-${dm[3].padStart(2,'0')}`,t,c:c||'未分類',a:Math.abs(a),m:memo||c||t})});
+  if(!tx.length)throw new Error('檔案裡沒有可讀取的交易列');
+  const b={key:'custom',label:'自訂',name:(fileName||'').replace(/\.csv$/i,'').slice(0,24)||'我的帳本',holder:'自訂資料',account:'匯入 · '+tx.length+' 筆',opening,budgets,est:{},tx,custom:true};
+  finalize(b);
+  // 沒有預算列的支出分類：以每月平均實際支出估算
+  const spend={};b.tx.forEach(t=>{if(t.t==='支出')spend[t.c]=(spend[t.c]||0)+t.a});
+  Object.entries(spend).forEach(([c,v])=>{if(!(c in budgets)){const avg=v/b.months.length,p=Math.pow(10,Math.max(0,Math.floor(Math.log10(avg))-1));b.budgets[c]=Math.ceil(avg/p)*p;b.est[c]=1}});
+  return{b,skipped};
+}
+const cell=v=>{v=String(v);if(/^[=+\-@]/.test(v)&&isNaN(+v))v="'"+v;return/[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+const csvLine=a=>a.map(cell).join(',');
+function download(name,text){const blob=new Blob(['﻿'+text],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
+
+/* ---------- 事件 ---------- */
+function drawBookTabs(){
+  const keys=Object.keys(DATA.books).concat(books.custom?['custom']:[]);
+  $('#bookTabs').innerHTML=keys.map(k=>{const b=k==='custom'?books.custom:DATA.books[k];return`<button class="tab" role="tab" data-book="${k}">${esc(b.label)}</button>`}).join('');
+  $$('#bookTabs .tab').forEach(t=>t.addEventListener('click',()=>switchBook(t.dataset.book)));
+}
+function switchBook(k){state.key=k;book=getBook(k);state.range='12';state.cat='';state.q='';$('#q').value='';state.shown=25;render({book:true})}
+$$('#rangeTabs .tab').forEach(t=>t.addEventListener('click',()=>{state.range=t.dataset.range;if(state.range==='custom'){ /* 保留目前範圍，改用下拉選單調整 */ }state.shown=25;render();if(state.range==='custom')$('#fromM').focus()}));
+$('#fromM').addEventListener('change',e=>{state.range='custom';state.from=e.target.value;state.shown=25;render()});
+$('#toM').addEventListener('change',e=>{state.range='custom';state.to=e.target.value;state.shown=25;render()});
+$('#catSel').addEventListener('change',e=>{state.cat=e.target.value;state.shown=25;render()});
+$('#clearCat').addEventListener('click',()=>{state.cat='';state.shown=25;render();$('#catSel').focus()});
+let qt;$('#q').addEventListener('input',e=>{clearTimeout(qt);qt=setTimeout(()=>{state.q=e.target.value;state.shown=25;renderLedger()},120)});
+$('#moreBtn').addEventListener('click',()=>{state.shown+=25;renderLedger(true)});
+$$('[data-view]').forEach(btn=>btn.addEventListener('click',()=>{const tbl=$('#trendTable'),on=tbl.hidden;tbl.hidden=!on;$('#trendChart').hidden=on;btn.textContent=on?'圖表檢視':'表格檢視'}));
+$('#csvFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const {b,skipped}=importCSV(String(rd.result),f.name);books.custom=b;drawBookTabs();switchBook('custom');
+      try{localStorage.setItem('passbook144:custom',JSON.stringify({key:b.key,label:b.label,name:b.name,holder:b.holder,account:b.account,opening:b.opening,budgets:b.budgets,est:b.est,custom:true,tx:b.tx.map(({d,t,c,a,m})=>({d,t,c,a,m}))}))}catch(err){}
+      ioStatus(`已匯入「${f.name}」${b.tx.length} 筆交易${skipped?`，略過 ${skipped} 列格式不符`:''}。`,true)}
+    catch(err){ioStatus('匯入失敗：'+err.message+'。請確認欄位為 日期, 類型, 分類, 金額, 摘要。')}e.target.value=''};
+  rd.readAsText(f)});
+function ioStatus(msg,withRemove){const s=$('#ioStat');s.textContent=msg;if(withRemove){const btn=document.createElement('button');btn.className='textbtn';btn.textContent='移除自訂帳本';btn.addEventListener('click',()=>{books.custom=null;try{localStorage.removeItem('passbook144:custom')}catch(e){}drawBookTabs();switchBook('personal');s.textContent='已移除自訂帳本，回到範例數據。'});s.append(' ',btn)}}
+$('#tplBtn').addEventListener('click',()=>{const b=book,lines=[csvLine(['日期','類型','分類','金額','摘要']),csvLine([b.tx[0].d.slice(0,8)+'01','期初餘額','',b.opening,'期初餘額'])];
+  Object.entries(b.budgets).forEach(([c,v])=>lines.push(csvLine(['','預算',c,v,'每月預算'])));
+  b.tx.forEach(t=>lines.push(csvLine([t.d,t.t,t.c,t.a,t.m])));
+  download(`存摺範本-${b.label}.csv`,lines.join('\r\n'));ioStatus(`已下載「${b.label}」範本：${b.tx.length} 筆交易、${Object.keys(b.budgets).length} 項每月預算，可直接改數字再匯入。`,!!books.custom)});
+$('#expBtn').addEventListener('click',()=>{const list=ledgerList().reverse(),lines=[csvLine(['日期','類型','分類','金額','摘要','結餘'])];list.forEach(t=>lines.push(csvLine([t.d,t.t,t.c,t.a,t.m,t.bal])));
+  download(`存摺匯出-${state.from}至${state.to}${state.cat?'-'+state.cat:''}.csv`,lines.join('\r\n'));ioStatus(`已匯出 ${list.length} 筆（${monLabel(state.from)} 至 ${monLabel(state.to)}${state.cat?' · '+state.cat:''}${state.q?' · 搜尋「'+state.q+'」':''}）。`,!!books.custom)});
+let rw=innerWidth,rt;addEventListener('resize',()=>{if(innerWidth===rw)return;rw=innerWidth;clearTimeout(rt);rt=setTimeout(()=>{const rows=monthly(pick(state.from,state.to),monthRange(state.from,state.to));drawTrend(rows);drawBalance(rows)},120)});
+addEventListener('scroll',hideTip,{passive:true});
+
+// 手機上期間分頁收進篩選列，避免兩排標籤懸空
+const mq=matchMedia('(max-width:640px)'),navTabs=$('.tabs'),filters=$('.filters');
+function placeRange(){const g=$('#rangeTabs');if(mq.matches){if(g.parentNode!==filters)filters.prepend(g)}else if(g.parentNode!==navTabs)navTabs.append(g)}
+mq.addEventListener('change',placeRange);placeRange();
+drawBookTabs();render({book:true});
+</script>
+</body></html>

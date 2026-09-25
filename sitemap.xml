@@ -1196,4 +1196,14 @@
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/140.jpg</image:loc></image:image>
   </url>
   <url><loc>https://htmls-ruddy.vercel.app/web/141-between-worlds.html</loc></url>
+  <url>
+    <loc>https://htmls-ruddy.vercel.app/web/142-aurielle-castle.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/142.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://htmls-ruddy.vercel.app/web/149-powers-of-ten.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/149.jpg</image:loc></image:image>
+  </url>
 </urlset>

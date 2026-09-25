@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>跑道 · CFO 儀表板</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="單頁高階主管財務儀表板：收入、成長率、毛利、營運費用、淨利、現金、燒錢率與可支撐月數，對比上月、上季與目標，並依資料產生三點 CFO 總結。可支撐月數畫成一條跑道。">
+<style>
+:root{
+  --bg:#161412; --raised:#1f1c19; --raised2:#26221e; --edge:#2e2a25; --grid:#2a2622;
+  --ink:#ece6dc; --ink2:#b9b0a3; --muted:#8f867a;
+  --brass:#c9a86a; --good:#2fa38a; --bad:#d8643f;
+  --asphalt:#2a2724; --paint:#d9d2c5; --ground:#1a1815;
+  --sans:"Optima","Candara","Segoe UI","PingFang TC","Heiti TC","Microsoft JhengHei",sans-serif;
+  --serif:"Songti TC","STSong","Noto Serif TC","Source Han Serif TC","PMingLiU",serif;
+  --ease:cubic-bezier(.22,.8,.26,1);
+  --gut:32px;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 .95  0 0 0 0 .88  0 0 0 .045 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");color:var(--ink);font:15px/1.6 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:3px}
+.wrap{max-width:1240px;margin:0 auto;padding:0 var(--gut)}
+
+/* ---------- 頁首：公司名本身就是切換器 ---------- */
+header.wrap{padding-top:34px;padding-bottom:8px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px 40px;flex-wrap:wrap}
+.cos{display:flex;gap:6px 28px;flex-wrap:wrap;align-items:baseline;margin:0;padding:0;list-style:none}
+.co{background:none;border:0;padding:0;font:600 30px/1.2 var(--serif);color:var(--muted);letter-spacing:.02em;transition:color .2s var(--ease)}
+.co:hover{color:var(--ink2)}
+.co[aria-pressed="true"]{color:var(--ink)}
+.co small{display:block;font:400 12.5px/1.5 var(--sans);letter-spacing:0;color:var(--muted);margin-top:2px}
+.co[aria-pressed="true"] small{color:var(--ink2)}
+.months{display:flex;align-items:center;gap:2px;background:var(--raised);border-radius:8px;padding:3px;box-shadow:inset 0 1px 0 rgba(255,244,225,.04)}
+.months .yr{font-size:12.5px;color:var(--muted);padding:0 10px 0 8px}
+.mo{background:none;border:0;border-radius:6px;padding:6px 10px;color:var(--ink2);font-size:14px;min-width:44px;transition:background-color .18s var(--ease),color .18s var(--ease)}
+.mo:hover{color:var(--ink);background:var(--raised2)}
+.mo[aria-pressed="true"]{background:var(--ink);color:#1a1714;font-weight:600}
+.sub{margin:14px 0 0;color:var(--ink2);font-size:14px}
+.sub b{color:var(--ink);font-weight:600}
+
+/* ---------- 跑道 ---------- */
+.hero{padding-top:30px}
+.fig{display:flex;align-items:flex-end;gap:14px 34px;flex-wrap:wrap}
+.num{display:flex;align-items:baseline;gap:10px;line-height:.9}
+.num b{font:400 104px/0.9 var(--sans);letter-spacing:0;color:var(--ink)}
+.num span{font-size:24px;color:var(--ink2)}
+.num b.inf{font-size:150px;line-height:.62;font-family:"Songti TC","STSong",var(--sans)}
+.rab{animation:rab 2.2s linear infinite}
+@keyframes rab{0%,10%{opacity:1}22%,100%{opacity:.14}}
+.fig-txt{max-width:560px;padding-bottom:8px}
+.fig-txt strong{display:block;font-size:16px;font-weight:600}
+.fig-txt p{margin:4px 0 0;color:var(--ink2);font-size:15px}
+.fig-txt .warn{color:var(--ink)}
+.strip{position:relative;margin-top:26px;width:100vw;left:50%;transform:translateX(-50%);touch-action:pan-y}
+.strip svg{display:block;width:100%;height:auto;overflow:visible}
+.strip svg:focus-visible{outline-offset:-3px}
+.ctl{display:flex;align-items:center;gap:14px 26px;flex-wrap:wrap;margin-top:14px}
+.ctl label{font-size:14px;color:var(--ink2)}
+.slider{display:flex;align-items:center;gap:8px 12px;flex:1 1 360px;flex-wrap:wrap;min-width:0}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;max-width:320px;height:24px;background:none;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--edge),#3a352f 50%,var(--edge))}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:#3a352f}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;background:var(--ink);border:3px solid var(--bg)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--ink);border:3px solid var(--bg)}
+.adj{font-size:14px;color:var(--ink);min-width:15em}
+.adj em{font-style:normal;color:var(--muted)}
+.txtbtn{background:none;border:0;padding:6px 0;color:var(--ink2);font-size:14px;border-radius:3px}
+.txtbtn:hover{color:var(--ink)}
+.txtbtn::before{content:"";display:inline-block;width:.42em;height:.42em;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:translateY(-.2em) rotate(45deg);margin-right:.6em;transition:transform .2s var(--ease)}
+.txtbtn[aria-expanded="true"]::before{transform:translateY(.02em) rotate(-135deg)}
+.ctl .txtbtn{margin-left:auto}
+
+/* ---------- 總結 ---------- */
+section.wrap{margin-top:64px}
+h2{font-size:19px;font-weight:600;margin:0 0 16px;letter-spacing:.02em}
+.h2row{display:flex;align-items:baseline;justify-content:space-between;gap:8px 20px;flex-wrap:wrap;margin-bottom:16px}
+.h2row h2{margin:0}
+.note{font-size:13px;color:var(--muted);margin:0}
+.brief{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.col{background:var(--raised);border-radius:10px;padding:20px 22px 22px;box-shadow:inset 0 0 0 1px rgba(255,244,225,.035),inset 0 1px 0 rgba(255,244,225,.05)}
+.col h3{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;margin:0 0 12px}
+.col h3 i{font-style:normal;font-size:13px;width:22px;height:22px;display:inline-grid;place-items:center;line-height:1}
+.col.up h3 i{color:var(--good)}
+.col.down h3 i{color:var(--bad)}
+.col.watch h3 i{color:var(--brass)}
+.col ul{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.col li{font-size:14.5px;color:var(--ink2);line-height:1.65}
+.col li b{display:block;color:var(--ink);font-weight:600;font-size:15px;margin-bottom:1px}
+.col .quiet{color:var(--muted)}
+
+/* ---------- 指標表 ---------- */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%}
+.figs th,.figs td{padding:12px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--grid)}
+.figs thead th{font-size:13px;font-weight:400;color:var(--muted);padding-top:0;padding-bottom:10px}
+.figs th:first-child,.figs td:first-child{text-align:left;padding-left:2px}
+.figs tbody th{font-weight:600;font-size:15px}
+.figs tbody th small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
+.figs tbody tr{transition:background-color .15s var(--ease)}
+.figs tbody tr:hover{background:rgba(255,244,225,.025)}
+.v{font-size:17px;color:var(--ink)}
+.figs .v,.d{font-variant-numeric:tabular-nums}
+.d{font-size:14.5px;color:var(--ink)}
+.d i{font-style:normal;font-size:10px;margin-right:6px;display:inline-block;transform:translateY(-1px)}
+.d.g i{color:var(--good)}
+.d.b i{color:var(--bad)}
+.d.n i{color:var(--muted)}
+.d small{display:block;font-size:12.5px;color:var(--muted)}
+.d.na{color:var(--muted)}
+.spark{width:1%;padding-right:2px}
+.spark svg{display:block;margin-left:auto;overflow:visible}
+.spark svg:focus-visible{outline-offset:2px}
+.cmp{display:none}
+.legend{display:flex;gap:6px 22px;flex-wrap:wrap;margin:14px 0 0;font-size:13px;color:var(--muted)}
+.legend span i{font-style:normal;font-size:10px;margin-right:6px}
+.detail{margin-top:18px}
+.detail[hidden],.runtbl[hidden]{display:none}
+.detail table,.runtbl table{font-size:13.5px}
+.detail th,.detail td,.runtbl th,.runtbl td{padding:8px 12px;border-bottom:1px solid var(--grid);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.detail th:first-child,.runtbl th:first-child{text-align:left;position:sticky;left:0;background:var(--bg)}
+.detail thead th,.runtbl thead th{color:var(--muted);font-weight:400}
+.runtbl{margin-top:12px;max-width:640px}
+.runtbl td.out{color:var(--bad)}
+
+footer.wrap{padding-top:60px;padding-bottom:48px;color:var(--muted);font-size:13px}
+footer dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0;max-width:820px}
+footer dt{color:var(--ink2)}
+footer dd{margin:0}
+footer p{margin:22px 0 0}
+footer a{color:var(--ink2)}
+
+/* ---------- 提示 ---------- */
+.tip{position:fixed;z-index:10;pointer-events:none;background:#2c2824;color:var(--ink);border-radius:6px;padding:8px 11px;font-size:13px;line-height:1.5;box-shadow:0 2px 6px rgba(0,0,0,.35);opacity:0;transition:opacity .12s;white-space:nowrap}
+.tip.on{opacity:1}
+.tip b{display:block;font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.tip span{color:var(--ink2)}
+
+@media (max-width:760px){
+  :root{--gut:18px}
+  header.wrap{padding-top:24px}
+  .co{font-size:23px}
+  .months{width:100%;justify-content:space-between}
+  .months .yr{padding:0 4px}
+  .mo{min-width:0;padding:6px 7px;font-size:13.5px}
+  .num b{font-size:76px}
+  .num b.inf{font-size:110px}
+  .num span{font-size:20px}
+  .fig{gap:10px}
+  .brief{grid-template-columns:1fr}
+  .ctl .txtbtn{margin-left:0}
+  .slider{flex-basis:100%}
+  .adj{min-width:0;flex-basis:100%}
+  .cmp{display:flex;gap:2px;background:var(--raised);border-radius:8px;padding:3px;margin:0 0 12px}
+  .cmp button{flex:1;background:none;border:0;border-radius:6px;padding:7px 4px;font-size:14px;color:var(--ink2)}
+  .cmp button[aria-pressed="true"]{background:var(--ink);color:#1a1714;font-weight:600}
+  .figs .c-prev,.figs .c-qtr,.figs .c-tgt{display:none}
+  .figs[data-cmp="prev"] .c-prev,.figs[data-cmp="qtr"] .c-qtr,.figs[data-cmp="tgt"] .c-tgt{display:table-cell}
+  .figs th,.figs td{padding:11px 8px}
+  .figs tbody th{font-size:14px;white-space:normal}
+  .v{font-size:15px}
+  .d{font-size:13.5px}
+  footer dl{grid-template-columns:1fr;gap:0}
+  footer dd{margin-bottom:8px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}.rab{animation:none;opacity:.5}}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="head">
+    <div class="cos" id="cos" role="group" aria-label="切換公司"></div>
+    <div class="months" id="months" role="group" aria-label="報告月份"><span class="yr">2026</span></div>
+  </div>
+  <p class="sub" id="sub"></p>
+</header>
+
+<main>
+  <div class="hero wrap" aria-labelledby="runLabel">
+    <div class="fig">
+      <div class="num"><b id="rwNum">0</b><span id="rwUnit">個月</span></div>
+      <div class="fig-txt"><strong id="runLabel">可支撐月數</strong><p id="rwTxt"></p></div>
+    </div>
+  </div>
+  <div class="strip" id="strip"></div>
+  <div class="wrap">
+    <div class="ctl">
+      <div class="slider">
+        <label for="adj">營運費用情境</label>
+        <input type="range" id="adj" min="-30" max="30" step="5" value="0" aria-describedby="adjOut">
+        <output class="adj" id="adjOut" for="adj"></output>
+      </div>
+      <button class="txtbtn" id="runBtn" aria-expanded="false" aria-controls="runTbl">逐月現金預估表</button>
+    </div>
+    <div class="runtbl tbl-wrap" id="runTbl" hidden></div>
+  </div>
+
+  <section class="wrap" aria-labelledby="briefH">
+    <h2 id="briefH">CFO 總結</h2>
+    <div class="brief" id="brief"></div>
+  </section>
+
+  <section class="wrap" aria-labelledby="figH">
+    <div class="h2row"><h2 id="figH">十項指標</h2><p class="note" id="figNote"></p></div>
+    <div class="cmp" id="cmp" role="group" aria-label="比較基準">
+      <button data-c="prev" aria-pressed="true">較上月</button><button data-c="qtr" aria-pressed="false">較上季</button><button data-c="tgt" aria-pressed="false">較目標</button>
+    </div>
+    <div class="tbl-wrap"><table class="figs" id="figs" data-cmp="prev"></table></div>
+    <div class="legend"><span><i style="color:var(--good)">▲▼</i>有利差異</span><span><i style="color:var(--bad)">▲▼</i>不利差異，數值加括號</span><span>箭頭是增減方向；費用與燒錢增加算不利</span></div>
+    <button class="txtbtn" id="detBtn" aria-expanded="false" aria-controls="detail" style="margin-top:14px">展開 18 個月明細</button>
+    <div class="detail tbl-wrap" id="detail" hidden></div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <dl>
+    <dt>燒錢率</dt><dd>近三個月平均每月淨現金流出，不含募資入帳；負值代表現金淨流入。</dd>
+    <dt>可支撐月數</dt><dd>期末現金 ÷ 燒錢率。營運費用情境以近三個月平均營運費用乘上調整比例，加到燒錢率上。</dd>
+    <dt>上季</dt><dd>前一個日曆季的月平均；比率以季合計重算，現金與可支撐月數取上季季末。</dd>
+    <dt>成長率</dt><dd>收入月增率。</dd>
+  </dl>
+  <p>三家公司皆為虛構，數字為示意範例。要換成自己的資料，改寫原始碼開頭的 DATA 區塊即可。 · <a href="../index.html">回到作品集</a></p>
+</footer>
+
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+/* ====== 範例資料：替換成你自己的數字 ======
+   金額單位：新台幣萬元。每個陣列都是 18 個月，從 start（2025 年 4 月）開始逐月排列。
+   revenue 收入、cogs 銷貨成本、opex 營運費用、other 業外損益與所得稅（負數為支出）、
+   funding 募資或增資入帳、cash 期末現金。revenuePrior 是第一個月的前一月收入（算成長率用）。
+   target：revenue／opex／cash 為逐月目標；growth、grossMargin 為比率目標；
+   other 為每月業外預算；burn 為燒錢率目標（負數代表淨流入）；runway 為可支撐月數目標（獲利公司填 null）。 */
+const DATA = {
+  start: {year: 2025, month: 4},
+  companies: {
+    north: {
+      name: '北緯數位', kind: 'SaaS 新創', about: 'B2B 訂閱軟體',
+      revenuePrior: 725, openingCash: 18200,
+      revenue: [741,798,842,884,936,970,1000,1045,1119,1159,1206,1252,1323,1395,1465,1516,1633,1679],
+      cogs:    [207,227,235,244,255,264,274,283,294,308,319,328,342,352,369,380,401,423],
+      opex:    [1468,1520,1550,1529,1559,1615,1660,1652,1664,1820,1886,1889,1947,1982,2040,2026,2041,2073],
+      other:   [10,14,10,13,12,15,11,15,10,15,15,11,10,13,11,11,14,16],
+      funding: [0,0,0,0,0,0,0,0,9800,0,0,0,0,0,0,0,0,0],
+      cash:    [17260,16316,15380,14498,13610,12694,11776,10892,19854,18909,17917,16958,15979,15045,14097,13215,12427,11629],
+      target: {
+        revenue: [741,778,817,858,901,946,993,1043,1095,1150,1207,1267,1331,1397,1467,1540,1618,1698],
+        opex:    [1470,1496,1523,1551,1579,1607,1636,1666,1696,1726,1757,1789,1821,1854,1887,1921,1956,1991],
+        cash:    [17290,16382,15476,14572,13672,12777,11888,11006,19932,19069,18217,17378,16554,15746,14957,14188,13441,12719],
+        growth: 0.05, grossMargin: 0.74, other: 12, burn: 760, runway: 18
+      }
+    },
+    island: {
+      name: '島嶼行動', kind: '硬體新創', about: '電動機車換電站',
+      revenuePrior: 245, openingCash: 15800,
+      revenue: [262,281,296,302,331,355,371,400,408,444,457,502,517,552,595,617,674,702],
+      cogs:    [221,233,247,249,273,292,300,323,328,355,362,394,405,429,463,473,520,534],
+      opex:    [1647,1713,1690,1742,1828,1839,2021,2121,2113,2158,2283,2339,2383,2565,2639,2726,2748,2842],
+      other:   [-26,-31,-21,-29,-21,-18,-31,-21,-29,-19,-18,-29,-23,-23,-24,-27,-20,-25],
+      funding: [0,0,0,0,0,22000,0,0,0,0,0,0,0,19000,0,0,0,0],
+      cash:    [14179,12442,10795,9064,7268,27430,25458,23399,21304,19164,16907,14636,12348,28851,26330,23661,21026,18339],
+      target: {
+        revenue: [262,279,298,317,338,361,384,410,437,466,496,529,564,601,641,683,728,777],
+        opex:    [1640,1689,1740,1792,1846,1901,1958,2017,2078,2140,2204,2270,2338,2408,2481,2555,2632,2711],
+        cash:    [14201,12557,10867,9129,7343,27507,25620,23681,21687,19639,17534,15371,13149,29866,27520,25111,22636,20094],
+        growth: 0.066, grossMargin: 0.25, other: -25, burn: 2300, runway: 12
+      }
+    },
+    heng: {
+      name: '恆川食品', kind: '食品製造', about: '冷凍調理食品',
+      revenuePrior: 10359, openingCash: 31800,
+      revenue: [10372,10445,10378,10386,10738,10358,10406,10432,10578,10739,10586,11098,10731,10943,10725,11276,11342,11079],
+      cogs:    [7115,7085,7060,7045,7244,7001,7105,7058,7141,7244,7190,7494,7296,7313,7288,7551,7585,7443],
+      opex:    [2164,2147,2141,2170,2220,2202,2165,2250,2197,2253,2265,2213,2235,2226,2266,2307,2307,2300],
+      other:   [-263,-299,-295,-194,-288,-295,-199,-212,-253,-244,-334,-215,-283,-246,-196,-250,-271,-271],
+      funding: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      cash:    [32621,33545,34427,35386,36346,37185,38130,39048,40008,41001,41803,42965,43873,45030,46008,47150,48327,49374],
+      target: {
+        revenue: [10350,10391,10433,10475,10517,10559,10601,10643,10686,10729,10772,10815,10858,10901,10945,10989,11033,11077],
+        opex:    [2160,2169,2177,2186,2195,2204,2212,2221,2230,2239,2248,2257,2266,2275,2284,2293,2302,2312],
+        cash:    [32754,33712,34676,35644,36617,37595,38578,39566,40559,41557,42560,43568,44581,45599,46622,47650,48684,49722],
+        growth: 0.004, grossMargin: 0.325, other: -250, burn: -950, runway: null
+      }
+    }
+  }
+};
+/* ====== 範例資料結束 ====== */
+
+const $ = id => document.getElementById(id);
+const N = DATA.companies.north.revenue.length;
+const PICK = 6; // 可選的報告月份：最後六個月
+const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+const narrow = matchMedia('(max-width: 760px)');
+const state = {co: 'north', m: N - 1, adj: 0, cmp: 'prev'};
+
+// ---------- 日期 ----------
+function ym(i){ const t = DATA.start.month - 1 + i; return {y: DATA.start.year + Math.floor(t / 12), m: t % 12 + 1}; }
+function ymAdd(i, months){ const t = DATA.start.month - 1 + i + Math.floor(months); return {y: DATA.start.year + Math.floor(t / 12), m: ((t % 12) + 12) % 12 + 1}; }
+const lbl = d => d.y + ' 年 ' + d.m + ' 月';
+const shortLbl = d => d.y + '.' + String(d.m).padStart(2, '0');
+// 上一個日曆季的三個月索引
+function prevQuarter(i){ const cal = ym(i).m - 1; const start = i - (cal % 3); return [start - 3, start - 2, start - 1].filter(k => k >= 0); }
+
+// ---------- 格式 ----------
+const comma = v => Math.round(v).toLocaleString('en-US');
+function money(v){
+  const s = v < 0 ? '−' : '', a = Math.abs(v);
+  if (a >= 10000) return s + 'NT$\u00a0' + (a / 10000).toFixed(a >= 100000 ? 1 : 2) + '\u00a0億';
+  return s + 'NT$\u00a0' + comma(a) + '\u00a0萬';
+}
+function moneyBare(v){ const a = Math.abs(v); return a >= 10000 ? (a / 10000).toFixed(2) + '\u00a0億' : comma(a) + '\u00a0萬'; }
+const pct = v => (v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(1) + '%';
+const months = v => v.toFixed(1) + ' 個月';
+
+// ---------- 計算 ----------
+const C = () => DATA.companies[state.co];
+function rev(c, i){ return i < 0 ? c.revenuePrior : c.revenue[i]; }
+function gp(c, i){ return c.revenue[i] - c.cogs[i]; }
+function ni(c, i){ return gp(c, i) - c.opex[i] + c.other[i]; }
+function burnMonth(c, i){ return (i ? c.cash[i - 1] : c.openingCash) + c.funding[i] - c.cash[i]; }
+function avg(arr){ return arr.reduce((a, b) => a + b, 0) / arr.length; }
+function last3(i){ return [i - 2, i - 1, i].filter(k => k >= 0); }
+function burn3(c, i){ return avg(last3(i).map(k => burnMonth(c, k))); }
+function opex3(c, i){ return avg(last3(i).map(k => c.opex[k])); }
+function runwayAt(c, i, adj = 0){ const b = burn3(c, i) + opex3(c, i) * adj; return b > 0 ? c.cash[i] / b : Infinity; }
+function niTarget(c, i){ const t = c.target; return t.revenue[i] * t.grossMargin - t.opex[i] + t.other; }
+
+// 十項指標：good = +1 代表越高越好；kind 決定差異怎麼寫
+const METRICS = [
+  {key: 'rev', label: '收入', kind: 'amt', good: 1,
+    val: (c, i) => c.revenue[i], qtr: (c, ks) => avg(ks.map(k => c.revenue[k])), tgt: (c, i) => c.target.revenue[i]},
+  {key: 'grw', label: '成長率', note: '收入月增', kind: 'pct', good: 1,
+    val: (c, i) => rev(c, i) / rev(c, i - 1) - 1, qtr: (c, ks) => avg(ks.map(k => rev(c, k) / rev(c, k - 1) - 1)), tgt: c => c.target.growth},
+  {key: 'gp', label: '毛利', kind: 'amt', good: 1,
+    val: gp, qtr: (c, ks) => avg(ks.map(k => gp(c, k))), tgt: (c, i) => c.target.revenue[i] * c.target.grossMargin},
+  {key: 'gm', label: '毛利率', kind: 'pct', good: 1,
+    val: (c, i) => gp(c, i) / c.revenue[i], qtr: (c, ks) => ks.reduce((a, k) => a + gp(c, k), 0) / ks.reduce((a, k) => a + c.revenue[k], 0), tgt: c => c.target.grossMargin},
+  {key: 'opx', label: '營運費用', kind: 'amt', good: -1,
+    val: (c, i) => c.opex[i], qtr: (c, ks) => avg(ks.map(k => c.opex[k])), tgt: (c, i) => c.target.opex[i]},
+  {key: 'ni', label: '淨利', kind: 'abs', good: 1,
+    val: ni, qtr: (c, ks) => avg(ks.map(k => ni(c, k))), tgt: niTarget},
+  {key: 'nm', label: '淨利率', kind: 'pct', good: 1,
+    val: (c, i) => ni(c, i) / c.revenue[i], qtr: (c, ks) => ks.reduce((a, k) => a + ni(c, k), 0) / ks.reduce((a, k) => a + c.revenue[k], 0), tgt: (c, i) => niTarget(c, i) / c.target.revenue[i]},
+  {key: 'cash', label: '現金', note: '期末', kind: 'amt', good: 1,
+    val: (c, i) => c.cash[i], qtr: (c, ks) => c.cash[ks[ks.length - 1]], tgt: (c, i) => c.target.cash[i]},
+  {key: 'burn', label: '燒錢率', note: '近三月平均', kind: 'burn', good: -1,
+    val: burn3, qtr: (c, ks) => burn3(c, ks[ks.length - 1]), tgt: c => c.target.burn},
+  {key: 'rw', label: '可支撐月數', kind: 'mo', good: 1,
+    val: (c, i) => runwayAt(c, i), qtr: (c, ks) => runwayAt(c, ks[ks.length - 1]), tgt: c => c.target.runway}
+];
+
+function fmtVal(mt, v){
+  if (mt.kind === 'pct') return pct(v);
+  if (mt.kind === 'mo') return isFinite(v) ? months(v) : '無燒錢';
+  if (mt.kind === 'burn') return v < 0 ? '淨流入 ' + moneyBare(v) : money(v);
+  return money(v);
+}
+
+// 差異：回傳 {main, sub, fav: 1 有利 / -1 不利 / 0 持平 / null 不適用, score}
+function diff(mt, cur, base){
+  if (base === null || base === undefined || (typeof base === 'number' && isNaN(base))) return {main: '不適用', fav: null, score: 0};
+  if (mt.kind === 'mo'){
+    if (!isFinite(cur) && !isFinite(base)) return {main: '持平', sub: '皆無燒錢', fav: 0, score: 0};
+    if (!isFinite(cur)) return {main: '轉為無燒錢', dir: 1, fav: 1, score: 1};
+    if (!isFinite(base)) return {main: '轉為燒錢', dir: -1, fav: -1, score: -1};
+  }
+  const d = cur - base;
+  // score 以「顯著單位」衡量：收入類 5%、淨利以收入的 5%、比率 2 個百分點（成長率 4 個）、跑道 2 個月各算 1 單位
+  let rel, sig, main, sub = '';
+  if (mt.kind === 'amt'){ rel = d / Math.abs(base); sig = rel / .05; main = Math.abs(rel * 100).toFixed(1) + '%'; sub = (d < 0 ? '−' : '+') + moneyBare(d); }
+  else if (mt.kind === 'abs'){ rel = d / Math.max(Math.abs(base), 1); sig = d / Math.max(ctxRev, 1) / .05; main = moneyBare(d); }
+  else if (mt.kind === 'burn'){ rel = d / Math.max(Math.abs(base), 1); sig = rel / .05; main = moneyBare(d); }
+  else if (mt.kind === 'pct'){ rel = d; sig = d * 100 / (mt.key === 'grw' ? 4 : 2); main = Math.abs(d * 100).toFixed(1) + ' 百分點'; }
+  else { rel = d; sig = d / 2; main = Math.abs(d).toFixed(1) + ' 個月'; }
+  const flat = mt.kind === 'pct' ? Math.abs(d) < 0.0005 : mt.kind === 'mo' ? Math.abs(d) < 0.05 : Math.abs(rel) < 0.0005;
+  if (flat) return {main: '持平', fav: 0, score: 0, dir: 0};
+  const fav = Math.sign(d) * mt.good;
+  return {main, sub, dir: Math.sign(d), fav, score: fav * Math.min(Math.abs(sig), 3), d};
+}
+
+let ctxRev = 1;
+function rowData(c, i){
+  ctxRev = c.revenue[i];
+  const ks = prevQuarter(i);
+  return METRICS.map(mt => {
+    const cur = mt.val(c, i);
+    const prev = i > 0 ? mt.val(c, i - 1) : null;
+    const qtr = ks.length === 3 ? mt.qtr(c, ks) : null;
+    const tgt = mt.tgt(c, i);
+    return {mt, cur, prev, qtr, tgt, dPrev: diff(mt, cur, prev), dQtr: diff(mt, cur, qtr), dTgt: diff(mt, cur, tgt)};
+  });
+}
+
+// ---------- 頁首 ----------
+function buildHeader(){
+  const cos = $('cos');
+  Object.entries(DATA.companies).forEach(([k, c]) => {
+    const b = document.createElement('button');
+    b.className = 'co'; b.dataset.co = k;
+    b.innerHTML = '<span></span><small></small>';
+    b.firstChild.textContent = c.name; b.lastChild.textContent = c.kind;
+    b.addEventListener('click', () => { if (state.co === k) return; state.co = k; state.adj = 0; $('adj').value = 0; render(true); });
+    cos.appendChild(b);
+  });
+  const mo = $('months');
+  for (let i = N - PICK; i < N; i++){
+    const b = document.createElement('button');
+    b.className = 'mo'; b.dataset.m = i; b.textContent = ym(i).m + ' 月';
+    b.setAttribute('aria-label', lbl(ym(i)));
+    b.addEventListener('click', () => { if (state.m === i) return; state.m = i; render(true); });
+    mo.appendChild(b);
+  }
+}
+
+// ---------- 跑道 ----------
+let anim = {rw: null, raf: 0, horizon: 24};
+function horizonFor(rw0){ return isFinite(rw0) ? Math.min(36, Math.max(12, Math.ceil(rw0 * 1.5))) : 24; }
+
+function planePath(){
+  return 'M30 0C30-2.6 26.5-3.6 21-3.6H5L-5-25.5H-10.5L-6.5-3.6H-19L-25-11H-28.5L-26.5-3.2L-30-2V2L-26.5 3.2L-28.5 11H-25L-19 3.6H-6.5L-10.5 25.5H-5L5 3.6H21C26.5 3.6 30 2.6 30 0Z';
+}
+
+function drawRunway(rw){
+  const c = C(), i = state.m;
+  const W = Math.max(320, document.documentElement.clientWidth);
+  const small = W < 760;
+  const H = small ? 176 : 214;
+  const rh = small ? 52 : 70;
+  const cy = small ? 84 : 102;
+  const wrapEl = document.querySelector('.hero');
+  const padL = Math.max(parseFloat(getComputedStyle(wrapEl).paddingLeft), (W - 1240) / 2 + parseFloat(getComputedStyle(wrapEl).paddingLeft));
+  const thr = small ? 40 : 62;                 // 跑道頭斑馬線長度
+  const xs = padL + thr + 12;                  // 今天
+  const xe = W - padL;                         // 視窗內最後一個月
+  const Hm = anim.horizon;
+  const step = (xe - xs) / Hm;
+  const X = k => xs + k * step;
+  const top = cy - rh / 2, bot = cy + rh / 2;
+  const finite = isFinite(rw);
+  const stopK = finite ? Math.min(rw, Hm + 0.0001) : null;
+  const beyond = finite && rw > Hm;
+  const xStop = finite ? X(Math.min(rw, Hm)) : null;
+  const o = [];
+  o.push('<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" tabindex="0" aria-label="可支撐月數跑道圖" id="runSvg">');
+  o.push('<defs><pattern id="chev" width="' + (small ? 18 : 24) + '" height="' + rh + '" patternUnits="userSpaceOnUse" y="' + top + '">' +
+    '<path d="M' + (small ? 14 : 19) + ' 6 L4 ' + rh / 2 + ' L' + (small ? 14 : 19) + ' ' + (rh - 6) + '" fill="none" stroke="#b8862f" stroke-opacity=".55" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></pattern>' +
+    '<linearGradient id="fade" x1="0" x2="1"><stop offset="0" stop-color="#fff"/><stop offset=".78" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>' +
+    '<linearGradient id="gnd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d1a16" stop-opacity="0"/><stop offset=".12" stop-color="#1d1a16" stop-opacity=".25"/><stop offset=".25" stop-color="#1d1a16" stop-opacity=".6"/><stop offset=".38" stop-color="#1d1a16" stop-opacity=".92"/><stop offset=".5" stop-color="#1d1a16"/><stop offset=".62" stop-color="#1d1a16" stop-opacity=".92"/><stop offset=".75" stop-color="#1d1a16" stop-opacity=".6"/><stop offset=".88" stop-color="#1d1a16" stop-opacity=".25"/><stop offset="1" stop-color="#1d1a16" stop-opacity="0"/></linearGradient>' +
+    '<mask id="fadeM"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="url(#fade)"/></mask>' +
+    '<filter id="ps" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="3" dy="5" stdDeviation="1.4" flood-color="#000" flood-opacity=".45"/></filter></defs>');
+  // 地面：兩側草帶與滑行道
+  o.push('<rect x="0" y="' + (top - 60) + '" width="' + W + '" height="' + (rh + 120) + '" fill="url(#gnd)"/>');
+  o.push('<g mask="url(#fadeM)">');
+  o.push('<rect x="' + (padL - 6) + '" y="' + top + '" width="' + (W - padL + 6) + '" height="' + rh + '" fill="var(--asphalt)"/>');
+  // 跑道邊線
+  o.push('<rect x="' + (padL - 6) + '" y="' + (top + 4) + '" width="' + (W - padL + 6) + '" height="1.6" fill="var(--paint)" fill-opacity=".55"/>');
+  o.push('<rect x="' + (padL - 6) + '" y="' + (bot - 5.6) + '" width="' + (W - padL + 6) + '" height="1.6" fill="var(--paint)" fill-opacity=".55"/>');
+  // 跑道頭斑馬線與編號
+  const keys = small ? 6 : 8, kh = (rh - 16) / keys;
+  for (let k = 0; k < keys; k++) o.push('<rect x="' + (padL + 2) + '" y="' + (top + 8 + k * kh + kh * .18) + '" width="' + (thr - 26) + '" height="' + (kh * .64) + '" rx="1" fill="var(--paint)" fill-opacity=".85"/>');
+  o.push('<text x="' + (padL + thr - 10) + '" y="' + cy + '" transform="rotate(90 ' + (padL + thr - 10) + ' ' + cy + ')" text-anchor="middle" dominant-baseline="central" font-size="' + (small ? 13 : 16) + '" font-weight="600" fill="var(--paint)" fill-opacity=".85" font-family="Optima,Candara,sans-serif" letter-spacing="2">09</text>');
+  // 超出現金的部分：跑道端安全區，以 V 形標線表示不可用
+  if (finite && !beyond) o.push('<rect x="' + xStop + '" y="' + top + '" width="' + (W - xStop) + '" height="' + rh + '" fill="url(#chev)"/>');
+  // 中心線：每個月一段
+  for (let k = 0; k < Hm + 3; k++){
+    const a = X(k) + step * .22, b = X(k + 1) - step * .22;
+    if (finite && !beyond && a >= xStop) break;
+    const bb = finite && !beyond ? Math.min(b, xStop - 4) : b;
+    if (bb - a > 2) o.push('<rect x="' + a.toFixed(1) + '" y="' + (cy - 1.5) + '" width="' + (bb - a).toFixed(1) + '" height="3" rx="1.5" fill="var(--paint)" fill-opacity=".8"/>');
+  }
+  // 瞄準點標線
+  const ps = small ? .78 : 1;
+  const ap = xs + Math.max(step * 1.35, 62 * ps);
+  o.push('<rect x="' + ap + '" y="' + (top + 11) + '" width="' + step * .55 + '" height="' + rh * .13 + '" fill="var(--paint)" fill-opacity=".6"/>');
+  o.push('<rect x="' + ap + '" y="' + (bot - 11 - rh * .13) + '" width="' + step * .55 + '" height="' + rh * .13 + '" fill="var(--paint)" fill-opacity=".6"/>');
+  o.push('</g>');
+  // 進場順序閃光燈：朝跑道頭依序閃爍
+  for (let k = 0, x = padL - 22; x > 10 && k < 6; k++, x -= 20) o.push('<circle class="rab" cx="' + x + '" cy="' + cy + '" r="2.6" fill="#f2ead8" style="animation-delay:' + (-(k + 1) * .11).toFixed(2) + 's"/>');
+  // 邊燈：現金用完之後改為紅色端燈
+  for (let k = 0; k <= Hm; k++){
+    const x = X(k); if (x > W - 4) break;
+    const out = finite && !beyond && k > rw;
+    const fill = out ? 'var(--bad)' : '#e8dcc0';
+    const op = out ? .9 : .75;
+    o.push('<circle cx="' + x.toFixed(1) + '" cy="' + (top - 7) + '" r="2.2" fill="' + fill + '" fill-opacity="' + op + '"/><circle cx="' + x.toFixed(1) + '" cy="' + (bot + 7) + '" r="2.2" fill="' + fill + '" fill-opacity="' + op + '"/>');
+  }
+  // 目標跑道長度
+  const tgt = c.target.runway;
+  let tlx = null;
+  if (tgt && tgt <= Hm){
+    const xt = X(tgt);
+    o.push('<path d="M' + xt + ' ' + (bot + 14) + 'v10" stroke="var(--ink2)" stroke-width="1.5" stroke-linecap="round"/>');
+    const tl = '目標 ' + tgt + ' 個月', tw = tl.length * 11;
+    tlx = Math.min(xt, W - 10 - tw / 2);
+    o.push('<text x="' + tlx + '" y="' + (bot + 40) + '" text-anchor="middle" font-size="12.5" fill="var(--ink2)">' + tl + '</text>');
+  }
+  // 月份刻度
+  const every = small ? (Hm > 18 ? 6 : 4) : (Hm > 24 ? 6 : 3);
+  for (let k = every; k < Hm; k += every){
+    if (tlx !== null && Math.abs(X(k) - tlx) < 80) continue;
+    if (X(k) + 30 > W - 6) break;
+    o.push('<text x="' + X(k) + '" y="' + (bot + 40) + '" text-anchor="middle" font-size="12" fill="var(--muted)" style="font-variant-numeric:tabular-nums">' + shortLbl(ymAdd(i, k)) + '</text>');
+  }
+  o.push('<text x="' + xs + '" y="' + (bot + 40) + '" text-anchor="middle" font-size="12" fill="var(--ink2)">今天</text>');
+  // 停止線與標籤
+  if (finite){
+    if (!beyond){
+      o.push('<rect x="' + (xStop - 2) + '" y="' + (top - 2) + '" width="4" height="' + (rh + 4) + '" rx="1" fill="var(--bad)"/>');
+      const t = '現金耗盡 · ' + lbl(ymAdd(i, rw));
+      const tw = t.length * (small ? 12.5 : 13.5);
+      const lx = Math.min(Math.max(xStop, padL + tw / 2), W - padL - tw / 2 + 8);
+      o.push('<path d="M' + xStop + ' ' + (top - 14) + 'v8" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round"/>');
+      o.push('<text x="' + lx + '" y="' + (top - 22) + '" text-anchor="middle" font-size="' + (small ? 13 : 14) + '" font-weight="600" fill="var(--ink)">' + t + '</text>');
+    } else {
+      o.push('<text x="' + (W - padL) + '" y="' + (top - 22) + '" text-anchor="end" font-size="14" font-weight="600" fill="var(--ink)">跑道超過 ' + Hm + ' 個月 →</text>');
+    }
+  } else {
+    o.push('<text x="' + (W - padL) + '" y="' + (top - 22) + '" text-anchor="end" font-size="14" fill="var(--ink2)">現金淨流入，跑道沒有終點</text>');
+  }
+  // 飛機：停在今天
+  o.push('<g transform="translate(' + (xs + 14 * ps) + ' ' + cy + ') scale(' + ps + ')"><path d="' + planePath() + '" fill="var(--brass)" filter="url(#ps)"/><path d="M21-3.6H5M21 3.6H5" stroke="#8a6e3c" stroke-width=".8"/><rect x="-1" y="-15" width="6" height="3.2" rx="1.6" fill="#8a6e3c"/><rect x="-1" y="11.8" width="6" height="3.2" rx="1.6" fill="#8a6e3c"/></g>');
+  // 游標
+  o.push('<g id="cross" style="display:none"><path d="M0 ' + (top - 4) + 'V' + (bot + 4) + '" stroke="var(--ink)" stroke-width="1" stroke-opacity=".7"/></g>');
+  o.push('</svg>');
+  $('strip').innerHTML = o.join('');
+  const svg = $('runSvg');
+  svg._geo = {X, Hm, xs, step, W, top, bot};
+  bindRunHover(svg);
+}
+
+let runK = null;
+function bindRunHover(svg){
+  const show = k => {
+    const g = svg._geo; k = Math.max(0, Math.min(g.Hm, k)); runK = k;
+    const cr = svg.querySelector('#cross'); cr.style.display = ''; cr.setAttribute('transform', 'translate(' + g.X(k) + ' 0)');
+    const c = C(), b = burn3(c, state.m) + opex3(c, state.m) * state.adj;
+    const cash = c.cash[state.m] - b * k;
+    const r = svg.getBoundingClientRect();
+    tipAt(r.left + g.X(k) * r.width / g.W, r.top + g.top * r.height / svg.viewBox.baseVal.height,
+      cash >= 0 ? money(cash) : '現金不足 ' + moneyBare(cash),
+      (k === 0 ? '今天 · ' : '') + lbl(ymAdd(state.m, k)) + ' 預估期末現金');
+  };
+  const fromEvt = e => { const r = svg.getBoundingClientRect(), g = svg._geo; return Math.round(((e.clientX - r.left) * g.W / r.width - g.xs) / g.step); };
+  svg.addEventListener('pointermove', e => show(fromEvt(e)));
+  svg.addEventListener('pointerleave', () => { hideTip(); svg.querySelector('#cross').style.display = 'none'; });
+  svg.addEventListener('focus', () => show(runK === null ? 0 : runK));
+  svg.addEventListener('blur', () => { hideTip(); svg.querySelector('#cross').style.display = 'none'; });
+  svg.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){ e.preventDefault(); show((runK || 0) + (e.key === 'ArrowRight' ? 1 : -1)); }
+  });
+}
+
+function heroText(rw){
+  const c = C(), i = state.m;
+  const base = burn3(c, i), b = base + opex3(c, i) * state.adj;
+  const num = $('rwNum'), unit = $('rwUnit');
+  num.classList.toggle('inf', !isFinite(rw));
+  if (isFinite(rw)){ num.textContent = rw.toFixed(1); unit.textContent = '個月'; }
+  else { num.textContent = '∞'; unit.textContent = ''; }
+  $('runLabel').textContent = isFinite(rw) ? '可支撐月數' : '可支撐月數 · 無燒錢';
+  const lead = state.adj ? '營運費用 ' + (state.adj > 0 ? '+' : '−') + Math.abs(state.adj * 100) + '% 時，' : '以近三個月平均';
+  let t;
+  if (b > 0) t = lead + '每月燒錢 ' + money(b) + '，現金 ' + money(c.cash[i]) + ' 可支撐到 ' + lbl(ymAdd(i, rw)) + '。';
+  else t = (state.adj ? lead + '每月現金仍淨增加 ' : '近三個月平均每月現金淨增加 ') + money(-b) + '，營運不需動用存量現金。';
+  $('rwTxt').textContent = t;
+}
+
+function adjText(){
+  const c = C(), i = state.m;
+  const b = burn3(c, i) + opex3(c, i) * state.adj;
+  const s = state.adj === 0 ? '實際' : (state.adj > 0 ? '+' : '−') + Math.abs(state.adj * 100) + '%';
+  $('adjOut').innerHTML = '';
+  const strong = document.createElement('span'); strong.textContent = s + ' ';
+  const em = document.createElement('em'); em.textContent = b > 0 ? '月燒錢 ' + money(b) : '月淨流入 ' + money(-b);
+  $('adjOut').append(strong, em);
+}
+
+function animateRunway(to, instant){
+  cancelAnimationFrame(anim.raf);
+  const from = anim.rw;
+  if (instant || reduce.matches || from === null || !isFinite(from) || !isFinite(to)){
+    anim.rw = to; drawRunway(to); heroText(to); return;
+  }
+  const t0 = performance.now(), dur = 420;
+  const tick = now => {
+    const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    const v = from + (to - from) * e; anim.rw = v;
+    drawRunway(v); heroText(p < 1 ? v : to);
+    if (p < 1) anim.raf = requestAnimationFrame(tick); else anim.rw = to;
+  };
+  anim.raf = requestAnimationFrame(tick);
+}
+
+function runTable(){
+  const c = C(), i = state.m, b = burn3(c, i) + opex3(c, i) * state.adj;
+  const rows = [];
+  for (let k = 0; k <= anim.horizon; k++){
+    const cash = c.cash[i] - b * k;
+    rows.push('<tr><th scope="row">' + lbl(ymAdd(i, k)) + (k === 0 ? '（今天）' : '') + '</th><td' + (cash < 0 ? ' class="out"' : '') + '>' + (cash < 0 ? '現金不足 ' + moneyBare(cash) : money(cash)) + '</td></tr>');
+  }
+  $('runTbl').innerHTML = '<table><thead><tr><th scope="col">月份</th><th scope="col">預估期末現金</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+}
+
+// ---------- 總結 ----------
+const NAMES = {rev: '收入', grw: '成長率', gp: '毛利', gm: '毛利率', opx: '營運費用', ni: '淨利', nm: '淨利率', cash: '現金', burn: '燒錢率', rw: '可支撐月數'};
+function sentence(r, which){
+  const d = which === 'prev' ? r.dPrev : r.dTgt;
+  const base = which === 'prev' ? r.prev : r.tgt;
+  const ref = which === 'prev' ? '較上月' : '與目標相比';
+  const mt = r.mt, up = d.dir > 0;
+  const now = fmtVal(mt, r.cur), then = fmtVal(mt, base);
+  if (mt.kind === 'mo' && (!isFinite(r.cur) || !isFinite(base))) return ref + d.main + '。';
+  if (mt.kind === 'burn'){
+    const per = r.cur < 0 ? '目前每月淨流入 ' + money(-r.cur) : '目前每月燒錢 ' + money(r.cur);
+    if (r.cur <= 0 && base <= 0) return ref + '淨流入' + (up ? '少了 ' : '多了 ') + money(Math.abs(d.d)) + '，' + per + '。';
+    return ref + (up ? '多燒 ' : '少燒 ') + money(Math.abs(d.d)) + '，' + per + '。';
+  }
+  const verb = which === 'prev' ? (up ? '增加 ' : '減少 ') : (up ? '高出 ' : '低了 ');
+  const amt = mt.kind === 'amt' ? d.main + '（' + money(Math.abs(d.d)) + '）' : mt.kind === 'abs' ? money(Math.abs(d.d)) : d.main;
+  return ref + verb + amt + '，本月 ' + now + (which === 'prev' ? '' : '，目標 ' + then) + '。';
+}
+
+function buildBrief(rows){
+  const c = C(), i = state.m;
+  // 每個指標取「較上月」與「較目標」中影響較大的一個，避免同一指標重複出現
+  const cand = rows.map(r => {
+    const a = {r, which: 'prev', s: r.dPrev.score}, b = {r, which: 'tgt', s: r.dTgt.score};
+    return [a, b];
+  });
+  const goods = [], bads = [];
+  cand.forEach(([a, b]) => {
+    const pos = [a, b].filter(x => x.s > 0.2).sort((x, y) => y.s - x.s)[0];
+    const neg = [a, b].filter(x => x.s < -0.2).sort((x, y) => x.s - y.s)[0];
+    if (pos && (!neg || pos.s >= -neg.s)) goods.push(pos); else if (neg) bads.push(neg);
+  });
+  goods.sort((x, y) => y.s - x.s); bads.sort((x, y) => x.s - y.s);
+  // 淨利率與淨利同向：兩者都上榜時只留淨利
+  const pick = arr => { const keys = new Set(arr.map(x => x.r.mt.key)); return arr.filter(x => !(x.r.mt.key === 'nm' && keys.has('ni'))).slice(0, 3); };
+
+  // 需要關注：依優先順序檢查規則
+  const watch = [];
+  const rw = runwayAt(c, i), tgtRw = c.target.runway;
+  if (isFinite(rw) && rw < 12){
+    const lead = Math.max(0, Math.floor(rw - 6));
+    watch.push({t: '跑道只剩 ' + months(rw), s: '低於 12 個月安全線，現金約在 ' + lbl(ymAdd(i, rw)) + ' 用完；募資通常需要六個月，' + (lead ? '最晚 ' + lead + ' 個月內要啟動。' : '現在就要啟動或砍支出。')});
+  } else if (isFinite(rw) && tgtRw && rw < tgtRw){
+    watch.push({t: '可支撐月數低於目標', s: '目前 ' + months(rw) + '，目標 ' + tgtRw + ' 個月；燒錢率要降到每月 ' + money(c.cash[i] / tgtRw) + ' 才達標。'});
+  }
+  let over = 0; for (let k = i; k >= 0 && c.opex[k] > c.target.opex[k] * 1.02; k--) over++;
+  if (over >= 2) watch.push({t: '營運費用連續 ' + over + ' 個月超出預算', s: '本月超出 ' + pct(c.opex[i] / c.target.opex[i] - 1) + '，約 ' + money(c.opex[i] - c.target.opex[i]) + '。'});
+  let under = 0; for (let k = i; k >= 0 && c.revenue[k] < c.target.revenue[k] * .98; k--) under++;
+  if (under >= 2) watch.push({t: '收入連續 ' + under + ' 個月低於目標', s: '本月落後 ' + pct(1 - c.revenue[i] / c.target.revenue[i]) + '，差 ' + money(c.target.revenue[i] - c.revenue[i]) + '。'});
+  const g = k => rev(c, k) / rev(c, k - 1) - 1;
+  const g3 = avg([i - 3, i - 2, i - 1].map(g));
+  if (g(i) < g3 - 0.01) watch.push({t: '成長放緩', s: '本月月增 ' + pct(g(i)) + '，前三個月平均 ' + pct(g3) + '。'});
+  const gmK = k => gp(c, k) / c.revenue[k];
+  if (gmK(i) < gmK(i - 1) && gmK(i - 1) < gmK(i - 2)) watch.push({t: '毛利率連兩個月下滑', s: '從 ' + pct(gmK(i - 2)) + ' 降到 ' + pct(gmK(i)) + '，檢查售價與原料成本。'});
+  if (!isFinite(rw) && c.cash[i] > opex3(c, i) * 12){
+    watch.push({t: '閒置現金偏高', s: '現金 ' + money(c.cash[i]) + '，超過 ' + Math.floor(c.cash[i] / opex3(c, i)) + ' 個月營運費用，可評估償債、擴產或短期投資。'});
+  }
+
+  const col = (cls, glyph, title, items, empty) => {
+    const d = document.createElement('div'); d.className = 'col ' + cls;
+    d.innerHTML = '<h3><i aria-hidden="true">' + glyph + '</i></h3><ul></ul>';
+    d.querySelector('h3').append(title);
+    const ul = d.querySelector('ul');
+    if (!items.length){ const li = document.createElement('li'); li.className = 'quiet'; li.textContent = empty; ul.appendChild(li); }
+    items.forEach(it => { const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = it.t; li.append(b, it.s); ul.appendChild(li); });
+    return d;
+  };
+  const toItem = x => ({t: NAMES[x.r.mt.key], s: sentence(x.r, x.which)});
+  const box = $('brief'); box.innerHTML = '';
+  box.append(
+    col('up', '▲', '變好了', pick(goods).slice(0, 3).map(toItem), '本月沒有明顯改善的指標。'),
+    col('down', '▼', '變差了', pick(bads).slice(0, 3).map(toItem), '本月沒有明顯惡化的指標。'),
+    col('watch', '！', '需要關注', watch.slice(0, 3), '沒有觸發警訊的項目。')
+  );
+}
+
+// ---------- 指標表 ----------
+function sparkSize(){ return narrow.matches ? {w: 78, h: 28} : {w: 136, h: 32}; }
+function spark(c, mt){
+  const {w, h} = sparkSize(), i = state.m;
+  const vals = [];
+  for (let k = 0; k <= i; k++){ const v = mt.val(c, k); vals.push(isFinite(v) ? v : null); }
+  const ok = vals.filter(v => v !== null);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', w); svg.setAttribute('height', h); svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+  svg.setAttribute('tabindex', '0'); svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', mt.label + ' 近 ' + (i + 1) + ' 個月走勢');
+  if (!ok.length){
+    svg.innerHTML = '<text x="' + w + '" y="' + (h / 2) + '" text-anchor="end" dominant-baseline="central" font-size="12" fill="var(--muted)">全期無燒錢</text>';
+    svg.removeAttribute('tabindex'); return svg;
+  }
+  let lo = Math.min(...ok), hi = Math.max(...ok); if (hi - lo < 1e-9){ hi += 1; lo -= 1; }
+  const px = k => 3 + k * (w - 6) / (N - 1), py = v => 3 + (hi - v) * (h - 6) / (hi - lo);
+  let d = '', pen = false;
+  vals.forEach((v, k) => { if (v === null){ pen = false; return; } d += (pen ? 'L' : 'M') + px(k).toFixed(1) + ' ' + py(v).toFixed(1); pen = true; });
+  const zero = lo < 0 && hi > 0 ? '<path d="M3 ' + py(0).toFixed(1) + 'H' + (w - 3) + '" stroke="var(--edge)" stroke-width="1"/>' : '';
+  const last = vals[i];
+  svg.innerHTML = zero + '<path d="M3 ' + (h - .5) + 'H' + (w - 3) + '" stroke="var(--grid)" stroke-width="1"/>' +
+    '<path d="' + d + '" fill="none" stroke="#8f867a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '<path class="hx" d="" stroke="var(--ink)" stroke-opacity=".6" stroke-width="1" style="display:none"/>' +
+    (last !== null ? '<circle cx="' + px(i).toFixed(1) + '" cy="' + py(last).toFixed(1) + '" r="3.5" fill="var(--brass)" stroke="var(--bg)" stroke-width="2"/>' : '');
+  let cur = i;
+  const show = k => {
+    k = Math.max(0, Math.min(i, k)); cur = k;
+    const hx = svg.querySelector('.hx'); hx.style.display = ''; hx.setAttribute('d', 'M' + px(k).toFixed(1) + ' 0V' + h);
+    const r = svg.getBoundingClientRect();
+    const v = mt.val(c, k);
+    tipAt(r.left + px(k), r.top, fmtVal(mt, v), mt.label + ' · ' + lbl(ym(k)));
+  };
+  svg.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(); show(Math.round((e.clientX - r.left - 3) / ((w - 6) / (N - 1)))); });
+  svg.addEventListener('pointerleave', () => { hideTip(); svg.querySelector('.hx').style.display = 'none'; });
+  svg.addEventListener('focus', () => show(i));
+  svg.addEventListener('blur', () => { hideTip(); svg.querySelector('.hx').style.display = 'none'; });
+  svg.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight'){ e.preventDefault(); show(cur + (e.key === 'ArrowRight' ? 1 : -1)); } });
+  return svg;
+}
+
+function diffCell(d, cls){
+  const td = document.createElement('td');
+  td.className = 'd ' + cls + ' ' + (d.fav === null ? 'na' : d.fav > 0 ? 'g' : d.fav < 0 ? 'b' : 'n');
+  if (d.fav === null){ td.textContent = d.main; return td; }
+  const i = document.createElement('i'); i.setAttribute('aria-hidden', 'true');
+  i.textContent = d.dir > 0 ? '▲' : d.dir < 0 ? '▼' : '＝';
+  const s = document.createElement('span');
+  s.textContent = d.fav < 0 ? '(' + d.main + ')' : d.main;
+  td.append(i, s);
+  if (d.sub){ const sm = document.createElement('small'); sm.textContent = d.sub; td.appendChild(sm); }
+  td.setAttribute('aria-label', (d.dir > 0 ? '增加 ' : d.dir < 0 ? '減少 ' : '') + d.main + (d.sub ? '，' + d.sub : '') + (d.fav > 0 ? '，有利' : d.fav < 0 ? '，不利' : ''));
+  return td;
+}
+
+function buildTable(rows){
+  const c = C(), t = $('figs'), i = state.m;
+  const ks = prevQuarter(i), q0 = ym(ks[0]), q1 = ym(ks[2]);
+  t.innerHTML = '<thead><tr><th scope="col">指標</th><th scope="col">' + ym(i).m + ' 月</th><th scope="col" class="c-prev">較上月</th><th scope="col" class="c-qtr">較上季</th><th scope="col" class="c-tgt">較目標</th><th scope="col" class="spark">近 ' + (i + 1) + ' 個月</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const th = document.createElement('th'); th.scope = 'row'; th.textContent = r.mt.label;
+    if (r.mt.note){ const s = document.createElement('small'); s.textContent = r.mt.note; th.appendChild(s); }
+    const v = document.createElement('td'); v.className = 'v'; v.textContent = fmtVal(r.mt, r.cur);
+    const sp = document.createElement('td'); sp.className = 'spark'; sp.appendChild(spark(c, r.mt));
+    tr.append(th, v, diffCell(r.dPrev, 'c-prev'), diffCell(r.dQtr, 'c-qtr'), diffCell(r.dTgt, 'c-tgt'), sp);
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+  $('figNote').textContent = '本月＝' + lbl(ym(i)) + '；上季＝' + q0.y + ' 年 ' + q0.m + '–' + q1.m + ' 月';
+}
+
+function buildDetail(){
+  const c = C(), i = state.m;
+  let h = '<table><thead><tr><th scope="col">指標</th>';
+  for (let k = 0; k <= i; k++) h += '<th scope="col">' + shortLbl(ym(k)) + '</th>';
+  h += '</tr></thead><tbody>';
+  METRICS.forEach(mt => {
+    h += '<tr><th scope="row">' + mt.label + '</th>';
+    for (let k = 0; k <= i; k++){ const v = mt.val(c, k); h += '<td>' + (mt.kind === 'mo' ? (isFinite(v) ? v.toFixed(1) : '無燒錢') : mt.kind === 'pct' ? pct(v) : (v < 0 ? '−' : '') + comma(Math.abs(v))) + '</td>'; }
+    h += '</tr>';
+  });
+  $('detail').innerHTML = h + '</tbody></table><p class="note" style="margin-top:8px">金額單位：新台幣萬元</p>';
+}
+
+// ---------- 提示框 ----------
+const tip = $('tip');
+function tipAt(x, y, strong, text){
+  tip.innerHTML = ''; const b = document.createElement('b'); b.textContent = strong; const s = document.createElement('span'); s.textContent = text;
+  tip.append(b, s); tip.classList.add('on');
+  const w = tip.offsetWidth, h = tip.offsetHeight, vw = document.documentElement.clientWidth;
+  tip.style.left = Math.max(8, Math.min(vw - w - 8, x - w / 2)) + 'px';
+  tip.style.top = Math.max(8, y - h - 10) + 'px';
+}
+function hideTip(){ tip.classList.remove('on'); }
+
+// ---------- 整體更新 ----------
+function render(animate){
+  const c = C(), i = state.m;
+  document.querySelectorAll('.co').forEach(b => b.setAttribute('aria-pressed', b.dataset.co === state.co));
+  document.querySelectorAll('.mo').forEach(b => b.setAttribute('aria-pressed', +b.dataset.m === i));
+  $('sub').innerHTML = '';
+  const b = document.createElement('b'); b.textContent = lbl(ym(i)) + '經營月報';
+  $('sub').append(b, ' · ' + c.about + ' · 金額為新台幣');
+  document.title = c.name + ' · 跑道 CFO 儀表板';
+  anim.horizon = horizonFor(runwayAt(c, i));
+  animateRunway(runwayAt(c, i, state.adj), !animate);
+  adjText();
+  const rows = rowData(c, i);
+  buildBrief(rows); buildTable(rows);
+  if (!$('runTbl').hidden) runTable();
+  if (!$('detail').hidden) buildDetail();
+}
+
+buildHeader();
+$('adj').addEventListener('input', e => {
+  state.adj = +e.target.value / 100; adjText();
+  animateRunway(runwayAt(C(), state.m, state.adj));
+  if (!$('runTbl').hidden) runTable();
+});
+$('runBtn').addEventListener('click', e => {
+  const open = $('runTbl').hidden; $('runTbl').hidden = !open; e.currentTarget.setAttribute('aria-expanded', open);
+  if (open) runTable();
+});
+$('detBtn').addEventListener('click', e => {
+  const open = $('detail').hidden; $('detail').hidden = !open; e.currentTarget.setAttribute('aria-expanded', open);
+  e.currentTarget.textContent = open ? '收起 18 個月明細' : '展開 18 個月明細';
+  if (open) buildDetail();
+});
+$('cmp').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  state.cmp = btn.dataset.c; $('figs').dataset.cmp = state.cmp;
+  $('cmp').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === btn));
+});
+let rz = 0;
+addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => drawRunway(anim.rw)); });
+narrow.addEventListener('change', () => buildTable(rowData(C(), state.m)));
+render(false);
+</script>
+</body>
+</html>
