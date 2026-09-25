@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 137，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 138，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -146,6 +146,7 @@
 | 135 | [135-nagoya-terrain.html](https://htmls-ruddy.vercel.app/web/135-nagoya-terrain.html) | 資料科學 · 真實地理資料地形標本 | 名古屋，一公里：國土地理院 DEM、空照與 PLATEAU 建物／道路，圓盤地景分層檢視、輪廓比對與含來源存圖 | 附 Blender、GLB 與重跑腳本；LOD1 建物、真實公尺尺度，需 HTTP / WebGL |
 | 136 | [136-zork.html](https://htmls-ruddy.vercel.app/web/136-zork.html) | 遊戲敘事 · 第一人稱 3D 動作冒險 | Zork：帝國的餘燼。1977 年 285 分版本的 80 房間、11 寶物與原始謎題，程序化森林／地下城、即時戰鬥、視線 AI、提燈及安全點 | 本地 Three.js；HTTP／WebGL；localStorage 存檔；[原始碼、驗證與改編差異](games/136-zork/README.md) |
 | 137 | [137-notion-workspace.html](https://htmls-ruddy.vercel.app/web/137-notion-workspace.html) | Notion 風格工作區 | 留白工作室：巢狀頁面樹與區塊編輯、slash 指令、拖曳／鍵盤排序、表格／看板資料庫、本機保存、復原與 Markdown 匯出 | |
+| 138 | [138-bloom-desktop.html](https://htmls-ruddy.vercel.app/web/138-bloom-desktop.html) | Windows 11 風格 Web 桌面 | Bloom：拖曳縮放視窗、共用檔案系統與終端機、離線瀏覽器、主題、合成音樂、可挖掘建造的 WebGL 體素遊戲；單檔零外部資源 | |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。

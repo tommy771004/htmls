@@ -198,6 +198,7 @@
 - [102 Starting on Your Own Project](https://htmls-ruddy.vercel.app/web/102-your-project-playbooks.html): AI 工程化教學簡報。在自己的專案啟動 Claude Code 的三套起手劇本：全新專案、WebForms 轉 Web、WinForms 轉 Web，16 張投影片
 
 ### 專案範例
+- [138 Bloom · Windows 11 風格桌面](https://htmls-ruddy.vercel.app/web/138-bloom-desktop.html): 單檔零外部資源 Web 作業系統，多視窗拖曳縮放、模擬檔案管理、基本 shell、離線瀏覽器、主題、Web Audio 合成音樂與可挖掘建造的原生 WebGL 體素遊戲。本機保存文件與世界。
 
 - [137 留白工作室 · Notion 風格工作區](https://htmls-ruddy.vercel.app/web/137-notion-workspace.html): 巢狀頁面樹與區塊式編輯器，支援 slash 指令、Tab 縮排、拖曳排序、表格與看板、復原重做、本機儲存及 Markdown 匯出。
 
