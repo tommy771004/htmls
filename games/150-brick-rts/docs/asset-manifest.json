@@ -557,5 +557,13 @@
     "arch": "extruded open outline; no bevel yet; cached and retained through all detail levels",
     "provenance": "original design_default proportions",
     "remaining": "wedge/wheel/axle/hinge/transparent primitives and full material budget"
+  },
+  "studAssembly": {
+    "source": "apps/web/building-studs.ts",
+    "provenance": "design_default decoration only",
+    "behavior": "emit complete studs within parent brick bounds; omit studs intersecting other present building parts; recompute from current construction and damage parts",
+    "bounds": "cylinder versus seam-adjusted outer AABB; conservative near bevels and arch holes",
+    "scope": "all eleven building models; vegetation/resource bricks unchanged",
+    "simulationChanges": false
   }
 }

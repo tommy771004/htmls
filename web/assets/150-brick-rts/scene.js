@@ -1,3 +1,24 @@
+// apps/web/building-studs.ts
+var studStyle = { pitch: 0.5, radius: 0.13, height: 0.08, seam: 0.018 };
+function buildingStuds(parts) {
+  const result = [];
+  for (const part of parts) {
+    if (!part.studs) continue;
+    for (let dx = studStyle.pitch / 2; dx < part.w; dx += studStyle.pitch) for (let dz = studStyle.pitch / 2; dz < part.d; dz += studStyle.pitch) {
+      const x = part.x + dx, z = part.z + dz, bottom = part.y + part.h;
+      if (dx - studStyle.radius < studStyle.seam / 2 || dx + studStyle.radius > part.w - studStyle.seam / 2 || dz - studStyle.radius < studStyle.seam / 2 || dz + studStyle.radius > part.d - studStyle.seam / 2) continue;
+      const covered = parts.some((other) => {
+        if (other === part || other.y >= bottom + studStyle.height - 1e-8 || other.y + other.h <= bottom + 1e-8) return false;
+        const nearestX = Math.max(other.x + studStyle.seam / 2, Math.min(x, other.x + other.w - studStyle.seam / 2));
+        const nearestZ = Math.max(other.z + studStyle.seam / 2, Math.min(z, other.z + other.d - studStyle.seam / 2));
+        return (x - nearestX) ** 2 + (z - nearestZ) ** 2 < studStyle.radius ** 2 - 1e-10;
+      });
+      if (!covered) result.push({ partId: part.id, x, y: bottom + studStyle.height / 2, z, color: part.color });
+    }
+  }
+  return result;
+}
+
 // apps/web/brick-geometries.ts
 function createArchGeometry(T, width, height, depth) {
   if (![width, height, depth].every((n) => Number.isFinite(n) && n > 0)) throw Error("\u62F1\u4EF6\u5C3A\u5BF8\u5FC5\u9808\u70BA\u6709\u9650\u6B63\u6578");
@@ -879,7 +900,7 @@ async function createScene(canvas, onFailure, options = {}) {
     detail.register(geo, w, h, d);
     return geo;
   }
-  const studGeo = new T.CylinderGeometry(0.13, 0.13, 0.08, 10);
+  const studGeo = new T.CylinderGeometry(studStyle.radius, studStyle.radius, studStyle.height, 10);
   geometry.set("stud", studGeo);
   let staticGroup = new T.Group();
   scene.add(staticGroup);
@@ -913,7 +934,9 @@ async function createScene(canvas, onFailure, options = {}) {
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
   function house(x, z, red = false) {
-    for (const p of previewBuildingKind === "house" ? buildingParts({ ...previewBuilding, red }) : militaryBuildings.includes(previewBuildingKind) ? militaryBuildingParts(previewBuildingKind, { ...previewBuilding, red }) : economicBuildingParts(previewBuildingKind, { ...previewBuilding, red })) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs, p.shape);
+    const parts = previewBuildingKind === "house" ? buildingParts({ ...previewBuilding, red }) : militaryBuildings.includes(previewBuildingKind) ? militaryBuildingParts(previewBuildingKind, { ...previewBuilding, red }) : economicBuildingParts(previewBuildingKind, { ...previewBuilding, red });
+    for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
+    for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
   function buildWorld(view) {
     const seed = view.seed;
