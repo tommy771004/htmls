@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 3,
+  "rulesetHash": "470c9ac5",
+  "provenance": "design_default",
+  "navigation": {
+    "provenance": "design_default",
+    "spacing": 50,
+    "size": 31,
+    "radius": 25,
+    "expansionsPerTick": 32,
+    "speedPerTick": 5
+  },
+  "economy": {
+    "provenance": "design_default",
+    "initialStock": {
+      "food": 200,
+      "wood": 200,
+      "gold": 100,
+      "stone": 100
+    },
+    "populationCap": 40,
+    "cancellationRefundPercent": 100
+  },
+  "collisionScope": "static house/tree/rock footprints; no unit avoidance"
+}

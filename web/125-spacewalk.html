@@ -16,12 +16,21 @@ header.site-header{position:relative;z-index:2;border-bottom:1px solid #71869a4a
 main{position:relative}.section{padding-block:112px}.section-head{max-width:740px;margin-bottom:42px}.section-head h2,.path-head h2,.about h2,.last h2{font-size:clamp(36px,4.2vw,56px);line-height:1.2;letter-spacing:-.055em;margin:0 0 20px}.section-head p,.path-head p{color:#bbcbd4;font-size:17px;line-height:1.9;margin:0;max-width:46em}.section-kicker{font-size:13px;letter-spacing:.13em;color:var(--accent);font-weight:750;margin:0 0 14px}
 .concepts{border-top:1px solid #58708463}.cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}.card{display:flex;flex-direction:column;min-height:460px;border-radius:10px;padding:31px 29px 28px;color:var(--ink);background:var(--paper);transition:transform .25s,box-shadow .25s}.card:hover{transform:translateY(-5px);box-shadow:0 18px 35px #050f1c7d}.card:nth-child(2){background:#dbe9e9}.card:nth-child(3){background:#e5e1d5}.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid #1d324437;padding-bottom:22px}.card-index{font:700 12px ui-monospace,SFMono-Regular,Menlo,monospace;color:#647783}.card-symbol{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;border:1.5px solid #5b7883;font-size:28px;line-height:1;color:#315d6b}.card:nth-child(2) .card-symbol{border-radius:13px;transform:rotate(-8deg)}.card:nth-child(3) .card-symbol{border-radius:4px}.card h3{font-size:32px;letter-spacing:-.05em;margin:20px 0 6px;line-height:1.2}.card .sub{font-size:13px;color:#516774;margin:0 0 20px}.card dl{margin:0;display:grid;gap:18px}.card dt{font-weight:780;font-size:13px;color:#344e5c;margin-bottom:3px}.card dd{margin:0;font-size:15px;line-height:1.7;color:#263b49}
 .sources{margin:20px 0 0;color:#aebfca;font-size:12px}.sources a{text-underline-offset:3px}.sources a:hover{color:var(--accent)}
-.path{padding-top:58px}.path-layout{display:grid;grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr);gap:8%;align-items:start}.path-art{position:sticky;top:30px;margin:0}.path-art img{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:45% center;border-radius:9px}.path-art p{margin:13px 0 0;font-size:12px;color:#aabcc5}.path-head{margin-bottom:32px}.steps{list-style:none;padding:0;margin:0;counter-reset:step}.step{display:grid;grid-template-columns:56px 1fr;gap:18px;padding:25px 0 26px;border-top:1px solid #6c829564}.step:last-child{border-bottom:1px solid #6c829564}.step-num{font:700 19px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent)}.step h3{font-size:24px;letter-spacing:-.03em;line-height:1.35;margin:0 0 8px}.step p{font-size:15px;color:#bed0d5;line-height:1.8;margin:0}.step strong{color:#f2e7cd;font-weight:700}
+.path{padding-top:58px}.path-layout{display:grid;grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr);gap:8%;align-items:start}.path-art{position:sticky;top:30px;margin:0}.path-art img{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:45% center;border-radius:9px}.path-art p{margin:13px 0 0;font-size:12px;color:#aabcc5}.path-head{margin-bottom:32px}.steps{list-style:none;padding:0;margin:0;counter-reset:step;position:relative}.step{position:relative;z-index:1;display:grid;grid-template-columns:56px 1fr;gap:18px;padding:25px 0 26px;border-top:1px solid #6c829564}.step:last-child{border-bottom:1px solid #6c829564}.step-num{display:grid;place-items:center;width:44px;height:44px;margin-top:-6px;border-radius:50%;font:700 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);background:var(--bg);transition:background .45s,color .45s}.step.reached .step-num{background:var(--accent);color:var(--bg)}
+/* A tether drawn with the scroll: it loops around each step number, then carries on to the next. */
+.tether{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:0}.tether path{fill:none;stroke-linecap:round;stroke-linejoin:round}.tether .track{stroke:#6f879a;stroke-width:1.5;stroke-dasharray:1 7;opacity:.55}.tether .line{stroke:var(--accent);stroke-width:5}.tether .head{fill:var(--paper);stroke:var(--accent);stroke-width:3}.step h3{font-size:24px;letter-spacing:-.03em;line-height:1.35;margin:0 0 8px}.step p{font-size:15px;color:#bed0d5;line-height:1.8;margin:0}.step strong{color:#f2e7cd;font-weight:700}
 .about{padding-block:110px;border-top:1px solid #58708463}.about-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.85fr);gap:10%;align-items:center}.about h2{max-width:12em}.about p{font-size:17px;line-height:1.95;color:#c6d5d8;max-width:34em;margin:0 0 18px}.about-note{border-left:2px solid var(--accent);padding:12px 0 12px 24px;color:#eadabb;font-size:21px;line-height:1.7;letter-spacing:-.025em}
+.steps-wrap{position:relative}
+.faq{padding-block:104px;border-top:1px solid #58708463}.faq-grid{display:grid;grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr);gap:8%;align-items:start}.faq h2{font-size:clamp(36px,4.2vw,56px);line-height:1.2;letter-spacing:-.055em;margin:0 0 16px}.faq-lead{color:#bbcbd4;font-size:16px;line-height:1.85;margin:0;max-width:17em}
+:root{interpolate-size:allow-keywords}.qa details{border-top:1px solid #6c829564}.qa summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:20px;min-height:62px;padding:12px 2px;cursor:pointer;font-size:17px;font-weight:650;color:#e9eee9;transition:color .2s}.qa summary::-webkit-details-marker{display:none}.qa summary:hover{color:var(--accent)}.qa summary:focus-visible,.ask input:focus-visible,.ask button:focus-visible{outline:3px solid var(--accent);outline-offset:4px;border-radius:4px}
+.chev{flex:none;width:9px;height:9px;margin-right:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;border-radius:0 0 2px 0;transform:translateY(-3px) rotate(45deg);transition:transform .35s cubic-bezier(.22,1,.36,1)}details[open] .chev{transform:translateY(2px) rotate(225deg)}
+.qa details::details-content{block-size:0;overflow:clip;transition:block-size .4s cubic-bezier(.22,1,.36,1),content-visibility .4s allow-discrete}.qa details[open]::details-content{block-size:auto}.qa details p{margin:0;padding:0 44px 24px 2px;color:#bed0d5;font-size:15px;line-height:1.85}
+.ask{border-top:1px solid #6c829564;border-bottom:1px solid #6c829564}.ask form{display:flex;align-items:center;gap:14px;min-height:64px}.ask label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.ask input{flex:1;min-width:0;min-height:44px;border:0;background:transparent;color:var(--paper);font:inherit;font-size:17px;padding:0 2px}.ask input::placeholder{color:#8fa3b1}.ask button{flex:none;width:40px;height:40px;border-radius:50%;border:1.5px solid #8fa3b1;background:transparent;color:var(--paper);font-size:17px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:background .2s,border-color .2s,color .2s}.ask button:hover:not(:disabled){background:var(--accent);border-color:var(--accent);color:var(--bg)}.ask button:disabled{opacity:.45;cursor:default}
+.ask-out{padding:0 44px 0 2px;color:#dfe7e6;font-size:15px;line-height:1.85}.ask-out:not(:empty){padding-bottom:26px}.ask-out .reading{color:#8fa3b1;font-size:13px}.ask-out a{color:var(--accent);text-underline-offset:3px}
 .last{padding-block:50px 110px}.last-panel{background:#1b3042;border:1px solid #5e77884f;border-radius:12px;padding:60px clamp(28px,7vw,84px);display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:30px}.last h2{max-width:15em}.last p{margin:0;max-width:46em;color:#c2d2d9;line-height:1.85}.starter-prompt{margin:22px 0 0;padding:14px 18px;border-left:3px solid var(--accent);background:#233a4c;color:#f0e6d5;font-size:14px;line-height:1.7;max-width:47em}.copy{white-space:nowrap}.copy-status{display:block;min-height:1.5em;color:#f2c894;font-size:13px;margin-top:9px;text-align:center}.footer{border-top:1px solid #536b7a5c;padding:27px 0 40px;color:#aebdc6;font-size:13px}.footer .wrap{display:flex;justify-content:space-between;gap:20px}
 .reveal{opacity:1;transform:none}.js .reveal{opacity:0;transform:translateY(22px);transition:opacity .65s ease,transform .65s cubic-bezier(.22,1,.36,1);transition-delay:var(--delay,0s)}.js .reveal.is-visible{opacity:1;transform:none}
 @media(max-width:900px){.hero{grid-template-columns:1fr 1fr;gap:24px}.hero h1{font-size:clamp(50px,6.5vw,68px)}.portrait{height:530px}.cards{gap:12px}.card{padding:25px 22px}.card h3{font-size:27px}}
-@media(max-width:767px){.wrap{width:min(100% - 36px,560px)}.nav{min-height:64px}.brand{font-size:20px}.nav-links{gap:15px}.nav-links a{font-size:12px}.nav-links a:nth-child(2){display:none}.hero{min-height:0;grid-template-columns:1fr;gap:35px;padding:65px 0 70px}.hero h1{font-size:clamp(47px,11vw,64px);margin:16px 0 17px}.hero p{font-size:16px;margin-bottom:25px}.hero-visual{min-height:0}.portrait{height:min(520px,120vw);max-width:420px;border-radius:170px 170px 70px 70px}.section{padding-block:78px}.section-head{margin-bottom:31px}.section-head h2,.path-head h2,.about h2,.last h2{font-size:38px}.section-head p,.path-head p{font-size:16px}.cards{grid-template-columns:1fr;gap:14px}.card{min-height:0;padding:27px}.card h3{font-size:30px}.card dl{gap:13px}.path{padding-top:30px}.path-layout{grid-template-columns:1fr;gap:35px}.path-art{position:static}.path-art img{aspect-ratio:16/10;object-position:center 55%}.path-art p{font-size:11px}.about-grid{grid-template-columns:1fr;gap:26px}.about p{font-size:16px}.about-note{font-size:19px}.last{padding-top:20px}.last-panel{grid-template-columns:1fr;padding:35px 26px;gap:24px}.copy{justify-self:start}.copy-status{text-align:left}.footer .wrap{display:block}.footer span{display:block;margin-top:5px}}
+@media(max-width:767px){.wrap{width:min(100% - 36px,560px)}.nav{min-height:64px}.brand{font-size:20px}.nav-links{gap:15px}.nav-links a{font-size:12px}.nav-links a:nth-child(2){display:none}.hero{min-height:0;grid-template-columns:1fr;gap:35px;padding:65px 0 70px}.hero h1{font-size:clamp(47px,11vw,64px);margin:16px 0 17px}.hero p{font-size:16px;margin-bottom:25px}.hero-visual{min-height:0}.portrait{height:min(520px,120vw);max-width:420px;border-radius:170px 170px 70px 70px}.section{padding-block:78px}.section-head{margin-bottom:31px}.section-head h2,.path-head h2,.about h2,.last h2{font-size:38px}.section-head p,.path-head p{font-size:16px}.cards{grid-template-columns:1fr;gap:14px}.card{min-height:0;padding:27px}.card h3{font-size:30px}.card dl{gap:13px}.path{padding-top:30px}.path-layout{grid-template-columns:1fr;gap:35px}.path-art{position:static}.path-art img{aspect-ratio:16/10;object-position:center 55%}.path-art p{font-size:11px}.about-grid{grid-template-columns:1fr;gap:26px}.about p{font-size:16px}.about-note{font-size:19px}.last{padding-top:20px}.last-panel{grid-template-columns:1fr;padding:35px 26px;gap:24px}.faq{padding-block:72px}.faq-grid{grid-template-columns:1fr;gap:26px}.faq h2{font-size:38px}.faq-lead{max-width:none}.qa summary,.ask input{font-size:16px}.qa details p,.ask-out{padding-right:8px}.copy{justify-self:start}.copy-status{text-align:left}.footer .wrap{display:block}.footer span{display:block;margin-top:5px}}
 @media(max-width:390px){.nav-links a:nth-child(1){display:none}.hero-actions{gap:16px}.portrait{height:430px}.section-head h2,.path-head h2,.about h2,.last h2{font-size:34px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}.js .reveal{opacity:1;transform:none}}
 </style>
@@ -42,8 +51,17 @@ main{position:relative}.section{padding-block:112px}.section-head{max-width:740p
     </div>
     <p class="sources">名詞參考：<a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener noreferrer">Anthropic 的 Agent 說明</a>、<a href="https://github.com/resources/articles/what-is-vibe-coding" target="_blank" rel="noopener noreferrer">GitHub 的 Vibe Coding 入門</a>。</p>
   </div></section>
-  <section class="section path" id="path" aria-labelledby="path-title"><div class="wrap path-layout"><figure class="path-art reveal"><img src="../assets/125/study.jpg" width="1200" height="800" alt="有筆記本、檯燈與筆電的書桌，螢幕上畫著簡單的連線圖" loading="lazy"><figcaption><p>從自己的書桌開始，就能做第一個實驗。</p></figcaption></figure><div><div class="path-head reveal"><p class="section-kicker">學習路線</p><h2 id="path-title">從零開始，<br>一步一步動手。</h2><p>不用一次學完所有工具。先理解、再驗證，最後做出一件你真的用得上的小作品。</p></div><ol class="steps"><li class="step reveal"><span class="step-num">01</span><div><h3>問一個熟悉的問題</h3><p>選生活中你已略懂的主題，請 AI 用白話解釋。<strong>目標：能用自己的兩句話重述。</strong></p></div></li><li class="step reveal"><span class="step-num">02</span><div><h3>查一次答案</h3><p>請 AI 標出不確定之處，找一個可靠來源核對。<strong>目標：知道哪些話還需要查證。</strong></p></div></li><li class="step reveal"><span class="step-num">03</span><div><h3>讓工具幫你省一步</h3><p>挑一件重複工作，如整理筆記，明確說出輸入與期望結果。<strong>目標：比較自己做與 AI 協助的差異。</strong></p></div></li><li class="step reveal"><span class="step-num">04</span><div><h3>做一個小作品</h3><p>完成一張旅行規劃表、一頁介紹網站，或任何能分享的成果。<strong>目標：自己看懂並能修改它。</strong></p></div></li></ol></div></div></section>
+  <section class="section path" id="path" aria-labelledby="path-title"><div class="wrap path-layout"><figure class="path-art reveal"><img src="../assets/125/study.jpg" width="1200" height="800" alt="有筆記本、檯燈與筆電的書桌，螢幕上畫著簡單的連線圖" loading="lazy"><figcaption><p>從自己的書桌開始，就能做第一個實驗。</p></figcaption></figure><div><div class="path-head reveal"><p class="section-kicker">學習路線</p><h2 id="path-title">從零開始，<br>一步一步動手。</h2><p>不用一次學完所有工具。先理解、再驗證，最後做出一件你真的用得上的小作品。</p></div><div class="steps-wrap" id="stepsWrap"><ol class="steps"><li class="step"><span class="step-num">01</span><div><h3>問一個熟悉的問題</h3><p>選生活中你已略懂的主題，請 AI 用白話解釋。<strong>目標：能用自己的兩句話重述。</strong></p></div></li><li class="step"><span class="step-num">02</span><div><h3>查一次答案</h3><p>請 AI 標出不確定之處，找一個可靠來源核對。<strong>目標：知道哪些話還需要查證。</strong></p></div></li><li class="step"><span class="step-num">03</span><div><h3>讓工具幫你省一步</h3><p>挑一件重複工作，如整理筆記，明確說出輸入與期望結果。<strong>目標：比較自己做與 AI 協助的差異。</strong></p></div></li><li class="step"><span class="step-num">04</span><div><h3>做一個小作品</h3><p>完成一張旅行規劃表、一頁介紹網站，或任何能分享的成果。<strong>目標：自己看懂並能修改它。</strong></p></div></li></ol></div></div></div></section>
   <section class="about" id="about" aria-labelledby="about-title"><div class="wrap about-grid"><div class="reveal"><p class="section-kicker">關於我</p><h2 id="about-title">你好，我是「太空漫步」的主理人。</h2><p>我把難懂的 AI 詞彙，寫成一般人能讀、也能親手試的筆記。每篇內容都從一個真實問題開始，讓概念有落腳的地方。</p><p>這裡會持續分享入門解說、工具觀察和小練習。希望你看完之後，能帶著自己的問題繼續探索。</p></div><div class="about-note reveal" style="--delay:.1s">「懂一點，再試一點；<br>每一步都由自己決定。」</div></div></section>
+  <section class="faq" id="faq" aria-labelledby="faq-title"><div class="wrap faq-grid"><div class="reveal"><h2 id="faq-title">還有問題？</h2><p class="faq-lead">常被問的先寫在這裡。其他的，直接問這份筆記。</p></div>
+    <div class="qa reveal" style="--delay:.08s">
+      <details><summary>需要會寫程式嗎？<span class="chev" aria-hidden="true"></span></summary><p>不用。這裡的練習都從白話提問開始；做到 Vibe Coding 時，你只要能描述想要的功能，並且親手把結果點過一遍。</p></details>
+      <details><summary>一定要付費才能開始嗎？<span class="chev" aria-hidden="true"></span></summary><p>不需要。多數 AI 工具都有免費方案，足夠走完學習路線的四個步驟。等你清楚自己卡在哪裡，再考慮付費。</p></details>
+      <details><summary>AI 說的話可以直接相信嗎？<span class="chev" aria-hidden="true"></span></summary><p>不行。它可能講得很有把握，內容卻是錯的。學習路線第二步就是練這件事：請它標出不確定的地方，再找一個可靠來源核對。</p></details>
+      <details><summary>哪些東西不該貼給 AI？<span class="chev" aria-hidden="true"></span></summary><p>密碼、身分證號、病歷和公司機密都不要貼。想請它處理真實資料時，先把姓名、帳號這些能認出人的部分換掉。</p></details>
+      <div class="ask"><form id="askForm" autocomplete="off"><label for="askInput">問這份筆記</label><input id="askInput" name="q" maxlength="80" placeholder="問點別的，例如：怎麼挑 AI 工具？"><button type="submit" id="askSend" aria-label="送出問題">↗</button></form><div class="ask-out" id="askOut" role="status" aria-live="polite"></div></div>
+    </div>
+  </div></section>
   <section class="last" aria-labelledby="last-title"><div class="wrap"><div class="last-panel reveal"><div><p class="section-kicker">今天的第一步</p><h2 id="last-title">從一個你在意的問題開始。</h2><p>把下面這句話貼給你手邊的 AI 工具，換成自己的主題。讀完後，試著用自己的話說一次，再查證一個關鍵資訊。</p><blockquote class="starter-prompt" id="starterPrompt">請用日常白話解釋「我正在好奇的 AI 主題」。先給我一個生活例子，再說明它能做什麼、不能保證什麼，最後列出一件我今天可以試的小事。遇到不確定的資訊，請直接標明。</blockquote></div><div><button class="button copy" id="copyPrompt" type="button">複製第一個提問 <span aria-hidden="true">↗</span></button><span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span></div></div></div></section>
 </main>
 <footer class="footer"><div class="wrap"><strong>太空漫步</strong><span>讓好奇有方向，讓 AI 回到人的問題。</span></div></footer>
@@ -59,6 +77,82 @@ main{position:relative}.section{padding-block:112px}.section-head{max-width:740p
   button.addEventListener('click',function(){
     if(!navigator.clipboard||!navigator.clipboard.writeText){status.textContent='你的瀏覽器無法自動複製。請手動選取左側的提問。';return}
     navigator.clipboard.writeText(prompt).then(function(){status.textContent='已複製。把主題換成你想問的問題吧。';button.textContent='已複製 ✓'}).catch(function(){status.textContent='複製失敗，請稍後再試。'});
+  });
+
+  var calm=matchMedia('(prefers-reduced-motion: reduce)');
+
+  // Learning path: a tether that loops around each step number and is drawn out as you scroll.
+  var wrap=document.getElementById('stepsWrap');
+  if(wrap&&document.createElementNS){
+    var NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');
+    svg.setAttribute('class','tether');svg.setAttribute('aria-hidden','true');
+    var track=document.createElementNS(NS,'path'),line=document.createElementNS(NS,'path'),head=document.createElementNS(NS,'circle');
+    track.setAttribute('class','track');line.setAttribute('class','line');head.setAttribute('class','head');head.setAttribute('r','6');
+    svg.appendChild(track);svg.appendChild(line);svg.appendChild(head);wrap.insertBefore(svg,wrap.firstChild);
+    var items=[].slice.call(wrap.querySelectorAll('.step')),total=0,marks=[],queued=false;
+    function build(){
+      var R=30,d='',prev=null;marks=[];
+      items.forEach(function(item,i){
+        var num=item.querySelector('.step-num'),list=item.offsetParent,cx=list.offsetLeft+item.offsetLeft+num.offsetLeft+num.offsetWidth/2,cy=list.offsetTop+item.offsetTop+num.offsetTop+num.offsetHeight/2;
+        if(!prev)d='M'+(cx-R)+' '+(cy-R-34)+' L'+(cx-R)+' '+cy;
+        else{var gap=(cy-R)-(prev.cy+R);d+=' C'+prev.cx+' '+(prev.cy+R+gap*.55)+' '+(cx-R)+' '+(cy-gap*.5)+' '+(cx-R)+' '+cy}
+        d+=' A'+R+' '+R+' 0 0 1 '+(cx+R)+' '+cy;
+        line.setAttribute('d',d);marks.push(line.getTotalLength());
+        d+=' A'+R+' '+R+' 0 0 1 '+cx+' '+(cy+R);
+        prev={cx:cx,cy:cy};
+      });
+      if(prev)d+=' L'+prev.cx+' '+(prev.cy+R+22);
+      line.setAttribute('d',d);track.setAttribute('d',d);
+      total=line.getTotalLength();line.style.strokeDasharray=total+' '+total;
+      draw();
+    }
+    function draw(){
+      queued=false;if(!total)return;
+      var box=wrap.getBoundingClientRect(),vh=innerHeight;
+      var p=calm.matches?1:Math.max(0,Math.min(1,(vh*.7-box.top)/(box.height*.92)));
+      var len=total*p,pt=line.getPointAtLength(len);
+      line.style.strokeDashoffset=String(total-len);
+      head.setAttribute('cx',pt.x);head.setAttribute('cy',pt.y);head.style.opacity=p>0&&p<1?'1':'0';
+      items.forEach(function(item,i){item.classList.toggle('reached',len>=marks[i])});
+    }
+    function queue(){if(!queued){queued=true;requestAnimationFrame(draw)}}
+    addEventListener('scroll',queue,{passive:true});
+    if('ResizeObserver' in window)new ResizeObserver(build).observe(wrap);else addEventListener('resize',build);
+    calm.addEventListener&&calm.addEventListener('change',draw);
+    build();
+  }
+
+  // FAQ: the last row answers from this page's own notes, typed out line by line.
+  var form=document.getElementById('askForm'),input=document.getElementById('askInput'),send=document.getElementById('askSend'),out=document.getElementById('askOut');
+  var NOTES=[
+    [/agent|代理|助手|助理|自動/i,'AI Agent 會把一個目標拆成步驟、使用工具去完成，再把結果回報給你。入門時挑一件小事，例如整理旅遊資料：先請它列出計畫，你確認方向後，再讓它一步一步做。','#concepts','回到 AI 名詞'],
+    [/vibe|程式|寫code|coding|網站|原型|app/i,'Vibe Coding 是用白話描述功能，讓 AI 寫程式，你負責試用和修正。從一頁待辦清單開始，只要求新增、完成、刪除三件事；每改一次，就自己點過一遍。','#concepts','回到 AI 名詞'],
+    [/錯|幻覺|正確|可信|相信|查證|準|亂講/i,'會出錯，而且常常講得很有把握。所以學習路線第二步專門練查證：請它標出不確定的地方，再找一個可靠來源核對關鍵資訊。','#path','看學習路線'],
+    [/隱私|資料|個資|密碼|安全|機密/i,'密碼、身分證號、病歷和公司機密都不要貼給 AI。需要它處理真實資料時，先把姓名、帳號這些能認出人的部分換掉。'],
+    [/錢|免費|付費|費用|訂閱|價/i,'多數工具的免費方案，就足夠走完這裡的四個步驟。等你清楚知道自己卡在哪裡，再決定要不要付費。'],
+    [/工具|tool|哪個|推薦|挑|選|比較/i,'這份筆記刻意不推薦特定品牌。先寫下你要處理的工作，用同一份材料試兩種工具，比較結果好壞和花掉的時間，再決定留下哪一個。','#concepts','看 AI Tools'],
+    [/工作|取代|失業|職業/i,'與其先擔心被取代，不如找一件重複又耗時的工作，讓 AI 試著幫你省一步。做過一次，你會更清楚它擅長什麼、又在哪裡需要你。','#path','看學習路線'],
+    [/開始|入門|第一步|新手|怎麼學|從哪|零基礎/i,'從學習路線第一步開始：問一個你已經略懂的問題，讀完後試著用自己的兩句話重述。頁尾還有一段可以直接複製的提問。','#last-title','看第一個提問']
+  ];
+  var FALLBACK=['這份筆記還沒寫到這個問題。把它換進頁尾的「第一個提問」，貼給你手邊的 AI 工具；讀完後，記得查證其中一個關鍵資訊。','#last-title','看第一個提問'];
+  var typing=0;
+  if(form)form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var q=input.value.trim();if(!q){input.focus();return}
+    var hit=null;for(var i=0;i<NOTES.length;i++){if(NOTES[i][0].test(q)){hit=NOTES[i].slice(1);break}}
+    if(!hit)hit=FALLBACK;
+    clearTimeout(typing);send.disabled=true;out.setAttribute('aria-busy','true');
+    out.innerHTML='<span class="reading">翻筆記中…</span>';
+    function finish(){
+      if(hit[1]){var a=document.createElement('a');a.href=hit[1];a.textContent=hit[2]+' ↗';out.appendChild(document.createTextNode(' '));out.appendChild(a)}
+      send.disabled=false;out.removeAttribute('aria-busy');
+    }
+    typing=setTimeout(function(){
+      var text=hit[0];
+      if(calm.matches){out.textContent=text;finish();return}
+      var n=0,node=document.createTextNode('');out.textContent='';out.appendChild(node);
+      (function tick(){n=Math.min(text.length,n+2);node.data=text.slice(0,n);if(n<text.length)typing=setTimeout(tick,26);else finish()})();
+    },calm.matches?0:650);
   });
 })();
 </script>

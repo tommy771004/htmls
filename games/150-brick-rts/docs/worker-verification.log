@@ -1,0 +1,127 @@
+Clean-directory run, output after npm ci and build started.
+
+> brick-rts-foundation@0.1.0 validate
+> node --experimental-strip-types packages/content/validate.ts
+
+PASS: design_default rules validated; reference coverage unknown.
+
+> brick-rts-foundation@0.1.0 test
+> node --experimental-strip-types --test tests/*.test.ts
+
+TAP version 13
+# Subtest: design defaults accepted; unknown reference version rejected for exact verification
+ok 1 - design defaults accepted; unknown reference version rejected for exact verification
+  ---
+  duration_ms: 1.352167
+  type: 'test'
+  ...
+# Subtest: duplicate IDs, dangling dependencies, negative costs and cyclic technology fail
+ok 2 - duplicate IDs, dangling dependencies, negative costs and cyclic technology fail
+  ---
+  duration_ms: 0.359375
+  type: 'test'
+  ...
+# Subtest: schema rejects malformed data and unavailable civilization items
+ok 3 - schema rejects malformed data and unavailable civilization items
+  ---
+  duration_ms: 0.307375
+  type: 'test'
+  ...
+# Subtest: negative, fractional and non-finite settings fail
+ok 4 - negative, fractional and non-finite settings fail
+  ---
+  duration_ms: 0.286458
+  type: 'test'
+  ...
+# Subtest: commands reject enemy control, duplicate, expired, invalid payload without mutations
+ok 5 - commands reject enemy control, duplicate, expired, invalid payload without mutations
+  ---
+  duration_ms: 0.500875
+  type: 'test'
+  ...
+# Subtest: 10000 ticks replay, frame batching, and save/load continuation remain identical
+ok 6 - 10000 ticks replay, frame batching, and save/load continuation remain identical
+  ---
+  duration_ms: 5.175417
+  type: 'test'
+  ...
+# Subtest: pending commands survive snapshot and replay; corrupted snapshots fail
+ok 7 - pending commands survive snapshot and replay; corrupted snapshots fail
+  ---
+  duration_ms: 0.504166
+  type: 'test'
+  ...
+# Subtest: canonical hash ignores object key order and PRNG is stable
+ok 8 - canonical hash ignores object key order and PRNG is stable
+  ---
+  duration_ms: 0.186833
+  type: 'test'
+  ...
+# Subtest: snapshots beyond supported restore limits cannot overwrite a valid save
+ok 9 - snapshots beyond supported restore limits cannot overwrite a valid save
+  ---
+  duration_ms: 0.485292
+  type: 'test'
+  ...
+# Subtest: reference unknowns cannot become fabricated values or coverage percentages
+ok 10 - reference unknowns cannot become fabricated values or coverage percentages
+  ---
+  duration_ms: 0.73475
+  type: 'test'
+  ...
+# Subtest: stages preserve build order and require first-use review
+ok 11 - stages preserve build order and require first-use review
+  ---
+  duration_ms: 0.266042
+  type: 'test'
+  ...
+# Subtest: headless runner measures outside authoritative state and checks restore/replay
+ok 12 - headless runner measures outside authoritative state and checks restore/replay
+  ---
+  duration_ms: 3.667875
+  type: 'test'
+  ...
+# Subtest: invalid replay/runner limits fail instead of hanging or silently rounding
+ok 13 - invalid replay/runner limits fail instead of hanging or silently rounding
+  ---
+  duration_ms: 0.338083
+  type: 'test'
+  ...
+# Subtest: service sends transferable projection, commits movement and preserves snapshots
+ok 14 - service sends transferable projection, commits movement and preserves snapshots
+  ---
+  duration_ms: 1.776792
+  type: 'test'
+  ...
+# Subtest: duplicate IDs, malformed operations and enemy control are rejected atomically with context
+ok 15 - duplicate IDs, malformed operations and enemy control are rejected atomically with context
+  ---
+  duration_ms: 0.255375
+  type: 'test'
+  ...
+# Subtest: a replacement worker recovers precisely the acknowledged command/tick history
+ok 16 - a replacement worker recovers precisely the acknowledged command/tick history
+  ---
+  duration_ms: 0.298917
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 70.531875
+
+> brick-rts-foundation@0.1.0 test:browser
+> node tests/browser.mjs
+
+PASS 1440: movement, ticks, save/load, replay, JSON validation, export, layout, errors, network
+PASS 390: movement, ticks, save/load, replay, JSON validation, export, layout, errors, network
+PASS Worker constructor failure + transport timeout + recovery + resumed tick
+PASS catalog search + game category
+Browser: 151.0.7922.34
+Screenshots: /private/var/folders/05/x61j217d49g9k0_kccntyzsr0000gn/T/brick-rts-worker-first-use-elm_4ckl/games/150-brick-rts/test-results/
+

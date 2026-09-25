@@ -82,6 +82,55 @@ function validateRules(value, exact = false) {
   return [...new Set(errors)];
 }
 
+// packages/sim/navigation.ts
+var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 32, speedPerTick: 5 };
+function makeMap(seed) {
+  let rng = seed || 1;
+  const obstacles = [{ kind: "house", x: 300, y: 400 }, { kind: "house", x: 1100, y: 400, red: true }];
+  for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) {
+    rng ^= rng << 13;
+    rng ^= rng >>> 17;
+    rng ^= rng << 5;
+    const v = (rng >>> 0) / 4294967296;
+    if ((x < 2 || y < 2 || x > 13 || y > 13) && v < 0.34) obstacles.push({ kind: "tree", x: x * 100 + 12, y: y * 100 + 12 });
+    else if (v < 0.028 && Math.abs(x - 8) < 3) obstacles.push({ kind: "rock", x: x * 100, y: y * 100 });
+  }
+  const map = { obstacles, blocked: [] };
+  for (let i = 0; i < 961; i++) if (!clearSegment(map, position(i), position(i))) map.blocked.push(i);
+  return map;
+}
+function bounds(o) {
+  const r = navigationRules.radius;
+  return o.kind === "house" ? [o.x - 15 - r, o.y - 15 - r, o.x + 235 + r, o.y + 215 + r] : o.kind === "tree" ? [o.x - 20 - r, o.y - 20 - r, o.x + 80 + r, o.y + 80 + r] : [o.x - r, o.y - r, o.x + 65 + r, o.y + 70 + r];
+}
+function clearSegment(map, a, b) {
+  if ([a.x, a.y, b.x, b.y].some((v) => !Number.isSafeInteger(v) || v < 50 || v > 1550)) return false;
+  for (const o of map.obstacles) {
+    const [x0, y0, x1, y1] = bounds(o);
+    let lo = 0, hi = 1;
+    for (const [start, delta, min, max] of [[a.x, b.x - a.x, x0, x1], [a.y, b.y - a.y, y0, y1]]) {
+      if (delta === 0) {
+        if (start < min || start > max) {
+          lo = 2;
+          break;
+        }
+      } else {
+        const t0 = (min - start) / delta, t1 = (max - start) / delta;
+        lo = Math.max(lo, Math.min(t0, t1));
+        hi = Math.min(hi, Math.max(t0, t1));
+      }
+    }
+    if (lo <= hi) return false;
+  }
+  return true;
+}
+function position(id) {
+  return { x: 50 + id % 31 * 50, y: 50 + Math.floor(id / 31) * 50 };
+}
+
+// packages/sim/economy.ts
+var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: 40, cancellationRefundPercent: 100 };
+
 // packages/sim/sim.ts
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -95,74 +144,112 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash(rules);
-function createState(seed) {
-  if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
-  return { version: 1, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [{ id: 1, player: 0, x: 350, y: 600, target: null }, { id: 2, player: 0, x: 450, y: 650, target: null }, { id: 3, player: 0, x: 400, y: 750, target: null }, { id: 4, player: 1, x: 1150, y: 600, target: null }], queue: [], log: [] };
+var rulesetHash = hash({ rules, navigationRules, economyRules, simulationVersion: 3 });
+
+// packages/sim/protocol.ts
+function decodeView(r) {
+  const values = new Int32Array(r.positions), units = [];
+  for (let i = 0; i < values.length; i += 7) units.push({ id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: ["idle", "searching", "moving", "unreachable"][values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] } });
+  return { seed: r.seed, tick: r.tick, stateHash: r.stateHash, units };
 }
-function submit(state2, c) {
-  if (!c || c.protocolVersion !== 1 || c.rulesetHash !== rulesetHash) throw Error("\u547D\u4EE4\u7248\u672C\u4E0D\u7B26");
-  if (!Number.isSafeInteger(c.playerId) || c.playerId < 0 || c.playerId > 1) throw Error("\u7121\u6548\u73A9\u5BB6");
-  if (!Number.isSafeInteger(c.sequence) || c.sequence !== state2.sequence[c.playerId] + 1) throw Error("\u91CD\u8907\u6216\u932F\u5E8F\u547D\u4EE4");
-  if (!Number.isSafeInteger(c.targetTick) || c.targetTick <= state2.tick || c.targetTick > state2.tick + 200) throw Error("\u547D\u4EE4\u5DF2\u904E\u671F\u6216\u904E\u9060");
-  if (c.commandType !== "move" || !c.payload) throw Error("\u4E0D\u652F\u63F4\u7684\u547D\u4EE4");
-  const u = state2.units.find((u2) => u2.id === c.payload.unitId);
-  if (!u || u.player !== c.playerId) throw Error("\u4E0D\u53EF\u63A7\u5236\u6575\u65B9\u55AE\u4F4D");
-  for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > 1550) throw Error("\u76EE\u6A19\u8D85\u51FA\u5730\u5716");
-  const copy = structuredClone(c);
-  state2.queue.push(copy);
-  state2.queue.sort((a, b) => a.targetTick - b.targetTick || a.playerId - b.playerId || a.sequence - b.sequence);
-  state2.log.push(structuredClone(copy));
-  state2.sequence[c.playerId] = c.sequence;
-}
-function tick(s) {
-  s.tick++;
-  s.queue.sort((a, b) => a.targetTick - b.targetTick || a.playerId - b.playerId || a.sequence - b.sequence);
-  while (s.queue.length && s.queue[0].targetTick === s.tick) {
-    const c = s.queue.shift();
-    s.units.find((u) => u.id === c.payload.unitId).target = { x: c.payload.x, y: c.payload.y };
+
+// apps/web/worker-client.ts
+var SimulationClient = class {
+  constructor(seed, update, failure) {
+    this.update = update;
+    this.failure = failure;
+    this.checkpoint = { seed, commands: [], ticks: 0 };
   }
-  for (const u of s.units) if (u.target) {
-    u.x += Math.sign(u.target.x - u.x) * Math.min(5, Math.abs(u.target.x - u.x));
-    u.y += Math.sign(u.target.y - u.y) * Math.min(5, Math.abs(u.target.y - u.y));
-    if (u.x === u.target.x && u.y === u.target.y) u.target = null;
+  worker = null;
+  counter = 0;
+  pending = /* @__PURE__ */ new Map();
+  checkpoint;
+  ready = false;
+  async connect() {
+    this.worker?.terminate();
+    this.ready = false;
+    try {
+      this.worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
+    } catch (e) {
+      this.fail(e.message);
+      throw e;
+    }
+    this.worker.onmessage = (event) => {
+      const response = event.data;
+      if (response?.protocol !== 1 || !this.pending.has(response.id)) {
+        this.fail("Worker \u56DE\u61C9\u5354\u5B9A\u4E0D\u7B26");
+        return;
+      }
+      const item = this.pending.get(response.id);
+      clearTimeout(item.timer);
+      this.pending.delete(response.id);
+      if (!response.ok) {
+        item.reject(Error(`tick ${response.tick} / request ${response.id}${response.entityId !== void 0 ? " / entity " + response.entityId : ""}\uFF1A${response.message}`));
+        return;
+      }
+      if (response.commands) this.checkpoint.commands = response.commands;
+      if (response.accepted) this.checkpoint.commands.push(response.accepted);
+      this.checkpoint.seed = response.seed;
+      this.checkpoint.ticks = response.tick;
+      this.update(decodeView(response));
+      item.resolve(response);
+    };
+    this.worker.onerror = (event) => {
+      event.preventDefault();
+      this.fail("Worker \u8F09\u5165\u6216\u57F7\u884C\u5931\u6557");
+    };
+    this.worker.onmessageerror = () => this.fail("Worker \u8CC7\u6599\u89E3\u78BC\u5931\u6557");
+    try {
+      await this.send({ kind: "recover", checkpoint: structuredClone(this.checkpoint) });
+      this.ready = true;
+    } catch (e) {
+      this.fail(e.message);
+      throw e;
+    }
   }
-}
-function replay(seed, commands, ticks) {
-  if (!Number.isSafeInteger(ticks) || ticks < 0 || ticks > 1e5 || !Array.isArray(commands) || commands.length > 1e4) throw Error("\u7121\u6548\u91CD\u64AD\u7BC4\u570D");
-  const s = createState(seed);
-  const pending = structuredClone(commands).sort((a, b) => a.targetTick - b.targetTick || a.playerId - b.playerId || a.sequence - b.sequence);
-  for (const c of [...pending].sort((a, b) => a.playerId - b.playerId || a.sequence - b.sequence)) {
-    const original = s.tick;
-    s.tick = Math.max(0, c.targetTick - 1);
-    submit(s, c);
-    s.tick = original;
+  fail(reason) {
+    this.ready = false;
+    this.worker?.terminate();
+    this.worker = null;
+    for (const item of this.pending.values()) {
+      clearTimeout(item.timer);
+      item.reject(Error(reason));
+    }
+    this.pending.clear();
+    this.failure(`${reason}\uFF1B\u5DF2\u66AB\u505C\uFF0C\u53EF\u91CD\u8A66\u6062\u5FA9\u81F3\u6700\u5F8C\u78BA\u8A8D\u7684 tick ${this.checkpoint.ticks}\u3002\u672A\u78BA\u8A8D\u6307\u4EE4\u4E0D\u6703\u81EA\u52D5\u91CD\u9001\u3002`);
   }
-  for (let i = 0; i < ticks; i++) tick(s);
-  s.log = structuredClone(commands);
-  return s;
-}
-function serialize(s) {
-  if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-1", rulesetHash, state: s, checksum: hash(s) });
-}
-function deserialize(raw) {
-  const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-1" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
-  const s = v.state;
-  if (s.version !== 1 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
-  const rebuilt = replay(s.seed, s.log, s.tick);
-  if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
-  return structuredClone(s);
-}
+  send(operation) {
+    return new Promise((resolve, reject) => {
+      if (!this.worker) {
+        reject(Error("Worker \u5C1A\u672A\u9023\u7DDA"));
+        return;
+      }
+      const id = ++this.counter;
+      const timer = setTimeout(() => this.fail("Worker \u8D85\u904E 5 \u79D2\u672A\u56DE\u61C9"), 5e3);
+      this.pending.set(id, { resolve, reject, timer });
+      try {
+        this.worker.postMessage({ protocol: 1, id, operation });
+      } catch (e) {
+        this.fail(e.message);
+      }
+    });
+  }
+  request(operation) {
+    if (!this.ready) return Promise.reject(Error("\u8ACB\u5148\u6062\u5FA9\u6A21\u64EC\u9023\u7DDA"));
+    return this.send(operation);
+  }
+};
 
 // apps/web/main.ts
 var el = (id) => document.getElementById(id);
-var state = createState(rules.settings.seed);
+var state = { seed: rules.settings.seed, tick: 0, units: [], stateHash: "\u2014" };
+var scenery = makeMap(state.seed);
 var selected = 1;
 var running = false;
 var last = 0;
 var accumulator = 0;
+var advancing = false;
+var connected = false;
 var notice = (s) => {
   el("notice").textContent = s;
 };
@@ -287,11 +374,16 @@ function render() {
   for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) {
     const v = rand(), color = v < 0.15 ? "#a6b489" : v < 0.4 ? "#b5c398" : "#bfcca1";
     brick(x, y, -0.22, 1, 1, 0.22, color, false);
-    if ((x < 2 || y < 2 || x > 13 || y > 13) && v < 0.34) objects.push({ depth: x + y, draw: () => tree(x + 0.12, y + 0.12) });
-    else if (v < 0.028 && Math.abs(x - 8) < 3) objects.push({ depth: x + y, draw: () => brick(x, y, 0, 0.65, 0.7, 0.35, "#aaa88b") });
   }
   for (let i = 6; i < 11; i++) brick(i, 8, -0.015, 0.9, 0.9, 0.05, "#d0c7a3", false);
-  objects.push({ depth: 9, draw: () => house(3, 4) }, { depth: 17, draw: () => house(11, 4, true) });
+  for (const o of scenery.obstacles) {
+    const x = o.x / 100, y = o.y / 100;
+    objects.push({ depth: x + y + (o.kind === "house" ? 2 : 0), draw: () => {
+      if (o.kind === "house") house(x, y, o.red);
+      else if (o.kind === "tree") tree(x, y);
+      else brick(x, y, 0, 0.65, 0.7, 0.35, "#aaa88b");
+    } });
+  }
   for (const u2 of state.units) {
     if (u2.target) {
       const p = point(u2.target.x / 100, u2.target.y / 100);
@@ -305,9 +397,10 @@ function render() {
   }
   objects.sort((a, b) => a.depth - b.depth).forEach((o) => o.draw());
   el("tick").textContent = String(state.tick);
-  el("hash").textContent = hash(state);
+  el("hash").textContent = state.stateHash;
   const u = state.units.find((u2) => u2.id === selected);
-  el("position").textContent = `\u6751\u6C11 ${selected} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${u.target ? "\u79FB\u52D5\u4E2D" : "\u5F85\u547D"}`;
+  if (!u) return;
+  el("position").textContent = `\u6751\u6C11 ${selected} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${u.navigation === "searching" ? "\u5C0B\u8DEF\u4E2D" : u.navigation === "unreachable" ? "\u7121\u53EF\u9054\u8DEF\u5F91" : u.target ? "\u79FB\u52D5\u4E2D" : "\u5F85\u547D"}`;
 }
 function setRunning(v) {
   running = v;
@@ -316,7 +409,7 @@ function setRunning(v) {
   el("pause").textContent = v ? "\u66AB\u505C\u6A21\u64EC" : "\u958B\u59CB\u6A21\u64EC";
   el("pause").setAttribute("aria-pressed", String(v));
   el("run-state").textContent = v ? "\u6A21\u64EC\u904B\u884C\u4E2D \xB7 20 Hz" : "\u5DF2\u66AB\u505C \xB7 \u7B49\u5F85\u6307\u4EE4";
-  el("step").disabled = v;
+  el("step").disabled = !connected || v;
 }
 function choose(id) {
   selected = id;
@@ -324,11 +417,39 @@ function choose(id) {
   el("selected").textContent = `#0${id}`;
   render();
 }
-function move(x, y) {
+var client = new SimulationClient(rules.settings.seed, (v) => {
+  if (v.seed !== state.seed) scenery = makeMap(v.seed);
+  state = v;
+  render();
+}, (reason) => {
+  connected = false;
+  setRunning(false);
+  toggleControls();
+  notice(reason);
+  el("worker-retry").hidden = false;
+});
+function toggleControls() {
+  for (const id of ["move", "pause", "step", "restart", "save", "load", "replay"]) el(id).disabled = !connected || id === "step" && running;
+}
+async function connect() {
+  el("worker-retry").disabled = true;
   try {
-    submit(state, { protocolVersion: 1, rulesetHash, playerId: 0, sequence: state.sequence[0] + 1, targetTick: state.tick + 1, commandType: "move", payload: { unitId: selected, x: Math.round(x * 100), y: Math.round(y * 100) } });
-    notice(`\u6751\u6C11 ${selected} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u6216\u300C\u524D\u9032 1 tick\u300D\u57F7\u884C\u3002"}`);
-    render();
+    await client.connect();
+    connected = true;
+    el("worker-retry").hidden = true;
+    notice(`\u6A21\u64EC\u5DF2\u9023\u7DDA \xB7 tick ${state.tick}\u3002\u9078\u53D6\u6751\u6C11\uFF0C\u518D\u9EDE\u5730\u9762\u4E0B\u9054\u6307\u4EE4\u3002`);
+  } catch {
+  } finally {
+    toggleControls();
+    el("worker-retry").disabled = false;
+  }
+}
+el("worker-retry").onclick = () => void connect();
+async function move(x, y) {
+  const unitId = selected;
+  try {
+    await client.request({ kind: "move", unitId, x: Math.round(x * 100), y: Math.round(y * 100) });
+    notice(`\u6751\u6C11 ${unitId} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u6216\u300C\u524D\u9032 1 tick\u300D\u57F7\u884C\u3002"}`);
   } catch (e) {
     notice(e.message);
   }
@@ -360,38 +481,41 @@ el("move").onclick = () => {
   else notice("\u8ACB\u8F38\u5165 0.5 \u5230 15.5 \u4E4B\u9593\u7684\u5EA7\u6A19\u3002");
 };
 el("pause").onclick = () => setRunning(!running);
-el("step").onclick = () => {
-  tick(state);
-  render();
+el("step").onclick = async () => {
+  try {
+    await client.request({ kind: "advance", count: 1 });
+  } catch (e) {
+    setRunning(false);
+    notice(e.message);
+  }
 };
-el("restart").onclick = () => {
+el("restart").onclick = async () => {
+  setRunning(false);
   try {
     const input = el("seed");
     if (input.value === "") throw Error("\u8ACB\u8F38\u5165\u7A2E\u5B50");
-    const next = createState(Number(input.value));
-    state = next;
-    setRunning(false);
+    await client.request({ kind: "reset", seed: Number(input.value) });
     choose(1);
     notice("\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002");
   } catch (e) {
     notice(e.message);
   }
 };
-el("save").onclick = () => {
+el("save").onclick = async () => {
   try {
-    localStorage.setItem("brick-rts:sandbox:1", serialize(state));
-    notice(`\u5DF2\u5132\u5B58 tick ${state.tick} \u7684\u6C99\u76D2\u3002`);
+    const result = await client.request({ kind: "snapshot" });
+    localStorage.setItem("brick-rts:sandbox:1", result.snapshot);
+    notice(`\u5DF2\u5132\u5B58 tick ${result.tick} \u7684\u6C99\u76D2\u3002`);
   } catch (e) {
     notice(`\u5132\u5B58\u5931\u6557\uFF1A${e.message}\u3002\u5148\u524D\u5B58\u6A94\u4FDD\u7559\u3002`);
   }
 };
-el("load").onclick = () => {
+el("load").onclick = async () => {
+  setRunning(false);
   try {
     const raw = localStorage.getItem("brick-rts:sandbox:1");
     if (!raw) throw Error("\u5C1A\u7121\u624B\u52D5\u5B58\u6A94\u3002");
-    const restored = deserialize(raw);
-    state = restored;
-    setRunning(false);
+    await client.request({ kind: "restore", snapshot: raw });
     el("seed").value = String(state.seed);
     choose(1);
     notice(`\u5DF2\u6062\u5FA9 tick ${state.tick}\uFF1B\u6309\u958B\u59CB\u6A21\u64EC\u7E7C\u7E8C\u3002`);
@@ -399,11 +523,11 @@ el("load").onclick = () => {
     notice(`\u8B80\u53D6\u5931\u6557\uFF1A${e.message}\u3002\u76EE\u524D\u6C99\u76D2\u4FDD\u7559\u3002`);
   }
 };
-el("replay").onclick = () => {
+el("replay").onclick = async () => {
   setRunning(false);
   try {
-    const result = replay(state.seed, state.log, state.tick);
-    notice(hash(result) === hash(state) ? `\u91CD\u64AD\u4E00\u81F4\uFF1A${state.log.length} \u689D\u6307\u4EE4\u3001${state.tick} ticks\uFF0C\u6307\u7D0B ${hash(result)}\u3002` : "\u91CD\u64AD\u4E0D\u4E00\u81F4\uFF0C\u8ACB\u4FDD\u7559\u76EE\u524D\u72C0\u614B\u56DE\u5831\u3002");
+    const result = await client.request({ kind: "replay" });
+    notice(result.replayMatches ? `\u91CD\u64AD\u4E00\u81F4\uFF1A${result.tick} ticks\uFF0C\u6307\u7D0B ${result.stateHash}\u3002` : "\u91CD\u64AD\u4E0D\u4E00\u81F4\uFF0C\u8ACB\u4FDD\u7559\u76EE\u524D\u72C0\u614B\u56DE\u5831\u3002");
   } catch (e) {
     notice(`\u91CD\u64AD\u5931\u6557\uFF1A${e.message}`);
   }
@@ -460,16 +584,22 @@ function frame(time) {
     last = time;
     if (accumulator > 1e3) {
       setRunning(false);
-      notice("\u756B\u9762\u5EF6\u9072\u8D85\u904E 1 \u79D2\uFF0C\u6A21\u64EC\u5DF2\u66AB\u505C\uFF1B\u672A\u8DF3\u904E\u4EFB\u4F55 tick\u3002");
-    } else {
-      while (accumulator >= 50) {
-        tick(state);
-        accumulator -= 50;
-      }
-      render();
+      notice("\u6A21\u64EC\u843D\u5F8C\u8D85\u904E 1 \u79D2\uFF0C\u5DF2\u66AB\u505C\uFF1B\u672A\u8DF3\u904E\u4EFB\u4F55 tick\u3002");
+    } else if (!advancing && accumulator >= 50) {
+      const count = Math.floor(accumulator / 50);
+      accumulator -= count * 50;
+      advancing = true;
+      void client.request({ kind: "advance", count }).catch((e) => {
+        setRunning(false);
+        notice(e.message);
+      }).finally(() => {
+        advancing = false;
+      });
     }
   }
   requestAnimationFrame(frame);
 }
+toggleControls();
 render();
+void connect();
 requestAnimationFrame(frame);

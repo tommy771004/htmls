@@ -52,3 +52,13 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:browser
 `AGENTS.md` 固定逐階段與首次使用修正流程。版本逐項對照見 `docs/reference-comparison.json`；資料模型見 `docs/data-model.md`；A–J 的機器可讀依賴和完成門檻見 `docs/stage-dependencies.json`。目前 B 階段仍在進行，不能跳成已完成 C／D／E。
 
 `npm run sim:headless -- 260925 10000` 執行真實無畫面命令、tick、存讀續跑與重播一致性檢查，並輸出觀測到的 tick CPU 耗時。量測不參與權威狀態，不代表浏览器 FPS 或整合式 GPU 驗收。首次使用證據見 `docs/first-use-001.md`。
+
+## Worker 里程碑
+
+瀏覽器已使用真正的 Dedicated Worker 執行模擬。建置產物必須同時包含 `web/assets/150-brick-rts/main.js` 與 `worker.js`。Worker 故障會暫停並顯示「重試模擬連線」，恢復至最後確認 tick；未確認的指令不會自動重送。首次使用與故障注入記錄見 `docs/first-use-002.md`。
+
+## Navigation milestone update (2026-09-25)
+
+The latest implementation supersedes earlier no-collision notes: `packages/sim/navigation.ts` supplies shared static house/tree/rock footprints and deterministic routing. State v2 includes map, pathJobs, frontier/parents/head, unit path and navigation status. All jobs share 32 node expansions per tick in stable order. Runtime defaults are recorded in `docs/runtime-manifest.json`; they are not reference-game values. Static obstacle clearance is implemented, but unit-to-unit avoidance, dynamic occupancy, formations, full resource economy and match completion remain pending.
+
+Snapshots now use sandbox v2. Old v1 snapshots are explicitly rejected without changing the live state; no migration is claimed. Full RTS collision and match gates remain open. See `docs/first-use-003.md`.

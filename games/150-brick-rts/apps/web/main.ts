@@ -1,7 +1,11 @@
 import {rules,validateRules} from '../../packages/content/rules.ts';
-import {createState,tick,hash,submit,rulesetHash,replay,serialize,deserialize} from '../../packages/sim/sim.ts';
+import {makeMap} from '../../packages/sim/navigation.ts';
+import {SimulationClient} from './worker-client.ts';
+import type {View} from '../../packages/sim/protocol.ts';
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
-let state=createState(rules.settings.seed),selected=1,running=false,last=0,accumulator=0;
+let state:View={seed:rules.settings.seed,tick:0,units:[],stateHash:'—'};
+let scenery=makeMap(state.seed);
+let selected=1,running=false,last=0,accumulator=0,advancing=false,connected=false;
 const notice=(s:string)=>{el('notice').textContent=s;};
 const canvas=el<HTMLCanvasElement>('map'),ctx=canvas.getContext('2d');
 if(!ctx)throw Error('此瀏覽器無法建立 Canvas 2D 畫面');
@@ -50,20 +54,23 @@ function render(){
  for(let x=0;x<16;x++)for(let y=0;y<16;y++){
  const v=rand(),color=v<.15?'#a6b489':v<.4?'#b5c398':'#bfcca1';
  brick(x,y,-.22,1,1,.22,color,false);
- if((x<2||y<2||x>13||y>13)&&v<.34)objects.push({depth:x+y,draw:()=>tree(x+.12,y+.12)});
- else if(v<.028&&Math.abs(x-8)<3)objects.push({depth:x+y,draw:()=>brick(x,y,0,.65,.7,.35,'#aaa88b')});
+
  }
  // A small brick path emphasizes scale without promising pathfinding.
  for(let i=6;i<11;i++)brick(i,8,-.015,.9,.9,.05,'#d0c7a3',false);
- objects.push({depth:9,draw:()=>house(3,4)},{depth:17,draw:()=>house(11,4,true)});
+ for(const o of scenery.obstacles){const x=o.x/100,y=o.y/100;objects.push({depth:x+y+(o.kind==='house'?2:0),draw:()=>{if(o.kind==='house')house(x,y,o.red);else if(o.kind==='tree')tree(x,y);else brick(x,y,0,.65,.7,.35,'#aaa88b');}});}
  for(const u of state.units){if(u.target){const p=point(u.target.x/100,u.target.y/100);g.strokeStyle='#ba633e';g.lineWidth=1.5;g.beginPath();g.ellipse(p[0],p[1],scale*.3,scale*.15,0,0,7);g.stroke();}objects.push({depth:u.x/100+u.y/100,draw:()=>villager(u)});}
  objects.sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());
- el('tick').textContent=String(state.tick);el('hash').textContent=hash(state);
- const u=state.units.find(u=>u.id===selected)!;el('position').textContent=`村民 ${selected} · (${(u.x/100).toFixed(1)}, ${(u.y/100).toFixed(1)}) · ${u.target?'移動中':'待命'}`;
+ el('tick').textContent=String(state.tick);el('hash').textContent=state.stateHash;
+ const u=state.units.find(u=>u.id===selected);if(!u)return;el('position').textContent=`村民 ${selected} · (${(u.x/100).toFixed(1)}, ${(u.y/100).toFixed(1)}) · ${u.navigation==='searching'?'尋路中':u.navigation==='unreachable'?'無可達路徑':u.target?'移動中':'待命'}`;
 }
-function setRunning(v:boolean){running=v;accumulator=0;last=0;el('pause').textContent=v?'暫停模擬':'開始模擬';el('pause').setAttribute('aria-pressed',String(v));el('run-state').textContent=v?'模擬運行中 · 20 Hz':'已暫停 · 等待指令';el<HTMLButtonElement>('step').disabled=v;}
+function setRunning(v:boolean){running=v;accumulator=0;last=0;el('pause').textContent=v?'暫停模擬':'開始模擬';el('pause').setAttribute('aria-pressed',String(v));el('run-state').textContent=v?'模擬運行中 · 20 Hz':'已暫停 · 等待指令';el<HTMLButtonElement>('step').disabled=!connected||v;}
 function choose(id:number){selected=id;document.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.unit)===id)));el('selected').textContent=`#0${id}`;render();}
-function move(x:number,y:number){try{submit(state,{protocolVersion:1,rulesetHash,playerId:0,sequence:state.sequence[0]+1,targetTick:state.tick+1,commandType:'move',payload:{unitId:selected,x:Math.round(x*100),y:Math.round(y*100)}});notice(`村民 ${selected} 的移動指令已排入 tick ${state.tick+1}。${running?'':'按「開始模擬」或「前進 1 tick」執行。'}`);render();}catch(e){notice((e as Error).message);}}
+const client=new SimulationClient(rules.settings.seed,v=>{if(v.seed!==state.seed)scenery=makeMap(v.seed);state=v;render();},reason=>{connected=false;setRunning(false);toggleControls();notice(reason);el('worker-retry').hidden=false;});
+function toggleControls(){for(const id of ['move','pause','step','restart','save','load','replay'])el<HTMLButtonElement>(id).disabled=!connected||(id==='step'&&running);}
+async function connect(){el<HTMLButtonElement>('worker-retry').disabled=true;try{await client.connect();connected=true;el('worker-retry').hidden=true;notice(`模擬已連線 · tick ${state.tick}。選取村民，再點地面下達指令。`);}catch{}finally{toggleControls();el<HTMLButtonElement>('worker-retry').disabled=false;}}
+el('worker-retry').onclick=()=>void connect();
+async function move(x:number,y:number){const unitId=selected;try{await client.request({kind:'move',unitId,x:Math.round(x*100),y:Math.round(y*100)});notice(`村民 ${unitId} 的移動指令已排入 tick ${state.tick+1}。${running?'':'按「開始模擬」或「前進 1 tick」執行。'}`);}catch(e){notice((e as Error).message);}}
 canvas.addEventListener('click',e=>{const r=canvas.getBoundingClientRect();const px=e.clientX-r.left,py=e.clientY-r.top;
  const unit=state.units.find(u=>{const p=point(u.x/100,u.y/100,.5);return Math.hypot(p[0]-px,p[1]-py)<Math.max(12,scale*.55);});
  if(unit){if(unit.player===0)choose(unit.id);else notice('紅方單位不可由藍方控制。');return;}
@@ -71,11 +78,12 @@ canvas.addEventListener('click',e=>{const r=canvas.getBoundingClientRect();const
  if(x<.5||x>15.5||y<.5||y>15.5){notice('請點選地圖內側的地面。');return;}move(x,y);});
 document.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(b=>b.onclick=()=>choose(Number(b.dataset.unit)));
 el('move').onclick=()=>{const x=el<HTMLInputElement>('target-x'),y=el<HTMLInputElement>('target-y');if(x.reportValidity()&&y.reportValidity()&&x.value!==''&&y.value!=='')move(Number(x.value),Number(y.value));else notice('請輸入 0.5 到 15.5 之間的座標。');};
-el('pause').onclick=()=>setRunning(!running);el('step').onclick=()=>{tick(state);render();};
-el('restart').onclick=()=>{try{const input=el<HTMLInputElement>('seed');if(input.value==='')throw Error('請輸入種子');const next=createState(Number(input.value));state=next;setRunning(false);choose(1);notice('已建立新沙盒。先前的手動存檔仍然保留。');}catch(e){notice((e as Error).message);}};
-el('save').onclick=()=>{try{localStorage.setItem('brick-rts:sandbox:1',serialize(state));notice(`已儲存 tick ${state.tick} 的沙盒。`);}catch(e){notice(`儲存失敗：${(e as Error).message}。先前存檔保留。`);}};
-el('load').onclick=()=>{try{const raw=localStorage.getItem('brick-rts:sandbox:1');if(!raw)throw Error('尚無手動存檔。');const restored=deserialize(raw);state=restored;setRunning(false);el<HTMLInputElement>('seed').value=String(state.seed);choose(1);notice(`已恢復 tick ${state.tick}；按開始模擬繼續。`);}catch(e){notice(`讀取失敗：${(e as Error).message}。目前沙盒保留。`);}};
-el('replay').onclick=()=>{setRunning(false);try{const result=replay(state.seed,state.log,state.tick);notice(hash(result)===hash(state)?`重播一致：${state.log.length} 條指令、${state.tick} ticks，指紋 ${hash(result)}。`:'重播不一致，請保留目前狀態回報。');}catch(e){notice(`重播失敗：${(e as Error).message}`);}};
+el('pause').onclick=()=>setRunning(!running);
+el('step').onclick=async()=>{try{await client.request({kind:'advance',count:1});}catch(e){setRunning(false);notice((e as Error).message);}};
+el('restart').onclick=async()=>{setRunning(false);try{const input=el<HTMLInputElement>('seed');if(input.value==='')throw Error('請輸入種子');await client.request({kind:'reset',seed:Number(input.value)});choose(1);notice('已建立新沙盒。先前的手動存檔仍然保留。');}catch(e){notice((e as Error).message);}};
+el('save').onclick=async()=>{try{const result=await client.request({kind:'snapshot'});localStorage.setItem('brick-rts:sandbox:1',result.snapshot!);notice(`已儲存 tick ${result.tick} 的沙盒。`);}catch(e){notice(`儲存失敗：${(e as Error).message}。先前存檔保留。`);}};
+el('load').onclick=async()=>{setRunning(false);try{const raw=localStorage.getItem('brick-rts:sandbox:1');if(!raw)throw Error('尚無手動存檔。');await client.request({kind:'restore',snapshot:raw});el<HTMLInputElement>('seed').value=String(state.seed);choose(1);notice(`已恢復 tick ${state.tick}；按開始模擬繼續。`);}catch(e){notice(`讀取失敗：${(e as Error).message}。目前沙盒保留。`);}};
+el('replay').onclick=async()=>{setRunning(false);try{const result=await client.request({kind:'replay'});notice(result.replayMatches?`重播一致：${result.tick} ticks，指紋 ${result.stateHash}。`:'重播不一致，請保留目前狀態回報。');}catch(e){notice(`重播失敗：${(e as Error).message}`);}};
 const editor=el<HTMLTextAreaElement>('rules-json');const reset=()=>{editor.value=JSON.stringify(rules,null,2);el('validation').textContent='尚未驗證編輯內容。';};reset();
 el('reset-rules').onclick=reset;
 el('validate').onclick=()=>{try{const errors=validateRules(JSON.parse(editor.value),el<HTMLInputElement>('exact').checked);el('validation').textContent=errors.length?'驗證未通過：\n'+errors.join('\n'):'驗證通過：自訂規則結構有效。原作版本與覆蓋率仍未確認。';}catch{el('validation').textContent='驗證未通過：JSON 格式錯誤。';}};
@@ -83,4 +91,12 @@ el('export').onclick=()=>{try{const data=JSON.parse(editor.value),errors=validat
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&running){setRunning(false);notice('分頁進入背景，沙盒已自動暫停。');}});
 window.addEventListener('blur',()=>{if(running){setRunning(false);notice('視窗失焦，沙盒已自動暫停。');}});
 new ResizeObserver(()=>render()).observe(canvas.parentElement!);
-function frame(time:number){if(running){if(last)accumulator+=time-last;last=time;if(accumulator>1000){setRunning(false);notice('畫面延遲超過 1 秒，模擬已暫停；未跳過任何 tick。');}else{while(accumulator>=50){tick(state);accumulator-=50;}render();}}requestAnimationFrame(frame);}render();requestAnimationFrame(frame);
+function frame(time:number){
+ if(running){if(last)accumulator+=time-last;last=time;
+  if(accumulator>1000){setRunning(false);notice('模擬落後超過 1 秒，已暫停；未跳過任何 tick。');}
+  else if(!advancing&&accumulator>=50){const count=Math.floor(accumulator/50);accumulator-=count*50;advancing=true;
+   void client.request({kind:'advance',count}).catch(e=>{setRunning(false);notice((e as Error).message);}).finally(()=>{advancing=false;});}
+ }
+ requestAnimationFrame(frame);
+}
+toggleControls();render();void connect();requestAnimationFrame(frame);

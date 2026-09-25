@@ -4,13 +4,13 @@ SCOPE-002,SCOPE,文明／單位／科技全集分母,scope,01,proposed,false,des
 SCOPE-003,SCOPE,來源與數值待確認標記,scope,01,proposed,false,design_proposal,implemented,packages/content/rules.ts,tests/foundation.test.ts,docs/verification.md,Unknown fields remain null
 SCOPE-004,SCOPE,自訂參數與對照值分離,scope,01,proposed,false,design_proposal,implemented,packages/content/rules.ts,tests/foundation.test.ts,docs/verification.md,Custom values labeled design_default
 SCOPE-005,SCOPE,需求程式測試證據追蹤,scope,01,proposed,false,design_proposal,in_progress,docs/feature-ledger.csv;docs/stage-dependencies.json;docs/data-model.md,tests/governance.test.ts,docs/verification.md,Evidence limited to this foundation
-SIM-001,SIM,固定 tick 與畫面插值分離,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts;apps/web/main.ts,tests/foundation.test.ts,docs/verification.md,20 Hz fixed step; no interpolation yet
+SIM-001,SIM,固定 tick 與畫面插值分離,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts;apps/web/main.ts,tests/foundation.test.ts,docs/first-use-002.md,20 Hz fixed step; no interpolation yet
 SIM-002,SIM,穩定 PRNG 與排序,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts,tests/foundation.test.ts,docs/verification.md,xorshift32 and deterministic ordering; cross-browser not tested
 SIM-003,SIM,命令合法性與原子扣費,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts,tests/foundation.test.ts,docs/verification.md,Movement ownership/protocol/sequence only; no spending
-SIM-004,SIM,可序列化權威狀態,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts,tests/foundation.test.ts,docs/verification.md,Movement sandbox state only
-SIM-005,SIM,確定性尋路工作排程,infrastructure,02,proposed,false,design_proposal,not_started,,,,
+SIM-004,SIM,可序列化權威狀態,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts,tests/foundation.test.ts,docs/first-use-002.md,Movement sandbox state only
+SIM-005,SIM,確定性尋路工作排程,infrastructure,02,proposed,false,design_proposal,implemented,packages/sim/navigation.ts;packages/sim/sim.ts,tests/navigation.test.ts;tests/browser.mjs,docs/first-use-003.md,Fixed shared 32-node tick budget; serializable frontier; static house/tree/rock footprints with radius 25. Unit avoidance and dynamic occupancy pending.
 SIM-006,SIM,headless runner 與 state hash,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts;packages/sim/headless.ts;packages/sim/run.ts,tests/foundation.test.ts;tests/governance.test.ts,docs/headless-result.json;docs/first-use-001.md,Headless runner and actual tick timings; four-unit sandbox only; full game benchmark not run
-SIM-007,SIM,Worker 訊息與錯誤恢復,infrastructure,02,proposed,false,design_proposal,not_started,,,,
+SIM-007,SIM,Worker 訊息與錯誤恢復,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/protocol.ts;apps/web/worker.ts;apps/web/worker-client.ts;apps/web/main.ts,tests/worker.test.ts;tests/browser.mjs,docs/first-use-002.md,Live Worker owns movement simulation; transferable projection; startup/error/timeout recovery tested. Other RTS systems not implemented.
 ART-001,ART,原創積木元件庫,visual,03,proposed,false,design_proposal,not_started,,,,
 ART-002,ART,凸點／倒角／接縫,visual,03,proposed,false,design_proposal,not_started,,,,
 ART-003,ART,四時代建築變體,visual,03,proposed,false,design_proposal,not_started,,,,
@@ -27,9 +27,9 @@ MAP-005,MAP,三態戰爭迷霧,system,04,proposed,true,unverified,not_started,,,
 MAP-006,MAP,最後已見資料快照,system,04,proposed,true,unverified,not_started,,,,
 MAP-007,MAP,隊伍共享視野,system,04,proposed,true,unverified,not_started,,,,
 MAP-008,MAP,隱藏陰影／音訊等洩漏,system,04,proposed,true,unverified,not_started,,,,
-NAV-001,NAV,群體路徑搜尋,system,05,proposed,true,unverified,not_started,,,,
+NAV-001,NAV,群體路徑搜尋,system,05,proposed,true,unverified,in_progress,packages/sim/navigation.ts;packages/sim/sim.ts,tests/navigation.test.ts;tests/browser.mjs,docs/first-use-003.md,Fixed shared 32-node tick budget; serializable frontier; static house/tree/rock footprints with radius 25. Unit avoidance and dynamic occupancy pending.
 NAV-002,NAV,動態阻擋更新,system,05,proposed,true,unverified,not_started,,,,
-NAV-003,NAV,單位半徑與近戰站位,system,05,proposed,true,unverified,not_started,,,,
+NAV-003,NAV,單位半徑與近戰站位,system,05,proposed,true,unverified,in_progress,packages/sim/navigation.ts;packages/sim/sim.ts,tests/navigation.test.ts;tests/browser.mjs,docs/first-use-003.md,Fixed shared 32-node tick budget; serializable frontier; static house/tree/rock footprints with radius 25. Unit avoidance and dynamic occupancy pending.
 NAV-004,NAV,局部避讓與卡住恢復,system,05,proposed,true,unverified,not_started,,,,
 NAV-005,NAV,隊形收縮與展開,system,05,proposed,true,unverified,not_started,,,,
 NAV-006,NAV,窄門／雙向通行,system,05,proposed,true,unverified,not_started,,,,

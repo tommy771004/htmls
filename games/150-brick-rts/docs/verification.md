@@ -30,3 +30,11 @@ PLAYWRIGHT_MODULE=/Users/tommy/Documents/Proj/OldBabyInfo/node_modules/playwrigh
 ## 後續驗證
 
 第二輪已在新工作目錄完成 npm ci、build、validate、13 項測試、headless 及兩尺寸瀏覽器測試。詳細首次使用路徑與仍阻塞完整對局的問題見 `first-use-001.md`；上一輪的 9 tests 為當時紀錄。
+
+## Worker 里程碑
+
+最新乾淨目錄驗證：16 tests／16 pass，桌機與手機流程、Worker 啟動失敗／中斷／timeout 的恢復均通過。詳細步驟與未完成項見 `first-use-002.md`，原始輸出見 `worker-verification.log`。
+
+## Navigation milestone
+
+Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, blocked-target rejection, replay, Worker recovery and catalogue passed. See first-use-003.md for reproduction details and remaining gates.
