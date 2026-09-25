@@ -26,3 +26,7 @@ PLAYWRIGHT_MODULE=/Users/tommy/Documents/Proj/OldBabyInfo/node_modules/playwrigh
 第一次手機測試的 raw mouse click 因 canvas 已捲出視窗而未命中；測試腳本已改為 scrollIntoViewIfNeeded 後点击，同步重跑桌機與手機通過。未以此宣稱原作提示 19「首次進站到勝利」已完成。
 
 未驗證：Firefox／Safari／Edge、原作精確數值、WebGL2 3D 場景、多人、完整遊戲存檔、實機內顯 FPS／frame time、正式 RTS 對局。沒有以自訂資料的驗證結果換算原作覆蓋率。
+
+## 後續驗證
+
+第二輪已在新工作目錄完成 npm ci、build、validate、13 項測試、headless 及兩尺寸瀏覽器測試。詳細首次使用路徑與仍阻塞完整對局的問題見 `first-use-001.md`；上一輪的 9 tests 為當時紀錄。
