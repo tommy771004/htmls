@@ -74,6 +74,9 @@ var townCenterBlocking = [
   [210, 210, 252, 252],
   [265, 270, 271, 276]
 ];
+var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 } };
+var townCenterEntrance = { x: 135, y: 215 };
+var footprintContract = { provenance: "design_default", obstacleFootprints, townCenterBlocking, walkablePlatforms, townCenterEntrance };
 function check(o, radius) {
   if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
 }
@@ -416,7 +419,7 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, simulationVersion: 10 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 10 });
 function createState(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
   const state = { version: 10, layout, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed, layout), pathJobs: [], seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [{ id: 1, player: 0, x: 350, y: 700, target: null }, { id: 2, player: 0, x: 450, y: 700, target: null }, { id: 3, player: 0, x: 400, y: 800, target: null }, { id: 4, player: 1, x: 1150, y: 700, target: null }], queue: [], log: [] };

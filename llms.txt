@@ -31,7 +31,7 @@
 ### 平面排版
 
 - [001 RASTER 26](https://htmls-ruddy.vercel.app/web/001-swiss.html): 瑞士國際主義。設計研討會海報式首頁：非對稱 12 欄網格、群青巨字「26」，按 G 開關網格疊層
-- [002 Concrete Archive](https://htmls-ruddy.vercel.app/web/002-beton-brut.html): 建築粗獷主義。混凝土建築檔案館：14 棟真實粗獷主義建築，可篩選排序，卡片以無緩動硬切滑動
+- [002 Concrete Archive](https://htmls-ruddy.vercel.app/web/002-beton-brut.html): 建築粗獷主義。混凝土建築檔案館：14 棟真實粗獷主義建築，可篩選排序，卡片以無緩動硬切滑動；另有清單索引檢視
 - [004 慢的練習](https://htmls-ruddy.vercel.app/web/004-editorial-essay.html): 極簡編輯長文。原創散文：朱紅首字放大、側欄註腳、閱讀進度與「慢讀」模式
 - [006 噪音夏日 No.7](https://htmls-ruddy.vercel.app/web/006-zine-collage.html): 雜誌拼貼。勒索信標題、撕邊紙片與紙膠帶，碎片可拖曳，放下時會依速度晃動
 - [017 PULP 26](https://htmls-ruddy.vercel.app/web/017-risograph.html): 孔版印刷。書展雙色疊印海報，拖曳造成藍版錯位並顯示錯版 mm 數
@@ -55,7 +55,7 @@
 
 ### 介面風格
 
-- [125 太空漫步 · AI 科普筆記](https://htmls-ruddy.vercel.app/web/125-spacewalk.html): 給 AI 初學者的個人品牌網站。人物插畫主視覺、三張白話概念卡、四階段學習路線、個人介紹與可複製的第一個提問；手機可閱讀
+- [125 太空漫步 · AI 科普筆記](https://htmls-ruddy.vercel.app/web/125-spacewalk.html): 給 AI 初學者的個人品牌網站。人物插畫主視覺與大字宣言、白話名詞索引、四階段學習路線、個人介紹與可複製的第一個提問；手機可閱讀
 
 - [007 微光之家](https://htmls-ruddy.vercel.app/web/007-glassmorphism.html): 玻璃擬態。雨夜窗前的家居面板：玻璃溫控透鏡即時折射窗外失焦的城市燈火，滑動玻璃珠標示房間，燈光與四種情境改變窗上倒影、天色與雨
 - [010 密碼工坊](https://htmls-ruddy.vercel.app/web/010-neumorphism.html): 新擬物 Soft UI。凹陷字元磚與 neumorphic 滑桿，隨機或好記詞組兩種密碼、中文化破解時間

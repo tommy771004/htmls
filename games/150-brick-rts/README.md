@@ -1,6 +1,6 @@
 # 多地形移動沙盒
 
-目前 State／snapshot 為 v9。可建立草甸、海岸、高地與淺灘三種移動沙盒，存讀及 Worker 恢復保留地圖類型。尚無完整對局或海戰。詳見 docs/first-use-006.md。以下紀錄保留當時版本。
+目前 State／snapshot 為 v10。可建立草甸、海岸、高地與淺灘三種移動沙盒，兩方起始建築是可以從拱門走進大廳的城鎮中心；存讀及 Worker 恢復保留地圖類型。尚無完整對局或海戰。詳見 docs/first-use-007.md。以下紀錄保留當時版本。
 
 # 高度通行增量
 
@@ -41,6 +41,8 @@ npm run dev
 
 ```sh
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:browser
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:rig-browser   # 模型檢視頁
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:first-use     # prompt 19 首次使用流程：滑鼠點選穿過城鎮中心拱門
 ```
 
 執行環境需先安裝該 Playwright 對應 Chromium。測試自行啟動 loopback HTTP server、產生 `test-results/` 截圖及 `thumbs/150.jpg`。

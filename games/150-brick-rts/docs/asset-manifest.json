@@ -372,7 +372,7 @@
         3
       ],
       "selectionBounds": "inspector only; no gameplay selection",
-      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "collisionProxy": "authoritative in formal sandbox: obstacleRects town-center (12 rects: piers, posts, arch flanks from 3D villager clearance, notice board, crate, marker pole); plinth, hall, gate and rear walkable; other ages share the same ground footprint",
       "attachmentPoints": [],
       "animations": [
         "static"
@@ -382,7 +382,7 @@
         "intact/damaged/bounded rubble/restored",
         "four structural age variants: hall without belfry; belfry; belfry raised on two masonry courses; stepped spire and finial"
       ],
-      "status": "four original structural age silhouettes; ART_DETAIL_MATRIX near detail and work states still pending; inspector only, no production/trade/research, navigation or work animation"
+      "status": "four structural age silhouettes; placed as each side's starting building with a walkable gate (first-use-007); no production/garrison/rally/dropoff; ART_DETAIL_MATRIX near detail (stone steps replaced by flush paving) and work states pending"
     },
     {
       "id": "market",

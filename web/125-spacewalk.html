@@ -28,11 +28,66 @@ main{position:relative}.section{padding-block:112px}.section-head{max-width:740p
 .ask{border-top:1px solid #6c829564;border-bottom:1px solid #6c829564}.ask form{display:flex;align-items:center;gap:14px;min-height:64px}.ask label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.ask input{flex:1;min-width:0;min-height:44px;border:0;background:transparent;color:var(--paper);font:inherit;font-size:17px;padding:0 2px}.ask input::placeholder{color:#8fa3b1}.ask button{flex:none;width:40px;height:40px;border-radius:50%;border:1.5px solid #8fa3b1;background:transparent;color:var(--paper);font-size:17px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:background .2s,border-color .2s,color .2s}.ask button:hover:not(:disabled){background:var(--accent);border-color:var(--accent);color:var(--bg)}.ask button:disabled{opacity:.45;cursor:default}
 .ask-out{padding:0 44px 0 2px;color:#dfe7e6;font-size:15px;line-height:1.85}.ask-out:not(:empty){padding-bottom:26px}.ask-out .reading{color:#8fa3b1;font-size:13px}.ask-out a{color:var(--accent);text-underline-offset:3px}
 .last{padding-block:50px 110px}.last-panel{background:#1b3042;border:1px solid #5e77884f;border-radius:12px;padding:60px clamp(28px,7vw,84px);display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:30px}.last h2{max-width:15em}.last p{margin:0;max-width:46em;color:#c2d2d9;line-height:1.85}.starter-prompt{margin:22px 0 0;padding:14px 18px;border-left:3px solid var(--accent);background:#233a4c;color:#f0e6d5;font-size:14px;line-height:1.7;max-width:47em}.copy{white-space:nowrap}.copy-status{display:block;min-height:1.5em;color:#f2c894;font-size:13px;margin-top:9px;text-align:center}.footer{border-top:1px solid #536b7a5c;padding:27px 0 40px;color:#aebdc6;font-size:13px}.footer .wrap{display:flex;justify-content:space-between;gap:20px}
-.reveal{opacity:1;transform:none}.js .reveal{opacity:0;transform:translateY(22px);transition:opacity .65s ease,transform .65s cubic-bezier(.22,1,.36,1);transition-delay:var(--delay,0s)}.js .reveal.is-visible{opacity:1;transform:none}
+.reveal{opacity:1;transform:none}.js .reveal{transform:translateY(22px);transition:transform .8s cubic-bezier(.22,1,.36,1);transition-delay:var(--delay,0s)}.js .reveal.is-visible{opacity:1;transform:none}
 @media(max-width:900px){.hero{grid-template-columns:1fr 1fr;gap:24px}.hero h1{font-size:clamp(50px,6.5vw,68px)}.portrait{height:530px}.cards{gap:12px}.card{padding:25px 22px}.card h3{font-size:27px}}
 @media(max-width:767px){.wrap{width:min(100% - 36px,560px)}.nav{min-height:64px}.brand{font-size:20px}.nav-links{gap:15px}.nav-links a{font-size:12px}.nav-links a:nth-child(2){display:none}.hero{min-height:0;grid-template-columns:1fr;gap:35px;padding:65px 0 70px}.hero h1{font-size:clamp(47px,11vw,64px);margin:16px 0 17px}.hero p{font-size:16px;margin-bottom:25px}.hero-visual{min-height:0}.portrait{height:min(520px,120vw);max-width:420px;border-radius:170px 170px 70px 70px}.section{padding-block:78px}.section-head{margin-bottom:31px}.section-head h2,.path-head h2,.about h2,.last h2{font-size:38px}.section-head p,.path-head p{font-size:16px}.cards{grid-template-columns:1fr;gap:14px}.card{min-height:0;padding:27px}.card h3{font-size:30px}.card dl{gap:13px}.path{padding-top:30px}.path-layout{grid-template-columns:1fr;gap:35px}.path-art{position:static}.path-art img{aspect-ratio:16/10;object-position:center 55%}.path-art p{font-size:11px}.about-grid{grid-template-columns:1fr;gap:26px}.about p{font-size:16px}.about-note{font-size:19px}.last{padding-top:20px}.last-panel{grid-template-columns:1fr;padding:35px 26px;gap:24px}.faq{padding-block:72px}.faq-grid{grid-template-columns:1fr;gap:26px}.faq h2{font-size:38px}.faq-lead{max-width:none}.qa summary,.ask input{font-size:16px}.qa details p,.ask-out{padding-right:8px}.copy{justify-self:start}.copy-status{text-align:left}.footer .wrap{display:block}.footer span{display:block;margin-top:5px}}
 @media(max-width:390px){.nav-links a:nth-child(1){display:none}.hero-actions{gap:16px}.portrait{height:430px}.section-head h2,.path-head h2,.about h2,.last h2{font-size:34px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}.js .reveal{opacity:1;transform:none}}
+/* Portfolio pass (SiteInspire Portfolio: maximilian kaspar, This Design): one statement owns the fold,
+   the illustration stands beside it, and the page opens on an index instead of a pair of buttons. */
+.button:hover{transform:none;box-shadow:none}
+.hero{min-height:min(900px,calc(100dvh - 74px));display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:auto auto 1fr auto;column-gap:24px;align-items:start;padding-block:64px 48px}
+.hero .hero-title{grid-column:1/9;grid-row:1;position:relative;z-index:1;margin:0;word-break:keep-all;font-size:clamp(52px,6.6vw,100px);line-height:1.08;letter-spacing:-.04em;font-weight:760}
+.hero .hero-title em{font-style:normal;color:var(--accent)}
+.hero .hero-lede{grid-column:1/6;grid-row:2;margin:34px 0 0;font-size:18px;line-height:1.9;color:#d2dfe3;max-width:26em}
+.hero .hero-visual{grid-column:9/13;grid-row:1/5;align-self:stretch;display:flex;align-items:flex-start;justify-content:flex-end}
+.hero-visual::before{width:118%;right:-9%;top:6%}
+.hero-visual::after{box-shadow:none;top:10%;right:2%}
+.portrait{width:100%;max-width:420px;height:min(640px,calc(100dvh - 190px));min-height:460px;box-shadow:none}
+.hero-index{grid-column:1/9;grid-row:4;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:24px;padding-top:24px;border-top:1px solid #58708463}
+.hero-index a{display:block;min-height:44px;text-decoration:none;color:var(--paper)}
+.hero-index .n{display:block;font-size:12px;letter-spacing:.06em;color:var(--accent);font-variant-numeric:tabular-nums}
+.hero-index b{display:block;margin:9px 0 3px;font-size:19px;font-weight:700;letter-spacing:-.02em;white-space:nowrap;transition:color .25s}
+.hero-index i{display:inline-block;margin-left:6px;font-style:normal;font-weight:400;font-size:.8em;color:#8fa3b1;transition:transform .3s cubic-bezier(.22,1,.36,1),color .25s}
+.hero-index .s{display:block;font-size:13px;line-height:1.55;color:#aebdcc}
+.hero-index a:hover b{color:var(--accent)}
+.hero-index a:hover i{transform:translate(3px,-3px);color:var(--accent)}
+.hero-index a:focus-visible{outline:3px solid var(--accent);outline-offset:6px}
+.concepts .section-head{max-width:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.75fr);column-gap:8%;align-items:end;margin-bottom:64px}
+.concepts .section-head h2{margin:0}
+.terms{border-bottom:1px solid #58708463}
+.term{display:grid;grid-template-columns:72px minmax(0,.82fr) minmax(0,1.7fr);column-gap:32px;padding:46px 0 50px;border-top:1px solid #58708463;scroll-margin-top:24px}
+.term .num{display:block;padding-top:12px;font-size:13px;letter-spacing:.06em;color:var(--accent);font-variant-numeric:tabular-nums}
+.term .glyph{display:block;margin-top:16px;font-size:26px;line-height:1;color:#8fb0bd}
+.term h3{margin:0 0 10px;font-size:clamp(38px,3.8vw,54px);line-height:1.05;letter-spacing:-.045em;font-weight:760;transition:color .3s}
+.term:hover h3{color:var(--accent)}
+.term .sub{margin:0;font-size:15px;color:#aebdcc}
+.term dl{margin:8px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:28px}
+.term dt{margin-bottom:8px;font-size:13px;font-weight:700;color:#f2e7cd}
+.term dd{margin:0;font-size:15px;line-height:1.8;color:#bed0d5}
+.sources{margin-top:26px}
+.step{grid-template-columns:64px 1fr;padding:32px 0 34px}
+.step h3{font-size:28px;margin-bottom:10px}
+@media(max-width:1100px){.term{grid-template-columns:64px minmax(0,1fr)}.term dl{grid-column:2;margin-top:26px}}
+@media(max-width:900px){.hero{grid-template-columns:repeat(12,minmax(0,1fr))}.hero .hero-title{grid-column:1/-1}.hero .hero-lede{grid-column:1/8}.hero .hero-visual{grid-column:8/13;grid-row:2/4}.portrait{height:auto;min-height:0;aspect-ratio:2/3}.hero-index{grid-column:1/-1;margin-top:40px}}
+@media(max-width:767px){
+  .hero{display:flex;flex-direction:column;align-items:stretch;min-height:0;padding:48px 0 60px}
+  .hero .hero-title{font-size:clamp(40px,11.4vw,64px);line-height:1.12}
+  .hero .hero-lede{margin-top:22px;font-size:16px}
+  .hero .hero-visual{order:3;margin-top:36px;justify-content:center}
+  .portrait{max-width:420px;height:min(520px,120vw);aspect-ratio:auto}
+  .hero-index{order:4;margin-top:44px;grid-template-columns:1fr 1fr;row-gap:26px;column-gap:18px}
+  .hero-index b{font-size:17px;white-space:normal}
+  .concepts .section-head{display:block;margin-bottom:34px}
+  .concepts .section-head h2{margin-bottom:18px}
+  .term{grid-template-columns:1fr;padding:34px 0 36px}
+  .term .mark{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+  .term .num{padding-top:0}.term .glyph{margin-top:0;font-size:22px}
+  .term h3{font-size:36px}
+  .term dl{grid-column:1;grid-template-columns:1fr;row-gap:18px;margin-top:22px}
+  .step{grid-template-columns:56px 1fr;padding:26px 0 28px}
+  .step h3{font-size:22px}
+}
 </style>
 </head>
 <body>
@@ -40,18 +95,20 @@ main{position:relative}.section{padding-block:112px}.section-head{max-width:740p
 <header class="site-header"><nav class="nav wrap" aria-label="主要導覽"><a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>太空漫步</a><div class="nav-links"><a href="#concepts">AI 名詞</a><a href="#path">學習路線</a><a href="#about">關於我</a></div></nav></header>
 <main id="main">
   <section class="hero wrap" id="top" aria-labelledby="hero-title">
-    <div class="hero-copy reveal"><div class="eyebrow">從好奇開始的 AI 科普</div><h1 id="hero-title">把 AI 當成工具，<br><em>而不是魔法。</em></h1><p>不急著追每個新名詞。從日常問題出發，弄懂它能做什麼、試一次，再決定適不適合自己。</p><div class="hero-actions"><a class="button" href="#concepts">先看懂三個詞 <span aria-hidden="true">↗</span></a><a class="text-link" href="#path">看看學習路線</a></div></div>
+    <h1 class="hero-title reveal" id="hero-title">把 AI 當成工具，<br><em>而不是魔法。</em></h1>
+    <p class="hero-lede reveal" style="--delay:.06s">不急著追每個新名詞。從日常問題出發，弄懂它能做什麼、試一次，再決定適不適合自己。</p>
+    <nav class="hero-index" aria-label="本頁索引"><a href="#term-agent"><span class="n">01</span><b>AI Agent<i aria-hidden="true">↗</i></b><span class="s">會分步完成任務的助手</span></a><a href="#term-vibe"><span class="n">02</span><b>Vibe Coding<i aria-hidden="true">↗</i></b><span class="s">用白話做出程式原型</span></a><a href="#term-tools"><span class="n">03</span><b>AI Tools<i aria-hidden="true">↗</i></b><span class="s">為特定工作設計的工具</span></a><a href="#path"><span class="n">04</span><b>學習路線<i aria-hidden="true">↗</i></b><span class="s">四步，從提問到小作品</span></a></nav>
     <div class="hero-visual reveal" style="--delay:.12s"><figure class="portrait"><img src="../assets/125/guide.jpg" width="960" height="1440" alt="一位虛構的探索者拿著筆記本，走過月面與環繞的星球" fetchpriority="high"><figcaption>從一個問題出發，就已經在路上。</figcaption></figure></div>
   </section>
-  <section class="section concepts" id="concepts" aria-labelledby="concepts-title"><div class="wrap"><div class="section-head reveal"><p class="section-kicker">概念導覽</p><h2 id="concepts-title">先把三個常見詞，<br>放回生活裡。</h2><p>每個名詞都從一個簡單問題說起：它是什麼、為什麼值得認識，今天可以怎麼試。</p></div>
-    <div class="cards">
-      <article class="card reveal"><div class="card-top"><span class="card-index">01 / 03</span><span class="card-symbol" aria-hidden="true">↝</span></div><h3>AI Agent</h3><p class="sub">會分步完成任務的助手</p><dl><div><dt>這是什麼</dt><dd>你給它一個目標，它會拆步驟、使用工具，再把結果整理給你。</dd></div><div><dt>為什麼重要</dt><dd>它能處理多步驟工作，但每一步仍需要你確認方向與結果。</dd></div><div><dt>怎麼開始</dt><dd>挑一件小事，例如整理旅遊資料，請它先列計畫，再逐步執行。</dd></div></dl></article>
-      <article class="card reveal" style="--delay:.08s"><div class="card-top"><span class="card-index">02 / 03</span><span class="card-symbol" aria-hidden="true">⌘</span></div><h3>Vibe Coding</h3><p class="sub">用自然語言做出程式原型</p><dl><div><dt>這是什麼</dt><dd>用白話描述想做的功能，讓 AI 幫忙寫程式，自己邊試邊調整。</dd></div><div><dt>為什麼重要</dt><dd>想法能更快變成可操作的東西；你也要親自測試它是否真的可用。</dd></div><div><dt>怎麼開始</dt><dd>從一頁待辦清單開始，只要求新增、完成、刪除三件事。</dd></div></dl></article>
-      <article class="card reveal" style="--delay:.16s"><div class="card-top"><span class="card-index">03 / 03</span><span class="card-symbol" aria-hidden="true">✳</span></div><h3>AI Tools</h3><p class="sub">為特定工作設計的 AI 工具</p><dl><div><dt>這是什麼</dt><dd>把 AI 放進寫作、搜尋、設計或整理資料等工作流程的應用。</dd></div><div><dt>為什麼重要</dt><dd>工具各有長處；先認清自己的任務，才知道該選哪一個。</dd></div><div><dt>怎麼開始</dt><dd>選一項重複工作，用同一份材料試兩種工具，比較結果與時間。</dd></div></dl></article>
+  <section class="section concepts" id="concepts" aria-labelledby="concepts-title"><div class="wrap"><div class="section-head reveal"><h2 id="concepts-title">先把三個常見詞，<br>放回生活裡。</h2><p>每個名詞都從一個簡單問題說起：它是什麼、為什麼值得認識，今天可以怎麼試。</p></div>
+    <div class="terms">
+      <article class="term reveal" id="term-agent"><div class="mark"><span class="num">01</span><span class="glyph" aria-hidden="true">↝</span></div><div class="name"><h3>AI Agent</h3><p class="sub">會分步完成任務的助手</p></div><dl><div><dt>這是什麼</dt><dd>你給它一個目標，它會拆步驟、使用工具，再把結果整理給你。</dd></div><div><dt>為什麼重要</dt><dd>它能處理多步驟工作，但每一步仍需要你確認方向與結果。</dd></div><div><dt>怎麼開始</dt><dd>挑一件小事，例如整理旅遊資料，請它先列計畫，再逐步執行。</dd></div></dl></article>
+      <article class="term reveal" id="term-vibe"><div class="mark"><span class="num">02</span><span class="glyph" aria-hidden="true">⌘</span></div><div class="name"><h3>Vibe Coding</h3><p class="sub">用自然語言做出程式原型</p></div><dl><div><dt>這是什麼</dt><dd>用白話描述想做的功能，讓 AI 幫忙寫程式，自己邊試邊調整。</dd></div><div><dt>為什麼重要</dt><dd>想法能更快變成可操作的東西；你也要親自測試它是否真的可用。</dd></div><div><dt>怎麼開始</dt><dd>從一頁待辦清單開始，只要求新增、完成、刪除三件事。</dd></div></dl></article>
+      <article class="term reveal" id="term-tools"><div class="mark"><span class="num">03</span><span class="glyph" aria-hidden="true">✳</span></div><div class="name"><h3>AI Tools</h3><p class="sub">為特定工作設計的 AI 工具</p></div><dl><div><dt>這是什麼</dt><dd>把 AI 放進寫作、搜尋、設計或整理資料等工作流程的應用。</dd></div><div><dt>為什麼重要</dt><dd>工具各有長處；先認清自己的任務，才知道該選哪一個。</dd></div><div><dt>怎麼開始</dt><dd>選一項重複工作，用同一份材料試兩種工具，比較結果與時間。</dd></div></dl></article>
     </div>
     <p class="sources">名詞參考：<a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener noreferrer">Anthropic 的 Agent 說明</a>、<a href="https://github.com/resources/articles/what-is-vibe-coding" target="_blank" rel="noopener noreferrer">GitHub 的 Vibe Coding 入門</a>。</p>
   </div></section>
-  <section class="section path" id="path" aria-labelledby="path-title"><div class="wrap path-layout"><figure class="path-art reveal"><img src="../assets/125/study.jpg" width="1200" height="800" alt="有筆記本、檯燈與筆電的書桌，螢幕上畫著簡單的連線圖" loading="lazy"><figcaption><p>從自己的書桌開始，就能做第一個實驗。</p></figcaption></figure><div><div class="path-head reveal"><p class="section-kicker">學習路線</p><h2 id="path-title">從零開始，<br>一步一步動手。</h2><p>不用一次學完所有工具。先理解、再驗證，最後做出一件你真的用得上的小作品。</p></div><div class="steps-wrap" id="stepsWrap"><ol class="steps"><li class="step"><span class="step-num">01</span><div><h3>問一個熟悉的問題</h3><p>選生活中你已略懂的主題，請 AI 用白話解釋。<strong>目標：能用自己的兩句話重述。</strong></p></div></li><li class="step"><span class="step-num">02</span><div><h3>查一次答案</h3><p>請 AI 標出不確定之處，找一個可靠來源核對。<strong>目標：知道哪些話還需要查證。</strong></p></div></li><li class="step"><span class="step-num">03</span><div><h3>讓工具幫你省一步</h3><p>挑一件重複工作，如整理筆記，明確說出輸入與期望結果。<strong>目標：比較自己做與 AI 協助的差異。</strong></p></div></li><li class="step"><span class="step-num">04</span><div><h3>做一個小作品</h3><p>完成一張旅行規劃表、一頁介紹網站，或任何能分享的成果。<strong>目標：自己看懂並能修改它。</strong></p></div></li></ol></div></div></div></section>
+  <section class="section path" id="path" aria-labelledby="path-title"><div class="wrap path-layout"><figure class="path-art reveal"><img src="../assets/125/study.jpg" width="1200" height="800" alt="有筆記本、檯燈與筆電的書桌，螢幕上畫著簡單的連線圖" loading="lazy"><figcaption><p>從自己的書桌開始，就能做第一個實驗。</p></figcaption></figure><div><div class="path-head reveal"><h2 id="path-title">從零開始，<br>一步一步動手。</h2><p>不用一次學完所有工具。先理解、再驗證，最後做出一件你真的用得上的小作品。</p></div><div class="steps-wrap" id="stepsWrap"><ol class="steps"><li class="step"><span class="step-num">01</span><div><h3>問一個熟悉的問題</h3><p>選生活中你已略懂的主題，請 AI 用白話解釋。<strong>目標：能用自己的兩句話重述。</strong></p></div></li><li class="step"><span class="step-num">02</span><div><h3>查一次答案</h3><p>請 AI 標出不確定之處，找一個可靠來源核對。<strong>目標：知道哪些話還需要查證。</strong></p></div></li><li class="step"><span class="step-num">03</span><div><h3>讓工具幫你省一步</h3><p>挑一件重複工作，如整理筆記，明確說出輸入與期望結果。<strong>目標：比較自己做與 AI 協助的差異。</strong></p></div></li><li class="step"><span class="step-num">04</span><div><h3>做一個小作品</h3><p>完成一張旅行規劃表、一頁介紹網站，或任何能分享的成果。<strong>目標：自己看懂並能修改它。</strong></p></div></li></ol></div></div></div></section>
   <section class="about" id="about" aria-labelledby="about-title"><div class="wrap about-grid"><div class="reveal"><p class="section-kicker">關於我</p><h2 id="about-title">你好，我是「太空漫步」的主理人。</h2><p>我把難懂的 AI 詞彙，寫成一般人能讀、也能親手試的筆記。每篇內容都從一個真實問題開始，讓概念有落腳的地方。</p><p>這裡會持續分享入門解說、工具觀察和小練習。希望你看完之後，能帶著自己的問題繼續探索。</p></div><div class="about-note reveal" style="--delay:.1s">「懂一點，再試一點；<br>每一步都由自己決定。」</div></div></section>
   <section class="faq" id="faq" aria-labelledby="faq-title"><div class="wrap faq-grid"><div><h2 id="faq-title">還有問題？</h2><p class="faq-lead">常被問的先寫在這裡。<br>其他的，直接問這份筆記。</p></div>
     <div class="qa">

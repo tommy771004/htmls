@@ -17,6 +17,8 @@ try {
  await page.addInitScript(()=>{const NativeWorker=window.Worker;window.testWorkers=[];window.Worker=class extends NativeWorker{constructor(...args){super(...args);window.testWorkers.push(this);}};});
  await page.goto(origin+'/web/150-brick-rts.html');await page.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ // First-use 007: run controls sit above the scene inside the first screen, no scrolling needed.
+ {const run=await page.locator('#pause').boundingBox(),scene=await page.locator('#map').boundingBox();assert.ok(run.y+run.height<=scene.y&&run.y+run.height<=viewport.height,JSON.stringify({run,scene}));}
  const waitNotice=pattern=>page.waitForFunction(p=>new RegExp(p).test(document.querySelector('#notice').textContent),pattern);
  await page.locator('#fog-debug summary').click();assert.equal(await page.locator('.fog-grid span').count(),256);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.match(await page.locator('.fog-cell-info').textContent(),/目前可見/);await page.locator('#fog-debug summary').click();
  const initial=await page.locator('#hash').innerText();

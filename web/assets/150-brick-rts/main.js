@@ -794,6 +794,8 @@ var townCenterBlocking = [
   [265, 270, 271, 276]
 ];
 var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 } };
+var townCenterEntrance = { x: 135, y: 215 };
+var footprintContract = { provenance: "design_default", obstacleFootprints, townCenterBlocking, walkablePlatforms, townCenterEntrance };
 function check(o, radius) {
   if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
 }
@@ -1453,7 +1455,7 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, simulationVersion: 10 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 10 });
 
 // packages/sim/protocol.ts
 function decodeView(r) {

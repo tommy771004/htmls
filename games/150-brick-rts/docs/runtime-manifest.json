@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 9,
-  "rulesetHash": "7d1ea936",
+  "schemaVersion": 10,
+  "rulesetHash": "f4bf3eb9",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -135,5 +135,147 @@
     "shareVision": false,
     "rememberStaticObjects": true
   },
-  "collisionScope": "static house/tree/rock footprints; no unit avoidance"
+  "footprints": {
+    "provenance": "design_default",
+    "obstacleFootprints": {
+      "house": {
+        "x": -15,
+        "y": -15,
+        "width": 250,
+        "depth": 230
+      },
+      "town-center": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
+      "tree": {
+        "x": -20,
+        "y": -20,
+        "width": 100,
+        "depth": 100
+      },
+      "rock": {
+        "x": 0,
+        "y": 0,
+        "width": 65,
+        "depth": 70
+      },
+      "gold": {
+        "x": 0,
+        "y": 0,
+        "width": 65,
+        "depth": 70
+      },
+      "berries": {
+        "x": 0,
+        "y": 0,
+        "width": 65,
+        "depth": 70
+      },
+      "hunt": {
+        "x": 0,
+        "y": 0,
+        "width": 65,
+        "depth": 70
+      },
+      "livestock": {
+        "x": 0,
+        "y": 0,
+        "width": 65,
+        "depth": 70
+      }
+    },
+    "townCenterBlocking": [
+      [
+        15,
+        15,
+        65,
+        165
+      ],
+      [
+        205,
+        15,
+        255,
+        165
+      ],
+      [
+        10,
+        10,
+        26,
+        26
+      ],
+      [
+        240,
+        10,
+        256,
+        26
+      ],
+      [
+        10,
+        180,
+        26,
+        196
+      ],
+      [
+        240,
+        180,
+        256,
+        196
+      ],
+      [
+        65,
+        150,
+        97,
+        175
+      ],
+      [
+        173,
+        150,
+        205,
+        175
+      ],
+      [
+        14,
+        190,
+        62,
+        198
+      ],
+      [
+        20,
+        198,
+        54,
+        201
+      ],
+      [
+        210,
+        210,
+        252,
+        252
+      ],
+      [
+        265,
+        270,
+        271,
+        276
+      ]
+    ],
+    "walkablePlatforms": {
+      "town-center": {
+        "rect": [
+          -15,
+          -15,
+          285,
+          285
+        ],
+        "height": 16
+      }
+    },
+    "townCenterEntrance": {
+      "x": 135,
+      "y": 215
+    }
+  },
+  "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; no unit avoidance"
 }

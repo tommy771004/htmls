@@ -1,6 +1,6 @@
 # 資料模型與權威邊界
 
-目前權威 State／snapshot 為 v9，支援三種地圖、有限資源資料、三態視野、移動、存讀與重播。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
+目前權威 State／snapshot 為 v10，支援三種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
 
 ## 初始資料模型（歷史 v1，後續演進見下文）
 
@@ -87,7 +87,7 @@ ResourceKind 擴充七種類，resourceDefinitions 宣告產出、工作方法�
 
 clearSegment 同時檢查 walkClass、障礙物與高度邊界；land 的相鄰最大高度差由 terrainRules.maxLandStep 決定，water 為零。超差邊界按單位半徑擴張，避免跨崖與切角。height 不另存到 Unit，從腳底 x/y 及 Tile.height 推導；renderer 的地柱與物件基座共用 groundHeight。手工圖提供離散階梯，未實作平滑坡面。snapshot 現為 v8。
 
-## 多地形沙盒 v9（目前版本）
+## 多地形沙盒 v9
 
 State.layout 保存 meadow／coast／acceptance。createState、replay、reset、Recovery 與一般 Response 均攜帶地圖類型；WorkerClient 在每次確認回應更新 checkpoint.layout。View.terrain 只含地格類別、高度、通行與可建造性，不含隱藏資源／障礙參照。renderer 使用 Worker 確認的地形，地面 raycast 命中實際地柱表面；恢復後不會回到預設草甸。snapshot v9 取代 v8，詳見 first-use-006.md。
 
@@ -98,3 +98,12 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 此表只是搬移既有自訂工程值，並非確認原作占地。九組前後比對證明 v9 hash 與阻擋格沒有改變，因此本輪不更換 snapshot 或 ruleset hash。未來若修改任何權威尺寸，必須同時更新 simulationVersion／ruleset 身份及舊存檔策略，不能只改表而繼續宣稱 v9 相容。
 
 模型頁的新經濟／公共建築與騎兵尚未加入權威 obstacle kinds；其 art footprint、掛點與選取圈在 asset-manifest.json，不能拿來當已實作碰撞規則。迷霧除錯介面只讀 View.fog／known／tick，不新增權威資料。
+
+## 城鎮中心入口與多矩形占地 v10（目前版本）
+
+- `packages/content/footprints.ts` 的 `obstacleRects()` 是碰撞的唯一來源，每種障礙物回傳一組整數矩形。城鎮中心有 12 個阻擋矩形，其他種類仍各一個，數值和 v9 相同。
+- `obstacleBounds()` 只提供整體範圍，用於地圖放置、耗盡清理和起始資源接近點。`walkablePlatforms` 記錄可行走地基的高度，只供渲染使用。
+- `footprintContract` 併入 rulesetHash 與 runtime-manifest.json，simulationVersion、State.version 和 snapshot 格式都升為 10。v9 存檔會被明確拒絕，沒有做遷移。
+- 生成地圖的兩方起始建築改為城鎮中心；住宅仍保留為障礙物種類，供測試與後續建造使用。
+- 建築的「已見」改成任一占地格可見即成立，其他物件仍看錨點格。
+- 驗證見 first-use-007.md。這些是 design_default 工程值，不是原作占地。

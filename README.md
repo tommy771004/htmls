@@ -12,7 +12,7 @@
 | # | 檔案 | 風格方向 | 一句話說明 | 評 |
 |---|---|---|---|---|
 | 001 | [001-swiss.html](https://htmls-ruddy.vercel.app/web/001-swiss.html) | 瑞士國際主義 | RASTER 26 研討會海報首頁：非對稱 12 欄、群青巨字，G 鍵開關網格疊層 | |
-| 002 | [002-beton-brut.html](https://htmls-ruddy.vercel.app/web/002-beton-brut.html) | 建築粗獷主義 | 混凝土建築檔案館：14 棟真實建築，可篩選排序，硬切動效 | △ 混凝土噪點偏雲霧感，篩選後結果少時留有空洞 |
+| 002 | [002-beton-brut.html](https://htmls-ruddy.vercel.app/web/002-beton-brut.html) | 建築粗獷主義 | 混凝土建築檔案館：14 棟真實建築，可篩選排序，硬切動效；板片牆逐列排版，篩選後由相鄰板片加寬補滿，另有清單索引檢視，指向一列即在側邊看到該建築的混凝土板；表面為木模板留下的橫向板痕 | |
 | 003 | [003-vaporwave.html](https://htmls-ruddy.vercel.app/web/003-vaporwave.html) | 蒸汽波 | ＶＡＰＯＲ ＭＡＬＬ：無限透視網格、Win95 視窗切換天色、VHS 抖動、賣場音樂 | |
 | 004 | [004-editorial-essay.html](https://htmls-ruddy.vercel.app/web/004-editorial-essay.html) | 極簡編輯長文 | 原創散文〈慢的練習〉：首字放大、側註、閱讀進度、慢讀模式 | |
 | 005 | [005-crt-terminal.html](https://htmls-ruddy.vercel.app/web/005-crt-terminal.html) | 終端機 | 1983 天文台 CRT：虛擬檔案系統、約 25 個指令、Tab 補完、三種磷光色 | |
@@ -59,7 +59,7 @@
 | 046 | [046-claymorphism.html](https://htmls-ruddy.vercel.app/web/046-claymorphism.html) | 黏土風 | 數字果凍島：兒童加減比大小、果凍彈跳、黏土碎片慶祝 | △ 版面單純，桌機右欄偏空 |
 | 047 | [047-e-paper.html](https://htmls-ruddy.vercel.app/web/047-e-paper.html) | 電子紙 | 家用電子紙看板：16 階灰、局部更新殘影、全刷閃爍、FS 抖動插畫 | |
 | 048 | [048-word-clock.html](https://htmls-ruddy.vercel.app/web/048-word-clock.html) | 文字時鐘 | 11×10 中文字格報時，精確到分，另會亮「該喝茶了」等提示 | △ 偏靜態，互動少 |
-| 049 | [049-radial-year.html](https://htmls-ruddy.vercel.app/web/049-radial-year.html) | 放射狀年曆 | 365 天放射熱度圖：高亮同週與同星期幾、三組資料 | △ 桌機圓圖左側留白多 |
+| 049 | [049-radial-year.html](https://htmls-ruddy.vercel.app/web/049-radial-year.html) | 放射狀年曆 | 365 天放射熱度圖：圓圖置中成為唯一主角，標題、資料切換、統計與星期平均收在四角邊註；高亮同週與同星期幾、三組資料 | |
 | 050 | [050-atomic-age.html](https://htmls-ruddy.vercel.app/web/050-atomic-age.html) | 50 年代原子時代 | Atomic Holidays 太空旅行社：航線圖、算票價、登機證、theremin 音效 | |
 | 051 | [051-sport-bold.html](https://htmls-ruddy.vercel.app/web/051-sport-bold.html) | 運動品牌 | VELOX 配速計算器：速度線、三種計算模式、完賽預測 | |
 | 052 | [052-tarot.html](https://htmls-ruddy.vercel.app/web/052-tarot.html) | 神秘塔羅 | The Hollow Moon：22 張自繪大阿爾克那、3D 翻牌、逆位 | |
@@ -133,7 +133,7 @@
 | 120 | [120-qingming-scroll.html](https://htmls-ruddy.vercel.app/web/120-qingming-scroll.html) | 擬物器物 · 3D 清明上河圖 | 汴河長卷：沿汴河展卷橫移的立體長卷，郊野、漕運、虹橋、城郭四章與章節時間軸；絹本水墨後製、四時辰光影、合成市聲水聲風聲 | 單檔 HTML；Three.js 由 CDN 載入，需連線及 WebGL；環境音為 WebAudio 即時合成，需點擊開啟 |
 | 121 | [121-camera-blueprint.html](https://htmls-ruddy.vercel.app/web/121-camera-blueprint.html) | 生成藝術 · 程式渲染產品動畫 | R6 旁軸相機藍圖拆解：正視圖描邊 → 轉 3/4 視角 → 鏡頭、快門簾、捲片軸、觀景窗、底片室依序爆炸並標註 → 收回成尺寸標註正視圖；零件、標註與時間軸都是可編輯的 JSON | 純 Canvas 2D，不載入外部資源；同一幀號必得同一份顯示清單（畫面附雜湊）；以 WebCodecs 逐幀編碼合成 60fps MP4，或輸出 PNG 幀序列 ZIP，需新版 Chrome／Edge |
 | 124 | [124-ashwing.html](https://htmls-ruddy.vercel.app/web/124-ashwing.html) | 遊戲敘事 · 3D 軌道射擊 | 灰燼之翼 ASHWING：致敬《鐵甲飛龍》的第一關，騎龍沿固定航道從赤砂峽谷穿過沉沒神殿；前右後左 360 度視角切換、按住掃過多重鎖定追蹤雷射、畫面內閃避彈幕，敵人依 100 BPM 小節與地形起伏編排，終點是翼核 → 脊核 → 眼三階段的頭目骸天鯨；D Hijaz 民族風管弦樂與音效皆為 WebAudio 即時合成 | 單檔 HTML；Three.js 由 CDN 載入（失敗時改用站內 vendor），需 WebGL；桌機鍵鼠或手機觸控 |
-| 125 | [125-spacewalk.html](https://htmls-ruddy.vercel.app/web/125-spacewalk.html) | 介面風格 · AI 科普個人品牌 | 太空漫步：人物主視覺、AI Agent／Vibe Coding／AI Tools 白話卡片、四階段學習路線、個人介紹與可複製的第一個提問 | 單頁 HTML 搭配兩張站內原創插畫；不需外部程式庫 |
+| 125 | [125-spacewalk.html](https://htmls-ruddy.vercel.app/web/125-spacewalk.html) | 介面風格 · AI 科普個人品牌 | 太空漫步：人物主視覺與大字宣言、AI Agent／Vibe Coding／AI Tools 白話名詞索引、四階段學習路線、個人介紹與可複製的第一個提問 | 單頁 HTML 搭配兩張站內原創插畫；不需外部程式庫 |
 | 126 | [126-star-vault.html](https://htmls-ruddy.vercel.app/web/126-star-vault.html) | 遊戲敘事 · 3D 轉蛋抽卡 | 星匣 STAR VAULT：程序化星匣與角色，球體滾落、稀有光芒預告、蓄力停頓與破殼揭曉；單抽十連、漸進保底與角色圖鑑 | 需 WebGL；Three.js 從 CDN 載入，失敗時改用站內 `vendor/`；抽卡進度存在本機瀏覽器 |
 | 127 | [127-jade-table.html](https://htmls-ruddy.vercel.app/web/127-jade-table.html) | 遊戲敘事 · 3D 十六張麻將 | 青雀 JADE TABLE：真人好友房或三位 AI；144 張吃碰槓胡、補花、宣告聽牌、逐項計台、30 秒重連與 Web Audio 音效 | 需 HTTP 與 WebGL；共用規則引擎；真人房由 Vercel WebSocket＋Neon 管理，詳見 [後端部署說明](server/jade-table/README.md) |
 | 128 | [128-fold-2048.html](https://htmls-ruddy.vercel.app/web/128-fold-2048.html) | 遊戲敘事 · 極簡數字益智 | FOLD 2048：滑動或方向鍵合併數字；五種棋盤模式、單步撤銷、自動儲存、最佳分數與勝負結算，手機直向也能遊玩 | 單檔 HTML，不載入外部資源；進度與最佳分數存在本機瀏覽器 |

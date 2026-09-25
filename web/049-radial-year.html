@@ -70,23 +70,70 @@ h1 b{font-weight:700}
 .wkbars span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:11px;color:var(--mute)}
 foot,.foot{display:block;margin-top:34px;font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding-top:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
 @media (prefers-reduced-motion:reduce){.cell{animation:none}}
+
+/* One chart owns the sheet; everything else becomes marginalia pinned to its four corners (SiteInspire Minimal · SORT Office). */
+.wrap{max-width:none;padding:clamp(28px,3vw,44px) clamp(20px,3vw,44px) 40px}
+.wrap{--ch:min(calc(100vh - 88px),calc(100vw - 700px),940px)}
+.main{grid-template-columns:minmax(250px,1fr) var(--ch) minmax(250px,1fr);grid-template-rows:auto 1fr auto;gap:0 clamp(24px,3vw,56px);align-items:start;margin:0;min-height:calc(100vh - 72px)}
+.main > .c-tl{grid-column:1;grid-row:1}
+.main > .c-tr{grid-column:3;grid-row:1;justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:22px;width:min(100%,300px)}
+.main > .chart{grid-column:2;grid-row:1/4;align-self:center;width:100%;min-width:0;margin:0}
+.main > .c-bl{grid-column:1;grid-row:3;align-self:end;max-width:320px}
+.main > .c-br{grid-column:3;grid-row:3;align-self:end;justify-self:end;width:min(100%,300px)}
+.main > header.c-tl{display:block;border:0;padding:0}
+.c-tl h1{font-size:clamp(28px,2.6vw,40px);line-height:1.2}
+.c-tl h1 b{display:block;white-space:nowrap}
+.c-tl .lede{margin-top:16px;max-width:19em;font-size:14px;line-height:1.75}
+.c-tr .legend{width:100%}
+.c-tr .lbl{text-align:right}
+.stats{gap:20px 26px}
+.stat b{font-size:24px}
+.c-br .lbl{margin-bottom:10px}
+.c-br .hint{margin:34px 0 0;font-size:12.5px;line-height:1.6;color:var(--mute)}
+.days{margin-top:clamp(56px,7vw,110px);display:grid;grid-template-columns:minmax(250px,1fr) var(--ch) minmax(250px,1fr);gap:0 clamp(24px,3vw,56px);align-items:start}
+.days h2{margin:12px 0 0;font-weight:400}
+.days .notes{grid-column:2/4;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:clamp(20px,2.4vw,40px);border-top:0}
+.days .notes li{border-top:1px solid var(--line)}
+.days .notes button{border-bottom:0;padding:12px 0}
+@media (max-width:1180px){
+  .wrap{--ch:min(100%,760px,calc(100vh - 120px))}
+  .main{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto;gap:28px 40px;min-height:0}
+  .main > .c-tl{grid-column:1;grid-row:1}
+  .main > .c-tr{grid-column:2;grid-row:1}
+  .main > .chart{grid-column:1/-1;grid-row:2;width:var(--ch);min-width:min(100%,340px);justify-self:center}
+  .main > .c-bl{grid-column:1;grid-row:3;align-self:start}
+  .main > .c-br{grid-column:2;grid-row:3;align-self:start}
+  .days{grid-template-columns:1fr}
+  .days .notes{grid-column:1;grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .main{grid-template-columns:minmax(0,1fr);gap:24px}
+  .main > .c-tr{grid-column:1;grid-row:2;justify-self:stretch;align-items:stretch;width:100%}
+  .c-tr .lbl{text-align:left}
+  .tabs{align-self:flex-start}
+  .main > .chart{grid-row:3}
+  .main > .c-bl{grid-row:4;max-width:none}
+  .main > .c-br{grid-column:1;grid-row:5;justify-self:stretch;width:100%}
+  .c-br .hint{margin-top:30px}
+  .days .notes{grid-template-columns:minmax(0,1fr)}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div>
-      <h1>一年，<b>三百六十五格</b></h1>
-      <p class="lede">把 2025 年攤成一個圓：從正上方的一月一日開始，順時針走完一年。每一條放射線是一週，每一圈是星期幾（內圈週一、外圈週日）。顏色越深，數字越大。游標移上去，看同一週與同一個星期幾。</p>
-    </div>
-    <div class="tabs" role="group" aria-label="切換資料">
-      <button type="button" data-k="steps" aria-pressed="true">步數</button>
-      <button type="button" data-k="sleep" aria-pressed="false">睡眠</button>
-      <button type="button" data-k="coffee" aria-pressed="false">咖啡</button>
-    </div>
-  </header>
-
   <div class="main">
+    <header class="c-tl">
+      <h1>一年，<b>三百六十五格</b></h1>
+      <p class="lede">把 2025 年攤成一個圓：正上方是一月一日，順時針走完一年。每條放射線是一週，每一圈是星期幾，內圈週一、外圈週日。顏色越深，數字越大。</p>
+    </header>
+    <div class="c-tr">
+      <div class="tabs" role="group" aria-label="切換資料">
+        <button type="button" data-k="steps" aria-pressed="true">步數</button>
+        <button type="button" data-k="sleep" aria-pressed="false">睡眠</button>
+        <button type="button" data-k="coffee" aria-pressed="false">咖啡</button>
+      </div>
+      <div class="legend"><div class="lbl" id="legLbl">色階 · 每日步數</div><div class="bar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="ticks" id="ticks"></div></div>
+    </div>
     <div class="chart" id="chart">
       <svg id="svg" viewBox="0 0 1000 1000" tabindex="0" role="application" aria-label="2025 年放射熱度圖，使用方向鍵移動日期"></svg>
       <div class="center" aria-live="polite">
@@ -96,13 +143,10 @@ foot,.foot{display:block;margin-top:34px;font-size:12px;color:var(--mute);border
         <div class="n" id="cN"></div>
       </div>
     </div>
-    <aside class="panel">
-      <div class="legend"><div class="lbl" id="legLbl">色階 · 每日步數</div><div class="bar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="ticks" id="ticks"></div></div>
-      <div class="stats" id="stats"></div>
-      <div><div class="lbl" style="margin-bottom:8px">星期幾的平均</div><div class="wkbars" id="wk"></div></div>
-      <div><div class="lbl" style="margin:14px 0 6px">值得標記的日子</div><ul class="notes" id="notes"></ul></div>
-    </aside>
+    <div class="c-bl"><div class="stats" id="stats"></div></div>
+    <div class="c-br"><div class="lbl">星期幾的平均</div><div class="wkbars" id="wk"></div><p class="hint">點一格，看同一週與同一個星期幾</p></div>
   </div>
+  <section class="days" aria-labelledby="daysT"><h2 class="lbl" id="daysT">值得標記的日子</h2><ul class="notes" id="notes"></ul></section>
   <div class="foot"><span>資料為虛構的一個上班族 · 2025/1/1 – 2025/12/31</span><span>← → 一天 · ↑ ↓ 一週 · Esc 回到全年</span></div>
 </div>
 

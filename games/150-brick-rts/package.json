@@ -11,7 +11,8 @@
     "test:browser": "node tests/browser.mjs",
     "sim:headless": "node --experimental-strip-types packages/sim/run.ts",
     "maps:export": "node --experimental-strip-types packages/content/export-maps.ts",
-    "test:rig-browser": "node tests/rig-browser.mjs"
+    "test:rig-browser": "node tests/rig-browser.mjs",
+    "test:first-use": "node tests/first-use-gate.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

@@ -13,7 +13,7 @@
   --heavy:"Arial Black","Arial Bold",Gadget,"Helvetica Neue",Arial,sans-serif;
   --mono:"Courier New",Courier,"Nimbus Mono PS",monospace;
   --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
-  --blotch:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.028' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -.9 .58'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23b)'/%3E%3C/svg%3E");
+  --blotch:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='900'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.0025 .085' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -.62 .4'/%3E%3C/filter%3E%3Crect width='1600' height='900' filter='url(%23b)'/%3E%3C/svg%3E");
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{background:var(--c3)}
@@ -75,10 +75,11 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 .count strong{font-family:var(--heavy);color:var(--rust2);font-size:16px}
 
 /* ---------- slabs grid ---------- */
-.grid{overflow-x:clip;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-flow:dense;gap:10px;padding:10px 0 0;background:var(--c0)}
+.grid{overflow-x:clip;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:10px 0 0;background:var(--c0)}
+.grid[hidden],.idx[hidden]{display:none}
 .slab{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;min-height:300px;cursor:pointer;overflow:hidden;outline:none}
 .slab.w2{grid-column:span 2}
-.slab.h2{grid-row:span 2}
+.slab.h2{min-height:430px}
 .slab:focus-visible{box-shadow:inset 0 0 0 4px var(--rust2)}
 .slab .top{display:flex;justify-content:space-between;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
 .slab .cat{background:var(--c0);color:var(--c6);padding:1px 6px}
@@ -106,6 +107,47 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 .empty{grid-column:1 / -1;padding:60px 20px;text-align:center;color:var(--c6);font-family:var(--heavy);font-size:clamp(26px,4vw,48px);text-transform:uppercase;line-height:.95}
 .empty small{display:block;font-family:var(--mono);font-size:13px;margin-top:10px;color:var(--c4)}
 
+/* ---------- index: one building per line, the slab surfaces beside it ---------- */
+.idx{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,34%);gap:10px;padding:10px 0 0;background:var(--c0)}
+.ixlist{min-width:0}
+#ixlist{list-style:none}
+.ixhead,.ixrow{display:grid;grid-template-columns:78px minmax(0,1.25fr) 52px minmax(0,1fr) 104px 110px;gap:0 16px;align-items:baseline;padding:0 18px}
+.ixhead{padding-top:14px;padding-bottom:10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--c1)}
+.ixlist li{border-top:3px solid var(--c0)}
+.ixrow{width:100%;min-height:64px;padding-top:16px;padding-bottom:14px;text-align:left;transition:none}
+.ixrow:hover,.ixrow.cur{background:var(--c6)}
+.ixrow:focus-visible{outline:none;box-shadow:inset 0 0 0 4px var(--rust2)}
+.ixrow[aria-expanded="true"]{background:var(--c0);color:var(--c6)}
+.ixrow .i{font-size:12px;font-weight:700}
+.ixrow .n{font-family:var(--heavy);font-weight:900;text-transform:uppercase;letter-spacing:-.035em;line-height:.9;font-size:clamp(20px,1.9vw,30px)}
+.ixrow .y{font-family:var(--heavy);font-size:17px;letter-spacing:-.03em}
+.ixrow .w,.ixrow .t,.ixrow .s{font-size:12px;text-transform:uppercase;line-height:1.35}
+.ixrow .w small{display:block;opacity:.72}
+.ixrow .s b{font-weight:700}
+.ixrow.gone .n{text-decoration:line-through;text-decoration-thickness:.09em;text-decoration-color:var(--rust)}
+.ixrow.gone .s b{color:var(--rust)}
+.ixrow.gone[aria-expanded="true"] .s b{color:var(--rust2)}
+.ixmore{display:none;grid-template-columns:78px minmax(0,1fr);gap:0 16px;padding:4px 18px 20px;background:var(--c0);color:var(--c6)}
+.ixmore.on{display:grid}
+.ixmore p{grid-column:2;max-width:62ch;font-size:13px;line-height:1.55}
+.ixmore p b{color:var(--rust2)}
+.ixmore .ixel{grid-column:2;display:none;margin-top:14px;padding:12px;--fill:#1d1c1a;--hole:#8a867e;--line:#c9c5bc}
+.ixmore .ixel svg{display:block;width:100%;height:auto;max-height:170px}
+.ixprev{position:sticky;top:10px;align-self:start;min-height:min(560px,calc(100vh - 20px));padding:16px 18px 18px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.ixprev .top{display:flex;justify-content:space-between;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;position:relative;z-index:1}
+.ixprev .top .cat{background:var(--c0);color:var(--c6);padding:1px 6px}
+.ixprev .elev{margin-top:auto;position:relative;z-index:1}
+.ixprev .elev svg{display:block;width:100%;height:auto;max-height:300px}
+.ixprev h3{font-family:var(--heavy);font-weight:900;text-transform:uppercase;letter-spacing:-.045em;line-height:.86;font-size:clamp(30px,3vw,50px);position:relative;z-index:1}
+.ixprev .yr{font-family:var(--heavy);font-size:clamp(90px,10vw,150px);letter-spacing:-.06em;line-height:.8;color:rgba(0,0,0,.2);position:absolute;right:12px;top:40px;pointer-events:none}
+.ixprev.dark .yr,.ixprev.mid .yr{color:rgba(255,255,255,.14)}
+.ixprev .note{position:relative;z-index:1}
+.ixprev.gone h3{text-decoration:line-through;text-decoration-thickness:.09em;text-decoration-color:var(--rust)}
+.ixprev .stamp{bottom:30%}
+.idx .empty{grid-column:1 / -1}
+.ixprev[hidden]{display:none}
+.idx.bare{grid-template-columns:1fr}
+
 /* ---------- foot ---------- */
 footer{margin-top:0;padding:28px 0 36px;border-top:10px solid var(--c0)}
 footer .fx{display:grid;grid-template-columns:2fr 1fr 1fr;gap:20px;align-items:end}
@@ -114,6 +156,13 @@ footer .big span{color:var(--rust)}
 
 @media (max-width:1100px){
   .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ixhead,.ixrow{grid-template-columns:70px minmax(0,1.3fr) 48px minmax(0,1fr) 96px;gap:0 12px}
+  .ixhead .t,.ixrow .t{display:none}
+}
+@media (max-width:900px){
+  .idx{grid-template-columns:1fr}
+  .ixprev{display:none}
+  .ixmore .ixel{display:block}
 }
 @media (max-width:760px){
   .m1{margin-right:0}.m2{margin-left:10%}.m3{grid-template-columns:1fr;margin-right:0}
@@ -123,9 +172,18 @@ footer .big span{color:var(--rust)}
   .ctrl{grid-template-columns:1fr;position:relative}
   footer .fx{grid-template-columns:1fr}
 }
+@media (max-width:760px){
+  .ixhead{display:none}
+  .ixrow{grid-template-columns:58px minmax(0,1fr) auto;gap:6px 10px;padding:14px 14px 12px}
+  .ixrow .n{grid-column:2;font-size:22px}
+  .ixrow .y{grid-column:3;grid-row:1}
+  .ixrow .w,.ixrow .s{grid-column:2 / -1}
+  .ixrow .w small{display:inline}.ixrow .w small::before{content:" · "}
+  .ixmore{grid-template-columns:58px minmax(0,1fr);gap:0 10px;padding:4px 14px 18px}
+}
 @media (max-width:520px){
   .grid{grid-template-columns:1fr}
-  .slab.w2{grid-column:auto}.slab.h2{grid-row:auto}
+  .slab.w2{grid-column:auto}.slab.h2{min-height:0}
   .slab{min-height:0}
   .strip .note:nth-child(2){display:none}
 }
@@ -171,10 +229,21 @@ footer .big span{color:var(--rust)}
     <div class="row" id="f-status"></div>
     <span class="lab">Order</span>
     <div class="row" id="f-sort"></div>
-    <div class="count note"><span>Showing <strong id="cnt">14</strong> / 14 slabs</span><span>Click a slab to open its file</span></div>
+    <span class="lab">View</span>
+    <div class="row" id="f-view"></div>
+    <div class="count note"><span>Showing <strong id="cnt">14</strong> / 14 slabs</span><span id="hint">Click a slab to open its file</span></div>
   </nav>
 
-  <main class="grid" id="grid" aria-live="polite"></main>
+  <main id="archive">
+    <div class="grid" id="grid" aria-live="polite"></div>
+    <section class="idx" id="idx" aria-label="Index of structures" hidden>
+      <div class="ixlist conc light plain">
+        <div class="ixhead" aria-hidden="true"><span>No.</span><span>Structure</span><span>Year</span><span>Where / by</span><span class="t">Use</span><span>Status</span></div>
+        <ol id="ixlist"></ol>
+      </div>
+      <aside class="ixprev conc" id="ixprev" aria-hidden="true"></aside>
+    </section>
+  </main>
 
   <footer class="conc light">
     <div class="wrap fx">
@@ -242,7 +311,9 @@ footer .big span{color:var(--rust)}
 
   var grid=document.getElementById('grid');
   if(!grid) return;
-  var state={type:'All',status:'All',sort:'Year ↑'};
+  var state={type:'All',status:'All',sort:'Year ↑',view:'Slabs'};
+  var idx=document.getElementById('idx'), ixlist=document.getElementById('ixlist'), ixprev=document.getElementById('ixprev');
+  function toneVars(b){var tone=b.tone||'';return (tone==='dark'||tone==='mid')?'--fill:#1d1c1a;--hole:#8a867e;--line:#c9c5bc':'--fill:#3b3936;--hole:#b8b4ab;--line:#2a2927';}
 
   function card(b){
     var tone=b.tone||'';
@@ -284,17 +355,76 @@ footer .big span{color:var(--rust)}
   chips('f-type','type',['All','Housing','Civic','Culture','Science','Commercial','Transport'],countBy('t'));
   chips('f-status','status',['All','Standing','Demolished'],countBy('s'));
   chips('f-sort','sort',['Year ↑','Year ↓','A—Z']);
+  chips('f-view','view',['Slabs','Index']);
   var st=document.getElementById('k-st'),dm=document.getElementById('k-dm'),cs=countBy('s');
   if(st)st.textContent=cs.Standing; if(dm)dm.textContent=cs.Demolished;
+
+  /* pack the wall row by row: a slab that would leave a gap widens its neighbour instead */
+  function cols(){var t=getComputedStyle(grid).gridTemplateColumns;return t&&t!=='none'?t.split(' ').length:1;}
+  function pack(list){
+    var n=cols(),rem=n,prev=null,pw=0;
+    list.forEach(function(b){
+      var el=cards[b.id],w=Math.min(b.sz==='w2'?2:1,n);
+      if(w>rem&&prev){pw+=rem;prev.style.gridColumn='span '+pw;rem=n;}
+      el.style.gridColumn='span '+w; prev=el; pw=w; rem-=w; if(rem<=0){rem=n;prev=null;}
+    });
+    if(prev&&rem<n){prev.style.gridColumn='span '+(pw+rem);}
+  }
+
+  /* index rows */
+  var cur=null;
+  function preview(b,animate){
+    if(!ixprev||!b) return; cur=b.id;
+    ixprev.className='ixprev conc '+(b.tone||'')+(b.s==='Demolished'?' gone':'');
+    ixprev.style.cssText=toneVars(b);
+    ixprev.innerHTML='<div class="top"><span class="cat">'+b.id+'</span><span>'+b.t+' · '+b.c+'</span></div>'+
+      '<span class="yr">'+String(b.y).slice(2)+'</span>'+
+      '<div class="elev">'+elev(b.sh)+'</div>'+
+      '<h3>'+b.n+'</h3><p class="note">'+b.a+' · '+b.y+'</p>'+
+      (b.s==='Demolished'?'<span class="stamp">Demolished</span>':'');
+    ixlist.querySelectorAll('.ixrow').forEach(function(r){r.classList.toggle('cur',r.dataset.id===b.id);});
+    var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var sv=ixprev.querySelector('.elev');
+    if(animate&&sv&&sv.animate&&!reduce) sv.animate([{transform:'translateY(18%)'},{transform:'none'}],{duration:210,easing:'steps(3,end)'});
+  }
+  function row(b){
+    var li=document.createElement('li'),gone=b.s==='Demolished';
+    li.innerHTML='<button type="button" class="ixrow'+(gone?' gone':'')+'" data-id="'+b.id+'" aria-expanded="false" aria-controls="ix-'+b.id+'">'+
+      '<span class="i">'+b.id+'</span><span class="n">'+b.n+'</span><span class="y">'+b.y+'</span>'+
+      '<span class="w">'+b.c+'<small>'+b.a+'</small></span><span class="t">'+b.t+'</span><span class="s"><b>'+b.s+'</b></span></button>'+
+      '<div class="ixmore" id="ix-'+b.id+'"><p>'+b.f+'</p><div class="ixel conc dark">'+elev(b.sh)+'</div></div>';
+    return li;
+  }
+  var BY={}; B.forEach(function(b){BY[b.id]=b;});
+  if(ixlist){
+    ixlist.addEventListener('click',function(e){var r=e.target.closest('.ixrow');if(!r)return;var o=r.getAttribute('aria-expanded')!=='true';r.setAttribute('aria-expanded',o?'true':'false');var m=document.getElementById('ix-'+r.dataset.id);if(m)m.classList.toggle('on',o);preview(BY[r.dataset.id],r.dataset.id!==cur);});
+    ixlist.addEventListener('mouseover',function(e){var r=e.target.closest('.ixrow');if(r&&r.dataset.id!==cur)preview(BY[r.dataset.id],true);});
+    ixlist.addEventListener('focusin',function(e){var r=e.target.closest('.ixrow');if(r&&r.dataset.id!==cur)preview(BY[r.dataset.id],true);});
+  }
 
   function render(animate){
     var list=B.filter(function(b){return (state.type==='All'||b.t===state.type)&&(state.status==='All'||b.s===state.status);});
     list.sort(function(a,b){return state.sort==='A—Z'?a.n.localeCompare(b.n):state.sort==='Year ↓'?b.y-a.y:a.y-b.y;});
+    var asIndex=state.view==='Index';
+    grid.hidden=asIndex; if(idx) idx.hidden=!asIndex;
+    var hint=document.getElementById('hint'); if(hint) hint.textContent=asIndex?'Point at a line to see its slab · click to open its file':'Click a slab to open its file';
+    var cnt0=document.getElementById('cnt'); if(cnt0) cnt0.textContent=list.length;
+    if(asIndex){
+      if(!ixlist) return;
+      ixlist.innerHTML='';
+      list.forEach(function(b){ixlist.appendChild(row(b));});
+      var old=ixlist.parentNode.querySelector('.empty'); if(old) old.remove();
+      if(!list.length){var e0=document.createElement('div');e0.className='empty';e0.style.color='var(--c1)';e0.innerHTML='No slabs poured<br>to this spec.<small style="color:var(--c2)">Try another filter. Concrete is patient.</small>';ixlist.parentNode.appendChild(e0);if(ixprev)ixprev.hidden=true;idx.classList.add('bare');return;}
+      if(ixprev) ixprev.hidden=false; idx.classList.remove('bare');
+      preview(list.some(function(b){return b.id===cur;})?BY[cur]:list[0],false);
+      return;
+    }
     /* FLIP with hard steps */
     var before={};
     if(animate){grid.querySelectorAll('.slab').forEach(function(el){before[el.dataset.id]=el.getBoundingClientRect();});}
     grid.innerHTML='';
     list.forEach(function(b){grid.appendChild(cards[b.id]);});
+    pack(list);
     if(!list.length){var e=document.createElement('div');e.className='empty';e.innerHTML='No slabs poured<br>to this spec.<small>Try another filter. Concrete is patient.</small>';grid.appendChild(e);}
     var cnt=document.getElementById('cnt'); if(cnt) cnt.textContent=list.length;
     if(!animate) return;
@@ -306,7 +436,9 @@ footer .big span{color:var(--rust)}
       if(el.animate&&!reduce) el.animate(kf,{duration:280,easing:'steps(4,end)',delay:Math.min(i*30,240),fill:'backwards'});
     });
   }
-  render(false);
+  var lastCols=0;
+  window.addEventListener('resize',function(){var n=cols();if(state.view!=='Index'&&n!==lastCols){lastCols=n;render(false);}});
+  render(false); lastCols=cols();
 })();
 </script>
 </body>
