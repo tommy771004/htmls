@@ -38,3 +38,11 @@ PLAYWRIGHT_MODULE=/Users/tommy/Documents/Proj/OldBabyInfo/node_modules/playwrigh
 ## Navigation milestone
 
 Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, blocked-target rejection, replay, Worker recovery and catalogue passed. See first-use-003.md for reproduction details and remaining gates.
+
+## 3D 戰場基礎（最新）
+
+乾淨目錄 npm ci、build、validate、28 項程式測試及兩尺寸瀏覽器流程通過。實際 WebGL2 場景、鏡頭控制、模型檢視、context loss 後儲存及 WebGL2 不可用的明確失敗狀態均已測試。詳見 [first-use-004.md](first-use-004.md)。此紀錄取代上文「3D 尚未驗證」的歷史狀態；C 的資源／迷霧與完整對局仍未完成。
+
+## 地圖與資源資料 v4
+
+目前工作目錄的 build、validate、33 項測試及完整既有瀏覽器回歸通過。新增地格、樹木／石塊容量與耗盡原語、局部導航更新；可玩採集及迷霧尚未接入。詳見 [terrain-verification.md](terrain-verification.md)。最新 state／snapshot 為 v4；歷史紀錄保留各輪當時版本。

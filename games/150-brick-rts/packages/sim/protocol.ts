@@ -1,14 +1,16 @@
+import {projectVision,unitVisible} from './vision.ts';
+import type {KnownObstacle} from './vision.ts';
 import {createState,submit,tick,hash,replay,serialize,deserialize,rulesetHash} from './sim.ts';
 import type {Command,LoggedCommand,Unit} from './sim.ts';
 export type Recovery={seed:number;commands:LoggedCommand[];ticks:number};
 export type Operation={kind:'move';unitId:number;x:number;y:number}|{kind:'advance';count:number}|{kind:'reset';seed:number}|{kind:'restore';snapshot:string}|{kind:'snapshot'}|{kind:'replay'}|{kind:'recover';checkpoint:Recovery};
 export type Request={protocol:1;id:number;operation:Operation};
-export type View={seed:number;tick:number;units:Unit[];stateHash:string};
-export type Response={protocol:1;id:number;ok:true;seed:number;tick:number;stateHash:string;positions:ArrayBuffer;accepted?:LoggedCommand;commands?:LoggedCommand[];snapshot?:string;replayMatches?:boolean}|{protocol:1;id:number;ok:false;tick:number;message:string;entityId?:number};
+export type View={seed:number;tick:number;units:Unit[];fog:number[];known:KnownObstacle[];stateHash:string};
+export type Response={protocol:1;id:number;ok:true;seed:number;tick:number;stateHash:string;positions:ArrayBuffer;fog:number[];known:KnownObstacle[];accepted?:LoggedCommand;commands?:LoggedCommand[];snapshot?:string;replayMatches?:boolean}|{protocol:1;id:number;ok:false;tick:number;message:string;entityId?:number};
 export function decodeView(r:Extract<Response,{ok:true}>):View{
  const values=new Int32Array(r.positions),units:Unit[]=[];
  for(let i=0;i<values.length;i+=7)units.push({id:values[i],player:values[i+1],x:values[i+2],y:values[i+3],navigation:(['idle','searching','moving','unreachable'] as const)[values[i+6]],target:values[i+4]<0?null:{x:values[i+4],y:values[i+5]}});
- return {seed:r.seed,tick:r.tick,stateHash:r.stateHash,units};
+ return {seed:r.seed,tick:r.tick,stateHash:r.stateHash,fog:r.fog,known:r.known,units};
 }
 // This service owns state. DOM, clocks, rendering and transport never decide rules.
 export function createService(){
@@ -39,9 +41,10 @@ export function createService(){
     case 'replay':replayMatches=hash(replay(state.seed,state.log,state.tick))===hash(state);break;
     default:throw Error('不支援的 operation');
    }
-   const positions=new Int32Array(state.units.length*7);
-   state.units.forEach((u,i)=>positions.set([u.id,u.player,u.x,u.y,u.target?.x??-1,u.target?.y??-1,['idle','searching','moving','unreachable'].indexOf(u.navigation??'idle')],i*7));
-   return {protocol:1,id:req.id,ok:true,seed:state.seed,tick:state.tick,stateHash:hash(state),positions:positions.buffer,accepted,commands,snapshot,replayMatches};
+   const visibleUnits=state.units.filter(u=>unitVisible(state.vision[0],u,0));
+   const positions=new Int32Array(visibleUnits.length*7);
+   visibleUnits.forEach((u,i)=>positions.set([u.id,u.player,u.x,u.y,u.target?.x??-1,u.target?.y??-1,['idle','searching','moving','unreachable'].indexOf(u.navigation??'idle')],i*7));
+   return {protocol:1,id:req.id,ok:true,seed:state.seed,tick:state.tick,stateHash:hash(state),positions:positions.buffer,...projectVision(state.vision[0]),accepted,commands,snapshot,replayMatches};
   }catch(error){return {protocol:1,id:Number.isSafeInteger(req?.id)?req.id:0,ok:false,tick:state.tick,message:(error as Error).message,entityId:req?.operation?.kind==='move'?req.operation.unitId:undefined};}
  };
 }

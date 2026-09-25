@@ -1,7 +1,8 @@
+import {createTiles,tileAt} from '../../packages/sim/terrain.ts';
 import {makeMap} from '../../packages/sim/navigation.ts';
 import type {View} from '../../packages/sim/protocol.ts';
 export const brickStyle={studPitch:.5,plateHeight:.16,brickHeight:.32,bevel:.025,roughness:.72,provenance:'original_procedural'} as const;
-export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:string)=>void){
+export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:string)=>void,options:{assetPreview?:boolean}={}){
  // Resolved relative to the shipped web/assets/150-brick-rts/main.js bundle.
  const T=await import(new URL('../../../vendor/three-0.186.0/three.module.js',import.meta.url).href);
  if(!canvas.getContext('webgl2'))throw Error('此裝置無法建立 WebGL2，請使用支援 WebGL2 的瀏覽器。');
@@ -19,7 +20,8 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  const geo=new T.ExtrudeGeometry(shape,{depth:Math.max(.001,h-2*b),bevelEnabled:true,bevelSize:b,bevelThickness:b,bevelSegments:1,steps:1,curveSegments:1});geo.rotateX(-Math.PI/2);geo.translate(0,b,0);geometry.set(key,geo);return geo;}
  const studGeo=new T.CylinderGeometry(.13,.13,.08,10);geometry.set('stud',studGeo);
  let staticGroup=new T.Group();scene.add(staticGroup);const batches=new Map<string,{geo:any;color:string;matrices:any[]}>();
- function staticPart(geo:any,color:string,x:number,y:number,z:number){const key=geo.uuid+color;if(!batches.has(key))batches.set(key,{geo,color,matrices:[]});batches.get(key)!.matrices.push(new T.Matrix4().makeTranslation(x,y,z));}
+ let muted=false;
+ function staticPart(geo:any,color:string,x:number,y:number,z:number){if(muted)color='#737b72';const key=geo.uuid+color;if(!batches.has(key))batches.set(key,{geo,color,matrices:[]});batches.get(key)!.matrices.push(new T.Matrix4().makeTranslation(x,y,z));}
  function brick(x:number,z:number,y:number,w:number,d:number,h:number,color:string,studs=true){staticPart(box(w-.018,h,d-.018),color,x+w/2,y,z+d/2);if(studs)for(let a=.25;a<w;a+=.5)for(let b=.25;b<d;b+=.5)staticPart(studGeo,color,x+a,y+h+.04,z+b);}
  function house(x:number,z:number,red=false){const roof=red?'#b85c47':'#456e87';brick(x-.15,z-.15,0,2.5,2.3,.16,'#b3aa8c',false);
  for(let level=0;level<4;level++)for(let a=0;a<2;a++)for(let b=0;b<2;b++)brick(x+a,z+b,.16+level*.32,1,1,.32,level%2?'#e3cba4':'#ddbc90',false);
@@ -33,10 +35,10 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  brick(x+1.5,z+.25,2.03,.5,.5,.8,'#b9a98b');brick(x+1.48,z+.23,2.83,.54,.54,.1,'#7b7665',false);
  brick(x+.25,z+.25,2.37,.07,.07,.9,'#786849',false);brick(x+.32,z+.25,3,.6,.04,.3,roof,false);
  }
- function buildWorld(seed:number){scene.remove(staticGroup);staticGroup.traverse((o:any)=>{if(o.isInstancedMesh)o.dispose();});staticGroup=new T.Group();scene.add(staticGroup);batches.clear();
- let rng=seed||1;for(let x=0;x<16;x++)for(let z=0;z<16;z++){rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;const n=(rng>>>0)/4294967296;brick(x,z,-.24,1,1,.24,n<.2?'#a6b582':n<.5?'#b5c493':'#becda0',false);}
- for(const o of makeMap(seed).obstacles){const x=o.x/100,z=o.y/100;if(o.kind==='house')house(x,z,o.red);else if(o.kind==='tree'){brick(x+.15,z+.15,0,.3,.3,.8,'#80664b',false);brick(x-.2,z-.2,.7,1,1,.4,'#67835a');brick(x-.075,z-.075,1.1,.75,.75,.4,'#7e985f');brick(x+.05,z+.05,1.5,.5,.5,.3,'#91a970');}else{brick(x,z,0,.65,.7,.3,'#a19f86');brick(x+.15,z+.15,.3,.35,.4,.18,'#b8b39c',false);}}
- for(const {geo,color,matrices} of batches.values()){const mesh=new T.InstancedMesh(geo,material(color),matrices.length);matrices.forEach((m,i)=>mesh.setMatrixAt(i,m));mesh.instanceMatrix.needsUpdate=true;mesh.userData.studs=geo===studGeo;mesh.castShadow=true;mesh.receiveShadow=true;staticGroup.add(mesh);}
+ function buildWorld(view:View){const seed=view.seed;scene.remove(staticGroup);staticGroup.traverse((o:any)=>{if(o.isInstancedMesh)o.dispose();});staticGroup=new T.Group();scene.add(staticGroup);batches.clear();
+ const map=options.assetPreview?makeMap(seed):{tiles:createTiles(),obstacles:view.known.map(k=>k.obstacle)};let rng=seed||1;for(const tile of map.tiles){const x=tile.id%16,z=Math.floor(tile.id/16);rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;const n=(rng>>>0)/4294967296;brick(x,z,-.24,1,1,.24,!options.assetPreview&&view.fog[tile.id]!==2?(view.fog[tile.id]===1?'#626e64':'#293e38'):tile.terrainType==='road'?'#c4b18a':n<.2?'#a6b582':n<.5?'#b5c493':'#becda0',false);}
+ for(const o of map.obstacles){muted=!options.assetPreview&&view.fog[tileAt(o.x,o.y)]!==2;const x=o.x/100,z=o.y/100;if(o.kind==='house')house(x,z,o.red);else if(o.kind==='tree'){brick(x+.15,z+.15,0,.3,.3,.8,'#80664b',false);brick(x-.2,z-.2,.7,1,1,.4,'#67835a');brick(x-.075,z-.075,1.1,.75,.75,.4,'#7e985f');brick(x+.05,z+.05,1.5,.5,.5,.3,'#91a970');}else{brick(x,z,0,.65,.7,.3,'#a19f86');brick(x+.15,z+.15,.3,.35,.4,.18,'#b8b39c',false);}}
+ muted=false;for(const {geo,color,matrices} of batches.values()){const mesh=new T.InstancedMesh(geo,material(color),matrices.length);matrices.forEach((m,i)=>mesh.setMatrixAt(i,m));mesh.instanceMatrix.needsUpdate=true;mesh.userData.studs=geo===studGeo;mesh.castShadow=true;mesh.receiveShadow=true;staticGroup.add(mesh);}
  }
  const units=new Map<number,{group:any;left:any;right:any;ring:any;player:number;moving:boolean}>();
  const ringGeo=new T.RingGeometry(.4,.47,32);ringGeo.rotateX(-Math.PI/2);geometry.set('ring',ringGeo);const ringMaterial=new T.MeshBasicMaterial({color:'#fff2a1',side:T.DoubleSide});
@@ -48,10 +50,10 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  for(const dx of [-.075,.075])part(group,dx,.86,.155,.035,.04,.018,'#3e3a2e');
  const ring=new T.Mesh(ringGeo,ringMaterial);ring.position.y=.025;group.add(ring);units.set(id,{group,left,right,ring,player,moving:false});return units.get(id)!;
  }
- let seed=-1,angle=Math.PI/4,zoom=1,width=0,height=0,selected=1,latest:View|null=null;
+ let worldKey='',angle=Math.PI/4,zoom=1,width=0,height=0,selected=1,latest:View|null=null;
  function cameraUpdate(){if(width<=0||height<=0)return;const aspect=width/Math.max(1,height);const halfH=Math.max(10.5,12/aspect)/zoom;camera.left=-halfH*aspect;camera.right=halfH*aspect;camera.top=halfH;camera.bottom=-halfH;camera.position.set(8+Math.sin(angle)*24,24,8+Math.cos(angle)*24);camera.lookAt(8,0,8);camera.updateProjectionMatrix();camera.updateMatrixWorld();for(const mesh of staticGroup.children)mesh.visible=!mesh.userData.studs||zoom>=.9;}
  function resize(){const r=canvas.getBoundingClientRect();if(r.width!==width||r.height!==height){width=r.width;height=r.height;renderer.setSize(width,height,false);cameraUpdate();}}
- function update(view:View,id:number){latest=view;selected=id;if(seed!==view.seed){seed=view.seed;buildWorld(seed);cameraUpdate();}const alive=new Set(view.units.map(u=>u.id));for(const [key,u] of units)if(!alive.has(key)){scene.remove(u.group);units.delete(key);}
+ function update(view:View,id:number){latest=view;selected=id;const key=JSON.stringify([view.seed,view.fog,view.known?.map(k=>k.obstacle)]);if(worldKey!==key){worldKey=key;buildWorld(view);cameraUpdate();}const alive=new Set(view.units.map(u=>u.id));for(const [key,u] of units)if(!alive.has(key)){scene.remove(u.group);units.delete(key);}
  for(const data of view.units){const u=units.get(data.id)??unit(data.id,data.player);const dx=data.x/100-u.group.position.x,dz=data.y/100-u.group.position.z;if(Math.abs(dx)+Math.abs(dz)>.001)u.group.rotation.y=Math.atan2(dx,dz);u.group.position.set(data.x/100,0,data.y/100);u.ring.visible=data.id===selected;u.moving=data.navigation==='moving';}
  }
  const raycaster=new T.Raycaster(),ground=new T.Plane(new T.Vector3(0,1,0),0);

@@ -1,6 +1,42 @@
+// packages/sim/terrain.ts
+var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, resourceCapacity: { tree: 300, stone: 250 }, generationAttempts: 8 };
+var terrainDefinitions = {
+  grass: { walkClass: "land", buildability: true, height: 0 },
+  road: { walkClass: "land", buildability: true, height: 0 },
+  stone: { walkClass: "land", buildability: true, height: 0 },
+  sand: { walkClass: "land", buildability: true, height: 0 },
+  highland: { walkClass: "land", buildability: true, height: 100 },
+  cliff: { walkClass: "blocked", buildability: false, height: 100 },
+  water: { walkClass: "water", buildability: false, height: 0 },
+  shallow: { walkClass: "both", buildability: false, height: 0 }
+};
+function createTiles() {
+  return Array.from({ length: 256 }, (_, id) => {
+    const terrainType = Math.floor(id / 16) === 8 ? "road" : "grass";
+    return { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
+  });
+}
+function tileAt(x, y) {
+  return Math.floor(y / 100) * 16 + Math.floor(x / 100);
+}
+function canTraverse(tile, movement) {
+  return tile.walkClass === movement || tile.walkClass === "both";
+}
+
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 32, speedPerTick: 5 };
 function makeMap(seed) {
+  if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("\u5730\u5716 seed \u5FC5\u9808\u70BA uint32");
+  let lastErrors = [];
+  for (let attempt = 0; attempt < terrainRules.generationAttempts; attempt++) {
+    const map = generateCandidate(seed + Math.imul(attempt, 2654435761) >>> 0);
+    map.generationAttempt = attempt;
+    lastErrors = validateMap(map);
+    if (!lastErrors.length) return map;
+  }
+  throw Error(`\u5730\u5716\u751F\u6210\u5931\u6557\uFF08${terrainRules.generationAttempts} \u6B21\uFF09\uFF1A${lastErrors.join("\uFF1B")}`);
+}
+function generateCandidate(seed) {
   let rng = seed || 1;
   const obstacles = [{ kind: "house", x: 300, y: 400 }, { kind: "house", x: 1100, y: 400, red: true }];
   for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) {
@@ -11,7 +47,17 @@ function makeMap(seed) {
     if ((x < 2 || y < 2 || x > 13 || y > 13) && v < 0.34) obstacles.push({ kind: "tree", x: x * 100 + 12, y: y * 100 + 12 });
     else if (v < 0.028 && Math.abs(x - 8) < 3) obstacles.push({ kind: "rock", x: x * 100, y: y * 100 });
   }
-  const map = { obstacles, blocked: [] };
+  const map = { obstacles, blocked: [], tiles: createTiles(), resources: [], navigationRevision: 0, generationAttempt: 0 };
+  obstacles.forEach((o, index) => {
+    o.id = `obstacle-${index}`;
+    map.tiles[tileAt(o.x, o.y)].obstacleRefs.push(o.id);
+    if (o.kind !== "house") {
+      const kind = o.kind === "tree" ? "tree" : "stone";
+      const id = `resource-${index}`, capacity = terrainRules.resourceCapacity[kind];
+      map.resources.push({ id, kind, x: o.x, y: o.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: o.id, depletedAt: null });
+      map.tiles[tileAt(o.x, o.y)].resourceRefs.push(id);
+    }
+  });
   for (let i = 0; i < 961; i++) if (!clearSegment(map, position(i), position(i))) map.blocked.push(i);
   return map;
 }
@@ -21,6 +67,10 @@ function bounds(o) {
 }
 function clearSegment(map, a, b) {
   if ([a.x, a.y, b.x, b.y].some((v) => !Number.isSafeInteger(v) || v < 50 || v > 1550)) return false;
+  for (const tile of map.tiles) if (!canTraverse(tile, "land")) {
+    const x = tile.id % 16 * 100, y = Math.floor(tile.id / 16) * 100, r = navigationRules.radius;
+    if (intersects(a, b, [x - r, y - r, x + 100 + r, y + 100 + r])) return false;
+  }
   for (const o of map.obstacles) {
     const [x0, y0, x1, y1] = bounds(o);
     let lo = 0, hi = 1;
@@ -40,13 +90,102 @@ function clearSegment(map, a, b) {
   }
   return true;
 }
+function intersects(a, b, box) {
+  let lo = 0, hi = 1;
+  for (const [start, delta, min, max] of [[a.x, b.x - a.x, box[0], box[2]], [a.y, b.y - a.y, box[1], box[3]]]) {
+    if (delta === 0) {
+      if (start < min || start > max) return false;
+    } else {
+      const p = (min - start) / delta, q = (max - start) / delta;
+      lo = Math.max(lo, Math.min(p, q));
+      hi = Math.min(hi, Math.max(p, q));
+    }
+  }
+  return lo <= hi;
+}
+function validateMap(map) {
+  const errors = [];
+  if (map.tiles.length !== 256 || map.tiles.some((t, i) => t.id !== i)) return ["\u5730\u683C\u6578\u91CF\u6216 ID \u4E0D\u7B26"];
+  const obstacles = new Set(map.obstacles.map((o) => o.id)), resources = new Set(map.resources.map((r) => r.id));
+  if (obstacles.size !== map.obstacles.length || obstacles.has(void 0)) errors.push("\u969C\u7919 ID \u91CD\u8907\u6216\u7F3A\u5C11");
+  if (resources.size !== map.resources.length) errors.push("\u8CC7\u6E90 ID \u91CD\u8907");
+  for (const tile of map.tiles) {
+    if (!Number.isSafeInteger(tile.height) || tile.height < 0) errors.push(`\u5730\u683C ${tile.id} \u9AD8\u5EA6\u7121\u6548`);
+    if (!["land", "water", "both", "blocked"].includes(tile.walkClass) || typeof tile.buildability !== "boolean") errors.push(`\u5730\u683C ${tile.id} \u901A\u884C\u6216\u5EFA\u9020\u898F\u5247\u7121\u6548`);
+    if (tile.resourceRefs.some((id) => !resources.has(id)) || tile.obstacleRefs.some((id) => !obstacles.has(id))) errors.push(`\u5730\u683C ${tile.id} \u53C3\u7167\u5931\u6548`);
+  }
+  for (const r of map.resources) {
+    if (!Number.isSafeInteger(r.capacity) || r.capacity <= 0 || !Number.isSafeInteger(r.remaining) || r.remaining < 0 || r.remaining > r.capacity) errors.push(`\u8CC7\u6E90 ${r.id} \u5BB9\u91CF\u7121\u6548`);
+    if (r.status === "depleted" !== (r.remaining === 0) || r.collectible !== r.remaining > 0 || r.status === "depleted" && (r.obstacleId !== null || r.depletedAt === null)) errors.push(`\u8CC7\u6E90 ${r.id} \u72C0\u614B\u4E0D\u4E00\u81F4`);
+    if (r.obstacleId && !obstacles.has(r.obstacleId)) errors.push(`\u8CC7\u6E90 ${r.id} \u969C\u7919\u53C3\u7167\u5931\u6548`);
+    if (!map.tiles[tileAt(r.x, r.y)]?.resourceRefs.includes(r.id)) errors.push(`\u8CC7\u6E90 ${r.id} \u5730\u683C\u53C3\u7167\u5931\u6548`);
+  }
+  const spawns = [{ x: 350, y: 700 }, { x: 450, y: 700 }, { x: 400, y: 800 }, { x: 1150, y: 700 }];
+  if (spawns.some((p) => !clearSegment(map, p, p))) errors.push("\u51FA\u751F\u9EDE\u4E0D\u53EF\u901A\u884C");
+  else {
+    const job = createPathJob(map, 0, spawns[0], spawns[3]);
+    advancePathJob(map, job, 961);
+    if (job.status !== "found") errors.push("\u73A9\u5BB6\u51FA\u751F\u5340\u4E92\u4E0D\u9023\u901A");
+  }
+  return errors;
+}
 function position(id) {
   return { x: 50 + id % 31 * 50, y: 50 + Math.floor(id / 31) * 50 };
+}
+function connector(map, a, b) {
+  const elbow = { x: b.x, y: a.y };
+  return clearSegment(map, a, elbow) && clearSegment(map, elbow, b);
+}
+function nearest(map, p, outbound = true) {
+  let best = -1, distance = Infinity;
+  for (let i = 0; i < 961; i++) {
+    const q = position(i), d = Math.abs(p.x - q.x) + Math.abs(p.y - q.y);
+    if (d < distance && !map.blocked.includes(i) && (outbound ? connector(map, p, q) : connector(map, q, p))) {
+      best = i;
+      distance = d;
+    }
+  }
+  return best;
+}
+function createPathJob(map, unitId, from, target) {
+  const start = nearest(map, from), goal = nearest(map, target, false), parents = Array(961).fill(-2);
+  if (start >= 0) parents[start] = -1;
+  return { unitId, start, goal, target: { ...target }, frontier: start < 0 ? [] : [start], head: 0, parents, status: start < 0 || goal < 0 ? "unreachable" : "searching", path: [] };
+}
+function advancePathJob(map, job, budget) {
+  if (!Number.isSafeInteger(budget) || budget < 0) throw Error("\u7121\u6548\u5C0B\u8DEF\u9810\u7B97");
+  let used = 0;
+  while (job.status === "searching" && used < budget) {
+    if (job.head === job.frontier.length) {
+      job.status = "unreachable";
+      break;
+    }
+    const id = job.frontier[job.head++];
+    used++;
+    if (id === job.goal) {
+      const path = [];
+      let cursor = id;
+      while (cursor !== -1) {
+        path.push(position(cursor));
+        cursor = job.parents[cursor];
+      }
+      job.path = path.reverse();
+      if (job.path.at(-1).x !== job.target.x || job.path.at(-1).y !== job.target.y) job.path.push({ ...job.target });
+      job.status = "found";
+      break;
+    }
+    const x = id % 31, y = Math.floor(id / 31);
+    for (const next of [x < 30 ? id + 1 : -1, y < 30 ? id + 31 : -1, x > 0 ? id - 1 : -1, y > 0 ? id - 31 : -1]) if (next >= 0 && job.parents[next] === -2 && !map.blocked.includes(next) && clearSegment(map, position(id), position(next))) {
+      job.parents[next] = id;
+      job.frontier.push(next);
+    }
+  }
+  return used;
 }
 
 // apps/web/scene.ts
 var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.72, provenance: "original_procedural" };
-async function createScene(canvas, onFailure) {
+async function createScene(canvas, onFailure, options = {}) {
   const T = await import(new URL("../../../vendor/three-0.186.0/three.module.js", import.meta.url).href);
   if (!canvas.getContext("webgl2")) throw Error("\u6B64\u88DD\u7F6E\u7121\u6CD5\u5EFA\u7ACB WebGL2\uFF0C\u8ACB\u4F7F\u7528\u652F\u63F4 WebGL2 \u7684\u700F\u89BD\u5668\u3002");
   let contextLost = false;
@@ -97,7 +236,9 @@ async function createScene(canvas, onFailure) {
   let staticGroup = new T.Group();
   scene.add(staticGroup);
   const batches = /* @__PURE__ */ new Map();
+  let muted = false;
   function staticPart(geo, color, x, y, z) {
+    if (muted) color = "#737b72";
     const key = geo.uuid + color;
     if (!batches.has(key)) batches.set(key, { geo, color, matrices: [] });
     batches.get(key).matrices.push(new T.Matrix4().makeTranslation(x, y, z));
@@ -125,7 +266,8 @@ async function createScene(canvas, onFailure) {
     brick(x + 0.25, z + 0.25, 2.37, 0.07, 0.07, 0.9, "#786849", false);
     brick(x + 0.32, z + 0.25, 3, 0.6, 0.04, 0.3, roof, false);
   }
-  function buildWorld(seed2) {
+  function buildWorld(view) {
+    const seed = view.seed;
     scene.remove(staticGroup);
     staticGroup.traverse((o) => {
       if (o.isInstancedMesh) o.dispose();
@@ -133,15 +275,18 @@ async function createScene(canvas, onFailure) {
     staticGroup = new T.Group();
     scene.add(staticGroup);
     batches.clear();
-    let rng = seed2 || 1;
-    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) {
+    const map = options.assetPreview ? makeMap(seed) : { tiles: createTiles(), obstacles: view.known.map((k) => k.obstacle) };
+    let rng = seed || 1;
+    for (const tile of map.tiles) {
+      const x = tile.id % 16, z = Math.floor(tile.id / 16);
       rng ^= rng << 13;
       rng ^= rng >>> 17;
       rng ^= rng << 5;
       const n = (rng >>> 0) / 4294967296;
-      brick(x, z, -0.24, 1, 1, 0.24, n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0", false);
+      brick(x, z, -0.24, 1, 1, 0.24, !options.assetPreview && view.fog[tile.id] !== 2 ? view.fog[tile.id] === 1 ? "#626e64" : "#293e38" : tile.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0", false);
     }
-    for (const o of makeMap(seed2).obstacles) {
+    for (const o of map.obstacles) {
+      muted = !options.assetPreview && view.fog[tileAt(o.x, o.y)] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "house") house(x, z, o.red);
       else if (o.kind === "tree") {
@@ -154,6 +299,7 @@ async function createScene(canvas, onFailure) {
         brick(x + 0.15, z + 0.15, 0.3, 0.35, 0.4, 0.18, "#b8b39c", false);
       }
     }
+    muted = false;
     for (const { geo, color, matrices } of batches.values()) {
       const mesh = new T.InstancedMesh(geo, material(color), matrices.length);
       matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
@@ -199,7 +345,7 @@ async function createScene(canvas, onFailure) {
     units.set(id, { group, left, right, ring, player, moving: false });
     return units.get(id);
   }
-  let seed = -1, angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected = 1, latest = null;
+  let worldKey = "", angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected = 1, latest = null;
   function cameraUpdate() {
     if (width <= 0 || height <= 0) return;
     const aspect = width / Math.max(1, height);
@@ -226,15 +372,16 @@ async function createScene(canvas, onFailure) {
   function update(view, id) {
     latest = view;
     selected = id;
-    if (seed !== view.seed) {
-      seed = view.seed;
-      buildWorld(seed);
+    const key = JSON.stringify([view.seed, view.fog, view.known?.map((k) => k.obstacle)]);
+    if (worldKey !== key) {
+      worldKey = key;
+      buildWorld(view);
       cameraUpdate();
     }
     const alive = new Set(view.units.map((u) => u.id));
-    for (const [key, u] of units) if (!alive.has(key)) {
+    for (const [key2, u] of units) if (!alive.has(key2)) {
       scene.remove(u.group);
-      units.delete(key);
+      units.delete(key2);
     }
     for (const data of view.units) {
       const u = units.get(data.id) ?? unit(data.id, data.player);

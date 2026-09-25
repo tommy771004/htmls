@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {makeMap,clearSegment,position,createPathJob,advancePathJob} from '../packages/sim/navigation.ts';
 import type {MapData,Obstacle} from '../packages/sim/navigation.ts';
+import {createTiles} from '../packages/sim/terrain.ts';
 import {createState,submit,tick,hash,serialize,deserialize,rulesetHash,replay} from '../packages/sim/sim.ts';
-function mapWith(obstacles:Obstacle[]):MapData{const m:MapData={obstacles,blocked:[]};for(let i=0;i<961;i++)if(!clearSegment(m,position(i),position(i)))m.blocked.push(i);return m;}
+function mapWith(obstacles:Obstacle[]):MapData{const m:MapData={obstacles,blocked:[],tiles:createTiles(),resources:[],navigationRevision:0,generationAttempt:0};for(let i=0;i<961;i++)if(!clearSegment(m,position(i),position(i)))m.blocked.push(i);return m;}
 test('fixed-budget search preserves frontier across snapshots and routes around a house',()=>{
  const s=createState(260925);submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitId:1,x:350,y:300}});tick(s);assert.ok(s.pathJobs.length);assert.ok(s.pathJobs[0].head<=32);
  const restored=deserialize(serialize(s));let wentAround=false;

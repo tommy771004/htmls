@@ -1,7 +1,8 @@
 import * as esbuild from 'esbuild';
-import {copyFile} from 'node:fs/promises';
+import {copyFile,mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../../',import.meta.url));
+await mkdir(root+'web',{recursive:true});
 await copyFile(new URL('apps/web/index.html',import.meta.url),root+'web/150-brick-rts.html');
 await copyFile(new URL('apps/web/models.html',import.meta.url),root+'web/150-brick-rts-models.html');
 const options={entryPoints:['main','worker','scene'].map(name=>fileURLToPath(new URL(`apps/web/${name}.ts`,import.meta.url))),bundle:true,format:'esm',target:'es2022',outdir:root+'web/assets/150-brick-rts'};

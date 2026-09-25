@@ -72,3 +72,6 @@ Snapshots now use sandbox v2. Old v1 snapshots are explicitly rejected without c
 The gameplay page now renders real WebGL2 geometry through the locally vendored Three.js 0.186.0. Serve the repository root so `/vendor/three-0.186.0/` remains available; no CDN is used. `web/150-brick-rts-models.html` is a separate asset viewer, not a game mode. It shares the same scene generator, rotation, near/far detail and live renderer counters.
 
 Static obstacle footprints remain authoritative in navigation.ts. Camera controls and walk animation do not decide movement. WebGL failure pauses input; an existing Worker stays available for saving before reload. This is the first C rendering slice; resources, fog, full village/army assets and all later gameplay remain incomplete.
+# 地格與資源資料增量
+
+目前 State／snapshot 使用 v4。地格資料、樹木／石塊有限容量、耗盡原語與局部導航更新已接入並驗證；村民採集玩法尚未提供。舊版存檔會明確拒絕，尚無遷移。詳見 docs/terrain-verification.md；C 階段仍在進行。

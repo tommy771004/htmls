@@ -3,13 +3,14 @@ import {createScene} from './scene.ts';
 import {SimulationClient} from './worker-client.ts';
 import type {View} from '../../packages/sim/protocol.ts';
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
-let state:View={seed:rules.settings.seed,tick:0,units:[],stateHash:'—'};
+let state:View={seed:rules.settings.seed,tick:0,units:[],fog:[],known:[],stateHash:'—'};
 let scene:Awaited<ReturnType<typeof createScene>>|null=null,graphicsFailed=false;
 let selected=1,running=false,last=0,accumulator=0,advancing=false,connected=false;
 const notice=(s:string)=>{el('notice').textContent=s;};
 const canvas=el<HTMLCanvasElement>('map');
 function render(){
  scene?.update(state,selected);
+ el('fog-status').textContent=`可見 ${state.fog.filter(v=>v===2).length} 格 · 已探索舊視野 ${state.fog.filter(v=>v===1).length} 格 · 未探索 ${state.fog.filter(v=>v===0).length} 格`;
  el('tick').textContent=String(state.tick);el('hash').textContent=state.stateHash;
  const u=state.units.find(u=>u.id===selected);if(!u)return;el('position').textContent=`村民 ${selected} · (${(u.x/100).toFixed(1)}, ${(u.y/100).toFixed(1)}) · ${u.navigation==='searching'?'尋路中':u.navigation==='unreachable'?'無可達路徑':u.target?'移動中':'待命'}`;
 }

@@ -6,7 +6,7 @@ function harness(){const service=createService();let id=0;return {raw:service,ca
 test('service sends transferable projection, commits movement and preserves snapshots',()=>{
  const h=harness();h.call({kind:'reset',seed:42});const moved=h.call({kind:'move',unitId:1,x:900,y:700});assert.equal(moved.accepted?.sequence,1);
  const result=h.call({kind:'advance',count:20});assert.ok(['searching','moving'].includes(decodeView(result).units[0].navigation!));
- const transferred=structuredClone(result,{transfer:[result.positions]});assert.equal(result.positions.byteLength,0);assert.equal(decodeView(transferred).units.length,4);
+ const transferred=structuredClone(result,{transfer:[result.positions]});assert.equal(result.positions.byteLength,0);assert.equal(decodeView(transferred).units.length,3);
  const saved=h.call({kind:'snapshot'});h.call({kind:'advance',count:20});assert.equal(h.call({kind:'restore',snapshot:saved.snapshot!}).stateHash,saved.stateHash);
  assert.equal(h.call({kind:'replay'}).replayMatches,true);
 });

@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 3,
-  "rulesetHash": "470c9ac5",
+  "schemaVersion": 5,
+  "rulesetHash": "cf7d9525",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -20,6 +20,65 @@
     },
     "populationCap": 40,
     "cancellationRefundPercent": 100
+  },
+  "terrain": {
+    "provenance": "design_default",
+    "size": 16,
+    "tileSize": 100,
+    "resourceCapacity": {
+      "tree": 300,
+      "stone": 250
+    },
+    "generationAttempts": 8
+  },
+  "terrainDefinitions": {
+    "grass": {
+      "walkClass": "land",
+      "buildability": true,
+      "height": 0
+    },
+    "road": {
+      "walkClass": "land",
+      "buildability": true,
+      "height": 0
+    },
+    "stone": {
+      "walkClass": "land",
+      "buildability": true,
+      "height": 0
+    },
+    "sand": {
+      "walkClass": "land",
+      "buildability": true,
+      "height": 0
+    },
+    "highland": {
+      "walkClass": "land",
+      "buildability": true,
+      "height": 100
+    },
+    "cliff": {
+      "walkClass": "blocked",
+      "buildability": false,
+      "height": 100
+    },
+    "water": {
+      "walkClass": "water",
+      "buildability": false,
+      "height": 0
+    },
+    "shallow": {
+      "walkClass": "both",
+      "buildability": false,
+      "height": 0
+    }
+  },
+  "vision": {
+    "provenance": "design_default",
+    "unitRadius": 400,
+    "houseRadius": 300,
+    "shareVision": false,
+    "rememberStaticObjects": true
   },
   "collisionScope": "static house/tree/rock footprints; no unit avoidance"
 }
