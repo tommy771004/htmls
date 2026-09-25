@@ -1,36 +1,46 @@
 // Engineering defaults, not values from the reference game.
-import {createTiles,tileAt,canTraverse,terrainRules,extractResource} from './terrain.ts';
-import type {Tile,ResourceNode} from './terrain.ts';
+import {createTiles,tileAt,canTraverse,terrainRules,extractResource,resourceDefinitions} from './terrain.ts';
+import type {Tile,ResourceNode,MapLayout,ResourceKind} from './terrain.ts';
 export const navigationRules={provenance:'design_default',spacing:50,size:31,radius:25,expansionsPerTick:32,speedPerTick:5} as const;
+export const startingResourceRules={provenance:'design_default',maxApproachDistance:1200,maxNearestDistanceDifference:500,minimum:{tree:300,stone:250,gold:250,berries:150}} as const;
 export type Point={x:number;y:number};
-export type Obstacle={id?:string;kind:'house'|'tree'|'rock';x:number;y:number;red?:boolean};
+export type Obstacle={id?:string;kind:'house'|'tree'|'rock'|'gold'|'berries'|'hunt'|'livestock';x:number;y:number;red?:boolean};
 export type MapData={obstacles:Obstacle[];blocked:number[];tiles:Tile[];resources:ResourceNode[];navigationRevision:number;generationAttempt:number};
-export type PathJob={unitId:number;start:number;goal:number;target:Point;frontier:number[];head:number;parents:number[];status:'searching'|'found'|'unreachable';path:Point[]};
-export function makeMap(seed:number):MapData{
+export type PathJob={movement?:'land'|'water';unitId:number;start:number;goal:number;target:Point;frontier:number[];head:number;parents:number[];status:'searching'|'found'|'unreachable';path:Point[]};
+export function makeMap(seed:number,layout:MapLayout='meadow'):MapData{
  if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('地圖 seed 必須為 uint32');
  let lastErrors:string[]=[];
  for(let attempt=0;attempt<terrainRules.generationAttempts;attempt++){
- const map=generateCandidate((seed+Math.imul(attempt,2654435761))>>>0);map.generationAttempt=attempt;
- lastErrors=validateMap(map);if(!lastErrors.length)return map;
+ const map=generateCandidate((seed+Math.imul(attempt,2654435761))>>>0,layout);map.generationAttempt=attempt;
+ lastErrors=validateMap(map);if(!lastErrors.length)lastErrors=validateStartingResources(map).errors;if(!lastErrors.length)return map;
  }
  throw Error(`地圖生成失敗（${terrainRules.generationAttempts} 次）：${lastErrors.join('；')}`);
 }
-function generateCandidate(seed:number):MapData{
- let rng=seed||1;const obstacles:Obstacle[]=[{kind:'house',x:300,y:400},{kind:'house',x:1100,y:400,red:true}];
+function generateCandidate(seed:number,layout:MapLayout):MapData{
+ let rng=seed||1;let obstacles:Obstacle[]=[{kind:'house',x:300,y:400},{kind:'house',x:1100,y:400,red:true}];
  for(let x=0;x<16;x++)for(let y=0;y<16;y++){rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;const v=(rng>>>0)/4294967296;
  if((x<2||y<2||x>13||y>13)&&v<.34)obstacles.push({kind:'tree',x:x*100+12,y:y*100+12});
- else if(v<.028&&Math.abs(x-8)<3)obstacles.push({kind:'rock',x:x*100,y:y*100});}
- const map:MapData={obstacles,blocked:[],tiles:createTiles(),resources:[],navigationRevision:0,generationAttempt:0};
+ else if(v<.028&&Math.abs(x-8)<3&&y>3)obstacles.push({kind:'rock',x:x*100,y:y*100});}
+ if(layout==='coast')obstacles=obstacles.filter(o=>o.y<1000);
+ if(layout==='acceptance')obstacles=[...obstacles.slice(0,2),{kind:'tree',x:150,y:250},{kind:'tree',x:1350,y:250},{kind:'rock',x:500,y:1100},{kind:'rock',x:1050,y:1100}];
+ const guaranteed:Obstacle[]=[{kind:'tree',x:150,y:850},{kind:'tree',x:1350,y:850},{kind:'rock',x:150,y:1100},{kind:'rock',x:1350,y:1100}];
+ obstacles=obstacles.filter(o=>o.kind==='house'||!guaranteed.some(g=>Math.abs(g.x-o.x)<140&&Math.abs(g.y-o.y)<140));obstacles.push(...guaranteed);
+ obstacles.push({kind:'gold',x:550,y:200},{kind:'gold',x:950,y:200},{kind:'berries',x:250,y:1000},{kind:'berries',x:1250,y:1000});
+ const map:MapData={obstacles,blocked:[],tiles:createTiles(layout,seed),resources:[],navigationRevision:0,generationAttempt:0};
  obstacles.forEach((o,index)=>{o.id=`obstacle-${index}`;map.tiles[tileAt(o.x,o.y)].obstacleRefs.push(o.id);
- if(o.kind!=='house'){const kind=o.kind==='tree'?'tree':'stone';const id=`resource-${index}`,capacity=terrainRules.resourceCapacity[kind];map.resources.push({id,kind,x:o.x,y:o.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:o.id,depletedAt:null});map.tiles[tileAt(o.x,o.y)].resourceRefs.push(id);}});
+ if(o.kind!=='house'){const kind:ResourceKind=o.kind==='rock'?'stone':o.kind;const id=`resource-${index}`,capacity=terrainRules.resourceCapacity[kind];map.resources.push({id,kind,x:o.x,y:o.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:o.id,depletedAt:null});map.tiles[tileAt(o.x,o.y)].resourceRefs.push(id);}});
+ const addResource=(kind:'hunt'|'livestock'|'fish',x:number,y:number)=>{const id=`resource-${kind}-${x}-${y}`,capacity=terrainRules.resourceCapacity[kind],obstacleId=kind==='fish'?null:`obstacle-${kind}-${x}-${y}`;if(obstacleId&&kind!=='fish'){map.obstacles.push({id:obstacleId,kind,x,y});map.tiles[tileAt(x,y)].obstacleRefs.push(obstacleId);}map.resources.push({id,kind,x,y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId,depletedAt:null});map.tiles[tileAt(x,y)].resourceRefs.push(id);};
+ for(const x of [300,1200])addResource('livestock',x,900);for(const x of [500,1000])addResource('hunt',x,1000);
+ if(layout==='coast')for(const x of [300,1200])addResource('fish',x,1450);
+ if(layout==='acceptance')for(const y of [300,1200])addResource('fish',800,y);
  for(let i=0;i<961;i++)if(!clearSegment(map,position(i),position(i)))map.blocked.push(i);return map;
 }
 function bounds(o:Obstacle):[number,number,number,number]{const r=navigationRules.radius;return o.kind==='house'?[o.x-15-r,o.y-15-r,o.x+235+r,o.y+215+r]:o.kind==='tree'?[o.x-20-r,o.y-20-r,o.x+80+r,o.y+80+r]:[o.x-r,o.y-r,o.x+65+r,o.y+70+r];}
 // Slab intersection includes contact: center-lines cannot clip expanded footprints.
-export function clearSegment(map:MapData,a:Point,b:Point):boolean{
+export function clearSegment(map:MapData,a:Point,b:Point,movement:'land'|'water'='land'):boolean{
  if([a.x,a.y,b.x,b.y].some(v=>!Number.isSafeInteger(v)||v<50||v>1550))return false;
  // Closed cell footprints include unit radius; material color never controls passage.
- for(const tile of map.tiles)if(!canTraverse(tile,'land')){
+ for(const tile of map.tiles)if(!canTraverse(tile,movement)){
  const x=(tile.id%16)*100,y=Math.floor(tile.id/16)*100,r=navigationRules.radius;
  if(intersects(a,b,[x-r,y-r,x+100+r,y+100+r]))return false;
  }
@@ -67,7 +77,9 @@ export function validateMap(map:MapData):string[]{
  if(obstacles.size!==map.obstacles.length||obstacles.has(undefined))errors.push('障礙 ID 重複或缺少');
  if(resources.size!==map.resources.length)errors.push('資源 ID 重複');
  for(const tile of map.tiles){if(!Number.isSafeInteger(tile.height)||tile.height<0)errors.push(`地格 ${tile.id} 高度無效`);if(!['land','water','both','blocked'].includes(tile.walkClass)||typeof tile.buildability!=='boolean')errors.push(`地格 ${tile.id} 通行或建造規則無效`);if(tile.resourceRefs.some(id=>!resources.has(id))||tile.obstacleRefs.some(id=>!obstacles.has(id)))errors.push(`地格 ${tile.id} 參照失效`);}
- for(const r of map.resources){if(!Number.isSafeInteger(r.capacity)||r.capacity<=0||!Number.isSafeInteger(r.remaining)||r.remaining<0||r.remaining>r.capacity)errors.push(`資源 ${r.id} 容量無效`);
+ for(const r of map.resources){if(!resourceDefinitions[r.kind]){errors.push(`資源 ${r.id} 類別無效`);continue;}
+ const cell=map.tiles[tileAt(r.x,r.y)];if(!cell||!canTraverse(cell,resourceDefinitions[r.kind].movement))errors.push(`資源 ${r.id} 地形不符`);
+ if(!Number.isSafeInteger(r.capacity)||r.capacity<=0||!Number.isSafeInteger(r.remaining)||r.remaining<0||r.remaining>r.capacity)errors.push(`資源 ${r.id} 容量無效`);
  if((r.status==='depleted')!==(r.remaining===0)||r.collectible!==(r.remaining>0)||r.status==='depleted'&&(r.obstacleId!==null||r.depletedAt===null))errors.push(`資源 ${r.id} 狀態不一致`);
  if(r.obstacleId&&!obstacles.has(r.obstacleId))errors.push(`資源 ${r.id} 障礙參照失效`);
  if(!map.tiles[tileAt(r.x,r.y)]?.resourceRefs.includes(r.id))errors.push(`資源 ${r.id} 地格參照失效`);}
@@ -77,13 +89,35 @@ export function validateMap(map:MapData):string[]{
  return errors;
 }
 export function position(id:number):Point{return {x:50+(id%31)*50,y:50+Math.floor(id/31)*50};}
-function connector(map:MapData,a:Point,b:Point){const elbow={x:b.x,y:a.y};return clearSegment(map,a,elbow)&&clearSegment(map,elbow,b);}
-function nearest(map:MapData,p:Point,outbound=true):number{
- let best=-1,distance=Infinity;for(let i=0;i<961;i++){const q=position(i),d=Math.abs(p.x-q.x)+Math.abs(p.y-q.y);if(d<distance&&!map.blocked.includes(i)&&(outbound?connector(map,p,q):connector(map,q,p))){best=i;distance=d;}}return best;
+// Generation-only gate: runtime maps may legitimately exhaust their starting stock.
+export function validateStartingResources(map:MapData){
+ const errors:string[]=[];
+ const players=[{x:350,y:700},{x:1150,y:700}].map((spawn,player)=>{
+ const distances=Array<number>(961).fill(Infinity),start=nearest(map,spawn),frontier:number[]=[];
+ if(start>=0){distances[start]=Math.abs(position(start).x-spawn.x)+Math.abs(position(start).y-spawn.y);frontier.push(start);}
+ for(let head=0;head<frontier.length;head++){const id=frontier[head],x=id%31,y=Math.floor(id/31);for(const next of [x<30?id+1:-1,y<30?id+31:-1,x>0?id-1:-1,y>0?id-31:-1])if(next>=0&&!Number.isFinite(distances[next])&&!map.blocked.includes(next)&&clearSegment(map,position(id),position(next))){distances[next]=distances[id]+50;frontier.push(next);}}
+ const access=Object.entries(startingResourceRules.minimum).map(([kind,minimum])=>{
+ const nodes=map.resources.filter(r=>r.kind===kind&&r.collectible&&r.remaining>0).map(resource=>{
+ const obstacle=map.obstacles.find(o=>o.id===resource.obstacleId);if(!obstacle)return {id:resource.id,remaining:resource.remaining,distance:Infinity,approach:null as Point|null};
+ const [x0,y0,x1,y1]=bounds(obstacle);let distance=Infinity,approach:Point|null=null;
+ for(let i=0;i<961;i++){if(!Number.isFinite(distances[i]))continue;const p=position(i),gap=Math.max(x0-p.x,0,p.x-x1)+Math.max(y0-p.y,0,p.y-y1);if(gap>0&&gap<=50&&distances[i]<distance){distance=distances[i];approach=p;}}
+ return {id:resource.id,remaining:resource.remaining,distance,approach};
+ }).filter(n=>n.distance<=startingResourceRules.maxApproachDistance);
+ const available=nodes.reduce((sum,n)=>sum+n.remaining,0),nearestDistance=nodes.length?Math.min(...nodes.map(n=>n.distance)):null;
+ if(available<minimum)errors.push(`玩家 ${player} 起始 ${kind} 可達容量不足：${available}/${minimum}`);
+ return {kind,minimum,available,nearestDistance,nodes};
+ });return {player,spawn,access};
+ });
+ for(let i=0;i<players[0].access.length;i++){const a=players[0].access[i],b=players[1].access[i];if(a.nearestDistance!==null&&b.nearestDistance!==null&&Math.abs(a.nearestDistance-b.nearestDistance)>startingResourceRules.maxNearestDistanceDifference)errors.push(`雙方 ${a.kind} 最近路程差超出限制`);}
+ return {rules:startingResourceRules,errors,players};
 }
-export function createPathJob(map:MapData,unitId:number,from:Point,target:Point):PathJob{
- const start=nearest(map,from),goal=nearest(map,target,false),parents=Array(961).fill(-2);if(start>=0)parents[start]=-1;
- return {unitId,start,goal,target:{...target},frontier:start<0?[]:[start],head:0,parents,status:start<0||goal<0?'unreachable':'searching',path:[]};
+function connector(map:MapData,a:Point,b:Point,movement:'land'|'water'){const elbow={x:b.x,y:a.y};return clearSegment(map,a,elbow,movement)&&clearSegment(map,elbow,b,movement);}
+function nearest(map:MapData,p:Point,outbound=true,movement:'land'|'water'='land'):number{
+ let best=-1,distance=Infinity;for(let i=0;i<961;i++){const q=position(i),d=Math.abs(p.x-q.x)+Math.abs(p.y-q.y);if(d<distance&&!(movement==='land'?map.blocked.includes(i):!clearSegment(map,q,q,movement))&&(outbound?connector(map,p,q,movement):connector(map,q,p,movement))){best=i;distance=d;}}return best;
+}
+export function createPathJob(map:MapData,unitId:number,from:Point,target:Point,movement:'land'|'water'='land'):PathJob{
+ const start=nearest(map,from,true,movement),goal=nearest(map,target,false,movement),parents=Array(961).fill(-2);if(start>=0)parents[start]=-1;
+ return {...(movement==='water'?{movement}:{}),unitId,start,goal,target:{...target},frontier:start<0?[]:[start],head:0,parents,status:start<0||goal<0?'unreachable':'searching',path:[]};
 }
 export function advancePathJob(map:MapData,job:PathJob,budget:number):number{
  if(!Number.isSafeInteger(budget)||budget<0)throw Error('無效尋路預算');let used=0;
@@ -91,6 +125,6 @@ export function advancePathJob(map:MapData,job:PathJob,budget:number):number{
  if(job.head===job.frontier.length){job.status='unreachable';break;}
  const id=job.frontier[job.head++];used++;
  if(id===job.goal){const path:Point[]=[];let cursor=id;while(cursor!==-1){path.push(position(cursor));cursor=job.parents[cursor];}job.path=path.reverse();if(job.path.at(-1)!.x!==job.target.x||job.path.at(-1)!.y!==job.target.y)job.path.push({...job.target});job.status='found';break;}
- const x=id%31,y=Math.floor(id/31);for(const next of [x<30?id+1:-1,y<30?id+31:-1,x>0?id-1:-1,y>0?id-31:-1])if(next>=0&&job.parents[next]===-2&&!map.blocked.includes(next)&&clearSegment(map,position(id),position(next))){job.parents[next]=id;job.frontier.push(next);}
+ const x=id%31,y=Math.floor(id/31);for(const next of [x<30?id+1:-1,y<30?id+31:-1,x>0?id-1:-1,y>0?id-31:-1])if(next>=0&&job.parents[next]===-2&&!(job.movement==='water'?!clearSegment(map,position(next),position(next),'water'):map.blocked.includes(next))&&clearSegment(map,position(id),position(next),job.movement??'land')){job.parents[next]=id;job.frontier.push(next);}
  }return used;
 }

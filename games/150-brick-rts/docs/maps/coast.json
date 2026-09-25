@@ -1,0 +1,4123 @@
+{
+  "format": "brick-map-example-1",
+  "provenance": "design_default",
+  "seed": 260925,
+  "layout": "coast",
+  "map": {
+    "obstacles": [
+      {
+        "kind": "house",
+        "x": 300,
+        "y": 400,
+        "id": "obstacle-0"
+      },
+      {
+        "kind": "house",
+        "x": 1100,
+        "y": 400,
+        "red": true,
+        "id": "obstacle-1"
+      },
+      {
+        "kind": "tree",
+        "x": 12,
+        "y": 112,
+        "id": "obstacle-2"
+      },
+      {
+        "kind": "tree",
+        "x": 12,
+        "y": 312,
+        "id": "obstacle-3"
+      },
+      {
+        "kind": "tree",
+        "x": 112,
+        "y": 312,
+        "id": "obstacle-4"
+      },
+      {
+        "kind": "tree",
+        "x": 112,
+        "y": 512,
+        "id": "obstacle-5"
+      },
+      {
+        "kind": "tree",
+        "x": 112,
+        "y": 612,
+        "id": "obstacle-6"
+      },
+      {
+        "kind": "tree",
+        "x": 212,
+        "y": 12,
+        "id": "obstacle-7"
+      },
+      {
+        "kind": "tree",
+        "x": 612,
+        "y": 12,
+        "id": "obstacle-8"
+      },
+      {
+        "kind": "rock",
+        "x": 600,
+        "y": 400,
+        "id": "obstacle-9"
+      },
+      {
+        "kind": "tree",
+        "x": 912,
+        "y": 12,
+        "id": "obstacle-10"
+      },
+      {
+        "kind": "tree",
+        "x": 912,
+        "y": 112,
+        "id": "obstacle-11"
+      },
+      {
+        "kind": "rock",
+        "x": 1000,
+        "y": 700,
+        "id": "obstacle-12"
+      },
+      {
+        "kind": "tree",
+        "x": 1212,
+        "y": 12,
+        "id": "obstacle-13"
+      },
+      {
+        "kind": "tree",
+        "x": 1312,
+        "y": 12,
+        "id": "obstacle-14"
+      },
+      {
+        "kind": "tree",
+        "x": 1312,
+        "y": 112,
+        "id": "obstacle-15"
+      },
+      {
+        "kind": "tree",
+        "x": 1412,
+        "y": 12,
+        "id": "obstacle-16"
+      },
+      {
+        "kind": "tree",
+        "x": 1412,
+        "y": 112,
+        "id": "obstacle-17"
+      },
+      {
+        "kind": "tree",
+        "x": 1412,
+        "y": 412,
+        "id": "obstacle-18"
+      },
+      {
+        "kind": "tree",
+        "x": 1512,
+        "y": 12,
+        "id": "obstacle-19"
+      },
+      {
+        "kind": "tree",
+        "x": 1512,
+        "y": 112,
+        "id": "obstacle-20"
+      },
+      {
+        "kind": "tree",
+        "x": 1512,
+        "y": 312,
+        "id": "obstacle-21"
+      },
+      {
+        "kind": "tree",
+        "x": 1512,
+        "y": 412,
+        "id": "obstacle-22"
+      },
+      {
+        "kind": "tree",
+        "x": 1512,
+        "y": 712,
+        "id": "obstacle-23"
+      },
+      {
+        "kind": "tree",
+        "x": 1512,
+        "y": 812,
+        "id": "obstacle-24"
+      },
+      {
+        "kind": "tree",
+        "x": 1512,
+        "y": 912,
+        "id": "obstacle-25"
+      },
+      {
+        "kind": "tree",
+        "x": 150,
+        "y": 850,
+        "id": "obstacle-26"
+      },
+      {
+        "kind": "tree",
+        "x": 1350,
+        "y": 850,
+        "id": "obstacle-27"
+      },
+      {
+        "kind": "rock",
+        "x": 150,
+        "y": 1100,
+        "id": "obstacle-28"
+      },
+      {
+        "kind": "rock",
+        "x": 1350,
+        "y": 1100,
+        "id": "obstacle-29"
+      },
+      {
+        "kind": "gold",
+        "x": 550,
+        "y": 200,
+        "id": "obstacle-30"
+      },
+      {
+        "kind": "gold",
+        "x": 950,
+        "y": 200,
+        "id": "obstacle-31"
+      },
+      {
+        "kind": "berries",
+        "x": 250,
+        "y": 1000,
+        "id": "obstacle-32"
+      },
+      {
+        "kind": "berries",
+        "x": 1250,
+        "y": 1000,
+        "id": "obstacle-33"
+      },
+      {
+        "id": "obstacle-livestock-300-900",
+        "kind": "livestock",
+        "x": 300,
+        "y": 900
+      },
+      {
+        "id": "obstacle-livestock-1200-900",
+        "kind": "livestock",
+        "x": 1200,
+        "y": 900
+      },
+      {
+        "id": "obstacle-hunt-500-1000",
+        "kind": "hunt",
+        "x": 500,
+        "y": 1000
+      },
+      {
+        "id": "obstacle-hunt-1000-1000",
+        "kind": "hunt",
+        "x": 1000,
+        "y": 1000
+      }
+    ],
+    "blocked": [
+      3,
+      4,
+      5,
+      11,
+      12,
+      13,
+      17,
+      18,
+      19,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      34,
+      35,
+      36,
+      42,
+      43,
+      44,
+      48,
+      49,
+      50,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      79,
+      80,
+      81,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      103,
+      104,
+      110,
+      111,
+      112,
+      118,
+      119,
+      120,
+      121,
+      122,
+      123,
+      134,
+      135,
+      142,
+      143,
+      155,
+      156,
+      157,
+      158,
+      184,
+      185,
+      186,
+      187,
+      188,
+      189,
+      215,
+      216,
+      217,
+      218,
+      219,
+      220,
+      222,
+      223,
+      224,
+      225,
+      226,
+      227,
+      228,
+      229,
+      238,
+      239,
+      240,
+      241,
+      242,
+      243,
+      244,
+      245,
+      246,
+      247,
+      253,
+      254,
+      255,
+      256,
+      257,
+      258,
+      259,
+      260,
+      269,
+      270,
+      271,
+      272,
+      273,
+      274,
+      275,
+      276,
+      277,
+      278,
+      280,
+      281,
+      282,
+      284,
+      285,
+      286,
+      287,
+      288,
+      289,
+      300,
+      301,
+      302,
+      303,
+      304,
+      305,
+      306,
+      307,
+      308,
+      309,
+      311,
+      312,
+      313,
+      315,
+      316,
+      317,
+      318,
+      319,
+      320,
+      331,
+      332,
+      333,
+      334,
+      335,
+      336,
+      342,
+      343,
+      344,
+      346,
+      347,
+      348,
+      349,
+      350,
+      351,
+      362,
+      363,
+      364,
+      365,
+      366,
+      367,
+      373,
+      374,
+      375,
+      404,
+      405,
+      406,
+      422,
+      423,
+      432,
+      433,
+      453,
+      454,
+      463,
+      464,
+      494,
+      495,
+      498,
+      499,
+      500,
+      522,
+      523,
+      524,
+      525,
+      526,
+      529,
+      530,
+      531,
+      532,
+      533,
+      550,
+      551,
+      553,
+      554,
+      555,
+      556,
+      557,
+      560,
+      561,
+      562,
+      563,
+      564,
+      581,
+      582,
+      584,
+      585,
+      586,
+      587,
+      588,
+      593,
+      594,
+      598,
+      599,
+      608,
+      609,
+      613,
+      614,
+      618,
+      619,
+      624,
+      625,
+      629,
+      630,
+      639,
+      640,
+      644,
+      645,
+      653,
+      654,
+      677,
+      678,
+      684,
+      685,
+      708,
+      709,
+      720,
+      721,
+      722,
+      723,
+      724,
+      725,
+      726,
+      727,
+      728,
+      751,
+      752,
+      753,
+      754,
+      755,
+      756,
+      757,
+      758,
+      759,
+      775,
+      776,
+      777,
+      778,
+      779,
+      780,
+      781,
+      782,
+      783,
+      784,
+      785,
+      786,
+      787,
+      788,
+      789,
+      790,
+      791,
+      792,
+      793,
+      794,
+      795,
+      796,
+      797,
+      798,
+      799,
+      800,
+      801,
+      802,
+      803,
+      804,
+      805,
+      806,
+      807,
+      808,
+      809,
+      810,
+      811,
+      812,
+      813,
+      814,
+      815,
+      816,
+      817,
+      818,
+      819,
+      820,
+      821,
+      822,
+      823,
+      824,
+      825,
+      826,
+      827,
+      828,
+      829,
+      830,
+      831,
+      832,
+      833,
+      834,
+      835,
+      836,
+      837,
+      838,
+      839,
+      840,
+      841,
+      842,
+      843,
+      844,
+      845,
+      846,
+      847,
+      848,
+      849,
+      850,
+      851,
+      852,
+      853,
+      854,
+      855,
+      856,
+      857,
+      858,
+      859,
+      860,
+      861,
+      862,
+      863,
+      864,
+      865,
+      866,
+      867,
+      868,
+      869,
+      870,
+      871,
+      872,
+      873,
+      874,
+      875,
+      876,
+      877,
+      878,
+      879,
+      880,
+      881,
+      882,
+      883,
+      884,
+      885,
+      886,
+      887,
+      888,
+      889,
+      890,
+      891,
+      892,
+      893,
+      894,
+      895,
+      896,
+      897,
+      898,
+      899,
+      900,
+      901,
+      902,
+      903,
+      904,
+      905,
+      906,
+      907,
+      908,
+      909,
+      910,
+      911,
+      912,
+      913,
+      914,
+      915,
+      916,
+      917,
+      918,
+      919,
+      920,
+      921,
+      922,
+      923,
+      924,
+      925,
+      926,
+      927,
+      928,
+      929,
+      930,
+      931,
+      932,
+      933,
+      934,
+      935,
+      936,
+      937,
+      938,
+      939,
+      940,
+      941,
+      942,
+      943,
+      944,
+      945,
+      946,
+      947,
+      948,
+      949,
+      950,
+      951,
+      952,
+      953,
+      954,
+      955,
+      956,
+      957,
+      958,
+      959,
+      960
+    ],
+    "tiles": [
+      {
+        "id": 0,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 1,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 2,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-7"
+        ],
+        "obstacleRefs": [
+          "obstacle-7"
+        ]
+      },
+      {
+        "id": 3,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 4,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 5,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 6,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-8"
+        ],
+        "obstacleRefs": [
+          "obstacle-8"
+        ]
+      },
+      {
+        "id": 7,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 8,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 9,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-10"
+        ],
+        "obstacleRefs": [
+          "obstacle-10"
+        ]
+      },
+      {
+        "id": 10,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 11,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 12,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-13"
+        ],
+        "obstacleRefs": [
+          "obstacle-13"
+        ]
+      },
+      {
+        "id": 13,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-14"
+        ],
+        "obstacleRefs": [
+          "obstacle-14"
+        ]
+      },
+      {
+        "id": 14,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-16"
+        ],
+        "obstacleRefs": [
+          "obstacle-16"
+        ]
+      },
+      {
+        "id": 15,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-19"
+        ],
+        "obstacleRefs": [
+          "obstacle-19"
+        ]
+      },
+      {
+        "id": 16,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-2"
+        ],
+        "obstacleRefs": [
+          "obstacle-2"
+        ]
+      },
+      {
+        "id": 17,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 18,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 19,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 20,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 21,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 22,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 23,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 24,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 25,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-11"
+        ],
+        "obstacleRefs": [
+          "obstacle-11"
+        ]
+      },
+      {
+        "id": 26,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 27,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 28,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 29,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-15"
+        ],
+        "obstacleRefs": [
+          "obstacle-15"
+        ]
+      },
+      {
+        "id": 30,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-17"
+        ],
+        "obstacleRefs": [
+          "obstacle-17"
+        ]
+      },
+      {
+        "id": 31,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-20"
+        ],
+        "obstacleRefs": [
+          "obstacle-20"
+        ]
+      },
+      {
+        "id": 32,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 33,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 34,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 35,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 36,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 37,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-30"
+        ],
+        "obstacleRefs": [
+          "obstacle-30"
+        ]
+      },
+      {
+        "id": 38,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 39,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 40,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 41,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-31"
+        ],
+        "obstacleRefs": [
+          "obstacle-31"
+        ]
+      },
+      {
+        "id": 42,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 43,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 44,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 45,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 46,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 47,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 48,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-3"
+        ],
+        "obstacleRefs": [
+          "obstacle-3"
+        ]
+      },
+      {
+        "id": 49,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-4"
+        ],
+        "obstacleRefs": [
+          "obstacle-4"
+        ]
+      },
+      {
+        "id": 50,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 51,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 52,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 53,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 54,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 55,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 56,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 57,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 58,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 59,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 60,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 61,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 62,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 63,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-21"
+        ],
+        "obstacleRefs": [
+          "obstacle-21"
+        ]
+      },
+      {
+        "id": 64,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 65,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 66,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 67,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": [
+          "obstacle-0"
+        ]
+      },
+      {
+        "id": 68,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 69,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 70,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-9"
+        ],
+        "obstacleRefs": [
+          "obstacle-9"
+        ]
+      },
+      {
+        "id": 71,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 72,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 73,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 74,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 75,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": [
+          "obstacle-1"
+        ]
+      },
+      {
+        "id": 76,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 77,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 78,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-18"
+        ],
+        "obstacleRefs": [
+          "obstacle-18"
+        ]
+      },
+      {
+        "id": 79,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-22"
+        ],
+        "obstacleRefs": [
+          "obstacle-22"
+        ]
+      },
+      {
+        "id": 80,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 81,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-5"
+        ],
+        "obstacleRefs": [
+          "obstacle-5"
+        ]
+      },
+      {
+        "id": 82,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 83,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 84,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 85,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 86,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 87,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 88,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 89,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 90,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 91,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 92,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 93,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 94,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 95,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 96,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 97,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-6"
+        ],
+        "obstacleRefs": [
+          "obstacle-6"
+        ]
+      },
+      {
+        "id": 98,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 99,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 100,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 101,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 102,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 103,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 104,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 105,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 106,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 107,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 108,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 109,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 110,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 111,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 112,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 113,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 114,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 115,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 116,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 117,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 118,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 119,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 120,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 121,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 122,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-12"
+        ],
+        "obstacleRefs": [
+          "obstacle-12"
+        ]
+      },
+      {
+        "id": 123,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 124,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 125,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 126,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 127,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-23"
+        ],
+        "obstacleRefs": [
+          "obstacle-23"
+        ]
+      },
+      {
+        "id": 128,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 129,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-26"
+        ],
+        "obstacleRefs": [
+          "obstacle-26"
+        ]
+      },
+      {
+        "id": 130,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 131,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 132,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 133,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 134,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 135,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 136,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 137,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 138,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 139,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 140,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 141,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-27"
+        ],
+        "obstacleRefs": [
+          "obstacle-27"
+        ]
+      },
+      {
+        "id": 142,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 143,
+        "terrainType": "road",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-24"
+        ],
+        "obstacleRefs": [
+          "obstacle-24"
+        ]
+      },
+      {
+        "id": 144,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 145,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 146,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 147,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-livestock-300-900"
+        ],
+        "obstacleRefs": [
+          "obstacle-livestock-300-900"
+        ]
+      },
+      {
+        "id": 148,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 149,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 150,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 151,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 152,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 153,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 154,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 155,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 156,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-livestock-1200-900"
+        ],
+        "obstacleRefs": [
+          "obstacle-livestock-1200-900"
+        ]
+      },
+      {
+        "id": 157,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 158,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 159,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-25"
+        ],
+        "obstacleRefs": [
+          "obstacle-25"
+        ]
+      },
+      {
+        "id": 160,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 161,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 162,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-32"
+        ],
+        "obstacleRefs": [
+          "obstacle-32"
+        ]
+      },
+      {
+        "id": 163,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 164,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 165,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-hunt-500-1000"
+        ],
+        "obstacleRefs": [
+          "obstacle-hunt-500-1000"
+        ]
+      },
+      {
+        "id": 166,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 167,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 168,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 169,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 170,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-hunt-1000-1000"
+        ],
+        "obstacleRefs": [
+          "obstacle-hunt-1000-1000"
+        ]
+      },
+      {
+        "id": 171,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 172,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-33"
+        ],
+        "obstacleRefs": [
+          "obstacle-33"
+        ]
+      },
+      {
+        "id": 173,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 174,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 175,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 176,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 177,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-28"
+        ],
+        "obstacleRefs": [
+          "obstacle-28"
+        ]
+      },
+      {
+        "id": 178,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 179,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 180,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 181,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 182,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 183,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 184,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 185,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 186,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 187,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 188,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 189,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [
+          "resource-29"
+        ],
+        "obstacleRefs": [
+          "obstacle-29"
+        ]
+      },
+      {
+        "id": 190,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 191,
+        "terrainType": "grass",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 192,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 193,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 194,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 195,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 196,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 197,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 198,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 199,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 200,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 201,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 202,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 203,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 204,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 205,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 206,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 207,
+        "terrainType": "sand",
+        "walkClass": "land",
+        "buildability": true,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 208,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 209,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 210,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 211,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 212,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 213,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 214,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 215,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 216,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 217,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 218,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 219,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 220,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 221,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 222,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 223,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 224,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 225,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 226,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 227,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [
+          "resource-fish-300-1450"
+        ],
+        "obstacleRefs": []
+      },
+      {
+        "id": 228,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 229,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 230,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 231,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 232,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 233,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 234,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 235,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 236,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [
+          "resource-fish-1200-1450"
+        ],
+        "obstacleRefs": []
+      },
+      {
+        "id": 237,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 238,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 239,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 240,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 241,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 242,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 243,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 244,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 245,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 246,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 247,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 248,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 249,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 250,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 251,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 252,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 253,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 254,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      },
+      {
+        "id": 255,
+        "terrainType": "water",
+        "walkClass": "water",
+        "buildability": false,
+        "height": 0,
+        "resourceRefs": [],
+        "obstacleRefs": []
+      }
+    ],
+    "resources": [
+      {
+        "id": "resource-2",
+        "kind": "tree",
+        "x": 12,
+        "y": 112,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-2",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-3",
+        "kind": "tree",
+        "x": 12,
+        "y": 312,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-3",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-4",
+        "kind": "tree",
+        "x": 112,
+        "y": 312,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-4",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-5",
+        "kind": "tree",
+        "x": 112,
+        "y": 512,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-5",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-6",
+        "kind": "tree",
+        "x": 112,
+        "y": 612,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-6",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-7",
+        "kind": "tree",
+        "x": 212,
+        "y": 12,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-7",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-8",
+        "kind": "tree",
+        "x": 612,
+        "y": 12,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-8",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-9",
+        "kind": "stone",
+        "x": 600,
+        "y": 400,
+        "capacity": 250,
+        "remaining": 250,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-9",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-10",
+        "kind": "tree",
+        "x": 912,
+        "y": 12,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-10",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-11",
+        "kind": "tree",
+        "x": 912,
+        "y": 112,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-11",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-12",
+        "kind": "stone",
+        "x": 1000,
+        "y": 700,
+        "capacity": 250,
+        "remaining": 250,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-12",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-13",
+        "kind": "tree",
+        "x": 1212,
+        "y": 12,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-13",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-14",
+        "kind": "tree",
+        "x": 1312,
+        "y": 12,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-14",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-15",
+        "kind": "tree",
+        "x": 1312,
+        "y": 112,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-15",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-16",
+        "kind": "tree",
+        "x": 1412,
+        "y": 12,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-16",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-17",
+        "kind": "tree",
+        "x": 1412,
+        "y": 112,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-17",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-18",
+        "kind": "tree",
+        "x": 1412,
+        "y": 412,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-18",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-19",
+        "kind": "tree",
+        "x": 1512,
+        "y": 12,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-19",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-20",
+        "kind": "tree",
+        "x": 1512,
+        "y": 112,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-20",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-21",
+        "kind": "tree",
+        "x": 1512,
+        "y": 312,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-21",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-22",
+        "kind": "tree",
+        "x": 1512,
+        "y": 412,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-22",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-23",
+        "kind": "tree",
+        "x": 1512,
+        "y": 712,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-23",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-24",
+        "kind": "tree",
+        "x": 1512,
+        "y": 812,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-24",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-25",
+        "kind": "tree",
+        "x": 1512,
+        "y": 912,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-25",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-26",
+        "kind": "tree",
+        "x": 150,
+        "y": 850,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-26",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-27",
+        "kind": "tree",
+        "x": 1350,
+        "y": 850,
+        "capacity": 300,
+        "remaining": 300,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-27",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-28",
+        "kind": "stone",
+        "x": 150,
+        "y": 1100,
+        "capacity": 250,
+        "remaining": 250,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-28",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-29",
+        "kind": "stone",
+        "x": 1350,
+        "y": 1100,
+        "capacity": 250,
+        "remaining": 250,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-29",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-30",
+        "kind": "gold",
+        "x": 550,
+        "y": 200,
+        "capacity": 250,
+        "remaining": 250,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-30",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-31",
+        "kind": "gold",
+        "x": 950,
+        "y": 200,
+        "capacity": 250,
+        "remaining": 250,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-31",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-32",
+        "kind": "berries",
+        "x": 250,
+        "y": 1000,
+        "capacity": 150,
+        "remaining": 150,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-32",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-33",
+        "kind": "berries",
+        "x": 1250,
+        "y": 1000,
+        "capacity": 150,
+        "remaining": 150,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-33",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-livestock-300-900",
+        "kind": "livestock",
+        "x": 300,
+        "y": 900,
+        "capacity": 100,
+        "remaining": 100,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-livestock-300-900",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-livestock-1200-900",
+        "kind": "livestock",
+        "x": 1200,
+        "y": 900,
+        "capacity": 100,
+        "remaining": 100,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-livestock-1200-900",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-hunt-500-1000",
+        "kind": "hunt",
+        "x": 500,
+        "y": 1000,
+        "capacity": 120,
+        "remaining": 120,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-hunt-500-1000",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-hunt-1000-1000",
+        "kind": "hunt",
+        "x": 1000,
+        "y": 1000,
+        "capacity": 120,
+        "remaining": 120,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": "obstacle-hunt-1000-1000",
+        "depletedAt": null
+      },
+      {
+        "id": "resource-fish-300-1450",
+        "kind": "fish",
+        "x": 300,
+        "y": 1450,
+        "capacity": 200,
+        "remaining": 200,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": null,
+        "depletedAt": null
+      },
+      {
+        "id": "resource-fish-1200-1450",
+        "kind": "fish",
+        "x": 1200,
+        "y": 1450,
+        "capacity": 200,
+        "remaining": 200,
+        "collectible": true,
+        "status": "available",
+        "obstacleId": null,
+        "depletedAt": null
+      }
+    ],
+    "navigationRevision": 0,
+    "generationAttempt": 0
+  },
+  "startingResources": {
+    "rules": {
+      "provenance": "design_default",
+      "maxApproachDistance": 1200,
+      "maxNearestDistanceDifference": 500,
+      "minimum": {
+        "tree": 300,
+        "stone": 250,
+        "gold": 250,
+        "berries": 150
+      }
+    },
+    "errors": [],
+    "players": [
+      {
+        "player": 0,
+        "spawn": {
+          "x": 350,
+          "y": 700
+        },
+        "access": [
+          {
+            "kind": "tree",
+            "minimum": 300,
+            "available": 4200,
+            "nearestDistance": 100,
+            "nodes": [
+              {
+                "id": "resource-2",
+                "remaining": 300,
+                "distance": 700,
+                "approach": {
+                  "x": 150,
+                  "y": 200
+                }
+              },
+              {
+                "id": "resource-3",
+                "remaining": 300,
+                "distance": 500,
+                "approach": {
+                  "x": 100,
+                  "y": 450
+                }
+              },
+              {
+                "id": "resource-4",
+                "remaining": 300,
+                "distance": 400,
+                "approach": {
+                  "x": 250,
+                  "y": 400
+                }
+              },
+              {
+                "id": "resource-5",
+                "remaining": 300,
+                "distance": 200,
+                "approach": {
+                  "x": 250,
+                  "y": 600
+                }
+              },
+              {
+                "id": "resource-6",
+                "remaining": 300,
+                "distance": 100,
+                "approach": {
+                  "x": 250,
+                  "y": 700
+                }
+              },
+              {
+                "id": "resource-7",
+                "remaining": 300,
+                "distance": 650,
+                "approach": {
+                  "x": 250,
+                  "y": 150
+                }
+              },
+              {
+                "id": "resource-8",
+                "remaining": 300,
+                "distance": 900,
+                "approach": {
+                  "x": 700,
+                  "y": 150
+                }
+              },
+              {
+                "id": "resource-10",
+                "remaining": 300,
+                "distance": 1050,
+                "approach": {
+                  "x": 850,
+                  "y": 150
+                }
+              },
+              {
+                "id": "resource-11",
+                "remaining": 300,
+                "distance": 950,
+                "approach": {
+                  "x": 850,
+                  "y": 250
+                }
+              },
+              {
+                "id": "resource-18",
+                "remaining": 300,
+                "distance": 1200,
+                "approach": {
+                  "x": 1400,
+                  "y": 550
+                }
+              },
+              {
+                "id": "resource-23",
+                "remaining": 300,
+                "distance": 1150,
+                "approach": {
+                  "x": 1450,
+                  "y": 650
+                }
+              },
+              {
+                "id": "resource-24",
+                "remaining": 300,
+                "distance": 1200,
+                "approach": {
+                  "x": 1450,
+                  "y": 800
+                }
+              },
+              {
+                "id": "resource-26",
+                "remaining": 300,
+                "distance": 150,
+                "approach": {
+                  "x": 300,
+                  "y": 800
+                }
+              },
+              {
+                "id": "resource-27",
+                "remaining": 300,
+                "distance": 1050,
+                "approach": {
+                  "x": 1300,
+                  "y": 800
+                }
+              }
+            ]
+          },
+          {
+            "kind": "stone",
+            "minimum": 250,
+            "available": 750,
+            "nearestDistance": 450,
+            "nodes": [
+              {
+                "id": "resource-9",
+                "remaining": 250,
+                "distance": 450,
+                "approach": {
+                  "x": 600,
+                  "y": 500
+                }
+              },
+              {
+                "id": "resource-12",
+                "remaining": 250,
+                "distance": 600,
+                "approach": {
+                  "x": 950,
+                  "y": 700
+                }
+              },
+              {
+                "id": "resource-28",
+                "remaining": 250,
+                "distance": 600,
+                "approach": {
+                  "x": 100,
+                  "y": 1050
+                }
+              }
+            ]
+          },
+          {
+            "kind": "gold",
+            "minimum": 250,
+            "available": 500,
+            "nearestDistance": 750,
+            "nodes": [
+              {
+                "id": "resource-30",
+                "remaining": 250,
+                "distance": 750,
+                "approach": {
+                  "x": 500,
+                  "y": 300
+                }
+              },
+              {
+                "id": "resource-31",
+                "remaining": 250,
+                "distance": 950,
+                "approach": {
+                  "x": 900,
+                  "y": 300
+                }
+              }
+            ]
+          },
+          {
+            "kind": "berries",
+            "minimum": 150,
+            "available": 300,
+            "nearestDistance": 400,
+            "nodes": [
+              {
+                "id": "resource-32",
+                "remaining": 150,
+                "distance": 400,
+                "approach": {
+                  "x": 350,
+                  "y": 1000
+                }
+              },
+              {
+                "id": "resource-33",
+                "remaining": 150,
+                "distance": 1150,
+                "approach": {
+                  "x": 1200,
+                  "y": 1000
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "player": 1,
+        "spawn": {
+          "x": 1150,
+          "y": 700
+        },
+        "access": [
+          {
+            "kind": "tree",
+            "minimum": 300,
+            "available": 5700,
+            "nearestDistance": 250,
+            "nodes": [
+              {
+                "id": "resource-4",
+                "remaining": 300,
+                "distance": 1200,
+                "approach": {
+                  "x": 250,
+                  "y": 400
+                }
+              },
+              {
+                "id": "resource-5",
+                "remaining": 300,
+                "distance": 1000,
+                "approach": {
+                  "x": 250,
+                  "y": 600
+                }
+              },
+              {
+                "id": "resource-6",
+                "remaining": 300,
+                "distance": 950,
+                "approach": {
+                  "x": 250,
+                  "y": 650
+                }
+              },
+              {
+                "id": "resource-8",
+                "remaining": 300,
+                "distance": 1000,
+                "approach": {
+                  "x": 750,
+                  "y": 100
+                }
+              },
+              {
+                "id": "resource-10",
+                "remaining": 300,
+                "distance": 700,
+                "approach": {
+                  "x": 1050,
+                  "y": 100
+                }
+              },
+              {
+                "id": "resource-11",
+                "remaining": 300,
+                "distance": 600,
+                "approach": {
+                  "x": 1050,
+                  "y": 200
+                }
+              },
+              {
+                "id": "resource-13",
+                "remaining": 300,
+                "distance": 750,
+                "approach": {
+                  "x": 1150,
+                  "y": 150
+                }
+              },
+              {
+                "id": "resource-14",
+                "remaining": 300,
+                "distance": 850,
+                "approach": {
+                  "x": 1250,
+                  "y": 150
+                }
+              },
+              {
+                "id": "resource-15",
+                "remaining": 300,
+                "distance": 750,
+                "approach": {
+                  "x": 1250,
+                  "y": 250
+                }
+              },
+              {
+                "id": "resource-17",
+                "remaining": 300,
+                "distance": 850,
+                "approach": {
+                  "x": 1350,
+                  "y": 250
+                }
+              },
+              {
+                "id": "resource-18",
+                "remaining": 300,
+                "distance": 400,
+                "approach": {
+                  "x": 1400,
+                  "y": 550
+                }
+              },
+              {
+                "id": "resource-20",
+                "remaining": 300,
+                "distance": 950,
+                "approach": {
+                  "x": 1450,
+                  "y": 250
+                }
+              },
+              {
+                "id": "resource-21",
+                "remaining": 300,
+                "distance": 850,
+                "approach": {
+                  "x": 1450,
+                  "y": 350
+                }
+              },
+              {
+                "id": "resource-22",
+                "remaining": 300,
+                "distance": 450,
+                "approach": {
+                  "x": 1450,
+                  "y": 550
+                }
+              },
+              {
+                "id": "resource-23",
+                "remaining": 300,
+                "distance": 300,
+                "approach": {
+                  "x": 1450,
+                  "y": 700
+                }
+              },
+              {
+                "id": "resource-24",
+                "remaining": 300,
+                "distance": 350,
+                "approach": {
+                  "x": 1450,
+                  "y": 750
+                }
+              },
+              {
+                "id": "resource-25",
+                "remaining": 300,
+                "distance": 950,
+                "approach": {
+                  "x": 1450,
+                  "y": 1050
+                }
+              },
+              {
+                "id": "resource-26",
+                "remaining": 300,
+                "distance": 950,
+                "approach": {
+                  "x": 300,
+                  "y": 800
+                }
+              },
+              {
+                "id": "resource-27",
+                "remaining": 300,
+                "distance": 250,
+                "approach": {
+                  "x": 1300,
+                  "y": 800
+                }
+              }
+            ]
+          },
+          {
+            "kind": "stone",
+            "minimum": 250,
+            "available": 750,
+            "nearestDistance": 50,
+            "nodes": [
+              {
+                "id": "resource-9",
+                "remaining": 250,
+                "distance": 650,
+                "approach": {
+                  "x": 700,
+                  "y": 500
+                }
+              },
+              {
+                "id": "resource-12",
+                "remaining": 250,
+                "distance": 50,
+                "approach": {
+                  "x": 1100,
+                  "y": 700
+                }
+              },
+              {
+                "id": "resource-29",
+                "remaining": 250,
+                "distance": 550,
+                "approach": {
+                  "x": 1300,
+                  "y": 1100
+                }
+              }
+            ]
+          },
+          {
+            "kind": "gold",
+            "minimum": 250,
+            "available": 500,
+            "nearestDistance": 500,
+            "nodes": [
+              {
+                "id": "resource-30",
+                "remaining": 250,
+                "distance": 900,
+                "approach": {
+                  "x": 650,
+                  "y": 300
+                }
+              },
+              {
+                "id": "resource-31",
+                "remaining": 250,
+                "distance": 500,
+                "approach": {
+                  "x": 1050,
+                  "y": 300
+                }
+              }
+            ]
+          },
+          {
+            "kind": "berries",
+            "minimum": 150,
+            "available": 300,
+            "nearestDistance": 350,
+            "nodes": [
+              {
+                "id": "resource-32",
+                "remaining": 150,
+                "distance": 1100,
+                "approach": {
+                  "x": 350,
+                  "y": 1000
+                }
+              },
+              {
+                "id": "resource-33",
+                "remaining": 150,
+                "distance": 350,
+                "approach": {
+                  "x": 1200,
+                  "y": 1000
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

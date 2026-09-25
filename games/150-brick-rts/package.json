@@ -9,7 +9,8 @@
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "validate": "node --experimental-strip-types packages/content/validate.ts",
     "test:browser": "node tests/browser.mjs",
-    "sim:headless": "node --experimental-strip-types packages/sim/run.ts"
+    "sim:headless": "node --experimental-strip-types packages/sim/run.ts",
+    "maps:export": "node --experimental-strip-types packages/content/export-maps.ts"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

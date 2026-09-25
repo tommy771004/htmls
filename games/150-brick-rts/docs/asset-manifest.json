@@ -27,7 +27,7 @@
         2.5,
         2.3
       ],
-      "selectionBounds": "visible mesh raycast; villager ring radius 0.47",
+      "selectionBounds": "not currently selectable in game UI",
       "collisionProxy": "packages/sim/navigation.ts expanded static AABB",
       "attachmentPoints": [],
       "animations": [
@@ -47,7 +47,7 @@
         1,
         1
       ],
-      "selectionBounds": "visible mesh raycast; villager ring radius 0.47",
+      "selectionBounds": "not currently selectable in game UI",
       "collisionProxy": "packages/sim/navigation.ts expanded static AABB",
       "attachmentPoints": [],
       "animations": [
@@ -67,7 +67,7 @@
         0.65,
         0.7
       ],
-      "selectionBounds": "visible mesh raycast; villager ring radius 0.47",
+      "selectionBounds": "not currently selectable in game UI",
       "collisionProxy": "packages/sim/navigation.ts expanded static AABB",
       "attachmentPoints": [],
       "animations": [
@@ -95,6 +95,106 @@
         "walk"
       ],
       "status": "initial representative asset; full art matrix not complete"
+    },
+    {
+      "id": "gold",
+      "source": "apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "resource origin",
+      "footprint": [
+        0.65,
+        0.7
+      ],
+      "selectionBounds": "not currently selectable in game UI",
+      "collisionProxy": "expanded static AABB",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "status": "representative resource; work/hunt/herd/fish gameplay pending"
+    },
+    {
+      "id": "berries",
+      "source": "apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "resource origin",
+      "footprint": [
+        0.65,
+        0.7
+      ],
+      "selectionBounds": "not currently selectable in game UI",
+      "collisionProxy": "expanded static AABB",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "status": "representative resource; work/hunt/herd/fish gameplay pending"
+    },
+    {
+      "id": "hunt",
+      "source": "apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "resource origin",
+      "footprint": [
+        0.65,
+        0.7
+      ],
+      "selectionBounds": "not currently selectable in game UI",
+      "collisionProxy": "expanded static AABB",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "status": "representative resource; work/hunt/herd/fish gameplay pending"
+    },
+    {
+      "id": "livestock",
+      "source": "apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "resource origin",
+      "footprint": [
+        0.65,
+        0.7
+      ],
+      "selectionBounds": "not currently selectable in game UI",
+      "collisionProxy": "expanded static AABB",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "status": "representative resource; work/hunt/herd/fish gameplay pending"
+    },
+    {
+      "id": "fish",
+      "source": "apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "resource origin",
+      "footprint": [
+        0,
+        0
+      ],
+      "selectionBounds": "not currently selectable in game UI",
+      "collisionProxy": "nonblocking water resource",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "status": "representative resource; work/hunt/herd/fish gameplay pending"
     }
   ],
   "remaining": [

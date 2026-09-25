@@ -3,7 +3,7 @@ import {createScene} from './scene.ts';
 import {SimulationClient} from './worker-client.ts';
 import type {View} from '../../packages/sim/protocol.ts';
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
-let state:View={seed:rules.settings.seed,tick:0,units:[],fog:[],known:[],stateHash:'—'};
+let state:View={seed:rules.settings.seed,tick:0,units:[],fog:[],known:[],resources:[],stateHash:'—'};
 let scene:Awaited<ReturnType<typeof createScene>>|null=null,graphicsFailed=false;
 let selected=1,running=false,last=0,accumulator=0,advancing=false,connected=false;
 const notice=(s:string)=>{el('notice').textContent=s;};

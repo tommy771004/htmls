@@ -1,3 +1,4 @@
+import type {ResourceNode} from './terrain.ts';
 import {projectVision,unitVisible} from './vision.ts';
 import type {KnownObstacle} from './vision.ts';
 import {createState,submit,tick,hash,replay,serialize,deserialize,rulesetHash} from './sim.ts';
@@ -5,12 +6,12 @@ import type {Command,LoggedCommand,Unit} from './sim.ts';
 export type Recovery={seed:number;commands:LoggedCommand[];ticks:number};
 export type Operation={kind:'move';unitId:number;x:number;y:number}|{kind:'advance';count:number}|{kind:'reset';seed:number}|{kind:'restore';snapshot:string}|{kind:'snapshot'}|{kind:'replay'}|{kind:'recover';checkpoint:Recovery};
 export type Request={protocol:1;id:number;operation:Operation};
-export type View={seed:number;tick:number;units:Unit[];fog:number[];known:KnownObstacle[];stateHash:string};
-export type Response={protocol:1;id:number;ok:true;seed:number;tick:number;stateHash:string;positions:ArrayBuffer;fog:number[];known:KnownObstacle[];accepted?:LoggedCommand;commands?:LoggedCommand[];snapshot?:string;replayMatches?:boolean}|{protocol:1;id:number;ok:false;tick:number;message:string;entityId?:number};
+export type View={seed:number;tick:number;units:Unit[];fog:number[];known:KnownObstacle[];resources:ResourceNode[];stateHash:string};
+export type Response={protocol:1;id:number;ok:true;seed:number;tick:number;stateHash:string;positions:ArrayBuffer;fog:number[];known:KnownObstacle[];resources:ResourceNode[];accepted?:LoggedCommand;commands?:LoggedCommand[];snapshot?:string;replayMatches?:boolean}|{protocol:1;id:number;ok:false;tick:number;message:string;entityId?:number};
 export function decodeView(r:Extract<Response,{ok:true}>):View{
  const values=new Int32Array(r.positions),units:Unit[]=[];
  for(let i=0;i<values.length;i+=7)units.push({id:values[i],player:values[i+1],x:values[i+2],y:values[i+3],navigation:(['idle','searching','moving','unreachable'] as const)[values[i+6]],target:values[i+4]<0?null:{x:values[i+4],y:values[i+5]}});
- return {seed:r.seed,tick:r.tick,stateHash:r.stateHash,fog:r.fog,known:r.known,units};
+ return {seed:r.seed,tick:r.tick,stateHash:r.stateHash,fog:r.fog,known:r.known,resources:r.resources,units};
 }
 // This service owns state. DOM, clocks, rendering and transport never decide rules.
 export function createService(){

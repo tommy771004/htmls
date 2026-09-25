@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e6d6cc">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>篩 Sift · 晨間摘要</title>
+<meta name="description" content="把一早湧進來的群組與信件，整理成一疊摘要卡：往右甩是讀完，往左甩是稍後，頂端膠囊隨時可以復原。">
+<style>
+:root{
+  --paper:#e6d6cc; --card:#f8f1ec; --card-2:#efe3dc; --ink:#2a1c17; --ink-2:#6a544b; --ink-3:#9a8278;
+  --moss:#3d5a3a; --ochre:#94662a; --rust:#9b4a33; --plum:#6b4656;
+  --serif:"Athelas","Iowan Old Style",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --spring:cubic-bezier(.3,1.35,.45,1); --out:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--sans);color:var(--ink);background:var(--paper);overflow:hidden;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:8px}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--paper)}
+.screen::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.6;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .18 0 0 0 0 .14 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E")}
+@media (min-width:521px){
+  body{background:#cdb6aa}
+  .stage{display:flex;align-items:center;justify-content:center;gap:80px;padding:24px}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:52px;padding:9px;background:#2a1c17;
+    box-shadow:inset 0 0 0 1.5px #4a3a33,0 14px 22px -12px #3a201566}
+  .screen{inset:9px;border-radius:44px}
+  .caption{display:block;max-width:260px}
+  .caption b{display:block;font:400 104px/.85 var(--serif);letter-spacing:.01em}
+  .caption p{margin-top:22px;font-size:15px;line-height:1.75;color:var(--ink-2)}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(44px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 26px 0 30px;
+  display:flex;align-items:center;justify-content:space-between;font:600 15px/1 var(--sans);pointer-events:none}
+.status svg{height:11px}
+@media (display-mode:standalone){.status{display:none}}
+
+/* header */
+.head{position:absolute;z-index:4;top:calc(46px + env(safe-area-inset-top));left:22px;right:22px;display:flex;justify-content:space-between;align-items:flex-end}
+.head h1{font:400 34px/1 var(--serif);letter-spacing:.01em}
+.head small{display:block;font-size:12.5px;color:var(--ink-2);margin-top:6px}
+.menu{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;transition:background .2s}
+.menu:hover{background:#2a1c170d}
+.menu svg{width:18px;height:18px}
+
+/* capsule */
+.cap{position:absolute;z-index:6;left:50%;top:calc(104px + env(safe-area-inset-top));transform:translateX(-50%);height:38px;width:196px;border-radius:19px;background:var(--ink);color:#f5ebe5;overflow:hidden;
+  box-shadow:0 2px 3px #2a1c1722;transition:width .55s var(--spring),background .35s}
+.cs{position:absolute;inset:0;display:flex;align-items:center;gap:9px;padding:0 14px 0 8px;white-space:nowrap;font-size:13px;
+  opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .3s var(--out),visibility 0s .3s}
+.cs.on{opacity:1;visibility:visible;transform:none;transition:opacity .3s .12s,transform .45s .1s var(--out),visibility 0s}
+.ring{width:24px;height:24px;flex:none}
+.ring circle{fill:none;stroke-width:3}
+.ring .p{stroke:#e9c9b6;stroke-linecap:round;transition:stroke-dashoffset .6s var(--out)}
+.cs b{font:400 16px/1 var(--serif)}
+.cs .dim{color:#bca397}
+.undo{margin-left:auto;padding:5px 10px;border-radius:10px;background:#f5ebe51f;font-size:12.5px;font-weight:600}
+.undo:hover{background:#f5ebe533}
+.cs .mk{width:20px;height:20px;flex:none}
+
+/* deck */
+.deck{position:absolute;z-index:3;left:18px;right:18px;top:calc(158px + env(safe-area-inset-top));bottom:calc(104px + env(safe-area-inset-bottom))}
+.card{position:absolute;inset:0;background:var(--card);border-radius:22px;padding:20px 20px 16px;display:flex;flex-direction:column;
+  box-shadow:0 1px 1px #2a1c1714,0 10px 18px -14px #2a1c1766;touch-action:none;user-select:none;will-change:transform;
+  transition:transform .5s var(--spring),opacity .35s,filter .35s}
+.card.drag{transition:none;cursor:grabbing}
+.card[data-d="1"]{transform:translateY(14px) scale(.95);filter:brightness(.97)}
+.card[data-d="2"]{transform:translateY(27px) scale(.9);filter:brightness(.94)}
+.card[data-d="3"]{transform:translateY(38px) scale(.86);opacity:0}
+.card[data-d="1"] .body,.card[data-d="2"] .body{visibility:hidden}
+.src{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2)}
+.src svg{width:16px;height:16px;flex:none}
+.src .t{margin-left:auto;font:400 14px/1 var(--serif);color:var(--ink-3)}
+.men{margin-top:12px;font-size:12px;color:var(--rust);font-weight:600}
+.card h2{font-size:23px;line-height:1.28;font-weight:600;margin-top:4px;letter-spacing:.01em}
+.body{flex:1;display:flex;flex-direction:column;min-height:0}
+.body p{font-size:14.5px;line-height:1.75;color:#4a3831;margin-top:12px;overflow:hidden}
+.todo{margin-top:auto;padding-top:12px;display:grid;grid-template-columns:auto 1fr;gap:8px 10px;font-size:13px;align-items:start}
+.todo i{font-style:normal;font:400 15px/1.2 var(--serif);color:var(--ink-3)}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid #2a1c1714;font-size:12.5px;color:var(--ink-2)}
+.foot button{display:flex;align-items:center;gap:6px;padding:6px 8px;margin:-6px -8px;border-radius:9px;color:var(--ink)}
+.foot button:hover{background:#2a1c170d}
+.foot svg{width:12px;height:12px}
+.stamp{position:absolute;top:22px;padding:4px 10px 3px;border:2px solid currentColor;border-radius:8px;font-size:20px;font-weight:700;letter-spacing:.12em;opacity:0;pointer-events:none}
+.stamp.ok{left:18px;color:var(--moss);transform:rotate(-10deg)}
+.stamp.later{right:18px;color:var(--ochre);transform:rotate(9deg)}
+
+/* empty */
+.done{position:absolute;z-index:2;left:26px;right:26px;top:calc(170px + env(safe-area-inset-top));bottom:calc(120px + env(safe-area-inset-bottom));display:flex;flex-direction:column;justify-content:center}
+.done .big{font:400 64px/1 var(--serif)}
+.done h3{font-size:24px;margin-top:10px}
+.done p{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:8px}
+.tally{display:flex;gap:26px;margin:22px 0 26px}
+.tally div{font-size:12.5px;color:var(--ink-2)}
+.tally b{display:block;font:400 34px/1.05 var(--serif);color:var(--ink)}
+.again{align-self:flex-start;padding:12px 18px;border-radius:14px;background:var(--ink);color:#f5ebe5;font-size:14px;font-weight:600;transition:background .2s}
+.again:hover{background:#45302a}
+.again:disabled{opacity:.35;cursor:default}
+.reset{align-self:flex-start;margin-top:12px;font-size:13px;color:var(--ink-2);padding:6px 0}
+.done{opacity:0;visibility:hidden;transform:translateY(12px);transition:opacity .4s,transform .6s var(--out),visibility 0s .4s}
+.done.on{opacity:1;visibility:visible;transform:none;transition:opacity .5s .2s,transform .7s .2s var(--out),visibility 0s}
+
+/* action bar */
+.bar{position:absolute;z-index:5;left:18px;right:18px;bottom:calc(24px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:8px}
+.bar button{height:60px;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12.5px;color:var(--ink-2);transition:background .2s,color .2s}
+.bar button:hover{background:#2a1c170b;color:var(--ink)}
+.bar svg{width:22px;height:22px}
+.bar .main{background:var(--ink);color:#f5ebe5}
+.bar .main:hover{background:#45302a;color:#fff}
+.bar button:disabled{opacity:.3;cursor:default;background:none}
+.bar .main:disabled{background:var(--ink)}
+.bar button.hit svg{animation:nudge .4s var(--out)}
+@keyframes nudge{40%{transform:translateX(var(--nx,0)) rotate(var(--nr,0))}}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:20;background:#2a1c1740;opacity:0;visibility:hidden;transition:opacity .3s,visibility 0s .3s}
+.scrim.on{opacity:1;visibility:visible;transition:opacity .3s}
+.sheet{position:absolute;z-index:21;left:0;right:0;bottom:0;max-height:78%;background:var(--card);border-radius:26px 26px 0 0;padding:10px 20px calc(24px + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .5s var(--out);display:flex;flex-direction:column}
+.sheet.on{transform:none}
+.grab{width:38px;height:5px;border-radius:3px;background:#2a1c1726;margin:0 auto 14px}
+.sheet h4{font-size:16px}
+.sheet .sub{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.thread{overflow:auto;margin-top:14px;display:flex;flex-direction:column;gap:10px;padding-bottom:8px}
+.msg{max-width:86%;font-size:14px;line-height:1.55}
+.msg .who{font-size:11.5px;color:var(--ink-3);margin-bottom:3px}
+.msg .bub{background:var(--card-2);border-radius:4px 16px 16px 16px;padding:9px 12px}
+.msg.key .bub{background:#e7d3c6}
+.close{margin-top:14px;height:46px;border-radius:14px;background:var(--ink);color:#f5ebe5;font-weight:600;font-size:14px;flex:none}
+
+@media (max-height:700px){
+  .head h1{font-size:30px}
+  .cap{top:calc(96px + env(safe-area-inset-top))}
+  .deck{top:calc(146px + env(safe-area-inset-top));bottom:calc(92px + env(safe-area-inset-bottom))}
+  .bar{bottom:calc(16px + env(safe-area-inset-bottom))}
+  .bar button{height:56px}
+  .card h2{font-size:21px}
+  .body p{font-size:14px;line-height:1.68;margin-top:9px}
+  .done .big{font-size:52px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="caption"><b>Sift</b><p>一早的群組和信件，篩成一疊卡。<br>往右甩是讀完，往左甩是稍後。</p></div>
+  <div class="device"><div class="screen" id="screen">
+    <div class="status" aria-hidden="true"><span>7:42</span><svg viewBox="0 0 60 11"><path d="M0 8h3v3H0zM5 6h3v5H5zM10 3h3v8h-3zM15 0h3v11h-3z" fill="#2a1c17"/><rect x="34" y=".5" width="22" height="10" rx="3" fill="none" stroke="#2a1c17" opacity=".5"/><rect x="36" y="2.5" width="15" height="6" rx="1.5" fill="#2a1c17"/><path d="M57.5 3.5v4" stroke="#2a1c17" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg></div>
+
+    <header class="head">
+      <div><h1>Sift</h1><small id="date">9 月 25 日 · 星期四 · 晨間摘要</small></div>
+      <button class="menu" id="menu" aria-label="重新整理摘要"><svg viewBox="0 0 18 18" fill="none" stroke="#2a1c17" stroke-width="1.6" stroke-linecap="round"><path d="M15 9a6 6 0 1 1-2-4.5"/><path d="M13.5 1.8v3.2h-3.2"/></svg></button>
+    </header>
+
+    <div class="cap" id="cap" role="status" aria-live="polite">
+      <div class="cs on" data-s="count"><svg class="ring" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="#f5ebe52a"/><circle class="p" id="ring" cx="12" cy="12" r="9" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 12 12)"/></svg><span>今天 <b id="cTot">6</b> 則</span><span class="dim">剩 <span id="cLeft">6</span></span></div>
+      <div class="cs" data-s="act"><svg class="mk" id="mk" viewBox="0 0 20 20"></svg><span id="aTxt">已讀完</span><button class="undo" id="undo">復原</button></div>
+    </div>
+
+    <div class="deck" id="deck"></div>
+
+    <section class="done" id="done" aria-live="polite">
+      <div class="big" id="dTime">7:48</div>
+      <h3>都篩完了。</h3>
+      <p id="dLine">今天早上的訊息已經整理好，剩下的留給稍後。</p>
+      <div class="tally"><div><b id="tOk">0</b>讀完</div><div><b id="tLater">0</b>稍後</div><div><b id="tSave">0</b>分鐘省下</div></div>
+      <button class="again" id="again">再看稍後的 0 則</button>
+      <button class="reset" id="reset">從頭再來一次</button>
+    </section>
+
+    <nav class="bar" aria-label="摘要動作">
+      <button id="bLater" style="--nx:-4px;--nr:-8deg"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5.5V11l3.2 2"/><path d="M4.2 7.2A7.5 7.5 0 1 1 3.5 11"/><path d="M3.8 3.6v3.8h3.8"/></svg>稍後</button>
+      <button id="bOk" class="main" style="--nx:4px;--nr:0deg"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11.5l4.2 4L17.5 6"/></svg>讀完</button>
+      <button id="bOpen" style="--nx:0;--nr:0"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h10a3 3 0 0 1 3 3V17l-3-2.4H7a3 3 0 0 1-3-3z"/><path d="M8 9h6M8 12h3.5"/></svg>原文</button>
+    </nav>
+
+    <div class="scrim" id="scrim"></div>
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT" aria-hidden="true">
+      <div class="grab"></div>
+      <h4 id="shT">原文</h4><div class="sub" id="shS"></div>
+      <div class="thread" id="thread"></div>
+      <button class="close" id="shClose">回到摘要</button>
+    </div>
+  </div></div>
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* source marks: each one its own little drawn object, same 16px grid, 1.4 stroke */
+const MARK = {
+  school:'<path d="M2 6.5L8 3.5l6 3-6 3z" fill="#9b4a33"/><path d="M4.5 8v3.2c2.2 1.6 4.8 1.6 7 0V8" fill="none" stroke="#9b4a33" stroke-width="1.4" stroke-linecap="round"/>',
+  building:'<path d="M3.5 14V3.5h6V14M9.5 7h3V14" fill="none" stroke="#3d5a3a" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.5 6h2M5.5 8.5h2M5.5 11h2" stroke="#3d5a3a" stroke-width="1.2" stroke-linecap="round"/>',
+  work:'<rect x="2.5" y="5" width="11" height="8" rx="2" fill="none" stroke="#6b4656" stroke-width="1.4"/><path d="M6 5V3.8h4V5M2.5 8.5h11" fill="none" stroke="#6b4656" stroke-width="1.4"/>',
+  key:'<circle cx="5.5" cy="8" r="3" fill="none" stroke="#94662a" stroke-width="1.4"/><path d="M8.5 8H14M12 8v2.2" fill="none" stroke="#94662a" stroke-width="1.4" stroke-linecap="round"/>',
+  family:'<circle cx="5.5" cy="5.5" r="2" fill="#9b4a33"/><circle cx="11" cy="6.5" r="1.6" fill="#94662a"/><path d="M2 14c0-3.2 1.6-4.8 3.5-4.8S9 10.8 9 14M8.5 14c.2-2.4 1.2-3.8 2.5-3.8s2.3 1.4 2.5 3.8" fill="none" stroke="#6a544b" stroke-width="1.3" stroke-linecap="round"/>',
+  letter:'<path d="M2.5 4.5h11v7.5h-11z" fill="none" stroke="#6a544b" stroke-width="1.4" stroke-linejoin="round"/><path d="M2.8 5l5.2 4 5.2-4" fill="none" stroke="#6a544b" stroke-width="1.4" stroke-linejoin="round"/>'
+};
+const DATA = [
+  {src:'三年二班 家長群組', m:'school', t:'06:58', men:'老師提到你', h:'週五戶外教學改到週二，要交同意書', p:'因為週五午後可能下雨，戶外教學提前到下週二。每位同學需要帶水壺與雨衣，同意書週一前放進聯絡簿。', todo:['週一前簽同意書','準備水壺與雨衣'], n:23, save:4,
+    th:[['林老師','各位家長早，週五天氣不穩，戶外教學改到 9/30（二）。',1],['林老師','同意書已夾在聯絡簿，請週一前簽回，謝謝。',1],['小安媽媽','收到，需要帶便當嗎？',0],['林老師','不用，學校有準備午餐，記得水壺和輕便雨衣。',1]]},
+  {src:'松濤社區 管委會', m:'building', t:'07:05', men:'', h:'今晚 22:00 停水四小時', p:'B 棟水塔清洗，22:00 到隔天 02:00 全棟停水。電梯正常運作，地下室停車場會暫時封閉 B2 東側。', todo:['睡前先儲水'], n:6, save:2,
+    th:[['管理室','公告：本日 22:00–02:00 B 棟水塔清洗，全棟停水。',1],['管理室','B2 東側車位暫停使用，請改停 B3。',0],['12F 住戶','請問熱水器需要關嗎？',0],['管理室','建議關閉，恢復供水後再開。',1]]},
+  {src:'產品部 週報信', m:'work', t:'07:12', men:'有人標記你', h:'新版結帳頁週三上線，需要你確認文案', p:'設計稿已定版，工程預計週三上線。PM 請你在明天中午前看過結帳頁三處文案，特別是退款說明那一段。', todo:['明天中午前回覆文案'], n:14, save:5,
+    th:[['陳 PM','結帳頁 v3 定版了，週三上線。',0],['陳 PM','@你 麻煩看一下退款說明那段，我怕太長。',1],['設計 阿哲','圖已更新在共用資料夾。',0]]},
+  {src:'房東 黃先生', m:'key', t:'07:20', men:'', h:'冷氣保養師傅週六上午十點到', p:'房東約了師傅週六 10:00 來清洗冷氣，大約一小時。若時間不行，週四晚上前回覆，他可以改約週日。', todo:['週四前確認時間'], n:3, save:1,
+    th:[['黃先生','早安，冷氣保養約好了，週六早上十點。',1],['黃先生','如果不方便跟我說，可以改週日。',0]]},
+  {src:'家族群組', m:'family', t:'07:31', men:'', h:'中秋聚餐定在阿嬤家，每家帶一道菜', p:'大家投票後決定中秋晚上在阿嬤家吃飯。二姑負責烤肉架，你家被分到甜點。阿嬤特別交代不要買太多。', todo:['準備一道甜點'], n:41, save:6,
+    th:[['二姑','投票結果：阿嬤家 12 票',0],['二姑','烤肉架我來，你們家負責甜點喔',1],['阿嬤','不要買太多，吃不完',1],['表弟','我帶飲料',0]]},
+  {src:'島嶼書店 電子報', m:'letter', t:'07:40', men:'', h:'這週選書：海邊的散文，週日有讀書會', p:'本週主題是寫海的散文，店裡準備了三本選書。週日下午兩點有小型讀書會，名額十二人，回信即可報名。', todo:['想去就回信報名'], n:1, save:2,
+    th:[['島嶼書店','這週我們讀海。三本選書已經放在門口第一排。',0],['島嶼書店','週日 14:00 讀書會，限 12 人，回信報名。',1]]}
+];
+
+const deck = $('#deck'), cap = $('#cap');
+let queue = [], later = [], history = [], stats = {ok:0, later:0, save:0};
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
+
+function cardHTML(d){
+  return `<div class="stamp ok">讀完</div><div class="stamp later">稍後</div>
+  <div class="src"><svg viewBox="0 0 16 16" aria-hidden="true">${MARK[d.m]}</svg>${esc(d.src)}<span class="t">${d.t}</span></div>
+  ${d.men ? `<div class="men">${d.men}</div>` : '<div class="men" style="visibility:hidden">·</div>'}
+  <h2>${esc(d.h)}</h2>
+  <div class="body"><p>${esc(d.p)}</p>
+  <div class="todo">${d.todo.map((x,i) => `<i>${i+1}</i><span>${esc(x)}</span>`).join('')}</div></div>
+  <div class="foot"><span>整理自 ${d.n} 則訊息</span><button data-open aria-label="看原文">原文<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l6-6M4.5 3H9v4.5"/></svg></button></div>`;
+}
+function render(){
+  deck.querySelectorAll('.card:not(.leaving)').forEach(c => c.remove());
+  queue.slice(0, 4).reverse().forEach((d) => {
+    const i = queue.indexOf(d); const c = document.createElement('article'); c.className = 'card'; c.dataset.d = i; c.innerHTML = cardHTML(d); c._d = d;
+    if (i > 0) c.setAttribute('aria-hidden', 'true');
+    deck.appendChild(c);
+  });
+  bind(deck.querySelector('.card[data-d="0"]'));
+  counts();
+}
+function restack(){
+  const cards = [...deck.querySelectorAll('.card:not(.leaving)')];
+  cards.forEach(c => { const i = queue.indexOf(c._d); if (i < 0) return; c.dataset.d = i; c.toggleAttribute('aria-hidden', i > 0); });
+  const have = new Set(cards.map(c => c._d));
+  queue.slice(0, 4).forEach((d, i) => { if (!have.has(d)){ const c = document.createElement('article'); c.className = 'card'; c.dataset.d = 3; c.innerHTML = cardHTML(d); c._d = d; c.setAttribute('aria-hidden','true'); deck.prepend(c); c.getBoundingClientRect(); c.dataset.d = i; } });
+  bind(deck.querySelector('.card[data-d="0"]'));
+  counts();
+}
+function counts(){
+  const tot = DATA.length, left = queue.length;
+  $('#cTot').textContent = tot; $('#cLeft').textContent = left;
+  $('#ring').setAttribute('stroke-dashoffset', 100 - (tot - left) / tot * 100);
+  const empty = !left; $('#done').classList.toggle('on', empty);
+  ['#bLater','#bOk','#bOpen'].forEach(s => $(s).disabled = empty);
+  if (empty){
+    $('#tOk').textContent = stats.ok; $('#tLater').textContent = later.length; $('#tSave').textContent = stats.save;
+    const a = $('#again'); a.textContent = `再看稍後的 ${later.length} 則`; a.disabled = !later.length;
+    $('#dLine').textContent = later.length ? '讀完的已經歸檔，稍後的留在這裡，等你有空。' : '今天早上的訊息都讀完了，可以好好吃早餐。';
+  }
+}
+
+/* capsule morph */
+let capT = 0;
+function capState(s, w){
+  cap.querySelectorAll('.cs').forEach(x => x.classList.toggle('on', x.dataset.s === s));
+  cap.style.width = (w || 196) + 'px';
+}
+const MK = {ok:'<circle cx="10" cy="10" r="9" fill="#3d5a3a"/><path d="M6 10.3l2.6 2.5L14 7.4" fill="none" stroke="#f5ebe5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+            later:'<circle cx="10" cy="10" r="9" fill="#94662a"/><path d="M10 5.8V10l2.6 1.6" fill="none" stroke="#f5ebe5" stroke-width="1.7" stroke-linecap="round"/>'};
+function flash(kind){
+  $('#mk').innerHTML = MK[kind]; $('#aTxt').textContent = kind === 'ok' ? '已讀完' : '移到稍後';
+  capState('act', 216); clearTimeout(capT); capT = setTimeout(() => capState('count'), 3200);
+}
+
+/* decide */
+function decide(kind, vx){
+  const c = deck.querySelector('.card[data-d="0"]'); if (!c || c.classList.contains('leaving')) return;
+  const d = c._d; queue.shift();
+  if (kind === 'ok'){ stats.ok++; stats.save += d.save; } else { later.push(d); }
+  history.push({d, kind});
+  c.classList.add('leaving'); c.classList.remove('drag');
+  const dir = kind === 'ok' ? 1 : -1, cur = c._x || 0;
+  c.style.transition = RM ? 'none' : 'transform .5s cubic-bezier(.3,.7,.3,1), opacity .5s';
+  c.style.transform = `translate(${dir * Math.max(460, Math.abs(cur) + 380)}px, ${(c._y || 0) + 40}px) rotate(${dir * 24}deg)`;
+  c.style.opacity = '0';
+  c.querySelector('.stamp.' + (kind === 'ok' ? 'ok' : 'later')).style.opacity = 1;
+  setTimeout(() => c.remove(), 520);
+  const b = kind === 'ok' ? $('#bOk') : $('#bLater'); b.classList.remove('hit'); b.getBoundingClientRect(); b.classList.add('hit');
+  restack(); flash(kind);
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch(e){}
+}
+function undo(){
+  const last = history.pop(); if (!last) return;
+  if (last.kind === 'ok'){ stats.ok--; stats.save -= last.d.save; } else { later = later.filter(x => x !== last.d); }
+  queue.unshift(last.d);
+  const c = document.createElement('article'); c.className = 'card'; c._d = last.d; c.innerHTML = cardHTML(last.d); c.dataset.d = 0;
+  const dir = last.kind === 'ok' ? 1 : -1;
+  c.style.transition = 'none'; c.style.transform = `translate(${dir * 420}px, 30px) rotate(${dir * 20}deg)`; deck.appendChild(c);
+  c.getBoundingClientRect(); c.style.transition = ''; c.style.transform = '';
+  setTimeout(() => { c.style.transform = ''; }, 20);
+  [...deck.querySelectorAll('.card:not(.leaving)')].forEach(x => { if (x !== c){ const i = queue.indexOf(x._d); x.dataset.d = i; if (i > 3) x.remove(); x.setAttribute('aria-hidden','true'); } });
+  bind(c); counts(); clearTimeout(capT); capState('count');
+}
+
+/* drag physics */
+function bind(c){
+  if (!c || c._bound) return; c._bound = true; c.removeAttribute('aria-hidden');
+  let sx = 0, sy = 0, t0 = 0, id = null, lastX = 0, lastT = 0, vx = 0;
+  const ok = c.querySelector('.stamp.ok'), lt = c.querySelector('.stamp.later');
+  c.addEventListener('pointerdown', e => {
+    if (e.target.closest('[data-open]') || c.dataset.d !== '0') return;
+    id = e.pointerId; c.setPointerCapture(id); sx = e.clientX; sy = e.clientY; lastX = sx; lastT = t0 = performance.now(); vx = 0; c.classList.add('drag');
+  });
+  c.addEventListener('pointermove', e => {
+    if (e.pointerId !== id) return;
+    const x = e.clientX - sx, y = (e.clientY - sy) * .35, now = performance.now();
+    vx = (e.clientX - lastX) / Math.max(1, now - lastT); lastX = e.clientX; lastT = now;
+    c._x = x; c._y = y;
+    c.style.transform = `translate(${x}px, ${y}px) rotate(${x / 18}deg)`;
+    ok.style.opacity = Math.max(0, Math.min(1, x / 90)); lt.style.opacity = Math.max(0, Math.min(1, -x / 90));
+  });
+  const end = e => {
+    if (e.pointerId !== id) return; id = null; c.classList.remove('drag');
+    const x = c._x || 0;
+    if (Math.abs(x) > 110 || Math.abs(vx) > .6 && Math.abs(x) > 30){ decide(x > 0 || (Math.abs(x) <= 110 && vx > 0) ? 'ok' : 'later'); }
+    else { c._x = c._y = 0; c.style.transform = ''; ok.style.opacity = lt.style.opacity = ''; }
+  };
+  c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
+}
+deck.addEventListener('click', e => { if (e.target.closest('[data-open]')) openSheet(); });
+
+/* sheet */
+function openSheet(){
+  const d = queue[0]; if (!d) return;
+  $('#shT').textContent = d.src; $('#shS').textContent = `今早 ${d.n} 則訊息 · 標色的是摘要取用的句子`;
+  $('#thread').innerHTML = d.th.map(m => `<div class="msg${m[2] ? ' key' : ''}"><div class="who">${esc(m[0])}</div><div class="bub">${esc(m[1])}</div></div>`).join('');
+  $('#scrim').classList.add('on'); const s = $('#sheet'); s.classList.add('on'); s.setAttribute('aria-hidden','false'); setTimeout(() => $('#shClose').focus({preventScroll:true}), 60);
+}
+function closeSheet(){ $('#scrim').classList.remove('on'); const s = $('#sheet'); s.classList.remove('on'); s.setAttribute('aria-hidden','true'); }
+$('#shClose').onclick = closeSheet; $('#scrim').onclick = closeSheet;
+let shY = null; const sheet = $('#sheet');
+sheet.addEventListener('pointerdown', e => { if (e.target.closest('.thread,button')) return; shY = e.clientY; sheet.setPointerCapture(e.pointerId); sheet.style.transition = 'none'; });
+sheet.addEventListener('pointermove', e => { if (shY === null) return; sheet.style.transform = `translateY(${Math.max(0, e.clientY - shY)}px)`; });
+sheet.addEventListener('pointerup', e => { if (shY === null) return; const dy = e.clientY - shY; shY = null; sheet.style.transition = ''; sheet.style.transform = ''; if (dy > 80) closeSheet(); });
+
+/* controls */
+$('#bOk').onclick = () => decide('ok');
+$('#bLater').onclick = () => decide('later');
+$('#bOpen').onclick = openSheet;
+$('#undo').onclick = undo;
+$('#again').onclick = () => { queue = later.slice(); later = []; history = []; render(); capState('count'); };
+function reset(){ queue = DATA.slice(); later = []; history = []; stats = {ok:0, later:0, save:0}; render(); capState('count'); }
+$('#reset').onclick = reset;
+$('#menu').onclick = () => { if (queue.length === DATA.length) return; reset(); };
+addEventListener('keydown', e => {
+  if ($('#sheet').classList.contains('on')){ if (e.key === 'Escape') closeSheet(); return; }
+  if (e.key === 'ArrowRight') decide('ok'); else if (e.key === 'ArrowLeft') decide('later');
+  else if ((e.metaKey || e.ctrlKey) && e.key === 'z'){ e.preventDefault(); undo(); }
+});
+
+/* live clock in the done screen */
+const now = new Date(); $('#dTime').textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+reset();
+})();
+</script>
+</body>
+</html>

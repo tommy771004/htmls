@@ -1,5 +1,6 @@
 // packages/sim/terrain.ts
-var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, resourceCapacity: { tree: 300, stone: 250 }, generationAttempts: 8 };
+var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200 }, generationAttempts: 8 };
+var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" } };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
   road: { walkClass: "land", buildability: true, height: 0 },
@@ -10,9 +11,20 @@ var terrainDefinitions = {
   water: { walkClass: "water", buildability: false, height: 0 },
   shallow: { walkClass: "both", buildability: false, height: 0 }
 };
-function createTiles() {
+function createTiles(layout = "meadow", seed = 0) {
+  if (!["meadow", "coast", "acceptance"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
   return Array.from({ length: 256 }, (_, id) => {
-    const terrainType = Math.floor(id / 16) === 8 ? "road" : "grass";
+    const x = id % 16, y = Math.floor(id / 16);
+    let terrainType = y === 8 ? "road" : "grass";
+    if (layout === "coast") {
+      const edge = 12 + (seed >>> 0 >>> Math.floor(x / 4) & 1);
+      if (y >= edge) terrainType = "water";
+      else if (y === edge - 1) terrainType = "sand";
+    }
+    if (layout === "acceptance") {
+      if (x === 7 || x === 8) terrainType = y >= 7 && y <= 9 ? "shallow" : "water";
+      else if (x === 6 || x === 9) terrainType = "sand";
+    }
     return { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
   });
 }
@@ -26,7 +38,7 @@ function canTraverse(tile, movement) {
 // packages/sim/vision.ts
 var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 300, shareVision: false, rememberStaticObjects: true };
 function createVision() {
-  return Array.from({ length: 2 }, () => ({ explored: [], visible: [], known: [] }));
+  return Array.from({ length: 2 }, () => ({ explored: [], visible: [], known: [], resources: [] }));
 }
 function updateVision(visions, map, units, tick2, sharing = [[0], [1]]) {
   if (sharing.length !== 2 || sharing.some((members, p) => !members.includes(p) || members.some((id) => !Number.isInteger(id) || id < 0 || id > 1))) throw Error("\u7121\u6548\u5171\u4EAB\u8996\u91CE\u898F\u5247");
@@ -41,16 +53,17 @@ function updateVision(visions, map, units, tick2, sharing = [[0], [1]]) {
   for (const o of map.obstacles) if (o.kind === "house") reveal(o.red ? 1 : 0, o.x + 100, o.y + 100, visionRules.houseRadius);
   for (let player = 0; player < 2; player++) {
     const vision = visions[player], visible = new Set(sharing[player].flatMap((id) => [...own[id]]));
+    vision.resources = map.resources.filter((r) => r.status === "available" && visible.has(tileAt(r.x, r.y))).map((r) => ({ ...r }));
     vision.visible = [...visible].sort((a, b) => a - b);
     vision.explored = [.../* @__PURE__ */ new Set([...vision.explored, ...vision.visible])].sort((a, b) => a - b);
-    const known = new Map(vision.known.filter((k) => !visible.has(tileAt(k.obstacle.x, k.obstacle.y))).map((k) => [k.obstacle.id, k]));
+    const known = new Map(vision.known.filter((k) => !["hunt", "livestock"].includes(k.obstacle.kind) && !visible.has(tileAt(k.obstacle.x, k.obstacle.y))).map((k) => [k.obstacle.id, k]));
     for (const obstacle of map.obstacles) if (visible.has(tileAt(obstacle.x, obstacle.y))) known.set(obstacle.id, { obstacle: { ...obstacle }, lastSeenTick: tick2 });
     vision.known = [...known.values()].sort((a, b) => a.obstacle.id < b.obstacle.id ? -1 : a.obstacle.id > b.obstacle.id ? 1 : 0);
   }
 }
 function projectVision(vision) {
   const visible = new Set(vision.visible), explored = new Set(vision.explored);
-  return { fog: Array.from({ length: 256 }, (_, id) => visible.has(id) ? 2 : explored.has(id) ? 1 : 0), known: structuredClone(vision.known) };
+  return { fog: Array.from({ length: 256 }, (_, id) => visible.has(id) ? 2 : explored.has(id) ? 1 : 0), known: structuredClone(vision.known), resources: structuredClone(vision.resources) };
 }
 function unitVisible(vision, unit, player) {
   return unit.player === player || vision.visible.includes(tileAt(unit.x, unit.y));
@@ -95,39 +108,60 @@ function cancelReservation(account, id) {
 
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 32, speedPerTick: 5 };
-function makeMap(seed) {
+var startingResourceRules = { provenance: "design_default", maxApproachDistance: 1200, maxNearestDistanceDifference: 500, minimum: { tree: 300, stone: 250, gold: 250, berries: 150 } };
+function makeMap(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("\u5730\u5716 seed \u5FC5\u9808\u70BA uint32");
   let lastErrors = [];
   for (let attempt = 0; attempt < terrainRules.generationAttempts; attempt++) {
-    const map = generateCandidate(seed + Math.imul(attempt, 2654435761) >>> 0);
+    const map = generateCandidate(seed + Math.imul(attempt, 2654435761) >>> 0, layout);
     map.generationAttempt = attempt;
     lastErrors = validateMap(map);
+    if (!lastErrors.length) lastErrors = validateStartingResources(map).errors;
     if (!lastErrors.length) return map;
   }
   throw Error(`\u5730\u5716\u751F\u6210\u5931\u6557\uFF08${terrainRules.generationAttempts} \u6B21\uFF09\uFF1A${lastErrors.join("\uFF1B")}`);
 }
-function generateCandidate(seed) {
+function generateCandidate(seed, layout) {
   let rng = seed || 1;
-  const obstacles = [{ kind: "house", x: 300, y: 400 }, { kind: "house", x: 1100, y: 400, red: true }];
+  let obstacles = [{ kind: "house", x: 300, y: 400 }, { kind: "house", x: 1100, y: 400, red: true }];
   for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) {
     rng ^= rng << 13;
     rng ^= rng >>> 17;
     rng ^= rng << 5;
     const v = (rng >>> 0) / 4294967296;
     if ((x < 2 || y < 2 || x > 13 || y > 13) && v < 0.34) obstacles.push({ kind: "tree", x: x * 100 + 12, y: y * 100 + 12 });
-    else if (v < 0.028 && Math.abs(x - 8) < 3) obstacles.push({ kind: "rock", x: x * 100, y: y * 100 });
+    else if (v < 0.028 && Math.abs(x - 8) < 3 && y > 3) obstacles.push({ kind: "rock", x: x * 100, y: y * 100 });
   }
-  const map = { obstacles, blocked: [], tiles: createTiles(), resources: [], navigationRevision: 0, generationAttempt: 0 };
+  if (layout === "coast") obstacles = obstacles.filter((o) => o.y < 1e3);
+  if (layout === "acceptance") obstacles = [...obstacles.slice(0, 2), { kind: "tree", x: 150, y: 250 }, { kind: "tree", x: 1350, y: 250 }, { kind: "rock", x: 500, y: 1100 }, { kind: "rock", x: 1050, y: 1100 }];
+  const guaranteed = [{ kind: "tree", x: 150, y: 850 }, { kind: "tree", x: 1350, y: 850 }, { kind: "rock", x: 150, y: 1100 }, { kind: "rock", x: 1350, y: 1100 }];
+  obstacles = obstacles.filter((o) => o.kind === "house" || !guaranteed.some((g) => Math.abs(g.x - o.x) < 140 && Math.abs(g.y - o.y) < 140));
+  obstacles.push(...guaranteed);
+  obstacles.push({ kind: "gold", x: 550, y: 200 }, { kind: "gold", x: 950, y: 200 }, { kind: "berries", x: 250, y: 1e3 }, { kind: "berries", x: 1250, y: 1e3 });
+  const map = { obstacles, blocked: [], tiles: createTiles(layout, seed), resources: [], navigationRevision: 0, generationAttempt: 0 };
   obstacles.forEach((o, index) => {
     o.id = `obstacle-${index}`;
     map.tiles[tileAt(o.x, o.y)].obstacleRefs.push(o.id);
     if (o.kind !== "house") {
-      const kind = o.kind === "tree" ? "tree" : "stone";
+      const kind = o.kind === "rock" ? "stone" : o.kind;
       const id = `resource-${index}`, capacity = terrainRules.resourceCapacity[kind];
       map.resources.push({ id, kind, x: o.x, y: o.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: o.id, depletedAt: null });
       map.tiles[tileAt(o.x, o.y)].resourceRefs.push(id);
     }
   });
+  const addResource = (kind, x, y) => {
+    const id = `resource-${kind}-${x}-${y}`, capacity = terrainRules.resourceCapacity[kind], obstacleId = kind === "fish" ? null : `obstacle-${kind}-${x}-${y}`;
+    if (obstacleId && kind !== "fish") {
+      map.obstacles.push({ id: obstacleId, kind, x, y });
+      map.tiles[tileAt(x, y)].obstacleRefs.push(obstacleId);
+    }
+    map.resources.push({ id, kind, x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId, depletedAt: null });
+    map.tiles[tileAt(x, y)].resourceRefs.push(id);
+  };
+  for (const x of [300, 1200]) addResource("livestock", x, 900);
+  for (const x of [500, 1e3]) addResource("hunt", x, 1e3);
+  if (layout === "coast") for (const x of [300, 1200]) addResource("fish", x, 1450);
+  if (layout === "acceptance") for (const y of [300, 1200]) addResource("fish", 800, y);
   for (let i = 0; i < 961; i++) if (!clearSegment(map, position(i), position(i))) map.blocked.push(i);
   return map;
 }
@@ -135,9 +169,9 @@ function bounds(o) {
   const r = navigationRules.radius;
   return o.kind === "house" ? [o.x - 15 - r, o.y - 15 - r, o.x + 235 + r, o.y + 215 + r] : o.kind === "tree" ? [o.x - 20 - r, o.y - 20 - r, o.x + 80 + r, o.y + 80 + r] : [o.x - r, o.y - r, o.x + 65 + r, o.y + 70 + r];
 }
-function clearSegment(map, a, b) {
+function clearSegment(map, a, b, movement = "land") {
   if ([a.x, a.y, b.x, b.y].some((v) => !Number.isSafeInteger(v) || v < 50 || v > 1550)) return false;
-  for (const tile of map.tiles) if (!canTraverse(tile, "land")) {
+  for (const tile of map.tiles) if (!canTraverse(tile, movement)) {
     const x = tile.id % 16 * 100, y = Math.floor(tile.id / 16) * 100, r = navigationRules.radius;
     if (intersects(a, b, [x - r, y - r, x + 100 + r, y + 100 + r])) return false;
   }
@@ -185,6 +219,12 @@ function validateMap(map) {
     if (tile.resourceRefs.some((id) => !resources2.has(id)) || tile.obstacleRefs.some((id) => !obstacles.has(id))) errors.push(`\u5730\u683C ${tile.id} \u53C3\u7167\u5931\u6548`);
   }
   for (const r of map.resources) {
+    if (!resourceDefinitions[r.kind]) {
+      errors.push(`\u8CC7\u6E90 ${r.id} \u985E\u5225\u7121\u6548`);
+      continue;
+    }
+    const cell = map.tiles[tileAt(r.x, r.y)];
+    if (!cell || !canTraverse(cell, resourceDefinitions[r.kind].movement)) errors.push(`\u8CC7\u6E90 ${r.id} \u5730\u5F62\u4E0D\u7B26`);
     if (!Number.isSafeInteger(r.capacity) || r.capacity <= 0 || !Number.isSafeInteger(r.remaining) || r.remaining < 0 || r.remaining > r.capacity) errors.push(`\u8CC7\u6E90 ${r.id} \u5BB9\u91CF\u7121\u6548`);
     if (r.status === "depleted" !== (r.remaining === 0) || r.collectible !== r.remaining > 0 || r.status === "depleted" && (r.obstacleId !== null || r.depletedAt === null)) errors.push(`\u8CC7\u6E90 ${r.id} \u72C0\u614B\u4E0D\u4E00\u81F4`);
     if (r.obstacleId && !obstacles.has(r.obstacleId)) errors.push(`\u8CC7\u6E90 ${r.id} \u969C\u7919\u53C3\u7167\u5931\u6548`);
@@ -202,25 +242,68 @@ function validateMap(map) {
 function position(id) {
   return { x: 50 + id % 31 * 50, y: 50 + Math.floor(id / 31) * 50 };
 }
-function connector(map, a, b) {
-  const elbow = { x: b.x, y: a.y };
-  return clearSegment(map, a, elbow) && clearSegment(map, elbow, b);
+function validateStartingResources(map) {
+  const errors = [];
+  const players = [{ x: 350, y: 700 }, { x: 1150, y: 700 }].map((spawn, player) => {
+    const distances = Array(961).fill(Infinity), start = nearest(map, spawn), frontier = [];
+    if (start >= 0) {
+      distances[start] = Math.abs(position(start).x - spawn.x) + Math.abs(position(start).y - spawn.y);
+      frontier.push(start);
+    }
+    for (let head = 0; head < frontier.length; head++) {
+      const id = frontier[head], x = id % 31, y = Math.floor(id / 31);
+      for (const next of [x < 30 ? id + 1 : -1, y < 30 ? id + 31 : -1, x > 0 ? id - 1 : -1, y > 0 ? id - 31 : -1]) if (next >= 0 && !Number.isFinite(distances[next]) && !map.blocked.includes(next) && clearSegment(map, position(id), position(next))) {
+        distances[next] = distances[id] + 50;
+        frontier.push(next);
+      }
+    }
+    const access = Object.entries(startingResourceRules.minimum).map(([kind, minimum]) => {
+      const nodes = map.resources.filter((r) => r.kind === kind && r.collectible && r.remaining > 0).map((resource) => {
+        const obstacle = map.obstacles.find((o) => o.id === resource.obstacleId);
+        if (!obstacle) return { id: resource.id, remaining: resource.remaining, distance: Infinity, approach: null };
+        const [x0, y0, x1, y1] = bounds(obstacle);
+        let distance = Infinity, approach = null;
+        for (let i = 0; i < 961; i++) {
+          if (!Number.isFinite(distances[i])) continue;
+          const p = position(i), gap = Math.max(x0 - p.x, 0, p.x - x1) + Math.max(y0 - p.y, 0, p.y - y1);
+          if (gap > 0 && gap <= 50 && distances[i] < distance) {
+            distance = distances[i];
+            approach = p;
+          }
+        }
+        return { id: resource.id, remaining: resource.remaining, distance, approach };
+      }).filter((n) => n.distance <= startingResourceRules.maxApproachDistance);
+      const available = nodes.reduce((sum, n) => sum + n.remaining, 0), nearestDistance = nodes.length ? Math.min(...nodes.map((n) => n.distance)) : null;
+      if (available < minimum) errors.push(`\u73A9\u5BB6 ${player} \u8D77\u59CB ${kind} \u53EF\u9054\u5BB9\u91CF\u4E0D\u8DB3\uFF1A${available}/${minimum}`);
+      return { kind, minimum, available, nearestDistance, nodes };
+    });
+    return { player, spawn, access };
+  });
+  for (let i = 0; i < players[0].access.length; i++) {
+    const a = players[0].access[i], b = players[1].access[i];
+    if (a.nearestDistance !== null && b.nearestDistance !== null && Math.abs(a.nearestDistance - b.nearestDistance) > startingResourceRules.maxNearestDistanceDifference) errors.push(`\u96D9\u65B9 ${a.kind} \u6700\u8FD1\u8DEF\u7A0B\u5DEE\u8D85\u51FA\u9650\u5236`);
+  }
+  return { rules: startingResourceRules, errors, players };
 }
-function nearest(map, p, outbound = true) {
+function connector(map, a, b, movement) {
+  const elbow = { x: b.x, y: a.y };
+  return clearSegment(map, a, elbow, movement) && clearSegment(map, elbow, b, movement);
+}
+function nearest(map, p, outbound = true, movement = "land") {
   let best = -1, distance = Infinity;
   for (let i = 0; i < 961; i++) {
     const q = position(i), d = Math.abs(p.x - q.x) + Math.abs(p.y - q.y);
-    if (d < distance && !map.blocked.includes(i) && (outbound ? connector(map, p, q) : connector(map, q, p))) {
+    if (d < distance && !(movement === "land" ? map.blocked.includes(i) : !clearSegment(map, q, q, movement)) && (outbound ? connector(map, p, q, movement) : connector(map, q, p, movement))) {
       best = i;
       distance = d;
     }
   }
   return best;
 }
-function createPathJob(map, unitId, from, target) {
-  const start = nearest(map, from), goal = nearest(map, target, false), parents = Array(961).fill(-2);
+function createPathJob(map, unitId, from, target, movement = "land") {
+  const start = nearest(map, from, true, movement), goal = nearest(map, target, false, movement), parents = Array(961).fill(-2);
   if (start >= 0) parents[start] = -1;
-  return { unitId, start, goal, target: { ...target }, frontier: start < 0 ? [] : [start], head: 0, parents, status: start < 0 || goal < 0 ? "unreachable" : "searching", path: [] };
+  return { ...movement === "water" ? { movement } : {}, unitId, start, goal, target: { ...target }, frontier: start < 0 ? [] : [start], head: 0, parents, status: start < 0 || goal < 0 ? "unreachable" : "searching", path: [] };
 }
 function advancePathJob(map, job, budget) {
   if (!Number.isSafeInteger(budget) || budget < 0) throw Error("\u7121\u6548\u5C0B\u8DEF\u9810\u7B97");
@@ -245,7 +328,7 @@ function advancePathJob(map, job, budget) {
       break;
     }
     const x = id % 31, y = Math.floor(id / 31);
-    for (const next of [x < 30 ? id + 1 : -1, y < 30 ? id + 31 : -1, x > 0 ? id - 1 : -1, y > 0 ? id - 31 : -1]) if (next >= 0 && job.parents[next] === -2 && !map.blocked.includes(next) && clearSegment(map, position(id), position(next))) {
+    for (const next of [x < 30 ? id + 1 : -1, y < 30 ? id + 31 : -1, x > 0 ? id - 1 : -1, y > 0 ? id - 31 : -1]) if (next >= 0 && job.parents[next] === -2 && !(job.movement === "water" ? !clearSegment(map, position(next), position(next), "water") : map.blocked.includes(next)) && clearSegment(map, position(id), position(next), job.movement ?? "land")) {
       job.parents[next] = id;
       job.frontier.push(next);
     }
@@ -266,10 +349,10 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, visionRules, simulationVersion: 5 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, simulationVersion: 7 });
 function createState(seed) {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
-  const state = { version: 5, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed), pathJobs: [], seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [{ id: 1, player: 0, x: 350, y: 700, target: null }, { id: 2, player: 0, x: 450, y: 700, target: null }, { id: 3, player: 0, x: 400, y: 800, target: null }, { id: 4, player: 1, x: 1150, y: 700, target: null }], queue: [], log: [] };
+  const state = { version: 7, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed), pathJobs: [], seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [{ id: 1, player: 0, x: 350, y: 700, target: null }, { id: 2, player: 0, x: 450, y: 700, target: null }, { id: 3, player: 0, x: 400, y: 800, target: null }, { id: 4, player: 1, x: 1150, y: 700, target: null }], queue: [], log: [] };
   updateVision(state.vision, state.map, state.units, 0);
   return state;
 }
@@ -283,7 +366,7 @@ function submit(state, c) {
     const u = state.units.find((u2) => u2.id === c.payload.unitId);
     if (!u || u.player !== c.playerId) throw Error("\u4E0D\u53EF\u63A7\u5236\u6575\u65B9\u55AE\u4F4D");
     for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > 1550) throw Error("\u76EE\u6A19\u8D85\u51FA\u5730\u5716");
-    if (!clearSegment(state.map, c.payload, c.payload)) throw Error("\u76EE\u6A19\u4F4D\u65BC\u5EFA\u7BC9\u6216\u6A39\u6728\u7684\u5360\u5730\u5167");
+    if (!clearSegment(state.map, c.payload, c.payload)) throw Error("\u76EE\u6A19\u4F4D\u65BC\u5EFA\u7BC9\u3001\u8CC7\u6E90\u6216\u4E0D\u53EF\u901A\u884C\u5730\u5F62\u7684\u5360\u5730\u5167");
   } else if (c.commandType === "reserve") {
     if (!rules.entries.some((e) => e.id === c.payload.entryId)) throw Error("\u672A\u77E5\u9810\u7559\u5167\u5BB9");
   } else if (c.commandType === "cancelReservation") {
@@ -362,13 +445,13 @@ function replay(seed, commands, ticks) {
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-5", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-7", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-5" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-7" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 5 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (s.version !== 7 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   const rebuilt = replay(s.seed, s.log, s.tick);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);

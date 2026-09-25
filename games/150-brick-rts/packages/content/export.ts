@@ -5,7 +5,7 @@ const errors=validateRules(rules);if(errors.length)throw Error(errors.join('\n')
 writeFileSync(new URL('../../docs/ruleset-manifest.json',import.meta.url),JSON.stringify(rules,null,2)+'\n');
 
 import {economyRules} from '../sim/economy.ts';
-import {terrainRules,terrainDefinitions} from '../sim/terrain.ts';
-import {navigationRules} from '../sim/navigation.ts';
+import {terrainRules,terrainDefinitions,resourceDefinitions} from '../sim/terrain.ts';
+import {navigationRules,startingResourceRules} from '../sim/navigation.ts';
 import {rulesetHash} from '../sim/sim.ts';
-writeFileSync(new URL('../../docs/runtime-manifest.json',import.meta.url),JSON.stringify({schemaVersion:5,rulesetHash,provenance:'design_default',navigation:navigationRules,economy:economyRules,terrain:terrainRules,terrainDefinitions,vision:visionRules,collisionScope:'static house/tree/rock footprints; no unit avoidance'},null,2)+'\n');
+writeFileSync(new URL('../../docs/runtime-manifest.json',import.meta.url),JSON.stringify({schemaVersion:7,rulesetHash,provenance:'design_default',navigation:navigationRules,startingResources:startingResourceRules,economy:economyRules,terrain:terrainRules,terrainDefinitions,resourceDefinitions,vision:visionRules,collisionScope:'static house/tree/rock footprints; no unit avoidance'},null,2)+'\n');

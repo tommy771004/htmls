@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 5,
-  "rulesetHash": "cf7d9525",
+  "schemaVersion": 7,
+  "rulesetHash": "4a7eea5c",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -9,6 +9,17 @@
     "radius": 25,
     "expansionsPerTick": 32,
     "speedPerTick": 5
+  },
+  "startingResources": {
+    "provenance": "design_default",
+    "maxApproachDistance": 1200,
+    "maxNearestDistanceDifference": 500,
+    "minimum": {
+      "tree": 300,
+      "stone": 250,
+      "gold": 250,
+      "berries": 150
+    }
   },
   "economy": {
     "provenance": "design_default",
@@ -27,7 +38,12 @@
     "tileSize": 100,
     "resourceCapacity": {
       "tree": 300,
-      "stone": 250
+      "stone": 250,
+      "gold": 250,
+      "berries": 150,
+      "hunt": 120,
+      "livestock": 100,
+      "fish": 200
     },
     "generationAttempts": 8
   },
@@ -71,6 +87,43 @@
       "walkClass": "both",
       "buildability": false,
       "height": 0
+    }
+  },
+  "resourceDefinitions": {
+    "tree": {
+      "yield": "wood",
+      "method": "gather",
+      "movement": "land"
+    },
+    "stone": {
+      "yield": "stone",
+      "method": "gather",
+      "movement": "land"
+    },
+    "gold": {
+      "yield": "gold",
+      "method": "gather",
+      "movement": "land"
+    },
+    "berries": {
+      "yield": "food",
+      "method": "gather",
+      "movement": "land"
+    },
+    "hunt": {
+      "yield": "food",
+      "method": "hunt",
+      "movement": "land"
+    },
+    "livestock": {
+      "yield": "food",
+      "method": "herd",
+      "movement": "land"
+    },
+    "fish": {
+      "yield": "food",
+      "method": "fish",
+      "movement": "water"
     }
   },
   "vision": {

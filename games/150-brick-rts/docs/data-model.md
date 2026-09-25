@@ -60,3 +60,19 @@ apps/web/scene.ts 使用本地 Three.js 建立 WebGL2 場景；固定地物位�
 MapData 新增 tiles、resources、navigationRevision 與 generationAttempt。Tile 含地形、高度、通行類別、基礎可建造性與原點所在格的 entity refs；建造時仍須額外查占地。ResourceNode 為有限容量資源，記錄可採集性、障礙關聯及耗盡 tick。地圖生成驗證與上限重試在建立 State 前完成，失敗不取代現況。
 
 樹木／石塊耗盡的內部原語會釋放原占地內的 blocked 節點；既有仍有效的路徑不需重算，工作系統接入時仍須處理因先前不可達而停止的命令。沒有提供偽採集命令。renderer 目前由 seed 重建靜態地物；資源動態投影須在採集工作接入前補齊。State／snapshot v4 取代 v3，舊版明確拒絕；詳見 terrain-verification.md。
+
+## C：視野 v5（目前版本）
+
+State.vision 為每玩家的 explored、visible 與 known 靜態快照，快照含 obstacle 與 lastSeenTick。視野在固定 tick 末更新；失去視野保留歷史記憶，重訪才同步消失或變化。sharing policy 預設僅自己，分享／撤銷原語有測試，仍需日後外交／科技授權。
+
+一般 Worker Response 新增 fog（0 未探索／1 舊視野／2 可見）與 known；positions 排除看不見的敵方單位。renderer 的遊戲模式不再從 seed 重建全部地物，只畫 known，舊視野使用灰色。建模檢視採明示 assetPreview 可顯示全部資產。視野計數是目前的輕量 debugger，沒有顯示隱藏單位列表。
+
+State／snapshot v5 含探索與快照，v1–v4 明確拒絕。一般 View 過濾不等於多人保密：本機完整存檔及 journal 仍在客戶端。詳見 first-use-005.md。
+
+## 地圖驗收模式
+
+makeMap(seed, layout) 接受 meadow、coast、acceptance，預設仍為 meadow；coast 依 seed 產生海岸，acceptance 是固定手工圖。驗收 JSON 外層含 format、layout、seed、provenance 與 MapData；不是新存檔格式。水域 PathJob 可帶 movement=water，搜尋和線段碰撞依此查地格 walkClass；既有陸地 job 不新增欄位，草甸沙盒維持 v5 資料。模型檢視頁可切換 layout，正式 reset/recovery 尚未提供地圖選擇。
+
+## 資源投影 v6（目前版本）
+
+ResourceKind 擴充七種類，resourceDefinitions 宣告產出、工作方法與所需通行類別。PlayerVision.resources 及一般 Worker View.resources 只含可見未耗盡資源；不保留動物的失去視野模型。地面資源占地使用 obstacleId 關聯，魚群沒有阻擋占地。資源模型讀取同一份地圖／可見投影，沒有第二套容量資料。新增節點與視野欄位進入 canonical state；snapshot v6 取代 v5，詳見 resources-verification.md。

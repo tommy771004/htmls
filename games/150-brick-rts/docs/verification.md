@@ -46,3 +46,15 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## 地圖與資源資料 v4
 
 目前工作目錄的 build、validate、33 項測試及完整既有瀏覽器回歸通過。新增地格、樹木／石塊容量與耗盡原語、局部導航更新；可玩採集及迷霧尚未接入。詳見 [terrain-verification.md](terrain-verification.md)。最新 state／snapshot 為 v4；歷史紀錄保留各輪當時版本。
+
+## 三態視野 v5（最新）
+
+乾淨目錄 npm ci、build、validate、38 項測試、兩尺寸完整瀏覽器回歸及實際走近／撤回視野測試通過。首次 build 缺少 web 輸出資料夾的問題已修正並從原失敗目錄重測。state／snapshot 現為 v5。詳見 [first-use-005.md](first-use-005.md)；仍不代表完整 C、完整對局或多人反作弊通過。
+
+## 海岸與手工圖增量
+
+42 項測試、建置、規則驗證、地圖 JSON 匯出與完整瀏覽器回歸通過。另確認驗收頁三圖切換及返回草甸的畫面一致。詳見 [map-examples-verification.md](map-examples-verification.md)。正式沙盒仍僅使用草甸；沒有以地圖檢視宣稱海戰已完成。
+
+## 七種資源 v6（最新）
+
+46 項測試、建置、地圖匯出與完整瀏覽器回歸通過；新增有限資源、動物占地、魚群地形與可見資源投影驗證。snapshot 現為 v6。詳見 [resources-verification.md](resources-verification.md)，仍未完成採集工作或完整對局。
