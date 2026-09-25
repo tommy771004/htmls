@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Levkí — Four Days of Aegean Light</title>
-<meta name="description" content="拱門望出的希臘小島行程，真實太陽公式驅動天色與陰影。收錄於 100 Creative HTML Works（096・地中海）。">
+<meta name="description" content="地中海旅行手記：桌機固定風景與四日行程並排，點選時刻聯動陽光、陰影與地點標記。收錄於 100 Creative HTML Works（096・地中海）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/web/096-mediterranean.html">
 <style>
   :root{
@@ -86,10 +86,32 @@
     .facts b{font-size:20px}
   }
   @media (prefers-reduced-motion:reduce){ .arch .pin{transition:none} }
+
+/* Travel journal: the landscape stays beside the story, not above it. */
+html{scroll-behavior:smooth;scroll-padding-top:28px}
+.wrap{max-width:1480px;padding:26px clamp(24px,4vw,64px) 36px}
+.travel-nav{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--shade);padding-bottom:20px;margin-bottom:32px;font:11px system-ui;letter-spacing:.15em;text-transform:uppercase;color:var(--aegean-d)}.travel-nav a{color:inherit;text-decoration:none;padding:10px 0}
+#m1{display:none}header{text-align:left;position:relative;padding:0 0 32px;border-bottom:1px solid var(--shade);margin-bottom:38px}header .eyebrow{font:10px system-ui;letter-spacing:.24em}h1{font-size:clamp(62px,7.5vw,108px);margin:18px 0 15px;letter-spacing:-.045em}.sub{font-size:16px;max-width:48ch}
+.journey{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.9fr);gap:clamp(40px,6vw,85px);align-items:start}
+.hero{display:flex;flex-direction:column;align-items:stretch;gap:0;margin:0;position:sticky;top:24px}
+.scene-label{display:flex;justify-content:space-between;font:10px system-ui;letter-spacing:.16em;color:var(--terra-d);margin-bottom:17px}
+.arch{aspect-ratio:1.5;border-radius:44% 44% 3px 3px / 50% 50% 3px 3px;box-shadow:0 0 0 1px var(--shade),0 16px 28px -24px #735d42;margin:0 0 20px}
+.almanac{display:grid;grid-template-columns:1fr 1fr;gap:12px 22px;padding:0}.clock{font-size:49px}.clock small{display:block;font-size:16px;margin:8px 0 0}.alt{font-size:13px;margin:0;min-height:3em}.facts{grid-column:1/-1}.facts div{padding-top:9px;padding-bottom:9px;font:9px system-ui;letter-spacing:.15em}.facts b{font-size:21px}.months{margin:0;gap:3px;align-content:start}.chip{min-width:40px;padding:0 7px;font-size:12px;min-height:36px;border-radius:2px}.dial{grid-column:1/-1;margin:0}.dial label{font-size:9px}.play{grid-column:2;grid-row:3;justify-self:end;font-size:12px;min-height:38px;margin:0;border-radius:2px}
+.journal-head{display:flex;justify-content:space-between;align-items:end;border-bottom:1px solid var(--shade);padding-bottom:24px;margin-bottom:20px}.journal-head h2{text-align:left;font-size:34px;margin:0}.journal-head p{font-size:12px;font-style:italic;max-width:15ch;margin:0;color:#6b655a}.day-nav{display:flex;gap:9px;margin:0 0 22px}.day-nav a{font:11px system-ui;color:var(--aegean-d);text-decoration:none;border:1px solid var(--shade);padding:12px 14px;transition:color 180ms,background 180ms}.day-nav a[aria-current=true]{background:var(--aegean-d);color:var(--lime);border-color:var(--aegean-d)}
+.days{display:block}.door{padding:30px 0 34px;background:transparent;box-shadow:none;border-radius:0;border-bottom:1px solid var(--shade);scroll-margin-top:24px;position:relative}.door::before{display:none}.door .dn{position:static;transform:none;width:auto;height:auto;display:block;text-align:left;background:none;color:var(--terra);font:11px system-ui;letter-spacing:.2em;margin-bottom:12px}.door .dn::before{content:'DAY 0'}.door h3{text-align:left;font-size:40px;color:var(--aegean-d);letter-spacing:-.02em}.door .where{text-align:left;font-size:15px;margin:7px 0 22px}.door li button{grid-template-columns:53px 1fr;padding:16px 10px;font-size:14px;line-height:1.65;border-top:1px solid var(--shade);border-radius:0;position:relative;transition:background 250ms,color 250ms,box-shadow 250ms}.door li button.on{background:#e4e9e6;box-shadow:inset 3px 0 var(--aegean)}.door li time{font-size:15px}.door li button span{transition:transform 250ms}.door li button.on span{transform:translateX(3px)}
+.selection{border-top:1px solid var(--shade);padding-top:13px;font-size:12px;line-height:1.6;margin:16px 0 0;color:var(--aegean-d);min-height:48px}.selection strong{font-weight:normal;color:var(--terra-d)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--aegean);outline-offset:4px}.door li button:focus-visible{outline:2px solid var(--aegean);outline-offset:-2px}
+footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}#m2{opacity:.4;height:8px;margin-top:45px!important}
+@media(min-width:1001px){.arch{max-height:calc(100svh - 440px);min-height:200px}}
+@media(min-width:1001px) and (max-height:800px){.arch{aspect-ratio:1.9}.hero{top:14px}.almanac{gap:8px 16px}.selection{font-size:11px;margin-top:8px;padding-top:8px}.clock{font-size:40px}}
+@media(max-width:1000px){.journey{grid-template-columns:1fr;gap:45px}.hero{position:relative;top:auto;max-width:760px;width:100%;margin:auto}.arch{aspect-ratio:1.45}.journal-head p{max-width:none}.day-nav{position:sticky;top:0;background:var(--lime);z-index:5;padding:12px 0;margin-bottom:0}.door{scroll-margin-top:76px}.days{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}.scene-label{margin-top:0}}
+@media(max-width:600px){.wrap{padding:18px 22px 30px}.travel-nav{font-size:9px;letter-spacing:.07em;margin-bottom:25px;padding-bottom:12px}.travel-nav>span{display:none}header .eyebrow{font-size:8px;letter-spacing:.12em}header{margin-bottom:26px;padding-bottom:25px}h1{font-size:70px;line-height:.92}h1 span{display:block;margin-top:7px}.sub{font-size:14px;line-height:1.6;max-width:32ch}.arch{aspect-ratio:1.12}.scene-label{font-size:9px}.clock{font-size:42px}.almanac{gap:12px}.months{gap:4px;grid-column:1/-1}.chip{min-width:40px;min-height:40px}.play{grid-column:1/-1;grid-row:auto;justify-self:start;min-height:42px}.dial{grid-row:auto}.selection{min-height:0}.days{display:block}.journal-head h2{font-size:32px}.journal-head p{max-width:14ch}.day-nav{justify-content:space-between}.day-nav a{padding:12px}.door h3{font-size:38px}.door li button{padding:16px 8px}.facts b{font-size:20px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <nav class="travel-nav" aria-label="Page navigation"><a href="../index.html">← 作品集</a><span>Levkí / an island journal</span><a href="#itinerary">Explore the four days ↘</a></nav>
   <div class="meander" id="m1" aria-hidden="true"></div>
   <header>
     <div class="eyebrow">An itinerary measured in sunlight · 36.4° N</div>
@@ -97,7 +119,9 @@
     <p class="sub">A small white island, a lot of blue, and the exact hour to be in each place.</p>
   </header>
 
-  <section class="hero">
+  <div class="journey">
+  <section class="hero" aria-label="Live island view">
+    <div class="scene-label"><span>THE WINDOW / LIVE SUNLIGHT</span><span>36.4° N · 25.4° E</span></div>
     <div class="arch" id="arch">
       <svg id="scene" viewBox="0 0 1000 1080" preserveAspectRatio="xMidYMid slice" role="img" aria-label="View through an arched window: sea, a white village and a windmill, lit by the sun at the chosen hour"></svg>
       <div class="pin" id="pin"><b id="pinT">Windmills</b><i></i></div>
@@ -121,11 +145,13 @@
       </div>
       <button class="play" id="play">Play the whole day</button>
     </div>
+    <p class="selection" id="selection" role="status">Choose a moment from the itinerary. Watch the island find its light.</p>
   </section>
-
-  <h2>The itinerary</h2>
-  <p class="h2sub">Tap a line and the window shows you that hour.</p>
-  <section class="days" id="days"></section>
+  <section class="journal" id="itinerary" aria-labelledby="itineraryTitle">
+    <div class="journal-head"><h2 id="itineraryTitle">Four unhurried days.</h2><p>A place for every hour.</p></div>
+    <nav class="day-nav" aria-label="Itinerary days"><a href="#day-1">Day 01</a><a href="#day-2">Day 02</a><a href="#day-3">Day 03</a><a href="#day-4">Day 04</a></nav>
+    <div class="days" id="days"></div>
+  </section></div>
 
   <div class="meander" id="m2" aria-hidden="true" style="margin-top:50px"></div>
   <footer>Levkí is fictional · the sunlight is real (36.4° N, 25.4° E, EEST)</footer>
@@ -359,6 +385,9 @@
     const b = document.createElement('button'); b.className = 'chip' + (MNUM[i] === month ? ' on' : ''); b.textContent = m;
     b.setAttribute('aria-pressed', MNUM[i] === month);
     b.addEventListener('click', () => {
+      cancelAnimationFrame(anim); playing=false; setPlay();
+      $('#selection').textContent='Choose a moment from the itinerary. Times follow the selected month.';
+      document.querySelectorAll('.day-nav a').forEach(a=>a.removeAttribute('aria-current'));
       month = MNUM[i];
       mBox.querySelectorAll('.chip').forEach((x, k) => { x.classList.toggle('on', k === i); x.setAttribute('aria-pressed', k === i); });
       almanac(); rebuildDays(); render();
@@ -395,17 +424,20 @@
     const rs = riseSet();
     daysEl.innerHTML = '';
     DAYS.forEach((d, di) => {
-      const card = document.createElement('article'); card.className = 'door';
+      const card = document.createElement('article'); card.className = 'door'; card.id='day-'+(di+1);
       card.innerHTML = `<span class="dn">${di + 1}</span><h3>${d.t}</h3><div class="where">${d.w}</div><ol></ol>`;
       const ol = card.querySelector('ol');
       d.items.forEach(([f, txt, loc]) => {
         const m = Math.round(f(rs));
         const li = document.createElement('li'), b = document.createElement('button');
+        b.setAttribute('aria-pressed','false');
         b.innerHTML = `<time>${hm(m)}</time><span>${txt}</span>`;
         b.addEventListener('click', () => {
-          daysEl.querySelectorAll('button.on').forEach(x => x.classList.remove('on')); b.classList.add('on');
+          daysEl.querySelectorAll('button.on').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-pressed','false'); }); b.classList.add('on'); b.setAttribute('aria-pressed','true');
+          document.querySelectorAll('.day-nav a').forEach((a,i)=>a.setAttribute('aria-current',String(i===di)));
+          $('#selection').textContent=`Day 0${di+1} / ${hm(m)} — ${txt}`;
           goTo(m, loc, d.w.split(' & ')[0]);
-          if (innerWidth < 760 && arch) arch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (innerWidth <= 1000 && arch) arch.scrollIntoView({ behavior: reduce ? 'instant' : 'smooth', block: 'start' });
         });
         li.appendChild(b); ol.appendChild(li);
       });
@@ -427,40 +459,44 @@
 
   // ---------- time animation ----------
   let anim = 0, playing = false;
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const motion=matchMedia('(prefers-reduced-motion: reduce)');
+  let reduce=motion.matches;
   function goTo(m, loc) {
     cancelAnimationFrame(anim); playing = false; setPlay();
-    const from = T, t0 = performance.now(), dur = reduce ? 1 : 1600;
     showPin(loc);
+    if(reduce){T=m;render();return}
+    const from = T, t0 = performance.now(), dur = 1100;
     const step = now => { const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; T = from + (m - from) * e; render(); if (k < 1) anim = requestAnimationFrame(step); };
     anim = requestAnimationFrame(step);
   }
   const playB = $('#play');
-  function setPlay() { if (playB) playB.textContent = playing ? 'Pause the day' : 'Play the whole day'; }
+  function setPlay() { if (playB) {playB.textContent = playing ? 'Pause the day' : 'Play the whole day';playB.setAttribute('aria-pressed',String(playing));} }
   playB && playB.addEventListener('click', () => {
     playing = !playing; setPlay(); cancelAnimationFrame(anim);
     if (!playing) return;
     let last = performance.now();
-    const step = now => { if (!playing) return; T += (now - last) / 1000 * 60; last = now; if (T > 1320) T = 300; render(); anim = requestAnimationFrame(step); };
+    const step = now => { if (!playing) return; T += Math.min(100,now - last) / 1000 * 60; last = now; if (T > 1320) T = 300; render(); anim = requestAnimationFrame(step); };
     anim = requestAnimationFrame(step);
   });
   range && range.addEventListener('input', () => { cancelAnimationFrame(anim); playing = false; setPlay(); T = +range.value; render(); });
 
   // windmill sails turn in the meltemi
-  let rot = 0, lastW = performance.now();
+  let rot = 0, lastW = performance.now(), windFrame=0;
   function spin(now) {
     const dt = Math.min(.1, (now - lastW) / 1000); lastW = now; rot = (rot + dt * 24) % 360;
     mills.forEach((m, i) => { const tr = m.getAttribute('transform').replace(/ rotate\([^)]*\)/, ''); m.setAttribute('transform', tr + ` rotate(${rot * (i ? .8 : 1)})`); });
-    requestAnimationFrame(spin);
+    windFrame=requestAnimationFrame(spin);
   }
-  if (!reduce) requestAnimationFrame(spin);
+  function wind(){cancelAnimationFrame(windFrame);if(!reduce&&!document.hidden){lastW=performance.now();windFrame=requestAnimationFrame(spin)}}
+  motion.addEventListener('change',()=>{reduce=motion.matches;cancelAnimationFrame(anim);playing=false;setPlay();wind()});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(anim);playing=false;setPlay()}wind()});
+  wind();
   addEventListener('resize', () => { const p = $('#pin'); if (p && p.classList.contains('on')) showPin(p.dataset.loc); });
 
   almanac(); rebuildDays(); render();
-  // open on the first morning: sun climbs from dawn to a swim
-  const rs0 = riseSet();
-  T = rs0.rise - 20; render();
-  setTimeout(() => goTo(rs0.rise + 20 + 60 * 2, 'cove'), 250);
+  // A stable opening view; motion begins with the visitor's choice.
+  T=riseSet().rise+140;render();setPlay();
+  document.querySelectorAll('.day-nav a').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.day-nav a').forEach(x=>x.setAttribute('aria-current',String(x===a)))}));
 })();
 </script>
 </body>

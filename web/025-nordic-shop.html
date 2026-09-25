@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sova 休憩椅 — stilla 靜物家具</title>
-<meta name="description" content="純 CSS 畫的椅子，4 種木材與 4 種織品平滑換色，購物車飛入動畫。收錄於 100 Creative HTML Works（025・北歐家具店）。">
+<meta name="description" content="北歐家具材質研究：放大商品展示、木作與織品聚焦、四種木材與織品搭配，以及互動購物車。收錄於 100 Creative HTML Works（025・北歐家具店）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/web/025-nordic-shop.html">
 <style>
 @property --wood{syntax:'<color>';inherits:true;initial-value:#c9a27a}
@@ -202,6 +202,40 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
   .cta{min-width:0}
 }
 @media (prefers-reduced-motion:reduce){ .chair{--t:0s} .drawer,.scrim{transition:none} }
+
+/* Product study: a generous stage paired with a compact material desk. */
+:root{--ease:cubic-bezier(.22,.7,.2,1);--motion:480ms}
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+button,a,summary{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--sage-dk);outline-offset:5px}
+.bar{background:var(--oat);color:var(--mut);font-size:11px;padding:5px 16px}
+header{height:78px}.crumbs{font-size:11px;letter-spacing:.08em;padding-top:24px}
+.product-heading{margin:18px clamp(20px,4vw,56px) 24px;display:flex;align-items:end;justify-content:space-between;gap:24px}
+.product-heading h1{font:400 clamp(74px,7vw,100px)/.9 var(--lat);letter-spacing:-.055em;margin:10px 0 0}
+.product-heading h1 small{font:300 17px var(--zh);letter-spacing:.25em;margin-left:24px}
+.product-heading p{font:italic clamp(18px,2vw,27px)/1.5 Georgia,serif;color:var(--sage-dk);margin:0;max-width:260px}
+main.pdp{grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr);gap:clamp(28px,5vw,80px);padding-top:0}
+.gal{top:24px}.stage{aspect-ratio:1.14;max-height:58svh;border-radius:110px 4px 4px 4px;isolation:isolate}
+.tag{left:32px;top:28px;font-size:10px}.stage .chair{width:min(42%,38svh);transform-origin:50% 53%;transition:transform 720ms var(--ease),--wood 480ms ease,--wood-dk 480ms ease,--fabric 480ms ease,--fabric-dk 480ms ease;z-index:1}
+.stage[data-detail=wood] .chair{transform:translate(-50%,15%) scale(1.65)}
+.stage[data-detail=fabric] .chair{transform:translate(-50%,25%) scale(1.8)}
+.stage .window,.stage .plant,.stage .rug{transition:opacity var(--motion) ease}
+.stage:not([data-detail=all]) .window,.stage:not([data-detail=all]) .plant,.stage:not([data-detail=all]) .rug{opacity:.18}
+.stage .tag{z-index:4}.detail-nav{display:flex;align-items:center;gap:5px;margin-top:16px;border-bottom:1px solid var(--line);padding-bottom:14px}
+.detail-nav>span{margin-right:auto;font-size:10px;letter-spacing:.16em;color:var(--mut)}
+.detail-nav button{font:inherit;font-size:12px;min-height:44px;padding:0 14px;border:1px solid transparent;background:transparent;color:var(--mut);cursor:pointer;transition:background 200ms,color 200ms}
+.detail-nav button[aria-pressed=true]{border-color:var(--line);background:var(--oat);color:var(--ink)}
+.detail-caption{font-size:12px;color:var(--mut);margin:10px 0 22px;min-height:21px}
+.thumbs{gap:12px}.thumb{aspect-ratio:1.6;background:#efebe2;transition:border-color 200ms,background 200ms}.thumb .chair{width:34%;bottom:-20%}.thumb span{font-size:10px;top:8px;left:10px}
+.info{padding-top:8px}.config-heading{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--line);margin:16px 0 22px;padding-bottom:18px}
+.config-heading h2{font-weight:400;font-size:25px;margin:0;letter-spacing:.08em}.config-heading span{font-size:11px;color:var(--mut)}
+.lead{font-size:14px;margin:12px 0 24px}.price{font-size:30px;flex-wrap:wrap;gap:2px 12px}.price .delta{font-size:11px}.opt{padding:20px 0}.buy{margin-top:26px}.cta,.qty{border-radius:3px}.qty button{border-radius:3px}.cta{font-size:14px}.ship{font-size:12px}.sw{transition:transform 200ms var(--ease)}
+.notes{margin:0 clamp(20px,4vw,56px);padding:60px 0 70px;background:transparent;border-top:1px solid var(--line);grid-template-columns:1fr 1fr 1fr;gap:35px}.notes>div:first-child{grid-column:1/-1;display:flex;justify-content:space-between}.notes h2{font-size:46px}.note{border-top:1px solid var(--line);padding-top:22px}.note b{font-size:18px;color:var(--mut)}.note h3{font-size:20px;margin:14px 0}.note p{max-width:28ch}.note button{margin-top:20px;border:0;border-bottom:1px solid var(--sage);background:none;padding:8px 0;color:var(--sage-dk);font:inherit;font-size:12px;cursor:pointer;min-height:44px}
+.material-readout{display:flex;gap:16px;align-items:baseline;justify-content:space-between;font-size:11px;padding-top:10px;color:var(--mut)}
+@media(max-width:1050px){main.pdp{grid-template-columns:minmax(0,1.25fr) minmax(300px,1fr);gap:28px}.stage{aspect-ratio:.9}.stage .chair{width:52%}.thumb .chair{width:40%}}
+@media(max-width:900px){header{height:auto}.product-heading{margin-top:26px}.product-heading h1{font-size:80px}main.pdp{grid-template-columns:1fr}.gal{position:relative;top:auto}.stage{aspect-ratio:1.12;max-height:none}.stage .chair{width:43%}.info{max-width:none}.notes{grid-template-columns:1fr 1fr}.product-heading p{font-size:19px}.notes h2{font-size:38px}}
+@media(max-width:520px){.product-heading{align-items:start;margin-bottom:24px}.product-heading h1{font-size:70px}.product-heading h1 small{display:block;margin:14px 0 0;font-size:13px}.product-heading p{max-width:118px;font-size:16px;margin-top:26px}.stage{aspect-ratio:.97;border-top-left-radius:70px}.stage .chair{width:50%}.tag{left:24px;top:22px}.detail-nav{gap:0}.detail-nav>span{font-size:9px}.detail-nav button{padding:0 9px}.thumbs{gap:7px}.thumb span{font-size:9px;left:5px}.thumb .chair{width:43%;bottom:-27%}.notes{grid-template-columns:1fr}.notes h2{font-size:36px}.material-readout{font-size:10px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}.chair{--t:0s}}
 </style>
 </head>
 <body>
@@ -215,23 +249,25 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
 </header>
 <div class="crumbs">首頁<span>/</span>椅子<span>/</span>休憩椅<span>/</span>Sova</div>
 
+<section class="product-heading" aria-labelledby="product-title"><div><div class="kicker">STILLA / OBJECT STUDY 01</div><h1 id="product-title">Sova<small>留一點時間，給自己。</small></h1></div><p>Made slowly.<br>For sitting slowly.</p></section>
 <main class="pdp" id="top">
   <section class="gal" aria-label="商品圖">
-    <div class="stage" id="stage">
-      <div class="tag"><b>Sova</b>工作室實拍 · 其實是 CSS</div>
+    <div class="stage" id="stage" data-detail="all">
+      <div class="tag"><b>Sova</b>材質研究 / CSS 作品</div>
       <div class="window"></div>
       <div class="light"></div>
       <div class="rug"></div>
       <div class="plant"><div class="pot"></div><div class="lf"></div><div class="lf"></div><div class="lf"></div><div class="lf"></div></div>
       <div class="chair" id="hero"></div>
     </div>
-    <div class="thumbs" id="thumbs"></div>
+    <div class="detail-nav" role="group" aria-label="商品細節"><span>近一點，看細節</span><button data-detail="all" aria-pressed="true">全貌</button><button data-detail="wood" aria-pressed="false">木作</button><button data-detail="fabric" aria-pressed="false">織品</button></div>
+    <p class="detail-caption" id="detailCaption" aria-live="polite">從木色到織品，找到讓你想坐下的組合。</p>
+    <div class="thumbs" id="thumbs"></div><div class="material-readout"><span>四款木色 · 同一個輪廓</span><span id="materialReadout">瑞典橡木 / 燕麥色</span></div>
   </section>
 
   <section class="info">
     <div class="kicker">LOUNGE CHAIR · 2026 秋季</div>
-    <h1>Sova<small>休憩椅</small></h1>
-    <div class="rating"><svg viewBox="0 0 80 14" aria-hidden="true"><g fill="#5f6f5b"><path id="st" d="M7 0l2 4.6 5 .5-3.8 3.3 1.1 4.9L7 10.8 2.7 13.3l1.1-4.9L0 5.1l5-.5z"/><use href="#st" x="16"/><use href="#st" x="32"/><use href="#st" x="48"/></g><path d="M71 0l2 4.6 5 .5-3.8 3.3 1.1 4.9L71 10.8V0z" fill="#5f6f5b"/><path d="M71 0v10.8l-4.3 2.5 1.1-4.9L64 5.1l5-.5z" fill="#d6cfbf"/></svg>4.6 · 212 則評價，其中 3 則抱怨「坐太久起不來」</div>
+    <div class="config-heading"><h2>你的 Sova</h2><span>互動商品展示</span></div>
     <div class="price"><span id="price">NT$ 12,800</span><span class="delta" id="delta"></span></div>
     <p class="lead">一張讓人忘記時間的椅子。實木框架、手工縫製坐墊，坐下之後，你會開始考慮取消今晚的所有行程。</p>
 
@@ -279,6 +315,7 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
 (() => {
 'use strict';
 const $ = s => document.querySelector(s);
+const motion = matchMedia("(prefers-reduced-motion: reduce)");
 const WOODS = [
   { id:'oak',    name:'瑞典橡木',   c:'#c9a27a', dk:'#a57d57', add:0 },
   { id:'walnut', name:'美國黑胡桃', c:'#6e4b33', dk:'#4f3423', add:2400 },
@@ -346,6 +383,7 @@ function refresh(){
   const d = $('#delta'); if (d) { d.textContent = wood.add ? (wood.add>0 ? `${wood.name} +${wood.add.toLocaleString()}` : `${wood.name} −${(-wood.add).toLocaleString()}`) : ''; d.classList.toggle('on', !!wood.add); }
   set('#eta', fab.ltd ? '限量色，約 2–3 週' : wood.id==='walnut' ? '7–10 個工作天' : '3–5 個工作天');
   set('#qty', qty);
+  set('#materialReadout', wood.name + ' / ' + fab.name.split(' · ')[0]);
 }
 function setWood(w){ wood = w; refresh(); }
 function setFab(f){ fab = f; refresh(); }
@@ -355,8 +393,9 @@ on('#plus','click', () => { qty = Math.min(9, qty+1); refresh(); });
 
 // keyboard: arrows cycle wood, up/down cycle fabric
 addEventListener('keydown', e => {
-  if (e.target && e.target.tagName === 'INPUT') return;
-  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const i = WOODS.indexOf(wood); setWood(WOODS[(i + (e.key==='ArrowRight'?1:-1) + WOODS.length) % WOODS.length]); }
+  if (e.key === 'Escape') { openCart(false); return; }
+  if (!e.target.closest('.gal, .sws')) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); const i = WOODS.indexOf(wood); setWood(WOODS[(i + (e.key==='ArrowRight'?1:-1) + WOODS.length) % WOODS.length]); }
   else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { if (document.activeElement && document.activeElement.tagName==='BUTTON') return; e.preventDefault(); const i = FABS.indexOf(fab); setFab(FABS[(i + (e.key==='ArrowDown'?1:-1) + FABS.length) % FABS.length]); }
   else if (e.key === 'Escape') openCart(false);
 });
@@ -405,10 +444,11 @@ on('#add','click', e => {
   const btn = e.currentTarget;
   const ex = cart.find(i => i.w===wood && i.f===fab);
   if (ex) ex.qty += qty; else cart.push({ w:wood, f:fab, qty, price:unit() });
+  renderCart();
   btn.classList.add('done'); setTimeout(() => btn.classList.remove('done'), 1500);
   // swatch flies to the cart
   const cb = $('#cartBtn');
-  if (cb) {
+  if (cb && !motion.matches) {
     const a = btn.getBoundingClientRect(), b = cb.getBoundingClientRect();
     const f = document.createElement('div'); f.className='fly';
     f.style.background = `conic-gradient(${wood.c} 0 50%, ${fab.c} 50% 100%)`;
@@ -420,11 +460,23 @@ on('#add','click', e => {
       { transform:`translate(${dx*.5}px,${dy*.5 - 80}px) scale(1.2)`, offset:.5 },
       { transform:`translate(${dx}px,${dy}px) scale(.4)`, opacity:.6 }
     ], { duration:800, easing:'cubic-bezier(.5,0,.3,1)' }) : null;
-    const done = () => { f.remove(); renderCart(); };
+    const done = () => f.remove();
     if (anim) anim.onfinish = done; else done();
   } else renderCart();
 });
 
+const detailText={all:'從木色到織品，找到讓你想坐下的組合。',wood:'木作細節 / 靠背木條與扶手的交會。',fabric:'織品細節 / 靠墊紋理與座面的柔和層次。'};
+function focusDetail(name){
+  $('#stage').dataset.detail=name;
+  document.querySelectorAll('.detail-nav button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.detail===name)));
+  $('#detailCaption').textContent=detailText[name];
+}
+document.querySelectorAll('.detail-nav button').forEach(b=>b.addEventListener('click',()=>focusDetail(b.dataset.detail)));
+document.querySelectorAll('.note').forEach((note,i)=>{
+  const name=i===2?'all':'wood', button=document.createElement('button');button.textContent=i===2?'回看整體比例 ↗':'近看木作細節 ↗';
+  button.addEventListener('click',()=>{focusDetail(name);$('#stage').scrollIntoView({behavior:motion.matches?'instant':'smooth',block:'center'});document.querySelector(`.detail-nav [data-detail="${name}"]`).focus({preventScroll:true})});note.append(button);
+});
+motion.addEventListener('change',()=>{if(motion.matches)document.querySelectorAll('.fly').forEach(el=>{el.getAnimations().forEach(a=>a.cancel());el.remove()})});
 refresh(); renderCart();
 })();
 </script>

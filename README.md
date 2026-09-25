@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 149，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 150，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -35,7 +35,7 @@
 | 022 | [022-kinetic-type.html](https://htmls-ruddy.vercel.app/web/022-kinetic-type.html) | 動態字體 | TYPE IS A MUSCLE：游標附近的字變粗變寬、字重波浪 | ⚠ Chrome 對 Bahnschrift 可變軸無效，只能在具名樣式間跳格，不連續；內容也偏單薄 |
 | 023 | [023-isometric.html](https://htmls-ruddy.vercel.app/web/023-isometric.html) | 等角視圖 | 薄荷鎮建造器：7 種工具、道路自動接線、小車、日夜切換 | △ 手機上地圖偏小 |
 | 024 | [024-dev-saas-dark.html](https://htmls-ruddy.vercel.app/web/024-dev-saas-dark.html) | 暗色開發者產品頁 | Driftwood CLI 落地頁：bento、游標光暈、互動終端機 | ⚠ 這個方向本身就是標準 SaaS 版型，做得再好也像模板 |
-| 025 | [025-nordic-shop.html](https://htmls-ruddy.vercel.app/web/025-nordic-shop.html) | 北歐家具店 | stilla 單品頁：CSS 畫的椅子，換木材與布料、購物車 | △ 椅子是正面平視，立體感有限 |
+| 025 | [025-nordic-shop.html](https://htmls-ruddy.vercel.app/web/025-nordic-shop.html) | 北歐家具店 | stilla 材質研究：寬幅商品展示、木作與織品聚焦、木材布料搭配、設計筆記與購物車；支援減少動態效果 | △ 椅子是正面平視，立體感有限 |
 | 026 | [026-blueprint.html](https://htmls-ruddy.vercel.app/web/026-blueprint.html) | 工程藍圖 | 機械錶芯藍圖：以真實擺頻運轉、零件規格、滴答聲 | |
 | 027 | [027-herbarium.html](https://htmls-ruddy.vercel.app/web/027-herbarium.html) | 標本館 | 想像植物標本：依 seed 生長四類植物、拉丁學名、可用網址重現 | |
 | 028 | [028-system7.html](https://htmls-ruddy.vercel.app/web/028-system7.html) | 經典 Mac OS | 1-bit 桌面作品集：縮放框動畫、拖曳時只移動外框、15 格拼圖 | |
@@ -106,7 +106,7 @@
 | 093 | [093-perfume.html](https://htmls-ruddy.vercel.app/web/093-perfume.html) | 奢華香水 | Minuit Velours：點瓶身噴霧、香調金字塔、8 小時揮發圖 | |
 | 094 | [094-fourier.html](https://htmls-ruddy.vercel.app/web/094-fourier.html) | 傅立葉周轉圓 | 隨手畫的線用 DFT 周轉圓重現、圓的數量可調 | |
 | 095 | [095-nonogram.html](https://htmls-ruddy.vercel.app/web/095-nonogram.html) | 方格紙鉛筆 | 數織練習簿：4 題，都經 solver 驗證有唯一解，鉛筆塗黑 | △ 手機上 15×15 題的格子只有約 20px |
-| 096 | [096-mediterranean.html](https://htmls-ruddy.vercel.app/web/096-mediterranean.html) | 地中海 | Levkí 四日行程：依真實太陽公式驅動天色、陰影、海面反光 | |
+| 096 | [096-mediterranean.html](https://htmls-ruddy.vercel.app/web/096-mediterranean.html) | 地中海 | Levkí 旅行手記：桌機固定風景與四日行程並排，選取時刻聯動真實太陽公式的光影與地點標記；日照播放、月份切換與減少動態效果 | |
 | 097 | [097-lofi-room.html](https://htmls-ruddy.vercel.app/web/097-lofi-room.html) | Lo-fi 房間 | 雨夜房間：點物件切換聲音，合成雨聲、lo-fi 和弦、貓呼嚕 | |
 | 098 | [098-xeno-glyph.html](https://htmls-ruddy.vercel.app/web/098-xeno-glyph.html) | 外星語 | XENOLINGUA 解碼器：三種筆畫文法生成字形、直書、傳送音 | |
 | 099 | [099-rubik.html](https://htmls-ruddy.vercel.app/web/099-rubik.html) | CSS 3D | 魔術方塊：整數旋轉矩陣驗證排列正確、拖曳旋轉視角、計時 | △ 只能用按鈕或按鍵轉面，不能直接拖貼紙轉 |
@@ -150,8 +150,14 @@
 | 139 | [139-tideborn-island.html](web/139-tideborn-island.html) | 程序化 3D 海島 | 潮生島：中央高地、環島沙灘、礁島、放射狀路網；大小／高度／種子可調；五種職業的骨架 glTF 村民、尋路作息、交談搬貨交易、資源任務、製作市集、等級建築與本機存檔；使用本地 Three.js，需 HTTP 伺服器 | |
 | 140 | [140-cumulus-line.html](https://htmls-ruddy.vercel.app/web/140-cumulus-line.html) | 遊戲敘事 · 水彩浮島電車模擬 | 浮雲鐵道：駕駛室視角開電車跨越浮島與海上拱橋；P5～B7／EB 一桿式主控制器、馬達響應與坡度、以急動度與側向加速度換算舒適度並換成小費、茶杯液面即時傾斜、平穩連續倍率與中斷後的平衡提示、定點停車；雲梯線與星汐線兩條路線、晴日／午夜光照（車窗暖光、島上燈火、螢火與燈塔）、機廠小鎮整備馬達／懸吊／加掛客車與塗裝；水彩後製著色器 | 使用本地 Three.js 模組，需透過網站伺服器開啟（直接開檔改由 CDN 載入）；需 WebGL |
 | 141 | [141-between-worlds.html](web/141-between-worlds.html) | 生成藝術 · 光點變形 | 萬物之間：12,000 粒光在星系、遞迴樹、蝴蝶與自訂文字之間平滑變形；指尖擾動、合成和弦、暫停、PNG 明信片與減少動態效果支援；純 Canvas，無外部依賴 | |
-| 142 | [142-aurielle-castle.html](https://htmls-ruddy.vercel.app/web/142-aurielle-castle.html) | 創意藝術 · 童話建築 | 曦光城堡：完整程序化 3D 城堡、對稱塔群、藍色尖頂、拱窗與陽台；四種視角、自由環繞、日夜光照與 glTF 材質模型下載 | 本地 Three.js；需 HTTP 伺服器與 WebGL |
+| 142 | [142-aurielle-castle.html](https://htmls-ruddy.vercel.app/web/142-aurielle-castle.html) | 創意藝術 · 童話建築 | 曦光城堡：完整程序化 3D 城堡、對稱塔群、藍色尖頂、拱窗與陽台；建築典藏版面、可中斷的四視角鏡頭、自由環繞、日夜漸變與 glTF 材質模型下載 | 本地 Three.js；需 HTTP 伺服器與 WebGL |
+| 144 | [144-finance-passbook.html](https://htmls-ruddy.vercel.app/web/144-finance-passbook.html) | 專案範例 · 存摺帳頁 · 財務總覽 | 存摺：個人財務、企業、新創三本帳：現金餘額、收入、支出、利潤與淨現金流量，每月收支、預算對比實際、支出明細與附結餘的交易明細；期間與分類篩選，CSV 範本下載、匯入替換與匯出 | CSV 匯入替換為自己的帳；匯入的帳只存在瀏覽器本機 |
+| 145 | [145-pnl-bridge.html](https://htmls-ruddy.vercel.app/web/145-pnl-bridge.html) | 專案範例 · 損益瀑布 · 側置損益表 | 損益橋：咖啡連鎖、SaaS、家具製造三種業務：從營收一路扣到淨利的損益橋，每根柱子正下方對齊損益表數字；本月對上月、實際對預算的正負差異，毛利率、淨利率與可點選換月的 12 個月走勢 | 靜態 HTML 互動範例；資料為示意 |
+| 146 | [146-cashflow-reservoir.html](https://htmls-ruddy.vercel.app/web/146-cashflow-reservoir.html) | 專案範例 · 水庫剖面 · 現金流預測 | 水位：企業與個人兩種現金流：期初、流入、營運、債務、投資、稅費、其它流出到期末的水位圖與流向圖；3 個月預測、最大現金消耗項，預測跌破可拖曳的最低現金水位線時即時預警 | 靜態 HTML 互動範例；資料為示意 |
+| 147 | [147-budget-envelopes.html](https://htmls-ruddy.vercel.app/web/147-budget-envelopes.html) | 專案範例 · 信封理財 · 郵戳狀態 | 信封：家庭、行銷部門、民宿三組分類，一類一只信封：預算、實際、差異金額與百分比、剩餘預算，郵戳標示正常／注意／超支；拖曳日期看月末預測、點金額改預算，總使用率、超支排行與每月趨勢 | 靜態 HTML 互動範例；預算調整只存在瀏覽器本機 |
+| 148 | [148-cfo-runway.html](https://htmls-ruddy.vercel.app/web/148-cfo-runway.html) | 專案範例 · 機場跑道 · 高階主管月報 | 跑道：三家公司的單頁經營月報：可支撐月數畫成跑道與現金耗盡停止線，營運費用情境滑桿即時移動；十項指標對比上月、上季與目標，CFO 總結依數據自動列出變好、變差與需要關注 | 靜態 HTML 互動範例；資料為示意 |
 | 149 | [149-powers-of-ten.html](https://htmls-ruddy.vercel.app/web/149-powers-of-ten.html) | 資料科學 · 62 個數量級連續縮放 | 一指之間：從大安森林公園花布上孩子的掌心出發，往外經臺北盆地、臺灣、地球、今日真實行星位置、歐特雲、銀河、本星系群、拉尼亞凱亞到可觀測宇宙邊緣；往裡經掌紋、角質層、細胞、染色質、DNA、G·C 鹼基對、碳原子電子雲、原子核與夸克，直到普朗克長度。視野與光穿越時間即時換算、自動旅程、尺規拖曳、WebAudio 刻度聲；全部即時繪製，零外部資源 | |
+| 150 | [150-brick-rts.html](web/150-brick-rts.html) | 積木即時戰略 · 開發中 | 磚築紀元：規則驗證與可重現移動沙盒；完整對戰尚未實作。原始碼與操作見 [README](games/150-brick-rts/README.md) | |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。

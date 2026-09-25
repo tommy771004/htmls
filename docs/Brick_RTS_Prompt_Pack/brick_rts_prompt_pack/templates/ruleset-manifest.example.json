@@ -1,0 +1,57 @@
+{
+  "documentType": "ruleset_manifest_template",
+  "isGameImplementation": false,
+  "id": "brick-rts-provisional",
+  "schemaVersion": 1,
+  "reference": {
+    "game": "Age of Empires II: Definitive Edition",
+    "version": null,
+    "build": null,
+    "contentPacks": [],
+    "completeContentInventoryKnown": false,
+    "verificationStatus": "unverified",
+    "note": "No exact DE build or current content list has been verified. Empty contentPacks means unspecified, not no expansions."
+  },
+  "artDirection": "original high-detail LEGO-style brick medieval RTS; no claim of official affiliation",
+  "simulationProposal": {
+    "fixedTickHz": 20,
+    "parameterProvenance": "design_default",
+    "measured": false
+  },
+  "coverage": {
+    "mechanicsDenominator": null,
+    "contentDenominator": null,
+    "exactReferenceCoveragePercent": null
+  },
+  "inventories": {
+    "civilizations": [],
+    "units": [],
+    "buildings": [],
+    "technologies": [],
+    "maps": [],
+    "modes": [],
+    "campaigns": []
+  },
+  "requiredContentEntryFields": [
+    "id",
+    "kind",
+    "referenceVersion",
+    "sourceEvidence",
+    "verificationStatus",
+    "implementationStatus",
+    "testEvidence"
+  ],
+  "allowedReferenceStatuses": [
+    "unverified",
+    "design_default",
+    "verified_against_reference"
+  ],
+  "allowedImplementationStatuses": [
+    "not_started",
+    "in_progress",
+    "implemented",
+    "verified",
+    "blocked"
+  ],
+  "unknownHandling": "Do not replace null with invented DE values. Add explicitly labeled design-default rules for playable prototypes."
+}

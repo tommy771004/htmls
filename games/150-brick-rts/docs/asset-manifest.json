@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "sandbox-isometric-bricks",
+      "source": "apps/web/main.ts",
+      "creator": "original procedural implementation in this project",
+      "externalAssets": false,
+      "type": "Canvas 2D drawing code",
+      "parts": [
+        "studded bricks",
+        "stepped roofs",
+        "chimney",
+        "doors",
+        "windows",
+        "flags",
+        "villagers",
+        "trees"
+      ],
+      "status": "sandbox illustration only; not production 3D RTS models"
+    }
+  ]
+}

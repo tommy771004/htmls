@@ -134,7 +134,7 @@
 ### 品牌頁面
 
 - [012 The Meridian Ball](https://htmls-ruddy.vercel.app/web/012-art-deco.html): 裝飾藝術。1926 跨年晚宴邀請函：扇形展開、金屬光澤掃過，RSVP 產生座位與徽章
-- [025 stilla · Sova 休憩椅](https://htmls-ruddy.vercel.app/web/025-nordic-shop.html): 北歐家具店。純 CSS 畫的椅子，4 種木材與 4 種織品平滑換色，購物車飛入動畫
+- [025 stilla · Sova 休憩椅](https://htmls-ruddy.vercel.app/web/025-nordic-shop.html): 北歐家具店。寬幅商品展示、木作與織品近看、四種木材與織品搭配、設計筆記與購物車
 - [032 A Cabinet of Curiosities](https://htmls-ruddy.vercel.app/web/032-dark-academia.html): 暗黑學院。胡桃木 12 抽屜珍奇櫃，燭光閃爍，第十二格是上鎖的小謎題
 - [050 Atomic Holidays!](https://htmls-ruddy.vercel.app/web/050-atomic-age.html): 50 年代原子時代。1958 太空旅行社：航線圖火箭飛行、計算票價、登機證與 theremin
 - [060 Grand Hotel Alpenrose](https://htmls-ruddy.vercel.app/web/060-wes-anderson.html): 對稱粉彩。嚴格中軸對稱的飯店訂房，電梯開門後遞上房號鑰匙牌
@@ -142,7 +142,7 @@
 - [085 Magnussen's Grand Circus](https://htmls-ruddy.vercel.app/web/085-circus.html): 維多利亞馬戲。木活字海報售票亭：燈泡跑馬、£sd 計價、可撕票根
 - [089 The Leaky Coconut](https://htmls-ruddy.vercel.app/web/089-tiki.html): 提基酒吧。17 種材料分層倒入的調酒器，辨識 7 款經典酒譜
 - [093 Minuit Velours](https://htmls-ruddy.vercel.app/web/093-perfume.html): 奢華香水。點瓶身噴霧、香調金字塔、拖曳觀看 8 小時揮發曲線
-- [096 Levkí, four days](https://htmls-ruddy.vercel.app/web/096-mediterranean.html): 地中海。拱門望出的希臘小島行程，真實太陽公式驅動天色與陰影
+- [096 Levkí, four days](https://htmls-ruddy.vercel.app/web/096-mediterranean.html): 地中海。固定風景搭配四日旅行手記，選取時刻聯動太陽光影與地點標記，支援月份及日照播放
 - [133 HALION · THREE PARTS. ONE MIND.](https://htmls-ruddy.vercel.app/web/133-halion.html): Three.js 概念腦機晶片產品網站。冷藍玻璃封裝、中央感應線圈與矽基板依捲動逐件展開；六個零件各有獨立區間與到位標註，結尾重新合攏。手機使用簡化幾何，WebGL 不可用時顯示靜態晶片
 
 ### 資料科學
@@ -200,6 +200,16 @@
 - [102 Starting on Your Own Project](https://htmls-ruddy.vercel.app/web/102-your-project-playbooks.html): AI 工程化教學簡報。在自己的專案啟動 Claude Code 的三套起手劇本：全新專案、WebForms 轉 Web、WinForms 轉 Web，16 張投影片
 
 ### 專案範例
+- [148 跑道 · CFO 儀表板](https://htmls-ruddy.vercel.app/web/148-cfo-runway.html): 三家公司的單頁經營月報：可支撐月數畫成跑道與現金耗盡停止線，營運費用情境滑桿即時移動；十項指標對比上月、上季與目標，CFO 總結依數據自動列出變好、變差與需要關注
+
+- [147 信封 · 預算比較實際](https://htmls-ruddy.vercel.app/web/147-budget-envelopes.html): 家庭、行銷部門、民宿三組分類，一類一只信封：預算、實際、差異金額與百分比、剩餘預算，郵戳標示正常／注意／超支；拖曳日期看月末預測、點金額改預算，總使用率、超支排行與每月趨勢
+
+- [146 水位 · 現金流儀表板](https://htmls-ruddy.vercel.app/web/146-cashflow-reservoir.html): 企業與個人兩種現金流：期初、流入、營運、債務、投資、稅費、其它流出到期末的水位圖與流向圖；3 個月預測、最大現金消耗項，預測跌破可拖曳的最低現金水位線時即時預警
+
+- [145 損益橋 · 月損益儀表板](https://htmls-ruddy.vercel.app/web/145-pnl-bridge.html): 咖啡連鎖、SaaS、家具製造三種業務：從營收一路扣到淨利的損益橋，每根柱子正下方對齊損益表數字；本月對上月、實際對預算的正負差異，毛利率、淨利率與可點選換月的 12 個月走勢
+
+- [144 存摺 · 完整財務儀表板](https://htmls-ruddy.vercel.app/web/144-finance-passbook.html): 個人財務、企業、新創三本帳：現金餘額、收入、支出、利潤與淨現金流量，每月收支、預算對比實際、支出明細與附結餘的交易明細；期間與分類篩選，CSV 範本下載、匯入替換與匯出
+
 - [138 Bloom · Windows 11 風格桌面](https://htmls-ruddy.vercel.app/web/138-bloom-desktop.html): 單檔零外部資源 Web 作業系統，多視窗拖曳縮放、模擬檔案管理、基本 shell、離線瀏覽器、主題、Web Audio 合成音樂與可挖掘建造的原生 WebGL 體素遊戲。本機保存文件與世界。
 
 - [137 留白工作室 · Notion 風格工作區](https://htmls-ruddy.vercel.app/web/137-notion-workspace.html): 巢狀頁面樹與區塊式編輯器，支援 slash 指令、Tab 縮排、拖曳排序、表格與看板、復原重做、本機儲存及 Markdown 匯出。
@@ -207,7 +217,7 @@
 - [105 Northstar Sales CRM](https://htmls-ruddy.vercel.app/web/105-sales-crm.html): 深色高密度業務儀表板。Companies 表格、案件看板、預測、篩選、新增公司與 CSV 匯出；使用示意資料
 
 ### 創意藝術
-- [142 曦光城堡 · Aurielle Castle](https://htmls-ruddy.vercel.app/web/142-aurielle-castle.html)：完整童話城堡 3D 模型，淡色石牆、藍色尖頂、金色飾件與暖光拱窗。自由旋轉、四種視角、日夜光照及標準 glTF 下載。
+- [142 曦光城堡 · Aurielle Castle](https://htmls-ruddy.vercel.app/web/142-aurielle-castle.html)：完整童話城堡 3D 模型，淡色石牆、藍色尖頂、金色飾件與暖光拱窗。建築典藏版面、可中斷的平滑鏡頭、日夜漸變、自由旋轉與標準 glTF 下載。
 
 - [111 Jelly Dice · 果凍骰子工房](https://htmls-ruddy.vercel.app/web/111-jelly-dice.html): 程序化半透明果凍骰子。六種口味、1–5 顆同時擲出、碰撞與回彈、滑鼠及觸控戳壓與拖曳
 
@@ -322,3 +332,5 @@
 - [潮生島 · 海島經營日記](https://htmls-ruddy.vercel.app/web/139-tideborn-island.html)：遊戲敘事；可調整種子、大小、高度的程序化海島，中央高地、沙灘、礁島與放射路網。完整經營原型：住宅、生產設施、碼頭與燈塔，五種職業的骨架 glTF 村民、狀態機作息與尋路、交談及實際搬運交易、六種資源、任務製作市集、等級解鎖與自動存檔。
 
 - [141 萬物之間 · Between Worlds](https://htmls-ruddy.vercel.app/web/141-between-worlds.html)：生成藝術；12,000 粒光在星系、生命之樹、蝴蝶與自訂文字之間變形，支援指尖擾動、合成和弦、暫停與 PNG 明信片下載。純 Canvas，即時生成，無外部依賴。
+
+- [150 磚築紀元 · BRICK RTS](https://htmls-ruddy.vercel.app/web/150-brick-rts.html)：遊戲敘事；開發中的原創積木 RTS，提供規則驗證、移動命令沙盒、存讀與重播；完整對戰尚未實作。

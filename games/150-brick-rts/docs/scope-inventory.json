@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "referenceVersion": null,
+  "coverageDenominator": "unknown",
+  "referenceInventories": {
+    "civilizations": {
+      "status": "unverified",
+      "entries": [],
+      "note": "Original complete inventory not provided; empty does not mean no content."
+    },
+    "units": {
+      "status": "unverified",
+      "entries": [],
+      "note": "Original complete inventory not provided; empty does not mean no content."
+    },
+    "buildings": {
+      "status": "unverified",
+      "entries": [],
+      "note": "Original complete inventory not provided; empty does not mean no content."
+    },
+    "technologies": {
+      "status": "unverified",
+      "entries": [],
+      "note": "Original complete inventory not provided; empty does not mean no content."
+    },
+    "civilizationBonuses": {
+      "status": "unverified",
+      "entries": [],
+      "note": "Original complete inventory not provided; empty does not mean no content."
+    },
+    "teamBonuses": {
+      "status": "unverified",
+      "entries": [],
+      "note": "Original complete inventory not provided; empty does not mean no content."
+    },
+    "uniqueUpgrades": {
+      "status": "unverified",
+      "entries": [],
+      "note": "Original complete inventory not provided; empty does not mean no content."
+    },
+    "mapScripts": {
+      "status": "unverified",
+      "entries": [],
+      "note": "Original complete inventory not provided; empty does not mean no content."
+    },
+    "modes": {
+      "status": "unverified",
+      "entries": [],
+      "note": "Original complete inventory not provided; empty does not mean no content."
+    },
+    "campaigns": {
+      "status": "unverified",
+      "entries": [],
+      "note": "Original complete inventory not provided; empty does not mean no content."
+    }
+  },
+  "sliceTarget": {
+    "players": 2,
+    "resources": [
+      "food",
+      "wood",
+      "gold",
+      "stone"
+    ],
+    "ages": 4,
+    "combatRoles": [
+      "melee",
+      "ranged",
+      "siege"
+    ],
+    "required": [
+      "economy",
+      "population",
+      "construction",
+      "age advancement",
+      "basic AI",
+      "fog",
+      "win/loss",
+      "restart"
+    ],
+    "status": "not_started beyond command sandbox",
+    "data": "ruleset-manifest.json"
+  },
+  "fullTargetInteractions": [
+    "transport",
+    "garrison",
+    "conversion",
+    "exclusive technology",
+    "teams",
+    "sea maps",
+    "trade",
+    "special victory"
+  ]
+}

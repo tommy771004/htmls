@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 1,
+  "id": "brick-foundation-0.1",
+  "reference": {
+    "game": "Age of Empires II: Definitive Edition",
+    "version": null,
+    "build": null,
+    "contentPacks": [],
+    "verificationStatus": "unverified",
+    "sourceEvidence": []
+  },
+  "coverage": {
+    "contentDenominator": null,
+    "exactReferenceCoveragePercent": null
+  },
+  "settings": {
+    "tickHz": 20,
+    "populationCap": 40,
+    "mapSize": 16,
+    "speed": 1,
+    "mode": "command-sandbox",
+    "seed": 260925,
+    "platform": "desktop browser",
+    "provenance": "design_default"
+  },
+  "entries": [
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "in_progress",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "villager",
+      "kind": "unit",
+      "name": "村民",
+      "cost": {
+        "food": 50,
+        "wood": 0,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 1,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "town-center",
+      "kind": "building",
+      "name": "城鎮中心",
+      "cost": {
+        "food": 0,
+        "wood": 200,
+        "gold": 0,
+        "stone": 100
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "house",
+      "kind": "building",
+      "name": "民居",
+      "cost": {
+        "food": 0,
+        "wood": 30,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "barracks",
+      "kind": "building",
+      "name": "兵營",
+      "cost": {
+        "food": 0,
+        "wood": 150,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "militia",
+      "kind": "unit",
+      "name": "近戰民兵",
+      "cost": {
+        "food": 60,
+        "wood": 0,
+        "gold": 20,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 1,
+      "requires": [
+        "barracks"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "archer",
+      "kind": "unit",
+      "name": "弓手",
+      "cost": {
+        "food": 0,
+        "wood": 40,
+        "gold": 30,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 1,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "ram",
+      "kind": "unit",
+      "name": "攻城槌",
+      "cost": {
+        "food": 0,
+        "wood": 160,
+        "gold": 75,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 3,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "age-2",
+      "kind": "technology",
+      "name": "第二時代",
+      "cost": {
+        "food": 300,
+        "wood": 0,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "age-3",
+      "kind": "technology",
+      "name": "第三時代",
+      "cost": {
+        "food": 500,
+        "wood": 0,
+        "gold": 200,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "age-4",
+      "kind": "technology",
+      "name": "第四時代",
+      "cost": {
+        "food": 800,
+        "wood": 0,
+        "gold": 400,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    }
+  ],
+  "civilizations": [
+    {
+      "id": "blue-settlement",
+      "available": [
+        "villager",
+        "town-center",
+        "house",
+        "barracks",
+        "militia",
+        "archer",
+        "ram",
+        "age-2",
+        "age-3",
+        "age-4"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "red-settlement",
+      "available": [
+        "villager",
+        "town-center",
+        "house",
+        "barracks",
+        "militia",
+        "archer",
+        "ram",
+        "age-2",
+        "age-3",
+        "age-4"
+      ],
+      "unavailable": []
+    }
+  ]
+}

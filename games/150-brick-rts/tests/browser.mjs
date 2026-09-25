@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
+const root=fileURLToPath(new URL('../../../',import.meta.url));
+const output=fileURLToPath(new URL('../test-results/',import.meta.url));fs.mkdirSync(output,{recursive:true});
+const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!file.startsWith(root)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.js')?'text/javascript':file.endsWith('.jpg')?'image/jpeg':'application/octet-stream');res.end(fs.readFileSync(file));});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const origin=`http://127.0.0.1:${server.address().port}`;
+const browser=await chromium.launch({headless:true});
+try {
+ for(const viewport of [{width:1440,height:900},{width:390,height:844}]){
+ const page=await browser.newPage({viewport});const errors=[],external=[];
+ page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('blob:')&&!r.url().startsWith('data:'))external.push(r.url());});
+ await page.goto(origin+'/web/150-brick-rts.html');await page.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ const initial=await page.locator('#hash').innerText();
+ await page.locator('[data-unit="2"]').click();assert.equal(await page.locator('[data-unit="2"]').getAttribute('aria-pressed'),'true');
+ await page.locator('#move').click();assert.match(await page.locator('#notice').innerText(),/已排入/);
+ await page.locator('#step').click();assert.equal(await page.locator('#tick').innerText(),'1');assert.notEqual(await page.locator('#hash').innerText(),initial);
+ await page.locator('#save').click();const saved=await page.locator('#hash').innerText();await page.locator('#step').click();await page.locator('#load').click();assert.equal(await page.locator('#hash').innerText(),saved);
+ await page.locator('#replay').click();assert.match(await page.locator('#notice').innerText(),/重播一致/);
+ await page.locator('#pause').click();await page.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>4);await page.locator('#pause').click();const paused=await page.locator('#tick').innerText();await page.waitForTimeout(150);assert.equal(await page.locator('#tick').innerText(),paused);
+ await page.evaluate(()=>localStorage.setItem('brick-rts:sandbox:1','broken'));await page.locator('#load').click();assert.match(await page.locator('#notice').innerText(),/讀取失敗/);assert.equal(await page.locator('#tick').innerText(),paused);
+ await page.locator('#seed').fill('7');await page.locator('#restart').click();assert.equal(await page.locator('#tick').innerText(),'0');assert.notEqual(await page.locator('#hash').innerText(),initial);
+ await page.locator('#map').scrollIntoViewIfNeeded();const map=await page.locator('#map').boundingBox();await page.mouse.click(map.x+map.width*.5,map.y+map.height*.58);assert.match(await page.locator('#notice').innerText(),/指令已排入/);
+ await page.locator('summary').click();await page.locator('#validate').click();assert.match(await page.locator('#validation').innerText(),/驗證通過/);
+ await page.locator('#exact').check();await page.locator('#validate').click();assert.match(await page.locator('#validation').innerText(),/版本/);await page.locator('#exact').uncheck();
+ await page.locator('#rules-json').fill('{bad');await page.locator('#validate').click();assert.match(await page.locator('#validation').innerText(),/JSON 格式錯誤/);
+ await page.locator('#reset-rules').click();const r=JSON.parse(await page.locator('#rules-json').inputValue());r.entries[0].cost.food=-1;await page.locator('#rules-json').fill(JSON.stringify(r));await page.locator('#validate').click();assert.match(await page.locator('#validation').innerText(),/成本/);
+ await page.locator('#reset-rules').click();const downloadEvent=page.waitForEvent('download');await page.locator('#export').click();const download=await downloadEvent;assert.equal(download.suggestedFilename(),'brick-rts-rules.json');
+ await page.locator('summary').click();await page.locator('#seed').fill('260925');await page.locator('#restart').click();assert.equal(await page.locator('#hash').innerText(),initial);
+ await page.screenshot({path:output+`desktop-${viewport.width}.png`,fullPage:true});
+ if(viewport.width===1440){await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:root+'thumbs/150.jpg',type:'jpeg',quality:85});}
+ assert.deepEqual(errors,[]);assert.deepEqual(external,[]);await page.close();console.log(`PASS ${viewport.width}: movement, ticks, save/load, replay, JSON validation, export, layout, errors, network`);
+ }
+ const page=await browser.newPage();await page.goto(origin+'/index.html');await page.locator('[data-kind="web"]').click();await page.locator('[data-cat="遊戲敘事"]').click();await page.locator('#q').fill('Brick RTS');await page.waitForTimeout(100);assert.equal(await page.locator('[data-open="150"]').count()>0,true);console.log('PASS catalog search + game category');await page.close();
+ console.log('Browser:',browser.version());console.log('Screenshots:',output);
+}finally{await browser.close();server.close();}

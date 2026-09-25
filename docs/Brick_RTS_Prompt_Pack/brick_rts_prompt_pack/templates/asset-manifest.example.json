@@ -1,0 +1,109 @@
+{
+  "documentType": "asset_manifest_template",
+  "schemaVersion": 1,
+  "hasDeliveredModels": false,
+  "coordinateSystem": {
+    "upAxis": "Y",
+    "worldUnits": "project-defined; establish in art bible",
+    "studPitch": null,
+    "plateHeight": null
+  },
+  "assets": [
+    {
+      "id": "bld_town_center_age1",
+      "kind": "building",
+      "productionStatus": "not_started",
+      "source": "to be authored",
+      "license": null,
+      "files": [],
+      "ageVariant": 1,
+      "gameplayUpgradeId": null,
+      "footprint": null,
+      "collisionProxy": null,
+      "pivot": null,
+      "sockets": [
+        "unit_exit",
+        "rally_anchor",
+        "flag",
+        "garrison_projectile"
+      ],
+      "requiredStates": [
+        "construction_1",
+        "construction_2",
+        "construction_3",
+        "construction_4",
+        "operational",
+        "damaged",
+        "destroyed"
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "assetPath": null,
+          "triangleCountMeasured": null,
+          "drawCallsMeasured": null
+        },
+        {
+          "level": 1,
+          "assetPath": null,
+          "triangleCountMeasured": null,
+          "drawCallsMeasured": null
+        },
+        {
+          "level": 2,
+          "assetPath": null,
+          "triangleCountMeasured": null,
+          "drawCallsMeasured": null
+        }
+      ],
+      "readabilityChecks": [
+        "normal gameplay zoom",
+        "close zoom",
+        "far zoom",
+        "player color",
+        "clear entrance"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "unit_villager",
+      "kind": "unit",
+      "productionStatus": "not_started",
+      "source": "to be authored",
+      "license": null,
+      "files": [],
+      "sockets": [
+        "hand_left",
+        "hand_right",
+        "back",
+        "carried_resource"
+      ],
+      "requiredStates": [
+        "idle",
+        "walk",
+        "gather_wood",
+        "gather_mine",
+        "gather_food",
+        "carry",
+        "build",
+        "repair",
+        "attack",
+        "garrison",
+        "death"
+      ],
+      "attachments": [
+        "axe",
+        "pickaxe",
+        "sickle",
+        "hammer",
+        "wood_load",
+        "ore_load",
+        "food_load"
+      ],
+      "collisionRadius": null,
+      "selectionBounds": null,
+      "evidence": []
+    }
+  ],
+  "note": "All asset paths and measured counts intentionally remain empty; these examples are not completed models."
+}
