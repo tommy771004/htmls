@@ -43,23 +43,23 @@ INPUT-005,INPUT,minimap／鏡頭操作,system,06,proposed,true,unverified,not_st
 INPUT-006,INPUT,HUD 真實資料與成本提示,system,06,proposed,true,unverified,not_started,,,,
 INPUT-007,INPUT,訓練／科技佇列操作,system,06,proposed,true,unverified,not_started,,,,
 INPUT-008,INPUT,失焦／輸入法／UI 隔離,system,06,proposed,true,unverified,in_progress,apps/web/main.ts,tests/controls-browser.mjs;tests/browser.mjs,docs/first-use-008.md,Shortcuts ignored in inputs/textareas/selects; context menu suppressed on the scene only; drag ending over the sidebar uses pointer capture and presses nothing; blur cancels a drag; background tab/blur pauses the sim. IME composition not separately tested.
-ECO-001,ECO,四資源帳本,system,07,proposed,true,unverified,in_progress,packages/sim/economy.ts;packages/sim/sim.ts,tests/economy.test.ts,,Four-resource accounts in authoritative state; gathering/carry/dropoff pending.
-ECO-002,ECO,採集／攜帶／送返循環,system,07,proposed,true,unverified,not_started,,,,
-ECO-003,ECO,合法 dropoff 與工作站位,system,07,proposed,true,unverified,not_started,,,,
-ECO-004,ECO,伐木／金礦／石礦,system,07,proposed,true,unverified,not_started,,,,
-ECO-005,ECO,食物來源／狩獵／家畜,system,07,proposed,true,unverified,not_started,,,,
+ECO-001,ECO,四資源帳本,system,07,proposed,true,unverified,in_progress,packages/sim/economy.ts;packages/sim/work.ts;packages/sim/sim.ts;packages/sim/protocol.ts,tests/economy.test.ts;tests/gather.test.ts,docs/first-use-009.md,Stock changes only through deposits (and existing reservations); cumulative ledger extracted = deposited + carried is asserted every tick in tests. HUD reads the Worker projection of the own account only.
+ECO-002,ECO,採集／攜帶／送返循環,system,07,proposed,true,unverified,in_progress,packages/sim/work.ts;packages/sim/movement.ts;apps/web/main.ts;apps/web/scene.ts,tests/gather.test.ts;tests/first-use-economy.mjs,docs/first-use-009.md,"toSource -> gathering -> toDropoff -> deposit -> resume, carry 10, deterministic per-tick progress; move/stop end work but keep cargo; a gather order for another resource returns cargo first; depletion returns cargo then switches to the nearest same-yield source within 600 or idles. Villager pose/tool follow the sim state."
+ECO-003,ECO,合法 dropoff 與工作站位,system,07,proposed,true,unverified,in_progress,packages/sim/work.ts,tests/gather.test.ts,docs/first-use-009.md,"Work slots: walkable nodes within 50 of the resource footprint (same rule as the map generator); drop-off: nodes ringing the own town center outside the plinth, never inside the single-file hall. Other drop-off buildings (camps, mill) not implemented."
+ECO-004,ECO,伐木／金礦／石礦,system,07,proposed,true,unverified,in_progress,packages/sim/work.ts;packages/sim/navigation.ts,tests/gather.test.ts;tests/terrain.test.ts,docs/first-use-009.md,"Trees, stone and gold gathered with design_default rates (1 per 20/25/25 ticks); exhausted nodes free their navigation ground. Upgrades and tool technologies not implemented."
+ECO-005,ECO,食物來源／狩獵／家畜,system,07,proposed,true,unverified,in_progress,packages/sim/work.ts,tests/gather.test.ts;tests/first-use-economy.mjs,docs/first-use-009.md,"Berries only (1 food per 20 ticks). Hunt, livestock and fish orders are refused with an explicit not-implemented message; no static food node stands in for them."
 ECO-006,ECO,農田耗盡與補種,system,07,proposed,true,unverified,not_started,,,,
 ECO-007,ECO,採集科技與換工恢復,system,07,proposed,true,unverified,not_started,,,,
 ECO-008,ECO,市場買賣／價格／進貢,system,07,proposed,true,unverified,not_started,,,,
-ECO-009,ECO,資源中斷／死亡／轉化處理,system,07,proposed,true,unverified,not_started,,,,
-BUILD-001,BUILD,建築佔地與合法性,system,08,proposed,true,unverified,not_started,,,,
-BUILD-002,BUILD,多工人施工與取消退款,system,08,proposed,true,unverified,not_started,,,,
+ECO-009,ECO,資源中斷／死亡／轉化處理,system,07,proposed,true,unverified,in_progress,packages/sim/work.ts,tests/gather.test.ts,docs/first-use-009.md,"Order interruption and depletion rules implemented and tested. Death and conversion do not exist yet, so loss of carried resources on death is unverified."
+BUILD-001,BUILD,建築佔地與合法性,system,08,proposed,true,unverified,in_progress,packages/sim/buildings.ts;packages/content/footprints.ts;apps/web/main.ts;apps/web/scene.ts,tests/build.test.ts;tests/first-use-build.mjs,docs/first-use-010.md,"House and barracks placement on the 50-unit grid: inside map, explored, buildable and level tiles, no overlap with obstacles, no unit body inside. One shared rule for Worker (full map) and page preview (known data only). Foundations block navigation at once; units with a crossing route reroute. Rotation, walls and docks not implemented."
+BUILD-002,BUILD,多工人施工與取消退款,system,08,proposed,true,unverified,in_progress,packages/sim/buildings.ts;packages/sim/work.ts;packages/sim/economy.ts,tests/build.test.ts;tests/first-use-build.mjs,docs/first-use-010.md,"Cost reserved at placement (execution tick), committed on completion; cancel refunds 100% (economyRules.cancellationRefundPercent) and frees the ground. Builders stand on the ring outside the foundation; each adds 1 work/tick (required = entry time x tick rate). Same-tick overspend refused at execution with a logged reason."
 BUILD-003,BUILD,維修與施工受攻擊,system,08,proposed,true,unverified,not_started,,,,
-BUILD-004,BUILD,人口使用／保留／上限,system,08,proposed,true,unverified,not_started,,,,
+BUILD-004,BUILD,人口使用／保留／上限,system,08,proposed,true,unverified,in_progress,packages/sim/buildings.ts;packages/sim/economy.ts,tests/build.test.ts;tests/economy.test.ts,docs/first-use-010.md,"Cap = min(40, housing of completed own buildings): town center 5, house 5 (design_default). Used/reserved/cap tracked separately. Training (which consumes population) and building loss are not implemented yet."
 BUILD-005,BUILD,生產佇列／集結點／堵出口,system,08,proposed,true,unverified,not_started,,,,
 BUILD-006,BUILD,四時代與前置條件,system,08,proposed,true,unverified,not_started,,,,
 BUILD-007,BUILD,科技圖／互斥／疊加規則,system,08,proposed,true,unverified,not_started,,,,
-BUILD-008,BUILD,所有目標建築資料,system,08,proposed,true,unverified,not_started,,,,
+BUILD-008,BUILD,所有目標建築資料,system,08,proposed,true,unverified,in_progress,packages/sim/buildings.ts;apps/web/scene.ts,tests/build.test.ts,docs/first-use-010.md,"Playable buildings: town center (start), house, barracks (completes, produces nothing yet). Other building kinds exist only as inspector models."
 BUILD-009,BUILD,城牆／城門與外交,system,08,proposed,true,unverified,not_started,,,,
 BUILD-010,BUILD,駐軍／出城與附加效果,system,08,proposed,true,unverified,not_started,,,,
 COMBAT-001,COMBAT,傷害與護甲類別,system,09,proposed,true,unverified,not_started,,,,

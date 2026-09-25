@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createService,decodeView} from '../packages/sim/protocol.ts';
+import {createService,decodeView,UNIT_STRIDE} from '../packages/sim/protocol.ts';
 import type {Operation,Response} from '../packages/sim/protocol.ts';
 function harness(){const service=createService();let id=0;return {raw:service,call:(operation:Operation)=>{const r=service({protocol:1,id:++id,operation});assert.equal(r.ok,true,JSON.stringify(r));return r as Extract<Response,{ok:true}>;}};}
 test('service sends transferable projection, commits movement and preserves snapshots',()=>{
@@ -19,4 +19,9 @@ test('a replacement worker recovers precisely the acknowledged command/tick hist
  const a=harness();a.call({kind:'reset',seed:7});const move=a.call({kind:"move",unitIds:[2],x:1100,y:900});const step=a.call({kind:'advance',count:12});
  const b=harness();const recovered=b.call({kind:'recover',checkpoint:{seed:7,commands:[move.accepted!],ticks:12}});assert.equal(recovered.stateHash,step.stateHash);
  assert.equal(b.call({kind:'advance',count:20}).stateHash,a.call({kind:'advance',count:20}).stateHash);
+});
+
+test('raw position buffers use the stride that tests/browser.mjs hard-codes',()=>{
+ assert.equal(UNIT_STRIDE,12,'update tests/browser.mjs fogUnits when the projection changes');
+ const h=harness();const r=h.call({kind:'reset',seed:7});assert.equal(new Int32Array(r.positions).length,UNIT_STRIDE*decodeView(r).units.length);
 });

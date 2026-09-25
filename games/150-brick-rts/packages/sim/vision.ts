@@ -3,8 +3,8 @@ import type {ResourceNode} from './terrain.ts';
 import {tileAt} from './terrain.ts';
 import {obstacleBounds} from '../content/footprints.ts';
 // Buildings count as seen when any tile under their footprint is visible; other objects use their anchor tile.
-function footprintTiles(o:Obstacle):number[]{if(o.kind!=='house'&&o.kind!=='town-center')return [tileAt(o.x,o.y)];const [x0,y0,x1,y1]=obstacleBounds(o),tiles:number[]=[];for(let ty=Math.max(0,Math.floor(y0/100));ty<=Math.min(15,Math.floor((y1-1)/100));ty++)for(let tx=Math.max(0,Math.floor(x0/100));tx<=Math.min(15,Math.floor((x1-1)/100));tx++)tiles.push(ty*16+tx);return tiles;}
-export const visionRules={provenance:'design_default',unitRadius:400,houseRadius:300,townCenterRadius:300,shareVision:false,rememberStaticObjects:true} as const;
+function footprintTiles(o:Obstacle):number[]{if(o.kind!=='house'&&o.kind!=='town-center'&&o.kind!=='barracks')return [tileAt(o.x,o.y)];const [x0,y0,x1,y1]=obstacleBounds(o),tiles:number[]=[];for(let ty=Math.max(0,Math.floor(y0/100));ty<=Math.min(15,Math.floor((y1-1)/100));ty++)for(let tx=Math.max(0,Math.floor(x0/100));tx<=Math.min(15,Math.floor((x1-1)/100));tx++)tiles.push(ty*16+tx);return tiles;}
+export const visionRules={provenance:'design_default',unitRadius:400,houseRadius:300,townCenterRadius:600,shareVision:false,rememberStaticObjects:true} as const;
 export type Observer={player:number;x:number;y:number};
 export type KnownObstacle={obstacle:Obstacle;lastSeenTick:number};
 export type PlayerVision={explored:number[];visible:number[];known:KnownObstacle[];resources:ResourceNode[]};
@@ -15,7 +15,7 @@ export function updateVision(visions:PlayerVision[],map:MapData,units:Observer[]
  const own=[new Set<number>(),new Set<number>()];
  const reveal=(player:number,x:number,y:number,radius:number)=>{for(let id=0;id<256;id++){const dx=(id%16)*100+50-x,dy=Math.floor(id/16)*100+50-y;if(dx*dx+dy*dy<=radius*radius)own[player].add(id);}};
  for(const u of units)reveal(u.player,u.x,u.y,visionRules.unitRadius);
- for(const o of map.obstacles)if(o.kind==='house')reveal(o.red?1:0,o.x+100,o.y+100,visionRules.houseRadius);
+ for(const o of map.obstacles)if(o.kind==='house'||o.kind==='barracks')reveal(o.red?1:0,o.x+100,o.y+100,visionRules.houseRadius);
  else if(o.kind==='town-center')reveal(o.red?1:0,o.x+135,o.y+135,visionRules.townCenterRadius);
  for(let player=0;player<2;player++){
  const vision=visions[player],visible=new Set(sharing[player].flatMap(id=>[...own[id]]));

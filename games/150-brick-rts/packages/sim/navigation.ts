@@ -12,7 +12,9 @@ import type {Tile,ResourceNode,MapLayout,ResourceKind} from './terrain.ts';
 export const navigationRules={provenance:'design_default',spacing:50,size:31,radius:25,expansionsPerTick:128,speedPerTick:5,maxGroupSize:40,waitLimit:8,queueWaitFactor:4,detourLimit:12,stuckTicks:300,arrivalRadius:150} as const;
 export const startingResourceRules={provenance:'design_default',maxApproachDistance:1200,maxNearestDistanceDifference:500,minimum:{tree:300,stone:250,gold:250,berries:150}} as const;
 export type Point={x:number;y:number};
-export type Obstacle={id?:string;kind:ObstacleKind;x:number;y:number;red?:boolean};
+// progress: construction stage in percent (0,20,..,100) for player buildings; absent means complete.
+// age: owner's age (1-4) for player buildings, drives the rendered age variant only.
+export type Obstacle={id?:string;kind:ObstacleKind;x:number;y:number;red?:boolean;progress?:number;age?:number};
 export type MapData={obstacles:Obstacle[];blocked:number[];tiles:Tile[];resources:ResourceNode[];navigationRevision:number;generationAttempt:number};
 export type PathJob={movement?:'land'|'water';unitId:number;start:number;goal:number;target:Point;frontier:number[];head:number;parents:number[];status:'searching'|'found'|'unreachable';path:Point[]};
 export function makeMap(seed:number,layout:MapLayout='meadow'):MapData{
@@ -44,7 +46,7 @@ function generateCandidate(seed:number,layout:MapLayout):MapData{
  if(layout==='acceptance')for(const y of [300,1200])addResource('fish',800,y);
  for(let i=0;i<961;i++)if(!clearSegment(map,position(i),position(i)))map.blocked.push(i);return map;
 }
-export function isBuilding(o:Obstacle){return o.kind==='house'||o.kind==='town-center';}
+export function isBuilding(o:Obstacle){return o.kind==='house'||o.kind==='town-center'||o.kind==='barracks';}
 function bounds(o:Obstacle):[number,number,number,number]{return obstacleBounds(o,navigationRules.radius);}
 // Slab intersection includes contact: center-lines cannot clip expanded footprints.
 export function clearSegment(map:MapData,a:Point,b:Point,movement:'land'|'water'='land'):boolean{
@@ -79,12 +81,16 @@ export function harvestMapResource(map:MapData,id:string,amount:number,tick:numb
  const obstacle=map.obstacles.find(o=>o.id===resource.obstacleId);if(!obstacle)throw Error('資源障礙參照失效');
  const area=bounds(obstacle);map.obstacles=map.obstacles.filter(o=>o!==obstacle);
  for(const tile of map.tiles)tile.obstacleRefs=tile.obstacleRefs.filter(ref=>ref!==resource.obstacleId);
- resource.obstacleId=null;
- for(let id=0;id<961;id++){const p=position(id);if(p.x<area[0]||p.x>area[2]||p.y<area[1]||p.y>area[3])continue;
- const blocked=!clearSegment(map,p,p),wasBlocked=map.blocked.includes(id);if(blocked!==wasBlocked){changedNodes.push(id);if(blocked)map.blocked.push(id);else map.blocked=map.blocked.filter(n=>n!==id);}}
- map.blocked.sort((a,b)=>a-b);map.navigationRevision++;
+ resource.obstacleId=null;changedNodes.push(...refreshNavigation(map,area));
  }
  return {amount:harvested,changedNodes};
+}
+// Local navigation update after an obstacle is added or removed inside area (radius-expanded bounds).
+export function refreshNavigation(map:MapData,area:[number,number,number,number]):number[]{
+ const changed:number[]=[];
+ for(let id=0;id<961;id++){const p=position(id);if(p.x<area[0]||p.x>area[2]||p.y<area[1]||p.y>area[3])continue;
+ const blocked=!clearSegment(map,p,p),wasBlocked=map.blocked.includes(id);if(blocked!==wasBlocked){changed.push(id);if(blocked)map.blocked.push(id);else map.blocked=map.blocked.filter(n=>n!==id);}}
+ map.blocked.sort((a,b)=>a-b);map.navigationRevision++;return changed;
 }
 export function validateMap(map:MapData):string[]{
  const errors:string[]=[];

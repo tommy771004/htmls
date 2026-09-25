@@ -100,6 +100,8 @@ var rules = {
   coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
   settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
   entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
+  // Which building produces each unit/technology (design_default). null = defined but not producible yet.
+  production: { villager: "town-center", militia: "barracks", archer: "barracks", ram: null, "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
   civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "militia", "archer", "ram", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "militia", "archer", "ram", "age-2", "age-3", "age-4"], unavailable: [] }]
 };
 function validateRules(value, exact = false) {
@@ -169,6 +171,15 @@ function validateRules(value, exact = false) {
       civIds.add(c.id);
       for (const id of [...c.available, ...c.unavailable]) if (!ids.has(id)) errors.push(`${c.id} \u61F8\u7A7A\u5167\u5BB9\uFF1A${id}`);
       for (const id of c.available) if (c.unavailable.includes(id)) errors.push(`${c.id} \u7981\u7528\u9805\u51FA\u73FE\u5728\u53EF\u7528\u5217\u8868\uFF1A${id}`);
+    }
+  }
+  if (!obj(value.production)) errors.push("production \u5FC5\u9808\u70BA\u7269\u4EF6");
+  else {
+    const kinds = new Map(entries.map((e) => [e.id, e.kind]));
+    for (const e of entries) if ((e.kind === "unit" || e.kind === "technology") && !(e.id in value.production)) errors.push(`${e.id} \u7F3A\u5C11\u751F\u7522\u5EFA\u7BC9`);
+    for (const [id, producer] of Object.entries(value.production)) {
+      if (!kinds.has(id) || kinds.get(id) === "building") errors.push(`production \u672A\u77E5\u9805\u76EE\uFF1A${id}`);
+      if (producer !== null && kinds.get(producer) !== "building") errors.push(`${id} \u7684\u751F\u7522\u5EFA\u7BC9\u7121\u6548\uFF1A${producer}`);
     }
   }
   return [...new Set(errors)];
@@ -332,6 +343,8 @@ function samplePose(pose, time) {
   if (pose === "carry") {
     p.leftArm = -1.1;
     p.rightArm = -1.1;
+    p.leftLeg = walk;
+    p.rightLeg = -walk;
   }
   if (pose === "hit" && t > 0 && t < 300) p.lean = -0.24 * Math.sin(Math.PI * t / 300);
   if (pose === "death") p.fall = Math.min(t / 700, 1) * Math.PI / 2;
@@ -770,6 +783,8 @@ function economicBuildingParts(kind, v) {
 // packages/content/footprints.ts
 var obstacleFootprints = {
   house: { x: -15, y: -15, width: 250, depth: 230 },
+  // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
+  barracks: { x: -15, y: -15, width: 300, depth: 300 },
   "town-center": { x: -15, y: -15, width: 300, depth: 300 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
@@ -921,7 +936,7 @@ function generateCandidate(seed, layout) {
   return map;
 }
 function isBuilding(o) {
-  return o.kind === "house" || o.kind === "town-center";
+  return o.kind === "house" || o.kind === "town-center" || o.kind === "barracks";
 }
 function bounds(o) {
   return obstacleBounds(o, navigationRules.radius);
@@ -1188,8 +1203,8 @@ async function createScene(canvas2, onFailure, options = {}) {
   }
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
-  function house(x, z, red = false, obstacleKind = "house") {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, parts = kind === "house" ? buildingParts({ ...previewBuilding, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...previewBuilding, red }) : economicBuildingParts(kind, { ...previewBuilding, red });
+  function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2) {
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -1222,7 +1237,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y)] !== 2;
       const x = o.x / 100, z = o.y / 100;
-      if (o.kind === "house" || o.kind === "town-center") house(x, z, o.red, o.kind);
+      if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2);
       else if (o.kind === "tree") {
         brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8, "#80664b", false);
         brick(x - 0.2, z - 0.2, 0.7, 1, 1, 0.4, "#67835a");
@@ -1269,17 +1284,18 @@ async function createScene(canvas2, onFailure, options = {}) {
   ringGeo.rotateX(-Math.PI / 2);
   geometry.set("ring", ringGeo);
   const ringMaterial = new T.MeshBasicMaterial({ color: "#fff2a1", side: T.DoubleSide });
-  function unit(id, player) {
+  function unit(id, player, kind = "villager") {
     const group = new T.Group();
     scene2.add(group);
     const rig = createCharacterRig(T, player, box2, material);
+    if (!options.assetPreview && kind !== "villager") rig.dress(kind === "militia" ? "swordsman" : "archer");
     rig.equip(previewTool);
     group.add(rig.root);
     detail.apply(group, zoom);
     const ring = new T.Mesh(ringGeo, ringMaterial);
     ring.position.y = 0.025;
     group.add(ring);
-    units.set(id, { group, rig, ring, player, moving: false });
+    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none" });
     return units.get(id);
   }
   let previewRole = "villager";
@@ -1324,12 +1340,22 @@ async function createScene(canvas2, onFailure, options = {}) {
       units.delete(key2);
     }
     for (const data of view.units) {
-      const u = units.get(data.id) ?? unit(data.id, data.player);
+      const u = units.get(data.id) ?? unit(data.id, data.player, data.kind);
       const dx = data.x / 100 - u.group.position.x, dz = data.y / 100 - u.group.position.z;
       if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
       u.group.position.set(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100);
       u.ring.visible = selected2.has(data.id);
       u.moving = data.navigation === "moving";
+      if (!options.assetPreview && data.work === "gathering" && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
+      if (!options.assetPreview) {
+        const gathering = data.work === "gathering" && !u.moving, activity2 = u.moving ? data.cargo ? "carry" : "walk" : gathering ? "work" : "idle";
+        const weapon = data.kind === "militia" ? "sword" : data.kind === "archer" ? "bow" : "none", tool = data.cargo && activity2 !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food: "basket" }[data.workResource ?? "food"] : weapon;
+        if (tool !== u.tool) {
+          u.rig.equip(tool);
+          u.tool = tool;
+        }
+        u.activity = activity2;
+      }
     }
   }
   const raycaster = new T.Raycaster(), ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
@@ -1366,7 +1392,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (contextLost) return;
     resize();
     for (const u of units.values()) {
-      const pose = options.assetPreview ? previewPose : u.moving ? "walk" : "idle";
+      const pose = options.assetPreview ? previewPose : u.activity;
       u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : time);
       u.ring.visible = [...units].some(([id, v]) => v === u && selected2.has(id)) && pose !== "death";
     }
@@ -1380,86 +1406,188 @@ async function createScene(canvas2, onFailure, options = {}) {
   });
   canvas2.dataset.renderer = "webgl2";
   canvas2.dataset.renderState = "ready";
-  return { update, draw, pick, pickGround, unitsInRect, setPreviewBuildingKind: (kind) => {
-    if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
-    previewBuildingKind = kind;
-    if (latest) update(latest, selected2);
-  }, setPreviewRole: (role) => {
-    if (!options.assetPreview || !unitRoles.includes(role) && role !== "cavalry") throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
-    previewRole = role;
-    previewPose = "idle";
-    for (const u of units.values()) {
-      u.rig.dress(role);
-      u.ring.scale.set(role === "cavalry" ? 1.8 : 1, 1, role === "cavalry" ? 1.8 : 1);
-      detail.apply(u.group, zoom);
-    }
-  }, setPreviewBuilding: (visual) => {
-    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u5EFA\u7BC9\u5916\u89C0");
-    buildingParts({ ...visual, red: false });
-    previewBuilding = { ...visual };
-    if (latest) update(latest, selected2);
-  }, focusPreviewHouse: () => {
-    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u5EFA\u7BC9");
-    focus.x = 4;
-    focus.y = 1;
-    focus.z = 4.85;
-    zoom = 2.5;
-    cameraUpdate();
-  }, focusPreviewUnit: (id) => {
-    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u4EE3\u8868\u8CC7\u7522");
-    const u = units.get(id);
-    if (!u) throw Error("\u627E\u4E0D\u5230\u4EBA\u5076");
-    focus.x = u.group.position.x;
-    focus.y = u.group.position.y + 0.5;
-    focus.z = u.group.position.z;
-    zoom = 2.5;
-    cameraUpdate();
-  }, setPreviewMotion: (pose, tool, animated) => {
-    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u59FF\u614B");
-    if (previewRole === "cavalry" && !["idle", "walk", "attack"].includes(pose) || !unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
-    previewPose = pose;
-    previewTool = tool;
-    previewAnimated = animated;
-    poseStart = performance.now();
-    for (const u of units.values()) {
-      u.rig.equip(tool);
-      detail.apply(u.group, zoom);
-    }
-  }, setPreviewLayout: (layout) => {
-    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u5207\u63DB\u9A57\u6536\u5716");
-    if (!["meadow", "coast", "acceptance"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
-    previewLayout = layout;
-    if (latest) update(latest, selected2);
-  }, zoom: (delta) => {
-    zoom = Math.max(0.7, Math.min(2.5, zoom + delta));
-    cameraUpdate();
-  }, rotate: () => {
-    angle += Math.PI / 2;
-    cameraUpdate();
-  }, resetCamera: () => {
-    focus.x = 8;
-    focus.y = 0;
-    focus.z = 8;
-    zoom = 1;
-    angle = Math.PI / 4;
-    cameraUpdate();
-  }, dispose: () => {
-    renderer.dispose();
-    detail.dispose();
-    for (const geo of geometry.values()) geo.dispose();
-    for (const m of materials.values()) m.dispose();
-    ringMaterial.dispose();
-  }, stats: () => ({ detail: detailLevel(zoom), drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries }) };
+  const ghost = new T.Mesh(new T.BoxGeometry(1, 0.3, 1), new T.MeshBasicMaterial({ color: "#6f9d6a", transparent: true, opacity: 0.42, depthWrite: false }));
+  ghost.visible = false;
+  scene2.add(ghost);
+  function setGhost(g) {
+    ghost.visible = !!g;
+    if (!g) return;
+    const [x0, y0, x1, y1] = obstacleBounds({ kind: g.kind, x: g.x, y: g.y });
+    ghost.scale.set((x1 - x0) / 100, 1, (y1 - y0) / 100);
+    ghost.position.set((x0 + x1) / 200, groundHeight(worldTiles, g.x, g.y) / 100 + 0.15, (y0 + y1) / 200);
+    ghost.material.color.set(g.ok ? "#6f9d6a" : "#b8574a");
+  }
+  return {
+    update,
+    draw,
+    pick,
+    pickGround,
+    unitsInRect,
+    setGhost,
+    setPreviewBuildingKind: (kind) => {
+      if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
+      previewBuildingKind = kind;
+      if (latest) update(latest, selected2);
+    },
+    setPreviewRole: (role) => {
+      if (!options.assetPreview || !unitRoles.includes(role) && role !== "cavalry") throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
+      previewRole = role;
+      previewPose = "idle";
+      for (const u of units.values()) {
+        u.rig.dress(role);
+        u.ring.scale.set(role === "cavalry" ? 1.8 : 1, 1, role === "cavalry" ? 1.8 : 1);
+        detail.apply(u.group, zoom);
+      }
+    },
+    setPreviewBuilding: (visual) => {
+      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u5EFA\u7BC9\u5916\u89C0");
+      buildingParts({ ...visual, red: false });
+      previewBuilding = { ...visual };
+      if (latest) update(latest, selected2);
+    },
+    focusPreviewHouse: () => {
+      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u5EFA\u7BC9");
+      focus.x = 4;
+      focus.y = 1;
+      focus.z = 4.85;
+      zoom = 2.5;
+      cameraUpdate();
+    },
+    focusPreviewUnit: (id) => {
+      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u4EE3\u8868\u8CC7\u7522");
+      const u = units.get(id);
+      if (!u) throw Error("\u627E\u4E0D\u5230\u4EBA\u5076");
+      focus.x = u.group.position.x;
+      focus.y = u.group.position.y + 0.5;
+      focus.z = u.group.position.z;
+      zoom = 2.5;
+      cameraUpdate();
+    },
+    setPreviewMotion: (pose, tool, animated) => {
+      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u59FF\u614B");
+      if (previewRole === "cavalry" && !["idle", "walk", "attack"].includes(pose) || !unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
+      previewPose = pose;
+      previewTool = tool;
+      previewAnimated = animated;
+      poseStart = performance.now();
+      for (const u of units.values()) {
+        u.rig.equip(tool);
+        detail.apply(u.group, zoom);
+      }
+    },
+    setPreviewLayout: (layout) => {
+      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u5207\u63DB\u9A57\u6536\u5716");
+      if (!["meadow", "coast", "acceptance"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
+      previewLayout = layout;
+      if (latest) update(latest, selected2);
+    },
+    zoom: (delta) => {
+      zoom = Math.max(0.7, Math.min(2.5, zoom + delta));
+      cameraUpdate();
+    },
+    rotate: () => {
+      angle += Math.PI / 2;
+      cameraUpdate();
+    },
+    // Screen-aligned pan (right, away from camera), scaled by zoom and clamped to the 16x16 board.
+    pan: (right, up) => {
+      const step = 1.2 / zoom, c = Math.cos(angle), s = Math.sin(angle);
+      focus.x = Math.max(0, Math.min(16, focus.x + (c * right - s * up) * step));
+      focus.z = Math.max(0, Math.min(16, focus.z + (-s * right - c * up) * step));
+      cameraUpdate();
+    },
+    focusOn: (x, z) => {
+      focus.x = Math.max(0, Math.min(16, x));
+      focus.z = Math.max(0, Math.min(16, z));
+      cameraUpdate();
+    },
+    resetCamera: () => {
+      focus.x = 8;
+      focus.y = 0;
+      focus.z = 8;
+      zoom = 1;
+      angle = Math.PI / 4;
+      cameraUpdate();
+    },
+    dispose: () => {
+      renderer.dispose();
+      detail.dispose();
+      for (const geo of geometry.values()) geo.dispose();
+      for (const m of materials.values()) m.dispose();
+      ringMaterial.dispose();
+    },
+    stats: () => ({ detail: detailLevel(zoom), drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries })
+  };
 }
 
 // packages/sim/vision.ts
-var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 300, townCenterRadius: 300, shareVision: false, rememberStaticObjects: true };
+var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 300, townCenterRadius: 600, shareVision: false, rememberStaticObjects: true };
 
 // packages/sim/economy.ts
-var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100 };
+var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100, carryCapacity: 10, gatherTicks: { food: 20, wood: 20, gold: 25, stone: 25 }, workReach: 50, dropoffReach: 50 };
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
+var unitKinds = ["villager", "militia", "archer"];
+
+// packages/sim/buildings.ts
+var buildKinds = ["house", "barracks"];
+var buildingRules = {
+  provenance: "design_default",
+  capacity: { "town-center": 5, house: 5, barracks: 0 },
+  grid: 50,
+  required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
+};
+var overlap = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > 0;
+function placementProblem(input, kind, x, y) {
+  if (!buildKinds.includes(kind)) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
+  if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x % buildingRules.grid || y % buildingRules.grid) return "\u4F4D\u7F6E\u5FC5\u9808\u5C0D\u9F4A 50 \u55AE\u4F4D\u683C\u7DDA";
+  const box2 = obstacleBounds({ kind, x, y });
+  if (box2[0] < 0 || box2[1] < 0 || box2[2] > 1600 || box2[3] > 1600) return "\u8D85\u51FA\u5730\u5716\u7BC4\u570D";
+  const tiles = [];
+  for (let ty = Math.floor(box2[1] / 100); ty <= Math.floor((box2[3] - 1) / 100); ty++) for (let tx = Math.floor(box2[0] / 100); tx <= Math.floor((box2[2] - 1) / 100); tx++) tiles.push(ty * 16 + tx);
+  if (tiles.some((t) => !input.explored(t))) return "\u5C1A\u672A\u63A2\u7D22\u7684\u5340\u57DF\u4E0D\u80FD\u5EFA\u9020";
+  if (tiles.some((t) => !input.tiles[t]?.buildability)) return "\u5730\u5F62\u4E0D\u53EF\u5EFA\u9020\uFF08\u6C34\u57DF\u3001\u61F8\u5D16\u3001\u5761\u9053\u6216\u6DFA\u7058\uFF09";
+  if (new Set(tiles.map((t) => input.tiles[t].height)).size > 1) return "\u5730\u9762\u9AD8\u5EA6\u4E0D\u4E00\u81F4";
+  if (input.obstacles.some((o) => obstacleRects(o).some((r2) => overlap(r2, box2)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
+  const r = navigationRules.radius;
+  if (input.units.some((u) => overlap([u.x - r, u.y - r, u.x + r, u.y + r], box2))) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
+  return null;
+}
+
+// packages/sim/work.ts
+var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building"];
+
+// packages/sim/production.ts
+var productionRules = { provenance: "design_default", queueLimit: 5 };
+var names = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
+function ageOf(entryId) {
+  const m = /^age-(\d)$/.exec(entryId);
+  return m ? Number(m[1]) : 0;
+}
+var entryOf = (id) => rules.entries.find((e) => e.id === id);
+function trainBlocker(i, entryId) {
+  const e = entryOf(entryId), civ = rules.civilizations[i.player];
+  if (!e || e.kind === "building") return "\u672A\u77E5\u7684\u751F\u7522\u9805\u76EE";
+  if (!civ.available.includes(entryId)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u751F\u7522";
+  if (!i.building.complete) return "\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5";
+  if (rules.production[entryId] !== i.building.kind) return "\u9019\u68DF\u5EFA\u7BC9\u4E0D\u80FD\u751F\u7522\u9019\u500B\u9805\u76EE";
+  for (const req of e.requires) {
+    const need = entryOf(req);
+    if (need?.kind === "building" && !i.ownBuildings.some((v) => v.kind === req && v.complete)) return `\u9700\u8981\u5B8C\u5DE5\u7684${need.name}`;
+    if (need?.kind === "technology" && i.age < ageOf(req)) return `\u9700\u8981${need.name}`;
+  }
+  const age = ageOf(entryId);
+  if (age) {
+    if (i.age >= age) return "\u5DF2\u7814\u7A76";
+    if (i.ownBuildings.some((v) => v.queue.some((q) => q.entryId === entryId))) return "\u5DF2\u5728\u7814\u7A76\u4E2D";
+  }
+  if (i.building.queue.length >= productionRules.queueLimit) return `\u4F47\u5217\u5DF2\u6EFF\uFF08${productionRules.queueLimit}\uFF09`;
+  const short = resources.filter((r) => i.stock[r] < e.cost[r]);
+  if (short.length) return short.map((r) => `${names[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${e.cost[r]}\uFF0C\u76EE\u524D ${i.stock[r]}`).join("\uFF1B");
+  if (i.populationUsed + i.populationReserved + e.population > i.populationCap) return `\u4EBA\u53E3\u5DF2\u6EFF\uFF08${i.populationUsed + i.populationReserved}/${i.populationCap}\uFF09\uFF1A\u8ACB\u84CB\u4F4F\u5B85`;
+  return null;
+}
 
 // packages/sim/sim.ts
 function canonical(value) {
@@ -1474,13 +1602,15 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 11 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 14 });
 
 // packages/sim/protocol.ts
+var UNIT_STRIDE = 12;
+var STRIDE = UNIT_STRIDE;
 function decodeView(r) {
   const values = new Int32Array(r.positions), units = [];
-  for (let i = 0; i < values.length; i += 7) units.push({ id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] } });
-  return { seed: r.seed, layout: r.layout, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, fog: r.fog, known: r.known, resources: r.resources, units };
+  for (let i = 0; i < values.length; i += STRIDE) units.push({ kind: unitKinds[values[i + 11]], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] } });
+  return { seed: r.seed, layout: r.layout, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, units };
 }
 
 // apps/web/worker-client.ts
@@ -1573,7 +1703,14 @@ var SimulationClient = class {
 
 // apps/web/main.ts
 var el = (id) => document.getElementById(id);
-var state = { seed: rules.settings.seed, layout: "meadow", terrain: [], tick: 0, units: [], fog: [], known: [], resources: [], stateHash: "\u2014" };
+var state = { seed: rules.settings.seed, layout: "meadow", terrain: [], tick: 0, units: [], economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1 }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014" };
+var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
+var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D" };
+var buildingNames2 = { house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
+var placing = null;
+var selectedBuilding = null;
+var lastTransaction = 0;
+var preview = null;
 var scene = null;
 var graphicsFailed = false;
 var selected = /* @__PURE__ */ new Set([1]);
@@ -1600,14 +1737,23 @@ function render() {
   el("world-label").textContent = { meadow: "\u8349\u7538\u8A66\u9A57\u5834", coast: "\u6D77\u5CB8\u8A66\u9A57\u5834", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058\u9A57\u6536\u5834" }[state.layout];
   el("tick").textContent = String(state.tick);
   el("hash").textContent = state.stateHash;
+  const e = state.economy;
+  el("stock").textContent = state.stateHash === "\u2014" ? "\u8CC7\u6E90\u8F09\u5165\u4E2D\u2026" : `${ageNames[e.age]} \xB7 \u98DF\u7269 ${e.stock.food} \xB7 \u6728\u6750 ${e.stock.wood} \xB7 \u9EC3\u91D1 ${e.stock.gold} \xB7 \u77F3\u982D ${e.stock.stone} \xB7 \u4EBA\u53E3 ${e.populationUsed}/${e.populationCap}`;
+  renderBuild();
+  renderBuilding();
+  reportTransactions();
   const chosen = state.units.filter((u2) => selected.has(u2.id)).sort((a, b) => a.id - b.id);
-  el("selection-list").textContent = chosen.length > 1 ? chosen.map((u2) => `\u6751\u6C11 ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${statusLabel[u2.navigation]}`).join("\u3000") : "";
+  el("selection-list").textContent = chosen.length > 1 ? chosen.map((u2) => `${unitNames[u2.kind]} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
   const u = chosen[0];
   if (!u) {
     el("position").textContent = "\u672A\u9078\u53D6\u6751\u6C11";
     return;
   }
-  el("position").textContent = `${chosen.length > 1 ? `${chosen.length} \u540D\u9078\u53D6 \xB7 ` : ""}\u6751\u6C11 ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${statusLabel[u.navigation]}`;
+  el("position").textContent = `${chosen.length > 1 ? `${chosen.length} \u540D\u9078\u53D6 \xB7 ` : ""}${unitNames[u.kind]} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
+}
+function activity(u) {
+  const doing = u.work && u.navigation !== "waiting" && u.navigation !== "stuck" ? workLabel[u.work] : statusLabel[u.navigation];
+  return u.cargo ? `${doing} \xB7 \u651C\u5E36${resourceNames[u.cargo.resource]} ${u.cargo.amount}` : doing;
 }
 var statusLabel = { idle: "\u5F85\u547D", searching: "\u5C0B\u8DEF\u4E2D", moving: "\u79FB\u52D5\u4E2D", waiting: "\u7B49\u5F85\u8B93\u8DEF", unreachable: "\u7121\u6CD5\u5230\u9054\uFF0C\u505C\u5728\u6700\u8FD1\u9EDE", stuck: "\u53D7\u963B\u505C\u6B62" };
 function setRunning(v) {
@@ -1620,6 +1766,7 @@ function setRunning(v) {
   el("step").disabled = !connected || graphicsFailed || v;
 }
 function select(ids) {
+  if (selectedBuilding && [...ids].length) selectedBuilding = null;
   const own = new Set(state.units.filter((u) => u.player === 0).map((u) => u.id));
   selected = new Set([...ids].filter((id) => own.size === 0 || own.has(id)));
   document.querySelectorAll("[data-unit]").forEach((b) => b.setAttribute("aria-pressed", String(selected.has(Number(b.dataset.unit)))));
@@ -1629,6 +1776,169 @@ function select(ids) {
 }
 function choose(id) {
   select([id]);
+}
+var costOf = (k) => rules.entries.find((e) => e.id === k).cost;
+var costText = (k) => Object.entries(costOf(k)).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames[r]} ${v}`).join("\u3001");
+var entryName = (k) => rules.entries.find((e) => e.id === k)?.name ?? k;
+var ageNames = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
+var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B" };
+var villagersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "villager").sort((a, b) => a - b);
+var leftOut = (ids) => {
+  const n = selected.size - ids.length;
+  return n > 0 ? `\uFF08${n} \u540D\u58EB\u5175\u4E0D\u80FD\u63A1\u96C6\u6216\u5EFA\u9020\uFF0C\u672A\u6D3E\u51FA\uFF09` : "";
+};
+function buildBlocker(k) {
+  if (!villagersIn(selected).length) return "\u5148\u9078\u53D6\u6751\u6C11";
+  const st = state.economy.stock, c = costOf(k), short = Object.keys(c).filter((r) => st[r] < c[r]);
+  return short.length ? short.map((r) => `${resourceNames[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${c[r]}\uFF0C\u76EE\u524D ${st[r]}`).join("\uFF1B") : null;
+}
+function renderBuild() {
+  for (const k of buildKinds) {
+    const b = el(`build-${k}`), why = buildBlocker(k);
+    b.textContent = `${buildingNames2[k]} \xB7 ${costText(k)}`;
+    b.disabled = !connected || graphicsFailed || !!why;
+    b.title = why ?? `\u653E\u7F6E${buildingNames2[k]}`;
+    b.setAttribute("aria-pressed", String(placing === k));
+  }
+  const reasons = buildKinds.map((k) => [k, buildBlocker(k)]).filter(([, w]) => w);
+  el("build-reason").textContent = placing ? preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === buildKinds.length && reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.map(([k, w]) => `${buildingNames2[k]}\uFF1A${w}`).join("\u3000");
+}
+function renderBuilding() {
+  const panel = el("building-panel"), b = state.buildings.find((b2) => b2.id === selectedBuilding);
+  panel.hidden = !b;
+  if (!b) return;
+  const builders = state.units.filter((u) => u.work === "building" || u.work === "toSite").length;
+  el("building-title").textContent = buildingNames2[b.kind] ?? b.kind;
+  const housing = buildingRules.capacity[b.kind] ?? 0;
+  el("building-status").textContent = b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders} \u540D\uFF09`;
+  renderProduction(b);
+  const cancel = el("cancel-build");
+  cancel.hidden = b.complete;
+  cancel.textContent = b.kind in buildingNames2 && !b.complete ? `\u53D6\u6D88\u5EFA\u9020\uFF08\u9000\u56DE ${costText(b.kind)}\uFF09` : "\u53D6\u6D88\u5EFA\u9020";
+}
+function reportTransactions() {
+  for (const t of state.transactions) if (t.sequence > lastTransaction) {
+    lastTransaction = t.sequence;
+    if (!t.ok) notice(`\u6307\u4EE4\u5728 tick ${t.tick} \u672A\u57F7\u884C\uFF1A${t.error}`);
+  }
+}
+function selectBuilding(id) {
+  selectedBuilding = id;
+  if (id) select([]);
+  render();
+}
+function buildingAt(x, y) {
+  const p = { x: Math.round(x * 100), y: Math.round(y * 100) };
+  return state.known.map((k) => k.obstacle).find((o) => (o.kind === "house" || o.kind === "barracks" || o.kind === "town-center") && !o.red && (() => {
+    const [x0, y0, x1, y1] = obstacleBounds(o);
+    return p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
+  })());
+}
+function placeAt(k, gx, gy) {
+  const [x0, y0, x1, y1] = obstacleBounds({ kind: k, x: 0, y: 0 }), x = Math.round((gx * 100 - (x0 + x1) / 2) / 50) * 50, y = Math.round((gy * 100 - (y0 + y1) / 2) / 50) * 50;
+  const problem = placementProblem({ tiles: state.terrain, obstacles: state.known.map((o) => o.obstacle), units: state.units, explored: (t) => (state.fog[t] ?? 0) > 0 }, k, x, y);
+  return { x, y, problem };
+}
+function stopPlacing(message) {
+  placing = null;
+  preview = null;
+  scene?.setGhost(null);
+  if (message) notice(message);
+  render();
+}
+async function build(k, x, y) {
+  const unitIds = villagersIn(selected);
+  if (!unitIds.length) {
+    notice("\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6751\u6C11\u3002");
+    return;
+  }
+  try {
+    await client.request({ kind: "build", unitIds, building: k, x, y });
+    notice(`${names2(unitIds)} \u524D\u5F80\u5EFA\u9020${buildingNames2[k]}\uFF1B\u653E\u7F6E\u6642\u6263\u9664 ${costText(k)}\u3002${leftOut(unitIds)}`);
+  } catch (e) {
+    notice(e.message);
+  }
+}
+async function construct(buildingId) {
+  const unitIds = villagersIn(selected);
+  if (!unitIds.length) {
+    notice("\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6751\u6C11\uFF0C\u4E0D\u80FD\u65BD\u5DE5\u3002");
+    return;
+  }
+  try {
+    await client.request({ kind: "construct", unitIds, buildingId });
+    notice(`${names2(unitIds)} \u524D\u5F80\u5354\u52A9\u65BD\u5DE5\u3002${leftOut(unitIds)}`);
+  } catch (e) {
+    notice(e.message);
+  }
+}
+var productionKey = "";
+var queueKey = "";
+function renderProduction(b) {
+  const entries = Object.entries(rules.production).filter(([, p]) => p === b.kind).map(([id]) => id), box2 = el("production");
+  const key = b.id + ":" + entries.join();
+  if (key !== productionKey) {
+    productionKey = key;
+    box2.replaceChildren(...entries.map((id) => {
+      const btn = document.createElement("button");
+      btn.dataset.train = id;
+      btn.onclick = () => void train(b.id, id);
+      return btn;
+    }));
+  }
+  const e = state.economy, own = state.buildings, reasons = [];
+  for (const btn of Array.from(box2.querySelectorAll("button"))) {
+    const id = btn.dataset.train, why = trainBlocker({ player: 0, age: e.age, building: b, ownBuildings: own, stock: e.stock, populationUsed: e.populationUsed, populationReserved: e.populationReserved, populationCap: e.populationCap }, id);
+    btn.textContent = `${entryName(id)} \xB7 ${costText(id)}`;
+    btn.disabled = !connected || graphicsFailed || !!why;
+    btn.title = why ?? `\u52A0\u5165${entryName(id)}`;
+    if (why && why !== "\u5DF2\u7814\u7A76") reasons.push(`${entryName(id)}\uFF1A${why}`);
+  }
+  el("production-reason").textContent = b.complete ? reasons.join("\u3000") : "";
+  const qkey = b.queue.map((q) => q.id).join();
+  if (qkey !== queueKey) {
+    queueKey = qkey;
+    el("queue").replaceChildren(...b.queue.map((q, i) => {
+      const row = document.createElement("div"), label = document.createElement("span"), cancel = document.createElement("button");
+      label.dataset.item = String(q.id);
+      cancel.textContent = "\u53D6\u6D88";
+      cancel.onclick = () => void cancelTrain(b.id, q.id);
+      row.append(label, cancel);
+      return row;
+    }));
+  }
+  for (const label of Array.from(el("queue").querySelectorAll("span[data-item]"))) {
+    const q = b.queue.find((q2) => q2.id === Number(label.dataset.item));
+    if (!q) continue;
+    const first = b.queue[0] === q;
+    label.textContent = `${entryName(q.entryId)} \xB7 ${first ? q.work >= q.required ? "\u5B8C\u6210\uFF0C\u7B49\u5F85\u51FA\u53E3\u7A7A\u4F4D" : `${Math.floor(q.work * 100 / q.required)}%` : "\u6392\u968A\u4E2D"}`;
+  }
+  el("rally-hint").textContent = b.complete && entries.some((id) => !/^age-/.test(id)) ? `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u9078\u53D6\u6B64\u5EFA\u7BC9\u6642\u5C0D\u5730\u9762\u6309\u53F3\u9375\u8A2D\u5B9A\uFF09` : "";
+}
+async function train(buildingId, entryId) {
+  try {
+    await client.request({ kind: "train", buildingId, entryId });
+    notice(`\u5DF2\u52A0\u5165${entryName(entryId)}\uFF0C\u6263\u9664 ${costText(entryId)}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u57F7\u884C\u3002"}`);
+  } catch (e) {
+    notice(e.message);
+  }
+}
+async function cancelTrain(buildingId, itemId) {
+  try {
+    const q = state.buildings.find((b) => b.id === buildingId)?.queue.find((q2) => q2.id === itemId);
+    await client.request({ kind: "cancelTrain", buildingId, itemId });
+    notice(`\u5DF2\u53D6\u6D88${q ? entryName(q.entryId) : "\u9805\u76EE"}\uFF0C\u5168\u984D\u9000\u56DE\u3002`);
+  } catch (e) {
+    notice(e.message);
+  }
+}
+async function rally(buildingId, x, y) {
+  try {
+    await client.request({ kind: "rally", buildingId, x: Math.round(x * 100), y: Math.round(y * 100) });
+    notice(`\u96C6\u7D50\u9EDE\u8A2D\u5728 (${x.toFixed(1)}, ${y.toFixed(1)})\u3002`);
+  } catch (e) {
+    notice(e.message);
+  }
 }
 function toggle(id) {
   const next = new Set(selected);
@@ -1664,7 +1974,8 @@ async function connect() {
   }
 }
 el("worker-retry").onclick = () => void connect();
-var names = (ids) => ids.length > 3 ? `${ids.length} \u540D\u6751\u6C11` : ids.map((id) => `\u6751\u6C11 ${id}`).join("\u3001");
+var kindOf = (id) => unitNames[state.units.find((u) => u.id === id)?.kind ?? "villager"];
+var names2 = (ids) => ids.length > 3 ? `${ids.length} \u540D\u55AE\u4F4D` : ids.map((id) => `${kindOf(id)} ${id}`).join("\u3001");
 async function move(x, y) {
   const unitIds = [...selected].sort((a, b) => a - b);
   if (!unitIds.length) {
@@ -1673,10 +1984,32 @@ async function move(x, y) {
   }
   try {
     await client.request({ kind: "move", unitIds, x: Math.round(x * 100), y: Math.round(y * 100) });
-    notice(`${names(unitIds)} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u6216\u300C\u524D\u9032 1 tick\u300D\u57F7\u884C\u3002"}`);
+    notice(`${names2(unitIds)} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u6216\u300C\u524D\u9032 1 tick\u300D\u57F7\u884C\u3002"}`);
   } catch (e) {
     notice(e.message);
   }
+}
+async function gather(resourceId) {
+  const unitIds = villagersIn(selected);
+  if (!unitIds.length) {
+    notice(selected.size ? "\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6751\u6C11\uFF0C\u4E0D\u80FD\u63A1\u96C6\u3002" : "\u8ACB\u5148\u9078\u53D6\u6751\u6C11\u3002");
+    return;
+  }
+  try {
+    await client.request({ kind: "gather", unitIds, resourceId });
+    notice(`${names2(unitIds)} \u524D\u5F80\u63A1\u96C6\u3002${leftOut(unitIds)}${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u57F7\u884C\u3002"}`);
+  } catch (e) {
+    notice(e.message);
+  }
+}
+function resourceAt(x, y) {
+  const p = { x: Math.round(x * 100), y: Math.round(y * 100) };
+  return state.resources.find((r) => {
+    const kind = r.kind === "stone" ? "rock" : r.kind;
+    if (r.kind === "fish") return Math.abs(p.x - r.x) <= 50 && Math.abs(p.y - r.y) <= 50;
+    const [x0, y0, x1, y1] = obstacleBounds({ kind, x: r.x, y: r.y }, 10);
+    return p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
+  });
 }
 async function stop() {
   const unitIds = [...selected].sort((a, b) => a - b);
@@ -1686,7 +2019,7 @@ async function stop() {
   }
   try {
     await client.request({ kind: "stop", unitIds });
-    notice(`${names(unitIds)} \u5C07\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF08tick ${state.tick + 1}\uFF09\u3002`);
+    notice(`${names2(unitIds)} \u5C07\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF08tick ${state.tick + 1}\uFF09\u3002`);
   } catch (e) {
     notice(e.message);
   }
@@ -1703,14 +2036,63 @@ function endDrag() {
   box.hidden = true;
 }
 canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+var sceneActive = false;
+document.addEventListener("pointerdown", (e) => {
+  sceneActive = e.target === canvas;
+}, true);
+canvas.addEventListener("pointermove", (e) => {
+  if (!placing || !scene) return;
+  const g = scene.pickGround(e.clientX, e.clientY);
+  if (g.x === void 0 || g.y === void 0) {
+    scene.setGhost(null);
+    return;
+  }
+  preview = placeAt(placing, g.x, g.y);
+  scene.setGhost({ kind: placing, x: preview.x, y: preview.y, ok: !preview.problem });
+  renderBuild();
+});
 canvas.addEventListener("pointerdown", (e) => {
   if (!scene || graphicsFailed) return;
+  if (placing) {
+    e.preventDefault();
+    if (e.button !== 0) {
+      stopPlacing("\u5DF2\u53D6\u6D88\u653E\u7F6E\u3002");
+      return;
+    }
+    const g = scene.pickGround(e.clientX, e.clientY);
+    if (g.x === void 0 || g.y === void 0) return;
+    const p = placeAt(placing, g.x, g.y);
+    if (p.problem) {
+      notice(`\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${p.problem}`);
+      return;
+    }
+    const k = placing;
+    if (!e.shiftKey) stopPlacing();
+    void build(k, p.x, p.y);
+    return;
+  }
   if (e.button === 2) {
     e.preventDefault();
     endDrag();
     const hit = scene.pickGround(e.clientX, e.clientY);
     if (hit.x === void 0 || hit.y === void 0 || hit.x < 0.5 || hit.x > 15.5 || hit.y < 0.5 || hit.y > 15.5) {
       notice("\u8ACB\u5728\u5730\u5716\u5167\u5074\u7684\u5730\u9762\u6309\u53F3\u9375\u3002");
+      return;
+    }
+    if (selectedBuilding && !selected.size) {
+      const b = state.buildings.find((b2) => b2.id === selectedBuilding);
+      if (b?.complete && Object.values(rules.production).includes(b.kind)) void rally(b.id, hit.x, hit.y);
+      else notice("\u9019\u68DF\u5EFA\u7BC9\u6C92\u6709\u96C6\u7D50\u9EDE\u3002");
+      return;
+    }
+    const site = buildingAt(hit.x, hit.y), own = site ? state.buildings.find((b) => b.id === site.id) : void 0;
+    if (own && !own.complete && selected.size) {
+      void construct(own.id);
+      return;
+    }
+    const r = resourceAt(hit.x, hit.y);
+    if (r) {
+      void gather(r.id);
       return;
     }
     void move(hit.x, hit.y);
@@ -1749,14 +2131,25 @@ canvas.addEventListener("pointerup", (e) => {
   if (e.pointerType === "touch" && selected.size) {
     const g = scene.pickGround(e.clientX, e.clientY);
     if (g.x !== void 0 && g.y !== void 0 && g.x >= 0.5 && g.x <= 15.5 && g.y >= 0.5 && g.y <= 15.5) {
-      void move(g.x, g.y);
+      const r = resourceAt(g.x, g.y);
+      if (r) void gather(r.id);
+      else void move(g.x, g.y);
+      return;
+    }
+  }
+  {
+    const g = scene.pickGround(e.clientX, e.clientY);
+    const site = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y) : void 0;
+    if (site && !e.shiftKey && e.pointerType !== "touch") {
+      selectBuilding(site.id);
+      notice(`\u5DF2\u9078\u53D6${buildingNames2[site.kind]}\u3002`);
       return;
     }
   }
   if (!e.shiftKey && selected.size) {
     select([]);
     notice("\u5DF2\u53D6\u6D88\u9078\u53D6\u3002\u79FB\u52D5\u6307\u4EE4\u8ACB\u5C0D\u5730\u9762\u6309\u53F3\u9375\uFF08\u89F8\u63A7\uFF1A\u9078\u53D6\u5F8C\u8F15\u89F8\u5730\u9762\uFF09\u3002");
-  }
+  } else if (!e.shiftKey && selectedBuilding) selectBuilding(null);
 });
 var groups = /* @__PURE__ */ new Map();
 function renderGroups() {
@@ -1766,8 +2159,16 @@ document.addEventListener("keydown", (e) => {
   const t = e.target;
   if (t.closest("input,textarea,select,[contenteditable]") || e.altKey || e.metaKey) return;
   if (e.key === "Escape") {
+    if (placing) {
+      stopPlacing("\u5DF2\u53D6\u6D88\u653E\u7F6E\u3002");
+      return;
+    }
     if (drag) {
       endDrag();
+      return;
+    }
+    if (selectedBuilding) {
+      selectBuilding(null);
       return;
     }
     if (selected.size) {
@@ -1779,6 +2180,20 @@ document.addEventListener("keydown", (e) => {
   if ((e.key === "s" || e.key === "S") && !e.ctrlKey) {
     e.preventDefault();
     void stop();
+    return;
+  }
+  const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
+  if (arrows[e.key] && sceneActive && scene && !graphicsFailed) {
+    e.preventDefault();
+    scene.pan(...arrows[e.key]);
+    return;
+  }
+  if ((e.key === "f" || e.key === "F") && !e.ctrlKey && scene) {
+    const chosen = state.units.filter((u) => selected.has(u.id));
+    if (chosen.length) {
+      scene.focusOn(chosen.reduce((t2, u) => t2 + u.x, 0) / chosen.length / 100, chosen.reduce((t2, u) => t2 + u.y, 0) / chosen.length / 100);
+      notice("\u93E1\u982D\u5DF2\u5C0D\u6E96\u9078\u53D6\u7684\u6751\u6C11\u3002");
+    }
     return;
   }
   const digit = /^Digit([1-9])$/.exec(e.code);
@@ -1793,7 +2208,7 @@ document.addEventListener("keydown", (e) => {
     }
     groups.set(n, ids2);
     renderGroups();
-    notice(`\u7DE8\u7D44 ${n}\uFF1A${names(ids2)}\u3002\u6309 ${n} \u53EB\u56DE\u3002`);
+    notice(`\u7DE8\u7D44 ${n}\uFF1A${names2(ids2)}\u3002\u6309 ${n} \u53EB\u56DE\u3002`);
     return;
   }
   const ids = groups.get(n);
@@ -1802,7 +2217,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   select(ids);
-  notice(`\u5DF2\u53EB\u56DE\u7DE8\u7D44 ${n}\uFF1A${names(ids)}\u3002`);
+  notice(`\u5DF2\u53EB\u56DE\u7DE8\u7D44 ${n}\uFF1A${names2(ids)}\u3002`);
 });
 window.addEventListener("blur", endDrag);
 canvas.addEventListener("wheel", (e) => {
@@ -1820,6 +2235,24 @@ document.querySelectorAll("[data-unit]").forEach((b) => b.onclick = (e) => {
 });
 el("stop").onclick = () => void stop();
 renderGroups();
+for (const k of buildKinds) el(`build-${k}`).onclick = () => {
+  if (buildBlocker(k)) return;
+  placing = k;
+  preview = null;
+  notice(`\u5728\u5834\u666F\u4E2D\u79FB\u52D5\u6ED1\u9F20\u9078\u64C7${buildingNames2[k]}\u7684\u4F4D\u7F6E\u3002`);
+  render();
+};
+el("cancel-build").onclick = async () => {
+  const b = state.buildings.find((b2) => b2.id === selectedBuilding);
+  if (!b) return;
+  try {
+    await client.request({ kind: "cancelBuild", buildingId: b.id });
+    notice(`\u5DF2\u53D6\u6D88${buildingNames2[b.kind]}\uFF0C\u9000\u56DE ${costText(b.kind)}\u3002`);
+    selectBuilding(null);
+  } catch (e) {
+    notice(e.message);
+  }
+};
 el("move").onclick = () => {
   const x = el("target-x"), y = el("target-y");
   if (x.reportValidity() && y.reportValidity() && x.value !== "" && y.value !== "") move(Number(x.value), Number(y.value));

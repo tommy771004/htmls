@@ -14,7 +14,10 @@
     "test:rig-browser": "node tests/rig-browser.mjs",
     "test:first-use": "node tests/first-use-gate.mjs",
     "bench:movement": "node --experimental-strip-types packages/sim/bench-movement.ts",
-    "test:controls": "node tests/controls-browser.mjs"
+    "test:controls": "node tests/controls-browser.mjs",
+    "test:economy": "node --experimental-strip-types tests/first-use-economy.mjs",
+    "test:build": "node --experimental-strip-types tests/first-use-build.mjs",
+    "test:production": "node --experimental-strip-types tests/first-use-production.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

@@ -1,6 +1,6 @@
 # 多地形移動沙盒
 
-目前 State／snapshot 為 v11。可建立草甸、海岸、高地與淺灘三種移動沙盒，兩方起始建築是可以從拱門走進大廳的城鎮中心；可框選、編組多名村民一起移動，單位互不重疊、會排隊讓路。存讀及 Worker 恢復保留地圖類型。尚無採集、建造、戰鬥或完整對局。詳見 docs/first-use-008.md。以下紀錄保留當時版本。
+目前 State／snapshot 為 v13。可建立草甸、海岸、高地與淺灘三種沙盒，兩方起始建築是可以從拱門走進大廳的城鎮中心；可框選、編組多名村民一起移動，單位互不重疊、會排隊讓路；村民可採集樹木、石礦、金礦與野果並送回城鎮中心；可放置、施工與取消住宅和兵營，住宅提高人口上限。HUD 顯示真實庫存與人口。存讀及 Worker 恢復保留地圖類型。尚無造兵、升時代、戰鬥或完整對局。詳見 docs/first-use-010.md。以下紀錄保留當時版本。
 
 # 高度通行增量
 
@@ -43,7 +43,9 @@ npm run dev
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:browser
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:rig-browser   # 模型檢視頁
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:first-use     # prompt 19 首次使用流程：滑鼠點選穿過城鎮中心拱門
-PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:controls       # 框選、編組、右鍵移動、停止、觸控
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:controls       # 框選、編組、右鍵移動、停止、鏡頭平移、觸控
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:economy        # prompt 19 首次使用流程：採木、採野果、送返、存讀
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:build          # prompt 19 首次使用流程：放置、施工、人口、取消退款
 npm run bench:movement   # 3／8／24／40 名穿過城鎮中心大門的負載紀錄，輸出 test-results/movement-benchmark.json
 ```
 
@@ -54,7 +56,11 @@ npm run bench:movement   # 3／8／24／40 名穿過城鎮中心大門的負載�
 1. 左鍵點選村民，或在場景中拖曳框選；Shift 可加選或減選，左鍵點空地取消選取。右側「村民 1–3」按鈕也能選取（Shift 加減）。
    - 對地面按右鍵，所選村民一起移動，各自分到目的地附近的站位；也可輸入 X／Y 格（0.5–15.5）後按移動。
    - S 或「停止」讓所選村民在下一個節點停下；Ctrl＋數字儲存編組，按數字叫回；Esc 取消選取。在輸入框內打字不會觸發快捷鍵。
-   - 觸控：輕觸村民選取，選取後輕觸地面移動。
+   - 對樹木、石礦、金礦或野果按右鍵：所選村民前往採集，裝滿 10 單位後自動送回城鎮中心、再回來繼續。狩獵、放牧、捕魚尚未實作，會直接說明原因。
+   - 建造：選取村民後按側欄「住宅」或「兵營」，在場景中移動滑鼠看預覽（綠色可放、紅色會寫出原因），左鍵放置，Shift＋左鍵連續放置，右鍵或 Esc 取消。放置時扣除成本，村民走到地基外圍施工，多人施工較快；住宅完工後人口上限 +5。選取村民後右鍵點未完工的建築可以協助施工。按鈕停用時，下方會寫出原因（例如缺多少木材）。
+   - 左鍵點自己的建築可以選取，側欄顯示施工進度；未完工時可按「取消建造」全額退款。兵營完工後目前還不能造兵。
+   - 點過場景後，方向鍵平移鏡頭，F 對準選取的村民。
+   - 觸控：輕觸村民選取，選取後輕觸地面移動，或輕觸資源採集。
    - 單位互不重疊也不互相穿過：會排隊、讓路、同組交換站位；無法前進 300 ticks 會顯示「受阻停止」，目標不可達則停在最近點並顯示「無法到達」。
 2. 按「開始模擬」執行；也能暫停後逐 tick 推進。紅方不可控制，尚無 AI。
 3. 儲存／讀取使用 `brick-rts:sandbox:1` localStorage key；重建不覆蓋手動存檔。

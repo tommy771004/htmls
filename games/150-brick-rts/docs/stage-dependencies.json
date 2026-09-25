@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "../../../docs/Brick_RTS_Prompt_Pack/brick_rts_prompt_pack/docs/BUILD_ORDER.md",
-  "activeStage": "D",
+  "activeStage": "E",
   "exactReferenceBlocked": true,
   "allowDesignDefaultEngineering": true,
   "stages": [
@@ -63,7 +63,8 @@
       "status": "in_progress",
       "exitEvidence": "框選、編組、路徑、狹道與 HUD 實測",
       "firstUseReviewRequired": true,
-      "reviewStatus": "group_movement_selection_first_use_008_verified_remaining_d_open"
+      "reviewStatus": "group_movement_selection_first_use_008_verified_remaining_d_open",
+      "note": "D 的選取、框選、編組、群體移動、單位占位、窄道與鏡頭平移已有實證（first-use-008、009）；攻擊移動、巡邏、跟隨、佇列路點、隊形朝向、小地圖與完整 HUD 需要 E 的戰鬥與生產才有意義，刻意延後，不標記完成。"
     },
     {
       "id": "E",
@@ -77,10 +78,10 @@
       "dependsOn": [
         "D"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "exitEvidence": "經濟→升級→造兵→攻城→勝敗→再開局",
       "firstUseReviewRequired": true,
-      "reviewStatus": "not_run"
+      "reviewStatus": "build_population_first_use_010_verified_remaining_e_open"
     },
     {
       "id": "F",
@@ -158,5 +159,5 @@
     }
   ],
   "releaseGate": "E must pass a real full match and prompt 19 before any playable RTS completion claim",
-  "nextStage": "E"
+  "nextStage": "F"
 }

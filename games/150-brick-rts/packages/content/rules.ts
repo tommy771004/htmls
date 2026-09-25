@@ -1,7 +1,7 @@
 export const resources = ['food', 'wood', 'gold', 'stone'] as const;
 export type Resource = typeof resources[number];
 export type Entry = {referenceVersion:null; sourceEvidence:string[]; implementationStatus:'not_started'|'in_progress'; testEvidence:string[]; id: string; kind: 'unit'|'building'|'technology'; name: string; cost: Record<Resource, number>; time: number; population: number; requires: string[]; verificationStatus: 'design_default'};
-export type Rules = {schemaVersion: number; id: string; reference: {game: string; version: string|null; build: string|null; contentPacks: string[]; verificationStatus: 'unverified'|'verified_against_reference'; sourceEvidence: string[]}; coverage: {contentDenominator: number|null; exactReferenceCoveragePercent: number|null}; settings: {tickHz: number; populationCap: number; mapSize: number; speed: number; mode: string; seed: number; platform: string; provenance: 'design_default'}; entries: Entry[]; civilizations: {id: string; available: string[]; unavailable: string[]}[]};
+export type Rules = {schemaVersion: number; id: string; reference: {game: string; version: string|null; build: string|null; contentPacks: string[]; verificationStatus: 'unverified'|'verified_against_reference'; sourceEvidence: string[]}; coverage: {contentDenominator: number|null; exactReferenceCoveragePercent: number|null}; settings: {tickHz: number; populationCap: number; mapSize: number; speed: number; mode: string; seed: number; platform: string; provenance: 'design_default'}; entries: Entry[]; production: Record<string,string|null>; civilizations: {id: string; available: string[]; unavailable: string[]}[]};
 const entry = (id: string, kind: Entry['kind'], name: string, food=0, wood=0, gold=0, stone=0, requires: string[]=[], population=0): Entry => ({referenceVersion:null,sourceEvidence:['original design defaults: packages/content/rules.ts'],implementationStatus:id==='villager'?'in_progress':'not_started',testEvidence:['tests/foundation.test.ts (data validation only)'],id,kind,name,cost:{food,wood,gold,stone},time:20,population,requires,verificationStatus:'design_default'});
 export const rules: Rules = {
  schemaVersion:1,id:'brick-foundation-0.1',
@@ -9,6 +9,8 @@ export const rules: Rules = {
  coverage:{contentDenominator:null,exactReferenceCoveragePercent:null},
  settings:{tickHz:20,populationCap:40,mapSize:16,speed:1,mode:'command-sandbox',seed:260925,platform:'desktop browser',provenance:'design_default'},
  entries:[entry('villager','unit','村民',50,0,0,0,[],1),entry('town-center','building','城鎮中心',0,200,0,100),entry('house','building','民居',0,30),entry('barracks','building','兵營',0,150),entry('militia','unit','近戰民兵',60,0,20,0,['barracks'],1),entry('archer','unit','弓手',0,40,30,0,['age-2'],1),entry('ram','unit','攻城槌',0,160,75,0,['age-3'],3),entry('age-2','technology','第二時代',300),entry('age-3','technology','第三時代',500,0,200,0,['age-2']),entry('age-4','technology','第四時代',800,0,400,0,['age-3'])],
+ // Which building produces each unit/technology (design_default). null = defined but not producible yet.
+ production:{villager:'town-center',militia:'barracks',archer:'barracks',ram:null,'age-2':'town-center','age-3':'town-center','age-4':'town-center'},
  civilizations:[{id:'blue-settlement',available:['villager','town-center','house','barracks','militia','archer','ram','age-2','age-3','age-4'],unavailable:[]},{id:'red-settlement',available:['villager','town-center','house','barracks','militia','archer','ram','age-2','age-3','age-4'],unavailable:[]}]
 };
 // Runtime validator deliberately accepts unknown: pasted JSON is an untrusted boundary.
@@ -56,5 +58,10 @@ export function validateRules(value: unknown, exact=false): string[] {
  if(civIds.has(c.id))errors.push(`重複文明 ID：${c.id}`);civIds.add(c.id);
  for(const id of [...c.available,...c.unavailable])if(!ids.has(id))errors.push(`${c.id} 懸空內容：${id}`);
  for(const id of c.available)if(c.unavailable.includes(id))errors.push(`${c.id} 禁用項出現在可用列表：${id}`);}}
+ // Every unit and technology names its producer (or null); producers must be buildings.
+ if(!obj(value.production))errors.push('production 必須為物件');
+ else{const kinds=new Map(entries.map(e=>[e.id,e.kind]));
+  for(const e of entries)if((e.kind==='unit'||e.kind==='technology')&&!(e.id in value.production))errors.push(`${e.id} 缺少生產建築`);
+  for(const [id,producer] of Object.entries(value.production)){if(!kinds.has(id)||kinds.get(id)==='building')errors.push(`production 未知項目：${id}`);if(producer!==null&&kinds.get(producer as string)!=='building')errors.push(`${id} 的生產建築無效：${producer}`);}}
  return [...new Set(errors)];
 }

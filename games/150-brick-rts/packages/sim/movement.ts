@@ -5,12 +5,16 @@ import type {MapData,Point} from './navigation.ts';
 // unit bodies (radius 25, node spacing 50) never overlap. Units never pass through each other.
 export type Navigation='idle'|'searching'|'moving'|'waiting'|'unreachable'|'stuck';
 export const navigationStates:readonly Navigation[]=['idle','searching','moving','waiting','unreachable','stuck'];
-export type Unit={id:number;player:number;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;detours:number;partial:boolean;order:number;outcome:'stuck'|null};
+export type UnitKind='villager'|'militia'|'archer';
+export const unitKinds:readonly UnitKind[]=['villager','militia','archer'];
+export type Unit={id:number;player:number;kind:UnitKind;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;detours:number;partial:boolean;order:number;outcome:'stuck'|null};
 type Search={frontier:number[];head:number;parent:number[]};
 export type GroupJob=Search&{kind:'group';id:number;unitIds:number[];goal:number;starts:number[];held:number[];slots:number[];status:'searching'|'done'};
-export type UnitJob=Search&{kind:'unit';id:number;unitId:number;start:number;goal:number;excluded:number[];best:number;keep:number[];status:'searching'|'done'};
+// targets: any of these nodes ends the search (work slots, drop-off ring); found is the one reached.
+export type UnitJob=Search&{kind:'unit';id:number;unitId:number;start:number;goal:number;excluded:number[];best:number;keep:number[];targets:number[]|null;found:number;status:'searching'|'done'};
 export type Job=GroupJob|UnitJob;
-export type MovementState={map:MapData;units:Unit[];pathJobs:Job[];nextJobId:number};
+// navigationSeen: last map.navigationRevision the movement layer has reconciled paths against.
+export type MovementState={map:MapData;units:Unit[];pathJobs:Job[];nextJobId:number;navigationSeen:number};
 const NODES=961,SIDE=31;
 // Derived edge table, rebuilt when navigation changes; never serialized.
 const graphs=new WeakMap<MapData,{revision:number;blocked:Uint8Array;open:Uint8Array}>();
@@ -32,7 +36,7 @@ export function neighbours(map:MapData,id:number):number[]{
  return out;
 }
 export function nodeAt(p:Point):number{const x=(p.x-50)/50,y=(p.y-50)/50;return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&x<SIDE&&y>=0&&y<SIDE?y*SIDE+x:-1;}
-export function makeUnit(id:number,player:number,x:number,y:number):Unit{const node=nodeAt({x,y});if(node<0)throw Error('單位必須站在導航節點上');return {id,player,x,y,node,next:null,path:[],goal:null,target:null,navigation:'idle',wait:0,detours:0,partial:false,order:0,outcome:null};}
+export function makeUnit(id:number,player:number,x:number,y:number,kind:UnitKind='villager'):Unit{const node=nodeAt({x,y});if(node<0)throw Error('單位必須站在導航節點上');return {id,player,kind,x,y,node,next:null,path:[],goal:null,target:null,navigation:'idle',wait:0,detours:0,partial:false,order:0,outcome:null};}
 function search(start:number):Search{const parent=Array(NODES).fill(-2);parent[start]=-1;return {frontier:[start],head:0,parent};}
 function held(units:Unit[],except:Set<number>){const nodes=new Set<number>();for(const u of units)if(!except.has(u.id)){nodes.add(u.node);if(u.next!==null)nodes.add(u.next);}return [...nodes].sort((a,b)=>a-b);}
 function cancel(s:MovementState,id:number){
@@ -55,8 +59,8 @@ function advance(s:MovementState,job:Job,budget:number):number{
   if(job.kind==='group'&&job.slots.length>=job.unitIds.length&&job.starts.every(n=>job.parent[n]!==-2)){job.status='done';break;}
   if(job.head===job.frontier.length){job.status='done';break;}
   const id=job.frontier[job.head++];used++;
-  if(job.kind==='group'){if(job.slots.length<job.unitIds.length&&!job.held.includes(id))job.slots.push(id);}
-  else{const g=job.goal,d=(n:number)=>Math.abs(n%SIDE-g%SIDE)+Math.abs(Math.floor(n/SIDE)-Math.floor(g/SIDE));if(d(id)<d(job.best))job.best=id;if(id===g){job.status='done';break;}}
+  if(job.kind==='group'){if(job.slots.length<job.unitIds.length&&!job.held.includes(id)&&!s.map.blocked.includes(id))job.slots.push(id);}
+  else{const g=job.goal,d=(n:number)=>Math.abs(n%SIDE-g%SIDE)+Math.abs(Math.floor(n/SIDE)-Math.floor(g/SIDE));if(d(id)<d(job.best))job.best=id;if(job.targets?job.targets.includes(id):id===g){job.found=id;job.status='done';break;}}
   for(const next of neighbours(s.map,id))if(job.parent[next]===-2&&!(job.kind==='unit'&&job.excluded.includes(next))){job.parent[next]=id;job.frontier.push(next);}
  }
  return used;
@@ -82,16 +86,35 @@ function finishGroup(s:MovementState,job:GroupJob){
  // Units outside the goal's component head for the closest node they can reach.
  for(const u of units)if(!order.has(start(u)))s.pathJobs.push(unitJob(s,u,job.goal,[],[]));
 }
-function unitJob(s:MovementState,u:Unit,goal:number,excluded:number[],keep:number[]):UnitJob{const start=u.next??u.node;return {kind:'unit',id:s.nextJobId++,unitId:u.id,start,goal,excluded,best:start,keep,status:'searching',...search(start)};}
+function unitJob(s:MovementState,u:Unit,goal:number,excluded:number[],keep:number[],targets:number[]|null=null):UnitJob{const start=u.next??u.node;return {kind:'unit',id:s.nextJobId++,unitId:u.id,start,goal,excluded,best:start,keep,targets,found:-1,status:'searching',...search(start)};}
+// Route one unit to the nearest reachable node of a set (used by work legs). Keeps cargo/work; resets movement state.
+export function routeTo(s:MovementState,u:Unit,targets:number[]){
+ if(!targets.length)throw Error('沒有可用的目標節點');
+ cancel(s,u.id);Object.assign(u,{path:[],goal:null,target:null,navigation:'searching',wait:0,detours:0,partial:false,order:s.nextJobId,outcome:null});
+ s.pathJobs.push(unitJob(s,u,targets[0],[],[],[...targets].sort((a,b)=>a-b)));
+}
+export function cancelMovement(s:MovementState,id:number){cancel(s,id);}
 function finishUnit(s:MovementState,job:UnitJob){
- const u=s.units.find(u=>u.id===job.unitId)!,end=job.parent[job.goal]!==-2?job.goal:job.best;
+ const u=s.units.find(u=>u.id===job.unitId)!,end=job.found>=0?job.found:job.parent[job.goal]!==-2&&!job.targets?job.goal:job.best;
  const path=chain(job.parent,end).reverse().slice(1);
  // A replan only replaces the route when it reaches the goal; otherwise the unit keeps waiting.
  if(job.keep.length&&(end!==job.goal||!path.length)){u.path=job.keep;u.navigation='waiting';return;}
- u.path=path;u.goal=u.goal??job.goal;u.partial=end!==job.goal;u.target=position(end);
+ u.path=path;u.goal=job.targets?end:u.goal??job.goal;u.partial=job.targets?job.found<0:end!==job.goal;u.target=position(end);
  u.navigation=path.length||u.next!==null?'moving':u.partial?'unreachable':'idle';
 }
+// A new building (or freed ground) changes the graph: restart searches, and reroute any unit whose
+// remaining route crosses an edge that no longer exists. Units never step through a new footprint.
+function reconcile(s:MovementState){
+ if(s.navigationSeen===s.map.navigationRevision)return;s.navigationSeen=s.map.navigationRevision;
+ for(const job of s.pathJobs)if(job.status==='searching'){const fresh=search(job.kind==='group'?job.goal:job.start);Object.assign(job,fresh);if(job.kind==='group')job.slots=[];else{job.best=job.start;job.found=-1;}}
+ const searching=new Set(s.pathJobs.flatMap(j=>j.kind==='group'?j.unitIds:[j.unitId]));
+ for(const u of s.units){if(!u.path.length||searching.has(u.id))continue;
+  const route=[u.next??u.node,...u.path];
+  if(route.every((n,i)=>i===0||neighbours(s.map,route[i-1]).includes(n)))continue;
+  const goal=u.goal??u.path.at(-1)!;u.path=[];u.navigation='searching';s.pathJobs.push(unitJob(s,u,goal,[],[]));}
+}
 export function stepMovement(s:MovementState):{expanded:number}{
+ reconcile(s);
  // Shared deterministic budget, round-robin in job id order.
  s.pathJobs.sort((a,b)=>a.id-b.id);let budget=navigationRules.expansionsPerTick,expanded=0;
  while(budget>0&&s.pathJobs.some(j=>j.status==='searching'))for(const job of s.pathJobs){if(budget<=0)break;if(job.status==='searching'){const n=advance(s,job,1);budget-=n;expanded+=n;}}

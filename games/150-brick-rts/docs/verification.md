@@ -146,3 +146,11 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## D：群體移動、單位占位與選取操作（v11）
 
 框選、編組、右鍵群體移動、停止、觸控移動，以及單位互不重疊的排隊、讓路與受阻回報，驗證見 [first-use-008.md](first-use-008.md)。負載紀錄在 test-results/movement-benchmark*.json。D 仍是 in_progress。
+
+## E：採集、攜帶與送返（v12）
+
+樹木、石礦、金礦、野果的採集循環、資源流量帳、HUD 真實庫存、依狀態驅動的人偶姿態，以及鏡頭平移，驗證見 [first-use-009.md](first-use-009.md)。E 仍是 in_progress：建造、人口、升時代、造兵、戰鬥、AI 與勝敗尚未實作。
+
+## E：建造與人口（v13）
+
+住宅與兵營的放置預覽與合法性、放置扣款、多人施工、分段模型、完工增加人口上限、取消全額退款、新地基的導航更新，驗證見 [first-use-010.md](first-use-010.md)。E 仍是 in_progress：造兵、升時代、戰鬥、AI 與勝敗尚未實作。

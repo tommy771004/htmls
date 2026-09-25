@@ -11,7 +11,8 @@ export function samplePose(pose:UnitPose,time:number){
  if(pose==='walk'){p.leftLeg=walk;p.rightLeg=-walk;p.leftArm=-walk*.6;p.rightArm=walk*.6;}
  if(pose==='work'){p.rightArm=-.9+Math.sin(t*.01)*.7;p.leftArm=-.25;}
  if(pose==='attack'){p.rightArm=-1.25+Math.sin(t*.012)*1;p.leftArm=-.45;}
- if(pose==='carry'){p.leftArm=-1.1;p.rightArm=-1.1;}
+ // Carrying keeps the walk cycle in the legs so a returning villager does not slide.
+ if(pose==='carry'){p.leftArm=-1.1;p.rightArm=-1.1;p.leftLeg=walk;p.rightLeg=-walk;}
  if(pose==='hit'&&t>0&&t<300)p.lean=-.24*Math.sin(Math.PI*t/300);
  if(pose==='death')p.fall=Math.min(t/700,1)*Math.PI/2;
  return p;

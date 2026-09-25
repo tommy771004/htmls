@@ -46,12 +46,18 @@ await drag({x:a.x-30,y:a.y-60},{x:side.x+side.width/2,y:side.y+side.height/2});a
 // 9. Escape during a drag cancels the box; clicking empty ground clears the selection without moving anyone.
 await page.keyboard.press('Digit1');const hashBefore=await text('hash');const empty=await screen(10,0,5);await page.mouse.click(empty.x,empty.y);assert.equal(await text('selected'),'未選取');assert.equal(await text('hash'),hashBefore);
 await page.mouse.click(empty.x,empty.y,{button:'right'});assert.match(await text('notice'),/請先選取村民/);
-// 10. Phone touch: tap a villager to select it, tap the ground to order a move.
+// 10. Camera: arrows pan only after the scene was clicked; elsewhere they scroll the page. F frames the selection.
+const beforePan=await page.locator('#map').screenshot();const spot=await screen(10,0,5);await page.mouse.click(spot.x,spot.y);for(let i=0;i<3;i++)await page.keyboard.press('ArrowRight');
+assert.equal(await page.evaluate(()=>scrollY),0,'arrow keys did not scroll the page');assert.notDeepEqual(await page.locator('#map').screenshot(),beforePan,'arrow keys pan the camera');
+await page.evaluate(()=>scrollTo(0,0));
+await page.locator('#selected').click();await page.keyboard.press('ArrowDown');await page.waitForTimeout(200);assert.ok(await page.evaluate(()=>scrollY)>0,'arrow keys scroll the page outside the scene');
+await page.keyboard.press('Digit1');await page.keyboard.press('KeyF');assert.match(await text('notice'),/鏡頭已對準/);await page.locator('#reset-view').click();
+// 11. Phone touch: tap a villager to select it, tap the ground to order a move.
 const phone=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});const touch=await phone.newPage();touch.on('pageerror',e=>errors.push(e.message));
 await touch.goto(origin+'/web/150-brick-rts.html');await touch.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
 const tapAt=async(wx,wy,wz)=>{await touch.evaluate(()=>scrollTo(0,0));const r=await touch.locator('#map').boundingBox(),halfH=Math.max(10.5,12/(r.width/r.height)),scale=r.height/(2*halfH),dx=wx-8,dz=wz-8;await touch.touchscreen.tap(r.x+r.width/2+(dx-dz)*Math.SQRT1_2*scale,r.y+r.height/2-(-.5*dx+Math.SQRT1_2*wy-.5*dz)*scale);await touch.waitForTimeout(150);};
 await tapAt(9,0,9);assert.match(await touch.locator('#notice').innerText(),/移動指令已排入/);
 await touch.screenshot({path:out+'controls-touch-390.png'});await phone.close();
 assert.deepEqual(errors,[]);
-console.log('PASS box select, shift toggle, Ctrl groups, Esc, input isolation, context menu, group right-click through gate, S stop, HUD drag, empty-ground deselect, touch tap move; '+browser.version());
+console.log('PASS box select, shift toggle, Ctrl groups, Esc, input isolation, context menu, group right-click through gate, S stop, HUD drag, empty-ground deselect, camera pan/focus, touch tap move; '+browser.version());
 }finally{await browser.close();server.close();}

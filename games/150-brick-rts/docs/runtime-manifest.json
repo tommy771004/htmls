@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 11,
-  "rulesetHash": "6a22d3a0",
+  "schemaVersion": 14,
+  "rulesetHash": "889026ee",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -36,7 +36,16 @@
       "stone": 100
     },
     "populationCap": 40,
-    "cancellationRefundPercent": 100
+    "cancellationRefundPercent": 100,
+    "carryCapacity": 10,
+    "gatherTicks": {
+      "food": 20,
+      "wood": 20,
+      "gold": 25,
+      "stone": 25
+    },
+    "workReach": 50,
+    "dropoffReach": 50
   },
   "terrain": {
     "provenance": "design_default",
@@ -137,7 +146,7 @@
     "provenance": "design_default",
     "unitRadius": 400,
     "houseRadius": 300,
-    "townCenterRadius": 300,
+    "townCenterRadius": 600,
     "shareVision": false,
     "rememberStaticObjects": true
   },
@@ -149,6 +158,12 @@
         "y": -15,
         "width": 250,
         "depth": 230
+      },
+      "barracks": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
       },
       "town-center": {
         "x": -15,

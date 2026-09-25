@@ -82,6 +82,7 @@
 - [088 WALLSPACE](https://htmls-ruddy.vercel.app/web/088-graffiti.html): 街頭塗鴉。磚牆噴漆畫布：粒子噴霧、停留滴流、模板字與市府灰漆 Buff
 - [097 room 48, rain & records](https://htmls-ruddy.vercel.app/web/097-lofi-room.html): Lo-fi 房間。雨夜房間環境音混音器：點物件開關雨聲、唱片、貓呼嚕
 - [098 XENOLINGUA](https://htmls-ruddy.vercel.app/web/098-xeno-glyph.html): 外星語。三種筆畫文法生成外星字形，直書顯示並播放傳送音
+- [154 定影 · FIXER](https://htmls-ruddy.vercel.app/web/154-fixer-editor.html): 點陣影像編輯器。圖層、遮色片、調整圖層與 21 種混合模式在 WebGL2 即時合成，選取、筆刷、仿製、修復、漸層、文字、裁切與濾鏡，PSD 讀寫與 PNG／JPG／WebP 匯出，並以本機 MCP 橋接讓 Claude Code 或 Codex 操作開著的文件
 
 ### 生成藝術
 

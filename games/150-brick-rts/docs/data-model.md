@@ -1,6 +1,6 @@
 # 資料模型與權威邊界
 
-目前權威 State／snapshot 為 v11，支援三種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
+目前權威 State／snapshot 為 v13，支援三種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
 
 ## 初始資料模型（歷史 v1，後續演進見下文）
 
@@ -108,7 +108,7 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 - 建築的「已見」改成任一占地格可見即成立，其他物件仍看錨點格。
 - 驗證見 first-use-007.md。這些是 design_default 工程值，不是原作占地。
 
-## 群體移動與單位占位 v11（目前版本）
+## 群體移動與單位占位 v11
 
 - `packages/sim/movement.ts` 負責執行期移動。Unit 新增欄位：node（目前佔用的節點）、next（正在前往並已預約的節點）、path（節點序列）、goal（站位）、wait（距上次前進的 tick 數）、detours、order、partial、outcome。navigation 可能的值為 idle／searching／moving／waiting／unreachable／stuck。
 - 命令改為 `move {unitIds,x,y}` 與 `stop {unitIds}`：一道命令對應一個序號，unitIds 需為 1–40 個遞增、不重複的己方 ID。State.pathJobs 改為群體搜尋與單位搜尋，並新增 nextJobId。
@@ -122,3 +122,34 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
   - 目標所在區域無法到達時，停在最近的可達點並標示 unreachable。
 - 地圖生成驗證（validateMap、validateStartingResources）仍用單一單位的 createPathJob。兩者使用同一張 clearSegment 邊表，所以判定一致。
 - simulationVersion、State.version 與 snapshot 格式升為 11，舊版明確拒絕，沒有做遷移。tick() 回傳只供觀察的搜尋節點數，不寫入 State。
+
+## 採集與送返 v12
+
+- State 新增 `works`（依單位 id 記錄工作：resourceId、phase 為 toSource／gathering／toDropoff、progress、retries）與 `cargo`（依單位 id 記錄 resource 與 amount）。Account 新增累計的 `ledger.extracted` 與 `ledger.deposited`。
+- 新命令 `gather {unitIds, resourceId}`。資源必須已被該玩家探索過，否則回報與「不存在」相同的訊息，不洩漏迷霧後的資源；只接受 method 為 gather 的資源（樹木、石礦、金礦、野果）。執行時若資源已耗盡，單位改為停止。
+- 規則（economyRules，design_default）：
+  - 攜帶上限 10。每單位資源所需的採集 tick：食物 20、木材 20、黃金 25、石頭 25。
+  - workReach 50：工作點是資源占地外 50 以內的可站節點。
+  - dropoffReach 50：送返點是己方城鎮中心占地外圍一圈的節點，不進入大廳。
+- 各段移動都走 movement.ts：新增 `routeTo`，前往一組目標中最近、可到達的一個節點。work.ts 在單位停下後推進狀態。處理順序：命令 → 移動 → 工作 → 視野。
+- 移動或停止命令會結束工作，但保留貨物；對不同資源下採集命令時，會先送回身上的貨；資源耗盡時先送回貨物，再轉往 600 內最近的同類資源，沒有就閒置。
+- Worker 投影：每名單位 11 個 int，新增工作階段、貨物種類與數量、工作資源種類；只投影己方單位的工作與貨物。另外投影己方帳戶的庫存與人口，不投影敵方庫存。採集中時，目標座標欄位改放資源中心，供畫面讓人偶轉身。
+- simulationVersion、State.version 與 snapshot 格式升為 12，舊版明確拒絕，沒有做遷移。
+
+## 建造與人口 v13（目前版本）
+
+- State 新增 `buildings`（id、kind、player、x、y、work、required、complete、reservationId）、`nextBuildingId` 與 `navigationSeen`。開局時兩方的城鎮中心也登記為已完工建築。
+- 新命令：
+  - `build {unitIds, kind:'house'|'barracks', x, y}`：放置並指派施工。
+  - `construct {unitIds, buildingId}`：協助施工。
+  - `cancelBuild {buildingId}`：取消建造。
+  - 提交時先檢查放置與資源；執行時再檢查一次，失敗寫進 transactions，施工者停下。
+- 放置規則 `placementProblem` 由 Worker 與頁面共用（design_default）：
+  - 位置對齊 50 格線，不超出地圖，占地格都已探索、可建造、高度一致。
+  - 不與任何障礙物矩形重疊，也不能有單位身體（含正在進入的節點）在占地內。
+- 金流：放置時預留（扣款），完工時結算，取消時全額退款並移除地基。
+- 施工：需要的工作量為規則項目時間 × tick 率（住宅與兵營皆為 400）。每名施工者每 tick 加 1，站在地基外圍的節點。模型依階段 0／20／40／60／80／100 顯示；地圖上的障礙物帶 progress，所以迷霧記憶記得的是最後看到的施工階段。
+- 人口上限 = min(40, 己方已完工建築的容量)：城鎮中心 5、住宅 5、兵營 0。
+- 導航：放置與取消都會局部更新 blocked 並遞增 navigationRevision。movement.ts 在下個 tick 重算進行中的搜尋，並讓路線穿過新邊界的單位重新規劃。
+- 城鎮中心視野半徑從 300 提高到 600（design_default）。原因是開局可建造的位置太少（草甸只有 9 處），見 first-use-010。
+- simulationVersion、State.version 與 snapshot 格式升為 13，舊版明確拒絕，沒有做遷移。

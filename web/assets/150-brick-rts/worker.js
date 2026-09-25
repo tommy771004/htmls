@@ -47,10 +47,24 @@ function tileAt(x, y) {
 function canTraverse(tile, movement) {
   return tile.walkClass === movement || tile.walkClass === "both";
 }
+function extractResource(node, amount, tick2) {
+  if (!Number.isSafeInteger(amount) || amount <= 0 || !Number.isSafeInteger(tick2) || tick2 < 0) throw Error("\u7121\u6548\u63A1\u96C6\u91CF\u6216 tick");
+  if (!node.collectible || node.status === "depleted") return 0;
+  const yieldAmount = Math.min(amount, node.remaining);
+  node.remaining -= yieldAmount;
+  if (node.remaining === 0) {
+    node.status = "depleted";
+    node.collectible = false;
+    node.depletedAt = tick2;
+  }
+  return yieldAmount;
+}
 
 // packages/content/footprints.ts
 var obstacleFootprints = {
   house: { x: -15, y: -15, width: 250, depth: 230 },
+  // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
+  barracks: { x: -15, y: -15, width: 300, depth: 300 },
   "town-center": { x: -15, y: -15, width: 300, depth: 300 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
@@ -93,12 +107,12 @@ function obstacleRects(o, radius = 0) {
 
 // packages/sim/vision.ts
 function footprintTiles(o) {
-  if (o.kind !== "house" && o.kind !== "town-center") return [tileAt(o.x, o.y)];
+  if (o.kind !== "house" && o.kind !== "town-center" && o.kind !== "barracks") return [tileAt(o.x, o.y)];
   const [x0, y0, x1, y1] = obstacleBounds(o), tiles = [];
   for (let ty = Math.max(0, Math.floor(y0 / 100)); ty <= Math.min(15, Math.floor((y1 - 1) / 100)); ty++) for (let tx = Math.max(0, Math.floor(x0 / 100)); tx <= Math.min(15, Math.floor((x1 - 1) / 100)); tx++) tiles.push(ty * 16 + tx);
   return tiles;
 }
-var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 300, townCenterRadius: 300, shareVision: false, rememberStaticObjects: true };
+var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 300, townCenterRadius: 600, shareVision: false, rememberStaticObjects: true };
 function createVision() {
   return Array.from({ length: 2 }, () => ({ explored: [], visible: [], known: [], resources: [] }));
 }
@@ -112,7 +126,7 @@ function updateVision(visions, map, units, tick2, sharing = [[0], [1]]) {
     }
   };
   for (const u of units) reveal(u.player, u.x, u.y, visionRules.unitRadius);
-  for (const o of map.obstacles) if (o.kind === "house") reveal(o.red ? 1 : 0, o.x + 100, o.y + 100, visionRules.houseRadius);
+  for (const o of map.obstacles) if (o.kind === "house" || o.kind === "barracks") reveal(o.red ? 1 : 0, o.x + 100, o.y + 100, visionRules.houseRadius);
   else if (o.kind === "town-center") reveal(o.red ? 1 : 0, o.x + 135, o.y + 135, visionRules.townCenterRadius);
   for (let player = 0; player < 2; player++) {
     const vision = visions[player], visible = new Set(sharing[player].flatMap((id) => [...own[id]]));
@@ -142,13 +156,16 @@ var rules = {
   coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
   settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
   entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
+  // Which building produces each unit/technology (design_default). null = defined but not producible yet.
+  production: { villager: "town-center", militia: "barracks", archer: "barracks", ram: null, "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
   civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "militia", "archer", "ram", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "militia", "archer", "ram", "age-2", "age-3", "age-4"], unavailable: [] }]
 };
 
 // packages/sim/economy.ts
-var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100 };
+var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100, carryCapacity: 10, gatherTicks: { food: 20, wood: 20, gold: 25, stone: 25 }, workReach: 50, dropoffReach: 50 };
+var zero = () => ({ food: 0, wood: 0, gold: 0, stone: 0 });
 function createAccount(populationUsed) {
-  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [] };
+  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero() } };
 }
 function reserve(account, id, entryId) {
   const entry2 = rules.entries.find((e) => e.id === entryId);
@@ -167,6 +184,13 @@ function cancelReservation(account, id) {
   for (const key of resources) account.stock[key] += r.cost[key];
   account.populationReserved -= r.population;
   r.status = "cancelled";
+}
+function commitReservation(account, id) {
+  const r = account.reservations.find((r2) => r2.id === id);
+  if (!r || r.status !== "reserved") throw Error("\u9810\u7559\u9805\u76EE\u4E0D\u5B58\u5728\u6216\u5DF2\u7D50\u675F");
+  account.populationReserved -= r.population;
+  account.populationUsed += r.population;
+  r.status = "committed";
 }
 
 // packages/sim/navigation.ts
@@ -229,7 +253,7 @@ function generateCandidate(seed, layout) {
   return map;
 }
 function isBuilding(o) {
-  return o.kind === "house" || o.kind === "town-center";
+  return o.kind === "house" || o.kind === "town-center" || o.kind === "barracks";
 }
 function bounds(o) {
   return obstacleBounds(o, navigationRules.radius);
@@ -276,6 +300,38 @@ function intersects(a, b, box) {
     }
   }
   return lo <= hi;
+}
+function harvestMapResource(map, id, amount, tick2) {
+  const resource = map.resources.find((r) => r.id === id);
+  if (!resource) throw Error("\u672A\u77E5\u8CC7\u6E90\u7BC0\u9EDE");
+  if (resource.obstacleId && !map.obstacles.some((o) => o.id === resource.obstacleId)) throw Error("\u8CC7\u6E90\u969C\u7919\u53C3\u7167\u5931\u6548");
+  const harvested = extractResource(resource, amount, tick2), changedNodes = [];
+  if (resource.status === "depleted" && resource.obstacleId) {
+    const obstacle = map.obstacles.find((o) => o.id === resource.obstacleId);
+    if (!obstacle) throw Error("\u8CC7\u6E90\u969C\u7919\u53C3\u7167\u5931\u6548");
+    const area = bounds(obstacle);
+    map.obstacles = map.obstacles.filter((o) => o !== obstacle);
+    for (const tile of map.tiles) tile.obstacleRefs = tile.obstacleRefs.filter((ref) => ref !== resource.obstacleId);
+    resource.obstacleId = null;
+    changedNodes.push(...refreshNavigation(map, area));
+  }
+  return { amount: harvested, changedNodes };
+}
+function refreshNavigation(map, area) {
+  const changed = [];
+  for (let id = 0; id < 961; id++) {
+    const p = position(id);
+    if (p.x < area[0] || p.x > area[2] || p.y < area[1] || p.y > area[3]) continue;
+    const blocked = !clearSegment(map, p, p), wasBlocked = map.blocked.includes(id);
+    if (blocked !== wasBlocked) {
+      changed.push(id);
+      if (blocked) map.blocked.push(id);
+      else map.blocked = map.blocked.filter((n) => n !== id);
+    }
+  }
+  map.blocked.sort((a, b) => a - b);
+  map.navigationRevision++;
+  return changed;
 }
 function validateMap(map) {
   const errors = [];
@@ -335,8 +391,8 @@ function validateStartingResources(map) {
         let distance = Infinity, approach = null;
         for (let i = 0; i < 961; i++) {
           if (!Number.isFinite(distances[i])) continue;
-          const p = position(i), gap = Math.max(x0 - p.x, 0, p.x - x1) + Math.max(y0 - p.y, 0, p.y - y1);
-          if (gap > 0 && gap <= 50 && distances[i] < distance) {
+          const p = position(i), gap2 = Math.max(x0 - p.x, 0, p.x - x1) + Math.max(y0 - p.y, 0, p.y - y1);
+          if (gap2 > 0 && gap2 <= 50 && distances[i] < distance) {
             distance = distances[i];
             approach = p;
           }
@@ -408,6 +464,7 @@ function advancePathJob(map, job, budget) {
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
+var unitKinds = ["villager", "militia", "archer"];
 var NODES = 961;
 var SIDE = 31;
 var graphs = /* @__PURE__ */ new WeakMap();
@@ -439,10 +496,10 @@ function nodeAt(p) {
   const x = (p.x - 50) / 50, y = (p.y - 50) / 50;
   return Number.isInteger(x) && Number.isInteger(y) && x >= 0 && x < SIDE && y >= 0 && y < SIDE ? y * SIDE + x : -1;
 }
-function makeUnit(id, player, x, y) {
+function makeUnit(id, player, x, y, kind = "villager") {
   const node = nodeAt({ x, y });
   if (node < 0) throw Error("\u55AE\u4F4D\u5FC5\u9808\u7AD9\u5728\u5C0E\u822A\u7BC0\u9EDE\u4E0A");
-  return { id, player, x, y, node, next: null, path: [], goal: null, target: null, navigation: "idle", wait: 0, detours: 0, partial: false, order: 0, outcome: null };
+  return { id, player, kind, x, y, node, next: null, path: [], goal: null, target: null, navigation: "idle", wait: 0, detours: 0, partial: false, order: 0, outcome: null };
 }
 function search(start) {
   const parent = Array(NODES).fill(-2);
@@ -492,11 +549,12 @@ function advance(s, job, budget) {
     const id = job.frontier[job.head++];
     used++;
     if (job.kind === "group") {
-      if (job.slots.length < job.unitIds.length && !job.held.includes(id)) job.slots.push(id);
+      if (job.slots.length < job.unitIds.length && !job.held.includes(id) && !s.map.blocked.includes(id)) job.slots.push(id);
     } else {
       const g = job.goal, d = (n) => Math.abs(n % SIDE - g % SIDE) + Math.abs(Math.floor(n / SIDE) - Math.floor(g / SIDE));
       if (d(id) < d(job.best)) job.best = id;
-      if (id === g) {
+      if (job.targets ? job.targets.includes(id) : id === g) {
+        job.found = id;
         job.status = "done";
         break;
       }
@@ -534,12 +592,21 @@ function finishGroup(s, job) {
   });
   for (const u of units) if (!order.has(start(u))) s.pathJobs.push(unitJob(s, u, job.goal, [], []));
 }
-function unitJob(s, u, goal, excluded, keep) {
+function unitJob(s, u, goal, excluded, keep, targets = null) {
   const start = u.next ?? u.node;
-  return { kind: "unit", id: s.nextJobId++, unitId: u.id, start, goal, excluded, best: start, keep, status: "searching", ...search(start) };
+  return { kind: "unit", id: s.nextJobId++, unitId: u.id, start, goal, excluded, best: start, keep, targets, found: -1, status: "searching", ...search(start) };
+}
+function routeTo(s, u, targets) {
+  if (!targets.length) throw Error("\u6C92\u6709\u53EF\u7528\u7684\u76EE\u6A19\u7BC0\u9EDE");
+  cancel(s, u.id);
+  Object.assign(u, { path: [], goal: null, target: null, navigation: "searching", wait: 0, detours: 0, partial: false, order: s.nextJobId, outcome: null });
+  s.pathJobs.push(unitJob(s, u, targets[0], [], [], [...targets].sort((a, b) => a - b)));
+}
+function cancelMovement(s, id) {
+  cancel(s, id);
 }
 function finishUnit(s, job) {
-  const u = s.units.find((u2) => u2.id === job.unitId), end = job.parent[job.goal] !== -2 ? job.goal : job.best;
+  const u = s.units.find((u2) => u2.id === job.unitId), end = job.found >= 0 ? job.found : job.parent[job.goal] !== -2 && !job.targets ? job.goal : job.best;
   const path = chain(job.parent, end).reverse().slice(1);
   if (job.keep.length && (end !== job.goal || !path.length)) {
     u.path = job.keep;
@@ -547,12 +614,36 @@ function finishUnit(s, job) {
     return;
   }
   u.path = path;
-  u.goal = u.goal ?? job.goal;
-  u.partial = end !== job.goal;
+  u.goal = job.targets ? end : u.goal ?? job.goal;
+  u.partial = job.targets ? job.found < 0 : end !== job.goal;
   u.target = position(end);
   u.navigation = path.length || u.next !== null ? "moving" : u.partial ? "unreachable" : "idle";
 }
+function reconcile(s) {
+  if (s.navigationSeen === s.map.navigationRevision) return;
+  s.navigationSeen = s.map.navigationRevision;
+  for (const job of s.pathJobs) if (job.status === "searching") {
+    const fresh = search(job.kind === "group" ? job.goal : job.start);
+    Object.assign(job, fresh);
+    if (job.kind === "group") job.slots = [];
+    else {
+      job.best = job.start;
+      job.found = -1;
+    }
+  }
+  const searching = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
+  for (const u of s.units) {
+    if (!u.path.length || searching.has(u.id)) continue;
+    const route = [u.next ?? u.node, ...u.path];
+    if (route.every((n, i) => i === 0 || neighbours(s.map, route[i - 1]).includes(n))) continue;
+    const goal = u.goal ?? u.path.at(-1);
+    u.path = [];
+    u.navigation = "searching";
+    s.pathJobs.push(unitJob(s, u, goal, [], []));
+  }
+}
 function stepMovement(s) {
+  reconcile(s);
   s.pathJobs.sort((a, b) => a.id - b.id);
   let budget = navigationRules.expansionsPerTick, expanded = 0;
   while (budget > 0 && s.pathJobs.some((j) => j.status === "searching")) for (const job of s.pathJobs) {
@@ -645,6 +736,376 @@ function stepMovement(s) {
   return { expanded };
 }
 
+// packages/sim/buildings.ts
+var buildKinds = ["house", "barracks"];
+var buildingRules = {
+  provenance: "design_default",
+  capacity: { "town-center": 5, house: 5, barracks: 0 },
+  grid: 50,
+  required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
+};
+var overlap = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > 0;
+function placementProblem(input, kind, x, y) {
+  if (!buildKinds.includes(kind)) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
+  if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x % buildingRules.grid || y % buildingRules.grid) return "\u4F4D\u7F6E\u5FC5\u9808\u5C0D\u9F4A 50 \u55AE\u4F4D\u683C\u7DDA";
+  const box = obstacleBounds({ kind, x, y });
+  if (box[0] < 0 || box[1] < 0 || box[2] > 1600 || box[3] > 1600) return "\u8D85\u51FA\u5730\u5716\u7BC4\u570D";
+  const tiles = [];
+  for (let ty = Math.floor(box[1] / 100); ty <= Math.floor((box[3] - 1) / 100); ty++) for (let tx = Math.floor(box[0] / 100); tx <= Math.floor((box[2] - 1) / 100); tx++) tiles.push(ty * 16 + tx);
+  if (tiles.some((t) => !input.explored(t))) return "\u5C1A\u672A\u63A2\u7D22\u7684\u5340\u57DF\u4E0D\u80FD\u5EFA\u9020";
+  if (tiles.some((t) => !input.tiles[t]?.buildability)) return "\u5730\u5F62\u4E0D\u53EF\u5EFA\u9020\uFF08\u6C34\u57DF\u3001\u61F8\u5D16\u3001\u5761\u9053\u6216\u6DFA\u7058\uFF09";
+  if (new Set(tiles.map((t) => input.tiles[t].height)).size > 1) return "\u5730\u9762\u9AD8\u5EA6\u4E0D\u4E00\u81F4";
+  if (input.obstacles.some((o) => obstacleRects(o).some((r2) => overlap(r2, box)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
+  const r = navigationRules.radius;
+  if (input.units.some((u) => overlap([u.x - r, u.y - r, u.x + r, u.y + r], box))) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
+  return null;
+}
+function authoritativeProblem(s, player, kind, x, y) {
+  const explored = new Set(s.vision[player].explored);
+  const bodies = s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [{ x: 50 + u.next % 31 * 50, y: 50 + Math.floor(u.next / 31) * 50 }]]);
+  return placementProblem({ tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) }, kind, x, y);
+}
+function stageOf(b) {
+  return b.complete ? 100 : Math.min(80, Math.floor(b.work * 5 / b.required) * 20);
+}
+function obstacleOf(s, b) {
+  return s.map.obstacles.find((o) => o.id === b.id);
+}
+function recomputeCapacity(s, player) {
+  const housed = s.buildings.filter((b) => b.player === player && b.complete).reduce((t, b) => t + buildingRules.capacity[b.kind], 0);
+  s.accounts[player].populationCap = Math.min(rules.settings.populationCap, housed);
+}
+function initBuildings(s) {
+  for (const o of s.map.obstacles) if (o.kind === "town-center") {
+    s.buildings.push({ id: o.id, kind: "town-center", player: o.red ? 1 : 0, x: o.x, y: o.y, work: 0, required: 0, complete: true, reservationId: null, queue: [], rally: null });
+    o.age = s.ages[o.red ? 1 : 0];
+  }
+  for (const p of [0, 1]) recomputeCapacity(s, p);
+}
+function placeBuilding(s, player, kind, x, y, reservationId) {
+  const problem = authoritativeProblem(s, player, kind, x, y);
+  if (problem) throw Error(problem);
+  reserve(s.accounts[player], reservationId, kind);
+  const b = { id: `building-${s.nextBuildingId++}`, kind, player, x, y, work: 0, required: buildingRules.required[kind], complete: false, reservationId, queue: [], rally: null };
+  s.buildings.push(b);
+  const o = { id: b.id, kind, x, y, progress: 0, age: s.ages[player], ...player ? { red: true } : {} };
+  s.map.obstacles.push(o);
+  s.map.tiles[tileAt(x, y)].obstacleRefs.push(b.id);
+  refreshNavigation(s.map, obstacleBounds(o, navigationRules.radius));
+  return b;
+}
+function addWork(s, b) {
+  if (b.complete) return false;
+  b.work++;
+  const o = obstacleOf(s, b);
+  if (b.work >= b.required) {
+    b.complete = true;
+    commitReservation(s.accounts[b.player], b.reservationId);
+    delete o.progress;
+    recomputeCapacity(s, b.player);
+    return true;
+  }
+  o.progress = stageOf(b);
+  return false;
+}
+function cancelBuilding(s, player, id) {
+  const b = s.buildings.find((b2) => b2.id === id);
+  if (!b || b.player !== player) throw Error("\u627E\u4E0D\u5230\u9019\u68DF\u5DF1\u65B9\u5EFA\u7BC9");
+  if (b.complete || !b.reservationId) throw Error("\u5DF2\u5B8C\u5DE5\u7684\u5EFA\u7BC9\u4E0D\u80FD\u53D6\u6D88");
+  cancelReservation(s.accounts[player], b.reservationId);
+  const o = obstacleOf(s, b);
+  s.map.obstacles = s.map.obstacles.filter((v) => v !== o);
+  for (const t of s.map.tiles) t.obstacleRefs = t.obstacleRefs.filter((r) => r !== b.id);
+  s.buildings = s.buildings.filter((v) => v !== b);
+  refreshNavigation(s.map, obstacleBounds(o, navigationRules.radius));
+}
+
+// packages/sim/work.ts
+var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building"];
+var NODES2 = 961;
+var gap = (p, [x0, y0, x1, y1]) => Math.max(x0 - p.x, 0, p.x - x1) + Math.max(y0 - p.y, 0, p.y - y1);
+function ring(map, o, reach) {
+  const box = obstacleBounds(o, 25), out = [];
+  for (let n = 0; n < NODES2; n++) {
+    if (map.blocked.includes(n)) continue;
+    const d = gap(position(n), box);
+    if (d > 0 && d <= reach) out.push(n);
+  }
+  return out;
+}
+function workSlots(map, resourceId) {
+  const r = map.resources.find((r2) => r2.id === resourceId), o = r?.obstacleId ? map.obstacles.find((o2) => o2.id === r.obstacleId) : void 0;
+  return o ? ring(map, o, economyRules.workReach) : [];
+}
+function dropoffNodes(map, player) {
+  return [...new Set(map.obstacles.filter((o) => o.kind === "town-center" && (o.red ? 1 : 0) === player).flatMap((o) => ring(map, o, economyRules.dropoffReach)))].sort((a, b) => a - b);
+}
+function gatherable(map, resourceId) {
+  const r = map.resources.find((r2) => r2.id === resourceId);
+  if (!r) return "\u627E\u4E0D\u5230\u9019\u500B\u8CC7\u6E90";
+  if (resourceDefinitions[r.kind].method !== "gather") return { hunt: "\u72E9\u7375", herd: "\u653E\u7267", fish: "\u6355\u9B5A" }[resourceDefinitions[r.kind].method] + "\u5C1A\u672A\u5BE6\u4F5C";
+  if (!r.collectible) return "\u8CC7\u6E90\u5DF2\u8017\u76E1";
+  return null;
+}
+function sourceTargets(s, u, resourceId) {
+  const slots = workSlots(s.map, resourceId), taken = /* @__PURE__ */ new Set();
+  for (const v of s.units) if (v !== u) {
+    {
+      const w = s.works[v.id];
+      if (v.goal !== null && w?.kind === "gather" && w.resourceId === resourceId) taken.add(v.goal);
+    }
+    if (v.next === null && !v.path.length) taken.add(v.node);
+  }
+  const free = slots.filter((n) => !taken.has(n));
+  return free.length ? free : slots;
+}
+function goToSource(s, u, w) {
+  const t = sourceTargets(s, u, w.resourceId);
+  if (!t.length) return stopWork(s, u);
+  w.phase = "toSource";
+  routeTo(s, u, t);
+}
+function goToDropoff(s, u, w) {
+  const t = dropoffNodes(s.map, u.player);
+  if (!t.length) return stopWork(s, u);
+  w.phase = "toDropoff";
+  routeTo(s, u, t);
+}
+function stopWork(s, u) {
+  delete s.works[u.id];
+  if (u.navigation !== "moving") u.navigation = u.partial ? "unreachable" : "idle";
+}
+function commandGather(s, unitIds, resourceId) {
+  for (const id of unitIds) {
+    const u = s.units.find((u2) => u2.id === id);
+    cancelMovement(s, id);
+    const w = { kind: "gather", resourceId, phase: "toSource", progress: 0, retries: 0 };
+    s.works[id] = w;
+    const kind = resourceDefinitions[s.map.resources.find((r) => r.id === resourceId).kind].yield, cargo = s.cargo[id];
+    if (cargo && cargo.resource !== kind) goToDropoff(s, u, w);
+    else goToSource(s, u, w);
+  }
+}
+function clearWork(s, unitIds) {
+  for (const id of unitIds) delete s.works[id];
+}
+function deposit(s, u) {
+  const c = s.cargo[u.id];
+  if (!c) return;
+  const a = s.accounts[u.player];
+  if (!Number.isSafeInteger(a.stock[c.resource] + c.amount)) throw Error("\u8CC7\u6E90\u8D85\u904E\u5B89\u5168\u6574\u6578\u7BC4\u570D");
+  a.stock[c.resource] += c.amount;
+  a.ledger.deposited[c.resource] += c.amount;
+  delete s.cargo[u.id];
+}
+function nextSource(s, from, kind) {
+  let best = null, dist = Infinity;
+  for (const r of s.map.resources) if (r.collectible && resourceDefinitions[r.kind].method === "gather" && resourceDefinitions[r.kind].yield === kind) {
+    const d = Math.abs(r.x - from.x) + Math.abs(r.y - from.y);
+    if (d <= 600 && (d < dist || d === dist && best !== null && r.id < best)) {
+      best = r.id;
+      dist = d;
+    }
+  }
+  return best;
+}
+function buildSlots(map, b) {
+  const o = map.obstacles.find((o2) => o2.id === b.id);
+  return o ? ring(map, o, economyRules.workReach) : [];
+}
+function goToSite(s, u, w) {
+  const b = s.buildings.find((b2) => b2.id === w.buildingId);
+  const t = b ? buildSlots(s.map, b) : [];
+  if (!t.length) return stopWork(s, u);
+  w.phase = "toSite";
+  routeTo(s, u, t);
+}
+function commandBuild(s, unitIds, buildingId) {
+  for (const id of unitIds) {
+    const u = s.units.find((u2) => u2.id === id);
+    cancelMovement(s, id);
+    const w = { kind: "build", buildingId, phase: "toSite", retries: 0 };
+    s.works[id] = w;
+    goToSite(s, u, w);
+  }
+}
+function stepBuilder(s, u, w) {
+  const b = s.buildings.find((b2) => b2.id === w.buildingId);
+  if (!b || b.complete) return stopWork(s, u);
+  if (!buildSlots(s.map, b).includes(u.node)) {
+    if (++w.retries > 3) return stopWork(s, u);
+    return goToSite(s, u, w);
+  }
+  w.phase = "building";
+  w.retries = 0;
+  u.navigation = "idle";
+  addWork(s, b);
+}
+function stepWork(s) {
+  const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
+  for (const u of [...s.units].sort((a, b) => a.id - b.id)) {
+    const w = s.works[u.id];
+    if (!w || busy.has(u.id) || u.next !== null || u.path.length) continue;
+    if (w.kind === "build") {
+      stepBuilder(s, u, w);
+      continue;
+    }
+    const resource = s.map.resources.find((r) => r.id === w.resourceId), kind = resourceDefinitions[resource.kind].yield;
+    if (w.phase === "toDropoff") {
+      if (!dropoffNodes(s.map, u.player).includes(u.node)) {
+        if (++w.retries > 3) {
+          stopWork(s, u);
+          continue;
+        }
+        goToDropoff(s, u, w);
+        continue;
+      }
+      deposit(s, u);
+      w.retries = 0;
+      if (!resource.collectible) {
+        const next = nextSource(s, resource, kind);
+        if (!next) {
+          stopWork(s, u);
+          continue;
+        }
+        w.resourceId = next;
+      }
+      goToSource(s, u, w);
+      continue;
+    }
+    if (!resource.collectible) {
+      if (s.cargo[u.id]) {
+        goToDropoff(s, u, w);
+        continue;
+      }
+      const next = nextSource(s, resource, kind);
+      if (!next) {
+        stopWork(s, u);
+        continue;
+      }
+      w.resourceId = next;
+      goToSource(s, u, w);
+      continue;
+    }
+    if (!workSlots(s.map, w.resourceId).includes(u.node)) {
+      if (++w.retries > 3) {
+        stopWork(s, u);
+        continue;
+      }
+      goToSource(s, u, w);
+      continue;
+    }
+    w.phase = "gathering";
+    w.retries = 0;
+    u.navigation = "idle";
+    if (++w.progress < economyRules.gatherTicks[kind]) continue;
+    w.progress = 0;
+    const got = harvestMapResource(s.map, w.resourceId, 1, s.tick).amount;
+    if (got > 0) {
+      const c = s.cargo[u.id] ?? (s.cargo[u.id] = { resource: kind, amount: 0 });
+      c.amount += got;
+      s.accounts[u.player].ledger.extracted[kind] += got;
+    }
+    if ((s.cargo[u.id]?.amount ?? 0) >= economyRules.carryCapacity) goToDropoff(s, u, w);
+  }
+}
+
+// packages/sim/production.ts
+var productionRules = { provenance: "design_default", queueLimit: 5 };
+var names = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
+function ageOf(entryId) {
+  const m = /^age-(\d)$/.exec(entryId);
+  return m ? Number(m[1]) : 0;
+}
+var entryOf = (id) => rules.entries.find((e) => e.id === id);
+function trainBlocker(i, entryId) {
+  const e = entryOf(entryId), civ = rules.civilizations[i.player];
+  if (!e || e.kind === "building") return "\u672A\u77E5\u7684\u751F\u7522\u9805\u76EE";
+  if (!civ.available.includes(entryId)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u751F\u7522";
+  if (!i.building.complete) return "\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5";
+  if (rules.production[entryId] !== i.building.kind) return "\u9019\u68DF\u5EFA\u7BC9\u4E0D\u80FD\u751F\u7522\u9019\u500B\u9805\u76EE";
+  for (const req of e.requires) {
+    const need = entryOf(req);
+    if (need?.kind === "building" && !i.ownBuildings.some((v) => v.kind === req && v.complete)) return `\u9700\u8981\u5B8C\u5DE5\u7684${need.name}`;
+    if (need?.kind === "technology" && i.age < ageOf(req)) return `\u9700\u8981${need.name}`;
+  }
+  const age = ageOf(entryId);
+  if (age) {
+    if (i.age >= age) return "\u5DF2\u7814\u7A76";
+    if (i.ownBuildings.some((v) => v.queue.some((q) => q.entryId === entryId))) return "\u5DF2\u5728\u7814\u7A76\u4E2D";
+  }
+  if (i.building.queue.length >= productionRules.queueLimit) return `\u4F47\u5217\u5DF2\u6EFF\uFF08${productionRules.queueLimit}\uFF09`;
+  const short = resources.filter((r) => i.stock[r] < e.cost[r]);
+  if (short.length) return short.map((r) => `${names[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${e.cost[r]}\uFF0C\u76EE\u524D ${i.stock[r]}`).join("\uFF1B");
+  if (i.populationUsed + i.populationReserved + e.population > i.populationCap) return `\u4EBA\u53E3\u5DF2\u6EFF\uFF08${i.populationUsed + i.populationReserved}/${i.populationCap}\uFF09\uFF1A\u8ACB\u84CB\u4F4F\u5B85`;
+  return null;
+}
+function trainable(s, player, b, entryId) {
+  if (b.player !== player) return "\u4E0D\u80FD\u64CD\u4F5C\u6575\u65B9\u5EFA\u7BC9";
+  const a = s.accounts[player];
+  return trainBlocker({ player, age: s.ages[player], building: b, ownBuildings: s.buildings.filter((v) => v.player === player), stock: a.stock, populationUsed: a.populationUsed, populationReserved: a.populationReserved, populationCap: a.populationCap }, entryId);
+}
+function enqueue(s, player, buildingId, entryId, reservationId) {
+  const b = s.buildings.find((v) => v.id === buildingId);
+  if (!b) throw Error("\u627E\u4E0D\u5230\u9019\u68DF\u5EFA\u7BC9");
+  const problem = trainable(s, player, b, entryId);
+  if (problem) throw Error(problem);
+  reserve(s.accounts[player], reservationId, entryId);
+  b.queue.push({ id: s.nextQueueId++, entryId, reservationId, work: 0, required: entryOf(entryId).time * rules.settings.tickHz });
+}
+function dequeue(s, player, buildingId, itemId) {
+  const b = s.buildings.find((v) => v.id === buildingId);
+  if (!b || b.player !== player) throw Error("\u627E\u4E0D\u5230\u9019\u68DF\u5DF1\u65B9\u5EFA\u7BC9");
+  const item = b.queue.find((q) => q.id === itemId);
+  if (!item) throw Error("\u4F47\u5217\u9805\u76EE\u5DF2\u5B8C\u6210\u6216\u4E0D\u5B58\u5728");
+  cancelReservation(s.accounts[player], item.reservationId);
+  b.queue = b.queue.filter((q) => q !== item);
+}
+function exitNode(s, b) {
+  const o = s.map.obstacles.find((o2) => o2.id === b.id), box = obstacleBounds(o, navigationRules.radius);
+  const held2 = new Set(s.units.flatMap((u) => u.next === null ? [u.node] : [u.node, u.next]));
+  const aim = b.rally ?? { x: (box[0] + box[2]) / 2, y: box[3] + 50 };
+  let best = -1, dist = Infinity;
+  for (let n = 0; n < 961; n++) {
+    if (s.map.blocked.includes(n) || held2.has(n)) continue;
+    const p = position(n), g = Math.max(box[0] - p.x, 0, p.x - box[2]) + Math.max(box[1] - p.y, 0, p.y - box[3]);
+    if (g <= 0 || g > 50) continue;
+    const d = Math.abs(p.x - aim.x) + Math.abs(p.y - aim.y);
+    if (d < dist) {
+      dist = d;
+      best = n;
+    }
+  }
+  return best;
+}
+var unitKindOf = { villager: "villager", militia: "militia", archer: "archer" };
+function stepProduction(s) {
+  for (const b of [...s.buildings].sort((a, b2) => a.id < b2.id ? -1 : 1)) {
+    const item = b.queue[0];
+    if (!item) continue;
+    if (item.work < item.required) {
+      item.work++;
+      if (item.work < item.required) continue;
+    }
+    const age = ageOf(item.entryId);
+    if (age) {
+      commitReservation(s.accounts[b.player], item.reservationId);
+      b.queue.shift();
+      s.ages[b.player] = age;
+      const own = new Set(s.buildings.filter((v) => v.player === b.player).map((v) => v.id));
+      for (const o of s.map.obstacles) if (o.id && own.has(o.id)) o.age = age;
+      continue;
+    }
+    const node = exitNode(s, b);
+    if (node < 0) continue;
+    commitReservation(s.accounts[b.player], item.reservationId);
+    b.queue.shift();
+    const p = position(node), u = makeUnit(s.nextUnitId++, b.player, p.x, p.y, unitKindOf[item.entryId]);
+    s.units.push(u);
+    if (b.rally) commandMove(s, [u.id], b.rally);
+  }
+}
+
 // packages/sim/sim.ts
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -658,10 +1119,11 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 11 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 14 });
 function createState(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
-  const state = { version: 11, layout, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed, layout), pathJobs: [], nextJobId: 1, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [makeUnit(1, 0, 350, 700), makeUnit(2, 0, 450, 700), makeUnit(3, 0, 400, 800), makeUnit(4, 1, 1150, 700)], queue: [], log: [] };
+  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, version: 14, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed, layout), pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [makeUnit(1, 0, 350, 700), makeUnit(2, 0, 450, 700), makeUnit(3, 0, 400, 800), makeUnit(4, 1, 1150, 700)], queue: [], log: [] };
+  initBuildings(state);
   updateVision(state.vision, state.map, state.units, 0);
   return state;
 }
@@ -671,18 +1133,47 @@ function submit(state, c) {
   if (!Number.isSafeInteger(c.sequence) || c.sequence !== state.sequence[c.playerId] + 1) throw Error("\u91CD\u8907\u6216\u932F\u5E8F\u547D\u4EE4");
   if (!Number.isSafeInteger(c.targetTick) || c.targetTick <= state.tick || c.targetTick > state.tick + 200) throw Error("\u547D\u4EE4\u5DF2\u904E\u671F\u6216\u904E\u9060");
   if (!c.payload) throw Error("\u7F3A\u5C11 payload");
-  if (c.commandType === "move" || c.commandType === "stop") {
+  if (c.commandType === "move" || c.commandType === "stop" || c.commandType === "gather" || c.commandType === "build" || c.commandType === "construct") {
     const ids = c.payload.unitIds;
     if (!Array.isArray(ids) || !ids.length || ids.length > navigationRules.maxGroupSize || !ids.every((id, i) => Number.isSafeInteger(id) && (i === 0 || id > ids[i - 1]))) throw Error(`\u55AE\u4F4D\u6E05\u55AE\u9700\u70BA 1\u2013${navigationRules.maxGroupSize} \u500B\u905E\u589E\u4E14\u4E0D\u91CD\u8907\u7684 ID`);
     for (const id of ids) {
       const u = state.units.find((u2) => u2.id === id);
       if (!u || u.player !== c.playerId) throw Error("\u4E0D\u53EF\u63A7\u5236\u6575\u65B9\u6216\u4E0D\u5B58\u5728\u7684\u55AE\u4F4D");
+      if (c.commandType !== "move" && c.commandType !== "stop" && u.kind !== "villager") throw Error("\u53EA\u6709\u6751\u6C11\u80FD\u63A1\u96C6\u6216\u5EFA\u9020");
     }
   }
   if (c.commandType === "move") {
     for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > 1550) throw Error("\u76EE\u6A19\u8D85\u51FA\u5730\u5716");
     if (!clearSegment(state.map, c.payload, c.payload)) throw Error("\u76EE\u6A19\u4F4D\u65BC\u5EFA\u7BC9\u3001\u8CC7\u6E90\u6216\u4E0D\u53EF\u901A\u884C\u5730\u5F62\u7684\u5360\u5730\u5167");
   } else if (c.commandType === "stop") {
+  } else if (c.commandType === "build") {
+    const { kind, x, y } = c.payload;
+    if (!buildKinds.includes(kind)) throw Error("\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E");
+    const problem = authoritativeProblem(state, c.playerId, kind, x, y);
+    if (problem) throw Error(problem);
+    const cost = rules.entries.find((e) => e.id === kind).cost, stock = state.accounts[c.playerId].stock, short = Object.keys(cost).filter((k) => stock[k] < cost[k]);
+    if (short.length) throw Error(`\u8CC7\u6E90\u4E0D\u8DB3\uFF1A${short.map((k) => `${{ food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" }[k]}\u9700\u8981 ${cost[k]}\uFF0C\u76EE\u524D ${stock[k]}`).join("\uFF1B")}`);
+  } else if (c.commandType === "train" || c.commandType === "cancelTrain" || c.commandType === "rally") {
+    const b = state.buildings.find((b2) => b2.id === c.payload.buildingId);
+    if (!b || b.player !== c.playerId) throw Error("\u627E\u4E0D\u5230\u9019\u68DF\u5DF1\u65B9\u5EFA\u7BC9");
+    if (c.commandType === "train") {
+      const problem = trainable(state, c.playerId, b, c.payload.entryId);
+      if (problem) throw Error(problem);
+    } else if (c.commandType === "cancelTrain") {
+      if (!b.queue.some((q) => q.id === c.payload.itemId)) throw Error("\u4F47\u5217\u9805\u76EE\u5DF2\u5B8C\u6210\u6216\u4E0D\u5B58\u5728");
+    } else {
+      if (!b.complete) throw Error("\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5");
+      for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > 1550) throw Error("\u96C6\u7D50\u9EDE\u8D85\u51FA\u5730\u5716");
+    }
+  } else if (c.commandType === "construct" || c.commandType === "cancelBuild") {
+    const b = state.buildings.find((b2) => b2.id === c.payload.buildingId);
+    if (!b || b.player !== c.playerId) throw Error("\u627E\u4E0D\u5230\u9019\u68DF\u5DF1\u65B9\u5EFA\u7BC9");
+    if (b.complete) throw Error("\u5EFA\u7BC9\u5DF2\u5B8C\u5DE5");
+  } else if (c.commandType === "gather") {
+    const r = typeof c.payload.resourceId === "string" ? state.map.resources.find((r2) => r2.id === c.payload.resourceId) : void 0;
+    if (!r || !state.vision[c.playerId].explored.includes(tileAt(r.x, r.y))) throw Error("\u627E\u4E0D\u5230\u9019\u500B\u8CC7\u6E90");
+    const problem = gatherable(state.map, r.id);
+    if (problem) throw Error(problem);
   } else if (c.commandType === "reserve") {
     if (!rules.entries.some((e) => e.id === c.payload.entryId)) throw Error("\u672A\u77E5\u9810\u7559\u5167\u5BB9");
   } else if (c.commandType === "cancelReservation") {
@@ -701,11 +1192,62 @@ function tick(s) {
   while (s.queue.length && s.queue[0].targetTick === s.tick) {
     const c = s.queue.shift();
     if (c.commandType === "move") {
+      clearWork(s, c.payload.unitIds);
       commandMove(s, c.payload.unitIds, { x: c.payload.x, y: c.payload.y });
       continue;
     }
     if (c.commandType === "stop") {
+      clearWork(s, c.payload.unitIds);
       commandStop(s, c.payload.unitIds);
+      continue;
+    }
+    if (c.commandType === "gather") {
+      if (!gatherable(s.map, c.payload.resourceId)) commandGather(s, c.payload.unitIds, c.payload.resourceId);
+      else {
+        clearWork(s, c.payload.unitIds);
+        commandStop(s, c.payload.unitIds);
+      }
+      continue;
+    }
+    if (c.commandType === "rally") {
+      const b = s.buildings.find((b2) => b2.id === c.payload.buildingId);
+      if (b) b.rally = { x: c.payload.x, y: c.payload.y };
+      continue;
+    }
+    if (c.commandType === "train" || c.commandType === "cancelTrain") {
+      const result = { tick: s.tick, playerId: c.playerId, sequence: c.sequence, ok: true };
+      try {
+        if (c.commandType === "train") enqueue(s, c.playerId, c.payload.buildingId, c.payload.entryId, `${c.playerId}:${c.sequence}`);
+        else dequeue(s, c.playerId, c.payload.buildingId, c.payload.itemId);
+      } catch (e) {
+        result.ok = false;
+        result.error = e.message;
+      }
+      s.transactions.push(result);
+      continue;
+    }
+    if (c.commandType === "build" || c.commandType === "construct" || c.commandType === "cancelBuild") {
+      const result = { tick: s.tick, playerId: c.playerId, sequence: c.sequence, ok: true };
+      try {
+        if (c.commandType === "build") {
+          const b = placeBuilding(s, c.playerId, c.payload.kind, c.payload.x, c.payload.y, `${c.playerId}:${c.sequence}`);
+          clearWork(s, c.payload.unitIds);
+          commandBuild(s, c.payload.unitIds, b.id);
+        } else if (c.commandType === "construct") {
+          const b = s.buildings.find((b2) => b2.id === c.payload.buildingId);
+          if (!b || b.complete) throw Error("\u5EFA\u7BC9\u5DF2\u4E0D\u5B58\u5728\u6216\u5DF2\u5B8C\u5DE5");
+          clearWork(s, c.payload.unitIds);
+          commandBuild(s, c.payload.unitIds, b.id);
+        } else cancelBuilding(s, c.playerId, c.payload.buildingId);
+      } catch (e) {
+        result.ok = false;
+        result.error = e.message;
+        if (c.commandType !== "cancelBuild") {
+          clearWork(s, c.payload.unitIds);
+          commandStop(s, c.payload.unitIds);
+        }
+      }
+      s.transactions.push(result);
       continue;
     }
     {
@@ -721,7 +1263,9 @@ function tick(s) {
       continue;
     }
   }
+  stepProduction(s);
   const stats = stepMovement(s);
+  stepWork(s);
   updateVision(s.vision, s.map, s.units, s.tick);
   return stats;
 }
@@ -740,19 +1284,21 @@ function replay(seed, commands, ticks, layout = "meadow") {
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-11", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-14", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-11" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-14" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 11 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (s.version !== 14 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   const rebuilt = replay(s.seed, s.log, s.tick, s.layout);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);
 }
 
 // packages/sim/protocol.ts
+var UNIT_STRIDE = 12;
+var STRIDE = UNIT_STRIDE;
 function createService() {
   let state = createState(260925), lastId = 0;
   return (raw) => {
@@ -766,10 +1312,17 @@ function createService() {
       switch (op.kind) {
         case "move":
         case "stop":
+        case "gather":
+        case "build":
+        case "construct":
+        case "cancelBuild":
+        case "train":
+        case "cancelTrain":
+        case "rally":
           if (state.log.length >= 1e4) throw Error("\u5DF2\u9054\u6C99\u76D2 10000 \u6307\u4EE4\u4E0A\u9650\uFF0C\u8ACB\u5132\u5B58\u6216\u91CD\u5EFA");
           {
             const envelope = { acceptedTick: state.tick, protocolVersion: 1, rulesetHash, playerId: 0, sequence: state.sequence[0] + 1, targetTick: state.tick + 1 };
-            const command = op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
+            const command = op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
             submit(state, command);
             accepted = command;
           }
@@ -803,11 +1356,16 @@ function createService() {
           throw Error("\u4E0D\u652F\u63F4\u7684 operation");
       }
       const visibleUnits = state.units.filter((u) => unitVisible(state.vision[0], u, 0));
-      const positions = new Int32Array(visibleUnits.length * 7);
-      visibleUnits.forEach((u, i) => positions.set([u.id, u.player, u.x, u.y, u.target?.x ?? -1, u.target?.y ?? -1, navigationStates.indexOf(u.navigation)], i * 7));
-      return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, ...projectVision(state.vision[0]), accepted, commands, snapshot, replayMatches };
+      const positions = new Int32Array(visibleUnits.length * STRIDE);
+      visibleUnits.forEach((u, i) => {
+        const own = u.player === 0, w = own ? state.works[u.id] : void 0, c = own ? state.cargo[u.id] : void 0;
+        const src = w?.kind === "gather" && w.phase === "gathering" ? state.map.resources.find((r) => r.id === w.resourceId) : void 0, box = src?.obstacleId ? state.map.obstacles.find((o) => o.id === src.obstacleId) : void 0, [bx0, by0, bx1, by1] = box ? obstacleBounds(box) : [0, 0, 0, 0], target = box ? { x: Math.round((bx0 + bx1) / 2), y: Math.round((by0 + by1) / 2) } : u.target;
+        positions.set([u.id, u.player, u.x, u.y, target?.x ?? -1, target?.y ?? -1, navigationStates.indexOf(u.navigation), w ? workPhases.indexOf(w.phase) : 0, c ? resources.indexOf(c.resource) : -1, c?.amount ?? 0, w?.kind === "gather" ? resources.indexOf(resourceDefinitions[state.map.resources.find((r) => r.id === w.resourceId).kind].yield) : -1, unitKinds.indexOf(u.kind)], i * STRIDE);
+      });
+      const account = state.accounts[0], economy = { stock: { ...account.stock }, populationUsed: account.populationUsed, populationReserved: account.populationReserved, populationCap: account.populationCap, age: state.ages[0] };
+      return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, economy, buildings: state.buildings.filter((b) => b.player === 0).map(({ id, kind, x, y, work, required, complete, queue, rally }) => ({ id, kind, x, y, work, required, complete, queue: queue.map(({ id: id2, entryId, work: work2, required: required2 }) => ({ id: id2, entryId, work: work2, required: required2 })), rally })), transactions: state.transactions.filter((t) => t.playerId === 0).slice(-5).map(({ sequence, tick: tick2, ok, error }) => ({ sequence, tick: tick2, ok, ...error ? { error } : {} })), ...projectVision(state.vision[0]), accepted, commands, snapshot, replayMatches };
     } catch (error) {
-      return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: req?.operation?.kind === "move" || req?.operation?.kind === "stop" ? req.operation.unitIds?.[0] : void 0 };
+      return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: ["move", "stop", "gather", "build", "construct"].includes(req?.operation?.kind) ? req.operation.unitIds?.[0] : void 0 };
     }
   };
 }

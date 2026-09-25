@@ -156,6 +156,8 @@ function samplePose(pose, time) {
   if (pose === "carry") {
     p.leftArm = -1.1;
     p.rightArm = -1.1;
+    p.leftLeg = walk;
+    p.rightLeg = -walk;
   }
   if (pose === "hit" && t > 0 && t < 300) p.lean = -0.24 * Math.sin(Math.PI * t / 300);
   if (pose === "death") p.fall = Math.min(t / 700, 1) * Math.PI / 2;
@@ -594,6 +596,8 @@ function economicBuildingParts(kind, v) {
 // packages/content/footprints.ts
 var obstacleFootprints = {
   house: { x: -15, y: -15, width: 250, depth: 230 },
+  // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
+  barracks: { x: -15, y: -15, width: 300, depth: 300 },
   "town-center": { x: -15, y: -15, width: 300, depth: 300 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
@@ -796,7 +800,7 @@ function generateCandidate(seed, layout) {
   return map;
 }
 function isBuilding(o) {
-  return o.kind === "house" || o.kind === "town-center";
+  return o.kind === "house" || o.kind === "town-center" || o.kind === "barracks";
 }
 function bounds(o) {
   return obstacleBounds(o, navigationRules.radius);
@@ -1063,8 +1067,8 @@ async function createScene(canvas, onFailure, options = {}) {
   }
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
-  function house(x, z, red = false, obstacleKind = "house") {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, parts = kind === "house" ? buildingParts({ ...previewBuilding, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...previewBuilding, red }) : economicBuildingParts(kind, { ...previewBuilding, red });
+  function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2) {
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -1097,7 +1101,7 @@ async function createScene(canvas, onFailure, options = {}) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y)] !== 2;
       const x = o.x / 100, z = o.y / 100;
-      if (o.kind === "house" || o.kind === "town-center") house(x, z, o.red, o.kind);
+      if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2);
       else if (o.kind === "tree") {
         brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8, "#80664b", false);
         brick(x - 0.2, z - 0.2, 0.7, 1, 1, 0.4, "#67835a");
@@ -1144,17 +1148,18 @@ async function createScene(canvas, onFailure, options = {}) {
   ringGeo.rotateX(-Math.PI / 2);
   geometry.set("ring", ringGeo);
   const ringMaterial = new T.MeshBasicMaterial({ color: "#fff2a1", side: T.DoubleSide });
-  function unit(id, player) {
+  function unit(id, player, kind = "villager") {
     const group = new T.Group();
     scene.add(group);
     const rig = createCharacterRig(T, player, box, material);
+    if (!options.assetPreview && kind !== "villager") rig.dress(kind === "militia" ? "swordsman" : "archer");
     rig.equip(previewTool);
     group.add(rig.root);
     detail.apply(group, zoom);
     const ring = new T.Mesh(ringGeo, ringMaterial);
     ring.position.y = 0.025;
     group.add(ring);
-    units.set(id, { group, rig, ring, player, moving: false });
+    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none" });
     return units.get(id);
   }
   let previewRole = "villager";
@@ -1199,12 +1204,22 @@ async function createScene(canvas, onFailure, options = {}) {
       units.delete(key2);
     }
     for (const data of view.units) {
-      const u = units.get(data.id) ?? unit(data.id, data.player);
+      const u = units.get(data.id) ?? unit(data.id, data.player, data.kind);
       const dx = data.x / 100 - u.group.position.x, dz = data.y / 100 - u.group.position.z;
       if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
       u.group.position.set(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100);
       u.ring.visible = selected.has(data.id);
       u.moving = data.navigation === "moving";
+      if (!options.assetPreview && data.work === "gathering" && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
+      if (!options.assetPreview) {
+        const gathering = data.work === "gathering" && !u.moving, activity = u.moving ? data.cargo ? "carry" : "walk" : gathering ? "work" : "idle";
+        const weapon = data.kind === "militia" ? "sword" : data.kind === "archer" ? "bow" : "none", tool = data.cargo && activity !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food: "basket" }[data.workResource ?? "food"] : weapon;
+        if (tool !== u.tool) {
+          u.rig.equip(tool);
+          u.tool = tool;
+        }
+        u.activity = activity;
+      }
     }
   }
   const raycaster = new T.Raycaster(), ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
@@ -1241,7 +1256,7 @@ async function createScene(canvas, onFailure, options = {}) {
     if (contextLost) return;
     resize();
     for (const u of units.values()) {
-      const pose = options.assetPreview ? previewPose : u.moving ? "walk" : "idle";
+      const pose = options.assetPreview ? previewPose : u.activity;
       u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : time);
       u.ring.visible = [...units].some(([id, v]) => v === u && selected.has(id)) && pose !== "death";
     }
@@ -1255,76 +1270,118 @@ async function createScene(canvas, onFailure, options = {}) {
   });
   canvas.dataset.renderer = "webgl2";
   canvas.dataset.renderState = "ready";
-  return { update, draw, pick, pickGround, unitsInRect, setPreviewBuildingKind: (kind) => {
-    if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
-    previewBuildingKind = kind;
-    if (latest) update(latest, selected);
-  }, setPreviewRole: (role) => {
-    if (!options.assetPreview || !unitRoles.includes(role) && role !== "cavalry") throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
-    previewRole = role;
-    previewPose = "idle";
-    for (const u of units.values()) {
-      u.rig.dress(role);
-      u.ring.scale.set(role === "cavalry" ? 1.8 : 1, 1, role === "cavalry" ? 1.8 : 1);
-      detail.apply(u.group, zoom);
-    }
-  }, setPreviewBuilding: (visual) => {
-    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u5EFA\u7BC9\u5916\u89C0");
-    buildingParts({ ...visual, red: false });
-    previewBuilding = { ...visual };
-    if (latest) update(latest, selected);
-  }, focusPreviewHouse: () => {
-    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u5EFA\u7BC9");
-    focus.x = 4;
-    focus.y = 1;
-    focus.z = 4.85;
-    zoom = 2.5;
-    cameraUpdate();
-  }, focusPreviewUnit: (id) => {
-    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u4EE3\u8868\u8CC7\u7522");
-    const u = units.get(id);
-    if (!u) throw Error("\u627E\u4E0D\u5230\u4EBA\u5076");
-    focus.x = u.group.position.x;
-    focus.y = u.group.position.y + 0.5;
-    focus.z = u.group.position.z;
-    zoom = 2.5;
-    cameraUpdate();
-  }, setPreviewMotion: (pose, tool, animated) => {
-    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u59FF\u614B");
-    if (previewRole === "cavalry" && !["idle", "walk", "attack"].includes(pose) || !unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
-    previewPose = pose;
-    previewTool = tool;
-    previewAnimated = animated;
-    poseStart = performance.now();
-    for (const u of units.values()) {
-      u.rig.equip(tool);
-      detail.apply(u.group, zoom);
-    }
-  }, setPreviewLayout: (layout) => {
-    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u5207\u63DB\u9A57\u6536\u5716");
-    if (!["meadow", "coast", "acceptance"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
-    previewLayout = layout;
-    if (latest) update(latest, selected);
-  }, zoom: (delta) => {
-    zoom = Math.max(0.7, Math.min(2.5, zoom + delta));
-    cameraUpdate();
-  }, rotate: () => {
-    angle += Math.PI / 2;
-    cameraUpdate();
-  }, resetCamera: () => {
-    focus.x = 8;
-    focus.y = 0;
-    focus.z = 8;
-    zoom = 1;
-    angle = Math.PI / 4;
-    cameraUpdate();
-  }, dispose: () => {
-    renderer.dispose();
-    detail.dispose();
-    for (const geo of geometry.values()) geo.dispose();
-    for (const m of materials.values()) m.dispose();
-    ringMaterial.dispose();
-  }, stats: () => ({ detail: detailLevel(zoom), drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries }) };
+  const ghost = new T.Mesh(new T.BoxGeometry(1, 0.3, 1), new T.MeshBasicMaterial({ color: "#6f9d6a", transparent: true, opacity: 0.42, depthWrite: false }));
+  ghost.visible = false;
+  scene.add(ghost);
+  function setGhost(g) {
+    ghost.visible = !!g;
+    if (!g) return;
+    const [x0, y0, x1, y1] = obstacleBounds({ kind: g.kind, x: g.x, y: g.y });
+    ghost.scale.set((x1 - x0) / 100, 1, (y1 - y0) / 100);
+    ghost.position.set((x0 + x1) / 200, groundHeight(worldTiles, g.x, g.y) / 100 + 0.15, (y0 + y1) / 200);
+    ghost.material.color.set(g.ok ? "#6f9d6a" : "#b8574a");
+  }
+  return {
+    update,
+    draw,
+    pick,
+    pickGround,
+    unitsInRect,
+    setGhost,
+    setPreviewBuildingKind: (kind) => {
+      if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
+      previewBuildingKind = kind;
+      if (latest) update(latest, selected);
+    },
+    setPreviewRole: (role) => {
+      if (!options.assetPreview || !unitRoles.includes(role) && role !== "cavalry") throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
+      previewRole = role;
+      previewPose = "idle";
+      for (const u of units.values()) {
+        u.rig.dress(role);
+        u.ring.scale.set(role === "cavalry" ? 1.8 : 1, 1, role === "cavalry" ? 1.8 : 1);
+        detail.apply(u.group, zoom);
+      }
+    },
+    setPreviewBuilding: (visual) => {
+      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u5EFA\u7BC9\u5916\u89C0");
+      buildingParts({ ...visual, red: false });
+      previewBuilding = { ...visual };
+      if (latest) update(latest, selected);
+    },
+    focusPreviewHouse: () => {
+      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u5EFA\u7BC9");
+      focus.x = 4;
+      focus.y = 1;
+      focus.z = 4.85;
+      zoom = 2.5;
+      cameraUpdate();
+    },
+    focusPreviewUnit: (id) => {
+      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u4EE3\u8868\u8CC7\u7522");
+      const u = units.get(id);
+      if (!u) throw Error("\u627E\u4E0D\u5230\u4EBA\u5076");
+      focus.x = u.group.position.x;
+      focus.y = u.group.position.y + 0.5;
+      focus.z = u.group.position.z;
+      zoom = 2.5;
+      cameraUpdate();
+    },
+    setPreviewMotion: (pose, tool, animated) => {
+      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u59FF\u614B");
+      if (previewRole === "cavalry" && !["idle", "walk", "attack"].includes(pose) || !unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
+      previewPose = pose;
+      previewTool = tool;
+      previewAnimated = animated;
+      poseStart = performance.now();
+      for (const u of units.values()) {
+        u.rig.equip(tool);
+        detail.apply(u.group, zoom);
+      }
+    },
+    setPreviewLayout: (layout) => {
+      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u5207\u63DB\u9A57\u6536\u5716");
+      if (!["meadow", "coast", "acceptance"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
+      previewLayout = layout;
+      if (latest) update(latest, selected);
+    },
+    zoom: (delta) => {
+      zoom = Math.max(0.7, Math.min(2.5, zoom + delta));
+      cameraUpdate();
+    },
+    rotate: () => {
+      angle += Math.PI / 2;
+      cameraUpdate();
+    },
+    // Screen-aligned pan (right, away from camera), scaled by zoom and clamped to the 16x16 board.
+    pan: (right, up) => {
+      const step = 1.2 / zoom, c = Math.cos(angle), s = Math.sin(angle);
+      focus.x = Math.max(0, Math.min(16, focus.x + (c * right - s * up) * step));
+      focus.z = Math.max(0, Math.min(16, focus.z + (-s * right - c * up) * step));
+      cameraUpdate();
+    },
+    focusOn: (x, z) => {
+      focus.x = Math.max(0, Math.min(16, x));
+      focus.z = Math.max(0, Math.min(16, z));
+      cameraUpdate();
+    },
+    resetCamera: () => {
+      focus.x = 8;
+      focus.y = 0;
+      focus.z = 8;
+      zoom = 1;
+      angle = Math.PI / 4;
+      cameraUpdate();
+    },
+    dispose: () => {
+      renderer.dispose();
+      detail.dispose();
+      for (const geo of geometry.values()) geo.dispose();
+      for (const m of materials.values()) m.dispose();
+      ringMaterial.dispose();
+    },
+    stats: () => ({ detail: detailLevel(zoom), drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries })
+  };
 }
 export {
   brickStyle,

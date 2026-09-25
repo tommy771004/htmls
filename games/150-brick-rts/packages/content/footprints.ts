@@ -2,6 +2,8 @@
 // Engineering design defaults, not reference-game collision dimensions.
 export const obstacleFootprints={
  house:{x:-15,y:-15,width:250,depth:230},
+ // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
+ barracks:{x:-15,y:-15,width:300,depth:300},
  'town-center':{x:-15,y:-15,width:300,depth:300},
  tree:{x:-20,y:-20,width:100,depth:100},
  rock:{x:0,y:0,width:65,depth:70},

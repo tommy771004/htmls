@@ -265,6 +265,15 @@
       "verificationStatus": "design_default"
     }
   ],
+  "production": {
+    "villager": "town-center",
+    "militia": "barracks",
+    "archer": "barracks",
+    "ram": null,
+    "age-2": "town-center",
+    "age-3": "town-center",
+    "age-4": "town-center"
+  },
   "civilizations": [
     {
       "id": "blue-settlement",
