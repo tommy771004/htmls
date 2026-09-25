@@ -31,14 +31,14 @@ const trainBtn=id=>page.locator(`#production button[data-train="${id}"]`);
 note('首次進站 HUD',await text('stock'));assert.match(await text('stock'),/^第一時代 · 食物 200/);
 // 1. Select the town center.
 let p=await centre(tcBox);note('點選城鎮中心',await act(()=>page.mouse.click(p.x,p.y)));note('建築面板',`${await text('building-title')} ${await text('building-status')}`);
-note('生產按鈕',(await page.locator('#production button').allInnerTexts()).join('／'));note('停用原因',await text('production-reason'));
+note('生產按鈕',(await page.locator('#production button').allInnerTexts()).map(t=>t.replace(/\n/g,' · ')).join('／'));note('停用原因',await text('production-reason'));
 assert.match(await text('production-reason'),/第二時代：食物不足：需要 300，目前 200/);
 // 2. Two villagers fit the housing, the third is refused with a reason on the button.
-note('加入村民',await act(()=>trainBtn('villager').click()));await page.locator('#step').click();note('扣款',await text('stock'));
+note('加入村民',await act(()=>trainBtn('villager').click()));await page.locator('#step').click();await page.waitForFunction(()=>document.querySelector('#queue').children.length===1);note('扣款',await text('stock'));
 await act(()=>trainBtn('villager').click());await page.locator('#step').click();note('佇列',(await page.locator('#queue span').allInnerTexts()).join('／'));
 assert.equal(await trainBtn('villager').isDisabled(),true);note('第三名村民',await text('production-reason'));assert.match(await text('production-reason'),/人口已滿（5\/5）：請蓋住宅/);
 // 3. Rally point, then cancel the second item.
-p=await screen(6,0,8.5);note('右鍵設集結點',await act(()=>page.mouse.click(p.x,p.y,{button:'right'})));await page.locator('#step').click();note('集結點',await text('rally-hint'));
+p=await screen(2.5,0,8);note('右鍵設集結點',await act(()=>page.mouse.click(p.x,p.y,{button:'right'})));await page.locator('#step').click();note('集結點',await text('rally-hint'));
 note('取消第二項',await act(()=>page.locator('#queue button').nth(1).click()));await page.locator('#step').click();note('退款',await text('stock'));assert.match(await text('stock'),/食物 150 /);
 await runUntil(()=>/人口 4\/5/.test(document.querySelector('#stock').textContent));note('村民出生',await text('stock'));await page.screenshot({path:out+'production-villager.png'});
 // 4. Gather food for the second age with the three original villagers.
@@ -49,14 +49,12 @@ p=await centre(tcBox);await page.mouse.click(p.x,p.y);note('研究第二時代',
 await runUntil(()=>/^第二時代/.test(document.querySelector('#stock').textContent));note('升上第二時代',await text('stock'));await page.screenshot({path:out+'production-age2.png'});
 note('第二時代按鈕',await trainBtn('age-2').getAttribute('title'));assert.equal(await trainBtn('age-2').getAttribute('title'),'已研究');
 // 5. Barracks, then militia.
-await page.keyboard.press('Escape');await boxSelect(1.5,8.5,3.5,11);note('框選採野果的村民',await text('selected'));
+await page.keyboard.press('Escape');await page.locator('[data-unit="1"]').click();await page.keyboard.down('Shift');await page.locator('[data-unit="2"]').click();await page.locator('[data-unit="3"]').click();await page.keyboard.up('Shift');note('選取三名村民',await text('selected'));
 await page.locator('#build-barracks').click();p=await centre(barracksBox);await page.mouse.move(p.x,p.y);note('兵營預覽',await text('build-reason'));note('放置兵營',await act(()=>page.mouse.click(p.x,p.y)));
-await runUntil(()=>/已完工/.test(document.querySelector('#building-status')?.textContent??'')||false,5000).catch(()=>{});
-await page.locator('#pause').click();await page.waitForTimeout(12000);await page.locator('#pause').click();
-p=await centre(barracksBox);await page.mouse.click(p.x,p.y);await runUntil(()=>/已完工/.test(document.querySelector('#building-status').textContent));note('兵營完工',await text('building-status'));
-note('兵營按鈕',(await page.locator('#production button').allInnerTexts()).join('／'));note('停用原因',await text('production-reason'));
-note('加入民兵',await act(()=>trainBtn('militia').click()));
-await runUntil(()=>document.querySelector('#queue').children.length===0);note('民兵完成',await text('stock'));await page.screenshot({path:out+'production-militia.png'});
+assert.match(await text('notice'),/前往建造兵營/);await page.locator('#step').click();p=await centre(barracksBox);await page.mouse.click(p.x,p.y);note('點選兵營地基',`${await text('building-title')} ${await text('building-status')}`);await runUntil(()=>/已完工/.test(document.querySelector('#building-status').textContent));note('兵營完工',await text('building-status'));
+note('兵營按鈕',(await page.locator('#production button').allInnerTexts()).map(t=>t.replace(/\n/g,' · ')).join('／'));await page.locator('#building-panel').screenshot({path:out+'production-panel.png'});note('停用原因',await text('production-reason'));
+assert.match(await text('production-reason'),/近戰民兵：食物不足/);assert.equal(await trainBtn('archer').isDisabled(),false);note('加入弓手（第二時代解鎖）',await act(()=>trainBtn('archer').click()));await page.locator('#step').click();await page.waitForFunction(()=>document.querySelector('#queue').children.length===1);note('前進 1 tick 後的佇列',await text('queue'));
+await runUntil(()=>document.querySelector('#queue').children.length===0);note('弓手完成',await text('stock'));assert.match(await text('stock'),/人口 5\/5/);await page.screenshot({path:out+'production-archer.png'});
 // 6. Mixed selection: only villagers are sent to gather.
 await page.keyboard.press('Escape');await boxSelect((barracksBox[0]-80)/100,(barracksBox[1]-80)/100,(barracksBox[2]+80)/100,(barracksBox[3]+120)/100);note('框選兵營周圍',await text('selection-list'));
 p=await screen((tree.x+30)/100,0,(tree.y+30)/100);note('混合選取右鍵樹木',await act(()=>page.mouse.click(p.x,p.y,{button:'right'})));

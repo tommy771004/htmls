@@ -1,6 +1,6 @@
 # 資料模型與權威邊界
 
-目前權威 State／snapshot 為 v13，支援三種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
+目前權威 State／snapshot 為 v14，支援三種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
 
 ## 初始資料模型（歷史 v1，後續演進見下文）
 
@@ -136,7 +136,7 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 - Worker 投影：每名單位 11 個 int，新增工作階段、貨物種類與數量、工作資源種類；只投影己方單位的工作與貨物。另外投影己方帳戶的庫存與人口，不投影敵方庫存。採集中時，目標座標欄位改放資源中心，供畫面讓人偶轉身。
 - simulationVersion、State.version 與 snapshot 格式升為 12，舊版明確拒絕，沒有做遷移。
 
-## 建造與人口 v13（目前版本）
+## 建造與人口 v13
 
 - State 新增 `buildings`（id、kind、player、x、y、work、required、complete、reservationId）、`nextBuildingId` 與 `navigationSeen`。開局時兩方的城鎮中心也登記為已完工建築。
 - 新命令：
@@ -153,3 +153,17 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 - 導航：放置與取消都會局部更新 blocked 並遞增 navigationRevision。movement.ts 在下個 tick 重算進行中的搜尋，並讓路線穿過新邊界的單位重新規劃。
 - 城鎮中心視野半徑從 300 提高到 600（design_default）。原因是開局可建造的位置太少（草甸只有 9 處），見 first-use-010。
 - simulationVersion、State.version 與 snapshot 格式升為 13，舊版明確拒絕，沒有做遷移。
+
+## 生產、集結與升時代 v14（目前版本）
+
+- 規則資料新增 `production`（單位或科技 → 生產建築，null 表示有定義但尚不能生產），驗證器會檢查缺漏與無效的生產建築。
+- 單位新增 `kind`（villager、militia、archer）；只有村民能採集與建造。
+- Building 新增 `queue`（每項有 id、entryId、reservationId、work、required）與 `rally`。State 新增 `ages[player]`（起始為 1）、`nextUnitId`、`nextQueueId`。Obstacle 新增 `age`，只用來決定建築的時代外觀。
+- 新命令：`train {buildingId, entryId}`、`cancelTrain {buildingId, itemId}`、`rally {buildingId, x, y}`。
+- 生產規則（design_default，`trainBlocker` 由 Worker 與頁面共用）：
+  - 需要完工的己方建築，且該建築是這個項目的生產建築；文明可用；前置條件已滿足（建築要完工、時代要到）；同一種時代研究同時只能有一項；佇列最多 5 項；資源與人口足夠。
+  - 加入佇列時預留費用與人口，出生或研究完成時結算，取消時全額退款。
+- 每 tick 只推進佇列第一項。完成的單位在建築外圍、離集結點（或正門）最近的空節點出生；沒有空節點時停在 100% 等待。有集結點時，出生後自動移動過去。
+- 時代研究完成後，`ages` 更新，己方建築的 obstacle.age 跟著更新（只影響外觀）。
+- 處理順序：命令 → 生產 → 移動 → 工作 → 視野。Worker 投影的每名單位改為 12 個 int（新增兵種）；建築投影新增 queue 與 rally；帳戶投影新增時代與保留中的人口。
+- simulationVersion、State.version 與 snapshot 格式升為 14，舊版明確拒絕，沒有做遷移。

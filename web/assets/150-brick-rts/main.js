@@ -1889,7 +1889,10 @@ function renderProduction(b) {
   const e = state.economy, own = state.buildings, reasons = [];
   for (const btn of Array.from(box2.querySelectorAll("button"))) {
     const id = btn.dataset.train, why = trainBlocker({ player: 0, age: e.age, building: b, ownBuildings: own, stock: e.stock, populationUsed: e.populationUsed, populationReserved: e.populationReserved, populationCap: e.populationCap }, id);
-    btn.textContent = `${entryName(id)} \xB7 ${costText(id)}`;
+    const [name, cost] = btn.children.length ? Array.from(btn.children) : [document.createElement("span"), document.createElement("span")];
+    if (!btn.children.length) btn.append(name, cost);
+    name.textContent = entryName(id);
+    cost.textContent = costText(id);
     btn.disabled = !connected || graphicsFailed || !!why;
     btn.title = why ?? `\u52A0\u5165${entryName(id)}`;
     if (why && why !== "\u5DF2\u7814\u7A76") reasons.push(`${entryName(id)}\uFF1A${why}`);
@@ -1918,7 +1921,7 @@ function renderProduction(b) {
 async function train(buildingId, entryId) {
   try {
     await client.request({ kind: "train", buildingId, entryId });
-    notice(`\u5DF2\u52A0\u5165${entryName(entryId)}\uFF0C\u6263\u9664 ${costText(entryId)}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u57F7\u884C\u3002"}`);
+    notice(`${entryName(entryId)}\u5C07\u5728 tick ${state.tick + 1} \u52A0\u5165\u4F47\u5217\u4E26\u6263\u9664 ${costText(entryId)}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u6216\u300C\u524D\u9032 1 tick\u300D\u57F7\u884C\u3002"}`);
   } catch (e) {
     notice(e.message);
   }

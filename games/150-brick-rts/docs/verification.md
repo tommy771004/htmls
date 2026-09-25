@@ -154,3 +154,7 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## E：建造與人口（v13）
 
 住宅與兵營的放置預覽與合法性、放置扣款、多人施工、分段模型、完工增加人口上限、取消全額退款、新地基的導航更新，驗證見 [first-use-010.md](first-use-010.md)。E 仍是 in_progress：造兵、升時代、戰鬥、AI 與勝敗尚未實作。
+
+## E：生產、集結與升時代（v14）
+
+城鎮中心生產村民與研究時代、兵營生產近戰民兵與弓手、人口保留與上限、佇列取消退款、出口受阻等待、集結點、混合選取只派村民，驗證見 [first-use-011.md](first-use-011.md)。E 仍是 in_progress：戰鬥、AI 與勝敗尚未實作。
