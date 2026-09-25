@@ -1,3 +1,15 @@
+# 多地形移動沙盒
+
+目前 State／snapshot 為 v9。可建立草甸、海岸、高地與淺灘三種移動沙盒，存讀及 Worker 恢復保留地圖類型。尚無完整對局或海戰。詳見 docs/first-use-006.md。以下紀錄保留當時版本。
+
+# 高度通行增量
+
+目前 State／snapshot 使用 v8。手工驗收圖有高地與階梯，共用高度資料驅動導航及模型基座；正式沙盒仍為草甸。詳見 docs/heights-verification.md。
+
+# 起始資源配置增量
+
+目前 State／snapshot 使用 v7。生成器驗證雙方可接近的基本資源容量與路程差上限；不代表完整競技平衡。詳見 docs/starting-resources-verification.md。
+
 # 七種資源增量
 
 目前 State／snapshot 使用 v6。七種有限資源與代表模型已加入；採集、狩獵、放牧及捕魚工作仍待實作。詳見 docs/resources-verification.md。以下紀錄保留各輪當時版本。

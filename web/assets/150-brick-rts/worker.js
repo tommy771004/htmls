@@ -1,5 +1,5 @@
 // packages/sim/terrain.ts
-var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200 }, generationAttempts: 8 };
+var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200 }, generationAttempts: 8 };
 var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" } };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
@@ -25,7 +25,20 @@ function createTiles(layout = "meadow", seed = 0) {
       if (x === 7 || x === 8) terrainType = y >= 7 && y <= 9 ? "shallow" : "water";
       else if (x === 6 || x === 9) terrainType = "sand";
     }
-    return { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
+    const tile = { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
+    if (layout === "acceptance") {
+      if (x >= 2 && x <= 5 && y >= 11 && y <= 14) {
+        tile.terrainType = x === 2 && y === 11 ? "cliff" : x === 3 && y === 13 ? "stone" : "highland";
+        Object.assign(tile, terrainDefinitions[tile.terrainType]);
+        tile.height = 100;
+      }
+      if (x === 4 && y >= 8 && y <= 10) {
+        tile.terrainType = "road";
+        tile.height = (y - 7) * 25;
+        tile.buildability = false;
+      }
+    }
+    return tile;
   });
 }
 function tileAt(x, y) {
@@ -171,6 +184,12 @@ function bounds(o) {
 }
 function clearSegment(map, a, b, movement = "land") {
   if ([a.x, a.y, b.x, b.y].some((v) => !Number.isSafeInteger(v) || v < 50 || v > 1550)) return false;
+  const maxStep = movement === "land" ? terrainRules.maxLandStep : 0, radius = navigationRules.radius;
+  for (const tile of map.tiles) {
+    const x = tile.id % 16, y = Math.floor(tile.id / 16);
+    if (x < 15 && Math.abs(tile.height - map.tiles[tile.id + 1].height) > maxStep && intersects(a, b, [(x + 1) * 100 - radius, y * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+    if (y < 15 && Math.abs(tile.height - map.tiles[tile.id + 16].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+  }
   for (const tile of map.tiles) if (!canTraverse(tile, movement)) {
     const x = tile.id % 16 * 100, y = Math.floor(tile.id / 16) * 100, r = navigationRules.radius;
     if (intersects(a, b, [x - r, y - r, x + 100 + r, y + 100 + r])) return false;
@@ -349,10 +368,10 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, simulationVersion: 7 });
-function createState(seed) {
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, simulationVersion: 9 });
+function createState(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
-  const state = { version: 7, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed), pathJobs: [], seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [{ id: 1, player: 0, x: 350, y: 700, target: null }, { id: 2, player: 0, x: 450, y: 700, target: null }, { id: 3, player: 0, x: 400, y: 800, target: null }, { id: 4, player: 1, x: 1150, y: 700, target: null }], queue: [], log: [] };
+  const state = { version: 9, layout, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed, layout), pathJobs: [], seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [{ id: 1, player: 0, x: 350, y: 700, target: null }, { id: 2, player: 0, x: 450, y: 700, target: null }, { id: 3, player: 0, x: 400, y: 800, target: null }, { id: 4, player: 1, x: 1150, y: 700, target: null }], queue: [], log: [] };
   updateVision(state.vision, state.map, state.units, 0);
   return state;
 }
@@ -430,9 +449,9 @@ function tick(s) {
   }
   updateVision(s.vision, s.map, s.units, s.tick);
 }
-function replay(seed, commands, ticks) {
+function replay(seed, commands, ticks, layout = "meadow") {
   if (!Number.isSafeInteger(ticks) || ticks < 0 || ticks > 1e5 || !Array.isArray(commands) || commands.length > 1e4) throw Error("\u7121\u6548\u91CD\u64AD\u7BC4\u570D");
-  const s = createState(seed);
+  const s = createState(seed, layout);
   let previousTick = 0;
   for (const c of commands) {
     if (!c || !Number.isSafeInteger(c.acceptedTick) || c.acceptedTick < previousTick || c.acceptedTick > ticks) throw Error("\u7121\u6548\u547D\u4EE4\u63A5\u6536\u6642\u9593");
@@ -445,14 +464,14 @@ function replay(seed, commands, ticks) {
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-7", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-9", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-7" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-9" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 7 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
-  const rebuilt = replay(s.seed, s.log, s.tick);
+  if (s.version !== 9 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  const rebuilt = replay(s.seed, s.log, s.tick, s.layout);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);
 }
@@ -479,7 +498,7 @@ function createService() {
           for (let i = 0; i < op.count; i++) tick(state);
           break;
         case "reset":
-          state = createState(op.seed);
+          state = createState(op.seed, op.layout);
           commands = [];
           break;
         case "restore":
@@ -488,7 +507,7 @@ function createService() {
           break;
         case "recover": {
           if (!op.checkpoint) throw Error("\u7F3A\u5C11\u6062\u5FA9\u9EDE");
-          const candidate = replay(op.checkpoint.seed, op.checkpoint.commands, op.checkpoint.ticks);
+          const candidate = replay(op.checkpoint.seed, op.checkpoint.commands, op.checkpoint.ticks, op.checkpoint.layout);
           state = candidate;
           commands = structuredClone(state.log);
           break;
@@ -497,7 +516,7 @@ function createService() {
           snapshot = serialize(state);
           break;
         case "replay":
-          replayMatches = hash(replay(state.seed, state.log, state.tick)) === hash(state);
+          replayMatches = hash(replay(state.seed, state.log, state.tick, state.layout)) === hash(state);
           break;
         default:
           throw Error("\u4E0D\u652F\u63F4\u7684 operation");
@@ -505,7 +524,7 @@ function createService() {
       const visibleUnits = state.units.filter((u) => unitVisible(state.vision[0], u, 0));
       const positions = new Int32Array(visibleUnits.length * 7);
       visibleUnits.forEach((u, i) => positions.set([u.id, u.player, u.x, u.y, u.target?.x ?? -1, u.target?.y ?? -1, ["idle", "searching", "moving", "unreachable"].indexOf(u.navigation ?? "idle")], i * 7));
-      return { protocol: 1, id: req.id, ok: true, seed: state.seed, tick: state.tick, stateHash: hash(state), positions: positions.buffer, ...projectVision(state.vision[0]), accepted, commands, snapshot, replayMatches };
+      return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, ...projectVision(state.vision[0]), accepted, commands, snapshot, replayMatches };
     } catch (error) {
       return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: req?.operation?.kind === "move" ? req.operation.unitId : void 0 };
     }

@@ -39,6 +39,12 @@ function bounds(o:Obstacle):[number,number,number,number]{const r=navigationRule
 // Slab intersection includes contact: center-lines cannot clip expanded footprints.
 export function clearSegment(map:MapData,a:Point,b:Point,movement:'land'|'water'='land'):boolean{
  if([a.x,a.y,b.x,b.y].some(v=>!Number.isSafeInteger(v)||v<50||v>1550))return false;
+ // Expanded height discontinuities prevent both cliff crossings and body overhang.
+ const maxStep=movement==='land'?terrainRules.maxLandStep:0,radius=navigationRules.radius;
+ for(const tile of map.tiles){const x=tile.id%16,y=Math.floor(tile.id/16);
+ if(x<15&&Math.abs(tile.height-map.tiles[tile.id+1].height)>maxStep&&intersects(a,b,[(x+1)*100-radius,y*100-radius,(x+1)*100+radius,(y+1)*100+radius]))return false;
+ if(y<15&&Math.abs(tile.height-map.tiles[tile.id+16].height)>maxStep&&intersects(a,b,[x*100-radius,(y+1)*100-radius,(x+1)*100+radius,(y+1)*100+radius]))return false;
+ }
  // Closed cell footprints include unit radius; material color never controls passage.
  for(const tile of map.tiles)if(!canTraverse(tile,movement)){
  const x=(tile.id%16)*100,y=Math.floor(tile.id/16)*100,r=navigationRules.radius;

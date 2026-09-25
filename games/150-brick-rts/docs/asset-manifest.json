@@ -205,5 +205,13 @@
     "construction/damage/repair",
     "four-age variants",
     "full LOD hierarchy"
-  ]
+  ],
+  "terrain": {
+    "source": "packages/sim/terrain.ts",
+    "heightUnits": "100 simulation units = 1 world unit",
+    "renderer": "closed tile columns, top at Tile.height / 100",
+    "placement": "static model origins and unit feet use groundHeight",
+    "navigation": "height discontinuities expanded by unit radius; maxLandStep from terrainRules",
+    "status": "stepped acceptance map; main sandbox remains meadow"
+  }
 }

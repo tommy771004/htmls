@@ -65,6 +65,7 @@
 - [055 NEON FAUNA](https://htmls-ruddy.vercel.app/web/055-holo-card.html): 全息卡。6 張各有不同閃膜的收藏卡，跟隨游標 3D 傾斜，可放大翻面
 - [075 心情貼紙手帳](https://htmls-ruddy.vercel.app/web/075-kawaii.html): 可愛貼紙。12 款模切貼紙可拖拉，拖出手帳就撕掉，附喝水紀錄
 - [129 ORBIT OS · 瀏覽器裡的桌面](https://htmls-ruddy.vercel.app/web/129-orbit-os.html): macOS 風格互動作業系統。單檔離線桌面：Dock、可拖曳縮放視窗、共用檔案系統的 Finder 與終端機、離線瀏覽器、主題設定、Web Audio 音樂，以及可挖掘建造的體素遊戲
+- [152 潮班 · TIDELINE 渡輪元件板](https://htmls-ruddy.vercel.app/web/152-tideline-board.html): 產品微互動元件板。虛構澎湖渡輪公司的五個可操作元件：行程膠囊變形（船班卡、取消確認、退款收據）、航線描繪與港口輪播、港口側欄滑動旗標、延誤通知堆疊、同行分票；每格自動示範，碰到就交給使用者。
 
 ### 工具產生器
 
@@ -329,6 +330,7 @@
 - [098 藥袋](https://htmls-ruddy.vercel.app/app/098-kusuri-meds.html): 用藥提醒；日本藥局藥袋印刷。服藥打勾、排程、補藥、提醒
 - [099 小樹](https://htmls-ruddy.vercel.app/app/099-picturebook-carbon.html): 碳足跡；童書水彩。每日選擇、減碳、樹成長、比較
 - [100 主畫面](https://htmls-ruddy.vercel.app/app/100-linen-springboard.html): 主畫面模擬器；iOS 6 擬物：亞麻布、光澤圖示。長按抖動、拖曳排序、刪除、資料夾
+- [101 篩 Sift](https://htmls-ruddy.vercel.app/app/101-sift-digest.html): 晨間訊息摘要；陶土粉紙、可甩出的摘要卡。右甩讀完、左甩稍後、頂端膠囊可復原、原文抽屜、讀完後結算
 
 - [潮生島 · 海島經營日記](https://htmls-ruddy.vercel.app/web/139-tideborn-island.html)：遊戲敘事；可調整種子、大小、高度的程序化海島，中央高地、沙灘、礁島與放射路網。完整經營原型：住宅、生產設施、碼頭與燈塔，五種職業的骨架 glTF 村民、狀態機作息與尋路、交談及實際搬運交易、六種資源、任務製作市集、等級解鎖與自動存檔。
 

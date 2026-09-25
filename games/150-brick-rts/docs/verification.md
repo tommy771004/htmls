@@ -58,3 +58,15 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## 七種資源 v6（最新）
 
 46 項測試、建置、地圖匯出與完整瀏覽器回歸通過；新增有限資源、動物占地、魚群地形與可見資源投影驗證。snapshot 現為 v6。詳見 [resources-verification.md](resources-verification.md)，仍未完成採集工作或完整對局。
+
+## 起始資源門檻 v7（最新）
+
+50 項測試、build、validate、maps:export 與完整瀏覽器回歸通過。生成器檢查容量下限、安全鄰近位置與最近路程差上限；不等同完整競技平衡。snapshot 現為 v7。詳見 [starting-resources-verification.md](starting-resources-verification.md)。
+
+## 高度通行 v8（最新）
+
+54 項測試、build、validate、地圖匯出與完整瀏覽器回歸通過；手工圖地台／階梯已目視檢查。詳見 [heights-verification.md](heights-verification.md)。snapshot 現為 v8；尚無高地正式對局與原作高度效果。
+
+## 多地形移動 v9（最新）
+
+乾淨目錄 npm ci、build、validate、57 項测试及 browser 首次使用流程通過。實測直接點選高地後登階到達、海岸深水拒絕、跨地圖讀檔及 Worker 恢復；草甸兩尺寸與故障流程亦通過。snapshot 現為 v9，詳見 [first-use-006.md](first-use-006.md)。完整採集、戰鬥與勝敗尚未完成。

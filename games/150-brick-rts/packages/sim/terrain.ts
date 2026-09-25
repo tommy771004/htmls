@@ -1,5 +1,5 @@
 // Explicit engineering rules. No reference-game values are asserted here.
-export const terrainRules={provenance:'design_default',size:16,tileSize:100,resourceCapacity:{tree:300,stone:250,gold:250,berries:150,hunt:120,livestock:100,fish:200},generationAttempts:8} as const;
+export const terrainRules={provenance:'design_default',size:16,tileSize:100,maxLandStep:25,resourceCapacity:{tree:300,stone:250,gold:250,berries:150,hunt:120,livestock:100,fish:200},generationAttempts:8} as const;
 export type ResourceKind=keyof typeof terrainRules.resourceCapacity;
 export const resourceDefinitions:Record<ResourceKind,{yield:'wood'|'stone'|'gold'|'food';method:'gather'|'hunt'|'herd'|'fish';movement:'land'|'water'}>={tree:{yield:'wood',method:'gather',movement:'land'},stone:{yield:'stone',method:'gather',movement:'land'},gold:{yield:'gold',method:'gather',movement:'land'},berries:{yield:'food',method:'gather',movement:'land'},hunt:{yield:'food',method:'hunt',movement:'land'},livestock:{yield:'food',method:'herd',movement:'land'},fish:{yield:'food',method:'fish',movement:'water'}};
 export type TerrainType='grass'|'road'|'stone'|'sand'|'highland'|'cliff'|'water'|'shallow';
@@ -15,8 +15,14 @@ export function createTiles(layout:MapLayout='meadow',seed=0):Tile[]{
  return Array.from({length:256},(_,id)=>{const x=id%16,y=Math.floor(id/16);let terrainType:TerrainType=y===8?'road':'grass';
  if(layout==='coast'){const edge=12+(((seed>>>0)>>>Math.floor(x/4))&1);if(y>=edge)terrainType='water';else if(y===edge-1)terrainType='sand';}
  if(layout==='acceptance'){if(x===7||x===8)terrainType=y>=7&&y<=9?'shallow':'water';else if(x===6||x===9)terrainType='sand';}
- return {id,terrainType,...terrainDefinitions[terrainType],resourceRefs:[],obstacleRefs:[]};});
+ const tile:Tile={id,terrainType,...terrainDefinitions[terrainType],resourceRefs:[],obstacleRefs:[]};
+ if(layout==='acceptance'){
+ if(x>=2&&x<=5&&y>=11&&y<=14){tile.terrainType=x===2&&y===11?'cliff':x===3&&y===13?'stone':'highland';Object.assign(tile,terrainDefinitions[tile.terrainType]);tile.height=100;}
+ if(x===4&&y>=8&&y<=10){tile.terrainType='road';tile.height=(y-7)*25;tile.buildability=false;}
+ }
+ return tile;});
 }
+export function groundHeight(tiles:Tile[],x:number,y:number):number{return tiles[tileAt(x,y)]?.height??0;}
 export function tileAt(x:number,y:number):number{return Math.floor(y/100)*16+Math.floor(x/100);}
 export function canTraverse(tile:Tile,movement:'land'|'water'):boolean{return tile.walkClass===movement||tile.walkClass==='both';}
 // Internal simulation primitive; a future work system must pair returned yield with cargo.

@@ -9,7 +9,7 @@
 <meta name="description" content="把一早湧進來的群組與信件，整理成一疊摘要卡：往右甩是讀完，往左甩是稍後，頂端膠囊隨時可以復原。">
 <style>
 :root{
-  --paper:#e6d6cc; --card:#f8f1ec; --card-2:#efe3dc; --ink:#2a1c17; --ink-2:#6a544b; --ink-3:#9a8278;
+  --paper:#e6d6cc; --card:#f8f1ec; --card-2:#efe3dc; --ink:#2a1c17; --ink-2:#6a544b; --ink-3:#846d64;
   --moss:#3d5a3a; --ochre:#94662a; --rust:#9b4a33; --plum:#6b4656;
   --serif:"Athelas","Iowan Old Style",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
@@ -53,7 +53,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radi
 .menu svg{width:18px;height:18px}
 
 /* capsule */
-.cap{position:absolute;z-index:6;left:50%;top:calc(104px + env(safe-area-inset-top));transform:translateX(-50%);height:38px;width:196px;border-radius:19px;background:var(--ink);color:#f5ebe5;overflow:hidden;
+.cap{position:absolute;z-index:6;left:50%;top:calc(114px + env(safe-area-inset-top));transform:translateX(-50%);height:38px;width:196px;border-radius:19px;background:var(--ink);color:#f5ebe5;overflow:hidden;
   box-shadow:0 2px 3px #2a1c1722;transition:width .55s var(--spring),background .35s}
 .cs{position:absolute;inset:0;display:flex;align-items:center;gap:9px;padding:0 14px 0 8px;white-space:nowrap;font-size:13px;
   opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .3s var(--out),visibility 0s .3s}
@@ -68,8 +68,8 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radi
 .cs .mk{width:20px;height:20px;flex:none}
 
 /* deck */
-.deck{position:absolute;z-index:3;left:18px;right:18px;top:calc(158px + env(safe-area-inset-top));bottom:calc(104px + env(safe-area-inset-bottom))}
-.card{position:absolute;inset:0;background:var(--card);border-radius:22px;padding:20px 20px 16px;display:flex;flex-direction:column;
+.deck{position:absolute;z-index:3;left:18px;right:18px;top:calc(166px + env(safe-area-inset-top));bottom:calc(104px + env(safe-area-inset-bottom));pointer-events:none}
+.card{position:absolute;inset:0;pointer-events:auto;background:var(--card);border-radius:22px;padding:20px 20px 16px;display:flex;flex-direction:column;
   box-shadow:0 1px 1px #2a1c1714,0 10px 18px -14px #2a1c1766;touch-action:none;user-select:none;will-change:transform;
   transition:transform .5s var(--spring),opacity .35s,filter .35s}
 .card.drag{transition:none;cursor:grabbing}
@@ -84,7 +84,10 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radi
 .card h2{font-size:23px;line-height:1.28;font-weight:600;margin-top:4px;letter-spacing:.01em}
 .body{flex:1;display:flex;flex-direction:column;min-height:0}
 .body p{font-size:14.5px;line-height:1.75;color:#4a3831;margin-top:12px;overflow:hidden}
+.quote{margin-top:14px;padding:10px 12px;border-radius:12px;background:var(--card-2);font-size:13px;line-height:1.6;color:#4a3831}
+.quote span{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:2px}
 .todo{margin-top:auto;padding-top:12px;display:grid;grid-template-columns:auto 1fr;gap:8px 10px;font-size:13px;align-items:start}
+.todo em{grid-column:1/-1;font-style:normal;font-size:11.5px;color:var(--ink-3)}
 .todo i{font-style:normal;font:400 15px/1.2 var(--serif);color:var(--ink-3)}
 .foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid #2a1c1714;font-size:12.5px;color:var(--ink-2)}
 .foot button{display:flex;align-items:center;gap:6px;padding:6px 8px;margin:-6px -8px;border-radius:9px;color:var(--ink)}
@@ -104,7 +107,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radi
 .tally b{display:block;font:400 34px/1.05 var(--serif);color:var(--ink)}
 .again{align-self:flex-start;padding:12px 18px;border-radius:14px;background:var(--ink);color:#f5ebe5;font-size:14px;font-weight:600;transition:background .2s}
 .again:hover{background:#45302a}
-.again:disabled{opacity:.35;cursor:default}
+.again[hidden]{display:none}
 .reset{align-self:flex-start;margin-top:12px;font-size:13px;color:var(--ink-2);padding:6px 0}
 .done{opacity:0;visibility:hidden;transform:translateY(12px);transition:opacity .4s,transform .6s var(--out),visibility 0s .4s}
 .done.on{opacity:1;visibility:visible;transform:none;transition:opacity .5s .2s,transform .7s .2s var(--out),visibility 0s}
@@ -116,8 +119,8 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radi
 .bar svg{width:22px;height:22px}
 .bar .main{background:var(--ink);color:#f5ebe5}
 .bar .main:hover{background:#45302a;color:#fff}
-.bar button:disabled{opacity:.3;cursor:default;background:none}
-.bar .main:disabled{background:var(--ink)}
+.bar{transition:opacity .35s,transform .5s var(--out)}
+.bar.off{opacity:0;transform:translateY(24px);pointer-events:none}
 .bar button.hit svg{animation:nudge .4s var(--out)}
 @keyframes nudge{40%{transform:translateX(var(--nx,0)) rotate(var(--nr,0))}}
 
@@ -139,12 +142,17 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radi
 
 @media (max-height:700px){
   .head h1{font-size:30px}
-  .cap{top:calc(96px + env(safe-area-inset-top))}
-  .deck{top:calc(146px + env(safe-area-inset-top));bottom:calc(92px + env(safe-area-inset-bottom))}
+  .head{top:calc(42px + env(safe-area-inset-top))}
+  .cap{top:calc(104px + env(safe-area-inset-top));height:34px}
+  .cs b{font-size:15px}
+  .deck{top:calc(150px + env(safe-area-inset-top));bottom:calc(92px + env(safe-area-inset-bottom))}
   .bar{bottom:calc(16px + env(safe-area-inset-bottom))}
   .bar button{height:56px}
   .card h2{font-size:21px}
   .body p{font-size:14px;line-height:1.68;margin-top:9px}
+  .todo em{display:none}
+  .quote{margin-top:10px;padding:8px 10px;font-size:12.5px;line-height:1.5}
+  .todo{gap:6px 10px}
   .done .big{font-size:52px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
@@ -154,7 +162,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radi
 <div class="stage">
   <div class="caption"><b>Sift</b><p>一早的群組和信件，篩成一疊卡。<br>往右甩是讀完，往左甩是稍後。</p></div>
   <div class="device"><div class="screen" id="screen">
-    <div class="status" aria-hidden="true"><span>7:42</span><svg viewBox="0 0 60 11"><path d="M0 8h3v3H0zM5 6h3v5H5zM10 3h3v8h-3zM15 0h3v11h-3z" fill="#2a1c17"/><rect x="34" y=".5" width="22" height="10" rx="3" fill="none" stroke="#2a1c17" opacity=".5"/><rect x="36" y="2.5" width="15" height="6" rx="1.5" fill="#2a1c17"/><path d="M57.5 3.5v4" stroke="#2a1c17" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg></div>
+    <div class="status" aria-hidden="true"><span id="stClock">7:42</span><svg viewBox="0 0 60 11"><path d="M0 8h3v3H0zM5 6h3v5H5zM10 3h3v8h-3zM15 0h3v11h-3z" fill="#2a1c17"/><rect x="34" y=".5" width="22" height="10" rx="3" fill="none" stroke="#2a1c17" opacity=".5"/><rect x="36" y="2.5" width="15" height="6" rx="1.5" fill="#2a1c17"/><path d="M57.5 3.5v4" stroke="#2a1c17" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg></div>
 
     <header class="head">
       <div><h1>Sift</h1><small id="date">9 月 25 日 · 星期四 · 晨間摘要</small></div>
@@ -232,7 +240,8 @@ function cardHTML(d){
   ${d.men ? `<div class="men">${d.men}</div>` : '<div class="men" style="visibility:hidden">·</div>'}
   <h2>${esc(d.h)}</h2>
   <div class="body"><p>${esc(d.p)}</p>
-  <div class="todo">${d.todo.map((x,i) => `<i>${i+1}</i><span>${esc(x)}</span>`).join('')}</div></div>
+  ${(k => k ? `<div class="quote"><span>原句 · ${esc(k[0])}</span>${esc(k[1])}</div>` : '')(d.th.find(m => m[2]))}
+  <div class="todo"><em>要你做的事</em>${d.todo.map((x,i) => `<i>${i+1}</i><span>${esc(x)}</span>`).join('')}</div></div>
   <div class="foot"><span>整理自 ${d.n} 則訊息</span><button data-open aria-label="看原文">原文<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l6-6M4.5 3H9v4.5"/></svg></button></div>`;
 }
 function render(){
@@ -258,10 +267,10 @@ function counts(){
   $('#cTot').textContent = tot; $('#cLeft').textContent = left;
   $('#ring').setAttribute('stroke-dashoffset', 100 - (tot - left) / tot * 100);
   const empty = !left; $('#done').classList.toggle('on', empty);
-  ['#bLater','#bOk','#bOpen'].forEach(s => $(s).disabled = empty);
+  const bar = $('.bar'); bar.classList.toggle('off', empty); bar.inert = empty;
   if (empty){
     $('#tOk').textContent = stats.ok; $('#tLater').textContent = later.length; $('#tSave').textContent = stats.save;
-    const a = $('#again'); a.textContent = `再看稍後的 ${later.length} 則`; a.disabled = !later.length;
+    const a = $('#again'); a.textContent = `再看稍後的 ${later.length} 則`; a.hidden = !later.length;
     $('#dLine').textContent = later.length ? '讀完的已經歸檔，稍後的留在這裡，等你有空。' : '今天早上的訊息都讀完了，可以好好吃早餐。';
   }
 }
@@ -366,7 +375,8 @@ addEventListener('keydown', e => {
 });
 
 /* live clock in the done screen */
-const now = new Date(); $('#dTime').textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+const T0 = Date.now(), clock = () => { const m = 42 + Math.floor((Date.now() - T0) / 60000); const t = `${7 + Math.floor(m / 60)}:${String(m % 60).padStart(2,'0')}`; $('#stClock').textContent = t; $('#dTime').textContent = t; };
+clock(); setInterval(clock, 15000);
 reset();
 })();
 </script>

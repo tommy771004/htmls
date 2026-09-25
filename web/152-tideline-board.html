@@ -8,7 +8,7 @@
 <style>
 :root{
   --bg:#d3ded9; --tile:#e6eeea; --tile-hi:#f2f6f4; --night:#0d1b18; --night-2:#15282400;
-  --ink:#10302a; --ink-2:#48625b; --ink-3:#7c928b; --rule:#10302a1f;
+  --ink:#10302a; --ink-2:#48625b; --ink-3:#61776f; --rule:#10302a1f;
   --buoy:#b9442a; --buoy-soft:#ecd3c8; --brass:#9d7433; --sea:#2d6a64; --foam:#f6faf8;
   --disp:"Superclarendon","Rockwell","Clarendon",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
@@ -71,7 +71,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--sea);outli
 .L-card{width:326px;padding:16px 18px}
 .row{display:flex;justify-content:space-between;align-items:center}
 .L-card h3,.L-conf h3,.L-rcpt h3{font-size:14px;font-weight:600}
-.x{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#c5d6d0;background:#ffffff14;transition:background .2s}
+.x{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#c5d6d0;background:transparent;transition:background .2s}
 .x:hover{background:#ffffff2e}
 .x svg{width:10px;height:10px}
 .leg{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:10px;margin:14px 0 6px}
@@ -178,7 +178,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--sea);outli
 .toast .tm{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
 .toast .tx{font-size:13.5px;font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .toast .lv{position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0}
-.toast .x{position:absolute;right:10px;top:50%;margin-top:-13px;background:#10302a0d;color:var(--ink-2)}
+.toast .x{position:absolute;right:10px;top:50%;margin-top:-13px;color:var(--ink-2)}
 .toast .x:hover{background:#10302a1f}
 .toast.gone{opacity:0}
 .empty{position:absolute;left:0;right:0;bottom:70px;pointer-events:none;text-align:center;font-size:13px;color:#8fa7a0;opacity:0;transition:opacity .4s}
@@ -333,6 +333,7 @@ const wait = ms => new Promise(r => setTimeout(r, RM ? Math.min(ms, 400) : ms));
 
 /* autoplay controller: each tile loops a demo until the viewer touches it */
 function auto(tile, run){
+  if (RM) return () => {};
   let token = 0, idle = 0, visible = true;
   const alive = t => t === token && visible;
   const start = () => { const t = ++token; (async () => { while (alive(t)) { try { await run(() => alive(t)); } catch(e){ if (e !== 'stop') throw e; } if (alive(t)) await wait(900); } })(); };

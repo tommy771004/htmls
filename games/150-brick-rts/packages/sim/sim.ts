@@ -1,3 +1,4 @@
+import type {MapLayout} from './terrain.ts';
 import {createVision,updateVision,visionRules} from './vision.ts';
 import type {PlayerVision} from './vision.ts';
 import {createAccount,reserve,cancelReservation,economyRules} from './economy.ts';
@@ -12,11 +13,11 @@ export type MoveCommand=Envelope&{commandType:'move';payload:{unitId:number;x:nu
 export type Command=MoveCommand|Envelope&{commandType:'reserve';payload:{entryId:string}}|Envelope&{commandType:'cancelReservation';payload:{reservationId:string}};
 export type LoggedCommand=Command&{acceptedTick:number};
 export type TransactionResult={tick:number;playerId:number;sequence:number;ok:boolean;error?:string};
-export type State={version:7;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:PathJob[];seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
+export type State={version:9;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:PathJob[];seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
 function canonical(value:unknown):string {if(value===null||typeof value!=='object')return JSON.stringify(value);if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical((value as Record<string,unknown>)[k])).join(',')+'}';}
 export function hash(value:unknown):string{let h=2166136261;for(const c of canonical(value)){h=Math.imul(h^c.charCodeAt(0),16777619);}return (h>>>0).toString(16).padStart(8,'0');}
-export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,simulationVersion:7});
-export function createState(seed:number):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');const state:State={version:7,vision:createVision(),accounts:[createAccount(3),createAccount(1)],transactions:[],map:makeMap(seed),pathJobs:[],seed,rng:seed||1,tick:0,sequence:[0,0],units:[{id:1,player:0,x:350,y:700,target:null},{id:2,player:0,x:450,y:700,target:null},{id:3,player:0,x:400,y:800,target:null},{id:4,player:1,x:1150,y:700,target:null}],queue:[],log:[]};updateVision(state.vision,state.map,state.units,0);return state;}
+export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,simulationVersion:9});
+export function createState(seed:number,layout:MapLayout='meadow'):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');const state:State={version:9,layout,vision:createVision(),accounts:[createAccount(3),createAccount(1)],transactions:[],map:makeMap(seed,layout),pathJobs:[],seed,rng:seed||1,tick:0,sequence:[0,0],units:[{id:1,player:0,x:350,y:700,target:null},{id:2,player:0,x:450,y:700,target:null},{id:3,player:0,x:400,y:800,target:null},{id:4,player:1,x:1150,y:700,target:null}],queue:[],log:[]};updateVision(state.vision,state.map,state.units,0);return state;}
 // xorshift32; renderers never advance this stream.
 export function nextRandom(state:State):number{let n=state.rng;n^=n<<13;n^=n>>>17;n^=n<<5;state.rng=n>>>0;return state.rng;}
 export function submit(state:State, c:Command):void {
@@ -51,22 +52,22 @@ export function tick(s:State):void {
  if(!clearSegment(s.map,u,p))throw Error(`tick ${s.tick} / entity ${u.id}: 非法碰撞路徑`);u.x=p.x;u.y=p.y;if(u.x===next.x&&u.y===next.y)u.path.shift();if(!u.path.length){u.target=null;u.navigation='idle';}}
  updateVision(s.vision,s.map,s.units,s.tick);
 }
-export function replay(seed:number,commands:LoggedCommand[],ticks:number):State{
+export function replay(seed:number,commands:LoggedCommand[],ticks:number,layout:MapLayout='meadow'):State{
  if(!Number.isSafeInteger(ticks)||ticks<0||ticks>100000||!Array.isArray(commands)||commands.length>10000)throw Error('無效重播範圍');
- const s=createState(seed);let previousTick=0;
+ const s=createState(seed,layout);let previousTick=0;
  for(const c of commands){
  if(!c||!Number.isSafeInteger(c.acceptedTick)||c.acceptedTick<previousTick||c.acceptedTick>ticks)throw Error('無效命令接收時間');
  while(s.tick<c.acceptedTick)tick(s);submit(s,c);previousTick=c.acceptedTick;
  }
  while(s.tick<ticks)tick(s);return s;
 }
-export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-7',rulesetHash,state:s,checksum:hash(s)});}
+export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-9',rulesetHash,state:s,checksum:hash(s)});}
 export function deserialize(raw:string):State{
  const v=JSON.parse(raw);
- if(!v||v.format!=='brick-sandbox-7'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
+ if(!v||v.format!=='brick-sandbox-9'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
  const s=v.state as State;
- if(s.version!==7||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
- const rebuilt=replay(s.seed,s.log,s.tick);
+ if(s.version!==9||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
+ const rebuilt=replay(s.seed,s.log,s.tick,s.layout);
  if(hash(rebuilt)!==hash(s))throw Error('存檔狀態無法由命令重建');
  return structuredClone(s);
 }

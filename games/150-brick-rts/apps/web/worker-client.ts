@@ -19,7 +19,7 @@ export class SimulationClient{
    if(!response.ok){item.reject(Error(`tick ${response.tick} / request ${response.id}${response.entityId!==undefined?' / entity '+response.entityId:''}：${response.message}`));return;}
    if(response.commands)this.checkpoint.commands=response.commands;
    if(response.accepted)this.checkpoint.commands.push(response.accepted);
-   this.checkpoint.seed=response.seed;this.checkpoint.ticks=response.tick;
+   this.checkpoint.layout=response.layout;this.checkpoint.seed=response.seed;this.checkpoint.ticks=response.tick;
    this.update(decodeView(response));item.resolve(response);
   };
   this.worker.onerror=event=>{event.preventDefault();this.fail('Worker 載入或執行失敗');};

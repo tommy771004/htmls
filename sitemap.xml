@@ -1166,6 +1166,11 @@
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/app/100.jpg</image:loc></image:image>
   </url>
   <url>
+    <loc>https://htmls-ruddy.vercel.app/app/101-sift-digest.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/app/101.jpg</image:loc></image:image>
+  </url>
+  <url>
     <loc>https://htmls-ruddy.vercel.app/web/135-nagoya-terrain.html</loc>
     <lastmod>2026-09-24</lastmod>
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/135.jpg</image:loc></image:image>
@@ -1240,5 +1245,10 @@
     <loc>https://htmls-ruddy.vercel.app/web/151-bike-configurator.html</loc>
     <lastmod>2026-09-25</lastmod>
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/151.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://htmls-ruddy.vercel.app/web/152-tideline-board.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/152.jpg</image:loc></image:image>
   </url>
 </urlset>

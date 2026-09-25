@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 7,
-  "rulesetHash": "4a7eea5c",
+  "schemaVersion": 9,
+  "rulesetHash": "ae7376fc",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -36,6 +36,7 @@
     "provenance": "design_default",
     "size": 16,
     "tileSize": 100,
+    "maxLandStep": 25,
     "resourceCapacity": {
       "tree": 300,
       "stone": 250,

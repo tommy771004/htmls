@@ -1,5 +1,5 @@
 // packages/sim/terrain.ts
-var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200 }, generationAttempts: 8 };
+var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200 }, generationAttempts: 8 };
 var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" } };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
@@ -25,8 +25,24 @@ function createTiles(layout = "meadow", seed = 0) {
       if (x === 7 || x === 8) terrainType = y >= 7 && y <= 9 ? "shallow" : "water";
       else if (x === 6 || x === 9) terrainType = "sand";
     }
-    return { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
+    const tile = { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
+    if (layout === "acceptance") {
+      if (x >= 2 && x <= 5 && y >= 11 && y <= 14) {
+        tile.terrainType = x === 2 && y === 11 ? "cliff" : x === 3 && y === 13 ? "stone" : "highland";
+        Object.assign(tile, terrainDefinitions[tile.terrainType]);
+        tile.height = 100;
+      }
+      if (x === 4 && y >= 8 && y <= 10) {
+        tile.terrainType = "road";
+        tile.height = (y - 7) * 25;
+        tile.buildability = false;
+      }
+    }
+    return tile;
   });
+}
+function groundHeight(tiles, x, y) {
+  return tiles[tileAt(x, y)]?.height ?? 0;
 }
 function tileAt(x, y) {
   return Math.floor(y / 100) * 16 + Math.floor(x / 100);
@@ -100,6 +116,12 @@ function bounds(o) {
 }
 function clearSegment(map, a, b, movement = "land") {
   if ([a.x, a.y, b.x, b.y].some((v) => !Number.isSafeInteger(v) || v < 50 || v > 1550)) return false;
+  const maxStep = movement === "land" ? terrainRules.maxLandStep : 0, radius = navigationRules.radius;
+  for (const tile of map.tiles) {
+    const x = tile.id % 16, y = Math.floor(tile.id / 16);
+    if (x < 15 && Math.abs(tile.height - map.tiles[tile.id + 1].height) > maxStep && intersects(a, b, [(x + 1) * 100 - radius, y * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+    if (y < 15 && Math.abs(tile.height - map.tiles[tile.id + 16].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+  }
   for (const tile of map.tiles) if (!canTraverse(tile, movement)) {
     const x = tile.id % 16 * 100, y = Math.floor(tile.id / 16) * 100, r = navigationRules.radius;
     if (intersects(a, b, [x - r, y - r, x + 100 + r, y + 100 + r])) return false;
@@ -292,6 +314,7 @@ async function createScene(canvas, onFailure, options = {}) {
   scene.add(sun);
   sun.target.position.set(8, 0, 8);
   scene.add(sun.target);
+  const groundGeometries = /* @__PURE__ */ new Set();
   const geometry = /* @__PURE__ */ new Map(), materials = /* @__PURE__ */ new Map();
   function material(color) {
     if (!materials.has(color)) materials.set(color, new T.MeshStandardMaterial({ color, roughness: brickStyle.roughness }));
@@ -318,16 +341,26 @@ async function createScene(canvas, onFailure, options = {}) {
   let staticGroup = new T.Group();
   scene.add(staticGroup);
   const batches = /* @__PURE__ */ new Map();
-  let muted = false;
+  let muted = false, baseHeight = 0, worldTiles = createTiles();
   function staticPart(geo, color, x, y, z) {
     if (muted) color = "#737b72";
     const key = geo.uuid + color;
     if (!batches.has(key)) batches.set(key, { geo, color, matrices: [] });
-    batches.get(key).matrices.push(new T.Matrix4().makeTranslation(x, y, z));
+    batches.get(key).matrices.push(new T.Matrix4().makeTranslation(x, y + baseHeight, z));
   }
   function brick(x, z, y, w, d, h, color, studs = true) {
     staticPart(box(w - 0.018, h, d - 0.018), color, x + w / 2, y, z + d / 2);
     if (studs) for (let a = 0.25; a < w; a += 0.5) for (let b = 0.25; b < d; b += 0.5) staticPart(studGeo, color, x + a, y + h + 0.04, z + b);
+  }
+  function groundBlock(x, z, height2, color) {
+    const h = height2 + 0.24, key = `ground:${h}`;
+    if (!geometry.has(key)) {
+      const geo = new T.BoxGeometry(1, h, 1);
+      geo.translate(0, h / 2, 0);
+      geometry.set(key, geo);
+      groundGeometries.add(geo);
+    }
+    staticPart(geometry.get(key), color, x + 0.5, -0.24, z + 0.5);
   }
   function house(x, z, red = false) {
     const roof = red ? "#b85c47" : "#456e87";
@@ -357,7 +390,9 @@ async function createScene(canvas, onFailure, options = {}) {
     staticGroup = new T.Group();
     scene.add(staticGroup);
     batches.clear();
-    const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: createTiles(), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
+    baseHeight = 0;
+    const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile, id) => ({ ...tile, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
+    worldTiles = map.tiles;
     let rng = seed || 1;
     for (const tile of map.tiles) {
       const x = tile.id % 16, z = Math.floor(tile.id / 16);
@@ -365,9 +400,10 @@ async function createScene(canvas, onFailure, options = {}) {
       rng ^= rng >>> 17;
       rng ^= rng << 5;
       const n = (rng >>> 0) / 4294967296;
-      brick(x, z, -0.24, 1, 1, 0.24, !options.assetPreview && view.fog[tile.id] !== 2 ? view.fog[tile.id] === 1 ? "#626e64" : "#293e38" : tile.terrainType === "water" ? "#4b8291" : tile.terrainType === "shallow" ? "#86b7b8" : tile.terrainType === "sand" ? "#d5c598" : tile.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0", false);
+      groundBlock(x, z, tile.height / 100, !options.assetPreview && view.fog[tile.id] !== 2 ? view.fog[tile.id] === 1 ? "#626e64" : "#293e38" : tile.terrainType === "cliff" ? "#8a8065" : tile.terrainType === "stone" ? "#a1a28e" : tile.terrainType === "highland" ? "#879d69" : tile.terrainType === "water" ? "#4b8291" : tile.terrainType === "shallow" ? "#86b7b8" : tile.terrainType === "sand" ? "#d5c598" : tile.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
     }
     for (const o of map.obstacles) {
+      baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y)] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "house") house(x, z, o.red);
@@ -392,18 +428,21 @@ async function createScene(canvas, onFailure, options = {}) {
     }
     for (const resource of map.resources ?? []) if (resource.kind === "fish" && resource.status === "available") {
       const x = resource.x / 100, z = resource.y / 100;
+      baseHeight = groundHeight(map.tiles, resource.x, resource.y) / 100;
       muted = false;
       for (const offset of [0, 0.22]) {
         brick(x - 0.2 + offset, z - 0.1 + offset, 0.025, 0.25, 0.1, 0.05, "#d5e7de", false);
         brick(x - 0.27 + offset, z - 0.1 + offset, 0.025, 0.09, 0.15, 0.06, "#bad0ce", false);
       }
     }
+    baseHeight = 0;
     muted = false;
     for (const { geo, color, matrices } of batches.values()) {
       const mesh = new T.InstancedMesh(geo, material(color), matrices.length);
       matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
       mesh.instanceMatrix.needsUpdate = true;
       mesh.userData.studs = geo === studGeo;
+      mesh.userData.ground = groundGeometries.has(geo);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       staticGroup.add(mesh);
@@ -471,7 +510,7 @@ async function createScene(canvas, onFailure, options = {}) {
   function update(view, id) {
     latest = view;
     selected = id;
-    const key = JSON.stringify([previewLayout, view.seed, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
+    const key = JSON.stringify([previewLayout, view.layout, view.seed, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
     if (worldKey !== key) {
       worldKey = key;
       buildWorld(view);
@@ -486,7 +525,7 @@ async function createScene(canvas, onFailure, options = {}) {
       const u = units.get(data.id) ?? unit(data.id, data.player);
       const dx = data.x / 100 - u.group.position.x, dz = data.y / 100 - u.group.position.z;
       if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
-      u.group.position.set(data.x / 100, 0, data.y / 100);
+      u.group.position.set(data.x / 100, groundHeight(worldTiles, data.x, data.y) / 100, data.y / 100);
       u.ring.visible = data.id === selected;
       u.moving = data.navigation === "moving";
     }
@@ -501,8 +540,8 @@ async function createScene(canvas, onFailure, options = {}) {
       while (obj.parent && obj.parent !== scene) obj = obj.parent;
       for (const [id, u] of units) if (u.group === obj) return { unitId: id };
     }
-    const p = new T.Vector3();
-    if (raycaster.ray.intersectPlane(ground, p)) return { x: p.x, y: p.z };
+    const groundHit = raycaster.intersectObjects(staticGroup.children.filter((mesh) => mesh.userData.ground), false)[0];
+    if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
   function draw(time) {
