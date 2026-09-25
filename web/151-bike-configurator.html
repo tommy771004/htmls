@@ -1,0 +1,1567 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crosswind R 客製公路車｜HEADWIND ATELIER</title>
+<meta name="description" content="Three.js 程序化生成的 3D 公路車客製化電商：即時更換車架配色、輪組、輪胎、傳動、把手與坐墊，踩踏帶動齒盤、鏈條與後輪，含即時報價與購物車流程。收錄於 100 Creative HTML Works（151・3D 客製化電商）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/151-bike-configurator.html">
+<meta name="theme-color" content="#ecebe7">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"
+} }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js" defer></script>
+<style>
+:root{
+  --bg:#ecebe7; --panel:#faf9f7; --card:#ffffff; --line:#e2e0db; --line-2:#cfccc5;
+  --ink:#151515; --ink-2:#4f4c47; --ink-3:#66625b;
+  --accent:#b23b16; --accent-2:#d9582b; --ok:#2f6b4f;
+  --sans:"Helvetica Neue",Helvetica,Arial,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --top:60px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- top bar ---------- */
+.top{position:sticky;top:0;z-index:30;height:var(--top);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px;background:rgba(236,235,231,.92);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:8px;font-weight:800;letter-spacing:.18em;font-size:15px;white-space:nowrap}
+.brand span{font-weight:400;letter-spacing:.32em;font-size:11px;color:var(--ink-2)}
+.top .tag{font-size:13px;color:var(--ink-2);display:none}
+@media (min-width:900px){.top .tag{display:block}}
+.cart-btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border:1px solid var(--ink);border-radius:999px;background:transparent;font-size:14px}
+.cart-btn:hover{background:var(--ink);color:#fff}
+.badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--accent);color:#fff;font-size:12px;line-height:20px;text-align:center;font-weight:700}
+
+/* ---------- layout ---------- */
+.app{display:grid;grid-template-columns:minmax(0,1fr)}
+@media (min-width:1000px){.app{grid-template-columns:minmax(0,1fr) 440px}}
+.stage{position:sticky;top:var(--top);z-index:5;height:52vh;min-height:320px;overflow:hidden;background:radial-gradient(120% 90% at 50% 38%,#f7f6f3 0%,#e9e7e2 58%,#d8d5ce 100%);touch-action:none}
+@media (min-width:1000px){.stage{height:calc(100vh - var(--top));min-height:560px}}
+.stage canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;outline:none}
+.stage-title{position:absolute;left:20px;top:16px;pointer-events:none}
+.stage-title .model{margin:0;font-size:clamp(22px,3.2vw,40px);font-weight:800;letter-spacing:-.02em;line-height:1}
+.stage-title .model small{display:block;font-size:12px;font-weight:500;letter-spacing:.24em;color:var(--ink-2);text-transform:uppercase}
+@media (max-width:640px){.stage-title{display:none}}
+.views{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:2px;padding:4px;background:rgba(255,255,255,.78);border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);max-width:calc(100% - 24px);overflow-x:auto;scrollbar-width:none}
+.views::-webkit-scrollbar{display:none}
+.views button{flex:none;border:0;background:transparent;border-radius:999px;padding:7px 13px;font-size:13px;color:var(--ink-2);white-space:nowrap}
+.views button:hover{color:var(--ink)}
+.views button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.dock{position:absolute;right:14px;top:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.dock .row{display:flex;gap:6px;align-items:center}
+.ctl{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;min-width:38px;padding:0 12px;border:0;border-radius:999px;background:rgba(255,255,255,.82);box-shadow:0 4px 16px rgba(0,0,0,.07);font-size:13px;color:var(--ink);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.ctl.icon{padding:0;width:38px}
+.ctl:hover{background:#fff}
+.ctl[aria-pressed="true"]{background:var(--ink);color:#fff}
+.ctl.pedal[aria-pressed="true"]{background:var(--accent);color:#fff}
+.cadence{display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.82);font-size:12px;color:var(--ink-2);box-shadow:0 4px 16px rgba(0,0,0,.07)}
+.cadence input{width:92px;accent-color:var(--accent)}
+.cadence output{min-width:52px;color:var(--ink);font-weight:600}
+@media (max-width:640px){.dock .hide-sm{display:none}.cadence input{width:64px}}
+.hint{position:absolute;left:20px;bottom:18px;margin:0;font-size:12px;color:var(--ink-3);pointer-events:none}
+@media (max-width:1180px){.hint{display:none}}
+.tip{position:absolute;z-index:3;pointer-events:none;padding:5px 10px;border-radius:6px;background:var(--ink);color:#fff;font-size:12px;white-space:nowrap;transform:translate(12px,-130%);opacity:0;transition:opacity .12s}
+.tip.on{opacity:1}
+.part-card{position:absolute;left:20px;top:92px;z-index:4;width:min(300px,calc(100% - 40px));padding:16px 16px 14px;border-radius:14px;background:rgba(255,255,255,.94);box-shadow:0 16px 40px rgba(0,0,0,.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.part-card h3{margin:0 28px 4px 0;font-size:16px}
+.part-card p{margin:0;font-size:13px;color:var(--ink-2)}
+.part-card dl{margin:10px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.part-card dt{color:var(--ink-3)}
+.part-card dd{margin:0}
+.part-card .x{position:absolute;right:8px;top:8px;width:30px;height:30px;border:0;border-radius:999px;background:transparent;font-size:18px;line-height:1;color:var(--ink-2)}
+.part-card .x:hover{background:var(--bg)}
+@media (max-width:640px){.part-card{top:auto;bottom:64px;left:12px}}
+.loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:14px;color:var(--ink-2);text-align:center;padding:24px}
+.loading .bar{width:160px;height:3px;border-radius:3px;background:var(--line-2);overflow:hidden}
+.loading .bar i{display:block;height:100%;width:40%;background:var(--ink);animation:load 1.1s ease-in-out infinite}
+@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+.loading.error .bar{display:none}
+.loading.error strong{color:var(--accent)}
+
+/* ---------- panel ---------- */
+.panel{background:var(--panel);border-left:1px solid var(--line);position:relative;z-index:6}
+.pd-head{padding:26px 24px 18px}
+.pd-head h1{margin:0;font-size:30px;letter-spacing:-.02em;line-height:1.1}
+.pd-head .sub{margin:6px 0 0;color:var(--ink-2);font-size:14px}
+.price-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px}
+.price{font-size:28px;font-weight:800;letter-spacing:-.01em}
+.meta{font-size:13px;color:var(--ink-2)}
+.meta b{color:var(--ink);font-weight:600}
+.steps{position:sticky;top:var(--top);z-index:4;display:flex;gap:4px;padding:10px 16px;background:rgba(250,249,247,.95);border-block:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+@media (max-width:999px){.steps{top:calc(var(--top) + 52vh)}}
+.steps::-webkit-scrollbar{display:none}
+.steps a{flex:none;padding:6px 12px;border-radius:999px;font-size:13px;color:var(--ink-2);text-decoration:none}
+.steps a:hover{background:var(--bg);color:var(--ink)}
+.steps a.on{background:var(--ink);color:#fff}
+form{padding:4px 24px 8px}
+fieldset{margin:0;padding:22px 0 20px;border:0;border-bottom:1px solid var(--line);scroll-margin-top:calc(var(--top) + 60px)}
+@media (max-width:999px){fieldset{scroll-margin-top:calc(var(--top) + 52vh + 56px)}}
+legend{float:left;width:100%;padding:0;margin:0 0 4px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+legend b{font-size:16px}
+legend span{font-size:13px;color:var(--ink-2)}
+.help{clear:both;margin:0 0 12px;font-size:13px;color:var(--ink-3)}
+.opts{display:grid;gap:8px}
+.opts.swatches{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.opts.sizes{grid-template-columns:repeat(4,minmax(0,1fr))}
+.opt{position:relative;display:block}
+.opt input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.opt .card{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);transition:border-color .15s,box-shadow .15s}
+.opt:hover .card{border-color:var(--line-2)}
+.opt input:checked+.card{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.opt input:focus-visible+.card{outline:2px solid var(--accent);outline-offset:2px}
+.opt .ico{grid-row:span 2;width:44px;height:44px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.opt .ico svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.opt .nm{font-weight:600;font-size:14px}
+.opt .sp{grid-column:2;font-size:12.5px;color:var(--ink-2)}
+.opt .pr{grid-row:1/span 2;grid-column:3;font-size:13px;font-weight:600;white-space:nowrap}
+.opt .pr.inc{color:var(--ink-3);font-weight:500}
+.sizes .opt .card{display:block;padding:10px 6px;text-align:center}
+.sizes .opt .nm{display:block;font-size:16px}
+.sizes .opt .sp{display:block;font-size:11.5px}
+.swatch{display:block;text-align:center}
+.swatch .dot{display:block;aspect-ratio:1;border-radius:50%;border:1.5px solid var(--line);box-shadow:inset 0 -6px 12px rgba(0,0,0,.18),inset 0 6px 10px rgba(255,255,255,.35);transition:transform .15s,box-shadow .15s}
+.swatch:hover .dot{transform:scale(1.05)}
+.swatch input:checked+.dot{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--ink),inset 0 -6px 12px rgba(0,0,0,.18)}
+.swatch input:focus-visible+.dot{outline:2px solid var(--accent);outline-offset:6px}
+.paint-name{clear:both;margin:12px 0 0;display:flex;justify-content:space-between;gap:8px;font-size:13.5px}
+.paint-name b{font-weight:600}
+.paint-name span{color:var(--ink-2)}
+.summary{padding:22px 24px 8px}
+.summary h2{margin:0 0 10px;font-size:16px}
+.summary dl{margin:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;font-size:13.5px}
+.summary dt{color:var(--ink-2)}
+.summary dt b{display:block;color:var(--ink);font-weight:600}
+.summary dd{margin:0;text-align:right;white-space:nowrap}
+.summary .total{padding-top:10px;border-top:1px solid var(--line);font-size:15px;font-weight:700;color:var(--ink)}
+.buybar{position:sticky;bottom:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px calc(14px + env(safe-area-inset-bottom));background:rgba(250,249,247,.96);border-top:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.buybar span{display:block;font-size:12px;color:var(--ink-2)}
+.buybar strong{font-size:20px}
+.primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 24px;border:0;border-radius:999px;background:var(--ink);color:#fff;font-weight:600;font-size:15px}
+.primary:hover{background:#000}
+.primary.accent{background:var(--accent)}
+.primary.accent:hover{background:#9a3212}
+.primary:disabled{background:var(--line-2);color:var(--ink-2);cursor:not-allowed}
+.ghost{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 18px;border:1px solid var(--line-2);border-radius:999px;background:transparent;font-size:14px}
+.ghost:hover{border-color:var(--ink)}
+.foot{padding:18px 24px 28px;font-size:12px;color:var(--ink-3)}
+.foot a{color:inherit}
+
+/* ---------- drawer & checkout ---------- */
+.scrim{position:fixed;inset:0;z-index:40;background:rgba(20,20,20,.38)}
+.drawer{position:fixed;top:0;right:0;bottom:0;z-index:41;width:min(420px,100%);display:flex;flex-direction:column;background:var(--panel);box-shadow:-20px 0 60px rgba(0,0,0,.18)}
+.dr-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
+.dr-head h2{margin:0;font-size:18px}
+.xbtn{width:38px;height:38px;border:0;border-radius:999px;background:transparent;font-size:22px;line-height:1;color:var(--ink-2)}
+.xbtn:hover{background:var(--bg);color:var(--ink)}
+.dr-body{flex:1;overflow-y:auto;padding:8px 20px}
+.item{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.item img{width:96px;height:60px;object-fit:cover;border-radius:8px;background:var(--bg)}
+.item h3{margin:0;font-size:14px}
+.item p{margin:2px 0 0;font-size:12px;color:var(--ink-2);line-height:1.5}
+.item .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.qty{display:inline-flex;align-items:center;border:1px solid var(--line-2);border-radius:999px}
+.qty button{width:30px;height:30px;border:0;background:transparent;border-radius:999px;font-size:16px}
+.qty button:hover{background:var(--bg)}
+.qty span{min-width:22px;text-align:center;font-size:13px}
+.item .rm{border:0;background:none;font-size:12px;color:var(--ink-2);text-decoration:underline;padding:4px}
+.item .amt{font-weight:700;font-size:14px}
+.empty{padding:48px 8px;text-align:center;color:var(--ink-2);font-size:14px}
+.dr-foot{padding:16px 20px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.dr-foot .line{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px;color:var(--ink-2)}
+.dr-foot .line.t{color:var(--ink);font-size:17px;font-weight:700;margin:10px 0 14px}
+.dr-foot .primary{width:100%}
+.modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(20,20,20,.42)}
+.sheet{position:relative;width:min(560px,100%);max-height:92vh;overflow-y:auto;border-radius:18px;background:var(--panel);box-shadow:0 30px 80px rgba(0,0,0,.25)}
+.sheet .xbtn{position:absolute;right:10px;top:10px}
+.sheet-in{padding:26px 26px 22px}
+.stepper{display:flex;gap:8px;margin:0 0 18px;padding:0;list-style:none;font-size:12.5px;color:var(--ink-3)}
+.stepper li{display:flex;align-items:center;gap:6px}
+.stepper li+li::before{content:"";width:18px;height:1px;background:var(--line-2)}
+.stepper li.on{color:var(--ink);font-weight:600}
+.sheet h2{margin:0 0 4px;font-size:20px}
+.sheet .lead{margin:0 0 16px;font-size:13px;color:var(--ink-2)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:5px;font-size:13px}
+.field.full{grid-column:1/-1}
+.field input,.field select{height:44px;padding:0 12px;border:1.5px solid var(--line-2);border-radius:10px;background:#fff}
+.field input:focus,.field select:focus{border-color:var(--ink);outline:none}
+.field input[aria-invalid="true"]{border-color:var(--accent)}
+.field .err{min-height:16px;font-size:12px;color:var(--accent)}
+.choice{display:grid;gap:8px;margin:4px 0 12px}
+.choice label{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:14px;cursor:pointer}
+.choice label:has(input:checked){border-color:var(--ink)}
+.choice input{accent-color:var(--ink);width:18px;height:18px;margin:0}
+.choice small{margin-left:auto;color:var(--ink-2);font-size:12.5px}
+.review{margin:0 0 14px;padding:14px;border-radius:12px;background:var(--bg);font-size:13px}
+.review .r{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.review .r.t{margin-top:6px;padding-top:9px;border-top:1px solid var(--line-2);font-weight:700;font-size:15px}
+.agree{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--ink-2);margin:0 0 16px}
+.agree input{margin-top:3px;accent-color:var(--ink)}
+.acts{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.note{margin:14px 0 0;font-size:12px;color:var(--ink-3)}
+.done{text-align:center;padding:10px 0 4px}
+.done .ok{width:64px;height:64px;margin:0 auto 14px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center}
+.done .ok svg{width:34px;height:34px;stroke-width:2.4}
+.done .no{font-family:var(--mono);font-size:15px;letter-spacing:.06em}
+.toast{position:fixed;left:50%;bottom:92px;z-index:60;transform:translateX(-50%);padding:10px 18px;border-radius:999px;background:var(--ink);color:#fff;font-size:14px;opacity:0;pointer-events:none;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v5h-5"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="brand">HEADWIND<span>ATELIER</span></div>
+  <div class="tag">台中手工組裝 · 每台車依配置現場校正</div>
+  <button class="cart-btn" id="cartBtn" aria-haspopup="dialog"><svg class="i"><use href="#i-bag"/></svg><span>購物車</span><span class="badge" id="cartCount">0</span></button>
+</header>
+
+<main class="app">
+  <section class="stage" id="stage" aria-label="3D 腳踏車預覽">
+    <div class="stage-title"><p class="model"><small>Crosswind R · handbuilt carbon road · <span id="sizeCap">56</span> cm</small></p></div>
+    <div class="dock">
+      <div class="row">
+        <button class="ctl pedal" id="pedalBtn" aria-pressed="false" title="踩踏展示（P）"><svg class="i" id="pedalIco"><use href="#i-play"/></svg><span>踩踏</span></button>
+        <div class="cadence hide-sm"><label for="rpm">踏頻</label><input type="range" id="rpm" min="30" max="120" step="5" value="70"><output id="rpmOut" for="rpm">70 rpm</output></div>
+      </div>
+      <div class="row">
+        <button class="ctl icon" id="spinBtn" aria-pressed="false" title="自動旋轉" aria-label="自動旋轉"><svg class="i"><use href="#i-rotate"/></svg></button>
+        <button class="ctl icon" id="followBtn" aria-pressed="true" title="換零件時鏡頭自動對焦" aria-label="換零件時鏡頭自動對焦"><svg class="i"><use href="#i-cam"/></svg></button>
+      </div>
+      <div class="row hide-sm">
+        <button class="ctl icon" id="zoomIn" title="放大" aria-label="放大"><svg class="i"><use href="#i-plus"/></svg></button>
+        <button class="ctl icon" id="zoomOut" title="縮小" aria-label="縮小"><svg class="i"><use href="#i-minus"/></svg></button>
+        <button class="ctl icon" id="resetBtn" title="重設視角" aria-label="重設視角"><svg class="i"><use href="#i-reset"/></svg></button>
+      </div>
+    </div>
+    <div class="views" id="views" role="group" aria-label="視角"></div>
+    <p class="hint">拖曳旋轉 · 滾輪縮放 · 右鍵平移 · 點零件看細節</p>
+    <div class="tip" id="tip"></div>
+    <div class="part-card" id="partCard" hidden aria-live="polite">
+      <button class="x" id="partClose" aria-label="關閉零件資訊">×</button>
+      <h3 id="partName"></h3><p id="partDesc"></p><dl id="partSpec"></dl>
+    </div>
+    <div class="loading" id="loading"><div class="bar"><i></i></div><span id="loadingText">正在載入 3D 引擎…</span></div>
+  </section>
+
+  <aside class="panel" aria-label="客製化設定">
+    <div class="pd-head">
+      <h1>Crosswind R</h1>
+      <p class="sub">碳纖維公路車 · 依你的配置在台中手工組裝</p>
+      <div class="price-row">
+        <span class="price" id="price">NT$ 0</span>
+        <span class="meta">預估重量 <b id="weight">0</b> kg · 交期 <b id="lead">0</b> 天</span>
+      </div>
+    </div>
+    <nav class="steps" id="steps" aria-label="客製步驟"></nav>
+    <form id="cfg" novalidate></form>
+    <section class="summary" aria-labelledby="sumTitle">
+      <h2 id="sumTitle">配置摘要</h2>
+      <dl id="summary"></dl>
+    </section>
+    <p class="foot">作品展示：品牌、車款與價格皆為虛構，結帳流程不會送出或儲存任何個人資料。3D 模型以 <a href="https://threejs.org/">Three.js</a> 在瀏覽器即時生成，動畫使用 <a href="https://gsap.com/">GSAP</a>。</p>
+    <div class="buybar">
+      <div><span>總價（含稅、免運）</span><strong id="price2">NT$ 0</strong></div>
+      <button class="primary accent" id="addCart"><svg class="i"><use href="#i-bag"/></svg>加入購物車</button>
+    </div>
+  </aside>
+</main>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <div class="dr-head"><h2 id="drawerTitle">購物車</h2><button class="xbtn" id="drawerClose" aria-label="關閉購物車">×</button></div>
+  <div class="dr-body" id="cartList"></div>
+  <div class="dr-foot" id="cartFoot">
+    <div class="line"><span>小計</span><span id="subTotal">NT$ 0</span></div>
+    <div class="line"><span>運費</span><span>免運（專人配送）</span></div>
+    <div class="line t"><span>合計</span><span id="grandTotal">NT$ 0</span></div>
+    <button class="primary" id="toCheckout">前往結帳</button>
+  </div>
+</aside>
+
+<div class="modal" id="checkout" hidden role="dialog" aria-modal="true" aria-labelledby="coTitle">
+  <div class="sheet"><button class="xbtn" id="coClose" aria-label="關閉結帳">×</button><div class="sheet-in" id="coBody"></div></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+// ============================================================
+// Crosswind R configurator — data, UI, pricing, cart, checkout
+// ============================================================
+const $ = (id) => document.getElementById(id);
+let viewer = null; // 3D viewer, set once Three.js has loaded
+const gs = () => window.gsap || null;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmt = (n) => 'NT$ ' + Math.round(n).toLocaleString('en-US');
+const sign = (n) => n === 0 ? '含' : (n > 0 ? '+' : '−') + 'NT$ ' + Math.abs(n).toLocaleString('en-US');
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('hw151:' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('hw151:' + k, JSON.stringify(v)); } catch (e) {} }
+};
+
+const BASE = { price: 68800, weight: 8.35, lead: 14 };
+const IC = {
+  wheel: (n) => `<circle cx="24" cy="24" r="19"/><circle cx="24" cy="24" r="15"/><circle cx="24" cy="24" r="2.5"/>` +
+    Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2; return `<path d="M${24 + Math.cos(a) * 2.5} ${24 + Math.sin(a) * 2.5}L${24 + Math.cos(a) * 15} ${24 + Math.sin(a) * 15}"/>`; }).join(''),
+  tire: (w, knob) => `<circle cx="24" cy="24" r="${19 - w / 2}" stroke-width="${w}"/>` + (knob ? Array.from({ length: 16 }, (_, i) => { const a = i / 16 * Math.PI * 2; return `<circle cx="${24 + Math.cos(a) * 21.5}" cy="${24 + Math.sin(a) * 21.5}" r="1.2" fill="currentColor"/>`; }).join('') : ''),
+  gear: (rings) => rings.map((r) => `<circle cx="24" cy="24" r="${r}" stroke-dasharray="2 1.6"/>`).join('') + '<circle cx="24" cy="24" r="3"/><path d="M24 24 36 37"/>',
+  drop: '<path d="M24 16h-14c-4 0-5 3-5 6v5c0 5 3 7 7 7h3M24 16h14c4 0 5 3 5 6v5c0 5-3 7-7 7h-3"/>',
+  flat: '<path d="M4 20c6 2 12 2 20 2s14 0 20-2"/><path d="M4 20l2 1M44 20l-2 1" stroke-width="4"/>',
+  horn: '<path d="M24 26H13c-4 0-6-3-7-8M24 26h11c4 0 6-3 7-8"/>',
+  saddle: (w) => `<path d="M6 ${24 - w} c10 -${w} 22 -2 36 4 c-12 4 -26 ${w + 4} -36 ${w}z"/>`,
+};
+const OPTS = {
+  size: { label: '尺寸', view: 'side', help: '依身高挑選；3D 模型的車架幾何會跟著重算。', items: [
+    { id: '52', name: '52', sp: '160–168 cm', price: 0, w: -0.12 },
+    { id: '54', name: '54', sp: '168–175 cm', price: 0, w: -0.06 },
+    { id: '56', name: '56', sp: '175–182 cm', price: 0, w: 0 },
+    { id: '58', name: '58', sp: '182–190 cm', price: 0, w: 0.08 }] },
+  paint: { label: '車架配色', view: 'hero', help: '三層烤漆＋手工拋光透明漆；裸碳紋保留碳纖維編織。', items: [
+    { id: 'lake', name: '湖綠金屬', en: 'Lake Green Metallic', css: 'radial-gradient(circle at 35% 30%,#5e9b91,#1f4f4a 55%,#0d2623)', price: 0, w: 0 },
+    { id: 'ember', name: '赤陶橘金屬', en: 'Ember Metallic', css: 'radial-gradient(circle at 35% 30%,#ef8a5b,#b8451f 55%,#6b220b)', price: 0, w: 0 },
+    { id: 'midnight', name: '午夜藍', en: 'Midnight Blue', css: 'radial-gradient(circle at 35% 30%,#51618e,#1c2847 55%,#0b1226)', price: 0, w: 0 },
+    { id: 'pearl', name: '珍珠白', en: 'Pearl White', css: 'radial-gradient(circle at 35% 30%,#ffffff,#e9e6de 55%,#bdb8ad)', price: 1800, w: 0.02, lead: 3 },
+    { id: 'stealth', name: '消光黑', en: 'Stealth Matte', css: 'radial-gradient(circle at 35% 30%,#48484a,#1d1d1f 60%,#0a0a0a)', price: 1200, w: 0 },
+    { id: 'raw', name: '裸碳紋', en: 'Raw Carbon 3K', css: 'repeating-linear-gradient(45deg,#2b2b2d 0 3px,#151516 3px 6px),#1a1a1b', price: 16000, w: -0.12, lead: 7 }] },
+  wheels: { label: '輪組', view: 'wheel', help: '每根輻條都依真實編輪角度生成。', items: [
+    { id: 'alloy', name: '鋁合金 A25', sp: '25 mm 框高・32 輻・二交叉編輪', price: 0, w: 0, icon: IC.wheel(16) },
+    { id: 'c45', name: '碳纖維 C45', sp: '45 mm 框高・前 20 放射／後 24 二交叉', price: 18000, w: -0.3, icon: IC.wheel(10) },
+    { id: 'c65', name: '碳纖維 C65 深框', sp: '65 mm 框高・前 18 放射／後 24 二交叉', price: 26000, w: -0.13, lead: 5, icon: IC.wheel(9) }] },
+  tires: { label: '輪胎', view: 'tire', help: '外胎寬度會改變輪徑，車身高度也會跟著變。', items: [
+    { id: 'slick25', name: '25c 全黑光頭胎', sp: '700×25c・競賽膠料', price: 0, w: 0, icon: IC.tire(3, false) },
+    { id: 'tan28', name: '28c 黃皮邊', sp: '700×28c・復古膠邊', price: 1200, w: 0.06, icon: IC.tire(4, false) },
+    { id: 'gravel32', name: '32c 礫石顆粒胎', sp: '700×32c・雙排顆粒', price: 1600, w: 0.22, icon: IC.tire(5, true) }] },
+  drive: { label: '傳動系統', view: 'drive', help: '按「踩踏」可看齒盤、鏈條與後輪連動。', items: [
+    { id: 'road2x', name: '2×12 公路', sp: '50/34T 大盤・11–30T 飛輪・前後變速', price: 0, w: 0, icon: IC.gear([16, 11]) },
+    { id: 'gravel1x', name: '1×12 礫石', sp: '42T 寬窄齒・10–44T 大飛輪', price: 2400, w: -0.15, icon: IC.gear([14]) },
+    { id: 'single', name: '單速', sp: '46×17T・平踏板・免變速', price: -6800, w: -0.9, icon: IC.gear([15]) }] },
+  bar: { label: '把手', view: 'cockpit', help: '把帶顏色會配合坐墊自動調整。', items: [
+    { id: 'drop', name: '公路下彎把', sp: '寬 420 mm・下彎 125 mm', price: 0, w: 0, icon: IC.drop },
+    { id: 'flat', name: '平把', sp: '寬 620 mm・人體工學握把', price: -800, w: -0.05, icon: IC.flat },
+    { id: 'bullhorn', name: '牛角把', sp: '寬 400 mm・把端煞車', price: 600, w: -0.03, icon: IC.horn }] },
+  saddle: { label: '坐墊', view: 'saddle', help: '', items: [
+    { id: 'race', name: '競賽輕量', sp: '碳纖維弓・270×140 mm', price: 0, w: 0, icon: IC.saddle(3) },
+    { id: 'leather', name: '經典皮革', sp: '植鞣牛皮・銅鉚釘・鋼弓', price: 3200, w: 0.33, lead: 2, icon: IC.saddle(6) },
+    { id: 'comfort', name: '舒適寬版', sp: '凝膠內層・155 mm 寬', price: 900, w: 0.12, icon: IC.saddle(8) }] },
+};
+const KEYS = Object.keys(OPTS);
+const DEFAULT = { size: '56', paint: 'lake', wheels: 'alloy', tires: 'slick25', drive: 'road2x', bar: 'drop', saddle: 'race' };
+const item = (k, id) => OPTS[k].items.find((x) => x.id === id);
+
+const saved = store.get('cfg', {});
+const state = Object.assign({}, DEFAULT);
+KEYS.forEach((k) => { if (saved && item(k, saved[k])) state[k] = saved[k]; });
+
+function totals(cfg = state) {
+  let price = BASE.price, weight = BASE.weight, lead = BASE.lead;
+  KEYS.forEach((k) => { const o = item(k, cfg[k]); price += o.price; weight += o.w; lead = Math.max(lead, BASE.lead + (o.lead || 0)); });
+  return { price, weight, lead };
+}
+function describe(cfg) {
+  return KEYS.map((k) => (k === 'size' ? cfg.size + ' cm' : item(k, cfg[k]).name)).join('・');
+}
+
+// ---------- render form ----------
+function renderForm() {
+  $('steps').innerHTML = KEYS.map((k) => `<a href="#fs-${k}" data-step="${k}">${OPTS[k].label}</a>`).join('');
+  $('cfg').innerHTML = KEYS.map((k) => {
+    const g = OPTS[k];
+    let body;
+    if (k === 'paint') {
+      body = `<div class="opts swatches">` + g.items.map((o) =>
+        `<label class="opt swatch" title="${o.name}"><input type="radio" name="paint" value="${o.id}" aria-label="${o.name} ${o.en}"><span class="dot" style="background:${o.css}"></span></label>`).join('') +
+        `</div><p class="paint-name"><b id="paintName"></b><span id="paintPrice"></span></p>`;
+    } else if (k === 'size') {
+      body = `<div class="opts sizes">` + g.items.map((o) =>
+        `<label class="opt"><input type="radio" name="size" value="${o.id}"><span class="card"><span class="nm">${o.name}</span><span class="sp">${o.sp}</span></span></label>`).join('') + `</div>`;
+    } else {
+      body = `<div class="opts">` + g.items.map((o) =>
+        `<label class="opt"><input type="radio" name="${k}" value="${o.id}"><span class="card"><span class="ico"><svg viewBox="0 0 48 48" aria-hidden="true">${o.icon}</svg></span><span class="nm">${o.name}</span><span class="sp">${o.sp}</span><span class="pr${o.price === 0 ? ' inc' : ''}">${sign(o.price)}</span></span></label>`).join('') + `</div>`;
+    }
+    return `<fieldset id="fs-${k}"><legend><b>${g.label}</b><span id="cur-${k}"></span></legend>${g.help ? `<p class="help">${g.help}</p>` : '<p class="help"></p>'}${body}</fieldset>`;
+  }).join('');
+  KEYS.forEach((k) => { const r = document.querySelector(`input[name="${k}"][value="${state[k]}"]`); if (r) r.checked = true; });
+}
+
+const shown = { price: 0, price2: 0, weight: 0 };
+function tweenText(key, el, to, f) {
+  const g = gs();
+  if (!g || reduced) { shown[key] = to; el.textContent = f(to); return; }
+  g.to(shown, { [key]: to, duration: 0.7, ease: 'power3.out', overwrite: 'auto', onUpdate: () => { el.textContent = f(shown[key]); } });
+}
+function renderPrice() {
+  const t = totals();
+  tweenText('price', $('price'), t.price, fmt);
+  tweenText('price2', $('price2'), t.price, fmt);
+  tweenText('weight', $('weight'), t.weight, (v) => v.toFixed(2));
+  $('lead').textContent = t.lead;
+  $('sizeCap').textContent = state.size;
+  KEYS.forEach((k) => {
+    const o = item(k, state[k]);
+    $('cur-' + k).textContent = k === 'size' ? o.name + ' cm' : o.name;
+  });
+  const p = item('paint', state.paint);
+  $('paintName').textContent = p.name + ' · ' + p.en;
+  $('paintPrice').textContent = sign(p.price);
+  $('summary').innerHTML = `<dt><b>Crosswind R 車架組</b>碳纖維車架、前叉、耳機與座管</dt><dd>${fmt(BASE.price)}</dd>` +
+    KEYS.map((k) => { const o = item(k, state[k]); return `<dt><b>${OPTS[k].label}</b>${k === 'size' ? o.name + ' cm（' + o.sp + '）' : o.name}</dt><dd>${sign(o.price)}</dd>`; }).join('') +
+    `<dt class="total">總價</dt><dd class="total">${fmt(t.price)}</dd>`;
+}
+
+function select(k, id, fromUser) {
+  if (!item(k, id) || state[k] === id) return;
+  state[k] = id;
+  store.set('cfg', state);
+  renderPrice();
+  if (viewer) viewer.apply(k, id, { focus: fromUser ? OPTS[k].view : null });
+}
+$('cfg').addEventListener('change', (e) => { if (e.target.name) select(e.target.name, e.target.value, true); });
+
+// step nav highlight
+function initSteps() {
+  const links = [...document.querySelectorAll('#steps a')];
+  links.forEach((a) => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('fs-' + a.dataset.step).scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  }));
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver((ents) => {
+    ents.forEach((en) => { if (en.isIntersecting) { const k = en.target.id.slice(3); links.forEach((a) => a.classList.toggle('on', a.dataset.step === k)); } });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  document.querySelectorAll('#cfg fieldset').forEach((f) => io.observe(f));
+}
+
+// ---------- toast ----------
+let toastT;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg;
+  const g = gs();
+  clearTimeout(toastT);
+  if (g && !reduced) { g.killTweensOf(t); g.fromTo(t, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }); }
+  else t.style.opacity = 1;
+  toastT = setTimeout(() => { if (g && !reduced) g.to(t, { opacity: 0, y: 8, duration: 0.3 }); else t.style.opacity = 0; }, 1800);
+}
+
+// ---------- cart ----------
+let cart = store.get('cart', []);
+if (!Array.isArray(cart)) cart = [];
+const cfgKey = (c) => KEYS.map((k) => c[k]).join('|');
+function saveCart() { store.set('cart', cart); renderCart(); }
+function cartCount() { return cart.reduce((n, i) => n + i.qty, 0); }
+function renderCart() {
+  const n = cartCount();
+  $('cartCount').textContent = n;
+  const sub = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  $('subTotal').textContent = $('grandTotal').textContent = fmt(sub);
+  $('cartFoot').hidden = !cart.length;
+  $('cartList').innerHTML = cart.length ? cart.map((i, idx) => `
+    <div class="item">
+      ${i.img ? `<img src="${i.img}" alt="">` : '<img alt="">'}
+      <div><h3>Crosswind R・${item('paint', i.cfg.paint).name}</h3><p>${describe(i.cfg)}</p>
+        <div class="row"><span class="qty"><button data-q="${idx}" data-d="-1" aria-label="減少數量">−</button><span>${i.qty}</span><button data-q="${idx}" data-d="1" aria-label="增加數量">+</button></span>
+        <span class="amt">${fmt(i.price * i.qty)}</span></div>
+        <button class="rm" data-rm="${idx}">移除</button></div>
+    </div>`).join('') : '<p class="empty">購物車是空的。<br>先在右側完成你的 Crosswind R 吧。</p>';
+}
+$('cartList').addEventListener('click', (e) => {
+  const q = e.target.closest('[data-q]'), rm = e.target.closest('[data-rm]');
+  if (q) { const i = cart[+q.dataset.q]; i.qty = Math.max(1, Math.min(5, i.qty + +q.dataset.d)); saveCart(); }
+  if (rm) { cart.splice(+rm.dataset.rm, 1); saveCart(); }
+});
+function addToCart() {
+  const snap = { ...state };
+  const found = cart.find((i) => cfgKey(i.cfg) === cfgKey(snap));
+  if (found) found.qty = Math.min(5, found.qty + 1);
+  else cart.push({ cfg: snap, price: totals(snap).price, qty: 1, img: viewer ? viewer.snapshot() : '' });
+  saveCart();
+  const g = gs();
+  if (g && !reduced) g.fromTo('#cartCount', { scale: 1.8 }, { scale: 1, duration: 0.5, ease: 'back.out(3)' });
+  toast('已加入購物車：' + item('paint', snap.paint).name + ' ' + snap.size + ' cm');
+  openDrawer();
+}
+$('addCart').addEventListener('click', addToCart);
+
+// ---------- drawer / modal ----------
+let lastFocus = null;
+function openDrawer() {
+  lastFocus = document.activeElement;
+  $('scrim').hidden = false; $('drawer').hidden = false;
+  const g = gs();
+  if (g && !reduced) { g.fromTo('#drawer', { xPercent: 100 }, { xPercent: 0, duration: 0.45, ease: 'power3.out' }); g.fromTo('#scrim', { opacity: 0 }, { opacity: 1, duration: 0.3 }); }
+  $('drawerClose').focus();
+}
+function closeDrawer(keepScrim) {
+  const done = () => { $('drawer').hidden = true; if (!keepScrim) $('scrim').hidden = true; };
+  const g = gs();
+  if (g && !reduced) { g.to('#drawer', { xPercent: 100, duration: 0.3, ease: 'power2.in', onComplete: done }); if (!keepScrim) g.to('#scrim', { opacity: 0, duration: 0.3 }); }
+  else done();
+  if (!keepScrim && lastFocus) lastFocus.focus();
+}
+$('cartBtn').addEventListener('click', openDrawer);
+$('drawerClose').addEventListener('click', () => closeDrawer());
+$('scrim').addEventListener('click', () => closeDrawer());
+
+// ---------- checkout ----------
+const co = { step: 1, data: { name: '', phone: '', email: '', city: '台中市', addr: '', ship: 'home', pay: 'cod' } };
+const CITIES = ['台北市', '新北市', '桃園市', '新竹市', '台中市', '台南市', '高雄市', '其他縣市'];
+const SHIP = { home: ['專人配送到府', '含到府組裝校正'], store: ['台中門市自取', '可現場試騎微調'] };
+const PAY = { cod: ['貨到付款', '配送時付款'], atm: ['ATM 轉帳', '3 日內完成轉帳'], shop: ['門市付款', '限門市自取'] };
+function stepper() {
+  return `<ol class="stepper">${['聯絡與配送', '付款與確認', '完成'].map((s, i) => `<li class="${co.step === i + 1 ? 'on' : ''}">${i + 1}. ${s}</li>`).join('')}</ol>`;
+}
+function renderCheckout() {
+  const d = co.data, body = $('coBody');
+  const sub = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  if (co.step === 1) {
+    body.innerHTML = stepper() + `<h2 id="coTitle">聯絡與配送</h2><p class="lead">我們會在組裝完成前一週與你聯絡，約定交車時間。</p>
+      <div class="fgrid">
+        <label class="field"><span>姓名</span><input id="f-name" autocomplete="name" value="${escAttr(d.name)}"><span class="err" id="e-name"></span></label>
+        <label class="field"><span>手機</span><input id="f-phone" inputmode="tel" autocomplete="tel" placeholder="0912345678" value="${escAttr(d.phone)}"><span class="err" id="e-phone"></span></label>
+        <label class="field full"><span>Email</span><input id="f-email" type="email" autocomplete="email" value="${escAttr(d.email)}"><span class="err" id="e-email"></span></label>
+        <label class="field"><span>縣市</span><select id="f-city">${CITIES.map((c) => `<option${c === d.city ? ' selected' : ''}>${c}</option>`).join('')}</select><span class="err"></span></label>
+        <label class="field"><span>地址</span><input id="f-addr" autocomplete="street-address" value="${escAttr(d.addr)}"><span class="err" id="e-addr"></span></label>
+      </div>
+      <div class="choice" role="radiogroup" aria-label="配送方式">${Object.entries(SHIP).map(([k, v]) => `<label><input type="radio" name="ship" value="${k}"${d.ship === k ? ' checked' : ''}>${v[0]}<small>${v[1]}</small></label>`).join('')}</div>
+      <div class="acts"><button class="ghost" id="coBack">回到購物車</button><button class="primary" id="coNext">下一步</button></div>`;
+    $('coBack').onclick = () => { closeCheckout(); openDrawer(); };
+    $('coNext').onclick = () => { if (validate1()) { co.step = 2; renderCheckout(); } };
+  } else if (co.step === 2) {
+    if (d.ship !== 'store' && d.pay === 'shop') d.pay = 'cod';
+    body.innerHTML = stepper() + `<h2 id="coTitle">付款與確認</h2><p class="lead">${escAttr(d.name)}・${escAttr(d.phone)}・${SHIP[d.ship][0]}${d.ship === 'home' ? '：' + escAttr(d.city + d.addr) : ''}</p>
+      <div class="choice" role="radiogroup" aria-label="付款方式">${Object.entries(PAY).map(([k, v]) => `<label><input type="radio" name="pay" value="${k}"${d.pay === k ? ' checked' : ''}${k === 'shop' && d.ship !== 'store' ? ' disabled' : ''}>${v[0]}<small>${v[1]}</small></label>`).join('')}</div>
+      <div class="review">${cart.map((i) => `<div class="r"><span>Crosswind R・${item('paint', i.cfg.paint).name} × ${i.qty}</span><span>${fmt(i.price * i.qty)}</span></div>`).join('')}
+        <div class="r"><span>運費</span><span>免運</span></div><div class="r t"><span>應付金額</span><span>${fmt(sub)}</span></div></div>
+      <label class="agree"><input type="checkbox" id="f-agree">我了解這是作品展示，訂單不會真的成立，也不會送出任何資料。</label>
+      <div class="acts"><button class="ghost" id="coBack">上一步</button><button class="primary accent" id="coNext" disabled>確認下單</button></div>`;
+    $('f-agree').onchange = (e) => { $('coNext').disabled = !e.target.checked; };
+    body.querySelectorAll('input[name="pay"]').forEach((r) => { r.onchange = () => { d.pay = r.value; }; });
+    $('coBack').onclick = () => { co.step = 1; renderCheckout(); };
+    $('coNext').onclick = () => { co.step = 3; co.order = 'HW151-' + Date.now().toString(36).slice(-6).toUpperCase(); co.paid = sub; co.lead = Math.max(...cart.map((i) => totals(i.cfg).lead)); cart = []; saveCart(); renderCheckout(); };
+  } else {
+    const eta = new Date(Date.now() + co.lead * 864e5);
+    body.innerHTML = stepper() + `<div class="done"><div class="ok"><svg class="i"><use href="#i-check"/></svg></div>
+      <h2 id="coTitle">訂單已建立（展示）</h2><p class="lead">訂單編號 <span class="no">${co.order}</span><br>應付 ${fmt(co.paid)}・${PAY[d.pay][0]}・預計 ${eta.getMonth() + 1} 月 ${eta.getDate()} 日前交車</p>
+      <button class="primary" id="coNext">繼續客製</button><p class="note">以上資料只存在這個頁面的記憶體中，關閉視窗即清除。</p></div>`;
+    $('coNext').onclick = closeCheckout;
+    const g = gs();
+    if (g && !reduced) g.from('.done .ok', { scale: 0, rotation: -90, duration: 0.6, ease: 'back.out(2)' });
+  }
+  const g = gs();
+  if (g && !reduced) g.from('#coBody > *', { opacity: 0, y: 10, duration: 0.35, stagger: 0.04, ease: 'power2.out' });
+  const first = body.querySelector('input:not([type=radio]),button.primary');
+  if (first) first.focus({ preventScroll: true });
+}
+function escAttr(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function validate1() {
+  const d = co.data, v = (id) => $(id).value.trim();
+  d.name = v('f-name'); d.phone = v('f-phone').replace(/[\s-]/g, ''); d.email = v('f-email'); d.city = $('f-city').value; d.addr = v('f-addr');
+  const ship = document.querySelector('input[name="ship"]:checked'); d.ship = ship ? ship.value : 'home';
+  const errs = {
+    name: d.name ? '' : '請填寫姓名',
+    phone: /^09\d{8}$/.test(d.phone) ? '' : '請輸入 09 開頭的 10 碼手機號碼',
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email) ? '' : 'Email 格式不正確',
+    addr: d.ship === 'store' || d.addr ? '' : '專人配送需要地址',
+  };
+  let ok = true, firstBad = null;
+  Object.entries(errs).forEach(([k, m]) => {
+    $('e-' + k).textContent = m; $('f-' + k).setAttribute('aria-invalid', m ? 'true' : 'false');
+    if (m) { ok = false; firstBad = firstBad || $('f-' + k); }
+  });
+  if (firstBad) firstBad.focus();
+  return ok;
+}
+function openCheckout() {
+  if (!cart.length) return;
+  closeDrawer(true);
+  co.step = 1; $('checkout').hidden = false; renderCheckout();
+  const g = gs();
+  if (g && !reduced) g.fromTo('#checkout .sheet', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' });
+}
+function closeCheckout() { $('checkout').hidden = true; $('scrim').hidden = true; if (lastFocus) lastFocus.focus(); }
+$('toCheckout').addEventListener('click', openCheckout);
+$('coClose').addEventListener('click', closeCheckout);
+$('checkout').addEventListener('click', (e) => { if (e.target === $('checkout')) closeCheckout(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { if (!$('checkout').hidden) closeCheckout(); else if (!$('drawer').hidden) closeDrawer(); else if (!$('partCard').hidden) $('partClose').click(); return; }
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'select' || tag === 'textarea' || e.ctrlKey || e.metaKey || e.altKey) return;
+  if ((e.key === 'p' || e.key === 'P') && viewer) { $('pedalBtn').click(); }
+});
+
+renderForm(); initSteps(); renderPrice(); renderCart();
+
+// ============================================================
+// 3D — helpers, materials, frame, fork, wheels
+// Units: metres. Bike-local frame: +x forward, +y up, +z drive side, origin = rear axle.
+// ============================================================
+let THREE, OrbitControls, RoomEnvironment, mergeGeometries;
+const deg = (d) => d * Math.PI / 180;
+const v3 = (p, z = 0) => new THREE.Vector3(p.x, p.y, z);
+
+// tube along any curve, radius may taper (number→number or function of t)
+function taperTube(curve, r0, r1 = r0, tub = 24, rad = 18) {
+  const frames = curve.computeFrenetFrames(tub, false);
+  const pos = [], nor = [], uv = [], idx = [];
+  const P = new THREE.Vector3(), N = new THREE.Vector3();
+  for (let i = 0; i <= tub; i++) {
+    const t = i / tub; curve.getPointAt(t, P);
+    const r = typeof r0 === 'function' ? r0(t) : r0 + (r1 - r0) * t;
+    const n = frames.normals[i], b = frames.binormals[i];
+    for (let j = 0; j <= rad; j++) {
+      const a = j / rad * Math.PI * 2, s = Math.sin(a), c = -Math.cos(a);
+      N.set(c * n.x + s * b.x, c * n.y + s * b.y, c * n.z + s * b.z).normalize();
+      pos.push(P.x + r * N.x, P.y + r * N.y, P.z + r * N.z); nor.push(N.x, N.y, N.z); uv.push(t, j / rad);
+    }
+  }
+  for (let i = 0; i < tub; i++) for (let j = 0; j < rad; j++) {
+    const a = i * (rad + 1) + j, b = (i + 1) * (rad + 1) + j;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  return g;
+}
+function mesh(geo, mat, part, shadow = true) {
+  const m = new THREE.Mesh(geo, mat);
+  m.castShadow = shadow; m.receiveShadow = shadow; m.userData.part = part;
+  return m;
+}
+const rod = (a, b, r0, r1, mat, part, rad = 20) => mesh(taperTube(new THREE.LineCurve3(a, b), r0, r1, 1, rad), mat, part);
+const bend = (pts, r0, r1, mat, part, tub = 32, rad = 16) => mesh(taperTube(new THREE.CatmullRomCurve3(pts), r0, r1, tub, rad), mat, part);
+// cylinder centred at c with its axis along `axis`
+function cyl(c, axis, r, h, mat, part, seg = 28, r2 = r) {
+  const m = mesh(new THREE.CylinderGeometry(r2, r, h, seg), mat, part);
+  m.position.copy(c); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis.clone().normalize());
+  return m;
+}
+const Z = () => new THREE.Vector3(0, 0, 1);
+function roundRect(w, h, r) {
+  const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
+  s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r); s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+  return s;
+}
+function block(w, h, d, r, mat, part) {
+  const g = new THREE.ExtrudeGeometry(roundRect(w, h, r), { depth: d, bevelEnabled: true, bevelSize: r * 0.5, bevelThickness: r * 0.5, bevelSegments: 2, curveSegments: 6 });
+  g.translate(0, 0, -d / 2); return mesh(g, mat, part);
+}
+
+// ---------- procedural textures ----------
+function canvasTex(w, h, draw, srgb = true) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function makeTextures() {
+  const R = rng(7);
+  const T = {};
+  // 2×2 twill carbon weave
+  T.carbon = canvasTex(256, 256, (x, w) => {
+    const n = 8, c = w / n;
+    x.fillStyle = '#0d0d0e'; x.fillRect(0, 0, w, w);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const horiz = ((i + j) % 4) < 2, gx = i * c, gy = j * c;
+      const gr = horiz ? x.createLinearGradient(gx, gy, gx, gy + c) : x.createLinearGradient(gx, gy, gx + c, gy);
+      gr.addColorStop(0, '#141416'); gr.addColorStop(0.5, '#3a3a3f'); gr.addColorStop(1, '#141416');
+      x.fillStyle = gr; x.fillRect(gx + 0.5, gy + 0.5, c - 1, c - 1);
+      x.strokeStyle = 'rgba(0,0,0,.35)'; x.lineWidth = 1;
+      for (let k = 2; k < c; k += 3) { x.beginPath(); if (horiz) { x.moveTo(gx, gy + k); x.lineTo(gx + c, gy + k); } else { x.moveTo(gx + k, gy); x.lineTo(gx + k, gy + c); } x.stroke(); }
+    }
+  });
+  T.carbon.repeat.set(14, 3);
+  T.carbonFine = T.carbon.clone(); T.carbonFine.repeat.set(60, 2); T.carbonFine.needsUpdate = true;
+  // metallic flake normal map
+  T.flake = canvasTex(256, 256, (x, w) => {
+    const d = x.createImageData(w, w);
+    for (let i = 0; i < w * w; i++) {
+      const nx = (R() - 0.5) * 0.9, ny = (R() - 0.5) * 0.9, nz = 1, l = Math.hypot(nx, ny, nz);
+      d.data[i * 4] = (nx / l * 0.5 + 0.5) * 255; d.data[i * 4 + 1] = (ny / l * 0.5 + 0.5) * 255; d.data[i * 4 + 2] = (nz / l * 0.5 + 0.5) * 255; d.data[i * 4 + 3] = 255;
+    }
+    x.putImageData(d, 0, 0);
+  }, false);
+  T.flake.repeat.set(24, 4);
+  // vegetable-tanned leather grain
+  T.leather = canvasTex(512, 512, (x, w) => {
+    x.fillStyle = '#8b5a33'; x.fillRect(0, 0, w, w);
+    for (let i = 0; i < 9000; i++) { x.fillStyle = `rgba(${R() < 0.5 ? '60,34,16' : '170,120,80'},${R() * 0.18})`; x.fillRect(R() * w, R() * w, 1 + R() * 3, 1 + R() * 2); }
+    for (let i = 0; i < 40; i++) { x.strokeStyle = 'rgba(70,40,20,.10)'; x.beginPath(); const y = R() * w; x.moveTo(0, y); x.bezierCurveTo(w * .3, y + R() * 20 - 10, w * .6, y + R() * 20 - 10, w, y + R() * 16 - 8); x.stroke(); }
+  });
+  // wrapped bar tape
+  const tape = (base, line) => canvasTex(64, 256, (x, w, h) => {
+    x.fillStyle = base; x.fillRect(0, 0, w, h);
+    x.strokeStyle = line; x.lineWidth = 3;
+    for (let k = -h; k < h * 2; k += 22) { x.beginPath(); x.moveTo(0, k); x.lineTo(w, k + 40); x.stroke(); }
+    for (let i = 0; i < 700; i++) { x.fillStyle = 'rgba(255,255,255,.035)'; x.fillRect(R() * w, R() * h, 1, 1); }
+  });
+  T.tapeBlack = tape('#171717', 'rgba(255,255,255,.07)'); T.tapeBlack.repeat.set(70, 1);
+  T.tapeTan = tape('#9a6a3e', 'rgba(60,30,10,.28)'); T.tapeTan.repeat.set(70, 1);
+  return T;
+}
+// down-tube decal, drawn along the tube (texture v = along the tube)
+function decalCanvas(color) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 1024;
+  const x = c.getContext('2d');
+  x.clearRect(0, 0, 128, 1024);
+  x.save(); x.translate(64, 512); x.rotate(-Math.PI / 2);
+  x.fillStyle = color; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.font = '800 70px "Helvetica Neue",Arial,sans-serif';
+  if ('letterSpacing' in x) x.letterSpacing = '14px';
+  x.fillText('HEADWIND', 0, 4);
+  x.fillRect(-470, -3, 70, 6); x.fillRect(400, -3, 70, 6);
+  x.restore();
+  return c;
+}
+
+const PAINT = {
+  lake: { color: '#1f4f4a', metalness: 0.55, roughness: 0.3, clearcoat: 1, flake: 0.35, decal: '#f1eee6' },
+  ember: { color: '#b8451f', metalness: 0.5, roughness: 0.3, clearcoat: 1, flake: 0.35, decal: '#fff4e8' },
+  midnight: { color: '#1b2745', metalness: 0.55, roughness: 0.28, clearcoat: 1, flake: 0.4, decal: '#e6ebf5' },
+  pearl: { color: '#ecebe6', metalness: 0.08, roughness: 0.34, clearcoat: 1, flake: 0.1, iridescence: 0.7, decal: '#1d1d1d' },
+  stealth: { color: '#1c1c1d', metalness: 0.2, roughness: 0.62, clearcoat: 0, flake: 0, decal: '#57575a' },
+  raw: { color: '#ffffff', carbon: true, metalness: 0.25, roughness: 0.4, clearcoat: 1, flake: 0, decal: '#d8d8d8' },
+};
+function makeMaterials(T) {
+  const S = (o) => new THREE.MeshStandardMaterial(o), P = (o) => new THREE.MeshPhysicalMaterial(o);
+  const M = {
+    frame: P({ color: '#1f4f4a', metalness: 0.55, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.04, normalMap: T.flake, normalScale: new THREE.Vector2(0.35, 0.35), iridescenceIOR: 1.6, iridescenceThicknessRange: [180, 520] }),
+    alloy: S({ color: '#c3c6cb', metalness: 1, roughness: 0.28 }),
+    polish: S({ color: '#e4e7eb', metalness: 1, roughness: 0.12 }),
+    black: S({ color: '#1c1d1f', metalness: 0.55, roughness: 0.42 }),
+    gloss: P({ color: '#101011', metalness: 0.2, roughness: 0.35, clearcoat: 0.9, clearcoatRoughness: 0.08 }),
+    carbon: P({ map: T.carbonFine, color: '#ffffff', metalness: 0.25, roughness: 0.38, clearcoat: 1, clearcoatRoughness: 0.06, side: THREE.DoubleSide }),
+    alloyRim: S({ color: '#b9bcc1', metalness: 1, roughness: 0.3, side: THREE.DoubleSide }),
+    rubber: S({ color: '#161616', roughness: 0.86, metalness: 0, side: THREE.DoubleSide }),
+    tan: S({ color: '#c49c6c', roughness: 0.8, metalness: 0, side: THREE.DoubleSide }),
+    chain: S({ color: '#9a9da2', metalness: 1, roughness: 0.3 }),
+    chainIn: S({ color: '#63666b', metalness: 1, roughness: 0.38 }),
+    rotor: S({ color: '#babec3', metalness: 1, roughness: 0.22 }),
+    copper: S({ color: '#b8743a', metalness: 1, roughness: 0.3 }),
+    leather: P({ map: T.leather, color: '#ffffff', roughness: 0.55, sheen: 0.4, sheenRoughness: 0.5, sheenColor: '#d9b08a', clearcoat: 0.25, clearcoatRoughness: 0.4 }),
+    synth: P({ color: '#161617', roughness: 0.42, sheen: 0.5, sheenColor: '#555555', clearcoat: 0.3, clearcoatRoughness: 0.3 }),
+    comfort: S({ color: '#34363a', roughness: 0.7 }),
+    tapeBlack: S({ map: T.tapeBlack, roughness: 0.82 }),
+    tapeTan: S({ map: T.tapeTan, roughness: 0.75 }),
+    hood: S({ color: '#1a1a1b', roughness: 0.72 }),
+    decal: new THREE.MeshStandardMaterial({ transparent: true, roughness: 0.55, metalness: 0, envMapIntensity: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
+  };
+  M.decalTex = new THREE.CanvasTexture(decalCanvas('#f1eee6'));
+  M.decalTex.colorSpace = THREE.SRGBColorSpace; M.decalTex.anisotropy = 8;
+  M.decal.map = M.decalTex;
+  return M;
+}
+
+// ---------- geometry from a real size chart ----------
+const SIZES = {
+  '52': { stack: 0.535, reach: 0.378, st: 0.50, hta: 72.0, sta: 74.0, ht: 0.130, sh: 0.690, bar: 0.40, crank: 0.170, stem: 0.090 },
+  '54': { stack: 0.553, reach: 0.384, st: 0.52, hta: 72.5, sta: 73.5, ht: 0.145, sh: 0.715, bar: 0.40, crank: 0.1725, stem: 0.100 },
+  '56': { stack: 0.570, reach: 0.390, st: 0.54, hta: 73.0, sta: 73.5, ht: 0.160, sh: 0.740, bar: 0.42, crank: 0.1725, stem: 0.100 },
+  '58': { stack: 0.590, reach: 0.397, st: 0.56, hta: 73.3, sta: 73.0, ht: 0.180, sh: 0.765, bar: 0.44, crank: 0.175, stem: 0.110 },
+};
+function geom(sizeId) {
+  const V2 = (x, y) => new THREE.Vector2(x, y);
+  const g = { ...SIZES[sizeId] };
+  g.cs = 0.410; g.drop = 0.070;
+  g.BB = V2(Math.sqrt(g.cs * g.cs - g.drop * g.drop), -g.drop);
+  const sta = deg(g.sta), hta = deg(g.hta);
+  g.stDir = V2(-Math.cos(sta), Math.sin(sta));
+  g.HT_top = g.BB.clone().add(V2(g.reach, g.stack));
+  g.htDir = V2(Math.cos(hta), -Math.sin(hta));      // down the steering axis
+  g.htN = V2(Math.sin(hta), Math.cos(hta));         // perpendicular, pointing forward
+  g.up = g.htDir.clone().negate();
+  g.HT_bot = g.HT_top.clone().addScaledVector(g.htDir, g.ht);
+  g.crown = g.HT_bot.clone().addScaledVector(g.htDir, 0.014);
+  g.offset = 0.045;
+  g.forkL = -(g.crown.y + g.offset * g.htN.y) / g.htDir.y;          // axle-to-crown so both axles sit level
+  g.FA = g.crown.clone().addScaledVector(g.htDir, g.forkL).addScaledVector(g.htN, g.offset);
+  g.at = (d) => g.BB.clone().addScaledVector(g.stDir, d);
+  g.stTop = g.at(g.st);
+  g.ttRear = g.at(g.st - 0.035);
+  g.ssTop = g.at(g.st - 0.07);
+  g.ttFront = g.HT_top.clone().addScaledVector(g.htDir, 0.024);
+  g.dtFront = g.HT_bot.clone().addScaledVector(g.htDir, -0.045);
+  g.saddle = g.at(g.sh - 0.03);
+  g.stemBase = g.HT_top.clone().addScaledVector(g.up, 0.012 + 0.02 + 0.02);
+  const sa = Math.atan2(g.htN.y, g.htN.x) - deg(6);
+  g.stemDir = V2(Math.cos(sa), Math.sin(sa));
+  g.barC = g.stemBase.clone().addScaledVector(g.stemDir, g.stem);
+  return g;
+}
+
+// ---------- frame ----------
+function buildFrame(g, M) {
+  const grp = new THREE.Group(), F = M.frame, add = (m) => { grp.add(m); return m; };
+  add(rod(v3(g.HT_bot.clone().addScaledVector(g.htDir, 0.004)), v3(g.HT_top.clone().addScaledVector(g.up, 0.004)), 0.0245, 0.0195, F, 'frame', 28));
+  add(rod(v3(g.ttRear), v3(g.ttFront), 0.0165, 0.018, F, 'frame'));
+  const dt = add(rod(v3(g.BB), v3(g.dtFront), 0.0245, 0.021, F, 'frame', 28));
+  add(rod(v3(g.BB), v3(g.stTop), 0.0175, 0.0165, F, 'frame'));
+  const bbs = cyl(v3(g.BB), Z(), 0.022, 0.086, F, 'frame'); add(bbs);
+  const j = new THREE.SphereGeometry(1, 20, 14);
+  const ball = (p, r) => { const m = mesh(j, F, 'frame'); m.position.copy(p); m.scale.setScalar(r); add(m); };
+  ball(v3(g.ttRear), 0.019); ball(v3(g.BB), 0.0245);
+  for (const s of [1, -1]) {
+    add(bend([v3({ x: 0.012, y: 0.012 }, 0.064 * s), v3({ x: 0.15, y: 0.2 }, 0.05 * s), v3(g.ssTop, 0.019 * s)], 0.0075, 0.0098, F, 'frame'));
+    add(bend([v3({ x: 0.014, y: -0.004 }, 0.065 * s), v3({ x: 0.2, y: -0.04 }, 0.058 * s), v3(g.BB.clone().add(new THREE.Vector2(-0.03, 0.006)), 0.037 * s)], 0.0085, 0.0145, F, 'frame'));
+    // dropouts
+    const dp = new THREE.Shape(); dp.absarc(0, 0, 0.016, 0, Math.PI * 2, false);
+    const hole = new THREE.Path(); hole.absarc(0, 0, 0.0065, 0, Math.PI * 2, true); dp.holes.push(hole);
+    const dg = new THREE.ExtrudeGeometry(dp, { depth: 0.007, bevelEnabled: false, curveSegments: 24 });
+    const d = mesh(dg, F, 'frame'); d.position.set(0, 0, 0.066 * s - 0.0035); add(d);
+  }
+  // derailleur hanger (drive side)
+  const hs = new THREE.Shape(); hs.moveTo(-0.008, 0.006); hs.lineTo(0.01, 0.004); hs.lineTo(0.006, -0.036); hs.lineTo(-0.006, -0.04); hs.closePath();
+  const hg = mesh(new THREE.ExtrudeGeometry(hs, { depth: 0.004, bevelEnabled: false }), M.black, 'drive'); hg.position.z = 0.071; add(hg);
+  // headset cups, seat collar
+  add(cyl(v3(g.HT_bot.clone().addScaledVector(g.htDir, 0.004)), v3(g.up), 0.0265, 0.012, M.black, 'frame'));
+  add(cyl(v3(g.HT_top.clone().addScaledVector(g.up, 0.008)), v3(g.up), 0.023, 0.012, M.black, 'frame'));
+  add(cyl(v3(g.stTop.clone().addScaledVector(g.stDir, -0.004)), v3(g.stDir), 0.0198, 0.02, M.black, 'frame'));
+  add(cyl(v3(g.stTop.clone().addScaledVector(g.stDir, -0.004).add(new THREE.Vector2(-0.02, 0.005))), Z(), 0.0035, 0.03, M.polish, 'frame', 10));
+  // flat-mount rear caliper on the chainstay
+  const cal = block(0.05, 0.022, 0.026, 0.005, M.black, 'brakes');
+  const ca = deg(14); cal.position.set(Math.cos(ca) * 0.071, Math.sin(ca) * 0.071, -0.058); cal.rotation.z = ca + Math.PI / 2; add(cal);
+  // down-tube decals, both sides
+  const a = v3(g.BB), b = v3(g.dtFront), len = a.distanceTo(b), dir = b.clone().sub(a).normalize();
+  // follows the down tube's taper (0.0245 → 0.021 m) over t = 0.21…0.83, lifted 0.7 mm off the paint
+  const dtR = (t) => 0.0245 + (0.021 - 0.0245) * t + 0.0007;
+  const decalGeo = (center) => new THREE.CylinderGeometry(dtR(0.83), dtR(0.21), len * 0.62, 24, 1, true, center - Math.PI / 3, Math.PI * 2 / 3);
+  for (const [c, flip] of [[0, false], [Math.PI, true]]) {
+    const dm = new THREE.Mesh(decalGeo(c), flip ? M.decalNds : M.decal);
+    dm.position.copy(a.clone().addScaledVector(dir, len * 0.52)); dm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    dm.userData.part = 'frame'; dm.renderOrder = 2; add(dm);
+  }
+  grp.userData.dt = dt;
+  return grp;
+}
+
+// ---------- fork, steerer, headset spacers ----------
+function buildFork(g, M) {
+  const grp = new THREE.Group(), F = M.frame;
+  const crown = v3(g.crown);
+  const top = v3(g.stemBase.clone().addScaledVector(g.up, 0.024));
+  grp.add(rod(crown, top, 0.0143, 0.0143, M.black, 'fork', 16));
+  const cr = mesh(new THREE.SphereGeometry(1, 28, 16), F, 'fork');
+  cr.position.copy(crown.clone().addScaledVector(v3(g.htDir), 0.008)); cr.scale.set(0.03, 0.022, 0.058);
+  cr.rotation.z = Math.atan2(g.htDir.y, g.htDir.x) + Math.PI / 2; grp.add(cr);
+  for (const s of [1, -1]) {
+    const p0 = v3(g.crown.clone().addScaledVector(g.htDir, 0.012), 0.046 * s);
+    const mid = v3(g.crown.clone().addScaledVector(g.htDir, g.forkL * 0.55).addScaledVector(g.htN, g.offset * 0.3), 0.05 * s);
+    const p1 = v3(g.FA, 0.052 * s);
+    grp.add(bend([p0, mid, p1], (t) => 0.0175 - 0.009 * t, 0, F, 'fork', 36, 16));
+    grp.add(cyl(v3(g.FA, 0.052 * s), Z(), 0.012, 0.008, F, 'fork'));
+  }
+  // spacers (two 10 mm) between headset and stem
+  for (let i = 0; i < 2; i++) grp.add(cyl(v3(g.HT_top.clone().addScaledVector(g.up, 0.019 + i * 0.0105)), v3(g.up), 0.0178, 0.0095, i ? M.black : M.polish, 'fork'));
+  // post-mount front caliper
+  const cal = block(0.05, 0.022, 0.026, 0.005, M.black, 'brakes');
+  const ca = deg(158); cal.position.set(g.FA.x + Math.cos(ca) * 0.071, g.FA.y + Math.sin(ca) * 0.071, -0.046); cal.rotation.z = ca + Math.PI / 2; grp.add(cal);
+  return grp;
+}
+
+// ---------- wheels ----------
+const RIM_BEAD = 0.311; // ISO 622 bead seat radius
+const WHEELS = {
+  alloy: { depth: 0.025, width: 0.021, spokes: [32, 32], cross: [2, 2], rim: 'alloyRim', hub: 'alloy', flange: 0.027, blade: false },
+  c45: { depth: 0.045, width: 0.028, spokes: [20, 24], cross: [0, 2], rim: 'carbon', hub: 'black', flange: 0.022, blade: true },
+  c65: { depth: 0.065, width: 0.028, spokes: [18, 24], cross: [0, 2], rim: 'carbon', hub: 'black', flange: 0.022, blade: true },
+};
+const TIRES = { slick25: { w: 0.025, side: 'rubber' }, tan28: { w: 0.028, side: 'tan' }, gravel32: { w: 0.032, side: 'rubber', knobs: true } };
+const wheelRadius = (tireId) => RIM_BEAD + TIRES[tireId].w;
+function lathe(pts, mat, part, seg = 128) {
+  const g = new THREE.LatheGeometry(pts.map((p) => new THREE.Vector2(p[0], p[1])), seg);
+  g.rotateX(Math.PI / 2);
+  return mesh(g, mat, part);
+}
+function buildWheel(wId, tId, rear, M) {
+  const W = WHEELS[wId], T = TIRES[tId];
+  const root = new THREE.Group(), spin = new THREE.Group(); root.add(spin);
+  const Rb = RIM_BEAD, d = W.depth, w = W.width / 2;
+  spin.add(lathe([[Rb + 0.0035, w - 0.001], [Rb - 0.001, w], [Rb - d * 0.82, w * 0.97], [Rb - d, w * 0.62], [Rb - d - 0.0012, 0], [Rb - d, -w * 0.62], [Rb - d * 0.82, -w * 0.97], [Rb - 0.001, -w], [Rb + 0.0035, -w + 0.001], [Rb + 0.0015, -w * 0.7], [Rb + 0.0015, w * 0.7], [Rb + 0.0035, w - 0.001]], M[W.rim], 'wheels'));
+  // tyre: elliptical section split into tread and sidewalls
+  const tw = T.w, rc = Rb + tw * 0.46, ra = tw * 0.54, rb = tw * 0.5;
+  const arc = (a0, a1, n) => Array.from({ length: n + 1 }, (_, i) => { const a = deg(a0 + (a1 - a0) * i / n); return [rc + ra * Math.cos(a), rb * Math.sin(a)]; });
+  spin.add(lathe(arc(-62, 62, 28), M.rubber, 'tires', 160));
+  spin.add(lathe(arc(62, 140, 16), M[T.side], 'tires', 160));
+  spin.add(lathe(arc(-140, -62, 16), M[T.side], 'tires', 160));
+  if (T.knobs) {
+    const n = 64, rows = [[0, 0], [38, 0.5], [-38, 0.5]], kg = new THREE.BoxGeometry(0.0065, 0.0032, 0.0052);
+    const im = new THREE.InstancedMesh(kg, M.rubber, n * rows.length); im.castShadow = true; im.userData.part = 'tires';
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s1 = new THREE.Vector3(1, 1, 1);
+    let k = 0;
+    for (const [phi, off] of rows) for (let i = 0; i < n; i++) {
+      const th = (i + off) / n * Math.PI * 2, a = deg(phi);
+      const r = rc + ra * Math.cos(a) + 0.0012, zz = rb * Math.sin(a);
+      e.set(-a * 0.9, 0, th - Math.PI / 2, 'ZXY'); q.setFromEuler(e);
+      m4.compose(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, zz), q, s1); im.setMatrixAt(k++, m4);
+    }
+    spin.add(im);
+  }
+  // hub
+  const hubM = M[W.hub], S = rear ? 0.071 : 0.05;
+  const fl = rear ? [0.02, -0.034] : [0.034, -0.034];
+  spin.add(cyl(new THREE.Vector3(0, 0, (fl[0] + fl[1]) / 2), Z(), 0.0165, Math.abs(fl[0] - fl[1]), hubM, 'wheels'));
+  for (const z of fl) spin.add(cyl(new THREE.Vector3(0, 0, z), Z(), W.flange, 0.0032, hubM, 'wheels', 36));
+  root.add(cyl(new THREE.Vector3(0, 0, 0), Z(), 0.006, S * 2 + 0.01, M.polish, 'wheels', 12));
+  for (const z of [S - 0.006, -S + 0.006]) root.add(cyl(new THREE.Vector3(0, 0, z), Z(), 0.0105, 0.01, M.black, 'wheels', 20));
+  if (rear) spin.add(cyl(new THREE.Vector3(0, 0, 0.045), Z(), 0.0165, 0.05, M.black, 'drive', 24));
+  // every spoke: hub flange hole → rim nipple, real lacing angles
+  const n = W.spokes[rear ? 1 : 0], cross = W.cross[rear ? 1 : 0], Rn = Rb - d + 0.004;
+  const base = new THREE.CylinderGeometry(0.00095, 0.00095, 1, 6, 1, true); base.translate(0, 0.5, 0);
+  const sp = new THREE.InstancedMesh(base, M.polish, n), nip = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.0018, 0.0018, 0.012, 8), M.alloy, n);
+  sp.castShadow = true; sp.userData.part = nip.userData.part = 'wheels';
+  const m4 = new THREE.Matrix4(), X = new THREE.Vector3(), Yv = new THREE.Vector3(), Zv = new THREE.Vector3();
+  for (let k = 0; k < n; k++) {
+    const side = k % 2 ? -1 : 1, fz = side > 0 ? fl[0] : fl[1];
+    const thR = k / n * Math.PI * 2, m = Math.floor(k / 2);
+    const lead = m % 2 ? 1 : -1, thH = thR + lead * cross * (4 * Math.PI / n);
+    const A = new THREE.Vector3(Math.cos(thH) * (W.flange - 0.004), Math.sin(thH) * (W.flange - 0.004), fz);
+    const B = new THREE.Vector3(Math.cos(thR) * Rn, Math.sin(thR) * Rn, 0.0025 * side);
+    Yv.subVectors(B, A); const len = Yv.length(); Yv.normalize();
+    X.set(-Math.sin(thR), Math.cos(thR), 0); X.addScaledVector(Yv, -X.dot(Yv)).normalize(); Zv.crossVectors(X, Yv);
+    m4.makeBasis(X.clone().multiplyScalar(W.blade ? 2.4 : 1), Yv.clone().multiplyScalar(len), Zv.clone().multiplyScalar(W.blade ? 0.55 : 1)).setPosition(A);
+    sp.setMatrixAt(k, m4);
+    m4.makeBasis(X, Yv, Zv).setPosition(B.clone().addScaledVector(Yv, -0.004));
+    nip.setMatrixAt(k, m4);
+  }
+  spin.add(sp, nip);
+  // valve
+  const valve = cyl(new THREE.Vector3(Rb - d - 0.012, 0, 0), new THREE.Vector3(1, 0, 0), 0.0028, 0.026, M.polish, 'wheels', 10);
+  valve.position.applyAxisAngle(Z(), deg(97)); valve.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(Math.cos(deg(97)), Math.sin(deg(97)), 0)); spin.add(valve);
+  // 160 mm disc rotor on the non-drive side
+  const rs = new THREE.Shape(); rs.absarc(0, 0, 0.08, 0, Math.PI * 2, false);
+  const hc = new THREE.Path(); hc.absarc(0, 0, 0.0175, 0, Math.PI * 2, true); rs.holes.push(hc);
+  for (let i = 0; i < 6; i++) {
+    const a0 = i / 6 * Math.PI * 2 + 0.2, a1 = a0 + 0.62, h = new THREE.Path();
+    h.absarc(0, 0, 0.061, a0, a1, false); h.absarc(0, 0, 0.028, a1 - 0.08, a0 + 0.08, true); h.closePath(); rs.holes.push(h);
+  }
+  for (let i = 0; i < 36; i++) { const a = i / 36 * Math.PI * 2, h = new THREE.Path(); h.absarc(Math.cos(a) * 0.0715, Math.sin(a) * 0.0715, 0.0021, 0, Math.PI * 2, true); rs.holes.push(h); }
+  const rotor = mesh(new THREE.ExtrudeGeometry(rs, { depth: 0.0018, bevelEnabled: false, curveSegments: 20 }), M.rotor, 'brakes');
+  rotor.position.z = rear ? -0.059 : -0.047; spin.add(rotor);
+  root.userData.spin = spin;
+  return root;
+}
+
+// ============================================================
+// 3D — drivetrain (gears, chain path, cranks, pedals, derailleurs), cockpit, saddle
+// ============================================================
+const PITCH = 0.0127; // ½" chain pitch
+const pitchR = (n) => n * PITCH / (2 * Math.PI);
+const DRIVES = {
+  road2x: { rings: [50, 34], ringZ: [0.0455, 0.0375], cogs: [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 27, 30], cogIdx: 6, pu: [-0.004, -0.088], pl: [-0.014, -0.154], fd: true, pedal: 'clip', fin: 'polish', spider: 4 },
+  gravel1x: { rings: [42], ringZ: [0.047], cogs: [10, 11, 13, 15, 17, 19, 21, 24, 28, 32, 38, 44], cogIdx: 6, pu: [-0.028, -0.108], pl: [-0.024, -0.185], fd: false, pedal: 'clip', fin: 'black', spider: 4 },
+  single: { rings: [46], ringZ: [0.043], cogs: [17], cogIdx: 0, pu: null, fd: false, pedal: 'flat', fin: 'polish', spider: 5 },
+};
+const cogZ = (D, i) => D.cogs.length === 1 ? 0.043 : 0.066 - i * 0.0039;
+
+// tooth outline; valleys sit exactly at angle k·2π/N so rollers can seat in them
+function gearGeo(N, R, holeR, depth, deep = 1) {
+  const s = new THREE.Shape(), root = R - 0.0041 * deep, tip = R + 0.0036 * deep, st = 10;
+  for (let i = 0; i < N * st; i++) {
+    const a = i / (N * st) * Math.PI * 2, t = (i % st) / st, r = root + (tip - root) * Math.pow(Math.sin(Math.PI * t), 1.5);
+    i ? s.lineTo(Math.cos(a) * r, Math.sin(a) * r) : s.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  s.closePath();
+  const h = new THREE.Path(); h.absarc(0, 0, holeR, 0, Math.PI * 2, true); s.holes.push(h);
+  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 8 });
+  g.translate(0, 0, -depth / 2); return g;
+}
+
+// closed belt around circles given in travel order; s = +1 counter-clockwise, −1 clockwise (seen from the drive side)
+function beltPath(C) {
+  const n = C.length, tan = [];
+  for (let i = 0; i < n; i++) {
+    const A = C[i], B = C[(i + 1) % n], r1 = A.s * A.r, r2 = B.s * B.r;
+    const D = B.c.clone().sub(A.c), d = D.length(), u = D.divideScalar(d);
+    const phi = Math.acos(Math.max(-1, Math.min(1, (r1 - r2) / d)));
+    for (const sg of [1, -1]) {
+      const a = sg * phi, nr = new THREE.Vector2(u.x * Math.cos(a) - u.y * Math.sin(a), u.x * Math.sin(a) + u.y * Math.cos(a));
+      const P1 = A.c.clone().addScaledVector(nr, r1), P2 = B.c.clone().addScaledVector(nr, r2);
+      if (P2.clone().sub(P1).dot(new THREE.Vector2(-nr.y, nr.x)) > 0) { tan[i] = { P1, P2 }; break; }
+    }
+  }
+  const segs = []; let L = 0;
+  for (let i = 0; i < n; i++) {
+    const c = C[i], inP = tan[(i - 1 + n) % n].P2, outP = tan[i].P1;
+    const a0 = Math.atan2(inP.y - c.c.y, inP.x - c.c.x), a1 = Math.atan2(outP.y - c.c.y, outP.x - c.c.x);
+    let sw = c.s > 0 ? a1 - a0 : a0 - a1; sw = ((sw % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    segs.push({ arc: true, c: c.c, r: c.r, a0, s: c.s, len: c.r * sw, start: L, idx: i }); L += c.r * sw;
+    const ll = outP.distanceTo(tan[i].P2);
+    segs.push({ arc: false, p0: outP, p1: tan[i].P2, len: ll, start: L }); L += ll;
+  }
+  return { segs, L };
+}
+function pathAt(P, s, out) {
+  s = ((s % P.L) + P.L) % P.L;
+  for (const g of P.segs) {
+    if (s <= g.start + g.len || g === P.segs[P.segs.length - 1]) {
+      const k = s - g.start;
+      if (g.arc) { const a = g.a0 + g.s * k / g.r; out.set(g.c.x + g.r * Math.cos(a), g.c.y + g.r * Math.sin(a)); }
+      else out.lerpVectors(g.p0, g.p1, g.len ? k / g.len : 0);
+      return out;
+    }
+  }
+  return out;
+}
+
+function linkGeos() {
+  const r = 0.0048, w = 0.0036, p = PITCH, s = new THREE.Shape();
+  s.absarc(0, 0, r, Math.PI / 2, Math.PI * 1.5, false); s.quadraticCurveTo(p / 2, -w, p, -r);
+  s.absarc(p, 0, r, -Math.PI / 2, Math.PI / 2, false); s.quadraticCurveTo(p / 2, w, 0, r);
+  const plate = (z) => { const g = new THREE.ExtrudeGeometry(s, { depth: 0.0008, bevelEnabled: false, curveSegments: 6 }); g.translate(0, 0, z - 0.0004); return g; };
+  const pin = (x, r2, h) => { const g = new THREE.CylinderGeometry(r2, r2, h, 10).toNonIndexed(); g.rotateX(Math.PI / 2); g.translate(x, 0, 0); return g; };
+  return {
+    outer: mergeGeometries([plate(0.0042), plate(-0.0042), pin(0, 0.0019, 0.0104), pin(p, 0.0019, 0.0104)]),
+    inner: mergeGeometries([plate(0.0031), plate(-0.0031), pin(0, 0.0039, 0.0056), pin(p, 0.0039, 0.0056)]),
+  };
+}
+
+function buildDrive(dId, g, M) {
+  const D = DRIVES[dId], fin = M[D.fin], out = { D };
+  const R1 = pitchR(D.rings[0]), R2 = pitchR(D.cogs[D.cogIdx]), Rp = pitchR(11);
+  const zRing = D.ringZ[0], zCog = cogZ(D, D.cogIdx);
+  const BB = g.BB;
+  // ---- chain path: ring → (lower → upper pulley) → cog
+  const C = [{ c: BB.clone(), r: R1, s: -1 }];
+  if (D.pu) {
+    const Pu = new THREE.Vector2(...D.pu), Pl = new THREE.Vector2(...D.pl);
+    C.push({ c: Pl, r: Rp, s: -1 }, { c: Pu, r: Rp, s: 1 });
+    out.Pu = Pu; out.Pl = Pl;
+  }
+  C.push({ c: new THREE.Vector2(0, 0), r: R2, s: -1 });
+  const path = beltPath(C);
+  const N = 2 * Math.round(path.L / PITCH / 2), sp = path.L / N;
+  out.path = path; out.R1 = R1; out.R2 = R2; out.Rp = Rp;
+  const angleAtRoller = (segIdx, r) => {
+    const sg = path.segs[segIdx * 2], i = Math.ceil(sg.start / sp - 1e-9), s = i * sp;
+    return sg.a0 + sg.s * (s - sg.start) / r;
+  };
+  out.ringOff = angleAtRoller(0, R1);
+  out.cogOff = angleAtRoller(C.length - 1, R2);
+  if (D.pu) { out.plOff = angleAtRoller(1, Rp); out.puOff = angleAtRoller(2, Rp); }
+
+  // ---- crankset (rotates about the BB axis)
+  const crank = new THREE.Group(); crank.position.set(BB.x, BB.y, 0);
+  const rings = new THREE.Group(); crank.add(rings);
+  D.rings.forEach((n, i) => {
+    const m = mesh(gearGeo(n, pitchR(n), pitchR(n) - (i ? 0.014 : 0.018), 0.0022), i ? M.black : fin, 'drive');
+    m.position.z = D.ringZ[i]; rings.add(m);
+  });
+  const armAngles = Array.from({ length: D.spider }, (_, k) => k / D.spider * Math.PI * 2 + Math.PI / D.spider);
+  armAngles.forEach((a) => {
+    const arm = block(0.06, 0.013, 0.006, 0.004, D.spider === 5 ? M.polish : M.black, 'drive');
+    arm.position.set(Math.cos(a) * 0.03, Math.sin(a) * 0.03, 0.051); arm.rotation.z = a; rings.add(arm);
+    const bolt = cyl(new THREE.Vector3(Math.cos(a) * 0.055, Math.sin(a) * 0.055, 0.044), Z(), 0.0042, 0.016, M.polish, 'drive', 12); rings.add(bolt);
+  });
+  rings.add(cyl(new THREE.Vector3(0, 0, 0.052), Z(), 0.022, 0.009, M.black, 'drive'));
+  crank.add(cyl(new THREE.Vector3(0, 0, 0), Z(), 0.012, 0.14, M.polish, 'drive', 16));
+  const L = g.crank, arm = new THREE.Shape();
+  arm.absarc(0, 0, 0.02, Math.PI / 2, Math.PI * 1.5, false); arm.lineTo(L, -0.0115); arm.absarc(L, 0, 0.0115, -Math.PI / 2, Math.PI / 2, false); arm.lineTo(0, 0.02);
+  const armGeo = new THREE.ExtrudeGeometry(arm, { depth: 0.011, bevelEnabled: true, bevelSize: 0.0028, bevelThickness: 0.0028, bevelSegments: 3, curveSegments: 16 });
+  armGeo.translate(0, 0, -0.0055);
+  out.pedals = [];
+  for (const [z, rot] of [[0.063, 0], [-0.063, Math.PI]]) {
+    const a = mesh(armGeo, fin === M.black ? M.gloss : M.polish, 'drive'); a.position.z = z; a.rotation.z = rot; crank.add(a);
+    const ped = buildPedal(D.pedal, z > 0 ? 1 : -1, M);
+    ped.position.set(Math.cos(rot) * L, Math.sin(rot) * L, z); crank.add(ped); out.pedals.push(ped);
+  }
+  rings.rotation.z = out.ringOff; // a tooth valley sits under the first roller at crank angle 0
+  out.crank = crank;
+
+  // ---- cassette (lives in the rear wheel's spinning group)
+  const cas = new THREE.Group();
+  D.cogs.forEach((n, i) => { const m = mesh(gearGeo(n, pitchR(n), 0.0175, 0.0017), D.fin === 'black' && i > 8 ? M.black : M.chain, 'drive'); m.position.z = cogZ(D, i); cas.add(m); });
+  if (D.cogs.length === 1) for (const z of [0.031, 0.055]) cas.add(cyl(new THREE.Vector3(0, 0, z), Z(), 0.02, 0.01, M.black, 'drive'));
+  cas.rotation.z = out.cogOff;
+  out.cassette = cas;
+
+  // ---- derailleurs
+  const stat = new THREE.Group(); out.fixed = stat;
+  if (D.pu) {
+    const zc = zCog, pul = (c, off) => { const m = mesh(gearGeo(11, Rp, 0.003, 0.0035, 0.75), M.black, 'drive'); m.position.set(c.x, c.y, zc); m.rotation.z = off; stat.add(m); return m; };
+    out.pUp = pul(out.Pu, out.puOff); out.pLow = pul(out.Pl, out.plOff);
+    for (const c of [out.Pu, out.Pl]) stat.add(cyl(new THREE.Vector3(c.x, c.y, zc), Z(), 0.006, 0.016, M.polish, 'drive', 12));
+    const mid = out.Pu.clone().add(out.Pl).multiplyScalar(0.5), dv = out.Pl.clone().sub(out.Pu), len = dv.length() + 0.046;
+    for (const z of [zc + 0.0068, zc - 0.0068]) {
+      const plate = block(0.03, len, 0.0016, 0.012, D.fin === 'black' ? M.gloss : M.alloy, 'drive');
+      plate.position.set(mid.x, mid.y, z); plate.rotation.z = Math.atan2(dv.y, dv.x) - Math.PI / 2; stat.add(plate);
+    }
+    const knuckle = new THREE.Vector3(out.Pu.x + 0.01, out.Pu.y + 0.02, zc + 0.012), hanger = new THREE.Vector3(0.003, -0.034, 0.075);
+    stat.add(rod(hanger, knuckle, 0.011, 0.012, M.black, 'drive', 14));
+    stat.add(cyl(knuckle, Z(), 0.014, 0.02, D.fin === 'black' ? M.gloss : M.alloy, 'drive'));
+    const pk = block(0.05, 0.028, 0.02, 0.006, M.black, 'drive'); pk.position.copy(hanger.clone().lerp(knuckle, 0.45)).add(new THREE.Vector3(0, 0, 0.012));
+    pk.rotation.z = Math.atan2(knuckle.y - hanger.y, knuckle.x - hanger.x); stat.add(pk);
+  }
+  if (D.fd) {
+    const band = new THREE.Shape(), r0 = R1 + 0.006, r1 = R1 + 0.024, a0 = deg(98), a1 = deg(140);
+    band.absarc(0, 0, r1, a0, a1, false); band.absarc(0, 0, r0, a1, a0, true); band.closePath();
+    const bg = new THREE.ExtrudeGeometry(band, { depth: 0.0016, bevelEnabled: false, curveSegments: 16 });
+    for (const z of [0.0535, 0.0385]) { const m = mesh(bg, M.alloy, 'drive'); m.position.set(BB.x, BB.y, z); stat.add(m); }
+    const clampP = g.at(R1 + 0.04);
+    stat.add(cyl(v3(clampP), v3(g.stDir), 0.0205, 0.016, M.black, 'drive'));
+    const body = block(0.04, 0.02, 0.022, 0.005, M.black, 'drive');
+    body.position.set(clampP.x + 0.012, clampP.y - 0.012, 0.035); body.rotation.z = deg(-35); stat.add(body);
+  }
+
+  // ---- chain: every link, placed on the belt path each frame
+  const G = linkGeos(), half = N / 2;
+  const outer = new THREE.InstancedMesh(G.outer, M.chain, half), inner = new THREE.InstancedMesh(G.inner, M.chainIn, half);
+  for (const im of [outer, inner]) { im.castShadow = true; im.frustumCulled = false; im.userData.part = 'chain'; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); }
+  const chain = new THREE.Group(); chain.add(outer, inner); out.chain = chain;
+  const pts = Array.from({ length: N }, () => new THREE.Vector2()), m4 = new THREE.Matrix4(), zOf = (x) => zRing + (zCog - zRing) * Math.min(1, Math.max(0, (BB.x - x) / BB.x));
+  out.update = (d) => {
+    for (let i = 0; i < N; i++) pathAt(path, i * sp + d, pts[i]);
+    for (let i = 0; i < N; i++) {
+      const a = pts[i], b = pts[(i + 1) % N];
+      m4.makeRotationZ(Math.atan2(b.y - a.y, b.x - a.x)).setPosition(a.x, a.y, zOf(a.x));
+      (i % 2 ? inner : outer).setMatrixAt(i >> 1, m4);
+    }
+    outer.instanceMatrix.needsUpdate = inner.instanceMatrix.needsUpdate = true;
+    if (!outer.boundingSphere) { outer.computeBoundingSphere(); inner.computeBoundingSphere(); }
+  };
+  out.links = N;
+  return out;
+}
+
+function buildPedal(type, side, M) {
+  const p = new THREE.Group(), body = new THREE.Group(); p.add(body);
+  p.add(cyl(new THREE.Vector3(0, 0, side * 0.03), Z(), 0.006, 0.05, M.polish, 'pedal', 12));
+  if (type === 'clip') {
+    const b = block(0.07, 0.016, 0.052, 0.006, M.gloss, 'pedal'); b.position.z = side * 0.078; body.add(b);
+    const plate = block(0.05, 0.004, 0.04, 0.003, M.polish, 'pedal'); plate.position.set(0.004, 0.009, side * 0.078); body.add(plate);
+  } else {
+    const b = block(0.1, 0.014, 0.095, 0.006, M.black, 'pedal'); b.position.z = side * 0.09; body.add(b);
+    const pins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.0015, 0.0015, 0.024, 6), M.polish, 8), m4 = new THREE.Matrix4();
+    [[-0.042, -0.04], [-0.042, 0.04], [0.042, -0.04], [0.042, 0.04], [-0.042, 0], [0.042, 0], [0, -0.042], [0, 0.042]].forEach(([x, z], i) => { m4.makeTranslation(x, 0, side * 0.09 + z); pins.setMatrixAt(i, m4); });
+    pins.userData.part = 'pedal'; body.add(pins);
+  }
+  return p;
+}
+
+// ---------- cockpit: stem + bars ----------
+function buildCockpit(barId, tape, g, M) {
+  const grp = new THREE.Group(), up = v3(g.up), sb = v3(g.stemBase), bc = v3(g.barC);
+  grp.add(cyl(sb, up, 0.0205, 0.04, M.black, 'bar'));
+  grp.add(cyl(sb.clone().addScaledVector(up, 0.0215), up, 0.0165, 0.004, M.polish, 'bar'));
+  grp.add(rod(sb, bc, 0.0165, 0.0145, M.black, 'bar'));
+  grp.add(cyl(bc, Z(), 0.0188, 0.044, M.black, 'bar'));
+  const bars = new THREE.Group(); bars.position.copy(bc); grp.add(bars);
+  bars.add(cyl(new THREE.Vector3(), Z(), 0.0159, 0.14, M.black, 'bar', 24));
+  const hw = g.bar / 2, V = (x, y, z) => new THREE.Vector3(x, y, z);
+  for (const s of [1, -1]) {
+    if (barId === 'drop') {
+      const pts = [V(0, 0, 0.06), V(0, 0, 0.1), V(0.006, 0, 0.15), V(0.036, -0.002, hw - 0.022), V(0.07, -0.012, hw - 0.004), V(0.086, -0.046, hw), V(0.073, -0.096, hw + 0.002), V(0.035, -0.123, hw + 0.004), V(-0.01, -0.126, hw + 0.006), V(-0.075, -0.121, hw + 0.008)];
+      pts.forEach((p) => { p.z *= s; });
+      bars.add(bend(pts, 0.0126, 0.0126, tape, 'bar', 90, 16));
+      const hood = mesh(new THREE.CapsuleGeometry(0.0135, 0.045, 6, 14), M.hood, 'bar');
+      hood.position.set(0.097, -0.004, (hw - 0.004) * s); hood.rotation.z = deg(-68); bars.add(hood);
+      bars.add(bend([V(0.118, 0.006, (hw - 0.004) * s), V(0.122, -0.05, (hw + 0.004) * s), V(0.1, -0.118, (hw + 0.012) * s)], 0.0055, 0.004, M.polish, 'bar', 20, 10));
+      bars.add(cyl(pts[pts.length - 1], new THREE.Vector3(1, 0, 0), 0.0127, 0.004, M.black, 'bar', 16));
+    } else if (barId === 'flat') {
+      const fw = 0.31, pts = [V(0, 0, 0.06), V(0, 0, 0.12), V(-0.006, 0.004, 0.22), V(-0.02, 0.012, fw)];
+      pts.forEach((p) => { p.z *= s; });
+      bars.add(bend(pts, 0.0112, 0.0112, M.black, 'bar', 40, 14));
+      bars.add(rod(V(-0.013, 0.008, 0.18 * s), V(-0.02, 0.012, fw * s), 0.0165, 0.0165, tape === M.tapeTan ? M.tan : M.rubber, 'bar', 20));
+      bars.add(cyl(V(-0.012, 0.0075, 0.176 * s), V(0.06, 0.03, 0.9 * s), 0.018, 0.008, M.black, 'bar'));
+      bars.add(cyl(V(-0.004, 0.004, 0.16 * s), V(0, 0.2, s), 0.017, 0.016, M.black, 'bar'));
+      bars.add(bend([V(0.004, 0.004, 0.16 * s), V(0.06, -0.006, 0.19 * s), V(0.095, -0.012, 0.245 * s)], 0.0045, 0.0038, M.polish, 'bar', 16, 8));
+    } else {
+      const pts = [V(0, 0, 0.06), V(0, 0, 0.1), V(0.01, 0, 0.165), V(0.06, 0.004, 0.198), V(0.14, 0.028, 0.203), V(0.185, 0.05, 0.198)];
+      pts.forEach((p) => { p.z *= s; });
+      bars.add(bend(pts, 0.0126, 0.0126, tape, 'bar', 60, 16));
+      bars.add(bend([V(0.186, 0.05, 0.198 * s), V(0.205, 0.02, 0.198 * s), V(0.196, -0.045, 0.198 * s)], 0.0055, 0.0042, M.polish, 'bar', 16, 10));
+    }
+  }
+  return grp;
+}
+
+// ---------- seatpost + saddle ----------
+const SADDLES = {
+  race: { L: 0.27, wr: 0.07, wn: 0.0155, ht: 0.017, hb: 0.011, mat: 'synth', post: 'carbon', rails: 'carbon' },
+  leather: { L: 0.28, wr: 0.086, wn: 0.022, ht: 0.011, hb: 0.024, mat: 'leather', post: 'polish', rails: 'polish', rivets: true },
+  comfort: { L: 0.26, wr: 0.078, wn: 0.024, ht: 0.027, hb: 0.012, mat: 'comfort', post: 'black', rails: 'polish' },
+};
+function buildSaddle(sId, g, M) {
+  const S = SADDLES[sId], grp = new THREE.Group();
+  const top = v3(g.saddle), low = v3(g.at(g.st - 0.08));
+  grp.add(rod(low, top, 0.0136, 0.0136, M[S.post], 'saddle', 22));
+  const head = block(0.05, 0.016, 0.034, 0.005, M.black, 'saddle'); head.position.copy(top).add(new THREE.Vector3(0, 0.006, 0)); grp.add(head);
+  const sad = new THREE.Group(); sad.position.copy(top).add(new THREE.Vector3(0.01, 0.034, 0)); grp.add(sad);
+  const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const surf = (u, f, o) => {
+    const rr = Math.sqrt(1 - Math.pow(1 - Math.min(u / 0.1, 1), 2)), rn = Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, (u - 0.93) / 0.07), 2)));
+    const w = (S.wr + (S.wn - S.wr) * smooth(0.22, 0.82, u)) * rr * rn, k = Math.sqrt(Math.min(rr, rn)) || 0.001;
+    const sf = Math.sin(f), yc = -0.005 * Math.sin(Math.PI * u) + 0.004 * u;
+    return o.set(-0.11 + u * S.L, yc + (sf > 0 ? S.ht : S.hb) * k * Math.sign(sf) * Math.pow(Math.abs(sf), 0.65), w * Math.cos(f));
+  };
+  const nu = 48, nf = 56, pos = [], uv = [], idx = [], P = new THREE.Vector3();
+  for (let i = 0; i <= nu; i++) for (let j = 0; j <= nf; j++) { surf(i / nu, j / nf * Math.PI * 2, P); pos.push(P.x, P.y, P.z); uv.push(i / nu * 2, j / nf * 2); }
+  for (let i = 0; i < nu; i++) for (let j = 0; j < nf; j++) { const a = i * (nf + 1) + j, b = a + nf + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); sg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); sg.setIndex(idx); sg.computeVertexNormals();
+  sad.add(mesh(sg, M[S.mat], 'saddle'));
+  for (const s of [1, -1]) sad.add(bend([new THREE.Vector3(0.13, -0.004, 0.005 * s), new THREE.Vector3(0.07, -0.026, 0.018 * s), new THREE.Vector3(-0.05, -0.028, 0.021 * s), new THREE.Vector3(-0.088, -0.006, 0.03 * s)], 0.0035, 0.0035, M[S.rails], 'saddle', 24, 8));
+  if (S.rivets) {
+    const us = [0.04, 0.09, 0.14, 0.19, 0.24], rv = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.0038, 0.0038, 0.003, 14), M.copper, us.length * 2 + 2), m4 = new THREE.Matrix4();
+    let k = 0;
+    for (const u of us) for (const f of [deg(14), deg(166)]) { surf(u, f, P); m4.makeTranslation(P.x, P.y + 0.0012, P.z); rv.setMatrixAt(k++, m4); }
+    surf(0.02, deg(90), P); m4.makeTranslation(P.x, P.y + 0.001, P.z); rv.setMatrixAt(k++, m4);
+    surf(0.97, deg(90), P); m4.makeTranslation(P.x, P.y + 0.001, P.z); rv.setMatrixAt(k++, m4);
+    rv.userData.part = 'saddle'; sad.add(rv);
+  }
+  grp.userData.saddle = sad;
+  return grp;
+}
+
+// ============================================================
+// 3D — scene, studio lighting, animation, part swaps, camera, picking
+// ============================================================
+const VIEW_BTNS = [['hero', '3/4'], ['side', '側面'], ['front', '正面'], ['rear', '後方'], ['drive', '傳動'], ['cockpit', '座艙'], ['wheel', '輪組']];
+function setLoading(msg, error) {
+  const l = $('loading'); l.hidden = false; l.classList.toggle('error', !!error);
+  $('loadingText').innerHTML = msg;
+}
+
+async function bootViewer() {
+  try {
+    THREE = await import('three');
+    ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
+    ({ RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js'));
+    ({ mergeGeometries } = await import('three/addons/utils/BufferGeometryUtils.js'));
+  } catch (e) {
+    setLoading('<strong>3D 引擎載入失敗</strong><br>需要網路連線到 cdn.jsdelivr.net 載入 Three.js。<br>右側的配置、報價與購物車仍可正常使用。', true);
+    return;
+  }
+  setLoading('正在生成車架幾何…');
+  const stage = $('stage');
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+  } catch (e) {
+    setLoading('<strong>無法啟用 WebGL</strong><br>這個瀏覽器或裝置不支援 3D 繪圖。<br>右側的配置、報價與購物車仍可正常使用。', true);
+    return;
+  }
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 1.05;
+  renderer.domElement.setAttribute('aria-label', 'Crosswind R 3D 模型，可拖曳旋轉');
+  renderer.domElement.tabIndex = 0;
+  stage.prepend(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.8;
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.02, 40);
+  camera.position.set(1.6, 1.0, 2.3);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 0.3; controls.maxDistance = 5;
+  controls.maxPolarAngle = deg(88); controls.target.set(0, 0.5, 0); controls.autoRotateSpeed = 1.1; controls.screenSpacePanning = true;
+
+  // studio: key with soft shadow, cool rim, warm fill, shadow-catcher floor + contact shadow
+  const key = new THREE.DirectionalLight('#ffffff', 2.4); key.position.set(2.2, 4.2, 2.6);
+  key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -1.3, right: 1.3, top: 1.3, bottom: -1.3, near: 0.5, far: 10 });
+  key.shadow.radius = 4; key.shadow.bias = -0.0002; key.shadow.normalBias = 0.02;
+  const rim = new THREE.DirectionalLight('#e8f0ff', 1.2); rim.position.set(-3, 2.2, -2.4);
+  scene.add(key, rim, new THREE.HemisphereLight('#ffffff', '#b8b0a4', 0.35));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.ShadowMaterial({ opacity: 0.2 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  const ao = canvasTex(256, 256, (x, w) => { const gr = x.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); gr.addColorStop(0, 'rgba(0,0,0,.55)'); gr.addColorStop(0.55, 'rgba(0,0,0,.18)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gr; x.fillRect(0, 0, w, w); });
+  const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: ao, transparent: true, depthWrite: false, opacity: 0.55 }));
+  contact.rotation.x = -Math.PI / 2; contact.position.y = 0.001; contact.scale.set(1.9, 0.5, 1); scene.add(contact);
+
+  const T = makeTextures(), M = makeMaterials(T);
+  M.decalNdsTex = M.decalTex.clone(); M.decalNdsTex.wrapT = THREE.RepeatWrapping; M.decalNdsTex.repeat.y = -1; // reads upright from the non-drive side M.decalNdsTex.needsUpdate = true;
+  M.decalNds = M.decal.clone(); M.decalNds.map = M.decalNdsTex;
+  const setDecal = (color) => { const c = decalCanvas(color); for (const t of [M.decalTex, M.decalNdsTex]) { t.image = c; t.needsUpdate = true; } };
+  function paintNow(id) {
+    const P = PAINT[id], m = M.frame;
+    m.color.set(P.color); m.metalness = P.metalness; m.roughness = P.roughness; m.clearcoat = P.clearcoat;
+    m.map = P.carbon ? T.carbon : null; m.normalMap = P.flake ? T.flake : null; m.normalScale.setScalar(P.flake || 0);
+    m.iridescence = P.iridescence || 0; m.needsUpdate = true; setDecal(P.decal);
+  }
+
+  // ---------- bike assembly ----------
+  const root = new THREE.Group(); scene.add(root);
+  const P = {}; let g, drv;
+  const anim = { crank: deg(-25), rpm: 0, pedal: false };
+  const pivot = (obj, at) => { const p = new THREE.Group(); p.position.copy(at); obj.position.sub(at); p.add(obj); return p; };
+  const dispose = (o) => o.traverse((c) => { if (c.geometry) c.geometry.dispose(); });
+  const tapeMat = () => state.saddle === 'leather' ? M.tapeTan : M.tapeBlack;
+  function makePart(k) {
+    if (k === 'frame') return buildFrame(g, M);
+    if (k === 'fork') return buildFork(g, M);
+    if (k === 'wheelR') return buildWheel(state.wheels, state.tires, true, M);
+    if (k === 'wheelF') { const w = buildWheel(state.wheels, state.tires, false, M); w.position.set(g.FA.x, 0, 0); return w; }
+    if (k === 'cockpit') { const c = pivot(buildCockpit(state.bar, tapeMat(), g, M), v3(g.barC)); c.userData.tan = state.saddle === 'leather'; return c; }
+    if (k === 'saddle') return pivot(buildSaddle(state.saddle, g, M), v3(g.saddle));
+    if (k === 'drive') {
+      if (drv && drv.cassette.parent) { drv.cassette.parent.remove(drv.cassette); dispose(drv.cassette); }
+      drv = buildDrive(state.drive, g, M);
+      const grp = new THREE.Group(); grp.add(drv.crank, drv.fixed, drv.chain); return grp;
+    }
+  }
+  function mount(k) {
+    if (P[k]) { if (k === 'wheelR' && drv) P[k].userData.spin.remove(drv.cassette); root.remove(P[k]); dispose(P[k]); }
+    P[k] = makePart(k); root.add(P[k]);
+    if ((k === 'wheelR' || k === 'drive') && P.wheelR && drv) P.wheelR.userData.spin.add(drv.cassette);
+  }
+  function buildAll() {
+    g = geom(state.size);
+    ['frame', 'fork', 'wheelR', 'wheelF', 'drive', 'cockpit', 'saddle'].forEach(mount);
+    root.position.set(-g.FA.x / 2, wheelRadius(state.tires), 0);
+    updateDrive(true);
+  }
+  let lastD = null;
+  function updateDrive(force) {
+    const d = -anim.crank * drv.R1;
+    drv.crank.rotation.z = anim.crank;
+    drv.pedals.forEach((p) => { p.rotation.z = -anim.crank; });
+    const w = -d / drv.R2;
+    P.wheelR.userData.spin.rotation.z = w; P.wheelF.userData.spin.rotation.z = w;
+    if (drv.pUp) { drv.pUp.rotation.z = drv.puOff + d / drv.Rp; drv.pLow.rotation.z = drv.plOff - d / drv.Rp; }
+    if (force || d !== lastD) { drv.update(d); lastD = d; }
+  }
+  paintNow(state.paint);
+  buildAll();
+
+  // ---------- camera views ----------
+  const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+  function views() {
+    const o = root.position, w = (p, y = p.y, z = 0) => V3(p.x + o.x, y + o.y, z);
+    const bb = w(g.BB), bar = w(g.barC), sad = w(g.saddle, g.saddle.y + 0.03), fa = w(g.FA, 0), R = wheelRadius(state.tires);
+    return {
+      hero: [V3(1.6, 1.0, 2.3), V3(0, 0.48, 0)],
+      side: [V3(0, 0.55, 2.8), V3(0, 0.5, 0)],
+      front: [V3(2.7, 0.95, 0.45), V3(0, 0.55, 0)],
+      rear: [V3(-2.1, 1.25, -1.75), V3(0, 0.5, 0)],
+      frame: [V3(0.55, 1.15, 1.45), V3(0, 0.55, 0)],
+      drive: [bb.clone().add(V3(-0.05, 0.16, 0.72)), bb.clone().add(V3(-0.2, 0.02, 0.04))],
+      chain: [w({ x: 0.05, y: 0 }, 0.12, 0.5), w({ x: 0.02, y: 0 }, -0.04, 0.05)],
+      cockpit: [bar.clone().add(V3(0.5, 0.32, 0.5)), bar.clone().add(V3(-0.02, -0.04, 0))],
+      saddle: [sad.clone().add(V3(0.05, 0.28, 0.55)), sad.clone()],
+      wheel: [fa.clone().add(V3(0.3, 0.2, 1.05)), fa.clone()],
+      tire: [fa.clone().add(V3(0.52, R * 0.55, 0.42)), fa.clone().add(V3(R * 0.72, R * 0.62, 0))],
+      fork: [fa.clone().add(V3(0.55, 0.35, 0.6)), fa.clone().add(V3(-0.08, 0.2, 0))],
+      brake: [w(g.FA, 0, -0.55).add(V3(0.1, 0.1, 0)), fa.clone().add(V3(-0.05, 0.02, -0.04))],
+      pedal: [bb.clone().add(V3(0.25, 0.1, 0.55)), bb.clone().add(V3(0.08, 0, 0.08))],
+    };
+  }
+  let flight = null;
+  // arc around the target (spherical interpolation) so the camera never cuts through the frame
+  function flyTo(name, dur = 1.2) {
+    const v = views()[name]; if (!v) return;
+    const G = gs();
+    document.querySelectorAll('#views button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.view === name));
+    if (flight) flight.kill();
+    if (!G || reduced) { camera.position.copy(v[0]); controls.target.copy(v[1]); controls.update(); return; }
+    const t0 = controls.target.clone(), s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(t0));
+    const s1 = new THREE.Spherical().setFromVector3(v[0].clone().sub(v[1]));
+    const dTh = ((s1.theta - s0.theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+    const lift = Math.min(0.6, 0.25 * Math.abs(dTh) + 0.35 * t0.distanceTo(v[1])), o = { k: 0 }, sp = new THREE.Spherical();
+    flight = G.to(o, { k: 1, duration: dur, ease: 'power3.inOut', onUpdate: () => {
+      const k = o.k; controls.target.lerpVectors(t0, v[1], k);
+      sp.set(s0.radius + (s1.radius - s0.radius) * k + Math.sin(Math.PI * k) * lift, s0.phi + (s1.phi - s0.phi) * k, s0.theta + dTh * k);
+      camera.position.setFromSpherical(sp).add(controls.target);
+    } });
+  }
+  $('views').innerHTML = VIEW_BTNS.map(([k, l]) => `<button data-view="${k}" aria-pressed="${k === 'hero'}">${l}</button>`).join('');
+  $('views').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) flyTo(b.dataset.view); });
+  controls.addEventListener('start', () => { const G = gs(); if (flight) flight.kill(); if (G) G.killTweensOf(camera.position); document.querySelectorAll('#views button').forEach((b) => b.setAttribute('aria-pressed', 'false')); });
+
+  // ---------- swaps with GSAP ----------
+  const follow = { on: true };
+  function popIn(obj, delay = 0) {
+    const G = gs(); if (!G || reduced) return;
+    G.from(obj.scale, { x: 0.001, y: 0.001, z: 0.001, duration: 0.65, delay, ease: 'back.out(1.6)' });
+  }
+  function swap(keys, after) {
+    const G = gs();
+    if (!G || reduced) { keys.forEach(mount); if (after) after(); return; }
+    const old = keys.map((k) => P[k]).filter(Boolean);
+    G.to(old.map((o) => o.scale), { x: 0.001, y: 0.001, z: 0.001, duration: 0.28, ease: 'back.in(1.8)', onComplete: () => {
+      keys.forEach(mount); if (after) after();
+      keys.forEach((k, i) => popIn(P[k], i * 0.06));
+      if (keys.includes('wheelF')) { G.from(P.wheelF.userData.spin.rotation, { z: '+=6', duration: 0.9, ease: 'power3.out' }); G.from(P.wheelR.userData.spin.rotation, { z: '+=6', duration: 0.9, ease: 'power3.out' }); }
+    } });
+  }
+  function repaint(id) {
+    const G = gs(), Pn = PAINT[id], m = M.frame;
+    if (!G || reduced) { paintNow(id); return; }
+    const target = new THREE.Color(Pn.color), texSwap = (!!Pn.carbon) !== !!m.map;
+    const settle = () => G.to(m, { metalness: Pn.metalness, roughness: Pn.roughness, clearcoat: Pn.clearcoat, duration: 0.6 });
+    if (texSwap) {
+      G.to(m.color, { r: 0.02, g: 0.02, b: 0.02, duration: 0.3, ease: 'power2.in', onComplete: () => {
+        const c = m.color.clone(); paintNow(id); m.color.copy(c);
+        G.to(m.color, { r: target.r, g: target.g, b: target.b, duration: 0.55, ease: 'power2.out' });
+      } });
+    } else {
+      m.normalMap = Pn.flake ? T.flake : null; m.normalScale.setScalar(Pn.flake || 0); m.iridescence = Pn.iridescence || 0; m.needsUpdate = true;
+      G.to(m.color, { r: target.r, g: target.g, b: target.b, duration: 0.8, ease: 'power2.inOut' });
+      settle(); setDecal(Pn.decal);
+    }
+    G.fromTo(P.frame.scale, { x: 1, y: 1, z: 1 }, { x: 1.012, y: 1.012, z: 1.012, duration: 0.18, yoyo: true, repeat: 1, ease: 'sine.inOut' });
+  }
+  function apply(k, id, opt = {}) {
+    const G = gs();
+    if (k === 'paint') repaint(id);
+    else if (k === 'size') {
+      if (G && !reduced) G.to(root.scale, { x: 0.94, y: 0.94, z: 0.94, duration: 0.2, ease: 'power2.in', onComplete: () => { buildAll(); G.to(root.scale, { x: 1, y: 1, z: 1, duration: 0.7, ease: 'elastic.out(1,0.55)' }); } });
+      else buildAll();
+    } else if (k === 'wheels' || k === 'tires') {
+      swap(['wheelR', 'wheelF'], () => { updateDrive(true); });
+      const y = wheelRadius(state.tires);
+      if (G && !reduced) G.to(root.position, { y, duration: 0.6, ease: 'power2.out', delay: 0.25 }); else root.position.y = y;
+    } else if (k === 'drive') swap(['drive'], () => updateDrive(true));
+    else if (k === 'bar') swap(['cockpit']);
+    else if (k === 'saddle') swap(P.cockpit.userData.tan !== (state.saddle === 'leather') ? ['saddle', 'cockpit'] : ['saddle']);
+    if (opt.focus && follow.on) flyTo(opt.focus);
+    if (!$('partCard').hidden && current) showPart(current, false);
+  }
+
+  // ---------- pedalling ----------
+  const pb = $('pedalBtn');
+  function setPedal(on) {
+    anim.pedal = on; pb.setAttribute('aria-pressed', on);
+    pb.querySelector('use').setAttribute('href', on ? '#i-pause' : '#i-play');
+    const target = on ? +$('rpm').value : 0, G = gs();
+    if (G && !reduced) G.to(anim, { rpm: target, duration: on ? 1.2 : 1.6, ease: on ? 'power2.out' : 'power2.inOut' }); else anim.rpm = target;
+  }
+  pb.addEventListener('click', () => setPedal(!anim.pedal));
+  $('rpm').addEventListener('input', (e) => { $('rpmOut').textContent = e.target.value + ' rpm'; if (anim.pedal) { const G = gs(); if (G) G.to(anim, { rpm: +e.target.value, duration: 0.5 }); else anim.rpm = +e.target.value; } if (current === 'chain' || current === 'drive') showPart(current, false); });
+  $('spinBtn').addEventListener('click', (e) => { controls.autoRotate = !controls.autoRotate; e.currentTarget.setAttribute('aria-pressed', controls.autoRotate); });
+  $('followBtn').addEventListener('click', (e) => { follow.on = !follow.on; e.currentTarget.setAttribute('aria-pressed', follow.on); });
+  const zoom = (f) => { const G = gs(), dir = camera.position.clone().sub(controls.target), len = THREE.MathUtils.clamp(dir.length() * f, controls.minDistance, controls.maxDistance), p = controls.target.clone().add(dir.setLength(len)); if (G) G.to(camera.position, { x: p.x, y: p.y, z: p.z, duration: 0.5, ease: 'power2.out' }); else camera.position.copy(p); };
+  $('zoomIn').addEventListener('click', () => zoom(0.75));
+  $('zoomOut').addEventListener('click', () => zoom(1.33));
+  $('resetBtn').addEventListener('click', () => flyTo('hero'));
+
+  // ---------- part inspection ----------
+  const mm = (m) => Math.round(m * 1000) + ' mm';
+  const INFO = {
+    frame: () => ({ n: '車架', d: 'T800 碳纖維一體成型，內走線，平裝碟煞座。', s: [['尺寸', state.size + ' cm'], ['Stack / Reach', mm(g.stack) + ' / ' + mm(g.reach)], ['頭管角 / 座管角', g.hta + '° / ' + g.sta + '°'], ['軸距', mm(g.FA.x)], ['塗裝', item('paint', state.paint).name]], v: 'frame' }),
+    fork: () => ({ n: '前叉', d: '全碳直刀前叉，1-1/8"–1.5" 錐形舵管。', s: [['偏移量', mm(g.offset)], ['軸到冠', mm(g.forkL)], ['拖曳距', mm((wheelRadius(state.tires) * Math.cos(deg(g.hta)) - g.offset) / Math.sin(deg(g.hta)))], ['花鼓', '12 × 100 mm 貫通軸']], v: 'fork' }),
+    wheels: () => { const W = WHEELS[state.wheels]; return { n: item('wheels', state.wheels).name, d: '每根輻條依編輪角度逐一生成。', s: [['框高 / 外寬', mm(W.depth) + ' / ' + mm(W.width)], ['前輪', W.spokes[0] + ' 輻・' + (W.cross[0] ? W.cross[0] + ' 交叉' : '放射')], ['後輪', W.spokes[1] + ' 輻・' + W.cross[1] + ' 交叉'], ['輻條', W.blade ? '扁平刀型' : '圓形 2.0 mm']], v: 'wheel' }; },
+    tires: () => ({ n: item('tires', state.tires).name, d: '外胎寬度決定輪徑，也改變車身高度。', s: [['規格', '700×' + Math.round(TIRES[state.tires].w * 1000) + 'c'], ['外徑', mm(wheelRadius(state.tires) * 2)], ['胎紋', TIRES[state.tires].knobs ? '三排顆粒' : '光頭']], v: 'tire' }),
+    drive: () => { const D = DRIVES[state.drive], r = D.rings[0], c = D.cogs[D.cogIdx]; return { n: item('drive', state.drive).name, d: '齒盤、飛輪與導輪的齒都對準鏈條滾子。', s: [['展示檔位', r + ' × ' + c + 'T（' + (r / c).toFixed(2) + '）'], ['齒盤', D.rings.join('/') + 'T'], ['飛輪', D.cogs.length > 1 ? D.cogs[0] + '–' + D.cogs[D.cogs.length - 1] + 'T・12 速' : c + 'T 單速'], ['曲柄長', (g.crank * 1000).toFixed(1) + ' mm']], v: 'drive' }; },
+    chain: () => { const D = DRIVES[state.drive], ratio = D.rings[0] / D.cogs[D.cogIdx], rpm = +$('rpm').value, kmh = rpm * ratio * 2 * Math.PI * wheelRadius(state.tires) * 60 / 1000; return { n: '鏈條', d: '鏈條路徑由齒盤、導輪與飛輪的切線即時求解。', s: [['節數', drv.links + ' 節'], ['節距', '12.7 mm（½″）'], ['踏頻 ' + rpm + ' rpm 時速', kmh.toFixed(1) + ' km/h']], v: 'chain' }; },
+    bar: () => ({ n: item('bar', state.bar).name, d: state.bar === 'flat' ? '人體工學握把，油壓煞把。' : '把帶：' + (state.saddle === 'leather' ? '焦糖色（配合皮革坐墊）' : '黑色') + '。', s: [['寬度', state.bar === 'flat' ? '620 mm' : mm(g.bar)], ['龍頭', mm(g.stem) + '・−6°'], ['墊圈', '2 × 10 mm']], v: 'cockpit' }),
+    saddle: () => ({ n: item('saddle', state.saddle).name, d: item('saddle', state.saddle).sp, s: [['坐墊高（五通起）', mm(g.sh)], ['長 × 寬', mm(SADDLES[state.saddle].L) + ' × ' + mm(SADDLES[state.saddle].wr * 2)], ['坐管', { carbon: '碳纖維', polish: '拋光鋁合金', black: '黑色鋁合金' }[SADDLES[state.saddle].post] + ' 27.2 mm']], v: 'saddle' }),
+    pedal: () => ({ n: DRIVES[state.drive].pedal === 'clip' ? '卡式踏板' : '平踏板', d: '踏板隨曲柄轉動時保持水平。', s: [['曲柄長', (g.crank * 1000).toFixed(1) + ' mm'], ['類型', DRIVES[state.drive].pedal === 'clip' ? '公路卡鞋' : '鋁合金平台＋防滑釘']], v: 'pedal' }),
+    brakes: () => ({ n: '油壓碟煞', d: '前後 160 mm 碟盤，平裝卡鉗。', s: [['碟盤', '160 mm・36 孔'], ['卡鉗', '平裝 Flat Mount']], v: 'brake' }),
+  };
+  let current = null;
+  function showPart(k, fly = true) {
+    const f = INFO[k]; if (!f) return;
+    const i = f(); current = k;
+    $('partName').textContent = i.n; $('partDesc').textContent = i.d;
+    $('partSpec').innerHTML = i.s.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+    const card = $('partCard'), wasHidden = card.hidden; card.hidden = false;
+    const G = gs(); if (G && !reduced && wasHidden) G.fromTo(card, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3 });
+    if (fly) flyTo(i.v);
+  }
+  $('partClose').addEventListener('click', () => { $('partCard').hidden = true; current = null; });
+  const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(), tip = $('tip');
+  const NAMES = { frame: '車架', fork: '前叉', wheels: '輪組', tires: '輪胎', drive: '傳動系統', chain: '鏈條', bar: '把手與龍頭', saddle: '坐墊與坐管', pedal: '踏板', brakes: '碟煞' };
+  function pick(e) {
+    const r = renderer.domElement.getBoundingClientRect();
+    ptr.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ptr, camera);
+    const hit = ray.intersectObject(root, true).find((h) => h.object.userData.part);
+    return hit ? hit.object.userData.part : null;
+  }
+  let down = null, hoverT = 0;
+  renderer.domElement.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
+  renderer.domElement.addEventListener('pointerup', (e) => {
+    if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) { const p = pick(e); if (p) showPart(p); }
+    down = null;
+  });
+  renderer.domElement.addEventListener('pointermove', (e) => {
+    if (e.buttons || e.pointerType !== 'mouse') { tip.classList.remove('on'); return; }
+    const now = performance.now(); if (now - hoverT < 60) return; hoverT = now;
+    const p = pick(e), r = stage.getBoundingClientRect();
+    renderer.domElement.style.cursor = p ? 'pointer' : 'grab';
+    if (p) { tip.textContent = NAMES[p]; tip.style.left = (e.clientX - r.left) + 'px'; tip.style.top = (e.clientY - r.top) + 'px'; tip.classList.add('on'); } else tip.classList.remove('on');
+  });
+  renderer.domElement.addEventListener('pointerleave', () => tip.classList.remove('on'));
+
+  // ---------- render loop ----------
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h;
+    camera.fov = w / h < 0.9 ? 44 : 32; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (anim.rpm > 0.01) anim.crank -= anim.rpm / 60 * Math.PI * 2 * dt;
+    updateDrive(false);
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- intro: parts assemble ----------
+  const G = gs();
+  const l = $('loading');
+  if (G && !reduced) {
+    G.to(l, { opacity: 0, duration: 0.4, onComplete: () => { l.hidden = true; l.style.opacity = ''; } });
+    camera.position.set(2.9, 1.7, 3.9);
+    const tl = G.timeline({ defaults: { ease: 'power3.out' } });
+    tl.to(camera.position, { x: 1.6, y: 1.0, z: 2.3, duration: 2.2, ease: 'power2.inOut' }, 0)
+      .from(P.frame.position, { y: 0.35, duration: 0.9 }, 0.1).from(P.frame.scale, { x: 0.9, y: 0.9, z: 0.9, duration: 0.9 }, 0.1)
+      .from(P.fork.position, { y: 0.35, duration: 0.9 }, 0.15)
+      .from(P.wheelR.position, { x: -1.4, duration: 1.1 }, 0.35).from(P.wheelR.userData.spin.rotation, { z: 14, duration: 1.3 }, 0.35)
+      .from(P.wheelF.position, { x: g.FA.x + 1.4, duration: 1.1 }, 0.4).from(P.wheelF.userData.spin.rotation, { z: -14, duration: 1.3 }, 0.4)
+      .from(P.cockpit.position, { y: '+=0.3', duration: 0.8, ease: 'back.out(1.7)' }, 0.8)
+      .from(P.saddle.position, { y: '+=0.3', duration: 0.8, ease: 'back.out(1.7)' }, 0.9)
+      .from(P.drive.scale, { x: 0.001, y: 0.001, z: 0.001, duration: 0.7, ease: 'back.out(1.6)' }, 1.0)
+      .from(anim, { crank: anim.crank + Math.PI * 3, duration: 1.6, ease: 'power3.out' }, 1.0);
+  } else l.hidden = true;
+
+  viewer = {
+    apply, view: flyTo,
+    snapshot() {
+      renderer.render(scene, camera);
+      const src = renderer.domElement, c = document.createElement('canvas'); c.width = 240; c.height = 150;
+      const x = c.getContext('2d'), s = Math.max(240 / src.width, 150 / src.height);
+      x.fillStyle = '#ecebe7'; x.fillRect(0, 0, 240, 150);
+      x.drawImage(src, (240 - src.width * s) / 2, (150 - src.height * s) / 2, src.width * s, src.height * s);
+      try { return c.toDataURL('image/jpeg', 0.82); } catch (e) { return ''; }
+    },
+    _debug: { scene, camera, controls, root, P, anim, get drv() { return drv; }, get g() { return g; }, renderer, showPart },
+  };
+}
+bootViewer();
+</script>
+</body>
+</html>

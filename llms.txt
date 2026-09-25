@@ -144,6 +144,7 @@
 - [093 Minuit Velours](https://htmls-ruddy.vercel.app/web/093-perfume.html): 奢華香水。點瓶身噴霧、香調金字塔、拖曳觀看 8 小時揮發曲線
 - [096 Levkí, four days](https://htmls-ruddy.vercel.app/web/096-mediterranean.html): 地中海。固定風景搭配四日旅行手記，選取時刻聯動太陽光影與地點標記，支援月份及日照播放
 - [133 HALION · THREE PARTS. ONE MIND.](https://htmls-ruddy.vercel.app/web/133-halion.html): Three.js 概念腦機晶片產品網站。冷藍玻璃封裝、中央感應線圈與矽基板依捲動逐件展開；六個零件各有獨立區間與到位標註，結尾重新合攏。手機使用簡化幾何，WebGL 不可用時顯示靜態晶片
+- [151 Crosswind R · 3D 客製公路車](https://htmls-ruddy.vercel.app/web/151-bike-configurator.html): 3D 客製化電商。程序化生成、依真實比例的公路車（每根輻條、每節鏈條）：即時換配色、輪組、輪胎、傳動、把手與坐墊，踩踏帶動齒盤、鏈條與後輪，含即時報價與購物車結帳。
 
 ### 資料科學
 
