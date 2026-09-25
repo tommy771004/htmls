@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="拆帳">
 <title>拆帳 · 分帳</title>
-<meta name="description" content="把一張感熱紙收據上的品項拖給每個人的印章，自動印出誰該轉多少給誰的結算單。收錄於 100 Creative HTML Works（App 022・感熱紙收據）。">
+<meta name="description" content="把一張感熱紙收據上的品項拖給每個人的印章，自動印出誰該轉多少給誰的結算單，再把每個人的收款訊息一鍵複製或分享、在印章上蓋「已傳」。收錄於 100 Creative HTML Works（App 022・感熱紙收據）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/app/022-receipt-split.html">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232f2d2a'/%3E%3Cpath d='M14 8h36v44l-4.5-4-4.5 4-4.5-4-4.5 4-4.5-4-4.5 4-4.5-4-4.5 4z' fill='%23f4f2ec'/%3E%3Cpath d='M20 18h24M20 25h16M20 32h20' stroke='%233a3834' stroke-width='3'/%3E%3Ccircle cx='40' cy='40' r='9' fill='none' stroke='%23c2302a' stroke-width='3'/%3E%3C/svg%3E">
 <style>
@@ -150,6 +150,33 @@ svg{display:block}
 .done.on{opacity:.9;transform:rotate(-8deg);transition:transform .35s cubic-bezier(.3,1.5,.5,1),opacity .12s}
 .tearhint{text-align:center;font-size:12px;color:var(--ink-2);margin-top:14px;line-height:1.6}
 .tearhint b{font-weight:700;color:var(--ink)}
+.sendb{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:50px;margin-top:14px;background:var(--ink);color:var(--paper);font-size:15px;font-weight:700;letter-spacing:.12em}
+.sendb:active{background:#000}
+.sendb svg{width:15px;height:15px;fill:currentColor}
+.sendb small{font-size:12px;font-weight:400;letter-spacing:0;color:#bdb7ac}
+
+/* ---------- payment messages (收款訊息) ---------- */
+.sheet.pan{touch-action:pan-y}
+.sheet.pan .grab{touch-action:none}
+.hub{display:block;width:100%;max-width:330px;height:auto;margin:12px auto 0;overflow:visible}
+.hub .spoke{fill:none;stroke:var(--ink-2);stroke-width:2.4;stroke-linecap:round;stroke-dasharray:0 6}
+.hub .spoke-m{animation:spoke .7s var(--ease) both}
+@keyframes spoke{from{stroke-dashoffset:1}}
+.hub .lb{font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--ink)}
+.hub .lb.rc{fill:var(--ink-2);font-weight:400}
+.snt{opacity:0;transform:scale(1.6) rotate(-18deg);transform-box:fill-box;transform-origin:center}
+.snt.on{opacity:1;transform:rotate(-12deg);transition:transform .28s cubic-bezier(.3,1.6,.5,1),opacity .1s}
+.msg{position:relative;padding:12px 0 14px}
+.msg+.msg{border-top:1.5px dashed var(--ink-3)}
+.msg .mh{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;font-weight:700}
+.msg .mh em{font-style:normal;margin:0 6px;color:var(--ink-2)}
+.msg .mh b{font:700 16px/1 var(--mono)}
+.msg p{margin-top:6px;font:15px/1.65 -apple-system,BlinkMacSystemFont,"PingFang TC","Heiti TC","Noto Sans TC",sans-serif;-webkit-user-select:text;user-select:text}
+.msg .cp{display:inline-flex;align-items:center;gap:8px;min-height:40px;margin-top:8px;padding:0 14px;font-size:13px;font-weight:700;box-shadow:inset 0 0 0 1.5px var(--ink)}
+.msg .cp:active{background:var(--paper-2)}
+.msg .cp svg{width:14px;height:14px;fill:currentColor}
+.msg .sent{position:absolute;right:62px;top:2px;width:60px;height:40px;pointer-events:none;opacity:0;transform:scale(1.6) rotate(-18deg)}
+.msg.on .sent{opacity:.92;transform:rotate(-10deg);transition:transform .28s cubic-bezier(.3,1.6,.5,1),opacity .1s}
 
 /* ---------- printer body (the nav) ---------- */
 .printer{position:absolute;left:0;right:0;bottom:0;z-index:40;height:calc(150px + env(safe-area-inset-bottom));padding:0 14px env(safe-area-inset-bottom);background:linear-gradient(var(--body-3),var(--body-2) 14px,var(--body) 70%)}
@@ -226,8 +253,8 @@ svg{display:block}
 .toast button{color:#f19a8e;font-weight:700;min-height:32px;text-decoration:underline;text-underline-offset:3px}
 @media (prefers-reduced-motion:reduce){
   .feed .paper.feeding,.stp.slam .seal{animation:none}
-  .sheet,.tearedge,.toast,.slip.torn,.tr .paid,.done{transition-duration:.01s!important}
-  .led.busy{animation:none}
+  .sheet,.tearedge,.toast,.slip.torn,.tr .paid,.done,.snt,.msg .sent{transition-duration:.01s!important}
+  .led.busy,.hub .spoke-m{animation:none}
 }
 </style>
 </head>
@@ -335,8 +362,14 @@ const DOTS = {
   icStubs: ['#######','#.....#','#.###.#','#.....#','#######','#.#.#.#','.#.#.#.'],
   icPrint: ['..###..','..#.#..','#######','#.....#','#######','.#...#.','.#####.']
 };
-function dotIcon(id){ const rows = DOTS[id]; let s = ''; rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === '#') s += `<rect x="${x * 2}" y="${y * 2}" width="1.7" height="1.7" rx=".3"/>`; })); $(id).innerHTML = s; }
+const dotRects = rows => { let s = ''; rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === '#') s += `<rect x="${x * 2}" y="${y * 2}" width="1.7" height="1.7" rx=".3"/>`; })); return s; };
+function dotIcon(id){ $(id).innerHTML = dotRects(DOTS[id]); }
 Object.keys(DOTS).forEach(dotIcon);
+const GLYPH = {
+  send: ['...####','.....##','....#.#','...#..#','#.#....','#......','#####..'],
+  copy: ['####...','#..#...','#.#####','#.#...#','###...#','..#...#','..#####']
+};
+const glyph = k => `<svg viewBox="0 0 14 14" aria-hidden="true">${dotRects(GLYPH[k])}</svg>`;
 
 /* ---------- audio ---------- */
 let ac = null;
@@ -381,11 +414,12 @@ function demo(){
       {id:'i7', n:'台啤 18 天', p:90, q:6, who:['p1','p3','p4'], by:'p3'},
       {id:'i8', n:'冬瓜茶', p:60, q:1, who:['p2'], by:'p2'}
     ],
-    paid: {}, at: Date.now()
+    paid: {}, sent: {}, at: Date.now()
   };
 }
 let bill = load('bill', null);
 if (!bill || !Array.isArray(bill.people) || !Array.isArray(bill.items)) bill = demo();
+if (!bill.sent || typeof bill.sent !== 'object') bill.sent = {};
 let stubs = load('stubs', null);
 if (!Array.isArray(stubs)) stubs = [
   {store:'老四川 巴蜀麻辣燙', at: Date.now() - 86400e3 * 6, total: 2860, n: 4, done: true},
@@ -561,6 +595,7 @@ let sheetFocus = null, onSheetClose = null;
 function syncEdge(){ const r = sheet.getBoundingClientRect(), s = screen.getBoundingClientRect(); edge.style.top = (r.top - s.top - 8) + 'px'; }
 function openSheet(html, after){
   sheetFocus = document.activeElement; onSheetClose = null;
+  sheet.classList.remove('pan');
   $('sheetBody').innerHTML = html;
   sheet.style.transform = ''; edge.style.transform = ''; sheet.scrollTop = 0;
   sheet.classList.add('on'); scrim.classList.add('on');
@@ -632,7 +667,9 @@ sheet.addEventListener('click', e => {
   if (b.dataset.b && draft){ draft.by = b.dataset.b; $('fBy').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); haptic(4); return; }
   if (b.dataset.pay){ bill.payer = b.dataset.pay; bill.items.forEach(i => { if (!person(i.by)) i.by = bill.payer; }); haptic(8); renderAll(); closeSheet(); feed(2); return; }
   if (b.dataset.payall){ bill.items.forEach(i => i.by = bill.payer); haptic(8); renderAll(); closeSheet(); feed(3); toast('全部改成 ' + person(bill.payer).n + ' 付'); return; }
+  if (b.dataset.cp){ copyOne(b.dataset.cp); return; }
   const act = b.dataset.act;
+  if (act === 'sendall'){ sendAll(); return; }
   if (act === 'print' || act === 'save'){
     const n = (draft.n || '').trim();
     if (!n || !draft.p){ haptic([20, 40, 20]); const bad = !n ? $('fN') : $('fP'); bad.focus(); bad.style.borderBottomColor = 'var(--red)'; return; }
@@ -672,7 +709,7 @@ sheet.addEventListener('click', e => {
   }
   if (act === 'new'){
     stubs.unshift(stubOf(false)); save('stubs', stubs);
-    bill = {store: '新的一攤', addr: '在哪吃的，點品項後可以慢慢補', table: '--', no: bill.no + 1, svc: false, payer: bill.payer, people: bill.people, items: [], paid: {}, at: Date.now()};
+    bill = {store: '新的一攤', addr: '在哪吃的，點品項後可以慢慢補', table: '--', no: bill.no + 1, svc: false, payer: bill.payer, people: bill.people, items: [], paid: {}, sent: {}, at: Date.now()};
     haptic([6, 30, 6]); closeSheet(); renderAll(); toBottom(false); feed(6); toast('舊單收進存根，開了一張新單');
     return;
   }
@@ -728,6 +765,7 @@ function slipHTML(){
     ${c.tr.length ? c.tr.map(t => `<button class="tr" data-k="${keyOf(t)}" aria-pressed="${!!bill.paid[keyOf(t)]}"><span class="arrow">${esc(person(t.from).n)}<em>→</em>${esc(person(t.to).n)}</span><b>${fmt(t.v)}</b>
       <svg class="paid" viewBox="0 0 66 66" aria-hidden="true"><g filter="url(#rough)" fill="none" stroke="var(--red)"><rect x="5" y="17" width="56" height="32" rx="4" stroke-width="3"/><text x="33" y="34" text-anchor="middle" dominant-baseline="central" font-size="17" font-weight="700" fill="var(--red)" stroke="none" font-family="Kaiti TC, BiauKai, PingFang TC, serif">已付</text></g></svg></button>`).join('')
       : '<p class="emptyline">大家剛好打平，不用轉帳。</p>'}
+    <button class="sendb" data-act="send">${glyph('send')}送收款訊息${c.tr.length ? `<small id="sentN">${c.tr.filter(isSent).length}/${c.tr.length} 已傳</small>` : ''}</button>
     <svg class="done${allPaid ? ' on' : ''}" id="doneSeal" viewBox="0 0 150 150" aria-hidden="true"><g filter="url(#rough)" fill="none" stroke="var(--red)"><circle cx="75" cy="75" r="66" stroke-width="5"/><circle cx="75" cy="75" r="56" stroke-width="1.6"/><text x="75" y="70" text-anchor="middle" dominant-baseline="central" font-size="40" font-weight="700" fill="var(--red)" stroke="none" font-family="Kaiti TC, BiauKai, PingFang TC, serif">結清</text><text x="75" y="104" text-anchor="middle" font-size="12" fill="var(--red)" stroke="none" font-family="Courier New, monospace" letter-spacing="2">${new Date().getMonth() + 1}.${new Date().getDate()}</text></g></svg>
     <div class="tearhint">往上一撥，<b>撕下</b>收進存根</div>`;
 }
@@ -766,6 +804,7 @@ function closeSlip(tear){
 }
 $('kSettle').addEventListener('click', () => { if (slipOn) closeSlip(false); else openSlip(); });
 $('slip').addEventListener('click', e => {
+  if (e.target.closest('.sendb')){ if (!slipDragged){ haptic(8); openSend(); } return; }
   const t = e.target.closest('.tr'); if (!t || slipDragged) return;
   const k = t.dataset.k, on = !bill.paid[k];
   if (on) bill.paid[k] = true; else delete bill.paid[k];
@@ -776,6 +815,89 @@ $('slip').addEventListener('click', e => {
   ds.classList.toggle('on', !!all);
   if (all && !was){ setTimeout(() => { thump(); haptic([10, 40, 30]); }, 160); }
 });
+/* ---------- payment messages: one hub per payee, spokes to each payer ---------- */
+function trKey(t){ return t.from + '>' + t.to; }
+// 已傳 is stored as the amount that was sent, so any change to that transfer un-sends it
+function isSent(t){ return !!bill.sent && bill.sent[trKey(t)] === t.v; }
+function whenStr(){ const d = new Date(bill.at), n = new Date(); if (d.toDateString() !== n.toDateString()) return `${d.getMonth() + 1}/${d.getDate()} 在`; const h = d.getHours(); return h >= 17 || h < 4 ? '今晚' : '今天'; }
+function msgOf(t, c){
+  const from = person(t.from).n, to = person(t.to).n, mine = c.tr.filter(x => x.from === t.from), pre = c.paid[t.from];
+  let s = `${from}，${whenStr()}${bill.store}你的份是 ${fmt(c.share[t.from])} 元`;
+  if (pre > 0) s += `，扣掉你先付的 ${fmt(pre)} 元`;
+  if (mine.length > 1) s += `，這筆轉 ${fmt(t.v)} 元給${to}（另外 ${mine.filter(x => x !== t).map(x => `${fmt(x.v)} 元給${person(x.to).n}`).join('、')}）🙏`;
+  else s += pre > 0 || t.v !== c.share[t.from] ? `，轉 ${fmt(t.v)} 元給${to}就好 🙏` : `，轉給${to}就好 🙏`;
+  return s;
+}
+function sealIn(name, x, y, r){ return seal(name, 0, {cls: 'hs'}).replace('<svg class="hs"', `<svg class="hs" x="${(x - r).toFixed(1)}" y="${(y - r).toFixed(1)}" width="${2 * r}" height="${2 * r}"`); }
+function sentMark(x, y, k, on, sc){
+  return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${sc.toFixed(2)})"><g class="snt${on ? ' on' : ''}" data-k="${k}"><rect x="-16" y="-9" width="32" height="18" rx="2" fill="var(--paper)" opacity=".9"/><g filter="url(#rough)" fill="var(--red)"><rect x="-17" y="-10" width="34" height="20" rx="2.5" fill="none" stroke="var(--red)" stroke-width="2"/><text x="0" y=".5" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="700" font-family="Kaiti TC, BiauKai, PingFang TC, serif">已傳</text></g></g></g>`;
+}
+function hubSVG(to, list, hi){
+  const n = list.length, one = n === 1, R = 30;
+  const step = one ? 0 : Math.min(84, 228 / (n - 1)), r = one ? 24 : Math.max(14, Math.min(22, (step - 20) / 2));
+  const hub = one ? {x: 232, y: 50} : {x: 150, y: 172}, lbY = hub.y + R + 16, H = lbY + 12;
+  let defs = '', lines = '', nodes = '';
+  list.forEach((t, i) => {
+    const x = one ? 68 : 150 + (i - (n - 1) / 2) * step, u = (x - 150) / 114, y = one ? hub.y : 30 + 22 * u * u;
+    const sx = one ? x + r + 7 : x, sy = one ? y : y + r + 26;
+    const dx = hub.x - sx, dy = hub.y - sy, L = Math.hypot(dx, dy), ex = hub.x - dx / L * (R + 6), ey = hub.y - dy / L * (R + 6);
+    const d = `M${sx.toFixed(1)} ${sy.toFixed(1)}L${ex.toFixed(1)} ${ey.toFixed(1)}`, id = `sm${hi}_${i}`, k = trKey(t);
+    defs += `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="${H}"><path class="spoke-m" d="${d}" stroke="#fff" stroke-width="8" fill="none" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="0" style="animation-delay:${(.3 + i * .1).toFixed(2)}s"/></mask>`;
+    lines += `<path class="spoke" d="${d}" mask="url(#${id})"/>`;
+    nodes += sealIn(person(t.from).n, x, y, r) + `<text class="lb" x="${x.toFixed(1)}" y="${one ? lbY : (y + r + 13).toFixed(1)}" text-anchor="middle" dominant-baseline="central">${fmt(t.v)}</text>` + sentMark(x + r + 1, y + r * .62 + 2, k, isSent(t), Math.min(1, r / 22));
+  });
+  const sum = list.reduce((a, t) => a + t.v, 0);
+  nodes += sealIn(person(to).n, hub.x, hub.y, R) + `<text class="lb rc" x="${hub.x}" y="${lbY}" text-anchor="middle" dominant-baseline="central">${esc(person(to).n)} 收 ${fmt(sum)}</text>`;
+  return `<svg class="hub" viewBox="0 0 300 ${H}" role="img" aria-label="${esc(list.map(t => person(t.from).n).join('、'))} 轉給 ${esc(person(to).n)}"><defs>${defs}</defs>${lines}${nodes}</svg>`;
+}
+const SENT_ROW = `<svg class="sent" viewBox="0 0 60 40" aria-hidden="true"><g filter="url(#rough)" fill="none" stroke="var(--red)"><rect x="5" y="6" width="50" height="28" rx="4" stroke-width="2.6"/><text x="30" y="20.5" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="700" fill="var(--red)" stroke="none" font-family="Kaiti TC, BiauKai, PingFang TC, serif">已傳</text></g></svg>`;
+function sendHTML(){
+  const c = calc();
+  if (!c.tr.length) return `<h3 id="shT">收款訊息</h3><p class="emptyline">大家剛好打平，不用轉帳。<br>這攤沒有人需要收到訊息。</p><div class="acts"><button class="ok" data-act="close">好</button></div>`;
+  const hubs = [];
+  c.tr.forEach(t => { let h = hubs.find(x => x.to === t.to); if (!h) hubs.push(h = {to: t.to, list: []}); h.list.push(t); });
+  return `<h3 id="shT">收款訊息</h3><div class="sub">${esc(bill.store)}・${c.tr.length} 筆轉帳・複製一則就蓋「已傳」</div>
+    ${hubs.map((h, i) => hubSVG(h.to, h.list, i)).join('')}
+    <div class="rule" style="margin-top:10px"></div>
+    <div class="msgs">${c.tr.map(t => { const k = trKey(t), on = isSent(t); return `<div class="msg${on ? ' on' : ''}" data-k="${k}"><div class="mh"><span>${esc(person(t.from).n)}<em>→</em>${esc(person(t.to).n)}</span><b>${fmt(t.v)}</b></div><p>${esc(msgOf(t, c))}</p><button class="cp" data-cp="${k}">${glyph('copy')}<span>${on ? '再複製一次' : '複製這則'}</span></button>${SENT_ROW}</div>`; }).join('')}</div>
+    <div class="acts"><button class="ok" data-act="sendall">${navigator.share ? '一次分享全部' : '全部複製'}</button></div>`;
+}
+function openSend(){ openSheet(sendHTML()); draft = null; sheet.classList.add('pan'); }
+function legacyCopy(s){
+  const ta = document.createElement('textarea'), f = document.activeElement; let ok = false;
+  ta.value = s; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:0;top:0;opacity:0;pointer-events:none';
+  document.body.appendChild(ta); ta.select();
+  try { ok = document.execCommand('copy'); } catch (_) {}
+  ta.remove(); if (f) try { f.focus({preventScroll: true}); } catch (_) {}
+  return ok;
+}
+async function copyText(s){
+  try { if (navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(s); return true; } } catch (_) {}
+  return legacyCopy(s);
+}
+function markSent(list){
+  list.forEach((t, i) => {
+    const k = trKey(t); bill.sent[k] = t.v;
+    setTimeout(() => $('sheetBody').querySelectorAll(`[data-k="${k}"]`).forEach(el => { el.classList.add('on'); const l = el.querySelector('.cp span'); if (l) l.textContent = '再複製一次'; }), reduce ? 0 : i * 110);
+  });
+  persist(); thump(); haptic([6, 30, 14]);
+  const s = $('sentN'); if (s){ const c = calc(); s.textContent = `${c.tr.filter(isSent).length}/${c.tr.length} 已傳`; }
+}
+const copyFail = () => { haptic([20, 40, 20]); toast('沒辦法複製，長按訊息自己選取'); };
+async function copyOne(k){
+  const c = calc(), t = c.tr.find(x => trKey(x) === k); if (!t) return;
+  if (await copyText(msgOf(t, c))){ markSent([t]); toast(`已複製給${person(t.from).n}的訊息`); } else copyFail();
+}
+async function sendAll(){
+  const c = calc(); if (!c.tr.length) return;
+  const text = `${bill.store}・${dstr(bill.at).slice(0, 10)} 結算\n` + c.tr.map(t => msgOf(t, c)).join('\n');
+  if (navigator.share){
+    try { await navigator.share({title: bill.store + ' 結算', text}); markSent(c.tr); toast('收款訊息送出去了'); return; }
+    catch (e){ if (e && e.name === 'AbortError'){ toast('沒有傳出去'); return; } }
+  }
+  if (await copyText(text)){ markSent(c.tr); toast(`${c.tr.length} 則訊息都複製了，貼到群組就好`); } else copyFail();
+}
+
 /* flick the slip upward to tear it off */
 let slipDragged = false;
 (function(){

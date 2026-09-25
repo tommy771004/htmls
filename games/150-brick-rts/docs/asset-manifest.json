@@ -426,6 +426,37 @@
         "intact/damaged/bounded rubble/restored"
       ],
       "status": "initial civic asset; static visual only, no production/trade/research; navigation and full age detail matrix pending"
+    },
+    {
+      "id": "cavalry",
+      "source": "apps/web/character-rig.ts;apps/web/unit-rig.ts",
+      "type": "procedural articulated Three.js mesh",
+      "provenance": "original geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation units",
+      "pivot": "horse feet center",
+      "footprint": [
+        0.8,
+        1.6
+      ],
+      "selectionBounds": "visible mesh only; inspector ring radius 0.846",
+      "collisionProxy": "not integrated: game has no mounted units",
+      "attachmentPoints": [
+        "rider-saddle",
+        "hand-left",
+        "hand-right"
+      ],
+      "previewOnlyAnimations": [
+        "idle",
+        "walk",
+        "attack"
+      ],
+      "animations": [
+        "idle",
+        "walk",
+        "attack"
+      ],
+      "status": "representative mount only; mounted death/disassembly, rider attack refinement, authority radius and gameplay integration pending"
     }
   ],
   "remaining": [

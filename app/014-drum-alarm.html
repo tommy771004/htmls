@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="眠">
 <title>眠 · 睡眠追蹤＋鬧鐘</title>
-<meta name="description" content="深夜墨綠的睡眠追蹤與鬧鐘：逐晚睡眠階段圖、慣性滾筒設定智慧喚醒、雨聲與棕噪音即時合成的白噪音混音器。收錄於 100 Creative HTML Works（App 014・深夜墨綠滾筒）。">
+<meta name="description" content="深夜墨綠的睡眠追蹤與鬧鐘：逐晚睡眠階段圖、依睡眠債與明早鬧鐘推算的恢復預報與建議就寢時間、慣性滾筒設定智慧喚醒、雨聲與棕噪音即時合成的白噪音混音器。收錄於 100 Creative HTML Works（App 014・深夜墨綠滾筒）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/app/014-drum-alarm.html">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f1a17'/%3E%3Cpath d='M40 14a17 17 0 1 0 10 30A14 14 0 0 1 40 14z' fill='%23f3c99a'/%3E%3Cpath d='M12 50h8v-6h8v10h8v-4h8' fill='none' stroke='%237fa596' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
@@ -97,6 +97,32 @@ svg{display:block}
 .legend div{font-size:13px;color:var(--ink2)}
 .legend b{display:block;font:400 17px/1.3 var(--serif);color:var(--ink);font-variant-numeric:tabular-nums}
 .legend i{display:inline-block;width:8px;height:8px;border-radius:4px;margin-right:6px;vertical-align:1px}
+
+/* recovery forecast */
+.fcmain{display:flex;align-items:stretch;gap:12px;margin:12px 4px 0}
+.fcnum{flex:none;min-width:98px;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:22px}
+.fcnum .big{font:300 58px/.9 var(--serif);color:var(--ink);white-space:nowrap}
+.fcnum .big small{font-size:22px;color:var(--ink2);margin-left:2px}
+.fcnum .v{font:400 17px/1.3 var(--serif);margin-top:12px}
+.fcnum .s{font-size:13px;color:var(--ink2);margin-top:2px}
+.fcbars{flex:1;min-width:0;display:flex;height:136px}
+.fcbar{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;padding-top:2px;border-radius:10px}
+.fcbar .tr{position:relative;flex:1;width:14px;border-radius:7px;background:#1d342c;overflow:hidden;transition:background-color .3s}
+.fcbar .f{position:absolute;left:0;right:0;bottom:0;min-height:14px;border-radius:7px;transition:height .6s cubic-bezier(.2,.8,.2,1),background-color .4s}
+.fcbar .d{font-size:12px;line-height:16px;color:var(--ink3);transition:color .25s}
+.fcbar[aria-checked=true] .tr{outline:1.5px solid var(--moon2);outline-offset:2px}
+.fcbar:focus-visible{outline:none}
+.fcbar:focus-visible .tr{outline:2.5px solid var(--moon);outline-offset:2px}
+.fcbar.none .tr{background:none;box-shadow:inset 0 0 0 1.5px #35524a}
+.fcbar.none .f{background:none!important}
+.fcbar[aria-checked=true] .d{color:var(--ink);font-weight:600}
+.fcbar.fut{flex:1.35}
+.fcbar.fut .d{color:var(--moon2)}
+.fcwhy{margin:14px 4px 0;font-size:13px;line-height:1.65;color:var(--ink2)}
+.fcwhy b{font-weight:500;color:var(--ink)}
+.facts.fcfacts{grid-template-columns:repeat(3,1fr);margin-top:14px;padding:0 4px}
+.fcfacts .mn{color:var(--moon)}
+.fcnote{margin:8px 4px 2px;font-size:13px;line-height:1.65;color:var(--ink3)}
 
 #week{width:100%;height:auto;margin-top:6px;touch-action:pan-y}
 #week text{font:12px var(--sans);fill:var(--ink3)}
@@ -267,7 +293,7 @@ svg{display:block}
 
 @media (prefers-reduced-motion:reduce){
   .page.enter{animation:none}
-  .seg .knob,.tabbar .plate,.sheet,.toast,.sw svg,.sw .shade,.arow .front,.fader .fill,.fader .cap,.wake,.slide .kn,.ribbon i{transition-duration:.01s}
+  .seg .knob,.tabbar .plate,.sheet,.toast,.sw svg,.sw .shade,.arow .front,.fader .fill,.fader .cap,.wake,.slide .kn,.ribbon i,.fcbar .f,.fcbar .tr{transition-duration:.01s}
   .wake .dawn{transition-duration:.01s}
 }
 </style>
@@ -339,6 +365,20 @@ svg{display:block}
             <svg id="hyp" viewBox="0 0 354 172" role="img" aria-label="睡眠階段圖"></svg>
             <div class="ribbon" id="ribbon"></div>
             <div class="legend" id="legend"></div>
+          </div>
+          <div class="panel" id="fc">
+            <div class="ptop"><h2>恢復預報</h2><span>點長條看每晚醒來的精神</span></div>
+            <div class="fcmain">
+              <div class="fcnum"><div class="big num"><span id="fcPct">--</span><small id="fcPc">%</small></div><div class="v" id="fcWord"></div><div class="s" id="fcCtx"></div></div>
+              <div class="fcbars" id="fcBars" role="radiogroup" aria-label="近七晚的恢復度，與今晚睡後的預估"></div>
+            </div>
+            <p class="fcwhy" id="fcWhy" aria-live="polite"></p>
+            <div class="facts fcfacts">
+              <div><div class="n" id="fcBed">--</div><div class="l">平均入睡</div></div>
+              <div><div class="n" id="fcDebt">--</div><div class="l">睡眠債</div></div>
+              <div><div class="n mn" id="fcRec">--</div><div class="l">建議今晚就寢</div></div>
+            </div>
+            <p class="fcnote" id="fcNote"></p>
           </div>
           <div class="panel">
             <div class="ptop"><h2>這一週</h2><span>虛線是午夜，點一晚查看</span></div>
@@ -548,7 +588,7 @@ function stats(n){var tot=[0,0,0,0],wk=0;n.segs.forEach(function(s,i){tot[s[0]]+
   return{tot:tot,wk:wk,asleep:asleep,total:total,score:sc}}
 function makeNight(key,bed,wake,feel,seed){return{key:key,bed:bed,wake:wake,feel:feel,segs:genSegs(wake-bed,seed)}}
 var nights=load('nights',null);
-if(!nights){nights={};var plan=[[1428,1860,2],[1455,1875,1],[1395,1845,2],null,[1500,1920,0],[1410,1850,1],[1380,1830,2]];
+if(!nights){nights={};var plan=[[1428,1860,2],[1455,1875,1],[1395,1845,2],null,[1530,1880,0],[1410,1850,1],[1500,1830,0]];
   plan.forEach(function(p,i){if(!p)return;var k=dkey(evening(i+1));nights[k]=makeNight(k,p[0],p[1],p[2],9001+i*37)})}
 var selKey=load('sel',dkey(evening(1)));
 function lastKeys(){var a=[];for(var i=7;i>=1;i--)a.push(dkey(evening(i)));return a}
@@ -573,7 +613,68 @@ function renderSleep(animate){
   drawWeek();
   var ks=keys.filter(function(k){return nights[k]}),sum=0;ks.forEach(function(k){sum+=stats(nights[k]).asleep});
   $('avg').innerHTML=ks.length?'七晚裡記錄了 '+ks.length+' 晚，平均睡了 <b>'+durZh(sum/ks.length)+'</b>。'+(sum/ks.length<420?'比建議的七小時少一點。':'達到七小時的建議。'):'這週還沒有紀錄。';
+  renderForecast();
 }
+
+/* ---------------- recovery forecast ---------------- */
+var NEED=420,fcSel='now',fcRaf=0;
+function recOf(asleep,dp,rp,wk,debtIn){var v=Math.max(0,Math.min(1,(asleep-240)/(NEED-240)))*60+(1-Math.min(1,Math.abs(dp-.18)*4))*15+(1-Math.min(1,Math.abs(rp-.22)*4))*15+Math.max(0,10-wk*2)-Math.min(25,debtIn/60*6);return Math.round(Math.max(5,Math.min(100,v)))}
+function morningAlarm(){var t=new Date();if(t.getHours()>=5)t.setDate(t.getDate()+1);var dw=t.getDay(),best=null;
+  alarms.forEach(function(a){if(!a.on||a.h<3||a.h>=12)return;if(a.days.some(Boolean)&&!a.days[dw])return;if(!best||a.h*60+a.m<best.h*60+best.m)best=a});return best}
+function fcModel(){
+  var keys=lastKeys(),debt=0,rows={},c=0,sb=0,sw=0,sa=0,sd=0,sr=0,sk=0;
+  keys.forEach(function(k){var n=nights[k];if(!n)return;var s=stats(n),dp=s.tot[3]/s.asleep,rp=s.tot[1]/s.asleep;
+    rows[k]={s:s,dp:dp,rp:rp,debtIn:debt,p:recOf(s.asleep,dp,rp,s.wk,debt)};debt=Math.min(900,Math.max(0,debt*.8+NEED-s.asleep));
+    c++;sb+=n.bed;sw+=n.wake;sa+=s.tot[0];sd+=dp;sr+=rp;sk+=s.wk});
+  var m={keys:keys,rows:rows,c:c,debt:Math.round(debt/5)*5,alarm:morningAlarm()};
+  if(!c)return m;
+  m.bed=Math.round(sb/c/5)*5;m.awake=Math.round(sa/c/5)*5;m.dp=sd/c;m.rp=sr/c;m.wk=Math.round(sk/c);
+  m.wake=m.alarm?1440+m.alarm.h*60+m.alarm.m:Math.round(sw/c/5)*5;
+  m.repay=Math.min(60,m.debt);
+  m.rec=Math.floor((m.wake-NEED-m.repay-m.awake)/5)*5;
+  m.asleep=Math.max(0,m.wake-m.bed-m.awake);
+  m.p=recOf(m.asleep,m.dp,m.rp,m.wk,debt);
+  m.pRec=recOf(Math.max(m.asleep,NEED+m.repay),m.dp,m.rp,m.wk,debt);
+  return m}
+function fcTone(p){return p>=85?'#f3c99a':p>=70?'#cfa67d':p>=55?'#957d62':'#665a49'}
+function fcWordOf(p){return p>=85?'精神飽滿':p>=70?'還算有精神':p>=55?'會有點累':'需要補眠'}
+function pctOf(x){return Math.round(x*100)+'%'}
+function fcCount(to){var el=$('fcPct');cancelAnimationFrame(fcRaf);$('fcPc').hidden=to==null;
+  if(to==null){el.textContent='--';return}
+  var from=parseInt(el.textContent,10);if(isNaN(from)||reduce||from===to){el.textContent=to;return}
+  var st=performance.now();(function f(now){var k=Math.min(1,(now-st)/600),e=1-Math.pow(1-k,3);el.textContent=Math.round(from+(to-from)*e);if(k<1)fcRaf=requestAnimationFrame(f)})(st)}
+function fcBar(b,p){b.classList.toggle('none',p==null);var q=p==null?0:p/100,f=b.firstChild.firstChild;
+  f.style.height=(q*100).toFixed(1)+'%';f.style.backgroundColor=p==null?'':fcTone(p)}
+function renderForecast(){
+  var m=fcModel(),box=$('fcBars'),i;
+  if(fcSel!=='now'&&m.keys.indexOf(fcSel)<0)fcSel='now';
+  if(!box.children.length){var h='';for(i=0;i<8;i++)h+='<button class="fcbar'+(i===7?' fut':'')+'" role="radio"><span class="tr"><i class="f"></i></span><span class="d"></span></button>';box.innerHTML=h}
+  var bs=box.children;
+  m.keys.forEach(function(k,j){var b=bs[j],r=m.rows[k],d=new Date(k+'T12:00:00');b.dataset.k=k;b.lastChild.textContent=WD[d.getDay()];fcBar(b,r?r.p:null);
+    b.setAttribute('aria-label',(d.getMonth()+1)+'月'+d.getDate()+'日週'+WD[d.getDay()]+'夜，'+(r?'隔天恢復 '+r.p+'%':'未記錄'))});
+  var fb=bs[7];fb.dataset.k='now';fb.lastChild.textContent='今';fcBar(fb,m.c?m.p:null);fb.setAttribute('aria-label','今晚睡後，明天預估'+(m.c?' '+m.p+'%':'：資料不足'));
+  for(i=0;i<bs.length;i++){var on=bs[i].dataset.k===fcSel;bs[i].setAttribute('aria-checked',on);bs[i].tabIndex=on?0:-1}
+  var p=null,word,ctx,why;
+  if(fcSel==='now'){ctx='明天・預估';
+    if(!m.c){word='還無法預估';why='至少要有一晚紀錄，才知道你平常幾點睡、夜裡醒多久。'}
+    else{p=m.p;word=fcWordOf(p);why='以平常 <b>'+hm(m.bed)+'</b> 入睡、<b>'+hm(m.wake)+'</b> 起床估算：約睡 <b>'+dur(m.asleep)+'</b>／需求 '+dur(NEED)+'，近晚深眠 '+pctOf(m.dp)+'、REM '+pctOf(m.rp)+'，帶著 <b>'+dur(m.debt)+'</b> 睡眠債。'}}
+  else{var r=m.rows[fcSel],d=new Date(fcSel+'T12:00:00');ctx='週'+WD[d.getDay()]+'夜睡後';
+    if(!r){word='沒有紀錄';why='沒記錄的夜晚不計入睡眠債，可以用下方「補記一晚」補上。'}
+    else{p=r.p;word=fcWordOf(p);why='睡了 <b>'+dur(r.s.asleep)+'</b>／需求 '+dur(NEED)+'，深眠 '+pctOf(r.dp)+'、REM '+pctOf(r.rp)+'、醒來 '+r.s.wk+' 次，入睡前帶著 <b>'+dur(r.debtIn)+'</b> 睡眠債。'}}
+  fcCount(p);$('fcWord').textContent=word;$('fcCtx').textContent=ctx;$('fcWhy').innerHTML=why;
+  $('fcBed').textContent=m.c?hm(m.bed):'--';$('fcDebt').textContent=dur(m.debt);$('fcRec').textContent=m.c?hm(m.rec):'--';
+  if(!m.c){$('fcNote').textContent='補記幾晚，就能從你的作息推算建議就寢時間。';return}
+  var now=new Date(),nr=now.getHours()*60+now.getMinutes();if(nr<300)nr+=1440;
+  var note=(m.alarm?'從明早 '+hm(m.wake)+'「'+m.alarm.label+'」鬧鐘往回推':'明早沒有開啟的鬧鐘，以平常 '+hm(m.wake)+' 起床往回推')+
+    '：需求 '+dur(NEED)+(m.repay?'＋還債 '+dur(m.repay):'')+'＋夜裡清醒 '+dur(m.awake)+'。';
+  if(nr>m.rec&&nr<m.wake-60)note+='已經過了建議時間，現在睡還能睡約 '+dur(Math.max(0,m.wake-nr-m.awake))+'。';
+  else if(m.pRec>m.p)note+='照這時間睡，明天約 '+m.pRec+'%。';
+  else if(m.rec>m.bed)note+='明早不必早起，比平常晚睡也睡得夠。';
+  $('fcNote').textContent=note}
+$('fcBars').addEventListener('click',function(e){var b=e.target.closest('.fcbar');if(!b||b.dataset.k===fcSel)return;fcSel=b.dataset.k;haptic(4);renderForecast()});
+$('fcBars').addEventListener('keydown',function(e){var bs=$('fcBars').children,i=0,j;for(;i<bs.length;i++)if(bs[i].dataset.k===fcSel)break;
+  j=e.key==='ArrowRight'||e.key==='ArrowDown'?Math.min(bs.length-1,i+1):e.key==='ArrowLeft'||e.key==='ArrowUp'?Math.max(0,i-1):e.key==='Home'?0:e.key==='End'?bs.length-1:-1;
+  if(j<0)return;e.preventDefault();if(j!==i){fcSel=bs[j].dataset.k;haptic(3);renderForecast()}bs[j].focus()});
 var X0=46,X1=346;
 function drawHyp(n,animate){
   var total=n.wake-n.bed,sx=function(m){return X0+(m/total)*(X1-X0)};
@@ -656,7 +757,7 @@ function renderTones(){$('tones').innerHTML=Object.keys(TONES).map(function(k){r
 $('tones').addEventListener('click',function(e){var b=e.target.closest('.tone');if(!b)return;cfg.tone=b.dataset.t;save('cfg',cfg);renderTones();playTone(cfg.tone);haptic(6)});
 function daysTxt(a){var ds=a.days;if(ds.every(Boolean))return '每天';if(!ds.some(Boolean))return '只響一次';if(ds.join('')==='0111110')return '週一至週五';if(ds.join('')==='1000001')return '週末';return null}
 function renderAlarms(){
-  var L=$('alist');if(!alarms.length){L.innerHTML='<p class="empty">轉動滾筒，加入第一個鬧鐘</p>';renderUntil();return}
+  var L=$('alist');renderForecast();if(!alarms.length){L.innerHTML='<p class="empty">轉動滾筒，加入第一個鬧鐘</p>';renderUntil();return}
   alarms.sort(function(a,b){return a.h*60+a.m-(b.h*60+b.m)});
   L.innerHTML=alarms.map(function(a){var dt=daysTxt(a),order=[1,2,3,4,5,6,0];
     var days=dt?dt:order.map(function(i){return '<em class="'+(a.days[i]?'on':'')+'">'+WD[i]+'</em>'}).join(' ');

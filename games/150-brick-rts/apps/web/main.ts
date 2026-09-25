@@ -1,3 +1,4 @@
+import {mountFogDebugger} from './fog-debug.ts';
 import type {MapLayout} from '../../packages/sim/terrain.ts';
 import {rules,validateRules} from '../../packages/content/rules.ts';
 import {createScene} from './scene.ts';
@@ -9,8 +10,10 @@ let scene:Awaited<ReturnType<typeof createScene>>|null=null,graphicsFailed=false
 let selected=1,running=false,last=0,accumulator=0,advancing=false,connected=false;
 const notice=(s:string)=>{el('notice').textContent=s;};
 const canvas=el<HTMLCanvasElement>('map');
+const fogDebugger=mountFogDebugger(el<HTMLDetailsElement>('fog-debug'),()=>state);
 function render(){
- scene?.update(state,selected);
+ fogDebugger.update();
+ if(!graphicsFailed){try{scene?.update(state,selected);}catch(error){graphicsError(`3D 場景更新失敗：${(error as Error).message}`);}}
  el('fog-status').textContent=`可見 ${state.fog.filter(v=>v===2).length} 格 · 已探索舊視野 ${state.fog.filter(v=>v===1).length} 格 · 未探索 ${state.fog.filter(v=>v===0).length} 格`;
  el('world-label').textContent=({meadow:'草甸試驗場',coast:'海岸試驗場',acceptance:'高地與淺灘驗收場'})[state.layout];
  el('tick').textContent=String(state.tick);el('hash').textContent=state.stateHash;
@@ -26,7 +29,7 @@ async function move(x:number,y:number){const unitId=selected;try{await client.re
 canvas.addEventListener('click',e=>{if(!scene||graphicsFailed)return;const hit=scene.pick(e.clientX,e.clientY);
  if(hit.unitId!==undefined){const unit=state.units.find(u=>u.id===hit.unitId);if(unit?.player===0)choose(unit.id);else notice('紅方單位不可由藍方控制。');return;}
  if(hit.x===undefined||hit.y===undefined||hit.x<.5||hit.x>15.5||hit.y<.5||hit.y>15.5){notice('請點選地圖內側的地面。');return;}void move(hit.x,hit.y);});
-canvas.addEventListener('wheel',e=>{e.preventDefault();scene?.zoom(e.deltaY<0?.1:-.1);},{passive:false});
+canvas.addEventListener('wheel',e=>{e.preventDefault();if(!graphicsFailed)scene?.zoom(e.deltaY<0?.1:-.1);},{passive:false});
 el('zoom-in').onclick=()=>scene?.zoom(.2);el('zoom-out').onclick=()=>scene?.zoom(-.2);el('rotate-view').onclick=()=>scene?.rotate();el('reset-view').onclick=()=>scene?.resetCamera();
 document.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(b=>b.onclick=()=>choose(Number(b.dataset.unit)));
 el('move').onclick=()=>{const x=el<HTMLInputElement>('target-x'),y=el<HTMLInputElement>('target-y');if(x.reportValidity()&&y.reportValidity()&&x.value!==''&&y.value!=='')move(Number(x.value),Number(y.value));else notice('請輸入 0.5 到 15.5 之間的座標。');};
@@ -49,8 +52,8 @@ function frame(time:number){
   else if(!advancing&&accumulator>=50){const count=Math.floor(accumulator/50);accumulator-=count*50;advancing=true;
    void client.request({kind:'advance',count}).catch(e=>{setRunning(false);notice((e as Error).message);}).finally(()=>{advancing=false;});}
  }
- if(!graphicsFailed)scene?.draw(time);
- requestAnimationFrame(frame);
+ if(!graphicsFailed){try{scene?.draw(time);}catch(error){graphicsError(`3D 繪圖失敗：${(error as Error).message}`);}}
+ if(!graphicsFailed)requestAnimationFrame(frame);
 }
 function graphicsError(message:string){graphicsFailed=true;setRunning(false);toggleControls();const box=el('boot-error');box.hidden=false;box.textContent=message;notice('3D 場景暫不可用。若模擬已連線，可先儲存目前沙盒再重新載入。');}
 toggleControls();render();

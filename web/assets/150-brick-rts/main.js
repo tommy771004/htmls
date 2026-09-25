@@ -1,3 +1,94 @@
+// packages/sim/terrain.ts
+var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200 }, generationAttempts: 8 };
+var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" } };
+var terrainDefinitions = {
+  grass: { walkClass: "land", buildability: true, height: 0 },
+  road: { walkClass: "land", buildability: true, height: 0 },
+  stone: { walkClass: "land", buildability: true, height: 0 },
+  sand: { walkClass: "land", buildability: true, height: 0 },
+  highland: { walkClass: "land", buildability: true, height: 100 },
+  cliff: { walkClass: "blocked", buildability: false, height: 100 },
+  water: { walkClass: "water", buildability: false, height: 0 },
+  shallow: { walkClass: "both", buildability: false, height: 0 }
+};
+function createTiles(layout = "meadow", seed = 0) {
+  if (!["meadow", "coast", "acceptance"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
+  return Array.from({ length: 256 }, (_, id) => {
+    const x = id % 16, y = Math.floor(id / 16);
+    let terrainType = y === 8 ? "road" : "grass";
+    if (layout === "coast") {
+      const edge = 12 + (seed >>> 0 >>> Math.floor(x / 4) & 1);
+      if (y >= edge) terrainType = "water";
+      else if (y === edge - 1) terrainType = "sand";
+    }
+    if (layout === "acceptance") {
+      if (x === 7 || x === 8) terrainType = y >= 7 && y <= 9 ? "shallow" : "water";
+      else if (x === 6 || x === 9) terrainType = "sand";
+    }
+    const tile = { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
+    if (layout === "acceptance") {
+      if (x >= 2 && x <= 5 && y >= 11 && y <= 14) {
+        tile.terrainType = x === 2 && y === 11 ? "cliff" : x === 3 && y === 13 ? "stone" : "highland";
+        Object.assign(tile, terrainDefinitions[tile.terrainType]);
+        tile.height = 100;
+      }
+      if (x === 4 && y >= 8 && y <= 10) {
+        tile.terrainType = "road";
+        tile.height = (y - 7) * 25;
+        tile.buildability = false;
+      }
+    }
+    return tile;
+  });
+}
+function groundHeight(tiles, x, y) {
+  return tiles[tileAt(x, y)]?.height ?? 0;
+}
+function tileAt(x, y) {
+  return Math.floor(y / 100) * 16 + Math.floor(x / 100);
+}
+function canTraverse(tile, movement) {
+  return tile.walkClass === movement || tile.walkClass === "both";
+}
+
+// apps/web/fog-debug.ts
+var labels = ["\u672A\u63A2\u7D22", "\u5DF2\u63A2\u7D22\uFF0F\u76EE\u524D\u4E0D\u53EF\u898B", "\u76EE\u524D\u53EF\u898B"];
+function fogCellSummary(view, x, y) {
+  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x > 15 || y < 0 || y > 15) return "\u8ACB\u8F38\u5165 0\u201315 \u7684\u6574\u6578\u683C\u5EA7\u6A19\u3002";
+  const id = y * 16 + x, state2 = view.fog[id];
+  if (state2 === void 0) return "\u7B49\u5F85\u8996\u91CE\u8CC7\u6599\u3002";
+  const memories = state2 === 0 ? [] : view.known.filter((k) => tileAt(k.obstacle.x, k.obstacle.y) === id && k.obstacle.kind === "house");
+  return `\u683C (${x}, ${y}) \xB7 ${labels[state2]} \xB7 \u6295\u5F71 tick ${view.tick}` + memories.map((k) => `\uFF1B${k.obstacle.red ? "\u7D05\u65B9" : "\u85CD\u65B9"}\u4F4F\u5B85\uFF1A\u6700\u5F8C\u770B\u898B tick ${k.lastSeenTick}\uFF08${view.tick - k.lastSeenTick} ticks \u524D\uFF09`).join("");
+}
+function mountFogDebugger(root, getView) {
+  const grid = root.querySelector(".fog-grid"), info = root.querySelector(".fog-cell-info"), memories = root.querySelector(".fog-memories");
+  const x = root.querySelector('[name="fog-x"]'), y = root.querySelector('[name="fog-y"]');
+  const cells = Array.from({ length: 256 }, (_, id) => {
+    const cell = document.createElement("span");
+    cell.setAttribute("aria-hidden", "true");
+    cell.title = `(${id % 16}, ${Math.floor(id / 16)})`;
+    grid.append(cell);
+    return cell;
+  });
+  function update() {
+    if (!root.open) return;
+    const view = getView();
+    cells.forEach((cell, id) => {
+      const value = view.fog[id];
+      cell.dataset.fog = String(value ?? -1);
+      cell.textContent = value === 2 ? "\u25CF" : value === 1 ? "\xB7" : " ";
+    });
+    grid.setAttribute("aria-label", `\u85CD\u65B9 16\xD716 \u8996\u91CE\uFF1A\u672A\u63A2\u7D22 ${view.fog.filter((v) => v === 0).length} \u683C\uFF0C\u820A\u8996\u91CE ${view.fog.filter((v) => v === 1).length} \u683C\uFF0C\u76EE\u524D\u53EF\u898B ${view.fog.filter((v) => v === 2).length} \u683C\u3002`);
+    info.textContent = fogCellSummary(view, x.value === "" ? NaN : Number(x.value), y.value === "" ? NaN : Number(y.value));
+    const houses = view.known.filter((k) => k.obstacle.kind === "house" && view.fog[tileAt(k.obstacle.x, k.obstacle.y)] > 0);
+    memories.textContent = houses.length ? houses.map((k) => `${k.obstacle.red ? "\u7D05\u65B9" : "\u85CD\u65B9"}\u4F4F\u5B85 (${Math.floor(k.obstacle.x / 100)}, ${Math.floor(k.obstacle.y / 100)})\uFF1A\u6700\u5F8C\u770B\u898B tick ${k.lastSeenTick}`).join("\uFF1B") : "\u5C1A\u7121\u5DF2\u77E5\u4F4F\u5B85\u3002";
+  }
+  root.addEventListener("toggle", update);
+  x.addEventListener("input", update);
+  y.addEventListener("input", update);
+  return { update };
+}
+
 // packages/content/rules.ts
 var resources = ["food", "wood", "gold", "stone"];
 var entry = (id, kind, name, food = 0, wood = 0, gold = 0, stone = 0, requires = [], population = 0) => ({ referenceVersion: null, sourceEvidence: ["original design defaults: packages/content/rules.ts"], implementationStatus: id === "villager" ? "in_progress" : "not_started", testEvidence: ["tests/foundation.test.ts (data validation only)"], id, kind, name, cost: { food, wood, gold, stone }, time: 20, population, requires, verificationStatus: "design_default" });
@@ -80,6 +171,230 @@ function validateRules(value, exact = false) {
     }
   }
   return [...new Set(errors)];
+}
+
+// apps/web/unit-rig.ts
+var unitPoses = ["idle", "walk", "work", "attack", "hit", "death", "carry"];
+var unitTools = ["none", "axe", "pick", "sickle", "hammer", "basket", "sword", "spear", "bow"];
+var unitRoles = ["villager", "swordsman", "spearman", "archer"];
+function samplePose(pose, time) {
+  const t = Math.max(0, Number.isFinite(time) ? time : 0), walk = Math.sin(t * 0.012) * 0.35;
+  const p = { leftLeg: 0, rightLeg: 0, leftArm: 0, rightArm: 0, lean: 0, fall: 0 };
+  if (pose === "walk") {
+    p.leftLeg = walk;
+    p.rightLeg = -walk;
+    p.leftArm = -walk * 0.6;
+    p.rightArm = walk * 0.6;
+  }
+  if (pose === "work") {
+    p.rightArm = -0.9 + Math.sin(t * 0.01) * 0.7;
+    p.leftArm = -0.25;
+  }
+  if (pose === "attack") {
+    p.rightArm = -1.25 + Math.sin(t * 0.012) * 1;
+    p.leftArm = -0.45;
+  }
+  if (pose === "carry") {
+    p.leftArm = -1.1;
+    p.rightArm = -1.1;
+  }
+  if (pose === "hit" && t > 0 && t < 300) p.lean = -0.24 * Math.sin(Math.PI * t / 300);
+  if (pose === "death") p.fall = Math.min(t / 700, 1) * Math.PI / 2;
+  return p;
+}
+function createUnitRig(T, player, box, material) {
+  const root = new T.Group();
+  root.name = "body-root";
+  const part = (parent, x, y, z, w, h, d, color) => {
+    const mesh = new T.Mesh(box(w, h, d), material(color));
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    parent.add(mesh);
+    return mesh;
+  };
+  const team = player === 0 ? "#45728c" : "#b25441";
+  function joint(name, x, y, z) {
+    const group = new T.Group();
+    group.name = name;
+    group.position.set(x, y, z);
+    root.add(group);
+    return group;
+  }
+  const leftLeg = joint("hip-left", -0.12, 0.3, 0), rightLeg = joint("hip-right", 0.12, 0.3, 0);
+  for (const leg of [leftLeg, rightLeg]) part(leg, 0, -0.3, 0, 0.19, 0.3, 0.24, "#44514b");
+  part(root, 0, 0.3, 0, 0.46, 0.4, 0.32, team);
+  part(root, 0, 0.71, 0, 0.34, 0.3, 0.3, "#dfbb7e");
+  part(root, 0, 1.02, 0, 0.44, 0.11, 0.4, player === 0 ? "#cbbc94" : "#835243");
+  for (const dx of [-0.075, 0.075]) part(root, dx, 0.86, 0.155, 0.035, 0.04, 0.018, "#3e3a2e");
+  const leftArm = joint("shoulder-left", -0.19, 0.67, 0), rightArm = joint("shoulder-right", 0.19, 0.67, 0);
+  const sockets = { leftHand: new T.Group(), rightHand: new T.Group() };
+  for (const [arm, socket, name] of [[leftArm, sockets.leftHand, "hand-left"], [rightArm, sockets.rightHand, "hand-right"]]) {
+    part(arm, 0, -0.28, 0, 0.1, 0.28, 0.16, team);
+    part(arm, 0, -0.38, 0, 0.1, 0.14, 0.17, "#dfbb7e");
+    socket.name = name;
+    socket.position.set(0, -0.31, 0.09);
+    arm.add(socket);
+  }
+  let seated = false;
+  const outfits = /* @__PURE__ */ new Map();
+  function dress(role) {
+    if (!unitRoles.includes(role)) throw Error("\u672A\u77E5\u6A21\u578B\u8ECD\u7A2E");
+    for (const outfit2 of outfits.values()) outfit2.visible = false;
+    shield.visible = false;
+    if (role === "villager") {
+      equip("none");
+      return;
+    }
+    let outfit = outfits.get(role);
+    if (!outfit) {
+      outfit = new T.Group();
+      outfit.name = `outfit-${role}`;
+      root.add(outfit);
+      outfits.set(role, outfit);
+      if (role === "archer") {
+        part(outfit, 0, 1.1, 0, 0.36, 0.13, 0.32, "#667c4e");
+        part(outfit, 0, 0.36, -0.24, 0.21, 0.43, 0.18, "#8b6746");
+        for (const x of [-0.06, 0.06]) part(outfit, x, 0.77, -0.24, 0.025, 0.2, 0.025, "#d3b981");
+      } else {
+        part(outfit, 0, 1.12, 0, 0.4, 0.14, 0.35, "#a5b0ad");
+        part(outfit, 0, 0.4, 0.18, 0.36, 0.23, 0.055, "#a5b0ad");
+        if (role === "spearman") part(outfit, 0, 1.26, 0, 0.065, 0.15, 0.25, team);
+      }
+    }
+    outfit.visible = true;
+    shield.visible = role === "swordsman";
+    equip(role === "swordsman" ? "sword" : role === "spearman" ? "spear" : "bow");
+  }
+  const shield = new T.Group();
+  shield.name = "shield-left";
+  sockets.leftHand.add(shield);
+  shield.visible = false;
+  part(shield, -0.12, -0.17, 0.07, 0.08, 0.48, 0.4, "#9d885b");
+  part(shield, -0.17, -0.11, 0.07, 0.03, 0.34, 0.28, team);
+  const toolMeshes = /* @__PURE__ */ new Map();
+  let selected2 = "none";
+  function makeTool(kind) {
+    const group = new T.Group();
+    group.name = `tool-${kind}`;
+    sockets.rightHand.add(group);
+    if (kind === "basket") {
+      part(group, -0.15, -0.12, 0.16, 0.4, 0.28, 0.34, "#96764c");
+      for (const x of [-0.32, 0.02]) part(group, x, 0.12, 0.16, 0.035, 0.15, 0.04, "#b79a67");
+      part(group, -0.15, 0.25, 0.16, 0.38, 0.035, 0.04, "#b79a67");
+    } else if (kind === "spear") {
+      part(group, 0, -0.28, 0, 0.05, 1.42, 0.05, "#967447");
+      part(group, 0, 1.14, 0, 0.11, 0.23, 0.06, "#c6cfca");
+    } else if (kind === "bow") {
+      for (const [y, z] of [[-0.12, 0], [0.04, 0.08], [0.2, 0.12], [0.36, 0.08], [0.52, 0]]) part(group, 0, y, z, 0.065, 0.17, 0.06, "#997447");
+      part(group, 0, -0.12, 0, 0.018, 0.81, 0.018, "#d9cba4");
+    } else if (kind !== "none") {
+      part(group, 0, -0.08, 0, 0.055, 0.48, 0.06, kind === "sword" ? "#756449" : "#967447");
+      if (kind === "axe") part(group, 0.08, 0.23, 0, 0.22, 0.15, 0.055, "#aab0a3");
+      if (kind === "pick") part(group, 0, 0.32, 0, 0.38, 0.045, 0.06, "#aab0a3");
+      if (kind === "hammer") part(group, 0, 0.28, 0, 0.23, 0.13, 0.12, "#979e93");
+      if (kind === "sickle") {
+        part(group, 0.05, 0.25, 0, 0.15, 0.045, 0.05, "#aab0a3");
+        part(group, 0.11, 0.16, 0, 0.04, 0.12, 0.05, "#aab0a3");
+      }
+      if (kind === "sword") {
+        part(group, 0, 0.22, 0, 0.22, 0.045, 0.07, "#baa167");
+        part(group, 0, 0.27, 0, 0.07, 0.46, 0.045, "#c6cfca");
+      }
+    }
+    toolMeshes.set(kind, group);
+    return group;
+  }
+  function equip(kind) {
+    if (!unitTools.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5DE5\u5177");
+    for (const mesh of toolMeshes.values()) mesh.visible = false;
+    selected2 = kind;
+    if (kind !== "none") (toolMeshes.get(kind) ?? makeTool(kind)).visible = true;
+  }
+  function pose(kind, time) {
+    if (!unitPoses.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B");
+    const p = samplePose(kind, time);
+    leftLeg.rotation.x = seated ? 0 : p.leftLeg;
+    rightLeg.rotation.x = seated ? 0 : p.rightLeg;
+    leftLeg.position.x = seated ? -0.4 : -0.12;
+    rightLeg.position.x = seated ? 0.4 : 0.12;
+    leftArm.rotation.x = p.leftArm;
+    rightArm.rotation.x = p.rightArm;
+    root.rotation.x = p.lean;
+    root.rotation.z = -p.fall;
+    root.position.y = 0.28 * Math.sin(p.fall);
+    for (const [tool, mesh] of toolMeshes) mesh.visible = tool === selected2 && kind !== "death";
+  }
+  return { root, sockets, equip, pose, dress, seat: (value) => {
+    seated = value;
+  } };
+}
+
+// apps/web/character-rig.ts
+function createCharacterRig(T, player, box, material) {
+  const root = new T.Group(), rider = createUnitRig(T, player, box, material);
+  root.add(rider.root);
+  let horse = null, saddle = null, mounted = false;
+  const legs = [];
+  const part = (parent, x, y, z, w, h, d, color) => {
+    const m = new T.Mesh(box(w, h, d), material(color));
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    parent.add(m);
+  };
+  function makeHorse() {
+    horse = new T.Group();
+    horse.name = "horse-root";
+    root.add(horse);
+    part(horse, 0, 0.62, 0, 0.56, 0.5, 1.15, "#957350");
+    part(horse, 0, 0.82, 0.43, 0.36, 0.65, 0.32, "#957350");
+    part(horse, 0, 1.22, 0.61, 0.38, 0.28, 0.52, "#a5835b");
+    part(horse, 0, 1.5, 0.5, 0.3, 0.14, 0.12, "#64533d");
+    for (const x of [-0.2, 0.2]) part(horse, x, 1.39, 0.67, 0.03, 0.04, 0.05, "#2f3932");
+    part(horse, 0, 0.72, -0.66, 0.16, 0.4, 0.15, "#64533d");
+    part(horse, 0, 1.12, 0, 0.68, 0.08, 0.5, player === 0 ? "#45728c" : "#b25441");
+    for (const x of [-0.19, 0.19]) for (const z of [-0.42, 0.42]) {
+      const leg = new T.Group();
+      leg.name = `horse-leg-${legs.length}`;
+      leg.position.set(x, 0.62, z);
+      horse.add(leg);
+      legs.push(leg);
+      part(leg, 0, -0.62, 0, 0.15, 0.62, 0.17, "#957350");
+      part(leg, 0, -0.62, 0.025, 0.18, 0.12, 0.22, "#514b3c");
+    }
+    saddle = new T.Group();
+    saddle.name = "rider-saddle";
+    saddle.position.set(0, 0.9, -0.05);
+    horse.add(saddle);
+  }
+  function dress(role) {
+    mounted = role === "cavalry";
+    if (mounted) {
+      if (!horse) makeHorse();
+      horse.visible = true;
+      saddle.add(rider.root);
+      rider.dress("swordsman");
+      rider.equip("spear");
+    } else {
+      if (horse) horse.visible = false;
+      root.add(rider.root);
+      rider.dress(role);
+    }
+    rider.seat(mounted);
+    pose("idle", 0);
+  }
+  function pose(kind, time) {
+    if (mounted && !["idle", "walk", "attack"].includes(kind)) throw Error("\u9A0E\u4E58\u6A21\u578B\u76EE\u524D\u50C5\u652F\u63F4\u5F85\u547D\u3001\u884C\u8D70\u8207\u653B\u64CA\u59FF\u614B");
+    rider.pose(kind, time);
+    if (horse) {
+      const phase = Number.isFinite(time) ? Math.max(0, time) * 0.012 : 0;
+      legs.forEach((leg, i) => {
+        const swing = mounted && kind === "walk" ? Math.sin(phase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.26 : 0;
+        leg.rotation.x = swing;
+        leg.position.y = 0.62 + Math.abs(Math.sin(swing)) * 0.14;
+      });
+    }
+  }
+  return { root, sockets: rider.sockets, equip: rider.equip, dress, pose };
 }
 
 // apps/web/picking.ts
@@ -271,210 +586,6 @@ function buildingParts(visual) {
   }
   const phase = Math.min(4, Math.floor(progress / 20));
   return parts.filter((p) => p.phase <= phase).filter((p) => health >= 50 || !(p.id.startsWith("roof-") && Number(p.id.split("-")[2]) % 2 === 0 || p.id === "flag"));
-}
-
-// apps/web/unit-rig.ts
-var unitPoses = ["idle", "walk", "work", "attack", "hit", "death", "carry"];
-var unitTools = ["none", "axe", "pick", "sickle", "hammer", "basket", "sword", "spear", "bow"];
-var unitRoles = ["villager", "swordsman", "spearman", "archer"];
-function samplePose(pose, time) {
-  const t = Math.max(0, Number.isFinite(time) ? time : 0), walk = Math.sin(t * 0.012) * 0.35;
-  const p = { leftLeg: 0, rightLeg: 0, leftArm: 0, rightArm: 0, lean: 0, fall: 0 };
-  if (pose === "walk") {
-    p.leftLeg = walk;
-    p.rightLeg = -walk;
-    p.leftArm = -walk * 0.6;
-    p.rightArm = walk * 0.6;
-  }
-  if (pose === "work") {
-    p.rightArm = -0.9 + Math.sin(t * 0.01) * 0.7;
-    p.leftArm = -0.25;
-  }
-  if (pose === "attack") {
-    p.rightArm = -1.25 + Math.sin(t * 0.012) * 1;
-    p.leftArm = -0.45;
-  }
-  if (pose === "carry") {
-    p.leftArm = -1.1;
-    p.rightArm = -1.1;
-  }
-  if (pose === "hit" && t > 0 && t < 300) p.lean = -0.24 * Math.sin(Math.PI * t / 300);
-  if (pose === "death") p.fall = Math.min(t / 700, 1) * Math.PI / 2;
-  return p;
-}
-function createUnitRig(T, player, box, material) {
-  const root = new T.Group();
-  root.name = "body-root";
-  const part = (parent, x, y, z, w, h, d, color) => {
-    const mesh = new T.Mesh(box(w, h, d), material(color));
-    mesh.position.set(x, y, z);
-    mesh.castShadow = true;
-    parent.add(mesh);
-    return mesh;
-  };
-  const team = player === 0 ? "#45728c" : "#b25441";
-  function joint(name, x, y, z) {
-    const group = new T.Group();
-    group.name = name;
-    group.position.set(x, y, z);
-    root.add(group);
-    return group;
-  }
-  const leftLeg = joint("hip-left", -0.12, 0.3, 0), rightLeg = joint("hip-right", 0.12, 0.3, 0);
-  for (const leg of [leftLeg, rightLeg]) part(leg, 0, -0.3, 0, 0.19, 0.3, 0.24, "#44514b");
-  part(root, 0, 0.3, 0, 0.46, 0.4, 0.32, team);
-  part(root, 0, 0.71, 0, 0.34, 0.3, 0.3, "#dfbb7e");
-  part(root, 0, 1.02, 0, 0.44, 0.11, 0.4, player === 0 ? "#cbbc94" : "#835243");
-  for (const dx of [-0.075, 0.075]) part(root, dx, 0.86, 0.155, 0.035, 0.04, 0.018, "#3e3a2e");
-  const leftArm = joint("shoulder-left", -0.19, 0.67, 0), rightArm = joint("shoulder-right", 0.19, 0.67, 0);
-  const sockets = { leftHand: new T.Group(), rightHand: new T.Group() };
-  for (const [arm, socket, name] of [[leftArm, sockets.leftHand, "hand-left"], [rightArm, sockets.rightHand, "hand-right"]]) {
-    part(arm, 0, -0.28, 0, 0.1, 0.28, 0.16, team);
-    part(arm, 0, -0.38, 0, 0.1, 0.14, 0.17, "#dfbb7e");
-    socket.name = name;
-    socket.position.set(0, -0.31, 0.09);
-    arm.add(socket);
-  }
-  const outfits = /* @__PURE__ */ new Map();
-  function dress(role) {
-    if (!unitRoles.includes(role)) throw Error("\u672A\u77E5\u6A21\u578B\u8ECD\u7A2E");
-    for (const outfit2 of outfits.values()) outfit2.visible = false;
-    shield.visible = false;
-    if (role === "villager") {
-      equip("none");
-      return;
-    }
-    let outfit = outfits.get(role);
-    if (!outfit) {
-      outfit = new T.Group();
-      outfit.name = `outfit-${role}`;
-      root.add(outfit);
-      outfits.set(role, outfit);
-      if (role === "archer") {
-        part(outfit, 0, 1.1, 0, 0.36, 0.13, 0.32, "#667c4e");
-        part(outfit, 0, 0.36, -0.24, 0.21, 0.43, 0.18, "#8b6746");
-        for (const x of [-0.06, 0.06]) part(outfit, x, 0.77, -0.24, 0.025, 0.2, 0.025, "#d3b981");
-      } else {
-        part(outfit, 0, 1.12, 0, 0.4, 0.14, 0.35, "#a5b0ad");
-        part(outfit, 0, 0.4, 0.18, 0.36, 0.23, 0.055, "#a5b0ad");
-        if (role === "spearman") part(outfit, 0, 1.26, 0, 0.065, 0.15, 0.25, team);
-      }
-    }
-    outfit.visible = true;
-    shield.visible = role === "swordsman";
-    equip(role === "swordsman" ? "sword" : role === "spearman" ? "spear" : "bow");
-  }
-  const shield = new T.Group();
-  shield.name = "shield-left";
-  sockets.leftHand.add(shield);
-  shield.visible = false;
-  part(shield, -0.12, -0.17, 0.07, 0.08, 0.48, 0.4, "#9d885b");
-  part(shield, -0.17, -0.11, 0.07, 0.03, 0.34, 0.28, team);
-  const toolMeshes = /* @__PURE__ */ new Map();
-  let selected2 = "none";
-  function makeTool(kind) {
-    const group = new T.Group();
-    group.name = `tool-${kind}`;
-    sockets.rightHand.add(group);
-    if (kind === "basket") {
-      part(group, -0.15, -0.12, 0.16, 0.4, 0.28, 0.34, "#96764c");
-      for (const x of [-0.32, 0.02]) part(group, x, 0.12, 0.16, 0.035, 0.15, 0.04, "#b79a67");
-      part(group, -0.15, 0.25, 0.16, 0.38, 0.035, 0.04, "#b79a67");
-    } else if (kind === "spear") {
-      part(group, 0, -0.28, 0, 0.05, 1.42, 0.05, "#967447");
-      part(group, 0, 1.14, 0, 0.11, 0.23, 0.06, "#c6cfca");
-    } else if (kind === "bow") {
-      for (const [y, z] of [[-0.12, 0], [0.04, 0.08], [0.2, 0.12], [0.36, 0.08], [0.52, 0]]) part(group, 0, y, z, 0.065, 0.17, 0.06, "#997447");
-      part(group, 0, -0.12, 0, 0.018, 0.81, 0.018, "#d9cba4");
-    } else if (kind !== "none") {
-      part(group, 0, -0.08, 0, 0.055, 0.48, 0.06, kind === "sword" ? "#756449" : "#967447");
-      if (kind === "axe") part(group, 0.08, 0.23, 0, 0.22, 0.15, 0.055, "#aab0a3");
-      if (kind === "pick") part(group, 0, 0.32, 0, 0.38, 0.045, 0.06, "#aab0a3");
-      if (kind === "hammer") part(group, 0, 0.28, 0, 0.23, 0.13, 0.12, "#979e93");
-      if (kind === "sickle") {
-        part(group, 0.05, 0.25, 0, 0.15, 0.045, 0.05, "#aab0a3");
-        part(group, 0.11, 0.16, 0, 0.04, 0.12, 0.05, "#aab0a3");
-      }
-      if (kind === "sword") {
-        part(group, 0, 0.22, 0, 0.22, 0.045, 0.07, "#baa167");
-        part(group, 0, 0.27, 0, 0.07, 0.46, 0.045, "#c6cfca");
-      }
-    }
-    toolMeshes.set(kind, group);
-    return group;
-  }
-  function equip(kind) {
-    if (!unitTools.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5DE5\u5177");
-    for (const mesh of toolMeshes.values()) mesh.visible = false;
-    selected2 = kind;
-    if (kind !== "none") (toolMeshes.get(kind) ?? makeTool(kind)).visible = true;
-  }
-  function pose(kind, time) {
-    if (!unitPoses.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B");
-    const p = samplePose(kind, time);
-    leftLeg.rotation.x = p.leftLeg;
-    rightLeg.rotation.x = p.rightLeg;
-    leftArm.rotation.x = p.leftArm;
-    rightArm.rotation.x = p.rightArm;
-    root.rotation.x = p.lean;
-    root.rotation.z = -p.fall;
-    root.position.y = 0.28 * Math.sin(p.fall);
-    for (const [tool, mesh] of toolMeshes) mesh.visible = tool === selected2 && kind !== "death";
-  }
-  return { root, sockets, equip, pose, dress };
-}
-
-// packages/sim/terrain.ts
-var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200 }, generationAttempts: 8 };
-var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" } };
-var terrainDefinitions = {
-  grass: { walkClass: "land", buildability: true, height: 0 },
-  road: { walkClass: "land", buildability: true, height: 0 },
-  stone: { walkClass: "land", buildability: true, height: 0 },
-  sand: { walkClass: "land", buildability: true, height: 0 },
-  highland: { walkClass: "land", buildability: true, height: 100 },
-  cliff: { walkClass: "blocked", buildability: false, height: 100 },
-  water: { walkClass: "water", buildability: false, height: 0 },
-  shallow: { walkClass: "both", buildability: false, height: 0 }
-};
-function createTiles(layout = "meadow", seed = 0) {
-  if (!["meadow", "coast", "acceptance"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
-  return Array.from({ length: 256 }, (_, id) => {
-    const x = id % 16, y = Math.floor(id / 16);
-    let terrainType = y === 8 ? "road" : "grass";
-    if (layout === "coast") {
-      const edge = 12 + (seed >>> 0 >>> Math.floor(x / 4) & 1);
-      if (y >= edge) terrainType = "water";
-      else if (y === edge - 1) terrainType = "sand";
-    }
-    if (layout === "acceptance") {
-      if (x === 7 || x === 8) terrainType = y >= 7 && y <= 9 ? "shallow" : "water";
-      else if (x === 6 || x === 9) terrainType = "sand";
-    }
-    const tile = { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
-    if (layout === "acceptance") {
-      if (x >= 2 && x <= 5 && y >= 11 && y <= 14) {
-        tile.terrainType = x === 2 && y === 11 ? "cliff" : x === 3 && y === 13 ? "stone" : "highland";
-        Object.assign(tile, terrainDefinitions[tile.terrainType]);
-        tile.height = 100;
-      }
-      if (x === 4 && y >= 8 && y <= 10) {
-        tile.terrainType = "road";
-        tile.height = (y - 7) * 25;
-        tile.buildability = false;
-      }
-    }
-    return tile;
-  });
-}
-function groundHeight(tiles, x, y) {
-  return tiles[tileAt(x, y)]?.height ?? 0;
-}
-function tileAt(x, y) {
-  return Math.floor(y / 100) * 16 + Math.floor(x / 100);
-}
-function canTraverse(tile, movement) {
-  return tile.walkClass === movement || tile.walkClass === "both";
 }
 
 // packages/sim/navigation.ts
@@ -870,7 +981,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   function unit(id, player) {
     const group = new T.Group();
     scene2.add(group);
-    const rig = createUnitRig(T, player, box, material);
+    const rig = createCharacterRig(T, player, box, material);
     rig.equip(previewTool);
     group.add(rig.root);
     detail.apply(group, zoom);
@@ -880,6 +991,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     units.set(id, { group, rig, ring, player, moving: false });
     return units.get(id);
   }
+  let previewRole = "villager";
   let previewPose = "idle", previewTool = "none", previewAnimated = false, poseStart = 0;
   const focus = { x: 8, y: 0, z: 8 };
   let worldKey = "", angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected2 = 1, latest = null;
@@ -966,9 +1078,12 @@ async function createScene(canvas2, onFailure, options = {}) {
     previewBuildingKind = kind;
     if (latest) update(latest, selected2);
   }, setPreviewRole: (role) => {
-    if (!options.assetPreview || !unitRoles.includes(role)) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
+    if (!options.assetPreview || !unitRoles.includes(role) && role !== "cavalry") throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
+    previewRole = role;
+    previewPose = "idle";
     for (const u of units.values()) {
       u.rig.dress(role);
+      u.ring.scale.set(role === "cavalry" ? 1.8 : 1, 1, role === "cavalry" ? 1.8 : 1);
       detail.apply(u.group, zoom);
     }
   }, setPreviewBuilding: (visual) => {
@@ -994,7 +1109,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     cameraUpdate();
   }, setPreviewMotion: (pose, tool, animated) => {
     if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u59FF\u614B");
-    if (!unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
+    if (previewRole === "cavalry" && !["idle", "walk", "attack"].includes(pose) || !unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
     previewPose = pose;
     previewTool = tool;
     previewAnimated = animated;
@@ -1161,8 +1276,16 @@ var notice = (s) => {
   el("notice").textContent = s;
 };
 var canvas = el("map");
+var fogDebugger = mountFogDebugger(el("fog-debug"), () => state);
 function render() {
-  scene?.update(state, selected);
+  fogDebugger.update();
+  if (!graphicsFailed) {
+    try {
+      scene?.update(state, selected);
+    } catch (error) {
+      graphicsError(`3D \u5834\u666F\u66F4\u65B0\u5931\u6557\uFF1A${error.message}`);
+    }
+  }
   el("fog-status").textContent = `\u53EF\u898B ${state.fog.filter((v) => v === 2).length} \u683C \xB7 \u5DF2\u63A2\u7D22\u820A\u8996\u91CE ${state.fog.filter((v) => v === 1).length} \u683C \xB7 \u672A\u63A2\u7D22 ${state.fog.filter((v) => v === 0).length} \u683C`;
   el("world-label").textContent = { meadow: "\u8349\u7538\u8A66\u9A57\u5834", coast: "\u6D77\u5CB8\u8A66\u9A57\u5834", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058\u9A57\u6536\u5834" }[state.layout];
   el("tick").textContent = String(state.tick);
@@ -1240,7 +1363,7 @@ canvas.addEventListener("click", (e) => {
 });
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
-  scene?.zoom(e.deltaY < 0 ? 0.1 : -0.1);
+  if (!graphicsFailed) scene?.zoom(e.deltaY < 0 ? 0.1 : -0.1);
 }, { passive: false });
 el("zoom-in").onclick = () => scene?.zoom(0.2);
 el("zoom-out").onclick = () => scene?.zoom(-0.2);
@@ -1370,8 +1493,14 @@ function frame(time) {
       });
     }
   }
-  if (!graphicsFailed) scene?.draw(time);
-  requestAnimationFrame(frame);
+  if (!graphicsFailed) {
+    try {
+      scene?.draw(time);
+    } catch (error) {
+      graphicsError(`3D \u7E6A\u5716\u5931\u6557\uFF1A${error.message}`);
+    }
+  }
+  if (!graphicsFailed) requestAnimationFrame(frame);
 }
 function graphicsError(message) {
   graphicsFailed = true;

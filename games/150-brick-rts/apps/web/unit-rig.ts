@@ -28,6 +28,7 @@ export function createUnitRig(T:any,player:number,box:(w:number,h:number,d:numbe
  const leftArm=joint('shoulder-left',-.19,.67,0),rightArm=joint('shoulder-right',.19,.67,0);
  const sockets:{leftHand:any;rightHand:any}={leftHand:new T.Group(),rightHand:new T.Group()};
  for(const [arm,socket,name] of [[leftArm,sockets.leftHand,'hand-left'],[rightArm,sockets.rightHand,'hand-right']]){part(arm,0,-.28,0,.1,.28,.16,team);part(arm,0,-.38,0,.1,.14,.17,'#dfbb7e');socket.name=name;socket.position.set(0,-.31,.09);arm.add(socket);}
+ let seated=false;
  const outfits=new Map<UnitRole,any>();
  function dress(role:UnitRole){
   if(!unitRoles.includes(role))throw Error('未知模型軍種');
@@ -65,6 +66,6 @@ export function createUnitRig(T:any,player:number,box:(w:number,h:number,d:numbe
  toolMeshes.set(kind,group);return group;
  }
  function equip(kind:UnitTool){if(!unitTools.includes(kind))throw Error('未知模型工具');for(const mesh of toolMeshes.values())mesh.visible=false;selected=kind;if(kind!=='none')(toolMeshes.get(kind)??makeTool(kind)).visible=true;}
- function pose(kind:UnitPose,time:number){if(!unitPoses.includes(kind))throw Error('未知模型姿態');const p=samplePose(kind,time);leftLeg.rotation.x=p.leftLeg;rightLeg.rotation.x=p.rightLeg;leftArm.rotation.x=p.leftArm;rightArm.rotation.x=p.rightArm;root.rotation.x=p.lean;root.rotation.z=-p.fall;root.position.y=.28*Math.sin(p.fall);for(const [tool,mesh] of toolMeshes)mesh.visible=tool===selected&&kind!=='death';}
- return {root,sockets,equip,pose,dress};
+ function pose(kind:UnitPose,time:number){if(!unitPoses.includes(kind))throw Error('未知模型姿態');const p=samplePose(kind,time);leftLeg.rotation.x=seated?0:p.leftLeg;rightLeg.rotation.x=seated?0:p.rightLeg;leftLeg.position.x=seated?-.4:-.12;rightLeg.position.x=seated?.4:.12;leftArm.rotation.x=p.leftArm;rightArm.rotation.x=p.rightArm;root.rotation.x=p.lean;root.rotation.z=-p.fall;root.position.y=.28*Math.sin(p.fall);for(const [tool,mesh] of toolMeshes)mesh.visible=tool===selected&&kind!=='death';}
+ return {root,sockets,equip,pose,dress,seat:(value:boolean)=>{seated=value;}};
 }

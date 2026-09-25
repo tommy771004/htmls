@@ -98,3 +98,19 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## 村落公共建築增量
 
 新增城鎮中心、市場與鐵匠舖的代表外觀，67 項程式測試及模型切換／狀態還原／故障測試通過。詳見 [civic-assets-verification.md](civic-assets-verification.md)。不包含生產、交易、研究或權威建築占地。
+
+## 隱藏配件選取修正
+
+修正遞迴 raycast 命中不可見配件的問題，69 項測試通過。實際長矛在三段 LOD 卸下後不再擴大命中範圍；見 [picking-verification.md](picking-verification.md)。C 尚缺門檻整理在 [c-stage-open-gates.md](c-stage-open-gates.md)，未變更完成條件。
+
+## 迷霧除錯面板
+
+新增只讀目前玩家投影的三態格網與最後已見住宅時間查詢。70 項測試通過；詳見 [fog-debug-verification.md](fog-debug-verification.md)。不讀全域隱藏狀態、不提供假視野／外交操作。
+
+## 騎乘模型增量
+
+新增四腿馬匹、鞍座掛點與坐姿騎手，71 項測試通過。未支援的騎乘姿態明確停用；詳見 [mounted-verification.md](mounted-verification.md)。仍未接入騎兵玩法或權威碰撞。
+
+## 沙盒繪圖例外保護
+
+正式沙盒新增場景更新與每幀繪圖的例外處理，停止輸入並保留存檔通道。重現步驟與驗證範圍見 [sandbox-render-verification.md](sandbox-render-verification.md)。

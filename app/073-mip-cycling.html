@@ -78,7 +78,7 @@ svg{display:block}
 .segs button[aria-selected=true]::before{background:var(--ink)}
 
 /* ---------- pages ---------- */
-.viewport{position:relative;z-index:2;flex:1;min-height:0;overflow:hidden;touch-action:pan-y}
+.viewport{position:relative;z-index:2;flex:1;min-height:0;overflow:hidden;touch-action:pan-y;-webkit-user-select:none;user-select:none}
 .pages{display:flex;width:500%;height:100%;transition:transform .42s cubic-bezier(.2,.9,.3,1.05);will-change:transform}
 .pages.drag{transition:none}
 .page{width:20%;height:100%;overflow-y:auto;overflow-x:hidden;padding:0 16px 16px;scrollbar-width:none}
@@ -169,7 +169,8 @@ tr.best td:nth-child(4){color:var(--red)}
 
 /* load page */
 .ldtop{display:flex;align-items:flex-end;justify-content:space-between;padding:10px 0 12px}
-.ldtop .num{font-size:80px}
+.ldtop .num{font-size:72px}
+.ldtop > div:first-child{flex:1;margin-right:16px}
 .ldtop .lv{text-align:right}
 .ldtop .lv b{display:inline-block;background:var(--ink);color:var(--lcd);font:700 24px/1 var(--sans);padding:6px 10px 5px}
 .screen.lit .ldtop .lv b{color:var(--lit)}
@@ -180,7 +181,8 @@ tr.best td:nth-child(4){color:var(--red)}
 .lm i.cz{background:var(--red)}
 .lm i.nw{animation:lcdon .18s steps(1,end)}
 @keyframes lcdon{from{background:var(--dith)}}
-.ldcap{font:500 12px/1.45 var(--sans);margin:10px 0 12px;display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center}
+.ldcap{font:500 12px/1.45 var(--sans);margin:10px 0 12px;display:flex;justify-content:space-between;gap:6px 14px;align-items:center}
+.ldhow{font:500 12px/1.5 var(--sans);border-top:3px solid var(--ink);padding-top:10px}
 .ldcap i{display:inline-block;width:12px;height:12px;vertical-align:-1px;margin-right:4px;background:var(--red)}
 .ldrows{border-top:3px solid var(--ink)}
 .lrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 12px;min-height:54px;padding:8px 0}
@@ -357,13 +359,14 @@ tr.best td:nth-child(4){color:var(--red)}
               <div class="lv"><b id="ldLv">中等</b><span id="ldFill">46 / 96 格</span></div>
             </div>
             <div class="lm" id="ldMx" role="img" aria-label="負荷點陣"></div>
-            <p class="ldcap"><span><i></i><span id="ldCz">本區累積</span></span><span>每格 3 分，由下往上填。負荷 = 各心率區間分鐘 × 區號 1–5 加總（Edwards TRIMP）。</span></p>
+            <p class="ldcap"><span><i id="ldSw"></i><span id="ldCz">本區累積</span></span><span>每格 3 分，由下往上填</span></p>
             <div class="ldrows">
-              <div class="lrow zt"><span>各區間時間<small>分鐘</small></span><div><div class="ztn" id="ldZn"></div><div class="ztb" id="ldZb"></div></div></div>
+              <div class="lrow zt"><div class="lab">各區間時間<em>MIN</em></div><div><div class="ztn" id="ldZn"></div><div class="ztb" id="ldZb"></div></div></div>
               <div class="lrow"><span>能量消耗<small id="ldKcal">約 0 大卡</small></span><b id="ldKj"></b></div>
               <div class="lrow"><span>標準化功率<small id="ldAvgP">平均 0 W</small></span><b id="ldNp"></b></div>
               <div class="lrow"><span>恢復建議<small>8 小時 + 負荷 × 0.12</small></span><b id="ldRec"></b></div>
             </div>
+            <p class="ldhow">負荷用 Edwards TRIMP：各心率區間的分鐘數乘上區號 1–5 後加總。暫停時不累積；標準化功率取 30 秒滾動功率的四次方平均再開四次方根。</p>
           </section>
         </div>
       </div>
@@ -383,7 +386,7 @@ tr.best td:nth-child(4){color:var(--red)}
   </div>
   <div class="caption">
     <h1>碼<span>錶</span></h1>
-    <p>反射式液晶的單車碼錶。太陽越大越清楚，左右滑看心率、圈數、爬坡。</p>
+    <p>反射式液晶的單車碼錶。太陽越大越清楚，左右滑看心率、圈數、爬坡與訓練負荷。</p>
   </div>
 </div>
 
@@ -606,6 +609,7 @@ function renderLoad(){
   roller($('ldScore'), String(Math.floor(L)));
   $('ldLv').textContent = L < 50 ? '輕鬆' : L < 120 ? '中等' : L < 200 ? '吃重' : L < 300 ? '很重' : '極限';
   $('ldFill').textContent = n >= DOTS ? '滿格 '+DOTS+' 格' : n+' / '+DOTS+' 格';
+  $('ldSw').style.display = live ? '' : 'none';
   $('ldCz').textContent = live ? 'Z'+(z + 1)+' '+ZN[z]+'區累積' : '暫停中，不累積';
   $('ldZn').innerHTML = R.zt.map(function(t, i){ return '<div'+(live && i === z ? ' class="cur"' : '')+'>Z'+(i + 1)+'<b>'+Math.round(t/60)+'</b></div>'; }).join('');
   $('ldZb').innerHTML = R.zt.map(function(t, i){ return t > 0 ? '<i'+(live && i === z ? ' class="cur"' : '')+' style="flex-grow:'+Math.round(t)+'"></i>' : ''; }).join('');
