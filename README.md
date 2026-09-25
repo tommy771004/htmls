@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 150，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 151，皆放在 `web/`），以及另外 100 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -158,6 +158,7 @@
 | 148 | [148-cfo-runway.html](https://htmls-ruddy.vercel.app/web/148-cfo-runway.html) | 專案範例 · 機場跑道 · 高階主管月報 | 跑道：三家公司的單頁經營月報：可支撐月數畫成跑道與現金耗盡停止線，營運費用情境滑桿即時移動；十項指標對比上月、上季與目標，CFO 總結依數據自動列出變好、變差與需要關注 | 靜態 HTML 互動範例；資料為示意 |
 | 149 | [149-powers-of-ten.html](https://htmls-ruddy.vercel.app/web/149-powers-of-ten.html) | 資料科學 · 62 個數量級連續縮放 | 一指之間：從大安森林公園花布上孩子的掌心出發，往外經臺北盆地、臺灣、地球、今日真實行星位置、歐特雲、銀河、本星系群、拉尼亞凱亞到可觀測宇宙邊緣；往裡經掌紋、角質層、細胞、染色質、DNA、G·C 鹼基對、碳原子電子雲、原子核與夸克，直到普朗克長度。視野與光穿越時間即時換算、自動旅程、尺規拖曳、WebAudio 刻度聲；全部即時繪製，零外部資源 | |
 | 150 | [150-brick-rts.html](web/150-brick-rts.html) | 積木即時戰略 · 開發中 | 磚築紀元：規則驗證與可重現移動沙盒；完整對戰尚未實作。原始碼與操作見 [README](games/150-brick-rts/README.md) | |
+| 151 | [151-bike-configurator.html](https://htmls-ruddy.vercel.app/web/151-bike-configurator.html) | 品牌頁面 · 3D 客製化電商 | Crosswind R：程序化生成、依真實比例的公路車（每根輻條、每節鏈條）：即時換配色、輪組、輪胎、傳動、把手與坐墊，踩踏帶動齒盤、鏈條與後輪，含即時報價與購物車結帳 | 單檔 HTML；Three.js 與 GSAP 由 CDN 載入，需連線及 WebGL；購物車與結帳僅為本機示範，不會送出資料 |
 
 ## 較弱的 7 件（誠實版）
 - **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。
