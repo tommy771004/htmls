@@ -46,3 +46,9 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:browser
 - `docs/asset-manifest.json`、`docs/completeness-matrix.md`、`docs/verification.md`：素材、缺口與實測證據。
 
 參數全部為 `design_default`。未指定或核對原作版本，不宣稱最新版本、完整內容或精確移植。Canvas 插畫不是已完成的 3D 美術階段；完整功能清單與下一階段見 completeness matrix。
+
+## 後續階段契約
+
+`AGENTS.md` 固定逐階段與首次使用修正流程。版本逐項對照見 `docs/reference-comparison.json`；資料模型見 `docs/data-model.md`；A–J 的機器可讀依賴和完成門檻見 `docs/stage-dependencies.json`。目前 B 階段仍在進行，不能跳成已完成 C／D／E。
+
+`npm run sim:headless -- 260925 10000` 執行真實無畫面命令、tick、存讀續跑與重播一致性檢查，並輸出觀測到的 tick CPU 耗時。量測不參與權威狀態，不代表浏览器 FPS 或整合式 GPU 驗收。首次使用證據見 `docs/first-use-001.md`。

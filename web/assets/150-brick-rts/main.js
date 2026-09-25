@@ -129,6 +129,7 @@ function tick(s) {
   }
 }
 function replay(seed, commands, ticks) {
+  if (!Number.isSafeInteger(ticks) || ticks < 0 || ticks > 1e5 || !Array.isArray(commands) || commands.length > 1e4) throw Error("\u7121\u6548\u91CD\u64AD\u7BC4\u570D");
   const s = createState(seed);
   const pending = structuredClone(commands).sort((a, b) => a.targetTick - b.targetTick || a.playerId - b.playerId || a.sequence - b.sequence);
   for (const c of [...pending].sort((a, b) => a.playerId - b.playerId || a.sequence - b.sequence)) {

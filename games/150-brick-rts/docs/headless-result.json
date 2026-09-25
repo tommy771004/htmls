@@ -1,0 +1,19 @@
+{
+  "seed": 260925,
+  "ticks": 10000,
+  "rulesetHash": "b66067ad",
+  "stateHash": "b84353d3",
+  "commands": 1,
+  "replayMatches": true,
+  "snapshotContinuationMatches": true,
+  "measurement": {
+    "kind": "node-headless-four-unit-sandbox",
+    "node": "v22.23.1",
+    "platform": "darwin",
+    "arch": "arm64",
+    "meanTickMs": 0.0001864452000000007,
+    "p95TickMs": 0.00016700000000113846,
+    "maxTickMs": 0.21704200000000284,
+    "note": "Observed CPU tick timing only; not browser FPS, target hardware certification, or a full-match benchmark."
+  }
+}

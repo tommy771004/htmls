@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "source": "../../../docs/Brick_RTS_Prompt_Pack/brick_rts_prompt_pack/docs/BUILD_ORDER.md",
+  "activeStage": "B",
+  "exactReferenceBlocked": true,
+  "allowDesignDefaultEngineering": true,
+  "stages": [
+    {
+      "id": "A",
+      "name": "固定範圍",
+      "prompts": [
+        "00",
+        "01"
+      ],
+      "dependsOn": [],
+      "status": "foundation_implemented_reference_unverified",
+      "exitEvidence": "schema 可拒絕錯誤；版本與未知項可追蹤",
+      "firstUseReviewRequired": true,
+      "reviewStatus": "sandbox_only"
+    },
+    {
+      "id": "B",
+      "name": "技術骨架",
+      "prompts": [
+        "02"
+      ],
+      "dependsOn": [
+        "A"
+      ],
+      "status": "in_progress",
+      "exitEvidence": "headless tick、命令、snapshot、重播 hash；完整 sim/Worker 邊界",
+      "firstUseReviewRequired": true,
+      "reviewStatus": "sandbox_only"
+    },
+    {
+      "id": "C",
+      "name": "積木視覺與戰場",
+      "prompts": [
+        "03",
+        "04"
+      ],
+      "dependsOn": [
+        "B"
+      ],
+      "status": "not_started",
+      "exitEvidence": "3D 模型、資源與迷霧實際可見",
+      "firstUseReviewRequired": true,
+      "reviewStatus": "not_run"
+    },
+    {
+      "id": "D",
+      "name": "基本操作",
+      "prompts": [
+        "05",
+        "06"
+      ],
+      "dependsOn": [
+        "C"
+      ],
+      "status": "not_started",
+      "exitEvidence": "框選、編組、路徑、狹道與 HUD 實測",
+      "firstUseReviewRequired": true,
+      "reviewStatus": "not_run"
+    },
+    {
+      "id": "E",
+      "name": "首個完整對局",
+      "prompts": [
+        "07",
+        "08",
+        "09",
+        "12-basic"
+      ],
+      "dependsOn": [
+        "D"
+      ],
+      "status": "not_started",
+      "exitEvidence": "經濟→升級→造兵→攻城→勝敗→再開局",
+      "firstUseReviewRequired": true,
+      "reviewStatus": "not_run"
+    },
+    {
+      "id": "F",
+      "name": "系統擴充",
+      "prompts": [
+        "10",
+        "11",
+        "12"
+      ],
+      "dependsOn": [
+        "E"
+      ],
+      "status": "not_started",
+      "exitEvidence": "海運、貿易、宗教、文明與完整 AI 實際互動",
+      "firstUseReviewRequired": true,
+      "reviewStatus": "not_run"
+    },
+    {
+      "id": "G",
+      "name": "可恢復遊戲",
+      "prompts": [
+        "13"
+      ],
+      "dependsOn": [
+        "F"
+      ],
+      "status": "not_started",
+      "exitEvidence": "中途存讀續跑、壞檔與重播一致",
+      "firstUseReviewRequired": true,
+      "reviewStatus": "not_run"
+    },
+    {
+      "id": "H",
+      "name": "多人",
+      "prompts": [
+        "14"
+      ],
+      "dependsOn": [
+        "G"
+      ],
+      "status": "not_started",
+      "exitEvidence": "多個真實客戶端、權威伺服器、重连與一局完成",
+      "firstUseReviewRequired": true,
+      "reviewStatus": "not_run"
+    },
+    {
+      "id": "I",
+      "name": "多模式與內容工具",
+      "prompts": [
+        "15"
+      ],
+      "dependsOn": [
+        "H"
+      ],
+      "status": "not_started",
+      "exitEvidence": "戰役、trigger、編輯器與 playtest",
+      "firstUseReviewRequired": true,
+      "reviewStatus": "not_run"
+    },
+    {
+      "id": "J",
+      "name": "完整品質與規模",
+      "prompts": [
+        "16",
+        "17",
+        "18"
+      ],
+      "dependsOn": [
+        "I"
+      ],
+      "status": "not_started",
+      "exitEvidence": "內容矩陣、音效、美術、相容性及目標硬體量測",
+      "firstUseReviewRequired": true,
+      "reviewStatus": "not_run"
+    }
+  ],
+  "releaseGate": "E must pass a real full match and prompt 19 before any playable RTS completion claim"
+}

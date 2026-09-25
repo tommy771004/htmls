@@ -26,6 +26,7 @@ export function tick(s:State):void {
  for(const u of s.units)if(u.target){u.x+=Math.sign(u.target.x-u.x)*Math.min(5,Math.abs(u.target.x-u.x));u.y+=Math.sign(u.target.y-u.y)*Math.min(5,Math.abs(u.target.y-u.y));if(u.x===u.target.x&&u.y===u.target.y)u.target=null;}
 }
 export function replay(seed:number,commands:Command[],ticks:number):State{
+ if(!Number.isSafeInteger(ticks)||ticks<0||ticks>100000||!Array.isArray(commands)||commands.length>10000)throw Error('無效重播範圍');
  const s=createState(seed);const pending=structuredClone(commands).sort((a,b)=>a.targetTick-b.targetTick||a.playerId-b.playerId||a.sequence-b.sequence);
  // Restore accepted commands and per-player sequence; execution order is defined by tick().
  for(const c of [...pending].sort((a,b)=>a.playerId-b.playerId||a.sequence-b.sequence)) {const original=s.tick;s.tick=Math.max(0,c.targetTick-1);submit(s,c);s.tick=original;}

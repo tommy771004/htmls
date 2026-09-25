@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "referenceGame": "Age of Empires II: Definitive Edition",
+  "referenceVersion": null,
+  "referenceBuild": null,
+  "coverageDenominator": null,
+  "coveragePercent": null,
+  "comparisonStatus": "unverified",
+  "entries": [
+    {
+      "id": "reference.version",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "reference.build",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "reference.contentPacks",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "platformDifferences",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "civilizations.completeInventory",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "units.completeInventory",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "buildings.completeInventory",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "technologies.completeInventory",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "balance.costs",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "balance.trainingTimes",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "balance.movement",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "balance.combat",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "maps.generation",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    },
+    {
+      "id": "modes.victoryConditions",
+      "referenceValue": null,
+      "verificationStatus": "unverified",
+      "sourceEvidence": [],
+      "blocks": "exact_reference_claim",
+      "resolution": "使用者指定版本後，以該版本資料或可重現實測核對"
+    }
+  ],
+  "localRules": {
+    "source": "ruleset-manifest.json",
+    "status": "design_default",
+    "note": "切片自訂值不是原作值；不能以此計算原作覆蓋率。"
+  }
+}
