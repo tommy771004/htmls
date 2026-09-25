@@ -1,14 +1,20 @@
 {
-  "schemaVersion": 10,
-  "rulesetHash": "f4bf3eb9",
+  "schemaVersion": 11,
+  "rulesetHash": "6a22d3a0",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
     "spacing": 50,
     "size": 31,
     "radius": 25,
-    "expansionsPerTick": 32,
-    "speedPerTick": 5
+    "expansionsPerTick": 128,
+    "speedPerTick": 5,
+    "maxGroupSize": 40,
+    "waitLimit": 8,
+    "queueWaitFactor": 4,
+    "detourLimit": 12,
+    "stuckTicks": 300,
+    "arrivalRadius": 150
   },
   "startingResources": {
     "provenance": "design_default",
@@ -277,5 +283,5 @@
       "y": 215
     }
   },
-  "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; no unit avoidance"
+  "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; units hold one node and reserve the next (no overlap, no pass-through), wait, yield, trade stations and replan within bounded limits"
 }

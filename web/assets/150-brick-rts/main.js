@@ -337,11 +337,11 @@ function samplePose(pose, time) {
   if (pose === "death") p.fall = Math.min(t / 700, 1) * Math.PI / 2;
   return p;
 }
-function createUnitRig(T, player, box, material) {
+function createUnitRig(T, player, box2, material) {
   const root = new T.Group();
   root.name = "body-root";
   const part = (parent, x, y, z, w, h, d, color) => {
-    const mesh = new T.Mesh(box(w, h, d), material(color));
+    const mesh = new T.Mesh(box2(w, h, d), material(color));
     mesh.position.set(x, y, z);
     mesh.castShadow = true;
     parent.add(mesh);
@@ -465,13 +465,13 @@ function createUnitRig(T, player, box, material) {
 }
 
 // apps/web/character-rig.ts
-function createCharacterRig(T, player, box, material) {
-  const root = new T.Group(), rider = createUnitRig(T, player, box, material);
+function createCharacterRig(T, player, box2, material) {
+  const root = new T.Group(), rider = createUnitRig(T, player, box2, material);
   root.add(rider.root);
   let horse = null, saddle = null, mounted = false;
   const legs = [];
   const part = (parent, x, y, z, w, h, d, color) => {
-    const m = new T.Mesh(box(w, h, d), material(color));
+    const m = new T.Mesh(box2(w, h, d), material(color));
     m.position.set(x, y, z);
     m.castShadow = true;
     parent.add(m);
@@ -862,7 +862,7 @@ function buildingParts(visual) {
 }
 
 // packages/sim/navigation.ts
-var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 32, speedPerTick: 5 };
+var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 128, speedPerTick: 5, maxGroupSize: 40, waitLimit: 8, queueWaitFactor: 4, detourLimit: 12, stuckTicks: 300, arrivalRadius: 150 };
 var startingResourceRules = { provenance: "design_default", maxApproachDistance: 1200, maxNearestDistanceDifference: 500, minimum: { tree: 300, stone: 250, gold: 250, berries: 150 } };
 function makeMap(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("\u5730\u5716 seed \u5FC5\u9808\u70BA uint32");
@@ -956,9 +956,9 @@ function clearSegment(map, a, b, movement = "land") {
   }
   return true;
 }
-function intersects(a, b, box) {
+function intersects(a, b, box2) {
   let lo = 0, hi = 1;
-  for (const [start, delta, min, max] of [[a.x, b.x - a.x, box[0], box[2]], [a.y, b.y - a.y, box[1], box[3]]]) {
+  for (const [start, delta, min, max] of [[a.x, b.x - a.x, box2[0], box2[2]], [a.y, b.y - a.y, box2[1], box2[3]]]) {
     if (delta === 0) {
       if (start < min || start > max) return false;
     } else {
@@ -1132,7 +1132,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (!materials.has(color)) materials.set(color, new T.MeshStandardMaterial({ color, roughness: brickStyle.roughness }));
     return materials.get(color);
   }
-  function box(w, h, d) {
+  function box2(w, h, d) {
     const key = `${w}:${h}:${d}`;
     if (geometry.has(key)) return geometry.get(key);
     const b = Math.min(brickStyle.bevel, w / 8, h / 8, d / 8);
@@ -1173,7 +1173,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     return geometry.get(key);
   }
   function brick(x, z, y, w, d, h, color, studs = true, shape) {
-    staticPart(shape === "arch" ? arch(w - 0.018, h, d - 0.018) : box(w - 0.018, h, d - 0.018), color, x + w / 2, y, z + d / 2);
+    staticPart(shape === "arch" ? arch(w - 0.018, h, d - 0.018) : box2(w - 0.018, h, d - 0.018), color, x + w / 2, y, z + d / 2);
     if (studs) for (let a = 0.25; a < w; a += 0.5) for (let b = 0.25; b < d; b += 0.5) staticPart(studGeo, color, x + a, y + h + 0.04, z + b);
   }
   function groundBlock(x, z, height2, color) {
@@ -1272,7 +1272,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   function unit(id, player) {
     const group = new T.Group();
     scene2.add(group);
-    const rig = createCharacterRig(T, player, box, material);
+    const rig = createCharacterRig(T, player, box2, material);
     rig.equip(previewTool);
     group.add(rig.root);
     detail.apply(group, zoom);
@@ -1285,7 +1285,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   let previewRole = "villager";
   let previewPose = "idle", previewTool = "none", previewAnimated = false, poseStart = 0;
   const focus = { x: 8, y: 0, z: 8 };
-  let worldKey = "", angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected2 = 1, latest = null;
+  let worldKey = "", angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected2 = /* @__PURE__ */ new Set([1]), latest = null;
   function cameraUpdate() {
     if (width <= 0 || height <= 0) return;
     const aspect = width / Math.max(1, height);
@@ -1309,9 +1309,9 @@ async function createScene(canvas2, onFailure, options = {}) {
       cameraUpdate();
     }
   }
-  function update(view, id) {
+  function update(view, ids) {
     latest = view;
-    selected2 = id;
+    selected2 = new Set(typeof ids === "number" ? [ids] : ids);
     const key = JSON.stringify([previewBuildingKind, previewBuilding, previewLayout, view.layout, view.seed, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
     if (worldKey !== key) {
       worldKey = key;
@@ -1328,7 +1328,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       const dx = data.x / 100 - u.group.position.x, dz = data.y / 100 - u.group.position.z;
       if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
       u.group.position.set(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100);
-      u.ring.visible = data.id === selected2;
+      u.ring.visible = selected2.has(data.id);
       u.moving = data.navigation === "moving";
     }
   }
@@ -1346,13 +1346,29 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
+  function pickGround(clientX, clientY) {
+    const r = canvas2.getBoundingClientRect();
+    raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
+    const hit = raycaster.intersectObjects(staticGroup.children.filter((mesh) => mesh.userData.ground), false)[0];
+    return hit ? { x: hit.point.x, y: hit.point.z } : {};
+  }
+  function unitsInRect(x0, y0, x1, y1) {
+    const r = canvas2.getBoundingClientRect(), out = [], p = new T.Vector3();
+    for (const [id, u] of units) {
+      if (!u.group.visible) continue;
+      p.set(u.group.position.x, u.group.position.y + 0.55, u.group.position.z).project(camera);
+      const sx = r.left + (p.x + 1) / 2 * r.width, sy = r.top + (1 - p.y) / 2 * r.height;
+      if (sx >= Math.min(x0, x1) && sx <= Math.max(x0, x1) && sy >= Math.min(y0, y1) && sy <= Math.max(y0, y1)) out.push(id);
+    }
+    return out.sort((a, b) => a - b);
+  }
   function draw(time) {
     if (contextLost) return;
     resize();
     for (const u of units.values()) {
       const pose = options.assetPreview ? previewPose : u.moving ? "walk" : "idle";
       u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : time);
-      u.ring.visible = u.group === units.get(selected2)?.group && pose !== "death";
+      u.ring.visible = [...units].some(([id, v]) => v === u && selected2.has(id)) && pose !== "death";
     }
     renderer.render(scene2, camera);
   }
@@ -1364,7 +1380,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   });
   canvas2.dataset.renderer = "webgl2";
   canvas2.dataset.renderState = "ready";
-  return { update, draw, pick, setPreviewBuildingKind: (kind) => {
+  return { update, draw, pick, pickGround, unitsInRect, setPreviewBuildingKind: (kind) => {
     if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
     previewBuildingKind = kind;
     if (latest) update(latest, selected2);
@@ -1442,6 +1458,9 @@ var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 
 // packages/sim/economy.ts
 var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100 };
 
+// packages/sim/movement.ts
+var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
+
 // packages/sim/sim.ts
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -1455,12 +1474,12 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 10 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 11 });
 
 // packages/sim/protocol.ts
 function decodeView(r) {
   const values = new Int32Array(r.positions), units = [];
-  for (let i = 0; i < values.length; i += 7) units.push({ id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: ["idle", "searching", "moving", "unreachable"][values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] } });
+  for (let i = 0; i < values.length; i += 7) units.push({ id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] } });
   return { seed: r.seed, layout: r.layout, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, fog: r.fog, known: r.known, resources: r.resources, units };
 }
 
@@ -1557,7 +1576,7 @@ var el = (id) => document.getElementById(id);
 var state = { seed: rules.settings.seed, layout: "meadow", terrain: [], tick: 0, units: [], fog: [], known: [], resources: [], stateHash: "\u2014" };
 var scene = null;
 var graphicsFailed = false;
-var selected = 1;
+var selected = /* @__PURE__ */ new Set([1]);
 var running = false;
 var last = 0;
 var accumulator = 0;
@@ -1581,10 +1600,16 @@ function render() {
   el("world-label").textContent = { meadow: "\u8349\u7538\u8A66\u9A57\u5834", coast: "\u6D77\u5CB8\u8A66\u9A57\u5834", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058\u9A57\u6536\u5834" }[state.layout];
   el("tick").textContent = String(state.tick);
   el("hash").textContent = state.stateHash;
-  const u = state.units.find((u2) => u2.id === selected);
-  if (!u) return;
-  el("position").textContent = `\u6751\u6C11 ${selected} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${u.navigation === "searching" ? "\u5C0B\u8DEF\u4E2D" : u.navigation === "unreachable" ? "\u7121\u53EF\u9054\u8DEF\u5F91" : u.target ? "\u79FB\u52D5\u4E2D" : "\u5F85\u547D"}`;
+  const chosen = state.units.filter((u2) => selected.has(u2.id)).sort((a, b) => a.id - b.id);
+  el("selection-list").textContent = chosen.length > 1 ? chosen.map((u2) => `\u6751\u6C11 ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${statusLabel[u2.navigation]}`).join("\u3000") : "";
+  const u = chosen[0];
+  if (!u) {
+    el("position").textContent = "\u672A\u9078\u53D6\u6751\u6C11";
+    return;
+  }
+  el("position").textContent = `${chosen.length > 1 ? `${chosen.length} \u540D\u9078\u53D6 \xB7 ` : ""}\u6751\u6C11 ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${statusLabel[u.navigation]}`;
 }
+var statusLabel = { idle: "\u5F85\u547D", searching: "\u5C0B\u8DEF\u4E2D", moving: "\u79FB\u52D5\u4E2D", waiting: "\u7B49\u5F85\u8B93\u8DEF", unreachable: "\u7121\u6CD5\u5230\u9054\uFF0C\u505C\u5728\u6700\u8FD1\u9EDE", stuck: "\u53D7\u963B\u505C\u6B62" };
 function setRunning(v) {
   running = v;
   accumulator = 0;
@@ -1594,11 +1619,22 @@ function setRunning(v) {
   el("run-state").textContent = v ? "\u6A21\u64EC\u904B\u884C\u4E2D \xB7 20 Hz" : "\u5DF2\u66AB\u505C \xB7 \u7B49\u5F85\u6307\u4EE4";
   el("step").disabled = !connected || graphicsFailed || v;
 }
-function choose(id) {
-  selected = id;
-  document.querySelectorAll("[data-unit]").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.unit) === id)));
-  el("selected").textContent = `#0${id}`;
+function select(ids) {
+  const own = new Set(state.units.filter((u) => u.player === 0).map((u) => u.id));
+  selected = new Set([...ids].filter((id) => own.size === 0 || own.has(id)));
+  document.querySelectorAll("[data-unit]").forEach((b) => b.setAttribute("aria-pressed", String(selected.has(Number(b.dataset.unit)))));
+  const ids2 = [...selected].sort((a, b) => a - b);
+  el("selected").textContent = ids2.length ? ids2.map((id) => `#${String(id).padStart(2, "0")}`).join(" ") : "\u672A\u9078\u53D6";
   render();
+}
+function choose(id) {
+  select([id]);
+}
+function toggle(id) {
+  const next = new Set(selected);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  select(next);
 }
 var client = new SimulationClient(rules.settings.seed, (v) => {
   state = v;
@@ -1612,7 +1648,7 @@ var client = new SimulationClient(rules.settings.seed, (v) => {
 });
 function toggleControls() {
   for (const id of ["zoom-in", "zoom-out", "rotate-view", "reset-view"]) el(id).disabled = !scene || graphicsFailed;
-  for (const id of ["move", "pause", "step", "restart", "save", "load", "replay"]) el(id).disabled = !connected || graphicsFailed && id !== "save" || id === "step" && running;
+  for (const id of ["move", "stop", "pause", "step", "restart", "save", "load", "replay"]) el(id).disabled = !connected || graphicsFailed && id !== "save" || id === "step" && running;
 }
 async function connect() {
   el("worker-retry").disabled = true;
@@ -1620,7 +1656,7 @@ async function connect() {
     await client.connect();
     connected = true;
     el("worker-retry").hidden = true;
-    notice(`\u6A21\u64EC\u5DF2\u9023\u7DDA \xB7 tick ${state.tick}\u3002\u9078\u53D6\u6751\u6C11\uFF0C\u518D\u9EDE\u5730\u9762\u4E0B\u9054\u6307\u4EE4\u3002`);
+    notice(`\u6A21\u64EC\u5DF2\u9023\u7DDA \xB7 tick ${state.tick}\u3002\u9078\u53D6\u6751\u6C11\uFF0C\u518D\u5C0D\u5730\u9762\u6309\u53F3\u9375\u4E0B\u9054\u79FB\u52D5\u3002`);
   } catch {
   } finally {
     toggleControls();
@@ -1628,30 +1664,147 @@ async function connect() {
   }
 }
 el("worker-retry").onclick = () => void connect();
+var names = (ids) => ids.length > 3 ? `${ids.length} \u540D\u6751\u6C11` : ids.map((id) => `\u6751\u6C11 ${id}`).join("\u3001");
 async function move(x, y) {
-  const unitId = selected;
+  const unitIds = [...selected].sort((a, b) => a - b);
+  if (!unitIds.length) {
+    notice("\u8ACB\u5148\u9078\u53D6\u6751\u6C11\uFF1A\u5DE6\u9375\u9EDE\u9078\u6216\u62D6\u66F3\u6846\u9078\u3002");
+    return;
+  }
   try {
-    await client.request({ kind: "move", unitId, x: Math.round(x * 100), y: Math.round(y * 100) });
-    notice(`\u6751\u6C11 ${unitId} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u6216\u300C\u524D\u9032 1 tick\u300D\u57F7\u884C\u3002"}`);
+    await client.request({ kind: "move", unitIds, x: Math.round(x * 100), y: Math.round(y * 100) });
+    notice(`${names(unitIds)} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u6216\u300C\u524D\u9032 1 tick\u300D\u57F7\u884C\u3002"}`);
   } catch (e) {
     notice(e.message);
   }
 }
-canvas.addEventListener("click", (e) => {
+async function stop() {
+  const unitIds = [...selected].sort((a, b) => a - b);
+  if (!unitIds.length) {
+    notice("\u8ACB\u5148\u9078\u53D6\u8981\u505C\u6B62\u7684\u6751\u6C11\u3002");
+    return;
+  }
+  try {
+    await client.request({ kind: "stop", unitIds });
+    notice(`${names(unitIds)} \u5C07\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF08tick ${state.tick + 1}\uFF09\u3002`);
+  } catch (e) {
+    notice(e.message);
+  }
+}
+var box = el("select-box");
+var drag = null;
+function showBox(x0, y0, x1, y1) {
+  const r = canvas.getBoundingClientRect();
+  Object.assign(box.style, { left: `${Math.min(x0, x1) - r.left}px`, top: `${Math.min(y0, y1) - r.top}px`, width: `${Math.abs(x1 - x0)}px`, height: `${Math.abs(y1 - y0)}px` });
+  box.hidden = false;
+}
+function endDrag() {
+  drag = null;
+  box.hidden = true;
+}
+canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+canvas.addEventListener("pointerdown", (e) => {
   if (!scene || graphicsFailed) return;
+  if (e.button === 2) {
+    e.preventDefault();
+    endDrag();
+    const hit = scene.pickGround(e.clientX, e.clientY);
+    if (hit.x === void 0 || hit.y === void 0 || hit.x < 0.5 || hit.x > 15.5 || hit.y < 0.5 || hit.y > 15.5) {
+      notice("\u8ACB\u5728\u5730\u5716\u5167\u5074\u7684\u5730\u9762\u6309\u53F3\u9375\u3002");
+      return;
+    }
+    void move(hit.x, hit.y);
+    return;
+  }
+  if (e.button !== 0) return;
+  drag = { x: e.clientX, y: e.clientY, id: e.pointerId, box: false };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!drag.box && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) >= 4) drag.box = true;
+  if (drag.box) showBox(drag.x, drag.y, e.clientX, e.clientY);
+});
+canvas.addEventListener("pointercancel", endDrag);
+canvas.addEventListener("pointerup", (e) => {
+  if (!drag || e.pointerId !== drag.id || !scene) return;
+  const d = drag;
+  endDrag();
+  if (d.box) {
+    const own = new Set(state.units.filter((u) => u.player === 0).map((u) => u.id)), ids = scene.unitsInRect(d.x, d.y, e.clientX, e.clientY).filter((id) => own.has(id));
+    if (e.shiftKey) select([...selected, ...ids]);
+    else select(ids);
+    notice(ids.length ? `\u6846\u9078 ${ids.length} \u540D\u6751\u6C11\u3002\u5C0D\u5730\u9762\u6309\u53F3\u9375\u4E0B\u9054\u79FB\u52D5\u3002` : "\u6846\u5167\u6C92\u6709\u85CD\u65B9\u6751\u6C11\u3002");
+    return;
+  }
   const hit = scene.pick(e.clientX, e.clientY);
   if (hit.unitId !== void 0) {
     const unit = state.units.find((u) => u.id === hit.unitId);
-    if (unit?.player === 0) choose(unit.id);
-    else notice("\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002");
+    if (unit?.player === 0) {
+      if (e.shiftKey) toggle(unit.id);
+      else choose(unit.id);
+    } else notice("\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002");
     return;
   }
-  if (hit.x === void 0 || hit.y === void 0 || hit.x < 0.5 || hit.x > 15.5 || hit.y < 0.5 || hit.y > 15.5) {
-    notice("\u8ACB\u9EDE\u9078\u5730\u5716\u5167\u5074\u7684\u5730\u9762\u3002");
-    return;
+  if (e.pointerType === "touch" && selected.size) {
+    const g = scene.pickGround(e.clientX, e.clientY);
+    if (g.x !== void 0 && g.y !== void 0 && g.x >= 0.5 && g.x <= 15.5 && g.y >= 0.5 && g.y <= 15.5) {
+      void move(g.x, g.y);
+      return;
+    }
   }
-  void move(hit.x, hit.y);
+  if (!e.shiftKey && selected.size) {
+    select([]);
+    notice("\u5DF2\u53D6\u6D88\u9078\u53D6\u3002\u79FB\u52D5\u6307\u4EE4\u8ACB\u5C0D\u5730\u9762\u6309\u53F3\u9375\uFF08\u89F8\u63A7\uFF1A\u9078\u53D6\u5F8C\u8F15\u89F8\u5730\u9762\uFF09\u3002");
+  }
 });
+var groups = /* @__PURE__ */ new Map();
+function renderGroups() {
+  el("groups").textContent = groups.size ? "\u7DE8\u7D44 " + [...groups].sort((a, b) => a[0] - b[0]).map(([n, ids]) => `${n}\uFF1D${ids.join("\u3001")}`).join("\uFF1B") : "\u5C1A\u672A\u7DE8\u7D44\uFF08Ctrl\uFF0B\u6578\u5B57\uFF09\u3002";
+}
+document.addEventListener("keydown", (e) => {
+  const t = e.target;
+  if (t.closest("input,textarea,select,[contenteditable]") || e.altKey || e.metaKey) return;
+  if (e.key === "Escape") {
+    if (drag) {
+      endDrag();
+      return;
+    }
+    if (selected.size) {
+      select([]);
+      notice("\u5DF2\u53D6\u6D88\u9078\u53D6\u3002");
+    }
+    return;
+  }
+  if ((e.key === "s" || e.key === "S") && !e.ctrlKey) {
+    e.preventDefault();
+    void stop();
+    return;
+  }
+  const digit = /^Digit([1-9])$/.exec(e.code);
+  if (!digit) return;
+  const n = Number(digit[1]);
+  e.preventDefault();
+  if (e.ctrlKey) {
+    const ids2 = [...selected].sort((a, b) => a - b);
+    if (!ids2.length) {
+      notice("\u8ACB\u5148\u9078\u53D6\u6751\u6C11\u518D\u7DE8\u7D44\u3002");
+      return;
+    }
+    groups.set(n, ids2);
+    renderGroups();
+    notice(`\u7DE8\u7D44 ${n}\uFF1A${names(ids2)}\u3002\u6309 ${n} \u53EB\u56DE\u3002`);
+    return;
+  }
+  const ids = groups.get(n);
+  if (!ids) {
+    notice(`\u7DE8\u7D44 ${n} \u5C1A\u672A\u5EFA\u7ACB\uFF1A\u9078\u53D6\u5F8C\u6309 Ctrl\uFF0B${n}\u3002`);
+    return;
+  }
+  select(ids);
+  notice(`\u5DF2\u53EB\u56DE\u7DE8\u7D44 ${n}\uFF1A${names(ids)}\u3002`);
+});
+window.addEventListener("blur", endDrag);
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
   if (!graphicsFailed) scene?.zoom(e.deltaY < 0 ? 0.1 : -0.1);
@@ -1660,7 +1813,13 @@ el("zoom-in").onclick = () => scene?.zoom(0.2);
 el("zoom-out").onclick = () => scene?.zoom(-0.2);
 el("rotate-view").onclick = () => scene?.rotate();
 el("reset-view").onclick = () => scene?.resetCamera();
-document.querySelectorAll("[data-unit]").forEach((b) => b.onclick = () => choose(Number(b.dataset.unit)));
+document.querySelectorAll("[data-unit]").forEach((b) => b.onclick = (e) => {
+  const id = Number(b.dataset.unit);
+  if (e.shiftKey) toggle(id);
+  else choose(id);
+});
+el("stop").onclick = () => void stop();
+renderGroups();
 el("move").onclick = () => {
   const x = el("target-x"), y = el("target-y");
   if (x.reportValidity() && y.reportValidity() && x.value !== "" && y.value !== "") move(Number(x.value), Number(y.value));
@@ -1797,9 +1956,9 @@ function graphicsError(message) {
   graphicsFailed = true;
   setRunning(false);
   toggleControls();
-  const box = el("boot-error");
-  box.hidden = false;
-  box.textContent = message;
+  const box2 = el("boot-error");
+  box2.hidden = false;
+  box2.textContent = message;
   notice("3D \u5834\u666F\u66AB\u4E0D\u53EF\u7528\u3002\u82E5\u6A21\u64EC\u5DF2\u9023\u7DDA\uFF0C\u53EF\u5148\u5132\u5B58\u76EE\u524D\u6C99\u76D2\u518D\u91CD\u65B0\u8F09\u5165\u3002");
 }
 toggleControls();

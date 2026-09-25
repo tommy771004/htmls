@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createState,submit,tick,hash,rulesetHash} from '../packages/sim/sim.ts';
 import type {State} from '../packages/sim/sim.ts';
 import {makeUnit,nodeAt} from '../packages/sim/movement.ts';
-import {clearSegment,position} from '../packages/sim/navigation.ts';
+import {clearSegment,position,navigationRules} from '../packages/sim/navigation.ts';
 import type {Obstacle} from '../packages/sim/navigation.ts';
 import {createTiles} from '../packages/sim/terrain.ts';
 let sequence=0;
@@ -27,7 +27,7 @@ test('a group order assigns distinct stations and every unit arrives without ove
  const r=run(s,1500,settled([1,2,3]));
  const stations=s.units.filter(u=>u.player===0).map(u=>u.node);assert.equal(new Set(stations).size,3);
  assert.ok(s.units.filter(u=>u.player===0).every(u=>u.navigation==='idle'&&Math.abs(u.x-800)+Math.abs(u.y-900)<=150),JSON.stringify(s.units));
- assert.ok(r.maxExpanded<=32);
+ assert.ok(r.maxExpanded<=navigationRules.expansionsPerTick);
 });
 test('fifteen villagers queue single file through the town-center gate and nobody gets stuck',()=>{
  const s=createState(260925),extra=addUnits(s,blockSouthOfHall),ids=[1,2,3,...extra];assert.ok(extra.length>=10);
@@ -46,9 +46,9 @@ test('two villagers meeting head-on in the gate resolve by one rerouting around 
 });
 test('a dead-end corridor reports stuck instead of jittering, and the rest of the group still arrives',()=>{
  const s=createState(260925);
- // Rock walls leave one lane at y=700 from x=550, closed at the east end.
+ // Plain meadow with rock walls only: one lane at y=700 from x=550, closed at the east end.
  const walls:Obstacle[]=[];for(let x=500;x<=1100;x+=100)walls.push({kind:'rock',x,y:600},{kind:'rock',x,y:730});walls.push({kind:'rock',x:1180,y:660});
- walls.forEach((o,i)=>o.id=`wall-${i}`);s.map.obstacles.push(...walls);s.map.blocked=[];for(let i=0;i<961;i++)if(!clearSegment(s.map,position(i),position(i)))s.map.blocked.push(i);s.map.navigationRevision++;
+ walls.forEach((o,i)=>o.id=`wall-${i}`);s.map={obstacles:walls,blocked:[],tiles:createTiles(),resources:[],navigationRevision:1,generationAttempt:0};for(let i=0;i<961;i++)if(!clearSegment(s.map,position(i),position(i)))s.map.blocked.push(i);
  s.units=[makeUnit(1,0,600,700),makeUnit(2,0,1050,700),makeUnit(3,0,350,1100),makeUnit(4,1,1450,1450)];
  order(s,[1],1050,700);order(s,[2,3],350,700);
  run(s,4000,settled([1,2,3]));
@@ -82,4 +82,8 @@ test('group commands reject empty, unsorted, duplicate, oversized or enemy unit 
  const s=createState(7),before=hash(s);
  for(const unitIds of [[],[2,1],[1,1],[4],[1,99],Array.from({length:41},(_,i)=>i+1)])assert.throws(()=>submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds,x:800,y:900}}));
  assert.equal(hash(s),before);
+});
+test('workload: 24 and 40 villagers ordered through the gate all settle with nobody stuck',async()=>{
+ const {runGateBenchmark}=await import('../packages/sim/benchmark.ts');
+ for(const n of [24,40]){const r=runGateBenchmark(n);assert.deepEqual(r.outcome,{idle:n,unreachable:0,stuck:0},JSON.stringify(r));assert.ok(r.gateCrossings>=8);}
 });

@@ -3,9 +3,13 @@ import type {ObstacleKind} from '../content/footprints.ts';
 // Engineering defaults, not values from the reference game.
 import {createTiles,tileAt,canTraverse,terrainRules,extractResource,resourceDefinitions} from './terrain.ts';
 import type {Tile,ResourceNode,MapLayout,ResourceKind} from './terrain.ts';
-// waitLimit: ticks behind a stationary blocker before replanning (x queueWaitFactor behind a unit that is
-// still moving). replanLimit: failed replans without progress, detourLimit: replans per order, before 'stuck'.
-export const navigationRules={provenance:'design_default',spacing:50,size:31,radius:25,expansionsPerTick:32,speedPerTick:5,maxGroupSize:40,waitLimit:8,queueWaitFactor:4,replanLimit:3,detourLimit:12} as const;
+// expansionsPerTick 128: chosen from test-results/movement-benchmark-{32,64,128,256}.json (fastest 24/40-unit
+// gate settle; 32 left 40 units waiting on search for ~40 s). Node count, never wall time, decides results.
+// waitLimit: ticks behind a stationary blocker between replans (x queueWaitFactor behind a unit that is
+// still travelling); detourLimit: replans per order. stuckTicks: ticks without advancing a node before a
+// unit reports 'stuck'. arrivalRadius: a unit this close to its station (Manhattan) stops when a settled
+// group-mate blocks it.
+export const navigationRules={provenance:'design_default',spacing:50,size:31,radius:25,expansionsPerTick:128,speedPerTick:5,maxGroupSize:40,waitLimit:8,queueWaitFactor:4,detourLimit:12,stuckTicks:300,arrivalRadius:150} as const;
 export const startingResourceRules={provenance:'design_default',maxApproachDistance:1200,maxNearestDistanceDifference:500,minimum:{tree:300,stone:250,gold:250,berries:150}} as const;
 export type Point={x:number;y:number};
 export type Obstacle={id?:string;kind:ObstacleKind;x:number;y:number;red?:boolean};

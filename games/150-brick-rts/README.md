@@ -1,6 +1,6 @@
 # 多地形移動沙盒
 
-目前 State／snapshot 為 v10。可建立草甸、海岸、高地與淺灘三種移動沙盒，兩方起始建築是可以從拱門走進大廳的城鎮中心；存讀及 Worker 恢復保留地圖類型。尚無完整對局或海戰。詳見 docs/first-use-007.md。以下紀錄保留當時版本。
+目前 State／snapshot 為 v11。可建立草甸、海岸、高地與淺灘三種移動沙盒，兩方起始建築是可以從拱門走進大廳的城鎮中心；可框選、編組多名村民一起移動，單位互不重疊、會排隊讓路。存讀及 Worker 恢復保留地圖類型。尚無採集、建造、戰鬥或完整對局。詳見 docs/first-use-008.md。以下紀錄保留當時版本。
 
 # 高度通行增量
 
@@ -43,19 +43,25 @@ npm run dev
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:browser
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:rig-browser   # 模型檢視頁
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:first-use     # prompt 19 首次使用流程：滑鼠點選穿過城鎮中心拱門
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:controls       # 框選、編組、右鍵移動、停止、觸控
+npm run bench:movement   # 3／8／24／40 名穿過城鎮中心大門的負載紀錄，輸出 test-results/movement-benchmark.json
 ```
 
 執行環境需先安裝該 Playwright 對應 Chromium。測試自行啟動 loopback HTTP server、產生 `test-results/` 截圖及 `thumbs/150.jpg`。
 
 ## 操作
 
-1. 選取村民 1–3，點地面或輸入 X／Y 格（0.5–15.5）後按移動。
+1. 左鍵點選村民，或在場景中拖曳框選；Shift 可加選或減選，左鍵點空地取消選取。右側「村民 1–3」按鈕也能選取（Shift 加減）。
+   - 對地面按右鍵，所選村民一起移動，各自分到目的地附近的站位；也可輸入 X／Y 格（0.5–15.5）後按移動。
+   - S 或「停止」讓所選村民在下一個節點停下；Ctrl＋數字儲存編組，按數字叫回；Esc 取消選取。在輸入框內打字不會觸發快捷鍵。
+   - 觸控：輕觸村民選取，選取後輕觸地面移動。
+   - 單位互不重疊也不互相穿過：會排隊、讓路、同組交換站位；無法前進 300 ticks 會顯示「受阻停止」，目標不可達則停在最近點並顯示「無法到達」。
 2. 按「開始模擬」執行；也能暫停後逐 tick 推進。紅方不可控制，尚無 AI。
 3. 儲存／讀取使用 `brick-rts:sandbox:1` localStorage key；重建不覆蓋手動存檔。
 4. 「驗證指令重播」在當前 seed 下重跑指令並比較完整狀態 hash。
 5. 下方展開規則 JSON 編輯器，可驗證／還原／匯出。編輯器不套用至沙盒。要求精確原作版本時，預設規則會被拒絕。
 
-背景分頁、失焦或超過一秒的累積延遲會暫停，避免跳過 tick。模擬不依賴 DOM／Canvas；畫面採独立的種子 stream。移動採整數座標，不含尋路或碰撞。
+背景分頁、失焦或超過一秒的累積延遲會暫停，避免跳過 tick。模擬不依賴 DOM／Canvas；畫面採独立的種子 stream。移動採整數座標與 31×31 導航節點，單位之間有占位與讓路規則，詳見 docs/first-use-008.md。
 
 ## 檔案與追蹤
 

@@ -5,7 +5,7 @@ import type {MapData,Point} from './navigation.ts';
 // unit bodies (radius 25, node spacing 50) never overlap. Units never pass through each other.
 export type Navigation='idle'|'searching'|'moving'|'waiting'|'unreachable'|'stuck';
 export const navigationStates:readonly Navigation[]=['idle','searching','moving','waiting','unreachable','stuck'];
-export type Unit={id:number;player:number;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;replans:number;detours:number;partial:boolean};
+export type Unit={id:number;player:number;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;detours:number;partial:boolean;order:number;outcome:'stuck'|null};
 type Search={frontier:number[];head:number;parent:number[]};
 export type GroupJob=Search&{kind:'group';id:number;unitIds:number[];goal:number;starts:number[];held:number[];slots:number[];status:'searching'|'done'};
 export type UnitJob=Search&{kind:'unit';id:number;unitId:number;start:number;goal:number;excluded:number[];best:number;keep:number[];status:'searching'|'done'};
@@ -32,7 +32,7 @@ export function neighbours(map:MapData,id:number):number[]{
  return out;
 }
 export function nodeAt(p:Point):number{const x=(p.x-50)/50,y=(p.y-50)/50;return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&x<SIDE&&y>=0&&y<SIDE?y*SIDE+x:-1;}
-export function makeUnit(id:number,player:number,x:number,y:number):Unit{const node=nodeAt({x,y});if(node<0)throw Error('單位必須站在導航節點上');return {id,player,x,y,node,next:null,path:[],goal:null,target:null,navigation:'idle',wait:0,replans:0,detours:0,partial:false};}
+export function makeUnit(id:number,player:number,x:number,y:number):Unit{const node=nodeAt({x,y});if(node<0)throw Error('單位必須站在導航節點上');return {id,player,x,y,node,next:null,path:[],goal:null,target:null,navigation:'idle',wait:0,detours:0,partial:false,order:0,outcome:null};}
 function search(start:number):Search{const parent=Array(NODES).fill(-2);parent[start]=-1;return {frontier:[start],head:0,parent};}
 function held(units:Unit[],except:Set<number>){const nodes=new Set<number>();for(const u of units)if(!except.has(u.id)){nodes.add(u.node);if(u.next!==null)nodes.add(u.next);}return [...nodes].sort((a,b)=>a-b);}
 function cancel(s:MovementState,id:number){
@@ -42,12 +42,12 @@ function cancel(s:MovementState,id:number){
 export function commandMove(s:MovementState,unitIds:number[],target:Point){
  const goal=nearest(s.map,target,false);if(goal<0)throw Error('目標附近沒有可站立的節點');
  const group=new Set(unitIds),units=unitIds.map(id=>s.units.find(u=>u.id===id)!);
- for(const u of units){cancel(s,u.id);Object.assign(u,{path:[],goal:null,target:null,navigation:'searching',wait:0,replans:0,detours:0,partial:false});}
+ for(const u of units){cancel(s,u.id);Object.assign(u,{path:[],goal:null,target:null,navigation:'searching',wait:0,detours:0,partial:false,order:s.nextJobId,outcome:null});}
  // Stations are chosen from nodes nobody outside the group currently holds.
  s.pathJobs.push({kind:'group',id:s.nextJobId++,unitIds:[...unitIds],goal,starts:units.map(u=>u.next??u.node),held:held(s.units,group),slots:[],status:'searching',...search(goal)});
 }
 export function commandStop(s:MovementState,unitIds:number[]){
- for(const id of unitIds){const u=s.units.find(u=>u.id===id)!;cancel(s,id);Object.assign(u,{path:[],goal:null,target:null,wait:0,replans:0,detours:0,partial:false,navigation:u.next===null?'idle':'moving'});}
+ for(const id of unitIds){const u=s.units.find(u=>u.id===id)!;cancel(s,id);Object.assign(u,{path:[],goal:null,target:null,wait:0,detours:0,partial:false,outcome:null,navigation:u.next===null?'idle':'moving'});}
 }
 function advance(s:MovementState,job:Job,budget:number):number{
  let used=0;
@@ -103,21 +103,38 @@ export function stepMovement(s:MovementState):{expanded:number}{
  function tryReserve(u:Unit){
   if(!u.path.length||searching.has(u.id))return;
   const n=u.path[0],o=owner[n];
-  if(o===0||o===u.id){owner[n]=u.id;u.next=n;u.path.shift();u.navigation='moving';u.wait=0;u.replans=0;return;}
-  const b=byId.get(o)!;
-  // An idle friendly unit steps aside, preferring a node off the requester's route.
-  if(b.player===u.player&&b.next===null&&!b.path.length&&!searching.has(b.id)){
-   const free=neighbours(s.map,b.node).filter(c=>owner[c]===0);const c=free.find(c=>!u.path.includes(c))??free[0];
-   if(c!==undefined)b.path=[c];
+  if(o===0||o===u.id){owner[n]=u.id;u.next=n;u.path.shift();u.navigation='moving';u.wait=0;return;}
+  const b=byId.get(o)!,idleFriend=b.player===u.player&&b.next===null&&!b.path.length&&!searching.has(b.id);
+  const settledMate=idleFriend&&b.order===u.order&&(b.navigation==='idle'||b.navigation==='stuck');
+  const toGoal=u.goal===null?Infinity:Math.abs(position(u.goal).x-position(u.node).x)+Math.abs(position(u.goal).y-position(u.node).y);
+  // 1. Arrival radius: close to its station and blocked by a group-mate who has settled, settle here.
+  if(settledMate&&toGoal<=navigationRules.arrivalRadius){Object.assign(u,{path:[],goal:null,target:null,navigation:'idle',wait:0});return;}
+  // 2. An idle friendly unit steps off the requester's route. In single file (no side step) a settled
+  //    group-mate trades stations: it walks on to the requester's station and the requester stops here.
+  if(idleFriend){
+   const free=neighbours(s.map,b.node).filter(c=>owner[c]===0),step=free.find(c=>!u.path.includes(c));
+   if(step!==undefined)b.path=[step];
+   else if(settledMate&&u.goal!==null&&u.goal!==n){Object.assign(b,{path:u.path.slice(1),goal:u.goal,target:position(u.goal),outcome:null});Object.assign(u,{path:[n],goal:n,target:position(n)});}
+   else if(free.length)b.path=[free[0]];
   }
+  // 3. Head-on group-mates that each want the other's node swap remaining routes and stations,
+  //    so both turn back toward what the other was heading for; nobody passes through anyone.
+  //    When each already stands on the other's station, both simply arrive where they are.
+  if(b.player===u.player&&b.order===u.order&&b.next===null&&b.path[0]===u.node&&!searching.has(b.id)){
+   const mine=u.path.slice(1),theirs=b.path.slice(1),goal=u.goal;
+   Object.assign(u,{path:theirs,goal:b.goal,target:b.goal===null?null:position(b.goal)});Object.assign(b,{path:mine,goal,target:goal===null?null:position(goal)});
+   for(const v of [u,b])if(!v.path.length)Object.assign(v,{goal:null,target:null,navigation:v.partial?'unreachable':'idle',wait:0});
+   tryReserve(u);return;
+  }
+  // 4. Otherwise wait, then replan within the bounded limits below.
   u.wait++;u.navigation='waiting';
-  // A blocker that is itself still travelling is a queue, not an obstacle: wait longer.
+  // wait counts ticks since this unit last advanced a node (reset in the reserve branch above).
+  if(u.wait>=navigationRules.stuckTicks){Object.assign(u,{path:[],goal:null,target:null,navigation:'stuck',partial:false,outcome:'stuck',wait:0});return;}
+  // A blocker that is itself still travelling is a queue, not an obstacle: retry less often.
   // The higher id replans first, so a head-on pair does not reroute simultaneously.
   const queued=b.next!==null||b.path.length>0||searching.has(b.id);
-  if(u.wait<navigationRules.waitLimit*(queued?navigationRules.queueWaitFactor:1)*(u.id<o?2:1))return;
-  u.wait=0;
-  if(u.replans>=navigationRules.replanLimit||u.detours>=navigationRules.detourLimit){Object.assign(u,{path:[],goal:null,target:null,navigation:'stuck',partial:false});return;}
-  u.replans++;u.detours++;
+  if(u.wait%(navigationRules.waitLimit*(queued?navigationRules.queueWaitFactor:1)*(u.id<o?2:1))!==0||u.detours>=navigationRules.detourLimit)return;
+  u.detours++;
   const excluded=[...new Set([...s.units.filter(v=>v!==u&&v.next===null).map(v=>v.node),b.node,...(b.next===null?[]:[b.next])])].sort((a,b)=>a-b);
   s.pathJobs.push(unitJob(s,u,u.goal??u.path.at(-1)!,excluded,u.path));u.path=[];u.navigation='searching';searching.add(u.id);
  }
@@ -131,7 +148,8 @@ export function stepMovement(s:MovementState):{expanded:number}{
   if(u.x===target.x&&u.y===target.y){
    if(owner[u.node]===u.id)owner[u.node]=0;u.node=u.next;u.next=null;
    if(u.path.length)tryReserve(u);
-   else if(!searching.has(u.id)){u.navigation=u.partial?'unreachable':u.navigation==='stuck'?'stuck':'idle';u.target=null;u.goal=null;u.wait=0;}
+   else if(!searching.has(u.id)){// A stuck unit that stepped aside for someone keeps reporting its failed order.
+    u.navigation=u.outcome==='stuck'?'stuck':u.partial?'unreachable':'idle';u.target=null;u.goal=null;u.wait=0;}
   }
  }
  return {expanded};

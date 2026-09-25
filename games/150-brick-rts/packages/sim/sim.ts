@@ -38,7 +38,8 @@ export function submit(state:State, c:Command):void {
  if(c.commandType==='move'){
  for(const k of ['x','y'] as const)if(!Number.isSafeInteger(c.payload[k])||c.payload[k]<50||c.payload[k]>1550)throw Error('目標超出地圖');
  if(!clearSegment(state.map,c.payload,c.payload))throw Error('目標位於建築、資源或不可通行地形的占地內');
- }else if(c.commandType==='reserve'){if(!rules.entries.some(e=>e.id===c.payload.entryId))throw Error('未知預留內容');}
+ }else if(c.commandType==='stop'){}
+ else if(c.commandType==='reserve'){if(!rules.entries.some(e=>e.id===c.payload.entryId))throw Error('未知預留內容');}
  else if(c.commandType==='cancelReservation'){if(typeof c.payload.reservationId!=='string'||!c.payload.reservationId.startsWith(`${c.playerId}:`))throw Error('不可取消敵方或無效的預留');}
  else throw Error('不支援的命令');
  const copy=structuredClone(c);delete (copy as Partial<LoggedCommand>).acceptedTick;state.queue.push(copy);state.queue.sort((a,b)=>a.targetTick-b.targetTick||a.playerId-b.playerId||a.sequence-b.sequence);state.log.push({...structuredClone(copy),acceptedTick:state.tick});state.sequence[c.playerId]=c.sequence;

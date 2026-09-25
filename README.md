@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 152，皆放在 `web/`），以及另外 101 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 153，皆放在 `web/`），以及另外 101 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151、153 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -160,6 +160,7 @@
 | 150 | [150-brick-rts.html](web/150-brick-rts.html) | 積木即時戰略 · 開發中 | 磚築紀元：規則驗證與可重現移動沙盒；完整對戰尚未實作。原始碼與操作見 [README](games/150-brick-rts/README.md) | |
 | 151 | [151-bike-configurator.html](https://htmls-ruddy.vercel.app/web/151-bike-configurator.html) | 品牌頁面 · 3D 客製化電商 | Crosswind R：程序化生成、依真實比例的公路車（每根輻條、每節鏈條）：即時換配色、輪組、輪胎、傳動、把手與坐墊，踩踏帶動齒盤、鏈條與後輪，含即時報價與購物車結帳 | 單檔 HTML；Three.js 與 GSAP 由 CDN 載入，需連線及 WebGL；購物車與結帳僅為本機示範，不會送出資料 |
 | 152 | [152-tideline-board.html](https://htmls-ruddy.vercel.app/web/152-tideline-board.html) | 介面風格 · 產品微互動元件板 | 潮班 TIDELINE：虛構澎湖渡輪公司的五格元件板。行程膠囊在船班卡、取消確認與退款收據之間變形；航線圖描繪航跡、港口輪播與票根；港口側欄旗標滑動；延誤通知堆疊展開與關閉；同行分票扇形寄出。每格自動示範，碰到就交給使用者 | 版面與動態參考 Inspora 的 Product 分類；班表與票價為示意 |
+| 153 | [153-slipstream-gp.html](https://htmls-ruddy.vercel.app/web/153-slipstream-gp.html) | 遊戲敘事 · 64 位元風格 3D 卡丁車 | 尾流大獎賽：四條賽道、大獎賽／計時賽／氣球大戰三種模式、八位原創車手，跳躍甩尾迷你加速、七種道具、尾流吸附與依賽道即時合成的配樂 | 單檔 HTML；Three.js 由 CDN 載入，需連線及 WebGL；模型、貼圖、音樂與音效全部由程式生成；計時紀錄與幽靈車存在本機 |
 
 ## 較弱的作品（誠實版）
 - 網頁作品目前沒有標 ⚠ 的。原本的 7 件都已照改進方向重做：007 改成雨夜窗景，玻璃溫控透鏡真實折射窗外燈火（Safari 可能看不到折射，標為 △）；024 改成整頁終端 session 加上可核可的修正計畫；022 改用自繪 SVG 骨架字，粗細、寬窄、斜度真正連續變化；029 改用自繪字形網格變形填滿燈泡輪廓；057 改走純字體封面，字本身就是影像；080 自繪 Didone 刊頭與大標；086 加入探照燈自動掃描與水層導覽（手機上導覽會遮到部分學名，標為 △）。

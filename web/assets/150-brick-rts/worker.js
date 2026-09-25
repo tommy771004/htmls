@@ -170,7 +170,7 @@ function cancelReservation(account, id) {
 }
 
 // packages/sim/navigation.ts
-var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 32, speedPerTick: 5 };
+var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 128, speedPerTick: 5, maxGroupSize: 40, waitLimit: 8, queueWaitFactor: 4, detourLimit: 12, stuckTicks: 300, arrivalRadius: 150 };
 var startingResourceRules = { provenance: "design_default", maxApproachDistance: 1200, maxNearestDistanceDifference: 500, minimum: { tree: 300, stone: 250, gold: 250, berries: 150 } };
 function makeMap(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("\u5730\u5716 seed \u5FC5\u9808\u70BA uint32");
@@ -406,6 +406,245 @@ function advancePathJob(map, job, budget) {
   return used;
 }
 
+// packages/sim/movement.ts
+var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
+var NODES = 961;
+var SIDE = 31;
+var graphs = /* @__PURE__ */ new WeakMap();
+function graph(map) {
+  let g = graphs.get(map);
+  if (!g || g.revision !== map.navigationRevision) {
+    const blocked = new Uint8Array(NODES), open = new Uint8Array(NODES * 2);
+    for (const n of map.blocked) blocked[n] = 1;
+    for (let id = 0; id < NODES; id++) {
+      if (blocked[id]) continue;
+      const x = id % SIDE, y = Math.floor(id / SIDE);
+      if (x < SIDE - 1 && !blocked[id + 1] && clearSegment(map, position(id), position(id + 1))) open[id * 2] = 1;
+      if (y < SIDE - 1 && !blocked[id + SIDE] && clearSegment(map, position(id), position(id + SIDE))) open[id * 2 + 1] = 1;
+    }
+    g = { revision: map.navigationRevision, blocked, open };
+    graphs.set(map, g);
+  }
+  return g;
+}
+function neighbours(map, id) {
+  const { open } = graph(map), x = id % SIDE, out = [];
+  if (open[id * 2]) out.push(id + 1);
+  if (open[id * 2 + 1]) out.push(id + SIDE);
+  if (x > 0 && open[(id - 1) * 2]) out.push(id - 1);
+  if (id >= SIDE && open[(id - SIDE) * 2 + 1]) out.push(id - SIDE);
+  return out;
+}
+function nodeAt(p) {
+  const x = (p.x - 50) / 50, y = (p.y - 50) / 50;
+  return Number.isInteger(x) && Number.isInteger(y) && x >= 0 && x < SIDE && y >= 0 && y < SIDE ? y * SIDE + x : -1;
+}
+function makeUnit(id, player, x, y) {
+  const node = nodeAt({ x, y });
+  if (node < 0) throw Error("\u55AE\u4F4D\u5FC5\u9808\u7AD9\u5728\u5C0E\u822A\u7BC0\u9EDE\u4E0A");
+  return { id, player, x, y, node, next: null, path: [], goal: null, target: null, navigation: "idle", wait: 0, detours: 0, partial: false, order: 0, outcome: null };
+}
+function search(start) {
+  const parent = Array(NODES).fill(-2);
+  parent[start] = -1;
+  return { frontier: [start], head: 0, parent };
+}
+function held(units, except) {
+  const nodes = /* @__PURE__ */ new Set();
+  for (const u of units) if (!except.has(u.id)) {
+    nodes.add(u.node);
+    if (u.next !== null) nodes.add(u.next);
+  }
+  return [...nodes].sort((a, b) => a - b);
+}
+function cancel(s, id) {
+  for (const job of s.pathJobs) if (job.kind === "group") job.unitIds = job.unitIds.filter((u) => u !== id);
+  s.pathJobs = s.pathJobs.filter((j) => j.kind === "group" ? j.unitIds.length > 0 : j.unitId !== id);
+}
+function commandMove(s, unitIds, target) {
+  const goal = nearest(s.map, target, false);
+  if (goal < 0) throw Error("\u76EE\u6A19\u9644\u8FD1\u6C92\u6709\u53EF\u7AD9\u7ACB\u7684\u7BC0\u9EDE");
+  const group = new Set(unitIds), units = unitIds.map((id) => s.units.find((u) => u.id === id));
+  for (const u of units) {
+    cancel(s, u.id);
+    Object.assign(u, { path: [], goal: null, target: null, navigation: "searching", wait: 0, detours: 0, partial: false, order: s.nextJobId, outcome: null });
+  }
+  s.pathJobs.push({ kind: "group", id: s.nextJobId++, unitIds: [...unitIds], goal, starts: units.map((u) => u.next ?? u.node), held: held(s.units, group), slots: [], status: "searching", ...search(goal) });
+}
+function commandStop(s, unitIds) {
+  for (const id of unitIds) {
+    const u = s.units.find((u2) => u2.id === id);
+    cancel(s, id);
+    Object.assign(u, { path: [], goal: null, target: null, wait: 0, detours: 0, partial: false, outcome: null, navigation: u.next === null ? "idle" : "moving" });
+  }
+}
+function advance(s, job, budget) {
+  let used = 0;
+  while (job.status === "searching" && used < budget) {
+    if (job.kind === "group" && job.slots.length >= job.unitIds.length && job.starts.every((n) => job.parent[n] !== -2)) {
+      job.status = "done";
+      break;
+    }
+    if (job.head === job.frontier.length) {
+      job.status = "done";
+      break;
+    }
+    const id = job.frontier[job.head++];
+    used++;
+    if (job.kind === "group") {
+      if (job.slots.length < job.unitIds.length && !job.held.includes(id)) job.slots.push(id);
+    } else {
+      const g = job.goal, d = (n) => Math.abs(n % SIDE - g % SIDE) + Math.abs(Math.floor(n / SIDE) - Math.floor(g / SIDE));
+      if (d(id) < d(job.best)) job.best = id;
+      if (id === g) {
+        job.status = "done";
+        break;
+      }
+    }
+    for (const next of neighbours(s.map, id)) if (job.parent[next] === -2 && !(job.kind === "unit" && job.excluded.includes(next))) {
+      job.parent[next] = id;
+      job.frontier.push(next);
+    }
+  }
+  return used;
+}
+function chain(parent, from) {
+  const out = [from];
+  while (parent[out.at(-1)] >= 0) out.push(parent[out.at(-1)]);
+  return out;
+}
+function finishGroup(s, job) {
+  const order = new Map(job.frontier.map((n, i) => [n, i]));
+  const units = job.unitIds.map((id) => s.units.find((u) => u.id === id)), start = (u) => u.next ?? u.node;
+  const reached = units.filter((u) => order.has(start(u))).sort((a, b) => order.get(start(a)) - order.get(start(b)) || a.id - b.id);
+  const cx = reached.reduce((t, u) => t + position(start(u)).x, 0) / Math.max(1, reached.length), cy = reached.reduce((t, u) => t + position(start(u)).y, 0) / Math.max(1, reached.length);
+  const far = (n) => Math.abs(position(n).x - cx) + Math.abs(position(n).y - cy);
+  const slots = job.slots.slice(0, reached.length).sort((a, b) => far(b) - far(a) || order.get(a) - order.get(b));
+  reached.forEach((u, i) => {
+    const slot = slots[i];
+    if (slot === void 0) {
+      Object.assign(u, { navigation: u.next === null ? "unreachable" : "moving", partial: true });
+      return;
+    }
+    const up = chain(job.parent, start(u)), down = chain(job.parent, slot), index = new Map(down.map((n, k) => [n, k]));
+    let i2 = 0;
+    while (!index.has(up[i2])) i2++;
+    u.path = [...up.slice(1, i2 + 1), ...down.slice(0, index.get(up[i2])).reverse()];
+    Object.assign(u, { goal: slot, target: position(slot), partial: false, navigation: u.path.length || u.next !== null ? "moving" : "idle" });
+  });
+  for (const u of units) if (!order.has(start(u))) s.pathJobs.push(unitJob(s, u, job.goal, [], []));
+}
+function unitJob(s, u, goal, excluded, keep) {
+  const start = u.next ?? u.node;
+  return { kind: "unit", id: s.nextJobId++, unitId: u.id, start, goal, excluded, best: start, keep, status: "searching", ...search(start) };
+}
+function finishUnit(s, job) {
+  const u = s.units.find((u2) => u2.id === job.unitId), end = job.parent[job.goal] !== -2 ? job.goal : job.best;
+  const path = chain(job.parent, end).reverse().slice(1);
+  if (job.keep.length && (end !== job.goal || !path.length)) {
+    u.path = job.keep;
+    u.navigation = "waiting";
+    return;
+  }
+  u.path = path;
+  u.goal = u.goal ?? job.goal;
+  u.partial = end !== job.goal;
+  u.target = position(end);
+  u.navigation = path.length || u.next !== null ? "moving" : u.partial ? "unreachable" : "idle";
+}
+function stepMovement(s) {
+  s.pathJobs.sort((a, b) => a.id - b.id);
+  let budget = navigationRules.expansionsPerTick, expanded = 0;
+  while (budget > 0 && s.pathJobs.some((j) => j.status === "searching")) for (const job of s.pathJobs) {
+    if (budget <= 0) break;
+    if (job.status === "searching") {
+      const n = advance(s, job, 1);
+      budget -= n;
+      expanded += n;
+    }
+  }
+  for (const job of s.pathJobs.filter((j) => j.status === "done")) job.kind === "group" ? finishGroup(s, job) : finishUnit(s, job);
+  s.pathJobs = s.pathJobs.filter((j) => j.status === "searching");
+  const searching = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
+  const owner = new Int32Array(NODES);
+  for (const u of s.units) {
+    owner[u.node] = u.id;
+    if (u.next !== null) owner[u.next] = u.id;
+  }
+  const byId = new Map(s.units.map((u) => [u.id, u]));
+  function tryReserve(u) {
+    if (!u.path.length || searching.has(u.id)) return;
+    const n = u.path[0], o = owner[n];
+    if (o === 0 || o === u.id) {
+      owner[n] = u.id;
+      u.next = n;
+      u.path.shift();
+      u.navigation = "moving";
+      u.wait = 0;
+      return;
+    }
+    const b = byId.get(o), idleFriend = b.player === u.player && b.next === null && !b.path.length && !searching.has(b.id);
+    const settledMate = idleFriend && b.order === u.order && (b.navigation === "idle" || b.navigation === "stuck");
+    const toGoal = u.goal === null ? Infinity : Math.abs(position(u.goal).x - position(u.node).x) + Math.abs(position(u.goal).y - position(u.node).y);
+    if (settledMate && toGoal <= navigationRules.arrivalRadius) {
+      Object.assign(u, { path: [], goal: null, target: null, navigation: "idle", wait: 0 });
+      return;
+    }
+    if (idleFriend) {
+      const free = neighbours(s.map, b.node).filter((c) => owner[c] === 0), step = free.find((c) => !u.path.includes(c));
+      if (step !== void 0) b.path = [step];
+      else if (settledMate && u.goal !== null && u.goal !== n) {
+        Object.assign(b, { path: u.path.slice(1), goal: u.goal, target: position(u.goal), outcome: null });
+        Object.assign(u, { path: [n], goal: n, target: position(n) });
+      } else if (free.length) b.path = [free[0]];
+    }
+    if (b.player === u.player && b.order === u.order && b.next === null && b.path[0] === u.node && !searching.has(b.id)) {
+      const mine = u.path.slice(1), theirs = b.path.slice(1), goal = u.goal;
+      Object.assign(u, { path: theirs, goal: b.goal, target: b.goal === null ? null : position(b.goal) });
+      Object.assign(b, { path: mine, goal, target: goal === null ? null : position(goal) });
+      for (const v of [u, b]) if (!v.path.length) Object.assign(v, { goal: null, target: null, navigation: v.partial ? "unreachable" : "idle", wait: 0 });
+      tryReserve(u);
+      return;
+    }
+    u.wait++;
+    u.navigation = "waiting";
+    if (u.wait >= navigationRules.stuckTicks) {
+      Object.assign(u, { path: [], goal: null, target: null, navigation: "stuck", partial: false, outcome: "stuck", wait: 0 });
+      return;
+    }
+    const queued = b.next !== null || b.path.length > 0 || searching.has(b.id);
+    if (u.wait % (navigationRules.waitLimit * (queued ? navigationRules.queueWaitFactor : 1) * (u.id < o ? 2 : 1)) !== 0 || u.detours >= navigationRules.detourLimit) return;
+    u.detours++;
+    const excluded = [.../* @__PURE__ */ new Set([...s.units.filter((v) => v !== u && v.next === null).map((v) => v.node), b.node, ...b.next === null ? [] : [b.next]])].sort((a, b2) => a - b2);
+    s.pathJobs.push(unitJob(s, u, u.goal ?? u.path.at(-1), excluded, u.path));
+    u.path = [];
+    u.navigation = "searching";
+    searching.add(u.id);
+  }
+  for (const u of [...s.units].sort((a, b) => a.id - b.id)) {
+    if (u.next === null) tryReserve(u);
+    if (u.next === null) continue;
+    const target = position(u.next), step = navigationRules.speedPerTick;
+    const p = { x: u.x + Math.sign(target.x - u.x) * Math.min(step, Math.abs(target.x - u.x)), y: u.y + Math.sign(target.y - u.y) * Math.min(step, Math.abs(target.y - u.y)) };
+    if (!clearSegment(s.map, u, p)) throw Error(`entity ${u.id}: \u975E\u6CD5\u78B0\u649E\u8DEF\u5F91`);
+    u.x = p.x;
+    u.y = p.y;
+    if (u.x === target.x && u.y === target.y) {
+      if (owner[u.node] === u.id) owner[u.node] = 0;
+      u.node = u.next;
+      u.next = null;
+      if (u.path.length) tryReserve(u);
+      else if (!searching.has(u.id)) {
+        u.navigation = u.outcome === "stuck" ? "stuck" : u.partial ? "unreachable" : "idle";
+        u.target = null;
+        u.goal = null;
+        u.wait = 0;
+      }
+    }
+  }
+  return { expanded };
+}
+
 // packages/sim/sim.ts
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -419,10 +658,10 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 10 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, simulationVersion: 11 });
 function createState(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
-  const state = { version: 10, layout, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed, layout), pathJobs: [], seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [{ id: 1, player: 0, x: 350, y: 700, target: null }, { id: 2, player: 0, x: 450, y: 700, target: null }, { id: 3, player: 0, x: 400, y: 800, target: null }, { id: 4, player: 1, x: 1150, y: 700, target: null }], queue: [], log: [] };
+  const state = { version: 11, layout, vision: createVision(), accounts: [createAccount(3), createAccount(1)], transactions: [], map: makeMap(seed, layout), pathJobs: [], nextJobId: 1, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [makeUnit(1, 0, 350, 700), makeUnit(2, 0, 450, 700), makeUnit(3, 0, 400, 800), makeUnit(4, 1, 1150, 700)], queue: [], log: [] };
   updateVision(state.vision, state.map, state.units, 0);
   return state;
 }
@@ -432,11 +671,18 @@ function submit(state, c) {
   if (!Number.isSafeInteger(c.sequence) || c.sequence !== state.sequence[c.playerId] + 1) throw Error("\u91CD\u8907\u6216\u932F\u5E8F\u547D\u4EE4");
   if (!Number.isSafeInteger(c.targetTick) || c.targetTick <= state.tick || c.targetTick > state.tick + 200) throw Error("\u547D\u4EE4\u5DF2\u904E\u671F\u6216\u904E\u9060");
   if (!c.payload) throw Error("\u7F3A\u5C11 payload");
+  if (c.commandType === "move" || c.commandType === "stop") {
+    const ids = c.payload.unitIds;
+    if (!Array.isArray(ids) || !ids.length || ids.length > navigationRules.maxGroupSize || !ids.every((id, i) => Number.isSafeInteger(id) && (i === 0 || id > ids[i - 1]))) throw Error(`\u55AE\u4F4D\u6E05\u55AE\u9700\u70BA 1\u2013${navigationRules.maxGroupSize} \u500B\u905E\u589E\u4E14\u4E0D\u91CD\u8907\u7684 ID`);
+    for (const id of ids) {
+      const u = state.units.find((u2) => u2.id === id);
+      if (!u || u.player !== c.playerId) throw Error("\u4E0D\u53EF\u63A7\u5236\u6575\u65B9\u6216\u4E0D\u5B58\u5728\u7684\u55AE\u4F4D");
+    }
+  }
   if (c.commandType === "move") {
-    const u = state.units.find((u2) => u2.id === c.payload.unitId);
-    if (!u || u.player !== c.playerId) throw Error("\u4E0D\u53EF\u63A7\u5236\u6575\u65B9\u55AE\u4F4D");
     for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > 1550) throw Error("\u76EE\u6A19\u8D85\u51FA\u5730\u5716");
     if (!clearSegment(state.map, c.payload, c.payload)) throw Error("\u76EE\u6A19\u4F4D\u65BC\u5EFA\u7BC9\u3001\u8CC7\u6E90\u6216\u4E0D\u53EF\u901A\u884C\u5730\u5F62\u7684\u5360\u5730\u5167");
+  } else if (c.commandType === "stop") {
   } else if (c.commandType === "reserve") {
     if (!rules.entries.some((e) => e.id === c.payload.entryId)) throw Error("\u672A\u77E5\u9810\u7559\u5167\u5BB9");
   } else if (c.commandType === "cancelReservation") {
@@ -454,7 +700,15 @@ function tick(s) {
   s.queue.sort((a, b) => a.targetTick - b.targetTick || a.playerId - b.playerId || a.sequence - b.sequence);
   while (s.queue.length && s.queue[0].targetTick === s.tick) {
     const c = s.queue.shift();
-    if (c.commandType !== "move") {
+    if (c.commandType === "move") {
+      commandMove(s, c.payload.unitIds, { x: c.payload.x, y: c.payload.y });
+      continue;
+    }
+    if (c.commandType === "stop") {
+      commandStop(s, c.payload.unitIds);
+      continue;
+    }
+    {
       const result = { tick: s.tick, playerId: c.playerId, sequence: c.sequence, ok: true };
       try {
         if (c.commandType === "reserve") reserve(s.accounts[c.playerId], `${c.playerId}:${c.sequence}`, c.payload.entryId);
@@ -466,39 +720,10 @@ function tick(s) {
       s.transactions.push(result);
       continue;
     }
-    const u = s.units.find((u2) => u2.id === c.payload.unitId);
-    u.target = { x: c.payload.x, y: c.payload.y };
-    u.path = [];
-    u.navigation = "searching";
-    s.pathJobs = s.pathJobs.filter((j) => j.unitId !== u.id);
-    s.pathJobs.push(createPathJob(s.map, u.id, u, u.target));
   }
-  s.pathJobs.sort((a, b) => a.unitId - b.unitId);
-  let budget = navigationRules.expansionsPerTick;
-  while (budget > 0 && s.pathJobs.some((j) => j.status === "searching")) for (const job of s.pathJobs) {
-    if (budget <= 0) break;
-    if (job.status === "searching") budget -= advancePathJob(s.map, job, 1);
-  }
-  for (const job of s.pathJobs) if (job.status !== "searching") {
-    const u = s.units.find((u2) => u2.id === job.unitId);
-    u.path = job.path;
-    u.navigation = job.status === "found" ? "moving" : "unreachable";
-    if (job.status === "unreachable") u.target = null;
-  }
-  s.pathJobs = s.pathJobs.filter((j) => j.status === "searching");
-  for (const u of s.units) if (u.path?.length) {
-    const next = u.path[0];
-    const p = { x: u.x + Math.sign(next.x - u.x) * Math.min(navigationRules.speedPerTick, Math.abs(next.x - u.x)), y: u.x === next.x ? u.y + Math.sign(next.y - u.y) * Math.min(navigationRules.speedPerTick, Math.abs(next.y - u.y)) : u.y };
-    if (!clearSegment(s.map, u, p)) throw Error(`tick ${s.tick} / entity ${u.id}: \u975E\u6CD5\u78B0\u649E\u8DEF\u5F91`);
-    u.x = p.x;
-    u.y = p.y;
-    if (u.x === next.x && u.y === next.y) u.path.shift();
-    if (!u.path.length) {
-      u.target = null;
-      u.navigation = "idle";
-    }
-  }
+  const stats = stepMovement(s);
   updateVision(s.vision, s.map, s.units, s.tick);
+  return stats;
 }
 function replay(seed, commands, ticks, layout = "meadow") {
   if (!Number.isSafeInteger(ticks) || ticks < 0 || ticks > 1e5 || !Array.isArray(commands) || commands.length > 1e4) throw Error("\u7121\u6548\u91CD\u64AD\u7BC4\u570D");
@@ -515,13 +740,13 @@ function replay(seed, commands, ticks, layout = "meadow") {
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-10", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-11", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-10" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-11" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 10 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (s.version !== 11 || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   const rebuilt = replay(s.seed, s.log, s.tick, s.layout);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);
@@ -540,9 +765,14 @@ function createService() {
       let accepted, commands, snapshot, replayMatches;
       switch (op.kind) {
         case "move":
+        case "stop":
           if (state.log.length >= 1e4) throw Error("\u5DF2\u9054\u6C99\u76D2 10000 \u6307\u4EE4\u4E0A\u9650\uFF0C\u8ACB\u5132\u5B58\u6216\u91CD\u5EFA");
-          accepted = { acceptedTick: state.tick, protocolVersion: 1, rulesetHash, playerId: 0, sequence: state.sequence[0] + 1, targetTick: state.tick + 1, commandType: "move", payload: { unitId: op.unitId, x: op.x, y: op.y } };
-          submit(state, accepted);
+          {
+            const envelope = { acceptedTick: state.tick, protocolVersion: 1, rulesetHash, playerId: 0, sequence: state.sequence[0] + 1, targetTick: state.tick + 1 };
+            const command = op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
+            submit(state, command);
+            accepted = command;
+          }
           break;
         case "advance":
           if (!Number.isSafeInteger(op.count) || op.count < 1 || op.count > 20 || state.tick + op.count > 1e5) throw Error("\u6B65\u9032\u9700\u70BA 1\u201320 ticks\uFF0C\u7E3D\u91CF\u4E0D\u5F97\u8D85\u904E 100000");
@@ -574,10 +804,10 @@ function createService() {
       }
       const visibleUnits = state.units.filter((u) => unitVisible(state.vision[0], u, 0));
       const positions = new Int32Array(visibleUnits.length * 7);
-      visibleUnits.forEach((u, i) => positions.set([u.id, u.player, u.x, u.y, u.target?.x ?? -1, u.target?.y ?? -1, ["idle", "searching", "moving", "unreachable"].indexOf(u.navigation ?? "idle")], i * 7));
+      visibleUnits.forEach((u, i) => positions.set([u.id, u.player, u.x, u.y, u.target?.x ?? -1, u.target?.y ?? -1, navigationStates.indexOf(u.navigation)], i * 7));
       return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, ...projectVision(state.vision[0]), accepted, commands, snapshot, replayMatches };
     } catch (error) {
-      return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: req?.operation?.kind === "move" ? req.operation.unitId : void 0 };
+      return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: req?.operation?.kind === "move" || req?.operation?.kind === "stop" ? req.operation.unitIds?.[0] : void 0 };
     }
   };
 }

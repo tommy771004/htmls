@@ -142,3 +142,7 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## C：城鎮中心入口與多矩形占地（v10）
 
 正式沙盒的起始建築改成城鎮中心，拱門與大廳真的可以通行，碰撞與模型一致有測試鎖定；prompt 19 已從乾淨目錄重跑，見 [first-use-007.md](first-use-007.md)。84 項單元測試、test:browser 11 組和首次使用流程都通過。C 仍是 in_progress。
+
+## D：群體移動、單位占位與選取操作（v11）
+
+框選、編組、右鍵群體移動、停止、觸控移動，以及單位互不重疊的排隊、讓路與受阻回報，驗證見 [first-use-008.md](first-use-008.md)。負載紀錄在 test-results/movement-benchmark*.json。D 仍是 in_progress。

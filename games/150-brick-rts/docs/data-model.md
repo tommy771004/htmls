@@ -1,6 +1,6 @@
 # 資料模型與權威邊界
 
-目前權威 State／snapshot 為 v10，支援三種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
+目前權威 State／snapshot 為 v11，支援三種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
 
 ## 初始資料模型（歷史 v1，後續演進見下文）
 
@@ -99,7 +99,7 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 
 模型頁的新經濟／公共建築與騎兵尚未加入權威 obstacle kinds；其 art footprint、掛點與選取圈在 asset-manifest.json，不能拿來當已實作碰撞規則。迷霧除錯介面只讀 View.fog／known／tick，不新增權威資料。
 
-## 城鎮中心入口與多矩形占地 v10（目前版本）
+## 城鎮中心入口與多矩形占地 v10
 
 - `packages/content/footprints.ts` 的 `obstacleRects()` 是碰撞的唯一來源，每種障礙物回傳一組整數矩形。城鎮中心有 12 個阻擋矩形，其他種類仍各一個，數值和 v9 相同。
 - `obstacleBounds()` 只提供整體範圍，用於地圖放置、耗盡清理和起始資源接近點。`walkablePlatforms` 記錄可行走地基的高度，只供渲染使用。
@@ -107,3 +107,18 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 - 生成地圖的兩方起始建築改為城鎮中心；住宅仍保留為障礙物種類，供測試與後續建造使用。
 - 建築的「已見」改成任一占地格可見即成立，其他物件仍看錨點格。
 - 驗證見 first-use-007.md。這些是 design_default 工程值，不是原作占地。
+
+## 群體移動與單位占位 v11（目前版本）
+
+- `packages/sim/movement.ts` 負責執行期移動。Unit 新增欄位：node（目前佔用的節點）、next（正在前往並已預約的節點）、path（節點序列）、goal（站位）、wait（距上次前進的 tick 數）、detours、order、partial、outcome。navigation 可能的值為 idle／searching／moving／waiting／unreachable／stuck。
+- 命令改為 `move {unitIds,x,y}` 與 `stop {unitIds}`：一道命令對應一個序號，unitIds 需為 1–40 個遞增、不重複的己方 ID。State.pathJobs 改為群體搜尋與單位搜尋，並新增 nextJobId。
+- 移動規則（design_default）：
+  - 每個群體命令從目標點做一次 BFS，取前 N 個沒有被其他單位佔用的節點當站位。依單位與目標的距離排序，從遠離來向的一側開始分配。
+  - 每 tick 共用 128 個節點的搜尋預算，依 32／64／128／256 的實測結果選定。
+  - 單位持有目前節點並預約下一節點，不重疊、不互穿。
+  - 受阻時依序處理：同組已到站且在 arrivalRadius 150 內 → 就地到站；閒置友方讓路；單行道內同組交換站位；正面相遇時同組交換剩餘路線；否則等待。
+  - 每 waitLimit 8 tick 重新規劃一次（阻擋者仍在移動時乘上 queueWaitFactor 4）。規劃時排除其他靜止單位的節點，只有能抵達目標的結果才採用；每道命令最多 detourLimit 12 次。
+  - 連續 stuckTicks 300 tick 沒有前進 → stuck。
+  - 目標所在區域無法到達時，停在最近的可達點並標示 unreachable。
+- 地圖生成驗證（validateMap、validateStartingResources）仍用單一單位的 createPathJob。兩者使用同一張 clearSegment 邊表，所以判定一致。
+- simulationVersion、State.version 與 snapshot 格式升為 11，舊版明確拒絕，沒有做遷移。tick() 回傳只供觀察的搜尋節點數，不寫入 State。

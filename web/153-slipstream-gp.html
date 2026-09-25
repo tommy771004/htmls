@@ -1,0 +1,2221 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>尾流大獎賽｜SLIPSTREAM GP</title>
+<meta name="description" content="瀏覽器裡的 64 位元風格卡丁車：四條賽道、大獎賽、計時賽與氣球大戰三種模式，八位原創車手，甩尾迷你加速、道具、尾流吸附與即時合成配樂；模型、貼圖與音樂全部以程式生成。收錄於 100 Creative HTML Works（153・遊戲敘事）。">
+<link rel="canonical" href="https://htmls-ruddy.vercel.app/web/153-slipstream-gp.html">
+<meta name="theme-color" content="#15110c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2215%22 fill=%22%2315110c%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%228%22 fill=%22%23f4bf1a%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%222.5%22 fill=%22%2315110c%22/%3E%3C/svg%3E">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js" } }
+</script>
+<style>
+:root{
+  --ink:#15110c; --ink-2:#2b2219; --ink-3:#4a3d2f; --chalk:#fff8ec; --dust:#cdbfa6;
+  --sun:#f4bf1a; --sun-deep:#a8740a; --tomato:#dc3b26; --brick:#861c10; --cobalt:#2553c9; --leaf:#2f9a47;
+  --disp:"Arial Black","Helvetica Neue",Impact,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  --ui:system-ui,-apple-system,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --pad:max(16px, env(safe-area-inset-left));
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#120e0a}
+body{position:fixed;inset:0;overflow:hidden;color:var(--chalk);font:15px/1.45 var(--ui);-webkit-user-select:none;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+[hidden]{display:none!important}
+#stage{position:absolute;inset:0;background:#120e0a}
+#stage canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block}
+body.crisp #stage canvas{image-rendering:pixelated}
+#fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .35s linear}
+#fade.on{opacity:1}
+#zap{position:absolute;inset:0;background:#fff7c8;opacity:0;pointer-events:none}
+
+/* ---------- 共用：粗體字、貼紙式圖示 ---------- */
+.disp{font-family:var(--disp);font-weight:900;letter-spacing:.01em}
+.stroke{-webkit-text-stroke:.16em var(--ink);paint-order:stroke fill}
+svg.ico{display:block;overflow:visible}
+
+/* ---------- 選單畫面 ---------- */
+#menu{position:absolute;inset:0;pointer-events:none}
+.scr{position:absolute;inset:0;pointer-events:auto;padding:max(22px,env(safe-area-inset-top)) var(--pad) max(18px,env(safe-area-inset-bottom))}
+.logo{margin:0;font-family:var(--disp);font-weight:900;line-height:.86;transform:rotate(-5deg) skewX(-9deg);transform-origin:0 100%;display:inline-block}
+.logo .l1{display:block;font-size:clamp(46px,8.6vw,132px);color:var(--sun);-webkit-text-stroke:.13em var(--ink);paint-order:stroke fill;
+  text-shadow:1px 1px 0 var(--brick),2px 2px 0 var(--brick),3px 3px 0 var(--brick),4px 4px 0 var(--brick),5px 5px 0 var(--brick),6px 6px 0 var(--brick),7px 7px 0 var(--ink),8px 8px 0 var(--ink)}
+.logo .l2{display:inline-block;margin-top:.06em;font-size:clamp(40px,7vw,108px);color:var(--tomato);-webkit-text-stroke:.13em var(--ink);paint-order:stroke fill;
+  text-shadow:1px 1px 0 #5d1208,2px 2px 0 #5d1208,3px 3px 0 #5d1208,4px 4px 0 #5d1208,5px 5px 0 #5d1208,6px 6px 0 var(--ink),7px 7px 0 var(--ink)}
+.logo .l3{display:inline-block;vertical-align:.9em;margin-left:.5em;padding:.34em .9em .38em;background:var(--ink);color:var(--chalk);font-size:clamp(15px,1.7vw,24px);letter-spacing:.32em;clip-path:polygon(.5em 0,100% 0,calc(100% - .5em) 100%,0 100%);transform:skewX(9deg)}
+
+/* 標題畫面 */
+#sTitle{display:grid;align-content:end;justify-items:start;gap:clamp(22px,4vh,40px);padding-bottom:max(56px,11vh)}
+#sTitle .press{font-family:var(--disp);font-size:clamp(18px,2.2vw,28px);padding:.5em 1.4em .55em;background:var(--ink);color:var(--sun);clip-path:polygon(.6em 0,100% 0,calc(100% - .6em) 100%,0 100%);animation:blink 1.1s steps(1) infinite}
+#sTitle .credit{max-width:min(34em,calc(100vw - 32px));margin:0;padding:.6em 1.2em .65em;background:var(--ink);color:var(--dust);font-size:13px;clip-path:polygon(.5em 0,100% 0,calc(100% - .5em) 100%,0 100%)}
+@keyframes blink{50%{color:var(--chalk)}}
+
+/* 主選單與清單：斜切板 */
+.menuwrap{position:absolute;right:var(--pad);bottom:max(64px,9vh);display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+#sMain .logo{position:absolute;left:var(--pad);top:max(64px,11vh)}
+.hdr{position:absolute;left:var(--pad);top:max(24px,5vh);margin:0;font-family:var(--disp);font-size:clamp(30px,4.4vw,60px);line-height:1;color:var(--chalk);-webkit-text-stroke:.14em var(--ink);paint-order:stroke fill;transform:skewX(-9deg);text-shadow:3px 3px 0 var(--ink),5px 5px 0 var(--ink)}
+.hdr small{display:table;margin-top:.7em;padding:.45em 1.1em .5em;background:var(--ink);color:var(--chalk);font-family:var(--ui);font-size:14px;font-weight:600;letter-spacing:.04em;-webkit-text-stroke:0;text-shadow:none;clip-path:polygon(.5em 0,100% 0,calc(100% - .5em) 100%,0 100%)}
+.hdr small:empty{display:none}
+.row{position:relative;display:flex;align-items:center}
+.tire{position:absolute;left:-58px;width:44px;height:44px;visibility:hidden}
+.row.on .tire{visibility:visible;animation:roll .7s linear infinite}
+@keyframes roll{to{transform:rotate(-360deg)}}
+.slab{display:grid;grid-template-columns:52px 1fr;align-items:center;column-gap:16px;width:min(430px,calc(100vw - 104px));min-height:74px;padding:10px 34px 10px 30px;background:var(--ink);color:var(--chalk);text-align:left;clip-path:polygon(18px 0,100% 0,calc(100% - 18px) 100%,0 100%);transition:transform .2s var(--ease),background-color .12s linear,color .12s linear}
+.slab .k{font-family:var(--disp);font-size:25px;line-height:1.1}
+.slab .s{grid-column:2;font-size:13px;color:var(--dust);transition:color .12s linear}
+.slab svg{grid-row:1/3;width:48px;height:48px}
+.slab.solo{grid-template-columns:1fr;min-height:60px}
+.slab.solo .s{grid-column:1}
+.row.on .slab{background:var(--sun);color:var(--ink);transform:translateX(-22px)}
+.row.on .slab .s{color:#4d3a12}
+.slab[aria-disabled="true"]{opacity:.45}
+
+/* 選角 */
+#sChar .grid{position:absolute;left:var(--pad);bottom:max(76px,11vh);display:grid;grid-template-columns:repeat(4,clamp(64px,7.4vw,112px));gap:10px}
+.tile{position:relative;aspect-ratio:1;background:var(--ink);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);transition:transform .16s var(--ease)}
+.tile img{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);display:block}
+.tile .nm{position:absolute;left:6px;bottom:4px;font-family:var(--disp);font-size:12px;text-shadow:1px 1px 0 var(--ink),-1px 0 0 var(--ink),0 -1px 0 var(--ink)}
+.tile.on{background:var(--sun);transform:rotate(-3deg)}
+.card{position:absolute;right:var(--pad);bottom:max(76px,11vh);width:min(360px,40vw);padding:18px 26px 20px;background:var(--ink);clip-path:polygon(18px 0,100% 0,calc(100% - 18px) 100%,0 100%)}
+.card .who{font-family:var(--disp);font-size:clamp(28px,3.4vw,46px);line-height:1;color:var(--sun)}
+.card .who em{font-style:normal;color:var(--chalk);font-size:.46em;margin-left:.5em;letter-spacing:.12em}
+.card .cls{margin:6px 0 12px;color:var(--dust);font-size:13px}
+.stat{display:grid;grid-template-columns:4.2em 1fr;align-items:center;gap:10px;margin-top:6px;font-size:13px}
+.pips{display:flex;gap:4px}
+.pips i{width:22px;height:10px;background:var(--ink-3);transform:skewX(-20deg)}
+.pips i.f{background:var(--sun)}
+
+/* 賽道選擇 */
+#sTrack .tracks{position:absolute;left:var(--pad);right:var(--pad);bottom:max(76px,11vh);display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:1180px}
+#sTrack .tracks.two{grid-template-columns:repeat(2,minmax(0,300px))}
+.trk{position:relative;display:flex;flex-direction:column;gap:4px;padding:14px 18px 16px;background:var(--ink);text-align:left;clip-path:polygon(14px 0,100% 0,calc(100% - 14px) 100%,0 100%);transition:background-color .12s linear}
+.trk svg{width:100%;height:auto;aspect-ratio:16/10;margin-bottom:6px}
+.trk .k{font-family:var(--disp);font-size:19px;line-height:1.15}
+.trk .s{font-size:12.5px;color:var(--dust)}
+.trk .rec{font-size:12.5px;color:var(--sun);font-variant-numeric:tabular-nums}
+.trk.on{background:var(--sun);color:var(--ink)}
+.trk.on .s,.trk.on .rec{color:#4d3a12}
+
+/* 結果 */
+.board{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(640px,calc(100vw - 32px));max-height:calc(100% - 40px);overflow:auto;padding:22px 34px 24px;background:var(--ink);clip-path:polygon(22px 0,100% 0,calc(100% - 22px) 100%,0 100%)}
+.board.low{top:auto;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);max-height:52%}
+.board.low td{padding:3px 6px}
+.board h2{margin:0 0 4px;font-family:var(--disp);font-size:clamp(26px,3.4vw,40px);color:var(--sun);line-height:1.1}
+.board .sub{margin:0 0 14px;color:var(--dust);font-size:13.5px}
+.board table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.board td{padding:5px 6px;font-size:14px}
+.board td.p{width:2.2em;font-family:var(--disp);font-size:18px}
+.board td.c i{display:inline-block;width:12px;height:12px;margin-right:8px;transform:skewX(-18deg);vertical-align:-1px}
+.board td.r{text-align:right}
+.board tr.me td{background:var(--sun);color:var(--ink)}
+.board tr.out td{color:#8d7f6a}
+.board .acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.board .acts .row .slab{width:auto;min-height:48px;padding:8px 28px 8px 24px}
+.board .acts .row.on .slab{transform:none}
+.board .acts .tire{display:none}
+
+/* 設定 */
+.optrow .slab{grid-template-columns:1fr auto}
+.optrow .slab .v{font-family:var(--disp);font-size:18px}
+
+/* ---------- 比賽 HUD ---------- */
+#hud{position:absolute;inset:0;pointer-events:none;font-family:var(--disp)}
+.h-item{position:absolute;left:var(--pad);top:max(16px,env(safe-area-inset-top));width:92px;height:92px;padding:8px;background:var(--ink);clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px)}
+.h-item .well{position:relative;width:100%;height:100%;background:#fdf3dd;clip-path:polygon(11px 0,100% 0,100% calc(100% - 11px),calc(100% - 11px) 100%,0 100%,0 11px);display:grid;place-items:center}
+.h-item .well svg{width:62px;height:62px}
+.h-item b{position:absolute;right:4px;bottom:0;font-size:20px;color:var(--chalk);-webkit-text-stroke:5px var(--ink);paint-order:stroke fill}
+.h-item.spin .well svg{animation:jig .09s steps(2) infinite}
+@keyframes jig{50%{transform:translateY(-3px)}}
+.h-time{position:absolute;right:var(--pad);top:max(14px,env(safe-area-inset-top));text-align:right;font-variant-numeric:tabular-nums}
+#hLap{font-size:24px;color:var(--chalk);-webkit-text-stroke:6px var(--ink);paint-order:stroke fill}
+#hLap span{color:var(--sun)}
+#hClock{font-size:30px;line-height:1.05;color:var(--sun);-webkit-text-stroke:7px var(--ink);paint-order:stroke fill;font-family:"Arial Black",Impact,sans-serif}
+#hSplits{list-style:none;margin:4px 0 0;padding:0;font-size:15px;color:var(--chalk);-webkit-text-stroke:4px var(--ink);paint-order:stroke fill;font-family:"Arial Black",Impact,sans-serif}
+#hSplits li.best{color:#7fe08a}
+#hMap{position:absolute;left:var(--pad);bottom:max(16px,env(safe-area-inset-bottom));width:190px;height:190px}
+.h-pos{position:absolute;right:calc(var(--pad) + 6px);bottom:max(8px,env(safe-area-inset-bottom));display:flex;align-items:flex-end;gap:4px;line-height:.8}
+#hPosN{font-size:132px;font-style:italic;color:var(--chalk);-webkit-text-stroke:12px var(--ink);paint-order:stroke fill;text-shadow:3px 3px 0 var(--ink),6px 6px 0 var(--ink)}
+#hPosN.g1{color:var(--sun)} #hPosN.g2{color:#dfe5ea} #hPosN.g3{color:#e39a5b}
+#hPosOf{font-size:30px;padding-bottom:14px;color:var(--chalk);-webkit-text-stroke:6px var(--ink);paint-order:stroke fill}
+#hSpeed{position:absolute;right:0;top:-30px;font-style:normal;font-size:18px;color:var(--chalk);-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;white-space:nowrap;font-family:"Arial Black",Impact,sans-serif}
+#hBalloons{position:absolute;left:var(--pad);top:124px;display:grid;gap:6px;font-family:var(--ui);font-weight:700;font-size:13px}
+#hBalloons div{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 8px;background:var(--ink);clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+#hBalloons div.out{opacity:.5}
+#hBalloons svg{width:14px;height:18px}
+#banner{position:absolute;left:0;right:0;top:34%;text-align:center;font-size:clamp(40px,8vw,104px);color:var(--sun);-webkit-text-stroke:.13em var(--ink);paint-order:stroke fill;text-shadow:4px 4px 0 var(--brick),7px 7px 0 var(--ink);transform:skewX(-9deg)}
+#banner.pop{animation:pop .5s var(--ease)}
+#banner small{display:block;margin-top:.2em;font-size:.3em;color:var(--chalk);-webkit-text-stroke:.16em var(--ink);text-shadow:none;letter-spacing:.1em}
+@keyframes pop{from{transform:skewX(-9deg) scale(1.6)}to{transform:skewX(-9deg) scale(1)}}
+#lights{position:absolute;left:50%;top:max(18px,env(safe-area-inset-top));display:flex;gap:10px;padding:10px 16px;background:var(--ink);transform:translateX(-50%);clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,12px 100%,0 50%)}
+#lights i{width:30px;height:30px;border-radius:50%;background:#3b2e22}
+#lights i.r{background:#ff4a2e} #lights i.g{background:#56e36b}
+#toast{position:absolute;left:0;right:0;top:22%;text-align:center;font-size:clamp(22px,3vw,34px);color:#ff6a4a;-webkit-text-stroke:6px var(--ink);paint-order:stroke fill}
+#pauseBtn{position:absolute;right:var(--pad);top:max(118px,env(safe-area-inset-top));width:44px;height:44px;pointer-events:auto;display:none}
+#pauseBtn svg{width:44px;height:44px}
+
+/* ---------- 觸控 ---------- */
+#touch{position:absolute;inset:0;pointer-events:none}
+#steerPad{position:absolute;left:0;bottom:0;width:48%;height:46%;pointer-events:auto}
+#steerPad .base{position:absolute;width:150px;height:56px;margin:-28px 0 0 -75px;background:rgba(21,17,12,.55);clip-path:polygon(28px 0,calc(100% - 28px) 0,100% 50%,calc(100% - 28px) 100%,28px 100%,0 50%);visibility:hidden}
+#steerPad .knob{position:absolute;width:50px;height:50px;margin:-25px 0 0 -25px;background:var(--sun);border:5px solid var(--ink);border-radius:50%;visibility:hidden}
+#steerPad.act .base,#steerPad.act .knob{visibility:visible}
+#steerPad .hint{position:absolute;left:var(--pad);bottom:max(18px,env(safe-area-inset-bottom));font-family:var(--disp);font-size:13px;color:var(--chalk);-webkit-text-stroke:4px var(--ink);paint-order:stroke fill}
+.tbtn{position:absolute;pointer-events:auto;display:grid;place-items:center;font-family:var(--disp);font-size:15px;color:var(--ink);background:var(--sun);clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+.tbtn.down{background:var(--chalk)}
+.tbtn[data-t="hop"]{right:var(--pad);bottom:max(28px,env(safe-area-inset-bottom));width:96px;height:96px;font-size:18px}
+.tbtn[data-t="item"]{right:calc(var(--pad) + 108px);bottom:max(28px,env(safe-area-inset-bottom));width:72px;height:72px;background:var(--tomato);color:var(--chalk)}
+.tbtn[data-t="brake"]{right:calc(var(--pad) + 108px);bottom:calc(max(28px,env(safe-area-inset-bottom) ) + 84px);width:72px;height:48px;background:var(--chalk)}
+body.touch #pauseBtn{display:block}
+body.touch .h-pos{bottom:auto;top:max(122px,env(safe-area-inset-top));right:calc(var(--pad) + 52px)}
+body.touch #hMap{bottom:auto;top:max(122px,env(safe-area-inset-top))}
+
+/* ---------- 開機 / 提示 ---------- */
+#boot{position:absolute;inset:0;display:grid;place-items:center;padding:24px;background:#15110c;text-align:center}
+#boot p{max-width:30em;margin:0;font-size:15px;color:var(--chalk)}
+#boot p b{display:block;font-family:var(--disp);font-size:26px;color:var(--sun);margin-bottom:8px}
+#keys{position:absolute;left:var(--pad);bottom:max(18px,env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;font-weight:600;color:var(--chalk);pointer-events:none;text-shadow:0 1px 0 var(--ink),1px 0 0 var(--ink),-1px 0 0 var(--ink),0 -1px 0 var(--ink)}
+#keys kbd{display:inline-block;min-width:24px;margin-right:6px;padding:2px 6px 3px;background:var(--chalk);color:var(--ink);font:800 12px/1.2 var(--ui);text-align:center;text-shadow:none;border-bottom:3px solid var(--dust)}
+body.touch #keys{display:none}
+#keys.race{left:50%;right:auto;transform:translateX(-50%);justify-content:center;width:max-content;max-width:calc(100vw - 440px)}
+
+@media (max-width:760px){
+  .menuwrap{left:var(--pad);right:var(--pad);align-items:stretch;bottom:max(40px,6vh);gap:10px}
+  .slab{width:100%;min-height:64px;grid-template-columns:40px 1fr;padding:8px 26px 8px 24px}
+  .slab svg{width:38px;height:38px}
+  .slab .k{font-size:21px}
+  .tire{display:none}
+  .row.on .slab{transform:none}
+  #sMain .logo{top:max(40px,6vh)}
+  #sChar .grid{left:var(--pad);right:var(--pad);bottom:max(20px,3vh);grid-template-columns:repeat(4,1fr)}
+  .card{left:var(--pad);right:var(--pad);width:auto;bottom:calc(max(20px,3vh) + (100vw - 2*var(--pad) - 30px)/2 + 30px);padding:12px 22px 14px}
+  .card .cls{margin:2px 0 6px}
+  .stat{margin-top:3px}
+  #sTrack .tracks,#sTrack .tracks.two{grid-template-columns:1fr 1fr;bottom:max(20px,3vh);gap:10px}
+  .trk{padding:10px 14px 12px}
+  .trk .k{font-size:15px}
+  .trk .s{display:none}
+  .h-item{width:70px;height:70px;padding:6px}
+  .h-item .well svg{width:46px;height:46px}
+  #hLap{font-size:18px} #hClock{font-size:22px} #hSplits{font-size:12px}
+  #hMap{width:120px;height:120px}
+  #hPosN{font-size:84px;-webkit-text-stroke:9px var(--ink)} #hPosOf{font-size:20px;padding-bottom:8px}
+  #hBalloons{top:96px}
+  #lights i{width:22px;height:22px}
+}
+@media (prefers-reduced-motion:reduce){
+  #sTitle .press{animation:none}
+  .row.on .tire{animation:none}
+  #banner.pop{animation:none}
+}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="zap"></div>
+<div id="fade"></div>
+
+<div id="hud" hidden>
+  <div class="h-item" id="hItem"><div class="well"><div id="itemIcon"></div></div><b id="itemCount"></b></div>
+  <div class="h-time"><div id="hLap"></div><div id="hClock">0'00"00</div><ol id="hSplits"></ol></div>
+  <canvas id="hMap" width="380" height="380" aria-hidden="true"></canvas>
+  <div class="h-pos" id="hPos"><b id="hPosN">1</b><span id="hPosOf">/8</span><i id="hSpeed"></i></div>
+  <div id="hBalloons"></div>
+  <div id="banner"></div>
+  <div id="lights" hidden><i></i><i></i><i></i></div>
+  <div id="toast"></div>
+  <button id="pauseBtn" aria-label="暫停"><svg viewBox="0 0 44 44" class="ico"><path d="M8 2h34v32l-8 8H2V10z" fill="#15110c"/><path d="M15 12h6v20h-6zM25 12h6v20h-6z" fill="#f4bf1a"/></svg></button>
+</div>
+
+<div id="touch" hidden>
+  <div id="steerPad"><div class="base"></div><div class="knob"></div><span class="hint">左半邊拖曳轉向 · 自動油門</span></div>
+  <button class="tbtn" data-t="hop">甩尾</button>
+  <button class="tbtn" data-t="item">道具</button>
+  <button class="tbtn" data-t="brake">煞車</button>
+</div>
+
+<div id="menu">
+  <section class="scr" id="sTitle" hidden>
+    <h1 class="logo"><span class="l1">SLIPSTREAM</span><span class="l2">GP</span><span class="l3">尾流大獎賽</span></h1>
+    <div class="press">按任意鍵開始</div>
+    <p class="credit">四條賽道、八位車手、三種模式。車子、場景、貼圖與配樂全部由程式當場生成，沒有任何圖片或音檔。</p>
+  </section>
+  <section class="scr" id="sMain" hidden>
+    <h1 class="logo"><span class="l1">SLIPSTREAM</span><span class="l2">GP</span><span class="l3">尾流大獎賽</span></h1>
+    <nav class="menuwrap" id="mainNav"></nav>
+  </section>
+  <section class="scr" id="sList" hidden>
+    <h2 class="hdr" id="listHdr"></h2>
+    <nav class="menuwrap" id="listNav"></nav>
+  </section>
+  <section class="scr" id="sChar" hidden>
+    <h2 class="hdr">選擇車手<small id="charSub"></small></h2>
+    <div class="card" id="charCard"></div>
+    <div class="grid" id="charGrid"></div>
+  </section>
+  <section class="scr" id="sTrack" hidden>
+    <h2 class="hdr" id="trackHdr">選擇賽道</h2>
+    <div class="tracks" id="trackGrid"></div>
+  </section>
+  <section class="scr" id="sBoard" hidden>
+    <div class="board" id="board"></div>
+  </section>
+</div>
+
+<div id="keys"></div>
+<div id="boot"><p><b>暖車中</b>正在載入 3D 引擎…</p></div>
+<script type="module">
+// ============================================================
+// 尾流大獎賽 · SLIPSTREAM GP
+// 單檔 64 位元風格卡丁車。Three.js 從 CDN 載入，其餘（模型、貼圖、音樂、音效）全部即時生成。
+// ============================================================
+let THREE;
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const TAU = Math.PI * 2;
+const angDiff = (a, b) => { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; };
+function mulberry(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('slipstream-gp:' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('slipstream-gp:' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const fmtTime = t => { if (!isFinite(t)) return "-'--\"--"; const m = Math.floor(t / 60), s = Math.floor(t % 60), c = Math.floor((t * 100) % 100); return m + "'" + String(s).padStart(2, '0') + '"' + String(c).padStart(2, '0'); };
+const HASH = new URLSearchParams(location.hash.slice(1));
+const AUTORACE = HASH.has('autorace');
+const FAST = AUTORACE ? (+HASH.get('fast') || 1) : 1; // 測試用：加速模擬
+const OPT = Object.assign({ quality: 1, music: 1, sfx: 1 }, store.get('opt', {}));
+
+// ============================================================
+// 音訊：合成配樂（依賽道產生旋律）與音效
+// ============================================================
+const Audio = {
+  ctx: null, master: null, mus: null, fx: null, noiseBuf: null, duty: null,
+  song: null, step: 0, next: 0, tempoMul: 1, timer: 0,
+  engine: null, skid: null,
+  init() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const c = this.ctx = new AC();
+    const comp = c.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
+    this.master = c.createGain(); this.master.gain.value = 0.8; this.master.connect(comp); comp.connect(c.destination);
+    this.mus = c.createGain(); this.mus.gain.value = OPT.music ? 0.42 : 0; this.mus.connect(this.master);
+    this.fx = c.createGain(); this.fx.gain.value = OPT.sfx ? 0.7 : 0; this.fx.connect(this.master);
+    const len = c.sampleRate; const b = this.noiseBuf = c.createBuffer(1, len, c.sampleRate); const d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    // 25% 占空比方波：比一般方波更「卡帶」
+    const n = 32, re = new Float32Array(n), im = new Float32Array(n);
+    for (let k = 1; k < n; k++) im[k] = (2 / (k * Math.PI)) * Math.sin(k * Math.PI * 0.25) * 1;
+    this.duty = c.createPeriodicWave(re, im);
+    this.timer = setInterval(() => this.tick(), 25);
+    if (this.pending) { const p = this.pending; this.pending = null; this.play(p); }
+  },
+  setVol() { if (!this.ctx) return; this.mus.gain.value = OPT.music ? 0.42 : 0; this.fx.gain.value = OPT.sfx ? 0.7 : 0; },
+  // ---- 音樂 ----
+  play(name) {
+    if (!this.ctx) { this.pending = name; return; }
+    if (this.song && this.song.name === name) return;
+    this.song = name ? buildSong(name) : null; this.step = 0; this.tempoMul = 1; this.next = this.ctx.currentTime + 0.08;
+  },
+  tick() {
+    const c = this.ctx; if (!c || !this.song) return;
+    const s = this.song; const dur = 60 / (s.bpm * this.tempoMul) / 4;
+    while (this.next < c.currentTime + 0.14) {
+      const st = this.step % s.len; const sw = (st % 2 === 1) ? dur * s.swing : 0;
+      for (const ev of s.ev[st]) this.voice(ev, this.next + sw, dur);
+      this.next += dur; this.step++;
+    }
+  },
+  voice(ev, t, stepDur) {
+    const c = this.ctx; const f = 440 * Math.pow(2, (ev.n - 69) / 12);
+    const dur = ev.d * stepDur;
+    if (ev.i === 'kick') { const o = c.createOscillator(), g = c.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); g.gain.setValueAtTime(0.9 * ev.v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18); o.connect(g); g.connect(this.mus); o.start(t); o.stop(t + 0.2); return; }
+    if (ev.i === 'snare' || ev.i === 'hat') {
+      const src = c.createBufferSource(); src.buffer = this.noiseBuf; const fl = c.createBiquadFilter(); const g = c.createGain();
+      const hat = ev.i === 'hat'; fl.type = hat ? 'highpass' : 'bandpass'; fl.frequency.value = hat ? 7000 : 1800; fl.Q.value = hat ? 0.7 : 0.9;
+      const len = hat ? 0.04 : 0.13; g.gain.setValueAtTime((hat ? 0.22 : 0.5) * ev.v, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+      src.connect(fl); fl.connect(g); g.connect(this.mus); src.start(t, Math.random() * 0.5); src.stop(t + len + 0.02); return;
+    }
+    const o = c.createOscillator(), g = c.createGain();
+    let peak = 0.16 * ev.v, rel = 0.05;
+    if (ev.i === 'lead') {
+      const w = this.song.lead;
+      if (w === 'duty') o.setPeriodicWave(this.duty); else if (w === 'bell') o.type = 'sine'; else o.type = w;
+      if (w === 'bell') { // 鐘聲：主音 + 3.5 倍泛音快速衰減
+        const o2 = c.createOscillator(), g2 = c.createGain(); o2.frequency.value = f * 3.5; g2.gain.setValueAtTime(0.05 * ev.v, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o2.connect(g2); g2.connect(this.mus); o2.start(t); o2.stop(t + 0.3);
+        peak = 0.2 * ev.v; rel = 0.35;
+      }
+      if (w === 'sawtooth') peak = 0.085 * ev.v;
+      const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 5.6; lg.gain.value = f * 0.012; lfo.connect(lg); lg.connect(o.frequency); lfo.start(t + 0.12); lfo.stop(t + dur + 0.4);
+    } else if (ev.i === 'bass') { o.type = this.song.bassWave; peak = (this.song.bassWave === 'triangle' ? 0.34 : 0.1) * ev.v; }
+    else if (ev.i === 'arp') { o.setPeriodicWave(this.duty); peak = 0.045 * ev.v; rel = 0.02; }
+    else if (ev.i === 'pad') { o.type = 'triangle'; peak = 0.06 * ev.v; rel = 0.3; }
+    o.frequency.setValueAtTime(f, t);
+    if (ev.slide) o.frequency.exponentialRampToValueAtTime(f * Math.pow(2, ev.slide / 12), t + Math.min(dur, 0.12));
+    let out = g;
+    if (ev.i === 'bass' && this.song.bassWave !== 'triangle') { const fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 900; g.connect(fl); out = fl; }
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + 0.006); g.gain.setValueAtTime(peak * 0.8, t + Math.max(0.01, dur - 0.02)); g.gain.exponentialRampToValueAtTime(0.0008, t + dur + rel);
+    o.connect(g); out.connect(this.mus); o.start(t); o.stop(t + dur + rel + 0.05);
+  },
+  // ---- 音效 ----
+  blip(freq, dur = 0.08, type = 'square', vol = 0.3, slideTo = 0, delay = 0) {
+    const c = this.ctx; if (!c) return; const t = c.currentTime + delay; const o = c.createOscillator(), g = c.createGain();
+    if (type === 'duty') o.setPeriodicWave(this.duty); else o.type = type;
+    o.frequency.setValueAtTime(freq, t); if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur); o.connect(g); g.connect(this.fx); o.start(t); o.stop(t + dur + 0.02);
+  },
+  noise(dur = 0.2, freq = 1200, q = 1, vol = 0.4, sweep = 0, type = 'bandpass', delay = 0) {
+    const c = this.ctx; if (!c) return; const t = c.currentTime + delay; const s = c.createBufferSource(); s.buffer = this.noiseBuf;
+    const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.setValueAtTime(freq, t); fl.Q.value = q; if (sweep) fl.frequency.exponentialRampToValueAtTime(sweep, t + dur);
+    const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    s.connect(fl); fl.connect(g); g.connect(this.fx); s.start(t, Math.random() * 0.4); s.stop(t + dur + 0.02);
+  },
+  sfx(name) {
+    if (!this.ctx) return;
+    switch (name) {
+      case 'move': this.blip(880, 0.05, 'duty', 0.18); break;
+      case 'ok': this.blip(660, 0.07, 'duty', 0.22); this.blip(990, 0.12, 'duty', 0.22, 0, 0.07); break;
+      case 'back': this.blip(520, 0.09, 'duty', 0.2, 300); break;
+      case 'count': this.blip(440, 0.22, 'square', 0.2); break;
+      case 'go': this.blip(880, 0.5, 'square', 0.22); break;
+      case 'lap': [0, 4, 7, 12].forEach((s, i) => this.blip(523 * Math.pow(2, s / 12), 0.12, 'duty', 0.22, 0, i * 0.07)); break;
+      case 'final': [0, 4, 7, 12, 16].forEach((s, i) => this.blip(587 * Math.pow(2, s / 12), 0.14, 'square', 0.16, 0, i * 0.06)); break;
+      case 'box': this.noise(0.25, 3000, 2, 0.3, 800); this.blip(1400, 0.1, 'triangle', 0.2, 2200); break;
+      case 'roll': this.blip(1200 + Math.random() * 400, 0.03, 'duty', 0.1); break;
+      case 'got': this.blip(988, 0.08, 'duty', 0.22); this.blip(1319, 0.14, 'duty', 0.22, 0, 0.08); break;
+      case 'boost': this.noise(0.6, 600, 0.8, 0.5, 3000); this.blip(220, 0.5, 'sawtooth', 0.12, 660); break;
+      case 'mini1': this.noise(0.3, 900, 1, 0.35, 3000); break;
+      case 'mini2': this.noise(0.5, 700, 1, 0.45, 3500); this.blip(330, 0.4, 'sawtooth', 0.1, 880); break;
+      case 'hop': this.blip(300, 0.08, 'triangle', 0.25, 520); break;
+      case 'wall': this.noise(0.12, 300, 1, 0.5, 120, 'lowpass'); break;
+      case 'spin': this.blip(700, 0.6, 'square', 0.14, 160); break;
+      case 'hit': this.noise(0.35, 500, 0.8, 0.6, 150, 'lowpass'); this.blip(180, 0.3, 'square', 0.18, 60); break;
+      case 'throw': this.noise(0.18, 1500, 1, 0.25, 4000); break;
+      case 'drop': this.blip(400, 0.1, 'triangle', 0.25, 200); break;
+      case 'pop': this.noise(0.12, 2500, 1.2, 0.6, 600); break;
+      case 'bump': this.blip(160, 0.1, 'square', 0.18, 90); break;
+      case 'star': [0, 7, 12, 16, 19, 24].forEach((s, i) => this.blip(660 * Math.pow(2, s / 12), 0.1, 'duty', 0.14, 0, i * 0.045)); break;
+      case 'storm': this.noise(1.2, 200, 0.6, 0.8, 60, 'lowpass'); this.blip(90, 0.9, 'sawtooth', 0.2, 40); break;
+      case 'shrink': this.blip(900, 0.4, 'duty', 0.14, 200); break;
+      case 'fall': this.blip(800, 0.8, 'triangle', 0.25, 120); break;
+      case 'finish': [0, 4, 7, 12, 7, 12, 16, 19].forEach((s, i) => this.blip(523 * Math.pow(2, s / 12), 0.16, 'duty', 0.2, 0, i * 0.09)); break;
+      case 'wrong': this.blip(200, 0.25, 'square', 0.16); break;
+      case 'splash': this.noise(0.6, 900, 0.7, 0.5, 200); break;
+    }
+  },
+  // 玩家引擎聲：鋸齒 + 方波低八度，頻率跟車速走
+  engineStart() {
+    const c = this.ctx; if (!c || this.engine) return;
+    const o1 = c.createOscillator(), o2 = c.createOscillator(), fl = c.createBiquadFilter(), g = c.createGain();
+    o1.type = 'sawtooth'; o2.type = 'square'; fl.type = 'lowpass'; fl.frequency.value = 700; g.gain.value = 0;
+    o1.connect(fl); o2.connect(fl); fl.connect(g); g.connect(this.fx); o1.start(); o2.start();
+    const s = c.createBufferSource(); s.buffer = this.noiseBuf; s.loop = true; const sf = c.createBiquadFilter(); sf.type = 'bandpass'; sf.frequency.value = 2600; sf.Q.value = 3; const sg = c.createGain(); sg.gain.value = 0;
+    s.connect(sf); sf.connect(sg); sg.connect(this.fx); s.start();
+    this.engine = { o1, o2, fl, g, s, sg };
+  },
+  engineSet(speed, gas, drift, on) {
+    const e = this.engine; if (!e) return; const t = this.ctx.currentTime;
+    const f = 48 + Math.abs(speed) * 3.1 + (gas ? 10 : 0);
+    e.o1.frequency.setTargetAtTime(f, t, 0.05); e.o2.frequency.setTargetAtTime(f * 0.5, t, 0.05);
+    e.fl.frequency.setTargetAtTime(400 + Math.abs(speed) * 30, t, 0.08);
+    e.g.gain.setTargetAtTime(on ? (gas ? 0.085 : 0.05) : 0, t, 0.08);
+    e.sg.gain.setTargetAtTime(on && drift ? 0.07 : 0, t, 0.05);
+  },
+  engineStop() { const e = this.engine; if (!e) return; this.engine = null; const t = this.ctx.currentTime; e.g.gain.setTargetAtTime(0, t, 0.05); e.sg.gain.setTargetAtTime(0, t, 0.05); setTimeout(() => { try { e.o1.stop(); e.o2.stop(); e.s.stop(); } catch (x) {} }, 300); }
+};
+
+// 由調式、和弦進行與種子「作曲」：前四小節是動機，後四小節是變奏並收在屬音/主音
+const MODES = { major: [0, 2, 4, 5, 7, 9, 11], mixo: [0, 2, 4, 5, 7, 9, 10], dorian: [0, 2, 3, 5, 7, 9, 10], lydian: [0, 2, 4, 6, 7, 9, 11], harm: [0, 2, 3, 5, 7, 8, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
+const SONGS = {
+  title:  { bpm: 126, root: 60, mode: 'major', prog: [1, 6, 4, 5, 1, 6, 2, 5], lead: 'duty', bassWave: 'triangle', drums: 'rock', arp: 1, seed: 7, swing: 0 },
+  clover: { bpm: 150, root: 62, mode: 'major', prog: [1, 4, 5, 1, 6, 4, 2, 5], lead: 'duty', bassWave: 'triangle', drums: 'bounce', arp: 1, seed: 12, swing: 0 },
+  canyon: { bpm: 128, root: 57, mode: 'mixo', prog: [1, 7, 4, 1, 1, 7, 4, 5], lead: 'triangle', bassWave: 'square', drums: 'gallop', arp: 0, seed: 29, swing: 0.2 },
+  frost:  { bpm: 112, root: 64, mode: 'lydian', prog: [1, 2, 1, 2, 6, 5, 4, 5], lead: 'bell', bassWave: 'triangle', drums: 'soft', arp: 1, seed: 31, swing: 0 },
+  cinder: { bpm: 162, root: 52, mode: 'harm', prog: [1, 1, 6, 5, 1, 4, 6, 5], lead: 'sawtooth', bassWave: 'square', drums: 'drive', arp: 1, seed: 47, swing: 0 },
+  plaza:  { bpm: 170, root: 55, mode: 'dorian', prog: [1, 4, 1, 4, 7, 4, 5, 5], lead: 'duty', bassWave: 'square', drums: 'drive', arp: 0, seed: 61, swing: 0 },
+  ring:   { bpm: 140, root: 59, mode: 'minor', prog: [1, 6, 7, 1, 4, 6, 5, 5], lead: 'bell', bassWave: 'triangle', drums: 'rock', arp: 1, seed: 73, swing: 0 },
+  result: { bpm: 96, root: 60, mode: 'major', prog: [4, 5, 3, 6, 2, 5, 1, 1], lead: 'triangle', bassWave: 'triangle', drums: 'soft', arp: 1, seed: 5, swing: 0.12 }
+};
+const RHYTHMS = [
+  [1,0,1,0, 1,0,0,1, 0,0,1,0, 1,0,0,0], [1,0,0,1, 0,0,1,0, 1,0,1,0, 1,0,0,0], [1,0,0,0, 1,0,1,1, 1,0,0,0, 1,0,1,0],
+  [1,0,1,1, 0,1,0,0, 1,0,1,0, 0,0,1,0], [1,0,0,0, 0,0,1,0, 1,0,1,0, 1,0,1,0], [1,1,0,1, 0,0,1,0, 1,0,0,0, 1,0,0,0]
+];
+const DRUMS = {
+  rock:   { k: [0, 8, 10], s: [4, 12], h: [0, 2, 4, 6, 8, 10, 12, 14] },
+  bounce: { k: [0, 6, 8], s: [4, 12], h: [2, 6, 10, 14] },
+  gallop: { k: [0, 3, 8, 11], s: [4, 12], h: [0, 2, 3, 6, 8, 10, 11, 14] },
+  soft:   { k: [0, 8], s: [12], h: [4, 12] },
+  drive:  { k: [0, 4, 8, 12], s: [4, 12], h: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] }
+};
+function buildSong(name) {
+  const d = SONGS[name]; const sc = MODES[d.mode]; const r = mulberry(d.seed);
+  const bars = d.prog.length, len = bars * 16; const ev = Array.from({ length: len }, () => []);
+  const deg = (k) => { const o = Math.floor(k / 7); return d.root + sc[((k % 7) + 7) % 7] + 12 * o; };
+  const chordDeg = b => d.prog[b] - 1;
+  const motif = []; // 4 小節動機：每小節 [節奏, 音級序列]
+  for (let b = 0; b < 4; b++) {
+    const rh = RHYTHMS[Math.floor(r() * RHYTHMS.length)]; const steps = [];
+    let cur = chordDeg(b) + 7 + (r() < 0.5 ? 2 : 0);
+    rh.forEach((on, i) => { if (!on) return; if (i % 4 === 0) { const tones = [0, 2, 4].map(x => chordDeg(b) + 7 + x); cur = tones.reduce((a, t) => Math.abs(t - cur) < Math.abs(a - cur) ? t : a, tones[0]); } else cur += [-1, 1, -2, 2, 1][Math.floor(r() * 5)]; steps.push([i, cur]); });
+    motif.push(steps);
+  }
+  for (let b = 0; b < bars; b++) {
+    const base = b * 16; const cd = chordDeg(b); const src = motif[b % 4];
+    const shift = b >= 4 ? cd - chordDeg(b % 4) : 0; // 後四小節跟著和弦平移
+    const last = b === bars - 1;
+    src.forEach(([i, k], n) => {
+      if (last && i > 8) return;
+      const next = src[n + 1] ? src[n + 1][0] : 16; let dur = Math.min(next - i, 4); let kk = k + shift;
+      if (last && i === 8) { kk = cd + 7; dur = 8; }
+      ev[base + i].push({ i: 'lead', n: deg(kk) + 12, d: dur, v: i % 4 === 0 ? 1 : 0.8, slide: d.lead === 'triangle' && r() < 0.12 ? -2 : 0 });
+    });
+    // 貝斯：根音八分音符，偶數拍跳五度
+    for (let i = 0; i < 16; i += 2) { const k = (i % 8 === 4) ? cd + 4 : cd; ev[base + i].push({ i: 'bass', n: deg(k) - 24 + (i === 14 && r() < 0.4 ? 12 : 0), d: 1.6, v: 1 }); }
+    if (d.arp) for (let i = 0; i < 16; i++) { const k = cd + [0, 2, 4, 7][i % 4]; ev[base + i].push({ i: 'arp', n: deg(k), d: 0.7, v: 1 }); }
+    else for (let i = 0; i < 16; i += 8) [0, 2, 4].forEach(x => ev[base + i].push({ i: 'pad', n: deg(cd + x), d: 7, v: 1 }));
+    const dr = DRUMS[d.drums];
+    dr.k.forEach(i => ev[base + i].push({ i: 'kick', n: 0, d: 1, v: 1 }));
+    dr.s.forEach(i => ev[base + i].push({ i: 'snare', n: 0, d: 1, v: 1 }));
+    dr.h.forEach(i => ev[base + i].push({ i: 'hat', n: 0, d: 1, v: i % 4 === 0 ? 1 : 0.6 }));
+    if (b % 4 === 3) [13, 14, 15].forEach(i => ev[base + i].push({ i: 'snare', n: 0, d: 1, v: 0.6 }));
+  }
+  return { name, bpm: d.bpm, len, ev, lead: d.lead, bassWave: d.bassWave, swing: d.swing };
+}
+
+// ============================================================
+// 輸入：鍵盤、手把、觸控
+// ============================================================
+const Keys = new Set();
+const Pad = { steer: 0, gas: false, brake: false, hop: false, item: false, touch: false, touchSteer: 0, tHop: false, tItem: false, tBrake: false };
+const Input = { steer: 0, gas: false, brake: false, hop: false, item: false, hopEdge: false, itemEdge: false, _hop: false, _item: false };
+function readInput() {
+  let steer = 0;
+  if (Keys.has('ArrowLeft') || Keys.has('KeyA')) steer -= 1;
+  if (Keys.has('ArrowRight') || Keys.has('KeyD')) steer += 1;
+  let gas = Keys.has('ArrowUp') || Keys.has('KeyW');
+  let brake = Keys.has('ArrowDown') || Keys.has('KeyS');
+  let hop = Keys.has('Space') || Keys.has('ShiftLeft') || Keys.has('ShiftRight') || Keys.has('KeyK');
+  let item = Keys.has('KeyX') || Keys.has('KeyE') || Keys.has('KeyJ') || Keys.has('KeyL');
+  const gp = navigator.getGamepads ? navigator.getGamepads()[0] : null;
+  if (gp && gp.connected) {
+    const ax = gp.axes[0] || 0; if (Math.abs(ax) > 0.18) steer += ax;
+    const b = i => gp.buttons[i] && gp.buttons[i].pressed;
+    if (b(14)) steer -= 1; if (b(15)) steer += 1;
+    gas = gas || b(0) || b(7); brake = brake || b(1) || b(6); hop = hop || b(5) || b(4); item = item || b(2) || b(3);
+  }
+  if (Pad.touch) { steer += Pad.touchSteer; gas = !Pad.tBrake; brake = brake || Pad.tBrake; hop = hop || Pad.tHop; item = item || Pad.tItem; }
+  Input.steer = clamp(steer, -1, 1); Input.gas = gas; Input.brake = brake;
+  Input.hopEdge = Input.hopEdge || (hop && !Input._hop); Input.itemEdge = Input.itemEdge || (item && !Input._item);
+  Input.hop = hop; Input.item = item; Input._hop = hop; Input._item = item;
+}
+
+// ============================================================
+// 資料：車手、賽道、場地
+// ============================================================
+// 能力 1–5：速度（極速）、加速、重量（碰撞推力）、操控（轉向）
+const CHARS = [
+  { id: 'kiko',  name: '琪可', en: 'KIKO',  kind: '狐狸',   cls: '輕量級', kart: '#e8702a', suit: '#fff1dc', st: [2, 5, 1, 4] },
+  { id: 'pip',   name: '小跳', en: 'PIP',   kind: '青蛙',   cls: '輕量級', kart: '#62b83f', suit: '#f6e27a', st: [2, 5, 1, 5] },
+  { id: 'nori',  name: '海苔', en: 'NORI',  kind: '企鵝',   cls: '輕量級', kart: '#1f9aa8', suit: '#f2f2ee', st: [3, 4, 2, 4] },
+  { id: 'cog',   name: '齒輪', en: 'COG',   kind: '機器人', cls: '中量級', kart: '#7f93a6', suit: '#39434d', st: [3, 3, 3, 3] },
+  { id: 'bao',   name: '包子', en: 'BAO',   kind: '熊貓',   cls: '中量級', kart: '#e0467c', suit: '#2a2a2a', st: [3, 3, 3, 4] },
+  { id: 'tora',  name: '虎妞', en: 'TORA',  kind: '老虎',   cls: '中量級', kart: '#f2c230', suit: '#2b2b2b', st: [4, 3, 3, 3] },
+  { id: 'gronk', name: '岩龍', en: 'GRONK', kind: '恐龍',   cls: '重量級', kart: '#2f6f4f', suit: '#d9c27a', st: [5, 2, 5, 2] },
+  { id: 'brick', name: '阿磚', en: 'BRICK', kind: '鬥牛犬', cls: '重量級', kart: '#b0402e', suit: '#e9d7b4', st: [5, 1, 5, 3] }
+];
+const CC = { 50: 22, 100: 27.5, 150: 32.5 };
+
+// 控制點 [x, z, y]；zones 用「控制點參數」標記區段（例：3.4 代表第 3 與第 4 點之間 40% 處）
+const TRACKS = [
+  { id: 'clover', name: '苜蓿環道', en: 'CLOVER LOOP', blurb: '寬路面、長直線，兩處加速板', theme: 'clover', song: 'clover', s: 0.8, w: 9, m: 10,
+    pts: [[0,-150,0],[120,-150,0],[210,-130,0],[250,-60,1],[230,10,2],[170,40,2],[140,90,3],[160,150,5],[110,200,8],[20,205,9],[-60,170,6],[-110,110,3],[-180,90,1],[-230,30,0],[-220,-60,0],[-160,-120,0],[-80,-150,0]],
+    zones: [], pads: [[2.35, 0.35], [9.5, -0.35], [14.6, 0]], items: [1.3, 7.2, 12.3] },
+  { id: 'canyon', name: '赭岩峽谷', en: 'OCHRE CANYON', blurb: '沙地路肩吃速度，終點前飛越河谷', theme: 'canyon', song: 'canyon', s: 1, w: 8, m: 6,
+    pts: [[0,0,3],[100,0,2],[170,-20,2],[210,-70,4],[200,-130,6],[150,-160,6],[90,-150,5],[60,-110,4],[20,-80,3],[-30,-100,2],[-60,-150,1],[-110,-180,0],[-170,-160,0],[-205,-100,1],[-195,-30,3],[-150,15,6],[-80,25,6]],
+    zones: [[15.52, 15.6, 'ramp'], [15.6, 15.8, 'gap']], pads: [[15.18, 0.3], [15.18, -0.3]], items: [1.3, 6.5, 11.5] },
+  { id: 'frost', name: '霜脊隘口', en: 'RIMEFROST PASS', blurb: '爬坡山路，兩段結冰路面會打滑', theme: 'frost', song: 'frost', s: 1, w: 7.5, m: 6,
+    pts: [[0,0,0],[90,10,2],[150,50,6],[160,110,10],[110,150,13],[40,140,15],[0,170,16],[20,230,17],[90,250,16],[160,240,14],[220,200,11],[260,130,8],[270,50,5],[240,-30,3],[180,-80,2],[100,-100,1],[30,-85,0],[-20,-55,0],[-30,-15,0]],
+    zones: [[3.6, 5.2, 'ice'], [10.3, 11.8, 'ice']], pads: [], items: [1.5, 7.3, 13.5] },
+  { id: 'cinder', name: '燼火堡', en: 'CINDER KEEP', blurb: '窄石橋懸在熔岩上，沒有護欄', theme: 'cinder', song: 'cinder', s: 1.15, w: 7, m: 3,
+    pts: [[0,0,2],[80,0,2],[115,15,2],[130,50,2],[130,120,2],[115,155,2],[80,170,3],[20,170,5],[-10,150,6],[-20,110,6],[-50,85,6],[-100,80,5],[-140,60,4],[-150,20,3],[-140,-30,2],[-100,-60,2],[-50,-60,2],[-20,-30,2]],
+    zones: [[3.35, 4.6, 'lava'], [10.1, 11.7, 'lava']], pads: [[8.5, 0]], items: [1.3, 7.3, 14.2] }
+];
+const ARENAS = [
+  { id: 'plaza', name: '貨櫃廣場', en: 'CRATE PLAZA', blurb: '方形場地，貨櫃堆成掩體', theme: 'plaza', song: 'plaza', shape: 'rect', half: 72,
+    blocks: [[-30,-30,8,8],[30,-30,8,8],[-30,30,8,8],[30,30,8,8],[0,0,12,4],[0,0,4,12],[-58,0,4,14],[58,0,4,14],[0,-58,14,4],[0,58,14,4]],
+    boxes: [[-15,-15],[15,-15],[-15,15],[15,15],[-45,0],[45,0],[0,-45],[0,45],[-50,-50],[50,50],[-50,50],[50,-50]] },
+  { id: 'ring', name: '冰湖圓場', en: 'FROZEN RING', blurb: '結冰的圓形湖面，中央雪丘', theme: 'ring', song: 'ring', shape: 'circle', half: 74,
+    circles: [[0,0,13],[40,0,3.5],[-40,0,3.5],[0,40,3.5],[0,-40,3.5],[28,28,3],[-28,28,3],[28,-28,3],[-28,-28,3]],
+    boxes: [[0,-24],[0,24],[-24,0],[24,0],[50,30],[-50,30],[50,-30],[-50,-30],[0,58],[0,-58]] }
+];
+
+const THEMES = {
+  clover: { sky: ['#2f79cf', '#a9dcf2'], fog: '#b9e0ef', fogN: 130, fogF: 760, sun: '#fff3d6', amb: '#cfe7ff', gnd: '#5a3', lightI: 2.4,
+    ground: 'grass', road: 'asphalt', curb: ['#e23d28', '#fbf5ea'], wall: 'hedge', wallH: 1.5, hills: ['#6fae5a', '#3f7f3d'], deco: 'clover', skirt: 40 },
+  canyon: { sky: ['#3e7fc7', '#f6c992'], fog: '#efc58e', fogN: 110, fogF: 700, sun: '#fff0d0', amb: '#ffd9b0', lightI: 2.6,
+    ground: 'sand', road: 'clay', curb: ['#fbf5ea', '#8a3b1d'], wall: 'rock', wallH: 3.2, hills: ['#c7733f', '#8e4526'], deco: 'canyon', skirt: 40 },
+  frost:  { sky: ['#243f73', '#f2b9a3'], fog: '#d9dfea', fogN: 90, fogF: 560, sun: '#ffe2cf', amb: '#c2d4ff', lightI: 2.1,
+    ground: 'snow', road: 'packed', curb: ['#2e6fd0', '#fbf5ea'], wall: 'bank', wallH: 1.4, hills: ['#e8eef6', '#9fb2cc'], deco: 'frost', skirt: 40 },
+  cinder: { sky: ['#0b0605', '#5b1a0c'], fog: '#2a0e08', fogN: 60, fogF: 420, sun: '#ffb070', amb: '#8a3b2a', lightI: 1.6,
+    ground: 'lava', road: 'cobble', curb: ['#1d1715', '#e8691f'], wall: 'parapet', wallH: 1.8, hills: ['#2a1410', '#140a08'], deco: 'cinder', skirt: 6, lavaY: -9 },
+  plaza:  { sky: ['#3b8ad6', '#cfe9f3'], fog: '#cbe6f0', fogN: 160, fogF: 800, sun: '#fff3d6', amb: '#d7e9ff', lightI: 2.4,
+    ground: 'grass', road: 'tiles', wall: 'container', wallH: 5, hills: ['#7fb3d8', '#4f86b5'], deco: 'plaza' },
+  ring:   { sky: ['#1d3a66', '#e7a9b8'], fog: '#d6dce9', fogN: 120, fogF: 640, sun: '#ffe2cf', amb: '#c2d4ff', lightI: 2.1,
+    ground: 'snow', road: 'ice', wall: 'bank', wallH: 2.2, hills: ['#e8eef6', '#9fb2cc'], deco: 'frost' }
+};
+
+// ============================================================
+// 程序化貼圖（Canvas）
+// ============================================================
+const TEX = {};
+function canvasTex(w, h, draw, rep = true) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); draw(g, w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; }
+  return t;
+}
+function speckle(g, w, h, base, cols, n, sz = 2) { g.fillStyle = base; g.fillRect(0, 0, w, h); const r = mulberry(n); for (let i = 0; i < n; i++) { g.fillStyle = cols[Math.floor(r() * cols.length)]; const s = sz * (0.5 + r()); g.fillRect(r() * w, r() * h, s, s); } }
+function getTex(name) {
+  if (TEX[name]) return TEX[name];
+  let t;
+  switch (name) {
+    case 'asphalt': t = canvasTex(64, 64, (g, w, h) => { speckle(g, w, h, '#5d5c61', ['#6b6a70', '#525157', '#77767b', '#4a494e'], 700, 1.6); g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(31, 0, 2, 26); }); break;
+    case 'clay': t = canvasTex(64, 64, (g, w, h) => speckle(g, w, h, '#a8683f', ['#b8774b', '#95583a', '#c28457', '#8b4f31'], 700, 1.8)); break;
+    case 'packed': t = canvasTex(64, 64, (g, w, h) => { speckle(g, w, h, '#98a6b8', ['#a9b6c6', '#8796aa', '#b8c3d1', '#7f8ea3'], 600, 1.8); g.fillStyle = 'rgba(70,80,96,.28)'; g.fillRect(14, 0, 4, 64); g.fillRect(46, 0, 4, 64); }); break;
+    case 'cobble': t = canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#2a2320'; g.fillRect(0, 0, w, h); const r = mulberry(4); for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const v = 70 + r() * 30 | 0; g.fillStyle = `rgb(${v},${v - 8},${v - 14})`; g.fillRect(x * 8 + (y % 2) * 4 + 1, y * 8 + 1, 6, 6); } }); break;
+    case 'tiles': t = canvasTex(64, 64, (g, w, h) => { speckle(g, w, h, '#b9b3a8', ['#c4beb3', '#aca69b'], 300, 1.5); g.fillStyle = '#8e887e'; g.fillRect(0, 0, 64, 2); g.fillRect(0, 0, 2, 64); g.fillRect(0, 32, 64, 1); g.fillRect(32, 0, 1, 64); }); break;
+    case 'ice': t = canvasTex(128, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#bfe0f2'); gr.addColorStop(1, '#8fc2e3'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; const r = mulberry(9); for (let i = 0; i < 26; i++) { g.beginPath(); let x = r() * w, y = r() * h; g.moveTo(x, y); for (let k = 0; k < 3; k++) { x += (r() - .5) * 40; y += (r() - .5) * 40; g.lineTo(x, y); } g.stroke(); } }); break;
+    case 'grass': t = canvasTex(64, 64, (g, w, h) => { speckle(g, w, h, '#4f9a37', ['#5cab3f', '#428a2f', '#66b548', '#3c7f2b'], 900, 1.6); const r = mulberry(3); for (let i = 0; i < 8; i++) { g.fillStyle = ['#fff6c9', '#f6d24a', '#fbe3ef'][i % 3]; g.fillRect(r() * w, r() * h, 2, 2); } }); break;
+    case 'sand': t = canvasTex(64, 64, (g, w, h) => speckle(g, w, h, '#dca660', ['#e6b572', '#cf9852', '#efc387', '#c68c47'], 800, 1.5)); break;
+    case 'snow': t = canvasTex(64, 64, (g, w, h) => speckle(g, w, h, '#eef2f7', ['#ffffff', '#dfe6f0', '#e8edf5', '#d4dcea'], 600, 2)); break;
+    case 'lava': t = canvasTex(128, 128, (g, w, h) => { g.fillStyle = '#e8511a'; g.fillRect(0, 0, w, h); const r = mulberry(21); for (let i = 0; i < 70; i++) { const x = r() * w, y = r() * h, s = 6 + r() * 18; g.fillStyle = r() < .5 ? '#3a120a' : '#7c220e'; g.beginPath(); g.ellipse(x, y, s, s * .6, r() * 3, 0, TAU); g.fill(); } for (let i = 0; i < 90; i++) { g.fillStyle = r() < .5 ? '#ffc23a' : '#ff8a2a'; g.fillRect(r() * w, r() * h, 2 + r() * 3, 2); } }); break;
+    case 'curb': t = canvasTex(8, 16, (g) => { g.fillStyle = '#fff'; g.fillRect(0, 0, 8, 16); g.fillStyle = '#000'; g.fillRect(0, 0, 8, 8); }); t.magFilter = THREE.NearestFilter; break;
+    case 'hedge': t = canvasTex(64, 32, (g, w, h) => { speckle(g, w, h, '#2e6e2a', ['#3a8134', '#245a22', '#46913d', '#1d4a1b'], 500, 3); g.fillStyle = '#6b4a2a'; g.fillRect(0, h - 3, w, 3); }); break;
+    case 'rock': t = canvasTex(64, 64, (g, w, h) => { const cols = ['#b9683a', '#a45a33', '#cf7f4a', '#93502e', '#c47444']; let y = 0; const r = mulberry(8); while (y < h) { const s = 3 + r() * 9; g.fillStyle = cols[Math.floor(r() * cols.length)]; g.fillRect(0, y, w, s + 1); y += s; } g.fillStyle = 'rgba(60,25,10,.25)'; for (let i = 0; i < 90; i++) g.fillRect(r() * w, r() * h, 3, 1); }); break;
+    case 'bank': t = canvasTex(64, 32, (g, w, h) => { speckle(g, w, h, '#f4f7fb', ['#ffffff', '#dde5f0', '#e9eef6'], 300, 3); g.fillStyle = 'rgba(120,150,190,.35)'; g.fillRect(0, h - 5, w, 5); }); break;
+    case 'parapet': t = canvasTex(64, 32, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = '#4b423d'; g.fillRect(0, 10, w, h - 10); g.fillRect(0, 0, 12, 10); g.fillRect(32, 0, 12, 10); g.fillStyle = '#3a322e'; for (let y = 10; y < h; y += 7) g.fillRect(0, y, w, 1); for (let x = 0; x < w; x += 10) g.fillRect(x + ((x / 10) % 2) * 5, 10, 1, h); }); break;
+    case 'container': t = canvasTex(64, 64, (g, w, h) => { const cols = ['#c8432c', '#2d6fb5', '#e1a526', '#3f8f4d']; for (let i = 0; i < 2; i++) { g.fillStyle = cols[i * 2]; g.fillRect(0, i * 32, w, 32); g.fillStyle = 'rgba(0,0,0,.18)'; for (let x = 0; x < w; x += 4) g.fillRect(x, i * 32, 1.5, 32); g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, i * 32 + 30, w, 2); } }); break;
+    case 'crate': t = canvasTex(32, 32, (g, w, h) => { g.fillStyle = '#b07a3e'; g.fillRect(0, 0, w, h); g.fillStyle = '#8c5d2c'; g.fillRect(0, 0, w, 3); g.fillRect(0, h - 3, w, 3); g.fillRect(0, 0, 3, h); g.fillRect(w - 3, 0, 3, h); g.save(); g.translate(16, 16); g.rotate(Math.PI / 4); g.fillRect(-22, -2, 44, 4); g.restore(); }); break;
+    case 'start': t = canvasTex(16, 4, (g) => { for (let x = 0; x < 16; x++) for (let y = 0; y < 4; y++) { g.fillStyle = (x + y) % 2 ? '#15110c' : '#fbf5ea'; g.fillRect(x, y, 1, 1); } }); t.magFilter = THREE.NearestFilter; break;
+    case 'pad': t = canvasTex(32, 64, (g, w, h) => { g.fillStyle = '#f4bf1a'; g.fillRect(0, 0, w, h); g.fillStyle = '#dc3b26'; for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(4, 12 + i * 18); g.lineTo(16, 2 + i * 18); g.lineTo(28, 12 + i * 18); g.lineTo(28, 20 + i * 18); g.lineTo(16, 10 + i * 18); g.lineTo(4, 20 + i * 18); g.fill(); } }, false); break;
+    case 'blob': t = canvasTex(64, 64, (g, w, h) => { const gr = g.createRadialGradient(32, 32, 4, 32, 32, 31); gr.addColorStop(0, 'rgba(0,0,0,.55)'); gr.addColorStop(.6, 'rgba(0,0,0,.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, false); break;
+    case 'dot': t = canvasTex(32, 32, (g) => { const gr = g.createRadialGradient(16, 16, 0, 16, 16, 15); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.45, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); }, false); break;
+    case 'trees': // 樹木圖集：闊葉、松樹、雪松、枯木
+      t = canvasTex(256, 128, (g) => {
+        g.clearRect(0, 0, 256, 128);
+        const blob = (cx, cy, rr, c) => { g.fillStyle = c; g.beginPath(); g.arc(cx, cy, rr, 0, TAU); g.fill(); };
+        g.fillStyle = '#6b4526'; g.fillRect(28, 80, 8, 48);
+        blob(32, 52, 26, '#2f7a2c'); blob(20, 62, 18, '#2a6d28'); blob(44, 60, 19, '#2a6d28'); blob(28, 42, 14, '#4a9b3a'); blob(40, 50, 9, '#5aae45');
+        g.fillStyle = '#5a3a20'; g.fillRect(92, 104, 8, 24);
+        for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? '#1f5a3a' : '#276b45'; g.beginPath(); g.moveTo(96, 6 + i * 22); g.lineTo(96 - 16 - i * 7, 40 + i * 22); g.lineTo(96 + 16 + i * 7, 40 + i * 22); g.fill(); }
+        g.fillStyle = '#5a3a20'; g.fillRect(156, 104, 8, 24);
+        for (let i = 0; i < 4; i++) { g.fillStyle = '#2c5a4a'; g.beginPath(); g.moveTo(160, 6 + i * 22); g.lineTo(160 - 16 - i * 7, 40 + i * 22); g.lineTo(160 + 16 + i * 7, 40 + i * 22); g.fill(); g.fillStyle = '#f4f8fc'; g.beginPath(); g.moveTo(160, 6 + i * 22); g.lineTo(160 - 10 - i * 5, 28 + i * 22); g.lineTo(160 + 10 + i * 5, 28 + i * 22); g.fill(); }
+        g.strokeStyle = '#7a5334'; g.lineCap = 'round'; g.lineWidth = 7; g.beginPath(); g.moveTo(224, 128); g.lineTo(224, 40); g.stroke(); g.lineWidth = 4; g.beginPath(); g.moveTo(224, 80); g.lineTo(206, 56); g.moveTo(224, 66); g.lineTo(242, 44); g.moveTo(224, 50); g.lineTo(212, 30); g.stroke();
+      }, false); break;
+    case 'banner': t = canvasTex(256, 32, (g, w, h) => { g.fillStyle = '#15110c'; g.fillRect(0, 0, w, h); g.fillStyle = '#f4bf1a'; g.font = '900 22px "Arial Black", Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SLIPSTREAM  GP', w / 2, h / 2 + 1); g.fillStyle = '#dc3b26'; g.fillRect(0, 0, w, 3); g.fillRect(0, h - 3, w, 3); }, false); break;
+  }
+  TEX[name] = t; return t;
+}
+function mountainTex(cols, seed, theme) {
+  return canvasTex(1024, 128, (g, w, h) => {
+    g.clearRect(0, 0, w, h); const r = mulberry(seed);
+    for (let layer = 0; layer < 2; layer++) {
+      g.fillStyle = cols[layer]; g.beginPath(); g.moveTo(0, h);
+      const base = layer ? 104 : 80; let y = base;
+      for (let x = 0; x <= w; x += 8) {
+        if (theme === 'canyon' && layer === 0) { if (r() < 0.06) y = base - 20 - r() * 40; else if (r() < 0.08) y = base + 6; }
+        else if (theme === 'cinder' && layer === 0) { y = (Math.floor(x / 64) % 3 === 0) ? (x % 64 < 20 ? 30 : 52) : 92 - (x % 16 < 8 ? 6 : 0); }
+        else y = clamp(y + (r() - 0.5) * (layer ? 10 : 16), layer ? 84 : 36, h - 8);
+        g.lineTo(x, y);
+      }
+      g.lineTo(w, h); g.fill();
+    }
+    if (theme === 'cinder') { g.fillStyle = '#ffb35a'; for (let x = 0; x < w; x += 64) { g.fillRect(x + 8, 40, 3, 5); g.fillRect(x + 14, 60, 3, 5); } }
+  }, true);
+}
+
+// ============================================================
+// 幾何輔助：頂點色小零件合併成一個網格
+// ============================================================
+const _m4 = () => new THREE.Matrix4(), _q = () => new THREE.Quaternion(), _e = () => new THREE.Euler();
+function part(geo, color, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0) {
+  const g = geo.index ? geo.toNonIndexed() : geo.clone();
+  const m = _m4().compose(new THREE.Vector3(x, y, z), _q().setFromEuler(_e().set(rx, ry, rz, 'YXZ')), new THREE.Vector3(sx, sy, sz));
+  g.applyMatrix4(m);
+  const c = new THREE.Color(color); const n = g.attributes.position.count; const col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+  return g;
+}
+function mergeGeos(list) {
+  let n = 0; for (const g of list) n += g.attributes.position.count;
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), uv = new Float32Array(n * 2); let o = 0;
+  for (const g of list) {
+    const c = g.attributes.position.count; pos.set(g.attributes.position.array, o * 3);
+    if (g.attributes.normal) nor.set(g.attributes.normal.array, o * 3);
+    if (g.attributes.color) col.set(g.attributes.color.array, o * 3); else col.fill(1, o * 3, (o + c) * 3);
+    if (g.attributes.uv) uv.set(g.attributes.uv.array, o * 2);
+    o += c; g.dispose();
+  }
+  const m = new THREE.BufferGeometry();
+  m.setAttribute('position', new THREE.BufferAttribute(pos, 3)); m.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  m.setAttribute('color', new THREE.BufferAttribute(col, 3)); m.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  m.computeBoundingSphere(); return m;
+}
+let G_ = null; // 常用基本形狀（低面數，保留 64 位元時代的稜角）
+function prims() {
+  if (G_) return G_;
+  G_ = {
+    box: new THREE.BoxGeometry(1, 1, 1), sph: new THREE.SphereGeometry(0.5, 8, 6), sphHi: new THREE.SphereGeometry(0.5, 10, 8),
+    cyl: new THREE.CylinderGeometry(0.5, 0.5, 1, 8), cyl6: new THREE.CylinderGeometry(0.5, 0.5, 1, 6), cone: new THREE.ConeGeometry(0.5, 1, 6), cone4: new THREE.ConeGeometry(0.5, 1, 4),
+    wheel: new THREE.CylinderGeometry(0.5, 0.5, 1, 10), torus: new THREE.TorusGeometry(0.5, 0.12, 4, 10), oct: new THREE.OctahedronGeometry(0.5, 0), ico: new THREE.IcosahedronGeometry(0.5, 0)
+  };
+  return G_;
+}
+
+// ============================================================
+// 卡丁車與車手模型
+// ============================================================
+function shade(hex, k) { const c = new THREE.Color(hex); const h = {}; c.getHSL(h); c.setHSL(h.h, h.s, clamp(h.l * k, 0, 1)); return c; }
+function driverHead(id, P, parts) {
+  const hx = 0, hy = 1.72, hz = -0.12;
+  const eye = (x, y, z, s = 0.13) => { parts.push(P.sph, '#fbfbf8', x, y, z, s, s, s); parts.push(P.sph, '#15110c', x, y, z + s * 0.35, s * 0.55, s * 0.55, s * 0.55); };
+  switch (id) {
+    case 'kiko':
+      parts.push(P.sph, '#e8702a', hx, hy, hz, 0.9, 0.82, 0.86);
+      parts.push(P.cone4, '#e8702a', -0.28, hy + 0.5, hz - 0.05, 0.3, 0.42, 0.18, 0, 0, 0.25); parts.push(P.cone4, '#e8702a', 0.28, hy + 0.5, hz - 0.05, 0.3, 0.42, 0.18, 0, 0, -0.25);
+      parts.push(P.cone4, '#15110c', -0.3, hy + 0.66, hz - 0.05, 0.12, 0.14, 0.08, 0, 0, 0.25); parts.push(P.cone4, '#15110c', 0.3, hy + 0.66, hz - 0.05, 0.12, 0.14, 0.08, 0, 0, -0.25);
+      parts.push(P.cone, '#fff1dc', hx, hy - 0.1, hz + 0.48, 0.36, 0.42, 0.3, Math.PI / 2); parts.push(P.sph, '#15110c', hx, hy - 0.1, hz + 0.7, 0.1, 0.1, 0.1);
+      eye(-0.17, hy + 0.1, hz + 0.34); eye(0.17, hy + 0.1, hz + 0.34); break;
+    case 'pip':
+      parts.push(P.sph, '#62b83f', hx, hy - 0.05, hz, 1.0, 0.66, 0.84);
+      parts.push(P.sph, '#62b83f', -0.26, hy + 0.3, hz + 0.1, 0.34, 0.34, 0.34); parts.push(P.sph, '#62b83f', 0.26, hy + 0.3, hz + 0.1, 0.34, 0.34, 0.34);
+      eye(-0.26, hy + 0.36, hz + 0.2, 0.2); eye(0.26, hy + 0.36, hz + 0.2, 0.2);
+      parts.push(P.box, '#c43a3a', hx, hy - 0.2, hz + 0.4, 0.44, 0.04, 0.06); parts.push(P.sph, '#f6e27a', hx, hy - 0.26, hz + 0.18, 0.7, 0.3, 0.6); break;
+    case 'nori':
+      parts.push(P.sph, '#1b1f2a', hx, hy, hz, 0.86, 0.9, 0.86); parts.push(P.sph, '#f2f2ee', hx, hy - 0.06, hz + 0.16, 0.66, 0.66, 0.6);
+      parts.push(P.cone, '#f0a21e', hx, hy - 0.06, hz + 0.52, 0.2, 0.3, 0.14, Math.PI / 2);
+      eye(-0.15, hy + 0.1, hz + 0.4, 0.1); eye(0.15, hy + 0.1, hz + 0.4, 0.1);
+      parts.push(P.box, '#1f9aa8', hx, hy + 0.42, hz, 0.9, 0.12, 0.9); parts.push(P.sph, '#fbfbf8', hx, hy + 0.56, hz, 0.2, 0.2, 0.2); break;
+    case 'cog':
+      parts.push(P.box, '#9aa9b8', hx, hy, hz, 0.8, 0.66, 0.72); parts.push(P.box, '#15110c', hx, hy + 0.04, hz + 0.37, 0.64, 0.2, 0.04);
+      parts.push(P.box, '#4de0e0', -0.16, hy + 0.04, hz + 0.39, 0.12, 0.1, 0.03); parts.push(P.box, '#4de0e0', 0.16, hy + 0.04, hz + 0.39, 0.12, 0.1, 0.03);
+      parts.push(P.cyl6, '#5a6672', hx, hy + 0.48, hz, 0.05, 0.36, 0.05); parts.push(P.sph, '#dc3b26', hx, hy + 0.7, hz, 0.16, 0.16, 0.16);
+      parts.push(P.cyl6, '#5a6672', -0.44, hy, hz, 0.2, 0.12, 0.2, 0, 0, Math.PI / 2); parts.push(P.cyl6, '#5a6672', 0.44, hy, hz, 0.2, 0.12, 0.2, 0, 0, Math.PI / 2); break;
+    case 'bao':
+      parts.push(P.sph, '#f7f5f0', hx, hy, hz, 0.94, 0.84, 0.86);
+      parts.push(P.sph, '#1b1b1b', -0.34, hy + 0.36, hz - 0.04, 0.28, 0.28, 0.2); parts.push(P.sph, '#1b1b1b', 0.34, hy + 0.36, hz - 0.04, 0.28, 0.28, 0.2);
+      parts.push(P.sph, '#1b1b1b', -0.18, hy + 0.06, hz + 0.32, 0.24, 0.3, 0.14, 0, 0, 0.5); parts.push(P.sph, '#1b1b1b', 0.18, hy + 0.06, hz + 0.32, 0.24, 0.3, 0.14, 0, 0, -0.5);
+      parts.push(P.sph, '#fbfbf8', -0.17, hy + 0.08, hz + 0.38, 0.08, 0.08, 0.08); parts.push(P.sph, '#fbfbf8', 0.17, hy + 0.08, hz + 0.38, 0.08, 0.08, 0.08);
+      parts.push(P.sph, '#1b1b1b', hx, hy - 0.14, hz + 0.42, 0.14, 0.09, 0.08); break;
+    case 'tora':
+      parts.push(P.sph, '#f39a2b', hx, hy, hz, 0.92, 0.82, 0.86);
+      parts.push(P.sph, '#f39a2b', -0.32, hy + 0.36, hz - 0.04, 0.24, 0.24, 0.14); parts.push(P.sph, '#f39a2b', 0.32, hy + 0.36, hz - 0.04, 0.24, 0.24, 0.14);
+      for (let i = -1; i <= 1; i++) parts.push(P.box, '#1b1b1b', i * 0.14, hy + 0.36, hz + 0.06 + Math.abs(i) * -0.04, 0.06, 0.1, 0.32);
+      parts.push(P.box, '#1b1b1b', -0.46, hy, hz, 0.04, 0.08, 0.3); parts.push(P.box, '#1b1b1b', 0.46, hy, hz, 0.04, 0.08, 0.3);
+      parts.push(P.sph, '#fff1dc', hx, hy - 0.14, hz + 0.34, 0.5, 0.34, 0.3); parts.push(P.sph, '#e0467c', hx, hy - 0.06, hz + 0.47, 0.1, 0.08, 0.08);
+      eye(-0.17, hy + 0.12, hz + 0.34, 0.11); eye(0.17, hy + 0.12, hz + 0.34, 0.11); break;
+    case 'gronk':
+      parts.push(P.box, '#3f8f63', hx, hy, hz, 0.72, 0.62, 0.74); parts.push(P.box, '#3f8f63', hx, hy - 0.08, hz + 0.5, 0.62, 0.4, 0.5);
+      parts.push(P.box, '#fbfbf8', hx, hy - 0.22, hz + 0.72, 0.5, 0.06, 0.06);
+      for (let i = 0; i < 3; i++) parts.push(P.cone4, '#f2c230', hx, hy + 0.38 - i * 0.12, hz - 0.2 - i * 0.2, 0.16, 0.28, 0.16, -0.5);
+      eye(-0.24, hy + 0.16, hz + 0.26, 0.12); eye(0.24, hy + 0.16, hz + 0.26, 0.12); break;
+    case 'brick':
+      parts.push(P.sph, '#d8b48a', hx, hy - 0.04, hz, 1.02, 0.78, 0.84); parts.push(P.box, '#d8b48a', hx, hy - 0.2, hz + 0.34, 0.7, 0.34, 0.3);
+      parts.push(P.box, '#7a5234', -0.46, hy + 0.12, hz, 0.14, 0.34, 0.24, 0, 0, -0.4); parts.push(P.box, '#7a5234', 0.46, hy + 0.12, hz, 0.14, 0.34, 0.24, 0, 0, 0.4);
+      parts.push(P.box, '#fbfbf8', -0.18, hy - 0.26, hz + 0.5, 0.08, 0.1, 0.05); parts.push(P.box, '#fbfbf8', 0.18, hy - 0.26, hz + 0.5, 0.08, 0.1, 0.05);
+      parts.push(P.sph, '#15110c', hx, hy - 0.06, hz + 0.5, 0.2, 0.12, 0.1);
+      eye(-0.2, hy + 0.14, hz + 0.34, 0.1); eye(0.2, hy + 0.14, hz + 0.34, 0.1);
+      parts.push(P.box, '#dc3b26', hx, hy - 0.42, hz + 0.1, 0.8, 0.1, 0.7); break;
+  }
+}
+function buildKart(ch) {
+  const P = prims(); const list = [];
+  const push = (geo, col, ...a) => list.push(part(geo, col, ...a));
+  const K = ch.kart, dark = shade(K, 0.62), light = shade(K, 1.18);
+  push(P.box, K, 0, 0.38, 0.05, 1.45, 0.28, 2.3);
+  push(P.box, light, 0, 0.5, 1.12, 1.0, 0.2, 0.7, -0.22);
+  push(P.box, '#1d1a17', 0, 0.3, 1.58, 1.8, 0.18, 0.26);
+  push(P.box, dark, -0.84, 0.46, 0.12, 0.3, 0.34, 1.35); push(P.box, dark, 0.84, 0.46, 0.12, 0.3, 0.34, 1.35);
+  push(P.box, '#2a2622', 0, 0.9, -0.62, 0.92, 0.72, 0.2, 0.12);
+  push(P.box, '#6f6a64', 0, 0.66, -1.08, 0.92, 0.44, 0.56);
+  push(P.cyl, '#cfd4d8', -0.28, 0.66, -1.44, 0.18, 0.5, 0.18, Math.PI / 2); push(P.cyl, '#cfd4d8', 0.28, 0.66, -1.44, 0.18, 0.5, 0.18, Math.PI / 2);
+  push(P.box, K, 0, 1.02, -1.3, 1.5, 0.08, 0.34); push(P.box, '#2a2622', -0.56, 0.84, -1.3, 0.08, 0.34, 0.2); push(P.box, '#2a2622', 0.56, 0.84, -1.3, 0.08, 0.34, 0.2);
+  push(P.cyl6, '#2a2622', 0, 0.78, 0.62, 0.08, 0.5, 0.08, -0.9);
+  push(P.torus, '#2a2622', 0, 0.98, 0.5, 0.5, 0.5, 0.5, -0.7);
+  // 車手身體
+  push(P.box, ch.suit, 0, 1.06, -0.22, 0.78, 0.62, 0.56);
+  push(P.box, ch.suit, -0.34, 1.04, 0.18, 0.18, 0.18, 0.5, 0.3); push(P.box, ch.suit, 0.34, 1.04, 0.18, 0.18, 0.18, 0.5, 0.3);
+  push(P.sph, '#fbfbf8', -0.2, 0.98, 0.44, 0.2, 0.2, 0.2); push(P.sph, '#fbfbf8', 0.2, 0.98, 0.44, 0.2, 0.2, 0.2);
+  const hp = []; driverHead(ch.id, P, { push: (geo, col, ...a) => hp.push([geo, col, a]) });
+  for (const [geo, col, a] of hp) push(geo, col, ...a);
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const body = new THREE.Mesh(mergeGeos(list), mat);
+  const root = new THREE.Group(); const tilt = new THREE.Group(); root.add(tilt); tilt.add(body);
+  root.rotation.order = 'YXZ';
+  const wg = mergeGeos([part(P.wheel, '#1d1a17', 0, 0, 0, 1, 1, 1, 0, 0, Math.PI / 2), part(P.cyl6, '#d9d4c8', 0.02, 0, 0, 0.5, 1.04, 0.5, 0, 0, Math.PI / 2), part(P.box, '#2f2a25', 0.02, 0, 0, 1.06, 0.12, 0.7)]);
+  const wmat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const wheels = [];
+  [[-0.9, 0.4, 1.0, 0.8, 0.36, 1], [0.9, 0.4, 1.0, 0.8, 0.36, 1], [-0.95, 0.46, -0.95, 0.92, 0.44, 0], [0.95, 0.46, -0.95, 0.92, 0.44, 0]].forEach(([x, y, z, d, w, front]) => {
+    const piv = new THREE.Group(); piv.position.set(x, y, z); const m = new THREE.Mesh(wg, wmat); m.scale.set(w, d, d); piv.add(m); tilt.add(piv); wheels.push({ piv, m, front, r: d / 2 });
+  });
+  // 加速火焰
+  const flame = new THREE.Group(); const fm = new THREE.MeshBasicMaterial({ color: 0xffb13a }), fm2 = new THREE.MeshBasicMaterial({ color: 0xfff3b0 });
+  [-0.28, 0.28].forEach(x => { const c = new THREE.Mesh(P.cone, fm); c.scale.set(0.34, 1.2, 0.34); c.rotation.x = -Math.PI / 2; c.position.set(x, 0.66, -2.2); flame.add(c); const c2 = new THREE.Mesh(P.cone, fm2); c2.scale.set(0.18, 0.7, 0.18); c2.rotation.x = -Math.PI / 2; c2.position.set(x, 0.66, -1.95); flame.add(c2); });
+  flame.visible = false; tilt.add(flame);
+  return { root, tilt, body, mat, wheels, flame };
+}
+function balloonGroup(color) {
+  const P = prims(); const g = new THREE.Group(); const mat = new THREE.MeshLambertMaterial({ color, flatShading: true }); const sm = new THREE.MeshBasicMaterial({ color: 0x3a3028 });
+  const list = [];
+  [[-0.5, 3.3, -1.3], [0, 3.7, -1.5], [0.5, 3.3, -1.3]].forEach(([x, y, z], i) => {
+    const b = new THREE.Group(); const s = new THREE.Mesh(P.sphHi, mat); s.scale.set(0.9, 1.08, 0.9); b.add(s);
+    const str = new THREE.Mesh(P.cyl6, sm); str.scale.set(0.03, y - 1, 0.03); str.position.y = -(y - 1) / 2 - 0.5; b.add(str);
+    b.position.set(x, y, z); b.userData.phase = i * 1.7; g.add(b); list.push(b);
+  });
+  return { g, list };
+}
+
+// ============================================================
+// 賽道：Catmull-Rom 取樣 → 路面、路肩、護牆、坡面與裝飾
+// ============================================================
+const Z_ICE = 1, Z_LAVA = 2, Z_GAP = 4, Z_RAMP = 8;
+const STEP = 2;
+function crPoint(p0, p1, p2, p3, t) { const t2 = t * t, t3 = t2 * t; return p1.map((_, i) => 0.5 * ((2 * p1[i]) + (-p0[i] + p2[i]) * t + (2 * p0[i] - 5 * p1[i] + 4 * p2[i] - p3[i]) * t2 + (-p0[i] + 3 * p1[i] - 3 * p2[i] + p3[i]) * t3)); }
+function sampleTrack(def) {
+  const P = def.pts.map(p => [p[0] * def.s, p[1] * def.s, p[2]]); const n = P.length; const dense = [];
+  for (let i = 0; i < n; i++) for (let k = 0; k < 40; k++) { const q = crPoint(P[(i - 1 + n) % n], P[i], P[(i + 1) % n], P[(i + 2) % n], k / 40); q.push(i + k / 40); dense.push(q); }
+  const cum = [0]; for (let i = 1; i <= dense.length; i++) { const a = dense[i - 1], b = dense[i % dense.length]; cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1])); }
+  const L = cum[cum.length - 1]; const N = Math.round(L / STEP); const out = []; let j = 0;
+  for (let s = 0; s < N; s++) { const d = s * L / N; while (cum[j + 1] < d) j++; const f = (d - cum[j]) / (cum[j + 1] - cum[j]); const a = dense[j], b = dense[(j + 1) % dense.length]; const q = a.map((v, i) => v + (b[i] - v) * f); if (j + 1 === dense.length) q[3] = a[3] + (n - a[3]) * f; out.push(q); }
+  return { L, out, N };
+}
+function inZone(p, a, b) { return p >= a && p < b; }
+
+function buildRace(def) {
+  const th = THEMES[def.theme]; const { L, out, N } = sampleTrack(def);
+  const T = { kind: 'race', def, th, N, L, step: L / N,
+    px: new Float32Array(N), pz: new Float32Array(N), py: new Float32Array(N), tx: new Float32Array(N), tz: new Float32Array(N), nx: new Float32Array(N), nz: new Float32Array(N),
+    w: new Float32Array(N), wall: new Float32Array(N), z: new Uint8Array(N), par: new Float32Array(N), colliders: [], boxes: [], pads: [], group: new THREE.Group(), anim: [] };
+  for (let i = 0; i < N; i++) { T.px[i] = out[i][0]; T.pz[i] = out[i][1]; T.py[i] = out[i][2]; T.par[i] = out[i][3]; }
+  for (let i = 0; i < N; i++) {
+    const a = (i - 1 + N) % N, b = (i + 1) % N; let tx = T.px[b] - T.px[a], tz = T.pz[b] - T.pz[a]; const l = Math.hypot(tx, tz); tx /= l; tz /= l;
+    T.tx[i] = tx; T.tz[i] = tz; T.nx[i] = -tz; T.nz[i] = tx; // n = 車頭朝 t 時的右手邊
+    let zf = 0; for (const [za, zb, zt] of def.zones) if (inZone(T.par[i], za, zb)) zf |= { ice: Z_ICE, lava: Z_LAVA, gap: Z_GAP, ramp: Z_RAMP }[zt];
+    T.z[i] = zf; T.w[i] = def.w; T.wall[i] = (zf & (Z_LAVA | Z_GAP)) ? 60 : def.w + 1.3 + def.m;
+  }
+  const idxOf = p => { let best = 0, bd = 1e9; for (let i = 0; i < N; i++) { const d = Math.abs(T.par[i] - p); if (d < bd) { bd = d; best = i; } } return best; };
+  T.lavaY = th.lavaY ?? -60;
+  buildRaceMesh(T);
+  // 加速板
+  for (const [p, off] of def.pads) { const i = idxOf(p); T.pads.push({ i, off: off * def.w }); }
+  const padGeo = []; for (const pd of T.pads) padGeo.push(quadOnTrack(T, pd.i, pd.off - 2.2, pd.off + 2.2, 5, 0.06));
+  if (padGeo.length) { const m = new THREE.Mesh(mergeGeos(padGeo), new THREE.MeshBasicMaterial({ map: getTex('pad'), vertexColors: true })); T.group.add(m); }
+  // 跳台
+  const rampIdx = []; for (let i = 0; i < N; i++) if (T.z[i] & Z_RAMP) rampIdx.push(i);
+  if (rampIdx.length) {
+    const i0 = rampIdx[0], i1 = rampIdx[rampIdx.length - 1]; const pos = []; const c = new THREE.Color('#e8a23c'), c2 = new THREE.Color('#c0391f');
+    const W = def.w + 1; const cols = [];
+    for (let i = i0; i < i1; i++) {
+      const j = i + 1; const h0 = (i - i0) / (i1 - i0 + 1) * 1.6, h1 = (j - i0) / (i1 - i0 + 1) * 1.6;
+      const A = [T.px[i] - T.nx[i] * W, T.py[i] + h0 + 0.05, T.pz[i] - T.nz[i] * W], B = [T.px[i] + T.nx[i] * W, T.py[i] + h0 + 0.05, T.pz[i] + T.nz[i] * W];
+      const C = [T.px[j] - T.nx[j] * W, T.py[j] + h1 + 0.05, T.pz[j] - T.nz[j] * W], D = [T.px[j] + T.nx[j] * W, T.py[j] + h1 + 0.05, T.pz[j] + T.nz[j] * W];
+      pos.push(...A, ...C, ...B, ...B, ...C, ...D); const cc = (i % 2) ? c : c2; for (let k = 0; k < 6; k++) cols.push(cc.r, cc.g, cc.b);
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); g.computeVertexNormals();
+    T.group.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide })));
+    T.rampH = new Float32Array(N); for (let i = i0; i <= i1; i++) T.rampH[i] = (i - i0) / (i1 - i0 + 1) * 1.6;
+  }
+  // 道具箱
+  for (const p of def.items) { const i = idxOf(p); const k = def.w > 8.5 ? 5 : 4; for (let q = 0; q < k; q++) { const off = (q / (k - 1) - 0.5) * def.w * 1.3; T.boxes.push({ x: T.px[i] + T.nx[i] * off, z: T.pz[i] + T.nz[i] * off, y: T.py[i] + 1.3, i, on: true, t: 0 }); } }
+  buildStartGate(T);
+  buildDecor(T);
+  return T;
+}
+// 在賽道上某取樣點鋪一塊平的四邊形（加速板、起跑線）
+function quadOnTrack(T, i, o0, o1, len, lift) {
+  const tx = T.tx[i], tz = T.tz[i], nx = T.nx[i], nz = T.nz[i], x = T.px[i], z = T.pz[i], y = T.py[i] + lift;
+  const p = (o, f) => [x + nx * o + tx * f, y, z + nz * o + tz * f];
+  const A = p(o0, -len / 2), B = p(o1, -len / 2), C = p(o0, len / 2), D = p(o1, len / 2);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([...A, ...B, ...C, ...B, ...D, ...C], 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1], 2));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(new Array(18).fill(1), 3));
+  return g;
+}
+function buildRaceMesh(T) {
+  const th = T.th, N = T.N; const def = T.def;
+  const S = { road: [], curb: [], off: [], wall: [], cap: [], skirt: [], cliff: [] };
+  const cum = new Float32Array(N + 1); for (let i = 1; i <= N; i++) { const a = i - 1, b = i % N; cum[i] = cum[i - 1] + Math.hypot(T.px[b] - T.px[a], T.pz[b] - T.pz[a]); }
+  const P = (i, o, dy = 0) => [T.px[i] + T.nx[i] * o, T.py[i] + dy, T.pz[i] + T.nz[i] * o];
+  const iceC = new THREE.Color('#dff4ff'), whiteC = new THREE.Color('#ffffff');
+  // 在 i→i+1 之間鋪一條帶狀四邊形；o 為橫向偏移（右正），支援兩側高度
+  function band(arr, i, oA, oB, dyA, dyB, uA, uB, vScale, col, swap) {
+    const j = (i + 1) % N; const v0 = cum[i] / vScale, v1 = cum[i + 1] / vScale;
+    const a0 = P(i, oA, dyA), b0 = P(i, oB, dyB), a1 = P(j, oA, dyA), b1 = P(j, oB, dyB);
+    // 讓正面朝上／朝內：依 oA<oB 決定繞序
+    const uv = [[uA, v0], [uA, v1], [uB, v0], [uB, v0], [uA, v1], [uB, v1]];
+    arr.push({ v: [a0, a1, b0, b0, a1, b1], uv: swap ? uv.map(([a, b]) => [b, a]) : uv, c: col || whiteC });
+  }
+  for (let i = 0; i < N; i++) {
+    const j = (i + 1) % N; const zf = T.z[i] | T.z[j];
+    if (zf & Z_GAP) continue;
+    const w = T.w[i], cw = w + 1.3, wl = T.wall[i];
+    const col = (zf & Z_ICE) ? iceC : whiteC;
+    band(S.road, i, w, -w, 0, 0, 0, 1, 16, col);
+    band(S.curb, i, cw, w, 0.01, 0.01, 0, 1, 4); band(S.curb, i, -w, -cw, 0.01, 0.01, 0, 1, 4);
+    if (zf & Z_LAVA) {
+      // 熔岩橋：路肩外直接是斷崖
+      band(S.cliff, i, cw, cw, 0, T.lavaY - T.py[i] - 2, 1, 0, 8, null, true); band(S.cliff, i, -cw, -cw, T.lavaY - T.py[i] - 2, 0, 0, 1, 8, null, true);
+      continue;
+    }
+    band(S.off, i, wl, cw, 0, 0, 0, (wl - cw) / 8, 8); band(S.off, i, -cw, -wl, 0, 0, 0, (wl - cw) / 8, 8);
+    const H = th.wallH;
+    band(S.wall, i, wl, wl, H, 0, 1, 0, 8, null, true); band(S.wall, i, -wl, -wl, 0, H, 0, 1, 8, null, true);
+    band(S.cap, i, wl + 0.8, wl, H, H, 0.05, 0.1, 8); band(S.cap, i, -wl, -wl - 0.8, H, H, 0.05, 0.1, 8);
+    band(S.wall, i, wl + 0.8, wl + 0.8, 0, H, 0, 1, 8, null, true); band(S.wall, i, -wl - 0.8, -wl - 0.8, H, 0, 1, 0, 8, null, true);
+    if (def.theme === 'cinder') {
+      band(S.off, i, wl + th.skirt, wl + 0.8, 0, 0, 0, 1, 8); band(S.off, i, -wl - 0.8, -wl - th.skirt, 0, 0, 0, 1, 8);
+      band(S.cliff, i, wl + th.skirt, wl + th.skirt, 0, T.lavaY - T.py[i] - 2, 1, 0, 8, null, true); band(S.cliff, i, -wl - th.skirt, -wl - th.skirt, T.lavaY - T.py[i] - 2, 0, 0, 1, 8, null, true);
+    } else {
+      const g0 = -T.py[i] - 0.3; // 坡面落到地面 y≈0
+      band(S.skirt, i, wl + th.skirt, wl + 0.8, g0, 0, 0, th.skirt / 8, 8); band(S.skirt, i, -wl - 0.8, -wl - th.skirt, 0, g0, 0, th.skirt / 8, 8);
+    }
+  }
+  const mk = (arr, mat) => {
+    if (!arr.length) return; const pos = [], uv = [], col = [];
+    for (const q of arr) { for (const v of q.v) pos.push(...v); for (const u of q.uv) uv.push(...u); for (let k = 0; k < 6; k++) col.push(q.c.r, q.c.g, q.c.b); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, mat); T.group.add(m); return m;
+  };
+  const lam = (map, extra = {}) => new THREE.MeshLambertMaterial(Object.assign({ map, vertexColors: true }, extra));
+  mk(S.road, lam(getTex(th.road)));
+  mk(S.curb, curbMaterial(th.curb));
+  mk(S.off, lam(getTex(th.ground === 'lava' ? 'cobble' : th.ground)));
+  mk(S.wall, lam(getTex(th.wall), { side: THREE.DoubleSide, alphaTest: 0.5 }));
+  mk(S.cap, lam(getTex(th.wall), { side: THREE.DoubleSide }));
+  mk(S.skirt, lam(getTex(th.ground)));
+  mk(S.cliff, lam(getTex(th.ground === 'lava' ? 'parapet' : 'rock'), { side: THREE.DoubleSide }));
+  // 地面
+  if (th.ground === 'lava') {
+    const t = getTex('lava'); t.repeat.set(40, 40);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshBasicMaterial({ map: t, color: 0xffffff }));
+    m.rotation.x = -Math.PI / 2; m.position.y = T.lavaY; T.group.add(m); T.anim.push(dt => { t.offset.x += dt * 0.006; t.offset.y += dt * 0.004; });
+  } else {
+    const t = getTex(th.ground).clone(); t.needsUpdate = true; t.repeat.set(3000 / 8, 3000 / 8);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshLambertMaterial({ map: t }));
+    m.rotation.x = -Math.PI / 2; m.position.y = -0.35; T.group.add(m);
+  }
+  // 峽谷河：飛越段下方
+  const gi = []; for (let i = 0; i < N; i++) if (T.z[i] & Z_GAP) gi.push(i);
+  if (gi.length) {
+    const i = gi[Math.floor(gi.length / 2)]; const river = new THREE.Mesh(new THREE.PlaneGeometry(18, 500), new THREE.MeshLambertMaterial({ color: 0x3f8fc4 }));
+    river.rotation.x = -Math.PI / 2; river.rotation.z = Math.atan2(T.tx[i], T.tz[i]); river.position.set(T.px[i], -0.2, T.pz[i]); T.group.add(river);
+    const bank = new THREE.Mesh(new THREE.PlaneGeometry(40, 500), new THREE.MeshLambertMaterial({ color: 0x8e5a34 }));
+    bank.rotation.copy(river.rotation); bank.position.set(T.px[i], -0.28, T.pz[i]); T.group.add(bank);
+    T.gapIdx = gi;
+  }
+}
+function curbMaterial(cols) {
+  const t = canvasTex(8, 16, g => { g.fillStyle = cols[1]; g.fillRect(0, 0, 8, 16); g.fillStyle = cols[0]; g.fillRect(0, 0, 8, 8); });
+  t.magFilter = THREE.NearestFilter; return new THREE.MeshLambertMaterial({ map: t });
+}
+function buildStartGate(T) {
+  const P = prims(); const i = 0; const w = T.w[i] + 2.4; const list = [];
+  const x = T.px[i], z = T.pz[i], y = T.py[i]; const ry = Math.atan2(T.tx[i], T.tz[i]);
+  const L = new THREE.Vector3(-T.nx[i] * w, 0, -T.nz[i] * w), R = new THREE.Vector3(T.nx[i] * w, 0, T.nz[i] * w);
+  list.push(part(P.box, '#15110c', x + L.x, y + 3.6, z + L.z, 0.7, 7.2, 0.7, 0, ry)); list.push(part(P.box, '#15110c', x + R.x, y + 3.6, z + R.z, 0.7, 7.2, 0.7, 0, ry));
+  list.push(part(P.box, '#f4bf1a', x + L.x, y + 7.4, z + L.z, 1, 0.4, 1, 0, ry)); list.push(part(P.box, '#f4bf1a', x + R.x, y + 7.4, z + R.z, 1, 0.4, 1, 0, ry));
+  T.group.add(new THREE.Mesh(mergeGeos(list), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+  const ban = new THREE.Mesh(new THREE.BoxGeometry(w * 2, 1.8, 0.3), [0, 0, 0, 0, 1, 1].map(k => k ? new THREE.MeshBasicMaterial({ map: getTex('banner') }) : new THREE.MeshLambertMaterial({ color: 0x15110c })));
+  ban.position.set(x, y + 6.2, z); ban.rotation.y = ry; T.group.add(ban);
+  const line = new THREE.Mesh(quadOnTrack(T, 0, -T.w[0], T.w[0], 2.2, 0.03), new THREE.MeshBasicMaterial({ map: getTex('start') }));
+  getTex('start').repeat.set(1, 1); T.group.add(line);
+}
+
+// 與整條賽道的最近距離（裝飾物不能長在路上）
+function distToTrack(T, x, z) { let bd = 1e9; for (let i = 0; i < T.N; i += 2) { const dx = x - T.px[i], dz = z - T.pz[i]; const d = dx * dx + dz * dz; if (d < bd) bd = d; } return Math.sqrt(bd); }
+function nearestIdx(T, x, z) { let bd = 1e18, bi = 0; for (let i = 0; i < T.N; i++) { const dx = x - T.px[i], dz = z - T.pz[i]; const d = dx * dx + dz * dz; if (d < bd) { bd = d; bi = i; } } return bi; }
+
+function buildDecor(T) {
+  const th = T.th, def = T.def, P = prims(); const r = mulberry(def.id.length * 977 + 13);
+  const solid = [], cross = [];
+  const tree = (x, y, z, s, v) => { // 交叉面片樹，v = 圖集第幾格
+    const u0 = v * 0.25, u1 = u0 + 0.25;
+    for (let k = 0; k < 2; k++) {
+      const a = k * Math.PI / 2 + r(); const cx = Math.cos(a) * s * 0.5, cz = Math.sin(a) * s * 0.5; const h = s * 1.0;
+      const pos = [x - cx, y, z - cz, x + cx, y, z + cz, x - cx, y + h, z - cz, x + cx, y, z + cz, x + cx, y + h, z + cz, x - cx, y + h, z - cz];
+      cross.push({ pos, uv: [u0, 0, u1, 0, u0, 1, u1, 0, u1, 1, u0, 1] });
+    }
+  };
+  const groundAt = (x, z) => { const i = nearestIdx(T, x, z); return Math.max(0, T.py[i] - Math.max(0, distToTrack(T, x, z) - T.wall[i]) / (th.skirt || 40) * T.py[i]) - 0.3; };
+  const placeOut = (minD, maxD) => { for (let tries = 0; tries < 20; tries++) { const i = Math.floor(r() * T.N); const side = r() < 0.5 ? -1 : 1; const d = T.wall[i] + minD + r() * (maxD - minD); const x = T.px[i] + T.nx[i] * d * side, z = T.pz[i] + T.nz[i] * d * side; if (distToTrack(T, x, z) > def.w + def.m + minD - 1) return [x, z]; } return null; };
+  const obstacle = (i, side, fn, rad) => { const d = (T.w[i] + 1.3 + def.m * 0.55) * side; const x = T.px[i] + T.nx[i] * d, z = T.pz[i] + T.nz[i] * d; fn(x, T.py[i], z); T.colliders.push({ x, z, r: rad }); };
+  if (th.deco === 'clover') {
+    for (let k = 0; k < 170; k++) { const p = placeOut(3, 70); if (p) tree(p[0], groundAt(p[0], p[1]), p[1], 7 + r() * 5, 0); }
+    for (let k = 0; k < 10; k++) { const i = Math.floor(r() * T.N); obstacle(i, r() < .5 ? -1 : 1, (x, y, z) => { solid.push(part(P.cyl, '#e6c35a', x, y + 0.9, z, 2.2, 1.8, 2.2, 0, 0, Math.PI / 2 * 0)); solid.push(part(P.cyl, '#caa543', x, y + 1.82, z, 2.0, 0.06, 2.0)); }, 1.3); }
+    for (let k = 0; k < 4; k++) { const p = placeOut(30, 90); if (!p) continue; const y = groundAt(p[0], p[1]); const ry = r() * TAU; // 穀倉
+      solid.push(part(P.box, '#b33a2a', p[0], y + 4, p[1], 12, 8, 9, 0, ry)); solid.push(part(P.cone4, '#5a3a2a', p[0], y + 10, p[1], 13, 4, 11, 0, ry + Math.PI / 4)); solid.push(part(P.box, '#fbf5ea', p[0], y + 3, p[1], 4.2, 6.2, 9.2, 0, ry)); }
+    const p = placeOut(40, 60); if (p) { const y = groundAt(p[0], p[1]); solid.push(part(P.cyl6, '#fbf5ea', p[0], y + 9, p[1], 5, 18, 5)); solid.push(part(P.cone, '#b33a2a', p[0], y + 20, p[1], 6.5, 4, 6.5));
+      const blades = new THREE.Group(); const bm = new THREE.MeshLambertMaterial({ color: 0xfbf5ea, flatShading: true }); for (let b = 0; b < 4; b++) { const s = new THREE.Mesh(P.box, bm); s.scale.set(1.6, 9, 0.2); s.position.y = 4.5; const h = new THREE.Group(); h.rotation.z = b * Math.PI / 2; h.add(s); blades.add(h); }
+      blades.position.set(p[0], y + 16, p[1]); blades.rotation.y = Math.atan2(-p[0], -p[1]); const hub = new THREE.Group(); hub.position.copy(blades.position); hub.rotation.y = blades.rotation.y; blades.position.set(0, 0, 2.8); blades.rotation.y = 0; hub.add(blades); T.group.add(hub); T.anim.push(dt => { blades.rotation.z += dt * 0.9; }); }
+    const clouds = []; for (let k = 0; k < 16; k++) { const a = r() * TAU, d = 520 + r() * 320, y = 120 + r() * 90; const cx = Math.cos(a) * d, cz = Math.sin(a) * d; const s = 40 + r() * 30;
+      for (let q = 0; q < 4; q++) clouds.push(part(P.ico, '#ffffff', cx + (q - 1.5) * s * 0.7 * Math.sin(a), y + (q % 2) * s * 0.18, cz - (q - 1.5) * s * 0.7 * Math.cos(a), s * (q === 1 || q === 2 ? 1.2 : 0.8), s * 0.42, s * 0.8, 0, r())); }
+    T.group.add(new THREE.Mesh(mergeGeos(clouds), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, fog: false, emissive: 0x9aa6b8 })));
+  } else if (th.deco === 'canyon') {
+    for (let k = 0; k < 60; k++) { const p = placeOut(3, 60); if (!p) continue; const y = groundAt(p[0], p[1]); const h = 4 + r() * 4; // 仙人掌
+      solid.push(part(P.cyl6, '#3f8a4a', p[0], y + h / 2, p[1], 1.1, h, 1.1)); if (r() < .7) { solid.push(part(P.cyl6, '#3f8a4a', p[0] + 1.2, y + h * 0.55, p[1], 0.8, 1.6, 0.8, 0, 0, Math.PI / 2)); solid.push(part(P.cyl6, '#3f8a4a', p[0] + 1.9, y + h * 0.7, p[1], 0.8, 2.2, 0.8)); } }
+    for (let k = 0; k < 8; k++) { const i = Math.floor(r() * T.N); if (T.z[i]) continue; obstacle(i, r() < .5 ? -1 : 1, (x, y, z) => { solid.push(part(P.cyl6, '#3f8a4a', x, y + 2.4, z, 1.3, 4.8, 1.3)); solid.push(part(P.cyl6, '#3f8a4a', x - 1.2, y + 3, z, 0.8, 1.8, 0.8, 0, 0, Math.PI / 2)); }, 1.2); }
+    for (let k = 0; k < 22; k++) { const p = placeOut(20, 160); if (!p) continue; const y = groundAt(p[0], p[1]); const h = 20 + r() * 45, rad = 12 + r() * 20; // 平頂山
+      for (let s = 0; s < 3; s++) solid.push(part(P.cyl6, ['#c7733f', '#b0612f', '#d8854e'][s], p[0], y + h * (s + 0.5) / 3, p[1], rad * 2 * (1.12 - s * 0.08), h / 3, rad * 2 * (1.12 - s * 0.08), 0, r())); }
+    for (let k = 0; k < 40; k++) { const p = placeOut(2, 50); if (!p) continue; const s = 1 + r() * 3; solid.push(part(P.ico, '#9a5530', p[0], groundAt(p[0], p[1]) + s * 0.3, p[1], s, s * 0.7, s, r(), r())); }
+  } else if (th.deco === 'frost') {
+    for (let k = 0; k < 190; k++) { const p = placeOut(2, 70); if (p) tree(p[0], groundAt(p[0], p[1]), p[1], 8 + r() * 7, r() < 0.7 ? 2 : 1); }
+    for (let k = 0; k < 12; k++) { const i = Math.floor(r() * T.N); obstacle(i, r() < .5 ? -1 : 1, (x, y, z) => { solid.push(part(P.sph, '#f7f9fc', x, y + 1.1, z, 2.4, 2.2, 2.4)); solid.push(part(P.sph, '#f7f9fc', x, y + 2.7, z, 1.7, 1.6, 1.7)); solid.push(part(P.sph, '#f7f9fc', x, y + 3.9, z, 1.2, 1.2, 1.2)); solid.push(part(P.cone, '#f08a24', x, y + 3.9, z + 0.7, 0.26, 0.8, 0.26, Math.PI / 2)); solid.push(part(P.cyl6, '#1d1a17', x, y + 4.6, z, 1.1, 0.7, 1.1)); }, 1.4); }
+    for (let k = 0; k < 6; k++) { const p = placeOut(18, 60); if (!p) continue; const y = groundAt(p[0], p[1]); const ry = r() * TAU; solid.push(part(P.box, '#7a4a2e', p[0], y + 3, p[1], 9, 6, 8, 0, ry)); solid.push(part(P.cone4, '#f4f7fb', p[0], y + 8, p[1], 13, 4, 11, 0, ry + Math.PI / 4)); solid.push(part(P.box, '#ffd27a', p[0] + Math.sin(ry) * 4.05, y + 3, p[1] + Math.cos(ry) * 4.05, 1.8, 1.6, 0.2, 0, ry)); }
+  } else if (th.deco === 'cinder') {
+    for (let k = 0; k < 16; k++) { const p = placeOut(14, 90); if (!p) continue; const h = 30 + r() * 30; // 塔樓
+      solid.push(part(P.cyl, '#4b423d', p[0], T.lavaY + h / 2, p[1], 12, h, 12)); for (let c = 0; c < 8; c++) { const a = c / 8 * TAU; solid.push(part(P.box, '#3d3531', p[0] + Math.cos(a) * 5.2, T.lavaY + h + 1.2, p[1] + Math.sin(a) * 5.2, 2.4, 2.4, 2.4, 0, -a)); }
+      solid.push(part(P.box, '#ffb35a', p[0] + 6.05, T.lavaY + h * 0.7, p[1], 0.2, 3, 1.4)); }
+    const torches = [];
+    for (let i = 0; i < T.N; i += 18) { if (T.z[i] & Z_LAVA) continue; for (const side of [-1, 1]) { const d = (T.wall[i] + 0.4) * side; const x = T.px[i] + T.nx[i] * d, z = T.pz[i] + T.nz[i] * d, y = T.py[i] + T.th.wallH; solid.push(part(P.cyl6, '#2a2320', x, y + 0.6, z, 0.3, 1.2, 0.3)); torches.push([x, y + 1.5, z]); } }
+    const fm = new THREE.MeshBasicMaterial({ color: 0xffa133 }); const fg = new THREE.Group();
+    for (const [x, y, z] of torches) { const f = new THREE.Mesh(P.cone, fm); f.position.set(x, y, z); f.scale.set(0.6, 1.2, 0.6); fg.add(f); }
+    T.group.add(fg); T.anim.push((dt, t) => { fg.children.forEach((f, k) => { f.scale.y = 1 + Math.sin(t * 17 + k * 2.3) * 0.25; }); });
+    for (let i = 0; i < T.N; i += 3) if (T.z[i] & Z_LAVA) for (const side of [-1, 1]) { if (r() < 0.6) continue; const d = (T.w[i] + 1.8) * side; solid.push(part(P.box, '#3d3531', T.px[i] + T.nx[i] * d, T.py[i] - 1.2, T.pz[i] + T.nz[i] * d, 1.2, 2.4, 1.2, 0, r())); }
+  }
+  if (solid.length) T.group.add(new THREE.Mesh(mergeGeos(solid), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+  if (cross.length) {
+    const pos = [], uv = []; for (const c of cross) { pos.push(...c.pos); uv.push(...c.uv); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
+    const n = g.attributes.normal; for (let k = 0; k < n.count; k++) n.setXYZ(k, 0, 1, 0);
+    T.group.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: getTex('trees'), alphaTest: 0.5, side: THREE.DoubleSide })));
+  }
+}
+
+// ============================================================
+// 氣球大戰場地
+// ============================================================
+function buildArena(def) {
+  const th = THEMES[def.theme]; const P = prims();
+  const A = { kind: 'arena', def, th, colliders: [], blocks: [], boxes: [], group: new THREE.Group(), anim: [], half: def.half, lavaY: -60 };
+  const floorTex = getTex(th.road).clone(); floorTex.needsUpdate = true;
+  const H = def.half;
+  if (def.shape === 'rect') {
+    floorTex.repeat.set(H * 2 / 8, H * 2 / 8);
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(H * 2, H * 2), new THREE.MeshLambertMaterial({ map: floorTex })); f.rotation.x = -Math.PI / 2; A.group.add(f);
+    const walls = []; const ct = getTex('container');
+    for (let s = 0; s < 4; s++) { const a = s * Math.PI / 2; const x = Math.sin(a) * (H + 1.5), z = Math.cos(a) * (H + 1.5); walls.push([x, z, a]); }
+    for (const [x, z, a] of walls) { const m = new THREE.Mesh(boxUV(new THREE.BoxGeometry(H * 2 + 6, th.wallH, 3), H * 2 + 6, th.wallH, 3, th.wallH), new THREE.MeshLambertMaterial({ map: ct })); m.position.set(x, th.wallH / 2, z); m.rotation.y = a; A.group.add(m); }
+    const solid = []; const crate = new THREE.MeshLambertMaterial({ map: getTex('crate') });
+    for (const [x, z, w, d] of def.blocks) { const m = new THREE.Mesh(boxUV(new THREE.BoxGeometry(w, 3.2, d), w, 3.2, d, 3.2), crate); m.position.set(x, 1.6, z); A.group.add(m); A.blocks.push({ x, z, hw: w / 2, hd: d / 2 }); }
+    // 地面標線
+    const lines = []; for (const r of [20, 44]) for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2; lines.push(part(P.box, '#f4bf1a', Math.sin(a) * r, 0.02, Math.cos(a) * r, 16, 0.02, 0.6, 0, a)); }
+    A.group.add(new THREE.Mesh(mergeGeos(lines), new THREE.MeshBasicMaterial({ vertexColors: true })));
+    const g2 = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshLambertMaterial({ map: (() => { const t = getTex('grass').clone(); t.needsUpdate = true; t.repeat.set(375, 375); return t; })() })); g2.rotation.x = -Math.PI / 2; g2.position.y = -0.05; A.group.add(g2);
+    const r = mulberry(5); const cross = [];
+    for (let k = 0; k < 80; k++) { const a = r() * TAU, d = H + 12 + r() * 120; tree(cross, Math.cos(a) * d, Math.sin(a) * d, 8 + r() * 5, 0, r); }
+    addTrees(A.group, cross);
+  } else {
+    floorTex.repeat.set(H * 2 / 16, H * 2 / 16);
+    const f = new THREE.Mesh(new THREE.CircleGeometry(H, 48), new THREE.MeshLambertMaterial({ map: floorTex })); f.rotation.x = -Math.PI / 2; A.group.add(f);
+    const bank = new THREE.Mesh(new THREE.CylinderGeometry(H + 4, H + 1.5, th.wallH, 48, 1, true), new THREE.MeshLambertMaterial({ map: getTex('bank'), side: THREE.DoubleSide })); getTex('bank').repeat.set(1, 1); bank.position.y = th.wallH / 2; A.group.add(bank);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(H + 1.5, 1500, 48, 1), new THREE.MeshLambertMaterial({ map: (() => { const t = getTex('snow').clone(); t.needsUpdate = true; t.repeat.set(190, 190); return t; })() })); ring.rotation.x = -Math.PI / 2; ring.position.y = th.wallH; A.group.add(ring);
+    const solid = [];
+    for (const [x, z, rad] of def.circles) {
+      if (rad > 8) { solid.push(part(P.sph, '#f4f7fb', x, 0, z, rad * 2, rad * 1.1, rad * 2)); solid.push(part(P.cone, '#9fd3ef', x, rad * 0.55 + 2, z, 3, 5, 3)); }
+      else { solid.push(part(P.cyl6, '#a9d9f2', x, 3, z, rad * 2, 6, rad * 2)); solid.push(part(P.oct, '#dff4ff', x, 7, z, rad * 1.6, 3, rad * 1.6)); }
+      A.colliders.push({ x, z, r: rad });
+    }
+    A.group.add(new THREE.Mesh(mergeGeos(solid), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+    const r = mulberry(8); const cross = [];
+    for (let k = 0; k < 110; k++) { const a = r() * TAU, d = H + 10 + r() * 140; tree(cross, Math.cos(a) * d, Math.sin(a) * d, 9 + r() * 7, 2, r, th.wallH); }
+    addTrees(A.group, cross);
+    A.ice = true;
+  }
+  for (const [x, z] of def.boxes) A.boxes.push({ x, z, y: 1.3, on: true, t: 0 });
+  return A;
+}
+// 方塊貼圖依尺寸重複，不被拉長（BoxGeometry 面順序：±x、±y、±z）
+function boxUV(g, w, h, d, unit) {
+  const uv = g.attributes.uv; const span = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+  for (let f = 0; f < 6; f++) for (let v = 0; v < 4; v++) { const i = f * 4 + v; uv.setXY(i, uv.getX(i) * span[f][0] / unit, uv.getY(i) * span[f][1] / unit); }
+  return g;
+}
+function tree(cross, x, z, s, v, r, y = 0) {
+  const u0 = v * 0.25, u1 = u0 + 0.25;
+  for (let k = 0; k < 2; k++) { const a = k * Math.PI / 2 + r(); const cx = Math.cos(a) * s * 0.5, cz = Math.sin(a) * s * 0.5;
+    cross.push({ pos: [x - cx, y, z - cz, x + cx, y, z + cz, x - cx, y + s, z - cz, x + cx, y, z + cz, x + cx, y + s, z + cz, x - cx, y + s, z - cz], uv: [u0, 0, u1, 0, u0, 1, u1, 0, u1, 1, u0, 1] }); }
+}
+function addTrees(group, cross) {
+  const pos = [], uv = []; for (const c of cross) { pos.push(...c.pos); uv.push(...c.uv); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  const nrm = new Float32Array(pos.length); for (let k = 1; k < nrm.length; k += 3) nrm[k] = 1; g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  group.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: getTex('trees'), alphaTest: 0.5, side: THREE.DoubleSide })));
+}
+
+// ============================================================
+// 天空、遠山、天氣
+// ============================================================
+function buildSky(th, themeId) {
+  const g = new THREE.Group();
+  const geo = new THREE.SphereGeometry(1600, 24, 12); const top = new THREE.Color(th.sky[0]), hor = new THREE.Color(th.sky[1]); const col = [];
+  const p = geo.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i) / 1600; const t = clamp((y + 0.05) / 0.6, 0, 1); const c = hor.clone().lerp(top, Math.pow(t, 0.7)); col.push(c.r, c.g, c.b); }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })));
+  const mt = mountainTex(th.hills, themeId.length * 31, themeId); mt.repeat.set(3, 1); mt.wrapT = THREE.ClampToEdgeWrapping;
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(1200, 1200, 240, 48, 1, true), new THREE.MeshBasicMaterial({ map: mt, transparent: true, side: THREE.BackSide, fog: false, depthWrite: false }));
+  ring.position.y = 70; g.add(ring);
+  if (themeId === 'cinder' || themeId === 'ring' || themeId === 'frost') {
+    const n = themeId === 'cinder' ? 500 : 260; const pos = new Float32Array(n * 3); const r = mulberry(99);
+    for (let i = 0; i < n; i++) { const a = r() * TAU, e = 0.15 + r() * 1.2; pos[i * 3] = Math.cos(a) * Math.cos(e) * 1500; pos[i * 3 + 1] = Math.sin(e) * 1500; pos[i * 3 + 2] = Math.sin(a) * Math.cos(e) * 1500; }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: themeId === 'cinder' ? 0xffc9a0 : 0xffffff, size: 2, sizeAttenuation: false, fog: false, transparent: true, opacity: themeId === 'cinder' ? 0.9 : 0.55 })));
+  }
+  const sun = new THREE.Mesh(new THREE.CircleGeometry(themeId === 'cinder' ? 60 : 48, 20), new THREE.MeshBasicMaterial({ color: themeId === 'cinder' ? 0xd83a1c : th.sun, fog: false }));
+  sun.position.set(-700, themeId === 'frost' || themeId === 'ring' ? 170 : 520, -1100); sun.lookAt(0, 0, 0); g.add(sun);
+  return g;
+}
+
+// ============================================================
+// 粒子（火花、灰塵、紙花、雪、餘燼）：一個 Points，自訂著色器支援每顆大小與透明度
+// ============================================================
+const Parts = {
+  n: 1600, i: 0, mesh: null,
+  init(scene) {
+    const n = this.n; this.pos = new Float32Array(n * 3); this.col = new Float32Array(n * 3); this.sz = new Float32Array(n); this.al = new Float32Array(n);
+    this.vel = new Float32Array(n * 3); this.life = new Float32Array(n); this.max = new Float32Array(n); this.grav = new Float32Array(n); this.s0 = new Float32Array(n);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(this.col, 3));
+    g.setAttribute('size', new THREE.BufferAttribute(this.sz, 1)); g.setAttribute('alpha', new THREE.BufferAttribute(this.al, 1));
+    this.mat = new THREE.ShaderMaterial({
+      uniforms: { map: { value: getTex('dot') }, scale: { value: 400 }, maxPx: { value: 14 } }, transparent: true, depthWrite: false,
+      vertexShader: 'attribute float size;attribute float alpha;attribute vec3 color;varying vec3 vC;varying float vA;uniform float scale;uniform float maxPx;void main(){vC=color;vA=alpha;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=min(size*scale/max(0.5,-mv.z),maxPx);gl_Position=projectionMatrix*mv;}',
+      fragmentShader: 'uniform sampler2D map;varying vec3 vC;varying float vA;void main(){vec4 t=texture2D(map,gl_PointCoord);float a=t.a*vA;if(a<0.03)discard;gl_FragColor=vec4(vC,a);}'
+    });
+    this.mesh = new THREE.Points(g, this.mat); this.mesh.frustumCulled = false; scene.add(this.mesh);
+  },
+  emit(x, y, z, vx, vy, vz, color, size, life, grav = 0) {
+    const i = this.i; this.i = (this.i + 1) % this.n; const c = typeof color === 'number' ? color : 0xffffff;
+    this.pos[i * 3] = x; this.pos[i * 3 + 1] = y; this.pos[i * 3 + 2] = z; this.vel[i * 3] = vx; this.vel[i * 3 + 1] = vy; this.vel[i * 3 + 2] = vz;
+    this.col[i * 3] = (c >> 16 & 255) / 255; this.col[i * 3 + 1] = (c >> 8 & 255) / 255; this.col[i * 3 + 2] = (c & 255) / 255;
+    this.sz[i] = size; this.s0[i] = size; this.life[i] = life; this.max[i] = life; this.grav[i] = grav; this.al[i] = 1;
+  },
+  clear() { this.life.fill(0); this.al.fill(0); },
+  update(dt) {
+    for (let i = 0; i < this.n; i++) {
+      if (this.life[i] <= 0) { if (this.al[i]) this.al[i] = 0; continue; }
+      this.life[i] -= dt; const k = i * 3; this.vel[k + 1] -= this.grav[i] * dt;
+      this.pos[k] += this.vel[k] * dt; this.pos[k + 1] += this.vel[k + 1] * dt; this.pos[k + 2] += this.vel[k + 2] * dt;
+      const f = clamp(this.life[i] / this.max[i], 0, 1); this.al[i] = Math.min(1, f * 2.5);
+    }
+    const a = this.mesh.geometry.attributes; a.position.needsUpdate = true; a.color.needsUpdate = true; a.size.needsUpdate = true; a.alpha.needsUpdate = true;
+  }
+};
+
+// ============================================================
+// 道具
+// ============================================================
+const ITEMS = {
+  peel:   { name: '蕉皮' },   bounce: { name: '彈珠' },  seeker: { name: '追蹤蜂' },
+  turbo:  { name: '渦輪罐' }, turbo3: { name: '三連渦輪' }, star: { name: '流星罩' }, storm: { name: '雷雲' }
+};
+// 自繪貼紙式圖示：統一 64 格、2.5 墨線、平塗
+const INK = '#15110c';
+const ICONS = {
+  peel: `<path d="M32 10c3 0 4 3 3 7l-1 6c8 1 14 7 17 16 1 3-2 5-4 3-4-4-8-6-12-6l4 18c1 3-3 5-5 2l-3-10-3 10c-2 3-6 1-5-2l4-18c-4 0-8 2-12 6-2 2-5 0-4-3 3-9 9-15 17-16l-1-6c-1-4 0-7 3-7z" fill="#f4c428" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M29 11h6v5h-6z" fill="#6b4a2a" stroke="${INK}" stroke-width="2"/><path d="M26 30c2-2 4-3 6-3" stroke="#fff3b8" stroke-width="3" fill="none" stroke-linecap="round"/>`,
+  bounce: `<circle cx="32" cy="34" r="20" fill="#3fae4f" stroke="${INK}" stroke-width="2.5"/><path d="M13 30c6 4 32 4 38 0v8c-6 4-32 4-38 0z" fill="#fff8ec" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M22 22c3-4 7-5 11-5" stroke="#b9f0a8" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+  seeker: `<ellipse cx="22" cy="20" rx="9" ry="12" fill="#d9f1ff" stroke="${INK}" stroke-width="2.5" transform="rotate(-25 22 20)"/><ellipse cx="40" cy="18" rx="9" ry="12" fill="#d9f1ff" stroke="${INK}" stroke-width="2.5" transform="rotate(20 40 18)"/><ellipse cx="32" cy="38" rx="19" ry="15" fill="#f4bf1a" stroke="${INK}" stroke-width="2.5"/><path d="M26 24c-2 8-2 20 0 28M36 24c2 8 2 20 0 28" stroke="${INK}" stroke-width="5" fill="none"/><path d="M50 38l8 2-8 3z" fill="${INK}"/><circle cx="18" cy="35" r="3" fill="${INK}"/>`,
+  turbo: `<path d="M22 50l10 12 10-12z" fill="#ffb13a" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><rect x="18" y="12" width="28" height="40" rx="5" fill="#dc3b26" stroke="${INK}" stroke-width="2.5"/><rect x="24" y="6" width="16" height="8" fill="#cfd4d8" stroke="${INK}" stroke-width="2.5"/><path d="M35 18l-9 13h7l-4 13 10-15h-7z" fill="#fff8ec" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/>`,
+  turbo3: `<g transform="translate(-4 8) scale(.62)"><rect x="18" y="12" width="28" height="40" rx="5" fill="#dc3b26" stroke="${INK}" stroke-width="3.5"/><rect x="24" y="6" width="16" height="8" fill="#cfd4d8" stroke="${INK}" stroke-width="3.5"/></g><g transform="translate(28 8) scale(.62)"><rect x="18" y="12" width="28" height="40" rx="5" fill="#dc3b26" stroke="${INK}" stroke-width="3.5"/><rect x="24" y="6" width="16" height="8" fill="#cfd4d8" stroke="${INK}" stroke-width="3.5"/></g><g transform="translate(12 22) scale(.66)"><rect x="18" y="12" width="28" height="40" rx="5" fill="#dc3b26" stroke="${INK}" stroke-width="3.5"/><rect x="24" y="6" width="16" height="8" fill="#cfd4d8" stroke="${INK}" stroke-width="3.5"/><path d="M35 18l-9 13h7l-4 13 10-15h-7z" fill="#fff8ec" stroke="${INK}" stroke-width="2.5"/></g>`,
+  star: `<path d="M6 54l18-12M4 44l16-8M14 60l14-14" stroke="#ffb13a" stroke-width="5" stroke-linecap="round"/><path d="M40 6l5 15 15 5-15 5-5 15-5-15-15-5 15-5z" fill="#f4bf1a" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M40 16l2 7" stroke="#fff8ec" stroke-width="3" stroke-linecap="round"/>`,
+  storm: `<path d="M16 40c-7 0-10-5-9-10 1-6 7-8 11-6 1-8 8-13 16-11 5 1 8 5 9 9 6-1 12 3 12 9s-5 9-10 9z" fill="#6e7580" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M33 36l-8 13h7l-4 12 13-17h-8l4-8z" fill="#f4bf1a" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>`
+};
+const icon = (k, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 64 64" aria-hidden="true">${ICONS[k] || ''}</svg>`;
+const DIST = {
+  race: [
+    { peel: 45, bounce: 35, turbo: 20 },
+    { peel: 25, bounce: 30, seeker: 25, turbo: 20 },
+    { bounce: 20, seeker: 35, turbo: 25, turbo3: 10, star: 10 },
+    { seeker: 30, turbo3: 30, star: 25, storm: 15 },
+    { seeker: 20, turbo3: 30, star: 30, storm: 20 }
+  ],
+  battle: [{ peel: 32, bounce: 36, seeker: 22, star: 10 }]
+};
+function rollItem(k) {
+  let table;
+  if (G.mode === 'battle') table = DIST.battle[0];
+  else { const n = G.karts.length; const p = (k.place - 1) / Math.max(1, n - 1); table = DIST.race[p <= 0 ? 0 : p < 0.3 ? 1 : p < 0.6 ? 2 : p < 0.99 ? 3 : 4]; }
+  let sum = 0; for (const v of Object.values(table)) sum += v; let x = Math.random() * sum;
+  for (const [k2, v] of Object.entries(table)) { x -= v; if (x <= 0) return k2; } return 'peel';
+}
+
+// ============================================================
+// 遊戲狀態
+// ============================================================
+let renderer, scene, camera, hemi, sunLight, showScene, showCam;
+const G = {
+  mode: 'attract', state: 'menu', paused: false, karts: [], player: null, proj: [], boxMeshes: [], T: null,
+  raceT: 0, cd: 0, laps: 3, cc: 150, camYaw: 0, camMode: 'chase', camT: 0, camK: 0, finishT: 0, endT: 0, order: [],
+  view: 'world', trackIdx: 0, arenaIdx: 0, charIdx: store.get('char', 0), gp: null, tt: null, battle: null, ghost: null, rec: null
+};
+const World = { group: null, weather: null };
+
+function disposeGroup(g) {
+  const keep = new Set(Object.values(prims()));
+  g.traverse(o => { if (o.geometry && !keep.has(o.geometry)) o.geometry.dispose(); if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose()); });
+}
+function setWorld(kind, def) {
+  if (World.group) { scene.remove(World.group); disposeGroup(World.group); }
+  for (const k of G.karts) { scene.remove(k.model.root); disposeGroup(k.model.root); scene.remove(k.shadow); k.shadow.geometry.dispose(); k.shadow.material.dispose(); }
+  if (World.ghostModel) { scene.remove(World.ghostModel); disposeGroup(World.ghostModel); World.ghostModel = null; } G.ghost = null;
+  G.karts = []; clearProj(); Parts.clear();
+  const T = kind === 'race' ? buildRace(def) : buildArena(def); G.T = T;
+  const g = new THREE.Group(); g.add(T.group); g.add(buildSky(T.th, def.theme));
+  scene.fog = new THREE.Fog(T.th.fog, T.th.fogN, T.th.fogF); scene.background = new THREE.Color(T.th.fog);
+  hemi.color.set(T.th.amb); hemi.groundColor.set(def.theme === 'cinder' ? '#3a1208' : '#6b5a44'); hemi.intensity = def.theme === 'cinder' ? 1.3 : 1.15;
+  sunLight.color.set(T.th.sun); sunLight.intensity = T.th.lightI;
+  // 道具箱：虹彩八面體，裡面一顆白色小晶體
+  G.boxMeshes = [];
+  const og = new THREE.OctahedronGeometry(1.15, 0); const cols = []; const hues = ['#ff5a3c', '#ffc12e', '#58d15e', '#35b6ff', '#ff7ac0', '#ffe66b', '#6be0c8', '#ff9a3c'];
+  for (let f = 0; f < 8; f++) { const c = new THREE.Color(hues[f]); for (let v = 0; v < 3; v++) cols.push(c.r, c.g, c.b); }
+  og.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const om = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, transparent: true, opacity: 0.82, emissive: 0x222222 });
+  const im = new THREE.MeshBasicMaterial({ color: 0xffffff }); const ig = new THREE.OctahedronGeometry(0.42, 0);
+  for (const b of T.boxes) { const m = new THREE.Group(); const o = new THREE.Mesh(og, om); const inn = new THREE.Mesh(ig, im); m.add(o); m.add(inn); m.position.set(b.x, b.y, b.z); g.add(m); b.mesh = m; b.inner = inn; }
+  World.group = g; scene.add(g);
+  // 天氣
+  World.weather = null;
+  if (def.theme === 'frost' || def.theme === 'ring') World.weather = 'snow';
+  if (def.theme === 'cinder') World.weather = 'ember';
+  if (T.kind === 'race') buildMinimapPath(T); else buildMinimapArena(T);
+}
+
+// ------------------------------------------------------------
+// 卡丁車
+// ------------------------------------------------------------
+function makeKart(ch, isPlayer) {
+  const m = buildKart(ch); scene.add(m.root);
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 3.6), new THREE.MeshBasicMaterial({ map: getTex('blob'), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+  sh.rotation.x = -Math.PI / 2; scene.add(sh);
+  const st = ch.st;
+  const k = {
+    ch, isPlayer, model: m, shadow: sh, x: 0, y: 0, z: 0, h: 0, vx: 0, vz: 0, vy: 0, vf: 0, air: false, hop: false, landT: 9,
+    loc: { i: 0, t: 0, d: 0, y: 0 }, lastI: 0, raw: 0, rawF: 0, lapDone: -1, laps: [], lapStart: 0, finished: false, finishT: 0, place: 1, safeI: 0,
+    drift: 0, charge: 0, lvl: 0, boostT: 0, spinT: 0, spinA: 0, starT: 0, shrinkT: 0, invT: 0, frozenT: 0, rescueT: 0, slipT: 0, slipBoost: 0, wrongT: 0,
+    item: null, itemN: 0, roulT: 0, roulItem: null, rubber: 1, skill: 1, offroad: false, ice: false, bumpT: 0,
+    top: CC[G.cc] * (0.955 + st[0] * 0.012), acc: 0.62 + st[1] * 0.13, mass: 0.7 + st[2] * 0.16, turn: 1.75 + st[3] * 0.1,
+    inp: { steer: 0, gas: false, brake: false, hop: false, hopEdge: false, item: false, itemEdge: false },
+    ai: { lane: (Math.random() - 0.5) * 1.2, laneT: 0, laneGoal: 0, itemT: 0, stuckT: 0, driftCd: 0, target: null, wander: Math.random() * TAU },
+    balloons: 0, bal: null, out: false, visT: 0, steerVis: 0, driftVis: 0, gasT: -1
+  };
+  return k;
+}
+function place(k, i, off, T) {
+  k.x = T.px[i] + T.nx[i] * off; k.z = T.pz[i] + T.nz[i] * off; k.y = T.py[i]; k.h = Math.atan2(T.tx[i], T.tz[i]);
+  k.vx = k.vz = k.vy = 0; k.loc.i = i; k.lastI = i; k.safeI = i; k.air = false; k.drift = 0; k.charge = 0; k.lvl = 0;
+}
+function gridStart(karts) {
+  const T = G.T; const N = T.N;
+  karts.forEach((k, n) => { const row = n, i = (N - 7 - row * 3) % N; const off = (n % 2 ? 1 : -1) * T.w[i] * 0.42; place(k, i, off, T); k.raw = -(N - i); k.rawF = k.raw; k.lapDone = -1; });
+}
+
+// 找最近的賽道取樣並投影到線段上（只在上一次位置附近搜尋）
+function locate(T, o, x, z) {
+  const N = T.N; let best = o.loc.i, bd = 1e18;
+  for (let k = -12; k <= 12; k++) { const i = (o.loc.i + k + N) % N; const dx = x - T.px[i], dz = z - T.pz[i]; const d = dx * dx + dz * dz; if (d < bd) { bd = d; best = i; } }
+  let i = best, j = (i + 1) % N; let ex = T.px[j] - T.px[i], ez = T.pz[j] - T.pz[i];
+  let t = ((x - T.px[i]) * ex + (z - T.pz[i]) * ez) / (ex * ex + ez * ez);
+  if (t < 0) { i = (best - 1 + N) % N; j = best; ex = T.px[j] - T.px[i]; ez = T.pz[j] - T.pz[i]; t = ((x - T.px[i]) * ex + (z - T.pz[i]) * ez) / (ex * ex + ez * ez); }
+  t = clamp(t, 0, 1);
+  const cx = T.px[i] + ex * t, cz = T.pz[i] + ez * t; const nx = lerp(T.nx[i], T.nx[j], t), nz = lerp(T.nz[i], T.nz[j], t);
+  const L = o.loc; L.i = i; L.t = t; L.d = (x - cx) * nx + (z - cz) * nz; L.y = lerp(T.py[i], T.py[j], t); L.nx = nx; L.nz = nz;
+  L.wall = lerp(T.wall[i], T.wall[j], t); L.w = T.w[i]; L.z = T.z[i] | (t > 0.5 ? T.z[j] : 0);
+  return L;
+}
+function groundAt(T, o) {
+  if (T.kind === 'arena') return 0;
+  const L = o.loc; const a = Math.abs(L.d);
+  if (L.z & Z_GAP) return L.y - 40;
+  if ((L.z & Z_LAVA) && a > L.w + 1.5) return T.lavaY;
+  let y = L.y; if (T.rampH && (L.z & Z_RAMP) && a < L.w + 1) y += lerp(T.rampH[L.i], T.rampH[(L.i + 1) % T.N], L.t);
+  return y;
+}
+// 碰撞：回傳是否撞牆，並把速度沿法線反彈
+function collideWorld(T, o, r, bounce) {
+  let hit = false;
+  if (T.kind === 'race') {
+    const L = o.loc; const lim = L.wall - r;
+    if (!(L.z & (Z_LAVA | Z_GAP)) && Math.abs(L.d) > lim && o.y > L.y - 1.5) {
+      const s = Math.sign(L.d), push = Math.abs(L.d) - lim; o.x -= L.nx * s * push; o.z -= L.nz * s * push;
+      const vn = (o.vx * L.nx + o.vz * L.nz) * s; if (vn > 0) { o.vx -= L.nx * s * vn * (1 + bounce); o.vz -= L.nz * s * vn * (1 + bounce); hit = vn; }
+    }
+  } else {
+    const H = T.half - r;
+    if (T.def.shape === 'rect') {
+      if (o.x > H) { o.x = H; if (o.vx > 0) { hit = o.vx; o.vx *= -bounce; } } if (o.x < -H) { o.x = -H; if (o.vx < 0) { hit = -o.vx; o.vx *= -bounce; } }
+      if (o.z > H) { o.z = H; if (o.vz > 0) { hit = o.vz; o.vz *= -bounce; } } if (o.z < -H) { o.z = -H; if (o.vz < 0) { hit = -o.vz; o.vz *= -bounce; } }
+    } else {
+      const d = Math.hypot(o.x, o.z); if (d > H) { const nx = o.x / d, nz = o.z / d; o.x = nx * H; o.z = nz * H; const vn = o.vx * nx + o.vz * nz; if (vn > 0) { o.vx -= nx * vn * (1 + bounce); o.vz -= nz * vn * (1 + bounce); hit = vn; } }
+    }
+    for (const b of T.blocks) {
+      const dx = o.x - b.x, dz = o.z - b.z; const px = b.hw + r - Math.abs(dx), pz = b.hd + r - Math.abs(dz);
+      if (px > 0 && pz > 0) { if (px < pz) { const s = Math.sign(dx); o.x += s * px; if (o.vx * s < 0) { hit = Math.abs(o.vx); o.vx *= -bounce; } } else { const s = Math.sign(dz); o.z += s * pz; if (o.vz * s < 0) { hit = Math.abs(o.vz); o.vz *= -bounce; } } }
+    }
+  }
+  for (const c of T.colliders) {
+    const dx = o.x - c.x, dz = o.z - c.z; const d2 = dx * dx + dz * dz, rr = c.r + r;
+    if (d2 < rr * rr) { const d = Math.sqrt(d2) || 0.01, nx = dx / d, nz = dz / d; o.x = c.x + nx * rr; o.z = c.z + nz * rr; const vn = o.vx * nx + o.vz * nz; if (vn < 0) { o.vx -= nx * vn * (1 + bounce); o.vz -= nz * vn * (1 + bounce); hit = -vn; } }
+  }
+  return hit;
+}
+
+// ------------------------------------------------------------
+// 單台車一個物理步
+// ------------------------------------------------------------
+const GRAV = 30;
+function stepKart(k, dt) {
+  const T = G.T; const inp = k.inp;
+  for (const key of ['boostT', 'spinT', 'starT', 'shrinkT', 'invT', 'frozenT', 'slipBoost', 'bumpT']) if (k[key] > 0) k[key] = Math.max(0, k[key] - dt);
+  if (k.out) { k.vx *= 0.96; k.vz *= 0.96; }
+  if (k.rescueT > 0) { stepRescue(k, dt); return; }
+  const ctl = k.spinT <= 0 && k.frozenT <= 0 && !k.out;
+  const steer = ctl ? inp.steer : 0;
+  let fx = Math.sin(k.h), fz = Math.cos(k.h);
+  let vf = k.vx * fx + k.vz * fz;
+  // 轉向／甩尾
+  let yaw;
+  if (k.drift) yaw = k.drift * k.turn * (0.72 + 0.46 * steer * k.drift) * (k.ice ? 0.85 : 1);
+  else { const sp = Math.abs(vf); yaw = steer * k.turn * clamp(sp / 9, 0, 1) * (1 - 0.24 * clamp(sp / 36, 0, 1)) * (vf < -0.5 ? -1 : 1); }
+  if (k.air) yaw *= 0.45;
+  k.h -= yaw * dt;
+  fx = Math.sin(k.h); fz = Math.cos(k.h); const rx = -fz, rz = fx;
+  vf = k.vx * fx + k.vz * fz; let vl = k.vx * rx + k.vz * rz;
+  // 地面狀態
+  if (T.kind === 'race') { const L = k.loc; k.offroad = Math.abs(L.d) > L.w + 1.3 && !(L.z & Z_LAVA); k.ice = !!(L.z & Z_ICE); }
+  else { k.offroad = false; k.ice = !!T.ice; }
+  let top = k.top * k.rubber * k.skill * (k.boostT > 0 ? 1.34 : 1) * (k.starT > 0 ? 1.12 : 1) * (k.shrinkT > 0 ? 0.7 : 1) * (k.slipBoost > 0 ? 1.1 : 1);
+  if (k.offroad && k.boostT <= 0 && k.starT <= 0) top *= T.th.ground === 'sand' ? 0.48 : 0.55;
+  if (!k.air) {
+    const sp0 = Math.hypot(vf, vl);
+    const grip = k.ice ? (k.drift ? 1.2 : 2.2) : (k.drift ? 3.4 : 11);
+    vl *= Math.exp(-grip * dt);
+    if (vf > 1) { const keep = sp0 * (1 - (k.drift ? 0.22 : 0.1) * dt); vf = Math.sqrt(Math.max(0, keep * keep - vl * vl)); }
+    const gas = ctl && (inp.gas || k.boostT > 0);
+    if (gas) { if (vf < top) vf += (top - vf) * k.acc * dt * (vf < 0 ? 3 : 1) + (vf < 3 ? 6 * dt : 0); }
+    else if (ctl && inp.brake) { vf -= (vf > 0 ? 36 : 14) * dt; if (vf < -9) vf = -9; }
+    else vf -= vf * 0.75 * dt;
+    if (vf > top) vf += (top - vf) * 1.8 * dt;
+    if (k.boostT > 0 && vf < top) vf += (top - vf) * 5 * dt;
+    if (k.spinT > 0) { vf *= Math.exp(-2.6 * dt); vl *= Math.exp(-2.6 * dt); }
+  } else vl *= Math.exp(-0.4 * dt);
+  k.vx = fx * vf + rx * vl; k.vz = fz * vf + rz * vl; k.vf = vf;
+  // 跳躍 → 甩尾
+  if (ctl && inp.hopEdge && !k.air) { k.vy = 5.4; k.air = true; k.hop = true; if (k.isPlayer) Audio.sfx('hop'); }
+  k.landT += dt;
+  if (k.drift) {
+    if (!inp.hop || vf < 8 || !ctl) endDrift(k, true);
+    else {
+      k.charge += dt * (1 + (steer * k.drift < -0.3 ? 0.9 : 0) + (steer * k.drift > 0.3 ? 0.25 : 0));
+      const lvl = k.charge >= 2.3 ? 2 : k.charge >= 1.0 ? 1 : 0;
+      if (lvl > k.lvl && k.isPlayer) Audio.blip(lvl === 2 ? 1320 : 990, 0.06, 'duty', 0.14);
+      k.lvl = lvl;
+    }
+  } else if (ctl && !k.air && inp.hop && k.landT < 0.22 && Math.abs(inp.steer) > 0.25 && vf > 11) { k.drift = Math.sign(inp.steer); k.charge = 0; k.lvl = 0; }
+  // 位置
+  k.x += k.vx * dt; k.z += k.vz * dt;
+  if (T.kind === 'race') locate(T, k, k.x, k.z);
+  const wallHit = collideWorld(T, k, 1.15, 0.35);
+  if (wallHit) { k.vx *= 0.92; k.vz *= 0.92; if (wallHit > 5) { if (k.drift) endDrift(k, false); if (k.isPlayer) Audio.sfx('wall'); if (wallHit > 9) emitBurst(k.x, k.y + 0.6, k.z, 0xfff1c0, 6, 6); } k.ai.stuckT += dt * 0.5; }
+  if (T.kind === 'race') locate(T, k, k.x, k.z);
+  // 垂直
+  const gy = groundAt(T, k);
+  if (k.air) {
+    k.vy -= GRAV * dt; k.y += k.vy * dt;
+    if (k.y <= gy && gy > (T.kind === 'race' ? k.loc.y - 3 : -5)) { k.y = gy; const hard = k.vy < -9; k.vy = 0; k.air = false; k.landT = 0; if (hard) { emitBurst(k.x, k.y + 0.3, k.z, 0xe8dcc0, 8, 4); if (k.isPlayer) Audio.sfx('bump'); } if (k.hop) { k.hop = false; if (ctl && inp.hop && Math.abs(inp.steer) > 0.25 && vf > 11) { k.drift = Math.sign(inp.steer); k.charge = 0; k.lvl = 0; } } }
+  } else {
+    const slopeV = (gy - k.y) / dt;
+    if (slopeV < k.vy - GRAV * dt * 1.2) { k.air = true; k.vy = k.vy - GRAV * dt; if (T.rampH && (k.loc.z & Z_RAMP)) k.vy += 3.5; }
+    else { k.y = gy; k.vy = clamp(slopeV, -30, 30); }
+  }
+  // 掉落：熔岩、河谷
+  if (T.kind === 'race') {
+    const L = k.loc;
+    if (k.y < L.y - 4 || (k.y < T.lavaY + 0.6)) startRescue(k);
+    else if (!k.air && !(L.z & (Z_GAP | Z_LAVA | Z_RAMP)) && Math.abs(L.d) < L.w) k.safeI = L.i;
+    // 加速板
+    if (!k.air) for (const p of T.pads) { let di = L.i - p.i; if (di > T.N / 2) di -= T.N; if (di < -T.N / 2) di += T.N; if (di >= -2 && di <= 2 && Math.abs(L.d - p.off) < 2.5) { if (k.boostT < 0.5 && k.isPlayer) Audio.sfx('boost'); k.boostT = Math.max(k.boostT, 1.0); } }
+    // 進度
+    let di = L.i - k.lastI; if (di < -T.N / 2) di += T.N; if (di > T.N / 2) di -= T.N; k.raw += di; k.lastI = L.i; k.rawF = k.raw + L.t;
+    const done = Math.floor(k.rawF / T.N);
+    if (done > k.lapDone) { k.lapDone = done; if (done >= 1) onLap(k); }
+    const fwdDot = Math.sin(k.h) * T.tx[L.i] + Math.cos(k.h) * T.tz[L.i];
+    k.wrongT = (fwdDot < -0.35 && Math.abs(vf) > 4) ? k.wrongT + dt : 0;
+  }
+  // 道具箱
+  for (const b of G.T.boxes) if (b.on && Math.abs(b.x - k.x) < 2.3 && Math.abs(b.z - k.z) < 2.3 && Math.abs(b.y - k.y - 1.2) < 2.4) {
+    b.on = false; b.t = 2.4; emitBurst(b.x, b.y, b.z, 0xffe66b, 10, 7);
+    if (k.isPlayer) Audio.sfx('box');
+    if (!k.item && k.roulT <= 0 && !k.out) { k.roulItem = rollItem(k); k.roulT = k.isPlayer ? 1.25 : 0.6; }
+  }
+  if (k.roulT > 0) { k.roulT -= dt; if (k.roulT <= 0) { k.item = k.roulItem; k.itemN = k.item === 'turbo3' ? 3 : 1; k.ai.itemT = 0.6 + Math.random() * 2.6; if (k.isPlayer) Audio.sfx('got'); } }
+  if (ctl && inp.itemEdge && k.item) useItem(k);
+  // 甩尾火花、越野灰塵
+  if (!k.air && G.frame % 2 === 0) {
+    const bx = k.x - fx * 1.2, bz = k.z - fz * 1.2;
+    if (k.drift) { const c = k.lvl === 2 ? 0xffa22b : k.lvl === 1 ? 0x6cc6ff : 0xd8d2c4; for (const s of [-1, 1]) Parts.emit(bx + rx * s * 0.95, k.y + 0.25, bz + rz * s * 0.95, (Math.random() - .5) * 3 - rx * k.drift * 3, 1.5 + Math.random() * 2, (Math.random() - .5) * 3 - rz * k.drift * 3, c, k.lvl ? 0.5 : 0.7, 0.3, 8); }
+    else if (k.offroad && Math.abs(vf) > 8) { const c = T.th.ground === 'sand' ? 0xd9a35e : T.th.ground === 'snow' ? 0xffffff : 0x7a5a36; Parts.emit(bx, k.y + 0.3, bz, (Math.random() - .5) * 2, 2 + Math.random() * 2, (Math.random() - .5) * 2, c, 1.1, 0.5, 5); }
+  }
+  if (k.boostT > 0 && G.frame % 3 === 0) Parts.emit(k.x - fx * 2.2, k.y + 0.7, k.z - fz * 2.2, -fx * 4, 1, -fz * 4, 0xffb13a, 0.7, 0.25);
+  if (k.starT > 0 && G.frame % 2 === 0) Parts.emit(k.x + (Math.random() - .5) * 2, k.y + 1 + Math.random(), k.z + (Math.random() - .5) * 2, 0, 1.5, 0, [0xff5a3c, 0xffc12e, 0x58d15e, 0x35b6ff][G.frame % 4], 0.5, 0.4);
+}
+function endDrift(k, reward) {
+  if (reward && k.lvl > 0) { k.boostT = Math.max(k.boostT, k.lvl === 2 ? 1.15 : 0.55); if (k.isPlayer) Audio.sfx(k.lvl === 2 ? 'mini2' : 'mini1'); }
+  k.drift = 0; k.charge = 0; k.lvl = 0;
+}
+function startRescue(k) {
+  if (k.rescueT > 0) return; k.rescueT = 1.7; k.rescues = (k.rescues || 0) + 1; k.drift = 0; k.charge = 0; k.boostT = 0;
+  if (k.isPlayer) { Audio.sfx(G.T.th.ground === 'lava' ? 'fall' : 'splash'); setTimeout(() => $('fade').classList.add('on'), 450); }
+  if (k.item === null && k.roulT > 0) k.roulT = 0.01;
+}
+function stepRescue(k, dt) {
+  const T = G.T; const before = k.rescueT; k.rescueT -= dt;
+  if (before > 1.0) { k.vy -= GRAV * dt; k.y += k.vy * dt; k.x += k.vx * dt * 0.5; k.z += k.vz * dt * 0.5; if (k.y < T.lavaY + 0.5 && G.frame % 3 === 0) Parts.emit(k.x, T.lavaY + 0.5, k.z, (Math.random() - .5) * 4, 5, (Math.random() - .5) * 4, 0xff8a2a, 1.2, 0.6, 8); }
+  if (before > 1.0 && k.rescueT <= 1.0) {
+    const i = (k.safeI - 6 + T.N) % T.N; const raw0 = k.raw; const li = k.lastI;
+    place(k, i, 0, T); let di = i - li; if (di < -T.N / 2) di += T.N; if (di > T.N / 2) di -= T.N; k.raw = raw0 + di; k.lastI = i; k.rawF = k.raw;
+    k.y = T.py[i] + 3; k.frozenT = 0.6; k.invT = 1.6;
+    if (k.isPlayer) $('fade').classList.remove('on');
+  }
+  if (k.rescueT <= 1.0) { k.y = lerp(k.y, T.py[k.loc.i], 1 - Math.exp(-6 * dt)); }
+  if (k.rescueT <= 0) { k.rescueT = 0; k.y = T.py[k.loc.i]; locate(T, k, k.x, k.z); }
+}
+function onLap(k) {
+  const t = G.raceT; const lt = t - k.lapStart; k.laps.push(lt); k.lapStart = t;
+  if (k.lapDone >= G.laps && !k.finished) {
+    k.finished = true; k.finishT = t; G.order.push(k);
+    if (k.isPlayer) playerFinished();
+  } else if (k.isPlayer) {
+    if (k.lapDone === G.laps - 1) { banner('最終圈', ''); Audio.sfx('final'); Audio.tempoMul = 1.12; }
+    else { banner('第 ' + (k.lapDone + 1) + ' 圈', fmtTime(lt)); Audio.sfx('lap'); }
+  }
+}
+
+// ------------------------------------------------------------
+// 道具使用與飛行物
+// ------------------------------------------------------------
+function projMesh(type) {
+  const P = prims(); const g = new THREE.Group();
+  if (type === 'peel') {
+    const m = new THREE.MeshLambertMaterial({ color: 0xf4c428, flatShading: true });
+    for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(P.cone4, m); c.scale.set(0.5, 1.1, 0.26); c.position.set(Math.sin(i * 2.1) * 0.35, 0.3, Math.cos(i * 2.1) * 0.35); c.rotation.set(Math.cos(i * 2.1) * 1.1, 0, -Math.sin(i * 2.1) * 1.1); g.add(c); }
+    const s = new THREE.Mesh(P.cyl6, new THREE.MeshLambertMaterial({ color: 0x6b4a2a })); s.scale.set(0.16, 0.5, 0.16); s.position.y = 0.7; g.add(s);
+  } else if (type === 'bounce') {
+    const s = new THREE.Mesh(P.sphHi, new THREE.MeshLambertMaterial({ color: 0x3fae4f, flatShading: true })); s.scale.setScalar(1.3); g.add(s);
+    const b = new THREE.Mesh(P.torus, new THREE.MeshLambertMaterial({ color: 0xfff8ec })); b.rotation.x = Math.PI / 2; b.scale.set(1.3, 1.3, 1.6); g.add(b); g.userData.spin = s;
+  } else {
+    const body = new THREE.Mesh(P.sphHi, new THREE.MeshLambertMaterial({ color: 0xf4bf1a, flatShading: true })); body.scale.set(0.9, 0.85, 1.4); g.add(body);
+    const bm = new THREE.MeshLambertMaterial({ color: 0x15110c }); [-0.25, 0.25].forEach(z => { const r = new THREE.Mesh(P.torus, bm); r.scale.set(0.9, 0.86, 1.6); r.position.z = z; g.add(r); });
+    const wm = new THREE.MeshBasicMaterial({ color: 0xd9f1ff, transparent: true, opacity: 0.75, side: THREE.DoubleSide }); const wings = [];
+    [-1, 1].forEach(s => { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.1), wm); w.position.set(s * 0.5, 0.55, -0.1); g.add(w); wings.push(w); });
+    g.userData.wings = wings;
+  }
+  scene.add(g); return g;
+}
+function clearProj() { for (const p of G.proj) { scene.remove(p.mesh); disposeGroup(p.mesh); } G.proj = []; }
+function spawnProj(type, k, dir) {
+  const fx = Math.sin(k.h), fz = Math.cos(k.h);
+  const p = { type, owner: k, x: k.x + fx * dir * 2.6, z: k.z + fz * dir * 2.6, y: k.y, vx: 0, vz: 0, vy: 0, life: type === 'peel' ? 1e9 : type === 'bounce' ? 8 : 10, age: 0, loc: { i: k.loc.i, t: 0, d: 0, y: k.y }, target: null, mesh: projMesh(type), dead: false };
+  if (type === 'bounce') { const sp = Math.max(k.vf, 0) + 34; p.vx = fx * sp * dir; p.vz = fz * sp * dir; }
+  if (type === 'seeker') { p.target = seekTarget(k); const sp = Math.max(k.vf, 0) + 18; p.vx = fx * sp; p.vz = fz * sp; }
+  if (type === 'peel' && dir > 0) { p.vx = fx * 26 + k.vx * 0.5; p.vz = fz * 26 + k.vz * 0.5; p.vy = 9; p.y = k.y + 1.5; p.fly = true; }
+  if (G.T.kind === 'race') locate(G.T, p, p.x, p.z);
+  G.proj.push(p); return p;
+}
+function seekTarget(k) {
+  const alive = G.karts.filter(o => o !== k && !o.out && !o.finished);
+  if (G.mode === 'battle' || G.T.kind === 'arena') { let best = null, bd = 1e9; for (const o of alive) { const d = Math.hypot(o.x - k.x, o.z - k.z); if (d < bd) { bd = d; best = o; } } return best; }
+  const ahead = alive.filter(o => o.place < k.place).sort((a, b) => b.place - a.place);
+  return ahead[0] || alive.sort((a, b) => a.place - b.place)[0] || null;
+}
+function useItem(k) {
+  const it = k.item; if (!it) return;
+  const back = k.isPlayer && !k.autopilot && Input.brake; // 按住煞車時往後丟
+  switch (it) {
+    case 'peel': spawnProj('peel', k, -1); if (k.isPlayer) Audio.sfx('drop'); break;
+    case 'bounce': spawnProj('bounce', k, back ? -1 : 1); if (k.isPlayer) Audio.sfx('throw'); break;
+    case 'seeker': spawnProj('seeker', k, 1); if (k.isPlayer) Audio.sfx('throw'); break;
+    case 'turbo': case 'turbo3': k.boostT = Math.max(k.boostT, 1.3); if (k.isPlayer || near(k)) Audio.sfx('boost'); break;
+    case 'star': k.starT = 7.5; if (k.isPlayer) Audio.sfx('star'); break;
+    case 'storm':
+      for (const o of G.karts) if (o !== k && !o.out && o.starT <= 0) { o.shrinkT = 4.2; o.spinT = Math.max(o.spinT, 0.5); o.drift = 0; o.boostT = 0; if (o.item && o.item !== 'star') { o.item = null; o.itemN = 0; } }
+      Audio.sfx('storm'); zap(); break;
+  }
+  k.itemN--; if (k.itemN <= 0) { k.item = null; k.itemN = 0; }
+}
+const near = k => G.player && Math.hypot(G.player.x - k.x, G.player.z - k.z) < 40;
+function hitKart(k, kind, by) {
+  if (k.invT > 0 || k.starT > 0 || k.rescueT > 0 || k.out) return false;
+  const strong = kind !== 'peel';
+  k.spinT = strong ? 1.35 : 1.0; k.invT = k.spinT + 0.8; k.drift = 0; k.charge = 0; k.lvl = 0; k.boostT = 0;
+  k.vx *= 0.35; k.vz *= 0.35; if (strong && !k.air) { k.vy = 7; k.air = true; }
+  emitBurst(k.x, k.y + 1, k.z, strong ? 0xff7a3c : 0xf4c428, 14, 8);
+  if (k.isPlayer || near(k)) Audio.sfx(strong ? 'hit' : 'spin');
+  if (G.mode === 'battle') popBalloon(k, by);
+  return true;
+}
+function stepProj(p, dt) {
+  const T = G.T; p.age += dt; p.life -= dt;
+  if (p.type === 'peel') {
+    if (p.fly) { p.vy -= GRAV * dt; p.x += p.vx * dt; p.z += p.vz * dt; p.y += p.vy * dt; if (T.kind === 'race') locate(T, p, p.x, p.z); collideWorld(T, p, 0.6, 0.2); const gy = groundAt(T, p); if (p.y <= gy) { p.y = gy; p.fly = false; p.vx = p.vz = 0; } }
+    else if (T.kind === 'race' && G.frame % 30 === 0) { locate(T, p, p.x, p.z); p.y = groundAt(T, p); }
+  } else {
+    if (p.type === 'seeker' && p.target && !p.target.out) {
+      const tg = p.target; let ax = tg.x, az = tg.z; const d = Math.hypot(tg.x - p.x, tg.z - p.z);
+      if (T.kind === 'race' && d > 26) { const j = (p.loc.i + 10) % T.N; ax = T.px[j]; az = T.pz[j]; }
+      const want = Math.atan2(ax - p.x, az - p.z), cur = Math.atan2(p.vx, p.vz); const dh = clamp(angDiff(cur, want), -5 * dt, 5 * dt);
+      const sp = Math.min(58, Math.hypot(p.vx, p.vz) + 40 * dt); const h = cur + dh; p.vx = Math.sin(h) * sp; p.vz = Math.cos(h) * sp;
+    }
+    p.x += p.vx * dt; p.z += p.vz * dt;
+    if (T.kind === 'race') locate(T, p, p.x, p.z);
+    const hit = collideWorld(T, p, 0.8, 1);
+    if (hit && p.type === 'bounce') { p.bounces = (p.bounces || 0) + 1; if (near(p)) Audio.blip(520, 0.05, 'square', 0.12); if (p.bounces > 6) p.life = 0; }
+    if (hit && p.type === 'seeker' && p.age > 0.5) p.life = Math.min(p.life, 3);
+    const gy = groundAt(T, p); p.y = lerp(p.y, gy + (p.type === 'seeker' ? 1.1 : 0.7), 1 - Math.exp(-12 * dt));
+    if (T.kind === 'race' && gy < p.loc.y - 3) p.life = 0;
+  }
+  // 撞車
+  for (const k of G.karts) {
+    if (k.out || k.rescueT > 0) continue; if (k === p.owner && p.age < 0.6) continue;
+    const dx = k.x - p.x, dz = k.z - p.z, dy = k.y + 0.8 - p.y;
+    if (dx * dx + dz * dz < 2.2 * 2.2 * (k.shrinkT > 0 ? 0.5 : 1) && Math.abs(dy) < 2.4) {
+      if (k.starT > 0) { p.life = 0; emitBurst(p.x, p.y, p.z, 0xffffff, 8, 6); break; }
+      if (hitKart(k, p.type, p.owner) || k.invT > 0) { p.life = 0; break; }
+    }
+  }
+  if (p.life <= 0) p.dead = true;
+}
+function stepProjectiles(dt) {
+  for (const p of G.proj) if (!p.dead) stepProj(p, dt);
+  // 飛行物互撞
+  for (let a = 0; a < G.proj.length; a++) { const p = G.proj[a]; if (p.dead || p.type === 'peel' && p.fly) continue;
+    for (let b = a + 1; b < G.proj.length; b++) { const q = G.proj[b]; if (q.dead) continue; if (p.type === 'peel' && q.type === 'peel') continue;
+      const dx = p.x - q.x, dz = p.z - q.z; if (dx * dx + dz * dz < 2.4) { p.dead = q.dead = true; emitBurst(p.x, p.y + 0.5, p.z, 0xfff1c0, 10, 7); } } }
+  for (const p of G.proj) if (p.dead && p.mesh) { scene.remove(p.mesh); disposeGroup(p.mesh); p.mesh = null; }
+  G.proj = G.proj.filter(p => !p.dead);
+  // 蕉皮上限
+  const peels = G.proj.filter(p => p.type === 'peel'); if (peels.length > 18) { peels[0].life = 0; peels[0].dead = true; }
+}
+function emitBurst(x, y, z, c, n, sp) { for (let i = 0; i < n; i++) { const a = Math.random() * TAU; Parts.emit(x, y, z, Math.cos(a) * sp * Math.random(), sp * 0.6 + Math.random() * sp * 0.6, Math.sin(a) * sp * Math.random(), c, 0.55, 0.5 + Math.random() * 0.3, 16); } }
+
+// ------------------------------------------------------------
+// 車與車的碰撞、尾流
+// ------------------------------------------------------------
+function kartContacts(dt) {
+  const ks = G.karts;
+  for (let a = 0; a < ks.length; a++) for (let b = a + 1; b < ks.length; b++) {
+    const A = ks[a], B = ks[b]; if (A.rescueT > 0 || B.rescueT > 0 || A.out || B.out) continue;
+    const dx = B.x - A.x, dz = B.z - A.z; const ra = A.shrinkT > 0 ? 0.7 : 1.3, rb = B.shrinkT > 0 ? 0.7 : 1.3;
+    const d2 = dx * dx + dz * dz, rr = ra + rb; if (d2 > rr * rr || Math.abs(A.y - B.y) > 2) continue;
+    // 流星罩撞人、踩扁縮小的車
+    if (A.starT > 0 && B.starT <= 0) { hitKart(B, 'star', A); continue; } if (B.starT > 0 && A.starT <= 0) { hitKart(A, 'star', B); continue; }
+    if (A.shrinkT > 0 && B.shrinkT <= 0) { hitKart(A, 'squash', B); } else if (B.shrinkT > 0 && A.shrinkT <= 0) { hitKart(B, 'squash', A); }
+    const d = Math.sqrt(d2) || 0.01, nx = dx / d, nz = dz / d, pen = rr - d; const ma = A.mass * (A.shrinkT > 0 ? 0.4 : 1), mb = B.mass * (B.shrinkT > 0 ? 0.4 : 1); const sa = mb / (ma + mb), sb = ma / (ma + mb);
+    A.x -= nx * pen * sa; A.z -= nz * pen * sa; B.x += nx * pen * sb; B.z += nz * pen * sb;
+    const rv = (B.vx - A.vx) * nx + (B.vz - A.vz) * nz;
+    if (rv < 0) { const j = -1.5 * rv / (1 / ma + 1 / mb); A.vx -= j * nx / ma; A.vz -= j * nz / ma; B.vx += j * nx / mb; B.vz += j * nz / mb; if (-rv > 4 && (A.isPlayer || B.isPlayer) && A.bumpT <= 0) { Audio.sfx('bump'); A.bumpT = 0.3; } }
+  }
+  // 尾流：緊跟前車 1.1 秒後得到短暫加速
+  for (const k of ks) {
+    if (k.out || k.air || k.vf < 19) { k.slipT = Math.max(0, k.slipT - dt * 2); continue; }
+    const fx = Math.sin(k.h), fz = Math.cos(k.h); let inWake = false;
+    for (const o of ks) { if (o === k || o.out) continue; const dx = o.x - k.x, dz = o.z - k.z; const d = Math.hypot(dx, dz); if (d < 3 || d > 16) continue; if ((dx * fx + dz * fz) / d > 0.975) { inWake = true; break; } }
+    if (inWake) { k.slipT += dt; if (k.slipT > 1.1) { k.slipT = 0; k.slipBoost = 1.2; if (k.isPlayer) Audio.sfx('mini1'); } } else k.slipT = Math.max(0, k.slipT - dt * 2);
+    if (k.isPlayer && (k.slipT > 0.25 || k.slipBoost > 0) && G.frame % 2 === 0) { const rx = -fz, rz = fx; const s = (Math.random() - 0.5) * 5; Parts.emit(k.x + fx * 6 + rx * s, k.y + 0.6 + Math.random() * 2, k.z + fz * 6 + rz * s, -fx * 40, 0, -fz * 40, 0xffffff, 0.22, 0.3); }
+  }
+}
+
+// ------------------------------------------------------------
+// 電腦車手
+// ------------------------------------------------------------
+function aiRace(k, dt) {
+  const T = G.T, N = T.N, inp = k.inp, ai = k.ai; const L = k.loc;
+  const sp = Math.hypot(k.vx, k.vz);
+  ai.laneT -= dt; if (ai.laneT <= 0) { ai.laneT = 2 + Math.random() * 3; ai.laneGoal = (Math.random() - 0.5) * 1.1; }
+  // 躲前方的蕉皮
+  for (const p of G.proj) if (p.type === 'peel') { let di = p.loc.i - L.i; if (di < 0) di += N; if (di > 2 && di < 16) { const off = p.loc.d / (L.w - 2); if (Math.abs(off - ai.lane) < 0.35) ai.laneGoal = off > 0 ? off - 0.6 : off + 0.6; } }
+  ai.lane += (clamp(ai.laneGoal, -0.9, 0.9) - ai.lane) * dt * 0.8;
+  const look = Math.round((5 + sp * 0.42) / T.step); const j = (L.i + look) % N;
+  const w = T.w[j] - 2.2; const lz = T.z[j] & Z_LAVA ? 0.35 : 1; const lane = (T.z[j] & (Z_RAMP | Z_GAP)) ? 0 : ai.lane * lz;
+  const tx = T.px[j] + T.nx[j] * lane * w, tz = T.pz[j] + T.nz[j] * lane * w;
+  const want = Math.atan2(tx - k.x, tz - k.z); const diff = angDiff(k.h, want);
+  inp.steer = clamp(-diff * 2.6, -1, 1);
+  const j2 = (L.i + look * 2 + 6) % N; const dot = T.tx[L.i] * T.tx[j2] + T.tz[L.i] * T.tz[j2];
+  const cross = T.tx[L.i] * T.tz[j2] - T.tz[L.i] * T.tx[j2];
+  inp.gas = true; inp.brake = false;
+  if (dot < 0.55 && sp > k.top * 0.82 && !k.drift) { inp.gas = false; inp.brake = dot < 0.3; }
+  // 甩尾：遇到長彎就跳
+  ai.driftCd -= dt;
+  const curveDir = cross > 0 ? -1 : 1; // cross>0 代表左彎 → 甩尾方向 -1
+  inp.hopEdge = false;
+  if (!k.drift && !k.air && ai.driftCd <= 0 && dot < 0.8 && sp > 20 && Math.abs(L.d) < L.w - 2 && !(T.z[j] & (Z_LAVA | Z_ICE | Z_RAMP | Z_GAP))) { inp.hopEdge = true; inp.hop = true; inp.steer = curveDir; ai.driftCd = 2 + Math.random() * 2; ai.driftDir = curveDir; }
+  if (k.drift) { inp.hop = !(dot > 0.93 || k.lvl === 2 && Math.random() < 0.02 || Math.abs(L.d) > L.w + 1); if (Math.abs(inp.steer) < 0.3) inp.steer = k.drift * 0.4; }
+  else if (!k.air) inp.hop = false;
+  if (k.air && k.hop) inp.steer = ai.driftDir || inp.steer;
+  // 卡住：倒車一下
+  if (sp < 3 && G.state === 'race') ai.stuckT += dt; else ai.stuckT = Math.max(0, ai.stuckT - dt);
+  if (ai.stuckT > 1.8) { inp.gas = false; inp.brake = true; inp.steer = -inp.steer; if (ai.stuckT > 3) { ai.stuckT = 0; startRescue(k); } }
+  aiItems(k, dt);
+}
+function aiItems(k, dt) {
+  const inp = k.inp, ai = k.ai; inp.itemEdge = false; if (!k.item) return;
+  ai.itemT -= dt; if (ai.itemT > 0) return;
+  const it = k.item; const fx = Math.sin(k.h), fz = Math.cos(k.h);
+  let fire = false;
+  if (it === 'peel') { fire = G.karts.some(o => o !== k && !o.out && Math.hypot(o.x - k.x, o.z - k.z) < 22 && ((o.x - k.x) * fx + (o.z - k.z) * fz) < 0) || ai.itemT < -6; }
+  else if (it === 'bounce') { fire = G.karts.some(o => { if (o === k || o.out) return false; const dx = o.x - k.x, dz = o.z - k.z, d = Math.hypot(dx, dz); return d < 55 && (dx * fx + dz * fz) / d > 0.97; }) || ai.itemT < -5; }
+  else if (it === 'turbo' || it === 'turbo3') { const T = G.T; if (T.kind === 'race') { const j = (k.loc.i + 20) % T.N; fire = T.tx[k.loc.i] * T.tx[j] + T.tz[k.loc.i] * T.tz[j] > 0.9 && !(T.z[j] & Z_LAVA); } else fire = true; }
+  else fire = true;
+  if (fire) { inp.itemEdge = true; ai.itemT = 0.4 + Math.random() * 0.8; }
+}
+function aiBattle(k, dt) {
+  const inp = k.inp, ai = k.ai; const T = G.T;
+  if (!ai.target || ai.target.out || Math.random() < dt * 0.25) {
+    const foes = G.karts.filter(o => o !== k && !o.out); ai.target = foes.length ? foes[Math.floor(Math.random() * foes.length)] : null;
+  }
+  let tx, tz;
+  if (!k.item && k.roulT <= 0) { let best = null, bd = 1e9; for (const b of T.boxes) if (b.on) { const d = Math.hypot(b.x - k.x, b.z - k.z); if (d < bd) { bd = d; best = b; } } if (best) { tx = best.x; tz = best.z; } }
+  if (tx === undefined && ai.target) { tx = ai.target.x; tz = ai.target.z; }
+  if (tx === undefined) { ai.wander += dt * 0.3; tx = Math.cos(ai.wander) * 40; tz = Math.sin(ai.wander) * 40; }
+  // 前方有障礙物就繞開
+  const fx = Math.sin(k.h), fz = Math.cos(k.h); let avoid = 0;
+  const probe = { x: k.x + fx * 7, z: k.z + fz * 7, vx: 0, vz: 0, loc: k.loc };
+  const px = probe.x, pz = probe.z; collideWorld(T, probe, 1.6, 0); if (Math.hypot(probe.x - px, probe.z - pz) > 0.01) { const rx = -fz, rz = fx; avoid = ((probe.x - px) * rx + (probe.z - pz) * rz) > 0 ? 1 : -1; }
+  const want = Math.atan2(tx - k.x, tz - k.z); const diff = angDiff(k.h, want);
+  inp.steer = clamp(-diff * 2.4 + avoid * 0.9, -1, 1); inp.gas = true; inp.brake = false; inp.hopEdge = false; inp.hop = false;
+  if (Math.hypot(k.vx, k.vz) < 2.5) ai.stuckT += dt; else ai.stuckT = Math.max(0, ai.stuckT - dt);
+  if (ai.stuckT > 1.2) { inp.gas = false; inp.brake = true; inp.steer = avoid || 1; if (ai.stuckT > 2.6) ai.stuckT = 0; }
+  aiItems(k, dt);
+}
+
+// ============================================================
+// 比賽流程
+// ============================================================
+function startRace(opts) {
+  // opts: { mode, track (def), cc, laps, playerChar, rivals }
+  G.mode = opts.mode; G.cc = opts.cc || 150; G.laps = opts.laps || 3; G.paused = false; G.order = []; G.raceT = 0; G.finishT = 0; G.endT = 0;
+  const kind = opts.mode === 'battle' ? 'arena' : 'race';
+  setWorld(kind, opts.track);
+  const ids = [opts.playerChar, ...(opts.rivals || [])];
+  G.karts = ids.map((ci, n) => makeKart(CHARS[ci], n === 0 && opts.mode !== 'attract'));
+  G.player = G.karts[0].isPlayer ? G.karts[0] : null;
+  if (G.player && AUTORACE) G.player.autopilot = !HASH.has('drive');
+  G.karts.forEach((k, n) => { if (!k.isPlayer) k.skill = opts.mode === 'attract' ? 0.96 + Math.random() * 0.04 : ({ 50: 0.9, 100: 0.93, 150: 0.95 }[G.cc] + (n / 7) * 0.055 + Math.random() * 0.01); });
+  if (kind === 'race') {
+    // 大獎賽：玩家排在最後一格（和 64 位元時代一樣從後段起跑）
+    const order = opts.mode === 'gp' ? [...G.karts.slice(1), G.karts[0]] : G.karts;
+    gridStart(order);
+  } else {
+    const H = G.T.half * 0.72; const sp = [[-H, -H], [H, H], [-H, H], [H, -H]];
+    G.karts.forEach((k, n) => { k.x = sp[n][0]; k.z = sp[n][1]; k.y = 0; k.h = Math.atan2(-k.x, -k.z); k.balloons = 3; k.bal = balloonGroup(k.ch.kart); k.model.root.add(k.bal.g); });
+  }
+  if (opts.mode === 'tt') { G.player.item = 'turbo3'; G.player.itemN = 3; loadGhost(opts.track.id); G.rec = []; }
+  else G.ghost = null;
+  G.camYaw = G.karts[0].h; G.camT = 0; G.frame = 0;
+  if (opts.mode === 'attract') { G.state = 'race'; G.karts.forEach(k => k.boostT = 0); Audio.play('title'); return; }
+  G.state = 'countdown'; G.cd = 3.6; G.cdLit = 0;
+  Object.assign(HUD, { item: '', n: -1, pos: -1, lap: '', splits: -1 });
+  $('hPosN').hidden = $('hPosOf').hidden = opts.mode === 'tt';
+  $('hud').hidden = false; $('lights').hidden = false; [...$('lights').children].forEach(i => i.className = '');
+  $('hBalloons').hidden = opts.mode !== 'battle'; $('hSplits').innerHTML = ''; $('toast').textContent = '';
+  $('hSpeed').textContent = '';
+  setTouch(true); showScreen(null);
+  $('keys').className = 'race'; $('keys').innerHTML = '<span><kbd>↑</kbd>油門</span><span><kbd>↓</kbd>煞車</span><span><kbd>←</kbd><kbd>→</kbd>轉向</span><span><kbd>空白鍵</kbd>跳躍・按住轉向甩尾</span><span><kbd>X</kbd>道具</span><span><kbd>Esc</kbd>暫停</span>';
+  clearTimeout(G.keysT); G.keysT = setTimeout(() => { if (!UI.id) $('keys').innerHTML = ''; }, 9000);
+  Audio.play(null); Audio.tempoMul = 1; Audio.engineStart();
+  banner(opts.title || '', opts.sub || '');
+}
+function attract() {
+  const t = TRACKS[Math.floor(Math.random() * TRACKS.length)];
+  const ids = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - 0.5);
+  startRace({ mode: 'attract', track: t, cc: 150, laps: 99, playerChar: ids[0], rivals: ids.slice(1) });
+  G.camMode = 'tv'; G.camK = 0; G.camT = 0;
+}
+function playerFinished() {
+  const k = G.player; k.autopilot = true; G.finishT = G.raceT;
+  if (G.mode === 'tt') { banner('完賽', fmtTime(G.raceT)); Audio.sfx('finish'); }
+  else { banner('完賽', '第 ' + k.place + ' 名'); Audio.sfx('finish'); }
+  Audio.play(null); setTimeout(() => { if (G.state === 'race' || G.state === 'done') Audio.play('result'); }, 1800);
+  G.state = 'done'; G.endT = G.mode === 'tt' ? 3.2 : 4.8;
+}
+function tickRace(dt) {
+  G.frame++;
+  if (G.state === 'countdown') {
+    G.cd -= dt;
+    const lit = G.cd <= 1 ? 3 : G.cd <= 2 ? 2 : G.cd <= 3 ? 1 : 0;
+    if (lit > G.cdLit) { G.cdLit = lit; $('lights').children[lit - 1].className = 'r'; Audio.sfx('count'); }
+    // 起跑加速：燈號轉綠前 0.45 秒內才踩油門
+    if (G.player && Input.gas && G.player.gasT < 0) G.player.gasT = G.cd;
+    if (G.cd <= 0) {
+      G.state = 'race'; [...$('lights').children].forEach(i => i.className = 'g'); banner('出發！', ''); Audio.sfx('go');
+      setTimeout(() => { $('lights').hidden = true; }, 900);
+      Audio.play(G.T.def.song);
+      for (const k of G.karts) { if (k.isPlayer && !k.autopilot) { if (k.gasT >= 0 && k.gasT < 0.45) { k.boostT = 1.0; Audio.sfx('boost'); } } else if (Math.random() < 0.45) k.boostT = 0.8; }
+    }
+    for (const k of G.karts) { k.vx = k.vz = 0; }
+    return;
+  }
+  if (G.state === 'race' || G.state === 'done') G.raceT += dt;
+  for (const k of G.karts) {
+    if (k.isPlayer && !k.autopilot) { Object.assign(k.inp, { steer: Input.steer, gas: Input.gas, brake: Input.brake, hop: Input.hop, hopEdge: Input.hopEdge, item: Input.item, itemEdge: Input.itemEdge }); }
+    else if (G.T.kind === 'race') aiRace(k, dt); else aiBattle(k, dt);
+    if (k.isPlayer && k.autopilot && G.mode === 'tt') k.inp.itemEdge = false;
+  }
+  // 名次（完賽者依完賽順序）
+  if (G.T.kind === 'race') {
+    const sorted = [...G.karts].sort((a, b) => (b.finished - a.finished) || (a.finished ? a.finishT - b.finishT : b.rawF - a.rawF));
+    sorted.forEach((k, n) => k.place = n + 1);
+    // 輕微的橡皮筋：只看和玩家的距離
+    if (G.player) for (const k of G.karts) { if (k.isPlayer) continue; const gap = (G.player.rawF - k.rawF) / G.T.N; k.rubber = lerp(k.rubber, gap > 0.12 ? 1.07 : gap < -0.2 ? 0.94 : 1, dt); }
+  }
+  for (const k of G.karts) stepKart(k, dt);
+  kartContacts(dt);
+  stepProjectiles(dt);
+  for (const b of G.T.boxes) if (!b.on) { b.t -= dt; if (b.t <= 0) b.on = true; }
+  if (G.mode === 'battle') tickBattle(dt);
+  if (G.mode === 'tt' && G.state === 'race' && G.frame % 3 === 0) { const p = G.player; G.rec.push(+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2), +p.h.toFixed(3)); }
+  if (G.state === 'done') {
+    G.endT -= dt;
+    // 等電腦車手都完賽，或最多等幾秒
+    if (G.endT <= 0 && (G.mode !== 'gp' || G.karts.every(k => k.finished) || G.endT < -6)) { G.state = 'results'; showResults(); }
+  }
+}
+
+// ------------------------------------------------------------
+// 氣球大戰
+// ------------------------------------------------------------
+function popBalloon(k, by) {
+  if (k.balloons <= 0) return; k.balloons--; const b = k.bal.list[k.balloons]; b.visible = false;
+  emitBurst(k.x, k.y + 3.4, k.z, new THREE.Color(k.ch.kart).getHex(), 12, 6); Audio.sfx('pop');
+  if (k.balloons === 0) { k.out = true; k.item = null; k.itemN = 0; if (k.isPlayer) { banner('出局', '只能在旁邊看了'); k.autopilot = true; } }
+  renderBalloonHud();
+}
+function tickBattle(dt) {
+  if (G.state !== 'race') return;
+  G.battle.left -= dt;
+  const alive = G.karts.filter(k => !k.out);
+  if (alive.length <= 1 || G.battle.left <= 0 || G.player.out) {
+    G.state = 'done'; G.endT = 2.5; const win = [...G.karts].sort((a, b) => b.balloons - a.balloons)[0];
+    G.battle.winner = alive.length === 1 ? alive[0] : (alive.filter(k => k.balloons === win.balloons).length > 1 ? null : win);
+    if (G.player.out) G.endT = 3.2;
+    banner(G.battle.winner ? (G.battle.winner.isPlayer ? '勝利！' : G.battle.winner.ch.name + ' 獲勝') : '時間到', G.battle.winner ? '' : '平手');
+    Audio.sfx('finish'); Audio.play(null); setTimeout(() => Audio.play('result'), 1500);
+  }
+}
+function renderBalloonHud() {
+  if (G.mode !== 'battle') return;
+  const bal = c => `<svg viewBox="0 0 14 18"><path d="M7 1c3.5 0 6 2.6 6 6 0 3.6-3 6.6-6 7-3-.4-6-3.4-6-7 0-3.4 2.5-6 6-6z" fill="${c}" stroke="#15110c" stroke-width="1.2"/><path d="M6 14h2l-1 3z" fill="#15110c"/></svg>`;
+  $('hBalloons').innerHTML = G.karts.map(k => `<div class="${k.out ? 'out' : ''}"><span style="color:${k.isPlayer ? '#f4bf1a' : '#fff8ec'}">${k.ch.name}</span>${[0, 1, 2].map(i => i < k.balloons ? bal(k.ch.kart) : '').join('')}</div>`).join('');
+}
+
+// ------------------------------------------------------------
+// 計時賽幽靈車
+// ------------------------------------------------------------
+function loadGhost(id) {
+  const rec = store.get('tt:' + id, null); G.ghost = null;
+  if (rec && rec.ghost && rec.ghost.length > 8) {
+    const ch = CHARS[rec.char] || CHARS[0]; const m = buildKart(ch); m.body.material = m.body.material.clone(); m.body.material.transparent = true; m.body.material.opacity = 0.45; m.body.material.depthWrite = false;
+    m.wheels.forEach(w => { w.m.material = w.m.material.clone(); w.m.material.transparent = true; w.m.material.opacity = 0.45; });
+    scene.add(m.root); G.ghost = { m, data: rec.ghost };
+    const disposeOld = World.ghostModel; if (disposeOld) scene.remove(disposeOld); World.ghostModel = m.root;
+  } else if (World.ghostModel) { scene.remove(World.ghostModel); World.ghostModel = null; }
+}
+function updateGhost() {
+  const g = G.ghost; if (!g) return; const d = g.data; const f = G.raceT * 20; const i = Math.floor(f), t = f - i; const n = d.length / 4;
+  if (G.state === 'countdown') { g.m.root.visible = false; return; }
+  if (i >= n - 1) { g.m.root.visible = false; return; }
+  g.m.root.visible = true; const a = i * 4, b = a + 4;
+  g.m.root.position.set(lerp(d[a], d[b], t), lerp(d[a + 1], d[b + 1], t), lerp(d[a + 2], d[b + 2], t)); g.m.root.rotation.y = d[a + 3] + angDiff(d[a + 3], d[b + 3]) * t;
+}
+
+// ============================================================
+// 視覺同步、攝影機
+// ============================================================
+function syncKart(k, dt) {
+  const m = k.model, T = G.T; const r = m.root;
+  r.position.set(k.x, k.y, k.z); r.rotation.y = k.h;
+  let pitch = 0;
+  if (T.kind === 'race' && !k.air) { const i = k.loc.i, j = (i + 1) % T.N; const slope = (T.py[j] - T.py[i]) / T.step; pitch = Math.atan(slope) * Math.cos(k.h - Math.atan2(T.tx[i], T.tz[i])); }
+  r.rotation.x = lerp(r.rotation.x, -pitch + (k.air ? -k.vy * 0.012 : 0), 1 - Math.exp(-10 * dt));
+  k.driftVis = lerp(k.driftVis, k.drift * 0.42, 1 - Math.exp(-9 * dt));
+  if (k.spinT > 0) k.spinA += dt * (k.spinT > 1.1 ? 16 : 12); else k.spinA = lerp(k.spinA, Math.round(k.spinA / TAU) * TAU, 1 - Math.exp(-12 * dt));
+  m.tilt.rotation.y = -k.driftVis + k.spinA;
+  m.tilt.rotation.z = lerp(m.tilt.rotation.z, (k.drift ? -k.drift * 0.1 : -k.inp.steer * 0.05 * clamp(k.vf / 20, 0, 1)), 1 - Math.exp(-8 * dt));
+  const sc = k.shrinkT > 0 ? 0.5 : 1; r.scale.setScalar(lerp(r.scale.x, sc, 1 - Math.exp(-10 * dt)));
+  k.steerVis = lerp(k.steerVis, k.inp.steer || 0, 1 - Math.exp(-12 * dt));
+  for (const w of m.wheels) { w.m.rotation.x += k.vf * dt / w.r; if (w.front) w.piv.rotation.y = -k.steerVis * 0.42; }
+  m.flame.visible = k.boostT > 0; if (m.flame.visible) m.flame.scale.set(1, 1, 0.8 + Math.random() * 0.5);
+  if (k.starT > 0) { const h = (G.raceT * 3) % 1; m.mat.emissive.setHSL(h, 1, 0.45); } else m.mat.emissive.setRGB(0, 0, 0);
+  r.visible = !(k.invT > 0 && k.spinT <= 0 && k.rescueT <= 0 && Math.floor(G.raceT * 16) % 2 === 0) && !(k.rescueT > 0 && k.rescueT < 1.0 && Math.floor(G.raceT * 12) % 2 === 0);
+  if (k.bal) k.bal.list.forEach(b => { b.position.y = (b.userData.y0 ??= b.position.y) + Math.sin(G.raceT * 3 + b.userData.phase) * 0.12; });
+  // 影子
+  let gy = k.y; if (T.kind === 'race') { gy = groundAt(T, k); if (gy < k.loc.y - 3) gy = -999; }
+  k.shadow.visible = gy > -900 && r.visible; k.shadow.position.set(k.x, gy + 0.06, k.z); k.shadow.rotation.z = k.h;
+  const hgt = clamp((k.y - gy) / 8, 0, 0.7); k.shadow.scale.setScalar(sc * (1 - hgt)); k.shadow.material.opacity = 1 - hgt;
+}
+const _v = () => new THREE.Vector3();
+const camPos = { x: 0, y: 5, z: -10 };
+function updateCamera(dt) {
+  if (G.view === 'showroom') return;
+  const k = G.mode === 'attract' ? G.karts[G.camK % G.karts.length] : G.player; if (!k) return;
+  if (G.mode === 'attract') {
+    G.camT += dt; if (G.camT > 7) { G.camT = 0; G.camK = (G.camK + 1 + Math.floor(Math.random() * 3)) % G.karts.length; G.camShot = (G.camShot + 1 || 1) % 3; }
+    const shot = G.camShot || 0; const f = [Math.sin(k.h), Math.cos(k.h)];
+    if (shot === 0) { camera.position.set(k.x + Math.sin(G.camT * 0.4 + 1) * 12, k.y + 4 + G.camT * 0.3, k.z + Math.cos(G.camT * 0.4 + 1) * 12); camera.lookAt(k.x, k.y + 1, k.z); }
+    else if (shot === 1) { const a = k.h + 0.5; camera.position.set(k.x + Math.sin(a) * 9, k.y + 2.2, k.z + Math.cos(a) * 9); camera.lookAt(k.x - f[0] * 2, k.y + 1, k.z - f[1] * 2); }
+    else { G.camYaw += angDiff(G.camYaw, k.h) * (1 - Math.exp(-4 * dt)); camera.position.set(k.x - Math.sin(G.camYaw) * 9, k.y + 4.5, k.z - Math.cos(G.camYaw) * 9); camera.lookAt(k.x + f[0] * 4, k.y + 1.2, k.z + f[1] * 4); }
+    return;
+  }
+  const fin = G.state === 'results' || (G.state === 'done' && G.raceT - G.finishT > 1.2 && G.mode !== 'battle');
+  if (G.state === 'countdown') {
+    const u = clamp((3.6 - G.cd) / 2.4, 0, 1); const e = u * u * (3 - 2 * u); const ang = k.h + Math.PI * (1 - e); const dist = lerp(8, 7.4, e), hh = lerp(2.2, 3.1, e);
+    camera.position.set(k.x - Math.sin(ang) * dist, k.y + hh, k.z - Math.cos(ang) * dist); camera.lookAt(k.x, k.y + 1.1, k.z); G.camYaw = k.h; return;
+  }
+  if (fin) { G.camYaw += dt * 0.35; camera.position.set(k.x - Math.sin(G.camYaw) * 10, k.y + 5, k.z - Math.cos(G.camYaw) * 10); camera.lookAt(k.x, k.y + 1, k.z); return; }
+  G.camYaw += angDiff(G.camYaw, k.h) * (1 - Math.exp(-(k.drift ? 3.4 : 5.5) * dt));
+  const boost = k.boostT > 0 ? 1 : 0; const dist = 7.4 + boost * 1.1 + (portrait() ? 1.6 : 0), hh = 3.0 + (portrait() ? 0.7 : 0);
+  const tx = k.x - Math.sin(G.camYaw) * dist, tz = k.z - Math.cos(G.camYaw) * dist; let ty = k.y + hh;
+  camPos.y = lerp(camPos.y, ty, 1 - Math.exp(-6 * dt)); camPos.x = tx; camPos.z = tz;
+  camera.position.set(camPos.x, Math.max(camPos.y, k.y + 1.6), camPos.z);
+  camera.lookAt(k.x + Math.sin(G.camYaw) * 4, k.y + 1.3, k.z + Math.cos(G.camYaw) * 4);
+  const fov = baseFov() + boost * 7; if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = lerp(camera.fov, fov, 1 - Math.exp(-6 * dt)); camera.updateProjectionMatrix(); }
+}
+const portrait = () => innerWidth < innerHeight;
+const baseFov = () => portrait() ? 80 : 64;
+
+// 天氣粒子（雪、餘燼）跟著攝影機走
+function weather(dt) {
+  if (!World.weather) return; const c = camera.position;
+  const n = World.weather === 'snow' ? 3 : 1;
+  for (let i = 0; i < n; i++) {
+    if (World.weather === 'snow') Parts.emit(c.x + (Math.random() - .5) * 70, c.y + 18, c.z + (Math.random() - .5) * 70, -2 + Math.random(), -5 - Math.random() * 3, (Math.random() - .5), 0xffffff, 0.22, 4);
+    else if (Math.random() < 0.6) Parts.emit(c.x + (Math.random() - .5) * 70, c.y - 12, c.z + (Math.random() - .5) * 70, (Math.random() - .5) * 2, 3 + Math.random() * 3, (Math.random() - .5) * 2, Math.random() < .5 ? 0xffa033 : 0xffd27a, 0.3, 5);
+  }
+}
+
+// ============================================================
+// HUD
+// ============================================================
+const MM = { path: null, scale: 1, ox: 0, oz: 0 };
+function mapFit(minx, maxx, minz, maxz) { const W = 380, pad = 26; const s = Math.min((W - pad * 2) / (maxx - minx), (W - pad * 2) / (maxz - minz)); MM.scale = s; MM.ox = W / 2 - (minx + maxx) / 2 * s; MM.oz = W / 2 - (minz + maxz) / 2 * s; }
+function buildMinimapPath(T) {
+  let a = 1e9, b = -1e9, c = 1e9, d = -1e9; for (let i = 0; i < T.N; i++) { a = Math.min(a, T.px[i]); b = Math.max(b, T.px[i]); c = Math.min(c, T.pz[i]); d = Math.max(d, T.pz[i]); }
+  mapFit(a, b, c, d); const p = new Path2D(); for (let i = 0; i <= T.N; i++) { const j = i % T.N; const x = T.px[j] * MM.scale + MM.ox, y = T.pz[j] * MM.scale + MM.oz; i ? p.lineTo(x, y) : p.moveTo(x, y); } MM.path = p; MM.arena = null;
+}
+function buildMinimapArena(T) { const H = T.half; mapFit(-H, H, -H, H); MM.path = null; MM.arena = T; }
+function drawMinimap() {
+  const cv = $('hMap'), g = cv.getContext('2d'); g.clearRect(0, 0, 380, 380);
+  if (MM.path) {
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    g.strokeStyle = '#15110c'; g.lineWidth = 22; g.stroke(MM.path); g.strokeStyle = '#fff8ec'; g.lineWidth = 12; g.stroke(MM.path);
+    const T = G.T; const x0 = T.px[0] * MM.scale + MM.ox, y0 = T.pz[0] * MM.scale + MM.oz; g.fillStyle = '#15110c'; g.save(); g.translate(x0, y0); g.rotate(Math.atan2(T.tz[0], T.tx[0])); g.fillRect(-3, -12, 6, 24); g.restore();
+  } else if (MM.arena) {
+    const A = MM.arena, s = MM.scale; g.fillStyle = 'rgba(21,17,12,.72)'; g.strokeStyle = '#fff8ec'; g.lineWidth = 6;
+    g.beginPath(); if (A.def.shape === 'rect') g.rect(MM.ox - A.half * s, MM.oz - A.half * s, A.half * 2 * s, A.half * 2 * s); else g.arc(MM.ox, MM.oz, A.half * s, 0, TAU); g.fill(); g.stroke();
+    g.fillStyle = '#8c7a60'; for (const b of A.blocks) g.fillRect((b.x - b.hw) * s + MM.ox, (b.z - b.hd) * s + MM.oz, b.hw * 2 * s, b.hd * 2 * s);
+    for (const c of A.colliders) { g.beginPath(); g.arc(c.x * s + MM.ox, c.z * s + MM.oz, c.r * s, 0, TAU); g.fill(); }
+  }
+  const ks = [...G.karts].sort((a, b) => (a.isPlayer - b.isPlayer));
+  for (const k of ks) { if (k.out) continue; const x = k.x * MM.scale + MM.ox, y = k.z * MM.scale + MM.oz; const r = k.isPlayer ? 13 : 9;
+    g.fillStyle = '#15110c'; g.beginPath(); g.arc(x, y, r + 4, 0, TAU); g.fill(); g.fillStyle = k.ch.kart; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+    if (k.isPlayer) { g.fillStyle = '#fff8ec'; g.beginPath(); g.arc(x, y, 4, 0, TAU); g.fill(); } }
+  if (G.ghost && G.ghost.m.root.visible) { const p = G.ghost.m.root.position; g.strokeStyle = '#fff8ec'; g.lineWidth = 4; g.beginPath(); g.arc(p.x * MM.scale + MM.ox, p.z * MM.scale + MM.oz, 9, 0, TAU); g.stroke(); }
+}
+const HUD = { item: '', n: -1, pos: -1, lap: '', splits: 0, rollT: 0, rollI: 0 };
+function updateHud(dt) {
+  const k = G.player; if (!k || $('hud').hidden) return;
+  // 道具格
+  let key = k.item || ''; const box = $('hItem');
+  if (k.roulT > 0) { HUD.rollT -= dt; if (HUD.rollT <= 0) { HUD.rollT = 0.07; HUD.rollI++; const ks = Object.keys(ICONS); key = 'roll:' + ks[HUD.rollI % ks.length]; Audio.sfx('roll'); } else key = HUD.item; }
+  if (key !== HUD.item) { HUD.item = key; $('itemIcon').innerHTML = key ? icon(key.replace('roll:', '')) : ''; box.classList.toggle('spin', key.startsWith('roll:')); }
+  const n = k.item === 'turbo3' ? k.itemN : 0; if (n !== HUD.n) { HUD.n = n; $('itemCount').textContent = n > 1 ? '×' + n : ''; }
+  // 時間與圈數
+  if (G.mode === 'battle') { $('hClock').textContent = fmtTime(Math.max(0, G.battle.left)).slice(0, -3); const lp = '剩餘時間'; if (HUD.lap !== lp) { HUD.lap = lp; $('hLap').textContent = lp; } }
+  else {
+    $('hClock').textContent = fmtTime(k.finished ? k.finishT : G.raceT);
+    const lap = `第 <span>${clamp(k.lapDone + 1, 1, G.laps)}</span>/${G.laps} 圈`; if (lap !== HUD.lap) { HUD.lap = lap; $('hLap').innerHTML = lap; }
+    if (k.laps.length !== HUD.splits) { HUD.splits = k.laps.length; const best = Math.min(...k.laps); $('hSplits').innerHTML = k.laps.map(t => `<li class="${t === best && k.laps.length > 1 ? 'best' : ''}">${fmtTime(t)}</li>`).join(''); }
+  }
+  if (G.mode === 'gp') { if (k.place !== HUD.pos) { HUD.pos = k.place; const el = $('hPosN'); el.textContent = k.place; el.className = k.place <= 3 ? 'g' + k.place : ''; $('hPosOf').textContent = '/' + G.karts.length; } }
+  else if (G.mode === 'battle') { $('hPosN').textContent = k.balloons; $('hPosN').className = 'g1'; $('hPosOf').textContent = '顆氣球'; }
+  if (G.mode === 'tt') $('hSpeed').textContent = Math.round(Math.abs(k.vf) * 3.3) + ' km/h';
+  // 逆向提示
+  const msg = k.wrongT > 0.9 && !k.finished ? '逆向行駛！' : ''; if ($('toast').textContent !== msg) { $('toast').textContent = msg; if (msg) Audio.sfx('wrong'); }
+  drawMinimap();
+  Audio.engineSet(k.vf, k.inp.gas, !!k.drift && !k.air, !G.paused && (G.state === 'race' || G.state === 'countdown' || G.state === 'done'));
+}
+let bannerT = 0;
+function banner(t, sub) { const b = $('banner'); b.innerHTML = t ? t + (sub ? `<small>${sub}</small>` : '') : ''; b.classList.remove('pop'); void b.offsetWidth; if (t) b.classList.add('pop'); clearTimeout(bannerT); bannerT = setTimeout(() => { b.innerHTML = ''; }, 1900); }
+function zap() { const z = $('zap'); z.animate([{ opacity: 0.85 }, { opacity: 0 }], { duration: 420, easing: 'ease-out' }); }
+
+// ============================================================
+// 選單
+// ============================================================
+const TIRE = `<svg class="tire" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="20" fill="#15110c"/><circle cx="22" cy="22" r="11" fill="#f4bf1a" stroke="#15110c" stroke-width="3"/><path d="M22 4v7M22 33v7M4 22h7M33 22h7M9 9l5 5M30 30l5 5M35 9l-5 5M14 30l-5 5" stroke="#4a3d2f" stroke-width="3"/><circle cx="22" cy="22" r="3.5" fill="#15110c"/></svg>`;
+const MODE_ICONS = {
+  gp: `<path d="M18 10h28v10c0 10-6 17-14 18-8-1-14-8-14-18z" fill="#f4bf1a" stroke="#15110c" stroke-width="2.5" stroke-linejoin="round"/><path d="M18 14H9c0 8 4 12 10 13M46 14h9c0 8-4 12-10 13" fill="none" stroke="#15110c" stroke-width="2.5"/><path d="M28 38h8l2 10H26z" fill="#a8740a" stroke="#15110c" stroke-width="2.5" stroke-linejoin="round"/><rect x="19" y="48" width="26" height="7" fill="#dc3b26" stroke="#15110c" stroke-width="2.5"/><path d="M26 16v10" stroke="#fff8ec" stroke-width="3" stroke-linecap="round"/>`,
+  tt: `<circle cx="32" cy="36" r="20" fill="#fff8ec" stroke="#15110c" stroke-width="2.5"/><rect x="27" y="6" width="10" height="8" fill="#dc3b26" stroke="#15110c" stroke-width="2.5"/><path d="M32 36V22M32 36l9 6" stroke="#15110c" stroke-width="3.5" stroke-linecap="round"/><path d="M47 14l5 5" stroke="#15110c" stroke-width="4" stroke-linecap="round"/><path d="M32 16a20 20 0 0 1 20 20H32z" fill="#f4bf1a" stroke="#15110c" stroke-width="2.5" stroke-linejoin="round"/>`,
+  battle: `<path d="M24 6c8 0 14 6 14 14 0 9-7 16-14 17-7-1-14-8-14-17 0-8 6-14 14-14z" fill="#dc3b26" stroke="#15110c" stroke-width="2.5"/><path d="M42 16c6 0 11 5 11 11 0 7-5 12-11 13-6-1-11-6-11-13 0-6 5-11 11-11z" fill="#2553c9" stroke="#15110c" stroke-width="2.5"/><path d="M24 37c0 8 4 12 8 20M42 40c0 6-4 10-10 17" fill="none" stroke="#15110c" stroke-width="2"/><path d="M18 14c2-3 4-4 7-4" stroke="#ffb8a8" stroke-width="3" fill="none" stroke-linecap="round"/>`,
+  opt: `<path d="M44 8a12 12 0 0 0-14 15L10 43a5 5 0 0 0 7 7l20-20A12 12 0 0 0 52 16l-7 7-6-2-2-6z" fill="#cfd4d8" stroke="#15110c" stroke-width="2.5" stroke-linejoin="round"/><circle cx="14" cy="46" r="2.5" fill="#15110c"/>`,
+  back: `<path d="M40 14L20 32l20 18" fill="none" stroke="#15110c" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/><path d="M40 14L20 32l20 18" fill="none" stroke="#fff8ec" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`
+};
+const UI = { id: null, opts: [], focus: 0, cols: 1, back: null, left: null, right: null, onFocus: null };
+function slab(o, i) {
+  const ic = o.icon ? `<svg viewBox="0 0 64 64" aria-hidden="true">${MODE_ICONS[o.icon]}</svg>` : '';
+  const val = o.val !== undefined ? `<span class="v">${o.val}</span>` : '';
+  return `<div class="row${o.opt ? ' optrow' : ''}">${TIRE}<button class="slab opt${ic ? '' : ' solo'}" data-i="${i}"${o.dis ? ' aria-disabled="true"' : ''}>${ic}<span class="k">${o.k}</span>${val}${o.s ? `<span class="s">${o.s}</span>` : ''}</button></div>`;
+}
+function showScreen(id, cfg = {}) {
+  for (const s of document.querySelectorAll('.scr')) s.hidden = s.id !== id;
+  UI.id = id; UI.shownAt = performance.now(); if (id) $('keys').className = ''; UI.back = cfg.back || null; UI.left = cfg.left || null; UI.right = cfg.right || null; UI.cols = cfg.cols || 1; UI.onFocus = cfg.onFocus || null; UI.acts = cfg.acts || [];
+  $('keys').innerHTML = id ? (cfg.keys ?? '<span><kbd>↑</kbd><kbd>↓</kbd>選擇</span><span><kbd>Enter</kbd>確定</span>' + (cfg.back ? '<span><kbd>Esc</kbd>返回</span>' : '')) : '';
+  const scr = id && $(id); UI.opts = scr ? [...scr.querySelectorAll('.opt')] : [];
+  setFocus(clamp(cfg.focus || 0, 0, Math.max(0, UI.opts.length - 1)), true);
+}
+function setFocus(i, silent) {
+  if (!UI.opts.length) return; i = (i + UI.opts.length) % UI.opts.length;
+  if (i !== UI.focus && !silent) Audio.sfx('move');
+  UI.focus = i; UI.opts.forEach((o, n) => { const on = n === i; (o.closest('.row') || o).classList.toggle('on', on); o.classList.toggle('on', on); });
+  if (UI.onFocus) UI.onFocus(i);
+}
+function activate(i) { const o = UI.opts[i]; if (!o || o.getAttribute('aria-disabled') === 'true') return; const a = UI.acts[+o.dataset.i]; if (a) { Audio.sfx('ok'); a(); } }
+function list(id, navId, items, cfg = {}) { $(navId).innerHTML = items.map(slab).join(''); showScreen(id, Object.assign({}, cfg, { acts: items.map(o => o.act) })); }
+function menuKey(e) {
+  if (!UI.id || UI.id === 'sTitle') return false;
+  const k = e.code; const cols = UI.cols;
+  if (k === 'ArrowDown' || k === 'KeyS') setFocus(UI.focus + cols);
+  else if (k === 'ArrowUp' || k === 'KeyW') setFocus(UI.focus - cols);
+  else if (k === 'ArrowRight' || k === 'KeyD') { if (UI.right) UI.right(UI.focus); else if (cols > 1) setFocus(UI.focus + 1); }
+  else if (k === 'ArrowLeft' || k === 'KeyA') { if (UI.left) UI.left(UI.focus); else if (cols > 1) setFocus(UI.focus - 1); }
+  else if (k === 'Enter' || k === 'Space' || k === 'KeyZ') activate(UI.focus);
+  else if ((k === 'Escape' || k === 'Backspace') && UI.back) { Audio.sfx('back'); UI.back(); }
+  else return false;
+  return true;
+}
+document.addEventListener('click', e => { const o = e.target.closest('.opt'); if (!o || !UI.opts.includes(o) || performance.now() - UI.shownAt < 350) return; const i = UI.opts.indexOf(o); setFocus(i, true); activate(i); });
+document.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; const o = e.target.closest && e.target.closest('.opt'); if (o && UI.opts.includes(o)) { const i = UI.opts.indexOf(o); if (i !== UI.focus) setFocus(i); } });
+
+function toTitle() {
+  G.view = 'world'; $('hud').hidden = true; setTouch(false); Audio.engineStop();
+  if (G.mode !== 'attract') attract();
+  showScreen('sTitle', { keys: '' }); Audio.play('title');
+}
+function toMain(focus = 0) {
+  G.view = 'world'; $('hud').hidden = true; setTouch(false); Audio.engineStop(); if (G.mode !== 'attract') attract(); Audio.play('title');
+  list('sMain', 'mainNav', [
+    { k: '大獎賽', s: '四站積分賽，八台車同場', icon: 'gp', act: () => pickCC() },
+    { k: '計時賽', s: '單人跑三圈，挑戰自己的幽靈車', icon: 'tt', act: () => pickChar(() => pickTrack('tt'), () => toMain(1)) },
+    { k: '氣球大戰', s: '每人三顆氣球，打破別人的', icon: 'battle', act: () => pickChar(() => pickTrack('battle'), () => toMain(2)) },
+    { k: '設定', s: '畫質、音樂與音效', icon: 'opt', act: () => options() }
+  ], { focus, back: toTitle });
+}
+function pickCC() {
+  $('listHdr').innerHTML = '大獎賽<small>選擇排氣量：越大越快，電腦車手也越強</small>';
+  list('sList', 'listNav', [
+    { k: '50cc', s: '輕鬆練手', act: () => { G.cc = 50; pickChar(startGP, pickCC); } },
+    { k: '100cc', s: '標準速度', act: () => { G.cc = 100; pickChar(startGP, pickCC); } },
+    { k: '150cc', s: '高速，甩尾要早', act: () => { G.cc = 150; pickChar(startGP, pickCC); } },
+    { k: '返回', icon: 'back', act: () => toMain(0) }
+  ], { focus: { 50: 0, 100: 1, 150: 2 }[G.cc] ?? 1, back: () => toMain(0) });
+}
+function options(focus = 0) {
+  const q = ['復古 240p', '標準', '清晰'];
+  const cyc = (key, n, d) => { OPT[key] = (OPT[key] + d + n) % n; store.set('opt', OPT); Audio.setVol(); resize(); options(UI.focus); };
+  $('listHdr').innerHTML = '設定<small>左右鍵切換</small>';
+  const items = [
+    { k: '畫質', val: q[OPT.quality], opt: 1, act: () => cyc('quality', 3, 1) },
+    { k: '音樂', val: OPT.music ? '開' : '關', opt: 1, act: () => cyc('music', 2, 1) },
+    { k: '音效', val: OPT.sfx ? '開' : '關', opt: 1, act: () => cyc('sfx', 2, 1) },
+    { k: '清除計時紀錄', s: OPT.cleared ? '已清除，四條賽道都沒有紀錄了' : '刪除本機的最佳時間與幽靈車', act: () => { TRACKS.forEach(t => { try { localStorage.removeItem('slipstream-gp:tt:' + t.id); } catch (e) {} }); OPT.cleared = 1; options(3); OPT.cleared = 0; } },
+    { k: '返回', icon: 'back', act: () => toMain(3) }
+  ];
+  const keys = ['quality', 'music', 'sfx'];
+  list('sList', 'listNav', items, { focus, back: () => toMain(3), left: i => { if (i < 3) cyc(keys[i], i ? 2 : 3, -1); }, right: i => { if (i < 3) cyc(keys[i], i ? 2 : 3, 1); } });
+}
+
+// ---- 選角 ----
+const Show = { karts: [], portraits: [] };
+function pickChar(next, back) {
+  G.view = 'showroom';
+  $('charSub').textContent = '';
+  $('charGrid').innerHTML = CHARS.map((c, i) => `<button class="tile opt" data-i="${i}" ><img alt="${c.name}" src="${Show.portraits[i] || ''}"><span class="nm">${c.name}</span></button>`).join('');
+  showScreen('sChar', { cols: 4, focus: G.charIdx, back: () => { G.view = 'world'; back(); }, acts: CHARS.map((c, i) => () => { G.charIdx = i; store.set('char', i); G.view = 'world'; next(); }),
+    keys: '<span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd>選擇</span><span><kbd>Enter</kbd>確定</span><span><kbd>Esc</kbd>返回</span>',
+    onFocus: i => { const c = CHARS[i]; Show.karts.forEach((k, n) => k.root.visible = n === i);
+      const lab = ['速度', '加速', '重量', '操控'];
+      $('charCard').innerHTML = `<div class="who">${c.name}<em>${c.en}</em></div><div class="cls">${c.kind} · ${c.cls}</div>` + c.st.map((v, n) => `<div class="stat"><span>${lab[n]}</span><span class="pips">${[1, 2, 3, 4, 5].map(p => `<i class="${p <= v ? 'f' : ''}"></i>`).join('')}</span></div>`).join(''); } });
+}
+// ---- 賽道／場地 ----
+function trackSvg(def) {
+  if (def.shape) { const s = def.shape === 'rect' ? `<rect x="42" y="12" width="76" height="76" fill="#4a3d2f" stroke="#fff8ec" stroke-width="4"/>` + def.blocks.map(([x, z, w, d]) => `<rect x="${80 + (x - w / 2) * 0.5}" y="${50 + (z - d / 2) * 0.5}" width="${w * 0.5}" height="${d * 0.5}" fill="#f4bf1a"/>`).join('') : `<circle cx="80" cy="50" r="40" fill="#4a3d2f" stroke="#fff8ec" stroke-width="4"/>` + def.circles.map(([x, z, r]) => `<circle cx="${80 + x * 0.52}" cy="${50 + z * 0.52}" r="${r * 0.52}" fill="#f4bf1a"/>`).join('');
+    return `<svg viewBox="0 0 160 100" aria-hidden="true">${s}</svg>`; }
+  const { out } = sampleTrack(def); let a = 1e9, b = -1e9, c = 1e9, d = -1e9; for (const p of out) { a = Math.min(a, p[0]); b = Math.max(b, p[0]); c = Math.min(c, p[1]); d = Math.max(d, p[1]); }
+  const s = Math.min(140 / (b - a), 84 / (d - c)); const ox = 80 - (a + b) / 2 * s, oy = 50 - (c + d) / 2 * s;
+  const pts = out.filter((_, i) => i % 3 === 0).map(p => (p[0] * s + ox).toFixed(1) + ',' + (p[1] * s + oy).toFixed(1)).join(' ');
+  const st = out[0]; return `<svg viewBox="0 0 160 100" aria-hidden="true"><polygon points="${pts}" fill="none" stroke="#15110c" stroke-width="9" stroke-linejoin="round"/><polygon points="${pts}" fill="none" stroke="#fff8ec" stroke-width="4" stroke-linejoin="round"/><circle cx="${(st[0] * s + ox).toFixed(1)}" cy="${(st[1] * s + oy).toFixed(1)}" r="5" fill="#dc3b26" stroke="#15110c" stroke-width="2"/></svg>`;
+}
+function pickTrack(mode) {
+  const arr = mode === 'battle' ? ARENAS : TRACKS;
+  $('trackHdr').innerHTML = mode === 'battle' ? '選擇場地<small>擊破對手的三顆氣球，最後留在場上的獲勝</small>' : '選擇賽道<small>計時賽：三圈、三罐渦輪，紀錄存在這台裝置</small>';
+  $('trackGrid').className = 'tracks' + (arr.length === 2 ? ' two' : '');
+  $('trackGrid').innerHTML = arr.map((t, i) => { const r = mode === 'tt' ? store.get('tt:' + t.id, null) : null;
+    return `<button class="trk opt" data-i="${i}">${trackSvg(t)}<span class="k">${t.name}</span><span class="s">${t.blurb}</span>${mode === 'tt' ? `<span class="rec">${r ? '最佳 ' + fmtTime(r.time) : '尚無紀錄'}</span>` : ''}</button>`; }).join('');
+  const idx = mode === 'battle' ? G.arenaIdx : G.trackIdx;
+  showScreen('sTrack', { cols: arr.length, focus: idx, back: () => pickChar(() => pickTrack(mode), () => toMain(mode === 'battle' ? 2 : 1)),
+    keys: '<span><kbd>←</kbd><kbd>→</kbd>選擇</span><span><kbd>Enter</kbd>出發</span><span><kbd>Esc</kbd>返回</span>',
+    acts: arr.map((t, i) => () => { if (mode === 'battle') { G.arenaIdx = i; startBattle(); } else { G.trackIdx = i; startTT(); } }) });
+}
+
+// ---- 模式入口 ----
+function rivalsFor(me, n) { const ids = CHARS.map((_, i) => i).filter(i => i !== me); for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; } return ids.slice(0, n); }
+function startGP() {
+  const rivals = rivalsFor(G.charIdx, 7);
+  G.gp = { race: 0, rivals, pts: Object.fromEntries(CHARS.map((c, i) => [i, 0])), snap: null, hist: [] };
+  gpRace();
+}
+function gpRace() {
+  const t = TRACKS[G.gp.race]; G.gp.snap = { ...G.gp.pts };
+  startRace({ mode: 'gp', track: t, cc: G.cc, laps: 3, playerChar: G.charIdx, rivals: G.gp.rivals, title: '第 ' + (G.gp.race + 1) + ' 戰', sub: t.name + ' · ' + G.cc + 'cc' });
+}
+function startTT() { const t = TRACKS[G.trackIdx]; G.tt = { track: t }; startRace({ mode: 'tt', track: t, cc: 150, laps: 3, playerChar: G.charIdx, rivals: [], title: '計時賽', sub: t.name }); }
+function startBattle() { const a = ARENAS[G.arenaIdx]; G.battle = { arena: a, left: 180, winner: null }; startRace({ mode: 'battle', track: a, cc: 100, laps: 0, playerChar: G.charIdx, rivals: rivalsFor(G.charIdx, 3), title: '氣球大戰', sub: a.name }); renderBalloonHud(); }
+
+// ---- 結果 ----
+const PTS = [15, 12, 10, 8, 6, 4, 2, 1];
+function row(cells, cls = '') { return `<tr class="${cls}">${cells.map(([c, v]) => `<td class="${c}">${v}</td>`).join('')}</tr>`; }
+const dot = c => `<i style="background:${c}"></i>`;
+function board(html, items, focus = 0) {
+  $('board').classList.remove('low');
+  $('board').innerHTML = html + `<div class="acts">${items.map(slab).join('')}</div>`;
+  $('hud').hidden = true;
+  showScreen('sBoard', { acts: items.map(o => o.act), focus, cols: items.length, keys: '<span><kbd>←</kbd><kbd>→</kbd>選擇</span><span><kbd>Enter</kbd>確定</span>' });
+  setTouch(false);
+}
+function finalOrder() {
+  const fin = G.karts.filter(k => k.finished).sort((a, b) => a.finishT - b.finishT);
+  const rest = G.karts.filter(k => !k.finished).sort((a, b) => b.rawF - a.rawF);
+  // 沒跑完的電腦車依剩餘距離估算時間
+  rest.forEach(k => { const left = (G.laps * G.T.N - k.rawF) * G.T.step; k.estT = G.raceT + left / (k.top * 0.92); });
+  return [...fin, ...rest];
+}
+function showResults() {
+  Audio.engineStop();
+  if (G.mode === 'gp') {
+    const ord = finalOrder(); const gp = G.gp; const t = TRACKS[gp.race];
+    ord.forEach((k, n) => { gp.pts[CHARS.indexOf(k.ch)] += PTS[n]; });
+    const rows = ord.map((k, n) => row([['p', n + 1], ['c', dot(k.ch.kart) + k.ch.name], ['r', fmtTime(k.finished ? k.finishT : k.estT)], ['r', '+' + PTS[n]], ['r', gp.pts[CHARS.indexOf(k.ch)]]], k.isPlayer ? 'me' : '')).join('');
+    const last = gp.race === TRACKS.length - 1; const myPlace = ord.indexOf(G.player) + 1;
+    board(`<h2>第 ${gp.race + 1} 戰 · ${t.name}</h2><p class="sub">${G.cc}cc · 你跑出第 ${myPlace} 名</p><table>${rows}</table>`, [
+      { k: last ? '頒獎典禮' : '下一戰', act: () => { if (last) podium(); else { gp.race++; gpRace(); } } },
+      { k: '重跑這一戰', act: () => { gp.pts = { ...gp.snap }; gpRace(); } },
+      { k: '離開大獎賽', act: () => toMain(0) }
+    ]);
+  } else if (G.mode === 'tt') {
+    const p = G.player; const id = G.tt.track.id; const old = store.get('tt:' + id, null); const total = p.finishT; const best = Math.min(...p.laps);
+    const nr = !old || total < old.time; const nl = !old || best < (old.lap || Infinity);
+    if (nr || nl) store.set('tt:' + id, { time: nr ? total : old.time, lap: nl ? best : old.lap, char: nr ? G.charIdx : old.char, ghost: nr ? G.rec : old.ghost });
+    const rows = p.laps.map((t, i) => row([['p', i + 1], ['c', '第 ' + (i + 1) + ' 圈'], ['r', fmtTime(t)]], t === best ? 'me' : '')).join('') + row([['p', ''], ['c', '總時間'], ['r', fmtTime(total)]]);
+    board(`<h2>${nr ? '新紀錄！' : '計時賽結果'}</h2><p class="sub">${G.tt.track.name} · 最佳總時間 ${fmtTime(nr ? total : old.time)} · 最快單圈 ${fmtTime(nl ? best : old.lap)}${nr ? ' · 幽靈車已更新' : ''}</p><table>${rows}</table>`, [
+      { k: '再跑一次', act: startTT }, { k: '換賽道', act: () => pickTrack('tt') }, { k: '回主選單', act: () => toMain(1) }
+    ]);
+  } else if (G.mode === 'battle') {
+    const w = G.battle.winner; const ord = [...G.karts].sort((a, b) => (b === w) - (a === w) || b.balloons - a.balloons);
+    const rows = ord.map((k, n) => row([['p', n + 1], ['c', dot(k.ch.kart) + k.ch.name], ['r', k.balloons + ' 顆氣球']], (k.isPlayer ? 'me' : '') + (k.out ? ' out' : ''))).join('');
+    board(`<h2>${w ? (w.isPlayer ? '你贏了！' : w.ch.name + ' 獲勝') : '平手'}</h2><p class="sub">${G.battle.arena.name}</p><table>${rows}</table>`, [
+      { k: '再戰一場', act: startBattle }, { k: '換場地', act: () => pickTrack('battle') }, { k: '回主選單', act: () => toMain(2) }
+    ]);
+  }
+}
+function podium() {
+  const gp = G.gp; const ids = [G.charIdx, ...gp.rivals]; const ord = ids.slice().sort((a, b) => gp.pts[b] - gp.pts[a]);
+  const T = G.T; const i = 40; const bx = T.px[i], bz = T.pz[i], by = T.py[i]; const ry = Math.atan2(T.tx[i], T.tz[i]) + Math.PI;
+  for (const k of G.karts) { k.model.root.visible = false; k.shadow.visible = false; }
+  G.state = 'podium'; showScreen(null); $('hud').hidden = true; setTouch(false); G.view = 'world'; Audio.engineStop();
+  const g = new THREE.Group(); const P = prims(); const steps = [[0, 3.2], [-4.2, 2.2], [4.2, 1.4]];
+  const nx = T.nx[i], nz = T.nz[i];
+  steps.forEach(([off, h], n) => {
+    const m = new THREE.Mesh(P.box, new THREE.MeshLambertMaterial({ color: ['#f4bf1a', '#dfe5ea', '#e39a5b'][n], flatShading: true })); m.scale.set(4, h, 4); m.position.set(bx + nx * off, by + h / 2, bz + nz * off); g.add(m);
+    const k = G.karts.find(k => CHARS.indexOf(k.ch) === ord[n]); if (k) { k.model.root.visible = true; k.model.root.position.set(bx + nx * off, by + h, bz + nz * off); k.model.root.rotation.set(0, ry, 0); k.model.tilt.rotation.set(0, 0, 0); k.model.root.scale.setScalar(1); k.model.flame.visible = false; }
+  });
+  World.group.add(g);
+  G.podium = { x: bx, y: by, z: bz, t: 0, ry };
+  const myRank = ord.indexOf(G.charIdx) + 1;
+  Audio.play('result'); Audio.sfx('finish');
+  const rows = ord.map((ci, n) => row([['p', n + 1], ['c', dot(CHARS[ci].kart) + CHARS[ci].name], ['r', gp.pts[ci] + ' 分']], ci === G.charIdx ? 'me' : '')).join('');
+  setTimeout(() => { if (G.state !== 'podium') return; board(`<h2>${myRank === 1 ? '總冠軍！' : myRank <= 3 ? '登上頒獎台' : '大獎賽結束'}</h2><p class="sub">尾流盃 · ${G.cc}cc · 總排名第 ${myRank}</p><table>${rows}</table>`, [
+    { k: '再挑戰一次', act: startGP }, { k: '回主選單', act: () => toMain(0) }
+  ]); $('board').classList.add('low'); }, 3200);
+}
+function podiumCam(dt) {
+  const p = G.podium; p.t += dt; const a = p.ry + Math.sin(p.t * 0.3) * 0.55; const low = !$('sBoard').hidden;
+  camera.position.set(p.x + Math.sin(a) * 15, p.y + 5.5, p.z + Math.cos(a) * 15); camera.lookAt(p.x, p.y + (low ? -1.5 : 2.6), p.z);
+  if (G.frame++ % 2 === 0) for (let n = 0; n < 3; n++) Parts.emit(p.x + (Math.random() - .5) * 16, p.y + 14, p.z + (Math.random() - .5) * 16, (Math.random() - .5) * 2, -3, (Math.random() - .5) * 2, [0xf4bf1a, 0xdc3b26, 0x2553c9, 0x2f9a47, 0xfff8ec][n + Math.floor(Math.random() * 2)], 0.45, 4, 1);
+}
+
+// ---- 暫停 ----
+function pause(on) {
+  if (!['countdown', 'race', 'done'].includes(G.state) || G.mode === 'attract') return;
+  G.paused = on;
+  if (on) { Audio.engineSet(0, false, false, false); setTouch(false);
+    board(`<h2>暫停</h2><p class="sub">${G.mode === 'battle' ? G.battle.arena.name : G.T.def.name}</p>`, [
+      { k: '繼續', act: () => pause(false) },
+      { k: '重新開始', act: () => { G.paused = false; if (G.mode === 'gp') { G.gp.pts = { ...G.gp.snap }; gpRace(); } else if (G.mode === 'tt') startTT(); else startBattle(); } },
+      { k: '離開', act: () => { G.paused = false; toMain(G.mode === 'gp' ? 0 : G.mode === 'tt' ? 1 : 2); } }
+    ]); UI.back = () => pause(false); $('keys').insertAdjacentHTML('beforeend', '<span><kbd>Esc</kbd>繼續</span>');
+  } else { showScreen(null); $('hud').hidden = false; setTouch(true); }
+}
+
+// ============================================================
+// 觸控
+// ============================================================
+let touchWanted = false;
+function setTouch(on) { $('touch').hidden = !(on && touchWanted); Pad.touch = on && touchWanted; if (!Pad.touch) { Pad.touchSteer = 0; Pad.tHop = Pad.tItem = Pad.tBrake = false; } }
+function initTouch() {
+  const pad = $('steerPad'), base = pad.querySelector('.base'), knob = pad.querySelector('.knob'); let id = null, sx = 0;
+  pad.addEventListener('pointerdown', e => { id = e.pointerId; sx = e.clientX; pad.setPointerCapture(id); pad.classList.add('act'); const r = pad.getBoundingClientRect(); base.style.left = knob.style.left = (e.clientX - r.left) + 'px'; base.style.top = knob.style.top = (e.clientY - r.top) + 'px'; });
+  pad.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const dx = clamp((e.clientX - sx) / 60, -1, 1); Pad.touchSteer = dx; const r = pad.getBoundingClientRect(); knob.style.left = (sx - r.left + dx * 60) + 'px'; });
+  const up = e => { if (e.pointerId !== id) return; id = null; Pad.touchSteer = 0; pad.classList.remove('act'); };
+  pad.addEventListener('pointerup', up); pad.addEventListener('pointercancel', up);
+  for (const b of document.querySelectorAll('.tbtn')) {
+    const k = { hop: 'tHop', item: 'tItem', brake: 'tBrake' }[b.dataset.t];
+    b.addEventListener('pointerdown', e => { e.preventDefault(); Pad[k] = true; b.classList.add('down'); b.setPointerCapture(e.pointerId); });
+    const off = () => { Pad[k] = false; b.classList.remove('down'); }; b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off);
+  }
+  $('pauseBtn').addEventListener('click', () => pause(true));
+  window.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && !touchWanted) { touchWanted = true; document.body.classList.add('touch'); if (['countdown', 'race', 'done'].includes(G.state) && !G.paused && G.mode !== 'attract') setTouch(true); } }, true);
+}
+
+// ============================================================
+// 迴圈
+// ============================================================
+let last = 0, acc = 0; const DT = 1 / 60;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
+  readInput(); pollPadMenu();
+  if (G.view === 'showroom') { Show.karts.forEach(k => { k.root.rotation.y += dt * 0.8; }); renderer.render(showScene, showCam); return; }
+  if (G.state === 'podium') { podiumCam(dt); Parts.update(dt); for (const a of G.T.anim) a(dt, now / 1000); renderer.render(scene, camera); return; }
+  if (!G.paused && G.T && G.state !== 'results') {
+    acc += dt * FAST; let n = 0;
+    while (acc >= DT && n < 4 * FAST) { tickRace(DT); acc -= DT; n++; Input.hopEdge = Input.itemEdge = false; }
+    if (n === 4 * FAST) acc = 0;
+  }
+  if (G.T) {
+    for (const k of G.karts) syncKart(k, dt);
+    for (const p of G.proj) if (p.mesh) { p.mesh.position.set(p.x, p.y, p.z); if (p.type === 'bounce') p.mesh.rotation.y += dt * 8; if (p.type === 'seeker') { p.mesh.rotation.y = Math.atan2(p.vx, p.vz); p.mesh.userData.wings.forEach((w, i) => w.rotation.z = Math.sin(now / 30) * 0.7 * (i ? 1 : -1)); } if (p.type === 'peel') p.mesh.rotation.y += dt * 0.5; }
+    for (const b of G.T.boxes) { if (!b.mesh) continue; b.mesh.visible = b.on; b.mesh.rotation.y += dt * 1.6; b.mesh.rotation.x = Math.sin(now / 700) * 0.3; b.inner.rotation.y -= dt * 4; b.mesh.position.y = b.y + Math.sin(now / 400 + b.x) * 0.18; }
+    for (const a of G.T.anim) a(dt, now / 1000);
+    updateGhost(); updateCamera(dt); if (!G.paused) { weather(dt); Parts.update(dt); }
+    updateHud(dt);
+  }
+  renderer.render(scene, camera);
+}
+// 選單也能用手把操作
+const padPrev = {};
+function pollPadMenu() {
+  const gp = navigator.getGamepads ? navigator.getGamepads()[0] : null; if (!gp) return;
+  const b = i => gp.buttons[i] && gp.buttons[i].pressed; const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+  const st = { up: b(12) || ay < -0.6, down: b(13) || ay > 0.6, left: b(14) || ax < -0.6, right: b(15) || ax > 0.6, a: b(0), b: b(1), start: b(9) };
+  const map = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', a: 'Enter', b: 'Escape' };
+  for (const k in st) if (st[k] && !padPrev[k]) {
+    if (k === 'start') { if (UI.id === 'sTitle') { Audio.init(); toMain(); } else if (!UI.id) pause(true); else if (G.paused) pause(false); }
+    else if (UI.id === 'sTitle' && k === 'a') { Audio.init(); toMain(); }
+    else if (UI.id && !(G.view === 'world' && !UI.id)) menuKey({ code: map[k] });
+  }
+  Object.assign(padPrev, st);
+}
+
+// ============================================================
+// 尺寸
+// ============================================================
+function resize() {
+  const w = innerWidth, h = innerHeight; const dpr = Math.min(devicePixelRatio || 1, 2);
+  const budget = [320 * 240, 960 * 540, Infinity][OPT.quality];
+  const s = Math.min(dpr, Math.sqrt(budget / (w * h)));
+  renderer.setPixelRatio(1); renderer.setSize(Math.max(160, Math.round(w * s)), Math.max(120, Math.round(h * s)), false);
+  document.body.classList.toggle('crisp', OPT.quality === 0);
+  camera.aspect = w / h; camera.fov = baseFov(); camera.updateProjectionMatrix();
+  showCam.aspect = w / h; showCam.updateProjectionMatrix(); placeShowCam();
+  const bh = renderer.domElement.height; Parts.mat.uniforms.scale.value = bh / (2 * Math.tan(camera.fov * Math.PI / 360)); Parts.mat.uniforms.maxPx.value = Math.max(6, bh / 36);
+}
+function placeShowCam() { const p = portrait(); showCam.fov = p ? 50 : 34; showCam.position.set(p ? 0 : -3.6, p ? 4.2 : 3.4, p ? 14 : 14); showCam.lookAt(p ? 0 : -3.6, p ? -0.8 : 1.3, 0); showCam.updateProjectionMatrix(); }
+
+// ============================================================
+// 啟動
+// ============================================================
+function buildShowroom() {
+  showScene = new THREE.Scene(); showScene.background = new THREE.Color('#2553c9');
+  showScene.add(new THREE.HemisphereLight(0xfff3e0, 0x3a2a1a, 1.5)); const d = new THREE.DirectionalLight(0xffffff, 2.2); d.position.set(4, 8, 6); showScene.add(d);
+  showCam = new THREE.PerspectiveCamera(36, 1, 0.1, 200);
+  // 轉盤：一塊八角形台座
+  const P = prims(); const plate = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.6, 0.5, 8), new THREE.MeshLambertMaterial({ color: 0xf4bf1a, flatShading: true })); plate.position.y = -0.25; showScene.add(plate);
+  const rim = new THREE.Mesh(new THREE.CylinderGeometry(3.7, 3.9, 0.3, 8), new THREE.MeshLambertMaterial({ color: 0x15110c, flatShading: true })); rim.position.y = -0.55; showScene.add(rim);
+  // 背景：放射條紋
+  const rays = canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#2553c9'; g.fillRect(0, 0, w, h); g.fillStyle = '#2f60d8'; for (let i = 0; i < 16; i++) { g.beginPath(); g.moveTo(w / 2, h / 2); g.arc(w / 2, h / 2, w, i / 16 * TAU, (i + 0.5) / 16 * TAU); g.fill(); } }, false);
+  const bg = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.MeshBasicMaterial({ map: rays })); bg.position.set(0, 0, -30); showScene.add(bg); Show.bg = bg;
+  CHARS.forEach(c => { const m = buildKart(c); m.root.scale.setScalar(1.25); m.root.visible = false; showScene.add(m.root); Show.karts.push(m); });
+  // 頭像：用一個小渲染器逐一拍照
+  const r2 = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); r2.setSize(160, 160, false); r2.outputColorSpace = THREE.SRGBColorSpace;
+  const pc = new THREE.PerspectiveCamera(30, 1, 0.1, 50); pc.position.set(2.2, 3.4, 5.2); pc.lookAt(0, 2.05, 0);
+  const ps = new THREE.Scene(); ps.add(new THREE.HemisphereLight(0xfff3e0, 0x3a2a1a, 1.6)); const pd = new THREE.DirectionalLight(0xffffff, 2); pd.position.set(3, 6, 6); ps.add(pd);
+  CHARS.forEach((c, i) => { const m = Show.karts[i]; showScene.remove(m.root); ps.add(m.root); m.root.visible = true; m.root.rotation.y = 0.25; ps.background = new THREE.Color(shade(c.kart, 0.55)); r2.render(ps, pc); Show.portraits[i] = r2.domElement.toDataURL('image/png'); ps.remove(m.root); showScene.add(m.root); m.root.visible = false; m.root.rotation.y = -0.6; });
+  r2.dispose(); r2.forceContextLoss && r2.forceContextLoss();
+}
+async function boot() {
+  try { THREE = await import('three'); }
+  catch (e) { try { THREE = await import('../vendor/three-0.186.0/three.module.js'); } catch (e2) { $('boot').innerHTML = '<p><b>引擎載入失敗</b>需要網路連線到 cdn.jsdelivr.net 載入 Three.js。</p>'; return; } }
+  try { renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' }); }
+  catch (e) { $('boot').innerHTML = '<p><b>無法啟用 WebGL</b>這個瀏覽器或裝置不支援 3D 繪圖。</p>'; return; }
+  renderer.outputColorSpace = THREE.SRGBColorSpace; $('stage').appendChild(renderer.domElement);
+  renderer.domElement.setAttribute('aria-label', '尾流大獎賽遊戲畫面');
+  scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(64, 1, 0.3, 2600);
+  hemi = new THREE.HemisphereLight(0xffffff, 0x6b5a44, 1.15); scene.add(hemi);
+  sunLight = new THREE.DirectionalLight(0xffffff, 2.4); sunLight.position.set(-0.6, 1, -0.4); scene.add(sunLight);
+  Parts.init(scene); buildShowroom(); resize();
+  addEventListener('resize', resize);
+  initTouch();
+  if (matchMedia('(pointer: coarse)').matches) { touchWanted = true; document.body.classList.add('touch'); document.querySelector('#sTitle .press').textContent = '點一下開始'; }
+  $('boot').remove();
+  if (AUTORACE) {
+    window.__sg = { G, Audio };
+    const tn = HASH.get('autorace'); const mode = HASH.get('mode') || 'gp';
+    G.charIdx = +(HASH.get('char') || 0); G.cc = 150;
+    if (mode === 'battle') { G.arenaIdx = Math.max(0, ARENAS.findIndex(a => a.id === tn)); startBattle(); }
+    else if (mode === 'tt') { G.trackIdx = Math.max(0, TRACKS.findIndex(t => t.id === tn)); startTT(); }
+    else { startGP(); const ti = TRACKS.findIndex(t => t.id === tn); if (ti > 0) { G.gp.race = ti; gpRace(); } }
+    G.player.autopilot = !HASH.has('drive'); if (HASH.has('skip')) { G.cd = 0.01; }
+  } else { attract(); showScreen('sTitle', { keys: '' }); }
+  requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
+}
+addEventListener('keydown', e => {
+  if (e.repeat && !e.code.startsWith('Arrow')) { if (!['Space', 'ShiftLeft', 'ShiftRight'].includes(e.code)) return; }
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+  if (UI.id === 'sTitle' && !e.repeat) { Audio.init(); Audio.sfx('ok'); toMain(); return; }
+  if (!e.repeat && UI.id && menuKey(e)) return;
+  if (!e.repeat && (e.code === 'Escape' || e.code === 'KeyP') && !UI.id) { pause(true); return; }
+  if (e.code === 'KeyM' && !e.repeat) { OPT.music = OPT.music ? 0 : 1; store.set('opt', OPT); Audio.setVol(); }
+  Keys.add(e.code);
+});
+addEventListener('keyup', e => Keys.delete(e.code));
+addEventListener('blur', () => { Keys.clear(); if (!UI.id) pause(true); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && !UI.id) pause(true); });
+$('sTitle').addEventListener('pointerdown', () => { if (UI.id === 'sTitle') { Audio.init(); Audio.sfx('ok'); toMain(); } });
+document.addEventListener('pointerdown', () => Audio.init(), { once: true, capture: true });
+boot();
+</script>
+</body>
+</html>

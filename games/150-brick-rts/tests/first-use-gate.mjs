@@ -17,16 +17,16 @@ const position=()=>page.locator('#position').innerText(),notice=()=>page.locator
 async function runUntil(){const start=Number(await page.locator('#tick').innerText());await page.locator('#pause').click();await page.waitForFunction(t=>Number(document.querySelector('#tick').textContent)>t+3&&document.querySelector('#position').textContent.includes('待命'),start,{timeout:40000});await page.locator('#pause').click();}
 // 1. Select villager 2 by clicking its body in the scene.
 let p=await screen(4.5,.6,7);await page.mouse.click(p.x,p.y);await page.waitForTimeout(150);note('點選人偶',`${await position()}`);
-// 2. Click the paved gate front on the plinth.
-p=await screen(4,0,6);await page.mouse.click(p.x,p.y);await page.waitForTimeout(150);note('點城鎮中心門前',await notice());
+// 2. Right-click the paved gate front on the plinth.
+p=await screen(4,0,6);await page.mouse.click(p.x,p.y,{button:'right'});await page.waitForTimeout(150);note('點城鎮中心門前',await notice());
 await runUntil('待命');note('抵達門前',await position());await page.screenshot({path:out+'/fu7-gate-front.png'});
-// 3. Click the hall floor under the roof: ground picking ignores the roof.
-p=await screen(4,0,4.2);await page.mouse.click(p.x,p.y);await page.waitForTimeout(150);note('點大廳內地面（屋頂下）',await notice());
+// 3. Right-click the hall floor under the roof: ground picking ignores the roof.
+p=await screen(4,0,4.2);await page.mouse.click(p.x,p.y,{button:'right'});await page.waitForTimeout(150);note('點大廳內地面（屋頂下）',await notice());
 await runUntil('待命');note('進入大廳',await position());await page.screenshot({path:out+'/fu7-inside-hall.png'});
-// 4. Click a hall pier: must be rejected without changing state.
-const beforePier=await page.locator('#hash').innerText();p=await screen(3,0,4.5);await page.mouse.click(p.x,p.y);await page.waitForTimeout(200);note('點石柱占地',await notice());assert.equal(await page.locator('#hash').innerText(),beforePier);
+// 4. Right-click a hall pier: must be rejected without changing state.
+const beforePier=await page.locator('#hash').innerText();p=await screen(3,0,4.5);await page.mouse.click(p.x,p.y,{button:'right'});await page.waitForTimeout(200);note('點石柱占地',await notice());assert.equal(await page.locator('#hash').innerText(),beforePier);
 // 5. Rapid double order: second click replaces the first, no stuck job.
-p=await screen(4,0,2.8);await page.mouse.click(p.x,p.y);await page.mouse.click(p.x,p.y);await page.waitForTimeout(150);note('快速連點後門外',await notice());
+p=await screen(4,0,2.8);await page.mouse.click(p.x,p.y,{button:'right'});await page.mouse.click(p.x,p.y,{button:'right'});await page.waitForTimeout(150);note('快速連點後門外',await notice());
 await runUntil('待命');note('穿過大廳到後方',await position());await page.screenshot({path:out+'/fu7-behind-hall.png'});
 // 6. Save, restart, load, replay.
 await page.locator('#save').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('已儲存'));const saved=await page.locator('#hash').innerText();

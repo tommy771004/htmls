@@ -737,7 +737,7 @@ function canTraverse(tile, movement) {
 }
 
 // packages/sim/navigation.ts
-var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 32, speedPerTick: 5 };
+var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 128, speedPerTick: 5, maxGroupSize: 40, waitLimit: 8, queueWaitFactor: 4, detourLimit: 12, stuckTicks: 300, arrivalRadius: 150 };
 var startingResourceRules = { provenance: "design_default", maxApproachDistance: 1200, maxNearestDistanceDifference: 500, minimum: { tree: 300, stone: 250, gold: 250, berries: 150 } };
 function makeMap(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("\u5730\u5716 seed \u5FC5\u9808\u70BA uint32");
@@ -1160,7 +1160,7 @@ async function createScene(canvas, onFailure, options = {}) {
   let previewRole = "villager";
   let previewPose = "idle", previewTool = "none", previewAnimated = false, poseStart = 0;
   const focus = { x: 8, y: 0, z: 8 };
-  let worldKey = "", angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected = 1, latest = null;
+  let worldKey = "", angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected = /* @__PURE__ */ new Set([1]), latest = null;
   function cameraUpdate() {
     if (width <= 0 || height <= 0) return;
     const aspect = width / Math.max(1, height);
@@ -1184,9 +1184,9 @@ async function createScene(canvas, onFailure, options = {}) {
       cameraUpdate();
     }
   }
-  function update(view, id) {
+  function update(view, ids) {
     latest = view;
-    selected = id;
+    selected = new Set(typeof ids === "number" ? [ids] : ids);
     const key = JSON.stringify([previewBuildingKind, previewBuilding, previewLayout, view.layout, view.seed, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
     if (worldKey !== key) {
       worldKey = key;
@@ -1203,7 +1203,7 @@ async function createScene(canvas, onFailure, options = {}) {
       const dx = data.x / 100 - u.group.position.x, dz = data.y / 100 - u.group.position.z;
       if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
       u.group.position.set(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100);
-      u.ring.visible = data.id === selected;
+      u.ring.visible = selected.has(data.id);
       u.moving = data.navigation === "moving";
     }
   }
@@ -1221,13 +1221,29 @@ async function createScene(canvas, onFailure, options = {}) {
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
+  function pickGround(clientX, clientY) {
+    const r = canvas.getBoundingClientRect();
+    raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
+    const hit = raycaster.intersectObjects(staticGroup.children.filter((mesh) => mesh.userData.ground), false)[0];
+    return hit ? { x: hit.point.x, y: hit.point.z } : {};
+  }
+  function unitsInRect(x0, y0, x1, y1) {
+    const r = canvas.getBoundingClientRect(), out = [], p = new T.Vector3();
+    for (const [id, u] of units) {
+      if (!u.group.visible) continue;
+      p.set(u.group.position.x, u.group.position.y + 0.55, u.group.position.z).project(camera);
+      const sx = r.left + (p.x + 1) / 2 * r.width, sy = r.top + (1 - p.y) / 2 * r.height;
+      if (sx >= Math.min(x0, x1) && sx <= Math.max(x0, x1) && sy >= Math.min(y0, y1) && sy <= Math.max(y0, y1)) out.push(id);
+    }
+    return out.sort((a, b) => a - b);
+  }
   function draw(time) {
     if (contextLost) return;
     resize();
     for (const u of units.values()) {
       const pose = options.assetPreview ? previewPose : u.moving ? "walk" : "idle";
       u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : time);
-      u.ring.visible = u.group === units.get(selected)?.group && pose !== "death";
+      u.ring.visible = [...units].some(([id, v]) => v === u && selected.has(id)) && pose !== "death";
     }
     renderer.render(scene, camera);
   }
@@ -1239,7 +1255,7 @@ async function createScene(canvas, onFailure, options = {}) {
   });
   canvas.dataset.renderer = "webgl2";
   canvas.dataset.renderState = "ready";
-  return { update, draw, pick, setPreviewBuildingKind: (kind) => {
+  return { update, draw, pick, pickGround, unitsInRect, setPreviewBuildingKind: (kind) => {
     if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
     previewBuildingKind = kind;
     if (latest) update(latest, selected);

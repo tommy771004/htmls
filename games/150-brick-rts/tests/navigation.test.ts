@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {makeMap,clearSegment,position,createPathJob,advancePathJob} from '../packages/sim/navigation.ts';
+import {makeMap,clearSegment,position,createPathJob,advancePathJob,navigationRules} from '../packages/sim/navigation.ts';
 import type {MapData,Obstacle} from '../packages/sim/navigation.ts';
 import {createTiles} from '../packages/sim/terrain.ts';
 import {createState,submit,tick,hash,serialize,deserialize,rulesetHash,replay} from '../packages/sim/sim.ts';
 function mapWith(obstacles:Obstacle[]):MapData{const m:MapData={obstacles,blocked:[],tiles:createTiles(),resources:[],navigationRevision:0,generationAttempt:0};for(let i=0;i<961;i++)if(!clearSegment(m,position(i),position(i)))m.blocked.push(i);return m;}
 test('fixed-budget search preserves frontier across snapshots and routes through the town-center gate',()=>{
  // Blue town center at (265,350): gate centre x=400, arch band y 500-525, hall behind it.
- const s=createState(260925);submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds:[1],x:400,y:420}});assert.ok(tick(s).expanded<=32);
+ const s=createState(260925);submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds:[1],x:400,y:420}});assert.ok(tick(s).expanded<=navigationRules.expansionsPerTick);
  const restored=deserialize(serialize(s));let throughGate=false;
  for(let i=0;i<1500;i++){const before={...s.units[0]};tick(s);tick(restored);assert.ok(clearSegment(s.map,before,s.units[0]));if(s.units[0].y>=500&&s.units[0].y<=525){assert.equal(s.units[0].x,400);throughGate=true;}}
  // Standing positions snap to the nearest reachable navigation node.
@@ -23,11 +23,12 @@ test('unreachable search terminates; serialized work produces identical path',()
  const job=createPathJob(wall,1,{x:350,y:700},{x:1100,y:700});for(let i=0;i<2000&&job.status==='searching';i++)assert.ok(advancePathJob(wall,job,1)<=1);assert.equal(job.status,'unreachable');
  const map=makeMap(7),a=createPathJob(map,1,{x:350,y:700},{x:800,y:800});advancePathJob(map,a,5);const b=JSON.parse(JSON.stringify(a));while(a.status==='searching')advancePathJob(map,a,32);while(b.status==='searching')advancePathJob(map,b,7);assert.deepEqual(a.path,b.path);
 });
-test('one group search shares the node budget, and a replacement order splits the old group',()=>{
- const s=createState(7);submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds:[1,2,3],x:1200,y:1000}});tick(s);
- assert.equal(s.pathJobs.length,1);assert.ok(s.pathJobs[0].head<=32);
- submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:2,targetTick:2,commandType:'move',payload:{unitIds:[1],x:600,y:900}});tick(s);
- const groups=s.pathJobs.map(j=>j.kind==='group'?j.unitIds:[]);assert.deepEqual(groups.sort(),[[1],[2,3]].sort());
+test('a replacement order takes a unit out of its old group while the rest keep the first order',()=>{
+ const s=createState(7);submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds:[1,2,3],x:1200,y:1000}});assert.ok(tick(s).expanded<=navigationRules.expansionsPerTick);
+ submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:2,targetTick:2,commandType:'move',payload:{unitIds:[1],x:600,y:900}});
+ for(let i=0;i<2000&&!(i>2&&s.pathJobs.length===0&&s.units.every(u=>u.next===null&&!u.path.length));i++)tick(s);
+ const near=(u:{x:number;y:number},x:number,y:number)=>Math.abs(u.x-x)+Math.abs(u.y-y)<=150;
+ assert.ok(near(s.units[0],600,900));assert.ok(near(s.units[1],1200,1000)&&near(s.units[2],1200,1000));
 });
 test('non-grid destinations snap to the nearest reachable node and every step stays clear',()=>{
  const s=createState(9);for(const [i,[p,node]] of [[{x:611,y:913},{x:600,y:900}],[{x:323,y:283},{x:300,y:300}],[{x:723,y:817},{x:700,y:800}]].entries()){
