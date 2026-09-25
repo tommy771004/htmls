@@ -1,3 +1,113 @@
+// apps/web/brick-geometries.ts
+function createArchGeometry(T, width, height, depth) {
+  if (![width, height, depth].every((n) => Number.isFinite(n) && n > 0)) throw Error("\u62F1\u4EF6\u5C3A\u5BF8\u5FC5\u9808\u70BA\u6709\u9650\u6B63\u6578");
+  const half = width / 2, radius = Math.min(width * 0.32, height * 0.35), spring = height * 0.55;
+  const shape = new T.Shape();
+  shape.moveTo(-half, 0);
+  shape.lineTo(-half, height);
+  shape.lineTo(half, height);
+  shape.lineTo(half, 0);
+  shape.lineTo(radius, 0);
+  shape.lineTo(radius, spring);
+  shape.absarc(0, spring, radius, 0, Math.PI, false);
+  shape.lineTo(-radius, 0);
+  shape.closePath();
+  const geometry = new T.ExtrudeGeometry(shape, { depth, bevelEnabled: false, steps: 1, curveSegments: 8 });
+  geometry.translate(0, 0, -depth / 2);
+  return geometry;
+}
+
+// apps/web/military-building.ts
+var militaryBuildings = ["barracks", "archery-range", "stable"];
+function militaryBuildingParts(kind, v) {
+  if (!militaryBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u8ECD\u4E8B\u5EFA\u7BC9\u5916\u89C0");
+  const p = [], team = v.red ? "#b85c47" : "#456e87", wood = "#94734c", stone = "#b5b29e", top = 1.44 + (v.ageVariant - 1) * 0.16;
+  const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
+  add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
+  if (kind === "archery-range") {
+    for (const x of [0.1, 2.5]) {
+      add(`fence-post-${x}`, 1, x, 0.12, 0.16, 0.13, 2.1, 0.5, wood);
+    }
+    add("backstop", 1, 0.1, 0.12, 0.16, 2.53, 0.18, 1.1, wood);
+    for (const x of [0.36, 1.67]) {
+      add(`target-leg-${x}`, 2, x + 0.23, 0.75, 0.16, 0.1, 0.2, 0.75, wood);
+      add(`target-board-${x}`, 2, x, 0.72, 0.83, 0.56, 0.16, 0.6, "#cfbd87");
+      add(`target-ring-${x}`, 3, x + 0.1, 0.89, 0.93, 0.36, 0.03, 0.4, "#aa5c48");
+      add(`target-center-${x}`, 3, x + 0.2, 0.93, 1.03, 0.16, 0.03, 0.2, "#e5d4a8");
+    }
+    add("arrow-rack", 3, 0.22, 2.3, 0.16, 0.7, 0.27, 0.4, wood);
+    for (let i = 0; i < 4; i++) add(`arrow-${i}`, 3, 0.3 + i * 0.14, 2.4, 0.56, 0.03, 0.03, 0.42, "#d2be8f");
+  } else {
+    for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, v.ageVariant >= 3 ? stone : wood);
+    add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.15, top - 0.16, kind === "stable" ? wood : stone);
+    for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, -0.05 + level * 0.28, -0.05, top + level * 0.16, 2.9 - level * 0.56, 1.98, 0.16, v.ageVariant === 1 ? "#b8a074" : team, true);
+    if (kind === "barracks") {
+      add("drill-floor", 1, 0.3, 1.85, 0.16, 2.1, 0.85, 0.08, "#a59a76");
+      add("weapon-rack", 3, 0.3, 0.5, 0.16, 0.15, 1.1, 0.75, wood);
+      for (let i = 0; i < 3; i++) {
+        add(`spear-shaft-${i}`, 3, 0.32, 0.6 + i * 0.3, 0.16, 0.04, 0.04, 1.15, wood);
+        add(`spear-point-${i}`, 3, 0.28, 0.58 + i * 0.3, 1.31, 0.12, 0.08, 0.2, "#bdc5bd");
+      }
+      for (const x of [0.5, 1.05, 1.6]) {
+        add(`shield-support-${x}`, 3, x, 1.9, 0.24, 0.08, 0.15, 0.62, wood);
+        add(`shield-${x}`, 3, x - 0.08, 2.02, 0.43, 0.36, 0.08, 0.44, team);
+        add(`shield-boss-${x}`, 3, x + 0.04, 2.11, 0.57, 0.1, 0.04, 0.12, "#bca36f");
+      }
+    } else {
+      for (const x of [0.15, 1.75]) {
+        add(`stall-divider-${x}`, 1, x, 0.35, 0.16, 0.1, 1.3, 0.65, wood);
+        add(`hay-${x}`, 3, x + 0.16, 0.4, 0.16, 0.62, 0.55, 0.3, "#beac69", true);
+      }
+      add("trough-base", 3, 0.6, 2.03, 0.16, 1.5, 0.4, 0.12, wood);
+      for (const z of [2.03, 2.35]) add(`trough-rim-${z}`, 3, 0.6, z, 0.28, 1.5, 0.08, 0.2, wood);
+      for (const x of [0.6, 2.02]) add(`trough-end-${x}`, 3, x, 2.11, 0.28, 0.08, 0.24, 0.2, wood);
+      add("trough-water", 3, 0.69, 2.12, 0.29, 1.32, 0.22, 0.035, "#6a9297");
+      add("saddle-rack", 3, 2.48, 0.9, 0.16, 0.12, 0.15, 0.85, wood);
+      add("spare-saddle", 3, 2.3, 0.84, 1.01, 0.45, 0.4, 0.16, "#716045");
+    }
+  }
+  if (v.ageVariant >= 2) {
+    if (kind === "archery-range") {
+      for (const x of [0.1, 2.44]) add(`canopy-post-${x}`, 1, x, 0.12, 0.16, 0.16, 0.18, top - 0.16, wood);
+      add("canopy-beam", 1, 0.1, 0.12, top, 2.5, 0.18, 0.16, wood);
+      add("canopy-roof", 2, -0.05, -0.02, top + 0.16, 2.8, 0.7, 0.16, team, true);
+    } else {
+      for (const x of [0.1, 2.44]) add(`porch-foot-${x}`, 1, x - 0.07, 1.58, 0.16, 0.3, 0.3, 0.32, stone);
+      add("porch-beam", 1, 0.1, 1.65, top - 0.16, 2.5, 0.16, 0.16, wood);
+      add("ridge-cap", 2, 0.79, -0.05, top + 0.48, 1.22, 1.98, 0.16, team, true);
+    }
+  }
+  if (v.ageVariant >= 3) {
+    if (kind === "archery-range") {
+      add("stone-backstop", 1, 0.1, -0.04, 0.16, 2.5, 0.16, 1.28, stone);
+      for (const x of [0.1, 2.3]) add(`backstop-buttress-${x}`, 1, x, 0.13, 0.16, 0.3, 0.35, 1.12, stone);
+      for (let i = 0; i < 5; i++) add(`backstop-crenel-${i}`, 2, 0.1 + i * 0.5, -0.04, 1.44, 0.3, 0.16, 0.24, stone, true);
+    } else {
+      for (const z of [0.1, 1.6]) for (const x of [-0.05, 2.6]) add(`buttress-${x}-${z}`, 1, x, z, 0.16, 0.15, 0.3, top - 0.16, stone);
+      add("porch-arch", 1, 0.26, 1.65, 0.16, 2.18, 0.16, top - 0.16, stone, false, "arch");
+    }
+  }
+  if (v.ageVariant === 4) {
+    if (kind === "archery-range") {
+      for (const x of [0.1, 2.2]) {
+        add(`turret-base-${x}`, 2, x, 0.05, top + 0.32, 0.4, 0.4, 0.16, stone);
+        for (const dx of [0, 0.28]) add(`turret-post-${x}-${dx}`, 3, x + dx, 0.05, top + 0.48, 0.12, 0.4, 0.48, stone);
+        add(`turret-cap-${x}`, 3, x - 0.05, 0, top + 0.96, 0.5, 0.5, 0.16, team, true);
+      }
+    } else {
+      const base = top + 0.64;
+      add("vent-base", 2, 0.91, 0.5, base, 0.96, 0.8, 0.16, stone);
+      for (const x of [0.91, 1.71]) for (const z of [0.5, 1.14]) add(`vent-post-${x}-${z}`, 3, x, z, base + 0.16, 0.16, 0.16, 0.48, stone);
+      add("vent-cap", 3, 0.83, 0.42, base + 0.64, 1.12, 0.96, 0.16, team, true);
+      add("vent-crown", 4, 1.07, 0.58, base + 0.8, 0.64, 0.64, 0.16, team, true);
+    }
+  }
+  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood);
+  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team);
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: wood, studs: false }))];
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id.startsWith("target-center") || a.id === "vent-crown" || a.id.startsWith("backstop-crenel")));
+}
+
 // apps/web/unit-rig.ts
 var unitPoses = ["idle", "walk", "work", "attack", "hit", "death", "carry"];
 var unitTools = ["none", "axe", "pick", "sickle", "hammer", "basket", "sword", "spear", "bow"];
@@ -279,7 +389,7 @@ var economicBuildings = ["lumber-camp", "mining-camp", "mill", "farm", "town-cen
 function economicBuildingParts(kind, v) {
   if (!economicBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u7D93\u6FDF\u5EFA\u7BC9\u5916\u89C0");
   const p = [], team = v.red ? "#b85c47" : "#456e87", wood = "#94734c", stone = "#aaa994", height = 1.28 + (v.ageVariant - 1) * 0.16;
-  const add = (id, phase, x, z, y, w, d, h, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h, color, studs });
+  const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, kind === "farm" ? "#806b49" : "#b3aa8c");
   if (kind === "farm") {
     for (let row = 0; row < 4; row++) {
@@ -320,7 +430,7 @@ function economicBuildingParts(kind, v) {
       for (const x of [0.22, 2.13]) add(`grain-bag-${x}`, 3, x, 0.7, 0.16, 0.38, 0.4, 0.48, "#c5b285", true);
     } else if (kind === "town-center") {
       for (const x of [0.15, 2.05]) add(`hall-pier-${x}`, 1, x, 0.15, 0.16, 0.5, 1.5, height, stone, true);
-      add("entrance-lintel", 1, 0.65, 1.5, height - 0.16, 1.4, 0.25, 0.32, stone);
+      add("entrance-lintel", 1, 0.65, 1.5, 0.16, 1.4, 0.25, height - 0.16, stone, false, "arch");
       for (let level = 0; level < 3; level++) add(`entrance-step-${level}`, 3, 0.8, 2.15 + level * 0.18, 0.16, 0.95, 0.18, 0.24 - level * 0.08, "#c8bea4");
       const towerBase = roofY + 0.48;
       add("belfry-floor", 3, 0.87, 0.65, towerBase, 0.96, 0.85, 0.16, stone, true);
@@ -363,13 +473,30 @@ function economicBuildingParts(kind, v) {
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "marker-flag" || a.id === "roof-2" || a.id === "awning-2" || a.id === "awning-4" || a.id.startsWith("grain-") || a.id === "blade-horizontal"));
 }
 
+// packages/content/footprints.ts
+var obstacleFootprints = {
+  house: { x: -15, y: -15, width: 250, depth: 230 },
+  tree: { x: -20, y: -20, width: 100, depth: 100 },
+  rock: { x: 0, y: 0, width: 65, depth: 70 },
+  gold: { x: 0, y: 0, width: 65, depth: 70 },
+  berries: { x: 0, y: 0, width: 65, depth: 70 },
+  hunt: { x: 0, y: 0, width: 65, depth: 70 },
+  livestock: { x: 0, y: 0, width: 65, depth: 70 }
+};
+function obstacleBounds(o, radius = 0) {
+  const f = obstacleFootprints[o.kind];
+  if (!f || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
+  return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
+}
+
 // apps/web/building-parts.ts
 function buildingParts(visual) {
   const { ageVariant: age, progress, health, red } = visual;
   if (![1, 2, 3, 4].includes(age) || ![progress, health].every((v) => Number.isFinite(v) && v >= 0 && v <= 100)) throw Error("\u7121\u6548\u5EFA\u7BC9\u5916\u89C0\u72C0\u614B");
   const parts = [], team = red ? "#b85c47" : "#456e87";
-  const add = (id, phase2, x, z, y, w, d, h, color, studs = false) => parts.push({ id, phase: phase2, x, z, y, w, d, h, color, studs });
-  add("foundation", 0, -0.15, -0.15, 0, 2.5, 2.3, 0.16, "#b3aa8c");
+  const add = (id, phase2, x, z, y, w, d, h, color, studs = false, shape) => parts.push({ id, phase: phase2, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
+  const footprint = obstacleFootprints.house;
+  add("foundation", 0, footprint.x / 100, footprint.y / 100, 0, footprint.width / 100, footprint.depth / 100, 0.16, "#b3aa8c");
   const courses = age + 2, wallTop = 0.16 + courses * 0.32, wall = age <= 2 ? "#dec59b" : "#b7b6a5";
   for (let level = 0; level < courses; level++) {
     const y = 0.16 + level * 0.32;
@@ -393,7 +520,7 @@ function buildingParts(visual) {
     add("chimney-cap", 3, 1.46, 0.26, wallTop + 0.95, 0.48, 0.48, 0.1, "#78796b");
   }
   if (age >= 3) {
-    add("stone-door-header", 3, 0.66, 1.97, 1.12, 0.68, 0.15, 0.16, "#d0ceba");
+    add("stone-door-header", 3, 0.6, 1.97, 0.16, 0.8, 0.15, 1.28, "#d0ceba", false, "arch");
     add("roof-ridge", 3, 0.7, -0.2, roofBase + 0.72, 0.7, 2.5, 0.16, team, true);
   }
   if (age === 4) {
@@ -526,8 +653,7 @@ function generateCandidate(seed, layout) {
   return map;
 }
 function bounds(o) {
-  const r = navigationRules.radius;
-  return o.kind === "house" ? [o.x - 15 - r, o.y - 15 - r, o.x + 235 + r, o.y + 215 + r] : o.kind === "tree" ? [o.x - 20 - r, o.y - 20 - r, o.x + 80 + r, o.y + 80 + r] : [o.x - r, o.y - r, o.x + 65 + r, o.y + 70 + r];
+  return obstacleBounds(o, navigationRules.radius);
 }
 function clearSegment(map, a, b, movement = "land") {
   if ([a.x, a.y, b.x, b.y].some((v) => !Number.isSafeInteger(v) || v < 50 || v > 1550)) return false;
@@ -765,8 +891,13 @@ async function createScene(canvas, onFailure, options = {}) {
     if (!batches.has(key)) batches.set(key, { geo, color, matrices: [] });
     batches.get(key).matrices.push(new T.Matrix4().makeTranslation(x, y + baseHeight, z));
   }
-  function brick(x, z, y, w, d, h, color, studs = true) {
-    staticPart(box(w - 0.018, h, d - 0.018), color, x + w / 2, y, z + d / 2);
+  function arch(w, h, d) {
+    const key = `arch:${w}:${h}:${d}`;
+    if (!geometry.has(key)) geometry.set(key, createArchGeometry(T, w, h, d));
+    return geometry.get(key);
+  }
+  function brick(x, z, y, w, d, h, color, studs = true, shape) {
+    staticPart(shape === "arch" ? arch(w - 0.018, h, d - 0.018) : box(w - 0.018, h, d - 0.018), color, x + w / 2, y, z + d / 2);
     if (studs) for (let a = 0.25; a < w; a += 0.5) for (let b = 0.25; b < d; b += 0.5) staticPart(studGeo, color, x + a, y + h + 0.04, z + b);
   }
   function groundBlock(x, z, height2, color) {
@@ -782,7 +913,7 @@ async function createScene(canvas, onFailure, options = {}) {
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
   function house(x, z, red = false) {
-    for (const p of previewBuildingKind === "house" ? buildingParts({ ...previewBuilding, red }) : economicBuildingParts(previewBuildingKind, { ...previewBuilding, red })) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
+    for (const p of previewBuildingKind === "house" ? buildingParts({ ...previewBuilding, red }) : militaryBuildings.includes(previewBuildingKind) ? militaryBuildingParts(previewBuildingKind, { ...previewBuilding, red }) : economicBuildingParts(previewBuildingKind, { ...previewBuilding, red })) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs, p.shape);
   }
   function buildWorld(view) {
     const seed = view.seed;
@@ -952,7 +1083,7 @@ async function createScene(canvas, onFailure, options = {}) {
   canvas.dataset.renderer = "webgl2";
   canvas.dataset.renderState = "ready";
   return { update, draw, pick, setPreviewBuildingKind: (kind) => {
-    if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
+    if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
     previewBuildingKind = kind;
     if (latest) update(latest, selected);
   }, setPreviewRole: (role) => {

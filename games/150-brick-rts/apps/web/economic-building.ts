@@ -5,7 +5,7 @@ export type EconomicBuilding=typeof economicBuildings[number];
 export function economicBuildingParts(kind:EconomicBuilding,v:BuildingVisual):BuildingPart[]{
  if(!economicBuildings.includes(kind)||![1,2,3,4].includes(v.ageVariant)||![v.progress,v.health].every(n=>Number.isFinite(n)&&n>=0&&n<=100))throw Error('無效經濟建築外觀');
  const p:BuildingPart[]=[],team=v.red?'#b85c47':'#456e87',wood='#94734c',stone='#aaa994',height=1.28+(v.ageVariant-1)*.16;
- const add=(id:string,phase:number,x:number,z:number,y:number,w:number,d:number,h:number,color:string,studs=false)=>p.push({id,phase,x,z,y,w,d,h,color,studs});
+ const add=(id:string,phase:number,x:number,z:number,y:number,w:number,d:number,h:number,color:string,studs=false,shape?:'arch')=>p.push({id,phase,x,z,y,w,d,h,color,studs,...(shape?{shape}:{})});
  add('foundation',0,-.15,-.15,0,3,3,.16,kind==='farm'?'#806b49':'#b3aa8c');
  if(kind==='farm'){
   for(let row=0;row<4;row++){
@@ -40,7 +40,7 @@ export function economicBuildingParts(kind:EconomicBuilding,v:BuildingVisual):Bu
    for(const x of [.22,2.13])add(`grain-bag-${x}`,3,x,.7,.16,.38,.4,.48,'#c5b285',true);
   }else if(kind==='town-center'){
    for(const x of [.15,2.05])add(`hall-pier-${x}`,1,x,.15,.16,.5,1.5,height,stone,true);
-   add('entrance-lintel',1,.65,1.5,height-.16,1.4,.25,.32,stone);
+   add('entrance-lintel',1,.65,1.5,.16,1.4,.25,height-.16,stone,false,'arch');
    for(let level=0;level<3;level++)add(`entrance-step-${level}`,3,.8,2.15+level*.18,.16,.95,.18,.24-level*.08,'#c8bea4');
    const towerBase=roofY+.48;
    add('belfry-floor',3,.87,.65,towerBase,.96,.85,.16,stone,true);

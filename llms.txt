@@ -24,7 +24,7 @@
 分成 13 類：平面排版、介面風格、復古數位、生成藝術、資料科學、遊戲敘事、工具產生器、擬物器物、東方在地、品牌頁面、AI 學習、專案範例與創意藝術。例如瑞士國際主義、包浩斯、蒸汽波、CRT 終端機、水墨山水、Sales CRM 儀表板與果凍骰子。
 
 **哪些作品比較弱？**
-自評較弱的網頁作品目前剩 1 件：007；App 原型有 2 件：061、094。頁面上方的「弱點自評」逐件說明弱在哪裡，以及重做時會怎麼改。
+自評較弱的網頁作品目前沒有；App 原型有 2 件：061、094。頁面上方的「弱點自評」逐件說明弱在哪裡，以及重做時會怎麼改。
 
 ## 作品目錄
 
@@ -57,7 +57,7 @@
 
 - [125 太空漫步 · AI 科普筆記](https://htmls-ruddy.vercel.app/web/125-spacewalk.html): 給 AI 初學者的個人品牌網站。人物插畫主視覺、三張白話概念卡、四階段學習路線、個人介紹與可複製的第一個提問；手機可閱讀
 
-- [007 微光之家](https://htmls-ruddy.vercel.app/web/007-glassmorphism.html): 玻璃擬態。智慧家居面板：可拖曳溫控圓盤、四種情境會改變背景漸層球
+- [007 微光之家](https://htmls-ruddy.vercel.app/web/007-glassmorphism.html): 玻璃擬態。雨夜窗前的家居面板：玻璃溫控透鏡即時折射窗外失焦的城市燈火，滑動玻璃珠標示房間，燈光與四種情境改變窗上倒影、天色與雨
 - [010 密碼工坊](https://htmls-ruddy.vercel.app/web/010-neumorphism.html): 新擬物 Soft UI。凹陷字元磚與 neumorphic 滑桿，隨機或好記詞組兩種密碼、中文化破解時間
 - [024 Driftwood](https://htmls-ruddy.vercel.app/web/024-dev-saas-dark.html): 暗色開發者產品頁。CLI 工具落地頁：整頁就是一段終端 session，drift plan 可逐步核可、略過並執行修正計畫
 - [039 趕稿看板](https://htmls-ruddy.vercel.app/web/039-neo-brutal.html): 新粗獷。硬陰影 Kanban：卡片拖曳跨欄、進行中上限警示、完成欄蓋章
@@ -243,7 +243,7 @@
 - [011 捷運到站](https://htmls-ruddy.vercel.app/app/011-metro-arrivals.html): 交通即時到站；車站導引標誌：象形圖、路線色、站名雙語。即時倒數、切換路線、收藏車站、起訖規劃
 - [012 天色](https://htmls-ruddy.vercel.app/app/012-gouache-weather.html): 天氣；不透明水彩插畫天空，隨時間拖曳換天色。逐時拖曳、10 日預報、城市新增／刪除、單位切換
 - [013 葉室](https://htmls-ruddy.vercel.app/app/013-riso-plants.html): 植物照護；孔版雙色植物圖鑑。植物清單、澆水紀錄、提醒、新增植物
-- [014 眠](https://htmls-ruddy.vercel.app/app/014-drum-alarm.html): 睡眠追蹤＋鬧鐘；深夜墨綠、iOS 滾筒選擇器。睡眠圖、智慧鬧鐘滾筒、白噪音混音器（WebAudio 雨聲／棕噪音）
+- [014 眠](https://htmls-ruddy.vercel.app/app/014-drum-alarm.html): 睡眠追蹤＋鬧鐘；深夜墨綠、iOS 滾筒選擇器。睡眠圖、恢復預報（睡眠債與建議就寢時間）、智慧鬧鐘滾筒、白噪音混音器（WebAudio 雨聲／棕噪音）
 - [015 水水](https://htmls-ruddy.vercel.app/app/015-clay-water.html): 喝水紀錄；黏土風：果凍按鈕、可晃動的水瓶。一鍵加水、自訂杯量、每日目標、歷史
 - [016 月環](https://htmls-ruddy.vercel.app/app/016-textile-cycle.html): 週期追蹤；北歐織品印花色塊。轉動選日、記錄症狀、預測、月曆
 - [017 PACE](https://htmls-ruddy.vercel.app/app/017-asphalt-run.html): 跑步紀錄；運動雜誌：粗斜體、等高線地圖。模擬跑步、分段、路線回放、紀錄清單
@@ -251,7 +251,7 @@
 - [019 枯山水](https://htmls-ruddy.vercel.app/app/019-zen-garden.html): 冥想呼吸；枯山水耙沙。手指耙沙、方形呼吸引導、計時、紀錄
 - [020 食記](https://htmls-ruddy.vercel.app/app/020-konbini-nutrition.html): 飲食營養紀錄；日本超商包裝：粗色帶、大字。模擬掃描、搜尋食物、三大營養素環、刪除
 - [021 盤後](https://htmls-ruddy.vercel.app/app/021-salmon-stocks.html): 股票看盤；財經報紙鮭魚粉紙。K 線圖拖曳檢視、自選股新增刪除、下單抽屜
-- [022 拆帳](https://htmls-ruddy.vercel.app/app/022-receipt-split.html): 分帳；感熱紙收據：鋸齒邊、虛線。新增人、品項拖給人、自動結算誰欠誰
+- [022 拆帳](https://htmls-ruddy.vercel.app/app/022-receipt-split.html): 分帳；感熱紙收據：鋸齒邊、虛線。新增人、品項拖給人、自動結算誰欠誰、收款訊息一鍵複製或分享並蓋「已傳」
 - [023 信封](https://htmls-ruddy.vercel.app/app/023-envelope-budget.html): 信封預算；文具牛皮信封。分配收入到信封、花費、月結轉
 - [024 軌道](https://htmls-ruddy.vercel.app/app/024-orbit-subs.html): 訂閱管理；瑞士極簡：單一信號紅。新增訂閱、軌道視覺、左滑取消、月總額
 - [025 打卡鐘](https://htmls-ruddy.vercel.app/app/025-punch-clock.html): 工時計時；1950 年代工業打卡鐘：琺瑯、電木。專案計時、打卡、週報、匯出
@@ -270,7 +270,7 @@
 - [038 暗房](https://htmls-ruddy.vercel.app/app/038-darkroom-edit.html): 照片調色；專業工具石墨暖黑、小黃點綴。曝光／對比／顆粒／分離色調、預設、比較
 - [039 夏夜](https://htmls-ruddy.vercel.app/app/039-citypop-discover.html): 音樂探索；80 年代日本 City Pop 平塗插畫。左右滑喜歡／略過、試聽合成音樂、收藏
 - [040 放映表](https://htmls-ruddy.vercel.app/app/040-criterion-tv.html): 串流節目表；典藏電影系列：黑白、編號書背。節目表、詳情抽屜、片單、提醒
-- [041 紙訊](https://htmls-ruddy.vercel.app/app/041-papercut-chat.html): 通訊；剪紙貼圖、柿橘與墨。傳訊、貼圖、語音波形錄製模擬、反應
+- [041 紙訊](https://htmls-ruddy.vercel.app/app/041-papercut-chat.html): 通訊；剪紙貼圖、柿橘與墨。傳訊、貼圖、語音波形錄製模擬、反應、引用回覆紙條、悄悄送
 - [042 拍立得](https://htmls-ruddy.vercel.app/app/042-polaroid-feed.html): 照片社群；拍立得相片散在深群青桌面。動態、限動、留言抽屜、發文
 - [043 花窗](https://htmls-ruddy.vercel.app/app/043-nouveau-match.html): 交友配對；新藝術運動裝飾框（慕夏）。滑動配對、配對彈窗、聊天、個人檔案
 - [044 批踢踢](https://htmls-ruddy.vercel.app/app/044-ptt-bbs.html): BBS 論壇；ANSI BBS 藍底。推／噓、看板切換、發文、搜尋
@@ -302,7 +302,7 @@
 - [070 電能](https://htmls-ruddy.vercel.app/app/070-bakelite-energy.html): 家庭能源；蘇聯控制室電木儀表。太陽能→電池→家流向、電器開關、日圖
 - [071 保全](https://htmls-ruddy.vercel.app/app/071-cctv-cams.html): 監視器；CCTV：VHS 時間戳、單色。四格切換、事件時間軸、長按對講
 - [072 廚房計時](https://htmls-ruddy.vercel.app/app/072-enamel-kitchen.html): 多重計時器；50 年代粉彩琺瑯家電。多個同時計時、鈴聲、預設
-- [073 碼錶](https://htmls-ruddy.vercel.app/app/073-mip-cycling.html): 單車碼錶；反射式 LCD 高對比。速度、踏頻、心率區、圈數、爬坡
+- [073 碼錶](https://htmls-ruddy.vercel.app/app/073-mip-cycling.html): 單車碼錶；反射式 LCD 高對比。速度、踏頻、心率區、圈數、爬坡、訓練負荷點陣（TRIMP、能量、標準化功率、恢復時間）
 - [074 航跡](https://htmls-ruddy.vercel.app/app/074-panam-flights.html): 航班追蹤；60 年代航空公司。追蹤航班、大圓航線、延誤、登機證
 - [075 單語卡](https://htmls-ruddy.vercel.app/app/075-ring-flashcards.html): 單字卡；日式單語帳：金屬環。翻面、會／不會（SM-2）、新增卡、統計
 - [076 臨帖](https://htmls-ruddy.vercel.app/app/076-kaishu-practice.html): 寫字練習；米字格習字帖。描紅筆順、評分、清除、字表

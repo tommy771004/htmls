@@ -17,7 +17,7 @@
 | 004 | [004-editorial-essay.html](https://htmls-ruddy.vercel.app/web/004-editorial-essay.html) | 極簡編輯長文 | 原創散文〈慢的練習〉：首字放大、側註、閱讀進度、慢讀模式 | |
 | 005 | [005-crt-terminal.html](https://htmls-ruddy.vercel.app/web/005-crt-terminal.html) | 終端機 | 1983 天文台 CRT：虛擬檔案系統、約 25 個指令、Tab 補完、三種磷光色 | |
 | 006 | [006-zine-collage.html](https://htmls-ruddy.vercel.app/web/006-zine-collage.html) | 雜誌拼貼 | 《噪音夏日》Zine：勒索信標題、可拖曳紙片（依速度傾斜、放下會晃動） | △ 手機上紙片佔版面大，捲動時容易誤觸拖曳 |
-| 007 | [007-glassmorphism.html](https://htmls-ruddy.vercel.app/web/007-glassmorphism.html) | 玻璃擬態 | 智慧家居面板：溫控圓盤、情境切換會改背景色球 | ⚠ 做工完整，但玻璃擬態儀表板本身就是常見範本，辨識度最低的幾件之一 |
+| 007 | [007-glassmorphism.html](https://htmls-ruddy.vercel.app/web/007-glassmorphism.html) | 玻璃擬態 | 雨夜窗前的家居面板：玻璃溫控透鏡即時折射窗外失焦的城市燈火，滑動玻璃珠標示房間，燈光與四種情境改變窗上倒影、天色與雨 | △ 透鏡折射依賴 Chrome 的 SVG 濾鏡，Safari 可能只看到沒有彎折的窗景 |
 | 008 | [008-notebook-doodle.html](https://htmls-ruddy.vercel.app/web/008-notebook-doodle.html) | 手繪筆記 | 手沖咖啡筆記：抖動線逐筆描繪、豆水比計算器、沖煮碼錶 | △ 系統沒有中文手寫字，中文只能用標楷體撐 |
 | 009 | [009-bauhaus.html](https://htmls-ruddy.vercel.app/web/009-bauhaus.html) | 包浩斯 | 幾何構成產生器：點擊重組、可鎖定形狀、Kandinsky 形色規則 | |
 | 010 | [010-neumorphism.html](https://htmls-ruddy.vercel.app/web/010-neumorphism.html) | 新擬物 | 密碼產生器：凹陷字元磚、neumorphic 滑桿、強度與破解時間 | △ 桌機四周留白偏多 |
@@ -162,8 +162,7 @@
 | 152 | [152-tideline-board.html](https://htmls-ruddy.vercel.app/web/152-tideline-board.html) | 介面風格 · 產品微互動元件板 | 潮班 TIDELINE：虛構澎湖渡輪公司的五格元件板。行程膠囊在船班卡、取消確認與退款收據之間變形；航線圖描繪航跡、港口輪播與票根；港口側欄旗標滑動；延誤通知堆疊展開與關閉；同行分票扇形寄出。每格自動示範，碰到就交給使用者 | 版面與動態參考 Inspora 的 Product 分類；班表與票價為示意 |
 
 ## 較弱的作品（誠實版）
-- **⚠ 007 玻璃擬態**：執行品質沒問題，弱在風格本身。玻璃擬態儀表板是網路上最常見的樣式之一，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。
-- **已移出**：024 暗色 SaaS 改成整頁終端 session 加上可核可的修正計畫；022 改用自繪 SVG 骨架字，粗細、寬窄、斜度真正連續變化；029 改用自繪字形網格變形填滿燈泡輪廓；057 改走純字體封面，字本身就是影像；080 自繪 Didone 刊頭與大標；086 加入探照燈自動掃描與水層導覽，深層每一屏都有焦點（手機上導覽會遮到部分學名，標為 △）。
+- 網頁作品目前沒有標 ⚠ 的。原本的 7 件都已照改進方向重做：007 改成雨夜窗景，玻璃溫控透鏡真實折射窗外燈火（Safari 可能看不到折射，標為 △）；024 改成整頁終端 session 加上可核可的修正計畫；022 改用自繪 SVG 骨架字，粗細、寬窄、斜度真正連續變化；029 改用自繪字形網格變形填滿燈泡輪廓；057 改走純字體封面，字本身就是影像；080 自繪 Didone 刊頭與大標；086 加入探照燈自動掃描與水層導覽（手機上導覽會遮到部分學名，標為 △）。
 
 ## 共通限制
 - 只在 Windows + Chrome 上實測。macOS / iOS 會退到後備字型，字寬與截圖不同。
@@ -192,7 +191,7 @@
 | 011 | [011-metro-arrivals.html](app/011-metro-arrivals.html) | 捷運到站：交通即時到站；車站導引標誌：象形圖、路線色、站名雙語 | 即時倒數、切換路線、收藏車站、起訖規劃 |  |
 | 012 | [012-gouache-weather.html](app/012-gouache-weather.html) | 天色：天氣；不透明水彩插畫天空，隨時間拖曳換天色 | 逐時拖曳、10 日預報、城市新增／刪除、單位切換 |  |
 | 013 | [013-riso-plants.html](app/013-riso-plants.html) | 葉室：植物照護；孔版雙色植物圖鑑 | 植物清單、澆水紀錄、提醒、新增植物 |  |
-| 014 | [014-drum-alarm.html](app/014-drum-alarm.html) | 眠：睡眠追蹤＋鬧鐘；深夜墨綠、iOS 滾筒選擇器 | 睡眠圖、智慧鬧鐘滾筒、白噪音混音器（WebAudio 雨聲／棕噪音） |  |
+| 014 | [014-drum-alarm.html](app/014-drum-alarm.html) | 眠：睡眠追蹤＋鬧鐘；深夜墨綠、iOS 滾筒選擇器 | 睡眠圖、恢復預報（睡眠債與建議就寢時間）、智慧鬧鐘滾筒、白噪音混音器（WebAudio 雨聲／棕噪音） |  |
 | 015 | [015-clay-water.html](app/015-clay-water.html) | 水水：喝水紀錄；黏土風：果凍按鈕、可晃動的水瓶 | 一鍵加水、自訂杯量、每日目標、歷史 |  |
 | 016 | [016-textile-cycle.html](app/016-textile-cycle.html) | 月環：週期追蹤；北歐織品印花色塊 | 轉動選日、記錄症狀、預測、月曆 |  |
 | 017 | [017-asphalt-run.html](app/017-asphalt-run.html) | PACE：跑步紀錄；運動雜誌：粗斜體、等高線地圖 | 模擬跑步、分段、路線回放、紀錄清單 |  |
@@ -200,7 +199,7 @@
 | 019 | [019-zen-garden.html](app/019-zen-garden.html) | 枯山水：冥想呼吸；枯山水耙沙 | 手指耙沙、方形呼吸引導、計時、紀錄 |  |
 | 020 | [020-konbini-nutrition.html](app/020-konbini-nutrition.html) | 食記：飲食營養紀錄；日本超商包裝：粗色帶、大字 | 模擬掃描、搜尋食物、三大營養素環、刪除 |  |
 | 021 | [021-salmon-stocks.html](app/021-salmon-stocks.html) | 盤後：股票看盤；財經報紙鮭魚粉紙 | K 線圖拖曳檢視、自選股新增刪除、下單抽屜 |  |
-| 022 | [022-receipt-split.html](app/022-receipt-split.html) | 拆帳：分帳；感熱紙收據：鋸齒邊、虛線 | 新增人、品項拖給人、自動結算誰欠誰 |  |
+| 022 | [022-receipt-split.html](app/022-receipt-split.html) | 拆帳：分帳；感熱紙收據：鋸齒邊、虛線 | 新增人、品項拖給人、自動結算誰欠誰、收款訊息一鍵複製或分享並蓋「已傳」 |  |
 | 023 | [023-envelope-budget.html](app/023-envelope-budget.html) | 信封：信封預算；文具牛皮信封 | 分配收入到信封、花費、月結轉 |  |
 | 024 | [024-orbit-subs.html](app/024-orbit-subs.html) | 軌道：訂閱管理；瑞士極簡：單一信號紅 | 新增訂閱、軌道視覺、左滑取消、月總額 |  |
 | 025 | [025-punch-clock.html](app/025-punch-clock.html) | 打卡鐘：工時計時；1950 年代工業打卡鐘：琺瑯、電木 | 專案計時、打卡、週報、匯出 |  |
@@ -219,7 +218,7 @@
 | 038 | [038-darkroom-edit.html](app/038-darkroom-edit.html) | 暗房：照片調色；專業工具石墨暖黑、小黃點綴 | 曝光／對比／顆粒／分離色調、預設、比較 |  |
 | 039 | [039-citypop-discover.html](app/039-citypop-discover.html) | 夏夜：音樂探索；80 年代日本 City Pop 平塗插畫 | 左右滑喜歡／略過、試聽合成音樂、收藏 |  |
 | 040 | [040-criterion-tv.html](app/040-criterion-tv.html) | 放映表：串流節目表；典藏電影系列：黑白、編號書背 | 節目表、詳情抽屜、片單、提醒 |  |
-| 041 | [041-papercut-chat.html](app/041-papercut-chat.html) | 紙訊：通訊；剪紙貼圖、柿橘與墨 | 傳訊、貼圖、語音波形錄製模擬、反應 |  |
+| 041 | [041-papercut-chat.html](app/041-papercut-chat.html) | 紙訊：通訊；剪紙貼圖、柿橘與墨 | 傳訊、貼圖、語音波形錄製模擬、反應、引用回覆紙條、悄悄送 |  |
 | 042 | [042-polaroid-feed.html](app/042-polaroid-feed.html) | 拍立得：照片社群；拍立得相片散在深群青桌面 | 動態、限動、留言抽屜、發文 |  |
 | 043 | [043-nouveau-match.html](app/043-nouveau-match.html) | 花窗：交友配對；新藝術運動裝飾框（慕夏） | 滑動配對、配對彈窗、聊天、個人檔案 |  |
 | 044 | [044-ptt-bbs.html](app/044-ptt-bbs.html) | 批踢踢：BBS 論壇；ANSI BBS 藍底 | 推／噓、看板切換、發文、搜尋 |  |
@@ -251,7 +250,7 @@
 | 070 | [070-bakelite-energy.html](app/070-bakelite-energy.html) | 電能：家庭能源；蘇聯控制室電木儀表 | 太陽能→電池→家流向、電器開關、日圖 |  |
 | 071 | [071-cctv-cams.html](app/071-cctv-cams.html) | 保全：監視器；CCTV：VHS 時間戳、單色 | 四格切換、事件時間軸、長按對講 |  |
 | 072 | [072-enamel-kitchen.html](app/072-enamel-kitchen.html) | 廚房計時：多重計時器；50 年代粉彩琺瑯家電 | 多個同時計時、鈴聲、預設 |  |
-| 073 | [073-mip-cycling.html](app/073-mip-cycling.html) | 碼錶：單車碼錶；反射式 LCD 高對比 | 速度、踏頻、心率區、圈數、爬坡 |  |
+| 073 | [073-mip-cycling.html](app/073-mip-cycling.html) | 碼錶：單車碼錶；反射式 LCD 高對比 | 速度、踏頻、心率區、圈數、爬坡、訓練負荷點陣（TRIMP、能量、標準化功率、恢復時間） |  |
 | 074 | [074-panam-flights.html](app/074-panam-flights.html) | 航跡：航班追蹤；60 年代航空公司 | 追蹤航班、大圓航線、延誤、登機證 |  |
 | 075 | [075-ring-flashcards.html](app/075-ring-flashcards.html) | 單語卡：單字卡；日式單語帳：金屬環 | 翻面、會／不會（SM-2）、新增卡、統計 |  |
 | 076 | [076-kaishu-practice.html](app/076-kaishu-practice.html) | 臨帖：寫字練習；米字格習字帖 | 描紅筆順、評分、清除、字表 |  |

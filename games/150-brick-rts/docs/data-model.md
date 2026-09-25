@@ -1,6 +1,8 @@
 # 資料模型與權威邊界
 
-## 已實作的模型
+目前權威 State／snapshot 為 v9，支援三種地圖、有限資源資料、三態視野、移動、存讀與重播。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
+
+## 初始資料模型（歷史 v1，後續演進見下文）
 
 | 模型 | 唯一來源 | 欄位／限制 |
 |---|---|---|
@@ -55,13 +57,13 @@ State/snapshot v3 supersedes v2. v1/v2 snapshots are rejected explicitly and lea
 
 apps/web/scene.ts 使用本地 Three.js 建立 WebGL2 場景；固定地物位置取自共用 makeMap(seed)，單位位置取自 Worker View。鏡頭、幾何快取、材質、LOD 與行走動畫時間只存在 renderer，不進入權威 State 或 hash。Raycaster 只把點選投影成單位 ID／地面座標，命令仍由 Worker 驗證。GPU context 遺失會停止輸入，但不清除 Worker 狀態；使用者仍可儲存後重新載入。
 
-## C：地圖 v4（目前版本）
+## C：地圖 v4（歷史版本）
 
 MapData 新增 tiles、resources、navigationRevision 與 generationAttempt。Tile 含地形、高度、通行類別、基礎可建造性與原點所在格的 entity refs；建造時仍須額外查占地。ResourceNode 為有限容量資源，記錄可採集性、障礙關聯及耗盡 tick。地圖生成驗證與上限重試在建立 State 前完成，失敗不取代現況。
 
 樹木／石塊耗盡的內部原語會釋放原占地內的 blocked 節點；既有仍有效的路徑不需重算，工作系統接入時仍須處理因先前不可達而停止的命令。沒有提供偽採集命令。renderer 目前由 seed 重建靜態地物；資源動態投影須在採集工作接入前補齊。State／snapshot v4 取代 v3，舊版明確拒絕；詳見 terrain-verification.md。
 
-## C：視野 v5（目前版本）
+## C：視野 v5（歷史版本）
 
 State.vision 為每玩家的 explored、visible 與 known 靜態快照，快照含 obstacle 與 lastSeenTick。視野在固定 tick 末更新；失去視野保留歷史記憶，重訪才同步消失或變化。sharing policy 預設僅自己，分享／撤銷原語有測試，仍需日後外交／科技授權。
 
@@ -73,18 +75,26 @@ State／snapshot v5 含探索與快照，v1–v4 明確拒絕。一般 View 過�
 
 makeMap(seed, layout) 接受 meadow、coast、acceptance，預設仍為 meadow；coast 依 seed 產生海岸，acceptance 是固定手工圖。驗收 JSON 外層含 format、layout、seed、provenance 與 MapData；不是新存檔格式。水域 PathJob 可帶 movement=water，搜尋和線段碰撞依此查地格 walkClass；既有陸地 job 不新增欄位，草甸沙盒維持 v5 資料。模型檢視頁可切換 layout，正式 reset/recovery 尚未提供地圖選擇。
 
-## 資源投影 v6（目前版本）
+## 資源投影 v6（歷史版本）
 
 ResourceKind 擴充七種類，resourceDefinitions 宣告產出、工作方法與所需通行類別。PlayerVision.resources 及一般 Worker View.resources 只含可見未耗盡資源；不保留動物的失去視野模型。地面資源占地使用 obstacleId 關聯，魚群沒有阻擋占地。資源模型讀取同一份地圖／可見投影，沒有第二套容量資料。新增節點與視野欄位進入 canonical state；snapshot v6 取代 v5，詳見 resources-verification.md。
 
-## 起始配置 v7（目前版本）
+## 起始配置 v7（歷史版本）
 
 生成器在結構驗證後呼叫 validateStartingResources，回傳每玩家／種類的容量、最近路程、resource ID 與安全 approach 點；失敗在既有重試上限內換候選。報告是生成驗證證據，不加入每 tick 狀態。startingResourceRules 參與 ruleset hash，保證地物改變初始 state，snapshot 升為 v7。一般 validateMap 保持可接受已耗盡地圖；初始資源門檻不套用在正常耗盡後。詳見 starting-resources-verification.md。
 
-## 高度通行 v8（目前版本）
+## 高度通行 v8（歷史版本）
 
 clearSegment 同時檢查 walkClass、障礙物與高度邊界；land 的相鄰最大高度差由 terrainRules.maxLandStep 決定，water 為零。超差邊界按單位半徑擴張，避免跨崖與切角。height 不另存到 Unit，從腳底 x/y 及 Tile.height 推導；renderer 的地柱與物件基座共用 groundHeight。手工圖提供離散階梯，未實作平滑坡面。snapshot 現為 v8。
 
 ## 多地形沙盒 v9（目前版本）
 
 State.layout 保存 meadow／coast／acceptance。createState、replay、reset、Recovery 與一般 Response 均攜帶地圖類型；WorkerClient 在每次確認回應更新 checkpoint.layout。View.terrain 只含地格類別、高度、通行與可建造性，不含隱藏資源／障礙參照。renderer 使用 Worker 確認的地形，地面 raycast 命中實際地柱表面；恢復後不會回到預設草甸。snapshot v9 取代 v8，詳見 first-use-006.md。
+
+## 共用占地契約（v9 行為不變）
+
+packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來源：原點偏移 x/y、width、depth 皆為整數模擬單位，100 單位對應 1 世界單位。obstacleBounds 可按單位半徑擴張矩形；導航、資源耗盡的局部更新、起始資源接近點均透過同一契約取得邊界。住宅模型地基也讀取同一份尺寸。屋頂高處的裝飾懸挑不表示增加地面障礙。
+
+此表只是搬移既有自訂工程值，並非確認原作占地。九組前後比對證明 v9 hash 與阻擋格沒有改變，因此本輪不更換 snapshot 或 ruleset hash。未來若修改任何權威尺寸，必須同時更新 simulationVersion／ruleset 身份及舊存檔策略，不能只改表而繼續宣稱 v9 相容。
+
+模型頁的新經濟／公共建築與騎兵尚未加入權威 obstacle kinds；其 art footprint、掛點與選取圈在 asset-manifest.json，不能拿來當已實作碰撞規則。迷霧除錯介面只讀 View.fog／known／tick，不新增權威資料。

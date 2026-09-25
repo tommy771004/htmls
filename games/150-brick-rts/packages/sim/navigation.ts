@@ -1,10 +1,12 @@
+import {obstacleBounds} from '../content/footprints.ts';
+import type {ObstacleKind} from '../content/footprints.ts';
 // Engineering defaults, not values from the reference game.
 import {createTiles,tileAt,canTraverse,terrainRules,extractResource,resourceDefinitions} from './terrain.ts';
 import type {Tile,ResourceNode,MapLayout,ResourceKind} from './terrain.ts';
 export const navigationRules={provenance:'design_default',spacing:50,size:31,radius:25,expansionsPerTick:32,speedPerTick:5} as const;
 export const startingResourceRules={provenance:'design_default',maxApproachDistance:1200,maxNearestDistanceDifference:500,minimum:{tree:300,stone:250,gold:250,berries:150}} as const;
 export type Point={x:number;y:number};
-export type Obstacle={id?:string;kind:'house'|'tree'|'rock'|'gold'|'berries'|'hunt'|'livestock';x:number;y:number;red?:boolean};
+export type Obstacle={id?:string;kind:ObstacleKind;x:number;y:number;red?:boolean};
 export type MapData={obstacles:Obstacle[];blocked:number[];tiles:Tile[];resources:ResourceNode[];navigationRevision:number;generationAttempt:number};
 export type PathJob={movement?:'land'|'water';unitId:number;start:number;goal:number;target:Point;frontier:number[];head:number;parents:number[];status:'searching'|'found'|'unreachable';path:Point[]};
 export function makeMap(seed:number,layout:MapLayout='meadow'):MapData{
@@ -35,7 +37,7 @@ function generateCandidate(seed:number,layout:MapLayout):MapData{
  if(layout==='acceptance')for(const y of [300,1200])addResource('fish',800,y);
  for(let i=0;i<961;i++)if(!clearSegment(map,position(i),position(i)))map.blocked.push(i);return map;
 }
-function bounds(o:Obstacle):[number,number,number,number]{const r=navigationRules.radius;return o.kind==='house'?[o.x-15-r,o.y-15-r,o.x+235+r,o.y+215+r]:o.kind==='tree'?[o.x-20-r,o.y-20-r,o.x+80+r,o.y+80+r]:[o.x-r,o.y-r,o.x+65+r,o.y+70+r];}
+function bounds(o:Obstacle):[number,number,number,number]{return obstacleBounds(o,navigationRules.radius);}
 // Slab intersection includes contact: center-lines cannot clip expanded footprints.
 export function clearSegment(map:MapData,a:Point,b:Point,movement:'land'|'water'='land'):boolean{
  if([a.x,a.y,b.x,b.y].some(v=>!Number.isSafeInteger(v)||v<50||v>1550))return false;

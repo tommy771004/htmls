@@ -114,3 +114,19 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## 沙盒繪圖例外保護
 
 正式沙盒新增場景更新與每幀繪圖的例外處理，停止輸入並保留存檔通道。重現步驟與驗證範圍見 [sandbox-render-verification.md](sandbox-render-verification.md)。
+
+## 共用物理占地
+
+住宅地基與導航改讀同一份既有占地資料；九組修改前後地圖阻擋格與 240 ticks 狀態指紋一致。詳見 [footprints-verification.md](footprints-verification.md)。v9 相容性保留，沒有開放新通行或建造功能。
+
+## 軍事建築代表資產
+
+新增兵營、靶場與馬廄模型；74 項程式測試通過，模型切換、施工／殘骸與住宅還原已驗證。詳見 [military-assets-verification.md](military-assets-verification.md)。未加入造兵或權威建築占地。
+
+## 拱件幾何增量
+
+住宅高時代門框與城鎮中心改用有開口的拱件；射線及 LOD 保留開口的驗證見 [arch-verification.md](arch-verification.md)。未改權威碰撞或開放入口通行。
+
+## C：軍事建築時代輪廓
+
+兵營／靶場／馬廄的四種結構外觀、支撐與狀態還原驗證見 [military-ages-verification.md](military-ages-verification.md)。76 項單元測試與模型瀏覽器檢查通過；仍為檢視頁外觀，C in_progress。

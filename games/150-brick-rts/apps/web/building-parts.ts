@@ -1,12 +1,14 @@
+import {obstacleFootprints} from '../../packages/content/footprints.ts';
 export type BuildingVisual={ageVariant:1|2|3|4;progress:number;health:number;red:boolean};
-export type BuildingPart={id:string;x:number;y:number;z:number;w:number;d:number;h:number;color:string;studs:boolean;phase:number};
+export type BuildingPart={id:string;x:number;y:number;z:number;w:number;d:number;h:number;color:string;studs:boolean;phase:number;shape?:'arch'};
 // Art state is deliberately separate from gameplay age, construction cost and hit points.
 export function buildingParts(visual:BuildingVisual):BuildingPart[]{
  const {ageVariant:age,progress,health,red}=visual;
  if(![1,2,3,4].includes(age)||![progress,health].every(v=>Number.isFinite(v)&&v>=0&&v<=100))throw Error('無效建築外觀狀態');
  const parts:BuildingPart[]=[],team=red?'#b85c47':'#456e87';
- const add=(id:string,phase:number,x:number,z:number,y:number,w:number,d:number,h:number,color:string,studs=false)=>parts.push({id,phase,x,z,y,w,d,h,color,studs});
- add('foundation',0,-.15,-.15,0,2.5,2.3,.16,'#b3aa8c');
+ const add=(id:string,phase:number,x:number,z:number,y:number,w:number,d:number,h:number,color:string,studs=false,shape?:'arch')=>parts.push({id,phase,x,z,y,w,d,h,color,studs,...(shape?{shape}:{})});
+ const footprint=obstacleFootprints.house;
+ add('foundation',0,footprint.x/100,footprint.y/100,0,footprint.width/100,footprint.depth/100,.16,'#b3aa8c');
  const courses=age+2,wallTop=.16+courses*.32,wall=age<=2?'#dec59b':'#b7b6a5';
  for(let level=0;level<courses;level++){
  const y=.16+level*.32;
@@ -23,7 +25,7 @@ export function buildingParts(visual:BuildingVisual):BuildingPart[]{
  add('door-handle',3,.81,2.045,.61,.055,.03,.07,'#c2a664');
  for(const x of [.13,1.47]){add(`window-frame-${x}`,3,x,1.99,.76,.38,.06,.38,'#786b55');add(`window-glass-${x}`,3,x+.04,2.055,.8,.3,.025,.29,'#334b4e');}
  if(age>=2){add('chimney',3,1.5,.3,wallTop,.4,.4,.95,'#b1aa95');add('chimney-cap',3,1.46,.26,wallTop+.95,.48,.48,.1,'#78796b');}
- if(age>=3){add('stone-door-header',3,.66,1.97,1.12,.68,.15,.16,'#d0ceba');add('roof-ridge',3,.7,-.2,roofBase+.72,.7,2.5,.16,team,true);}
+ if(age>=3){add('stone-door-header',3,.6,1.97,.16,.8,.15,1.28,'#d0ceba',false,'arch');add('roof-ridge',3,.7,-.2,roofBase+.72,.7,2.5,.16,team,true);}
  if(age===4){for(const z of [.05,1.55]){add(`dormer-base-${z}`,3,.5,z,roofBase+.36,.5,.4,.64,'#c9c4ae');add(`dormer-cap-${z}`,3,.45,z-.04,roofBase+1,.6,.48,.16,team,true);}add('cargo-platform',3,.75,.7,.16,.5,.6,.12,'#96764c');}
  const poleBase=roofBase+.36;add('flag-pole',4,.27,.25,poleBase,.07,.07,.9,'#786849');add('flag',4,.34,.25,poleBase+.58,.6,.04,.3,team);
  if(health===0){return [parts[0],...Array.from({length:12},(_,i)=>({id:`debris-${i}`,phase:0,x:.1+(i%4)*.43,z:.12+Math.floor(i/4)*.53,y:.16,w:.32,d:.27,h:.12,color:i%3?wall:roof,studs:false}))];}

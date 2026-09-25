@@ -11,7 +11,7 @@
 | 004 | editorial-essay | 極簡編輯長文 | 散文〈慢的練習〉，首字放大、側註、閱讀進度 | 單欄 + 右側 sidenote | 米白紙 / 墨黑 / 朱紅點綴 | Georgia / Palatino、小型大寫 | 進度條、註腳高亮 | ZH |
 | 005 | crt-terminal | 終端機 | 可互動假 shell（help / ls / cat / fortune …） | 全螢幕 CRT 曲面暗角 | 綠磷光 on 黑 | Consolas / Lucida Console | 掃描線、閃爍、打字游標 | EN |
 | 006 | zine-collage | 雜誌拼貼 | Zine《噪音夏日》第 7 期，可拖曳剪貼碎片 | 散亂拼貼、旋轉紙片 | 牛皮紙 / 螢光黃 / 黑 / 紅 | 勒索信混排 Impact / Times / Courier | 拖曳、紙張晃動 | ZH/EN |
-| 007 | glassmorphism | 玻璃擬態 | 智慧家居控制面板 | 卡片格浮在模糊漸層球上 | 夜藍紫漸層 + 半透明白 | Segoe UI Light | 漸層球漂移、彈性開關 | ZH |
+| 007 | glassmorphism | 玻璃擬態 | 智慧家居控制面板 | 雨夜落地窗全景上的玻璃側欄與玻璃透鏡溫控 | 墨綠青 + 燈光琥珀 + 薄荷 | Segoe UI Light | 雨絲與水珠、透鏡即時折射窗景、玻璃珠滑動、情境改變倒影與天色 | ZH |
 | 008 | notebook-doodle | 手繪筆記 | 手沖咖啡學習筆記塗鴉圖解 | 橫線筆記本頁 + 紅邊線 | 紙白 / 藍原子筆 / 螢光黃 | Ink Free / Segoe Print | JS 抖動線逐筆描繪 | ZH |
 | 009 | bauhaus | 包浩斯 | 幾何構成產生器，點擊重組 | 正方形舞台 + 側欄 | 紅 / 黃 / 藍 / 黑 / 米白 | Century Gothic | 形狀旋轉彈跳重組 | EN |
 | 010 | neumorphism | 新擬物 Soft UI | 密碼產生器工具 | 置中單卡 | 單色淺灰 #e0e5ec | Segoe UI Semibold | 按壓凹陷、柔和陰影 | ZH |

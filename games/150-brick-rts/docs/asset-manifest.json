@@ -32,7 +32,7 @@
         2.3
       ],
       "selectionBounds": "not currently selectable in game UI",
-      "collisionProxy": "packages/sim/navigation.ts expanded static AABB",
+      "collisionProxy": "packages/content/footprints.ts integer ground rectangle, expanded by unit radius in packages/sim/navigation.ts",
       "attachmentPoints": [],
       "animations": [
         "static"
@@ -76,7 +76,7 @@
         1
       ],
       "selectionBounds": "not currently selectable in game UI",
-      "collisionProxy": "packages/sim/navigation.ts expanded static AABB",
+      "collisionProxy": "packages/content/footprints.ts integer ground rectangle, expanded by unit radius in packages/sim/navigation.ts",
       "attachmentPoints": [],
       "animations": [
         "static"
@@ -96,7 +96,7 @@
         0.7
       ],
       "selectionBounds": "not currently selectable in game UI",
-      "collisionProxy": "packages/sim/navigation.ts expanded static AABB",
+      "collisionProxy": "packages/content/footprints.ts integer ground rectangle, expanded by unit radius in packages/sim/navigation.ts",
       "attachmentPoints": [],
       "animations": [
         "static"
@@ -172,7 +172,7 @@
         0.7
       ],
       "selectionBounds": "not currently selectable in game UI",
-      "collisionProxy": "expanded static AABB",
+      "collisionProxy": "packages/content/footprints.ts integer ground rectangle, expanded by unit radius in packages/sim/navigation.ts",
       "attachmentPoints": [],
       "animations": [
         "static"
@@ -192,7 +192,7 @@
         0.7
       ],
       "selectionBounds": "not currently selectable in game UI",
-      "collisionProxy": "expanded static AABB",
+      "collisionProxy": "packages/content/footprints.ts integer ground rectangle, expanded by unit radius in packages/sim/navigation.ts",
       "attachmentPoints": [],
       "animations": [
         "static"
@@ -212,7 +212,7 @@
         0.7
       ],
       "selectionBounds": "not currently selectable in game UI",
-      "collisionProxy": "expanded static AABB",
+      "collisionProxy": "packages/content/footprints.ts integer ground rectangle, expanded by unit radius in packages/sim/navigation.ts",
       "attachmentPoints": [],
       "animations": [
         "static"
@@ -232,7 +232,7 @@
         0.7
       ],
       "selectionBounds": "not currently selectable in game UI",
-      "collisionProxy": "expanded static AABB",
+      "collisionProxy": "packages/content/footprints.ts integer ground rectangle, expanded by unit radius in packages/sim/navigation.ts",
       "attachmentPoints": [],
       "animations": [
         "static"
@@ -457,6 +457,81 @@
         "attack"
       ],
       "status": "representative mount only; mounted death/disassembly, rider attack refinement, authority radius and gameplay integration pending"
+    },
+    {
+      "id": "barracks",
+      "source": "apps/web/military-building.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original repository-authored geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "inspector only; no gameplay selection",
+      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored",
+        "four structural age variants: timber, framed canopy/porch, masonry, roof vents/end turrets"
+      ],
+      "status": "four original structural age silhouettes; inspector only, no training/rally/navigation or production animation"
+    },
+    {
+      "id": "archery-range",
+      "source": "apps/web/military-building.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original repository-authored geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "inspector only; no gameplay selection",
+      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored",
+        "four structural age variants: timber, framed canopy/porch, masonry, roof vents/end turrets"
+      ],
+      "status": "four original structural age silhouettes; inspector only, no training/rally/navigation or production animation"
+    },
+    {
+      "id": "stable",
+      "source": "apps/web/military-building.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original repository-authored geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "inspector only; no gameplay selection",
+      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored",
+        "four structural age variants: timber, framed canopy/porch, masonry, roof vents/end turrets"
+      ],
+      "status": "four original structural age silhouettes; inspector only, no training/rally/navigation or production animation"
     }
   ],
   "remaining": [
@@ -476,5 +551,11 @@
     "placement": "static model origins and unit feet use groundHeight",
     "navigation": "height discontinuities expanded by unit radius; maxLandStep from terrainRules",
     "status": "stepped acceptance map; main sandbox remains meadow"
+  },
+  "primitiveGeometry": {
+    "source": "apps/web/brick-geometries.ts",
+    "arch": "extruded open outline; no bevel yet; cached and retained through all detail levels",
+    "provenance": "original design_default proportions",
+    "remaining": "wedge/wheel/axle/hinge/transparent primitives and full material budget"
   }
 }

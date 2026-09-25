@@ -119,6 +119,22 @@ function cancelReservation(account, id) {
   r.status = "cancelled";
 }
 
+// packages/content/footprints.ts
+var obstacleFootprints = {
+  house: { x: -15, y: -15, width: 250, depth: 230 },
+  tree: { x: -20, y: -20, width: 100, depth: 100 },
+  rock: { x: 0, y: 0, width: 65, depth: 70 },
+  gold: { x: 0, y: 0, width: 65, depth: 70 },
+  berries: { x: 0, y: 0, width: 65, depth: 70 },
+  hunt: { x: 0, y: 0, width: 65, depth: 70 },
+  livestock: { x: 0, y: 0, width: 65, depth: 70 }
+};
+function obstacleBounds(o, radius = 0) {
+  const f = obstacleFootprints[o.kind];
+  if (!f || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
+  return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
+}
+
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 32, speedPerTick: 5 };
 var startingResourceRules = { provenance: "design_default", maxApproachDistance: 1200, maxNearestDistanceDifference: 500, minimum: { tree: 300, stone: 250, gold: 250, berries: 150 } };
@@ -179,8 +195,7 @@ function generateCandidate(seed, layout) {
   return map;
 }
 function bounds(o) {
-  const r = navigationRules.radius;
-  return o.kind === "house" ? [o.x - 15 - r, o.y - 15 - r, o.x + 235 + r, o.y + 215 + r] : o.kind === "tree" ? [o.x - 20 - r, o.y - 20 - r, o.x + 80 + r, o.y + 80 + r] : [o.x - r, o.y - r, o.x + 65 + r, o.y + 70 + r];
+  return obstacleBounds(o, navigationRules.radius);
 }
 function clearSegment(map, a, b, movement = "land") {
   if ([a.x, a.y, b.x, b.y].some((v) => !Number.isSafeInteger(v) || v < 50 || v > 1550)) return false;
