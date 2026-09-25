@@ -6,19 +6,19 @@ SCOPE-004,SCOPE,自訂參數與對照值分離,scope,01,proposed,false,design_pr
 SCOPE-005,SCOPE,需求程式測試證據追蹤,scope,01,proposed,false,design_proposal,in_progress,docs/feature-ledger.csv;docs/stage-dependencies.json;docs/data-model.md,tests/governance.test.ts,docs/verification.md,Evidence limited to this foundation
 SIM-001,SIM,固定 tick 與畫面插值分離,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts;apps/web/main.ts,tests/foundation.test.ts,docs/first-use-002.md,20 Hz fixed step; no interpolation yet
 SIM-002,SIM,穩定 PRNG 與排序,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts,tests/foundation.test.ts,docs/verification.md,xorshift32 and deterministic ordering; cross-browser not tested
-SIM-003,SIM,命令合法性與原子扣費,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts,tests/foundation.test.ts,docs/verification.md,Movement ownership/protocol/sequence only; no spending
+SIM-003,SIM,命令合法性與原子扣費,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts;packages/sim/economy.ts,tests/economy.test.ts;tests/foundation.test.ts,docs/economy-verification.md,Tick-time multi-resource reservation and cancellation are atomic; population accounting and explicit rejected results tested. Actual producer/technology/build-site gameplay checks belong to later systems.
 SIM-004,SIM,可序列化權威狀態,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts,tests/foundation.test.ts,docs/first-use-002.md,Movement sandbox state only
 SIM-005,SIM,確定性尋路工作排程,infrastructure,02,proposed,false,design_proposal,implemented,packages/sim/navigation.ts;packages/sim/sim.ts,tests/navigation.test.ts;tests/browser.mjs,docs/first-use-003.md,Fixed shared 32-node tick budget; serializable frontier; static house/tree/rock footprints with radius 25. Unit avoidance and dynamic occupancy pending.
 SIM-006,SIM,headless runner 與 state hash,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/sim.ts;packages/sim/headless.ts;packages/sim/run.ts,tests/foundation.test.ts;tests/governance.test.ts,docs/headless-result.json;docs/first-use-001.md,Headless runner and actual tick timings; four-unit sandbox only; full game benchmark not run
 SIM-007,SIM,Worker 訊息與錯誤恢復,infrastructure,02,proposed,false,design_proposal,in_progress,packages/sim/protocol.ts;apps/web/worker.ts;apps/web/worker-client.ts;apps/web/main.ts,tests/worker.test.ts;tests/browser.mjs,docs/first-use-002.md,Live Worker owns movement simulation; transferable projection; startup/error/timeout recovery tested. Other RTS systems not implemented.
-ART-001,ART,原創積木元件庫,visual,03,proposed,false,design_proposal,not_started,,,,
-ART-002,ART,凸點／倒角／接縫,visual,03,proposed,false,design_proposal,not_started,,,,
+ART-001,ART,原創積木元件庫,visual,03,proposed,false,design_proposal,in_progress,apps/web/scene.ts;apps/web/models.html;docs/asset-manifest.json,tests/browser.mjs,docs/first-use-004.md,"Actual local WebGL2 renderer, initial original meshes, instancing, stud detail threshold and view controls. Full art matrix incomplete."
+ART-002,ART,凸點／倒角／接縫,visual,03,proposed,false,design_proposal,in_progress,apps/web/scene.ts;apps/web/models.html;docs/asset-manifest.json,tests/browser.mjs,docs/first-use-004.md,"Actual local WebGL2 renderer, initial original meshes, instancing, stud detail threshold and view controls. Full art matrix incomplete."
 ART-003,ART,四時代建築變體,visual,03,proposed,false,design_proposal,not_started,,,,
-ART-004,ART,人物與武器工具 sockets,visual,03,proposed,false,design_proposal,not_started,,,,
+ART-004,ART,人物與武器工具 sockets,visual,03,proposed,false,design_proposal,in_progress,apps/web/scene.ts;apps/web/models.html;docs/asset-manifest.json,tests/browser.mjs,docs/first-use-004.md,"Actual local WebGL2 renderer, initial original meshes, instancing, stud detail threshold and view controls. Full art matrix incomplete."
 ART-005,ART,施工分段組裝,visual,03,proposed,false,design_proposal,not_started,,,,
 ART-006,ART,受損／摧毀／修復,visual,03,proposed,false,design_proposal,not_started,,,,
-ART-007,ART,LOD 與可辨識輪廓,visual,03,proposed,false,design_proposal,not_started,,,,
-ART-008,ART,模型清冊與授權證據,visual,03,proposed,false,design_proposal,in_progress,docs/asset-manifest.json,,docs/verification.md,Canvas illustration only
+ART-007,ART,LOD 與可辨識輪廓,visual,03,proposed,false,design_proposal,in_progress,apps/web/scene.ts;apps/web/models.html;docs/asset-manifest.json,tests/browser.mjs,docs/first-use-004.md,"Actual local WebGL2 renderer, initial original meshes, instancing, stud detail threshold and view controls. Full art matrix incomplete."
+ART-008,ART,模型清冊與授權證據,visual,03,proposed,false,design_proposal,in_progress,apps/web/scene.ts;apps/web/models.html;docs/asset-manifest.json,tests/browser.mjs,docs/first-use-004.md,"Actual local WebGL2 renderer, initial original meshes, instancing, stud detail threshold and view controls. Full art matrix incomplete."
 MAP-001,MAP,種子地圖生成,system,04,proposed,true,unverified,not_started,,,,
 MAP-002,MAP,出生點公平與可達性,system,04,proposed,true,unverified,not_started,,,,
 MAP-003,MAP,地形高度與通行類別,system,04,proposed,true,unverified,not_started,,,,
@@ -43,7 +43,7 @@ INPUT-005,INPUT,minimap／鏡頭操作,system,06,proposed,true,unverified,not_st
 INPUT-006,INPUT,HUD 真實資料與成本提示,system,06,proposed,true,unverified,not_started,,,,
 INPUT-007,INPUT,訓練／科技佇列操作,system,06,proposed,true,unverified,not_started,,,,
 INPUT-008,INPUT,失焦／輸入法／UI 隔離,system,06,proposed,true,unverified,not_started,,,,
-ECO-001,ECO,四資源帳本,system,07,proposed,true,unverified,not_started,,,,
+ECO-001,ECO,四資源帳本,system,07,proposed,true,unverified,in_progress,packages/sim/economy.ts;packages/sim/sim.ts,tests/economy.test.ts,,Four-resource accounts in authoritative state; gathering/carry/dropoff pending.
 ECO-002,ECO,採集／攜帶／送返循環,system,07,proposed,true,unverified,not_started,,,,
 ECO-003,ECO,合法 dropoff 與工作站位,system,07,proposed,true,unverified,not_started,,,,
 ECO-004,ECO,伐木／金礦／石礦,system,07,proposed,true,unverified,not_started,,,,
@@ -138,7 +138,7 @@ PERF-003,PERF,內顯實機 FPS／frame time,quality,17,proposed,false,design_pro
 PERF-004,PERF,大量單位尋路與 AI,quality,17,proposed,false,design_proposal,not_started,,,,
 PERF-005,PERF,資產釋放與重開洩漏,quality,17,proposed,false,design_proposal,not_started,,,,
 PERF-006,PERF,桌面瀏覽器相容性,quality,17,proposed,false,design_proposal,not_started,,,,
-PERF-007,PERF,WebGL／Worker／載入失敗,quality,17,proposed,false,design_proposal,not_started,,,,
+PERF-007,PERF,WebGL／Worker／載入失敗,quality,17,proposed,false,design_proposal,in_progress,apps/web/scene.ts;apps/web/models.html;docs/asset-manifest.json,tests/browser.mjs,docs/first-use-004.md,"Actual local WebGL2 renderer, initial original meshes, instancing, stud detail threshold and view controls. Full art matrix incomplete."
 PERF-008,PERF,快捷鍵／字級／非顏色識別,quality,17,proposed,false,design_proposal,not_started,,,,
 QA-001,QA,機制完整矩陣,quality,18,proposed,false,design_proposal,not_started,,,,
 QA-002,QA,內容完整矩陣,quality,18,proposed,false,design_proposal,not_started,,,,

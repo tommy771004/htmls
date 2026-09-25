@@ -1,23 +1,109 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "renderer": "local Three.js 0.186.0 / MIT; vendor/three-0.186.0/LICENSE",
+  "generator": "apps/web/scene.ts",
+  "viewer": "web/150-brick-rts-models.html",
+  "module": {
+    "studPitch": 0.5,
+    "plateHeight": 0.16,
+    "brickHeight": 0.32,
+    "bevel": 0.025
+  },
+  "detailLevels": {
+    "zoomBelow0.9": "omit decorative studs only",
+    "otherwise": "full initial model geometry",
+    "simulationChanges": false
+  },
   "assets": [
     {
-      "id": "sandbox-isometric-bricks",
-      "source": "apps/web/main.ts",
-      "creator": "original procedural implementation in this project",
+      "id": "house",
+      "source": "apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
       "externalAssets": false,
-      "type": "Canvas 2D drawing code",
-      "parts": [
-        "studded bricks",
-        "stepped roofs",
-        "chimney",
-        "doors",
-        "windows",
-        "flags",
-        "villagers",
-        "trees"
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "lower footprint origin with -0.15 foundation offset",
+      "footprint": [
+        2.5,
+        2.3
       ],
-      "status": "sandbox illustration only; not production 3D RTS models"
+      "selectionBounds": "visible mesh raycast; villager ring radius 0.47",
+      "collisionProxy": "packages/sim/navigation.ts expanded static AABB",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "status": "initial representative asset; full art matrix not complete"
+    },
+    {
+      "id": "tree",
+      "source": "apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "trunk base",
+      "footprint": [
+        1,
+        1
+      ],
+      "selectionBounds": "visible mesh raycast; villager ring radius 0.47",
+      "collisionProxy": "packages/sim/navigation.ts expanded static AABB",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "status": "initial representative asset; full art matrix not complete"
+    },
+    {
+      "id": "rock",
+      "source": "apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "footprint lower corner",
+      "footprint": [
+        0.65,
+        0.7
+      ],
+      "selectionBounds": "visible mesh raycast; villager ring radius 0.47",
+      "collisionProxy": "packages/sim/navigation.ts expanded static AABB",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "status": "initial representative asset; full art matrix not complete"
+    },
+    {
+      "id": "villager",
+      "source": "apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "feet center",
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "selectionBounds": "visible mesh raycast; villager ring radius 0.47",
+      "collisionProxy": "radius 0.25 vs static geometry only; unit-unit separation pending",
+      "attachmentPoints": [],
+      "animations": [
+        "idle",
+        "walk"
+      ],
+      "status": "initial representative asset; full art matrix not complete"
     }
+  ],
+  "remaining": [
+    "full village set",
+    "military silhouettes",
+    "tools and socket attachment API",
+    "work/attack/hit/death animation",
+    "construction/damage/repair",
+    "four-age variants",
+    "full LOD hierarchy"
   ]
 }

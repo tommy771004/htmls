@@ -44,7 +44,7 @@ export function tick(s:State):void {
  while(budget>0&&s.pathJobs.some(j=>j.status==='searching'))for(const job of s.pathJobs){if(budget<=0)break;if(job.status==='searching')budget-=advancePathJob(s.map,job,1);}
  for(const job of s.pathJobs)if(job.status!=='searching'){const u=s.units.find(u=>u.id===job.unitId)!;u.path=job.path;u.navigation=job.status==='found'?'moving':'unreachable';if(job.status==='unreachable')u.target=null;}
  s.pathJobs=s.pathJobs.filter(j=>j.status==='searching');
- for(const u of s.units)if(u.path?.length){const next=u.path[0];const p={x:u.x+Math.sign(next.x-u.x)*Math.min(5,Math.abs(next.x-u.x)),y:u.x===next.x?u.y+Math.sign(next.y-u.y)*Math.min(5,Math.abs(next.y-u.y)):u.y};
+ for(const u of s.units)if(u.path?.length){const next=u.path[0];const p={x:u.x+Math.sign(next.x-u.x)*Math.min(navigationRules.speedPerTick,Math.abs(next.x-u.x)),y:u.x===next.x?u.y+Math.sign(next.y-u.y)*Math.min(navigationRules.speedPerTick,Math.abs(next.y-u.y)):u.y};
  if(!clearSegment(s.map,u,p))throw Error(`tick ${s.tick} / entity ${u.id}: 非法碰撞路徑`);u.x=p.x;u.y=p.y;if(u.x===next.x&&u.y===next.y)u.path.shift();if(!u.path.length){u.target=null;u.navigation='idle';}}
 
 }

@@ -101,11 +101,21 @@ html{scroll-behavior:smooth;scroll-padding-top:28px}
 .days{display:block}.door{padding:30px 0 34px;background:transparent;box-shadow:none;border-radius:0;border-bottom:1px solid var(--shade);scroll-margin-top:24px;position:relative}.door::before{display:none}.door .dn{position:static;transform:none;width:auto;height:auto;display:block;text-align:left;background:none;color:var(--terra);font:11px system-ui;letter-spacing:.2em;margin-bottom:12px}.door .dn::before{content:'DAY 0'}.door h3{text-align:left;font-size:40px;color:var(--aegean-d);letter-spacing:-.02em}.door .where{text-align:left;font-size:15px;margin:7px 0 22px}.door li button{grid-template-columns:53px 1fr;padding:16px 10px;font-size:14px;line-height:1.65;border-top:1px solid var(--shade);border-radius:0;position:relative;transition:background 250ms,color 250ms,box-shadow 250ms}.door li button.on{background:#e4e9e6;box-shadow:inset 3px 0 var(--aegean)}.door li time{font-size:15px}.door li button span{transition:transform 250ms}.door li button.on span{transform:translateX(3px)}
 .selection{border-top:1px solid var(--shade);padding-top:13px;font-size:12px;line-height:1.6;margin:16px 0 0;color:var(--aegean-d);min-height:48px}.selection strong{font-weight:normal;color:var(--terra-d)}
 a:focus-visible,button:focus-visible{outline:2px solid var(--aegean);outline-offset:4px}.door li button:focus-visible{outline:2px solid var(--aegean);outline-offset:-2px}
-footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}#m2{opacity:.4;height:8px;margin-top:45px!important}
+footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}
+/* Footer plate: an engraving of the island in the page's own blue, full-bleed to the bottom edge. */
+.plate{position:relative;display:grid;margin:72px calc(50% - 50vw) -36px;color:var(--aegean-d);letter-spacing:0}.plate>*{grid-area:1/1}
+.plate-text{position:relative;z-index:1;align-self:start;width:min(1480px,100%);margin:0 auto;padding:30px clamp(24px,4vw,64px) 0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px clamp(36px,5vw,84px);align-items:baseline}
+.plate-title{font-family:var(--display);font-style:italic;font-size:46px;line-height:1.1;margin:0;color:var(--aegean-d)}
+.plate nav{display:flex;flex-wrap:wrap;gap:0 24px;font-family:var(--display);font-size:18px}.plate nav a{color:var(--aegean-d);text-decoration:none;padding:10px 0;transition:color 200ms}.plate nav a:hover{color:var(--terra-d)}
+.colophon{grid-column:1/-1;margin:0;font:11px system-ui;letter-spacing:.06em;color:#6b655a}
+#plate{display:block;width:100%;height:clamp(360px,34vw,560px)}
+#plate .kaiki{transform:translate(560px,332px);animation:kaiki 84s linear -30s infinite}#plate .bob{transform-box:fill-box;transform-origin:50% 85%;animation:bob 4.6s ease-in-out infinite alternate}
+#plate .sails{transform-box:fill-box;transform-origin:center;animation:sails 16s linear infinite}#plate .drift{animation:drift 70s ease-in-out infinite alternate}
+@keyframes kaiki{from{transform:translate(-140px,332px)}to{transform:translate(1190px,332px)}}@keyframes bob{from{transform:rotate(-1.6deg)}to{transform:rotate(1.4deg) translateY(1.5px)}}@keyframes sails{to{transform:rotate(360deg)}}@keyframes drift{to{transform:translateX(-70px)}}
 @media(min-width:1001px){.arch{max-height:calc(100svh - 440px);min-height:200px}}
 @media(min-width:1001px) and (max-height:800px){.arch{aspect-ratio:1.9}.hero{top:14px}.almanac{gap:8px 16px}.selection{font-size:11px;margin-top:8px;padding-top:8px}.clock{font-size:40px}}
 @media(max-width:1000px){.journey{grid-template-columns:1fr;gap:45px}.hero{position:relative;top:auto;max-width:760px;width:100%;margin:auto}.arch{aspect-ratio:1.45}.journal-head p{max-width:none}.day-nav{position:sticky;top:0;background:var(--lime);z-index:5;padding:12px 0;margin-bottom:0}.door{scroll-margin-top:76px}.days{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}.scene-label{margin-top:0}}
-@media(max-width:600px){.wrap{padding:18px 22px 30px}.travel-nav{font-size:9px;letter-spacing:.07em;margin-bottom:25px;padding-bottom:12px}.travel-nav>span{display:none}header .eyebrow{font-size:8px;letter-spacing:.12em}header{margin-bottom:26px;padding-bottom:25px}h1{font-size:70px;line-height:.92}h1 span{display:block;margin-top:7px}.sub{font-size:14px;line-height:1.6;max-width:32ch}.arch{aspect-ratio:1.12}.scene-label{font-size:9px}.clock{font-size:42px}.almanac{gap:12px}.months{gap:4px;grid-column:1/-1}.chip{min-width:40px;min-height:40px}.play{grid-column:1/-1;grid-row:auto;justify-self:start;min-height:42px}.dial{grid-row:auto}.selection{min-height:0}.days{display:block}.journal-head h2{font-size:32px}.journal-head p{max-width:14ch}.day-nav{justify-content:space-between}.day-nav a{padding:12px}.door h3{font-size:38px}.door li button{padding:16px 8px}.facts b{font-size:20px}}
+@media(max-width:600px){.wrap{padding:18px 22px 30px}.travel-nav{font-size:9px;letter-spacing:.07em;margin-bottom:25px;padding-bottom:12px}.travel-nav>span{display:none}header .eyebrow{font-size:8px;letter-spacing:.12em}header{margin-bottom:26px;padding-bottom:25px}h1{font-size:70px;line-height:.92}h1 span{display:block;margin-top:7px}.sub{font-size:14px;line-height:1.6;max-width:32ch}.arch{aspect-ratio:1.12}.scene-label{font-size:9px}.clock{font-size:42px}.almanac{gap:12px}.months{gap:4px;grid-column:1/-1}.chip{min-width:40px;min-height:40px}.play{grid-column:1/-1;grid-row:auto;justify-self:start;min-height:42px}.dial{grid-row:auto}.selection{min-height:0}.days{display:block}.journal-head h2{font-size:32px}.journal-head p{max-width:14ch}.day-nav{justify-content:space-between}.day-nav a{padding:12px}.door h3{font-size:38px}.door li button{padding:16px 8px}.facts b{font-size:20px}.plate{display:block;margin:52px calc(50% - 50vw) -30px}.plate-text{grid-template-columns:1fr;padding:0 22px 14px}.plate-title{font-size:40px}.plate nav{gap:0 18px;font-size:17px}#plate{height:240px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -153,8 +163,14 @@ footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}#
     <div class="days" id="days"></div>
   </section></div>
 
-  <div class="meander" id="m2" aria-hidden="true" style="margin-top:50px"></div>
-  <footer>Levkí is fictional · the sunlight is real (36.4° N, 25.4° E, EEST)</footer>
+  <footer class="plate">
+    <div class="plate-text">
+      <p class="plate-title">Levkí</p>
+      <nav aria-label="Footer"><a href="#day-1">Day 01</a><a href="#day-2">Day 02</a><a href="#day-3">Day 03</a><a href="#day-4">Day 04</a><a href="#arch">Back to the window ↑</a><a href="../index.html">作品集</a></nav>
+      <p class="colophon">Levkí is fictional · the sunlight is real (36.4° N, 25.4° E, EEST) · the engraved sun follows the hour you choose</p>
+    </div>
+    <svg id="plate" viewBox="0 0 1600 440" preserveAspectRatio="xMaxYMax slice" role="img" aria-label="Engraving of Levkí: a windmill and white village on the headland, a caique crossing the bay"></svg>
+  </footer>
 </div>
 
 <script>
@@ -362,6 +378,11 @@ footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}#
     if (altEl) altEl.textContent = say(alt, az);
     if (azEl) azEl.textContent = alt > -1 ? `Sun ${Math.round(alt)}° · az ${Math.round(az)}°` : 'Sun below horizon';
     if (range && +range.value !== Math.round(T)) range.value = Math.round(T);
+    // the footer engraving shares the same sun
+    if (plateSun) {
+      plateSun.setAttribute('transform', `translate(${(690 + (az - 180) / 120 * 380).toFixed(1)} ${(232 - Math.min(40, Math.max(0, alt)) * 2.4).toFixed(1)})`);
+      plateSun.style.opacity = alt > -1 ? 1 : 0;
+    }
   }
 
   function almanac() {
@@ -492,6 +513,109 @@ footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}#
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(anim);playing=false;setPlay()}wind()});
   wind();
   addEventListener('resize', () => { const p = $('#pin'); if (p && p.classList.contains('on')) showPin(p.dataset.loc); });
+
+  // ---------- footer plate: a line engraving drawn with hatching ----------
+  let plateSun = null;
+  (function buildPlate() {
+    const P = $('#plate'); if (!P) return;
+    const INK = '#1c5d99', PAPER = '#f5f1e8', HZ = 250;
+    const g = (tag, attrs, parent) => el(tag, attrs, parent || P);
+    const r = (a, b) => a + Math.random() * (b - a);
+    const d = g('defs', {});
+    const hatch = (id, size, rot, w, paths) => { const p = g('pattern', { id, width: size, height: size, patternUnits: 'userSpaceOnUse', patternTransform: `rotate(${rot})` }, d); g('rect', { width: size, height: size, fill: PAPER }, p); g('path', { d: paths, stroke: INK, 'stroke-width': w, fill: 'none' }, p); };
+    hatch('hFar', 4.2, 45, .6, 'M0 0V4.2');
+    hatch('hCliff', 3.4, 68, .75, 'M0 0V3.4');
+    hatch('hSide', 2.6, 0, .75, 'M0 0V2.6');
+    hatch('hCross', 5, 35, .7, 'M0 0V5M0 0H5');
+    hatch('hDome', 2.2, -30, .9, 'M0 0V2.2');
+    const fade = g('linearGradient', { id: 'skyFade', x1: 0, y1: 0, x2: 0, y2: HZ, gradientUnits: 'userSpaceOnUse' }, d);
+    g('stop', { offset: .38, 'stop-color': '#fff', 'stop-opacity': 0 }, fade); g('stop', { offset: 1, 'stop-color': '#fff', 'stop-opacity': 1 }, fade);
+    const m = g('mask', { id: 'skyMask', maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: 1600, height: HZ }, d); g('rect', { width: 1600, height: HZ, fill: 'url(#skyFade)' }, m);
+    const line = (dd, w, extra) => g('path', Object.assign({ d: dd, stroke: INK, 'stroke-width': w, fill: 'none', 'stroke-linecap': 'round' }, extra || {}), extra && extra.parent);
+    // sky: ruled lines that fade out toward the top, where the footer text sits
+    let s = ''; for (let y = 30; y < HZ; y += 3.6) s += `M0 ${y.toFixed(1)}H1600`;
+    line(s, .55, { mask: 'url(#skyMask)', opacity: .7 });
+    // the sun, positioned by render()
+    plateSun = g('g', {});
+    g('circle', { r: 24, fill: PAPER, stroke: INK, 'stroke-width': 1.1 }, plateSun);
+    g('circle', { r: 17, fill: 'none', stroke: INK, 'stroke-width': .6 }, plateSun);
+    let rays = ''; for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2, r1 = k % 2 ? 29 : 31, r2 = k % 2 ? 35 : 41; rays += `M${(Math.cos(a) * r1).toFixed(1)} ${(Math.sin(a) * r1).toFixed(1)}L${(Math.cos(a) * r2).toFixed(1)} ${(Math.sin(a) * r2).toFixed(1)}`; }
+    g('path', { d: rays, stroke: INK, 'stroke-width': .9, 'stroke-linecap': 'round' }, plateSun);
+    // clouds on the right, clear of the text
+    const clouds = g('g', { class: 'drift' });
+    [[1000, 104, 5, 22], [1262, 76, 4, 19], [1436, 118, 6, 16]].forEach(([x, y, n, rr]) => {
+      let p = `M${x} ${y}`, cx = x;
+      for (let i = 0; i < n; i++) { const rad = rr * (i === 1 || i === n - 2 ? 1.25 : i === 0 || i === n - 1 ? .8 : 1.1); p += `A${rad} ${rad} 0 0 1 ${cx + rad * 1.5} ${y - (i === 0 ? 2 : 0)}`; cx += rad * 1.5; }
+      p += `Q${cx + 12} ${y + 8} ${cx - 6} ${y + 10}H${x + 4}Q${x - 12} ${y + 6} ${x} ${y}Z`;
+      g('path', { d: p, fill: PAPER, stroke: INK, 'stroke-width': .9, 'stroke-linejoin': 'round' }, clouds);
+      let sh = ''; for (let k = 0; k < 3; k++) sh += `M${x + 10 + k * 6} ${y + 4 + k * 2}H${cx - 14 - k * 9}`;
+      g('path', { d: sh, stroke: INK, 'stroke-width': .5, fill: 'none' }, clouds);
+    });
+    // far mountains
+    g('path', { d: `M0 ${HZ}V218C120 200 180 176 260 184C330 190 360 206 420 204C520 200 560 162 660 168C760 174 800 214 900 224C960 230 990 244 1010 ${HZ}Z`, fill: 'url(#hFar)', stroke: INK, 'stroke-width': .9, 'stroke-linejoin': 'round' });
+    // sea: broken ruled lines, spacing opening up toward the viewer
+    g('rect', { x: 0, y: HZ, width: 1600, height: 190, fill: PAPER });
+    let sea = '';
+    for (let y = HZ + 3; y < 442; y += 2.4 + (y - HZ) * .034) {
+      let x = r(-40, 0);
+      while (x < 1600) { const len = r(24, 170 + (y - HZ)), gap = r(3, 10 + (y - HZ) * .06); sea += `M${x.toFixed(0)} ${y.toFixed(1)}h${len.toFixed(0)}`; x += len + gap; }
+    }
+    line(sea, .6);
+    g('path', { d: `M0 ${HZ}H1600`, stroke: INK, 'stroke-width': 1.1 });
+    // the caique crosses the bay, behind the islet and the headland
+    const boat = g('g', { class: 'kaiki' }), bob = g('g', { class: 'bob' }, boat);
+    g('path', { d: 'M-70 16h22M-86 20h30M-60 24h18', stroke: INK, 'stroke-width': .7, 'stroke-linecap': 'round' }, bob);
+    g('path', { d: 'M4 -1V-44', stroke: INK, 'stroke-width': 1.3 }, bob);
+    g('path', { d: 'M6 -42L32 -7H6Z', fill: 'url(#hSide)', stroke: INK, 'stroke-width': .9, 'stroke-linejoin': 'round' }, bob);
+    g('path', { d: 'M4 -44l9 3-9 3', fill: INK }, bob);
+    g('rect', { x: -22, y: -13, width: 20, height: 13, fill: PAPER, stroke: INK, 'stroke-width': .9 }, bob);
+    g('path', { d: 'M-40 -1Q-36 11 -20 13H24Q36 9 42 -5L32 -2H-40Z', fill: PAPER, stroke: INK, 'stroke-width': 1.1, 'stroke-linejoin': 'round' }, bob);
+    g('path', { d: 'M-36 6H36', stroke: INK, 'stroke-width': 1.6 }, bob);
+    g('path', { d: 'M-24 18h40M-14 22h24M-6 26h10', stroke: INK, 'stroke-width': .6, 'stroke-linecap': 'round', opacity: .8 }, bob);
+    // islet in the left foreground
+    g('path', { d: 'M0 440V326C40 314 92 318 132 334C176 352 214 374 244 402C260 418 270 430 276 440Z', fill: 'url(#hCross)', stroke: INK, 'stroke-width': 1.2, 'stroke-linejoin': 'round' });
+    g('path', { d: 'M18 346q30 -10 62 2M40 372q40 -8 84 10M70 404q50 -6 104 16', stroke: INK, 'stroke-width': 1, fill: 'none' });
+    // headland with its cliff
+    g('path', { d: 'M958 252C1010 246 1040 222 1080 200C1120 178 1150 160 1200 152L1600 136V440H1186C1160 404 1128 366 1096 334C1056 294 1004 268 958 252Z', fill: 'url(#hCliff)', stroke: INK, 'stroke-width': 1.3, 'stroke-linejoin': 'round' });
+    let strata = ''; for (let k = 0; k < 16; k++) { const x0 = r(1110, 1560), y0 = r(270, 420); strata += `M${x0.toFixed(0)} ${y0.toFixed(0)}q${r(20, 40).toFixed(0)} ${r(-8, 8).toFixed(0)} ${r(50, 90).toFixed(0)} ${r(-4, 10).toFixed(0)}`; }
+    line(strata, 1);
+    g('path', { d: 'M1120 400q24 -20 60 -12q20 10 40 40M1300 420q30 -26 72 -16q26 8 36 36', fill: 'url(#hCross)', stroke: INK, 'stroke-width': 1.1 });
+    // windmill at the head of the slope
+    const mill = g('g', {});
+    g('path', { d: 'M1046 224L1051 180H1071L1076 224Z', fill: PAPER, stroke: INK, 'stroke-width': 1 }, mill);
+    g('path', { d: 'M1071 180L1076 224H1066L1063 180Z', fill: 'url(#hSide)', stroke: 'none' }, mill);
+    g('path', { d: 'M1049 181Q1061 164 1073 181Z', fill: 'url(#hDome)', stroke: INK, 'stroke-width': .9 }, mill);
+    g('rect', { x: 1058, y: 206, width: 6, height: 18, rx: 3, fill: INK }, mill);
+    const sails = g('g', { class: 'sails' }, g('g', { transform: 'translate(1061 176)' }, mill));
+    for (let k = 0; k < 8; k++) { const b = g('g', { transform: `rotate(${k * 45})` }, sails); g('path', { d: 'M0 0V-36', stroke: INK, 'stroke-width': 1 }, b); g('path', { d: 'M1 -12L10 -13L9 -35L1 -36Z', fill: PAPER, stroke: INK, 'stroke-width': .7 }, b); }
+    // white village stepping down the slope: back tier first
+    const tiers = [
+      [[1112, 214, 44, 28], [1164, 198, 52, 34], [1222, 184, 58, 34], [1290, 172, 54, 38], [1352, 164, 60, 34], [1488, 152, 60, 36], [1554, 148, 46, 40]],
+      [[1176, 238, 50, 28], [1240, 224, 56, 32], [1308, 214, 52, 30], [1372, 206, 58, 34], [1442, 200, 54, 30], [1506, 192, 56, 34]],
+      [[1262, 264, 48, 26], [1324, 256, 56, 28], [1394, 248, 50, 30], [1458, 242, 58, 28], [1530, 234, 52, 30]]
+    ];
+    const house = (x, y, w, h, i) => {
+      const hg = g('g', {});
+      g('path', { d: `M${x + w} ${y - h}l10 -6v${h}l-10 6Z`, fill: 'url(#hSide)', stroke: INK, 'stroke-width': .8 }, hg);
+      g('path', { d: `M${x} ${y - h}l10 -6h${w}l-10 6Z`, fill: PAPER, stroke: INK, 'stroke-width': .8 }, hg);
+      g('rect', { x, y: y - h, width: w, height: h, fill: PAPER, stroke: INK, 'stroke-width': .9 }, hg);
+      g('rect', { x: x + w * .2, y: y - h * .5, width: w * .15, height: h * .5, rx: w * .075, fill: INK }, hg);
+      g('rect', { x: x + w * .58, y: y - h * .75, width: w * .16, height: h * .2, fill: INK }, hg);
+      if (i % 3 === 1) g('path', { d: `M${x + w * .3} ${y - h - 4}v-10h8v7`, fill: PAPER, stroke: INK, 'stroke-width': .8 }, hg);
+    };
+    tiers[0].forEach((t, i) => house(...t, i));
+    // the church with its engraved blue dome, in the back tier
+    g('path', { d: 'M1448 101V78M1441 85H1455', stroke: INK, 'stroke-width': 2.4, 'stroke-linecap': 'round' });
+    g('path', { d: 'M1422 124A27 24 0 0 1 1476 124Z', fill: 'url(#hDome)', stroke: INK, 'stroke-width': 1 });
+    g('rect', { x: 1418, y: 124, width: 60, height: 36, fill: PAPER, stroke: INK, 'stroke-width': .9 });
+    g('rect', { x: 1442, y: 138, width: 12, height: 22, rx: 6, fill: INK });
+    // cypresses
+    [[1093, 216, 54]].forEach(([x, y, h]) => g('path', { d: `M${x} ${y}c-14 -${h * .3} -10 -${h * .7} 0 -${h}c10 ${h * .3} 14 ${h * .7} 0 ${h}Z`, fill: 'url(#hCross)', stroke: INK, 'stroke-width': .9 }));
+    tiers[1].forEach((t, i) => house(...t, i + 1));
+    tiers[2].forEach((t, i) => house(...t, i + 2));
+    // the printed edge of the plate
+    g('path', { d: 'M0 437H1600', stroke: INK, 'stroke-width': 2.4 });
+  })();
 
   almanac(); rebuildDays(); render();
   // A stable opening view; motion begins with the visitor's choice.

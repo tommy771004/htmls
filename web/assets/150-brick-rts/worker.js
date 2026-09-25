@@ -12,7 +12,7 @@ var rules = {
 };
 
 // packages/sim/economy.ts
-var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: 40, cancellationRefundPercent: 100 };
+var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100 };
 function createAccount(populationUsed) {
   return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [] };
 }
@@ -211,7 +211,7 @@ function tick(s) {
   s.pathJobs = s.pathJobs.filter((j) => j.status === "searching");
   for (const u of s.units) if (u.path?.length) {
     const next = u.path[0];
-    const p = { x: u.x + Math.sign(next.x - u.x) * Math.min(5, Math.abs(next.x - u.x)), y: u.x === next.x ? u.y + Math.sign(next.y - u.y) * Math.min(5, Math.abs(next.y - u.y)) : u.y };
+    const p = { x: u.x + Math.sign(next.x - u.x) * Math.min(navigationRules.speedPerTick, Math.abs(next.x - u.x)), y: u.x === next.x ? u.y + Math.sign(next.y - u.y) * Math.min(navigationRules.speedPerTick, Math.abs(next.y - u.y)) : u.y };
     if (!clearSegment(s.map, u, p)) throw Error(`tick ${s.tick} / entity ${u.id}: \u975E\u6CD5\u78B0\u649E\u8DEF\u5F91`);
     u.x = p.x;
     u.y = p.y;

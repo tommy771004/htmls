@@ -128,8 +128,257 @@ function position(id) {
   return { x: 50 + id % 31 * 50, y: 50 + Math.floor(id / 31) * 50 };
 }
 
+// apps/web/scene.ts
+var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.72, provenance: "original_procedural" };
+async function createScene(canvas2, onFailure) {
+  const T = await import(new URL("../../../vendor/three-0.186.0/three.module.js", import.meta.url).href);
+  if (!canvas2.getContext("webgl2")) throw Error("\u6B64\u88DD\u7F6E\u7121\u6CD5\u5EFA\u7ACB WebGL2\uFF0C\u8ACB\u4F7F\u7528\u652F\u63F4 WebGL2 \u7684\u700F\u89BD\u5668\u3002");
+  let contextLost = false;
+  const renderer = new T.WebGLRenderer({ canvas: canvas2, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.setClearColor("#d7e0cc");
+  renderer.outputColorSpace = T.SRGBColorSpace;
+  renderer.toneMapping = T.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.35;
+  const scene2 = new T.Scene();
+  const camera = new T.OrthographicCamera(-12, 12, 10, -10, 0.1, 100);
+  const ambient = new T.HemisphereLight("#fff5dc", "#819b75", 2.4);
+  scene2.add(ambient);
+  const sun = new T.DirectionalLight("#fff1d8", 3);
+  sun.position.set(-4, 20, 12);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 60 });
+  sun.shadow.normalBias = 0.03;
+  scene2.add(sun);
+  sun.target.position.set(8, 0, 8);
+  scene2.add(sun.target);
+  const geometry = /* @__PURE__ */ new Map(), materials = /* @__PURE__ */ new Map();
+  function material(color) {
+    if (!materials.has(color)) materials.set(color, new T.MeshStandardMaterial({ color, roughness: brickStyle.roughness }));
+    return materials.get(color);
+  }
+  function box(w, h, d) {
+    const key = `${w}:${h}:${d}`;
+    if (geometry.has(key)) return geometry.get(key);
+    const b = Math.min(brickStyle.bevel, w / 8, h / 8, d / 8);
+    const shape = new T.Shape();
+    shape.moveTo(-w / 2 + b, -d / 2 + b);
+    shape.lineTo(w / 2 - b, -d / 2 + b);
+    shape.lineTo(w / 2 - b, d / 2 - b);
+    shape.lineTo(-w / 2 + b, d / 2 - b);
+    shape.closePath();
+    const geo = new T.ExtrudeGeometry(shape, { depth: Math.max(1e-3, h - 2 * b), bevelEnabled: true, bevelSize: b, bevelThickness: b, bevelSegments: 1, steps: 1, curveSegments: 1 });
+    geo.rotateX(-Math.PI / 2);
+    geo.translate(0, b, 0);
+    geometry.set(key, geo);
+    return geo;
+  }
+  const studGeo = new T.CylinderGeometry(0.13, 0.13, 0.08, 10);
+  geometry.set("stud", studGeo);
+  let staticGroup = new T.Group();
+  scene2.add(staticGroup);
+  const batches = /* @__PURE__ */ new Map();
+  function staticPart(geo, color, x, y, z) {
+    const key = geo.uuid + color;
+    if (!batches.has(key)) batches.set(key, { geo, color, matrices: [] });
+    batches.get(key).matrices.push(new T.Matrix4().makeTranslation(x, y, z));
+  }
+  function brick(x, z, y, w, d, h, color, studs = true) {
+    staticPart(box(w - 0.018, h, d - 0.018), color, x + w / 2, y, z + d / 2);
+    if (studs) for (let a = 0.25; a < w; a += 0.5) for (let b = 0.25; b < d; b += 0.5) staticPart(studGeo, color, x + a, y + h + 0.04, z + b);
+  }
+  function house(x, z, red = false) {
+    const roof = red ? "#b85c47" : "#456e87";
+    brick(x - 0.15, z - 0.15, 0, 2.5, 2.3, 0.16, "#b3aa8c", false);
+    for (let level = 0; level < 4; level++) for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) brick(x + a, z + b, 0.16 + level * 0.32, 1, 1, 0.32, level % 2 ? "#e3cba4" : "#ddbc90", false);
+    brick(x + 0.75, z + 2, 0.16, 0.5, 0.05, 0.92, "#574b39", false);
+    brick(x + 0.81, z + 2.05, 0.22, 0.38, 0.04, 0.78, "#796448", false);
+    brick(x + 0.83, z + 2.09, 0.63, 0.06, 0.04, 0.07, "#d8b76c", false);
+    for (const dx of [0.14, 1.44]) {
+      brick(x + dx, z + 2, 0.79, 0.42, 0.06, 0.43, "#7b654e", false);
+      brick(x + dx + 0.055, z + 2.065, 0.85, 0.31, 0.025, 0.31, "#334b4e", false);
+    }
+    for (const dx of [0, 0.97, 1.94]) brick(x + dx, z + 1.99, 0.16, 0.06, 0.06, 1.3, "#866b50", false);
+    brick(x, z + 2.01, 1.42, 2, 0.06, 0.11, "#826a50", false);
+    for (let level = 0; level < 4; level++) for (let row = 0; row < 5; row++) brick(x - 0.2 + level * 0.25, z - 0.2 + row * 0.5, 1.53 + level * 0.18, 2.5 - level * 0.5, 0.5, 0.18, roof);
+    brick(x + 1.5, z + 0.25, 2.03, 0.5, 0.5, 0.8, "#b9a98b");
+    brick(x + 1.48, z + 0.23, 2.83, 0.54, 0.54, 0.1, "#7b7665", false);
+    brick(x + 0.25, z + 0.25, 2.37, 0.07, 0.07, 0.9, "#786849", false);
+    brick(x + 0.32, z + 0.25, 3, 0.6, 0.04, 0.3, roof, false);
+  }
+  function buildWorld(seed2) {
+    scene2.remove(staticGroup);
+    staticGroup.traverse((o) => {
+      if (o.isInstancedMesh) o.dispose();
+    });
+    staticGroup = new T.Group();
+    scene2.add(staticGroup);
+    batches.clear();
+    let rng = seed2 || 1;
+    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) {
+      rng ^= rng << 13;
+      rng ^= rng >>> 17;
+      rng ^= rng << 5;
+      const n = (rng >>> 0) / 4294967296;
+      brick(x, z, -0.24, 1, 1, 0.24, n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0", false);
+    }
+    for (const o of makeMap(seed2).obstacles) {
+      const x = o.x / 100, z = o.y / 100;
+      if (o.kind === "house") house(x, z, o.red);
+      else if (o.kind === "tree") {
+        brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8, "#80664b", false);
+        brick(x - 0.2, z - 0.2, 0.7, 1, 1, 0.4, "#67835a");
+        brick(x - 0.075, z - 0.075, 1.1, 0.75, 0.75, 0.4, "#7e985f");
+        brick(x + 0.05, z + 0.05, 1.5, 0.5, 0.5, 0.3, "#91a970");
+      } else {
+        brick(x, z, 0, 0.65, 0.7, 0.3, "#a19f86");
+        brick(x + 0.15, z + 0.15, 0.3, 0.35, 0.4, 0.18, "#b8b39c", false);
+      }
+    }
+    for (const { geo, color, matrices } of batches.values()) {
+      const mesh = new T.InstancedMesh(geo, material(color), matrices.length);
+      matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.userData.studs = geo === studGeo;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      staticGroup.add(mesh);
+    }
+  }
+  const units = /* @__PURE__ */ new Map();
+  const ringGeo = new T.RingGeometry(0.4, 0.47, 32);
+  ringGeo.rotateX(-Math.PI / 2);
+  geometry.set("ring", ringGeo);
+  const ringMaterial = new T.MeshBasicMaterial({ color: "#fff2a1", side: T.DoubleSide });
+  function unit(id, player) {
+    const group = new T.Group();
+    scene2.add(group);
+    const part = (parent, x, y, z, w, h, d, color) => {
+      const m = new T.Mesh(box(w, h, d), material(color));
+      m.position.set(x, y, z);
+      m.castShadow = true;
+      parent.add(m);
+      return m;
+    };
+    const left = new T.Group(), right = new T.Group();
+    left.position.set(-0.12, 0.3, 0);
+    right.position.set(0.12, 0.3, 0);
+    group.add(left, right);
+    part(left, 0, -0.3, 0, 0.19, 0.3, 0.24, "#44514b");
+    part(right, 0, -0.3, 0, 0.19, 0.3, 0.24, "#44514b");
+    part(group, 0, 0.3, 0, 0.46, 0.4, 0.32, player === 0 ? "#45728c" : "#b25441");
+    part(group, 0, 0.71, 0, 0.34, 0.3, 0.3, "#dfbb7e");
+    part(group, 0, 1.02, 0, 0.44, 0.11, 0.4, player === 0 ? "#cbbc94" : "#835243");
+    for (const dx of [-0.19, 0.19]) {
+      part(group, dx, 0.39, 0, 0.1, 0.28, 0.16, player === 0 ? "#45728c" : "#b25441");
+      part(group, dx, 0.29, 0, 0.1, 0.14, 0.17, "#dfbb7e");
+    }
+    for (const dx of [-0.075, 0.075]) part(group, dx, 0.86, 0.155, 0.035, 0.04, 0.018, "#3e3a2e");
+    const ring = new T.Mesh(ringGeo, ringMaterial);
+    ring.position.y = 0.025;
+    group.add(ring);
+    units.set(id, { group, left, right, ring, player, moving: false });
+    return units.get(id);
+  }
+  let seed = -1, angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected2 = 1, latest = null;
+  function cameraUpdate() {
+    if (width <= 0 || height <= 0) return;
+    const aspect = width / Math.max(1, height);
+    const halfH = Math.max(10.5, 12 / aspect) / zoom;
+    camera.left = -halfH * aspect;
+    camera.right = halfH * aspect;
+    camera.top = halfH;
+    camera.bottom = -halfH;
+    camera.position.set(8 + Math.sin(angle) * 24, 24, 8 + Math.cos(angle) * 24);
+    camera.lookAt(8, 0, 8);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+    for (const mesh of staticGroup.children) mesh.visible = !mesh.userData.studs || zoom >= 0.9;
+  }
+  function resize() {
+    const r = canvas2.getBoundingClientRect();
+    if (r.width !== width || r.height !== height) {
+      width = r.width;
+      height = r.height;
+      renderer.setSize(width, height, false);
+      cameraUpdate();
+    }
+  }
+  function update(view, id) {
+    latest = view;
+    selected2 = id;
+    if (seed !== view.seed) {
+      seed = view.seed;
+      buildWorld(seed);
+      cameraUpdate();
+    }
+    const alive = new Set(view.units.map((u) => u.id));
+    for (const [key, u] of units) if (!alive.has(key)) {
+      scene2.remove(u.group);
+      units.delete(key);
+    }
+    for (const data of view.units) {
+      const u = units.get(data.id) ?? unit(data.id, data.player);
+      const dx = data.x / 100 - u.group.position.x, dz = data.y / 100 - u.group.position.z;
+      if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
+      u.group.position.set(data.x / 100, 0, data.y / 100);
+      u.ring.visible = data.id === selected2;
+      u.moving = data.navigation === "moving";
+    }
+  }
+  const raycaster = new T.Raycaster(), ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
+  function pick(clientX, clientY) {
+    const r = canvas2.getBoundingClientRect();
+    raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
+    const hits = raycaster.intersectObjects([...units.values()].map((u) => u.group), true);
+    if (hits.length) {
+      let obj = hits[0].object;
+      while (obj.parent && obj.parent !== scene2) obj = obj.parent;
+      for (const [id, u] of units) if (u.group === obj) return { unitId: id };
+    }
+    const p = new T.Vector3();
+    if (raycaster.ray.intersectPlane(ground, p)) return { x: p.x, y: p.z };
+    return {};
+  }
+  function draw(time) {
+    if (contextLost) return;
+    resize();
+    for (const u of units.values()) {
+      const swing = u.moving ? Math.sin(time * 0.012) * 0.35 : 0;
+      u.left.rotation.x = swing;
+      u.right.rotation.x = -swing;
+    }
+    renderer.render(scene2, camera);
+  }
+  canvas2.addEventListener("webglcontextlost", (event) => {
+    event.preventDefault();
+    contextLost = true;
+    onFailure("3D \u7E6A\u5716\u9023\u7DDA\u4E2D\u65B7\uFF0C\u6A21\u64EC\u5DF2\u66AB\u505C\uFF1B\u8ACB\u91CD\u65B0\u8F09\u5165\u9801\u9762\u5F8C\u8B80\u53D6\u624B\u52D5\u5B58\u6A94\u3002");
+  });
+  canvas2.dataset.renderer = "webgl2";
+  return { update, draw, pick, zoom: (delta) => {
+    zoom = Math.max(0.7, Math.min(2.5, zoom + delta));
+    cameraUpdate();
+  }, rotate: () => {
+    angle += Math.PI / 2;
+    cameraUpdate();
+  }, resetCamera: () => {
+    zoom = 1;
+    angle = Math.PI / 4;
+    cameraUpdate();
+  }, dispose: () => {
+    renderer.dispose();
+    for (const geo of geometry.values()) geo.dispose();
+    for (const m of materials.values()) m.dispose();
+    ringMaterial.dispose();
+  }, stats: () => ({ drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries }) };
+}
+
 // packages/sim/economy.ts
-var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: 40, cancellationRefundPercent: 100 };
+var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100 };
 
 // packages/sim/sim.ts
 function canonical(value) {
@@ -243,7 +492,8 @@ var SimulationClient = class {
 // apps/web/main.ts
 var el = (id) => document.getElementById(id);
 var state = { seed: rules.settings.seed, tick: 0, units: [], stateHash: "\u2014" };
-var scenery = makeMap(state.seed);
+var scene = null;
+var graphicsFailed = false;
 var selected = 1;
 var running = false;
 var last = 0;
@@ -254,148 +504,8 @@ var notice = (s) => {
   el("notice").textContent = s;
 };
 var canvas = el("map");
-var ctx = canvas.getContext("2d");
-if (!ctx) throw Error("\u6B64\u700F\u89BD\u5668\u7121\u6CD5\u5EFA\u7ACB Canvas 2D \u756B\u9762");
-var g = ctx;
-var width = 0;
-var height = 0;
-var scale = 1;
-var ox = 0;
-var oy = 0;
-function point(x, y, z = 0) {
-  return [ox + (x - y) * scale, oy + (x + y) * scale * 0.5 - z * scale];
-}
-function polygon(points, fill, stroke) {
-  g.beginPath();
-  points.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
-  g.closePath();
-  g.fillStyle = fill;
-  g.fill();
-  if (stroke) {
-    g.strokeStyle = stroke;
-    g.lineWidth = 0.65;
-    g.stroke();
-  }
-}
-function brick(x, y, z, w, d, h, color, studs = true) {
-  const p = (a, b, c) => point(a, b, c);
-  polygon([p(x, y + d, z), p(x + w, y + d, z), p(x + w, y + d, z + h), p(x, y + d, z + h)], color);
-  g.fillStyle = "#0003";
-  g.beginPath();
-  [p(x, y + d, z), p(x + w, y + d, z), p(x + w, y + d, z + h), p(x, y + d, z + h)].forEach(([a, b], i) => i ? g.lineTo(a, b) : g.moveTo(a, b));
-  g.closePath();
-  g.fill();
-  polygon([p(x + w, y, z), p(x + w, y + d, z), p(x + w, y + d, z + h), p(x + w, y, z + h)], color);
-  polygon([p(x, y, z + h), p(x + w, y, z + h), p(x + w, y + d, z + h), p(x, y + d, z + h)], color, "#34462a22");
-  if (studs) for (let a = 0.25; a < w; a += 0.5) for (let b = 0.25; b < d; b += 0.5) {
-    const [sx, sy] = p(x + a, y + b, z + h);
-    g.fillStyle = "#0002";
-    g.beginPath();
-    g.ellipse(sx, sy, scale * 0.14, scale * 0.08, 0, 0, 7);
-    g.fill();
-    g.fillStyle = color;
-    g.beginPath();
-    g.ellipse(sx, sy - scale * 0.045, scale * 0.14, scale * 0.075, 0, 0, 7);
-    g.fill();
-    g.strokeStyle = "#fff5";
-    g.lineWidth = 0.7;
-    g.stroke();
-  }
-}
-function house(x, y, red = false) {
-  const roof = red ? "#bd624d" : "#466e86";
-  brick(x - 0.15, y - 0.15, 0, 2.5, 2.3, 0.18, "#b2ad93");
-  for (let level = 0; level < 4; level++) for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) brick(x + a, y + b, 0.18 + level * 0.34, 0.97, 0.97, 0.33, level % 2 ? "#d8c7a7" : "#e3d4b6", false);
-  brick(x + 0.72, y + 2, 0.2, 0.55, 0.035, 0.95, "#514b3e", false);
-  brick(x + 2, y + 0.35, 0.8, 0.03, 0.5, 0.45, "#354c46", false);
-  brick(x - 0.03, y + 1.97, 1.42, 2.09, 0.08, 0.13, "#766650", false);
-  for (let level = 0; level < 4; level++) brick(x - 0.2 + level * 0.23, y - 0.2, 1.6 + level * 0.2, 2.4 - level * 0.46, 2.4, 0.18, roof);
-  brick(x + 1.5, y + 0.25, 2.05, 0.35, 0.4, 0.8, "#b9aa8b");
-  const [fx, fy] = point(x + 0.3, y + 0.4, 3.5);
-  g.strokeStyle = "#756b52";
-  g.lineWidth = 2;
-  g.beginPath();
-  g.moveTo(fx, fy + scale * 0.9);
-  g.lineTo(fx, fy);
-  g.stroke();
-  polygon([[fx, fy], [fx + scale * 0.7, fy + scale * 0.1], [fx, fy + scale * 0.38]], roof);
-}
-function tree(x, y) {
-  brick(x + 0.15, y + 0.15, 0, 0.3, 0.3, 0.8, "#807057", false);
-  brick(x - 0.2, y - 0.2, 0.7, 1, 1, 0.45, "#638360");
-  brick(x - 0.08, y - 0.08, 1.15, 0.75, 0.75, 0.4, "#779367");
-  brick(x + 0.06, y + 0.06, 1.55, 0.48, 0.48, 0.3, "#8da777");
-}
-function villager(u) {
-  const x = u.x / 100, y = u.y / 100, blue = u.player === 0;
-  if (u.id === selected) {
-    const p2 = point(x + 0.17, y + 0.17);
-    g.strokeStyle = "#fdf9cb";
-    g.lineWidth = 2;
-    g.beginPath();
-    g.ellipse(p2[0], p2[1], scale * 0.62, scale * 0.3, 0, 0, Math.PI * 2);
-    g.stroke();
-  }
-  brick(x - 0.1, y, 0, 0.18, 0.24, 0.28, "#45514c", false);
-  brick(x + 0.13, y, 0, 0.18, 0.24, 0.28, "#45514c", false);
-  brick(x - 0.12, y - 0.04, 0.29, 0.46, 0.34, 0.43, blue ? "#47788f" : "#b65943", false);
-  brick(x - 0.07, y, 0.73, 0.36, 0.3, 0.33, "#e6c68c");
-  brick(x - 0.13, y - 0.06, 1.04, 0.48, 0.42, 0.12, blue ? "#d9c99e" : "#804d3c");
-  brick(x - 0.28, y + 0.05, 0.32, 0.14, 0.15, 0.36, "#d2ac75", false);
-  brick(x + 0.37, y + 0.05, 0.32, 0.14, 0.15, 0.36, "#d2ac75", false);
-  const p = point(x + 0.13, y + 0.1, 1.45);
-  g.font = `bold ${Math.max(9, scale * 0.4)}px system-ui`;
-  g.textAlign = "center";
-  g.fillStyle = blue ? "#254b62" : "#8b3728";
-  g.fillText(blue ? String(u.id) : "\u25C6", p[0], p[1]);
-}
 function render() {
-  const r = canvas.getBoundingClientRect();
-  if (r.width !== width || r.height !== height) {
-    width = r.width;
-    height = r.height;
-    const d = Math.min(devicePixelRatio || 1, 2);
-    canvas.width = Math.round(width * d);
-    canvas.height = Math.round(height * d);
-    g.setTransform(d, 0, 0, d, 0, 0);
-  }
-  scale = Math.min((width - 42) / 33, (height - 86) / 18);
-  ox = width / 2;
-  oy = (height - 16 * scale) / 2;
-  g.clearRect(0, 0, width, height);
-  let rng = state.seed || 1;
-  const rand = () => {
-    rng ^= rng << 13;
-    rng ^= rng >>> 17;
-    rng ^= rng << 5;
-    return (rng >>> 0) / 4294967296;
-  };
-  const objects = [];
-  for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) {
-    const v = rand(), color = v < 0.15 ? "#a6b489" : v < 0.4 ? "#b5c398" : "#bfcca1";
-    brick(x, y, -0.22, 1, 1, 0.22, color, false);
-  }
-  for (let i = 6; i < 11; i++) brick(i, 8, -0.015, 0.9, 0.9, 0.05, "#d0c7a3", false);
-  for (const o of scenery.obstacles) {
-    const x = o.x / 100, y = o.y / 100;
-    objects.push({ depth: x + y + (o.kind === "house" ? 2 : 0), draw: () => {
-      if (o.kind === "house") house(x, y, o.red);
-      else if (o.kind === "tree") tree(x, y);
-      else brick(x, y, 0, 0.65, 0.7, 0.35, "#aaa88b");
-    } });
-  }
-  for (const u2 of state.units) {
-    if (u2.target) {
-      const p = point(u2.target.x / 100, u2.target.y / 100);
-      g.strokeStyle = "#ba633e";
-      g.lineWidth = 1.5;
-      g.beginPath();
-      g.ellipse(p[0], p[1], scale * 0.3, scale * 0.15, 0, 0, 7);
-      g.stroke();
-    }
-    objects.push({ depth: u2.x / 100 + u2.y / 100, draw: () => villager(u2) });
-  }
-  objects.sort((a, b) => a.depth - b.depth).forEach((o) => o.draw());
+  scene?.update(state, selected);
   el("tick").textContent = String(state.tick);
   el("hash").textContent = state.stateHash;
   const u = state.units.find((u2) => u2.id === selected);
@@ -409,7 +519,7 @@ function setRunning(v) {
   el("pause").textContent = v ? "\u66AB\u505C\u6A21\u64EC" : "\u958B\u59CB\u6A21\u64EC";
   el("pause").setAttribute("aria-pressed", String(v));
   el("run-state").textContent = v ? "\u6A21\u64EC\u904B\u884C\u4E2D \xB7 20 Hz" : "\u5DF2\u66AB\u505C \xB7 \u7B49\u5F85\u6307\u4EE4";
-  el("step").disabled = !connected || v;
+  el("step").disabled = !connected || graphicsFailed || v;
 }
 function choose(id) {
   selected = id;
@@ -418,7 +528,6 @@ function choose(id) {
   render();
 }
 var client = new SimulationClient(rules.settings.seed, (v) => {
-  if (v.seed !== state.seed) scenery = makeMap(v.seed);
   state = v;
   render();
 }, (reason) => {
@@ -429,7 +538,8 @@ var client = new SimulationClient(rules.settings.seed, (v) => {
   el("worker-retry").hidden = false;
 });
 function toggleControls() {
-  for (const id of ["move", "pause", "step", "restart", "save", "load", "replay"]) el(id).disabled = !connected || id === "step" && running;
+  for (const id of ["zoom-in", "zoom-out", "rotate-view", "reset-view"]) el(id).disabled = !scene || graphicsFailed;
+  for (const id of ["move", "pause", "step", "restart", "save", "load", "replay"]) el(id).disabled = !connected || graphicsFailed && id !== "save" || id === "step" && running;
 }
 async function connect() {
   el("worker-retry").disabled = true;
@@ -455,25 +565,28 @@ async function move(x, y) {
   }
 }
 canvas.addEventListener("click", (e) => {
-  const r = canvas.getBoundingClientRect();
-  const px = e.clientX - r.left, py = e.clientY - r.top;
-  const unit = state.units.find((u) => {
-    const p = point(u.x / 100, u.y / 100, 0.5);
-    return Math.hypot(p[0] - px, p[1] - py) < Math.max(12, scale * 0.55);
-  });
-  if (unit) {
-    if (unit.player === 0) choose(unit.id);
+  if (!scene || graphicsFailed) return;
+  const hit = scene.pick(e.clientX, e.clientY);
+  if (hit.unitId !== void 0) {
+    const unit = state.units.find((u) => u.id === hit.unitId);
+    if (unit?.player === 0) choose(unit.id);
     else notice("\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002");
     return;
   }
-  const dx = (px - ox) / scale, dy = (py - oy) / scale;
-  const x = dy + dx / 2, y = dy - dx / 2;
-  if (x < 0.5 || x > 15.5 || y < 0.5 || y > 15.5) {
+  if (hit.x === void 0 || hit.y === void 0 || hit.x < 0.5 || hit.x > 15.5 || hit.y < 0.5 || hit.y > 15.5) {
     notice("\u8ACB\u9EDE\u9078\u5730\u5716\u5167\u5074\u7684\u5730\u9762\u3002");
     return;
   }
-  move(x, y);
+  void move(hit.x, hit.y);
 });
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  scene?.zoom(e.deltaY < 0 ? 0.1 : -0.1);
+}, { passive: false });
+el("zoom-in").onclick = () => scene?.zoom(0.2);
+el("zoom-out").onclick = () => scene?.zoom(-0.2);
+el("rotate-view").onclick = () => scene?.rotate();
+el("reset-view").onclick = () => scene?.resetCamera();
 document.querySelectorAll("[data-unit]").forEach((b) => b.onclick = () => choose(Number(b.dataset.unit)));
 el("move").onclick = () => {
   const x = el("target-x"), y = el("target-y");
@@ -597,9 +710,24 @@ function frame(time) {
       });
     }
   }
+  if (!graphicsFailed) scene?.draw(time);
   requestAnimationFrame(frame);
+}
+function graphicsError(message) {
+  graphicsFailed = true;
+  setRunning(false);
+  toggleControls();
+  const box = el("boot-error");
+  box.hidden = false;
+  box.textContent = message;
+  notice("3D \u5834\u666F\u66AB\u4E0D\u53EF\u7528\u3002\u82E5\u6A21\u64EC\u5DF2\u9023\u7DDA\uFF0C\u53EF\u5148\u5132\u5B58\u76EE\u524D\u6C99\u76D2\u518D\u91CD\u65B0\u8F09\u5165\u3002");
 }
 toggleControls();
 render();
-void connect();
-requestAnimationFrame(frame);
+void createScene(canvas, graphicsError).then((result) => {
+  scene = result;
+  toggleControls();
+  scene.update(state, selected);
+  void connect();
+  requestAnimationFrame(frame);
+}).catch((error) => graphicsError(`3D \u8F09\u5165\u5931\u6557\uFF1A${error.message}`));

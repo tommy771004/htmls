@@ -62,3 +62,13 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:browser
 The latest implementation supersedes earlier no-collision notes: `packages/sim/navigation.ts` supplies shared static house/tree/rock footprints and deterministic routing. State v2 includes map, pathJobs, frontier/parents/head, unit path and navigation status. All jobs share 32 node expansions per tick in stable order. Runtime defaults are recorded in `docs/runtime-manifest.json`; they are not reference-game values. Static obstacle clearance is implemented, but unit-to-unit avoidance, dynamic occupancy, formations, full resource economy and match completion remain pending.
 
 Snapshots now use sandbox v2. Old v1 snapshots are explicitly rejected without changing the live state; no migration is claimed. Full RTS collision and match gates remain open. See `docs/first-use-003.md`.
+
+## Resource transaction foundation
+
+`packages/sim/economy.ts` now backs authoritative accounts and queued reserve/cancelReservation commands. This API is tested headlessly; it does not add fake building/training controls. Snapshot v3 includes account history and command admission ticks; older sandbox snapshots are explicitly incompatible. See docs/economy-verification.md. The B foundation gate now has evidence for atomic resource handling; C is the next implementation stage.
+
+## C: 3D scene milestone
+
+The gameplay page now renders real WebGL2 geometry through the locally vendored Three.js 0.186.0. Serve the repository root so `/vendor/three-0.186.0/` remains available; no CDN is used. `web/150-brick-rts-models.html` is a separate asset viewer, not a game mode. It shares the same scene generator, rotation, near/far detail and live renderer counters.
+
+Static obstacle footprints remain authoritative in navigation.ts. Camera controls and walk animation do not decide movement. WebGL failure pauses input; an existing Worker stays available for saving before reload. This is the first C rendering slice; resources, fog, full village/army assets and all later gameplay remain incomplete.

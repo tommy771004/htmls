@@ -3,7 +3,7 @@ import type {Resource} from '../content/rules.ts';
 export type Stock=Record<Resource,number>;
 export type Reservation={id:string;entryId:string;cost:Stock;population:number;status:'reserved'|'cancelled'|'committed'};
 export type Account={stock:Stock;populationUsed:number;populationReserved:number;populationCap:number;reservations:Reservation[]};
-export const economyRules={provenance:'design_default',initialStock:{food:200,wood:200,gold:100,stone:100},populationCap:40,cancellationRefundPercent:100} as const;
+export const economyRules={provenance:'design_default',initialStock:{food:200,wood:200,gold:100,stone:100},populationCap:rules.settings.populationCap,cancellationRefundPercent:100} as const;
 export function createAccount(populationUsed:number):Account{return {stock:{...economyRules.initialStock},populationUsed,populationReserved:0,populationCap:economyRules.populationCap,reservations:[]};}
 // These transactions reserve funding only. Construction/training must separately
 // satisfy site, producer, age and technology requirements before calling them.

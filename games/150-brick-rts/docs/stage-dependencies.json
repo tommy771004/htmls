@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "../../../docs/Brick_RTS_Prompt_Pack/brick_rts_prompt_pack/docs/BUILD_ORDER.md",
-  "activeStage": "B",
+  "activeStage": "C",
   "exactReferenceBlocked": true,
   "allowDesignDefaultEngineering": true,
   "stages": [
@@ -27,10 +27,12 @@
       "dependsOn": [
         "A"
       ],
-      "status": "in_progress",
+      "status": "foundation_verified",
       "exitEvidence": "headless tick、命令、snapshot、重播 hash；完整 sim/Worker 邊界",
       "firstUseReviewRequired": true,
-      "reviewStatus": "sandbox_only"
+      "reviewStatus": "sandbox_only",
+      "foundationGate": "passed: fixed ticks, command validation, save/replay, path budget, Worker recovery, resource atomicity",
+      "remainingIntegration": "Gameplay-specific production, technology, combat and vision checks will be implemented with C-E; not claimed complete."
     },
     {
       "id": "C",
@@ -42,10 +44,10 @@
       "dependsOn": [
         "B"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "exitEvidence": "3D 模型、資源與迷霧實際可見",
       "firstUseReviewRequired": true,
-      "reviewStatus": "not_run"
+      "reviewStatus": "3d_movement_under_verification"
     },
     {
       "id": "D",
@@ -154,5 +156,6 @@
       "reviewStatus": "not_run"
     }
   ],
-  "releaseGate": "E must pass a real full match and prompt 19 before any playable RTS completion claim"
+  "releaseGate": "E must pass a real full match and prompt 19 before any playable RTS completion claim",
+  "nextStage": "D"
 }
