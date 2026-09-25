@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "../../../docs/Brick_RTS_Prompt_Pack/brick_rts_prompt_pack/docs/BUILD_ORDER.md",
-  "activeStage": "C",
+  "activeStage": "D",
   "exactReferenceBlocked": true,
   "allowDesignDefaultEngineering": true,
   "stages": [
@@ -47,7 +47,8 @@
       "status": "in_progress",
       "exitEvidence": "3D 模型、資源與迷霧實際可見",
       "firstUseReviewRequired": true,
-      "reviewStatus": "town_center_gate_first_use_007_verified_remaining_c_open"
+      "reviewStatus": "town_center_gate_first_use_007_verified_remaining_c_open",
+      "note": "C 的地形、資源、迷霧、城鎮中心入口與模型已有實證；剩餘為美術元件庫／細節矩陣（美術待辦）與需 E 施工、送返才有意義的作業區，刻意延後，不標記完成。"
     },
     {
       "id": "D",
@@ -59,7 +60,7 @@
       "dependsOn": [
         "C"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "exitEvidence": "框選、編組、路徑、狹道與 HUD 實測",
       "firstUseReviewRequired": true,
       "reviewStatus": "not_run"
@@ -157,5 +158,5 @@
     }
   ],
   "releaseGate": "E must pass a real full match and prompt 19 before any playable RTS completion claim",
-  "nextStage": "D"
+  "nextStage": "E"
 }

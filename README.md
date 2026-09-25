@@ -20,7 +20,7 @@
 | 007 | [007-glassmorphism.html](https://htmls-ruddy.vercel.app/web/007-glassmorphism.html) | 玻璃擬態 | 雨夜窗前的家居面板：玻璃溫控透鏡即時折射窗外失焦的城市燈火，滑動玻璃珠標示房間，燈光與四種情境改變窗上倒影、天色與雨 | △ 透鏡折射依賴 Chrome 的 SVG 濾鏡，Safari 可能只看到沒有彎折的窗景 |
 | 008 | [008-notebook-doodle.html](https://htmls-ruddy.vercel.app/web/008-notebook-doodle.html) | 手繪筆記 | 手沖咖啡筆記：抖動線逐筆描繪、豆水比計算器、沖煮碼錶 | △ 系統沒有中文手寫字，中文只能用標楷體撐 |
 | 009 | [009-bauhaus.html](https://htmls-ruddy.vercel.app/web/009-bauhaus.html) | 包浩斯 | 幾何構成產生器：點擊重組、可鎖定形狀、Kandinsky 形色規則 | |
-| 010 | [010-neumorphism.html](https://htmls-ruddy.vercel.app/web/010-neumorphism.html) | 新擬物 | 密碼產生器：凹陷字元磚、neumorphic 滑桿、強度與破解時間 | △ 桌機四周留白偏多 |
+| 010 | [010-neumorphism.html](https://htmls-ruddy.vercel.app/web/010-neumorphism.html) | 新擬物 | 密碼產生器：每個字元一塊凹陷字元磚，撐滿首屏的寬托盤；neumorphic 滑桿、隨機或好記詞組、強度與破解時間 | |
 | 011 | [011-pico8-arcade.html](https://htmls-ruddy.vercel.app/web/011-pico8-arcade.html) | 8-bit 街機 | STAR DODGE：PICO-8 十六色、手刻像素字、chiptune，手機有 D-pad | |
 | 012 | [012-art-deco.html](https://htmls-ruddy.vercel.app/web/012-art-deco.html) | 裝飾藝術 | 1926 跨年晚宴邀請函：扇形展開、金屬光澤掃過、RSVP 產生座位與徽章 | |
 | 013 | [013-memphis.html](https://htmls-ruddy.vercel.app/web/013-memphis.html) | 孟菲斯 | 派對歌單產生器：每張卡片造型都不同、能量曲線、紙屑 | |
@@ -49,14 +49,14 @@
 | 036 | [036-film-noir.html](https://htmls-ruddy.vercel.app/web/036-film-noir.html) | 黑色電影 | 《The Last Drop》偵探冒險：線索筆記本、指控需出示證據、多結局 | |
 | 037 | [037-pop-comic.html](https://htmls-ruddy.vercel.app/web/037-pop-comic.html) | 普普漫畫 | True Peril Comics：每次選擇彈出新一格，4 個結局 | |
 | 038 | [038-raygun-grunge.html](https://htmls-ruddy.vercel.app/web/038-raygun-grunge.html) | 90s 解構 grunge | CHLORINE PONY 專訪：字母錯置疊印、游標推開文字、Remix 重排 | △ 手機首屏比桌機保守 |
-| 039 | [039-neo-brutal.html](https://htmls-ruddy.vercel.app/web/039-neo-brutal.html) | 新粗獷 | 趕稿看板 Kanban：硬陰影、拖曳、WIP 上限警示、完成蓋章 | △ 視覺偏穩，不夠大膽 |
+| 039 | [039-neo-brutal.html](https://htmls-ruddy.vercel.app/web/039-neo-brutal.html) | 新粗獷 | 趕稿看板 Kanban：「趕稿看板 26」放大成佔滿首屏的巨字海報，三欄看板滿寬排開；硬陰影、拖曳換欄、WIP 上限警示、完成蓋章 | |
 | 040 | [040-aurora-breathe.html](https://htmls-ruddy.vercel.app/web/040-aurora-breathe.html) | 極光冥想 | 4-7-8 呼吸：極光 Canvas、有機光球、音量隨呼吸起伏 | |
 | 041 | [041-typewriter-ascii.html](https://htmls-ruddy.vercel.app/web/041-typewriter-ascii.html) | 打字機 ASCII | 六張會自己「打」出來的 ASCII 圖：滑架、墨色不均、打字聲 | |
 | 042 | [042-taiwan-maximal.html](https://htmls-ruddy.vercel.app/web/042-taiwan-maximal.html) | 台味極繁 | 好運來夜市：茄芷袋格紋、搖晃手寫招牌、食物拋進袋子、叫號 | |
 | 043 | [043-ink-wash.html](https://htmls-ruddy.vercel.app/web/043-ink-wash.html) | 水墨 | 程序山水手卷：直排詩、墨暈、點紙滴墨、縮圖導覽 | |
 | 044 | [044-lcars.html](https://htmls-ruddy.vercel.app/web/044-lcars.html) | LCARS 星艦介面 | MERIDIAN OPS：五個頁面、紅黃警報整體換色 | |
 | 045 | [045-paper-layers.html](https://htmls-ruddy.vercel.app/web/045-paper-layers.html) | 紙雕層次 | 七層紙雕山谷：四季切換、24 節氣、太陽弧線、季節飄落物 | |
-| 046 | [046-claymorphism.html](https://htmls-ruddy.vercel.app/web/046-claymorphism.html) | 黏土風 | 數字果凍島：兒童加減比大小、果凍彈跳、黏土碎片慶祝 | △ 版面單純，桌機右欄偏空 |
+| 046 | [046-claymorphism.html](https://htmls-ruddy.vercel.app/web/046-claymorphism.html) | 黏土風 | 數字果凍島：兒童加減比大小、果凍彈跳、黏土碎片慶祝；右欄的「這一回合」逐題記下算式與是否一次答對 | |
 | 047 | [047-e-paper.html](https://htmls-ruddy.vercel.app/web/047-e-paper.html) | 電子紙 | 家用電子紙看板：16 階灰、局部更新殘影、全刷閃爍、FS 抖動插畫 | |
 | 048 | [048-word-clock.html](https://htmls-ruddy.vercel.app/web/048-word-clock.html) | 文字時鐘 | 11×10 中文字格報時，精確到分，另會亮「該喝茶了」等提示 | △ 偏靜態，互動少 |
 | 049 | [049-radial-year.html](https://htmls-ruddy.vercel.app/web/049-radial-year.html) | 放射狀年曆 | 365 天放射熱度圖：圓圖置中成為唯一主角，標題、資料切換、統計與星期平均收在四角邊註；高亮同週與同星期幾、三組資料 | |

@@ -21,24 +21,30 @@ html{background:var(--bg)}
 body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:var(--f);font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(18px,4vw,48px) clamp(14px,3vw,32px);-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;border:0;background:var(--bg);cursor:pointer;-webkit-tap-highlight-color:transparent}
 
-.top{display:flex;align-items:center;gap:14px;margin-bottom:28px;width:min(100%,900px)}
+.top{display:flex;align-items:center;gap:14px;margin-bottom:24px;width:min(100%,1320px)}
 .logo{width:52px;height:52px;border-radius:16px;box-shadow:var(--upS);display:grid;place-items:center;flex:none}
 .logo svg{width:26px;height:26px}
 .top h1{font-size:clamp(22px,2.4vw,28px);font-weight:600;letter-spacing:.06em}
 .top p{font-size:13px;color:var(--mut);font-weight:400;letter-spacing:.02em}
 .top .sp{flex:1}
 
-.card{width:min(100%,900px);border-radius:36px;box-shadow:var(--up);padding:clamp(20px,3.4vw,40px);display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:clamp(22px,3.4vw,44px)}
+/* the password is the object: one wide recessed tray of character tiles, controls laid round it */
+.card{width:min(100%,1320px);border-radius:40px;box-shadow:var(--up);padding:clamp(20px,2.6vw,36px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"well well well" "acts seg tiles" "str len sw" "hist hist hist";gap:clamp(18px,2.2vw,30px) clamp(22px,3vw,44px);align-items:start}
+.card > section:not(.hist){display:contents}
+.well{grid-area:well}.acts{grid-area:acts;align-self:center}.str{grid-area:str}.seg{grid-area:seg;align-self:center}.len{grid-area:len}.tiles{grid-area:tiles;align-self:center}.sw{grid-area:sw}.hist{grid-area:hist}
 
 /* display well */
-.well{border-radius:24px;box-shadow:var(--in);padding:22px 22px 18px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;gap:12px}
+.well{border-radius:30px;box-shadow:var(--in);padding:clamp(18px,2vw,28px) clamp(18px,2.2vw,32px) clamp(22px,2.4vw,34px);min-height:clamp(280px,calc(100vh - 400px),560px);display:flex;flex-direction:column;gap:14px}
 .lab{font-size:12px;letter-spacing:.2em;color:var(--mut);display:flex;justify-content:space-between;align-items:center;font-weight:600}
-.pw{font-size:clamp(20px,2.5vw,30px);letter-spacing:.06em;line-height:1.35;word-break:break-all;min-height:2.7em;color:#3a4356;font-weight:600}
+.pw{flex:1;display:grid;grid-template-columns:repeat(var(--cols,10),minmax(0,1fr));gap:clamp(6px,.8vw,12px);align-content:center;container-type:inline-size;color:#3a4356;font-weight:600;line-height:1}
+.pw:not(.words) > span{display:grid;place-items:center;aspect-ratio:.8;border-radius:clamp(8px,1.1vw,16px);box-shadow:var(--inS);font-size:min(calc(100cqw / var(--cols,10) * .44),64px);transition:opacity .2s}
+.pw.words{display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:16px 12px}
+.pw.words .w{display:inline-flex;align-items:center;padding:.38em .6em;border-radius:20px;box-shadow:var(--inS);font-size:clamp(22px,3.1vw,50px);letter-spacing:.02em}
+.pw.words .sep{font-style:normal;align-self:center;font-size:clamp(22px,3.1vw,50px)}
 .pw .d{color:var(--dig)}
 .pw .s{color:var(--sym)}
 .pw span.roll{opacity:.45}
-.pw.hide{letter-spacing:.2em}
-.acts{display:flex;gap:14px;margin-top:22px}
+.acts{display:flex;gap:14px}
 .btn{min-height:56px;border-radius:18px;box-shadow:var(--upS);display:flex;align-items:center;justify-content:center;gap:10px;padding:0 20px;font-size:15px;letter-spacing:.06em;transition:box-shadow .16s ease,transform .16s ease,color .2s}
 .btn:hover{color:#2f3748}
 .btn:active,.btn.pressed{box-shadow:var(--inS);transform:scale(.985)}
@@ -54,7 +60,7 @@ button{font:inherit;color:inherit;border:0;background:var(--bg);cursor:pointer;-
 .eye svg{width:20px;height:20px}
 
 /* strength */
-.str{margin-top:26px}
+.str{margin-top:0}
 .meter{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;border-radius:14px;box-shadow:var(--inS);padding:8px;margin-top:10px}
 .meter i{height:10px;border-radius:6px;background:transparent;transition:background .4s,box-shadow .4s}
 .meter.l1 i:nth-child(-n+1){background:#e38b8b;box-shadow:0 0 8px rgba(227,139,139,.6)}
@@ -82,7 +88,7 @@ button{font:inherit;color:inherit;border:0;background:var(--bg);cursor:pointer;-
 .slider:focus-visible .knob{outline:2px solid rgba(91,111,214,.5);outline-offset:4px}
 
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.tile{aspect-ratio:1;border-radius:18px;box-shadow:var(--upS);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:19px;transition:box-shadow .18s ease,color .2s;min-height:56px}
+.tile{height:64px;border-radius:18px;box-shadow:var(--upS);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:19px;transition:box-shadow .18s ease,color .2s;min-height:56px}
 .tile small{font-size:11px;color:var(--mut);font-weight:400;letter-spacing:.04em}
 .tile[aria-pressed="true"]{box-shadow:var(--in);color:var(--dig)}
 .tile[aria-pressed="true"] small{color:var(--dig)}
@@ -109,9 +115,16 @@ button{font:inherit;color:inherit;border:0;background:var(--bg);cursor:pointer;-
 .foot{margin-top:26px;font-size:12px;color:var(--mut);font-weight:400;text-align:center;line-height:1.7;max-width:640px}
 
 @media (max-width:760px){
-  .card{grid-template-columns:minmax(0,1fr);border-radius:28px}
+  .card{grid-template-columns:minmax(0,1fr);grid-template-areas:"well" "acts" "str" "seg" "len" "tiles" "sw" "hist";border-radius:28px}
+  .well{min-height:0;border-radius:24px}
+  .pw{grid-template-columns:repeat(var(--mcols,8),minmax(0,1fr));gap:6px;padding:4px 0}
+  .pw:not(.words) > span{font-size:calc(100cqw / var(--mcols,8) * .46);border-radius:9px}
+  .pw.words{gap:10px 8px}
+  .pw.words .w{font-size:22px;border-radius:14px}
+  .pw.words .sep{font-size:22px}
+  .hist .lab{flex-direction:column;align-items:flex-start;gap:2px;letter-spacing:.1em}
   .tiles{gap:10px}
-  .tile{border-radius:14px;font-size:17px}
+  .tile{height:auto;aspect-ratio:1;border-radius:14px;font-size:17px}
   .top{margin-bottom:20px}
   .top .sp,.top .kbd{display:none}
 }
@@ -209,11 +222,21 @@ button{font:inherit;color:inherit;border:0;background:var(--bg);cursor:pointer;-
     return '約 '+(v<10?v.toFixed(1):Math.round(v))+' '+u[1];
   }
   function esc(c){return c==='<'?'&lt;':c==='>'?'&gt;':c==='&'?'&amp;':c;}
+  /* each character sits in its own recessed tile; word mode keeps every word in one brick */
   function paint(str,rolling){
     var el=$('pw'); if(!el) return;
-    if(S.hide){el.classList.add('hide');el.textContent=str.replace(/./g,'•');return;}
-    el.classList.remove('hide');
-    el.innerHTML=str.split('').map(function(c,i){var cls=/[0-9]/.test(c)?'d':/[A-Za-z]/.test(c)?'':'s';if(rolling&&rolling[i])cls+=' roll';return '<span class="'+cls+'">'+esc(c)+'</span>';}).join('');
+    var t=S.pw||str, n=str.length;
+    el.classList.toggle('hide',S.hide); el.classList.toggle('words',S.mode==='words');
+    var cell=function(c,i){var cls=S.hide?'':/[0-9]/.test(c)?'d':/[A-Za-z]/.test(c)?'':'s';if(rolling&&rolling[i])cls+=' roll';return '<span class="'+cls+'">'+(S.hide?'•':esc(c))+'</span>';};
+    if(S.mode==='words'){
+      var html='',cur='';
+      for(var i=0;i<n;i++){ if(/[^A-Za-z0-9]/.test(t.charAt(i))){ if(cur){html+='<b class="w">'+cur+'</b>';cur='';} html+='<i class="sep">'+cell(str.charAt(i),i)+'</i>'; } else cur+=cell(str.charAt(i),i); }
+      if(cur) html+='<b class="w">'+cur+'</b>';
+      el.innerHTML=html; return;
+    }
+    var cols=n<=12?n:n<=24?Math.ceil(n/2):n<=48?Math.ceil(n/3):Math.ceil(n/4);
+    el.style.setProperty('--cols',Math.max(1,cols)); el.style.setProperty('--mcols',Math.max(1,Math.min(8,n)));
+    el.innerHTML=str.split('').map(cell).join('');
   }
   var rollT=null;
   function regen(animate){

@@ -3,7 +3,9 @@ import type {ObstacleKind} from '../content/footprints.ts';
 // Engineering defaults, not values from the reference game.
 import {createTiles,tileAt,canTraverse,terrainRules,extractResource,resourceDefinitions} from './terrain.ts';
 import type {Tile,ResourceNode,MapLayout,ResourceKind} from './terrain.ts';
-export const navigationRules={provenance:'design_default',spacing:50,size:31,radius:25,expansionsPerTick:32,speedPerTick:5} as const;
+// waitLimit: ticks behind a stationary blocker before replanning (x queueWaitFactor behind a unit that is
+// still moving). replanLimit: failed replans without progress, detourLimit: replans per order, before 'stuck'.
+export const navigationRules={provenance:'design_default',spacing:50,size:31,radius:25,expansionsPerTick:32,speedPerTick:5,maxGroupSize:40,waitLimit:8,queueWaitFactor:4,replanLimit:3,detourLimit:12} as const;
 export const startingResourceRules={provenance:'design_default',maxApproachDistance:1200,maxNearestDistanceDifference:500,minimum:{tree:300,stone:250,gold:250,berries:150}} as const;
 export type Point={x:number;y:number};
 export type Obstacle={id?:string;kind:ObstacleKind;x:number;y:number;red?:boolean};
@@ -122,7 +124,7 @@ export function validateStartingResources(map:MapData){
  return {rules:startingResourceRules,errors,players};
 }
 function connector(map:MapData,a:Point,b:Point,movement:'land'|'water'){const elbow={x:b.x,y:a.y};return clearSegment(map,a,elbow,movement)&&clearSegment(map,elbow,b,movement);}
-function nearest(map:MapData,p:Point,outbound=true,movement:'land'|'water'='land'):number{
+export function nearest(map:MapData,p:Point,outbound=true,movement:'land'|'water'='land'):number{
  let best=-1,distance=Infinity;for(let i=0;i<961;i++){const q=position(i),d=Math.abs(p.x-q.x)+Math.abs(p.y-q.y);if(d<distance&&!(movement==='land'?map.blocked.includes(i):!clearSegment(map,q,q,movement))&&(outbound?connector(map,p,q,movement):connector(map,q,p,movement))){best=i;distance=d;}}return best;
 }
 export function createPathJob(map:MapData,unitId:number,from:Point,target:Point,movement:'land'|'water'='land'):PathJob{

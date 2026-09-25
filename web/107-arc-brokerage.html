@@ -300,6 +300,34 @@ input[type=range]{width:100%;height:22px;margin:0;background:none;accent-color:v
 @media(max-width:700px){.site-header{min-height:72px;padding:13px 22px;gap:12px}.brand{font-size:23px}.header-actions .btn-download{display:none}.header-actions .btn-primary{min-height:42px;padding:0 15px;font-size:12px}.menu-button{order:3;margin-left:0;width:42px;height:42px}.header-actions{margin-left:auto}.hero{min-height:max(780px,100svh)}.hero-main{justify-content:flex-start;padding:48px 22px 59px}.eyebrow{font-size:10px;margin-bottom:27px}.quotes{gap:6px;margin-bottom:27px}.quote{padding:0 9px;gap:5px;min-height:36px;font-size:10px}.quote .change{font-size:9px}.quote-note{width:100%;margin-top:4px}.architecture{top:15%;right:-20%;width:83vw;height:52%;opacity:.36;filter:blur(1px)}.scene:before{background:linear-gradient(90deg,rgba(4,8,10,.86),rgba(4,8,10,.44)),linear-gradient(0deg,#090e11,transparent 55%)}.skyline{left:3%;height:45%}.heading-line{font-size:clamp(51px,13.5vw,75px)}.subhead{margin-top:26px;font-size:20px}.intro{font-size:14px;max-width:340px}.hero-actions{margin-top:26px}.hero-actions .btn{min-width:0;flex:1;padding:0 12px;min-height:49px;font-size:12px}.side-note{display:none}.data-band{min-height:95px;padding:16px 15px;backdrop-filter:blur(8px)}.datum{padding-left:8px}.datum b{font-size:clamp(17px,5vw,23px)}.datum small{font-size:8px;letter-spacing:.02em;margin-top:6px}.datum small em{display:none}}
 @media(max-width:380px){.heading-line{font-size:51px;letter-spacing:-.075em}.brand{font-size:21px}.header-actions .btn-primary{padding:0 12px}.quote{font-size:9px}.quote .change{font-size:8px}.data-band{padding-left:11px;padding-right:11px}.datum{padding-left:6px}.datum b{font-size:17px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn,.pathway{transition:none}.btn:hover{transform:none}.architecture,.scene{transform:none!important;will-change:auto}}
+/* ---- editorial pass (SiteInspire, Web & Interactive): the hero runs on the same five columns as the 01-05 band ---- */
+.btn{border-radius:3px}
+.dialog-backdrop.open{grid-template-columns:minmax(0,1fr);gap:0;margin:0}.mobile-nav.open{margin-top:0}
+.dialog{border-radius:6px}
+.menu-button{border-radius:3px}
+.hero-main{display:flex;padding:clamp(34px,5vh,64px) clamp(24px,4.15vw,90px) clamp(40px,6vh,72px)}
+.content{flex:1;max-width:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:auto minmax(40px,1fr) auto;align-items:start}
+.content>*{min-width:0}
+.content>:not(.lede):not(h1){padding-left:clamp(13px,2.3vw,43px)}
+.lede{grid-column:1/3;grid-row:1;max-width:30em}
+.lede .subhead{margin:0 0 12px;font-size:clamp(17px,1.5vw,22px)}
+.lede .intro{max-width:none;font-size:clamp(13px,1vw,15px)}
+.quotes{grid-column:3;grid-row:1;display:grid;gap:9px;margin:0;align-content:start}
+.quote{display:grid;grid-template-columns:3.4em minmax(0,1fr) auto;gap:10px;min-height:0;padding:0;border:0;border-radius:0;background:none;backdrop-filter:none;font-size:13px}
+.quote strong{font-weight:750;color:#9fb1ad;letter-spacing:.02em}
+.quote .change{font-size:12px;text-align:right}
+.quote-note{margin:6px 0 0;color:#83958f;font-size:11px;letter-spacing:.02em;text-transform:none}
+.quote-note:before{content:none}
+.hero-actions{grid-column:4;grid-row:1;margin:0}
+.hero-actions .btn{min-width:0;min-height:48px;padding:0 18px}
+.side-note{position:static;grid-column:5;grid-row:1;writing-mode:horizontal-tb;margin:0;color:#83958f;font-size:12px;line-height:1.55;letter-spacing:0}
+.content h1{grid-column:1/5;grid-row:3;align-self:end;margin:0 0 -.06em;letter-spacing:-.06em;word-spacing:.06em}
+.data-band{background:rgba(8,15,18,.82);backdrop-filter:none}
+.datum small{letter-spacing:.08em}
+@media(max-width:1100px){.header-actions{margin-left:auto}.menu-button{margin-left:0}.hero-main{padding-left:clamp(24px,4.15vw,90px)}.content h1{grid-column:1/-1}.side-note{display:none}.hero-actions{grid-column:4/6}}
+@media(max-width:900px){.content{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:26px}.lede{grid-column:1/-1}.quotes{grid-column:1;grid-row:2;padding-left:0!important}.hero-actions{grid-column:2;grid-row:2;align-self:end}.content h1{grid-row:4}}
+@media(max-width:700px){.content{grid-template-columns:minmax(0,1fr);grid-template-rows:none;align-content:end;row-gap:24px}.content>*{grid-column:1!important;padding-left:0!important}.content h1{grid-row:1}.lede{grid-row:2}.quotes{grid-row:3;max-width:260px}.hero-actions{grid-row:4;align-self:start}.hero-actions .btn{flex:none;width:100%;min-height:50px;font-size:13px}.lede .subhead{margin-top:0;font-size:19px}.quote{font-size:12px;min-height:0;padding:0}.quote .change{font-size:11px}}
+@media(min-width:2000px){.lede .subhead{font-size:32px}.lede .intro{font-size:20px}.quote{font-size:18px;min-height:0;padding:0}.quote .change{font-size:16px}.quote-note{font-size:15px}.side-note{font-size:16px}}
 </style>
 </head>
 <body>
@@ -316,19 +344,18 @@ input[type=range]{width:100%;height:22px;margin:0;background:none;accent-color:v
     </header>
     <div class="hero-main">
       <div class="content">
-                <div class="quotes" id="quotes" aria-label="Simulated sample stock quotes">
+        <div class="lede"><p class="subhead">See further. Move smarter.</p><p class="intro">Bring the markets into focus with one calm place to explore ideas, follow what matters, and find your next move.</p></div>
+        <div class="quotes" id="quotes" aria-label="Simulated sample stock quotes">
           <div class="quote" data-base="624.38" data-direction="1"><strong>META</strong><span class="price">$624.38</span><span class="change up">+0.82%</span></div>
           <div class="quote" data-base="143.61" data-direction="1"><strong>NVDA</strong><span class="price">$143.61</span><span class="change up">+1.24%</span></div>
           <div class="quote" data-base="212.45" data-direction="-1"><strong>AMZN</strong><span class="price">$212.45</span><span class="change down">−0.31%</span></div>
           <p class="quote-note">Simulated data</p>
         </div>
-        <h1 id="hero-title"><span class="heading-line">Move with</span><span class="heading-line">the market.</span></h1>
-        <p class="subhead">See further. Move smarter.</p>
-        <p class="intro">Bring the markets into focus with one calm place to explore ideas, follow what matters, and find your next move.</p>
         <div class="hero-actions"><a class="btn btn-primary" href="#trade">Open the trade desk <span class="arrow" aria-hidden="true">↗</span></a></div>
+        <p class="side-note">Perspective changes everything.<br>ARC / 2026</p>
+        <h1 id="hero-title"><span class="heading-line">Move with</span><span class="heading-line">the market.</span></h1>
       </div>
     </div>
-    <span class="side-note" aria-hidden="true">PERSPECTIVE CHANGES EVERYTHING · ARC / 2026</span>
     <nav class="data-band" aria-label="Jump to a demo"><a class="datum" href="#trade"><b>01</b><small>Trade <em>· order ticket</em></small></a><a class="datum" href="#investing"><b>02</b><small>Invest <em>· growth planner</em></small></a><a class="datum" href="#accounts"><b>03</b><small>Accounts <em>· compare and open</em></small></a><a class="datum" href="#markets"><b>04</b><small>Markets <em>· sector map</em></small></a><a class="datum" href="#company"><b>05</b><small>About <em>· what is simulated</em></small></a></nav>
   </section>
   <div class="page">

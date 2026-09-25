@@ -25,7 +25,7 @@ const client=new SimulationClient(rules.settings.seed,v=>{state=v;render();},rea
 function toggleControls(){for(const id of ['zoom-in','zoom-out','rotate-view','reset-view'])el<HTMLButtonElement>(id).disabled=!scene||graphicsFailed;for(const id of ['move','pause','step','restart','save','load','replay'])el<HTMLButtonElement>(id).disabled=!connected||(graphicsFailed&&id!=='save')||(id==='step'&&running);}
 async function connect(){el<HTMLButtonElement>('worker-retry').disabled=true;try{await client.connect();connected=true;el('worker-retry').hidden=true;notice(`模擬已連線 · tick ${state.tick}。選取村民，再點地面下達指令。`);}catch{}finally{toggleControls();el<HTMLButtonElement>('worker-retry').disabled=false;}}
 el('worker-retry').onclick=()=>void connect();
-async function move(x:number,y:number){const unitId=selected;try{await client.request({kind:'move',unitId,x:Math.round(x*100),y:Math.round(y*100)});notice(`村民 ${unitId} 的移動指令已排入 tick ${state.tick+1}。${running?'':'按「開始模擬」或「前進 1 tick」執行。'}`);}catch(e){notice((e as Error).message);}}
+async function move(x:number,y:number){const unitId=selected;try{await client.request({kind:'move',unitIds:[unitId],x:Math.round(x*100),y:Math.round(y*100)});notice(`村民 ${unitId} 的移動指令已排入 tick ${state.tick+1}。${running?'':'按「開始模擬」或「前進 1 tick」執行。'}`);}catch(e){notice((e as Error).message);}}
 canvas.addEventListener('click',e=>{if(!scene||graphicsFailed)return;const hit=scene.pick(e.clientX,e.clientY);
  if(hit.unitId!==undefined){const unit=state.units.find(u=>u.id===hit.unitId);if(unit?.player===0)choose(unit.id);else notice('紅方單位不可由藍方控制。');return;}
  if(hit.x===undefined||hit.y===undefined||hit.x<.5||hit.x>15.5||hit.y<.5||hit.y>15.5){notice('請點選地圖內側的地面。');return;}void move(hit.x,hit.y);});

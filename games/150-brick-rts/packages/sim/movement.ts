@@ -1,0 +1,138 @@
+import {clearSegment,position,nearest,navigationRules} from './navigation.ts';
+import type {MapData,Point} from './navigation.ts';
+// Unit movement on the 31x31 node grid. Engineering rules (design_default), not reference-game values.
+// A unit always holds one node, and while crossing an edge also reserves the next node, so two
+// unit bodies (radius 25, node spacing 50) never overlap. Units never pass through each other.
+export type Navigation='idle'|'searching'|'moving'|'waiting'|'unreachable'|'stuck';
+export const navigationStates:readonly Navigation[]=['idle','searching','moving','waiting','unreachable','stuck'];
+export type Unit={id:number;player:number;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;replans:number;detours:number;partial:boolean};
+type Search={frontier:number[];head:number;parent:number[]};
+export type GroupJob=Search&{kind:'group';id:number;unitIds:number[];goal:number;starts:number[];held:number[];slots:number[];status:'searching'|'done'};
+export type UnitJob=Search&{kind:'unit';id:number;unitId:number;start:number;goal:number;excluded:number[];best:number;keep:number[];status:'searching'|'done'};
+export type Job=GroupJob|UnitJob;
+export type MovementState={map:MapData;units:Unit[];pathJobs:Job[];nextJobId:number};
+const NODES=961,SIDE=31;
+// Derived edge table, rebuilt when navigation changes; never serialized.
+const graphs=new WeakMap<MapData,{revision:number;blocked:Uint8Array;open:Uint8Array}>();
+function graph(map:MapData){
+ let g=graphs.get(map);
+ if(!g||g.revision!==map.navigationRevision){
+  const blocked=new Uint8Array(NODES),open=new Uint8Array(NODES*2);for(const n of map.blocked)blocked[n]=1;
+  for(let id=0;id<NODES;id++){if(blocked[id])continue;const x=id%SIDE,y=Math.floor(id/SIDE);
+   if(x<SIDE-1&&!blocked[id+1]&&clearSegment(map,position(id),position(id+1)))open[id*2]=1;
+   if(y<SIDE-1&&!blocked[id+SIDE]&&clearSegment(map,position(id),position(id+SIDE)))open[id*2+1]=1;}
+  g={revision:map.navigationRevision,blocked,open};graphs.set(map,g);
+ }
+ return g;
+}
+// Fixed neighbour order (right, down, left, up) keeps every search deterministic.
+export function neighbours(map:MapData,id:number):number[]{
+ const {open}=graph(map),x=id%SIDE,out:number[]=[];
+ if(open[id*2])out.push(id+1);if(open[id*2+1])out.push(id+SIDE);if(x>0&&open[(id-1)*2])out.push(id-1);if(id>=SIDE&&open[(id-SIDE)*2+1])out.push(id-SIDE);
+ return out;
+}
+export function nodeAt(p:Point):number{const x=(p.x-50)/50,y=(p.y-50)/50;return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&x<SIDE&&y>=0&&y<SIDE?y*SIDE+x:-1;}
+export function makeUnit(id:number,player:number,x:number,y:number):Unit{const node=nodeAt({x,y});if(node<0)throw Error('單位必須站在導航節點上');return {id,player,x,y,node,next:null,path:[],goal:null,target:null,navigation:'idle',wait:0,replans:0,detours:0,partial:false};}
+function search(start:number):Search{const parent=Array(NODES).fill(-2);parent[start]=-1;return {frontier:[start],head:0,parent};}
+function held(units:Unit[],except:Set<number>){const nodes=new Set<number>();for(const u of units)if(!except.has(u.id)){nodes.add(u.node);if(u.next!==null)nodes.add(u.next);}return [...nodes].sort((a,b)=>a-b);}
+function cancel(s:MovementState,id:number){
+ for(const job of s.pathJobs)if(job.kind==='group')job.unitIds=job.unitIds.filter(u=>u!==id);
+ s.pathJobs=s.pathJobs.filter(j=>j.kind==='group'?j.unitIds.length>0:j.unitId!==id);
+}
+export function commandMove(s:MovementState,unitIds:number[],target:Point){
+ const goal=nearest(s.map,target,false);if(goal<0)throw Error('目標附近沒有可站立的節點');
+ const group=new Set(unitIds),units=unitIds.map(id=>s.units.find(u=>u.id===id)!);
+ for(const u of units){cancel(s,u.id);Object.assign(u,{path:[],goal:null,target:null,navigation:'searching',wait:0,replans:0,detours:0,partial:false});}
+ // Stations are chosen from nodes nobody outside the group currently holds.
+ s.pathJobs.push({kind:'group',id:s.nextJobId++,unitIds:[...unitIds],goal,starts:units.map(u=>u.next??u.node),held:held(s.units,group),slots:[],status:'searching',...search(goal)});
+}
+export function commandStop(s:MovementState,unitIds:number[]){
+ for(const id of unitIds){const u=s.units.find(u=>u.id===id)!;cancel(s,id);Object.assign(u,{path:[],goal:null,target:null,wait:0,replans:0,detours:0,partial:false,navigation:u.next===null?'idle':'moving'});}
+}
+function advance(s:MovementState,job:Job,budget:number):number{
+ let used=0;
+ while(job.status==='searching'&&used<budget){
+  if(job.kind==='group'&&job.slots.length>=job.unitIds.length&&job.starts.every(n=>job.parent[n]!==-2)){job.status='done';break;}
+  if(job.head===job.frontier.length){job.status='done';break;}
+  const id=job.frontier[job.head++];used++;
+  if(job.kind==='group'){if(job.slots.length<job.unitIds.length&&!job.held.includes(id))job.slots.push(id);}
+  else{const g=job.goal,d=(n:number)=>Math.abs(n%SIDE-g%SIDE)+Math.abs(Math.floor(n/SIDE)-Math.floor(g/SIDE));if(d(id)<d(job.best))job.best=id;if(id===g){job.status='done';break;}}
+  for(const next of neighbours(s.map,id))if(job.parent[next]===-2&&!(job.kind==='unit'&&job.excluded.includes(next))){job.parent[next]=id;job.frontier.push(next);}
+ }
+ return used;
+}
+function chain(parent:number[],from:number){const out=[from];while(parent[out.at(-1)!]>=0)out.push(parent[out.at(-1)!]);return out;}
+function finishGroup(s:MovementState,job:GroupJob){
+ const order=new Map(job.frontier.map((n,i)=>[n,i]));
+ const units=job.unitIds.map(id=>s.units.find(u=>u.id===id)!),start=(u:Unit)=>u.next??u.node;
+ // First arrivals take the stations farthest from the side the group approaches from, so a
+ // parked unit never stands on a follower's route (a single-file hall fills from the far end).
+ const reached=units.filter(u=>order.has(start(u))).sort((a,b)=>order.get(start(a))!-order.get(start(b))!||a.id-b.id);
+ const cx=reached.reduce((t,u)=>t+position(start(u)).x,0)/Math.max(1,reached.length),cy=reached.reduce((t,u)=>t+position(start(u)).y,0)/Math.max(1,reached.length);
+ const far=(n:number)=>Math.abs(position(n).x-cx)+Math.abs(position(n).y-cy);
+ const slots=job.slots.slice(0,reached.length).sort((a,b)=>far(b)-far(a)||order.get(a)!-order.get(b)!);
+ reached.forEach((u,i)=>{
+  const slot=slots[i];
+  if(slot===undefined){Object.assign(u,{navigation:u.next===null?'unreachable':'moving',partial:true});return;}
+  const up=chain(job.parent,start(u)),down=chain(job.parent,slot),index=new Map(down.map((n,k)=>[n,k]));
+  let i2=0;while(!index.has(up[i2]))i2++;
+  u.path=[...up.slice(1,i2+1),...down.slice(0,index.get(up[i2])).reverse()];
+  Object.assign(u,{goal:slot,target:position(slot),partial:false,navigation:u.path.length||u.next!==null?'moving':'idle'});
+ });
+ // Units outside the goal's component head for the closest node they can reach.
+ for(const u of units)if(!order.has(start(u)))s.pathJobs.push(unitJob(s,u,job.goal,[],[]));
+}
+function unitJob(s:MovementState,u:Unit,goal:number,excluded:number[],keep:number[]):UnitJob{const start=u.next??u.node;return {kind:'unit',id:s.nextJobId++,unitId:u.id,start,goal,excluded,best:start,keep,status:'searching',...search(start)};}
+function finishUnit(s:MovementState,job:UnitJob){
+ const u=s.units.find(u=>u.id===job.unitId)!,end=job.parent[job.goal]!==-2?job.goal:job.best;
+ const path=chain(job.parent,end).reverse().slice(1);
+ // A replan only replaces the route when it reaches the goal; otherwise the unit keeps waiting.
+ if(job.keep.length&&(end!==job.goal||!path.length)){u.path=job.keep;u.navigation='waiting';return;}
+ u.path=path;u.goal=u.goal??job.goal;u.partial=end!==job.goal;u.target=position(end);
+ u.navigation=path.length||u.next!==null?'moving':u.partial?'unreachable':'idle';
+}
+export function stepMovement(s:MovementState):{expanded:number}{
+ // Shared deterministic budget, round-robin in job id order.
+ s.pathJobs.sort((a,b)=>a.id-b.id);let budget=navigationRules.expansionsPerTick,expanded=0;
+ while(budget>0&&s.pathJobs.some(j=>j.status==='searching'))for(const job of s.pathJobs){if(budget<=0)break;if(job.status==='searching'){const n=advance(s,job,1);budget-=n;expanded+=n;}}
+ for(const job of s.pathJobs.filter(j=>j.status==='done'))job.kind==='group'?finishGroup(s,job):finishUnit(s,job);
+ s.pathJobs=s.pathJobs.filter(j=>j.status==='searching');
+ const searching=new Set(s.pathJobs.flatMap(j=>j.kind==='group'?j.unitIds:[j.unitId]));
+ const owner=new Int32Array(NODES);for(const u of s.units){owner[u.node]=u.id;if(u.next!==null)owner[u.next]=u.id;}
+ const byId=new Map(s.units.map(u=>[u.id,u]));
+ function tryReserve(u:Unit){
+  if(!u.path.length||searching.has(u.id))return;
+  const n=u.path[0],o=owner[n];
+  if(o===0||o===u.id){owner[n]=u.id;u.next=n;u.path.shift();u.navigation='moving';u.wait=0;u.replans=0;return;}
+  const b=byId.get(o)!;
+  // An idle friendly unit steps aside, preferring a node off the requester's route.
+  if(b.player===u.player&&b.next===null&&!b.path.length&&!searching.has(b.id)){
+   const free=neighbours(s.map,b.node).filter(c=>owner[c]===0);const c=free.find(c=>!u.path.includes(c))??free[0];
+   if(c!==undefined)b.path=[c];
+  }
+  u.wait++;u.navigation='waiting';
+  // A blocker that is itself still travelling is a queue, not an obstacle: wait longer.
+  // The higher id replans first, so a head-on pair does not reroute simultaneously.
+  const queued=b.next!==null||b.path.length>0||searching.has(b.id);
+  if(u.wait<navigationRules.waitLimit*(queued?navigationRules.queueWaitFactor:1)*(u.id<o?2:1))return;
+  u.wait=0;
+  if(u.replans>=navigationRules.replanLimit||u.detours>=navigationRules.detourLimit){Object.assign(u,{path:[],goal:null,target:null,navigation:'stuck',partial:false});return;}
+  u.replans++;u.detours++;
+  const excluded=[...new Set([...s.units.filter(v=>v!==u&&v.next===null).map(v=>v.node),b.node,...(b.next===null?[]:[b.next])])].sort((a,b)=>a-b);
+  s.pathJobs.push(unitJob(s,u,u.goal??u.path.at(-1)!,excluded,u.path));u.path=[];u.navigation='searching';searching.add(u.id);
+ }
+ for(const u of [...s.units].sort((a,b)=>a.id-b.id)){
+  if(u.next===null)tryReserve(u);
+  if(u.next===null)continue;
+  const target=position(u.next),step=navigationRules.speedPerTick;
+  const p={x:u.x+Math.sign(target.x-u.x)*Math.min(step,Math.abs(target.x-u.x)),y:u.y+Math.sign(target.y-u.y)*Math.min(step,Math.abs(target.y-u.y))};
+  if(!clearSegment(s.map,u,p))throw Error(`entity ${u.id}: 非法碰撞路徑`);
+  u.x=p.x;u.y=p.y;
+  if(u.x===target.x&&u.y===target.y){
+   if(owner[u.node]===u.id)owner[u.node]=0;u.node=u.next;u.next=null;
+   if(u.path.length)tryReserve(u);
+   else if(!searching.has(u.id)){u.navigation=u.partial?'unreachable':u.navigation==='stuck'?'stuck':'idle';u.target=null;u.goal=null;u.wait=0;}
+  }
+ }
+ return {expanded};
+}

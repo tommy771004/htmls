@@ -2,15 +2,19 @@ import type {ResourceNode,MapLayout,Tile} from './terrain.ts';
 import {projectVision,unitVisible} from './vision.ts';
 import type {KnownObstacle} from './vision.ts';
 import {createState,submit,tick,hash,replay,serialize,deserialize,rulesetHash} from './sim.ts';
-import type {Command,LoggedCommand,Unit} from './sim.ts';
+import type {LoggedCommand} from './sim.ts';
+import {navigationStates} from './movement.ts';
+import type {Navigation} from './movement.ts';
+// Render projection of a unit; internal path/reservation fields stay in the Worker.
+export type UnitView={id:number;player:number;x:number;y:number;navigation:Navigation;target:{x:number;y:number}|null};
 export type Recovery={seed:number;layout?:MapLayout;commands:LoggedCommand[];ticks:number};
-export type Operation={kind:'move';unitId:number;x:number;y:number}|{kind:'advance';count:number}|{kind:'reset';seed:number;layout?:MapLayout}|{kind:'restore';snapshot:string}|{kind:'snapshot'}|{kind:'replay'}|{kind:'recover';checkpoint:Recovery};
+export type Operation={kind:'move';unitIds:number[];x:number;y:number}|{kind:'stop';unitIds:number[]}|{kind:'advance';count:number}|{kind:'reset';seed:number;layout?:MapLayout}|{kind:'restore';snapshot:string}|{kind:'snapshot'}|{kind:'replay'}|{kind:'recover';checkpoint:Recovery};
 export type Request={protocol:1;id:number;operation:Operation};
-export type View={seed:number;layout:MapLayout;terrain:Omit<Tile,'id'|'resourceRefs'|'obstacleRefs'>[];tick:number;units:Unit[];fog:number[];known:KnownObstacle[];resources:ResourceNode[];stateHash:string};
+export type View={seed:number;layout:MapLayout;terrain:Omit<Tile,'id'|'resourceRefs'|'obstacleRefs'>[];tick:number;units:UnitView[];fog:number[];known:KnownObstacle[];resources:ResourceNode[];stateHash:string};
 export type Response={protocol:1;id:number;ok:true;seed:number;layout:MapLayout;terrain:View['terrain'];tick:number;stateHash:string;positions:ArrayBuffer;fog:number[];known:KnownObstacle[];resources:ResourceNode[];accepted?:LoggedCommand;commands?:LoggedCommand[];snapshot?:string;replayMatches?:boolean}|{protocol:1;id:number;ok:false;tick:number;message:string;entityId?:number};
 export function decodeView(r:Extract<Response,{ok:true}>):View{
- const values=new Int32Array(r.positions),units:Unit[]=[];
- for(let i=0;i<values.length;i+=7)units.push({id:values[i],player:values[i+1],x:values[i+2],y:values[i+3],navigation:(['idle','searching','moving','unreachable'] as const)[values[i+6]],target:values[i+4]<0?null:{x:values[i+4],y:values[i+5]}});
+ const values=new Int32Array(r.positions),units:UnitView[]=[];
+ for(let i=0;i<values.length;i+=7)units.push({id:values[i],player:values[i+1],x:values[i+2],y:values[i+3],navigation:navigationStates[values[i+6]],target:values[i+4]<0?null:{x:values[i+4],y:values[i+5]}});
  return {seed:r.seed,layout:r.layout,terrain:r.terrain,tick:r.tick,stateHash:r.stateHash,fog:r.fog,known:r.known,resources:r.resources,units};
 }
 // This service owns state. DOM, clocks, rendering and transport never decide rules.
@@ -24,10 +28,11 @@ export function createService(){
    const op=req.operation;if(!op||typeof op.kind!=='string')throw Error('缺少 operation');
    let accepted:LoggedCommand|undefined,commands:LoggedCommand[]|undefined,snapshot:string|undefined,replayMatches:boolean|undefined;
    switch(op.kind){
-    case 'move':
+    case 'move':case 'stop':
      if(state.log.length>=10000)throw Error('已達沙盒 10000 指令上限，請儲存或重建');
-     accepted={acceptedTick:state.tick,protocolVersion:1,rulesetHash,playerId:0,sequence:state.sequence[0]+1,targetTick:state.tick+1,commandType:'move',payload:{unitId:op.unitId,x:op.x,y:op.y}};
-     submit(state,accepted);break;
+     {const envelope={acceptedTick:state.tick,protocolVersion:1 as const,rulesetHash,playerId:0,sequence:state.sequence[0]+1,targetTick:state.tick+1};
+     const command:LoggedCommand=op.kind==='move'?{...envelope,commandType:'move',payload:{unitIds:op.unitIds,x:op.x,y:op.y}}:{...envelope,commandType:'stop',payload:{unitIds:op.unitIds}};
+     submit(state,command);accepted=command;}break;
     case 'advance':
      if(!Number.isSafeInteger(op.count)||op.count<1||op.count>20||state.tick+op.count>100000)throw Error('步進需為 1–20 ticks，總量不得超過 100000');
      for(let i=0;i<op.count;i++)tick(state);break;
@@ -44,8 +49,8 @@ export function createService(){
    }
    const visibleUnits=state.units.filter(u=>unitVisible(state.vision[0],u,0));
    const positions=new Int32Array(visibleUnits.length*7);
-   visibleUnits.forEach((u,i)=>positions.set([u.id,u.player,u.x,u.y,u.target?.x??-1,u.target?.y??-1,['idle','searching','moving','unreachable'].indexOf(u.navigation??'idle')],i*7));
+   visibleUnits.forEach((u,i)=>positions.set([u.id,u.player,u.x,u.y,u.target?.x??-1,u.target?.y??-1,navigationStates.indexOf(u.navigation)],i*7));
    return {protocol:1,id:req.id,ok:true,seed:state.seed,layout:state.layout,terrain:state.map.tiles.map(({terrainType,height,walkClass,buildability})=>({terrainType,height,walkClass,buildability})),tick:state.tick,stateHash:hash(state),positions:positions.buffer,...projectVision(state.vision[0]),accepted,commands,snapshot,replayMatches};
-  }catch(error){return {protocol:1,id:Number.isSafeInteger(req?.id)?req.id:0,ok:false,tick:state.tick,message:(error as Error).message,entityId:req?.operation?.kind==='move'?req.operation.unitId:undefined};}
+  }catch(error){return {protocol:1,id:Number.isSafeInteger(req?.id)?req.id:0,ok:false,tick:state.tick,message:(error as Error).message,entityId:req?.operation?.kind==='move'||req?.operation?.kind==='stop'?req.operation.unitIds?.[0]:undefined};}
  };
 }
