@@ -10,14 +10,18 @@
     "bevel": 0.025
   },
   "detailLevels": {
-    "zoomBelow0.9": "omit decorative studs only",
-    "otherwise": "full initial model geometry",
-    "simulationChanges": false
+    "provenance": "design_default zoom thresholds",
+    "near": "zoom >= 1.8: beveled geometry and studs",
+    "medium": "0.9 <= zoom < 1.8: 12-triangle boxes and studs",
+    "far": "zoom < 0.9: 12-triangle boxes, no decorative studs",
+    "selection": "original detailed geometry regardless of level",
+    "simulationChanges": false,
+    "remaining": "not a complete asset-specific LOD or dynamic animation batching budget"
   },
   "assets": [
     {
       "id": "house",
-      "source": "apps/web/scene.ts",
+      "source": "apps/web/building-parts.ts; apps/web/scene.ts",
       "type": "procedural Three.js mesh",
       "provenance": "original geometry authored in this repository",
       "externalAssets": false,
@@ -33,7 +37,31 @@
       "animations": [
         "static"
       ],
-      "status": "initial representative asset; full art matrix not complete"
+      "status": "representative house: four age silhouettes and construction/damage/repair visual states; gameplay integration and full village pending",
+      "previewOnlyStates": {
+        "ageVariants": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "constructionProgress": [
+          0,
+          20,
+          40,
+          60,
+          100
+        ],
+        "health": [
+          100,
+          35,
+          0
+        ],
+        "debrisLimit": 12,
+        "repair": "restore complete geometry"
+      },
+      "gameState": "static age 2, complete and intact; closed full-footprint collision even where doorway is visible",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
     },
     {
       "id": "tree",
@@ -77,7 +105,7 @@
     },
     {
       "id": "villager",
-      "source": "apps/web/scene.ts",
+      "source": "apps/web/unit-rig.ts",
       "type": "procedural Three.js mesh",
       "provenance": "original geometry authored in this repository",
       "externalAssets": false,
@@ -89,12 +117,47 @@
       ],
       "selectionBounds": "visible mesh raycast; villager ring radius 0.47",
       "collisionProxy": "radius 0.25 vs static geometry only; unit-unit separation pending",
-      "attachmentPoints": [],
+      "attachmentPoints": [
+        "hand-left",
+        "hand-right"
+      ],
       "animations": [
+        "idle",
+        "walk",
+        "work",
+        "attack",
+        "hit",
+        "death",
+        "carry"
+      ],
+      "status": "representative jointed infantry silhouettes; mounted units and full military set pending; game uses villager only",
+      "simulationDrivenAnimations": [
         "idle",
         "walk"
       ],
-      "status": "initial representative asset; full art matrix not complete"
+      "previewOnlyAnimations": [
+        "work",
+        "attack",
+        "hit",
+        "death",
+        "carry"
+      ],
+      "tools": [
+        "axe",
+        "pick",
+        "sickle",
+        "hammer",
+        "basket",
+        "sword",
+        "spear",
+        "bow"
+      ],
+      "previewOnlyRoles": [
+        "villager",
+        "swordsman",
+        "spearman",
+        "archer"
+      ]
     },
     {
       "id": "gold",
@@ -195,16 +258,185 @@
         "static"
       ],
       "status": "representative resource; work/hunt/herd/fish gameplay pending"
+    },
+    {
+      "id": "lumber-camp",
+      "source": "apps/web/economic-building.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original repository-authored geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "inspector only; no gameplay selection",
+      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored"
+      ],
+      "status": "initial economic asset; no production or navigation integration; full age detail matrix and work animation pending"
+    },
+    {
+      "id": "mining-camp",
+      "source": "apps/web/economic-building.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original repository-authored geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "inspector only; no gameplay selection",
+      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored"
+      ],
+      "status": "initial economic asset; no production or navigation integration; full age detail matrix and work animation pending"
+    },
+    {
+      "id": "mill",
+      "source": "apps/web/economic-building.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original repository-authored geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "inspector only; no gameplay selection",
+      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored"
+      ],
+      "status": "initial economic asset; no production or navigation integration; full age detail matrix and work animation pending"
+    },
+    {
+      "id": "farm",
+      "source": "apps/web/economic-building.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original repository-authored geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "inspector only; no gameplay selection",
+      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored"
+      ],
+      "status": "initial economic asset; no production or navigation integration; full age detail matrix and work animation pending"
+    },
+    {
+      "id": "town-center",
+      "source": "apps/web/economic-building.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original repository-authored geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "inspector only; no gameplay selection",
+      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored"
+      ],
+      "status": "initial civic asset; static visual only, no production/trade/research; navigation and full age detail matrix pending"
+    },
+    {
+      "id": "market",
+      "source": "apps/web/economic-building.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original repository-authored geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "inspector only; no gameplay selection",
+      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored"
+      ],
+      "status": "initial civic asset; static visual only, no production/trade/research; navigation and full age detail matrix pending"
+    },
+    {
+      "id": "smithy",
+      "source": "apps/web/economic-building.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original repository-authored geometry; design_default dimensions",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "inspector only; no gameplay selection",
+      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored"
+      ],
+      "status": "initial civic asset; static visual only, no production/trade/research; navigation and full age detail matrix pending"
     }
   ],
   "remaining": [
     "full village set",
-    "military silhouettes",
-    "tools and socket attachment API",
-    "work/attack/hit/death animation",
-    "construction/damage/repair",
-    "four-age variants",
-    "full LOD hierarchy"
+    "mounted and remaining military silhouettes",
+    "simulation integration for construction/damage/repair",
+    "four-age variants for the remaining building set",
+    "full LOD hierarchy",
+    "military equipment and mount sockets",
+    "simulation integration for work/combat/death/carry animation",
+    "repair/heal/convert/garrison/embark/pack animation"
   ],
   "terrain": {
     "source": "packages/sim/terrain.ts",

@@ -28,7 +28,7 @@
 | 021 | y2k-chrome | Y2K 液態金屬 | Winamp 風播放器（合成 loop + 頻譜） | 異形 skin 視窗 | 銀鉻 / 冰藍 / 螢光綠 | Tahoma + Trebuchet Italic | 虹彩、鉻反光 | EN |
 | 022 | kinetic-type | 動態字體 | 字母隨游標改變字重與寬度 | 全螢幕巨字 | 酸性綠 on 黑 | Bahnschrift 可變字重 | 字重波浪 | EN |
 | 023 | isometric | 等角視圖 | 等角小鎮建造器 | 菱形地塊 + 工具列 | 粉彩薄荷 / 桃 | Segoe UI Semibold | 建物升起彈跳 | ZH |
-| 024 | dev-saas-dark | 暗色開發者產品頁 | CLI 工具「Driftwood」落地頁 + 互動 code demo | 中軸 hero + bento | 近黑 + 紫藍細光邊 | Segoe UI + Consolas | 游標光暈、漸層邊框 | EN |
+| 024 | dev-saas-dark | 暗色開發者產品頁 | CLI 工具「Driftwood」落地頁 + 互動 code demo | 整頁終端 session：樹狀側欄 + diff 當版面 | 苔黑 + 淡綠、ANSI 紅黃 | ui-monospace | 修正計畫逐步執行：盲文轉圈字元、刪除線淡入、進度細線 | EN |
 | 025 | nordic-shop | 北歐家具店 | CSS 畫的椅子單品頁，換材質、加入購物車 | 左大圖右資訊 | 橡木 / 鼠尾草綠 / 燕麥白 | Corbel / Candara | 平滑材質切換 | ZH |
 | 026 | blueprint | 工程藍圖 | 機械錶芯藍圖，懸停零件看規格 | 圖紙 + 標題欄 | 藍圖藍 + 白線 | Courier New + Arial Narrow | 齒輪轉動、尺寸線描繪 | EN |
 | 027 | herbarium | 標本館 | 程序化植物標本產生器 | 標本卡 + 標籤 | 泛黃紙 / 乾燥綠 / 棕 | Palatino Italic 學名 | 葉片生長 | EN |

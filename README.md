@@ -32,14 +32,14 @@
 | 019 | [019-broadsheet.html](https://htmls-ruddy.vercel.app/web/019-broadsheet.html) | 維多利亞大報 | 《The Daily Algorithm》：6 欄細線、Stop the Presses 換版 | △ 多按幾次會看出內文句型重複 |
 | 020 | [020-flowfield.html](https://htmls-ruddy.vercel.app/web/020-flowfield.html) | 生成藝術 | Perlin 流場墨線畫：版畫框、參數面板、可拖曳加墨線 | |
 | 021 | [021-y2k-chrome.html](https://htmls-ruddy.vercel.app/web/021-y2k-chrome.html) | Y2K 液態金屬 | ChromAmp 2000：7 首合成曲、頻譜、可拖曳畫 EQ 曲線 | |
-| 022 | [022-kinetic-type.html](https://htmls-ruddy.vercel.app/web/022-kinetic-type.html) | 動態字體 | TYPE IS A MUSCLE：游標附近的字變粗變寬、字重波浪 | ⚠ Chrome 對 Bahnschrift 可變軸無效，只能在具名樣式間跳格，不連續；內容也偏單薄 |
+| 022 | [022-kinetic-type.html](https://htmls-ruddy.vercel.app/web/022-kinetic-type.html) | 動態字體 | TYPE IS A MUSCLE：自繪 SVG 骨架字：字重、字寬、斜度連續變化，游標附近的字母變粗變寬，可多行打字與手動三軸調整 |  |
 | 023 | [023-isometric.html](https://htmls-ruddy.vercel.app/web/023-isometric.html) | 等角視圖 | 薄荷鎮建造器：7 種工具、道路自動接線、小車、日夜切換 | △ 手機上地圖偏小 |
-| 024 | [024-dev-saas-dark.html](https://htmls-ruddy.vercel.app/web/024-dev-saas-dark.html) | 暗色開發者產品頁 | Driftwood CLI 落地頁：bento、游標光暈、互動終端機 | ⚠ 這個方向本身就是標準 SaaS 版型，做得再好也像模板 |
+| 024 | [024-dev-saas-dark.html](https://htmls-ruddy.vercel.app/web/024-dev-saas-dark.html) | 暗色開發者產品頁 | Driftwood CLI 落地頁：整頁是一段終端 session；`drift plan` 列出修正步驟，逐步核可或略過後執行，狀態即時更新 |  |
 | 025 | [025-nordic-shop.html](https://htmls-ruddy.vercel.app/web/025-nordic-shop.html) | 北歐家具店 | stilla 材質研究：寬幅商品展示、木作與織品聚焦、木材布料搭配、設計筆記與購物車；支援減少動態效果 | △ 椅子是正面平視，立體感有限 |
 | 026 | [026-blueprint.html](https://htmls-ruddy.vercel.app/web/026-blueprint.html) | 工程藍圖 | 機械錶芯藍圖：以真實擺頻運轉、零件規格、滴答聲 | |
 | 027 | [027-herbarium.html](https://htmls-ruddy.vercel.app/web/027-herbarium.html) | 標本館 | 想像植物標本：依 seed 生長四類植物、拉丁學名、可用網址重現 | |
 | 028 | [028-system7.html](https://htmls-ruddy.vercel.app/web/028-system7.html) | 經典 Mac OS | 1-bit 桌面作品集：縮放框動畫、拖曳時只移動外框、15 格拼圖 | |
-| 029 | [029-psychedelic.html](https://htmls-ruddy.vercel.app/web/029-psychedelic.html) | 60 年代迷幻 | 迷幻演唱會海報：feDisplacementMap 液態字、攪動融化 | ⚠ 辨識度夠，但字填滿形狀只是近似，規模也是全集最小的幾件之一 |
+| 029 | [029-psychedelic.html](https://htmls-ruddy.vercel.app/web/029-psychedelic.html) | 60 年代迷幻 | 迷幻演唱會海報：自繪字形經網格變形填滿燈泡輪廓，慢速融化、游標攪動，可切換互補色 |  |
 | 030 | [030-type-specimen.html](https://htmls-ruddy.vercel.app/web/030-type-specimen.html) | 字體樣本 | Bahnschrift × Georgia 樣本書：實測參考線、字符格、瀑布、試打 | |
 | 031 | [031-constructivism.html](https://htmls-ruddy.vercel.app/web/031-constructivism.html) | 構成主義 | 人民圖書館：-13° 紅帶、換口號、借書蓋章、發借書證 | |
 | 032 | [032-dark-academia.html](https://htmls-ruddy.vercel.app/web/032-dark-academia.html) | 暗黑學院 | 珍奇櫃：12 抽屜、手繪 SVG 藏品、燭光、上鎖抽屜謎題 | |
@@ -67,7 +67,7 @@
 | 054 | [054-geocities.html](https://htmls-ruddy.vercel.app/web/054-geocities.html) | 1996 個人首頁 | Dave's Cyber Corner：跑馬燈、計數器、WebRing、留言板 | |
 | 055 | [055-holo-card.html](https://htmls-ruddy.vercel.app/web/055-holo-card.html) | 全息卡 | NEON FAUNA：6 種閃膜、3D 傾斜、可放大翻面 | |
 | 056 | [056-topographic.html](https://htmls-ruddy.vercel.app/web/056-topographic.html) | 等高線 | 霧稜山區路線規劃：marching squares 等高線、即時海拔剖面 | |
-| 057 | [057-bluenote.html](https://htmls-ruddy.vercel.app/web/057-bluenote.html) | 爵士唱片封面 | Blue Hour Records 封面產生器：5 種版型、7 組雙色調 | ⚠ 「照片」是向量剪影，側臉偏粗糙，少了真實攝影的質感 |
+| 057 | [057-bluenote.html](https://htmls-ruddy.vercel.app/web/057-bluenote.html) | 爵士唱片封面 | Blue Hour Records 爵士字體封面工房：巨大數字與字母就是影像，5 種版型、7 組雙色調、黑膠滑出、自訂文字與 SVG 匯出 |  |
 | 058 | [058-te-synth.html](https://htmls-ruddy.vercel.app/web/058-te-synth.html) | Teenage Engineering 風 | ku-16 十六步鼓機：6 種合成鼓聲、swing、4 組 pattern | |
 | 059 | [059-oscilloscope.html](https://htmls-ruddy.vercel.app/web/059-oscilloscope.html) | 示波器 | Phosphor 59-L：李沙育圖形、磷光餘暉、立體聲 XY | |
 | 060 | [060-wes-anderson.html](https://htmls-ruddy.vercel.app/web/060-wes-anderson.html) | 對稱粉彩 | Grand Hotel Alpenrose：中軸對稱立面、電梯開門顯示鑰匙牌 | |
@@ -90,13 +90,13 @@
 | 077 | [077-sheet-music.html](https://htmls-ruddy.vercel.app/web/077-sheet-music.html) | 樂譜 | 點五線譜寫曲、自動補休止符、播放游標 | △ 手繪高音譜號不夠精緻，手機上八分音符擠 |
 | 078 | [078-girih.html](https://htmls-ruddy.vercel.app/web/078-girih.html) | 伊斯蘭幾何 | Hankin 多邊形接觸法即時算星紋：4 種鋪磚、接觸角量角器 | |
 | 079 | [079-weather-poster.html](https://htmls-ruddy.vercel.app/web/079-weather-poster.html) | 天氣海報 | 高嶺市一週四季：巨大溫度滾動、雷雨、霧中數字變模糊、初雪 | |
-| 080 | [080-fashion.html](https://htmls-ruddy.vercel.app/web/080-fashion.html) | 時尚大刊 | Maison Vérane 秋冬 lookbook：clip-path 時裝剪影、慢速橫移 | ⚠ 系統沒有 Didot / Bodoni，只能用 Georgia，時尚刊物最關鍵的高對比襯線字到不了位 |
+| 080 | [080-fashion.html](https://htmls-ruddy.vercel.app/web/080-fashion.html) | 時尚大刊 | Maison Vérane 秋冬 lookbook：自繪 Didone 刊頭與大標，帶布料摺痕與縫線的時裝剪影 lookbook，慢速橫移，點選拉出工作室註解 |  |
 | 081 | [081-saul-bass.html](https://htmls-ruddy.vercel.app/web/081-saul-bass.html) | 片頭設計 | 《The Man Who Misplaced Tuesday》剪紙片頭：8 張字卡、walking bass | |
 | 082 | [082-periodic.html](https://htmls-ruddy.vercel.app/web/082-periodic.html) | 元素週期表 | 118 元素：魚眼放大、三種著色、Bohr 圖、約 60 則短評 | △ 𨧀、鿫 等擴充字可能在某些裝置顯示缺字 |
 | 083 | [083-op-art.html](https://htmls-ruddy.vercel.app/web/083-op-art.html) | 歐普藝術 | OPTIKON 四幅：隆起棋盤、波流、摩爾紋、漩渦 | |
 | 084 | [084-nasa-worm.html](https://htmls-ruddy.vercel.app/web/084-nasa-worm.html) | 70s NASA 手冊 | ORBITA 任務控制：T– 倒數、T–2:00 自動保留、8 席位 GO/NO-GO | |
 | 085 | [085-circus.html](https://htmls-ruddy.vercel.app/web/085-circus.html) | 維多利亞馬戲 | 木活字海報售票亭：燈泡跑馬、£sd 計價、可撕票根 | |
-| 086 | [086-deep-sea.html](https://htmls-ruddy.vercel.app/web/086-deep-sea.html) | 深海 | 捲動下潛 10,935 m：五個水層、15 種真實生物、探照燈 | ⚠ 深層刻意壓暗，要移動探照燈才看得到東西，大部分時間畫面偏空 |
+| 086 | [086-deep-sea.html](https://htmls-ruddy.vercel.app/web/086-deep-sea.html) | 深海 | 從海面捲動下潛到 10,935 m：五個水層、15 種真實生物，探照燈自動掃描、側邊水層導覽 | △ 手機上右側水層導覽會蓋住部分生物學名 |
 | 087 | [087-star-chart.html](https://htmls-ruddy.vercel.app/web/087-star-chart.html) | 印刷星圖 | 約 170 顆真實亮星的星座盤：恆星時對齊、可切緯度 | △ 低緯度觀測窗小，部分標籤重疊 |
 | 088 | [088-graffiti.html](https://htmls-ruddy.vercel.app/web/088-graffiti.html) | 街頭塗鴉 | WALLSPACE 噴漆牆：粒子噴霧、停留會滴流、模板字、Buff 蓋灰 | |
 | 089 | [089-tiki.html](https://htmls-ruddy.vercel.app/web/089-tiki.html) | 提基酒吧 | The Leaky Coconut 調酒器：17 種材料分層、辨識 7 款經典酒譜 | |
@@ -161,13 +161,9 @@
 | 151 | [151-bike-configurator.html](https://htmls-ruddy.vercel.app/web/151-bike-configurator.html) | 品牌頁面 · 3D 客製化電商 | Crosswind R：程序化生成、依真實比例的公路車（每根輻條、每節鏈條）：即時換配色、輪組、輪胎、傳動、把手與坐墊，踩踏帶動齒盤、鏈條與後輪，含即時報價與購物車結帳 | 單檔 HTML；Three.js 與 GSAP 由 CDN 載入，需連線及 WebGL；購物車與結帳僅為本機示範，不會送出資料 |
 | 152 | [152-tideline-board.html](https://htmls-ruddy.vercel.app/web/152-tideline-board.html) | 介面風格 · 產品微互動元件板 | 潮班 TIDELINE：虛構澎湖渡輪公司的五格元件板。行程膠囊在船班卡、取消確認與退款收據之間變形；航線圖描繪航跡、港口輪播與票根；港口側欄旗標滑動；延誤通知堆疊展開與關閉；同行分票扇形寄出。每格自動示範，碰到就交給使用者 | 版面與動態參考 Inspora 的 Product 分類；班表與票價為示意 |
 
-## 較弱的 7 件（誠實版）
-- **⚠ 007 玻璃擬態、024 暗色 SaaS**：執行品質沒問題，弱在風格本身。這兩種是網路上最常見的樣式，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。
-- **⚠ 022 動態字體**：原本的核心是可變字重連續變化。實測這台 Chrome 對 Bahnschrift 的 `font-variation-settings` 無效，只能在具名樣式間跳格，效果打了折扣。
-- **⚠ 029 迷幻海報**：看得出風格，但真正的 60 年代迷幻字要手繪字形，SVG 濾鏡只能做到近似。
-- **⚠ 057 爵士封面**：Reid Miles 風格很依賴攝影，向量剪影撐不起來。
-- **⚠ 080 時尚大刊**：沒有 Didone 系統字，整個風格的靈魂少了一半。
-- **⚠ 086 深海**：概念好，但暗部太多，第一印象偏空。
+## 較弱的作品（誠實版）
+- **⚠ 007 玻璃擬態**：執行品質沒問題，弱在風格本身。玻璃擬態儀表板是網路上最常見的樣式之一，再精緻也容易被看成模板。這是我規劃時選的方向，責任在規劃。
+- **已移出**：024 暗色 SaaS 改成整頁終端 session 加上可核可的修正計畫；022 改用自繪 SVG 骨架字，粗細、寬窄、斜度真正連續變化；029 改用自繪字形網格變形填滿燈泡輪廓；057 改走純字體封面，字本身就是影像；080 自繪 Didone 刊頭與大標；086 加入探照燈自動掃描與水層導覽，深層每一屏都有焦點（手機上導覽會遮到部分學名，標為 △）。
 
 ## 共通限制
 - 只在 Windows + Chrome 上實測。macOS / iOS 會退到後備字型，字寬與截圖不同。
@@ -243,7 +239,7 @@
 | 058 | [058-ukiyo-fishing.html](app/058-ukiyo-fishing.html) | 浮世釣：釣魚；浮世繪平塗浪花 | 拋竿、收線張力、魚類圖鑑 |  |
 | 059 | [059-rams-sudoku.html](app/059-rams-sudoku.html) | 數獨：數獨；Dieter Rams 計算機 | 鉛筆標記、錯誤提示、提示、難度 |  |
 | 060 | [060-pixel-bakery.html](app/060-pixel-bakery.html) | 像素烘焙坊：放置類遊戲；16-bit JRPG 像素商店 | 點擊、升級、離線收益（localStorage） |  |
-| 061 | [061-wood-maze.html](app/061-wood-maze.html) | 木迷宮：重力迷宮；擬物木盤鋼珠 | 傾斜滾珠、洞、關卡、計時 | △ 鋼珠物理與關卡皆可玩，但軌道配置仍偏簡單 |
+| 061 | [061-wood-maze.html](app/061-wood-maze.html) | 木迷宮：重力迷宮；擬物木盤鋼珠 | 傾斜木盤滾鋼珠，三關逐步教會毛氈減速、蠟面滑行、移動閘門與彈簧反彈，計時 | △ 機關完整，但只有三關，玩完就沒有新內容 |
 | 062 | [062-nightmarket-memory.html](app/062-nightmarket-memory.html) | 夜市翻牌：記憶翻牌；台灣夜市紅白藍帆布、燈泡 | 翻牌配對、計時、步數 |  |
 | 063 | [063-poster-golf.html](app/063-poster-golf.html) | 小白球：迷你高爾夫；60 年代旅遊海報平塗 | 拉線擊球、九洞、桿數 |  |
 | 064 | [064-beech-stack.html](app/064-beech-stack.html) | 積木塔：堆疊遊戲；蒙特梭利山毛櫸木玩具 | 點擊放下、切邊、連擊 |  |
@@ -271,12 +267,12 @@
 | 086 | [086-stamp-qr.html](app/086-stamp-qr.html) | 印 QR：QR 產生器；橡皮章與印泥 | 產生真 QR、顏色、歷史、下載 PNG |  |
 | 087 | [087-magnet-kanban.html](app/087-magnet-kanban.html) | 白板：看板待辦；白板＋便利貼＋磁鐵 | 新增、拖曳換欄、到期、篩選 |  |
 | 088 | [088-vault-passwords.html](app/088-vault-passwords.html) | 金庫：密碼庫；銀行金庫鋼與黃銅 | 轉盤解鎖、項目、產生器、長按顯示 |  |
-| 089 | [089-swiss-calendar.html](app/089-swiss-calendar.html) | 曆：行事曆；瑞士字體日曆：週日紅 | 拖曳建立事件、分類、刪除 | △ 日檢視以時間格為主，尚無事件拖放調整 |
+| 089 | [089-swiss-calendar.html](app/089-swiss-calendar.html) | 曆：行事曆；瑞士字體日曆：週日紅 | 月週日從選取日縮放轉場、只展開目前檢視的切換鈕、拖曳建立事件、時間軸拖曳與改長度、分類、刪除 |  |
 | 090 | [090-fandeck-colors.html](app/090-fandeck-colors.html) | 色票：配色工具；色票扇形 | 和諧配色、對比檢查、存色盤 |  |
 | 091 | [091-strobe-tuner.html](app/091-strobe-tuner.html) | 調音：樂器調音器；復古頻閃調音器 | 參考音、模擬偵測、指針、樂器 |  |
 | 092 | [092-signal-lamp.html](app/092-signal-lamp.html) | 燈語：摩斯電碼；航海信號燈：黃銅、船海軍藍 | 文字轉摩斯、敲擊輸入、SOS、聲音 |  |
 | 093 | [093-kippu-phrases.html](app/093-kippu-phrases.html) | 旅日會話：旅行會話卡；日本鐵道車票（切符）地紋 | 情境會話、朗讀、收藏、放大卡 |  |
-| 094 | [094-luggage-packing.html](app/094-luggage-packing.html) | 行李：打包清單；復古行李貼紙 | 清單勾選、範本、新增、依天氣建議 | △ 天氣建議由使用者選情境，不連動即時預報 |
+| 094 | [094-luggage-packing.html](app/094-luggage-packing.html) | 行李：打包清單；復古行李貼紙 | 行李吊牌往上拖進皮箱、清單勾選、範本、新增、依目的地天氣快照建議 | △ 天氣是固定日期的離線快照，過期後只能手動選情境 |
 | 095 | [095-illuminated-dice.html](app/095-illuminated-dice.html) | 羊皮骰：TRPG 骰子；泥金手抄本 | d4–d20、優劣勢、歷史、角色卡 |  |
 | 096 | [096-field-compass.html](app/096-field-compass.html) | 野戰羅盤：指南針／水平儀；軍用野戰裝備橄欖綠 | 方位、水平、座標、標記 |  |
 | 097 | [097-bruna-baby.html](app/097-bruna-baby.html) | 寶寶日誌：育兒紀錄；米飛兔式粗黑線平塗 | 餵奶／尿布／睡眠計時、時間軸、統計 |  |
@@ -286,8 +282,7 @@
 | 101 | [101-sift-digest.html](app/101-sift-digest.html) | 篩 Sift：晨間訊息摘要；陶土粉紙、Athelas 數字、可甩出的摘要卡 | 拖曳甩出（右讀完、左稍後）、狀態膠囊與復原、原文抽屜、稍後重看、結算 |  |
 
 ### App 相對較弱的作品
-- **061 木迷宮**：鋼珠與碰撞能操作，但三關的牆體配置還偏簡單；可以加入更多特殊機關與細緻的木盤回饋。
-- **089 曆**：月、週、日與新增刪除已完成；日視圖只有基本時間格，尚不能在時間軸直接拖動事件。
-- **094 行李**：皮箱與打包互動完整，但天氣建議需手動選擇情境，沒有真實預報資料。
+- **061 木迷宮**：毛氈、蠟面、移動閘門與彈簧都已加入並逐關教學，但只有三關，玩完就沒有新內容。
+- **094 行李**：皮箱與打包互動完整，但天氣建議來自固定日期的離線快照（09/24–09/26），過期或換成其他目的地後只能手動選情境。
 
 這些 App 的本機狀態保存在瀏覽器 localStorage；清除網站資料會清空紀錄。QR 產生器支援最多 106 UTF-8 bytes。

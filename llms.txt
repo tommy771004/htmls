@@ -24,7 +24,7 @@
 分成 13 類：平面排版、介面風格、復古數位、生成藝術、資料科學、遊戲敘事、工具產生器、擬物器物、東方在地、品牌頁面、AI 學習、專案範例與創意藝術。例如瑞士國際主義、包浩斯、蒸汽波、CRT 終端機、水墨山水、Sales CRM 儀表板與果凍骰子。
 
 **哪些作品比較弱？**
-自評較弱的有 7 件：007、022、024、029、057、080、086。頁面上方的「弱點自評」逐件說明弱在哪裡，以及重做時會怎麼改。
+自評較弱的網頁作品目前剩 1 件：007；App 原型有 2 件：061、094。頁面上方的「弱點自評」逐件說明弱在哪裡，以及重做時會怎麼改。
 
 ## 作品目錄
 
@@ -36,8 +36,8 @@
 - [006 噪音夏日 No.7](https://htmls-ruddy.vercel.app/web/006-zine-collage.html): 雜誌拼貼。勒索信標題、撕邊紙片與紙膠帶，碎片可拖曳，放下時會依速度晃動
 - [017 PULP 26](https://htmls-ruddy.vercel.app/web/017-risograph.html): 孔版印刷。書展雙色疊印海報，拖曳造成藍版錯位並顯示錯版 mm 數
 - [019 The Daily Algorithm](https://htmls-ruddy.vercel.app/web/019-broadsheet.html): 維多利亞大報。6 欄細線報紙，「Stop the Presses!」整版換新並有油墨暈開
-- [022 TYPE IS A MUSCLE](https://htmls-ruddy.vercel.app/web/022-kinetic-type.html): 動態字體。全螢幕巨字，游標附近的字母變粗變寬，閒置時自動跑字重波浪
-- [029 The Electric Marmalade](https://htmls-ruddy.vercel.app/web/029-psychedelic.html): 60 年代迷幻。演唱會海報：位移濾鏡讓標題液態流動，游標攪動會增加融化程度
+- [022 TYPE IS A MUSCLE](https://htmls-ruddy.vercel.app/web/022-kinetic-type.html): 動態字體。自繪 SVG 骨架字：字重、字寬、斜度連續變化，游標附近的字母變粗變寬，可多行打字與手動三軸調整
+- [029 The Electric Marmalade](https://htmls-ruddy.vercel.app/web/029-psychedelic.html): 60 年代迷幻。演唱會海報：自繪字形經網格變形填滿燈泡輪廓，慢速融化、游標攪動，可切換互補色
 - [030 Bahnschrift & Georgia](https://htmls-ruddy.vercel.app/web/030-type-specimen.html): 字體樣本。字體樣本書：實測基線與 x 高參考線、字符格、瀑布與試打區
 - [031 人民圖書館](https://htmls-ruddy.vercel.app/web/031-constructivism.html): 構成主義。-13° 斜紅帶與擴音器，換口號、借書蓋章、發放幾何頭像借書證
 - [038 CHLORINE PONY](https://htmls-ruddy.vercel.app/web/038-raygun-grunge.html): 90s 解構 grunge。樂團專訪：字母錯置疊印，游標會推開文字，Remix 重洗版面
@@ -59,7 +59,7 @@
 
 - [007 微光之家](https://htmls-ruddy.vercel.app/web/007-glassmorphism.html): 玻璃擬態。智慧家居面板：可拖曳溫控圓盤、四種情境會改變背景漸層球
 - [010 密碼工坊](https://htmls-ruddy.vercel.app/web/010-neumorphism.html): 新擬物 Soft UI。凹陷字元磚與 neumorphic 滑桿，隨機或好記詞組兩種密碼、中文化破解時間
-- [024 Driftwood](https://htmls-ruddy.vercel.app/web/024-dev-saas-dark.html): 暗色開發者產品頁。CLI 工具落地頁：bento 版面、游標光暈、可輸入指令的互動終端機
+- [024 Driftwood](https://htmls-ruddy.vercel.app/web/024-dev-saas-dark.html): 暗色開發者產品頁。CLI 工具落地頁：整頁就是一段終端 session，drift plan 可逐步核可、略過並執行修正計畫
 - [039 趕稿看板](https://htmls-ruddy.vercel.app/web/039-neo-brutal.html): 新粗獷。硬陰影 Kanban：卡片拖曳跨欄、進行中上限警示、完成欄蓋章
 - [044 MERIDIAN · OPS](https://htmls-ruddy.vercel.app/web/044-lcars.html): LCARS 星艦介面。肘形彩條主控台：五個頁面，紅/黃警報整體換色並響警報聲
 - [055 NEON FAUNA](https://htmls-ruddy.vercel.app/web/055-holo-card.html): 全息卡。6 張各有不同閃膜的收藏卡，跟隨游標 3D 傾斜，可放大翻面
@@ -74,7 +74,7 @@
 - [033 向陽共生菜園](https://htmls-ruddy.vercel.app/web/033-solarpunk.html): 太陽龐克。屋頂菜園規劃：依周邊建物計算每格日照、陰影時間滑桿、鄰作加成
 - [040 極光呼吸](https://htmls-ruddy.vercel.app/web/040-aurora-breathe.html): 極光冥想。4-7-8 呼吸引導：極光星空下的有機光球，合成音量隨呼吸起伏
 - [051 VELOX PACE LAB](https://htmls-ruddy.vercel.app/web/051-sport-bold.html): 運動品牌。斜切大字配速計算器：三種計算模式、分段長條、完賽預測
-- [057 Blue Hour Records](https://htmls-ruddy.vercel.app/web/057-bluenote.html): 爵士唱片封面。Reid Miles 風封面產生器：5 種版型、7 組雙色調、黑膠滑出
+- [057 Blue Hour Records](https://htmls-ruddy.vercel.app/web/057-bluenote.html): 爵士唱片封面。爵士字體封面工房：巨大數字與字母就是影像，5 種版型、7 組雙色調、黑膠滑出、自訂文字與 SVG 匯出
 - [061 Lead & Linen Press](https://htmls-ruddy.vercel.app/web/061-letterpress.html): 活版印刷。名片製作器：壓桿凹印動畫、盲壓、反向鉛字排字盤
 - [064 人生便利商店](https://htmls-ruddy.vercel.app/web/064-thermal-receipt.html): 熱感收據。把一天登錄成 1,440 分鐘的電子發票證明聯，可撕下
 - [074 深夜食堂 霓虹工坊](https://htmls-ruddy.vercel.app/web/074-neon-sign.html): 霓虹招牌。中英霓虹招牌產生器：逐管閃爍點亮、故障燈管、電工盒面板
@@ -139,7 +139,7 @@
 - [032 A Cabinet of Curiosities](https://htmls-ruddy.vercel.app/web/032-dark-academia.html): 暗黑學院。胡桃木 12 抽屜珍奇櫃，燭光閃爍，第十二格是上鎖的小謎題
 - [050 Atomic Holidays!](https://htmls-ruddy.vercel.app/web/050-atomic-age.html): 50 年代原子時代。1958 太空旅行社：航線圖火箭飛行、計算票價、登機證與 theremin
 - [060 Grand Hotel Alpenrose](https://htmls-ruddy.vercel.app/web/060-wes-anderson.html): 對稱粉彩。嚴格中軸對稱的飯店訂房，電梯開門後遞上房號鑰匙牌
-- [080 Maison Vérane · Nocturne](https://htmls-ruddy.vercel.app/web/080-fashion.html): 時尚大刊。clip-path 時裝剪影 lookbook，慢速橫移，點選拉出工作室註解
+- [080 Maison Vérane · Nocturne](https://htmls-ruddy.vercel.app/web/080-fashion.html): 時尚大刊。自繪 Didone 刊頭與大標，帶布料摺痕與縫線的時裝剪影 lookbook，慢速橫移，點選拉出工作室註解
 - [085 Magnussen's Grand Circus](https://htmls-ruddy.vercel.app/web/085-circus.html): 維多利亞馬戲。木活字海報售票亭：燈泡跑馬、£sd 計價、可撕票根
 - [089 The Leaky Coconut](https://htmls-ruddy.vercel.app/web/089-tiki.html): 提基酒吧。17 種材料分層倒入的調酒器，辨識 7 款經典酒譜
 - [093 Minuit Velours](https://htmls-ruddy.vercel.app/web/093-perfume.html): 奢華香水。點瓶身噴霧、香調金字塔、拖曳觀看 8 小時揮發曲線
@@ -162,7 +162,7 @@
 - [076 KESTREL Terminal](https://htmls-ruddy.vercel.app/web/076-bloomberg.html): 金融終端。虛構市場終端：K 線、五檔、新聞帶動股價、指令列 <GO>
 - [079 高嶺市一週天氣](https://htmls-ruddy.vercel.app/web/079-weather-poster.html): 天氣海報。一週經歷四季：巨大溫度滾動、雷雨閃電、霧中數字變模糊
 - [082 元素週期表](https://htmls-ruddy.vercel.app/web/082-periodic.html): 元素週期表。118 元素魚眼放大、三種著色、Bohr 圖與約 60 則短評
-- [086 下潛](https://htmls-ruddy.vercel.app/web/086-deep-sea.html): 深海。從海面捲動下潛到 10,935 m：五個水層、15 種真實生物、探照燈
+- [086 下潛](https://htmls-ruddy.vercel.app/web/086-deep-sea.html): 深海。從海面捲動下潛到 10,935 m：五個水層、15 種真實生物，探照燈自動掃描、側邊水層導覽
 - [087 The Northern Heavens](https://htmls-ruddy.vercel.app/web/087-star-chart.html): 印刷星圖。約 170 顆真實亮星的星座盤，依恆星時對齊，可切換緯度
 - [094 Circles in a Hurry](https://htmls-ruddy.vercel.app/web/094-fourier.html): 傅立葉周轉圓。隨手畫的線用 DFT 周轉圓重現，圓的數量可調
 - [149 一指之間 · Powers of Ten](https://htmls-ruddy.vercel.app/web/149-powers-of-ten.html): 62 個數量級連續縮放。從孩子的掌心往外到可觀測宇宙邊緣、往裡到夸克與普朗克長度：真實行星位置、臺灣地形、DNA 雙螺旋、碳原子電子雲，視野與光穿越時間即時換算
@@ -290,7 +290,7 @@
 - [058 浮世釣](https://htmls-ruddy.vercel.app/app/058-ukiyo-fishing.html): 釣魚；浮世繪平塗浪花。拋竿、收線張力、魚類圖鑑
 - [059 數獨](https://htmls-ruddy.vercel.app/app/059-rams-sudoku.html): 數獨；Dieter Rams 計算機。鉛筆標記、錯誤提示、提示、難度
 - [060 像素烘焙坊](https://htmls-ruddy.vercel.app/app/060-pixel-bakery.html): 放置類遊戲；16-bit JRPG 像素商店。點擊、升級、離線收益（localStorage）
-- [061 木迷宮](https://htmls-ruddy.vercel.app/app/061-wood-maze.html): 重力迷宮；擬物木盤鋼珠。傾斜滾珠、洞、關卡、計時
+- [061 木迷宮](https://htmls-ruddy.vercel.app/app/061-wood-maze.html): 重力迷宮；擬物木盤鋼珠。傾斜木盤滾鋼珠，三關逐步教會毛氈減速、蠟面滑行、移動閘門與彈簧反彈，計時
 - [062 夜市翻牌](https://htmls-ruddy.vercel.app/app/062-nightmarket-memory.html): 記憶翻牌；台灣夜市紅白藍帆布、燈泡。翻牌配對、計時、步數
 - [063 小白球](https://htmls-ruddy.vercel.app/app/063-poster-golf.html): 迷你高爾夫；60 年代旅遊海報平塗。拉線擊球、九洞、桿數
 - [064 積木塔](https://htmls-ruddy.vercel.app/app/064-beech-stack.html): 堆疊遊戲；蒙特梭利山毛櫸木玩具。點擊放下、切邊、連擊
@@ -318,12 +318,12 @@
 - [086 印 QR](https://htmls-ruddy.vercel.app/app/086-stamp-qr.html): QR 產生器；橡皮章與印泥。產生真 QR、顏色、歷史、下載 PNG
 - [087 白板](https://htmls-ruddy.vercel.app/app/087-magnet-kanban.html): 看板待辦；白板＋便利貼＋磁鐵。新增、拖曳換欄、到期、篩選
 - [088 金庫](https://htmls-ruddy.vercel.app/app/088-vault-passwords.html): 密碼庫；銀行金庫鋼與黃銅。轉盤解鎖、項目、產生器、長按顯示
-- [089 曆](https://htmls-ruddy.vercel.app/app/089-swiss-calendar.html): 行事曆；瑞士字體日曆：週日紅。拖曳建立事件、分類、刪除
+- [089 曆](https://htmls-ruddy.vercel.app/app/089-swiss-calendar.html): 行事曆；瑞士字體日曆：週日紅。月週日從選取日縮放轉場、只展開目前檢視的切換鈕、拖曳建立與調整事件、分類、刪除
 - [090 色票](https://htmls-ruddy.vercel.app/app/090-fandeck-colors.html): 配色工具；色票扇形。和諧配色、對比檢查、存色盤
 - [091 調音](https://htmls-ruddy.vercel.app/app/091-strobe-tuner.html): 樂器調音器；復古頻閃調音器。參考音、模擬偵測、指針、樂器
 - [092 燈語](https://htmls-ruddy.vercel.app/app/092-signal-lamp.html): 摩斯電碼；航海信號燈：黃銅、船海軍藍。文字轉摩斯、敲擊輸入、SOS、聲音
 - [093 旅日會話](https://htmls-ruddy.vercel.app/app/093-kippu-phrases.html): 旅行會話卡；日本鐵道車票（切符）地紋。情境會話、朗讀、收藏、放大卡
-- [094 行李](https://htmls-ruddy.vercel.app/app/094-luggage-packing.html): 打包清單；復古行李貼紙。清單勾選、範本、新增、依天氣建議
+- [094 行李](https://htmls-ruddy.vercel.app/app/094-luggage-packing.html): 打包清單；復古行李貼紙。行李吊牌往上拖進皮箱、清單勾選、範本、新增、依目的地天氣快照建議
 - [095 羊皮骰](https://htmls-ruddy.vercel.app/app/095-illuminated-dice.html): TRPG 骰子；泥金手抄本。d4–d20、優劣勢、歷史、角色卡
 - [096 野戰羅盤](https://htmls-ruddy.vercel.app/app/096-field-compass.html): 指南針／水平儀；軍用野戰裝備橄欖綠。方位、水平、座標、標記
 - [097 寶寶日誌](https://htmls-ruddy.vercel.app/app/097-bruna-baby.html): 育兒紀錄；米飛兔式粗黑線平塗。餵奶／尿布／睡眠計時、時間軸、統計

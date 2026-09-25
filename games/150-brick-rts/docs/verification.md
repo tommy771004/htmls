@@ -70,3 +70,31 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## 多地形移動 v9（最新）
 
 乾淨目錄 npm ci、build、validate、57 項测试及 browser 首次使用流程通過。實測直接點選高地後登階到達、海岸深水拒絕、跨地圖讀檔及 Worker 恢復；草甸兩尺寸與故障流程亦通過。snapshot 現為 v9，詳見 [first-use-006.md](first-use-006.md)。完整採集、戰鬥與勝敗尚未完成。
+
+## 人偶資產增量
+
+59 項測試、build、完整瀏覽器回歸與專用聚焦姿態測試通過。工具 sockets、剛體關節及七種姿態可在模型頁檢查，遊戲仍僅接入待命／行走。詳見 [unit-rig-verification.md](unit-rig-verification.md)。不改模擬，snapshot 維持 v9。
+
+## 建築外觀增量
+
+63 項測試、build、完整瀏覽器回歸與模型專用操作測試通過。代表房屋新增四種時代輪廓、五段實體施工、受損與有限殘骸，恢復完整狀態後截圖一致。詳見 [building-visuals-verification.md](building-visuals-verification.md)。僅為模型驗收，尚未接入建造／修理玩法；C 維持 in_progress，snapshot 維持 v9。
+
+## 代表步兵輪廓增量
+
+64 項測試、build 與完整瀏覽器回歸通過。模型頁新增劍盾、長矛與弓兵裝備切換，修正展示位置遮擋，詳見 [infantry-visuals-verification.md](infantry-visuals-verification.md)。僅為資產驗收，尚無戰鬥操作；C 仍在進行。
+
+## 模型頁故障處理
+
+新增 context loss 與每幀例外的停止／重新載入流程，以及失敗截圖與事件紀錄。故障注入實測見 [model-failure-verification.md](model-failure-verification.md)；先前偶發空白根因仍未確認，不將診斷改進當成根因修復。
+
+## 經濟建築資產增量
+
+新增伐木場、採礦場、磨坊與農田模型及驗收切換。66 項程式測試與完整沙盒回歸通過，修正旗幟遮擋及磨坊輪廓；詳見 [economic-assets-verification.md](economic-assets-verification.md)。未接入派工與生產，完整村落仍未完成。
+
+## 三段渲染細節增量
+
+67 項程式測試及模型頁近／中／遠切換與近景還原通過，選取保留详细幾何。實際三角形觀測值與限制見 [lod-verification.md](lod-verification.md)。未宣稱目標硬體效能或完整 LOD 資產矩陣完成。
+
+## 村落公共建築增量
+
+新增城鎮中心、市場與鐵匠舖的代表外觀，67 項程式測試及模型切換／狀態還原／故障測試通過。詳見 [civic-assets-verification.md](civic-assets-verification.md)。不包含生產、交易、研究或權威建築占地。

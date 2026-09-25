@@ -82,6 +82,348 @@ function validateRules(value, exact = false) {
   return [...new Set(errors)];
 }
 
+// apps/web/picking.ts
+function visibleMeshHits(raycaster, roots) {
+  const meshes = [];
+  for (const root of roots) root.traverseVisible((object) => {
+    if (object.isMesh) meshes.push(object);
+  });
+  return raycaster.intersectObjects(meshes, false);
+}
+
+// apps/web/lod.ts
+function detailLevel(zoom) {
+  return zoom >= 1.8 ? "near" : zoom >= 0.9 ? "medium" : "far";
+}
+function createDetailController(T) {
+  const detailed = /* @__PURE__ */ new Map(), simple = /* @__PURE__ */ new Map();
+  function register(geometry, w, h, d) {
+    const low = new T.BoxGeometry(w, h, d);
+    low.translate(0, h / 2, 0);
+    detailed.set(geometry, geometry);
+    detailed.set(low, geometry);
+    simple.set(geometry, low);
+    simple.set(low, low);
+  }
+  function apply(root, zoom) {
+    const level = detailLevel(zoom);
+    root.traverse((o) => {
+      if (o.isMesh && detailed.has(o.geometry)) o.geometry = (level === "near" ? detailed : simple).get(o.geometry);
+      if (o.userData.studs) o.visible = level !== "far";
+    });
+  }
+  function withSelectionGeometry(root, read) {
+    const previous = /* @__PURE__ */ new Map();
+    root.traverse((o) => {
+      if (o.isMesh && detailed.has(o.geometry)) {
+        previous.set(o, o.geometry);
+        o.geometry = detailed.get(o.geometry);
+      }
+    });
+    try {
+      return read();
+    } finally {
+      for (const [mesh, geometry] of previous) mesh.geometry = geometry;
+    }
+  }
+  function dispose() {
+    for (const geometry of new Set(simple.values())) geometry.dispose();
+    simple.clear();
+    detailed.clear();
+  }
+  return { register, apply, withSelectionGeometry, dispose };
+}
+
+// apps/web/economic-building.ts
+var economicBuildings = ["lumber-camp", "mining-camp", "mill", "farm", "town-center", "market", "smithy"];
+function economicBuildingParts(kind, v) {
+  if (!economicBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u7D93\u6FDF\u5EFA\u7BC9\u5916\u89C0");
+  const p = [], team = v.red ? "#b85c47" : "#456e87", wood = "#94734c", stone = "#aaa994", height = 1.28 + (v.ageVariant - 1) * 0.16;
+  const add = (id, phase, x, z, y, w, d, h, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h, color, studs });
+  add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, kind === "farm" ? "#806b49" : "#b3aa8c");
+  if (kind === "farm") {
+    for (let row = 0; row < 4; row++) {
+      add(`furrow-${row}`, 1, 0.12, 0.12 + row * 0.65, 0.16, 2.45, 0.36, 0.12, "#6d563d");
+      for (let col = 0; col < 5; col++) {
+        add(`crop-${row}-${col}`, 2, 0.2 + col * 0.47, 0.19 + row * 0.65, 0.28, 0.18, 0.18, 0.24, "#879957", true);
+        add(`grain-${row}-${col}`, 3, 0.22 + col * 0.47, 0.21 + row * 0.65, 0.52, 0.14, 0.14, 0.13, "#c0ad67");
+      }
+    }
+    add("boundary-back", 1, 0, 0, 0.16, 2.7, 0.08, 0.12, wood);
+    add("boundary-front", 1, 0, 2.62, 0.16, 2.7, 0.08, 0.12, wood);
+  } else {
+    const roofY = height + (kind === "mill" ? 0.96 : 0.16);
+    for (const x of [0.1, 2.4]) for (const z of [0.1, 1.8]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, roofY - 0.16, v.ageVariant >= 3 ? stone : wood);
+    add("back-brace", 1, 0.1, 0.1, roofY - 0.24, 2.46, 0.14, 0.24, wood);
+    if (kind === "market") {
+      for (let stripe = 0; stripe < 6; stripe++) add(`awning-${stripe}`, 2, -0.05 + stripe * 0.48, -0.05, roofY, 0.48, 2.25, 0.16, stripe % 2 ? "#e4d4ab" : team);
+    } else for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, -0.05 + level * 0.28, -0.05, roofY + level * 0.16, 2.9 - level * 0.56, 2.25, 0.16, v.ageVariant === 1 ? "#b8a074" : team, true);
+    if (kind === "lumber-camp") {
+      for (let row = 0; row < 3; row++) for (let layer = 0; layer < 2; layer++) add(`log-${row}-${layer}`, 3, 0.25, 0.3 + row * 0.28, 0.16 + layer * 0.2, 1.6, 0.22, 0.2, wood, true);
+      for (const x of [0.55, 1.75]) add(`saw-leg-${x}`, 3, x, 2.15, 0.16, 0.14, 0.32, 0.45, "#66563e");
+      add("saw-worktop", 3, 0.35, 2.08, 0.61, 1.8, 0.48, 0.12, wood);
+      add("saw-blade", 3, 0.9, 2.24, 0.73, 0.85, 0.06, 0.14, "#b8c0b9");
+    } else if (kind === "mining-camp") {
+      add("hopper-base", 3, 0.35, 0.4, 0.16, 1.7, 0.9, 0.16, wood);
+      for (const x of [0.35, 1.89]) add(`hopper-wall-${x}`, 3, x, 0.4, 0.32, 0.16, 0.9, 0.55, wood);
+      add("hopper-back", 3, 0.35, 0.4, 0.32, 1.7, 0.16, 0.55, wood);
+      for (let i = 0; i < 6; i++) add(`ore-${i}`, 3, 0.59 + i % 3 * 0.39, 0.62 + Math.floor(i / 3) * 0.32, 0.32, 0.3, 0.26, 0.25, i % 2 ? stone : "#c0a557", true);
+      add("pick-handle", 3, 2.42, 0.8, 0.16, 0.06, 0.06, 1.05, wood);
+      add("pick-head", 3, 2.2, 0.8, 1.12, 0.5, 0.08, 0.1, "#b8c0b9");
+    } else if (kind === "mill") {
+      for (let course = 0; course < 6; course++) add(`mill-tower-${course}`, 1, 0.85, 0.6, 0.16 + course * 0.4, 1, 1, 0.4, course % 2 ? stone : "#c4bfa8", true);
+      const hubY = height + 0.75;
+      add("axle", 3, 1.28, 1.6, hubY, 0.14, 0.83, 0.14, wood);
+      add("blade-vertical", 3, 1.26, 2.37, hubY - 1.12, 0.18, 0.1, 2.4, "#d6c6a0");
+      add("blade-horizontal", 3, 0.15, 2.48, hubY, 2.4, 0.1, 0.18, "#d6c6a0");
+      add("hub", 3, 1.19, 2.33, hubY - 0.04, 0.32, 0.29, 0.28, "#7c674b");
+      for (const x of [0.22, 2.13]) add(`grain-bag-${x}`, 3, x, 0.7, 0.16, 0.38, 0.4, 0.48, "#c5b285", true);
+    } else if (kind === "town-center") {
+      for (const x of [0.15, 2.05]) add(`hall-pier-${x}`, 1, x, 0.15, 0.16, 0.5, 1.5, height, stone, true);
+      add("entrance-lintel", 1, 0.65, 1.5, height - 0.16, 1.4, 0.25, 0.32, stone);
+      for (let level = 0; level < 3; level++) add(`entrance-step-${level}`, 3, 0.8, 2.15 + level * 0.18, 0.16, 0.95, 0.18, 0.24 - level * 0.08, "#c8bea4");
+      const towerBase = roofY + 0.48;
+      add("belfry-floor", 3, 0.87, 0.65, towerBase, 0.96, 0.85, 0.16, stone, true);
+      for (const x of [0.91, 1.63]) for (const z of [0.69, 1.25]) add(`belfry-pillar-${x}-${z}`, 3, x, z, towerBase + 0.16, 0.12, 0.12, 0.65, stone);
+      add("belfry-top", 3, 0.8, 0.58, towerBase + 0.81, 1.1, 1, 0.16, team, true);
+      add("bell-hanger", 3, 1.33, 0.98, towerBase + 0.55, 0.05, 0.05, 0.26, wood);
+      add("bell", 3, 1.2, 0.88, towerBase + 0.4, 0.3, 0.28, 0.22, "#bca068");
+      add("notice-board", 3, 0.14, 1.9, 0.72, 0.48, 0.08, 0.4, wood);
+      add("notice-paper", 3, 0.2, 1.99, 0.78, 0.34, 0.025, 0.27, "#e5d9b3");
+      add("cargo-crate", 3, 2.1, 2.1, 0.16, 0.42, 0.42, 0.38, wood, true);
+    } else if (kind === "market") {
+      for (const x of [0.24, 1.94]) {
+        add(`stall-${x}`, 3, x, 0.35, 0.16, 0.52, 1.38, 0.48, wood);
+        for (let i = 0; i < 3; i++) add(`goods-${x}-${i}`, 3, x + 0.08, 0.48 + i * 0.4, 0.64, 0.34, 0.28, 0.18, i % 2 ? "#b9a76c" : "#8f9e5e", true);
+      }
+      add("scale-post", 3, 2.18, 1.48, 0.64, 0.04, 0.04, 0.46, "#8c8879");
+      add("scale-beam", 3, 1.98, 1.48, 1.1, 0.44, 0.04, 0.04, "#8c8879");
+      for (const x of [1.99, 2.36]) {
+        add(`scale-wire-${x}`, 3, x, 1.48, 0.9, 0.025, 0.025, 0.2, "#8c8879");
+        add(`scale-pan-${x}`, 3, x - 0.05, 1.43, 0.87, 0.13, 0.13, 0.04, "#b8b3a0");
+      }
+    } else if (kind === "smithy") {
+      add("forge-back", 1, 0.28, 0.22, 0.16, 1.05, 0.3, 1.05, stone, true);
+      for (const x of [0.28, 1.05]) add(`forge-side-${x}`, 1, x, 0.52, 0.16, 0.28, 0.7, 0.85, stone);
+      add("forge-lintel", 1, 0.28, 0.52, 1.01, 1.05, 0.7, 0.2, stone);
+      add("cold-hearth", 3, 0.56, 0.52, 0.16, 0.49, 0.7, 0.16, "#4e514b");
+      add("chimney", 3, 0.55, 0.28, 1.21, 0.5, 0.5, roofY - 0.41, stone, true);
+      add("chimney-cap", 3, 0.49, 0.22, roofY + 0.8, 0.62, 0.62, 0.12, "#73786d");
+      add("anvil-base", 3, 1.7, 1.7, 0.16, 0.5, 0.45, 0.34, wood);
+      add("anvil-neck", 3, 1.83, 1.8, 0.5, 0.23, 0.25, 0.2, "#76817d");
+      add("anvil-face", 3, 1.6, 1.71, 0.7, 0.7, 0.43, 0.12, "#a0aaa5");
+      add("bellows", 3, 1.34, 0.56, 0.16, 0.65, 0.5, 0.25, "#927052");
+      add("coal-bin", 3, 0.25, 2.14, 0.16, 0.65, 0.42, 0.22, "#665940");
+      for (let i = 0; i < 3; i++) add(`coal-${i}`, 3, 0.31 + i * 0.17, 2.21, 0.38, 0.13, 0.22, 0.1, "#424944");
+    }
+  }
+  add("marker-pole", 4, 2.65, 2.7, 0.16, 0.06, 0.06, kind === "farm" ? 0.65 : height + 0.6, wood);
+  add("marker-flag", 4, 2.34, 2.7, kind === "farm" ? 0.61 : height + 0.44, 0.32, 0.05, 0.22, team);
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: wood, studs: false }))];
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "marker-flag" || a.id === "roof-2" || a.id === "awning-2" || a.id === "awning-4" || a.id.startsWith("grain-") || a.id === "blade-horizontal"));
+}
+
+// apps/web/building-parts.ts
+function buildingParts(visual) {
+  const { ageVariant: age, progress, health, red } = visual;
+  if (![1, 2, 3, 4].includes(age) || ![progress, health].every((v) => Number.isFinite(v) && v >= 0 && v <= 100)) throw Error("\u7121\u6548\u5EFA\u7BC9\u5916\u89C0\u72C0\u614B");
+  const parts = [], team = red ? "#b85c47" : "#456e87";
+  const add = (id, phase2, x, z, y, w, d, h, color, studs = false) => parts.push({ id, phase: phase2, x, z, y, w, d, h, color, studs });
+  add("foundation", 0, -0.15, -0.15, 0, 2.5, 2.3, 0.16, "#b3aa8c");
+  const courses = age + 2, wallTop = 0.16 + courses * 0.32, wall = age <= 2 ? "#dec59b" : "#b7b6a5";
+  for (let level = 0; level < courses; level++) {
+    const y = 0.16 + level * 0.32;
+    add(`back-${level}`, 1, 0, 0, y, 2, 0.18, 0.32, wall);
+    for (const x of [0, 1.82]) add(`side-${x}-${level}`, 1, x, 0.18, y, 0.18, 1.64, 0.32, wall);
+    for (const x of [0, 1.3]) add(`front-${x}-${level}`, 1, x, 1.82, y, 0.7, 0.18, 0.32, wall);
+    if (level >= 3) add(`lintel-${level}`, 1, 0.7, 1.82, y, 0.6, 0.18, 0.32, wall);
+  }
+  if (age <= 2) for (const x of [0, 0.64, 1.3, 1.94]) add(`timber-${x}`, 1, x, 1.98, 0.16, 0.06, 0.06, wallTop - 0.16, "#80674f");
+  else for (const x of [-0.05, 1.73]) add(`buttress-${x}`, 1, x, 1.78, 0.16, 0.32, 0.3, wallTop - 0.16, "#999e92");
+  const roofBase = wallTop, roof = age === 1 ? "#b8a074" : age === 2 ? team : "#677681", levels = age === 1 ? 3 : 4;
+  for (let level = 0; level < levels; level++) for (let row = 0; row < 5; row++) add(`roof-${level}-${row}`, 2, -0.2 + level * 0.25, -0.2 + row * 0.5, roofBase + level * 0.18, 2.5 - level * 0.5, 0.5, 0.18, roof, true);
+  add("door", 3, 0.76, 1.98, 0.16, 0.48, 0.06, 0.92, "#685740");
+  add("door-handle", 3, 0.81, 2.045, 0.61, 0.055, 0.03, 0.07, "#c2a664");
+  for (const x of [0.13, 1.47]) {
+    add(`window-frame-${x}`, 3, x, 1.99, 0.76, 0.38, 0.06, 0.38, "#786b55");
+    add(`window-glass-${x}`, 3, x + 0.04, 2.055, 0.8, 0.3, 0.025, 0.29, "#334b4e");
+  }
+  if (age >= 2) {
+    add("chimney", 3, 1.5, 0.3, wallTop, 0.4, 0.4, 0.95, "#b1aa95");
+    add("chimney-cap", 3, 1.46, 0.26, wallTop + 0.95, 0.48, 0.48, 0.1, "#78796b");
+  }
+  if (age >= 3) {
+    add("stone-door-header", 3, 0.66, 1.97, 1.12, 0.68, 0.15, 0.16, "#d0ceba");
+    add("roof-ridge", 3, 0.7, -0.2, roofBase + 0.72, 0.7, 2.5, 0.16, team, true);
+  }
+  if (age === 4) {
+    for (const z of [0.05, 1.55]) {
+      add(`dormer-base-${z}`, 3, 0.5, z, roofBase + 0.36, 0.5, 0.4, 0.64, "#c9c4ae");
+      add(`dormer-cap-${z}`, 3, 0.45, z - 0.04, roofBase + 1, 0.6, 0.48, 0.16, team, true);
+    }
+    add("cargo-platform", 3, 0.75, 0.7, 0.16, 0.5, 0.6, 0.12, "#96764c");
+  }
+  const poleBase = roofBase + 0.36;
+  add("flag-pole", 4, 0.27, 0.25, poleBase, 0.07, 0.07, 0.9, "#786849");
+  add("flag", 4, 0.34, 0.25, poleBase + 0.58, 0.6, 0.04, 0.3, team);
+  if (health === 0) {
+    return [parts[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.1 + i % 4 * 0.43, z: 0.12 + Math.floor(i / 4) * 0.53, y: 0.16, w: 0.32, d: 0.27, h: 0.12, color: i % 3 ? wall : roof, studs: false }))];
+  }
+  const phase = Math.min(4, Math.floor(progress / 20));
+  return parts.filter((p) => p.phase <= phase).filter((p) => health >= 50 || !(p.id.startsWith("roof-") && Number(p.id.split("-")[2]) % 2 === 0 || p.id === "flag"));
+}
+
+// apps/web/unit-rig.ts
+var unitPoses = ["idle", "walk", "work", "attack", "hit", "death", "carry"];
+var unitTools = ["none", "axe", "pick", "sickle", "hammer", "basket", "sword", "spear", "bow"];
+var unitRoles = ["villager", "swordsman", "spearman", "archer"];
+function samplePose(pose, time) {
+  const t = Math.max(0, Number.isFinite(time) ? time : 0), walk = Math.sin(t * 0.012) * 0.35;
+  const p = { leftLeg: 0, rightLeg: 0, leftArm: 0, rightArm: 0, lean: 0, fall: 0 };
+  if (pose === "walk") {
+    p.leftLeg = walk;
+    p.rightLeg = -walk;
+    p.leftArm = -walk * 0.6;
+    p.rightArm = walk * 0.6;
+  }
+  if (pose === "work") {
+    p.rightArm = -0.9 + Math.sin(t * 0.01) * 0.7;
+    p.leftArm = -0.25;
+  }
+  if (pose === "attack") {
+    p.rightArm = -1.25 + Math.sin(t * 0.012) * 1;
+    p.leftArm = -0.45;
+  }
+  if (pose === "carry") {
+    p.leftArm = -1.1;
+    p.rightArm = -1.1;
+  }
+  if (pose === "hit" && t > 0 && t < 300) p.lean = -0.24 * Math.sin(Math.PI * t / 300);
+  if (pose === "death") p.fall = Math.min(t / 700, 1) * Math.PI / 2;
+  return p;
+}
+function createUnitRig(T, player, box, material) {
+  const root = new T.Group();
+  root.name = "body-root";
+  const part = (parent, x, y, z, w, h, d, color) => {
+    const mesh = new T.Mesh(box(w, h, d), material(color));
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    parent.add(mesh);
+    return mesh;
+  };
+  const team = player === 0 ? "#45728c" : "#b25441";
+  function joint(name, x, y, z) {
+    const group = new T.Group();
+    group.name = name;
+    group.position.set(x, y, z);
+    root.add(group);
+    return group;
+  }
+  const leftLeg = joint("hip-left", -0.12, 0.3, 0), rightLeg = joint("hip-right", 0.12, 0.3, 0);
+  for (const leg of [leftLeg, rightLeg]) part(leg, 0, -0.3, 0, 0.19, 0.3, 0.24, "#44514b");
+  part(root, 0, 0.3, 0, 0.46, 0.4, 0.32, team);
+  part(root, 0, 0.71, 0, 0.34, 0.3, 0.3, "#dfbb7e");
+  part(root, 0, 1.02, 0, 0.44, 0.11, 0.4, player === 0 ? "#cbbc94" : "#835243");
+  for (const dx of [-0.075, 0.075]) part(root, dx, 0.86, 0.155, 0.035, 0.04, 0.018, "#3e3a2e");
+  const leftArm = joint("shoulder-left", -0.19, 0.67, 0), rightArm = joint("shoulder-right", 0.19, 0.67, 0);
+  const sockets = { leftHand: new T.Group(), rightHand: new T.Group() };
+  for (const [arm, socket, name] of [[leftArm, sockets.leftHand, "hand-left"], [rightArm, sockets.rightHand, "hand-right"]]) {
+    part(arm, 0, -0.28, 0, 0.1, 0.28, 0.16, team);
+    part(arm, 0, -0.38, 0, 0.1, 0.14, 0.17, "#dfbb7e");
+    socket.name = name;
+    socket.position.set(0, -0.31, 0.09);
+    arm.add(socket);
+  }
+  const outfits = /* @__PURE__ */ new Map();
+  function dress(role) {
+    if (!unitRoles.includes(role)) throw Error("\u672A\u77E5\u6A21\u578B\u8ECD\u7A2E");
+    for (const outfit2 of outfits.values()) outfit2.visible = false;
+    shield.visible = false;
+    if (role === "villager") {
+      equip("none");
+      return;
+    }
+    let outfit = outfits.get(role);
+    if (!outfit) {
+      outfit = new T.Group();
+      outfit.name = `outfit-${role}`;
+      root.add(outfit);
+      outfits.set(role, outfit);
+      if (role === "archer") {
+        part(outfit, 0, 1.1, 0, 0.36, 0.13, 0.32, "#667c4e");
+        part(outfit, 0, 0.36, -0.24, 0.21, 0.43, 0.18, "#8b6746");
+        for (const x of [-0.06, 0.06]) part(outfit, x, 0.77, -0.24, 0.025, 0.2, 0.025, "#d3b981");
+      } else {
+        part(outfit, 0, 1.12, 0, 0.4, 0.14, 0.35, "#a5b0ad");
+        part(outfit, 0, 0.4, 0.18, 0.36, 0.23, 0.055, "#a5b0ad");
+        if (role === "spearman") part(outfit, 0, 1.26, 0, 0.065, 0.15, 0.25, team);
+      }
+    }
+    outfit.visible = true;
+    shield.visible = role === "swordsman";
+    equip(role === "swordsman" ? "sword" : role === "spearman" ? "spear" : "bow");
+  }
+  const shield = new T.Group();
+  shield.name = "shield-left";
+  sockets.leftHand.add(shield);
+  shield.visible = false;
+  part(shield, -0.12, -0.17, 0.07, 0.08, 0.48, 0.4, "#9d885b");
+  part(shield, -0.17, -0.11, 0.07, 0.03, 0.34, 0.28, team);
+  const toolMeshes = /* @__PURE__ */ new Map();
+  let selected2 = "none";
+  function makeTool(kind) {
+    const group = new T.Group();
+    group.name = `tool-${kind}`;
+    sockets.rightHand.add(group);
+    if (kind === "basket") {
+      part(group, -0.15, -0.12, 0.16, 0.4, 0.28, 0.34, "#96764c");
+      for (const x of [-0.32, 0.02]) part(group, x, 0.12, 0.16, 0.035, 0.15, 0.04, "#b79a67");
+      part(group, -0.15, 0.25, 0.16, 0.38, 0.035, 0.04, "#b79a67");
+    } else if (kind === "spear") {
+      part(group, 0, -0.28, 0, 0.05, 1.42, 0.05, "#967447");
+      part(group, 0, 1.14, 0, 0.11, 0.23, 0.06, "#c6cfca");
+    } else if (kind === "bow") {
+      for (const [y, z] of [[-0.12, 0], [0.04, 0.08], [0.2, 0.12], [0.36, 0.08], [0.52, 0]]) part(group, 0, y, z, 0.065, 0.17, 0.06, "#997447");
+      part(group, 0, -0.12, 0, 0.018, 0.81, 0.018, "#d9cba4");
+    } else if (kind !== "none") {
+      part(group, 0, -0.08, 0, 0.055, 0.48, 0.06, kind === "sword" ? "#756449" : "#967447");
+      if (kind === "axe") part(group, 0.08, 0.23, 0, 0.22, 0.15, 0.055, "#aab0a3");
+      if (kind === "pick") part(group, 0, 0.32, 0, 0.38, 0.045, 0.06, "#aab0a3");
+      if (kind === "hammer") part(group, 0, 0.28, 0, 0.23, 0.13, 0.12, "#979e93");
+      if (kind === "sickle") {
+        part(group, 0.05, 0.25, 0, 0.15, 0.045, 0.05, "#aab0a3");
+        part(group, 0.11, 0.16, 0, 0.04, 0.12, 0.05, "#aab0a3");
+      }
+      if (kind === "sword") {
+        part(group, 0, 0.22, 0, 0.22, 0.045, 0.07, "#baa167");
+        part(group, 0, 0.27, 0, 0.07, 0.46, 0.045, "#c6cfca");
+      }
+    }
+    toolMeshes.set(kind, group);
+    return group;
+  }
+  function equip(kind) {
+    if (!unitTools.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5DE5\u5177");
+    for (const mesh of toolMeshes.values()) mesh.visible = false;
+    selected2 = kind;
+    if (kind !== "none") (toolMeshes.get(kind) ?? makeTool(kind)).visible = true;
+  }
+  function pose(kind, time) {
+    if (!unitPoses.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B");
+    const p = samplePose(kind, time);
+    leftLeg.rotation.x = p.leftLeg;
+    rightLeg.rotation.x = p.rightLeg;
+    leftArm.rotation.x = p.leftArm;
+    rightArm.rotation.x = p.rightArm;
+    root.rotation.x = p.lean;
+    root.rotation.z = -p.fall;
+    root.position.y = 0.28 * Math.sin(p.fall);
+    for (const [tool, mesh] of toolMeshes) mesh.visible = tool === selected2 && kind !== "death";
+  }
+  return { root, sockets, equip, pose, dress };
+}
+
 // packages/sim/terrain.ts
 var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200 }, generationAttempts: 8 };
 var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" } };
@@ -385,6 +727,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   renderer.outputColorSpace = T.SRGBColorSpace;
   renderer.toneMapping = T.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.35;
+  const detail = createDetailController(T);
   const scene2 = new T.Scene();
   const camera = new T.OrthographicCamera(-12, 12, 10, -10, 0.1, 100);
   const ambient = new T.HemisphereLight("#fff5dc", "#819b75", 2.4);
@@ -418,6 +761,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     geo.rotateX(-Math.PI / 2);
     geo.translate(0, b, 0);
     geometry.set(key, geo);
+    detail.register(geo, w, h, d);
     return geo;
   }
   const studGeo = new T.CylinderGeometry(0.13, 0.13, 0.08, 10);
@@ -446,24 +790,10 @@ async function createScene(canvas2, onFailure, options = {}) {
     }
     staticPart(geometry.get(key), color, x + 0.5, -0.24, z + 0.5);
   }
+  let previewBuildingKind = "house";
+  let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
   function house(x, z, red = false) {
-    const roof = red ? "#b85c47" : "#456e87";
-    brick(x - 0.15, z - 0.15, 0, 2.5, 2.3, 0.16, "#b3aa8c", false);
-    for (let level = 0; level < 4; level++) for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) brick(x + a, z + b, 0.16 + level * 0.32, 1, 1, 0.32, level % 2 ? "#e3cba4" : "#ddbc90", false);
-    brick(x + 0.75, z + 2, 0.16, 0.5, 0.05, 0.92, "#574b39", false);
-    brick(x + 0.81, z + 2.05, 0.22, 0.38, 0.04, 0.78, "#796448", false);
-    brick(x + 0.83, z + 2.09, 0.63, 0.06, 0.04, 0.07, "#d8b76c", false);
-    for (const dx of [0.14, 1.44]) {
-      brick(x + dx, z + 2, 0.79, 0.42, 0.06, 0.43, "#7b654e", false);
-      brick(x + dx + 0.055, z + 2.065, 0.85, 0.31, 0.025, 0.31, "#334b4e", false);
-    }
-    for (const dx of [0, 0.97, 1.94]) brick(x + dx, z + 1.99, 0.16, 0.06, 0.06, 1.3, "#866b50", false);
-    brick(x, z + 2.01, 1.42, 2, 0.06, 0.11, "#826a50", false);
-    for (let level = 0; level < 4; level++) for (let row = 0; row < 5; row++) brick(x - 0.2 + level * 0.25, z - 0.2 + row * 0.5, 1.53 + level * 0.18, 2.5 - level * 0.5, 0.5, 0.18, roof);
-    brick(x + 1.5, z + 0.25, 2.03, 0.5, 0.5, 0.8, "#b9a98b");
-    brick(x + 1.48, z + 0.23, 2.83, 0.54, 0.54, 0.1, "#7b7665", false);
-    brick(x + 0.25, z + 0.25, 2.37, 0.07, 0.07, 0.9, "#786849", false);
-    brick(x + 0.32, z + 0.25, 3, 0.6, 0.04, 0.3, roof, false);
+    for (const p of previewBuildingKind === "house" ? buildingParts({ ...previewBuilding, red }) : economicBuildingParts(previewBuildingKind, { ...previewBuilding, red })) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
   }
   function buildWorld(view) {
     const seed = view.seed;
@@ -540,33 +870,18 @@ async function createScene(canvas2, onFailure, options = {}) {
   function unit(id, player) {
     const group = new T.Group();
     scene2.add(group);
-    const part = (parent, x, y, z, w, h, d, color) => {
-      const m = new T.Mesh(box(w, h, d), material(color));
-      m.position.set(x, y, z);
-      m.castShadow = true;
-      parent.add(m);
-      return m;
-    };
-    const left = new T.Group(), right = new T.Group();
-    left.position.set(-0.12, 0.3, 0);
-    right.position.set(0.12, 0.3, 0);
-    group.add(left, right);
-    part(left, 0, -0.3, 0, 0.19, 0.3, 0.24, "#44514b");
-    part(right, 0, -0.3, 0, 0.19, 0.3, 0.24, "#44514b");
-    part(group, 0, 0.3, 0, 0.46, 0.4, 0.32, player === 0 ? "#45728c" : "#b25441");
-    part(group, 0, 0.71, 0, 0.34, 0.3, 0.3, "#dfbb7e");
-    part(group, 0, 1.02, 0, 0.44, 0.11, 0.4, player === 0 ? "#cbbc94" : "#835243");
-    for (const dx of [-0.19, 0.19]) {
-      part(group, dx, 0.39, 0, 0.1, 0.28, 0.16, player === 0 ? "#45728c" : "#b25441");
-      part(group, dx, 0.29, 0, 0.1, 0.14, 0.17, "#dfbb7e");
-    }
-    for (const dx of [-0.075, 0.075]) part(group, dx, 0.86, 0.155, 0.035, 0.04, 0.018, "#3e3a2e");
+    const rig = createUnitRig(T, player, box, material);
+    rig.equip(previewTool);
+    group.add(rig.root);
+    detail.apply(group, zoom);
     const ring = new T.Mesh(ringGeo, ringMaterial);
     ring.position.y = 0.025;
     group.add(ring);
-    units.set(id, { group, left, right, ring, player, moving: false });
+    units.set(id, { group, rig, ring, player, moving: false });
     return units.get(id);
   }
+  let previewPose = "idle", previewTool = "none", previewAnimated = false, poseStart = 0;
+  const focus = { x: 8, y: 0, z: 8 };
   let worldKey = "", angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected2 = 1, latest = null;
   function cameraUpdate() {
     if (width <= 0 || height <= 0) return;
@@ -576,11 +891,11 @@ async function createScene(canvas2, onFailure, options = {}) {
     camera.right = halfH * aspect;
     camera.top = halfH;
     camera.bottom = -halfH;
-    camera.position.set(8 + Math.sin(angle) * 24, 24, 8 + Math.cos(angle) * 24);
-    camera.lookAt(8, 0, 8);
+    camera.position.set(focus.x + Math.sin(angle) * 24, focus.y + 24, focus.z + Math.cos(angle) * 24);
+    camera.lookAt(focus.x, focus.y, focus.z);
     camera.updateProjectionMatrix();
     camera.updateMatrixWorld();
-    for (const mesh of staticGroup.children) mesh.visible = !mesh.userData.studs || zoom >= 0.9;
+    detail.apply(scene2, zoom);
   }
   function resize() {
     const r = canvas2.getBoundingClientRect();
@@ -594,7 +909,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   function update(view, id) {
     latest = view;
     selected2 = id;
-    const key = JSON.stringify([previewLayout, view.layout, view.seed, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
+    const key = JSON.stringify([previewBuildingKind, previewBuilding, previewLayout, view.layout, view.seed, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
     if (worldKey !== key) {
       worldKey = key;
       buildWorld(view);
@@ -618,7 +933,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   function pick(clientX, clientY) {
     const r = canvas2.getBoundingClientRect();
     raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
-    const hits = raycaster.intersectObjects([...units.values()].map((u) => u.group), true);
+    const hits = detail.withSelectionGeometry(scene2, () => visibleMeshHits(raycaster, [...units.values()].map((u) => u.group)));
     if (hits.length) {
       let obj = hits[0].object;
       while (obj.parent && obj.parent !== scene2) obj = obj.parent;
@@ -632,19 +947,63 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (contextLost) return;
     resize();
     for (const u of units.values()) {
-      const swing = u.moving ? Math.sin(time * 0.012) * 0.35 : 0;
-      u.left.rotation.x = swing;
-      u.right.rotation.x = -swing;
+      const pose = options.assetPreview ? previewPose : u.moving ? "walk" : "idle";
+      u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : time);
+      u.ring.visible = u.group === units.get(selected2)?.group && pose !== "death";
     }
     renderer.render(scene2, camera);
   }
   canvas2.addEventListener("webglcontextlost", (event) => {
     event.preventDefault();
     contextLost = true;
-    onFailure("3D \u7E6A\u5716\u9023\u7DDA\u4E2D\u65B7\uFF0C\u6A21\u64EC\u5DF2\u66AB\u505C\uFF1B\u8ACB\u91CD\u65B0\u8F09\u5165\u9801\u9762\u5F8C\u8B80\u53D6\u624B\u52D5\u5B58\u6A94\u3002");
+    canvas2.dataset.renderState = "context-lost";
+    onFailure(options.assetPreview ? "\u6A21\u578B\u7E6A\u5716\u9023\u7DDA\u4E2D\u65B7\uFF0C\u8ACB\u91CD\u65B0\u8F09\u5165\u6A21\u578B\u9801\u3002" : "3D \u7E6A\u5716\u9023\u7DDA\u4E2D\u65B7\uFF0C\u6A21\u64EC\u5DF2\u66AB\u505C\uFF1B\u8ACB\u91CD\u65B0\u8F09\u5165\u9801\u9762\u5F8C\u8B80\u53D6\u624B\u52D5\u5B58\u6A94\u3002");
   });
   canvas2.dataset.renderer = "webgl2";
-  return { update, draw, pick, setPreviewLayout: (layout) => {
+  canvas2.dataset.renderState = "ready";
+  return { update, draw, pick, setPreviewBuildingKind: (kind) => {
+    if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
+    previewBuildingKind = kind;
+    if (latest) update(latest, selected2);
+  }, setPreviewRole: (role) => {
+    if (!options.assetPreview || !unitRoles.includes(role)) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
+    for (const u of units.values()) {
+      u.rig.dress(role);
+      detail.apply(u.group, zoom);
+    }
+  }, setPreviewBuilding: (visual) => {
+    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u5EFA\u7BC9\u5916\u89C0");
+    buildingParts({ ...visual, red: false });
+    previewBuilding = { ...visual };
+    if (latest) update(latest, selected2);
+  }, focusPreviewHouse: () => {
+    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u5EFA\u7BC9");
+    focus.x = 4;
+    focus.y = 1;
+    focus.z = 5;
+    zoom = 2.5;
+    cameraUpdate();
+  }, focusPreviewUnit: (id) => {
+    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u4EE3\u8868\u8CC7\u7522");
+    const u = units.get(id);
+    if (!u) throw Error("\u627E\u4E0D\u5230\u4EBA\u5076");
+    focus.x = u.group.position.x;
+    focus.y = u.group.position.y + 0.5;
+    focus.z = u.group.position.z;
+    zoom = 2.5;
+    cameraUpdate();
+  }, setPreviewMotion: (pose, tool, animated) => {
+    if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u59FF\u614B");
+    if (!unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
+    previewPose = pose;
+    previewTool = tool;
+    previewAnimated = animated;
+    poseStart = performance.now();
+    for (const u of units.values()) {
+      u.rig.equip(tool);
+      detail.apply(u.group, zoom);
+    }
+  }, setPreviewLayout: (layout) => {
     if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u5207\u63DB\u9A57\u6536\u5716");
     if (!["meadow", "coast", "acceptance"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
     previewLayout = layout;
@@ -656,15 +1015,19 @@ async function createScene(canvas2, onFailure, options = {}) {
     angle += Math.PI / 2;
     cameraUpdate();
   }, resetCamera: () => {
+    focus.x = 8;
+    focus.y = 0;
+    focus.z = 8;
     zoom = 1;
     angle = Math.PI / 4;
     cameraUpdate();
   }, dispose: () => {
     renderer.dispose();
+    detail.dispose();
     for (const geo of geometry.values()) geo.dispose();
     for (const m of materials.values()) m.dispose();
     ringMaterial.dispose();
-  }, stats: () => ({ drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries }) };
+  }, stats: () => ({ detail: detailLevel(zoom), drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries }) };
 }
 
 // packages/sim/vision.ts

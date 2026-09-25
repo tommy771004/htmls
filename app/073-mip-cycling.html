@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="碼錶">
 <title>碼錶 · 單車碼錶</title>
-<meta name="description" content="反射式 MIP 液晶風格的單車碼錶：速度、踏頻、心率區間、圈數與風櫃嘴爬坡剖面，左右滑切換資料頁，數字即時跳動。收錄於 100 Creative HTML Works（App 073・反射式 LCD 高對比）。">
+<meta name="description" content="反射式 MIP 液晶風格的單車碼錶：速度、踏頻、心率區間、圈數與風櫃嘴爬坡剖面，左右滑切換資料頁，數字即時跳動；「訓練負荷」頁以點陣逐格累積心率區間負荷，並算出能量、功率與恢復時間。收錄於 100 Creative HTML Works（App 073・反射式 LCD 高對比）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/app/073-mip-cycling.html">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b9bcb2'/%3E%3Cpath d='M6 50 22 36l10 6 12-18 14 26z' fill='%23111'/%3E%3Cpath d='M32 42l12-18 6 9z' fill='%23d62518'/%3E%3Crect x='6' y='10' width='22' height='5' fill='%23111'/%3E%3C/svg%3E">
 <style>
@@ -72,16 +72,16 @@ svg{display:block}
 @keyframes blink{50%{background:transparent}}
 .sensors{display:flex;gap:10px;align-items:center}
 .sensors svg{width:20px;height:20px}
-.segs{position:relative;z-index:2;flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px 16px 0}
+.segs{position:relative;z-index:2;flex:none;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:6px 16px 0}
 .segs button{height:26px;display:flex;align-items:flex-start}
 .segs button::before{content:"";display:block;width:100%;height:6px;background:var(--dith)}
 .segs button[aria-selected=true]::before{background:var(--ink)}
 
 /* ---------- pages ---------- */
 .viewport{position:relative;z-index:2;flex:1;min-height:0;overflow:hidden;touch-action:pan-y}
-.pages{display:flex;width:400%;height:100%;transition:transform .42s cubic-bezier(.2,.9,.3,1.05);will-change:transform}
+.pages{display:flex;width:500%;height:100%;transition:transform .42s cubic-bezier(.2,.9,.3,1.05);will-change:transform}
 .pages.drag{transition:none}
-.page{width:25%;height:100%;overflow-y:auto;overflow-x:hidden;padding:0 16px 16px;scrollbar-width:none}
+.page{width:20%;height:100%;overflow-y:auto;overflow-x:hidden;padding:0 16px 16px;scrollbar-width:none}
 .page::-webkit-scrollbar{display:none}
 
 .lab{font:700 13px/1.2 var(--sans);display:flex;justify-content:space-between;align-items:baseline}
@@ -167,6 +167,38 @@ tr.best td:nth-child(4){color:var(--red)}
 .clrow .cellf + .cellf{padding-left:10px;border-left:3px solid var(--ink)}
 .clrow .num{font-size:28px}
 
+/* load page */
+.ldtop{display:flex;align-items:flex-end;justify-content:space-between;padding:10px 0 12px}
+.ldtop .num{font-size:80px}
+.ldtop .lv{text-align:right}
+.ldtop .lv b{display:inline-block;background:var(--ink);color:var(--lcd);font:700 24px/1 var(--sans);padding:6px 10px 5px}
+.screen.lit .ldtop .lv b{color:var(--lit)}
+.ldtop .lv span{display:block;margin-top:8px;font:700 14px/1 var(--dinc);letter-spacing:.04em}
+.lm{display:grid;grid-template-columns:repeat(16,1fr);gap:5px;width:100%;max-width:331px;margin:0 auto}
+.lm i{display:block;aspect-ratio:1;background:rgba(17,18,16,.12)}
+.lm i.on{background:var(--ink)}
+.lm i.cz{background:var(--red)}
+.lm i.nw{animation:lcdon .18s steps(1,end)}
+@keyframes lcdon{from{background:var(--dith)}}
+.ldcap{font:500 12px/1.45 var(--sans);margin:10px 0 12px;display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center}
+.ldcap i{display:inline-block;width:12px;height:12px;vertical-align:-1px;margin-right:4px;background:var(--red)}
+.ldrows{border-top:3px solid var(--ink)}
+.lrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 12px;min-height:54px;padding:8px 0}
+.lrow + .lrow{border-top:2px solid var(--ink)}
+.lrow > span{font-size:15px}
+.lrow > span small{display:block;font-size:12px;font-weight:500;margin-top:2px}
+.lrow > b{font:700 30px/1 var(--din);font-variant-numeric:tabular-nums;text-align:right}
+.lrow > b small{font-size:.45em;margin-left:3px}
+.lrow.zt{grid-template-columns:1fr}
+.ztn{display:grid;grid-template-columns:repeat(5,1fr);margin-top:8px}
+.ztn div{font:700 12px/1 var(--dinc);letter-spacing:.04em}
+.ztn div + div{border-left:2px solid var(--ink);padding-left:8px}
+.ztn b{display:block;margin-top:4px;font:700 24px/1 var(--din);font-variant-numeric:tabular-nums}
+.ztn .cur b{color:var(--red)}
+.ztb{display:flex;gap:2px;height:10px;margin-top:10px}
+.ztb i{flex:1 1 0;min-width:0;background:var(--dith)}
+.ztb i.cur{background:var(--red)}
+
 /* ---------- soft keys ---------- */
 .keys{position:relative;z-index:2;flex:none;display:grid;grid-template-columns:1fr 1fr 1fr 1.35fr;background:var(--ink);padding:0 0 calc(20px + env(safe-area-inset-bottom))}
 .keys button{height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#e6e7e1;font:700 12px/1 var(--sans);transition:background-color .15s}
@@ -213,7 +245,7 @@ tr.best td:nth-child(4){color:var(--red)}
 
 @media (prefers-reduced-motion:reduce){
   .pages,.roll .d b,.sheet,.toast,.zrow .bar i{transition-duration:.01s}
-  .dhead h1 i.rec{animation:none}
+  .dhead h1 i.rec,.lm i.nw{animation:none}
 }
 </style>
 </head>
@@ -261,6 +293,7 @@ tr.best td:nth-child(4){color:var(--red)}
         <button role="tab" aria-selected="false" aria-label="心率" data-p="1"></button>
         <button role="tab" aria-selected="false" aria-label="圈數" data-p="2"></button>
         <button role="tab" aria-selected="false" aria-label="爬坡" data-p="3"></button>
+        <button role="tab" aria-selected="false" aria-label="訓練負荷" data-p="4"></button>
       </div>
 
       <div class="viewport" id="vp">
@@ -315,6 +348,21 @@ tr.best td:nth-child(4){color:var(--red)}
               <div class="cellf"><div class="lab">剩餘爬升<em>M</em></div><div class="num" id="clUp"></div></div>
               <div class="cellf"><div class="lab">海拔<em>M</em></div><div class="num" id="clEl"></div></div>
               <div class="cellf"><div class="lab">VAM</div><div class="num" id="clVam"></div></div>
+            </div>
+          </section>
+          <!-- load -->
+          <section class="page" aria-label="訓練負荷">
+            <div class="ldtop">
+              <div><div class="lab">訓練負荷<em>TRIMP</em></div><div class="num" id="ldScore"></div></div>
+              <div class="lv"><b id="ldLv">中等</b><span id="ldFill">46 / 96 格</span></div>
+            </div>
+            <div class="lm" id="ldMx" role="img" aria-label="負荷點陣"></div>
+            <p class="ldcap"><span><i></i><span id="ldCz">本區累積</span></span><span>每格 3 分，由下往上填。負荷 = 各心率區間分鐘 × 區號 1–5 加總（Edwards TRIMP）。</span></p>
+            <div class="ldrows">
+              <div class="lrow zt"><span>各區間時間<small>分鐘</small></span><div><div class="ztn" id="ldZn"></div><div class="ztb" id="ldZb"></div></div></div>
+              <div class="lrow"><span>能量消耗<small id="ldKcal">約 0 大卡</small></span><b id="ldKj"></b></div>
+              <div class="lrow"><span>標準化功率<small id="ldAvgP">平均 0 W</small></span><b id="ldNp"></b></div>
+              <div class="lrow"><span>恢復建議<small>8 小時 + 負荷 × 0.12</small></span><b id="ldRec"></b></div>
             </div>
           </section>
         </div>
@@ -382,7 +430,15 @@ function seedRide(){
   for (var j = 0; j < 240; j++){ var base = j < 90 ? 132 + j*.05 : 138 + (j - 90)*.1; R.hrs.push(Math.round(base + (r() - .5)*6)); }
   return R;
 }
-var R = load('ride', null) || seedRide();
+// load page state: kJ of work, 30 s power (for NP), per-dot zone string
+var DOT = 3, DOTS = 96;
+function trimp(zt){ return zt.reduce(function(a, t, i){ return a + t/60*(i + 1); }, 0); }
+function ensureLoad(R){
+  if (R.kj == null){ R.kj = R.mov*.2; R.p30 = R.mov ? 200 : 0; R.np4 = Math.pow(208, 4)*R.mov; R.npt = R.mov; }
+  if (typeof R.dz !== 'string'){ var s = '', a = 0; for (var i = 0; i < 5; i++){ a += R.zt[i]/60*(i + 1); while ((s.length + 1)*DOT <= a && s.length < DOTS) s += i; } R.dz = s; }
+  return R;
+}
+var R = ensureLoad(load('ride', null) || seedRide());
 var hist = load('hist', [
   {when:'9 月 20 日 週日', name:'北海岸 · 金山來回', d:88.4, t:13380, gain:612, hr:138},
   {when:'9 月 16 日 週三', name:'河濱夜騎', d:31.2, t:4380, gain:84, hr:131},
@@ -399,6 +455,7 @@ function step(dt){
   var g = gradeAt(R.d), onClimb = R.d/1000 >= CL0 && R.d/1000 < CL1;
   noise += (Math.random() - .5)*.3; noise *= .96;
   var P = (onClimb ? 248 : g < -.02 ? 40 : 196) + noise*30;
+  R.kj += P*dt/1000; R.p30 += (P - R.p30)*Math.min(1, dt/30); R.np4 += Math.pow(R.p30, 4)*dt; R.npt += dt;
   var vt = g < -.02 ? Math.min(15.5, speedFor(Math.max(P, 20), g)) : speedFor(P, g);
   R.v += (vt - R.v)*Math.min(1, dt*.6);
   var cadT = g < -.035 ? 0 : 90 - g*120 + noise*4;
@@ -409,6 +466,7 @@ function step(dt){
   R.d = Math.min((N - 1)*STEP, R.d + R.v*dt); R.t += dt; R.mov += dt;
   var de = elevAt(R.d) - e0; if (de > 0) R.gain += de;
   var z = zoneOf(R.hr); R.zt[z] += dt;
+  var nd = Math.min(DOTS, Math.floor(trimp(R.zt)/DOT)); while (R.dz.length < nd) R.dz += z;
   R.lap.hrs += R.hr*dt; R.lap.n += dt;
   hrAcc += dt; if (hrAcc >= 5){ hrAcc = 0; R.hrs.push(Math.round(R.hr)); if (R.hrs.length > 240) R.hrs.shift(); }
   if (set.autolap && R.d - R.lap.d0 >= 5000) lap(true);
@@ -529,12 +587,40 @@ function renderClimb(){
   var i = Math.max(profBuilt.i0, Math.min(profBuilt.i1, R.d/STEP)), x = profBuilt.X(i), y = profBuilt.Y(elevAt(Math.min(R.d, CL1*1000)));
   var me = $('me'); if (me){ me.setAttribute('transform', 'translate('+x.toFixed(1)+' 0)'); $('meTri').setAttribute('transform', 'translate(0 '+(y - 6).toFixed(1)+')'); }
 }
+var ldBuilt = false, ldPrev = -1;
+function renderLoad(){
+  var mx = $('ldMx');
+  if (!ldBuilt){ var h = ''; for (var i = 0; i < DOTS; i++) h += '<i></i>'; mx.innerHTML = h; ldBuilt = true; }
+  var L = trimp(R.zt), n = R.dz.length, z = zoneOf(R.hr), zc = String(z), live = R.state === 'ride', cells = mx.children;
+  // fill order: bottom row first, left to right, like a tank
+  for (var k = 0; k < DOTS; k++){
+    var el = cells[(DOTS/16 - 1 - Math.floor(k/16))*16 + k%16], on = k < n, cz = on && live && R.dz[k] === zc;
+    var cls = on ? (cz ? 'on cz' : 'on') : '';
+    if (on && ldPrev >= 0 && k >= ldPrev) cls += ' nw';
+    if (el.className !== cls) el.className = cls;
+    // the dot being earned: fills in thirds (1 TRIMP each), hard steps
+    var part = (!on && k === n && n < DOTS) ? Math.floor(L - n*DOT) : 0;
+    el.style.background = part > 0 ? 'linear-gradient(to top,'+(live ? 'var(--red)' : 'var(--ink)')+' '+(part/DOT*100).toFixed(1)+'%,rgba(17,18,16,.12) 0)' : '';
+  }
+  ldPrev = n;
+  roller($('ldScore'), String(Math.floor(L)));
+  $('ldLv').textContent = L < 50 ? '輕鬆' : L < 120 ? '中等' : L < 200 ? '吃重' : L < 300 ? '很重' : '極限';
+  $('ldFill').textContent = n >= DOTS ? '滿格 '+DOTS+' 格' : n+' / '+DOTS+' 格';
+  $('ldCz').textContent = live ? 'Z'+(z + 1)+' '+ZN[z]+'區累積' : '暫停中，不累積';
+  $('ldZn').innerHTML = R.zt.map(function(t, i){ return '<div'+(live && i === z ? ' class="cur"' : '')+'>Z'+(i + 1)+'<b>'+Math.round(t/60)+'</b></div>'; }).join('');
+  $('ldZb').innerHTML = R.zt.map(function(t, i){ return t > 0 ? '<i'+(live && i === z ? ' class="cur"' : '')+' style="flex-grow:'+Math.round(t)+'"></i>' : ''; }).join('');
+  $('ldKj').innerHTML = Math.round(R.kj)+'<small>kJ</small>';
+  $('ldKcal').textContent = '約 '+Math.round(R.kj)+' 大卡（人體效率約 24%）';
+  $('ldNp').innerHTML = (R.npt > 30 ? Math.round(Math.pow(R.np4/R.npt, .25)) : 0)+'<small>W</small>';
+  $('ldAvgP').textContent = '平均 '+Math.round(R.kj*1000/Math.max(1, R.mov))+' W';
+  $('ldRec').innerHTML = (L > 0 ? Math.round(8 + L*.12) : 0)+'<small>小時</small>';
+}
 function renderHead(){
   var ic = R.state === 'ride' ? '<rect x="8" y="6" width="5" height="18" fill="#fff"/><rect x="17" y="6" width="5" height="18" fill="#fff"/>' : '<path d="M9 5 25 15 9 25z" fill="#fff"/>';
   $('goIc').innerHTML = ic; $('goTx').textContent = R.state === 'ride' ? '暫停' : '繼續'; $('kGo').setAttribute('aria-label', R.state === 'ride' ? '暫停' : '繼續');
   $('recDot').className = R.state === 'ride' ? 'rec' : 'pause';
 }
-function renderAll(){ renderHead(); renderRide(); if (page === 1) renderHR(); if (page === 2) renderLaps(); if (page === 3) renderClimb(); }
+function renderAll(){ renderHead(); renderRide(); if (page === 1) renderHR(); if (page === 2) renderLaps(); if (page === 3) renderClimb(); if (page === 4) renderLoad(); }
 
 // ---------- loop ----------
 var last = performance.now(), acc = 0, saveAcc = 0;
@@ -548,10 +634,10 @@ setInterval(function(){
 }, 500);
 
 // ---------- pages: swipe ----------
-var TITLES = ['模擬騎乘','模擬心率','模擬圈數','模擬爬坡'];
+var TITLES = ['模擬騎乘','模擬心率','模擬圈數','模擬爬坡','模擬負荷'];
 function goPage(p, silent){
-  p = Math.max(0, Math.min(3, p)); var ch = p !== page; page = p;
-  $('pages').style.transform = 'translateX('+(-p*25)+'%)';
+  p = Math.max(0, Math.min(4, p)); var ch = p !== page; page = p;
+  $('pages').style.transform = 'translateX('+(-p*20)+'%)';
   document.querySelectorAll('#segs button').forEach(function(b){ b.setAttribute('aria-selected', +b.dataset.p === p); });
   $('pageTitle').textContent = TITLES[p]; save('page', p);
   if (ch && !silent){ haptic(6); beep(1, 3400); }
@@ -565,8 +651,8 @@ $('segs').addEventListener('click', function(e){ var b = e.target.closest('[data
     if (!on) return; var x = e.clientX - sx, y = e.clientY - sy;
     if (!lock){ if (Math.abs(x) > 8 || Math.abs(y) > 8){ lock = Math.abs(x) > Math.abs(y) ? 'x' : 'y'; if (lock === 'x'){ pg.classList.add('drag'); try { vp.setPointerCapture(e.pointerId); } catch(z){} } } else return; }
     if (lock !== 'x') return;
-    dx = x; if ((page === 0 && dx > 0) || (page === 3 && dx < 0)) dx /= 3;
-    pg.style.transform = 'translateX(calc('+(-page*25)+'% + '+dx.toFixed(1)+'px))';
+    dx = x; if ((page === 0 && dx > 0) || (page === 4 && dx < 0)) dx /= 3;
+    pg.style.transform = 'translateX(calc('+(-page*20)+'% + '+dx.toFixed(1)+'px))';
   });
   function end(e){ if (!on) return; on = false; if (lock !== 'x') return; pg.classList.remove('drag');
     var v = dx/Math.max(1, e.timeStamp - t0), w = vp.clientWidth;
@@ -613,7 +699,7 @@ sheet.addEventListener('click', function(e){
     var d = new Date(), WD = ['日','一','二','三','四','五','六'];
     var avgHr = Math.round(R.hrs.reduce(function(a, c){ return a + c; }, 0)/Math.max(1, R.hrs.length));
     hist.unshift({when:(d.getMonth()+1)+' 月 '+d.getDate()+' 日 週'+WD[d.getDay()], name:'風櫃嘴 · 汐止', d:R.d/1000, t:R.t, gain:Math.round(R.gain), hr:avgHr});
-    save('hist', hist); R = {d:0, t:0, mov:0, gain:0, hr:74, cad:0, v:0, laps:[], lap:{t0:0, d0:0, hrs:0, n:0}, zt:[0,0,0,0,0], hrs:[], state:'pause'}; persist();
+    save('hist', hist); R = ensureLoad({d:0, t:0, mov:0, gain:0, hr:74, cad:0, v:0, laps:[], lap:{t0:0, d0:0, hrs:0, n:0}, zt:[0,0,0,0,0], hrs:[], state:'pause'}); persist();
     beep(3, 2600); haptic([20,40,20]); closeSheet(); toast('已儲存，按紅鍵出發'); renderAll();
   }
 });
@@ -630,7 +716,7 @@ function toast(m){ $('toastTx').textContent = m; $('toast').classList.add('on');
 
 function clock(){ var d = new Date(); $('clock').textContent = d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
 clock(); setInterval(clock, 15000);
-applyLit(); goPage(load('page', 0), true); renderLaps(); renderHR(); renderClimb();
+applyLit(); goPage(load('page', 0), true); renderLaps(); renderHR(); renderClimb(); renderLoad();
 })();
 </script>
 </body>
