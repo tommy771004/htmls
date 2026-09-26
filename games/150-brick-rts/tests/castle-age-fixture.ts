@@ -5,7 +5,10 @@ import {createState,submit,tick,rulesetHash} from '../packages/sim/sim.ts';
 import type {State} from '../packages/sim/sim.ts';
 import {authoritativeProblem} from '../packages/sim/buildings.ts';
 import type {BuildKind} from '../packages/sim/buildings.ts';
-export function castleAgeMatch(seed=260925):State{
+// explore: the scout also rides to the map centre and past every relic (so blue remembers them), and villager 2
+// mines the central gold until 225 gold are in stock (enough for Sanctity).
+// collect (with explore): the monk then fetches every relic into the monastery, one trip at a time.
+export function castleAgeMatch(seed=260925,options:{explore?:boolean;collect?:boolean}={}):State{
  const s=createState(seed,'open','idle');
  const order=(t:string,p:unknown)=>submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:s.sequence[0]+1,targetTick:s.tick+1,commandType:t,payload:p} as never);
  const stock=s.accounts[0].stock,tcB=s.buildings.find(b=>b.player===0&&b.kind==='town-center')!,tc=s.map.obstacles.find(o=>o.id===tcB.id)!;
@@ -26,5 +29,13 @@ export function castleAgeMatch(seed=260925):State{
  reach(()=>stock.wood>=175);build([3],'monastery');order('gather',{unitIds:[3],resourceId:nearest('tree').id});
  reach(()=>stock.gold>=100);const monastery=s.buildings.find(b=>b.player===0&&b.kind==='monastery')!;
  order('train',{buildingId:monastery.id,entryId:'monk'});until(()=>s.units.some(u=>u.player===0&&u.kind==='monk'));
+ if(options.explore){const scout=s.units.find(u=>u.player===0&&u.kind==='scout')!,mid=s.map.size*50,rest=()=>['idle','unreachable','stuck'].includes(scout.navigation)&&scout.next===null&&!scout.path.length&&!s.pathJobs.some(j=>j.kind!=='group'&&j.unitId===scout.id);
+  const ride=(x:number,y:number)=>{order('move',{unitIds:[scout.id],x,y});tick(s);tick(s);until(rest,6000);};
+  ride(mid,mid);for(const r of s.relics)ride(r.x,r.y+100);
+  order('gather',{unitIds:[2],resourceId:nearest('gold').id});reach(()=>stock.gold>=225,80000);
+  ride(tc.x,tc.y+500);
+  if(options.collect){const monk=s.units.find(u=>u.player===0&&u.kind==='monk')!;
+   for(const r of s.relics){order('relic',{unitIds:[monk.id],relicId:r.id});until(()=>r.carrier===monk.id,8000);
+    order('deposit',{unitIds:[monk.id],buildingId:monastery.id});until(()=>r.monastery===monastery.id,8000);}}}
  return s;
 }

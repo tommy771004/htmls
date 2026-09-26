@@ -3,11 +3,12 @@ import type {Resource} from '../content/rules.ts';
 export type Stock=Record<Resource,number>;
 export type Reservation={id:string;entryId:string;cost:Stock;population:number;status:'reserved'|'cancelled'|'committed'|'forfeited'};
 // ledger: cumulative resource flow. extracted = deposited + cargo still carried + cargo lost with dead units.
-export type Account={stock:Stock;populationUsed:number;populationReserved:number;populationCap:number;reservations:Reservation[];ledger:{extracted:Stock;deposited:Stock;lost:Stock}};
+// relic: gold produced by relics held in monasteries (outside the gathering flow).
+export type Account={stock:Stock;populationUsed:number;populationReserved:number;populationCap:number;reservations:Reservation[];ledger:{extracted:Stock;deposited:Stock;lost:Stock;relic:Stock}};
 // Gathering: one unit of resource per gatherTicks[resource] ticks, up to carryCapacity, returned to a town center.
 export const economyRules={provenance:'design_default',initialStock:{food:200,wood:200,gold:100,stone:100},populationCap:rules.settings.populationCap,cancellationRefundPercent:100,carryCapacity:10,gatherTicks:{food:20,wood:20,gold:25,stone:25},workReach:50,dropoffReach:50} as const;
 const zero=():Stock=>({food:0,wood:0,gold:0,stone:0});
-export function createAccount(populationUsed:number):Account{return {stock:{...economyRules.initialStock},populationUsed,populationReserved:0,populationCap:economyRules.populationCap,reservations:[],ledger:{extracted:zero(),deposited:zero(),lost:zero()}};}
+export function createAccount(populationUsed:number):Account{return {stock:{...economyRules.initialStock},populationUsed,populationReserved:0,populationCap:economyRules.populationCap,reservations:[],ledger:{extracted:zero(),deposited:zero(),lost:zero(),relic:zero()}};}
 // These transactions reserve funding only. Construction/training must separately
 // satisfy site, producer, age and technology requirements before calling them.
 export function reserve(account:Account,id:string,entryId:string):void{

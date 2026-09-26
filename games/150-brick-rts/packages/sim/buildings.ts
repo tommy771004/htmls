@@ -42,7 +42,10 @@ export function authoritativeProblem(s:BuildingState,player:number,kind:BuildKin
  const explored=new Set(s.vision[player].explored);
  // Units crossing an edge also occupy the node they are entering.
  const bodies=s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[position(s.map,u.next)])]);
- return placementProblem({tiles:s.map.tiles,obstacles:s.map.obstacles,units:bodies,explored:t=>explored.has(t)},kind,x,y);
+ const problem=placementProblem({tiles:s.map.tiles,obstacles:s.map.obstacles,units:bodies,explored:t=>explored.has(t)},kind,x,y);if(problem)return problem;
+ // A relic lying on the ground keeps its spot free (relics are never buried under a building).
+ const relics=(s as {relics?:{x:number;y:number;carrier:number|null;monastery:string|null}[]}).relics??[],[x0,y0,x1,y1]=obstacleBounds({kind,x,y});
+ return relics.some(r=>r.carrier===null&&r.monastery===null&&r.x>=x0-25&&r.x<=x1+25&&r.y>=y0-25&&r.y<=y1+25)?'聖物所在的位置不能建造':null;
 }
 // A finished farm becomes a food source only its owner may work (resource id = farmResourceId).
 export const farmResourceId=(buildingId:string)=>`resource-${buildingId}`;

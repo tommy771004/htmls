@@ -5,15 +5,16 @@ import {position,navigationRules,nearest,blockedTable,nodesNear} from './navigat
 import {makeUnit,commandMove} from './movement.ts';
 import type {UnitKind,MovementState} from './movement.ts';
 import type {Building,BuildingState} from './buildings.ts';
+import {religionBonus} from './stats.ts';
 // Training and research queues (design_default). Cost and population are reserved when an item is queued,
 // committed when it finishes, refunded in full when it is cancelled. Only the first item advances.
 export const productionRules={provenance:'design_default',queueLimit:5} as const;
-export type ProductionState=MovementState&BuildingState&{nextUnitId:number;nextQueueId:number};
+export type ProductionState=MovementState&BuildingState&{nextUnitId:number;nextQueueId:number;techs:string[][]};
 const names:Record<string,string>={food:'食物',wood:'木材',gold:'黃金',stone:'石頭'};
 export function ageOf(entryId:string){const m=/^age-(\d)$/.exec(entryId);return m?Number(m[1]):0;}
 const entryOf=(id:string)=>rules.entries.find(e=>e.id===id);
 // Pure check shared by the Worker (authoritative) and the page (button reasons), from plain data only.
-export type TrainInput={player:number;age:number;building:{kind:string;complete:boolean;queue:{entryId:string}[]};ownBuildings:{kind:string;complete:boolean;queue:{entryId:string}[]}[];stock:Record<string,number>;populationUsed:number;populationReserved:number;populationCap:number};
+export type TrainInput={player:number;age:number;techs:readonly string[];building:{kind:string;complete:boolean;queue:{entryId:string}[]};ownBuildings:{kind:string;complete:boolean;queue:{entryId:string}[]}[];stock:Record<string,number>;populationUsed:number;populationReserved:number;populationCap:number};
 export function trainBlocker(i:TrainInput,entryId:string):string|null{
  const e=entryOf(entryId),civ=rules.civilizations[i.player];
  if(!e||e.kind==='building')return '未知的生產項目';
@@ -26,7 +27,7 @@ export function trainBlocker(i:TrainInput,entryId:string):string|null{
   if(need?.kind==='technology'&&i.age<ageOf(req))return `需要${need.name}`;
  }
  const age=ageOf(entryId);
- if(age){if(i.age>=age)return '已研究';if(i.ownBuildings.some(v=>v.queue.some(q=>q.entryId===entryId)))return '已在研究中';}
+ if(age||e.kind==='technology'){if(age?i.age>=age:i.techs.includes(entryId))return '已研究';if(i.ownBuildings.some(v=>v.queue.some(q=>q.entryId===entryId)))return '已在研究中';}
  if(i.building.queue.length>=productionRules.queueLimit)return `佇列已滿（${productionRules.queueLimit}）`;
  const short=resources.filter(r=>i.stock[r]<e.cost[r]);
  if(short.length)return short.map(r=>`${names[r]}不足：需要 ${e.cost[r]}，目前 ${i.stock[r]}`).join('；');
@@ -36,7 +37,7 @@ export function trainBlocker(i:TrainInput,entryId:string):string|null{
 export function trainable(s:ProductionState,player:number,b:Building,entryId:string):string|null{
  if(b.player!==player)return '不能操作敵方建築';
  const a=s.accounts[player];
- return trainBlocker({player,age:s.ages[player],building:b,ownBuildings:s.buildings.filter(v=>v.player===player),stock:a.stock,populationUsed:a.populationUsed,populationReserved:a.populationReserved,populationCap:a.populationCap},entryId);
+ return trainBlocker({player,age:s.ages[player],techs:s.techs[player],building:b,ownBuildings:s.buildings.filter(v=>v.player===player),stock:a.stock,populationUsed:a.populationUsed,populationReserved:a.populationReserved,populationCap:a.populationCap},entryId);
 }
 export function enqueue(s:ProductionState,player:number,buildingId:string,entryId:string,reservationId:string){
  const b=s.buildings.find(v=>v.id===buildingId);if(!b)throw Error('找不到這棟建築');
@@ -68,10 +69,14 @@ export function stepProduction(s:ProductionState){
   if(age){commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();s.ages[b.player]=age;
    // Every building of that player now renders in the new age (appearance only).
    const own=new Set(s.buildings.filter(v=>v.player===b.player).map(v=>v.id));for(const o of s.map.obstacles)if(o.id&&own.has(o.id))o.age=age;continue;}
+  // Other technologies are recorded for the player; their effects read s.techs (religion.ts), Sanctity also
+  // raises the hit points of monks already in the field.
+  if(entryOf(item.entryId)?.kind==='technology'){commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();s.techs[b.player].push(item.entryId);
+   if(item.entryId==='sanctity')for(const u of s.units)if(u.player===b.player&&u.kind==='monk')u.hp+=religionBonus.sanctityHp;continue;}
   // A blocked exit keeps the finished unit waiting at 100% until a ring node frees up.
   const node=exitNode(s,b);if(node<0)continue;
   commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();
-  const p=position(s.map,node),u=makeUnit(s.map,s.nextUnitId++,b.player,p.x,p.y,unitKindOf[item.entryId]);s.units.push(u);
+  const p=position(s.map,node),u=makeUnit(s.map,s.nextUnitId++,b.player,p.x,p.y,unitKindOf[item.entryId]);if(u.kind==='monk'&&s.techs[b.player].includes('sanctity'))u.hp+=religionBonus.sanctityHp;s.units.push(u);
   // A rally point later covered by a building (or otherwise unstandable) is skipped, never an error.
   if(b.rally&&nearest(s.map,b.rally,false)>=0)commandMove(s,[u.id],b.rally);
  }

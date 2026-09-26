@@ -6,7 +6,7 @@ button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}:f
 .game{height:100dvh;display:grid;grid-template-rows:var(--top-h) minmax(0,1fr) var(--hud-h)}
 /* Top bar: a dark plate with one stud row along its lower edge. */
 .topbar{position:relative;display:flex;align-items:center;gap:18px;padding:0 14px;background:var(--plate);border-bottom:3px solid var(--plate-edge);z-index:3}
-.res{display:flex;align-items:center;gap:16px;min-width:0}.r{display:flex;align-items:center;gap:6px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.r img{width:26px;height:26px;object-fit:contain}.r b{min-width:3ch;font-weight:650}.r.full b{color:#f0a48f}
+.res{display:flex;align-items:center;gap:16px;min-width:0}.r{display:flex;align-items:center;gap:6px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.r img{width:26px;height:26px;object-fit:contain}.r b{min-width:3ch;font-weight:650}.r.full b{color:#f0a48f}.r[hidden]{display:none}
 .age{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:700;letter-spacing:.08em;color:var(--gold);white-space:nowrap}
 .sys{display:flex;align-items:center;gap:8px;margin-left:auto}#clock{font-variant-numeric:tabular-nums;color:var(--muted);min-width:5ch;text-align:right}
 .bar-btn{height:32px;min-width:34px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--tile);border:0;border-bottom:3px solid var(--tile-edge);border-radius:3px;font-size:13px;font-weight:600}.bar-btn:hover{background:var(--tile-hover)}.bar-btn:active{border-bottom-width:1px;margin-top:2px}.bar-btn:disabled{opacity:.45;cursor:default}.bar-btn svg{width:14px;height:14px;fill:currentColor}
@@ -76,6 +76,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
   <span class="r" title="黃金"><span class="ico"><img data-icon="gold" alt="黃金"><i id="crew-gold"></i></span><b id="res-gold">0</b></span>
   <span class="r" title="石頭"><span class="ico"><img data-icon="stone" alt="石頭"><i id="crew-stone"></i></span><b id="res-stone">0</b></span>
   <span class="r" id="pop" title="人口（已用／上限）"><img data-icon="villager-face" alt="人口"><b id="res-pop">0/0</b></span>
+  <span class="r" id="relics" title="聖物" hidden><img data-icon="relic" alt="聖物"><b id="res-relics">0·0/0</b></span>
  </div>
  <div class="age" id="age-name">第一時代</div>
  <div class="sys"><span id="clock" title="遊戲時間">00:00</span><label><span class="sr">遊戲速度</span><select id="speed" title="遊戲速度"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label><button id="pause" class="bar-btn" aria-pressed="false" aria-label="開始（F3）" title="開始／暫停（F3）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg></button><button id="menu-open" class="bar-btn" aria-haspopup="dialog" title="選單（F10）">選單</button></div>
@@ -151,7 +152,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
   <li><b>左鍵</b> 選取 · <b>拖曳</b> 框選 · <b>Shift</b> 加減選</li>
   <li><b>右鍵</b> 地面移動、資源採集（含己方農田）、未完工建築施工、紅方目標攻擊</li>
   <li><b>選取建築時右鍵</b> 設定集結點</li>
-  <li><b>Q W E R T A D Z X</b> 指令格 · <b>S</b> 停止 · <b>Del</b> 取消建造</li>
+  <li><b>Q W E R T A D Z X C</b> 指令格 · <b>S</b> 停止 · <b>Del</b> 取消建造</li>
   <li><b>Ctrl＋數字</b> 編組 · <b>數字</b> 叫回</li>
   <li><b>方向鍵</b> 移動鏡頭 · <b>F</b> 對準選取 · <b>H</b> 城鎮中心 · <b>.</b> 閒置村民 · <b>,</b> 全部軍隊</li>
   <li><b>觸控</b> 輕觸選取，選取後輕觸地面移動或採集</li>

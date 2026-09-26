@@ -3,6 +3,8 @@ import {createArchGeometry} from './brick-geometries.ts';
 import {militaryBuildingParts,militaryBuildings} from './military-building.ts';
 import type {MilitaryBuilding} from './military-building.ts';
 import {monasteryParts} from './monastery-building.ts';
+import {relicParts} from './relic-model.ts';
+import {techIcons} from './tech-icons.ts';
 import {createCharacterRig} from './character-rig.ts';
 import {roleOf,poseFor,corpseRole} from './rig-roles.ts';
 import {visibleMeshHits} from './picking.ts';
@@ -68,7 +70,10 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  baseHeight=0;muted=false;for(const {geo,color,matrices} of batches.values()){const mesh=new T.InstancedMesh(geo,material(color),matrices.length);matrices.forEach((m,i)=>mesh.setMatrixAt(i,m));mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.userData.studs=geo===studGeo;mesh.userData.ground=groundGeometries.has(geo);mesh.castShadow=true;mesh.receiveShadow=true;staticGroup.add(mesh);}
  }
  // goal: the latest simulated position; the drawn position eases toward it every frame (sim runs at 20 Hz, screens faster).
- const units=new Map<number,{group:any;rig:ReturnType<typeof createCharacterRig>;ring:any;player:number;moving:boolean;activity:string;tool:string;poseStart:number;bar:any;fill:any;goal:any;kind:string}>();
+ const units=new Map<number,{group:any;rig:ReturnType<typeof createCharacterRig>;ring:any;player:number;moving:boolean;activity:string;tool:string;poseStart:number;bar:any;fill:any;goal:any;kind:string;relic:any}>();
+ // Relics: small dynamic groups, on the ground where the player saw them or on a carrying monk's back.
+ function relic(){const g=new T.Group();g.name='relic';for(const p of relicParts){const m=new T.Mesh(box(p.w,p.h,p.d),material(p.color));m.position.set(p.x+p.w/2,p.y,p.z+p.d/2);m.castShadow=true;g.add(m);}return g;}
+ const relics=new Map<number,any>();
  // Fallen units: short-lived rigs in the death pose, keyed by unit id (sim corpses, visual only).
  const fallen=new Map<number,{group:any;rig:ReturnType<typeof createCharacterRig>;start:number}>();
  const barBack=new T.MeshBasicMaterial({color:'#2d3a33'}),barGeo=new T.BoxGeometry(.5,.05,.05);
@@ -76,7 +81,7 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  function unit(id:number,player:number,kind='villager'){const group=new T.Group();scene.add(group);
  const bar=new T.Group();bar.position.y=1.42;bar.visible=false;const back=new T.Mesh(barGeo,barBack);const fill=new T.Mesh(barGeo,new T.MeshBasicMaterial({color:player===0?'#5f9a6a':'#c0604c'}));fill.position.z=.012;bar.add(back,fill);group.add(bar);
  const rig=createCharacterRig(T,player,box,material);if(!options.assetPreview&&kind!=='villager')rig.dress(roleOf(kind));rig.equip(previewTool);group.add(rig.root);detail.apply(group,zoom);
- const ring=new T.Mesh(ringGeo,ringMaterial);ring.position.y=.025;group.add(ring);units.set(id,{group,rig,ring,player,moving:false,activity:'idle',tool:'none',poseStart:0,bar,fill,goal:null,kind});return units.get(id)!;
+ const ring=new T.Mesh(ringGeo,ringMaterial);ring.position.y=.025;group.add(ring);units.set(id,{group,rig,ring,player,moving:false,activity:'idle',tool:'none',poseStart:0,bar,fill,goal:null,kind,relic:null as any});return units.get(id)!;
  }
  let previewRole='villager';
  let previewPose:UnitPose='idle',previewTool:UnitTool='none',previewAnimated=false,poseStart=0;const focus={x:8,y:0,z:8};let worldKey='',angle=Math.PI/4,zoom=1,width=0,height=0,selected=new Set<number>([1]),latest:View|null=null;
@@ -103,9 +108,13 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
   if(!options.assetPreview){const gathering=data.work==='gathering'&&!u.moving,activity=u.moving?(data.cargo?'carry':'walk'):gathering||data.rite?'work':'idle';
    const weapon:UnitTool=data.kind==='militia'?'sword':data.kind==='archer'?'bow':data.kind==='scout'?'spear':data.kind==='monk'?'staff':'none',tool=data.cargo&&activity!=='work'?'basket':gathering?({wood:'axe',stone:'pick',gold:'pick',food:'basket'} as Record<string,UnitTool>)[data.workResource??'food']:weapon;
    if(tool!==u.tool){u.rig.equip(tool as UnitTool);u.tool=tool;}
+   // A carried relic rides on the monk's back.
+   if(data.relic&&!u.relic){u.relic=relic();u.relic.position.set(0,.98,-.3);u.group.add(u.relic);}else if(!data.relic&&u.relic){u.group.remove(u.relic);u.relic=null;}
    // Combat poses follow the projected action; hit/attack clocks restart when the action begins.
    const next=data.action===1&&!u.moving?'attack':data.action===2&&!u.moving?'hit':activity;if(next!==u.activity)u.poseStart=performance.now();u.activity=next;
    const share=Math.max(0,data.hp)/Math.max(1,data.maxHp);u.bar.visible=share<1;u.fill.scale.x=Math.max(.001,share);u.fill.position.x=-.25*(1-share);u.bar.rotation.y=angle-u.group.rotation.y;}}
+  const spots=new Set((view.relicSpots??[]).map(r=>r.id));for(const [id,g] of relics)if(!spots.has(id)){scene.remove(g);relics.delete(id);}
+  for(const r of view.relicSpots??[]){let g=relics.get(r.id);if(!g){g=relic();scene.add(g);relics.set(r.id,g);}g.position.set(r.x/100,(groundHeight(worldTiles,r.x,r.y)+standingLift(r.x,r.y))/100,r.y/100);}
   // Corpses: create once, pose from the moment they appear, remove when the sim drops them.
   const lying=new Set((view.corpses??[]).map(c=>c.id));for(const [id,f] of fallen)if(!lying.has(id)){scene.remove(f.group);fallen.delete(id);}
   for(const c of view.corpses??[])if(!fallen.has(c.id)){const group=new T.Group();const rig=createCharacterRig(T,c.player,box,material);if(c.kind!=='villager')rig.dress(corpseRole(c.kind));group.add(rig.root);group.position.set(c.x/100,groundHeight(worldTiles,c.x,c.y)/100,c.y/100);scene.add(group);fallen.set(c.id,{group,rig,start:performance.now()});}
@@ -169,7 +178,7 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
     shoot(`${kind}-face`,g,kind==='scout'?{angle:Math.PI/7,lift:.35,crop:.74,span:.21}:{angle:Math.PI/7,lift:.35,crop:.72});}
    const visual=(age:number)=>({ageVariant:age as 1|2|3|4,progress:100,health:100,red:false});
    for(const age of [1,2,3,4]){shoot(`house-${age}`,parts(buildingParts(visual(age))));shoot(`barracks-${age}`,parts(militaryBuildingParts('barracks',visual(age))));shoot(`stable-${age}`,parts(militaryBuildingParts('stable',visual(age))));shoot(`archery-range-${age}`,parts(militaryBuildingParts('archery-range',visual(age))));shoot(`monastery-${age}`,parts(monasteryParts(visual(age))));shoot(`town-center-${age}`,parts(economicBuildingParts('town-center',visual(age))));for(const camp of ['lumber-camp','mining-camp','mill'] as const)shoot(`${camp}-${age}`,parts(economicBuildingParts(camp,visual(age))));}
-   shoot('farm',parts(farmParts(100,false),false));
+   shoot('farm',parts(farmParts(100,false),false));shoot('relic',parts(relicParts.map(p=>({...p,x:p.x+.5,z:p.z+.5})),false));for(const [id,list] of Object.entries(techIcons))shoot(`tech-${id}`,parts(list,false));
    const bush=[{x:.05,y:0,z:.05,w:.55,d:.55,h:.45,color:'#5d824e'},...[.12,.36].flatMap(x=>[.12,.36].map(z=>({x,y:.45,z,w:.12,d:.12,h:.12,color:'#a84e59'})))];
    const tree=[{x:.15,y:0,z:.15,w:.3,d:.3,h:.8,color:'#80664b'},{x:-.2,y:.7,z:-.2,w:1,d:1,h:.4,color:'#67835a'},{x:-.075,y:1.1,z:-.075,w:.75,d:.75,h:.4,color:'#7e985f'},{x:.05,y:1.5,z:.05,w:.5,d:.5,h:.3,color:'#91a970'}];
    const ore=(a:string,b:string)=>[{x:0,y:0,z:0,w:.65,d:.7,h:.3,color:a},{x:.15,y:.3,z:.15,w:.35,d:.4,h:.18,color:b}];

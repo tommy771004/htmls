@@ -78,3 +78,19 @@ test('the computer concedes once it has no town centre and no soldiers (it canno
  run(s,aiRules.thinkTicks*2);
  const outcome=s.outcome as {winner:number|null;reason?:string}|null;assert.equal(outcome?.winner,0);assert.equal(outcome?.reason,'resign');
 });
+
+test('in the third age the computer builds a monastery; its monks store relics and convert intruders near its base',()=>{
+ const s=createState(260925,'open','ai');
+ while(s.tick<20000&&!s.outcome&&!s.relics.some(r=>r.monastery!==null&&s.buildings.find(b=>b.id===r.monastery)?.player===1))tick(s);
+ assert.ok(s.ages[1]>=3,'third age');assert.ok(s.buildings.some(b=>b.player===1&&b.kind==='monastery'&&b.complete),'monastery');
+ assert.ok(s.relics.some(r=>r.monastery!==null),'a relic stored by a red monk');
+ // An intruder next to red's town centre; red's soldiers are kept off the field (fixture) so only the monk responds.
+ const monk=s.units.find(u=>u.player===1&&u.kind==='monk')!;s.faith[monk.id]=-1e6;
+ s.units=s.units.filter(u=>!(u.player===1&&(u.kind==='militia'||u.kind==='archer')));
+ const tc=s.buildings.find(b=>b.player===1&&b.kind==='town-center')!,box=obstacleBounds(s.map.obstacles.find(o=>o.id===tc.id)!);
+ const spot=[...Array(nodeTotal(s.map)).keys()].map(n=>({...position(s.map,n),n})).find(p=>!s.map.blocked.includes(p.n)&&!s.units.some(u=>u.node===p.n)&&p.y>box[3]+50&&p.y<box[3]+200&&p.x>box[0]&&p.x<box[2])!;
+ s.units.push({...structuredClone(s.units.find(u=>u.kind==='villager')!),id:s.nextUnitId++,player:0,kind:'militia',hp:45,x:spot.x,y:spot.y,node:spot.n,next:null,path:[],goal:null,target:null,navigation:'idle'});
+ const intruder=s.nextUnitId-1;let converted=false,targeted=false;
+ for(let i=0;i<1200&&!converted&&s.units.some(u=>u.id===intruder);i++){s.units=s.units.filter(u=>!(u.player===1&&(u.kind==='militia'||u.kind==='archer')));tick(s);targeted||=Object.values(s.rites).some(r=>r.kind==='convert'&&r.target===intruder);converted=s.units.find(u=>u.id===intruder)?.player===1;}
+ assert.ok(targeted,'a red monk went to convert it');assert.ok(converted,`converted by the red monk (${s.units.some(u=>u.id===intruder)?'alive':'killed first'})`);
+});

@@ -30,14 +30,14 @@ test('the monastery needs the third age; monks train only there',()=>{
  const monk=s.units.find(u=>u.kind==='monk'&&u.player===0)!;assert.ok(monk,'a monk walked out');assert.equal(monk.hp,30);assert.equal(faithOf(s,monk.id),1,'a new monk starts with full faith');
 });
 
-test('a monk converts a visible enemy unit after 5-15 s; faith then recharges for 62 s',()=>{
+test('a monk converts a visible enemy unit in 4 to 10 attempts; faith then recharges for 62 s',()=>{
  const s=createState(260925),v=redVillager(s),monk=spawn(s,0,'monk',v.x-300,v.y);run(s,2);
  assert.throws(()=>order(s,'attack',{unitIds:[monk.id],target:{kind:'unit',id:v.id}}),/僧侶不能攻擊/);
  assert.throws(()=>order(s,'convert',{unitIds:[1],targetId:v.id}),/只有僧侶/);
  const [bluePop,redPop]=[s.accounts[0].populationUsed,s.accounts[1].populationUsed];
  order(s,'convert',{unitIds:[monk.id],targetId:v.id});const start=s.tick;run(s,1000,s=>redVillager(s).player===0);
  const took=s.tick-start;assert.equal(v.player,0,'converted');
- assert.ok(took>=religionRules.conversionTicks.min&&took<=religionRules.conversionTicks.max+60,`took ${took} ticks`);
+ const {attemptTicks,attempts}=religionRules;assert.ok(took>=attemptTicks*attempts.min&&took<=attemptTicks*attempts.max+60,`took ${took} ticks`);
  assert.deepEqual([s.accounts[0].populationUsed,s.accounts[1].populationUsed],[bluePop+1,redPop-1],'population moves with the unit');
  assert.equal(s.rites[monk.id],undefined);assert.ok(faithOf(s,monk.id)<.01);
  // The converted villager now obeys blue.
@@ -50,14 +50,16 @@ test('a monk converts a visible enemy unit after 5-15 s; faith then recharges fo
 
 test('an order accepted for a unit that is converted before it runs does not move the converted unit',()=>{
  const s=createState(260925),v=redVillager(s),monk=spawn(s,0,'monk',v.x-300,v.y);run(s,2);
- order(s,'convert',{unitIds:[monk.id],targetId:v.id});run(s,1000,s=>s.rites[monk.id]?.needed>0&&s.rites[monk.id].progress>=s.rites[monk.id].needed-1);
- // Red's move is accepted now and would run next tick, the same tick the conversion completes.
- submit(s,{protocolVersion:1,rulesetHash,playerId:1,sequence:s.sequence[1]+1,targetTick:s.tick+2,commandType:'move',payload:{unitIds:[v.id],x:v.x,y:v.y-400}} as any);
+ order(s,'convert',{unitIds:[monk.id],targetId:v.id});
+ // Find the conversion tick on a copy (same seed, same draws), then queue red's order to run right after it.
+ const probe=structuredClone(s);run(probe,1000,p=>p.units.find(u=>u.id===v.id)!.player===0);const converted=probe.tick;
+ run(s,converted-2-s.tick);assert.equal(v.player,1);
+ submit(s,{protocolVersion:1,rulesetHash,playerId:1,sequence:s.sequence[1]+1,targetTick:converted+1,commandType:'move',payload:{unitIds:[v.id],x:v.x,y:v.y-400}} as any);
  run(s,40);assert.equal(v.player,0);assert.equal(v.goal,null,'red can no longer steer it');
 });
-test('monks, own units and unseen units cannot be converted',()=>{
+test('monks (without Atonement), own units and unseen units cannot be converted',()=>{
  const s=createState(260925),v=redVillager(s),monk=spawn(s,0,'monk',v.x-300,v.y),enemyMonk=spawn(s,1,'monk',v.x-200,v.y+100);run(s,2);
- assert.throws(()=>order(s,'convert',{unitIds:[monk.id],targetId:enemyMonk.id}),/僧侶不能轉化僧侶/);
+ assert.throws(()=>order(s,'convert',{unitIds:[monk.id],targetId:enemyMonk.id}),/需要研究「贖罪」/);
  assert.throws(()=>order(s,'convert',{unitIds:[monk.id],targetId:1}),/不能轉化己方/);
  const far=createState(260925),m2=spawn(far,0,'monk',400,700);run(far,2);
  assert.throws(()=>order(far,'convert',{unitIds:[m2.id],targetId:4}),/找不到目標/,'the red villager is in the fog');

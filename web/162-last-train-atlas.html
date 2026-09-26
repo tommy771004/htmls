@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>終電地圖 · Tokyo Last Train Atlas</title>
+<meta name="description" content="東京 97 條鐵路、1,500 個站點的末班車 3D 地圖：高度就是末班時刻，拖動時間軸看整座城市的燈一站一站熄掉。每站末班依公開時刻表推算，分平日與週末假日。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%224%22 fill=%22%230e0c0a%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%229%22 fill=%22none%22 stroke=%22%23e9b872%22 stroke-width=%223%22/%3E%3Cpath d=%22M16 10v6l4 3%22 stroke=%22%23f2ead9%22 stroke-width=%222.4%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0e0c0a; --plate:#16130f; --panel:#1a1713; --panel-2:#221e19; --ink:#f2ead9; --dim:#9a907f; --faint:#5e564a; --ghost:#2f2a23;
+  --amber:#e9b872; --amber-ink:#1a1206; --sel:#2b261f;
+  --ease-out:cubic-bezier(.2,.8,.2,1); --dur-hover:140ms; --dur-press:90ms; --dur-enter:260ms; --dur-exit:180ms;
+  --num:"DIN Condensed","DIN Alternate","Bahnschrift SemiCondensed","Bahnschrift","Arial Narrow",system-ui,sans-serif;
+  --sans:"PingFang TC","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans TC","Noto Sans CJK TC","Microsoft JhengHei",system-ui,sans-serif;
+  color-scheme:dark;
+}
+:root[data-theme="day"]{
+  --bg:#dfe3da; --plate:#e9ece4; --panel:#f3f5ef; --panel-2:#e6e9e0; --ink:#1a1c18; --dim:#5f645b; --faint:#9aa093; --ghost:#c3c8bb;
+  --amber:#9a4a17; --amber-ink:#fff7ee; --sel:#dde2d4;
+  color-scheme:light;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden}
+body{font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+#stage{position:fixed;inset:0;display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#stage.drag{cursor:grabbing}
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;padding:3px 6px 2px;border-radius:2px;background:var(--panel);color:var(--ink);white-space:nowrap;line-height:1.1;will-change:transform;transition:opacity var(--dur-hover) linear}
+.lbl b{font-size:12px;font-weight:700;letter-spacing:.04em}
+.lbl i{font:600 8.5px/1.2 var(--sans);font-style:normal;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+.lbl.dead{opacity:.42}
+.lbl.hide{opacity:0}
+.axis{position:absolute;left:0;top:0;font:600 14px/1 var(--num);letter-spacing:.04em;color:var(--dim);white-space:nowrap;will-change:transform}
+.axis.now{color:var(--amber-ink);background:var(--amber);padding:3px 6px 2px;border-radius:2px}
+.floor{position:absolute;left:0;top:0;font-size:11px;font-weight:600;color:var(--dim);white-space:nowrap;will-change:transform;letter-spacing:.06em}
+
+/* ---- 駅名標：標題 ---- */
+#sign{position:fixed;left:16px;top:16px;width:300px;background:var(--panel);border-radius:3px;overflow:hidden;z-index:3}
+#sign .kana{display:block;text-align:center;font-size:11px;letter-spacing:.5em;color:var(--dim);padding:10px 0 0 .5em}
+#sign h1{text-align:center;font-size:34px;line-height:1.15;font-weight:800;letter-spacing:.32em;padding-left:.32em}
+#sign .roma{display:block;text-align:center;font:600 11px/1 var(--sans);letter-spacing:.3em;color:var(--dim);padding:4px 0 10px .3em}
+#sign .band{display:flex;justify-content:space-between;align-items:center;height:26px;padding:0 10px;background:var(--ink);color:var(--bg);font:700 15px/1 var(--num);letter-spacing:.06em}
+#sign .band span{display:flex;align-items:center;gap:5px}
+#sign .band svg{width:9px;height:12px}
+#sign .meta{display:flex;justify-content:center;gap:18px;padding:7px 0 8px;font-size:11.5px;color:var(--dim)}
+#sign .meta b{font:700 17px/1 var(--num);color:var(--ink);margin-right:3px;letter-spacing:.02em}
+
+/* ---- 右上控制 ---- */
+#ctl{position:fixed;right:16px;top:16px;display:flex;gap:8px;z-index:3;align-items:stretch}
+.rail{display:flex;background:var(--panel);border-radius:3px;padding:3px;gap:2px}
+.rail button{height:32px;padding:0 12px;border-radius:2px;font-size:13px;font-weight:600;color:var(--dim);white-space:nowrap;transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+.rail button:hover{color:var(--ink)}
+.rail button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.sq{width:38px;height:38px;display:grid;place-items:center;background:var(--panel);border-radius:3px;font-size:15px;font-weight:800;transition:background-color var(--dur-hover) var(--ease-out)}
+.sq:hover{background:var(--panel-2)}
+.sq svg{width:18px;height:18px}
+
+/* ---- 左側路線表 ---- */
+#side{position:fixed;left:16px;top:188px;bottom:132px;width:300px;background:var(--panel);border-radius:3px;display:flex;flex-direction:column;z-index:2;overflow:hidden}
+#side .head{padding:12px 12px 8px}
+.search{position:relative}
+.search svg{position:absolute;left:10px;top:50%;width:15px;height:15px;transform:translateY(-50%);color:var(--dim);pointer-events:none}
+.search input{width:100%;height:36px;border:0;border-radius:2px;background:var(--panel-2);padding:0 10px 0 32px;outline:0;font-size:13.5px}
+.search input::placeholder{color:var(--dim)}
+.search input:focus-visible{box-shadow:inset 0 0 0 2px var(--amber)}
+.sorts{display:flex;gap:4px;margin-top:8px}
+.sorts button{flex:1;height:28px;border-radius:2px;font-size:12px;font-weight:600;color:var(--dim);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover)}
+.sorts button:hover{color:var(--ink)}
+.sorts button[aria-pressed="true"]{background:var(--panel-2);color:var(--ink)}
+#list{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:0 6px 10px;scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+.grp{display:flex;align-items:baseline;justify-content:space-between;padding:12px 6px 4px;font-size:11.5px;font-weight:700;color:var(--dim);letter-spacing:.08em}
+.grp small{font:600 12px/1 var(--num);letter-spacing:.04em}
+.ln{position:relative;display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:0 10px;width:100%;padding:8px 6px 10px;border-radius:2px;text-align:left;transition:background-color var(--dur-hover) var(--ease-out)}
+.ln:hover,.ln.hov{background:var(--panel-2)}
+.sym{width:30px;height:30px;display:grid;place-items:center;border:3.5px solid var(--c);border-radius:50%;background:var(--bg);font:700 12.5px/1 var(--num);letter-spacing:0;color:var(--ink);padding-top:1px}
+.sym.jr{border-radius:5px}
+.sym.k{font:700 12px/1 var(--sans);padding-top:0}
+.sym.w3{font-size:10.5px}
+.ln .nm{min-width:0}
+.ln .nm b{display:block;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln .nm small{display:block;font-size:11px;color:var(--dim)}
+.ln .tm{text-align:right}
+.ln .tm b{display:block;font:700 21px/1 var(--num);letter-spacing:.03em}
+.ln .tm small{display:block;font-size:11px;color:var(--dim);margin-top:3px;white-space:nowrap}
+.ln .tm small.soon{color:var(--amber)}
+.ln .bar{position:absolute;left:50px;right:6px;bottom:4px;height:3px;border-radius:2px;background:var(--ghost);overflow:hidden}
+.ln .bar i{position:absolute;left:0;top:0;bottom:0;width:var(--w,100%);border-radius:2px;background:var(--c);transition:width 200ms linear}
+.ln.done .nm b,.ln.done .tm b{color:var(--dim)}
+.ln.done .sym{border-color:var(--ghost);color:var(--dim)}
+.st-res{display:block;width:100%;text-align:left;padding:8px 6px;border-radius:2px;transition:background-color var(--dur-hover)}
+.st-res:hover{background:var(--panel-2)}
+.st-res b{font-size:14px}
+.st-res b i{font:600 9.5px/1 var(--sans);font-style:normal;letter-spacing:.14em;color:var(--dim);margin-left:6px;text-transform:uppercase}
+.chips{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:5px}
+.chips span{display:inline-flex;align-items:center;gap:5px;font:700 14px/1 var(--num);letter-spacing:.03em}
+.chips span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.chips span.gone{color:var(--dim)}
+.empty{padding:18px 8px;color:var(--dim);font-size:13px}
+
+/* 路線詳情 */
+#detail{display:none;flex-direction:column;flex:1;min-height:0}
+#side.show-detail #detail{display:flex}
+#side.show-detail #list,#side.show-detail .head{display:none}
+.dt-top{display:grid;grid-template-columns:auto 34px 1fr;gap:10px;align-items:center;padding:12px 12px 10px}
+.back{width:30px;height:30px;display:grid;place-items:center;border-radius:2px;color:var(--dim);transition:background-color var(--dur-hover),color var(--dur-hover)}
+.back:hover{background:var(--panel-2);color:var(--ink)}
+.back svg{width:16px;height:16px}
+.dt-top b{display:block;font-size:15px}
+.dt-top small{display:block;color:var(--dim);font-size:11.5px}
+.dt-sum{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin:0 12px 8px;background:var(--ghost);border-radius:2px;overflow:hidden}
+.dt-sum div{background:var(--panel-2);padding:8px 10px}
+.dt-sum small{display:block;font-size:11px;color:var(--dim)}
+.dt-sum b{font:700 22px/1.1 var(--num);letter-spacing:.03em}
+.dt-sum span{display:block;font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#stops{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:4px 12px 12px;scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+.stop{position:relative;display:grid;grid-template-columns:18px 1fr auto;gap:10px;align-items:center;width:100%;min-height:34px;text-align:left;border-radius:2px;padding:0 6px 0 0;transition:background-color var(--dur-hover)}
+.stop:hover{background:var(--panel-2)}
+.stop::before{content:"";position:absolute;left:7px;top:0;bottom:0;width:4px;background:var(--c)}
+.stop:first-child::before{top:50%}.stop:last-child::before{bottom:50%}
+.stop i{position:relative;width:12px;height:12px;margin-left:3px;border-radius:50%;background:var(--panel);border:2.5px solid var(--ink)}
+.stop span{font-size:13px}
+.stop span small{font-size:10px;color:var(--dim);margin-left:6px;letter-spacing:.06em}
+.stop b{font:700 16px/1 var(--num);letter-spacing:.03em}
+.stop.gone span,.stop.gone b{color:var(--dim)}
+.stop.gone::before{background:var(--ghost)}
+.stop.gone i{border-color:var(--ghost)}
+
+/* ---- 下方時間軸 ---- */
+#dock{position:fixed;left:16px;right:16px;bottom:16px;height:100px;background:var(--panel);border-radius:3px;display:grid;grid-template-columns:200px 1fr auto;align-items:center;gap:18px;padding:0 18px 0 20px;z-index:3}
+.clock small{display:block;font-size:11px;color:var(--dim);letter-spacing:.06em}
+.clock b{display:block;font:700 54px/.95 var(--num);letter-spacing:.02em;font-variant-numeric:tabular-nums;margin-top:3px}
+.clock b.live::after{content:"";display:inline-block;width:8px;height:8px;margin-left:8px;border-radius:50%;background:var(--amber);vertical-align:.5em}
+.tlw{min-width:0;display:flex;flex-direction:column;gap:2px}
+#tl{position:relative;height:60px;touch-action:none;cursor:pointer;outline-offset:4px}
+#tl svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#stat{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px}
+#stat b{color:var(--ink);font-weight:700}
+.acts{display:flex;gap:8px;align-items:center}
+#play{width:50px;height:50px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;transition:background-color var(--dur-hover)}
+#play:active{transform:scale(.96);transition-duration:var(--dur-press)}
+#play svg{width:18px;height:18px}
+#nowBtn{height:40px;padding:0 14px;border-radius:3px;background:var(--panel-2);font-size:13px;font-weight:700;white-space:nowrap;transition:background-color var(--dur-hover)}
+#nowBtn:hover{background:var(--sel)}
+#toast{position:fixed;left:50%;bottom:132px;transform:translate(-50%,8px);max-width:min(520px,calc(100vw - 32px));padding:10px 14px;background:var(--ink);color:var(--bg);border-radius:3px;font-size:13px;line-height:1.5;opacity:0;pointer-events:none;transition:opacity var(--dur-exit) linear,transform var(--dur-exit) var(--ease-out);z-index:6}
+#toast.on{opacity:1;transform:translate(-50%,0);transition-duration:var(--dur-enter)}
+
+/* ---- 提示框 ---- */
+#tip{position:fixed;left:0;top:0;min-width:210px;max-width:280px;padding:10px 12px 10px;background:var(--panel);border-radius:3px;pointer-events:none;z-index:5;opacity:0;transition:opacity 120ms linear;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+#tip.on{opacity:1}
+#tip .t1{display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:center}
+#tip .t1 b{display:block;font-size:14px}
+#tip .t1 small{display:block;font-size:10.5px;color:var(--dim)}
+#tip .t2{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;gap:10px}
+#tip .t2 span{font-size:11.5px;color:var(--dim)}
+#tip .t2 b{font:700 24px/1 var(--num);letter-spacing:.03em}
+#tip .t3{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--dim);margin-top:2px}
+#tip .t3 em{font-style:normal;font-weight:700;color:var(--ink);white-space:nowrap}
+#tip .t3 em.soon{color:var(--amber)}
+
+/* ---- 說明 ---- */
+dialog{margin:auto;width:min(560px,calc(100vw - 32px));max-height:min(80vh,720px);background:var(--panel);color:var(--ink);border:0;border-radius:4px;padding:0}
+dialog::backdrop{background:rgba(8,7,5,.55)}
+dialog[open]{animation:dlg var(--dur-enter) var(--ease-out)}
+@keyframes dlg{from{transform:translateY(8px)}to{transform:none}}
+.dlg{padding:22px 24px 20px;overflow-y:auto;max-height:inherit}
+.dlg h2{font-size:20px;margin-bottom:10px;letter-spacing:.04em}
+.dlg h3{font-size:13.5px;margin:16px 0 4px}
+.dlg p,.dlg li{font-size:13px;color:var(--dim);line-height:1.7}
+.dlg ul{padding-left:1.2em}
+.dlg a{color:var(--ink)}
+.dlg kbd{font:600 11px/1 var(--sans);padding:2px 5px;border-radius:2px;background:var(--panel-2);color:var(--ink)}
+.dlg .close{position:sticky;float:right;top:0;margin:-6px -8px 0 0;width:34px;height:34px;display:grid;place-items:center;border-radius:2px;color:var(--dim)}
+.dlg .close:hover{background:var(--panel-2);color:var(--ink)}
+.dlg .close svg{width:16px;height:16px}
+.warn{margin-top:12px;padding:10px 12px;background:var(--panel-2);border-radius:2px;color:var(--ink)!important}
+
+#boot{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:1}
+#boot div{max-width:320px;text-align:center;color:var(--dim);font-size:13px;line-height:1.7}
+#boot b{display:block;color:var(--ink);font-size:15px}
+#boot.gone{display:none}
+#sheetBtn,#sheetClose{display:none}
+.back-home{position:fixed;left:16px;bottom:124px;z-index:1}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---- 手機 ---- */
+@media (max-width:760px){
+  #sign{left:12px;top:max(12px,env(safe-area-inset-top));width:auto}
+  #sign .kana,#sign .roma,#sign .meta{display:none}
+  #sign h1{font-size:19px;letter-spacing:.2em;padding:6px 10px 5px calc(10px + .2em)}
+  #sign .band{height:20px;font-size:12.5px;gap:14px}
+  #ctl{right:12px;top:max(12px,env(safe-area-inset-top));gap:6px}
+  #ctl .rail{display:none}
+  .sq{width:36px;height:36px}
+  #ctl2{position:fixed;left:12px;right:12px;top:calc(max(12px,env(safe-area-inset-top)) + 56px);display:flex;gap:6px;z-index:3;overflow-x:auto;scrollbar-width:none}
+  #ctl2::-webkit-scrollbar{display:none}
+  #ctl2 .rail{flex:none}
+  #ctl2 .rail button{height:30px;padding:0 10px;font-size:12.5px}
+  #dock{left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));height:auto;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:4px 10px;padding:10px 12px 8px}
+  .clock{grid-column:1;grid-row:1}
+  .clock b{font-size:40px}
+  .acts{grid-column:2;grid-row:1}
+  .tlw{grid-column:1/3;grid-row:2}
+  #tl{height:50px}
+  #play{width:44px;height:44px}
+  #nowBtn{height:36px;padding:0 10px;font-size:12.5px}
+  #sheetBtn{display:grid}
+  #side{left:8px;right:8px;width:auto;top:auto;bottom:calc(max(8px,env(safe-area-inset-bottom)) + 150px);height:min(56vh,480px);transform:translateY(calc(100% + 170px));transition:transform var(--dur-exit) var(--ease-out);z-index:4}
+  #side.open{transform:none;transition-duration:var(--dur-enter)}
+  #sheetClose{display:grid;position:absolute;right:8px;top:8px;z-index:2}
+  #side .head{padding-right:48px}
+  .dt-top{padding-right:48px}
+  #toast{bottom:170px}
+  #tip{max-width:240px}
+}
+@media (min-width:761px){ #ctl2{display:contents} #ctl2 .rail{display:none} }
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:0s!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="東京鐵路末班車 3D 地圖，拖曳旋轉、滾輪縮放"></canvas>
+<div id="labels" aria-hidden="true"></div>
+<div id="boot"><div><b>路網鋪設中</b>需要連線到 cdn.jsdelivr.net 載入 Three.js</div></div>
+
+<header id="sign">
+  <span class="kana">しゅうでんちず</span>
+  <h1>終電地圖</h1>
+  <span class="roma">SHŪDEN CHIZU · TOKYO</span>
+  <div class="band"><span><svg viewBox="0 0 9 12"><path d="M8 1 2 6l6 5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>21:30</span><span>01:30<svg viewBox="0 0 9 12"><path d="m1 1 6 5-6 5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></span></div>
+  <div class="meta"><span><b id="nLines">97</b>路線</span><span><b id="nSt">0</b>車站</span><span><b id="nOps">14</b>業者</span></div>
+</header>
+
+<nav id="ctl" aria-label="檢視設定">
+  <div class="rail" role="group" aria-label="時刻表"><button data-day="0" aria-pressed="true">平日</button><button data-day="1" aria-pressed="false">週末假日</button></div>
+  <div class="rail" role="group" aria-label="高度"><button data-mode="0" aria-pressed="true">時刻高度</button><button data-mode="1" aria-pressed="false">業者樓層</button><button data-mode="2" aria-pressed="false">平面</button></div>
+  <button class="sq" id="sheetBtn" aria-label="路線清單"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 4.5h12M3 9h12M3 13.5h7"/></svg></button>
+  <button class="sq" id="themeBtn" aria-label="切換晝夜配色" title="切換晝夜配色">晝</button>
+  <button class="sq" id="infoBtn" aria-label="說明與資料來源"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="9" r="7.2"/><path d="M9 8.2v4.6"/><circle cx="9" cy="5.4" r=".6" fill="currentColor"/></svg></button>
+</nav>
+<div id="ctl2"></div>
+
+<aside id="side" aria-label="路線與末班時刻">
+  <button class="sq" id="sheetClose" aria-label="收起清單"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m4.5 7 4.5 4.5L13.5 7"/></svg></button>
+  <div class="head">
+    <label class="search"><span class="vh">搜尋車站或路線</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="4.8"/><path d="m10.6 10.6 3.4 3.4"/></svg><input id="q" type="search" placeholder="搜尋車站或路線（新宿、Ginza…）" autocomplete="off"></label>
+    <div class="sorts" role="group" aria-label="排序"><button data-sort="op" aria-pressed="true">依業者</button><button data-sort="early" aria-pressed="false">最早收班</button><button data-sort="late" aria-pressed="false">最晚收班</button></div>
+  </div>
+  <div id="list"></div>
+  <div id="detail">
+    <div class="dt-top"><button class="back" id="back" aria-label="回到路線清單"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 3 5 8l5 5"/></svg></button><span id="dtSym"></span><div><b id="dtName"></b><small id="dtOp"></small></div></div>
+    <div class="dt-sum"><div><small>全線收班</small><b id="dtEnd"></b><span id="dtEndSt"></span></div><div><small>最早熄燈的站</small><b id="dtFirst"></b><span id="dtFirstSt"></span></div></div>
+    <div id="stops"></div>
+  </div>
+</aside>
+
+<section id="dock" aria-label="時間軸">
+  <div class="clock"><small id="clockCap">東京時間 · 平日時刻表</small><b id="clock">23:30</b></div>
+  <div class="tlw">
+    <div id="tl" role="slider" tabindex="0" aria-label="顯示時刻" aria-valuemin="1290" aria-valuemax="1530" aria-valuenow="1410" aria-valuetext="23:30"><svg id="tlsvg"></svg></div>
+    <div id="stat"></div>
+  </div>
+  <div class="acts">
+    <button id="play" aria-label="播放"><svg viewBox="0 0 18 18"><path id="playIco" d="M5 3.2v11.6L14.6 9z" fill="currentColor"/></svg></button>
+    <button id="nowBtn">現在時刻</button>
+  </div>
+</section>
+
+<div id="tip" role="status" aria-live="polite"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="info" aria-labelledby="infoTitle"><div class="dlg">
+  <button class="close" id="infoClose" aria-label="關閉"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m3.5 3.5 9 9m0-9-9 9"/></svg></button>
+  <h2 id="infoTitle">終電地圖怎麼看</h2>
+  <p>每一個點是一條路線上的一個車站。「時刻高度」模式裡，點的高度就是那一站最後一班車離開的時刻：越晚收班，站得越高。時間軸往前推，一片半透明的「時間水位」跟著上升，被淹過的站就是末班已經開走的站。路線上最亮、最粗的那一截，就是正在跑的末班車。</p>
+  <h3>操作</h3>
+  <ul>
+    <li>拖曳旋轉，右鍵或 <kbd>Shift</kbd> 拖曳平移，滾輪或雙指縮放。</li>
+    <li>滑過車站看那一站的末班：幾點、從哪裡發車、開往哪裡。點車站或清單裡的路線，會單獨標出整條線。</li>
+    <li><kbd>空白鍵</kbd> 播放／暫停，<kbd>←</kbd> <kbd>→</kbd> 移動 1 分鐘（按住 <kbd>Shift</kbd> 為 10 分鐘），<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 切換高度模式，<kbd>Esc</kbd> 取消選取。</li>
+    <li>「現在時刻」用東京時間（JST）。凌晨 4 點前算前一天的營運日，例如週六 0:30 仍套用週五的平日時刻表。國定假日不另外判斷。</li>
+  </ul>
+  <h3>資料</h3>
+  <p>路線、車站座標與時刻表來自 <a href="https://github.com/nagix/mini-tokyo-3d" target="_blank" rel="noopener">Mini Tokyo 3D</a>（MIT 授權），其時刻表源自公共交通開放資料中心（ODPT）與各鐵道業者。本頁從中取出東京都市圈約 97 條路線，把每一站在平日與週末假日的最後一班離站時刻整理成摘要，範圍外的延伸區段已裁掉。</p>
+  <p class="warn">這是視覺化作品，時刻是某一版公開資料的摘要，不是官方時刻表，也可能已經改點。末班是要趕的，搭車前請查各鐵道公司的官方資訊。</p>
+  <h3>靈感</h3>
+  <p>構想來自 X 上 @MatoToushi 分享的「東京終電マップ」影片。本頁的版面、配色與互動是重新設計的。</p>
+  <p style="margin-top:14px"><a href="../index.html">← 回到作品集</a></p>
+</div></dialog>
+
+<script type="module">
+const D = {"names":["押上","三崎口","京成高砂","西馬込","本所吾妻橋","淺草","淺草橋","藏前","東日本橋","人形町","印旛日本醫大","泉岳寺","日本橋","印西牧原","寶町","東銀座","新橋","大門","三田","高輪台","青砥","五反田","戶越","中延","馬込","目黑","西高島平","日吉","白金台","白金高輪","芝公園","御成門","內幸町","日比谷","大手町","神保町","水道橋","高島平","春日","白山","千石","巢鴨","西巢鴨","新板橋","板橋區役所前","板橋本町","本蓮沼","志村坂上","志村三丁目","蓮根","西台","新高島平","新宿","本八幡","新宿三丁目","曙橋","市谷","九段下","笹塚","岩本町","小川町","馬喰橫山","大島","濱町","森下","菊川","住吉","西大島","東大島","船堀","一之江","瑞江","篠崎","都廳前","光丘","新宿西口","清澄白河","東新宿","若松河田","牛込柳町","牛込神樂坂","飯田橋","本鄉三丁目","上野御徒町","新御徒町","兩國","門前仲町","月島","勝鬨","築地市場","汐留","赤羽橋","麻布十番","六本木","青山一丁目","國立競技場","代代木","西新宿五丁目","中野坂上","東中野","中井","落合南長崎","新江古田","練馬","豐島園","練馬春日町","日暮里","見沼代親水公園","西日暮里","赤土小學校前","熊野前","足立小台","扇大橋","高野","江北","西新井大師西","谷在家","舍人公園","舍人","早稻田","荒川車庫前","面影橋","學習院下","鬼子母神前","都電雜司谷","東池袋四丁目","向原","大塚站前","巢鴨新田","庚申塚","新庚申塚","西原四丁目","瀧野川一丁目","飛鳥山","王子站前","榮町","梶原","荒川遊園地前","三之輪橋","小台","宮之前","東尾久三丁目","町屋二丁目","町屋站前","荒川七丁目","荒川二丁目","荒川區役所前","荒川一中前","澀谷","田原町","稻荷町","上野","上野廣小路","末廣町","神田","三越前","京橋","銀座","虎之門","溜池山王","赤坂見附","外苑前","表參道","池袋","荻窪","新大塚","茗荷谷","後樂園","御茶之水","淡路町","東京","霞關","國會議事堂前","四谷","四谷三丁目","新宿御苑前","西新宿","新中野","東高圓寺","新高圓寺","南阿佐谷","中野富士見町","中野新橋","方南町","中目黑","北千住","南栗橋","惠比壽","廣尾","神谷町","虎之門Hills","築地","八丁堀","茅場町","竹之塚","小傳馬町","秋葉原","仲御徒町","入谷","三之輪","南千住","北越谷","中野","東葉勝田台","落合","高田馬場","神樂坂","竹橋","妙典","木場","東陽町","南砂町","西葛西","葛西","浦安","南行德","行德","原木中山","西船橋","北綾瀨","綾瀨","松戶","町屋","代代木上原","千馱木","根津","湯島","我孫子","新御茶之水","二重橋前","赤坂","乃木坂","明治神宮前","代代木公園","新木場","川越市","和光市","辰巳","豐洲","新富町","銀座一丁目","有樂町","櫻田門","永田町","麴町","江戶川橋","護國寺","東池袋","要町","千川","小竹向原","冰川台","平和台","地鐵赤塚","地鐵成增","中央林間","錦糸町","水天宮前","鷺沼","半藏門","浦和美園","六本木一丁目","新橫濱","駒込","東大前","本駒込","西原","王子","赤羽岩淵","王子神谷","鳩谷","志茂","北參道","元町·中華街","西早稻田","雜司谷","大崎","","原宿","新大久保","目白","大塚","田端","鶯谷","御徒町","品川","濱松町","田町","高輪Gateway","高尾","武藏小金井","高圓寺","阿佐谷","西荻窪","吉祥寺","三鷹","武藏境","東小金井","國分寺","豐田","西國分寺","國立","立川","日野","八王子","西八王子","千葉","大久保","千駄谷","信濃町","津田沼","龜戶","平井","新小岩","小岩","市川","下總中山","船橋","東船橋","幕張本鄉","幕張","新檢見川","稻毛","西千葉","青梅","西立川","東中神","中神","昭島","拜島","牛濱","福生","羽村","小作","河邊","東青梅","宮之平","奧多摩","日向和田","石神前","二俁尾","軍畑","武藏五日市","熊川","東秋留","秋川","武藏引田","武藏增戶","平塚","小田原","川崎","橫濱","戶塚","小金井","宇都宮","尾久","赤羽","浦和","埼玉新都心","大宮","土呂","東大宮","蓮田","高崎","籠原","宮原","上尾","北上尾","桶川","大船","與野","北浦和","南浦和","蕨","西川口","川口","東十條","上中里","蒲田","大井町","大森","鶴見","新子安","櫻木町","東神奈川","關內","磯子","石川町","山手","根岸","新杉田","洋光台","港南台","本鄉台","勝田","土浦","取手","三河島","柏","天王台","龜有","金町","北松戶","馬橋","新松戶","北小金","南柏","北柏","成田機場","新日本橋","馬喰町","久里濱","都賀","四街道","西大井","武藏小杉","新川崎","保土谷","東戶塚","八街","東千葉","成田","蘇我","越中島","潮見","新習志野","葛西臨海公園","舞濱","新浦安","市川鹽濱","二俁新町","南船橋","幕張豐砂","海濱幕張","檢見川濱","稻毛海岸","千葉港","川越","板橋","十條","北赤羽","浮間舟渡","戶田公園","戶田","北戶田","武藏浦和","中浦和","南與野","與野本町","北與野","日進","西大宮","指扇","南古谷","國府津","武藏中原","尻手","矢向","鹿島田","平間","向河原","武藏新城","武藏溝之口","津田山","久地","宿河原","登戶","中野島","稻田堤","稻城長沼","矢野口","南多摩","府中本町","分倍河原","西府","谷保","矢川","西國立","船橋法典","市川大野","東松戶","新八柱","南流山","東所澤","三鄉","新三鄉","吉川美南","吉川","越谷湖城","南越谷","東川口","東浦和","西浦和","北朝霞","新座","新秋津","新小平","北府中","大口","菊名","小机","鴨居","橋本","中山","十日市場","長津田","成瀨","町田","古淵","淵野邊","矢部","相模原","相原","八王子南野","片倉","扇町","昭和","濱川崎","武藏白石","安善","淺野","弁天橋","鶴見小野","國道","北八王子","高麗川","小宮","東福生","箱根崎","金子","東飯能","毛呂","越生","茅崎","南橋本","上溝","番田","原當麻","下溝","相武台下","海老名","厚木","社家","門澤橋","倉見","宮山","寒川","東雲","國際展示場","東京電訊","天王洲島","品川海濱","代官山","小手指","元住吉","祐天寺","學藝大學","都立大學","自由丘","田園調布","多摩川","新丸子","綱島","大倉山","妙蓮寺","白樂","東白樂反町","反町","池尻大橋","三軒茶屋","駒澤大學","櫻新町","用賀","二子玉川","二子新地","高津","溝之口","梶谷","宮崎台","宮前平","多摩廣場","薊野","江田","市尾","藤丘","青葉台","田奈","土筆野","鈴懸台","南町田Grandberry Park","月見野","不動前","武藏小山","奧澤","西小山","洗足","大岡山","西谷","新綱島","下神明","戶越公園","荏原町","旗之台","北千束","綠丘","九品佛","尾山台","等等力","上野毛","大崎廣小路","戶越銀座","雪谷大塚","荏原中延","長原","洗足池","石川台","御嶽山","久原","千鳥町","池上","蓮沼","沼部","鵜之木","下丸子","武藏新田","矢口渡","兒童之國","恩田","上町","西太子堂","若林","松陰神社前","世田谷","宮之坂","下高井戶","山下","松原","本厚木","南新宿","參宮橋","經堂","代代木八幡","東北澤","下北澤","世田谷代田","梅丘","豪德寺","千歲船橋","祖師谷大藏","成城學園前","向丘遊園","喜多見","狛江","和泉多摩川","生田","新百合丘","讀賣樂園前","百合丘","柿生","相模大野","鶴川","玉川學園前","小田急相模原","相武台前","座間","愛甲石田","伊勢原","鶴卷溫泉","東海大學前","秦野","唐木田","五月台","栗平","黑川","春日野","小田急永山","小田急多摩中心","片瀨江之島","東林間","南林間","鶴間","大和","櫻丘","高座澀谷","長後","湘南台","六會日大前","善行","京王八王子","櫻上水","代田橋","明大前","上北澤","八幡山","若葉台","蘆花公園","千歲烏山","仙川","杜鵑丘","柴崎","國領","布田","調布","西調布","高幡不動","飛田給","武藏野台","多磨靈園","東府中","府中","中河原","聖蹟櫻丘","百草園","南平","平山城址公園","長沼","北野","京王多摩川","京王稻田堤","京王讀賣樂園","稻城","京王永山","京王多摩中心","京王堀之內","南大澤","多摩境","京王片倉","山田","目白台","狹間","高尾山口","府中競馬正門前","多摩動物公園","富士見丘","神泉","駒場東大前","池之上","新代田","東松原","永福町","西永福","濱田山","高井戶","久我山","三鷹台","井之頭公園","保谷","椎名町","東長崎","江古田","櫻台","中村橋","富士見台","練馬高野台","石神井公園","大泉學園","雲雀丘","東久留米","清瀨","秋津","所澤","西所澤","狹山丘","飯能","武藏藤澤","稻荷山公園","入間市","佛子","元加治","吾野","高麗","武藏橫手","東吾野","新櫻台","西武新宿","上石神井","下落合","新井藥師前","沼袋","野方","都立家政","鷺之宮","下井草","井荻","上井草","武藏關","新所澤","東伏見","西武柳澤","田無","花小金井","小平","久米川","東村山","航空公園","入曾","本川越","狹山市","新狹山","南大塚","萩山","小川","東大和市","玉川上水","武藏砂川","西武立川","多摩湖","一橋學園","青梅街道","八坂","武藏大和","戀窪","鷹之台","西武園","是政","新小金井","多磨","白糸台","賽艇場前","東京晴空塔","曳舟","東向島","鐘淵","堀切","牛田","小菅","五反野","梅島","西新井","谷塚","草加","獨協大學前","新田","蒲生","新越谷","越谷","大袋","北春日部","千間台","武里","一之割","春日部","龜戶水神","東吾嬬","小村井","大師前","新船橋","塚田","高柳","馬込澤","鎌谷","新鎌谷","六實","逆井","增尾","新柏","豐四季","七光台","流山大鷹之森","初石","江戶川台","運河","梅鄉","野田市","愛宕","清水公園","川間","南櫻井","藤之牛島","八木崎","豐春","東岩槻","岩槻","七里","大和田","大宮公園","北大宮","成增","北池袋","下板橋","大山","中板橋","常盤台","上板橋","東武練馬","下赤塚","朝霞","朝霞台","志木","柳瀨川","瑞穗台","鶴瀨","富士見野","上福岡","新河岸","森林公園","鶴島","若葉","坂戶","北坂戶","京成上野","新三河島","千住大橋","京成關屋","堀切菖蒲園","御花茶屋","京成小岩","京成津田沼","江戶川","國府台","市川真間","菅野","京成八幡","鬼越","京成中山","東中山","京成西船","海神","京成船橋","大神宮下","船橋競馬場","谷津","京成大久保","京成佐倉","實籾","八千代台","京成大和田","勝田台","志津","有加利丘","京成曳舟","八廣","四木","京成立石","千葉中央","京成幕張本鄉","京成幕張","檢見川","京成稻毛","綠台","西登戶","新千葉","京成千葉","京成金町","柴又","櫟山","上本鄉","松戶新田","稔台","八柱","常盤平","五香","元山","北初富","初富","鎌谷大佛","二和向台","三咲","瀧不動","高根公團","高根木戶","北習志野","習志野","藥園台","新津田沼","前原","成田機場第1候機樓","千葉新城中央","羽田機場第1、第2航廈","新柴又","矢切","北國分","秋山","松飛台","大町","西白井","白井","小室","北品川","神奈川新町","新馬場","青物橫丁","鮫洲","京急川崎","立會川","大森海岸","平和島","大森町","梅屋敷","京急蒲田","雜色","六鄉土手","八丁畷","鶴見市場","京急鶴見","花月總持寺","生麥","京急新子安","子安","京急東神奈川","上大岡","神奈川","戶部","日之出町","黃金町","南太田","井土谷","弘明寺","屏風浦","金澤文庫","杉田","京急富岡","能見台","糀谷","大鳥居","穴守稻荷","天空橋","羽田機場第3航廈","小島新田","大師橋","東門前","川崎大師","鈴木町","港町","柏台","平沼橋","西橫濱","天王町","星川","和田町","上星川","鶴峰","二俁川","希望丘","三境","瀨谷","相模大塚","相模野","南萬騎原","綠園都市","彌生台","泉野","泉中央","夢丘","羽澤橫濱國大","新高島","港未來","馬車道","日本大道","中川","中心北","中心南","新羽","仲町台","北新橫濱","岸根公園","片倉町","三澤上町","三澤下町","高島町","上永谷","伊勢佐木長者町","阪東橋","吉野町","蒔田","港南中央","下永谷","舞岡","踴場","中田","立場","下飯田","日吉本町","高田","東山田","北山田","都筑交流之丘","川和町","有明","竹芝","日之出","芝浦埠頭","御台場海濱公園","台場","東京國際郵輪碼頭","遠程通信中心","青海","東京國際展覽中心","有明網球之森","市場前","新豐洲","單軌電車濱松町","羽田機場第2航廈","大井競馬場前","流通中心","昭和島","整備場","新整備場","羽田機場第1航廈","多摩中心","上北台","松谷","大塚·帝京大學","中央大學·明星大學","程久保","萬願寺","立川北","甲州街道","柴崎體育館","立川南","高松","立飛","泉體育館","砂川七番","櫻街道","內宿","鐵道博物館","加茂宮","東宮原","今羽","吉野原","原市","沼南","丸山","志久","伊奈中央","並木中央","金澤八景","南部市場","鳥濱","並木北","川口元鄉","南鳩谷","新井宿","戶塚安行","筑波","守谷","青井","六町","八潮","三鄉中央","流山中央公園","柏之葉園地","柏田中","未來平","東海神","飯山滿","船橋日大前","八千代綠丘","八千代中央","村上","流山","幸谷","小金城趾","鰭崎"],"lines":[{"id":"Toei.Asakusa","n":"都營淺草線","ja":"浅草線","en":"Asakusa Line","c":"#DC435F","k":"A","o":"都營","loop":false,"s":[[0,"Oshiage",4.15,-3.276,1467,1,2,1467,3,2],[4,"Honjo-azumabashi",3.372,-3.026,1465,1,2,1465,3,2],[5,"Asakusa",2.662,-3.065,1466,2,6,1466,2,6],[7,"Kuramae",2.148,-2.425,1468,2,6,1468,2,6],[6,"Asakusabashi",1.739,-1.802,1469,2,6,1469,2,6],[8,"Higashi-nihombashi",1.608,-1.208,1458,1,2,1458,3,2],[9,"Ningyocho",1.372,-0.569,1456,1,2,1456,10,11],[12,"Nihombashi",0.788,-0.066,1458,13,11,1458,10,11],[14,"Takaracho",0.44,0.619,1459,13,11,1459,10,11],[15,"Higashi-ginza",0.023,1.248,1461,13,11,1461,10,11],[16,"Shimbashi",-0.702,1.749,1463,13,11,1463,10,11],[17,"Daimon",-1.123,2.69,1465,13,11,1465,10,11],[18,"Mita",-1.829,3.809,1468,13,11,1468,10,11],[11,"Sengakuji",-2.451,4.698,1469,13,11,1469,10,11],[19,"Takanawadai",-3.32,5.468,1462,11,3,1462,20,3],[21,"Gotanda",-3.9,6.006,1464,11,3,1464,20,3],[22,"Togoshi",-4.592,7.384,1466,11,3,1466,20,3],[23,"Nakanobu",-4.834,8.395,1468,11,3,1468,20,3],[24,"Magome",-4.993,9.335,1470,11,3,1470,20,3],[3,"Nishi-magome",-5.517,10.41,1472,11,3,1472,20,3]]},{"id":"Toei.Mita","n":"都營三田線","ja":"三田線","en":"Mita Line","c":"#006AB8","k":"I","o":"都營","loop":false,"s":[[25,"Meguro",-4.67,5.333,1454,26,27,1454,26,27],[28,"Shirokanedai",-3.716,4.793,1452,26,27,1452,26,27],[29,"Shirokane-takanawa",-2.962,4.192,1473,26,29,1473,26,29],[18,"Mita",-1.637,3.599,1470,26,29,1470,26,29],[30,"Shibakoen",-1.56,2.987,1468,26,29,1468,26,29],[31,"Onarimon",-1.423,2.259,1466,26,29,1466,26,29],[32,"Uchisaiwaicho",-1.064,1.311,1465,26,29,1465,26,29],[33,"Hibiya",-0.617,0.51,1463,26,29,1463,26,29],[34,"Otemachi",-0.389,-0.32,1461,26,29,1461,26,29],[35,"Jimbocho",-0.804,-1.562,1458,26,29,1458,26,29],[36,"Suidobashi",-1.081,-2.461,1457,27,37,1457,27,37],[38,"Kasuga",-1.249,-3.133,1458,27,37,1458,27,37],[39,"Hakusan",-1.353,-4.476,1461,27,37,1461,27,37],[40,"Sengoku",-2.0,-5.149,1463,27,37,1463,27,37],[41,"Sugamo",-2.617,-5.815,1465,27,37,1465,27,37],[42,"Nishi-sugamo",-3.472,-6.896,1467,27,37,1467,27,37],[43,"Shin-itabashi",-4.276,-7.471,1469,27,37,1469,27,37],[44,"Itabashi-kuyakushomae",-5.152,-7.759,1471,27,37,1471,27,37],[45,"Itabashihoncho",-5.566,-8.858,1473,27,37,1473,27,37],[46,"Motohasunuma",-5.849,-9.66,1475,27,37,1475,27,37],[47,"Shimura-sakaue",-6.511,-10.491,1477,27,37,1477,27,37],[48,"Shimura-sanchome",-7.356,-10.644,1479,27,37,1479,27,37],[49,"Hasune",-7.971,-11.396,1481,27,37,1481,27,37],[50,"Nishidai",-8.521,-11.706,1483,27,37,1483,27,37],[37,"Takashimadaira",-9.561,-11.909,1485,27,37,1485,27,37],[51,"Shin-takashimadaira",-10.222,-12.062,1471,27,26,1471,29,26],[26,"Nishi-takashimadaira",-11.003,-12.247,1473,27,26,1473,29,26]]},{"id":"Toei.Shinjuku","n":"都營新宿線","ja":"新宿線","en":"Shinjuku Line","c":"#B0BF1E","k":"S","o":"都營","loop":false,"s":[[52,"Shinjuku",-6.21,-0.8,1469,53,52,1469,53,52],[54,"Shinjuku-sanchome",-5.453,-1.085,1467,53,52,1467,53,52],[55,"Akebonobashi",-4.049,-1.239,1465,53,52,1465,53,52],[56,"Ichigaya",-2.669,-1.142,1463,53,52,1463,53,52],[57,"Kudanshita",-1.389,-1.586,1460,53,52,1460,53,52],[35,"Jimbocho",-0.825,-1.633,1460,58,59,1460,58,59],[60,"Ogawamachi",-0.059,-1.526,1462,58,59,1462,58,59],[59,"Iwamotocho",0.725,-1.593,1463,58,59,1463,58,59],[61,"Bakuro-yokoyama",1.438,-1.186,1455,58,62,1455,58,62],[63,"Hamacho",1.865,-0.818,1457,58,62,1457,58,62],[64,"Morishita",2.67,-0.75,1460,58,62,1460,58,62],[65,"Kikukawa",3.523,-0.796,1462,58,62,1462,58,62],[66,"Sumiyoshi",4.397,-0.867,1466,58,62,1466,58,62],[67,"Nishi-ojima",5.347,-0.906,1467,58,62,1467,58,62],[62,"Ojima",6.113,-0.946,1469,58,62,1469,58,62],[68,"Higashi-ojima",7.248,-0.968,1462,53,62,1462,53,62],[69,"Funabori",8.758,-0.283,1460,53,62,1460,53,62],[70,"Ichinoe",10.443,-0.529,1460,58,71,1460,58,71],[71,"Mizue",11.809,-1.361,1462,58,71,1462,58,71],[72,"Shinozaki",12.36,-2.745,1461,58,53,1461,58,53],[53,"Motoyawata",14.424,-4.602,1464,58,53,1464,58,53]]},{"id":"Toei.Oedo","n":"都營大江戶線","ja":"大江戸線","en":"Oedo Line","c":"#CE045B","k":"E","o":"都營","loop":false,"s":[[73,"Tochomae",-6.73,-1.04,1465,74,73,1465,74,73],[75,"Shinjuku-nishiguchi",-6.147,-1.345,1467,73,76,1467,73,76],[77,"Higashi-shinjuku",-5.395,-1.853,1470,73,76,1470,73,76],[78,"Wakamatsu-kawada",-4.436,-1.989,1472,73,76,1472,73,76],[79,"Ushigome-yanagicho",-3.803,-2.024,1474,73,76,1474,73,76],[80,"Ushigome-kagurazaka",-2.822,-2.179,1476,73,76,1476,73,76],[81,"Iidabashi",-1.975,-2.405,1478,73,76,1478,73,76],[38,"Kasuga",-1.321,-3.018,1480,73,76,1480,73,76],[82,"Hongo-sanchome",-0.595,-2.909,1482,73,76,1482,73,76],[83,"Ueno-okachimachi",0.565,-2.958,1484,73,76,1484,73,76],[84,"Shin-okachimachi",1.362,-2.854,1486,73,76,1486,73,76],[7,"Kuramae",2.274,-2.696,1488,73,76,1488,73,76],[85,"Ryogoku",2.746,-1.726,1490,73,76,1490,73,76],[64,"Morishita",2.817,-0.744,1492,73,76,1492,73,76],[76,"Kiyosumi-shirakawa",2.863,-0.128,1493,73,76,1493,73,76],[86,"Monzen-nakacho",2.534,0.932,1482,74,76,1481,74,76],[87,"Tsukishima",1.52,1.929,1480,74,76,1479,74,76],[88,"Kachidoki",0.908,2.462,1478,74,76,1477,74,76],[89,"Tsukijishijo",-0.015,1.8,1476,74,76,1474,74,76],[90,"Shiodome",-0.622,1.991,1488,74,90,1488,74,90],[17,"Daimon",-1.031,2.712,1486,74,90,1486,74,90],[91,"Akabanebashi",-2.09,2.899,1483,74,90,1483,74,90],[92,"Azabu-juban",-2.782,2.737,1482,74,90,1482,74,90],[93,"Roppongi",-3.232,1.89,1479,74,90,1479,74,90],[94,"Aoyama-itchome",-3.904,0.899,1479,73,73,1479,73,73],[95,"Kokuritsu-kyogijo",-4.741,0.144,1482,73,73,1482,73,73],[96,"Yoyogi",-5.922,-0.255,1484,73,73,1484,73,73],[52,"Shinjuku",-6.156,-0.803,1486,73,73,1486,73,73],[73,"Tochomae",-6.727,-1.027,1488,73,73,1488,73,73],[97,"Nishi-shinjuku-gochome",-7.465,-0.961,1478,73,74,1478,73,74],[98,"Nakano-sakaue",-7.614,-1.845,1481,73,74,1481,73,74],[99,"Higashi-nakano",-7.594,-2.87,1483,73,74,1483,73,74],[100,"Nakai",-7.306,-3.62,1484,73,74,1484,73,74],[101,"Ochiai-minami-nagasaki",-7.569,-4.67,1487,73,74,1487,73,74],[102,"Shin-egota",-8.735,-5.681,1490,73,74,1490,73,74],[103,"Nerima",-10.158,-6.215,1492,73,74,1492,73,74],[104,"Toshimaen",-10.668,-6.691,1494,73,74,1494,73,74],[105,"Nerima-kasugacho",-11.466,-7.763,1497,73,74,1497,73,74],[74,"Hikarigaoka",-12.496,-8.55,1499,73,74,1499,73,74]]},{"id":"Toei.NipporiToneri","n":"日暮里·舍人線","ja":"日暮里・舎人ライナー","en":"Nippori-Toneri Liner","c":"#227324","k":"NT","o":"都營","loop":false,"s":[[106,"Nippori",0.364,-5.262,1470,106,107,1443,106,107],[108,"Nishi-nippori",0.097,-5.809,1472,106,107,1445,106,107],[109,"Akado-shogakkomae",0.174,-6.819,1474,106,107,1447,106,107],[110,"Kumanomae",0.247,-7.443,1476,106,107,1449,106,107],[111,"Adachi-odai",0.296,-8.122,1478,106,107,1450,106,107],[112,"Ogi-ohashi",0.334,-9.145,1480,106,107,1452,106,107],[113,"Koya",0.325,-9.636,1481,106,107,1454,106,107],[114,"Kohoku",0.288,-10.256,1483,106,107,1455,106,107],[115,"Nishiaraidaishi-nishi",0.269,-11.091,1485,106,107,1457,106,107],[116,"Yazaike",0.265,-11.896,1487,106,107,1459,106,107],[117,"Toneri-koen",0.277,-12.736,1498,107,117,1471,107,117],[118,"Toneri",0.268,-13.765,1496,107,117,1469,107,117],[107,"Minumadai-shinsuikoen",0.326,-14.744,1494,107,117,1467,107,117]]},{"id":"Toei.Arakawa","n":"都電荒川線","ja":"東京さくらトラム（都電荒川線）","en":"Tokyo Sakura Tram (Arakawa Line)","c":"#EE86A7","k":"SA","o":"都營","loop":false,"s":[[119,"Waseda",-4.349,-3.379,1384,119,120,1384,119,120],[121,"Omokagebashi",-4.783,-3.517,1385,119,120,1385,119,120],[122,"Gakushuinshita",-4.934,-3.886,1387,119,120,1387,119,120],[123,"Kishibojimmae",-4.697,-4.353,1388,119,120,1388,119,120],[124,"Toden-zoshigaya",-4.455,-4.741,1389,119,120,1389,119,120],[125,"Higashi-ikebukuro-yonchome",-4.222,-4.887,1392,119,120,1392,119,120],[126,"Mukohara",-3.829,-5.26,1394,119,120,1394,119,120],[127,"Otsuka-ekimae",-3.436,-5.527,1397,119,120,1397,119,120],[128,"Sugamoshinden",-3.564,-6.024,1398,119,120,1398,119,120],[129,"Koshinzuka",-3.389,-6.447,1399,119,120,1399,119,120],[130,"Shin-koshinzuka",-3.324,-6.62,1400,119,120,1400,119,120],[131,"Nishigahara-yonchome",-3.114,-6.968,1402,119,120,1402,119,120],[132,"Takinogawa-itchome",-2.865,-7.307,1403,119,120,1403,119,120],[133,"Asukayama",-2.692,-7.619,1404,119,120,1404,119,120],[134,"Oji-ekimae",-2.627,-7.937,1409,119,120,1409,119,120],[135,"Sakaecho",-2.253,-7.703,1410,119,120,1410,119,120],[136,"Kajiwara",-1.793,-7.726,1411,119,120,1411,119,120],[120,"Arakawa-shakomae",-1.324,-7.703,1414,119,120,1414,119,120],[137,"Arakawa-yuenchimae",-0.867,-7.679,1410,138,120,1410,138,120],[139,"Odai",-0.485,-7.66,1408,138,120,1408,138,120],[140,"Miyanomae",-0.082,-7.586,1406,138,120,1406,138,120],[110,"Kumanomae",0.249,-7.44,1405,138,120,1405,138,120],[141,"Higashi-ogu-sanchome",0.612,-7.124,1403,138,120,1403,138,120],[142,"Machiya-nichome",0.842,-6.935,1402,138,120,1402,138,120],[143,"Machiya-ekimae",1.247,-6.809,1401,138,120,1401,138,120],[144,"Arakawa-nanachome",1.547,-6.714,1399,138,120,1399,138,120],[145,"Arakawa-nichome",1.592,-6.344,1398,138,120,1398,138,120],[146,"Arakawakuyakushomae",1.747,-5.939,1396,138,120,1396,138,120],[147,"Arakawa-itchumae",1.966,-5.812,1395,138,120,1395,138,120],[138,"Minowabashi",2.207,-5.64,1394,138,120,1394,138,120]]},{"id":"TokyoMetro.Ginza","n":"銀座線","ja":"銀座線","en":"Ginza Line","c":"#FF9500","k":"G","o":"東京Metro","loop":false,"s":[[5,"Asakusa",2.774,-3.267,1464,148,5,1464,148,5],[149,"Tawaramachi",2.141,-3.167,1463,148,5,1463,148,5],[150,"Inaricho",1.408,-3.333,1461,148,5,1461,148,5],[151,"Ueno",0.812,-3.383,1470,148,151,1470,148,151],[152,"Ueno-hirokoji",0.534,-2.937,1468,148,151,1468,148,151],[153,"Suehirocho",0.422,-2.386,1467,148,151,1467,148,151],[154,"Kanda",0.343,-1.384,1465,148,151,1465,148,151],[155,"Mitsukoshimae",0.586,-0.66,1463,148,151,1463,148,151],[12,"Nihombashi",0.564,-0.075,1461,148,151,1461,148,151],[156,"Kyobashi",0.272,0.497,1460,148,151,1460,148,151],[157,"Ginza",-0.157,1.073,1458,148,151,1458,148,151],[16,"Shimbashi",-0.777,1.528,1456,148,151,1456,148,151],[158,"Toranomon",-1.535,1.221,1457,5,148,1457,5,148],[159,"Tameike-sanno",-2.275,1.071,1459,5,148,1459,5,148],[160,"Akasaka-mitsuke",-2.69,0.482,1460,5,148,1460,5,148],[94,"Aoyama-itchome",-3.884,0.93,1463,5,148,1463,5,148],[161,"Gaiemmae",-4.456,1.197,1464,5,148,1464,5,148],[162,"Omote-sando",-4.94,1.787,1466,5,148,1466,5,148],[148,"Shibuya",-5.846,2.455,1468,5,148,1468,5,148]]},{"id":"TokyoMetro.Marunouchi","n":"丸之內線","ja":"丸ノ内線","en":"Marunouchi Line","c":"#F62E36","k":"M","o":"東京Metro","loop":false,"s":[[163,"Ikebukuro",-5.059,-5.434,1470,164,163,1470,164,163],[165,"Shin-otsuka",-3.361,-4.931,1467,164,163,1467,164,163],[166,"Myogadani",-2.731,-3.981,1465,163,166,1465,163,166],[167,"Korakuen",-1.433,-2.89,1462,164,163,1462,164,163],[82,"Hongo-sanchome",-0.628,-2.822,1460,164,163,1460,164,163],[168,"Ochanomizu",-0.278,-2.141,1458,164,163,1458,164,163],[169,"Awajicho",0.032,-1.511,1456,164,163,1456,164,163],[34,"Otemachi",-0.081,-0.627,1454,164,163,1454,164,163],[170,"Tokyo",-0.208,-0.081,1453,164,163,1453,164,163],[157,"Ginza",-0.354,0.918,1453,163,52,1453,163,52],[171,"Kasumigaseki",-1.304,0.77,1456,163,52,1456,163,52],[172,"Kokkai-gijidomae",-1.947,0.737,1457,163,52,1457,163,52],[160,"Akasaka-mitsuke",-2.69,0.482,1460,163,52,1460,163,52],[173,"Yotsuya",-3.357,-0.37,1463,163,52,1463,163,52],[174,"Yotsuya-sanchome",-4.208,-0.749,1465,163,52,1465,163,52],[175,"Shinjuku-gyoemmae",-5.08,-0.81,1466,163,52,1466,163,52],[54,"Shinjuku-sanchome",-5.687,-1.103,1468,163,52,1468,163,52],[52,"Shinjuku",-6.018,-1.244,1469,163,52,1469,163,52],[176,"Nishi-shinjuku",-6.74,-1.472,1463,163,98,1463,163,98],[98,"Nakano-sakaue",-7.676,-1.756,1465,163,98,1465,163,98],[177,"Shin-nakano",-8.824,-1.8,1461,163,164,1461,163,164],[178,"Higashi-koenji",-9.838,-1.854,1463,163,164,1463,163,164],[179,"Shin-koenji",-10.723,-1.842,1464,163,164,1464,163,164],[180,"Minami-asagaya",-11.893,-2.018,1466,163,164,1466,163,164],[164,"Ogikubo",-13.323,-2.54,1469,163,164,1469,163,164]]},{"id":"TokyoMetro.MarunouchiBranch","n":"丸之內線（方南町支線）","ja":"丸ノ内線支線","en":"Marunouchi Branch Line","c":"#F62E36","k":"Mb","o":"東京Metro","loop":false,"s":[[98,"Nakano-sakaue",-7.676,-1.756,1466,164,181,1466,164,181],[182,"Nakano-Shimbashi",-8.418,-1.159,1468,164,181,1468,164,181],[181,"Nakano-fujimicho",-9.029,-1.044,1469,164,181,1469,164,181],[183,"Honancho",-9.871,-0.256,1465,98,183,1465,98,183]]},{"id":"TokyoMetro.Hibiya","n":"日比谷線","ja":"日比谷線","en":"Hibiya Line","c":"#B5B5AC","k":"H","o":"東京Metro","loop":false,"s":[[184,"Naka-meguro",-6.147,4.079,1477,185,184,1477,186,184],[187,"Ebisu",-5.281,3.777,1474,185,184,1474,186,184],[188,"Hiro-o",-4.059,3.284,1473,184,188,1473,184,188],[93,"Roppongi",-3.25,2.034,1468,185,184,1468,186,184],[189,"Kamiyacho",-1.994,2.016,1465,185,184,1465,186,184],[190,"Toranomon-hills",-1.748,1.518,1463,185,184,1463,186,184],[171,"Kasumigaseki",-1.45,0.81,1462,185,184,1462,186,184],[33,"Hibiya",-0.588,0.766,1459,185,184,1459,186,184],[157,"Ginza",-0.28,1.019,1458,185,184,1458,186,184],[15,"Higashi-ginza",0.048,1.335,1456,185,184,1456,186,184],[191,"Tsukiji",0.486,1.467,1454,185,184,1454,186,184],[192,"Hatchobori",0.925,0.645,1452,185,184,1452,186,184],[193,"Kayabacho",1.132,0.235,1453,184,194,1453,184,194],[9,"Ningyocho",1.378,-0.559,1455,184,194,1455,184,194],[195,"Kodemmacho",1.054,-1.02,1457,184,194,1457,184,194],[196,"Akihabara",0.762,-1.854,1459,184,194,1459,184,194],[197,"Naka-okachimachi",0.822,-2.815,1461,184,194,1461,184,194],[151,"Ueno",0.901,-3.357,1462,184,194,1462,184,194],[198,"Iriya",1.57,-4.353,1464,184,194,1464,184,194],[199,"Minowa",2.188,-5.346,1467,184,194,1467,184,194],[200,"Minami-senju",2.865,-5.651,1471,201,200,1469,201,200],[185,"Kita-senju",3.478,-7.586,1471,184,194,1471,184,194]]},{"id":"TokyoMetro.Tozai","n":"東西線","ja":"東西線","en":"Tozai Line","c":"#009BBF","k":"T","o":"東京Metro","loop":false,"s":[[202,"Nakano",-9.147,-2.712,1473,203,202,1473,203,202],[204,"Ochiai",-7.336,-3.255,1471,203,202,1471,203,202],[205,"Takadanobaba",-5.611,-3.547,1468,203,202,1468,203,202],[119,"Waseda",-4.151,-2.72,1465,203,202,1465,203,202],[206,"Kagurazaka",-2.946,-2.506,1462,203,202,1462,203,202],[81,"Iidabashi",-1.861,-2.234,1460,203,202,1460,203,202],[57,"Kudanshita",-1.432,-1.646,1458,203,202,1458,203,202],[207,"Takebashi",-0.853,-1.022,1456,203,202,1456,203,202],[34,"Otemachi",-0.097,-0.387,1453,202,208,1453,202,208],[12,"Nihombashi",0.633,-0.13,1455,202,208,1455,202,208],[193,"Kayabacho",1.1,0.094,1456,202,208,1456,202,208],[86,"Monzen-nakacho",2.622,1.029,1459,202,208,1459,202,208],[209,"Kiba",3.618,1.31,1461,202,208,1461,202,208],[210,"Toyocho",4.574,1.284,1472,203,210,1472,203,210],[211,"Minami-sunamachi",5.841,1.414,1470,203,210,1470,203,210],[212,"Nishi-kasai",8.364,1.84,1468,202,208,1468,202,208],[213,"Kasai",9.533,1.944,1471,202,208,1471,202,208],[214,"Urayasu",11.406,1.691,1473,202,208,1473,202,208],[215,"Minami-gyotoku",12.223,0.937,1475,202,208,1475,202,208],[216,"Gyotoku",13.3,-0.157,1477,202,208,1477,202,208],[208,"Myoden",14.213,-1.085,1479,202,208,1479,202,208],[217,"Baraki-nakayama",15.807,-2.444,1474,202,218,1469,202,203],[218,"Nishi-funabashi",17.375,-2.867,1477,202,218,1472,202,203]]},{"id":"TokyoMetro.Chiyoda","n":"千代田線","ja":"千代田線","en":"Chiyoda Line","c":"#00BB85","k":"C","o":"東京Metro","loop":false,"s":[[219,"Kita-ayase",5.877,-10.58,1466,220,219,1469,220,219],[220,"Ayase",5.218,-8.947,1491,185,221,1491,185,221],[185,"Kita-senju",3.373,-7.519,1488,185,221,1488,185,221],[222,"Machiya",1.171,-6.73,1472,223,221,1468,223,221],[108,"Nishi-nippori",-0.019,-5.656,1470,223,221,1466,223,221],[224,"Sendagi",-0.343,-4.925,1468,223,221,1464,223,221],[225,"Nezu",-0.122,-3.994,1466,223,221,1462,223,221],[226,"Yushima",0.261,-2.831,1464,223,221,1460,227,171],[228,"Shin-ochanomizu",-0.149,-1.739,1465,227,223,1462,227,171],[34,"Otemachi",-0.345,-0.448,1468,227,223,1465,227,171],[229,"Nijubashimae",-0.481,0.077,1469,227,223,1466,227,171],[33,"Hibiya",-0.754,0.801,1471,227,223,1468,227,171],[171,"Kasumigaseki",-1.386,0.955,1475,227,223,1470,227,171],[172,"Kokkai-gijidomae",-2.162,0.844,1476,227,223,1458,227,223],[230,"Akasaka",-2.775,1.006,1478,227,223,1460,227,223],[231,"Nogizaka",-3.696,1.615,1480,227,223,1462,227,223],[162,"Omote-sando",-5.041,1.719,1483,227,223,1465,227,223],[232,"Meiji-jingumae",-5.711,1.335,1485,227,223,1466,227,223],[233,"Yoyogi-koen",-6.99,1.337,1487,227,223,1468,227,223],[223,"Yoyogi-uehara",-7.905,1.342,1488,227,223,1470,227,223]]},{"id":"TokyoMetro.Yurakucho","n":"有樂町線","ja":"有楽町線","en":"Yurakucho Line","c":"#C1A470","k":"Y","o":"東京Metro","loop":false,"s":[[234,"Shin-kiba",5.381,3.916,1471,235,234,1471,236,234],[237,"Tatsumi",3.909,3.917,1469,235,234,1469,236,234],[238,"Toyosu",2.613,2.88,1466,235,234,1466,236,234],[87,"Tsukishima",1.565,1.823,1464,235,234,1464,236,234],[239,"Shintomicho",0.587,1.18,1462,235,234,1462,236,234],[240,"Ginza-itchome",-0.028,0.739,1460,235,234,1460,236,234],[241,"Yurakucho",-0.435,0.578,1458,235,234,1458,236,234],[242,"Sakuradamon",-1.376,0.414,1457,235,234,1457,236,234],[243,"Nagatacho",-2.29,0.365,1458,234,163,1458,234,163],[244,"Kojimachi",-2.69,-0.396,1459,234,163,1459,234,163],[56,"Ichigaya",-2.732,-1.258,1461,234,163,1461,234,163],[81,"Iidabashi",-2.16,-2.227,1463,234,163,1463,234,163],[245,"Edogawabashi",-3.031,-3.133,1466,234,163,1466,234,163],[246,"Gokokuji",-3.585,-4.199,1469,234,163,1469,234,163],[247,"Higashi-ikebukuro",-4.362,-4.948,1471,234,163,1471,234,163],[163,"Ikebukuro",-5.083,-5.306,1473,234,163,1473,234,163],[248,"Kanamecho",-6.205,-5.751,1455,234,236,1455,234,236],[249,"Senkawa",-7.026,-6.3,1457,234,236,1457,234,236],[250,"Kotake-mukaihara",-7.919,-6.877,1460,234,236,1460,234,236],[251,"Hikawadai",-9.19,-7.565,1462,234,236,1462,234,236],[252,"Heiwadai",-10.2,-8.443,1464,234,236,1464,234,236],[253,"Chikatetsu-akatsuka",-11.131,-9.817,1467,234,236,1467,234,236],[254,"Chikatetsu-narimasu",-12.291,-10.564,1469,234,236,1469,234,236],[236,"Wakoshi",-13.947,-11.848,1472,234,236,1472,234,236]]},{"id":"TokyoMetro.Hanzomon","n":"半藏門線","ja":"半蔵門線","en":"Hanzomon Line","c":"#8F76D6","k":"Z","o":"東京Metro","loop":false,"s":[[0,"Oshiage",4.217,-3.015,1479,255,0,1451,255,201],[256,"Kinshicho",4.327,-1.796,1476,255,0,1449,255,201],[66,"Sumiyoshi",4.392,-0.83,1475,255,0,1447,255,201],[76,"Kiyosumi-shirakawa",2.961,-0.102,1476,255,76,1456,255,76],[257,"Suitengumae",1.634,-0.199,1473,255,76,1454,255,76],[155,"Mitsukoshimae",0.541,-0.412,1470,255,76,1451,255,76],[34,"Otemachi",-0.198,-0.613,1469,255,76,1449,255,76],[35,"Jimbocho",-0.863,-1.639,1466,255,76,1451,201,258],[57,"Kudanshita",-1.445,-1.581,1467,0,148,1452,201,258],[259,"Hanzomon",-2.297,-0.462,1470,0,148,1455,201,258],[243,"Nagatacho",-2.553,0.309,1472,0,148,1457,201,258],[94,"Aoyama-itchome",-3.884,0.93,1474,0,148,1460,201,258],[162,"Omote-sando",-4.94,1.787,1477,0,148,1462,201,258],[148,"Shibuya",-5.974,2.405,1479,0,148,1464,201,258]]},{"id":"TokyoMetro.Namboku","n":"南北線","ja":"南北線","en":"Namboku Line","c":"#00AC9B","k":"N","o":"東京Metro","loop":false,"s":[[25,"Meguro",-4.67,5.333,1479,260,25,1479,260,25],[28,"Shirokanedai",-3.716,4.793,1476,260,25,1476,260,25],[29,"Shirokane-takanawa",-2.962,4.192,1474,260,25,1474,260,25],[92,"Azabu-juban",-2.718,2.918,1472,260,25,1472,260,25],[261,"Roppongi-itchome",-2.55,1.783,1469,260,25,1469,260,25],[159,"Tameike-sanno",-2.333,0.897,1467,260,25,1467,260,25],[243,"Nagatacho",-2.515,0.316,1466,260,25,1466,260,25],[173,"Yotsuya",-3.384,-0.54,1463,260,25,1463,260,25],[56,"Ichigaya",-2.783,-1.293,1475,260,56,1461,260,25],[81,"Iidabashi",-2.114,-2.248,1473,260,56,1459,260,25],[167,"Korakuen",-1.385,-3.006,1470,260,56,1461,262,263],[264,"Todaimae",-0.834,-4.071,1468,260,56,1463,262,263],[265,"Hon-komagome",-1.202,-4.773,1466,260,56,1465,262,263],[263,"Komagome",-1.826,-6.05,1477,260,263,1467,262,263],[266,"Nishigahara",-2.246,-7.159,1475,260,263,1464,260,263],[267,"Oji",-2.689,-8.101,1473,260,263,1463,29,268],[269,"Oji-kamiya",-2.845,-9.298,1474,262,270,1465,29,268],[271,"Shimo",-3.129,-10.706,1476,262,270,1467,29,268],[268,"Akabane-iwabuchi",-4.068,-11.295,1478,262,270,1469,29,268]]},{"id":"TokyoMetro.Fukutoshin","n":"副都心線","ja":"副都心線","en":"Fukutoshin Line","c":"#9C5E31","k":"F","o":"東京Metro","loop":false,"s":[[148,"Shibuya",-5.835,2.444,1471,236,148,1471,236,148],[232,"Meiji-jingumae",-5.594,1.437,1469,236,148,1469,236,148],[272,"Kita-sando",-5.573,0.298,1467,236,148,1467,236,148],[54,"Shinjuku-sanchome",-5.64,-1.04,1467,273,54,1467,273,54],[77,"Higashi-shinjuku",-5.358,-2.06,1462,236,148,1462,236,148],[274,"Nishi-waseda",-5.243,-2.942,1460,236,148,1460,236,148],[275,"Zoshigaya",-4.737,-4.312,1462,273,163,1462,273,163],[163,"Ikebukuro",-5.259,-5.522,1464,273,163,1464,273,163],[248,"Kanamecho",-6.205,-5.751,1453,273,236,1453,273,236],[249,"Senkawa",-7.026,-6.3,1455,273,236,1455,273,236],[250,"Kotake-mukaihara",-7.919,-6.877,1457,273,236,1457,273,236],[251,"Hikawadai",-9.19,-7.565,1459,273,236,1459,273,236],[252,"Heiwadai",-10.2,-8.443,1462,273,236,1462,273,236],[253,"Chikatetsu-akatsuka",-11.131,-9.816,1464,273,236,1464,273,236],[254,"Chikatetsu-narimasu",-12.291,-10.564,1467,273,236,1467,273,236],[236,"Wakoshi",-13.947,-11.848,1470,273,236,1470,273,236]]},{"id":"JR-East.Yamanote","n":"山手線","ja":"山手線","en":"Yamanote Line","c":"#80C342","k":"JY","o":"JR東日本","loop":true,"s":[[276,"Osaki",-3.521,6.746,1496,277,276,1496,277,276],[21,"Gotanda",-3.948,6.07,1495,277,276,1495,277,276],[25,"Meguro",-4.651,5.272,1493,277,276,1493,277,276],[187,"Ebisu",-5.178,3.828,1490,277,276,1490,277,276],[148,"Shibuya",-5.933,2.57,1488,277,276,1488,277,276],[278,"Harajuku",-5.831,1.096,1485,277,276,1485,277,276],[96,"Yoyogi",-5.882,-0.257,1483,277,276,1483,277,276],[52,"Shinjuku",-6.033,-0.993,1484,277,163,1484,277,163],[279,"Shin-Okubo",-6.058,-2.161,1487,277,163,1487,277,163],[205,"Takadanobaba",-5.732,-3.481,1489,277,163,1489,277,163],[280,"Mejiro",-5.506,-4.31,1491,277,163,1491,277,163],[163,"Ikebukuro",-5.078,-5.385,1503,277,163,1503,277,163],[281,"Otsuka",-3.546,-5.569,1501,277,163,1501,277,163],[41,"Sugamo",-2.422,-5.819,1499,277,163,1499,277,163],[263,"Komagome",-1.738,-6.152,1497,277,163,1497,277,163],[282,"Tabata",-0.507,-6.214,1494,277,163,1494,277,163],[108,"Nishi-Nippori",-0.031,-5.599,1492,277,163,1492,277,163],[106,"Nippori",0.346,-5.077,1490,277,163,1491,277,163],[283,"Uguisudani",0.974,-4.433,1488,277,163,1489,277,163],[151,"Ueno",0.873,-3.573,1486,277,163,1487,277,163],[284,"Okachimachi",0.673,-2.867,1484,277,163,1485,277,163],[196,"Akihabara",0.523,-1.884,1483,277,163,1483,277,163],[154,"Kanda",0.321,-1.147,1484,277,285,1484,277,285],[170,"Tokyo",-0.005,-0.011,1486,277,285,1486,277,285],[241,"Yurakucho",-0.382,0.695,1488,277,285,1488,277,285],[16,"Shimbashi",-0.834,1.647,1490,277,285,1490,277,285],[286,"Hamamatsucho",-0.909,2.846,1492,277,285,1492,277,285],[287,"Tamachi",-1.763,3.921,1495,277,285,1495,277,285],[288,"Takanawa Gateway",-2.391,5.065,1497,277,285,1497,277,285],[285,"Shinagawa",-2.567,5.794,1499,277,285,1499,277,285],[276,"Osaki",-3.521,6.746,1496,277,276,1496,277,276]]},{"id":"JR-East.ChuoRapid","n":"中央線（快速）","ja":"中央線快速","en":"Chuo Rapid Line","c":"#F15A22","k":"JC","o":"JR東日本","loop":false,"s":[[170,"Tokyo",-0.005,-0.011,1469,289,170,1469,289,170],[154,"Kanda",0.321,-1.147,1467,289,170,1467,289,170],[168,"Ochanomizu",-0.181,-2.007,1465,289,170,1465,289,170],[173,"Yotsuya",-3.32,-0.409,1459,289,170,1459,289,170],[52,"Shinjuku",-6.033,-0.993,1461,170,290,1461,170,290],[202,"Nakano",-9.147,-2.712,1465,170,290,1466,170,290],[291,"Koenji",-10.629,-2.651,1468,170,290,1468,170,290],[292,"Asagaya",-11.885,-2.59,1470,170,290,1470,170,290],[164,"Ogikubo",-13.291,-2.559,1472,170,290,1471,170,290],[293,"Nishi-Ogikubo",-15.175,-2.467,1474,170,290,1474,170,290],[294,"Kichijoji",-16.933,-2.405,1477,170,290,1475,170,290],[295,"Mitaka",-18.666,-2.375,1480,170,290,1479,170,290],[296,"Musashi-Sakai",-20.223,-2.282,1482,170,290,1481,170,290],[297,"Higashi-Koganei",-22.006,-2.251,1485,170,290,1484,170,290],[290,"Musashi-Koganei",-23.614,-2.19,1487,170,290,1486,170,290],[298,"Kokubunji",-25.873,-2.068,1482,170,299,1481,170,299],[300,"Nishi-Kokubunji",-27.23,-2.037,1484,170,299,1484,170,299],[301,"Kunitachi",-28.989,-1.975,1486,170,299,1486,170,299],[302,"Tachikawa",-31.952,-1.852,1490,170,299,1490,170,299],[303,"Hino",-33.785,0.297,1493,170,299,1493,170,299],[299,"Toyoda",-34.89,2.417,1496,170,299,1496,170,299],[304,"Hachioji",-38.707,2.847,1489,170,289,1487,170,289],[305,"Nishi-Hachioji",-41.168,2.785,1492,170,289,1490,170,289],[289,"Takao",-43.806,4.29,1495,170,289,1494,170,289]]},{"id":"JR-East.ChuoSobuLocal","n":"中央·總武線（各站停車）","ja":"中央・総武各駅停車","en":"Chuo Sobu Local Line","c":"#FFD400","k":"JB","o":"JR東日本","loop":false,"s":[[295,"Mitaka",-18.666,-2.375,1497,306,295,1497,306,295],[294,"Kichijoji",-16.933,-2.405,1495,306,295,1495,306,295],[293,"Nishi-Ogikubo",-15.175,-2.467,1492,306,295,1492,306,295],[164,"Ogikubo",-13.291,-2.559,1490,306,295,1490,306,295],[292,"Asagaya",-11.885,-2.59,1487,306,295,1487,306,295],[291,"Koenji",-10.629,-2.651,1486,295,202,1486,295,202],[202,"Nakano",-9.147,-2.712,1500,306,202,1500,306,202],[99,"Higashi-Nakano",-7.439,-2.743,1497,306,202,1497,306,202],[307,"Okubo",-6.309,-2.13,1495,306,202,1495,306,202],[52,"Shinjuku",-6.033,-0.993,1493,306,202,1493,306,202],[96,"Yoyogi",-5.882,-0.257,1491,306,202,1491,306,202],[308,"Sendagaya",-5.025,0.001,1489,306,202,1489,306,202],[309,"Shinanomachi",-4.174,0.143,1487,306,202,1487,306,202],[173,"Yotsuya",-3.32,-0.409,1485,306,202,1485,306,202],[56,"Ichigaya",-2.894,-1.086,1483,306,202,1483,306,202],[81,"Iidabashi",-2.015,-2.252,1481,306,202,1481,306,202],[36,"Suidobashi",-1.238,-2.308,1478,306,202,1478,306,202],[168,"Ochanomizu",-0.181,-2.007,1476,306,202,1476,306,202],[196,"Akihabara",0.523,-1.884,1474,306,202,1474,306,202],[6,"Asakusabashi",1.527,-1.791,1472,306,202,1472,306,202],[85,"Ryogoku",2.356,-1.608,1471,295,310,1471,295,310],[256,"Kinshicho",4.239,-1.699,1474,295,310,1474,295,310],[311,"Kameido",5.369,-1.761,1476,295,310,1476,295,310],[312,"Hirai",6.801,-2.774,1479,295,310,1479,295,310],[313,"Shin-Koiwa",8.208,-3.942,1481,295,310,1481,295,310],[314,"Koiwa",10.367,-5.754,1484,295,310,1484,295,310],[315,"Ichikawa",12.728,-5.262,1488,295,310,1488,295,310],[53,"Moto-Yawata",14.487,-4.372,1490,295,310,1490,295,310],[316,"Shimosa-Nakayama",15.893,-3.634,1492,295,310,1492,295,310],[218,"Nishi-Funabashi",17.375,-2.867,1495,295,310,1495,295,310],[317,"Funabashi",19.685,-2.253,1498,295,310,1498,295,310],[318,"Higashi-Funabashi",21.418,-2.038,1501,295,310,1501,295,310],[310,"Tsudanuma",22.875,-1.117,1504,295,310,1504,295,310],[319,"Makuharihongo",24.834,0.91,1488,295,306,1488,295,306],[320,"Makuhari",26.266,2.415,1491,295,306,1491,295,306],[321,"Shin-Kemigawa",27.688,3.245,1493,295,306,1493,295,306],[322,"Inage",29.43,4.872,1496,295,306,1496,295,306],[323,"Nishi-Chiba",30.385,6.468,1499,295,306,1499,295,306],[306,"Chiba",31.238,7.482,1501,295,306,1501,295,306]]},{"id":"JR-East.Ome","n":"青梅線","ja":"青梅線","en":"Ome Line","c":"#F15A22","k":"JC","o":"JR東日本","loop":false,"s":[[302,"Tachikawa",-31.952,-1.852,1468,324,302,1465,324,302],[325,"Nishi-Tachikawa",-33.81,-2.466,1467,170,324,1465,170,324],[326,"Higashi-Nakagami",-34.588,-2.773,1469,170,324,1467,170,324],[327,"Nakagami",-35.377,-3.076,1471,170,324,1469,170,324],[328,"Akishima",-36.648,-3.542,1473,170,324,1471,170,324],[329,"Haijima",-38.306,-4.432,1477,170,324,1475,170,324],[330,"Ushihama",-39.185,-5.845,1479,170,324,1477,170,324],[331,"Fussa",-39.738,-6.766,1481,170,324,1479,170,324],[332,"Hamura",-40.767,-8.454,1484,170,324,1482,170,324],[333,"Ozaku",-42.048,-10.481,1487,170,324,1485,170,324],[334,"Kabe",-43.68,-11.433,1490,170,324,1488,170,324],[335,"Higashi-Ome",-44.71,-11.986,1492,170,324,1490,170,324],[324,"Ome",-46.041,-12.079,1495,170,324,1493,170,324],[336,"Miyanohira",-47.926,-11.74,1421,324,337,1425,324,337],[338,"Hinatawada",-48.603,-11.863,1423,324,337,1427,324,337],[339,"Ishigamimae",-49.011,-12.779,1425,324,337,1429,324,337],[340,"Futamatao",-49.846,-13.609,1427,324,337,1432,324,337],[341,"Ikusabata",-50.587,-13.983,1430,324,337,1434,324,337]]},{"id":"JR-East.Itsukaichi","n":"五日市線","ja":"五日市線","en":"Itsukaichi Line","c":"#F15A22","k":"JC","o":"JR東日本","loop":false,"s":[[329,"Haijima",-38.306,-4.432,1458,302,342,1458,302,342],[343,"Kumagawa",-39.009,-5.199,1461,302,342,1461,302,342],[344,"Higashi-Akiru",-41.169,-4.923,1464,302,342,1464,302,342],[345,"Akigawa",-43.43,-5.168,1467,302,342,1467,302,342],[346,"Musashi-Hikida",-44.987,-5.353,1470,302,342,1470,302,342],[347,"Musashi-Masuko",-46.192,-5.475,1472,302,342,1472,302,342],[342,"Musashi-Itsukaichi",-48.729,-5.598,1476,302,342,1476,302,342]]},{"id":"JR-East.Tokaido","n":"東海道線","ja":"東海道線","en":"Tokaido Line","c":"#F68B1E","k":"JT","o":"JR東日本","loop":false,"s":[[170,"Tokyo",-0.005,-0.011,1434,170,348,1434,170,348],[16,"Shimbashi",-0.834,1.647,1437,170,348,1437,170,348],[285,"Shinagawa",-2.567,5.794,1465,349,285,1465,349,285],[350,"Kawasaki",-6.359,16.573,1456,349,285,1456,349,285],[351,"Yokohama",-13.09,23.821,1464,170,348,1464,170,348],[352,"Totsuka",-21.05,31.038,1475,170,348,1475,170,348]]},{"id":"JR-East.Utsunomiya","n":"宇都宮線","ja":"宇都宮線","en":"Utsunomiya Line","c":"#F68B1E","k":"JU","o":"JR東日本","loop":false,"s":[[170,"Tokyo",-0.005,-0.011,1412,170,353,1412,170,353],[151,"Ueno",0.873,-3.573,1441,354,151,1441,354,151],[355,"Oku",-1.211,-7.228,1435,354,151,1435,354,151],[356,"Akabane",-4.175,-10.667,1431,354,151,1431,354,151],[357,"Urawa",-9.927,-19.603,1438,170,353,1438,170,353],[358,"Saitama-Shintoshin",-12.086,-23.504,1442,170,353,1442,170,353],[359,"Omiya",-12.915,-24.886,1448,170,353,1448,170,353],[360,"Toro",-12.212,-27.711,1451,170,353,1451,170,353],[361,"Higashi-Omiya",-11.484,-29.523,1454,170,353,1454,170,353],[362,"Hasuda",-10.329,-33.147,1458,170,353,1458,170,353]]},{"id":"JR-East.Takasaki","n":"高崎線","ja":"高崎線","en":"Takasaki Line","c":"#F68B1E","k":"JU","o":"JR東日本","loop":false,"s":[[170,"Tokyo",-0.005,-0.011,1399,170,363,1399,170,363],[151,"Ueno",0.873,-3.573,1454,363,151,1454,363,151],[355,"Oku",-1.211,-7.228,1448,363,151,1448,363,151],[356,"Akabane",-4.175,-10.667,1444,363,151,1444,363,151],[357,"Urawa",-9.927,-19.603,1445,151,364,1445,151,364],[358,"Saitama-Shintoshin",-12.086,-23.504,1449,151,364,1449,151,364],[359,"Omiya",-12.915,-24.886,1454,151,364,1454,151,364],[365,"Miyahara",-14.271,-28.632,1459,151,364,1459,151,364],[366,"Ageo",-16.13,-32.255,1463,151,364,1463,151,364],[367,"Kita-Ageo",-17.11,-33.577,1466,151,364,1466,151,364],[368,"Okegawa",-18.366,-35.082,1469,151,364,1469,151,364]]},{"id":"JR-East.KeihinTohokuNegishi","n":"京濱東北線·根岸線","ja":"京浜東北線・根岸線","en":"Keihin-Tohoku-Negishi Line","c":"#00B2E5","k":"JK","o":"JR東日本","loop":false,"s":[[359,"Omiya",-12.915,-24.886,1491,369,359,1491,369,359],[358,"Saitama-Shintoshin",-12.086,-23.504,1489,369,359,1489,369,359],[370,"Yono",-11.584,-22.459,1487,369,359,1487,369,359],[371,"Kita-Urawa",-10.956,-21.108,1485,369,359,1485,369,359],[357,"Urawa",-9.927,-19.603,1482,369,359,1482,369,359],[372,"Minami-Urawa",-8.871,-18.405,1500,369,372,1500,369,372],[373,"Warabi",-6.926,-16.235,1496,369,372,1496,369,372],[374,"Nishi-Kawaguchi",-5.707,-14.843,1493,369,372,1493,369,372],[375,"Kawaguchi",-4.501,-13.308,1491,369,372,1491,369,372],[356,"Akabane",-4.175,-10.667,1487,369,372,1487,369,372],[376,"Higashi-Jujo",-3.647,-9.131,1485,369,372,1485,369,372],[267,"Oji",-2.618,-7.842,1482,369,372,1482,369,372],[377,"Kami-Nakazato",-1.914,-7.258,1480,369,372,1480,369,372],[282,"Tabata",-0.507,-6.214,1478,369,372,1478,369,372],[108,"Nishi-Nippori",-0.031,-5.599,1476,369,372,1476,369,372],[106,"Nippori",0.346,-5.077,1474,369,372,1474,369,372],[283,"Uguisudani",0.974,-4.433,1472,369,372,1472,369,372],[151,"Ueno",0.873,-3.573,1491,369,151,1491,369,151],[284,"Okachimachi",0.673,-2.867,1489,369,151,1489,369,151],[196,"Akihabara",0.523,-1.884,1487,369,151,1487,369,151],[154,"Kanda",0.321,-1.147,1485,369,151,1485,369,151],[170,"Tokyo",-0.005,-0.011,1483,369,151,1483,369,151],[241,"Yurakucho",-0.382,0.695,1481,369,151,1481,369,151],[16,"Shimbashi",-0.834,1.647,1479,369,151,1479,369,151],[286,"Hamamatsucho",-0.909,2.846,1479,359,378,1479,359,378],[287,"Tamachi",-1.763,3.921,1482,359,378,1482,359,378],[288,"Takanawa Gateway",-2.391,5.065,1484,359,378,1484,359,378],[285,"Shinagawa",-2.567,5.794,1486,359,378,1486,359,378],[379,"Oimachi",-2.918,8.251,1489,359,378,1489,359,378],[380,"Omori",-3.546,10.217,1492,359,378,1492,359,378],[378,"Kamata",-4.651,13.164,1496,359,378,1496,359,378],[350,"Kawasaki",-6.359,16.573,1474,369,378,1474,369,378],[381,"Tsurumi",-8.242,19.122,1470,369,378,1470,369,378],[382,"Shin-Koyasu",-10.226,21.487,1471,359,383,1471,359,383],[384,"Higashi-Kanagawa",-12.11,22.501,1475,359,383,1475,359,383],[351,"Yokohama",-13.09,23.821,1477,359,383,1477,359,383],[383,"Sakuragicho",-12.311,25.48,1481,359,383,1481,359,383],[385,"Kannai",-11.859,26.216,1480,359,386,1480,359,386],[387,"Ishikawacho",-11.206,26.831,1482,359,386,1482,359,386],[388,"Yamate",-10.914,28.119,1484,359,386,1484,359,386],[389,"Negishi",-11.859,29.349,1488,359,386,1488,359,386],[386,"Isogo",-13.466,31.038,1491,359,386,1491,359,386],[390,"Shin-Sugita",-13.365,32.512,1483,359,369,1484,359,369],[391,"Yokodai",-15.4,33.464,1487,359,369,1487,359,369],[392,"Konandai",-17.258,33.833,1489,359,369,1490,359,369],[393,"Hongodai",-19.644,34.663,1492,359,369,1493,359,369]]},{"id":"JR-East.JobanRapid","n":"常磐線（快速）","ja":"常磐線快速","en":"Joban Rapid Line","c":"#00B261","k":"JJ","o":"JR東日本","loop":false,"s":[[285,"Shinagawa",-2.567,5.794,1403,394,285,1403,394,285],[16,"Shimbashi",-0.834,1.647,1381,285,395,1381,285,395],[170,"Tokyo",-0.005,-0.011,1395,394,285,1395,394,285],[151,"Ueno",0.873,-3.573,1476,396,151,1476,396,151],[106,"Nippori",0.346,-5.077,1476,151,221,1476,151,221],[397,"Mikawashima",0.873,-5.753,1478,151,221,1478,151,221],[200,"Minami-Senju",2.908,-5.846,1481,151,221,1481,151,221],[185,"Kita-Senju",3.411,-7.596,1483,151,221,1483,151,221],[221,"Matsudo",12.075,-11.404,1492,151,221,1492,151,221],[398,"Kashiwa",18.429,-19.973,1480,151,227,1480,151,227],[227,"Abiko",22.021,-21.171,1485,151,227,1485,151,227],[399,"Tennodai",24.758,-21.14,1475,151,396,1475,151,396],[396,"Toride",26.742,-23.69,1479,151,396,1479,151,396]]},{"id":"JR-East.JobanLocal","n":"常磐線（各站停車）","ja":"常磐線各駅停車","en":"Joban Local Line","c":"#A8A39D","k":"JL","o":"JR東日本","loop":false,"s":[[220,"Ayase",5.218,-8.947,1492,185,221,1492,185,221],[400,"Kameari",7.253,-9.408,1494,185,221,1494,185,221],[401,"Kanamachi",9.313,-9.746,1497,185,221,1497,185,221],[221,"Matsudo",12.075,-11.404,1502,185,221,1502,185,221],[402,"Kita-Matsudo",13.054,-13.185,1487,227,221,1487,227,221],[403,"Mabashi",13.557,-14.383,1485,227,221,1485,227,221],[404,"Shim-Matsudo",13.908,-15.95,1483,223,227,1483,223,227],[405,"Kita-Kogane",14.787,-16.779,1485,223,227,1485,223,227],[406,"Minami-Kashiwa",16.922,-18.069,1488,223,227,1488,223,227],[398,"Kashiwa",18.429,-19.973,1491,223,227,1491,223,227],[407,"Kita-Kashiwa",19.961,-21.478,1494,223,227,1494,223,227],[227,"Abiko",22.021,-21.171,1497,223,227,1497,223,227]]},{"id":"JR-East.SobuRapid","n":"總武線（快速）","ja":"総武快速線","en":"Sobu Rapid Line","c":"#007AC1","k":"JO","o":"JR東日本","loop":false,"s":[[170,"Tokyo",-0.005,-0.011,1469,408,170,1469,408,170],[409,"Shin-Nihombashi",0.646,-0.865,1466,408,170,1466,408,170],[410,"Bakurocho",1.376,-1.331,1464,408,170,1464,408,170],[256,"Kinshicho",4.239,-1.699,1461,408,170,1461,408,170],[313,"Shin-Koiwa",8.208,-3.942,1455,408,170,1455,408,170],[315,"Ichikawa",12.728,-5.262,1459,411,306,1459,411,306],[317,"Funabashi",19.685,-2.253,1465,411,306,1465,411,306],[310,"Tsudanuma",22.875,-1.117,1469,411,306,1469,411,306],[322,"Inage",29.43,4.872,1476,411,306,1476,411,306],[306,"Chiba",31.238,7.482,1480,411,306,1480,411,306],[412,"Tsuga",34.529,4.994,1459,408,306,1459,408,306],[413,"Yotsukaido",35.96,2.046,1455,408,306,1455,408,306]]},{"id":"JR-East.Yokosuka","n":"橫須賀線","ja":"横須賀線","en":"Yokosuka Line","c":"#007AC1","k":"JO","o":"JR東日本","loop":false,"s":[[170,"Tokyo",-0.005,-0.011,1440,411,306,1440,411,306],[16,"Shimbashi",-0.834,1.647,1437,411,306,1437,411,306],[285,"Shinagawa",-2.567,5.794,1467,411,285,1467,411,285],[414,"Nishi-Oi",-4.149,8.895,1462,411,285,1462,411,285],[415,"Musashi-Kosugi",-9.509,11.674,1457,411,285,1457,411,285],[416,"Shin-Kawasaki",-8.644,14.332,1454,411,285,1454,411,285],[351,"Yokohama",-13.09,23.821,1463,306,369,1463,306,369],[417,"Hodogaya",-15.099,25.879,1466,306,369,1466,306,369],[418,"Higashi-Totsuka",-19.041,27.814,1471,306,369,1471,306,369],[352,"Totsuka",-21.05,31.038,1475,306,369,1475,306,369]]},{"id":"JR-East.Sobu","n":"總武本線","ja":"総武本線","en":"Sobu Line","c":"#A8A39D","k":"JO","o":"JR東日本","loop":false,"s":[[306,"Chiba",31.238,7.482,1452,419,306,1452,419,306],[420,"Higashi-Chiba",32.117,7.082,1450,419,306,1450,419,306],[412,"Tsuga",34.529,4.994,1451,306,421,1451,306,421],[413,"Yotsukaido",35.96,2.046,1455,306,421,1455,306,421]]},{"id":"JR-East.Keiyo","n":"京葉線","ja":"京葉線","en":"Keiyo Line","c":"#C9252F","k":"JE","o":"JR東日本","loop":false,"s":[[170,"Tokyo",-0.005,-0.011,1478,422,170,1478,422,170],[192,"Hatchobori",0.985,0.728,1477,422,170,1477,422,170],[423,"Etchujima",2.356,1.556,1474,422,170,1474,422,170],[424,"Shiomi",4.49,2.477,1471,170,425,1471,170,425],[234,"Shin-Kiba",5.369,3.89,1475,170,425,1475,170,425],[426,"Kasairinkaikoen",8.534,4.073,1478,170,425,1478,170,425],[427,"Maihama",10.543,4.994,1481,170,425,1481,170,425],[428,"Shin-Urayasu",13.13,3.521,1484,170,425,1484,170,425],[429,"Ichikawashiohama",14.11,1.647,1487,170,425,1487,170,425],[430,"Futamatashimmachi",17.375,-1.086,1491,170,425,1491,170,425],[431,"Minami-Funabashi",20.665,-0.042,1494,170,425,1494,170,425],[425,"Shin-Narashino",22.222,1.555,1498,170,425,1498,170,425],[432,"Makuharitoyosuna",23.519,2.576,1481,170,422,1481,170,422],[433,"Kaihimmakuhari",24.834,3.612,1484,170,422,1484,170,422],[434,"Kemigawahama",26.392,4.872,1486,170,422,1486,170,422],[435,"Inagekaigan",27.723,5.732,1488,170,422,1488,170,422],[436,"Chibaminato",30.35,8.225,1492,170,422,1492,170,422],[422,"Soga",32.871,10.952,1496,170,422,1496,170,422]]},{"id":"JR-East.SaikyoKawagoe","n":"埼京線·川越線","ja":"埼京線・川越線","en":"Saikyo-Kawagoe Line","c":"#00B48D","k":"JA","o":"JR東日本","loop":false,"s":[[276,"Osaki",-3.521,6.746,1422,437,276,1422,356,276],[187,"Ebisu",-5.178,3.828,1419,234,437,1419,234,437],[148,"Shibuya",-5.933,2.57,1421,234,437,1421,234,437],[52,"Shinjuku",-6.033,-0.993,1443,437,52,1443,437,52],[163,"Ikebukuro",-5.078,-5.385,1494,356,163,1494,356,163],[438,"Itabashi",-4.35,-7.043,1490,356,163,1490,356,163],[439,"Jujo",-4.06,-8.751,1488,356,163,1488,356,163],[356,"Akabane",-4.175,-10.667,1485,356,163,1485,356,163],[440,"Kita-Akabane",-5.556,-11.681,1455,52,359,1455,52,359],[441,"Ukimafunado",-6.862,-12.141,1457,52,359,1457,52,359],[442,"Toda-Koen",-8.042,-14.015,1460,52,359,1460,52,359],[443,"Toda",-8.846,-15.089,1462,52,359,1462,52,359],[444,"Kita-Toda",-9.599,-16.102,1464,52,359,1464,52,359],[445,"Musashi-Urawa",-10.78,-18.222,1467,52,359,1467,52,359],[446,"Naka-Urawa",-11.732,-19.093,1469,52,359,1469,52,359],[447,"Minami-Yono",-12.312,-20.555,1471,52,359,1471,52,359],[448,"Yono-Hommachi",-12.764,-22.06,1474,52,359,1474,52,359],[449,"Kita-Yono",-12.538,-23.166,1475,52,359,1475,52,359],[359,"Omiya",-12.915,-24.886,1479,52,359,1479,52,359],[450,"Nisshin",-14.572,-27.68,1471,234,437,1471,234,437],[451,"Nishi-Omiya",-16.945,-26.65,1474,234,437,1474,234,437],[452,"Sashiogi",-18.29,-26.053,1477,234,437,1477,234,437],[453,"Minami-Furuya",-22.434,-24.579,1481,234,437,1481,234,437],[437,"Kawagoe",-25.674,-24.916,1486,234,437,1486,234,437]]},{"id":"JR-East.ShonanShinjuku","n":"湘南新宿線","ja":"湘南新宿ライン","en":"Shonan-Shinjuku Line","c":"#E31F26","k":"JS","o":"JR東日本","loop":false,"s":[[359,"Omiya",-12.915,-24.886,1445,454,364,1445,454,364],[357,"Urawa",-9.927,-19.603,1439,454,364,1439,454,364],[356,"Akabane",-4.175,-10.667,1431,454,364,1431,454,364],[163,"Ikebukuro",-5.078,-5.385,1420,454,364,1420,454,364],[52,"Shinjuku",-6.033,-0.993,1413,454,364,1413,454,364],[148,"Shibuya",-5.933,2.57,1407,454,364,1407,454,364],[187,"Ebisu",-5.178,3.828,1405,454,364,1405,454,364],[276,"Osaki",-3.521,6.746,1400,454,364,1400,454,364],[414,"Nishi-Oi",-4.149,8.895,1365,369,353,1361,354,369],[415,"Musashi-Kosugi",-9.509,11.674,1398,363,454,1398,363,454],[416,"Shin-Kawasaki",-8.644,14.332,1368,354,369,1369,354,369],[351,"Yokohama",-13.09,23.821,1412,363,454,1412,363,454],[417,"Hodogaya",-15.099,25.879,1381,354,369,1381,354,369],[418,"Higashi-Totsuka",-19.041,27.814,1385,354,369,1386,354,369],[352,"Totsuka",-21.05,31.038,1423,363,454,1423,363,454]]},{"id":"JR-East.Nambu","n":"南武線","ja":"南武線","en":"Nambu Line","c":"#FFD400","k":"JN","o":"JR東日本","loop":false,"s":[[350,"Kawasaki",-6.359,16.573,1466,350,455,1466,350,455],[456,"Shitte",-7.514,16.635,1469,350,455,1469,350,455],[457,"Yako",-7.841,15.683,1470,350,455,1470,350,455],[458,"Kashimada",-8.343,14.362,1473,350,455,1473,350,455],[459,"Hirama",-8.694,13.349,1474,350,455,1474,350,455],[460,"Mukaigawara",-9.021,12.028,1476,350,455,1476,350,455],[415,"Musashi-Kosugi",-9.509,11.674,1478,350,455,1478,350,455],[455,"Musashi-Nakahara",-11.432,11.046,1483,302,455,1483,302,455],[461,"Musashi-Shinjo",-12.462,10.4,1480,302,455,1480,302,455],[462,"Musashi-Mizonokuchi",-14.07,9.142,1477,302,455,1477,302,455],[463,"Tsudayama",-15.058,8.559,1475,302,455,1475,302,455],[464,"Kuji",-15.727,7.883,1473,302,455,1473,302,455],[465,"Shukugawara",-16.958,7.299,1473,350,466,1473,350,466],[466,"Noborito",-17.786,6.716,1475,350,466,1475,350,466],[467,"Nakanoshima",-19.552,5.651,1466,302,455,1466,302,455],[468,"Inadazutsumi",-20.901,5.303,1464,350,469,1464,350,469],[470,"Yanokuchi",-22.307,4.382,1466,350,469,1466,350,469],[469,"Inaginaganuma",-23.939,4.105,1469,350,469,1469,350,469],[471,"Minami-Tama",-25.095,3.553,1457,302,455,1457,302,455],[472,"Fuchuhommachi",-26.225,1.711,1458,350,302,1458,350,302],[473,"Bubaigawara",-26.978,1.434,1460,350,302,1460,350,302],[474,"Nishifu",-28.003,1.162,1462,350,302,1462,350,302],[475,"Yaho",-28.988,-0.01,1464,350,302,1464,350,302],[476,"Yagawa",-30.344,-0.409,1467,350,302,1467,350,302],[477,"Nishi-Kunitachi",-31.047,-1.361,1469,350,302,1469,350,302],[302,"Tachikawa",-31.952,-1.852,1471,350,302,1471,350,302]]},{"id":"JR-East.Musashino","n":"武藏野線","ja":"武蔵野線","en":"Musashino Line","c":"#F15A22","k":"JM","o":"JR東日本","loop":false,"s":[[218,"Nishi-Funabashi",17.375,-2.867,1477,472,425,1477,472,425],[478,"Funabashihoten",18.053,-5.416,1473,472,425,1473,472,425],[479,"Ichikawaono",16.671,-8.18,1470,472,425,1470,472,425],[480,"Higashi-Matsudo",15.867,-9.808,1468,472,425,1468,472,425],[481,"Shin-Yahashira",15.483,-12.256,1465,472,425,1465,472,425],[404,"Shim-Matsudo",13.908,-15.95,1462,472,425,1462,472,425],[482,"Minami-Nagareyama",12.376,-17.301,1460,170,483,1460,170,483],[484,"Misato",10.819,-18.068,1462,170,483,1462,170,483],[485,"Shim-Misato",9.243,-19.629,1465,170,483,1465,170,483],[486,"Yoshikawaminami",8.207,-20.679,1467,170,483,1467,170,483],[487,"Yoshikawa",6.901,-21.6,1469,170,483,1469,170,483],[488,"Koshigaya Laketown",4.977,-21.581,1471,170,483,1471,170,483],[489,"Minami-Koshigaya",2.154,-21.539,1491,472,489,1491,472,489],[490,"Higashi-Kawaguchi",-2.091,-21.446,1486,472,489,1486,472,489],[491,"Higashi-Urawa",-5.682,-20.187,1482,472,489,1482,472,489],[372,"Minami-Urawa",-8.871,-18.405,1486,170,483,1486,170,483],[445,"Musashi-Urawa",-10.78,-18.222,1489,170,483,1489,170,483],[492,"Nishi-Urawa",-12.614,-18.006,1491,170,483,1491,170,483],[493,"Kita-Asaka",-16.255,-14.843,1496,170,483,1496,170,483],[494,"Niiza",-19.068,-13.554,1499,170,483,1499,170,483],[483,"Higashi-Tokorozawa",-22.861,-12.571,1503,170,483,1503,170,483],[495,"Shin-Akitsu",-24.744,-10.728,1454,472,489,1454,472,489],[496,"Shin-Kodaira",-26.803,-5.506,1449,472,489,1449,472,489],[300,"Nishi-Kokubunji",-27.23,-2.037,1446,472,489,1446,472,489],[497,"Kita-Fuchu",-26.703,0.052,1449,170,472,1448,170,472],[472,"Fuchuhommachi",-26.225,1.711,1451,170,472,1451,170,472]]},{"id":"JR-East.Yokohama","n":"橫濱線","ja":"横浜線","en":"Yokohama Line","c":"#80C342","k":"JH","o":"JR東日本","loop":false,"s":[[384,"Higashi-Kanagawa",-12.11,22.501,1474,304,384,1474,304,384],[498,"Oguchi",-10.929,20.903,1471,304,384,1471,304,384],[499,"Kikuna",-12.386,18.969,1468,304,384,1467,304,384],[262,"Shin-Yokohama",-13.532,19.254,1466,304,384,1465,304,384],[500,"Kozukue",-15.149,19.092,1463,304,384,1463,304,384],[501,"Kamoi",-18.163,18.847,1459,384,502,1459,384,502],[503,"Nakayama",-20.624,18.417,1462,384,502,1462,384,502],[504,"Tokaichiba",-22.649,17.127,1465,384,502,1465,384,502],[505,"Nagatsuta",-24.592,16.543,1468,384,502,1468,384,502],[506,"Naruse",-26.627,16.144,1471,384,502,1471,384,502],[507,"Machida",-29.013,15.438,1475,384,502,1475,384,502],[508,"Kobuchi",-31.5,13.841,1478,384,502,1478,384,502],[509,"Fuchinobe",-33.609,12.49,1481,384,502,1481,384,502],[510,"Yabe",-34.413,11.968,1483,384,502,1483,384,502],[511,"Sagamihara",-35.87,11.046,1485,384,502,1485,384,502],[502,"Hashimoto",-38.155,9.572,1489,384,502,1489,384,502],[512,"Aihara",-39.385,8.221,1460,383,304,1460,383,304],[513,"Hachiojiminamino",-39.411,5.458,1463,383,304,1463,383,304],[514,"Katakura",-38.506,4.598,1466,383,304,1466,383,304],[304,"Hachioji",-38.707,2.847,1469,383,304,1469,383,304]]},{"id":"JR-East.Tsurumi","n":"鶴見線","ja":"鶴見線","en":"Tsurumi Line","c":"#FFD400","k":"JI","o":"JR東日本","loop":false,"s":[[515,"Ogimachi",-4.048,19.859,1375,515,381,1375,515,381],[516,"Showa",-3.897,19.307,1376,515,381,1376,515,381],[517,"Hama-Kawasaki",-4.852,18.907,1416,517,381,1416,517,381],[518,"Musashi-Shiraishi",-5.48,19.829,1418,517,381,1418,517,381],[519,"Anzen",-5.957,20.074,1420,517,381,1420,517,381],[520,"Asano",-6.484,20.321,1421,517,381,1421,517,381],[521,"Bentembashi",-7.037,20.504,1423,517,381,1423,517,381],[522,"Tsurumiono",-7.765,20.381,1425,517,381,1425,517,381],[523,"Kokudo",-8.267,19.982,1427,517,381,1427,517,381],[381,"Tsurumi",-8.242,19.122,1429,517,381,1429,517,381]]},{"id":"JR-East.Hachiko","n":"八高線","ja":"八高線","en":"Hachiko Line","c":"#A8A39D","k":"八","o":"JR東日本","loop":false,"s":[[304,"Hachioji",-38.707,2.847,1410,437,304,1410,437,304],[524,"Kita-Hachioji",-36.523,1.342,1408,304,525,1407,437,304],[526,"Komiya",-36.045,-0.501,1411,304,525,1404,437,304],[329,"Haijima",-38.306,-4.432,1419,304,525,1419,304,525],[527,"Higashi-Fussa",-39.009,-7.134,1423,304,525,1423,304,525],[528,"Hakonegasaki",-38.03,-10.021,1427,304,525,1427,304,525],[529,"Kaneko",-39.663,-14.32,1433,304,525,1433,304,525],[530,"Higashi-Hanno",-39.889,-18.988,1438,304,525,1438,304,525],[525,"Komagawa",-38.809,-23.779,1444,304,525,1444,304,525],[531,"Moro",-41.421,-28.693,1351,525,60,1351,525,60],[532,"Ogose",-42.325,-31.119,1355,525,60,1355,525,60]]},{"id":"JR-East.Sagami","n":"相模線","ja":"相模線","en":"Sagami Line","c":"#009793","k":"相","o":"JR東日本","loop":false,"s":[[502,"Hashimoto",-38.155,9.572,1479,533,502,1479,533,502],[534,"Minami-Hashimoto",-37.502,11.17,1476,533,502,1476,533,502],[535,"Kamimizo",-36.547,13.687,1472,533,502,1472,533,502],[536,"Banda",-36.547,15.039,1470,533,502,1470,533,502],[537,"Harataima",-35.442,16.851,1467,533,502,1467,533,502],[538,"Shimomizo",-34.965,18.048,1465,533,502,1465,533,502],[539,"Sobudaishita",-34.437,20.844,1461,533,502,1461,533,502],[198,"Iriya",-33.935,22.44,1458,533,502,1458,533,502],[540,"Ebina",-34.161,25.112,1455,533,502,1455,533,502],[541,"Atsugi",-35.141,26.279,1457,502,533,1457,502,533],[542,"Shake",-35.266,28.828,1461,502,533,1461,502,533],[543,"Kadosawabashi",-34.99,30.364,1464,502,533,1464,502,533],[544,"Kurami",-35.14,31.653,1466,502,533,1466,502,533],[545,"Miyayama",-35.04,33.066,1468,502,533,1468,502,533],[546,"Samukawa",-34.336,34.694,1471,502,533,1471,502,533]]},{"id":"TWR.Rinkai","n":"臨海線","ja":"りんかい線","en":"Rinkai Line","c":"#00418E","k":"R","o":"第三部門","loop":false,"s":[[234,"Shin-kiba",5.396,3.888,1446,276,234,1446,276,234],[547,"Shinonome",3.271,4.489,1444,276,234,1444,276,234],[548,"Kokusai-tenjijo",2.218,5.156,1442,276,234,1442,276,234],[549,"Tokyo Teleport",1.062,5.933,1469,276,549,1469,276,549],[550,"Tennozu Isle",-1.47,6.725,1466,276,549,1466,276,549],[551,"Shinagawa Seaside",-1.576,7.986,1464,276,549,1464,276,549],[379,"Oimachi",-2.926,8.159,1461,276,549,1461,276,549],[276,"Osaki",-3.521,6.746,1458,276,549,1458,276,549]]},{"id":"Tokyu.Toyoko","n":"東急東橫線","ja":"東横線","en":"Toyoko Line","c":"#DA0442","k":"TY","o":"東急","loop":false,"s":[[148,"Shibuya",-5.835,2.444,1472,273,148,1472,273,148],[552,"Daikan-yama",-5.788,3.666,1469,273,148,1469,273,148],[184,"Naka-meguro",-6.147,4.079,1467,553,554,1467,553,554],[555,"Yutenji",-6.891,4.834,1469,553,554,1469,553,554],[556,"Gakugei-daigaku",-7.388,5.775,1471,553,554,1471,553,554],[557,"Toritsu-daigaku",-8.242,7.078,1473,553,554,1473,553,554],[558,"Jiyugaoka",-8.913,8.166,1477,553,554,1477,553,554],[559,"Den-en-chofu",-9.025,9.322,1478,553,554,1478,553,554],[560,"Tamagawa",-8.882,10.17,1480,553,554,1480,553,554],[561,"Shin-maruko",-9.509,11.157,1482,553,554,1482,553,554],[415,"Musashi-kosugi",-9.722,11.668,1484,553,554,1484,553,554],[554,"Motosumiyoshi",-10.227,12.891,1486,553,554,1486,553,554],[27,"Hiyoshi",-10.847,14.044,1479,273,554,1479,273,554],[562,"Tsunashima",-11.986,16.004,1479,553,499,1477,236,499],[563,"Okurayama",-12.402,17.616,1482,553,499,1479,236,499],[499,"Kikuna",-12.294,18.94,1484,553,499,1482,236,499],[564,"Myorenji",-12.112,20.204,1476,273,499,1476,273,499],[565,"Hakuraku",-12.54,21.246,1477,236,351,1477,236,351],[566,"Higashi-hakuraku",-12.443,21.88,1478,236,351,1478,236,351],[567,"Tammachi",-12.827,22.831,1480,236,351,1480,236,351],[351,"Yokohama",-13.102,23.748,1482,236,351,1482,236,351]]},{"id":"Tokyu.DenEnToshi","n":"東急田園都市線","ja":"田園都市線","en":"Den-En-Toshi Line","c":"#20A288","k":"DT","o":"東急","loop":false,"s":[[148,"Shibuya",-5.974,2.405,1468,255,148,1468,255,148],[568,"Ikejiriohashi",-7.546,3.392,1468,201,258,1468,201,258],[569,"Sangen-jaya",-8.847,4.097,1470,201,258,1470,201,258],[570,"Komazawa-daigaku",-9.535,5.211,1473,201,258,1473,201,258],[571,"Sakura-shimmachi",-11.043,5.44,1475,201,258,1475,201,258],[572,"Yoga",-12.019,6.089,1477,201,258,1477,201,258],[573,"Futako-tamagawa",-12.649,7.626,1480,201,258,1480,201,258],[574,"Futako-shinchi",-13.082,8.19,1482,201,258,1482,201,258],[575,"Takatsu",-13.6,8.64,1483,201,258,1483,201,258],[576,"Mizonokuchi",-14.149,8.982,1485,201,258,1485,201,258],[577,"Kajigaya",-14.595,9.666,1487,201,258,1487,201,258],[578,"Miyazakidai",-15.862,10.356,1489,201,258,1489,201,258],[579,"Miyamaedaira",-16.778,10.644,1490,201,258,1490,201,258],[258,"Saginuma",-17.564,11.242,1493,201,258,1493,201,258],[580,"Tama-plaza",-18.855,11.476,1479,201,505,1479,201,505],[581,"Azamino",-19.306,12.454,1481,201,505,1481,201,505],[582,"Eda",-19.49,13.564,1483,201,505,1483,201,505],[583,"Ichigao",-20.428,14.352,1484,201,505,1484,201,505],[584,"Fujigaoka",-21.618,15.212,1486,201,505,1486,201,505],[585,"Aobadai",-22.583,15.291,1488,201,505,1488,201,505],[586,"Tana",-23.715,16.007,1490,201,505,1490,201,505],[505,"Nagatsuta",-24.651,16.487,1493,201,505,1493,201,505],[587,"Tsukushino",-25.555,17.236,1482,0,255,1482,0,255],[588,"Suzukakedai",-25.767,18.108,1484,0,255,1484,0,255],[589,"Minami Machida Grandberry Park",-26.797,18.775,1486,0,255,1486,0,255],[590,"Tsukimino",-27.945,18.894,1487,0,255,1487,0,255],[255,"Chuo-rinkan",-29.142,19.22,1490,0,255,1490,0,255]]},{"id":"Tokyu.Meguro","n":"東急目黑線","ja":"目黒線","en":"Meguro Line","c":"#009CD2","k":"MG","o":"東急","loop":false,"s":[[25,"Meguro",-4.67,5.333,1478,262,25,1478,262,25],[591,"Fudo-mae",-4.838,6.129,1475,262,25,1475,262,25],[592,"Musashi-koyama",-5.659,6.695,1474,260,593,1474,260,593],[594,"Nishi-koyama",-6.168,7.238,1475,260,593,1475,260,593],[595,"Senzoku",-6.581,7.839,1477,260,593,1477,260,593],[596,"Ookayama",-7.366,8.15,1479,260,593,1479,260,593],[593,"Okusawa",-8.59,8.566,1481,260,593,1481,260,593],[559,"Den-en-chofu",-9.025,9.322,1478,597,593,1478,597,593],[560,"Tamagawa",-8.882,10.17,1476,260,415,1476,25,415],[561,"Shin-maruko",-9.509,11.157,1478,260,415,1478,25,415],[415,"Musashi-kosugi",-9.722,11.668,1480,260,415,1480,25,415],[554,"Motosumiyoshi",-10.227,12.891,1479,26,27,1477,26,27],[27,"Hiyoshi",-10.847,14.044,1481,26,27,1479,26,27]]},{"id":"Tokyu.TokyuShinYokohama","n":"東急新橫濱線","ja":"東急新横浜線","en":"Tokyu-Shin-Yokohama Line","c":"#5D4D8D","k":"SH","o":"東急","loop":false,"s":[[27,"Hiyoshi",-10.847,14.044,1468,597,593,1468,597,593],[598,"Shin-Tsunashima",-11.845,16.072,1469,268,262,1469,260,262],[262,"Shin-Yokohama",-13.544,19.053,1473,268,262,1473,260,262]]},{"id":"Tokyu.Oimachi","n":"東急大井町線","ja":"大井町線","en":"Oimachi Line","c":"#F18C43","k":"OM","o":"東急","loop":false,"s":[[379,"Oimachi",-2.897,8.139,1485,576,379,1485,576,379],[599,"Shimo-shimmei",-3.689,8.004,1482,576,379,1482,576,379],[600,"Togoshi-koen",-4.434,8.005,1481,576,379,1481,576,379],[23,"Nakanobu",-4.925,8.351,1480,576,379,1480,576,379],[601,"Ebara-machi",-5.353,8.561,1478,576,379,1478,576,379],[602,"Hatanodai",-5.805,8.449,1477,576,379,1477,576,379],[603,"Kita-senzoku",-6.681,8.279,1475,576,379,1475,576,379],[596,"Ookayama",-7.366,8.151,1474,576,379,1474,576,379],[604,"Midorigaoka",-7.955,8.265,1472,379,573,1472,379,573],[558,"Jiyugaoka",-8.913,8.166,1477,379,573,1477,379,573],[605,"Kuhombutsu",-9.552,8.388,1479,379,573,1479,379,573],[606,"Oyamadai",-10.281,8.185,1480,379,573,1480,379,573],[607,"Todoroki",-10.81,8.043,1482,379,573,1482,379,573],[608,"Kaminoge",-11.572,7.669,1483,379,573,1483,379,573],[573,"Futako-tamagawa",-12.649,7.626,1486,379,573,1486,379,573],[574,"Futako-shinchi",-13.082,8.19,1462,379,258,1462,379,258],[575,"Takatsu",-13.6,8.64,1464,379,258,1464,379,258],[576,"Mizonokuchi",-14.149,8.982,1479,379,576,1477,379,576]]},{"id":"Tokyu.Ikegami","n":"東急池上線","ja":"池上線","en":"Ikegami Line","c":"#EE86A7","k":"IK","o":"東急","loop":false,"s":[[21,"Gotanda",-3.689,6.076,1478,378,21,1478,378,21],[609,"Osakihirokoji",-4.014,6.466,1476,378,21,1476,378,21],[610,"Togoshi-ginza",-4.732,7.234,1476,21,611,1476,21,611],[612,"Ebara-nakanobu",-4.984,7.872,1477,21,611,1477,21,611],[602,"Hatanodai",-5.805,8.449,1479,21,611,1479,21,611],[613,"Nagahara",-6.276,8.735,1481,21,611,1481,21,611],[614,"Senzoku-ike",-6.844,8.986,1482,21,611,1482,21,611],[615,"Ishikawa-dai",-7.372,9.31,1483,21,611,1483,21,611],[611,"Yukigayaotsuka",-7.789,9.862,1485,21,611,1485,21,611],[616,"Ontakesan",-7.681,10.599,1482,378,611,1482,378,611],[617,"Kugahara",-7.392,11.208,1480,378,611,1480,378,611],[618,"Chidoricho",-6.831,11.988,1479,378,611,1479,378,611],[619,"Ikegami",-5.805,12.058,1478,21,378,1478,21,378],[620,"Hasunuma",-5.29,12.916,1480,21,378,1480,21,378],[378,"Kamata",-4.744,13.215,1483,21,378,1483,21,378]]},{"id":"Tokyu.TokyuTamagawa","n":"東急多摩川線","ja":"東急多摩川線","en":"Tokyu-Tamagawa Line","c":"#AE0378","k":"TM","o":"東急","loop":false,"s":[[560,"Tamagawa",-8.882,10.17,1484,378,560,1484,378,560],[621,"Numabe",-8.487,10.925,1482,378,560,1482,378,560],[622,"Unoki",-7.819,11.713,1480,378,560,1480,378,560],[623,"Shimomaruko",-7.355,12.166,1479,378,560,1479,378,560],[624,"Musashi-nitta",-6.767,12.523,1478,560,378,1478,560,378],[625,"Yaguchi-no-watashi",-6.06,13.178,1480,560,378,1480,560,378],[378,"Kamata",-4.744,13.215,1483,560,378,1483,560,378]]},{"id":"Tokyu.Kodomonokuni","n":"東急兒童之國線","ja":"こどもの国線","en":"Kodomonokuni Line","c":"#0068B7","k":"KD","o":"東急","loop":false,"s":[[626,"Kodomonokuni",-25.38,13.582,1455,626,505,1395,626,505],[627,"Onda",-24.881,14.995,1458,626,505,1398,626,505],[505,"Nagatsuta",-24.65,16.487,1463,626,505,1403,626,505]]},{"id":"Tokyu.Setagaya","n":"東急世田谷線","ja":"世田谷線","en":"Setagaya Line","c":"#FCC70D","k":"SG","o":"東急","loop":false,"s":[[569,"Sangen-jaya",-8.847,4.097,1478,569,628,1478,569,628],[629,"Nishi-taishido",-9.138,4.02,1479,569,628,1479,569,628],[630,"Wakabayashi",-9.695,3.892,1481,569,628,1481,569,628],[631,"Shoin-jinja-mae",-10.114,4.113,1483,569,628,1483,569,628],[632,"Setagaya",-10.524,4.173,1484,569,628,1484,569,628],[628,"Kamimachi",-10.894,4.178,1486,569,628,1486,569,628],[633,"Miyanosaka",-11.046,3.684,1484,634,628,1484,634,628],[635,"Yamashita",-10.897,3.023,1482,634,628,1482,634,628],[636,"Matsubara",-11.311,2.338,1479,634,628,1479,634,628],[634,"Shimo-takaido",-11.368,1.66,1477,634,628,1477,634,628]]},{"id":"Odakyu.Odawara","n":"小田急小田原線","ja":"小田原線","en":"Odawara Line","c":"#2288CC","k":"OH","o":"小田急","loop":false,"s":[[52,"Shinjuku",-6.108,-1.07,1489,637,52,1489,637,52],[638,"Minami-Shinjuku",-6.202,-0.251,1487,637,52,1487,637,52],[639,"Sangubashi",-6.651,0.275,1486,52,640,1486,52,640],[641,"Yoyogi-Hachiman",-7.095,1.296,1488,52,640,1488,52,640],[223,"Yoyogi-Uehara",-7.905,1.342,1490,52,640,1490,52,640],[642,"Higashi-Kitazawa",-8.489,1.725,1492,52,640,1492,52,640],[643,"Shimo-Kitazawa",-9.0,2.162,1494,52,640,1494,52,640],[644,"Setagaya-Daita",-9.593,2.556,1495,52,640,1495,52,640],[645,"Umegaoka",-10.263,2.784,1497,52,640,1497,52,640],[646,"Gotokuji",-10.828,3.036,1498,52,640,1498,52,640],[640,"Kyodo",-11.798,3.312,1500,52,640,1500,52,640],[647,"Chitose-Funabashi",-12.939,3.735,1493,637,640,1493,637,640],[648,"Soshigaya-Okura",-14.232,4.194,1491,637,640,1491,637,640],[649,"Seijogakuen-Mae",-15.186,4.539,1490,52,650,1490,52,650],[651,"Kitami",-16.298,4.941,1492,52,650,1492,52,650],[652,"Komae",-17.166,5.422,1493,52,650,1493,52,650],[653,"Izumi-Tamagawa",-17.489,5.94,1495,52,650,1495,52,650],[466,"Noborito",-17.872,6.652,1497,52,650,1497,52,650],[650,"Mukogaoka-Yuen",-18.318,7.075,1498,52,650,1498,52,650],[654,"Ikuta",-20.335,7.319,1493,52,655,1493,52,655],[656,"Yomiuri Land Mae",-21.629,7.345,1495,52,655,1495,52,655],[657,"Yurigaoka",-22.689,7.977,1497,52,655,1497,52,655],[655,"Shin-Yurigaoka",-23.454,8.554,1499,52,655,1499,52,655],[658,"Kakio",-24.369,10.123,1484,52,659,1484,52,659],[660,"Tsurukawa",-25.837,10.851,1486,52,659,1486,52,659],[661,"Tamagawagakuen-Mae",-27.469,13.034,1489,52,659,1489,52,659],[507,"Machida",-29.11,15.177,1493,52,659,1493,52,659],[659,"Sagami-Ono",-29.792,16.498,1495,52,659,1495,52,659],[662,"Odakyu-Sagamihara",-31.151,18.362,1486,52,540,1486,52,540],[663,"Sobudai-Mae",-32.435,20.131,1489,52,540,1489,52,540],[664,"Zama",-33.2,22.17,1491,52,540,1491,52,540],[540,"Ebina",-34.017,25.265,1495,52,540,1495,52,540],[541,"Atsugi",-35.199,26.33,1483,52,637,1483,52,637],[637,"Hon-Atsugi",-36.423,26.74,1485,52,637,1485,52,637],[665,"Aiko-Ishida",-38.263,29.142,1468,349,507,1468,349,507],[666,"Isehara",-41.015,31.535,1465,349,507,1465,349,507],[667,"Tsurumaki-Onsen",-44.248,33.2,1462,52,349,1462,52,349],[668,"Tokaidaigaku-Mae",-44.838,34.062,1464,52,349,1464,52,349],[669,"Hadano",-48.948,34.382,1469,52,349,1469,52,349]]},{"id":"Odakyu.Tama","n":"小田急多摩線","ja":"多摩線","en":"Tama Line","c":"#2288CC","k":"OT","o":"小田急","loop":false,"s":[[655,"Shin-Yurigaoka",-23.454,8.554,1485,52,670,1485,52,670],[671,"Satsukidai",-24.726,8.963,1487,52,670,1487,52,670],[672,"Kurihira",-25.879,8.316,1489,52,670,1489,52,670],[673,"Kurokawa",-26.784,7.534,1491,52,670,1491,52,670],[674,"Haruhino",-27.359,6.891,1492,52,670,1492,52,670],[675,"Odakyu-Nagayama",-28.827,5.676,1495,52,670,1495,52,670],[676,"Odakyu Tama Center",-30.985,6.22,1497,52,670,1497,52,670],[670,"Karakida",-32.189,7.229,1499,52,670,1499,52,670]]},{"id":"Odakyu.Enoshima","n":"小田急江之島線","ja":"江ノ島線","en":"Enoshima Line","c":"#2288CC","k":"OE","o":"小田急","loop":false,"s":[[659,"Sagami-Ono",-29.792,16.498,1500,677,659,1500,677,659],[678,"Higashi-Rinkan",-29.677,17.767,1497,677,659,1497,677,659],[255,"Chuo-Rinkan",-29.206,19.2,1495,677,659,1495,677,659],[679,"Minami-Rinkan",-28.855,20.507,1493,677,659,1493,677,659],[680,"Tsuruma",-28.597,21.118,1492,677,659,1492,677,659],[681,"Yamato",-27.642,23.362,1489,677,659,1489,677,659],[682,"Sakuragaoka",-27.25,25.502,1486,677,659,1486,677,659],[683,"Koza-Shibuya",-27.346,27.52,1484,677,659,1484,677,659],[684,"Chogo",-27.278,29.709,1481,677,659,1481,677,659],[685,"Shonandai",-27.175,31.5,1479,677,659,1479,677,659],[686,"Mutsuai-Nichidai-Mae",-26.789,32.908,1480,659,677,1480,659,677],[687,"Zengyo",-26.571,35.207,1483,659,677,1483,659,677]]},{"id":"Keio.Keio","n":"京王線","ja":"京王線","en":"Keiō Line","c":"#DD0077","k":"KO","o":"京王","loop":false,"s":[[52,"Shinjuku",-6.143,-0.994,1458,52,688,1458,52,688],[58,"Sasazuka",-9.035,0.834,1487,52,689,1487,52,689],[690,"Daitabashi",-9.738,1.119,1488,52,689,1488,52,689],[691,"Meidaimae",-10.538,1.42,1490,52,689,1490,52,689],[634,"Shimo-takaido",-11.309,1.669,1492,52,689,1492,52,689],[689,"Sakurajōsui",-12.265,1.499,1494,52,689,1494,52,689],[692,"Kami-kitazawa",-12.992,1.367,1476,688,689,1475,688,689],[693,"Hachiman-yama",-13.8,1.23,1475,53,694,1475,53,694],[695,"Roka-kōen",-14.364,1.181,1477,53,694,1477,53,694],[696,"Chitose-karasuyama",-15.075,1.477,1478,53,694,1478,53,694],[697,"Sengawa",-16.444,2.081,1480,53,694,1480,53,694],[698,"Tsutsujigaoka",-17.353,2.565,1482,53,694,1482,53,694],[699,"Shibasaki",-18.128,3.009,1484,53,694,1484,53,694],[700,"Kokuryō",-18.868,3.43,1485,53,694,1485,53,694],[701,"Fuda",-19.475,3.465,1487,53,694,1487,53,694],[702,"Chōfu",-20.106,3.254,1489,53,694,1489,53,694],[703,"Nishi-chōfu",-21.484,2.64,1481,52,704,1481,52,704],[705,"Tobitakyū",-22.012,2.346,1483,52,704,1483,52,704],[706,"Musashinodai",-23.13,1.886,1485,52,704,1485,52,704],[707,"Tama-reien",-23.96,1.641,1486,52,704,1486,52,704],[708,"Higashi-fuchū",-24.568,1.374,1487,52,704,1487,52,704],[709,"Fuchū",-25.951,0.996,1490,52,704,1490,52,704],[473,"Bubaigawara",-27.012,1.448,1492,52,704,1492,52,704],[710,"Nakagawara",-27.977,2.396,1494,52,704,1494,52,704],[711,"Seiseki-sakuragaoka",-28.948,3.361,1497,52,704,1497,52,704],[712,"Mogusaen",-30.357,2.634,1499,52,704,1499,52,704],[704,"Takahatafudō",-32.01,2.092,1501,52,704,1501,52,704],[713,"Minamidaira",-33.865,2.881,1493,52,688,1493,52,688],[714,"Hirayamajōshi-kōen",-35.012,3.747,1495,52,688,1495,52,688],[715,"Naganuma",-36.279,4.248,1497,52,688,1497,52,688],[716,"Kitano",-37.337,4.06,1499,52,688,1499,52,688],[688,"Keiō-hachiōji",-38.345,2.565,1502,52,688,1502,52,688]]},{"id":"Keio.Sagamihara","n":"京王相模原線","ja":"相模原線","en":"Sagamihara Line","c":"#DD0077","k":"KO","o":"京王","loop":false,"s":[[702,"Chōfu",-20.106,3.254,1490,53,694,1489,53,694],[717,"Keiō-tamagawa",-20.868,4.1,1492,53,694,1492,53,694],[718,"Keiō-inadazutsumi",-21.262,5.2,1494,53,694,1494,53,694],[719,"Keiō-yomiuri-land",-22.588,5.333,1495,53,694,1495,53,694],[720,"Inagi",-24.138,4.982,1498,53,694,1497,53,694],[694,"Wakabadai",-26.653,6.838,1501,53,694,1501,53,694],[721,"Keiō-nagayama",-28.835,5.635,1494,502,694,1494,502,694],[722,"Keiō-tama-center",-31.009,6.19,1492,502,694,1492,502,694],[723,"Keiō-horinouchi",-33.165,6.272,1490,502,694,1490,502,694],[724,"Minami-ōsawa",-35.018,7.421,1487,502,694,1487,502,694],[725,"Tamasakai",-36.184,8.786,1485,502,694,1485,502,694],[502,"Hashimoto",-38.299,9.508,1487,52,502,1487,52,502]]},{"id":"Keio.Takao","n":"京王高尾線","ja":"高尾線","en":"Takao Line","c":"#DD0077","k":"KO","o":"京王","loop":false,"s":[[716,"Kitano",-37.337,4.06,1489,716,289,1489,716,289],[726,"Keiō-katakura",-38.894,4.073,1491,716,289,1491,716,289],[727,"Yamada",-40.359,4.073,1493,716,289,1493,716,289],[728,"Mejirodai",-41.471,4.154,1495,716,289,1495,716,289],[729,"Hazama",-42.811,4.49,1497,716,289,1497,716,289],[289,"Takao",-43.895,4.37,1499,716,289,1499,716,289],[730,"Takaosanguchi",-44.965,5.398,1484,716,730,1484,716,730]]},{"id":"Keio.Keibajo","n":"京王競馬場線","ja":"競馬場線","en":"Keibajō Line","c":"#DD0077","k":"KO","o":"京王","loop":false,"s":[[708,"Higashi-fuchū",-24.568,1.374,1324,731,708,1324,731,708],[731,"Fuchūkeiba-seimommae",-25.494,1.42,1322,731,708,1322,731,708]]},{"id":"Keio.Dobutsuen","n":"京王動物園線","ja":"動物園線","en":"Dōbutsuen Line","c":"#DD0077","k":"KO","o":"京王","loop":false,"s":[[704,"Takahatafudō",-32.01,2.092,1429,732,704,1429,732,704],[732,"Tama-dōbutsukōen",-32.696,3.501,1425,732,704,1425,732,704]]},{"id":"Keio.Inokashira","n":"京王井之頭線","ja":"井の頭線","en":"Inokashira Line","c":"#000088","k":"IN","o":"京王","loop":false,"s":[[148,"Shibuya",-6.09,2.507,1470,148,733,1470,148,733],[734,"Shinsen",-6.689,2.657,1471,148,733,1471,148,733],[735,"Komaba-tōdaimae",-7.507,2.491,1473,148,733,1473,148,733],[736,"Ikenoue",-8.467,2.303,1474,148,733,1474,148,733],[643,"Shimo-kitazawa",-9.09,2.167,1477,148,733,1477,148,733],[737,"Shindaita",-9.559,2.068,1478,148,733,1478,148,733],[738,"Higashi-matsubara",-10.074,2.052,1480,148,733,1479,148,733],[691,"Meidaimae",-10.554,1.34,1482,148,733,1482,148,733],[739,"Eifukuchō",-11.251,0.551,1484,148,733,1484,148,733],[740,"Nishi-eifuku",-11.93,0.257,1486,148,733,1486,148,733],[741,"Hamadayama",-12.616,-0.042,1487,148,733,1487,148,733],[742,"Takaido",-13.732,-0.228,1489,148,733,1489,148,733],[733,"Fujimigaoka",-14.459,-0.399,1491,148,733,1491,148,733],[743,"Kugayama",-15.171,-0.767,1484,294,733,1484,294,733],[744,"Mitakadai",-16.077,-1.2,1485,148,294,1485,148,294],[745,"Inokashira-kōen",-16.636,-1.78,1486,148,294,1486,148,294],[294,"Kichijōji",-16.89,-2.332,1488,148,294,1488,148,294]]},{"id":"Seibu.Ikebukuro","n":"西武池袋線","ja":"池袋線","en":"Ikebukuro Line","c":"#FF6600","k":"SI","o":"西武","loop":false,"s":[[163,"Ikebukuro",-5.008,-5.272,1458,163,746,1458,163,746],[747,"Shiinamachi",-6.535,-5.02,1461,163,746,1461,163,746],[748,"Higashi-Nagasaki",-7.604,-5.419,1463,163,746,1463,163,746],[749,"Ekoda",-8.531,-6.21,1465,163,746,1465,163,746],[750,"Sakuradai",-9.466,-6.363,1466,163,746,1466,163,746],[103,"Nerima",-10.267,-6.262,1468,163,746,1468,163,746],[751,"Nakamurabashi",-11.694,-6.148,1471,163,746,1471,163,746],[752,"Fujimidai",-12.397,-6.048,1472,163,746,1472,163,746],[753,"Nerima-Takanodai",-13.603,-6.59,1475,163,746,1475,163,746],[754,"Shakujii-Koen",-14.475,-6.892,1477,163,746,1477,163,746],[755,"Oizumi-Gakuen",-16.326,-7.554,1479,163,746,1479,163,746],[746,"Hoya",-18.045,-7.421,1481,163,746,1481,163,746],[756,"Hibarigaoka",-20.036,-7.781,1473,163,553,1473,163,553],[757,"Higashi-Kurume",-21.084,-8.747,1475,163,553,1475,163,553],[758,"Kiyose",-22.352,-10.053,1478,163,553,1478,163,553],[759,"Akitsu",-24.447,-10.735,1480,163,553,1480,163,553],[760,"Tokorozawa",-26.568,-11.609,1484,163,553,1484,163,553],[761,"Nishi-Tokorozawa",-28.13,-11.947,1488,163,553,1488,163,553],[553,"Kotesashi",-29.757,-13.197,1490,163,553,1490,163,553],[762,"Sayamagaoka",-31.68,-14.29,1476,163,763,1459,163,763],[764,"Musashi-Fujisawa",-32.057,-15.48,1479,163,763,1461,163,763],[765,"Inariyama-Koen",-33.339,-18.127,1482,163,763,1464,163,763],[766,"Irumashi",-34.141,-17.775,1484,163,763,1466,163,763],[767,"Bushi",-36.808,-17.323,1488,163,763,1470,163,763],[768,"Motokaji",-38.099,-17.616,1490,163,763,1472,163,763],[763,"Hanno",-40.515,-18.777,1493,163,763,1475,163,763],[530,"Higashi-Hanno",-39.892,-18.954,1426,763,769,1425,763,769],[770,"Koma",-41.838,-22.165,1431,763,769,1430,763,769],[771,"Musashi-Yokote",-43.976,-22.574,1435,763,769,1434,763,769],[772,"Higashi-Agano",-45.792,-23.307,1440,763,769,1439,763,769],[769,"Agano",-48.863,-25.123,1445,763,769,1444,763,769]]},{"id":"Seibu.Toshima","n":"西武豐島線","ja":"豊島線","en":"Toshima Line","c":"#FF6600","k":"SI","o":"西武","loop":false,"s":[[103,"Nerima",-10.267,-6.262,1424,104,163,1424,104,163],[104,"Toshimaen",-10.777,-6.715,1422,104,163,1422,104,163]]},{"id":"Seibu.SeibuYurakucho","n":"西武有樂町線","ja":"西武有楽町線","en":"Seibu-Yurakucho Line","c":"#FF6600","k":"SI","o":"西武","loop":false,"s":[[250,"Kotake-Mukaihara",-7.919,-6.877,1453,273,746,1453,250,746],[773,"Shin-Sakuradai",-8.935,-6.579,1456,273,746,1456,250,746],[103,"Nerima",-10.267,-6.262,1458,273,746,1458,250,746]]},{"id":"Seibu.Shinjuku","n":"西武新宿線","ja":"新宿線","en":"Shinjuku Line","c":"#0099CC","k":"SS","o":"西武","loop":false,"s":[[774,"Seibu-Shinjuku",-6.067,-1.663,1457,774,775,1457,774,775],[205,"Takadanobaba",-5.455,-3.419,1460,774,775,1460,774,775],[776,"Shimo-Ochiai",-6.506,-3.83,1463,774,775,1463,774,775],[100,"Nakai",-7.22,-3.743,1465,774,775,1465,774,775],[777,"Araiyakushi-Mae",-8.609,-3.817,1467,774,775,1467,774,775],[778,"Numabukuro",-9.336,-4.222,1469,774,775,1469,774,775],[779,"Nogata",-10.343,-4.244,1471,774,775,1471,774,775],[780,"Toritsu-Kasei",-11.079,-4.539,1473,774,775,1473,774,775],[781,"Saginomiya",-11.589,-4.568,1474,774,775,1474,774,775],[782,"Shimo-Igusa",-12.911,-4.718,1476,774,775,1476,774,775],[783,"Iogi",-13.785,-4.792,1478,774,775,1478,774,775],[784,"Kami-Igusa",-14.787,-4.855,1480,774,775,1480,774,775],[775,"Kami-Shakujii",-15.826,-4.979,1481,774,775,1481,774,775],[785,"Musashi-Seki",-17.199,-5.123,1472,774,786,1472,774,786],[787,"Higashi-Fushimi",-18.344,-5.248,1474,774,786,1474,774,786],[788,"Seibu-Yagisawa",-19.395,-5.243,1476,774,786,1476,774,786],[789,"Tanashi",-20.603,-5.103,1478,774,786,1478,774,786],[790,"Hana-Koganei",-22.956,-4.967,1481,774,786,1481,774,786],[791,"Kodaira",-25.211,-6.171,1485,774,786,1485,774,786],[792,"Kumegawa",-26.622,-7.565,1487,774,786,1487,774,786],[793,"Higashi-Murayama",-27.24,-8.766,1489,774,786,1489,774,786],[760,"Tokorozawa",-26.568,-11.609,1493,774,786,1493,774,786],[794,"Koku-Koen",-27.253,-12.959,1496,774,786,1496,774,786],[786,"Shin-Tokorozawa",-28.12,-13.882,1498,774,786,1497,774,786],[795,"Iriso",-30.726,-16.726,1476,774,796,1459,774,796],[797,"Sayamashi",-32.018,-19.429,1479,774,796,1463,774,796],[798,"Shin-Sayama",-30.165,-21.316,1482,774,796,1465,774,796],[799,"Minami-Otsuka",-28.283,-23.064,1485,774,796,1468,774,796],[796,"Hon-Kawagoe",-25.836,-25.752,1489,774,796,1472,774,796]]},{"id":"Seibu.Haijima","n":"西武拜島線","ja":"拝島線","en":"Haijima Line","c":"#0099CC","k":"SS","o":"西武","loop":false,"s":[[791,"Kodaira",-25.211,-6.171,1457,791,329,1444,791,329],[800,"Hagiyama",-26.191,-6.546,1459,791,329,1447,791,329],[801,"Ogawa",-27.45,-6.223,1462,791,329,1451,791,329],[802,"Higashi-Yamatoshi",-30.091,-5.712,1466,791,329,1455,791,329],[803,"Tamagawa-Josui",-31.544,-5.608,1468,791,329,1457,791,329],[804,"Musashi-Sunagawa",-33.897,-5.287,1472,791,329,1460,791,329],[805,"Seibu-Tachikawa",-35.883,-4.966,1474,791,329,1463,791,329],[329,"Haijima",-38.225,-4.424,1477,791,329,1466,791,329]]},{"id":"Seibu.Tamako","n":"西武多摩湖線","ja":"多摩湖線","en":"Tamako Line","c":"#FFCC33","k":"ST","o":"西武","loop":false,"s":[[298,"Kokubunji",-25.95,-2.114,1462,298,800,1434,298,806],[807,"Hitotsubashi-Gakuen",-25.954,-4.528,1465,298,800,1437,298,806],[808,"Ome-Kaido",-26.273,-5.462,1467,298,800,1439,298,806],[800,"Hagiyama",-26.191,-6.546,1469,298,800,1442,298,806],[809,"Yasaka",-27.095,-7.068,1464,298,806,1444,298,806],[810,"Musashi-Yamato",-29.201,-8.312,1467,298,806,1448,298,806],[806,"Tamako",-29.339,-9.373,1469,298,806,1450,298,806]]},{"id":"Seibu.Kokubunji","n":"西武國分寺線","ja":"国分寺線","en":"Kokubunji Line","c":"#33CC66","k":"SK","o":"西武","loop":false,"s":[[298,"Kokubunji",-25.95,-2.114,1461,298,793,1442,298,793],[811,"Koigakubo",-27.394,-3.286,1464,298,793,1445,298,793],[812,"Takanodai",-27.675,-4.665,1467,298,793,1447,298,793],[801,"Ogawa",-27.45,-6.223,1469,298,793,1451,298,793],[793,"Higashi-Murayama",-27.24,-8.766,1472,298,793,1454,298,793]]},{"id":"Seibu.Seibuen","n":"西武園線","ja":"西武園線","en":"Seibuen Line","c":"#33CC66","k":"SK","o":"西武","loop":false,"s":[[793,"Higashi-Murayama",-27.24,-8.766,1410,793,813,1410,793,813],[813,"Seibuen",-28.779,-9.575,1414,793,813,1413,793,813]]},{"id":"Seibu.Tamagawa","n":"西武多摩川線","ja":"多摩川線","en":"Tamagawa Line","c":"#FF6600","k":"SW","o":"西武","loop":false,"s":[[296,"Musashi-Sakai",-20.173,-2.295,1467,296,814,1467,296,814],[815,"Shin-Koganei",-21.753,-1.621,1469,296,814,1469,296,814],[816,"Tama",-22.597,0.437,1472,296,814,1472,296,814],[817,"Shiraitodai",-23.26,1.625,1474,296,814,1474,296,814],[818,"Kyoteijo-Mae",-24.191,2.778,1477,296,814,1477,296,814],[814,"Koremasa",-25.168,2.752,1479,296,814,1479,296,814]]},{"id":"Tobu.TobuSkytree","n":"東武晴空塔線","ja":"東武スカイツリーライン","en":"TOBU SKYTREE Line","c":"#0F6CC3","k":"TS","o":"東武","loop":false,"s":[[5,"Asakusa",2.826,-3.397,1458,185,5,1458,185,5],[819,"TOKYO SKYTREE",3.824,-3.236,1455,185,5,1455,185,5],[820,"Hikifune",4.482,-4.125,1457,5,185,1456,5,185],[821,"Higashi-mukojima",4.723,-4.772,1459,5,185,1458,5,185],[822,"Kanegafuchi",4.817,-5.812,1461,5,185,1460,5,185],[823,"Horikiri",4.546,-6.871,1463,5,185,1462,5,185],[824,"Ushida",4.039,-7.004,1464,5,185,1463,5,185],[185,"Kita-senju",3.478,-7.586,1474,184,194,1474,184,194],[825,"Kosuge",4.119,-8.568,1477,184,194,1477,184,194],[826,"Gotanno",3.846,-9.365,1478,184,194,1478,184,194],[827,"Umejima",2.8,-10.078,1480,184,194,1480,184,194],[828,"Nishiarai",2.104,-10.624,1482,184,194,1482,184,194],[194,"Takenotsuka",2.136,-12.513,1485,184,194,1485,184,194],[829,"Yatsuka",3.107,-14.779,1481,184,201,1480,184,201],[830,"Soka",3.288,-16.274,1483,184,201,1483,184,201],[831,"Dokkyodaigakumae",3.035,-17.923,1485,184,201,1485,184,201],[832,"Shinden",2.561,-19.119,1487,184,201,1487,184,201],[833,"Gamo",2.23,-20.532,1489,184,201,1489,184,201],[834,"Shin-koshigaya",2.053,-21.49,1492,184,201,1491,184,201],[835,"Koshigaya",1.731,-22.814,1494,184,201,1494,184,201],[201,"Kita-koshigaya",1.155,-24.383,1496,184,201,1496,184,201],[836,"Obukuro",0.98,-26.913,1487,184,837,1487,184,837],[838,"Sengendai",0.677,-28.169,1490,184,837,1490,184,837],[839,"Takesato",0.326,-29.619,1492,184,837,1492,184,837],[840,"Ichinowari",-0.096,-31.365,1494,184,837,1494,184,837],[841,"Kasukabe",-1.294,-33.046,1497,184,837,1497,184,837],[837,"Kita-kasukabe",-2.06,-34.137,1499,184,837,1499,184,837]]},{"id":"Tobu.Kameido","n":"東武龜戶線","ja":"亀戸線","en":"Kameido Line","c":"#0F6CC3","k":"TS","o":"東武","loop":false,"s":[[311,"Kameido",5.434,-1.828,1469,311,820,1469,311,820],[842,"Kameidosuijin",5.994,-2.072,1470,311,820,1470,311,820],[843,"Higashi-azuma",5.832,-2.895,1472,311,820,1472,311,820],[844,"Omurai",5.471,-3.22,1474,311,820,1474,311,820],[820,"Hikifune",4.482,-4.125,1476,311,820,1476,311,820]]},{"id":"Tobu.Daishi","n":"東武大師線","ja":"大師線","en":"Daishi Line","c":"#0F6CC3","k":"TS","o":"東武","loop":false,"s":[[828,"Nishiarai",2.104,-10.624,1460,845,828,1460,845,828],[845,"Daishimae",1.316,-10.808,1458,845,828,1458,845,828]]},{"id":"Tobu.TobuUrbanPark","n":"東武都市公園線","ja":"東武アーバンパークライン","en":"TOBU URBAN PARK Line","c":"#33CCCC","k":"TD","o":"東武","loop":false,"s":[[317,"Funabashi",19.645,-2.311,1492,398,317,1492,359,317],[846,"Shin-funabashi",19.235,-3.357,1489,398,317,1489,359,317],[847,"Tsukada",19.513,-4.525,1488,317,848,1488,317,848],[849,"Magomezawa",20.355,-6.684,1491,317,848,1491,317,848],[850,"Kamagaya",20.816,-9.131,1495,317,848,1495,317,848],[851,"Shin-kamagaya",20.911,-10.881,1498,317,848,1498,317,848],[852,"Mutsumi",20.992,-12.44,1500,317,848,1500,317,848],[848,"Takayanagi",20.967,-14.053,1507,359,848,1503,317,848],[853,"Sakasai",19.586,-15.71,1504,359,848,1470,359,317],[854,"Masuo",18.918,-16.433,1502,359,848,1468,359,317],[855,"Shin-kashiwa",18.079,-17.348,1500,359,848,1466,359,317],[398,"Kashiwa",18.388,-19.99,1505,359,398,1471,359,398],[856,"Toyoshiki",15.569,-20.492,1502,359,398,1470,317,857],[858,"Nagareyama-otakanomori",14.346,-21.106,1500,359,398,1472,317,857],[859,"Hatsuishi",13.637,-22.406,1498,317,857,1475,317,857],[860,"Edogawadai",12.969,-23.886,1501,317,857,1477,317,857],[861,"Unga",12.563,-25.782,1503,317,857,1480,317,857],[862,"Umesato",11.211,-27.685,1506,317,857,1483,317,857],[863,"Nodashi",9.376,-29.029,1509,317,857,1486,317,857],[864,"Atago",8.818,-29.79,1511,317,857,1488,317,857],[865,"Shimizu-koen",8.427,-30.693,1513,317,857,1490,317,857],[857,"Nanakodai",7.763,-32.027,1516,317,857,1493,317,857],[866,"Kawama",6.099,-32.949,1498,359,857,1473,359,857],[867,"Minami-sakurai",3.734,-33.105,1495,359,857,1470,359,857],[868,"Fujino-ushijima",0.992,-33.076,1492,359,857,1467,359,857],[841,"Kasukabe",-1.294,-33.046,1498,359,841,1471,359,841],[869,"Yagisaki",-2.242,-32.881,1497,359,841,1470,359,841],[870,"Toyoharu",-3.699,-31.716,1494,359,841,1467,359,841],[871,"Higashi-iwatsuki",-4.958,-31.191,1492,359,841,1465,359,841],[872,"Iwatsuki",-6.689,-29.749,1498,359,872,1469,359,872],[873,"Nanasato",-9.141,-28.227,1495,359,872,1466,359,872],[874,"Owada",-10.496,-27.438,1492,359,872,1463,359,872],[875,"Omiya-koen",-12.118,-26.833,1490,359,872,1461,359,872],[876,"Kita-omiya",-12.866,-26.176,1488,359,872,1459,359,872],[359,"Omiya",-12.917,-25.05,1486,359,872,1457,359,872]]},{"id":"Tobu.Tojo","n":"東武東上線","ja":"東上線","en":"Tojo Line","c":"#000099","k":"TJ","o":"東武","loop":false,"s":[[163,"Ikebukuro",-5.057,-5.526,1475,163,877,1475,163,877],[878,"Kita-ikebukuro",-4.585,-6.538,1477,163,877,1477,163,877],[879,"Shimo-itabashi",-4.655,-7.062,1478,163,877,1478,163,877],[880,"Oyama",-5.83,-7.431,1480,163,877,1480,163,877],[881,"Naka-itabashi",-6.576,-8.302,1482,163,877,1482,163,877],[882,"Tokiwadai",-7.084,-8.591,1483,163,877,1483,163,877],[883,"Kami-itabashi",-8.218,-9.113,1485,163,877,1485,163,877],[884,"Tobu-nerima",-9.455,-9.669,1487,163,877,1487,163,877],[885,"Shimo-akatsuka",-11.054,-9.872,1490,163,877,1490,163,877],[877,"Narimasu",-12.135,-10.658,1492,163,877,1492,163,877],[236,"Wakoshi",-13.947,-11.848,1484,163,235,1484,163,235],[886,"Asaka",-15.082,-12.777,1487,163,235,1487,163,235],[887,"Asakadai",-16.258,-14.721,1490,163,235,1490,163,235],[888,"Shiki",-17.343,-15.587,1492,163,235,1492,163,235],[889,"Yanasegawa",-18.504,-16.515,1494,163,235,1494,163,235],[890,"Mizuhodai",-19.559,-17.359,1497,163,235,1497,163,235],[891,"Tsuruse",-20.597,-18.189,1499,163,235,1499,163,235],[892,"Fujimino",-22.064,-19.853,1501,163,235,1501,163,235],[893,"Kami-fukuoka",-23.079,-21.304,1504,163,235,1504,163,235],[894,"Shingashi",-24.396,-23.2,1507,163,235,1507,163,235],[437,"Kawagoe",-25.69,-25.005,1509,163,235,1509,163,235],[235,"Kawagoeshi",-26.223,-25.756,1511,163,235,1511,163,235],[171,"Kasumigaseki",-29.229,-27.008,1499,895,235,1499,895,235],[896,"Tsurugashima",-31.032,-28.261,1497,895,235,1497,895,235],[897,"Wakaba",-32.427,-29.618,1494,895,235,1494,895,235],[898,"Sakado",-33.745,-30.522,1495,163,895,1495,163,895],[899,"Kita-sakado",-33.479,-32.152,1498,163,895,1498,163,895]]},{"id":"Keisei.Main","n":"京成本線","ja":"京成本線","en":"Keisei Main Line","c":"#005AAA","k":"KS","o":"京成·北總","loop":false,"s":[[900,"Keisei-Ueno",0.579,-3.288,1461,900,2,1461,900,2],[106,"Nippori",0.622,-5.432,1465,900,2,1465,900,2],[901,"Shim-Mikawashima",0.618,-6.191,1467,900,2,1467,900,2],[222,"Machiya",1.305,-6.76,1469,900,2,1469,900,2],[902,"Senjuōhashi",2.677,-6.718,1471,900,2,1471,900,2],[903,"Keisei-Sekiya",4.017,-6.913,1473,900,2,1473,900,2],[904,"Horikirishōbuen",5.434,-7.322,1475,900,2,1475,900,2],[905,"Ohanajaya",6.576,-7.319,1477,900,2,1477,900,2],[20,"Aoto",8.036,-7.126,1479,900,2,1479,900,2],[2,"Keisei-Takasago",9.057,-7.691,1481,900,2,1481,900,2],[906,"Keisei-Koiwa",10.507,-6.724,1455,900,907,1455,900,907],[908,"Edogawa",11.637,-6.221,1457,900,907,1457,900,907],[909,"Kōnodai",12.24,-6.085,1458,900,907,1458,900,907],[910,"Ichikawamama",13.052,-5.507,1460,900,907,1460,900,907],[911,"Sugano",13.759,-5.177,1461,900,907,1461,900,907],[912,"Keisei-Yawata",14.571,-4.705,1463,900,907,1463,900,907],[913,"Onigoe",15.391,-4.254,1464,900,907,1464,900,907],[914,"Keisei-Nakayama",16.049,-3.909,1466,900,907,1466,900,907],[915,"Higashi-Nakayama",16.751,-3.659,1467,900,907,1467,900,907],[916,"Keisei-Nishifuna",17.317,-3.333,1468,900,907,1468,900,907],[917,"Kaijin",18.508,-2.703,1470,900,907,1470,900,907],[918,"Keisei-Funabashi",19.721,-2.073,1472,900,907,1472,900,907],[919,"Daijingūshita",20.255,-1.401,1475,900,907,1475,900,907],[920,"Funabashikeibajō",20.926,-0.896,1476,900,907,1476,900,907],[921,"Yatsu",21.729,-0.422,1478,900,907,1478,900,907],[907,"Keisei-Tsudanuma",23.251,-0.222,1480,900,907,1480,900,907],[922,"Keisei-Ōkubo",25.48,-0.526,1462,900,923,1462,900,923],[924,"Mimomi",27.212,-0.603,1464,900,923,1464,900,923],[925,"Yachiyodai",29.189,-2.151,1467,900,923,1467,900,923],[926,"Keisei-Ōwada",30.854,-3.428,1470,900,923,1470,900,923],[927,"Katsutadai",32.443,-3.752,1472,900,923,1472,900,923],[928,"Shizu",34.146,-3.988,1474,900,923,1474,900,923],[929,"Yūkarigaoka",35.199,-4.482,1476,900,923,1475,900,923]]},{"id":"Keisei.Oshiage","n":"京成押上線","ja":"押上線","en":"Oshiage Line","c":"#005AAA","k":"KS","o":"京成·北總","loop":false,"s":[[0,"Oshiage",4.15,-3.276,1467,1,2,1467,3,2],[930,"Keisei-Hikifune",4.724,-4.058,1469,1,2,1469,3,2],[931,"Yahiro",5.509,-5.07,1471,1,2,1471,3,2],[932,"Yotsugi",6.105,-5.58,1472,1,2,1472,3,2],[933,"Keisei-Tateishi",7.343,-6.289,1474,1,2,1474,3,2],[20,"Aoto",8.036,-7.126,1476,1,2,1476,3,2]]},{"id":"Keisei.Chiba","n":"京成千葉線","ja":"千葉線","en":"Chiba Line","c":"#005AAA","k":"KS","o":"京成·北總","loop":false,"s":[[907,"Keisei-Tsudanuma",23.251,-0.222,1468,934,907,1468,934,907],[935,"Keisei-Makuharihongō",24.846,0.975,1465,934,907,1465,934,907],[936,"Keisei-Makuhari",26.088,2.262,1463,934,907,1463,934,907],[937,"Kemigawa",27.026,3.182,1461,934,907,1461,934,907],[938,"Keisei-Inage",28.79,4.801,1458,934,907,1458,934,907],[939,"Midoridai",29.868,6.259,1456,907,934,1456,907,934],[940,"Nishi-Nobuto",30.32,7.04,1458,907,934,1458,907,934],[941,"Shin-Chiba",30.82,7.624,1459,907,934,1459,907,934],[942,"Keisei-Chiba",31.366,7.716,1460,907,934,1460,907,934],[934,"Chibachūō",31.68,8.18,1462,907,934,1462,907,934]]},{"id":"Keisei.Kanamachi","n":"京成金町線","ja":"金町線","en":"Kanamachi Line","c":"#005AAA","k":"KS","o":"京成·北總","loop":false,"s":[[2,"Keisei-Takasago",9.057,-7.691,1457,943,2,1457,943,2],[944,"Shibamata",9.776,-8.327,1455,943,2,1455,943,2],[943,"Keisei-Kanamachi",9.398,-9.666,1452,943,2,1452,943,2]]},{"id":"Keisei.Matsudo","n":"京成松戶線","ja":"松戸線","en":"Matsudo Line","c":"#005AAA","k":"KS","o":"京成·北總","loop":false,"s":[[221,"Matsudo",12.1,-11.392,1482,221,945,1482,221,945],[946,"Kamihongō",13.485,-11.996,1484,221,945,1484,221,945],[947,"Matsudo-Shinden",14.096,-12.103,1485,221,945,1485,221,945],[948,"Minoridai",14.679,-11.958,1487,221,945,1487,221,945],[949,"Yabashira",15.425,-12.211,1488,221,945,1488,221,945],[950,"Tokiwadaira",16.549,-13.508,1490,221,945,1490,221,945],[951,"Gokō",17.988,-12.802,1493,221,945,1493,221,945],[952,"Motoyama",18.873,-12.062,1494,221,945,1494,221,945],[945,"Kunugiyama",18.877,-11.175,1499,907,945,1499,907,945],[953,"Kita-Hatsutomi",20.315,-10.589,1496,907,945,1496,907,945],[851,"Shin-Kamagaya",20.927,-10.88,1495,907,945,1495,907,945],[954,"Hatsutomi",21.112,-10.071,1493,907,945,1493,907,945],[955,"Kamagaya-Daibutsu",22.31,-8.48,1490,907,945,1490,907,945],[956,"Futawamukōdai",23.156,-8.045,1489,907,945,1489,907,945],[957,"Misaki",23.642,-7.505,1487,907,945,1487,907,945],[958,"Takifudō",23.408,-6.256,1486,907,945,1486,907,945],[959,"Takanekōdan",23.741,-5.42,1484,907,945,1484,907,945],[960,"Takanekido",24.201,-5.032,1483,907,945,1483,907,945],[961,"Kita-Narashino",24.877,-4.429,1481,907,945,1481,907,945],[962,"Narashino",24.929,-3.737,1480,907,945,1480,907,945],[963,"Yakuendai",24.481,-3.201,1480,221,964,1480,221,964],[965,"Maebara",23.586,-2.203,1482,221,964,1482,221,964],[964,"Shin-Tsudanuma",23.211,-0.999,1484,221,964,1484,221,964],[907,"Keisei-Tsudanuma",23.251,-0.222,1471,907,945,1471,907,945]]},{"id":"Keisei.NaritaSkyAccess","n":"成田Sky Access線","ja":"成田スカイアクセス線","en":"Narita Sky Access Line","c":"#FF8620","k":"KS","o":"京成·北總","loop":false,"s":[[900,"Keisei-Ueno",0.579,-3.288,1428,966,900,1428,966,900],[106,"Nippori",0.622,-5.432,1424,966,900,1424,966,900],[20,"Aoto",8.036,-7.126,1414,966,900,1415,966,900],[2,"Keisei-Takasago",9.057,-7.691,1430,966,2,1430,966,2],[480,"Higashi-Matsudo",15.895,-9.806,1423,966,2,1423,966,2],[851,"Shin-Kamagaya",20.927,-10.88,1419,966,2,1419,966,2],[967,"Chiba New Town Chuo",31.557,-13.153,1411,966,2,1411,966,2]]},{"id":"Hokuso.Hokuso","n":"北總線","ja":"北総線","en":"Hokuso Line","c":"#00BDF2","k":"HS","o":"京成·北總","loop":false,"s":[[2,"Keisei-Takasago",9.057,-7.691,1451,968,10,1451,968,10],[969,"Shin-Shibamata",10.155,-7.728,1453,968,10,1453,968,10],[970,"Yagiri",11.988,-8.411,1459,10,970,1459,10,970],[971,"Kita-Kokubun",13.299,-9.036,1457,968,10,1457,968,10],[972,"Akiyama",14.797,-9.299,1459,968,10,1459,968,10],[480,"Higashi-Matsudo",15.895,-9.806,1461,968,10,1461,968,10],[973,"Matsuhidai",17.215,-10.41,1463,968,10,1463,968,10],[974,"Omachi",18.671,-10.389,1465,968,10,1465,968,10],[851,"Shin-Kamagaya",20.927,-10.88,1467,968,10,1467,968,10],[975,"Nishi-Shiroi",23.924,-11.41,1470,968,10,1470,968,10],[976,"Shiroi",25.964,-11.448,1472,968,10,1472,968,10],[977,"Komuro",27.954,-11.693,1475,968,10,1475,968,10],[967,"Chiba New Town Chuo",31.557,-13.153,1478,968,10,1478,968,10],[13,"Inzai-Makinohara",36.176,-13.531,1482,968,10,1482,968,10]]},{"id":"Keikyu.Main","n":"京急本線","ja":"京急本線","en":"Keikyū Main Line","c":"#33C2E4","k":"KK","o":"京急","loop":false,"s":[[11,"Sengakuji",-2.451,4.698,1460,10,285,1448,11,285],[285,"Shinagawa",-2.63,5.856,1462,10,285,1460,968,285],[978,"Kitashinagawa",-2.523,6.538,1456,979,285,1456,979,285],[980,"Shimbamba",-2.327,7.028,1454,979,285,1455,979,285],[981,"Aomono-yokochō",-2.2,7.927,1453,979,285,1453,979,285],[982,"Samezu",-2.201,8.391,1452,285,983,1452,285,983],[984,"Tachiaigawa",-2.579,9.171,1453,285,983,1453,285,983],[985,"Ōmorikaigan",-2.89,10.365,1455,285,983,1455,285,983],[986,"Heiwajima",-2.915,11.33,1457,285,983,1457,285,983],[987,"Ōmorimachi",-3.16,12.009,1459,285,983,1459,285,983],[988,"Umeyashiki",-3.504,12.638,1460,285,983,1460,285,983],[989,"Keikyū Kamata",-3.922,13.328,1462,285,983,1462,285,983],[990,"Zōshiki",-4.717,14.559,1464,285,983,1464,285,983],[991,"Rokugōdote",-5.372,15.526,1466,285,983,1465,285,983],[983,"Keikyū Kawasaki",-6.003,16.445,1467,285,983,1467,285,983],[992,"Hatchō-nawate",-6.837,17.479,1460,285,979,1458,285,979],[993,"Tsurumi-ichiba",-7.279,18.066,1461,285,979,1459,285,979],[994,"Keikyū Tsurumi",-8.056,19.239,1463,285,979,1461,285,979],[995,"Kagetsusojiji",-8.511,19.991,1465,285,979,1463,285,979],[996,"Namamugi",-9.056,20.552,1467,285,979,1465,285,979],[997,"Keikyū Shinkoyasu",-10.093,21.484,1469,285,979,1467,285,979],[998,"Koyasu",-11.04,21.739,1470,285,979,1468,285,979],[979,"Kanagawa-shimmachi",-11.493,22.089,1471,285,979,1469,285,979],[999,"Keikyu-higashikanagawa",-12.003,22.547,1464,285,1000,1461,285,1000],[1001,"Kanagawa",-12.621,23.184,1466,285,1000,1463,285,1000],[351,"Yokohama",-13.044,23.876,1468,285,1000,1465,285,1000],[1002,"Tobe",-13.346,24.813,1470,285,1000,1467,285,1000],[1003,"Hinodechō",-12.681,26.06,1472,285,1000,1469,285,1000],[1004,"Koganechō",-13.044,26.688,1474,285,1000,1471,285,1000],[1005,"Minamiōta",-13.846,27.015,1475,285,1000,1473,285,1000],[1006,"Idogaya",-15.061,27.34,1477,285,1000,1474,285,1000],[1007,"Gumyōji",-15.405,28.395,1479,285,1000,1476,285,1000],[1000,"Kamiōoka",-15.436,30.152,1481,285,1000,1478,285,1000],[1008,"Byōbugaura",-14.187,31.686,1478,285,1009,1475,285,1009],[1010,"Sugita",-13.72,32.837,1480,285,1009,1477,285,1009],[1011,"Keikyū Tomioka",-12.406,34.728,1483,285,1009,1479,285,1009],[1012,"Nōkendai",-12.446,35.42,1484,285,1009,1481,285,1009]]},{"id":"Keikyu.Airport","n":"京急機場線","ja":"空港線","en":"Airport Line","c":"#33C2E4","k":"KK","o":"京急","loop":false,"s":[[989,"Keikyū Kamata",-3.922,13.328,1461,968,989,1453,968,285],[1013,"Kojiya",-3.362,14.006,1460,968,989,1447,968,989],[1014,"Ōtorii",-2.521,14.218,1459,285,968,1445,968,989],[1015,"AnamoriInari",-1.817,14.461,1460,285,968,1443,968,989],[1016,"Tenkūbashi",-1.181,14.647,1462,285,968,1442,2,968],[1017,"Haneda Airport Terminal 3",0.091,15.034,1463,285,968,1448,968,285],[968,"Haneda Airport Terminal 1 and 2",1.707,14.531,1466,285,968,1446,2,968]]},{"id":"Keikyu.Daishi","n":"京急大師線","ja":"大師線","en":"Daishi Line","c":"#33C2E4","k":"KK","o":"京急","loop":false,"s":[[1018,"Kojimashinden",-1.74,16.185,1469,983,1018,1438,983,1018],[1019,"Daishibashi",-2.373,15.977,1467,983,1018,1436,983,1018],[1020,"Higashimonzen",-2.929,15.976,1466,983,1018,1435,983,1018],[1021,"Kawasakidaishi",-3.702,16.097,1464,983,1018,1433,983,1018],[1022,"Suzukichō",-4.234,16.129,1463,983,1018,1432,983,1018],[1023,"Minatochō",-4.931,16.176,1462,983,1018,1431,983,1018],[983,"Keikyū Kawasaki",-6.003,16.445,1459,983,1018,1433,1018,983]]},{"id":"Sotetsu.Main","n":"相鐵本線","ja":"相鉄本線","en":"Sotetsu Main Line","c":"#000080","k":"SO","o":"相鐵","loop":false,"s":[[351,"Yokohama",-13.091,23.84,1467,351,1024,1467,351,1024],[1025,"Hiranumabashi",-13.637,24.529,1468,351,1024,1468,351,1024],[1026,"Nishi-Yokohama",-14.34,25.209,1470,351,1024,1470,351,1024],[1027,"Tennocho",-14.854,25.149,1472,351,1024,1472,351,1024],[1028,"Hoshikawa",-15.582,24.603,1474,351,1024,1474,351,1024],[1029,"Wadamachi",-16.304,24.082,1476,351,1024,1476,351,1024],[1030,"Kami-Hoshikawa",-16.91,23.632,1477,351,1024,1477,351,1024],[597,"Nishiya",-18.218,22.48,1480,351,1024,1480,351,1024],[1031,"Tsurugamine",-19.692,22.828,1483,351,1024,1483,351,1024],[1032,"Futamatagawa",-21.229,24.084,1486,351,1024,1486,351,1024],[1033,"Kibogaoka",-22.868,24.43,1489,351,1024,1489,351,1024],[1034,"Mitsukyo",-23.903,23.622,1491,351,1024,1491,351,1024],[1035,"Seya",-25.733,23.339,1493,351,1024,1493,351,1024],[681,"Yamato",-27.628,23.417,1497,351,1024,1497,351,1024],[1036,"Sagami-Otsuka",-29.5,23.311,1499,351,1024,1499,351,1024],[1037,"Sagamino",-30.614,23.204,1501,351,1024,1501,351,1024],[1024,"Kashiwadai",-31.821,23.739,1503,351,1024,1503,351,1024],[540,"Ebina",-33.926,25.295,1497,148,540,1497,262,540]]},{"id":"Sotetsu.Izumino","n":"泉野線","ja":"いずみ野線","en":"Izumino Line","c":"#000080","k":"SO","o":"相鐵","loop":false,"s":[[1032,"Futamatagawa",-21.229,24.084,1487,1032,685,1487,1032,685],[1038,"Minami-Makigahara",-21.768,25.305,1490,1032,685,1490,1032,685],[1039,"Ryokuentoshi",-22.164,26.745,1492,1032,685,1492,1032,685],[1040,"Yayoidai",-23.567,27.804,1494,1032,685,1494,1032,685],[1041,"Izumino",-24.604,27.857,1496,1032,685,1496,1032,685],[1042,"Izumi-Chuo",-25.303,29.428,1499,1032,685,1499,1032,685],[1043,"Yumegaoka",-25.74,30.489,1501,1032,685,1501,1032,685],[685,"Shonandai",-27.173,31.52,1504,1032,685,1504,1032,685]]},{"id":"Sotetsu.SotetsuShinYokohama","n":"相鐵新橫濱線","ja":"相鉄新横浜線","en":"Sotetsu Shin-Yokohama Line","c":"#000080","k":"SO","o":"相鐵","loop":false,"s":[[262,"Shin-Yokohama",-13.544,19.053,1463,148,540,1461,597,593],[1044,"Hazawa-Yokohama-Kokudai",-16.363,22.134,1467,148,540,1465,262,540],[597,"Nishiya",-18.218,22.48,1469,148,540,1467,262,540]]},{"id":"Minatomirai.Minatomirai","n":"港未來線","ja":"みなとみらい線","en":"Minatomirai Line","c":"#09357F","k":"MM","o":"第三部門","loop":false,"s":[[351,"Yokohama",-13.102,23.748,1468,754,273,1468,236,273],[1045,"Shin-Takashima",-12.693,24.244,1470,754,273,1470,236,273],[1046,"Minatomirai",-12.214,24.655,1471,754,273,1471,236,273],[1047,"Bashamichi",-11.909,25.501,1473,754,273,1473,236,273],[1048,"Nihon-Odori",-11.257,25.92,1474,754,273,1474,236,273],[273,"Motomachi-Chukagai",-10.506,26.435,1477,754,273,1477,236,273]]},{"id":"YokohamaMunicipal.Blue","n":"橫濱市營地下鐵藍線","ja":"ブルーライン","en":"Blue Line","c":"#093F86","k":"B","o":"橫濱市營","loop":false,"s":[[581,"Azamino",-19.28,12.514,1500,685,581,1470,685,581],[1049,"Nakagawa",-17.827,13.08,1497,685,581,1468,685,581],[1050,"Center Kita",-17.004,14.133,1495,685,581,1465,685,581],[1051,"Center Minami",-17.396,14.99,1494,581,1052,1465,581,1052],[1053,"Nakamachidai",-16.029,16.14,1497,581,1052,1468,581,1052],[1052,"Nippa",-14.021,16.995,1500,581,1052,1473,685,1052],[1054,"Kita-Shin-Yokohama",-13.951,17.908,1485,685,581,1471,685,1052],[262,"Shin-Yokohama",-13.544,19.054,1483,685,581,1469,685,1052],[1055,"Kishine-Koen",-13.604,20.527,1481,685,581,1467,685,1052],[1056,"Katakuracho",-14.52,21.144,1479,685,581,1465,685,1052],[1057,"Mitsuzawa-Kamicho",-14.621,22.643,1476,685,581,1462,685,1052],[1058,"Mitsuzawa-Shimocho",-13.749,22.632,1474,685,581,1460,685,1052],[351,"Yokohama",-13.306,23.836,1472,685,581,1458,685,1052],[1059,"Takashimacho",-12.987,24.575,1470,685,581,1456,685,1052],[383,"Sakuragicho",-12.34,25.59,1468,685,581,1454,581,1060],[385,"Kannai",-11.856,26.038,1466,685,581,1456,581,1060],[1061,"Isezaki-Chojamachi",-12.162,26.558,1468,581,1060,1458,581,1060],[1062,"Bandobashi",-12.822,26.93,1469,581,1060,1460,581,1060],[1063,"Yoshinocho",-13.402,27.175,1471,581,1060,1461,581,1060],[1064,"Maita",-14.208,27.785,1473,581,1060,1463,581,1060],[1007,"Gumyoji",-14.925,28.532,1475,581,1060,1465,581,1060],[1000,"Kamiooka",-15.483,30.158,1478,581,1060,1468,581,1060],[1065,"Konan-Chuo",-15.908,30.96,1479,581,1060,1470,581,1060],[1060,"Kaminagaya",-17.544,30.931,1499,685,1060,1473,581,1060],[1066,"Shimonagaya",-18.792,30.778,1496,685,1060,1466,685,1060],[1067,"Maioka",-19.495,30.812,1494,685,1060,1464,685,1060],[352,"Totsuka",-20.976,30.966,1492,685,1060,1462,685,1060],[1068,"Odoriba",-22.479,30.462,1489,685,1060,1459,685,1060],[1069,"Nakada",-23.128,29.854,1488,685,1060,1458,685,1060],[1070,"Tateba",-24.127,29.519,1487,581,685,1459,581,685],[1071,"Shimoiida",-25.692,30.721,1489,581,685,1461,581,685],[685,"Shonandai",-27.181,31.472,1492,581,685,1464,581,685]]},{"id":"YokohamaMunicipal.Green","n":"橫濱市營地下鐵綠線","ja":"グリーンライン","en":"Green Line","c":"#00A15A","k":"G","o":"橫濱市營","loop":false,"s":[[27,"Hiyoshi",-10.819,14.152,1478,27,503,1468,27,503],[1072,"Hiyoshi-Honcho",-12.088,14.511,1480,27,503,1470,27,503],[1073,"Takata",-13.28,14.552,1482,27,503,1472,27,503],[1074,"Higashi-Yamata",-14.664,14.044,1484,27,503,1474,27,503],[1075,"Kita-Yamata",-15.758,13.296,1486,27,503,1477,27,503],[1050,"Center Kita",-17.004,14.133,1489,27,503,1479,27,503],[1051,"Center Minami",-17.396,14.99,1491,27,503,1481,27,503],[1076,"Tsuzuki-Fureainooka",-18.581,15.984,1493,27,503,1484,27,503],[1077,"Kawawacho",-19.697,16.897,1495,27,503,1486,27,503],[503,"Nakayama",-20.495,18.361,1498,27,503,1489,27,503]]},{"id":"Yurikamome.Yurikamome","n":"百合鷗線","ja":"ゆりかもめ","en":"Yurikamome line","c":"#27404E","k":"U","o":"單軌·新交通","loop":false,"s":[[16,"Shimbashi",-0.675,1.732,1460,16,1078,1460,16,1078],[90,"Shiodome",-0.657,2.033,1461,16,1078,1461,16,1078],[1079,"Takeshiba",-0.468,3.008,1464,16,1078,1464,16,1078],[1080,"Hinode",-0.725,3.535,1466,16,1078,1466,16,1078],[1081,"Shibaura-futō",-0.84,4.359,1467,16,1078,1467,16,1078],[1082,"Odaiba-kaihinkōen",1.056,5.672,1473,16,1078,1473,16,1078],[1083,"Daiba",0.391,6.113,1475,16,1078,1475,16,1078],[1084,"Tokyo International Cruise Terminal",0.542,6.618,1477,16,1078,1477,16,1078],[1085,"Telecom Center",1.111,7.037,1479,16,1078,1479,16,1078],[1086,"Aomi",1.285,6.237,1481,16,1078,1481,16,1078],[1087,"Tokyo Big Sight",2.192,5.634,1483,16,1078,1483,16,1078],[1078,"Ariake",2.365,5.144,1484,16,1078,1484,16,1078],[1088,"Ariake-tennis-no-mori",1.968,4.558,1477,238,1078,1477,238,1078],[1089,"Shijō-mae",1.677,3.926,1475,238,1078,1475,238,1078],[1090,"Shin-Toyosu",2.072,3.592,1473,238,1078,1473,238,1078],[238,"Toyosu",2.564,3.036,1472,238,1078,1472,238,1078]]},{"id":"TokyoMonorail.HanedaAirport","n":"東京單軌電車","ja":"羽田空港線","en":"Haneda Airport Line","c":"#003686","k":"MO","o":"單軌·新交通","loop":false,"s":[[1091,"Monorail Hamamatsucho",-1.089,2.809,1466,1092,1091,1466,1092,1091],[550,"Tennozu Isle",-1.474,6.464,1461,1092,1091,1461,1092,1091],[1093,"Oi-Keibajo-Mae",-1.813,9.528,1458,1092,1091,1458,1092,1091],[1094,"Ryutsu Center",-1.622,11.03,1456,1092,1091,1456,1092,1091],[1095,"Showajima",-1.555,12.22,1437,1091,1092,1437,1091,1092],[1096,"Seibijo",-1.238,13.934,1440,1091,1092,1440,1091,1092],[1016,"Tenkubashi",-1.16,14.662,1441,1091,1092,1441,1091,1092],[1017,"Haneda Airport Terminal 3",0.101,15.141,1456,1091,1092,1456,1091,1092],[1097,"Shin-Seibijo",1.816,15.32,1446,1091,1092,1446,1091,1092],[1098,"Haneda Airport Terminal 1",1.593,14.602,1459,1091,1092,1459,1091,1092],[1092,"Haneda Airport Terminal 2",1.889,14.429,1461,1091,1092,1461,1091,1092]]},{"id":"TamaMonorail.TamaMonorail","n":"多摩單軌電車","ja":"多摩モノレール","en":"Tama Monorail Line","c":"#FF6633","k":"TT","o":"單軌·新交通","loop":false,"s":[[1099,"Tama Center",-31.124,6.33,1454,1100,1099,1454,1100,1099],[1101,"Matsugaya",-31.199,5.46,1452,1100,1099,1452,1100,1099],[1102,"Otsuka-Teikyo-Daigaku",-31.704,4.899,1450,1100,1099,1450,1100,1099],[1103,"Chuo-Daigaku-Meisei-Daigaku",-32.402,4.347,1448,1100,1099,1448,1100,1099],[732,"Tama-Dobutsukoen",-32.856,3.597,1446,1100,1099,1446,1100,1099],[1104,"Hodokubo",-32.215,2.865,1443,1100,1099,1443,1100,1099],[704,"Takahatafudo",-31.819,2.203,1441,1100,1099,1441,1100,1099],[1105,"Manganji",-31.38,1.097,1441,1099,1106,1441,1099,1106],[1107,"Koshukaido",-32.364,0.316,1443,1099,1106,1443,1099,1106],[1108,"Shibasaki-Taiikukan",-32.353,-0.952,1446,1099,1106,1446,1099,1106],[1109,"Tachikawa-Minami",-32.054,-1.659,1448,1099,1106,1448,1099,1106],[1106,"Tachikawa-Kita",-32.072,-2.04,1449,1099,1106,1449,1099,1106],[1110,"Takamatsu",-31.996,-3.201,1438,1099,1100,1438,1099,1100],[1111,"Tachihi",-31.635,-3.681,1439,1099,1100,1439,1099,1100],[1112,"Izumi-Taiikukan",-31.424,-4.157,1441,1099,1100,1441,1099,1100],[1113,"Sunagawa-Nanaban",-31.552,-4.665,1442,1099,1100,1442,1099,1100],[803,"Tamagawa-Josui",-31.573,-5.62,1444,1099,1100,1444,1099,1100],[1114,"Sakurakaido",-31.689,-6.4,1446,1099,1100,1446,1099,1100],[1100,"Kamikitadai",-31.764,-7.146,1448,1099,1100,1448,1099,1100]]},{"id":"SaitamaTransit.NewShuttle","n":"New Shuttle 新交通","ja":"ニューシャトル","en":"New Shuttle","c":"#FFFF00","k":"NS","o":"單軌·新交通","loop":false,"s":[[359,"Omiya",-13.09,-25.062,1445,359,1115,1445,359,1115],[1116,"Tetsudo-Hakubutsukan",-13.501,-26.435,1448,359,1115,1448,359,1115],[1117,"Kamonomiya",-13.587,-28.143,1450,359,1115,1450,359,1115],[1118,"Higashi-Miyahara",-13.461,-28.908,1452,359,1115,1452,359,1115],[1119,"Komba",-13.337,-29.731,1454,359,1115,1454,359,1115],[1120,"Yoshinohara",-13.215,-30.516,1455,359,1115,1455,359,1115],[1121,"Haraichi",-13.097,-31.262,1457,359,1115,1457,359,1115],[1122,"Shonan",-12.968,-32.055,1458,359,1115,1458,359,1115],[1123,"Maruyama",-12.876,-33.03,1461,359,1115,1461,359,1115],[1124,"Shiku",-13.102,-34.281,1463,359,1115,1463,359,1115],[1125,"Ina-Chuo",-13.547,-35.176,1465,359,1115,1465,359,1115]]},{"id":"YokohamaSeaside.KanazawaSeaside","n":"金澤海岸線","ja":"金沢シーサイドライン","en":"Kanazawa Seaside Line","c":"#F68B1E","k":"SL","o":"單軌·新交通","loop":false,"s":[[390,"Shin-Sugita",-13.264,32.64,1432,390,1126,1418,1127,390],[1128,"Nambu-Shijo",-12.105,33.284,1435,390,1126,1417,390,1126],[1129,"Torihama",-11.335,33.628,1437,390,1126,1419,390,1126],[1130,"NamikiKita",-11.248,34.202,1438,390,1126,1421,390,1126],[1126,"NamikiChuo",-11.227,34.914,1440,390,1126,1430,1127,1126]]},{"id":"SaitamaRailway.SaitamaRailway","n":"埼玉高速鐵道線","ja":"埼玉高速鉄道線","en":"Saitama Railway Line","c":"#2351A5","k":"SR","o":"第三部門","loop":false,"s":[[268,"Akabane-Iwabuchi",-4.068,-11.295,1479,262,270,1462,29,260],[1131,"Kawaguchi-Motogo",-3.31,-13.207,1483,262,270,1465,29,260],[1132,"Minami-Hatogaya",-2.79,-14.964,1485,262,270,1467,29,260],[270,"Hatogaya",-2.799,-16.55,1487,262,270,1470,29,260],[1133,"Araijuku",-2.642,-17.888,1480,27,260,1472,29,260],[1134,"Tozuka-Angyo",-1.204,-19.654,1483,27,260,1475,29,260],[490,"Higashi-Kawaguchi",-2.067,-21.537,1486,27,260,1478,29,260],[260,"Urawa-Misono",-3.573,-23.508,1489,27,260,1481,29,260]]},{"id":"MIR.TsukubaExpress","n":"筑波快線","ja":"つくばエクスプレス","en":"Tsukuba Express Line","c":"#000084","k":"TX","o":"第三部門","loop":false,"s":[[196,"Akihabara",0.647,-1.942,1452,1135,196,1452,1135,196],[84,"Shin-Okachimachi",1.351,-2.859,1450,1135,196,1450,1135,196],[5,"Asakusa",2.276,-3.512,1452,196,1136,1452,196,1136],[200,"Minami-Senju",2.891,-5.747,1455,196,1136,1455,196,1136],[185,"Kita-Senju",3.437,-7.555,1458,196,1136,1458,196,1136],[1137,"Aoi",4.813,-10.011,1461,196,1136,1461,196,1136],[1138,"Rokuchō",4.953,-11.461,1463,196,1136,1463,196,1136],[1139,"Yashio",7.029,-13.998,1466,196,1136,1466,196,1136],[1140,"Misato-chūō",10.063,-15.847,1470,196,1136,1470,196,1136],[482,"Minami-Nagareyama",12.297,-17.395,1472,196,1136,1472,196,1136],[1141,"Nagareyama-centralpark",13.398,-19.171,1475,196,1136,1475,196,1136],[858,"Nagareyama-ōtakanomori",14.284,-21.08,1478,196,1136,1478,196,1136],[1142,"Kashiwanoha-campus",16.768,-23.465,1481,196,1136,1481,196,1136],[1143,"Kashiwa-Tanaka",17.224,-25.406,1483,196,1136,1483,196,1136],[1136,"Moriya",20.329,-29.729,1487,196,1136,1487,196,1136],[1144,"Miraidaira",24.524,-34.625,1471,196,1135,1471,196,1135]]},{"id":"ToyoRapid.ToyoRapid","n":"東葉高速線","ja":"東葉高速線","en":"Toyo Rapid Line","c":"#3FB036","k":"TR","o":"第三部門","loop":false,"s":[[218,"Nishi-Funabashi",17.375,-2.867,1473,202,203,1473,202,203],[1145,"Higashi-Kaijin",19.301,-2.738,1476,202,203,1476,202,203],[1146,"Hasama",23.059,-3.627,1480,202,203,1480,202,203],[961,"Kita-Narashino",24.844,-4.463,1482,202,203,1482,202,203],[1147,"Funabashi-Nichidaimae",26.376,-5.05,1485,202,203,1485,202,203],[1148,"Yachiyo-Midorigaoka",27.661,-5.269,1487,202,203,1487,202,203],[1149,"Yachiyo-Chuo",30.404,-5.16,1490,202,203,1490,202,203],[1150,"Murakami",31.767,-4.708,1492,202,203,1492,202,203],[203,"Toyo-Katsutadai",32.468,-3.826,1494,202,203,1494,202,203]]},{"id":"Ryutetsu.Nagareyama","n":"流鐵流山線","ja":"流山線","en":"Nagareyama Line","c":"#C64F24","k":"流","o":"第三部門","loop":false,"s":[[403,"Mabashi",13.565,-14.476,1447,403,1151,1447,403,1151],[1152,"Koya",13.809,-16.077,1450,403,1151,1450,403,1151],[1153,"Kogane-Joshi",13.567,-17.106,1452,403,1151,1452,403,1151],[1154,"Hiregasaki",13.002,-17.67,1454,403,1151,1454,403,1151],[252,"Heiwadai",12.116,-18.761,1457,403,1151,1457,403,1151],[1151,"Nagareyama",12.172,-19.271,1459,403,1151,1459,403,1151]]}]};
+const $ = id => document.getElementById(id);
+const T0 = 1290, T1 = 1530, SPAN = T1 - T0;
+const FLOORS = ['JR東日本','東京Metro','都營','東急','小田急','京王','西武','東武','京成·北總','京急','相鐵','橫濱市營','第三部門','單軌·新交通'];
+const HUBS = ['東京','新宿','澀谷','池袋','上野','品川','橫濱','大宮','千葉','北千住','立川','八王子','吉祥寺','川崎','武藏小杉','新木場','西船橋','赤羽','和光市','中野','錦糸町','大崎','日暮里','蒲田','登戶','國分寺','拜島','町田','京成高砂','新橫濱','押上','飯田橋','高幡不動','松戶','船橋','海老名','溝之口','調布','川越','所澤','橋本','柏','秋葉原','目黑'];
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const pad = n => String(n).padStart(2, '0');
+const fmt = t => { const m = Math.floor(t + 1e-6); return (Math.floor(m / 60) % 24) + ':' + pad(m % 60); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+// ---------- 資料 ----------
+const NAMES = D.names;
+const LINES = D.lines.map((l, i) => {
+  const st = l.s.map((r, k) => ({ i: k, name: NAMES[r[0]], en: r[1], x: r[2], z: r[3], t: [r[4], r[7]], from: [NAMES[r[5]], NAMES[r[8]]], to: [NAMES[r[6]], NAMES[r[9]]] }));
+  const end = [0, 1].map(d => Math.max(...st.map(s => s.t[d])));
+  const first = [0, 1].map(d => Math.min(...st.map(s => s.t[d])));
+  return { ...l, i, st, end, first, floor: FLOORS.indexOf(l.o), jr: l.o === 'JR東日本' };
+});
+const ALL = []; LINES.forEach(L => L.st.forEach(s => { s.L = L; ALL.push(s); }));
+const stNames = new Set(ALL.map(s => s.name));
+const EN = new Map(); ALL.forEach(s => { if (!EN.has(s.name)) EN.set(s.name, s.en.toLowerCase()); });
+$('nLines').textContent = LINES.length; $('nSt').textContent = stNames.size.toLocaleString('en-US'); $('nOps').textContent = FLOORS.length;
+let bx0 = Infinity, bx1 = -Infinity, bz0 = Infinity, bz1 = -Infinity;
+ALL.forEach(s => { bx0 = Math.min(bx0, s.x); bx1 = Math.max(bx1, s.x); bz0 = Math.min(bz0, s.z); bz1 = Math.max(bz1, s.z); });
+const M = 3; bx0 -= M; bx1 += M; bz0 -= M; bz1 += M;
+const CX = (bx0 + bx1) / 2, CZ = (bz0 + bz1) / 2;
+const H = 26, GAP = 2.3;
+
+// ---------- 狀態 ----------
+const S = { now: 1410, day: 0, mode: 0, theme: store.get('lta-theme') === 'day' ? 'day' : 'night', focus: -1, hover: -1, sort: 'op', q: '', playing: false, live: false };
+const W = { cur: [1, 0, 0], from: [1, 0, 0], to: [1, 0, 0], t0: 0 };   // 高度模式權重
+const DAYB = { cur: 0, from: 0, to: 0, t0: 0 };
+document.documentElement.dataset.theme = S.theme;
+function tAt(s) { return lerp(s.t[0], s.t[1], DAYB.cur); }
+function hAt(t, fl) { return W.cur[0] * clamp((t - T0) / SPAN, 0, 1) * H + W.cur[1] * fl * GAP; }
+
+// ---------- 介面：清單 ----------
+function symHTML(L, cls = '') {
+  const k = L.k, isK = /[^\x00-\x7f]/.test(k);
+  return `<span class="sym${L.jr ? ' jr' : ''}${isK ? ' k' : ''}${k.length > 2 ? ' w3' : ''} ${cls}" style="--c:${L.c}">${esc(k)}</span>`;
+}
+function remain(t) {
+  const d = t - S.now;
+  if (d < 0) return ['已收班', ''];
+  if (d < 1) return ['末班行駛中', 'soon'];
+  if (d <= 30) return ['還有 ' + Math.ceil(d) + ' 分', 'soon'];
+  if (d < 60) return ['還有 ' + Math.ceil(d) + ' 分', ''];
+  return ['還有 ' + Math.floor(d / 60) + ' 小時 ' + Math.round(d % 60) + ' 分', ''];
+}
+const rows = new Map();
+function buildList() {
+  const list = $('list'); const q = S.q.trim().toLowerCase();
+  let html = '';
+  let lines = LINES.slice();
+  if (q) lines = lines.filter(L => (L.n + ' ' + L.ja + ' ' + L.en + ' ' + L.o).toLowerCase().includes(q));
+  // 車站結果
+  if (q) {
+    const hit = [...stNames].filter(n => n.toLowerCase().includes(q) || EN.get(n).includes(q));
+    hit.sort((a, b) => (a.toLowerCase() === q ? -1 : 0) - (b.toLowerCase() === q ? -1 : 0) || a.length - b.length);
+    if (hit.length) {
+      html += `<div class="grp">車站<small>${hit.length}</small></div>`;
+      hit.slice(0, 8).forEach(n => {
+        const es = ALL.filter(s => s.name === n);
+        const seen = new Set();
+        const chips = es.filter(s => !seen.has(s.L.i) && seen.add(s.L.i)).sort((a, b) => tAt(b) - tAt(a))
+          .map(s => `<span style="--c:${s.L.c}" class="${tAt(s) < S.now ? 'gone' : ''}" title="${esc(s.L.n)}">${fmt(tAt(s))}</span>`).join('');
+        html += `<button class="st-res" data-st="${esc(n)}"><b>${esc(n)}<i>${esc(es[0].en)}</i></b><div class="chips">${chips}</div></button>`;
+      });
+    }
+  }
+  const d = S.day;
+  if (S.sort === 'op') {
+    FLOORS.forEach(f => {
+      const g = lines.filter(L => L.o === f); if (!g.length) return;
+      html += `<div class="grp">${esc(f)}<small>${g.length} 線</small></div>` + g.map(rowHTML).join('');
+    });
+  } else {
+    lines.sort((a, b) => S.sort === 'early' ? a.end[d] - b.end[d] : b.end[d] - a.end[d]);
+    if (lines.length) html += `<div class="grp">${S.sort === 'early' ? '最早收班' : '最晚收班'}<small>${lines.length} 線</small></div>` + lines.map(rowHTML).join('');
+  }
+  if (!html) html = `<p class="empty">找不到「${esc(S.q)}」。試試站名（新宿、Shibuya）或路線名。</p>`;
+  list.innerHTML = html;
+  rows.clear();
+  list.querySelectorAll('.ln').forEach(el => rows.set(+el.dataset.i, el));
+  updateRows(true);
+}
+function rowHTML(L) {
+  return `<button class="ln" data-i="${L.i}" style="--c:${L.c}">${symHTML(L)}<span class="nm"><b>${esc(L.n)}</b><small>${esc(L.o)}</small></span><span class="tm"><b></b><small></small></span><span class="bar"><i></i></span></button>`;
+}
+let lastMin = -1;
+function updateRows(force) {
+  const m = Math.floor(S.now);
+  if (!force && m === lastMin) return; lastMin = m;
+  rows.forEach((el, i) => {
+    const L = LINES[i], e = lerp(L.end[0], L.end[1], DAYB.to);
+    const [txt, cls] = remain(e);
+    el.querySelector('.tm b').textContent = fmt(e);
+    const sm = el.querySelector('.tm small'); sm.textContent = txt; sm.className = cls;
+    const alive = L.st.filter(s => lerp(s.t[0], s.t[1], DAYB.to) >= S.now).length;
+    el.querySelector('.bar i').style.setProperty('--w', (alive / L.st.length * 100).toFixed(1) + '%');
+    el.classList.toggle('done', e < S.now);
+  });
+  if (S.focus >= 0) updateStops();
+}
+
+// ---------- 路線詳情 ----------
+function openDetail(i) {
+  const L = LINES[i];
+  $('dtSym').innerHTML = symHTML(L); $('dtName').textContent = L.n; $('dtOp').textContent = L.o + ' · ' + L.st.length + ' 站';
+  $('stops').style.setProperty('--c', L.c);
+  $('stops').innerHTML = L.st.map(s => `<button class="stop" data-k="${s.i}"><i></i><span>${esc(s.name)}<small>${esc(s.en)}</small></span><b></b></button>`).join('');
+  $('side').classList.add('show-detail');
+  updateStops();
+}
+function updateStops() {
+  const L = LINES[S.focus]; if (!L) return;
+  const d = DAYB.to, ts = L.st.map(s => lerp(s.t[0], s.t[1], d));
+  const iEnd = ts.indexOf(Math.max(...ts)), iFirst = ts.indexOf(Math.min(...ts));
+  $('dtEnd').textContent = fmt(ts[iEnd]); $('dtEndSt').textContent = L.st[iEnd].name + ' · ' + remain(ts[iEnd])[0];
+  $('dtFirst').textContent = fmt(ts[iFirst]); $('dtFirstSt').textContent = L.st[iFirst].name;
+  $('stops').querySelectorAll('.stop').forEach((el, k) => { el.querySelector('b').textContent = fmt(ts[k]); el.classList.toggle('gone', ts[k] < S.now); });
+}
+function setFocus(i, fly) {
+  S.focus = i;
+  if (i >= 0) { openDetail(i); if (fly) flyToLine(LINES[i]); }
+  else $('side').classList.remove('show-detail');
+  if (U) U.uFocus.value = i; dirty();
+}
+
+// ---------- 時間軸 ----------
+const tl = $('tl'), tsvg = $('tlsvg');
+let tlW = 600, tlH = 60;
+const PADX = 14;
+const xOf = t => PADX + (t - T0) / SPAN * (tlW - PADX * 2);
+const tOf = x => T0 + (x - PADX) / (tlW - PADX * 2) * SPAN;
+function drawTimeline() {
+  const r = tl.getBoundingClientRect(); tlW = Math.max(200, r.width); tlH = r.height;
+  const y = tlH - 20, d = S.day;
+  const bins = new Array(SPAN / 5).fill(0);
+  LINES.forEach(L => { const b = Math.floor((L.end[d] - T0) / 5); if (b >= 0 && b < bins.length) bins[b]++; });
+  const mx = Math.max(...bins), bw = (tlW - PADX * 2) / bins.length;
+  let s = `<g id="tlBars">`;
+  bins.forEach((n, i) => { if (!n) return; const h = 4 + n / mx * (y - 16); s += `<rect data-t="${T0 + i * 5 + 5}" x="${(PADX + i * bw + 1).toFixed(1)}" y="${(y - 6 - h).toFixed(1)}" width="${Math.max(1.5, bw - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="1"/>`; });
+  s += `</g><path d="M${PADX} ${y}H${tlW - PADX}" stroke="var(--ghost)" stroke-width="5" stroke-linecap="round"/>`;
+  s += `<path id="tlPast" d="M${PADX} ${y}H${PADX}" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>`;
+  for (let t = T0; t <= T1; t += 10) {
+    const x = xOf(t), major = (t - T0) % 30 === 0;
+    if (major) s += `<circle class="tk" data-t="${t}" cx="${x}" cy="${y}" r="5.5" stroke-width="2.5"/><text x="${x}" y="${y + 17}" text-anchor="middle" font-size="12" fill="var(--dim)" style="font-family:var(--num);letter-spacing:.04em">${fmt(t)}</text>`;
+    else s += `<circle class="tk minor" data-t="${t}" cx="${x}" cy="${y}" r="1.4"/>`;
+  }
+  s += `<g id="tlHead"><path d="M0 ${y - 13}V${y}" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"/><circle cx="0" cy="${y}" r="8" fill="var(--panel)" stroke="var(--amber)" stroke-width="3.5"/></g>`;
+  tsvg.setAttribute('viewBox', `0 0 ${tlW} ${tlH}`);
+  tsvg.innerHTML = s;
+  updateTimeline(true);
+}
+function updateTimeline() {
+  const x = xOf(S.now);
+  const head = $('tlHead'); if (!head) return;
+  head.setAttribute('transform', `translate(${x.toFixed(1)} 0)`);
+  const y = tlH - 20;
+  $('tlPast').setAttribute('d', `M${PADX} ${y}H${x.toFixed(1)}`);
+  tsvg.querySelectorAll('.tk').forEach(c => {
+    const past = +c.dataset.t <= S.now;
+    if (c.classList.contains('minor')) c.setAttribute('fill', past ? 'var(--bg)' : 'var(--faint)');
+    else { c.setAttribute('fill', 'var(--panel)'); c.setAttribute('stroke', past ? 'var(--ink)' : 'var(--faint)'); }
+  });
+  tsvg.querySelectorAll('#tlBars rect').forEach(r => r.setAttribute('fill', +r.dataset.t <= S.now ? 'var(--faint)' : 'var(--dim)'));
+  tl.setAttribute('aria-valuenow', Math.round(S.now)); tl.setAttribute('aria-valuetext', fmt(S.now));
+}
+function updateClock() {
+  const c = $('clock'); c.textContent = fmt(S.now); c.classList.toggle('live', S.live);
+  $('clockCap').textContent = (S.live ? '東京現在 · ' : '顯示時刻 · ') + (S.day ? '週末假日時刻表' : '平日時刻表');
+  const d = DAYB.to;
+  let before = 0, after = 0, next = null;
+  LINES.forEach(L => { const e = lerp(L.end[0], L.end[1], d); if (e >= S.now) { before++; if (!next || e < next.e) next = { L, e }; } else after++; });
+  $('stat').innerHTML = `末班前 <b>${before}</b> 線 · 已收班 <b>${after}</b> 線` + (next ? ` · 下一條收班：<b>${esc(next.L.n)}</b>（${fmt(next.e)}）` : ' · 今晚全部收班了');
+}
+function setNow(t, opt = {}) {
+  S.now = clamp(t, T0, T1);
+  if (!opt.keepLive) S.live = false;
+  updateTimeline(); updateClock(); updateRows(); if (U) U.uNow.value = S.now; dirty(); updatePlane();
+  if (S.hover >= 0) showTip(S.hover);
+}
+let dragTl = false;
+function tlPointer(e) { const r = tl.getBoundingClientRect(); setNow(Math.round(tOf(e.clientX - r.left))); }
+tl.addEventListener('pointerdown', e => { dragTl = true; tl.setPointerCapture(e.pointerId); stopPlay(); tlPointer(e); });
+tl.addEventListener('pointermove', e => { if (dragTl) tlPointer(e); });
+tl.addEventListener('pointerup', () => dragTl = false);
+tl.addEventListener('pointercancel', () => dragTl = false);
+tl.addEventListener('keydown', e => {
+  const step = e.shiftKey ? 10 : 1;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { stopPlay(); setNow(Math.floor(S.now) + step); e.preventDefault(); e.stopPropagation(); }
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { stopPlay(); setNow(Math.ceil(S.now) - step); e.preventDefault(); e.stopPropagation(); }
+  else if (e.key === 'Home') { setNow(T0); e.preventDefault(); } else if (e.key === 'End') { setNow(T1); e.preventDefault(); }
+});
+
+// ---------- 播放與現在時刻 ----------
+let playLast = 0;
+function startPlay() { if (S.now >= T1 - .5) setNow(T0); S.playing = true; S.live = false; playLast = performance.now(); $('playIco').setAttribute('d', 'M4.5 3h3.2v12H4.5zM10.3 3h3.2v12h-3.2z'); $('play').setAttribute('aria-label', '暫停'); dirty(); }
+function stopPlay() { S.playing = false; $('playIco').setAttribute('d', 'M5 3.2v11.6L14.6 9z'); $('play').setAttribute('aria-label', '播放'); }
+$('play').onclick = () => S.playing ? stopPlay() : startPlay();
+function jst() {
+  const p = {}; new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Tokyo', hourCycle: 'h23', weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date()).forEach(x => p[x.type] = x.value);
+  const wd = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(p.weekday);
+  let m = +p.hour * 60 + +p.minute + +p.second / 60, sd = wd;
+  if (m < 240) { m += 1440; sd = (wd + 6) % 7; }
+  return { m, day: sd === 0 || sd === 6 ? 1 : 0, clock: p.hour.replace(/^0/, '') + ':' + p.minute };
+}
+let toastT = 0;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 4200); }
+function goNow(quiet) {
+  const j = jst(); stopPlay(); setDay(j.day);
+  if (j.m >= T0 && j.m <= T1) { setNow(j.m); S.live = true; updateClock(); return true; }
+  if (quiet) return false;
+  if (j.m < T0) {
+    const first = LINES.reduce((a, L) => L.end[j.day] < a.end[j.day] ? L : a);
+    const d = Math.round(first.end[j.day] - j.m);
+    setNow(T0);
+    toast(`東京現在 ${j.clock}。今晚第一條收班的是${first.n}（${fmt(first.end[j.day])}），還有 ${Math.floor(d / 60)} 小時 ${d % 60} 分。先從 21:30 開始看。`);
+  } else { setNow(T1); toast(`東京現在 ${j.clock}，今晚的末班車都已經開走了。`); }
+  return false;
+}
+$('nowBtn').onclick = () => goNow(false);
+setInterval(() => { if (S.live && !S.playing) { const j = jst(); if (j.m >= T0 && j.m <= T1) setNow(j.m, { keepLive: true }); else { S.live = false; updateClock(); } } }, 5000);
+
+// ---------- 切換 ----------
+function setDay(d) {
+  if (S.day === d && DAYB.to === d) return;
+  S.day = d; DAYB.from = DAYB.cur; DAYB.to = d; DAYB.t0 = performance.now();
+  document.querySelectorAll('[data-day]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.day === d)));
+  drawTimeline(); updateClock(); buildList(); if (S.focus >= 0) updateStops(); dirty();
+}
+function setMode(m) {
+  S.mode = m; W.from = W.cur.slice(); W.to = [m === 0 ? 1 : 0, m === 1 ? 1 : 0, m === 2 ? 1 : 0]; W.t0 = performance.now(); goal.ty = [4, 13, 0][m];
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.mode === m)));
+  dirty();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.day != null) { S.live = false; setDay(+b.dataset.day); updateClock(); }
+  else if (b.dataset.mode != null) setMode(+b.dataset.mode);
+  else if (b.dataset.sort) { S.sort = b.dataset.sort; document.querySelectorAll('[data-sort]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); buildList(); }
+  else if (b.classList.contains('ln')) setFocus(+b.dataset.i, true);
+  else if (b.classList.contains('st-res')) flyToStation(b.dataset.st);
+  else if (b.classList.contains('stop')) { const s = LINES[S.focus].st[+b.dataset.k]; flyTo(s.x, s.z, 48, hAt(tAt(s), s.L.floor)); }
+});
+$('back').onclick = () => setFocus(-1);
+$('q').addEventListener('input', e => { S.q = e.target.value; buildList(); });
+$('list').addEventListener('pointerover', e => { const r = e.target.closest('.ln'); hoverLine(r ? +r.dataset.i : -1); });
+$('list').addEventListener('pointerleave', () => hoverLine(-1));
+function hoverLine(i) { if (!U) return; const v = S.focus >= 0 ? S.focus : i; if (U.uFocus.value !== v) { U.uFocus.value = v; dirty(); } }
+function applyTheme() {
+  document.documentElement.dataset.theme = S.theme;
+  $('themeBtn').textContent = S.theme === 'night' ? '晝' : '夜';
+  $('themeBtn').setAttribute('aria-label', S.theme === 'night' ? '切換到白天配色' : '切換到夜間配色');
+  themeU(); dirty();
+}
+$('themeBtn').onclick = () => { S.theme = S.theme === 'night' ? 'day' : 'night'; store.set('lta-theme', S.theme); applyTheme(); };
+$('infoBtn').onclick = () => $('info').showModal();
+$('infoClose').onclick = () => $('info').close();
+$('info').addEventListener('click', e => { if (e.target === $('info')) $('info').close(); });
+$('sheetBtn').onclick = () => $('side').classList.toggle('open');
+$('sheetClose').onclick = () => $('side').classList.remove('open');
+// 手機：把兩組切換移到第二列
+const mq = matchMedia('(max-width:760px)');
+function placeRails() {
+  const rails = [...document.querySelectorAll('#ctl .rail, #ctl2 .rail')];
+  if (mq.matches) rails.forEach(r => $('ctl2').appendChild(r));
+  else rails.forEach(r => $('ctl').insertBefore(r, $('sheetBtn')));
+}
+mq.addEventListener('change', () => { placeRails(); onResize(); });
+placeRails();
+window.addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,dialog')) { if (e.key === 'Escape' && e.target.id === 'q') e.target.blur(); return; }
+  if (e.key === ' ') { if (e.target.closest && e.target.closest('button,[role=slider]') && e.target.id !== 'play') return; e.preventDefault(); S.playing ? stopPlay() : startPlay(); }
+  else if (e.key === 'ArrowRight') { stopPlay(); setNow(Math.floor(S.now) + (e.shiftKey ? 10 : 1)); }
+  else if (e.key === 'ArrowLeft') { stopPlay(); setNow(Math.ceil(S.now) - (e.shiftKey ? 10 : 1)); }
+  else if (e.key === '1' || e.key === '2' || e.key === '3') setMode(+e.key - 1);
+  else if (e.key === 'Escape') { setFocus(-1); $('side').classList.remove('open'); }
+});
+
+// ---------- 3D ----------
+let T = null, R = null, U = null, scene, camera, tubes, ghost, points, glow, plate, plane, planeEdge, axisLine, labelsReady = false;
+try { T = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); }
+catch (e) { try { T = await import('../vendor/three-0.186.0/three.module.js'); } catch (e2) { T = null; } }
+if (T) {
+  try { R = new T.WebGLRenderer({ canvas: $('stage'), antialias: true, powerPreference: 'high-performance' }); }
+  catch (e) { R = null; }
+}
+let needs = 2, themeU = () => {};
+function dirty() { needs = Math.max(needs, 2); }
+
+const HEIGHT_GLSL = `
+uniform vec3 uW; uniform float uDay, uH, uGap, uNow, uFocus;
+float lastT(vec2 t){ return mix(t.x, t.y, uDay); }
+float hgt(float t, float fl){ return uW.x * clamp((t - ${T0}.0) / ${SPAN}.0, 0.0, 1.0) * uH + uW.y * fl * uGap; }
+float focusK(float line){ return (uFocus < -0.5 || abs(line - uFocus) < 0.5) ? 1.0 : 0.0; }
+`;
+if (R) {
+  $('boot').classList.add('gone');
+  R.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  scene = new T.Scene();
+  camera = new T.PerspectiveCamera(34, 1, 0.5, 2000);
+  U = {
+    uW: { value: new T.Vector3(1, 0, 0) }, uDay: { value: 0 }, uH: { value: H }, uGap: { value: GAP }, uNow: { value: S.now }, uFocus: { value: -1 },
+    uR: { value: .2 }, uGhost: { value: new T.Color() }, uPlate: { value: new T.Color() }, uInk: { value: new T.Color() }, uHead: { value: new T.Color() },
+    uNight: { value: 1 }, uPix: { value: 600 }, uGhostAmt: { value: 1 }, uHov: { value: -1 }
+  };
+  // 路線管：一次合併成單一幾何
+  const P = [], N = [], AT = [], AF = [], AL = [], AC = [], IDX = []; let base = 0;
+  const RAD = 6;
+  for (const L of LINES) {
+    if (L.st.length < 2) continue;
+    const pts = L.st.map(s => new T.Vector3(s.x, 0, s.z));
+    const curve = new T.CatmullRomCurve3(pts, false, 'centripetal');
+    const div = (pts.length - 1) * 12, lens = curve.getLengths(div), tot = lens[div] || 1;
+    const su = L.st.map((s, k) => lens[k * 12] / tot);
+    const segs = Math.max(6, Math.ceil(tot * 2.4));
+    const g = new T.TubeGeometry(curve, segs, U.uR.value, RAD, false);
+    const pa = g.attributes.position.array, na = g.attributes.normal.array, ix = g.index.array;
+    const c = new T.Color(L.c);
+    let k = 0;
+    for (let i = 0; i <= segs; i++) {
+      const u = i / segs;
+      while (k < su.length - 2 && su[k + 1] < u) k++;
+      const f = clamp((u - su[k]) / Math.max(1e-6, su[k + 1] - su[k]), 0, 1);
+      const tw = lerp(L.st[k].t[0], L.st[k + 1].t[0], f), th = lerp(L.st[k].t[1], L.st[k + 1].t[1], f);
+      for (let j = 0; j <= RAD; j++) { AT.push(tw, th); AF.push(L.floor); AL.push(L.i); AC.push(c.r, c.g, c.b); }
+    }
+    for (let q = 0; q < pa.length; q++) { P.push(pa[q]); N.push(na[q]); }
+    for (let q = 0; q < ix.length; q++) IDX.push(ix[q] + base);
+    base += pa.length / 3; g.dispose();
+  }
+  const tg = new T.BufferGeometry();
+  tg.setAttribute('position', new T.Float32BufferAttribute(P, 3));
+  tg.setAttribute('normal', new T.Float32BufferAttribute(N, 3));
+  tg.setAttribute('aT', new T.Float32BufferAttribute(AT, 2));
+  tg.setAttribute('aFloor', new T.Float32BufferAttribute(AF, 1));
+  tg.setAttribute('aLine', new T.Float32BufferAttribute(AL, 1));
+  tg.setAttribute('aCol', new T.Float32BufferAttribute(AC, 3));
+  tg.setIndex(base > 65535 ? new T.Uint32BufferAttribute(IDX, 1) : new T.Uint16BufferAttribute(IDX, 1));
+  tg.boundingSphere = new T.Sphere(new T.Vector3(CX, H / 2, CZ), 120);
+  tubes = new T.Mesh(tg, new T.ShaderMaterial({
+    uniforms: U,
+    vertexShader: HEIGHT_GLSL + `
+      attribute vec2 aT; attribute float aFloor, aLine; attribute vec3 aCol;
+      uniform float uR;
+      varying vec3 vCol; varying float vAlive, vHead, vFoc; varying vec3 vN;
+      void main(){
+        float t = lastT(aT);
+        float alive = step(uNow, t);
+        float head = (1.0 - smoothstep(0.0, 2.4, t - uNow)) * alive;
+        float k = mix(0.42, 1.0, alive) + head * 0.75;
+        vec3 p = position - normal * uR * (1.0 - k);
+        p.y += hgt(t, aFloor);
+        vCol = aCol; vAlive = alive; vHead = head; vFoc = focusK(aLine); vN = normal;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      }`,
+    fragmentShader: `
+      uniform vec3 uGhost, uPlate, uHead; uniform float uNight;
+      varying vec3 vCol; varying float vAlive, vHead, vFoc; varying vec3 vN;
+      void main(){
+        float lam = 0.62 + 0.38 * max(dot(normalize(vN), normalize(vec3(-0.35, 1.0, 0.45))), 0.0);
+        vec3 c = vCol * lam * mix(1.0, 0.86, uNight);
+        c = mix(uGhost, c, vAlive);
+        c = mix(c, uHead, vHead * 0.8);
+        c = mix(mix(uPlate, uGhost, 0.55), c, mix(0.14, 1.0, vFoc));
+        gl_FragColor = vec4(c, 1.0);
+      }`
+  }));
+  scene.add(tubes);
+  // 地面上的投影
+  ghost = new T.Mesh(tg, new T.ShaderMaterial({
+    uniforms: U,
+    vertexShader: `attribute float aLine; uniform float uR, uFocus; varying float vF;
+      void main(){ vec3 p = position - normal * uR * 0.45; p.y = -0.12 + (p.y) * 0.05; vF = (uFocus < -0.5 || abs(aLine - uFocus) < 0.5) ? 1.0 : 0.5;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`,
+    fragmentShader: `uniform vec3 uGhost, uPlate; uniform float uGhostAmt; varying float vF; void main(){ gl_FragColor = vec4(mix(uPlate, uGhost, uGhostAmt * vF), 1.0); }`
+  }));
+  scene.add(ghost);
+  // 地盤
+  plate = new T.Mesh(new T.PlaneGeometry(bx1 - bx0, bz1 - bz0).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0x000000 }));
+  plate.position.set(CX, -0.3, CZ); scene.add(plate);
+  // 比例尺刻度：地盤四邊每 5 km 一格
+  const tk = [];
+  for (let x = Math.ceil(bx0 / 5) * 5; x <= bx1; x += 5) { const l = x % 25 === 0 ? 1.6 : .7; tk.push(x, -.28, bz0, x, -.28, bz0 + l, x, -.28, bz1, x, -.28, bz1 - l); }
+  for (let z = Math.ceil(bz0 / 5) * 5; z <= bz1; z += 5) { const l = z % 25 === 0 ? 1.6 : .7; tk.push(bx0, -.28, z, bx0 + l, -.28, z, bx1, -.28, z, bx1 - l, -.28, z); }
+  const tkg = new T.BufferGeometry(); tkg.setAttribute('position', new T.Float32BufferAttribute(tk, 3));
+  const ticks = new T.LineSegments(tkg, new T.LineBasicMaterial({ color: 0x000000 })); scene.add(ticks);
+  // 車站：Points
+  const sp = [], sT = [], sF = [], sL = [], sC = [];
+  ALL.forEach(s => { sp.push(s.x, 0, s.z); sT.push(s.t[0], s.t[1]); sF.push(s.L.floor); sL.push(s.L.i); const c = new T.Color(s.L.c); sC.push(c.r, c.g, c.b); });
+  const pg = new T.BufferGeometry();
+  pg.setAttribute('position', new T.Float32BufferAttribute(sp, 3));
+  pg.setAttribute('aT', new T.Float32BufferAttribute(sT, 2));
+  pg.setAttribute('aFloor', new T.Float32BufferAttribute(sF, 1));
+  pg.setAttribute('aLine', new T.Float32BufferAttribute(sL, 1));
+  pg.setAttribute('aCol', new T.Float32BufferAttribute(sC, 3));
+  pg.boundingSphere = tg.boundingSphere.clone();
+  const PV = HEIGHT_GLSL + `
+      attribute vec2 aT; attribute float aFloor, aLine; attribute vec3 aCol;
+      uniform float uPix, uSize, uHov;
+      varying vec3 vCol; varying float vAlive, vFoc, vHov;
+      void main(){
+        float t = lastT(aT);
+        vec3 p = position; p.y += hgt(t, aFloor);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        gl_Position.z -= 0.0025 * gl_Position.w;
+        vAlive = step(uNow, t); vCol = aCol; vFoc = focusK(aLine);
+        vHov = abs(float(gl_VertexID) - uHov) < 0.5 ? 1.0 : 0.0;
+        gl_PointSize = clamp(uSize * mix(0.6, 1.0, vAlive) * (1.0 + vHov * 0.7) * uPix / -mv.z, 2.0, 40.0);
+      }`;
+  points = new T.Points(pg, new T.ShaderMaterial({
+    uniforms: { ...U, uSize: { value: .62 } }, vertexShader: PV,
+    fragmentShader: `
+      uniform vec3 uGhost, uPlate, uInk; uniform float uNight;
+      varying vec3 vCol; varying float vAlive, vFoc, vHov;
+      void main(){
+        float d = length(gl_PointCoord - 0.5) * 2.0;
+        float aa = fwidth(d) * 1.2;
+        if (d > 1.0) discard;
+        vec3 fillOn = mix(vec3(1.0), vec3(1.0, 0.95, 0.85), uNight);
+        vec3 ringOn = mix(uInk, mix(vCol, vec3(1.0, 0.9, 0.72), 0.35), uNight);
+        vec3 fill = mix(uPlate, fillOn, vAlive);
+        vec3 ring = mix(uGhost, ringOn, vAlive);
+        float rr = mix(0.5, 0.58, uNight);
+        vec3 c = mix(fill, ring, smoothstep(rr - aa, rr + aa, d));
+        c = mix(mix(uPlate, uGhost, 0.5), c, mix(0.2, 1.0, vFoc));
+        float a = 1.0 - smoothstep(1.0 - aa, 1.0, d);
+        if (a < 0.02) discard;
+        gl_FragColor = vec4(c, 1.0);
+      }`
+  }));
+  scene.add(points);
+  glow = new T.Points(pg, new T.ShaderMaterial({
+    uniforms: { ...U, uSize: { value: 2.4 } }, vertexShader: PV, transparent: true, depthWrite: false, blending: T.AdditiveBlending,
+    fragmentShader: `
+      varying vec3 vCol; varying float vAlive, vFoc, vHov;
+      void main(){
+        float d = length(gl_PointCoord - 0.5) * 2.0;
+        float a = exp(-d * d * 5.5) * (1.0 - d) * vAlive * vFoc;
+        if (a < 0.004) discard;
+        gl_FragColor = vec4(mix(vCol, vec3(1.0, 0.86, 0.62), 0.55) * a * 0.55, 1.0);
+      }`
+  }));
+  scene.add(glow);
+  // 時間水位
+  plane = new T.Mesh(new T.PlaneGeometry(bx1 - bx0, bz1 - bz0).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .6, depthWrite: false }));
+  plane.position.set(CX, 0, CZ); plane.renderOrder = 2; scene.add(plane);
+  glow.renderOrder = 3;
+  const eg = new T.BufferGeometry().setFromPoints([new T.Vector3(bx0, 0, bz0), new T.Vector3(bx1, 0, bz0), new T.Vector3(bx1, 0, bz1), new T.Vector3(bx0, 0, bz1)]);
+  planeEdge = new T.LineLoop(eg, new T.LineBasicMaterial({ color: 0x000000, transparent: true })); planeEdge.renderOrder = 4; scene.add(planeEdge);
+  const ag = new T.BufferGeometry(); const av = [bx0, 0, bz0, bx0, H, bz0];
+  for (let t = 1320; t <= T1; t += 60) { const y = (t - T0) / SPAN * H; av.push(bx0, y, bz0, bx0 - 1.2, y, bz0); }
+  ag.setAttribute('position', new T.Float32BufferAttribute(av, 3));
+  axisLine = new T.LineSegments(ag, new T.LineBasicMaterial({ color: 0x000000, transparent: true })); scene.add(axisLine);
+  themeU = () => {
+    const cs = getComputedStyle(document.documentElement), g = v => new T.Color(cs.getPropertyValue(v).trim());
+    const night = S.theme === 'night';
+    R.setClearColor(g('--bg'));
+    U.uGhost.value.copy(g('--ghost')); U.uPlate.value.copy(g('--plate')); U.uInk.value.copy(g('--ink'));
+    U.uHead.value.set(night ? 0xfff0cc : 0xffffff); U.uNight.value = night ? 1 : 0;
+    plate.material.color.copy(g('--plate'));
+    ticks.material.color.copy(g('--faint'));
+    plane.material.color.copy(g('--bg')); plane.material.opacity = night ? .62 : .58;
+    planeEdge.material.color.copy(g('--amber'));
+    axisLine.material.color.copy(g('--faint'));
+    glow.visible = night;
+  };
+}
+
+// ---------- 相機 ----------
+const isNarrow = () => innerWidth < 761;
+const cam = { tx: CX, ty: 4, tz: CZ + 2, az: .06, pol: .93, dist: 150 };
+const goal = { ...cam };
+function frameDist() { const a = innerWidth / innerHeight; return a < .8 ? 205 : a < 1.2 ? 165 : 128; }
+cam.dist = 260; cam.pol = .25; goal.dist = frameDist();
+function applyCam() {
+  const sp = Math.sin(cam.pol);
+  camera.position.set(cam.tx + cam.dist * sp * Math.sin(cam.az), cam.ty + cam.dist * Math.cos(cam.pol), cam.tz + cam.dist * sp * Math.cos(cam.az));
+  camera.lookAt(cam.tx, cam.ty, cam.tz);
+}
+function flyTo(x, z, dist, ty = 4) { goal.tx = x; goal.tz = z; goal.dist = dist || goal.dist; goal.ty = ty; dirty(); if (isNarrow()) $('side').classList.remove('open'); }
+function flyToLine(L) {
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  L.st.forEach(s => { x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); z0 = Math.min(z0, s.z); z1 = Math.max(z1, s.z); });
+  const ext = Math.max(x1 - x0, z1 - z0);
+  if (!camera) return;
+  const ty = L.st.reduce((a, s) => a + hAt(tAt(s), L.floor), 0) / L.st.length;
+  flyTo((x0 + x1) / 2, (z0 + z1) / 2, clamp(ext * 2.1 + 40, 50, 200) * (isNarrow() ? 1.35 : 1), ty);
+}
+function flyToStation(n) {
+  const es = ALL.filter(s => s.name === n); if (!es.length) return;
+  const x = es.reduce((a, s) => a + s.x, 0) / es.length, z = es.reduce((a, s) => a + s.z, 0) / es.length;
+  if (camera) flyTo(x, z, 46, es.reduce((a, s) => a + hAt(tAt(s), s.L.floor), 0) / es.length);
+  if (es.length === 1 || new Set(es.map(s => s.L.i)).size === 1) setFocus(es[0].L.i, false);
+}
+// 指標操作
+const cvs = $('stage'), ptrs = new Map(); let pinch = null, moved = 0, downAt = null;
+cvs.addEventListener('contextmenu', e => e.preventDefault());
+cvs.addEventListener('pointerdown', e => {
+  cvs.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, b: e.button, sh: e.shiftKey });
+  moved = 0; downAt = { x: e.clientX, y: e.clientY }; cvs.classList.add('drag');
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; }
+});
+function panBy(dx, dy) {
+  const k = goal.dist * .0016, c = Math.cos(goal.az), s = Math.sin(goal.az);
+  goal.tx -= (dx * c + dy * s * 1) * k; goal.tz -= (-dx * s + dy * c) * k;
+  goal.tx = clamp(goal.tx, bx0, bx1); goal.tz = clamp(goal.tz, bz0, bz1);
+}
+cvs.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId);
+  if (!p) { hoverPick(e.clientX, e.clientY); return; }
+  const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+  moved += Math.abs(dx) + Math.abs(dy);
+  if (ptrs.size === 2 && pinch) {
+    const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    goal.dist = clamp(goal.dist * pinch.d / Math.max(d, 1), 22, 320); panBy(mx - pinch.mx, my - pinch.my);
+    pinch = { d, mx, my };
+  } else if (p.b === 2 || p.sh || e.shiftKey) panBy(dx, dy);
+  else { goal.az -= dx * .0055; goal.pol = clamp(goal.pol - dy * .004, .08, 1.38); }
+  hideTip(); dirty();
+});
+function endPtr(e) {
+  const p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null;
+  if (!ptrs.size) cvs.classList.remove('drag');
+  if (p && moved < 6 && e.type === 'pointerup') clickPick(e.clientX, e.clientY, e.pointerType);
+}
+cvs.addEventListener('pointerup', endPtr); cvs.addEventListener('pointercancel', endPtr);
+cvs.addEventListener('pointerleave', () => { if (!ptrs.size) hideTip(); });
+cvs.addEventListener('wheel', e => { e.preventDefault(); goal.dist = clamp(goal.dist * Math.exp(e.deltaY * (e.deltaMode ? .05 : .0012)), 22, 320); hideTip(); dirty(); }, { passive: false });
+
+// ---------- 點選 ----------
+const v3 = T ? new T.Vector3() : null;
+function pick(x, y) {
+  if (!camera) return -1;
+  let best = -1, bd = 14 * 14, bz = Infinity;
+  for (let i = 0; i < ALL.length; i++) {
+    const s = ALL[i];
+    v3.set(s.x, hAt(tAt(s), s.L.floor), s.z).project(camera);
+    if (v3.z > 1) continue;
+    const sx = (v3.x + 1) / 2 * innerWidth, sy = (1 - v3.y) / 2 * innerHeight;
+    const d = (sx - x) ** 2 + (sy - y) ** 2;
+    if (d < bd - 4 || (d < bd + 4 && v3.z < bz)) { best = i; bd = d; bz = v3.z; }
+  }
+  return best;
+}
+let tipXY = [0, 0];
+function hoverPick(x, y) { const i = pick(x, y); tipXY = [x, y]; if (i < 0) hideTip(); else showTip(i); }
+function clickPick(x, y, type) {
+  const i = pick(x, y);
+  if (i >= 0) { tipXY = [x, y]; showTip(i); setFocus(ALL[i].L.i, false); if (!isNarrow()) {} }
+  else { hideTip(); setFocus(-1); }
+}
+function showTip(i) {
+  const s = ALL[i]; S.hover = i; const L = s.L, d = S.day, t = s.t[d];
+  const [txt, cls] = remain(t);
+  const tip = $('tip');
+  tip.innerHTML = `<div class="t1">${symHTML(L)}<div><b>${esc(s.name)}</b><small>${esc(L.n)} · ${esc(s.en)}</small></div></div>
+    <div class="t2"><span>末班離站</span><b>${fmt(t)}</b></div>
+    <div class="t3"><span>${esc(s.from[d])}發 · 往${esc(s.to[d])}</span><em class="${cls}">${txt === '已收班' ? '已過末班' : txt}</em></div>`;
+  tip.classList.add('on');
+  const r = tip.getBoundingClientRect(); let x = tipXY[0] + 16, y = tipXY[1] + 16;
+  if (x + r.width > innerWidth - 8) x = tipXY[0] - r.width - 16;
+  if (y + r.height > innerHeight - 8) y = tipXY[1] - r.height - 16;
+  tip.style.transform = `translate(${Math.max(8, x)}px,${Math.max(8, y)}px)`;
+  if (U) { U.uHov.value = i; dirty(); }
+}
+function hideTip() { if (S.hover < 0) return; S.hover = -1; $('tip').classList.remove('on'); if (U) { U.uHov.value = -1; dirty(); } }
+
+// ---------- 標籤 ----------
+const lblBox = $('labels'); const HUBL = [];
+function buildLabels() {
+  HUBS.forEach((n, pri) => {
+    const es = ALL.filter(s => s.name === n); if (!es.length) return;
+    const el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `<b>${esc(n)}</b><i>${esc(es[0].en)}</i>`;
+    lblBox.appendChild(el); HUBL.push({ el, es, pri, w: 0, h: 0 });
+  });
+  const ax = [];
+  for (let t = 1320; t <= T1; t += 60) { const el = document.createElement('div'); el.className = 'axis'; el.textContent = fmt(t); lblBox.appendChild(el); ax.push({ el, t }); }
+  const nowEl = document.createElement('div'); nowEl.className = 'axis now'; lblBox.appendChild(nowEl);
+  const fl = FLOORS.map((f, i) => { const el = document.createElement('div'); el.className = 'floor'; el.textContent = f; lblBox.appendChild(el); return { el, i }; });
+  HUBL.axis = ax; HUBL.nowEl = nowEl; HUBL.floors = fl;
+  labelsReady = true;
+}
+function place(el, x, y, z, dx = 0, dy = 0) {
+  v3.set(x, y, z).project(camera);
+  if (v3.z > 1 || v3.x < -1.2 || v3.x > 1.2 || v3.y < -1.2 || v3.y > 1.2) { el.style.opacity = 0; return null; }
+  const sx = (v3.x + 1) / 2 * innerWidth, sy = (1 - v3.y) / 2 * innerHeight;
+  el.style.transform = `translate(${(sx + dx).toFixed(1)}px,${(sy + dy).toFixed(1)}px)`;
+  return [sx, sy];
+}
+function updateLabels() {
+  if (!labelsReady) return;
+  const taken = [], max = isNarrow() ? 12 : 30;
+  let shown = 0;
+  for (const h of HUBL) {
+    if (!h.w) { h.w = h.el.offsetWidth; h.h = h.el.offsetHeight; }
+    let top = h.es[0], ty = -1;
+    const hi = W.to[0] > .5;
+    ty = hi ? -1 : Infinity;
+    for (const s of h.es) { const y = hAt(tAt(s), s.L.floor); if (hi ? y > ty : y < ty) { ty = y; top = s; } }
+    const alive = h.es.some(s => tAt(s) >= S.now);
+    const p = place(h.el, top.x, ty, top.z, -h.w / 2, -h.h - 9);
+    if (!p) continue;
+    const r = [p[0] - h.w / 2 - 3, p[1] - h.h - 12, p[0] + h.w / 2 + 3, p[1] - 6];
+    const clash = shown >= max || r[0] < 0 || r[2] > innerWidth || r[1] < 0 || taken.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]);
+    h.el.style.opacity = '';
+    h.el.classList.toggle('hide', clash);
+    h.el.classList.toggle('dead', !alive);
+    if (!clash) { taken.push(r); shown++; }
+  }
+  const tw = W.cur[0], fw = W.cur[1];
+  const inX = (p, w) => p && p[0] > w + 4 && p[0] < innerWidth - 60 ? 1 : 0;
+  HUBL.axis.forEach(a => { const p = place(a.el, bx0 - 1.6, (a.t - T0) / SPAN * H, bz0, -44, -7); if (p) a.el.style.opacity = tw * inX(p, 44); });
+  const p = place(HUBL.nowEl, bx0, (S.now - T0) / SPAN * H, bz0, 10, -9); if (p) { HUBL.nowEl.textContent = fmt(S.now); HUBL.nowEl.style.opacity = tw * inX(p, 0); }
+  HUBL.floors.forEach(f => { if (!f.w) f.w = f.el.offsetWidth; const p = place(f.el, bx0 - 1, f.i * GAP, bz0, -f.w - 8, -8); if (p) f.el.style.opacity = fw * inX(p, f.w + 8); });
+}
+function updatePlane() {
+  if (!plane) return;
+  const y = (S.now - T0) / SPAN * H * W.cur[0];
+  plane.position.y = y; planeEdge.position.y = y;
+  plane.visible = planeEdge.visible = W.cur[0] > .02 && S.now > T0 + .1;
+  plane.material.opacity = (S.theme === 'night' ? .62 : .58) * W.cur[0];
+  planeEdge.material.opacity = W.cur[0];
+  axisLine.material.opacity = W.cur[0]; axisLine.visible = W.cur[0] > .02;
+}
+
+// ---------- 迴圈 ----------
+function onResize() {
+  if (!R) { drawTimeline(); return; }
+  R.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  const n = isNarrow(); camera.setViewOffset(innerWidth, innerHeight, n ? 0 : -158, n ? 34 : 44, innerWidth, innerHeight);
+  camera.updateProjectionMatrix();
+  U.uPix.value = R.getDrawingBufferSize(new T.Vector2()).y / (2 * Math.tan(camera.fov * Math.PI / 360));
+  drawTimeline(); HUBL.forEach(h => h.w = 0); if (HUBL.floors) HUBL.floors.forEach(f => f.w = 0); dirty();
+}
+let intro = null;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (S.playing) {
+    const dt = Math.min(.1, (now - playLast) / 1000); playLast = now;
+    const nt = S.now + dt * 6;
+    if (nt >= T1) { setNow(T1); stopPlay(); } else setNow(nt);
+  }
+  if (intro) {
+    const k = clamp((now - intro.t0) / intro.dur, 0, 1);
+    setNow(lerp(T0, intro.to, ease(k)), { keepLive: true });
+    if (k >= 1) intro = null;
+  }
+  if (!R) return;
+  const wk = clamp((now - W.t0) / (reduced ? 1 : 900), 0, 1);
+  if (W.cur.some((v, i) => v !== W.to[i])) { const e = ease(wk); W.cur = W.from.map((v, i) => lerp(v, W.to[i], e)); if (wk >= 1) W.cur = W.to.slice(); U.uW.value.set(...W.cur); U.uGhostAmt.value = 1 - W.cur[2]; updatePlane(); needs = 2; }
+  const dk = clamp((now - DAYB.t0) / (reduced ? 1 : 700), 0, 1);
+  if (DAYB.cur !== DAYB.to) { DAYB.cur = lerp(DAYB.from, DAYB.to, ease(dk)); if (dk >= 1) DAYB.cur = DAYB.to; U.uDay.value = DAYB.cur; needs = 2; }
+  let moving = false;
+  for (const k of ['tx', 'ty', 'tz', 'az', 'pol', 'dist']) {
+    const d = goal[k] - cam[k];
+    if (Math.abs(d) > (k === 'dist' ? .01 : .0004)) { cam[k] += d * (reduced ? 1 : k === 'dist' || k === 'pol' ? .09 : .16); moving = true; } else cam[k] = goal[k];
+  }
+  if (moving) needs = 2;
+  if (needs <= 0) return;
+  needs--;
+  applyCam();
+  ghost.visible = W.cur[2] < .98;
+  R.render(scene, camera);
+  updateLabels();
+}
+
+// ---------- 開始 ----------
+buildList();
+drawTimeline(); updateClock();
+applyTheme();
+addEventListener('resize', onResize);
+if (R) {
+  buildLabels(); onResize(); updatePlane();
+  const live = goNow(true);
+  if (!live) { setDay(jst().day); }
+  const target = live ? S.now : 1405;
+  if (reduced) { cam.dist = goal.dist; cam.pol = goal.pol; setNow(target, { keepLive: live }); }
+  else { intro = { t0: performance.now() + 250, dur: 2600, to: target }; setNow(T0, { keepLive: live }); }
+  S.live = live;
+  requestAnimationFrame(frame);
+} else {
+  $('boot').innerHTML = '<div><b>3D 地圖沒有載入</b>需要 WebGL，並能連線到 cdn.jsdelivr.net 載入 Three.js。左側的末班時刻表和時間軸仍然可以用。</div>';
+  setDay(jst().day); setNow(1405); requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>

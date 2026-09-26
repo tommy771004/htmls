@@ -12,15 +12,17 @@ import {targetProblem} from './combat.ts';
 import type {CombatState,Target} from './combat.ts';
 import type {Unit} from './movement.ts';
 import type {PlayerVision} from './vision.ts';
+import {faithOf,carrying,riteProblem} from './religion.ts';
+import type {ReligionState} from './religion.ts';
 // Computer opponent (design_default engineering values, not the reference game's AI).
 // It sees only its own player's vision, and every order goes through the same validation as a human's
 // (sim.ts admits it without writing the replay log, because replay re-derives it from the same state).
 // thinkTicks: one decision pass per second at 20 Hz. firstWaveTick: no attack wave before 4 minutes.
 export const aiRules={provenance:'design_default',player:1,thinkTicks:20,thinkOffset:7,villagerTarget:12,
  gatherWeights:{food:4,wood:3,gold:2,stone:0},houseMargin:2,barracksAtVillagers:3,ageUpAtVillagers:9,
- waveSize:5,firstWaveTick:4800,engageRange:500,defendRadius:700,baseMargin:50,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2} as const;
-export type AIState=CombatState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
-export type Order=(commandType:'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign',payload:Record<string,unknown>)=>boolean;
+ waveSize:5,firstWaveTick:4800,engageRange:500,defendRadius:700,baseMargin:50,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2} as const;
+export type AIState=ReligionState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
+export type Order=(commandType:'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit',payload:Record<string,unknown>)=>boolean;
 type Box=number[];
 const gap=(a:Box,b:Box)=>Math.max(a[0]-b[2],b[0]-a[2],a[1]-b[3],b[1]-a[3],0);
 const centre=(b:Box)=>({x:(b[0]+b[2])/2,y:(b[1]+b[3])/2});
@@ -51,6 +53,7 @@ export function stepAI(s:AIState,order:Order){
  const barracksDue=villagers.length>=aiRules.barracksAtVillagers&&!own.some(b=>b.kind==='barracks');
  if(barracksDue)place(s,order,'barracks',villagers,idle,tcBox,own);
  // In the second age an archery range follows (it needs the finished barracks).
+ if(s.ages[P]>=3&&!own.some(b=>b.kind==='monastery')&&stock.wood>=rules.entries.find(e=>e.id==='monastery')!.cost.wood)place(s,order,'monastery',villagers,idle,tcBox,own);
  if(s.ages[P]>=2&&!own.some(b=>b.kind==='archery-range')&&!buildRequirement(s.ages[P],'archery-range',own)&&stock.wood>=rules.entries.find(e=>e.id==='archery-range')!.cost.wood)place(s,order,'archery-range',villagers,idle,tcBox,own);
  if(room<=aiRules.houseMargin&&account.populationCap<rules.settings.populationCap&&!pending('house')&&(!barracksDue||room<=0))place(s,order,'house',villagers,idle,tcBox,own);
  // Drop-off camps: when two or more villagers carry wood (or gold/stone) from farther than campDistance to the
@@ -64,12 +67,28 @@ export function stepAI(s:AIState,order:Order){
  if(tc.complete&&!tc.queue.length){
   if(villagers.length+queued('villager')<aiRules.villagerTarget&&!trainable(s,P,tc,'villager'))order('train',{buildingId:tc.id,entryId:'villager'});
   else if(s.ages[P]<2&&villagers.length>=aiRules.ageUpAtVillagers&&own.some(b=>b.kind==='barracks'&&b.complete)&&!trainable(s,P,tc,'age-2'))order('train',{buildingId:tc.id,entryId:'age-2'});
+  // The third age once the villagers are complete and the archery range stands (for the monastery and its monks).
+  else if(s.ages[P]===2&&villagers.length>=aiRules.villagerTarget&&own.some(b=>b.kind==='archery-range'&&b.complete)&&!trainable(s,P,tc,'age-3'))order('train',{buildingId:tc.id,entryId:'age-3'});
  }
  // Barracks: militia, but food is kept for the age-up when it is due. Archery range: archers.
- const savingForAge=s.ages[P]<2&&villagers.length>=aiRules.ageUpAtVillagers&&stock.food<rules.entries.find(e=>e.id==='age-2')!.cost.food+60;
+ const cost=(id:string)=>rules.entries.find(e=>e.id===id)!.cost;
+ const savingForAge=s.ages[P]<2&&villagers.length>=aiRules.ageUpAtVillagers&&stock.food<cost('age-2').food+60;
+ // Saving for the third age: soldiers wait while food or gold is short of it (plus one soldier's worth).
+ const savingForCastle=s.ages[P]===2&&villagers.length>=aiRules.villagerTarget&&own.some(b=>b.kind==='archery-range'&&b.complete)&&!own.some(b=>b.queue.some(q=>q.entryId==='age-3'))&&(stock.food<cost('age-3').food+60||stock.gold<cost('age-3').gold+30);
+ const monks=mine.filter(u=>u.kind==='monk');
  for(const b of own.filter(b=>b.complete&&b.queue.length<2)){
-  const pick=b.kind==='barracks'&&!savingForAge?'militia':b.kind==='archery-range'?'archer':null;
+  const pick=savingForCastle&&b.kind!=='monastery'?null:b.kind==='barracks'&&!savingForAge?'militia':b.kind==='archery-range'?'archer':b.kind==='monastery'&&monks.length+queued('monk')<aiRules.monkTarget?'monk':null;
   if(pick&&!trainable(s,P,b,pick))order('train',{buildingId:b.id,entryId:pick});}
+ // Monks: a carried relic goes to the monastery; with full faith a monk converts the nearest enemy unit that comes
+ // near the town centre; otherwise idle monks fetch relics red has seen (one monk per relic). Healing is automatic.
+ const monastery=own.find(b=>b.kind==='monastery'&&b.complete),home=tcBox?centre(tcBox):null,fetching=new Set(Object.values(s.rites).filter(r=>r.kind==='relic').map(r=>r.target));
+ for(const m of monks){const rite=s.rites[m.id];
+  if(carrying(s,m.id)){if(monastery&&rite?.kind!=='deposit')order('deposit',{unitIds:[m.id],buildingId:monastery.id});continue;}
+  if(rite?.kind==='convert'||rite?.kind==='relic')continue;
+  const intruder=home&&faithOf(s,m.id)>=1?foes.filter(u=>dist(u,home)<=aiRules.defendRadius&&!riteProblem(s,P,'convert',u.id)).sort((a,b)=>dist(a,m)-dist(b,m)||a.id-b.id)[0]:undefined;
+  if(intruder){order('convert',{unitIds:[m.id],targetId:intruder.id});continue;}
+  const relic=s.relicMemory[P].filter(r=>!fetching.has(r.id)).sort((a,b)=>dist(a,m)-dist(b,m)||a.id-b.id)[0];
+  if(relic&&!rite&&monastery){order('relic',{unitIds:[m.id],relicId:relic.id});fetching.add(relic.id);}}
  // Idle villagers gather whichever weighted resource is most under-staffed, from the nearest explored source.
  const staff:Record<Resource,number>={food:0,wood:0,gold:0,stone:0},farmers=new Set<string>();
  for(const u of villagers){const w=s.works[u.id];if(w?.kind==='gather'){const r=s.map.resources.find(r=>r.id===w.resourceId);if(r){staff[resourceDefinitions[r.kind].yield]++;if(r.kind==='farm')farmers.add(r.id);}}}
@@ -100,7 +119,7 @@ function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Uni
   sources=s.map.obstacles.filter(o=>o.kind==='gold'||o.kind==='rock'||o.kind==='berries'||o.kind==='hunt'||o.kind==='livestock').map(o=>obstacleBounds(o)),middle=world/2,axis=Math.hypot(home.x-middle,home.y-middle)||1,ux=(home.x-middle)/axis,uy=(home.y-middle)/axis;
  // Own side: how far a point lies from the map centre towards the own town centre (negative = the far side).
  const side=(x:number,y:number)=>(x-middle)*ux+(y-middle)*uy;
- const explored=new Set(s.vision[aiRules.player].explored),bodies=s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[position(s.map,u.next)])]);
+ const explored=new Set(s.vision[aiRules.player].explored),bodies=[...s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[position(s.map,u.next)])]),...s.relics.filter(r=>r.carrier===null&&r.monastery===null).map(r=>({x:r.x,y:r.y}))];
  const input={tiles:s.map.tiles,obstacles:s.map.obstacles,units:bodies,explored:(t:number)=>explored.has(t)},sites:{x:number;y:number;d:number}[]=[];
  const g=buildingRules.grid,from=(v:number)=>Math.ceil(-v/g)*g;
  // Only the window within siteRange of the town centre is scanned.
@@ -108,7 +127,7 @@ function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Uni
  for(let x=lo(c.x,x0);x<=hi(c.x,x1);x+=aiRules.siteStep)for(let y=lo(c.y,y0);y<=hi(c.y,y1);y+=aiRules.siteStep){const box=[x+x0,y+y0,x+x1,y+y1],mid=centre(box);
   // Buildings that train soldiers keep a buffer from the centre line so fresh soldiers do not start inside enemy sight;
   // houses and farms may reach a little past it (the 16x16 map leaves little room once a base grows).
-  const margin=kind==='barracks'||kind==='archery-range'?aiRules.halfMargin:-aiRules.spill,ownHalf=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3]))>=margin;
+  const margin=kind==='barracks'||kind==='archery-range'||kind==='monastery'?aiRules.halfMargin:-aiRules.spill,ownHalf=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3]))>=margin;
   if(!ownHalf||dist(mid,c)>aiRules.siteRange||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<50)||sources.some(o=>gap(box,o)<aiRules.sourceMargin))))continue;sites.push({x,y,d:dist(mid,c)});}
  sites.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);
  for(const site of sites){if(placementProblem(input,kind,site.x,site.y))continue;

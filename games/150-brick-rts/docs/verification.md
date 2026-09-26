@@ -194,3 +194,7 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## 修道院與僧侶（v21）
 
 修道院、僧侶的轉化與治療、信仰恢復、換邊單位的佇列命令，以及 32×32 地圖上攻擊建築的可見性修正；`npm run test:monastery` 從實際打到第三時代的存檔操作。驗證見 [first-use-021.md](first-use-021.md)。F 為進行中。
+
+## 轉化判定、修道院科技、聖物與電腦的僧侶（v22）
+
+原作的轉化判定方式、8 項修道院科技、聖物（撿起、存放、黃金、聖物勝利）與電腦的第三時代和僧侶；`npm run test:monastery` 在頁面上驗證研究、治療、聖物，`npm run test:relics` 驗證聖物勝利。驗證見 [first-use-022.md](first-use-022.md)。F 為進行中。

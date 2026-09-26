@@ -1,6 +1,6 @@
 // Sound effects, synthesised with WebAudio at play time (no audio files, no network). The context starts only
 // after a user gesture (browser autoplay rules); until then play() is a no-op. Volume 0 mutes.
-export type Sound='select-villager'|'select-soldier'|'order'|'order-attack'|'place'|'built'|'trained'|'hit'|'alarm'|'age'|'victory'|'defeat'|'collapse'|'resign'|'convert'|'converted';
+export type Sound='select-villager'|'select-soldier'|'order'|'order-attack'|'place'|'built'|'trained'|'hit'|'alarm'|'age'|'victory'|'defeat'|'collapse'|'resign'|'convert'|'converted'|'relic';
 export function createAudio(report:(name:string,count:number)=>void=()=>{}){
  let ctx:AudioContext|null=null,master:GainNode|null=null,volume=.6,count=0,noise:AudioBuffer|null=null;
  const lastPlayed=new Map<Sound,number>();
@@ -42,6 +42,8 @@ export function createAudio(report:(name:string,count:number)=>void=()=>{}){
   // A monk's order: a held fifth rising a tone, soft (a chant, not a battle cue).
   convert:()=>{tone('sine',392,0,.7,.07,440);tone('sine',587,0,.7,.05,659);},
   converted:()=>{[440,554,659].forEach((f,i)=>tone('sine',f,i*.1,.5,.07));},
+  // A relic lifted or laid down: a bright bell-like pair.
+  relic:()=>{tone('sine',1175,0,.6,.06);tone('sine',1568,.05,.55,.04);},
  };
  function play(name:Sound){
   const now=performance.now(),gap=spacing[name]??0;if(gap&&now-(lastPlayed.get(name)??-1e9)<gap)return;lastPlayed.set(name,now);

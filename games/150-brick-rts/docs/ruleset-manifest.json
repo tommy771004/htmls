@@ -419,6 +419,214 @@
       "testEvidence": [
         "tests/foundation.test.ts (data validation only)"
       ],
+      "id": "redemption",
+      "kind": "technology",
+      "name": "救贖",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 475,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "monastery",
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "atonement",
+      "kind": "technology",
+      "name": "贖罪",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 325,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "monastery",
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "sanctity",
+      "kind": "technology",
+      "name": "聖潔",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 175,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "monastery",
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "heresy",
+      "kind": "technology",
+      "name": "異端",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 1000,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "monastery",
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "illumination",
+      "kind": "technology",
+      "name": "啟蒙",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 120,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "monastery",
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "block-printing",
+      "kind": "technology",
+      "name": "活字印刷",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 200,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "monastery",
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "theocracy",
+      "kind": "technology",
+      "name": "神權政治",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 200,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "monastery",
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "faith",
+      "kind": "technology",
+      "name": "信仰",
+      "cost": {
+        "food": 550,
+        "wood": 0,
+        "gold": 750,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "monastery",
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
       "id": "age-2",
       "kind": "technology",
       "name": "第二時代",
@@ -491,6 +699,14 @@
     "ram": null,
     "scout": "stable",
     "monk": "monastery",
+    "redemption": "monastery",
+    "atonement": "monastery",
+    "sanctity": "monastery",
+    "heresy": "monastery",
+    "illumination": "monastery",
+    "block-printing": "monastery",
+    "theocracy": "monastery",
+    "faith": "monastery",
     "age-2": "town-center",
     "age-3": "town-center",
     "age-4": "town-center"
@@ -515,6 +731,14 @@
         "ram",
         "scout",
         "monk",
+        "redemption",
+        "atonement",
+        "sanctity",
+        "heresy",
+        "illumination",
+        "block-printing",
+        "theocracy",
+        "faith",
         "age-2",
         "age-3",
         "age-4"
@@ -540,6 +764,14 @@
         "ram",
         "scout",
         "monk",
+        "redemption",
+        "atonement",
+        "sanctity",
+        "heresy",
+        "illumination",
+        "block-printing",
+        "theocracy",
+        "faith",
         "age-2",
         "age-3",
         "age-4"

@@ -20,8 +20,8 @@ import type {Attack,Corpse,Outcome,Target} from './combat.ts';
 import type {Work,Cargo} from './work.ts';
 import {tileAt} from './terrain.ts';
 import {stepAI,aiRules} from './ai.ts';
-import {religionRules,riteProblem,commandRite,clearRites,stepReligion,faithOf} from './religion.ts';
-import type {Rite} from './religion.ts';
+import {religionRules,riteProblem,commandRite,clearRites,stepReligion,faithOf,carrying,placeRelics} from './religion.ts';
+import type {Rite,Relic,RelicVictory} from './religion.ts';
 export type {Unit} from './movement.ts';
 type Envelope={protocolVersion:1;rulesetHash:string;playerId:number;sequence:number;targetTick:number};
 export type MoveCommand=Envelope&{commandType:'move';payload:{unitIds:number[];x:number;y:number}};
@@ -35,17 +35,17 @@ export type CancelTrainCommand=Envelope&{commandType:'cancelTrain';payload:{buil
 export type RallyCommand=Envelope&{commandType:'rally';payload:{buildingId:string;x:number;y:number}};
 export type ResignCommand=Envelope&{commandType:'resign';payload:Record<string,never>};
 export type AttackCommand=Envelope&{commandType:'attack';payload:{unitIds:number[];target:Target}};
-export type RiteCommand=Envelope&{commandType:'convert'|'heal';payload:{unitIds:number[];targetId:number}};
+export type RiteCommand=Envelope&{commandType:'convert'|'heal';payload:{unitIds:number[];targetId?:number;buildingId?:string}}|Envelope&{commandType:'relic';payload:{unitIds:number[];relicId:number}}|Envelope&{commandType:'deposit';payload:{unitIds:number[];buildingId:string}};
 export type Command=RiteCommand|ResignCommand|AttackCommand|MoveCommand|StopCommand|GatherCommand|BuildCommand|ConstructCommand|CancelBuildCommand|TrainCommand|CancelTrainCommand|RallyCommand|Envelope&{commandType:'reserve';payload:{entryId:string}}|Envelope&{commandType:'cancelReservation';payload:{reservationId:string}};
 export type LoggedCommand=Command&{acceptedTick:number};
 export type TransactionResult={tick:number;playerId:number;sequence:number;ok:boolean;error?:string};
 // opponent: 'ai' runs the computer player for red; 'idle' keeps red still (practice and the scripted flows).
 export type Opponent='ai'|'idle';
-export type State={navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;rites:Record<number,Rite>;faith:Record<number,number>;version:21;opponent:Opponent;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
+export type State={navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;rites:Record<number,Rite>;faith:Record<number,number>;techs:string[][];relics:Relic[];relicMemory:{id:number;x:number;y:number}[][];relicVictory:RelicVictory|null;version:22;opponent:Opponent;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
 function canonical(value:unknown):string {if(value===null||typeof value!=='object')return JSON.stringify(value);if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical((value as Record<string,unknown>)[k])).join(',')+'}';}
 export function hash(value:unknown):string{let h=2166136261;for(const c of canonical(value)){h=Math.imul(h^c.charCodeAt(0),16777619);}return (h>>>0).toString(16).padStart(8,'0');}
-export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,ai:aiRules,maps:{mapSizes,openMapRules},dropoffs:dropoffRules,religion:religionRules,simulationVersion:21});
-export function createState(seed:number,layout:MapLayout='meadow',opponent:Opponent='idle'):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');if(opponent!=='ai'&&opponent!=='idle')throw Error('未知的對手設定');const map=makeMap(seed,layout);const state:State={buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,rites:{},faith:{},version:21,opponent,works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(opponent==='ai'?3:1)],transactions:[],map,pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[...map.starts[0].map((p,i)=>makeUnit(map,1+i,0,p.x,p.y)),makeUnit(map,4,1,map.starts[1][0].x,map.starts[1][0].y)],queue:[],log:[]};
+export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,ai:aiRules,maps:{mapSizes,openMapRules},dropoffs:dropoffRules,religion:religionRules,simulationVersion:22});
+export function createState(seed:number,layout:MapLayout='meadow',opponent:Opponent='idle'):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');if(opponent!=='ai'&&opponent!=='idle')throw Error('未知的對手設定');const map=makeMap(seed,layout);const state:State={buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,rites:{},faith:{},techs:[[],[]],relics:layout==='open'?placeRelics(map,seed):[],relicMemory:[[],[]],relicVictory:null,version:22,opponent,works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(opponent==='ai'?3:1)],transactions:[],map,pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[...map.starts[0].map((p,i)=>makeUnit(map,1+i,0,p.x,p.y)),makeUnit(map,4,1,map.starts[1][0].x,map.starts[1][0].y)],queue:[],log:[]};
  // Against the computer red starts like blue: three villagers, mirrored around the map's centre line.
  if(opponent==='ai'){state.units.push(...map.starts[1].slice(1).map((p,i)=>makeUnit(map,5+i,1,p.x,p.y)));state.nextUnitId=5+map.starts[1].length-1;}
  // The match map adds a scout per side (red's only against the computer): ids follow the villagers.
@@ -53,6 +53,12 @@ export function createState(seed:number,layout:MapLayout='meadow',opponent:Oppon
  initBuildings(state);updateVision(state.vision,state.map,state.units,0);return state;}
 // xorshift32; renderers never advance this stream.
 export function nextRandom(state:State):number{let n=state.rng;n^=n<<13;n^=n>>>17;n^=n<<5;state.rng=n>>>0;return state.rng;}
+// The target of a monk's order: a unit id, a building id (conversion with Redemption, deposit) or a relic id.
+function riteTarget(c:RiteCommand):number|string|null{const p=c.payload as {targetId?:unknown;buildingId?:unknown;relicId?:unknown};
+ if(c.commandType==='relic')return Number.isSafeInteger(p.relicId)?p.relicId as number:null;
+ if(c.commandType==='deposit')return typeof p.buildingId==='string'?p.buildingId:null;
+ if(c.commandType==='convert'&&typeof p.buildingId==='string')return p.buildingId;
+ return Number.isSafeInteger(p.targetId)?p.targetId as number:null;}
 // record=false admits a command without logging it: the computer player's orders, which replay re-derives.
 export function submit(state:State, c:Command, record=true):void {
  if(!c||c.protocolVersion!==1||c.rulesetHash!==rulesetHash)throw Error('命令版本不符');
@@ -61,10 +67,10 @@ export function submit(state:State, c:Command, record=true):void {
  if(!Number.isSafeInteger(c.targetTick)||c.targetTick<=state.tick||c.targetTick>state.tick+200)throw Error('命令已過期或過遠');
  if(!c.payload)throw Error('缺少 payload');
  if(state.outcome)throw Error('對局已結束：請再開一局');
- if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='build'||c.commandType==='construct'||c.commandType==='attack'||c.commandType==='convert'||c.commandType==='heal'){
+ if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='build'||c.commandType==='construct'||c.commandType==='attack'||c.commandType==='convert'||c.commandType==='heal'||c.commandType==='relic'||c.commandType==='deposit'){
  const ids=c.payload.unitIds;
  if(!Array.isArray(ids)||!ids.length||ids.length>navigationRules.maxGroupSize||!ids.every((id,i)=>Number.isSafeInteger(id)&&(i===0||id>ids[i-1])))throw Error(`單位清單需為 1–${navigationRules.maxGroupSize} 個遞增且不重複的 ID`);
- for(const id of ids){const u=state.units.find(u=>u.id===id);if(!u||u.player!==c.playerId)throw Error('不可控制敵方或不存在的單位');if(c.commandType==='convert'||c.commandType==='heal'){if(u.kind!=='monk')throw Error('只有僧侶能轉化或治療');}
+ for(const id of ids){const u=state.units.find(u=>u.id===id);if(!u||u.player!==c.playerId)throw Error('不可控制敵方或不存在的單位');if(c.commandType==='convert'||c.commandType==='heal'||c.commandType==='relic'||c.commandType==='deposit'){if(u.kind!=='monk')throw Error('只有僧侶能轉化、治療或搬運聖物');}
  else if(c.commandType==='attack'){if(u.kind==='monk')throw Error('僧侶不能攻擊：右鍵敵方單位改為轉化');}
  else if(c.commandType!=='move'&&c.commandType!=='stop'&&u.kind!=='villager')throw Error('只有村民能採集或建造');}
  }
@@ -73,8 +79,11 @@ export function submit(state:State, c:Command, record=true):void {
  // A target inside something solid is allowed: the units walk as close as they can (as in the reference), and a
  // refusal would reveal obstacles hidden in the fog.
  }else if(c.commandType==='stop'){}
- else if(c.commandType==='convert'||c.commandType==='heal'){const t=c.payload.targetId;if(!Number.isSafeInteger(t))throw Error('無效的目標');const problem=riteProblem(state,c.playerId,c.commandType,t);if(problem)throw Error(problem);
-  if(c.commandType==='convert'){const tired=c.payload.unitIds.filter(id=>faithOf(state,id)<1);if(tired.length===c.payload.unitIds.length)throw Error('信仰尚未恢復：轉化後需要 62 秒');}}
+ else if(c.commandType==='convert'||c.commandType==='heal'||c.commandType==='relic'||c.commandType==='deposit'){const t=riteTarget(c);if(t===null)throw Error('無效的目標');const problem=riteProblem(state,c.playerId,c.commandType,t);if(problem)throw Error(problem);
+  const ids=c.payload.unitIds;
+  if(c.commandType==='convert'){if(ids.every(id=>carrying(state,id)))throw Error('攜帶聖物的僧侶不能轉化');if(ids.every(id=>faithOf(state,id)<1))throw Error('信仰尚未恢復：轉化後需要一段時間');}
+  if(c.commandType==='relic'&&ids.every(id=>carrying(state,id)))throw Error('這名僧侶已經攜帶聖物');
+  if(c.commandType==='deposit'&&!ids.some(id=>carrying(state,id)))throw Error('所選僧侶沒有攜帶聖物');}
  else if(c.commandType==='attack'){const t=c.payload.target;if(!t||!['unit','building'].includes(t.kind))throw Error('無效的攻擊目標');const problem=targetProblem(state,c.playerId,t);if(problem)throw Error(problem);}
  else if(c.commandType==='build'){
  const {kind,x,y}=c.payload;if(!buildKinds.includes(kind))throw Error('未知的建築種類');
@@ -115,7 +124,7 @@ export function tick(s:State):{expanded:number} {
  // Resigning ends the match at once for the other player (the sim then refuses every command).
  if(c.commandType==='resign'){if(!s.outcome)s.outcome={winner:1-c.playerId,defeated:[c.playerId],tick:s.tick,reason:'resign'};continue;}
  if(c.commandType==='attack'){if(!targetProblem(s,c.playerId,c.payload.target))commandAttack(s,c.payload.unitIds,c.payload.target);else{clearAttacks(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);}continue;}
- if(c.commandType==='convert'||c.commandType==='heal'){if(!riteProblem(s,c.playerId,c.commandType,c.payload.targetId))commandRite(s,c.payload.unitIds,c.commandType,c.payload.targetId);else{clearRites(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);}continue;}
+ if(c.commandType==='convert'||c.commandType==='heal'||c.commandType==='relic'||c.commandType==='deposit'){const t=riteTarget(c)!;if(!riteProblem(s,c.playerId,c.commandType,t))commandRite(s,c.payload.unitIds,c.commandType,t);else{clearRites(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);}continue;}
  if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='build'||c.commandType==='construct'){clearAttacks(s,c.payload.unitIds);clearRites(s,c.payload.unitIds);}
  if(c.commandType==='move'){clearWork(s,c.payload.unitIds);commandMove(s,c.payload.unitIds,{x:c.payload.x,y:c.payload.y});continue;}
  if(c.commandType==='stop'){clearWork(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);continue;}
@@ -154,12 +163,12 @@ export function replay(seed:number,commands:LoggedCommand[],ticks:number,layout:
  }
  while(s.tick<ticks)tick(s);return s;
 }
-export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-21',rulesetHash,state:s,checksum:hash(s)});}
+export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-22',rulesetHash,state:s,checksum:hash(s)});}
 export function deserialize(raw:string):State{
  const v=JSON.parse(raw);
- if(!v||v.format!=='brick-sandbox-21'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
+ if(!v||v.format!=='brick-sandbox-22'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
  const s=v.state as State;
- if(s.version!==21||(s.opponent!=='ai'&&s.opponent!=='idle')||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
+ if(s.version!==22||(s.opponent!=='ai'&&s.opponent!=='idle')||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
  const rebuilt=replay(s.seed,s.log,s.tick,s.layout,s.opponent);
  if(hash(rebuilt)!==hash(s))throw Error('存檔狀態無法由命令重建');
  return structuredClone(s);

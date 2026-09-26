@@ -172,6 +172,7 @@
 - [094 Circles in a Hurry](https://htmls-ruddy.vercel.app/web/094-fourier.html): 傅立葉周轉圓。隨手畫的線用 DFT 周轉圓重現，圓的數量可調
 - [149 一指之間 · Powers of Ten](https://htmls-ruddy.vercel.app/web/149-powers-of-ten.html): 62 個數量級連續縮放。從孩子的掌心往外到可觀測宇宙邊緣、往裡到夸克與普朗克長度：真實行星位置、臺灣地形、DNA 雙螺旋、碳原子電子雲，視野與光穿越時間即時換算
 - [158 鏡頭實驗室 · The Plane of Focus](https://htmls-ruddy.vercel.app/web/158-lens-lab.html): 3D 光學實驗台。剖開的 24–70mm 變焦鏡頭以近軸光線追跡畫出七片玻璃的折射，轉對焦環讓前群沿光軸移動；1:16 玻璃箱微縮場景立著清晰平面，鏡頭位置即時渲染的照片依景深公式逐像素模糊，並即時驗算薄透鏡與景深公式
+- [162 終電地圖 · Tokyo Last Train Atlas](https://htmls-ruddy.vercel.app/web/162-last-train-atlas.html): 末班時刻 3D 路網。東京 97 條鐵路、1,127 個車站，每站高度等於末班離站時刻，拖動時間軸看時間水位上升、城市一站一站熄燈；平日／週末假日、業者樓層與平面切換，時刻依 Mini Tokyo 3D 公開時刻表推算
 
 ### 東方在地
 

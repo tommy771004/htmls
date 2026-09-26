@@ -619,17 +619,17 @@ var rules = {
   reference: { game: "Age of Empires II: Definitive Edition", version: null, build: null, contentPacks: [], verificationStatus: "unverified", sourceEvidence: [] },
   coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
   settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
-  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100), entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100), entry("mill", "building", "\u78E8\u574A", 0, 100), entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2", "barracks"]), entry("archery-range", "building", "\u9776\u5834", 0, 175, 0, 0, ["age-2", "barracks"]), entry("monastery", "building", "\u4FEE\u9053\u9662", 0, 175, 0, 0, ["age-3"]), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1), entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
+  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100), entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100), entry("mill", "building", "\u78E8\u574A", 0, 100), entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2", "barracks"]), entry("archery-range", "building", "\u9776\u5834", 0, 175, 0, 0, ["age-2", "barracks"]), entry("monastery", "building", "\u4FEE\u9053\u9662", 0, 175, 0, 0, ["age-3"]), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1), entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1), entry("redemption", "technology", "\u6551\u8D16", 0, 0, 475, 0, ["monastery", "age-3"]), entry("atonement", "technology", "\u8D16\u7F6A", 0, 0, 325, 0, ["monastery", "age-3"]), entry("sanctity", "technology", "\u8056\u6F54", 0, 0, 175, 0, ["monastery", "age-3"]), entry("heresy", "technology", "\u7570\u7AEF", 0, 0, 1e3, 0, ["monastery", "age-3"]), entry("illumination", "technology", "\u555F\u8499", 0, 0, 120, 0, ["monastery", "age-4"]), entry("block-printing", "technology", "\u6D3B\u5B57\u5370\u5237", 0, 0, 200, 0, ["monastery", "age-4"]), entry("theocracy", "technology", "\u795E\u6B0A\u653F\u6CBB", 0, 0, 200, 0, ["monastery", "age-4"]), entry("faith", "technology", "\u4FE1\u4EF0", 550, 0, 750, 0, ["monastery", "age-4"]), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
   // Which building produces each unit/technology (design_default). null = defined but not producible yet.
-  production: { villager: "town-center", militia: "barracks", archer: "archery-range", ram: null, scout: "stable", monk: "monastery", "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
-  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "age-2", "age-3", "age-4"], unavailable: [] }]
+  production: { villager: "town-center", militia: "barracks", archer: "archery-range", ram: null, scout: "stable", monk: "monastery", redemption: "monastery", atonement: "monastery", sanctity: "monastery", heresy: "monastery", illumination: "monastery", "block-printing": "monastery", theocracy: "monastery", faith: "monastery", "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
+  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "age-2", "age-3", "age-4"], unavailable: [] }]
 };
 
 // packages/sim/economy.ts
 var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100, carryCapacity: 10, gatherTicks: { food: 20, wood: 20, gold: 25, stone: 25 }, workReach: 50, dropoffReach: 50 };
 var zero = () => ({ food: 0, wood: 0, gold: 0, stone: 0 });
 function createAccount(populationUsed) {
-  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero(), lost: zero() } };
+  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero(), lost: zero(), relic: zero() } };
 }
 function reserve(account, id, entryId) {
   const entry2 = rules.entries.find((e) => e.id === entryId);
@@ -683,6 +683,10 @@ var combatRules = {
   // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
   speed: { villager: 5, militia: 5, archer: 5, scout: 10, monk: 5 }
 };
+var religionBonus = { sanctityHp: 15 };
+function maxHpOf(kind, techs) {
+  return combatRules.units[kind].hp + (kind === "monk" && techs.includes("sanctity") ? religionBonus.sanctityHp : 0);
+}
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
@@ -703,9 +707,9 @@ function graph(map) {
       if (y < SIDE - 1 && !blocked[id + SIDE] && clearSegment(map, position(map, id), position(map, id + SIDE))) open[id * 2 + 1] = 1;
     };
     if (areas.length) {
-      const seen = /* @__PURE__ */ new Set();
-      for (const area of areas) for (const id of nodesNear(map, area, 50)) if (!seen.has(id)) {
-        seen.add(id);
+      const seen2 = /* @__PURE__ */ new Set();
+      for (const area of areas) for (const id of nodesNear(map, area, 50)) if (!seen2.has(id)) {
+        seen2.add(id);
         edges(id);
       }
     } else for (let id = 0; id < NODES; id++) edges(id);
@@ -989,7 +993,10 @@ function placementProblem(input, kind, x, y) {
 function authoritativeProblem(s, player, kind, x, y) {
   const explored = new Set(s.vision[player].explored);
   const bodies = s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]);
-  return placementProblem({ tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) }, kind, x, y);
+  const problem = placementProblem({ tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) }, kind, x, y);
+  if (problem) return problem;
+  const relics = s.relics ?? [], [x0, y0, x1, y1] = obstacleBounds({ kind, x, y });
+  return relics.some((r) => r.carrier === null && r.monastery === null && r.x >= x0 - 25 && r.x <= x1 + 25 && r.y >= y0 - 25 && r.y <= y1 + 25) ? "\u8056\u7269\u6240\u5728\u7684\u4F4D\u7F6E\u4E0D\u80FD\u5EFA\u9020" : null;
 }
 var farmResourceId = (buildingId) => `resource-${buildingId}`;
 function openFarm(s, b) {
@@ -1300,8 +1307,8 @@ function trainBlocker(i, entryId) {
     if (need?.kind === "technology" && i.age < ageOf(req)) return `\u9700\u8981${need.name}`;
   }
   const age = ageOf(entryId);
-  if (age) {
-    if (i.age >= age) return "\u5DF2\u7814\u7A76";
+  if (age || e.kind === "technology") {
+    if (age ? i.age >= age : i.techs.includes(entryId)) return "\u5DF2\u7814\u7A76";
     if (i.ownBuildings.some((v) => v.queue.some((q) => q.entryId === entryId))) return "\u5DF2\u5728\u7814\u7A76\u4E2D";
   }
   if (i.building.queue.length >= productionRules.queueLimit) return `\u4F47\u5217\u5DF2\u6EFF\uFF08${productionRules.queueLimit}\uFF09`;
@@ -1313,7 +1320,7 @@ function trainBlocker(i, entryId) {
 function trainable(s, player, b, entryId) {
   if (b.player !== player) return "\u4E0D\u80FD\u64CD\u4F5C\u6575\u65B9\u5EFA\u7BC9";
   const a = s.accounts[player];
-  return trainBlocker({ player, age: s.ages[player], building: b, ownBuildings: s.buildings.filter((v) => v.player === player), stock: a.stock, populationUsed: a.populationUsed, populationReserved: a.populationReserved, populationCap: a.populationCap }, entryId);
+  return trainBlocker({ player, age: s.ages[player], techs: s.techs[player], building: b, ownBuildings: s.buildings.filter((v) => v.player === player), stock: a.stock, populationUsed: a.populationUsed, populationReserved: a.populationReserved, populationCap: a.populationCap }, entryId);
 }
 function enqueue(s, player, buildingId, entryId, reservationId) {
   const b = s.buildings.find((v) => v.id === buildingId);
@@ -1367,11 +1374,21 @@ function stepProduction(s) {
       for (const o of s.map.obstacles) if (o.id && own.has(o.id)) o.age = age;
       continue;
     }
+    if (entryOf(item.entryId)?.kind === "technology") {
+      commitReservation(s.accounts[b.player], item.reservationId);
+      b.queue.shift();
+      s.techs[b.player].push(item.entryId);
+      if (item.entryId === "sanctity") {
+        for (const u2 of s.units) if (u2.player === b.player && u2.kind === "monk") u2.hp += religionBonus.sanctityHp;
+      }
+      continue;
+    }
     const node = exitNode(s, b);
     if (node < 0) continue;
     commitReservation(s.accounts[b.player], item.reservationId);
     b.queue.shift();
     const p = position(s.map, node), u = makeUnit(s.map, s.nextUnitId++, b.player, p.x, p.y, unitKindOf[item.entryId]);
+    if (u.kind === "monk" && s.techs[b.player].includes("sanctity")) u.hp += religionBonus.sanctityHp;
     s.units.push(u);
     if (b.rally && nearest(s.map, b.rally, false) >= 0) commandMove(s, [u.id], b.rally);
   }
@@ -1406,8 +1423,8 @@ function targetProblem(s, player, t) {
   if (r && r.player === player) return "\u4E0D\u80FD\u653B\u64CA\u5DF1\u65B9";
   if (t.kind === "building" && remembered(s, player, t.id)) return null;
   if (!r) return "\u627E\u4E0D\u5230\u76EE\u6A19";
-  const seen = new Set(s.vision[player].visible);
-  if (!r.tiles.some((id) => seen.has(id))) return "\u627E\u4E0D\u5230\u76EE\u6A19";
+  const seen2 = new Set(s.vision[player].visible);
+  if (!r.tiles.some((id) => seen2.has(id))) return "\u627E\u4E0D\u5230\u76EE\u6A19";
   return null;
 }
 function commandAttack(s, unitIds, t) {
@@ -1477,9 +1494,9 @@ function stepCombat(s) {
   for (const u of [...s.units].sort((a, b) => a.id - b.id)) {
     const sight = combatRules.units[u.kind].sight;
     if (!sight || s.attacks[u.id] || s.works[u.id] || u.next !== null || u.path.length || busy.has(u.id)) continue;
-    const seen = new Set(s.vision[u.player].visible);
+    const seen2 = new Set(s.vision[u.player].visible);
     let best = null, dist2 = Infinity;
-    for (const e of s.units) if (e.player !== u.player && seen.has(tileAt(e.x, e.y, s.map.size))) {
+    for (const e of s.units) if (e.player !== u.player && seen2.has(tileAt(e.x, e.y, s.map.size))) {
       const d = reach(u, e);
       if (d <= sight && (d < dist2 || d === dist2 && best && e.id < best.id)) {
         best = e;
@@ -1544,6 +1561,349 @@ function stepCombat(s) {
   }
 }
 
+// packages/sim/religion.ts
+var religionRules = {
+  provenance: "reference research for timings, costs and effects; design_default for ranges, heal rate and relic placement",
+  convertRange: 350,
+  printingRange: 117,
+  adjacentRange: 50,
+  healRange: 150,
+  healTicks: 20,
+  healSight: 400,
+  attemptTicks: 24,
+  attempts: { min: 4, max: 10 },
+  faithAttempts: { min: 6, max: 14 },
+  attemptChance: 28,
+  buildingTicks: { min: 360, max: 600 },
+  rechargeTicks: 1240,
+  unconvertibleBuildings: ["town-center", "monastery", "farm"],
+  relics: { count: 5, goldTicks: 40, perMonastery: 10, victoryTicks: 2e4, baseDistance: 900, spacing: 600, fairness: 400, edge: 150 }
+};
+var random = (s) => {
+  let n = s.rng;
+  n ^= n << 13;
+  n ^= n >>> 17;
+  n ^= n << 5;
+  s.rng = n >>> 0;
+  return s.rng;
+};
+var has = (s, player, tech) => s.techs[player].includes(tech);
+var recharge = (s, player) => religionRules.rechargeTicks / (has(s, player, "illumination") ? 2 : 1);
+function faithOf(s, monkId) {
+  const last = s.faith[monkId], m = s.units.find((u) => u.id === monkId);
+  return last === void 0 || !m ? 1 : Math.min(1, (s.tick - last) / recharge(s, m.player));
+}
+var convertRangeOf = (s, player) => religionRules.convertRange + (has(s, player, "block-printing") ? religionRules.printingRange : 0);
+var carrying = (s, monkId) => s.relics.some((r) => r.carrier === monkId);
+var maxHp = (s, u) => maxHpOf(u.kind, s.techs[u.player]);
+var seen = (s, player, x, y) => new Set(s.vision[player].visible).has(tileAt(x, y, s.map.size));
+function buildingTiles(s, b) {
+  const o = s.map.obstacles.find((o2) => o2.id === b.id);
+  if (!o) return [];
+  const box = obstacleBounds(o), out = [];
+  for (let ty = Math.floor(box[1] / 100); ty <= Math.floor((box[3] - 1) / 100); ty++) for (let tx = Math.floor(box[0] / 100); tx <= Math.floor((box[2] - 1) / 100); tx++) out.push(ty * s.map.size + tx);
+  return out;
+}
+var boxOf = (s, b) => {
+  const o = s.map.obstacles.find((o2) => o2.id === b.id);
+  return o ? obstacleBounds(o) : null;
+};
+function riteProblem(s, player, kind, target) {
+  if (kind === "relic") {
+    const r = s.relics.find((r2) => r2.id === target);
+    if (!r) return "\u627E\u4E0D\u5230\u8056\u7269";
+    if (s.relicMemory[player].some((m) => m.id === target)) return null;
+    return r.monastery === null && r.carrier === null && seen(s, player, r.x, r.y) ? null : "\u627E\u4E0D\u5230\u8056\u7269";
+  }
+  if (kind === "deposit") {
+    const b = s.buildings.find((b2) => b2.id === target);
+    if (!b || b.player !== player || b.kind !== "monastery") return "\u53EA\u80FD\u628A\u8056\u7269\u653E\u9032\u5DF1\u65B9\u4FEE\u9053\u9662";
+    if (!b.complete) return "\u4FEE\u9053\u9662\u5C1A\u672A\u5B8C\u5DE5";
+    if (s.relics.filter((r) => r.monastery === b.id).length >= religionRules.relics.perMonastery) return `\u9019\u5EA7\u4FEE\u9053\u9662\u5DF2\u653E\u6EFF ${religionRules.relics.perMonastery} \u500B\u8056\u7269`;
+    return null;
+  }
+  if (typeof target === "string") {
+    if (kind !== "convert") return "\u53EA\u80FD\u6CBB\u7642\u55AE\u4F4D";
+    const b = s.buildings.find((b2) => b2.id === target);
+    if (!b || !buildingTiles(s, b).some((t2) => new Set(s.vision[player].visible).has(t2))) return "\u627E\u4E0D\u5230\u76EE\u6A19";
+    if (b.player === player) return "\u4E0D\u80FD\u8F49\u5316\u5DF1\u65B9\u5EFA\u7BC9";
+    if (!has(s, player, "redemption")) return "\u9700\u8981\u7814\u7A76\u300C\u6551\u8D16\u300D\u624D\u80FD\u8F49\u5316\u5EFA\u7BC9";
+    if (religionRules.unconvertibleBuildings.includes(b.kind)) return "\u57CE\u93AE\u4E2D\u5FC3\u3001\u4FEE\u9053\u9662\u8207\u8FB2\u7530\u4E0D\u80FD\u88AB\u8F49\u5316";
+    if (!b.complete) return "\u53EA\u80FD\u8F49\u5316\u5B8C\u5DE5\u7684\u5EFA\u7BC9";
+    return null;
+  }
+  const t = s.units.find((u) => u.id === target);
+  if (!t) return "\u627E\u4E0D\u5230\u76EE\u6A19";
+  if (kind === "heal") {
+    if (t.player !== player) return "\u53EA\u80FD\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D";
+    if (t.kind === "monk") return "\u50E7\u4FB6\u4E0D\u80FD\u88AB\u6CBB\u7642";
+    return null;
+  }
+  if (t.player === player) return "\u4E0D\u80FD\u8F49\u5316\u5DF1\u65B9\u55AE\u4F4D";
+  if (!seen(s, player, t.x, t.y)) return "\u627E\u4E0D\u5230\u76EE\u6A19";
+  if (t.kind === "monk" && !has(s, player, "atonement")) return "\u9700\u8981\u7814\u7A76\u300C\u8D16\u7F6A\u300D\u624D\u80FD\u8F49\u5316\u50E7\u4FB6";
+  return null;
+}
+function commandRite(s, monkIds, kind, target) {
+  for (const id of monkIds) {
+    cancelMovement(s, id);
+    delete s.works[id];
+    delete s.attacks[id];
+    s.rites[id] = { kind, target, progress: 0, needed: 0, repath: 0, attempt: 0 };
+  }
+}
+function clearRites(s, unitIds) {
+  for (const id of unitIds) delete s.rites[id];
+}
+function rest(s, monk, target) {
+  s.faith[monk.id] = s.tick;
+  if (has(s, monk.player, "theocracy")) return;
+  for (const [id, r] of Object.entries(s.rites)) if (r.kind === "convert" && r.target === target) {
+    const other = s.units.find((u) => u.id === Number(id));
+    if (other && other.player === monk.player) s.faith[other.id] = s.tick;
+  }
+}
+function convertUnit(s, monk, t) {
+  rest(s, monk, t.id);
+  if (has(s, t.player, "heresy")) {
+    killUnit(s, t);
+    return;
+  }
+  const from = s.accounts[t.player], to = s.accounts[monk.player], c = s.cargo[t.id];
+  if (c) {
+    from.ledger.lost[c.resource] += c.amount;
+    delete s.cargo[t.id];
+  }
+  delete s.works[t.id];
+  delete s.attacks[t.id];
+  delete s.rites[t.id];
+  cancelMovement(s, t.id);
+  Object.assign(t, { path: [], goal: null, target: null, navigation: t.next === null ? "idle" : "moving" });
+  from.populationUsed--;
+  to.populationUsed++;
+  t.player = monk.player;
+  t.hp = Math.min(t.hp, maxHp(s, t));
+}
+function convertBuilding(s, monk, b) {
+  rest(s, monk, b.id);
+  const old = b.player, a = s.accounts[old];
+  for (const q of b.queue) cancelReservation(a, q.reservationId);
+  b.queue = [];
+  b.rally = null;
+  b.player = monk.player;
+  const o = s.map.obstacles.find((o2) => o2.id === b.id);
+  if (o) {
+    if (monk.player === 1) o.red = true;
+    else delete o.red;
+    o.age = s.ages[monk.player];
+  }
+  recomputeCapacity(s, old);
+  recomputeCapacity(s, monk.player);
+}
+function placeRelics(map, seed) {
+  const R = religionRules.relics, centres = [false, true].map((red) => {
+    const o = map.obstacles.find((o2) => o2.kind === "town-center" && !!o2.red === red), b = obstacleBounds(o);
+    return { x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 };
+  });
+  const closed = blockedTable(map), world = map.size * 100;
+  let n = (seed ^ 1540483477) >>> 0 || 1;
+  const next = () => {
+    n ^= n << 13;
+    n ^= n >>> 17;
+    n ^= n << 5;
+    n >>>= 0;
+    return n;
+  };
+  const candidates = [];
+  for (let id = 0; id < nodeTotal(map); id++) {
+    if (closed[id]) continue;
+    const p = position(map, id);
+    if (p.x < R.edge || p.y < R.edge || p.x > world - R.edge || p.y > world - R.edge) continue;
+    const [d0, d1] = centres.map((c) => Math.hypot(p.x - c.x, p.y - c.y));
+    if (Math.min(d0, d1) >= R.baseDistance && Math.abs(d0 - d1) <= R.fairness) candidates.push(p);
+  }
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = next() % (i + 1);
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  for (let spacing = R.spacing; spacing >= 100; spacing -= 100) {
+    const relics = [];
+    for (const p of candidates) {
+      if (relics.length === R.count) break;
+      if (relics.every((r) => Math.hypot(r.x - p.x, r.y - p.y) >= spacing)) relics.push({ id: relics.length + 1, x: p.x, y: p.y, carrier: null, monastery: null });
+    }
+    if (relics.length === R.count) return relics;
+  }
+  return [];
+}
+function stepRelics(s) {
+  const R = religionRules.relics;
+  for (const r of s.relics) {
+    if (r.carrier !== null) {
+      const m = s.units.find((u) => u.id === r.carrier);
+      if (m && m.kind === "monk") {
+        r.x = m.x;
+        r.y = m.y;
+      } else r.carrier = null;
+    }
+    if (r.monastery !== null && !s.buildings.some((b) => b.id === r.monastery)) r.monastery = null;
+  }
+  for (let p = 0; p < s.relicMemory.length; p++) {
+    const visible = new Set(s.vision[p].visible), ground = s.relics.filter((r) => r.carrier === null && r.monastery === null);
+    const memory = s.relicMemory[p].filter((m) => !visible.has(tileAt(m.x, m.y, s.map.size)));
+    for (const r of ground) if (visible.has(tileAt(r.x, r.y, s.map.size))) memory.push({ id: r.id, x: r.x, y: r.y });
+    s.relicMemory[p] = memory.sort((a, b) => a.id - b.id);
+  }
+  const held2 = s.relics.map((r) => r.monastery === null ? null : s.buildings.find((b) => b.id === r.monastery));
+  if (s.tick % R.goldTicks === 0) {
+    for (const b of held2) if (b) {
+      const a = s.accounts[b.player];
+      a.stock.gold++;
+      a.ledger.relic.gold++;
+    }
+  }
+  const owners = new Set(held2.map((b) => b ? b.player : -1));
+  if (s.relics.length && owners.size === 1 && !owners.has(-1)) {
+    const player = [...owners][0];
+    if (!s.relicVictory || s.relicVictory.player !== player) s.relicVictory = { player, endsTick: s.tick + R.victoryTicks };
+    if (!s.outcome && s.tick >= s.relicVictory.endsTick) s.outcome = { winner: player, defeated: [1 - player], tick: s.tick, reason: "relic" };
+  } else s.relicVictory = null;
+}
+function stepReligion(s) {
+  const monks = s.units.filter((u) => u.kind === "monk").sort((a, b) => a.id - b.id), busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
+  for (const id of Object.keys(s.rites).map(Number)) if (!monks.some((m) => m.id === id)) delete s.rites[id];
+  for (const id of Object.keys(s.faith).map(Number)) if (!monks.some((m) => m.id === id)) delete s.faith[id];
+  for (const m of monks) {
+    if (s.rites[m.id] || s.attacks[m.id] || m.next !== null || m.path.length || busy.has(m.id)) continue;
+    let best = null, dist2 = Infinity;
+    for (const u of s.units) if (u !== m && u.player === m.player && u.kind !== "monk" && u.hp < maxHp(s, u)) {
+      const d = reach(m, u);
+      if (d <= religionRules.healSight && (d < dist2 || d === dist2 && best && u.id < best.id)) {
+        best = u;
+        dist2 = d;
+      }
+    }
+    if (best) s.rites[m.id] = { kind: "heal", target: best.id, progress: 0, needed: 0, repath: 0, attempt: 0 };
+  }
+  for (const m of monks) {
+    const r = s.rites[m.id];
+    if (!r) continue;
+    const done = () => {
+      delete s.rites[m.id];
+      cancelMovement(s, m.id);
+      Object.assign(m, { path: [], goal: null, target: null, navigation: m.next === null ? "idle" : "moving" });
+    };
+    if (riteProblem(s, m.player, r.kind, r.target)) {
+      done();
+      continue;
+    }
+    let shape, range;
+    if (r.kind === "relic") {
+      const spot = s.relicMemory[m.player].find((x) => x.id === r.target) ?? s.relics.find((x) => x.id === r.target);
+      if (carrying(s, m.id)) {
+        done();
+        continue;
+      }
+      shape = { x: spot.x, y: spot.y };
+      range = religionRules.adjacentRange;
+    } else if (r.kind === "deposit") {
+      const b = s.buildings.find((b2) => b2.id === r.target), box = boxOf(s, b);
+      if (!box || !carrying(s, m.id)) {
+        done();
+        continue;
+      }
+      shape = box;
+      range = religionRules.adjacentRange + navigationRules.radius;
+    } else if (typeof r.target === "string") {
+      const b = s.buildings.find((b2) => b2.id === r.target), box = boxOf(s, b);
+      if (!box || carrying(s, m.id)) {
+        done();
+        continue;
+      }
+      shape = box;
+      range = religionRules.adjacentRange + navigationRules.radius;
+    } else {
+      const t = s.units.find((u) => u.id === r.target);
+      if (r.kind === "heal" && t.hp >= maxHp(s, t)) {
+        done();
+        continue;
+      }
+      if (r.kind === "convert" && (carrying(s, m.id) || r.attempt === 0 && r.progress === 0 && faithOf(s, m.id) < 1)) {
+        done();
+        continue;
+      }
+      shape = { x: t.x, y: t.y };
+      range = r.kind === "convert" ? convertRangeOf(s, m.player) : religionRules.healRange;
+    }
+    if (reach(m, shape) <= range) {
+      if (m.next !== null) continue;
+      if (m.path.length || busy.has(m.id)) {
+        cancelMovement(s, m.id);
+        m.path = [];
+        m.goal = null;
+        m.target = null;
+      }
+      m.navigation = "idle";
+      if (r.kind === "relic") {
+        const relic = s.relics.find((x2) => x2.id === r.target), { x, y } = shape;
+        if (relic.carrier === null && relic.monastery === null && relic.x === x && relic.y === y) {
+          relic.carrier = m.id;
+          relic.x = m.x;
+          relic.y = m.y;
+        }
+        done();
+        continue;
+      }
+      if (r.kind === "deposit") {
+        const relic = s.relics.find((x) => x.carrier === m.id), b = s.buildings.find((b2) => b2.id === r.target), box = shape;
+        relic.carrier = null;
+        relic.monastery = b.id;
+        relic.x = Math.round((box[0] + box[2]) / 2);
+        relic.y = Math.round((box[1] + box[3]) / 2);
+        done();
+        continue;
+      }
+      if (r.kind === "heal") {
+        const t2 = s.units.find((u) => u.id === r.target);
+        if (++r.progress % religionRules.healTicks === 0) t2.hp = Math.min(maxHp(s, t2), t2.hp + 1);
+        continue;
+      }
+      if (typeof r.target === "string") {
+        if (r.needed === 0) {
+          const { min: min2, max: max2 } = religionRules.buildingTicks;
+          r.needed = min2 + random(s) % (max2 - min2 + 1);
+        }
+        if (++r.progress >= r.needed) {
+          convertBuilding(s, m, s.buildings.find((b) => b.id === r.target));
+          delete s.rites[m.id];
+        }
+        continue;
+      }
+      if (++r.progress % religionRules.attemptTicks !== 0) continue;
+      const t = s.units.find((u) => u.id === r.target), { min, max } = has(s, t.player, "faith") ? religionRules.faithAttempts : religionRules.attempts;
+      r.attempt++;
+      if (r.attempt >= min && (r.attempt >= max || random(s) % 100 < religionRules.attemptChance)) {
+        convertUnit(s, m, t);
+        delete s.rites[m.id];
+      }
+      continue;
+    }
+    if (m.next !== null) continue;
+    if (r.repath > 0 && (m.path.length || busy.has(m.id))) {
+      r.repath--;
+      continue;
+    }
+    const nodes = approach(s, m, shape, range);
+    if (!nodes.length) {
+      done();
+      continue;
+    }
+    routeTo(s, m, nodes);
+    r.repath = 20;
+  }
+  stepRelics(s);
+}
+
 // packages/sim/ai.ts
 var aiRules = {
   provenance: "design_default",
@@ -1566,19 +1926,20 @@ var aiRules = {
   spill: 100,
   sourceMargin: 100,
   campDistance: 350,
-  campWorkers: 2
+  campWorkers: 2,
+  monkTarget: 2
 };
 var gap2 = (a, b) => Math.max(a[0] - b[2], b[0] - a[2], a[1] - b[3], b[1] - a[3], 0);
 var centre = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
 var dist = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 function stepAI(s, order) {
   if (s.outcome || s.tick % aiRules.thinkTicks !== aiRules.thinkOffset) return;
-  const P = aiRules.player, vision = s.vision[P], seen = new Set(vision.visible), explored = new Set(vision.explored);
+  const P = aiRules.player, vision = s.vision[P], seen2 = new Set(vision.visible), explored = new Set(vision.explored);
   const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
   const idle = (u) => !s.works[u.id] && !s.attacks[u.id] && u.next === null && !u.path.length && !busy.has(u.id);
   const mine = s.units.filter((u) => u.player === P).sort((a, b) => a.id - b.id), villagers = mine.filter((u) => u.kind === "villager"), soldiers = mine.filter((u) => u.kind === "militia" || u.kind === "archer"), scout = mine.find((u) => u.kind === "scout");
-  const own = s.buildings.filter((b) => b.player === P), tc = own.find((b) => b.kind === "town-center"), tcBox = tc ? boxOf(s, tc) : null;
-  const foes = s.units.filter((u) => u.player !== P && seen.has(tileAt(u.x, u.y, s.map.size))).sort((a, b) => a.id - b.id);
+  const own = s.buildings.filter((b) => b.player === P), tc = own.find((b) => b.kind === "town-center"), tcBox = tc ? boxOf2(s, tc) : null;
+  const foes = s.units.filter((u) => u.player !== P && seen2.has(tileAt(u.x, u.y, s.map.size))).sort((a, b) => a.id - b.id);
   if (!tc && !soldiers.length) {
     order("resign", {});
     return;
@@ -1604,16 +1965,17 @@ function stepAI(s, order) {
       const w = s.works[u.id];
       return w?.kind === "build" && w.buildingId === b.id;
     })) continue;
-    const builder = pickBuilder(s, villagers, idle, centre(boxOf(s, b)));
+    const builder = pickBuilder(s, villagers, idle, centre(boxOf2(s, b)));
     if (builder) order("construct", { unitIds: [builder.id], buildingId: b.id });
   }
   const pending = (k) => own.some((b) => b.kind === k && !b.complete);
   const room = account.populationCap - account.populationUsed - account.populationReserved;
   const barracksDue = villagers.length >= aiRules.barracksAtVillagers && !own.some((b) => b.kind === "barracks");
   if (barracksDue) place(s, order, "barracks", villagers, idle, tcBox, own);
+  if (s.ages[P] >= 3 && !own.some((b) => b.kind === "monastery") && stock.wood >= rules.entries.find((e) => e.id === "monastery").cost.wood) place(s, order, "monastery", villagers, idle, tcBox, own);
   if (s.ages[P] >= 2 && !own.some((b) => b.kind === "archery-range") && !buildRequirement(s.ages[P], "archery-range", own) && stock.wood >= rules.entries.find((e) => e.id === "archery-range").cost.wood) place(s, order, "archery-range", villagers, idle, tcBox, own);
   if (room <= aiRules.houseMargin && account.populationCap < rules.settings.populationCap && !pending("house") && (!barracksDue || room <= 0)) place(s, order, "house", villagers, idle, tcBox, own);
-  const accepts = dropoffRules.accepts, drops = own.filter((b) => b.complete && accepts[b.kind]).map((b) => ({ kinds: accepts[b.kind], box: boxOf(s, b) })).filter((d) => d.box);
+  const accepts = dropoffRules.accepts, drops = own.filter((b) => b.complete && accepts[b.kind]).map((b) => ({ kinds: accepts[b.kind], box: boxOf2(s, b) })).filter((d) => d.box);
   for (const [camp, kinds] of [["lumber-camp", ["wood"]], ["mining-camp", ["gold", "stone"]]]) {
     if (own.some((b) => b.kind === camp && !b.complete)) continue;
     const far = villagers.map((u) => s.works[u.id]).filter((w) => w?.kind === "gather").map((w) => s.map.resources.find((r) => r.id === w.resourceId)).filter((r) => !!r && kinds.includes(resourceDefinitions[r.kind].yield) && Math.min(...drops.filter((d) => d.kinds.includes(resourceDefinitions[r.kind].yield)).map((d) => gap2([r.x, r.y, r.x, r.y], d.box))) > aiRules.campDistance);
@@ -1626,11 +1988,34 @@ function stepAI(s, order) {
   if (tc.complete && !tc.queue.length) {
     if (villagers.length + queued("villager") < aiRules.villagerTarget && !trainable(s, P, tc, "villager")) order("train", { buildingId: tc.id, entryId: "villager" });
     else if (s.ages[P] < 2 && villagers.length >= aiRules.ageUpAtVillagers && own.some((b) => b.kind === "barracks" && b.complete) && !trainable(s, P, tc, "age-2")) order("train", { buildingId: tc.id, entryId: "age-2" });
+    else if (s.ages[P] === 2 && villagers.length >= aiRules.villagerTarget && own.some((b) => b.kind === "archery-range" && b.complete) && !trainable(s, P, tc, "age-3")) order("train", { buildingId: tc.id, entryId: "age-3" });
   }
-  const savingForAge = s.ages[P] < 2 && villagers.length >= aiRules.ageUpAtVillagers && stock.food < rules.entries.find((e) => e.id === "age-2").cost.food + 60;
+  const cost = (id) => rules.entries.find((e) => e.id === id).cost;
+  const savingForAge = s.ages[P] < 2 && villagers.length >= aiRules.ageUpAtVillagers && stock.food < cost("age-2").food + 60;
+  const savingForCastle = s.ages[P] === 2 && villagers.length >= aiRules.villagerTarget && own.some((b) => b.kind === "archery-range" && b.complete) && !own.some((b) => b.queue.some((q) => q.entryId === "age-3")) && (stock.food < cost("age-3").food + 60 || stock.gold < cost("age-3").gold + 30);
+  const monks = mine.filter((u) => u.kind === "monk");
   for (const b of own.filter((b2) => b2.complete && b2.queue.length < 2)) {
-    const pick = b.kind === "barracks" && !savingForAge ? "militia" : b.kind === "archery-range" ? "archer" : null;
+    const pick = savingForCastle && b.kind !== "monastery" ? null : b.kind === "barracks" && !savingForAge ? "militia" : b.kind === "archery-range" ? "archer" : b.kind === "monastery" && monks.length + queued("monk") < aiRules.monkTarget ? "monk" : null;
     if (pick && !trainable(s, P, b, pick)) order("train", { buildingId: b.id, entryId: pick });
+  }
+  const monastery = own.find((b) => b.kind === "monastery" && b.complete), home = tcBox ? centre(tcBox) : null, fetching = new Set(Object.values(s.rites).filter((r) => r.kind === "relic").map((r) => r.target));
+  for (const m of monks) {
+    const rite = s.rites[m.id];
+    if (carrying(s, m.id)) {
+      if (monastery && rite?.kind !== "deposit") order("deposit", { unitIds: [m.id], buildingId: monastery.id });
+      continue;
+    }
+    if (rite?.kind === "convert" || rite?.kind === "relic") continue;
+    const intruder = home && faithOf(s, m.id) >= 1 ? foes.filter((u) => dist(u, home) <= aiRules.defendRadius && !riteProblem(s, P, "convert", u.id)).sort((a, b) => dist(a, m) - dist(b, m) || a.id - b.id)[0] : void 0;
+    if (intruder) {
+      order("convert", { unitIds: [m.id], targetId: intruder.id });
+      continue;
+    }
+    const relic = s.relicMemory[P].filter((r) => !fetching.has(r.id)).sort((a, b) => dist(a, m) - dist(b, m) || a.id - b.id)[0];
+    if (relic && !rite && monastery) {
+      order("relic", { unitIds: [m.id], relicId: relic.id });
+      fetching.add(relic.id);
+    }
   }
   const staff = { food: 0, wood: 0, gold: 0, stone: 0 }, farmers = /* @__PURE__ */ new Set();
   for (const u of villagers) {
@@ -1656,7 +2041,7 @@ function stepAI(s, order) {
     }
   }
 }
-function boxOf(s, b) {
+function boxOf2(s, b) {
   const o = s.map.obstacles.find((o2) => o2.id === b.id);
   return o ? obstacleBounds(o) : null;
 }
@@ -1668,15 +2053,15 @@ function pickBuilder(s, villagers, idle, near) {
 function place(s, order, kind, villagers, idle, tcBox, own, worker, near) {
   const cost = rules.entries.find((e) => e.id === kind).cost, stock = s.accounts[aiRules.player].stock;
   if (Object.keys(cost).some((r) => stock[r] < cost[r]) || !buildKinds.includes(kind)) return false;
-  const home = centre(tcBox), c = near ?? home, others = own.filter((b) => b.kind !== "farm" && b.kind !== "town-center").map((b) => boxOf(s, b)).filter((b) => b !== null), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sources = s.map.obstacles.filter((o) => o.kind === "gold" || o.kind === "rock" || o.kind === "berries" || o.kind === "hunt" || o.kind === "livestock").map((o) => obstacleBounds(o)), middle = world / 2, axis = Math.hypot(home.x - middle, home.y - middle) || 1, ux = (home.x - middle) / axis, uy = (home.y - middle) / axis;
+  const home = centre(tcBox), c = near ?? home, others = own.filter((b) => b.kind !== "farm" && b.kind !== "town-center").map((b) => boxOf2(s, b)).filter((b) => b !== null), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sources = s.map.obstacles.filter((o) => o.kind === "gold" || o.kind === "rock" || o.kind === "berries" || o.kind === "hunt" || o.kind === "livestock").map((o) => obstacleBounds(o)), middle = world / 2, axis = Math.hypot(home.x - middle, home.y - middle) || 1, ux = (home.x - middle) / axis, uy = (home.y - middle) / axis;
   const side = (x, y) => (x - middle) * ux + (y - middle) * uy;
-  const explored = new Set(s.vision[aiRules.player].explored), bodies = s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]);
+  const explored = new Set(s.vision[aiRules.player].explored), bodies = [...s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]), ...s.relics.filter((r) => r.carrier === null && r.monastery === null).map((r) => ({ x: r.x, y: r.y }))];
   const input = { tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) }, sites = [];
   const g = buildingRules.grid, from = (v) => Math.ceil(-v / g) * g;
   const lo = (v, o) => Math.max(from(o), Math.ceil((v - aiRules.siteRange) / g) * g), hi = (v, o) => Math.min(world - o, v + aiRules.siteRange);
   for (let x = lo(c.x, x0); x <= hi(c.x, x1); x += aiRules.siteStep) for (let y = lo(c.y, y0); y <= hi(c.y, y1); y += aiRules.siteStep) {
     const box = [x + x0, y + y0, x + x1, y + y1], mid = centre(box);
-    const margin = kind === "barracks" || kind === "archery-range" ? aiRules.halfMargin : -aiRules.spill, ownHalf = Math.min(side(box[0], box[1]), side(box[2], box[1]), side(box[0], box[3]), side(box[2], box[3])) >= margin;
+    const margin = kind === "barracks" || kind === "archery-range" || kind === "monastery" ? aiRules.halfMargin : -aiRules.spill, ownHalf = Math.min(side(box[0], box[1]), side(box[2], box[1]), side(box[0], box[3]), side(box[2], box[3])) >= margin;
     if (!ownHalf || dist(mid, c) > aiRules.siteRange || gap2(box, tcBox) < (kind === "farm" ? 50 : aiRules.baseMargin) || kind !== "farm" && (others.some((o) => gap2(box, o) < 50) || sources.some((o) => gap2(box, o) < aiRules.sourceMargin))) continue;
     sites.push({ x, y, d: dist(mid, c) });
   }
@@ -1697,7 +2082,7 @@ function army(s, order, soldiers, foes, tcBox, idle, explored) {
     attackers.get(key).ids.push(u.id);
   };
   const home = tcBox ? centre(tcBox) : null, intruder = home ? foes.filter((f) => dist(f, home) <= aiRules.defendRadius).sort((a, b) => dist(a, home) - dist(b, home) || a.id - b.id)[0] : void 0;
-  const enemyBuildings = s.buildings.filter((b) => b.player !== P).map((b) => ({ b, box: boxOf(s, b) })).filter((v) => v.box && !targetProblem(s, P, { kind: "building", id: v.b.id }));
+  const enemyBuildings = s.buildings.filter((b) => b.player !== P).map((b) => ({ b, box: boxOf2(s, b) })).filter((v) => v.box && !targetProblem(s, P, { kind: "building", id: v.b.id }));
   const free = [], offensive = s.tick >= aiRules.firstWaveTick;
   for (const u of soldiers) {
     if (s.attacks[u.id]) continue;
@@ -1741,137 +2126,6 @@ function march(s, order, units, goal) {
   }
 }
 
-// packages/sim/religion.ts
-var religionRules = {
-  provenance: "design_default; conversion time and recharge from the reference research",
-  convertRange: 350,
-  healRange: 150,
-  healTicks: 20,
-  healSight: 400,
-  conversionTicks: { min: 100, max: 300 },
-  rechargeTicks: 1240,
-  unconvertible: ["monk"]
-};
-var random = (s) => {
-  let n = s.rng;
-  n ^= n << 13;
-  n ^= n >>> 17;
-  n ^= n << 5;
-  s.rng = n >>> 0;
-  return s.rng;
-};
-function faithOf(s, monkId) {
-  const last = s.faith[monkId];
-  return last === void 0 ? 1 : Math.min(1, (s.tick - last) / religionRules.rechargeTicks);
-}
-var rangeOf = (kind) => kind === "convert" ? religionRules.convertRange : religionRules.healRange;
-function riteProblem(s, player, kind, targetId) {
-  const t = s.units.find((u) => u.id === targetId);
-  if (!t) return "\u627E\u4E0D\u5230\u76EE\u6A19";
-  if (kind === "heal") {
-    if (t.player !== player) return "\u53EA\u80FD\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D";
-    if (t.kind === "monk") return "\u50E7\u4FB6\u4E0D\u80FD\u88AB\u6CBB\u7642";
-    return null;
-  }
-  if (t.player === player) return "\u4E0D\u80FD\u8F49\u5316\u5DF1\u65B9\u55AE\u4F4D";
-  if (!new Set(s.vision[player].visible).has(tileAt(t.x, t.y, s.map.size))) return "\u627E\u4E0D\u5230\u76EE\u6A19";
-  if (religionRules.unconvertible.includes(t.kind)) return "\u50E7\u4FB6\u4E0D\u80FD\u8F49\u5316\u50E7\u4FB6";
-  return null;
-}
-function commandRite(s, monkIds, kind, target) {
-  for (const id of monkIds) {
-    cancelMovement(s, id);
-    delete s.works[id];
-    delete s.attacks[id];
-    s.rites[id] = { kind, target, progress: 0, needed: 0, repath: 0 };
-  }
-}
-function clearRites(s, unitIds) {
-  for (const id of unitIds) delete s.rites[id];
-}
-function convert(s, monk, t) {
-  const from = s.accounts[t.player], to = s.accounts[monk.player], c = s.cargo[t.id];
-  if (c) {
-    from.ledger.lost[c.resource] += c.amount;
-    delete s.cargo[t.id];
-  }
-  delete s.works[t.id];
-  delete s.attacks[t.id];
-  delete s.rites[t.id];
-  cancelMovement(s, t.id);
-  Object.assign(t, { path: [], goal: null, target: null, navigation: t.next === null ? "idle" : "moving" });
-  from.populationUsed--;
-  to.populationUsed++;
-  t.player = monk.player;
-  s.faith[monk.id] = s.tick;
-}
-function stepReligion(s) {
-  const monks = s.units.filter((u) => u.kind === "monk").sort((a, b) => a.id - b.id), busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
-  for (const id of Object.keys(s.rites).map(Number)) if (!monks.some((m) => m.id === id)) delete s.rites[id];
-  for (const id of Object.keys(s.faith).map(Number)) if (!monks.some((m) => m.id === id)) delete s.faith[id];
-  for (const m of monks) {
-    if (s.rites[m.id] || s.attacks[m.id] || m.next !== null || m.path.length || busy.has(m.id)) continue;
-    let best = null, dist2 = Infinity;
-    for (const u of s.units) if (u !== m && u.player === m.player && u.kind !== "monk" && u.hp < combatRules.units[u.kind].hp) {
-      const d = reach(m, u);
-      if (d <= religionRules.healSight && (d < dist2 || d === dist2 && best && u.id < best.id)) {
-        best = u;
-        dist2 = d;
-      }
-    }
-    if (best) s.rites[m.id] = { kind: "heal", target: best.id, progress: 0, needed: 0, repath: 0 };
-  }
-  for (const m of monks) {
-    const r = s.rites[m.id];
-    if (!r) continue;
-    const t = s.units.find((u) => u.id === r.target);
-    const done = () => {
-      delete s.rites[m.id];
-      cancelMovement(s, m.id);
-      Object.assign(m, { path: [], goal: null, target: null, navigation: m.next === null ? "idle" : "moving" });
-    };
-    if (!t || riteProblem(s, m.player, r.kind, r.target) || r.kind === "heal" && t.hp >= combatRules.units[t.kind].hp || r.kind === "convert" && r.needed === 0 && faithOf(s, m.id) < 1) {
-      done();
-      continue;
-    }
-    if (reach(m, t) <= rangeOf(r.kind)) {
-      if (m.next !== null) continue;
-      if (m.path.length || busy.has(m.id)) {
-        cancelMovement(s, m.id);
-        m.path = [];
-        m.goal = null;
-        m.target = null;
-      }
-      m.navigation = "idle";
-      if (r.kind === "heal") {
-        if (++r.progress % religionRules.healTicks === 0) t.hp = Math.min(combatRules.units[t.kind].hp, t.hp + 1);
-        continue;
-      }
-      if (r.needed === 0) {
-        const { min, max } = religionRules.conversionTicks;
-        r.needed = min + random(s) % (max - min + 1);
-      }
-      if (++r.progress >= r.needed) {
-        convert(s, m, t);
-        delete s.rites[m.id];
-      }
-      continue;
-    }
-    if (m.next !== null) continue;
-    if (r.repath > 0 && (m.path.length || busy.has(m.id))) {
-      r.repath--;
-      continue;
-    }
-    const nodes = approach(s, m, { x: t.x, y: t.y }, rangeOf(r.kind));
-    if (!nodes.length) {
-      done();
-      continue;
-    }
-    routeTo(s, m, nodes);
-    r.repath = 20;
-  }
-}
-
 // packages/sim/sim.ts
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -1885,12 +2139,12 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, simulationVersion: 21 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, simulationVersion: 22 });
 function createState(seed, layout = "meadow", opponent = "idle") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
   if (opponent !== "ai" && opponent !== "idle") throw Error("\u672A\u77E5\u7684\u5C0D\u624B\u8A2D\u5B9A");
   const map = makeMap(seed, layout);
-  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, rites: {}, faith: {}, version: 21, opponent, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
+  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, rites: {}, faith: {}, techs: [[], []], relics: layout === "open" ? placeRelics(map, seed) : [], relicMemory: [[], []], relicVictory: null, version: 22, opponent, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
   if (opponent === "ai") {
     state.units.push(...map.starts[1].slice(1).map((p, i) => makeUnit(map, 5 + i, 1, p.x, p.y)));
     state.nextUnitId = 5 + map.starts[1].length - 1;
@@ -1906,6 +2160,13 @@ function createState(seed, layout = "meadow", opponent = "idle") {
   updateVision(state.vision, state.map, state.units, 0);
   return state;
 }
+function riteTarget(c) {
+  const p = c.payload;
+  if (c.commandType === "relic") return Number.isSafeInteger(p.relicId) ? p.relicId : null;
+  if (c.commandType === "deposit") return typeof p.buildingId === "string" ? p.buildingId : null;
+  if (c.commandType === "convert" && typeof p.buildingId === "string") return p.buildingId;
+  return Number.isSafeInteger(p.targetId) ? p.targetId : null;
+}
 function submit(state, c, record = true) {
   if (!c || c.protocolVersion !== 1 || c.rulesetHash !== rulesetHash) throw Error("\u547D\u4EE4\u7248\u672C\u4E0D\u7B26");
   if (!Number.isSafeInteger(c.playerId) || c.playerId < 0 || c.playerId > 1) throw Error("\u7121\u6548\u73A9\u5BB6");
@@ -1913,14 +2174,14 @@ function submit(state, c, record = true) {
   if (!Number.isSafeInteger(c.targetTick) || c.targetTick <= state.tick || c.targetTick > state.tick + 200) throw Error("\u547D\u4EE4\u5DF2\u904E\u671F\u6216\u904E\u9060");
   if (!c.payload) throw Error("\u7F3A\u5C11 payload");
   if (state.outcome) throw Error("\u5C0D\u5C40\u5DF2\u7D50\u675F\uFF1A\u8ACB\u518D\u958B\u4E00\u5C40");
-  if (c.commandType === "move" || c.commandType === "stop" || c.commandType === "gather" || c.commandType === "build" || c.commandType === "construct" || c.commandType === "attack" || c.commandType === "convert" || c.commandType === "heal") {
+  if (c.commandType === "move" || c.commandType === "stop" || c.commandType === "gather" || c.commandType === "build" || c.commandType === "construct" || c.commandType === "attack" || c.commandType === "convert" || c.commandType === "heal" || c.commandType === "relic" || c.commandType === "deposit") {
     const ids = c.payload.unitIds;
     if (!Array.isArray(ids) || !ids.length || ids.length > navigationRules.maxGroupSize || !ids.every((id, i) => Number.isSafeInteger(id) && (i === 0 || id > ids[i - 1]))) throw Error(`\u55AE\u4F4D\u6E05\u55AE\u9700\u70BA 1\u2013${navigationRules.maxGroupSize} \u500B\u905E\u589E\u4E14\u4E0D\u91CD\u8907\u7684 ID`);
     for (const id of ids) {
       const u = state.units.find((u2) => u2.id === id);
       if (!u || u.player !== c.playerId) throw Error("\u4E0D\u53EF\u63A7\u5236\u6575\u65B9\u6216\u4E0D\u5B58\u5728\u7684\u55AE\u4F4D");
-      if (c.commandType === "convert" || c.commandType === "heal") {
-        if (u.kind !== "monk") throw Error("\u53EA\u6709\u50E7\u4FB6\u80FD\u8F49\u5316\u6216\u6CBB\u7642");
+      if (c.commandType === "convert" || c.commandType === "heal" || c.commandType === "relic" || c.commandType === "deposit") {
+        if (u.kind !== "monk") throw Error("\u53EA\u6709\u50E7\u4FB6\u80FD\u8F49\u5316\u3001\u6CBB\u7642\u6216\u642C\u904B\u8056\u7269");
       } else if (c.commandType === "attack") {
         if (u.kind === "monk") throw Error("\u50E7\u4FB6\u4E0D\u80FD\u653B\u64CA\uFF1A\u53F3\u9375\u6575\u65B9\u55AE\u4F4D\u6539\u70BA\u8F49\u5316");
       } else if (c.commandType !== "move" && c.commandType !== "stop" && u.kind !== "villager") throw Error("\u53EA\u6709\u6751\u6C11\u80FD\u63A1\u96C6\u6216\u5EFA\u9020");
@@ -1929,15 +2190,18 @@ function submit(state, c, record = true) {
   if (c.commandType === "move") {
     for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > state.map.size * 100 - 50) throw Error("\u76EE\u6A19\u8D85\u51FA\u5730\u5716");
   } else if (c.commandType === "stop") {
-  } else if (c.commandType === "convert" || c.commandType === "heal") {
-    const t = c.payload.targetId;
-    if (!Number.isSafeInteger(t)) throw Error("\u7121\u6548\u7684\u76EE\u6A19");
+  } else if (c.commandType === "convert" || c.commandType === "heal" || c.commandType === "relic" || c.commandType === "deposit") {
+    const t = riteTarget(c);
+    if (t === null) throw Error("\u7121\u6548\u7684\u76EE\u6A19");
     const problem = riteProblem(state, c.playerId, c.commandType, t);
     if (problem) throw Error(problem);
+    const ids = c.payload.unitIds;
     if (c.commandType === "convert") {
-      const tired = c.payload.unitIds.filter((id) => faithOf(state, id) < 1);
-      if (tired.length === c.payload.unitIds.length) throw Error("\u4FE1\u4EF0\u5C1A\u672A\u6062\u5FA9\uFF1A\u8F49\u5316\u5F8C\u9700\u8981 62 \u79D2");
+      if (ids.every((id) => carrying(state, id))) throw Error("\u651C\u5E36\u8056\u7269\u7684\u50E7\u4FB6\u4E0D\u80FD\u8F49\u5316");
+      if (ids.every((id) => faithOf(state, id) < 1)) throw Error("\u4FE1\u4EF0\u5C1A\u672A\u6062\u5FA9\uFF1A\u8F49\u5316\u5F8C\u9700\u8981\u4E00\u6BB5\u6642\u9593");
     }
+    if (c.commandType === "relic" && ids.every((id) => carrying(state, id))) throw Error("\u9019\u540D\u50E7\u4FB6\u5DF2\u7D93\u651C\u5E36\u8056\u7269");
+    if (c.commandType === "deposit" && !ids.some((id) => carrying(state, id))) throw Error("\u6240\u9078\u50E7\u4FB6\u6C92\u6709\u651C\u5E36\u8056\u7269");
   } else if (c.commandType === "attack") {
     const t = c.payload.target;
     if (!t || !["unit", "building"].includes(t.kind)) throw Error("\u7121\u6548\u7684\u653B\u64CA\u76EE\u6A19");
@@ -2008,8 +2272,9 @@ function tick(s) {
       }
       continue;
     }
-    if (c.commandType === "convert" || c.commandType === "heal") {
-      if (!riteProblem(s, c.playerId, c.commandType, c.payload.targetId)) commandRite(s, c.payload.unitIds, c.commandType, c.payload.targetId);
+    if (c.commandType === "convert" || c.commandType === "heal" || c.commandType === "relic" || c.commandType === "deposit") {
+      const t = riteTarget(c);
+      if (!riteProblem(s, c.playerId, c.commandType, t)) commandRite(s, c.payload.unitIds, c.commandType, t);
       else {
         clearRites(s, c.payload.unitIds);
         commandStop(s, c.payload.unitIds);
@@ -2123,20 +2388,20 @@ function replay(seed, commands, ticks, layout = "meadow", opponent = "idle") {
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-21", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-22", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-21" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-22" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 21 || s.opponent !== "ai" && s.opponent !== "idle" || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (s.version !== 22 || s.opponent !== "ai" && s.opponent !== "idle" || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   const rebuilt = replay(s.seed, s.log, s.tick, s.layout, s.opponent);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);
 }
 
 // packages/sim/protocol.ts
-var UNIT_STRIDE = 17;
+var UNIT_STRIDE = 18;
 var STRIDE = UNIT_STRIDE;
 function createService() {
   let state = createState(260925), lastId = 0;
@@ -2151,6 +2416,8 @@ function createService() {
       switch (op.kind) {
         case "convert":
         case "heal":
+        case "relic":
+        case "deposit":
         case "resign":
         case "attack":
         case "move":
@@ -2165,7 +2432,7 @@ function createService() {
           if (state.log.length >= 1e4) throw Error("\u5DF2\u9054\u6C99\u76D2 10000 \u6307\u4EE4\u4E0A\u9650\uFF0C\u8ACB\u5132\u5B58\u6216\u91CD\u5EFA");
           {
             const envelope = { acceptedTick: state.tick, protocolVersion: 1, rulesetHash, playerId: 0, sequence: state.sequence[0] + 1, targetTick: state.tick + 1 };
-            const command = op.kind === "convert" || op.kind === "heal" ? { ...envelope, commandType: op.kind, payload: { unitIds: op.unitIds, targetId: op.targetId } } : op.kind === "resign" ? { ...envelope, commandType: "resign", payload: {} } : op.kind === "attack" ? { ...envelope, commandType: "attack", payload: { unitIds: op.unitIds, target: op.target } } : op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
+            const command = op.kind === "convert" || op.kind === "heal" ? { ...envelope, commandType: op.kind, payload: op.buildingId !== void 0 ? { unitIds: op.unitIds, buildingId: op.buildingId } : { unitIds: op.unitIds, targetId: op.targetId } } : op.kind === "relic" ? { ...envelope, commandType: "relic", payload: { unitIds: op.unitIds, relicId: op.relicId } } : op.kind === "deposit" ? { ...envelope, commandType: "deposit", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "resign" ? { ...envelope, commandType: "resign", payload: {} } : op.kind === "attack" ? { ...envelope, commandType: "attack", payload: { unitIds: op.unitIds, target: op.target } } : op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
             submit(state, command);
             accepted = command;
           }
@@ -2207,12 +2474,12 @@ function createService() {
         const flock = state.rites[u.id] ? state.units.find((v) => v.id === state.rites[u.id].target) : void 0;
         const target = box ? { x: Math.round((bx0 + bx1) / 2), y: Math.round((by0 + by1) / 2) } : foe ? { x: foe.x, y: foe.y } : flock ? { x: flock.x, y: flock.y } : sb ? { x: Math.round((sb[0] + sb[2]) / 2), y: Math.round((sb[1] + sb[3]) / 2) } : u.target;
         const rite = state.rites[u.id], action = fight && fight.firedTick >= 0 && state.tick - fight.firedTick < 10 ? 1 : u.hitTick >= 0 && state.tick - u.hitTick < combatRules.hitFlashTicks ? 2 : 0;
-        positions.set([u.id, u.player, u.x, u.y, target?.x ?? -1, target?.y ?? -1, navigationStates.indexOf(u.navigation), w ? workPhases.indexOf(w.phase) : 0, c ? resources.indexOf(c.resource) : -1, c?.amount ?? 0, w?.kind === "gather" ? resources.indexOf(resourceDefinitions[state.map.resources.find((r) => r.id === w.resourceId).kind].yield) : -1, unitKinds.indexOf(u.kind), u.hp, combatRules.units[u.kind].hp, action, rite ? rite.kind === "convert" ? 1 : 2 : 0, own && u.kind === "monk" ? Math.floor(faithOf(state, u.id) * 100) : -1], i * STRIDE);
+        positions.set([u.id, u.player, u.x, u.y, target?.x ?? -1, target?.y ?? -1, navigationStates.indexOf(u.navigation), w ? workPhases.indexOf(w.phase) : 0, c ? resources.indexOf(c.resource) : -1, c?.amount ?? 0, w?.kind === "gather" ? resources.indexOf(resourceDefinitions[state.map.resources.find((r) => r.id === w.resourceId).kind].yield) : -1, unitKinds.indexOf(u.kind), u.hp, maxHpOf(u.kind, state.techs[u.player]), action, rite?.kind === "convert" ? 1 : rite?.kind === "heal" ? 2 : 0, own && u.kind === "monk" ? Math.floor(faithOf(state, u.id) * 100) : -1, carrying(state, u.id) ? 1 : 0], i * STRIDE);
       });
-      const account = state.accounts[0], economy = { stock: { ...account.stock }, populationUsed: account.populationUsed, populationReserved: account.populationReserved, populationCap: account.populationCap, age: state.ages[0] };
-      return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, size: state.map.size, opponent: state.opponent, terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, economy, corpses: state.corpses.filter((c) => c.player === 0 || state.vision[0].visible.includes(tileAt(c.x, c.y, state.map.size))).map((c) => ({ ...c })), outcome: state.outcome ? { ...state.outcome } : null, buildings: state.buildings.filter((b) => b.player === 0).map(({ id, kind, x, y, work, required, complete, queue, rally, hp, maxHp }) => ({ id, kind, x, y, work, required, complete, hp, maxHp, queue: queue.map(({ id: id2, entryId, work: work2, required: required2 }) => ({ id: id2, entryId, work: work2, required: required2 })), rally })), transactions: state.transactions.filter((t) => t.playerId === 0).slice(-5).map(({ sequence, tick: tick2, ok, error }) => ({ sequence, tick: tick2, ok, ...error ? { error } : {} })), ...projectVision(state.vision[0], state.map.size), accepted, commands, snapshot, replayMatches };
+      const account = state.accounts[0], economy = { stock: { ...account.stock }, populationUsed: account.populationUsed, populationReserved: account.populationReserved, populationCap: account.populationCap, age: state.ages[0], techs: [...state.techs[0]] };
+      return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, size: state.map.size, opponent: state.opponent, terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, economy, corpses: state.corpses.filter((c) => c.player === 0 || state.vision[0].visible.includes(tileAt(c.x, c.y, state.map.size))).map((c) => ({ ...c })), outcome: state.outcome ? { ...state.outcome } : null, buildings: state.buildings.filter((b) => b.player === 0).map(({ id, kind, x, y, work, required, complete, queue, rally, hp, maxHp: maxHp2 }) => ({ id, kind, x, y, work, required, complete, hp, maxHp: maxHp2, queue: queue.map(({ id: id2, entryId, work: work2, required: required2 }) => ({ id: id2, entryId, work: work2, required: required2 })), rally, relics: state.relics.filter((r) => r.monastery === id).length })), relicSpots: state.relicMemory[0].map((r) => ({ ...r })), relicsHeld: [0, 1].map((p) => state.relics.filter((r) => r.monastery !== null && state.buildings.find((b) => b.id === r.monastery)?.player === p).length), relicTotal: state.relics.length, relicVictory: state.relicVictory ? { ...state.relicVictory } : null, transactions: state.transactions.filter((t) => t.playerId === 0).slice(-5).map(({ sequence, tick: tick2, ok, error }) => ({ sequence, tick: tick2, ok, ...error ? { error } : {} })), ...projectVision(state.vision[0], state.map.size), accepted, commands, snapshot, replayMatches };
     } catch (error) {
-      return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: ["attack", "move", "stop", "gather", "build", "construct", "convert", "heal"].includes(req?.operation?.kind) ? req.operation.unitIds?.[0] : void 0 };
+      return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: ["attack", "move", "stop", "gather", "build", "construct", "convert", "heal", "relic", "deposit"].includes(req?.operation?.kind) ? req.operation.unitIds?.[0] : void 0 };
     }
   };
 }

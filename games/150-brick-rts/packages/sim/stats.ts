@@ -18,4 +18,8 @@ export const combatRules={provenance:'design_default',
  // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
  speed:{villager:5,militia:5,archer:5,scout:10,monk:5},
 } as const;
+// Monastery technology effects that touch unit stats (reference values, see aoe2-rules-research.md).
+export const religionBonus={sanctityHp:15} as const;
+// A unit's full health: the base value, plus Sanctity for its owner's monks.
+export function maxHpOf(kind:keyof typeof combatRules.units,techs:readonly string[]){return combatRules.units[kind].hp+(kind==='monk'&&techs.includes('sanctity')?religionBonus.sanctityHp:0);}
 export type CombatUnitKind=keyof typeof combatRules.units;

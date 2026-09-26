@@ -14,7 +14,7 @@ export type Target={kind:'unit';id:number}|{kind:'building';id:string};
 export type Attack={target:Target;cooldown:number;auto:boolean;repath:number;firedTick:number};
 export type Corpse={id:number;player:number;kind:Unit['kind'];x:number;y:number;tick:number};
 // reason: conquest (no units and no buildings left) or resign (a player conceded).
-export type Outcome={winner:number|null;defeated:number[];tick:number;reason?:'resign'};
+export type Outcome={winner:number|null;defeated:number[];tick:number;reason?:'resign'|'relic'};
 export type CombatState=WorkState&{attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;vision:{visible:number[];explored:number[];known:KnownObstacle[]}[]};
 const REPATH=20;
 function buildingBox(s:CombatState,b:Building){const o=s.map.obstacles.find(o=>o.id===b.id);return o?obstacleBounds(o):null;}
@@ -49,7 +49,7 @@ export function approach(s:CombatState,u:Unit,shape:{x:number;y:number}|number[]
  const held=new Set(s.units.filter(v=>v!==u&&v.next===null&&!v.path.length).map(v=>v.node)),free=out.filter(n=>!held.has(n));
  return free.length?free:out;
 }
-function killUnit(s:CombatState,u:Unit){
+export function killUnit(s:CombatState,u:Unit){
  const a=s.accounts[u.player],c=s.cargo[u.id];if(c){a.ledger.lost[c.resource]+=c.amount;delete s.cargo[u.id];}
  delete s.works[u.id];delete s.attacks[u.id];cancelMovement(s,u.id);a.populationUsed--;
  s.units=s.units.filter(v=>v!==u);s.corpses.push({id:u.id,player:u.player,kind:u.kind,x:u.x,y:u.y,tick:s.tick});
