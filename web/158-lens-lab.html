@@ -1,1 +1,1753 @@
-<!doctype html><title>reserved</title>
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鏡頭實驗室 · The Plane of Focus</title>
+<meta name="description" content="3D 光學實驗台：剖開的 24–70mm 變焦鏡頭以近軸光線追跡畫出每道折射，轉對焦環讓前群沿光軸移動；1:12 玻璃箱微縮場景裡立著清晰平面，鏡頭位置即時渲染的照片依景深公式逐像素模糊，並逐項驗算薄透鏡與景深公式。">
+<meta name="theme-color" content="#081013">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Ccircle%20cx='16'%20cy='16'%20r='15'%20fill='%2314110e'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='13'%20fill='%233a3129'/%3E%3Cpolygon%20points='16.0,7.0%2023.0,10.4%2024.8,18.0%2019.9,24.1%2012.1,24.1%207.2,18.0%209.0,10.4'%20fill='%23e8b766'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#081013; --panel:rgba(9,19,23,.86); --panel-2:#0d1a1e; --ink:#e6f1f2; --muted:#93aaae; --faint:#5f777c;
+  --edge:rgba(160,225,235,.10); --cyan:#63d6e3; --copper:#d4904f;
+  --fg:#ff9c7a; --mid:#ffd27a; --far:#7ee0c8; --ivory:#e8f4f5;
+  --serif:"Songti TC","Noto Serif TC","Source Han Serif TC",serif;
+  --sans:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --ease-out:cubic-bezier(.22,.8,.3,1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font:15px/1.6 var(--sans);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit}
+canvas{display:block}
+
+/* ——— 3D 實驗台 ——— */
+.stage{position:relative;height:100svh;min-height:680px;max-height:1020px;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,#0f1c20 0%,#081013 70%)}
+.glwrap{position:absolute;inset:0}
+#gl{width:100%;height:100%;touch-action:pan-y;cursor:grab}
+#gl.drag{cursor:grabbing}#gl.ringhover{cursor:ew-resize}#gl.pick{cursor:crosshair}
+.boot{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;pointer-events:none;text-align:center;padding:24px}
+.boot b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.hud{position:absolute;z-index:3;background:var(--panel);border-radius:14px;box-shadow:inset 0 1px 0 var(--edge),0 1px 2px rgba(0,0,0,.4);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.hud-l{left:22px;top:20px;width:min(372px,31vw);padding:18px 18px 16px}
+.brand{margin:0;font:800 30px/1.05 var(--sans);letter-spacing:.04em}
+.brand small{display:block;margin-top:6px;font:700 13px/1 var(--sans);letter-spacing:.32em;color:var(--cyan)}
+.lede{margin:12px 0 0;color:var(--muted);font-size:13.5px;line-height:1.6}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:14px}
+.stats div{background:rgba(99,214,227,.06);border-radius:8px;padding:7px 8px 6px;min-width:0}
+.stats dt{font-size:11.5px;color:var(--muted)}
+.stats dd{margin:0;font-size:16px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.callout{margin:12px 0 0;font-size:13.5px;line-height:1.65;color:var(--ink)}
+.callout b.fg{color:var(--fg)}.callout b.mid{color:var(--mid)}.callout b.far{color:var(--far)}
+.callout b{font-weight:600}
+.hud-r{right:20px;top:20px;width:340px;padding:12px 14px 10px}
+.ctl{margin-bottom:8px}
+.ctl-head{display:flex;justify-content:space-between;align-items:baseline}
+.ctl-head strong{font-size:14px;font-weight:700;letter-spacing:.04em}
+.ctl-head output{font-size:18px;font-weight:700;color:var(--cyan)}
+.ring{position:relative;height:44px;margin-top:4px;border-radius:9px;background:#050b0d;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 -8px 14px rgba(0,0,0,.4);cursor:ew-resize;touch-action:none;outline:none;overflow:hidden}
+.ring canvas{width:100%;height:100%}
+.ring:focus-visible{box-shadow:0 0 0 2px var(--cyan)}
+.note{margin:4px 0 0;color:var(--muted);font-size:12px;line-height:1.45}
+.note b{color:var(--ink);font-weight:500}
+.hud-b{right:20px;bottom:20px;width:340px;padding:10px 14px}
+.row-btns{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:var(--ink)}
+.toggle input{appearance:none;width:28px;height:16px;border-radius:8px;background:#23363b;position:relative;margin:0;cursor:pointer;transition:background 160ms var(--ease-out)}
+.toggle input::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--ink);transition:transform 180ms var(--ease-out)}
+.toggle input:checked{background:#2b8e99}
+.toggle input:checked::after{transform:translateX(12px)}
+.toggle input:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.views{display:flex;gap:4px;margin-left:auto}
+.views button{background:none;border:0;border-radius:6px;padding:3px 8px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.views button[aria-pressed=true]{background:rgba(99,214,227,.14);color:var(--ink)}
+.views button:focus-visible{outline:2px solid var(--cyan)}
+.photo-card{left:22px;bottom:20px;width:clamp(300px,27vw,420px);padding:10px 10px 9px}
+#photo{width:100%;aspect-ratio:3/2;border-radius:6px;background:#0c1417}
+.photo-cap{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:7px;font-size:12.5px;color:var(--muted)}
+.shoot{background:var(--ink);color:#081013;border:0;border-radius:7px;padding:5px 12px;font-weight:700;font-size:13px;cursor:pointer;transition:background 160ms var(--ease-out)}
+.shoot:hover{background:#ffffff}.shoot:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.film{left:calc(clamp(300px,27vw,420px) + 38px);right:396px;bottom:20px;padding:9px 10px 8px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin}
+.film:empty{display:none}
+.shot{flex:none;width:112px;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.shot canvas{width:112px;height:75px;border-radius:5px;box-shadow:0 0 0 1px rgba(160,225,235,.12)}
+.shot span{display:block;margin-top:4px;font-size:11.5px;line-height:1.3;color:var(--muted)}
+.shot[aria-current=true] canvas{box-shadow:0 0 0 2px var(--cyan)}
+.shot[aria-current=true] span{color:var(--ink)}
+.shot:focus-visible canvas{box-shadow:0 0 0 2px var(--ivory)}
+.tags{position:absolute;inset:0;pointer-events:none;z-index:2}
+.tag{position:absolute;left:0;top:0;transform:translate(-50%,-100%);white-space:nowrap;font-size:12px;line-height:1.3;padding:3px 7px 3px;border-radius:5px;background:rgba(5,12,14,.8);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(160,225,235,.14)}
+.tag::after{content:"";position:absolute;left:50%;bottom:-7px;width:1px;height:7px;background:rgba(160,225,235,.45)}
+.tag b{font-weight:600}
+.tag i{font-style:normal;color:var(--muted);margin-left:5px}
+.tag.fg b{color:var(--fg)}.tag.mid b{color:var(--mid)}.tag.far b{color:var(--far)}.tag.fp b{color:var(--cyan)}
+.tag[hidden]{display:none}
+
+/* ——— 精確剖面、圖表、驗算 ——— */
+.deep{max-width:1560px;margin:0 auto;padding:28px 24px 8px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px}
+.panel{background:var(--panel-2);border-radius:14px;box-shadow:inset 0 1px 0 var(--edge);padding:16px 18px 18px;min-width:0}
+.panel h2{font:700 17px/1.3 var(--sans);letter-spacing:.04em;margin:0 0 4px}
+.panel .sub{margin:0 0 10px;color:var(--muted);font-size:13px}
+#lens{height:300px;width:100%;cursor:default;touch-action:pan-y}
+#lens.grab{cursor:grab}#lens.grabbing{cursor:grabbing}
+.legend{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 2px 0}
+.legend button{background:none;border:0;padding:4px 0;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted);font-size:13.5px;text-align:left}
+.legend button i{width:22px;height:3px;border-radius:2px;background:currentColor;flex:none}
+.legend button b{font-weight:600}
+.legend button[aria-pressed=false]{opacity:.42}
+.legend button[aria-pressed=false] i{background:transparent;box-shadow:inset 0 0 0 1px currentColor}
+.legend button:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:4px}
+.legend .k-fg{color:var(--fg)}.legend .k-mid{color:var(--mid)}.legend .k-far{color:var(--far)}
+.legend button span{color:var(--muted)}
+#chart{height:160px;width:100%}
+.chart-note{margin:6px 2px 0;color:var(--muted);font-size:13px}
+.read{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 18px;margin:16px 2px 0}
+.read div{min-width:0}
+.read dt{color:var(--muted);font-size:12.5px}
+.read dd{margin:0;font-size:18px;font-weight:700;color:var(--ivory);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.read dd small{font-size:12.5px;font-weight:400;color:var(--muted)}
+.check{max-width:1560px;margin:0 auto;padding:10px 24px 36px}
+.check-inner{background:var(--panel-2);border-radius:14px;padding:22px 24px 12px;box-shadow:inset 0 1px 0 var(--edge)}
+.check h2{font:700 21px/1.3 var(--sans);letter-spacing:.04em;margin:0 0 4px}
+.check-inner>p{margin:0 0 14px;color:var(--muted);max-width:80ch}
+.row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr) minmax(0,1.3fr) 76px;gap:6px 18px;padding:13px 0;border-top:1px solid rgba(160,225,235,.07);align-items:baseline}
+.row:first-child{border-top:0}
+.row h3{margin:0;font-size:14.5px;font-weight:600}
+.row p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.row .eq{font-size:14px}
+.row .eq em{font-style:normal;color:var(--muted)}
+.row .res{font-size:14px}
+.row .ok{font-weight:700;font-size:13.5px;text-align:right}
+.ok.pass{color:#9fdcae}.ok.near{color:var(--mid)}.ok.fail{color:#ef7d6b}
+.foot{max-width:1560px;margin:0 auto;padding:0 24px 34px;color:var(--faint);font-size:12.5px}
+.foot a{color:var(--muted)}
+
+@media (max-width:1180px){
+  .hud-l{width:330px}.hud-r,.hud-b{width:320px}
+  .film{right:356px}
+}
+@media (max-width:980px){
+  .stage{height:auto;min-height:0;max-height:none;overflow:visible;display:flex;flex-direction:column}
+  .glwrap{position:relative;height:60svh;min-height:360px;order:1}
+  .hud{position:static;width:auto;margin:10px 12px 0;-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--panel-2)}
+  .hud-l{order:0;margin-top:12px}
+  .photo-card{order:2}
+  .film{order:3;margin-bottom:0}
+  .hud-r{order:4}
+  .hud-b{order:5;margin-bottom:6px}
+  .deep{grid-template-columns:minmax(0,1fr);padding:18px 12px 4px}
+  .check{padding:10px 12px 28px}
+  .foot{padding:0 16px 28px}
+  #photo{max-width:560px}
+}
+@media (max-width:620px){
+  .brand{font-size:26px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panel{padding:12px 12px 14px}
+  .read{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .check-inner{padding:18px 14px 8px}
+  .row{grid-template-columns:minmax(0,1fr) 64px}
+  .row .eq,.row .res{grid-column:1/-1}
+  .row .ok{grid-row:1;grid-column:2}
+  .views{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){.toggle input,.toggle input::after,.shoot{transition:none}}
+</style>
+</head>
+<body>
+<section class="stage" aria-label="3D 光學實驗台">
+  <div class="glwrap" id="glwrap">
+    <canvas id="gl" aria-label="3D 光學實驗台：剖開的鏡頭、感光元件、螢幕與玻璃箱微縮場景。拖曳旋轉視角，拖動鏡頭上的對焦環改變對焦，點場景裡的東西就對焦到那裡。"></canvas>
+    <div class="tags" id="tags" aria-hidden="true"></div>
+    <div class="boot" id="boot"><div><b>3D 實驗台載入中…</b>需要連到 cdn.jsdelivr.net 載入 Three.js</div></div>
+  </div>
+
+  <div class="hud hud-l">
+    <h1 class="brand">鏡頭實驗室<small>THE PLANE OF FOCUS</small></h1>
+    <p class="lede">一支剖開的變焦鏡頭，對著一座 1:16 的微縮場景。轉對焦環，看前群鏡片沿光軸前後移動、光線在感光元件前後匯聚，還有場景裡那片「清晰平面」往哪裡走。</p>
+    <dl class="stats">
+      <div><dt>對焦</dt><dd id="st-focus">4.50 m</dd></div>
+      <div><dt>光圈</dt><dd id="st-ap">f/2.8</dd></div>
+      <div><dt>焦距</dt><dd id="st-f">70 mm</dd></div>
+      <div><dt>景深</dt><dd id="st-dof">—</dd></div>
+    </dl>
+    <p class="callout" id="callout"></p>
+  </div>
+
+  <div class="hud hud-r" aria-label="鏡頭控制">
+    <div class="ctl">
+      <div class="ctl-head"><strong>對焦環</strong><output id="outFocus">3.00 m</output></div>
+      <div class="ring" id="ringFocus" tabindex="0" role="slider" aria-label="對焦距離"><canvas></canvas></div>
+      <p class="note">轉它，<b>前群鏡片</b>就前後移；光剛好在感光元件上聚成一點的距離，就是清晰平面。3D 鏡頭上的黑環也能拖。</p>
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><strong>光圈環</strong><output id="outAp">f/2.8</output></div>
+      <div class="ring" id="ringAp" tabindex="0" role="slider" aria-label="光圈 f 值"><canvas></canvas></div>
+      <p class="note">f 值越大，孔越小，<b>光束越細</b>：沒對準的點攤開的圓變小，清楚的範圍變寬。</p>
+    </div>
+    <div class="ctl">
+      <div class="ctl-head"><strong>變焦環</strong><output id="outZoom">50 mm</output></div>
+      <div class="ring" id="ringZoom" tabindex="0" role="slider" aria-label="焦距"><canvas></canvas></div>
+      <p class="note">焦距越長，畫面越窄、放得越大，<b>背景糊得越兇</b>，景深越淺。</p>
+    </div>
+  </div>
+
+  <div class="hud hud-b">
+    <div class="row-btns">
+      <label class="toggle"><input type="checkbox" id="tgRays" checked> 光線</label>
+      <label class="toggle"><input type="checkbox" id="tgDof" checked> 景深範圍</label>
+      <label class="toggle"><input type="checkbox" id="tgPeak"> 對焦峰值</label>
+      <div class="views" role="group" aria-label="視角">
+        <button type="button" data-view="all" aria-pressed="true">全景</button>
+        <button type="button" data-view="lens" aria-pressed="false">鏡頭</button>
+        <button type="button" data-view="scene" aria-pressed="false">場景</button>
+      </div>
+    </div>
+  </div>
+  <div class="hud photo-card">
+    <canvas id="photo" width="720" height="480" role="img" aria-label="從鏡頭位置拍到的畫面，依景深公式逐像素模糊"></canvas>
+    <div class="photo-cap"><span id="photoCap">感光元件看到的畫面</span><button type="button" class="shoot" id="shoot">拍一張</button></div>
+  </div>
+  <div class="hud film" id="film" aria-label="快照：點一下套用當時的設定"></div>
+</section>
+
+<section class="deep">
+  <div class="panel">
+    <h2>精確剖面 · 近軸光線追跡</h2>
+    <p class="sub">上面 3D 鏡頭的同一組數字，攤平成真實比例的剖面：主平面 H、H′、焦點 F′ 與前群位移都標出來了。</p>
+    <canvas id="lens" role="img" aria-label="鏡頭剖面圖：七片鏡片、光圈與感光元件，三束光線依物體距離折射並匯聚"></canvas>
+    <div class="legend" id="legend">
+      <button type="button" class="k-fg" data-k="fg" aria-pressed="true"><i></i><b>前景燈籠</b><span id="lg-fg"></span></button>
+      <button type="button" class="k-mid" data-k="mid" aria-pressed="true"><i></i><b>主體木屋</b><span id="lg-mid"></span></button>
+      <button type="button" class="k-far" data-k="far" aria-pressed="true"><i></i><b>背景樹林</b><span id="lg-far"></span></button>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>模糊圓與距離</h2>
+    <p class="sub">橫軸依 1/距離 排列：模糊圓大小和它成正比，所以畫出來是一個 V。V 在容許線以下的部分，就是景深。</p>
+    <canvas id="chart" role="img" aria-label="模糊圓直徑對距離的圖，容許模糊圓以下為景深範圍"></canvas>
+    <dl class="read" id="read"></dl>
+  </div>
+</section>
+
+<section class="check" aria-labelledby="h-check">
+  <div class="check-inner">
+    <h2 id="h-check">驗算：這一頁的物理有沒有算對</h2>
+    <p>每一列都用目前的設定即時計算。左半邊是教科書公式，右半邊是把光線一條條追過七片玻璃得到的結果；兩者對得上，上面的畫面才可信。</p>
+    <div id="rows"></div>
+  </div>
+</section>
+<p class="foot">光學模型：近軸（高斯）光線追跡，d 線單一波長，折射率 1.62／1.74／1.785；容許模糊圓 0.030 mm（全片幅慣例）。距離刻度從感光元件平面量起，公式中的 s、x 從前主平面 H 量起。3D 場景為 1:16 微縮模型，鏡頭放大 4.6 倍展示；照片以 1:16 換算回真實距離計算模糊。<a href="../index.html">回作品集</a></p>
+
+<script id="engine">
+// ——— 光學設計：前群負（對焦組）＋後群正（含光圈），近軸曲率半徑 R、到下一面的距離 t、面後折射率 n（單位 mm）———
+const DESIGN = {
+  G1: [[96.711,4,1.785],[414.476,1.2,1],[165.79,2,1.62],[35.921,7,1],[-82.895,1.8,1.62],[110.527,0,1]],
+  G2: [[33.05,6.2,1.62],[-291.613,0.8,1],[27.217,8.8,1.62],[-68.043,1.5,1.74],[23.329,6,1],[68.043,4.6,1.62],[-87.484,0,1]],
+  stopGap: 1.5, fMin: 24, fMax: 70, minFocus: 600, coc: 0.03
+};
+
+const Optics = (() => {
+  const curv = R => (isFinite(R) ? 1 / R : 0);
+  const mk = a => a.map(([R, t, n]) => ({ R, t, n }));
+  const G1 = mk(DESIGN.G1);
+  const G2 = [{ R: Infinity, t: DESIGN.stopGap, n: 1, stop: true }].concat(mk(DESIGN.G2));
+  const span = G => G.slice(0, -1).reduce((a, s) => a + s.t, 0);
+  const L1 = span(G1);
+
+  function place(z1, z2) {
+    const out = [];
+    let z = z1;
+    G1.forEach((s, i) => { out.push({ R: s.R, n: s.n, z, g: 1, i }); z += s.t; });
+    z = z2;
+    G2.forEach((s, i) => { out.push({ R: s.R, n: s.n, z, g: 2, i, stop: !!s.stop }); z += s.t; });
+    return out;
+  }
+  // 近軸追跡：y 為高度，nu 為 n·斜率；轉移 y += (nu/n)·Δz，折射 nu' = nu − y·(n'−n)/R
+  function trace(S, zo, y0, u0) {
+    let y = y0, nu = u0, n = 1, zp = zo;
+    const pts = [[zo, y0]];
+    for (const s of S) {
+      y += (nu / n) * (s.z - zp); zp = s.z;
+      pts.push([s.z, y]);
+      nu -= y * (s.n - n) * curv(s.R); n = s.n;
+    }
+    return { pts, y, u: nu, z: zp };
+  }
+  function matrix(S) {
+    let A = 1, B = 0, C = 0, D = 1, n = 1;
+    for (let i = 0; i < S.length; i++) {
+      const s = S[i], phi = (s.n - n) * curv(s.R);
+      C -= phi * A; D -= phi * B; n = s.n;
+      if (i < S.length - 1) { const k = (S[i + 1].z - s.z) / n; A += k * C; B += k * D; }
+    }
+    return { A, B, C, D };
+  }
+  function cardinal(S) {
+    const M = matrix(S), zf = S[0].z, zl = S[S.length - 1].z;
+    return { f: -1 / M.C, zH: zf + (M.D - 1) / M.C, zH2: zl + (1 - M.A) / M.C, zF: zf + M.D / M.C, zF2: zl - M.A / M.C };
+  }
+  function root(fn, a, b, it = 64) {
+    let fa = fn(a);
+    for (let i = 0; i < it; i++) {
+      const m = (a + b) / 2, fm = fn(m);
+      if ((fa <= 0) === (fm <= 0)) { a = m; fa = fm; } else b = m;
+    }
+    return (a + b) / 2;
+  }
+  // 物體在感光元件前 D（mm）處，回傳像點的 z（感光元件在 z = 0）
+  function imageZ(S, D) {
+    if (!isFinite(D)) return cardinal(S).zF2;
+    const r = trace(S, -D, 0, 1);
+    return r.z - r.y / r.u;
+  }
+  const cache = new Map();
+  function base(f0) {
+    let b = cache.get(f0);
+    if (!b) {
+      const g = root(gg => cardinal(place(0, L1 + gg)).f - f0, 0.5, 120);
+      const c = cardinal(place(0, L1 + g));
+      b = { g, z1: -c.zF2, z2: L1 + g - c.zF2 };
+      if (cache.size > 600) cache.clear();
+      cache.set(f0, b);
+    }
+    return b;
+  }
+  // 變焦：解出兩群間距讓無限遠焦距 = f0，並把後焦點放在感光元件上；對焦：前群往前移 d，讓 D 處的物體成像在感光元件上
+  function config(f0, D) {
+    const b = base(f0);
+    const d = isFinite(D) ? root(dd => imageZ(place(b.z1 - dd, b.z2), D), 0, 40) : 0;
+    const S = place(b.z1 - d, b.z2);
+    return { S, g: b.g, d, z1: b.z1 - d, z2: b.z2, card: cardinal(S) };
+  }
+  function focusFromShift(f0, d) {
+    const b = base(f0);
+    if (d <= 1e-6) return Infinity;
+    const S = place(b.z1 - d, b.z2);
+    const u = root(uu => imageZ(S, 1 / uu), 1e-9, 1 / 250);
+    return 1 / u;
+  }
+  const stopIndex = S => S.findIndex(s => s.stop);
+  // 光圈 f 值 = 有效焦距 / 入射光瞳直徑；由平行光在光圈面的高度換算實體光圈半徑
+  function stopRadius(S, f, N) {
+    const r = trace(S, S[0].z, 1, 0);
+    return Math.abs(r.pts[stopIndex(S) + 1][1]) * f / (2 * N);
+  }
+  function ray(S, D, t, rs) {
+    const si = stopIndex(S);
+    if (!isFinite(D)) { const p = trace(S, S[0].z, 1, 0); return trace(S, S[0].z, t * rs / p.pts[si + 1][1], 0); }
+    const p = trace(S, -D, 0, 1);
+    return trace(S, -D, 0, t * rs / p.pts[si + 1][1]);
+  }
+  function fan(S, D, rs, n) {
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(ray(S, D, n === 1 ? 0 : -1 + 2 * i / (n - 1), rs));
+    return out;
+  }
+  // 邊緣光線在感光元件上的高度 ×2 = 模糊圓直徑
+  function tracedBlur(S, D, rs) {
+    const r = ray(S, D, 1, rs);
+    return 2 * Math.abs(r.y + r.u * (0 - r.z));
+  }
+  function crossZ(r) { return r.z - r.y / r.u; }
+  return { place, trace, cardinal, config, focusFromShift, stopRadius, fan, ray, tracedBlur, crossZ, root, stopIndex, L1 };
+})();
+
+// 薄透鏡景深模型：s、x 從前主平面量起；模糊圓 c(x) = f²·|x − s| / (N·x·(s − f)) = K·|1/x − 1/s|
+function dofModel(f, s, N, c) {
+  const inf = !isFinite(s);
+  const K = inf ? f * f / N : f * f * s / (N * (s - f));
+  const H = f * f / (N * c) + f;
+  const near = inf ? H - f : s * (H - f) / (H + s - 2 * f);
+  const far = inf || s >= H ? Infinity : s * (H - f) / (H - s);
+  const blur = x => K * Math.abs((isFinite(x) ? 1 / x : 0) - (inf ? 0 : 1 / s));
+  return { K, H, near, far, blur };
+}
+</script>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const COC = DESIGN.coc;
+const APS = [2.8, 3.2, 3.5, 4, 4.5, 5, 5.6, 6.3, 7.1, 8, 9, 10, 11, 13, 14, 16, 18, 20, 22];
+const FULL = [2.8, 4, 5.6, 8, 11, 16, 22];
+const COL = { fg: '#ff9c7a', mid: '#ffd27a', far: '#7ee0c8', ivory: '#e8f4f5', ink: '#e6f1f2', muted: '#93aaae', faint: '#5f777c', cyan: '#63d6e3' };
+// 三個被拍的東西：D 是到感光元件平面的光軸距離（和對焦刻度同一個定義）
+const OBJ = {
+  fg: { key: 'fg', name: '前景燈籠', D: 1200 },
+  mid: { key: 'mid', name: '主體木屋', D: 4500 },
+  far: { key: 'far', name: '背景樹林', D: 9000 }
+};
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const state = { f0: 70, ai: 0, u: 1 / 4.5, rays: true, dof: true, peak: false, show: { fg: true, mid: true, far: true } };
+let M = null; // 目前的計算結果
+
+const fmtD = mm => !isFinite(mm) ? '∞' : mm >= 10000 ? (mm / 1000).toFixed(1) + ' m' : (mm / 1000).toFixed(2) + ' m';
+const fmtBlur = mm => mm < 1 ? Math.round(mm * 1000) + ' µm' : mm.toFixed(2) + ' mm';
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function compute(st = state) {
+  const D = st.u > 1e-9 ? 1000 / st.u : Infinity;
+  const cfg = Optics.config(st.f0, D);
+  const k = cfg.card, f = k.f, N = APS[st.ai];
+  const s = isFinite(D) ? D + k.zH : Infinity;
+  const v = -k.zH2;
+  const rs = Optics.stopRadius(cfg.S, f, N);
+  const m = dofModel(f, s, N, COC);
+  const toD = x => (isFinite(x) ? x - k.zH : Infinity); // 從 H 量的距離 → 從感光元件量
+  const objs = {};
+  for (const key in OBJ) {
+    const o = OBJ[key], x = o.D + k.zH;
+    objs[key] = { x, blur: m.blur(x), traced: Optics.tracedBlur(cfg.S, o.D, rs) };
+  }
+  return { D, cfg, f, N, s, v, rs, zH: k.zH, zH2: k.zH2, zF2: k.zF2, ...m, nearD: toD(m.near), farD: toD(m.far), HD: toD(m.H), objs };
+}
+
+// ———————————————————— canvas 工具 ————————————————————
+function fit(cv, maxDpr = 2) {
+  const w = cv.clientWidth, h = cv.clientHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+  const W = Math.max(1, Math.round(w * dpr)), H = Math.max(1, Math.round(h * dpr));
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { c, w, h, dpr };
+}
+if (!CanvasRenderingContext2D.prototype.roundRect) CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
+const sag = (R, y) => (isFinite(R) ? Math.sign(R) * (Math.abs(R) - Math.sqrt(Math.max(0, R * R - y * y))) : 0);
+function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+
+// ——— 鏡片口徑：掃過整個變焦與對焦範圍、f/2.8 全開，取每一面的最大光線高度 ———
+const SD = (() => {
+  const S0 = Optics.config(50, Infinity).S, maxH = new Array(S0.length).fill(0);
+  let stopMax = 0;
+  for (let f = DESIGN.fMin; f <= DESIGN.fMax; f += 4) for (const D of [Infinity, 600, 1000, 3000]) {
+    const c = Optics.config(f, D), rs = Optics.stopRadius(c.S, c.card.f, 2.8);
+    stopMax = Math.max(stopMax, rs);
+    const r = Optics.ray(c.S, D, 1, rs);
+    r.pts.slice(1).forEach((p, i) => { maxH[i] = Math.max(maxH[i], Math.abs(p[1])); });
+  }
+  const sd = maxH.map(h => h * 1.08 + 0.7);
+  // 同一片（或膠合組）的前後面用同一個口徑
+  const S = S0;
+  for (let i = 0; i < S.length; i++) {
+    if (S[i].n > 1 && (i === 0 || S[i - 1].n === 1)) {
+      let j = i; while (S[j].n > 1) j++;
+      const m = Math.max(...sd.slice(i, j + 1));
+      for (let k = i; k <= j; k++) sd[k] = m;
+    }
+  }
+  return { sd, stopOuter: stopMax + 2.5 };
+})();
+
+// ———————————————————— 鏡頭剖面 ————————————————————
+const lensCv = $('lens');
+let lensGeom = null;
+function drawLens() {
+  const zL = -158, zR = 20, Ym = 24.5, narrow = lensCv.clientWidth < 560;
+  const padTop = 18, padBot = narrow ? 128 : 112;
+  // 真實比例（水平、垂直同一個 mm→px），畫布高度跟著內容走
+  const want = Math.round(padTop + 2 * Ym * (lensCv.clientWidth - 12) / (zR - zL) + padBot);
+  if (Math.abs(lensCv.clientHeight - want) > 1) lensCv.style.height = want + 'px';
+  const { c, w, h } = fit(lensCv);
+  c.clearRect(0, 0, w, h);
+  const sc = Math.min((w - 12) / (zR - zL), (h - padTop - padBot) / (2 * Ym));
+  const ox = (w - (zR - zL) * sc) / 2, cy = padTop + Ym * sc;
+  const X = z => ox + (z - zL) * sc, Y = y => cy - y * sc;
+  const S = M.cfg.S;
+  lensGeom = { X, sc, zL, z1: M.cfg.z1, zEndG1: S[5].z, cy };
+
+  // 光軸
+  c.strokeStyle = 'rgba(239,230,217,.16)'; c.lineWidth = 1; c.setLineDash([2, 5]);
+  c.beginPath(); c.moveTo(X(zL), Y(0)); c.lineTo(X(zR), Y(0)); c.stroke(); c.setLineDash([]);
+
+  // 鏡筒內的兩個群組框（金屬鏡框）
+  const cell = (za, zb, r, label, sub, hot) => {
+    c.fillStyle = hot ? '#6a4a2c' : '#1d2f34';
+    for (const sgn of [1, -1]) {
+      const y0 = Y(sgn * (r + 1.2)), y1 = Y(sgn * (r + 3.4));
+      c.beginPath(); c.roundRect(X(za), Math.min(y0, y1), X(zb) - X(za), Math.abs(y1 - y0), 2); c.fill();
+    }
+    c.font = `600 ${clamp(sc * 3.1, 11, 14)}px ${getComputedStyle(document.body).getPropertyValue('--serif')}`;
+    c.fillStyle = hot ? COL.ivory : COL.muted; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+    c.fillText(label, (X(za) + X(zb)) / 2, Y(r + 4.6));
+    c.font = `${clamp(sc * 2.6, 10.5, 12.5)}px system-ui,sans-serif`; c.fillStyle = COL.faint; c.textBaseline = 'top';
+    c.fillText(sub, (X(za) + X(zb)) / 2, Y(-(r + 4.4)));
+  };
+  const g1a = S[0].z - 1.2, g1b = S[5].z + 2.2, g2a = S[6].z - 0.6, g2b = S[S.length - 1].z + 1.6;
+  const r1 = Math.max(...SD.sd.slice(0, 6)), r2 = Math.max(SD.stopOuter, ...SD.sd.slice(6));
+  cell(g1a, g1b, r1, '前群 G1', narrow ? '對焦組' : '負 · 對焦時移動', true);
+  cell(g2a, g2b, r2, '後群 G2', (narrow ? '' : '正 · ') + '光圈 f/' + M.N, false);
+
+  // 卡口與機身
+  c.fillStyle = '#16262b';
+  for (const sgn of [1, -1]) { const y0 = Y(sgn * 19.5), y1 = Y(sgn * Ym); c.fillRect(X(-18.5), Math.min(y0, y1), sc * 1.6, Math.abs(y1 - y0)); }
+
+  // 前群在對焦無限遠時的位置（虛線），和目前位置比較就看得出對焦組移了多少
+  const S0 = Optics.config(state.f0, Infinity).S;
+  if (M.cfg.d > 0.02) {
+    c.setLineDash([2, 3]); c.strokeStyle = 'rgba(232,183,102,.5)'; c.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      if (S0[i].n <= 1) continue;
+      const a = S0[i], b = S0[i + 1], r = SD.sd[i], steps = 22;
+      c.beginPath();
+      for (let k = 0; k <= steps; k++) { const y = -r + 2 * r * k / steps; const px = X(a.z + sag(a.R, y)), py = Y(y); k ? c.lineTo(px, py) : c.moveTo(px, py); }
+      for (let k = steps; k >= 0; k--) { const y = -r + 2 * r * k / steps; c.lineTo(X(b.z + sag(b.R, y)), Y(y)); }
+      c.closePath(); c.stroke();
+    }
+    c.setLineDash([]);
+  }
+
+  // 玻璃：每一層玻璃是前後兩個球面夾出來的區域
+  for (let i = 0; i < S.length - 1; i++) {
+    if (S[i].n <= 1) continue;
+    const a = S[i], b = S[i + 1], r = SD.sd[i], steps = 22;
+    c.beginPath();
+    for (let k = 0; k <= steps; k++) { const y = -r + 2 * r * k / steps; const px = X(a.z + sag(a.R, y)), py = Y(y); k ? c.lineTo(px, py) : c.moveTo(px, py); }
+    for (let k = steps; k >= 0; k--) { const y = -r + 2 * r * k / steps; c.lineTo(X(b.z + sag(b.R, y)), Y(y)); }
+    c.closePath();
+    const dense = a.n > 1.7;
+    c.fillStyle = dense ? 'rgba(170,196,190,.20)' : 'rgba(206,224,216,.12)';
+    c.fill();
+    c.strokeStyle = dense ? 'rgba(214,232,226,.62)' : 'rgba(226,238,232,.5)';
+    c.lineWidth = 1; c.stroke();
+  }
+
+  // 光圈葉片（剖面）
+  const st = S[Optics.stopIndex(S)];
+  c.fillStyle = '#0b0a09'; c.strokeStyle = 'rgba(239,230,217,.55)'; c.lineWidth = 1;
+  for (const sgn of [1, -1]) {
+    const yi = Y(sgn * M.rs), yo = Y(sgn * SD.stopOuter);
+    c.beginPath(); c.rect(X(st.z) - 1.4, Math.min(yi, yo), 2.8, Math.abs(yo - yi)); c.fill(); c.stroke();
+  }
+
+  // 感光元件
+  c.fillStyle = '#2a3f45'; c.fillRect(X(0), Y(12), sc * 1.3, sc * 24);
+  c.fillStyle = 'rgba(243,235,222,.75)'; c.fillRect(X(0), Y(12), 1.2, sc * 24);
+  c.fillStyle = COL.muted; c.textAlign = 'left'; c.textBaseline = 'middle';
+  c.save(); c.translate(X(0) + sc * 1.3 + 12, Y(0)); c.rotate(-Math.PI / 2); c.textAlign = 'center';
+  c.fillText('感光元件', 0, 0); c.restore();
+
+  // 主平面與焦點
+  const tick = (z, label, col) => {
+    if (z < zL || z > zR) return;
+    c.strokeStyle = col; c.lineWidth = 1; c.setLineDash([3, 3]);
+    c.beginPath(); c.moveTo(X(z), Y(4.5)); c.lineTo(X(z), Y(-4.5)); c.stroke(); c.setLineDash([]);
+    c.fillStyle = col; c.textAlign = 'center'; c.textBaseline = 'bottom';
+    c.fillText(label, X(z), Y(4.8));
+  };
+  tick(M.zH, 'H', 'rgba(239,230,217,.6)');
+  tick(M.zH2, 'H′', 'rgba(239,230,217,.6)');
+  if (Math.abs(M.zF2) * sc > 10) tick(M.zF2, 'F′', 'rgba(239,230,217,.45)');
+
+  // 光線：每個物體 7 條，從光圈上緣到下緣
+  c.globalCompositeOperation = 'lighter';
+  const bundles = [['far', COL.far], ['mid', COL.mid], ['fg', COL.fg]];
+  const hits = [];
+  for (const [key, col] of bundles) {
+    if (!state.show[key]) continue;
+    const Dz = OBJ[key].D, rays = Optics.fan(S, Dz, M.rs, 7);
+    let fz = null;
+    rays.forEach((r, idx) => {
+      const edge = idx === 0 || idx === 6;
+      c.strokeStyle = rgba(col, edge ? 0.9 : 0.5); c.lineWidth = edge ? 1.3 : 1;
+      const p0 = r.pts[0], slope = r.pts.length > 1 ? (r.pts[1][1] - p0[1]) / (r.pts[1][0] - p0[0] || 1) : 0;
+      const yl = p0[1] + slope * (zL - p0[0]);
+      c.beginPath(); c.moveTo(X(zL), Y(yl));
+      for (let k = 1; k < r.pts.length; k++) { const [z, y] = r.pts[k]; c.lineTo(X(z + sag(S[k - 1].R, y)), Y(y)); }
+      const ys = r.y + r.u * (0 - r.z);
+      c.lineTo(X(0), Y(ys)); c.stroke();
+      const cz = Optics.crossZ(r);
+      if (idx === 0) fz = cz;
+      if (cz > 0.05) { // 感光元件擋住之後，原本會匯聚的位置用虛線延伸
+        const ze = Math.min(cz, zR - 1);
+        c.setLineDash([2, 3]); c.strokeStyle = rgba(col, 0.38);
+        c.beginPath(); c.moveTo(X(0), Y(ys)); c.lineTo(X(ze), Y(r.y + r.u * (ze - r.z))); c.stroke(); c.setLineDash([]);
+      }
+    });
+    const bd = M.objs[key].traced;
+    hits.push({ key, col, bd });
+    if (fz !== null && fz > zL && fz < zR) {
+      c.fillStyle = rgba(col, 0.95); c.beginPath(); c.arc(X(fz), Y(0), 2.6, 0, 7); c.fill();
+    }
+  }
+  c.globalCompositeOperation = 'source-over';
+  // 感光元件上的光斑範圍
+  hits.forEach((hh, i) => {
+    const half = Math.max(hh.bd / 2, 0.08);
+    c.fillStyle = hh.col; c.fillRect(X(0) - 3 - i * 3.2, Y(half), 2.4, Math.max(1.5, 2 * half * sc));
+  });
+
+  // 尺寸線：f 從 H′ 到 F′，s′ 從 H′ 到感光元件
+  c.font = `${clamp(sc * 2.6, 10.5, 12.5)}px system-ui,sans-serif`;
+  const dim = (za, zb, yPix, label, col = COL.ink) => {
+    const xa = X(za), xb = X(zb);
+    c.strokeStyle = col === COL.ink ? 'rgba(239,230,217,.45)' : rgba(col, 0.7); c.lineWidth = 1;
+    c.beginPath(); c.moveTo(xa, yPix); c.lineTo(xb, yPix); c.moveTo(xa, yPix - 4); c.lineTo(xa, yPix + 4); c.moveTo(xb, yPix - 4); c.lineTo(xb, yPix + 4); c.stroke();
+    c.fillStyle = col; c.textBaseline = 'middle';
+    const tw = c.measureText(label).width;
+    if (xa - 8 - tw < 2) { c.textAlign = 'left'; c.fillText(label, xb + 8, yPix); }
+    else { c.textAlign = 'right'; c.fillText(label, xa - 8, yPix); }
+  };
+  const yb = Y(-Ym) + 18;
+  dim(M.cfg.z1, S0[0].z, yb, `前群位移 ${M.cfg.d.toFixed(2)} mm`, COL.mid);
+  dim(M.zH2, M.zF2, yb, `f ${M.f.toFixed(2)} mm`);
+  const ext = M.v - M.f;
+  dim(M.zH2, 0, yb + 20, `s′ ${M.v.toFixed(2)}` + (ext > 0.005 ? ` = f + ${ext.toFixed(2)}` : ' = f'));
+
+  // 放大看感光元件上的模糊圓
+  if (hits.length) {
+    const box = { x: X(zL) + 4, y: Y(-Ym) + (narrow ? 58 : 48) };
+    const maxBd = Math.max(COC, ...hits.map(q => q.bd));
+    const mag = [2000, 1000, 500, 200, 100, 50, 20, 10, 5].find(m => maxBd * m <= 40) || 5;
+    c.fillStyle = COL.faint; c.textAlign = 'left'; c.textBaseline = 'top';
+    c.fillText(`感光元件上的光斑 ×${mag}`, box.x, box.y);
+    let x = box.x + 2;
+    const cyy = box.y + 18 + 22;
+    hits.slice().reverse().forEach(q => {
+      const r = Math.max(q.bd * mag / 2, 0.8);
+      c.strokeStyle = rgba(COL.ivory, 0.35); c.setLineDash([2, 2]);
+      c.beginPath(); c.arc(x + 24, cyy, COC * mag / 2, 0, 7); c.stroke(); c.setLineDash([]);
+      c.fillStyle = rgba(q.col, 0.35); c.strokeStyle = q.col;
+      c.beginPath(); c.arc(x + 24, cyy, r, 0, 7); c.fill(); c.stroke();
+      x += 56;
+    });
+  }
+}
+
+// ———————————————————— 鏡頭環 ————————————————————
+function makeRing(el, o) {
+  const cv = el.querySelector('canvas');
+  let drag = null;
+  const draw = () => {
+    const { c, w, h } = fit(cv);
+    c.clearRect(0, 0, w, h);
+    const p = o.pos(o.get()), cx = w / 2;
+    const toX = pp => cx + (pp - p);
+    // 橡膠握把紋
+    const top = Math.round(Math.min(20, h * 0.34));
+    c.fillStyle = '#081215'; c.fillRect(0, 0, w, top);
+    c.fillStyle = '#1a2b30';
+    const pitch = 6, off = ((-p % pitch) + pitch) % pitch;
+    for (let x = off - pitch; x < w + pitch; x += pitch) c.fillRect(x, 3, 3, top - 6);
+    // 刻度
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    for (const t of o.ticks) {
+      const x = toX(o.pos(t.v));
+      if (x < -30 || x > w + 30) continue;
+      c.strokeStyle = t.major ? 'rgba(239,230,217,.75)' : 'rgba(239,230,217,.3)';
+      c.lineWidth = 1; c.beginPath(); c.moveTo(x, top + 2); c.lineTo(x, top + (t.major ? 9 : 6)); c.stroke();
+      if (t.label) { c.fillStyle = t.major ? COL.ink : COL.muted; c.font = `${t.major ? 600 : 400} 12.5px system-ui,sans-serif`; c.fillText(t.label, x, top + 13); }
+    }
+    if (o.extra) o.extra(c, toX, top, h);
+    // 固定的指示標
+    c.fillStyle = COL.cyan;
+    c.beginPath(); c.moveTo(cx - 5, 0); c.lineTo(cx + 5, 0); c.lineTo(cx, 7); c.closePath(); c.fill();
+    c.fillRect(cx - 0.75, 0, 1.5, top + 2);
+    // 兩端淡出
+    const gl = c.createLinearGradient(0, 0, w, 0);
+    gl.addColorStop(0, 'rgba(5,11,13,.95)'); gl.addColorStop(0.1, 'rgba(5,11,13,0)'); gl.addColorStop(0.9, 'rgba(5,11,13,0)'); gl.addColorStop(1, 'rgba(5,11,13,.95)');
+    c.fillStyle = gl; c.fillRect(0, 0, w, h);
+    el.setAttribute('aria-valuetext', o.text());
+  };
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    el.setPointerCapture(e.pointerId);
+    drag = { x: e.clientX, p: o.pos(o.get()) };
+    el.focus({ preventScroll: true });
+    if (o.start) o.start();
+  });
+  el.addEventListener('pointermove', e => {
+    if (!drag) return;
+    o.set(o.from(drag.p - (e.clientX - drag.x)));
+  });
+  const end = () => { drag = null; };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  el.addEventListener('keydown', e => {
+    const k = e.key;
+    const dir = (k === 'ArrowRight' || k === 'ArrowUp') ? 1 : (k === 'ArrowLeft' || k === 'ArrowDown') ? -1 : 0;
+    if (dir) { o.step(dir, e.shiftKey); e.preventDefault(); }
+    else if (k === 'PageUp' || k === 'PageDown') { o.step(k === 'PageUp' ? 1 : -1, true); e.preventDefault(); }
+    else if (k === 'Home' || k === 'End') { o.set(o.from(o.pos(k === 'Home' ? o.min : o.max))); e.preventDefault(); }
+  });
+  return { draw };
+}
+
+// 對焦環：刻度位置 ∝ 1/距離（鏡片位移大致和它成正比），近的在左、∞ 在右
+const UMAX = 1000 / DESIGN.minFocus, KF = 330;
+const focusTicks = [];
+[[0.6, '0.6'], [0.7, '0.7'], [0.8, '0.8'], [1, '1'], [1.2, '1.2'], [1.5, '1.5'], [2, '2'], [3, '3'], [5, '5'], [10, '10']].forEach(([m, l]) => focusTicks.push({ v: 1 / m, label: l, major: true }));
+[0.65, 0.75, 0.9, 1.1, 1.3, 1.7, 2.5, 4, 7, 20].forEach(m => focusTicks.push({ v: 1 / m }));
+focusTicks.push({ v: 0, label: '∞', major: true });
+const ringFocus = makeRing($('ringFocus'), {
+  get: () => state.u, min: UMAX, max: 0,
+  pos: u => (UMAX - u) * KF,
+  from: p => clamp(UMAX - p / KF, 0, UMAX),
+  set: u => { stopAnim(); state.u = u; update(); },
+  step: (d, big) => { stopAnim(); const p = (UMAX - state.u) * KF + d * (big ? 40 : 8); state.u = clamp(UMAX - p / KF, 0, UMAX); update(); },
+  ticks: focusTicks,
+  text: () => '對焦 ' + fmtD(M.D),
+  extra: (c, toX, top) => {
+    // 景深刻度：近界、遠界
+    const xs = [[M.nearD, '近'], [M.farD, '遠']];
+    c.strokeStyle = COL.ivory; c.fillStyle = COL.ivory; c.lineWidth = 2; c.lineCap = 'round';
+    for (const [d] of xs) {
+      const u = isFinite(d) ? 1000 / d : 0;
+      const x = toX((UMAX - clamp(u, 0, UMAX)) * KF);
+      c.beginPath(); c.moveTo(x, 2); c.lineTo(x, top - 2); c.stroke();
+    }
+    const xa = toX((UMAX - clamp(isFinite(M.nearD) ? 1000 / M.nearD : 0, 0, UMAX)) * KF), xb = toX((UMAX - clamp(isFinite(M.farD) ? 1000 / M.farD : 0, 0, UMAX)) * KF);
+    c.fillStyle = 'rgba(243,235,222,.13)'; c.fillRect(Math.min(xa, xb), 2, Math.abs(xb - xa), top - 4);
+    c.lineCap = 'butt';
+  }
+});
+const ringAp = makeRing($('ringAp'), {
+  get: () => state.ai, min: 0, max: APS.length - 1,
+  pos: i => i * 24,
+  from: p => clamp(Math.round(p / 24), 0, APS.length - 1),
+  set: i => { if (i !== state.ai) { state.ai = i; update(); } },
+  step: (d, big) => { state.ai = clamp(state.ai + d * (big ? 3 : 1), 0, APS.length - 1); update(); },
+  ticks: APS.map((n, i) => ({ v: i, label: FULL.includes(n) ? String(n) : '', major: FULL.includes(n) })),
+  text: () => 'f/' + APS[state.ai],
+  extra: (c, toX, top, h) => { // 光圈正面：七片葉片形成的開口
+    const N = APS[state.ai], R = 4 + 9 * (2.8 / N), x = 20, y = top + (h - top) / 2 - 2;
+    c.save(); c.globalAlpha = 0.95;
+    c.fillStyle = '#1a2b30'; c.beginPath(); c.arc(x, y, 14, 0, 7); c.fill();
+    c.fillStyle = '#cfeff3'; irisPath(c, x, y, R, N); c.fill();
+    c.restore();
+  }
+});
+const ZMIN = DESIGN.fMin, ZMAX = DESIGN.fMax, KZ = 360;
+const ringZoom = makeRing($('ringZoom'), {
+  get: () => state.f0, min: ZMIN, max: ZMAX,
+  pos: f => Math.log(f / ZMIN) * KZ,
+  from: p => clamp(Math.round(ZMIN * Math.exp(p / KZ) * 10) / 10, ZMIN, ZMAX),
+  set: f => { if (f !== state.f0) { state.f0 = f; update(); } },
+  step: (d, big) => { state.f0 = clamp(Math.round(state.f0) + d * (big ? 5 : 1), ZMIN, ZMAX); update(); },
+  ticks: [24, 28, 35, 50, 70].map(v => ({ v, label: String(v), major: true })).concat([30, 40, 45, 55, 60, 65].map(v => ({ v }))),
+  text: () => state.f0.toFixed(0) + ' mm'
+});
+
+// 七片葉片的開口：全開接近圓，縮光圈後變成七邊形
+function irisOpenness(N) { return clamp(Math.log2(N / 2.8) / 1.4, 0, 1); }
+function irisPath(c, x, y, R, N, rot = -Math.PI / 2) {
+  const t = irisOpenness(N) * 0.92, n = 7, seg = 2 * Math.PI / n;
+  c.beginPath();
+  for (let k = 0; k <= 70; k++) {
+    const a = k / 70 * 2 * Math.PI;
+    const local = ((a % seg) + seg) % seg - seg / 2;
+    const poly = Math.cos(seg / 2) / Math.cos(local);
+    const r = R * ((1 - t) + t * poly);
+    const px = x + r * Math.cos(a + rot), py = y + r * Math.sin(a + rot);
+    k ? c.lineTo(px, py) : c.moveTo(px, py);
+  }
+  c.closePath();
+}
+
+let anim = null;
+function stopAnim() { if (anim) { cancelAnimationFrame(anim.raf); anim = null; } }
+function focusTo(Dmm) {
+  const target = isFinite(Dmm) ? clamp(1000 / Math.max(Dmm, DESIGN.minFocus), 0, UMAX) : 0;
+  stopAnim();
+  if (REDUCED) { state.u = target; update(); return; }
+  const from = state.u, t0 = performance.now(), dur = 520;
+  const step = now => {
+    const t = clamp((now - t0) / dur, 0, 1), e = 1 - Math.pow(1 - t, 3);
+    state.u = from + (target - from) * e; update();
+    if (t < 1) anim.raf = requestAnimationFrame(step); else anim = null;
+  };
+  anim = { raf: requestAnimationFrame(step) };
+}
+
+// 直接拖動剖面圖裡的前群
+let g1drag = null;
+function overG1(e) {
+  if (!lensGeom) return false;
+  const r = lensCv.getBoundingClientRect(), x = e.clientX - r.left;
+  const S = M.cfg.S;
+  return x >= lensGeom.X(S[0].z - 3) && x <= lensGeom.X(S[5].z + 3);
+}
+lensCv.addEventListener('pointermove', e => {
+  if (g1drag) {
+    const dz = (e.clientX - g1drag.x) / lensGeom.sc;
+    const d = clamp(g1drag.d - dz, 0, 60);
+    const D = Optics.focusFromShift(state.f0, d);
+    state.u = isFinite(D) ? clamp(1000 / D, 0, UMAX) : 0; update();
+    return;
+  }
+  lensCv.classList.toggle('grab', overG1(e));
+});
+lensCv.addEventListener('pointerdown', e => {
+  if (!overG1(e)) return;
+  stopAnim();
+  g1drag = { x: e.clientX, d: M.cfg.d };
+  lensCv.setPointerCapture(e.pointerId); lensCv.classList.add('grabbing');
+  e.preventDefault();
+});
+const g1end = () => { g1drag = null; lensCv.classList.remove('grabbing'); };
+lensCv.addEventListener('pointerup', g1end); lensCv.addEventListener('pointercancel', g1end);
+lensCv.addEventListener('pointerleave', () => { if (!g1drag) lensCv.classList.remove('grab'); });
+
+// ———————————————————— 模糊圓—距離圖 ————————————————————
+const chartCv = $('chart');
+function drawChart() {
+  const { c, w, h } = fit(chartCv);
+  c.clearRect(0, 0, w, h);
+  const L = 62, R = w - 14, T = 12, B = h - 24;
+  const uMin = 0, uMax = 1000 / 500; // 0.5 m 到 ∞
+  const X = D => L + (R - L) * (1 - (isFinite(D) ? 1000 / D : 0) / uMax);
+  const bAt = D => M.blur(isFinite(D) ? D + M.zH : Infinity);
+  const peak = Math.max(bAt(Infinity), ...Object.values(M.objs).map(o => o.blur), COC * 4);
+  const ymax = clamp(peak * 1.15, 0.12, 3);
+  const Y = b => B - (B - T) * Math.min(b, ymax) / ymax;
+  // 景深範圍
+  const xn = X(Math.max(M.nearD, 500)), xf = X(M.farD);
+  c.fillStyle = 'rgba(243,235,222,.08)'; c.fillRect(xn, T, xf - xn, B - T);
+  // 格線與刻度
+  c.font = '11.5px system-ui,sans-serif'; c.fillStyle = COL.faint; c.textAlign = 'center'; c.textBaseline = 'top';
+  c.strokeStyle = 'rgba(239,230,217,.08)'; c.lineWidth = 1;
+  for (const m of (w < 520 ? [0.5, 0.7, 1, 2, 5, Infinity] : [0.5, 0.7, 1, 1.5, 2, 3, 5, 10, Infinity])) {
+    const x = X(m * 1000);
+    c.beginPath(); c.moveTo(x, T); c.lineTo(x, B); c.stroke();
+    c.fillText(isFinite(m) ? m + ' m' : '∞', x, B + 5);
+  }
+  c.textAlign = 'right'; c.textBaseline = 'middle';
+  const yt = ymax > 1 ? [0, 1, 2] : ymax > 0.4 ? [0, 0.2, 0.4, 0.6, 0.8].filter(q => q <= ymax) : [0, 0.05, 0.1, 0.2, 0.3].filter(q => q <= ymax);
+  for (const b of yt) { c.fillText(b >= 1 ? b + ' mm' : Math.round(b * 1000) + ' µm', L - 6, Y(b)); }
+  // 容許模糊圓
+  c.strokeStyle = 'rgba(243,235,222,.55)'; c.setLineDash([4, 4]);
+  c.beginPath(); c.moveTo(L, Y(COC)); c.lineTo(R, Y(COC)); c.stroke(); c.setLineDash([]);
+  // V 形曲線
+  c.strokeStyle = COL.ivory; c.lineWidth = 1.6; c.beginPath();
+  for (let i = 0; i <= 240; i++) {
+    const u = uMax * (1 - i / 240), D = u > 0 ? 1000 / u : Infinity, x = X(D), y = Y(bAt(D));
+    i ? c.lineTo(x, y) : c.moveTo(x, y);
+  }
+  c.stroke();
+  // 對焦點
+  const xs = X(M.D);
+  c.fillStyle = COL.ivory; c.beginPath(); c.moveTo(xs, B); c.lineTo(xs - 4, B + 5); c.lineTo(xs + 4, B + 5); c.fill();
+  // 物體
+  c.font = '600 11.5px system-ui,sans-serif'; c.textBaseline = 'bottom';
+  for (const key in OBJ) {
+    const o = OBJ[key], x = X(o.D), y = Y(M.objs[key].blur);
+    c.fillStyle = COL[key]; c.beginPath(); c.arc(x, y, 4, 0, 7); c.fill();
+  }
+  // 標籤放在 V 的谷底另一側，避免壓到曲線
+  const leftSide = xs > (L + R) / 2;
+  c.fillStyle = 'rgba(243,235,222,.75)'; c.textAlign = leftSide ? 'left' : 'right'; c.font = '11.5px system-ui,sans-serif';
+  c.fillText('容許模糊圓 30 µm', leftSide ? L + 4 : R - 4, Y(COC) - 3);
+}
+
+// ———————————————————— 讀數與驗算 ————————————————————
+function renderRead() {
+  const breath = Math.abs(M.f - state.f0) > 0.05;
+  const dof = isFinite(M.farD) ? fmtD(M.farD - M.nearD).replace(' m', ' m') : '∞';
+  $('read').innerHTML = [
+    ['有效焦距 f', `${M.f.toFixed(1)} mm${breath ? ` <small>標示 ${state.f0.toFixed(0)}</small>` : ''}`],
+    ['物距 s（從 H 起）', fmtD(M.s)],
+    ['像距 s′', `${M.v.toFixed(2)} mm`],
+    ['景深範圍', `${fmtD(M.nearD)} – ${fmtD(M.farD)}`],
+    ['景深總長', dof],
+    ['超焦距', fmtD(M.HD)]
+  ].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  $('outFocus').textContent = fmtD(M.D);
+  $('st-focus').textContent = fmtD(M.D); $('st-ap').textContent = 'f/' + M.N; $('st-f').textContent = state.f0.toFixed(0) + ' mm';
+  $('st-dof').textContent = isFinite(M.farD) ? fmtD(M.farD - M.nearD) : '∞';
+  const rel = key => {
+    const o = OBJ[key], b = M.objs[key].blur, diff = o.D - M.D;
+    if (b <= COC) return `<b class="${key}">${o.name}</b>在景深內，看起來清楚`;
+    const where = !isFinite(M.D) ? '比清晰平面近' : diff < 0 ? `在清晰平面前 ${fmtD(-diff)}` : `在清晰平面後 ${fmtD(diff)}`;
+    return `<b class="${key}">${o.name}</b>${where}，模糊圓 ${fmtBlur(b)}，是容許值的 ${Math.round(b / COC)} 倍`;
+  };
+  $('callout').innerHTML = `清晰平面在 <b>${fmtD(M.D)}</b>，${fmtD(M.nearD)}–${fmtD(M.farD)} 之間都算清楚。` + ['fg', 'mid', 'far'].map(rel).join('；') + '。';
+  $('outAp').textContent = 'f/' + M.N;
+  $('outZoom').textContent = state.f0.toFixed(0) + ' mm';
+  for (const key in OBJ) $('lg-' + key).textContent = `${fmtD(OBJ[key].D)} · ${M.objs[key].traced < 5e-4 ? '合焦' : '⌀ ' + fmtBlur(M.objs[key].traced)}`;
+}
+
+function tracedLimit(side) {
+  // 用追跡出來的模糊圓解「模糊 = 容許值」的距離（在 1/D 上二分）
+  const S = M.cfg.S, rs = M.rs, uS = isFinite(M.D) ? 1 / M.D : 0;
+  const g = u => Optics.tracedBlur(S, u > 0 ? 1 / u : Infinity, rs) - COC;
+  if (side === 'far') { if (uS === 0 || g(1e-12) < 0) return Infinity; return 1 / Optics.root(g, 1e-12, uS); }
+  const uHi = 1 / 150;
+  if (g(uHi) < 0) return 150;
+  return 1 / Optics.root(g, uS, uHi);
+}
+function renderCheck() {
+  const f = M.f, s = M.s, v = M.v;
+  const lhs = 1 / f, rhs = (isFinite(s) ? 1 / s : 0) + 1 / v;
+  const rows = [];
+  const tag = (ok, near) => ok ? '<span class="ok pass">相符</span>' : near ? '<span class="ok near">差一點</span>' : '<span class="ok fail">不符</span>';
+  const pct = (a, b) => (isFinite(a) && isFinite(b)) ? Math.abs(a - b) / Math.abs(b) * 100 : (a === b ? 0 : Infinity);
+  rows.push(['薄透鏡公式', '七片玻璃等效成一片：距離都從主平面 H、H′ 量', `1/f = 1/s + 1/s′ <em>→</em> 1/${f.toFixed(3)} 對 1/${isFinite(s) ? s.toFixed(1) : '∞'} + 1/${v.toFixed(3)}`, `${(lhs * 1000).toFixed(6)} 對 ${(rhs * 1000).toFixed(6)} <em>(×10⁻³ mm⁻¹)</em>`, tag(Math.abs(lhs - rhs) < 1e-9)]);
+  const mr = Optics.ray(M.cfg.S, M.D, 1, M.rs), cz = isFinite(Optics.crossZ(mr)) ? Optics.crossZ(mr) : 0;
+  rows.push(['光線真的匯聚在感光元件上', '從清晰平面上一點追出邊緣光線，看它在哪裡穿過光軸', `追跡交點 z <em>對</em> 感光元件 z = 0`, `差 ${Math.abs(cz * 1000).toExponential(1)} µm`, tag(Math.abs(cz) < 1e-6)]);
+  const ext = v - f, extF = isFinite(s) ? f * f / (s - f) : 0;
+  rows.push(['對焦延伸量', '牛頓式：清晰平面越近，像離焦點越遠', `s′ − f = f²/(s − f) <em>→</em> ${ext.toFixed(4)} 對 ${extF.toFixed(4)} mm`, `差 ${Math.abs(ext - extF).toExponential(1)} mm`, tag(Math.abs(ext - extF) < 1e-6)]);
+  const Hn = f * f / (M.N * COC) + f;
+  const nearT = tracedLimit('near'), farT = tracedLimit('far');
+  const pn = pct(nearT, M.nearD), pf = isFinite(M.farD) || isFinite(farT) ? pct(farT, M.farD) : 0;
+  rows.push(['景深公式', 'H = f²/(Nc) + f，近界 = s(H−f)/(H+s−2f)，遠界 = s(H−f)/(H−s)', `公式 ${fmtD(M.nearD)} – ${fmtD(M.farD)} <em>對</em> 追跡求解 ${fmtD(nearT)} – ${fmtD(farT)}`, `近界差 ${pn.toFixed(1)}%，遠界差 ${isFinite(pf) ? pf.toFixed(1) + '%' : '—'}`, tag(pn < 3 && (pf < 3 || !isFinite(pf)), pn < 8)]);
+  for (const key in OBJ) {
+    const o = M.objs[key], p = o.traced > 1e-6 ? pct(o.blur, o.traced) : 0;
+    rows.push([`模糊圓：${OBJ[key].name}`, `c = f²·|x − s| / (N·x·(s − f))，x = ${fmtD(o.x)}`, `公式 ${fmtBlur(o.blur)} <em>對</em> 追跡 ${fmtBlur(o.traced)}`, `差 ${p.toFixed(1)}%`, tag(p < 3 || Math.abs(o.blur - o.traced) < 0.002, p < 8)]);
+  }
+  const bk = Object.keys(OBJ).sort((a, b) => M.objs[b].blur - M.objs[a].blur)[0], ppm = LAB.photoPx / 36;
+  rows.push(['照片上的模糊', '模糊圓直徑換成畫面像素：36 mm 感光元件寬 = 畫面寬', `${OBJ[bk].name} ${fmtBlur(M.objs[bk].blur)} × ${ppm.toFixed(1)} px/mm`, `= ${(M.objs[bk].blur * ppm).toFixed(1)} px（照片寬 ${LAB.photoPx} px，逐像素圓盤取樣）`, '<span class="ok pass">套用</span>']);
+  $('rows').innerHTML = rows.map(r => `<div class="row"><div><h3>${r[0]}</h3><p>${r[1]}</p></div><div class="eq">${r[2]}</div><div class="res">${r[3]}</div>${r[4]}</div>`).join('') +
+    `<p style="color:var(--faint);font-size:12.5px;margin:12px 0 8px">公式和追跡之間的幾個百分點差距是真的，不是誤差：景深公式假設光束從主平面 H 那裡的圓孔進入，這支鏡頭的入射光瞳卻在另一個位置，所以越近的物體差越多。追跡的結果是這支鏡頭實際會拍到的。</p>`;
+}
+
+// ———————————————————— 更新 ————————————————————
+let raf = 0, dirty = false;
+function update() { dirty = true; if (!raf) raf = requestAnimationFrame(frame); }
+function frame() {
+  raf = 0; if (!dirty) return; dirty = false;
+  M = compute();
+  drawLens(); drawChart();
+  ringFocus.draw(); ringAp.draw(); ringZoom.draw();
+  renderRead();
+  if (LAB.on3d) LAB.on3d(M);
+  clearTimeout(frame.t); frame.t = setTimeout(renderCheck, 80);
+}
+for (const [id, k] of [['tgRays', 'rays'], ['tgDof', 'dof'], ['tgPeak', 'peak']]) $(id).addEventListener('change', e => { state[k] = e.target.checked; update(); });
+document.querySelectorAll('#legend button').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.k; state.show[k] = !state.show[k]; b.setAttribute('aria-pressed', String(state.show[k])); update();
+}));
+// 平滑地切到另一組設定（快照、點場景對焦都用這個）
+function animateTo(t) {
+  stopAnim();
+  if (t.ai !== undefined) state.ai = t.ai;
+  const u0 = state.u, u1 = t.u !== undefined ? t.u : u0, fa = state.f0, fb = t.f0 !== undefined ? t.f0 : fa;
+  if (REDUCED) { state.u = u1; state.f0 = fb; update(); return; }
+  const t0 = performance.now(), dur = 620;
+  const step = now => {
+    const k = clamp((now - t0) / dur, 0, 1), e = 1 - Math.pow(1 - k, 3);
+    state.u = u0 + (u1 - u0) * e;
+    state.f0 = Math.round(fa * Math.pow(fb / fa, e) * 10) / 10;
+    update();
+    if (k < 1) anim.raf = requestAnimationFrame(step); else anim = null;
+  };
+  anim = { raf: requestAnimationFrame(step) };
+}
+const LAB = window.LAB = {
+  state, OBJ, COL, APS, COC, UMAX, KF, ZMIN, ZMAX, KZ, SD, get M() { return M; },
+  compute, update, focusTo, animateTo, stopAnim, fmtD, fmtBlur, clamp, irisPath, photoPx: 720, on3d: null
+};
+new ResizeObserver(() => update()).observe(document.body);
+update();
+})();
+</script>
+<script type="module">
+const LAB = window.LAB;
+const $ = id => document.getElementById(id);
+let T = null;
+try { T = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); }
+catch (e) { try { T = await import('../vendor/three-0.186.0/three.module.js'); } catch (e2) { T = null; } }
+if (!T) {
+  $('boot').innerHTML = '<div><b>3D 實驗台載入失敗</b>需要網路連線到 cdn.jsdelivr.net 載入 Three.js。下方的精確剖面、控制環與驗算仍可使用。</div>';
+  document.querySelector('.photo-card').hidden = true;
+} else {
+  try { init3d(); } catch (err) { console.warn(err); $('boot').innerHTML = '<div><b>這個瀏覽器無法建立 WebGL</b>下方的精確剖面、控制環與驗算仍可使用。</div>'; }
+}
+
+function init3d() {
+const { COL, OBJ, clamp, fmtD, fmtBlur } = LAB;
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sag = (R, y) => (isFinite(R) ? Math.sign(R) * (Math.abs(R) - Math.sqrt(Math.max(0, R * R - y * y))) : 0);
+const wrap = $('glwrap'), canvas = $('gl');
+const small = () => wrap.clientWidth < 700;
+const renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small() ? 1.5 : 2));
+renderer.toneMapping = T.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = T.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = T.PCFShadowMap;
+renderer.localClippingEnabled = true;
+renderer.shadowMap.autoUpdate = false; // 只有東西移動時才重算陰影
+
+const scene = new T.Scene();
+scene.background = new T.Color(0x071013);
+const cam = new T.PerspectiveCamera(34, 1, 0.03, 60);
+
+// ——— 比例：鏡頭放大 3.6 倍（真實 mm → 展場 m），場景為 1:12 微縮 ———
+const SC = 0.0046, XS = -0.64, YA = 1.12, DIO = 16, X0 = 0.045;
+const YG = YA - 0.9 / DIO; // 場景地面：相機離地 0.9 m
+const xOfZ = z => XS - z * SC;
+const ex = (x, y, z) => new T.Vector3(X0 + x / DIO, YG + y / DIO, z / DIO); // 真實公尺 → 展場座標
+const CLIP = [new T.Plane(new T.Vector3(0, 0, -1), 0)]; // 剖開：切掉朝向觀眾的那一半
+
+// ——— 環境反射：一個有幾條燈管的暗房 ———
+{
+  const pm = new T.PMREMGenerator(renderer), es = new T.Scene();
+  es.add(new T.Mesh(new T.BoxGeometry(10, 6, 10), new T.MeshBasicMaterial({ color: 0x0c1619, side: T.BackSide })));
+  const strip = (w, h, c, x, y, z, rx, ry) => { const m = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ color: c, side: T.DoubleSide })); m.position.set(x, y, z); m.rotation.set(rx, ry, 0); es.add(m); };
+  strip(6, 0.35, new T.Color(4, 4, 3.6), 0, 2.9, 0, Math.PI / 2, 0);
+  strip(4, 0.25, new T.Color(0.6, 1.8, 2.0), -4.9, 1.8, 0, 0, Math.PI / 2);
+  strip(3, 1.2, new T.Color(1.8, 1.4, 1.0), 4.9, 1.4, 1, 0, -Math.PI / 2);
+  strip(5, 0.2, new T.Color(1.2, 1.6, 1.7), 0, 1.6, -4.9, 0, 0);
+  scene.environment = pm.fromScene(es, 0.03).texture;
+  scene.environmentIntensity = 0.55;
+  pm.dispose();
+}
+
+// ——— 材質 ———
+const std = (color, roughness = 0.6, metalness = 0, extra = {}) => new T.MeshStandardMaterial({ color, roughness, metalness, ...extra });
+const cstd = (color, roughness, metalness, extra = {}) => std(color, roughness, metalness, { clippingPlanes: CLIP, side: T.DoubleSide, ...extra });
+const M_BARREL = cstd(0x12181b, 0.42, 0.65), M_CUT = std(0x6f7c80, 0.3, 0.9, { side: T.DoubleSide });
+const M_COPPER = cstd(0xc27a3e, 0.3, 1), M_COPPER_CUT = std(0xe0a066, 0.25, 1, { side: T.DoubleSide });
+const M_RUBBER = cstd(0x0b0d0e, 0.85, 0.1);
+const M_GLASS = new T.MeshPhysicalMaterial({ color: 0xd9f6f8, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.2, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.8, side: T.DoubleSide, depthWrite: false, clippingPlanes: CLIP });
+const M_GCAP = new T.MeshBasicMaterial({ color: 0x86dde8, transparent: true, opacity: 0.17, depthWrite: false, side: T.DoubleSide, toneMapped: false });
+const M_GCAP2 = new T.MeshBasicMaterial({ color: 0x9fe6d8, transparent: true, opacity: 0.27, depthWrite: false, side: T.DoubleSide, toneMapped: false });
+const M_GEDGE = new T.LineBasicMaterial({ color: 0xc9f6fb, transparent: true, opacity: 0.85, toneMapped: false });
+const M_IRIS = cstd(0x0a0c0d, 0.5, 0.7);
+
+function shadowAll(o, cast = true, recv = true) { o.traverse(m => { if (m.isMesh) { m.castShadow = cast; m.receiveShadow = recv; } }); return o; }
+function both(o) { o.traverse(m => m.layers.enable(1)); return o; }
+function only1(o) { o.traverse(m => m.layers.set(1)); return o; }
+
+// ——— 實驗室 ———
+const room = new T.Group(); scene.add(room);
+{
+  const floor = new T.Mesh(new T.PlaneGeometry(16, 16), std(0x0a1113, 0.92));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; room.add(floor);
+  const wall = new T.Mesh(new T.PlaneGeometry(16, 5), std(0x0c171a, 0.9)); wall.position.set(0, 2.5, -1.3); wall.receiveShadow = true; room.add(wall);
+  for (let i = -6; i <= 6; i++) {
+    const p = new T.Mesh(new T.BoxGeometry(1.17, 2.6, 0.03), std(i % 2 ? 0x0f1d21 : 0x0e1a1e, 0.8, 0.1));
+    p.position.set(i * 1.2, 1.75, -1.27); p.receiveShadow = true; room.add(p);
+  }
+  const trim = new T.Mesh(new T.BoxGeometry(16, 0.012, 0.02), new T.MeshBasicMaterial({ color: new T.Color(0.25, 0.75, 0.82), toneMapped: false }));
+  trim.position.set(0, 3.07, -1.24); room.add(trim);
+  // 右側牆上的環形燈
+  for (let i = 0; i < 3; i++) {
+    const ring = new T.Mesh(new T.TorusGeometry(0.2, 0.012, 12, 64), new T.MeshBasicMaterial({ color: new T.Color(0.35, 1.1, 1.2), toneMapped: false }));
+    ring.position.set(1.75 + i * 0.52, 1.55, -1.24); room.add(ring);
+  }
+  // 工作台
+  const top = new T.Mesh(new T.BoxGeometry(2.9, 0.05, 0.86), std(0x141b1e, 0.5, 0.35)); top.position.set(0, 0.835, 0); room.add(top);
+  const apron = new T.Mesh(new T.BoxGeometry(2.9, 0.62, 0.03), std(0x0e1518, 0.7, 0.2)); apron.position.set(0, 0.5, 0.41); room.add(apron);
+  const lip = new T.Mesh(new T.BoxGeometry(2.9, 0.012, 0.012), std(0xc27a3e, 0.3, 1)); lip.position.set(0, 0.855, 0.431); room.add(lip);
+  for (const x of [-1.38, 1.38]) for (const z of [-0.38, 0.38]) { const l = new T.Mesh(new T.BoxGeometry(0.05, 0.81, 0.05), std(0x101719, 0.6, 0.4)); l.position.set(x, 0.405, z); room.add(l); }
+  // 光學滑軌與刻度
+  const tc = document.createElement('canvas'); tc.width = 2048; tc.height = 32;
+  const tx = tc.getContext('2d'); tx.fillStyle = '#20292c'; tx.fillRect(0, 0, 2048, 32); tx.fillStyle = '#9fb3b7';
+  for (let i = 0; i <= 250; i++) { const x = i / 250 * 2048; tx.fillRect(x, 0, 1.5, i % 10 ? 8 : 16); }
+  const tt = new T.CanvasTexture(tc); tt.colorSpace = T.SRGBColorSpace; tt.anisotropy = 4;
+  const rail = new T.Mesh(new T.BoxGeometry(2.5, 0.026, 0.07), [std(0x1a2225, 0.4, 0.7), std(0x1a2225, 0.4, 0.7), std(0x20292c, 0.5, 0.5, { map: tt }), std(0x1a2225, 0.4, 0.7), std(0x1a2225, 0.4, 0.7), std(0x1a2225, 0.4, 0.7)]);
+  rail.position.set(0, 0.873, 0); room.add(rail);
+  shadowAll(room, false, true);
+  [top, apron].forEach(m => { m.castShadow = true; });
+}
+const carriage = (x, w = 0.07) => {
+  const g = new T.Group();
+  const b = new T.Mesh(new T.BoxGeometry(w, 0.03, 0.11), std(0x1c2427, 0.45, 0.6)); b.position.y = 0.9; g.add(b);
+  const k = new T.Mesh(new T.CylinderGeometry(0.011, 0.011, 0.02, 20), std(0xc27a3e, 0.3, 1)); k.rotation.x = Math.PI / 2; k.position.set(0, 0.9, 0.065); g.add(k);
+  g.position.x = x; room.add(shadowAll(g)); return g;
+};
+
+// ——— 燈光（兩個相機都要看得到） ———
+const lights = [];
+{
+  const hemi = new T.HemisphereLight(0xa9d4de, 0x1a1512, 0.7); lights.push(hemi);
+  const key = new T.SpotLight(0xffe7cf, 11, 0, 0.7, 0.7, 1.2); key.position.set(-0.6, 2.9, 1.3); key.target.position.set(-0.45, 1.0, 0);
+  key.castShadow = true; key.shadow.mapSize.set(1024, 1024); key.shadow.bias = -0.0004; lights.push(key, key.target);
+  const dio = new T.SpotLight(0xfff3dc, 5, 0, 0.45, 0.6, 1.2); dio.position.set(0.7, 2.5, 0.9); dio.target.position.set(0.4, 1.05, 0);
+  const wash = new T.SpotLight(0x7fcfda, 5, 0, 0.9, 0.9, 1.4); wash.position.set(-0.2, 0.4, 0.6); wash.target.position.set(-0.2, 1.9, -1.25); lights.push(wash, wash.target);
+  dio.castShadow = true; dio.shadow.mapSize.set(1024, 1024); dio.shadow.bias = -0.0003; lights.push(dio, dio.target);
+  const rim = new T.DirectionalLight(0x6fd0dc, 0.5); rim.position.set(-2, 2.2, -2); lights.push(rim);
+  const sun = new T.DirectionalLight(0xfff0d8, 1.2); sun.position.set(6, 9, 4); sun.target.position.set(3, 1, 0); lights.push(sun, sun.target);
+  lights.forEach(l => { scene.add(l); l.layers.enable(1); });
+}
+
+// ——— 幾何小工具 ———
+function cutTube(r0, r1, xa, xb, mat, cap) { // 空心圓筒沿光軸，剖面補上切口
+  const g = new T.Group(), len = xb - xa;
+  const pts = [new T.Vector2(r0, 0), new T.Vector2(r1, 0), new T.Vector2(r1, len), new T.Vector2(r0, len), new T.Vector2(r0, 0)];
+  const geo = new T.LatheGeometry(pts, 72); geo.rotateZ(-Math.PI / 2);
+  const m = new T.Mesh(geo, mat); m.position.x = xa; g.add(m);
+  if (cap) for (const s of [1, -1]) { const c = new T.Mesh(new T.PlaneGeometry(len, r1 - r0), cap); c.position.set(xa + len / 2, s * (r0 + r1) / 2, 0.0003); g.add(c); }
+  return shadowAll(g);
+}
+function knurl(r, xa, xb, ridges, mat) {
+  const len = xb - xa, seg = ridges * 2;
+  const geo = new T.CylinderGeometry(r, r, len, seg, 1, true);
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) { const j = i % (seg + 1), k = j % 2 ? 0.955 : 1; p.setX(i, p.getX(i) * k); p.setZ(i, p.getZ(i) * k); }
+  geo.computeVertexNormals(); geo.rotateZ(-Math.PI / 2);
+  const m = new T.Mesh(geo, mat); m.position.x = (xa + xb) / 2;
+  const g = new T.Group(); g.add(m);
+  const inner = cutTube(r * 0.93, r * 0.955, xa, xb, M_RUBBER, M_CUT); g.add(inner);
+  return { group: shadowAll(g), spin: m };
+}
+
+// ——— 鏡頭 ———
+const lensG = new T.Group(); lensG.position.y = YA; scene.add(lensG);
+const S0 = Optics.place(0, 1000);
+const g1S = S0.filter(s => s.g === 1), g2S = S0.filter(s => s.g === 2);
+const SD = LAB.SD.sd;
+function glassGroup(surfs, offset) { // offset：這一組第一面在 S0 裡的索引
+  const g = new T.Group(), z0 = surfs[0].z;
+  for (let i = 0; i < surfs.length - 1; i++) {
+    const a = surfs[i], b = surfs[i + 1];
+    if (a.n <= 1) continue;
+    const r = SD[offset + i], steps = 24;
+    const front = [], back = [];
+    for (let k = 0; k <= steps; k++) { const y = r * k / steps; front.push([-(a.z - z0 + sag(a.R, y)) * SC, y * SC]); back.push([-(b.z - z0 + sag(b.R, y)) * SC, y * SC]); }
+    const prof = front.map(([x, y]) => new T.Vector2(y, x)).concat(back.slice().reverse().map(([x, y]) => new T.Vector2(y, x)));
+    const lg = new T.LatheGeometry(prof, 64); lg.rotateZ(-Math.PI / 2);
+    // Lathe 沿 +y 長出來，旋轉後 h → x；我們的 x 是負的（往感光元件方向），用 scale 翻回去
+    const lm = new T.Mesh(lg, M_GLASS); lm.renderOrder = 2; g.add(lm);
+    // 剖面
+    const shp = new T.Shape();
+    const full = [];
+    for (let k = -steps; k <= steps; k++) { const y = r * k / steps; full.push([-(a.z - z0 + sag(a.R, Math.abs(y))) * SC, y * SC]); }
+    for (let k = steps; k >= -steps; k--) { const y = r * k / steps; full.push([-(b.z - z0 + sag(b.R, Math.abs(y))) * SC, y * SC]); }
+    full.forEach(([x, y], k) => k ? shp.lineTo(x, y) : shp.moveTo(x, y));
+    const cap = new T.Mesh(new T.ShapeGeometry(shp), a.n > 1.7 ? M_GCAP2 : M_GCAP); cap.position.z = 0.0006; cap.renderOrder = 3; g.add(cap);
+    const edge = new T.LineLoop(new T.BufferGeometry().setFromPoints(full.map(([x, y]) => new T.Vector3(x, y, 0.0009))), M_GEDGE); edge.renderOrder = 4; g.add(edge);
+  }
+  return g;
+}
+// Lathe 的剖面點用 (半徑, 高)，而我們的高度 x 為負；LatheGeometry 需要 h 可以是負的，沒問題
+const G1 = new T.Group(), G2 = new T.Group(); lensG.add(G1, G2);
+G1.add(glassGroup(g1S, 0));
+G2.add(glassGroup(g2S, g1S.length));
+const lenG1 = (g1S[g1S.length - 1].z - g1S[0].z) * SC, lenG2 = (g2S[g2S.length - 1].z - g2S[0].z) * SC;
+const rG1 = Math.max(...SD.slice(0, g1S.length)) * SC, rG2 = Math.max(LAB.SD.stopOuter, ...SD.slice(g1S.length)) * SC;
+G1.add(cutTube(rG1 + 0.0015, rG1 + 0.0075, -lenG1 - 0.004, 0.004, M_COPPER, M_COPPER_CUT));
+G2.add(cutTube(rG2 + 0.0015, rG2 + 0.006, -lenG2 - 0.005, 0.002, cstd(0x1b2427, 0.4, 0.7), M_CUT));
+// 光圈葉片（每次 f 值改變重建）
+let irisMesh = null;
+function buildIris(rs, N) {
+  if (irisMesh) { G2.remove(irisMesh); irisMesh.geometry.dispose(); }
+  const shp = new T.Shape(); shp.absarc(0, 0, rG2 + 0.0015, 0, Math.PI * 2, false);
+  const hole = new T.Path(), n = 7, R = rs * SC;
+  const t = Math.min(1, Math.max(0, Math.log2(N / 2.8) / 1.4)) * 0.92;
+  for (let k = 0; k <= 56; k++) {
+    const a = k / 56 * Math.PI * 2, seg = Math.PI * 2 / n, loc = ((a % seg) + seg) % seg - seg / 2;
+    const r = R * ((1 - t) + t * Math.cos(seg / 2) / Math.cos(loc));
+    k ? hole.lineTo(r * Math.cos(a), r * Math.sin(a)) : hole.moveTo(r * Math.cos(a), r * Math.sin(a));
+  }
+  shp.holes.push(hole);
+  const geo = new T.ShapeGeometry(shp, 48); geo.rotateY(Math.PI / 2);
+  irisMesh = new T.Mesh(geo, M_IRIS); irisMesh.position.x = 0.0003; irisMesh.castShadow = true; G2.add(irisMesh);
+}
+// 固定鏡筒、對焦環、變焦環、卡口
+const zFront = -152, zMount = -18;
+const R_OUT = 26 * SC;
+lensG.add(cutTube(23.2 * SC, 25 * SC, xOfZ(zMount), xOfZ(zFront), M_BARREL, M_CUT));
+lensG.add(cutTube(22 * SC, 27.2 * SC, xOfZ(zFront + 4), xOfZ(zFront), M_COPPER, M_COPPER_CUT));
+lensG.add(cutTube(20 * SC, 28.5 * SC, xOfZ(zMount), xOfZ(zMount - 4), M_COPPER, M_COPPER_CUT));
+const focusRing = knurl(27.4 * SC, xOfZ(-110), xOfZ(-140), 60, M_RUBBER); lensG.add(focusRing.group);
+const zoomRing = knurl(26.8 * SC, xOfZ(-58), xOfZ(-84), 72, cstd(0x15191b, 0.7, 0.2)); lensG.add(zoomRing.group);
+// 支架
+for (const z of [-40, -125]) {
+  const x = xOfZ(z);
+  const post = new T.Mesh(new T.CylinderGeometry(0.008, 0.008, YA - 28.5 * SC - 0.9, 16), std(0x1c2427, 0.4, 0.7));
+  post.position.set(x, 0.9 + (YA - 28.5 * SC - 0.9) / 2, 0); room.add(shadowAll(post));
+  const clamp_ = new T.Mesh(new T.TorusGeometry(28.6 * SC, 0.004, 10, 48), cstd(0xc27a3e, 0.3, 1)); clamp_.rotation.y = Math.PI / 2; clamp_.position.x = x - (lensG.position.x || 0); lensG.add(clamp_);
+  carriage(x);
+}
+// 機身與感光元件
+{
+  const body = new T.Group(), bx0 = XS - 0.075, bx1 = xOfZ(zMount);
+  const M_BODY = cstd(0x1a2226, 0.45, 0.5);
+  const slab = (w, h, d, x, y, z) => { const m = new T.Mesh(new T.BoxGeometry(w, h, d), M_BODY); m.position.set(x, y, z); body.add(m); };
+  const H = 0.14, D = 0.13;
+  slab(bx1 - bx0, 0.012, 2 * D, (bx0 + bx1) / 2, H, 0);
+  slab(bx1 - bx0, 0.012, 2 * D, (bx0 + bx1) / 2, -H, 0);
+  slab(0.012, 2 * H, 2 * D, bx0, 0, 0);
+  slab(bx1 - bx0, 2 * H, 0.012, (bx0 + bx1) / 2, 0, -D);
+  const front = new T.Shape(); front.moveTo(-D, -H); front.lineTo(D, -H); front.lineTo(D, H); front.lineTo(-D, H); front.lineTo(-D, -H);
+  const hole = new T.Path(); hole.absarc(0, 0, 20 * SC, 0, Math.PI * 2, true); front.holes.push(hole);
+  const fg = new T.ShapeGeometry(front, 40); fg.rotateY(Math.PI / 2);
+  const fm = new T.Mesh(fg, M_BODY); fm.position.x = bx1 - 0.002; body.add(fm);
+  // 切口：上下兩塊與背板的剖面
+  const capM = std(0x55656a, 0.35, 0.8, { side: T.DoubleSide });
+  for (const [w, h, x, y] of [[bx1 - bx0, 0.012, (bx0 + bx1) / 2, H], [bx1 - bx0, 0.012, (bx0 + bx1) / 2, -H], [0.012, 2 * H, bx0, 0]]) { const c = new T.Mesh(new T.PlaneGeometry(w, h), capM); c.position.set(x, y, 0.0004); body.add(c); }
+  // 感光元件：36 × 24 mm
+  const sc_ = document.createElement('canvas'); sc_.width = 256; sc_.height = 176;
+  const sx = sc_.getContext('2d'); sx.fillStyle = '#2d2412'; sx.fillRect(0, 0, 256, 176);
+  for (let y = 0; y < 176; y += 4) for (let x = 0; x < 256; x += 4) { const c = ((x / 4) % 2) + ((y / 4) % 2); sx.fillStyle = c === 0 ? '#3b1d1d' : c === 1 ? '#1f3b24' : '#1d2640'; sx.fillRect(x, y, 3, 3); }
+  const st = new T.CanvasTexture(sc_); st.colorSpace = T.SRGBColorSpace;
+  const sideM = cstd(0x3a3120, 0.4, 0.6);
+  const sensor = new T.Mesh(new T.BoxGeometry(0.004, 24 * SC, 36 * SC), [cstd(0xffffff, 0.35, 0.3, { map: st, emissive: 0x2a2410, emissiveIntensity: 0.8 }), sideM, sideM, sideM, sideM, sideM]);
+  sensor.position.x = XS - 0.002; body.add(sensor);
+  const board = new T.Mesh(new T.BoxGeometry(0.006, 0.2, 0.2), cstd(0x0f3326, 0.6, 0.2)); board.position.x = XS - 0.012; body.add(board);
+  body.position.y = YA; scene.add(shadowAll(body));
+  carriage((bx0 + bx1) / 2, 0.12);
+}
+
+// ——— 螢幕：顯示感光元件拍到的畫面 ———
+const PW = small() ? 540 : 720, PH = Math.round(PW * 2 / 3);
+LAB.photoPx = PW;
+const rtA = new T.WebGLRenderTarget(Math.round(PW * 1.5), Math.round(PH * 1.5), { type: T.HalfFloatType, depthTexture: new T.DepthTexture(Math.round(PW * 1.5), Math.round(PH * 1.5)) });
+const rtB = new T.WebGLRenderTarget(PW, PH, { type: T.UnsignedByteType });
+rtB.texture.colorSpace = T.SRGBColorSpace;
+{
+  const mon = new T.Group();
+  const bez = new T.Mesh(new T.BoxGeometry(0.39, 0.27, 0.022), std(0x111719, 0.45, 0.5)); mon.add(bez);
+  const scr = new T.Mesh(new T.PlaneGeometry(0.36, 0.24), new T.MeshBasicMaterial({ map: rtB.texture, toneMapped: false })); scr.position.z = 0.0115; mon.add(scr);
+  const neck = new T.Mesh(new T.BoxGeometry(0.03, 0.14, 0.02), std(0x1c2427, 0.4, 0.7)); neck.position.set(0, -0.2, -0.02); mon.add(neck);
+  mon.position.set(-1.12, 1.18, 0.02); mon.rotation.y = 0.32;
+  scene.add(shadowAll(mon)); carriage(-1.12, 0.1);
+  const cable = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3([new T.Vector3(-1.09, 1.08, -0.04), new T.Vector3(-0.98, 0.92, -0.12), new T.Vector3(-0.84, 0.9, -0.14), new T.Vector3(XS - 0.07, 1.02, -0.09)]), 32, 0.004, 8), std(0x0d0f10, 0.7));
+  scene.add(cable);
+}
+
+// ——— 1:12 微縮場景（兩個相機都看得到） ———
+const dio = new T.Group(); scene.add(dio);
+const exOnly = new T.Group(); scene.add(exOnly);      // 只有展場看得到：玻璃箱、清晰平面
+const far = new T.Group(); scene.add(far);            // 只有鏡頭看得到：遠方地面、天空、遠山
+const LEN_REAL = 11.6, HALF_W = 2.9;
+const pick = [];
+{
+  const plinth = new T.Mesh(new T.BoxGeometry(LEN_REAL / DIO + 0.04, YG - 0.9, 2 * HALF_W / DIO + 0.04), std(0x1b1512, 0.6, 0.1));
+  plinth.position.set(X0 + (0.24 + LEN_REAL) / 2 / DIO, (YG + 0.9) / 2, 0); exOnly.add(shadowAll(plinth));
+  carriage(X0 + 0.16, 0.12); carriage(X0 + 0.56, 0.12);
+  // 地面：低多邊形草地，帶一點起伏
+  const gw = LEN_REAL - 0.24, gg = new T.PlaneGeometry(gw / DIO, 2 * HALF_W / DIO, 48, 20);
+  gg.rotateX(-Math.PI / 2);
+  const gp = gg.attributes.position, cols = [];
+  for (let i = 0; i < gp.count; i++) {
+    const x = gp.getX(i), z = gp.getZ(i), edge = Math.abs(z) > HALF_W / DIO - 0.002 || Math.abs(x) > gw / DIO / 2 - 0.002;
+    const n = Math.sin(x * 61) * Math.cos(z * 47) * 0.5 + Math.sin(x * 23 + z * 31) * 0.5;
+    const pathD = Math.abs(z - (0.35 + 0.4 * Math.sin((x + gw / DIO / 2) * 9)) / DIO);
+    gp.setY(i, edge ? 0 : n * 0.0016 * Math.min(1, pathD * 60));
+    const onPath = pathD < 0.55 / DIO;
+    const c = onPath ? new T.Color(0.36, 0.27, 0.17) : new T.Color(0.2 + n * 0.03, 0.4 + n * 0.05, 0.16);
+    cols.push(c.r, c.g, c.b);
+  }
+  gg.setAttribute('color', new T.Float32BufferAttribute(cols, 3)); gg.computeVertexNormals();
+  const ground = new T.Mesh(gg, std(0xffffff, 0.95, 0, { vertexColors: true, flatShading: true }));
+  ground.position.set(X0 + (0.24 + LEN_REAL) / 2 / DIO, YG, 0); ground.receiveShadow = true; dio.add(ground); pick.push(ground);
+  // 玻璃箱
+  const bw = gw / DIO + 0.02, bh = 0.4, bd = 2 * HALF_W / DIO + 0.02, bxC = ground.position.x;
+  const box = new T.Mesh(new T.BoxGeometry(bw, bh, bd), new T.MeshPhysicalMaterial({ color: 0xcfeff3, transparent: true, opacity: 0.06, roughness: 0.05, clearcoat: 1, depthWrite: false, side: T.DoubleSide }));
+  box.position.set(bxC, YG + bh / 2, 0); box.renderOrder = 5; exOnly.add(box);
+  const edges = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(bw, bh, bd)), new T.LineBasicMaterial({ color: 0x9fe3ea, transparent: true, opacity: 0.35 }));
+  edges.position.copy(box.position); exOnly.add(edges);
+  // 背景卡：畫著遠山與天空（展場用；鏡頭看的是遠方的真山）
+  const bc = document.createElement('canvas'); bc.width = 512; bc.height = 384;
+  const b = bc.getContext('2d'); const sky = b.createLinearGradient(0, 0, 0, 384); sky.addColorStop(0, '#4f8fc4'); sky.addColorStop(0.7, '#bcd9e6'); sky.addColorStop(1, '#d9e9ee');
+  b.fillStyle = sky; b.fillRect(0, 0, 512, 384);
+  const mtn = (pts, c) => { b.fillStyle = c; b.beginPath(); b.moveTo(0, 384); pts.forEach(([x, y]) => b.lineTo(x, y)); b.lineTo(512, 384); b.fill(); };
+  mtn([[0, 250], [90, 170], [170, 230], [260, 120], [360, 215], [440, 160], [512, 210]], '#8a9fb3');
+  mtn([[0, 300], [120, 230], [220, 290], [330, 220], [430, 280], [512, 250]], '#6c8a7b');
+  const bt = new T.CanvasTexture(bc); bt.colorSpace = T.SRGBColorSpace;
+  const card = new T.Mesh(new T.PlaneGeometry(bd - 0.01, bh - 0.01), new T.MeshBasicMaterial({ map: bt }));
+  card.rotation.y = -Math.PI / 2; card.position.set(bxC + bw / 2 - 0.004, YG + bh / 2, 0); exOnly.add(card);
+}
+// 低多邊形物件
+const FS = { flatShading: true };
+function pine(x, z, h, tone = 0) {
+  const g = new T.Group(), c1 = [0x2f6a3b, 0x3b7c45, 0x2a5e37][tone % 3];
+  const trunk = new T.Mesh(new T.CylinderGeometry(0.06 * h / 3, 0.09 * h / 3, h * 0.3, 6), std(0x5d402a, 0.9, 0, FS)); trunk.position.y = h * 0.15; g.add(trunk);
+  for (let i = 0; i < 3; i++) {
+    const r = h * (0.3 - i * 0.07), hh = h * (0.42 - i * 0.05);
+    const cone = new T.Mesh(new T.ConeGeometry(r, hh, 7), std(c1, 0.85, 0, FS)); cone.position.y = h * (0.3 + i * 0.22) + hh / 2 - 0.05 * h; cone.rotation.y = i * 0.7 + x; g.add(cone);
+  }
+  g.scale.setScalar(1 / DIO); g.position.copy(ex(x, 0, z)); return g;
+}
+function rock(x, z, s, c = 0x8a8c86) { const m = new T.Mesh(new T.IcosahedronGeometry(s, 0), std(c, 0.9, 0, FS)); m.scale.set(1.3 / DIO, 0.8 / DIO, 1 / DIO); m.position.copy(ex(x, s * 0.4, z)); m.rotation.set(x, z, 0); return m; }
+function bush(x, z, s) { const m = new T.Mesh(new T.IcosahedronGeometry(s, 0), std(0x4f8a3e, 0.9, 0, FS)); m.scale.setScalar(1 / DIO); m.position.copy(ex(x, s * 0.6, z)); return m; }
+// 前景：燈籠柱
+const lantern = new T.Group();
+{
+  const wood = std(0x3d2b1f, 0.8, 0, FS);
+  const post = new T.Mesh(new T.BoxGeometry(0.08, 0.84, 0.08), wood); post.position.y = 0.42; lantern.add(post);
+  const arm = new T.Mesh(new T.BoxGeometry(0.06, 0.05, 0.22), wood); arm.position.set(0, 0.8, 0.08); lantern.add(arm);
+  const lamp = new T.Mesh(new T.BoxGeometry(0.13, 0.18, 0.13), new T.MeshStandardMaterial({ color: 0xffd28a, emissive: 0xffb54d, emissiveIntensity: 1.8, roughness: 0.5 })); lamp.position.set(0, 0.95, 0.12); lantern.add(lamp);
+  const cap = new T.Mesh(new T.ConeGeometry(0.12, 0.09, 4), std(0x2a1d15, 0.7, 0.2, FS)); cap.position.set(0, 1.08, 0.12); cap.rotation.y = Math.PI / 4; lantern.add(cap);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const bar = new T.Mesh(new T.BoxGeometry(0.015, 0.2, 0.015), std(0x2a1d15, 0.6, 0.3)); bar.position.set(sx * 0.066, 0.95, 0.12 + sz * 0.066); lantern.add(bar); }
+  const pl = new T.PointLight(0xffb865, 0.02, 0.35, 1.6); pl.position.set(0, 0.95, 0.12); lantern.add(pl); lights.push(pl); pl.layers.enable(1);
+  lantern.scale.setScalar(1 / DIO); lantern.position.copy(ex(1.2, 0, -0.27));
+  dio.add(lantern);
+}
+// 主體：小木屋（正面在 3.0 m）
+const cabin = new T.Group();
+{
+  const W = 1.6, Dp = 1.5, Hh = 1.2;
+  const walls = new T.Mesh(new T.BoxGeometry(Dp, Hh, W), std(0x9b5e35, 0.8, 0, FS)); walls.position.set(Dp / 2, Hh / 2, 0); cabin.add(walls);
+  for (let i = 0; i < 5; i++) { const log = new T.Mesh(new T.BoxGeometry(0.03, 0.05, W + 0.04), std(0x6f4122, 0.9)); log.position.set(-0.012, 0.12 + i * 0.26, 0); cabin.add(log); }
+  const roofShape = new T.Shape(); roofShape.moveTo(-W / 2 - 0.2, 0); roofShape.lineTo(0, 0.8); roofShape.lineTo(W / 2 + 0.2, 0); roofShape.lineTo(-W / 2 - 0.2, 0);
+  const roof = new T.Mesh(new T.ExtrudeGeometry(roofShape, { depth: Dp + 0.3, bevelEnabled: false }), std(0x4d3326, 0.75, 0.05, FS));
+  roof.rotation.y = Math.PI / 2; roof.position.set(-0.15, Hh, 0); cabin.add(roof);
+  const winM = new T.MeshStandardMaterial({ color: 0xffdca0, emissive: 0xffae4a, emissiveIntensity: 1.8 });
+  for (const z of [-0.45, 0.45]) { const w = new T.Mesh(new T.BoxGeometry(0.03, 0.34, 0.34), winM); w.position.set(-0.01, 0.72, z); cabin.add(w); const fr = new T.Mesh(new T.BoxGeometry(0.035, 0.04, 0.38), std(0x3a2518, 0.8)); fr.position.set(-0.012, 0.72, z); cabin.add(fr); }
+  const door = new T.Mesh(new T.BoxGeometry(0.03, 0.82, 0.38), std(0x4a2d1b, 0.8)); door.position.set(-0.01, 0.41, 0); cabin.add(door);
+  const chim = new T.Mesh(new T.BoxGeometry(0.28, 0.7, 0.28), std(0x7a7470, 0.9, 0, FS)); chim.position.set(0.9, Hh + 0.5, 0.45); cabin.add(chim);
+  const pl = new T.PointLight(0xffa24a, 0.03, 0.4, 1.5); pl.position.set(-0.5, 0.9, 0); cabin.add(pl); pl.layers.enable(1); lights.push(pl);
+  cabin.scale.setScalar(1 / DIO); cabin.position.copy(ex(4.5, 0, 0.75));
+  dio.add(cabin);
+}
+// 背景：樹林（最前面那棵在 8.0 m）
+const forest = new T.Group();
+[[9.0, -0.7, 4.6, 0], [9.6, -1.6, 5.2, 1], [10.4, -0.1, 4.2, 2], [10.1, -2.4, 3.6, 0], [11.1, -1.2, 5.6, 1], [9.4, 1.8, 4.0, 2], [10.3, 2.4, 5.0, 0], [11.2, 1.0, 4.4, 1], [11.0, 2.6, 3.4, 2], [10.8, -2.7, 4.8, 1]].forEach(([x, z, h, t]) => forest.add(pine(x, z, h, t)));
+dio.add(forest);
+// 其他點綴：連續的深度線索
+[[1.9, -1.9, 2.2, 1], [4.6, -2.2, 2.8, 0], [5.6, 2.3, 3.0, 2], [6.6, -1.4, 2.4, 1], [2.4, 2.4, 1.8, 0]].forEach(([x, z, h, t]) => dio.add(pine(x, z, h, t)));
+[[1.6, 0.9, 0.22], [2.2, -1.0, 0.3], [4.2, 1.5, 0.26], [5.2, -0.6, 0.2], [7.1, 0.9, 0.34]].forEach(([x, z, s]) => dio.add(rock(x, z, s)));
+[[1.5, -1.1, 0.3], [3.9, -1.3, 0.35], [6.1, 0.4, 0.3], [7.4, -0.3, 0.4], [2.9, 1.9, 0.3]].forEach(([x, z, s]) => dio.add(bush(x, z, s)));
+for (let x = 1.8; x < 4.3; x += 0.6) { const p = new T.Mesh(new T.BoxGeometry(0.08, 0.8, 0.08), std(0x6b4b30, 0.9)); p.scale.setScalar(1 / DIO); p.position.copy(ex(x, 0.4, -1.5)); dio.add(p); }
+{ const railG = new T.Mesh(new T.BoxGeometry(2.5, 0.05, 0.05), std(0x6b4b30, 0.9)); railG.scale.setScalar(1 / DIO); railG.position.copy(ex(3.0, 0.62, -1.5)); dio.add(railG); }
+dio.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; pick.push(o); } });
+both(dio);
+// 鏡頭才看得到：遠方地面、樹線、遠山、天空
+{
+  const fg_ = new T.Mesh(new T.PlaneGeometry(60, 80), std(0x557a3c, 0.95)); fg_.rotation.x = -Math.PI / 2; fg_.position.set(X0 + LEN_REAL / DIO + 30, YG - 0.001, 0); far.add(fg_);
+  const skyM = new T.ShaderMaterial({
+    side: T.BackSide, depthWrite: true,
+    vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'varying vec3 vP; void main(){ float h = clamp(vP.y * 1.8 + 0.02, 0.0, 1.0); vec3 top = vec3(0.10, 0.30, 0.62), hor = vec3(0.62, 0.74, 0.80); gl_FragColor = vec4(mix(hor, top, pow(h, 0.65)) * 1.25, 1.0); }'
+  });
+  const sky = new T.Mesh(new T.SphereGeometry(45, 32, 16), skyM); sky.position.set(X0, YA, 0); far.add(sky);
+  const mtnM = [std(0x8397aa, 0.95, 0, FS), std(0x6f8594, 0.95, 0, FS)];
+  [[30, -14, 7, 5.5, 0], [33, -4, 9, 7, 1], [31, 6, 8, 6, 0], [35, 15, 10, 7.5, 1], [28, 20, 6, 4.5, 0], [34, -22, 9, 6, 1]].forEach(([x, z, r, h, t]) => {
+    const m = new T.Mesh(new T.ConeGeometry(r, h, 6), mtnM[t]); m.position.set(X0 + x, YG + h / 2 - 0.3, z); m.rotation.y = x; far.add(m);
+    const snow = new T.Mesh(new T.ConeGeometry(r * 0.28, h * 0.28, 6), std(0xeef3f5, 0.8, 0, FS)); snow.position.set(X0 + x, YG + h - 0.3 - h * 0.14 + 0.01, z); snow.rotation.y = x; far.add(snow);
+  });
+  for (let i = 0; i < 40; i++) { const x = 1.3 + (i % 8) * 0.18 + Math.sin(i) * 0.05, z = -2.2 + (i * 0.113 % 4.4); const p = pine(0, 0, 4 + (i % 5) * 0.7, i); p.position.set(X0 + x + 0.2, YG, z * 1.5); far.add(p); }
+  only1(far);
+}
+
+// ——— 清晰平面與景深範圍（只在展場顯示） ———
+const planeW = 2 * HALF_W / DIO, planeH = 0.3;
+const focusPlane = new T.Group();
+{
+  const glass = new T.Mesh(new T.PlaneGeometry(planeW, planeH), new T.MeshBasicMaterial({ color: 0x7fe6f2, transparent: true, opacity: 0.16, side: T.DoubleSide, depthWrite: false, toneMapped: false }));
+  glass.rotation.y = Math.PI / 2; glass.position.y = planeH / 2; focusPlane.add(glass);
+  const e = new T.LineSegments(new T.EdgesGeometry(new T.PlaneGeometry(planeW, planeH)), new T.LineBasicMaterial({ color: new T.Color(0.5, 1.6, 1.8), toneMapped: false }));
+  e.rotation.y = Math.PI / 2; e.position.y = planeH / 2; focusPlane.add(e);
+  const foot = new T.Mesh(new T.BoxGeometry(0.003, 0.002, planeW), new T.MeshBasicMaterial({ color: new T.Color(0.6, 2.0, 2.2), toneMapped: false })); foot.position.y = 0.001; focusPlane.add(foot);
+  focusPlane.position.y = YG; focusPlane.renderOrder = 6; exOnly.add(focusPlane);
+}
+const dofVol = new T.Mesh(new T.BoxGeometry(1, planeH * 0.02, planeW), new T.MeshBasicMaterial({ color: 0x63d6e3, transparent: true, opacity: 0.22, depthWrite: false, toneMapped: false }));
+dofVol.position.y = YG + 0.003; exOnly.add(dofVol);
+const dofEdge = [0, 1].map(() => { const m = new T.Mesh(new T.BoxGeometry(0.002, 0.003, planeW), new T.MeshBasicMaterial({ color: new T.Color(0.4, 1.2, 1.3), toneMapped: false })); m.position.y = YG + 0.002; exOnly.add(m); return m; });
+
+// ——— 光線：剖面上的帶狀光線、從場景射來的細線、流動的光點 ———
+const rayG = new T.Group(); scene.add(rayG);
+const RCOL = { fg: new T.Color(COL.fg), mid: new T.Color(COL.mid), far: new T.Color(COL.far) };
+const ANCHOR = { fg: [1.2, 0.95, -0.15], mid: [4.5, 0.72, 0.75], far: [9.0, 2.3, -0.7] }; // 真實公尺：燈籠、窗、樹梢
+const ribbonMat = (c, o) => new T.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false });
+const RAYM = {}; for (const k in RCOL) RAYM[k] = { core: ribbonMat(RCOL[k].clone().multiplyScalar(1.6), 0.9), glow: ribbonMat(RCOL[k], 0.16), dash: ribbonMat(RCOL[k], 0.35), line: new T.LineBasicMaterial({ color: RCOL[k], transparent: true, opacity: 0.28, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false }) };
+function ribbon(paths, w, z) {
+  const pos = [], idx = []; let v = 0;
+  for (const p of paths) for (let i = 0; i < p.length - 1; i++) {
+    const [x0, y0] = p[i], [x1, y1] = p[i + 1], dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1, nx = -dy / L * w / 2, ny = dx / L * w / 2;
+    pos.push(x0 + nx, y0 + ny, z, x0 - nx, y0 - ny, z, x1 + nx, y1 + ny, z, x1 - nx, y1 - ny, z);
+    idx.push(v, v + 1, v + 2, v + 1, v + 3, v + 2); v += 4;
+  }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); return g;
+}
+let particles = null, partPaths = [];
+{
+  const N = 7 * 6 * 3, g = new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(new Float32Array(N * 3), 3));
+  g.setAttribute('color', new T.Float32BufferAttribute(new Float32Array(N * 3), 3));
+  const dc = document.createElement('canvas'); dc.width = dc.height = 32; const d = dc.getContext('2d'); const rg = d.createRadialGradient(16, 16, 0, 16, 16, 16); rg.addColorStop(0, 'rgba(255,255,255,1)'); rg.addColorStop(0.35, 'rgba(255,255,255,.55)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); d.fillStyle = rg; d.fillRect(0, 0, 32, 32);
+  particles = new T.Points(g, new T.PointsMaterial({ size: 7, sizeAttenuation: false, map: new T.CanvasTexture(dc), vertexColors: true, transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  particles.frustumCulled = false; scene.add(particles);
+}
+function buildRays(M) {
+  rayG.children.forEach(c => c.geometry.dispose()); rayG.clear(); partPaths = [];
+  if (!LAB.state.rays) return;
+  const S = M.cfg.S, Z = 0.0012;
+  for (const key of ['far', 'mid', 'fg']) {
+    if (!LAB.state.show[key]) continue;
+    const rays = Optics.fan(S, OBJ[key].D, M.rs, 7), inside = [], dash = [], lines = [];
+    const a = ANCHOR[key], src = ex(a[0], a[1], a[2]);
+    rays.forEach((r, idx) => {
+      const pts = [];
+      for (let k = 1; k < r.pts.length; k++) { const [z, y] = r.pts[k]; pts.push([xOfZ(z + sag(S[k - 1].R, y)), YA + y * SC]); }
+      const ys = r.y + r.u * (0 - r.z); pts.push([xOfZ(0), YA + ys * SC]);
+      inside.push(pts);
+      const cz = Optics.crossZ(r);
+      if (cz > 0.05) { const ze = Math.min(cz, 40); dash.push([[xOfZ(0), YA + ys * SC], [xOfZ(ze), YA + (r.y + r.u * (ze - r.z)) * SC]]); }
+      lines.push(src.x, src.y, src.z, pts[0][0], pts[0][1], Z);
+      // 光點路徑：場景 → 第一面 → 各面 → 感光元件
+      const path = [src.clone()].concat(pts.map(([x, y]) => new T.Vector3(x, y, Z)));
+      const cum = [0]; for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + path[i].distanceTo(path[i - 1]));
+      partPaths.push({ path, cum, key, idx });
+    });
+    const mk = (geo, m) => { const o = new T.Mesh(geo, m); o.renderOrder = 8; o.frustumCulled = false; rayG.add(o); };
+    mk(ribbon(inside, 0.0011, Z), RAYM[key].core);
+    mk(ribbon(inside, 0.005, Z - 0.0002), RAYM[key].glow);
+    if (dash.length) mk(ribbon(dash, 0.0008, Z), RAYM[key].dash);
+    const lg = new T.BufferGeometry(); lg.setAttribute('position', new T.Float32BufferAttribute(lines, 3));
+    const ls = new T.LineSegments(lg, RAYM[key].line); ls.renderOrder = 7; rayG.add(ls);
+  }
+}
+function moveParticles(t) {
+  const g = particles.geometry, P = g.attributes.position.array, C = g.attributes.color.array;
+  let n = 0;
+  const per = 6, N = P.length / 3;
+  for (const pp of partPaths) {
+    const total = pp.cum[pp.cum.length - 1], c = RCOL[pp.key];
+    for (let j = 0; j < per && n < N; j++, n++) {
+      const ph = ((t * 0.00022 + j / per + pp.idx * 0.137) % 1 + 1) % 1, d = ph * total;
+      let i = 1; while (i < pp.cum.length - 1 && pp.cum[i] < d) i++;
+      const a = pp.path[i - 1], b = pp.path[i], f = (d - pp.cum[i - 1]) / Math.max(1e-9, pp.cum[i] - pp.cum[i - 1]);
+      P[n * 3] = a.x + (b.x - a.x) * f; P[n * 3 + 1] = a.y + (b.y - a.y) * f; P[n * 3 + 2] = a.z + (b.z - a.z) * f;
+      C[n * 3] = c.r; C[n * 3 + 1] = c.g; C[n * 3 + 2] = c.b;
+    }
+  }
+  for (; n < N; n++) { P[n * 3] = 0; P[n * 3 + 1] = -10; P[n * 3 + 2] = 0; }
+  g.attributes.position.needsUpdate = true; g.attributes.color.needsUpdate = true;
+}
+
+// ——— 牆上的三張說明卡：每一束光匯聚在感光元件的哪裡 ———
+const posters = {};
+{
+  const keys = ['fg', 'mid', 'far'];
+  keys.forEach((key, i) => {
+    const c = document.createElement('canvas'); c.width = 640; c.height = 400;
+    const tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 4;
+    const g = new T.Group();
+    const frame = new T.Mesh(new T.BoxGeometry(0.56, 0.365, 0.02), std(0x0c1417, 0.5, 0.4)); g.add(frame);
+    const glow = new T.Mesh(new T.PlaneGeometry(0.548, 0.353), new T.MeshBasicMaterial({ color: new T.Color(0.25, 0.8, 0.9), toneMapped: false })); glow.position.z = 0.0102; g.add(glow);
+    const face = new T.Mesh(new T.PlaneGeometry(0.536, 0.34), new T.MeshBasicMaterial({ map: tex, toneMapped: false })); face.position.z = 0.0105; g.add(face);
+    g.position.set(-0.2 + (i - 1) * 0.58, 1.72, -1.24); scene.add(g);
+    posters[key] = { c, tex };
+  });
+}
+const ICON = document.createElement('canvas'); ICON.width = ICON.height = 200;
+function drawIcon(key) {
+  const x = ICON.getContext('2d'); x.clearRect(0, 0, 200, 200);
+  if (key === 'fg') {
+    x.fillStyle = '#6b4a33'; x.fillRect(94, 70, 12, 120);
+    x.fillStyle = '#ffcf7a'; x.fillRect(74, 44, 52, 62); x.fillStyle = '#3a281c'; x.beginPath(); x.moveTo(64, 46); x.lineTo(100, 20); x.lineTo(136, 46); x.fill();
+  } else if (key === 'mid') {
+    x.fillStyle = '#b06a3b'; x.fillRect(40, 92, 120, 86); x.fillStyle = '#5a3a2a'; x.beginPath(); x.moveTo(28, 96); x.lineTo(100, 36); x.lineTo(172, 96); x.fill();
+    x.fillStyle = '#ffd08a'; x.fillRect(56, 112, 26, 26); x.fillRect(118, 112, 26, 26); x.fillStyle = '#4a2d1b'; x.fillRect(88, 128, 24, 50);
+  } else {
+    x.fillStyle = '#5d402a'; x.fillRect(93, 150, 14, 36);
+    x.fillStyle = '#3d8a4a'; for (let i = 0; i < 3; i++) { x.beginPath(); x.moveTo(100, 20 + i * 38); x.lineTo(40 + i * 6, 110 + i * 26); x.lineTo(160 - i * 6, 110 + i * 26); x.fill(); }
+  }
+}
+function drawPoster(key, M) {
+  const { c, tex } = posters[key], x = c.getContext('2d'), W = 640, H = 400;
+  const o = OBJ[key], info = M.objs[key], col = COL[key];
+  x.fillStyle = '#081418'; x.fillRect(0, 0, W, H);
+  const r = Optics.ray(M.cfg.S, o.D, 1, M.rs), cz = Optics.crossZ(r);
+  const sharp = info.blur <= LAB.COC;
+  x.font = '700 30px system-ui,sans-serif'; x.fillStyle = col; x.textBaseline = 'top'; x.fillText(o.name, 26, 22);
+  const nw = x.measureText(o.name).width;
+  x.font = '500 22px system-ui,sans-serif'; x.fillStyle = '#93aaae'; x.fillText(fmtD(o.D), 26 + nw + 14, 29);
+  // 物體圖示：依模糊圓模糊
+  drawIcon(key);
+  const bpx = Math.min(16, info.blur * 22);
+  x.save(); if (bpx > 0.3) x.filter = `blur(${bpx.toFixed(1)}px)`; x.drawImage(ICON, 20, 110, 170, 170); x.restore();
+  // 小透鏡與光束
+  const lx = 300, cy = 196, sx = 540, k = 34;
+  const px = sx + clamp(isFinite(cz) ? cz * k : 0, -150, 90);
+  x.strokeStyle = '#63d6e3'; x.lineWidth = 3; x.beginPath(); x.ellipse(lx, cy, 12, 78, 0, 0, 7); x.stroke();
+  x.strokeStyle = 'rgba(200,236,240,.55)'; x.lineWidth = 3; x.beginPath(); x.moveTo(sx, cy - 88); x.lineTo(sx, cy + 88); x.stroke();
+  x.fillStyle = '#93aaae'; x.font = '18px system-ui,sans-serif'; x.textAlign = 'center'; x.fillText('感光元件', sx, cy + 96);
+  x.strokeStyle = col; x.lineWidth = 2.5;
+  for (const s of [-1, 1]) {
+    x.globalAlpha = 0.9; x.beginPath(); x.moveTo(190, cy + s * 20); x.lineTo(lx, cy + s * 66); x.stroke();
+    const yAtS = cy + s * 66 * (1 - (sx - lx) / (px - lx));
+    if (px <= sx) { x.beginPath(); x.moveTo(lx, cy + s * 66); x.lineTo(px, cy); x.lineTo(sx, yAtS); x.stroke(); }
+    else { x.beginPath(); x.moveTo(lx, cy + s * 66); x.lineTo(sx, yAtS); x.stroke(); x.setLineDash([6, 6]); x.globalAlpha = 0.45; x.beginPath(); x.moveTo(sx, yAtS); x.lineTo(px, cy); x.stroke(); x.setLineDash([]); }
+  }
+  x.globalAlpha = 1; x.fillStyle = col; x.beginPath(); x.arc(px, cy, 6, 0, 7); x.fill();
+  const spot = Math.max(3, Math.abs(66 * (1 - (sx - lx) / (px - lx))));
+  x.fillRect(sx - 4, cy - Math.min(spot, 88), 8, Math.min(spot, 88) * 2);
+  x.textAlign = 'left'; x.font = '600 22px system-ui,sans-serif'; x.fillStyle = '#e6f1f2';
+  const where = sharp ? '匯聚在感光元件上，清楚' : cz > 0 ? `匯聚在感光元件後 ${cz.toFixed(2)} mm` : `匯聚在感光元件前 ${(-cz).toFixed(2)} mm`;
+  x.fillText(where, 26, 318);
+  x.font = '20px system-ui,sans-serif'; x.fillStyle = '#93aaae';
+  x.fillText(sharp ? `模糊圓 ${fmtBlur(info.blur)}，小於容許的 30 µm` : `模糊圓 ${fmtBlur(info.blur)}，是容許值的 ${Math.round(info.blur / LAB.COC)} 倍`, 26, 352);
+  x.textAlign = 'right'; x.font = '16px system-ui,sans-serif'; x.fillStyle = '#5f777c'; x.fillText('前後距離放大 34 倍', W - 22, 352);
+  x.textAlign = 'left';
+  tex.needsUpdate = true;
+}
+
+// ——— 鏡頭看出去：渲染照片，再依景深公式逐像素模糊 ———
+const lensCam = new T.PerspectiveCamera(30, 1.5, 0.015, 90);
+lensCam.layers.set(1);
+const postScene = new T.Scene(), postCam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const U = {
+  tColor: { value: rtA.texture }, tDepth: { value: rtA.depthTexture }, cNear: { value: lensCam.near }, cFar: { value: lensCam.far },
+  kPx: { value: 1 }, invS: { value: 0 }, toMm: { value: DIO * 1000 }, texel: { value: new T.Vector2(1 / PW, 1 / PH) }, maxR: { value: 20 },
+  peak: { value: 0 }, cocPx: { value: 0.3 }, expo: { value: 0.82 }
+};
+postScene.add(new T.Mesh(new T.PlaneGeometry(2, 2), new T.ShaderMaterial({
+  uniforms: U, depthTest: false, depthWrite: false,
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+  fragmentShader: `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D tColor, tDepth; uniform float cNear, cFar, kPx, invS, toMm, maxR, peak, cocPx, expo; uniform vec2 texel;
+    float depthAt(vec2 uv){ float d = texture2D(tDepth, uv).x; return (cNear * cFar) / ((cFar - cNear) * d - cFar) * -1.0; }
+    // 模糊圓半徑（照片像素）：c = K·|1/x − 1/s|，x 為真實距離（mm）
+    float rad(float depth){ float x = max(depth * toMm, 1.0); return kPx * abs(1.0 / x - invS); }
+    vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+    vec3 toSRGB(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+    void main(){
+      float cD = depthAt(vUv), cR = rad(cD);
+      vec3 col = texture2D(tColor, vUv).rgb; float tot = 1.0;
+      float r = 0.8;
+      for (int i = 0; i < 700; i++) {
+        if (r >= maxR) break;
+        float a = float(i) * 2.39996323;
+        vec2 tc = vUv + vec2(cos(a), sin(a)) * texel * r;
+        vec3 sc = texture2D(tColor, tc).rgb; float sd = depthAt(tc), sR = rad(sd);
+        if (sd > cD) sR = clamp(sR, 0.0, cR * 2.0);
+        float m = smoothstep(r - 0.5, r + 0.5, sR);
+        col += mix(col / tot, sc, m); tot += 1.0;
+        r += 0.8 / r;
+      }
+      col /= tot;
+      vec3 o = toSRGB(aces(col * expo));
+      if (peak > 0.5 && cR <= cocPx) {
+        float l0 = dot(texture2D(tColor, vUv).rgb, vec3(0.3, 0.59, 0.11));
+        float l1 = dot(texture2D(tColor, vUv + vec2(texel.x, 0.0)).rgb, vec3(0.3, 0.59, 0.11));
+        float l2 = dot(texture2D(tColor, vUv + vec2(0.0, texel.y)).rgb, vec3(0.3, 0.59, 0.11));
+        float e = smoothstep(0.03, 0.12, abs(l0 - l1) + abs(l0 - l2));
+        o = mix(o, vec3(0.35, 0.95, 1.0), e * 0.85);
+      }
+      gl_FragColor = vec4(o, 1.0);
+    }`
+})));
+window.__U = U; window.__rp = () => renderPhoto(LAB.M);
+const photo = $('photo'), pctx = photo.getContext('2d');
+photo.width = PW; photo.height = PH;
+const pix = new Uint8Array(PW * PH * 4), img = pctx.createImageData(PW, PH);
+function renderPhoto(M, target = pctx) {
+  const v = M.v;
+  lensCam.fov = 2 * Math.atan(12 / v) * 180 / Math.PI; lensCam.aspect = 1.5; lensCam.updateProjectionMatrix();
+  lensCam.position.set(X0 + (-M.zH) / 1000 / DIO, YA, 0); lensCam.lookAt(lensCam.position.x + 1, YA, 0);
+  renderer.setRenderTarget(rtA); renderer.render(scene, lensCam);
+  U.kPx.value = M.K * (PW / 36) / 2;
+  U.invS.value = isFinite(M.s) ? 1 / M.s : 0;
+  const xNear = 700; // 場景裡最近的東西大約 0.7 m
+  U.maxR.value = Math.min(30, U.kPx.value * Math.max(U.invS.value, 1 / xNear - U.invS.value) + 1);
+  U.peak.value = LAB.state.peak ? 1 : 0;
+  U.cocPx.value = LAB.COC * (PW / 36) / 2;
+  renderer.setRenderTarget(rtB); renderer.render(postScene, postCam);
+  renderer.readRenderTargetPixels(rtB, 0, 0, PW, PH, pix);
+  renderer.setRenderTarget(null);
+  // WebGL 的列從下往上，翻過來
+  const row = PW * 4;
+  for (let y = 0; y < PH; y++) img.data.set(pix.subarray((PH - 1 - y) * row, (PH - y) * row), y * row);
+  target.putImageData(img, 0, 0);
+}
+
+// ——— HTML 標籤 ———
+const tagBox = $('tags');
+const tags = {};
+function tag(id, cls) { const d = document.createElement('div'); d.className = 'tag ' + (cls || ''); tagBox.appendChild(d); tags[id] = { el: d, pos: new T.Vector3(), html: '' }; return tags[id]; }
+['fp', 'near', 'far_', 'g1', 'stop', 'sensor', 'mon', 'fg', 'mid', 'far'].forEach(k => tag(k, { fp: 'fp', fg: 'fg', mid: 'mid', far: 'far' }[k]));
+tags.near.shift = '-100%'; tags.far_.shift = '0%';
+const tmpV = new T.Vector3();
+function placeTags() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  for (const k in tags) {
+    const t = tags[k];
+    if (!t.html) { t.el.hidden = true; continue; }
+    tmpV.copy(t.pos).project(cam);
+    const vis = tmpV.z < 1 && Math.abs(tmpV.x) < 1.05 && Math.abs(tmpV.y) < 1.05;
+    t.el.hidden = !vis;
+    if (vis) t.el.style.transform = `translate(${((tmpV.x + 1) / 2 * w).toFixed(1)}px, ${((1 - tmpV.y) / 2 * h - 8).toFixed(1)}px) translate(${t.shift || '-50%'},-100%)`;
+  }
+}
+function setTag(k, html, p) { const t = tags[k]; if (t.html !== html) { t.el.innerHTML = html; t.html = html; } t.pos.copy(p); }
+
+// ——— 相機：繞著目標轉 ———
+const VIEWS = {
+  all: { target: new T.Vector3(-0.16, 1.3, -0.1), yaw: 0.06, pitch: 0.18, fit: 2.3 },
+  lens: { target: new T.Vector3(-0.3, 1.13, 0), yaw: 0.2, pitch: 0.14, fit: 0.95 },
+  scene: { target: new T.Vector3(0.38, 1.08, 0), yaw: -0.3, pitch: 0.28, fit: 0.8 }
+};
+const orbit = { target: VIEWS.all.target.clone(), yaw: VIEWS.all.yaw, pitch: VIEWS.all.pitch, dist: 2.6, goal: null };
+function fitDist(width) { const hf = 2 * Math.atan(Math.tan(cam.fov * Math.PI / 360) * cam.aspect); return width / 2 / Math.tan(hf / 2) + 0.15; }
+function setView(name, instant) {
+  const v = VIEWS[name];
+  orbit.goal = { target: v.target.clone(), yaw: v.yaw, pitch: v.pitch, dist: Math.max(fitDist(v.fit), name === 'all' ? 1.2 : 0.55) };
+  if (instant || REDUCED) { Object.assign(orbit, { target: orbit.goal.target, yaw: orbit.goal.yaw, pitch: orbit.goal.pitch, dist: orbit.goal.dist }); orbit.goal = null; }
+  document.querySelectorAll('.views button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+  kick();
+}
+let viewName = 'all';
+document.querySelectorAll('.views button').forEach(b => b.addEventListener('click', () => { viewName = b.dataset.view; setView(viewName); }));
+function applyCam() {
+  if (orbit.goal) {
+    const g = orbit.goal, k = 0.12;
+    orbit.target.lerp(g.target, k); orbit.yaw += (g.yaw - orbit.yaw) * k; orbit.pitch += (g.pitch - orbit.pitch) * k; orbit.dist += (g.dist - orbit.dist) * k;
+    if (Math.abs(g.dist - orbit.dist) < 1e-4 && orbit.target.distanceTo(g.target) < 1e-4 && Math.abs(g.yaw - orbit.yaw) < 1e-4) orbit.goal = null;
+  }
+  const cp = Math.cos(orbit.pitch);
+  cam.position.set(orbit.target.x + Math.sin(orbit.yaw) * cp * orbit.dist, orbit.target.y + Math.sin(orbit.pitch) * orbit.dist, orbit.target.z + Math.cos(orbit.yaw) * cp * orbit.dist);
+  cam.lookAt(orbit.target);
+}
+
+// ——— 互動：拖對焦環、拖變焦環、點場景對焦、拖曳旋轉 ———
+const ray = new T.Raycaster(), ndc = new T.Vector2();
+function hit(e, list) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, cam);
+  const hs = ray.intersectObjects(list, true);
+  return hs.find(h => h.point.z <= 0.0001 || !isLensPart(h.object)) || null;
+}
+function isLensPart(o) { while (o) { if (o === lensG) return true; o = o.parent; } return false; }
+const ringTargets = [focusRing.group, zoomRing.group];
+let drag = null;
+canvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  const h = hit(e, [...ringTargets, ...pick]);
+  let mode = 'orbit';
+  if (h && isIn(h.object, focusRing.group)) mode = 'focus';
+  else if (h && isIn(h.object, zoomRing.group)) mode = 'zoom';
+  else if (h && pick.includes(h.object)) mode = 'pick';
+  drag = { mode, x: e.clientX, y: e.clientY, moved: 0, u: LAB.state.u, f0: LAB.state.f0, yaw: orbit.yaw, pitch: orbit.pitch, hit: h };
+  if (mode !== 'orbit' || e.pointerType !== 'touch') canvas.setPointerCapture(e.pointerId);
+  if (mode === 'focus' || mode === 'zoom') LAB.stopAnim();
+  canvas.classList.add('drag');
+});
+function isIn(o, g) { while (o) { if (o === g) return true; o = o.parent; } return false; }
+canvas.addEventListener('pointermove', e => {
+  if (!drag) {
+    const h = hit(e, [...ringTargets, ...pick]);
+    canvas.classList.toggle('ringhover', !!(h && (isIn(h.object, focusRing.group) || isIn(h.object, zoomRing.group))));
+    canvas.classList.toggle('pick', !!(h && pick.includes(h.object)));
+    return;
+  }
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
+  const s = LAB.state;
+  if (drag.mode === 'focus') { s.u = clamp(drag.u + (dy - dx) / LAB.KF, 0, LAB.UMAX); LAB.update(); }
+  else if (drag.mode === 'zoom') { s.f0 = clamp(Math.round(drag.f0 * Math.exp((dx - dy) / LAB.KZ) * 10) / 10, LAB.ZMIN, LAB.ZMAX); LAB.update(); }
+  else if (drag.mode === 'orbit' || (drag.mode === 'pick' && drag.moved > 5)) {
+    drag.mode = 'orbit'; orbit.goal = null;
+    orbit.yaw = clamp(drag.yaw - dx * 0.004, -0.9, 0.9); orbit.pitch = clamp(drag.pitch + dy * 0.003, 0.02, 0.75); kick();
+  }
+});
+const endDrag = e => {
+  if (!drag) return;
+  if (drag.mode === 'pick' && drag.moved <= 5 && drag.hit) {
+    const D = (drag.hit.point.x - X0) * DIO * 1000; // 場景座標 → 真實距離（從感光元件起算）
+    LAB.focusTo(D);
+  }
+  drag = null; canvas.classList.remove('drag');
+};
+canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('dblclick', e => e.preventDefault());
+
+// ——— 快照膠卷 ———
+const film = $('film');
+const PRESETS = [
+  { label: '70 mm f/2.8 · 對主體', u: 1 / 4.5, ai: 0, f0: 70 },
+  { label: 'f/2.8 · 對前景', u: 1 / 1.2, ai: 0, f0: 70 },
+  { label: 'f/2.8 · 對背景', u: 1 / 9, ai: 0, f0: 70 },
+  { label: 'f/16 · 對主體', u: 1 / 4.5, ai: LAB.APS.indexOf(16), f0: 70 },
+  { label: '35 mm · 對主體', u: 1 / 4.5, ai: 0, f0: 35 },
+  { label: '24 mm f/8 · 超焦距', u: null, ai: LAB.APS.indexOf(8), f0: 24 }
+];
+// 24 mm f/8 的超焦距：H = f²/(Nc) + f，從 H 量；換成感光元件起算
+{ const c = Optics.config(24, Infinity), H = 24 * 24 / (8 * LAB.COC) + 24; PRESETS[5].u = 1000 / (H - c.card.zH); }
+const shots = [];
+function addShot(p, stateLike) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'shot';
+  const cv = document.createElement('canvas'); cv.width = 224; cv.height = 150;
+  const Mx = LAB.compute(stateLike);
+  const tmp = document.createElement('canvas'); tmp.width = PW; tmp.height = PH;
+  renderPhoto(Mx, tmp.getContext('2d'));
+  cv.getContext('2d').drawImage(tmp, 0, 0, 224, 150);
+  const sp = document.createElement('span'); sp.textContent = p.label;
+  b.append(cv, sp); b.title = `${p.label}：f/${LAB.APS[stateLike.ai]}，${stateLike.f0} mm，對焦 ${fmtD(1000 / stateLike.u)}`;
+  b.addEventListener('click', () => { LAB.animateTo({ u: stateLike.u, ai: stateLike.ai, f0: stateLike.f0 }); markShot(b); });
+  film.appendChild(b); shots.push(b);
+  if (shots.length > 12) { const old = shots.splice(6, 1)[0]; old.remove(); }
+  return b;
+}
+function markShot(b) { shots.forEach(s => s.setAttribute('aria-current', String(s === b))); }
+$('shoot').addEventListener('click', () => {
+  const s = LAB.state, st = { u: s.u, ai: s.ai, f0: s.f0 };
+  const b = addShot({ label: `f/${LAB.APS[s.ai]} · ${Math.round(s.f0)} mm · ${fmtD(1000 / Math.max(s.u, 1e-9))}` }, st);
+  markShot(b); b.scrollIntoView({ block: 'nearest', inline: 'end', behavior: REDUCED ? 'auto' : 'smooth' });
+  needPhoto = true; kick();
+});
+
+// ——— 每次設定改變 ———
+let needPhoto = true, lastIrisKey = '';
+LAB.on3d = M => {
+  G1.position.x = xOfZ(M.cfg.z1); G2.position.x = xOfZ(M.cfg.z2);
+  focusRing.spin.rotation.x = -LAB.state.u * 2.2;
+  zoomRing.spin.rotation.x = Math.log(LAB.state.f0 / 24) * 2.6;
+  const ik = M.rs.toFixed(4) + M.N; if (ik !== lastIrisKey) { buildIris(M.rs, M.N); lastIrisKey = ik; }
+  renderer.shadowMap.needsUpdate = true;
+  buildRays(M);
+  // 清晰平面與景深範圍
+  const xD = D => X0 + D / 1000 / DIO, xEnd = X0 + LEN_REAL / DIO;
+  const inBox = isFinite(M.D) && xD(M.D) < xEnd;
+  focusPlane.visible = inBox; focusPlane.position.x = inBox ? xD(M.D) : xEnd;
+  const n = Math.max(xD(M.nearD), X0 + 0.24 / DIO), f = isFinite(M.farD) ? Math.min(xD(M.farD), xEnd) : xEnd;
+  dofVol.visible = LAB.state.dof && f > n; dofVol.scale.x = Math.max(1e-4, f - n); dofVol.position.x = (n + f) / 2;
+  dofEdge[0].visible = LAB.state.dof && xD(M.nearD) < xEnd; dofEdge[0].position.x = n;
+  dofEdge[1].visible = LAB.state.dof && isFinite(M.farD) && xD(M.farD) < xEnd; dofEdge[1].position.x = f;
+  // 標籤
+  setTag('fp', inBox ? `<b>清晰平面</b><i>${fmtD(M.D)}</i>` : `<b>清晰平面</b><i>${fmtD(M.D)}，在箱子後方</i>`, new T.Vector3(inBox ? xD(M.D) : xEnd, YG + planeH + 0.01, 0));
+  setTag('near', LAB.state.dof && xD(M.nearD) < xEnd ? `近界<i>${fmtD(M.nearD)}</i>` : '', new T.Vector3(n, YG + 0.004, HALF_W / DIO));
+  setTag('far_', LAB.state.dof && isFinite(M.farD) && xD(M.farD) < xEnd ? `遠界<i>${fmtD(M.farD)}</i>` : '', new T.Vector3(f, YG + 0.004, HALF_W / DIO));
+  setTag('g1', `<b>前群 · 對焦組</b><i>位移 ${M.cfg.d.toFixed(2)} mm</i>`, new T.Vector3(G1.position.x - lenG1 / 2, YA + rG1 + 0.03, 0));
+  setTag('stop', `<b>光圈 f/${M.N}</b><i>孔徑 ⌀ ${(2 * M.rs).toFixed(1)} mm</i>`, new T.Vector3(G2.position.x, YA - rG2 - 0.012, 0).add(new T.Vector3(0, -0.035, 0)));
+  setTag('sensor', `<b>感光元件</b><i>s′ ${M.v.toFixed(2)} mm</i>`, new T.Vector3(XS, YA + 0.16, 0));
+  setTag('mon', `<b>拍到的畫面</b>`, new T.Vector3(-1.12, 1.33, 0.02));
+  for (const k of ['fg', 'mid', 'far']) {
+    const a = ANCHOR[k], p = ex(a[0], a[1] + (k === 'mid' ? 1.5 : k === 'far' ? 2.6 : 0.4), a[2]);
+    const b = M.objs[k].blur;
+    setTag(k, `<b>${OBJ[k].name}</b><i>${fmtD(OBJ[k].D)} · ${b <= LAB.COC ? '清晰' : '⌀ ' + fmtBlur(b)}</i>`, p);
+  }
+  for (const k of ['fg', 'mid', 'far']) drawPoster(k, M);
+  $('photoCap').textContent = `感光元件看到的畫面 · f/${M.N} · ${Math.round(LAB.state.f0)} mm`;
+  needPhoto = true; kick();
+};
+
+// ——— 迴圈 ———
+let raf = 0, visible = true, last = 0;
+function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+function loop(t) {
+  raf = 0;
+  if (needPhoto) { renderPhoto(LAB.M || LAB.compute()); needPhoto = false; }
+  applyCam();
+  particles.visible = LAB.state.rays;
+  if (LAB.state.rays) moveParticles(REDUCED ? 0 : t);
+  renderer.render(scene, cam);
+  placeTags();
+  last = t;
+  if (visible && !document.hidden && ((LAB.state.rays && !REDUCED) || orbit.goal || drag)) kick();
+}
+function resize() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
+  setView(viewName, true);
+}
+new ResizeObserver(resize).observe(wrap);
+new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) kick(); }).observe(wrap);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
+
+// ——— 開始 ———
+resize();
+const M0 = LAB.M || LAB.compute();
+LAB.on3d(M0);
+PRESETS.forEach(p => addShot(p, { u: p.u, ai: p.ai, f0: p.f0 }));
+markShot(shots[0]);
+renderPhoto(M0);
+$('boot').remove();
+kick();
+}
+</script>
+</body>
+</html>

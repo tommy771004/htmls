@@ -148,6 +148,100 @@
       "testEvidence": [
         "tests/foundation.test.ts (data validation only)"
       ],
+      "id": "lumber-camp",
+      "kind": "building",
+      "name": "伐木場",
+      "cost": {
+        "food": 0,
+        "wood": 100,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "mining-camp",
+      "kind": "building",
+      "name": "採礦場",
+      "cost": {
+        "food": 0,
+        "wood": 100,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "mill",
+      "kind": "building",
+      "name": "磨坊",
+      "cost": {
+        "food": 0,
+        "wood": 100,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "stable",
+      "kind": "building",
+      "name": "馬廄",
+      "cost": {
+        "food": 0,
+        "wood": 175,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
       "id": "militia",
       "kind": "unit",
       "name": "近戰民兵",
@@ -227,14 +321,16 @@
       "kind": "unit",
       "name": "斥候",
       "cost": {
-        "food": 0,
+        "food": 80,
         "wood": 0,
         "gold": 0,
         "stone": 0
       },
       "time": 20,
       "population": 1,
-      "requires": [],
+      "requires": [
+        "stable"
+      ],
       "verificationStatus": "design_default"
     },
     {
@@ -316,7 +412,7 @@
     "militia": "barracks",
     "archer": "barracks",
     "ram": null,
-    "scout": null,
+    "scout": "stable",
     "age-2": "town-center",
     "age-3": "town-center",
     "age-4": "town-center"
@@ -330,6 +426,10 @@
         "house",
         "barracks",
         "farm",
+        "lumber-camp",
+        "mining-camp",
+        "mill",
+        "stable",
         "militia",
         "archer",
         "ram",
@@ -348,6 +448,10 @@
         "house",
         "barracks",
         "farm",
+        "lumber-camp",
+        "mining-camp",
+        "mill",
+        "stable",
         "militia",
         "archer",
         "ram",

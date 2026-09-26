@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "eac6f541",
+  "rulesetHash": "d1c56065",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -184,6 +184,30 @@
         "width": 200,
         "depth": 200
       },
+      "lumber-camp": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
+      "mining-camp": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
+      "mill": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
+      "stable": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
       "tree": {
         "x": -20,
         "y": -20,
@@ -356,7 +380,11 @@
       "town-center": 400,
       "house": 150,
       "barracks": 300,
-      "farm": 100
+      "farm": 100,
+      "lumber-camp": 200,
+      "mining-camp": 200,
+      "mill": 200,
+      "stable": 300
     },
     "corpseTicks": 40,
     "hitFlashTicks": 6,

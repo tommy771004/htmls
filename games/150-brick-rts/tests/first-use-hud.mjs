@@ -44,6 +44,11 @@ try{
  assert.equal(await page.locator('#sel-unit').isVisible(),true);assert.equal(await text('unit-name'),'村民');assert.match(await text('unit-hp'),/25\/25/);assert.match(await page.locator('#unit-portrait').getAttribute('src'),/^data:image\/png/);
  assert.equal(await page.locator('#build-house').isVisible(),true);assert.equal(await page.locator('#stop').isVisible(),true);assert.equal(await page.locator('#production button').count(),0);
  await page.locator('#build-house').hover();await page.waitForFunction(()=>!document.querySelector('#tip').hidden);note('住宅說明',await text('tip'));assert.match(await text('tip'),/住宅（Q）/);assert.match(await text('tip'),/30/);
+ // The drop-off camps explain what they accept; the stable waits for the second age and says so.
+ await page.locator('#build-lumber-camp').hover();await page.waitForFunction(()=>/伐木場（R）/.test(document.querySelector('#tip').textContent));note('伐木場說明',await text('tip'));assert.match(await text('tip'),/送交木材/);
+ await page.locator('#build-stable').hover();await page.waitForFunction(()=>/馬廄（D）/.test(document.querySelector('#tip').textContent));note('馬廄說明',await text('tip'));assert.match(await text('tip'),/需要第二時代/);
+ await page.screenshot({path:out+'hud-stable-tip.png',clip:{x:0,y:560,width:720,height:340}});
+ assert.equal(await page.locator('#build-stable').isDisabled(),true);assert.match(await page.locator('#build-stable').getAttribute('aria-label'),/需要第二時代/);
  await page.screenshot({path:out+'hud-villager.png'});
  // 3. Gather: right-click the berries by the town centre; food rises in the top bar.
  await page.locator('#speed').selectOption('4');let p=await centre(page,berryBox,.3);note('右鍵野果',await act(()=>page.mouse.click(p.x,p.y,{button:'right'})));assert.match(await text('notice'),/前往採集/);

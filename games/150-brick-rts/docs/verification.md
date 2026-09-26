@@ -182,3 +182,7 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## prompt 19 完整路徑與 E 階段結案（v18）
 
 設定畫質與音量、合成音效、「,」選取全部軍隊、移動到看不見的障礙物時改走最近空地，以及 prompt 19 完整路徑（`npm run test:full`），驗證見 [first-use-018.md](first-use-018.md)。E 階段以垂直切片結案，F 為進行中。
+
+## 送返建築與馬廄（v19）
+
+伐木場、採礦場、磨坊的送返規則、電腦在遠處資源旁蓋營地、第二時代的馬廄與斥候訓練（`npm run test:stable`），驗證見 [first-use-019.md](first-use-019.md)。F 為進行中。

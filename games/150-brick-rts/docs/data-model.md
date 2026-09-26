@@ -267,7 +267,7 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
   - 無畫面量測：曠野對電腦平均每 tick 0.12 ms（p99 0.23 ms，最慢 63 ms，發生在電腦第一次找建築位置時）。
 - simulationVersion、State.version 與 snapshot 格式升為 17；rulesetHash 納入 mapSizes 與 openMapRules。舊版明確拒絕，沒有做遷移。
 
-## 斥候、投降與效能 v18（目前版本）
+## 斥候、投降與效能 v18
 
 - **斥候**：
   - 新的單位種類 `scout`，附加在 unitKinds 最後，所以既有種類在 Worker Int32 投影中的索引不變。
@@ -299,3 +299,20 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
   - 舊存檔的命令記錄都是當時接受的命令，重播結果不受影響，所以沒有提升版本。
 - 畫質與音量是頁面設定，存在 localStorage 的 `brick-rts:settings:1`，不屬於模擬，也不進入存檔與指紋。
 
+## 送返建築與馬廄 v19（目前版本）
+
+- **新的建築種類**：`BuildKind` 加上 `lumber-camp`、`mining-camp`、`mill`、`stable`。
+  - 占地都是 300×300（`footprints.ts`），不可行走。
+  - 規則資料（design_default，未對照原作）：伐木場、採礦場、磨坊各木材 100，馬廄木材 175 並需要 `age-2`；時間都是 20 秒。
+  - 生命值（`combatRules.buildings`）：三種送返建築 200，馬廄 300。
+- **送返規則** `dropoffRules.accepts`（design_default）：
+  - 城鎮中心收全部四種資源；伐木場收木材；採礦場收黃金與石頭；磨坊收食物。
+  - 只有自己完工的建築算數。`dropoffNodes(map, player, resource?)` 回傳所有收這種資源的建築外圈節點（升冪、去重），攜帶者走到最近的一個。
+  - 攜帶者抵達時，如果那個節點已經不收貨（例如營地在途中被摧毀），就改找下一個，重試 3 次仍失敗才停工。這個情況沒有專門的測試。
+- **建築的時代要求**：`buildRequirement(age, kind)` 讀規則資料的 `requires` 中的 `age-N`，不足時回傳「需要第二時代」。
+  - 伺服端的 `placeBuilding` 與頁面的指令格共用這個函式，所以按鈕的原因和命令被拒絕的原因相同。
+- **斥候可以訓練**：`production.scout` 從 null 改為 `stable`，食物 80、人口 1。
+- **電腦**：`aiRules` 新增 `campDistance 350`、`campWorkers 2`。
+  - 兩名以上村民從離最近收貨建築超過 350 的來源採木材（或黃金、石頭）時，在那個來源旁蓋伐木場（或採礦場）。
+  - 同種營地還沒完工時不再蓋第二座。電腦不蓋磨坊與馬廄。
+- rulesetHash 加入 `dropoffRules`。simulationVersion、State.version 與 snapshot 格式升為 19，舊版明確拒絕。

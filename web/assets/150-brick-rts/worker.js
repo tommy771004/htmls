@@ -1,3 +1,56 @@
+// packages/content/footprints.ts
+var obstacleFootprints = {
+  house: { x: -15, y: -15, width: 250, depth: 230 },
+  // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
+  barracks: { x: -15, y: -15, width: 300, depth: 300 },
+  "town-center": { x: -15, y: -15, width: 300, depth: 300 },
+  // Farm: a walkable 2x2 field (no blocking rectangle); its extent still stops other buildings.
+  farm: { x: 0, y: 0, width: 200, depth: 200 },
+  // Drop-off camps use the 3x3 models (same footprint as the barracks).
+  "lumber-camp": { x: -15, y: -15, width: 300, depth: 300 },
+  "mining-camp": { x: -15, y: -15, width: 300, depth: 300 },
+  mill: { x: -15, y: -15, width: 300, depth: 300 },
+  stable: { x: -15, y: -15, width: 300, depth: 300 },
+  tree: { x: -20, y: -20, width: 100, depth: 100 },
+  rock: { x: 0, y: 0, width: 65, depth: 70 },
+  gold: { x: 0, y: 0, width: 65, depth: 70 },
+  berries: { x: 0, y: 0, width: 65, depth: 70 },
+  hunt: { x: 0, y: 0, width: 65, depth: 70 },
+  livestock: { x: 0, y: 0, width: 65, depth: 70 }
+};
+var townCenterBlocking = [
+  [15, 15, 65, 165],
+  [205, 15, 255, 165],
+  [10, 10, 26, 26],
+  [240, 10, 256, 26],
+  [10, 180, 26, 196],
+  [240, 180, 256, 196],
+  // Arch flanks reach past the visible opening: 3D clearance for a villager on the plinth.
+  [65, 150, 97, 175],
+  [173, 150, 205, 175],
+  [14, 190, 62, 198],
+  [20, 198, 54, 201],
+  [210, 210, 252, 252],
+  [265, 270, 271, 276]
+];
+var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 }, farm: { rect: [0, 0, 200, 200], height: 10 } };
+var townCenterEntrance = { x: 135, y: 215 };
+var footprintContract = { provenance: "design_default", obstacleFootprints, townCenterBlocking, walkablePlatforms, townCenterEntrance };
+function check(o, radius) {
+  if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
+}
+function obstacleBounds(o, radius = 0) {
+  check(o, radius);
+  const f = obstacleFootprints[o.kind];
+  return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
+}
+function obstacleRects(o, radius = 0) {
+  check(o, radius);
+  if (o.kind === "farm") return [];
+  if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
+  return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
+}
+
 // packages/sim/terrain.ts
 var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200, farm: 250 }, generationAttempts: 8 };
 var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" }, farm: { yield: "food", method: "gather", movement: "land" } };
@@ -62,168 +115,6 @@ function extractResource(node, amount, tick2) {
   }
   return yieldAmount;
 }
-
-// packages/content/footprints.ts
-var obstacleFootprints = {
-  house: { x: -15, y: -15, width: 250, depth: 230 },
-  // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
-  barracks: { x: -15, y: -15, width: 300, depth: 300 },
-  "town-center": { x: -15, y: -15, width: 300, depth: 300 },
-  // Farm: a walkable 2x2 field (no blocking rectangle); its extent still stops other buildings.
-  farm: { x: 0, y: 0, width: 200, depth: 200 },
-  tree: { x: -20, y: -20, width: 100, depth: 100 },
-  rock: { x: 0, y: 0, width: 65, depth: 70 },
-  gold: { x: 0, y: 0, width: 65, depth: 70 },
-  berries: { x: 0, y: 0, width: 65, depth: 70 },
-  hunt: { x: 0, y: 0, width: 65, depth: 70 },
-  livestock: { x: 0, y: 0, width: 65, depth: 70 }
-};
-var townCenterBlocking = [
-  [15, 15, 65, 165],
-  [205, 15, 255, 165],
-  [10, 10, 26, 26],
-  [240, 10, 256, 26],
-  [10, 180, 26, 196],
-  [240, 180, 256, 196],
-  // Arch flanks reach past the visible opening: 3D clearance for a villager on the plinth.
-  [65, 150, 97, 175],
-  [173, 150, 205, 175],
-  [14, 190, 62, 198],
-  [20, 198, 54, 201],
-  [210, 210, 252, 252],
-  [265, 270, 271, 276]
-];
-var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 }, farm: { rect: [0, 0, 200, 200], height: 10 } };
-var townCenterEntrance = { x: 135, y: 215 };
-var footprintContract = { provenance: "design_default", obstacleFootprints, townCenterBlocking, walkablePlatforms, townCenterEntrance };
-function check(o, radius) {
-  if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
-}
-function obstacleBounds(o, radius = 0) {
-  check(o, radius);
-  const f = obstacleFootprints[o.kind];
-  return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
-}
-function obstacleRects(o, radius = 0) {
-  check(o, radius);
-  if (o.kind === "farm") return [];
-  if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
-  return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
-}
-
-// packages/sim/vision.ts
-function footprintTiles(o, size) {
-  if (o.kind !== "house" && o.kind !== "town-center" && o.kind !== "barracks" && o.kind !== "farm") return [tileAt(o.x, o.y, size)];
-  const [x0, y0, x1, y1] = obstacleBounds(o), tiles = [];
-  for (let ty = Math.max(0, Math.floor(y0 / 100)); ty <= Math.min(size - 1, Math.floor((y1 - 1) / 100)); ty++) for (let tx = Math.max(0, Math.floor(x0 / 100)); tx <= Math.min(size - 1, Math.floor((x1 - 1) / 100)); tx++) tiles.push(ty * size + tx);
-  return tiles;
-}
-var visionRules = { provenance: "design_default", unitRadius: 400, scoutRadius: 550, houseRadius: 300, townCenterRadius: 600, shareVision: false, rememberStaticObjects: true };
-function createVision() {
-  return Array.from({ length: 2 }, () => ({ explored: [], visible: [], known: [], resources: [] }));
-}
-function updateVision(visions, map, units, tick2, sharing = [[0], [1]]) {
-  if (sharing.length !== 2 || sharing.some((members, p) => !members.includes(p) || members.some((id) => !Number.isInteger(id) || id < 0 || id > 1))) throw Error("\u7121\u6548\u5171\u4EAB\u8996\u91CE\u898F\u5247");
-  const own = [/* @__PURE__ */ new Set(), /* @__PURE__ */ new Set()];
-  const size = map.size, reveal = (player, x, y, radius) => {
-    const t0 = Math.max(0, Math.floor((x - radius) / 100)), t1 = Math.min(size - 1, Math.floor((x + radius) / 100)), u0 = Math.max(0, Math.floor((y - radius) / 100)), u1 = Math.min(size - 1, Math.floor((y + radius) / 100));
-    for (let ty = u0; ty <= u1; ty++) for (let tx = t0; tx <= t1; tx++) {
-      const dx = tx * 100 + 50 - x, dy = ty * 100 + 50 - y;
-      if (dx * dx + dy * dy <= radius * radius) own[player].add(ty * size + tx);
-    }
-  };
-  for (const u of units) reveal(u.player, u.x, u.y, u.kind === "scout" ? visionRules.scoutRadius : visionRules.unitRadius);
-  for (const o of map.obstacles) if (o.kind === "house" || o.kind === "barracks") reveal(o.red ? 1 : 0, o.x + 100, o.y + 100, visionRules.houseRadius);
-  else if (o.kind === "town-center") reveal(o.red ? 1 : 0, o.x + 135, o.y + 135, visionRules.townCenterRadius);
-  for (let player = 0; player < 2; player++) {
-    const vision = visions[player], visible = new Set(sharing[player].flatMap((id) => [...own[id]]));
-    vision.resources = map.resources.filter((r) => r.status === "available" && visible.has(tileAt(r.x, r.y, size))).map((r) => ({ ...r }));
-    vision.visible = [...visible].sort((a, b) => a - b);
-    vision.explored = [.../* @__PURE__ */ new Set([...vision.explored, ...vision.visible])].sort((a, b) => a - b);
-    const known = new Map(vision.known.filter((k) => !["hunt", "livestock"].includes(k.obstacle.kind) && !footprintTiles(k.obstacle, size).some((id) => visible.has(id))).map((k) => [k.obstacle.id, k]));
-    for (const obstacle of map.obstacles) if (footprintTiles(obstacle, size).some((id) => visible.has(id))) known.set(obstacle.id, { obstacle: { ...obstacle }, lastSeenTick: tick2 });
-    vision.known = [...known.values()].sort((a, b) => a.obstacle.id < b.obstacle.id ? -1 : a.obstacle.id > b.obstacle.id ? 1 : 0);
-  }
-}
-function projectVision(vision, size) {
-  const visible = new Set(vision.visible), explored = new Set(vision.explored);
-  return { fog: Array.from({ length: size * size }, (_, id) => visible.has(id) ? 2 : explored.has(id) ? 1 : 0), known: structuredClone(vision.known), resources: structuredClone(vision.resources) };
-}
-function unitVisible(vision, unit, player, size) {
-  return unit.player === player || vision.visible.includes(tileAt(unit.x, unit.y, size));
-}
-
-// packages/content/rules.ts
-var resources = ["food", "wood", "gold", "stone"];
-var entry = (id, kind, name, food = 0, wood = 0, gold = 0, stone = 0, requires = [], population = 0) => ({ referenceVersion: null, sourceEvidence: ["original design defaults: packages/content/rules.ts"], implementationStatus: id === "villager" ? "in_progress" : "not_started", testEvidence: ["tests/foundation.test.ts (data validation only)"], id, kind, name, cost: { food, wood, gold, stone }, time: 20, population, requires, verificationStatus: "design_default" });
-var rules = {
-  schemaVersion: 1,
-  id: "brick-foundation-0.1",
-  reference: { game: "Age of Empires II: Definitive Edition", version: null, build: null, contentPacks: [], verificationStatus: "unverified", sourceEvidence: [] },
-  coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
-  settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
-  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("scout", "unit", "\u65A5\u5019", 0, 0, 0, 0, [], 1), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
-  // Which building produces each unit/technology (design_default). null = defined but not producible yet.
-  production: { villager: "town-center", militia: "barracks", archer: "barracks", ram: null, scout: null, "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
-  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "militia", "archer", "ram", "scout", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "militia", "archer", "ram", "scout", "age-2", "age-3", "age-4"], unavailable: [] }]
-};
-
-// packages/sim/economy.ts
-var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100, carryCapacity: 10, gatherTicks: { food: 20, wood: 20, gold: 25, stone: 25 }, workReach: 50, dropoffReach: 50 };
-var zero = () => ({ food: 0, wood: 0, gold: 0, stone: 0 });
-function createAccount(populationUsed) {
-  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero(), lost: zero() } };
-}
-function reserve(account, id, entryId) {
-  const entry2 = rules.entries.find((e) => e.id === entryId);
-  if (!entry2 || typeof id !== "string" || !id || account.reservations.some((r) => r.id === id)) throw Error("\u7121\u6548\u6216\u91CD\u8907\u7684\u9810\u7559\u9805\u76EE");
-  if (account.populationUsed + account.populationReserved + entry2.population > account.populationCap) throw Error("\u4EBA\u53E3\u5BB9\u91CF\u4E0D\u8DB3");
-  for (const key of resources) if (!Number.isSafeInteger(account.stock[key]) || account.stock[key] < entry2.cost[key]) throw Error(`\u8CC7\u6E90\u4E0D\u8DB3\uFF1A${key}`);
-  const record = { id, entryId, cost: { ...entry2.cost }, population: entry2.population, status: "reserved" };
-  for (const key of resources) account.stock[key] -= record.cost[key];
-  account.populationReserved += record.population;
-  account.reservations.push(record);
-}
-function cancelReservation(account, id) {
-  const r = account.reservations.find((r2) => r2.id === id);
-  if (!r || r.status !== "reserved") throw Error("\u9810\u7559\u9805\u76EE\u4E0D\u5B58\u5728\u6216\u5DF2\u7D50\u675F");
-  for (const key of resources) if (!Number.isSafeInteger(account.stock[key] + r.cost[key])) throw Error("\u9000\u6B3E\u8D85\u904E\u5B89\u5168\u6574\u6578\u7BC4\u570D");
-  for (const key of resources) account.stock[key] += r.cost[key];
-  account.populationReserved -= r.population;
-  r.status = "cancelled";
-}
-function commitReservation(account, id) {
-  const r = account.reservations.find((r2) => r2.id === id);
-  if (!r || r.status !== "reserved") throw Error("\u9810\u7559\u9805\u76EE\u4E0D\u5B58\u5728\u6216\u5DF2\u7D50\u675F");
-  account.populationReserved -= r.population;
-  account.populationUsed += r.population;
-  r.status = "committed";
-}
-function forfeitReservation(account, id) {
-  const r = account.reservations.find((r2) => r2.id === id);
-  if (!r || r.status !== "reserved") throw Error("\u9810\u7559\u9805\u76EE\u4E0D\u5B58\u5728\u6216\u5DF2\u7D50\u675F");
-  account.populationReserved -= r.population;
-  r.status = "forfeited";
-}
-
-// packages/sim/stats.ts
-var combatRules = {
-  provenance: "design_default",
-  units: {
-    villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0 },
-    militia: { hp: 45, damage: 6, range: 50, cooldown: 20, sight: 350 },
-    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400 },
-    // Scout: the reference's standard start includes one (research doc); these numbers are design_default.
-    // sight here is the automatic-engage radius (vision is visionRules): 0 means the unit only fights when ordered.
-    // The scout scouts; it attacks only on an explicit order.
-    scout: { hp: 45, damage: 3, range: 50, cooldown: 40, sight: 0 }
-  },
-  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100 },
-  corpseTicks: 40,
-  hitFlashTicks: 6,
-  // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
-  speed: { villager: 5, militia: 5, archer: 5, scout: 10 }
-};
 
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 128, speedPerTick: 5, maxGroupSize: 40, waitLimit: 8, queueWaitFactor: 4, detourLimit: 12, stuckTicks: 300, arrivalRadius: 150 };
@@ -445,8 +336,9 @@ function generateOpen(seed) {
   for (let i = 0; i < nodeTotal(map); i++) if (!clearSegment(map, position(map, i), position(map, i))) map.blocked.push(i);
   return map;
 }
+var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable"]);
 function isBuilding(o) {
-  return o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "farm";
+  return buildingKinds.has(o.kind);
 }
 function bounds(o) {
   return obstacleBounds(o, navigationRules.radius);
@@ -673,6 +565,120 @@ function advancePathJob(map, job, budget) {
   }
   return used;
 }
+
+// packages/sim/vision.ts
+function footprintTiles(o, size) {
+  if (!isBuilding(o)) return [tileAt(o.x, o.y, size)];
+  const [x0, y0, x1, y1] = obstacleBounds(o), tiles = [];
+  for (let ty = Math.max(0, Math.floor(y0 / 100)); ty <= Math.min(size - 1, Math.floor((y1 - 1) / 100)); ty++) for (let tx = Math.max(0, Math.floor(x0 / 100)); tx <= Math.min(size - 1, Math.floor((x1 - 1) / 100)); tx++) tiles.push(ty * size + tx);
+  return tiles;
+}
+var visionRules = { provenance: "design_default", unitRadius: 400, scoutRadius: 550, houseRadius: 300, townCenterRadius: 600, shareVision: false, rememberStaticObjects: true };
+function createVision() {
+  return Array.from({ length: 2 }, () => ({ explored: [], visible: [], known: [], resources: [] }));
+}
+function updateVision(visions, map, units, tick2, sharing = [[0], [1]]) {
+  if (sharing.length !== 2 || sharing.some((members, p) => !members.includes(p) || members.some((id) => !Number.isInteger(id) || id < 0 || id > 1))) throw Error("\u7121\u6548\u5171\u4EAB\u8996\u91CE\u898F\u5247");
+  const own = [/* @__PURE__ */ new Set(), /* @__PURE__ */ new Set()];
+  const size = map.size, reveal = (player, x, y, radius) => {
+    const t0 = Math.max(0, Math.floor((x - radius) / 100)), t1 = Math.min(size - 1, Math.floor((x + radius) / 100)), u0 = Math.max(0, Math.floor((y - radius) / 100)), u1 = Math.min(size - 1, Math.floor((y + radius) / 100));
+    for (let ty = u0; ty <= u1; ty++) for (let tx = t0; tx <= t1; tx++) {
+      const dx = tx * 100 + 50 - x, dy = ty * 100 + 50 - y;
+      if (dx * dx + dy * dy <= radius * radius) own[player].add(ty * size + tx);
+    }
+  };
+  for (const u of units) reveal(u.player, u.x, u.y, u.kind === "scout" ? visionRules.scoutRadius : visionRules.unitRadius);
+  for (const o of map.obstacles) if (o.kind === "house" || o.kind === "barracks") reveal(o.red ? 1 : 0, o.x + 100, o.y + 100, visionRules.houseRadius);
+  else if (o.kind === "town-center") reveal(o.red ? 1 : 0, o.x + 135, o.y + 135, visionRules.townCenterRadius);
+  for (let player = 0; player < 2; player++) {
+    const vision = visions[player], visible = new Set(sharing[player].flatMap((id) => [...own[id]]));
+    vision.resources = map.resources.filter((r) => r.status === "available" && visible.has(tileAt(r.x, r.y, size))).map((r) => ({ ...r }));
+    vision.visible = [...visible].sort((a, b) => a - b);
+    vision.explored = [.../* @__PURE__ */ new Set([...vision.explored, ...vision.visible])].sort((a, b) => a - b);
+    const known = new Map(vision.known.filter((k) => !["hunt", "livestock"].includes(k.obstacle.kind) && !footprintTiles(k.obstacle, size).some((id) => visible.has(id))).map((k) => [k.obstacle.id, k]));
+    for (const obstacle of map.obstacles) if (footprintTiles(obstacle, size).some((id) => visible.has(id))) known.set(obstacle.id, { obstacle: { ...obstacle }, lastSeenTick: tick2 });
+    vision.known = [...known.values()].sort((a, b) => a.obstacle.id < b.obstacle.id ? -1 : a.obstacle.id > b.obstacle.id ? 1 : 0);
+  }
+}
+function projectVision(vision, size) {
+  const visible = new Set(vision.visible), explored = new Set(vision.explored);
+  return { fog: Array.from({ length: size * size }, (_, id) => visible.has(id) ? 2 : explored.has(id) ? 1 : 0), known: structuredClone(vision.known), resources: structuredClone(vision.resources) };
+}
+function unitVisible(vision, unit, player, size) {
+  return unit.player === player || vision.visible.includes(tileAt(unit.x, unit.y, size));
+}
+
+// packages/content/rules.ts
+var resources = ["food", "wood", "gold", "stone"];
+var entry = (id, kind, name, food = 0, wood = 0, gold = 0, stone = 0, requires = [], population = 0) => ({ referenceVersion: null, sourceEvidence: ["original design defaults: packages/content/rules.ts"], implementationStatus: id === "villager" ? "in_progress" : "not_started", testEvidence: ["tests/foundation.test.ts (data validation only)"], id, kind, name, cost: { food, wood, gold, stone }, time: 20, population, requires, verificationStatus: "design_default" });
+var rules = {
+  schemaVersion: 1,
+  id: "brick-foundation-0.1",
+  reference: { game: "Age of Empires II: Definitive Edition", version: null, build: null, contentPacks: [], verificationStatus: "unverified", sourceEvidence: [] },
+  coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
+  settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
+  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100), entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100), entry("mill", "building", "\u78E8\u574A", 0, 100), entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2"]), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
+  // Which building produces each unit/technology (design_default). null = defined but not producible yet.
+  production: { villager: "town-center", militia: "barracks", archer: "barracks", ram: null, scout: "stable", "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
+  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "militia", "archer", "ram", "scout", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "militia", "archer", "ram", "scout", "age-2", "age-3", "age-4"], unavailable: [] }]
+};
+
+// packages/sim/economy.ts
+var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100, carryCapacity: 10, gatherTicks: { food: 20, wood: 20, gold: 25, stone: 25 }, workReach: 50, dropoffReach: 50 };
+var zero = () => ({ food: 0, wood: 0, gold: 0, stone: 0 });
+function createAccount(populationUsed) {
+  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero(), lost: zero() } };
+}
+function reserve(account, id, entryId) {
+  const entry2 = rules.entries.find((e) => e.id === entryId);
+  if (!entry2 || typeof id !== "string" || !id || account.reservations.some((r) => r.id === id)) throw Error("\u7121\u6548\u6216\u91CD\u8907\u7684\u9810\u7559\u9805\u76EE");
+  if (account.populationUsed + account.populationReserved + entry2.population > account.populationCap) throw Error("\u4EBA\u53E3\u5BB9\u91CF\u4E0D\u8DB3");
+  for (const key of resources) if (!Number.isSafeInteger(account.stock[key]) || account.stock[key] < entry2.cost[key]) throw Error(`\u8CC7\u6E90\u4E0D\u8DB3\uFF1A${key}`);
+  const record = { id, entryId, cost: { ...entry2.cost }, population: entry2.population, status: "reserved" };
+  for (const key of resources) account.stock[key] -= record.cost[key];
+  account.populationReserved += record.population;
+  account.reservations.push(record);
+}
+function cancelReservation(account, id) {
+  const r = account.reservations.find((r2) => r2.id === id);
+  if (!r || r.status !== "reserved") throw Error("\u9810\u7559\u9805\u76EE\u4E0D\u5B58\u5728\u6216\u5DF2\u7D50\u675F");
+  for (const key of resources) if (!Number.isSafeInteger(account.stock[key] + r.cost[key])) throw Error("\u9000\u6B3E\u8D85\u904E\u5B89\u5168\u6574\u6578\u7BC4\u570D");
+  for (const key of resources) account.stock[key] += r.cost[key];
+  account.populationReserved -= r.population;
+  r.status = "cancelled";
+}
+function commitReservation(account, id) {
+  const r = account.reservations.find((r2) => r2.id === id);
+  if (!r || r.status !== "reserved") throw Error("\u9810\u7559\u9805\u76EE\u4E0D\u5B58\u5728\u6216\u5DF2\u7D50\u675F");
+  account.populationReserved -= r.population;
+  account.populationUsed += r.population;
+  r.status = "committed";
+}
+function forfeitReservation(account, id) {
+  const r = account.reservations.find((r2) => r2.id === id);
+  if (!r || r.status !== "reserved") throw Error("\u9810\u7559\u9805\u76EE\u4E0D\u5B58\u5728\u6216\u5DF2\u7D50\u675F");
+  account.populationReserved -= r.population;
+  r.status = "forfeited";
+}
+
+// packages/sim/stats.ts
+var combatRules = {
+  provenance: "design_default",
+  units: {
+    villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0 },
+    militia: { hp: 45, damage: 6, range: 50, cooldown: 20, sight: 350 },
+    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400 },
+    // Scout: the reference's standard start includes one (research doc); these numbers are design_default.
+    // sight here is the automatic-engage radius (vision is visionRules): 0 means the unit only fights when ordered.
+    // The scout scouts; it attacks only on an explicit order.
+    scout: { hp: 45, damage: 3, range: 50, cooldown: 40, sight: 0 }
+  },
+  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100, "lumber-camp": 200, "mining-camp": 200, mill: 200, stable: 300 },
+  corpseTicks: 40,
+  hitFlashTicks: 6,
+  // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
+  speed: { villager: 5, militia: 5, archer: 5, scout: 10 }
+};
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
@@ -953,10 +959,10 @@ function stepMovement(s) {
 }
 
 // packages/sim/buildings.ts
-var buildKinds = ["house", "barracks", "farm"];
+var buildKinds = ["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable"];
 var buildingRules = {
   provenance: "design_default",
-  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0 },
+  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0 },
   grid: 10,
   required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
 };
@@ -998,6 +1004,15 @@ function closeFarm(s, buildingId, tick2) {
 function farmOwner(s, resourceId) {
   return s.buildings.find((b) => farmResourceId(b.id) === resourceId)?.player ?? null;
 }
+function buildRequirement(age, kind) {
+  const entry2 = rules.entries.find((e) => e.id === kind);
+  if (!entry2) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
+  for (const req of entry2.requires) {
+    const m = /^age-(\d)$/.exec(req);
+    if (m && age < Number(m[1])) return `\u9700\u8981${rules.entries.find((e) => e.id === req)?.name ?? req}`;
+  }
+  return null;
+}
 function stageOf(b) {
   return b.complete ? 100 : Math.min(80, Math.floor(b.work * 5 / b.required) * 20);
 }
@@ -1016,7 +1031,7 @@ function initBuildings(s) {
   for (const p of [0, 1]) recomputeCapacity(s, p);
 }
 function placeBuilding(s, player, kind, x, y, reservationId) {
-  const problem = authoritativeProblem(s, player, kind, x, y);
+  const problem = authoritativeProblem(s, player, kind, x, y) ?? buildRequirement(s.ages[player], kind);
   if (problem) throw Error(problem);
   reserve(s.accounts[player], reservationId, kind);
   const b = { id: `building-${s.nextBuildingId++}`, kind, player, x, y, work: 0, required: buildingRules.required[kind], complete: false, reservationId, queue: [], rally: null, hp: 1, maxHp: combatRules.buildings[kind] };
@@ -1080,8 +1095,10 @@ function workSlots(map, resourceId) {
   }
   return o ? ring(map, o, economyRules.workReach) : [];
 }
-function dropoffNodes(map, player) {
-  return [...new Set(map.obstacles.filter((o) => o.kind === "town-center" && (o.red ? 1 : 0) === player).flatMap((o) => ring(map, o, economyRules.dropoffReach)))].sort((a, b) => a - b);
+var dropoffRules = { provenance: "design_default", accepts: { "town-center": ["food", "wood", "gold", "stone"], "lumber-camp": ["wood"], "mining-camp": ["gold", "stone"], mill: ["food"] } };
+function dropoffNodes(map, player, resource) {
+  const accepts = dropoffRules.accepts;
+  return [...new Set(map.obstacles.filter((o) => accepts[o.kind] && o.progress === void 0 && (o.red ? 1 : 0) === player && (!resource || accepts[o.kind].includes(resource))).flatMap((o) => ring(map, o, economyRules.dropoffReach)))].sort((a, b) => a - b);
 }
 function gatherable(map, resourceId) {
   const r = map.resources.find((r2) => r2.id === resourceId);
@@ -1108,8 +1125,12 @@ function goToSource(s, u, w) {
   w.phase = "toSource";
   routeTo(s, u, t);
 }
+var cargoOf = (s, w) => {
+  const r = s.map.resources.find((r2) => r2.id === w.resourceId);
+  return r ? resourceDefinitions[r.kind].yield : void 0;
+};
 function goToDropoff(s, u, w) {
-  const t = dropoffNodes(s.map, u.player);
+  const t = dropoffNodes(s.map, u.player, s.cargo[u.id]?.resource ?? cargoOf(s, w));
   if (!t.length) return stopWork(s, u);
   w.phase = "toDropoff";
   routeTo(s, u, t);
@@ -1195,7 +1216,7 @@ function stepWork(s) {
     }
     const resource = s.map.resources.find((r) => r.id === w.resourceId), kind = resourceDefinitions[resource.kind].yield;
     if (w.phase === "toDropoff") {
-      if (!dropoffNodes(s.map, u.player).includes(u.node)) {
+      if (!dropoffNodes(s.map, u.player, s.cargo[u.id]?.resource ?? kind).includes(u.node)) {
         if (++w.retries > 3) {
           stopWork(s, u);
           continue;
@@ -1323,7 +1344,7 @@ function exitNode(s, b) {
   }
   return best;
 }
-var unitKindOf = { villager: "villager", militia: "militia", archer: "archer" };
+var unitKindOf = { villager: "villager", militia: "militia", archer: "archer", scout: "scout" };
 function stepProduction(s) {
   for (const b of [...s.buildings].sort((a, b2) => a.id < b2.id ? -1 : 1)) {
     const item = b.queue[0];
@@ -1524,7 +1545,9 @@ var aiRules = {
   siteStep: 20,
   halfMargin: 100,
   spill: 100,
-  sourceMargin: 100
+  sourceMargin: 100,
+  campDistance: 350,
+  campWorkers: 2
 };
 var gap2 = (a, b) => Math.max(a[0] - b[2], b[0] - a[2], a[1] - b[3], b[1] - a[3], 0);
 var centre = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
@@ -1570,6 +1593,15 @@ function stepAI(s, order) {
   const barracksDue = villagers.length >= aiRules.barracksAtVillagers && !own.some((b) => b.kind === "barracks");
   if (barracksDue) place(s, order, "barracks", villagers, idle, tcBox, own);
   if (room <= aiRules.houseMargin && account.populationCap < rules.settings.populationCap && !pending("house") && (!barracksDue || room <= 0)) place(s, order, "house", villagers, idle, tcBox, own);
+  const accepts = dropoffRules.accepts, drops = own.filter((b) => b.complete && accepts[b.kind]).map((b) => ({ kinds: accepts[b.kind], box: boxOf(s, b) })).filter((d) => d.box);
+  for (const [camp, kinds] of [["lumber-camp", ["wood"]], ["mining-camp", ["gold", "stone"]]]) {
+    if (own.some((b) => b.kind === camp && !b.complete)) continue;
+    const far = villagers.map((u) => s.works[u.id]).filter((w) => w?.kind === "gather").map((w) => s.map.resources.find((r) => r.id === w.resourceId)).filter((r) => !!r && kinds.includes(resourceDefinitions[r.kind].yield) && Math.min(...drops.filter((d) => d.kinds.includes(resourceDefinitions[r.kind].yield)).map((d) => gap2([r.x, r.y, r.x, r.y], d.box))) > aiRules.campDistance);
+    if (far.length >= aiRules.campWorkers) {
+      place(s, order, camp, villagers, idle, tcBox, own, void 0, { x: far[0].x, y: far[0].y });
+      break;
+    }
+  }
   const queued = (id) => own.reduce((t, b) => t + b.queue.filter((q) => q.entryId === id).length, 0);
   if (tc.complete && !tc.queue.length) {
     if (villagers.length + queued("villager") < aiRules.villagerTarget && !trainable(s, P, tc, "villager")) order("train", { buildingId: tc.id, entryId: "villager" });
@@ -1613,10 +1645,10 @@ function pickBuilder(s, villagers, idle, near) {
   if (free) return free;
   return villagers.filter((u) => s.works[u.id]?.kind !== "build").sort((a, b) => dist(a, near) - dist(b, near) || a.id - b.id)[0];
 }
-function place(s, order, kind, villagers, idle, tcBox, own, worker) {
+function place(s, order, kind, villagers, idle, tcBox, own, worker, near) {
   const cost = rules.entries.find((e) => e.id === kind).cost, stock = s.accounts[aiRules.player].stock;
   if (Object.keys(cost).some((r) => stock[r] < cost[r]) || !buildKinds.includes(kind)) return false;
-  const c = centre(tcBox), others = own.filter((b) => b.kind !== "farm" && b.kind !== "town-center").map((b) => boxOf(s, b)).filter((b) => b !== null), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sources = s.map.obstacles.filter((o) => o.kind === "gold" || o.kind === "rock" || o.kind === "berries" || o.kind === "hunt" || o.kind === "livestock").map((o) => obstacleBounds(o)), middle = world / 2, axis = Math.hypot(c.x - middle, c.y - middle) || 1, ux = (c.x - middle) / axis, uy = (c.y - middle) / axis;
+  const home = centre(tcBox), c = near ?? home, others = own.filter((b) => b.kind !== "farm" && b.kind !== "town-center").map((b) => boxOf(s, b)).filter((b) => b !== null), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sources = s.map.obstacles.filter((o) => o.kind === "gold" || o.kind === "rock" || o.kind === "berries" || o.kind === "hunt" || o.kind === "livestock").map((o) => obstacleBounds(o)), middle = world / 2, axis = Math.hypot(home.x - middle, home.y - middle) || 1, ux = (home.x - middle) / axis, uy = (home.y - middle) / axis;
   const side = (x, y) => (x - middle) * ux + (y - middle) * uy;
   const explored = new Set(s.vision[aiRules.player].explored), bodies = s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]);
   const input = { tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) }, sites = [];
@@ -1702,12 +1734,12 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, simulationVersion: 18 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, simulationVersion: 19 });
 function createState(seed, layout = "meadow", opponent = "idle") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
   if (opponent !== "ai" && opponent !== "idle") throw Error("\u672A\u77E5\u7684\u5C0D\u624B\u8A2D\u5B9A");
   const map = makeMap(seed, layout);
-  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, version: 18, opponent, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
+  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, version: 19, opponent, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
   if (opponent === "ai") {
     state.units.push(...map.starts[1].slice(1).map((p, i) => makeUnit(map, 5 + i, 1, p.x, p.y)));
     state.nextUnitId = 5 + map.starts[1].length - 1;
@@ -1750,7 +1782,7 @@ function submit(state, c, record = true) {
   } else if (c.commandType === "build") {
     const { kind, x, y } = c.payload;
     if (!buildKinds.includes(kind)) throw Error("\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E");
-    const problem = authoritativeProblem(state, c.playerId, kind, x, y);
+    const problem = buildRequirement(state.ages[c.playerId], kind) ?? authoritativeProblem(state, c.playerId, kind, x, y);
     if (problem) throw Error(problem);
     const cost = rules.entries.find((e) => e.id === kind).cost, stock = state.accounts[c.playerId].stock, short = Object.keys(cost).filter((k) => stock[k] < cost[k]);
     if (short.length) throw Error(`\u8CC7\u6E90\u4E0D\u8DB3\uFF1A${short.map((k) => `${{ food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" }[k]}\u9700\u8981 ${cost[k]}\uFF0C\u76EE\u524D ${stock[k]}`).join("\uFF1B")}`);
@@ -1910,13 +1942,13 @@ function replay(seed, commands, ticks, layout = "meadow", opponent = "idle") {
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-18", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-19", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-18" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-19" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 18 || s.opponent !== "ai" && s.opponent !== "idle" || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (s.version !== 19 || s.opponent !== "ai" && s.opponent !== "idle" || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   const rebuilt = replay(s.seed, s.log, s.tick, s.layout, s.opponent);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);
