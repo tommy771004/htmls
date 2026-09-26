@@ -21,189 +21,216 @@
      "bl": "3001",
      "blColor": 85,
      "qty": 2,
-     "price": 4.31
+     "price": 4.31,
+     "idInv": 545777187
     },
     {
      "key": "3668|72",
      "bl": "3668",
      "blColor": 85,
      "qty": 2,
-     "price": 0.98
+     "price": 0.98,
+     "idInv": 370319255
     },
     {
      "key": "41539|15",
      "bl": "41539",
      "blColor": 1,
      "qty": 1,
-     "price": 30.66
+     "price": 30.66,
+     "idInv": 546497985
     },
     {
      "key": "3023|47",
      "bl": "3023",
      "blColor": 12,
      "qty": 4,
-     "price": 2.51
+     "price": 2.51,
+     "idInv": 546502022
     },
     {
      "key": "3460|15",
      "bl": "3460",
      "blColor": 1,
      "qty": 1,
-     "price": 2.34
+     "price": 2.34,
+     "idInv": 530223334
     },
     {
      "key": "3795|15",
      "bl": "3795",
      "blColor": 1,
      "qty": 1,
-     "price": 2.78
+     "price": 2.78,
+     "idInv": 534251836
     },
     {
      "key": "2456|15",
      "bl": "2456",
      "blColor": 1,
      "qty": 4,
-     "price": 4.53
+     "price": 4.53,
+     "idInv": 541642116
     },
     {
      "key": "3005|15",
      "bl": "3005",
      "blColor": 1,
      "qty": 2,
-     "price": 1.47
+     "price": 1.47,
+     "idInv": 541642115
     },
     {
      "key": "3008|15",
      "bl": "3008",
      "blColor": 1,
      "qty": 4,
-     "price": 6.22
+     "price": 6.22,
+     "idInv": 535995412
     },
     {
      "key": "3622|15",
      "bl": "3622",
      "blColor": 1,
      "qty": 2,
-     "price": 1.8
+     "price": 1.8,
+     "idInv": 542126541
     },
     {
      "key": "93606|15",
      "bl": "93606",
      "blColor": 1,
      "qty": 4,
-     "price": 7.09
+     "price": 7.09,
+     "idInv": 541631778
     },
     {
      "key": "3024|15",
      "bl": "3024",
      "blColor": 1,
      "qty": 12,
-     "price": 0.89
+     "price": 0.89,
+     "idInv": 534756246
     },
     {
      "key": "3710|15",
      "bl": "3710",
      "blColor": 1,
      "qty": 1,
-     "price": 1.36
+     "price": 1.36,
+     "idInv": 534251834
     },
     {
      "key": "3666|15",
      "bl": "3666",
      "blColor": 1,
      "qty": 2,
-     "price": 2.62
+     "price": 2.62,
+     "idInv": 541456289
     },
     {
      "key": "4286|0",
      "bl": "4286",
      "blColor": 11,
      "qty": 2,
-     "price": 1.04
+     "price": 1.04,
+     "idInv": 511214227
     },
     {
      "key": "3005|0",
      "bl": "3005",
      "blColor": 11,
      "qty": 6,
-     "price": 1.85
+     "price": 1.85,
+     "idInv": 541828112
     },
     {
      "key": "24309|15",
      "bl": "24309",
      "blColor": 1,
      "qty": 3,
-     "price": 2.84
+     "price": 2.84,
+     "idInv": 548290949
     },
     {
      "key": "50950|15",
      "bl": "50950",
      "blColor": 1,
      "qty": 2,
-     "price": 1.75
+     "price": 1.75,
+     "idInv": 534756256
     },
     {
      "key": "50950|0",
      "bl": "50950",
      "blColor": 11,
      "qty": 4,
-     "price": 3.22
+     "price": 3.22,
+     "idInv": 540314764
     },
     {
      "key": "3958|0",
      "bl": "3958",
      "blColor": 11,
      "qty": 1,
-     "price": 7.8
+     "price": 7.8,
+     "idInv": 538841684
     },
     {
      "key": "85984|0",
      "bl": "85984",
      "blColor": 11,
      "qty": 6,
-     "price": 1.2
+     "price": 1.2,
+     "idInv": 487374348
     },
     {
      "key": "69729|0",
      "bl": "69729",
      "blColor": 11,
      "qty": 3,
-     "price": 5.99
+     "price": 5.99,
+     "idInv": 528618404
     },
     {
      "key": "3010|15",
      "bl": "3010",
      "blColor": 1,
      "qty": 2,
-     "price": 2.89
+     "price": 2.89,
+     "idInv": 544965630
     },
     {
      "key": "3023|15",
      "bl": "3023",
      "blColor": 1,
      "qty": 2,
-     "price": 1.03
+     "price": 1.03,
+     "idInv": 534251833
     },
     {
      "key": "3003|15",
      "bl": "3003",
      "blColor": 1,
      "qty": 2,
-     "price": 1.64
+     "price": 1.64,
+     "idInv": 541456286
     },
     {
      "key": "3460|0",
      "bl": "3460",
      "blColor": 11,
      "qty": 2,
-     "price": 2.9
+     "price": 2.9,
+     "idInv": 471888751
     },
     {
      "key": "3749|19",
      "bl": "3749",
      "blColor": 2,
      "qty": 4,
-     "price": 0.71
+     "price": 0.71,
+     "idInv": 535653193
     }
    ],
    "subtotal": 242.39
@@ -219,63 +246,72 @@
      "bl": "3958",
      "blColor": 1,
      "qty": 2,
-     "price": 11.22
+     "price": 11.22,
+     "idInv": 541126598
     },
     {
      "key": "3023|36",
      "bl": "3023",
      "blColor": 17,
      "qty": 4,
-     "price": 0.65
+     "price": 0.65,
+     "idInv": 556397410
     },
     {
      "key": "2456|0",
      "bl": "2456",
      "blColor": 11,
      "qty": 2,
-     "price": 5.93
+     "price": 5.93,
+     "idInv": 535408881
     },
     {
      "key": "3298|0",
      "bl": "3298",
      "blColor": 11,
      "qty": 3,
-     "price": 1.37
+     "price": 1.37,
+     "idInv": 536597489
     },
     {
      "key": "3003|0",
      "bl": "3003",
      "blColor": 11,
      "qty": 2,
-     "price": 1.52
+     "price": 1.52,
+     "idInv": 515512033
     },
     {
      "key": "3622|0",
      "bl": "3622",
      "blColor": 11,
      "qty": 2,
-     "price": 3.36
+     "price": 3.36,
+     "idInv": 535408872
     },
     {
      "key": "24309|0",
      "bl": "24309",
      "blColor": 11,
      "qty": 6,
-     "price": 4.05
+     "price": 4.05,
+     "idInv": 535409122
     },
     {
      "key": "3004|15",
      "bl": "3004",
      "blColor": 1,
      "qty": 4,
-     "price": 1.6
+     "price": 1.6,
+     "idInv": 541126481
     },
     {
      "key": "3034|0",
      "bl": "3034",
      "blColor": 11,
      "qty": 2,
-     "price": 3.14
+     "price": 3.14,
+     "idInv": 535037603
     }
    ],
    "subtotal": 87.75
@@ -291,28 +327,32 @@
      "bl": "3027",
      "blColor": 11,
      "qty": 1,
-     "price": 29
+     "price": 29,
+     "idInv": 541031162
     },
     {
      "key": "3456|15",
      "bl": "3456",
      "blColor": 1,
      "qty": 1,
-     "price": 36.77
+     "price": 36.77,
+     "idInv": 542023827
     },
     {
      "key": "3795|0",
      "bl": "3795",
      "blColor": 11,
      "qty": 2,
-     "price": 1.49
+     "price": 1.49,
+     "idInv": 541033095
     },
     {
      "key": "72206p01|72",
      "bl": "72206pb01",
      "blColor": 85,
      "qty": 4,
-     "price": 16.44
+     "price": 16.44,
+     "idInv": 541878585
     }
    ],
    "subtotal": 134.51
@@ -342,6 +382,7 @@
    "sellersShippingToTW": 322,
    "sellers": [
     {
+     "idInv": 485414399,
      "store": "Technic Link",
      "user": "Priita",
      "country": "EE",
@@ -351,6 +392,7 @@
      "color": "Black"
     },
     {
+     "idInv": 505125582,
      "store": "SNEAKERS AND BRICKS",
      "user": "BRICKWERKER",
      "country": "US",
@@ -360,6 +402,7 @@
      "color": "Black"
     },
     {
+     "idInv": 550938326,
      "store": "Konzer Brick Store",
      "user": "Achim",
      "country": "DE",
@@ -369,6 +412,7 @@
      "color": "Black"
     },
     {
+     "idInv": 489996659,
      "store": "SMALL BATCH BRICKS",
      "user": "SMALLBATCHBRIX",
      "country": "US",
@@ -378,6 +422,7 @@
      "color": "Black"
     },
     {
+     "idInv": 429235761,
      "store": "TedNFlitsBricks",
      "user": "TedNFlitsBricks",
      "country": "US",
@@ -413,6 +458,7 @@
    "sellersShippingToTW": 948,
    "sellers": [
     {
+     "idInv": 531526555,
      "store": "OrionBricks",
      "user": "Alexewan2",
      "country": "IE",
@@ -422,6 +468,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 559052894,
      "store": "Topi's & Henna's bricks",
      "user": "TopiTun",
      "country": "FI",
@@ -431,6 +478,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 502025468,
      "store": "sir brick",
      "user": "muttley71",
      "country": "IT",
@@ -440,6 +488,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 175480631,
      "store": "Korova Milk Bar",
      "user": "Cirvihi",
      "country": "US",
@@ -449,6 +498,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 551817513,
      "store": "BRICK BLUE",
      "user": "BRICK_BLUE",
      "country": "US",
@@ -484,6 +534,7 @@
    "sellersShippingToTW": 1111,
    "sellers": [
     {
+     "idInv": 533498923,
      "store": "brickina - up to 75% OFF",
      "user": "brickina",
      "country": "DE",
@@ -493,6 +544,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 512376365,
      "store": "BrickCoast",
      "user": "BrickCoast",
      "country": "DE",
@@ -502,6 +554,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 517679739,
      "store": "brickandplay",
      "user": "bricksandfamily",
      "country": "DE",
@@ -511,6 +564,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 428909000,
      "store": "50% OFF at BSW Bricks",
      "user": "BSW.Bricks",
      "country": "NL",
@@ -520,6 +574,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 343675443,
      "store": "Klocki na maxa",
      "user": "_LEGORADO_",
      "country": "PL",
@@ -555,6 +610,7 @@
    "sellersShippingToTW": 544,
    "sellers": [
     {
+     "idInv": 537901807,
      "store": "BumbleBeeBuzz",
      "user": "BumbleBeeBuzz",
      "country": "UK",
@@ -564,6 +620,7 @@
      "color": "White"
     },
     {
+     "idInv": 554096479,
      "store": "Drobne Klocuszki",
      "user": "PatiEK_PL",
      "country": "PL",
@@ -573,6 +630,7 @@
      "color": "White"
     },
     {
+     "idInv": 48536044,
      "store": "eldorado",
      "user": "Isenmann",
      "country": "FR",
@@ -582,6 +640,7 @@
      "color": "White"
     },
     {
+     "idInv": 515096254,
      "store": "PixelBrick",
      "user": "PixelBrick",
      "country": "DE",
@@ -591,6 +650,7 @@
      "color": "White"
     },
     {
+     "idInv": 544738593,
      "store": "BRICKNOT",
      "user": "gpower20",
      "country": "DE",
@@ -620,12 +680,13 @@
     "lots": 937,
     "qty": 23083,
     "min": 14.11,
-    "avg": 48.29,
+    "avg": 48.3,
     "qtyAvg": 41.11
    },
    "sellersShippingToTW": 404,
    "sellers": [
     {
+     "idInv": 551970995,
      "store": "Kockasto",
      "user": "Kockasto",
      "country": "HR",
@@ -635,6 +696,7 @@
      "color": "White"
     },
     {
+     "idInv": 554328746,
      "store": "JesusBricks",
      "user": "briyzexo",
      "country": "CA",
@@ -644,6 +706,7 @@
      "color": "White"
     },
     {
+     "idInv": 557752420,
      "store": "Zeeland Bricks",
      "user": "MarcoSas",
      "country": "NL",
@@ -653,6 +716,7 @@
      "color": "White"
     },
     {
+     "idInv": 182677633,
      "store": "Alquimia",
      "user": "brickinstitute",
      "country": "ES",
@@ -662,6 +726,7 @@
      "color": "White"
     },
     {
+     "idInv": 549976922,
      "store": "Big Little Bricks",
      "user": "BigLittleBricks",
      "country": "US",
@@ -697,6 +762,7 @@
    "sellersShippingToTW": 769,
    "sellers": [
     {
+     "idInv": 538400182,
      "store": "KnightsBricks",
      "user": "wcall",
      "country": "BE",
@@ -706,6 +772,7 @@
      "color": "Trans-Clear"
     },
     {
+     "idInv": 282964965,
      "store": "Drobne Klocuszki",
      "user": "PatiEK_PL",
      "country": "PL",
@@ -715,6 +782,7 @@
      "color": "Trans-Clear"
     },
     {
+     "idInv": 458843583,
      "store": "sonnikshop",
      "user": "sonnik",
      "country": "IT",
@@ -724,6 +792,7 @@
      "color": "Trans-Clear"
     },
     {
+     "idInv": 456988963,
      "store": "Paspar2 BrickLand Mania",
      "user": "DaniDanielo",
      "country": "RO",
@@ -733,6 +802,7 @@
      "color": "Trans-Clear"
     },
     {
+     "idInv": 355721355,
      "store": "Raveolution",
      "user": "ravedragon",
      "country": "US",
@@ -752,15 +822,15 @@
    "colorOk": true,
    "colorName": "White",
    "sold6mNew": {
-    "times": 6186,
-    "qty": 110796,
+    "times": 6188,
+    "qty": 110817,
     "min": 0.31,
     "avg": 3.97,
     "qtyAvg": 3.41
    },
    "forSaleNew": {
     "lots": 3838,
-    "qty": 420851,
+    "qty": 420830,
     "min": 0.62,
     "avg": 4.71,
     "qtyAvg": 4.81
@@ -768,6 +838,7 @@
    "sellersShippingToTW": 1441,
    "sellers": [
     {
+     "idInv": 529899394,
      "store": "studs&bricks&rock'n'roll",
      "user": "diosil",
      "country": "HU",
@@ -777,6 +848,7 @@
      "color": "White"
     },
     {
+     "idInv": 406786883,
      "store": "BrickyLand",
      "user": "GKL",
      "country": "LV",
@@ -786,6 +858,7 @@
      "color": "White"
     },
     {
+     "idInv": 410327776,
      "store": "BrickyLand",
      "user": "GKL",
      "country": "LV",
@@ -795,6 +868,7 @@
      "color": "White"
     },
     {
+     "idInv": 493364706,
      "store": "Greenbrickroad",
      "user": "Greenbrickroad",
      "country": "CA",
@@ -804,6 +878,7 @@
      "color": "White"
     },
     {
+     "idInv": 547448408,
      "store": "Brick`d",
      "user": "Hois95",
      "country": "AT",
@@ -839,6 +914,7 @@
    "sellersShippingToTW": 1514,
    "sellers": [
     {
+     "idInv": 500679571,
      "store": "Krazys Bricks",
      "user": "Krazys",
      "country": "SG",
@@ -848,6 +924,7 @@
      "color": "White"
     },
     {
+     "idInv": 533282854,
      "store": "Santa Clarita´s bricks",
      "user": "joeka",
      "country": "ES",
@@ -857,6 +934,7 @@
      "color": "White"
     },
     {
+     "idInv": 229361560,
      "store": "ThisOldToyHouse",
      "user": "Thisoldtoyhouse",
      "country": "US",
@@ -866,6 +944,7 @@
      "color": "White"
     },
     {
+     "idInv": 210657403,
      "store": "ThisOldToyHouse",
      "user": "Thisoldtoyhouse",
      "country": "US",
@@ -875,6 +954,7 @@
      "color": "White"
     },
     {
+     "idInv": 544709622,
      "store": "bricks_foryou_up to 50% ",
      "user": "Markus...",
      "country": "DE",
@@ -910,6 +990,7 @@
    "sellersShippingToTW": 615,
    "sellers": [
     {
+     "idInv": 526677499,
      "store": "Cecco store",
      "user": "tonyfilosa",
      "country": "IT",
@@ -919,6 +1000,7 @@
      "color": "White"
     },
     {
+     "idInv": 342136946,
      "store": "Smile & Bricks",
      "user": "Clutch2",
      "country": "SI",
@@ -928,6 +1010,7 @@
      "color": "White"
     },
     {
+     "idInv": 549378280,
      "store": "bricks_foryou_up to 50% ",
      "user": "Markus...",
      "country": "DE",
@@ -937,6 +1020,7 @@
      "color": "White"
     },
     {
+     "idInv": 215202528,
      "store": "The Brick Barn PNW",
      "user": "TheBrickBarnPNW",
      "country": "US",
@@ -946,6 +1030,7 @@
      "color": "White"
     },
     {
+     "idInv": 540638759,
      "store": "Brickmania.hu",
      "user": "kezany",
      "country": "HU",
@@ -973,7 +1058,7 @@
    },
    "forSaleNew": {
     "lots": 4374,
-    "qty": 618117,
+    "qty": 618125,
     "min": 0.13,
     "avg": 2.42,
     "qtyAvg": 2.95
@@ -981,6 +1066,7 @@
    "sellersShippingToTW": 1482,
    "sellers": [
     {
+     "idInv": 466026610,
      "store": "Brick Guy's Shop",
      "user": "Bricknblockguy",
      "country": "US",
@@ -990,6 +1076,7 @@
      "color": "White"
     },
     {
+     "idInv": 470438116,
      "store": "Brick`d",
      "user": "Hois95",
      "country": "AT",
@@ -999,6 +1086,7 @@
      "color": "White"
     },
     {
+     "idInv": 560218107,
      "store": "Benbot's Bricks",
      "user": "Benbot",
      "country": "CA",
@@ -1008,6 +1096,7 @@
      "color": "White"
     },
     {
+     "idInv": 493364637,
      "store": "Greenbrickroad",
      "user": "Greenbrickroad",
      "country": "CA",
@@ -1017,6 +1106,7 @@
      "color": "White"
     },
     {
+     "idInv": 550745833,
      "store": "Sailorman Store",
      "user": "hksailorman",
      "country": "HK",
@@ -1036,15 +1126,15 @@
    "colorOk": true,
    "colorName": "White",
    "sold6mNew": {
-    "times": 3167,
-    "qty": 84133,
+    "times": 3171,
+    "qty": 84233,
     "min": 1.74,
     "avg": 9.03,
     "qtyAvg": 7.33
    },
    "forSaleNew": {
-    "lots": 2315,
-    "qty": 116624,
+    "lots": 2313,
+    "qty": 116525,
     "min": 2.24,
     "avg": 10.16,
     "qtyAvg": 11.94
@@ -1052,6 +1142,7 @@
    "sellersShippingToTW": 622,
    "sellers": [
     {
+     "idInv": 541030343,
      "store": "Bricks by Rens",
      "user": "rensvanineveld",
      "country": "NL",
@@ -1061,6 +1152,7 @@
      "color": "White"
     },
     {
+     "idInv": 537023543,
      "store": "One.brick.a.day",
      "user": "One.brick.a.day",
      "country": "NL",
@@ -1070,6 +1162,7 @@
      "color": "White"
     },
     {
+     "idInv": 470219214,
      "store": "MasterBlaster!",
      "user": "MasterBlaster",
      "country": "DE",
@@ -1079,6 +1172,7 @@
      "color": "White"
     },
     {
+     "idInv": 498534506,
      "store": "JesusBricks",
      "user": "briyzexo",
      "country": "CA",
@@ -1088,6 +1182,7 @@
      "color": "White"
     },
     {
+     "idInv": 282148300,
      "store": "bricksbyaj",
      "user": "bricksbyaj",
      "country": "AT",
@@ -1115,7 +1210,7 @@
    },
    "forSaleNew": {
     "lots": 3022,
-    "qty": 334986,
+    "qty": 334994,
     "min": 0.72,
     "avg": 2.97,
     "qtyAvg": 3.66
@@ -1123,6 +1218,7 @@
    "sellersShippingToTW": 1029,
    "sellers": [
     {
+     "idInv": 510842288,
      "store": "GoldieBricks",
      "user": "magoldsm1979",
      "country": "US",
@@ -1132,6 +1228,7 @@
      "color": "White"
     },
     {
+     "idInv": 554570539,
      "store": "PSYBRICK",
      "user": "MARCO_1980",
      "country": "IT",
@@ -1141,6 +1238,7 @@
      "color": "White"
     },
     {
+     "idInv": 542066874,
      "store": "Platinum Bricks House",
      "user": "CEASAR",
      "country": "GR",
@@ -1150,6 +1248,7 @@
      "color": "White"
     },
     {
+     "idInv": 417552560,
      "store": "Em's Brick Paradise",
      "user": "emmave83",
      "country": "AU",
@@ -1159,6 +1258,7 @@
      "color": "White"
     },
     {
+     "idInv": 463480484,
      "store": "Anywhere Bricks",
      "user": "Thousand_L",
      "country": "HK",
@@ -1194,6 +1294,7 @@
    "sellersShippingToTW": 406,
    "sellers": [
     {
+     "idInv": 457796174,
      "store": "sonnikshop",
      "user": "sonnik",
      "country": "IT",
@@ -1203,6 +1304,7 @@
      "color": "White"
     },
     {
+     "idInv": 529686731,
      "store": "Brick Nine Store",
      "user": "brick_nine",
      "country": "JP",
@@ -1212,6 +1314,7 @@
      "color": "White"
     },
     {
+     "idInv": 546833129,
      "store": "Wombat's Brick Burrow",
      "user": "Wombles",
      "country": "AU",
@@ -1221,6 +1324,7 @@
      "color": "White"
     },
     {
+     "idInv": 544377377,
      "store": "brixx-fox",
      "user": "brixx_fox",
      "country": "DE",
@@ -1230,6 +1334,7 @@
      "color": "White"
     },
     {
+     "idInv": 193310047,
      "store": "Bricks2start",
      "user": "bricks2start",
      "country": "BE",
@@ -1249,15 +1354,15 @@
    "colorOk": true,
    "colorName": "White",
    "sold6mNew": {
-    "times": 15921,
-    "qty": 1207657,
+    "times": 15922,
+    "qty": 1207659,
     "min": 0,
     "avg": 1.47,
     "qtyAvg": 1.19
    },
    "forSaleNew": {
     "lots": 5153,
-    "qty": 2308681,
+    "qty": 2308694,
     "min": 0.22,
     "avg": 1.88,
     "qtyAvg": 1.92
@@ -1265,6 +1370,7 @@
    "sellersShippingToTW": 1318,
    "sellers": [
     {
+     "idInv": 542023970,
      "store": "Bricks by Rens",
      "user": "rensvanineveld",
      "country": "NL",
@@ -1274,6 +1380,7 @@
      "color": "White"
     },
     {
+     "idInv": 199721954,
      "store": "Alquimia",
      "user": "brickinstitute",
      "country": "ES",
@@ -1283,6 +1390,7 @@
      "color": "White"
     },
     {
+     "idInv": 561493163,
      "store": "MT-Bricks",
      "user": "MT_Bricks",
      "country": "DE",
@@ -1292,6 +1400,7 @@
      "color": "White"
     },
     {
+     "idInv": 497425873,
      "store": "Krazys Bricks",
      "user": "Krazys",
      "country": "SG",
@@ -1301,6 +1410,7 @@
      "color": "White"
     },
     {
+     "idInv": 378866073,
      "store": "Big Boy's Bricks",
      "user": "jbroman",
      "country": "CA",
@@ -1320,15 +1430,15 @@
    "colorOk": true,
    "colorName": "White",
    "sold6mNew": {
-    "times": 10625,
-    "qty": 419059,
+    "times": 10626,
+    "qty": 419066,
     "min": 0.21,
     "avg": 2.32,
     "qtyAvg": 2.05
    },
    "forSaleNew": {
     "lots": 5006,
-    "qty": 848412,
+    "qty": 848425,
     "min": 0.23,
     "avg": 2.75,
     "qtyAvg": 2.78
@@ -1336,6 +1446,7 @@
    "sellersShippingToTW": 1851,
    "sellers": [
     {
+     "idInv": 411813080,
      "store": "Crusader's Attic",
      "user": "keiththelegokid",
      "country": "US",
@@ -1345,6 +1456,7 @@
      "color": "White"
     },
     {
+     "idInv": 253968245,
      "store": "Pinta Monster",
      "user": "Pintaalbero",
      "country": "IT",
@@ -1354,6 +1466,7 @@
      "color": "White"
     },
     {
+     "idInv": 557069962,
      "store": "PSYBRICK",
      "user": "MARCO_1980",
      "country": "IT",
@@ -1363,6 +1476,7 @@
      "color": "White"
     },
     {
+     "idInv": 166009008,
      "store": "Alquimia",
      "user": "brickinstitute",
      "country": "ES",
@@ -1372,6 +1486,7 @@
      "color": "White"
     },
     {
+     "idInv": 238413107,
      "store": "AnotherBrickOnTheWall",
      "user": "peheal",
      "country": "SE",
@@ -1401,12 +1516,13 @@
     "lots": 365,
     "qty": 7222,
     "min": 26.69,
-    "avg": 104.68,
+    "avg": 104.71,
     "qtyAvg": 82.86
    },
    "sellersShippingToTW": 173,
    "sellers": [
     {
+     "idInv": 292254657,
      "store": "Fl4shed Box",
      "user": "Fl4shed",
      "country": "BE",
@@ -1416,6 +1532,7 @@
      "color": "White"
     },
     {
+     "idInv": 499982050,
      "store": "Bunte Steinewelt",
      "user": "BunteSteinewelt",
      "country": "DE",
@@ -1425,6 +1542,7 @@
      "color": "White"
     },
     {
+     "idInv": 542023827,
      "store": "Bricks by Rens",
      "user": "rensvanineveld",
      "country": "NL",
@@ -1434,6 +1552,7 @@
      "color": "White"
     },
     {
+     "idInv": 444872361,
      "store": "Crazy Toys SALE 20% ",
      "user": "crazy.toys",
      "country": "PL",
@@ -1443,6 +1562,7 @@
      "color": "White"
     },
     {
+     "idInv": 502235277,
      "store": "Brickopa",
      "user": "Brickopa",
      "country": "DE",
@@ -1462,22 +1582,23 @@
    "colorOk": true,
    "colorName": "White",
    "sold6mNew": {
-    "times": 7539,
-    "qty": 179875,
+    "times": 7541,
+    "qty": 179896,
     "min": 0.18,
     "avg": 3.78,
     "qtyAvg": 4.09
    },
    "forSaleNew": {
     "lots": 3857,
-    "qty": 194080,
+    "qty": 194059,
     "min": 0.33,
     "avg": 4.35,
-    "qtyAvg": 5.39
+    "qtyAvg": 5.4
    },
    "sellersShippingToTW": 1251,
    "sellers": [
     {
+     "idInv": 458022990,
      "store": "Em's Brick Paradise",
      "user": "emmave83",
      "country": "AU",
@@ -1487,6 +1608,7 @@
      "color": "White"
     },
     {
+     "idInv": 518078850,
      "store": "BRICK BLUE",
      "user": "BRICK_BLUE",
      "country": "US",
@@ -1496,6 +1618,7 @@
      "color": "White"
     },
     {
+     "idInv": 560500608,
      "store": "ARbrickz",
      "user": "AdzRR",
      "country": "UK",
@@ -1505,6 +1628,7 @@
      "color": "White"
     },
     {
+     "idInv": 559360806,
      "store": "JesusBricks",
      "user": "briyzexo",
      "country": "CA",
@@ -1514,6 +1638,7 @@
      "color": "White"
     },
     {
+     "idInv": 421821830,
      "store": "Klocki z Pomorza ",
      "user": "Klocbar",
      "country": "PL",
@@ -1533,15 +1658,15 @@
    "colorOk": true,
    "colorName": "Trans-Red",
    "sold6mNew": {
-    "times": 2726,
-    "qty": 52681,
+    "times": 2727,
+    "qty": 52683,
     "min": 0.18,
     "avg": 1.11,
     "qtyAvg": 0.96
    },
    "forSaleNew": {
     "lots": 4921,
-    "qty": 604277,
+    "qty": 604275,
     "min": 0.18,
     "avg": 1.42,
     "qtyAvg": 1.57
@@ -1549,6 +1674,7 @@
    "sellersShippingToTW": 1580,
    "sellers": [
     {
+     "idInv": 508717111,
      "store": "ABMT Bricks",
      "user": "ABMTBricks",
      "country": "DE",
@@ -1558,6 +1684,7 @@
      "color": "Trans-Red"
     },
     {
+     "idInv": 287009370,
      "store": "Klocki na maxa",
      "user": "_LEGORADO_",
      "country": "PL",
@@ -1567,6 +1694,7 @@
      "color": "Trans-Red"
     },
     {
+     "idInv": 463855800,
      "store": "ALISADA",
      "user": "ALISADA",
      "country": "PL",
@@ -1576,6 +1704,7 @@
      "color": "Trans-Red"
     },
     {
+     "idInv": 499033935,
      "store": "LaTi Brick's",
      "user": "LaTiBricks",
      "country": "DE",
@@ -1585,6 +1714,7 @@
      "color": "Trans-Red"
     },
     {
+     "idInv": 115906162,
      "store": "Le monsieur de bricks",
      "user": "foudeslegos",
      "country": "CA",
@@ -1620,6 +1750,7 @@
    "sellersShippingToTW": 838,
    "sellers": [
     {
+     "idInv": 133351191,
      "store": "HJ BRICKS",
      "user": "hkooki",
      "country": "KR",
@@ -1629,6 +1760,7 @@
      "color": "Black"
     },
     {
+     "idInv": 444129773,
      "store": "Bricks-Or-Treats",
      "user": "Brickholic",
      "country": "MY",
@@ -1638,6 +1770,7 @@
      "color": "Black"
     },
     {
+     "idInv": 560834315,
      "store": "eldorado",
      "user": "Isenmann",
      "country": "FR",
@@ -1647,6 +1780,7 @@
      "color": "Black"
     },
     {
+     "idInv": 555974225,
      "store": "Tammys Bricks ",
      "user": "tammys.bricks",
      "country": "NL",
@@ -1656,6 +1790,7 @@
      "color": "Black"
     },
     {
+     "idInv": 222108756,
      "store": "Bricks2start",
      "user": "bricks2start",
      "country": "BE",
@@ -1691,6 +1826,7 @@
    "sellersShippingToTW": 926,
    "sellers": [
     {
+     "idInv": 524556862,
      "store": "Lottie brights bricks ",
      "user": "Lottieslego",
      "country": "UK",
@@ -1700,6 +1836,7 @@
      "color": "Black"
     },
     {
+     "idInv": 457693939,
      "store": "BRICK BLUE",
      "user": "BRICK_BLUE",
      "country": "US",
@@ -1709,6 +1846,7 @@
      "color": "Black"
     },
     {
+     "idInv": 554500184,
      "store": "The_brick_room",
      "user": "21Jclark",
      "country": "UK",
@@ -1718,6 +1856,7 @@
      "color": "Black"
     },
     {
+     "idInv": 395639464,
      "store": "Sparebrix",
      "user": "rarebrix",
      "country": "UK",
@@ -1727,6 +1866,7 @@
      "color": "Black"
     },
     {
+     "idInv": 506808428,
      "store": "Brookdales Brickshop",
      "user": "cavegod",
      "country": "UK",
@@ -1762,6 +1902,7 @@
    "sellersShippingToTW": 1047,
    "sellers": [
     {
+     "idInv": 453194591,
      "store": "Lottie brights bricks ",
      "user": "Lottieslego",
      "country": "UK",
@@ -1771,6 +1912,7 @@
      "color": "Black"
     },
     {
+     "idInv": 413607643,
      "store": "BRICK BLUE",
      "user": "BRICK_BLUE",
      "country": "US",
@@ -1780,6 +1922,7 @@
      "color": "Black"
     },
     {
+     "idInv": 173082493,
      "store": "Bricks2start",
      "user": "bricks2start",
      "country": "BE",
@@ -1789,6 +1932,7 @@
      "color": "Black"
     },
     {
+     "idInv": 561305760,
      "store": "You need Bricks",
      "user": "Hobby_Parts",
      "country": "NL",
@@ -1798,6 +1942,7 @@
      "color": "Black"
     },
     {
+     "idInv": 554500183,
      "store": "The_brick_room",
      "user": "21Jclark",
      "country": "UK",
@@ -1824,8 +1969,8 @@
     "qtyAvg": 2.71
    },
    "forSaleNew": {
-    "lots": 3509,
-    "qty": 367175,
+    "lots": 3510,
+    "qty": 367183,
     "min": 0.58,
     "avg": 2.94,
     "qtyAvg": 3.65
@@ -1833,6 +1978,7 @@
    "sellersShippingToTW": 1188,
    "sellers": [
     {
+     "idInv": 511155614,
      "store": "Brick`d",
      "user": "Hois95",
      "country": "AT",
@@ -1842,6 +1988,7 @@
      "color": "Black"
     },
     {
+     "idInv": 451618675,
      "store": "zxcursed_Shop",
      "user": "zxcursed",
      "country": "AT",
@@ -1851,6 +1998,7 @@
      "color": "Black"
     },
     {
+     "idInv": 166726740,
      "store": "Alquimia",
      "user": "brickinstitute",
      "country": "ES",
@@ -1860,6 +2008,7 @@
      "color": "Black"
     },
     {
+     "idInv": 195359734,
      "store": "Matt's Brick Treasury",
      "user": "gatebuildr",
      "country": "US",
@@ -1869,6 +2018,7 @@
      "color": "Black"
     },
     {
+     "idInv": 450540685,
      "store": "Living By The Brick",
      "user": "Tom2001",
      "country": "UK",
@@ -1888,22 +2038,23 @@
    "colorOk": true,
    "colorName": "Black",
    "sold6mNew": {
-    "times": 8905,
-    "qty": 334668,
+    "times": 8907,
+    "qty": 335180,
     "min": 0,
     "avg": 2.72,
     "qtyAvg": 1.98
    },
    "forSaleNew": {
     "lots": 3644,
-    "qty": 557606,
+    "qty": 557094,
     "min": 0.32,
-    "avg": 3.08,
-    "qtyAvg": 3.37
+    "avg": 3.09,
+    "qtyAvg": 3.38
    },
    "sellersShippingToTW": 954,
    "sellers": [
     {
+     "idInv": 540864819,
      "store": "SNEAKERS AND BRICKS",
      "user": "BRICKWERKER",
      "country": "US",
@@ -1913,6 +2064,7 @@
      "color": "Black"
     },
     {
+     "idInv": 562124294,
      "store": "Sailorman Store",
      "user": "hksailorman",
      "country": "HK",
@@ -1922,6 +2074,7 @@
      "color": "Black"
     },
     {
+     "idInv": 308650288,
      "store": "HJ BRICKS",
      "user": "hkooki",
      "country": "KR",
@@ -1931,6 +2084,7 @@
      "color": "Black"
     },
     {
+     "idInv": 40763393,
      "store": "Bubul Chrome parts",
      "user": "Bubul",
      "country": "HU",
@@ -1940,6 +2094,7 @@
      "color": "Black"
     },
     {
+     "idInv": 320350222,
      "store": "Klintekongens klodser",
      "user": "FusionDK",
      "country": "DK",
@@ -1975,6 +2130,7 @@
    "sellersShippingToTW": 867,
    "sellers": [
     {
+     "idInv": 555946741,
      "store": "MrAndMrsBrixz     | 10%OFF",
      "user": "MrAndMrsBrixz",
      "country": "SE",
@@ -1984,6 +2140,7 @@
      "color": "Black"
     },
     {
+     "idInv": 545490500,
      "store": "Lottie brights bricks ",
      "user": "Lottieslego",
      "country": "UK",
@@ -1993,6 +2150,7 @@
      "color": "Black"
     },
     {
+     "idInv": 545876899,
      "store": "The_brick_room",
      "user": "21Jclark",
      "country": "UK",
@@ -2002,6 +2160,7 @@
      "color": "Black"
     },
     {
+     "idInv": 198606047,
      "store": "Alquimia",
      "user": "brickinstitute",
      "country": "ES",
@@ -2011,6 +2170,7 @@
      "color": "Black"
     },
     {
+     "idInv": 556608506,
      "store": "UTLF",
      "user": "UTLF",
      "country": "CA",
@@ -2046,6 +2206,7 @@
    "sellersShippingToTW": 671,
    "sellers": [
     {
+     "idInv": 242485493,
      "store": "bricksbyaj",
      "user": "bricksbyaj",
      "country": "AT",
@@ -2055,6 +2216,7 @@
      "color": "White"
     },
     {
+     "idInv": 488926390,
      "store": "JesusBricks",
      "user": "briyzexo",
      "country": "CA",
@@ -2064,6 +2226,7 @@
      "color": "White"
     },
     {
+     "idInv": 515554554,
      "store": "Living By The Brick",
      "user": "Tom2001",
      "country": "UK",
@@ -2073,6 +2236,7 @@
      "color": "White"
     },
     {
+     "idInv": 502713102,
      "store": "kleinesteinewelt",
      "user": "sw_minifigs",
      "country": "DE",
@@ -2082,6 +2246,7 @@
      "color": "White"
     },
     {
+     "idInv": 486596774,
      "store": "Brickimon",
      "user": "Brickimon",
      "country": "DE",
@@ -2117,6 +2282,7 @@
    "sellersShippingToTW": 1210,
    "sellers": [
     {
+     "idInv": 556335664,
      "store": "Topi's & Henna's bricks",
      "user": "TopiTun",
      "country": "FI",
@@ -2126,6 +2292,7 @@
      "color": "White"
     },
     {
+     "idInv": 501107663,
      "store": "PixelBrick",
      "user": "PixelBrick",
      "country": "DE",
@@ -2135,6 +2302,7 @@
      "color": "White"
     },
     {
+     "idInv": 523343093,
      "store": "Bricks fly to you",
      "user": "Bricksflytoyou",
      "country": "DE",
@@ -2144,6 +2312,7 @@
      "color": "White"
     },
     {
+     "idInv": 558856019,
      "store": "MoGras pirateshop",
      "user": "gabiatyus",
      "country": "HU",
@@ -2153,6 +2322,7 @@
      "color": "White"
     },
     {
+     "idInv": 560022379,
      "store": "Lord Steinchen",
      "user": "Lord.Steinchen",
      "country": "DE",
@@ -2188,6 +2358,7 @@
    "sellersShippingToTW": 514,
    "sellers": [
     {
+     "idInv": 474184134,
      "store": "Yasashii_brick",
      "user": "Yasashii_brick",
      "country": "JP",
@@ -2197,6 +2368,7 @@
      "color": "Black"
     },
     {
+     "idInv": 274890049,
      "store": "MIBRICK Clearance Sale",
      "user": "MIBRICK",
      "country": "PT",
@@ -2206,6 +2378,7 @@
      "color": "Black"
     },
     {
+     "idInv": 561544245,
      "store": "Brick Universum ",
      "user": "BrickUniversum",
      "country": "DE",
@@ -2215,6 +2388,7 @@
      "color": "Black"
     },
     {
+     "idInv": 370578465,
      "store": "MyPreciousBricks",
      "user": "MyPreciousBrick",
      "country": "AU",
@@ -2224,6 +2398,7 @@
      "color": "Black"
     },
     {
+     "idInv": 486278039,
      "store": "Rebel-Bricks",
      "user": "Rebelbrixx",
      "country": "DE",
@@ -2243,15 +2418,15 @@
    "colorOk": true,
    "colorName": "Black",
    "sold6mNew": {
-    "times": 9201,
-    "qty": 195959,
+    "times": 9202,
+    "qty": 195960,
     "min": 0,
     "avg": 3.29,
     "qtyAvg": 3.23
    },
    "forSaleNew": {
     "lots": 5477,
-    "qty": 354911,
+    "qty": 354918,
     "min": 0.17,
     "avg": 3.59,
     "qtyAvg": 4.41
@@ -2259,6 +2434,7 @@
    "sellersShippingToTW": 1781,
    "sellers": [
     {
+     "idInv": 552156542,
      "store": "Sailorman Store",
      "user": "hksailorman",
      "country": "HK",
@@ -2268,6 +2444,7 @@
      "color": "Black"
     },
     {
+     "idInv": 560705235,
      "store": "thunders brick den",
      "user": "TMOG217",
      "country": "CA",
@@ -2277,6 +2454,7 @@
      "color": "Black"
     },
     {
+     "idInv": 531286002,
      "store": "Snake's Bricks",
      "user": "snake2000",
      "country": "DK",
@@ -2286,6 +2464,7 @@
      "color": "Black"
     },
     {
+     "idInv": 204164999,
      "store": "Mad House Bricks",
      "user": "Virgilnz",
      "country": "NZ",
@@ -2295,6 +2474,7 @@
      "color": "Black"
     },
     {
+     "idInv": 408487938,
      "store": "Avo_Bricks✨",
      "user": "Avo_Bricks",
      "country": "NZ",
@@ -2322,7 +2502,7 @@
    },
    "forSaleNew": {
     "lots": 2602,
-    "qty": 77661,
+    "qty": 77663,
     "min": 0.36,
     "avg": 4.59,
     "qtyAvg": 5.82
@@ -2330,6 +2510,7 @@
    "sellersShippingToTW": 675,
    "sellers": [
     {
+     "idInv": 560705237,
      "store": "thunders brick den",
      "user": "TMOG217",
      "country": "CA",
@@ -2339,6 +2520,7 @@
      "color": "Black"
     },
     {
+     "idInv": 298037985,
      "store": "JLRS Extras",
      "user": "JLRSextra",
      "country": "US",
@@ -2348,6 +2530,7 @@
      "color": "Black"
     },
     {
+     "idInv": 175478812,
      "store": "Korova Milk Bar",
      "user": "Cirvihi",
      "country": "US",
@@ -2357,6 +2540,7 @@
      "color": "Black"
     },
     {
+     "idInv": 34198885,
      "store": "SNEAKERS AND BRICKS",
      "user": "BRICKWERKER",
      "country": "US",
@@ -2366,6 +2550,7 @@
      "color": "Black"
     },
     {
+     "idInv": 204701318,
      "store": "Mad House Bricks",
      "user": "Virgilnz",
      "country": "NZ",
@@ -2401,6 +2586,7 @@
    "sellersShippingToTW": 1023,
    "sellers": [
     {
+     "idInv": 552959536,
      "store": "TeaBrix",
      "user": "BubbleBrix",
      "country": "US",
@@ -2410,6 +2596,7 @@
      "color": "Black"
     },
     {
+     "idInv": 212835001,
      "store": "NEO Bricks",
      "user": "Decible",
      "country": "US",
@@ -2419,6 +2606,7 @@
      "color": "Black"
     },
     {
+     "idInv": 457812021,
      "store": "Em's Brick Paradise",
      "user": "emmave83",
      "country": "AU",
@@ -2428,6 +2616,7 @@
      "color": "Black"
     },
     {
+     "idInv": 541032303,
      "store": "Bricks by Rens",
      "user": "rensvanineveld",
      "country": "NL",
@@ -2437,6 +2626,7 @@
      "color": "Black"
     },
     {
+     "idInv": 423183482,
      "store": "RGV Bricks",
      "user": "dradgee",
      "country": "AU",
@@ -2456,15 +2646,15 @@
    "colorOk": true,
    "colorName": "Black",
    "sold6mNew": {
-    "times": 10001,
-    "qty": 226376,
+    "times": 10003,
+    "qty": 226380,
     "min": 0,
     "avg": 1.73,
     "qtyAvg": 1.49
    },
    "forSaleNew": {
     "lots": 5048,
-    "qty": 777970,
+    "qty": 777966,
     "min": 0.22,
     "avg": 2.06,
     "qtyAvg": 2.27
@@ -2472,6 +2662,7 @@
    "sellersShippingToTW": 1422,
    "sellers": [
     {
+     "idInv": 514782872,
      "store": "One.brick.a.day",
      "user": "One.brick.a.day",
      "country": "NL",
@@ -2481,6 +2672,7 @@
      "color": "Black"
     },
     {
+     "idInv": 560407875,
      "store": "thunders brick den",
      "user": "TMOG217",
      "country": "CA",
@@ -2490,6 +2682,7 @@
      "color": "Black"
     },
     {
+     "idInv": 542627560,
      "store": "HJ BRICKS",
      "user": "hkooki",
      "country": "KR",
@@ -2499,6 +2692,7 @@
      "color": "Black"
     },
     {
+     "idInv": 433691586,
      "store": "BRICK BLUE",
      "user": "BRICK_BLUE",
      "country": "US",
@@ -2508,6 +2702,7 @@
      "color": "Black"
     },
     {
+     "idInv": 286391132,
      "store": "Klocki na maxa",
      "user": "_LEGORADO_",
      "country": "PL",
@@ -2527,15 +2722,15 @@
    "colorOk": true,
    "colorName": "Black",
    "sold6mNew": {
-    "times": 6274,
-    "qty": 96655,
+    "times": 6275,
+    "qty": 96657,
     "min": 1.01,
     "avg": 10.11,
     "qtyAvg": 7.95
    },
    "forSaleNew": {
-    "lots": 2673,
-    "qty": 187373,
+    "lots": 2672,
+    "qty": 187371,
     "min": 0.77,
     "avg": 12.44,
     "qtyAvg": 11.75
@@ -2543,6 +2738,7 @@
    "sellersShippingToTW": 899,
    "sellers": [
     {
+     "idInv": 238052719,
      "store": "Technic Link",
      "user": "Priita",
      "country": "EE",
@@ -2552,6 +2748,7 @@
      "color": "Black"
     },
     {
+     "idInv": 266311992,
      "store": "Steinele",
      "user": "Steinele",
      "country": "DE",
@@ -2561,6 +2758,7 @@
      "color": "Black"
     },
     {
+     "idInv": 416372027,
      "store": "MIBRICK Clearance Sale",
      "user": "MIBRICK",
      "country": "PT",
@@ -2570,6 +2768,7 @@
      "color": "Black"
     },
     {
+     "idInv": 549902081,
      "store": "Lord-Bricks",
      "user": "speder",
      "country": "NL",
@@ -2579,6 +2778,7 @@
      "color": "Black"
     },
     {
+     "idInv": 450394217,
      "store": "Red Bricks Store",
      "user": "RedBricksStore",
      "country": "NL",
@@ -2598,15 +2798,15 @@
    "colorOk": true,
    "colorName": "White",
    "sold6mNew": {
-    "times": 8121,
-    "qty": 518914,
+    "times": 8125,
+    "qty": 519276,
     "min": 0.1,
     "avg": 2.22,
     "qtyAvg": 2
    },
    "forSaleNew": {
-    "lots": 4415,
-    "qty": 739618,
+    "lots": 4413,
+    "qty": 739266,
     "min": 0.32,
     "avg": 2.52,
     "qtyAvg": 3.09
@@ -2614,6 +2814,7 @@
    "sellersShippingToTW": 1303,
    "sellers": [
     {
+     "idInv": 561650862,
      "store": "Sailorman Store",
      "user": "hksailorman",
      "country": "HK",
@@ -2623,6 +2824,7 @@
      "color": "White"
     },
     {
+     "idInv": 445379483,
      "store": "Brick`d",
      "user": "Hois95",
      "country": "AT",
@@ -2632,6 +2834,7 @@
      "color": "White"
     },
     {
+     "idInv": 499201806,
      "store": "Krazys Bricks",
      "user": "Krazys",
      "country": "SG",
@@ -2641,6 +2844,7 @@
      "color": "White"
     },
     {
+     "idInv": 518078834,
      "store": "BRICK BLUE",
      "user": "BRICK_BLUE",
      "country": "US",
@@ -2650,6 +2854,7 @@
      "color": "White"
     },
     {
+     "idInv": 438393402,
      "store": "Billig's Bricks",
      "user": "billig",
      "country": "FR",
@@ -2669,15 +2874,15 @@
    "colorOk": true,
    "colorName": "White",
    "sold6mNew": {
-    "times": 6390,
-    "qty": 412676,
+    "times": 6393,
+    "qty": 413133,
     "min": 0.31,
     "avg": 4.22,
     "qtyAvg": 3.51
    },
    "forSaleNew": {
-    "lots": 3596,
-    "qty": 389404,
+    "lots": 3595,
+    "qty": 388947,
     "min": 0.84,
     "avg": 4.7,
     "qtyAvg": 5.88
@@ -2685,6 +2890,7 @@
    "sellersShippingToTW": 1181,
    "sellers": [
     {
+     "idInv": 204165146,
      "store": "Mad House Bricks",
      "user": "Virgilnz",
      "country": "NZ",
@@ -2694,6 +2900,7 @@
      "color": "White"
     },
     {
+     "idInv": 537023542,
      "store": "One.brick.a.day",
      "user": "One.brick.a.day",
      "country": "NL",
@@ -2703,6 +2910,7 @@
      "color": "White"
     },
     {
+     "idInv": 548493497,
      "store": "JesusBricks",
      "user": "briyzexo",
      "country": "CA",
@@ -2712,6 +2920,7 @@
      "color": "White"
     },
     {
+     "idInv": 558660697,
      "store": "MoGras pirateshop",
      "user": "gabiatyus",
      "country": "HU",
@@ -2721,6 +2930,7 @@
      "color": "White"
     },
     {
+     "idInv": 555864637,
      "store": "The_brick_room",
      "user": "21Jclark",
      "country": "UK",
@@ -2740,15 +2950,15 @@
    "colorOk": true,
    "colorName": "White",
    "sold6mNew": {
-    "times": 16627,
-    "qty": 891929,
+    "times": 16628,
+    "qty": 891937,
     "min": 0,
     "avg": 1.73,
     "qtyAvg": 1.5
    },
    "forSaleNew": {
     "lots": 5686,
-    "qty": 1355101,
+    "qty": 1355098,
     "min": 0.16,
     "avg": 2.09,
     "qtyAvg": 2.3
@@ -2756,6 +2966,7 @@
    "sellersShippingToTW": 1967,
    "sellers": [
     {
+     "idInv": 556767379,
      "store": "Casper Brick",
      "user": "IndianaJonesBr",
      "country": "US",
@@ -2765,6 +2976,7 @@
      "color": "White"
     },
     {
+     "idInv": 499032321,
      "store": "Krazys Bricks",
      "user": "Krazys",
      "country": "SG",
@@ -2774,6 +2986,7 @@
      "color": "White"
     },
     {
+     "idInv": 555107644,
      "store": "BRICK BLUE",
      "user": "BRICK_BLUE",
      "country": "US",
@@ -2783,6 +2996,7 @@
      "color": "White"
     },
     {
+     "idInv": 236050919,
      "store": "Savage Monkey Bricks",
      "user": "husstler",
      "country": "US",
@@ -2792,6 +3006,7 @@
      "color": "White"
     },
     {
+     "idInv": 557069389,
      "store": "PSYBRICK",
      "user": "MARCO_1980",
      "country": "IT",
@@ -2811,15 +3026,15 @@
    "colorOk": true,
    "colorName": "White",
    "sold6mNew": {
-    "times": 4273,
-    "qty": 274902,
+    "times": 4274,
+    "qty": 274908,
     "min": 0.18,
     "avg": 2.33,
     "qtyAvg": 2.16
    },
    "forSaleNew": {
     "lots": 4044,
-    "qty": 591355,
+    "qty": 591353,
     "min": 0.51,
     "avg": 2.72,
     "qtyAvg": 2.95
@@ -2827,6 +3042,7 @@
    "sellersShippingToTW": 1373,
    "sellers": [
     {
+     "idInv": 410327755,
      "store": "BrickyLand",
      "user": "GKL",
      "country": "LV",
@@ -2836,6 +3052,7 @@
      "color": "White"
     },
     {
+     "idInv": 406786056,
      "store": "BrickyLand",
      "user": "GKL",
      "country": "LV",
@@ -2845,6 +3062,7 @@
      "color": "White"
     },
     {
+     "idInv": 558522003,
      "store": "MoGras pirateshop",
      "user": "gabiatyus",
      "country": "HU",
@@ -2854,6 +3072,7 @@
      "color": "White"
     },
     {
+     "idInv": 518078838,
      "store": "BRICK BLUE",
      "user": "BRICK_BLUE",
      "country": "US",
@@ -2863,6 +3082,7 @@
      "color": "White"
     },
     {
+     "idInv": 550409744,
      "store": "thunders brick den",
      "user": "TMOG217",
      "country": "CA",
@@ -2890,7 +3110,7 @@
    },
    "forSaleNew": {
     "lots": 4309,
-    "qty": 182514,
+    "qty": 182517,
     "min": 0.32,
     "avg": 5.33,
     "qtyAvg": 6.21
@@ -2898,6 +3118,7 @@
    "sellersShippingToTW": 1405,
    "sellers": [
     {
+     "idInv": 558551606,
      "store": "BRICK BLUE",
      "user": "BRICK_BLUE",
      "country": "US",
@@ -2907,6 +3128,7 @@
      "color": "Black"
     },
     {
+     "idInv": 561083139,
      "store": "Tilburg brick",
      "user": "Jorn013",
      "country": "NL",
@@ -2916,6 +3138,7 @@
      "color": "Black"
     },
     {
+     "idInv": 450540653,
      "store": "Living By The Brick",
      "user": "Tom2001",
      "country": "UK",
@@ -2925,6 +3148,7 @@
      "color": "Black"
     },
     {
+     "idInv": 541031262,
      "store": "Bricks by Rens",
      "user": "rensvanineveld",
      "country": "NL",
@@ -2934,6 +3158,7 @@
      "color": "Black"
     },
     {
+     "idInv": 443551354,
      "store": "Pott Bricks",
      "user": "Pottbricks",
      "country": "DE",
@@ -2953,8 +3178,8 @@
    "colorOk": true,
    "colorName": "Black",
    "sold6mNew": {
-    "times": 8430,
-    "qty": 128388,
+    "times": 8432,
+    "qty": 128392,
     "min": 0,
     "avg": 4.91,
     "qtyAvg": 4.59
@@ -2969,6 +3194,7 @@
    "sellersShippingToTW": 1123,
    "sellers": [
     {
+     "idInv": 505353247,
      "store": "Crazy4Bricks",
      "user": "samiraemami",
      "country": "US",
@@ -2978,6 +3204,7 @@
      "color": "Black"
     },
     {
+     "idInv": 558551605,
      "store": "BRICK BLUE",
      "user": "BRICK_BLUE",
      "country": "US",
@@ -2987,6 +3214,7 @@
      "color": "Black"
     },
     {
+     "idInv": 560407869,
      "store": "thunders brick den",
      "user": "TMOG217",
      "country": "CA",
@@ -2996,6 +3224,7 @@
      "color": "Black"
     },
     {
+     "idInv": 544866301,
      "store": "The_brick_room",
      "user": "21Jclark",
      "country": "UK",
@@ -3005,6 +3234,7 @@
      "color": "Black"
     },
     {
+     "idInv": 545876906,
      "store": "The_brick_room",
      "user": "21Jclark",
      "country": "UK",
@@ -3024,22 +3254,23 @@
    "colorOk": true,
    "colorName": "Tan",
    "sold6mNew": {
-    "times": 4247,
-    "qty": 124210,
+    "times": 4249,
+    "qty": 124218,
     "min": 0.09,
     "avg": 1.04,
     "qtyAvg": 0.92
    },
    "forSaleNew": {
-    "lots": 6310,
-    "qty": 690549,
+    "lots": 6309,
+    "qty": 690546,
     "min": 0.16,
     "avg": 1.26,
     "qtyAvg": 1.35
    },
-   "sellersShippingToTW": 1912,
+   "sellersShippingToTW": 1910,
    "sellers": [
     {
+     "idInv": 203737738,
      "store": "Mad House Bricks",
      "user": "Virgilnz",
      "country": "NZ",
@@ -3049,6 +3280,7 @@
      "color": "Tan"
     },
     {
+     "idInv": 364197585,
      "store": "Donbee Bricks",
      "user": "Donbee",
      "country": "US",
@@ -3058,6 +3290,7 @@
      "color": "Tan"
     },
     {
+     "idInv": 494683986,
      "store": "3M Bricks",
      "user": "3M_Bricks",
      "country": "CZ",
@@ -3067,6 +3300,7 @@
      "color": "Tan"
     },
     {
+     "idInv": 156714017,
      "store": "Build☘️zone☘️NO FEE$☘️",
      "user": "Build_Zone",
      "country": "IE",
@@ -3076,6 +3310,7 @@
      "color": "Tan"
     },
     {
+     "idInv": 535241608,
      "store": "OrionBricks",
      "user": "Alexewan2",
      "country": "IE",
@@ -3111,6 +3346,7 @@
    "sellersShippingToTW": 67,
    "sellers": [
     {
+     "idInv": 422402057,
      "store": "LoTi Toys",
      "user": "Loti89",
      "country": "DE",
@@ -3120,6 +3356,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 537145870,
      "store": "Nordic Brix",
      "user": "NordicBrix",
      "country": "EE",
@@ -3129,6 +3366,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 431159574,
      "store": "Sparebrix",
      "user": "rarebrix",
      "country": "UK",
@@ -3138,6 +3376,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 528549266,
      "store": "Tammys Bricks ",
      "user": "tammys.bricks",
      "country": "NL",
@@ -3147,6 +3386,7 @@
      "color": "Dark Bluish Gray"
     },
     {
+     "idInv": 532506444,
      "store": "50% OFF at BSW Bricks",
      "user": "BSW.Bricks",
      "country": "NL",

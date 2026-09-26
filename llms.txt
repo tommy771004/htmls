@@ -152,6 +152,8 @@
 - [133 HALION · THREE PARTS. ONE MIND.](https://htmls-ruddy.vercel.app/web/133-halion.html): Three.js 概念腦機晶片產品網站。冷藍玻璃封裝、中央感應線圈與矽基板依捲動逐件展開；六個零件各有獨立區間與到位標註，結尾重新合攏。手機使用簡化幾何，WebGL 不可用時顯示靜態晶片
 - [151 Crosswind R · 3D 客製公路車](https://htmls-ruddy.vercel.app/web/151-bike-configurator.html): 3D 客製化電商。程序化生成、依真實比例的公路車（每根輻條、每節鏈條）：即時換配色、輪組、輪胎、傳動、把手與坐墊，踩踏帶動齒盤、鏈條與後輪，含即時報價與購物車結帳。
 - [165 守夜 · KEEPWATCH 牠在看](https://htmls-ruddy.vercel.app/web/165-owl-keepwatch.html): 游標追蹤吉祥物落地頁。全程式建模的 3D 貓頭鷹，眼睛與頭用彈簧追著化成螢火蟲的游標，閒置會張望與打盹；注視角度儀表、三種燈色、合成鳴叫與 25 分鐘守夜倒數；需連線載入 Three.js
+- [166 VELORA · REGAL DRIVE](https://htmls-ruddy.vercel.app/web/166-velora-regal-drive.html): 透明玻璃層疊的影片 Hero。滿版背景影片靜音循環且以 JS 強制永不停止，內縮玻璃導覽條、底部玻璃底座，中段的 REGAL DRIVE 是以 SVG 遮罩填入模糊車流的磨砂玻璃字；只做這一個區塊，影片與 Archivo 字體需連線
+- [167 Sabrina Residences · 藍天房產落地頁](https://htmls-ruddy.vercel.app/web/167-sabrina-residences.html): 逐字進場的房產落地頁。藍天漸層上格線生長、房子從底部緩升，大標與標語逐字從模糊浮現；左下影片卡片永不停播、四段進度條可跳段，手機漢堡選單，最新房源可橫滑；字型、圖片與影片需連線
 
 ### 資料科學
 

@@ -92,10 +92,10 @@ img, video, svg { display: block; }
   gap: 12px;
   padding: 24px var(--gutter) 0;
 }
-.logo { justify-self: start; display: inline-flex; }
+.logo { grid-column: 1; justify-self: start; display: inline-flex; }
 .logo svg { width: 40px; height: 30px; }
 
-.nav { display: flex; gap: 1px; }
+.nav { grid-column: 2; display: flex; gap: 1px; }
 .pill {
   display: inline-flex; align-items: center; justify-content: center;
   height: 40px; padding: 0 18px; border-radius: 999px;
@@ -108,7 +108,7 @@ img, video, svg { display: block; }
 .pill.is-home, .pill.is-home:hover { background: #fff; color: #161616; gap: 10px; }
 .pill svg { width: 15px; height: 15px; flex: none; }
 
-.actions { justify-self: end; display: flex; align-items: center; gap: 10px; }
+.actions { grid-column: 3; justify-self: end; display: flex; align-items: center; gap: 10px; }
 .lang {
   display: flex; align-items: center; height: 40px; padding: 3px; border-radius: 999px;
   background: var(--glass);
