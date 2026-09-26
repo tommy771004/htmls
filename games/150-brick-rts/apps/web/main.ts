@@ -46,13 +46,16 @@ function render(){
  el('tick').textContent=String(state.tick);el('hash').textContent=state.stateHash;
  // HUD numbers come straight from the Worker's account projection; nothing is counted in the page.
  const e=state.economy;el('stock').textContent=state.stateHash==='—'?'資源載入中…':`${ageNames[e.age]} · 食物 ${e.stock.food} · 木材 ${e.stock.wood} · 黃金 ${e.stock.gold} · 石頭 ${e.stock.stone} · 人口 ${e.populationUsed}/${e.populationCap}`;
- renderTop();renderBuild();renderBuilding();renderSelection();renderNote();reportTransactions();renderOutcome();renderIdle();
+ renderTop();renderBuild();renderBuilding();renderSelection();renderNote();reportTransactions();reportEvents();renderOutcome();renderIdle();
  const chosen=chosenUnits();
  el('selection-list').textContent=chosen.length>1?chosen.map(u=>`${unitNames[u.kind]} ${u.id} (${(u.x/100).toFixed(1)}, ${(u.y/100).toFixed(1)})：${activity(u)}`).join('　'):'';
  const u=chosen[0];if(!u){el('position').textContent='未選取單位';return;}
  el('position').textContent=`${chosen.length>1?`${chosen.length} 名選取 · `:''}${unitNames[u.kind]} ${u.id} · (${(u.x/100).toFixed(1)}, ${(u.y/100).toFixed(1)}) · ${activity(u)}`;
 }
 function renderTop(){const e=state.economy;for(const r of resources)el(`res-${r}`).textContent=String(e.stock[r]);
+ // Villagers on each resource (walking to it, working it or carrying it home), as the original shows under each icon.
+ const crews:Record<string,number>={food:0,wood:0,gold:0,stone:0};for(const u of ownUnits())if(u.workResource&&u.work&&u.work!=='toSite'&&u.work!=='building')crews[u.workResource]++;
+ for(const r of resources){const c=el(`crew-${r}`);c.textContent=crews[r]?String(crews[r]):'';c.title=`${crews[r]} 名村民採${resourceNames[r]}`;}
  el('res-pop').textContent=`${e.populationUsed}/${e.populationCap}`;el('pop').classList.toggle('full',e.populationCap>0&&e.populationUsed+e.populationReserved>=e.populationCap);
  el('pop').title=`人口 ${e.populationUsed}／上限 ${e.populationCap}${e.populationReserved?`（佇列保留 ${e.populationReserved}）`:''}`;
  el('age-name').textContent=ageNames[e.age];const t=Math.floor(state.tick/rules.settings.tickHz),mm=Math.floor(t/60),ss=t%60;el('clock').textContent=`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
@@ -89,7 +92,7 @@ function renderBuild(){const show=!selectedBuilding&&villagersIn(selected).lengt
  const reasons=buildKinds.map(k=>[k,buildBlocker(k)] as const).filter(([,w])=>w);
  el('build-reason').textContent=placing?(preview?.problem?`不能放在這裡：${preview.problem}`:`左鍵放置${buildingNames[placing]}；Shift＋左鍵連續放置；右鍵或 Esc 取消。`):reasons.length===buildKinds.length&&reasons[0][1]==='先選取村民'?'先選取村民才能建造。':reasons.map(([k,w])=>`${buildingNames[k]}：${w}`).join('　');
  el('stop').hidden=!!selectedBuilding||!chosenUnits().length;}
-function renderBuilding(){const panel=el('building-panel'),b=state.buildings.find(b=>b.id===selectedBuilding);panel.hidden=!b;
+function renderBuilding(){const panel=el('building-panel'),b=state.buildings.find(b=>b.id===selectedBuilding);panel.hidden=!b;scene?.setRally(b?.rally?{x:b.rally.x/100,z:b.rally.y/100}:null);
  const cancel=el<HTMLButtonElement>('cancel-build');cancel.hidden=!b||b.complete;el('production').hidden=!b;if(!b){el('production-reason').textContent='';return;}
  const builders=state.units.filter(u=>u.work==='building'||u.work==='toSite').length;
  el('building-title').textContent=buildingNames[b.kind]??b.kind;const housing=buildingRules.capacity[b.kind as keyof typeof buildingRules.capacity]??0;
@@ -119,6 +122,22 @@ function renderSelection(){const chosen=chosenUnits(),b=state.buildings.find(v=>
 // Conquest result from the Worker; the sim refuses further orders, so the only action offered is a new game.
 function renderOutcome(){const o=state.outcome,box=el('result');box.hidden=!o;if(!o)return;const won=o.winner===0;
  el('result-title').textContent=won?'勝利':o.winner===null?'雙方同歸於盡':'戰敗';el('result-detail').textContent=`${el('clock').textContent}（tick ${o.tick}）：${won?'紅方已沒有任何單位與建築。':'藍方已沒有任何單位與建築。'}`;if(running)setRunning(false);renderPaused();}
+// Event feed (top left, like the original): what happened to the player's side since the last view.
+let previous:View|null=null,lastAlarm=-1e9;
+function feed(text:string,kind='info'){const list=el('events'),li=document.createElement('li');li.textContent=text;li.dataset.kind=kind;list.append(li);while(list.children.length>5)list.firstElementChild!.remove();window.setTimeout(()=>li.remove(),12000);}
+function reportEvents(){const before=previous;previous=state;if(!before||state.tick<=before.tick||state.seed!==before.seed)return;
+ const had=new Set(before.units.map(u=>u.id));for(const u of ownUnits())if(!had.has(u.id))feed(`${unitNames[u.kind]}已生產`);
+ const old=new Map(before.buildings.map(b=>[b.id,b]));
+ for(const b of state.buildings){const o=old.get(b.id);if(o&&!o.complete&&b.complete)feed(`${buildingNames[b.kind]??b.kind}已建造`);}
+ // Foundations that vanish were cancelled or razed before completion: no message (the order's own notice covers a cancel).
+ for(const o of before.buildings)if(!state.buildings.some(b=>b.id===o.id)){
+  const field=before.resources.find(r=>r.id===`resource-${o.id}`);if(o.kind==='farm'&&field&&field.remaining<=economyRules.carryCapacity)feed('農田耗盡');else if(o.complete)feed(`${buildingNames[o.kind]??o.kind}被摧毀`,'alarm');}
+ if(state.economy.age>before.economy.age)feed(`已升上${ageNames[state.economy.age]}`);
+ // Under attack: any own unit or building lost health; at most one warning every 10 seconds.
+ const hp=new Map([...before.units.filter(u=>u.player===0).map(u=>[`u${u.id}`,u.hp] as const),...before.buildings.map(b=>[`b${b.id}`,b.hp] as const)]);
+ const hurt=[...ownUnits().filter(u=>(hp.get(`u${u.id}`)??u.hp)>u.hp).map(u=>({x:u.x,y:u.y})),...state.buildings.filter(b=>(hp.get(`b${b.id}`)??b.hp)>b.hp).map(b=>({x:b.x+100,y:b.y+100}))];
+ if(hurt.length&&state.tick-lastAlarm>=10*rules.settings.tickHz){lastAlarm=state.tick;feed('警告：你正在被紅方攻擊！','alarm');ping={x:hurt[0].x/100,z:hurt[0].y/100,until:performance.now()+3000};miniKey='';}}
+let ping:{x:number;z:number;until:number}|null=null;
 function reportTransactions(){for(const t of state.transactions)if(t.sequence>lastTransaction){lastTransaction=t.sequence;if(!t.ok)notice(`指令在 tick ${t.tick} 未執行：${t.error}`);}}
 function selectBuilding(id:string|null){selectedBuilding=id;if(id)select([]);render();}
 function buildingAt(x:number,y:number,id?:string){if(id){const o=state.known.map(k=>k.obstacle).find(o=>o.id===id&&!o.red);if(o)return o;}const p={x:Math.round(x*100),y:Math.round(y*100)};return state.known.map(k=>k.obstacle).find(o=>homeKinds.has(o.kind)&&!o.red&&(()=>{const [x0,y0,x1,y1]=obstacleBounds(o);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;})());}
@@ -169,7 +188,7 @@ el('commands').addEventListener('pointerleave',()=>{tipTile=null;renderNote();})
 el('commands').addEventListener('focusin',e=>{tipTile=(e.target as HTMLElement).closest('button.tile');renderNote();});el('commands').addEventListener('focusout',()=>{tipTile=null;renderNote();});
 async function train(buildingId:string,entryId:string){try{await client.request({kind:'train',buildingId,entryId});notice(`${entryName(entryId)}將在 tick ${state.tick+1} 加入佇列並扣除 ${costText(entryId)}。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
 async function cancelTrain(buildingId:string,itemId:number){try{const q=state.buildings.find(b=>b.id===buildingId)?.queue.find(q=>q.id===itemId);await client.request({kind:'cancelTrain',buildingId,itemId});notice(`已取消${q?entryName(q.entryId):'項目'}，全額退回。`);}catch(e){notice(reason(e));}}
-async function rally(buildingId:string,x:number,y:number){const to=openPoint(x,y);try{await client.request({kind:'rally',buildingId,x:to.x,y:to.y});notice(`集結點設在 (${(to.x/100).toFixed(1)}, ${(to.y/100).toFixed(1)})。`);}catch(e){notice(reason(e));}}
+async function rally(buildingId:string,x:number,y:number){const to=openPoint(x,y);scene?.setMarker('rally',to.x/100,to.y/100);try{await client.request({kind:'rally',buildingId,x:to.x,y:to.y});notice(`集結點設在 (${(to.x/100).toFixed(1)}, ${(to.y/100).toFixed(1)})。`);}catch(e){notice(reason(e));}}
 function toggle(id:number){const next=new Set(selected);if(next.has(id))next.delete(id);else next.add(id);select(next);}
 el<HTMLSelectElement>('opponent').value=debug?'idle':'ai';
 const client=new SimulationClient(rules.settings.seed,debug?'idle':'ai',v=>{state=v;render();},reason=>{connected=false;setRunning(false);toggleControls();notice(reason);el('worker-retry').hidden=false;});
@@ -189,7 +208,7 @@ function openPoint(x:number,y:number){const map={obstacles:state.known.map(k=>k.
  return p0;}
 async function move(x:number,y:number,exact=false){const unitIds=[...selected].sort((a,b)=>a-b);if(!unitIds.length){notice('請先選取單位：左鍵點選或拖曳框選。');return;}
  // The debug coordinate button sends exactly what was typed, so the Worker's own validation stays reachable.
- const to=exact?{x:Math.round(x*100),y:Math.round(y*100)}:openPoint(x,y);
+ const to=exact?{x:Math.round(x*100),y:Math.round(y*100)}:openPoint(x,y);scene?.setMarker('move',to.x/100,to.y/100);
  try{await client.request({kind:'move',unitIds,x:to.x,y:to.y});notice(`${names(unitIds)} 的移動指令已排入 tick ${state.tick+1}。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
 async function gather(resourceId:string){const unitIds=villagersIn(selected);if(!unitIds.length){notice(selected.size?'所選單位中沒有村民，不能採集。':'請先選取村民。');return;}
  try{await client.request({kind:'gather',unitIds,resourceId});notice(`${names(unitIds)} 前往採集。${leftOut(unitIds)}${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
@@ -219,10 +238,10 @@ canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed)return;
  if(e.button===2&&state.outcome){e.preventDefault();notice('對局已結束：按「再開一局」開始新遊戲。');return;}
  if(e.button===2){e.preventDefault();endDrag();const hit=scene.pickGround(e.clientX,e.clientY);if(hit.x===undefined||hit.y===undefined||hit.x<.5||hit.x>15.5||hit.y<.5||hit.y>15.5){notice('請在地圖內側的地面按右鍵。');return;}
   if(selectedBuilding&&!selected.size){orderAtGround(hit.x,hit.y);return;}// Enemy unit under the cursor, then enemy building: attack orders.
-  if(selected.size){const u=scene.pick(e.clientX,e.clientY);const foe=u.unitId!==undefined?state.units.find(v=>v.id===u.unitId&&v.player!==0):undefined;if(foe){void attack({kind:'unit',id:foe.id},`紅方${unitNames[foe.kind]}`);return;}
-   const fort=enemyBuildingAt(hit.x,hit.y,scene.pickBuilding(e.clientX,e.clientY));if(fort){void attack({kind:'building',id:fort.id!},`紅方${buildingNames[fort.kind]}`);return;}}
+  if(selected.size){const u=scene.pick(e.clientX,e.clientY);const foe=u.unitId!==undefined?state.units.find(v=>v.id===u.unitId&&v.player!==0):undefined;if(foe){scene.setMarker('attack',foe.x/100,foe.y/100);void attack({kind:'unit',id:foe.id},`紅方${unitNames[foe.kind]}`);return;}
+   const fort=enemyBuildingAt(hit.x,hit.y,scene.pickBuilding(e.clientX,e.clientY));if(fort){{const [x0,y0,x1,y1]=obstacleBounds(fort);scene.setMarker('attack',(x0+x1)/200,(y0+y1)/200);}void attack({kind:'building',id:fort.id!},`紅方${buildingNames[fort.kind]}`);return;}}
   const site=buildingAt(hit.x,hit.y,scene.pickBuilding(e.clientX,e.clientY)),own=site?state.buildings.find(b=>b.id===site.id):undefined;if(own&&!own.complete&&selected.size){void construct(own.id);return;}
-  const r=resourceAt(hit.x,hit.y);if(r){void gather(r.id);return;}void move(hit.x,hit.y);return;}
+  const r=resourceAt(hit.x,hit.y);if(r){scene.setMarker('gather',hit.x,hit.y);void gather(r.id);return;}void move(hit.x,hit.y);return;}
  if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId,box:false};canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;if(!drag.box&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>=4)drag.box=true;if(drag.box)showBox(drag.x,drag.y,e.clientX,e.clientY);});
 canvas.addEventListener('pointercancel',endDrag);
@@ -254,6 +273,8 @@ function drawMinimap(){if(!scene||graphicsFailed||!mctx)return;const g=miniGeome
  for(const k of state.known){const o=k.obstacle,[x0,y0,x1,y1]=obstacleBounds(o),home=homeKinds.has(o.kind);
   ctx.fillStyle=o.kind==='farm'?(o.red?'#b58a62':'#a99a5e'):home?(o.red?'#d0664c':'#5d93b6'):obstacleColor[o.kind]??'#c8c2a8';if((state.fog[Math.floor(o.y/100)*16+Math.floor(o.x/100)]??0)<2&&!home)ctx.fillStyle=shade(ctx.fillStyle as string,.6);quad(x0/100,y0/100,x1/100,y1/100);}
  for(const u of state.units){const [px,py]=g.P(u.x/100,u.y/100);ctx.fillStyle=u.player===0?(selected.has(u.id)?'#fff4c4':'#7fb6dc'):'#ee7b5f';ctx.strokeStyle='#15201b';ctx.lineWidth=1;ctx.beginPath();ctx.rect(px-2.2,py-2.2,4.4,4.4);ctx.fill();ctx.stroke();}
+ // Attack ping: a red ring where the warning came from, shrinking over three seconds.
+ if(ping){const left=ping.until-performance.now();if(left<=0)ping=null;else{const [px,py]=g.P(ping.x,ping.z);ctx.strokeStyle='#ff6a4d';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,4+10*left/3000,0,Math.PI*2);ctx.stroke();miniKey='';}}
  const [cx,cy]=g.P(g.v.x,g.v.z);ctx.strokeStyle='#f3ead0';ctx.lineWidth=1.5;ctx.strokeRect(cx-g.v.halfW*g.s,cy-g.v.halfH*g.s,2*g.v.halfW*g.s,2*g.v.halfH*g.s);}
 let miniDrag=-1;
 mini.addEventListener('contextmenu',e=>e.preventDefault());
@@ -302,9 +323,9 @@ el('move').onclick=()=>{const x=el<HTMLInputElement>('target-x'),y=el<HTMLInputE
 el('pause').onclick=()=>{if(!state.outcome)setRunning(!running);};
 el<HTMLSelectElement>('speed').onchange=e=>{speed=Number((e.target as HTMLSelectElement).value);accumulator=0;if(running)setRunning(true);notice(`遊戲速度 ${speed}×（每秒 ${20*speed} ticks，不跳過任何 tick）。`);};
 el('step').onclick=async()=>{try{await client.request({kind:'advance',count:1});}catch(e){setRunning(false);notice(reason(e));}};
-el('restart').onclick=async()=>{closeMenu(false);setRunning(false);try{const input=el<HTMLInputElement>('seed');if(input.value==='')throw Error('請輸入種子');await client.request({kind:'reset',seed:Number(input.value),layout:el<HTMLSelectElement>('layout').value as MapLayout,opponent:el<HTMLSelectElement>('opponent').value as 'ai'|'idle'});choose(1);lastTransaction=0;notice('已建立新沙盒：新遊戲開始。先前的手動存檔仍然保留。');autoStart();}catch(e){notice(reason(e));}};
+el('restart').onclick=async()=>{closeMenu(false);setRunning(false);try{const input=el<HTMLInputElement>('seed');if(input.value==='')throw Error('請輸入種子');await client.request({kind:'reset',seed:Number(input.value),layout:el<HTMLSelectElement>('layout').value as MapLayout,opponent:el<HTMLSelectElement>('opponent').value as 'ai'|'idle'});choose(1);lastTransaction=0;previous=null;el('events').replaceChildren();notice('已建立新沙盒：新遊戲開始。先前的手動存檔仍然保留。');autoStart();}catch(e){notice(reason(e));}};
 el('save').onclick=async()=>{try{const result=await client.request({kind:'snapshot'});localStorage.setItem('brick-rts:sandbox:1',result.snapshot!);notice(`已儲存 tick ${result.tick} 的遊戲。`);}catch(e){notice(`儲存失敗：${(e as Error).message}。先前存檔保留。`);}closeMenu();};
-el('load').onclick=async()=>{closeMenu(false);setRunning(false);try{const raw=localStorage.getItem('brick-rts:sandbox:1');if(!raw)throw Error('尚無手動存檔。');await client.request({kind:'restore',snapshot:raw});el<HTMLInputElement>('seed').value=String(state.seed);el<HTMLSelectElement>('layout').value=state.layout;el<HTMLSelectElement>('opponent').value=state.opponent;choose(1);notice(`已恢復 tick ${state.tick} 的遊戲。`);autoStart();}catch(e){notice(`讀取失敗：${(e as Error).message}。目前遊戲保留。`);}};
+el('load').onclick=async()=>{closeMenu(false);setRunning(false);try{const raw=localStorage.getItem('brick-rts:sandbox:1');if(!raw)throw Error('尚無手動存檔。');await client.request({kind:'restore',snapshot:raw});el<HTMLInputElement>('seed').value=String(state.seed);el<HTMLSelectElement>('layout').value=state.layout;el<HTMLSelectElement>('opponent').value=state.opponent;choose(1);previous=null;el('events').replaceChildren();notice(`已恢復 tick ${state.tick} 的遊戲。`);autoStart();}catch(e){notice(`讀取失敗：${(e as Error).message}。目前遊戲保留。`);}};
 el('replay').onclick=async()=>{closeMenu(false);setRunning(false);try{const result=await client.request({kind:'replay'});notice(result.replayMatches?`重播一致：${result.tick} ticks，指紋 ${result.stateHash}。`:'重播不一致，請保留目前狀態回報。');}catch(e){notice(`重播失敗：${(e as Error).message}`);}if(menuResume)autoStart();};
 const editor=el<HTMLTextAreaElement>('rules-json');const reset=()=>{editor.value=JSON.stringify(rules,null,2);el('validation').textContent='尚未驗證編輯內容。';};reset();
 el('reset-rules').onclick=reset;

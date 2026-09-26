@@ -627,17 +627,17 @@ function createDetailController(T) {
     });
   }
   function withSelectionGeometry(root, read) {
-    const previous = /* @__PURE__ */ new Map();
+    const previous2 = /* @__PURE__ */ new Map();
     root.traverse((o) => {
       if (o.isMesh && detailed.has(o.geometry)) {
-        previous.set(o, o.geometry);
+        previous2.set(o, o.geometry);
         o.geometry = detailed.get(o.geometry);
       }
     });
     try {
       return read();
     } finally {
-      for (const [mesh, geometry] of previous) mesh.geometry = geometry;
+      for (const [mesh, geometry] of previous2) mesh.geometry = geometry;
     }
   }
   function dispose() {
@@ -1325,7 +1325,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     const ring = new T.Mesh(ringGeo, ringMaterial);
     ring.position.y = 0.025;
     group.add(ring);
-    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill });
+    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill, goal: null });
     return units.get(id);
   }
   let previewRole = "villager";
@@ -1372,9 +1372,11 @@ async function createScene(canvas2, onFailure, options = {}) {
     }
     for (const data of view.units) {
       const u = units.get(data.id) ?? unit(data.id, data.player, data.kind);
-      const dx = data.x / 100 - u.group.position.x, dz = data.y / 100 - u.group.position.z;
+      const goal = new T.Vector3(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100), from = u.goal ?? u.group.position;
+      const dx = goal.x - from.x, dz = goal.z - from.z;
       if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
-      u.group.position.set(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100);
+      if (!u.goal || options.assetPreview || u.group.position.distanceTo(goal) > 1.5) u.group.position.copy(goal);
+      u.goal = goal;
       u.ring.visible = selected2.has(data.id);
       u.moving = data.navigation === "moving";
       if (!options.assetPreview && (data.work === "gathering" || data.action === 1) && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
@@ -1461,9 +1463,17 @@ async function createScene(canvas2, onFailure, options = {}) {
     }
     return out.sort((a, b) => a - b);
   }
+  let lastDraw = 0;
   function draw(time) {
     if (contextLost) return;
     resize();
+    const dt = lastDraw ? Math.min(100, Math.max(0, time - lastDraw)) : 0, ease = 1 - Math.exp(-dt / 60);
+    lastDraw = time;
+    for (const u of units.values()) if (u.goal) {
+      if (u.group.position.distanceTo(u.goal) < 2e-3) u.group.position.copy(u.goal);
+      else u.group.position.lerp(u.goal, ease);
+    }
+    stepMarker(time);
     for (const u of units.values()) {
       const pose = options.assetPreview ? previewPose : u.activity;
       u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : pose === "hit" ? time - u.poseStart : time);
@@ -1480,6 +1490,47 @@ async function createScene(canvas2, onFailure, options = {}) {
   });
   canvas2.dataset.renderer = "webgl2";
   canvas2.dataset.renderState = "ready";
+  const markerGroup = new T.Group(), markerRing = new T.Mesh(new T.RingGeometry(0.22, 0.3, 24), new T.MeshBasicMaterial({ color: "#fff2a1", transparent: true, side: T.DoubleSide, depthWrite: false }));
+  markerRing.rotation.x = -Math.PI / 2;
+  const markerCross = [0, 1].map((i) => {
+    const m = new T.Mesh(new T.BoxGeometry(0.42, 0.02, 0.07), markerRing.material);
+    m.rotation.y = Math.PI / 4 + i * Math.PI / 2;
+    return m;
+  });
+  markerGroup.add(markerRing, ...markerCross);
+  markerGroup.visible = false;
+  scene2.add(markerGroup);
+  let markerStart = 0;
+  const markerColors = { move: "#fff2a1", gather: "#bfe38a", attack: "#e2573f", rally: "#9cc8e6" };
+  function setMarker(kind, x, z) {
+    markerRing.material.color.set(markerColors[kind] ?? "#fff2a1");
+    markerGroup.position.set(x, groundHeight(worldTiles, x * 100, z * 100) / 100 + 0.06, z);
+    markerGroup.visible = true;
+    markerStart = 0;
+  }
+  function stepMarker(time) {
+    if (!markerGroup.visible) return;
+    if (!markerStart) markerStart = time;
+    const t = (time - markerStart) / 700;
+    if (t >= 1) {
+      markerGroup.visible = false;
+      return;
+    }
+    markerRing.material.opacity = 1 - t;
+    markerGroup.scale.setScalar(1 + 0.35 * t);
+  }
+  const rallyFlag = new T.Group();
+  {
+    const pole = new T.Mesh(box2(0.05, 0.9, 0.05), material("#80674f")), cloth = new T.Mesh(box2(0.32, 0.2, 0.03), material("#456e87"));
+    cloth.position.set(0.17, 0.66, 0);
+    rallyFlag.add(pole, cloth);
+  }
+  rallyFlag.visible = false;
+  scene2.add(rallyFlag);
+  function setRally(p) {
+    rallyFlag.visible = !!p;
+    if (p) rallyFlag.position.set(p.x, groundHeight(worldTiles, p.x * 100, p.z * 100) / 100, p.z);
+  }
   const ghost = new T.Mesh(new T.BoxGeometry(1, 0.3, 1), new T.MeshBasicMaterial({ color: "#6f9d6a", transparent: true, opacity: 0.42, depthWrite: false }));
   ghost.visible = false;
   scene2.add(ghost);
@@ -1580,6 +1631,8 @@ async function createScene(canvas2, onFailure, options = {}) {
     pick,
     pickGround,
     pickBuilding,
+    setMarker,
+    setRally,
     unitsInRect,
     setGhost,
     renderIcons,
@@ -1978,6 +2031,7 @@ function render() {
   renderSelection();
   renderNote();
   reportTransactions();
+  reportEvents();
   renderOutcome();
   renderIdle();
   const chosen = chosenUnits();
@@ -1992,6 +2046,13 @@ function render() {
 function renderTop() {
   const e = state.economy;
   for (const r of resources) el(`res-${r}`).textContent = String(e.stock[r]);
+  const crews = { food: 0, wood: 0, gold: 0, stone: 0 };
+  for (const u of ownUnits()) if (u.workResource && u.work && u.work !== "toSite" && u.work !== "building") crews[u.workResource]++;
+  for (const r of resources) {
+    const c = el(`crew-${r}`);
+    c.textContent = crews[r] ? String(crews[r]) : "";
+    c.title = `${crews[r]} \u540D\u6751\u6C11\u63A1${resourceNames[r]}`;
+  }
   el("res-pop").textContent = `${e.populationUsed}/${e.populationCap}`;
   el("pop").classList.toggle("full", e.populationCap > 0 && e.populationUsed + e.populationReserved >= e.populationCap);
   el("pop").title = `\u4EBA\u53E3 ${e.populationUsed}\uFF0F\u4E0A\u9650 ${e.populationCap}${e.populationReserved ? `\uFF08\u4F47\u5217\u4FDD\u7559 ${e.populationReserved}\uFF09` : ""}`;
@@ -2095,6 +2156,7 @@ function renderBuild() {
 function renderBuilding() {
   const panel = el("building-panel"), b = state.buildings.find((b2) => b2.id === selectedBuilding);
   panel.hidden = !b;
+  scene?.setRally(b?.rally ? { x: b.rally.x / 100, z: b.rally.y / 100 } : null);
   const cancel = el("cancel-build");
   cancel.hidden = !b || b.complete;
   el("production").hidden = !b;
@@ -2201,6 +2263,43 @@ function renderOutcome() {
   if (running) setRunning(false);
   renderPaused();
 }
+var previous = null;
+var lastAlarm = -1e9;
+function feed(text, kind = "info") {
+  const list = el("events"), li = document.createElement("li");
+  li.textContent = text;
+  li.dataset.kind = kind;
+  list.append(li);
+  while (list.children.length > 5) list.firstElementChild.remove();
+  window.setTimeout(() => li.remove(), 12e3);
+}
+function reportEvents() {
+  const before = previous;
+  previous = state;
+  if (!before || state.tick <= before.tick || state.seed !== before.seed) return;
+  const had = new Set(before.units.map((u) => u.id));
+  for (const u of ownUnits()) if (!had.has(u.id)) feed(`${unitNames[u.kind]}\u5DF2\u751F\u7522`);
+  const old = new Map(before.buildings.map((b) => [b.id, b]));
+  for (const b of state.buildings) {
+    const o = old.get(b.id);
+    if (o && !o.complete && b.complete) feed(`${buildingNames2[b.kind] ?? b.kind}\u5DF2\u5EFA\u9020`);
+  }
+  for (const o of before.buildings) if (!state.buildings.some((b) => b.id === o.id)) {
+    const field = before.resources.find((r) => r.id === `resource-${o.id}`);
+    if (o.kind === "farm" && field && field.remaining <= economyRules.carryCapacity) feed("\u8FB2\u7530\u8017\u76E1");
+    else if (o.complete) feed(`${buildingNames2[o.kind] ?? o.kind}\u88AB\u6467\u6BC0`, "alarm");
+  }
+  if (state.economy.age > before.economy.age) feed(`\u5DF2\u5347\u4E0A${ageNames[state.economy.age]}`);
+  const hp = new Map([...before.units.filter((u) => u.player === 0).map((u) => [`u${u.id}`, u.hp]), ...before.buildings.map((b) => [`b${b.id}`, b.hp])]);
+  const hurt = [...ownUnits().filter((u) => (hp.get(`u${u.id}`) ?? u.hp) > u.hp).map((u) => ({ x: u.x, y: u.y })), ...state.buildings.filter((b) => (hp.get(`b${b.id}`) ?? b.hp) > b.hp).map((b) => ({ x: b.x + 100, y: b.y + 100 }))];
+  if (hurt.length && state.tick - lastAlarm >= 10 * rules.settings.tickHz) {
+    lastAlarm = state.tick;
+    feed("\u8B66\u544A\uFF1A\u4F60\u6B63\u5728\u88AB\u7D05\u65B9\u653B\u64CA\uFF01", "alarm");
+    ping = { x: hurt[0].x / 100, z: hurt[0].y / 100, until: performance.now() + 3e3 };
+    miniKey = "";
+  }
+}
+var ping = null;
 function reportTransactions() {
   for (const t of state.transactions) if (t.sequence > lastTransaction) {
     lastTransaction = t.sequence;
@@ -2371,7 +2470,7 @@ function tileCard(btn) {
   }
   card.append(cost);
   const housing = buildingRules.capacity[id];
-  line("meta", [`${e.time} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : ""].filter(Boolean).join(" \xB7 "));
+  line("meta", [`${e.time} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "", id === "farm" ? `\u5B8C\u5DE5\u5F8C\u53EF\u8015\u4F5C ${terrainRules.resourceCapacity.farm} \u98DF\u7269\uFF0C\u53EF\u4EE5\u8D70\u4E0A\u53BB` : ""].filter(Boolean).join(" \xB7 "));
   if (why) line("why", why);
   return card;
 }
@@ -2430,6 +2529,7 @@ async function cancelTrain(buildingId, itemId) {
 }
 async function rally(buildingId, x, y) {
   const to = openPoint(x, y);
+  scene?.setMarker("rally", to.x / 100, to.y / 100);
   try {
     await client.request({ kind: "rally", buildingId, x: to.x, y: to.y });
     notice(`\u96C6\u7D50\u9EDE\u8A2D\u5728 (${(to.x / 100).toFixed(1)}, ${(to.y / 100).toFixed(1)})\u3002`);
@@ -2504,6 +2604,7 @@ async function move(x, y, exact = false) {
     return;
   }
   const to = exact ? { x: Math.round(x * 100), y: Math.round(y * 100) } : openPoint(x, y);
+  scene?.setMarker("move", to.x / 100, to.y / 100);
   try {
     await client.request({ kind: "move", unitIds, x: to.x, y: to.y });
     notice(`${names2(unitIds)} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : resumeHint()}`);
@@ -2653,11 +2754,16 @@ canvas.addEventListener("pointerdown", (e) => {
       const u = scene.pick(e.clientX, e.clientY);
       const foe = u.unitId !== void 0 ? state.units.find((v) => v.id === u.unitId && v.player !== 0) : void 0;
       if (foe) {
+        scene.setMarker("attack", foe.x / 100, foe.y / 100);
         void attack({ kind: "unit", id: foe.id }, `\u7D05\u65B9${unitNames[foe.kind]}`);
         return;
       }
       const fort = enemyBuildingAt(hit.x, hit.y, scene.pickBuilding(e.clientX, e.clientY));
       if (fort) {
+        {
+          const [x0, y0, x1, y1] = obstacleBounds(fort);
+          scene.setMarker("attack", (x0 + x1) / 200, (y0 + y1) / 200);
+        }
         void attack({ kind: "building", id: fort.id }, `\u7D05\u65B9${buildingNames2[fort.kind]}`);
         return;
       }
@@ -2669,6 +2775,7 @@ canvas.addEventListener("pointerdown", (e) => {
     }
     const r = resourceAt(hit.x, hit.y);
     if (r) {
+      scene.setMarker("gather", hit.x, hit.y);
       void gather(r.id);
       return;
     }
@@ -2793,6 +2900,19 @@ function drawMinimap() {
     ctx.rect(px - 2.2, py - 2.2, 4.4, 4.4);
     ctx.fill();
     ctx.stroke();
+  }
+  if (ping) {
+    const left = ping.until - performance.now();
+    if (left <= 0) ping = null;
+    else {
+      const [px, py] = g.P(ping.x, ping.z);
+      ctx.strokeStyle = "#ff6a4d";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(px, py, 4 + 10 * left / 3e3, 0, Math.PI * 2);
+      ctx.stroke();
+      miniKey = "";
+    }
   }
   const [cx, cy] = g.P(g.v.x, g.v.z);
   ctx.strokeStyle = "#f3ead0";
@@ -3038,6 +3158,8 @@ el("restart").onclick = async () => {
     await client.request({ kind: "reset", seed: Number(input.value), layout: el("layout").value, opponent: el("opponent").value });
     choose(1);
     lastTransaction = 0;
+    previous = null;
+    el("events").replaceChildren();
     notice("\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\uFF1A\u65B0\u904A\u6232\u958B\u59CB\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002");
     autoStart();
   } catch (e) {
@@ -3065,6 +3187,8 @@ el("load").onclick = async () => {
     el("layout").value = state.layout;
     el("opponent").value = state.opponent;
     choose(1);
+    previous = null;
+    el("events").replaceChildren();
     notice(`\u5DF2\u6062\u5FA9 tick ${state.tick} \u7684\u904A\u6232\u3002`);
     autoStart();
   } catch (e) {

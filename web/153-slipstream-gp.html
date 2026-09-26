@@ -833,12 +833,14 @@ function shade(hex, k) { const c = new THREE.Color(hex); const h = {}; c.getHSL(
 const HEAD_Y = 1.72;
 function driverHead(id, P, parts) {
   const hx = 0, hy = HEAD_Y, hz = -0.12;
-  const eye = (x, y, z, s = 0.13) => { parts.push(P.sph, '#fbfbf8', x, y, z, s, s, s); parts.push(P.sph, '#15110c', x, y, z + s * 0.35, s * 0.55, s * 0.55, s * 0.55); };
+  // eyes：會眨眼的部分；top：耳朵、帽子、天線，會隨頭部晃動
+  const E = parts.eyes || parts, U = parts.top || parts;
+  const eye = (x, y, z, s = 0.13) => { E.push(P.sph, '#fbfbf8', x, y, z, s, s, s); E.push(P.sph, '#15110c', x, y, z + s * 0.35, s * 0.55, s * 0.55, s * 0.55); };
   switch (id) {
     case 'kiko':
       parts.push(P.sph, '#e8702a', hx, hy, hz, 0.9, 0.82, 0.86);
-      parts.push(P.cone4, '#e8702a', -0.28, hy + 0.5, hz - 0.05, 0.3, 0.42, 0.18, 0, 0, 0.25); parts.push(P.cone4, '#e8702a', 0.28, hy + 0.5, hz - 0.05, 0.3, 0.42, 0.18, 0, 0, -0.25);
-      parts.push(P.cone4, '#15110c', -0.3, hy + 0.66, hz - 0.05, 0.12, 0.14, 0.08, 0, 0, 0.25); parts.push(P.cone4, '#15110c', 0.3, hy + 0.66, hz - 0.05, 0.12, 0.14, 0.08, 0, 0, -0.25);
+      U.push(P.cone4, '#e8702a', -0.28, hy + 0.5, hz - 0.05, 0.3, 0.42, 0.18, 0, 0, 0.25); U.push(P.cone4, '#e8702a', 0.28, hy + 0.5, hz - 0.05, 0.3, 0.42, 0.18, 0, 0, -0.25);
+      U.push(P.cone4, '#15110c', -0.3, hy + 0.66, hz - 0.05, 0.12, 0.14, 0.08, 0, 0, 0.25); U.push(P.cone4, '#15110c', 0.3, hy + 0.66, hz - 0.05, 0.12, 0.14, 0.08, 0, 0, -0.25);
       parts.push(P.cone, '#fff1dc', hx, hy - 0.1, hz + 0.48, 0.36, 0.42, 0.3, Math.PI / 2); parts.push(P.sph, '#15110c', hx, hy - 0.1, hz + 0.7, 0.1, 0.1, 0.1);
       eye(-0.17, hy + 0.1, hz + 0.34); eye(0.17, hy + 0.1, hz + 0.34); break;
     case 'pip':
@@ -850,21 +852,21 @@ function driverHead(id, P, parts) {
       parts.push(P.sph, '#1b1f2a', hx, hy, hz, 0.86, 0.9, 0.86); parts.push(P.sph, '#f2f2ee', hx, hy - 0.06, hz + 0.16, 0.66, 0.66, 0.6);
       parts.push(P.cone, '#f0a21e', hx, hy - 0.06, hz + 0.52, 0.2, 0.3, 0.14, Math.PI / 2);
       eye(-0.15, hy + 0.1, hz + 0.4, 0.1); eye(0.15, hy + 0.1, hz + 0.4, 0.1);
-      parts.push(P.box, '#1f9aa8', hx, hy + 0.42, hz, 0.9, 0.12, 0.9); parts.push(P.sph, '#fbfbf8', hx, hy + 0.56, hz, 0.2, 0.2, 0.2); break;
+      U.push(P.cyl, '#1f9aa8', hx, hy + 0.42, hz, 0.94, 0.12, 0.94); U.push(P.sph, '#fbfbf8', hx, hy + 0.56, hz, 0.2, 0.2, 0.2); break;
     case 'cog':
       parts.push(P.sph, '#9aa9b8', hx, hy, hz, 0.92, 0.78, 0.84); parts.push(P.cap, '#15110c', hx, hy + 0.04, hz + 0.36, 0.3, 0.3, 0.14, 0, 0, Math.PI / 2);
-      parts.push(P.sph, '#4de0e0', -0.16, hy + 0.04, hz + 0.42, 0.13, 0.11, 0.05); parts.push(P.sph, '#4de0e0', 0.16, hy + 0.04, hz + 0.42, 0.13, 0.11, 0.05);
-      parts.push(P.cyl6, '#5a6672', hx, hy + 0.48, hz, 0.05, 0.36, 0.05); parts.push(P.sph, '#dc3b26', hx, hy + 0.7, hz, 0.16, 0.16, 0.16);
+      E.push(P.sph, '#4de0e0', -0.16, hy + 0.04, hz + 0.42, 0.13, 0.11, 0.05); E.push(P.sph, '#4de0e0', 0.16, hy + 0.04, hz + 0.42, 0.13, 0.11, 0.05);
+      U.push(P.cyl6, '#5a6672', hx, hy + 0.48, hz, 0.05, 0.36, 0.05); U.push(P.sph, '#dc3b26', hx, hy + 0.7, hz, 0.16, 0.16, 0.16);
       parts.push(P.cyl6, '#5a6672', -0.44, hy, hz, 0.2, 0.12, 0.2, 0, 0, Math.PI / 2); parts.push(P.cyl6, '#5a6672', 0.44, hy, hz, 0.2, 0.12, 0.2, 0, 0, Math.PI / 2); break;
     case 'bao':
       parts.push(P.sph, '#f7f5f0', hx, hy, hz, 0.94, 0.84, 0.86);
-      parts.push(P.sph, '#1b1b1b', -0.34, hy + 0.36, hz - 0.04, 0.28, 0.28, 0.2); parts.push(P.sph, '#1b1b1b', 0.34, hy + 0.36, hz - 0.04, 0.28, 0.28, 0.2);
+      U.push(P.sph, '#1b1b1b', -0.34, hy + 0.36, hz - 0.04, 0.28, 0.28, 0.2); U.push(P.sph, '#1b1b1b', 0.34, hy + 0.36, hz - 0.04, 0.28, 0.28, 0.2);
       parts.push(P.sph, '#1b1b1b', -0.18, hy + 0.06, hz + 0.32, 0.24, 0.3, 0.14, 0, 0, 0.5); parts.push(P.sph, '#1b1b1b', 0.18, hy + 0.06, hz + 0.32, 0.24, 0.3, 0.14, 0, 0, -0.5);
-      parts.push(P.sph, '#fbfbf8', -0.17, hy + 0.08, hz + 0.38, 0.08, 0.08, 0.08); parts.push(P.sph, '#fbfbf8', 0.17, hy + 0.08, hz + 0.38, 0.08, 0.08, 0.08);
+      E.push(P.sph, '#fbfbf8', -0.17, hy + 0.08, hz + 0.38, 0.08, 0.08, 0.08); E.push(P.sph, '#fbfbf8', 0.17, hy + 0.08, hz + 0.38, 0.08, 0.08, 0.08);
       parts.push(P.sph, '#1b1b1b', hx, hy - 0.14, hz + 0.42, 0.14, 0.09, 0.08); break;
     case 'tora':
       parts.push(P.sph, '#f39a2b', hx, hy, hz, 0.92, 0.82, 0.86);
-      parts.push(P.sph, '#f39a2b', -0.32, hy + 0.36, hz - 0.04, 0.24, 0.24, 0.14); parts.push(P.sph, '#f39a2b', 0.32, hy + 0.36, hz - 0.04, 0.24, 0.24, 0.14);
+      U.push(P.sph, '#f39a2b', -0.32, hy + 0.36, hz - 0.04, 0.24, 0.24, 0.14); U.push(P.sph, '#f39a2b', 0.32, hy + 0.36, hz - 0.04, 0.24, 0.24, 0.14);
       for (let i = -1; i <= 1; i++) parts.push(P.box, '#1b1b1b', i * 0.14, hy + 0.36, hz + 0.06 + Math.abs(i) * -0.04, 0.06, 0.1, 0.32);
       parts.push(P.box, '#1b1b1b', -0.46, hy, hz, 0.04, 0.08, 0.3); parts.push(P.box, '#1b1b1b', 0.46, hy, hz, 0.04, 0.08, 0.3);
       parts.push(P.sph, '#fff1dc', hx, hy - 0.14, hz + 0.34, 0.5, 0.34, 0.3); parts.push(P.sph, '#e0467c', hx, hy - 0.06, hz + 0.47, 0.1, 0.08, 0.08);
@@ -872,11 +874,11 @@ function driverHead(id, P, parts) {
     case 'gronk':
       parts.push(P.sph, '#3f8f63', hx, hy, hz, 0.86, 0.74, 0.86); parts.push(P.sph, '#3f8f63', hx, hy - 0.1, hz + 0.44, 0.7, 0.46, 0.6);
       parts.push(P.box, '#fbfbf8', hx, hy - 0.2, hz + 0.72, 0.42, 0.06, 0.05);
-      for (let i = 0; i < 3; i++) parts.push(P.cone4, '#f2c230', hx, hy + 0.38 - i * 0.12, hz - 0.2 - i * 0.2, 0.16, 0.28, 0.16, -0.5);
+      for (let i = 0; i < 3; i++) U.push(P.cone4, '#f2c230', hx, hy + 0.38 - i * 0.12, hz - 0.2 - i * 0.2, 0.16, 0.28, 0.16, -0.5);
       eye(-0.24, hy + 0.16, hz + 0.26, 0.12); eye(0.24, hy + 0.16, hz + 0.26, 0.12); break;
     case 'brick':
       parts.push(P.sph, '#d8b48a', hx, hy - 0.04, hz, 1.02, 0.78, 0.84); parts.push(P.box, '#d8b48a', hx, hy - 0.2, hz + 0.34, 0.7, 0.34, 0.3);
-      parts.push(P.box, '#7a5234', -0.46, hy + 0.12, hz, 0.14, 0.34, 0.24, 0, 0, -0.4); parts.push(P.box, '#7a5234', 0.46, hy + 0.12, hz, 0.14, 0.34, 0.24, 0, 0, 0.4);
+      U.push(P.sph, '#7a5234', -0.46, hy + 0.08, hz, 0.18, 0.42, 0.28, 0, 0, -0.4); U.push(P.sph, '#7a5234', 0.46, hy + 0.08, hz, 0.18, 0.42, 0.28, 0, 0, 0.4);
       parts.push(P.box, '#fbfbf8', -0.18, hy - 0.26, hz + 0.5, 0.08, 0.1, 0.05); parts.push(P.box, '#fbfbf8', 0.18, hy - 0.26, hz + 0.5, 0.08, 0.1, 0.05);
       parts.push(P.sph, '#15110c', hx, hy - 0.06, hz + 0.5, 0.2, 0.12, 0.1);
       eye(-0.2, hy + 0.14, hz + 0.34, 0.1); eye(0.2, hy + 0.14, hz + 0.34, 0.1);
@@ -885,6 +887,79 @@ function driverHead(id, P, parts) {
 }
 // 車身以膠囊、球體組成圓潤的玩具車；車手是大頭 Q 版比例
 const HEAD_S = 1.32, NECK = [0, 1.36, -0.16];
+// 車手骨架：身體（髖）→ 頭（頸）→ 眼睛、耳朵；左右手（肩）；方向盤獨立掛在車上
+const HIP = [0, 0.86, -0.24], SH_L = [0.33, 1.2, -0.14], SH_R = [-0.33, 1.2, -0.14], HAND_L = [0.22, 1.0, 0.43], HAND_R = [-0.22, 1.0, 0.43], SW = [0, 1.0, 0.48];
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+function limb(geo, col, A, B, r) { // 兩點之間的膠囊
+  const d = new THREE.Vector3(B[0] - A[0], B[1] - A[1], B[2] - A[2]); const L = d.length(); d.normalize();
+  const e = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d), 'YXZ');
+  return part(geo, col, (A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2, r * 2, L / 2, r * 2, e.x, e.y, e.z);
+}
+function pivotMesh(list, pv, mat) { const g = mergeGeos(list); g.translate(-pv[0], -pv[1], -pv[2]); return shadowed(new THREE.Mesh(g, mat), true, true); }
+function group(pos, ...kids) { const g = new THREE.Group(); g.position.set(pos[0], pos[1], pos[2]); kids.forEach(k => k && g.add(k)); return g; }
+let STAR_GEO = null;
+function buildDriver(ch, P, mat) {
+  const hs = v => [NECK[0] + (v[0] - NECK[0]) * HEAD_S, NECK[1] + (v[1] - NECK[1]) * HEAD_S, NECK[2] + (v[2] - NECK[2]) * HEAD_S];
+  const lists = { head: [], eyes: [], top: [] }; let eyeY = null;
+  const into = (key) => ({ push: (geo, col, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1, ...rot) => { if (key === 'eyes' && eyeY === null) eyeY = y; const q = hs([x, y, z]); lists[key].push(part(geo, col, q[0], q[1], q[2], sx * HEAD_S, sy * HEAD_S, sz * HEAD_S, ...rot)); } });
+  const hp = into('head'); hp.eyes = into('eyes'); hp.top = into('top');
+  driverHead(ch.id, P, hp);
+  const torso = [part(P.cap, ch.suit, 0, 1.08, -0.2, 0.82, 0.34, 0.66), part(P.sph, shade(ch.suit, 0.8), 0, 1.3, -0.16, 0.5, 0.16, 0.44)];
+  const arm = (S, H) => [limb(P.cap, ch.suit, S, H, 0.11), part(P.sph, '#fbfbf8', H[0], H[1], H[2], 0.25, 0.25, 0.25)];
+  const eyeP = [0, hs([0, eyeY ?? HEAD_Y, 0])[1], NECK[2]], topP = hs([0, HEAD_Y + 0.28, -0.12]);
+  const head = group(sub(NECK, HIP), pivotMesh(lists.head, NECK, mat));
+  const eyes = lists.eyes.length ? group(sub(eyeP, NECK), pivotMesh(lists.eyes, eyeP, mat)) : new THREE.Group(); head.add(eyes);
+  const top = lists.top.length ? group(sub(topP, NECK), pivotMesh(lists.top, topP, mat)) : new THREE.Group(); head.add(top);
+  // 暈眩星星：繞著頭頂轉
+  if (!STAR_GEO) { const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = i / 10 * TAU - Math.PI / 2, r = i % 2 ? 0.42 : 1; i ? sh.lineTo(Math.cos(a) * r, Math.sin(a) * r) : sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); } STAR_GEO = new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }); STAR_GEO.center(); }
+  const stars = new THREE.Group(); const sm = new THREE.MeshBasicMaterial({ color: 0xffd23f });
+  for (let i = 0; i < 3; i++) { const st = new THREE.Mesh(STAR_GEO, sm); const a = i / 3 * TAU; st.position.set(Math.cos(a) * 0.62, 0, Math.sin(a) * 0.62); st.scale.setScalar(0.17); stars.add(st); }
+  stars.position.set(0, (HEAD_Y + 0.62 - NECK[1]) * HEAD_S, 0); stars.visible = false; head.add(stars);
+  const armL = group(sub(SH_L, HIP), pivotMesh(arm(SH_L, HAND_L), SH_L, mat)), armR = group(sub(SH_R, HIP), pivotMesh(arm(SH_R, HAND_R), SH_R, mat));
+  armL.rotation.order = armR.rotation.order = 'ZXY'; head.rotation.order = 'YXZ';
+  const drv = group(HIP, pivotMesh(torso, HIP, mat), head, armL, armR);
+  // 方向盤：輪框加一根輻條，轉動才看得出來
+  const wheel = new THREE.Mesh(mergeGeos([part(P.torus, '#2a2d35', 0, 0, 0, 0.5, 0.5, 0.5), part(P.box, '#2a2d35', 0, 0, 0, 0.5, 0.06, 0.05), part(P.cyl, '#ffd23f', 0, 0, 0.02, 0.12, 0.05, 0.12, Math.PI / 2)]), mat);
+  const sw = group(SW, wheel); sw.rotation.x = -0.7;
+  return { drv, head, eyes, top, stars, armL, armR, sw, wheel };
+}
+function newAnim() { return { blinkT: 1 + Math.random() * 3, blink: 0, sy: 0, sv: 0, sq: 0, acc: 0, pvf: 0, wasAir: false, lastVy: 0, t: Math.random() * 10 }; }
+// 依狀態擺動作。p：steer、drift、boost、acc、spin、throwT、cheer（1 歡呼、2 沮喪）、wave、idle、count、look
+function animRig(m, p, dt) {
+  const R = m.rig, a = m.anim; a.t += dt; const t = a.t;
+  const k10 = 1 - Math.exp(-10 * dt), k16 = 1 - Math.exp(-16 * dt);
+  // 眨眼（被撞時瞇眼）
+  a.blinkT -= dt; if (a.blinkT <= 0) { a.blinkT = 1.8 + Math.random() * 3.4; a.blink = 0.13; } if (a.blink > 0) a.blink -= dt;
+  R.eyes.scale.y = lerp(R.eyes.scale.y, p.spin ? 0.3 : a.blink > 0 ? 0.1 : 1, 1 - Math.exp(-40 * dt));
+  // 頭部彈簧：落地、跳起時上下晃，耳朵跟著甩
+  a.sv += (-a.sy * 140 - a.sv * 11) * dt; a.sy += a.sv * dt;
+  a.sq *= Math.exp(-7 * dt);
+  const steerW = clamp((p.steer || 0) + (p.drift || 0) * 0.7, -1.4, 1.4);
+  let hy = -(p.steer || 0) * 0.3 - (p.drift || 0) * 0.45 + (p.look || 0), hp = -clamp((p.acc || 0) * 0.012, -0.22, 0.28) - (p.boost ? 0.16 : 0), hr = (p.steer || 0) * 0.1 + (p.drift || 0) * 0.16;
+  let dz = (p.steer || 0) * 0.07 + (p.drift || 0) * 0.13, dx = (p.boost ? -0.1 : 0) - clamp((p.acc || 0) * 0.005, -0.08, 0.1), dy = 0;
+  let lx = -steerW * 0.42, rx = steerW * 0.42, lz = 0, rz = 0, swz = steerW * 1.25;
+  if (p.idle) { hy = Math.sin(t * 0.7) * 0.38 + Math.sin(t * 1.9) * 0.08; hp = Math.sin(t * 1.3) * 0.06; hr = Math.sin(t * 0.9) * 0.06; dy = Math.sin(t * 2.2) * 0.025; swz = Math.sin(t * 0.7) * 0.3; lx = -swz * 0.3; rx = swz * 0.3; }
+  if (p.count) { dy = Math.sin(t * 50) * 0.012; hp += Math.sin(t * 7) * 0.07; }
+  // 手臂抬起後要往外張（左手 z 負、右手 z 正），不然會藏進大頭裡
+  if (p.wave > 0) { rx = -1.75; rz = 0.85 + Math.sin(t * 13) * 0.38; hr = -0.14; hy = 0.25; hp = -0.08; }
+  if (p.throwT > 0) { const u = 1 - p.throwT / 0.45; rx = u < 0.4 ? lerp(0, -2.3, u / 0.4) : lerp(-2.3, 0.4, (u - 0.4) / 0.6); rz = u < 0.7 ? 0.75 : 0.2; }
+  if (p.cheer === 1) { const b = Math.sin(t * 9); lx = rx = -1.75; lz = -0.8 - b * 0.22; rz = 0.8 + b * 0.22; hp = -0.12 + b * 0.08; hy = Math.sin(t * 2.3) * 0.3; hr = Math.sin(t * 4.6) * 0.1; dy = Math.abs(b) * 0.07; swz = 0; }
+  else if (p.cheer === 2) { hp = 0.34; hr = 0.08; dx = 0.12; lx = rx = 0.15; swz = 0; }
+  if (p.spin) { hy = Math.sin(t * 17) * 0.55; hr = Math.sin(t * 23) * 0.3; lx = -1.6 + Math.sin(t * 21) * 0.5; rx = -1.6 + Math.cos(t * 19) * 0.5; lz = -0.75 + Math.sin(t * 15) * 0.2; rz = 0.75 + Math.cos(t * 17) * 0.2; }
+  const H = R.head, D = R.drv;
+  H.rotation.y = lerp(H.rotation.y, hy, k10); H.rotation.x = lerp(H.rotation.x, hp + a.sy * 0.6, k10); H.rotation.z = lerp(H.rotation.z, hr, k10);
+  H.position.y = (NECK[1] - HIP[1]) + a.sy * 0.18;
+  R.top.rotation.x = lerp(R.top.rotation.x, a.sy * 2.2 + clamp((p.acc || 0) * 0.01, -0.3, 0.3) + (p.boost ? 0.25 : 0), k16); R.top.rotation.z = lerp(R.top.rotation.z, -(p.steer || 0) * 0.12 - (p.drift || 0) * 0.2, k10);
+  D.rotation.z = lerp(D.rotation.z, dz, k10); D.rotation.x = lerp(D.rotation.x, dx, k10); D.position.y = HIP[1] + dy + a.sy * 0.05;
+  R.armL.rotation.x = lerp(R.armL.rotation.x, lx, k16); R.armR.rotation.x = lerp(R.armR.rotation.x, rx, k16);
+  R.armL.rotation.z = lerp(R.armL.rotation.z, lz, k16); R.armR.rotation.z = lerp(R.armR.rotation.z, rz, k16);
+  R.wheel.rotation.z = lerp(R.wheel.rotation.z, swz, k16);
+  R.stars.visible = !!p.spin; if (p.spin) R.stars.rotation.y += dt * 6;
+  // 車身擠壓與懸吊：加速抬頭、煞車點頭，落地壓扁
+  m.tilt.scale.set(1 + a.sq * 0.5, 1 - a.sq, 1 + a.sq * 0.5);
+  m.tilt.rotation.x = lerp(m.tilt.rotation.x, clamp(-(p.acc || 0) * 0.0035, -0.07, 0.07), k10);
+  m.tilt.position.y = p.count ? Math.sin(t * 60) * 0.01 : 0;
+}
 function buildKart(ch) {
   const P = prims(); const list = [];
   const push = (geo, col, ...a) => list.push(part(geo, col, ...a));
@@ -905,19 +980,12 @@ function buildKart(ch) {
   push(P.cyl, '#3a3d44', -0.28, 0.68, -1.7, 0.13, 0.04, 0.13, HX); push(P.cyl, '#3a3d44', 0.28, 0.68, -1.7, 0.13, 0.04, 0.13, HX);
   push(P.cap, K, 0, 1.06, -1.32, 0.3, 0.8, 0.3, 0, 0, HX);               // 尾翼
   push(P.box, trim, -0.52, 0.86, -1.3, 0.08, 0.32, 0.18); push(P.box, trim, 0.52, 0.86, -1.3, 0.08, 0.32, 0.18);
-  push(P.cyl, trim, 0, 0.8, 0.6, 0.08, 0.5, 0.08, -0.9);                 // 方向盤
-  push(P.torus, trim, 0, 1.0, 0.48, 0.5, 0.5, 0.5, -0.7);
-  // 車手：圓身、手套、大頭
-  push(P.cap, ch.suit, 0, 1.08, -0.2, 0.82, 0.34, 0.66);
-  push(P.cap, ch.suit, -0.36, 1.06, 0.14, 0.22, 0.26, 0.22, HX - 0.35); push(P.cap, ch.suit, 0.36, 1.06, 0.14, 0.22, 0.26, 0.22, HX - 0.35);
-  push(P.sph, '#fbfbf8', -0.22, 1.0, 0.44, 0.24, 0.24, 0.24); push(P.sph, '#fbfbf8', 0.22, 1.0, 0.44, 0.24, 0.24, 0.24);
-  const hp = []; driverHead(ch.id, P, { push: (geo, col, ...a) => hp.push([geo, col, a]) });
-  for (const [geo, col, a] of hp) { const [x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1, ...rot] = a;
-    push(geo, col, NECK[0] + (x - NECK[0]) * HEAD_S, NECK[1] + (y - NECK[1]) * HEAD_S, NECK[2] + (z - NECK[2]) * HEAD_S, sx * HEAD_S, sy * HEAD_S, sz * HEAD_S, ...rot); }
+  push(P.cyl, trim, 0, 0.8, 0.6, 0.08, 0.5, 0.08, -0.9);                 // 方向盤柱
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.52, metalness: 0.04 });
   const body = shadowed(new THREE.Mesh(mergeGeos(list), mat), true, true);
   const root = new THREE.Group(); const tilt = new THREE.Group(); root.add(tilt); tilt.add(body);
   root.rotation.order = 'YXZ';
+  const rig = buildDriver(ch, P, mat); tilt.add(rig.drv); tilt.add(rig.sw);
   const Z = Math.PI / 2;
   const wg = mergeGeos([part(P.wheel, '#26272c', 0, 0, 0, 1, 1, 1, 0, 0, Z), part(P.torus, '#34363d', 0.5, 0, 0, 0.82, 0.82, 1.2, 0, Z), part(P.torus, '#34363d', -0.5, 0, 0, 0.82, 0.82, 1.2, 0, Z),
     part(P.cyl, cream, 0.06, 0, 0, 0.56, 1.02, 0.56, 0, 0, Z), part(P.cyl, '#8b8f98', 0.08, 0, 0, 0.2, 1.06, 0.2, 0, 0, Z)]);
@@ -930,7 +998,7 @@ function buildKart(ch) {
   const flame = new THREE.Group(); const fm = new THREE.MeshBasicMaterial({ color: 0xffb13a }), fm2 = new THREE.MeshBasicMaterial({ color: 0xfff3b0 });
   [-0.28, 0.28].forEach(x => { const c = new THREE.Mesh(P.cone, fm); c.scale.set(0.34, 1.2, 0.34); c.rotation.x = -Math.PI / 2; c.position.set(x, 0.68, -2.3); flame.add(c); const c2 = new THREE.Mesh(P.cone, fm2); c2.scale.set(0.18, 0.7, 0.18); c2.rotation.x = -Math.PI / 2; c2.position.set(x, 0.68, -2.05); flame.add(c2); });
   flame.visible = false; tilt.add(flame);
-  return { root, tilt, body, mat, wheels, flame };
+  return { root, tilt, body, mat, wheels, flame, rig, anim: newAnim() };
 }
 function balloonGroup(color) {
   const P = prims(); const g = new THREE.Group(); const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.3 }); const sm = new THREE.MeshBasicMaterial({ color: 0x3a3028 });
@@ -1329,9 +1397,9 @@ function disposeGroup(g) {
 }
 function setWorld(kind, def) {
   if (World.group) { scene.remove(World.group); disposeGroup(World.group); }
-  for (const k of G.karts) { scene.remove(k.model.root); disposeGroup(k.model.root); scene.remove(k.shadow); k.shadow.geometry.dispose(); k.shadow.material.dispose(); }
+  for (const k of G.karts) { scene.remove(k.model.root); disposeGroup(k.model.root); scene.remove(k.shadow); k.shadow.geometry.dispose(); k.shadow.material.dispose(); scene.remove(k.model.trail.mesh); k.model.trail.mesh.geometry.dispose(); k.model.trail.mesh.material.dispose(); }
   if (World.ghostModel) { scene.remove(World.ghostModel); disposeGroup(World.ghostModel); World.ghostModel = null; } G.ghost = null;
-  G.karts = []; clearProj(); Parts.clear();
+  G.karts = []; clearProj(); Parts.clear(); Skid.clear(kind === 'race' ? THEMES[def.theme].ground : THEMES[def.theme].road);
   const T = kind === 'race' ? buildRace(def) : buildArena(def); G.T = T;
   const g = new THREE.Group(); g.add(T.group); g.add(buildSky(T.th, def.theme));
   scene.fog = new THREE.Fog(T.th.fog, T.th.fogN, T.th.fogF); scene.background = new THREE.Color(T.th.fog);
@@ -1355,6 +1423,9 @@ function setWorld(kind, def) {
 // ------------------------------------------------------------
 function makeKart(ch, isPlayer) {
   const m = buildKart(ch); scene.add(m.root);
+  m.shield = new THREE.Mesh(prims().sphHi, shieldMat()); m.shield.visible = false;
+  const sg = new THREE.Group(); sg.position.set(0, 1.15, -0.05); sg.scale.set(4.4, 3.9, 5.2); sg.add(m.shield); m.root.add(sg);
+  m.trail = makeTrail(); scene.add(m.trail.mesh);
   const sh = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 3.6), new THREE.MeshBasicMaterial({ map: getTex('blob'), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
   sh.rotation.x = -Math.PI / 2; scene.add(sh);
   const st = ch.st;
@@ -1366,7 +1437,7 @@ function makeKart(ch, isPlayer) {
     top: CC[G.cc] * (0.955 + st[0] * 0.012), acc: 0.62 + st[1] * 0.13, mass: 0.7 + st[2] * 0.16, turn: 1.75 + st[3] * 0.1,
     inp: { steer: 0, gas: false, brake: false, hop: false, hopEdge: false, item: false, itemEdge: false },
     ai: { lane: (Math.random() - 0.5) * 1.2, laneT: 0, laneGoal: 0, itemT: 0, stuckT: 0, driftCd: 0, target: null, wander: Math.random() * TAU },
-    balloons: 0, bal: null, out: false, visT: 0, steerVis: 0, driftVis: 0, gasT: -1
+    balloons: 0, bal: null, out: false, visT: 0, steerVis: 0, driftVis: 0, gasT: -1, throwT: 0, skid: null
   };
   return k;
 }
@@ -1601,9 +1672,9 @@ function useItem(k) {
   const it = k.item; if (!it) return;
   const back = k.isPlayer && !k.autopilot && Input.brake; // 按住煞車時往後丟
   switch (it) {
-    case 'peel': spawnProj('peel', k, -1); if (k.isPlayer) Audio.sfx('drop'); break;
-    case 'bounce': spawnProj('bounce', k, back ? -1 : 1); if (k.isPlayer) Audio.sfx('throw'); break;
-    case 'seeker': spawnProj('seeker', k, 1); if (k.isPlayer) Audio.sfx('throw'); break;
+    case 'peel': spawnProj('peel', k, -1); k.throwT = 0.45; if (k.isPlayer) Audio.sfx('drop'); break;
+    case 'bounce': spawnProj('bounce', k, back ? -1 : 1); k.throwT = 0.45; if (k.isPlayer) Audio.sfx('throw'); break;
+    case 'seeker': spawnProj('seeker', k, 1); k.throwT = 0.45; if (k.isPlayer) Audio.sfx('throw'); break;
     case 'turbo': case 'turbo3': k.boostT = Math.max(k.boostT, 1.3); if (k.isPlayer || near(k)) Audio.sfx('boost'); break;
     case 'star': k.starT = 7.5; if (k.isPlayer) Audio.sfx('star'); break;
     case 'storm':
@@ -1888,8 +1959,9 @@ function renderBalloonHud() { HUD.board = ''; }
 function loadGhost(id) {
   const rec = store.get('tt:' + id, null); G.ghost = null;
   if (rec && rec.ghost && rec.ghost.length > 8) {
-    const ch = CHARS[rec.char] || CHARS[0]; const m = buildKart(ch); m.body.material = m.body.material.clone(); m.body.material.transparent = true; m.body.material.opacity = 0.45; m.body.material.depthWrite = false;
-    m.wheels.forEach(w => { w.m.material = w.m.material.clone(); w.m.material.transparent = true; w.m.material.opacity = 0.45; w.m.castShadow = false; }); m.body.castShadow = false;
+    const ch = CHARS[rec.char] || CHARS[0]; const m = buildKart(ch); const gm = m.mat.clone(); gm.transparent = true; gm.opacity = 0.45; gm.depthWrite = false;
+    m.root.traverse(o => { if (o.isMesh) { if (o.material === m.mat) o.material = gm; o.castShadow = false; } }); m.mat = gm;
+    m.wheels.forEach(w => { w.m.material = w.m.material.clone(); w.m.material.transparent = true; w.m.material.opacity = 0.45; w.m.castShadow = false; });
     scene.add(m.root); G.ghost = { m, data: rec.ghost };
     const disposeOld = World.ghostModel; if (disposeOld) scene.remove(disposeOld); World.ghostModel = m.root;
   } else if (World.ghostModel) { scene.remove(World.ghostModel); World.ghostModel = null; }
@@ -1901,6 +1973,68 @@ function updateGhost() {
   g.m.root.visible = true; const a = i * 4, b = a + 4;
   g.m.root.position.set(lerp(d[a], d[b], t), lerp(d[a + 1], d[b + 1], t), lerp(d[a + 2], d[b + 2], t)); g.m.root.rotation.y = d[a + 3] + angDiff(d[a + 3], d[b + 3]) * t;
 }
+
+// ============================================================
+// 車輛特效：加速光軌、甩尾胎痕、排氣煙、流星罩
+// ============================================================
+let SHIELD = null;
+function shieldMat() {
+  if (SHIELD) return SHIELD;
+  SHIELD = new THREE.ShaderMaterial({ uniforms: { t: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: 'varying vec3 vN;varying vec3 vV;varying float vY;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);vY=position.y;gl_Position=projectionMatrix*mv;}',
+    fragmentShader: 'uniform float t;varying vec3 vN;varying vec3 vV;varying float vY;void main(){float f=pow(1.-abs(dot(vN,vV)),2.4);float band=smoothstep(.93,1.,sin(vY*22.-t*6.));float a=f*.9+.05+band*.12;gl_FragColor=vec4(vec3(.42,.8,1.)*a,a);}' });
+  return SHIELD;
+}
+const _tv = () => new THREE.Vector3();
+const EXH = [[-0.28, 0.68, -1.75], [0.28, 0.68, -1.75]], REAR = [[-0.98, 0.04, -0.95], [0.98, 0.04, -0.95]];
+function localToWorld(m, p, out) { return out.set(p[0], p[1], p[2]).applyMatrix4(m.tilt.matrixWorld); }
+// 光軌：每支排氣管一條水平緞帶，越舊越細越淡
+function makeTrail() {
+  const N = 16, geo = new THREE.BufferGeometry(); const pos = new Float32Array(2 * N * 2 * 3), al = new Float32Array(2 * N * 2); const idx = [];
+  for (let r = 0; r < 2; r++) for (let j = 0; j < N - 1; j++) { const a = (r * N + j) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  geo.setIndex(idx); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('alpha', new THREE.BufferAttribute(al, 1));
+  const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    vertexShader: 'attribute float alpha;varying float vA;void main(){vA=alpha;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader: 'varying float vA;void main(){gl_FragColor=vec4(vec3(1.,.78,.45)*vA,vA);}' });
+  const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; mesh.visible = false;
+  return { mesh, N, pts: [[], []] };
+}
+let _w0, _w1;
+function kartFx(k, dt) {
+  if (!_w0) { _w0 = _tv(); _w1 = _tv(); }
+  const m = k.model; m.tilt.updateMatrixWorld(true);
+  // 光軌
+  const tr = m.trail; const on = k.boostT > 0 && !k.out;
+  for (let r = 0; r < 2; r++) { const q = tr.pts[r]; if (on) { const w = localToWorld(m, EXH[r], _w0); q.unshift([w.x, w.y, w.z]); if (q.length > tr.N) q.pop(); } else if (q.length) { q.pop(); if (q.length) q.pop(); } }
+  const P = tr.mesh.geometry.attributes.position, A = tr.mesh.geometry.attributes.alpha; let any = false;
+  for (let r = 0; r < 2; r++) { const q = tr.pts[r];
+    for (let j = 0; j < tr.N; j++) { const a = (r * tr.N + j) * 2; const c = q[Math.min(j, q.length - 1)];
+      if (!c || q.length < 2) { A.setX(a, 0); A.setX(a + 1, 0); continue; } any = true;
+      const n = q[Math.min(j + 1, q.length - 1)], pv = q[Math.min(Math.max(j - 1, 0), q.length - 1)]; let dx = n[0] - pv[0], dz = n[2] - pv[2]; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+      const f = 1 - j / (tr.N - 1), w = 0.2 * f + 0.03; P.setXYZ(a, c[0] - dz * w, c[1], c[2] + dx * w); P.setXYZ(a + 1, c[0] + dz * w, c[1], c[2] - dx * w);
+      const al = j < q.length ? f * f * 0.9 : 0; A.setX(a, al); A.setX(a + 1, al); } }
+  tr.mesh.visible = any; if (any) { P.needsUpdate = true; A.needsUpdate = true; }
+  // 甩尾、打滑胎痕
+  const skid = !k.air && (k.drift || k.spinT > 0 || (k.inp.brake && k.vf > 10));
+  if (skid) { for (let r = 0; r < 2; r++) { const w = localToWorld(m, REAR[r], r ? _w1 : _w0); const y = k.y + 0.05; if (!k.skid) k.skid = [null, null];
+      const pr = k.skid[r]; if (pr && Math.hypot(w.x - pr[0], w.z - pr[2]) > 0.45) { Skid.add(pr, [w.x, y, w.z]); k.skid[r] = [w.x, y, w.z]; } else if (!pr) k.skid[r] = [w.x, y, w.z]; } }
+  else k.skid = null;
+  // 排氣煙：起跑前轟油、低速加油時冒出
+  if ((G.state === 'countdown' || (k.inp.gas && k.vf < 14)) && (G.frame + (k.ch.st[0] | 0)) % 5 === 0) {
+    for (const e of EXH) { const w = localToWorld(m, e, _w0); Parts.emit(w.x, w.y, w.z, (Math.random() - 0.5) * 0.8, 1.2 + Math.random(), (Math.random() - 0.5) * 0.8 - Math.cos(k.h) * 1.5, 0xd9dde4, 0.55, 0.55, -1.5); }
+  }
+}
+// 胎痕：固定大小的環狀緩衝區，最舊的先被覆寫
+const Skid = {
+  max: 900, n: 0, mesh: null,
+  init(sc) { const g = new THREE.BufferGeometry(); this.pos = new Float32Array(this.max * 18); g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3)); g.setDrawRange(0, 0);
+    this.mat = new THREE.MeshBasicMaterial({ color: 0x1f2126, transparent: true, opacity: 0.3, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+    this.mesh = new THREE.Mesh(g, this.mat); this.mesh.frustumCulled = false; sc.add(this.mesh); },
+  clear(ground) { this.n = 0; if (!this.mesh) return; this.mesh.geometry.setDrawRange(0, 0); const c = { sand: [0x7a4a22, 0.3], snow: [0x6f86a8, 0.28], ice: [0x6f86a8, 0.28], lava: [0x140a06, 0.4] }[ground] || [0x1f2126, 0.32]; this.mat.color.setHex(c[0]); this.mat.opacity = c[1]; },
+  add(a, b) { let dx = b[0] - a[0], dz = b[2] - a[2]; const l = Math.hypot(dx, dz) || 1; const w = 0.17; const nx = -dz / l * w, nz = dx / l * w;
+    const o = (this.n % this.max) * 18, v = [a[0] - nx, a[1], a[2] - nz, a[0] + nx, a[1], a[2] + nz, b[0] - nx, b[1], b[2] - nz, a[0] + nx, a[1], a[2] + nz, b[0] + nx, b[1], b[2] + nz, b[0] - nx, b[1], b[2] - nz];
+    this.pos.set(v, o); this.n++; const g = this.mesh.geometry; g.attributes.position.needsUpdate = true; g.setDrawRange(0, Math.min(this.n, this.max) * 6); }
+};
 
 // ============================================================
 // 視覺同步、攝影機
@@ -1919,7 +2053,18 @@ function syncKart(k, dt) {
   k.steerVis = lerp(k.steerVis, k.inp.steer || 0, 1 - Math.exp(-12 * dt));
   for (const w of m.wheels) { w.m.rotation.x += k.vf * dt / w.r; if (w.front) w.piv.rotation.y = -k.steerVis * 0.42; }
   m.flame.visible = k.boostT > 0; if (m.flame.visible) m.flame.scale.set(1, 1, 0.8 + Math.random() * 0.5);
-  if (k.starT > 0) { const h = (G.raceT * 3) % 1; m.mat.emissive.setHSL(h, 1, 0.45); } else m.mat.emissive.setRGB(0, 0, 0);
+  if (k.starT > 0) { const h = (G.raceT * 3) % 1; m.mat.emissive.setHSL(h, 0.9, 0.18); } else m.mat.emissive.setRGB(0, 0, 0);
+  // 車手動作
+  const a = m.anim; const acc = (k.vf - a.pvf) / Math.max(dt, 1e-3); a.pvf = k.vf; a.acc = lerp(a.acc, clamp(acc, -60, 60), 1 - Math.exp(-6 * dt));
+  if (a.wasAir && !k.air) { const hit = clamp(-a.lastVy * 0.18, 0.6, 3.2); a.sv -= hit; a.sq = Math.min(0.16, 0.04 + hit * 0.035); }
+  if (!a.wasAir && k.air) { a.sv += 1.4; a.sq = -0.06; } a.wasAir = k.air; a.lastVy = k.vy;
+  if (k.throwT > 0) k.throwT = Math.max(0, k.throwT - dt);
+  const battleEnd = G.mode === 'battle' && G.state !== 'race' && G.state !== 'countdown' && G.battle;
+  const cheer = battleEnd ? (G.battle.winner === k ? 1 : k.out ? 2 : 0) : k.finished ? (k.place <= 3 ? 1 : 2) : k.out ? 2 : 0;
+  animRig(m, { steer: k.steerVis, drift: k.driftVis / 0.42, boost: k.boostT > 0, acc: a.acc, spin: k.spinT > 0 || k.frozenT > 0, throwT: k.throwT, cheer, count: G.state === 'countdown' }, dt);
+  m.shield.visible = k.starT > 0; if (k.starT > 0) { const s = 1 + Math.sin(G.raceT * 7) * 0.03; m.shield.scale.set(s, s, s); }
+  const near2 = (k.x - camera.position.x) ** 2 + (k.z - camera.position.z) ** 2 < 70 * 70;
+  if (near2) kartFx(k, dt);
   r.visible = !(k.invT > 0 && k.spinT <= 0 && k.rescueT <= 0 && Math.floor(G.raceT * 16) % 2 === 0) && !(k.rescueT > 0 && k.rescueT < 1.0 && Math.floor(G.raceT * 12) % 2 === 0);
   if (k.bal) k.bal.list.forEach(b => { b.position.y = (b.userData.y0 ??= b.position.y) + Math.sin(G.raceT * 3 + b.userData.phase) * 0.12; });
   // 影子
@@ -2175,7 +2320,7 @@ function pickChar(next, back) {
   const lab = ['速度', '加速', '重量', '操控'];
   showScreen('sChar', { cols: matchMedia('(max-width:760px)').matches ? 4 : 2, focus: G.charIdx, back: () => { G.view = 'world'; back(); }, acts: CHARS.map((c, i) => () => { G.charIdx = i; store.set('char', i); G.view = 'world'; next(); }),
     keys: '<span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd>選擇</span><span><kbd>Enter</kbd>決定</span><span><kbd>Esc</kbd>返回</span>',
-    onFocus: i => { const c = CHARS[i]; Show.karts.forEach((k, n) => k.root.visible = n === i);
+    onFocus: i => { const c = CHARS[i]; Show.karts.forEach((k, n) => k.root.visible = n === i); const sk = Show.karts[i]; Show.waveT = 1.9; sk.anim.sv += 1.8; sk.anim.sq = -0.07;
       $('charName').innerHTML = `${c.name}<em>${c.en}</em>`; $('charLine').textContent = `${c.kind} · ${c.cls}`;
       $('charStats').innerHTML = c.st.map((v, n) => `<div class="stat"><span>${lab[n]}</span><span class="pips">${[1, 2, 3, 4, 5].map(p => `<i class="${p <= v ? 'f' : ''}"></i>`).join('')}</span></div>`).join('');
       UI.opts[i].scrollIntoView({ block: 'nearest' }); } });
@@ -2272,10 +2417,10 @@ function podium() {
   const nx = T.nx[i], nz = T.nz[i];
   steps.forEach(([off, h], n) => {
     const m = new THREE.Mesh(P.box, new THREE.MeshLambertMaterial({ color: ['#f4bf1a', '#dfe5ea', '#e39a5b'][n], flatShading: true })); m.scale.set(4, h, 4); m.position.set(bx + nx * off, by + h / 2, bz + nz * off); g.add(m);
-    const k = G.karts.find(k => CHARS.indexOf(k.ch) === ord[n]); if (k) { k.model.root.visible = true; k.model.root.position.set(bx + nx * off, by + h, bz + nz * off); k.model.root.rotation.set(0, ry, 0); k.model.tilt.rotation.set(0, 0, 0); k.model.root.scale.setScalar(1); k.model.flame.visible = false; }
+    const k = G.karts.find(k => CHARS.indexOf(k.ch) === ord[n]); if (k) { k.model.root.visible = true; k.model.root.position.set(bx + nx * off, by + h, bz + nz * off); k.model.root.rotation.set(0, ry, 0); k.model.tilt.rotation.set(0, 0, 0); k.model.root.scale.setScalar(1); k.model.flame.visible = false; k.model.shield.visible = false; k.model.trail.mesh.visible = false; }
   });
   World.group.add(g);
-  G.podium = { x: bx, y: by, z: bz, t: 0, ry };
+  G.podium = { x: bx, y: by, z: bz, t: 0, ry, ks: ord.slice(0, 3).map(ci => G.karts.find(k => CHARS.indexOf(k.ch) === ci)).filter(Boolean) };
   const myRank = ord.indexOf(G.charIdx) + 1;
   Audio.play('result'); Audio.sfx('finish');
   const rows = ord.map((ci, n) => row([['p', n + 1], ['c', dot(CHARS[ci]) + CHARS[ci].name], ['r', gp.pts[ci] + ' 分']], ci === G.charIdx ? 'me' : '')).join('');
@@ -2284,7 +2429,8 @@ function podium() {
   ]); $('board').classList.add('low'); }, 3200);
 }
 function podiumCam(dt) {
-  const p = G.podium; p.t += dt; const a = p.ry + Math.sin(p.t * 0.3) * 0.55; const low = !$('sBoard').hidden;
+  const p = G.podium; p.t += dt;
+  p.ks.forEach((k, n) => { animRig(k.model, { cheer: 1 }, dt); k.model.tilt.position.y = n === 0 ? Math.abs(Math.sin(p.t * 4.2)) * 0.55 : Math.abs(Math.sin(p.t * 3 + n)) * 0.15; }); const a = p.ry + Math.sin(p.t * 0.3) * 0.55; const low = !$('sBoard').hidden;
   camera.position.set(p.x + Math.sin(a) * 15, p.y + 5.5, p.z + Math.cos(a) * 15); camera.lookAt(p.x, p.y + (low ? -1.5 : 2.6), p.z);
   if (G.frame++ % 2 === 0) for (let n = 0; n < 3; n++) Parts.emit(p.x + (Math.random() - .5) * 16, p.y + 14, p.z + (Math.random() - .5) * 16, (Math.random() - .5) * 2, -3, (Math.random() - .5) * 2, [0xf4bf1a, 0xdc3b26, 0x2553c9, 0x2f9a47, 0xfff8ec][n + Math.floor(Math.random() * 2)], 0.45, 4, 1);
 }
@@ -2332,7 +2478,9 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   readInput(); pollPadMenu();
-  if (G.view === 'showroom') { Show.karts.forEach(k => { k.root.rotation.y += dt * 0.8; }); renderer.render(showScene, showCam); return; }
+  if (G.view === 'showroom') { Show.waveT = Math.max(0, (Show.waveT || 0) - dt);
+    Show.karts.forEach(k => { if (!k.root.visible) return; k.root.rotation.y += dt * 0.45; animRig(k, { idle: true, wave: Show.waveT > 0.2 ? 1 : 0 }, dt); });
+    renderer.render(showScene, showCam); return; }
   if (G.state === 'podium') { podiumCam(dt); Parts.update(dt); for (const a of G.T.anim) a(dt, now / 1000); followSun(); renderer.render(scene, camera); return; }
   if (!G.paused && G.T && G.state !== 'results') {
     acc += dt * FAST; let n = 0;
@@ -2347,6 +2495,7 @@ function frame(now) {
     updateGhost(); updateCamera(dt); if (!G.paused) { weather(dt); Parts.update(dt); }
     updateHud(dt);
   }
+  if (SHIELD) SHIELD.uniforms.t.value = now / 1000;
   followSun(); renderer.render(scene, camera);
 }
 // 陰影只涵蓋攝影機前方一塊區域，太陽跟著這塊區域平移
@@ -2448,7 +2597,7 @@ async function boot() {
   sunLight = new THREE.DirectionalLight(0xffffff, 2.4); sunLight.position.set(-0.6, 1, -0.4); scene.add(sunLight); scene.add(sunLight.target);
   sunLight.castShadow = true; const sc = sunLight.shadow.camera; sc.left = sc.bottom = -46; sc.right = sc.top = 46; sc.near = 1; sc.far = 320;
   sunLight.shadow.mapSize.set(2048, 2048); sunLight.shadow.bias = -0.0004; sunLight.shadow.normalBias = 0.04;
-  Parts.init(scene); buildShowroom(); initGauge(); applyQuality(false); resize();
+  Parts.init(scene); Skid.init(scene); buildShowroom(); initGauge(); applyQuality(false); resize();
   addEventListener('resize', resize);
   initTouch();
   if (matchMedia('(pointer: coarse)').matches) { touchWanted = true; document.body.classList.add('touch'); document.querySelector('#sTitle .press').textContent = '點一下開始'; }

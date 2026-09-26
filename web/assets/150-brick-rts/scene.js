@@ -1186,7 +1186,7 @@ async function createScene(canvas, onFailure, options = {}) {
     const ring = new T.Mesh(ringGeo, ringMaterial);
     ring.position.y = 0.025;
     group.add(ring);
-    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill });
+    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill, goal: null });
     return units.get(id);
   }
   let previewRole = "villager";
@@ -1233,9 +1233,11 @@ async function createScene(canvas, onFailure, options = {}) {
     }
     for (const data of view.units) {
       const u = units.get(data.id) ?? unit(data.id, data.player, data.kind);
-      const dx = data.x / 100 - u.group.position.x, dz = data.y / 100 - u.group.position.z;
+      const goal = new T.Vector3(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100), from = u.goal ?? u.group.position;
+      const dx = goal.x - from.x, dz = goal.z - from.z;
       if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
-      u.group.position.set(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100);
+      if (!u.goal || options.assetPreview || u.group.position.distanceTo(goal) > 1.5) u.group.position.copy(goal);
+      u.goal = goal;
       u.ring.visible = selected.has(data.id);
       u.moving = data.navigation === "moving";
       if (!options.assetPreview && (data.work === "gathering" || data.action === 1) && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
@@ -1322,9 +1324,17 @@ async function createScene(canvas, onFailure, options = {}) {
     }
     return out.sort((a, b) => a - b);
   }
+  let lastDraw = 0;
   function draw(time) {
     if (contextLost) return;
     resize();
+    const dt = lastDraw ? Math.min(100, Math.max(0, time - lastDraw)) : 0, ease = 1 - Math.exp(-dt / 60);
+    lastDraw = time;
+    for (const u of units.values()) if (u.goal) {
+      if (u.group.position.distanceTo(u.goal) < 2e-3) u.group.position.copy(u.goal);
+      else u.group.position.lerp(u.goal, ease);
+    }
+    stepMarker(time);
     for (const u of units.values()) {
       const pose = options.assetPreview ? previewPose : u.activity;
       u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : pose === "hit" ? time - u.poseStart : time);
@@ -1341,6 +1351,47 @@ async function createScene(canvas, onFailure, options = {}) {
   });
   canvas.dataset.renderer = "webgl2";
   canvas.dataset.renderState = "ready";
+  const markerGroup = new T.Group(), markerRing = new T.Mesh(new T.RingGeometry(0.22, 0.3, 24), new T.MeshBasicMaterial({ color: "#fff2a1", transparent: true, side: T.DoubleSide, depthWrite: false }));
+  markerRing.rotation.x = -Math.PI / 2;
+  const markerCross = [0, 1].map((i) => {
+    const m = new T.Mesh(new T.BoxGeometry(0.42, 0.02, 0.07), markerRing.material);
+    m.rotation.y = Math.PI / 4 + i * Math.PI / 2;
+    return m;
+  });
+  markerGroup.add(markerRing, ...markerCross);
+  markerGroup.visible = false;
+  scene.add(markerGroup);
+  let markerStart = 0;
+  const markerColors = { move: "#fff2a1", gather: "#bfe38a", attack: "#e2573f", rally: "#9cc8e6" };
+  function setMarker(kind, x, z) {
+    markerRing.material.color.set(markerColors[kind] ?? "#fff2a1");
+    markerGroup.position.set(x, groundHeight(worldTiles, x * 100, z * 100) / 100 + 0.06, z);
+    markerGroup.visible = true;
+    markerStart = 0;
+  }
+  function stepMarker(time) {
+    if (!markerGroup.visible) return;
+    if (!markerStart) markerStart = time;
+    const t = (time - markerStart) / 700;
+    if (t >= 1) {
+      markerGroup.visible = false;
+      return;
+    }
+    markerRing.material.opacity = 1 - t;
+    markerGroup.scale.setScalar(1 + 0.35 * t);
+  }
+  const rallyFlag = new T.Group();
+  {
+    const pole = new T.Mesh(box(0.05, 0.9, 0.05), material("#80674f")), cloth = new T.Mesh(box(0.32, 0.2, 0.03), material("#456e87"));
+    cloth.position.set(0.17, 0.66, 0);
+    rallyFlag.add(pole, cloth);
+  }
+  rallyFlag.visible = false;
+  scene.add(rallyFlag);
+  function setRally(p) {
+    rallyFlag.visible = !!p;
+    if (p) rallyFlag.position.set(p.x, groundHeight(worldTiles, p.x * 100, p.z * 100) / 100, p.z);
+  }
   const ghost = new T.Mesh(new T.BoxGeometry(1, 0.3, 1), new T.MeshBasicMaterial({ color: "#6f9d6a", transparent: true, opacity: 0.42, depthWrite: false }));
   ghost.visible = false;
   scene.add(ghost);
@@ -1441,6 +1492,8 @@ async function createScene(canvas, onFailure, options = {}) {
     pick,
     pickGround,
     pickBuilding,
+    setMarker,
+    setRally,
     unitsInRect,
     setGhost,
     renderIcons,
