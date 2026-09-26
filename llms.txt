@@ -203,6 +203,7 @@
 - [068 WENIGER RT 66](https://htmls-ruddy.vercel.app/web/068-braun.html): Dieter Rams / Braun。可實際運算的致敬計算機，設計十原則標示對應部位
 - [104 FRAME · 3D 筆電產品攝影棚](https://htmls-ruddy.vercel.app/web/104-laptop-studio.html): 擬真 3D Mockup。上傳或貼上截圖，置入程序建模的金屬筆電；調整相機、景深、打光與背景，匯出高解析度 PNG
 - [134 一身金色 · GOLDEN STUDY](https://htmls-ruddy.vercel.app/web/134-golden-retriever.html): BlenderMCP 從空場景製作黃金獵犬 3D 模型。查看大塊造型、融合細分、程序材質與三點光四階段預覽；下載 1500×1250 成品圖及 Blender 原始檔。
+- [163 X-16 · 四排十六缸剖面引擎](https://htmls-ruddy.vercel.app/web/163-x16-engine.html): 3D 機械剖面模型。X 形四排汽缸共用一根曲軸，主副連桿、凸輪與氣門依連桿幾何推導的點火順序連動；轉速可調、可逐發步進，外殼切換實心／半透明／剖切，全部零件程式建模；需連線載入 Three.js
 
 ### AI 學習
 

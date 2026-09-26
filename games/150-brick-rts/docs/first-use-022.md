@@ -60,6 +60,7 @@ State／snapshot v22。
 | FU22-5／中（測試） | 測試固定腳本的「斥候已停下」判斷太早：斥候的路徑還在計算中，頁面載入後繼續移動，流程點不到它。 | 改用單位的導航狀態判斷。 |
 | FU22-6／低（測試） | 流程用 H 讓鏡頭回到基地，再右鍵修道院；但 H 同時選取了城鎮中心，右鍵因此變成設集結點。 | 右鍵前改用小地圖移動鏡頭，不改變選取。 |
 | FU22-7／低（測試） | 上一輪「換邊單位的佇列命令」測試依賴固定的轉化時間；改成機率判定後就不成立。 | 先在副本上找出轉化發生的 tick，再安排紅方的命令在下一個 tick 執行；確認這個測試在舊程式上仍會失敗。 |
+| FU22-8／**高**（無法讀取長對局） | 第一次乾淨目錄執行時，`test:monastery` 與 `test:relics` 都在讀取存檔時失敗：「讀取失敗：Worker 超過 5 秒未回應」。讀檔會依指令紀錄重新推導整局（防止竄改存檔），約 3 萬 tick（25 分鐘）的對局在忙碌的機器上要超過 5 秒；Worker 的逾時保護把它當成當掉。玩家存下長對局後會讀不回來；Worker 當掉後的恢復也有同樣問題。 | 讀檔、恢復與重播驗證這三種需要重新推導的請求，時限改為 60 秒；其他請求仍是 5 秒。讀檔時先顯示「讀取中：依存檔的指令紀錄重新推導對局，長的對局需要幾秒」。流程記下讀取耗時：聖物存檔（31749 tick）在工作目錄要 6307 ms，確實超過舊的 5 秒。 |
 
 ## 實際流程
 
@@ -107,4 +108,16 @@ State／snapshot v22。
 
 ## 乾淨目錄結果
 
-（執行中）
+跑了兩次，每次都是新的乾淨目錄（排除 .git、node_modules、test-results），`npm ci --ignore-scripts` 之後逐一執行 18 個指令，並檢查結束碼。
+
+- **第一次**（`/var/folders/05/x61j217d49g9k0_kccntyzsr0000gn/T/brick-rts-v22-LaxA`）：16 個通過，`test:monastery` 與 `test:relics` 失敗，就是 FU22-8「讀取失敗：Worker 超過 5 秒未回應」。
+- **第二次**（`/var/folders/05/x61j217d49g9k0_kccntyzsr0000gn/T/brick-rts-v22b-L6Q4`，修正 FU22-8 之後）：**18 個指令全部通過**。
+  - `build`、`validate`、`test`（167 tests，167 pass）
+  - `test:browser`、`test:controls`、`test:first-use`、`test:economy`、`test:build`、`test:production`、`test:combat`、`test:hud`、`test:feudal`、`bench:movement`、`test:rig-browser`
+  - `test:monastery`：讀取 5664 ms；轉化後的村民 12/25，治療後 25/25；聖物 `1·0/5`；修道院「聖物 1/10（每分鐘 +30 黃金）」。
+  - `test:relics`：讀取 5867 ms；`5·0/5 16:40`，3 秒後 16:26；43:07（tick 51749）勝利，「藍方持有全部聖物 200 年」。
+  - `test:match`：勝利，04:55（tick 5908），紅方投降，自動暫停 0 次。
+  - `test:full`：tick 5205 蓋好靶場；軍隊覆沒後投降，戰敗 09:15。
+- 第二次的兩個讀取都超過 5 秒，證實舊的時限在這台機器上會讓讀檔失敗。
+
+兩次的原始輸出都在 `test-results/clean-v22.log`；作品集縮圖取自第二次執行。

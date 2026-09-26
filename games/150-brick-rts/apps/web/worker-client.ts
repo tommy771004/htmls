@@ -37,7 +37,10 @@ export class SimulationClient{
   return new Promise((resolve,reject)=>{
    if(!this.worker){reject(Error('Worker 尚未連線'));return;}
    const id=++this.counter;
-   const timer=setTimeout(()=>this.fail('Worker 超過 5 秒未回應'),5000);
+   // Restoring a save, recovering after a failure and the replay check re-derive the whole match from its command
+   // log, which takes seconds in a long match; every other request answers within a frame or two.
+   const heavy=operation.kind==='restore'||operation.kind==='recover'||operation.kind==='replay',limit=heavy?60000:5000;
+   const timer=setTimeout(()=>this.fail(`Worker 超過 ${limit/1000} 秒未回應`),limit);
    this.pending.set(id,{resolve,reject,timer});
    try{this.worker.postMessage({protocol:1,id,operation});}catch(e){this.fail((e as Error).message);}
   });

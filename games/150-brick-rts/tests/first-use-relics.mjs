@@ -19,7 +19,7 @@ try{
  await page.goto(origin+'/web/150-brick-rts.html');await page.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
  const text=id=>page.locator('#'+id).innerText();
  await page.evaluate(v=>localStorage.setItem('brick-rts:sandbox:1',v),serialize(s));
- await page.keyboard.press('F10');await page.locator('#load').click();await page.waitForFunction(()=>/已恢復/.test(document.querySelector('#notice').textContent),undefined,{timeout:60000});
+ await page.keyboard.press('F10');const loadStart=Date.now();await page.locator('#load').click();await page.waitForFunction(()=>/已恢復/.test(document.querySelector('#notice').textContent),undefined,{timeout:90000});note('讀取耗時',`${Date.now()-loadStart} ms`);
  const first=await text('res-relics');note('聖物',`${first}｜${await page.locator('#relics').getAttribute('title')}`);
  assert.match(first,/^5·0\/5 1[56]:\d\d$/);assert.match(await page.locator('#relics').getAttribute('title'),/藍方持有全部聖物/);
  await page.screenshot({path:out+'relic-countdown.png'});

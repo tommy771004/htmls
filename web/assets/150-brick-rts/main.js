@@ -2452,7 +2452,8 @@ var SimulationClient = class {
         return;
       }
       const id = ++this.counter;
-      const timer = setTimeout(() => this.fail("Worker \u8D85\u904E 5 \u79D2\u672A\u56DE\u61C9"), 5e3);
+      const heavy = operation.kind === "restore" || operation.kind === "recover" || operation.kind === "replay", limit = heavy ? 6e4 : 5e3;
+      const timer = setTimeout(() => this.fail(`Worker \u8D85\u904E ${limit / 1e3} \u79D2\u672A\u56DE\u61C9`), limit);
       this.pending.set(id, { resolve, reject, timer });
       try {
         this.worker.postMessage({ protocol: 1, id, operation });
@@ -3895,6 +3896,7 @@ el("load").onclick = async () => {
   try {
     const raw = localStorage.getItem("brick-rts:sandbox:1");
     if (!raw) throw Error("\u5C1A\u7121\u624B\u52D5\u5B58\u6A94\u3002");
+    notice("\u8B80\u53D6\u4E2D\uFF1A\u4F9D\u5B58\u6A94\u7684\u6307\u4EE4\u7D00\u9304\u91CD\u65B0\u63A8\u5C0E\u5C0D\u5C40\uFF0C\u9577\u7684\u5C0D\u5C40\u9700\u8981\u5E7E\u79D2\u3002");
     await client.request({ kind: "restore", snapshot: raw });
     el("seed").value = String(state.seed);
     el("layout").value = state.layout;

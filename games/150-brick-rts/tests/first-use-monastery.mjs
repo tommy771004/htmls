@@ -38,7 +38,7 @@ try{
   return null;}
  // 1. Load the save from the menu (the page re-derives it from the command log).
  await page.evaluate(v=>localStorage.setItem('brick-rts:sandbox:1',v),serialize(s));
- await page.keyboard.press('F10');await page.locator('#load').click();await page.waitForFunction(()=>/已恢復/.test(document.querySelector('#notice').textContent),undefined,{timeout:60000});
+ await page.keyboard.press('F10');const loadStart=Date.now();await page.locator('#load').click();await page.waitForFunction(()=>/已恢復/.test(document.querySelector('#notice').textContent),undefined,{timeout:90000});note('讀取耗時',`${Date.now()-loadStart} ms`);
  await page.waitForFunction(()=>document.querySelector('#age-name').textContent==='第三時代');note('讀取',`${await text('notice')}｜${await text('age-name')}｜人口 ${await text('res-pop')}｜聖物 ${await text('res-relics')}`);
  assert.equal(await text('res-relics'),'0·0/5');
  // 2. The monastery: monk and technology tiles; the fourth-age ones say why they wait. Research Sanctity.
