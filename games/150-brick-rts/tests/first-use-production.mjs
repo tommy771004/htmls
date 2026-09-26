@@ -17,6 +17,7 @@ const tcObstacle=world.map.obstacles.find(o=>o.kind==='town-center'&&!o.red),tcB
 const berries=world.map.resources.filter(r=>r.kind==='berries').sort((a,b)=>Math.abs(a.x-400)+Math.abs(a.y-700)-(Math.abs(b.x-400)+Math.abs(b.y-700)))[0];
 const tree=world.map.resources.filter(r=>r.kind==='tree').sort((a,b)=>Math.abs(a.x-400)+Math.abs(a.y-700)-(Math.abs(b.x-400)+Math.abs(b.y-700)))[0];
 const barracksAt=spot('barracks',{x:700,y:900}),barracksBox=obstacleBounds({kind:'barracks',...barracksAt});
+const farmAt=spot('farm',{x:400,y:1150},barracksBox),farmBox=obstacleBounds({kind:'farm',...farmAt});
 const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:900}});const errors=[],external=[],log=[];
 const note=(step,detail)=>{log.push({step,detail});console.log(step,'|',detail);};
 page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('data:')&&!r.url().startsWith('blob:'))external.push(r.url());});
@@ -26,7 +27,7 @@ const text=id=>page.locator('#'+id).innerText();
 async function screen(wx,wy,wz){await page.evaluate(()=>scrollTo(0,0));const r=await page.locator('#map').boundingBox(),halfH=Math.max(10.5,12/(r.width/r.height)),scale=r.height/(2*halfH),dx=wx-8,dz=wz-8;return {x:r.x+r.width/2+(dx-dz)*Math.SQRT1_2*scale,y:r.y+r.height/2-(-.5*dx+Math.SQRT1_2*wy-.5*dz)*scale};}
 const centre=box=>screen((box[0]+box[2])/200,0,(box[1]+box[3])/200);
 async function act(fn){const old=await text('notice');await fn();await page.waitForFunction(o=>document.querySelector('#notice').textContent!==o,old,{timeout:5000}).catch(()=>{});return text('notice');}
-async function runUntil(check,timeout=150000){await page.locator('#pause').click();await page.waitForFunction(check,undefined,{timeout});await page.locator('#pause').click();}
+async function runUntil(check,timeout=150000,arg){await page.locator('#pause').click();await page.waitForFunction(check,arg,{timeout});await page.locator('#pause').click();}
 async function boxSelect(x0,z0,x1,z1){const c=[await screen(x0,0,z0),await screen(x1,0,z0),await screen(x0,0,z1),await screen(x1,0,z1)];await page.mouse.move(Math.min(...c.map(p=>p.x)),Math.min(...c.map(p=>p.y))-40);await page.mouse.down();await page.mouse.move(Math.max(...c.map(p=>p.x)),Math.max(...c.map(p=>p.y)),{steps:6});await page.mouse.up();}
 const trainBtn=id=>page.locator(`#production button[data-train="${id}"]`);
 note('首次進站 HUD',await text('stock'));assert.match(await text('stock'),/^第一時代 · 食物 200/);
@@ -54,8 +55,21 @@ await page.keyboard.press('Escape');await page.locator('[data-unit="1"]').click(
 await page.locator('#build-barracks').click();p=await centre(barracksBox);await page.mouse.move(p.x,p.y);note('兵營預覽',await text('build-reason'));note('放置兵營',await act(()=>page.mouse.click(p.x,p.y)));
 assert.match(await text('notice'),/前往建造兵營/);await page.locator('#step').click();p=await centre(barracksBox);await page.mouse.click(p.x,p.y);note('點選兵營地基',`${await text('building-title')} ${await text('building-status')}`);await runUntil(()=>/已完工/.test(document.querySelector('#building-status').textContent));note('兵營完工',await text('building-status'));
 note('兵營按鈕',(await page.locator('#production button').allInnerTexts()).map(t=>t.replace(/\n/g,' · ')).join('／'));await page.locator('#building-panel').screenshot({path:out+'production-panel.png'});note('停用原因',await text('production-reason'));
-assert.match(await text('production-reason'),/近戰民兵：食物不足/);assert.equal(await trainBtn('archer').isDisabled(),false);note('加入弓手（第二時代解鎖）',await act(()=>trainBtn('archer').click()));await page.locator('#step').click();await page.waitForFunction(()=>document.querySelector('#queue').children.length===1);note('前進 1 tick 後的佇列',await text('queue'));
-await runUntil(()=>document.querySelector('#queue').children.length===0);note('弓手完成',await text('stock'));assert.match(await text('stock'),/人口 5\/5/);await page.screenshot({path:out+'production-archer.png'});
+// Archers come from the archery range, as in the original: the barracks offers militia only.
+assert.equal(await page.locator('#production button[data-train="archer"]').count(),0,'no archer tile at the barracks');
+assert.match(await text('production-reason'),/近戰民兵：食物不足/);
+// The berries are gone after the age-up: villager 1 cuts wood, lays a farm and works it for the militia's food.
+await page.keyboard.press('Escape');await page.locator('[data-unit="1"]').click();p=await screen((tree.x+30)/100,0,(tree.y+30)/100);note('村民 1 採木',await act(()=>page.mouse.click(p.x,p.y,{button:'right'})));
+await runUntil(()=>{const m=/木材 (\d+)/.exec(document.querySelector('#stock').textContent);return m&&+m[1]>=60;},240000);note('木材達 60',await text('stock'));
+await page.locator('#build-farm').click();p=await centre(farmBox);await page.mouse.move(p.x,p.y);note('放置農田',await act(()=>page.mouse.click(p.x,p.y)));assert.match(await text('notice'),/前往建造農田/);
+// Farm: 20 s of work (400 ticks) plus the walk; then select the field to see that it stands finished.
+const laid=Number(await text('tick'));await runUntil(t=>Number(document.querySelector('#tick').textContent)>=t+700,150000,laid);
+p=await centre(farmBox);await page.mouse.click(p.x,p.y);note('農田',`${await text('building-title')} ${await text('building-status')}`);assert.match(await text('building-status'),/剩餘食物 250\/250/,'a finished field shows its food');await page.keyboard.press('Escape');
+await page.locator('[data-unit="1"]').click();p=await centre(farmBox);note('村民 1 耕田',await act(()=>page.mouse.click(p.x,p.y,{button:'right'})));
+await runUntil(()=>{const m=/食物 (\d+)/.exec(document.querySelector('#stock').textContent);return m&&+m[1]>=60;},240000);note('食物達 60',await text('stock'));
+p=await centre(barracksBox);await page.mouse.click(p.x,p.y);assert.equal(await text('building-title'),'兵營');
+assert.equal(await trainBtn('militia').isDisabled(),false);note('加入近戰民兵',await act(()=>trainBtn('militia').click()));await page.locator('#step').click();await page.waitForFunction(()=>document.querySelector('#queue').children.length===1);note('前進 1 tick 後的佇列',await text('queue'));
+await runUntil(()=>document.querySelector('#queue').children.length===0);note('民兵完成',await text('stock'));assert.match(await text('stock'),/人口 5\/5/);await page.screenshot({path:out+'production-militia.png'});
 // 6. Mixed selection: only villagers are sent to gather.
 await page.keyboard.press('Escape');await boxSelect((barracksBox[0]-80)/100,(barracksBox[1]-80)/100,(barracksBox[2]+80)/100,(barracksBox[3]+120)/100);note('框選兵營周圍',await text('selection-list'));
 p=await screen((tree.x+30)/100,0,(tree.y+30)/100);note('混合選取右鍵樹木',await act(()=>page.mouse.click(p.x,p.y,{button:'right'})));

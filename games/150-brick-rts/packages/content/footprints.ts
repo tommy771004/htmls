@@ -12,6 +12,7 @@ export const obstacleFootprints={
  'mining-camp':{x:-15,y:-15,width:300,depth:300},
  mill:{x:-15,y:-15,width:300,depth:300},
  stable:{x:-15,y:-15,width:300,depth:300},
+ 'archery-range':{x:-15,y:-15,width:300,depth:300},
  tree:{x:-20,y:-20,width:100,depth:100},
  rock:{x:0,y:0,width:65,depth:70},
  gold:{x:0,y:0,width:65,depth:70},

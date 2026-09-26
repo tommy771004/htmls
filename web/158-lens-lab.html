@@ -25,7 +25,7 @@ canvas{display:block}
 
 /* ——— 3D 實驗台 ——— */
 .stage{position:relative;height:100svh;min-height:680px;max-height:1020px;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,#0f1c20 0%,#081013 70%)}
-.glwrap{position:absolute;inset:0}
+.glwrap{position:absolute;inset:0;overflow:hidden}
 #gl{width:100%;height:100%;touch-action:pan-y;cursor:grab}
 #gl.drag{cursor:grabbing}#gl.ringhover{cursor:ew-resize}#gl.pick{cursor:crosshair}
 .boot{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;pointer-events:none;text-align:center;padding:24px}
@@ -130,7 +130,7 @@ canvas{display:block}
 }
 @media (max-width:980px){
   .stage{height:auto;min-height:0;max-height:none;overflow:visible;display:flex;flex-direction:column}
-  .glwrap{position:relative;height:60svh;min-height:360px;order:1}
+  .glwrap{position:relative;height:auto;aspect-ratio:4/3;max-height:70svh;min-height:320px;order:1}
   .hud{position:static;width:auto;margin:10px 12px 0;-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--panel-2)}
   .hud-l{order:0;margin-top:12px}
   .photo-card{order:2}
@@ -144,7 +144,6 @@ canvas{display:block}
 }
 @media (max-width:620px){
   .brand{font-size:26px}
-  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .panel{padding:12px 12px 14px}
   .read{grid-template-columns:repeat(2,minmax(0,1fr))}
   .check-inner{padding:18px 14px 8px}
@@ -152,6 +151,18 @@ canvas{display:block}
   .row .eq,.row .res{grid-column:1/-1}
   .row .ok{grid-row:1;grid-column:2}
   .views{margin-left:0}
+}
+.short{display:none}
+@media (max-width:620px){
+  .long{display:none}.short{display:inline}
+  .lede{margin-top:8px}
+  .stats{margin-top:10px}
+  .callout{margin-top:10px}
+  .panel .sub,.chart-note,.row p,.row .eq,.check-note{display:none}
+  .row{padding:9px 0}
+  .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  .stats div{padding:6px 7px 5px}
+  .stats dd{font-size:14.5px}
 }
 @media (prefers-reduced-motion:reduce){.toggle input,.toggle input::after,.shoot{transition:none}}
 </style>
@@ -166,7 +177,7 @@ canvas{display:block}
 
   <div class="hud hud-l">
     <h1 class="brand">鏡頭實驗室<small>THE PLANE OF FOCUS</small></h1>
-    <p class="lede">一支剖開的變焦鏡頭，對著一座 1:16 的微縮場景。轉對焦環，看前群鏡片沿光軸前後移動、光線在感光元件前後匯聚，還有場景裡那片「清晰平面」往哪裡走。</p>
+    <p class="lede"><span class="long">一支剖開的變焦鏡頭，對著一座 1:16 的微縮場景。轉對焦環，看前群鏡片沿光軸前後移動、光線在感光元件前後匯聚，還有場景裡那片「清晰平面」往哪裡走。</span><span class="short">轉對焦環，看清晰平面怎麼移動。</span></p>
     <dl class="stats">
       <div><dt>對焦</dt><dd id="st-focus">4.50 m</dd></div>
       <div><dt>光圈</dt><dd id="st-ap">f/2.8</dd></div>
@@ -180,17 +191,17 @@ canvas{display:block}
     <div class="ctl">
       <div class="ctl-head"><strong>對焦環</strong><output id="outFocus">3.00 m</output></div>
       <div class="ring" id="ringFocus" tabindex="0" role="slider" aria-label="對焦距離"><canvas></canvas></div>
-      <p class="note">轉它，<b>前群鏡片</b>就前後移；光剛好在感光元件上聚成一點的距離，就是清晰平面。3D 鏡頭上的黑環也能拖。</p>
+      <p class="note"><span class="long">轉它，<b>前群鏡片</b>就前後移；光剛好在感光元件上聚成一點的距離，就是清晰平面。3D 鏡頭上的黑環也能拖。</span><span class="short">前群鏡片前後移，決定<b>哪裡清楚</b>。</span></p>
     </div>
     <div class="ctl">
       <div class="ctl-head"><strong>光圈環</strong><output id="outAp">f/2.8</output></div>
       <div class="ring" id="ringAp" tabindex="0" role="slider" aria-label="光圈 f 值"><canvas></canvas></div>
-      <p class="note">f 值越大，孔越小，<b>光束越細</b>：沒對準的點攤開的圓變小，清楚的範圍變寬。</p>
+      <p class="note"><span class="long">f 值越大，孔越小，<b>光束越細</b>：沒對準的點攤開的圓變小，清楚的範圍變寬。</span><span class="short">數字越大，<b>清楚的範圍越寬</b>。</span></p>
     </div>
     <div class="ctl">
       <div class="ctl-head"><strong>變焦環</strong><output id="outZoom">50 mm</output></div>
       <div class="ring" id="ringZoom" tabindex="0" role="slider" aria-label="焦距"><canvas></canvas></div>
-      <p class="note">焦距越長，畫面越窄、放得越大，<b>背景糊得越兇</b>，景深越淺。</p>
+      <p class="note"><span class="long">焦距越長，畫面越窄、放得越大，<b>背景糊得越兇</b>，景深越淺。</span><span class="short">焦距越長，<b>背景越糊</b>。</span></p>
     </div>
   </div>
 
@@ -215,7 +226,7 @@ canvas{display:block}
 
 <section class="deep">
   <div class="panel">
-    <h2>精確剖面 · 近軸光線追跡</h2>
+    <h2>精確剖面<span class="long"> · 近軸光線追跡</span></h2>
     <p class="sub">上面 3D 鏡頭的同一組數字，攤平成真實比例的剖面：主平面 H、H′、焦點 F′ 與前群位移都標出來了。</p>
     <canvas id="lens" role="img" aria-label="鏡頭剖面圖：七片鏡片、光圈與感光元件，三束光線依物體距離折射並匯聚"></canvas>
     <div class="legend" id="legend">
@@ -234,12 +245,12 @@ canvas{display:block}
 
 <section class="check" aria-labelledby="h-check">
   <div class="check-inner">
-    <h2 id="h-check">驗算：這一頁的物理有沒有算對</h2>
-    <p>每一列都用目前的設定即時計算。左半邊是教科書公式，右半邊是把光線一條條追過七片玻璃得到的結果；兩者對得上，上面的畫面才可信。</p>
+    <h2 id="h-check">驗算<span class="long">：這一頁的物理有沒有算對</span></h2>
+    <p><span class="long">每一列都用目前的設定即時計算。左半邊是教科書公式，右半邊是把光線一條條追過七片玻璃得到的結果；兩者對得上，上面的畫面才可信。</span><span class="short">公式 vs 光線追跡，即時比對。</span></p>
     <div id="rows"></div>
   </div>
 </section>
-<p class="foot">光學模型：近軸（高斯）光線追跡，d 線單一波長，折射率 1.62／1.74／1.785；容許模糊圓 0.030 mm（全片幅慣例）。距離刻度從感光元件平面量起，公式中的 s、x 從前主平面 H 量起。3D 場景為 1:16 微縮模型，鏡頭放大 4.6 倍展示；照片以 1:16 換算回真實距離計算模糊。<a href="../index.html">回作品集</a></p>
+<p class="foot"><span class="long">光學模型：近軸（高斯）光線追跡，d 線單一波長，折射率 1.62／1.74／1.785；容許模糊圓 0.030 mm（全片幅慣例）。距離刻度從感光元件平面量起，公式中的 s、x 從前主平面 H 量起。3D 場景為 1:16 微縮模型，鏡頭放大 4.6 倍展示；照片以 1:16 換算回真實距離計算模糊。</span><span class="short">近軸光線追跡 · 容許模糊圓 0.03 mm · 場景 1:16。</span><a href="../index.html">回作品集</a></p>
 
 <script id="engine">
 // ——— 光學設計：前群負（對焦組）＋後群正（含光圈），近軸曲率半徑 R、到下一面的距離 t、面後折射率 n（單位 mm）———
@@ -449,7 +460,7 @@ const lensCv = $('lens');
 let lensGeom = null;
 function drawLens() {
   const zL = -158, zR = 20, Ym = 24.5, narrow = lensCv.clientWidth < 560;
-  const padTop = 18, padBot = narrow ? 128 : 112;
+  const padTop = 18, padBot = narrow ? 146 : 112;
   // 真實比例（水平、垂直同一個 mm→px），畫布高度跟著內容走
   const want = Math.round(padTop + 2 * Ym * (lensCv.clientWidth - 12) / (zR - zL) + padBot);
   if (Math.abs(lensCv.clientHeight - want) > 1) lensCv.style.height = want + 'px';
@@ -594,14 +605,14 @@ function drawLens() {
     else { c.textAlign = 'right'; c.fillText(label, xa - 8, yPix); }
   };
   const yb = Y(-Ym) + 18;
-  dim(M.cfg.z1, S0[0].z, yb, `前群位移 ${M.cfg.d.toFixed(2)} mm`, COL.mid);
+  dim(M.cfg.z1, S0[0].z, narrow ? yb + 40 : yb, `前群位移 ${M.cfg.d.toFixed(2)} mm`, COL.mid);
   dim(M.zH2, M.zF2, yb, `f ${M.f.toFixed(2)} mm`);
   const ext = M.v - M.f;
   dim(M.zH2, 0, yb + 20, `s′ ${M.v.toFixed(2)}` + (ext > 0.005 ? ` = f + ${ext.toFixed(2)}` : ' = f'));
 
   // 放大看感光元件上的模糊圓
   if (hits.length) {
-    const box = { x: X(zL) + 4, y: Y(-Ym) + (narrow ? 58 : 48) };
+    const box = { x: X(zL) + 4, y: Y(-Ym) + (narrow ? 76 : 48) };
     const maxBd = Math.max(COC, ...hits.map(q => q.bd));
     const mag = [2000, 1000, 500, 200, 100, 50, 20, 10, 5].find(m => maxBd * m <= 40) || 5;
     c.fillStyle = COL.faint; c.textAlign = 'left'; c.textBaseline = 'top';
@@ -864,7 +875,9 @@ function renderRead() {
     const where = !isFinite(M.D) ? '比清晰平面近' : diff < 0 ? `在清晰平面前 ${fmtD(-diff)}` : `在清晰平面後 ${fmtD(diff)}`;
     return `<b class="${key}">${o.name}</b>${where}，模糊圓 ${fmtBlur(b)}，是容許值的 ${Math.round(b / COC)} 倍`;
   };
-  $('callout').innerHTML = `清晰平面在 <b>${fmtD(M.D)}</b>，${fmtD(M.nearD)}–${fmtD(M.farD)} 之間都算清楚。` + ['fg', 'mid', 'far'].map(rel).join('；') + '。';
+  const brief = key => `<b class="${key}">${OBJ[key].name.slice(2)}</b> ${M.objs[key].blur <= COC ? '清楚' : '⌀' + fmtBlur(M.objs[key].blur)}`;
+  $('callout').innerHTML = `<span class="long">清晰平面在 <b>${fmtD(M.D)}</b>，${fmtD(M.nearD)}–${fmtD(M.farD)} 之間都算清楚。` + ['fg', 'mid', 'far'].map(rel).join('；') + '。</span>' +
+    `<span class="short">${['fg', 'mid', 'far'].map(brief).join(' · ')}</span>`;
   $('outAp').textContent = 'f/' + M.N;
   $('outZoom').textContent = state.f0.toFixed(0) + ' mm';
   for (const key in OBJ) $('lg-' + key).textContent = `${fmtD(OBJ[key].D)} · ${M.objs[key].traced < 5e-4 ? '合焦' : '⌀ ' + fmtBlur(M.objs[key].traced)}`;
@@ -901,7 +914,7 @@ function renderCheck() {
   const bk = Object.keys(OBJ).sort((a, b) => M.objs[b].blur - M.objs[a].blur)[0], ppm = LAB.photoPx / 36;
   rows.push(['照片上的模糊', '模糊圓直徑換成畫面像素：36 mm 感光元件寬 = 畫面寬', `${OBJ[bk].name} ${fmtBlur(M.objs[bk].blur)} × ${ppm.toFixed(1)} px/mm`, `= ${(M.objs[bk].blur * ppm).toFixed(1)} px（照片寬 ${LAB.photoPx} px，逐像素圓盤取樣）`, '<span class="ok pass">套用</span>']);
   $('rows').innerHTML = rows.map(r => `<div class="row"><div><h3>${r[0]}</h3><p>${r[1]}</p></div><div class="eq">${r[2]}</div><div class="res">${r[3]}</div>${r[4]}</div>`).join('') +
-    `<p style="color:var(--faint);font-size:12.5px;margin:12px 0 8px">公式和追跡之間的幾個百分點差距是真的，不是誤差：景深公式假設光束從主平面 H 那裡的圓孔進入，這支鏡頭的入射光瞳卻在另一個位置，所以越近的物體差越多。追跡的結果是這支鏡頭實際會拍到的。</p>`;
+    `<p class="check-note" style="color:var(--faint);font-size:12.5px;margin:12px 0 8px">公式和追跡之間的幾個百分點差距是真的，不是誤差：景深公式假設光束從主平面 H 那裡的圓孔進入，這支鏡頭的入射光瞳卻在另一個位置，所以越近的物體差越多。追跡的結果是這支鏡頭實際會拍到的。</p>`;
 }
 
 // ———————————————————— 更新 ————————————————————
@@ -1060,7 +1073,7 @@ const lights = [];
   const key = new T.SpotLight(0xffe7cf, 11, 0, 0.7, 0.7, 1.2); key.position.set(-0.6, 2.9, 1.3); key.target.position.set(-0.45, 1.0, 0);
   key.castShadow = true; key.shadow.mapSize.set(1024, 1024); key.shadow.bias = -0.0004; lights.push(key, key.target);
   const dio = new T.SpotLight(0xfff3dc, 5, 0, 0.45, 0.6, 1.2); dio.position.set(0.7, 2.5, 0.9); dio.target.position.set(0.4, 1.05, 0);
-  const wash = new T.SpotLight(0x7fcfda, 5, 0, 0.9, 0.9, 1.4); wash.position.set(-0.2, 0.4, 0.6); wash.target.position.set(-0.2, 1.9, -1.25); lights.push(wash, wash.target);
+  const wash = new T.SpotLight(0x7fcfda, 4, 0, 0.8, 0.9, 1.4); wash.position.set(-0.2, 3.1, -0.3); wash.target.position.set(-0.2, 1.6, -1.25); lights.push(wash, wash.target);
   dio.castShadow = true; dio.shadow.mapSize.set(1024, 1024); dio.shadow.bias = -0.0003; lights.push(dio, dio.target);
   const rim = new T.DirectionalLight(0x6fd0dc, 0.5); rim.position.set(-2, 2.2, -2); lights.push(rim);
   const sun = new T.DirectionalLight(0xfff0d8, 1.2); sun.position.set(6, 9, 4); sun.target.position.set(3, 1, 0); lights.push(sun, sun.target);
@@ -1480,7 +1493,7 @@ const postScene = new T.Scene(), postCam = new T.OrthographicCamera(-1, 1, 1, -1
 const U = {
   tColor: { value: rtA.texture }, tDepth: { value: rtA.depthTexture }, cNear: { value: lensCam.near }, cFar: { value: lensCam.far },
   kPx: { value: 1 }, invS: { value: 0 }, toMm: { value: DIO * 1000 }, texel: { value: new T.Vector2(1 / PW, 1 / PH) }, maxR: { value: 20 },
-  peak: { value: 0 }, cocPx: { value: 0.3 }, expo: { value: 0.82 }
+  peak: { value: 0 }, cocPx: { value: 0.3 }, expo: { value: 1.0 }
 };
 postScene.add(new T.Mesh(new T.PlaneGeometry(2, 2), new T.ShaderMaterial({
   uniforms: U, depthTest: false, depthWrite: false,
@@ -1493,7 +1506,8 @@ postScene.add(new T.Mesh(new T.PlaneGeometry(2, 2), new T.ShaderMaterial({
     // 模糊圓半徑（照片像素）：c = K·|1/x − 1/s|，x 為真實距離（mm）
     float rad(float depth){ float x = max(depth * toMm, 1.0); return kPx * abs(1.0 / x - invS); }
     vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
-    vec3 toSRGB(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+    // 輸出到 sRGB 的 render target，Three.js 會自己做 gamma 編碼
+    float lum(vec2 uv){ return dot(pow(aces(texture2D(tColor, uv).rgb * expo), vec3(1.0 / 2.2)), vec3(0.3, 0.59, 0.11)); }
     void main(){
       float cD = depthAt(vUv), cR = rad(cD);
       vec3 col = texture2D(tColor, vUv).rgb; float tot = 1.0;
@@ -1509,18 +1523,15 @@ postScene.add(new T.Mesh(new T.PlaneGeometry(2, 2), new T.ShaderMaterial({
         r += 0.8 / r;
       }
       col /= tot;
-      vec3 o = toSRGB(aces(col * expo));
+      vec3 o = aces(col * expo);
       if (peak > 0.5 && cR <= cocPx) {
-        float l0 = dot(texture2D(tColor, vUv).rgb, vec3(0.3, 0.59, 0.11));
-        float l1 = dot(texture2D(tColor, vUv + vec2(texel.x, 0.0)).rgb, vec3(0.3, 0.59, 0.11));
-        float l2 = dot(texture2D(tColor, vUv + vec2(0.0, texel.y)).rgb, vec3(0.3, 0.59, 0.11));
-        float e = smoothstep(0.03, 0.12, abs(l0 - l1) + abs(l0 - l2));
-        o = mix(o, vec3(0.35, 0.95, 1.0), e * 0.85);
+        // 對焦峰值：只在景深內、有明顯邊緣的地方標上青色
+        float g = abs(lum(vUv + vec2(texel.x, 0.0)) - lum(vUv - vec2(texel.x, 0.0))) + abs(lum(vUv + vec2(0.0, texel.y)) - lum(vUv - vec2(0.0, texel.y)));
+        o = mix(o, vec3(0.05, 0.85, 1.0), smoothstep(0.08, 0.22, g) * 0.9);
       }
       gl_FragColor = vec4(o, 1.0);
     }`
 })));
-window.__U = U; window.__rp = () => renderPhoto(LAB.M);
 const photo = $('photo'), pctx = photo.getContext('2d');
 photo.width = PW; photo.height = PH;
 const pix = new Uint8Array(PW * PH * 4), img = pctx.createImageData(PW, PH);
@@ -1551,11 +1562,12 @@ function tag(id, cls) { const d = document.createElement('div'); d.className = '
 ['fp', 'near', 'far_', 'g1', 'stop', 'sensor', 'mon', 'fg', 'mid', 'far'].forEach(k => tag(k, { fp: 'fp', fg: 'fg', mid: 'mid', far: 'far' }[k]));
 tags.near.shift = '-100%'; tags.far_.shift = '0%';
 const tmpV = new T.Vector3();
+const MINOR = new Set(['g1', 'stop', 'sensor', 'mon', 'near', 'far_', 'fg', 'mid', 'far']); // 窄螢幕只留清晰平面
 function placeTags() {
-  const w = wrap.clientWidth, h = wrap.clientHeight;
+  const w = wrap.clientWidth, h = wrap.clientHeight, narrow = w < 700 && viewName === 'all';
   for (const k in tags) {
     const t = tags[k];
-    if (!t.html) { t.el.hidden = true; continue; }
+    if (!t.html || (narrow && MINOR.has(k))) { t.el.hidden = true; continue; }
     tmpV.copy(t.pos).project(cam);
     const vis = tmpV.z < 1 && Math.abs(tmpV.x) < 1.05 && Math.abs(tmpV.y) < 1.05;
     t.el.hidden = !vis;
@@ -1573,7 +1585,7 @@ const VIEWS = {
 const orbit = { target: VIEWS.all.target.clone(), yaw: VIEWS.all.yaw, pitch: VIEWS.all.pitch, dist: 2.6, goal: null };
 function fitDist(width) { const hf = 2 * Math.atan(Math.tan(cam.fov * Math.PI / 360) * cam.aspect); return width / 2 / Math.tan(hf / 2) + 0.15; }
 function setView(name, instant) {
-  const v = VIEWS[name];
+  const v = name === 'all' && wrap.clientWidth < 700 ? { target: new T.Vector3(-0.05, 1.36, -0.1), yaw: 0.1, pitch: 0.22, fit: 1.75 } : VIEWS[name];
   orbit.goal = { target: v.target.clone(), yaw: v.yaw, pitch: v.pitch, dist: Math.max(fitDist(v.fit), name === 'all' ? 1.2 : 0.55) };
   if (instant || REDUCED) { Object.assign(orbit, { target: orbit.goal.target, yaw: orbit.goal.yaw, pitch: orbit.goal.pitch, dist: orbit.goal.dist }); orbit.goal = null; }
   document.querySelectorAll('.views button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
@@ -1711,7 +1723,7 @@ LAB.on3d = M => {
     setTag(k, `<b>${OBJ[k].name}</b><i>${fmtD(OBJ[k].D)} · ${b <= LAB.COC ? '清晰' : '⌀ ' + fmtBlur(b)}</i>`, p);
   }
   for (const k of ['fg', 'mid', 'far']) drawPoster(k, M);
-  $('photoCap').textContent = `感光元件看到的畫面 · f/${M.N} · ${Math.round(LAB.state.f0)} mm`;
+  $('photoCap').textContent = `拍到的畫面 · f/${M.N} · ${Math.round(LAB.state.f0)} mm`;
   needPhoto = true; kick();
 };
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "d1c56065",
+  "rulesetHash": "ac428d45",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -208,6 +208,12 @@
         "width": 300,
         "depth": 300
       },
+      "archery-range": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
       "tree": {
         "x": -20,
         "y": -20,
@@ -384,7 +390,8 @@
       "lumber-camp": 200,
       "mining-camp": 200,
       "mill": 200,
-      "stable": 300
+      "stable": 300,
+      "archery-range": 300
     },
     "corpseTicks": 40,
     "hitFlashTicks": 6,

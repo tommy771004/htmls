@@ -229,7 +229,34 @@
       "time": 20,
       "population": 0,
       "requires": [
-        "age-2"
+        "age-2",
+        "barracks"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "archery-range",
+      "kind": "building",
+      "name": "靶場",
+      "cost": {
+        "food": 0,
+        "wood": 175,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-2",
+        "barracks"
       ],
       "verificationStatus": "design_default"
     },
@@ -410,7 +437,7 @@
   "production": {
     "villager": "town-center",
     "militia": "barracks",
-    "archer": "barracks",
+    "archer": "archery-range",
     "ram": null,
     "scout": "stable",
     "age-2": "town-center",
@@ -430,6 +457,7 @@
         "mining-camp",
         "mill",
         "stable",
+        "archery-range",
         "militia",
         "archer",
         "ram",
@@ -452,6 +480,7 @@
         "mining-camp",
         "mill",
         "stable",
+        "archery-range",
         "militia",
         "archer",
         "ram",

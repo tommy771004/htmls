@@ -101,6 +101,7 @@
 - [110 THREAD · 刺繡工作室](https://htmls-ruddy.vercel.app/web/110-embroidery-studio.html): 程序布料與刺繡。純 Canvas 2D 刺繡編輯器：逐像素織布光照、七種幾何針法、六道繡線質感與 PNG 匯出
 - [116 Thockwork · 客製化鍵盤工坊](https://htmls-ruddy.vercel.app/web/116-thockwork-keyboard.html): 程序化 Three.js 鍵盤。逐顆生成鍵帽、軸體與外殼，切換配列、配色、材質與軸體，旋轉試打並體驗本機示範購物車；需連線載入 Three.js 與 GSAP
 - [121 R6 · 旁軸相機藍圖拆解](https://htmls-ruddy.vercel.app/web/121-camera-blueprint.html): 程式渲染產品藍圖動畫。深藍底白線稿的旁軸底片相機：正視圖描邊、轉 3/4 視角、五個零件依序爆炸標註、收回成尺寸標註正視圖；可決定性時間軸，輸出 60fps PNG 幀序列與 MP4
+- [160 下一個字 · NEXT TOKEN](https://htmls-ruddy.vercel.app/web/160-next-token.html): 一句話譜成的即時影音 demo。輸入的句子就是樂譜，決定旋律、和聲與鏡頭；六幕光線步進畫面與逐樣本合成的配樂全部在瀏覽器裡算出，零圖片、零音檔、零函式庫。
 
 ### 遊戲敘事
 
@@ -134,6 +135,7 @@
 - [136 Zork · 帝國的餘燼](https://htmls-ruddy.vercel.app/web/136-zork.html): 第一人稱 Three.js 動作冒險。1977 Zork 285 的 80 房間、11 寶物與原始地圖條件；提燈、限載、鏡面、水壩及冥界謎題，即時近戰與追擊 AI，分塊場景、安全點、本機存檔。全部模型與聲音由程式生成。
 - [140 浮雲鐵道 · Cumulus Line](https://htmls-ruddy.vercel.app/web/140-cumulus-line.html): Three.js 水彩浮島電車模擬。駕駛室視角、一桿式主控制器（P5～B7／EB）、以急動度與側向加速度換算的乘客舒適度與小費、茶杯液面即時傾斜、平穩連續倍率、定點停車、雲梯線與星汐線兩條路線、晴日與午夜光照、機廠小鎮整備。
 - [153 尾流大獎賽 · SLIPSTREAM GP](https://htmls-ruddy.vercel.app/web/153-slipstream-gp.html): Q 版 3D 卡丁車。四條賽道、大獎賽／計時賽／氣球大戰三種模式、八位原創車手，跳躍甩尾迷你加速、七種道具、尾流吸附與即時合成配樂，模型與貼圖全由程式生成。
+- [159 沉星機 · ANTIKYTHERA](https://htmls-ruddy.vercel.app/web/159-antikythera.html): 潛水打撈與齒輪復原解謎。潛入安提基特拉沉船撈起鏽蝕青銅，除鏽讀出齒數，依孔距齒數和與齒輪比裝回五組齒輪；裝對後轉曲柄預測太陽、月亮、月相、奧林匹克賽會與日月食。畫面與聲音全部程序生成。
 
 ### 品牌頁面
 
@@ -169,7 +171,7 @@
 - [087 The Northern Heavens](https://htmls-ruddy.vercel.app/web/087-star-chart.html): 印刷星圖。約 170 顆真實亮星的星座盤，依恆星時對齊，可切換緯度
 - [094 Circles in a Hurry](https://htmls-ruddy.vercel.app/web/094-fourier.html): 傅立葉周轉圓。隨手畫的線用 DFT 周轉圓重現，圓的數量可調
 - [149 一指之間 · Powers of Ten](https://htmls-ruddy.vercel.app/web/149-powers-of-ten.html): 62 個數量級連續縮放。從孩子的掌心往外到可觀測宇宙邊緣、往裡到夸克與普朗克長度：真實行星位置、臺灣地形、DNA 雙螺旋、碳原子電子雲，視野與光穿越時間即時換算
-- [158 鏡頭實驗室 · 對焦與景深](https://htmls-ruddy.vercel.app/web/158-lens-lab.html): 光線追跡光學教具。24–70mm 變焦鏡頭剖面以近軸光線追跡畫出折射，轉對焦環讓前群移動、光線匯聚點前後移；黃昏棧道依景深公式即時模糊，光圈、焦距改變景深，頁尾即時驗算薄透鏡與景深公式
+- [158 鏡頭實驗室 · The Plane of Focus](https://htmls-ruddy.vercel.app/web/158-lens-lab.html): 3D 光學實驗台。剖開的 24–70mm 變焦鏡頭以近軸光線追跡畫出七片玻璃的折射，轉對焦環讓前群沿光軸移動；1:16 玻璃箱微縮場景立著清晰平面，鏡頭位置即時渲染的照片依景深公式逐像素模糊，並即時驗算薄透鏡與景深公式
 
 ### 東方在地
 

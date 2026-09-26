@@ -3,7 +3,7 @@ import {rules} from '../content/rules.ts';
 import type {Resource} from '../content/rules.ts';
 import {resourceDefinitions,tileAt} from './terrain.ts';
 import {clearSegment,isBuilding,position} from './navigation.ts';
-import {placementProblem,buildKinds,farmOwner,buildingRules} from './buildings.ts';
+import {placementProblem,buildKinds,farmOwner,buildingRules,buildRequirement} from './buildings.ts';
 import type {Building,BuildKind} from './buildings.ts';
 import {trainable} from './production.ts';
 import type {ProductionState} from './production.ts';
@@ -50,6 +50,8 @@ export function stepAI(s:AIState,order:Order){
  // The barracks goes down first: it needs the larger site, and houses would otherwise take those spots.
  const barracksDue=villagers.length>=aiRules.barracksAtVillagers&&!own.some(b=>b.kind==='barracks');
  if(barracksDue)place(s,order,'barracks',villagers,idle,tcBox,own);
+ // In the second age an archery range follows (it needs the finished barracks).
+ if(s.ages[P]>=2&&!own.some(b=>b.kind==='archery-range')&&!buildRequirement(s.ages[P],'archery-range',own)&&stock.wood>=rules.entries.find(e=>e.id==='archery-range')!.cost.wood)place(s,order,'archery-range',villagers,idle,tcBox,own);
  if(room<=aiRules.houseMargin&&account.populationCap<rules.settings.populationCap&&!pending('house')&&(!barracksDue||room<=0))place(s,order,'house',villagers,idle,tcBox,own);
  // Drop-off camps: when two or more villagers carry wood (or gold/stone) from farther than campDistance to the
  // nearest drop-off that takes it, a camp goes up next to that source.
@@ -63,10 +65,11 @@ export function stepAI(s:AIState,order:Order){
   if(villagers.length+queued('villager')<aiRules.villagerTarget&&!trainable(s,P,tc,'villager'))order('train',{buildingId:tc.id,entryId:'villager'});
   else if(s.ages[P]<2&&villagers.length>=aiRules.ageUpAtVillagers&&own.some(b=>b.kind==='barracks'&&b.complete)&&!trainable(s,P,tc,'age-2'))order('train',{buildingId:tc.id,entryId:'age-2'});
  }
- // Barracks: archers once available, otherwise militia; food is kept for the age-up when it is due.
+ // Barracks: militia, but food is kept for the age-up when it is due. Archery range: archers.
  const savingForAge=s.ages[P]<2&&villagers.length>=aiRules.ageUpAtVillagers&&stock.food<rules.entries.find(e=>e.id==='age-2')!.cost.food+60;
- for(const b of own.filter(b=>b.kind==='barracks'&&b.complete&&b.queue.length<2)){
-  const pick=['archer','militia'].find(id=>!trainable(s,P,b,id)&&!(id==='militia'&&savingForAge));if(pick)order('train',{buildingId:b.id,entryId:pick});}
+ for(const b of own.filter(b=>b.complete&&b.queue.length<2)){
+  const pick=b.kind==='barracks'&&!savingForAge?'militia':b.kind==='archery-range'?'archer':null;
+  if(pick&&!trainable(s,P,b,pick))order('train',{buildingId:b.id,entryId:pick});}
  // Idle villagers gather whichever weighted resource is most under-staffed, from the nearest explored source.
  const staff:Record<Resource,number>={food:0,wood:0,gold:0,stone:0},farmers=new Set<string>();
  for(const u of villagers){const w=s.works[u.id];if(w?.kind==='gather'){const r=s.map.resources.find(r=>r.id===w.resourceId);if(r){staff[resourceDefinitions[r.kind].yield]++;if(r.kind==='farm')farmers.add(r.id);}}}
@@ -103,9 +106,9 @@ function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Uni
  // Only the window within siteRange of the town centre is scanned.
  const lo=(v:number,o:number)=>Math.max(from(o),Math.ceil((v-aiRules.siteRange)/g)*g),hi=(v:number,o:number)=>Math.min(world-o,v+aiRules.siteRange);
  for(let x=lo(c.x,x0);x<=hi(c.x,x1);x+=aiRules.siteStep)for(let y=lo(c.y,y0);y<=hi(c.y,y1);y+=aiRules.siteStep){const box=[x+x0,y+y0,x+x1,y+y1],mid=centre(box);
-  // The barracks keeps a buffer from the centre line so fresh soldiers do not start inside enemy sight;
+  // Buildings that train soldiers keep a buffer from the centre line so fresh soldiers do not start inside enemy sight;
   // houses and farms may reach a little past it (the 16x16 map leaves little room once a base grows).
-  const margin=kind==='barracks'?aiRules.halfMargin:-aiRules.spill,ownHalf=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3]))>=margin;
+  const margin=kind==='barracks'||kind==='archery-range'?aiRules.halfMargin:-aiRules.spill,ownHalf=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3]))>=margin;
   if(!ownHalf||dist(mid,c)>aiRules.siteRange||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<50)||sources.some(o=>gap(box,o)<aiRules.sourceMargin))))continue;sites.push({x,y,d:dist(mid,c)});}
  sites.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);
  for(const site of sites){if(placementProblem(input,kind,site.x,site.y))continue;

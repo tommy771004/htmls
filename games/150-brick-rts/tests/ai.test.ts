@@ -35,14 +35,14 @@ test('computer opponent is deterministic across save/load and replay',()=>{
  assert.notEqual(hash(replay(straight.seed,straight.log,straight.tick,straight.layout,'idle')),hash(straight));
 });
 
-test('computer opponent builds an economy with drop-off camps, ages up, attacks only after the grace time and can win',()=>{
- const s=createState(260925,'open','ai'),seen={house:0,barracks:0,farm:0,'lumber-camp':0,'mining-camp':0,soldier:0,age2:0,firstBlueLoss:0};
+test('computer opponent builds an economy with drop-off camps, ages up to an archery range, attacks only after the grace time and can win',()=>{
+ const s=createState(260925,'open','ai'),seen={house:0,barracks:0,farm:0,'lumber-camp':0,'mining-camp':0,'archery-range':0,soldier:0,age2:0,firstBlueLoss:0};
  while(s.tick<20000&&!s.outcome){tick(s);const red=s.buildings.filter(b=>b.player===1);
-  for(const k of ['house','barracks','farm','lumber-camp','mining-camp'] as const)if(!seen[k]&&red.some(b=>b.kind===k&&b.complete))seen[k]=s.tick;
+  for(const k of ['house','barracks','farm','lumber-camp','mining-camp','archery-range'] as const)if(!seen[k]&&red.some(b=>b.kind===k&&b.complete))seen[k]=s.tick;
   if(!seen.soldier&&s.units.some(u=>u.player===1&&u.kind!=='villager'))seen.soldier=s.tick;
   if(!seen.age2&&s.ages[1]>=2)seen.age2=s.tick;
   if(!seen.firstBlueLoss&&s.units.filter(u=>u.player===0).length<3)seen.firstBlueLoss=s.tick;}
- for(const k of ['house','barracks','farm','lumber-camp','mining-camp','soldier','age2'] as const)assert.ok(seen[k]>0,`red reached ${k}`);
+ for(const k of ['house','barracks','farm','lumber-camp','mining-camp','archery-range','soldier','age2'] as const)assert.ok(seen[k]>0,`red reached ${k}`);
  assert.ok(seen.firstBlueLoss>=aiRules.firstWaveTick,`no blue losses before the first wave is due (first at ${seen.firstBlueLoss})`);
  assert.equal(s.outcome?.winner,1,'red conquers an idle blue');
  // Red's own buildings never close its drop-off ring, and the barracks sits on red's half.

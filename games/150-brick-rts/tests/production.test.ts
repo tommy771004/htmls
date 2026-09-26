@@ -12,6 +12,9 @@ function barracks(s:State){s.vision[0].explored=Array.from({length:256},(_,i)=>i
  for(let y=650;y<=1200;y+=50)for(let x=500;x<=1100;x+=50)if(!authoritativeProblem(s,0,'barracks',x,y)){order(s,'build',{unitIds:[1,2,3],kind:'barracks',x,y});for(let i=0;i<3000&&!s.buildings.some(b=>b.kind==='barracks'&&b.complete);i++)tick(s);return s.buildings.find(b=>b.kind==='barracks')!;}
  throw Error('no barracks spot');}
 const run=(s:State,n:number)=>{for(let i=0;i<n;i++)tick(s);};
+// A free spot for the building near blue's base, and a finished one built by villagers 1-3 (wood granted).
+function site(s:State,kind:string){for(let y=650;y<=1200;y+=50)for(let x=500;x<=1100;x+=50)if(!authoritativeProblem(s,0,kind as any,x,y))return {x,y};throw Error('no spot for '+kind);}
+function erect(s:State,kind:string){s.accounts[0].stock.wood+=175;order(s,'build',{unitIds:[1,2,3],kind,...site(s,kind)});for(let i=0;i<3000&&!s.buildings.some(b=>b.kind===kind&&b.complete);i++)tick(s);const b=s.buildings.find(b=>b.kind===kind&&b.complete);assert.ok(b,kind+' built');return b!;}
 
 test('a villager is paid and housed when queued, then walks out of the town center',()=>{
  const s=createState(260925);order(s,'train',{buildingId:tc(s).id,entryId:'villager'});tick(s);
@@ -32,14 +35,16 @@ test('militia need a finished barracks and cannot gather or build',()=>{
  const b=barracks(s);assert.ok(b.complete);order(s,'train',{buildingId:b.id,entryId:'militia'});run(s,420);
  const m=s.units.find(u=>u.kind==='militia')!;assert.ok(m);assert.equal(s.accounts[0].stock.gold,80);
  const tree=s.map.resources.find(r=>r.kind==='tree'&&r.collectible)!;assert.throws(()=>order(s,'gather',{unitIds:[m.id],resourceId:tree.id}),/只有村民/);
- assert.throws(()=>order(s,'train',{buildingId:b.id,entryId:'archer'}),/需要第二時代/);
+ assert.throws(()=>order(s,'train',{buildingId:b.id,entryId:'archer'}),/不能生產/,'archers come from the archery range');
 });
-test('advancing to the second age is researched once, unlocks archers and restyles own buildings',()=>{
+test('advancing to the second age is researched once, unlocks the archery range and restyles own buildings',()=>{
  const s=createState(260925);s.accounts[0].stock.food=800;const id=tc(s).id;order(s,'train',{buildingId:id,entryId:'age-2'});tick(s);
  assert.throws(()=>order(s,'train',{buildingId:id,entryId:'age-2'}),/已在研究中/);assert.throws(()=>order(s,'train',{buildingId:id,entryId:'age-3'}),/需要第二時代/);
  run(s,400);assert.equal(s.ages[0],2);assert.equal(s.ages[1],1);assert.throws(()=>order(s,'train',{buildingId:id,entryId:'age-2'}),/已研究/);
  assert.equal(s.map.obstacles.find(o=>o.id===id)!.age,2);assert.equal(s.map.obstacles.find(o=>o.kind==='town-center'&&o.red)!.age,1);
- const b=barracks(s);assert.equal(s.map.obstacles.find(o=>o.id===b.id)!.age,2);s.accounts[0].populationCap=10;order(s,'train',{buildingId:b.id,entryId:'archer'});tick(s);assert.equal(b.queue[0].entryId,'archer');
+ const b=barracks(s);assert.equal(s.map.obstacles.find(o=>o.id===b.id)!.age,2);
+ const range=erect(s,'archery-range');s.accounts[0].populationCap=10;order(s,'train',{buildingId:range.id,entryId:'archer'});tick(s);assert.equal(range.queue[0].entryId,'archer');
+ run(s,410);assert.ok(s.units.some(u=>u.kind==='archer'&&u.player===0),'an archer walked out');
 });
 test('a finished unit waits at a blocked exit and walks out once a spot frees up',()=>{
  const s=createState(260925),t=tc(s),box=obstacleBounds(s.map.obstacles.find(o=>o.id===t.id)!,navigationRules.radius);
@@ -68,13 +73,12 @@ test('a rally point on a building is refused; one covered later by a new buildin
  assert.ok(s.units.some(u=>u.id===5),'the villager came out');assert.ok(other);
 });
 
-test('a stable needs the second age; once built it trains scouts',()=>{
- const s=createState(260925);s.vision[0].explored=Array.from({length:256},(_,i)=>i);s.accounts[0].stock.food=1000;s.accounts[0].stock.wood=1000;
- let site:{x:number;y:number}|null=null;for(let y=650;y<=1200&&!site;y+=50)for(let x=500;x<=1100&&!site;x+=50)if(!authoritativeProblem(s,0,'stable',x,y))site={x,y};
- assert.throws(()=>order(s,'build',{unitIds:[1,2,3],kind:'stable',x:site!.x,y:site!.y}),/需要第二時代/);
+test('the stable and the archery range need the second age and a finished barracks; the stable trains scouts',()=>{
+ const s=createState(260925);s.vision[0].explored=Array.from({length:256},(_,i)=>i);s.accounts[0].stock.food=1000;
+ for(const kind of ['stable','archery-range'])assert.throws(()=>order(s,'build',{unitIds:[1,2,3],kind,...site(s,kind)}),/需要第二時代/);
  order(s,'train',{buildingId:tc(s).id,entryId:'age-2'});run(s,401);assert.equal(s.ages[0],2);
- order(s,'build',{unitIds:[1,2,3],kind:'stable',x:site!.x,y:site!.y});for(let i=0;i<3000&&!s.buildings.some(b=>b.kind==='stable'&&b.complete);i++)tick(s);
- const stable=s.buildings.find(b=>b.kind==='stable'&&b.complete)!;assert.ok(stable,'stable built');
+ for(const kind of ['stable','archery-range'])assert.throws(()=>order(s,'build',{unitIds:[1,2,3],kind,...site(s,kind)}),/需要完工的兵營/);
+ barracks(s);const stable=erect(s,'stable');
  order(s,'train',{buildingId:stable.id,entryId:'scout'});run(s,410);
  assert.ok(s.units.some(u=>u.kind==='scout'&&u.player===0),'a scout rode out');assert.throws(()=>order(s,'train',{buildingId:stable.id,entryId:'militia'}),/不能生產/);
 });
