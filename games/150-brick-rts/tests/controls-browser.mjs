@@ -1,6 +1,7 @@
 // D-stage input check: selection, box select, groups, right-click orders, stop, input isolation, HUD drag.
 import fs from 'node:fs';import http from 'node:http';import path from 'node:path';import assert from 'node:assert/strict';import {fileURLToPath} from 'node:url';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
+async function menu(p){if(await p.locator('#menu').isHidden())await p.locator('#menu-open').click();return p;}
 const root=fileURLToPath(new URL('../../../',import.meta.url)),out=fileURLToPath(new URL('../test-results/',import.meta.url));fs.mkdirSync(out,{recursive:true});
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript','.svg':'image/svg+xml','.json':'application/json','.css':'text/css','.jpg':'image/jpeg','.png':'image/png'};
 const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!file.startsWith(root)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));});
@@ -8,7 +9,7 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.
 const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:900}});const errors=[];
 page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 try{
-await page.goto(origin+'/web/150-brick-rts.html');await page.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
+await page.goto(origin+'/web/150-brick-rts.html?debug=1');await page.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
 async function screen(wx,wy,wz){await page.evaluate(()=>scrollTo(0,0));const r=await page.locator('#map').boundingBox(),halfH=Math.max(10.5,12/(r.width/r.height)),scale=r.height/(2*halfH),dx=wx-8,dz=wz-8;return {x:r.x+r.width/2+(dx-dz)*Math.SQRT1_2*scale,y:r.y+r.height/2-(-.5*dx+Math.SQRT1_2*wy-.5*dz)*scale};}
 const text=id=>page.locator('#'+id).innerText();
 async function drag(a,b,{shift=false,escape=false}={}){if(shift)await page.keyboard.down('Shift');await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move((a.x+b.x)/2,(a.y+b.y)/2,{steps:4});await page.mouse.move(b.x,b.y,{steps:4});if(escape)await page.keyboard.press('Escape');await page.mouse.up();if(shift)await page.keyboard.up('Shift');await page.waitForTimeout(100);}
@@ -27,7 +28,7 @@ await page.keyboard.press('Escape');assert.equal(await text('selected'),'未選�
 await page.keyboard.press('Digit2');assert.match(await text('notice'),/編組 2 尚未建立/);assert.equal(await text('selected'),'未選取');
 await page.keyboard.press('Digit1');assert.equal(await text('selected'),'#01 #02 #03');
 // 4. Typing in a field never triggers shortcuts.
-await page.locator('#seed').fill('');await page.locator('#seed').type('51');await page.keyboard.press('Escape');assert.equal(await page.locator('#seed').inputValue(),'51');assert.equal(await text('selected'),'#01 #02 #03');await page.locator('#seed').fill('260925');await page.locator('#seed').blur();
+await page.locator('#target-x').fill('');await page.locator('#target-x').type('51');await page.keyboard.press('Escape');assert.equal(await page.locator('#target-x').inputValue(),'51');assert.equal(await text('selected'),'#01 #02 #03');await page.locator('#target-x').fill('8');await page.locator('#target-x').blur();
 // 5. The browser context menu is suppressed on the scene.
 assert.equal(await page.locator('#map').evaluate(c=>{const e=new MouseEvent('contextmenu',{bubbles:true,cancelable:true});c.dispatchEvent(e);return e.defaultPrevented;}),true);
 // 6. A right-click on the hall floor sends all three through the single-file gate.
@@ -40,24 +41,24 @@ await page.screenshot({path:out+'controls-group-hall.png'});
 // 7. S stops a long group order at the next node.
 const far=await screen(12,0,12);await page.mouse.click(far.x,far.y,{button:'right'});await page.locator('#pause').click();await page.waitForTimeout(900);await page.keyboard.press('KeyS');await page.waitForFunction(()=>/將在下一個節點停下/.test(document.querySelector('#notice').textContent));
 await page.waitForFunction(()=>!/移動中|等待|尋路/.test(document.querySelector('#selection-list').textContent),{},{timeout:10000});const stopped=await text('selection-list');await page.waitForTimeout(600);assert.equal(await text('selection-list'),stopped);await page.locator('#pause').click();
-// 8. A drag that ends over the sidebar still box-selects (pointer capture) and presses nothing there.
-await page.keyboard.press('Escape');const side=await page.locator('#restart').boundingBox();const tickBefore=await text('tick');
-await drag({x:a.x-30,y:a.y-60},{x:side.x+side.width/2,y:side.y+side.height/2});assert.equal(await text('tick'),tickBefore);assert.doesNotMatch(await text('notice'),/已建立新沙盒/);
+// 8. A drag that ends over the top bar still box-selects (pointer capture) and presses nothing there.
+await page.keyboard.press('Escape');const side=await page.locator('#pause').boundingBox();const tickBefore=await text('tick');
+await drag({x:a.x-30,y:a.y-60},{x:side.x+side.width/2,y:side.y+side.height/2});assert.equal(await text('tick'),tickBefore);assert.equal(await page.locator('#pause').getAttribute('aria-pressed'),'false');
 // 9. Escape during a drag cancels the box; clicking empty ground clears the selection without moving anyone.
 await page.keyboard.press('Digit1');const hashBefore=await text('hash');const empty=await screen(10,0,5);await page.mouse.click(empty.x,empty.y);assert.equal(await text('selected'),'未選取');assert.equal(await text('hash'),hashBefore);
-await page.mouse.click(empty.x,empty.y,{button:'right'});assert.match(await text('notice'),/請先選取村民/);
-// 10. Camera: arrows pan only after the scene was clicked; elsewhere they scroll the page. F frames the selection.
+await page.mouse.click(empty.x,empty.y,{button:'right'});assert.match(await text('notice'),/請先選取單位/);
+// 10. Camera: arrows pan the battlefield (also after clicking the HUD); the game page itself never scrolls. F frames the selection.
 const beforePan=await page.locator('#map').screenshot();const spot=await screen(10,0,5);await page.mouse.click(spot.x,spot.y);for(let i=0;i<3;i++)await page.keyboard.press('ArrowRight');
 assert.equal(await page.evaluate(()=>scrollY),0,'arrow keys did not scroll the page');assert.notDeepEqual(await page.locator('#map').screenshot(),beforePan,'arrow keys pan the camera');
-await page.evaluate(()=>scrollTo(0,0));
-await page.locator('#selected').click();await page.keyboard.press('ArrowDown');await page.waitForTimeout(200);assert.ok(await page.evaluate(()=>scrollY)>0,'arrow keys scroll the page outside the scene');
+await page.locator('#selection-panel').click({position:{x:6,y:6}});const hudPan=await page.locator('#map').screenshot();await page.keyboard.press('ArrowDown');await page.waitForTimeout(200);assert.notDeepEqual(await page.locator('#map').screenshot(),hudPan,'arrows still pan after a HUD click');
+assert.equal(await page.evaluate(()=>scrollY===0&&document.documentElement.scrollHeight<=innerHeight),true,'the game screen has no page scroll');
 await page.keyboard.press('Digit1');await page.keyboard.press('KeyF');assert.match(await text('notice'),/鏡頭已對準/);await page.locator('#reset-view').click();
 // 11. Speed: 4x runs 80 ticks per second without skipping; back to 1x.
 await page.locator('#speed').selectOption('4');assert.match(await text('notice'),/4×/);const t0=Number(await text('tick'));await page.locator('#pause').click();await page.waitForTimeout(1000);await page.locator('#pause').click();
 const ran=Number(await text('tick'))-t0;assert.ok(ran>=40,`4x advanced ${ran} ticks in ~1s`);await page.locator('#speed').selectOption('1');
 // 12. Phone touch: tap a villager to select it, tap the ground to order a move.
 const phone=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});const touch=await phone.newPage();touch.on('pageerror',e=>errors.push(e.message));
-await touch.goto(origin+'/web/150-brick-rts.html');await touch.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
+await touch.goto(origin+'/web/150-brick-rts.html?debug=1');await touch.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
 const tapAt=async(wx,wy,wz)=>{await touch.evaluate(()=>scrollTo(0,0));const r=await touch.locator('#map').boundingBox(),halfH=Math.max(10.5,12/(r.width/r.height)),scale=r.height/(2*halfH),dx=wx-8,dz=wz-8;await touch.touchscreen.tap(r.x+r.width/2+(dx-dz)*Math.SQRT1_2*scale,r.y+r.height/2-(-.5*dx+Math.SQRT1_2*wy-.5*dz)*scale);await touch.waitForTimeout(150);};
 await tapAt(9,0,9);assert.match(await touch.locator('#notice').innerText(),/移動指令已排入/);
 await touch.screenshot({path:out+'controls-touch-390.png'});await phone.close();

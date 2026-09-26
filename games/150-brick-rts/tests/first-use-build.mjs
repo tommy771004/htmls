@@ -5,6 +5,7 @@ import {createState} from '../packages/sim/sim.ts';
 import {authoritativeProblem} from '../packages/sim/buildings.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
+async function menu(p){if(await p.locator('#menu').isHidden())await p.locator('#menu-open').click();return p;}
 const root=fileURLToPath(new URL('../../../',import.meta.url)),out=fileURLToPath(new URL('../test-results/',import.meta.url));fs.mkdirSync(out,{recursive:true});
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript','.svg':'image/svg+xml','.json':'application/json','.css':'text/css','.jpg':'image/jpeg','.png':'image/png'};
 const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!file.startsWith(root)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));});
@@ -19,7 +20,7 @@ const browser=await chromium.launch({headless:true});const page=await browser.ne
 const note=(step,detail)=>{log.push({step,detail});console.log(step,'|',detail);};
 page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('data:')&&!r.url().startsWith('blob:'))external.push(r.url());});
 try{
-await page.goto(origin+'/web/150-brick-rts.html');await page.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
+await page.goto(origin+'/web/150-brick-rts.html?debug=1');await page.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
 const text=id=>page.locator('#'+id).innerText();
 async function screen(wx,wy,wz){await page.evaluate(()=>scrollTo(0,0));const r=await page.locator('#map').boundingBox(),halfH=Math.max(10.5,12/(r.width/r.height)),scale=r.height/(2*halfH),dx=wx-8,dz=wz-8;return {x:r.x+r.width/2+(dx-dz)*Math.SQRT1_2*scale,y:r.y+r.height/2-(-.5*dx+Math.SQRT1_2*wy-.5*dz)*scale};}
 const centre=box=>screen((box[0]+box[2])/200,0,(box[1]+box[3])/200);
@@ -49,10 +50,10 @@ await page.locator('#step').click();await page.waitForFunction(()=>/木材 170/.
 // Placement mode can be left with Esc and with a right-click; neither issues an order.
 await page.locator('[data-unit="1"]').click();await page.locator('#build-house').click();await page.keyboard.press('Escape');note('Esc 取消放置',await text('notice'));assert.match(await text('notice'),/已取消放置/);
 await page.locator('#build-house').click();p=await centre(houseBox);await page.mouse.click(p.x+80,p.y+80,{button:'right'});note('右鍵取消放置',await text('notice'));assert.match(await text('notice'),/已取消放置/);
-const before={hud:await text('stock'),hash:await text('hash')};await page.locator('#save').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('已儲存'));
-await page.locator('#restart').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('已建立新沙盒'));assert.match(await text('stock'),/人口 3\/5/);
-await page.locator('#load').click();await page.waitForFunction(h=>document.querySelector('#hash').textContent===h,before.hash);note('存讀',`${before.hud} → ${await text('stock')}`);assert.equal(await text('stock'),before.hud);
-await page.locator('#replay').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('重播'));note('重播',await text('notice'));assert.match(await text('notice'),/重播一致/);
+const before={hud:await text('stock'),hash:await text('hash')};await (await menu(page)).locator('#save').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('已儲存'));
+await (await menu(page)).locator('#restart').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('已建立新沙盒'));assert.match(await text('stock'),/人口 3\/5/);
+await (await menu(page)).locator('#load').click();await page.waitForFunction(h=>document.querySelector('#hash').textContent===h,before.hash);note('存讀',`${before.hud} → ${await text('stock')}`);assert.equal(await text('stock'),before.hud);
+await (await menu(page)).locator('#replay').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('重播'));note('重播',await text('notice'));assert.match(await text('notice'),/重播一致/);
 note('錯誤',JSON.stringify({errors,external}));assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
 fs.writeFileSync(out+'fu10-log.json',JSON.stringify({browser:browser.version(),log,errors,external},null,2));
 }finally{await browser.close();server.close();}

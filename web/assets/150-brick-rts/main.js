@@ -1,6 +1,54 @@
+// packages/content/footprints.ts
+var obstacleFootprints = {
+  house: { x: -15, y: -15, width: 250, depth: 230 },
+  // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
+  barracks: { x: -15, y: -15, width: 300, depth: 300 },
+  "town-center": { x: -15, y: -15, width: 300, depth: 300 },
+  // Farm: a walkable 2x2 field (no blocking rectangle); its extent still stops other buildings.
+  farm: { x: 0, y: 0, width: 200, depth: 200 },
+  tree: { x: -20, y: -20, width: 100, depth: 100 },
+  rock: { x: 0, y: 0, width: 65, depth: 70 },
+  gold: { x: 0, y: 0, width: 65, depth: 70 },
+  berries: { x: 0, y: 0, width: 65, depth: 70 },
+  hunt: { x: 0, y: 0, width: 65, depth: 70 },
+  livestock: { x: 0, y: 0, width: 65, depth: 70 }
+};
+var townCenterBlocking = [
+  [15, 15, 65, 165],
+  [205, 15, 255, 165],
+  [10, 10, 26, 26],
+  [240, 10, 256, 26],
+  [10, 180, 26, 196],
+  [240, 180, 256, 196],
+  // Arch flanks reach past the visible opening: 3D clearance for a villager on the plinth.
+  [65, 150, 97, 175],
+  [173, 150, 205, 175],
+  [14, 190, 62, 198],
+  [20, 198, 54, 201],
+  [210, 210, 252, 252],
+  [265, 270, 271, 276]
+];
+var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 }, farm: { rect: [0, 0, 200, 200], height: 10 } };
+var townCenterEntrance = { x: 135, y: 215 };
+var footprintContract = { provenance: "design_default", obstacleFootprints, townCenterBlocking, walkablePlatforms, townCenterEntrance };
+function check(o, radius) {
+  if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
+}
+function obstacleBounds(o, radius = 0) {
+  check(o, radius);
+  const f = obstacleFootprints[o.kind];
+  return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
+}
+function obstacleRects(o, radius = 0) {
+  check(o, radius);
+  if (o.kind === "farm") return [];
+  if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
+  return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
+}
+
 // packages/sim/terrain.ts
-var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200 }, generationAttempts: 8 };
-var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" } };
+var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200, farm: 250 }, generationAttempts: 8 };
+var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" }, farm: { yield: "food", method: "gather", movement: "land" } };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
   road: { walkClass: "land", buildability: true, height: 0 },
@@ -53,7 +101,7 @@ function canTraverse(tile, movement) {
 
 // apps/web/fog-debug.ts
 var labels = ["\u672A\u63A2\u7D22", "\u5DF2\u63A2\u7D22\uFF0F\u76EE\u524D\u4E0D\u53EF\u898B", "\u76EE\u524D\u53EF\u898B"];
-var buildingNames = { house: "\u4F4F\u5B85", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
+var buildingNames = { house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
 function fogCellSummary(view, x, y) {
   if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x > 15 || y < 0 || y > 15) return "\u8ACB\u8F38\u5165 0\u201315 \u7684\u6574\u6578\u683C\u5EA7\u6A19\u3002";
   const id = y * 16 + x, state2 = view.fog[id];
@@ -82,7 +130,10 @@ function mountFogDebugger(root, getView) {
     grid.setAttribute("aria-label", `\u85CD\u65B9 16\xD716 \u8996\u91CE\uFF1A\u672A\u63A2\u7D22 ${view.fog.filter((v) => v === 0).length} \u683C\uFF0C\u820A\u8996\u91CE ${view.fog.filter((v) => v === 1).length} \u683C\uFF0C\u76EE\u524D\u53EF\u898B ${view.fog.filter((v) => v === 2).length} \u683C\u3002`);
     info.textContent = fogCellSummary(view, x.value === "" ? NaN : Number(x.value), y.value === "" ? NaN : Number(y.value));
     const houses = view.known.filter((k) => k.obstacle.kind in buildingNames);
-    memories.textContent = houses.length ? houses.map((k) => `${k.obstacle.red ? "\u7D05\u65B9" : "\u85CD\u65B9"}${buildingNames[k.obstacle.kind]} (${Math.floor(k.obstacle.x / 100)}, ${Math.floor(k.obstacle.y / 100)})\uFF1A\u6700\u5F8C\u770B\u898B tick ${k.lastSeenTick}`).join("\uFF1B") : "\u5C1A\u7121\u5DF2\u77E5\u5EFA\u7BC9\u3002";
+    memories.textContent = houses.length ? houses.map((k) => {
+      const [x0, y0, x1, y1] = obstacleBounds(k.obstacle);
+      return `${k.obstacle.red ? "\u7D05\u65B9" : "\u85CD\u65B9"}${buildingNames[k.obstacle.kind]} (${Math.floor(k.obstacle.x / 100)}, ${Math.floor(k.obstacle.y / 100)}) \u4E2D\u5FC3 (${((x0 + x1) / 200).toFixed(2)}, ${((y0 + y1) / 200).toFixed(2)})\uFF1A\u6700\u5F8C\u770B\u898B tick ${k.lastSeenTick}`;
+    }).join("\uFF1B") : "\u5C1A\u7121\u5DF2\u77E5\u5EFA\u7BC9\u3002";
   }
   root.addEventListener("toggle", update);
   x.addEventListener("input", update);
@@ -99,10 +150,10 @@ var rules = {
   reference: { game: "Age of Empires II: Definitive Edition", version: null, build: null, contentPacks: [], verificationStatus: "unverified", sourceEvidence: [] },
   coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
   settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
-  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
+  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
   // Which building produces each unit/technology (design_default). null = defined but not producible yet.
   production: { villager: "town-center", militia: "barracks", archer: "barracks", ram: null, "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
-  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "militia", "archer", "ram", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "militia", "archer", "ram", "age-2", "age-3", "age-4"], unavailable: [] }]
+  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "militia", "archer", "ram", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "militia", "archer", "ram", "age-2", "age-3", "age-4"], unavailable: [] }]
 };
 function validateRules(value, exact = false) {
   const errors = [];
@@ -780,51 +831,6 @@ function economicBuildingParts(kind, v) {
   return built.filter((a) => !(a.id === "marker-flag" || a.id === "roof-2" && !loaded || /^(awning|valance)-[24]$/.test(a.id) || a.id.startsWith("grain-") || a.id === "blade-horizontal" || a.id.endsWith("-finial") || a.id === "vane-arrow"));
 }
 
-// packages/content/footprints.ts
-var obstacleFootprints = {
-  house: { x: -15, y: -15, width: 250, depth: 230 },
-  // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
-  barracks: { x: -15, y: -15, width: 300, depth: 300 },
-  "town-center": { x: -15, y: -15, width: 300, depth: 300 },
-  tree: { x: -20, y: -20, width: 100, depth: 100 },
-  rock: { x: 0, y: 0, width: 65, depth: 70 },
-  gold: { x: 0, y: 0, width: 65, depth: 70 },
-  berries: { x: 0, y: 0, width: 65, depth: 70 },
-  hunt: { x: 0, y: 0, width: 65, depth: 70 },
-  livestock: { x: 0, y: 0, width: 65, depth: 70 }
-};
-var townCenterBlocking = [
-  [15, 15, 65, 165],
-  [205, 15, 255, 165],
-  [10, 10, 26, 26],
-  [240, 10, 256, 26],
-  [10, 180, 26, 196],
-  [240, 180, 256, 196],
-  // Arch flanks reach past the visible opening: 3D clearance for a villager on the plinth.
-  [65, 150, 97, 175],
-  [173, 150, 205, 175],
-  [14, 190, 62, 198],
-  [20, 198, 54, 201],
-  [210, 210, 252, 252],
-  [265, 270, 271, 276]
-];
-var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 } };
-var townCenterEntrance = { x: 135, y: 215 };
-var footprintContract = { provenance: "design_default", obstacleFootprints, townCenterBlocking, walkablePlatforms, townCenterEntrance };
-function check(o, radius) {
-  if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
-}
-function obstacleBounds(o, radius = 0) {
-  check(o, radius);
-  const f = obstacleFootprints[o.kind];
-  return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
-}
-function obstacleRects(o, radius = 0) {
-  check(o, radius);
-  if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
-  return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
-}
-
 // apps/web/building-parts.ts
 function buildingParts(visual) {
   const { ageVariant: age, progress, health, red } = visual;
@@ -894,14 +900,17 @@ function makeMap(seed, layout = "meadow") {
 function generateCandidate(seed, layout) {
   let rng = seed || 1;
   let obstacles = [{ kind: "town-center", x: 265, y: 350 }, { kind: "town-center", x: 1065, y: 350, red: true }];
+  const woods = [];
   for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) {
     rng ^= rng << 13;
     rng ^= rng >>> 17;
     rng ^= rng << 5;
     const v = (rng >>> 0) / 4294967296;
-    if ((x < 2 || y < 2 || x > 13 || y > 13) && v < 0.34) obstacles.push({ kind: "tree", x: x * 100 + 12, y: y * 100 + 12 });
-    else if (v < 0.028 && Math.abs(x - 8) < 3 && y > 3) obstacles.push({ kind: "rock", x: x * 100, y: y * 100 });
+    if ((x < 2 || y < 2 || x > 13 || y > 13) && v < 0.34) {
+      if (x < 8) woods.push({ kind: "tree", x: x * 100 + 12, y: y * 100 + 12 }, { kind: "tree", x: (15 - x) * 100 + 12, y: y * 100 + 12 });
+    } else if (v < 0.028 && Math.abs(x - 8) < 3 && y > 3) obstacles.push({ kind: "rock", x: x * 100, y: y * 100 });
   }
+  obstacles.push(...woods);
   if (layout === "coast") obstacles = obstacles.filter((o) => o.y < 1e3);
   if (layout === "acceptance") obstacles = [...obstacles.slice(0, 2), { kind: "tree", x: 150, y: 250 }, { kind: "tree", x: 1350, y: 250 }, { kind: "rock", x: 500, y: 1100 }, { kind: "rock", x: 1050, y: 1100 }];
   const guaranteed = [{ kind: "tree", x: 150, y: 850 }, { kind: "tree", x: 1350, y: 850 }, { kind: "rock", x: 150, y: 1100 }, { kind: "rock", x: 1350, y: 1100 }];
@@ -936,7 +945,7 @@ function generateCandidate(seed, layout) {
   return map;
 }
 function isBuilding(o) {
-  return o.kind === "house" || o.kind === "town-center" || o.kind === "barracks";
+  return o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "farm";
 }
 function bounds(o) {
   return obstacleBounds(o, navigationRules.radius);
@@ -1115,6 +1124,16 @@ function advancePathJob(map, job, budget) {
 
 // apps/web/scene.ts
 var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.72, provenance: "original_procedural" };
+function farmParts(progress, red) {
+  const out = [{ x: 0, y: 0, z: 0, w: 2, d: 2, h: 0.1, color: "#806b49", studs: false }];
+  if (progress < 100) {
+    out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red ? "#b85c47" : "#456e87", studs: false });
+    return out;
+  }
+  for (const z of [0.2, 0.7, 1.2, 1.7]) out.push({ x: 0.15, y: 0.1, z: z - 0.1, w: 1.7, d: 0.2, h: 0.12, color: "#9bb65a", studs: true });
+  out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red ? "#b85c47" : "#456e87", studs: false });
+  return out;
+}
 async function createScene(canvas2, onFailure, options = {}) {
   const T = await import(new URL("../../../vendor/three-0.186.0/three.module.js", import.meta.url).href);
   if (!canvas2.getContext("webgl2")) throw Error("\u6B64\u88DD\u7F6E\u7121\u6CD5\u5EFA\u7ACB WebGL2\uFF0C\u8ACB\u4F7F\u7528\u652F\u63F4 WebGL2 \u7684\u700F\u89BD\u5668\u3002");
@@ -1237,7 +1256,8 @@ async function createScene(canvas2, onFailure, options = {}) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y)] !== 2;
       const x = o.x / 100, z = o.y / 100;
-      if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
+      if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
+      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
       else if (o.kind === "tree") {
         brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8, "#80664b", false);
         brick(x - 0.2, z - 0.2, 0.7, 1, 1, 0.4, "#67835a");
@@ -1325,6 +1345,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     camera.updateProjectionMatrix();
     camera.updateMatrixWorld();
     detail.apply(scene2, zoom);
+    canvas2.dataset.camera = `${focus.x.toFixed(4)},${focus.z.toFixed(4)},${halfH.toFixed(4)},${angle.toFixed(4)}`;
   }
   function resize() {
     const r = canvas2.getBoundingClientRect();
@@ -1449,6 +1470,89 @@ async function createScene(canvas2, onFailure, options = {}) {
     ghost.position.set((x0 + x1) / 200, groundHeight(worldTiles, g.x, g.y) / 100 + 0.15, (y0 + y1) / 200);
     ghost.material.color.set(g.ok ? "#6f9d6a" : "#b8574a");
   }
+  function renderIcons(size = 160) {
+    const off = document.createElement("canvas");
+    off.width = off.height = size;
+    const r = new T.WebGLRenderer({ canvas: off, antialias: true, alpha: true, preserveDrawingBuffer: true });
+    r.outputColorSpace = T.SRGBColorSpace;
+    r.toneMapping = T.ACESFilmicToneMapping;
+    r.toneMappingExposure = 1.35;
+    r.setClearColor(0, 0);
+    const s = new T.Scene();
+    s.add(new T.HemisphereLight("#fff5dc", "#819b75", 2.6));
+    const key = new T.DirectionalLight("#fff1d8", 3);
+    key.position.set(-4, 20, 12);
+    s.add(key);
+    const cam = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 200), out = {}, corner = new T.Vector3();
+    const parts = (list, studs = true) => {
+      const g = new T.Group();
+      for (const p of list) {
+        const m = new T.Mesh(p.shape === "arch" ? arch(p.w - 0.018, p.h, p.d - 0.018) : box2(p.w - 0.018, p.h, p.d - 0.018), material(p.color));
+        m.position.set(p.x + p.w / 2, p.y, p.z + p.d / 2);
+        g.add(m);
+      }
+      if (studs) for (const st of buildingStuds(list)) {
+        const m = new T.Mesh(studGeo, material(st.color));
+        m.position.set(st.x, st.y, st.z);
+        g.add(m);
+      }
+      return g;
+    };
+    const shoot = (name, g, view = { angle: Math.PI / 4, lift: 1 }) => {
+      s.add(g);
+      g.updateMatrixWorld(true);
+      const b = new T.Box3().setFromObject(g), c = b.getCenter(new T.Vector3());
+      if (view.crop) c.y = b.min.y + (b.max.y - b.min.y) * view.crop;
+      cam.position.set(c.x + Math.sin(view.angle) * 30, c.y + 30 * view.lift, c.z + Math.cos(view.angle) * 30);
+      cam.lookAt(c);
+      cam.updateMatrixWorld();
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (let i = 0; i < 8; i++) {
+        corner.set(i & 1 ? b.max.x : b.min.x, i & 2 ? b.max.y : b.min.y, i & 4 ? b.max.z : b.min.z).applyMatrix4(cam.matrixWorldInverse);
+        x0 = Math.min(x0, corner.x);
+        x1 = Math.max(x1, corner.x);
+        y0 = Math.min(y0, corner.y);
+        y1 = Math.max(y1, corner.y);
+      }
+      const half = view.crop ? (y1 - y0) * 0.36 : Math.max(x1 - x0, y1 - y0) / 2 * 1.06, cx = (x0 + x1) / 2, cy = view.crop ? 0 : (y0 + y1) / 2;
+      Object.assign(cam, { left: cx - half, right: cx + half, top: cy + half, bottom: cy - half });
+      cam.updateProjectionMatrix();
+      r.render(s, cam);
+      out[name] = off.toDataURL("image/png");
+      s.remove(g);
+    };
+    try {
+      for (const kind of ["villager", "militia", "archer"]) {
+        const rig = createCharacterRig(T, 0, box2, material);
+        if (kind !== "villager") rig.dress(kind === "militia" ? "swordsman" : "archer");
+        rig.equip(kind === "militia" ? "sword" : kind === "archer" ? "bow" : "none");
+        rig.pose("idle", 0);
+        const g = new T.Group();
+        g.add(rig.root);
+        shoot(kind, g, { angle: Math.PI / 7, lift: 0.35 });
+        shoot(`${kind}-face`, g, { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
+      }
+      const visual = (age) => ({ ageVariant: age, progress: 100, health: 100, red: false });
+      for (const age of [1, 2, 3, 4]) {
+        shoot(`house-${age}`, parts(buildingParts(visual(age))));
+        shoot(`barracks-${age}`, parts(militaryBuildingParts("barracks", visual(age))));
+        shoot(`town-center-${age}`, parts(economicBuildingParts("town-center", visual(age))));
+      }
+      shoot("farm", parts(farmParts(100, false), false));
+      const bush = [{ x: 0.05, y: 0, z: 0.05, w: 0.55, d: 0.55, h: 0.45, color: "#5d824e" }, ...[0.12, 0.36].flatMap((x) => [0.12, 0.36].map((z) => ({ x, y: 0.45, z, w: 0.12, d: 0.12, h: 0.12, color: "#a84e59" })))];
+      const tree = [{ x: 0.15, y: 0, z: 0.15, w: 0.3, d: 0.3, h: 0.8, color: "#80664b" }, { x: -0.2, y: 0.7, z: -0.2, w: 1, d: 1, h: 0.4, color: "#67835a" }, { x: -0.075, y: 1.1, z: -0.075, w: 0.75, d: 0.75, h: 0.4, color: "#7e985f" }, { x: 0.05, y: 1.5, z: 0.05, w: 0.5, d: 0.5, h: 0.3, color: "#91a970" }];
+      const ore = (a, b) => [{ x: 0, y: 0, z: 0, w: 0.65, d: 0.7, h: 0.3, color: a }, { x: 0.15, y: 0.3, z: 0.15, w: 0.35, d: 0.4, h: 0.18, color: b }];
+      shoot("food", parts(bush, false));
+      shoot("wood", parts(tree, false));
+      shoot("gold", parts(ore("#b59a48", "#dec36f"), false));
+      shoot("stone", parts(ore("#a19f86", "#b8b39c"), false));
+    } finally {
+      r.dispose();
+      r.forceContextLoss();
+    }
+    return out;
+  }
+  const cameraView = () => ({ x: focus.x, z: focus.z, angle, halfW: (camera.right - camera.left) / 2, halfH: (camera.top - camera.bottom) / 2 });
   return {
     update,
     draw,
@@ -1456,6 +1560,8 @@ async function createScene(canvas2, onFailure, options = {}) {
     pickGround,
     unitsInRect,
     setGhost,
+    renderIcons,
+    cameraView,
     setPreviewBuildingKind: (kind) => {
       if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
       previewBuildingKind = kind;
@@ -1528,6 +1634,15 @@ async function createScene(canvas2, onFailure, options = {}) {
       focus.z = Math.max(0, Math.min(16, focus.z + (-s * right - c * up) * step));
       cameraUpdate();
     },
+    // Opening view of a match: the home town centre, close enough that the base fills the window (wide or tall).
+    focusHome: (x, z) => {
+      resize();
+      const aspect = width / Math.max(1, height), halfH = Math.max(10.5, 12 / aspect);
+      zoom = Math.max(1, Math.min(2.5, Math.max(halfH * aspect / 10, halfH / 6)));
+      focus.x = Math.max(0, Math.min(16, x));
+      focus.z = Math.max(0, Math.min(16, z));
+      cameraUpdate();
+    },
     focusOn: (x, z) => {
       focus.x = Math.max(0, Math.min(16, x));
       focus.z = Math.max(0, Math.min(16, z));
@@ -1566,7 +1681,7 @@ var combatRules = {
     militia: { hp: 45, damage: 6, range: 50, cooldown: 20, sight: 350 },
     archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400 }
   },
-  buildings: { "town-center": 400, house: 150, barracks: 300 },
+  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100 },
   corpseTicks: 40,
   hitFlashTicks: 6
 };
@@ -1576,17 +1691,17 @@ var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable",
 var unitKinds = ["villager", "militia", "archer"];
 
 // packages/sim/buildings.ts
-var buildKinds = ["house", "barracks"];
+var buildKinds = ["house", "barracks", "farm"];
 var buildingRules = {
   provenance: "design_default",
-  capacity: { "town-center": 5, house: 5, barracks: 0 },
-  grid: 50,
+  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0 },
+  grid: 10,
   required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
 };
 var overlap = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > 0;
 function placementProblem(input, kind, x, y) {
   if (!buildKinds.includes(kind)) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
-  if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x % buildingRules.grid || y % buildingRules.grid) return "\u4F4D\u7F6E\u5FC5\u9808\u5C0D\u9F4A 50 \u55AE\u4F4D\u683C\u7DDA";
+  if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x % buildingRules.grid || y % buildingRules.grid) return `\u4F4D\u7F6E\u5FC5\u9808\u5C0D\u9F4A ${buildingRules.grid} \u55AE\u4F4D\u683C\u7DDA`;
   const box2 = obstacleBounds({ kind, x, y });
   if (box2[0] < 0 || box2[1] < 0 || box2[2] > 1600 || box2[3] > 1600) return "\u8D85\u51FA\u5730\u5716\u7BC4\u570D";
   const tiles = [];
@@ -1594,9 +1709,9 @@ function placementProblem(input, kind, x, y) {
   if (tiles.some((t) => !input.explored(t))) return "\u5C1A\u672A\u63A2\u7D22\u7684\u5340\u57DF\u4E0D\u80FD\u5EFA\u9020";
   if (tiles.some((t) => !input.tiles[t]?.buildability)) return "\u5730\u5F62\u4E0D\u53EF\u5EFA\u9020\uFF08\u6C34\u57DF\u3001\u61F8\u5D16\u3001\u5761\u9053\u6216\u6DFA\u7058\uFF09";
   if (new Set(tiles.map((t) => input.tiles[t].height)).size > 1) return "\u5730\u9762\u9AD8\u5EA6\u4E0D\u4E00\u81F4";
-  if (input.obstacles.some((o) => obstacleRects(o).some((r2) => overlap(r2, box2)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
+  if (input.obstacles.some((o) => (o.kind === "farm" ? [obstacleBounds(o)] : obstacleRects(o)).some((r2) => overlap(r2, box2)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
   const r = navigationRules.radius;
-  if (input.units.some((u) => overlap([u.x - r, u.y - r, u.x + r, u.y + r], box2))) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
+  if (input.units.some((u) => u.x >= box2[0] - r && u.x <= box2[2] + r && u.y >= box2[1] - r && u.y <= box2[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
   return null;
 }
 
@@ -1634,6 +1749,28 @@ function trainBlocker(i, entryId) {
   return null;
 }
 
+// packages/sim/ai.ts
+var aiRules = {
+  provenance: "design_default",
+  player: 1,
+  thinkTicks: 20,
+  thinkOffset: 7,
+  villagerTarget: 12,
+  gatherWeights: { food: 4, wood: 3, gold: 2, stone: 0 },
+  houseMargin: 2,
+  barracksAtVillagers: 3,
+  ageUpAtVillagers: 9,
+  waveSize: 5,
+  firstWaveTick: 4800,
+  engageRange: 500,
+  defendRadius: 700,
+  baseMargin: 50,
+  siteRange: 900,
+  siteStep: 20,
+  halfMargin: 100,
+  spill: 100
+};
+
 // packages/sim/sim.ts
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -1647,7 +1784,7 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, simulationVersion: 15 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, simulationVersion: 16 });
 
 // packages/sim/protocol.ts
 var UNIT_STRIDE = 15;
@@ -1655,15 +1792,15 @@ var STRIDE = UNIT_STRIDE;
 function decodeView(r) {
   const values = new Int32Array(r.positions), units = [];
   for (let i = 0; i < values.length; i += STRIDE) units.push({ kind: unitKinds[values[i + 11]], hp: values[i + 12], maxHp: values[i + 13], action: values[i + 14], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] } });
-  return { seed: r.seed, layout: r.layout, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, units };
+  return { seed: r.seed, layout: r.layout, opponent: r.opponent, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, units };
 }
 
 // apps/web/worker-client.ts
 var SimulationClient = class {
-  constructor(seed, update, failure) {
+  constructor(seed, opponent, update, failure) {
     this.update = update;
     this.failure = failure;
-    this.checkpoint = { seed, commands: [], ticks: 0 };
+    this.checkpoint = { seed, opponent, commands: [], ticks: 0 };
   }
   worker = null;
   counter = 0;
@@ -1695,6 +1832,7 @@ var SimulationClient = class {
       if (response.commands) this.checkpoint.commands = response.commands;
       if (response.accepted) this.checkpoint.commands.push(response.accepted);
       this.checkpoint.layout = response.layout;
+      this.checkpoint.opponent = response.opponent;
       this.checkpoint.seed = response.seed;
       this.checkpoint.ticks = response.tick;
       this.update(decodeView(response));
@@ -1748,16 +1886,21 @@ var SimulationClient = class {
 
 // apps/web/main.ts
 var el = (id) => document.getElementById(id);
-var state = { seed: rules.settings.seed, layout: "meadow", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1 }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014" };
+var debug = new URLSearchParams(location.search).has("debug");
+el("debug").hidden = !debug;
+var state = { seed: rules.settings.seed, layout: "meadow", opponent: debug ? "idle" : "ai", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1 }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014" };
 var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
 var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D" };
-var buildingNames2 = { house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
+var buildingNames2 = { house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
+var homeKinds = /* @__PURE__ */ new Set(["house", "barracks", "farm", "town-center"]);
+var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058" };
 var placing = null;
 var selectedBuilding = null;
 var lastTransaction = 0;
 var preview = null;
 var scene = null;
 var graphicsFailed = false;
+var icons = {};
 var speed = 1;
 var selected = /* @__PURE__ */ new Set([1]);
 var running = false;
@@ -1765,11 +1908,29 @@ var last = 0;
 var accumulator = 0;
 var advancing = false;
 var connected = false;
+var noticeTimer = 0;
 var notice = (s) => {
-  el("notice").textContent = s;
+  const n = el("notice");
+  n.textContent = s;
+  n.classList.remove("stale");
+  clearTimeout(noticeTimer);
+  noticeTimer = window.setTimeout(() => n.classList.add("stale"), 6e3);
 };
 var canvas = el("map");
 var fogDebugger = mountFogDebugger(el("fog-debug"), () => state);
+function setImg(img, key) {
+  const src = icons[key];
+  if (!src) {
+    img.removeAttribute("src");
+    return;
+  }
+  if (img.getAttribute("src") !== src) img.src = src;
+}
+function applyIcons(root = document) {
+  root.querySelectorAll("img[data-icon]").forEach((img) => setImg(img, img.dataset.icon));
+}
+var ownUnits = () => state.units.filter((u) => u.player === 0);
+var chosenUnits = () => state.units.filter((u) => selected.has(u.id) && u.player === 0).sort((a, b) => a.id - b.id);
 function render() {
   fogDebugger.update();
   if (!graphicsFailed) {
@@ -1785,23 +1946,38 @@ function render() {
   el("hash").textContent = state.stateHash;
   const e = state.economy;
   el("stock").textContent = state.stateHash === "\u2014" ? "\u8CC7\u6E90\u8F09\u5165\u4E2D\u2026" : `${ageNames[e.age]} \xB7 \u98DF\u7269 ${e.stock.food} \xB7 \u6728\u6750 ${e.stock.wood} \xB7 \u9EC3\u91D1 ${e.stock.gold} \xB7 \u77F3\u982D ${e.stock.stone} \xB7 \u4EBA\u53E3 ${e.populationUsed}/${e.populationCap}`;
+  renderTop();
   renderBuild();
   renderBuilding();
+  renderSelection();
+  renderNote();
   reportTransactions();
   renderOutcome();
-  const chosen = state.units.filter((u2) => selected.has(u2.id)).sort((a, b) => a.id - b.id);
+  renderIdle();
+  const chosen = chosenUnits();
   el("selection-list").textContent = chosen.length > 1 ? chosen.map((u2) => `${unitNames[u2.kind]} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
   const u = chosen[0];
   if (!u) {
-    el("position").textContent = "\u672A\u9078\u53D6\u6751\u6C11";
+    el("position").textContent = "\u672A\u9078\u53D6\u55AE\u4F4D";
     return;
   }
   el("position").textContent = `${chosen.length > 1 ? `${chosen.length} \u540D\u9078\u53D6 \xB7 ` : ""}${unitNames[u.kind]} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
 }
+function renderTop() {
+  const e = state.economy;
+  for (const r of resources) el(`res-${r}`).textContent = String(e.stock[r]);
+  el("res-pop").textContent = `${e.populationUsed}/${e.populationCap}`;
+  el("pop").classList.toggle("full", e.populationCap > 0 && e.populationUsed + e.populationReserved >= e.populationCap);
+  el("pop").title = `\u4EBA\u53E3 ${e.populationUsed}\uFF0F\u4E0A\u9650 ${e.populationCap}${e.populationReserved ? `\uFF08\u4F47\u5217\u4FDD\u7559 ${e.populationReserved}\uFF09` : ""}`;
+  el("age-name").textContent = ageNames[e.age];
+  const t = Math.floor(state.tick / rules.settings.tickHz), mm = Math.floor(t / 60), ss = t % 60;
+  el("clock").textContent = `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  el("sel-empty-title").textContent = `\u85CD\u65B9 \xB7 ${layoutNames[state.layout]} \xB7 \u5C0D\u624B\uFF1A${state.opponent === "ai" ? "\u96FB\u8166" : "\u4E0D\u884C\u52D5"}`;
+}
+var doing = (u) => u.action === 1 ? "\u653B\u64CA\u4E2D" : u.work && u.navigation !== "waiting" && u.navigation !== "stuck" ? workLabel[u.work] : statusLabel[u.navigation];
 function activity(u) {
-  const doing = u.action === 1 ? "\u653B\u64CA\u4E2D" : u.work && u.navigation !== "waiting" && u.navigation !== "stuck" ? workLabel[u.work] : statusLabel[u.navigation];
   const life = u.hp < u.maxHp ? ` \xB7 \u751F\u547D ${u.hp}/${u.maxHp}` : "";
-  return (u.cargo ? `${doing} \xB7 \u651C\u5E36${resourceNames[u.cargo.resource]} ${u.cargo.amount}` : doing) + life;
+  return (u.cargo ? `${doing(u)} \xB7 \u651C\u5E36${resourceNames[u.cargo.resource]} ${u.cargo.amount}` : doing(u)) + life;
 }
 async function attack(target, label) {
   const unitIds = [...selected].sort((a, b) => a - b);
@@ -1811,31 +1987,40 @@ async function attack(target, label) {
   }
   try {
     await client.request({ kind: "attack", unitIds, target });
-    notice(`${names2(unitIds)} \u653B\u64CA${label}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u57F7\u884C\u3002"}`);
+    notice(`${names2(unitIds)} \u653B\u64CA${label}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(e.message);
   }
 }
 function enemyBuildingAt(x, y) {
   const p = { x: Math.round(x * 100), y: Math.round(y * 100) };
-  return state.known.map((k) => k.obstacle).find((o) => (o.kind === "house" || o.kind === "barracks" || o.kind === "town-center") && o.red && (() => {
+  return state.known.map((k) => k.obstacle).find((o) => homeKinds.has(o.kind) && o.red && (() => {
     const [x0, y0, x1, y1] = obstacleBounds(o);
     return p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
   })());
 }
 var statusLabel = { idle: "\u5F85\u547D", searching: "\u5C0B\u8DEF\u4E2D", moving: "\u79FB\u52D5\u4E2D", waiting: "\u7B49\u5F85\u8B93\u8DEF", unreachable: "\u7121\u6CD5\u5230\u9054\uFF0C\u505C\u5728\u6700\u8FD1\u9EDE", stuck: "\u53D7\u963B\u505C\u6B62" };
+var resumeHint = () => debug ? "\u6309\u300C\u958B\u59CB\u300D\u6216\u300C\u524D\u9032 1 tick\u300D\u57F7\u884C\u3002" : "\u7E7C\u7E8C\u904A\u6232\uFF08\u25B6\uFF09\u5F8C\u57F7\u884C\u3002";
+var playIcon = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>';
+var pauseIcon = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z"/></svg>';
 function setRunning(v) {
   running = v;
   accumulator = 0;
   last = 0;
-  el("pause").textContent = v ? "\u66AB\u505C\u6A21\u64EC" : "\u958B\u59CB\u6A21\u64EC";
-  el("pause").setAttribute("aria-pressed", String(v));
-  el("run-state").textContent = v ? `\u6A21\u64EC\u904B\u884C\u4E2D \xB7 ${20 * speed} ticks\uFF0F\u79D2` : "\u5DF2\u66AB\u505C \xB7 \u7B49\u5F85\u6307\u4EE4";
+  const p = el("pause");
+  p.innerHTML = v ? pauseIcon : playIcon;
+  p.setAttribute("aria-label", v ? "\u66AB\u505C\uFF08F3\uFF09" : "\u958B\u59CB\uFF08F3\uFF09");
+  p.setAttribute("aria-pressed", String(v));
+  el("run-state").textContent = v ? `\u904B\u884C\u4E2D \xB7 ${20 * speed} ticks\uFF0F\u79D2` : "\u5DF2\u66AB\u505C";
   el("step").disabled = !connected || graphicsFailed || v;
+  renderPaused();
+}
+function renderPaused() {
+  el("paused-banner").hidden = running || !connected || !!state.outcome || graphicsFailed;
 }
 function select(ids) {
   if (selectedBuilding && [...ids].length) selectedBuilding = null;
-  const own = new Set(state.units.filter((u) => u.player === 0).map((u) => u.id));
+  const own = new Set(ownUnits().map((u) => u.id));
   selected = new Set([...ids].filter((id) => own.size === 0 || own.has(id)));
   document.querySelectorAll("[data-unit]").forEach((b) => b.setAttribute("aria-pressed", String(selected.has(Number(b.dataset.unit)))));
   const ids2 = [...selected].sort((a, b) => a - b);
@@ -1845,9 +2030,10 @@ function select(ids) {
 function choose(id) {
   select([id]);
 }
-var costOf = (k) => rules.entries.find((e) => e.id === k).cost;
+var entryOf2 = (k) => rules.entries.find((e) => e.id === k);
+var costOf = (k) => entryOf2(k).cost;
 var costText = (k) => Object.entries(costOf(k)).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames[r]} ${v}`).join("\u3001");
-var entryName = (k) => rules.entries.find((e) => e.id === k)?.name ?? k;
+var entryName = (k) => entryOf2(k)?.name ?? k;
 var ageNames = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
 var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B" };
 var villagersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "villager").sort((a, b) => a - b);
@@ -1861,28 +2047,119 @@ function buildBlocker(k) {
   return short.length ? short.map((r) => `${resourceNames[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${c[r]}\uFF0C\u76EE\u524D ${st[r]}`).join("\uFF1B") : null;
 }
 function renderBuild() {
+  const show = !selectedBuilding && villagersIn(selected).length > 0;
   for (const k of buildKinds) {
     const b = el(`build-${k}`), why = buildBlocker(k);
-    b.textContent = `${buildingNames2[k]} \xB7 ${costText(k)}`;
+    b.hidden = !show;
     b.disabled = !connected || graphicsFailed || !!why;
-    b.title = why ?? `\u653E\u7F6E${buildingNames2[k]}`;
+    b.setAttribute("aria-label", `${buildingNames2[k]}\uFF08${costText(k)}\uFF09${why ? `\uFF1A${why}` : ""}`);
     b.setAttribute("aria-pressed", String(placing === k));
+    const img = b.querySelector("img");
+    img.dataset.icon = k === "farm" ? "farm" : `${k}-${state.economy.age}`;
+    setImg(img, img.dataset.icon);
   }
   const reasons = buildKinds.map((k) => [k, buildBlocker(k)]).filter(([, w]) => w);
   el("build-reason").textContent = placing ? preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === buildKinds.length && reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.map(([k, w]) => `${buildingNames2[k]}\uFF1A${w}`).join("\u3000");
+  el("stop").hidden = !!selectedBuilding || !chosenUnits().length;
 }
 function renderBuilding() {
   const panel = el("building-panel"), b = state.buildings.find((b2) => b2.id === selectedBuilding);
   panel.hidden = !b;
-  if (!b) return;
+  const cancel = el("cancel-build");
+  cancel.hidden = !b || b.complete;
+  el("production").hidden = !b;
+  if (!b) {
+    el("production-reason").textContent = "";
+    return;
+  }
   const builders = state.units.filter((u) => u.work === "building" || u.work === "toSite").length;
   el("building-title").textContent = buildingNames2[b.kind] ?? b.kind;
   const housing = buildingRules.capacity[b.kind] ?? 0;
-  el("building-status").textContent = (b.hp < b.maxHp ? `\u751F\u547D ${b.hp}/${b.maxHp} \xB7 ` : "") + (b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders} \u540D\uFF09`);
+  setImg(el("building-portrait"), b.kind === "farm" ? "farm" : `${b.kind}-${state.economy.age}`);
+  el("building-hp").textContent = `${b.hp}/${b.maxHp}`;
+  el("building-hp-bar").style.width = `${Math.max(0, b.hp) * 100 / Math.max(1, b.maxHp)}%`;
+  const field = b.kind === "farm" ? state.resources.find((r) => r.id === `resource-${b.id}`) : void 0;
+  el("building-status").textContent = (b.hp < b.maxHp ? `\u751F\u547D ${b.hp}/${b.maxHp} \xB7 ` : "") + (b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : field ? `\u5269\u9918\u98DF\u7269 ${field.remaining}/${field.capacity}\uFF08\u53F3\u9375\u6D3E\u6751\u6C11\u8015\u4F5C\uFF09` : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders} \u540D\uFF09`);
   renderProduction(b);
-  const cancel = el("cancel-build");
-  cancel.hidden = b.complete;
-  cancel.textContent = b.kind in buildingNames2 && !b.complete ? `\u53D6\u6D88\u5EFA\u9020\uFF08\u9000\u56DE ${costText(b.kind)}\uFF09` : "\u53D6\u6D88\u5EFA\u9020";
+  const refund = b.kind in buildingNames2 && !b.complete ? `\u53D6\u6D88\u5EFA\u9020\uFF08\u9000\u56DE ${costText(b.kind)}\uFF09` : "\u53D6\u6D88\u5EFA\u9020";
+  cancel.setAttribute("aria-label", refund);
+  cancel.dataset.tip = refund;
+}
+var groupKey = "";
+function renderSelection() {
+  const chosen = chosenUnits(), b = state.buildings.find((v) => v.id === selectedBuilding);
+  el("sel-empty").hidden = !!b || chosen.length > 0;
+  el("sel-unit").hidden = !!b || chosen.length !== 1;
+  el("sel-group").hidden = !!b || chosen.length < 2;
+  if (!b && chosen.length === 1) {
+    const u = chosen[0], stats = combatRules.units[u.kind];
+    setImg(el("unit-portrait"), `${u.kind}-face`);
+    el("unit-name").textContent = unitNames[u.kind];
+    el("unit-owner").textContent = `\u85CD\u65B9 \xB7 #${u.id}`;
+    el("unit-hp").textContent = `${u.hp}/${u.maxHp}`;
+    el("unit-hp-bar").style.width = `${Math.max(0, u.hp) * 100 / Math.max(1, u.maxHp)}%`;
+    const facts = `\u653B\u64CA ${stats.damage}|${stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`}|${u.cargo ? `${u.cargo.resource}:${u.cargo.amount}` : ""}`;
+    const box2 = el("unit-facts");
+    if (box2.dataset.key !== facts) {
+      box2.dataset.key = facts;
+      box2.replaceChildren();
+      const add = (text, icon) => {
+        const s = document.createElement("span");
+        if (icon) {
+          const i = document.createElement("img");
+          i.alt = resourceNames[icon];
+          setImg(i, icon);
+          s.append(i);
+        }
+        s.append(text);
+        box2.append(s);
+        return s;
+      };
+      add(`\u653B\u64CA ${stats.damage}`);
+      add(stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`);
+      if (u.cargo) add(`${u.cargo.amount}/${economyRules.carryCapacity}`, u.cargo.resource);
+    }
+    el("unit-status").textContent = doing(u);
+  }
+  if (!b && chosen.length > 1) {
+    const counts = /* @__PURE__ */ new Map();
+    for (const u of chosen) counts.set(u.kind, (counts.get(u.kind) ?? 0) + 1);
+    el("group-summary").textContent = `\u5DF2\u9078\u53D6 ${chosen.length} \u540D \xB7 ` + [...counts].map(([k, n]) => `${unitNames[k]} \xD7${n}`).join(" \xB7 ");
+    const grid = el("group-grid"), small = matchMedia("(max-width:760px)").matches, [tw, th] = small ? [34, 40] : [46, 52], cols = Math.max(1, Math.floor((grid.clientWidth + 4) / (tw + 4))), rows = Math.max(1, Math.floor((grid.clientHeight + 4) / (th + 4))), room = cols * rows;
+    const shown = chosen.length > room ? chosen.slice(0, room - 1) : chosen, key = shown.map((u) => u.id + u.kind).join() + "|" + chosen.length;
+    if (key !== groupKey) {
+      groupKey = key;
+      const more = chosen.length - shown.length;
+      grid.replaceChildren(...shown.map((u) => {
+        const btn = document.createElement("button");
+        btn.className = "mini-unit";
+        btn.dataset.pick = String(u.id);
+        btn.title = `${unitNames[u.kind]} ${u.id}\uFF08Shift\uFF0B\u9EDE\u64CA\u79FB\u51FA\u9078\u53D6\uFF09`;
+        btn.setAttribute("aria-label", `${unitNames[u.kind]} ${u.id}`);
+        const img = document.createElement("img");
+        img.alt = "";
+        setImg(img, `${u.kind}-face`);
+        const bar = document.createElement("i"), fill = document.createElement("i");
+        bar.append(fill);
+        btn.append(img, bar);
+        btn.onclick = (e) => {
+          if (e.shiftKey) toggle(u.id);
+          else choose(u.id);
+        };
+        return btn;
+      }));
+      if (more > 0) {
+        const rest = document.createElement("span");
+        rest.className = "mini-more";
+        rest.textContent = `+${more}`;
+        grid.append(rest);
+      }
+    }
+    for (const btn of Array.from(grid.querySelectorAll("[data-pick]"))) {
+      const u = chosen.find((v) => v.id === Number(btn.dataset.pick));
+      if (u) btn.querySelector("i i").style.width = `${Math.max(0, u.hp) * 100 / Math.max(1, u.maxHp)}%`;
+    }
+  }
 }
 function renderOutcome() {
   const o = state.outcome, box2 = el("result");
@@ -1890,8 +2167,9 @@ function renderOutcome() {
   if (!o) return;
   const won = o.winner === 0;
   el("result-title").textContent = won ? "\u52DD\u5229" : o.winner === null ? "\u96D9\u65B9\u540C\u6B78\u65BC\u76E1" : "\u6230\u6557";
-  el("result-detail").textContent = `tick ${o.tick}\uFF1A${won ? "\u7D05\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002" : "\u85CD\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002"}`;
+  el("result-detail").textContent = `${el("clock").textContent}\uFF08tick ${o.tick}\uFF09\uFF1A${won ? "\u7D05\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002" : "\u85CD\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002"}`;
   if (running) setRunning(false);
+  renderPaused();
 }
 function reportTransactions() {
   for (const t of state.transactions) if (t.sequence > lastTransaction) {
@@ -1906,13 +2184,13 @@ function selectBuilding(id) {
 }
 function buildingAt(x, y) {
   const p = { x: Math.round(x * 100), y: Math.round(y * 100) };
-  return state.known.map((k) => k.obstacle).find((o) => (o.kind === "house" || o.kind === "barracks" || o.kind === "town-center") && !o.red && (() => {
+  return state.known.map((k) => k.obstacle).find((o) => homeKinds.has(o.kind) && !o.red && (() => {
     const [x0, y0, x1, y1] = obstacleBounds(o);
     return p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
   })());
 }
 function placeAt(k, gx, gy) {
-  const [x0, y0, x1, y1] = obstacleBounds({ kind: k, x: 0, y: 0 }), x = Math.round((gx * 100 - (x0 + x1) / 2) / 50) * 50, y = Math.round((gy * 100 - (y0 + y1) / 2) / 50) * 50;
+  const [x0, y0, x1, y1] = obstacleBounds({ kind: k, x: 0, y: 0 }), g = buildingRules.grid, x = Math.round((gx * 100 - (x0 + x1) / 2) / g) * g, y = Math.round((gy * 100 - (y0 + y1) / 2) / g) * g;
   const problem = placementProblem({ tiles: state.terrain, obstacles: state.known.map((o) => o.obstacle), units: state.units, explored: (t) => (state.fog[t] ?? 0) > 0 }, k, x, y);
   return { x, y, problem };
 }
@@ -1951,27 +2229,48 @@ async function construct(buildingId) {
 }
 var productionKey = "";
 var queueKey = "";
+var trainKeys = ["Q", "W", "E", "R", "T"];
+var entryIcon = (id) => ageOf(id) ? `town-center-${ageOf(id)}` : `${id}-face`;
+function trainInput(b) {
+  const e = state.economy;
+  return { player: 0, age: e.age, building: b, ownBuildings: state.buildings, stock: e.stock, populationUsed: e.populationUsed, populationReserved: e.populationReserved, populationCap: e.populationCap };
+}
 function renderProduction(b) {
   const entries = Object.entries(rules.production).filter(([, p]) => p === b.kind).map(([id]) => id), box2 = el("production");
   const key = b.id + ":" + entries.join();
   if (key !== productionKey) {
     productionKey = key;
-    box2.replaceChildren(...entries.map((id) => {
+    box2.replaceChildren(...entries.map((id, i) => {
       const btn = document.createElement("button");
+      btn.className = "tile";
       btn.dataset.train = id;
+      btn.dataset.key = trainKeys[i];
       btn.onclick = () => void train(b.id, id);
+      const img = document.createElement("img");
+      img.alt = "";
+      img.dataset.icon = entryIcon(id);
+      setImg(img, img.dataset.icon);
+      const label = document.createElement("span");
+      label.className = "label";
+      label.textContent = entryName(id);
+      const kbd = document.createElement("kbd");
+      kbd.textContent = trainKeys[i];
+      btn.append(img, label, kbd);
+      if (ageOf(id)) {
+        const roman = document.createElement("span");
+        roman.className = "roman";
+        roman.textContent = ["", "I", "II", "III", "IV"][ageOf(id)];
+        btn.append(roman);
+      }
       return btn;
     }));
   }
-  const e = state.economy, own = state.buildings, reasons = [];
+  const reasons = [];
   for (const btn of Array.from(box2.querySelectorAll("button"))) {
-    const id = btn.dataset.train, why = trainBlocker({ player: 0, age: e.age, building: b, ownBuildings: own, stock: e.stock, populationUsed: e.populationUsed, populationReserved: e.populationReserved, populationCap: e.populationCap }, id);
-    const [name, cost] = btn.children.length ? Array.from(btn.children) : [document.createElement("span"), document.createElement("span")];
-    if (!btn.children.length) btn.append(name, cost);
-    name.textContent = entryName(id);
-    cost.textContent = costText(id);
+    const id = btn.dataset.train, why = trainBlocker(trainInput(b), id);
+    btn.hidden = !b.complete || why === "\u5DF2\u7814\u7A76";
     btn.disabled = !connected || graphicsFailed || !!why;
-    btn.title = why ?? `\u52A0\u5165${entryName(id)}`;
+    btn.setAttribute("aria-label", `${entryName(id)}\uFF08${costText(id)}\uFF09${why ? `\uFF1A${why}` : ""}`);
     if (why && why !== "\u5DF2\u7814\u7A76") reasons.push(`${entryName(id)}\uFF1A${why}`);
   }
   el("production-reason").textContent = b.complete ? reasons.join("\u3000") : "";
@@ -1979,11 +2278,21 @@ function renderProduction(b) {
   if (qkey !== queueKey) {
     queueKey = qkey;
     el("queue").replaceChildren(...b.queue.map((q, i) => {
-      const row = document.createElement("div"), label = document.createElement("span"), cancel = document.createElement("button");
+      const row = document.createElement("div"), img = document.createElement("img"), label = document.createElement("span"), cancel = document.createElement("button");
+      img.alt = "";
+      setImg(img, entryIcon(q.entryId));
       label.dataset.item = String(q.id);
-      cancel.textContent = "\u53D6\u6D88";
+      cancel.textContent = "\xD7";
+      cancel.setAttribute("aria-label", `\u53D6\u6D88${entryName(q.entryId)}`);
+      cancel.title = "\u53D6\u6D88\u4E26\u5168\u984D\u9000\u56DE";
       cancel.onclick = () => void cancelTrain(b.id, q.id);
-      row.append(label, cancel);
+      row.append(img, label, cancel);
+      if (i === 0) {
+        const bar = document.createElement("div");
+        bar.className = "q-bar";
+        bar.append(document.createElement("i"));
+        row.append(bar);
+      }
       return row;
     }));
   }
@@ -1992,13 +2301,86 @@ function renderProduction(b) {
     if (!q) continue;
     const first = b.queue[0] === q;
     label.textContent = `${entryName(q.entryId)} \xB7 ${first ? q.work >= q.required ? "\u5B8C\u6210\uFF0C\u7B49\u5F85\u51FA\u53E3\u7A7A\u4F4D" : `${Math.floor(q.work * 100 / q.required)}%` : "\u6392\u968A\u4E2D"}`;
+    const fill = label.parentElement.querySelector(".q-bar i");
+    if (fill) fill.style.width = `${Math.min(100, q.work * 100 / q.required)}%`;
   }
-  el("rally-hint").textContent = b.complete && entries.some((id) => !/^age-/.test(id)) ? `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u9078\u53D6\u6B64\u5EFA\u7BC9\u6642\u5C0D\u5730\u9762\u6309\u53F3\u9375\u8A2D\u5B9A\uFF09` : "";
+  el("rally-hint").textContent = b.complete && entries.some((id) => !/^age-/.test(id)) ? `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u53F3\u9375\u5730\u9762\u8A2D\u5B9A\uFF09` : "";
 }
+var tipTile = null;
+function tileCard(btn) {
+  const card = document.createDocumentFragment(), line = (cls, text) => {
+    const p = document.createElement("span");
+    p.className = cls;
+    p.textContent = text;
+    p.style.display = "block";
+    card.append(p);
+  };
+  const id = btn.dataset.train ?? btn.dataset.build;
+  const title = document.createElement("strong");
+  card.append(title);
+  if (!id) {
+    title.textContent = `${btn.dataset.tip}\uFF08${btn.dataset.key ?? (btn.id === "stop" ? "S" : "Del")}\uFF09`;
+    line("meta", btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
+    return card;
+  }
+  const e = entryOf2(id), why = btn.dataset.train ? trainBlocker(trainInput(state.buildings.find((v) => v.id === selectedBuilding)), id) : buildBlocker(id);
+  title.textContent = `${btn.dataset.build ? buildingNames2[id] : entryName(id)}\uFF08${btn.dataset.key}\uFF09`;
+  const cost = document.createElement("span");
+  cost.className = "cost";
+  for (const r of resources) if (e.cost[r] > 0) {
+    const s = document.createElement("span"), i = document.createElement("img");
+    i.alt = resourceNames[r];
+    setImg(i, r);
+    s.append(i, String(e.cost[r]));
+    if (state.economy.stock[r] < e.cost[r]) s.style.color = "#f3b19f";
+    cost.append(s);
+  }
+  card.append(cost);
+  const housing = buildingRules.capacity[id];
+  line("meta", [`${e.time} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : ""].filter(Boolean).join(" \xB7 "));
+  if (why) line("why", why);
+  return card;
+}
+function renderNote() {
+  const box2 = el("cmd-note"), tip = el("tip"), build2 = el("build-reason"), prod = el("production-reason");
+  const live = tipTile && !tipTile.hidden && tipTile.isConnected ? tipTile : null;
+  tip.hidden = !live;
+  if (live) tip.replaceChildren(tileCard(live));
+  build2.hidden = !!live || !!selectedBuilding || !villagersIn(selected).length || !build2.textContent;
+  prod.hidden = !!live || !selectedBuilding || !prod.textContent;
+  box2.hidden = tip.hidden && build2.hidden && prod.hidden;
+}
+function tileAtPoint(x, y) {
+  return Array.from(el("commands").querySelectorAll("button.tile")).find((b) => {
+    if (b.hidden) return false;
+    const r = b.getBoundingClientRect();
+    return r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }) ?? null;
+}
+el("commands").addEventListener("pointermove", (e) => {
+  if (e.pointerType === "touch") return;
+  const t = tileAtPoint(e.clientX, e.clientY);
+  if (t !== tipTile) {
+    tipTile = t;
+    renderNote();
+  }
+});
+el("commands").addEventListener("pointerleave", () => {
+  tipTile = null;
+  renderNote();
+});
+el("commands").addEventListener("focusin", (e) => {
+  tipTile = e.target.closest("button.tile");
+  renderNote();
+});
+el("commands").addEventListener("focusout", () => {
+  tipTile = null;
+  renderNote();
+});
 async function train(buildingId, entryId) {
   try {
     await client.request({ kind: "train", buildingId, entryId });
-    notice(`${entryName(entryId)}\u5C07\u5728 tick ${state.tick + 1} \u52A0\u5165\u4F47\u5217\u4E26\u6263\u9664 ${costText(entryId)}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u6216\u300C\u524D\u9032 1 tick\u300D\u57F7\u884C\u3002"}`);
+    notice(`${entryName(entryId)}\u5C07\u5728 tick ${state.tick + 1} \u52A0\u5165\u4F47\u5217\u4E26\u6263\u9664 ${costText(entryId)}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(e.message);
   }
@@ -2026,7 +2408,8 @@ function toggle(id) {
   else next.add(id);
   select(next);
 }
-var client = new SimulationClient(rules.settings.seed, (v) => {
+el("opponent").value = debug ? "idle" : "ai";
+var client = new SimulationClient(rules.settings.seed, debug ? "idle" : "ai", (v) => {
   state = v;
   render();
 }, (reason) => {
@@ -2037,8 +2420,19 @@ var client = new SimulationClient(rules.settings.seed, (v) => {
   el("worker-retry").hidden = false;
 });
 function toggleControls() {
-  for (const id of ["zoom-in", "zoom-out", "rotate-view", "reset-view"]) el(id).disabled = !scene || graphicsFailed;
+  for (const id of ["zoom-in", "zoom-out", "rotate-view", "reset-view", "idle-villager"]) el(id).disabled = !scene || graphicsFailed;
   for (const id of ["move", "stop", "pause", "step", "restart", "save", "load", "replay"]) el(id).disabled = !connected || graphicsFailed && id !== "save" || id === "step" && running;
+}
+function autoStart() {
+  if (debug || !connected || graphicsFailed) return;
+  homeCamera();
+  if (!state.outcome) setRunning(true);
+}
+function homeCamera() {
+  const tc = state.known.find((k) => k.obstacle.kind === "town-center" && !k.obstacle.red)?.obstacle;
+  if (!tc || !scene) return;
+  const [x0, y0, x1, y1] = obstacleBounds(tc);
+  scene.focusHome((x0 + x1) / 200, (y0 + y1) / 200 + 1);
 }
 async function connect() {
   el("worker-retry").disabled = true;
@@ -2046,10 +2440,12 @@ async function connect() {
     await client.connect();
     connected = true;
     el("worker-retry").hidden = true;
-    notice(`\u6A21\u64EC\u5DF2\u9023\u7DDA \xB7 tick ${state.tick}\u3002\u9078\u53D6\u6751\u6C11\uFF0C\u518D\u5C0D\u5730\u9762\u6309\u53F3\u9375\u4E0B\u9054\u79FB\u52D5\u3002`);
+    notice(debug ? `\u6A21\u64EC\u5DF2\u9023\u7DDA \xB7 tick ${state.tick}\u3002\u9078\u53D6\u6751\u6C11\uFF0C\u518D\u5C0D\u5730\u9762\u6309\u53F3\u9375\u4E0B\u9054\u79FB\u52D5\u3002` : matchMedia("(pointer:coarse)").matches ? "\u85CD\u65B9\u6751\u6C11\u5DF2\u5C31\u4F4D\u3002\u8F15\u89F8\u6751\u6C11\u9078\u53D6\uFF0C\u518D\u8F15\u89F8\u8CC7\u6E90\u63A1\u96C6\u6216\u5730\u9762\u79FB\u52D5\uFF1B\u53F3\u4E0A\u300C\u9078\u55AE\u300D\u53EF\u5B58\u8B80\u8207\u958B\u65B0\u5C40\u3002" : "\u85CD\u65B9\u6751\u6C11\u5DF2\u5C31\u4F4D\u3002\u9078\u53D6\u6751\u6C11\u5F8C\u53F3\u9375\u8CC7\u6E90\u63A1\u96C6\u3001\u53F3\u9375\u5730\u9762\u79FB\u52D5\uFF1BF10 \u958B\u555F\u9078\u55AE\u3002");
+    autoStart();
   } catch {
   } finally {
     toggleControls();
+    renderPaused();
     el("worker-retry").disabled = false;
   }
 }
@@ -2059,12 +2455,12 @@ var names2 = (ids) => ids.length > 3 ? `${ids.length} \u540D\u55AE\u4F4D` : ids.
 async function move(x, y) {
   const unitIds = [...selected].sort((a, b) => a - b);
   if (!unitIds.length) {
-    notice("\u8ACB\u5148\u9078\u53D6\u6751\u6C11\uFF1A\u5DE6\u9375\u9EDE\u9078\u6216\u62D6\u66F3\u6846\u9078\u3002");
+    notice("\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\uFF1A\u5DE6\u9375\u9EDE\u9078\u6216\u62D6\u66F3\u6846\u9078\u3002");
     return;
   }
   try {
     await client.request({ kind: "move", unitIds, x: Math.round(x * 100), y: Math.round(y * 100) });
-    notice(`${names2(unitIds)} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u6216\u300C\u524D\u9032 1 tick\u300D\u57F7\u884C\u3002"}`);
+    notice(`${names2(unitIds)} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(e.message);
   }
@@ -2077,7 +2473,7 @@ async function gather(resourceId) {
   }
   try {
     await client.request({ kind: "gather", unitIds, resourceId });
-    notice(`${names2(unitIds)} \u524D\u5F80\u63A1\u96C6\u3002${leftOut(unitIds)}${running ? "" : "\u6309\u300C\u958B\u59CB\u6A21\u64EC\u300D\u57F7\u884C\u3002"}`);
+    notice(`${names2(unitIds)} \u524D\u5F80\u63A1\u96C6\u3002${leftOut(unitIds)}${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(e.message);
   }
@@ -2094,7 +2490,7 @@ function resourceAt(x, y) {
 async function stop() {
   const unitIds = [...selected].sort((a, b) => a - b);
   if (!unitIds.length) {
-    notice("\u8ACB\u5148\u9078\u53D6\u8981\u505C\u6B62\u7684\u6751\u6C11\u3002");
+    notice("\u8ACB\u5148\u9078\u53D6\u8981\u505C\u6B62\u7684\u55AE\u4F4D\u3002");
     return;
   }
   try {
@@ -2103,6 +2499,39 @@ async function stop() {
   } catch (e) {
     notice(e.message);
   }
+}
+var idleVillagers = () => ownUnits().filter((u) => u.kind === "villager" && !u.work && u.action === 0 && u.navigation !== "moving" && u.navigation !== "searching" && u.navigation !== "waiting").sort((a, b) => a.id - b.id);
+function renderIdle() {
+  const n = idleVillagers().length;
+  el("idle-count").textContent = n ? String(n) : "";
+  el("idle-villager").setAttribute("aria-label", `\u4E0B\u4E00\u540D\u9592\u7F6E\u6751\u6C11\uFF08${n} \u540D\u9592\u7F6E\uFF09`);
+}
+var idleCursor = 0;
+function nextIdle() {
+  const idle = idleVillagers();
+  if (!idle.length) {
+    notice("\u6C92\u6709\u9592\u7F6E\u7684\u6751\u6C11\u3002");
+    return;
+  }
+  const u = idle.find((v) => v.id > idleCursor) ?? idle[0];
+  idleCursor = u.id;
+  choose(u.id);
+  scene?.focusOn(u.x / 100, u.y / 100);
+  notice(`\u9592\u7F6E\u6751\u6C11 ${u.id}\uFF08\u5171 ${idle.length} \u540D\u9592\u7F6E\uFF09\u3002`);
+}
+function homeTownCenter() {
+  const tc = state.buildings.find((b) => b.kind === "town-center");
+  if (!tc) {
+    notice("\u6C92\u6709\u57CE\u93AE\u4E2D\u5FC3\u3002");
+    return;
+  }
+  const o = state.known.find((k) => k.obstacle.id === tc.id)?.obstacle;
+  selectBuilding(tc.id);
+  if (o && scene) {
+    const [x0, y0, x1, y1] = obstacleBounds(o);
+    scene.focusOn((x0 + x1) / 200, (y0 + y1) / 200);
+  }
+  notice("\u5DF2\u9078\u53D6\u57CE\u93AE\u4E2D\u5FC3\u3002");
 }
 var box = el("select-box");
 var drag = null;
@@ -2116,10 +2545,6 @@ function endDrag() {
   box.hidden = true;
 }
 canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-var sceneActive = false;
-document.addEventListener("pointerdown", (e) => {
-  sceneActive = e.target === canvas;
-}, true);
 canvas.addEventListener("pointermove", (e) => {
   if (!placing || !scene) return;
   const g = scene.pickGround(e.clientX, e.clientY);
@@ -2130,7 +2555,17 @@ canvas.addEventListener("pointermove", (e) => {
   preview = placeAt(placing, g.x, g.y);
   scene.setGhost({ kind: placing, x: preview.x, y: preview.y, ok: !preview.problem });
   renderBuild();
+  renderNote();
 });
+function orderAtGround(x, y) {
+  if (selectedBuilding && !selected.size) {
+    const b = state.buildings.find((b2) => b2.id === selectedBuilding);
+    if (b?.complete && Object.values(rules.production).includes(b.kind)) void rally(b.id, x, y);
+    else notice("\u9019\u68DF\u5EFA\u7BC9\u6C92\u6709\u96C6\u7D50\u9EDE\u3002");
+    return;
+  }
+  void move(x, y);
+}
 canvas.addEventListener("pointerdown", (e) => {
   if (!scene || graphicsFailed) return;
   if (placing) {
@@ -2160,9 +2595,7 @@ canvas.addEventListener("pointerdown", (e) => {
       return;
     }
     if (selectedBuilding && !selected.size) {
-      const b = state.buildings.find((b2) => b2.id === selectedBuilding);
-      if (b?.complete && Object.values(rules.production).includes(b.kind)) void rally(b.id, hit.x, hit.y);
-      else notice("\u9019\u68DF\u5EFA\u7BC9\u6C92\u6709\u96C6\u7D50\u9EDE\u3002");
+      orderAtGround(hit.x, hit.y);
       return;
     }
     if (selected.size) {
@@ -2206,10 +2639,10 @@ canvas.addEventListener("pointerup", (e) => {
   const d = drag;
   endDrag();
   if (d.box) {
-    const own = new Set(state.units.filter((u) => u.player === 0).map((u) => u.id)), ids = scene.unitsInRect(d.x, d.y, e.clientX, e.clientY).filter((id) => own.has(id));
+    const own = new Set(ownUnits().map((u) => u.id)), ids = scene.unitsInRect(d.x, d.y, e.clientX, e.clientY).filter((id) => own.has(id));
     if (e.shiftKey) select([...selected, ...ids]);
     else select(ids);
-    notice(ids.length ? `\u6846\u9078 ${ids.length} \u540D\u6751\u6C11\u3002\u5C0D\u5730\u9762\u6309\u53F3\u9375\u4E0B\u9054\u79FB\u52D5\u3002` : "\u6846\u5167\u6C92\u6709\u85CD\u65B9\u6751\u6C11\u3002");
+    notice(ids.length ? `\u6846\u9078 ${ids.length} \u540D\u55AE\u4F4D\u3002\u5C0D\u5730\u9762\u6309\u53F3\u9375\u4E0B\u9054\u79FB\u52D5\u3002` : "\u6846\u5167\u6C92\u6709\u85CD\u65B9\u55AE\u4F4D\u3002");
     return;
   }
   const hit = scene.pick(e.clientX, e.clientY);
@@ -2244,13 +2677,166 @@ canvas.addEventListener("pointerup", (e) => {
     notice("\u5DF2\u53D6\u6D88\u9078\u53D6\u3002\u79FB\u52D5\u6307\u4EE4\u8ACB\u5C0D\u5730\u9762\u6309\u53F3\u9375\uFF08\u89F8\u63A7\uFF1A\u9078\u53D6\u5F8C\u8F15\u89F8\u5730\u9762\uFF09\u3002");
   } else if (!e.shiftKey && selectedBuilding) selectBuilding(null);
 });
+var mini = el("minimap");
+var mctx = mini.getContext("2d");
+var miniKey = "";
+var terrainColor = { cliff: "#8a8065", stone: "#a1a28e", highland: "#879d69", water: "#4b8291", shallow: "#86b7b8", sand: "#d5c598", road: "#c4b18a" };
+var obstacleColor = { tree: "#4c6b43", gold: "#e2c35e", rock: "#d9d6c6", berries: "#b85a66", hunt: "#9b7552", livestock: "#e7e2cc" };
+var shade = (hex, f) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${Math.round((n >> 16 & 255) * f)},${Math.round((n >> 8 & 255) * f)},${Math.round((n & 255) * f)})`;
+};
+function miniGeometry() {
+  const r = mini.getBoundingClientRect(), v = scene.cameraView(), K = Math.SQRT1_2, s = Math.min(r.width / (16 * Math.SQRT2), r.height / (16 * Math.SQRT2 * K)) * 0.96, c = Math.cos(v.angle), sn = Math.sin(v.angle);
+  return { r, v, K, s, c, sn, P: (x, z) => {
+    const dx = x - 8, dz = z - 8;
+    return [r.width / 2 + (dx * c - dz * sn) * s, r.height / 2 + (dx * sn + dz * c) * K * s];
+  } };
+}
+function miniWorld(clientX, clientY) {
+  const g = miniGeometry(), u = (clientX - g.r.left - g.r.width / 2) / g.s, w = (clientY - g.r.top - g.r.height / 2) / (g.K * g.s);
+  return { x: 8 + u * g.c + w * g.sn, z: 8 - u * g.sn + w * g.c };
+}
+function drawMinimap() {
+  if (!scene || graphicsFailed || !mctx) return;
+  const g = miniGeometry();
+  if (g.r.width < 2 || g.r.height < 2) return;
+  const key = [state.stateHash, state.tick, g.v.x, g.v.z, g.v.angle, g.v.halfW, g.v.halfH, g.r.width, g.r.height, [...selected].join()].join("|");
+  if (key === miniKey) return;
+  miniKey = key;
+  const dpr = Math.min(devicePixelRatio, 2), W = Math.round(g.r.width * dpr), H = Math.round(g.r.height * dpr);
+  if (mini.width !== W || mini.height !== H) {
+    mini.width = W;
+    mini.height = H;
+  }
+  const ctx = mctx;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, g.r.width, g.r.height);
+  const quad = (x0, z0, x1, z1) => {
+    ctx.beginPath();
+    for (const [i, [x, z]] of [[x0, z0], [x1, z0], [x1, z1], [x0, z1]].entries()) {
+      const [px, py] = g.P(x, z);
+      if (i) ctx.lineTo(px, py);
+      else ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  };
+  state.terrain.forEach((t, id) => {
+    const f = state.fog[id] ?? 0, x = id % 16, z = Math.floor(id / 16), base = terrainColor[t.terrainType] ?? "#b5c493";
+    ctx.fillStyle = f === 0 ? "#1c2622" : f === 1 ? shade(base, 0.52) : base;
+    quad(x - 0.02, z - 0.02, x + 1.02, z + 1.02);
+  });
+  for (const k of state.known) {
+    const o = k.obstacle, [x0, y0, x1, y1] = obstacleBounds(o), home = homeKinds.has(o.kind);
+    ctx.fillStyle = o.kind === "farm" ? o.red ? "#b58a62" : "#a99a5e" : home ? o.red ? "#d0664c" : "#5d93b6" : obstacleColor[o.kind] ?? "#c8c2a8";
+    if ((state.fog[Math.floor(o.y / 100) * 16 + Math.floor(o.x / 100)] ?? 0) < 2 && !home) ctx.fillStyle = shade(ctx.fillStyle, 0.6);
+    quad(x0 / 100, y0 / 100, x1 / 100, y1 / 100);
+  }
+  for (const u of state.units) {
+    const [px, py] = g.P(u.x / 100, u.y / 100);
+    ctx.fillStyle = u.player === 0 ? selected.has(u.id) ? "#fff4c4" : "#7fb6dc" : "#ee7b5f";
+    ctx.strokeStyle = "#15201b";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.rect(px - 2.2, py - 2.2, 4.4, 4.4);
+    ctx.fill();
+    ctx.stroke();
+  }
+  const [cx, cy] = g.P(g.v.x, g.v.z);
+  ctx.strokeStyle = "#f3ead0";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(cx - g.v.halfW * g.s, cy - g.v.halfH * g.s, 2 * g.v.halfW * g.s, 2 * g.v.halfH * g.s);
+}
+var miniDrag = -1;
+mini.addEventListener("contextmenu", (e) => e.preventDefault());
+mini.addEventListener("pointerdown", (e) => {
+  if (!scene || graphicsFailed) return;
+  e.preventDefault();
+  const w = miniWorld(e.clientX, e.clientY);
+  if (e.button === 2) {
+    if (w.x < 0.5 || w.x > 15.5 || w.z < 0.5 || w.z > 15.5) {
+      notice("\u8ACB\u5728\u5C0F\u5730\u5716\u7684\u5730\u5716\u7BC4\u570D\u5167\u6309\u53F3\u9375\u3002");
+      return;
+    }
+    if (!selected.size && !selectedBuilding) {
+      notice("\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\u3002");
+      return;
+    }
+    orderAtGround(w.x, w.z);
+    return;
+  }
+  if (e.button !== 0) return;
+  miniDrag = e.pointerId;
+  mini.setPointerCapture(e.pointerId);
+  scene.focusOn(w.x, w.z);
+});
+mini.addEventListener("pointermove", (e) => {
+  if (e.pointerId !== miniDrag || !scene) return;
+  const w = miniWorld(e.clientX, e.clientY);
+  scene.focusOn(w.x, w.z);
+});
+mini.addEventListener("pointerup", () => {
+  miniDrag = -1;
+});
+mini.addEventListener("pointercancel", () => {
+  miniDrag = -1;
+});
+var menuResume = false;
+function openMenu() {
+  if (!el("menu").hidden) return;
+  menuResume = running;
+  if (running) setRunning(false);
+  endDrag();
+  el("menu").hidden = false;
+  el("menu-close").focus();
+}
+function closeMenu(resume = true) {
+  if (el("menu").hidden) return;
+  el("menu").hidden = true;
+  if (resume && menuResume && connected && !state.outcome && !graphicsFailed) setRunning(true);
+  menuResume = false;
+  el("menu-open").focus();
+}
+el("menu-open").onclick = openMenu;
+el("menu-close").onclick = () => closeMenu();
+el("menu").addEventListener("pointerdown", (e) => {
+  if (e.target === el("menu")) closeMenu();
+});
 var groups = /* @__PURE__ */ new Map();
 function renderGroups() {
   el("groups").textContent = groups.size ? "\u7DE8\u7D44 " + [...groups].sort((a, b) => a[0] - b[0]).map(([n, ids]) => `${n}\uFF1D${ids.join("\u3001")}`).join("\uFF1B") : "\u5C1A\u672A\u7DE8\u7D44\uFF08Ctrl\uFF0B\u6578\u5B57\uFF09\u3002";
 }
+function commandKey(letter) {
+  const tile = Array.from(el("commands").querySelectorAll("button.tile")).find((b) => !b.hidden && b.dataset.key === letter);
+  if (!tile) return false;
+  if (tile.disabled) {
+    const why = tile.getAttribute("aria-label")?.split("\uFF1A").slice(1).join("\uFF1A");
+    notice(why ? `${tile.getAttribute("aria-label").split("\uFF08")[0]}\uFF1A${why}` : "\u9019\u500B\u6307\u4EE4\u76EE\u524D\u4E0D\u80FD\u4F7F\u7528\u3002");
+  } else tile.click();
+  return true;
+}
 document.addEventListener("keydown", (e) => {
   const t = e.target;
+  if (e.key === "F10") {
+    e.preventDefault();
+    if (el("menu").hidden) openMenu();
+    else closeMenu();
+    return;
+  }
+  if (!el("menu").hidden) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeMenu();
+    }
+    return;
+  }
   if (t.closest("input,textarea,select,[contenteditable]") || e.altKey || e.metaKey) return;
+  if (e.key === "F3" || e.key === "Pause") {
+    e.preventDefault();
+    if (connected && !graphicsFailed && !state.outcome) setRunning(!running);
+    return;
+  }
   if (e.key === "Escape") {
     if (placing) {
       stopPlacing("\u5DF2\u53D6\u6D88\u653E\u7F6E\u3002");
@@ -2275,18 +2861,36 @@ document.addEventListener("keydown", (e) => {
     void stop();
     return;
   }
+  if (e.key === "Delete" && !el("cancel-build").hidden) {
+    e.preventDefault();
+    el("cancel-build").click();
+    return;
+  }
   const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
-  if (arrows[e.key] && sceneActive && scene && !graphicsFailed) {
+  if (arrows[e.key] && scene && !graphicsFailed) {
     e.preventDefault();
     scene.pan(...arrows[e.key]);
     return;
   }
   if ((e.key === "f" || e.key === "F") && !e.ctrlKey && scene) {
-    const chosen = state.units.filter((u) => selected.has(u.id));
+    const chosen = chosenUnits();
     if (chosen.length) {
       scene.focusOn(chosen.reduce((t2, u) => t2 + u.x, 0) / chosen.length / 100, chosen.reduce((t2, u) => t2 + u.y, 0) / chosen.length / 100);
-      notice("\u93E1\u982D\u5DF2\u5C0D\u6E96\u9078\u53D6\u7684\u6751\u6C11\u3002");
+      notice("\u93E1\u982D\u5DF2\u5C0D\u6E96\u9078\u53D6\u7684\u55AE\u4F4D\u3002");
     }
+    return;
+  }
+  if ((e.key === "h" || e.key === "H") && !e.ctrlKey) {
+    homeTownCenter();
+    return;
+  }
+  if (e.key === ".") {
+    nextIdle();
+    return;
+  }
+  const letter = /^Key([QWERT])$/.exec(e.code);
+  if (letter && !e.ctrlKey) {
+    if (commandKey(letter[1])) e.preventDefault();
     return;
   }
   const digit = /^Digit([1-9])$/.exec(e.code);
@@ -2296,7 +2900,7 @@ document.addEventListener("keydown", (e) => {
   if (e.ctrlKey) {
     const ids2 = [...selected].sort((a, b) => a - b);
     if (!ids2.length) {
-      notice("\u8ACB\u5148\u9078\u53D6\u6751\u6C11\u518D\u7DE8\u7D44\u3002");
+      notice("\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\u518D\u7DE8\u7D44\u3002");
       return;
     }
     groups.set(n, ids2);
@@ -2321,6 +2925,7 @@ el("zoom-in").onclick = () => scene?.zoom(0.2);
 el("zoom-out").onclick = () => scene?.zoom(-0.2);
 el("rotate-view").onclick = () => scene?.rotate();
 el("reset-view").onclick = () => scene?.resetCamera();
+el("idle-villager").onclick = nextIdle;
 document.querySelectorAll("[data-unit]").forEach((b) => b.onclick = (e) => {
   const id = Number(b.dataset.unit);
   if (e.shiftKey) toggle(id);
@@ -2333,7 +2938,7 @@ for (const k of buildKinds) el(`build-${k}`).onclick = () => {
   if (buildBlocker(k)) return;
   placing = k;
   preview = null;
-  notice(`\u5728\u5834\u666F\u4E2D\u79FB\u52D5\u6ED1\u9F20\u9078\u64C7${buildingNames2[k]}\u7684\u4F4D\u7F6E\u3002`);
+  notice(`\u5728\u6230\u5834\u4E0A\u79FB\u52D5\u6ED1\u9F20\u9078\u64C7${buildingNames2[k]}\u7684\u4F4D\u7F6E\u3002`);
   render();
 };
 el("cancel-build").onclick = async () => {
@@ -2352,12 +2957,14 @@ el("move").onclick = () => {
   if (x.reportValidity() && y.reportValidity() && x.value !== "" && y.value !== "") move(Number(x.value), Number(y.value));
   else notice("\u8ACB\u8F38\u5165 0.5 \u5230 15.5 \u4E4B\u9593\u7684\u5EA7\u6A19\u3002");
 };
-el("pause").onclick = () => setRunning(!running);
+el("pause").onclick = () => {
+  if (!state.outcome) setRunning(!running);
+};
 el("speed").onchange = (e) => {
   speed = Number(e.target.value);
   accumulator = 0;
   if (running) setRunning(true);
-  notice(`\u6A21\u64EC\u901F\u5EA6 ${speed}\xD7\uFF08\u6BCF\u79D2 ${20 * speed} ticks\uFF0C\u4E0D\u8DF3\u904E\u4EFB\u4F55 tick\uFF09\u3002`);
+  notice(`\u904A\u6232\u901F\u5EA6 ${speed}\xD7\uFF08\u6BCF\u79D2 ${20 * speed} ticks\uFF0C\u4E0D\u8DF3\u904E\u4EFB\u4F55 tick\uFF09\u3002`);
 };
 el("step").onclick = async () => {
   try {
@@ -2368,13 +2975,16 @@ el("step").onclick = async () => {
   }
 };
 el("restart").onclick = async () => {
+  closeMenu(false);
   setRunning(false);
   try {
     const input = el("seed");
     if (input.value === "") throw Error("\u8ACB\u8F38\u5165\u7A2E\u5B50");
-    await client.request({ kind: "reset", seed: Number(input.value), layout: el("layout").value });
+    await client.request({ kind: "reset", seed: Number(input.value), layout: el("layout").value, opponent: el("opponent").value });
     choose(1);
-    notice("\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002");
+    lastTransaction = 0;
+    notice("\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\uFF1A\u65B0\u904A\u6232\u958B\u59CB\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002");
+    autoStart();
   } catch (e) {
     notice(e.message);
   }
@@ -2383,12 +2993,14 @@ el("save").onclick = async () => {
   try {
     const result = await client.request({ kind: "snapshot" });
     localStorage.setItem("brick-rts:sandbox:1", result.snapshot);
-    notice(`\u5DF2\u5132\u5B58 tick ${result.tick} \u7684\u6C99\u76D2\u3002`);
+    notice(`\u5DF2\u5132\u5B58 tick ${result.tick} \u7684\u904A\u6232\u3002`);
   } catch (e) {
     notice(`\u5132\u5B58\u5931\u6557\uFF1A${e.message}\u3002\u5148\u524D\u5B58\u6A94\u4FDD\u7559\u3002`);
   }
+  closeMenu();
 };
 el("load").onclick = async () => {
+  closeMenu(false);
   setRunning(false);
   try {
     const raw = localStorage.getItem("brick-rts:sandbox:1");
@@ -2396,13 +3008,16 @@ el("load").onclick = async () => {
     await client.request({ kind: "restore", snapshot: raw });
     el("seed").value = String(state.seed);
     el("layout").value = state.layout;
+    el("opponent").value = state.opponent;
     choose(1);
-    notice(`\u5DF2\u6062\u5FA9 tick ${state.tick}\uFF1B\u6309\u958B\u59CB\u6A21\u64EC\u7E7C\u7E8C\u3002`);
+    notice(`\u5DF2\u6062\u5FA9 tick ${state.tick} \u7684\u904A\u6232\u3002`);
+    autoStart();
   } catch (e) {
-    notice(`\u8B80\u53D6\u5931\u6557\uFF1A${e.message}\u3002\u76EE\u524D\u6C99\u76D2\u4FDD\u7559\u3002`);
+    notice(`\u8B80\u53D6\u5931\u6557\uFF1A${e.message}\u3002\u76EE\u524D\u904A\u6232\u4FDD\u7559\u3002`);
   }
 };
 el("replay").onclick = async () => {
+  closeMenu(false);
   setRunning(false);
   try {
     const result = await client.request({ kind: "replay" });
@@ -2410,6 +3025,7 @@ el("replay").onclick = async () => {
   } catch (e) {
     notice(`\u91CD\u64AD\u5931\u6557\uFF1A${e.message}`);
   }
+  if (menuResume) autoStart();
 };
 var editor = el("rules-json");
 var reset = () => {
@@ -2447,16 +3063,19 @@ el("export").onclick = () => {
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && running) {
     setRunning(false);
-    notice("\u5206\u9801\u9032\u5165\u80CC\u666F\uFF0C\u6C99\u76D2\u5DF2\u81EA\u52D5\u66AB\u505C\u3002");
+    notice("\u5206\u9801\u9032\u5165\u80CC\u666F\uFF0C\u904A\u6232\u5DF2\u81EA\u52D5\u66AB\u505C\u3002");
   }
 });
 window.addEventListener("blur", () => {
   if (running) {
     setRunning(false);
-    notice("\u8996\u7A97\u5931\u7126\uFF0C\u6C99\u76D2\u5DF2\u81EA\u52D5\u66AB\u505C\u3002");
+    notice("\u8996\u7A97\u5931\u7126\uFF0C\u904A\u6232\u5DF2\u81EA\u52D5\u66AB\u505C\u3002\u6309 \u25B6 \u7E7C\u7E8C\u3002");
   }
 });
-new ResizeObserver(() => render()).observe(canvas.parentElement);
+new ResizeObserver(() => {
+  render();
+  miniKey = "";
+}).observe(canvas.parentElement);
 function frame(time) {
   if (running) {
     if (last) accumulator += time - last;
@@ -2465,7 +3084,7 @@ function frame(time) {
       setRunning(false);
       notice("\u6A21\u64EC\u843D\u5F8C\u8D85\u904E 1 \u79D2\uFF0C\u5DF2\u66AB\u505C\uFF1B\u672A\u8DF3\u904E\u4EFB\u4F55 tick\u3002");
     } else if (!advancing && accumulator >= 50 / speed) {
-      const count = Math.min(20, Math.floor(accumulator * speed / 50));
+      const count = Math.min(20 * speed, Math.floor(accumulator * speed / 50));
       accumulator -= count * 50 / speed;
       advancing = true;
       void client.request({ kind: "advance", count }).catch((e) => {
@@ -2479,6 +3098,7 @@ function frame(time) {
   if (!graphicsFailed) {
     try {
       scene?.draw(time);
+      drawMinimap();
     } catch (error) {
       graphicsError(`3D \u7E6A\u5716\u5931\u6557\uFF1A${error.message}`);
     }
@@ -2492,12 +3112,19 @@ function graphicsError(message) {
   const box2 = el("boot-error");
   box2.hidden = false;
   box2.textContent = message;
-  notice("3D \u5834\u666F\u66AB\u4E0D\u53EF\u7528\u3002\u82E5\u6A21\u64EC\u5DF2\u9023\u7DDA\uFF0C\u53EF\u5148\u5132\u5B58\u76EE\u524D\u6C99\u76D2\u518D\u91CD\u65B0\u8F09\u5165\u3002");
+  notice("3D \u756B\u9762\u66AB\u4E0D\u53EF\u7528\u3002\u53EF\u5F9E\u9078\u55AE\u5132\u5B58\u76EE\u524D\u904A\u6232\uFF0C\u518D\u91CD\u65B0\u8F09\u5165\u9801\u9762\u3002");
 }
+setRunning(false);
 toggleControls();
 render();
 void createScene(canvas, graphicsError).then((result) => {
   scene = result;
+  try {
+    icons = scene.renderIcons();
+  } catch {
+    document.body.classList.add("no-icons");
+  }
+  applyIcons();
   toggleControls();
   scene.update(state, selected);
   void connect();

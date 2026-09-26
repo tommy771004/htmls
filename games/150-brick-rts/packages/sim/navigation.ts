@@ -29,9 +29,12 @@ export function makeMap(seed:number,layout:MapLayout='meadow'):MapData{
 function generateCandidate(seed:number,layout:MapLayout):MapData{
  let rng=seed||1;// Starting town centers: gate centers sit on grid columns 400/1200 and face the spawn row, 65 units clear.
  let obstacles:Obstacle[]=[{kind:'town-center',x:265,y:350},{kind:'town-center',x:1065,y:350,red:true}];
+ // Border woods are drawn for the west half and mirrored to the east, so both bases get the same room.
+ const woods:Obstacle[]=[];
  for(let x=0;x<16;x++)for(let y=0;y<16;y++){rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;const v=(rng>>>0)/4294967296;
- if((x<2||y<2||x>13||y>13)&&v<.34)obstacles.push({kind:'tree',x:x*100+12,y:y*100+12});
+ if((x<2||y<2||x>13||y>13)&&v<.34){if(x<8)woods.push({kind:'tree',x:x*100+12,y:y*100+12},{kind:'tree',x:(15-x)*100+12,y:y*100+12});}
  else if(v<.028&&Math.abs(x-8)<3&&y>3)obstacles.push({kind:'rock',x:x*100,y:y*100});}
+ obstacles.push(...woods);
  if(layout==='coast')obstacles=obstacles.filter(o=>o.y<1000);
  if(layout==='acceptance')obstacles=[...obstacles.slice(0,2),{kind:'tree',x:150,y:250},{kind:'tree',x:1350,y:250},{kind:'rock',x:500,y:1100},{kind:'rock',x:1050,y:1100}];
  const guaranteed:Obstacle[]=[{kind:'tree',x:150,y:850},{kind:'tree',x:1350,y:850},{kind:'rock',x:150,y:1100},{kind:'rock',x:1350,y:1100}];
@@ -46,7 +49,7 @@ function generateCandidate(seed:number,layout:MapLayout):MapData{
  if(layout==='acceptance')for(const y of [300,1200])addResource('fish',800,y);
  for(let i=0;i<961;i++)if(!clearSegment(map,position(i),position(i)))map.blocked.push(i);return map;
 }
-export function isBuilding(o:Obstacle){return o.kind==='house'||o.kind==='town-center'||o.kind==='barracks';}
+export function isBuilding(o:Obstacle){return o.kind==='house'||o.kind==='town-center'||o.kind==='barracks'||o.kind==='farm';}
 function bounds(o:Obstacle):[number,number,number,number]{return obstacleBounds(o,navigationRules.radius);}
 // Slab intersection includes contact: center-lines cannot clip expanded footprints.
 export function clearSegment(map:MapData,a:Point,b:Point,movement:'land'|'water'='land'):boolean{

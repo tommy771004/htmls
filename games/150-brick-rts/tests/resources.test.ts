@@ -4,7 +4,8 @@ import {makeMap,validateMap,harvestMapResource,clearSegment,isBuilding} from '..
 import {resourceDefinitions,terrainRules} from '../packages/sim/terrain.ts';
 import {createVision,updateVision,projectVision} from '../packages/sim/vision.ts';
 test('coastal resources cover seven kinds with explicit method, yield and finite capacity',()=>{
- const map=makeMap(260925,'coast');assert.deepEqual([...new Set(map.resources.map(r=>r.kind))].sort(),Object.keys(resourceDefinitions).sort());
+ const map=makeMap(260925,'coast');// Farms are player-built (buildings.ts); the generator places the seven natural kinds.
+ assert.deepEqual([...new Set(map.resources.map(r=>r.kind))].sort(),Object.keys(resourceDefinitions).filter(k=>k!=='farm').sort());
  for(const r of map.resources){assert.equal(r.capacity,terrainRules.resourceCapacity[r.kind]);const amount=harvestMapResource(map,r.id,r.capacity+1,10);assert.equal(amount.amount,r.capacity);assert.equal(harvestMapResource(map,r.id,1,11).amount,0);assert.equal(r.collectible,false);}
  assert.deepEqual(validateMap(map),[]);
 });

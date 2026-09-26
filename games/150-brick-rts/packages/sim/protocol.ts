@@ -2,7 +2,7 @@ import type {ResourceNode,MapLayout,Tile} from './terrain.ts';
 import {projectVision,unitVisible} from './vision.ts';
 import type {KnownObstacle} from './vision.ts';
 import {createState,submit,tick,hash,replay,serialize,deserialize,rulesetHash} from './sim.ts';
-import type {LoggedCommand} from './sim.ts';
+import type {LoggedCommand,Opponent} from './sim.ts';
 import {navigationStates,unitKinds} from './movement.ts';
 import type {UnitKind} from './movement.ts';
 import {workPhases} from './work.ts';
@@ -25,17 +25,17 @@ export type EconomyView={stock:Stock;populationUsed:number;populationReserved:nu
 // Own buildings with exact progress, and recent own transaction outcomes (orders that failed at execution).
 export type BuildingView={id:string;kind:string;x:number;y:number;work:number;required:number;complete:boolean;hp:number;maxHp:number;queue:{id:number;entryId:string;work:number;required:number}[];rally:{x:number;y:number}|null};
 export type TransactionView={sequence:number;tick:number;ok:boolean;error?:string};
-export type Recovery={seed:number;layout?:MapLayout;commands:LoggedCommand[];ticks:number};
-export type Operation={kind:'attack';unitIds:number[];target:Target}|{kind:'move';unitIds:number[];x:number;y:number}|{kind:'stop';unitIds:number[]}|{kind:'gather';unitIds:number[];resourceId:string}|{kind:'build';unitIds:number[];building:BuildKind;x:number;y:number}|{kind:'construct';unitIds:number[];buildingId:string}|{kind:'cancelBuild';buildingId:string}|{kind:'train';buildingId:string;entryId:string}|{kind:'cancelTrain';buildingId:string;itemId:number}|{kind:'rally';buildingId:string;x:number;y:number}|{kind:'advance';count:number}|{kind:'reset';seed:number;layout?:MapLayout}|{kind:'restore';snapshot:string}|{kind:'snapshot'}|{kind:'replay'}|{kind:'recover';checkpoint:Recovery};
+export type Recovery={seed:number;layout?:MapLayout;opponent?:Opponent;commands:LoggedCommand[];ticks:number};
+export type Operation={kind:'attack';unitIds:number[];target:Target}|{kind:'move';unitIds:number[];x:number;y:number}|{kind:'stop';unitIds:number[]}|{kind:'gather';unitIds:number[];resourceId:string}|{kind:'build';unitIds:number[];building:BuildKind;x:number;y:number}|{kind:'construct';unitIds:number[];buildingId:string}|{kind:'cancelBuild';buildingId:string}|{kind:'train';buildingId:string;entryId:string}|{kind:'cancelTrain';buildingId:string;itemId:number}|{kind:'rally';buildingId:string;x:number;y:number}|{kind:'advance';count:number}|{kind:'reset';seed:number;layout?:MapLayout;opponent?:Opponent}|{kind:'restore';snapshot:string}|{kind:'snapshot'}|{kind:'replay'}|{kind:'recover';checkpoint:Recovery};
 export type Request={protocol:1;id:number;operation:Operation};
-export type View={seed:number;layout:MapLayout;terrain:Omit<Tile,'id'|'resourceRefs'|'obstacleRefs'>[];tick:number;units:UnitView[];economy:EconomyView;corpses:Corpse[];outcome:Outcome|null;buildings:BuildingView[];transactions:TransactionView[];fog:number[];known:KnownObstacle[];resources:ResourceNode[];stateHash:string};
-export type Response={protocol:1;id:number;ok:true;seed:number;layout:MapLayout;terrain:View['terrain'];tick:number;stateHash:string;positions:ArrayBuffer;economy:EconomyView;corpses:Corpse[];outcome:Outcome|null;buildings:BuildingView[];transactions:TransactionView[];fog:number[];known:KnownObstacle[];resources:ResourceNode[];accepted?:LoggedCommand;commands?:LoggedCommand[];snapshot?:string;replayMatches?:boolean}|{protocol:1;id:number;ok:false;tick:number;message:string;entityId?:number};
+export type View={seed:number;layout:MapLayout;opponent:Opponent;terrain:Omit<Tile,'id'|'resourceRefs'|'obstacleRefs'>[];tick:number;units:UnitView[];economy:EconomyView;corpses:Corpse[];outcome:Outcome|null;buildings:BuildingView[];transactions:TransactionView[];fog:number[];known:KnownObstacle[];resources:ResourceNode[];stateHash:string};
+export type Response={protocol:1;id:number;ok:true;seed:number;layout:MapLayout;opponent:Opponent;terrain:View['terrain'];tick:number;stateHash:string;positions:ArrayBuffer;economy:EconomyView;corpses:Corpse[];outcome:Outcome|null;buildings:BuildingView[];transactions:TransactionView[];fog:number[];known:KnownObstacle[];resources:ResourceNode[];accepted?:LoggedCommand;commands?:LoggedCommand[];snapshot?:string;replayMatches?:boolean}|{protocol:1;id:number;ok:false;tick:number;message:string;entityId?:number};
 // Int32 fields per unit in Response.positions; tests/browser.mjs decodes raw buffers with the same number.
 export const UNIT_STRIDE=15;const STRIDE=UNIT_STRIDE;
 export function decodeView(r:Extract<Response,{ok:true}>):View{
  const values=new Int32Array(r.positions),units:UnitView[]=[];
  for(let i=0;i<values.length;i+=STRIDE)units.push({kind:unitKinds[values[i+11]],hp:values[i+12],maxHp:values[i+13],action:values[i+14],id:values[i],player:values[i+1],x:values[i+2],y:values[i+3],navigation:navigationStates[values[i+6]],target:values[i+4]<0?null:{x:values[i+4],y:values[i+5]},work:values[i+7]>0?workPhases[values[i+7]] as WorkPhase:null,workResource:values[i+10]<0?null:resources[values[i+10]],cargo:values[i+8]<0?null:{resource:resources[values[i+8]],amount:values[i+9]}});
- return {seed:r.seed,layout:r.layout,terrain:r.terrain,tick:r.tick,stateHash:r.stateHash,economy:r.economy,corpses:r.corpses,outcome:r.outcome,buildings:r.buildings,transactions:r.transactions,fog:r.fog,known:r.known,resources:r.resources,units};
+ return {seed:r.seed,layout:r.layout,opponent:r.opponent,terrain:r.terrain,tick:r.tick,stateHash:r.stateHash,economy:r.economy,corpses:r.corpses,outcome:r.outcome,buildings:r.buildings,transactions:r.transactions,fog:r.fog,known:r.known,resources:r.resources,units};
 }
 // This service owns state. DOM, clocks, rendering and transport never decide rules.
 export function createService(){
@@ -54,17 +54,18 @@ export function createService(){
      const command:LoggedCommand=op.kind==='attack'?{...envelope,commandType:'attack',payload:{unitIds:op.unitIds,target:op.target}}:op.kind==='move'?{...envelope,commandType:'move',payload:{unitIds:op.unitIds,x:op.x,y:op.y}}:op.kind==='gather'?{...envelope,commandType:'gather',payload:{unitIds:op.unitIds,resourceId:op.resourceId}}:op.kind==='build'?{...envelope,commandType:'build',payload:{unitIds:op.unitIds,kind:op.building,x:op.x,y:op.y}}:op.kind==='construct'?{...envelope,commandType:'construct',payload:{unitIds:op.unitIds,buildingId:op.buildingId}}:op.kind==='cancelBuild'?{...envelope,commandType:'cancelBuild',payload:{buildingId:op.buildingId}}:op.kind==='train'?{...envelope,commandType:'train',payload:{buildingId:op.buildingId,entryId:op.entryId}}:op.kind==='cancelTrain'?{...envelope,commandType:'cancelTrain',payload:{buildingId:op.buildingId,itemId:op.itemId}}:op.kind==='rally'?{...envelope,commandType:'rally',payload:{buildingId:op.buildingId,x:op.x,y:op.y}}:{...envelope,commandType:'stop',payload:{unitIds:op.unitIds}};
      submit(state,command);accepted=command;}break;
     case 'advance':
-     if(!Number.isSafeInteger(op.count)||op.count<1||op.count>20||state.tick+op.count>100000)throw Error('步進需為 1–20 ticks，總量不得超過 100000');
+     // Up to 80 ticks per request: one second of play at 4x, so a slow frame never starves the fastest speed.
+     if(!Number.isSafeInteger(op.count)||op.count<1||op.count>80||state.tick+op.count>100000)throw Error('步進需為 1–80 ticks，總量不得超過 100000');
      for(let i=0;i<op.count;i++)tick(state);break;
-    case 'reset':state=createState(op.seed,op.layout);commands=[];break;
+    case 'reset':state=createState(op.seed,op.layout,op.opponent);commands=[];break;
     case 'restore':state=deserialize(op.snapshot);commands=structuredClone(state.log);break;
     case 'recover':{
      if(!op.checkpoint)throw Error('缺少恢復點');
-     const candidate=replay(op.checkpoint.seed,op.checkpoint.commands,op.checkpoint.ticks,op.checkpoint.layout);
+     const candidate=replay(op.checkpoint.seed,op.checkpoint.commands,op.checkpoint.ticks,op.checkpoint.layout,op.checkpoint.opponent);
      state=candidate;commands=structuredClone(state.log);break;
     }
     case 'snapshot':snapshot=serialize(state);break;
-    case 'replay':replayMatches=hash(replay(state.seed,state.log,state.tick,state.layout))===hash(state);break;
+    case 'replay':replayMatches=hash(replay(state.seed,state.log,state.tick,state.layout,state.opponent))===hash(state);break;
     default:throw Error('不支援的 operation');
    }
    const visibleUnits=state.units.filter(u=>unitVisible(state.vision[0],u,0));
@@ -79,7 +80,7 @@ export function createService(){
     const action=fight&&fight.firedTick>=0&&state.tick-fight.firedTick<10?1:u.hitTick>=0&&state.tick-u.hitTick<combatRules.hitFlashTicks?2:0;
     positions.set([u.id,u.player,u.x,u.y,target?.x??-1,target?.y??-1,navigationStates.indexOf(u.navigation),w?workPhases.indexOf(w.phase):0,c?resources.indexOf(c.resource):-1,c?.amount??0,w?.kind==='gather'?resources.indexOf(resourceDefinitions[state.map.resources.find(r=>r.id===w.resourceId)!.kind].yield):-1,unitKinds.indexOf(u.kind),u.hp,combatRules.units[u.kind].hp,action],i*STRIDE);});
    const account=state.accounts[0],economy:EconomyView={stock:{...account.stock},populationUsed:account.populationUsed,populationReserved:account.populationReserved,populationCap:account.populationCap,age:state.ages[0]};
-   return {protocol:1,id:req.id,ok:true,seed:state.seed,layout:state.layout,terrain:state.map.tiles.map(({terrainType,height,walkClass,buildability})=>({terrainType,height,walkClass,buildability})),tick:state.tick,stateHash:hash(state),positions:positions.buffer,economy,corpses:state.corpses.filter(c=>c.player===0||state.vision[0].visible.includes(tileAt(c.x,c.y))).map(c=>({...c})),outcome:state.outcome?{...state.outcome}:null,buildings:state.buildings.filter(b=>b.player===0).map(({id,kind,x,y,work,required,complete,queue,rally,hp,maxHp})=>({id,kind,x,y,work,required,complete,hp,maxHp,queue:queue.map(({id,entryId,work,required})=>({id,entryId,work,required})),rally})),transactions:state.transactions.filter(t=>t.playerId===0).slice(-5).map(({sequence,tick,ok,error})=>({sequence,tick,ok,...(error?{error}:{})})),...projectVision(state.vision[0]),accepted,commands,snapshot,replayMatches};
+   return {protocol:1,id:req.id,ok:true,seed:state.seed,layout:state.layout,opponent:state.opponent,terrain:state.map.tiles.map(({terrainType,height,walkClass,buildability})=>({terrainType,height,walkClass,buildability})),tick:state.tick,stateHash:hash(state),positions:positions.buffer,economy,corpses:state.corpses.filter(c=>c.player===0||state.vision[0].visible.includes(tileAt(c.x,c.y))).map(c=>({...c})),outcome:state.outcome?{...state.outcome}:null,buildings:state.buildings.filter(b=>b.player===0).map(({id,kind,x,y,work,required,complete,queue,rally,hp,maxHp})=>({id,kind,x,y,work,required,complete,hp,maxHp,queue:queue.map(({id,entryId,work,required})=>({id,entryId,work,required})),rally})),transactions:state.transactions.filter(t=>t.playerId===0).slice(-5).map(({sequence,tick,ok,error})=>({sequence,tick,ok,...(error?{error}:{})})),...projectVision(state.vision[0]),accepted,commands,snapshot,replayMatches};
   }catch(error){return {protocol:1,id:Number.isSafeInteger(req?.id)?req.id:0,ok:false,tick:state.tick,message:(error as Error).message,entityId:['attack','move','stop','gather','build','construct'].includes(req?.operation?.kind as string)?(req.operation as {unitIds?:number[]}).unitIds?.[0]:undefined};}
  };
 }

@@ -81,7 +81,7 @@
       "status": "in_progress",
       "exitEvidence": "經濟→升級→造兵→攻城→勝敗→再開局",
       "firstUseReviewRequired": true,
-      "reviewStatus": "production_ages_first_use_011_verified_remaining_e_open"
+      "reviewStatus": "combat_conquest_first_use_012_verified_ai_missing_e_open"
     },
     {
       "id": "F",

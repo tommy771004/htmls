@@ -5,6 +5,8 @@ export const obstacleFootprints={
  // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
  barracks:{x:-15,y:-15,width:300,depth:300},
  'town-center':{x:-15,y:-15,width:300,depth:300},
+ // Farm: a walkable 2x2 field (no blocking rectangle); its extent still stops other buildings.
+ farm:{x:0,y:0,width:200,depth:200},
  tree:{x:-20,y:-20,width:100,depth:100},
  rock:{x:0,y:0,width:65,depth:70},
  gold:{x:0,y:0,width:65,depth:70},
@@ -24,7 +26,7 @@ const townCenterBlocking:Rect[]=[
  [65,150,97,175],[173,150,205,175],
  [14,190,62,198],[20,198,54,201],[210,210,252,252],[265,270,271,276],
 ];
-export const walkablePlatforms:Partial<Record<ObstacleKind,{rect:Rect;height:number}>>={'town-center':{rect:[-15,-15,285,285],height:16}};
+export const walkablePlatforms:Partial<Record<ObstacleKind,{rect:Rect;height:number}>>={'town-center':{rect:[-15,-15,285,285],height:16},farm:{rect:[0,0,200,200],height:10}};
 export const townCenterEntrance={x:135,y:215} as const;
 // Everything that decides collision, for ruleset identity and the exported manifest.
 export const footprintContract={provenance:'design_default',obstacleFootprints,townCenterBlocking,walkablePlatforms,townCenterEntrance};
@@ -39,6 +41,7 @@ export function obstacleBounds(o:{kind:ObstacleKind;x:number;y:number},radius=0)
 // Blocking rectangles used by navigation; the only collision authority.
 export function obstacleRects(o:{kind:ObstacleKind;x:number;y:number},radius=0):Rect[]{
  check(o,radius);
+ if(o.kind==='farm')return [];
  if(o.kind!=='town-center')return [obstacleBounds(o,radius)];
  return townCenterBlocking.map(([x0,y0,x1,y1])=>[o.x+x0-radius,o.y+y0-radius,o.x+x1+radius,o.y+y1+radius]);
 }

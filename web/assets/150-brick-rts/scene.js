@@ -599,6 +599,8 @@ var obstacleFootprints = {
   // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
   barracks: { x: -15, y: -15, width: 300, depth: 300 },
   "town-center": { x: -15, y: -15, width: 300, depth: 300 },
+  // Farm: a walkable 2x2 field (no blocking rectangle); its extent still stops other buildings.
+  farm: { x: 0, y: 0, width: 200, depth: 200 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
   gold: { x: 0, y: 0, width: 65, depth: 70 },
@@ -621,7 +623,7 @@ var townCenterBlocking = [
   [210, 210, 252, 252],
   [265, 270, 271, 276]
 ];
-var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 } };
+var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 }, farm: { rect: [0, 0, 200, 200], height: 10 } };
 function check(o, radius) {
   if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
 }
@@ -632,6 +634,7 @@ function obstacleBounds(o, radius = 0) {
 }
 function obstacleRects(o, radius = 0) {
   check(o, radius);
+  if (o.kind === "farm") return [];
   if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
   return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
 }
@@ -688,8 +691,8 @@ function buildingParts(visual) {
 }
 
 // packages/sim/terrain.ts
-var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200 }, generationAttempts: 8 };
-var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" } };
+var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200, farm: 250 }, generationAttempts: 8 };
+var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" }, farm: { yield: "food", method: "gather", movement: "land" } };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
   road: { walkClass: "land", buildability: true, height: 0 },
@@ -758,14 +761,17 @@ function makeMap(seed, layout = "meadow") {
 function generateCandidate(seed, layout) {
   let rng = seed || 1;
   let obstacles = [{ kind: "town-center", x: 265, y: 350 }, { kind: "town-center", x: 1065, y: 350, red: true }];
+  const woods = [];
   for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) {
     rng ^= rng << 13;
     rng ^= rng >>> 17;
     rng ^= rng << 5;
     const v = (rng >>> 0) / 4294967296;
-    if ((x < 2 || y < 2 || x > 13 || y > 13) && v < 0.34) obstacles.push({ kind: "tree", x: x * 100 + 12, y: y * 100 + 12 });
-    else if (v < 0.028 && Math.abs(x - 8) < 3 && y > 3) obstacles.push({ kind: "rock", x: x * 100, y: y * 100 });
+    if ((x < 2 || y < 2 || x > 13 || y > 13) && v < 0.34) {
+      if (x < 8) woods.push({ kind: "tree", x: x * 100 + 12, y: y * 100 + 12 }, { kind: "tree", x: (15 - x) * 100 + 12, y: y * 100 + 12 });
+    } else if (v < 0.028 && Math.abs(x - 8) < 3 && y > 3) obstacles.push({ kind: "rock", x: x * 100, y: y * 100 });
   }
+  obstacles.push(...woods);
   if (layout === "coast") obstacles = obstacles.filter((o) => o.y < 1e3);
   if (layout === "acceptance") obstacles = [...obstacles.slice(0, 2), { kind: "tree", x: 150, y: 250 }, { kind: "tree", x: 1350, y: 250 }, { kind: "rock", x: 500, y: 1100 }, { kind: "rock", x: 1050, y: 1100 }];
   const guaranteed = [{ kind: "tree", x: 150, y: 850 }, { kind: "tree", x: 1350, y: 850 }, { kind: "rock", x: 150, y: 1100 }, { kind: "rock", x: 1350, y: 1100 }];
@@ -800,7 +806,7 @@ function generateCandidate(seed, layout) {
   return map;
 }
 function isBuilding(o) {
-  return o.kind === "house" || o.kind === "town-center" || o.kind === "barracks";
+  return o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "farm";
 }
 function bounds(o) {
   return obstacleBounds(o, navigationRules.radius);
@@ -979,6 +985,16 @@ function advancePathJob(map, job, budget) {
 
 // apps/web/scene.ts
 var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.72, provenance: "original_procedural" };
+function farmParts(progress, red) {
+  const out = [{ x: 0, y: 0, z: 0, w: 2, d: 2, h: 0.1, color: "#806b49", studs: false }];
+  if (progress < 100) {
+    out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red ? "#b85c47" : "#456e87", studs: false });
+    return out;
+  }
+  for (const z of [0.2, 0.7, 1.2, 1.7]) out.push({ x: 0.15, y: 0.1, z: z - 0.1, w: 1.7, d: 0.2, h: 0.12, color: "#9bb65a", studs: true });
+  out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red ? "#b85c47" : "#456e87", studs: false });
+  return out;
+}
 async function createScene(canvas, onFailure, options = {}) {
   const T = await import(new URL("../../../vendor/three-0.186.0/three.module.js", import.meta.url).href);
   if (!canvas.getContext("webgl2")) throw Error("\u6B64\u88DD\u7F6E\u7121\u6CD5\u5EFA\u7ACB WebGL2\uFF0C\u8ACB\u4F7F\u7528\u652F\u63F4 WebGL2 \u7684\u700F\u89BD\u5668\u3002");
@@ -1101,7 +1117,8 @@ async function createScene(canvas, onFailure, options = {}) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y)] !== 2;
       const x = o.x / 100, z = o.y / 100;
-      if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
+      if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
+      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
       else if (o.kind === "tree") {
         brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8, "#80664b", false);
         brick(x - 0.2, z - 0.2, 0.7, 1, 1, 0.4, "#67835a");
@@ -1189,6 +1206,7 @@ async function createScene(canvas, onFailure, options = {}) {
     camera.updateProjectionMatrix();
     camera.updateMatrixWorld();
     detail.apply(scene, zoom);
+    canvas.dataset.camera = `${focus.x.toFixed(4)},${focus.z.toFixed(4)},${halfH.toFixed(4)},${angle.toFixed(4)}`;
   }
   function resize() {
     const r = canvas.getBoundingClientRect();
@@ -1313,6 +1331,89 @@ async function createScene(canvas, onFailure, options = {}) {
     ghost.position.set((x0 + x1) / 200, groundHeight(worldTiles, g.x, g.y) / 100 + 0.15, (y0 + y1) / 200);
     ghost.material.color.set(g.ok ? "#6f9d6a" : "#b8574a");
   }
+  function renderIcons(size = 160) {
+    const off = document.createElement("canvas");
+    off.width = off.height = size;
+    const r = new T.WebGLRenderer({ canvas: off, antialias: true, alpha: true, preserveDrawingBuffer: true });
+    r.outputColorSpace = T.SRGBColorSpace;
+    r.toneMapping = T.ACESFilmicToneMapping;
+    r.toneMappingExposure = 1.35;
+    r.setClearColor(0, 0);
+    const s = new T.Scene();
+    s.add(new T.HemisphereLight("#fff5dc", "#819b75", 2.6));
+    const key = new T.DirectionalLight("#fff1d8", 3);
+    key.position.set(-4, 20, 12);
+    s.add(key);
+    const cam = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 200), out = {}, corner = new T.Vector3();
+    const parts = (list, studs = true) => {
+      const g = new T.Group();
+      for (const p of list) {
+        const m = new T.Mesh(p.shape === "arch" ? arch(p.w - 0.018, p.h, p.d - 0.018) : box(p.w - 0.018, p.h, p.d - 0.018), material(p.color));
+        m.position.set(p.x + p.w / 2, p.y, p.z + p.d / 2);
+        g.add(m);
+      }
+      if (studs) for (const st of buildingStuds(list)) {
+        const m = new T.Mesh(studGeo, material(st.color));
+        m.position.set(st.x, st.y, st.z);
+        g.add(m);
+      }
+      return g;
+    };
+    const shoot = (name, g, view = { angle: Math.PI / 4, lift: 1 }) => {
+      s.add(g);
+      g.updateMatrixWorld(true);
+      const b = new T.Box3().setFromObject(g), c = b.getCenter(new T.Vector3());
+      if (view.crop) c.y = b.min.y + (b.max.y - b.min.y) * view.crop;
+      cam.position.set(c.x + Math.sin(view.angle) * 30, c.y + 30 * view.lift, c.z + Math.cos(view.angle) * 30);
+      cam.lookAt(c);
+      cam.updateMatrixWorld();
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (let i = 0; i < 8; i++) {
+        corner.set(i & 1 ? b.max.x : b.min.x, i & 2 ? b.max.y : b.min.y, i & 4 ? b.max.z : b.min.z).applyMatrix4(cam.matrixWorldInverse);
+        x0 = Math.min(x0, corner.x);
+        x1 = Math.max(x1, corner.x);
+        y0 = Math.min(y0, corner.y);
+        y1 = Math.max(y1, corner.y);
+      }
+      const half = view.crop ? (y1 - y0) * 0.36 : Math.max(x1 - x0, y1 - y0) / 2 * 1.06, cx = (x0 + x1) / 2, cy = view.crop ? 0 : (y0 + y1) / 2;
+      Object.assign(cam, { left: cx - half, right: cx + half, top: cy + half, bottom: cy - half });
+      cam.updateProjectionMatrix();
+      r.render(s, cam);
+      out[name] = off.toDataURL("image/png");
+      s.remove(g);
+    };
+    try {
+      for (const kind of ["villager", "militia", "archer"]) {
+        const rig = createCharacterRig(T, 0, box, material);
+        if (kind !== "villager") rig.dress(kind === "militia" ? "swordsman" : "archer");
+        rig.equip(kind === "militia" ? "sword" : kind === "archer" ? "bow" : "none");
+        rig.pose("idle", 0);
+        const g = new T.Group();
+        g.add(rig.root);
+        shoot(kind, g, { angle: Math.PI / 7, lift: 0.35 });
+        shoot(`${kind}-face`, g, { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
+      }
+      const visual = (age) => ({ ageVariant: age, progress: 100, health: 100, red: false });
+      for (const age of [1, 2, 3, 4]) {
+        shoot(`house-${age}`, parts(buildingParts(visual(age))));
+        shoot(`barracks-${age}`, parts(militaryBuildingParts("barracks", visual(age))));
+        shoot(`town-center-${age}`, parts(economicBuildingParts("town-center", visual(age))));
+      }
+      shoot("farm", parts(farmParts(100, false), false));
+      const bush = [{ x: 0.05, y: 0, z: 0.05, w: 0.55, d: 0.55, h: 0.45, color: "#5d824e" }, ...[0.12, 0.36].flatMap((x) => [0.12, 0.36].map((z) => ({ x, y: 0.45, z, w: 0.12, d: 0.12, h: 0.12, color: "#a84e59" })))];
+      const tree = [{ x: 0.15, y: 0, z: 0.15, w: 0.3, d: 0.3, h: 0.8, color: "#80664b" }, { x: -0.2, y: 0.7, z: -0.2, w: 1, d: 1, h: 0.4, color: "#67835a" }, { x: -0.075, y: 1.1, z: -0.075, w: 0.75, d: 0.75, h: 0.4, color: "#7e985f" }, { x: 0.05, y: 1.5, z: 0.05, w: 0.5, d: 0.5, h: 0.3, color: "#91a970" }];
+      const ore = (a, b) => [{ x: 0, y: 0, z: 0, w: 0.65, d: 0.7, h: 0.3, color: a }, { x: 0.15, y: 0.3, z: 0.15, w: 0.35, d: 0.4, h: 0.18, color: b }];
+      shoot("food", parts(bush, false));
+      shoot("wood", parts(tree, false));
+      shoot("gold", parts(ore("#b59a48", "#dec36f"), false));
+      shoot("stone", parts(ore("#a19f86", "#b8b39c"), false));
+    } finally {
+      r.dispose();
+      r.forceContextLoss();
+    }
+    return out;
+  }
+  const cameraView = () => ({ x: focus.x, z: focus.z, angle, halfW: (camera.right - camera.left) / 2, halfH: (camera.top - camera.bottom) / 2 });
   return {
     update,
     draw,
@@ -1320,6 +1421,8 @@ async function createScene(canvas, onFailure, options = {}) {
     pickGround,
     unitsInRect,
     setGhost,
+    renderIcons,
+    cameraView,
     setPreviewBuildingKind: (kind) => {
       if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
       previewBuildingKind = kind;
@@ -1392,6 +1495,15 @@ async function createScene(canvas, onFailure, options = {}) {
       focus.z = Math.max(0, Math.min(16, focus.z + (-s * right - c * up) * step));
       cameraUpdate();
     },
+    // Opening view of a match: the home town centre, close enough that the base fills the window (wide or tall).
+    focusHome: (x, z) => {
+      resize();
+      const aspect = width / Math.max(1, height), halfH = Math.max(10.5, 12 / aspect);
+      zoom = Math.max(1, Math.min(2.5, Math.max(halfH * aspect / 10, halfH / 6)));
+      focus.x = Math.max(0, Math.min(16, x));
+      focus.z = Math.max(0, Math.min(16, z));
+      cameraUpdate();
+    },
     focusOn: (x, z) => {
       focus.x = Math.max(0, Math.min(16, x));
       focus.z = Math.max(0, Math.min(16, z));
@@ -1417,5 +1529,6 @@ async function createScene(canvas, onFailure, options = {}) {
 }
 export {
   brickStyle,
-  createScene
+  createScene,
+  farmParts
 };

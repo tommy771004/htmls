@@ -3,7 +3,7 @@ import {forfeitReservation} from './economy.ts';
 import {refreshNavigation,position,navigationRules} from './navigation.ts';
 import {routeTo,cancelMovement} from './movement.ts';
 import type {Unit} from './movement.ts';
-import {recomputeCapacity} from './buildings.ts';
+import {recomputeCapacity,closeFarm} from './buildings.ts';
 import type {Building} from './buildings.ts';
 import type {WorkState} from './work.ts';
 import {combatRules} from './stats.ts';
@@ -45,7 +45,7 @@ function killUnit(s:CombatState,u:Unit){
 function destroyBuilding(s:CombatState,b:Building){
  const a=s.accounts[b.player];if(!b.complete&&b.reservationId)forfeitReservation(a,b.reservationId);for(const q of b.queue)forfeitReservation(a,q.reservationId);
  const o=s.map.obstacles.find(o=>o.id===b.id)!;s.map.obstacles=s.map.obstacles.filter(v=>v!==o);for(const t of s.map.tiles)t.obstacleRefs=t.obstacleRefs.filter(r=>r!==b.id);
- s.buildings=s.buildings.filter(v=>v!==b);refreshNavigation(s.map,obstacleBounds(o,navigationRules.radius));recomputeCapacity(s,b.player);
+ s.buildings=s.buildings.filter(v=>v!==b);if(b.kind==='farm')closeFarm(s,b.id,s.tick);refreshNavigation(s.map,obstacleBounds(o,navigationRules.radius));recomputeCapacity(s,b.player);
 }
 function damage(s:CombatState,t:Target,amount:number){
  if(t.kind==='unit'){const u=s.units.find(u=>u.id===t.id)!;u.hp-=amount;u.hitTick=s.tick;if(u.hp<=0)killUnit(s,u);return;}

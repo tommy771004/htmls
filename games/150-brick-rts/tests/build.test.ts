@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createState,submit,tick,hash,serialize,deserialize,replay,rulesetHash} from '../packages/sim/sim.ts';
 import type {State} from '../packages/sim/sim.ts';
-import {authoritativeProblem,buildingRules} from '../packages/sim/buildings.ts';
+import {authoritativeProblem,buildingRules,placementProblem} from '../packages/sim/buildings.ts';
 import type {BuildKind} from '../packages/sim/buildings.ts';
 import {clearSegment} from '../packages/sim/navigation.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
@@ -30,7 +30,7 @@ test('two builders finish sooner than one',()=>{
 });
 test('invalid placements are refused with a reason and cost nothing',()=>{
  const s=createState(260925),before=hash(s),tc=s.map.obstacles.find(o=>o.kind==='town-center'&&!o.red)!;
- const cases:[any,RegExp][]=[[{kind:'house',x:tc.x+35,y:tc.y+50},/重疊/],[{kind:'house',x:620,y:800},/格線/],[{kind:'house',x:1300,y:1300},/探索/],[{kind:'house',x:350,y:650},/單位/],[{kind:'castle',x:600,y:800},/未知/]];
+ const cases:[any,RegExp][]=[[{kind:'house',x:tc.x+35,y:tc.y+50},/重疊/],[{kind:'house',x:625,y:800},/格線/],[{kind:'house',x:1300,y:1300},/探索/],[{kind:'house',x:350,y:650},/單位/],[{kind:'castle',x:600,y:800},/未知/]];
  for(const [p,re] of cases)assert.throws(()=>order(s,'build',{unitIds:[1],...p}),re);
  const coast=createState(260925,'coast');for(const u of coast.units)coast.vision[0].explored.push(...Array.from({length:256},(_,i)=>i));
  assert.match(authoritativeProblem(coast,0,'house',600,1300)??'',/地形/);
@@ -64,4 +64,12 @@ test('a unit whose route crosses a new foundation reroutes and never steps insid
 test('construction survives save/load and replays to the same hash',()=>{
  const s=createState(260925),p=spot(s,'house',{x:600,y:800});order(s,'build',{unitIds:[1,2,3],kind:'house',x:p.x,y:p.y});run(s,150);
  const restored=deserialize(serialize(s));for(let i=0;i<300;i++){tick(s);tick(restored);}assert.equal(hash(s),hash(restored));assert.equal(hash(s),hash(replay(s.seed,s.log,s.tick)));
+});
+test('a site whose radius-expanded edge touches a walking unit is refused (regression: collision invariant crash)',()=>{
+ const s=createState(260925),box=obstacleBounds({kind:'house',x:0,y:0}),unit={x:600,y:1000};
+ // Footprint's expanded lower edge exactly on the unit centre: box y1 + radius === unit.y (a 10-unit grid allows it).
+ const x=Math.round((unit.x-(box[0]+box[2])/2)/10)*10,y=unit.y-25-box[3],input=(units:{x:number;y:number}[])=>({tiles:s.map.tiles,obstacles:[],units,explored:()=>true});
+ assert.equal(y%10,0);assert.equal(placementProblem(input([]),'house',x,y),null);
+ assert.equal(placementProblem(input([unit]),'house',x,y),'有單位站在預定地上');
+ assert.equal(placementProblem(input([{x:unit.x,y:unit.y+10}]),'house',x,y),null);
 });

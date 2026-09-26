@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "93b1d368",
+  "rulesetHash": "5668694c",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -59,7 +59,8 @@
       "berries": 150,
       "hunt": 120,
       "livestock": 100,
-      "fish": 200
+      "fish": 200,
+      "farm": 250
     },
     "generationAttempts": 8
   },
@@ -140,6 +141,11 @@
       "yield": "food",
       "method": "fish",
       "movement": "water"
+    },
+    "farm": {
+      "yield": "food",
+      "method": "gather",
+      "movement": "land"
     }
   },
   "vision": {
@@ -170,6 +176,12 @@
         "y": -15,
         "width": 300,
         "depth": 300
+      },
+      "farm": {
+        "x": 0,
+        "y": 0,
+        "width": 200,
+        "depth": 200
       },
       "tree": {
         "x": -20,
@@ -291,6 +303,15 @@
           285
         ],
         "height": 16
+      },
+      "farm": {
+        "rect": [
+          0,
+          0,
+          200,
+          200
+        ],
+        "height": 10
       }
     },
     "townCenterEntrance": {
@@ -326,7 +347,8 @@
     "buildings": {
       "town-center": 400,
       "house": 150,
-      "barracks": 300
+      "barracks": 300,
+      "farm": 100
     },
     "corpseTicks": 40,
     "hitFlashTicks": 6

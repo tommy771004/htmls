@@ -158,3 +158,11 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## E：生產、集結與升時代（v14）
 
 城鎮中心生產村民與研究時代、兵營生產近戰民兵與弓手、人口保留與上限、佇列取消退款、出口受阻等待、集結點、混合選取只派村民，驗證見 [first-use-011.md](first-use-011.md)。E 仍是 in_progress：戰鬥、AI 與勝敗尚未實作。
+
+## E：戰鬥與征服勝負（v15）
+
+攻擊命令、自動迎擊、包圍站位、死亡與倒地畫面、建築受損與摧毀、費用沒收、征服勝負與再開一局，以及遊戲速度，驗證見 [first-use-012.md](first-use-012.md)。E 仍是 in_progress：紅方還沒有 AI。
+
+## 全畫面遊戲畫面（v15，模擬未變）
+
+整頁改成遊戲畫面：資源列、戰場、指令格、選取資訊、小地圖、選單，開發工具移到 `?debug=1` 的除錯抽屜。一般模式的首次進站流程是 `npm run test:hud`，驗證見 [first-use-013.md](first-use-013.md)。E 仍是 in_progress：紅方還沒有 AI。

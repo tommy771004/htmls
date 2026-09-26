@@ -5,6 +5,7 @@ import {createState} from '../packages/sim/sim.ts';
 import {authoritativeProblem} from '../packages/sim/buildings.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
+async function menu(p){if(await p.locator('#menu').isHidden())await p.locator('#menu-open').click();return p;}
 const root=fileURLToPath(new URL('../../../',import.meta.url)),out=fileURLToPath(new URL('../test-results/',import.meta.url));fs.mkdirSync(out,{recursive:true});
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript','.svg':'image/svg+xml','.json':'application/json','.css':'text/css','.jpg':'image/jpeg','.png':'image/png'};
 const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!file.startsWith(root)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));});
@@ -20,7 +21,7 @@ const browser=await chromium.launch({headless:true});const page=await browser.ne
 const note=(step,detail)=>{log.push({step,detail});console.log(step,'|',detail);};
 page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('data:')&&!r.url().startsWith('blob:'))external.push(r.url());});
 try{
-await page.goto(origin+'/web/150-brick-rts.html');await page.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
+await page.goto(origin+'/web/150-brick-rts.html?debug=1');await page.waitForFunction(()=>document.querySelector('#hash').textContent!=='—');
 const text=id=>page.locator('#'+id).innerText();
 async function screen(wx,wy,wz){await page.evaluate(()=>scrollTo(0,0));const r=await page.locator('#map').boundingBox(),halfH=Math.max(10.5,12/(r.width/r.height)),scale=r.height/(2*halfH),dx=wx-8,dz=wz-8;return {x:r.x+r.width/2+(dx-dz)*Math.SQRT1_2*scale,y:r.y+r.height/2-(-.5*dx+Math.SQRT1_2*wy-.5*dz)*scale};}
 const centre=box=>screen((box[0]+box[2])/200,0,(box[1]+box[3])/200);
@@ -47,7 +48,7 @@ p=await screen((berries.x+30)/100,0,(berries.y+30)/100);note('右鍵野果',awai
 await runUntil(()=>{const m=/食物 (\d+)/.exec(document.querySelector('#stock').textContent);return m&&+m[1]>=300;},240000);note('食物達 300',await text('stock'));
 p=await centre(tcBox);await page.mouse.click(p.x,p.y);note('研究第二時代',await act(()=>trainBtn('age-2').click()));await page.screenshot({path:out+'production-age1.png'});
 await runUntil(()=>/^第二時代/.test(document.querySelector('#stock').textContent));note('升上第二時代',await text('stock'));await page.screenshot({path:out+'production-age2.png'});
-note('第二時代按鈕',await trainBtn('age-2').getAttribute('title'));assert.equal(await trainBtn('age-2').getAttribute('title'),'已研究');
+note('第二時代按鈕',await trainBtn('age-2').getAttribute('aria-label'));assert.match(await trainBtn('age-2').getAttribute('aria-label'),/：已研究$/);assert.equal(await trainBtn('age-2').isHidden(),true);
 // 5. Barracks, then militia.
 await page.keyboard.press('Escape');await page.locator('[data-unit="1"]').click();await page.keyboard.down('Shift');await page.locator('[data-unit="2"]').click();await page.locator('[data-unit="3"]').click();await page.keyboard.up('Shift');note('選取三名村民',await text('selected'));
 await page.locator('#build-barracks').click();p=await centre(barracksBox);await page.mouse.move(p.x,p.y);note('兵營預覽',await text('build-reason'));note('放置兵營',await act(()=>page.mouse.click(p.x,p.y)));
@@ -58,10 +59,10 @@ await runUntil(()=>document.querySelector('#queue').children.length===0);note('�
 // 6. Mixed selection: only villagers are sent to gather.
 await page.keyboard.press('Escape');await boxSelect((barracksBox[0]-80)/100,(barracksBox[1]-80)/100,(barracksBox[2]+80)/100,(barracksBox[3]+120)/100);note('框選兵營周圍',await text('selection-list'));
 p=await screen((tree.x+30)/100,0,(tree.y+30)/100);note('混合選取右鍵樹木',await act(()=>page.mouse.click(p.x,p.y,{button:'right'})));
-const before={hud:await text('stock'),hash:await text('hash')};await page.locator('#save').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('已儲存'));
-await page.locator('#restart').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('已建立新沙盒'));
-await page.locator('#load').click();await page.waitForFunction(h=>document.querySelector('#hash').textContent===h,before.hash);note('存讀',`${before.hud} → ${await text('stock')}`);assert.equal(await text('stock'),before.hud);
-await page.locator('#replay').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('重播'));note('重播',await text('notice'));assert.match(await text('notice'),/重播一致/);
+const before={hud:await text('stock'),hash:await text('hash')};await (await menu(page)).locator('#save').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('已儲存'));
+await (await menu(page)).locator('#restart').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('已建立新沙盒'));
+await (await menu(page)).locator('#load').click();await page.waitForFunction(h=>document.querySelector('#hash').textContent===h,before.hash);note('存讀',`${before.hud} → ${await text('stock')}`);assert.equal(await text('stock'),before.hud);
+await (await menu(page)).locator('#replay').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('重播'));note('重播',await text('notice'));assert.match(await text('notice'),/重播一致/);
 note('錯誤',JSON.stringify({errors,external}));assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
 fs.writeFileSync(out+'fu11-log.json',JSON.stringify({browser:browser.version(),log,errors,external},null,2));
 }finally{await browser.close();server.close();}

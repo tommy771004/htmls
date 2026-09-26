@@ -1,7 +1,7 @@
 // Explicit engineering rules. No reference-game values are asserted here.
-export const terrainRules={provenance:'design_default',size:16,tileSize:100,maxLandStep:25,resourceCapacity:{tree:300,stone:250,gold:250,berries:150,hunt:120,livestock:100,fish:200},generationAttempts:8} as const;
+export const terrainRules={provenance:'design_default',size:16,tileSize:100,maxLandStep:25,resourceCapacity:{tree:300,stone:250,gold:250,berries:150,hunt:120,livestock:100,fish:200,farm:250},generationAttempts:8} as const;
 export type ResourceKind=keyof typeof terrainRules.resourceCapacity;
-export const resourceDefinitions:Record<ResourceKind,{yield:'wood'|'stone'|'gold'|'food';method:'gather'|'hunt'|'herd'|'fish';movement:'land'|'water'}>={tree:{yield:'wood',method:'gather',movement:'land'},stone:{yield:'stone',method:'gather',movement:'land'},gold:{yield:'gold',method:'gather',movement:'land'},berries:{yield:'food',method:'gather',movement:'land'},hunt:{yield:'food',method:'hunt',movement:'land'},livestock:{yield:'food',method:'herd',movement:'land'},fish:{yield:'food',method:'fish',movement:'water'}};
+export const resourceDefinitions:Record<ResourceKind,{yield:'wood'|'stone'|'gold'|'food';method:'gather'|'hunt'|'herd'|'fish';movement:'land'|'water'}>={tree:{yield:'wood',method:'gather',movement:'land'},stone:{yield:'stone',method:'gather',movement:'land'},gold:{yield:'gold',method:'gather',movement:'land'},berries:{yield:'food',method:'gather',movement:'land'},hunt:{yield:'food',method:'hunt',movement:'land'},livestock:{yield:'food',method:'herd',movement:'land'},fish:{yield:'food',method:'fish',movement:'water'},farm:{yield:'food',method:'gather',movement:'land'}};
 export type TerrainType='grass'|'road'|'stone'|'sand'|'highland'|'cliff'|'water'|'shallow';
 export type WalkClass='land'|'water'|'both'|'blocked';
 export type MapLayout='meadow'|'coast'|'acceptance';

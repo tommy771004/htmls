@@ -6,7 +6,7 @@ import {harvestMapResource,position} from './navigation.ts';
 import type {MapData,Obstacle} from './navigation.ts';
 import {routeTo,cancelMovement} from './movement.ts';
 import type {Unit,Job,MovementState} from './movement.ts';
-import {addWork} from './buildings.ts';
+import {addWork,farmResourceId} from './buildings.ts';
 import type {Building,BuildingState} from './buildings.ts';
 import {resourceDefinitions} from './terrain.ts';
 // Villager work (gather → carry → deposit → resume). Engineering rules are design_default in economyRules.
@@ -23,6 +23,8 @@ const gap=(p:{x:number;y:number},[x0,y0,x1,y1]:number[])=>Math.max(x0-p.x,0,p.x-
 function ring(map:MapData,o:Obstacle,reach:number):number[]{const box=obstacleBounds(o,25),out:number[]=[];for(let n=0;n<NODES;n++){if(map.blocked.includes(n))continue;const d=gap(position(n),box);if(d>0&&d<=reach)out.push(n);}return out;}
 export function workSlots(map:MapData,resourceId:string):number[]{
  const r=map.resources.find(r=>r.id===resourceId),o=r?.obstacleId?map.obstacles.find(o=>o.id===r.obstacleId):undefined;
+ // Farmers stand on the (walkable) field itself.
+ if(o?.kind==='farm'){const b=obstacleBounds(o),out:number[]=[];for(let n=0;n<NODES;n++){const p=position(n);if(!map.blocked.includes(n)&&p.x>b[0]&&p.x<b[2]&&p.y>b[1]&&p.y<b[3])out.push(n);}return out;}
  return o?ring(map,o,economyRules.workReach):[];
 }
 export function dropoffNodes(map:MapData,player:number):number[]{
@@ -61,7 +63,8 @@ function deposit(s:WorkState,u:Unit){
 // Nearest collectible resource of the same yield within 600 units of the exhausted one; lowest id on ties.
 function nextSource(s:WorkState,from:{x:number;y:number},kind:Resource):string|null{
  let best:string|null=null,dist=Infinity;
- for(const r of s.map.resources)if(r.collectible&&resourceDefinitions[r.kind].method==='gather'&&resourceDefinitions[r.kind].yield===kind){const d=Math.abs(r.x-from.x)+Math.abs(r.y-from.y);if(d<=600&&(d<dist||d===dist&&best!==null&&r.id<best)){best=r.id;dist=d;}}
+ // Farms are never picked automatically: each belongs to one player and is chosen by an order.
+ for(const r of s.map.resources)if(r.collectible&&r.kind!=='farm'&&resourceDefinitions[r.kind].method==='gather'&&resourceDefinitions[r.kind].yield===kind){const d=Math.abs(r.x-from.x)+Math.abs(r.y-from.y);if(d<=600&&(d<dist||d===dist&&best!==null&&r.id<best)){best=r.id;dist=d;}}
  return best;
 }
 // Builders stand on the ring just outside the foundation, never inside it.
@@ -98,6 +101,8 @@ export function stepWork(s:WorkState){
   if(++w.progress<economyRules.gatherTicks[kind])continue;
   w.progress=0;
   const got=harvestMapResource(s.map,w.resourceId,1,s.tick).amount;
+  // A worked-out farm leaves the field: its building record goes with the obstacle.
+  if(resource.kind==='farm'&&resource.status==='depleted')s.buildings=s.buildings.filter(b=>farmResourceId(b.id)!==resource.id);
   if(got>0){const c=s.cargo[u.id]??(s.cargo[u.id]={resource:kind,amount:0});c.amount+=got;s.accounts[u.player].ledger.extracted[kind]+=got;}
   if((s.cargo[u.id]?.amount??0)>=economyRules.carryCapacity)goToDropoff(s,u,w);
  }
