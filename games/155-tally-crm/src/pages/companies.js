@@ -634,11 +634,11 @@
       const max = Math.max(0, ...rows.map((r) => r.amount));
       if (!rows.length || !max) return html`<div class="co-rev-empty">${UI.emptyState({ title: '近四季沒有成交', body: '第一筆成交後，這裡會顯示每季金額。', compact: true })}</div>`;
       const tip = (r) => `${r.label}：${U.money(r.amount)}`;
-      return html`<div class="co-bars" role="img" aria-label="近四季成交：${rows.map(tip).join('、')}">
+      return html`<div class="co-rbars" role="img" aria-label="近四季成交：${rows.map(tip).join('、')}">
         ${rows.map((r) => {
           const hh = r.amount ? Math.max(3, (r.amount / max) * 100) : 0;
           const [y, q] = r.label.split(' ');
-          return html`<div class="co-bar" data-tip="${tip(r)}"><span class="co-bar-plot"><span class="co-bar-v">${r.amount ? U.moneyCompact(r.amount) : '0'}</span><i style="height:${hh.toFixed(1)}%"></i></span><span class="co-bar-k"><b>${q || r.label}</b>${y && q ? html`<span>${y}</span>` : ''}</span></div>`;
+          return html`<div class="co-rbar" data-tip="${tip(r)}"><span class="co-rbar-plot"><span class="co-rbar-v">${r.amount ? U.moneyCompact(r.amount) : '0'}</span><i style="height:${hh.toFixed(1)}%"></i></span><span class="co-rbar-k"><b>${q || r.label}</b>${y && q ? html`<span>${y}</span>` : ''}</span></div>`;
         })}
       </div>
       <table class="sr-only"><caption>近四季成交金額</caption><tbody>${rows.map((r) => html`<tr><th scope="row">${r.label}</th><td>${U.money(r.amount)}</td></tr>`)}</tbody></table>`;

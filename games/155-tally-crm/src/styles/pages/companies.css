@@ -198,14 +198,14 @@
 .co-ov-main, .co-ov-side { display: flex; flex-direction: column; gap: var(--s8); min-width: 0; }
 
 /* 近四季成交（單一數列：墨色柱、4px 圓頂、底線對齊） */
-.co-bars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s4); padding: 4px 0 0; }
-.co-bar { display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.co-bar-plot { position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 100%; height: 168px; box-shadow: inset 0 -2px 0 var(--line-strong); }
-.co-bar-plot i { display: block; width: min(56px, 60%); border-radius: 4px 4px 0 0; background: var(--ink-2); transition: background-color var(--dur-hover) var(--ease-out); }
-.co-bar:hover .co-bar-plot i { background: var(--ink); }
-.co-bar-v { margin-bottom: 6px; font-size: var(--fs-13); font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.co-bar-k { display: flex; align-items: baseline; gap: 4px; margin-top: 8px; font-size: var(--fs-12); color: var(--ink-3); }
-.co-bar-k b { font-weight: 650; color: var(--ink-2); }
+.co-rbars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s4); padding: 4px 0 0; }
+.co-rbar { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.co-rbar-plot { position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 100%; height: 168px; box-shadow: inset 0 -2px 0 var(--line-strong); }
+.co-rbar-plot i { display: block; width: min(56px, 60%); border-radius: 4px 4px 0 0; background: var(--ink-2); transition: background-color var(--dur-hover) var(--ease-out); }
+.co-rbar:hover .co-rbar-plot i { background: var(--ink); }
+.co-rbar-v { margin-bottom: 6px; font-size: var(--fs-13); font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.co-rbar-k { display: flex; align-items: baseline; gap: 4px; margin-top: 8px; font-size: var(--fs-12); color: var(--ink-3); }
+.co-rbar-k b { font-weight: 650; color: var(--ink-2); }
 .co-rev-empty { border-radius: 14px; background: var(--subtle); }
 
 /* 任務、交易小清單 */
@@ -359,8 +359,8 @@
   .co-kpi { padding: 12px 14px; }
   .co-kpi-v { font-size: 20px; }
   .co-ov-main, .co-ov-side { gap: var(--s6); }
-  .co-bar-plot { height: 132px; }
-  .co-bars { gap: var(--s2); }
+  .co-rbar-plot { height: 132px; }
+  .co-rbars { gap: var(--s2); }
   .co-ev-main { padding: 10px 12px; }
   .co-day-h { margin-left: 46px; }
   .co-org-scroll { margin: 0; padding: 0; overflow: visible; }
