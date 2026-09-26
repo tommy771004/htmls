@@ -10,7 +10,7 @@ import { MahjongGame } from '../../assets/jade-table/engine.mjs';
 // Room transitions are persisted atomically before any client sees the resulting state.
 export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = [], turnMs = 20000, claimMs = 10000 } = {}) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
-  const mime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png', '.css': 'text/css' };
+  const mime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png', '.css': 'text/css', '.bin': 'application/octet-stream' };
   const server = createServer(async (req, res) => {
     try {
       const path = new URL(req.url, 'http://localhost').pathname;

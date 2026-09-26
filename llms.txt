@@ -138,6 +138,7 @@
 - [153 尾流大獎賽 · SLIPSTREAM GP](https://htmls-ruddy.vercel.app/web/153-slipstream-gp.html): Q 版 3D 卡丁車。四條賽道、大獎賽／計時賽／氣球大戰三種模式、八位原創車手，跳躍甩尾迷你加速、七種道具、尾流吸附與即時合成配樂，模型與貼圖全由程式生成。
 - [159 沉星機 · ANTIKYTHERA](https://htmls-ruddy.vercel.app/web/159-antikythera.html): 3D 潛水打撈與齒輪復原解謎。以第三人稱潛入安提基特拉沉船撈起鏽蝕青銅，除鏽讀出齒數，依孔距齒數和與齒輪比裝回五組齒輪；裝對後轉動立體機械的曲柄預測太陽、月亮、月相、奧林匹克賽會與日月食。以 Three.js 即時程序生成，畫面與聲音不用任何素材檔。
 - [170 川明かり · KAWA-AKARI](https://htmls-ruddy.vercel.app/web/170-kawa-akari.html)：用 WASD 駕小木船順著首尾相接的日本河道穿過鳥居、町屋、竹林、石燈籠與遠山；水面有鏡面倒影、深度折射、船行水波與雨滴漣漪，船依波高浮沉；四分鐘日夜循環與晴／雨／霧輪替，岸上有會動的人物與鷺；全程式建模與 PBR 材質，Three.js 從 CDN 載入。
+- [172 台北上空 · SKYHAWK 172](https://htmls-ruddy.vercel.app/web/172-taipei-skyhawk.html)：在真實衛星影像、地形與十萬棟 OpenStreetMap 建物重建的台北盆地駕駛 Cessna 172S；依 POH 校準的六自由度飛行力學、自動駕駛、駕駛艙六大儀表、PAPI 與進場燈，四個任務（松山起降、信義區、淡水河口）與四個時段、三種天氣；影像與地形圖磚需連線
 
 ### 品牌頁面
 
