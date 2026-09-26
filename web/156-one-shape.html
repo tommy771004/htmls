@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一形 · ONE SHAPE</title>
+<meta name="description" content="同一個形狀在 7 小節、28 拍之內變成按鈕、載入、動態島、播放器、滑桿、開關、分頁、圖表、命令面板與通知，再回到按鈕無縫循環。每一格畫面都是時間的純函數，彈簧以閉式解計算，節奏由 WebAudio 即時合成。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23E2DED7'/%3E%3Crect x='5' y='11' width='22' height='10' rx='5' fill='%23121110'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap">
+<style>
+:root{
+  --canvas:#E2DED7; --ink:#121110; --paper:#FBFAF8; --mute:#77716A; --faint:#A8A198;
+  --ui:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cjk:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--canvas);color:var(--ink)}
+body{font-family:var(--cjk);display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+#view{position:relative;flex:1;min-height:0}
+#stage{position:absolute;left:0;top:0;width:1440px;height:1440px;transform-origin:0 0;overflow:hidden;font-family:var(--ui);font-feature-settings:"tnum" 1}
+#world{position:absolute;left:0;top:0;width:0;height:0;transform-origin:0 0}
+#shape{position:absolute;overflow:hidden}
+#o{position:absolute;width:0;height:0}
+.ly,.a{position:absolute;left:0;top:0}
+.a{white-space:nowrap;line-height:1}
+.ly{width:0;height:0}
+svg.a{overflow:visible}
+.ic{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tr{fill:currentColor;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+#knob{position:absolute;left:0;top:0}
+#cursor{position:absolute;left:0;top:0;width:28px;height:36px;overflow:visible;transform-origin:0 0;filter:drop-shadow(0 1px 1.2px rgba(30,24,16,.28))}
+.clean #bar{display:none}
+
+#bar{height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 20px;font-size:13px}
+#bar button{font:inherit;color:var(--ink);background:none;border:0;padding:0;cursor:pointer;height:36px;display:flex;align-items:center;gap:8px}
+#bar button:hover{color:#4a4640}
+#bar button:focus-visible,#tl:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:6px}
+#play{width:36px;justify-content:center}
+#name{font-weight:600;letter-spacing:.02em;white-space:nowrap}
+#name span{color:var(--mute);font-weight:400;margin-left:6px}
+#tl{position:relative;flex:1;min-width:0;height:36px;cursor:pointer;touch-action:none}
+#tl svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#ph{position:absolute;top:6px;width:3px;height:24px;margin-left:-1.5px;border-radius:2px;background:var(--ink)}
+#pos{min-width:9.5em;color:var(--mute);white-space:nowrap;font-variant-numeric:tabular-nums}
+#pos b{color:var(--ink);font-weight:600;margin-right:6px}
+#snd{min-width:4.5em;justify-content:flex-end}
+#snd i{width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor;display:inline-block}
+#snd[aria-pressed="true"] i{background:currentColor}
+@media (max-width:720px){#name,#pos span{display:none}#pos{min-width:2.6em}#bar{gap:12px;padding:0 16px}}
+</style>
+</head>
+<body>
+<div id="view"><div id="stage">
+  <div id="world"><div id="shape"><div id="o"></div></div></div>
+  <svg id="cursor" viewBox="0 0 28 36"><path d="M1.5 1.5v25.2l6.6-6.3 4.3 10.1 4.7-2-4.2-9.9h9.3z" fill="#121110" stroke="#FBFAF8" stroke-width="2" stroke-linejoin="round"/></svg>
+</div></div>
+<div id="bar">
+  <div id="name">156 一形<span>One Shape</span></div>
+  <button id="play" aria-label="暫停"><svg width="18" height="18" viewBox="0 0 24 24"><path id="pl" class="tr" d=""/></svg></button>
+  <div id="tl" role="slider" tabindex="0" aria-label="時間軸（28 拍）" aria-valuemin="0" aria-valuemax="14" aria-valuenow="0"><svg id="tlsvg"></svg><div id="ph"></div></div>
+  <output id="pos"></output>
+  <button id="snd" aria-pressed="false"><i></i>聲音</button>
+</div>
+<script>
+'use strict';
+/* ───────── 時間與彈簧 ─────────
+   一輪 14 秒 = 120 BPM × 7 小節。畫面上所有數值都是 seek(t) 的純函數：
+   目標值每改一次就疊加一條閉式彈簧階躍響應；放開拖曳時再疊加一條帶初速的自由響應。 */
+const T = 14, BEAT = 0.5;
+const SP = {
+  ui:{w:17,z:.86}, lead:{w:28,z:.86}, trail:{w:14,z:.92}, cam:{w:9,z:1},
+  cur:{w:12,z:.92}, fin:{w:34,z:1}, fout:{w:48,z:1}, draw:{w:7.5,z:1}, press:{w:42,z:.9}, check:{w:15,z:1}
+};
+for (const k in SP){ const p=SP[k]; p.wd = p.z<1 ? p.w*Math.sqrt(1-p.z*p.z) : 0; }
+function S(x,p){ if(x<=0) return 0; const e=Math.exp(-p.z*p.w*x);
+  return p.z>=1 ? 1-e*(1+p.w*x) : 1-e*(Math.cos(p.wd*x)+p.z*p.w/p.wd*Math.sin(p.wd*x)); }
+function G(x,p){ if(x<=0) return 0; const e=Math.exp(-p.z*p.w*x); return p.z>=1 ? x*e : e*Math.sin(p.wd*x)/p.wd; }
+
+/* chain：分段目標（常數或時間函數），每次換段都用彈簧把位置與速度的落差吃掉 */
+function chain(pieces, opt={}){
+  const sp0=opt.sp||SP.ui, periodic=opt.periodic!==false;
+  let L=pieces.map(p=>({t:p[0],f:p[1],sp:p[2]||sp0,sh:0,o:0,u:0}));
+  if(periodic) L=L.map(p=>({...p,t:p.t-T,sh:-T})).concat(L);
+  L.sort((a,b)=>a.t-b.t);
+  const val=(p,t)=>typeof p.f==='function'?p.f(t-p.sh):p.f;
+  const last=L[L.length-1];
+  const start=opt.start!==undefined?opt.start:(periodic?val(last,last.t):val(L[0],L[0].t));
+  const ev=(k,t)=>{ if(k<0) return start; let v=val(L[k],t);
+    for(let j=0;j<=k;j++){ const p=L[j],d=t-p.t; if(d>6) continue;
+      if(p.o) v+=p.o*(1-S(d,p.sp)); if(p.u) v+=p.u*G(d,p.sp); } return v; };
+  const h=1e-4;
+  for(let j=0;j<L.length;j++){ const tj=L[j].t;
+    const vb=ev(j-1,tj), db=j?(ev(j-1,tj)-ev(j-1,tj-h))/h:0;
+    const va=ev(j,tj), da=(ev(j,tj+h)-ev(j,tj))/h;
+    L[j].o=vb-va; L[j].u=db-da; }
+  return t=>{ let k=-1; for(let i=0;i<L.length;i++){ if(L[i].t<=t) k=i; else break; } return ev(k,t); };
+}
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const mix=(a,b,k)=>a+(b-a)*k;
+
+/* ───────── 形狀的狀態（世界座標，原點＝形狀中心） ───────── */
+const ST=[ // 時間, 寬, 高, 圓角
+  [1.0,72,72,36],[2.0,78,78,39],[2.5,340,60,30],[3.0,560,300,36],[5.5,480,64,32],[8.0,128,64,32],
+  [9.0,520,64,32],[10.5,600,420,28],[12.0,560,300,20],[12.25,560,212,20],[12.5,560,168,20],[12.75,560,124,20],
+  [13.0,340,56,28],[13.5,280,72,36]];
+const W=chain(ST.map(s=>[s[0],s[1]])), H=chain(ST.map(s=>[s[0],s[2]])), RAD=chain(ST.map(s=>[s[0],s[3]]));
+const fit=(w,h)=>Math.min(4.4,1440*.68/Math.max(w,h*1.1));
+// 拉遠時鏡頭提早 0.12 秒起步，形狀長大時才不會衝出畫面；拉近時自然落後
+const CAM=chain(ST.map((s,i)=>{ const f=fit(s[1],s[2]), prev=ST[(i+ST.length-1)%ST.length], fp=fit(prev[1],prev[2]);
+  return [f<fp-1e-6?s[0]-.12:s[0],Math.log(f)]; }),{sp:SP.cam});
+const LUM=chain([[5.5,1],[8.5,0],[9.0,1],[13.0,0]]);
+const PRESS=chain([[0.5,.965,SP.press],[0.6,1],[3.0,.975,SP.press],[3.08,1]]);
+
+/* ───────── 游標：路徑也是彈簧疊加，並且首尾相接 ───────── */
+const SONG=223, P0=.30;
+const pPlay=t=>P0+Math.max(0,t-3.5)/SONG;
+const KX0=-248+496*pPlay(4.0);
+const WP=[[0.08,46,14],[0.72,120,95],[2.4,72,14],[3.08,4,102],[3.62,KX0,22],[4.04,70,26],[4.45,150,20],
+  [5.1,160,62],[5.6,5,4],[6.05,236,6],[6.55,300,10],[7.02,335,8],[7.6,14,10],[8.9,-60,10],[9.62,66,10],
+  [10.55,68,53],[11.12,199,22],[12.05,250,150],[12.95,175,125]];
+const CX=chain(WP.map(p=>[p[0],p[1]]),{sp:SP.cur}), CY=chain(WP.map(p=>[p[0],p[2]]),{sp:SP.cur});
+const HOLDS=[[0.5,0.6],[3.0,3.1],[3.5,3.6],[4.0,5.0],[6.0,7.5],[8.5,8.6],[9.5,9.6],[10.0,10.1]];
+const CPRESS=chain(HOLDS.flatMap(h=>[[h[0],.86,SP.press],[h[1],1]]));
+
+/* 直接操作：按住時數值由游標位置算出（相對抓取點），放開後由 chain 以當下速度彈回 */
+const cxAt4=CX(4.0), cxAt6=CX(6.0);
+function prog(t){
+  if(t<4.0) return pPlay(t);
+  const pr=t=>clamp(pPlay(4.0)+(CX(t)-cxAt4)/496,0,1);
+  if(t<5.0) return pr(t);
+  return clamp(pr(5.0)+(t-5.0)/SONG,0,1);
+}
+const V0=.45;
+const vRaw=t=>t<6.0?V0:V0+(CX(Math.min(t,7.5))-cxAt6)/416;
+const vol=t=>clamp(vRaw(t),0,1);
+const STRETCH=chain([[0,0],[6.0,t=>56*(1-Math.exp(-Math.max(0,vRaw(t)-1)*416/110))],[7.5,0]],{periodic:false,start:0});
+
+/* ───────── 貫穿全程的內層圓塊：進度 → 音量 → 開關圓鈕 → 分頁指示器 ───────── */
+const Rprog=t=>-248+496*prog(t), Rsl=t=>-182+416*vol(t)+STRETCH(t);
+const np={periodic:false};
+const KL=chain([[3.0,-248],[5.5,-234],[8.0,-58],[8.5,6,SP.trail],[9.0,127,SP.trail],[9.5,-127,SP.lead],[10.0,0,SP.trail],[10.5,0]],np);
+const KR=chain([[3.0,Rprog],[5.5,Rsl],[8.0,-6],[8.5,58,SP.lead],[9.0,254,SP.lead],[9.5,0,SP.trail],[10.0,127,SP.lead],[10.5,144]],np);
+const KT=chain([[3.0,19],[5.5,-26],[10.5,-198]],np), KB=chain([[3.0,25],[5.5,26],[10.5,-154]],np);
+const KRAD=chain([[3.0,3],[5.5,26],[10.5,22]],np), KLUM=chain([[3.0,1],[5.5,0],[8.5,1],[9.0,0]],np);
+const SLOT=chain([[9.0,127],[10.5,144]],np), TABY=chain([[9.0,0],[10.5,-176]],np);
+
+/* 動態島 → 播放器共用的封面與波形 */
+const COV=[[2.5,-152,-18,36,10],[3.0,-248,-118,88,14]];
+const CVX=chain(COV.map(c=>[c[0],c[1]]),np), CVY=chain(COV.map(c=>[c[0],c[2]]),np),
+      CVS=chain(COV.map(c=>[c[0],c[3]]),np), CVR=chain(COV.map(c=>[c[0],c[4]]),np);
+const WVX=chain([[2.5,124],[3.0,220]],np), WVY=chain([[2.5,0],[3.0,-104]],np), WVA=chain([[3.5,1]],{periodic:false,start:0});
+const PLAYM=chain([[3.5,1]],{periodic:false,start:0}), PLAYP=chain([[3.5,.86,SP.press],[3.6,1]],{periodic:false,start:1});
+const KNOBS=chain([[4.0,1.6],[5.0,1]],{periodic:false,start:1});
+const CHECK=chain([[2.02,1,SP.check]],{periodic:false,start:0});
+const DRAW=chain([[10.74,1,SP.draw]],{periodic:false,start:0});
+const PTS=[21.4,24.8,23.1,30.6,28.9,35.2,33.7,41.5,48.2].map((v,i)=>[-262+i*65.5,150-(v-15)*5]);
+const TX=chain([[11.0,PTS[5][0]],[11.5,PTS[7][0]]],np);
+// 八月之後折線往右上走，tooltip 往左上讓開
+const TOX=chain([[11.0,0],[11.5,-50]],np);
+const CMDS=[['Share chart','share','⇧⌘S'],['Export as CSV','download','⌘E'],['Toggle dark mode','moon','⌘D'],['Go to Settings','sliders','⌘,'],['Invite teammate','invite','⌘I']];
+const ROWIDX=[[0,0,0,0],[1,1,1,1],[2,0,0,0],[3,1,1,1],[4,2,2,2]];
+const ROWOUT=[12.25,12.25,13.0,12.5,12.75];
+const ROWY=ROWIDX.map(ix=>chain([[12.0,ix[0]],[12.25,ix[1]],[12.5,ix[2]],[12.75,ix[3]]],np));
+
+/* 內容的進出場：退場 90ms，進場延後 60ms，模糊以螢幕像素計 */
+function vis(t,a,b){ let o=0; for(const k of [-T,0,T]){ const x=t-k;
+  o=Math.max(o,S(x-a-.06,SP.fin)*(1-S(x-b,SP.fout))); } return o; }
+
+/* ───────── DOM ───────── */
+const $=id=>document.getElementById(id);
+const stage=$('stage'), world=$('world'), shape=$('shape'), O=$('o'), cursor=$('cursor');
+const IC={
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
+  moon:'<path d="M19.5 14.2A8 8 0 1 1 9.8 4.5a6.3 6.3 0 0 0 9.7 9.7z"/>',
+  share:'<path d="M12 14.5V4M8 8l4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>',
+  download:'<path d="M12 4v11M8 11l4 4 4-4M5 20h14"/>',
+  sliders:'<path d="M4 8h8.5M17.5 8H20M4 16h2.5M11.5 16H20"/><circle cx="15" cy="8" r="2.5"/><circle cx="9" cy="16" r="2.5"/>',
+  invite:'<circle cx="10" cy="8" r="3.5"/><path d="M3.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/>',
+  speaker:'<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/>'
+};
+const icon=(n,x,y,sz=20,extra='')=>`<svg class="a ic" width="${sz}" height="${sz}" viewBox="0 0 24 24" style="transform:translate(${x-sz/2}px,${y-sz/2}px)"${extra}>${IC[n]}</svg>`;
+const txt=(x,y,html,style='',anchor='c',id='')=>`<div class="a"${id?` id="${id}"`:''} style="transform:translate(${x}px,${y}px) translate(${anchor==='c'?'-50%':anchor==='r'?'-100%':'0'},-50%);${style}">${html}</div>`;
+const layers=[];
+function layer(a,b,html){ const d=document.createElement('div'); d.className='ly'; d.innerHTML=html; O.appendChild(d); layers.push({el:d,a,b}); return d; }
+const MUTE_D='#A29C94', MUTE_L='#8A847C', LINE_L='#ECE8E2';
+
+// 圓塊之下
+layer(10.5,12.0,`<div class="a" style="left:-292px;top:-202px;width:584px;height:52px;border-radius:26px;background:#EFEBE5"></div>`);
+const tabNames=['Day','Week','Month','Year'];
+const tabsBlack=layer(9.0,12.0,tabNames.map((n,i)=>txt(0,0,n,'font-size:15px;font-weight:500;color:#121110','c','tb'+i)).join(''));
+layer(3.0,5.5,`<div class="a" style="left:-248px;top:19px;width:496px;height:6px;border-radius:3px;background:rgba(251,250,248,.2)"></div>`);
+const knob=document.createElement('div'); knob.id='knob'; O.appendChild(knob);
+// 圓塊之上
+const tabsWhite=layer(9.0,12.0,`<div class="a" id="tclip" style="left:-400px;top:-400px;width:800px;height:800px">${tabNames.map((n,i)=>txt(0,0,n,'font-size:15px;font-weight:500;color:#FBFAF8','c','tw'+i)).join('')}</div>`);
+layer(13.5,15.0,txt(0,0,'Get started','font-size:17px;font-weight:500;color:#FBFAF8;letter-spacing:-.005em'));
+layer(1.0,2.0,`<svg class="a" width="1" height="1"><circle id="arc" r="17" fill="none" stroke="#FBFAF8" stroke-width="3.5" stroke-linecap="round" pathLength="100"/></svg>`);
+layer(2.0,2.5,`<svg class="a" width="1" height="1"><path id="chk" d="M-11 1L-3.5 8.5L12 -8" fill="none" stroke="#FBFAF8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1 1"/></svg>`);
+const COVER_SVG=`<svg viewBox="0 0 88 88" width="100%" height="100%" style="display:block"><rect width="88" height="88" fill="#D8D2C8"/><g stroke="#121110" stroke-width="2" stroke-linecap="round"><path d="M26 0v30M46 0v44M64 0v34"/></g><g fill="#121110"><circle cx="26" cy="38" r="9"/><circle cx="46" cy="54" r="11"/><circle cx="64" cy="41" r="8"/></g><path d="M0 76h88" stroke="#121110" stroke-width="2"/></svg>`;
+layer(2.5,5.5,`<div class="a" id="cover" style="overflow:hidden">${COVER_SVG}</div><div class="a" id="wave">${[0,1,2,3,4].map(i=>`<i class="a" id="wv${i}" style="width:3px;border-radius:2px;background:#FBFAF8;left:${i*6-13.5}px"></i>`).join('')}</div>`);
+layer(2.5,3.0,txt(-104,-9,'Paper Lanterns','font-size:14px;font-weight:500;color:#FBFAF8','l')+txt(-104,10,'Hollis Vane',`font-size:12px;color:${MUTE_D}`,'l'));
+const T_PREV='M12 6.5 5.5 12l6.5 5.5zM20 6.5 13.5 12l6.5 5.5z', T_NEXT='M12 6.5l6.5 5.5-6.5 5.5zM4 6.5l6.5 5.5L4 17.5z';
+layer(3.0,5.5,
+  txt(-140,-100,'Paper Lanterns','font-size:21px;font-weight:600;color:#FBFAF8;letter-spacing:-.01em','l')+
+  txt(-140,-73,'Hollis Vane',`font-size:15px;color:${MUTE_D}`,'l')+
+  txt(-248,48,'','font-size:13px;color:'+MUTE_D,'l','tel')+txt(248,48,'','font-size:13px;color:'+MUTE_D,'r','trem')+
+  `<svg class="a" width="34" height="34" viewBox="0 0 24 24" style="transform:translate(-113px,83px);color:#FBFAF8"><path class="tr" d="${T_PREV}"/></svg>`+
+  `<svg class="a" width="34" height="34" viewBox="0 0 24 24" style="transform:translate(79px,83px);color:#FBFAF8"><path class="tr" d="${T_NEXT}"/></svg>`+
+  `<svg class="a" id="pp" width="40" height="40" viewBox="0 0 24 24" style="color:#FBFAF8"><path class="tr" id="ppl"/><path class="tr" id="ppr"/></svg>`+
+  `<div class="a" id="pknob" style="width:14px;height:14px;border-radius:7px;background:#FBFAF8"></div>`);
+const spk=layer(5.5,8.0,`<div class="a" style="color:#FBFAF8">${icon('speaker',-206,0,22,' id="spk"')}<svg class="a ic" width="22" height="22" viewBox="0 0 24 24" style="transform:translate(-217px,-11px)"><path id="w1" d="M15.5 9.5a3.5 3.5 0 0 1 0 5"/><path id="w2" d="M18 7a7 7 0 0 1 0 10"/></svg></div>`);
+// 圖表
+function smooth(p){ let d=`M${p[0]}`; for(let i=0;i<p.length-1;i++){ const a=p[i-1]||p[i],b=p[i],c=p[i+1],e=p[i+2]||c;
+  d+=` C${b[0]+(c[0]-a[0])/6},${b[1]+(c[1]-a[1])/6} ${c[0]-(e[0]-b[0])/6},${c[1]-(e[1]-b[1])/6} ${c}`; } return d; }
+// 取樣同一條曲線，懸停點在兩個月之間移動時沿著折線走，不走直線
+const CURVE=(()=>{ const out=[], p=PTS;
+  for(let i=0;i<p.length-1;i++){ const a=p[i-1]||p[i],b=p[i],c=p[i+1],e=p[i+2]||c;
+    const c1=[b[0]+(c[0]-a[0])/6,b[1]+(c[1]-a[1])/6], c2=[c[0]-(e[0]-b[0])/6,c[1]-(e[1]-b[1])/6];
+    for(let k=0;k<40;k++){ const u=k/40,v=1-u; out.push([0,1].map(d=>v*v*v*b[d]+3*v*v*u*c1[d]+3*v*u*u*c2[d]+u*u*u*c[d])); } }
+  out.push(p[p.length-1]); return out; })();
+function curveY(x){ let lo=0,hi=CURVE.length-1; while(hi-lo>1){ const m=(lo+hi)>>1; if(CURVE[m][0]<=x) lo=m; else hi=m; }
+  const a=CURVE[lo],b=CURVE[hi],k=b[0]===a[0]?0:clamp((x-a[0])/(b[0]-a[0]),0,1); return mix(a[1],b[1],k); }
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'];
+// 等分頁列升到頂端才進場，避免和標籤重疊
+layer(10.7,12.0,
+  txt(-268,-120,'Revenue',`font-size:14px;color:${MUTE_L}`,'l')+
+  txt(-268,-88,'$48,210','font-size:32px;font-weight:600;color:#121110;letter-spacing:-.02em','l')+
+  txt(268,-120,'+16.2%','font-size:15px;font-weight:600;color:#121110','r')+
+  txt(268,-96,'vs August',`font-size:13px;color:${MUTE_L}`,'r')+
+  `<svg class="a" width="1" height="1">${[20,30,40,50].map(v=>`<path d="M-268 ${150-(v-15)*5}H268" stroke="${LINE_L}" stroke-width="1.5" stroke-linecap="round"/>`).join('')}
+   <path id="guide" d="M0 -50V150" stroke="#CBC4BA" stroke-width="1.5" stroke-dasharray="2 5" stroke-linecap="round"/>
+   <path id="line" d="${smooth(PTS)}" fill="none" stroke="#121110" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1 1"/>
+   <circle id="dot" r="5.5" fill="#FBFAF8" stroke="#121110" stroke-width="2.5"/></svg>`+
+  MONTHS.map((m,i)=>txt(PTS[i][0],180,m,`font-size:12px;color:${MUTE_L}`)).join(''));
+const tipBox=layer(11.0,12.0,`<div class="a" id="tip" style="width:118px;height:32px;border-radius:9px;background:#121110"></div>`);
+const tip1=layer(11.0,11.5,txt(0,0,`<span style="color:${MUTE_D}">Jun</span>&nbsp; $35.2k`,'font-size:13px;font-weight:500;color:#FBFAF8','c','tt1'));
+const tip2=layer(11.5,12.0,txt(0,0,`<span style="color:${MUTE_D}">Aug</span>&nbsp; $41.5k`,'font-size:13px;font-weight:500;color:#FBFAF8','c','tt2'));
+// 命令面板
+layer(12.0,13.0,
+  `<div class="a" id="hl" style="left:-272px;width:544px;height:40px;border-radius:10px;background:#EFEBE5"></div>`+
+  `<div id="pin" class="a" style="color:#121110">${icon('search',-244,0,20)}${txt(-224,0,'<span id="q"></span><i id="caret" style="display:inline-block;width:2px;height:20px;margin-left:1px;border-radius:1px;background:#121110;vertical-align:-3px"></i><span id="ph0" style="color:#A8A198;margin-left:-3px">Search commands…</span>','font-size:17px;color:#121110','l')}${txt(260,0,'⌘K',`font-size:13px;color:${MUTE_L};padding:4px 7px;border-radius:6px;box-shadow:inset 0 0 0 1.5px #E1DCD4`,'r')}</div>`+
+  `<div class="a" id="div" style="left:-280px;width:560px;height:1px;background:${LINE_L}"></div>`);
+const rows=CMDS.map((c,i)=>layer(12.0,ROWOUT[i],`<div class="a" id="row${i}" style="color:#121110">${icon(c[1],-244,0,18)}${txt(-224,0,c[0],'font-size:15px;color:#121110','l')}${txt(256,0,c[2],`font-size:13px;color:${MUTE_L}`,'r')}</div>`));
+// 通知
+layer(13.0,13.5,`<div class="a" style="color:#FBFAF8">${icon('moon',-138,0,20)}</div>`+txt(-116,0,'Dark mode on','font-size:15px;font-weight:500;color:#FBFAF8','l')+txt(146,0,'Undo',`font-size:15px;color:${MUTE_D}`,'r'));
+
+const E={}; for(const id of ['arc','chk','cover','wave','tel','trem','pp','ppl','ppr','pknob','w1','w2','tclip','guide','line','dot','tip','tt1','tt2','hl','pin','div','q','caret','ph0']) E[id]=$(id);
+const WV=[0,1,2,3,4].map(i=>$('wv'+i));
+const TB=tabNames.map((_,i)=>$('tb'+i)), TW=tabNames.map((_,i)=>$('tw'+i));
+const ROWEL=CMDS.map((_,i)=>$('row'+i));
+
+/* 播放 ▶ 與暫停 ❚❚ 是同一組多邊形的頂點內插 */
+const PLAY_L=[[7,5],[13,8.5],[13,15.5],[7,19]], PLAY_R=[[13,8.5],[19,12],[19,12],[13,15.5]];
+const PAUSE_L=[[6,5],[10,5],[10,19],[6,19]], PAUSE_R=[[14,5],[18,5],[18,19],[14,19]];
+const poly=(a,b,k)=>'M'+a.map((p,i)=>`${mix(p[0],b[i][0],k).toFixed(2)} ${mix(p[1],b[i][1],k).toFixed(2)}`).join('L')+'Z';
+const fmt=s=>{ s=Math.max(0,Math.round(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+const lerpC=(k)=>{ k=clamp(k,0,1); const a=[18,17,16],b=[251,250,248]; return `rgb(${a.map((v,i)=>Math.round(mix(v,b[i],k))).join(',')})`; };
+const setT=(el,x,y,extra='')=>{ el.style.transform=`translate(${x}px,${y}px)${extra}`; };
+const lastTxt=new WeakMap(); const setText=(el,s)=>{ if(lastTxt.get(el)!==s){ el.textContent=s; lastTxt.set(el,s); } };
+
+/* ───────── seek(t)：唯一的繪製入口 ───────── */
+let tNow=0;
+function seek(tt){
+  const t=((tt%T)+T)%T; tNow=t;
+  const s=Math.exp(CAM(t));
+  world.style.transform=`translate(720px,720px) scale(${s})`;
+  const st=STRETCH(t), w=W(t)+st, h=H(t)-st*.12, r=RAD(t), cx=st/2, lum=LUM(t);
+  Object.assign(shape.style,{left:(cx-w/2)+'px',top:(-h/2)+'px',width:w+'px',height:h+'px',borderRadius:r+'px',
+    background:lerpC(lum),transform:`scale(${PRESS(t)})`,
+    boxShadow:`0 ${1/s}px ${2/s}px rgba(40,32,22,.10), 0 ${10/s}px ${22/s}px -${10/s}px rgba(40,32,22,${(.14+.16*clamp(lum,0,1)).toFixed(3)})`});
+  O.style.left=(w/2-cx)+'px'; O.style.top=(h/2)+'px';
+  for(const L of layers){ const o=vis(t,L.a,L.b); L.el.style.visibility=o<.002?'hidden':'visible';
+    L.el.style.opacity=o.toFixed(3); L.el.style.filter=o>.002&&o<.995?`blur(${((1-o)*6/s).toFixed(2)}px)`:'none'; }
+
+  // 貫穿的圓塊
+  const kv=vis(t,3.0,12.0), kl=KL(t), kr=KR(t), kt=KT(t), kb=KB(t);
+  Object.assign(knob.style,{visibility:kv<.002?'hidden':'visible',opacity:kv.toFixed(3),left:kl+'px',top:kt+'px',
+    width:Math.max(0,kr-kl)+'px',height:Math.max(0,kb-kt)+'px',borderRadius:KRAD(t)+'px',background:lerpC(KLUM(t))});
+
+  // 載入與完成
+  if(t>=0.9&&t<2.2){ const len=22+38*(.5-.5*Math.cos(2*Math.PI*(t-1)));
+    E.arc.setAttribute('stroke-dasharray',`${len.toFixed(2)} ${(100-len).toFixed(2)}`);
+    E.arc.setAttribute('transform',`rotate(${((t-1)*560-90).toFixed(2)})`); }
+  if(t>=1.9&&t<2.7) E.chk.setAttribute('stroke-dashoffset',(1-clamp(CHECK(t),0,1)).toFixed(4));
+
+  // 動態島與播放器
+  if(t>=2.4&&t<5.7){
+    const cs=CVS(t); Object.assign(E.cover.style,{width:cs+'px',height:cs+'px',borderRadius:CVR(t)+'px'}); setT(E.cover,CVX(t),CVY(t));
+    setT(E.wave,WVX(t),WVY(t)); const amp=WVA(t);
+    WV.forEach((b,i)=>{ const hh=3+amp*(4+10*Math.abs(Math.sin(t*(5.3+i*1.7)+i*1.9))*Math.abs(Math.sin(t*(2.1+i*.6)+i))); b.style.height=hh+'px'; b.style.top=(-hh/2)+'px'; });
+    const m=clamp(PLAYM(t),0,1), pp=PLAYP(t);
+    E.ppl.setAttribute('d',poly(PLAY_L,PAUSE_L,m)); E.ppr.setAttribute('d',poly(PLAY_R,PAUSE_R,m));
+    setT(E.pp,-20,80,` scale(${pp})`); E.pp.style.transformOrigin='20px 20px';
+    const p=prog(t), kx=-248+496*p; setT(E.pknob,kx-7,15,` scale(${KNOBS(t)})`);
+    setText(E.tel,fmt(p*SONG)); setText(E.trem,'-'+fmt(SONG-p*SONG));
+  }
+  // 音量
+  if(t>=5.4&&t<8.2){ const v=vol(t); E.w1.style.opacity=clamp(v*4-.4,0,1); E.w2.style.opacity=clamp(v*3-1.6,0,1); }
+
+  // 分頁：黑字在下、白字只在圓塊範圍內露出
+  if(t>=8.9&&t<12.2){ const sw=SLOT(t), ty=TABY(t), x0=-2*sw;
+    for(let i=0;i<4;i++){ const x=x0+sw*(i+.5); TB[i].style.transform=TW[i].style.transform=`translate(${x}px,${ty}px) translate(-50%,-50%)`;
+      TW[i].style.transform=`translate(${x+400}px,${ty+400}px) translate(-50%,-50%)`; }
+    E.tclip.style.clipPath=`inset(${kt+400}px ${400-kr}px ${400-kb}px ${kl+400}px round ${KRAD(t)}px)`;
+  }
+  // 圖表
+  if(t>=10.4&&t<12.2){ E.line.setAttribute('stroke-dashoffset',(1-clamp(DRAW(t),0,1)).toFixed(4));
+    const tx=TX(t), ty=curveY(tx), hv=vis(t,11.0,12.0);
+    E.dot.setAttribute('cx',tx); E.dot.setAttribute('cy',ty); E.dot.style.opacity=hv;
+    E.guide.setAttribute('transform',`translate(${tx} 0)`); E.guide.style.opacity=hv;
+    const ox=tx+TOX(t); setT(E.tip,ox-59,ty-50); setT(E.tt1,ox,ty-34,' translate(-50%,-50%)'); setT(E.tt2,ox,ty-34,' translate(-50%,-50%)');
+  }
+  // 命令面板：內容貼齊當下的上緣
+  if(t>=11.9&&t<13.2){ const top=-h/2;
+    setT(E.pin,0,top+32); setT(E.div,0,top+64);
+    const q=t<12.25?'':t<12.5?'t':t<12.75?'to':'tog'; setText(E.q,q); E.ph0.style.display=q?'none':'';
+    const lastKey=t<12.25?12.0:t<12.5?12.25:t<12.75?12.5:12.75;
+    E.caret.style.opacity=((t-lastKey)%1)<.5?1:0;
+    setT(E.hl,0,top+74); E.hl.style.background=t>=13.0?'#E3DDD4':'#EFEBE5';
+    ROWEL.forEach((el,i)=>setT(el,0,top+94+44*ROWY[i](t)));
+  }
+
+  // 游標（螢幕座標，大小不隨鏡頭縮放）
+  const X=720+s*CX(t), Y=720+s*CY(t);
+  cursor.style.transform=`translate(${X.toFixed(2)}px,${Y.toFixed(2)}px) scale(${(1.35*CPRESS(t)).toFixed(4)})`;
+  drawBar(t);
+}
+window.seek=seek;
+
+/* ───────── 聲音：WebAudio 即時合成，事件全部排在拍點上 ───────── */
+let ac=null, master=null, bus=null, noise=null, aStart=0, sched=0, soundOn=false;
+const mtof=m=>440*Math.pow(2,(m-69)/12);
+function initAudio(){
+  ac=new (window.AudioContext||window.webkitAudioContext)();
+  const comp=ac.createDynamicsCompressor(); comp.threshold.value=-16; comp.ratio.value=3; comp.attack.value=.004; comp.release.value=.15;
+  master=ac.createGain(); master.gain.value=.8; master.connect(comp); comp.connect(ac.destination);
+  noise=ac.createBuffer(1,ac.sampleRate,ac.sampleRate); const d=noise.getChannelData(0); let seed=7;
+  for(let i=0;i<d.length;i++){ seed=(seed*16807)%2147483647; d[i]=seed/1073741823.5-1; }
+}
+function env(g,w,peak,a,dec){ g.gain.setValueAtTime(0,w); g.gain.linearRampToValueAtTime(peak,w+a); g.gain.exponentialRampToValueAtTime(.0001,w+a+dec); }
+function osc(type,f,w,dur,peak,a,dec,out,f2){ const o=ac.createOscillator(),g=ac.createGain(); o.type=type; o.frequency.setValueAtTime(f,w);
+  if(f2) o.frequency.exponentialRampToValueAtTime(f2,w+dur); env(g,w,peak,a,dec); o.connect(g); g.connect(out); o.start(w); o.stop(w+a+dec+.05); return o; }
+function nz(w,type,f,q,peak,a,dec,out,f2){ const s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain(); s.buffer=noise;
+  fl.type=type; fl.frequency.setValueAtTime(f,w); if(f2) fl.frequency.exponentialRampToValueAtTime(f2,w+a+dec); fl.Q.value=q;
+  env(g,w,peak,a,dec); s.connect(fl); fl.connect(g); g.connect(out); s.start(w,Math.random()*.5); s.stop(w+a+dec+.05); }
+const SND={
+  kick:(w,o)=>osc('sine',132,w,.12,.55,.003,.3,o,44),
+  hat:(w,o,v=1)=>nz(w,'highpass',7200,.7,.05*v,.001,.045,o),
+  clap:(w,o)=>{ nz(w,'bandpass',1500,.9,.11,.002,.13,o); nz(w+.012,'bandpass',1800,.9,.07,.002,.09,o); },
+  bass:(w,o,m,d)=>{ const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=650; f.connect(o);
+    osc('triangle',mtof(m),w,d,.24,.008,d,f); osc('sine',mtof(m),w,d,.14,.008,d,f); },
+  pad:(w,o,ms,d)=>{ const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1700; f.connect(o);
+    ms.forEach((m,i)=>{ const g=ac.createGain(); g.gain.setValueAtTime(0,w); g.gain.linearRampToValueAtTime(.03,w+.28); g.gain.setValueAtTime(.03,w+d-.3); g.gain.linearRampToValueAtTime(0,w+d+.4); g.connect(f);
+      for(const [ty,dt] of [['sine',0],['triangle',4+i]]){ const x=ac.createOscillator(); x.type=ty; x.frequency.value=mtof(m); x.detune.value=dt; x.connect(g); x.start(w); x.stop(w+d+.5); } }); },
+  click:(w,o,k=1)=>{ nz(w,'bandpass',3600,1.4,.24*k,.001,.018,o); osc('sine',2300,w,.02,.07*k,.001,.03,o,1150); },
+  tick:(w,o)=>{ nz(w,'bandpass',5200,1.8,.13,.001,.012,o); osc('sine',3100,w,.012,.03,.001,.018,o,2000); },
+  tock:(w,o)=>{ osc('sine',720,w,.06,.2,.002,.1,o,300); SND.click(w,o,.6); },
+  whoosh:(w,o)=>nz(w-.12,'bandpass',320,.9,.05,.12,.2,o,1500),
+  chime:(w,o)=>{ osc('sine',mtof(88),w,.1,.06,.004,.55,o); osc('sine',mtof(93),w+.07,.1,.05,.004,.7,o); },
+  gliss:(w,o)=>osc('sine',440,w,.5,.025,.08,.45,o,880)
+};
+const EV=[];
+(function build(){
+  const CH=[[57,60,64,67],[53,57,60,64],[52,55,59,60],[55,59,62,64],[57,60,64,67],[53,57,60,62],[52,57,59,64]];
+  const RT=[33,29,36,31,33,38,28];
+  for(let b=0;b<28;b++){ const t=b*BEAT; EV.push([t,'kick']); EV.push([t+.25,'hat']); if(b%2) EV.push([t,'clap']); }
+  EV.push([13.625,'hat',.6],[13.875,'hat',.8]);
+  for(let bar=0;bar<7;bar++){ const t0=bar*2, r=RT[bar]; EV.push([t0,'pad',CH[bar],2]);
+    [[0,r,.42],[.5,r,.2],[.75,r+12,.2],[1,r,.42],[1.5,r,.2],[1.75,r+7,.2]].forEach(n=>EV.push([t0+n[0],'bass',n[1],n[2]])); }
+  [0.5,3.0,3.5,4.0,6.0,9.5,10.0,11.0,11.5].forEach(t=>EV.push([t,'click'])); [5.0,7.5].forEach(t=>EV.push([t,'click',.55]));
+  EV.push([8.5,'tock'],[12.25,'tick'],[12.5,'tick'],[12.75,'tick'],[13.0,'click'],[13.0,'chime'],[2.0,'chime'],[10.5,'gliss']);
+  [1.0,2.5,5.5,8.0,9.0,10.5,12.0,13.5].forEach(t=>EV.push([t,'whoosh']));
+  EV.sort((a,b)=>a[0]-b[0]);
+})();
+function fire(e,w){ const [ ,n,a,b]=e; if(n==='bass') SND.bass(w,bus,a,b); else if(n==='pad') SND.pad(w,bus,a,b); else SND[n](w,bus,a); }
+function pump(){
+  if(!ac||!soundOn||!playing||!bus) return;
+  const until=ac.currentTime+.2;
+  for(let k=Math.floor((sched-aStart)/T);k<=Math.floor((until-aStart)/T);k++)
+    for(const e of EV){ const w=aStart+k*T+e[0]-.003; if(w>sched&&w<=until&&w>=ac.currentTime-.005) fire(e,Math.max(w,ac.currentTime)); }
+  sched=until;
+}
+setInterval(pump,30);
+function audioNow(){ if(ac.getOutputTimestamp){ const o=ac.getOutputTimestamp(); if(o.contextTime>0) return o.contextTime+(performance.now()-o.performanceTime)/1000; } return ac.currentTime; }
+function openBus(){ closeBus(); bus=ac.createGain(); bus.connect(master); aStart=ac.currentTime-tNow; sched=ac.currentTime; }
+function closeBus(){ if(!bus) return; const b=bus; bus=null; b.gain.setTargetAtTime(0,ac.currentTime,.02); setTimeout(()=>b.disconnect(),300); }
+
+/* ───────── 播放控制 ───────── */
+let playing=true, pStart=0, raf=0, scrubbing=false;
+const params=new URLSearchParams(location.search);
+if(params.has('clean')) document.body.classList.add('clean');
+function clockNow(){ return soundOn&&ac ? audioNow()-aStart : performance.now()/1000-pStart; }
+function frame(){ raf=requestAnimationFrame(frame); if(playing&&!scrubbing) seek(clockNow()); }
+function setPlaying(p){ playing=p; $('play').setAttribute('aria-label',p?'暫停':'播放');
+  if(p){ pStart=performance.now()/1000-tNow; if(soundOn&&ac){ ac.resume(); openBus(); } } else closeBus(); drawBar(tNow); }
+$('play').onclick=()=>setPlaying(!playing);
+$('snd').onclick=()=>{ soundOn=!soundOn; $('snd').setAttribute('aria-pressed',soundOn);
+  if(soundOn){ if(!ac) initAudio(); ac.resume().then(()=>{ if(playing&&soundOn) openBus(); }); } else { closeBus(); pStart=performance.now()/1000-tNow; } };
+
+const NAMES=['按鈕','按下','載入','載入','完成','動態島','播放器','播放','抓住進度','拖曳進度','放開','音量滑桿','抓住音量','拉到最大','拉過頭','放開回彈','開關','打開','分頁','Week','Month','圖表','懸停六月','懸停八月','命令面板','輸入 tog','Enter 通知','回到按鈕'];
+const tl=$('tl'), tlsvg=$('tlsvg'), ph=$('ph'); let barW=0, lastBeat=-1;
+function layoutBar(){ barW=tl.clientWidth; let g='';
+  for(let b=0;b<28;b++){ const x=(b+.5)/28*barW, down=b%4===0; g+=`<rect data-b="${b}" x="${(x-1).toFixed(1)}" y="${down?11:15}" width="2" height="${down?14:6}" rx="1"/>`; }
+  tlsvg.innerHTML=g; lastBeat=-1; }
+function drawBar(t){ if(!barW) return; ph.style.left=(t/T*barW)+'px'; tl.setAttribute('aria-valuenow',t.toFixed(2));
+  const b=Math.floor(t/BEAT);
+  if(b!==lastBeat){ lastBeat=b; tlsvg.querySelectorAll('rect').forEach(r=>r.setAttribute('fill',+r.dataset.b<=b?'#121110':'#B5AEA4'));
+    $('pos').innerHTML=`<b>${Math.floor(b/4)+1}.${b%4+1}</b><span>${NAMES[b]}</span>`; }
+  $('pl').setAttribute('d',playing?'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z':'M8 5l11 7-11 7z'); }
+function tlSeek(e){ const r=tl.getBoundingClientRect(); seek(clamp((e.clientX-r.left)/r.width,0,.9999)*T); }
+tl.addEventListener('pointerdown',e=>{ scrubbing=true; tl.setPointerCapture(e.pointerId); closeBus(); tlSeek(e); });
+tl.addEventListener('pointermove',e=>{ if(scrubbing) tlSeek(e); });
+const endScrub=()=>{ if(!scrubbing) return; scrubbing=false; if(playing) setPlaying(true); };
+tl.addEventListener('pointerup',endScrub); tl.addEventListener('pointercancel',endScrub);
+function step(d){ if(playing) setPlaying(false); seek((Math.round(tNow/BEAT)+d)*BEAT); }
+addEventListener('keydown',e=>{
+  if(e.key===' '&&e.target.tagName!=='BUTTON'){ e.preventDefault(); setPlaying(!playing); }
+  else if(e.key==='ArrowRight'){ e.preventDefault(); step(1); } else if(e.key==='ArrowLeft'){ e.preventDefault(); step(-1); } });
+
+function fitStage(){ const v=$('view'), vw=v.clientWidth, vh=v.clientHeight, k=Math.min(vw,vh)/1440;
+  stage.style.transform=`translate(${((vw-1440*k)/2).toFixed(2)}px,${((vh-1440*k)/2).toFixed(2)}px) scale(${k})`; layoutBar(); drawBar(tNow); }
+addEventListener('resize',fitStage); fitStage();
+
+const t0=params.has('t')?+params.get('t'):params.has('beat')?+params.get('beat')*BEAT:null;
+if(t0!==null||matchMedia('(prefers-reduced-motion: reduce)').matches){ playing=false; seek(t0!==null?t0:6.5); setPlaying(false); }
+else { seek(0); setPlaying(true); }
+raf=requestAnimationFrame(frame);
+if(document.fonts) document.fonts.ready.then(()=>seek(tNow));
+</script>
+</body>
+</html>
