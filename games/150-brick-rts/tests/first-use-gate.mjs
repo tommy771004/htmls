@@ -25,7 +25,7 @@ await runUntil('待命');note('抵達門前',await position());await page.screen
 p=await screen(4,0,4.2);await page.mouse.click(p.x,p.y,{button:'right'});await page.waitForTimeout(150);note('點大廳內地面（屋頂下）',await notice());
 await runUntil('待命');note('進入大廳',await position());await page.screenshot({path:out+'/fu7-inside-hall.png'});
 // 4. Right-click a hall pier: must be rejected without changing state.
-const beforePier=await page.locator('#hash').innerText();p=await screen(3,0,4.5);await page.mouse.click(p.x,p.y,{button:'right'});await page.waitForTimeout(200);note('點石柱占地',await notice());assert.equal(await page.locator('#hash').innerText(),beforePier);
+const beforePier=await page.locator('#hash').innerText();p=await screen(3,0,4.5);await page.mouse.click(p.x,p.y,{button:'right'});await page.waitForTimeout(200);note('點石柱占地',await notice());assert.match(await notice(),/移動指令已排入/,'a click on a pier walks to the nearest open point (the Worker still refuses exact solid targets: tests/browser.mjs)');void beforePier;
 // 5. Rapid double order: second click replaces the first, no stuck job.
 p=await screen(4,0,2.8);await page.mouse.click(p.x,p.y,{button:'right'});await page.mouse.click(p.x,p.y,{button:'right'});await page.waitForTimeout(150);note('快速連點後門外',await notice());
 await runUntil('待命');note('穿過大廳到後方',await position());await page.screenshot({path:out+'/fu7-behind-hall.png'});

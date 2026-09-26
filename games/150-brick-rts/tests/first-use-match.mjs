@@ -70,7 +70,9 @@ try{
  const redTc=world.map.obstacles.find(o=>o.kind==='town-center'&&o.red),redBox=obstacleBounds(redTc);
  await page.evaluate(()=>{const d=document.querySelector('#fog-debug');d.open=true;d.dispatchEvent(new Event('toggle'));});
  await page.keyboard.press('Digit1');await lookAt((redBox[0]+redBox[2])/200,(redBox[1]+redBox[3])/200);
- let m=await minimapAt((redBox[0]+redBox[2])/200-2,(redBox[1]+redBox[3])/200+2.5);note('進軍紅方基地',await act(()=>page.mouse.click(m.x,m.y,{button:'right'})));
+ // March to open ground in front of the red gate (kept clear: the computer leaves a margin round its town centre).
+ const front=[...Array(961).keys()].map(n=>({x:50+(n%31)*50,y:50+Math.floor(n/31)*50})).filter(p=>p.y>redBox[3]+60&&clearSegment(world.map,p,p)).sort((a,b)=>Math.hypot(a.x-(redBox[0]+redBox[2])/2,a.y-redBox[3]-150)-Math.hypot(b.x-(redBox[0]+redBox[2])/2,b.y-redBox[3]-150))[0];
+ let m=await minimapAt(front.x/100,front.y/100);note('進軍紅方基地',await act(()=>page.mouse.click(m.x,m.y,{button:'right'})));
  let last='',rounds=0;
  while(await page.locator('#result').isHidden()&&rounds<400){rounds++;await page.waitForTimeout(700);await keepRunning();
   if(Number(await tick())>40000)break;

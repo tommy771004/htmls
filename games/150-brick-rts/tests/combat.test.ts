@@ -6,7 +6,8 @@ import {makeUnit,nodeAt} from '../packages/sim/movement.ts';
 import type {UnitKind} from '../packages/sim/movement.ts';
 import {clearSegment,position} from '../packages/sim/navigation.ts';
 import {combatRules} from '../packages/sim/stats.ts';
-import {authoritativeProblem} from '../packages/sim/buildings.ts';
+import {authoritativeProblem,placeBuilding} from '../packages/sim/buildings.ts';
+import {commandAttack} from '../packages/sim/combat.ts';
 function order(s:State,commandType:string,payload:any,playerId=0){submit(s,{protocolVersion:1,rulesetHash,playerId,sequence:s.sequence[playerId]+1,targetTick:s.tick+1,commandType,payload} as any);}
 // Place a unit on the free node nearest a point (test fixture; the command log does not know it).
 function spawn(s:State,player:number,kind:UnitKind,x:number,y:number,id:number){let best=-1,dist=Infinity;const held=new Set(s.units.map(u=>u.node));
@@ -68,4 +69,20 @@ test('hidden, own and missing targets are refused without side effects',()=>{
 test('combat replays and survives save/load',()=>{
  const s=createState(260925);order(s,'move',{unitIds:[1,2,3],x:1000,y:800});run(s,200);order(s,'attack',{unitIds:[1,2,3],target:{kind:'unit',id:4}});run(s,150);
  const restored=deserialize(serialize(s));run(s,300);for(let i=0;i<300;i++)tick(restored);assert.equal(hash(s),hash(restored));assert.equal(hash(s),hash(replay(s.seed,s.log,s.tick)));
+});
+test('every building position on the 10-unit grid can be attacked by melee (regression: unreachable house)',()=>{
+ // A house whose footprint edges fall between navigation nodes: with range measured from the unit centre no free
+ // node was close enough, so attackers gave up. It must now be reachable and take damage.
+ // Left edge 725 (≡ 25 mod 50) and top edge 1005 (≡ 5 mod 50): no node sat in the 25–50 band on any side.
+ for(const offset of [0,10,20,30,40].map(o=>o===0?[40,20]:[o,o])){
+  const s=createState(260925);s.vision[0].visible=Array.from({length:256},(_,i)=>i);s.vision[0].explored=[...s.vision[0].visible];
+  s.vision[1].explored=[...s.vision[0].visible];
+  const x=700+offset[0],y=1000+offset[1];assert.equal(authoritativeProblem(s,1,'house',x,y),null,`site ${x},${y}`);
+  const b=placeBuilding(s,1,'house',x,y,'1:test');
+  const m=makeUnit(s.nextUnitId++,0,400,1000,'militia');s.units.push(m);s.accounts[0].populationUsed++;
+  commandAttack(s,[m.id],{kind:'building',id:b.id});
+  for(let i=0;i<400&&b.hp===1;i++)tick(s);
+  assert.ok(s.buildings.every(v=>v.id!==b.id)||b.hp<1||s.attacks[m.id],`offset ${offset}: attacker still engaged or target hit`);
+  assert.ok(!s.buildings.some(v=>v.id===b.id),`offset ${offset}: foundation destroyed`);
+ }
 });

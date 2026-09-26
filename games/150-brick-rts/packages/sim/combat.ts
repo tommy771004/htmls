@@ -30,8 +30,11 @@ export function commandAttack(s:CombatState,unitIds:number[],t:Target){
  for(const id of unitIds){cancelMovement(s,id);delete s.works[id];s.attacks[id]={target:t,cooldown:0,auto:false,repath:0,firedTick:-1};}
 }
 export function clearAttacks(s:CombatState,unitIds:number[]){for(const id of unitIds)delete s.attacks[id];}
+// Against a building, range counts from the unit's body edge (range + radius), like a builder's work ring;
+// otherwise some footprint offsets leave no free node inside the band that range-from-centre allows.
+const limit=(u:Unit,shape:{x:number;y:number}|number[])=>combatRules.units[u.kind].range+(Array.isArray(shape)?navigationRules.radius:0);
 function approach(s:CombatState,u:Unit,shape:{x:number;y:number}|number[]){
- const range=combatRules.units[u.kind].range,out:number[]=[];
+ const range=limit(u,shape),out:number[]=[];
  for(let n=0;n<961;n++){if(s.map.blocked.includes(n))continue;const p=position(n),d=reach(p,shape);if(d<=range&&(Array.isArray(shape)||d>0))out.push(n);}
  // Prefer positions no other unit is standing on, so attackers spread around the target.
  const held=new Set(s.units.filter(v=>v!==u&&v.next===null&&!v.path.length).map(v=>v.node)),free=out.filter(n=>!held.has(n));
@@ -68,7 +71,7 @@ export function stepCombat(s:CombatState){
   // Target gone or out of sight: stop at the next node instead of walking on to a stale position.
   if(targetProblem(s,u.player,a.target)){delete s.attacks[id];cancelMovement(s,u.id);Object.assign(u,{path:[],goal:null,target:null,navigation:u.next===null?'idle':'moving'});continue;}
   const r=resolve(s,a.target)!,stats=combatRules.units[u.kind];if(a.cooldown>0)a.cooldown--;
-  if(reach(u,r.shape)<=stats.range){
+  if(reach(u,r.shape)<=limit(u,r.shape)){
    if(u.next!==null)continue;
    if(u.path.length||busy.has(u.id)){cancelMovement(s,u.id);u.path=[];u.goal=null;u.target=null;}
    u.navigation='idle';

@@ -1285,6 +1285,27 @@ async function createScene(canvas, onFailure, options = {}) {
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
+  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25 };
+  function pickBuilding(clientX, clientY) {
+    if (!latest) return;
+    const r = canvas.getBoundingClientRect();
+    raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
+    let best, dist = Infinity;
+    const hit = new T.Vector3();
+    for (const { obstacle: o } of latest.known) {
+      const h = buildingHeights[o.kind];
+      if (!h || !o.id) continue;
+      const [x0, y0, x1, y1] = obstacleBounds(o), base = groundHeight(worldTiles, o.x, o.y) / 100;
+      if (raycaster.ray.intersectBox(new T.Box3(new T.Vector3(x0 / 100, base, y0 / 100), new T.Vector3(x1 / 100, base + h, y1 / 100)), hit)) {
+        const d = hit.distanceTo(raycaster.ray.origin);
+        if (d < dist) {
+          dist = d;
+          best = o.id;
+        }
+      }
+    }
+    return best;
+  }
   function pickGround(clientX, clientY) {
     const r = canvas.getBoundingClientRect();
     raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
@@ -1419,6 +1440,7 @@ async function createScene(canvas, onFailure, options = {}) {
     draw,
     pick,
     pickGround,
+    pickBuilding,
     unitsInRect,
     setGhost,
     renderIcons,

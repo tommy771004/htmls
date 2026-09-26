@@ -1199,8 +1199,9 @@ function commandAttack(s, unitIds, t) {
 function clearAttacks(s, unitIds) {
   for (const id of unitIds) delete s.attacks[id];
 }
+var limit = (u, shape) => combatRules.units[u.kind].range + (Array.isArray(shape) ? navigationRules.radius : 0);
 function approach(s, u, shape) {
-  const range = combatRules.units[u.kind].range, out = [];
+  const range = limit(u, shape), out = [];
   for (let n = 0; n < 961; n++) {
     if (s.map.blocked.includes(n)) continue;
     const p = position(n), d = reach(p, shape);
@@ -1276,7 +1277,7 @@ function stepCombat(s) {
     }
     const r = resolve(s, a.target), stats = combatRules.units[u.kind];
     if (a.cooldown > 0) a.cooldown--;
-    if (reach(u, r.shape) <= stats.range) {
+    if (reach(u, r.shape) <= limit(u, r.shape)) {
       if (u.next !== null) continue;
       if (u.path.length || busy.has(u.id)) {
         cancelMovement(s, u.id);

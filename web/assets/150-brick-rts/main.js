@@ -1424,6 +1424,27 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
+  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25 };
+  function pickBuilding(clientX, clientY) {
+    if (!latest) return;
+    const r = canvas2.getBoundingClientRect();
+    raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
+    let best, dist = Infinity;
+    const hit = new T.Vector3();
+    for (const { obstacle: o } of latest.known) {
+      const h = buildingHeights[o.kind];
+      if (!h || !o.id) continue;
+      const [x0, y0, x1, y1] = obstacleBounds(o), base = groundHeight(worldTiles, o.x, o.y) / 100;
+      if (raycaster.ray.intersectBox(new T.Box3(new T.Vector3(x0 / 100, base, y0 / 100), new T.Vector3(x1 / 100, base + h, y1 / 100)), hit)) {
+        const d = hit.distanceTo(raycaster.ray.origin);
+        if (d < dist) {
+          dist = d;
+          best = o.id;
+        }
+      }
+    }
+    return best;
+  }
   function pickGround(clientX, clientY) {
     const r = canvas2.getBoundingClientRect();
     raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
@@ -1558,6 +1579,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     draw,
     pick,
     pickGround,
+    pickBuilding,
     unitsInRect,
     setGhost,
     renderIcons,
@@ -1992,7 +2014,11 @@ async function attack(target, label) {
     notice(e.message);
   }
 }
-function enemyBuildingAt(x, y) {
+function enemyBuildingAt(x, y, id) {
+  if (id) {
+    const o = state.known.map((k) => k.obstacle).find((o2) => o2.id === id && o2.red);
+    if (o) return o;
+  }
   const p = { x: Math.round(x * 100), y: Math.round(y * 100) };
   return state.known.map((k) => k.obstacle).find((o) => homeKinds.has(o.kind) && o.red && (() => {
     const [x0, y0, x1, y1] = obstacleBounds(o);
@@ -2182,7 +2208,11 @@ function selectBuilding(id) {
   if (id) select([]);
   render();
 }
-function buildingAt(x, y) {
+function buildingAt(x, y, id) {
+  if (id) {
+    const o = state.known.map((k) => k.obstacle).find((o2) => o2.id === id && !o2.red);
+    if (o) return o;
+  }
   const p = { x: Math.round(x * 100), y: Math.round(y * 100) };
   return state.known.map((k) => k.obstacle).find((o) => homeKinds.has(o.kind) && !o.red && (() => {
     const [x0, y0, x1, y1] = obstacleBounds(o);
@@ -2395,9 +2425,10 @@ async function cancelTrain(buildingId, itemId) {
   }
 }
 async function rally(buildingId, x, y) {
+  const to = openPoint(x, y);
   try {
-    await client.request({ kind: "rally", buildingId, x: Math.round(x * 100), y: Math.round(y * 100) });
-    notice(`\u96C6\u7D50\u9EDE\u8A2D\u5728 (${x.toFixed(1)}, ${y.toFixed(1)})\u3002`);
+    await client.request({ kind: "rally", buildingId, x: to.x, y: to.y });
+    notice(`\u96C6\u7D50\u9EDE\u8A2D\u5728 (${(to.x / 100).toFixed(1)}, ${(to.y / 100).toFixed(1)})\u3002`);
   } catch (e) {
     notice(e.message);
   }
@@ -2452,14 +2483,25 @@ async function connect() {
 el("worker-retry").onclick = () => void connect();
 var kindOf = (id) => unitNames[state.units.find((u) => u.id === id)?.kind ?? "villager"];
 var names2 = (ids) => ids.length > 3 ? `${ids.length} \u540D\u55AE\u4F4D` : ids.map((id) => `${kindOf(id)} ${id}`).join("\u3001");
-async function move(x, y) {
+function openPoint(x, y) {
+  const map = { obstacles: state.known.map((k) => k.obstacle), tiles: state.terrain.map((t, id) => ({ ...t, id, resourceRefs: [], obstacleRefs: [] })) }, p0 = { x: Math.round(x * 100), y: Math.round(y * 100) };
+  for (let r = 0; r <= 300; r += 25) for (let dy = -r; dy <= r; dy += 25) for (let dx = -r; dx <= r; dx += 25) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const p = { x: p0.x + dx, y: p0.y + dy };
+    if (p.x < 50 || p.y < 50 || p.x > 1550 || p.y > 1550) continue;
+    if (clearSegment(map, p, p)) return p;
+  }
+  return p0;
+}
+async function move(x, y, exact = false) {
   const unitIds = [...selected].sort((a, b) => a - b);
   if (!unitIds.length) {
     notice("\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\uFF1A\u5DE6\u9375\u9EDE\u9078\u6216\u62D6\u66F3\u6846\u9078\u3002");
     return;
   }
+  const to = exact ? { x: Math.round(x * 100), y: Math.round(y * 100) } : openPoint(x, y);
   try {
-    await client.request({ kind: "move", unitIds, x: Math.round(x * 100), y: Math.round(y * 100) });
+    await client.request({ kind: "move", unitIds, x: to.x, y: to.y });
     notice(`${names2(unitIds)} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(e.message);
@@ -2605,13 +2647,13 @@ canvas.addEventListener("pointerdown", (e) => {
         void attack({ kind: "unit", id: foe.id }, `\u7D05\u65B9${unitNames[foe.kind]}`);
         return;
       }
-      const fort = enemyBuildingAt(hit.x, hit.y);
+      const fort = enemyBuildingAt(hit.x, hit.y, scene.pickBuilding(e.clientX, e.clientY));
       if (fort) {
         void attack({ kind: "building", id: fort.id }, `\u7D05\u65B9${buildingNames2[fort.kind]}`);
         return;
       }
     }
-    const site = buildingAt(hit.x, hit.y), own = site ? state.buildings.find((b) => b.id === site.id) : void 0;
+    const site = buildingAt(hit.x, hit.y, scene.pickBuilding(e.clientX, e.clientY)), own = site ? state.buildings.find((b) => b.id === site.id) : void 0;
     if (own && !own.complete && selected.size) {
       void construct(own.id);
       return;
@@ -2664,8 +2706,8 @@ canvas.addEventListener("pointerup", (e) => {
     }
   }
   {
-    const g = scene.pickGround(e.clientX, e.clientY);
-    const site = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y) : void 0;
+    const g = scene.pickGround(e.clientX, e.clientY), roof = scene.pickBuilding(e.clientX, e.clientY);
+    const site = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
     if (site && !e.shiftKey && e.pointerType !== "touch") {
       selectBuilding(site.id);
       notice(`\u5DF2\u9078\u53D6${buildingNames2[site.kind]}\u3002`);
@@ -2954,7 +2996,7 @@ el("cancel-build").onclick = async () => {
 };
 el("move").onclick = () => {
   const x = el("target-x"), y = el("target-y");
-  if (x.reportValidity() && y.reportValidity() && x.value !== "" && y.value !== "") move(Number(x.value), Number(y.value));
+  if (x.reportValidity() && y.reportValidity() && x.value !== "" && y.value !== "") move(Number(x.value), Number(y.value), true);
   else notice("\u8ACB\u8F38\u5165 0.5 \u5230 15.5 \u4E4B\u9593\u7684\u5EA7\u6A19\u3002");
 };
 el("pause").onclick = () => {

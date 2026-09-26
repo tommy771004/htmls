@@ -5,6 +5,7 @@ import {createScene} from './scene.ts';
 import {SimulationClient} from './worker-client.ts';
 import type {View} from '../../packages/sim/protocol.ts';
 import {obstacleBounds} from '../../packages/content/footprints.ts';
+import {clearSegment} from '../../packages/sim/navigation.ts';
 import type {ObstacleKind} from '../../packages/content/footprints.ts';
 import {placementProblem,buildKinds,buildingRules} from '../../packages/sim/buildings.ts';
 import {trainBlocker,ageOf} from '../../packages/sim/production.ts';
@@ -57,7 +58,7 @@ const doing=(u:View['units'][number])=>u.action===1?'攻擊中':u.work&&u.naviga
 function activity(u:View['units'][number]){const life=u.hp<u.maxHp?` · 生命 ${u.hp}/${u.maxHp}`:'';return (u.cargo?`${doing(u)} · 攜帶${resourceNames[u.cargo.resource]} ${u.cargo.amount}`:doing(u))+life;}
 async function attack(target:{kind:'unit';id:number}|{kind:'building';id:string},label:string){const unitIds=[...selected].sort((a,b)=>a-b);if(!unitIds.length){notice('請先選取單位。');return;}
  try{await client.request({kind:'attack',unitIds,target});notice(`${names(unitIds)} 攻擊${label}。${running?'':resumeHint()}`);}catch(e){notice((e as Error).message);}}
-function enemyBuildingAt(x:number,y:number){const p={x:Math.round(x*100),y:Math.round(y*100)};return state.known.map(k=>k.obstacle).find(o=>homeKinds.has(o.kind)&&o.red&&(()=>{const [x0,y0,x1,y1]=obstacleBounds(o);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;})());}
+function enemyBuildingAt(x:number,y:number,id?:string){if(id){const o=state.known.map(k=>k.obstacle).find(o=>o.id===id&&o.red);if(o)return o;}const p={x:Math.round(x*100),y:Math.round(y*100)};return state.known.map(k=>k.obstacle).find(o=>homeKinds.has(o.kind)&&o.red&&(()=>{const [x0,y0,x1,y1]=obstacleBounds(o);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;})());}
 const statusLabel:Record<string,string>={idle:'待命',searching:'尋路中',moving:'移動中',waiting:'等待讓路',unreachable:'無法到達，停在最近點',stuck:'受阻停止'};
 const resumeHint=()=>debug?'按「開始」或「前進 1 tick」執行。':'繼續遊戲（▶）後執行。';
 const playIcon='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>',pauseIcon='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z"/></svg>';
@@ -117,7 +118,7 @@ function renderOutcome(){const o=state.outcome,box=el('result');box.hidden=!o;if
  el('result-title').textContent=won?'勝利':o.winner===null?'雙方同歸於盡':'戰敗';el('result-detail').textContent=`${el('clock').textContent}（tick ${o.tick}）：${won?'紅方已沒有任何單位與建築。':'藍方已沒有任何單位與建築。'}`;if(running)setRunning(false);renderPaused();}
 function reportTransactions(){for(const t of state.transactions)if(t.sequence>lastTransaction){lastTransaction=t.sequence;if(!t.ok)notice(`指令在 tick ${t.tick} 未執行：${t.error}`);}}
 function selectBuilding(id:string|null){selectedBuilding=id;if(id)select([]);render();}
-function buildingAt(x:number,y:number){const p={x:Math.round(x*100),y:Math.round(y*100)};return state.known.map(k=>k.obstacle).find(o=>homeKinds.has(o.kind)&&!o.red&&(()=>{const [x0,y0,x1,y1]=obstacleBounds(o);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;})());}
+function buildingAt(x:number,y:number,id?:string){if(id){const o=state.known.map(k=>k.obstacle).find(o=>o.id===id&&!o.red);if(o)return o;}const p={x:Math.round(x*100),y:Math.round(y*100)};return state.known.map(k=>k.obstacle).find(o=>homeKinds.has(o.kind)&&!o.red&&(()=>{const [x0,y0,x1,y1]=obstacleBounds(o);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;})());}
 function placeAt(k:BuildKind,gx:number,gy:number){const [x0,y0,x1,y1]=obstacleBounds({kind:k,x:0,y:0}),g=buildingRules.grid,x=Math.round((gx*100-(x0+x1)/2)/g)*g,y=Math.round((gy*100-(y0+y1)/2)/g)*g;
  const problem=placementProblem({tiles:state.terrain,obstacles:state.known.map(o=>o.obstacle),units:state.units,explored:t=>(state.fog[t]??0)>0},k,x,y);return {x,y,problem};}
 function stopPlacing(message?:string){placing=null;preview=null;scene?.setGhost(null);if(message)notice(message);render();}
@@ -165,7 +166,7 @@ el('commands').addEventListener('pointerleave',()=>{tipTile=null;renderNote();})
 el('commands').addEventListener('focusin',e=>{tipTile=(e.target as HTMLElement).closest('button.tile');renderNote();});el('commands').addEventListener('focusout',()=>{tipTile=null;renderNote();});
 async function train(buildingId:string,entryId:string){try{await client.request({kind:'train',buildingId,entryId});notice(`${entryName(entryId)}將在 tick ${state.tick+1} 加入佇列並扣除 ${costText(entryId)}。${running?'':resumeHint()}`);}catch(e){notice((e as Error).message);}}
 async function cancelTrain(buildingId:string,itemId:number){try{const q=state.buildings.find(b=>b.id===buildingId)?.queue.find(q=>q.id===itemId);await client.request({kind:'cancelTrain',buildingId,itemId});notice(`已取消${q?entryName(q.entryId):'項目'}，全額退回。`);}catch(e){notice((e as Error).message);}}
-async function rally(buildingId:string,x:number,y:number){try{await client.request({kind:'rally',buildingId,x:Math.round(x*100),y:Math.round(y*100)});notice(`集結點設在 (${x.toFixed(1)}, ${y.toFixed(1)})。`);}catch(e){notice((e as Error).message);}}
+async function rally(buildingId:string,x:number,y:number){const to=openPoint(x,y);try{await client.request({kind:'rally',buildingId,x:to.x,y:to.y});notice(`集結點設在 (${(to.x/100).toFixed(1)}, ${(to.y/100).toFixed(1)})。`);}catch(e){notice((e as Error).message);}}
 function toggle(id:number){const next=new Set(selected);if(next.has(id))next.delete(id);else next.add(id);select(next);}
 el<HTMLSelectElement>('opponent').value=debug?'idle':'ai';
 const client=new SimulationClient(rules.settings.seed,debug?'idle':'ai',v=>{state=v;render();},reason=>{connected=false;setRunning(false);toggleControls();notice(reason);el('worker-retry').hidden=false;});
@@ -178,8 +179,15 @@ async function connect(){el<HTMLButtonElement>('worker-retry').disabled=true;try
 el('worker-retry').onclick=()=>void connect();
 const kindOf=(id:number)=>unitNames[state.units.find(u=>u.id===id)?.kind??'villager'];
 const names=(ids:number[])=>ids.length>3?`${ids.length} 名單位`:ids.map(id=>`${kindOf(id)} ${id}`).join('、');
-async function move(x:number,y:number){const unitIds=[...selected].sort((a,b)=>a-b);if(!unitIds.length){notice('請先選取單位：左鍵點選或拖曳框選。');return;}
- try{await client.request({kind:'move',unitIds,x:Math.round(x*100),y:Math.round(y*100)});notice(`${names(unitIds)} 的移動指令已排入 tick ${state.tick+1}。${running?'':resumeHint()}`);}catch(e){notice((e as Error).message);}}
+// A move or rally point inside something solid walks as close as it can, as in the original: the nearest open point
+// by what the player knows (seen obstacles and terrain). The Worker still validates the result.
+function openPoint(x:number,y:number){const map={obstacles:state.known.map(k=>k.obstacle),tiles:state.terrain.map((t,id)=>({...t,id,resourceRefs:[],obstacleRefs:[]}))} as unknown as Parameters<typeof clearSegment>[0],p0={x:Math.round(x*100),y:Math.round(y*100)};
+ for(let r=0;r<=300;r+=25)for(let dy=-r;dy<=r;dy+=25)for(let dx=-r;dx<=r;dx+=25){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const p={x:p0.x+dx,y:p0.y+dy};if(p.x<50||p.y<50||p.x>1550||p.y>1550)continue;if(clearSegment(map,p,p))return p;}
+ return p0;}
+async function move(x:number,y:number,exact=false){const unitIds=[...selected].sort((a,b)=>a-b);if(!unitIds.length){notice('請先選取單位：左鍵點選或拖曳框選。');return;}
+ // The debug coordinate button sends exactly what was typed, so the Worker's own validation stays reachable.
+ const to=exact?{x:Math.round(x*100),y:Math.round(y*100)}:openPoint(x,y);
+ try{await client.request({kind:'move',unitIds,x:to.x,y:to.y});notice(`${names(unitIds)} 的移動指令已排入 tick ${state.tick+1}。${running?'':resumeHint()}`);}catch(e){notice((e as Error).message);}}
 async function gather(resourceId:string){const unitIds=villagersIn(selected);if(!unitIds.length){notice(selected.size?'所選單位中沒有村民，不能採集。':'請先選取村民。');return;}
  try{await client.request({kind:'gather',unitIds,resourceId});notice(`${names(unitIds)} 前往採集。${leftOut(unitIds)}${running?'':resumeHint()}`);}catch(e){notice((e as Error).message);}}
 // A right-click inside a visible resource's footprint is a gather order; ground elsewhere is a move.
@@ -208,8 +216,8 @@ canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed)return;
  if(e.button===2){e.preventDefault();endDrag();const hit=scene.pickGround(e.clientX,e.clientY);if(hit.x===undefined||hit.y===undefined||hit.x<.5||hit.x>15.5||hit.y<.5||hit.y>15.5){notice('請在地圖內側的地面按右鍵。');return;}
   if(selectedBuilding&&!selected.size){orderAtGround(hit.x,hit.y);return;}// Enemy unit under the cursor, then enemy building: attack orders.
   if(selected.size){const u=scene.pick(e.clientX,e.clientY);const foe=u.unitId!==undefined?state.units.find(v=>v.id===u.unitId&&v.player!==0):undefined;if(foe){void attack({kind:'unit',id:foe.id},`紅方${unitNames[foe.kind]}`);return;}
-   const fort=enemyBuildingAt(hit.x,hit.y);if(fort){void attack({kind:'building',id:fort.id!},`紅方${buildingNames[fort.kind]}`);return;}}
-  const site=buildingAt(hit.x,hit.y),own=site?state.buildings.find(b=>b.id===site.id):undefined;if(own&&!own.complete&&selected.size){void construct(own.id);return;}
+   const fort=enemyBuildingAt(hit.x,hit.y,scene.pickBuilding(e.clientX,e.clientY));if(fort){void attack({kind:'building',id:fort.id!},`紅方${buildingNames[fort.kind]}`);return;}}
+  const site=buildingAt(hit.x,hit.y,scene.pickBuilding(e.clientX,e.clientY)),own=site?state.buildings.find(b=>b.id===site.id):undefined;if(own&&!own.complete&&selected.size){void construct(own.id);return;}
   const r=resourceAt(hit.x,hit.y);if(r){void gather(r.id);return;}void move(hit.x,hit.y);return;}
  if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId,box:false};canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;if(!drag.box&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>=4)drag.box=true;if(drag.box)showBox(drag.x,drag.y,e.clientX,e.clientY);});
@@ -221,7 +229,7 @@ canvas.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.id||!scene)
  if(hit.unitId!==undefined){const unit=state.units.find(u=>u.id===hit.unitId);if(unit?.player===0){if(e.shiftKey)toggle(unit.id);else choose(unit.id);}else notice('紅方單位不可由藍方控制。');return;}
  // Touch has no right button: a tap on the ground moves the current selection instead of clearing it.
  if(e.pointerType==='touch'&&selected.size){const g=scene.pickGround(e.clientX,e.clientY);if(g.x!==undefined&&g.y!==undefined&&g.x>=.5&&g.x<=15.5&&g.y>=.5&&g.y<=15.5){const r=resourceAt(g.x,g.y);if(r)void gather(r.id);else void move(g.x,g.y);return;}}
- {const g=scene.pickGround(e.clientX,e.clientY);const site=g.x!==undefined&&g.y!==undefined?buildingAt(g.x,g.y):undefined;if(site&&!e.shiftKey&&e.pointerType!=='touch'){selectBuilding(site.id!);notice(`已選取${buildingNames[site.kind]}。`);return;}}
+ {const g=scene.pickGround(e.clientX,e.clientY),roof=scene.pickBuilding(e.clientX,e.clientY);const site=g.x!==undefined&&g.y!==undefined?buildingAt(g.x,g.y,roof):roof?buildingAt(-1,-1,roof):undefined;if(site&&!e.shiftKey&&e.pointerType!=='touch'){selectBuilding(site.id!);notice(`已選取${buildingNames[site.kind]}。`);return;}}
  if(!e.shiftKey&&selected.size){select([]);notice('已取消選取。移動指令請對地面按右鍵（觸控：選取後輕觸地面）。');}
  else if(!e.shiftKey&&selectedBuilding)selectBuilding(null);});
 // Minimap: the board drawn with the camera's heading and foreshortening, so the view outline is a plain rectangle.
@@ -285,7 +293,7 @@ el('stop').onclick=()=>void stop();renderGroups();
 el('result-restart').onclick=()=>el('restart').click();
 for(const k of buildKinds)el(`build-${k}`).onclick=()=>{if(buildBlocker(k))return;placing=k;preview=null;notice(`在戰場上移動滑鼠選擇${buildingNames[k]}的位置。`);render();};
 el('cancel-build').onclick=async()=>{const b=state.buildings.find(b=>b.id===selectedBuilding);if(!b)return;try{await client.request({kind:'cancelBuild',buildingId:b.id});notice(`已取消${buildingNames[b.kind]}，退回 ${costText(b.kind as BuildKind)}。`);selectBuilding(null);}catch(e){notice((e as Error).message);}};
-el('move').onclick=()=>{const x=el<HTMLInputElement>('target-x'),y=el<HTMLInputElement>('target-y');if(x.reportValidity()&&y.reportValidity()&&x.value!==''&&y.value!=='')move(Number(x.value),Number(y.value));else notice('請輸入 0.5 到 15.5 之間的座標。');};
+el('move').onclick=()=>{const x=el<HTMLInputElement>('target-x'),y=el<HTMLInputElement>('target-y');if(x.reportValidity()&&y.reportValidity()&&x.value!==''&&y.value!=='')move(Number(x.value),Number(y.value),true);else notice('請輸入 0.5 到 15.5 之間的座標。');};
 el('pause').onclick=()=>{if(!state.outcome)setRunning(!running);};
 el<HTMLSelectElement>('speed').onchange=e=>{speed=Number((e.target as HTMLSelectElement).value);accumulator=0;if(running)setRunning(true);notice(`遊戲速度 ${speed}×（每秒 ${20*speed} ticks，不跳過任何 tick）。`);};
 el('step').onclick=async()=>{try{await client.request({kind:'advance',count:1});}catch(e){setRunning(false);notice((e as Error).message);}};
