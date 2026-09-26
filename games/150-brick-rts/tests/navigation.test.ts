@@ -4,7 +4,7 @@ import {makeMap,clearSegment,position,createPathJob,advancePathJob,navigationRul
 import type {MapData,Obstacle} from '../packages/sim/navigation.ts';
 import {createTiles} from '../packages/sim/terrain.ts';
 import {createState,submit,tick,hash,serialize,deserialize,rulesetHash,replay} from '../packages/sim/sim.ts';
-function mapWith(obstacles:Obstacle[]):MapData{const m:MapData={obstacles,blocked:[],tiles:createTiles(),resources:[],navigationRevision:0,generationAttempt:0};for(let i=0;i<961;i++)if(!clearSegment(m,position(i),position(i)))m.blocked.push(i);return m;}
+function mapWith(obstacles:Obstacle[]):MapData{const m:MapData={size:16,starts:[[{x:350,y:700}],[{x:1150,y:700}]],obstacles,blocked:[],tiles:createTiles(),resources:[],navigationRevision:0,generationAttempt:0};for(let i=0;i<961;i++)if(!clearSegment(m,position({size:16},i),position({size:16},i)))m.blocked.push(i);return m;}
 test('fixed-budget search preserves frontier across snapshots and routes through the town-center gate',()=>{
  // Blue town center at (265,350): gate centre x=400, arch band y 500-525, hall behind it.
  const s=createState(260925);submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds:[1],x:400,y:420}});assert.ok(tick(s).expanded<=navigationRules.expansionsPerTick);
@@ -17,7 +17,8 @@ test('a solid house footprint still forces a detour',()=>{
  const map=mapWith([{kind:'house',x:300,y:400}]),job=createPathJob(map,1,{x:350,y:700},{x:350,y:300});advancePathJob(map,job,961);
  assert.equal(job.status,'found');assert.ok(job.path.some(p=>p.x<260||p.x>560));assert.ok(job.path.every((p,i)=>i===0||clearSegment(map,job.path[i-1],p)));
 });
-test('blocked command is rejected before changing sequence, log or current work',()=>{const s=createState(42),before=hash(s);assert.throws(()=>submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds:[1],x:300,y:450}}),/占地/);assert.equal(hash(s),before);});
+test('an invalid command is rejected before changing sequence, log or current work; a move into something solid walks to the nearest open node',()=>{const s=createState(42),before=hash(s);assert.throws(()=>submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds:[1],x:30,y:450}}),/超出地圖/);assert.equal(hash(s),before);
+ submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds:[1],x:300,y:450}});for(let i=0;i<600;i++)tick(s);const u=s.units.find(u=>u.id===1)!;assert.ok(clearSegment(s.map,u,u)&&Math.abs(u.x-300)+Math.abs(u.y-450)<=150,`stopped at ${u.x},${u.y}`);});
 test('unreachable search terminates; serialized work produces identical path',()=>{
  const wall=mapWith(Array.from({length:16},(_,i)=>({kind:'rock' as const,x:750,y:i*100-20}))); // Expand rocks enough to close 30-unit gaps with unit radius.
  const job=createPathJob(wall,1,{x:350,y:700},{x:1100,y:700});for(let i=0;i<2000&&job.status==='searching';i++)assert.ok(advancePathJob(wall,job,1)<=1);assert.equal(job.status,'unreachable');

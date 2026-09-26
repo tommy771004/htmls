@@ -170,3 +170,11 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## E：電腦對手、農田與第一場完整對局（v16）
 
 紅方由電腦操控：經濟、蓋房、兵營、農田、升第二時代、造兵、防守與分波進攻。玩家可以從首次進站一路打到勝利並再開一局（`npm run test:match`）。本輪還修正了兩個規則錯誤，並把地圖改為左右對稱，驗證見 [first-use-014.md](first-use-014.md)。E 仍是 in_progress：完整對局流程裡玩家還沒有升時代，撤退與治療也尚未實作。
+
+## 放大地圖與隨機出生（v17）
+
+新的 32×32「曠野」對戰圖、以地圖中心為圓心的隨機出生、每位玩家相同的基地資源、依地圖大小調整的電腦與畫面，以及大地圖所需的效能修正，驗證見 [first-use-016.md](first-use-016.md)；原作規則查核見 [aoe2-rules-research.md](aoe2-rules-research.md)。E 仍是 in_progress。
+
+## 投降、斥候與大地圖效能（v18）
+
+投降與電腦認輸、曠野開局的斥候（開局人口 4/5）、電腦用斥候探索、電腦經濟在大地圖上的兩個停擺修正、騎乘人偶的姿勢安全，以及大地圖效能的量測，驗證見 [first-use-017.md](first-use-017.md)。E 仍是 in_progress。

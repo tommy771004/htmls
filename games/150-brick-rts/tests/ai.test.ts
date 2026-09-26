@@ -5,9 +5,11 @@ import type {State} from '../packages/sim/sim.ts';
 import {aiRules} from '../packages/sim/ai.ts';
 import {dropoffNodes} from '../packages/sim/work.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
+import {nodeTotal,position} from '../packages/sim/navigation.ts';
 function order(s:State,commandType:string,payload:any){submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:s.sequence[0]+1,targetTick:s.tick+1,commandType,payload} as any);}
 const run=(s:State,n:number)=>{for(let i=0;i<n&&!s.outcome;i++)tick(s);return s;};
-const berries=(s:State)=>s.map.resources.filter(r=>r.kind==='berries').sort((a,b)=>a.x-b.x)[0];
+// Blue's own berries: the bush nearest blue's first villager (on the match map the bases are placed at random).
+const berries=(s:State)=>{const v=s.map.starts[0][0];return s.map.resources.filter(r=>r.kind==='berries').sort((a,b)=>Math.hypot(a.x-v.x,a.y-v.y)-Math.hypot(b.x-v.x,b.y-v.y))[0];};
 
 test('idle opponent is unchanged: red keeps one villager and never acts',()=>{
  const s=run(createState(260925),3000);
@@ -16,15 +18,16 @@ test('idle opponent is unchanged: red keeps one villager and never acts',()=>{
 });
 
 test('computer opponent starts like blue and its orders are admitted but never logged',()=>{
- const s=createState(260925,'meadow','ai');
- assert.equal(s.units.filter(u=>u.player===1).length,3);assert.equal(s.accounts[1].populationUsed,3);
+ const s=createState(260925,'open','ai');
+ // Three villagers plus the scout on the match map, like blue.
+ assert.equal(s.units.filter(u=>u.player===1&&u.kind==='villager').length,3);assert.equal(s.units.filter(u=>u.player===1&&u.kind==='scout').length,1);assert.equal(s.accounts[1].populationUsed,4);
  order(s,'gather',{unitIds:[1,2,3],resourceId:berries(s).id});run(s,1500);
  assert.ok(s.sequence[1]>0,'red issued orders');assert.ok(s.log.every(c=>c.playerId===0),'only the human player is logged');
  assert.ok(s.units.filter(u=>u.player===1&&u.kind==='villager').length>3,'red trained villagers');
 });
 
 test('computer opponent is deterministic across save/load and replay',()=>{
- const straight=createState(260925,'meadow','ai');order(straight,'gather',{unitIds:[1,2,3],resourceId:berries(straight).id});run(straight,1500);
+ const straight=createState(260925,'open','ai');order(straight,'gather',{unitIds:[1,2,3],resourceId:berries(straight).id});run(straight,1500);
  const restored=deserialize(serialize(straight));run(straight,1500);run(restored,1500);
  assert.equal(hash(restored),hash(straight));
  assert.equal(hash(replay(straight.seed,straight.log,straight.tick,straight.layout,'ai')),hash(straight));
@@ -33,7 +36,7 @@ test('computer opponent is deterministic across save/load and replay',()=>{
 });
 
 test('computer opponent builds an economy, ages up, attacks only after the grace time and can win',()=>{
- const s=createState(260925,'meadow','ai'),seen={house:0,barracks:0,farm:0,soldier:0,age2:0,firstBlueLoss:0};
+ const s=createState(260925,'open','ai'),seen={house:0,barracks:0,farm:0,soldier:0,age2:0,firstBlueLoss:0};
  while(s.tick<20000&&!s.outcome){tick(s);const red=s.buildings.filter(b=>b.player===1);
   for(const k of ['house','barracks','farm'] as const)if(!seen[k]&&red.some(b=>b.kind===k&&b.complete))seen[k]=s.tick;
   if(!seen.soldier&&s.units.some(u=>u.player===1&&u.kind!=='villager'))seen.soldier=s.tick;
@@ -44,16 +47,34 @@ test('computer opponent builds an economy, ages up, attacks only after the grace
  assert.equal(s.outcome?.winner,1,'red conquers an idle blue');
  // Red's own buildings never close its drop-off ring, and the barracks sits on red's half.
  assert.ok(dropoffNodes(s.map,1).length>0);
- const b=s.buildings.find(b=>b.player===1&&b.kind==='barracks');if(b){const box=obstacleBounds(s.map.obstacles.find(o=>o.id===b.id)!);assert.ok(box[0]>=800+aiRules.halfMargin);}
+ // Barracks: every corner lies at least halfMargin beyond the centre towards red's own town centre.
+ const b=s.buildings.find(b=>b.player===1&&b.kind==='barracks'),tc=s.buildings.find(b=>b.player===1&&b.kind==='town-center');
+ if(b&&tc){const box=obstacleBounds(s.map.obstacles.find(o=>o.id===b.id)!),home=obstacleBounds(s.map.obstacles.find(o=>o.id===tc.id)!),mid=s.map.size*50,hx=(home[0]+home[2])/2-mid,hy=(home[1]+home[3])/2-mid,len=Math.hypot(hx,hy);
+  for(const [x,y] of [[box[0],box[1]],[box[2],box[1]],[box[0],box[3]],[box[2],box[3]]])assert.ok(((x-mid)*hx+(y-mid)*hy)/len>=aiRules.halfMargin);}
 });
 
 test('computer opponent defends its base against blue soldiers',()=>{
- const s=createState(260925,'meadow','ai');run(s,4000);
+ const s=createState(260925,'open','ai');run(s,4000);
  const red=s.units.filter(u=>u.player===1&&u.kind!=='villager');assert.ok(red.length>0,'red has a soldier by now');
  // A blue militia appears next to the red town centre: red soldiers engage it.
  const tc=s.buildings.find(b=>b.player===1&&b.kind==='town-center')!,box=obstacleBounds(s.map.obstacles.find(o=>o.id===tc.id)!);
- const spot=[...Array(961).keys()].map(n=>({x:50+(n%31)*50,y:50+Math.floor(n/31)*50,n})).find(p=>!s.map.blocked.includes(p.n)&&!s.units.some(u=>u.node===p.n)&&p.y>box[3]+50&&p.y<box[3]+200&&p.x>box[0]&&p.x<box[2])!;
+ const spot=[...Array(nodeTotal(s.map)).keys()].map(n=>({...position(s.map,n),n})).find(p=>!s.map.blocked.includes(p.n)&&!s.units.some(u=>u.node===p.n)&&p.y>box[3]+50&&p.y<box[3]+200&&p.x>box[0]&&p.x<box[2])!;
  s.units.push({...structuredClone(s.units.find(u=>u.player===0)!),id:s.nextUnitId++,kind:'militia',hp:45,x:spot.x,y:spot.y,node:spot.n,next:null,path:[],goal:null,target:null,navigation:'idle'});s.accounts[0].populationUsed++;
  const intruder=s.nextUnitId-1;run(s,aiRules.thinkTicks*2);
  assert.ok(red.some(u=>s.attacks[u.id]?.target.kind==='unit'&&(s.attacks[u.id]!.target as {id:number}).id===intruder)||!s.units.some(u=>u.id===intruder),'red soldiers engage the intruder');
+});
+
+test('a player may resign: the match ends at once, later orders are refused, replay agrees',()=>{
+ const s=createState(260925,'open','ai');run(s,300);order(s,'resign',{});tick(s);
+ assert.deepEqual(s.outcome,{winner:1,defeated:[0],tick:301,reason:'resign'});
+ assert.throws(()=>order(s,'move',{unitIds:[1],x:s.map.starts[0][0].x,y:s.map.starts[0][0].y}),/對局已結束/);
+ assert.equal(hash(replay(s.seed,s.log,s.tick,s.layout,'ai')),hash(s));
+});
+
+test('the computer concedes once it has no town centre and no soldiers (it cannot rebuild one)',()=>{
+ const s=createState(260925,'open','ai');run(s,100);assert.equal(s.outcome,null);
+ const tc=s.buildings.find(b=>b.player===1&&b.kind==='town-center')!;
+ s.buildings=s.buildings.filter(b=>b!==tc);s.map.obstacles=s.map.obstacles.filter(o=>o.id!==tc.id);
+ run(s,aiRules.thinkTicks*2);
+ const outcome=s.outcome as {winner:number|null;reason?:string}|null;assert.equal(outcome?.winner,0);assert.equal(outcome?.reason,'resign');
 });

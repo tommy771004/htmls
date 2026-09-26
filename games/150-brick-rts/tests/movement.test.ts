@@ -13,7 +13,7 @@ function order(s:State,unitIds:number[],x:number,y:number,commandType:'move'|'st
 }
 function addUnits(s:State,nodes:[number,number][],firstId=10){
  const taken=new Set(s.units.map(u=>u.node));let id=firstId;
- for(const [x,y] of nodes){const n=nodeAt({x,y});if(n<0||s.map.blocked.includes(n)||taken.has(n))continue;taken.add(n);s.units.push(makeUnit(id++,0,x,y));}
+ for(const [x,y] of nodes){const n=nodeAt({size:16},{x,y});if(n<0||s.map.blocked.includes(n)||taken.has(n))continue;taken.add(n);s.units.push(makeUnit({size:16},id++,0,x,y));}
  s.units.sort((a,b)=>a.id-b.id);return s.units.filter(u=>u.id>=firstId).map(u=>u.id);
 }
 // Unit bodies are 50x50 squares on the nav grid: centres must stay at least 50 apart on some axis.
@@ -39,7 +39,7 @@ test('fifteen villagers queue single file through the town-center gate and nobod
  assert.equal(new Set(s.units.map(u=>u.node)).size,s.units.length);
 });
 test('two villagers meeting head-on in the gate resolve by one rerouting around the hall',()=>{
- const s=createState(260925);s.units=[makeUnit(1,0,400,400),makeUnit(2,0,400,750),makeUnit(4,1,1150,700)];
+ const s=createState(260925);s.units=[makeUnit({size:16},1,0,400,400),makeUnit({size:16},2,0,400,750),makeUnit({size:16},4,1,1150,700)];
  order(s,[1],400,850);order(s,[2],400,250);
  run(s,3000,settled([1,2]));
  const [a,b]=s.units;assert.deepEqual([a.x,a.y,a.navigation],[400,850,'idle']);assert.deepEqual([b.x,b.y,b.navigation],[400,250,'idle']);
@@ -48,8 +48,8 @@ test('a dead-end corridor reports stuck instead of jittering, and the rest of th
  const s=createState(260925);
  // Plain meadow with rock walls only: one lane at y=700 from x=550, closed at the east end.
  const walls:Obstacle[]=[];for(let x=500;x<=1100;x+=100)walls.push({kind:'rock',x,y:600},{kind:'rock',x,y:730});walls.push({kind:'rock',x:1180,y:660});
- walls.forEach((o,i)=>o.id=`wall-${i}`);s.map={obstacles:walls,blocked:[],tiles:createTiles(),resources:[],navigationRevision:1,generationAttempt:0};for(let i=0;i<961;i++)if(!clearSegment(s.map,position(i),position(i)))s.map.blocked.push(i);
- s.units=[makeUnit(1,0,600,700),makeUnit(2,0,1050,700),makeUnit(3,0,350,1100),makeUnit(4,1,1450,1450)];
+ walls.forEach((o,i)=>o.id=`wall-${i}`);s.map={size:16,starts:s.map.starts,obstacles:walls,blocked:[],tiles:createTiles(),resources:[],navigationRevision:1,generationAttempt:0};for(let i=0;i<961;i++)if(!clearSegment(s.map,position({size:16},i),position({size:16},i)))s.map.blocked.push(i);
+ s.units=[makeUnit({size:16},1,0,600,700),makeUnit({size:16},2,0,1050,700),makeUnit({size:16},3,0,350,1100),makeUnit({size:16},4,1,1450,1450)];
  order(s,[1],1050,700);order(s,[2,3],350,700);
  run(s,4000,settled([1,2,3]));
  const [a,b,c]=s.units;
@@ -59,14 +59,14 @@ test('a dead-end corridor reports stuck instead of jittering, and the rest of th
 test('stop ends movement at the next node and clears pending search',()=>{
  const s=createState(7);order(s,[1],1200,1000);for(let i=0;i<23;i++)tick(s);
  order(s,[1],0,0,'stop');run(s,20,settled([1]));
- const u=s.units[0];assert.equal(u.navigation,'idle');assert.ok(nodeAt(u)>=0);assert.equal(s.pathJobs.length,0);
+ const u=s.units[0];assert.equal(u.navigation,'idle');assert.ok(nodeAt({size:16},u)>=0);assert.equal(s.pathJobs.length,0);
 });
 test('a member sealed in a pocket reports unreachable without stalling the others',()=>{
  const s=createState(260925);
  const ring:Obstacle[]=[{kind:'rock',x:830,y:1150},{kind:'rock',x:700,y:1150},{kind:'rock',x:750,y:1060},{kind:'rock',x:750,y:1240}];
- ring.forEach((o,i)=>o.id=`ring-${i}`);s.map.obstacles.push(...ring);s.map.blocked=[];for(let i=0;i<961;i++)if(!clearSegment(s.map,position(i),position(i)))s.map.blocked.push(i);s.map.navigationRevision++;
- assert.equal(s.map.blocked.includes(nodeAt({x:800,y:1200})),false);
- s.units=[makeUnit(1,0,800,1200),makeUnit(2,0,450,700),makeUnit(3,0,400,800),makeUnit(4,1,1150,700)];
+ ring.forEach((o,i)=>o.id=`ring-${i}`);s.map.obstacles.push(...ring);s.map.blocked=[];for(let i=0;i<961;i++)if(!clearSegment(s.map,position({size:16},i),position({size:16},i)))s.map.blocked.push(i);s.map.navigationRevision++;
+ assert.equal(s.map.blocked.includes(nodeAt({size:16},{x:800,y:1200})),false);
+ s.units=[makeUnit({size:16},1,0,800,1200),makeUnit({size:16},2,0,450,700),makeUnit({size:16},3,0,400,800),makeUnit({size:16},4,1,1150,700)];
  order(s,[1,2,3],700,900);run(s,1500,settled([1,2,3]));
  assert.deepEqual(s.units.map(u=>u.navigation),['unreachable','idle','idle','idle']);assert.deepEqual([s.units[0].x,s.units[0].y],[800,1200]);
 });

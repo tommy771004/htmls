@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 156，皆放在 `web/`），以及另外 101 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151、153 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 156，皆放在 `web/`），以及另外 102 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151、153 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -157,7 +157,7 @@
 | 147 | [147-budget-envelopes.html](https://htmls-ruddy.vercel.app/web/147-budget-envelopes.html) | 專案範例 · 信封理財 · 郵戳狀態 | 信封：家庭、行銷部門、民宿三組分類，一類一只信封：預算、實際、差異金額與百分比、剩餘預算，郵戳標示正常／注意／超支；拖曳日期看月末預測、點金額改預算，總使用率、超支排行與每月趨勢 | 靜態 HTML 互動範例；預算調整只存在瀏覽器本機 |
 | 148 | [148-cfo-runway.html](https://htmls-ruddy.vercel.app/web/148-cfo-runway.html) | 專案範例 · 機場跑道 · 高階主管月報 | 跑道：三家公司的單頁經營月報：可支撐月數畫成跑道與現金耗盡停止線，營運費用情境滑桿即時移動；十項指標對比上月、上季與目標，CFO 總結依數據自動列出變好、變差與需要關注 | 靜態 HTML 互動範例；資料為示意 |
 | 149 | [149-powers-of-ten.html](https://htmls-ruddy.vercel.app/web/149-powers-of-ten.html) | 資料科學 · 62 個數量級連續縮放 | 一指之間：從大安森林公園花布上孩子的掌心出發，往外經臺北盆地、臺灣、地球、今日真實行星位置、歐特雲、銀河、本星系群、拉尼亞凱亞到可觀測宇宙邊緣；往裡經掌紋、角質層、細胞、染色質、DNA、G·C 鹼基對、碳原子電子雲、原子核與夸克，直到普朗克長度。視野與光穿越時間即時換算、自動旅程、尺規拖曳、WebAudio 刻度聲；全部即時繪製，零外部資源 | |
-| 150 | [150-brick-rts.html](web/150-brick-rts.html) | 積木即時戰略 · 開發中 | 磚築紀元：積木版世紀帝國式全畫面遊戲，可採集、建造、耕田、生產、升時代，與電腦對手打完整一局。原始碼與操作見 [README](games/150-brick-rts/README.md) | |
+| 150 | [150-brick-rts.html](web/150-brick-rts.html) | 積木即時戰略 · 開發中 | 磚築紀元：積木版世紀帝國式全畫面遊戲，在隨機出生的 32×32 地圖上採集、建造、耕田、生產、升時代，與電腦對手打完整一局。原始碼與操作見 [README](games/150-brick-rts/README.md) | |
 | 151 | [151-bike-configurator.html](https://htmls-ruddy.vercel.app/web/151-bike-configurator.html) | 品牌頁面 · 3D 客製化電商 | Crosswind R：程序化生成、依真實比例的公路車（每根輻條、每節鏈條）：即時換配色、輪組、輪胎、傳動、把手與坐墊，踩踏帶動齒盤、鏈條與後輪，含即時報價與購物車結帳 | 單檔 HTML；Three.js 與 GSAP 由 CDN 載入，需連線及 WebGL；購物車與結帳僅為本機示範，不會送出資料 |
 | 152 | [152-tideline-board.html](https://htmls-ruddy.vercel.app/web/152-tideline-board.html) | 介面風格 · 產品微互動元件板 | 潮班 TIDELINE：虛構澎湖渡輪公司的五格元件板。行程膠囊在船班卡、取消確認與退款收據之間變形；航線圖描繪航跡、港口輪播與票根；港口側欄旗標滑動；延誤通知堆疊展開與關閉；同行分票扇形寄出。每格自動示範，碰到就交給使用者 | 版面與動態參考 Inspora 的 Product 分類；班表與票價為示意 |
 | 153 | [153-slipstream-gp.html](https://htmls-ruddy.vercel.app/web/153-slipstream-gp.html) | 遊戲敘事 · Q 版 3D 卡丁車 | 尾流大獎賽：四條賽道、大獎賽／計時賽／氣球大戰三種模式、八位原創車手，跳躍甩尾迷你加速、七種道具、尾流吸附與依賽道即時合成的配樂 | 單檔 HTML；Three.js 由 CDN 載入，需連線及 WebGL；模型、貼圖、音樂與音效全部由程式生成；計時紀錄與幽靈車存在本機 |
@@ -173,11 +173,11 @@
 - 部分作品會把狀態存進 localStorage（例如 012、031、033、039、075、092、095），重開時會看到上次的狀態。
 
 
-## 101 個手機 App 原型
+## 102 個手機 App 原型
 
 每件都是 `app/` 下可單獨開啟的 HTML，使用 inline CSS/JS，圖像與聲音由程式生成；完整的風格、導覽、配色、字體與撞型規劃見 [APP-DIRECTIONS.md](APP-DIRECTIONS.md)。
 
-**App 驗收**：101 件均在 macOS headless Chromium 的 375×667 與 1440×900 尺寸檢查過，沒有頁面例外、console error、外部請求或水平溢出；五件補完作品另驗證主要操作，QR 圖已用瀏覽器 QR 解碼器確認可掃描。聲音只檢查啟動與停止，未做真人聽感評估。
+**App 驗收**：102 件均在 macOS headless Chromium 的 375×667 與 1440×900 尺寸檢查過，沒有頁面例外、console error、外部請求或水平溢出；五件補完作品另驗證主要操作，QR 圖已用瀏覽器 QR 解碼器確認可掃描。聲音只檢查啟動與停止，未做真人聽感評估。
 
 | # | 檔案 | App 類型與風格方向 | 核心功能 | 自評 |
 |---|---|---|---|---|
@@ -282,6 +282,7 @@
 | 099 | [099-picturebook-carbon.html](app/099-picturebook-carbon.html) | 小樹：碳足跡；童書水彩 | 每日選擇、減碳、樹成長、比較 |  |
 | 100 | [100-linen-springboard.html](app/100-linen-springboard.html) | 主畫面：主畫面模擬器；iOS 6 擬物：亞麻布、光澤圖示 | 長按抖動、拖曳排序、刪除、資料夾 |  |
 | 101 | [101-sift-digest.html](app/101-sift-digest.html) | 篩 Sift：晨間訊息摘要；陶土粉紙、Athelas 數字、可甩出的摘要卡 | 拖曳甩出（右讀完、左稍後）、狀態膠囊與復原、原文抽屜、稍後重看、結算 |  |
+| 102 | [102-tarry-settings.html](app/102-tarry-settings.html) | 等價 Tarry：AI 代買助理的帳戶設定；菸草棕摘要卡、Superclarendon 數字、石灰泥底 | 七頁共用一張會縮放的摘要卡、每筆上限與 Face ID 門檻滑桿、讓它忘記、預設卡與地址、下載與刪除資料、客服聊天 |  |
 
 ### App 相對較弱的作品
 - **061 木迷宮**：毛氈、蠟面、移動閘門與彈簧都已加入並逐關教學，但只有三關，玩完就沒有新內容。

@@ -11,8 +11,8 @@ import {commandAttack} from '../packages/sim/combat.ts';
 function order(s:State,commandType:string,payload:any,playerId=0){submit(s,{protocolVersion:1,rulesetHash,playerId,sequence:s.sequence[playerId]+1,targetTick:s.tick+1,commandType,payload} as any);}
 // Place a unit on the free node nearest a point (test fixture; the command log does not know it).
 function spawn(s:State,player:number,kind:UnitKind,x:number,y:number,id:number){let best=-1,dist=Infinity;const held=new Set(s.units.map(u=>u.node));
- for(let n=0;n<961;n++){if(s.map.blocked.includes(n)||held.has(n))continue;const p=position(n),d=Math.abs(p.x-x)+Math.abs(p.y-y);if(d<dist){dist=d;best=n;}}
- const p=position(best),u=makeUnit(id,player,p.x,p.y,kind);s.units.push(u);s.units.sort((a,b)=>a.id-b.id);s.accounts[player].populationUsed++;return u;}
+ for(let n=0;n<961;n++){if(s.map.blocked.includes(n)||held.has(n))continue;const p=position({size:16},n),d=Math.abs(p.x-x)+Math.abs(p.y-y);if(d<dist){dist=d;best=n;}}
+ const p=position({size:16},best),u=makeUnit({size:16},id,player,p.x,p.y,kind);s.units.push(u);s.units.sort((a,b)=>a.id-b.id);s.accounts[player].populationUsed++;return u;}
 function noOverlap(s:State){for(let i=0;i<s.units.length;i++)for(let j=i+1;j<s.units.length;j++){const a=s.units[i],b=s.units[j];assert.ok(Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))>=50,`tick ${s.tick} ${a.id}/${b.id}`);}}
 function run(s:State,n:number,stop=(_:State)=>false){for(let i=0;i<n&&!stop(s);i++){const before=s.units.map(u=>({id:u.id,x:u.x,y:u.y}));tick(s);for(const u of s.units){const b=before.find(v=>v.id===u.id);if(b)assert.ok(clearSegment(s.map,b,u));}noOverlap(s);}}
 const red=(s:State)=>s.units.find(u=>u.id===4)!;
@@ -79,7 +79,7 @@ test('every building position on the 10-unit grid can be attacked by melee (regr
   s.vision[1].explored=[...s.vision[0].visible];
   const x=700+offset[0],y=1000+offset[1];assert.equal(authoritativeProblem(s,1,'house',x,y),null,`site ${x},${y}`);
   const b=placeBuilding(s,1,'house',x,y,'1:test');
-  const m=makeUnit(s.nextUnitId++,0,400,1000,'militia');s.units.push(m);s.accounts[0].populationUsed++;
+  const m=makeUnit({size:16},s.nextUnitId++,0,400,1000,'militia');s.units.push(m);s.accounts[0].populationUsed++;
   commandAttack(s,[m.id],{kind:'building',id:b.id});
   for(let i=0;i<400&&b.hp===1;i++)tick(s);
   assert.ok(s.buildings.every(v=>v.id!==b.id)||b.hp<1||s.attacks[m.id],`offset ${offset}: attacker still engaged or target hit`);

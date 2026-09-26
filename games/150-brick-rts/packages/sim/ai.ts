@@ -2,7 +2,7 @@ import {obstacleBounds} from '../content/footprints.ts';
 import {rules} from '../content/rules.ts';
 import type {Resource} from '../content/rules.ts';
 import {resourceDefinitions,tileAt} from './terrain.ts';
-import {clearSegment,isBuilding} from './navigation.ts';
+import {clearSegment,isBuilding,position} from './navigation.ts';
 import {placementProblem,buildKinds,farmOwner,buildingRules} from './buildings.ts';
 import type {Building,BuildKind} from './buildings.ts';
 import {trainable} from './production.ts';
@@ -18,9 +18,9 @@ import type {PlayerVision} from './vision.ts';
 // thinkTicks: one decision pass per second at 20 Hz. firstWaveTick: no attack wave before 4 minutes.
 export const aiRules={provenance:'design_default',player:1,thinkTicks:20,thinkOffset:7,villagerTarget:12,
  gatherWeights:{food:4,wood:3,gold:2,stone:0},houseMargin:2,barracksAtVillagers:3,ageUpAtVillagers:9,
- waveSize:5,firstWaveTick:4800,engageRange:500,defendRadius:700,baseMargin:50,siteRange:900,siteStep:20,halfMargin:100,spill:100} as const;
+ waveSize:5,firstWaveTick:4800,engageRange:500,defendRadius:700,baseMargin:50,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100} as const;
 export type AIState=CombatState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
-export type Order=(commandType:'move'|'gather'|'build'|'construct'|'train'|'attack',payload:Record<string,unknown>)=>boolean;
+export type Order=(commandType:'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign',payload:Record<string,unknown>)=>boolean;
 type Box=number[];
 const gap=(a:Box,b:Box)=>Math.max(a[0]-b[2],b[0]-a[2],a[1]-b[3],b[1]-a[3],0);
 const centre=(b:Box)=>({x:(b[0]+b[2])/2,y:(b[1]+b[3])/2});
@@ -30,10 +30,16 @@ export function stepAI(s:AIState,order:Order){
  const P=aiRules.player,vision=s.vision[P],seen=new Set(vision.visible),explored=new Set(vision.explored);
  const busy=new Set(s.pathJobs.flatMap(j=>j.kind==='group'?j.unitIds:[j.unitId]));
  const idle=(u:Unit)=>!s.works[u.id]&&!s.attacks[u.id]&&u.next===null&&!u.path.length&&!busy.has(u.id);
- const mine=s.units.filter(u=>u.player===P).sort((a,b)=>a.id-b.id),villagers=mine.filter(u=>u.kind==='villager'),soldiers=mine.filter(u=>u.kind!=='villager');
+ const mine=s.units.filter(u=>u.player===P).sort((a,b)=>a.id-b.id),villagers=mine.filter(u=>u.kind==='villager'),soldiers=mine.filter(u=>u.kind==='militia'||u.kind==='archer'),scout=mine.find(u=>u.kind==='scout');
  const own=s.buildings.filter(b=>b.player===P),tc=own.find(b=>b.kind==='town-center'),tcBox=tc?boxOf(s,tc):null;
- const foes=s.units.filter(u=>u.player!==P&&seen.has(tileAt(u.x,u.y))).sort((a,b)=>a.id-b.id);
+ const foes=s.units.filter(u=>u.player!==P&&seen.has(tileAt(u.x,u.y,s.map.size))).sort((a,b)=>a.id-b.id);
+ // Concede when nothing can turn the game: no town centre (it cannot be rebuilt) and no soldiers left.
+ if(!tc&&!soldiers.length){order('resign',{});return;}
  army(s,order,soldiers,foes,tcBox,idle,explored);
+ // The scout explores: whenever idle it rides to the nearest tile red has never seen, so waves can aim at
+ // buildings it actually found (the point reflection stays the fallback when nothing is known).
+ if(scout&&idle(scout)){const size=s.map.size;let best=-1,far=Infinity;for(let t=0;t<size*size;t++){if(explored.has(t))continue;const d=Math.hypot((t%size)*100+50-scout.x,Math.floor(t/size)*100+50-scout.y);if(d<far){far=d;best=t;}}
+  if(best>=0)march(s,order,[scout],{x:(best%size)*100+50,y:Math.floor(best/size)*100+50});}
  if(!tc||!tcBox)return;
  const account=s.accounts[P],stock=account.stock;
  // Unfinished foundations with nobody working on them get one builder.
@@ -60,7 +66,9 @@ export function stepAI(s:AIState,order:Order){
  for(const u of villagers){const w=s.works[u.id];if(w?.kind==='gather'){const r=s.map.resources.find(r=>r.id===w.resourceId);if(r){staff[resourceDefinitions[r.kind].yield]++;if(r.kind==='farm')farmers.add(r.id);}}}
  for(const u of villagers.filter(idle)){
   const kinds=(Object.keys(aiRules.gatherWeights) as Resource[]).filter(k=>aiRules.gatherWeights[k]>0).sort((a,b)=>staff[a]/aiRules.gatherWeights[a]-staff[b]/aiRules.gatherWeights[b]);
-  for(const kind of kinds){const source=s.map.resources.filter(r=>resourceDefinitions[r.kind].yield===kind&&explored.has(tileAt(r.x,r.y))&&!gatherable(s.map,r.id)&&(r.kind!=='farm'||farmOwner(s,r.id)===P&&!farmers.has(r.id))).sort((a,b)=>dist(u,a)-dist(u,b)||(a.id<b.id?-1:1))[0];
+  // Food counts only within reach of the own town centre (otherwise villagers would walk to the opponent's
+  // berries once the scout has seen them); beyond that a farm is laid out instead.
+  for(const kind of kinds){const source=s.map.resources.filter(r=>resourceDefinitions[r.kind].yield===kind&&explored.has(tileAt(r.x,r.y,s.map.size))&&(kind!=='food'||dist(r,centre(tcBox))<=aiRules.siteRange)&&!gatherable(s.map,r.id)&&(r.kind!=='farm'||farmOwner(s,r.id)===P&&!farmers.has(r.id))).sort((a,b)=>dist(u,a)-dist(u,b)||(a.id<b.id?-1:1))[0];
    if(source&&order('gather',{unitIds:[u.id],resourceId:source.id})){staff[kind]++;if(source.kind==='farm')farmers.add(source.id);break;}
    // No natural food left in sight: this villager lays out a farm (one farmer per field).
    if(kind==='food'&&!source&&!own.some(b=>b.kind==='farm'&&!b.complete)&&place(s,order,'farm',villagers,idle,tcBox,own,u))break;}
@@ -77,15 +85,21 @@ function pickBuilder(s:AIState,villagers:Unit[],idle:(u:Unit)=>boolean,near:{x:n
 function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Unit)=>boolean,tcBox:Box,own:Building[],worker?:Unit):boolean{
  const cost=rules.entries.find(e=>e.id===kind)!.cost,stock=s.accounts[aiRules.player].stock;
  if((Object.keys(cost) as Resource[]).some(r=>stock[r]<cost[r])||!buildKinds.includes(kind))return false;
- const c=centre(tcBox),others=own.filter(b=>b.kind!=='farm'&&b.kind!=='town-center').map(b=>boxOf(s,b)).filter(b=>b!==null) as Box[],[x0,y0,x1,y1]=obstacleBounds({kind,x:0,y:0}),right=c.x>=800;
- const explored=new Set(s.vision[aiRules.player].explored),bodies=s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[{x:50+(u.next%31)*50,y:50+Math.floor(u.next/31)*50}])]);
+ const c=centre(tcBox),others=own.filter(b=>b.kind!=='farm'&&b.kind!=='town-center').map(b=>boxOf(s,b)).filter(b=>b!==null) as Box[],[x0,y0,x1,y1]=obstacleBounds({kind,x:0,y:0}),world=s.map.size*100,
+  // Mines, berries and animals keep room round them, so a building never boxes in their work slots.
+  sources=s.map.obstacles.filter(o=>o.kind==='gold'||o.kind==='rock'||o.kind==='berries'||o.kind==='hunt'||o.kind==='livestock').map(o=>obstacleBounds(o)),middle=world/2,axis=Math.hypot(c.x-middle,c.y-middle)||1,ux=(c.x-middle)/axis,uy=(c.y-middle)/axis;
+ // Own side: how far a point lies from the map centre towards the own town centre (negative = the far side).
+ const side=(x:number,y:number)=>(x-middle)*ux+(y-middle)*uy;
+ const explored=new Set(s.vision[aiRules.player].explored),bodies=s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[position(s.map,u.next)])]);
  const input={tiles:s.map.tiles,obstacles:s.map.obstacles,units:bodies,explored:(t:number)=>explored.has(t)},sites:{x:number;y:number;d:number}[]=[];
  const g=buildingRules.grid,from=(v:number)=>Math.ceil(-v/g)*g;
- for(let x=from(x0);x<=1600-x1;x+=aiRules.siteStep)for(let y=from(y0);y<=1600-y1;y+=aiRules.siteStep){const box=[x+x0,y+y0,x+x1,y+y1],mid=centre(box);
+ // Only the window within siteRange of the town centre is scanned.
+ const lo=(v:number,o:number)=>Math.max(from(o),Math.ceil((v-aiRules.siteRange)/g)*g),hi=(v:number,o:number)=>Math.min(world-o,v+aiRules.siteRange);
+ for(let x=lo(c.x,x0);x<=hi(c.x,x1);x+=aiRules.siteStep)for(let y=lo(c.y,y0);y<=hi(c.y,y1);y+=aiRules.siteStep){const box=[x+x0,y+y0,x+x1,y+y1],mid=centre(box);
   // The barracks keeps a buffer from the centre line so fresh soldiers do not start inside enemy sight;
   // houses and farms may reach a little past it (the 16x16 map leaves little room once a base grows).
-  const margin=kind==='barracks'?aiRules.halfMargin:-aiRules.spill,ownHalf=right?box[0]>=800+margin:box[2]<=800-margin;
-  if(!ownHalf||dist(mid,c)>aiRules.siteRange||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&others.some(o=>gap(box,o)<50)))continue;sites.push({x,y,d:dist(mid,c)});}
+  const margin=kind==='barracks'?aiRules.halfMargin:-aiRules.spill,ownHalf=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3]))>=margin;
+  if(!ownHalf||dist(mid,c)>aiRules.siteRange||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<50)||sources.some(o=>gap(box,o)<aiRules.sourceMargin))))continue;sites.push({x,y,d:dist(mid,c)});}
  sites.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);
  for(const site of sites){if(placementProblem(input,kind,site.x,site.y))continue;
   const builder=worker??pickBuilder(s,villagers,idle,site);if(!builder)return false;
@@ -119,13 +133,14 @@ function army(s:AIState,order:Order,soldiers:Unit[],foes:Unit[],tcBox:Box|null,i
 function objective(s:AIState,home:{x:number;y:number},explored:Set<number>,wave:boolean){
  const P=aiRules.player,known=s.vision[P].known.map(k=>k.obstacle).filter(o=>isBuilding(o)&&!o.red).map(o=>centre(obstacleBounds(o)));
  if(known.length)return known.sort((a,b)=>dist(a,home)-dist(b,home))[0];
- const mirror={x:1600-home.x,y:home.y};if(wave&&!explored.has(tileAt(mirror.x,mirror.y)))return mirror;
- for(let t=0;t<256;t++){const id=(t*97)%256;if(!explored.has(id))return {x:(id%16)*100+50,y:Math.floor(id/16)*100+50};}
+ // The opponent is assumed to start roughly opposite (players are placed round the centre): the point reflection.
+ const middle=s.map.size*50,mirror={x:2*middle-home.x,y:2*middle-home.y};if(wave&&!explored.has(tileAt(mirror.x,mirror.y,s.map.size)))return mirror;
+ const size=s.map.size,count=size*size;for(let t=0;t<count;t++){const id=(t*97)%count;if(!explored.has(id))return {x:(id%size)*100+50,y:Math.floor(id/size)*100+50};}
  return mirror;
 }
 // Moves a group to the nearest standable point around the goal (the same check a human move order gets).
 function march(s:AIState,order:Order,units:Unit[],goal:{x:number;y:number}){
  for(let r=0;r<=400;r+=50)for(let dy=-r;dy<=r;dy+=50)for(let dx=-r;dx<=r;dx+=50){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;
-  const p={x:Math.round((goal.x+dx)/50)*50,y:Math.round((goal.y+dy)/50)*50};if(p.x<50||p.y<50||p.x>1550||p.y>1550||!clearSegment(s.map,p,p))continue;
+  const p={x:Math.round((goal.x+dx)/50)*50,y:Math.round((goal.y+dy)/50)*50};const edge=s.map.size*100-50;if(p.x<50||p.y<50||p.x>edge||p.y>edge||!clearSegment(s.map,p,p))continue;
   if(order('move',{unitIds:units.map(u=>u.id).sort((a,b)=>a-b).slice(0,40),x:p.x,y:p.y}))return;}
 }

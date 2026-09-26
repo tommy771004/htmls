@@ -12,7 +12,7 @@ test('house foundation uses the physical footprint, independent of age and rende
  assert.deepEqual(obstacleBounds({kind:'house',x:300,y:400},25),[260,360,560,640]);
 });
 test('every registered obstacle rejects contact and admits a point just outside expanded bounds',()=>{
- for(const kind of Object.keys(obstacleFootprints) as ObstacleKind[]){const o={kind,x:600,y:600},map={obstacles:[o],blocked:[],tiles:createTiles(),resources:[],navigationRevision:0,generationAttempt:0},rects=obstacleRects(o,25);
+ for(const kind of Object.keys(obstacleFootprints) as ObstacleKind[]){const o={kind,x:600,y:600},map={size:16,starts:[[{x:350,y:700}],[{x:1150,y:700}]],obstacles:[o],blocked:[],tiles:createTiles(),resources:[],navigationRevision:0,generationAttempt:0},rects=obstacleRects(o,25);
   const inside=(p:{x:number;y:number})=>rects.some(([x0,y0,x1,y1])=>p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1);
   for(const [x0,y0,x1,y1] of rects){const mx=Math.round((x0+x1)/2),my=Math.round((y0+y1)/2);
    for(const [on,out] of [[{x:x0,y:my},{x:x0-1,y:my}],[{x:x1,y:my},{x:x1+1,y:my}],[{x:mx,y:y0},{x:mx,y:y0-1}],[{x:mx,y:y1},{x:mx,y:y1+1}]]){assert.equal(clearSegment(map,on,on),false,kind);if(!inside(out))assert.equal(clearSegment(map,out,out),true,kind);}

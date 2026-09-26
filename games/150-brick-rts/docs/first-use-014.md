@@ -39,7 +39,7 @@
 4. **集結**：tick 約 4150 時人口 8/10，框選集結點附近的 5 名民兵並設為編組 1。
 5. **進軍**：小地圖右鍵紅方城鎮中心前方的空地。
 6. **攻城**：依藍方看過的紅方建築（迷霧記憶，和小地圖顯示的資訊相同），依序右鍵攻擊城鎮中心、住宅、農田與兵營。
-7. **結果**：06:21（tick 7630）出現「勝利：紅方已沒有任何單位與建築」。按「再開一局」後人口回到 3/5，對手仍是電腦。
+7. **結果**：出現「勝利：紅方已沒有任何單位與建築」。工作目錄那次是 06:21（tick 7630），乾淨目錄那次是 07:03（tick 8461）；兩次命令送出的時間點跟著實際時間而不同，所以 tick 會有差異。按「再開一局」後人口回到 3/5，對手仍是電腦。
 8. 全程沒有自動暫停，也沒有 pageerror、console.error 或外部請求。
 
 截圖在 `test-results/`：`match-opening.png`、`match-battle.png`、`match-result.png`。
@@ -76,7 +76,14 @@
 
 ## 乾淨目錄結果
 
-（見下方，由本輪乾淨目錄執行填入。）
+乾淨目錄 `/var/folders/05/x61j217d49g9k0_kccntyzsr0000gn/T/brick-rts-ai-final-tCSk`（排除 .git、node_modules、test-results；包含 first-use-015 的畫面調整）。`npm ci --ignore-scripts` 之後逐一執行並檢查結束碼，14 個指令全部成功，STATUS 0：
+
+- `build`、`validate`、`test`（134 tests，134 pass）
+- `test:browser`（11 組）、`test:controls`、`test:first-use`、`test:economy`、`test:build`、`test:production`、`test:combat`、`test:hud`
+- `test:match`：勝利 07:03（tick 8461），自動暫停 0 次
+- `bench:movement`、`test:rig-browser`（7 組）
+
+原始輸出在 `test-results/clean-ai.log`。作品集縮圖 `thumbs/150.jpg` 取自這次執行。
 
 ## 未驗證項
 

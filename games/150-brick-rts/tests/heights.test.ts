@@ -20,7 +20,7 @@ test('land routes climb and descend explicit steps without exceeding the allowed
  }
 });
 test('removing a staircase creates an unreachable plateau with bounded work',()=>{
- const map=makeMap(0,'acceptance');map.tiles[9*16+4].height=0;map.blocked=Array.from({length:961},(_,i)=>i).filter(i=>!clearSegment(map,position(i),position(i)));
+ const map=makeMap(0,'acceptance');map.tiles[9*16+4].height=0;map.blocked=Array.from({length:961},(_,i)=>i).filter(i=>!clearSegment(map,position({size:16},i),position({size:16},i)));
  const job=createPathJob(map,1,{x:350,y:700},{x:450,y:1350});advancePathJob(map,job,961);assert.equal(job.status,'unreachable');
 });
 test('water traversal cannot jump even a land-legal step',()=>{

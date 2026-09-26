@@ -2,7 +2,7 @@ import {obstacleBounds} from '../content/footprints.ts';
 import type {Resource} from '../content/rules.ts';
 import {economyRules} from './economy.ts';
 import type {Account} from './economy.ts';
-import {harvestMapResource,position} from './navigation.ts';
+import {harvestMapResource,position,blockedTable,nodesNear} from './navigation.ts';
 import type {MapData,Obstacle} from './navigation.ts';
 import {routeTo,cancelMovement} from './movement.ts';
 import type {Unit,Job,MovementState} from './movement.ts';
@@ -17,14 +17,13 @@ export type BuildWork={kind:'build';buildingId:string;phase:'toSite'|'building';
 export type Work=GatherWork|BuildWork;
 export type Cargo={resource:Resource;amount:number};
 export type WorkState=MovementState&BuildingState&{tick:number;works:Record<number,Work>;cargo:Record<number,Cargo>};
-const NODES=961;
 const gap=(p:{x:number;y:number},[x0,y0,x1,y1]:number[])=>Math.max(x0-p.x,0,p.x-x1)+Math.max(y0-p.y,0,p.y-y1);
 // Nodes just outside an obstacle's radius-expanded footprint (the same rule the map generator uses).
-function ring(map:MapData,o:Obstacle,reach:number):number[]{const box=obstacleBounds(o,25),out:number[]=[];for(let n=0;n<NODES;n++){if(map.blocked.includes(n))continue;const d=gap(position(n),box);if(d>0&&d<=reach)out.push(n);}return out;}
+function ring(map:MapData,o:Obstacle,reach:number):number[]{const box=obstacleBounds(o,25),out:number[]=[],closed=blockedTable(map);for(const n of nodesNear(map,box,reach)){if(closed[n])continue;const d=gap(position(map,n),box);if(d>0&&d<=reach)out.push(n);}return out;}
 export function workSlots(map:MapData,resourceId:string):number[]{
  const r=map.resources.find(r=>r.id===resourceId),o=r?.obstacleId?map.obstacles.find(o=>o.id===r.obstacleId):undefined;
  // Farmers stand on the (walkable) field itself.
- if(o?.kind==='farm'){const b=obstacleBounds(o),out:number[]=[];for(let n=0;n<NODES;n++){const p=position(n);if(!map.blocked.includes(n)&&p.x>b[0]&&p.x<b[2]&&p.y>b[1]&&p.y<b[3])out.push(n);}return out;}
+ if(o?.kind==='farm'){const b=obstacleBounds(o),out:number[]=[],closed=blockedTable(map);for(const n of nodesNear(map,b,0)){const p=position(map,n);if(!closed[n]&&p.x>b[0]&&p.x<b[2]&&p.y>b[1]&&p.y<b[3])out.push(n);}return out;}
  return o?ring(map,o,economyRules.workReach):[];
 }
 export function dropoffNodes(map:MapData,player:number):number[]{

@@ -16,8 +16,8 @@ test('animal proxies block movement until depleted; fish do not block navigation
 });
 test('visible resource projection cannot leak hidden capacity or living-animal memory',()=>{
  const map=makeMap(7,'coast'),visions=createVision(),animal=map.resources.find(r=>r.kind==='hunt')!;map.obstacles=map.obstacles.filter(o=>!isBuilding(o));
- updateVision(visions,map,[{player:0,x:animal.x,y:animal.y}],0);assert.ok(projectVision(visions[0]).resources.some(r=>r.id===animal.id));
- updateVision(visions,map,[],1);assert.equal(projectVision(visions[0]).resources.length,0);assert.ok(!visions[0].known.some(k=>k.obstacle.kind==='hunt'||k.obstacle.kind==='livestock'));
- const before=projectVision(visions[0]);harvestMapResource(map,animal.id,1,2);updateVision(visions,map,[],2);assert.deepEqual(projectVision(visions[0]),before);
+ updateVision(visions,map,[{player:0,x:animal.x,y:animal.y}],0);assert.ok(projectVision(visions[0],16).resources.some(r=>r.id===animal.id));
+ updateVision(visions,map,[],1);assert.equal(projectVision(visions[0],16).resources.length,0);assert.ok(!visions[0].known.some(k=>k.obstacle.kind==='hunt'||k.obstacle.kind==='livestock'));
+ const before=projectVision(visions[0],16);harvestMapResource(map,animal.id,1,2);updateVision(visions,map,[],2);assert.deepEqual(projectVision(visions[0],16),before);
 });
 test('resource terrain validation catches fish placed on land',()=>{const map=makeMap(7,'coast'),fish=map.resources.find(r=>r.kind==='fish')!;fish.x=350;fish.y=700;assert.ok(validateMap(map).some(e=>e.includes('地形不符')));});

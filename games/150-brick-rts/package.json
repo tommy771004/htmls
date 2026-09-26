@@ -20,7 +20,8 @@
     "test:production": "node --experimental-strip-types tests/first-use-production.mjs",
     "test:combat": "node --experimental-strip-types tests/first-use-combat.mjs",
     "test:hud": "node --experimental-strip-types tests/first-use-hud.mjs",
-    "test:match": "node --experimental-strip-types tests/first-use-match.mjs"
+    "test:match": "node --experimental-strip-types tests/first-use-match.mjs",
+    "test:full": "node --experimental-strip-types tests/first-use-full.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

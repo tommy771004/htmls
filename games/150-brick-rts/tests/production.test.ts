@@ -44,7 +44,7 @@ test('advancing to the second age is researched once, unlocks archers and restyl
 test('a finished unit waits at a blocked exit and walks out once a spot frees up',()=>{
  const s=createState(260925),t=tc(s),box=obstacleBounds(s.map.obstacles.find(o=>o.id===t.id)!,navigationRules.radius);
  let id=100;const held=new Set(s.units.map(u=>u.node));
- for(let n=0;n<961;n++){if(s.map.blocked.includes(n)||held.has(n))continue;const p=position(n),g=Math.max(box[0]-p.x,0,p.x-box[2])+Math.max(box[1]-p.y,0,p.y-box[3]);if(g>0&&g<=50)s.units.push(makeUnit(id++,0,p.x,p.y));}
+ for(let n=0;n<961;n++){if(s.map.blocked.includes(n)||held.has(n))continue;const p=position({size:16},n),g=Math.max(box[0]-p.x,0,p.x-box[2])+Math.max(box[1]-p.y,0,p.y-box[3]);if(g>0&&g<=50)s.units.push(makeUnit({size:16},id++,0,p.x,p.y));}
  order(s,'train',{buildingId:t.id,entryId:'villager'});run(s,450);assert.equal(t.queue.length,1);assert.equal(t.queue[0].work,t.queue[0].required);assert.equal(s.units.some(u=>u.id===5),false);
  const gone=s.units.find(u=>u.id===100)!;s.units=s.units.filter(u=>u!==gone);tick(s);assert.ok(s.units.some(u=>u.id===5));assert.equal(t.queue.length,0);
 });

@@ -9,10 +9,11 @@ const root=fileURLToPath(new URL('../../../',import.meta.url)),out=fileURLToPath
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript','.svg':'image/svg+xml','.json':'application/json','.css':'text/css','.jpg':'image/jpeg','.png':'image/png'};
 const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!file.startsWith(root)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
-const world=createState(260925),tc=world.map.obstacles.find(o=>o.kind==='town-center'&&!o.red),tcBox=obstacleBounds(tc);
+// The match map (normal mode): bases are placed at random, so every position is derived from blue's town centre.
+const world=createState(260925,'open','ai'),tc=world.map.obstacles.find(o=>o.kind==='town-center'&&!o.red),tcBox=obstacleBounds(tc);
 const berries=world.map.obstacles.filter(o=>o.kind==='berries').sort((a,b)=>Math.hypot(a.x-tc.x,a.y-tc.y)-Math.hypot(b.x-tc.x,b.y-tc.y))[0],berryBox=obstacleBounds(berries);
 function spot(kind,from){for(let r=0;r<=800;r+=50)for(let dy=-r;dy<=r;dy+=50)for(let dx=-r;dx<=r;dx+=50){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const x=from.x+dx,y=from.y+dy;if(!authoritativeProblem(world,0,kind,x,y))return {x,y};}throw Error('no spot');}
-const houseBox=obstacleBounds({kind:'house',...spot('house',{x:500,y:750})});
+const tcc={x:(tcBox[0]+tcBox[2])/2,y:(tcBox[1]+tcBox[3])/2},houseBox=obstacleBounds({kind:'house',...spot('house',{x:Math.round((tcc.x-400)/50)*50,y:Math.round((tcc.y+300)/50)*50})});
 const browser=await chromium.launch({headless:true});const errors=[],external=[],log=[];
 const note=(step,detail)=>{log.push({step,detail});console.log(step,'|',detail);};
 function watch(page){page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('data:')&&!r.url().startsWith('blob:'))external.push(r.url());});}
@@ -35,7 +36,7 @@ try{
  assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth),true,'no page scroll');
  for(const hidden of ['#debug','#step','#tick','#fog-debug','#rules-inspector','#move','#reset-view','#menu'])assert.equal(await page.locator(hidden).isVisible(),false,`${hidden} is not on the game screen`);
  assert.equal(await page.locator('#pause').getAttribute('aria-pressed'),'true','the match starts running');
- assert.deepEqual([await text('res-food'),await text('res-wood'),await text('res-gold'),await text('res-stone'),await text('res-pop'),await text('age-name')],['200','200','100','100','3/5','第一時代']);
+ assert.deepEqual([await text('res-food'),await text('res-wood'),await text('res-gold'),await text('res-stone'),await text('res-pop'),await text('age-name')],['200','200','100','100','4/5','第一時代']);
  assert.match(await page.locator('.r img[data-icon="food"]').getAttribute('src'),/^data:image\/png/,'resource icons are rendered from the brick models');
  await page.screenshot({path:out+'hud-first-visit.png'});
  // 2. Idle villager key: the selection panel shows the portrait and numbers; the command grid offers real buildings.
@@ -50,13 +51,13 @@ try{
  // 4. Build: next idle villager, Q, place on a valid spot. The preview explains, the click spends wood.
  await page.keyboard.press('Period');await page.keyboard.press('KeyQ');p=await centre(page,houseBox);await page.mouse.move(p.x,p.y);await page.waitForFunction(()=>/左鍵放置住宅/.test(document.querySelector('#build-reason').textContent));
  note('放置住宅',await act(()=>page.mouse.click(p.x,p.y)));assert.match(await text('notice'),/前往建造住宅/);await page.waitForFunction(()=>document.querySelector('#res-wood').textContent==='170');
- await page.waitForFunction(()=>document.querySelector('#res-pop').textContent==='3/10',undefined,{timeout:90000});note('住宅完工',`人口 ${await text('res-pop')}`);
+ await page.waitForFunction(()=>document.querySelector('#res-pop').textContent==='4/10',undefined,{timeout:90000});note('住宅完工',`人口 ${await text('res-pop')}`);
  // 5. H selects the town centre: portrait, production tiles, queue with progress.
  await page.keyboard.press('KeyH');assert.equal(await page.locator('#building-panel').isVisible(),true);assert.equal(await text('building-title'),'城鎮中心');
  const villagerTile=page.locator('#production button[data-train="villager"]');assert.equal(await villagerTile.isVisible(),true);
  note('訓練村民',await act(()=>villagerTile.click()));await page.waitForFunction(()=>document.querySelector('#queue').children.length===1);note('佇列',await page.locator('#queue span').innerText());
  await page.screenshot({path:out+'hud-town-center.png'});
- await page.waitForFunction(()=>document.querySelector('#res-pop').textContent==='4/10',undefined,{timeout:60000});note('村民出生',await text('res-pop'));
+ await page.waitForFunction(()=>document.querySelector('#res-pop').textContent==='5/10',undefined,{timeout:60000});note('村民出生',await text('res-pop'));
  // 6. Menu pauses; closing resumes. F3 pauses with a banner.
  await page.keyboard.press('F10');assert.equal(await page.locator('#menu').isVisible(),true);assert.equal(await page.locator('#pause').getAttribute('aria-pressed'),'false');const frozen=await tick(page);await page.waitForTimeout(300);assert.equal(await tick(page),frozen,'menu pauses the match');
  await page.screenshot({path:out+'hud-menu.png'});await page.keyboard.press('Escape');assert.equal(await page.locator('#pause').getAttribute('aria-pressed'),'true','closing the menu resumes');
@@ -68,6 +69,10 @@ try{
  // Portfolio thumbnail from the real game screen: villagers working around the new house.
  await page.waitForTimeout(600);const shot=(await page.screenshot({type:'png'})).toString('base64');
  const thumb=await page.evaluate(async src=>{const img=new Image();img.src='data:image/png;base64,'+src;await img.decode();const c=document.createElement('canvas');c.width=640;c.height=400;const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(img,0,0,640,400);return c.toDataURL('image/jpeg',.85).split(',')[1];},shot);fs.writeFileSync(root+'thumbs/150.jpg',Buffer.from(thumb,'base64'));
+ // 7b. Resign: the first press only arms the button; the second concedes and shows the result; a new game follows.
+ await page.keyboard.press('F10');await page.locator('#resign').click();note('投降第一次',await page.locator('#resign').innerText());assert.equal(await page.locator('#menu').isVisible(),true);assert.equal(await page.locator('#result').isHidden(),true);
+ await page.locator('#resign').click();await page.locator('#result').waitFor({state:'visible'});note('投降結果',`${await text('result-title')}｜${await text('result-detail')}`);assert.equal(await text('result-title'),'戰敗');assert.match(await text('result-detail'),/你已投降/);
+ await page.screenshot({path:out+'hud-resign.png'});await page.locator('#result-restart').click();await page.waitForFunction(()=>document.querySelector('#result').hidden&&Number(document.querySelector('#tick').textContent)>2);
  await page.close();
  // 8. Phone: same screen, compact HUD, tap to select and tap to move.
  const phone=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});const small=await phone.newPage();watch(small);

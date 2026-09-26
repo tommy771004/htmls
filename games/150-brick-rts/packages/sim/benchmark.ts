@@ -9,7 +9,7 @@ export function runGateBenchmark(count:number,seed=260925){
  // Blue villagers south of the blue town center, nearest first; the order targets the hall behind the gate.
  const spots:[number,number][]=[];for(let y=700;y<=1000;y+=50)for(let x=200;x<=600;x+=50)spots.push([x,y]);
  spots.sort((a,b)=>Math.abs(a[0]-400)+Math.abs(a[1]-700)-(Math.abs(b[0]-400)+Math.abs(b[1]-700))||a[1]-b[1]||a[0]-b[0]);
- for(const [x,y] of spots){if(s.units.filter(u=>u.player===0).length>=count)break;const n=nodeAt({x,y});if(s.map.blocked.includes(n)||taken.has(n))continue;taken.add(n);s.units.push(makeUnit(id++,0,x,y));}
+ for(const [x,y] of spots){if(s.units.filter(u=>u.player===0).length>=count)break;const n=nodeAt(s.map,{x,y});if(s.map.blocked.includes(n)||taken.has(n))continue;taken.add(n);s.units.push(makeUnit(s.map,id++,0,x,y));}
  s.units.sort((a,b)=>a.id-b.id);
  const blue=s.units.filter(u=>u.player===0),ids=blue.slice(0,count).map(u=>u.id);
  submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds:ids,x:400,y:400}});

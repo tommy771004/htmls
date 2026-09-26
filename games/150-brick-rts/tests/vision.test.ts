@@ -7,10 +7,10 @@ import {createService,decodeView} from '../packages/sim/protocol.ts';
 
 test('unexplored, visible and explored-unseen are distinct and enemy movement leaves no live projection',()=>{
  const map=makeMap(7);map.obstacles=[];const visions=createVision();
- updateVision(visions,map,[{player:0,x:350,y:700}],0);const initial=projectVision(visions[0]);assert.ok(initial.fog.includes(0));assert.ok(initial.fog.includes(2));assert.ok(!initial.fog.includes(1));
- const enemy={player:1,x:400,y:700};assert.ok(unitVisible(visions[0],enemy,0));
- updateVision(visions,map,[{player:0,x:1400,y:1400}],1);assert.equal(projectVision(visions[0]).fog[7*16+4],1);assert.equal(unitVisible(visions[0],enemy,0),false);
- const frozen=projectVision(visions[0]);enemy.x=500;updateVision(visions,map,[{player:0,x:1400,y:1400},enemy],2);assert.deepEqual(projectVision(visions[0]),frozen);
+ updateVision(visions,map,[{player:0,x:350,y:700}],0);const initial=projectVision(visions[0],16);assert.ok(initial.fog.includes(0));assert.ok(initial.fog.includes(2));assert.ok(!initial.fog.includes(1));
+ const enemy={player:1,x:400,y:700};assert.ok(unitVisible(visions[0],enemy,0,16));
+ updateVision(visions,map,[{player:0,x:1400,y:1400}],1);assert.equal(projectVision(visions[0],16).fog[7*16+4],1);assert.equal(unitVisible(visions[0],enemy,0,16),false);
+ const frozen=projectVision(visions[0],16);enemy.x=500;updateVision(visions,map,[{player:0,x:1400,y:1400},enemy],2);assert.deepEqual(projectVision(visions[0],16),frozen);
 });
 test('last-seen static objects freeze and disappear only upon revisiting their cell',()=>{
  const map=makeMap(7);map.obstacles=map.obstacles.filter(o=>!isBuilding(o));const object=map.obstacles[0],visions=createVision();
@@ -20,9 +20,9 @@ test('last-seen static objects freeze and disappear only upon revisiting their c
 });
 test('vision sharing is opt-in and revocation removes current visibility without erasing exploration',()=>{
  const map=makeMap(7);map.obstacles=[];const visions=createVision(),units=[{player:0,x:100,y:100},{player:1,x:1400,y:1400}];
- updateVision(visions,map,units,0);assert.equal(projectVision(visions[0]).fog[14*16+14],0);
- updateVision(visions,map,units,1,[[0,1],[1,0]]);assert.equal(projectVision(visions[0]).fog[14*16+14],2);
- updateVision(visions,map,units,2);assert.equal(projectVision(visions[0]).fog[14*16+14],1);const before=hash(visions);assert.throws(()=>updateVision(visions,map,units,3,[[2],[1]]));assert.equal(hash(visions),before);
+ updateVision(visions,map,units,0);assert.equal(projectVision(visions[0],16).fog[14*16+14],0);
+ updateVision(visions,map,units,1,[[0,1],[1,0]]);assert.equal(projectVision(visions[0],16).fog[14*16+14],2);
+ updateVision(visions,map,units,2);assert.equal(projectVision(visions[0],16).fog[14*16+14],1);const before=hash(visions);assert.throws(()=>updateVision(visions,map,units,3,[[2],[1]]));assert.equal(hash(visions),before);
 });
 test('Worker view excludes unseen enemy and unknown enemy buildings',()=>{
  const response=createService()({protocol:1,id:1,operation:{kind:'reset',seed:260925}});assert.ok(response.ok);const view=decodeView(response);assert.deepEqual(view.units.map(u=>u.id),[1,2,3]);assert.ok(view.known.every(k=>!k.obstacle.red));assert.ok(view.fog.includes(0));

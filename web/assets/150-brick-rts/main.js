@@ -49,6 +49,7 @@ function obstacleRects(o, radius = 0) {
 // packages/sim/terrain.ts
 var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200, farm: 250 }, generationAttempts: 8 };
 var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" }, farm: { yield: "food", method: "gather", movement: "land" } };
+var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32 };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
   road: { walkClass: "land", buildability: true, height: 0 },
@@ -60,10 +61,11 @@ var terrainDefinitions = {
   shallow: { walkClass: "both", buildability: false, height: 0 }
 };
 function createTiles(layout = "meadow", seed = 0) {
-  if (!["meadow", "coast", "acceptance"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
-  return Array.from({ length: 256 }, (_, id) => {
-    const x = id % 16, y = Math.floor(id / 16);
-    let terrainType = y === 8 ? "road" : "grass";
+  if (!(layout in mapSizes)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
+  const size = mapSizes[layout];
+  return Array.from({ length: size * size }, (_, id) => {
+    const x = id % size, y = Math.floor(id / size);
+    let terrainType = layout !== "open" && y === 8 ? "road" : "grass";
     if (layout === "coast") {
       const edge = 12 + (seed >>> 0 >>> Math.floor(x / 4) & 1);
       if (y >= edge) terrainType = "water";
@@ -89,11 +91,12 @@ function createTiles(layout = "meadow", seed = 0) {
     return tile;
   });
 }
+var sizeOfTiles = (tiles) => Math.round(Math.sqrt(tiles.length));
 function groundHeight(tiles, x, y) {
-  return tiles[tileAt(x, y)]?.height ?? 0;
+  return tiles[tileAt(x, y, sizeOfTiles(tiles))]?.height ?? 0;
 }
-function tileAt(x, y) {
-  return Math.floor(y / 100) * 16 + Math.floor(x / 100);
+function tileAt(x, y, size) {
+  return Math.floor(y / 100) * size + Math.floor(x / 100);
 }
 function canTraverse(tile, movement) {
   return tile.walkClass === movement || tile.walkClass === "both";
@@ -103,25 +106,33 @@ function canTraverse(tile, movement) {
 var labels = ["\u672A\u63A2\u7D22", "\u5DF2\u63A2\u7D22\uFF0F\u76EE\u524D\u4E0D\u53EF\u898B", "\u76EE\u524D\u53EF\u898B"];
 var buildingNames = { house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
 function fogCellSummary(view, x, y) {
-  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x > 15 || y < 0 || y > 15) return "\u8ACB\u8F38\u5165 0\u201315 \u7684\u6574\u6578\u683C\u5EA7\u6A19\u3002";
-  const id = y * 16 + x, state2 = view.fog[id];
+  const size = sizeOfTiles(view.fog);
+  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= size || y < 0 || y >= size) return `\u8ACB\u8F38\u5165 0\u2013${size - 1} \u7684\u6574\u6578\u683C\u5EA7\u6A19\u3002`;
+  const id = y * size + x, state2 = view.fog[id];
   if (state2 === void 0) return "\u7B49\u5F85\u8996\u91CE\u8CC7\u6599\u3002";
-  const memories = state2 === 0 ? [] : view.known.filter((k) => tileAt(k.obstacle.x, k.obstacle.y) === id && k.obstacle.kind in buildingNames);
+  const memories = state2 === 0 ? [] : view.known.filter((k) => tileAt(k.obstacle.x, k.obstacle.y, size) === id && k.obstacle.kind in buildingNames);
   return `\u683C (${x}, ${y}) \xB7 ${labels[state2]} \xB7 \u6295\u5F71 tick ${view.tick}` + memories.map((k) => `\uFF1B${k.obstacle.red ? "\u7D05\u65B9" : "\u85CD\u65B9"}${buildingNames[k.obstacle.kind]}\uFF1A\u6700\u5F8C\u770B\u898B tick ${k.lastSeenTick}\uFF08${view.tick - k.lastSeenTick} ticks \u524D\uFF09`).join("");
 }
 function mountFogDebugger(root, getView) {
   const grid = root.querySelector(".fog-grid"), info = root.querySelector(".fog-cell-info"), memories = root.querySelector(".fog-memories");
   const x = root.querySelector('[name="fog-x"]'), y = root.querySelector('[name="fog-y"]');
-  const cells = Array.from({ length: 256 }, (_, id) => {
-    const cell = document.createElement("span");
-    cell.setAttribute("aria-hidden", "true");
-    cell.title = `(${id % 16}, ${Math.floor(id / 16)})`;
-    grid.append(cell);
-    return cell;
-  });
+  let cells = [];
+  function layout(count) {
+    const size = sizeOfTiles({ length: count });
+    grid.style.gridTemplateColumns = `repeat(${size},1fr)`;
+    cells = Array.from({ length: count }, (_, id) => {
+      const cell = document.createElement("span");
+      cell.setAttribute("aria-hidden", "true");
+      cell.title = `(${id % size}, ${Math.floor(id / size)})`;
+      return cell;
+    });
+    grid.replaceChildren(...cells);
+  }
+  layout(256);
   function update() {
     if (!root.open) return;
     const view = getView();
+    if (view.fog.length && view.fog.length !== cells.length) layout(view.fog.length);
     cells.forEach((cell, id) => {
       const value = view.fog[id];
       cell.dataset.fog = String(value ?? -1);
@@ -141,6 +152,120 @@ function mountFogDebugger(root, getView) {
   return { update };
 }
 
+// apps/web/audio.ts
+function createAudio(report = () => {
+}) {
+  let ctx = null, master = null, volume = 0.6, count = 0, noise = null;
+  const lastPlayed = /* @__PURE__ */ new Map();
+  const spacing = { hit: 140, order: 60, "order-attack": 80, trained: 250, built: 250, alarm: 3e3 };
+  function unlock() {
+    if (!ctx) {
+      const Ctor = window.AudioContext ?? window.webkitAudioContext;
+      if (!Ctor) return;
+      ctx = new Ctor();
+      master = ctx.createGain();
+      master.gain.value = volume;
+      master.connect(ctx.destination);
+      noise = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+      const data = noise.getChannelData(0);
+      let seed = 1;
+      for (let i = 0; i < data.length; i++) {
+        seed = seed * 1103515245 + 12345 >>> 0;
+        data[i] = seed / 4294967296 * 2 - 1;
+      }
+    }
+    if (ctx.state === "suspended") void ctx.resume();
+  }
+  function setVolume(v) {
+    volume = Math.max(0, Math.min(1, v));
+    if (master && ctx) master.gain.setTargetAtTime(volume, ctx.currentTime, 0.02);
+  }
+  function tone(type, freq, start, length, peak, to) {
+    if (!ctx || !master) return;
+    const osc = ctx.createOscillator(), env = ctx.createGain(), t = ctx.currentTime + start;
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    if (to) osc.frequency.exponentialRampToValueAtTime(to, t + length);
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(peak, t + Math.min(0.012, length / 4));
+    env.gain.exponentialRampToValueAtTime(5e-4, t + length);
+    osc.connect(env);
+    env.connect(master);
+    osc.start(t);
+    osc.stop(t + length + 0.02);
+  }
+  function burst(filter, freq, start, length, peak) {
+    if (!ctx || !master || !noise) return;
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), env = ctx.createGain(), t = ctx.currentTime + start;
+    src.buffer = noise;
+    f.type = filter;
+    f.frequency.value = freq;
+    env.gain.setValueAtTime(peak, t);
+    env.gain.exponentialRampToValueAtTime(5e-4, t + length);
+    src.connect(f);
+    f.connect(env);
+    env.connect(master);
+    src.start(t);
+    src.stop(t + length + 0.02);
+  }
+  const recipes = {
+    "select-villager": () => {
+      tone("square", 660, 0, 0.06, 0.05);
+      tone("square", 880, 0.06, 0.07, 0.05);
+    },
+    "select-soldier": () => {
+      tone("triangle", 330, 0, 0.09, 0.12);
+      burst("bandpass", 3200, 0, 0.05, 0.05);
+    },
+    order: () => tone("sine", 520, 0, 0.05, 0.12),
+    "order-attack": () => {
+      tone("sawtooth", 230, 0, 0.1, 0.06, 170);
+      burst("bandpass", 1800, 0, 0.06, 0.05);
+    },
+    place: () => {
+      burst("lowpass", 600, 0, 0.14, 0.3);
+      tone("sine", 140, 0, 0.12, 0.18, 90);
+    },
+    built: () => {
+      tone("sine", 880, 0, 0.5, 0.1);
+      tone("sine", 1320, 0.08, 0.45, 0.07);
+    },
+    trained: () => {
+      tone("sine", 660, 0, 0.4, 0.1);
+      tone("sine", 990, 0, 0.35, 0.05);
+    },
+    hit: () => burst("bandpass", 1500, 0, 0.06, 0.12),
+    alarm: () => {
+      tone("sawtooth", 330, 0, 0.26, 0.05);
+      tone("sawtooth", 440, 0.28, 0.3, 0.05);
+    },
+    age: () => {
+      [523, 659, 784, 1046].forEach((f, i) => tone("triangle", f, i * 0.14, 0.34, 0.1));
+    },
+    victory: () => {
+      [392, 523, 659, 784].forEach((f, i) => tone("triangle", f, i * 0.16, 0.45, 0.11));
+    },
+    defeat: () => {
+      [392, 330, 277, 220].forEach((f, i) => tone("triangle", f, i * 0.2, 0.5, 0.1));
+    },
+    collapse: () => {
+      burst("lowpass", 400, 0, 0.55, 0.35);
+      tone("sine", 90, 0, 0.4, 0.15, 50);
+    },
+    resign: () => tone("triangle", 294, 0, 0.5, 0.08, 220)
+  };
+  function play(name) {
+    const now = performance.now(), gap = spacing[name] ?? 0;
+    if (gap && now - (lastPlayed.get(name) ?? -1e9) < gap) return;
+    lastPlayed.set(name, now);
+    count++;
+    report(name, count);
+    if (!ctx || volume === 0) return;
+    recipes[name]();
+  }
+  return { unlock, setVolume, play, state: () => ctx?.state ?? "locked", volume: () => volume };
+}
+
 // packages/content/rules.ts
 var resources = ["food", "wood", "gold", "stone"];
 var entry = (id, kind, name, food = 0, wood = 0, gold = 0, stone = 0, requires = [], population = 0) => ({ referenceVersion: null, sourceEvidence: ["original design defaults: packages/content/rules.ts"], implementationStatus: id === "villager" ? "in_progress" : "not_started", testEvidence: ["tests/foundation.test.ts (data validation only)"], id, kind, name, cost: { food, wood, gold, stone }, time: 20, population, requires, verificationStatus: "design_default" });
@@ -150,10 +275,10 @@ var rules = {
   reference: { game: "Age of Empires II: Definitive Edition", version: null, build: null, contentPacks: [], verificationStatus: "unverified", sourceEvidence: [] },
   coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
   settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
-  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
+  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("scout", "unit", "\u65A5\u5019", 0, 0, 0, 0, [], 1), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
   // Which building produces each unit/technology (design_default). null = defined but not producible yet.
-  production: { villager: "town-center", militia: "barracks", archer: "barracks", ram: null, "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
-  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "militia", "archer", "ram", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "militia", "archer", "ram", "age-2", "age-3", "age-4"], unavailable: [] }]
+  production: { villager: "town-center", militia: "barracks", archer: "barracks", ram: null, scout: null, "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
+  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "militia", "archer", "ram", "scout", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "militia", "archer", "ram", "scout", "age-2", "age-3", "age-4"], unavailable: [] }]
 };
 function validateRules(value, exact = false) {
   const errors = [];
@@ -596,6 +721,18 @@ function createCharacterRig(T, player, box2, material) {
   return { root, sockets: rider.sockets, equip: rider.equip, dress, pose };
 }
 
+// apps/web/rig-roles.ts
+function roleOf(kind) {
+  return kind === "militia" ? "swordsman" : kind === "archer" ? "archer" : kind === "scout" ? "cavalry" : "villager";
+}
+function poseFor(kind, pose) {
+  return roleOf(kind) === "cavalry" && !["idle", "walk", "attack"].includes(pose) ? "idle" : pose;
+}
+function corpseRole(kind) {
+  const role = roleOf(kind);
+  return role === "cavalry" ? "swordsman" : role;
+}
+
 // apps/web/picking.ts
 function visibleMeshHits(raycaster, roots) {
   const meshes = [];
@@ -885,6 +1022,19 @@ function buildingParts(visual) {
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 128, speedPerTick: 5, maxGroupSize: 40, waitLimit: 8, queueWaitFactor: 4, detourLimit: 12, stuckTicks: 300, arrivalRadius: 150 };
 var startingResourceRules = { provenance: "design_default", maxApproachDistance: 1200, maxNearestDistanceDifference: 500, minimum: { tree: 300, stone: 250, gold: 250, berries: 150 } };
+var tables = /* @__PURE__ */ new WeakMap();
+function blockedTable(map) {
+  let t = tables.get(map);
+  if (!t || t.list !== map.blocked || t.length !== map.blocked.length || t.revision !== map.navigationRevision) {
+    const table = new Uint8Array(nodeTotal(map));
+    for (const n of map.blocked) table[n] = 1;
+    t = { list: map.blocked, length: map.blocked.length, revision: map.navigationRevision, table };
+    tables.set(map, t);
+  }
+  return t.table;
+}
+var sideOf = (map) => map.size * 2 - 1;
+var nodeTotal = (map) => sideOf(map) ** 2;
 function makeMap(seed, layout = "meadow") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("\u5730\u5716 seed \u5FC5\u9808\u70BA uint32");
   let lastErrors = [];
@@ -898,6 +1048,7 @@ function makeMap(seed, layout = "meadow") {
   throw Error(`\u5730\u5716\u751F\u6210\u5931\u6557\uFF08${terrainRules.generationAttempts} \u6B21\uFF09\uFF1A${lastErrors.join("\uFF1B")}`);
 }
 function generateCandidate(seed, layout) {
+  if (layout === "open") return generateOpen(seed);
   let rng = seed || 1;
   let obstacles = [{ kind: "town-center", x: 265, y: 350 }, { kind: "town-center", x: 1065, y: 350, red: true }];
   const woods = [];
@@ -917,31 +1068,161 @@ function generateCandidate(seed, layout) {
   obstacles = obstacles.filter((o) => isBuilding(o) || !guaranteed.some((g) => Math.abs(g.x - o.x) < 140 && Math.abs(g.y - o.y) < 140));
   obstacles.push(...guaranteed);
   obstacles.push({ kind: "gold", x: 550, y: 200 }, { kind: "gold", x: 950, y: 200 }, { kind: "berries", x: 250, y: 1e3 }, { kind: "berries", x: 1250, y: 1e3 });
-  const map = { obstacles, blocked: [], tiles: createTiles(layout, seed), resources: [], navigationRevision: 0, generationAttempt: 0 };
+  const map = { size: mapSizes[layout], starts: [[{ x: 350, y: 700 }, { x: 450, y: 700 }, { x: 400, y: 800 }], [{ x: 1150, y: 700 }, { x: 1250, y: 700 }, { x: 1200, y: 800 }]], obstacles, blocked: [], tiles: createTiles(layout, seed), resources: [], navigationRevision: 0, generationAttempt: 0 };
   obstacles.forEach((o, index) => {
     o.id = `obstacle-${index}`;
-    map.tiles[tileAt(o.x, o.y)].obstacleRefs.push(o.id);
+    map.tiles[tileAt(o.x, o.y, map.size)].obstacleRefs.push(o.id);
     if (!isBuilding(o)) {
       const kind = o.kind === "rock" ? "stone" : o.kind;
       const id = `resource-${index}`, capacity = terrainRules.resourceCapacity[kind];
       map.resources.push({ id, kind, x: o.x, y: o.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: o.id, depletedAt: null });
-      map.tiles[tileAt(o.x, o.y)].resourceRefs.push(id);
+      map.tiles[tileAt(o.x, o.y, map.size)].resourceRefs.push(id);
     }
   });
   const addResource = (kind, x, y) => {
     const id = `resource-${kind}-${x}-${y}`, capacity = terrainRules.resourceCapacity[kind], obstacleId = kind === "fish" ? null : `obstacle-${kind}-${x}-${y}`;
     if (obstacleId && kind !== "fish") {
       map.obstacles.push({ id: obstacleId, kind, x, y });
-      map.tiles[tileAt(x, y)].obstacleRefs.push(obstacleId);
+      map.tiles[tileAt(x, y, map.size)].obstacleRefs.push(obstacleId);
     }
     map.resources.push({ id, kind, x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId, depletedAt: null });
-    map.tiles[tileAt(x, y)].resourceRefs.push(id);
+    map.tiles[tileAt(x, y, map.size)].resourceRefs.push(id);
   };
   for (const x of [300, 1200]) addResource("livestock", x, 900);
   for (const x of [500, 1e3]) addResource("hunt", x, 1e3);
   if (layout === "coast") for (const x of [300, 1200]) addResource("fish", x, 1450);
   if (layout === "acceptance") for (const y of [300, 1200]) addResource("fish", 800, y);
-  for (let i = 0; i < 961; i++) if (!clearSegment(map, position(i), position(i))) map.blocked.push(i);
+  for (let i = 0; i < nodeTotal(map); i++) if (!clearSegment(map, position(map, i), position(map, i))) map.blocked.push(i);
+  return map;
+}
+var openMapRules = {
+  provenance: "design_default",
+  size: 32,
+  radius: [0.29, 0.34],
+  oppositeJitter: Math.PI / 8,
+  // Clear area around each town centre (the gate faces south, villagers start there): offsets from its centre.
+  apron: { left: -320, top: -320, right: 320, bottom: 620 },
+  // Kit: offsets from the town centre, identical for every player (the gate always faces south), so each base
+  // has the same distances. margin: room the whole kit needs round a town centre (left, top, right, bottom).
+  kit: [{ kind: "tree", dx: 0, dy: -560, group: 6 }, { kind: "gold", dx: 520, dy: -60 }, { kind: "rock", dx: -520, dy: -60 }, { kind: "berries", dx: 480, dy: 360 }, { kind: "livestock", dx: -480, dy: 340 }, { kind: "hunt", dx: 0, dy: 780 }],
+  margin: { left: -700, top: -760, right: 700, bottom: 900 },
+  forestClumps: 10,
+  clumpTrees: [6, 13],
+  clumpClearance: 1050,
+  borderWood: 0.45,
+  borderClearance: 750,
+  neutral: { gold: 2, rock: 2 },
+  neutralRadius: 650,
+  dirtPatches: 7
+};
+function generateOpen(seed) {
+  let rng = seed || 1;
+  const random = () => {
+    rng ^= rng << 13;
+    rng ^= rng >>> 17;
+    rng ^= rng << 5;
+    return (rng >>> 0) / 4294967296;
+  };
+  const R = openMapRules, size = R.size, world = size * 100, mid = world / 2, tiles = createTiles("open", seed);
+  for (let i = 0; i < R.dirtPatches; i++) {
+    let tx = 2 + Math.floor(random() * (size - 4)), ty = 2 + Math.floor(random() * (size - 4));
+    for (let k = 0; k < 4 + Math.floor(random() * 6); k++) {
+      const t = tiles[ty * size + tx];
+      Object.assign(t, { terrainType: "sand", ...terrainDefinitions.sand });
+      tx = Math.min(size - 2, Math.max(1, tx + Math.floor(random() * 3) - 1));
+      ty = Math.min(size - 2, Math.max(1, ty + Math.floor(random() * 3) - 1));
+    }
+  }
+  const a0 = random() * Math.PI * 2, angles = [a0, a0 + Math.PI + (random() * 2 - 1) * R.oppositeJitter], centres = angles.map((a) => {
+    const r = world * (R.radius[0] + random() * (R.radius[1] - R.radius[0]));
+    const cx = Math.min(world - R.margin.right, Math.max(-R.margin.left, mid + Math.cos(a) * r)), cy = Math.min(world - R.margin.bottom, Math.max(-R.margin.top, mid + Math.sin(a) * r));
+    const ax = Math.round((cx - 135 - 15) / 50) * 50 + 15, ay = Math.round((cy - 135) / 50) * 50;
+    return { ax, ay, x: ax + 135, y: ay + 135 };
+  });
+  const obstacles = centres.map((c, p) => ({ kind: "town-center", x: c.ax, y: c.ay, ...p ? { red: true } : {} }));
+  const starts = centres.map((c) => [{ x: c.ax + 85, y: c.ay + 350 }, { x: c.ax + 185, y: c.ay + 350 }, { x: c.ax + 135, y: c.ay + 450 }]), scouts = centres.map((c) => ({ x: c.ax + 235, y: c.ay + 450 }));
+  const taken = /* @__PURE__ */ new Set(), aprons = centres.map((c) => [c.x + R.apron.left, c.y + R.apron.top, c.x + R.apron.right, c.y + R.apron.bottom]);
+  for (const c of centres) for (let ty = Math.floor((c.y - 150) / 100); ty <= Math.floor((c.y + 150) / 100); ty++) for (let tx = Math.floor((c.x - 150) / 100); tx <= Math.floor((c.x + 150) / 100); tx++) taken.add(ty * size + tx);
+  const free = (tx, ty) => tx >= 1 && ty >= 1 && tx < size - 1 && ty < size - 1 && !taken.has(ty * size + tx) && !aprons.some((b) => tx * 100 + 100 > b[0] && tx * 100 < b[2] && ty * 100 + 100 > b[1] && ty * 100 < b[3]);
+  const offset = { tree: 12, gold: 15, rock: 15, berries: 15, livestock: 15, hunt: 15 };
+  const animals = [];
+  const put = (kind, tx, ty) => {
+    taken.add(ty * size + tx);
+    const x = tx * 100 + offset[kind], y = ty * 100 + offset[kind];
+    if (kind === "hunt" || kind === "livestock") animals.push({ kind, x, y });
+    else obstacles.push({ kind, x, y });
+  };
+  centres.forEach((c) => {
+    for (const item of R.kit) {
+      let placed = false;
+      const d = Math.hypot(item.dx, item.dy), base = Math.atan2(item.dy, item.dx);
+      for (let step = 0; step < 24 && !placed; step++) {
+        const a = base + (step % 2 ? -1 : 1) * Math.ceil(step / 2) * 15 * Math.PI / 180, tx = Math.floor((c.x + Math.cos(a) * d) / 100), ty = Math.floor((c.y + Math.sin(a) * d) / 100);
+        const cells = item.kind === "tree" ? [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]].slice(0, item.group ?? 1).map(([dx, dy]) => [tx + dx, ty + dy]) : [[tx, ty]];
+        if (cells.every(([x, y]) => free(x, y))) {
+          for (const [x, y] of cells) put(item.kind, x, y);
+          placed = true;
+        }
+      }
+      if (!placed) continue;
+    }
+  });
+  const far = (tx, ty, d) => centres.every((c) => Math.hypot(tx * 100 + 50 - c.x, ty * 100 + 50 - c.y) >= d);
+  for (const [kind, count] of Object.entries(R.neutral)) for (let i = 0; i < count; i++) for (let k = 0; k < 40; k++) {
+    const a = random() * Math.PI * 2, d = random() * R.neutralRadius, tx = Math.floor((mid + Math.cos(a) * d) / 100), ty = Math.floor((mid + Math.sin(a) * d) / 100);
+    if (free(tx, ty) && far(tx, ty, R.clumpClearance)) {
+      put(kind, tx, ty);
+      break;
+    }
+  }
+  for (let i = 0; i < R.forestClumps; i++) {
+    let tx = 0, ty = 0, ok = false;
+    for (let k = 0; k < 60 && !ok; k++) {
+      tx = 1 + Math.floor(random() * (size - 2));
+      ty = 1 + Math.floor(random() * (size - 2));
+      ok = free(tx, ty) && far(tx, ty, R.clumpClearance);
+    }
+    if (!ok) continue;
+    const want = R.clumpTrees[0] + Math.floor(random() * (R.clumpTrees[1] - R.clumpTrees[0] + 1));
+    for (let n = 0, k = 0; n < want && k < want * 6; k++) {
+      if (free(tx, ty) && far(tx, ty, R.clumpClearance)) {
+        put("tree", tx, ty);
+        n++;
+      }
+      const dir = Math.floor(random() * 4);
+      tx += dir === 0 ? 1 : dir === 1 ? -1 : 0;
+      ty += dir === 2 ? 1 : dir === 3 ? -1 : 0;
+      tx = Math.min(size - 2, Math.max(1, tx));
+      ty = Math.min(size - 2, Math.max(1, ty));
+    }
+  }
+  for (let ty = 0; ty < size; ty++) for (let tx = 0; tx < size; tx++) {
+    if (tx > 0 && ty > 0 && tx < size - 1 && ty < size - 1) continue;
+    const v = random();
+    if (v < R.borderWood && !taken.has(ty * size + tx) && far(tx, ty, R.borderClearance)) {
+      taken.add(ty * size + tx);
+      obstacles.push({ kind: "tree", x: tx * 100 + 12, y: ty * 100 + 12 });
+    }
+  }
+  const map = { size, starts, scouts, obstacles, blocked: [], tiles, resources: [], navigationRevision: 0, generationAttempt: 0 };
+  obstacles.forEach((o, index) => {
+    o.id = `obstacle-${index}`;
+    map.tiles[tileAt(o.x, o.y, size)].obstacleRefs.push(o.id);
+    if (!isBuilding(o)) {
+      const kind = o.kind === "rock" ? "stone" : o.kind;
+      const id = `resource-${index}`, capacity = terrainRules.resourceCapacity[kind];
+      map.resources.push({ id, kind, x: o.x, y: o.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: o.id, depletedAt: null });
+      map.tiles[tileAt(o.x, o.y, size)].resourceRefs.push(id);
+    }
+  });
+  for (const { kind, x, y } of animals) {
+    const id = `resource-${kind}-${x}-${y}`, capacity = terrainRules.resourceCapacity[kind], obstacleId = `obstacle-${kind}-${x}-${y}`;
+    map.obstacles.push({ id: obstacleId, kind, x, y });
+    map.tiles[tileAt(x, y, size)].obstacleRefs.push(obstacleId);
+    map.resources.push({ id, kind, x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId, depletedAt: null });
+    map.tiles[tileAt(x, y, size)].resourceRefs.push(id);
+  }
+  for (let i = 0; i < nodeTotal(map); i++) if (!clearSegment(map, position(map, i), position(map, i))) map.blocked.push(i);
   return map;
 }
 function isBuilding(o) {
@@ -951,16 +1232,15 @@ function bounds(o) {
   return obstacleBounds(o, navigationRules.radius);
 }
 function clearSegment(map, a, b, movement = "land") {
-  if ([a.x, a.y, b.x, b.y].some((v) => !Number.isSafeInteger(v) || v < 50 || v > 1550)) return false;
+  const size = map.size, edge = size * 100 - 50;
+  if ([a.x, a.y, b.x, b.y].some((v) => !Number.isSafeInteger(v) || v < 50 || v > edge)) return false;
   const maxStep = movement === "land" ? terrainRules.maxLandStep : 0, radius = navigationRules.radius;
-  for (const tile of map.tiles) {
-    const x = tile.id % 16, y = Math.floor(tile.id / 16);
-    if (x < 15 && Math.abs(tile.height - map.tiles[tile.id + 1].height) > maxStep && intersects(a, b, [(x + 1) * 100 - radius, y * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
-    if (y < 15 && Math.abs(tile.height - map.tiles[tile.id + 16].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
-  }
-  for (const tile of map.tiles) if (!canTraverse(tile, movement)) {
-    const x = tile.id % 16 * 100, y = Math.floor(tile.id / 16) * 100, r = navigationRules.radius;
-    if (intersects(a, b, [x - r, y - r, x + 100 + r, y + 100 + r])) return false;
+  const tx0 = Math.max(0, Math.floor((Math.min(a.x, b.x) - radius) / 100) - 1), tx1 = Math.min(size - 1, Math.floor((Math.max(a.x, b.x) + radius) / 100) + 1), ty0 = Math.max(0, Math.floor((Math.min(a.y, b.y) - radius) / 100) - 1), ty1 = Math.min(size - 1, Math.floor((Math.max(a.y, b.y) + radius) / 100) + 1);
+  for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
+    const tile = map.tiles[y * size + x];
+    if (x < size - 1 && Math.abs(tile.height - map.tiles[tile.id + 1].height) > maxStep && intersects(a, b, [(x + 1) * 100 - radius, y * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+    if (y < size - 1 && Math.abs(tile.height - map.tiles[tile.id + size].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+    if (!canTraverse(tile, movement) && intersects(a, b, [x * 100 - radius, y * 100 - radius, x * 100 + 100 + radius, y * 100 + 100 + radius])) return false;
   }
   for (const o of map.obstacles) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
     let lo = 0, hi = 1;
@@ -995,7 +1275,7 @@ function intersects(a, b, box2) {
 }
 function validateMap(map) {
   const errors = [];
-  if (map.tiles.length !== 256 || map.tiles.some((t, i) => t.id !== i)) return ["\u5730\u683C\u6578\u91CF\u6216 ID \u4E0D\u7B26"];
+  if (map.tiles.length !== map.size * map.size || map.tiles.some((t, i) => t.id !== i)) return ["\u5730\u683C\u6578\u91CF\u6216 ID \u4E0D\u7B26"];
   const obstacles = new Set(map.obstacles.map((o) => o.id)), resources2 = new Set(map.resources.map((r) => r.id));
   if (obstacles.size !== map.obstacles.length || obstacles.has(void 0)) errors.push("\u969C\u7919 ID \u91CD\u8907\u6216\u7F3A\u5C11");
   if (resources2.size !== map.resources.length) errors.push("\u8CC7\u6E90 ID \u91CD\u8907");
@@ -1009,36 +1289,38 @@ function validateMap(map) {
       errors.push(`\u8CC7\u6E90 ${r.id} \u985E\u5225\u7121\u6548`);
       continue;
     }
-    const cell = map.tiles[tileAt(r.x, r.y)];
+    const cell = map.tiles[tileAt(r.x, r.y, map.size)];
     if (!cell || !canTraverse(cell, resourceDefinitions[r.kind].movement)) errors.push(`\u8CC7\u6E90 ${r.id} \u5730\u5F62\u4E0D\u7B26`);
     if (!Number.isSafeInteger(r.capacity) || r.capacity <= 0 || !Number.isSafeInteger(r.remaining) || r.remaining < 0 || r.remaining > r.capacity) errors.push(`\u8CC7\u6E90 ${r.id} \u5BB9\u91CF\u7121\u6548`);
     if (r.status === "depleted" !== (r.remaining === 0) || r.collectible !== r.remaining > 0 || r.status === "depleted" && (r.obstacleId !== null || r.depletedAt === null)) errors.push(`\u8CC7\u6E90 ${r.id} \u72C0\u614B\u4E0D\u4E00\u81F4`);
     if (r.obstacleId && !obstacles.has(r.obstacleId)) errors.push(`\u8CC7\u6E90 ${r.id} \u969C\u7919\u53C3\u7167\u5931\u6548`);
-    if (!map.tiles[tileAt(r.x, r.y)]?.resourceRefs.includes(r.id)) errors.push(`\u8CC7\u6E90 ${r.id} \u5730\u683C\u53C3\u7167\u5931\u6548`);
+    if (!map.tiles[tileAt(r.x, r.y, map.size)]?.resourceRefs.includes(r.id)) errors.push(`\u8CC7\u6E90 ${r.id} \u5730\u683C\u53C3\u7167\u5931\u6548`);
   }
-  const spawns = [{ x: 350, y: 700 }, { x: 450, y: 700 }, { x: 400, y: 800 }, { x: 1150, y: 700 }];
+  const spawns = [...map.starts.flat(), ...map.scouts ?? []];
   if (spawns.some((p) => !clearSegment(map, p, p))) errors.push("\u51FA\u751F\u9EDE\u4E0D\u53EF\u901A\u884C");
   else {
-    const job = createPathJob(map, 0, spawns[0], spawns[3]);
-    advancePathJob(map, job, 961);
+    const job = createPathJob(map, 0, map.starts[0][0], map.starts[1][0]);
+    advancePathJob(map, job, nodeTotal(map));
     if (job.status !== "found") errors.push("\u73A9\u5BB6\u51FA\u751F\u5340\u4E92\u4E0D\u9023\u901A");
   }
   return errors;
 }
-function position(id) {
-  return { x: 50 + id % 31 * 50, y: 50 + Math.floor(id / 31) * 50 };
+function position(map, id) {
+  const side = sideOf(map);
+  return { x: 50 + id % side * 50, y: 50 + Math.floor(id / side) * 50 };
 }
 function validateStartingResources(map) {
   const errors = [];
-  const players = [{ x: 350, y: 700 }, { x: 1150, y: 700 }].map((spawn, player) => {
-    const distances = Array(961).fill(Infinity), start = nearest(map, spawn), frontier = [];
+  const players = map.starts.map((start) => start[0]).map((spawn, player) => {
+    const side = sideOf(map), total = nodeTotal(map), distances = Array(total).fill(Infinity), start = nearest(map, spawn), frontier = [];
     if (start >= 0) {
-      distances[start] = Math.abs(position(start).x - spawn.x) + Math.abs(position(start).y - spawn.y);
+      distances[start] = Math.abs(position(map, start).x - spawn.x) + Math.abs(position(map, start).y - spawn.y);
       frontier.push(start);
     }
+    const closed = blockedTable(map);
     for (let head = 0; head < frontier.length; head++) {
-      const id = frontier[head], x = id % 31, y = Math.floor(id / 31);
-      for (const next of [x < 30 ? id + 1 : -1, y < 30 ? id + 31 : -1, x > 0 ? id - 1 : -1, y > 0 ? id - 31 : -1]) if (next >= 0 && !Number.isFinite(distances[next]) && !map.blocked.includes(next) && clearSegment(map, position(id), position(next))) {
+      const id = frontier[head], x = id % side, y = Math.floor(id / side);
+      for (const next of [x < side - 1 ? id + 1 : -1, y < side - 1 ? id + side : -1, x > 0 ? id - 1 : -1, y > 0 ? id - side : -1]) if (next >= 0 && !Number.isFinite(distances[next]) && !closed[next] && clearSegment(map, position(map, id), position(map, next))) {
         distances[next] = distances[id] + 50;
         frontier.push(next);
       }
@@ -1049,9 +1331,9 @@ function validateStartingResources(map) {
         if (!obstacle) return { id: resource.id, remaining: resource.remaining, distance: Infinity, approach: null };
         const [x0, y0, x1, y1] = bounds(obstacle);
         let distance = Infinity, approach = null;
-        for (let i = 0; i < 961; i++) {
+        for (let i = 0; i < total; i++) {
           if (!Number.isFinite(distances[i])) continue;
-          const p = position(i), gap = Math.max(x0 - p.x, 0, p.x - x1) + Math.max(y0 - p.y, 0, p.y - y1);
+          const p = position(map, i), gap = Math.max(x0 - p.x, 0, p.x - x1) + Math.max(y0 - p.y, 0, p.y - y1);
           if (gap > 0 && gap <= 50 && distances[i] < distance) {
             distance = distances[i];
             approach = p;
@@ -1076,10 +1358,11 @@ function connector(map, a, b, movement) {
   return clearSegment(map, a, elbow, movement) && clearSegment(map, elbow, b, movement);
 }
 function nearest(map, p, outbound = true, movement = "land") {
+  const closed = blockedTable(map);
   let best = -1, distance = Infinity;
-  for (let i = 0; i < 961; i++) {
-    const q = position(i), d = Math.abs(p.x - q.x) + Math.abs(p.y - q.y);
-    if (d < distance && !(movement === "land" ? map.blocked.includes(i) : !clearSegment(map, q, q, movement)) && (outbound ? connector(map, p, q, movement) : connector(map, q, p, movement))) {
+  for (let i = 0; i < nodeTotal(map); i++) {
+    const q = position(map, i), d = Math.abs(p.x - q.x) + Math.abs(p.y - q.y);
+    if (d < distance && !(movement === "land" ? closed[i] : !clearSegment(map, q, q, movement)) && (outbound ? connector(map, p, q, movement) : connector(map, q, p, movement))) {
       best = i;
       distance = d;
     }
@@ -1087,7 +1370,7 @@ function nearest(map, p, outbound = true, movement = "land") {
   return best;
 }
 function createPathJob(map, unitId, from, target, movement = "land") {
-  const start = nearest(map, from, true, movement), goal = nearest(map, target, false, movement), parents = Array(961).fill(-2);
+  const start = nearest(map, from, true, movement), goal = nearest(map, target, false, movement), parents = Array(nodeTotal(map)).fill(-2);
   if (start >= 0) parents[start] = -1;
   return { ...movement === "water" ? { movement } : {}, unitId, start, goal, target: { ...target }, frontier: start < 0 ? [] : [start], head: 0, parents, status: start < 0 || goal < 0 ? "unreachable" : "searching", path: [] };
 }
@@ -1105,7 +1388,7 @@ function advancePathJob(map, job, budget) {
       const path = [];
       let cursor = id;
       while (cursor !== -1) {
-        path.push(position(cursor));
+        path.push(position(map, cursor));
         cursor = job.parents[cursor];
       }
       job.path = path.reverse();
@@ -1113,8 +1396,8 @@ function advancePathJob(map, job, budget) {
       job.status = "found";
       break;
     }
-    const x = id % 31, y = Math.floor(id / 31);
-    for (const next of [x < 30 ? id + 1 : -1, y < 30 ? id + 31 : -1, x > 0 ? id - 1 : -1, y > 0 ? id - 31 : -1]) if (next >= 0 && job.parents[next] === -2 && !(job.movement === "water" ? !clearSegment(map, position(next), position(next), "water") : map.blocked.includes(next)) && clearSegment(map, position(id), position(next), job.movement ?? "land")) {
+    const side = sideOf(map), closed = blockedTable(map), x = id % side, y = Math.floor(id / side);
+    for (const next of [x < side - 1 ? id + 1 : -1, y < side - 1 ? id + side : -1, x > 0 ? id - 1 : -1, y > 0 ? id - side : -1]) if (next >= 0 && job.parents[next] === -2 && !(job.movement === "water" ? !clearSegment(map, position(map, next), position(map, next), "water") : closed[next]) && clearSegment(map, position(map, id), position(map, next), job.movement ?? "land")) {
       job.parents[next] = id;
       job.frontier.push(next);
     }
@@ -1197,7 +1480,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   }
   function staticPart(geo, color, x, y, z) {
     if (muted) color = "#737b72";
-    const key = geo.uuid + color;
+    const key = geo.uuid + color + "@" + Math.floor(x / 8) + "," + Math.floor(z / 8);
     if (!batches.has(key)) batches.set(key, { geo, color, matrices: [] });
     batches.get(key).matrices.push(new T.Matrix4().makeTranslation(x, y + baseHeight, z));
   }
@@ -1239,13 +1522,14 @@ async function createScene(canvas2, onFailure, options = {}) {
     baseHeight = 0;
     const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile, id) => ({ ...tile, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
     worldTiles = map.tiles;
+    board = sizeOfTiles(map.tiles);
     platforms = map.obstacles.flatMap((o) => {
       const p = walkablePlatforms[o.kind];
       return p ? [{ x0: o.x + p.rect[0], y0: o.y + p.rect[1], x1: o.x + p.rect[2], y1: o.y + p.rect[3], height: p.height }] : [];
     });
     let rng = seed || 1;
     for (const tile of map.tiles) {
-      const x = tile.id % 16, z = Math.floor(tile.id / 16);
+      const x = tile.id % board, z = Math.floor(tile.id / board);
       rng ^= rng << 13;
       rng ^= rng >>> 17;
       rng ^= rng << 5;
@@ -1254,7 +1538,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     }
     for (const o of map.obstacles) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
-      muted = !options.assetPreview && view.fog[tileAt(o.x, o.y)] !== 2;
+      muted = !options.assetPreview && view.fog[tileAt(o.x, o.y, sizeOfTiles(map.tiles))] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
       else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
@@ -1292,6 +1576,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       const mesh = new T.InstancedMesh(geo, material(color), matrices.length);
       matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
       mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
       mesh.userData.studs = geo === studGeo;
       mesh.userData.ground = groundGeometries.has(geo);
       mesh.castShadow = true;
@@ -1318,24 +1603,31 @@ async function createScene(canvas2, onFailure, options = {}) {
     bar.add(back, fill);
     group.add(bar);
     const rig = createCharacterRig(T, player, box2, material);
-    if (!options.assetPreview && kind !== "villager") rig.dress(kind === "militia" ? "swordsman" : "archer");
+    if (!options.assetPreview && kind !== "villager") rig.dress(roleOf(kind));
     rig.equip(previewTool);
     group.add(rig.root);
     detail.apply(group, zoom);
     const ring = new T.Mesh(ringGeo, ringMaterial);
     ring.position.y = 0.025;
     group.add(ring);
-    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill, goal: null });
+    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill, goal: null, kind });
     return units.get(id);
   }
   let previewRole = "villager";
   let previewPose = "idle", previewTool = "none", previewAnimated = false, poseStart = 0;
   const focus = { x: 8, y: 0, z: 8 };
   let worldKey = "", angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected2 = /* @__PURE__ */ new Set([1]), latest = null;
+  let board = 16;
+  const minZoom = () => Math.min(0.7, 0.7 * 16 / board);
   function cameraUpdate() {
     if (width <= 0 || height <= 0) return;
     const aspect = width / Math.max(1, height);
     const halfH = Math.max(10.5, 12 / aspect) / zoom;
+    sun.target.position.set(focus.x, 0, focus.z);
+    sun.position.set(focus.x - 12, 20, focus.z + 4);
+    const reach = Math.max(14, halfH * aspect * 1.1);
+    Object.assign(sun.shadow.camera, { left: -reach, right: reach, top: reach, bottom: -reach });
+    sun.shadow.camera.updateProjectionMatrix();
     camera.left = -halfH * aspect;
     camera.right = halfH * aspect;
     camera.top = halfH;
@@ -1362,8 +1654,11 @@ async function createScene(canvas2, onFailure, options = {}) {
     const key = JSON.stringify([previewBuildingKind, previewBuilding, previewLayout, view.layout, view.seed, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
     if (worldKey !== key) {
       worldKey = key;
+      const t = performance.now();
       buildWorld(view);
       cameraUpdate();
+      canvas2.dataset.rebuilds = String(Number(canvas2.dataset.rebuilds ?? 0) + 1);
+      canvas2.dataset.rebuildMs = (performance.now() - t).toFixed(1);
     }
     const alive = new Set(view.units.map((u) => u.id));
     for (const [key2, u] of units) if (!alive.has(key2)) {
@@ -1382,7 +1677,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       if (!options.assetPreview && (data.work === "gathering" || data.action === 1) && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
       if (!options.assetPreview) {
         const gathering = data.work === "gathering" && !u.moving, activity2 = u.moving ? data.cargo ? "carry" : "walk" : gathering ? "work" : "idle";
-        const weapon = data.kind === "militia" ? "sword" : data.kind === "archer" ? "bow" : "none", tool = data.cargo && activity2 !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food: "basket" }[data.workResource ?? "food"] : weapon;
+        const weapon = data.kind === "militia" ? "sword" : data.kind === "archer" ? "bow" : data.kind === "scout" ? "spear" : "none", tool = data.cargo && activity2 !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food: "basket" }[data.workResource ?? "food"] : weapon;
         if (tool !== u.tool) {
           u.rig.equip(tool);
           u.tool = tool;
@@ -1405,7 +1700,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     for (const c of view.corpses ?? []) if (!fallen.has(c.id)) {
       const group = new T.Group();
       const rig = createCharacterRig(T, c.player, box2, material);
-      if (c.kind !== "villager") rig.dress(c.kind === "militia" ? "swordsman" : "archer");
+      if (c.kind !== "villager") rig.dress(corpseRole(c.kind));
       group.add(rig.root);
       group.position.set(c.x / 100, groundHeight(worldTiles, c.x, c.y) / 100, c.y / 100);
       scene2.add(group);
@@ -1475,13 +1770,18 @@ async function createScene(canvas2, onFailure, options = {}) {
     }
     stepMarker(time);
     for (const u of units.values()) {
-      const pose = options.assetPreview ? previewPose : u.activity;
+      const pose = options.assetPreview ? previewPose : poseFor(u.kind, u.activity);
       u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : pose === "hit" ? time - u.poseStart : time);
       u.ring.visible = [...units].some(([id, v]) => v === u && selected2.has(id)) && pose !== "death";
     }
     for (const f of fallen.values()) f.rig.pose("death", time - f.start);
     renderer.render(scene2, camera);
+    if (++frames % 30 === 0) {
+      canvas2.dataset.draws = String(renderer.info.render.calls);
+      canvas2.dataset.triangles = String(renderer.info.render.triangles);
+    }
   }
+  let frames = 0;
   canvas2.addEventListener("webglcontextlost", (event) => {
     event.preventDefault();
     contextLost = true;
@@ -1586,7 +1886,7 @@ async function createScene(canvas2, onFailure, options = {}) {
         y0 = Math.min(y0, corner.y);
         y1 = Math.max(y1, corner.y);
       }
-      const half = view.crop ? (y1 - y0) * 0.36 : Math.max(x1 - x0, y1 - y0) / 2 * 1.06, cx = (x0 + x1) / 2, cy = view.crop ? 0 : (y0 + y1) / 2;
+      const half = view.crop ? (y1 - y0) * (view.span ?? 0.36) : Math.max(x1 - x0, y1 - y0) / 2 * 1.06, cx = (x0 + x1) / 2, cy = view.crop ? 0 : (y0 + y1) / 2;
       Object.assign(cam, { left: cx - half, right: cx + half, top: cy + half, bottom: cy - half });
       cam.updateProjectionMatrix();
       r.render(s, cam);
@@ -1594,15 +1894,15 @@ async function createScene(canvas2, onFailure, options = {}) {
       s.remove(g);
     };
     try {
-      for (const kind of ["villager", "militia", "archer"]) {
+      for (const kind of ["villager", "militia", "archer", "scout"]) {
         const rig = createCharacterRig(T, 0, box2, material);
-        if (kind !== "villager") rig.dress(kind === "militia" ? "swordsman" : "archer");
-        rig.equip(kind === "militia" ? "sword" : kind === "archer" ? "bow" : "none");
+        if (kind !== "villager") rig.dress(roleOf(kind));
+        rig.equip(kind === "militia" ? "sword" : kind === "archer" ? "bow" : kind === "scout" ? "spear" : "none");
         rig.pose("idle", 0);
         const g = new T.Group();
         g.add(rig.root);
         shoot(kind, g, { angle: Math.PI / 7, lift: 0.35 });
-        shoot(`${kind}-face`, g, { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
+        shoot(`${kind}-face`, g, kind === "scout" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
       }
       const visual = (age) => ({ ageVariant: age, progress: 100, health: 100, red: false });
       for (const age of [1, 2, 3, 4]) {
@@ -1625,6 +1925,22 @@ async function createScene(canvas2, onFailure, options = {}) {
     return out;
   }
   const cameraView = () => ({ x: focus.x, z: focus.z, angle, halfW: (camera.right - camera.left) / 2, halfH: (camera.top - camera.bottom) / 2 });
+  function setQuality(level) {
+    renderer.setPixelRatio(level === "high" ? Math.min(devicePixelRatio, 2) : level === "medium" ? 1 : 0.75);
+    width = 0;
+    height = 0;
+    resize();
+    const shadows = level !== "low", size = level === "high" ? 2048 : 1024;
+    if (renderer.shadowMap.enabled !== shadows || sun.shadow.mapSize.x !== size) {
+      renderer.shadowMap.enabled = shadows;
+      sun.castShadow = shadows;
+      sun.shadow.mapSize.set(size, size);
+      sun.shadow.map?.dispose();
+      sun.shadow.map = null;
+      for (const m of materials.values()) m.needsUpdate = true;
+    }
+    canvas2.dataset.quality = level;
+  }
   return {
     update,
     draw,
@@ -1633,6 +1949,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     pickBuilding,
     setMarker,
     setRally,
+    setQuality,
     unitsInRect,
     setGhost,
     renderIcons,
@@ -1695,18 +2012,18 @@ async function createScene(canvas2, onFailure, options = {}) {
       if (latest) update(latest, selected2);
     },
     zoom: (delta) => {
-      zoom = Math.max(0.7, Math.min(2.5, zoom + delta));
+      zoom = Math.max(minZoom(), Math.min(2.5, zoom + delta));
       cameraUpdate();
     },
     rotate: () => {
       angle += Math.PI / 2;
       cameraUpdate();
     },
-    // Screen-aligned pan (right, away from camera), scaled by zoom and clamped to the 16x16 board.
+    // Screen-aligned pan (right, away from camera), scaled by zoom and clamped to the board.
     pan: (right, up) => {
       const step = 1.2 / zoom, c = Math.cos(angle), s = Math.sin(angle);
-      focus.x = Math.max(0, Math.min(16, focus.x + (c * right - s * up) * step));
-      focus.z = Math.max(0, Math.min(16, focus.z + (-s * right - c * up) * step));
+      focus.x = Math.max(0, Math.min(board, focus.x + (c * right - s * up) * step));
+      focus.z = Math.max(0, Math.min(board, focus.z + (-s * right - c * up) * step));
       cameraUpdate();
     },
     // Opening view of a match: the home town centre, close enough that the base fills the window (wide or tall).
@@ -1714,20 +2031,20 @@ async function createScene(canvas2, onFailure, options = {}) {
       resize();
       const aspect = width / Math.max(1, height), halfH = Math.max(10.5, 12 / aspect);
       zoom = Math.max(1, Math.min(2.5, Math.max(halfH * aspect / 10, halfH / 6)));
-      focus.x = Math.max(0, Math.min(16, x));
-      focus.z = Math.max(0, Math.min(16, z));
+      focus.x = Math.max(0, Math.min(board, x));
+      focus.z = Math.max(0, Math.min(board, z));
       cameraUpdate();
     },
     focusOn: (x, z) => {
-      focus.x = Math.max(0, Math.min(16, x));
-      focus.z = Math.max(0, Math.min(16, z));
+      focus.x = Math.max(0, Math.min(board, x));
+      focus.z = Math.max(0, Math.min(board, z));
       cameraUpdate();
     },
     resetCamera: () => {
-      focus.x = 8;
+      focus.x = board / 2;
       focus.y = 0;
-      focus.z = 8;
-      zoom = 1;
+      focus.z = board / 2;
+      zoom = Math.max(minZoom(), 16 / board);
       angle = Math.PI / 4;
       cameraUpdate();
     },
@@ -1743,7 +2060,7 @@ async function createScene(canvas2, onFailure, options = {}) {
 }
 
 // packages/sim/vision.ts
-var visionRules = { provenance: "design_default", unitRadius: 400, houseRadius: 300, townCenterRadius: 600, shareVision: false, rememberStaticObjects: true };
+var visionRules = { provenance: "design_default", unitRadius: 400, scoutRadius: 550, houseRadius: 300, townCenterRadius: 600, shareVision: false, rememberStaticObjects: true };
 
 // packages/sim/economy.ts
 var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100, carryCapacity: 10, gatherTicks: { food: 20, wood: 20, gold: 25, stone: 25 }, workReach: 50, dropoffReach: 50 };
@@ -1754,16 +2071,22 @@ var combatRules = {
   units: {
     villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0 },
     militia: { hp: 45, damage: 6, range: 50, cooldown: 20, sight: 350 },
-    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400 }
+    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400 },
+    // Scout: the reference's standard start includes one (research doc); these numbers are design_default.
+    // sight here is the automatic-engage radius (vision is visionRules): 0 means the unit only fights when ordered.
+    // The scout scouts; it attacks only on an explicit order.
+    scout: { hp: 45, damage: 3, range: 50, cooldown: 40, sight: 0 }
   },
   buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100 },
   corpseTicks: 40,
-  hitFlashTicks: 6
+  hitFlashTicks: 6,
+  // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
+  speed: { villager: 5, militia: 5, archer: 5, scout: 10 }
 };
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
-var unitKinds = ["villager", "militia", "archer"];
+var unitKinds = ["villager", "militia", "archer", "scout"];
 
 // packages/sim/buildings.ts
 var buildKinds = ["house", "barracks", "farm"];
@@ -1777,10 +2100,10 @@ var overlap = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.
 function placementProblem(input, kind, x, y) {
   if (!buildKinds.includes(kind)) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
   if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x % buildingRules.grid || y % buildingRules.grid) return `\u4F4D\u7F6E\u5FC5\u9808\u5C0D\u9F4A ${buildingRules.grid} \u55AE\u4F4D\u683C\u7DDA`;
-  const box2 = obstacleBounds({ kind, x, y });
-  if (box2[0] < 0 || box2[1] < 0 || box2[2] > 1600 || box2[3] > 1600) return "\u8D85\u51FA\u5730\u5716\u7BC4\u570D";
+  const box2 = obstacleBounds({ kind, x, y }), size = sizeOfTiles(input.tiles), world = size * 100;
+  if (box2[0] < 0 || box2[1] < 0 || box2[2] > world || box2[3] > world) return "\u8D85\u51FA\u5730\u5716\u7BC4\u570D";
   const tiles = [];
-  for (let ty = Math.floor(box2[1] / 100); ty <= Math.floor((box2[3] - 1) / 100); ty++) for (let tx = Math.floor(box2[0] / 100); tx <= Math.floor((box2[2] - 1) / 100); tx++) tiles.push(ty * 16 + tx);
+  for (let ty = Math.floor(box2[1] / 100); ty <= Math.floor((box2[3] - 1) / 100); ty++) for (let tx = Math.floor(box2[0] / 100); tx <= Math.floor((box2[2] - 1) / 100); tx++) tiles.push(ty * size + tx);
   if (tiles.some((t) => !input.explored(t))) return "\u5C1A\u672A\u63A2\u7D22\u7684\u5340\u57DF\u4E0D\u80FD\u5EFA\u9020";
   if (tiles.some((t) => !input.tiles[t]?.buildability)) return "\u5730\u5F62\u4E0D\u53EF\u5EFA\u9020\uFF08\u6C34\u57DF\u3001\u61F8\u5D16\u3001\u5761\u9053\u6216\u6DFA\u7058\uFF09";
   if (new Set(tiles.map((t) => input.tiles[t].height)).size > 1) return "\u5730\u9762\u9AD8\u5EA6\u4E0D\u4E00\u81F4";
@@ -1843,7 +2166,8 @@ var aiRules = {
   siteRange: 900,
   siteStep: 20,
   halfMargin: 100,
-  spill: 100
+  spill: 100,
+  sourceMargin: 100
 };
 
 // packages/sim/sim.ts
@@ -1859,7 +2183,7 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, simulationVersion: 16 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, simulationVersion: 18 });
 
 // packages/sim/protocol.ts
 var UNIT_STRIDE = 15;
@@ -1867,15 +2191,15 @@ var STRIDE = UNIT_STRIDE;
 function decodeView(r) {
   const values = new Int32Array(r.positions), units = [];
   for (let i = 0; i < values.length; i += STRIDE) units.push({ kind: unitKinds[values[i + 11]], hp: values[i + 12], maxHp: values[i + 13], action: values[i + 14], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] } });
-  return { seed: r.seed, layout: r.layout, opponent: r.opponent, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, units };
+  return { seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, units };
 }
 
 // apps/web/worker-client.ts
 var SimulationClient = class {
-  constructor(seed, opponent, update, failure) {
+  constructor(seed, layout, opponent, update, failure) {
     this.update = update;
     this.failure = failure;
-    this.checkpoint = { seed, opponent, commands: [], ticks: 0 };
+    this.checkpoint = { seed, layout, opponent, commands: [], ticks: 0 };
   }
   worker = null;
   counter = 0;
@@ -1963,12 +2287,12 @@ var SimulationClient = class {
 var el = (id) => document.getElementById(id);
 var debug = new URLSearchParams(location.search).has("debug");
 el("debug").hidden = !debug;
-var state = { seed: rules.settings.seed, layout: "meadow", opponent: debug ? "idle" : "ai", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1 }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014" };
+var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1 }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014" };
 var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
 var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D" };
 var buildingNames2 = { house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
 var homeKinds = /* @__PURE__ */ new Set(["house", "barracks", "farm", "town-center"]);
-var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058" };
+var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058", open: "\u66E0\u91CE" };
 var placing = null;
 var selectedBuilding = null;
 var lastTransaction = 0;
@@ -1996,6 +2320,50 @@ var notice = (s) => {
   noticeTimer = window.setTimeout(() => n.classList.add("stale"), 6e3);
 };
 var canvas = el("map");
+var audio = createAudio((name, count) => {
+  document.body.dataset.lastSound = name;
+  document.body.dataset.sounds = String(count);
+});
+for (const type of ["pointerdown", "keydown"]) document.addEventListener(type, () => {
+  audio.unlock();
+  document.body.dataset.audio = audio.state();
+}, { capture: true });
+var settingsKey = "brick-rts:settings:1";
+function loadSettings() {
+  try {
+    const v = JSON.parse(localStorage.getItem(settingsKey) ?? "null");
+    if (v && ["high", "medium", "low"].includes(v.quality) && Number.isFinite(v.volume)) return { quality: v.quality, volume: Math.max(0, Math.min(100, v.volume)) };
+  } catch {
+  }
+  return { quality: "high", volume: 60 };
+}
+var settings = loadSettings();
+function saveSettings() {
+  try {
+    localStorage.setItem(settingsKey, JSON.stringify(settings));
+  } catch {
+  }
+}
+function applySettings() {
+  el("quality").value = settings.quality;
+  el("volume").value = String(settings.volume);
+  el("volume-value").textContent = `${settings.volume}%`;
+  audio.setVolume(settings.volume / 100);
+  scene?.setQuality(settings.quality);
+}
+el("quality").addEventListener("change", () => {
+  settings.quality = el("quality").value;
+  saveSettings();
+  applySettings();
+  notice(`\u756B\u8CEA\uFF1A${{ high: "\u9AD8", medium: "\u4E2D", low: "\u4F4E" }[settings.quality]}\u3002`);
+});
+el("volume").addEventListener("input", () => {
+  settings.volume = Number(el("volume").value);
+  saveSettings();
+  applySettings();
+});
+el("volume").addEventListener("change", () => audio.play("order"));
+applySettings();
 var fogDebugger = mountFogDebugger(el("fog-debug"), () => state);
 function setImg(img, key) {
   const src = icons[key];
@@ -2020,7 +2388,7 @@ function render() {
     }
   }
   el("fog-status").textContent = `\u53EF\u898B ${state.fog.filter((v) => v === 2).length} \u683C \xB7 \u5DF2\u63A2\u7D22\u820A\u8996\u91CE ${state.fog.filter((v) => v === 1).length} \u683C \xB7 \u672A\u63A2\u7D22 ${state.fog.filter((v) => v === 0).length} \u683C`;
-  el("world-label").textContent = { meadow: "\u8349\u7538\u8A66\u9A57\u5834", coast: "\u6D77\u5CB8\u8A66\u9A57\u5834", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058\u9A57\u6536\u5834" }[state.layout];
+  el("world-label").textContent = { meadow: "\u8349\u7538\u8A66\u9A57\u5834", coast: "\u6D77\u5CB8\u8A66\u9A57\u5834", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058\u9A57\u6536\u5834", open: "\u66E0\u91CE\u5C0D\u6230\u5716" }[state.layout];
   el("tick").textContent = String(state.tick);
   el("hash").textContent = state.stateHash;
   const e = state.economy;
@@ -2074,6 +2442,7 @@ async function attack(target, label) {
   }
   try {
     await client.request({ kind: "attack", unitIds, target });
+    audio.play("order-attack");
     notice(`${names2(unitIds)} \u653B\u64CA${label}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
@@ -2111,8 +2480,12 @@ function renderPaused() {
 }
 function select(ids) {
   if (selectedBuilding && [...ids].length) selectedBuilding = null;
-  const own = new Set(ownUnits().map((u) => u.id));
+  const own = new Set(ownUnits().map((u) => u.id)), before = [...selected].sort().join();
   selected = new Set([...ids].filter((id) => own.size === 0 || own.has(id)));
+  if (selected.size && [...selected].sort().join() !== before) {
+    const first = state.units.find((u) => selected.has(u.id));
+    audio.play(first?.kind === "villager" ? "select-villager" : "select-soldier");
+  }
   document.querySelectorAll("[data-unit]").forEach((b) => b.setAttribute("aria-pressed", String(selected.has(Number(b.dataset.unit)))));
   const ids2 = [...selected].sort((a, b) => a - b);
   el("selected").textContent = ids2.length ? ids2.map((id) => `#${String(id).padStart(2, "0")}`).join(" ") : "\u672A\u9078\u53D6";
@@ -2126,7 +2499,7 @@ var costOf = (k) => entryOf2(k).cost;
 var costText = (k) => Object.entries(costOf(k)).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames[r]} ${v}`).join("\u3001");
 var entryName = (k) => entryOf2(k)?.name ?? k;
 var ageNames = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
-var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B" };
+var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019" };
 var villagersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "villager").sort((a, b) => a - b);
 var leftOut = (ids) => {
   const n = selected.size - ids.length;
@@ -2253,13 +2626,22 @@ function renderSelection() {
     }
   }
 }
+var outcomeHeard = -1;
 function renderOutcome() {
   const o = state.outcome, box2 = el("result");
   box2.hidden = !o;
-  if (!o) return;
+  if (!o) {
+    outcomeHeard = -1;
+    return;
+  }
   const won = o.winner === 0;
+  if (outcomeHeard !== o.tick) {
+    outcomeHeard = o.tick;
+    audio.play(o.reason === "resign" && !won ? "resign" : won ? "victory" : "defeat");
+  }
   el("result-title").textContent = won ? "\u52DD\u5229" : o.winner === null ? "\u96D9\u65B9\u540C\u6B78\u65BC\u76E1" : "\u6230\u6557";
-  el("result-detail").textContent = `${el("clock").textContent}\uFF08tick ${o.tick}\uFF09\uFF1A${won ? "\u7D05\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002" : "\u85CD\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002"}`;
+  const why = o.reason === "resign" ? won ? "\u7D05\u65B9\u6295\u964D\u3002" : "\u4F60\u5DF2\u6295\u964D\u3002" : won ? "\u7D05\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002" : "\u85CD\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002";
+  el("result-detail").textContent = `${el("clock").textContent}\uFF08tick ${o.tick}\uFF09\uFF1A${why}`;
   if (running) setRunning(false);
   renderPaused();
 }
@@ -2278,23 +2660,38 @@ function reportEvents() {
   previous = state;
   if (!before || state.tick <= before.tick || state.seed !== before.seed) return;
   const had = new Set(before.units.map((u) => u.id));
-  for (const u of ownUnits()) if (!had.has(u.id)) feed(`${unitNames[u.kind]}\u5DF2\u751F\u7522`);
+  for (const u of ownUnits()) if (!had.has(u.id)) {
+    feed(`${unitNames[u.kind]}\u5DF2\u751F\u7522`);
+    audio.play("trained");
+  }
   const old = new Map(before.buildings.map((b) => [b.id, b]));
   for (const b of state.buildings) {
     const o = old.get(b.id);
-    if (o && !o.complete && b.complete) feed(`${buildingNames2[b.kind] ?? b.kind}\u5DF2\u5EFA\u9020`);
+    if (o && !o.complete && b.complete) {
+      feed(`${buildingNames2[b.kind] ?? b.kind}\u5DF2\u5EFA\u9020`);
+      audio.play("built");
+    }
   }
   for (const o of before.buildings) if (!state.buildings.some((b) => b.id === o.id)) {
     const field = before.resources.find((r) => r.id === `resource-${o.id}`);
     if (o.kind === "farm" && field && field.remaining <= economyRules.carryCapacity) feed("\u8FB2\u7530\u8017\u76E1");
-    else if (o.complete) feed(`${buildingNames2[o.kind] ?? o.kind}\u88AB\u6467\u6BC0`, "alarm");
+    else if (o.complete) {
+      feed(`${buildingNames2[o.kind] ?? o.kind}\u88AB\u6467\u6BC0`, "alarm");
+      audio.play("collapse");
+    }
   }
-  if (state.economy.age > before.economy.age) feed(`\u5DF2\u5347\u4E0A${ageNames[state.economy.age]}`);
+  if (state.economy.age > before.economy.age) {
+    feed(`\u5DF2\u5347\u4E0A${ageNames[state.economy.age]}`);
+    audio.play("age");
+  }
+  const lastHp = new Map(before.units.map((u) => [u.id, u.hp]));
+  if (state.units.some((u) => (lastHp.get(u.id) ?? u.hp) > u.hp)) audio.play("hit");
   const hp = new Map([...before.units.filter((u) => u.player === 0).map((u) => [`u${u.id}`, u.hp]), ...before.buildings.map((b) => [`b${b.id}`, b.hp])]);
   const hurt = [...ownUnits().filter((u) => (hp.get(`u${u.id}`) ?? u.hp) > u.hp).map((u) => ({ x: u.x, y: u.y })), ...state.buildings.filter((b) => (hp.get(`b${b.id}`) ?? b.hp) > b.hp).map((b) => ({ x: b.x + 100, y: b.y + 100 }))];
   if (hurt.length && state.tick - lastAlarm >= 10 * rules.settings.tickHz) {
     lastAlarm = state.tick;
     feed("\u8B66\u544A\uFF1A\u4F60\u6B63\u5728\u88AB\u7D05\u65B9\u653B\u64CA\uFF01", "alarm");
+    audio.play("alarm");
     ping = { x: hurt[0].x / 100, z: hurt[0].y / 100, until: performance.now() + 3e3 };
     miniKey = "";
   }
@@ -2307,6 +2704,7 @@ function reportTransactions() {
   }
 }
 function selectBuilding(id) {
+  if (id && id !== selectedBuilding) audio.play("order");
   selectedBuilding = id;
   if (id) select([]);
   render();
@@ -2342,6 +2740,7 @@ async function build(k, x, y) {
   }
   try {
     await client.request({ kind: "build", unitIds, building: k, x, y });
+    audio.play("place");
     notice(`${names2(unitIds)} \u524D\u5F80\u5EFA\u9020${buildingNames2[k]}\uFF1B\u653E\u7F6E\u6642\u6263\u9664 ${costText(k)}\u3002${leftOut(unitIds)}`);
   } catch (e) {
     notice(reason(e));
@@ -2513,6 +2912,7 @@ el("commands").addEventListener("focusout", () => {
 async function train(buildingId, entryId) {
   try {
     await client.request({ kind: "train", buildingId, entryId });
+    audio.play("order");
     notice(`${entryName(entryId)}\u5C07\u5728 tick ${state.tick + 1} \u52A0\u5165\u4F47\u5217\u4E26\u6263\u9664 ${costText(entryId)}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
@@ -2544,7 +2944,8 @@ function toggle(id) {
   select(next);
 }
 el("opponent").value = debug ? "idle" : "ai";
-var client = new SimulationClient(rules.settings.seed, debug ? "idle" : "ai", (v) => {
+el("layout").value = debug ? "meadow" : "open";
+var client = new SimulationClient(rules.settings.seed, debug ? "meadow" : "open", debug ? "idle" : "ai", (v) => {
   state = v;
   render();
 }, (reason2) => {
@@ -2556,7 +2957,7 @@ var client = new SimulationClient(rules.settings.seed, debug ? "idle" : "ai", (v
 });
 function toggleControls() {
   for (const id of ["zoom-in", "zoom-out", "rotate-view", "reset-view", "idle-villager"]) el(id).disabled = !scene || graphicsFailed;
-  for (const id of ["move", "stop", "pause", "step", "restart", "save", "load", "replay"]) el(id).disabled = !connected || graphicsFailed && id !== "save" || id === "step" && running;
+  for (const id of ["move", "stop", "pause", "step", "restart", "save", "load", "replay", "resign"]) el(id).disabled = !connected || graphicsFailed && id !== "save" || id === "step" && running;
 }
 function autoStart() {
   if (debug || !connected || graphicsFailed) return;
@@ -2589,10 +2990,11 @@ var kindOf = (id) => unitNames[state.units.find((u) => u.id === id)?.kind ?? "vi
 var names2 = (ids) => ids.length > 3 ? `${ids.length} \u540D\u55AE\u4F4D` : ids.map((id) => `${kindOf(id)} ${id}`).join("\u3001");
 function openPoint(x, y) {
   const map = { obstacles: state.known.map((k) => k.obstacle), tiles: state.terrain.map((t, id) => ({ ...t, id, resourceRefs: [], obstacleRefs: [] })) }, p0 = { x: Math.round(x * 100), y: Math.round(y * 100) };
+  const edge = state.size * 100 - 50;
   for (let r = 0; r <= 300; r += 25) for (let dy = -r; dy <= r; dy += 25) for (let dx = -r; dx <= r; dx += 25) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
     const p = { x: p0.x + dx, y: p0.y + dy };
-    if (p.x < 50 || p.y < 50 || p.x > 1550 || p.y > 1550) continue;
+    if (p.x < 50 || p.y < 50 || p.x > edge || p.y > edge) continue;
     if (clearSegment(map, p, p)) return p;
   }
   return p0;
@@ -2607,6 +3009,7 @@ async function move(x, y, exact = false) {
   scene?.setMarker("move", to.x / 100, to.y / 100);
   try {
     await client.request({ kind: "move", unitIds, x: to.x, y: to.y });
+    audio.play("order");
     notice(`${names2(unitIds)} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
@@ -2620,6 +3023,7 @@ async function gather(resourceId) {
   }
   try {
     await client.request({ kind: "gather", unitIds, resourceId });
+    audio.play("order");
     notice(`${names2(unitIds)} \u524D\u5F80\u63A1\u96C6\u3002${leftOut(unitIds)}${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
@@ -2742,7 +3146,7 @@ canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     endDrag();
     const hit = scene.pickGround(e.clientX, e.clientY);
-    if (hit.x === void 0 || hit.y === void 0 || hit.x < 0.5 || hit.x > 15.5 || hit.y < 0.5 || hit.y > 15.5) {
+    if (hit.x === void 0 || hit.y === void 0 || hit.x < 0.5 || hit.x > state.size - 0.5 || hit.y < 0.5 || hit.y > state.size - 0.5) {
       notice("\u8ACB\u5728\u5730\u5716\u5167\u5074\u7684\u5730\u9762\u6309\u53F3\u9375\u3002");
       return;
     }
@@ -2814,7 +3218,7 @@ canvas.addEventListener("pointerup", (e) => {
   }
   if (e.pointerType === "touch" && selected.size) {
     const g = scene.pickGround(e.clientX, e.clientY);
-    if (g.x !== void 0 && g.y !== void 0 && g.x >= 0.5 && g.x <= 15.5 && g.y >= 0.5 && g.y <= 15.5) {
+    if (g.x !== void 0 && g.y !== void 0 && g.x >= 0.5 && g.x <= state.size - 0.5 && g.y >= 0.5 && g.y <= state.size - 0.5) {
       const r = resourceAt(g.x, g.y);
       if (r) void gather(r.id);
       else void move(g.x, g.y);
@@ -2845,15 +3249,15 @@ var shade = (hex, f) => {
   return `rgb(${Math.round((n >> 16 & 255) * f)},${Math.round((n >> 8 & 255) * f)},${Math.round((n & 255) * f)})`;
 };
 function miniGeometry() {
-  const r = mini.getBoundingClientRect(), v = scene.cameraView(), K = Math.SQRT1_2, s = Math.min(r.width / (16 * Math.SQRT2), r.height / (16 * Math.SQRT2 * K)) * 0.96, c = Math.cos(v.angle), sn = Math.sin(v.angle);
-  return { r, v, K, s, c, sn, P: (x, z) => {
-    const dx = x - 8, dz = z - 8;
+  const r = mini.getBoundingClientRect(), v = scene.cameraView(), K = Math.SQRT1_2, n = state.size, h = n / 2, s = Math.min(r.width / (n * Math.SQRT2), r.height / (n * Math.SQRT2 * K)) * 0.96, c = Math.cos(v.angle), sn = Math.sin(v.angle);
+  return { r, v, K, s, c, sn, h, P: (x, z) => {
+    const dx = x - h, dz = z - h;
     return [r.width / 2 + (dx * c - dz * sn) * s, r.height / 2 + (dx * sn + dz * c) * K * s];
   } };
 }
 function miniWorld(clientX, clientY) {
   const g = miniGeometry(), u = (clientX - g.r.left - g.r.width / 2) / g.s, w = (clientY - g.r.top - g.r.height / 2) / (g.K * g.s);
-  return { x: 8 + u * g.c + w * g.sn, z: 8 - u * g.sn + w * g.c };
+  return { x: g.h + u * g.c + w * g.sn, z: g.h - u * g.sn + w * g.c };
 }
 function drawMinimap() {
   if (!scene || graphicsFailed || !mctx) return;
@@ -2881,14 +3285,14 @@ function drawMinimap() {
     ctx.fill();
   };
   state.terrain.forEach((t, id) => {
-    const f = state.fog[id] ?? 0, x = id % 16, z = Math.floor(id / 16), base = terrainColor[t.terrainType] ?? "#b5c493";
+    const f = state.fog[id] ?? 0, x = id % state.size, z = Math.floor(id / state.size), base = terrainColor[t.terrainType] ?? "#b5c493";
     ctx.fillStyle = f === 0 ? "#1c2622" : f === 1 ? shade(base, 0.52) : base;
     quad(x - 0.02, z - 0.02, x + 1.02, z + 1.02);
   });
   for (const k of state.known) {
     const o = k.obstacle, [x0, y0, x1, y1] = obstacleBounds(o), home = homeKinds.has(o.kind);
     ctx.fillStyle = o.kind === "farm" ? o.red ? "#b58a62" : "#a99a5e" : home ? o.red ? "#d0664c" : "#5d93b6" : obstacleColor[o.kind] ?? "#c8c2a8";
-    if ((state.fog[Math.floor(o.y / 100) * 16 + Math.floor(o.x / 100)] ?? 0) < 2 && !home) ctx.fillStyle = shade(ctx.fillStyle, 0.6);
+    if ((state.fog[Math.floor(o.y / 100) * state.size + Math.floor(o.x / 100)] ?? 0) < 2 && !home) ctx.fillStyle = shade(ctx.fillStyle, 0.6);
     quad(x0 / 100, y0 / 100, x1 / 100, y1 / 100);
   }
   for (const u of state.units) {
@@ -2930,7 +3334,7 @@ mini.addEventListener("pointerdown", (e) => {
     return;
   }
   if (e.button === 2) {
-    if (w.x < 0.5 || w.x > 15.5 || w.z < 0.5 || w.z > 15.5) {
+    if (w.x < 0.5 || w.x > state.size - 0.5 || w.z < 0.5 || w.z > state.size - 0.5) {
       notice("\u8ACB\u5728\u5C0F\u5730\u5716\u7684\u5730\u5716\u7BC4\u570D\u5167\u6309\u53F3\u9375\u3002");
       return;
     }
@@ -3061,6 +3465,16 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === ".") {
     nextIdle();
+    return;
+  }
+  if (e.key === ",") {
+    const army = ownUnits().filter((u) => u.kind === "militia" || u.kind === "archer").map((u) => u.id);
+    if (!army.length) {
+      notice("\u6C92\u6709\u8ECD\u968A\u3002");
+      return;
+    }
+    select(army);
+    notice(`\u5DF2\u9078\u53D6\u5168\u90E8\u8ECD\u968A\uFF1A${army.length} \u540D\u3002`);
     return;
   }
   const letter = /^Key([QWERT])$/.exec(e.code);
@@ -3195,6 +3609,30 @@ el("load").onclick = async () => {
     notice(`\u8B80\u53D6\u5931\u6557\uFF1A${e.message}\u3002\u76EE\u524D\u904A\u6232\u4FDD\u7559\u3002`);
   }
 };
+var resignTimer = 0;
+el("resign").onclick = async () => {
+  const b = el("resign");
+  if (!b.dataset.armed) {
+    b.dataset.armed = "1";
+    b.textContent = "\u518D\u6309\u4E00\u6B21\u78BA\u8A8D\u6295\u964D";
+    resignTimer = window.setTimeout(() => {
+      delete b.dataset.armed;
+      b.textContent = "\u6295\u964D";
+    }, 4e3);
+    return;
+  }
+  clearTimeout(resignTimer);
+  delete b.dataset.armed;
+  b.textContent = "\u6295\u964D";
+  closeMenu(false);
+  try {
+    await client.request({ kind: "resign" });
+    if (!running) await client.request({ kind: "advance", count: 1 });
+    notice("\u4F60\u5DF2\u6295\u964D\u3002");
+  } catch (e) {
+    notice(reason(e));
+  }
+};
 el("replay").onclick = async () => {
   closeMenu(false);
   setRunning(false);
@@ -3259,10 +3697,8 @@ function frame(time) {
   if (running) {
     if (last) accumulator += time - last;
     last = time;
-    if (accumulator > 1e3) {
-      setRunning(false);
-      notice("\u6A21\u64EC\u843D\u5F8C\u8D85\u904E 1 \u79D2\uFF0C\u5DF2\u66AB\u505C\uFF1B\u672A\u8DF3\u904E\u4EFB\u4F55 tick\u3002");
-    } else if (!advancing && accumulator >= 50 / speed) {
+    if (accumulator > 1e3) accumulator = 1e3;
+    if (!advancing && accumulator >= 50 / speed) {
       const count = Math.min(20 * speed, Math.floor(accumulator * speed / 50));
       accumulator -= count * 50 / speed;
       advancing = true;
@@ -3304,6 +3740,7 @@ void createScene(canvas, graphicsError).then((result) => {
     document.body.classList.add("no-icons");
   }
   applyIcons();
+  applySettings();
   toggleControls();
   scene.update(state, selected);
   void connect();

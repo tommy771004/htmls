@@ -3,11 +3,11 @@ import {createVision,updateVision,visionRules} from './vision.ts';
 import type {PlayerVision} from './vision.ts';
 import {createAccount,reserve,cancelReservation,economyRules} from './economy.ts';
 import type {Account} from './economy.ts';
-import {terrainRules,terrainDefinitions,resourceDefinitions} from './terrain.ts';
+import {terrainRules,terrainDefinitions,resourceDefinitions,mapSizes} from './terrain.ts';
 import {rules} from '../content/rules.ts';
 import {footprintContract} from '../content/footprints.ts';
 import {combatRules} from './stats.ts';
-import {makeMap,clearSegment,navigationRules,startingResourceRules} from './navigation.ts';
+import {makeMap,clearSegment,navigationRules,startingResourceRules,openMapRules} from './navigation.ts';
 import type {MapData} from './navigation.ts';
 import {makeUnit,commandMove,commandStop,stepMovement} from './movement.ts';
 import type {Unit,Job} from './movement.ts';
@@ -31,19 +31,22 @@ export type CancelBuildCommand=Envelope&{commandType:'cancelBuild';payload:{buil
 export type TrainCommand=Envelope&{commandType:'train';payload:{buildingId:string;entryId:string}};
 export type CancelTrainCommand=Envelope&{commandType:'cancelTrain';payload:{buildingId:string;itemId:number}};
 export type RallyCommand=Envelope&{commandType:'rally';payload:{buildingId:string;x:number;y:number}};
+export type ResignCommand=Envelope&{commandType:'resign';payload:Record<string,never>};
 export type AttackCommand=Envelope&{commandType:'attack';payload:{unitIds:number[];target:Target}};
-export type Command=AttackCommand|MoveCommand|StopCommand|GatherCommand|BuildCommand|ConstructCommand|CancelBuildCommand|TrainCommand|CancelTrainCommand|RallyCommand|Envelope&{commandType:'reserve';payload:{entryId:string}}|Envelope&{commandType:'cancelReservation';payload:{reservationId:string}};
+export type Command=ResignCommand|AttackCommand|MoveCommand|StopCommand|GatherCommand|BuildCommand|ConstructCommand|CancelBuildCommand|TrainCommand|CancelTrainCommand|RallyCommand|Envelope&{commandType:'reserve';payload:{entryId:string}}|Envelope&{commandType:'cancelReservation';payload:{reservationId:string}};
 export type LoggedCommand=Command&{acceptedTick:number};
 export type TransactionResult={tick:number;playerId:number;sequence:number;ok:boolean;error?:string};
 // opponent: 'ai' runs the computer player for red; 'idle' keeps red still (practice and the scripted flows).
 export type Opponent='ai'|'idle';
-export type State={navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;version:16;opponent:Opponent;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
+export type State={navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;version:18;opponent:Opponent;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
 function canonical(value:unknown):string {if(value===null||typeof value!=='object')return JSON.stringify(value);if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical((value as Record<string,unknown>)[k])).join(',')+'}';}
 export function hash(value:unknown):string{let h=2166136261;for(const c of canonical(value)){h=Math.imul(h^c.charCodeAt(0),16777619);}return (h>>>0).toString(16).padStart(8,'0');}
-export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,ai:aiRules,simulationVersion:16});
-export function createState(seed:number,layout:MapLayout='meadow',opponent:Opponent='idle'):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');if(opponent!=='ai'&&opponent!=='idle')throw Error('未知的對手設定');const state:State={buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,version:16,opponent,works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(opponent==='ai'?3:1)],transactions:[],map:makeMap(seed,layout),pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[makeUnit(1,0,350,700),makeUnit(2,0,450,700),makeUnit(3,0,400,800),makeUnit(4,1,1150,700)],queue:[],log:[]};
+export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,ai:aiRules,maps:{mapSizes,openMapRules},simulationVersion:18});
+export function createState(seed:number,layout:MapLayout='meadow',opponent:Opponent='idle'):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');if(opponent!=='ai'&&opponent!=='idle')throw Error('未知的對手設定');const map=makeMap(seed,layout);const state:State={buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,version:18,opponent,works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(opponent==='ai'?3:1)],transactions:[],map,pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[...map.starts[0].map((p,i)=>makeUnit(map,1+i,0,p.x,p.y)),makeUnit(map,4,1,map.starts[1][0].x,map.starts[1][0].y)],queue:[],log:[]};
  // Against the computer red starts like blue: three villagers, mirrored around the map's centre line.
- if(opponent==='ai'){state.units.push(makeUnit(5,1,1250,700),makeUnit(6,1,1200,800));state.nextUnitId=7;}
+ if(opponent==='ai'){state.units.push(...map.starts[1].slice(1).map((p,i)=>makeUnit(map,5+i,1,p.x,p.y)));state.nextUnitId=5+map.starts[1].length-1;}
+ // The match map adds a scout per side (red's only against the computer): ids follow the villagers.
+ if(map.scouts){for(const p of opponent==='ai'?[0,1]:[0]){const at=map.scouts[p];state.units.push(makeUnit(map,state.nextUnitId++,p,at.x,at.y,'scout'));state.accounts[p].populationUsed++;}}
  initBuildings(state);updateVision(state.vision,state.map,state.units,0);return state;}
 // xorshift32; renderers never advance this stream.
 export function nextRandom(state:State):number{let n=state.rng;n^=n<<13;n^=n>>>17;n^=n<<5;state.rng=n>>>0;return state.rng;}
@@ -61,8 +64,9 @@ export function submit(state:State, c:Command, record=true):void {
  for(const id of ids){const u=state.units.find(u=>u.id===id);if(!u||u.player!==c.playerId)throw Error('不可控制敵方或不存在的單位');if(c.commandType!=='move'&&c.commandType!=='stop'&&c.commandType!=='attack'&&u.kind!=='villager')throw Error('只有村民能採集或建造');}
  }
  if(c.commandType==='move'){
- for(const k of ['x','y'] as const)if(!Number.isSafeInteger(c.payload[k])||c.payload[k]<50||c.payload[k]>1550)throw Error('目標超出地圖');
- if(!clearSegment(state.map,c.payload,c.payload))throw Error('目標位於建築、資源或不可通行地形的占地內');
+ for(const k of ['x','y'] as const)if(!Number.isSafeInteger(c.payload[k])||c.payload[k]<50||c.payload[k]>state.map.size*100-50)throw Error('目標超出地圖');
+ // A target inside something solid is allowed: the units walk as close as they can (as in the reference), and a
+ // refusal would reveal obstacles hidden in the fog.
  }else if(c.commandType==='stop'){}
  else if(c.commandType==='attack'){const t=c.payload.target;if(!t||!['unit','building'].includes(t.kind))throw Error('無效的攻擊目標');const problem=targetProblem(state,c.playerId,t);if(problem)throw Error(problem);}
  else if(c.commandType==='build'){
@@ -75,7 +79,7 @@ export function submit(state:State, c:Command, record=true):void {
  const b=state.buildings.find(b=>b.id===c.payload.buildingId);if(!b||b.player!==c.playerId)throw Error('找不到這棟己方建築');
  if(c.commandType==='train'){const problem=trainable(state,c.playerId,b,c.payload.entryId);if(problem)throw Error(problem);}
  else if(c.commandType==='cancelTrain'){if(!b.queue.some(q=>q.id===c.payload.itemId))throw Error('佇列項目已完成或不存在');}
- else{if(!b.complete)throw Error('建築尚未完工');for(const k of ['x','y'] as const)if(!Number.isSafeInteger(c.payload[k])||c.payload[k]<50||c.payload[k]>1550)throw Error('集結點超出地圖');
+ else{if(!b.complete)throw Error('建築尚未完工');for(const k of ['x','y'] as const)if(!Number.isSafeInteger(c.payload[k])||c.payload[k]<50||c.payload[k]>state.map.size*100-50)throw Error('集結點超出地圖');
  if(!clearSegment(state.map,c.payload,c.payload))throw Error('集結點不能設在建築、資源或不可通行地形上');}
  }
  else if(c.commandType==='construct'||c.commandType==='cancelBuild'){
@@ -84,10 +88,11 @@ export function submit(state:State, c:Command, record=true):void {
  else if(c.commandType==='gather'){
  const r=typeof c.payload.resourceId==='string'?state.map.resources.find(r=>r.id===c.payload.resourceId):undefined;
  // Unexplored resources are unknown to the player: same error as a missing id, so nothing leaks.
- if(!r||!state.vision[c.playerId].explored.includes(tileAt(r.x,r.y)))throw Error('找不到這個資源');
+ if(!r||!state.vision[c.playerId].explored.includes(tileAt(r.x,r.y,state.map.size)))throw Error('找不到這個資源');
  if(r.kind==='farm'&&farmOwner(state,r.id)!==c.playerId)throw Error('只能耕作己方的農田');
  const problem=gatherable(state.map,r.id);if(problem)throw Error(problem);
  }
+ else if(c.commandType==='resign'){}
  else if(c.commandType==='reserve'){if(!rules.entries.some(e=>e.id===c.payload.entryId))throw Error('未知預留內容');}
  else if(c.commandType==='cancelReservation'){if(typeof c.payload.reservationId!=='string'||!c.payload.reservationId.startsWith(`${c.playerId}:`))throw Error('不可取消敵方或無效的預留');}
  else throw Error('不支援的命令');
@@ -98,6 +103,8 @@ export function tick(s:State):{expanded:number} {
  s.tick++;
  s.queue.sort((a,b)=>a.targetTick-b.targetTick||a.playerId-b.playerId||a.sequence-b.sequence);
  while(s.queue.length&&s.queue[0].targetTick===s.tick){const c=s.queue.shift()!;
+ // Resigning ends the match at once for the other player (the sim then refuses every command).
+ if(c.commandType==='resign'){if(!s.outcome)s.outcome={winner:1-c.playerId,defeated:[c.playerId],tick:s.tick,reason:'resign'};continue;}
  if(c.commandType==='attack'){if(!targetProblem(s,c.playerId,c.payload.target))commandAttack(s,c.payload.unitIds,c.payload.target);else{clearAttacks(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);}continue;}
  if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='build'||c.commandType==='construct')clearAttacks(s,c.payload.unitIds);
  if(c.commandType==='move'){clearWork(s,c.payload.unitIds);commandMove(s,c.payload.unitIds,{x:c.payload.x,y:c.payload.y});continue;}
@@ -136,12 +143,12 @@ export function replay(seed:number,commands:LoggedCommand[],ticks:number,layout:
  }
  while(s.tick<ticks)tick(s);return s;
 }
-export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-16',rulesetHash,state:s,checksum:hash(s)});}
+export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-18',rulesetHash,state:s,checksum:hash(s)});}
 export function deserialize(raw:string):State{
  const v=JSON.parse(raw);
- if(!v||v.format!=='brick-sandbox-16'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
+ if(!v||v.format!=='brick-sandbox-18'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
  const s=v.state as State;
- if(s.version!==16||(s.opponent!=='ai'&&s.opponent!=='idle')||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
+ if(s.version!==18||(s.opponent!=='ai'&&s.opponent!=='idle')||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
  const rebuilt=replay(s.seed,s.log,s.tick,s.layout,s.opponent);
  if(hash(rebuilt)!==hash(s))throw Error('存檔狀態無法由命令重建');
  return structuredClone(s);

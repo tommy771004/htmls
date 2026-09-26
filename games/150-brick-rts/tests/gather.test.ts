@@ -8,7 +8,7 @@ import {resources} from '../packages/content/rules.ts';
 import {workSlots,dropoffNodes} from '../packages/sim/work.ts';
 import {tileAt} from '../packages/sim/terrain.ts';
 function order(s:State,payload:any,commandType='gather'){submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:s.sequence[0]+1,targetTick:s.tick+1,commandType,payload} as any);}
-const nearest=(s:State,kind:string,from={x:400,y:700})=>s.map.resources.filter(r=>r.kind===kind&&r.collectible&&s.vision[0].explored.includes(tileAt(r.x,r.y))).sort((a,b)=>Math.abs(a.x-from.x)+Math.abs(a.y-from.y)-(Math.abs(b.x-from.x)+Math.abs(b.y-from.y))||(a.id<b.id?-1:1))[0];
+const nearest=(s:State,kind:string,from={x:400,y:700})=>s.map.resources.filter(r=>r.kind===kind&&r.collectible&&s.vision[0].explored.includes(tileAt(r.x,r.y,16))).sort((a,b)=>Math.abs(a.x-from.x)+Math.abs(a.y-from.y)-(Math.abs(b.x-from.x)+Math.abs(b.y-from.y))||(a.id<b.id?-1:1))[0];
 // Resource-flow ledger: every extracted unit is either deposited or still carried; stock = start + deposits.
 function assertLedger(s:State){const a=s.accounts[0];for(const k of resources){const carried=Object.entries(s.cargo).filter(([id])=>s.units.find(u=>u.id===Number(id))!.player===0).reduce((t,[,c])=>t+(c.resource===k?c.amount:0),0);
  assert.equal(a.ledger.extracted[k],a.ledger.deposited[k]+carried,`tick ${s.tick} ${k}`);assert.equal(a.stock[k],economyRules.initialStock[k]+a.ledger.deposited[k]);}
@@ -45,15 +45,15 @@ test('a move order keeps cargo and ends work; a gold order first returns the woo
 test('hunt, herd and fish are refused honestly; unexplored resources look identical to missing ones',()=>{
  const s=createState(260925),before=hash(s);
  for(const kind of ['hunt','livestock'])assert.throws(()=>order(s,{unitIds:[1],resourceId:s.map.resources.find(r=>r.kind===kind)!.id}),/尚未實作/);
- const hidden=s.map.resources.find(r=>!s.vision[0].explored.includes(tileAt(r.x,r.y)))!;
+ const hidden=s.map.resources.find(r=>!s.vision[0].explored.includes(tileAt(r.x,r.y,16)))!;
  assert.throws(()=>order(s,{unitIds:[1],resourceId:hidden.id}),/找不到這個資源/);assert.throws(()=>order(s,{unitIds:[1],resourceId:'nope'}),/找不到這個資源/);
  assert.throws(()=>order(s,{unitIds:[4],resourceId:nearest(s,'tree').id}));assert.equal(hash(s),before);
 });
 test('work slots sit just outside the resource and drop-off nodes ring the town center outside the hall',()=>{
  const s=createState(260925),tree=nearest(s,'tree'),slots=workSlots(s.map,tree.id),drop=dropoffNodes(s.map,0);
- assert.ok(slots.length>=4);assert.ok(slots.every(n=>clearSegment(s.map,position(n),position(n))));
+ assert.ok(slots.length>=4);assert.ok(slots.every(n=>clearSegment(s.map,position({size:16},n),position({size:16},n))));
  const tc=s.map.obstacles.find(o=>o.kind==='town-center'&&!o.red)!;assert.ok(drop.length>=8);
- assert.ok(drop.every(n=>{const p=position(n);return !(p.x>=tc.x-15&&p.x<=tc.x+285&&p.y>=tc.y-15&&p.y<=tc.y+285);}),'drop-off never inside the plinth/hall');
+ assert.ok(drop.every(n=>{const p=position({size:16},n);return !(p.x>=tc.x-15&&p.x<=tc.x+285&&p.y>=tc.y-15&&p.y<=tc.y+285);}),'drop-off never inside the plinth/hall');
 });
 test('gathering survives save/load and replays to the same hash, cargo included',()=>{
  const s=createState(260925);order(s,{unitIds:[1,2,3],resourceId:nearest(s,'tree').id});for(let i=0;i<333;i++)tick(s);
@@ -63,7 +63,7 @@ test('gathering survives save/load and replays to the same hash, cargo included'
 
 test('five villagers on one tree (11 work slots) all gather and return',async()=>{
  const {makeUnit}=await import('../packages/sim/movement.ts');
- const s=createState(260925);s.units.push(makeUnit(10,0,300,800),makeUnit(11,0,500,800));s.units.sort((a,b)=>a.id-b.id);
+ const s=createState(260925);s.units.push(makeUnit({size:16},10,0,300,800),makeUnit({size:16},11,0,500,800));s.units.sort((a,b)=>a.id-b.id);
  const tree=nearest(s,'tree');assert.ok(workSlots(s.map,tree.id).length>=5);order(s,{unitIds:[1,2,3,10,11],resourceId:tree.id});
  const loaded=new Set<number>();for(let i=0;i<2400;i++){tick(s);assertLedger(s);assertNoOverlap(s);for(const [id,c] of Object.entries(s.cargo))if(c.amount>=economyRules.carryCapacity)loaded.add(Number(id));}
  assert.deepEqual([...loaded].sort((a,b)=>a-b),[1,2,3,10,11]);assert.ok(s.accounts[0].ledger.deposited.wood>=100);

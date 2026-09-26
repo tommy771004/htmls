@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "5668694c",
+  "rulesetHash": "eac6f541",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -151,6 +151,7 @@
   "vision": {
     "provenance": "design_default",
     "unitRadius": 400,
+    "scoutRadius": 550,
     "houseRadius": 300,
     "townCenterRadius": 600,
     "shareVision": false,
@@ -342,6 +343,13 @@
         "range": 250,
         "cooldown": 30,
         "sight": 400
+      },
+      "scout": {
+        "hp": 45,
+        "damage": 3,
+        "range": 50,
+        "cooldown": 40,
+        "sight": 0
       }
     },
     "buildings": {
@@ -351,7 +359,13 @@
       "farm": 100
     },
     "corpseTicks": 40,
-    "hitFlashTicks": 6
+    "hitFlashTicks": 6,
+    "speed": {
+      "villager": 5,
+      "militia": 5,
+      "archer": 5,
+      "scout": 10
+    }
   },
   "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; units hold one node and reserve the next (no overlap, no pass-through), wait, yield, trade stations and replan within bounded limits"
 }

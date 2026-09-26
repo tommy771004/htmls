@@ -2,10 +2,10 @@ import {obstacleBounds,obstacleRects} from '../content/footprints.ts';
 import {rules} from '../content/rules.ts';
 import {reserve,cancelReservation,commitReservation} from './economy.ts';
 import type {Account} from './economy.ts';
-import {refreshNavigation,navigationRules} from './navigation.ts';
+import {refreshNavigation,navigationRules,position} from './navigation.ts';
 import type {MapData,Obstacle} from './navigation.ts';
 import type {Unit} from './movement.ts';
-import {tileAt,terrainRules} from './terrain.ts';
+import {tileAt,terrainRules,sizeOfTiles} from './terrain.ts';
 import {combatRules} from './stats.ts';
 import type {Tile} from './terrain.ts';
 // Player buildings (design_default engineering rules, not reference-game values).
@@ -26,9 +26,9 @@ const overlap=(a:number[],b:number[])=>Math.min(a[2],b[2])-Math.max(a[0],b[0])>0
 export function placementProblem(input:{tiles:Pick<Tile,'buildability'|'height'>[];obstacles:Obstacle[];units:{x:number;y:number}[];explored:(tile:number)=>boolean},kind:BuildKind,x:number,y:number):string|null{
  if(!buildKinds.includes(kind))return '未知的建築種類';
  if(!Number.isSafeInteger(x)||!Number.isSafeInteger(y)||x%buildingRules.grid||y%buildingRules.grid)return `位置必須對齊 ${buildingRules.grid} 單位格線`;
- const box=obstacleBounds({kind,x,y});
- if(box[0]<0||box[1]<0||box[2]>1600||box[3]>1600)return '超出地圖範圍';
- const tiles:number[]=[];for(let ty=Math.floor(box[1]/100);ty<=Math.floor((box[3]-1)/100);ty++)for(let tx=Math.floor(box[0]/100);tx<=Math.floor((box[2]-1)/100);tx++)tiles.push(ty*16+tx);
+ const box=obstacleBounds({kind,x,y}),size=sizeOfTiles(input.tiles),world=size*100;
+ if(box[0]<0||box[1]<0||box[2]>world||box[3]>world)return '超出地圖範圍';
+ const tiles:number[]=[];for(let ty=Math.floor(box[1]/100);ty<=Math.floor((box[3]-1)/100);ty++)for(let tx=Math.floor(box[0]/100);tx<=Math.floor((box[2]-1)/100);tx++)tiles.push(ty*size+tx);
  if(tiles.some(t=>!input.explored(t)))return '尚未探索的區域不能建造';
  if(tiles.some(t=>!input.tiles[t]?.buildability))return '地形不可建造（水域、懸崖、坡道或淺灘）';
  if(new Set(tiles.map(t=>input.tiles[t].height)).size>1)return '地面高度不一致';
@@ -41,12 +41,12 @@ export function placementProblem(input:{tiles:Pick<Tile,'buildability'|'height'>
 export function authoritativeProblem(s:BuildingState,player:number,kind:BuildKind,x:number,y:number){
  const explored=new Set(s.vision[player].explored);
  // Units crossing an edge also occupy the node they are entering.
- const bodies=s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[{x:50+(u.next%31)*50,y:50+Math.floor(u.next/31)*50}])]);
+ const bodies=s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[position(s.map,u.next)])]);
  return placementProblem({tiles:s.map.tiles,obstacles:s.map.obstacles,units:bodies,explored:t=>explored.has(t)},kind,x,y);
 }
 // A finished farm becomes a food source only its owner may work (resource id = farmResourceId).
 export const farmResourceId=(buildingId:string)=>`resource-${buildingId}`;
-function openFarm(s:BuildingState,b:Building){const capacity=terrainRules.resourceCapacity.farm;s.map.resources.push({id:farmResourceId(b.id),kind:'farm',x:b.x,y:b.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:b.id,depletedAt:null});s.map.tiles[tileAt(b.x,b.y)].resourceRefs.push(farmResourceId(b.id));}
+function openFarm(s:BuildingState,b:Building){const capacity=terrainRules.resourceCapacity.farm;s.map.resources.push({id:farmResourceId(b.id),kind:'farm',x:b.x,y:b.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:b.id,depletedAt:null});s.map.tiles[tileAt(b.x,b.y,s.map.size)].resourceRefs.push(farmResourceId(b.id));}
 // Removing a farm (destroyed, cancelled or worked out) closes its food source.
 export function closeFarm(s:BuildingState,buildingId:string,tick:number){const r=s.map.resources.find(r=>r.id===farmResourceId(buildingId));if(!r||r.status==='depleted')return;r.collectible=false;r.status='depleted';r.obstacleId=null;r.depletedAt=tick;}
 export function farmOwner(s:BuildingState,resourceId:string){return s.buildings.find(b=>farmResourceId(b.id)===resourceId)?.player??null;}
@@ -65,7 +65,7 @@ export function placeBuilding(s:BuildingState,player:number,kind:BuildKind,x:num
  const problem=authoritativeProblem(s,player,kind,x,y);if(problem)throw Error(problem);
  reserve(s.accounts[player],reservationId,kind);
  const b:Building={id:`building-${s.nextBuildingId++}`,kind,player,x,y,work:0,required:buildingRules.required[kind],complete:false,reservationId,queue:[],rally:null,hp:1,maxHp:combatRules.buildings[kind]};
- s.buildings.push(b);const o:Obstacle={id:b.id,kind,x,y,progress:0,age:s.ages[player],...(player?{red:true}:{})};s.map.obstacles.push(o);s.map.tiles[tileAt(x,y)].obstacleRefs.push(b.id);
+ s.buildings.push(b);const o:Obstacle={id:b.id,kind,x,y,progress:0,age:s.ages[player],...(player?{red:true}:{})};s.map.obstacles.push(o);s.map.tiles[tileAt(x,y,s.map.size)].obstacleRefs.push(b.id);
  refreshNavigation(s.map,obstacleBounds(o,navigationRules.radius));return b;
 }
 // One tick of work by one builder. Returns true when this call completed the building.

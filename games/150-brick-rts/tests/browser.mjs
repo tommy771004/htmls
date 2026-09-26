@@ -42,7 +42,8 @@ try {
  await page.locator('#rules-inspector summary').click();await (await menu(page)).locator('#seed').fill('260925');await (await menu(page)).locator('#restart').click();await waitNotice('已建立新沙盒');assert.equal(await page.locator('#hash').innerText(),initial);
  await page.locator('#move').click();await waitNotice('已排入');await page.locator('#step').click();await page.waitForFunction(()=>document.querySelector('#tick').textContent==='1');
  await (await menu(page)).locator('#restart').click();await waitNotice('已建立新沙盒');
- await page.locator('#target-x').fill('3');await page.locator('#target-y').fill('4.5');await page.locator('#move').click();await waitNotice('占地');assert.equal(await page.locator('#hash').innerText(),initial);
+ // A move exactly into a pier is accepted: the villager walks to the nearest open node (no fog-revealing refusal).
+ await page.locator('#target-x').fill('3');await page.locator('#target-y').fill('4.5');await page.locator('#move').click();await waitNotice('已排入');await (await menu(page)).locator('#restart').click();await waitNotice('已建立新沙盒');assert.equal(await page.locator('#hash').innerText(),initial);
  await page.locator('#target-x').fill('3.5');await page.locator('#target-y').fill('3');await page.locator('#move').click();await waitNotice('已排入');
  await page.evaluate(()=>{window.routeSamples=[];new MutationObserver(()=>{const m=document.querySelector('#position').textContent.match(/\(([\d.]+), ([\d.]+)\)/);if(m)window.routeSamples.push([Number(m[1]),Number(m[2])]);}).observe(document.querySelector('#position'),{childList:true});});
  await page.locator('#pause').click();await page.waitForFunction(()=>document.querySelector('#position').textContent.includes('(3.5, 3.0)')&&document.querySelector('#position').textContent.includes('待命'),{},{timeout:25000});await page.locator('#pause').click();

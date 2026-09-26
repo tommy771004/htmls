@@ -334,9 +334,10 @@
 - [099 小樹](https://htmls-ruddy.vercel.app/app/099-picturebook-carbon.html): 碳足跡；童書水彩。每日選擇、減碳、樹成長、比較
 - [100 主畫面](https://htmls-ruddy.vercel.app/app/100-linen-springboard.html): 主畫面模擬器；iOS 6 擬物：亞麻布、光澤圖示。長按抖動、拖曳排序、刪除、資料夾
 - [101 篩 Sift](https://htmls-ruddy.vercel.app/app/101-sift-digest.html): 晨間訊息摘要；陶土粉紙、可甩出的摘要卡。右甩讀完、左甩稍後、頂端膠囊可復原、原文抽屜、讀完後結算
+- [102 等價 Tarry](https://htmls-ruddy.vercel.app/app/102-tarry-settings.html): AI 代買助理的帳戶設定；菸草棕摘要卡、石灰泥底。七個帳戶頁共用一張摘要卡，可調每筆上限與 Face ID 門檻、讓它忘掉學到的事、切換預設卡與地址、下載或刪除資料、客服聊天
 
 - [潮生島 · 海島經營日記](https://htmls-ruddy.vercel.app/web/139-tideborn-island.html)：遊戲敘事；可調整種子、大小、高度的程序化海島，中央高地、沙灘、礁島與放射路網。完整經營原型：住宅、生產設施、碼頭與燈塔，五種職業的骨架 glTF 村民、狀態機作息與尋路、交談及實際搬運交易、六種資源、任務製作市集、等級解鎖與自動存檔。
 
 - [141 萬物之間 · Between Worlds](https://htmls-ruddy.vercel.app/web/141-between-worlds.html)：生成藝術；12,000 粒光在星系、生命之樹、蝴蝶與自訂文字之間變形，支援指尖擾動、合成和弦、暫停與 PNG 明信片下載。純 Canvas，即時生成，無外部依賴。
 
-- [150 磚築紀元 · BRICK RTS](https://htmls-ruddy.vercel.app/web/150-brick-rts.html)：遊戲敘事；開發中的原創積木即時戰略，畫面配置取法《世紀帝國 II 決定版》：全畫面戰場、資源列、指令格、選取資訊與小地圖。可採集、建造、耕田、生產、升時代，與電腦對手打完整一局。
+- [150 磚築紀元 · BRICK RTS](https://htmls-ruddy.vercel.app/web/150-brick-rts.html)：遊戲敘事；開發中的原創積木即時戰略，畫面配置取法《世紀帝國 II 決定版》：全畫面戰場、資源列、指令格、選取資訊與小地圖。在隨機出生的 32×32 地圖上採集、建造、耕田、生產、升時代，與電腦對手打完整一局。

@@ -24,7 +24,7 @@ test('hand-built acceptance map supports land crossing and a continuous water ro
 });
 test('closing the shallow passage terminates search and fails spawn connectivity',()=>{
  const map=makeMap(0,'acceptance');for(const tile of map.tiles)if(tile.terrainType==='shallow')Object.assign(tile,terrainDefinitions.water,{terrainType:'water'});
- map.blocked=Array.from({length:961},(_,i)=>i).filter(i=>!clearSegment(map,position(i),position(i)));
+ map.blocked=Array.from({length:961},(_,i)=>i).filter(i=>!clearSegment(map,position({size:16},i),position({size:16},i)));
  assert.equal(route(map,{x:350,y:700},{x:1150,y:700},'land').status,'unreachable');assert.ok(validateMap(map).includes('玩家出生區互不連通'));
 });
 test('water movement respects radius at a one-cell shore and survives serialized path work',()=>{

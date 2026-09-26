@@ -25,14 +25,14 @@ test('finite resource depletion releases only local navigation and retains exhau
  const oldBlocked=[...map.blocked],obstacle=node.obstacleId;
  const last=harvestMapResource(map,node.id,10000,2);assert.equal(last.amount,node.capacity-10);assert.equal(node.remaining,0);assert.equal(node.depletedAt,2);assert.equal(node.collectible,false);assert.equal(node.obstacleId,null);assert.equal(map.navigationRevision,1);
  assert.ok(!map.obstacles.some(o=>o.id===obstacle));assert.ok(map.tiles.every(t=>!t.obstacleRefs.includes(obstacle!)));
- assert.deepEqual(map.blocked,Array.from({length:961},(_,i)=>i).filter(i=>!clearSegment(map,position(i),position(i))));
+ assert.deepEqual(map.blocked,Array.from({length:961},(_,i)=>i).filter(i=>!clearSegment(map,position({size:16},i),position({size:16},i))));
  assert.deepEqual(last.changedNodes,oldBlocked.filter(i=>!map.blocked.includes(i)));
  assert.deepEqual(validateMap(map),[]);const depleted=hash(map);assert.deepEqual(harvestMapResource(map,node.id,1,3),{amount:0,changedNodes:[]});assert.equal(hash(map),depleted);
 });
 test('map validation rejects bad refs, capacities, blocked spawns and disconnected starts',()=>{
  const bad=makeMap(7);bad.tiles[0].resourceRefs.push('missing');bad.resources[0].remaining=-1;assert.ok(validateMap(bad).some(e=>e.includes('參照')));assert.ok(validateMap(bad).some(e=>e.includes('容量')));
  const blocked=makeMap(7);Object.assign(blocked.tiles[7*16+3],terrainDefinitions.water);assert.ok(validateMap(blocked).includes('出生點不可通行'));
- const split=makeMap(7);for(let y=0;y<16;y++)Object.assign(split.tiles[y*16+8],terrainDefinitions.water);split.blocked=Array.from({length:961},(_,i)=>i).filter(i=>!clearSegment(split,position(i),position(i)));assert.ok(validateMap(split).includes('玩家出生區互不連通'));
+ const split=makeMap(7);for(let y=0;y<16;y++)Object.assign(split.tiles[y*16+8],terrainDefinitions.water);split.blocked=Array.from({length:961},(_,i)=>i).filter(i=>!clearSegment(split,position({size:16},i),position({size:16},i)));assert.ok(validateMap(split).includes('玩家出生區互不連通'));
 });
 test('resource and terrain state are canonical snapshot data; v3 is explicitly rejected',()=>{
  const state=createState(7);assert.deepEqual(deserialize(serialize(state)),state);

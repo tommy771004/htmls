@@ -1,18 +1,21 @@
 import {obstacleBounds} from '../../packages/content/footprints.ts';
 import type {View} from '../../packages/sim/protocol.ts';
-import {tileAt} from '../../packages/sim/terrain.ts';
+import {tileAt,sizeOfTiles} from '../../packages/sim/terrain.ts';
 const labels=['未探索','已探索／目前不可見','目前可見'],buildingNames:Record<string,string>={house:'住宅',barracks:'兵營',farm:'農田','town-center':'城鎮中心'};
 export function fogCellSummary(view:Pick<View,'fog'|'known'|'tick'>,x:number,y:number){
- if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||x>15||y<0||y>15)return '請輸入 0–15 的整數格座標。';
- const id=y*16+x,state=view.fog[id];if(state===undefined)return '等待視野資料。';
- const memories=state===0?[]:view.known.filter(k=>tileAt(k.obstacle.x,k.obstacle.y)===id&&k.obstacle.kind in buildingNames);
+ const size=sizeOfTiles(view.fog);if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||x>=size||y<0||y>=size)return `請輸入 0–${size-1} 的整數格座標。`;
+ const id=y*size+x,state=view.fog[id];if(state===undefined)return '等待視野資料。';
+ const memories=state===0?[]:view.known.filter(k=>tileAt(k.obstacle.x,k.obstacle.y,size)===id&&k.obstacle.kind in buildingNames);
  return `格 (${x}, ${y}) · ${labels[state]} · 投影 tick ${view.tick}`+memories.map(k=>`；${k.obstacle.red?'紅方':'藍方'}${buildingNames[k.obstacle.kind]}：最後看見 tick ${k.lastSeenTick}（${view.tick-k.lastSeenTick} ticks 前）`).join('');
 }
 export function mountFogDebugger(root:HTMLDetailsElement,getView:()=>View){
  const grid=root.querySelector<HTMLElement>('.fog-grid')!,info=root.querySelector<HTMLElement>('.fog-cell-info')!,memories=root.querySelector<HTMLElement>('.fog-memories')!;
  const x=root.querySelector<HTMLInputElement>('[name="fog-x"]')!,y=root.querySelector<HTMLInputElement>('[name="fog-y"]')!;
- const cells=Array.from({length:256},(_,id)=>{const cell=document.createElement('span');cell.setAttribute('aria-hidden','true');cell.title=`(${id%16}, ${Math.floor(id/16)})`;grid.append(cell);return cell;});
- function update(){if(!root.open)return;const view=getView();
+ // One cell per tile; rebuilt when the map size changes (16 on the test grounds, 32 on the match map).
+ let cells:HTMLSpanElement[]=[];
+ function layout(count:number){const size=sizeOfTiles({length:count});grid.style.gridTemplateColumns=`repeat(${size},1fr)`;cells=Array.from({length:count},(_,id)=>{const cell=document.createElement('span');cell.setAttribute('aria-hidden','true');cell.title=`(${id%size}, ${Math.floor(id/size)})`;return cell;});grid.replaceChildren(...cells);}
+ layout(256);
+ function update(){if(!root.open)return;const view=getView();if(view.fog.length&&view.fog.length!==cells.length)layout(view.fog.length);
   cells.forEach((cell,id)=>{const value=view.fog[id];cell.dataset.fog=String(value??-1);cell.textContent=value===2?'●':value===1?'·':' ';});
   grid.setAttribute('aria-label',`藍方 16×16 視野：未探索 ${view.fog.filter(v=>v===0).length} 格，舊視野 ${view.fog.filter(v=>v===1).length} 格，目前可見 ${view.fog.filter(v=>v===2).length} 格。`);
   info.textContent=fogCellSummary(view,x.value===''?NaN:Number(x.value),y.value===''?NaN:Number(y.value));

@@ -1,0 +1,35 @@
+/* pages/kit · 元件總覽 */
+.kit { gap: var(--s6); }
+.kit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); align-items: stretch; }
+.kit-sec { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; padding: var(--s5) var(--s6) var(--s6); border-radius: var(--r-panel); background: var(--panel); }
+.kit-sec--wide { grid-column: 1 / -1; }
+.kit-sec-head { display: flex; flex-direction: column; gap: 2px; }
+.kit-desc { font-size: var(--fs-13); color: var(--ink-3); }
+.kit-sec-body { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; }
+.kit-sec .panel { background: var(--raised); }
+.kit-row { display: flex; align-items: center; gap: var(--s3); min-width: 0; }
+.kit-row--top { padding-top: var(--s4); box-shadow: 0 -1px 0 var(--line); flex-wrap: wrap; }
+.kit-wrap { flex-wrap: wrap; }
+.kit-sep { width: 1px; height: 24px; background: var(--line); border-radius: 1px; margin: 0 var(--s2); }
+.kit-demo { display: flex; align-items: center; gap: var(--s3); }
+.kit-tallies { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: var(--s3) var(--s4); }
+.kit-tally { display: flex; align-items: center; gap: var(--s3); min-height: 24px; }
+.kit-n { width: 20px; font-size: var(--fs-12); color: var(--ink-3); text-align: right; font-variant-numeric: tabular-nums; }
+.kit-wordmark { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-26); }
+.kit-money { gap: var(--s5); }
+.kit-chipless { font-size: var(--fs-13); color: var(--ink-2); }
+.kit-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: var(--s2) var(--s3); }
+.kit-sw { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-12); color: var(--ink-2); min-width: 0; }
+.kit-sw i { width: 20px; height: 20px; border-radius: var(--r-block); flex: none; box-shadow: inset 0 0 0 1px var(--line); }
+.kit-type { display: flex; flex-direction: column; gap: var(--s2); }
+.kit-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s2); }
+.kit-icon { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: var(--s3) var(--s1) var(--s2); border-radius: var(--r-ctl); color: var(--ink); }
+.kit-icon:hover { background: var(--hover); }
+.kit-icon span { font-size: var(--fs-12); color: var(--ink-3); }
+.kit-table { overflow: hidden; }
+@media (max-width: 1000px) { .kit-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .kit-sec { padding: var(--s4); }
+  .kit-sep { display: none; }
+  .kit-tallies { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+}

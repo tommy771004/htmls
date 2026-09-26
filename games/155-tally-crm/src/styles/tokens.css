@@ -1,0 +1,249 @@
+/* 劃記 TALLY CRM · design tokens
+   風格：概念稿式的卡片介面。深色浮動側欄＋柔和畫布＋白色大圓角卡片，柿色為品牌色，粉彩色做分類。
+   頁面 CSS 只能用這裡的 token，不寫死色碼。 */
+
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --bg: #f3f1ec;            /* 畫布 */
+  --sheet: #ffffff;         /* 卡片 */
+  --panel: #ffffff;
+  --raised: #ffffff;        /* 浮層 */
+  --subtle: #f8f7f4;        /* 卡片內的次要區塊、表頭 */
+  --inset: #f1efea;         /* 輸入框、軌道 */
+  --hover: rgba(28, 26, 23, .04);
+  --press: rgba(28, 26, 23, .075);
+  --select: rgba(224, 102, 42, .07);
+  --tonal: #f1efea;
+
+  /* sidebar（深色浮動卡） */
+  --side-bg: #1d1b18;
+  --side-ink: #f3efe8;
+  --side-ink-2: #b9b3a8;
+  --side-ink-3: #8a847a;
+  --side-line: rgba(255, 250, 240, .08);
+  --side-hover: rgba(255, 250, 240, .06);
+  --side-active: rgba(236, 118, 58, .16);
+  --side-active-ink: #ffb68d;
+
+  /* ink */
+  --ink: #1c1a17;
+  --ink-2: #57534c;
+  --ink-3: #736e66;         /* 白底 ≥ 4.9:1 */
+  --ink-4: #b3aea5;         /* 只做裝飾 */
+  --line: rgba(28, 26, 23, .07);
+  --line-strong: rgba(28, 26, 23, .13);
+  --edge: rgba(28, 26, 23, .06);
+
+  /* brand & signals */
+  --accent: #e0662a;
+  --accent-strong: #c9531b;
+  --accent-ink: #ffffff;
+  --accent-soft: #fdebe0;
+  --pine: #1f8a57;
+  --pine-soft: #dcf3e6;
+  --ochre: #a86d0a;
+  --ochre-soft: #fbefcf;
+  --primary: var(--accent);
+  --primary-ink: #ffffff;
+  --primary-hover: var(--accent-strong);
+  --primary-press: #b3481a;
+  --focus: #e0662a;
+
+  /* 粉彩色（底 / 字）：分類、徽章、頭像、階段 */
+  --peach-bg: #fde6d8;  --peach: #b4541f;
+  --mint-bg: #dcf3e6;   --mint: #1f7a4b;
+  --sky-bg: #dde9fb;    --sky: #2c5fa3;
+  --lemon-bg: #fbf0c8;  --lemon: #86660a;
+  --lilac-bg: #ebe5fa;  --lilac: #634aa8;
+  --rose-bg: #fbe1e7;   --rose: #ab3857;
+  --teal-bg: #d8f1ee;   --teal: #1d756d;
+  --sand-bg: #efe7da;   --sand: #6b583b;
+  --tone-1-bg: var(--peach-bg); --tone-1-fg: var(--peach);
+  --tone-2-bg: var(--mint-bg);  --tone-2-fg: var(--mint);
+  --tone-3-bg: var(--sky-bg);   --tone-3-fg: var(--sky);
+  --tone-4-bg: var(--rose-bg);  --tone-4-fg: var(--rose);
+  --tone-5-bg: var(--lemon-bg); --tone-5-fg: var(--lemon);
+  --tone-6-bg: var(--teal-bg);  --tone-6-fg: var(--teal);
+  --tone-7-bg: var(--sand-bg);  --tone-7-fg: var(--sand);
+  --tone-8-bg: var(--lilac-bg); --tone-8-fg: var(--lilac);
+
+  /* pipeline stages */
+  --st-lead: #9aa6b8;
+  --st-qual: #5b8fd6;
+  --st-poc: #8a6fd1;
+  --st-prop: #e0a526;
+  --st-nego: #e0662a;
+  --st-won: #1f9a60;
+  --st-lost: #c7515f;
+
+  /* charts */
+  --chart-track: var(--inset);
+  --chart-grid: var(--line);
+
+  /* type */
+  --font-ui: -apple-system, BlinkMacSystemFont, system-ui, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --font-display: var(--font-ui);
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+  --fs-26: 26px;
+  --fs-34: 34px;
+  --lh-body: 1.5;
+  --lh-title: 1.25;
+
+  /* spacing */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s10: 40px;
+  --s14: 56px;
+
+  /* radius */
+  --r-xs: 6px;
+  --r-ctl: 10px;
+  --r-panel: 18px;
+  --r-sheet: 22px;
+  --r-block: 10px;
+  --r-pill: 999px;
+
+  /* elevation：柔和、方向朝下、帶一點暖色 */
+  --shadow-1: 0 1px 2px rgba(60, 45, 30, .05);
+  --shadow-card: 0 1px 2px rgba(60, 45, 30, .04), 0 8px 24px -14px rgba(60, 45, 30, .16);
+  --shadow-pop: 0 0 0 1px rgba(28, 26, 23, .06), 0 4px 8px rgba(60, 45, 30, .05), 0 20px 40px -12px rgba(60, 45, 30, .22);
+  --scrim: rgba(28, 24, 20, .32);
+
+  /* motion */
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --dur-hover: 140ms;
+  --dur-press: 90ms;
+  --dur-enter: 240ms;
+  --dur-exit: 160ms;
+
+  /* layout */
+  --side-w: 248px;
+  --rail-w: var(--side-w);
+  --header-h: 76px;
+  --tabbar-h: 62px;
+  --gutter: 28px;
+  --frame: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121110;
+    --sheet: #1c1b19;
+    --panel: #1c1b19;
+    --raised: #242320;
+    --subtle: #211f1d;
+    --inset: #2a2825;
+    --hover: rgba(255, 250, 240, .045);
+    --press: rgba(255, 250, 240, .08);
+    --select: rgba(240, 132, 78, .1);
+    --tonal: #2a2825;
+    --side-bg: #1c1b19;
+    --ink: #f1eee8;
+    --ink-2: #bdb7ad;
+    --ink-3: #979187;
+    --ink-4: #5e5a54;
+    --line: rgba(255, 250, 240, .07);
+    --line-strong: rgba(255, 250, 240, .13);
+    --edge: rgba(255, 250, 240, .06);
+    --accent: #f0844e;
+    --accent-strong: #f59a6a;
+    --accent-ink: #1a0d05;
+    --accent-soft: rgba(240, 132, 78, .16);
+    --pine: #5fcf96;
+    --pine-soft: rgba(95, 207, 150, .14);
+    --ochre: #e8b150;
+    --ochre-soft: rgba(232, 177, 80, .14);
+    --primary-ink: #1a0d05;
+    --primary-press: #f7ad85;
+    --focus: #f0844e;
+    --peach-bg: rgba(240, 132, 78, .16);  --peach: #f5a878;
+    --mint-bg: rgba(95, 207, 150, .14);   --mint: #7fd8a9;
+    --sky-bg: rgba(110, 160, 235, .16);   --sky: #9cc0f2;
+    --lemon-bg: rgba(232, 190, 80, .15);  --lemon: #ebc767;
+    --lilac-bg: rgba(160, 135, 230, .17); --lilac: #bfaef0;
+    --rose-bg: rgba(225, 110, 140, .16);  --rose: #f0a0b5;
+    --teal-bg: rgba(80, 195, 180, .15);   --teal: #80d4c9;
+    --sand-bg: rgba(200, 175, 135, .14);  --sand: #d6c09b;
+    --st-lead: #7f8a9c;
+    --st-qual: #79a6e8;
+    --st-poc: #a58ee6;
+    --st-prop: #ebbd4f;
+    --st-nego: #f0844e;
+    --st-won: #5fcf96;
+    --st-lost: #e07b87;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, .3);
+    --shadow-card: 0 0 0 1px rgba(255, 250, 240, .05), 0 10px 28px -16px rgba(0, 0, 0, .7);
+    --shadow-pop: 0 0 0 1px rgba(255, 250, 240, .08), 0 4px 8px rgba(0, 0, 0, .3), 0 20px 44px -12px rgba(0, 0, 0, .7);
+    --scrim: rgba(0, 0, 0, .55);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121110;
+  --sheet: #1c1b19;
+  --panel: #1c1b19;
+  --raised: #242320;
+  --subtle: #211f1d;
+  --inset: #2a2825;
+  --hover: rgba(255, 250, 240, .045);
+  --press: rgba(255, 250, 240, .08);
+  --select: rgba(240, 132, 78, .1);
+  --tonal: #2a2825;
+  --side-bg: #1c1b19;
+  --ink: #f1eee8;
+  --ink-2: #bdb7ad;
+  --ink-3: #979187;
+  --ink-4: #5e5a54;
+  --line: rgba(255, 250, 240, .07);
+  --line-strong: rgba(255, 250, 240, .13);
+  --edge: rgba(255, 250, 240, .06);
+  --accent: #f0844e;
+  --accent-strong: #f59a6a;
+  --accent-ink: #1a0d05;
+  --accent-soft: rgba(240, 132, 78, .16);
+  --pine: #5fcf96;
+  --pine-soft: rgba(95, 207, 150, .14);
+  --ochre: #e8b150;
+  --ochre-soft: rgba(232, 177, 80, .14);
+  --primary-ink: #1a0d05;
+  --primary-press: #f7ad85;
+  --focus: #f0844e;
+  --peach-bg: rgba(240, 132, 78, .16);  --peach: #f5a878;
+  --mint-bg: rgba(95, 207, 150, .14);   --mint: #7fd8a9;
+  --sky-bg: rgba(110, 160, 235, .16);   --sky: #9cc0f2;
+  --lemon-bg: rgba(232, 190, 80, .15);  --lemon: #ebc767;
+  --lilac-bg: rgba(160, 135, 230, .17); --lilac: #bfaef0;
+  --rose-bg: rgba(225, 110, 140, .16);  --rose: #f0a0b5;
+  --teal-bg: rgba(80, 195, 180, .15);   --teal: #80d4c9;
+  --sand-bg: rgba(200, 175, 135, .14);  --sand: #d6c09b;
+  --st-lead: #7f8a9c;
+  --st-qual: #79a6e8;
+  --st-poc: #a58ee6;
+  --st-prop: #ebbd4f;
+  --st-nego: #f0844e;
+  --st-won: #5fcf96;
+  --st-lost: #e07b87;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .3);
+  --shadow-card: 0 0 0 1px rgba(255, 250, 240, .05), 0 10px 28px -16px rgba(0, 0, 0, .7);
+  --shadow-pop: 0 0 0 1px rgba(255, 250, 240, .08), 0 4px 8px rgba(0, 0, 0, .3), 0 20px 44px -12px rgba(0, 0, 0, .7);
+  --scrim: rgba(0, 0, 0, .55);
+}
+
+@media (max-width: 760px) {
+  :root { --gutter: var(--s4); --header-h: 60px; --frame: 0px; }
+}

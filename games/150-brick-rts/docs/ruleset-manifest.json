@@ -223,6 +223,29 @@
       "testEvidence": [
         "tests/foundation.test.ts (data validation only)"
       ],
+      "id": "scout",
+      "kind": "unit",
+      "name": "斥候",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 1,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
       "id": "age-2",
       "kind": "technology",
       "name": "第二時代",
@@ -293,6 +316,7 @@
     "militia": "barracks",
     "archer": "barracks",
     "ram": null,
+    "scout": null,
     "age-2": "town-center",
     "age-3": "town-center",
     "age-4": "town-center"
@@ -309,6 +333,7 @@
         "militia",
         "archer",
         "ram",
+        "scout",
         "age-2",
         "age-3",
         "age-4"
@@ -326,6 +351,7 @@
         "militia",
         "archer",
         "ram",
+        "scout",
         "age-2",
         "age-3",
         "age-4"

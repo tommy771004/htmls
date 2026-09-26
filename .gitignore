@@ -6,3 +6,6 @@ node_modules/
 games/*/dist/
 games/*/test-results/
 games/*/playwright-report/
+
+# 劃記 CRM（155）的自我審查截圖
+games/155-tally-crm/shots/

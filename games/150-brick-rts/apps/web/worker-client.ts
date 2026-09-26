@@ -1,5 +1,6 @@
 import {decodeView} from '../../packages/sim/protocol.ts';
 import type {Operation,Recovery,Response,View} from '../../packages/sim/protocol.ts';
+import type {MapLayout} from '../../packages/sim/terrain.ts';
 type Success=Extract<Response,{ok:true}>;
 export class SimulationClient{
  private worker:Worker|null=null;
@@ -7,7 +8,7 @@ export class SimulationClient{
  private pending=new Map<number,{resolve:(r:Success)=>void;reject:(e:Error)=>void;timer:ReturnType<typeof setTimeout>}>();
  private checkpoint:Recovery;
  private ready=false;
- constructor(seed:number,opponent:'ai'|'idle',private update:(v:View)=>void,private failure:(reason:string)=>void){this.checkpoint={seed,opponent,commands:[],ticks:0};}
+ constructor(seed:number,layout:MapLayout,opponent:'ai'|'idle',private update:(v:View)=>void,private failure:(reason:string)=>void){this.checkpoint={seed,layout,opponent,commands:[],ticks:0};}
  async connect(){
   this.worker?.terminate();this.ready=false;
   try{this.worker=new Worker(new URL('./worker.js',import.meta.url),{type:'module'});}
