@@ -932,7 +932,7 @@ const Bench={
     if(this.clean&&this.clean.done){this.clean.fade+=dt*1.6;}
     this.jamFlash=Math.max(0,this.jamFlash-dt);},
   draw(){const g=ctx,S=ST;g.setTransform(DPR,0,0,DPR,0,0);
-    g.drawImage(woodBG(),0,0,W,H);lampLight(g);if(this.props){const q=this.propsR;g.drawImage(this.props,q.x,q.y,q.w,q.h);}
+    if(this.gl)shopRender(this);else{g.drawImage(woodBG(),0,0,W,H);lampLight(g);if(this.props){const q=this.propsR;g.drawImage(this.props,q.x,q.y,q.w,q.h);}}
     const p=this.plate;g.save();g.shadowColor='rgba(10,4,0,.55)';g.shadowBlur=14;g.shadowOffsetX=4;g.shadowOffsetY=7;g.drawImage(this.plateC,p.x,p.y,p.w,p.h);g.restore();
     const sol=solve(S,S.crank);S.sol=sol;const m=this.m;
     // 刻線與齒數和
@@ -1508,15 +1508,15 @@ function buildGLWorld(){
     const fanGeo=seed=>{const Rf=rng(seed),segs=[];
       const br=(x,y,a,len,w,d)=>{const x2=x+Math.sin(a)*len,y2=y+Math.cos(a)*len;segs.push([x,y,x2,y2,w]);if(d<=0)return;
         const n=d>4?2:(Rf()<.62?2:1);for(let i=0;i<n;i++)br(x2,y2,a+(Rf()-.5)*.7+(n===2?(i?.36:-.36):0),len*(.74+Rf()*.16),w*.74,d-1);};
-      br(0,0,(Rf()-.5)*.3,.16,.022,7);const parts=[];
-      for(const [x,y,x2,y2,w] of segs){const len=Math.hypot(x2-x,y2-y);const c=new T.CylinderGeometry(w*.72,w,len,5,1,true);
+      br(0,0,(Rf()-.5)*.3,.16,.022,mob?6:7);const parts=[];
+      for(const [x,y,x2,y2,w] of segs){const len=Math.hypot(x2-x,y2-y);const c=new T.CylinderGeometry(w*.72,w,len,w<.008?3:4,1,true);
         parts.push([c,mat((x+x2)/2,(y+y2)/2,(Rf()-.5)*.04,0,0,-Math.atan2(x2-x,y2-y))]);}
       return parts;};
     const variants=[1,2,3,4,5].map(fanGeo);const list=[];
     const put=(x,z,y,s,yaw)=>{const v=variants[(R()*variants.length)|0],M=mat(x,y,z,(R()-.5)*.25,yaw,(R()-.5)*.2,s);for(const [g,m] of v)list.push([g,M.clone().multiply(m),(px,py,pz)=>{const t=clamp((py-y)/(s*1.1),0,1);return new T.Color(.42+t*.3,.03+t*.06,.06+t*.07);}]);};
     for(const q of ROCKS){if(q.r<.8)continue;const k=q.r>2?4:2;for(let i=0;i<k;i++){const a=R()*TAU,x=q.x+Math.cos(a)*q.r*.5,z=q.z+Math.sin(a)*q.r*.5;put(x,z,bedH(q.x,q.z)+q.r*.45,.8+R()*.8,R()*TAU);}}
     for(let i=0;i<16;i++){const a=R()*TAU,d=4+R()*16,x=SITE.x+Math.cos(a)*d,z=SITE.z+Math.sin(a)*d;put(x,z,bedH(x,z)-.05,.6+R()*.7,R()*TAU);}
-    const m=stdM({vertexColors:true,roughness:.6,emissive:0x2a0206});const mesh=new T.Mesh(mergeGeo(list),m);mesh.castShadow=true;UN.add(mesh);
+    const m=stdM({vertexColors:true,roughness:.6,emissive:0x2a0206});const mesh=new T.Mesh(mergeGeo(list),m);mesh.castShadow=!mob;UN.add(mesh);
     // 海綿與海膽
     const sl=[];for(let i=0;i<30;i++){const q=ROCKS[(R()*ROCKS.length)|0],a=R()*TAU,rr=q.r*(.3+R()*.4),x=q.x+Math.cos(a)*rr,z=q.z+Math.sin(a)*rr,y=bedH(q.x,q.z)+q.r*.5*Math.sqrt(Math.max(0,1-(rr/q.r)**2))-.02,s=.08+R()*.14;
       if(R()<.55){const g=new T.SphereGeometry(1,14,10);const yel=R()<.4;sl.push([g,mat(x,y,z,0,R()*TAU,0,s,s*.72,s),(px,py,pz)=>{const top=smooth(.55,.9,(py-y)/(s*.72));const n=n3(px*30,py*30,pz*30);const c=yel?new T.Color(.62,.44,.14):new T.Color(.42,.3,.2);return c.multiplyScalar(.8+n*.4).lerp(new T.Color(.08,.05,.03),top*.85);}]);}
@@ -1568,7 +1568,7 @@ function buildGLWorld(){
       C[i*3]=c.r;C[i*3+1]=c.g;C[i*3+2]=c.b;}
     g.setAttribute('color',new T.BufferAttribute(C,3));const UV=new Float32Array(p.count*2);for(let i=0;i<p.count;i++){UV[i*2]=p.getX(i)/150;UV[i*2+1]=p.getY(i)/60;}g.setAttribute('uv',new T.BufferAttribute(UV,2));
     const mesh=new T.Mesh(g,new T.MeshStandardMaterial({vertexColors:true,roughness:.95,map:GL.rockTex||(GL.rockTex=rockDetail())}));mesh.position.set(cx,0,cz);mesh.rotation.y=rot;sc.add(mesh);return mesh;};
-  island(120,-1180,3600,900,250,17,.06);island(-1500,-560,1300,560,140,29,.95);island(1700,-420,900,420,90,41,-.7);
+  GL.islands=[island(120,-1180,3600,900,250,17,.06),island(-1500,-560,1300,560,140,29,.95),island(1700,-420,900,420,90,41,-.7)];
 
   buildBoat();
 }
@@ -1849,7 +1849,7 @@ function toScreen(x,y,z){const v=GL.tmpV.set(x,y,z).project(GL.cam);return[(v.x*
 
 // ---------- 標題
 const Title3={gl:true,
-  enter(){hideAll();titleUi.hidden=false;this.t=0;this.look=0;this.lv=0;this.drag=null;setMood('title');
+  enter(){glMode('sea');hideAll();titleUi.hidden=false;this.t=0;this.look=0;this.lv=0;this.drag=null;setMood('title');
     GL.diver.g.visible=false;GL.hose.visible=GL.rope.visible=false;
     const s=load();const bc=$('#bCont');if(s&&s.stage>0){bc.hidden=false;bc.textContent=s.stage>=5?'繼續：打開完成的機械':`繼續：第 ${s.stage+1} 組齒輪`;}else bc.hidden=true;
     this.first=true;},
@@ -1874,7 +1874,7 @@ const Title3={gl:true,
 
 // ---------- 潛水（第三人稱）
 const Dive3={gl:true,
-  enter(){hideAll();const T=T3,st=STAGES[G.stage];this.st=st;this.t=0;this.bt=0;this.tmax=85+Object.keys(st.items).length*10;this.mode='descend';this.warned=0;this.digHeld=false;this.ptr=null;this.goal=null;this.anims=[];
+  enter(){glMode('sea');hideAll();const T=T3,st=STAGES[G.stage];this.st=st;this.t=0;this.bt=0;this.tmax=85+Object.keys(st.items).length*10;this.mode='descend';this.warned=0;this.digHeld=false;this.ptr=null;this.goal=null;this.anims=[];
     const ids=Object.keys(st.items),R=rng(st.n*31+7),spots=[];
     for(let k=0;spots.length<ids.length&&k<4000;k++){const a=R()*TAU,d=3.5+R()*(k<600?15:22),x=SITE.x+Math.cos(a)*d,z=SITE.z+Math.sin(a)*d;
       if(ROCKS.some(q=>Math.hypot(q.x-x,q.z-z)<q.r+.9))continue;if(spots.some(q=>Math.hypot(q[0]-x,q[1]-z)<3.6))continue;if(Math.hypot(x-1,z-4)<2.5)continue;spots.push([x,z]);}
@@ -1987,6 +1987,153 @@ const Dive3={gl:true,
 function angLerp(a,b,t){let d=((b-a+Math.PI)%TAU+TAU)%TAU-Math.PI;return a+d*t;}
 
 
+// ---------- 3D 工作室：油燈下的桌面、工作台與組好的機械
+const SHOP={built:false,mode:'sea'},BOX={w:.19,h:.355,d:.1};BOX.R=BOX.w/2.3;
+function woodTex3(){const S=1024,c=mk(S,S/2),g=c.getContext('2d'),R=rng(79),PH=S/2/5;g.fillStyle='#3b2615';g.fillRect(0,0,S,S/2);
+  for(let py=0;py<S/2;py+=PH){const base=mixc([56,34,19],[88,56,32],R());g.fillStyle=css(base);g.fillRect(0,py,S,PH);
+    for(let i=0;i<60;i++){const y0=py+i/60*PH+R()*2,amp=1+R()*2.5,f=.004+R()*.006,ph=R()*6,col=R()<.55?mixc(base,[26,15,7],.3+R()*.45):mixc(base,[132,92,55],.2+R()*.35);
+      g.strokeStyle=css(col,.2+R()*.4);g.lineWidth=.5+R()*1.4;g.beginPath();for(let x=0;x<=S;x+=8){const y=y0+Math.sin(x*f+ph)*amp+Math.sin(x*f*3.1+ph*2)*amp*.3;x?g.lineTo(x,y):g.moveTo(x,y);}g.stroke();}
+    g.fillStyle='rgba(10,5,2,.85)';g.fillRect(0,py+PH-2,S,2);g.fillStyle='rgba(10,5,2,.7)';g.fillRect(R()*S,py,1.5,PH);}
+  const t=canvasTex(c,1,true);t.repeat.set(2,2);return t;}
+function paperTex3(){const c=mk(512,680),g=c.getContext('2d');g.fillStyle='#e9dfc4';g.fillRect(0,0,512,680);g.strokeStyle='rgba(90,110,140,.25)';g.lineWidth=1.5;for(let y=60;y<680;y+=26){g.beginPath();g.moveTo(24,y);g.lineTo(488,y);g.stroke();}
+  g.strokeStyle='rgba(160,60,50,.35)';g.beginPath();g.moveTo(62,0);g.lineTo(62,680);g.stroke();g.strokeStyle='rgba(40,30,20,.75)';g.lineWidth=2;g.beginPath();g.arc(250,240,120,0,TAU);g.stroke();
+  for(let i=0;i<64;i++){const a=i/64*TAU;g.beginPath();g.moveTo(250+Math.cos(a)*120,240+Math.sin(a)*120);g.lineTo(250+Math.cos(a)*131,240+Math.sin(a)*131);g.stroke();}
+  g.beginPath();g.arc(250,240,24,0,TAU);g.stroke();for(let q=0;q<4;q++){const a=q*Math.PI/2+.5;g.beginPath();g.moveTo(250+Math.cos(a)*24,240+Math.sin(a)*24);g.lineTo(250+Math.cos(a)*112,240+Math.sin(a)*112);g.stroke();}
+  g.font='italic 30px '+GREEK;g.fillStyle='rgba(40,30,20,.8)';g.fillText('b1 · 224',190,420);g.font='26px '+GREEK;g.fillText('64/38 × 48/24 × 127/32',80,540);g.font='26px '+SERIF;g.fillText('月亮：19 年 254 圈',80,590);
+  return canvasTex(c,1,true);}
+function shopEnv(){const T=T3,rs=new T.Scene();rs.background=new T.Color(.02,.012,.006);
+  const b=(x,y,z,w,h,d,c)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,d),new T.MeshBasicMaterial({color:c,side:T.BackSide}));m.position.set(x,y,z);rs.add(m);};
+  b(0,0,0,12,6,12,new T.Color(.05,.03,.018));
+  const s=new T.Mesh(new T.SphereGeometry(.5,16,8),new T.MeshBasicMaterial({color:new T.Color(9,5.4,2.4)}));s.position.set(-2.5,2.2,1.5);rs.add(s);
+  const w=new T.Mesh(new T.PlaneGeometry(2.5,1.6),new T.MeshBasicMaterial({color:new T.Color(.5,.62,.75)}));w.position.set(3,1.6,-4);w.lookAt(0,1,0);rs.add(w);
+  const f=new T.Mesh(new T.PlaneGeometry(10,10),new T.MeshBasicMaterial({color:new T.Color(.22,.13,.07)}));f.rotation.x=-Math.PI/2;f.position.y=-1;rs.add(f);
+  const pm=new T.PMREMGenerator(GL.r);const e=pm.fromScene(rs,.03).texture;pm.dispose();return e;}
+function buildShop(){if(SHOP.built)return;SHOP.built=true;const T=T3,grp=new T.Group();GL.shop=grp;grp.visible=false;GL.sc.add(grp);SHOP.env=shopEnv();
+  const env=SHOP.env,M=(o)=>new T.MeshStandardMaterial(Object.assign({envMap:env,envMapIntensity:.9},o));
+  const add=(p,geo,m,x=0,y=0,z=0,rx=0,ry=0,rz=0)=>{const o=new T.Mesh(geo,m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.castShadow=o.receiveShadow=true;p.add(o);return o;};
+  // 桌面
+  add(grp,new T.BoxGeometry(2.6,.06,1.6),M({map:woodTex3(),roughness:.62,envMapIntensity:.35}),0,-.03,0);
+  // 油燈
+  const lamp=new T.Group();lamp.position.set(-.5,0,-.3);grp.add(lamp);SHOP.lamp=lamp;const brass=M({color:0xc89a4e,metalness:.95,roughness:.28});
+  add(lamp,new T.LatheGeometry([[0,0],[.075,0],[.08,.012],[.05,.03],[.035,.07],[.07,.12],[.075,.15],[.05,.17],[.03,.18]].map(([x,y])=>new T.Vector2(x,y)),28),brass);
+  add(lamp,new T.LatheGeometry([[.03,.18],[.045,.2],[.055,.26],[.035,.33],[.03,.4],[.032,.4]].map(([x,y])=>new T.Vector2(x,y)),28),new T.MeshStandardMaterial({color:0xfff4e0,roughness:.04,metalness:0,transparent:true,opacity:.18,envMap:env,depthWrite:false}));
+  const flame=new T.Mesh(new T.SphereGeometry(.012,12,10),new T.MeshBasicMaterial({color:new T.Color(4,2.4,.9)}));flame.scale.set(1,2.2,1);flame.position.y=.235;lamp.add(flame);SHOP.flame=flame;
+  const glow=new T.Sprite(new T.SpriteMaterial({map:GL.dot,color:0xffb866,transparent:true,depthWrite:false,blending:T.AdditiveBlending,opacity:.5}));glow.scale.setScalar(.22);glow.position.y=.24;lamp.add(glow);SHOP.glow=glow;
+  const spot=new T.SpotLight(0xffc27a,5,4,1.05,.75,1.4);spot.position.set(-.5,.24,-.3);spot.castShadow=true;spot.shadow.mapSize.set(1024,1024);spot.shadow.bias=-.0004;spot.shadow.camera.near=.05;spot.shadow.camera.far=4;
+  grp.add(spot);grp.add(spot.target);SHOP.spot=spot;
+  const pl=new T.PointLight(0xffa850,.6,1.2,1.6);pl.position.set(-.5,.26,-.3);grp.add(pl);SHOP.pl=pl;
+  const fill=new T.HemisphereLight(0x3a4658,0x1a0e06,.35);grp.add(fill);
+  // 筆記、鉛筆、放大鏡、刷子
+  const props=new T.Group();grp.add(props);SHOP.props=props;
+  add(props,new T.BoxGeometry(.21,.008,.28),[M({color:0x7a5a3a,roughness:.8}),M({color:0x7a5a3a,roughness:.8}),M({map:paperTex3(),roughness:.9,envMapIntensity:.2}),M({color:0xd8ccb0}),M({color:0xd8ccb0}),M({color:0xd8ccb0})],0,.004,0,0,.18,0);
+  add(props,new T.CylinderGeometry(.004,.004,.17,6),M({color:0xc9a040,roughness:.5}),.14,.005,.02,Math.PI/2,0,1.1);
+  const mg=new T.Group();mg.position.set(.02,.012,.24);mg.rotation.y=-.5;props.add(mg);add(mg,new T.TorusGeometry(.045,.005,8,32),brass,0,0,0,Math.PI/2);
+  add(mg,new T.CylinderGeometry(.044,.044,.003,32),new T.MeshStandardMaterial({color:0xffffff,roughness:0,metalness:0,transparent:true,opacity:.22,envMap:env,depthWrite:false}),0,0,0);
+  add(mg,new T.CylinderGeometry(.007,.006,.11,10),M({color:0x2a1a0e,roughness:.6}),0,0,.1,Math.PI/2);
+  add(props,new T.CylinderGeometry(.005,.005,.12,8),M({color:0x6a4424,roughness:.7}),-.18,.005,.18,Math.PI/2,0,.4);add(props,new T.BoxGeometry(.03,.012,.035),M({color:0xd8c28e,roughness:1}),-.205,.008,.235,0,.4,0);
+  // 機械：木盒、正反兩面的青銅盤、指針與曲柄
+  const mach=new T.Group();mach.position.set(0,BOX.h/2+.012,0);grp.add(mach);SHOP.mach=mach;
+  add(mach,new T.BoxGeometry(.3,.024,.16),M({color:0x3a2616,roughness:.7}),0,-BOX.h/2-.012,0);
+  const wood=M({color:0x4a2e18,roughness:.72,envMapIntensity:.4});
+  add(mach,new T.BoxGeometry(BOX.w+.016,BOX.h+.016,BOX.d-.006),wood);
+  for(const s of [1,-1]){const pm=M({color:0xffffff,metalness:.3,roughness:.5,envMapIntensity:1});const pl2=new T.Mesh(new T.PlaneGeometry(BOX.w,BOX.h),pm);pl2.position.z=s*(BOX.d/2);if(s<0)pl2.rotation.y=Math.PI;pl2.receiveShadow=true;mach.add(pl2);
+    if(s>0)SHOP.frontM=pm;else SHOP.backM=pm;}
+  const gold=M({color:0xe2b861,metalness:1,roughness:.22}),bron=M({color:0xb58446,metalness:.95,roughness:.32}),silver=M({color:0xdedad0,metalness:1,roughness:.2}),dark=M({color:0x151210,metalness:.4,roughness:.5});
+  const blade=(len,w,m)=>{const s=new T.Shape();s.moveTo(-len*.12,w*.45);s.lineTo(0,w);s.lineTo(len,0);s.lineTo(0,-w);s.lineTo(-len*.12,-w*.45);s.closePath();const g=new T.ExtrudeGeometry(s,{depth:.0016,bevelEnabled:false});return new T.Mesh(g,m);};
+  const R=BOX.R,F=new T.Group();F.position.z=BOX.d/2+.002;mach.add(F);SHOP.F=F;
+  const sunP=new T.Group();F.add(sunP);sunP.add(blade(R*.86,R*.034,gold));const sun=new T.Mesh(new T.SphereGeometry(R*.05,20,14),M({color:0xffcf70,metalness:.7,roughness:.25,emissive:0x5a2e00}));sun.position.set(R*.6,0,.006);sunP.add(sun);SHOP.sun=sun;
+  const sunS=new T.Sprite(new T.SpriteMaterial({map:GL.star,color:0xffd28a,transparent:true,depthWrite:false,blending:T.AdditiveBlending,opacity:.55}));sunS.scale.setScalar(R*.5);sunS.position.set(R*.6,0,.012);sunP.add(sunS);SHOP.sunS=sunS;
+  sunP.position.z=.003;SHOP.sunP=sunP;
+  const moonP=new T.Group();F.add(moonP);moonP.add(blade(R*.7,R*.028,silver));const ball=new T.Group();ball.position.set(R*.5,0,.008);moonP.add(ball);
+  const hs=new T.SphereGeometry(R*.052,20,12,0,TAU,0,Math.PI/2);const h1=new T.Mesh(hs,silver),h2=new T.Mesh(hs,dark);h1.rotation.x=Math.PI/2;h2.rotation.x=-Math.PI/2;ball.add(h1);ball.add(h2);SHOP.ball=ball;SHOP.moonP=moonP;
+  const hub=new T.Mesh(new T.SphereGeometry(R*.05,16,10,0,TAU,0,Math.PI/2),bron);hub.rotation.x=Math.PI/2;hub.position.z=.004;F.add(hub);
+  const sol=new T.Mesh(new T.ConeGeometry(R*.03,R*.07,3),gold);sol.rotation.z=Math.PI/2;sol.position.set(R*.63,0,.001);F.add(sol);SHOP.sol=sol;
+  // 背面：默冬螺旋（上）與沙羅螺旋（下）
+  const B=new T.Group();B.position.z=-BOX.d/2-.002;B.rotation.y=Math.PI;mach.add(B);SHOP.B=B;
+  const mk2=(cy)=>{const g=new T.Group();g.position.y=cy;B.add(g);const p=new T.Group();g.add(p);p.add(blade(R*.99,R*.026,gold));
+    const bead=new T.Mesh(new T.BoxGeometry(R*.1,R*.06,R*.03),bron);p.add(bead);const sub=new T.Group();g.add(sub);const sb=blade(R*.28,R*.02,bron);sub.add(sb);
+    const cap=new T.Mesh(new T.SphereGeometry(R*.035,14,8,0,TAU,0,Math.PI/2),bron);cap.rotation.x=Math.PI/2;cap.position.z=.004;g.add(cap);return{g,p,bead,sub};};
+  SHOP.met=mk2(R*1.07);SHOP.sar=mk2(-R*1.07);
+  const wedge=new T.Mesh(new T.CircleGeometry(R*.3,24,0,Math.PI/2),new T.MeshBasicMaterial({color:0xf3dca4,transparent:true,opacity:.18,depthWrite:false}));wedge.position.z=.0008;SHOP.met.g.add(wedge);SHOP.wedge=wedge;
+  // 曲柄（右側）
+  const ck=new T.Group();ck.position.set(BOX.w/2+.012,-BOX.h*.18,0);mach.add(ck);SHOP.crank=ck;
+  add(ck,new T.CylinderGeometry(.006,.006,.022,12),bron,0,0,0,0,0,Math.PI/2);const arm=new T.Group();ck.add(arm);SHOP.arm=arm;
+  add(arm,new T.BoxGeometry(.006,.07,.012),bron,.012,.032,0);add(arm,new T.CylinderGeometry(.008,.008,.03,12),M({color:0x2e1a0c,roughness:.5}),.028,.064,0,0,0,Math.PI/2);
+  // 燈光裡的灰塵
+  {const N=260,p=new Float32Array(N*3),R2=rng(3);for(let i=0;i<N;i++){p[i*3]=(R2()-.5)*1.4;p[i*3+1]=R2()*.8;p[i*3+2]=(R2()-.5)*1.1;}const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(p,3));
+    const d=new T.Points(g,new T.PointsMaterial({map:GL.dot,color:0xffd9a0,size:.006,transparent:true,opacity:.55,depthWrite:false,blending:T.AdditiveBlending}));grp.add(d);SHOP.dust=d;SHOP.dustP=p.slice();}
+}
+// 在海與工作室之間切換可見的東西
+function glMode(m){if(SHOP.mode===m)return;SHOP.mode=m;const sea=m==='sea';
+  for(const o of [GL.sky,GL.sea,GL.under,GL.boat,GL.hemi,GL.sun,...GL.islands,...GL.gulls])o.visible=sea;if(GL.shop)GL.shop.visible=!sea;
+  if(!sea){GL.diver.g.visible=false;GL.hose.visible=GL.rope.visible=false;GL.sc.background=new T3.Color(.012,.008,.005);GL.sc.fog.color.setRGB(.012,.008,.005);GL.sc.fog.density=.55;GL.U.uUW.value=0;GL.r.toneMappingExposure=1.15;}
+  else{GL.sc.background=null;GL.cam.clearViewOffset();glResize();}}
+function shopTick(dt){const t=GL.t;GL.t+=dt;GL.U.uTime.value=GL.t;if(!SHOP.flame)return;const fl=1+Math.sin(t*13)*.04+Math.sin(t*7.3)*.05+(Math.random()-.5)*.04;
+  SHOP.spot.intensity=5*fl;SHOP.pl.intensity=.6*fl;SHOP.flame.scale.set(1,2.2*fl,1);SHOP.glow.material.opacity=.45*fl;
+  const p=SHOP.dust.geometry.attributes.position,b=SHOP.dustP;for(let i=0;i<p.count;i++){p.setXYZ(i,b[i*3]+Math.sin(t*.13+i)*.05,((b[i*3+1]+t*.004*(1+i%3))%.8),b[i*3+2]+Math.cos(t*.11+i*1.3)*.05);}p.needsUpdate=true;}
+function shopDraw(){GL.r.render(GL.sc,GL.cam);ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(DPR,0,0,DPR,0,0);}
+// 工作台：從正上方看桌面，2D 的銅板與齒輪疊在上面
+function shopRender(B){if(!SHOP.built)buildShop();glMode('shop');shopTick(1/60);SHOP.mach.visible=false;SHOP.props.visible=true;
+  const c=GL.cam,fov=34;if(c.fov!==fov){c.fov=fov;c.updateProjectionMatrix();}c.clearViewOffset();
+  const hh=.62,h=hh/Math.tan(fov/2*DEG),hw=hh*W/H;c.position.set(0,h,0);c.up.set(0,0,-1);c.lookAt(0,0,0);c.up.set(0,1,0);
+  const mob=W<760;SHOP.lamp.position.set(-hw+.06,0,-hh+.02);SHOP.lamp.visible=!mob;SHOP.props.position.set(mob?-hw+.14:-hw+.2,0,hh-.24);SHOP.props.visible=!mob&&W>1000;
+  SHOP.spot.position.set(-hw*.8,.55,-hh*.9);SHOP.spot.target.position.set(hw*.2,0,hh*.2);SHOP.pl.position.set(-hw+.06,.26,-hh+.02);
+  shopDraw();}
+
+// ---------- 儀盤（3D）：沿用原本的讀數、任務判定與拖曳，只換掉畫面
+const D0={};
+const DIALS3={
+  enter(arg){if(!SHOP.built)buildShop();D0.enter.call(this,arg);this.flip=this.face==='front'?0:1;this.texKey='';this.autoT=0;},
+  layout(){const pr=panel.hidden?{right:0,bottom:0}:panel.getBoundingClientRect(),mob=W<760;
+    const A=!mob?{x:pr.right+20,y:16,w:W-pr.right-36,h:H-32}:{x:8,y:pr.bottom+8,w:W-16,h:H-pr.bottom-44};
+    const SH=mob?54:68;this.sky={x:A.x,y:A.y,w:A.w,h:SH};this.F={x:A.x,y:A.y+SH+10,w:A.w,h:A.h-SH-10};this.R=this.R||100;this.hub=this.hub||[0,0];this.crankR=this.crankR||30;},
+  mkTex(){const L=this.lv(),key=L+'|'+(this.free?1:0)+'|'+this.stageI;if(this.texKey===key)return;this.texKey=key;
+    const sv={R:this.R,face:this.face,side:this.side,faceC:this.faceC,faceS:this.faceS,faceW:this.faceW,faceH:this.faceH,sp1:this.sp1,sp2:this.sp2},od=DPR;DPR=1;const Rp=440;
+    this.R=Rp;this.side=false;this.face='front';D0.prerender.call(this);const fc=this.faceC,fS=this.faceS;this.face='back';D0.prerender.call(this);const bc=this.faceC;SHOP.sp1=this.sp1;SHOP.sp2=this.sp2;SHOP.Rp=Rp;
+    Object.assign(this,sv);DPR=od;
+    const Wd=Rp*2.3,Hd=Rp*4.3,c=mk(Wd,Hd),g=c.getContext('2d');plateRect(g,Wd,Hd,Rp);
+    g.save();g.translate(Wd/2,Hd/2);g.beginPath();g.arc(0,0,Rp*1.0,0,TAU);g.clip();g.drawImage(fc,-fS/2,-fS/2,fS,fS);g.restore();g.save();g.translate(Wd/2,Hd/2);ringBevel(g,Rp*1.0);g.restore();
+    // 正面上下兩片星象曆（parapegma）
+    const PP=[['ΠΛΕΙΑΣ ΕΠΙΤΕΛΛΕΙ ΕΩΙΑ','ΥΑΔΕΣ ΔΥΝΟΥΣΙΝ ΕΣΠΕΡΙΑΙ','ΑΕΤΟΣ ΕΠΙΤΕΛΛΕΙ ΕΣΠΕΡΙΟΣ','ΑΡΚΤΟΥΡΟΣ ΔΥΝΕΙ ΕΩΙΟΣ','ΤΡΟΠΑΙ ΘΕΡΙΝΑΙ'],['ΙΣΗΜΕΡΙΑ ΦΘΙΝΟΠΩΡΙΝΗ','ΣΤΑΧΥΣ ΕΠΙΤΕΛΛΕΙ ΕΩΙΟΣ','ΛΥΡΑ ΕΠΙΤΕΛΛΕΙ ΕΣΠΕΡΙΑ','ΩΡΙΩΝ ΑΡΧΕΤΑΙ ΕΠΙΤΕΛΛΕΙΝ','ΤΡΟΠΑΙ ΧΕΙΜΕΡΙΝΑΙ']];
+    const fs=Rp*.07;g.font=`500 ${fs}px ${GREEK}`;g.textAlign='left';g.textBaseline='middle';
+    PP.forEach((lines,k)=>{const y0=k?Hd/2+Rp*1.22:Rp*.32,x0=Rp*.24;g.save();g.strokeStyle=ENG;g.lineWidth=3;g.strokeRect(x0-Rp*.08,y0-Rp*.1,Wd-2*x0+Rp*.16,Rp*.86);g.restore();
+      lines.forEach((ln,i)=>{const y=y0+i*Rp*.155+Rp*.02,ch=String.fromCharCode(0x391+i+k*5);g.fillStyle='rgba(255,228,176,.28)';g.fillText(ch+'  '+ln,x0+1.5,y+2);g.fillStyle='#1a0e04';g.fillText(ch+'  '+ln,x0,y);});});
+    const tex=(cv2)=>{const t=new T3.CanvasTexture(cv2);t.colorSpace=T3.SRGBColorSpace;t.anisotropy=GL.r.capabilities.getMaxAnisotropy();return t;};
+    for(const [m,cv2] of [[SHOP.frontM,c],[SHOP.backM,bc]]){if(m.map)m.map.dispose();m.map=tex(cv2);m.bumpMap=m.map;m.bumpScale=2.2;m.needsUpdate=true;}},
+  draw(){const T=T3,g=ctx,i=this.info(G.days),L=this.lv(),F=this.F,mob=W<760;this.mkTex();glMode('shop');shopTick(1/60);SHOP.mach.visible=true;SHOP.props.visible=!mob;SHOP.lamp.visible=true;
+    const bk=this.flip>.5?-1:1;SHOP.lamp.position.set(-.3*bk,0,.26*bk);SHOP.props.position.set(.34*bk,0,.12*bk);SHOP.props.rotation.y=bk>0?0:Math.PI;SHOP.spot.position.set(-.3*bk,.25,.26*bk);SHOP.spot.target.position.set(0,.17,0);SHOP.pl.position.set(-.3*bk,.27,.26*bk);
+    // 鏡頭：正面或背面，翻面時繞到後方
+    const tgt=this.face==='front'?0:1;this.flip=lerp(this.flip,tgt,1-Math.exp(-(1/60)*(RM?60:3.2)));const e=ease(clamp(this.flip,0,1));
+    this.autoT+=1/60;const drift=this.free&&!this.drag?Math.sin(this.autoT*.15)*.22:0;
+    const yaw=lerp(.3,Math.PI-.3,e)+drift,pitch=.1,c=GL.cam,fov=30;if(c.fov!==fov){c.fov=fov;c.updateProjectionMatrix();}
+    const back=e>.5,Rw=BOX.R,sz=back?[BOX.w*1.12,BOX.h*1.02]:[Rw*2.6,Rw*3.1],tn=Math.tan(fov/2*DEG);
+    const dist=Math.max(sz[1]*H/(2*tn*F.h*.94),sz[0]*H/(2*tn*F.w*.94)*1.05);const cy=SHOP.mach.position.y;
+    const tz=lerp(BOX.d/2,-BOX.d/2,e);c.position.set(Math.sin(yaw)*Math.cos(pitch)*dist,cy+Math.sin(pitch)*dist,tz+Math.cos(yaw)*Math.cos(pitch)*dist);c.up.set(0,1,0);c.lookAt(0,cy,tz);
+    c.setViewOffset(W,H,W/2-(F.x+F.w/2),H/2-(F.y+F.h/2),W,H);c.updateMatrixWorld();
+    // 指針
+    const ang=lon=>-(lon-90)*DEG;SHOP.sunP.rotation.z=ang(i.sun);SHOP.moonP.visible=L>=2;SHOP.moonP.rotation.z=ang(i.moon);SHOP.ball.rotation.x=L>=3?Math.PI-i.phase*DEG:Math.PI/2;
+    const glowK=this.done&&!this.free?.75+.25*Math.sin(this.autoT*4):.55;SHOP.sunS.material.opacity=glowK;SHOP.sun.material.emissiveIntensity=this.done?1.6:1;
+    SHOP.sol.visible=!this.free&&this.stageI===0;SHOP.wedge.visible=!this.free&&this.stageI===3;SHOP.wedge.rotation.z=0;
+    const s=BOX.R/SHOP.Rp,lun=G.days/SYN,lf=lun-Math.floor(lun);
+    const spi=(o,sp,idx)=>{const th=(idx+lf)*sp.D,a=th-Math.PI/2,r=spiralR(sp.r0,sp.gw,th+Math.PI)*s;o.p.rotation.z=-a;o.bead.position.set(r,0,.003);};
+    spi(SHOP.met,SHOP.sp1,i.met);SHOP.met.sub.rotation.z=-((i.oly/4)*TAU-Math.PI/2);
+    SHOP.sar.p.visible=SHOP.sar.sub.visible=L>=5;if(L>=5){spi(SHOP.sar,SHOP.sp2,i.sar);SHOP.sar.sub.rotation.z=-((((i.lunI%669)+669)%669+lf)/669*TAU-Math.PI/2);}
+    SHOP.arm.rotation.x=-G.days/CRANK_DAYS*TAU;
+    SHOP.mach.updateMatrixWorld(true);
+    // 把 3D 位置投到螢幕上，給原本的拖曳程式用
+    const P=(o,x,y,z)=>{const v=o.localToWorld(new T.Vector3(x,y,z)).project(c);return[(v.x*.5+.5)*W,(-v.y*.5+.5)*H];};
+    const c0=P(SHOP.F,0,0,0);this.cx=c0[0];this.cy=c0[1];this.R=Math.hypot(...P(SHOP.F,BOX.R,0,0).map((v,k)=>v-c0[k]));
+    if(back){this.c1=P(SHOP.met.g,0,0,0);this.c2=P(SHOP.sar.g,0,0,0);this.R=Math.hypot(...P(SHOP.met.g,BOX.R,0,0).map((v,k)=>v-this.c1[k]));}
+    this.hub=P(SHOP.crank,0,0,0);this.knob=P(SHOP.arm,.028,.064,0);this.crankR=Math.max(22,Math.hypot(this.knob[0]-this.hub[0],this.knob[1]-this.hub[1]));
+    shopDraw();
+    if(SHOP.sol.visible&&!back){const [x,y]=P(SHOP.F,BOX.R*.66,BOX.R*.13,.004);g.font=`600 ${Math.max(12,this.R*.07)}px ${SERIF}`;g.textAlign='center';g.textBaseline='middle';g.fillStyle=this.done?'#cfe7c4':'#f3dca4';g.shadowColor='rgba(0,0,0,.8)';g.shadowBlur=4;g.fillText('夏至',x,y);g.shadowColor='transparent';g.textAlign='left';}
+    this.drawSky(g,i);},
+  down(x,y){auInit();this.snap=null;const [hx,hy]=this.hub,k=this.knob||this.hub;
+    if(Math.hypot(x-k[0],y-k[1])<30||Math.hypot(x-hx,y-hy)<this.crankR*1.2){this.drag={type:'crank',a:Math.atan2(y-hy,x-hx),acc:0};return;}
+    const c=this.face==='front'?[this.cx,this.cy]:this.nearestDial(x,y);if(c&&Math.hypot(x-c[0],y-c[1])<this.R*1.05)this.drag={type:'face',c,a:Math.atan2(y-c[1],x-c[0]),acc:0};}
+};
+
+
 // ======================================================================
 // 指標事件與主迴圈
 // ======================================================================
@@ -2006,6 +2153,7 @@ $('#bCont').onclick=()=>{auInit();const s=load();if(!s)return;G.stage=s.stage;G.
 
 async function boot(){resize();buildTextures();initAstro();buildWorld();
   const ok=await load3D();DIVE=ok?Dive3:Dive;TITLE=ok?Title3:Title;
+  if(ok){Object.assign(D0,{enter:Dials.enter,prerender:Dials.prerender,layout:Dials.layout,draw:Dials.draw,down:Dials.down});Object.assign(Dials,DIALS3);Dials.gl=Bench.gl=true;}
   const bootEl=$('#boot');bootEl.classList.add('off');setTimeout(()=>bootEl.remove(),700);
   if(!ok&&GL.why)setTimeout(()=>toast(GL.why,6),900);
   const m=/^#(dive|bench|dials)-?(\d)?/.exec(location.hash);
