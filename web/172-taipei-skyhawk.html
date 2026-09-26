@@ -85,23 +85,76 @@ body.briefing #hud{opacity:0}
 #tools button:hover{color:var(--ink);background:rgba(255,255,255,.07)}
 #loadInfo{position:absolute;left:calc(14px + var(--sal));top:calc(74px + var(--sat));font-size:11px;color:var(--ink-3);pointer-events:none}
 
-/* ---------- 觸控 ---------- */
-#touch{display:none}
+/* ---------- 觸控（手機遊戲式） ---------- */
+#touch,#tbar{display:none}
 body.touch #touch{display:block}
-#stick{position:absolute;left:calc(18px + var(--sal));bottom:calc(20px + var(--sab));width:148px;height:148px;border-radius:50%;background:rgba(16,15,13,.34);box-shadow:inset 0 0 0 1.5px rgba(243,240,232,.22);touch-action:none}
-#stick i{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(243,240,232,.78)}
-#thr{position:absolute;right:calc(18px + var(--sar));bottom:calc(20px + var(--sab));width:58px;height:172px;border-radius:8px;background:rgba(16,15,13,.4);box-shadow:inset 0 0 0 1.5px rgba(243,240,232,.22);touch-action:none}
-#thr i{position:absolute;left:5px;right:5px;bottom:5px;height:30px;border-radius:5px;background:rgba(243,240,232,.82)}
-#thr span{position:absolute;left:0;right:0;top:-20px;text-align:center;font-size:11px;color:var(--ink-2)}
-#tbtns{position:absolute;right:calc(88px + var(--sar));bottom:calc(20px + var(--sab));display:grid;grid-template-columns:repeat(2,52px);gap:6px}
-#tbtns button{height:44px;border-radius:6px;background:rgba(16,15,13,.55);font-size:12px;color:var(--ink)}
-#tbtns button:active{background:rgba(243,240,232,.25)}
+body.touch #tbar{display:flex}
+body.touch #views,body.touch #tools,body.touch #nav,body.touch #eng,body.touch #ap{display:none}
+#tbar{position:absolute;right:calc(12px + var(--sar));top:calc(10px + var(--sat));gap:2px;padding:3px}
+#tbar button{min-width:46px;height:40px;padding:0 11px;border-radius:4px;font-size:13px;color:var(--ink)}
+#tbar button:active{background:rgba(243,240,232,.18)}
+#tbar #tView b{font-weight:600}
+#tbar #tView span{color:var(--ink-3);font-size:11px;margin-right:5px}
+#zone{position:absolute;left:46%;right:0;top:calc(60px + var(--sat));bottom:0;touch-action:none}
+#ring{position:absolute;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(243,240,232,.42);background:rgba(16,15,13,.22);pointer-events:none;display:none}
+#ring.on{display:block}
+#ring i{position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;background:rgba(243,240,232,.86)}
+#ring s{position:absolute;inset:0;border-radius:50%;text-decoration:none}
+#ring s::before,#ring s::after{content:"";position:absolute;background:rgba(243,240,232,.32);border-radius:1px}
+#ring s::before{left:50%;top:14px;bottom:14px;width:2px;margin-left:-1px}
+#ring s::after{top:50%;left:14px;right:14px;height:2px;margin-top:-1px}
+#zoneHint{position:absolute;right:calc(9% + var(--sar));bottom:calc(30% + var(--sab));transform:translate(50%,50%);width:112px;height:112px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(243,240,232,.26);pointer-events:none;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;line-height:1.4;color:rgba(243,240,232,.7)}
+#zone.used ~ #zoneHint{display:none}
+#lever{position:absolute;left:calc(12px + var(--sal));top:calc(86px + var(--sat));bottom:calc(14px + var(--sab));width:64px;touch-action:none}
+#lever .trk{position:absolute;left:10px;right:10px;top:30px;bottom:22px;border-radius:8px;background:rgba(16,15,13,.5);box-shadow:inset 0 0 0 1.5px rgba(243,240,232,.2)}
+#lever .fill{position:absolute;left:0;right:0;bottom:0;border-radius:8px;background:rgba(67,216,115,.28)}
+#lever .det{position:absolute;left:-6px;right:-6px;height:2px;border-radius:1px;background:rgba(243,240,232,.55)}
+#lever .det em{position:absolute;left:100%;margin-left:4px;top:-7px;font:600 10px/1 var(--num);font-style:normal;color:var(--ink-3);white-space:nowrap}
+#lever .knob{position:absolute;left:-4px;right:-4px;height:30px;margin-bottom:-15px;border-radius:6px;background:rgba(243,240,232,.9);box-shadow:0 1px 2px rgba(0,0,0,.35)}
+#lever .knob::after{content:"";position:absolute;left:10px;right:10px;top:14px;height:2px;border-radius:1px;background:rgba(18,17,15,.35)}
+#lever .val{position:absolute;left:-4px;right:-30px;top:-6px;text-align:left;font-size:13px;white-space:nowrap;color:var(--ink);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+#lever .lab{display:none;position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:11px;color:var(--ink-2);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+#ctx{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--sab));display:flex;gap:6px;align-items:stretch}
+#ctx>*{display:none}
+#ctx[data-p=park] .p-park,#ctx[data-p=roll] .p-roll,#ctx[data-p=air] .p-air,#ctx[data-p=app] .p-app{display:flex}
+#ctx button{min-width:62px;height:46px;padding:0 13px;border-radius:6px;background:rgba(16,15,13,.66);font-size:13px;font-weight:600;color:var(--ink);align-items:center;justify-content:center}
+#ctx button:active,#ctx button.held{background:rgba(243,240,232,.9);color:#12110f}
+#ctx #cAp[aria-pressed=true]{background:var(--grn);color:#08150c}
+#ctx .flaps{align-items:stretch;background:rgba(16,15,13,.66);border-radius:6px}
+#ctx .flaps button{background:none;min-width:48px;padding:0 10px}
+#ctx .flaps span{align-self:center;min-width:52px;text-align:center;font-size:12px;color:var(--ink-2);line-height:1.2}
+#ctx .flaps span b{display:block;font:700 15px/1.1 var(--num);color:var(--ink)}
+body.touch #credit{width:auto;left:auto;right:calc(12px + var(--sar));transform:none;bottom:calc(2px + var(--sab));font-size:9px;max-width:300px;white-space:normal;text-align:right;color:rgba(243,240,232,.55)}
+body.touch #mapBox{width:96px;height:96px;bottom:auto;top:calc(60px + var(--sat))}
+body.touch #mapBox .zm{display:none}
+body.touch #mapBox .nm{font-size:10px;left:6px;top:4px}
+body.touch #ident{padding:6px 10px 7px;max-width:calc(100% - 230px)}
+body.touch #ident b{font-size:13px}
+body.touch #ident span{font-size:11px}
+#ident b span{font-size:inherit;color:inherit}
+#ident .short,body.touch #ident .full{display:none}
+body.touch #ident .short{display:inline;font-size:inherit;color:inherit}
+body.touch #identSub{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.touch #warn{top:calc(76px + var(--sat))}
+body.touch #loadInfo{display:none}
+@media (orientation:portrait){
+  body.touch #zone{left:88px;top:60%}
+  body.touch #zoneHint{right:calc(34% - 44px);bottom:18%}
+  body.touch #lever{top:calc(60% + 14px)}
+  body.touch #ctx{bottom:auto;top:calc(60% - 54px)}
+  body.touch #mapBox{top:calc(64px + var(--sat))}
+  body.touch #credit{left:96px;right:calc(12px + var(--sar));max-width:none;text-align:right;bottom:calc(2px + var(--sab))}
+}
+@media (max-height:520px) and (orientation:landscape){
+  body.touch #ident span{display:none}
+  body.touch #mapBox{width:84px;height:84px;top:calc(58px + var(--sat))}
+}
 
 /* ---------- 飛航管制條（起始畫面） ---------- */
-#brief{position:fixed;inset:0;display:flex;align-items:flex-end;padding:calc(24px + var(--sat)) calc(28px + var(--sar)) calc(24px + var(--sab)) calc(28px + var(--sal));pointer-events:none;transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out)}
+#brief{position:fixed;inset:0;display:flex;flex-direction:column;overflow:auto;padding:calc(24px + var(--sat)) calc(28px + var(--sar)) calc(24px + var(--sab)) calc(28px + var(--sal));pointer-events:none;transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out)}
 body:not(.briefing) #brief{opacity:0;transform:translateY(16px);visibility:hidden}
 #brief>*{pointer-events:auto}
-#bay{width:min(620px,100%);display:flex;flex-direction:column;gap:14px}
+#bay{width:min(620px,100%);display:flex;flex-direction:column;gap:14px;margin-top:auto}
 #brief h1{margin:0 0 2px;font-size:clamp(40px,6vw,76px);line-height:1;font-weight:800;letter-spacing:.04em;text-shadow:0 2px 18px rgba(0,0,0,.35)}
 #brief h1 small{display:block;margin-top:10px;font:600 15px/1.2 var(--num);letter-spacing:.24em;color:rgba(243,240,232,.86)}
 #brief .lede{margin:0;max-width:34em;color:rgba(243,240,232,.9);font-size:14px;text-shadow:0 1px 8px rgba(0,0,0,.6)}
@@ -184,8 +237,25 @@ body:not(.briefing) #brief{opacity:0;transform:translateY(16px);visibility:hidde
   .opts .seg button{padding:4px 8px 5px;font-size:12px}
 }
 body.touch .keyhint,body.touch #goBtn .n{display:none}
-body:not(.touch) .touchhint{display:none}
+body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{display:none}
 @media (max-width:760px) and (max-height:700px){ #brief .lede{display:none} }
+@media (max-height:520px) and (orientation:landscape){
+  #brief{padding:calc(12px + var(--sat)) calc(16px + var(--sar)) calc(12px + var(--sab)) calc(16px + var(--sal))}
+  #bay{width:100%;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:8px 16px;align-items:start}
+  #brief h1{grid-column:1/-1;font-size:32px;display:flex;align-items:baseline;gap:14px}
+  #brief h1 small{margin:0;font-size:13px}
+  #brief .lede{display:none}
+  .rail{grid-column:1;grid-row:2 / span 3;padding:6px}
+  .opts,.go,#status{grid-column:2}
+  .strip{grid-template-columns:74px 1fr 56px;width:calc(100% - 14px)}
+  .strip[aria-checked=true]{transform:translateX(14px)}
+  .strip .sq{display:none}
+  .strip>div{padding:5px 7px}
+  .strip .rt span{font-size:11px}
+  .opts{padding:9px 11px;gap:5px 10px}
+  .opts .seg button{padding:4px 8px 5px;font-size:12px}
+  #goBtn{padding:11px 18px 12px}
+}
 @media (prefers-reduced-motion:reduce){ *{transition-duration:.01ms!important} }
 </style>
 </head>
@@ -194,7 +264,7 @@ body:not(.touch) .touchhint{display:none}
 <canvas id="pfd" aria-hidden="true"></canvas>
 
 <div id="hud">
-  <div id="ident" class="blk"><b>B-72172 · Cessna 172S Skyhawk</b><span id="identSub">松山 RCSS</span></div>
+  <div id="ident" class="blk"><b>B-72172 · <span class="full">Cessna 172S Skyhawk</span><span class="short">C172S</span></b><span id="identSub">松山 RCSS</span></div>
   <div id="views" class="blk" role="group" aria-label="視角">
     <button data-v="0" aria-pressed="false"><span class="n">1</span>駕駛艙</button>
     <button data-v="1" aria-pressed="true"><span class="n">2</span>追蹤</button>
@@ -204,7 +274,7 @@ body:not(.touch) .touchhint{display:none}
   </div>
   <div id="nav" class="blk"><span class="lbl">RCSS </span><span class="n" id="navTxt">---° · -.- NM</span></div>
   <div id="loadInfo"></div>
-  <div id="warn"><span id="wStall" class="r">失速</span><span id="wTerr" class="r">拉起</span><span id="wBrake" class="a">煞車</span><span id="wRel" class="w">停留煞車已放開</span><span id="wFuel" class="a">油量低</span><span id="wPause" class="w">暫停</span><span id="wCloud" class="w">雲中</span></div>
+  <div id="warn"><span id="wStall" class="r">失速</span><span id="wTerr" class="r">拉起</span><span id="wBrake" class="a">煞車</span><span id="wRel" class="w">停留煞車已放開</span><span id="wRot" class="w">拉桿抬輪</span><span id="wToast" class="w"></span><span id="wFuel" class="a">油量低</span><span id="wPause" class="w">暫停</span><span id="wCloud" class="w">雲中</span></div>
   <div id="eng" class="blk">
     <div class="row"><span>油門</span><span class="n" id="thrTxt">0 %</span></div>
     <div class="bar" id="thrBar"><i></i></div>
@@ -230,12 +300,21 @@ body:not(.touch) .touchhint{display:none}
   </div>
   <div id="mapBox" class="blk"><canvas id="map" aria-label="小地圖"></canvas><span class="nm n" id="mapScale">4 NM</span><div class="zm"><button id="mapOut" aria-label="地圖縮小">−</button><button id="mapIn" aria-label="地圖放大">+</button></div></div>
   <div id="credit">影像 © Esri, Maxar, Earthstar Geographics · 地形 Mapzen / AWS Terrain Tiles · 建物 © OpenStreetMap 貢獻者</div>
+  <div id="tbar" class="blk">
+    <button id="tView" aria-label="切換視角"><span>視角</span><b id="tViewName">追蹤</b></button>
+    <button id="tPause" aria-label="暫停">Ⅱ</button>
+    <button id="tBrief" aria-label="回到管制條">管制條</button>
+  </div>
   <div id="touch">
-    <div id="stick" aria-label="操縱桿"><i></i></div>
-    <div id="thr" aria-label="油門"><span>油門</span><i></i></div>
-    <div id="tbtns">
-      <button id="tFlapDn">襟翼 ↓</button><button id="tFlapUp">襟翼 ↑</button>
-      <button id="tBrake">煞車</button><button id="tAp">AP</button>
+    <div id="lever" aria-label="油門桿"><span class="val n" id="lvVal">0%</span><div class="trk"><div class="fill" id="lvFill"></div><b class="det" style="bottom:0"><em>IDLE</em></b><b class="det" style="bottom:65%"><em>巡航</em></b><b class="det" style="bottom:100%"><em>全開</em></b><i class="knob" id="lvKnob" style="bottom:0"></i></div><span class="lab">油門</span></div>
+    <div id="zone" aria-label="操縱區：按住拖曳"></div>
+    <div id="zoneHint">這一側任一處<br>按住拖曳<br>就是操縱桿</div>
+    <div id="ring"><s></s><i></i></div>
+    <div id="ctx" data-p="park">
+      <button id="cBrake" class="p-park p-roll">煞車</button>
+      <button id="cTo" class="p-park">起飛設定</button>
+      <div class="flaps p-air p-app"><button id="cFlapUp" aria-label="襟翼收">▲</button><span>襟翼<b id="cFlap">0°</b></span><button id="cFlapDn" aria-label="襟翼放">▼</button></div>
+      <button id="cAp" class="p-air p-app" aria-pressed="false">AP</button>
     </div>
   </div>
 </div>
@@ -254,15 +333,24 @@ body:not(.touch) .touchhint{display:none}
       <span>時段</span><div class="seg" role="radiogroup" id="optTime"><button role="radio" aria-checked="false" data-v="0">清晨</button><button role="radio" aria-checked="false" data-v="1">上午</button><button role="radio" aria-checked="false" data-v="2">正午</button><button role="radio" aria-checked="true" data-v="3">黃昏</button></div>
       <span>天氣</span><div class="seg" role="radiogroup" id="optWx"><button role="radio" aria-checked="true" data-v="0">晴朗</button><button role="radio" aria-checked="false" data-v="1">積雲</button><button role="radio" aria-checked="false" data-v="2">霾</button></div>
       <span>影像</span><div class="seg" role="radiogroup" id="optImg"><button role="radio" aria-checked="true" data-v="0">Esri 衛星</button><button role="radio" aria-checked="false" data-v="1">國土測繪中心正射</button></div>
+      <span>輔助</span><div class="seg" role="radiogroup" id="optAssist"><button role="radio" aria-checked="true" data-v="0">簡易</button><button role="radio" aria-checked="false" data-v="1">擬真</button></div>
+      <span>操作</span><div class="seg" role="radiogroup" id="optUi"><button role="radio" aria-checked="true" data-v="0">觸控</button><button role="radio" aria-checked="false" data-v="1">鍵盤滑鼠</button></div>
     </div>
-    <div class="go"><button id="goBtn">開始飛行<span class="n">ENTER</span></button><p class="keyhint">W S 俯仰 · A D 滾轉 · Q E 方向舵 · R F 油門 · [ ] 襟翼 · 空白鍵 煞車 · H 全部按鍵</p><p class="touchhint">左下搖桿操縱，右側滑桿推油門；方向舵會自動協調</p></div>
+    <div class="go"><button id="goBtn">開始飛行<span class="n">ENTER</span></button><p class="keyhint">W S 俯仰 · A D 滾轉 · Q E 方向舵 · R F 油門 · [ ] 襟翼 · 空白鍵 煞車 · H 全部按鍵</p><p class="touchhint">右手在右半邊任一處按住拖曳就是操縱桿，左手推油門桿。簡易模式放開就會改平。</p></div>
     <div id="status" role="status">正在下載地形與影像…</div>
   </div>
 </div>
 
 <div id="help" class="sheet" role="dialog" aria-label="操作說明">
   <h2>操作</h2>
-  <div class="keys">
+  <div class="keys touchkeys">
+    <b>右半邊按住拖曳</b><span>操縱桿：往下拉是拉桿（機頭抬起），左右是滾轉。簡易模式放開手指就保持姿態、機翼改平</span>
+    <b>左側油門桿</b><span>上下推；怠速、巡航 65%、全開三處有卡點</span>
+    <b>下方按鈕</b><span>依飛行階段換：地面有煞車與起飛設定，空中有襟翼與自動駕駛</span>
+    <b>左半邊滑動</b><span>轉頭看，點兩下回正</span>
+    <b>簡易模式</b><span>坡度最多 45°、自動配平、迎角保護不讓你失速；地面上左右推桿控制前輪轉向</span>
+  </div>
+  <div class="keys keykeys">
     <b>W / S 或 ↑ / ↓</b><span>推桿（機頭向下）／拉桿</span>
     <b>A / D 或 ← / →</b><span>左右滾轉（副翼）</span>
     <b>Q / E</b><span>方向舵、地面時控制前輪轉向</span>
@@ -301,8 +389,13 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
 const wrap360 = a => ((a % 360) + 360) % 360;
 const angDiff = (a, b) => ((a - b + 540) % 360) - 180;
-const isTouch = matchMedia('(pointer:coarse)').matches;
-if (isTouch) document.body.classList.add('touch');
+// 觸控裝置：主要指標是粗指標、不能懸停，或有多點觸控卻沒有精細指標（平板也算）
+const mq = q => matchMedia(q).matches;
+const isTouch = (mq('(pointer:coarse)') && !mq('(hover:hover)')) || (navigator.maxTouchPoints > 1 && !mq('(pointer:fine)'));
+const PREF = (() => { try { return JSON.parse(localStorage.getItem('sky172') || '{}'); } catch (e) { return {}; } })();
+const savePref = () => { try { localStorage.setItem('sky172', JSON.stringify(PREF)); } catch (e) {} };
+let touchUI = PREF.ui != null ? PREF.ui === 0 : isTouch;
+document.body.classList.toggle('touch', touchUI);
 
 /* ---------- 地理座標：以松山機場跑道中心為原點（x 東、y 上、z 南，單位公尺） ---------- */
 const LAT0 = 25.0696, LON0 = 121.5525;
@@ -1924,7 +2017,7 @@ const WX = [
 ];
 const TIMES = [6.55, 9.5, 12.5, 17.15];
 const TIME_NAME = ['清晨', '上午', '正午', '黃昏'];
-const settings = { scen: 0, time: 3, wx: 0, img: 0 };
+const settings = { scen: 0, time: 3, wx: 0, img: 0, assist: PREF.assist ?? (touchUI ? 0 : 1) };
 let sim = FDM.create();
 const app = { mode: 'brief', paused: false, view: 1, apOn: false, apHdg: 95, apAlt: 2000, apVs: 500, pbrake: false, mute: false, track: [], crashT: 0, t0: 0, maxG: 1, touchdown: null };
 
@@ -2012,8 +2105,10 @@ addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => keys.clear());
 const has = (...ks) => ks.some(k => keys.has(k));
 
+let lastTap = 0;
 canvas.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'touch' && app.mode === 'fly') return;
+  if (e.pointerType === 'touch') { const t = performance.now(); if (t - lastTap < 320) { input.lookYaw = 0; input.lookPitch = 0; } lastTap = t; }
+  if (input.dragging) return;
   input.dragging = true; input.px = e.clientX; input.py = e.clientY; canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove', e => {
@@ -2027,33 +2122,60 @@ canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointerc
 canvas.addEventListener('dblclick', () => { input.lookYaw = 0; input.lookPitch = 0; });
 canvas.addEventListener('wheel', e => { e.preventDefault(); input.zoom = clamp(input.zoom * Math.exp(e.deltaY * 0.0012), 0.35, 4); }, { passive: false });
 
-// 觸控：左搖桿、右油門
+// 觸控：右半邊浮動搖桿、左側油門桿、依階段變換的按鈕
+const vib = ms => { try { if (touchUI) navigator.vibrate?.(ms); } catch (e) {} };
 {
-  const st = $('stick'), knob = st.querySelector('i');
-  let id = null;
+  const zone = $('zone'), ring = $('ring'), knob = ring.querySelector('i');
+  let id = null, ox = 0, oy = 0;
+  const R = 58;
   const move = e => {
-    const r = st.getBoundingClientRect();
-    let x = (e.clientX - r.left) / r.width * 2 - 1, y = (e.clientY - r.top) / r.height * 2 - 1;
-    const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
-    input.stickX = x; input.stickY = y; input.stickOn = true;
-    knob.style.transform = `translate(${x * 45}px,${y * 45}px)`;
+    let dx = (e.clientX - ox) / R, dy = (e.clientY - oy) / R;
+    const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+    input.stickX = dx; input.stickY = dy; input.stickOn = true;
+    knob.style.transform = `translate(${dx * R}px,${dy * R}px)`;
   };
-  st.addEventListener('pointerdown', e => { id = e.pointerId; st.setPointerCapture(id); move(e); });
-  st.addEventListener('pointermove', e => { if (e.pointerId === id) move(e); });
-  const up = e => { if (e.pointerId !== id) return; id = null; input.stickX = input.stickY = 0; input.stickOn = false; knob.style.transform = ''; };
-  st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
-  const th = $('thr'), tk = th.querySelector('i');
-  let tid = null;
-  const tmove = e => { const r = th.getBoundingClientRect(); sim.ctl.thr = clamp(1 - (e.clientY - r.top - 20) / (r.height - 40), 0, 1); };
-  th.addEventListener('pointerdown', e => { tid = e.pointerId; th.setPointerCapture(tid); tmove(e); });
-  th.addEventListener('pointermove', e => { if (e.pointerId === tid) tmove(e); });
-  th.addEventListener('pointerup', () => { tid = null; });
-  $('tFlapDn').onclick = () => { sim.ctl.flapSel = Math.min(3, sim.ctl.flapSel + 1); };
-  $('tFlapUp').onclick = () => { sim.ctl.flapSel = Math.max(0, sim.ctl.flapSel - 1); };
-  $('tBrake').onclick = () => { app.pbrake = !app.pbrake; app.pbrakeHeld = app.pbrake && sim.ctl.thr > 0.35; };
-  $('tAp').onclick = () => toggleAp();
-  input.thrKnob = tk;
+  zone.addEventListener('pointerdown', e => {
+    if (id !== null) return;
+    id = e.pointerId; zone.setPointerCapture(id); ox = e.clientX; oy = e.clientY;
+    ring.style.left = ox + 'px'; ring.style.top = oy + 'px'; ring.classList.add('on'); zone.classList.add('used');
+    move(e);
+  });
+  zone.addEventListener('pointermove', e => { if (e.pointerId === id) move(e); });
+  const up = e => { if (e.pointerId !== id) return; id = null; input.stickX = input.stickY = 0; input.stickOn = false; ring.classList.remove('on'); knob.style.transform = ''; };
+  zone.addEventListener('pointerup', up); zone.addEventListener('pointercancel', up);
+
+  // 油門桿：怠速、巡航 65%、全開三個卡點
+  const lever = $('lever'), trk = lever.querySelector('.trk');
+  const DET = [0, 0.65, 1];
+  let lid = null, lastDet = -1;
+  const lmove = e => {
+    const r = trk.getBoundingClientRect();
+    let v = clamp(1 - (e.clientY - r.top) / r.height, 0, 1);
+    const d = DET.findIndex(x => Math.abs(v - x) < 0.035);
+    if (d >= 0) { v = DET[d]; if (d !== lastDet) vib(12); }
+    lastDet = d;
+    sim.ctl.thr = v;
+  };
+  lever.addEventListener('pointerdown', e => { lid = e.pointerId; lever.setPointerCapture(lid); lmove(e); });
+  lever.addEventListener('pointermove', e => { if (e.pointerId === lid) lmove(e); });
+  lever.addEventListener('pointerup', () => { lid = null; });
+  lever.addEventListener('pointercancel', () => { lid = null; });
+
+  // 煞車：按住才作用
+  const cb = $('cBrake');
+  const bOn = e => { e.preventDefault(); input.holdBrake = true; cb.classList.add('held'); if (app.pbrake) { app.pbrake = false; } vib(8); };
+  const bOff = () => { input.holdBrake = false; cb.classList.remove('held'); };
+  cb.addEventListener('pointerdown', bOn); cb.addEventListener('pointerup', bOff); cb.addEventListener('pointercancel', bOff); cb.addEventListener('pointerleave', bOff);
+  $('cTo').onclick = () => { sim.ctl.flapSel = 1; sim.ctl.trim = 0.3; toast('起飛設定：襟翼 10°、配平完成'); vib(10); };
+  $('cFlapUp').onclick = () => { sim.ctl.flapSel = Math.max(0, sim.ctl.flapSel - 1); vib(8); };
+  $('cFlapDn').onclick = () => { sim.ctl.flapSel = Math.min(3, sim.ctl.flapSel + 1); vib(8); };
+  $('cAp').onclick = () => toggleAp();
+  $('tView').onclick = () => setView((app.view + 1) % 5);
+  $('tPause').onclick = () => togglePause();
+  $('tBrief').onclick = () => toBrief();
 }
+let toastT = 0;
+function toast(msg, ms = 2200) { const t = $('wToast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms); }
 
 function readGamepad() {
   const gps = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -2071,8 +2193,9 @@ function readControls(dt) {
   let tA = (has('d', 'arrowright') ? 1 : 0) - (has('a', 'arrowleft') ? 1 : 0);
   let tR = (has('e') ? 1 : 0) - (has('q') ? 1 : 0);
   const ramp = (cur, tgt, up, down) => { const r = tgt !== 0 ? up : down; return cur + clamp(tgt - cur, -r * dt, r * dt); };
-  input.elev = ramp(input.elev, tE * auth, 1.8, 2.6);
-  input.ail = ramp(input.ail, tA * (0.55 + 0.45 * auth), 2.6, 3.4);
+  const easy = settings.assist === 0;
+  input.elev = ramp(input.elev, tE * (easy ? 1 : auth), 1.8, 2.6);
+  input.ail = ramp(input.ail, tA * (easy ? 1 : 0.55 + 0.45 * auth), 2.6, 3.4);
   input.rud = ramp(input.rud, tR, 2.4, 3);
   let e = input.elev, a = input.ail, r = input.rud;
   const gp = readGamepad();
@@ -2089,9 +2212,10 @@ function readControls(dt) {
     input.gp0 = btn(0); input.gp1 = btn(1); input.gp3 = btn(3);
     if (btn(2)) c.brake = 1;
   }
-  if (input.stickOn) { a = expo(input.stickX); e = expo(input.stickY) * (0.6 + 0.4 * auth); }
+  if (input.stickOn) { a = expo(input.stickX); e = expo(input.stickY) * (easy ? 1 : 0.6 + 0.4 * auth); }
   // 觸控與手把沒有腳踏：自動協調轉彎
-  if ((input.stickOn || isTouch) && !tR) r = clamp((sim.out.beta || 0) * 4 + a * 0.18, -1, 1);
+  if ((input.stickOn || touchUI) && !tR) r = clamp((sim.out.beta || 0) * 4 + a * 0.18, -1, 1);
+  if (easy && !app.apOn) { const o = easyControl(dt, a, e, r, !!tR); e = o.e; a = o.a; r = o.r; } else easyS.live = false;
   if (has('r', '+', '=')) c.thr = clamp(c.thr + 0.45 * dt, 0, 1);
   if (has('f', '-')) c.thr = clamp(c.thr - 0.45 * dt, 0, 1);
   // 推油門起飛時自動放開停留煞車（按住空白鍵的煞車不受影響）
@@ -2102,8 +2226,37 @@ function readControls(dt) {
   if (app.apOn && (Math.abs(tE) + Math.abs(tA) > 0 || (input.stickOn && Math.hypot(input.stickX, input.stickY) > 0.35))) { app.apOn = false; syncAp(); sound.beep(600, .25); }
   if (app.apOn) { const o = autopilot(dt); e = o.e; a = o.a; r = o.r; }
   c.elev = clamp(e, -1, 1); c.ail = clamp(a, -1, 1); c.rud = clamp(r, -1, 1);
-  c.brake = (has(' ') || app.pbrake || (gp && gp.buttons[2]?.pressed)) ? 1 : 0;
-  if (isTouch && input.thrKnob) input.thrKnob.style.transform = `translateY(${-c.thr * 132}px)`;
+  c.brake = (has(' ') || app.pbrake || input.holdBrake || (gp && gp.buttons[2]?.pressed)) ? 1 : 0;
+}
+
+/* ---------- 簡易模式：搖桿控制姿態（坡度與俯仰角速度），自動配平與迎角保護 ---------- */
+const easyS = { pitchTgt: 0, iP: 0, live: false };
+function easyControl(dt, x, y, rudIn, rudHeld) {
+  const eu = FDM.euler(sim.q), bank = eu.roll * R2D, pitch = eu.pitch * R2D;
+  if (sim.onGround) {
+    // 地面：拉桿直接抬輪，左右推桿轉前輪
+    easyS.pitchTgt = pitch; easyS.iP = 0; easyS.live = false;
+    return { e: y, a: x * 0.4, r: rudHeld ? rudIn : x };
+  }
+  if (!easyS.live) { easyS.pitchTgt = pitch; easyS.iP = 0; easyS.live = true; }
+  const p = -sim.w[2] * R2D;
+  const a = clamp((x * 45 - bank) * 0.045 - p * 0.025, -1, 1);
+  const ias = (sim.out.ias || 0) * KT;
+  const aDeg = (sim.out.alpha || 0) * R2D, aMax = 11.5 - 1.6 * sim.flap / 30;
+  const fl = sim.ctl.flapSel;
+  if (y > 0 && aDeg > aMax - 2) y *= clamp((aMax - aDeg) / 2, 0, 1);
+  if (y > 0 && ias < 66 - 2.3 * fl) y *= clamp((ias - 48 + 2.3 * fl) / 14, 0, 1);
+  if (Math.abs(y) > 0.04) easyS.pitchTgt += y * 12 * dt;
+  easyS.pitchTgt = clamp(easyS.pitchTgt, -20, 22);
+  if (aDeg > aMax) easyS.pitchTgt = Math.min(easyS.pitchTgt, pitch - (aDeg - aMax) * 1.2);
+  if (ias > 150) easyS.pitchTgt = Math.max(easyS.pitchTgt, pitch + (ias - 150) * 0.3);
+  const pT = easyS.pitchTgt + Math.min(Math.abs(bank), 45) * 0.1;
+  const q = sim.w[0] * R2D, pe = pT - pitch;
+  easyS.iP = clamp(easyS.iP + pe * dt * 0.05, -0.35, 0.35);
+  const e = clamp(pe * 0.08 + easyS.iP - q * 0.07, -1, 1);
+  sim.ctl.trim = clamp(sim.ctl.trim + e * 0.2 * dt, -1, 1);
+  const r = rudHeld ? rudIn : clamp((sim.out.beta || 0) * 4 + a * 0.15, -1, 1);
+  return { e, a, r };
 }
 
 /* ---------- 自動駕駛（航向、高度、爬升率） ---------- */
@@ -2134,13 +2287,14 @@ function autopilot(dt) {
 }
 function toggleAp() {
   if (sim.onGround && !app.apOn) { sound.beep(400, .2); return; }
-  app.apOn = !app.apOn;
+  app.apOn = !app.apOn; easyS.live = false;
   if (app.apOn) { apS.bias = FDM.euler(sim.q).pitch * R2D; apS.iP = 0; }
   sound.beep(app.apOn ? 1000 : 600, .18);
   syncAp();
 }
 function syncAp() {
   $('apBtn').setAttribute('aria-pressed', app.apOn);
+  $('cAp').setAttribute('aria-pressed', app.apOn);
   $('ap').classList.toggle('on', app.apOn);
   $('apHdg').textContent = String(Math.round(wrap360(app.apHdg)) || 360).padStart(3, '0');
   $('apAlt').textContent = app.apAlt;
@@ -2175,6 +2329,7 @@ function setView(v) {
   app.view = v; input.lookYaw = 0; input.lookPitch = 0; input.zoom = 1; flyby.set = false;
   document.querySelectorAll('#views button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === v));
   cockpit.visible = v === 0;
+  $('tViewName').textContent = ['駕駛艙', '追蹤', '環繞', '塔台', '定點'][v];
 }
 document.querySelectorAll('#views button').forEach(b => b.onclick = () => setView(+b.dataset.v));
 function updateCamera(dt) {
@@ -2336,15 +2491,69 @@ function resize() {
 addEventListener('resize', resize);
 const trend = { ias: 0, alt: 0 };
 function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+// 依裝置與方向排版：避開上方的識別框、視角列、小地圖與下方的觸控按鈕
+let layoutCache = null, layoutT = 0;
+addEventListener('resize', () => { layoutCache = null; });
+function pfdLayout() {
+  const now = performance.now();
+  if (layoutCache && now - layoutT < 500) return layoutCache;
+  layoutT = now;
+  const cx = W / 2, rect = id => $(id).getBoundingClientRect();
+  const idR = rect('ident'), topR = rect(touchUI ? 'tbar' : 'views');
+  const L = { cx, narrow: touchUI || W < 760 };
+  L.tw = L.narrow ? 54 : 70;
+  // 航向帶：夾在識別框與右上角按鈕之間，放不下就往下移
+  const room = 2 * Math.min(cx - idR.right, topR.left - cx) - 24;
+  if (room >= 240) { L.hw = Math.min(380, room); L.hy = Math.max(12, idR.top); }
+  else { L.hw = Math.min(W - 40, 300); L.hy = Math.max(idR.bottom, topR.bottom) + 8; }
+  if (touchUI) {
+    // 航向帶不要壓到小地圖
+    const m = rect('mapBox');
+    if (cx + L.hw / 2 > m.left - 6 && L.hy < m.bottom) { L.hy = m.bottom + 8; L.hw = Math.min(L.hw, W - 40); }
+  }
+  $('warn').style.top = (touchUI || W < 760) ? (L.hy + 64) + 'px' : '';
+  let top = L.hy + 34 + 22 + 26, bottom;
+  if (touchUI) {
+    const mapR = rect('mapBox');
+    if (H > W) top = Math.max(top, mapR.bottom + 24);
+    bottom = rect('ctx').top > 0 ? rect('ctx').top - 30 : H - 90;
+    if (H > W) bottom = Math.min(bottom, H * 0.6 - 84);
+    L.off = H > W ? W / 2 - L.tw - 22 : Math.min(330, W * 0.24);
+  } else if (W < 760) {
+    top = Math.max(top, 290); bottom = H - 210;
+    L.off = W / 2 - L.tw - 22;
+  } else { bottom = H - 150; L.off = Math.min(330, W * 0.24); }
+  L.th = clamp(bottom - top, 140, L.narrow ? 240 : 300);
+  L.cy = (top + bottom) / 2;
+  if (!touchUI && W >= 760) { L.th = 300; L.cy = H / 2; }
+  layoutCache = L;
+  return L;
+}
+// 進場引導：對準松山 10 或 28 跑道時，算出 3° 下滑道與跑道中線的偏差
+function approachGuide() {
+  const [dx, dz] = RWY.dir;
+  let best = null;
+  for (const [th, sgn, name] of [[RWY.w, -1, '10'], [RWY.e, 1, '28']]) {
+    const rx = sim.pos[0] - th[0], rz = sim.pos[2] - th[1];
+    const along = (rx * dx + rz * dz) * sgn;           // 跑道頭外側的距離
+    const lat = (-rx * dz + rz * dx) * sgn;
+    if (along < 250 || along > 14000 || Math.abs(lat) > along * 0.45) continue;
+    const trk = Math.atan2(sim.vel[0], -sim.vel[2]) * R2D, rwyHdg = name === '10' ? RWY.hdgTrue : wrap360(RWY.hdgTrue + 180);
+    if (Math.abs(angDiff(trk, rwyHdg)) > 60) continue;
+    const h = sim.pos[1] - RWY.elev - 15;
+    const gs = Math.atan2(h, along) * R2D - 3;
+    const loc = Math.atan2(-lat, along) * R2D; // 正值＝在中線右側
+    if (!best || along < best.along) best = { name, along, gs, loc };
+  }
+  return best;
+}
 function drawPFD(dt) {
   const c = pc; c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, W, H);
   if (app.mode !== 'fly') return;
   if (inCloud > 0.01) { c.fillStyle = `rgba(235,236,238,${clamp(inCloud * 1.6, 0, 0.93)})`; c.fillRect(0, 0, W, H); }
   if (app.view === 0) return;
-  const narrow = W < 760;
-  const cx = W / 2, cy = narrow ? Math.max(H * 0.5, 310 + 115) : H / 2;
-  const th = narrow ? 230 : 300, tw = narrow ? 54 : 70;
-  const off = narrow ? W / 2 - tw - 22 : Math.min(330, W * 0.24);
+  const L = pfdLayout();
+  const narrow = L.narrow, cx = L.cx, cy = L.cy, th = L.th, tw = L.tw, off = L.off;
   const ias = (sim.out.ias || 0) * KT, altFt = sim.pos[1] * FT, vs = sim.vel[1] * 196.85;
   trend.ias = lerp(trend.ias, (ias - (trend.lastIas ?? ias)) / Math.max(dt, 1e-3), Math.min(1, dt * 2)); trend.lastIas = ias;
   const eu = FDM.euler(sim.q), hdgM = toMag(eu.hdg);
@@ -2415,7 +2624,7 @@ function drawPFD(dt) {
   }
   // --- 航向帶 ---
   {
-    const hw = narrow ? Math.min(W - 40, 300) : 380, hy = narrow ? 110 : 22, x0 = cx - hw / 2, pxPerDeg = narrow ? 3.2 : 4;
+    const hw = L.hw, hy = L.hy, x0 = cx - hw / 2, pxPerDeg = hw < 330 ? 3.2 : 4;
     const topY = hy + (narrow ? 0 : 0);
     c.save(); roundRect(c, x0, topY, hw, 34, 5); c.fillStyle = 'rgba(16,15,13,.5)'; c.fill(); c.clip();
     c.strokeStyle = '#f3f0e8'; c.fillStyle = '#f3f0e8'; c.lineWidth = 1.5; c.textAlign = 'center'; c.font = `600 13px ${NUMF}`;
@@ -2435,6 +2644,26 @@ function drawPFD(dt) {
     c.fillStyle = '#0c0b0a'; roundRect(c, cx - 26, topY + 34, 52, 22, 4); c.fill();
     c.fillStyle = '#f3f0e8'; c.font = `700 15px ${NUMF}`; c.textAlign = 'center';
     c.fillText(String(Math.round(hdgM) % 360 || 360).padStart(3, '0') + '°', cx, topY + 46);
+  }
+  // --- 進場引導（下滑道、跑道中線） ---
+  const ag = !sim.onGround && approachGuide();
+  if (ag) {
+    const gx = cx + off - 16, sp = narrow ? 16 : 20;
+    c.fillStyle = 'rgba(16,15,13,.5)'; roundRect(c, gx - 7, cy - sp * 2.6, 14, sp * 5.2, 4); c.fill();
+    c.strokeStyle = 'rgba(243,240,232,.85)'; c.lineWidth = 1.5;
+    for (const k of [-2, -1, 1, 2]) { c.beginPath(); c.arc(gx, cy + k * sp, 2.5, 0, Math.PI * 2); c.stroke(); }
+    c.fillStyle = 'rgba(243,240,232,.85)'; c.fillRect(gx - 6, cy - 1, 12, 2);
+    // 飛機高於下滑道 → 菱形在下方
+    const gy = cy + clamp(ag.gs / 0.35, -2.3, 2.3) * sp;
+    c.fillStyle = '#e24fd8'; c.beginPath(); c.moveTo(gx, gy - 6); c.lineTo(gx + 5, gy); c.lineTo(gx, gy + 6); c.lineTo(gx - 5, gy); c.fill();
+    const lw = narrow ? 120 : 160, ly = cy + th / 2 - 12;
+    c.fillStyle = 'rgba(16,15,13,.5)'; roundRect(c, cx - lw / 2 - 6, ly - 7, lw + 12, 14, 4); c.fill();
+    c.strokeStyle = 'rgba(243,240,232,.85)';
+    for (const k of [-2, -1, 1, 2]) { c.beginPath(); c.arc(cx + k * lw / 5, ly, 2.5, 0, Math.PI * 2); c.stroke(); }
+    const lx = cx + clamp(-ag.loc / 1.25, -2.3, 2.3) * lw / 5;
+    c.fillStyle = '#e24fd8'; c.beginPath(); c.moveTo(lx - 6, ly); c.lineTo(lx, ly - 5); c.lineTo(lx + 6, ly); c.lineTo(lx, ly + 5); c.fill();
+    c.fillStyle = 'rgba(243,240,232,.85)'; c.font = `600 11px ${NUMF}`; c.textAlign = 'center';
+    c.fillText('RWY ' + ag.name + ' · ' + (ag.along / NM).toFixed(1) + ' NM', cx, ly + 16);
   }
   // --- 飛行路徑標記 ---
   if (app.view === 1 && Math.hypot(...sim.vel) > 12) {
@@ -2592,6 +2821,14 @@ const optBind = (id, key, after) => document.querySelectorAll('#' + id + ' butto
 optBind('optTime', 'time', () => { applyEnvironment(); startScenario(settings.scen); });
 optBind('optWx', 'wx', () => { applyEnvironment(); startScenario(settings.scen); });
 optBind('optImg', 'img', () => { imgSrc = settings.img; resetImagery(); mapImgs.clear(); applyEnvironment(); });
+optBind('optAssist', 'assist', () => { PREF.assist = settings.assist; savePref(); easyS.live = false; });
+settings.ui = touchUI ? 0 : 1;
+optBind('optUi', 'ui', () => {
+  touchUI = settings.ui === 0; PREF.ui = settings.ui; savePref();
+  document.body.classList.toggle('touch', touchUI); layoutCache = null; resize();
+});
+pickRadio('#optAssist button', 'v', settings.assist);
+pickRadio('#optUi button', 'v', settings.ui);
 $('goBtn').onclick = () => beginFlight();
 $('helpBtn').onclick = () => toggleHelp();
 $('helpClose').onclick = () => toggleHelp();
@@ -2604,15 +2841,16 @@ function beginFlight() {
   if (app.mode === 'brief') { startScenario(settings.scen); }
   app.mode = 'fly'; app.paused = false;
   document.body.classList.remove('briefing');
-  setView(settings.scen === 0 ? 1 : 1);
+  setView(1);
   canvas.focus?.();
+  if (touchUI && innerHeight > innerWidth && !app.rotHint) { app.rotHint = true; toast('手機轉成橫向比較好飛', 3500); }
 }
 function toBrief() {
   app.mode = 'brief'; app.paused = false; $('crash').classList.remove('open'); $('help').classList.remove('open');
   document.body.classList.add('briefing'); startScenario(settings.scen); setView(1); camState.orbit = FDM.euler(sim.q).hdg * D2R + 2.4;
 }
 function retry() { startScenario(settings.scen); app.mode = 'fly'; document.body.classList.remove('briefing'); }
-function togglePause() { if (app.mode !== 'fly' || sim.crashed) return; app.paused = !app.paused; $('pauseBtn').textContent = app.paused ? '繼續' : '暫停'; }
+function togglePause() { if (app.mode !== 'fly' || sim.crashed) return; app.paused = !app.paused; $('pauseBtn').textContent = app.paused ? '繼續' : '暫停'; $('tPause').textContent = app.paused ? '▶' : 'Ⅱ'; }
 function toggleHelp() { $('help').classList.toggle('open'); }
 
 function crashed() {
@@ -2626,6 +2864,7 @@ function crashed() {
 }
 
 let inCloud = 0;
+const lvKnob = $('lvKnob'), lvFill = $('lvFill'), lvVal = $('lvVal');
 let hudT = 0, panelT = 0, sortT = 0, tileT = 0, trackT = 0;
 const env = { groundAt: groundHeight, wind: [0, 0, 0], hitBuilding };
 let turbT = 0;
@@ -2667,12 +2906,18 @@ function hudUpdate() {
   $('wStall').classList.toggle('on', !!sim.out.stall && !sim.onGround);
   $('wTerr').classList.toggle('on', !sim.onGround && agl < 150 && sinkFpm > 1500 * (agl / 150) + 400 && sim.ctl.flapSel < 2);
   if (app.pbrakeHeld && sim.ctl.thr <= 0.35) app.pbrakeHeld = false;
-  $('wBrake').textContent = app.pbrake ? '停留煞車 · 推油門或按 B 放開' : '煞車';
+  $('wBrake').textContent = app.pbrake ? (touchUI ? '停留煞車 · 推油門就會放開' : '停留煞車 · 推油門或按 B 放開') : '煞車';
   $('wBrake').classList.toggle('on', !!sim.ctl.brake && sim.onGround);
   $('wRel').classList.toggle('on', performance.now() - (app.relT || -1e9) < 2500);
   $('wFuel').classList.toggle('on', sim.fuelGal < 5);
   $('wPause').classList.toggle('on', app.paused);
   $('wCloud').classList.toggle('on', inCloud > 0.3);
+  // 觸控：依飛行階段換按鈕、抬輪提示、失速震動
+  const gsp = Math.hypot(sim.vel[0], sim.vel[2]), iasKt = (sim.out.ias || 0) * KT;
+  $('ctx').dataset.p = sim.onGround ? (gsp < 2 ? 'park' : 'roll') : 'air';
+  $('cFlap').textContent = FDM.FLAP_DEG[sim.ctl.flapSel] + '°';
+  $('wRot').classList.toggle('on', app.mode === 'fly' && sim.onGround && iasKt > 52 && iasKt < 75 && !sim.ctl.brake);
+  if (sim.out.stall && !sim.onGround) { if (!app.stallV) { app.stallV = true; vib([70, 50, 70]); } } else app.stallV = false;
   // 載入狀態
   let loading = 0; for (const t of tiles.values()) if (t.state === 1) loading++;
   const li = loading > 0 ? `下載圖磚 ${loading}` : '';
@@ -2701,6 +2946,7 @@ function frame(now) {
     if (!wasGround && sim.onGround && (sim.out.V || 0) > 12) {
       sound.burst(2200, 0.25, clamp(-vy0 / 3, 0.1, 0.6)); sound.burst(140, 0.3, 0.35, 'lowpass');
       app.touchdown = { fpm: Math.round(-vy0 * 196.85), t: now };
+      vib(clamp(-vy0 * 25, 15, 80));
     }
     if (sim.crashed) crashed();
   } else if (app.mode === 'brief') {
@@ -2734,6 +2980,12 @@ function frame(now) {
   tileT -= dt; if (tileT <= 0) { tileT = 0.12; updateTiles(camera, camera.position); updateBuildings(camera.position); updatePapi(camera.position); }
   sortT -= dt; if (sortT <= 0) { sortT = 0.25; sortClouds(camera.position); }
   trackT -= dt; if (trackT <= 0 && flying) { trackT = 1; app.track.push([sim.pos[0], sim.pos[2]]); if (app.track.length > 900) app.track.shift(); }
+  // 油門桿顯示（每幀，手指拖動時才順）
+  if (touchUI) {
+    const v = sim.ctl.thr;
+    lvKnob.style.bottom = (v * 100) + '%'; lvFill.style.height = (v * 100) + '%';
+    const tv = Math.round(v * 100); if (tv !== app.lvShown) { app.lvShown = tv; lvVal.textContent = '油門 ' + tv + '%'; }
+  }
   renderer.render(scene, camera);
   drawPFD(dt);
   hudT -= dt; if (hudT <= 0) { hudT = 0.1; hudUpdate(); if (app.mode === 'fly') drawMap(); }
