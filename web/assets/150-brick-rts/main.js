@@ -1873,16 +1873,16 @@ var SimulationClient = class {
       throw e;
     }
   }
-  fail(reason) {
+  fail(reason2) {
     this.ready = false;
     this.worker?.terminate();
     this.worker = null;
     for (const item of this.pending.values()) {
       clearTimeout(item.timer);
-      item.reject(Error(reason));
+      item.reject(Error(reason2));
     }
     this.pending.clear();
-    this.failure(`${reason}\uFF1B\u5DF2\u66AB\u505C\uFF0C\u53EF\u91CD\u8A66\u6062\u5FA9\u81F3\u6700\u5F8C\u78BA\u8A8D\u7684 tick ${this.checkpoint.ticks}\u3002\u672A\u78BA\u8A8D\u6307\u4EE4\u4E0D\u6703\u81EA\u52D5\u91CD\u9001\u3002`);
+    this.failure(`${reason2}\uFF1B\u5DF2\u66AB\u505C\uFF0C\u53EF\u91CD\u8A66\u6062\u5FA9\u81F3\u6700\u5F8C\u78BA\u8A8D\u7684 tick ${this.checkpoint.ticks}\u3002\u672A\u78BA\u8A8D\u6307\u4EE4\u4E0D\u6703\u81EA\u52D5\u91CD\u9001\u3002`);
   }
   send(operation) {
     return new Promise((resolve, reject) => {
@@ -1931,6 +1931,10 @@ var accumulator = 0;
 var advancing = false;
 var connected = false;
 var noticeTimer = 0;
+var reason = (e) => {
+  const m = e.message;
+  return debug ? m : m.replace(/^tick \d+ \/ request \d+( \/ entity \d+)?：/, "");
+};
 var notice = (s) => {
   const n = el("notice");
   n.textContent = s;
@@ -2011,7 +2015,7 @@ async function attack(target, label) {
     await client.request({ kind: "attack", unitIds, target });
     notice(`${names2(unitIds)} \u653B\u64CA${label}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 }
 function enemyBuildingAt(x, y, id) {
@@ -2241,7 +2245,7 @@ async function build(k, x, y) {
     await client.request({ kind: "build", unitIds, building: k, x, y });
     notice(`${names2(unitIds)} \u524D\u5F80\u5EFA\u9020${buildingNames2[k]}\uFF1B\u653E\u7F6E\u6642\u6263\u9664 ${costText(k)}\u3002${leftOut(unitIds)}`);
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 }
 async function construct(buildingId) {
@@ -2254,7 +2258,7 @@ async function construct(buildingId) {
     await client.request({ kind: "construct", unitIds, buildingId });
     notice(`${names2(unitIds)} \u524D\u5F80\u5354\u52A9\u65BD\u5DE5\u3002${leftOut(unitIds)}`);
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 }
 var productionKey = "";
@@ -2412,7 +2416,7 @@ async function train(buildingId, entryId) {
     await client.request({ kind: "train", buildingId, entryId });
     notice(`${entryName(entryId)}\u5C07\u5728 tick ${state.tick + 1} \u52A0\u5165\u4F47\u5217\u4E26\u6263\u9664 ${costText(entryId)}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 }
 async function cancelTrain(buildingId, itemId) {
@@ -2421,7 +2425,7 @@ async function cancelTrain(buildingId, itemId) {
     await client.request({ kind: "cancelTrain", buildingId, itemId });
     notice(`\u5DF2\u53D6\u6D88${q ? entryName(q.entryId) : "\u9805\u76EE"}\uFF0C\u5168\u984D\u9000\u56DE\u3002`);
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 }
 async function rally(buildingId, x, y) {
@@ -2430,7 +2434,7 @@ async function rally(buildingId, x, y) {
     await client.request({ kind: "rally", buildingId, x: to.x, y: to.y });
     notice(`\u96C6\u7D50\u9EDE\u8A2D\u5728 (${(to.x / 100).toFixed(1)}, ${(to.y / 100).toFixed(1)})\u3002`);
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 }
 function toggle(id) {
@@ -2443,11 +2447,11 @@ el("opponent").value = debug ? "idle" : "ai";
 var client = new SimulationClient(rules.settings.seed, debug ? "idle" : "ai", (v) => {
   state = v;
   render();
-}, (reason) => {
+}, (reason2) => {
   connected = false;
   setRunning(false);
   toggleControls();
-  notice(reason);
+  notice(reason2);
   el("worker-retry").hidden = false;
 });
 function toggleControls() {
@@ -2504,7 +2508,7 @@ async function move(x, y, exact = false) {
     await client.request({ kind: "move", unitIds, x: to.x, y: to.y });
     notice(`${names2(unitIds)} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 }
 async function gather(resourceId) {
@@ -2517,7 +2521,7 @@ async function gather(resourceId) {
     await client.request({ kind: "gather", unitIds, resourceId });
     notice(`${names2(unitIds)} \u524D\u5F80\u63A1\u96C6\u3002${leftOut(unitIds)}${running ? "" : resumeHint()}`);
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 }
 function resourceAt(x, y) {
@@ -2539,7 +2543,7 @@ async function stop() {
     await client.request({ kind: "stop", unitIds });
     notice(`${names2(unitIds)} \u5C07\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF08tick ${state.tick + 1}\uFF09\u3002`);
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 }
 var idleVillagers = () => ownUnits().filter((u) => u.kind === "villager" && !u.work && u.action === 0 && u.navigation !== "moving" && u.navigation !== "searching" && u.navigation !== "waiting").sort((a, b) => a.id - b.id);
@@ -2626,6 +2630,11 @@ canvas.addEventListener("pointerdown", (e) => {
     const k = placing;
     if (!e.shiftKey) stopPlacing();
     void build(k, p.x, p.y);
+    return;
+  }
+  if (e.button === 2 && state.outcome) {
+    e.preventDefault();
+    notice("\u5C0D\u5C40\u5DF2\u7D50\u675F\uFF1A\u6309\u300C\u518D\u958B\u4E00\u5C40\u300D\u958B\u59CB\u65B0\u904A\u6232\u3002");
     return;
   }
   if (e.button === 2) {
@@ -2796,6 +2805,10 @@ mini.addEventListener("pointerdown", (e) => {
   if (!scene || graphicsFailed) return;
   e.preventDefault();
   const w = miniWorld(e.clientX, e.clientY);
+  if (e.button === 2 && state.outcome) {
+    notice("\u5C0D\u5C40\u5DF2\u7D50\u675F\uFF1A\u6309\u300C\u518D\u958B\u4E00\u5C40\u300D\u958B\u59CB\u65B0\u904A\u6232\u3002");
+    return;
+  }
   if (e.button === 2) {
     if (w.x < 0.5 || w.x > 15.5 || w.z < 0.5 || w.z > 15.5) {
       notice("\u8ACB\u5728\u5C0F\u5730\u5716\u7684\u5730\u5716\u7BC4\u570D\u5167\u6309\u53F3\u9375\u3002");
@@ -2991,7 +3004,7 @@ el("cancel-build").onclick = async () => {
     notice(`\u5DF2\u53D6\u6D88${buildingNames2[b.kind]}\uFF0C\u9000\u56DE ${costText(b.kind)}\u3002`);
     selectBuilding(null);
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 };
 el("move").onclick = () => {
@@ -3013,7 +3026,7 @@ el("step").onclick = async () => {
     await client.request({ kind: "advance", count: 1 });
   } catch (e) {
     setRunning(false);
-    notice(e.message);
+    notice(reason(e));
   }
 };
 el("restart").onclick = async () => {
@@ -3028,7 +3041,7 @@ el("restart").onclick = async () => {
     notice("\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\uFF1A\u65B0\u904A\u6232\u958B\u59CB\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002");
     autoStart();
   } catch (e) {
-    notice(e.message);
+    notice(reason(e));
   }
 };
 el("save").onclick = async () => {
@@ -3131,7 +3144,7 @@ function frame(time) {
       advancing = true;
       void client.request({ kind: "advance", count }).catch((e) => {
         setRunning(false);
-        notice(e.message);
+        notice(reason(e));
       }).finally(() => {
         advancing = false;
       });

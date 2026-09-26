@@ -338,4 +338,4 @@
 
 - [141 萬物之間 · Between Worlds](https://htmls-ruddy.vercel.app/web/141-between-worlds.html)：生成藝術；12,000 粒光在星系、生命之樹、蝴蝶與自訂文字之間變形，支援指尖擾動、合成和弦、暫停與 PNG 明信片下載。純 Canvas，即時生成，無外部依賴。
 
-- [150 磚築紀元 · BRICK RTS](https://htmls-ruddy.vercel.app/web/150-brick-rts.html)：遊戲敘事；開發中的原創積木即時戰略，畫面配置取法《世紀帝國 II 決定版》：全畫面戰場、資源列、指令格、選取資訊與小地圖。可採集、建造、生產、升時代與征服；紅方尚無 AI。
+- [150 磚築紀元 · BRICK RTS](https://htmls-ruddy.vercel.app/web/150-brick-rts.html)：遊戲敘事；開發中的原創積木即時戰略，畫面配置取法《世紀帝國 II 決定版》：全畫面戰場、資源列、指令格、選取資訊與小地圖。可採集、建造、耕田、生產、升時代，與電腦對手打完整一局。

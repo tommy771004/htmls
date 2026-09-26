@@ -166,3 +166,7 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## 全畫面遊戲畫面（v15，模擬未變）
 
 整頁改成遊戲畫面：資源列、戰場、指令格、選取資訊、小地圖、選單，開發工具移到 `?debug=1` 的除錯抽屜。一般模式的首次進站流程是 `npm run test:hud`，驗證見 [first-use-013.md](first-use-013.md)。E 仍是 in_progress：紅方還沒有 AI。
+
+## E：電腦對手、農田與第一場完整對局（v16）
+
+紅方由電腦操控：經濟、蓋房、兵營、農田、升第二時代、造兵、防守與分波進攻。玩家可以從首次進站一路打到勝利並再開一局（`npm run test:match`）。本輪還修正了兩個規則錯誤，並把地圖改為左右對稱，驗證見 [first-use-014.md](first-use-014.md)。E 仍是 in_progress：完整對局流程裡玩家還沒有升時代，撤退與治療也尚未實作。
