@@ -18,10 +18,10 @@ export type CombatState=WorkState&{attacks:Record<number,Attack>;corpses:Corpse[
 const REPATH=20;
 function buildingBox(s:CombatState,b:Building){const o=s.map.obstacles.find(o=>o.id===b.id);return o?obstacleBounds(o):null;}
 // Chebyshev distance from a point to a unit centre or to a building footprint edge.
-function reach(p:{x:number;y:number},t:{x:number;y:number}|number[]){if(!Array.isArray(t))return Math.max(Math.abs(p.x-t.x),Math.abs(p.y-t.y));return Math.max(t[0]-p.x,0,p.x-t[2],t[1]-p.y,0,p.y-t[3]);}
+export function reach(p:{x:number;y:number},t:{x:number;y:number}|number[]){if(!Array.isArray(t))return Math.max(Math.abs(p.x-t.x),Math.abs(p.y-t.y));return Math.max(t[0]-p.x,0,p.x-t[2],t[1]-p.y,0,p.y-t[3]);}
 function resolve(s:CombatState,t:Target){if(t.kind==='unit'){const u=s.units.find(u=>u.id===t.id);return u?{player:u.player,shape:{x:u.x,y:u.y} as {x:number;y:number}|number[],tiles:[tileAt(u.x,u.y,s.map.size)]}:null;}
  const b=s.buildings.find(b=>b.id===t.id),box=b&&buildingBox(s,b);if(!b||!box)return null;
- const tiles:number[]=[];for(let ty=Math.floor(box[1]/100);ty<=Math.floor((box[3]-1)/100);ty++)for(let tx=Math.floor(box[0]/100);tx<=Math.floor((box[2]-1)/100);tx++)tiles.push(ty*16+tx);
+ const tiles:number[]=[];for(let ty=Math.floor(box[1]/100);ty<=Math.floor((box[3]-1)/100);ty++)for(let tx=Math.floor(box[0]/100);tx<=Math.floor((box[2]-1)/100);tx++)tiles.push(ty*s.map.size+tx);
  return {player:b.player,shape:box as {x:number;y:number}|number[],tiles};}
 export function targetProblem(s:CombatState,player:number,t:Target):string|null{
  const r=resolve(s,t);if(!r)return '找不到目標';if(r.player===player)return '不能攻擊己方';
@@ -34,8 +34,9 @@ export function clearAttacks(s:CombatState,unitIds:number[]){for(const id of uni
 // Against a building, range counts from the unit's body edge (range + radius), like a builder's work ring;
 // otherwise some footprint offsets leave no free node inside the band that range-from-centre allows.
 const limit=(u:Unit,shape:{x:number;y:number}|number[])=>combatRules.units[u.kind].range+(Array.isArray(shape)?navigationRules.radius:0);
-function approach(s:CombatState,u:Unit,shape:{x:number;y:number}|number[]){
- const range=limit(u,shape),out:number[]=[];
+// Free nodes within range of the target (range defaults to the unit's attack reach); monks use it for their rites too.
+export function approach(s:CombatState,u:Unit,shape:{x:number;y:number}|number[],range=limit(u,shape)){
+ const out:number[]=[];
  const closed=blockedTable(s.map),area=Array.isArray(shape)?shape:[shape.x,shape.y,shape.x,shape.y];
  for(const n of nodesNear(s.map,area,range)){if(closed[n])continue;const p=position(s.map,n),d=reach(p,shape);if(d<=range&&(Array.isArray(shape)||d>0))out.push(n);}
  // Prefer positions no other unit is standing on, so attackers spread around the target.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "ac428d45",
+  "rulesetHash": "8f81f590",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -214,6 +214,12 @@
         "width": 300,
         "depth": 300
       },
+      "monastery": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
       "tree": {
         "x": -20,
         "y": -20,
@@ -380,6 +386,13 @@
         "range": 50,
         "cooldown": 40,
         "sight": 0
+      },
+      "monk": {
+        "hp": 30,
+        "damage": 0,
+        "range": 0,
+        "cooldown": 0,
+        "sight": 0
       }
     },
     "buildings": {
@@ -391,7 +404,8 @@
       "mining-camp": 200,
       "mill": 200,
       "stable": 300,
-      "archery-range": 300
+      "archery-range": 300,
+      "monastery": 350
     },
     "corpseTicks": 40,
     "hitFlashTicks": 6,
@@ -399,7 +413,8 @@
       "villager": 5,
       "militia": 5,
       "archer": 5,
-      "scout": 10
+      "scout": 10,
+      "monk": 5
     }
   },
   "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; units hold one node and reserve the next (no overlap, no pass-through), wait, yield, trade stations and replan within bounded limits"

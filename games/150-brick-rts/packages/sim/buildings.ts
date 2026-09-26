@@ -9,8 +9,8 @@ import {tileAt,terrainRules,sizeOfTiles} from './terrain.ts';
 import {combatRules} from './stats.ts';
 import type {Tile} from './terrain.ts';
 // Player buildings (design_default engineering rules, not reference-game values).
-export type BuildKind='house'|'barracks'|'farm'|'lumber-camp'|'mining-camp'|'mill'|'stable'|'archery-range';
-export const buildKinds:readonly BuildKind[]=['house','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range'];
+export type BuildKind='house'|'barracks'|'farm'|'lumber-camp'|'mining-camp'|'mill'|'stable'|'archery-range'|'monastery';
+export const buildKinds:readonly BuildKind[]=['house','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','monastery'];
 // queue: production/research in order (only the first advances); rally: where finished units walk.
 export type QueueItem={id:number;entryId:string;reservationId:string;work:number;required:number};
 // hp: structure points; a foundation starts at 1 and gains hit points in step with construction work.
@@ -18,7 +18,7 @@ export type Building={id:string;kind:BuildKind|'town-center';player:number;x:num
 // capacity: population housed when complete (hard cap rules.settings.populationCap). One builder adds one
 // work point per tick; required = entry time (s) x tick rate. Positions snap to a 10-unit grid, fine enough
 // that the mirror image of any site (the maps are left-right symmetric) is also a legal position.
-export const buildingRules={provenance:'design_default',capacity:{'town-center':5,house:5,barracks:0,farm:0,'lumber-camp':0,'mining-camp':0,mill:0,stable:0,'archery-range':0},grid:10,
+export const buildingRules={provenance:'design_default',capacity:{'town-center':5,house:5,barracks:0,farm:0,'lumber-camp':0,'mining-camp':0,mill:0,stable:0,'archery-range':0,monastery:0},grid:10,
  required:Object.fromEntries(buildKinds.map(k=>[k,rules.entries.find(e=>e.id===k)!.time*rules.settings.tickHz])) as Record<BuildKind,number>} as const;
 export type BuildingState={map:MapData;units:Unit[];accounts:Account[];buildings:Building[];nextBuildingId:number;vision:{explored:number[]}[];ages:number[]};
 const overlap=(a:number[],b:number[])=>Math.min(a[2],b[2])-Math.max(a[0],b[0])>0&&Math.min(a[3],b[3])-Math.max(a[1],b[1])>0;

@@ -124,7 +124,7 @@ function generateOpen(seed:number):MapData{
  for(const {kind,x,y} of animals){const id=`resource-${kind}-${x}-${y}`,capacity=terrainRules.resourceCapacity[kind],obstacleId=`obstacle-${kind}-${x}-${y}`;map.obstacles.push({id:obstacleId,kind,x,y});map.tiles[tileAt(x,y,size)].obstacleRefs.push(obstacleId);map.resources.push({id,kind,x,y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId,depletedAt:null});map.tiles[tileAt(x,y,size)].resourceRefs.push(id);}
  for(let i=0;i<nodeTotal(map);i++)if(!clearSegment(map,position(map,i),position(map,i)))map.blocked.push(i);return map;
 }
-export const buildingKinds=new Set(['house','town-center','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range']);
+export const buildingKinds=new Set(['house','town-center','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','monastery']);
 export function isBuilding(o:Obstacle){return buildingKinds.has(o.kind);}
 function bounds(o:Obstacle):[number,number,number,number]{return obstacleBounds(o,navigationRules.radius);}
 // Slab intersection includes contact: center-lines cannot clip expanded footprints.

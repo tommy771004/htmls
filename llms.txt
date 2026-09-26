@@ -182,6 +182,7 @@
 - [053 天恩宮 擲筊求籤](https://htmls-ruddy.vercel.app/web/053-temple.html): 台灣廟宇。稟告、擲筊、搖籤、確認、解籤全流程，12 首原創七言籤詩
 - [090 七十二候 木版曆](https://htmls-ruddy.vercel.app/web/090-ukiyoe.html): 浮世繪。自動定位今日的候，程序化浮世繪風景與流動青海波
 - [114 山中留話 · 3D 承諾牆](https://htmls-ruddy.vercel.app/web/114-promise-wall.html): 山中咖啡館 3D 承諾牆。四種便條材質、貼牆晃動、環繞縮放、點擊細讀與 localStorage 本機保存
+- [161 兩城漫步 · 齋浦爾與瓦拉納西](https://htmls-ruddy.vercel.app/web/161-jaipur-varanasi.html): 第一人稱 3D 印度城市漫步。午後的粉紅之城齋浦爾（拱廊市集、風之宮、可攀爬的巨型日晷、鴿群與嘟嘟車），搭夜車到黃昏的瓦拉納西（恆河晚禱、河燈、窄巷裡的金頂神廟與茶攤）；建築、人群與市聲全部即時生成
 
 ### 擬物器物
 

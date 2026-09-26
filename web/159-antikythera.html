@@ -22,7 +22,10 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#041a1f;color:var(--ink);overflow:hidden;font-family:var(--sans);-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+#gl{position:fixed;left:0;top:0;width:100vw;height:100vh;display:block}
 #cv{position:fixed;left:0;top:0;width:100vw;height:100vh;display:block;touch-action:none;cursor:default}
+#boot{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:#041a1f;color:var(--ink-2);font-family:var(--serif);font-size:15px;letter-spacing:.08em;transition:opacity 600ms var(--ease-out)}
+#boot.off{opacity:0;pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .btn{font-family:var(--serif);font-size:16px;letter-spacing:.04em;padding:11px 20px 12px;background:#6d4824;color:#f6e9cc;
@@ -73,12 +76,12 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #cap{position:fixed;z-index:5;left:0;right:0;top:15vh;text-align:center;pointer-events:none;opacity:0;transform:translateY(6px);
   transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out);padding:0 20px}
 #cap.on{opacity:1;transform:none}
-#cap b{display:block;font-family:var(--serif);font-size:clamp(22px,3vw,32px);letter-spacing:.08em;color:#f3e8cf;text-shadow:0 2px 8px rgba(0,16,20,.7)}
-#cap span{display:block;margin-top:8px;font-size:15px;color:#cfe3dc;text-shadow:0 1px 4px rgba(0,16,20,.8)}
+#cap b{display:block;font-family:var(--serif);font-size:clamp(22px,3vw,32px);letter-spacing:.08em;color:#f3e8cf;text-shadow:0 1px 2px rgba(0,12,16,.9),0 2px 14px rgba(0,12,16,.6)}
+#cap span{display:block;margin-top:8px;font-size:15px;color:#e0eee8;text-shadow:0 1px 2px rgba(0,12,16,.95),0 1px 10px rgba(0,12,16,.7)}
 #toast{position:fixed;z-index:6;left:50%;bottom:max(92px,calc(env(safe-area-inset-bottom) + 92px));transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));
   font-size:14.5px;line-height:1.55;color:#f1e6cc;background:rgba(10,20,20,.88);padding:10px 16px;pointer-events:none;opacity:0;transition:opacity 260ms var(--ease-out);text-align:center}
 #toast.on{opacity:1}
-#bSnd{position:fixed;z-index:7;left:max(10px,env(safe-area-inset-left));bottom:max(6px,env(safe-area-inset-bottom));font-size:13px;padding:8px 8px}
+#bSnd{position:fixed;z-index:7;left:max(10px,env(safe-area-inset-left));bottom:max(6px,env(safe-area-inset-bottom));font-size:13px;padding:8px 8px;text-shadow:0 1px 2px rgba(0,10,12,.85)}
 #fade{position:fixed;inset:0;z-index:8;background:#02100f;opacity:0;pointer-events:none;transition:opacity 420ms ease}
 #fade.on{opacity:1}
 [hidden]{display:none!important}
@@ -94,6 +97,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   .panel .acts{margin-top:10px}
   .btn{font-size:15px;padding:10px 16px 11px}
   #toast{bottom:auto;top:max(96px,calc(env(safe-area-inset-top) + 96px))}
+  body.dv #toast{top:auto;bottom:max(88px,calc(env(safe-area-inset-bottom) + 88px))}
   #hud{bottom:max(14px,env(safe-area-inset-bottom))}
 }
 @media (prefers-reduced-motion:reduce){
@@ -102,7 +106,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 </style>
 </head>
 <body>
+<canvas id="gl" hidden aria-hidden="true"></canvas>
 <canvas id="cv" aria-label="遊戲畫面"></canvas>
+<div id="boot">潮水退去中…</div>
 <h1 class="sr">沉星機：安提基特拉機械</h1>
 <div id="titleUi" hidden>
   <p class="lede">1900 年春，錫米島的採海綿潛水夫在安提基特拉島外海 45 公尺深處，撞見一艘兩千年前的沉船。船骸裡有幾團鏽成綠色的青銅。</p>
@@ -336,6 +342,7 @@ const THING={nail:{name:'青銅船釘',note:'船殼上的釘子，不屬於機�
 // 遊戲狀態與存檔
 // ======================================================================
 const G={stage:0,days:0,found:new Set(),finds:[]};
+let DIVE=null,TITLE=null;
 const SAVE='antikythera-159';
 function save(){try{localStorage.setItem(SAVE,JSON.stringify({stage:G.stage,days:G.days,finds:G.finds}));}catch(e){}}
 function load(){try{const s=JSON.parse(localStorage.getItem(SAVE)||'null');if(s&&s.stage>=0&&s.stage<=5)return s;}catch(e){}return null;}
@@ -349,7 +356,7 @@ function caption(a,b,dur=3.4){cap.querySelector('b').textContent=a;cap.querySele
 function toast(t,dur=2.8){toastEl.textContent=t;toastEl.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('on'),dur*1000);}
 function setPanel(kind,html){panel.className='panel '+kind;panel.innerHTML=html;panel.hidden=false;}
 function fadeTo(fn){fadeEl.classList.add('on');setTimeout(()=>{fn();requestAnimationFrame(()=>requestAnimationFrame(()=>fadeEl.classList.remove('on')));},RM?30:440);}
-function go(s,arg){if(scene&&scene.exit)scene.exit();scene=s;s.enter(arg);s.layout&&s.layout();}
+function go(s,arg){if(scene&&scene.exit)scene.exit();scene=s;glShow(!!s.gl);s.enter(arg);s.layout&&s.layout();}
 function hideAll(){panel.hidden=true;hud.hidden=true;titleUi.hidden=true;}
 
 // ======================================================================
@@ -675,7 +682,7 @@ const Dive={
     if(all){fadeTo(()=>go(Bench));return;}
     hud.hidden=true;setMood('surf');
     setPanel('sea',`<h2>還有 ${this.lumps.length-this.nFound} 塊留在海底</h2><p>你回到船上。已經撿起的會留在船上，休息一下，再下去一次。</p><div class="acts"><button class="btn" id="bRe">再潛一次</button></div>`);
-    $('#bRe').onclick=()=>{panel.hidden=true;fadeTo(()=>go(Dive));};},
+    $('#bRe').onclick=()=>{panel.hidden=true;fadeTo(()=>go(DIVE));};},
   draw(){const t=this.t,g=ctx,d=this.d;
     drawSea(t);
     worldT(g);if(V.y<0)drawSurface(g,t);
@@ -718,9 +725,9 @@ const Dive={
     g.textAlign='left';},
   down(x,y){this.ptr={x,y};},move(x,y,e){if(this.ptr)this.ptr={x,y};},up(){this.ptr=null;}
 };
-{const bd=$('#bDig');const on=e=>{e.preventDefault();auInit();Dive.digHeld=true;},off=()=>{Dive.digHeld=false;};
+{const bd=$('#bDig');const on=e=>{e.preventDefault();auInit();DIVE.digHeld=true;},off=()=>{DIVE.digHeld=false;};
   bd.addEventListener('pointerdown',on);bd.addEventListener('pointerup',off);bd.addEventListener('pointerleave',off);bd.addEventListener('pointercancel',off);
-  $('#bUp').addEventListener('click',()=>{if(scene===Dive&&Dive.mode!=='descend')Dive.ascend(false);});}
+  $('#bUp').addEventListener('click',()=>{if(scene===DIVE&&DIVE.mode!=='descend')DIVE.ascend(false);});}
 
 // ======================================================================
 // 齒輪繪製（三角齒、四輻、青銅與銅綠）
@@ -1130,7 +1137,7 @@ const Dials={
       <p class="note">它是現存最早的齒輪計算機，下一件同樣精密的機械要再等一千多年。打撈期間，一名潛水夫死於潛水夫病，兩人癱瘓。</p>
       <div class="read" id="dRead"></div><div class="steps" id="dSteps"></div><div class="acts"><button class="btn" id="dFlip">翻到${this.face==='front'?'背面':'正面'}</button><button class="quiet" id="dAgain">從頭再潛一次</button></div>`);
       $('#dFlip').onclick=()=>{this.face=this.face==='front'?'back':'front';$('#dFlip').textContent='翻到'+(this.face==='front'?'背面':'正面');this.layout();};
-      $('#dAgain').onclick=()=>{G.stage=0;G.days=0;G.found=new Set();save();fadeTo(()=>go(Dive));};}
+      $('#dAgain').onclick=()=>{G.stage=0;G.days=0;G.found=new Set();save();fadeTo(()=>go(DIVE));};}
     else setPanel('wood',`<h2>${st.title}<small>預測 · 第 ${st.n} 組／5</small></h2><p id="dTask">${st.task}</p><div class="read" id="dRead"></div><div class="steps" id="dSteps"></div><p class="note" id="dHint">拖動曲柄，或直接在盤面上繞圈拖動。${W<760?'':'方向鍵一次一天。'}</p><div class="acts" id="dActs"></div>`);
     const sp=$('#dSteps');for(const [l,v] of [['−10 日',-10],['−1',-1],['+1',1],['+10 日',10]]){const b=document.createElement('button');b.textContent=l;b.onclick=()=>{this.nudge(v);};sp.appendChild(b);}
     this.readout(true);},
@@ -1154,7 +1161,7 @@ const Dials={
     const T=$('#dTask');if(T)T.innerHTML=`<span class="ok">${msg}</span>`;const hint=$('#dHint');if(hint)hint.hidden=true;
     const acts=$('#dActs');G.stage=this.stageI+1;G.found=new Set();
     if(G.stage>=5){acts.innerHTML='<button class="btn" id="dNext">把機械整個看一遍</button>';$('#dNext').onclick=()=>{G.days=Math.max(G.days,0);save();fadeTo(()=>go(Dials));};}
-    else{acts.innerHTML=`<button class="btn" id="dNext">第 ${G.stage+1} 次下潛</button>`;$('#dNext').onclick=()=>{save();fadeTo(()=>go(Dive));};}
+    else{acts.innerHTML=`<button class="btn" id="dNext">第 ${G.stage+1} 次下潛</button>`;$('#dNext').onclick=()=>{save();fadeTo(()=>go(DIVE));};}
     save();},
   layout(){const pr=panel.hidden?{right:0,bottom:0}:panel.getBoundingClientRect(),mob=W<760;let A=!mob?{x:pr.right+20,y:16,w:W-pr.right-36,h:H-32}:{x:8,y:pr.bottom+8,w:W-16,h:H-pr.bottom-44};
     const SH=mob?54:68;this.sky={x:A.x,y:A.y,w:A.w,h:SH};const F={x:A.x,y:A.y+SH+10,w:A.w,h:A.h-SH-10};this.F=F;
@@ -1255,6 +1262,732 @@ const Dials={
 };
 
 // ======================================================================
+// 3D：以 Three.js 即時算出海面、海底與潛水夫（載入失敗時退回上面的平面版）
+// ======================================================================
+const GL={ok:false,why:'',active:false};
+let T3=null;
+const glc=$('#gl');
+function glShow(on){GL.active=!!(on&&GL.ok);glc.hidden=!GL.active;if(!GL.active)return;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);}
+async function load3D(){
+  if(/flat/.test(location.hash+location.search))return false;
+  try{const t=document.createElement('canvas');if(!t.getContext('webgl2')){GL.why='這台裝置沒有 WebGL 2，改用平面版。';return false;}}catch(e){GL.why='這台裝置沒有 WebGL 2，改用平面版。';return false;}
+  try{T3=await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js');}
+  catch(e){try{T3=await import('../vendor/three-0.186.0/three.module.js');}catch(e2){T3=null;}}
+  if(!T3){GL.why='3D 場景載入失敗（需要連線到 cdn.jsdelivr.net），改用平面版。';return false;}
+  try{initGL();GL.ok=true;return true;}catch(e){console.warn(e);GL.why='3D 場景無法啟動，改用平面版。';return false;}
+}
+
+// ---------- GLSL 共用片段
+const GLSL_NOISE=`
+float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}
+float fbm2(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*vn(p);p=p*2.03+vec2(17.1,9.2);a*=.5;}return v;}
+`;
+const GLSL_SKY=`
+uniform vec3 uSunDir;uniform vec3 uSunCol;uniform vec3 uTop;uniform vec3 uHor;
+vec3 skyCol(vec3 d){
+  float h=d.y,up=clamp(h,0.,1.);
+  vec3 c=mix(uHor,uTop,pow(up,.42));
+  float s=max(dot(d,uSunDir),0.);
+  c+=uSunCol*(pow(s,5.)*.16+pow(s,40.)*.32);
+  c=mix(c,uHor*.82,1.-smoothstep(-.08,0.,h));
+  return c;
+}`;
+// 水下的背景：往上亮、往下暗，太陽方向有一團散射光；霧也用同一個顏色，遠處的東西才會融進去
+const GLSL_UWBG=`
+uniform vec3 uFogC;uniform vec3 uLD;
+vec3 uwBg(vec3 d){float u=smoothstep(-.45,.95,d.y);vec3 c=mix(uFogC*.42,uFogC*1.75,u);c+=uFogC*vec3(1.6,1.5,1.2)*pow(max(dot(d,uLD),0.),10.)*.9;return c;}`;
+// 焦散：兩層會動的 Voronoi 網格，取 F2−F1 的細邊當成亮線
+const GLSL_CAUS=`
+vec2 h22(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}
+float vor(vec2 p,float t){vec2 i=floor(p),f=fract(p);float d1=8.,d2=8.;
+  for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(float(x),float(y));vec2 o=h22(i+g);o=.5+.42*sin(t+6.2831*o);vec2 r=g+o-f;float d=dot(r,r);if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}
+  return sqrt(d2)-sqrt(d1);}
+float caustic(vec2 uv,float t){float a=vor(uv,t),b=vor(uv*1.37+vec2(3.1,1.7),t*1.27);float e=1.-smoothstep(0.,.16,a),e2=1.-smoothstep(0.,.2,b);return e*.65+e2*.35+e*e2*.9;}`;
+
+// 波浪：Gerstner 波，GPU 與 CPU 用同一組參數
+const WAVES=[[1,.3,.10,22],[.7,-.6,.085,13],[-.3,1,.07,7.5],[.2,.9,.05,4.2],[-.8,.4,.045,3.1],[.9,-.15,.035,2.2]];
+function waveAt(x,z,t,amp){let dx=0,dy=0,dz=0;
+  for(const [a,b,st,L] of WAVES){const l=Math.hypot(a,b),Dx=a/l,Dz=b/l,k=TAU/L,c=Math.sqrt(9.8/k),f=k*(Dx*x+Dz*z-c*t),A=st*amp/k;
+    dx+=Dx*A*Math.cos(f);dy+=A*Math.sin(f);dz+=Dz*A*Math.cos(f);}
+  return[dx,dy,dz];}
+function seaY(x,z,t){// 反推一點附近的水面高度（兩次迭代已足夠）
+  let px=x,pz=z;for(let i=0;i<2;i++){const w=waveAt(px,pz,t,GL.amp);px=x-w[0];pz=z-w[2];}return waveAt(px,pz,t,GL.amp)[1];}
+
+function initGL(){
+  const T=T3;
+  const r=new T.WebGLRenderer({canvas:glc,antialias:true,powerPreference:'high-performance'});
+  GL.r=r;r.setPixelRatio(Math.min(1.5,window.devicePixelRatio||1));r.setSize(W,H,false);
+  r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.05;r.outputColorSpace=T.SRGBColorSpace;
+  r.shadowMap.enabled=true;r.shadowMap.type=T.PCFShadowMap;
+  const sc=new T.Scene();GL.sc=sc;
+  const cam=new T.PerspectiveCamera(52,W/H,.08,6000);GL.cam=cam;sc.add(cam);
+  GL.amp=RM?.55:1;GL.t=0;
+  const V3=(x,y,z)=>new T.Vector3(x,y,z);
+  GL.U={uTime:{value:0},uSunDir:{value:V3(-.78,.2,.42).normalize()},uSunCol:{value:new T.Color(1.35,1.05,.72)},
+    uTop:{value:new T.Color(.025,.13,.42)},uHor:{value:new T.Color(.62,.6,.56)},uLD:{value:V3(-.25,1,.12).normalize()},uUW:{value:0},uFogC:{value:new T.Color(.02,.2,.26)},uFogD:{value:.04},
+    uCaus:{value:0},uDeep:{value:new T.Color(.002,.02,.036)},uScat:{value:new T.Color(0,.055,.07)}};
+  const U=GL.U;
+  sc.fog=new T.FogExp2(0x9aa8a4,.0006);
+
+  // ---- 天空（兼水下的背景）
+  const skyM=new T.ShaderMaterial({uniforms:U,depthWrite:false,side:T.BackSide,fog:false,
+    vertexShader:`varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position.z=gl_Position.w*.99999;}`,
+    fragmentShader:`varying vec3 vD;uniform float uTime;uniform float uUW;${GLSL_NOISE}${GLSL_SKY}${GLSL_UWBG}
+    void main(){vec3 d=normalize(vD);vec3 c=skyCol(d);float s=max(dot(d,uSunDir),0.);
+      c+=uSunCol*smoothstep(.99955,.9998,s)*14.;
+      if(d.y>0.){vec2 uv=d.xz/(d.y+.1)*1.3+vec2(uTime*.004,uTime*.001);float n=fbm2(uv*1.2),m=fbm2(uv*3.1+7.);
+        float cov=smoothstep(.56,.8,n*.8+m*.28)*smoothstep(.0,.16,d.y);
+        vec3 cc=mix(uHor*vec3(.78,.78,.86),vec3(1.06,.99,.9),smoothstep(.45,.95,m))+uSunCol*pow(s,4.)*.45;
+        c=mix(c,cc,cov*.9);}
+      c=mix(c,uwBg(d),uUW);
+      gl_FragColor=vec4(c,1.);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`});
+  const sky=new T.Mesh(new T.SphereGeometry(4000,48,24),skyM);sky.frustumCulled=false;sky.renderOrder=-10;sc.add(sky);GL.sky=sky;
+
+  // ---- 海面：以鏡頭為中心的極座標網格，近處密、遠處疏
+  {const nA=192,rings=[0];let rr=0,step=.28;while(rr<5200){rr+=step;step*=1.043;rings.push(Math.min(rr,5200));}
+    const nR=rings.length,pos=new Float32Array((1+(nR-1)*nA)*3),idx=[];
+    let v=1;for(let i=1;i<nR;i++)for(let j=0;j<nA;j++){const a=j/nA*TAU;pos[v*3]=Math.cos(a)*rings[i];pos[v*3+2]=Math.sin(a)*rings[i];v++;}
+    for(let j=0;j<nA;j++)idx.push(0,1+(j+1)%nA,1+j);
+    for(let i=1;i<nR-1;i++)for(let j=0;j<nA;j++){const a=1+(i-1)*nA+j,b=1+(i-1)*nA+(j+1)%nA,c=a+nA,d=b+nA;idx.push(a,b,c,b,d,c);}
+    const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));g.setIndex(idx);
+    const wv=WAVES.map(([a,b,st,L])=>{const l=Math.hypot(a,b);return new T.Vector4(a/l,b/l,st,L);});
+    const u=Object.assign({uW:{value:wv},uAmp:{value:GL.amp}},U);
+    const m=new T.ShaderMaterial({uniforms:u,side:T.DoubleSide,fog:false,
+      vertexShader:`uniform vec4 uW[6];uniform float uAmp;uniform float uTime;varying vec3 vWP;varying vec3 vN;varying float vF;varying float vH;
+      void main(){vec3 p=(modelMatrix*vec4(position,1.)).xyz;float dist=length(p.xz-cameraPosition.xz);
+        vec3 d=vec3(0.);vec3 tg=vec3(1.,0.,0.),bt=vec3(0.,0.,1.);
+        for(int i=0;i<6;i++){vec4 w=uW[i];float fade=1.-smoothstep(w.w*7.,w.w*16.,dist);float st=w.z*uAmp*fade;float k=6.28318/w.w,c=sqrt(9.8/k);
+          float f=k*(dot(w.xy,p.xz)-c*uTime),a=st/k,sf=sin(f),cf=cos(f);
+          d+=vec3(w.x*a*cf,a*sf,w.y*a*cf);
+          tg+=vec3(-w.x*w.x*st*sf,w.x*st*cf,-w.x*w.y*st*sf);bt+=vec3(-w.x*w.y*st*sf,w.y*st*cf,-w.y*w.y*st*sf);}
+        p+=d;vWP=p;vN=normalize(cross(bt,tg));vF=1.-smoothstep(40.,400.,dist);vH=d.y;
+        gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
+      fragmentShader:`varying vec3 vWP;varying vec3 vN;varying float vF;varying float vH;uniform float uTime;uniform float uFogD;uniform vec3 uDeep;uniform vec3 uScat;
+      ${GLSL_NOISE}${GLSL_SKY}${GLSL_UWBG}
+      float dn(vec2 q){return vn(q*1.7+uTime*vec2(.21,.13))*.6+vn(q*4.3-uTime*vec2(.17,.31))*.4;}
+      void main(){vec3 N=normalize(vN);vec3 toC=cameraPosition-vWP;float dist=length(toC);vec3 V=toC/dist;
+        float e=.06,q0=dn(vWP.xz);vec2 gr=vec2(dn(vWP.xz+vec2(e,0.))-q0,dn(vWP.xz+vec2(0.,e))-q0)/e;
+        N=normalize(N-vec3(gr.x,0.,gr.y)*.05*(.25+.75*vF));
+        vec3 col;
+        if(gl_FrontFacing){
+          float NV=max(dot(N,V),0.);float F=.02+.98*pow(1.-NV,5.);
+          vec3 R=reflect(-V,N);R.y=abs(R.y);vec3 refl=skyCol(R);
+          float sss=pow(max(dot(V,-uSunDir)*.5+.5,0.),3.)*clamp(vH*1.2+.4,0.,1.2);
+          vec3 body=uDeep+uScat*(.35+.65*max(dot(N,uSunDir),0.))+uScat*sss*.9;
+          col=mix(body,refl,F);
+          float sd=max(dot(R,uSunDir),0.);col+=uSunCol*(pow(sd,1200.)*60.+pow(sd,120.)*.9)*(.35+.65*vF);
+          col=mix(col,uHor,1.-exp(-dist*.00042));
+        }else{
+          N=-N;vec3 I=-V;float ci=dot(-I,N),k=1.-1.777*(1.-ci*ci);
+          vec3 Tr=refract(I,N,1.333);
+          vec3 win=skyCol(normalize(Tr+vec3(0.,.001,0.)))*1.1+uSunCol*pow(max(dot(Tr,uSunDir),0.),300.)*6.;
+          col=mix(uFogC*1.1,mix(win,uFogC*2.2,.3),smoothstep(0.,.2,k));
+          col=mix(col,uwBg(-V),1.-exp(-pow(dist*uFogD,2.)));
+        }
+        gl_FragColor=vec4(col,1.);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`});
+    const sea=new T.Mesh(g,m);sea.frustumCulled=false;sc.add(sea);GL.sea=sea;GL.seaU=u;}
+
+  // ---- 光
+  const hemi=new T.HemisphereLight(0x9fc3e8,0x5a4c3c,1.1);sc.add(hemi);GL.hemi=hemi;
+  const sun=new T.DirectionalLight(0xffe2b8,3);sun.castShadow=true;sun.shadow.mapSize.set(W<760?1024:2048,W<760?1024:2048);
+  const sca=sun.shadow.camera;sca.left=-14;sca.right=14;sca.top=14;sca.bottom=-14;sca.near=1;sca.far=90;sun.shadow.bias=-.0006;sun.shadow.normalBias=.03;
+  sc.add(sun);sc.add(sun.target);GL.sun=sun;
+
+  GL.tmpV=new T.Vector3();GL.tmpV2=new T.Vector3();
+  buildGLWorld();buildGLLife();
+  addEventListener('resize',glResize);glResize();
+}
+function glResize(){if(!GL.r)return;GL.r.setSize(W,H,false);GL.cam.aspect=W/H;GL.cam.fov=W/H<.8?64:W/H<1.2?56:50;GL.cam.updateProjectionMatrix();}
+
+// 把 MeshStandardMaterial 接上海底焦散（依世界座標，只照在朝上的面）
+function uwPatch(m,extraV){
+  m.customProgramCacheKey=()=>'uw|'+(extraV||'');
+  m.onBeforeCompile=s=>{s.uniforms.uTime=GL.U.uTime;s.uniforms.uCaus=GL.U.uCaus;s.uniforms.uFogC=GL.U.uFogC;s.uniforms.uLD=GL.U.uLD;s.uniforms.uUW=GL.U.uUW;s.uniforms.uFogD=GL.U.uFogD;
+    s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nuniform float uTime;\nvarying vec3 vCW;')
+      .replace('#include <begin_vertex>','#include <begin_vertex>\n'+(extraV||''))
+      .replace('#include <project_vertex>','#include <project_vertex>\n{vec4 cw=vec4(transformed,1.);\n#ifdef USE_INSTANCING\ncw=instanceMatrix*cw;\n#endif\nvCW=(modelMatrix*cw).xyz;}');
+    s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nuniform float uTime;uniform float uCaus;uniform float uUW;uniform float uFogD;varying vec3 vCW;\n'+GLSL_CAUS+GLSL_UWBG)
+      .replace('#include <fog_fragment>','if(uUW>.5){vec3 fv=vCW-cameraPosition;float fd=length(fv);gl_FragColor.rgb=mix(gl_FragColor.rgb,uwBg(fv/fd),1.-exp(-pow(fd*uFogD,2.)));}else{\n#include <fog_fragment>\n}')
+      .replace('#include <tonemapping_fragment>',`{float up=clamp(inverseTransformDirection(normal,viewMatrix).y*1.15,0.,1.);
+        float dz=(1.-smoothstep(-3.,-.5,vCW.y))*(.45+.55*exp(vCW.y*.02));
+        float cs=caustic(vCW.xz*.55,uTime*.55);
+        gl_FragColor.rgb+=vec3(.55,.95,.9)*cs*up*dz*uCaus*(diffuseColor.rgb+.06)*.55;}
+        #include <tonemapping_fragment>`);};
+  return m;}
+function stdM(o,uw=true,extraV){const m=new T3.MeshStandardMaterial(o);return uw?uwPatch(m,extraV):m;}
+// 把多個幾何合併（烘入矩陣，統一轉為非索引）
+function mergeGeo(list){const T=T3;let n=0;const gs=list.map(([g,mx,col])=>{let q=g.index?g.toNonIndexed():g.clone();if(mx)q.applyMatrix4(mx);if(!q.attributes.normal)q.computeVertexNormals();n+=q.attributes.position.count;return[q,col];});
+  const P=new Float32Array(n*3),N=new Float32Array(n*3),C=new Float32Array(n*3),hasUV=gs.every(([q])=>q.attributes.uv),UV=hasUV?new Float32Array(n*2):null;let o=0;
+  for(const [q,col] of gs){const p=q.attributes.position,nn=q.attributes.normal,c=q.attributes.color;
+    if(UV){const u=q.attributes.uv;for(let i=0;i<p.count;i++){UV[(o+i)*2]=u.getX(i);UV[(o+i)*2+1]=u.getY(i);}}
+    for(let i=0;i<p.count;i++){P[(o+i)*3]=p.getX(i);P[(o+i)*3+1]=p.getY(i);P[(o+i)*3+2]=p.getZ(i);N[(o+i)*3]=nn.getX(i);N[(o+i)*3+1]=nn.getY(i);N[(o+i)*3+2]=nn.getZ(i);
+      if(c){C[(o+i)*3]=c.getX(i);C[(o+i)*3+1]=c.getY(i);C[(o+i)*3+2]=c.getZ(i);}else if(col){const cc=typeof col==='function'?col(p.getX(i),p.getY(i),p.getZ(i),i):col;C[(o+i)*3]=cc.r;C[(o+i)*3+1]=cc.g;C[(o+i)*3+2]=cc.b;}else{C[(o+i)*3]=C[(o+i)*3+1]=C[(o+i)*3+2]=1;}}
+    o+=p.count;q.dispose();}
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(P,3));g.setAttribute('normal',new T.BufferAttribute(N,3));g.setAttribute('color',new T.BufferAttribute(C,3));if(UV)g.setAttribute('uv',new T.BufferAttribute(UV,2));return g;}
+// PolyhedronGeometry 沒有索引：把位置相同的頂點法線平均，才不會一格一格
+function smoothN(g){g.computeVertexNormals();const p=g.attributes.position,n=g.attributes.normal,m=new Map(),K=i=>Math.round(p.getX(i)*1e4)+','+Math.round(p.getY(i)*1e4)+','+Math.round(p.getZ(i)*1e4);
+  for(let i=0;i<p.count;i++){const k=K(i);let a=m.get(k);if(!a){a=[0,0,0];m.set(k,a);}a[0]+=n.getX(i);a[1]+=n.getY(i);a[2]+=n.getZ(i);}
+  for(let i=0;i<p.count;i++){const a=m.get(K(i)),l=Math.hypot(a[0],a[1],a[2])||1;n.setXYZ(i,a[0]/l,a[1]/l,a[2]/l);}return g;}
+const n3=(x,y,z,s=0)=>(vnoise(x+z*.71,y-z*.37,s,0)+vnoise(y+x*.53,z+x*.29,s+7,0)+vnoise(z-y*.41,x+y*.61,s+13,0))/3;
+function col3(hex){return new T3.Color(hex);}
+function M4(){return new T3.Matrix4();}
+function mat(px,py,pz,rx=0,ry=0,rz=0,sx=1,sy=sx,sz=sx){const T=T3;return new T.Matrix4().compose(new T.Vector3(px,py,pz),new T.Quaternion().setFromEuler(new T.Euler(rx,ry,rz,'YXZ')),new T.Vector3(sx,sy,sz));}
+function canvasTex(c,rep,srgb=true){const t=new T3.CanvasTexture(c);t.wrapS=t.wrapT=T3.RepeatWrapping;if(rep)t.repeat.set(rep,rep);if(srgb)t.colorSpace=T3.SRGBColorSpace;t.anisotropy=Math.min(8,GL.r.capabilities.getMaxAnisotropy());t.needsUpdate=true;return t;}
+
+
+// ---------- 3D 世界：海底、沉船、島與採海綿船
+const SITE={x:0,z:0},BOATP={x:5.5,z:-7,yaw:.55},BED3=-45,WRECK_A=.35;
+function bedH(x,z){let h=BED3+(fbm(x*.018+40,z*.018+40,61,4)-.5)*6+(fbm(x*.07+9,z*.07+9,62,3)-.5)*1.1-z*.035+x*.012;
+  const d=Math.hypot((x-SITE.x)*.8,(z-SITE.z)*1.2);h+=Math.pow(Math.max(0,1-d/13),2)*1.1;return h;}
+function bedN(x,z){const e=.25,a=bedH(x-e,z),b=bedH(x+e,z),c=bedH(x,z-e),d=bedH(x,z+e);const n=GL.tmpV2.set(a-b,2*e,c-d).normalize();return n;}
+const ROCKS=[];
+function wreckLocal(x,z){const dx=x-SITE.x,dz=z-SITE.z,c=Math.cos(WRECK_A),s=Math.sin(WRECK_A);return[dx*c-dz*s,dx*s+dz*c];}// [沿船身, 橫向]
+
+function sandTextures(){
+  const S=512,cm=mk(S,S),nm=mk(S,S),gc=cm.getContext('2d'),gn=nm.getContext('2d'),ic=gc.createImageData(S,S),inn=gn.createImageData(S,S),hh=new Float32Array(S*S);
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const u=x/S,v=y/S,w=fbm(u*4,v*4,81,3,4);
+    const ph=TAU*(u*7+v*2+w*1.4),rp=Math.sin(ph)*.5+.5,rip=Math.pow(rp,1.7)+.18*Math.sin(2*ph+1.1);
+    hh[y*S+x]=rip*.55+fbm(u*16,v*16,82,3,16)*.45;}
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const i=y*S+x,h=hh[i],hx=hh[y*S+(x+1)%S]-hh[y*S+(x+S-1)%S],hy=hh[((y+1)%S)*S+x]-hh[((y+S-1)%S)*S+x];
+    let nx=-hx*3.2,ny=-hy*3.2,nz=1;const l=Math.hypot(nx,ny,nz);nx/=l;ny/=l;nz/=l;
+    inn.data[i*4]=(nx*.5+.5)*255;inn.data[i*4+1]=(ny*.5+.5)*255;inn.data[i*4+2]=nz*255;inn.data[i*4+3]=255;
+    const q=hash2(x,y,83),n=fbm(x/S*8,y/S*8,84,3,8);let r=196+n*30-(1-h)*26,g=178+n*26-(1-h)*24,b=138+n*18-(1-h)*20;
+    if(q>.985){r+=40;g+=38;b+=34;}else if(q<.012){r-=70;g-=62;b-=52;}else if(q<.03){r-=26;g-=22;b-=16;}
+    ic.data[i*4]=r;ic.data[i*4+1]=g;ic.data[i*4+2]=b;ic.data[i*4+3]=255;}
+  gc.putImageData(ic,0,0);gn.putImageData(inn,0,0);
+  return{map:canvasTex(cm,1,true),nrm:canvasTex(nm,1,false)};}
+
+function buildGLWorld(){
+  const T=T3,sc=GL.sc,R=rng(771),mob=W<760;const UN=new T.Group();sc.add(UN);GL.under=UN;
+  // ---- 海底
+  const st=sandTextures();GL.sand=st;const rep=170/5;st.map.repeat.set(rep,rep);st.nrm.repeat.set(rep,rep);
+  {const g=new T.PlaneGeometry(170,170,mob?150:220,mob?150:220);g.rotateX(-Math.PI/2);const p=g.attributes.position,C=new Float32Array(p.count*3);
+    for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i);p.setY(i,bedH(x,z));const t=fbm(x*.05+3,z*.05+3,63,3),d=smooth(.45,.75,t);
+      C[i*3]=1-d*.22;C[i*3+1]=1-d*.17;C[i*3+2]=1-d*.24;}
+    g.setAttribute('color',new T.BufferAttribute(C,3));g.computeVertexNormals();
+    const m=stdM({map:st.map,normalMap:st.nrm,normalScale:new T.Vector2(1.1,1.1),roughness:1,metalness:0,vertexColors:true});
+    const bed=new T.Mesh(g,m);bed.receiveShadow=true;UN.add(bed);GL.bed=bed;GL.sandM=m;}
+
+  // ---- 岩塊
+  {const list=[];for(let i=0;i<40;i++){let x,z,r,ok=false;for(let k=0;k<30&&!ok;k++){const big=i<13,a=R()*TAU,d=big?16+R()*30:5+R()*26;x=SITE.x+Math.cos(a)*d;z=SITE.z+Math.sin(a)*d;r=big?2+R()*3.4:.35+R()*1.1;
+      const [al,ac]=wreckLocal(x,z);ok=!(Math.abs(al)<12+r&&Math.abs(ac)<4+r)&&ROCKS.every(q=>Math.hypot(q.x-x,q.z-z)>q.r+r+.6);}
+      if(!ok)continue;ROCKS.push({x,z,r});
+      const g=new T.IcosahedronGeometry(1,r>2?(mob?3:4):2),p=g.attributes.position,sd=i*13.7;
+      for(let j=0;j<p.count;j++){const X=p.getX(j),Y=p.getY(j),Z=p.getZ(j),f=1+(n3(X*1.6+sd,Y*1.6,Z*1.6)-.5)*.85+(n3(X*4.5,Y*4.5+sd,Z*4.5)-.5)*.3+Math.abs(n3(X*9,Y*9,Z*9+sd)-.5)*.14;
+        p.setXYZ(j,X*f*r*1.1,Math.max(Y*f,-.35)*r*.72,Z*f*r);}
+      smoothN(g);const nn=g.attributes.normal,C=new Float32Array(p.count*3);
+      for(let j=0;j<p.count;j++){const X=p.getX(j),Y=p.getY(j),Z=p.getZ(j),ny=nn.getY(j),q=n3(X*1.3+sd,Y*1.3,Z*1.3,5),q2=n3(X*4+sd,Y*4,Z*4,6);
+        const c=new T.Color(.4+q2*.14,.39+q2*.12,.35+q2*.1);
+        c.lerp(new T.Color(.62,.42,.46),smooth(.62,.72,q)*.75*(1-smooth(.5,.9,ny)));
+        c.lerp(new T.Color(.3,.3,.15),smooth(.35,.85,ny)*(.55+q2*.45));
+        c.multiplyScalar(lerp(.45,1,smooth(-.6,.3,ny))*(.8+q2*.35));C[j*3]=c.r;C[j*3+1]=c.g;C[j*3+2]=c.b;}
+      g.setAttribute('color',new T.BufferAttribute(C,3));list.push([g,mat(x,bedH(x,z)-r*.18,z,0,R()*TAU,0)]);}
+    const rn=rockNormal();rn.repeat.set(4,2);const m=stdM({vertexColors:true,roughness:.95,normalMap:rn,normalScale:new T.Vector2(1.4,1.4)});const mesh=new T.Mesh(mergeGeo(list),m);mesh.castShadow=mesh.receiveShadow=true;UN.add(mesh);}
+
+  // ---- 波西多尼亞海草
+  {const g=new T.PlaneGeometry(.05,1,1,4);g.translate(0,.5,0);const p=g.attributes.position,C=new Float32Array(p.count*3);
+    for(let i=0;i<p.count;i++){const y=p.getY(i);p.setX(i,p.getX(i)*(1-y*.4));C[i*3]=.1+y*.34;C[i*3+1]=.18+y*.3;C[i*3+2]=.06+y*.12;}g.setAttribute('color',new T.BufferAttribute(C,3));
+    const N=mob?1500:3000,m=stdM({vertexColors:true,side:T.DoubleSide,roughness:.75},true,
+      `{vec4 ip=instanceMatrix[3];float ph=ip.x*.35+ip.z*.27;float hh=position.y;transformed.x+=sin(uTime*1.1+ph)*hh*hh*.24;transformed.z+=cos(uTime*.8+ph*1.3)*hh*hh*.12;}`);
+    const im=new T.InstancedMesh(g,m,N),o=new T.Object3D();let n=0;
+    const centers=[];for(let i=0;i<12;i++){const a=R()*TAU,d=7+R()*26;centers.push([SITE.x+Math.cos(a)*d,SITE.z+Math.sin(a)*d,2.5+R()*3.5]);}
+    for(let tries=0;n<N&&tries<N*4;tries++){const c=centers[tries%centers.length],a=R()*TAU,d=Math.sqrt(R())*c[2],x=c[0]+Math.cos(a)*d,z=c[1]+Math.sin(a)*d;
+      if(ROCKS.some(q=>Math.hypot(q.x-x,q.z-z)<q.r*.9))continue;const [al,ac]=wreckLocal(x,z);if(Math.abs(al)<11&&Math.abs(ac)<3.5)continue;
+      o.position.set(x,bedH(x,z)-.05,z);o.rotation.set((R()-.5)*.3,R()*TAU,(R()-.5)*.3);const s=.5+R()*.8;o.scale.set(1,s*(1-d/c[2]*.4),1);o.updateMatrix();im.setMatrixAt(n++,o.matrix);}
+    im.count=n;im.instanceMatrix.needsUpdate=true;im.receiveShadow=true;UN.add(im);}
+
+  // ---- 紅柳珊瑚、海綿、海膽
+  {const fans=[];
+    const fanGeo=seed=>{const Rf=rng(seed),segs=[];
+      const br=(x,y,a,len,w,d)=>{const x2=x+Math.sin(a)*len,y2=y+Math.cos(a)*len;segs.push([x,y,x2,y2,w]);if(d<=0)return;
+        const n=d>4?2:(Rf()<.62?2:1);for(let i=0;i<n;i++)br(x2,y2,a+(Rf()-.5)*.7+(n===2?(i?.36:-.36):0),len*(.74+Rf()*.16),w*.74,d-1);};
+      br(0,0,(Rf()-.5)*.3,.16,.022,7);const parts=[];
+      for(const [x,y,x2,y2,w] of segs){const len=Math.hypot(x2-x,y2-y);const c=new T.CylinderGeometry(w*.72,w,len,5,1,true);
+        parts.push([c,mat((x+x2)/2,(y+y2)/2,(Rf()-.5)*.04,0,0,-Math.atan2(x2-x,y2-y))]);}
+      return parts;};
+    const variants=[1,2,3,4,5].map(fanGeo);const list=[];
+    const put=(x,z,y,s,yaw)=>{const v=variants[(R()*variants.length)|0],M=mat(x,y,z,(R()-.5)*.25,yaw,(R()-.5)*.2,s);for(const [g,m] of v)list.push([g,M.clone().multiply(m),(px,py,pz)=>{const t=clamp((py-y)/(s*1.1),0,1);return new T.Color(.42+t*.3,.03+t*.06,.06+t*.07);}]);};
+    for(const q of ROCKS){if(q.r<.8)continue;const k=q.r>2?4:2;for(let i=0;i<k;i++){const a=R()*TAU,x=q.x+Math.cos(a)*q.r*.5,z=q.z+Math.sin(a)*q.r*.5;put(x,z,bedH(q.x,q.z)+q.r*.45,.8+R()*.8,R()*TAU);}}
+    for(let i=0;i<16;i++){const a=R()*TAU,d=4+R()*16,x=SITE.x+Math.cos(a)*d,z=SITE.z+Math.sin(a)*d;put(x,z,bedH(x,z)-.05,.6+R()*.7,R()*TAU);}
+    const m=stdM({vertexColors:true,roughness:.6,emissive:0x2a0206});const mesh=new T.Mesh(mergeGeo(list),m);mesh.castShadow=true;UN.add(mesh);
+    // 海綿與海膽
+    const sl=[];for(let i=0;i<30;i++){const q=ROCKS[(R()*ROCKS.length)|0],a=R()*TAU,rr=q.r*(.3+R()*.4),x=q.x+Math.cos(a)*rr,z=q.z+Math.sin(a)*rr,y=bedH(q.x,q.z)+q.r*.5*Math.sqrt(Math.max(0,1-(rr/q.r)**2))-.02,s=.08+R()*.14;
+      if(R()<.55){const g=new T.SphereGeometry(1,14,10);const yel=R()<.4;sl.push([g,mat(x,y,z,0,R()*TAU,0,s,s*.72,s),(px,py,pz)=>{const top=smooth(.55,.9,(py-y)/(s*.72));const n=n3(px*30,py*30,pz*30);const c=yel?new T.Color(.62,.44,.14):new T.Color(.42,.3,.2);return c.multiplyScalar(.8+n*.4).lerp(new T.Color(.08,.05,.03),top*.85);}]);}
+      else{const g=new T.SphereGeometry(.05,8,6);const M=mat(x,y+.02,z);sl.push([g,M,new T.Color(.06,.03,.06)]);
+        for(let k=0;k<22;k++){const u=R()*2-1,ph=R()*TAU,d=new T.Vector3(Math.sqrt(1-u*u)*Math.cos(ph),Math.abs(u),Math.sqrt(1-u*u)*Math.sin(ph));
+          const c=new T.ConeGeometry(.005,.13,3);c.translate(0,.065,0);const q2=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),d);
+          sl.push([c,M.clone().multiply(new T.Matrix4().makeRotationFromQuaternion(q2)),new T.Color(.08,.03,.08)]);}}}
+    const sm=new T.Mesh(mergeGeo(sl),stdM({vertexColors:true,roughness:.9}));sm.castShadow=true;UN.add(sm);}
+
+  // ---- 沉船：肋材、龍骨、船板、雙耳陶罐與大理石
+  {const W0=[],ca=Math.cos(WRECK_A),sa=Math.sin(WRECK_A);
+    const toW=(al,ac)=>[SITE.x+al*ca+ac*sa,SITE.z-al*sa+ac*ca];
+    const wood=(px,py,pz)=>{const n=n3(px*2,py*2,pz*2,9),n2=n3(px*9,py*9,pz*9,4),top=clamp((py-bedH(px,pz))*1.2,0,1);return new T.Color(.13+n*.07,.085+n*.045,.05+n*.03).multiplyScalar(.75+n2*.5).lerp(new T.Color(.2,.21,.11),top*.4*smooth(.5,.8,n2));};
+    for(let i=0;i<16;i++){const al=-10+i*1.33;if(R()<.18)continue;const w=3.1*Math.sqrt(Math.max(.05,1-(al/11.5)**2)),pts=[];
+      const side=R()<.5?1:-1,full=R()<.35,a0=full?-1:0,a1=.65+R()*.4;
+      for(let k=0;k<=12;k++){const t=lerp(a0,a1,k/12)*side,ac=Math.sin(t*Math.PI/2)*w,y=-1.25+Math.pow(Math.abs(t),1.5)*1.7;const [x,z]=toW(al,ac*.92+.4);pts.push(new T.Vector3(x,bedH(x,z)+y+.5-.4*Math.abs(t)*0,z));}
+      const g=new T.TubeGeometry(new T.CatmullRomCurve3(pts),16,.1,4,false);W0.push([g,null,wood]);}
+    {const pts=[];for(let k=0;k<=10;k++){const [x,z]=toW(-11+k*2.2,.4);pts.push(new T.Vector3(x,bedH(x,z)-.12,z));}W0.push([new T.TubeGeometry(new T.CatmullRomCurve3(pts),24,.2,5,false),null,wood]);}
+    for(let i=0;i<14;i++){const al=(R()-.5)*20,ac=(R()-.5)*7,[x,z]=toW(al,ac),L=1.5+R()*3.5;const g=new T.BoxGeometry(.22,.05,L);W0.push([g,mat(x,bedH(x,z)+.02,z,(R()-.5)*.25,-WRECK_A+Math.PI/2+(R()-.5)*1.2,(R()-.5)*.35),wood]);}
+    const wm=new T.Mesh(mergeGeo(W0),stdM({vertexColors:true,roughness:.92}));wm.castShadow=wm.receiveShadow=true;UN.add(wm);
+    // 雙耳陶罐（羅德島式）
+    const prof=[[0,0],[.028,.012],[.05,.06],[.075,.16],[.15,.36],[.18,.52],[.172,.66],[.13,.76],[.07,.82],[.052,.86],[.05,1.0],[.068,1.03],[.066,1.06],[.045,1.065]].map(([x,y])=>new T.Vector2(x,y));
+    const body=new T.LatheGeometry(prof,18);const h1=new T.TorusGeometry(.085,.016,5,10,Math.PI);
+    const ag=mergeGeo([[body,null,(px,py,pz)=>{const n=n3(px*14,py*14,pz*14,3);return new T.Color(.52+n*.12,.26+n*.07,.15+n*.05).lerp(new T.Color(.34,.38,.26),smooth(.55,.75,n)*.7);}],
+      [h1,mat(.09,.9,0,0,0,Math.PI/2),new T.Color(.5,.26,.15)],[h1.clone(),mat(-.09,.9,0,0,Math.PI,Math.PI/2),new T.Color(.5,.26,.15)]]);
+    const N=34,im=new T.InstancedMesh(ag,stdM({vertexColors:true,roughness:.85}),N),o=new T.Object3D(),cc=new T.Color();
+    for(let i=0;i<N;i++){const pile=i<22,al=pile?(R()-.5)*14:(R()-.5)*30,ac=pile?(R()-.5)*4.5:(R()-.5)*14,[x,z]=toW(al,ac),lying=R()<.8;
+      o.position.set(x,bedH(x,z)+(lying?.1:-.35-R()*.3),z);o.rotation.set(lying?Math.PI/2+(R()-.5)*.4:(R()-.5)*.5,R()*TAU,lying?(R()-.5)*.3:0,'YXZ');o.scale.setScalar(.85+R()*.3);o.updateMatrix();im.setMatrixAt(i,o.matrix);
+      im.setColorAt(i,cc.setRGB(.8+R()*.35,.8+R()*.3,.8+R()*.3));}
+    im.castShadow=im.receiveShadow=true;UN.add(im);
+    // 大理石柱段與底座
+    const mr=[];const marble=(px,py,pz)=>{const n=n3(px*3,py*3,pz*3,11);return new T.Color(.72,.7,.64).multiplyScalar(.85+n*.2).lerp(new T.Color(.36,.4,.24),smooth(.6,.8,n)*.6);};
+    {const [x,z]=toW(7,-4.5);mr.push([new T.CylinderGeometry(.42,.42,.8,24),mat(x,bedH(x,z)+.2,z,Math.PI/2,.4,0),marble]);}
+    {const [x,z]=toW(-6,5);mr.push([new T.BoxGeometry(1.3,.6,.8),mat(x,bedH(x,z)+.05,z,.1,.9,.08),marble]);}
+    {const [x,z]=toW(2.5,-6);mr.push([new T.CylinderGeometry(.3,.32,.7,20),mat(x,bedH(x,z),z,.2,0,.15),marble]);}
+    const mm=new T.Mesh(mergeGeo(mr),stdM({vertexColors:true,roughness:.6}));mm.castShadow=mm.receiveShadow=true;UN.add(mm);}
+
+  // ---- 安提基特拉島與遠方的岬角
+  const island=(cx,cz,len,dep,hMax,seed,rot)=>{const g=new T.PlaneGeometry(len,dep,mob?180:320,mob?60:110);g.rotateX(-Math.PI/2);const p=g.attributes.position;
+    for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),so=(fbm(x*.0016+seed,1,seed,4)-.5)*110+(fbm(x*.01,2,seed+1,3)-.5)*50,s=(dep/2-z)-80-so;let y;
+      if(s<0)y=-10+s*.1;else{const cliff=1-Math.exp(-s/(18+40*fbm(x*.004,seed,seed+2,3))),ridge=.5+.5*fbm(x*.0011+seed,z*.0011,seed+3,4),e=smooth(0,.2,.5-Math.abs(x)/len);
+        y=hMax*ridge*e*Math.pow(cliff,.75)+(fbm(x*.012,z*.012,seed+4,4)-.5)*34*cliff-hMax*.14*Math.pow(Math.abs(Math.sin(x*.005+fbm(x*.002,z*.002,seed+5,2)*4)),4)*cliff*e;y=Math.max(y,s>40?hMax*.2*e:-6);}
+      p.setY(i,y);}
+    g.computeVertexNormals();const nn=g.attributes.normal,C=new Float32Array(p.count*3);
+    for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),ny=nn.getY(i),q=fbm(x*.02,z*.02,seed+6,3),str=Math.sin(y*.16+q*5)*.5+.5;
+      let c=new T.Color(.6,.42,.27).lerp(new T.Color(.42,.3,.2),str*.7).multiplyScalar(.78+q*.34);
+      if(ny>.72&&y>8)c.lerp(new T.Color(.36,.34,.2),smooth(.72,.9,ny)*(.45+q*.5));
+      if(y<4)c.lerp(new T.Color(.2,.17,.14),smooth(4,0,y));
+      C[i*3]=c.r;C[i*3+1]=c.g;C[i*3+2]=c.b;}
+    g.setAttribute('color',new T.BufferAttribute(C,3));const UV=new Float32Array(p.count*2);for(let i=0;i<p.count;i++){UV[i*2]=p.getX(i)/150;UV[i*2+1]=p.getY(i)/60;}g.setAttribute('uv',new T.BufferAttribute(UV,2));
+    const mesh=new T.Mesh(g,new T.MeshStandardMaterial({vertexColors:true,roughness:.95,map:GL.rockTex||(GL.rockTex=rockDetail())}));mesh.position.set(cx,0,cz);mesh.rotation.y=rot;sc.add(mesh);return mesh;};
+  island(120,-1180,3600,900,250,17,.06);island(-1500,-560,1300,560,140,29,.95);island(1700,-420,900,420,90,41,-.7);
+
+  buildBoat();
+}
+
+// 岩石表面的凹凸（法線貼圖）
+function rockNormal(){const S=256,c=mk(S,S),g=c.getContext('2d'),im=g.createImageData(S,S),h=new Float32Array(S*S);
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const u=x/S,v=y/S;h[y*S+x]=fbm(u*8,v*8,97,5,8)+Math.abs(fbm(u*16,v*16,98,3,16)-.5)*.6;}
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const hx=h[y*S+(x+1)%S]-h[y*S+(x+S-1)%S],hy=h[((y+1)%S)*S+x]-h[((y+S-1)%S)*S+x];let nx=-hx*6,ny=-hy*6,nz=1;const l=Math.hypot(nx,ny,nz),i=(y*S+x)*4;
+    im.data[i]=(nx/l*.5+.5)*255;im.data[i+1]=(ny/l*.5+.5)*255;im.data[i+2]=nz/l*255;im.data[i+3]=255;}
+  g.putImageData(im,0,0);return canvasTex(c,1,false);}
+// 島上岩壁的細部：水平岩層、垂直裂縫與零星灌木
+function rockDetail(){const S=256,c=mk(S,S),g=c.getContext('2d'),im=g.createImageData(S,S);
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const u=x/S,v=y/S,w=fbm(u*4,v*4,91,3,4),str=Math.sin(TAU*(v*6+w*.8))*.5+.5,cr=Math.pow(Math.abs(Math.sin(TAU*(u*9+fbm(u*2,v*8,92,3,2)*.9))),24),n=fbm(u*16,v*16,93,4,16),q=hash2(x,y,94);
+    let l=.86+str*.05+n*.14-cr*.18;if(q>.97)l+=.05;const i=(y*S+x)*4;im.data[i]=im.data[i+1]=im.data[i+2]=clamp(l,0,1)*255;im.data[i+3]=255;}
+  g.putImageData(im,0,0);return canvasTex(c,1,true);}
+// ---------- 採海綿船（錫米島的卡伊克船）
+function person(shirt,R){const T=T3,g=new T.Group(),skin=stdM({color:0x8a5a3c,roughness:.8},false),cl=stdM({color:shirt,roughness:.9},false),dk=stdM({color:0x1e1a17,roughness:.9},false);
+  const hip=new T.Group();hip.position.y=.95;g.add(hip);
+  const leg=(x)=>{const m=new T.Mesh(new T.CapsuleGeometry(.075,.7,3,8),dk);m.position.set(x,-.45,0);hip.add(m);};leg(-.1);leg(.1);
+  const torso=new T.Mesh(new T.CapsuleGeometry(.16,.42,4,10),cl);torso.position.y=.32;torso.scale.set(1.15,1,.8);hip.add(torso);
+  const head=new T.Mesh(new T.SphereGeometry(.11,12,10),skin);head.position.y=.78;hip.add(head);
+  const cap=new T.Mesh(new T.CylinderGeometry(.1,.115,.07,12),dk);cap.position.y=.86;hip.add(cap);
+  const arms=[];for(const s of [-1,1]){const sh=new T.Group();sh.position.set(s*.21,.58,0);hip.add(sh);const a=new T.Mesh(new T.CapsuleGeometry(.055,.5,3,8),cl);a.position.y=-.28;sh.add(a);arms.push(sh);}
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});return{g,hip,arms};}
+function buildBoat(){
+  const T=T3,sc=GL.sc,boat=new T.Group();GL.boat=boat;sc.add(boat);
+  const L=10.5,B=3.1,NS=34,NP=14;const sheer=s=>.95+1.1*Math.pow(Math.abs(s-.5)*2,2.4),hw=s=>B/2*Math.pow(Math.sin(Math.PI*clamp(s,0,1)),.6),dep=s=>.9*Math.pow(Math.sin(Math.PI*clamp(s*.9+.05,0,1)),.35);
+  const pos=[],col=[],idx=[];const white=new T.Color(.86,.83,.76),stripe=new T.Color(.08,.1,.13),bottom=new T.Color(.36,.14,.09),blue=new T.Color(.12,.3,.46);
+  for(const side of [1,-1]){const base=pos.length/3;
+    for(let i=0;i<=NS;i++){const s=i/NS,x0=(s-.5)*L,w=hw(s),d=dep(s),sh=sheer(s);
+      for(let j=0;j<=NP;j++){const t=j/NP,xx=w*Math.pow(Math.sin(t*Math.PI/2),.55)*side,y=lerp(-d,sh,1-Math.pow(1-t,1.5));pos.push(xx,y,x0);
+        const c=y>sh-.16?stripe:y>sh-.3&&y<sh-.2?blue:y<.3?bottom:white;col.push(c.r,c.g,c.b);}}
+    for(let i=0;i<NS;i++)for(let j=0;j<NP;j++){const a=base+i*(NP+1)+j,b=a+1,c=a+NP+1,d=c+1;if(side>0)idx.push(a,c,b,b,c,d);else idx.push(a,b,c,b,d,c);}}
+  const hg=new T.BufferGeometry();hg.setAttribute('position',new T.Float32BufferAttribute(pos,3));hg.setAttribute('color',new T.Float32BufferAttribute(col,3));hg.setIndex(idx);hg.computeVertexNormals();
+  const hull=new T.Mesh(hg,stdM({vertexColors:true,roughness:.55,side:T.DoubleSide},false));hull.castShadow=true;boat.add(hull);
+  // 甲板
+  {const dp=[],di=[];for(let i=0;i<=NS;i++){const s=i/NS,x0=(s-.5)*L,w=hw(s)*.97,y=Math.min(sheer(s)-.14,1.05+(sheer(s)-.95)*.6);dp.push(-w,y,x0,w,y,x0);}
+    for(let i=0;i<NS;i++){const a=i*2;di.push(a,a+2,a+1,a+1,a+2,a+3);}
+    const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(dp,3));g.setIndex(di);g.computeVertexNormals();
+    const d=new T.Mesh(g,stdM({color:0x6e5238,roughness:.9,side:T.DoubleSide},false));d.receiveShadow=true;boat.add(d);}
+  // 舷緣
+  const woodM=stdM({color:0x4a3322,roughness:.8},false),ropeM=new T.LineBasicMaterial({color:0x2a241c});
+  for(const side of [1,-1]){const pts=[];for(let i=0;i<=NS;i++){const s=i/NS;pts.push(new T.Vector3(hw(s)*side,sheer(s),(s-.5)*L));}
+    boat.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts),60,.045,5,false),woodM));}
+  // 桅、帆桁、船首斜桅
+  const mast=new T.Mesh(new T.CylinderGeometry(.06,.09,7.4,10),woodM);mast.position.set(0,4.3,.9);mast.castShadow=true;boat.add(mast);
+  const spar=(a,b,r)=>{const d=b.clone().sub(a),m=new T.Mesh(new T.CylinderGeometry(r,r,d.length(),8),woodM);m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());m.castShadow=true;boat.add(m);return m;};
+  const V=(x,y,z)=>new T.Vector3(x,y,z);
+  spar(V(0,1.9,.9),V(0,2.2,-3.6),.05);spar(V(0,6.2,.9),V(0,7.6,-2.4),.04);spar(V(0,1.7,4.6),V(0,2.3,7.4),.05);
+  // 帆：斜桁帆，半張
+  {const sh=new T.Shape();sh.moveTo(0,0);sh.lineTo(-4.3,.3);sh.lineTo(-3.2,5.4);sh.lineTo(0,4.2);sh.closePath();
+    const g=new T.ShapeGeometry(sh,12);const p=g.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i);p.setZ(i,Math.sin(clamp(-x/4.3,0,1)*Math.PI)*.45*(.5+y/10));}g.computeVertexNormals();
+    const sail=new T.Mesh(g,stdM({color:0xd9c69c,roughness:.95,side:T.DoubleSide},false));sail.position.set(0,2.0,.8);sail.rotation.y=-Math.PI/2-.28;sail.castShadow=true;boat.add(sail);GL.sail=sail;}
+  // 船首三角帆（收著）
+  // 索具
+  {const a=[],top=V(0,7.9,.9);for(const q of [V(1.4,1.4,1.4),V(-1.4,1.4,1.4),V(1.3,1.3,-.6),V(-1.3,1.3,-.6),V(0,2.3,7.4),V(0,1.9,-4.8),V(0,7.6,-2.4)]){a.push(top.x,top.y,top.z,q.x,q.y,q.z);}
+    a.push(0,7.6,-2.4,0,2.2,-3.6);const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(a,3));boat.add(new T.LineSegments(g,ropeM));}
+  // 送氣幫浦：兩個飛輪
+  const pump=new T.Group();pump.position.set(0,.8,-1.3);boat.add(pump);const brass=stdM({color:0xb08a4a,metalness:.7,roughness:.35},false);
+  {const box=new T.Mesh(new T.BoxGeometry(.55,.62,.7),stdM({color:0x5a3d26,roughness:.8},false));box.position.y=.31;box.castShadow=true;pump.add(box);
+    GL.wheels=[];for(const s of [-1,1]){const w=new T.Group();w.position.set(s*.38,.55,0);pump.add(w);
+      const rim=new T.Mesh(new T.TorusGeometry(.42,.03,6,28),brass);rim.rotation.y=Math.PI/2;w.add(rim);
+      for(let k=0;k<6;k++){const sp=new T.Mesh(new T.CylinderGeometry(.014,.014,.84,5),brass);sp.rotation.x=k*Math.PI/6;w.add(sp);}
+      const h=new T.Mesh(new T.CylinderGeometry(.025,.025,.28,6),woodM);h.rotation.z=Math.PI/2;h.position.set(s*.14,.4,0);w.add(h);GL.wheels.push(w);}}
+  // 船員
+  GL.crew=[];const Rr=rng(5);
+  for(const [x,z,yaw,sh] of [[-.95,-1.3,Math.PI/2,0xd8d2c4],[.95,-1.3,-Math.PI/2,0x3b4a5a],[1.05,1.8,-2.2,0x7a5a3a],[-.6,-3.3,.4,0xc9c1ae]]){const p=person(sh,Rr);p.g.position.set(x,.8,z);p.g.rotation.y=yaw;boat.add(p.g);GL.crew.push(p);}
+  // 提燈
+  {const l=new T.Mesh(new T.CylinderGeometry(.07,.08,.2,8),stdM({color:0xffd9a0,emissive:0xffb050,emissiveIntensity:1.2},false));l.position.set(0,2.45,.95);boat.add(l);}
+  // 海鷗
+  GL.gulls=[];const gm=stdM({color:0xe8e6e0,roughness:.8,side:T.DoubleSide},false);
+  for(let i=0;i<4;i++){const g=new T.Group();const bd=new T.Mesh(new T.CapsuleGeometry(.08,.35,3,6),gm);bd.rotation.x=Math.PI/2;g.add(bd);
+    for(const s of [-1,1]){const wg=new T.BufferGeometry();wg.setAttribute('position',new T.Float32BufferAttribute([0,0,-.12,s*.9,0,.05,0,0,.18],3));wg.computeVertexNormals();const w=new T.Mesh(wg,gm);g.add(w);g['w'+(s>0?'R':'L')]=w;}
+    g.userData={r:18+i*9,h:14+i*5,sp:.12+i*.03,ph:i*1.7};sc.add(g);GL.gulls.push(g);}
+}
+function updBoat(t){const b=GL.boat;if(!b)return;const x=BOATP.x,z=BOATP.z,yw=BOATP.yaw,c=Math.cos(yw),s=Math.sin(yw);
+  const f=seaY(x+s*4,z+c*4,t),a=seaY(x-s*4,z-c*4,t),l=seaY(x+c*1.4,z-s*1.4,t),r=seaY(x-c*1.4,z+s*1.4,t);
+  b.position.set(x,(f+a+l+r)/4-.32,z);b.rotation.set(0,yw,0,'YXZ');b.rotateX(Math.atan2(a-f,8)*.8);b.rotateZ(Math.atan2(l-r,2.8)*.7);
+  const w=t*2.4;for(const wh of GL.wheels)wh.rotation.x=w;
+  if(GL.crew){for(let i=0;i<2;i++){const p=GL.crew[i];for(const a of p.arms){a.rotation.x=-1.1+Math.sin(w+i*Math.PI)*.45;}p.hip.rotation.x=Math.sin(w+i*Math.PI)*.08;}
+    const p=GL.crew[2];p.arms[0].rotation.x=-.9;p.arms[1].rotation.x=-.7+Math.sin(t*.7)*.1;}
+  for(const g of GL.gulls){const u=g.userData,a=t*u.sp+u.ph;g.position.set(x+Math.cos(a)*u.r,u.h+Math.sin(t*.3+u.ph)*2,z+Math.sin(a)*u.r);g.rotation.set(0,-a,Math.sin(t*.5+u.ph)*.25);
+    const fl=Math.sin(t*5+u.ph*3)*.5;g.wR.rotation.z=fl;g.wL.rotation.z=-fl;}}
+
+
+// ---------- 潛水夫、送氣管、氣泡、魚群、海雪、光束
+function softDot(){const c=mk(64,64),g=c.getContext('2d'),rg=g.createRadialGradient(32,32,0,32,32,32);rg.addColorStop(0,'rgba(255,255,255,1)');rg.addColorStop(.4,'rgba(255,255,255,.55)');rg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=rg;g.fillRect(0,0,64,64);const t=new T3.CanvasTexture(c);return t;}
+function starTex(){const c=mk(128,128),g=c.getContext('2d');g.translate(64,64);const rg=g.createRadialGradient(0,0,0,0,0,64);rg.addColorStop(0,'rgba(255,250,220,1)');rg.addColorStop(.12,'rgba(255,240,200,.6)');rg.addColorStop(.4,'rgba(255,230,180,.08)');rg.addColorStop(1,'rgba(255,230,180,0)');g.fillStyle=rg;g.fillRect(-64,-64,128,128);
+  g.fillStyle='rgba(255,248,225,.9)';for(const a of [0,Math.PI/2]){g.save();g.rotate(a);g.beginPath();g.moveTo(-60,0);g.quadraticCurveTo(0,-2.2,60,0);g.quadraticCurveTo(0,2.2,-60,0);g.fill();g.restore();}return new T3.CanvasTexture(c);}
+// 點狀粒子：每顆有自己的大小與透明度，手動套水下霧
+function pointsMat(color,blend,sizeK){return new T3.ShaderMaterial({uniforms:{uTex:{value:GL.dot},uCol:{value:new T3.Color(color)},uFogC:GL.U.uFogC,uFogD:GL.U.uFogD,uK:{value:sizeK||1},uPR:{value:GL.r.getPixelRatio()}},
+  transparent:true,depthWrite:false,blending:blend||T3.NormalBlending,fog:false,
+  vertexShader:`attribute float aS;attribute float aA;uniform float uK;uniform float uPR;varying float vA;varying float vD;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vD=-mv.z;vA=aA;gl_PointSize=aS*uK*uPR*420./max(.3,-mv.z);gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`uniform sampler2D uTex;uniform vec3 uCol;uniform vec3 uFogC;uniform float uFogD;varying float vA;varying float vD;void main(){float a=texture2D(uTex,gl_PointCoord).a*vA;float f=1.-exp(-pow(vD*uFogD,2.));vec3 c=mix(uCol*(uFogC.g*4.+.25),uFogC*1.3,f);gl_FragColor=vec4(c,a*(1.-f*.7));
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }`});}
+
+// 帆布潛水衣的材質：織紋、縫線與皺褶
+function canvasTex3(){const S=256,cc=mk(S,S),cn=mk(S,S),gc=cc.getContext('2d'),gn=cn.getContext('2d'),ic=gc.createImageData(S,S),inn=gn.createImageData(S,S),h=new Float32Array(S*S);
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const u=x/S,v=y/S,wv=(Math.sin(x*1.6)*.5+.5)*(Math.sin(y*1.6+1)*.5+.5),fold=Math.pow(Math.abs(Math.sin(TAU*(u*3+fbm(u*3,v*2,71,3,3)*.8))),6),fold2=Math.pow(Math.abs(Math.sin(TAU*(v*4+fbm(u*2,v*4,72,3,2)*.6))),8);
+    h[y*S+x]=wv*.1+fold*.3+fold2*.14+fbm(u*8,v*8,73,3,8)*.25;}
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const i=y*S+x,hx=h[y*S+(x+1)%S]-h[y*S+(x+S-1)%S],hy=h[((y+1)%S)*S+x]-h[((y+S-1)%S)*S+x];let nx=-hx*3,ny=-hy*3,nz=1;const l=Math.hypot(nx,ny,nz);
+    inn.data[i*4]=(nx/l*.5+.5)*255;inn.data[i*4+1]=(ny/l*.5+.5)*255;inn.data[i*4+2]=nz/l*255;inn.data[i*4+3]=255;
+    const u=x/S,v=y/S,d=fbm(u*6,v*6,74,4,6),seam=Math.abs(u-.5)<.006||Math.abs(v-.62)<.005?1:0;let r=178-d*40-h[i]*10,g=114-d*30-h[i]*8,b=60-d*18-h[i]*5;if(seam){r-=40;g-=30;b-=18;}
+    ic.data[i*4]=r;ic.data[i*4+1]=g;ic.data[i*4+2]=b;ic.data[i*4+3]=255;}
+  gc.putImageData(ic,0,0);gn.putImageData(inn,0,0);return{map:canvasTex(cc,1,true),nrm:canvasTex(cn,1,false)};}
+function buildDiver(){const T=T3,g=new T.Group(),ct=canvasTex3();
+  const suit=stdM({map:ct.map,normalMap:ct.nrm,normalScale:new T.Vector2(.8,.8),roughness:.92}),copper=stdM({color:0xc4743f,metalness:.85,roughness:.3}),brass=stdM({color:0xd4a954,metalness:.9,roughness:.26}),
+    lead=stdM({color:0x44464a,metalness:.4,roughness:.6}),glass=stdM({color:0x061210,metalness:.3,roughness:.05}),leather=stdM({color:0x3b2616,roughness:.75}),skin=stdM({color:0x9a6a4c,roughness:.7}),net=stdM({color:0x9a3420,roughness:.9,wireframe:true});
+  const add=(p,m,geo,x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=sx,sz=sx)=>{const o=new T.Mesh(geo,m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.scale.set(sx,sy,sz);o.castShadow=true;p.add(o);return o;};
+  const lathe=(pts,seg=20)=>new T.LatheGeometry(pts.map(([r,y])=>new T.Vector2(r,y)),seg);
+  const hip=new T.Group();hip.position.y=1;g.add(hip);const chest=new T.Group();hip.add(chest);
+  // 軀幹：腰身收、胸口寬的帆布桶
+  add(chest,suit,lathe([[0,-.08],[.2,-.06],[.24,.04],[.232,.16],[.218,.28],[.238,.4],[.262,.5],[.255,.58],[.2,.66],[.12,.7],[0,.71]],22),0,0,0,0,0,0,1,1,.8);
+  // 銅製護胸與銅扣
+  add(chest,copper,lathe([[.345,.555],[.35,.585],[.335,.64],[.29,.705],[.215,.765],[.16,.79]],28),0,0,0,0,0,0,1,1,.86).material.side=T.DoubleSide;
+  for(let i=0;i<10;i++){const a=i/10*TAU;add(chest,brass,new T.SphereGeometry(.02,6,5),Math.cos(a)*.34,.575,Math.sin(a)*.34*.86);}
+  add(chest,brass,new T.TorusGeometry(.17,.024,8,28),0,.79,0,Math.PI/2);
+  const helm=new T.Group();helm.position.y=.96;chest.add(helm);
+  add(helm,copper,new T.SphereGeometry(.215,30,22));
+  add(helm,brass,new T.CylinderGeometry(.17,.19,.07,28),0,-.18,0);
+  add(helm,brass,new T.TorusGeometry(.088,.022,10,26),0,-.01,.2);add(helm,glass,new T.CircleGeometry(.082,22),0,-.01,.205);
+  for(const x of [-.036,0,.036])add(helm,brass,new T.CylinderGeometry(.006,.006,.165,6),x,-.01,.215);
+  for(const s of [-1,1]){add(helm,brass,new T.TorusGeometry(.058,.017,8,20),s*.19,0,.05,0,s*Math.PI/2);add(helm,glass,new T.CircleGeometry(.054,16),s*.195,0,.052,0,s*Math.PI/2);
+    for(const y of [-.025,.025])add(helm,brass,new T.CylinderGeometry(.005,.005,.11,5),s*.2,y,.05,Math.PI/2,0,0);}
+  add(helm,brass,new T.TorusGeometry(.042,.013,6,16),0,.18,.09,-1.1);add(helm,glass,new T.CircleGeometry(.038,14),0,.182,.094,-1.1);
+  add(helm,brass,new T.CylinderGeometry(.032,.036,.09,12),.17,-.07,.11,0,0,1.1);
+  add(helm,brass,new T.CylinderGeometry(.03,.03,.13,12),0,.03,-.21,1.3);
+  const hoseAt=new T.Object3D();hoseAt.position.set(0,.05,-.28);helm.add(hoseAt);
+  const exhaust=new T.Object3D();exhaust.position.set(.22,-.06,.13);helm.add(exhaust);
+  // 心形鉛塊（前後各一）
+  const hs=new T.Shape();hs.moveTo(0,-.16);hs.bezierCurveTo(.08,-.08,.16,.0,.15,.07);hs.bezierCurveTo(.14,.14,.05,.15,0,.08);hs.bezierCurveTo(-.05,.15,-.14,.14,-.15,.07);hs.bezierCurveTo(-.16,0,-.08,-.08,0,-.16);
+  const hg=new T.ExtrudeGeometry(hs,{depth:.035,bevelEnabled:true,bevelSize:.008,bevelThickness:.008,bevelSegments:2,curveSegments:10});
+  add(chest,lead,hg,0,.4,.2,-.12);add(chest,lead,hg,0,.4,-.235,.12,Math.PI);
+  add(hip,leather,new T.TorusGeometry(.232,.03,6,26),0,.02,0,Math.PI/2,0,0,1,.82,1);
+  add(hip,leather,new T.BoxGeometry(.045,.24,.05),.25,-.08,.08,0,0,-.12);add(hip,brass,new T.CylinderGeometry(.02,.02,.06,8),.26,.07,.08);
+  const ropeAt=new T.Object3D();ropeAt.position.set(0,.03,.2);hip.add(ropeAt);
+  const bag=add(hip,net,lathe([[.01,-.2],[.09,-.16],[.13,-.06],[.12,.04],[.07,.1],[.05,.12]],10),-.28,-.12,.06);
+  const arms=[];for(const s of [-1,1]){const sh=new T.Group();sh.position.set(s*.3,.55,0);chest.add(sh);
+    add(sh,suit,new T.SphereGeometry(.11,12,10),0,0,0);add(sh,suit,new T.CapsuleGeometry(.1,.2,4,12),0,-.17,0);const el=new T.Group();el.position.y=-.36;sh.add(el);
+    add(el,suit,new T.SphereGeometry(.088,10,8));add(el,suit,new T.CapsuleGeometry(.082,.2,4,12),0,-.15,0);add(el,leather,new T.TorusGeometry(.07,.02,6,16),0,-.28,0,Math.PI/2);
+    add(el,skin,new T.CapsuleGeometry(.045,.07,3,8),0,-.35,.01,0,0,0,1.15,1,.8);arms.push({sh,el});}
+  const legs=[];for(const s of [-1,1]){const hp=new T.Group();hp.position.set(s*.12,-.04,0);hip.add(hp);
+    add(hp,suit,new T.CapsuleGeometry(.12,.28,4,12),0,-.22,0);const kn=new T.Group();kn.position.y=-.46;hp.add(kn);
+    add(kn,suit,new T.SphereGeometry(.105,10,8));add(kn,suit,new T.CapsuleGeometry(.098,.24,4,12),0,-.19,0);
+    add(kn,leather,new T.CylinderGeometry(.095,.1,.16,14),0,-.38,.01);add(kn,lead,new T.CapsuleGeometry(.07,.2,4,10),0,-.47,.06,Math.PI/2,0,0,1.25,1,.55);
+    add(kn,brass,new T.SphereGeometry(.07,10,6,0,TAU,0,Math.PI/2),0,-.47,.18,Math.PI/2,0,0,1.2,.5,.8);legs.push({hp,kn});}
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  return{g,hip,chest,helm,arms,legs,hoseAt,ropeAt,exhaust,bag};}
+function poseDiver(D,s){// s:{walk,spd,dig,float,t}
+  const k=clamp(s.spd,0,1),ph=s.walk,dg=s.dig,fl=s.float,t=s.t;
+  const bob=Math.abs(Math.sin(ph))*.03*k;
+  D.hip.position.y=1+bob-dg*.16+fl*.05;D.hip.rotation.x=dg*.12;D.chest.rotation.x=.08*k+dg*.42+fl*.05;D.chest.rotation.z=Math.sin(ph)*.04*k;
+  for(let i=0;i<2;i++){const L=D.legs[i],sgn=i?1:-1,p=ph+(i?Math.PI:0);
+    L.hp.rotation.x=(Math.sin(p)*.5*k)*(1-fl)-dg*.55+fl*(-.25+Math.sin(t*.9+i)*.12);L.kn.rotation.x=(Math.max(0,-Math.sin(p-.9))*.8*k)*(1-fl)+dg*.95+fl*(.45+Math.sin(t*.9+i)*.1);
+    const A=D.arms[i];A.sh.rotation.x=(-Math.sin(p)*.3*k)-dg*(i?1.25:.6)+fl*(-.35);A.sh.rotation.z=sgn*(.14+fl*.35)+(i?Math.sin(t*6.5)*.55*dg:0);A.el.rotation.x=-.35-.3*k-dg*(i?.2:.7)+fl*(-.4);}}
+
+function buildGLLife(){const T=T3,sc=GL.sc,mob=W<760,U=GL.U;GL.dot=softDot();GL.star=starTex();
+  // ---- 光束
+  {const N=mob?12:18,g=new T.InstancedBufferGeometry();const base=new T.PlaneGeometry(1,1,1,1);g.index=base.index;g.attributes.position=base.attributes.position;g.attributes.uv=base.attributes.uv;
+    const off=new Float32Array(N*4),R=rng(99);for(let i=0;i<N;i++){off[i*4]=(R()-.5)*60;off[i*4+1]=(R()-.5)*60;off[i*4+2]=1.2+R()*4.5;off[i*4+3]=R()*10;}
+    g.setAttribute('aO',new T.InstancedBufferAttribute(off,4));g.instanceCount=N;
+    const m=new T.ShaderMaterial({uniforms:{uTime:U.uTime,uRay:{value:0},uCam:{value:new T.Vector3()},uAx:{value:new T.Vector3(.18,1,.3).normalize()},uSurf:{value:0}},transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,fog:false,
+      vertexShader:`attribute vec4 aO;uniform vec3 uCam;uniform vec3 uAx;uniform float uTime;uniform float uSurf;varying vec2 vUv;varying float vA;varying float vL;
+      void main(){vUv=uv;vec2 c=mod(aO.xy-uCam.xz+30.,60.)-30.+uCam.xz;float top=uSurf;float len=70.;
+        vec3 ctr=vec3(c.x,top,c.y)-uAx*len*.5;vec3 vd=normalize(cameraPosition-ctr);vec3 rt=normalize(cross(uAx,vd));
+        float w=aO.z*(1.+.15*sin(uTime*.3+aO.w));vec3 p=ctr+rt*position.x*w+uAx*position.y*len;
+        float d=length(p.xz-cameraPosition.xz);vA=smoothstep(2.,7.,d)*(1.-smoothstep(22.,34.,d))*(.55+.45*sin(uTime*.45+aO.w*1.7));vL=uv.y;
+        gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
+      fragmentShader:`uniform float uRay;varying vec2 vUv;varying float vA;varying float vL;void main(){float x=abs(vUv.x-.5)*2.;float a=(1.-x*x)*pow(vL,1.6)*vA*uRay;gl_FragColor=vec4(vec3(.42,.8,.74)*a,1.);}`});
+    const rays=new T.Mesh(g,m);rays.frustumCulled=false;rays.renderOrder=5;GL.under.add(rays);GL.rays=rays;}
+  // ---- 海雪
+  {const N=mob?900:1800,p=new Float32Array(N*3),s=new Float32Array(N),a=new Float32Array(N),R=rng(5);for(let i=0;i<N;i++){p[i*3]=R()*40;p[i*3+1]=R()*40;p[i*3+2]=R()*40;s[i]=.012+R()*.03;a[i]=.25+R()*.55;}
+    const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(p,3));g.setAttribute('aS',new T.BufferAttribute(s,1));g.setAttribute('aA',new T.BufferAttribute(a,1));
+    const m=pointsMat(0xcfe8dc,T.NormalBlending,1);m.uniforms.uCam={value:new T.Vector3()};m.uniforms.uTime=U.uTime;
+    m.vertexShader=m.vertexShader.replace('void main(){vec4 mv=modelViewMatrix*vec4(position,1.);','uniform vec3 uCam;uniform float uTime;void main(){vec3 q=position+vec3(sin(uTime*.2+position.y)*.3,-uTime*.08,cos(uTime*.17+position.x)*.3);q=mod(q-uCam+20.,40.)-20.+uCam;q.y=min(q.y,-.6);vec4 mv=viewMatrix*vec4(q,1.);');
+    const pts=new T.Points(g,m);pts.frustumCulled=false;GL.under.add(pts);GL.snow=pts;}
+  // ---- 撥沙揚起的沙雲
+  {const N=260,g=new T.BufferGeometry();GL.sandP={N,p:new Float32Array(N*3),v:new Float32Array(N*3),s:new Float32Array(N),a:new Float32Array(N),life:new Float32Array(N),i:0};
+    const S=GL.sandP;g.setAttribute('position',new T.BufferAttribute(S.p,3));g.setAttribute('aS',new T.BufferAttribute(S.s,1));g.setAttribute('aA',new T.BufferAttribute(S.a,1));
+    const pts=new T.Points(g,pointsMat(0xb9a57c,T.NormalBlending,1));pts.frustumCulled=false;GL.under.add(pts);S.pts=pts;}
+  // ---- 氣泡
+  {const N=110,im=new T.InstancedMesh(new T.SphereGeometry(1,10,8),new T.MeshStandardMaterial({color:0xe8fffa,roughness:.05,metalness:.1,transparent:true,opacity:.55,emissive:0x2a5a55}),N);
+    im.frustumCulled=false;im.count=0;GL.under.add(im);GL.bub={im,list:[],N,o:new T.Object3D()};}
+  // ---- 魚：一群粉紅金鮨（地中海的小紅魚）與幾條石斑
+  const fishGeo=(len,c1,c2,fat)=>{const body=new T.SphereGeometry(1,14,10);const tail=new T.BufferGeometry();tail.setAttribute('position',new T.Float32BufferAttribute([0,0,-.85, 0,.55,-1.45, 0,-.5,-1.45],3));tail.computeVertexNormals();
+    const dors=new T.BufferGeometry();dors.setAttribute('position',new T.Float32BufferAttribute([0,.28,.3, 0,.62,-.1, 0,.3,-.55],3));dors.computeVertexNormals();
+    return mergeGeo([[body,mat(0,0,0,0,0,0,.2*fat,.34*fat,1),(x,y,z)=>new T.Color(c1).lerp(new T.Color(c2),smooth(.1,-.25,y))],[tail,mat(0,0,0,0,0,0,1,1,1),new T.Color(c1)],[dors,null,new T.Color(c1)]]).scale(len,len,len);};
+  const wig=(L,f)=>`{vec4 ip=instanceMatrix[3];float ph=ip.x*3.1+ip.z*1.7;float zz=position.z/${L.toFixed(3)};float tl=1.-smoothstep(-1.4,.2,zz);transformed.x+=(sin(uTime*${f}+ph+zz*4.)*.22*tl+sin(uTime*${f}+ph)*.03)*${L.toFixed(3)};}`;
+  {const N=mob?50:80,g=fishGeo(.075,0xd8573a,0xf4b39a,1),m=stdM({vertexColors:true,roughness:.45,metalness:.1,side:T.DoubleSide},true,wig(.075,'11.'));
+    const im=new T.InstancedMesh(g,m,N);im.frustumCulled=false;GL.under.add(im);const R=rng(44),F=[];for(let i=0;i<N;i++)F.push({o:new T.Vector3((R()-.5)*5,(R()-.5)*2.2,(R()-.5)*5),ph:R()*TAU,sp:.6+R()*.6,p:new T.Vector3(),q:new T.Quaternion()});
+    GL.school={im,F,o:new T.Object3D()};}
+  {const N=mob?60:110,g=fishGeo(.06,0x2c2824,0x6a5a48,1.1),m=stdM({vertexColors:true,roughness:.4,metalness:.15,side:T.DoubleSide},true,wig(.06,'13.'));
+    const im=new T.InstancedMesh(g,m,N);im.frustumCulled=false;GL.under.add(im);const R=rng(61),big=ROCKS.filter(q=>q.r>1.2),F=[];
+    for(let i=0;i<N;i++){const q=big[i%big.length];F.push({q,o:new T.Vector3((R()-.5)*q.r*1.6,q.r*.5+.4+R()*2.2,(R()-.5)*q.r*1.6),ph:R()*TAU,sp:.2+R()*.3,p:new T.Vector3()});}
+    GL.damsel={im,F,o:new T.Object3D()};}
+  {const N=4,g=fishGeo(.75,0x4a3a2c,0xa89678,1.25),m=stdM({vertexColors:true,roughness:.6,side:T.DoubleSide},true,wig(.75,'3.'));
+    const im=new T.InstancedMesh(g,m,N);im.frustumCulled=false;im.castShadow=true;GL.under.add(im);const R=rng(8),F=[];
+    for(let i=0;i<N;i++)F.push({r:i===3?27:6+R()*12,h:i===3?4:.8+R()*1.4,sp:(i===3?.035:.05+R()*.05)*(R()<.5?1:-1),ph:R()*TAU,s:i===3?2.6:1+R()*.4,p:new T.Vector3()});
+    GL.big={im,F,o:new T.Object3D()};}
+  // ---- 潛水夫與送氣管
+  GL.diver=buildDiver();sc.add(GL.diver.g);GL.diver.g.visible=false;
+  GL.hoseM=stdM({color:0x2a2018,roughness:.7});GL.ropeM=stdM({color:0x9a8a66,roughness:.95});
+  GL.hose=new T.Mesh(new T.BufferGeometry(),GL.hoseM);GL.hose.frustumCulled=false;sc.add(GL.hose);GL.rope=new T.Mesh(new T.BufferGeometry(),GL.ropeM);GL.rope.frustumCulled=false;sc.add(GL.rope);
+}
+function updLife(dt,t,center){const T=T3;
+  // 魚群繞著沉船巡游
+  if(GL.school){const S=GL.school,o=S.o;let cx=SITE.x+Math.cos(t*.045)*8+Math.sin(t*.11)*3,cz=SITE.z+Math.sin(t*.037)*7;if(center){const k=.55+.45*Math.sin(t*.06);cx=lerp(cx,center.x+Math.cos(t*.2)*3.5,k);cz=lerp(cz,center.z+Math.sin(t*.2)*3.5,k);}
+    S.c=S.c||new T.Vector3(cx,0,cz);S.c.x=lerp(S.c.x,cx,.02);S.c.z=lerp(S.c.z,cz,.02);cx=S.c.x;cz=S.c.z;const cy=bedH(cx,cz)+2.2+Math.sin(t*.2)*.8;
+    for(let i=0;i<S.F.length;i++){const f=S.F[i],a=t*.25*f.sp+f.ph;const x=cx+f.o.x+Math.cos(a)*1.2,y=cy+f.o.y+Math.sin(a*1.3)*.4,z=cz+f.o.z+Math.sin(a)*1.2;
+      o.position.set(x,y,z);const dx=x-f.p.x,dy=y-f.p.y,dz=z-f.p.z;if(dx*dx+dz*dz>1e-8){o.rotation.set(0,Math.atan2(dx,dz),0);o.rotateX(-Math.atan2(dy,Math.hypot(dx,dz))*.6);}f.p.set(x,y,z);
+      o.updateMatrix();S.im.setMatrixAt(i,o.matrix);}S.im.instanceMatrix.needsUpdate=true;}
+  if(GL.damsel){const S=GL.damsel,o=S.o;for(let i=0;i<S.F.length;i++){const f=S.F[i],a=t*f.sp+f.ph,q=f.q,x=q.x+f.o.x+Math.sin(a)*.6,z=q.z+f.o.z+Math.cos(a*.8)*.6,y=bedH(q.x,q.z)+f.o.y+Math.sin(a*1.7)*.15;
+      o.position.set(x,y,z);const dx=x-f.p.x,dz=z-f.p.z;if(dx*dx+dz*dz>1e-9)o.rotation.set(0,Math.atan2(dx,dz),0);f.p.set(x,y,z);o.updateMatrix();S.im.setMatrixAt(i,o.matrix);}S.im.instanceMatrix.needsUpdate=true;}
+  if(GL.big){const S=GL.big,o=S.o;for(let i=0;i<S.F.length;i++){const f=S.F[i],a=t*f.sp+f.ph,x=SITE.x+Math.cos(a)*f.r,z=SITE.z+Math.sin(a)*f.r*.8,y=bedH(x,z)+f.h+Math.sin(t*.3+i)*.3;
+      o.position.set(x,y,z);const dx=x-f.p.x,dz=z-f.p.z;if(dx*dx+dz*dz>1e-8)o.rotation.set(0,Math.atan2(dx,dz),0);f.p.set(x,y,z);o.scale.setScalar(f.s);o.updateMatrix();S.im.setMatrixAt(i,o.matrix);}S.im.instanceMatrix.needsUpdate=true;}
+  // 氣泡
+  const B=GL.bub;for(const b of B.list){b.t+=dt;b.p.y+=(0.6+b.r*14)*dt;b.p.x+=Math.sin(b.t*5+b.ph)*.25*dt;b.p.z+=Math.cos(b.t*4+b.ph)*.25*dt;b.r*=1+dt*.02;}
+  B.list=B.list.filter(b=>b.t<14&&b.p.y<-.2);B.im.count=Math.min(B.N,B.list.length);
+  for(let i=0;i<B.im.count;i++){const b=B.list[i];B.o.position.copy(b.p);B.o.scale.set(b.r,b.r*(.8+.2*Math.sin(b.t*9)),b.r);B.o.updateMatrix();B.im.setMatrixAt(i,B.o.matrix);}B.im.instanceMatrix.needsUpdate=true;
+  // 沙雲
+  const S=GL.sandP;for(let i=0;i<S.N;i++){if(S.life[i]<=0){S.a[i]=0;continue;}S.life[i]-=dt*.32;S.v[i*3]*=.97;S.v[i*3+2]*=.97;S.v[i*3+1]=S.v[i*3+1]*.96-.05*dt;
+    S.p[i*3]+=S.v[i*3]*dt;S.p[i*3+1]+=S.v[i*3+1]*dt;S.p[i*3+2]+=S.v[i*3+2]*dt;S.s[i]+=dt*.28;S.a[i]=Math.max(0,S.life[i])*.5;}
+  S.pts.geometry.attributes.position.needsUpdate=true;S.pts.geometry.attributes.aS.needsUpdate=true;S.pts.geometry.attributes.aA.needsUpdate=true;}
+function puffSand(x,y,z,n){const S=GL.sandP;for(let k=0;k<n;k++){const i=S.i=(S.i+1)%S.N;S.p[i*3]=x+(Math.random()-.5)*.3;S.p[i*3+1]=y+Math.random()*.1;S.p[i*3+2]=z+(Math.random()-.5)*.3;
+  S.v[i*3]=(Math.random()-.5)*.9;S.v[i*3+1]=.25+Math.random()*.5;S.v[i*3+2]=(Math.random()-.5)*.9;S.s[i]=.12+Math.random()*.18;S.life[i]=1;S.a[i]=.5;}}
+function blowBubbles(p,n){const B=GL.bub;for(let i=0;i<n;i++)if(B.list.length<B.N)B.list.push({p:p.clone().add(new T3.Vector3((Math.random()-.5)*.05,Math.random()*.08,(Math.random()-.5)*.05)),r:.012+Math.random()*.03,t:Math.random()*.2,ph:Math.random()*6});}
+// 送氣管與救生索：由頭盔拉回船上的幫浦
+function updHose(a,b,t,sag,a2){const T=T3,mid=a.clone().lerp(b,.5);
+  const p1=a.clone().add(new T.Vector3(0,.8,-.4)),p2=a.clone().lerp(b,.28).add(new T.Vector3(Math.sin(t*.4)*1.2,sag*.2,Math.cos(t*.33)*1.2)),p3=a.clone().lerp(b,.7).add(new T.Vector3(Math.sin(t*.3+1)*1.5,0,Math.cos(t*.25)*1.2));
+  const pts=[a,p1,p2,p3,new T.Vector3(b.x,Math.min(b.y-1.2,-.8),b.z),b];
+  const mk3=(m,r,dx)=>{const q=pts.map((v,i)=>i===0&&dx&&a2?a2:i&&i<pts.length-1?v.clone().add(new T.Vector3(dx,0,dx*.6)):v);const g=new T.TubeGeometry(new T.CatmullRomCurve3(q),72,r,5,false);m.geometry.dispose();m.geometry=g;};
+  mk3(GL.hose,.028,0);mk3(GL.rope,.012,.25);}
+
+// ---------- 鏽塊（每次下潛重建）
+function gearArcGeo(r,z,a0,a1,th){const T=T3,s=new T.Shape(),p=TAU/z,ra=r*1.06,rd=r*.94,ri=r*.78;let first=true;
+  for(let k=Math.floor(a0/p);k<=Math.ceil(a1/p);k++){const t=k*p;const pts=[[t-p*.5,rd],[t-p*.13,ra],[t+p*.13,ra]];for(const [a,rr] of pts){const x=Math.cos(a)*rr,y=Math.sin(a)*rr;first?s.moveTo(x,y):s.lineTo(x,y);first=false;}}
+  const e=Math.ceil(a1/p)*p+p*.5;s.lineTo(Math.cos(e)*rd,Math.sin(e)*rd);s.lineTo(Math.cos(e)*ri,Math.sin(e)*ri);
+  for(let a=e;a>=Math.floor(a0/p)*p-p*.5;a-=.08)s.lineTo(Math.cos(a)*ri,Math.sin(a)*ri);s.closePath();
+  const g=new T.ExtrudeGeometry(s,{depth:th,bevelEnabled:false,curveSegments:2});g.translate(0,0,-th/2);return g;}
+function makeLump(seed){const T=T3,R=rng(seed),grp=new T.Group();
+  const g=new T.IcosahedronGeometry(1,3),p=g.attributes.position;for(let i=0;i<p.count;i++){const X=p.getX(i),Y=p.getY(i),Z=p.getZ(i),f=1+(n3(X*2+seed,Y*2,Z*2)-.5)*.7+(n3(X*6,Y*6+seed,Z*6)-.5)*.2;p.setXYZ(i,X*f*.22,Y*f*.13,Z*f*.18);}
+  smoothN(g);const cg=mergeGeo([[g,null,(x,y,z)=>{const n=n3(x*20,y*20,z*20,seed);let c=new T.Color(.3+n*.14,.34+n*.12,.22+n*.08);if(n>.72)c.lerp(new T.Color(.42,.62,.5),.6);if(n<.3)c.lerp(new T.Color(.2,.16,.1),.5);return c;}]]);
+  const crust=new T.Mesh(cg,stdM({vertexColors:true,roughness:.95}));crust.castShadow=true;grp.add(crust);
+  const r=.12+R()*.05,a0=R()*TAU,gear=new T.Mesh(gearArcGeo(r,40+(R()*60|0),a0,a0+1.6+R()*.8,.012),stdM({color:0x9a6a36,metalness:.75,roughness:.42}));
+  gear.position.set(.04,.05,0);gear.rotation.set(-1.2+R()*.4,R()*TAU,.2);grp.add(gear);
+  const sp=new T.Sprite(new T.SpriteMaterial({map:GL.star,color:0xfff0cc,transparent:true,depthWrite:false,blending:T.AdditiveBlending,opacity:0}));sp.scale.setScalar(.7);sp.position.set(.05,.28,0);grp.add(sp);
+  if(!GL.moundGeo){GL.moundGeo=new T.SphereGeometry(1,24,10,0,TAU,0,Math.PI/2);const t=GL.sand.map.clone(),n=GL.sand.nrm.clone();t.repeat.set(.7,.25);n.repeat.set(.7,.25);t.needsUpdate=n.needsUpdate=true;
+    GL.moundM=stdM({map:t,normalMap:n,roughness:1,color:0xf2ecdf});}
+  const mound=new T.Mesh(GL.moundGeo,GL.moundM);mound.receiveShadow=true;mound.castShadow=true;
+  return{grp,crust,gear,sp,mound};}
+
+
+// ---------- 環境：水上與水下的光、霧與焦散
+const CAM={yaw:0,pitch:.25,dist:4.6,fx:0,fy:0,fz:0};
+function envUpd(focus){const T=T3,U=GL.U,cam=GL.cam,y=cam.position.y,uw=y<0;
+  const dep=clamp(-y/45,0,1.15);U.uUW.value=uw?1:0;
+  U.uFogC.value.setRGB(lerp(.018,.004,dep),lerp(.19,.052,dep),lerp(.27,.1,dep));U.uFogD.value=lerp(.028,.04,dep);
+  const f=GL.sc.fog;
+  if(uw){f.color.copy(U.uFogC.value);f.density=U.uFogD.value;
+    GL.hemi.color.setRGB(.32,.66,.68);GL.hemi.groundColor.setRGB(.1,.15,.14);GL.hemi.intensity=1.5*(1-dep*.4);
+    GL.sun.color.setRGB(.62,.93,.9);GL.sun.intensity=2.8*(1-dep*.45);U.uCaus.value=1.25;GL.rays.material.uniforms.uRay.value=.34*(1-dep*.35);
+    GL.r.toneMappingExposure=1.18;}
+  else{f.color.copy(U.uHor.value);f.density=.00034;GL.hemi.color.setRGB(.62,.76,.95);GL.hemi.groundColor.setRGB(.42,.36,.28);GL.hemi.intensity=1.05;
+    GL.sun.color.setRGB(1,.86,.66);GL.sun.intensity=3.1;U.uCaus.value=0;GL.rays.material.uniforms.uRay.value=0;GL.r.toneMappingExposure=1.02;}
+  GL.under.visible=y<1.2;GL.sea.visible=y>-36;GL.sea.position.set(cam.position.x,0,cam.position.z);GL.sky.position.copy(cam.position);
+  GL.snow.visible=GL.rays.visible=uw;GL.snow.material.uniforms.uCam.value.copy(cam.position);GL.rays.material.uniforms.uCam.value.copy(cam.position);
+  const sd=U.uSunDir.value;U.uLD.value.set(sd.x*.35,1,sd.z*.35).normalize();const ld=uw?GL.tmpV.set(sd.x*.35,1,sd.z*.35).normalize():GL.tmpV.copy(sd);
+  GL.sun.target.position.copy(focus);GL.sun.position.copy(focus).addScaledVector(ld,40);}
+function glTick(dt){GL.t+=dt;GL.U.uTime.value=GL.t;updBoat(GL.t);}
+function glRender(focus){envUpd(focus);GL.r.render(GL.sc,GL.cam);ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(DPR,0,0,DPR,0,0);}
+function camOrbit(tx,ty,tz,dt,k=4){const T=T3,c=GL.cam,cp=Math.cos(CAM.pitch),x=tx+Math.sin(CAM.yaw)*cp*CAM.dist,z=tz+Math.cos(CAM.yaw)*cp*CAM.dist;let y=ty+Math.sin(CAM.pitch)*CAM.dist;
+  if(y<0)y=Math.max(y,bedH(x,z)+.35);if(Math.abs(y)<.35)y=y<0?-.35:.35;
+  const a=dt<0?1:1-Math.exp(-dt*k);c.position.set(lerp(c.position.x,x,a),lerp(c.position.y,y,a),lerp(c.position.z,z,a));
+  CAM.fx=lerp(CAM.fx,tx,a);CAM.fy=lerp(CAM.fy,ty,a);CAM.fz=lerp(CAM.fz,tz,a);c.lookAt(CAM.fx,CAM.fy,CAM.fz);}
+function toScreen(x,y,z){const v=GL.tmpV.set(x,y,z).project(GL.cam);return[(v.x*.5+.5)*W,(-v.y*.5+.5)*H,v.z<1];}
+
+// ---------- 標題
+const Title3={gl:true,
+  enter(){hideAll();titleUi.hidden=false;this.t=0;this.look=0;this.lv=0;this.drag=null;setMood('title');
+    GL.diver.g.visible=false;GL.hose.visible=GL.rope.visible=false;
+    const s=load();const bc=$('#bCont');if(s&&s.stage>0){bc.hidden=false;bc.textContent=s.stage>=5?'繼續：打開完成的機械':`繼續：第 ${s.stage+1} 組齒輪`;}else bc.hidden=true;
+    this.first=true;},
+  exit(){titleUi.hidden=true;},
+  layout(){const mob=W<760;this.fs=Math.round(mob?clamp(W*.19,54,92):clamp(Math.min(W*.1,H*.15),72,150));this.tx=mob?20:Math.max(24,W*.07);
+    this.ty=mob?Math.max(28,H*.07)+this.fs*.9:H*.14+this.fs*.9;titleUi.style.top='auto';titleUi.style.bottom=(mob?'max(40px, 7vh)':'max(48px, 11vh)');},
+  update(dt){this.t+=dt;glTick(dt);if(!this.drag)this.lv*=Math.exp(-dt*2);this.look+=this.lv*dt;this.look=lerp(this.look,clamp(this.look,-1.3,1.3),1-Math.exp(-dt*3));
+    const mob=W<760,a=.42+(RM?0:Math.sin(this.t*.05)*.18)+this.look,d=mob?21:17,b=GL.boat.position;
+    CAM.yaw=a;CAM.pitch=mob?.02:.035;CAM.dist=d;
+    const rx=Math.cos(a),rz=-Math.sin(a),sh=mob?0:-5.2;
+    const tx=b.x+rx*sh,tz=b.z+rz*sh,ty=mob?4.6:2.6;
+    camOrbit(tx,ty,tz,this.first?-1:dt,2.5);this.first=false;
+    const c=GL.cam.position;c.y=Math.max(c.y,seaY(c.x,c.z,GL.t)+1.4);},
+  draw(){glRender(GL.boat.position);const g=ctx,fs=this.fs;
+    g.textBaseline='alphabetic';g.fillStyle='#f6ecd6';g.font=`700 ${fs}px ${SERIF}`;
+    g.shadowColor='rgba(40,28,14,.35)';g.shadowOffsetY=2;g.shadowBlur=6;let x=this.tx;for(const ch of '沉星機'){g.fillText(ch,x,this.ty);x+=fs*1.08;}g.shadowColor='transparent';
+    const s2=Math.round(clamp(fs*.13,12,18));g.font=`500 ${s2}px ${GREEK}`;g.fillStyle='rgba(250,240,220,.92)';x=this.tx+fs*.04;const y2=this.ty-fs*1.02;
+    for(const ch of 'ANTIKYTHERA'){g.fillText(ch,x,y2);x+=g.measureText(ch).width+s2*.32;}
+    g.font=`400 ${s2}px ${SERIF}`;g.fillText('安提基特拉機械',x+s2*.9,y2);},
+  down(x,y){this.drag={x,y};this.lv=0;},move(x,y){if(!this.drag)return;const dx=x-this.drag.x;this.look-=dx*.0035;this.lv=-dx*.0035*30;this.drag={x,y};},up(){this.drag=null;}
+};
+
+// ---------- 潛水（第三人稱）
+const Dive3={gl:true,
+  enter(){hideAll();const T=T3,st=STAGES[G.stage];this.st=st;this.t=0;this.bt=0;this.tmax=85+Object.keys(st.items).length*10;this.mode='descend';this.warned=0;this.digHeld=false;this.ptr=null;this.goal=null;this.anims=[];
+    const ids=Object.keys(st.items),R=rng(st.n*31+7),spots=[];
+    for(let k=0;spots.length<ids.length&&k<4000;k++){const a=R()*TAU,d=3.5+R()*(k<600?15:22),x=SITE.x+Math.cos(a)*d,z=SITE.z+Math.sin(a)*d;
+      if(ROCKS.some(q=>Math.hypot(q.x-x,q.z-z)<q.r+.9))continue;if(spots.some(q=>Math.hypot(q[0]-x,q[1]-z)<3.6))continue;if(Math.hypot(x-1,z-4)<2.5)continue;spots.push([x,z]);}
+    this.lumps=ids.map((id,i)=>{const [x,z]=spots[i],y=bedH(x,z),o=makeLump(st.n*100+i),found=G.found.has(id);
+      o.grp.position.set(x,y-.03,z);o.grp.rotation.y=R()*TAU;o.mound.position.set(x,y-.06,z);o.mound.rotation.y=R()*TAU;GL.under.add(o.grp);GL.under.add(o.mound);
+      const l={id,x,y,z,o,dig:found?1:0,found,ph:R()*6};this.moundS(l);if(found){o.grp.visible=false;}return l;});
+    const D=GL.diver;D.g.visible=true;GL.hose.visible=GL.rope.visible=true;
+    updBoat(GL.t);GL.boat.updateMatrixWorld(true);const sp0=GL.boat.localToWorld(new T.Vector3(2.5,0,-1.3));sp0.y=-.75;
+    this.d={p:sp0,v:new T.Vector3(0,-.5,0),yaw:BOATP.yaw+Math.PI/2,walk:0,spd:0,dig:0,float:1};D.g.position.copy(this.d.p);
+    if(/bottom/.test(location.hash)){this.d.p.set(1,bedH(1,4),4);this.mode='bottom';this.d.float=0;}
+    this.nextBub=1.2;this.nextPump=.5;this.hoseT=0;
+    CAM.yaw=BOATP.yaw+Math.PI/2+.5;CAM.pitch=.1;CAM.dist=W<760?6.2:5.4;CAM.fx=this.d.p.x;CAM.fy=this.d.p.y;CAM.fz=this.d.p.z;this.camFirst=true;
+    hud.hidden=false;$('#bDig').hidden=true;$('#bUp').classList.remove('ready');setMood('dive');document.body.classList.add('dv');
+    caption(`第 ${st.n} 次下潛`,st.n===1?'1900 年 · 安提基特拉島外海 · 水深 45 公尺':st.dive,4);
+    if(st.n===1)setTimeout(()=>{if(scene===Dive3&&this.mode!=='done')toast(W<760?'按住畫面走過去；靠近鏽塊時按住「撥沙」。拖動可以轉視角。':'WASD 或方向鍵移動，拖動畫面轉視角。靠近鏽塊時按住空白鍵撥開沙子。',5.5);},5600);
+    this.updCount();},
+  exit(){hud.hidden=true;setLoop('dig',0);document.body.classList.remove('dv');for(const l of this.lumps){GL.under.remove(l.o.grp);GL.under.remove(l.o.mound);l.o.grp.traverse(o=>{if(o.isMesh&&o.geometry)o.geometry.dispose();});}
+    GL.diver.g.visible=false;GL.hose.visible=GL.rope.visible=false;GL.bub.list.length=0;},
+  moundS(l){const k=1-l.dig;l.o.mound.scale.set(.35+.25*k,.02+.3*k,.35+.25*k);l.o.mound.visible=k>.02;},
+  updCount(){const n=this.lumps.filter(l=>l.found).length;this.nFound=n;if(n===this.lumps.length)$('#bUp').classList.add('ready');},
+  near(){if(this.mode!=='bottom')return null;let best=null,bd=1.45;const p=this.d.p;for(const l of this.lumps){if(l.found)continue;const d=Math.hypot(l.x-p.x,l.z-p.z);if(d<bd){bd=d;best=l;}}return best;},
+  ascend(auto){if(this.mode==='ascend'||this.mode==='done')return;this.mode='ascend';setLoop('dig',0);$('#bDig').hidden=true;this.goal=null;
+    if(auto)caption('底時用完','船上的人拉動救生索，把你拉了上來',3.2);else bubble();},
+  surface(){const all=this.nFound===this.lumps.length;this.mode='done';setLoop('dig',0);
+    if(all){fadeTo(()=>go(Bench));return;}
+    hud.hidden=true;setMood('surf');
+    setPanel('sea',`<h2>還有 ${this.lumps.length-this.nFound} 塊留在海底</h2><p>你回到船上。已經撿起的會留在船上，休息一下，再下去一次。</p><div class="acts"><button class="btn" id="bRe">再潛一次</button></div>`);
+    $('#bRe').onclick=()=>{panel.hidden=true;fadeTo(()=>go(DIVE));};},
+  pointerDir(){// 按住畫面：朝按住的那一點走（投到潛水夫所在的高度）
+    const T=T3,p=this.ptr;if(!p)return null;const ray=GL.ray||(GL.ray=new T.Raycaster());ray.setFromCamera(new T.Vector2(p.x/W*2-1,-(p.y/H)*2+1),GL.cam);
+    const o=ray.ray.origin,d=ray.ray.direction,h=this.d.p.y+.1;if(Math.abs(d.y)<1e-3)return null;const k=(h-o.y)/d.y;if(k<0)return null;return[o.x+d.x*k,o.z+d.z*k];},
+  update(dt){const T=T3;this.t+=dt;glTick(dt);const d=this.d,p=d.p,t=this.t,D=GL.diver;
+    let ix=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0),iz=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);
+    // 鏡頭相對方向
+    const fwx=-Math.sin(CAM.yaw),fwz=-Math.cos(CAM.yaw);let mx=-iz*fwx+ix*(-fwz),mz=-iz*fwz+ix*fwx;
+    const near=this.near();let dig=!!(near&&(keys[' ']||keys.e||this.digHeld));
+    if(this.ptr&&!this.ptr.drag&&this.mode==='bottom'&&performance.now()-this.ptr.t0>180){
+      if(near){const [sx,sy]=toScreen(near.x,near.y+.15,near.z);if(Math.hypot(sx-this.ptr.x,sy-this.ptr.y)<70)dig=true;}
+      if(!dig){const g=this.pointerDir();if(g)this.goal=g;}}
+    if(this.goal&&(ix||iz))this.goal=null;
+    if(this.goal){const gx=this.goal[0]-p.x,gz=this.goal[1]-p.z,gl=Math.hypot(gx,gz);if(gl<.35){this.goal=null;}else{mx=gx/gl;mz=gz/gl;}}
+    const ml=Math.hypot(mx,mz);if(ml>1){mx/=ml;mz/=ml;}
+    if(this.mode==='descend'){d.float=1;const L=[1,bedH(1,4),4];d.v.y=lerp(d.v.y,-7,dt*.9);d.v.x=lerp(d.v.x,(L[0]-p.x)*.22,dt*2);d.v.z=lerp(d.v.z,(L[2]-p.z)*.22,dt*2);p.addScaledVector(d.v,dt);
+      d.yaw=lerp(d.yaw,d.yaw+.0,dt);if(p.y<=bedH(p.x,p.z)+.02){p.y=bedH(p.x,p.z);this.mode='bottom';d.v.set(0,0,0);noiseHit(160,.6,.25,.5,'lowpass');}}
+    else if(this.mode==='bottom'){this.bt+=dt;const sp=dig?.15:1.55;d.v.x=lerp(d.v.x,mx*sp,1-Math.exp(-dt*2.6));d.v.z=lerp(d.v.z,mz*sp,1-Math.exp(-dt*2.6));
+      p.x+=d.v.x*dt;p.z+=d.v.z*dt;
+      for(const q of ROCKS){const dx=p.x-q.x,dz=p.z-q.z,dd=Math.hypot(dx,dz),m=q.r*.95+.3;if(dd<m&&dd>1e-4){p.x=q.x+dx/dd*m;p.z=q.z+dz/dd*m;}}
+      const rr=Math.hypot(p.x-SITE.x,p.z-SITE.z);if(rr>30){p.x=SITE.x+(p.x-SITE.x)/rr*30;p.z=SITE.z+(p.z-SITE.z)/rr*30;}
+      p.y=lerp(p.y,bedH(p.x,p.z),1-Math.exp(-dt*10));
+      const v=Math.hypot(d.v.x,d.v.z);d.spd=v/1.55;d.walk+=v*dt*3.1;if(v>.08)d.yaw=angLerp(d.yaw,Math.atan2(d.v.x,d.v.z),1-Math.exp(-dt*5));
+      if(dig&&near)d.yaw=angLerp(d.yaw,Math.atan2(near.x-p.x,near.z-p.z),1-Math.exp(-dt*6));
+      d.float=lerp(d.float,0,1-Math.exp(-dt*3));
+      const left=this.tmax-this.bt;if(left<20&&this.warned<1){this.warned=1;clink(700,.25,2.2);toast('底時剩 20 秒。');}if(left<10&&this.warned<2){this.warned=2;clink(700,.25,2.2);setTimeout(()=>clink(700,.2,2),260);}
+      if(left<=0)this.ascend(true);}
+    else if(this.mode==='ascend'){d.float=lerp(d.float,1,1-Math.exp(-dt*2));d.v.y=lerp(d.v.y,5.2,dt*1.1);d.v.x=lerp(d.v.x,(BOATP.x+1.8-p.x)*.12,dt);d.v.z=lerp(d.v.z,(BOATP.z+.6-p.z)*.12,dt);p.addScaledVector(d.v,dt);
+      if(p.y>-.45){p.y=-.45;this.surface();}}
+    else{p.y=seaY(p.x,p.z,GL.t)-.55;d.float=1;}
+    // 撥沙
+    d.dig=lerp(d.dig,dig&&near?1:0,1-Math.exp(-dt*6));
+    if(dig&&near){near.dig=Math.min(1,near.dig+dt/1.15);this.moundS(near);loopNoise('dig','lowpass',900,.6);setLoop('dig',.16+.08*Math.sin(t*13),700+Math.random()*400);
+      if(Math.random()<dt*30)puffSand(near.x,near.y+.05,near.z,3);
+      if(near.dig>=1){near.found=true;G.found.add(near.id);setLoop('dig',0);clink(1500+Math.random()*400,.3,1.2);this.updCount();this.anims.push({l:near,t:0});puffSand(near.x,near.y+.05,near.z,24);
+        const all=this.nFound===this.lumps.length;toast(all?`鏽塊 ${this.nFound}/${this.lumps.length}：都找齊了，按「上升」回船上。`:`撿起一塊鏽塊（${this.nFound}/${this.lumps.length}）`);}}
+    else setLoop('dig',0);
+    $('#bDig').hidden=!near;
+    // 撿起的鏽塊飛進網袋
+    const bagW=D.bag.getWorldPosition(GL.tmpV2.set(0,0,0)).clone();
+    for(const a of this.anims){a.t+=dt*1.4;const g=a.l.o.grp,u=ease(Math.min(1,a.t));g.position.set(lerp(a.l.x,bagW.x,u),lerp(a.l.y,bagW.y,u)+Math.sin(u*Math.PI)*.5,lerp(a.l.z,bagW.z,u));g.scale.setScalar(1-u*.6);g.rotation.y+=dt*3;if(a.t>=1)g.visible=false;}
+    this.anims=this.anims.filter(a=>a.t<1);
+    // 閃光提示
+    for(const l of this.lumps){if(l.found)continue;const gp=(t*.9+l.ph)%3.2,a=gp<.7?Math.sin(gp/.7*Math.PI):0;l.o.sp.material.opacity=a*(1-l.dig*.5)*.95;l.o.sp.scale.setScalar(.35+a*.55);}
+    // 潛水夫
+    D.g.position.copy(p);D.g.rotation.y=d.yaw;poseDiver(D,{walk:d.walk,spd:d.spd,dig:d.dig,float:d.float,t});
+    // 氣泡與幫浦聲
+    this.nextBub-=dt;if(this.nextBub<=0){this.nextBub=2.4+Math.random()*1.2;if(p.y<-.8){blowBubbles(D.exhaust.getWorldPosition(new T.Vector3()),10);bubble();}}
+    this.nextPump-=dt;if(this.nextPump<=0){this.nextPump=1.7;noiseHit(420,.7,.07,.4,'lowpass',AU.bus.amb);}
+    updLife(dt,t,p);
+    this.hoseT-=dt;if(this.hoseT<=0){this.hoseT=1/30;GL.boat.updateMatrixWorld(true);D.g.updateMatrixWorld(true);const a=D.hoseAt.getWorldPosition(new T.Vector3()),b=GL.boat.localToWorld(new T.Vector3(1.45,1.1,-1.3));updHose(a,b,t,-p.y,D.ropeAt.getWorldPosition(new T.Vector3()));}
+    // 鏡頭
+    const ty=p.y+(this.mode==='bottom'?1.25:1.1);
+    if(this.mode==='descend'){CAM.pitch=lerp(CAM.pitch,.32,dt*.35);CAM.yaw=lerp(CAM.yaw,.55,dt*.3);}
+    if(this.mode==='done'){CAM.pitch=lerp(CAM.pitch,.12,dt);CAM.dist=lerp(CAM.dist,9,dt);}
+    camOrbit(p.x,ty,p.z,this.camFirst?-1:dt,this.mode==='bottom'?5:3);this.camFirst=false;},
+  draw(){const p=this.d.p;glRender(GL.tmpV2.set(p.x,p.y,p.z).clone());if(this.mode!=='done')this.hud(ctx,this.tmax-this.bt);},
+  hud(g,left){const m=W<760,near=this.near();
+    for(const l of this.lumps){if(l.found)continue;let [sx,sy,front]=toScreen(l.x,l.y+.2,l.z);if(!front){sx=W-sx;sy=H*2;}
+      if(front&&sx>24&&sx<W-24&&sy>24&&sy<H-24)continue;const cx=clamp(sx,26,W-26),cy=clamp(sy,m?200:100,H-96),a=Math.atan2(sy-cy,sx-cx);
+      g.save();g.translate(cx,cy);g.rotate(a);g.fillStyle='rgba(214,236,216,.8)';g.beginPath();g.moveTo(10,0);g.lineTo(-6,-7);g.lineTo(-2,0);g.lineTo(-6,7);g.fill();g.restore();}
+    if(near&&!near.found){const [sx,sy]=toScreen(near.x,near.y+.55,near.z);g.font=`500 13px ${SANS}`;g.textAlign='center';g.fillStyle='rgba(240,246,236,.9)';g.shadowColor='rgba(0,16,20,.8)';g.shadowBlur=4;
+      g.fillText(near.dig>0?`撥沙 ${Math.round(near.dig*100)}%`:(m?'按住「撥沙」':'按住空白鍵撥沙'),sx,sy);g.shadowColor='transparent';}
+    const r=m?26:32,cx=(m?14:22)+r,cy=(m?14:22)+r;
+    g.fillStyle='#2b1d10';g.beginPath();g.arc(cx,cy,r+3,0,TAU);g.fill();
+    const bg=g.createLinearGradient(cx-r,cy-r,cx+r,cy+r);bg.addColorStop(0,'#e0b173');bg.addColorStop(1,'#6b4520');g.strokeStyle=bg;g.lineWidth=4;g.beginPath();g.arc(cx,cy,r,0,TAU);g.stroke();
+    g.fillStyle='#e9e0c8';g.beginPath();g.arc(cx,cy,r-3,0,TAU);g.fill();
+    const a0=Math.PI*.75,a1=Math.PI*2.25,f=clamp(left/this.tmax,0,1);
+    g.strokeStyle='#b8552f';g.lineWidth=3;g.beginPath();g.arc(cx,cy,r-7,a0,a0+(a1-a0)*.2);g.stroke();
+    g.strokeStyle='#3a2a1a';g.lineWidth=1;for(let i=0;i<=10;i++){const a=a0+(a1-a0)*i/10;g.beginPath();g.moveTo(cx+Math.cos(a)*(r-5),cy+Math.sin(a)*(r-5));g.lineTo(cx+Math.cos(a)*(r-(i%5?9:12)),cy+Math.sin(a)*(r-(i%5?9:12)));g.stroke();}
+    const na=a0+(a1-a0)*f;g.strokeStyle='#1c130b';g.lineWidth=2;g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.cos(na)*(r-8),cy+Math.sin(na)*(r-8));g.stroke();g.fillStyle='#1c130b';g.beginPath();g.arc(cx,cy,2.6,0,TAU);g.fill();
+    g.font=`500 ${m?9:10}px ${SANS}`;g.textAlign='center';g.fillStyle='#5a4a36';g.fillText('底時',cx,cy+r*.55);
+    const depth=Math.max(0,-this.d.p.y);g.textAlign='left';g.fillStyle='#eef4ea';g.shadowColor='rgba(0,16,20,.6)';g.shadowBlur=3;g.font=`700 ${m?22:28}px ${SERIF}`;g.fillText(`${depth.toFixed(0)} 公尺`,cx+r+14,cy+(m?2:4));
+    g.font=`400 ${m?12:13}px ${SANS}`;g.fillStyle='rgba(220,236,228,.85)';g.fillText(`鏽塊 ${this.nFound} / ${this.lumps.length}`,cx+r+15,cy+(m?20:24));g.shadowColor='transparent';
+    for(let i=0;i<this.lumps.length;i++){const x=cx+r+15+i*15,y=cy+(m?30:36);if(i<this.nFound)g.drawImage(TEX.lumps[i%5],x-2,y,14,14);else{g.strokeStyle='rgba(220,236,228,.5)';g.lineWidth=1;g.beginPath();g.arc(x+5,y+7,4,0,TAU);g.stroke();}}
+    if(this.mode==='bottom'&&left<25){const k=(1-left/25)*(.5+.2*Math.sin(this.t*3.2)),rg=g.createRadialGradient(W/2,H/2,Math.min(W,H)*.28,W/2,H/2,Math.max(W,H)*.75);rg.addColorStop(0,'rgba(0,8,10,0)');rg.addColorStop(1,`rgba(0,8,10,${k})`);g.fillStyle=rg;g.fillRect(0,0,W,H);}
+    g.textAlign='left';},
+  down(x,y){this.ptr={x,y,x0:x,y0:y,t0:performance.now(),drag:false};},
+  move(x,y){const P=this.ptr;if(!P)return;if(!P.drag&&Math.hypot(x-P.x0,y-P.y0)>9)P.drag=true;if(P.drag){CAM.yaw-=(x-P.x)*.006;CAM.pitch=clamp(CAM.pitch+(y-P.y)*.004,-.2,1.15);}P.x=x;P.y=y;},
+  up(x,y){const P=this.ptr;this.ptr=null;if(!P||P.drag||this.mode!=='bottom')return;if(performance.now()-P.t0<220){this.ptr=P;const g=this.pointerDir();this.ptr=null;if(g)this.goal=g;}},
+  key(e){}
+};
+function angLerp(a,b,t){let d=((b-a+Math.PI)%TAU+TAU)%TAU-Math.PI;return a+d*t;}
+
+
+// ======================================================================
 // 指標事件與主迴圈
 // ======================================================================
 let ptrId=null;
@@ -1268,15 +2001,18 @@ document.addEventListener('pointerdown',()=>auInit(),{capture:true});
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!document.hidden&&scene){scene.update(dt);scene.draw();audioTick();}requestAnimationFrame(frame);}
 
-$('#bStart').onclick=()=>{auInit();G.stage=0;G.days=0;G.found=new Set();G.finds=[];save();fadeTo(()=>go(Dive));};
-$('#bCont').onclick=()=>{auInit();const s=load();if(!s)return;G.stage=s.stage;G.days=s.days||0;G.finds=s.finds||[];G.found=new Set();fadeTo(()=>go(s.stage>=5?Dials:Dive));};
+$('#bStart').onclick=()=>{auInit();G.stage=0;G.days=0;G.found=new Set();G.finds=[];save();fadeTo(()=>go(DIVE));};
+$('#bCont').onclick=()=>{auInit();const s=load();if(!s)return;G.stage=s.stage;G.days=s.days||0;G.finds=s.finds||[];G.found=new Set();fadeTo(()=>go(s.stage>=5?Dials:DIVE));};
 
-function boot(){resize();buildTextures();initAstro();buildWorld();
+async function boot(){resize();buildTextures();initAstro();buildWorld();
+  const ok=await load3D();DIVE=ok?Dive3:Dive;TITLE=ok?Title3:Title;
+  const bootEl=$('#boot');bootEl.classList.add('off');setTimeout(()=>bootEl.remove(),700);
+  if(!ok&&GL.why)setTimeout(()=>toast(GL.why,6),900);
   const m=/^#(dive|bench|dials)-?(\d)?/.exec(location.hash);
-  if(/debug/.test(location.hash))window.__ak={G,Bench,Dive,Dials,go,STAGES,AST,get ST(){return ST;},get scene(){return scene;}};
+  if(/debug/.test(location.hash))window.__ak={G,Bench,Dive,Dials,go,STAGES,AST,GL,get DIVE(){return DIVE;},get ST(){return ST;},get scene(){return scene;}};
   if(m){const s=Math.max(0,Math.min(5,(+m[2]||1)-1));G.stage=m[1]==='dials'&&+m[2]===6?5:s;
-    if(m[1]==='bench'){buildWood();go(Bench);}else if(m[1]==='dials'){buildWood();go(Dials);}else go(Dive);}
-  else go(Title);
+    if(m[1]==='bench'){buildWood();go(Bench);}else if(m[1]==='dials'){buildWood();go(Dials);}else go(DIVE);}
+  else go(TITLE);
   requestAnimationFrame(frame);}
 boot();
 })();

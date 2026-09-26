@@ -7,7 +7,8 @@ import type {UnitKind} from '../packages/sim/movement.ts';
 import {clearSegment,position} from '../packages/sim/navigation.ts';
 import {combatRules} from '../packages/sim/stats.ts';
 import {authoritativeProblem,placeBuilding} from '../packages/sim/buildings.ts';
-import {commandAttack} from '../packages/sim/combat.ts';
+import {commandAttack,targetProblem} from '../packages/sim/combat.ts';
+import {obstacleBounds} from '../packages/content/footprints.ts';
 function order(s:State,commandType:string,payload:any,playerId=0){submit(s,{protocolVersion:1,rulesetHash,playerId,sequence:s.sequence[playerId]+1,targetTick:s.tick+1,commandType,payload} as any);}
 // Place a unit on the free node nearest a point (test fixture; the command log does not know it).
 function spawn(s:State,player:number,kind:UnitKind,x:number,y:number,id:number){let best=-1,dist=Infinity;const held=new Set(s.units.map(u=>u.node));
@@ -85,4 +86,12 @@ test('every building position on the 10-unit grid can be attacked by melee (regr
   assert.ok(s.buildings.every(v=>v.id!==b.id)||b.hp<1||s.attacks[m.id],`offset ${offset}: attacker still engaged or target hit`);
   assert.ok(!s.buildings.some(v=>v.id===b.id),`offset ${offset}: foundation destroyed`);
  }
+});
+
+test('on the 32x32 map a building is a valid target exactly when its own tiles are visible (not tiles of a 16-wide grid)',()=>{
+ const s=createState(260925,'open','idle'),tc=s.map.obstacles.find(o=>o.kind==='town-center'&&o.red)!,box=obstacleBounds(tc),size=s.map.size,own:number[]=[],stale:number[]=[];
+ for(let ty=Math.floor(box[1]/100);ty<=Math.floor((box[3]-1)/100);ty++)for(let tx=Math.floor(box[0]/100);tx<=Math.floor((box[2]-1)/100);tx++){own.push(ty*size+tx);stale.push(ty*16+tx);}
+ const target={kind:'building' as const,id:tc.id!};
+ s.vision[0].visible=own;assert.equal(targetProblem(s,0,target),null,'visible footprint: attackable');
+ s.vision[0].visible=stale.filter(t=>!own.includes(t));assert.equal(targetProblem(s,0,target),'找不到目標','unrelated tiles do not make it attackable');
 });

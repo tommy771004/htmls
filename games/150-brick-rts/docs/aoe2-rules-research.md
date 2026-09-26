@@ -13,6 +13,13 @@
 | 領地大小 | 原版 Arabia：`create_player_lands` 的 `land_percent 25`、`base_size 9`、`border_fuzziness 15` | Arabia.rms 原文（GitHub：Naramsim/AoE2-random-map-scripts） | 高，但只適用原版；DE 版 unverified |
 | 開局單位 | 標準遊戲：城鎮中心、3 名村民、1 名斥候（部分文明例外，例如 6 名或 4 名村民） | Windows Central 入門指南；Fandom 村民頁（搜尋摘要） | 中 |
 | 原版 Arabia 物件 | 每位玩家附近有鹿（4 隻，距離玩家至少 19 格）；散樹 30 棵、距離玩家至少 8 格；森林占 12%、10 叢，避開玩家起始區 | Arabia.rms 原文 | 高，只適用原版 |
+| 靶場的前置條件（2026-09-26 補查） | 升上封建時代（本作的第二時代）並蓋好兵營後才能蓋；靶場訓練弓兵類單位，包括弓手與散兵 | Fandom〈Archery Range (Age of Empires II)〉、〈Skirmisher〉的搜尋摘要 | 中 |
+| 馬廄的前置條件（2026-09-26 補查） | 升上封建時代並蓋好兵營後才能蓋；訓練騎兵，斥候騎兵只花食物 | Fandom〈Stable (Age of Empires II)〉、〈Scout Cavalry〉的搜尋摘要 | 中 |
+| 靶場費用 | 木材 175，建造 50 秒 | 搜尋摘要（Fandom 頁面本身回應 402，無法直接讀） | 中；本作建造時間仍用 design_default 的 20 秒 |
+| 修道院（2026-09-26 補查） | 城堡時代（本作第三時代）才能蓋，沒有其他前置建築；木材 175、建造 40 秒、生命值 2100 | 前置條件：Fandom〈Monastery (Age of Empires II)〉搜尋摘要；數值：towncenter.vercel.app 的 Monastery 頁 | 中 |
+| 僧侶 | 黃金 100、訓練 51 秒、生命值 30、射程 9、移動速度 0.7、視野 11、攻擊 0；轉化敵方單位、治療己方單位（船與攻城器除外） | towncenter.vercel.app 的 Monk 頁 | 中 |
+| 轉化時間與信仰 | 轉化單位需要 5–15 秒、建築 18–30 秒；轉化後信仰需要 62 秒恢復 | Fandom〈Conversion〉〈Monk〉搜尋摘要 | 中 |
+| 不能轉化的建築 | 即使研究「救贖」，也不能轉化城鎮中心、城堡、修道院、農田、魚梁、城牆、城門與奇觀；沒有「救贖」時不能轉化任何建築 | aoe2.guide 與 towncenter.vercel.app 的 Redemption 頁 | 中 |
 
 ## 查不到或無法確認（unverified）
 
@@ -20,6 +27,10 @@
 - DE 各地圖的標準資源配置（金礦、石礦、野果、羊、野豬的數量與距離）：原版腳本透過 `land_resources.inc` 引入，這份檔案的原文沒有找到。
 - DE 的人口上限、住宅與城鎮中心提供的人口。
 - DE Arabia 的 `circle_radius` 實際值。
+- 馬廄費用（木材 175）與斥候騎兵費用（食物 80）：搜尋摘要沒有出現這兩個數字，本作的值是 design_default。
+- 靶場與馬廄的生命值、弓手的精確費用與訓練時間。
+- 僧侶的治療速度與治療範圍、每 1.2 秒轉化判定的機率曲線（搜尋摘要只說明「分段判定、機率逐漸提高」）。
+- 「僧侶不能轉化僧侶，需要研究贖罪」：沒有找到可引用的來源。
 
 Liquipedia 與 Fandom 的 Arabia 和隨機地圖頁面拒絕自動抓取（403／402），所以只能用搜尋摘要。
 

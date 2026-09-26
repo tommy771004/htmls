@@ -1,11 +1,11 @@
 // Sound effects, synthesised with WebAudio at play time (no audio files, no network). The context starts only
 // after a user gesture (browser autoplay rules); until then play() is a no-op. Volume 0 mutes.
-export type Sound='select-villager'|'select-soldier'|'order'|'order-attack'|'place'|'built'|'trained'|'hit'|'alarm'|'age'|'victory'|'defeat'|'collapse'|'resign';
+export type Sound='select-villager'|'select-soldier'|'order'|'order-attack'|'place'|'built'|'trained'|'hit'|'alarm'|'age'|'victory'|'defeat'|'collapse'|'resign'|'convert'|'converted';
 export function createAudio(report:(name:string,count:number)=>void=()=>{}){
  let ctx:AudioContext|null=null,master:GainNode|null=null,volume=.6,count=0,noise:AudioBuffer|null=null;
  const lastPlayed=new Map<Sound,number>();
  // Minimum gap per sound, so a battle's many hits or a burst of orders never pile up into noise.
- const spacing:Partial<Record<Sound,number>>={hit:140,order:60,'order-attack':80,trained:250,built:250,alarm:3000};
+ const spacing:Partial<Record<Sound,number>>={hit:140,order:60,'order-attack':80,trained:250,built:250,alarm:3000,convert:400};
  function unlock(){
   if(!ctx){const Ctor=window.AudioContext??(window as unknown as {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;if(!Ctor)return;
    ctx=new Ctor();master=ctx.createGain();master.gain.value=volume;master.connect(ctx.destination);
@@ -39,6 +39,9 @@ export function createAudio(report:(name:string,count:number)=>void=()=>{}){
   defeat:()=>{[392,330,277,220].forEach((f,i)=>tone('triangle',f,i*.2,.5,.1));},
   collapse:()=>{burst('lowpass',400,0,.55,.35);tone('sine',90,0,.4,.15,50);},
   resign:()=>tone('triangle',294,0,.5,.08,220),
+  // A monk's order: a held fifth rising a tone, soft (a chant, not a battle cue).
+  convert:()=>{tone('sine',392,0,.7,.07,440);tone('sine',587,0,.7,.05,659);},
+  converted:()=>{[440,554,659].forEach((f,i)=>tone('sine',f,i*.1,.5,.07));},
  };
  function play(name:Sound){
   const now=performance.now(),gap=spacing[name]??0;if(gap&&now-(lastPlayed.get(name)??-1e9)<gap)return;lastPlayed.set(name,now);

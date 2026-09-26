@@ -186,3 +186,11 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## 送返建築與馬廄（v19）
 
 伐木場、採礦場、磨坊的送返規則、電腦在遠處資源旁蓋營地、第二時代的馬廄與斥候訓練（`npm run test:stable`），驗證見 [first-use-019.md](first-use-019.md)。F 為進行中。
+
+## 靶場與建築前置條件（v20）
+
+靶場（弓手改由靶場訓練）、馬廄與靶場需要兵營、電腦的靶場，以及 `npm run test:feudal`（原 `test:stable`），驗證見 [first-use-020.md](first-use-020.md)。`test:full` 曾有一次無法收尾（FU20-6），根因未知。F 為進行中。
+
+## 修道院與僧侶（v21）
+
+修道院、僧侶的轉化與治療、信仰恢復、換邊單位的佇列命令，以及 32×32 地圖上攻擊建築的可見性修正；`npm run test:monastery` 從實際打到第三時代的存檔操作。驗證見 [first-use-021.md](first-use-021.md)。F 為進行中。

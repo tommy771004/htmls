@@ -1,3 +1,17 @@
+# 修道院與僧侶
+
+升到第三時代後可以蓋修道院（X，木材 175），訓練僧侶（黃金 100）。選取僧侶後：
+- 右鍵看得見的敵方單位：轉化。僧侶走到範圍內，5–15 秒後對方的單位變成你的；之後信仰要 62 秒才能恢復。
+- 右鍵受傷的己方單位：治療。閒置的僧侶也會自己治療附近的傷兵。
+
+僧侶不能攻擊，也不能轉化建築或其他僧侶。轉化時間、信仰恢復、費用與生命值依原作查核（見 docs/aoe2-rules-research.md），轉化與治療的範圍、治療速度是 design_default。電腦還不會用僧侶。
+
+這一輪也修正了一個戰鬥錯誤：在 32×32 地圖上，攻擊建築是否成立，原本取決於一個不相干的格子是否可見。上一輪「拆不掉紅方建築」那一次，很可能就是這個原因。State／snapshot 為 v21，詳見 docs/first-use-021.md。
+
+# 靶場
+
+升到第二時代、兵營完工後可以蓋靶場（Z，木材 175），弓手改由靶場訓練，和原作相同；兵營只訓練近戰民兵。馬廄也改為需要兵營。電腦在第二時代會蓋靶場並訓練弓手。前置條件與靶場費用的查核見 docs/aoe2-rules-research.md，建造時間與生命值是 design_default。State／snapshot 為 v20，詳見 docs/first-use-020.md。
+
 # 送返建築與馬廄
 
 村民可以蓋伐木場（R，收木材）、採礦場（T，收黃金與石頭）與磨坊（A，收食物），完工後村民會把貨送到最近能收的建築，不必每趟走回城鎮中心。電腦在兩名村民要走遠路送貨時，會在資源旁蓋伐木場或採礦場。升到第二時代後可以蓋馬廄（D），訓練斥候（食物 80）。費用與時間都是 design_default。State／snapshot 為 v19，詳見 docs/first-use-019.md。
@@ -81,12 +95,13 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:first-use 
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:controls       # 框選、編組、右鍵移動、停止、鏡頭平移、觸控
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:economy        # prompt 19 首次使用流程：採木、採野果、送返、存讀
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:build          # prompt 19 首次使用流程：放置、施工、人口、取消退款
-PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:production     # prompt 19 首次使用流程：生產村民、人口上限、集結點、升時代、兵營與弓手
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:production     # prompt 19 首次使用流程：生產村民、人口上限、集結點、升時代、兵營與近戰民兵（兵營沒有弓手）
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:combat         # prompt 19 首次使用流程：造兵、偵查、攻擊、攻城、勝利、再開一局
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:full           # prompt 19 完整路徑：設定、建立對局、採集、送返、造房、造軍營、升時代、造兵、偵查、攻擊、撤退、勝敗、再開局
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:match          # prompt 19 完整對局（非除錯模式、對電腦）：開局、造兵、進軍、攻城、勝負畫面、再開一局
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:hud            # prompt 19 首次進站（非除錯模式）：全畫面配置、資源列、頭像、指令格、小地圖、選單、手機觸控；產生 thumbs/150.jpg
-PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:stable         # 第二時代的馬廄：從選單讀取實際打出的存檔，點選馬廄並訓練斥候
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:feudal         # 第二時代的軍事建築：從選單讀取實際打出的存檔，兵營沒有弓手，馬廄訓練斥候，靶場訓練弓手
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:monastery      # 第三時代：讀取實際打出的存檔，點選修道院與僧侶，用小地圖走到紅方並轉化紅方村民
 npm run bench:movement   # 3／8／24／40 名穿過城鎮中心大門的負載紀錄，輸出 test-results/movement-benchmark.json
 ```
 
@@ -101,13 +116,13 @@ npm run bench:movement   # 3／8／24／40 名穿過城鎮中心大門的負載�
    - 左鍵點自己的建築選取建築；H 選取城鎮中心並把鏡頭移過去；「.」或小地圖旁的村民按鈕輪流選取閒置村民（按鈕角落是閒置人數）。
    - Ctrl＋數字儲存編組，按數字叫回；Esc 取消選取。多選時，選取資訊列出每個單位的頭像與血條，點頭像只選那一個，Shift＋點移出選取。
 2. 命令
-   - 右鍵地面：移動，各自分到目的地附近的站位；點在建築或樹上時走到最近的空地。右鍵樹木、石礦、金礦、野果或己方農田：村民採集，裝滿 10 單位後送到最近能收這種資源的建築（城鎮中心、伐木場、採礦場或磨坊）再回來。右鍵未完工的建築：協助施工。右鍵紅方單位或建築：攻擊。
+   - 右鍵地面：移動，各自分到目的地附近的站位；點在建築或樹上時走到最近的空地。右鍵樹木、石礦、金礦、野果或己方農田：村民採集，裝滿 10 單位後送到最近能收這種資源的建築（城鎮中心、伐木場、採礦場或磨坊）再回來。右鍵未完工的建築：協助施工。右鍵紅方單位或建築：攻擊；選取中的僧侶改為轉化紅方單位，右鍵受傷的己方單位則是治療。
    - S 或指令格的停止：在下一個節點停下。
    - 村民與士兵一起選取時，採集與建造只派出村民，並提示有幾名士兵沒有派出。
    - 狩獵、放牧、捕魚尚未實作，會直接說明原因。
 3. 指令格
-   - 選取村民時：Q 住宅、W 兵營、E 農田、R 伐木場、T 採礦場、A 磨坊、D 馬廄（需要第二時代）。在戰場上移動滑鼠看占地預覽（綠色可放、紅色會寫出原因），左鍵放置，Shift＋左鍵連續放置，右鍵或 Esc 取消。
-   - 選取完工的城鎮中心、兵營或馬廄時：生產與研究依序是 Q W E R T。已研究的時代會從指令格移除。未完工的建築有取消格（Del），全額退款。
+   - 選取村民時：Q 住宅、W 兵營、E 農田、R 伐木場、T 採礦場、A 磨坊、D 馬廄、Z 靶場（馬廄與靶場需要第二時代與完工的兵營）、X 修道院（需要第三時代）。在戰場上移動滑鼠看占地預覽（綠色可放、紅色會寫出原因），左鍵放置，Shift＋左鍵連續放置，右鍵或 Esc 取消。
+   - 選取完工的城鎮中心、兵營、馬廄、靶場或修道院時：生產與研究依序是 Q W E R T。已研究的時代會從指令格移除。未完工的建築有取消格（Del），全額退款。
    - 滑鼠停在指令格上，左下角會出現說明卡：名稱、快捷鍵、費用（不足的會標色）、時間、人口，以及不能按的原因。沒有停在指令格上時，這裡寫出目前不能建造或生產的原因。
    - 佇列顯示在選取資訊右側，第一項有進度條，每項都能取消並全額退款。選取建築時右鍵地面設定集結點。
 4. 鏡頭與小地圖

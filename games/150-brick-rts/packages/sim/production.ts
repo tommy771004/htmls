@@ -59,7 +59,7 @@ function exitNode(s:ProductionState,b:Building):number{
   const d=Math.abs(p.x-aim.x)+Math.abs(p.y-aim.y);if(d<dist){dist=d;best=n;}}
  return best;
 }
-const unitKindOf:Record<string,UnitKind>={villager:'villager',militia:'militia',archer:'archer',scout:'scout'};
+const unitKindOf:Record<string,UnitKind>={villager:'villager',militia:'militia',archer:'archer',scout:'scout',monk:'monk'};
 export function stepProduction(s:ProductionState){
  for(const b of [...s.buildings].sort((a,b)=>a.id<b.id?-1:1)){
   const item=b.queue[0];if(!item)continue;

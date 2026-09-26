@@ -10,10 +10,12 @@ export const combatRules={provenance:'design_default',
   // sight here is the automatic-engage radius (vision is visionRules): 0 means the unit only fights when ordered.
   // The scout scouts; it attacks only on an explicit order.
   scout:{hp:45,damage:3,range:50,cooldown:40,sight:0},
+  // Monk: hit points 30 as in the reference; no attack (converts and heals instead, see religion.ts).
+  monk:{hp:30,damage:0,range:0,cooldown:0,sight:0},
  },
- buildings:{'town-center':400,house:150,barracks:300,farm:100,'lumber-camp':200,'mining-camp':200,mill:200,stable:300,'archery-range':300},
+ buildings:{'town-center':400,house:150,barracks:300,farm:100,'lumber-camp':200,'mining-camp':200,mill:200,stable:300,'archery-range':300,monastery:350},
  corpseTicks:40,hitFlashTicks:6,
  // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
- speed:{villager:5,militia:5,archer:5,scout:10},
+ speed:{villager:5,militia:5,archer:5,scout:10,monk:5},
 } as const;
 export type CombatUnitKind=keyof typeof combatRules.units;

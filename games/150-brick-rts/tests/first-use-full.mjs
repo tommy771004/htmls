@@ -104,7 +104,9 @@ try{
  for(let round=0;round<300&&await page.locator('#result').isHidden();round++){await page.waitForTimeout(800);
   if(await tick()>45000)break;const n=await act(()=>page.keyboard.press('Comma'));
   if(/沒有軍隊/.test(n)){note('軍隊覆沒',`tick ${await tick()}：投降`);await page.keyboard.press('F10');await page.locator('#resign').click();await page.locator('#resign').click();break;}
-  if(round%5===0){const r=await attackNearest();if(r&&/攻擊/.test(r)&&round%25===0)note('攻擊',r);}}
+  if(round%5===0){const r=await attackNearest();if(round%25===0)note('攻擊',`${r}｜已知：${(await known()).map(k=>k.label).join('、')}`);}}
+ // Still no result (the army lives but cannot finish red off): resign as a stuck player would, and say so in the log.
+ if(await page.locator('#result').isHidden()){note('未能收尾',`tick ${await tick()}：軍隊仍在，但找不到能結束對局的目標；已知 ${(await known()).map(k=>k.label).join('、')}；投降`);await page.keyboard.press('F10');await page.locator('#resign').click();await page.locator('#resign').click();}
  await page.locator('#result').waitFor({state:'visible',timeout:10000});note('勝敗',`${await text('result-title')}｜${await text('result-detail')}`);assert.match(await text('result-title'),/勝利|戰敗/);done.add('result');
  await page.screenshot({path:out+'full-result.png'});
  // 9. Orders after the end are refused plainly; then a new match.
