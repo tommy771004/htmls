@@ -50,21 +50,21 @@ a:hover { color: #fff; }
 .btn span { font-size: 15px; }
 .btn:hover { background: rgba(255,255,255,0.92); color: #0a0a0b; border-color: #fff; box-shadow: inset 0 1px 0 #fff, 0 2px 3px var(--glass-shadow); }
 
-/* Glass letters. The outlined h1 is always there; the masked frosted layer fills the letters with blurred video. */
+/* Glass letters. The outline and the mask text live in the same SVG, so they share one set of coordinates.
+   The h1 stays in the DOM for semantics but is visually hidden. */
 .mark { position: absolute; left: 0; width: 100%; top: 40%; transform: translateY(-50%); z-index: 2; height: 1em; font-size: 13.3vw; line-height: 1; pointer-events: none; }
-.mark__stroke, .mark__fill { position: absolute; inset: 0; }
-.mark__stroke { font-size: inherit; font-weight: 800; line-height: 1; letter-spacing: -0.03em; white-space: nowrap; text-align: center;
-  color: rgba(255,255,255,0.06); -webkit-text-stroke: 1.5px rgba(255,255,255,0.55); }
-.mark__fill { display: none; }
+.mark__stroke { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mark__fill { display: none; position: absolute; inset: 0; }
+.mark svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.mark svg text { font-family: 'Archivo', system-ui, sans-serif; font-weight: 800; font-size: 13.3vw; letter-spacing: -0.03em; }
+.mark__outline { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.55); stroke-width: 1.5px; paint-order: stroke; }
 @supports ((-webkit-mask: url(#x)) or (mask: url(#x))) and ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .mark__fill { display: block;
     -webkit-backdrop-filter: blur(14px) saturate(1.6) brightness(1.35); backdrop-filter: blur(14px) saturate(1.6) brightness(1.35);
     background: linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.10) 42%, rgba(255,255,255,0.04) 100%);
     -webkit-mask: url(#letters); mask: url(#letters); }
-  .mark__stroke { color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.7); }
+  .mark__outline { fill: none; stroke: rgba(255,255,255,0.7); stroke-width: 1px; }
 }
-.mark svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.mark svg text { font-family: 'Archivo', system-ui, sans-serif; font-weight: 800; font-size: 13.3vw; letter-spacing: -0.03em; }
 
 /* The dock: one wide glass slab at the foot, two columns inside. */
 .dock { position: absolute; left: var(--gutter); right: var(--gutter); bottom: var(--gutter); z-index: 3;
@@ -117,6 +117,7 @@ a:hover { color: #fff; }
           <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" fill="#fff">REGAL DRIVE</text>
         </mask>
       </defs>
+      <text class="mark__outline" x="50%" y="50%" text-anchor="middle" dominant-baseline="central">REGAL DRIVE</text>
     </svg>
   </div>
 

@@ -153,7 +153,8 @@
 - [151 Crosswind R · 3D 客製公路車](https://htmls-ruddy.vercel.app/web/151-bike-configurator.html): 3D 客製化電商。程序化生成、依真實比例的公路車（每根輻條、每節鏈條）：即時換配色、輪組、輪胎、傳動、把手與坐墊，踩踏帶動齒盤、鏈條與後輪，含即時報價與購物車結帳。
 - [165 守夜 · KEEPWATCH 牠在看](https://htmls-ruddy.vercel.app/web/165-owl-keepwatch.html): 游標追蹤吉祥物落地頁。全程式建模的 3D 貓頭鷹，眼睛與頭用彈簧追著化成螢火蟲的游標，閒置會張望與打盹；注視角度儀表、三種燈色、合成鳴叫與 25 分鐘守夜倒數；需連線載入 Three.js
 - [166 VELORA · REGAL DRIVE](https://htmls-ruddy.vercel.app/web/166-velora-regal-drive.html): 透明玻璃層疊的影片 Hero。滿版背景影片靜音循環且以 JS 強制永不停止，內縮玻璃導覽條、底部玻璃底座，中段的 REGAL DRIVE 是以 SVG 遮罩填入模糊車流的磨砂玻璃字；只做這一個區塊，影片與 Archivo 字體需連線
-- [167 Sabrina Residences · 藍天房產落地頁](https://htmls-ruddy.vercel.app/web/167-sabrina-residences.html): 逐字進場的房產落地頁。藍天漸層上格線生長、房子從底部緩升，大標與標語逐字從模糊浮現；左下影片卡片永不停播、四段進度條可跳段，手機漢堡選單，最新房源可橫滑；字型、圖片與影片需連線
+- [167 Sabrina Residences · 藍天房產落地頁](https://htmls-ruddy.vercel.app/web/167-sabrina-residences.html): 透明融合的房產落地頁。導覽、影片卡與最新房源都是透出背景的玻璃層，房子從底部緩升、下緣溶進藍天並被升上來的房源玻璃片接住；大標與標語逐字從模糊浮現，影片永不停播、四段進度條可跳段；字型、圖片與影片需連線
+- [168 Trav · Begin Your Next Big Adventure](https://htmls-ruddy.vercel.app/web/168-trav-big-adventure.html): 霧面牆開一扇拱門的透明影片 Hero。整個畫面是背景影片失焦成的毛玻璃，中央 SVG 遮罩切出羽化邊緣的拱門露出清晰影片，大標跨在兩層之上，滑鼠移動時牆與文字反向漂移；地圖釘落下後大標與說明逐字滑入、白底圓角按鈕最後浮現；手機漢堡與全螢幕毛玻璃選單；Tailwind CDN、Inter 與影片需連線
 
 ### 資料科學
 
