@@ -125,9 +125,9 @@ MODE-006,MODE,同 tick 穩定事件排序,system,15,proposed,true,unverified,not
 MODE-007,MODE,地形／實體／區域編輯,system,15,proposed,true,unverified,not_started,,,,
 MODE-008,MODE,undo／redo／匯入／匯出,system,15,proposed,true,unverified,not_started,,,,
 MODE-009,MODE,情境驗證與 playtest,system,15,proposed,true,unverified,not_started,,,,
-POLISH-001,POLISH,原創／授權音效清冊,visual,16,proposed,false,design_proposal,not_started,,,,
+POLISH-001,POLISH,原創／授權音效清冊,visual,16,proposed,false,design_proposal,in_progress,apps/web/audio.ts,tests/first-use-full.mjs,docs/first-use-018.md,"Original sounds synthesised at play time with WebAudio (oscillator notes and filtered noise; no files, no network): selection (villager/soldier), orders, attack order, placement, built, trained, hit, alarm, age up, victory, defeat, collapse, resign. Each sound has a minimum spacing so battles do not pile up."
 POLISH-002,POLISH,音訊事件與優先級,visual,16,proposed,false,design_proposal,not_started,,,,
-POLISH-003,POLISH,音訊解鎖／分類音量,visual,16,proposed,false,design_proposal,not_started,,,,
+POLISH-003,POLISH,音訊解鎖／分類音量,visual,16,proposed,false,design_proposal,in_progress,apps/web/audio.ts;apps/web/main.ts;apps/web/index.html,tests/first-use-full.mjs,docs/first-use-018.md,"Audio starts on the first click or key (browser autoplay rules). One master volume 0-100 in the menu (0 mutes), saved per browser with graphics quality. No per-category volumes yet."
 POLISH-004,POLISH,建築工作／施工演出,visual,16,proposed,false,design_proposal,not_started,,,,
 POLISH-005,POLISH,積木碎片池與數量上限,visual,16,proposed,false,design_proposal,not_started,,,,
 POLISH-006,POLISH,霧外粒子／音訊過濾,visual,16,proposed,false,design_proposal,not_started,,,,
@@ -147,7 +147,7 @@ QA-004,QA,品質與實機證據,quality,18,proposed,false,design_proposal,not_st
 QA-005,QA,cross-system edge cases,quality,18,proposed,false,design_proposal,not_started,,,,
 QA-006,QA,clean checkout 與啟動,quality,18,proposed,false,design_proposal,not_started,,,,
 QA-007,QA,公開未完成與阻塞清單,quality,18,proposed,false,design_proposal,implemented,README.md;docs/completeness-matrix.md,,docs/verification.md,Open gaps explicitly listed
-UX-001,UX,首次進站到勝利,quality,19,proposed,false,design_proposal,in_progress,,,docs/first-use-001.md,First sandbox visit only; full match unavailable and remains blocked
+UX-001,UX,首次進站到勝利,quality,19,proposed,false,design_proposal,in_progress,tests/first-use-full.mjs;tests/first-use-match.mjs,tests/first-use-full.mjs;tests/first-use-match.mjs,docs/first-use-014.md;docs/first-use-017.md;docs/first-use-018.md,"Prompt 19 path played end to end in normal mode against the computer: settings (quality, volume, persisted), new match from the menu, villagers, food and wood, delivery, house, barracks, age 2, farm, archers, scout, attack, retreat, attack, result, orders refused after the end, new match. Healing is not available (monks: stage F)."
 UX-002,UX,卡住／破圖／碰撞重現,quality,19,proposed,false,design_proposal,in_progress,,,docs/first-use-001.md,First sandbox visit only; full match unavailable and remains blocked
 UX-003,UX,原步驟修正再測,quality,19,proposed,false,design_proposal,in_progress,,,docs/first-use-001.md,First sandbox visit only; full match unavailable and remains blocked
 UX-004,UX,無畫面環境未驗證分列,quality,19,proposed,false,design_proposal,in_progress,,,docs/first-use-001.md,First sandbox visit only; full match unavailable and remains blocked

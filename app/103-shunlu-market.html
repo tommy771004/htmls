@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3f5ef">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>順路 · 早市代買</title>
+<meta name="description" content="早市代買 App 的五種不順狀態：載入、離線、空的、找不到、取消訂單。每一種都留一條下一步，沒有死路。">
+<style>
+:root{
+  --paper:#f3f5ef; --card:#fcfdfa; --well:#e7ebe2; --ink:#1c2420; --ink-2:#4d5751; --ink-3:#687069;
+  --kraft:#d2b98f; --kraft-2:#c3a677; --kraft-ink:#2a2217; --kraft-3:#56452b;
+  --red:#a3302a; --leaf:#356232; --page:#23302a;
+  --ui:"PingFang TC","Heiti TC",-apple-system,BlinkMacSystemFont,system-ui,"Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --slab:"Rockwell","Rockwell Nova","Roboto Slab",Georgia,serif;
+  --out:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--ui);color:var(--ink);background:var(--paper);overflow:hidden;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+button,input{font:inherit;color:inherit;background:none;border:0}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:8px}
+svg{display:block}
+.num{font-family:var(--slab);font-variant-numeric:lining-nums}
+
+.stage{position:relative;width:100%;height:100vh;height:100dvh}
+.caption{display:none}
+.device{position:relative;width:100%;height:100%}
+.screen{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:var(--paper)}
+@media (min-width:521px){
+  body{background:var(--page);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E")}
+  .stage{display:flex;align-items:center;justify-content:center;gap:88px;padding:24px}
+  .device{flex:none;width:390px;height:min(844px,calc(100dvh - 48px));border-radius:54px;padding:9px;background:#131b17;
+    box-shadow:inset 0 0 0 1.5px #3a4841,0 18px 30px -20px #0b100d}
+  .screen{inset:9px;border-radius:45px}
+  .caption{display:block;width:290px;color:#dfe5dc}
+}
+@media (min-width:521px) and (max-width:900px){.caption{display:none}}
+
+/* ---------- desktop caption ---------- */
+.caption b{display:block;font:600 76px/1 var(--ui);letter-spacing:.06em;color:#f1efe6}
+.caption i{display:block;font:400 17px/1 var(--slab);font-style:normal;color:var(--kraft);margin-top:14px;letter-spacing:.04em}
+.caption p{margin-top:22px;font-size:15px;line-height:1.8;color:#b9c3b8;text-wrap:pretty}
+.caption ol{list-style:none;margin-top:26px;display:grid;gap:2px}
+.caption ol button{width:100%;display:grid;grid-template-columns:30px 1fr auto;align-items:baseline;gap:6px;text-align:left;padding:10px 12px;border-radius:10px;color:#cfd8cd;transition:background .2s,color .2s}
+.caption ol button:hover{background:#ffffff0d;color:#fff}
+.caption ol button .num{font-size:15px;color:#8e9a8e}
+.caption ol button span{font-size:15px}
+.caption ol button small{font-size:12px;color:#8e9a8e}
+.caption ol button[aria-current="true"]{background:#ffffff14;color:#fff}
+.caption ol button[aria-current="true"] .num{color:var(--kraft)}
+.caption .foot{margin-top:18px;font-size:12.5px;color:#8e9a8e;line-height:1.7}
+
+/* ---------- status bar ---------- */
+.status{position:absolute;top:0;left:0;right:0;z-index:30;height:calc(44px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 26px 0 34px;
+  display:flex;align-items:center;justify-content:space-between;font:600 15px/1 var(--ui);background:var(--paper)}
+.status .r{display:flex;align-items:center;gap:6px}
+.status svg{height:11px}
+.netbtn{display:grid;place-items:center;width:30px;height:26px;margin:0 -4px;border-radius:7px;transition:background .2s}
+.netbtn:hover{background:#1c24200f}
+.netbtn .off{display:none}
+.is-off .netbtn .on{display:none}
+.is-off .netbtn .off{display:block}
+
+/* ---------- hanging-tag nav ---------- */
+.rail{position:absolute;z-index:25;left:0;right:0;top:calc(44px + env(safe-area-inset-top));height:62px;background:var(--paper)}
+.rail .line{position:absolute;left:0;top:0;width:100%;height:22px;pointer-events:none}
+.rail .tags{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);padding:0 14px}
+.ntag{position:relative;z-index:0;justify-self:center;margin-top:9px;transform-origin:50% -2px;height:40px;min-width:70px;padding:12px 12px 0;
+  font-size:14.5px;font-weight:600;letter-spacing:.06em;color:var(--kraft-ink);display:flex;align-items:flex-start;justify-content:center;gap:5px}
+.ntag::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--kraft);
+  clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% 100%,0 100%,0 9px)}
+.ntag::after{content:"";position:absolute;left:50%;top:4px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--paper);box-shadow:inset 0 1px 0 #00000026}
+.ntag[aria-selected="true"]{color:var(--kraft)}
+.ntag[aria-selected="true"]::before{background:var(--ink)}
+.ntag .num{font-size:12.5px;font-weight:400;letter-spacing:0;padding-top:1px}
+.ntag:hover:not([aria-selected="true"])::before{background:#dbc59f}
+.ntag.swing{animation:swing 1.1s var(--out)}
+@keyframes swing{0%{transform:rotate(9deg)}22%{transform:rotate(-6deg)}44%{transform:rotate(3.5deg)}66%{transform:rotate(-1.6deg)}84%{transform:rotate(.6deg)}100%{transform:rotate(0)}}
+.ntag.nudge{animation:nudge .7s var(--out)}
+@keyframes nudge{0%{transform:rotate(-5deg)}40%{transform:rotate(3deg)}75%{transform:rotate(-1deg)}100%{transform:rotate(0)}}
+
+/* ---------- offline banner ---------- */
+.banner{position:absolute;z-index:22;left:0;right:0;top:calc(106px + env(safe-area-inset-top));padding:0 16px;display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s var(--out)}
+.is-off .banner{grid-template-rows:1fr}
+.banner > div{overflow:hidden}
+.bn{display:flex;gap:12px;align-items:center;padding:11px 12px 11px 14px;margin:2px 0 8px;border-radius:14px;background:var(--ink);color:#e9eee6}
+.bn svg{flex:none;width:18px;height:18px}
+.bn .t{flex:1;min-width:0}
+.bn b{display:block;font-size:14px;font-weight:600}
+.bn small{display:block;font-size:12px;color:#b8c2b6;margin-top:2px;line-height:1.45}
+.bn button{flex:none;font-size:13.5px;font-weight:600;color:var(--kraft);padding:8px 10px;border-radius:9px;transition:background .2s}
+.bn button:hover{background:#ffffff14}
+.bn button[disabled]{color:#8e9a8e;cursor:default}
+
+/* ---------- views ---------- */
+.views{position:absolute;inset:calc(106px + env(safe-area-inset-top)) 0 0;transition:top .38s var(--out)}
+.is-off .views{top:calc(106px + var(--bh,70px) + env(safe-area-inset-top))}
+.view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:6px 16px calc(40px + env(safe-area-inset-bottom));scrollbar-width:none}
+.view::-webkit-scrollbar{display:none}
+.view[hidden]{display:none}
+.view.enter{animation:venter .42s var(--out)}
+@keyframes venter{from{transform:translateY(8px)}}
+h1{font-size:28px;font-weight:600;letter-spacing:.02em;line-height:1.2}
+.sub{font-size:13px;color:var(--ink-3);margin-top:4px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:8px 2px 14px}
+.iconbtn{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;transition:background .2s;color:var(--ink)}
+.iconbtn:hover{background:#1c24200d}
+.iconbtn svg{width:20px;height:20px}
+.sec{display:flex;align-items:baseline;justify-content:space-between;margin:26px 2px 10px}
+.sec h3{font-size:15px;font-weight:600;letter-spacing:.04em}
+.sec small{font-size:12px;color:var(--ink-3)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 18px;border-radius:12px;background:var(--ink);color:#f3f5ef;font-size:15px;font-weight:600;letter-spacing:.04em;transition:background .2s}
+.btn:hover{background:#2e3a34}
+.btn:active{background:#0f1512}
+.btn.full{width:100%}
+.btn.kraft{background:var(--kraft);color:var(--kraft-ink)}
+.btn.kraft:hover{background:#dcc59f}
+.link{font-size:14px;font-weight:600;color:var(--ink);padding:10px 4px;border-radius:8px}
+.link.red{color:var(--red)}
+.link:hover{color:var(--ink-2)}
+.link.red:hover{color:#7f231f}
+
+/* agent note */
+.note{position:relative;border-radius:18px;background:var(--card);padding:16px 16px 14px;box-shadow:0 1px 0 #1c242014,0 0 0 1px #1c24200a}
+.note .who{font-size:12.5px;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+.note .who svg{width:15px;height:15px}
+.note .row{display:flex;gap:14px;align-items:center;margin-top:10px}
+.note .row .art{flex:none;width:66px;height:66px}
+.note h2{font-size:18px;font-weight:600;line-height:1.35}
+.note h2 .num{font-size:21px}
+.note p{font-size:13px;color:var(--ink-2);line-height:1.6;margin-top:4px;text-wrap:pretty}
+.note .act{margin-top:14px;display:flex;gap:10px;align-items:center}
+.note .act .btn{flex:1;height:44px;font-size:14.5px}
+.stale{font-size:11px;color:var(--ink-3);letter-spacing:.02em}
+
+.figs{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;padding:0 2px}
+.figs div{padding-right:8px}
+.figs .num{display:block;font-size:26px;line-height:1.1}
+.figs .num.leaf{color:var(--leaf)}
+.figs small{display:block;font-size:12px;color:var(--ink-3);margin-top:3px}
+
+/* the cardboard price tags */
+.aisle{display:flex;gap:12px;overflow-x:auto;margin:0 -16px;padding:14px 16px 8px;scroll-snap-type:x mandatory;scroll-padding:0 16px;scrollbar-width:none}
+.aisle::-webkit-scrollbar{display:none}
+.ptag{position:relative;z-index:0;flex:none;width:132px;scroll-snap-align:start;padding:20px 12px 8px;color:var(--kraft-ink);transform-origin:50% -10px}
+.ptag::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--kraft);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .25 0 0 0 0 .1 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  clip-path:polygon(14px 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%,0 14px)}
+.ptag::after{content:"";position:absolute;left:50%;top:7px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--paper);box-shadow:inset 0 1px 1px #00000030}
+.ptag .art{width:60px;height:60px;margin:0 auto}
+.ptag .nm{font-size:14px;font-weight:600;margin-top:6px;letter-spacing:.04em}
+.ptag .pr{display:flex;align-items:baseline;gap:3px;margin-top:2px}
+.ptag .pr .num{font-size:30px;line-height:1}
+.ptag .pr small{font-size:12px;color:var(--kraft-3)}
+.ptag .was{font-size:11.5px;color:var(--red);margin-top:3px;min-height:16px}
+.ptag .st{font-size:11.5px;color:var(--kraft-3);margin-top:1px}
+.ptag .ops{display:flex;justify-content:space-between;margin:6px -6px 0}
+.ptag .ops button{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;transition:background .2s}
+.ptag .ops button:hover{background:#2a22170f}
+.ptag .ops svg{width:20px;height:20px}
+.ptag.bump{animation:bump .6s var(--out)}
+@keyframes bump{0%{transform:rotate(-4deg)}45%{transform:rotate(2deg)}100%{transform:rotate(0)}}
+.ptag .inb{position:absolute;right:10px;top:14px;font:400 12px/1 var(--slab);color:var(--kraft-ink)}
+.is-off .ptag .pr .num{color:#4a3e2c}
+
+.log{list-style:none;margin-top:4px}
+.log li{display:grid;grid-template-columns:48px 1fr;gap:8px;padding:10px 2px;font-size:13.5px;line-height:1.55}
+.log li .num{font-size:13px;color:var(--ink-3);padding-top:1px}
+.log li b{font-weight:600}
+
+.tries{list-style:none;margin-top:2px;border-radius:16px;background:var(--well);padding:4px}
+.step{width:100%;display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;text-align:left;padding:12px 10px;border-radius:12px;transition:background .2s}
+.step:hover{background:#1c24200a}
+.step > svg{width:20px;height:20px;color:var(--ink-2);transition:transform .3s var(--out)}
+.step:hover > svg{transform:translateX(2px)}
+.step b{display:block;font-size:14.5px;font-weight:600}
+.step small{display:block;font-size:12.5px;color:var(--ink-3);margin-top:2px;line-height:1.45}
+.step .num{font-size:15px;color:var(--ink-2)}
+
+/* skeleton */
+.sk{border-radius:12px;background:var(--well);position:relative;overflow:hidden}
+.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,#f3f5ef00,#f3f5efb3 50%,#f3f5ef00);animation:shim 1.25s ease-in-out infinite}
+@keyframes shim{to{transform:translateX(100%)}}
+.sk.tag{flex:none;width:132px;height:218px;background:#e2d6c1;clip-path:polygon(14px 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%,0 14px);border-radius:0}
+.sk.tag::after{background:linear-gradient(90deg,#f3f5ef00,#f3f5ef80 50%,#f3f5ef00)}
+.skl{display:flex;flex-direction:column;gap:8px}
+.skmsg{font-size:12.5px;color:var(--ink-3);margin:12px 2px 0;display:flex;align-items:center;gap:8px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #1c242033;border-top-color:var(--ink);animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* find */
+.search{position:relative;margin:8px 0 4px}
+.search input{-webkit-appearance:none;appearance:none;width:100%;height:48px;border-radius:14px;background:var(--card);box-shadow:0 0 0 1px #1c24201f;padding:0 44px 0 42px;font-size:16px}
+.search input:focus{outline:none;box-shadow:0 0 0 2px var(--ink)}
+.search input::placeholder{color:#7d857f}
+.search input::-webkit-search-cancel-button,.search input::-webkit-search-decoration{-webkit-appearance:none;display:none}
+.search > svg{position:absolute;left:14px;top:14px;width:20px;height:20px;color:var(--ink-2);pointer-events:none}
+.search .clr{position:absolute;right:4px;top:4px;width:40px;height:40px;display:grid;place-items:center;border-radius:10px;color:var(--ink-3)}
+.search .clr[hidden]{display:none}
+.search .clr svg{width:16px;height:16px}
+.meta{font-size:12.5px;color:var(--ink-3);margin:12px 2px 4px}
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+.cat{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--card);box-shadow:0 0 0 1px #1c24200d;text-align:left;transition:background .2s}
+.cat:hover{background:#fff}
+.cat .art{flex:none;width:38px;height:38px}
+.cat b{display:block;font-size:14.5px;font-weight:600}
+.cat small{display:block;font-size:12px;color:var(--ink-3)}
+
+.rows{list-style:none}
+.rowi{display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:center;padding:10px 2px}
+.rowi + .rowi{box-shadow:0 -1px 0 #1c242014}
+.rowi .art{width:48px;height:48px}
+.rowi b{display:block;font-size:15px;font-weight:600}
+.rowi small{display:block;font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.rowi .rt{display:flex;align-items:center;gap:2px}
+.rowi .rt .num{font-size:18px;margin-right:6px}
+.rowi .rt .num small{display:inline;font:12px var(--ui);color:var(--ink-3);margin:0}
+.gl{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;color:var(--ink);transition:background .2s}
+.gl:hover{background:#1c24200d}
+.gl svg{width:20px;height:20px}
+.gl.on{color:var(--red)}
+
+.none h2{font-size:23px;font-weight:600;line-height:1.35;letter-spacing:.02em;margin-top:20px;overflow-wrap:anywhere}
+.none p{font-size:14px;color:var(--ink-2);line-height:1.7;margin-top:8px;text-wrap:pretty}
+.none .proof{display:flex;gap:14px;align-items:center;margin-top:18px}
+.none .proof .ptag{width:124px;padding-bottom:16px}
+.none .proof .ptag .pr{position:relative;white-space:nowrap;margin-top:6px}
+.none .proof .ptag .pr .num{font-size:27px}
+.none .proof .circ{position:absolute;left:-9px;top:-8px;width:calc(100% + 16px);height:calc(100% + 14px);pointer-events:none;color:var(--red);overflow:visible}
+.none .proof .why b{display:block;font-size:15px;font-weight:600}
+.none .proof .why small{display:block;font-size:13px;color:var(--ink-2);line-height:1.6;margin-top:4px}
+.none .proof .circ path{stroke-dasharray:260;stroke-dashoffset:0;animation:draw .9s .15s var(--out) backwards}
+@keyframes draw{from{stroke-dashoffset:260}}
+
+/* saved */
+.seg{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:12px;background:var(--well);margin-top:2px}
+.seg button{position:relative;z-index:1;height:36px;font-size:14px;font-weight:600;color:var(--ink-2);border-radius:9px;transition:color .25s}
+.seg button[aria-selected="true"]{color:var(--ink)}
+.seg i{position:absolute;left:3px;top:3px;bottom:3px;width:calc(50% - 3px);border-radius:9px;background:var(--card);box-shadow:0 1px 2px #1c242024;transition:transform .35s var(--out)}
+.seg.r i{transform:translateX(100%)}
+.empty{text-align:center;padding:26px 8px 6px}
+.empty .bag{width:150px;height:132px;margin:0 auto}
+.empty .bag .fold{transform-origin:50% 60%;animation:slump 3.6s ease-in-out infinite}
+@keyframes slump{0%,100%{transform:rotate(0)}50%{transform:rotate(-2.5deg)}}
+.empty h2{font-size:20px;font-weight:600;margin-top:16px;letter-spacing:.02em}
+.empty p{font-size:14px;color:var(--ink-2);line-height:1.7;margin:8px auto 0;max-width:290px;text-wrap:balance}
+.empty .btn{margin:18px auto 0;width:220px}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+.mini .ptag{width:auto;padding:18px 8px 6px}
+.mini .ptag .art{width:46px;height:46px}
+.mini .ptag .nm{font-size:13px}
+.mini .ptag .pr .num{font-size:22px}
+.mini .ptag .ops{justify-content:center}
+
+/* order */
+.trip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.trip div{padding:10px 10px 11px;border-radius:12px;background:var(--well)}
+.trip .num{display:block;font-size:19px}
+.trip small{display:block;font-size:12px;color:var(--ink-3);margin-top:2px}
+.trip div.now{background:var(--ink);color:#f3f5ef}
+.trip div.now small{color:#b8c2b6}
+.qty{display:flex;align-items:center;gap:0;border-radius:10px;background:var(--well)}
+.qty button{width:34px;height:34px;display:grid;place-items:center;border-radius:10px}
+.qty button:hover{background:#1c24200f}
+.qty svg{width:14px;height:14px}
+.qty .num{min-width:18px;text-align:center;font-size:15px}
+.sum{margin-top:10px;padding:12px 2px 0;box-shadow:0 -1px 0 #1c242014}
+.sum div{display:flex;justify-content:space-between;font-size:14px;color:var(--ink-2);padding:4px 0}
+.sum div.t{color:var(--ink);font-weight:600;font-size:15.5px;padding-top:8px}
+.sum .num{font-size:15px}
+.sum div.t .num{font-size:21px}
+.window{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:12px 14px;border-radius:14px;background:var(--card);box-shadow:0 0 0 1px #1c24200d;font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.window svg{flex:none;width:18px;height:18px;margin-top:1px;color:var(--ink)}
+.window b{color:var(--ink);font-weight:600}
+.queue{margin-top:12px;padding:12px 14px;border-radius:14px;background:#e9e1d1;font-size:13.5px;line-height:1.55;color:var(--kraft-ink)}
+.queue b{font-weight:600}
+.cancelrow{display:flex;justify-content:center;margin-top:18px}
+.voided{border-radius:18px;background:var(--card);padding:18px 16px;box-shadow:0 0 0 1px #1c24200d;margin-top:6px}
+.voided .stamp{display:inline-block;font:400 15px/1 var(--slab);letter-spacing:.14em;color:var(--red);padding:7px 10px 6px;border-radius:6px;box-shadow:inset 0 0 0 2px var(--red);transform:rotate(-3deg)}
+.voided h2{font-size:20px;font-weight:600;margin-top:14px}
+.voided p{font-size:14px;color:var(--ink-2);line-height:1.7;margin-top:6px}
+.voided ul{list-style:none;margin-top:12px}
+.voided li{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:8px 0;font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.voided li svg{width:18px;height:18px;margin-top:1px;color:var(--ink)}
+.voided li b{color:var(--ink);font-weight:600}
+.voided .btn{margin-top:14px}
+.voided .alt{display:flex;justify-content:center;margin-top:4px}
+
+/* sheet */
+.scrim{position:absolute;inset:0;z-index:40;background:#1c2420;opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:.38;pointer-events:auto}
+.sheet{position:absolute;z-index:41;left:0;right:0;bottom:0;background:var(--card);border-radius:24px 24px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .42s var(--out);max-height:88%;overflow-y:auto;visibility:hidden}
+.sheet.on{transform:none;visibility:visible}
+.sheet.closing{visibility:visible}
+.grab{width:38px;height:5px;border-radius:3px;background:#1c242026;margin:0 auto 14px}
+.sheet h2{font-size:21px;font-weight:600;letter-spacing:.02em}
+.sheet > p{font-size:14px;color:var(--ink-2);line-height:1.65;margin-top:6px}
+.facts{list-style:none;margin-top:12px}
+.facts li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:12px 0}
+.facts li + li{box-shadow:0 -1px 0 #1c242014}
+.facts li svg{width:18px;height:18px;color:var(--ink)}
+.facts b{display:block;font-size:14.5px;font-weight:600}
+.facts small{display:block;font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.sw{position:relative;width:50px;height:30px;border-radius:15px;background:#c9cfc6;transition:background .25s}
+.sw::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #1c242040;transition:transform .3s var(--out)}
+.sw[aria-checked="true"]{background:var(--ink)}
+.sw[aria-checked="true"]::after{transform:translateX(20px)}
+.sheet .acts{display:grid;gap:4px;margin-top:14px}
+.sheet .acts .link{text-align:center;padding:12px}
+
+/* toast */
+.toast{position:absolute;z-index:50;left:14px;right:14px;bottom:calc(18px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;padding:12px 8px 12px 16px;border-radius:14px;background:var(--ink);color:#eef2ec;font-size:13.5px;line-height:1.5;
+  transform:translateY(140%);transition:transform .38s var(--out);visibility:hidden}
+.toast.on{transform:none;visibility:visible}
+.toast span{flex:1}
+.toast button{flex:none;font-weight:600;color:var(--kraft);padding:8px 10px;border-radius:9px}
+.toast button:hover{background:#ffffff14}
+.toast button[hidden]{display:none}
+
+@media (display-mode:standalone){
+  .status{display:none}
+  .rail{top:env(safe-area-inset-top)}
+  .banner{top:calc(62px + env(safe-area-inset-top))}
+  .views{top:calc(62px + env(safe-area-inset-top))}
+  .is-off .views{top:calc(62px + var(--bh,70px) + env(safe-area-inset-top))}
+}
+@media (prefers-reduced-motion:reduce){
+  .ntag.swing,.ntag.nudge,.ptag.bump,.view.enter,.empty .bag .fold,.none .proof .circ path{animation:none}
+  .sk::after{animation:none;display:none}
+  .banner,.views,.sheet,.toast,.seg i{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="caption">
+    <b>順路</b>
+    <i>Shunlu · the other screens</i>
+    <p>早市代買只畫順利的樣子很容易。這裡是它不順的五個畫面，每一個都留著下一步，沒有死路。</p>
+    <ol id="states">
+      <li><button data-act="state" data-s="load"><span class="num">01</span><span>載入中</span><small>價牌先排好位置</small></button></li>
+      <li><button data-act="state" data-s="off"><span class="num">02</span><span>離線</span><small>看存下的價格</small></button></li>
+      <li><button data-act="state" data-s="empty"><span class="num">03</span><span>還沒收藏</span><small>直接從這裡加</small></button></li>
+      <li><button data-act="state" data-s="none"><span class="num">04</span><span>找不到</span><small>四條別的路</small></button></li>
+      <li><button data-act="state" data-s="cancel"><span class="num">05</span><span>取消訂單</span><small>退多少、何時退</small></button></li>
+    </ol>
+    <p class="foot">右上角的 Wi-Fi 可以點，模擬斷線與恢復。收藏、盯價與籃子會記在這台瀏覽器裡。</p>
+  </aside>
+  <div class="device"><div class="screen" id="screen">
+    <div class="status">
+      <span class="num" style="font-family:var(--ui)">21:40</span>
+      <span class="r">
+        <svg viewBox="0 0 18 11" aria-hidden="true"><path d="M0 8h3v3H0zM5 6h3v5H5zM10 3h3v8h-3zM15 0h3v11h-3z" fill="#1c2420"/></svg>
+        <button class="netbtn" id="net" aria-label="切換網路（模擬離線）" aria-pressed="false">
+          <svg class="on" viewBox="0 0 16 11"><path d="M8 10.6 5.6 8.2a3.4 3.4 0 0 1 4.8 0zM3.5 6.1a6.4 6.4 0 0 1 9 0l-1.4 1.4a4.4 4.4 0 0 0-6.2 0zM1.3 3.9a9.5 9.5 0 0 1 13.4 0L13.3 5.3a7.5 7.5 0 0 0-10.6 0z" fill="#1c2420"/></svg>
+          <svg class="off" viewBox="0 0 16 11"><path d="M8 10.6 5.6 8.2a3.4 3.4 0 0 1 4.8 0zM3.5 6.1a6.4 6.4 0 0 1 9 0l-1.4 1.4a4.4 4.4 0 0 0-6.2 0zM1.3 3.9a9.5 9.5 0 0 1 13.4 0L13.3 5.3a7.5 7.5 0 0 0-10.6 0z" fill="#1c242040"/><path d="M2.5 .8l11 9.6" stroke="#a3302a" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <svg viewBox="0 0 27 12" aria-hidden="true"><rect x=".5" y=".5" width="22" height="11" rx="3" fill="none" stroke="#1c2420" opacity=".45"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.5" fill="#1c2420"/><path d="M24.5 4v4" stroke="#1c2420" stroke-width="1.4" stroke-linecap="round" opacity=".45"/></svg>
+      </span>
+    </div>
+
+    <nav class="rail" aria-label="主要分頁">
+      <svg class="line" viewBox="0 0 390 22" preserveAspectRatio="none" aria-hidden="true"><path d="M-4 5C60 12 130 13 195 12S330 12 394 5" fill="none" stroke="#6d5a3d" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <div class="tags" role="tablist">
+        <button class="ntag" role="tab" data-act="tab" data-tab="today" aria-selected="true">今天</button>
+        <button class="ntag" role="tab" data-act="tab" data-tab="find" aria-selected="false">找菜</button>
+        <button class="ntag" role="tab" data-act="tab" data-tab="saved" aria-selected="false">常買</button>
+        <button class="ntag" role="tab" data-act="tab" data-tab="order" aria-selected="false" id="orderTag">籃子 <span class="num" id="orderCount"></span></button>
+      </div>
+    </nav>
+
+    <div class="banner" id="banner"><div><div class="bn" role="status">
+      <svg viewBox="0 0 20 20" fill="none" stroke="#e9eee6" stroke-width="1.6" stroke-linecap="round"><path d="M3 8a10 10 0 0 1 14 0M5.6 10.8a6.4 6.4 0 0 1 8.8 0M8.3 13.5a2.5 2.5 0 0 1 3.4 0"/><path d="M3 3l14 14" stroke="#e7a39b"/></svg>
+      <div class="t"><b id="bnTitle">沒有網路</b><small id="bnText">先給你看 21:05 存下的價格</small></div>
+      <button id="retry" data-act="retry">重試</button>
+    </div></div></div>
+
+    <main class="views">
+      <section class="view" id="v-today" role="tabpanel" aria-label="今天"></section>
+      <section class="view" id="v-find" role="tabpanel" aria-label="找菜" hidden>
+        <div class="head"><div><h1>找菜</h1><p class="sub">說菜名和預算，例如「鮭魚 100 以下」</p></div></div>
+        <div class="search">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8.6" cy="8.6" r="5.6"/><path d="m13 13 4.2 4.2"/></svg>
+          <input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="想買什麼？" aria-label="搜尋菜名與預算">
+          <button class="clr" id="clr" data-act="clear" aria-label="清除" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+        </div>
+        <div id="findBody"></div>
+      </section>
+      <section class="view" id="v-saved" role="tabpanel" aria-label="常買" hidden></section>
+      <section class="view" id="v-order" role="tabpanel" aria-label="籃子" hidden></section>
+    </main>
+
+    <div class="scrim" id="scrim" data-act="close"></div>
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastBtn" data-act="undo" hidden>復原</button></div>
+  </div></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- data ---------- */
+var ITEMS = [
+  {id:'cab',  n:'高麗菜',   u:'顆',   p:35,  was:50, st:'阿玉菜攤', cat:'葉菜', syn:['高麗','甘藍','包心菜','菜']},
+  {id:'kong', n:'空心菜',   u:'把',   p:30,  st:'阿玉菜攤', cat:'葉菜', syn:['空心','蕹菜','菜']},
+  {id:'yam',  n:'地瓜葉',   u:'把',   p:25,  st:'林家自耕', cat:'葉菜', syn:['地瓜','番薯葉','菜']},
+  {id:'tom',  n:'牛番茄',   u:'斤',   p:60,  was:70, st:'林家自耕', cat:'蔬果', syn:['番茄','蕃茄','西紅柿']},
+  {id:'loof', n:'絲瓜',     u:'條',   p:45,  st:'林家自耕', cat:'蔬果', syn:['菜瓜','瓜']},
+  {id:'garl', n:'蒜頭',     u:'兩',   p:20,  st:'林家自耕', cat:'蔬果', syn:['蒜','大蒜']},
+  {id:'ban',  n:'香蕉',     u:'串',   p:40,  st:'旗山蕉',   cat:'水果', syn:['蕉','水果']},
+  {id:'mack', n:'鯖魚',     u:'尾',   p:80,  st:'阿忠魚攤', cat:'海鮮', syn:['青花魚','魚']},
+  {id:'salm', n:'鮭魚切片', u:'片',   p:180, st:'阿忠魚攤', cat:'海鮮', syn:['鮭魚','鮭','三文魚','魚']},
+  {id:'pork', n:'豬五花',   u:'半斤', p:120, st:'陳記肉舖', cat:'肉',   syn:['五花','豬肉','肉','三層肉']},
+  {id:'egg',  n:'土雞蛋',   u:'盒',   p:75,  st:'王家蛋行', cat:'蛋豆', syn:['雞蛋','蛋']},
+  {id:'tofu', n:'板豆腐',   u:'塊',   p:25,  st:'老街豆腐', cat:'蛋豆', syn:['豆腐','傳統豆腐']}
+];
+var BY = {}; ITEMS.forEach(function(it){ BY[it.id] = it; });
+var CATS = [['葉菜','kong'],['蔬果','tom'],['海鮮','mack'],['肉','pork'],['蛋豆','egg'],['水果','ban']];
+var FEE = 49, CARD = '4417';
+var DEFAULT_ORDER = {cab:1, tom:1, egg:1, tofu:2};
+
+/* ---------- drawings (one flat, ink-less house style) ---------- */
+function art(id){
+  var d = {
+    cab:'<ellipse cx="32" cy="38" rx="25" ry="21" fill="#7fae5c"/><path d="M11 40c2-12 11-19 21-19s19 7 21 19c-5 9-13 13-21 13s-16-4-21-13z" fill="#a6cc85"/><path d="M20 42c1-8 6-13 12-13s11 5 12 13c-3 5-7 7-12 7s-9-2-12-7z" fill="#c8e0a8"/><path d="M32 29v22M26 33l6 6 6-6" fill="none" stroke="#86b367" stroke-width="1.6" stroke-linecap="round"/>',
+    kong:'<g stroke="#8dbb68" stroke-width="3" stroke-linecap="round"><path d="M30 60 22 20"/><path d="M32 60v-44"/><path d="M34 60l9-38"/><path d="M31 60 14 28"/><path d="M33 60l17-30"/></g><g fill="#4f8a43"><path d="M22 20c-6-3-8-10-5-16 5 3 7 10 5 16z"/><path d="M32 16c-4-5-3-12 1-15 3 4 3 11-1 15z"/><path d="M43 22c1-6 6-11 12-11-1 6-6 11-12 11z"/><path d="M14 28c-6 0-11-5-11-11 6 0 11 5 11 11z"/><path d="M50 30c2-6 8-9 13-8-2 6-8 9-13 8z"/></g><rect x="25" y="46" width="14" height="5" rx="2" fill="#c0423a"/>',
+    yam:'<g stroke="#8a5a74" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M32 60c0-14-8-24-16-30"/><path d="M32 60c0-16 6-28 16-34"/><path d="M32 60V22"/></g><g fill="#5d9b4a"><path d="M16 30c-9 1-14-6-12-14 3 3 7 2 9 5 2-4 7-4 9-1-1 5-3 9-6 10z"/><path d="M48 26c9 1 14-6 12-14-3 3-7 2-9 5-2-4-7-4-9-1 1 5 3 9 6 10z"/><path d="M32 22c-8-3-10-12-5-18 2 4 4 4 5 7 1-3 3-3 5-7 5 6 3 15-5 18z" fill="#6fae58"/></g>',
+    tom:'<circle cx="32" cy="37" r="22" fill="#cf4535"/><ellipse cx="24" cy="30" rx="7" ry="5" fill="#e8705c" transform="rotate(-30 24 30)"/><path d="M32 18l4-6 1 7 7-2-4 6 7 3-8 1 0 0-7 3-7-3-8-1 7-3-4-6 7 2 1-7z" fill="#4f8a43"/><path d="M32 14v-6" stroke="#4f8a43" stroke-width="2.4" stroke-linecap="round"/>',
+    loof:'<path d="M8 50C18 58 40 50 52 30c5-8 6-15 4-18-3-2-8 1-12 8C35 36 20 44 10 43c-4 1-5 5-2 7z" fill="#7fa55a"/><path d="M13 47c12 0 25-8 35-24M16 50c12-1 27-11 36-27" fill="none" stroke="#5f8742" stroke-width="1.4" stroke-linecap="round"/><path d="M53 13c2-4 5-6 8-6" stroke="#6d5a3d" stroke-width="2.4" stroke-linecap="round" fill="none"/>',
+    garl:'<path d="M32 12c3 6 16 14 18 26 2 13-8 20-18 20s-20-7-18-20c2-12 15-20 18-26z" fill="#f1ece2"/><path d="M32 16c-3 10-9 18-9 28 0 7 4 12 9 13M32 16c3 10 9 18 9 28 0 7-4 12-9 13" fill="none" stroke="#cfc2ae" stroke-width="1.5"/><path d="M26 50c3 4 9 4 12 0" fill="none" stroke="#b9a0c6" stroke-width="2" stroke-linecap="round"/><path d="M32 12V5" stroke="#b3a88f" stroke-width="3" stroke-linecap="round"/>',
+    ban:'<path d="M12 22c2 18 16 30 36 30 4 0 6-3 3-4-17-2-28-12-33-28-1-3-6-2-6 2z" fill="#e8c24a"/><path d="M18 18c3 17 17 27 35 26 4 0 5-3 2-4-15-2-25-10-31-24-1-3-6-2-6 2z" fill="#f2d465"/><path d="M24 14c4 15 17 23 33 21 3-1 3-4 0-4-13-1-22-8-27-19-1-3-6-2-6 2z" fill="#f7e08a"/><path d="M13 21l3-8 5 1 5 1-2 6" fill="#6d5a3d"/>',
+    mack:'<path d="M4 34c10-12 26-16 42-12l10-9c1 5 0 10-2 14 2 3 3 7 2 12l-10-8C30 36 14 38 4 34z" fill="#6f8fa0"/><path d="M6 34c12 2 26 0 40-6-8 10-26 12-40 6z" fill="#dfe6e6"/><path d="M14 27c3 3 6 3 9 0M22 25c3 3 6 3 9 0M30 24c3 3 6 3 9 0" fill="none" stroke="#3e5866" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="31" r="1.8" fill="#1c2420"/>',
+    salm:'<path d="M10 22c10-10 36-10 46 0 5 6 5 18-2 24-10 9-34 9-44 0-6-6-6-18 0-24z" fill="#ef9474"/><path d="M10 22c10-10 36-10 46 0" fill="none" stroke="#98a3a5" stroke-width="4" stroke-linecap="round"/><g fill="none" stroke="#fbd9c9" stroke-width="2" stroke-linecap="round"><path d="M18 22c4 8 4 18 0 24"/><path d="M28 19c5 9 5 21 0 29"/><path d="M39 19c5 9 5 21 0 29"/><path d="M49 22c3 7 3 17 0 23"/></g>',
+    pork:'<rect x="6" y="18" width="52" height="30" rx="6" fill="#f3d9cb"/><rect x="6" y="18" width="52" height="7" rx="3.5" fill="#e6c49e"/><path d="M6 31h52v6H6z" fill="#d98570"/><path d="M6 42h52v6a6 6 0 0 1-6 0H12a6 6 0 0 1-6 0z" fill="#c46a56"/><path d="M6 42c0 4 3 6 6 6h40c3 0 6-2 6-6z" fill="#c46a56"/>',
+    egg:'<ellipse cx="20" cy="40" rx="11" ry="14" fill="#e6cda8"/><ellipse cx="44" cy="40" rx="11" ry="14" fill="#dcbf94"/><ellipse cx="32" cy="30" rx="11" ry="14" fill="#efdcbf"/><ellipse cx="28" cy="25" rx="3" ry="5" fill="#f8eedf"/>',
+    tofu:'<path d="M8 26 30 16l26 8v22L34 56 8 46z" fill="#e7dfca"/><path d="M8 26 30 16l26 8-22 10z" fill="#f8f4ea"/><path d="M34 34v22l22-10V24z" fill="#d8cdb3"/><g stroke="#e6ddc8" stroke-width="1"><path d="M16 23l22 7M22 20l22 7M26 34l16-7"/></g>'
+  }[id] || '';
+  return '<svg class="art" viewBox="0 0 64 64" aria-hidden="true">' + d + '</svg>';
+}
+var G = {
+  heart:function(on){ return '<svg viewBox="0 0 20 20" fill="' + (on?'currentColor':'none') + '" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M10 16.6S3 12.4 3 7.6A3.6 3.6 0 0 1 10 6.2a3.6 3.6 0 0 1 7 1.4c0 4.8-7 9-7 9z"/></svg>'; },
+  plus:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M10 4v12M4 10h12"/></svg>',
+  minus:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 8h10"/></svg>',
+  plusS:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>',
+  // the house glyph: a route that steps around a block (a detour, never a wall)
+  detour:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 15h3.5a2.5 2.5 0 0 0 2.5-2.5v-5A2.5 2.5 0 0 1 11 5h6"/><path d="M14.2 2.2 17 5l-2.8 2.8"/><path d="M11.5 15h1.5" opacity=".45"/></svg>',
+  refresh:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a6 6 0 1 1-2-4.5"/><path d="M14.6 2.4v3.4h-3.4"/></svg>',
+  runner:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="3" r="1.6"/><path d="M5 7.5 8 5.6l2.4 1.8 2 .6M8 5.6 7 9.6l2.8 1.8L9 15M7 9.6 4.6 14"/></svg>',
+  clock:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4.2l2.6 1.6"/></svg>',
+  card:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2.5" y="5" width="15" height="10.5" rx="2"/><path d="M2.5 8.5h15M5.5 12.5h3" stroke-linecap="round"/></svg>',
+  eye:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.3"/></svg>',
+  x:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>'
+};
+var BAG = '<svg class="bag" viewBox="0 0 150 132" aria-hidden="true"><defs><pattern id="plaid" width="18" height="18" patternUnits="userSpaceOnUse"><rect width="18" height="18" fill="#f4f1ea"/><rect width="18" height="6" fill="#b23a33"/><rect y="9" width="18" height="3" fill="#2d4e86"/><rect x="0" width="6" height="18" fill="#b23a3399"/><rect x="9" width="3" height="18" fill="#2d4e8666"/></pattern></defs>' +
+  '<path d="M44 44c0-24 18-34 31-34s31 10 31 34" fill="none" stroke="#2d4e86" stroke-width="6" stroke-linecap="round"/>' +
+  '<g class="fold"><path d="M22 52c16-6 90-6 106 0l-6 64c-1 7-5 10-12 10H40c-7 0-11-3-12-10z" fill="url(#plaid)"/>' +
+  '<path d="M22 52c16-6 90-6 106 0l-3 12c-18-5-82-5-100 0z" fill="#1c242014"/>' +
+  '<path d="M36 122c10-18 30-24 39-24s29 6 39 24" fill="none" stroke="#1c24201f" stroke-width="3"/></g></svg>';
+
+/* ---------- state ---------- */
+var S = {
+  tab:'today', offline:false, loading:true, retries:0,
+  saved:[], watches:[{id:'cab', max:30}],
+  order:{status:'open', items:clone(DEFAULT_ORDER)}, queue:[], cancelPending:false,
+  seg:'fav', keepWatch:true, lastCancel:null, lastRemovedSave:null
+};
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function load(){
+  try{
+    var raw = localStorage.getItem('shunlu-103');
+    if(!raw) return;
+    var d = JSON.parse(raw);
+    if(Array.isArray(d.saved)) S.saved = d.saved.filter(function(id){ return BY[id]; });
+    if(Array.isArray(d.watches)) S.watches = d.watches.filter(function(w){ return w && typeof w.max === 'number'; });
+    if(d.order && d.order.items) S.order = d.order;
+  }catch(e){}
+}
+function save(){
+  try{ localStorage.setItem('shunlu-103', JSON.stringify({saved:S.saved, watches:S.watches, order:S.order})); }catch(e){}
+}
+load();
+
+var $ = function(id){ return document.getElementById(id); };
+var screen = $('screen');
+function money(n){ return '$' + n; }
+function orderCount(){ var c = 0; for(var k in S.order.items) c += S.order.items[k]; return c; }
+function orderSub(){ var s = 0; for(var k in S.order.items) s += BY[k].p * S.order.items[k]; return s; }
+function orderTotal(){ return orderSub() + (orderCount() ? FEE : 0); }
+function isSaved(id){ return S.saved.indexOf(id) > -1; }
+function inOrder(id){ return S.order.status === 'open' ? (S.order.items[id] || 0) : 0; }
+function watchLabel(w){ return w.id ? BY[w.id].n + '低於 ' + money(w.max) : '問問看有沒有「' + w.label + '」'; }
+
+/* ---------- today ---------- */
+function tagHTML(it, opts){
+  opts = opts || {};
+  var n = inOrder(it.id);
+  return '<div class="ptag" data-tag="' + it.id + '">' + (n ? '<span class="inb">×' + n + '</span>' : '') + art(it.id) +
+    '<div class="nm">' + it.n + '</div>' +
+    '<div class="pr"><span class="num">' + money(it.p) + '</span><small>／' + it.u + '</small></div>' +
+    (opts.mini ? '' : '<div class="was">' + (it.was ? '上週 ' + money(it.was) : '') + '</div><div class="st">' + it.st + '</div>') +
+    '<div class="ops"><button class="' + (isSaved(it.id) ? 'on' : '') + '" data-act="heart" data-id="' + it.id + '" aria-pressed="' + isSaved(it.id) + '" aria-label="收藏' + it.n + '" style="color:' + (isSaved(it.id) ? 'var(--red)' : 'inherit') + '">' + G.heart(isSaved(it.id)) + '</button>' +
+    (opts.mini ? '' : '<button data-act="add" data-id="' + it.id + '" aria-label="把' + it.n + '加進明早的籃子">' + G.plus + '</button>') + '</div></div>';
+}
+function renderToday(){
+  var v = $('v-today');
+  if(S.loading){
+    v.innerHTML = '<div class="head"><div><h1>今天</h1><p class="sub">9 月 27 日 週日 · 南門市場</p></div></div>' +
+      '<div class="sk" style="height:168px;border-radius:18px"></div>' +
+      '<p class="skmsg"><span class="spin"></span>阿順在翻 14 攤的價牌…</p>' +
+      '<div class="figs"><div class="skl"><div class="sk" style="height:24px;width:60%"></div><div class="sk" style="height:11px;width:70%"></div></div><div class="skl"><div class="sk" style="height:24px;width:40%"></div><div class="sk" style="height:11px;width:60%"></div></div><div class="skl"><div class="sk" style="height:24px;width:40%"></div><div class="sk" style="height:11px;width:60%"></div></div></div>' +
+      '<div class="sec"><div class="sk" style="height:14px;width:70px"></div></div>' +
+      '<div class="aisle" style="overflow:hidden"><div class="sk tag"></div><div class="sk tag"></div><div class="sk tag"></div></div>';
+    return;
+  }
+  var cab = BY.cab, n = inOrder('cab');
+  var act = S.offline
+    ? '<button class="btn" data-act="add" data-id="cab">先記下，連上網再加</button>'
+    : (n ? '<button class="btn" data-act="add" data-id="cab">已在籃子 ×' + n + '，再加一顆</button>' : '<button class="btn" data-act="add" data-id="cab">加進明早的籃子</button>');
+  var aisle = ['cab','kong','tom','mack','egg','tofu','yam','ban','pork','loof','garl','salm'].map(function(id){ return tagHTML(BY[id]); }).join('');
+  v.innerHTML =
+    '<div class="head"><div><h1>今天</h1><p class="sub">9 月 27 日 週日 · 南門市場' + (S.offline ? ' · <span class="stale">21:05 的價格</span>' : '') + '</p></div>' +
+      '<button class="iconbtn" data-act="refresh" aria-label="重新整理價格">' + G.refresh + '</button></div>' +
+    '<div class="note"><div class="who">' + G.runner + '阿順今早比了 14 攤</div>' +
+      '<div class="row">' + art('cab') + '<div><h2>高麗菜 <span class="num">' + money(cab.p) + '</span>，比上週少 ' + money(cab.was - cab.p) + '</h2>' +
+      '<p>阿玉菜攤今天進了一批梨山的。明早 5:30 阿順會經過，要的話幫你挑一顆。</p></div></div>' +
+      '<div class="act">' + act + '</div></div>' +
+    '<div class="figs"><div><span class="num leaf">$186</span><small>這週省下</small></div><div><span class="num">' + S.watches.length + '</span><small>樣在盯價</small></div><div><span class="num">' + (S.order.status === 'open' ? orderCount() : 0) + '</span><small>樣明早送到</small></div></div>' +
+    '<div class="sec"><h3>攤位走道</h3><small>' + (S.offline ? '21:05 存下的價格' : '21:05 更新 · 往右滑') + '</small></div>' +
+    '<div class="aisle" data-keep="aisle">' + aisle + '</div>' +
+    '<div class="sec"><h3>阿順今天做了什麼</h3></div>' +
+    '<ul class="log"><li><span class="num">06:02</span><span>比了 14 攤的價，<b>高麗菜</b>和<b>牛番茄</b>比上週便宜。</span></li>' +
+    '<li><span class="num">05:48</span><span><b>鯖魚</b>降到 $80／尾，你之前說過這個價就買。</span></li>' +
+    '<li><span class="num">05:30</span><span>出門。阿忠魚攤今天休息到 6 點，先去菜攤。</span></li></ul>' +
+    '<div class="sec"><h3>不順的時候</h3><small>點一個看阿順怎麼接</small></div>' +
+    '<ul class="tries">' +
+      stepRow('state','load','還在載入','價牌先排好位置，你知道東西會出現在哪') +
+      stepRow('state','off','沒有網路','照樣看存下的價格，加的東西先排隊') +
+      stepRow('state','empty','還沒收藏','空的地方直接給你能加的東西') +
+      stepRow('state','none','找不到','100 元以下沒有鮭魚，那還有四條路') +
+      stepRow('state','cancel','取消訂單','退多少、退到哪、何時退，一次講清楚') +
+    '</ul>';
+}
+function stepRow(act, val, title, sub, right){
+  return '<li><button class="step" data-act="' + act + '" data-s="' + esc(val) + '">' + G.detour +
+    '<span><b>' + esc(title) + '</b><small>' + esc(sub) + '</small></span>' + (right ? '<span class="num">' + right + '</span>' : '<span></span>') + '</button></li>';
+}
+
+/* ---------- find ---------- */
+var findTimer = 0, lastRun = '';
+function parseQ(q){
+  var m = q.match(/(\d+)/), budget = m ? +m[1] : null;
+  var kw = q.replace(/\$|NT|元|塊錢|塊|以下|以內|內|下|預算|\d+/g, '').replace(/\s+/g, '').trim();
+  return {kw:kw, budget:budget};
+}
+function match(it, kw){
+  if(!kw) return true;
+  if(it.n.indexOf(kw) > -1 || kw.indexOf(it.n) > -1 || it.cat === kw) return true;
+  // one-character words like 魚 or 菜 only count as an exact match, so 鮭魚 doesn't pull in every fish
+  return it.syn.some(function(s){ return s === kw || (s.length > 1 && kw.indexOf(s) > -1) || (kw.length > 1 && s.indexOf(kw) > -1); });
+}
+function rowHTML(it){
+  var n = inOrder(it.id);
+  return '<li class="rowi">' + art(it.id) + '<div><b>' + it.n + '</b><small>' + it.st + (n ? ' · 籃子裡 ×' + n : '') + '</small></div>' +
+    '<div class="rt"><span class="num">' + money(it.p) + '<small>／' + it.u + '</small></span>' +
+    '<button class="gl' + (isSaved(it.id) ? ' on' : '') + '" data-act="heart" data-id="' + it.id + '" aria-pressed="' + isSaved(it.id) + '" aria-label="收藏' + it.n + '">' + G.heart(isSaved(it.id)) + '</button>' +
+    '<button class="gl" data-act="add" data-id="' + it.id + '" aria-label="把' + it.n + '加進籃子">' + G.plus + '</button></div></li>';
+}
+function renderFind(skel){
+  var body = $('findBody'), q = $('q').value.trim();
+  $('clr').hidden = !q;
+  if(!q){
+    body.innerHTML = '<p class="meta">試試看</p><ul class="tries">' +
+      stepRow('setq','鮭魚 100 以下','鮭魚 100 以下','預算比市價低的時候會怎樣') +
+      stepRow('setq','空心菜','空心菜','一般的找法') +
+      stepRow('setq','松阪豬','松阪豬','今天市場沒有的東西') + '</ul>' +
+      '<div class="sec"><h3>照攤位找</h3></div><div class="cats">' +
+      CATS.map(function(c){ var k = ITEMS.filter(function(it){ return it.cat === c[0]; }).length;
+        return '<button class="cat" data-act="setq" data-s="' + c[0] + '">' + art(c[1]) + '<span><b>' + c[0] + '</b><small>' + k + ' 樣</small></span></button>'; }).join('') + '</div>';
+    return;
+  }
+  if(skel){
+    body.innerHTML = '<p class="skmsg"><span class="spin"></span>' + (S.offline ? '用 21:05 存下的價格找…' : '阿順在翻 14 攤的價牌…') + '</p>' +
+      [0,1,2].map(function(){ return '<div class="rowi"><div class="sk" style="width:48px;height:48px"></div><div class="skl"><div class="sk" style="height:14px;width:60%"></div><div class="sk" style="height:11px;width:40%"></div></div><div class="sk" style="width:60px;height:18px"></div></div>'; }).join('');
+    return;
+  }
+  var P = parseQ(q);
+  var hits = ITEMS.filter(function(it){ return match(it, P.kw); });
+  var fit = hits.filter(function(it){ return P.budget == null || it.p <= P.budget; }).sort(function(a,b){ return a.p - b.p; });
+  var stale = S.offline ? ' · 21:05 的價格' : '';
+  if(fit.length){
+    body.innerHTML = '<p class="meta">' + fit.length + ' 樣 · 從便宜的排' + stale + '</p><ul class="rows">' + fit.map(rowHTML).join('') + '</ul>';
+    return;
+  }
+  if(hits.length){
+    // matched the thing, but not the budget
+    var cheapest = hits.slice().sort(function(a,b){ return a.p - b.p; })[0];
+    var alt = ITEMS.filter(function(it){ return it.cat === cheapest.cat && hits.indexOf(it) < 0 && it.p <= P.budget; }).sort(function(a,b){ return a.p - b.p; })[0];
+    var label = esc(P.kw || cheapest.n), rawLabel = P.kw || cheapest.n, watching = S.watches.some(function(w){ return w.id === cheapest.id && w.max === P.budget; });
+    body.innerHTML = '<div class="none"><h2>' + P.budget + ' 元以下買不到' + label + '</h2>' +
+      '<p>14 攤裡只有' + cheapest.st + '有賣，而且比你的預算多 ' + money(cheapest.p - P.budget) + '。下面四條路，挑一條走。</p>' +
+      '<div class="proof"><div class="ptag">' + art(cheapest.id) + '<div class="nm">' + cheapest.n + '</div>' +
+        '<div class="pr"><span class="num">' + money(cheapest.p) + '</span><small>／' + cheapest.u + '</small>' +
+        '<svg class="circ" viewBox="0 0 100 44" preserveAspectRatio="none" fill="none"><path d="M62 5C32 1 5 8 4 22s24 19 50 18 43-9 42-21S74 1 44 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></div></div>' +
+        '<div class="why"><b>' + money(cheapest.p) + ' 是今天最低</b><small>' + (stale ? '21:05 存下的價格。' : '今早 6:02 看的價牌。') + '阿順每天早上都會再看一次這一攤。</small></div></div>' +
+      '<div class="sec"><h3>換一條路</h3></div><ul class="tries">' +
+        stepRow('setq', rawLabel + ' ' + cheapest.p + ' 以下', '預算改成 ' + money(cheapest.p), '會找到 ' + cheapest.n + '，' + cheapest.st, money(cheapest.p)) +
+        (alt ? stepRow('setq', alt.n, '改買' + alt.n, '同一類，' + alt.st + ' ' + money(alt.p) + '／' + alt.u, money(alt.p)) : '') +
+        (watching ? '<li><button class="step" data-act="tab" data-tab="saved" data-seg="watch">' + G.eye + '<span><b>已經在盯了</b><small>低於 ' + money(P.budget) + ' 時阿順會買，去常買看</small></span><span></span></button></li>'
+                  : '<li><button class="step" data-act="watch" data-id="' + cheapest.id + '" data-max="' + P.budget + '">' + G.eye + '<span><b>等到 ' + money(P.budget) + ' 以下再買</b><small>阿順每天早上幫你看，降到了就放進籃子</small></span><span></span></button></li>') +
+        stepRow('setq', cheapest.cat, '拿掉預算，看全部' + cheapest.cat, ITEMS.filter(function(it){ return it.cat === cheapest.cat; }).length + ' 樣') +
+      '</ul></div>';
+    return;
+  }
+  // the market simply doesn't have it
+  var asked = S.watches.some(function(w){ return w.label === P.kw; });
+  body.innerHTML = '<div class="none"><h2>今天市場沒有「' + esc(P.kw || q) + '」</h2>' +
+    '<p>14 攤的價牌上都沒看到。可能是說法不同，也可能今天沒進貨。</p>' +
+    '<div class="sec"><h3>換一條路</h3></div><ul class="tries">' +
+    (asked ? '<li><button class="step" data-act="tab" data-tab="saved" data-seg="watch">' + G.eye + '<span><b>明早會幫你問</b><small>已記在常買的盯價裡</small></span><span></span></button></li>'
+           : '<li><button class="step" data-act="ask" data-s="' + esc(P.kw || q) + '">' + G.eye + '<span><b>明早幫我問攤商</b><small>阿順 5:30 出門時會問，有的話先傳給你看</small></span><span></span></button></li>') +
+    stepRow('setq','肉','看今天的肉攤', ITEMS.filter(function(it){ return it.cat === '肉'; }).length + ' 樣，陳記肉舖') +
+    '<li><button class="step" data-act="refocus">' + G.detour + '<span><b>換個說法</b><small>例如「五花」「豬肉」「三層肉」</small></span><span></span></button></li>' +
+    '</ul></div>';
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function runFind(immediate){
+  var q = $('q').value.trim();
+  clearTimeout(findTimer);
+  if(!q || immediate === 'now'){ renderFind(false); lastRun = q; return; }
+  renderFind(true);
+  findTimer = setTimeout(function(){ lastRun = q; renderFind(false); }, S.offline ? 380 : 620);
+}
+
+/* ---------- saved ---------- */
+function renderSaved(){
+  var v = $('v-saved'), fav = S.seg === 'fav';
+  var h = '<div class="head"><div><h1>常買</h1><p class="sub">收藏的東西一鍵再買；盯價的東西降到了阿順就買</p></div></div>' +
+    '<div class="seg' + (fav ? '' : ' r') + '" role="tablist"><i></i>' +
+    '<button role="tab" data-act="seg" data-s="fav" aria-selected="' + fav + '">收藏 <span class="num">' + S.saved.length + '</span></button>' +
+    '<button role="tab" data-act="seg" data-s="watch" aria-selected="' + !fav + '">盯價 <span class="num">' + S.watches.length + '</span></button></div>';
+  if(fav){
+    if(!S.saved.length){
+      h += '<div class="empty">' + BAG + '<h2>還沒有常買的東西</h2><p>在價牌上按 ♡，<br>下次一鍵放進明早的籃子。</p>' +
+        '<button class="btn" data-act="tab" data-tab="today">去今天的攤位</button></div>' +
+        '<div class="sec"><h3>大家常買</h3><small>直接按 ♡ 也可以</small></div>' +
+        '<div class="mini">' + ['egg','tofu','kong'].map(function(id){ return tagHTML(BY[id], {mini:true}); }).join('') + '</div>';
+    }else{
+      var sum = S.saved.reduce(function(a,id){ return a + BY[id].p; }, 0);
+      h += '<ul class="rows" style="margin-top:10px">' + S.saved.map(function(id){ return rowHTML(BY[id]); }).join('') + '</ul>' +
+        '<button class="btn full" style="margin-top:16px" data-act="addall">' + (S.offline ? '先記下這 ' + S.saved.length + ' 樣' : '全部加進明早的籃子 · ' + money(sum)) + '</button>';
+    }
+  }else{
+    if(!S.watches.length){
+      h += '<div class="empty"><h2>沒有在盯的東西</h2><p>找不到合預算的菜時，可以叫阿順每天早上幫你看。</p>' +
+        '<button class="btn" data-act="state" data-s="none">試著找「鮭魚 100 以下」</button></div>';
+    }else{
+      h += '<ul class="rows" style="margin-top:10px">' + S.watches.map(function(w, i){
+        var it = w.id && BY[w.id];
+        var sub = it ? (it.p <= w.max ? '已到價，明早會買' : '現在 ' + money(it.p) + '，還差 ' + money(it.p - w.max)) : '明早 5:30 問攤商';
+        return '<li class="rowi">' + (it ? art(it.id) : '<svg class="art" viewBox="0 0 64 64"><circle cx="32" cy="32" r="20" fill="none" stroke="#c3a677" stroke-width="2" stroke-dasharray="4 5"/></svg>') +
+          '<div><b>' + watchLabel(w) + '</b><small>' + sub + '</small></div>' +
+          '<div class="rt"><button class="gl" data-act="unwatch" data-i="' + i + '" aria-label="不要再盯' + (it ? it.n : w.label) + '">' + G.x + '</button></div></li>';
+      }).join('') + '</ul>';
+    }
+  }
+  v.innerHTML = h;
+}
+
+/* ---------- order ---------- */
+function renderOrder(){
+  var v = $('v-order'), o = S.order, h;
+  var queue = S.queue.length ? '<div class="queue"><b>排隊中 ' + S.queue.length + ' 樣</b>：' + S.queue.map(function(id){ return BY[id].n; }).join('、') + '。連上網就自動加進籃子。</div>' : '';
+  if(o.status === 'cancelled'){
+    var c = S.lastCancel || {total:0, count:0, keep:false};
+    h = '<div class="head"><div><h1>籃子</h1><p class="sub">明早 · 家（和平東路一段）</p></div></div>' +
+      '<div class="voided"><span class="stamp">已取消</span><h2>明早阿順不會出門</h2>' +
+      '<p>你沒有付任何取消費用。</p><ul>' +
+      '<li>' + G.card + '<span><b>退款 ' + money(c.total) + '</b>，3–5 天回到末四碼 ' + CARD + ' 的卡</span></li>' +
+      (c.keep ? '<li>' + G.eye + '<span><b>還在盯高麗菜</b>，低於 $30 時阿順會再幫你買</span></li>' : '') +
+      '</ul><button class="btn full" data-act="reorder">用同樣 ' + c.count + ' 樣重新下單</button>' +
+      '<div class="alt"><button class="link" data-act="tab" data-tab="today">或是去今天的攤位挑別的</button></div></div>' + queue;
+    v.innerHTML = h; return;
+  }
+  var ids = Object.keys(o.items);
+  if(!ids.length){
+    h = '<div class="head"><div><h1>籃子</h1><p class="sub">明早 · 家（和平東路一段）</p></div></div>' +
+      '<div class="empty">' + BAG + '<h2>明早沒有要買的</h2><p>籃子空了，阿順就不出門，也不收跑腿費。</p>' +
+      '<button class="btn" data-act="tab" data-tab="today">去今天的攤位</button></div>' + queue;
+    v.innerHTML = h; return;
+  }
+  h = '<div class="head"><div><h1>明早的籃子</h1><p class="sub">6:40 前送到 · 家（和平東路一段）</p></div></div>' +
+    '<div class="trip"><div class="now"><span class="num">5:30</span><small>阿順出門</small></div><div><span class="num">6:10</span><small>買齊</small></div><div><span class="num">6:40</span><small>到你家</small></div></div>' +
+    '<ul class="rows" style="margin-top:10px">' + ids.map(function(id){ var it = BY[id];
+      return '<li class="rowi">' + art(id) + '<div><b>' + it.n + '</b><small>' + it.st + ' · ' + money(it.p) + '／' + it.u + '</small></div>' +
+        '<div class="rt"><div class="qty"><button data-act="qty" data-id="' + id + '" data-d="-1" aria-label="少一' + it.u + '">' + G.minus + '</button><span class="num">' + o.items[id] + '</span>' +
+        '<button data-act="qty" data-id="' + id + '" data-d="1" aria-label="多一' + it.u + '">' + G.plusS + '</button></div></div></li>'; }).join('') + '</ul>' +
+    '<div class="sum"><div><span>菜錢</span><span class="num">' + money(orderSub()) + '</span></div><div><span>跑腿費</span><span class="num">' + money(FEE) + '</span></div>' +
+    '<div class="t"><span>預先刷卡</span><span class="num">' + money(orderTotal()) + '</span></div></div>' + queue +
+    (S.cancelPending
+      ? '<div class="window">' + G.clock + '<span><b>取消排隊中</b>。連上網就送出，5:30 前都不收費。<button class="link" data-act="undocancel" style="padding:0 4px">不取消了</button></span></div>'
+      : '<div class="window">' + G.clock + '<span><b>5:30 前可以免費取消</b>，還有 7 小時 50 分。之後阿順已經在市場，只能退還沒買的。</span></div>' +
+        '<div class="cancelrow"><button class="link red" data-act="askcancel">取消這張訂單</button></div>');
+  v.innerHTML = h;
+}
+
+/* ---------- sheet ---------- */
+function openCancel(){
+  var sh = $('sheet');
+  sh.innerHTML = '<div class="grab"></div><h2 id="shTitle">取消明早的菜？</h2>' +
+    '<p>阿順還沒出門，現在取消不收任何費用。</p><ul class="facts">' +
+    '<li>' + G.card + '<span><b>退款 ' + money(orderTotal()) + '</b><small>回到末四碼 ' + CARD + ' 的卡，3–5 天</small></span><span></span></li>' +
+    '<li>' + G.clock + '<span><b>免費取消到 5:30</b><small>明天週一 · 還有 7 小時 50 分</small></span><span></span></li>' +
+    '<li>' + G.eye + '<span><b>繼續盯高麗菜</b><small>低於 $30 時阿順再幫你買</small></span><button class="sw" role="switch" id="keepSw" data-act="keep" aria-checked="' + S.keepWatch + '" aria-label="繼續盯高麗菜"></button></li>' +
+    '</ul>' + (S.offline ? '<p style="font-size:13px;color:var(--ink-3);margin-top:4px">現在沒有網路。取消會先排隊，連上網就送出。</p>' : '') +
+    '<div class="acts"><button class="link red" data-act="docancel">' + (S.offline ? '連上網後取消' : '取消訂單') + '</button>' +
+    '<button class="btn full" data-act="close">保留訂單</button></div>';
+  sh.classList.remove('closing');
+  sh.classList.add('on'); $('scrim').classList.add('on');
+  setTimeout(function(){ var b = sh.querySelector('.btn'); if(b) b.focus({preventScroll:true}); }, 60);
+}
+function closeSheet(){
+  var sh = $('sheet');
+  if(!sh.classList.contains('on')) return;
+  sh.classList.add('closing'); sh.classList.remove('on'); $('scrim').classList.remove('on');
+  setTimeout(function(){ sh.classList.remove('closing'); }, 420);
+}
+
+/* ---------- toast ---------- */
+var toastT = 0, undoFn = null;
+function toast(msg, undo){
+  $('toastText').textContent = msg; undoFn = undo || null;
+  $('toastBtn').hidden = !undo;
+  $('toast').classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(function(){ $('toast').classList.remove('on'); undoFn = null; }, undo ? 5200 : 2800);
+}
+
+/* ---------- actions ---------- */
+function swingTag(tab, cls){
+  var t = document.querySelector('.ntag[data-tab="' + tab + '"]');
+  if(!t) return;
+  t.classList.remove('swing','nudge'); void t.offsetWidth; t.classList.add(cls || 'swing');
+}
+function addItem(id){
+  var it = BY[id];
+  if(S.offline){
+    S.queue.push(id); swingTag('order','nudge');
+    toast('沒有網路，先記下「' + it.n + '」。連上網就自動加進籃子。');
+    render(); return;
+  }
+  if(S.order.status !== 'open'){ S.order = {status:'open', items:{}}; S.lastCancel = null; }
+  S.order.items[id] = (S.order.items[id] || 0) + 1;
+  save(); swingTag('order','nudge');
+  toast('「' + it.n + '」加進明早的籃子，共 ' + orderCount() + ' 樣', function(){
+    if(S.order.items[id] > 1) S.order.items[id]--; else delete S.order.items[id];
+    save(); render();
+  });
+  render();
+  var tag = document.querySelector('.view:not([hidden]) .ptag[data-tag="' + id + '"]');
+  if(tag){ tag.classList.remove('bump'); void tag.offsetWidth; tag.classList.add('bump'); }
+}
+function toggleHeart(id){
+  var i = S.saved.indexOf(id);
+  if(i > -1){
+    S.saved.splice(i,1); save(); render();
+    toast('從收藏拿掉「' + BY[id].n + '」', function(){ S.saved.splice(Math.min(i, S.saved.length), 0, id); save(); render(); });
+  }else{
+    S.saved.push(id); save(); render(); toast('收藏了「' + BY[id].n + '」，在常買裡');
+  }
+}
+function flushQueue(){
+  if(!S.queue.length && !S.cancelPending) return;
+  var n = S.queue.length;
+  if(n){
+    if(S.order.status !== 'open'){ S.order = {status:'open', items:{}}; }
+    S.queue.forEach(function(id){ S.order.items[id] = (S.order.items[id] || 0) + 1; });
+    S.queue = [];
+  }
+  if(S.cancelPending){ S.cancelPending = false; doCancel(true); return; }
+  save(); toast('排隊的 ' + n + ' 樣已經加進明早的籃子');
+}
+function setOffline(off, quiet){
+  if(S.offline === off) return;
+  S.offline = off; S.retries = 0;
+  screen.classList.toggle('is-off', off);
+  $('net').setAttribute('aria-pressed', off);
+  $('bnTitle').textContent = '沒有網路';
+  $('bnText').textContent = '先給你看 21:05 存下的價格';
+  $('retry').textContent = '重試'; $('retry').disabled = false;
+  measureBanner();
+  if(!off){
+    S.loading = true; render();
+    setTimeout(function(){ S.loading = false; flushQueue(); render(); if(!quiet && !S.queue.length) {} }, 900);
+    if(S.tab === 'find') runFind();
+  }else{
+    S.loading = false;
+    render();
+    if(S.tab === 'find') runFind();
+  }
+}
+function measureBanner(){
+  requestAnimationFrame(function(){
+    var bn = document.querySelector('.bn');
+    if(bn) screen.style.setProperty('--bh', (bn.offsetHeight + 10) + 'px');
+  });
+}
+function retry(){
+  var b = $('retry');
+  b.disabled = true; b.textContent = '連線中…';
+  setTimeout(function(){
+    S.retries++;
+    if(S.retries < 2){
+      b.disabled = false; b.textContent = '再試一次';
+      $('bnTitle').textContent = '還是連不上';
+      $('bnText').textContent = '價格停在 21:05。加進籃子的東西會先排隊，不會不見。';
+      measureBanner();
+    }else{
+      setOffline(false);
+      toast('連上了，價格更新到 21:41');
+    }
+  }, 900);
+}
+function doCancel(fromQueue){
+  var c = {total:orderTotal(), count:orderCount(), keep:S.keepWatch, items:clone(S.order.items)};
+  S.lastCancel = c; S.order.status = 'cancelled';
+  if(c.keep && !S.watches.some(function(w){ return w.id === 'cab' && w.max === 30; })) S.watches.push({id:'cab', max:30});
+  if(!c.keep) S.watches = S.watches.filter(function(w){ return !(w.id === 'cab' && w.max === 30); });
+  save(); render();
+  toast((fromQueue ? '連上了，取消已送出，' : '已取消，') + money(c.total) + ' 會退回你的卡', function(){
+    S.order = {status:'open', items:c.items}; save(); render();
+  });
+}
+function scenario(s){
+  closeSheet();
+  if(s === 'load'){ setOffline(false, true); S.loading = true; go('today'); setTimeout(function(){ S.loading = false; render(); }, 2200); }
+  if(s === 'off'){ go('today'); setOffline(true); }
+  if(s === 'empty'){ S.saved = []; S.seg = 'fav'; save(); go('saved'); }
+  if(s === 'none'){ go('find'); $('q').value = '鮭魚 100 以下'; runFind(); }
+  if(s === 'cancel'){
+    if(S.order.status !== 'open' || !orderCount()){ S.order = {status:'open', items:clone(DEFAULT_ORDER)}; save(); }
+    S.cancelPending = false; go('order'); setTimeout(openCancel, 260);
+  }
+  markState(s);
+}
+function markState(s){
+  document.querySelectorAll('#states button').forEach(function(b){ b.setAttribute('aria-current', b.dataset.s === s ? 'true' : 'false'); });
+}
+
+/* ---------- routing ---------- */
+function go(tab, seg){
+  if(seg) S.seg = seg;
+  var changed = S.tab !== tab;
+  S.tab = tab;
+  document.querySelectorAll('.ntag').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.tab === tab); });
+  document.querySelectorAll('.view').forEach(function(v){ v.hidden = v.id !== 'v-' + tab; });
+  var v = $('v-' + tab);
+  if(changed){ v.scrollTop = 0; v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); swingTag(tab); }
+  if(tab === 'find') renderFind(false);
+  render();
+}
+function render(){
+  var v = $('v-' + S.tab), top = v.scrollTop, keep = {};
+  v.querySelectorAll('[data-keep]').forEach(function(el){ keep[el.dataset.keep] = el.scrollLeft; });
+  if(S.tab === 'today') renderToday();
+  if(S.tab === 'saved') renderSaved();
+  if(S.tab === 'order') renderOrder();
+  if(S.tab === 'find' && $('q').value.trim() && lastRun === $('q').value.trim()) renderFind(false);
+  v.querySelectorAll('[data-keep]').forEach(function(el){ if(keep[el.dataset.keep]) el.scrollLeft = keep[el.dataset.keep]; });
+  v.scrollTop = top;
+  var n = (S.order.status === 'open' ? orderCount() : 0) + S.queue.length;
+  $('orderCount').textContent = n ? n : '';
+}
+
+document.addEventListener('click', function(e){
+  var b = e.target.closest('[data-act]'); if(!b) return;
+  var a = b.dataset.act, id = b.dataset.id;
+  if(a === 'tab'){ closeSheet(); go(b.dataset.tab, b.dataset.seg); markState(''); }
+  else if(a === 'state') scenario(b.dataset.s);
+  else if(a === 'add') addItem(id);
+  else if(a === 'heart') toggleHeart(id);
+  else if(a === 'addall'){ S.saved.forEach(function(x){ if(S.offline) S.queue.push(x); else { if(S.order.status !== 'open') S.order = {status:'open', items:{}}; S.order.items[x] = (S.order.items[x] || 0) + 1; } }); save(); swingTag('order','nudge'); render(); toast(S.offline ? '先記下 ' + S.saved.length + ' 樣，連上網就加進籃子' : S.saved.length + ' 樣都加進明早的籃子了'); }
+  else if(a === 'qty'){ var d = +b.dataset.d, q = (S.order.items[id] || 0) + d, it = BY[id];
+    if(q <= 0){ var was = S.order.items[id]; delete S.order.items[id]; save(); render(); toast('拿掉「' + it.n + '」', function(){ S.order.items[id] = was; save(); render(); }); }
+    else { S.order.items[id] = q; save(); render(); } }
+  else if(a === 'seg'){ S.seg = b.dataset.s; render(); }
+  else if(a === 'setq'){ if(S.tab !== 'find') go('find'); $('q').value = b.dataset.s; runFind(); markState(b.dataset.s === '鮭魚 100 以下' ? 'none' : ''); }
+  else if(a === 'clear'){ $('q').value = ''; runFind(); $('q').focus(); }
+  else if(a === 'refocus'){ $('q').select(); $('q').focus(); }
+  else if(a === 'watch'){ S.watches.push({id:id, max:+b.dataset.max}); save(); runFind('now'); render(); toast('好，' + BY[id].n + '低於 ' + money(+b.dataset.max) + ' 時阿順會買'); }
+  else if(a === 'ask'){ S.watches.push({label:b.dataset.s, max:999}); save(); runFind('now'); toast('明早 5:30 阿順會問「' + b.dataset.s + '」'); }
+  else if(a === 'unwatch'){ var i = +b.dataset.i, w = S.watches.splice(i,1)[0]; save(); render(); toast('不再盯' + (w.id ? BY[w.id].n : w.label), function(){ S.watches.splice(i,0,w); save(); render(); }); }
+  else if(a === 'askcancel') openCancel();
+  else if(a === 'keep'){ S.keepWatch = !S.keepWatch; b.setAttribute('aria-checked', S.keepWatch); }
+  else if(a === 'docancel'){ closeSheet(); if(S.offline){ S.cancelPending = true; render(); toast('取消排好隊了，連上網就送出'); } else doCancel(false); }
+  else if(a === 'undocancel'){ S.cancelPending = false; render(); }
+  else if(a === 'close') closeSheet();
+  else if(a === 'reorder'){ S.order = {status:'open', items:clone((S.lastCancel && S.lastCancel.items) || DEFAULT_ORDER)}; S.lastCancel = null; save(); render(); swingTag('order','nudge'); toast('重新下單了，明早 6:40 前送到'); }
+  else if(a === 'retry') retry();
+  else if(a === 'refresh'){ if(S.offline){ retry(); return; } S.loading = true; render(); setTimeout(function(){ S.loading = false; render(); }, 1100); }
+  else if(a === 'undo'){ var f = undoFn; undoFn = null; $('toast').classList.remove('on'); if(f) f(); }
+});
+$('net').addEventListener('click', function(){ setOffline(!S.offline); markState(S.offline ? 'off' : ''); });
+$('q').addEventListener('input', function(){ runFind(); });
+$('q').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ runFind('now'); this.blur(); } });
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSheet(); });
+window.addEventListener('offline', function(){ setOffline(true); });
+window.addEventListener('online', function(){ setOffline(false); });
+
+/* ---------- boot: the first thing anyone sees is the loading state ---------- */
+render();
+setTimeout(function(){ S.loading = false; render(); }, 1300);
+if(navigator.onLine === false) setOffline(true);
+})();
+</script>
+</body>
+</html>

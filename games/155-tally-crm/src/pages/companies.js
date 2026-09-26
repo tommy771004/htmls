@@ -230,7 +230,7 @@
         <div class="toolbar co-viewbar">
           <div class="co-views"></div>
           <div class="co-vtools">
-            <label class="tsearch co-search">${UI.icon('search', { size: 15 })}<input class="input" type="search" name="co-q" placeholder="搜尋公司、城市、統編或聯絡人" autocomplete="off" aria-label="搜尋公司" value="${st.q}"></label>
+            <label class="tsearch co-search">${UI.icon('search', { size: 15 })}<input class="input" type="search" name="co-q" placeholder="搜尋公司、城市或統編" autocomplete="off" aria-label="搜尋公司" value="${st.q}"></label>
             <div class="co-viewseg"></div>
           </div>
         </div>
@@ -316,9 +316,9 @@
       const won = splitMoney(cur);
       const attn = vms.filter((vm) => isStale(vm.w, vm.openN)).length;
       statsEl.innerHTML = String(html`
-        ${UI.statCard({ label: '客戶公司', value: U.num(customers), unit: '家', icon: 'companies', tone: 3, delta: newQ ? { text: `${newQ} 本季新增`, dir: 'up' } : { text: '本季無新增', dir: 'flat' }, foot: `共 ${all.length} 家公司`, href: router.href('/companies', { status: '客戶' }) })}
+        ${UI.statCard({ label: '客戶公司', value: U.num(customers), unit: '家', icon: 'companies', tone: 3, delta: newQ ? { text: `${newQ} 本季新增`, dir: 'up' } : null, foot: newQ ? `共 ${all.length} 家公司` : `共 ${all.length} 家 · 本季無新增`, href: router.href('/companies', { status: '客戶' }) })}
         ${UI.statCard({ label: '進行中交易', value: pipe.v, unit: pipe.u, icon: 'deals', tone: 1, foot: `${openN} 筆 · 加權 ${U.moneyCompact(qp.pipelineWeighted)}` })}
-        ${UI.statCard({ label: '本季成交', value: won.v, unit: won.u, icon: 'coin', tone: 2, delta: { text: `${Math.abs(diff)}%`, dir: diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat' }, foot: '比上季', spark: hist.map((x) => x.amount) })}
+        ${UI.statCard({ label: '本季成交', value: won.v, unit: won.u, icon: 'coin', tone: 2, delta: { text: `${Math.abs(diff)}%`, dir: diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat' }, foot: prev ? `上季 ${U.moneyCompact(prev)}` : '上季無成交', spark: hist.map((x) => x.amount) })}
         ${UI.statCard({ label: '需要關注', value: U.num(attn), unit: '家', icon: 'clock', tone: 4, foot: '有進行中交易、3 週以上沒往來', href: router.href('/companies', { warmth: 'stale' }) })}`);
     }
     function drawViews() {
@@ -346,6 +346,8 @@
     }
     function tileView(vm) {
       const c = vm.c;
+      const lead = vm.people.slice().sort((a, b) => (LEVEL[a.level] ?? 3) - (LEVEL[b.level] ?? 3))[0];
+      const deciders = vm.people.filter((p) => (p.tags || []).includes('決策者')).length;
       return html`<li><a class="co-tile" href="${router.href('/companies/' + vm.id)}" data-id="${vm.id}">
         <span class="co-tile-head">
           ${UI.companyMark(c, { size: 44, title: false })}
@@ -355,9 +357,9 @@
         <span class="co-tile-figs">
           <span class="co-fig"><span class="co-fig-k">進行中</span><span class="co-fig-v">${vm.openAmt ? U.moneyCompact(vm.openAmt) : '–'}</span><span class="co-fig-s">${vm.openN ? vm.openN + ' 筆交易' : '沒有交易'}</span></span>
           <span class="co-fig"><span class="co-fig-k">累計成交</span><span class="co-fig-v">${vm.won ? U.moneyCompact(vm.won) : '–'}</span><span class="co-fig-s">近五季</span></span>
-          <span class="co-fig"><span class="co-fig-k">聯絡人</span><span class="co-fig-v">${vm.contacts}</span><span class="co-fig-s">位</span></span>
+          <span class="co-fig"><span class="co-fig-k">聯絡人</span><span class="co-fig-v">${vm.contacts}<small> 位</small></span><span class="co-fig-s">${deciders ? deciders + ' 位決策者' : '尚無決策者'}</span></span>
         </span>
-        <span class="co-tile-people">${avatarStack(vm.people, { size: 28 })}<span class="co-tile-pn">${vm.people.length ? vm.people.slice().sort((a, b) => (LEVEL[a.level] ?? 3) - (LEVEL[b.level] ?? 3))[0].name + (vm.people.length > 1 ? ` 等 ${vm.people.length} 位` : '') : '還沒有聯絡人'}</span>${UI.activityBars(vm.series, { label: `近 8 週往來 ${vm.series.join('、')} 次`, cls: 'co-tile-bars' })}</span>
+        <span class="co-tile-people">${avatarStack(vm.people, { size: 28 })}<span class="co-tile-pn">${lead ? html`<b>${lead.name}</b>${lead.title ? ' · ' + lead.title : ''}` : '還沒有聯絡人'}</span>${UI.activityBars(vm.series, { label: `近 8 週往來 ${vm.series.join('、')} 次`, cls: 'co-tile-bars' })}</span>
         <span class="co-tile-foot">${UI.warmth(vm.w)}${vm.rep ? html`<span class="co-rep">${UI.nameBlock(vm.rep, { size: 24, title: false })}<span>${vm.rep.name}</span></span>` : ''}</span>
       </a></li>`;
     }
@@ -412,7 +414,6 @@
           const n = base.filter((vm) => f.match(vm, o.value)).length;
           items.push({ label: o.label, lead: o.indent ? raw('<span class="co-indent" aria-hidden="true"></span>') : o.lead, value: o.value, checked: st[f.key] === o.value, hint: String(n), disabled: !n && st[f.key] !== o.value });
         });
-        fb.setAttribute('aria-expanded', 'true');
         UI.menu(fb, items, {
           label: f.label, cls: 'co-fmenu',
           onSelect: (it) => {
@@ -609,7 +610,7 @@
         <div class="co-ov">
           <div class="co-ov-main">
             <section class="co-sec" aria-label="近四季成交">
-              ${secHead('近四季成交', '', html`<p class="co-sec-note">本季至今 <b>${current && current.amount ? U.money(current.amount) : '尚無'}</b></p>`)}
+              ${secHead('近四季成交', '', html`<p class="co-sec-note">本季至今 <b>${current && current.amount ? U.moneyCompact(current.amount) : '尚無'}</b></p>`)}
               ${revenueChart(past)}
             </section>
             <section class="co-sec" aria-label="近期往來">
@@ -658,7 +659,7 @@
         const decider = (p.tags || []).includes('決策者');
         return html`<li><a class="co-node${decider ? ' is-decider' : ''}" href="${router.href('/contacts/' + p.id)}" data-contact="${p.id}">
           ${UI.nameBlock(p, { size: 32, title: false })}
-          <span class="co-node-text"><span class="co-node-name">${p.name}</span><span class="co-node-title">${p.title || '未填職稱'}</span></span>
+          <span class="co-node-text"><span class="co-node-name">${p.name}</span><span class="co-node-title">${p.title || '未填職稱'}${decider ? html` · <span class="co-node-dm">決策者</span>` : ''}</span></span>
           ${UI.warmth(w, { label: false, cls: 'co-node-w' })}
         </a>${t.children.length ? html`<ul>${t.children.map(node)}</ul>` : ''}</li>`;
       };

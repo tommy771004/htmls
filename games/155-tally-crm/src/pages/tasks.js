@@ -296,15 +296,16 @@
         const due = all.filter((t) => t.due >= a && t.due <= b);
         return due.length ? due.filter((t) => t.done).length / due.length : 0;
       };
-      const rate = rateOf(monIso, sunIso), lrate = rateOf(lmonIso, lsunIso);
+      // 本週到今天為止到期的任務 vs 上週同期
+      const rate = rateOf(monIso, tIso), lrate = rateOf(lmonIso, U.iso(U.addDays(T, -7)));
       const rdiff = Math.round((rate - lrate) * 100);
-      const rates = [5, 4, 3, 2, 1, 0].map((k) => Math.round(rateOf(U.iso(U.addDays(mon, -7 * k)), U.iso(U.addDays(sun, -7 * k))) * 100));
+      const rates = [5, 4, 3, 2, 1, 0].map((k) => Math.round((k ? rateOf(U.iso(U.addDays(mon, -7 * k)), U.iso(U.addDays(sun, -7 * k))) : rate) * 100));
       const wdiff = weekDone - lastSame;
       statsEl.innerHTML = String(html`
         ${UI.statCard({ label: '今天到期', value: U.num(dueToday.length), unit: '件', icon: 'calendar', tone: 5, delta: highToday ? { text: `${highToday} 件高優先`, dir: 'flat' } : null, foot: highToday ? '' : '沒有高優先', href: router.href('/tasks', { view: 'list', due: 'today' }) })}
         ${UI.statCard({ label: '逾期', value: U.num(overdue.length), unit: '件', icon: 'clock', tone: 4, foot: overdue.length ? `最久的已經拖了 ${oldest} 天` : '全部跟上了', href: router.href('/tasks', { view: 'list', due: 'overdue' }), attrs: { 'data-stat': 'overdue' } })}
         ${UI.statCard({ label: '本週完成', value: U.num(weekDone), unit: '件', icon: 'check', tone: 2, delta: { text: wdiff === 0 ? '持平' : `${Math.abs(wdiff)} 件`, dir: wdiff > 0 ? 'up' : wdiff < 0 ? 'down' : 'flat' }, foot: html`<span class="tk-stat-tally">${UI.tally(weekDone, { size: 20, label: `本週完成 ${weekDone} 件` })}</span>`, attrs: { 'data-stat': 'done' } })}
-        ${UI.statCard({ label: '完成率', value: Math.round(rate * 100), unit: '%', icon: 'target', tone: 3, delta: { text: `${Math.abs(rdiff)}%`, dir: rdiff > 0 ? 'up' : rdiff < 0 ? 'down' : 'flat' }, foot: '比上週', spark: rates })}`);
+        ${UI.statCard({ label: '完成率', value: Math.round(rate * 100), unit: '%', icon: 'target', tone: 3, delta: { text: `${Math.abs(rdiff)}%`, dir: rdiff > 0 ? 'up' : rdiff < 0 ? 'down' : 'flat' }, foot: '比上週同期', spark: rates })}`);
       // 本週完成數增加時，劃記最後一筆描出來
       if (lastWeekDone != null && weekDone > lastWeekDone) {
         const tl = statsEl.querySelector('.tk-stat-tally .tally');
@@ -599,7 +600,7 @@
       qaMirror.style.transform = `translateX(${-qaInput.scrollLeft}px)`;
       qaGo.disabled = !(parsed && parsed.title);
       if (!parsed) {
-        qaPrev.innerHTML = String(html`<p class="tk-qa-hint">可以直接寫日期（明天、週五、10/3）、時間（下午3點）、聯絡人姓名，加上 <b>!</b> 或「急」代表高優先。按 ${UI.kbd('Enter')} 新增。</p>`);
+        qaPrev.innerHTML = String(html`<p class="tk-qa-hint"><span class="tk-qa-hint-s">可寫日期、時間與聯絡人姓名，加 <b>!</b> 代表高優先</span><span class="tk-qa-hint-l">可以直接寫日期（明天、週五、10/3）、時間（下午3點）、聯絡人姓名，加上 <b>!</b> 或「急」代表高優先。按 ${UI.kbd('Enter')} 新增。</span></p>`);
         return;
       }
       const p = parsed;
@@ -638,9 +639,10 @@
     qaInput.addEventListener('scroll', () => { qaMirror.style.transform = `translateX(${-qaInput.scrollLeft}px)`; });
     qaInput.addEventListener('keyup', () => { qaMirror.style.transform = `translateX(${-qaInput.scrollLeft}px)`; });
     qaInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.isComposing || e.keyCode === 229)) { e.preventDefault(); return; } // 選字中的 Enter 不送出
       if (e.key === 'Escape' && qaInput.value) { e.stopPropagation(); qaInput.value = ''; drawQuick(); }
     });
-    qaForm.addEventListener('submit', (e) => { e.preventDefault(); if (e.isComposing) return; submitQuick(); });
+    qaForm.addEventListener('submit', (e) => { e.preventDefault(); submitQuick(); });
     drawQuick();
 
     /* ── 事件 ── */
@@ -657,7 +659,7 @@
       const b = whoEl.querySelector(`[data-value="${st.who}"]`);
       b && b.focus({ preventScroll: true });
     });
-    el.addEventListener('seg-change', (e) => {
+    const onSeg = (e) => {
       if (e.detail.name !== 'tk-view') return;
       st.view = e.detail.value === 'week' ? 'week' : 'list';
       el.querySelectorAll('[data-seg="tk-view"] > button').forEach((b) => {
@@ -667,7 +669,8 @@
       });
       syncUrl();
       draw();
-    });
+    };
+    el.addEventListener('seg-change', onSeg);
     el.querySelector('.ph [data-act="new"]').addEventListener('click', () => UI.create('task', { owner: whoId() || meId }));
 
     page.addEventListener('toggle', (e) => {
@@ -847,6 +850,7 @@
       endDrag(false);
       timers.forEach(clearTimeout);
       document.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('seg-change', onSeg);
     };
   }
 

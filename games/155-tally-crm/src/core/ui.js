@@ -408,14 +408,14 @@
    * menu(anchor, items, { align, onSelect, cls }) → 鍵盤可用的選單
    * item：{ label, icon, kbd, hint, danger, checked, disabled, value, onSelect } | { divider:true } | { heading:'…' }
    */
-  function menu(anchor, items, { align = 'start', onSelect, cls = '', label = '' } = {}) {
+  function menu(anchor, items, { align = 'start', onSelect, onClose, cls = '', label = '' } = {}) {
     const body = html`${items.map((it, i) => {
       if (it.divider) return html`<div class="menu-sep" role="separator"></div>`;
       if (it.heading) return html`<div class="menu-heading" role="presentation">${it.heading}</div>`;
       const role = it.checked != null ? 'menuitemradio' : 'menuitem';
       return html`<button type="button" class="menu-item${it.danger ? ' is-danger' : ''}" role="${role}" data-i="${i}" tabindex="-1"${attrs({ disabled: it.disabled, 'aria-checked': it.checked != null ? String(!!it.checked) : null })}>${it.icon ? icon(it.icon, { size: 16, cls: 'menu-icon' }) : it.lead || ''}<span class="menu-label">${it.label}</span>${it.hint ? html`<span class="menu-hint">${it.hint}</span>` : ''}${it.kbd ? kbd(it.kbd) : ''}${it.checked ? icon('check', { size: 16, cls: 'menu-check' }) : ''}</button>`;
     })}`;
-    const layer = popover(anchor, body, { align, cls: 'menu' + (cls ? ' ' + cls : ''), role: 'menu', focus: false, label });
+    const layer = popover(anchor, body, { align, cls: 'menu' + (cls ? ' ' + cls : ''), role: 'menu', focus: false, label, onClose });
     if (!layer) return null;
     const el = layer.el;
     const itemsEls = () => [...el.querySelectorAll('.menu-item:not([disabled])')];

@@ -193,7 +193,7 @@ ui.emptyState({ title, body, action, compact })
 ### 浮層（同一個 layer stack：Esc 與點外面只關最上層，關閉後焦點回到觸發點）
 
 ```js
-ui.menu(anchorBtn, [{ label:'編輯', icon:'edit', kbd:'E', onSelect }, { divider:true }, { label:'刪除', icon:'trash', danger:true }], { align:'end' })
+ui.menu(anchorBtn, [{ label:'編輯', icon:'edit', kbd:'E', onSelect }, { divider:true }, { label:'刪除', icon:'trash', danger:true }], { align:'end', onClose })  // onClose：選單關閉時（含取消）
 ui.popover(anchor, rawOrNode, { align, cls, label })   // → { el, close }
 const d = ui.drawer({ title, sub, body, footer, width:560 })  // → { el, body, foot, close, setTitle }；手機全螢幕
 ui.modal({ title, body, size:'sm|md|lg', actions:[{ label, variant, onClick(api) /* 回傳 false 不關 */ }] })

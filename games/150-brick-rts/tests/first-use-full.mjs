@@ -61,8 +61,9 @@ try{
  // 3. Find villagers; food and wood; delivery; a house and a barracks.
  await act(()=>page.keyboard.press('Period'));let p=await centreOf(obstacleBounds(berries),.3);note('找出村民並採野果',await act(()=>page.mouse.click(p.x,p.y,{button:'right'})));
  await act(()=>page.keyboard.press('Period'));note('造房',await place('KeyQ',houseBox,'住宅'));
- note('資源不足時的說明',await act(()=>page.keyboard.press('KeyW')));// wood 170 after the house: the barracks (150) is still affordable, so this places nothing yet
- await page.keyboard.press('Escape');await act(()=>page.keyboard.press('Period'));note('造軍營',await place('KeyW',barracksBox,'兵營'));
+ await act(()=>page.keyboard.press('Period'));note('造軍營',await place('KeyW',barracksBox,'兵營'));
+ // Not enough wood left for a second barracks: the hotkey explains instead of doing nothing.
+ note('資源不足時的說明',await act(()=>page.keyboard.press('KeyW')));assert.match(await text('notice'),/木材不足/);
  await waitFor(()=>Number(document.querySelector('#res-food').textContent)>200);note('送返',`食物 ${await text('res-food')}`);done.add('deliver');
  await waitFor(()=>document.querySelector('#res-pop').textContent==='4/10');note('住宅完工',await text('res-pop'));
  // Builders go to work: one to wood, one to gold.

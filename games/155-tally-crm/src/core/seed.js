@@ -36,7 +36,7 @@
   const LIFECYCLES = ['潛在', '洽談中', '客戶', '合作夥伴', '流失'];
   const COMPANY_STATUSES = ['潛在', '洽談中', '客戶', '流失'];
   const TAGS = ['決策者', '技術窗口', '採購', '財務', '轉介來源', '2026 自動化展'];
-  const LOST_REASONS = ['價格高於競品', '預算凍結到明年', '選擇既有系統商擴充', '決策者異動，專案暫停', '需求改為自行開發'];
+  const LOST_REASONS = ['價格', '預算凍結', '選擇競品', '時程延後', '無回應', '其他'];
   const ACTIVITY_TYPES = [
     { id: 'call', name: '通話', icon: 'phone' },
     { id: 'email', name: 'Email', icon: 'mail' },
@@ -249,7 +249,7 @@
       let d = day(dayOffset);
       d.setHours(R.int(h0, h1 - 1), R.pick([0, 10, 15, 20, 30, 40, 45, 50]));
       if (d.getTime() > nowMs) {
-        d = day(dayOffset - 1);
+        d = day(Math.min(dayOffset, 0) - 1);
         d.setHours(R.int(h0, h1 - 1), R.pick([0, 15, 30, 45]));
       }
       return U.isoDT(d);
@@ -492,8 +492,9 @@
       co.history = qKeys.map((qd) => ({ key: qd.key, label: qd.label, amount: 0 }));
       if (pastCustomer) {
         qKeys.forEach((qd, k) => {
-          if (R.chance(hasWon ? 0.45 : 0.35)) {
-            const amount = Math.round(R.int(18, co.size >= 500 ? 380 : 160) * 1e4 / 1000) * 1000;
+          // 過去每季的團隊成交約 2,300 萬到 3,000 萬，和本季同一個量級
+          if (R.chance(hasWon ? 0.72 : 0.55)) {
+            const amount = Math.round(R.int(45, co.size >= 500 ? 520 : 260) * 1e4 / 1000) * 1000;
             const closedAt = U.iso(U.addDays(qd.start, R.int(5, 85)));
             const cycle = R.int(45, 120);
             co.history[k].amount += amount;
@@ -662,11 +663,20 @@
     const DUE_PLAN = R.shuffle([...Array(5).fill('overdue'), ...Array(8).fill('today'), ...Array(6).fill('tomorrow'), ...Array(9).fill('week'), ...Array(13).fill('later')]);
     const openDeals = deals.filter((d) => !d.closedAt);
     const weekLeft = Math.max(2, 6 - ((T.getDay() + 6) % 7));
+    // 業務不太在週末排任務：落在週六日的偏移量挪到前後的平日（今天是週末時只留少數幾件）
+    const dowOf = (off) => U.addDays(T, off).getDay();
+    const workday = (off) => {
+      if (off === 0 && R.chance(0.25)) return 0;
+      const d = dowOf(off);
+      if (d === 6) return off > 0 || off === 0 ? off + 2 : off - 1;
+      if (d === 0) return off >= 0 ? off + 1 : off - 2;
+      return off;
+    };
     openDeals.forEach((d, i) => {
       const co = companies.find((c) => c.id === d.companyId);
       const contact = contacts.find((c) => c.id === d.contactIds[0]);
       const slot = QUIET[co.id] > 40 && R.chance(0.6) ? 'overdue' : DUE_PLAN[i % DUE_PLAN.length];
-      const off = { overdue: -R.int(1, 9), today: 0, tomorrow: 1, week: R.int(2, weekLeft), later: R.int(8, 30) }[slot];
+      const off = workday({ overdue: -R.int(1, 9), today: 0, tomorrow: 1, week: R.int(2, weekLeft), later: R.int(8, 30) }[slot]);
       const title = fill(R.pick(TASK_TEXT[d.stage]), { name: contact.name, company: co.name.replace(/股份有限公司$/, '') });
       const t = addTask({ title, due: isoDay(off), dueTime: R.pick(TIMES), owner: d.owner, contact, co, deal: d, priority: d.stage === 'nego' ? 'high' : undefined });
       d.next = t.title;
@@ -675,7 +685,7 @@
     for (let i = 0; i < 22; i++) {
       const co = R.pick(companies);
       const contact = R.pick(contactsOf(co.id));
-      const off = R.weighted([[-R.int(1, 5), 1], [0, 2], [1, 2], [R.int(2, 6), 3], [R.int(7, 40), 5]]);
+      const off = workday(R.weighted([[-R.int(1, 5), 1], [0, 2], [1, 2], [R.int(2, 6), 3], [R.int(7, 40), 5]]));
       addTask({ title: fill(R.pick(TASK_TEXT.general), { name: contact.name, company: co.name.replace(/股份有限公司$/, '') }), due: isoDay(off), dueTime: R.pick(TIMES), owner: i < 7 ? 'u1' : co.owner, contact, co });
     }
     // 已完成（寫入任務完成活動）
@@ -691,11 +701,26 @@
       pushActivity({ type: 'task', at: t.doneAt, owner: t.owner, contactId: contact.id, companyId: co.id, dealId: d.id, taskId: t.id, body: t.title });
     });
 
+    // 近兩週的例行完成（讓本週／上週完成率有真實的量）
+    const sinceMon = (T.getDay() + 6) % 7;
+    for (let i = 0; i < 16; i++) {
+      const thisWeek = i < 7;
+      const raw = thisWeek ? -R.int(0, Math.max(0, sinceMon)) : -(sinceMon + R.int(1, 7));
+      const w = workday(raw);
+      const off = w > 0 ? raw : w; // 已完成的事不能落在未來
+      const d = R.pick(openDeals.length ? openDeals : deals);
+      const co = companies.find((c) => c.id === d.companyId);
+      const contact = contacts.find((c) => c.id === d.contactIds[0]);
+      const title = fill(R.pick(TASK_TEXT[d.stage] || TASK_TEXT.general), { name: contact.name, company: co.name.replace(/股份有限公司$/, '') });
+      const t = addTask({ title, due: isoDay(off), dueTime: R.pick(TIMES), done: true, doneOff: off, owner: i < 4 ? 'u1' : d.owner, contact, co, deal: d });
+      pushActivity({ type: 'task', at: t.doneAt, owner: t.owner, contactId: contact.id, companyId: co.id, dealId: d.id, taskId: t.id, body: t.title });
+    }
+
     activities.sort((a, b) => (a.at < b.at ? 1 : -1));
     activities.forEach((a, i) => { a.id = 'a' + String(activities.length - i).padStart(4, '0'); });
 
     return {
-      meta: { version: 1, seededOn: U.iso(T), quarter: q.key },
+      meta: { version: 2, seededOn: U.iso(T), quarter: q.key },
       reps,
       companies,
       contacts,

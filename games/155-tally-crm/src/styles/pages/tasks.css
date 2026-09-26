@@ -40,6 +40,7 @@
 .tk-qa-go { flex: none; }
 .tk-qa-preview { display: flex; align-items: center; min-height: 28px; margin-top: 12px; }
 .tk-qa-hint { font-size: var(--fs-13); color: var(--ink-3); line-height: 1.6; }
+.tk-qa-hint-s { display: none; }
 .tk-qa-hint b { color: var(--ink-2); font-weight: 700; }
 .tk-qa-hint .kbd-group { vertical-align: 1px; margin: 0 2px; }
 .tk-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0; padding: 0; list-style: none; }
@@ -168,9 +169,9 @@ details.tk-group:not([open]) .tk-gtoggle .ic { transform: rotate(-90deg); }
 @keyframes tk-flash { 0%, 35% { background-color: var(--accent-soft); } 100% { background-color: transparent; } }
 
 /* 改期：自訂日期 */
-.tk-pick { display: flex; flex-direction: column; gap: 12px; width: 300px; max-width: 100%; padding: 8px 8px 4px; }
+.tk-pick { display: flex; flex-direction: column; gap: 12px; width: 344px; max-width: 100%; padding: 8px 8px 4px; }
 .tk-pick-h { font-size: var(--fs-14); font-weight: 650; }
-.tk-pick-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; }
+.tk-pick-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .tk-pick-foot { display: flex; justify-content: flex-end; gap: 6px; }
 
 /* ── 週曆 ─────────────────────────────────────────── */
@@ -286,6 +287,8 @@ html.tk-dragging, html.tk-dragging * { cursor: grabbing !important; user-select:
   .tk-qa-go span { display: none; }
   .tk-qa-go .ic { margin: 0; }
   .tk-qa-preview { margin-top: 10px; }
+  .tk-qa-hint-s { display: inline; }
+  .tk-qa-hint-l { display: none; }
   .tk-pill-title { flex-basis: 100%; margin-left: 2px; }
   .tk-viewbar { flex-direction: column-reverse; flex-wrap: nowrap; align-items: stretch; gap: 10px; padding: 14px 14px 6px; }
   .tk-who { margin: 0 -14px; padding: 2px 14px; }

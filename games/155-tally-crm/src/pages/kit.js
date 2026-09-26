@@ -52,13 +52,13 @@
             </div>`, 2)}
           ${section('mark', '品牌記號', '五筆圓頭粗筆畫的正字，啟動時依筆順描出。', html`
             <div class="kit-row kit-wrap">${ui.brandMark({ size: 56, cls: 'kit-brand' })}${ui.brandMark({ size: 32 })}${ui.brandMark({ size: 20 })}<span class="kit-wordmark">劃記</span>${ui.btn({ label: '重新描出', icon: 'refresh', size: 'sm', variant: 'quiet', attrs: { 'data-kit': 'redraw' } })}</div>`)}
-          ${section('blocks', '人名字塊與公司字塊', '業務是墨色實心，外部聯絡人是凹陷底；公司是兩字直排的印記。', html`
+          ${section('blocks', '頭像與公司標誌', '圓形粉彩頭像刻姓氏，色調依名字固定；業務多一圈白環。公司是圓角方形標誌，取簡稱第一字。', html`
             <div class="kit-row kit-wrap">${[20, 24, 28, 32, 40, 56].map((s) => ui.nameBlock(me, { size: s }))}</div>
             <div class="kit-row kit-wrap">${[20, 24, 28, 32, 40, 56].map((s, i) => ui.nameBlock(contacts[i * 7], { size: s }))}</div>
             <div class="kit-row kit-wrap">${[28, 32, 40, 56].map((s, i) => ui.companyMark(companies[i * 5], { size: s }))}${reps.map((r) => ui.nameBlock(r, { size: 28 }))}</div>`)}
           ${section('warmth', '關係溫度', '依最後往來天數：熱 ≤7、溫 ≤21、涼 ≤45、冷 >45。', html`
             <div class="kit-row kit-wrap">${store.WARMTH.map((w) => ui.warmth({ ...w, days: { hot: 3, warm: 12, cool: 30, cold: 64 }[w.id] }))}</div>`)}
-          ${section('stage', '階段與金額', '色點加文字，不做膠囊；未成金額的刪除線穿過數字正中央。', html`
+          ${section('stage', '階段與金額', '階段用色點加文字；未成金額的刪除線穿過數字正中央。', html`
             <div class="kit-row kit-wrap">${stageIds.map((s) => ui.stageTag(s))}</div>
             <div class="kit-row kit-wrap kit-money">${ui.money(1280000)}${ui.money(1280000, { compact: true })}${ui.money(27122800, { compact: true })}${ui.money(185000, { compact: true })}${ui.money(3460000, { lost: true })}<span class="t-20">${ui.money(3460000, { lost: true })}</span></div>`)}
           ${section('time', '時間', '相對今天；逾期柿色、今天赭色。', html`

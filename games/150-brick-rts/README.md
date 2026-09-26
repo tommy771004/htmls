@@ -1,3 +1,9 @@
+# 設定、音效與第一個完整階段
+
+選單新增「設定」：畫質（高／中／低，低畫質關閉陰影）與音量（0 為靜音），存在這個瀏覽器。遊戲有了音效，全部用 WebAudio 即時合成，沒有音檔：選取、下令、放置、完工、生產、受擊、警報、升時代、勝負。逗號鍵「,」選取全部軍隊。對地面或小地圖下的移動點在看不見的障礙物上時，單位會走到最近的空地，不再拒絕。
+
+prompt 19 的完整路徑（設定畫質與音量→建立對局→採集→送返→造房→造軍營→升時代→造兵→偵查→攻擊→撤退→勝敗→再開局）以 `npm run test:full` 在一般模式對電腦實際走完，E 階段以垂直切片結案，下一階段是 F。治療需要僧侶，屬於 F 階段，目前沒有。詳見 docs/first-use-018.md。
+
 # 斥候與投降
 
 曠野地圖上，雙方開局各有一名斥候（騎馬，移動速度是村民的兩倍，視野較廣，只在下令時戰鬥），開局人口 4/5，和原作的標準開局相同。斥候目前不能訓練。電腦用斥候探索地圖，進攻時優先攻擊看過的建築。選單新增「投降」（要按兩次）；電腦失去城鎮中心又沒有士兵時也會投降，大地圖上不必再追最後一名村民。State／snapshot 為 v18，詳見 docs/first-use-017.md。
@@ -73,6 +79,7 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:economy   
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:build          # prompt 19 首次使用流程：放置、施工、人口、取消退款
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:production     # prompt 19 首次使用流程：生產村民、人口上限、集結點、升時代、兵營與弓手
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:combat         # prompt 19 首次使用流程：造兵、偵查、攻擊、攻城、勝利、再開一局
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:full           # prompt 19 完整路徑：設定、建立對局、採集、送返、造房、造軍營、升時代、造兵、偵查、攻擊、撤退、勝敗、再開局
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:match          # prompt 19 完整對局（非除錯模式、對電腦）：開局、造兵、進軍、攻城、勝負畫面、再開一局
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:hud            # prompt 19 首次進站（非除錯模式）：全畫面配置、資源列、頭像、指令格、小地圖、選單、手機觸控；產生 thumbs/150.jpg
 npm run bench:movement   # 3／8／24／40 名穿過城鎮中心大門的負載紀錄，輸出 test-results/movement-benchmark.json
@@ -99,7 +106,7 @@ npm run bench:movement   # 3／8／24／40 名穿過城鎮中心大門的負載�
    - 滑鼠停在指令格上，左下角會出現說明卡：名稱、快捷鍵、費用（不足的會標色）、時間、人口，以及不能按的原因。沒有停在指令格上時，這裡寫出目前不能建造或生產的原因。
    - 佇列顯示在選取資訊右側，第一項有進度條，每項都能取消並全額退款。選取建築時右鍵地面設定集結點。
 4. 鏡頭與小地圖
-   - 方向鍵平移，滾輪或小地圖旁的 +／− 縮放，旋轉鈕每次轉 90 度，F 對準選取的單位。
+   - 「,」選取全部軍隊（不含斥候）。方向鍵平移，滾輪或小地圖旁的 +／− 縮放，旋轉鈕每次轉 90 度，F 對準選取的單位。
    - 小地圖依鏡頭方向繪製，白框就是目前看到的範圍。左鍵點或拖曳移動鏡頭；選取單位時右鍵下達移動，選取建築時右鍵設定集結點。
 5. 時間
    - F3 或頂列的 ▶／❚❚ 暫停與繼續；速度可切 1×／2×／4×，每個 tick 都會執行。

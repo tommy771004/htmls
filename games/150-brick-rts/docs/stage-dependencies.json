@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "../../../docs/Brick_RTS_Prompt_Pack/brick_rts_prompt_pack/docs/BUILD_ORDER.md",
-  "activeStage": "E",
+  "activeStage": "F",
   "exactReferenceBlocked": true,
   "allowDesignDefaultEngineering": true,
   "stages": [
@@ -78,10 +78,11 @@
       "dependsOn": [
         "D"
       ],
-      "status": "in_progress",
+      "status": "vertical_slice_verified",
       "exitEvidence": "經濟→升級→造兵→攻城→勝敗→再開局",
       "firstUseReviewRequired": true,
-      "reviewStatus": "full_match_vs_computer_first_use_014_verified_player_age_up_retreat_heal_open"
+      "reviewStatus": "prompt19_full_path_first_use_018_verified",
+      "note": "Two-side vertical slice: economy, farms, age 2, militia/archers, scout, siege, conquest or resignation, new game, played end to end through the UI (tests/first-use-full.mjs) and against the computer (tests/first-use-match.mjs). Open: healing needs monks (stage F), real-GPU frame time unmeasured, the computer is basic (no retreat, concedes early), ages 3-4 have no content."
     },
     {
       "id": "F",
@@ -94,7 +95,7 @@
       "dependsOn": [
         "E"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "exitEvidence": "海運、貿易、宗教、文明與完整 AI 實際互動",
       "firstUseReviewRequired": true,
       "reviewStatus": "not_run"

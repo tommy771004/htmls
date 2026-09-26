@@ -1176,6 +1176,11 @@
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/app/102.jpg</image:loc></image:image>
   </url>
   <url>
+    <loc>https://htmls-ruddy.vercel.app/app/103-shunlu-market.html</loc>
+    <lastmod>2026-09-26</lastmod>
+    <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/app/103.jpg</image:loc></image:image>
+  </url>
+  <url>
     <loc>https://htmls-ruddy.vercel.app/web/135-nagoya-terrain.html</loc>
     <lastmod>2026-09-24</lastmod>
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/135.jpg</image:loc></image:image>
@@ -1270,5 +1275,10 @@
     <loc>https://htmls-ruddy.vercel.app/web/156-one-shape.html</loc>
     <lastmod>2026-09-26</lastmod>
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/156.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://htmls-ruddy.vercel.app/web/157-lucid-ledger.html</loc>
+    <lastmod>2026-09-26</lastmod>
+    <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/157.jpg</image:loc></image:image>
   </url>
 </urlset>

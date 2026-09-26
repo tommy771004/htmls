@@ -205,6 +205,8 @@
 - [102 Starting on Your Own Project](https://htmls-ruddy.vercel.app/web/102-your-project-playbooks.html): AI 工程化教學簡報。在自己的專案啟動 Claude Code 的三套起手劇本：全新專案、WebForms 轉 Web、WinForms 轉 Web，16 張投影片
 
 ### 專案範例
+- [157 澄帳 · 個人財務全景](https://htmls-ruddy.vercel.app/web/157-lucid-ledger.html): AI 理財工作台，九個畫面共用一份種子固定的虛構帳本：總覽、洞察、助理、現金流、交易、帳戶、固定支出、投資與目標；轉帳、暫停訂閱、拆帳、再平衡後全部重算，助理以帳本算出「負擔得起嗎」並列出算式，全覽模式把九個畫面縮成九宮格
+
 - [148 跑道 · CFO 儀表板](https://htmls-ruddy.vercel.app/web/148-cfo-runway.html): 三家公司的單頁經營月報：可支撐月數畫成跑道與現金耗盡停止線，營運費用情境滑桿即時移動；十項指標對比上月、上季與目標，CFO 總結依數據自動列出變好、變差與需要關注
 
 - [147 信封 · 預算比較實際](https://htmls-ruddy.vercel.app/web/147-budget-envelopes.html): 家庭、行銷部門、民宿三組分類，一類一只信封：預算、實際、差異金額與百分比、剩餘預算，郵戳標示正常／注意／超支；拖曳日期看月末預測、點金額改預算，總使用率、超支排行與每月趨勢
@@ -335,6 +337,7 @@
 - [100 主畫面](https://htmls-ruddy.vercel.app/app/100-linen-springboard.html): 主畫面模擬器；iOS 6 擬物：亞麻布、光澤圖示。長按抖動、拖曳排序、刪除、資料夾
 - [101 篩 Sift](https://htmls-ruddy.vercel.app/app/101-sift-digest.html): 晨間訊息摘要；陶土粉紙、可甩出的摘要卡。右甩讀完、左甩稍後、頂端膠囊可復原、原文抽屜、讀完後結算
 - [102 等價 Tarry](https://htmls-ruddy.vercel.app/app/102-tarry-settings.html): AI 代買助理的帳戶設定；菸草棕摘要卡、石灰泥底。七個帳戶頁共用一張摘要卡，可調每筆上限與 Face ID 門檻、讓它忘掉學到的事、切換預設卡與地址、下載或刪除資料、客服聊天
+- [103 順路 Shunlu](https://htmls-ruddy.vercel.app/app/103-shunlu-market.html): 早市代買的五種不順狀態；牛皮紙價牌、掛牌分頁。載入時價牌先排好位置、離線看存下的價格並讓加的東西排隊、空收藏直接給能加的東西、找不到時給四條別的路、取消訂單前講清楚退款
 
 - [潮生島 · 海島經營日記](https://htmls-ruddy.vercel.app/web/139-tideborn-island.html)：遊戲敘事；可調整種子、大小、高度的程序化海島，中央高地、沙灘、礁島與放射路網。完整經營原型：住宅、生產設施、碼頭與燈塔，五種職業的骨架 glTF 村民、狀態機作息與尋路、交談及實際搬運交易、六種資源、任務製作市集、等級解鎖與自動存檔。
 

@@ -51,7 +51,7 @@
   function load() {
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { persistent = false; }
-    if (saved && saved.meta && saved.meta.version === 1) {
+    if (saved && saved.meta && saved.meta.version === 2) {
       const todayIso = U.iso(U.today());
       if (saved.meta.seededOn !== todayIso) {
         // 同一季：平移日期保留使用者的修改；跨季：重新產生示範資料

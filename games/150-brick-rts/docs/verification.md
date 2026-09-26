@@ -178,3 +178,7 @@ Latest clean-directory run: 22 tests passed; desktop/mobile real house routing, 
 ## 投降、斥候與大地圖效能（v18）
 
 投降與電腦認輸、曠野開局的斥候（開局人口 4/5）、電腦用斥候探索、電腦經濟在大地圖上的兩個停擺修正、騎乘人偶的姿勢安全，以及大地圖效能的量測，驗證見 [first-use-017.md](first-use-017.md)。E 仍是 in_progress。
+
+## prompt 19 完整路徑與 E 階段結案（v18）
+
+設定畫質與音量、合成音效、「,」選取全部軍隊、移動到看不見的障礙物時改走最近空地，以及 prompt 19 完整路徑（`npm run test:full`），驗證見 [first-use-018.md](first-use-018.md)。E 階段以垂直切片結案，F 為進行中。
