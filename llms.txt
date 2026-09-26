@@ -136,6 +136,7 @@
 - [140 浮雲鐵道 · Cumulus Line](https://htmls-ruddy.vercel.app/web/140-cumulus-line.html): Three.js 水彩浮島電車模擬。駕駛室視角、一桿式主控制器（P5～B7／EB）、以急動度與側向加速度換算的乘客舒適度與小費、茶杯液面即時傾斜、平穩連續倍率、定點停車、雲梯線與星汐線兩條路線、晴日與午夜光照、機廠小鎮整備。
 - [153 尾流大獎賽 · SLIPSTREAM GP](https://htmls-ruddy.vercel.app/web/153-slipstream-gp.html): Q 版 3D 卡丁車。四條賽道、大獎賽／計時賽／氣球大戰三種模式、八位原創車手，跳躍甩尾迷你加速、七種道具、尾流吸附與即時合成配樂，模型與貼圖全由程式生成。
 - [159 沉星機 · ANTIKYTHERA](https://htmls-ruddy.vercel.app/web/159-antikythera.html): 3D 潛水打撈與齒輪復原解謎。以第三人稱潛入安提基特拉沉船撈起鏽蝕青銅，除鏽讀出齒數，依孔距齒數和與齒輪比裝回五組齒輪；裝對後轉動立體機械的曲柄預測太陽、月亮、月相、奧林匹克賽會與日月食。以 Three.js 即時程序生成，畫面與聲音不用任何素材檔。
+- [170 川明かり · KAWA-AKARI](https://htmls-ruddy.vercel.app/web/170-kawa-akari.html)：用 WASD 駕小木船順著首尾相接的日本河道穿過鳥居、町屋、竹林、石燈籠與遠山；水面有鏡面倒影、深度折射、船行水波與雨滴漣漪，船依波高浮沉；四分鐘日夜循環與晴／雨／霧輪替，岸上有會動的人物與鷺；全程式建模與 PBR 材質，Three.js 從 CDN 載入。
 
 ### 品牌頁面
 
