@@ -67,6 +67,7 @@
 - [129 ORBIT OS · 瀏覽器裡的桌面](https://htmls-ruddy.vercel.app/web/129-orbit-os.html): macOS 風格互動作業系統。單檔離線桌面：Dock、可拖曳縮放視窗、共用檔案系統的 Finder 與終端機、離線瀏覽器、主題設定、Web Audio 音樂，以及可挖掘建造的體素遊戲
 - [152 潮班 · TIDELINE 渡輪元件板](https://htmls-ruddy.vercel.app/web/152-tideline-board.html): 產品微互動元件板。虛構澎湖渡輪公司的五個可操作元件：行程膠囊變形（船班卡、取消確認、退款收據）、航線描繪與港口輪播、港口側欄滑動旗標、延誤通知堆疊、同行分票；每格自動示範，碰到就交給使用者。
 - [156 一形 · ONE SHAPE](https://htmls-ruddy.vercel.app/web/156-one-shape.html): 單一形狀 UI 動態短片。120 BPM、7 小節的無縫循環，同一個形狀變成按鈕、載入、動態島、播放器、音量滑桿、開關、液態分頁、圖表、⌘K 與通知；游標真實點擊拖曳、鏡頭縮放，每格都是時間的純函數，可逐拍檢查
+- [171 繩結 · HITCH 代理工作台](https://htmls-ruddy.vercel.app/web/171-hitch-harness.html): 桌面 AI 代理工作台。虛構的代理 App：工作區側欄、七個外掛、權限模式與模型選單；外掛開關會改變產品行為，每次工具呼叫畫成繩上的一個結，連網安裝要按允許。單檔、零外部資源
 
 ### 工具產生器
 
