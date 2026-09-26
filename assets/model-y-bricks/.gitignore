@@ -1,0 +1,2 @@
+# 說明書排版的中間檔（每步渲染圖、booklet.html），由 src/instructions.mjs 產生
+build/

@@ -1,0 +1,1302 @@
+{
+ "model": "model-y.ldr",
+ "generated": "2026-09-26T11:13:12.888Z",
+ "method": {
+  "unit": "單位 LDU（LDraw Unit，1 LDU = 0.4 mm；凸點間距 20、磚高 24、薄板高 8）",
+  "contactTolerance": "接觸容差 0.4 LDU：兩個碰撞體重疊深度在此以內視為貼合（真實零件每邊約有 0.1 mm 公差）",
+  "collision": "每個零件用保守凸體（包圍盒或側面輪廓凸包；複雜零件手工定義）表示，覆蓋檢查確認凸體包住 LDraw 真實網格每個取樣點；兩兩以分離軸定理計算重疊深度",
+  "studs": "凸點位置從 LDraw 網格中的 stud 原始檔讀出；凸點孔為零件底面每一格中心。凸點與凸點孔位置一致且方向相對才算接上；沒接上的凸點視為 12×12×4 LDU 的方塊參與碰撞",
+  "technic": "軸插軸孔、銷插銷孔需同軸（偏差 < 0.1 LDU）且插入長度 ≥ 較短一方的 80%；互相插接的兩個零件之間以此規則取代體積碰撞",
+  "build": "依 .ldr 順序逐一放入；每個零件至少接到一個已放好的零件，所有接點的插入方向一致，並沿該方向以 2 LDU 間距取樣整段路徑不得碰撞",
+  "balance": "重心投影到地面，需落在四個輪胎接地線圍成的凸包內（汽車沒有腳掌，以輪胎接地範圍作為支撐範圍）"
+ },
+ "summary": {
+  "parts": 116,
+  "uniqueParts": 29,
+  "lots": 40,
+  "steps": 25,
+  "studConnections": 596,
+  "technicConnections": 8,
+  "connections": 604,
+  "collisions": 0,
+  "components": 1,
+  "buildFailures": 0,
+  "catalogFailures": 0,
+  "coverageFailures": 0,
+  "wheelsOnGround": 4,
+  "groundClearanceLDU": 8,
+  "massGrams": 182.72,
+  "weightSource": "bricklink",
+  "centerOfMass": [
+   -11.96,
+   -68.54,
+   0.14
+  ],
+  "supportPolygon": [
+   [
+    -120,
+    -92.5
+   ],
+   [
+    120,
+    -92.5
+   ],
+   [
+    120,
+    92.5
+   ],
+   [
+    -120,
+    92.5
+   ]
+  ],
+  "comMarginLDU": 92.36,
+  "unmatedStuds": 100,
+  "exposedStuds": 0,
+  "technicExemptPairs": 8,
+  "pass": true
+ },
+ "exposedStuds": [],
+ "technicExempt": [
+  {
+   "a": 108,
+   "aId": "3749",
+   "b": 2,
+   "bId": "3668",
+   "kind": "axle→axlehole",
+   "overlap": 19
+  },
+  {
+   "a": 108,
+   "aId": "3749",
+   "b": 109,
+   "bId": "72206p01",
+   "kind": "pin→pinhole",
+   "overlap": 17.5
+  },
+  {
+   "a": 110,
+   "aId": "3749",
+   "b": 2,
+   "bId": "3668",
+   "kind": "axle→axlehole",
+   "overlap": 19
+  },
+  {
+   "a": 110,
+   "aId": "3749",
+   "b": 111,
+   "bId": "72206p01",
+   "kind": "pin→pinhole",
+   "overlap": 17.5
+  },
+  {
+   "a": 112,
+   "aId": "3749",
+   "b": 4,
+   "bId": "3668",
+   "kind": "axle→axlehole",
+   "overlap": 19
+  },
+  {
+   "a": 112,
+   "aId": "3749",
+   "b": 113,
+   "bId": "72206p01",
+   "kind": "pin→pinhole",
+   "overlap": 17.5
+  },
+  {
+   "a": 114,
+   "aId": "3749",
+   "b": 4,
+   "bId": "3668",
+   "kind": "axle→axlehole",
+   "overlap": 19
+  },
+  {
+   "a": 114,
+   "aId": "3749",
+   "b": 115,
+   "bId": "72206p01",
+   "kind": "pin→pinhole",
+   "overlap": 17.5
+  }
+ ],
+ "problems": [],
+ "steps": [
+  {
+   "step": 1,
+   "title": "底盤",
+   "parts": 1,
+   "ok": true,
+   "issues": [],
+   "insert": {}
+  },
+  {
+   "step": 2,
+   "title": "底盤",
+   "parts": 4,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,-1,0": 4
+   }
+  },
+  {
+   "step": 3,
+   "title": "車身底層",
+   "parts": 3,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 3
+   }
+  },
+  {
+   "step": 4,
+   "title": "車身與輪拱",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 6
+   }
+  },
+  {
+   "step": 5,
+   "title": "車身與輪拱",
+   "parts": 5,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 5
+   }
+  },
+  {
+   "step": 6,
+   "title": "車身與輪拱",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 6
+   }
+  },
+  {
+   "step": 7,
+   "title": "車身與輪拱",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 6
+   }
+  },
+  {
+   "step": 8,
+   "title": "車身與輪拱",
+   "parts": 5,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 5
+   }
+  },
+  {
+   "step": 9,
+   "title": "車身與輪拱",
+   "parts": 4,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 4
+   }
+  },
+  {
+   "step": 10,
+   "title": "車窗與擋風玻璃",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 6
+   }
+  },
+  {
+   "step": 11,
+   "title": "車窗與擋風玻璃",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 6
+   }
+  },
+  {
+   "step": 12,
+   "title": "車窗與擋風玻璃",
+   "parts": 4,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 4
+   }
+  },
+  {
+   "step": 13,
+   "title": "車窗與擋風玻璃",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 6
+   }
+  },
+  {
+   "step": 14,
+   "title": "車頂骨架",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 6
+   }
+  },
+  {
+   "step": 15,
+   "title": "車頂骨架",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 6
+   }
+  },
+  {
+   "step": 16,
+   "title": "車頂骨架",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 6
+   }
+  },
+  {
+   "step": 17,
+   "title": "車頂骨架",
+   "parts": 1,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 1
+   }
+  },
+  {
+   "step": 18,
+   "title": "全景玻璃車頂",
+   "parts": 3,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,1,0": 3
+   }
+  },
+  {
+   "step": 19,
+   "title": "車身與輪拱",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,-1,0": 6
+   }
+  },
+  {
+   "step": 20,
+   "title": "車身與輪拱",
+   "parts": 4,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,-1,0": 4
+   }
+  },
+  {
+   "step": 21,
+   "title": "車身底層",
+   "parts": 4,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,-1,0": 4
+   }
+  },
+  {
+   "step": 22,
+   "title": "保險桿與側裙",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,-1,0": 6
+   }
+  },
+  {
+   "step": 23,
+   "title": "保險桿與側裙",
+   "parts": 4,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,-1,0": 4
+   }
+  },
+  {
+   "step": 24,
+   "title": "輪子",
+   "parts": 6,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,0,1": 4,
+    "0,0,-1": 2
+   }
+  },
+  {
+   "step": 25,
+   "title": "輪子",
+   "parts": 2,
+   "ok": true,
+   "issues": [],
+   "insert": {
+    "0,0,-1": 2
+   }
+  }
+ ],
+ "catalog": [
+  {
+   "id": "3027",
+   "file": "3027.dat",
+   "color": 0,
+   "qty": 1,
+   "ldrawTitle": "Plate  6 x 16",
+   "ok": true,
+   "notes": [],
+   "sets": 10,
+   "lastYear": 2026,
+   "example": {
+    "set": "11372-1",
+    "name": "Autumn Cottage Garden",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3001",
+   "file": "3001.dat",
+   "color": 72,
+   "qty": 2,
+   "ldrawTitle": "Brick  2 x  4",
+   "ok": true,
+   "notes": [],
+   "sets": 88,
+   "lastYear": 2026,
+   "example": {
+    "set": "910057-1",
+    "name": "Outlaw Forest Den",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3668",
+   "file": "3668.dat",
+   "color": 72,
+   "qty": 2,
+   "ldrawTitle": "Plate  2 x  6 with Side Bricks  1 x  2 x  1.333 with Axlehole with Underside Ridges",
+   "ok": true,
+   "notes": [],
+   "sets": 57,
+   "lastYear": 2026,
+   "example": {
+    "set": "77255-1",
+    "name": "Lightning McQueen",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3958",
+   "file": "3958.dat",
+   "color": 15,
+   "qty": 2,
+   "ldrawTitle": "Plate  6 x  6",
+   "ok": true,
+   "notes": [],
+   "sets": 38,
+   "lastYear": 2026,
+   "example": {
+    "set": "910054-1",
+    "name": "The Art Factory",
+    "year": 2026
+   }
+  },
+  {
+   "id": "41539",
+   "file": "41539.dat",
+   "color": 15,
+   "qty": 1,
+   "ldrawTitle": "Plate  8 x  8",
+   "ok": true,
+   "notes": [],
+   "sets": 19,
+   "lastYear": 2026,
+   "example": {
+    "set": "31218-1",
+    "name": "Japanese Cherry Blossom Landscape",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3023",
+   "file": "3023b.dat",
+   "color": 47,
+   "qty": 4,
+   "ldrawTitle": "Plate  1 x  2",
+   "ok": true,
+   "notes": [],
+   "sets": 95,
+   "lastYear": 2026,
+   "example": {
+    "set": "910056-1",
+    "name": "Off-Road Adventure",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3460",
+   "file": "3460.dat",
+   "color": 15,
+   "qty": 1,
+   "ldrawTitle": "Plate  1 x  8",
+   "ok": true,
+   "notes": [],
+   "sets": 151,
+   "lastYear": 2026,
+   "example": {
+    "set": "910054-1",
+    "name": "The Art Factory",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3795",
+   "file": "3795.dat",
+   "color": 15,
+   "qty": 1,
+   "ldrawTitle": "Plate  2 x  6",
+   "ok": true,
+   "notes": [],
+   "sets": 212,
+   "lastYear": 2027,
+   "example": {
+    "set": "6675226-1",
+    "name": "Father's Day Frame",
+    "year": 2027
+   }
+  },
+  {
+   "id": "2456",
+   "file": "2456.dat",
+   "color": 15,
+   "qty": 4,
+   "ldrawTitle": "Brick  2 x  6",
+   "ok": true,
+   "notes": [],
+   "sets": 61,
+   "lastYear": 2026,
+   "example": {
+    "set": "21585-1",
+    "name": "Chicken Farm",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3008",
+   "file": "3008.dat",
+   "color": 15,
+   "qty": 4,
+   "ldrawTitle": "Brick  1 x  8",
+   "ok": true,
+   "notes": [],
+   "sets": 65,
+   "lastYear": 2026,
+   "example": {
+    "set": "71858-1",
+    "name": "Four Weapons Blacksmith 15th Anniversary",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3005",
+   "file": "3005.dat",
+   "color": 15,
+   "qty": 2,
+   "ldrawTitle": "Brick  1 x  1",
+   "ok": true,
+   "notes": [],
+   "sets": 235,
+   "lastYear": 2026,
+   "example": {
+    "set": "910054-1",
+    "name": "The Art Factory",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3622",
+   "file": "3622.dat",
+   "color": 15,
+   "qty": 2,
+   "ldrawTitle": "Brick  1 x  3",
+   "ok": true,
+   "notes": [],
+   "sets": 122,
+   "lastYear": 2026,
+   "example": {
+    "set": "71858-1",
+    "name": "Four Weapons Blacksmith 15th Anniversary",
+    "year": 2026
+   }
+  },
+  {
+   "id": "93606",
+   "file": "93606.dat",
+   "color": 15,
+   "qty": 4,
+   "ldrawTitle": "Slope Brick Curved  4 x  2",
+   "ok": true,
+   "notes": [],
+   "sets": 32,
+   "lastYear": 2026,
+   "example": {
+    "set": "42226-1",
+    "name": "BMW M4 GT3 EVO Race Car",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3024",
+   "file": "3024.dat",
+   "color": 15,
+   "qty": 12,
+   "ldrawTitle": "Plate  1 x  1",
+   "ok": true,
+   "notes": [],
+   "sets": 340,
+   "lastYear": 2026,
+   "example": {
+    "set": "910056-1",
+    "name": "Off-Road Adventure",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3710",
+   "file": "3710.dat",
+   "color": 15,
+   "qty": 1,
+   "ldrawTitle": "Plate  1 x  4",
+   "ok": true,
+   "notes": [],
+   "sets": 367,
+   "lastYear": 2026,
+   "example": {
+    "set": "910054-1",
+    "name": "The Art Factory",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3666",
+   "file": "3666.dat",
+   "color": 15,
+   "qty": 2,
+   "ldrawTitle": "Plate  1 x  6",
+   "ok": true,
+   "notes": [],
+   "sets": 246,
+   "lastYear": 2026,
+   "example": {
+    "set": "910054-1",
+    "name": "The Art Factory",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3456",
+   "file": "3456.dat",
+   "color": 15,
+   "qty": 1,
+   "ldrawTitle": "Plate  6 x 14",
+   "ok": true,
+   "notes": [],
+   "sets": 6,
+   "lastYear": 2026,
+   "example": {
+    "set": "72152-1",
+    "name": "Pikachu and Poké Ball",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3023",
+   "file": "3023b.dat",
+   "color": 36,
+   "qty": 4,
+   "ldrawTitle": "Plate  1 x  2",
+   "ok": true,
+   "notes": [],
+   "sets": 70,
+   "lastYear": 2026,
+   "example": {
+    "set": "76332-1",
+    "name": "The Batman Batmobile",
+    "year": 2026
+   }
+  },
+  {
+   "id": "4286",
+   "file": "4286.dat",
+   "color": 0,
+   "qty": 2,
+   "ldrawTitle": "Slope Brick 33  3 x  1",
+   "ok": true,
+   "notes": [],
+   "sets": 47,
+   "lastYear": 2026,
+   "example": {
+    "set": "76330-1",
+    "name": "Batman Logo",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3298",
+   "file": "3298.dat",
+   "color": 0,
+   "qty": 3,
+   "ldrawTitle": "Slope Brick 33  3 x  2",
+   "ok": true,
+   "notes": [],
+   "sets": 55,
+   "lastYear": 2026,
+   "example": {
+    "set": "76343-1",
+    "name": "Epic Battle: Hulkbuster vs. The Hulk",
+    "year": 2026
+   }
+  },
+  {
+   "id": "2456",
+   "file": "2456.dat",
+   "color": 0,
+   "qty": 2,
+   "ldrawTitle": "Brick  2 x  6",
+   "ok": true,
+   "notes": [],
+   "sets": 66,
+   "lastYear": 2026,
+   "example": {
+    "set": "21590-1",
+    "name": "Wither Battle",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3003",
+   "file": "3003.dat",
+   "color": 0,
+   "qty": 2,
+   "ldrawTitle": "Brick  2 x  2",
+   "ok": true,
+   "notes": [],
+   "sets": 135,
+   "lastYear": 2026,
+   "example": {
+    "set": "21584-1",
+    "name": "Nether & End Portal Journey",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3005",
+   "file": "3005.dat",
+   "color": 0,
+   "qty": 6,
+   "ldrawTitle": "Brick  1 x  1",
+   "ok": true,
+   "notes": [],
+   "sets": 202,
+   "lastYear": 2026,
+   "example": {
+    "set": "910056-1",
+    "name": "Off-Road Adventure",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3622",
+   "file": "3622.dat",
+   "color": 0,
+   "qty": 2,
+   "ldrawTitle": "Brick  1 x  3",
+   "ok": true,
+   "notes": [],
+   "sets": 120,
+   "lastYear": 2026,
+   "example": {
+    "set": "910054-1",
+    "name": "The Art Factory",
+    "year": 2026
+   }
+  },
+  {
+   "id": "50950",
+   "file": "50950.dat",
+   "color": 15,
+   "qty": 2,
+   "ldrawTitle": "Slope Brick Curved  3 x  1",
+   "ok": true,
+   "notes": [],
+   "sets": 61,
+   "lastYear": 2026,
+   "example": {
+    "set": "71860-1",
+    "name": "Lloyd's Titan Mech 15th Anniversary",
+    "year": 2026
+   }
+  },
+  {
+   "id": "24309",
+   "file": "24309.dat",
+   "color": 15,
+   "qty": 3,
+   "ldrawTitle": "Slope Brick Curved  3 x  2",
+   "ok": true,
+   "notes": [],
+   "sets": 47,
+   "lastYear": 2026,
+   "example": {
+    "set": "9781837251759-1",
+    "name": "City: Let's Fly",
+    "year": 2026
+   }
+  },
+  {
+   "id": "50950",
+   "file": "50950.dat",
+   "color": 0,
+   "qty": 4,
+   "ldrawTitle": "Slope Brick Curved  3 x  1",
+   "ok": true,
+   "notes": [],
+   "sets": 43,
+   "lastYear": 2026,
+   "example": {
+    "set": "42223-1",
+    "name": "1966 Ford GT40 MKII Race Car",
+    "year": 2026
+   }
+  },
+  {
+   "id": "24309",
+   "file": "24309.dat",
+   "color": 0,
+   "qty": 6,
+   "ldrawTitle": "Slope Brick Curved  3 x  2",
+   "ok": true,
+   "notes": [],
+   "sets": 38,
+   "lastYear": 2026,
+   "example": {
+    "set": "60489-1",
+    "name": "Jet vs. Car",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3795",
+   "file": "3795.dat",
+   "color": 0,
+   "qty": 2,
+   "ldrawTitle": "Plate  2 x  6",
+   "ok": true,
+   "notes": [],
+   "sets": 283,
+   "lastYear": 2026,
+   "example": {
+    "set": "910054-1",
+    "name": "The Art Factory",
+    "year": 2026
+   }
+  },
+  {
+   "id": "85984",
+   "file": "85984.dat",
+   "color": 0,
+   "qty": 6,
+   "ldrawTitle": "Slope Brick 31  1 x  2 x  0.667",
+   "ok": true,
+   "notes": [],
+   "sets": 236,
+   "lastYear": 2026,
+   "example": {
+    "set": "910058-1",
+    "name": "Sequoia Tree Trail",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3958",
+   "file": "3958.dat",
+   "color": 0,
+   "qty": 1,
+   "ldrawTitle": "Plate  6 x  6",
+   "ok": true,
+   "notes": [],
+   "sets": 95,
+   "lastYear": 2026,
+   "example": {
+    "set": "21590-1",
+    "name": "Wither Battle",
+    "year": 2026
+   }
+  },
+  {
+   "id": "69729",
+   "file": "69729.dat",
+   "color": 0,
+   "qty": 3,
+   "ldrawTitle": "Tile  2 x  6",
+   "ok": true,
+   "notes": [],
+   "sets": 135,
+   "lastYear": 2026,
+   "example": {
+    "set": "910055-1",
+    "name": "Gold Mine Expedition",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3004",
+   "file": "3004.dat",
+   "color": 15,
+   "qty": 4,
+   "ldrawTitle": "Brick  1 x  2",
+   "ok": true,
+   "notes": [],
+   "sets": 250,
+   "lastYear": 2026,
+   "example": {
+    "set": "21588-1",
+    "name": "The Fox",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3010",
+   "file": "3010.dat",
+   "color": 15,
+   "qty": 2,
+   "ldrawTitle": "Brick  1 x  4",
+   "ok": true,
+   "notes": [],
+   "sets": 188,
+   "lastYear": 2026,
+   "example": {
+    "set": "910054-1",
+    "name": "The Art Factory",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3023",
+   "file": "3023b.dat",
+   "color": 15,
+   "qty": 2,
+   "ldrawTitle": "Plate  1 x  2",
+   "ok": true,
+   "notes": [],
+   "sets": 526,
+   "lastYear": 2026,
+   "example": {
+    "set": "910056-1",
+    "name": "Off-Road Adventure",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3003",
+   "file": "3003.dat",
+   "color": 15,
+   "qty": 2,
+   "ldrawTitle": "Brick  2 x  2",
+   "ok": true,
+   "notes": [],
+   "sets": 166,
+   "lastYear": 2026,
+   "example": {
+    "set": "910054-1",
+    "name": "The Art Factory",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3034",
+   "file": "3034.dat",
+   "color": 0,
+   "qty": 2,
+   "ldrawTitle": "Plate  2 x  8",
+   "ok": true,
+   "notes": [],
+   "sets": 199,
+   "lastYear": 2026,
+   "example": {
+    "set": "910057-1",
+    "name": "Outlaw Forest Den",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3460",
+   "file": "3460.dat",
+   "color": 0,
+   "qty": 2,
+   "ldrawTitle": "Plate  1 x  8",
+   "ok": true,
+   "notes": [],
+   "sets": 200,
+   "lastYear": 2026,
+   "example": {
+    "set": "910056-1",
+    "name": "Off-Road Adventure",
+    "year": 2026
+   }
+  },
+  {
+   "id": "3749",
+   "file": "3749.dat",
+   "color": 19,
+   "qty": 4,
+   "ldrawTitle": "Technic Axle Pin",
+   "ok": true,
+   "notes": [],
+   "sets": 321,
+   "lastYear": 2026,
+   "example": {
+    "set": "910054-1",
+    "name": "The Art Factory",
+    "year": 2026
+   }
+  },
+  {
+   "id": "72206p01",
+   "file": "72206p01.dat",
+   "color": 72,
+   "qty": 4,
+   "ldrawTitle": "Wheel 11 x 24 with Integral Rubber Black Tyre",
+   "ok": true,
+   "notes": [],
+   "sets": 3,
+   "lastYear": 2026,
+   "example": {
+    "set": "60483-1",
+    "name": "Rides – Construction Loader",
+    "year": 2026
+   }
+  }
+ ],
+ "coverage": [
+  {
+   "file": "3027.dat",
+   "samples": 32526,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3001.dat",
+   "samples": 1422,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3668.dat",
+   "samples": 4448,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3958.dat",
+   "samples": 10926,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "41539.dat",
+   "samples": 21294,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3023b.dat",
+   "samples": 382,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3460.dat",
+   "samples": 1918,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3795.dat",
+   "samples": 2286,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "2456.dat",
+   "samples": 2286,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3008.dat",
+   "samples": 1918,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3005.dat",
+   "samples": 126,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3622.dat",
+   "samples": 638,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "93606.dat",
+   "samples": 2479,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3024.dat",
+   "samples": 126,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3710.dat",
+   "samples": 894,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3666.dat",
+   "samples": 1406,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3456.dat",
+   "samples": 28206,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "4286.dat",
+   "samples": 871,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3298.dat",
+   "samples": 1897,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3003.dat",
+   "samples": 558,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "50950.dat",
+   "samples": 824,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "24309.dat",
+   "samples": 2456,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "85984.dat",
+   "samples": 869,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "69729.dat",
+   "samples": 2358,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3004.dat",
+   "samples": 382,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3010.dat",
+   "samples": 894,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3034.dat",
+   "samples": 3150,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "3749.dat",
+   "samples": 2488,
+   "miss": 0,
+   "worst": null
+  },
+  {
+   "file": "72206p01.dat",
+   "samples": 22109,
+   "miss": 0,
+   "worst": null
+  }
+ ],
+ "technic": [
+  {
+   "a": 108,
+   "b": 2,
+   "kind": "axle→axlehole",
+   "overlap": 19,
+   "need": 16,
+   "open": [
+    0,
+    0,
+    -1
+   ],
+   "ok": true
+  },
+  {
+   "a": 108,
+   "b": 109,
+   "kind": "pin→pinhole",
+   "overlap": 17.5,
+   "need": 14,
+   "open": [
+    0,
+    0,
+    1
+   ],
+   "ok": true
+  },
+  {
+   "a": 110,
+   "b": 2,
+   "kind": "axle→axlehole",
+   "overlap": 19,
+   "need": 16,
+   "open": [
+    0,
+    0,
+    1
+   ],
+   "ok": true
+  },
+  {
+   "a": 110,
+   "b": 111,
+   "kind": "pin→pinhole",
+   "overlap": 17.5,
+   "need": 14,
+   "open": [
+    0,
+    0,
+    -1
+   ],
+   "ok": true
+  },
+  {
+   "a": 112,
+   "b": 4,
+   "kind": "axle→axlehole",
+   "overlap": 19,
+   "need": 16,
+   "open": [
+    0,
+    0,
+    -1
+   ],
+   "ok": true
+  },
+  {
+   "a": 112,
+   "b": 113,
+   "kind": "pin→pinhole",
+   "overlap": 17.5,
+   "need": 14,
+   "open": [
+    0,
+    0,
+    1
+   ],
+   "ok": true
+  },
+  {
+   "a": 114,
+   "b": 4,
+   "kind": "axle→axlehole",
+   "overlap": 19,
+   "need": 16,
+   "open": [
+    0,
+    0,
+    1
+   ],
+   "ok": true
+  },
+  {
+   "a": 114,
+   "b": 115,
+   "kind": "pin→pinhole",
+   "overlap": 17.5,
+   "need": 14,
+   "open": [
+    0,
+    0,
+    -1
+   ],
+   "ok": true
+  }
+ ]
+}

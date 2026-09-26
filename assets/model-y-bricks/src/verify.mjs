@@ -18,6 +18,8 @@ const W = P.map((p, i) => worldPart(p, i));
 for (const w of W) if (!w.pure) problems.push({ kind: 'matrix', part: w.idx, msg: '變換矩陣不是純旋轉' });
 
 // ---------- 1. 零件與顏色 ----------
+// 與設計程式相同的門檻：2024 年以後至少出現在 2 個官方套組
+const MIN_SETS = 2;
 let avail = null;
 const availFile = path.join(HERE, '..', 'availability.json');
 if (fs.existsSync(availFile)) avail = JSON.parse(fs.readFileSync(availFile, 'utf8'));
@@ -32,7 +34,7 @@ for (const w of W) {
   if (avail) {
     const a = avail.combos[key];
     if (!a) { rec.ok = false; rec.notes.push('沒有現行供貨紀錄'); }
-    else { rec.sets = a.sets; rec.lastYear = a.lastYear; rec.example = a.example; if (a.sets < 1) { rec.ok = false; rec.notes.push('2024 年後沒有出現在任何套組'); } }
+    else { rec.sets = a.sets; rec.lastYear = a.lastYear; rec.example = a.example; if (a.sets < MIN_SETS) { rec.ok = false; rec.notes.push(`2024 年後只出現在 ${a.sets} 個套組（門檻 ${MIN_SETS}）`); } }
   } else rec.notes.push('尚未產生 availability.json');
   seenCombo.set(key, rec); catalogChecks.push(rec);
 }
@@ -136,14 +138,24 @@ function pointHullMargin(p, h) {
   return m;
 }
 
+// ---------- 外露凸點 ----------
+// 沒插進凸點孔的朝上凸點：往正上方看不到任何零件的算「外露」（外觀看得到），其餘在車廂內部
+const unmated = [];
+W.forEach((w) => w.studs.forEach((st, k) => { if (!CN.studMate[w.idx][k]) unmated.push({ w, st }); }));
+const exposed = unmated.filter(({ w, st }) => {
+  if (st.up[1] > -0.5) return true;
+  return !W.some((v) => v.idx !== w.idx && v.pieces.some((pc) => st.p[0] > pc.lo[0] && st.p[0] < pc.hi[0] && st.p[2] > pc.lo[2] && st.p[2] < pc.hi[2] && pc.hi[1] <= st.p[1] + 0.01));
+});
+const exemptPairs = techConns.filter((c) => c.ok).map((c) => ({ a: c.a, aId: W[c.a].id, b: c.b, bId: W[c.b].id, kind: c.kind, overlap: c.overlap }));
+
 // ---------- 報告 ----------
 const byKind = (k) => problems.filter((p) => p.kind === k).length;
 const report = {
   model: path.basename(inFile),
   generated: new Date().toISOString(),
   method: {
-    unit: 'LDU（1 LDU = 0.4 mm）',
-    contactTolerance: EPS,
+    unit: '單位 LDU（LDraw Unit，1 LDU = 0.4 mm；凸點間距 20、磚高 24、薄板高 8）',
+    contactTolerance: `接觸容差 ${EPS} LDU：兩個碰撞體重疊深度在此以內視為貼合（真實零件每邊約有 0.1 mm 公差）`,
     collision: '每個零件用保守凸體（包圍盒或側面輪廓凸包；複雜零件手工定義）表示，覆蓋檢查確認凸體包住 LDraw 真實網格每個取樣點；兩兩以分離軸定理計算重疊深度',
     studs: '凸點位置從 LDraw 網格中的 stud 原始檔讀出；凸點孔為零件底面每一格中心。凸點與凸點孔位置一致且方向相對才算接上；沒接上的凸點視為 12×12×4 LDU 的方塊參與碰撞',
     technic: '軸插軸孔、銷插銷孔需同軸（偏差 < 0.1 LDU）且插入長度 ≥ 較短一方的 80%；互相插接的兩個零件之間以此規則取代體積碰撞',
@@ -170,8 +182,13 @@ const report = {
     centerOfMass: r3(C),
     supportPolygon: hull.map(r3),
     comMarginLDU: +margin.toFixed(2),
+    unmatedStuds: unmated.length,
+    exposedStuds: exposed.length,
+    technicExemptPairs: exemptPairs.length,
     pass: problems.length === 0,
   },
+  exposedStuds: exposed.map(({ w, st }) => ({ part: w.idx, id: w.id, p: r3(st.p) })),
+  technicExempt: exemptPairs,
   problems,
   steps: stepResults,
   catalog: catalogChecks,
@@ -180,6 +197,44 @@ const report = {
 };
 if (outBase) {
   fs.writeFileSync(outBase + '.json', JSON.stringify(report, null, 1));
+  fs.writeFileSync(outBase + '.md', markdown(report));
+}
+function markdown(R) {
+  const S = R.summary;
+  const CN_NAME = { 0: '黑', 15: '白', 19: '棕黃（Tan）', 36: '透明紅', 47: '透明', 72: '深藍灰' };
+  const dirName = (k) => ({ '0,1,0': '往下壓', '0,-1,0': '往上插', '0,0,1': '側向（+z）', '0,0,-1': '側向（-z）' }[k] || k);
+  const L = [];
+  L.push('# Model Y 積木模型驗證報告', '');
+  L.push(`模型檔：\`${R.model}\`　產生時間：${R.generated.slice(0, 16).replace('T', ' ')} UTC`, '');
+  L.push(`**結果：${S.pass ? '全部通過' : '有 ' + R.problems.length + ' 項問題'}**`, '');
+  L.push('| 項目 | 數值 |', '|---|---|');
+  const rows = [
+    ['零件總數', `${S.parts}（${S.uniqueParts} 種零件、${S.lots} 種零件＋顏色組合）`],
+    ['搭建步驟', S.steps],
+    ['接點數', `${S.connections}（凸點 ${S.studConnections}、科技軸銷 ${S.technicConnections}）`],
+    ['碰撞數', S.collisions],
+    ['連通塊', `${S.components}（1 代表整台車是一體）`],
+    ['無法裝上的零件', S.buildFailures],
+    ['零件／顏色不符現行目錄', S.catalogFailures],
+    ['碰撞體未包住網格', S.coverageFailures],
+    ['著地輪胎', `${S.wheelsOnGround} / 4`],
+    ['最低車身離地', `${S.groundClearanceLDU} LDU（${(S.groundClearanceLDU * 0.4).toFixed(1)} mm）`],
+    ['總重', `${S.massGrams} g（${S.weightSource === 'bricklink' ? 'BrickLink 目錄重量' : S.weightSource === 'mixed' ? '部分為 BrickLink 重量、部分估計' : '估計值：碰撞體體積 × 0.45 × 1.05 g/cm³'}）`],
+    ['重心（x, 離地高度, z）', `${S.centerOfMass[0]}, ${-S.centerOfMass[1]}, ${S.centerOfMass[2]} LDU`],
+    ['重心離支撐邊界', `${S.comMarginLDU} LDU（${(S.comMarginLDU * 0.4).toFixed(1)} mm，在四輪接地範圍內）`],
+    ['外露凸點', `${S.exposedStuds}（另有 ${S.unmatedStuds - S.exposedStuds} 顆在車廂內部）`],
+  ];
+  for (const [k, v] of rows) L.push(`| ${k} | ${v} |`);
+  L.push('', '## 檢查方法', '');
+  for (const v of Object.values(R.method)) L.push('- ' + v);
+  L.push(`- 科技接點免做體積碰撞的配對共 ${R.technicExempt.length} 組（軸銷↔輪軸磚、輪子↔軸銷），改以同軸與插入深度檢查；最淺插入 ${Math.min(...R.technicExempt.map((c) => c.overlap))} LDU`);
+  L.push('- 支撐範圍：汽車沒有腳掌，以四個輪胎接地線圍成的凸包作為支撐範圍', '');
+  L.push('## 逐步結果', '', '| 步驟 | 內容 | 零件數 | 插入方向 | 結果 |', '|---|---|---|---|---|');
+  for (const st of R.steps) L.push(`| ${st.step} | ${st.title} | ${st.parts} | ${Object.keys(st.insert).map(dirName).join('、') || '第一個零件'} | ${st.ok ? '通過' : st.issues.join('；')} |`);
+  L.push('', '## 零件與顏色（對照 Rebrickable 2024 年後的官方套組）', '', '| 零件 | LDraw 檔 | 顏色 | 數量 | 2024 年後出現的套組數 | 例：最近的套組 |', '|---|---|---|---|---|---|');
+  for (const c of [...R.catalog].sort((a, b) => a.id.localeCompare(b.id) || a.color - b.color)) L.push(`| ${c.id} | ${c.file} | ${CN_NAME[c.color] || c.color} | ${c.qty} | ${c.sets ?? '—'} | ${c.example ? c.example.set + ' ' + c.example.name + '（' + c.example.year + '）' : '—'} |`);
+  if (R.problems.length) { L.push('', '## 問題', ''); for (const p of R.problems) L.push(`- [${p.kind}] ${p.msg}`); }
+  return L.join('\n') + '\n';
 }
 const s = report.summary;
 console.log(`零件 ${s.parts}（${s.uniqueParts} 種、${s.lots} 批）｜步驟 ${s.steps}｜接點 ${s.connections}（凸點 ${s.studConnections}、科技 ${s.technicConnections}）｜碰撞 ${s.collisions}｜連通塊 ${s.components}｜組裝失敗 ${s.buildFailures}｜目錄問題 ${s.catalogFailures}`);

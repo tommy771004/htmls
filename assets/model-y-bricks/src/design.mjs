@@ -77,12 +77,13 @@ for (const row of [0, 7]) slope('50950', C.black, 2, row, 112, 'rear');
 // 全景玻璃車頂，兩側以 30° 斜面收邊（車頂往內收）
 for (const col of [5, 7, 9]) tile(C.black, col, 1, 2, 6, 128);
 for (const col of [5, 7, 9]) { slope('85984', C.black, col, 0, 120, 'left'); slope('85984', C.black, col, 7, 120, 'right'); }
-// 輪子：軸銷插進軸磚兩端的軸孔，輪子套上軸銷
+// 輪子：軸銷插進軸磚兩端的軸孔，輪子套上軸銷。輪子內側面離軸磚 2.5 LDU（軸銷擋環 2 LDU 加 0.5 間隙），
+// 軸銷尖端剛好碰到輪轂銷孔底部
 for (const cx of [120, -120]) {
   putRaw('3749', C.tan, [cx, -30, 61], rotY(-90), 'wheels');
-  putRaw('72206p01', C.dbg, [cx, -30, 78], rotY(180), 'wheels');
+  putRaw('72206p01', C.dbg, [cx, -30, 78.5], rotY(180), 'wheels');
   putRaw('3749', C.tan, [cx, -30, -61], rotY(90), 'wheels');
-  putRaw('72206p01', C.dbg, [cx, -30, -78], rotY(0), 'wheels');
+  putRaw('72206p01', C.dbg, [cx, -30, -78.5], rotY(0), 'wheels');
 }
 
 // ================= 車身體素 =================
@@ -258,7 +259,7 @@ for (const o of order) {
 }
 
 // ================= 輸出 =================
-const out = ['0 Tesla Model Y - LEGO 1:30', '0 Name: model-y.ldr', '0 Author: htmls 163', '0 !MY META scale 1:30', '0 !MY META source https://www.tesla.com/zh_tw/modely', ''];
+const out = ['0 Tesla Model Y - LEGO 1:30', '0 Name: model-y.ldr', '0 Author: htmls 164', '0 !MY META scale 1:30', '0 !MY META source https://www.tesla.com/zh_tw/modely', ''];
 steps.forEach((s) => {
   out.push('0 !MY TITLE ' + s.title);
   if (s.view === 'below') out.push('0 !MY META_STEP view below');

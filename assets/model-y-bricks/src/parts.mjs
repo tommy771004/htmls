@@ -74,7 +74,7 @@ export const CATALOG = {
   '25269': { name: 'Tile, Round 1 x 1 Quarter', zh: '1×1 四分之一圓片', shape: 'prismY' },
   '3668':  { name: 'Brick, Modified 2 x 6 x 1 1/3 with Axle Holes', zh: '2×6 輪軸磚', shape: 'custom' },
   '3749':  { name: 'Technic, Axle Pin without Friction Ridges', zh: '科技軸銷', shape: 'custom' },
-  '72206p01': { name: 'Wheel 24 x 12 with Black Tire', zh: '24×12 輪圈含輪胎', shape: 'custom', rb: '72206', bl: '72206c01' },
+  '72206p01': { name: 'Wheel 24 x 12 with Black Tire', zh: '24×12 輪圈含輪胎', shape: 'custom', rb: '72206', bl: '72206pb01' },
 };
 
 // 手工碰撞體（零件本身座標，單位 LDU）。box = [x0,y0,z0,x1,y1,z1]；poly = 沿指定軸擠出的凸多邊形

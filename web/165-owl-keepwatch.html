@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>守夜 · KEEPWATCH — 牠在看</title>
+<link rel="icon" href="../favicon.svg">
+<meta name="description" content="守夜：夜貓子的專注計時器。落地頁中央是一隻程序化建模的 3D 貓頭鷹，游標化成螢火蟲，牠的頭、眼睛與耳羽會一路追著看；三秒不動牠自己張望，太久不動就打盹。">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
+<style>
+:root{
+  --ink:#0a120e;--ink2:#132019;--bone:#e8dfc9;--bone-2:#bfb59d;--dim:#7d7a6a;
+  --lamp:#d9a54a;--line:rgba(232,223,201,.14);
+  --ease-out:cubic-bezier(.2,.7,.2,1);--dur:.22s;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{
+  background:var(--ink);color:var(--bone);
+  font:15px/1.7 "PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+#sky{position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(120% 90% at 78% 12%,#1c2d22 0%,#111d17 38%,var(--ink) 78%),
+    var(--ink);
+}
+#sky:after{content:"";position:absolute;inset:0;opacity:.16;mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+#gl{position:fixed;inset:0;z-index:1;width:100%;height:100%;display:block;touch-action:none;outline:none}
+
+/* 上方：品牌與三個真的能按的控制 */
+.nav{position:fixed;z-index:5;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;
+  padding:26px clamp(20px,4vw,56px);pointer-events:none}
+.brand{display:flex;align-items:center;gap:12px;pointer-events:auto;color:var(--bone);text-decoration:none}
+.brand svg{width:30px;height:30px;display:block}
+.brand b{font-family:"Songti TC","Hiragino Mincho ProN","Noto Serif TC","PMingLiU",serif;font-weight:900;font-size:19px;letter-spacing:.14em}
+.brand small{display:block;font-size:10px;letter-spacing:.3em;color:var(--bone-2);line-height:1;margin-top:3px}
+.ctl{display:flex;gap:6px;pointer-events:auto}
+.ctl button{font:inherit;font-size:13px;letter-spacing:.06em;color:var(--bone-2);background:none;border:0;padding:8px 12px;cursor:pointer;
+  border-radius:3px;transition:color var(--dur) var(--ease-out),background-color var(--dur) var(--ease-out)}
+.ctl button:hover{color:var(--bone)}
+.ctl button[aria-pressed=true],.ctl button[aria-expanded=true]{color:var(--ink);background:var(--bone)}
+.ctl button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+.ctl button i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--lampc,var(--lamp));margin-right:8px;vertical-align:1px}
+
+/* 直排大標，貼右緣 */
+.head{position:fixed;z-index:4;top:50%;right:clamp(22px,5vw,72px);transform:translateY(-50%);margin:0;
+  writing-mode:vertical-rl;text-orientation:upright;
+  font-family:"Songti TC","Hiragino Mincho ProN","Noto Serif TC","PMingLiU",serif;font-weight:900;
+  font-size:clamp(56px,9.5vh,104px);line-height:1;letter-spacing:.18em;color:var(--bone);pointer-events:none;
+  text-shadow:0 1px 0 rgba(0,0,0,.35)}
+.head em{font-style:normal;color:var(--bone-2)}
+
+/* 下方左：文案與唯一的動作 */
+.copy{position:fixed;z-index:4;left:clamp(20px,4vw,56px);bottom:clamp(24px,5vh,52px);max-width:340px}
+.copy p{margin:0 0 18px;color:var(--bone-2);font-size:14px;line-height:1.85}
+.copy p b{color:var(--bone);font-weight:600}
+.cta{font:inherit;font-size:14px;font-weight:600;letter-spacing:.08em;color:var(--ink);background:var(--bone);border:0;
+  border-radius:3px;padding:13px 18px 13px 20px;cursor:pointer;display:inline-flex;align-items:center;gap:16px;
+  transition:background-color var(--dur) var(--ease-out),color var(--dur) var(--ease-out)}
+.cta:hover{background:#fff6e0}
+.cta:focus-visible{outline:2px solid var(--lamp);outline-offset:3px}
+.cta .t{font-variant-numeric:tabular-nums;font-weight:400;color:#4a4636;letter-spacing:.04em}
+.cta[data-on=true]{background:var(--lamp);color:#1a1206}
+.cta[data-on=true] .t{color:#3a2a0a}
+
+/* 下方中：注視儀表（半圓弧，指針是頭，小點是眼） */
+.gaze{position:fixed;z-index:4;left:50%;bottom:clamp(24px,5vh,52px);transform:translateX(-50%);
+  display:flex;align-items:flex-end;gap:14px;pointer-events:none;color:var(--bone-2);font-size:12px;letter-spacing:.06em;white-space:nowrap}
+.gaze svg{width:128px;height:74px;display:block;overflow:visible}
+.gaze .st{color:var(--bone);font-weight:600;font-size:13px;display:block}
+.gaze .nm{font-variant-numeric:tabular-nums;display:block;color:var(--dim)}
+
+/* 說明小卡 */
+.note{position:fixed;z-index:6;top:82px;right:clamp(20px,4vw,56px);width:min(330px,calc(100vw - 40px));
+  background:var(--ink2);color:var(--bone-2);border:1px solid var(--line);border-radius:4px;padding:18px 20px;font-size:13px;line-height:1.8}
+.note[hidden]{display:none}
+.note p{margin:0 0 8px}.note p:last-child{margin:0}
+.note b{color:var(--bone);font-weight:600}
+
+#boot{position:fixed;z-index:9;inset:0;display:grid;place-items:center;background:var(--ink);color:var(--bone-2);font-size:14px;letter-spacing:.06em;
+  transition:opacity .5s var(--ease-out)}
+#boot.gone{opacity:0;pointer-events:none}
+#boot b{display:block;color:var(--bone);font-family:"Songti TC","Hiragino Mincho ProN","Noto Serif TC",serif;font-size:22px;font-weight:900;margin-bottom:8px;letter-spacing:.2em}
+#boot div{text-align:center;padding:0 24px}
+
+@media (max-width:760px){
+  .nav{padding:18px 18px}
+  .brand small{display:none}
+  .ctl button{padding:8px 9px;font-size:12px}
+  .head{top:78px;right:auto;left:18px;transform:none;writing-mode:horizontal-tb;font-size:clamp(44px,13vw,60px);letter-spacing:.1em}
+  .copy{left:18px;right:18px;bottom:20px;max-width:none}
+  .copy p{font-size:13px;margin-bottom:12px;max-width:300px}
+  .cta{width:100%;justify-content:space-between}
+  .gaze{left:auto;right:18px;bottom:auto;top:140px;transform:none;flex-direction:column;align-items:flex-end;gap:2px}
+  .gaze svg{width:88px;height:52px}
+  .note{top:70px;right:18px}
+}
+@media (max-height:520px) and (min-width:761px){
+  .head{font-size:52px}
+}
+@media (prefers-reduced-motion: reduce){
+  .ctl button,.cta,#boot{transition:none}
+}
+</style>
+</head>
+<body>
+<div id="sky"></div>
+<canvas id="gl" aria-label="會追著你看的 3D 貓頭鷹"></canvas>
+
+<header class="nav">
+  <span class="brand">
+    <svg viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill="none" stroke="#e8dfc9" stroke-width="1.6"/><circle cx="15" cy="15" r="6.2" fill="#d9a54a"/><circle id="mk-p" cx="15" cy="15" r="3" fill="#0a120e"/><circle cx="13.2" cy="13.2" r="1" fill="#fff"/></svg>
+    <span><b>守夜</b><small>KEEPWATCH</small></span>
+  </span>
+  <nav class="ctl" aria-label="頁面控制">
+    <button id="lamp" type="button"><i></i>燈色</button>
+    <button id="snd" type="button" aria-pressed="false">聲音</button>
+    <button id="how" type="button" aria-expanded="false" aria-controls="note">怎麼做的</button>
+  </nav>
+</header>
+
+<h1 class="head">牠在<em>看</em>。</h1>
+
+<div class="copy">
+  <p><b>守夜</b>是給夜班、趕稿與熬夜者的專注計時器。每一次分心，牠都看見；每一次回來，牠也還在。</p>
+  <button class="cta" id="cta" type="button" data-on="false">開始守夜<span class="t" id="ctaT">25:00</span></button>
+</div>
+
+<div class="gaze" aria-live="off">
+  <svg viewBox="0 0 128 74" aria-hidden="true">
+    <path d="M10 64 A54 54 0 0 1 118 64" fill="none" stroke="rgba(232,223,201,.22)" stroke-width="1.5" stroke-linecap="round"/>
+    <g stroke="rgba(232,223,201,.45)" stroke-width="1.5" stroke-linecap="round">
+      <line x1="10" y1="64" x2="16" y2="64"/><line x1="118" y1="64" x2="112" y2="64"/>
+      <line x1="64" y1="10" x2="64" y2="16"/>
+      <line x1="25.8" y1="25.8" x2="30.1" y2="30.1"/><line x1="102.2" y1="25.8" x2="97.9" y2="30.1"/>
+    </g>
+    <g id="gEye" transform="rotate(0 64 64)"><circle cx="64" cy="20" r="3" fill="#d9a54a"/></g>
+    <g id="gHead" transform="rotate(0 64 64)"><path d="M64 64 L61 58 L64 24 L67 58 Z" fill="#e8dfc9"/></g>
+    <circle cx="64" cy="64" r="3.2" fill="#e8dfc9"/>
+  </svg>
+  <span><span class="st" id="gState">盯著你</span><span class="nm" id="gNum">頭 0° · 眼 0°</span></span>
+</div>
+
+<div class="note" id="note" hidden>
+  <p><b>游標是一隻螢火蟲</b>，落在貓頭鷹前方一片看不見的平面上；牠看的是那隻蟲，不是你。</p>
+  <p><b>眼睛比頭快一步</b>：眼先到、頭用彈簧慢半拍跟上，轉超過一定角度身體才跟著轉。移動太快牠會歪頭、豎起耳羽。</p>
+  <p><b>三秒沒動</b>牠自己找東西看，二十秒沒動就打盹；再動一下就驚醒。整隻鳥是程式建模，沒有載入任何模型或貼圖。</p>
+</div>
+
+<div id="boot"><div><b>守夜</b>正在載入 Three.js 與建模…</div></div>
+
+<script type="module">
+const $ = id => document.getElementById(id);
+let THREE;
+try { THREE = await import('three'); }
+catch (e) {
+  try { THREE = await import('../vendor/three-0.186.0/three.module.js'); }
+  catch (e2) { $('boot').innerHTML = '<div><b>3D 載入失敗</b>需要網路連線到 cdn.jsdelivr.net 載入 Three.js。</div>'; }
+}
+if (THREE) {
+  try { init(); $('boot').classList.add('gone'); }
+  catch (err) { console.warn(err); $('boot').innerHTML = '<div><b>這個瀏覽器無法建立 WebGL</b>守夜需要 WebGL 才能顯示貓頭鷹。</div>'; }
+}
+
+function init() {
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.setClearColor(0x000000, 0);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 60);
+const LOOK = new THREE.Vector3(0, 1.45, 0);
+
+/* ---------- 燈光：月光（冷、投影）、環境、螢火蟲（暖、跟游標） ---------- */
+scene.add(new THREE.HemisphereLight(0x2a3d31, 0x140d08, 0.75));
+const moon = new THREE.DirectionalLight(0x9db6c9, 1.35);
+moon.position.set(-4, 7, 3);
+moon.castShadow = true;
+moon.shadow.mapSize.set(1024, 1024);
+moon.shadow.camera.left = moon.shadow.camera.bottom = -3.2;
+moon.shadow.camera.right = moon.shadow.camera.top = 3.2;
+moon.shadow.camera.near = 1; moon.shadow.camera.far = 20;
+moon.shadow.bias = -0.0008;
+moon.shadow.normalBias = 0.02;
+scene.add(moon);
+const rim = new THREE.DirectionalLight(0x6f8f9c, 0.6);
+rim.position.set(3, 2, -5);
+scene.add(rim);
+
+const LAMPS = [
+  { name: '琥珀燈', css: '#d9a54a', hex: 0xffb347 },
+  { name: '月白燈', css: '#d7e2e8', hex: 0xdbe9f5 },
+  { name: '青燈',   css: '#8fd0a6', hex: 0x9bf0b6 },
+];
+let lampIdx = 0;
+const fireLight = new THREE.PointLight(LAMPS[0].hex, 9, 8, 2);
+scene.add(fireLight);
+
+/* ---------- 程序化貼圖：羽毛鱗片 ---------- */
+function featherCanvas(base, light, dark, rows, gray) {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d');
+  g.fillStyle = base; g.fillRect(0, 0, 512, 512);
+  const cols = 7, w = 512 / cols, h = 512 / rows;
+  for (let r = rows + 1; r >= -1; r--) {
+    for (let i = -1; i <= cols; i++) {
+      const x = i * w + (r % 2 ? w / 2 : 0), y = r * h;
+      g.beginPath(); g.arc(x + w / 2, y, w * 0.56, 0, Math.PI);
+      g.fillStyle = ((r + i) % 3 === 0) ? light : base;
+      g.fill();
+      g.strokeStyle = dark; g.lineWidth = gray ? 5 : 3; g.stroke();
+      // 羽軸
+      g.beginPath(); g.moveTo(x + w / 2, y); g.lineTo(x + w / 2, y + w * 0.5);
+      g.strokeStyle = dark; g.lineWidth = 1.2; g.globalAlpha = .5; g.stroke(); g.globalAlpha = 1;
+    }
+  }
+  g.globalAlpha = .16;
+  for (let i = 0; i < 5000; i++) {
+    g.fillStyle = Math.random() < .5 ? dark : light;
+    g.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  if (!gray) t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const texBody = featherCanvas('#6b4526', '#8a6038', '#3d2413', 12, false);
+const bumpBody = featherCanvas('#808080', '#a8a8a8', '#404040', 12, true);
+const texChest = featherCanvas('#cfb587', '#e2cc9f', '#8a6a44', 10, false);
+const bumpChest = featherCanvas('#808080', '#9a9a9a', '#505050', 10, true);
+texBody.repeat.set(3, 2); bumpBody.repeat.set(3, 2);
+texChest.repeat.set(2, 2); bumpChest.repeat.set(2, 2);
+
+const matBody = new THREE.MeshStandardMaterial({ map: texBody, bumpMap: bumpBody, bumpScale: 0.6, roughness: .92, metalness: 0 });
+const matChest = new THREE.MeshStandardMaterial({ map: texChest, bumpMap: bumpChest, bumpScale: 0.45, roughness: .95 });
+const matFace = new THREE.MeshStandardMaterial({ color: 0xd2b98d, roughness: .95 });
+const matFaceRim = new THREE.MeshStandardMaterial({ color: 0x42291a, roughness: .95 });
+const matDark = new THREE.MeshStandardMaterial({ color: 0x2e1d12, roughness: .8 });
+const matBeak = new THREE.MeshStandardMaterial({ color: 0x3a2a1e, roughness: .45, metalness: .05 });
+const matIris = new THREE.MeshStandardMaterial({ color: 0xe6a63c, roughness: .35, emissive: 0x3d2600, emissiveIntensity: .6 });
+const matPupil = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: .25 });
+const matGlint = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const matBark = new THREE.MeshStandardMaterial({ color: 0x3b2a1c, roughness: 1 });
+const matFoot = new THREE.MeshStandardMaterial({ color: 0x8b7a5a, roughness: .8 });
+
+const shadowed = m => { m.castShadow = true; m.receiveShadow = true; return m; };
+
+/* ---------- 貓頭鷹 ---------- */
+const owl = new THREE.Group();
+scene.add(owl);
+
+// 身體：蛋形車削體
+{
+  const pts = [];
+  const N = 28;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const r = 1.02 * Math.sqrt(Math.max(0, 1 - Math.pow(2 * t - 1, 2))) * (1 - 0.28 * t) + 0.02;
+    pts.push(new THREE.Vector2(i === 0 || i === N ? 0.001 : r, t * 2.15));
+  }
+  const geo = new THREE.LatheGeometry(pts, 48);
+  const body = shadowed(new THREE.Mesh(geo, matBody));
+  owl.add(body);
+  // 胸口淺色羽
+  const chest = shadowed(new THREE.Mesh(new THREE.SphereGeometry(0.74, 40, 32), matChest));
+  chest.scale.set(1, 1.28, 0.55);
+  chest.position.set(0, 1.05, 0.52);
+  owl.add(chest);
+  // 翅膀
+  for (const s of [-1, 1]) {
+    const wing = shadowed(new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 24), matBody));
+    wing.scale.set(0.42, 1.45, 0.78);
+    wing.position.set(s * 0.86, 1.02, -0.12);
+    wing.rotation.z = s * 0.12;
+    wing.rotation.y = s * -0.35;
+    owl.add(wing);
+  }
+  // 尾
+  const tail = shadowed(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.14, 0.7), matDark));
+  tail.position.set(0, 0.16, -0.55);
+  tail.rotation.x = 0.55;
+  owl.add(tail);
+}
+
+// 頭
+const head = new THREE.Group();
+head.position.set(0, 1.95, 0.02);
+head.rotation.order = 'YXZ';
+owl.add(head);
+{
+  const skull = shadowed(new THREE.Mesh(new THREE.SphereGeometry(0.86, 48, 40), matBody));
+  skull.scale.set(1.04, 0.9, 0.96);
+  head.add(skull);
+  // 臉盤：兩片淺色圓盤 + 深色邊
+  for (const s of [-1, 1]) {
+    const rimD = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 24), matFaceRim);
+    rimD.scale.set(1.02, 1.2, 0.4); rimD.position.set(s * 0.36, -0.02, 0.42); rimD.rotation.y = s * 0.42; head.add(rimD);
+    const disc = new THREE.Mesh(new THREE.SphereGeometry(0.46, 32, 24), matFace);
+    disc.scale.set(1, 1.18, 0.42); disc.position.set(s * 0.35, -0.02, 0.47); disc.rotation.y = s * 0.42; head.add(disc);
+  }
+  // 喙
+  const beak = shadowed(new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.34, 18), matBeak));
+  beak.position.set(0, -0.2, 0.86);
+  beak.rotation.x = Math.PI * 0.62;
+  head.add(beak);
+}
+// 耳羽（會豎起）
+const tufts = [];
+for (const s of [-1, 1]) {
+  const pivot = new THREE.Group();
+  pivot.position.set(s * 0.55, 0.66, -0.1);
+  const tuft = shadowed(new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.46, 14), matBody));
+  tuft.position.y = 0.2;
+  pivot.add(tuft);
+  pivot.rotation.z = s * -0.55;
+  pivot.rotation.x = -0.25;
+  pivot.userData.s = s;
+  head.add(pivot);
+  tufts.push(pivot);
+}
+// 眉（守夜模式時壓下來）
+const brows = [];
+for (const s of [-1, 1]) {
+  const brow = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.045, 0.14), matFaceRim);
+  brow.position.set(s * 0.33, 0.3, 0.72);
+  brow.rotation.z = s * 0.04;
+  brow.userData.s = s;
+  head.add(brow);
+  brows.push(brow);
+}
+// 眼睛：眼球群組轉動，瞳孔在前端；眼皮是半球，繞 X 軸旋轉開合
+const eyes = [];
+for (const s of [-1, 1]) {
+  const eye = new THREE.Group();
+  eye.position.set(s * 0.33, 0.04, 0.62);
+  eye.rotation.order = 'YXZ';
+  const iris = new THREE.Mesh(new THREE.SphereGeometry(0.245, 32, 24), matIris);
+  eye.add(iris);
+  const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.125, 24, 18), matPupil);
+  pupil.position.z = 0.16;
+  eye.add(pupil);
+  const glint = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), matGlint);
+  glint.position.set(-0.07, 0.08, 0.235);
+  eye.add(glint);
+  const lid = new THREE.Mesh(new THREE.SphereGeometry(0.262, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), matFace);
+  lid.position.copy(eye.position);
+  lid.rotation.x = -Math.PI / 2;
+  head.add(eye, lid);
+  eyes.push({ group: eye, pupil, lid, s });
+}
+
+// 樹枝與腳
+{
+  const curve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-3.6, -0.55, -0.4), new THREE.Vector3(-1.6, -0.3, -0.1),
+    new THREE.Vector3(0, -0.24, 0), new THREE.Vector3(1.7, -0.32, 0.15), new THREE.Vector3(3.8, -0.7, 0.55)
+  ]);
+  const branch = shadowed(new THREE.Mesh(new THREE.TubeGeometry(curve, 40, 0.2, 14, false), matBark));
+  scene.add(branch);
+  const twig = shadowed(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+    new THREE.Vector3(1.4, -0.3, 0.1), new THREE.Vector3(2.0, 0.25, 0.2), new THREE.Vector3(2.5, 0.9, 0.1)
+  ]), 12, 0.07, 10, false), matBark));
+  scene.add(twig);
+  for (const s of [-1, 1]) {
+    for (let k = -1; k <= 1; k++) {
+      const toe = shadowed(new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.28, 6, 10), matFoot));
+      toe.position.set(s * 0.34 + k * 0.1, -0.04, 0.16 + Math.abs(k) * -0.04);
+      toe.rotation.x = Math.PI / 2 + 0.9;
+      toe.rotation.z = k * 0.25;
+      scene.add(toe);
+    }
+  }
+}
+
+/* ---------- 螢火蟲：光點、光暈、拖尾、背景塵光 ---------- */
+function glowSprite(hex, size, alpha) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c);
+  const m = new THREE.SpriteMaterial({ map: t, color: hex, transparent: true, opacity: alpha, blending: THREE.AdditiveBlending, depthWrite: false });
+  const sp = new THREE.Sprite(m); sp.scale.setScalar(size); return sp;
+}
+const fire = new THREE.Group();
+const fireCore = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), new THREE.MeshBasicMaterial({ color: 0xfff2c8 }));
+const fireGlow = glowSprite(LAMPS[0].hex, 0.9, 0.85);
+fire.add(fireCore, fireGlow);
+scene.add(fire);
+const TRAIL = reduced ? 0 : 22;
+const trail = [];
+for (let i = 0; i < TRAIL; i++) { const s = glowSprite(LAMPS[0].hex, 0.22, 0); scene.add(s); trail.push(s); }
+const dust = [];
+for (let i = 0; i < 40; i++) {
+  const s = glowSprite(0xc9d6c0, 0.06 + Math.random() * 0.14, 0.12 + Math.random() * 0.25);
+  s.position.set((Math.random() - .5) * 12, Math.random() * 6 - 1.5, -2 - Math.random() * 5);
+  s.userData = { ph: Math.random() * 7, sp: 0.2 + Math.random() * 0.4 };
+  scene.add(s); dust.push(s);
+}
+
+/* ---------- 視角與尺寸 ---------- */
+function resize() {
+  const w = innerWidth, h = innerHeight, a = w / h;
+  renderer.setSize(w, h, false);
+  camera.aspect = a;
+  const dist = 7.4 * Math.max(1, 0.98 / a);
+  camera.position.set(0.15, 1.8, dist);
+  camera.lookAt(LOOK);
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+resize();
+
+/* ---------- 指標 → 螢火蟲目標 ---------- */
+const ray = new THREE.Raycaster();
+const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -3.3);
+const ndc = new THREE.Vector2(0.35, 0.2);
+const target = new THREE.Vector3(1.2, 2.2, 3.3);
+let lastMove = performance.now(), pointerSeen = false;
+function setTarget(px, py) {
+  ndc.set(px / innerWidth * 2 - 1, -(py / innerHeight * 2 - 1));
+  ray.setFromCamera(ndc, camera);
+  const p = new THREE.Vector3();
+  if (ray.ray.intersectPlane(plane, p)) target.copy(p);
+  target.y = Math.max(-0.4, target.y);
+  lastMove = performance.now();
+  pointerSeen = true;
+  if (dozing) wake();
+}
+addEventListener('pointermove', e => setTarget(e.clientX, e.clientY), { passive: true });
+addEventListener('pointerdown', e => {
+  setTarget(e.clientX, e.clientY);
+  ensureAudio();
+  if (e.target === canvas || e.target === document.body || e.target === $('sky')) hoot();
+}, { passive: true });
+
+/* ---------- 狀態機：盯著你 / 找你 / 打盹 ---------- */
+let dozing = false, drowsy = 0;       // drowsy 0..1 眼皮下垂
+let wander = { t: 0, next: 0, p: new THREE.Vector3(1, 2, 3.3) };
+let tiltUntil = 0, tiltDir = 1;
+let blink = 0, blinkV = 0, nextBlink = 1.5;
+let puff = 0, watch = false;
+function wake() {
+  dozing = false;
+  startle = 1;
+  nextBlink = 0.05;
+}
+let startle = 0;
+
+/* ---------- 彈簧 ---------- */
+const spring = (cur, tgt, vel, k, d, dt) => {
+  vel.v += (tgt - cur) * k * dt;
+  vel.v *= Math.exp(-d * dt);
+  return cur + vel.v * dt;
+};
+const headYaw = { v: 0 }, headPitch = { v: 0 }, headRoll = { v: 0 }, eyeYaw = { v: 0 }, eyePitch = { v: 0 }, bodyYaw = { v: 0 };
+let hy = 0, hp = 0, hr = 0, ey = 0, ep = 0, by = 0;
+const fireVel = new THREE.Vector3();
+const firePos = new THREE.Vector3(1.2, 2.2, 3.3);
+const prevFire = firePos.clone();
+const headWorld = new THREE.Vector3();
+const tmp = new THREE.Vector3();
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* ---------- UI 讀數 ---------- */
+const gHead = $('gHead'), gEye = $('gEye'), gState = $('gState'), gNum = $('gNum'), mkP = $('mk-p');
+let uiAcc = 0;
+function updateUI(dt) {
+  uiAcc += dt;
+  if (uiAcc < 0.08) return;
+  uiAcc = 0;
+  const hd = Math.round(hy * 180 / Math.PI), ed = Math.round((hy + ey) * 180 / Math.PI);
+  gHead.setAttribute('transform', `rotate(${clamp(hd, -90, 90)} 64 64)`);
+  gEye.setAttribute('transform', `rotate(${clamp(ed, -90, 90)} 64 64)`);
+  gNum.textContent = `頭 ${hd > 0 ? '+' : ''}${hd}° · 眼 ${ed > 0 ? '+' : ''}${ed}°`;
+  const idle = (performance.now() - lastMove) / 1000;
+  gState.textContent = dozing ? '打盹中' : watch ? '守夜中' : idle > 3 ? '找你' : '盯著你';
+  mkP.setAttribute('cx', 15 + clamp(hd / 90, -1, 1) * 2.4);
+  mkP.setAttribute('cy', 15 - clamp(hp / 0.6, -1, 1) * 1.6);
+}
+
+/* ---------- 主迴圈 ---------- */
+const clock = new THREE.Clock();
+let elapsed = 0;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  elapsed += dt;
+  const now = performance.now();
+  const idle = (now - lastMove) / 1000;
+
+  // 閒置：自己找東西看；更久：打盹
+  let goal = target;
+  if (!reduced && idle > 3 && !watch) {
+    if (elapsed > wander.next) {
+      wander.next = elapsed + 2.2 + Math.random() * 3;
+      wander.p.set((Math.random() - .5) * 5, 0.6 + Math.random() * 3, 3.3);
+    }
+    goal = wander.p;
+    if (idle > 20) dozing = true;
+  }
+  if (!reduced && idle > 20 && !watch) dozing = true;
+  drowsy += ((dozing ? 1 : 0) - drowsy) * (dozing ? 0.8 : 6) * dt;
+
+  // 螢火蟲飄向目標，帶一點自身的抖動
+  prevFire.copy(firePos);
+  const wob = reduced ? 0 : 1;
+  tmp.copy(goal);
+  tmp.x += Math.sin(elapsed * 2.3) * 0.08 * wob;
+  tmp.y += Math.sin(elapsed * 3.1 + 1) * 0.07 * wob + Math.sin(elapsed * 0.7) * 0.05 * wob;
+  fireVel.addScaledVector(tmp.sub(firePos), 34 * dt);
+  fireVel.multiplyScalar(Math.exp(-7.5 * dt));
+  firePos.addScaledVector(fireVel, dt);
+  fire.position.copy(firePos);
+  fireLight.position.copy(firePos);
+  fireGlow.material.opacity = 0.7 + Math.sin(elapsed * 9) * 0.12;
+
+  // 拖尾
+  if (TRAIL) {
+    for (let i = TRAIL - 1; i > 0; i--) {
+      trail[i].position.copy(trail[i - 1].position);
+      trail[i].material.opacity = (1 - i / TRAIL) * 0.35;
+    }
+    trail[0].position.copy(firePos);
+    trail[0].material.opacity = 0.35;
+  }
+  for (const d of dust) {
+    if (!reduced) d.position.y += Math.sin(elapsed * d.userData.sp + d.userData.ph) * 0.002;
+    d.material.opacity = (0.15 + 0.15 * Math.sin(elapsed * d.userData.sp * 2 + d.userData.ph)) * (1 - drowsy * 0.5);
+  }
+
+  // 注視角度
+  head.getWorldPosition(headWorld);
+  tmp.copy(firePos).sub(headWorld);
+  let tYaw = Math.atan2(tmp.x, tmp.z) * 1.3;
+  let tPitch = Math.atan2(tmp.y, Math.hypot(tmp.x, tmp.z)) * 1.15;
+  if (dozing) { tYaw *= 0.2; tPitch = -0.35; }
+  tYaw = clamp(tYaw, -1.7, 1.7);
+  tPitch = clamp(tPitch, -0.55, 0.7);
+
+  // 眼先到，頭慢半拍，身體只在轉很大時跟
+  const eyeTargetYaw = clamp(tYaw - hy, -0.42, 0.42);
+  const eyeTargetPitch = clamp(tPitch - hp, -0.3, 0.3);
+  ey = spring(ey, eyeTargetYaw, eyeYaw, 260, 22, dt);
+  ep = spring(ep, eyeTargetPitch, eyePitch, 260, 22, dt);
+  hy = spring(hy, tYaw, headYaw, dozing ? 20 : 70, dozing ? 7 : 10.5, dt);
+  hp = spring(hp, tPitch, headPitch, dozing ? 20 : 70, dozing ? 7 : 10.5, dt);
+  const bodyTarget = Math.sign(hy) * Math.max(0, Math.abs(hy) - 0.9) * 0.55;
+  by = spring(by, bodyTarget, bodyYaw, 30, 8, dt);
+
+  // 歪頭：橫向速度、偶發好奇、驚醒
+  const lateral = clamp((firePos.x - prevFire.x) / Math.max(dt, 1e-3), -8, 8);
+  let tRoll = -lateral * 0.03;
+  if (!reduced && idle > 3 && elapsed > tiltUntil + 4 && Math.random() < dt * 0.25) { tiltUntil = elapsed + 1.4; tiltDir = Math.random() < .5 ? -1 : 1; }
+  if (elapsed < tiltUntil) tRoll += tiltDir * 0.32;
+  if (dozing) tRoll += 0.12;
+  hr = spring(hr, clamp(tRoll, -0.45, 0.45), headRoll, 40, 9, dt);
+
+  head.rotation.set(-hp, hy, hr);
+  owl.rotation.y = by;
+  head.rotation.y = hy - by;
+
+  // 眨眼與眼皮
+  nextBlink -= dt;
+  if (nextBlink <= 0) { blinkV = 1; nextBlink = (dozing ? 1.5 : 2.5) + Math.random() * (dozing ? 2 : 4); if (Math.random() < .2) nextBlink = 0.25; }
+  if (blinkV > 0) { blink += dt * 9; if (blink >= 1) { blink = 1; blinkV = -1; } }
+  else if (blinkV < 0) { blink -= dt * 7; if (blink <= 0) { blink = 0; blinkV = 0; } }
+  const lidOpen = Math.max(blink, drowsy * 0.55, watch ? 0.12 : 0) - startle * 0.3;
+  const speed = fireVel.length();
+  const near = clamp(1 - firePos.distanceTo(headWorld) / 5.5, 0, 1);
+  const pupilScale = (1.12 - near * 0.3) * (watch ? 0.9 : 1) + Math.sin(elapsed * 1.3) * 0.02;
+  for (const e of eyes) {
+    e.group.rotation.set(-ep, ey, 0);
+    e.lid.rotation.x = -Math.PI / 2 + Math.PI * clamp(lidOpen, 0, 1);
+    e.pupil.scale.setScalar(pupilScale);
+    e.pupil.position.z = 0.16 + (pupilScale - 1) * 0.02;
+  }
+  // 耳羽：快動作或驚醒時豎起，打盹時垂下
+  const perk = clamp(speed * 0.12 + startle * 1.2, 0, 1) * (1 - drowsy);
+  for (const t of tufts) {
+    t.rotation.z = t.userData.s * -(0.55 - perk * 0.35 + drowsy * 0.3);
+    t.rotation.x = -0.25 + perk * -0.2 + drowsy * 0.35;
+  }
+  for (const b of brows) {
+    b.rotation.z = b.userData.s * (0.04 + (watch ? 0.3 : 0) - startle * 0.18);
+    b.position.y = 0.3 - (watch ? 0.06 : 0) + startle * 0.05;
+  }
+  startle = Math.max(0, startle - dt * 1.6);
+
+  // 呼吸與叫聲鼓起
+  puff = Math.max(0, puff - dt * 2.2);
+  const breathe = 1 + Math.sin(elapsed * (dozing ? 1.1 : 2.1)) * 0.012 + puff * 0.07;
+  owl.scale.set(breathe, 1 / Math.sqrt(breathe), breathe);
+
+  matIris.emissiveIntensity = watch ? 1.4 : 0.6;
+
+  updateUI(dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- 聲音：WebAudio 合成的「呼—呼」 ---------- */
+let ac = null, soundOn = false;
+function ensureAudio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } } if (ac && ac.state === 'suspended') ac.resume(); }
+function hoot() {
+  puff = 1;
+  if (!soundOn || !ac) return;
+  const t0 = ac.currentTime + 0.02;
+  const master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.7; lp.connect(master);
+  const note = (t, f0, f1, dur, vol) => {
+    const o = ac.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const o2 = ac.createOscillator(); o2.type = 'triangle'; o2.frequency.setValueAtTime(f0 * 2, t); o2.frequency.exponentialRampToValueAtTime(f1 * 2, t + dur);
+    const g2 = ac.createGain(); g2.gain.value = 0.12;
+    o.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp);
+    o.start(t); o2.start(t); o.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+  };
+  note(t0, 330, 285, 0.32, 0.6);
+  note(t0 + 0.42, 300, 250, 0.55, 0.5);
+}
+
+/* ---------- 控制 ---------- */
+$('snd').addEventListener('click', () => {
+  ensureAudio();
+  soundOn = !soundOn;
+  $('snd').setAttribute('aria-pressed', String(soundOn));
+  if (soundOn) hoot();
+});
+$('lamp').addEventListener('click', () => {
+  lampIdx = (lampIdx + 1) % LAMPS.length;
+  const L = LAMPS[lampIdx];
+  fireLight.color.setHex(L.hex);
+  fireGlow.material.color.setHex(L.hex);
+  for (const t of trail) t.material.color.setHex(L.hex);
+  document.documentElement.style.setProperty('--lampc', L.css);
+  document.documentElement.style.setProperty('--lamp', L.css);
+  $('lamp').lastChild.textContent = L.name;
+  wake();
+  lastMove = performance.now();
+});
+$('lamp').lastChild.textContent = LAMPS[0].name;
+$('how').addEventListener('click', () => {
+  const open = $('note').hidden;
+  $('note').hidden = !open;
+  $('how').setAttribute('aria-expanded', String(open));
+});
+
+// 守夜計時：25 分鐘倒數，按第二次結束
+let timer = null, remain = 25 * 60;
+const fmt = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+$('cta').addEventListener('click', () => {
+  ensureAudio();
+  watch = !watch;
+  $('cta').dataset.on = String(watch);
+  $('cta').firstChild.textContent = watch ? '結束守夜' : '開始守夜';
+  wake();
+  lastMove = performance.now();
+  if (watch) {
+    remain = 25 * 60;
+    $('ctaT').textContent = fmt(remain);
+    timer = setInterval(() => {
+      remain--;
+      $('ctaT').textContent = fmt(remain);
+      if (remain <= 0) { clearInterval(timer); watch = false; $('cta').dataset.on = 'false'; $('cta').firstChild.textContent = '開始守夜'; $('ctaT').textContent = '25:00'; hoot(); }
+    }, 1000);
+  } else {
+    clearInterval(timer);
+    $('ctaT').textContent = '25:00';
+  }
+});
+
+// 讓測試與截圖可以直接設定注視點
+window.__owl = { setTarget, get state() { return { hy, hp, ey, ep, dozing, watch }; } };
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Model Y 說明書渲染</title>
+<!-- 說明書與縮圖的離線渲染頁（由 instructions.mjs 透過無頭 Chrome 截圖），需要從專案根目錄以 HTTP 開啟 -->
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"../../../vendor/three-0.186.0/three.module.js","three/addons/":"../../../vendor/three-0.186.0/addons/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const qs = new URLSearchParams(location.search);
+const mode = qs.get('mode') || 'step';
+const data = await (await fetch('../model-y.mesh.json')).json();
+// 顯示用顏色（接近 LEGO 官方說明書的呈現：黑色畫成深灰才看得出邊線）
+const DISPLAY = { 0: ['#2b2e33', 1], 15: ['#f3f3f1', 1], 19: ['#dcc493', 1], 36: ['#d0271d', 0.72], 47: ['#e8f1f5', 0.5], 72: ['#6f7277', 1], 256: ['#1f2124', 1] };
+const EDGE = { 0: '#7b8087', 256: '#6a6e74' };
+if (qs.get('bg')) document.body.style.background = '#' + qs.get('bg');
+const W = +(qs.get('w') || innerWidth), H = +(qs.get('h') || innerHeight);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(+(qs.get('dpr') || 2));
+renderer.setSize(W, H);
+renderer.setClearColor(0x000000, 0);
+if (qs.get('bg')) renderer.setClearColor('#' + qs.get('bg'), 1);
+renderer.toneMapping = THREE.NeutralToneMapping;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8d8a84, 1.35));
+const key = new THREE.DirectionalLight(0xffffff, 2.1); key.position.set(300, 500, 420); scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 0.7); fill.position.set(-400, 150, -200); scene.add(fill);
+
+const root = new THREE.Group(); root.rotation.x = Math.PI; scene.add(root);
+const geoCache = new Map(), matCache = new Map(), lineCache = new Map();
+function mat(c) {
+  if (!matCache.has(c)) {
+    const [hex, a] = DISPLAY[c] || ['#' + (data.colors[c]?.rgb || '888888'), 1];
+    matCache.set(c, new THREE.MeshStandardMaterial({ color: hex, roughness: 0.42, metalness: 0, side: THREE.DoubleSide, transparent: a < 1, opacity: a, depthWrite: a >= 1, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }));
+  }
+  return matCache.get(c);
+}
+function addPart(p, highlight) {
+  const g = data.geo[p.f]; const m = p.m;
+  const grp = new THREE.Group(); grp.matrixAutoUpdate = false;
+  grp.matrix.set(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], 0, 0, 0, 1);
+  for (const [ck, arr] of Object.entries(g.tris)) {
+    const k = p.f + '|' + ck;
+    if (!geoCache.has(k)) { let bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); bg = toCreasedNormals(bg, 0.6); geoCache.set(k, bg); }
+    const c = ck === '16' ? p.c : +ck;
+    const mesh = new THREE.Mesh(geoCache.get(k), mat(c));
+    mesh.renderOrder = (DISPLAY[c]?.[1] ?? 1) < 1 ? 2 : 0;
+    grp.add(mesh);
+  }
+  if (!lineCache.has(p.f)) { const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(g.lines, 3)); lineCache.set(p.f, lg); }
+  const lc = highlight ? '#ff9f1c' : (EDGE[p.c] || '#1d1d1d');
+  grp.add(new THREE.LineSegments(lineCache.get(p.f), new THREE.LineBasicMaterial({ color: lc, transparent: !highlight, opacity: highlight ? 1 : 0.55 })));
+  root.add(grp);
+  return grp;
+}
+
+if (mode === 'part') {
+  addPart({ f: qs.get('f'), c: +qs.get('c'), m: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0] }, false);
+} else {
+  // 全部零件都建出來（取景用），這一步之後的零件隱藏
+  const n = +(qs.get('n') ?? 1e9);
+  for (const p of data.parts) { const g = addPart(p, mode === 'step' && p.s === n && qs.get('hl') !== '0'); g.visible = p.s <= n; }
+  if (qs.get('view') === 'below') root.rotation.x = 0;       // 翻面：車底朝上
+}
+scene.updateMatrixWorld(true);
+// 取景：步驟圖一律以整台車的範圍取景，比例在每一頁都一樣
+const full = new THREE.Box3().setFromObject(root);
+const ctr = full.getCenter(new THREE.Vector3());
+const radius = full.getBoundingSphere(new THREE.Sphere()).radius;
+const az = (+(qs.get('az') ?? (mode === 'part' ? 35 : 38))) * Math.PI / 180;
+const el = (+(qs.get('el') ?? (mode === 'part' ? 28 : 24))) * Math.PI / 180;
+const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 20000);
+const dir = new THREE.Vector3(Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az));
+cam.position.copy(ctr).addScaledVector(dir, radius * 6);
+cam.lookAt(ctr);
+cam.updateMatrixWorld(true);
+// 依畫面投影後的範圍決定正交相機大小，留一點邊
+const corners = [];
+for (const x of [full.min.x, full.max.x]) for (const y of [full.min.y, full.max.y]) for (const z of [full.min.z, full.max.z]) corners.push(new THREE.Vector3(x, y, z).applyMatrix4(cam.matrixWorldInverse));
+const xs = corners.map((v) => v.x), ys = corners.map((v) => v.y);
+const pad = +(qs.get('pad') || 1.08);
+let hw = (Math.max(...xs) - Math.min(...xs)) / 2 * pad, hh = (Math.max(...ys) - Math.min(...ys)) / 2 * pad;
+const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2;
+// 零件縮圖：px = 長邊像素，畫布依零件投影比例調整
+if (mode === 'part' && qs.get('px')) {
+  const px = +qs.get('px'), k = px / (2 * Math.max(hw, hh));
+  const cw = Math.round(2 * hw * k), ch = Math.round(2 * hh * k);
+  renderer.setSize(cw, ch);
+} else if (hw / hh > W / H) hh = hw * H / W; else hw = hh * W / H;
+cam.left = cx - hw; cam.right = cx + hw; cam.top = cy + hh; cam.bottom = cy - hh;
+cam.updateProjectionMatrix();
+renderer.render(scene, cam);
+window.__ready = true;
+</script>

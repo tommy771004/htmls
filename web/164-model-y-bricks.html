@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Model Y 積木說明書 · 1:30 真實零件模型</title>
+<meta name="description" content="用 LEGO 現行零件拼出的特斯拉 Model Y（1:30、116 片、25 步）：可逐步翻閱的 3D 說明書，程式驗證接點、碰撞、組裝路徑與重心，附 LDraw 模型、PDF 說明書與 BrickLink 零件清單。">
+<link rel="icon" href="../favicon.svg">
+<style>
+:root {
+  --paper: #ffffff;
+  --ink: #1d1d1b;
+  --ink-2: #5d5f5c;
+  --ink-3: #8b8d89;
+  --callout: #d9e8f1;
+  --callout-edge: #9dbdd0;
+  --rule: #d5e3ec;
+  --mark: #e8590c;
+  --new: #ff9f1c;
+  --ease-out: cubic-bezier(.2, .7, .2, 1);
+  font-family: "Helvetica Neue", "PingFang TC", "Heiti TC", "Microsoft JhengHei", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+* { box-sizing: border-box }
+html, body { margin: 0 }
+body { background: var(--paper); -webkit-text-size-adjust: 100% }
+a { color: inherit }
+button { font: inherit; color: inherit }
+.wrap { width: min(1280px, 100% - 48px); margin: 0 auto }
+
+/* 頂部：像說明書書背的一行 */
+.bar { display: flex; align-items: baseline; gap: 28px; padding: 18px 0 0 }
+.bar .title { font-weight: 800; font-size: 17px; letter-spacing: -.1px; text-decoration: none }
+.bar nav { display: flex; gap: 22px; margin-left: auto; font-size: 14px }
+.bar nav a { text-decoration: none; color: var(--ink-2); transition: color .16s }
+.bar nav a:hover { color: var(--ink) }
+.bar .home { font-size: 14px; color: var(--ink-2); text-decoration: none }
+
+/* ---------- 第一屏：一頁說明書 ---------- */
+.spread { position: relative; height: calc(100svh - 52px); min-height: 560px; max-height: 920px; margin-top: 8px }
+#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab }
+#stage:active { cursor: grabbing }
+.page-head { position: absolute; left: 0; top: 10px; display: flex; align-items: flex-start; gap: 22px; pointer-events: none; max-width: 100% }
+.num { font-weight: 800; font-size: clamp(64px, 9vw, 112px); line-height: .82; letter-spacing: -2px; min-width: 1.2ch; font-variant-numeric: tabular-nums }
+.callout { pointer-events: auto; display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px 18px; background: var(--callout); border: 1.5px solid var(--callout-edge); border-radius: 10px; padding: 12px 18px 10px; max-width: min(640px, 62vw); min-height: 74px }
+.callout figure { margin: 0; text-align: center }
+.callout img { display: block; margin: 0 auto; height: auto; zoom: .5 }
+.callout figcaption { font-weight: 700; font-size: 16px; margin-top: 3px }
+.callout.cover { align-items: center; font-size: 15px; line-height: 1.6; max-width: 440px }
+.callout.cover b { font-size: 28px; font-weight: 800; display: block; line-height: 1.1; letter-spacing: -.3px }
+.flipmark { width: 86px; height: auto; margin-top: 6px; opacity: 0; transform: translateX(-6px); transition: opacity .2s, transform .28s var(--ease-out) }
+.flipmark.on { opacity: 1; transform: none }
+.step-title { position: absolute; left: 0; bottom: 74px; font-size: 14px; color: var(--ink-2) }
+
+/* 翻頁列 */
+.pager { position: absolute; left: 0; right: 0; bottom: 14px; display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: 14px }
+.pager button { border: 1.5px solid var(--ink); background: var(--paper); width: 44px; height: 40px; border-radius: 6px; cursor: pointer; display: grid; place-items: center; transition: background .16s, color .16s }
+.pager button:hover { background: var(--ink); color: var(--paper) }
+.pager button:active { transform: translateY(1px) }
+.pager button:disabled { opacity: .3; cursor: default; background: var(--paper); color: var(--ink) }
+.pager svg { width: 18px; height: 18px }
+.ticks { position: relative; height: 40px; display: flex; align-items: center; gap: 3px; cursor: pointer; touch-action: none }
+.ticks i { flex: 1; height: 10px; border-radius: 2px; background: var(--rule); transition: background .18s, height .18s var(--ease-out) }
+.ticks i.done { background: #9dbdd0 }
+.ticks i.cur { background: var(--ink); height: 22px }
+.ticks i.flip { box-shadow: inset 0 -3px 0 var(--mark) }
+.readout { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--ink-2); min-width: 7.5em; text-align: right }
+.play { width: 44px }
+.hint { position: absolute; right: 0; top: 16px; font-size: 13px; color: var(--ink-3); text-align: right; line-height: 1.6 }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-3); font-size: 14px; pointer-events: none }
+
+/* ---------- 驗證 ---------- */
+section.sheet { padding: 88px 0 0 }
+.sheet h2 { font-size: clamp(30px, 4vw, 46px); font-weight: 800; letter-spacing: -.6px; margin: 0 0 8px }
+.sheet .lede { color: var(--ink-2); font-size: 16px; line-height: 1.75; max-width: 62ch; margin: 0 0 36px }
+.check-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 56px; align-items: start }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 28px }
+.fact b { display: block; font-size: clamp(38px, 4.6vw, 58px); font-weight: 800; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums }
+.fact b small { font-size: .42em; letter-spacing: 0; margin-left: 4px }
+.fact span { display: block; margin-top: 8px; font-weight: 700; font-size: 15px }
+.fact p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--ink-2) }
+figure.cog { margin: 0 }
+figure.cog svg { width: 100%; height: auto; display: block }
+figure.cog figcaption { font-size: 13.5px; color: var(--ink-2); line-height: 1.65; margin-top: 10px }
+details.steps { margin-top: 44px; border-top: 1.5px solid var(--ink) }
+details.steps summary { cursor: pointer; padding: 16px 0; font-weight: 700; font-size: 16px; list-style: none; display: flex; justify-content: space-between; align-items: center }
+details.steps summary::-webkit-details-marker { display: none }
+details.steps summary .chev { width: 16px; height: 16px; transition: transform .22s var(--ease-out) }
+details.steps[open] summary .chev { transform: rotate(180deg) }
+.steps-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 8px }
+.steps-table th, .steps-table td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--rule); vertical-align: top }
+.steps-table th { font-weight: 600; color: var(--ink-2); font-size: 13px }
+.steps-table td:first-child { font-weight: 800; font-variant-numeric: tabular-nums; width: 3.5em }
+.steps-table button { border: 0; background: none; padding: 0; font-weight: 800; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--callout-edge) }
+.method { columns: 2; column-gap: 48px; font-size: 13.5px; line-height: 1.7; color: var(--ink-2); padding: 0 0 8px; margin: 16px 0 0 }
+.method p { margin: 0 0 10px; break-inside: avoid }
+
+/* ---------- 零件 ---------- */
+.parts-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; margin-bottom: 28px }
+.total { text-align: right }
+.total b { display: block; font-size: clamp(38px, 4.6vw, 58px); font-weight: 800; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums }
+.total span { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; display: block; margin-top: 6px; max-width: 34ch; margin-left: auto }
+.inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(236px, 1fr)); gap: 0 28px }
+.lot { display: grid; grid-template-columns: 86px 1fr; gap: 14px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--rule); min-height: 96px }
+.lot img { max-width: 86px; max-height: 66px; justify-self: center; zoom: .5 }
+.lot .qty { font-weight: 800; font-size: 20px }
+.lot .meta { font-size: 13px; line-height: 1.55; color: var(--ink-2) }
+.lot .meta a { color: var(--ink); text-decoration: none; font-weight: 600 }
+.lot .meta a:hover { color: var(--mark) }
+.lot .price { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600 }
+.stores { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0 28px; margin: 0 0 36px; border-top: 1.5px solid var(--ink) }
+.store { padding: 16px 0 14px; border-bottom: 1px solid var(--rule) }
+.store b { font-size: 16px; display: block }
+.store .sum { font-size: 26px; font-weight: 800; letter-spacing: -.4px; font-variant-numeric: tabular-nums; margin-top: 6px; display: block }
+.store small { font-size: 13px; color: var(--ink-2); line-height: 1.6; display: block }
+.downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 48px 0 0 }
+.downloads a { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; text-decoration: none; border: 1.5px solid var(--ink); border-radius: 8px; padding: 14px 16px; transition: background .16s, color .16s }
+.downloads a:hover { background: var(--ink); color: var(--paper) }
+.downloads a:hover small { color: #c9ccc6 }
+.downloads b { font-size: 15px }
+.downloads small { grid-column: 1; font-size: 12.5px; color: var(--ink-2) }
+.downloads svg { grid-row: 1 / span 2; grid-column: 2; width: 18px; height: 18px }
+
+footer.colophon { margin: 96px 0 0; padding: 28px 0 40px; border-top: 1.5px solid var(--ink); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; font-size: 13px; line-height: 1.7; color: var(--ink-2) }
+footer.colophon a { color: var(--ink) }
+
+@media (max-width: 860px) {
+  .wrap { width: calc(100% - 32px) }
+  .bar nav { display: none }
+  .spread { height: auto; min-height: 0; max-height: none; display: grid; grid-template-rows: auto 46svh auto auto }
+  #stage { position: relative; grid-row: 2; height: 46svh }
+  .page-head { position: relative; top: 0; grid-row: 1; gap: 14px; flex-wrap: wrap }
+  .num { font-size: 64px }
+  .callout { max-width: 100%; padding: 10px 12px 8px; gap: 8px 12px }
+  .flipmark { width: 64px }
+  .hint { display: none }
+  .step-title { position: relative; bottom: auto; grid-row: 3; margin-top: 6px }
+  .pager { position: relative; bottom: auto; grid-row: 4; margin-top: 10px; grid-template-columns: auto auto 1fr auto }
+  .readout { display: none }
+  .check-grid { grid-template-columns: 1fr; gap: 40px }
+  .method { columns: 1 }
+  .steps-table .dir { display: none }
+  .total { text-align: left }
+  .total span { margin-left: 0 }
+  footer.colophon { grid-template-columns: 1fr }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flipmark, .ticks i, details.steps summary .chev { transition: none }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <a class="title" href="#build">Model Y 積木說明書</a>
+    <nav aria-label="頁內">
+      <a href="#build">組裝</a><a href="#check">驗證</a><a href="#parts">零件與價格</a>
+    </nav>
+    <a class="home" href="../index.html">作品集</a>
+  </header>
+
+  <main>
+    <section class="spread" id="build" aria-label="逐步組裝">
+      <canvas id="stage" aria-label="Model Y 積木模型，可拖曳旋轉"></canvas>
+      <div class="loading" id="loading">正在載入 116 個零件的 LDraw 幾何…</div>
+      <div class="page-head">
+        <div class="num" id="num" aria-live="polite">0</div>
+        <div class="callout cover" id="callout"><div><b>1:30　116 片</b>用 LEGO 現行零件拼出的特斯拉 Model Y。按下一步，從底板開始組。</div></div>
+        <svg class="flipmark" id="flipmark" viewBox="0 0 120 84" aria-label="翻面：從車底往上裝" role="img"><path d="M18 58h84l-6-14H70l-10-12H40l-12 12H22z" fill="none" stroke="#1d1d1b" stroke-width="5" stroke-linejoin="round"/><circle cx="36" cy="62" r="7" fill="#1d1d1b"/><circle cx="84" cy="62" r="7" fill="#1d1d1b"/><path d="M26 22a40 26 0 0 1 68 0" fill="none" stroke="#e8590c" stroke-width="6" stroke-linecap="round"/><path d="M86 9l10 14-17 2" fill="none" stroke="#e8590c" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <p class="hint">拖曳旋轉、滾輪縮放<br>← → 翻頁</p>
+      <p class="step-title" id="stepTitle">完成圖</p>
+      <div class="pager">
+        <button id="prev" aria-label="上一步"><svg viewBox="0 0 18 18"><path d="M11.5 3.5 6 9l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="next" aria-label="下一步"><svg viewBox="0 0 18 18"><path d="M6.5 3.5 12 9l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="ticks" id="ticks" role="slider" aria-label="步驟" aria-valuemin="0" tabindex="0"></div>
+        <div style="display:flex;align-items:center;gap:14px"><span class="readout" id="readout">共 25 步</span>
+        <button class="play" id="play" aria-label="自動播放"><svg viewBox="0 0 18 18" id="playIcon"><path d="M5 3.5v11l9-5.5z" fill="currentColor"/></svg></button></div>
+      </div>
+    </section>
+
+    <section class="sheet" id="check">
+      <h2>驗證報告</h2>
+      <p class="lede">模型存成 LDraw 格式後，由另一支程式從檔案重新讀出每個零件，對照 LDraw 官方零件庫的真實網格逐項檢查。下面每個數字都來自那份報告。</p>
+      <div class="check-grid">
+        <div class="facts" id="facts"></div>
+        <figure class="cog">
+          <svg id="cogSvg" viewBox="0 0 520 300" role="img" aria-label="俯視圖：四個輪胎的接地範圍與重心位置"></svg>
+          <figcaption id="cogCap"></figcaption>
+        </figure>
+      </div>
+      <details class="steps">
+        <summary>每一步的檢查結果<svg class="chev" viewBox="0 0 16 16"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <table class="steps-table"><thead><tr><th>步驟</th><th>內容</th><th>零件</th><th class="dir">插入方向</th><th>結果</th></tr></thead><tbody id="stepRows"></tbody></table>
+        <div class="method" id="method"></div>
+      </details>
+    </section>
+
+    <section class="sheet" id="parts">
+      <div class="parts-head">
+        <div>
+          <h2>零件與價格</h2>
+          <p class="lede" style="margin:0">40 種零件與顏色的組合，全部依 Rebrickable 的 2024 年後官方套組清單確認為現行生產；編號是 BrickLink 目錄編號，點下去可以看該零件在 BrickLink 的頁面。</p>
+        </div>
+        <div class="total" id="total"></div>
+      </div>
+      <div class="stores" id="stores"></div>
+      <div class="inv" id="inv"></div>
+      <div class="downloads">
+        <a href="../assets/model-y-bricks/model-y-instructions.pdf" download><b>說明書 PDF</b><small>A4 橫式，29 頁</small><svg viewBox="0 0 18 18"><path d="M9 2.5v9M5 8l4 4 4-4M3.5 15.5h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a href="../assets/model-y-bricks/model-y.ldr" download><b>LDraw 模型</b><small>.ldr，可用 Studio／LeoCAD 開啟</small><svg viewBox="0 0 18 18"><path d="M9 2.5v9M5 8l4 4 4-4M3.5 15.5h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a href="../assets/model-y-bricks/wanted-list.xml" download><b>BrickLink 需求清單</b><small>XML，可上傳成 Wanted List</small><svg viewBox="0 0 18 18"><path d="M9 2.5v9M5 8l4 4 4-4M3.5 15.5h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a href="../assets/model-y-bricks/parts.csv" download><b>零件清單</b><small>CSV，含三方編號與數量</small><svg viewBox="0 0 18 18"><path d="M9 2.5v9M5 8l4 4 4-4M3.5 15.5h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a href="../assets/model-y-bricks/verify-report.md" download><b>驗證報告</b><small>Markdown，含方法與逐步結果</small><svg viewBox="0 0 18 18"><path d="M9 2.5v9M5 8l4 4 4-4M3.5 15.5h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="colophon">
+    <p>非官方愛好者設計。外觀比例參考 <a href="https://www.tesla.com/zh_tw/modely" rel="noopener">tesla.com/zh_tw/modely</a>，與 LEGO Group、Tesla 無關；LEGO 是 LEGO Group 的商標。零件幾何來自 <a href="https://library.ldraw.org" rel="noopener">LDraw 零件庫</a>（CC BY 4.0），現行零件判定來自 <a href="https://rebrickable.com/downloads/" rel="noopener">Rebrickable</a>。</p>
+    <p><a href="../index.html">回作品集</a></p>
+  </footer>
+</div>
+
+<script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js","three/addons/":"../vendor/three-0.186.0/addons/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const BASE = '../assets/model-y-bricks/';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const [mesh, bom, report] = await Promise.all(['model-y.mesh.json', 'bom.json', 'verify-report.json'].map((f) => fetch(BASE + f).then((r) => { if (!r.ok) throw new Error(f); return r.json(); })));
+const STEPS = mesh.steps.length;
+const lotOf = (f, c) => bom.lots.find((l) => l.ldraw === f && l.color === c);
+
+// ---------- 3D ----------
+const canvas = $('stage');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.NeutralToneMapping;
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8d8a84, 1.35));
+const key = new THREE.DirectionalLight(0xffffff, 2.1); key.position.set(300, 500, 420); scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 0.7); fill.position.set(-400, 150, -200); scene.add(fill);
+// LDraw 的 y 軸朝下：外層把整台車翻正；翻面步驟時把它轉回來
+// 翻面時繞車身中心高度（約 68 LDU）旋轉，車子留在畫面中間
+const turn = new THREE.Group(); turn.position.y = 68; scene.add(turn);
+const root = new THREE.Group(); root.rotation.x = Math.PI; root.position.y = -68; turn.add(root);
+const DISPLAY = { 0: ['#2b2e33', 1], 15: ['#f3f3f1', 1], 19: ['#dcc493', 1], 36: ['#d0271d', .72], 47: ['#e8f1f5', .5], 72: ['#6f7277', 1], 256: ['#1f2124', 1] };
+const EDGE = { 0: '#7b8087', 256: '#6a6e74' };
+const mats = new Map(), geos = new Map(), lines = new Map();
+const edgeMat = new Map();
+function mat(c) {
+  if (!mats.has(c)) { const [hex, a] = DISPLAY[c] || ['#888', 1]; mats.set(c, new THREE.MeshStandardMaterial({ color: hex, roughness: .42, side: THREE.DoubleSide, transparent: a < 1, opacity: a, depthWrite: a >= 1, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 })); }
+  return mats.get(c);
+}
+function emat(c, hl) {
+  const k = hl ? 'hl' : c;
+  if (!edgeMat.has(k)) edgeMat.set(k, new THREE.LineBasicMaterial({ color: hl ? '#ff9f1c' : (EDGE[c] || '#1d1d1d'), transparent: !hl, opacity: hl ? 1 : .55 }));
+  return edgeMat.get(k);
+}
+const objs = mesh.parts.map((p) => {
+  const g = mesh.geo[p.f]; const m = p.m;
+  const grp = new THREE.Group(); grp.matrixAutoUpdate = false;
+  const base = new THREE.Matrix4().set(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], 0, 0, 0, 1);
+  grp.matrix.copy(base);
+  for (const [ck, arr] of Object.entries(g.tris)) {
+    const k = p.f + '|' + ck;
+    if (!geos.has(k)) { let bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); geos.set(k, toCreasedNormals(bg, .6)); }
+    const c = ck === '16' ? p.c : +ck;
+    const mm = new THREE.Mesh(geos.get(k), mat(c)); mm.renderOrder = (DISPLAY[c]?.[1] ?? 1) < 1 ? 2 : 0; grp.add(mm);
+  }
+  if (!lines.has(p.f)) { const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(g.lines, 3)); lines.set(p.f, lg); }
+  const edge = new THREE.LineSegments(lines.get(p.f), emat(p.c, false)); grp.add(edge);
+  root.add(grp);
+  // 插入方向（LDraw 座標）：翻面步驟由下往上、輪子沿車寬方向、其餘由上往下
+  const stepInfo = mesh.steps[p.s];
+  const wheel = stepInfo.title === '輪子';
+  const dir = wheel ? new THREE.Vector3(0, 0, Math.sign(m[11]) || 1) : new THREE.Vector3(0, stepInfo.view === 'below' ? 1 : -1, 0);
+  return { p, grp, base, edge, dir };
+});
+const camera = new THREE.PerspectiveCamera(24, 1, 5, 20000);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .08; controls.enablePan = false;
+controls.minDistance = 380; controls.maxDistance = 2600;
+function frame() {
+  const r = canvas.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / r.height;
+  // 讓整台車（外接球半徑約 215 LDU）塞進垂直與水平視角中較窄的那個
+  camera.fov = camera.aspect < 1 ? 34 : 24;
+  const half = Math.min(camera.fov / 2, THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect))) * Math.PI / 180;
+  const dist = (camera.aspect < 1 ? 255 : 215) / Math.sin(half);
+  camera.position.set(dist * .62, 68 + dist * .36, dist * .66);
+  controls.target.set(0, 68, 0);
+  camera.updateProjectionMatrix(); controls.update();
+}
+frame(); addEventListener('resize', frame);
+$('loading').remove();
+
+// ---------- 步驟 ----------
+let cur = 0, anim = null;
+const T_IN = reduceMotion ? 0 : 520;
+const ticks = $('ticks');
+ticks.setAttribute('aria-valuemax', STEPS);
+ticks.innerHTML = '<i></i>'.repeat(STEPS + 1);
+const tickEls = [...ticks.children];
+mesh.steps.forEach((s, i) => { if (s.view === 'below') tickEls[i + 1].classList.add('flip'); });
+function callout(n) {
+  const el = $('callout');
+  if (n === 0) { el.className = 'callout cover'; el.innerHTML = `<div><b>1:30　${mesh.parts.length} 片</b>用 LEGO 現行零件拼出的特斯拉 Model Y。按下一步，從底板開始組。</div>`; return; }
+  const counts = new Map();
+  for (const o of objs) if (o.p.s === n - 1) { const l = lotOf(o.p.f, o.p.c); counts.set(l.key, (counts.get(l.key) || 0) + 1); }
+  el.className = 'callout';
+  el.innerHTML = [...counts].map(([k, q]) => { const l = bom.lots.find((x) => x.key === k); return `<figure><img src="${BASE}parts/${l.id}-${l.color}.png" alt="${esc(l.colorZh + ' ' + l.zh)}"><figcaption>${q}x</figcaption></figure>`; }).join('');
+}
+function show(n, animate = true) {
+  n = Math.max(0, Math.min(STEPS, n));
+  const prev = cur; cur = n;
+  const upto = n === 0 ? STEPS : n;             // 0 = 完成圖
+  const fresh = n > 0 && animate && n === prev + 1;
+  for (const o of objs) {
+    const vis = o.p.s < upto;
+    o.grp.visible = vis;
+    const hl = n > 0 && o.p.s === n - 1;
+    o.edge.material = emat(o.p.c, hl);
+    o.grp.matrix.copy(o.base);
+  }
+  const below = n > 0 && mesh.steps[n - 1].view === 'below';
+  $('flipmark').classList.toggle('on', below);
+  $('num').textContent = n;
+  $('stepTitle').textContent = n === 0 ? '完成圖' : mesh.steps[n - 1].title;
+  $('readout').textContent = n === 0 ? `共 ${STEPS} 步` : `第 ${n} 步，共 ${STEPS} 步`;
+  ticks.setAttribute('aria-valuenow', n);
+  tickEls.forEach((t, i) => { t.classList.toggle('cur', i === n); t.classList.toggle('done', i > 0 && i < n); });
+  $('prev').disabled = n === 0; $('next').disabled = n === STEPS;
+  callout(n);
+  anim = { t0: performance.now(), fresh, n, flipFrom: turn.rotation.x, flipTo: below ? Math.PI : 0 };
+}
+function tick(now) {
+  if (anim) {
+    const k = T_IN ? Math.min(1, (now - anim.t0) / T_IN) : 1;
+    const e = 1 - Math.pow(1 - k, 3);
+    turn.rotation.x = anim.flipFrom + (anim.flipTo - anim.flipFrom) * e;
+    if (anim.fresh) for (const o of objs) if (o.p.s === anim.n - 1) {
+      // 新零件沿驗證過的插入方向，從 70 LDU 外滑進定位
+      const off = (1 - e) * 70;
+      o.grp.matrix.copy(o.base); o.grp.matrix.elements[12] -= o.dir.x * off; o.grp.matrix.elements[13] -= o.dir.y * off; o.grp.matrix.elements[14] -= o.dir.z * off;
+    }
+    if (k >= 1) anim = null;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+$('prev').onclick = () => { stop(); show(cur - 1); };
+$('next').onclick = () => { stop(); show(cur + 1); };
+addEventListener('keydown', (e) => {
+  if (e.target.closest('input, textarea')) return;
+  if (e.key === 'ArrowRight') { stop(); show(cur + 1); }
+  if (e.key === 'ArrowLeft') { stop(); show(cur - 1); }
+});
+function tickAt(x) { const r = ticks.getBoundingClientRect(); return Math.round(((x - r.left) / r.width) * STEPS); }
+ticks.addEventListener('pointerdown', (e) => { stop(); ticks.setPointerCapture(e.pointerId); show(tickAt(e.clientX), false); });
+ticks.addEventListener('pointermove', (e) => { if (e.buttons && ticks.hasPointerCapture(e.pointerId)) { const n = tickAt(e.clientX); if (n !== cur) show(n, false); } });
+let timer = null;
+function stop() { clearInterval(timer); timer = null; $('playIcon').innerHTML = '<path d="M5 3.5v11l9-5.5z" fill="currentColor"/>'; $('play').setAttribute('aria-label', '自動播放'); }
+$('play').onclick = () => {
+  if (timer) { stop(); return; }
+  if (cur === STEPS) show(0, false);
+  $('playIcon').innerHTML = '<path d="M5 3.5h3v11H5zM10 3.5h3v11h-3z" fill="currentColor"/>'; $('play').setAttribute('aria-label', '暫停');
+  show(cur + 1);
+  timer = setInterval(() => { if (cur >= STEPS) { stop(); return; } show(cur + 1); }, 1500);
+};
+show(0, false);
+
+// ---------- 驗證報告 ----------
+const S = report.summary;
+const mm = (ldu) => (ldu * 0.4).toFixed(1);
+$('facts').innerHTML = [
+  [S.connections, '接點', `凸點對凸點孔 ${S.studConnections} 處、科技軸銷 ${S.technicConnections} 處，位置與方向都吻合`],
+  [S.collisions, '碰撞', '碰撞體完整包住 LDraw 真實網格後，兩兩計算重疊'],
+  [S.buildFailures, '裝不上的零件', `${S.steps} 步裡每個零件都沿插入方向走完整段路徑`],
+  [S.components, '連通塊', '整台車靠接點連成一體，沒有懸空零件'],
+  [`${mm(S.comMarginLDU)}<small>mm</small>`, '重心餘裕', '重心投影到地面後，離輪胎支撐範圍邊界的最短距離'],
+  [`${S.wheelsOnGround}/4`, '輪胎著地', `車身最低點離地 ${mm(S.groundClearanceLDU)} mm，只有輪胎碰地`],
+].map(([v, t, d]) => `<div class="fact"><b>${v}</b><span>${t}</span><p>${d}</p></div>`).join('');
+// 俯視圖：車身外框、四個輪胎、支撐範圍、重心
+(function cog() {
+  const K = 1.08, sx = (x) => 260 + x * K, sz = (z) => 140 + z * K;       // LDraw x → 右、z → 下
+  const poly = S.supportPolygon.map(([x, z]) => `${sx(x)},${sz(z)}`).join(' ');
+  const [cx, , cz] = S.centerOfMass;
+  const tyres = [[120, 1], [120, -1], [-120, 1], [-120, -1]].map(([x, s]) => `<rect x="${sx(x - 30)}" y="${sz(s > 0 ? 62.5 : -92.5)}" width="${60 * K}" height="${30 * K}" rx="3" fill="#2b2e33"/>`).join('');
+  const nearest = S.comMarginLDU;
+  $('cogSvg').innerHTML = `
+    <rect x="${sx(-200)}" y="${sz(-80)}" width="${400 * K}" height="${160 * K}" rx="10" fill="none" stroke="#1d1d1b" stroke-width="2"/>
+    <polygon points="${poly}" fill="#d9e8f1" stroke="#9dbdd0" stroke-width="1.5"/>
+    ${tyres}
+    <line x1="${sx(cx)}" y1="${sz(cz)}" x2="${sx(cx)}" y2="${sz(cz + nearest)}" stroke="#e8590c" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="${sx(cx)}" cy="${sz(cz)}" r="7" fill="#fff" stroke="#e8590c" stroke-width="3"/>
+    <circle cx="${sx(cx)}" cy="${sz(cz)}" r="2" fill="#e8590c"/>
+    <text x="${sx(cx) + 12}" y="${sz(cz + nearest / 2) + 5}" font-size="14" font-weight="700" fill="#e8590c">${mm(nearest)} mm</text>
+    <text x="${sx(200) - 4}" y="${sz(-80) - 10}" font-size="13" text-anchor="end" fill="#5d5f5c">車頭 →</text>
+    <text x="${sx(-200)}" y="${sz(80) + 24}" font-size="13" fill="#5d5f5c">車長 ${mm(400)} mm、車寬 ${mm(160)} mm、軸距 ${mm(240)} mm</text>`;
+  $('cogCap').textContent = `汽車沒有腳掌，這裡以四個輪胎接地範圍圍成的區域（淺藍）當作支撐範圍。重心在離地 ${mm(-S.centerOfMass[1])} mm、車身中心往後 ${mm(-cx)} mm，${S.weightSource === 'bricklink' ? '零件重量取自 BrickLink 目錄' : '零件重量以體積估計'}，總重約 ${Math.round(S.massGrams)} g。`;
+})();
+const DIR = { '0,1,0': '往下壓', '0,-1,0': '翻面往上插', '0,0,1': '側向插入', '0,0,-1': '側向插入' };
+$('stepRows').innerHTML = report.steps.map((s) => `<tr><td><button data-step="${s.step}">${s.step}</button></td><td>${esc(s.title)}</td><td>${s.parts}</td><td class="dir">${[...new Set(Object.keys(s.insert).map((k) => DIR[k] || k))].join('、') || '第一個零件'}</td><td>${s.ok ? '通過' : esc(s.issues.join('；'))}</td></tr>`).join('');
+$('stepRows').addEventListener('click', (e) => { const b = e.target.closest('button[data-step]'); if (!b) return; stop(); show(+b.dataset.step, false); $('build').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' }); });
+$('method').innerHTML = Object.values(report.method).map((t) => `<p>${esc(t)}</p>`).join('');
+
+// ---------- 零件與價格 ----------
+const priced = bom.lots.filter((l) => l.price?.unit != null);
+const plan = bom.plan || [];
+const CN = { MY: '馬來西亞', NL: '荷蘭', DE: '德國', US: '美國', NZ: '紐西蘭', EE: '愛沙尼亞', TW: '台灣' };
+if (plan.length) $('stores').innerHTML = plan.map((st) => `<div class="store"><b>${esc(st.store)}</b><small>${esc(CN[st.country] || st.country)}・${st.items.length} 種零件${st.minBuy ? `・最低消費 NT$${Math.round(st.minBuy)}` : ''}</small><span class="sum">NT$${st.subtotal.toFixed(0)}</span></div>`).join('');
+if (priced.length === bom.lots.length) {
+  const sum = bom.lots.reduce((s, l) => s + l.price.unit * l.qty, 0);
+  const cur2 = bom.prices?.currency || 'TWD';
+  $('total').innerHTML = `<b>${cur2 === 'TWD' ? 'NT$' : cur2 + ' '}${Math.round(sum).toLocaleString('zh-TW')}</b><span>${esc(bom.prices?.note || '')}</span>`;
+} else {
+  $('total').innerHTML = `<b>${mesh.parts.length}<small style="font-size:.42em"> 片</small></b><span>BrickLink 價格尚未查詢；可先下載需求清單上傳到 BrickLink。</span>`;
+}
+$('inv').innerHTML = bom.lots.map((l) => {
+  const link = `https://www.bricklink.com/v2/catalog/catalogitem.page?P=${encodeURIComponent(l.bl)}&C=${l.blColor}`;
+  const price = l.price?.unit != null ? `<span class="price">NT$${l.price.unit.toFixed(2)} × ${l.qty}</span>　${esc(l.price.store || '')}` : '';
+  return `<div class="lot"><img src="${BASE}parts/${l.id}-${l.color}.png" alt=""><div><div class="qty">${l.qty}x</div><div class="meta"><a href="${link}" rel="noopener" target="_blank">${esc(l.bl)}</a>　${esc(l.colorZh)} ${esc(l.zh)}<br>${price}</div></div></div>`;
+}).join('');
+</script>
+</body>
+</html>

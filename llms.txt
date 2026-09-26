@@ -151,6 +151,7 @@
 - [096 Levkí, four days](https://htmls-ruddy.vercel.app/web/096-mediterranean.html): 地中海。固定風景搭配四日旅行手記，選取時刻聯動太陽光影與地點標記，支援月份及日照播放
 - [133 HALION · THREE PARTS. ONE MIND.](https://htmls-ruddy.vercel.app/web/133-halion.html): Three.js 概念腦機晶片產品網站。冷藍玻璃封裝、中央感應線圈與矽基板依捲動逐件展開；六個零件各有獨立區間與到位標註，結尾重新合攏。手機使用簡化幾何，WebGL 不可用時顯示靜態晶片
 - [151 Crosswind R · 3D 客製公路車](https://htmls-ruddy.vercel.app/web/151-bike-configurator.html): 3D 客製化電商。程序化生成、依真實比例的公路車（每根輻條、每節鏈條）：即時換配色、輪組、輪胎、傳動、把手與坐墊，踩踏帶動齒盤、鏈條與後輪，含即時報價與購物車結帳。
+- [165 守夜 · KEEPWATCH 牠在看](https://htmls-ruddy.vercel.app/web/165-owl-keepwatch.html): 游標追蹤吉祥物落地頁。全程式建模的 3D 貓頭鷹，眼睛與頭用彈簧追著化成螢火蟲的游標，閒置會張望與打盹；注視角度儀表、三種燈色、合成鳴叫與 25 分鐘守夜倒數；需連線載入 Three.js
 
 ### 資料科學
 
@@ -235,6 +236,7 @@
 - [142 曦光城堡 · Aurielle Castle](https://htmls-ruddy.vercel.app/web/142-aurielle-castle.html)：完整童話城堡 3D 模型，淡色石牆、藍色尖頂、金色飾件與暖光拱窗。建築典藏版面、可中斷的平滑鏡頭、日夜漸變、自由旋轉與標準 glTF 下載。
 
 - [111 Jelly Dice · 果凍骰子工房](https://htmls-ruddy.vercel.app/web/111-jelly-dice.html): 程序化半透明果凍骰子。六種口味、1–5 顆同時擲出、碰撞與回彈、滑鼠及觸控戳壓與拖曳
+- [164 Model Y 積木說明書 · 真實零件模型](https://htmls-ruddy.vercel.app/web/164-model-y-bricks.html)：用 LEGO 現行零件拼出的 1:30 特斯拉 Model Y（116 片、25 步），可逐步翻閱的 3D 說明書；程式對照 LDraw 真實網格驗證接點、碰撞、每一步的組裝路徑與重心，附 LDraw 模型、PDF 說明書、零件清單與 BrickLink 查價；需透過網站伺服器開啟。
 
 ## Optional
 

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VELORA · REGAL DRIVE</title>
+<meta name="description" content="Dark luxury car-rental hero: full-bleed background video that never stops, a giant REGAL DRIVE headline scaled to the viewport, and a glass call to action.">
+<link rel="icon" href="../favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { overflow-x: hidden; max-width: 100vw; }
+body { background: #0a0a0b; color: #fff; font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+a { text-decoration: none; color: inherit; }
+a:hover { color: #fff; }
+
+.hero { position: relative; width: 100%; height: 100vh; min-height: 720px; overflow: hidden; background: #0a0a0b; }
+
+.hero__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 60%; pointer-events: none; z-index: 0; }
+.hero__shade { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(8,8,10,0.55) 0%, rgba(8,8,10,0.15) 30%, rgba(8,8,10,0.25) 55%, rgba(8,8,10,0.92) 100%); }
+
+.nav { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; padding: 34px 56px; }
+.nav__links { display: flex; align-items: center; gap: 42px; list-style: none; }
+.nav__links a { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.82); }
+.nav__links a.is-active { color: #fff; border-bottom: 2px solid #fff; padding-bottom: 3px; }
+.nav__logo { color: #fff; font-size: 26px; font-weight: 700; letter-spacing: 0.04em; }
+.nav__browse { display: inline-flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #FAF9F5; font: inherit; font-size: 14px; font-weight: 600; padding: 11px 20px; border-radius: 10px; cursor: pointer; transition: background .2s ease, color .2s ease; }
+.nav__browse span { font-size: 15px; }
+.nav__browse:hover { background: #e9e9ec; color: #0a0a0b; }
+
+.headline { position: absolute; top: 92px; left: 0; width: 100%; z-index: 2; text-align: center; font-size: 13.3vw; font-weight: 800; line-height: 0.9; letter-spacing: -0.03em; white-space: nowrap;
+  background: linear-gradient(180deg, #ffffff 55%, #b8b8bd 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
+
+.copy { position: absolute; left: 56px; bottom: 56px; z-index: 3; max-width: 620px; }
+.copy h2 { color: #fff; font-weight: 600; font-size: clamp(38px, 5.8vw, 66px); line-height: 0.98; letter-spacing: -0.02em; }
+.copy p { color: rgba(255,255,255,0.82); font-size: 15px; font-weight: 400; line-height: 1.5; max-width: 480px; margin-top: 18px; }
+.copy__cta { display: inline-flex; align-items: center; gap: 12px; margin-top: 32px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #fff; font: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.04em; padding: 13px 24px; border-radius: 10px; cursor: pointer; transition: background .2s ease, color .2s ease, border-color .2s ease; }
+.copy__cta span { font-size: 15px; }
+.copy__cta:hover { background: #fff; color: #0a0a0b; border-color: #fff; }
+
+@media (max-width: 900px) {
+  .nav { padding: 24px 24px; flex-wrap: wrap; row-gap: 18px; }
+  .nav__links { gap: 22px; order: 3; width: 100%; }
+  .headline { top: 150px; }
+  .copy { left: 24px; right: 24px; bottom: 40px; }
+}
+@media (max-width: 480px) {
+  .nav { padding: 20px 16px; }
+  .nav__links { gap: 18px; }
+  .nav__logo { font-size: 22px; }
+  .copy { left: 16px; right: 16px; bottom: 32px; }
+}
+</style>
+</head>
+<body>
+<section class="hero">
+  <video class="hero__video" id="bg" autoplay muted loop playsinline preload="auto" aria-hidden="true"
+    src="https://cdn.sceneai.art/Hero%20section%20video%20file%20(2)/37091057-3719-4207-815c-745ebf57aeb4.mp4"></video>
+  <div class="hero__shade"></div>
+
+  <nav class="nav" aria-label="Primary">
+    <ul class="nav__links">
+      <li><a href="#" class="is-active" aria-current="page">Home</a></li>
+      <li><a href="#">About</a></li>
+      <li><a href="#">Cars</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+    <a href="#" class="nav__logo">VELORA</a>
+    <button type="button" class="nav__browse">Browse cars <span aria-hidden="true">→</span></button>
+  </nav>
+
+  <h1 class="headline">REGAL DRIVE</h1>
+
+  <div class="copy">
+    <h2>Rent Your Dream Luxury Car Today</h2>
+    <p>Enjoy a premium rental experience with exclusive cars, seamless booking, and honest pricing.</p>
+    <button type="button" class="copy__cta">DISCOVER NOW <span aria-hidden="true">↗</span></button>
+  </div>
+</section>
+
+<script>
+(function () {
+  var v = document.getElementById('bg');
+  if (!v) return;
+  v.muted = true;
+  v.defaultMuted = true;
+  v.loop = true;
+  function resume() {
+    if (v.paused) {
+      try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+    }
+  }
+  resume();
+  ['pause', 'ended', 'loadedmetadata', 'canplay'].forEach(function (ev) { v.addEventListener(ev, resume); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) resume(); });
+  var watchdog = setInterval(resume, 1000);
+  window.addEventListener('pagehide', function () { clearInterval(watchdog); });
+})();
+</script>
+</body>
+</html>
