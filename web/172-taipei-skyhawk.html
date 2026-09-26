@@ -204,7 +204,7 @@ body:not(.touch) .touchhint{display:none}
   </div>
   <div id="nav" class="blk"><span class="lbl">RCSS </span><span class="n" id="navTxt">---° · -.- NM</span></div>
   <div id="loadInfo"></div>
-  <div id="warn"><span id="wStall" class="r">失速</span><span id="wTerr" class="r">拉起</span><span id="wBrake" class="a">煞車</span><span id="wFuel" class="a">油量低</span><span id="wPause" class="w">暫停</span><span id="wCloud" class="w">雲中</span></div>
+  <div id="warn"><span id="wStall" class="r">失速</span><span id="wTerr" class="r">拉起</span><span id="wBrake" class="a">煞車</span><span id="wRel" class="w">停留煞車已放開</span><span id="wFuel" class="a">油量低</span><span id="wPause" class="w">暫停</span><span id="wCloud" class="w">雲中</span></div>
   <div id="eng" class="blk">
     <div class="row"><span>油門</span><span class="n" id="thrTxt">0 %</span></div>
     <div class="bar" id="thrBar"><i></i></div>
@@ -1977,7 +1977,7 @@ function startScenario(i) {
   sim = SCEN[i]();
   sim.stallBias = Math.random() - 0.5;
   app.apOn = false; app.apHdg = Math.round(toMag(SCEN_AP[i].hdg === 95 ? RWY.hdgTrue : SCEN_AP[i].hdg)); app.apAlt = SCEN_AP[i].alt; app.apVs = i === 1 ? -500 : 500;
-  app.pbrake = i === 0; app.track = []; app.maxG = 1; app.t0 = performance.now(); app.touchdown = null; app.crashT = 0;
+  app.pbrake = i === 0; app.pbrakeHeld = false; app.relT = 0; app.track = []; app.maxG = 1; app.t0 = performance.now(); app.touchdown = null; app.crashT = 0;
   input.elev = input.ail = input.rud = 0;
   sim.ctl.brake = app.pbrake ? 1 : 0;
   camState.init = false; flyby.set = false;
@@ -2001,7 +2001,7 @@ addEventListener('keydown', e => {
   else if (k === 'c') setView((app.view + 1) % 5);
   else if (k === '[') sim.ctl.flapSel = Math.max(0, sim.ctl.flapSel - 1);
   else if (k === ']') sim.ctl.flapSel = Math.min(3, sim.ctl.flapSel + 1);
-  else if (k === 'b') { app.pbrake = !app.pbrake; }
+  else if (k === 'b') { app.pbrake = !app.pbrake; app.pbrakeHeld = app.pbrake && sim.ctl.thr > 0.35; }
   else if (k === 'z') toggleAp();
   else if (k === 'p') togglePause();
   else if (k === 'h') toggleHelp();
@@ -2050,7 +2050,7 @@ canvas.addEventListener('wheel', e => { e.preventDefault(); input.zoom = clamp(i
   th.addEventListener('pointerup', () => { tid = null; });
   $('tFlapDn').onclick = () => { sim.ctl.flapSel = Math.min(3, sim.ctl.flapSel + 1); };
   $('tFlapUp').onclick = () => { sim.ctl.flapSel = Math.max(0, sim.ctl.flapSel - 1); };
-  $('tBrake').onclick = () => { app.pbrake = !app.pbrake; };
+  $('tBrake').onclick = () => { app.pbrake = !app.pbrake; app.pbrakeHeld = app.pbrake && sim.ctl.thr > 0.35; };
   $('tAp').onclick = () => toggleAp();
   input.thrKnob = tk;
 }
@@ -2094,6 +2094,8 @@ function readControls(dt) {
   if ((input.stickOn || isTouch) && !tR) r = clamp((sim.out.beta || 0) * 4 + a * 0.18, -1, 1);
   if (has('r', '+', '=')) c.thr = clamp(c.thr + 0.45 * dt, 0, 1);
   if (has('f', '-')) c.thr = clamp(c.thr - 0.45 * dt, 0, 1);
+  // 推油門起飛時自動放開停留煞車（按住空白鍵的煞車不受影響）
+  if (app.pbrake && c.thr > 0.35 && !app.pbrakeHeld) { app.pbrake = false; app.relT = performance.now(); }
   if (has('t')) c.trim = clamp(c.trim - 0.22 * dt, -1, 1);
   if (has('g')) c.trim = clamp(c.trim + 0.22 * dt, -1, 1);
   // 自動駕駛：使用者用力操縱就斷開
@@ -2664,7 +2666,10 @@ function hudUpdate() {
   const sinkFpm = -sim.vel[1] * 196.85;
   $('wStall').classList.toggle('on', !!sim.out.stall && !sim.onGround);
   $('wTerr').classList.toggle('on', !sim.onGround && agl < 150 && sinkFpm > 1500 * (agl / 150) + 400 && sim.ctl.flapSel < 2);
+  if (app.pbrakeHeld && sim.ctl.thr <= 0.35) app.pbrakeHeld = false;
+  $('wBrake').textContent = app.pbrake ? '停留煞車 · 推油門或按 B 放開' : '煞車';
   $('wBrake').classList.toggle('on', !!sim.ctl.brake && sim.onGround);
+  $('wRel').classList.toggle('on', performance.now() - (app.relT || -1e9) < 2500);
   $('wFuel').classList.toggle('on', sim.fuelGal < 5);
   $('wPause').classList.toggle('on', app.paused);
   $('wCloud').classList.toggle('on', inCloud > 0.3);
