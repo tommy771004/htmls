@@ -7,6 +7,7 @@ import {economyRules} from '../packages/sim/economy.ts';
 import {resources} from '../packages/content/rules.ts';
 import {workSlots,dropoffNodes} from '../packages/sim/work.ts';
 import {tileAt} from '../packages/sim/terrain.ts';
+import {authoritativeProblem} from '../packages/sim/buildings.ts';
 function order(s:State,payload:any,commandType='gather'){submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:s.sequence[0]+1,targetTick:s.tick+1,commandType,payload} as any);}
 const nearest=(s:State,kind:string,from={x:400,y:700})=>s.map.resources.filter(r=>r.kind===kind&&r.collectible&&s.vision[0].explored.includes(tileAt(r.x,r.y,16))).sort((a,b)=>Math.abs(a.x-from.x)+Math.abs(a.y-from.y)-(Math.abs(b.x-from.x)+Math.abs(b.y-from.y))||(a.id<b.id?-1:1))[0];
 // Resource-flow ledger: every extracted unit is either deposited or still carried; stock = start + deposits.
@@ -67,4 +68,19 @@ test('five villagers on one tree (11 work slots) all gather and return',async()=
  const tree=nearest(s,'tree');assert.ok(workSlots(s.map,tree.id).length>=5);order(s,{unitIds:[1,2,3,10,11],resourceId:tree.id});
  const loaded=new Set<number>();for(let i=0;i<2400;i++){tick(s);assertLedger(s);assertNoOverlap(s);for(const [id,c] of Object.entries(s.cargo))if(c.amount>=economyRules.carryCapacity)loaded.add(Number(id));}
  assert.deepEqual([...loaded].sort((a,b)=>a-b),[1,2,3,10,11]);assert.ok(s.accounts[0].ledger.deposited.wood>=100);
+});
+
+test('camps take only their own resources, once finished; a woodcutter delivers to the nearer lumber camp',()=>{
+ const s=createState(260925,'open'),tree=s.map.resources.filter(r=>r.kind==='tree').sort((a,b)=>Math.hypot(a.x-s.map.starts[0][0].x,a.y-s.map.starts[0][0].y)-Math.hypot(b.x-s.map.starts[0][0].x,b.y-s.map.starts[0][0].y))[0];
+ const before=dropoffNodes(s.map,0,'wood');assert.deepEqual(dropoffNodes(s.map,0,'gold'),before,'only the town centre at first');
+ // A lumber camp as close to the tree as the rules allow; built by villagers 1-2.
+ let site:{x:number;y:number}|null=null;for(let r=100;r<=600&&!site;r+=50)for(let a=0;a<16&&!site;a++){const x=Math.round((tree.x+Math.cos(a*Math.PI/8)*r)/10)*10,y=Math.round((tree.y+Math.sin(a*Math.PI/8)*r)/10)*10;if(!authoritativeProblem(s,0,'lumber-camp',x,y))site={x,y};}
+ assert.ok(site,'room for a camp');submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'build',payload:{unitIds:[1,2],kind:'lumber-camp',x:site!.x,y:site!.y}} as any);
+ tick(s);assert.ok(dropoffNodes(s.map,0,'wood').every(n=>before.includes(n)),'a foundation adds no drop-off nodes (it may cover some of the town centre ring)');const tcRing=dropoffNodes(s.map,0,'gold');
+ for(let i=0;i<2000&&!s.buildings.some(b=>b.kind==='lumber-camp'&&b.complete);i++)tick(s);
+ const withCamp=dropoffNodes(s.map,0,'wood');assert.ok(withCamp.length>tcRing.length,'the finished camp takes wood');assert.deepEqual(dropoffNodes(s.map,0,'gold'),tcRing,'but not gold');assert.deepEqual(dropoffNodes(s.map,0,'food'),tcRing,'nor food');
+ const campRing=withCamp.filter(n=>!tcRing.includes(n));
+ submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:2,targetTick:s.tick+1,commandType:'gather',payload:{unitIds:[3],resourceId:tree.id}} as any);
+ let deliveredAt=-1;for(let i=0;i<4000&&deliveredAt<0;i++){const was=s.accounts[0].ledger.deposited.wood;tick(s);if(s.accounts[0].ledger.deposited.wood>was)deliveredAt=s.units.find(u=>u.id===3)!.node;}
+ assert.ok(deliveredAt>=0,'wood delivered');assert.ok(campRing.includes(deliveredAt),'delivered at the lumber camp, not the town centre');
 });

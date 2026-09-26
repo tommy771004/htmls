@@ -7,6 +7,11 @@ export const obstacleFootprints={
  'town-center':{x:-15,y:-15,width:300,depth:300},
  // Farm: a walkable 2x2 field (no blocking rectangle); its extent still stops other buildings.
  farm:{x:0,y:0,width:200,depth:200},
+ // Drop-off camps use the 3x3 models (same footprint as the barracks).
+ 'lumber-camp':{x:-15,y:-15,width:300,depth:300},
+ 'mining-camp':{x:-15,y:-15,width:300,depth:300},
+ mill:{x:-15,y:-15,width:300,depth:300},
+ stable:{x:-15,y:-15,width:300,depth:300},
  tree:{x:-20,y:-20,width:100,depth:100},
  rock:{x:0,y:0,width:65,depth:70},
  gold:{x:0,y:0,width:65,depth:70},

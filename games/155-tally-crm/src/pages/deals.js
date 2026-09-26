@@ -342,6 +342,17 @@
     let pendingFocus = null;
     let barStage = null;
     let landedId = null;
+    // 從儀表板漏斗帶 stage= 進來時，桌面版把看板捲到該欄並短暫標出
+    let jumpStage = st.stage || null;
+    function jumpToStage() {
+      if (!jumpStage || U.isMobile()) { jumpStage = null; return; }
+      const lane = boardEl.querySelector(`.dl-lane[data-stage="${jumpStage}"]`);
+      jumpStage = null;
+      if (!lane) return;
+      boardEl.scrollTo({ left: Math.max(0, lane.offsetLeft - boardEl.offsetLeft - 12), behavior: U.reducedMotion() ? 'auto' : 'smooth' });
+      lane.classList.add('is-jump');
+      setTimeout(() => lane.classList.remove('is-jump'), 1600);
+    }
     function drawBoard(rows) {
       if (!boardEl || !boardEl.isConnected) buildBoard();
       const active = document.activeElement;
@@ -479,7 +490,7 @@
       countEl.textContent = `${open.length} 筆進行中 · ${U.moneyCompact(open.reduce((s, vm) => s + vm.d.amount, 0))}`;
       page.classList.toggle('is-board', st.view === 'board');
       page.classList.toggle('is-list', st.view === 'list');
-      if (st.view === 'board') drawBoard(rows); else drawList(rows);
+      if (st.view === 'board') { drawBoard(rows); jumpToStage(); } else drawList(rows);
     }
     function setView(v) {
       if (v === st.view) return;

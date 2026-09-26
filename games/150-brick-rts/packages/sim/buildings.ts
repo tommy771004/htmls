@@ -9,8 +9,8 @@ import {tileAt,terrainRules,sizeOfTiles} from './terrain.ts';
 import {combatRules} from './stats.ts';
 import type {Tile} from './terrain.ts';
 // Player buildings (design_default engineering rules, not reference-game values).
-export type BuildKind='house'|'barracks'|'farm';
-export const buildKinds:readonly BuildKind[]=['house','barracks','farm'];
+export type BuildKind='house'|'barracks'|'farm'|'lumber-camp'|'mining-camp'|'mill'|'stable';
+export const buildKinds:readonly BuildKind[]=['house','barracks','farm','lumber-camp','mining-camp','mill','stable'];
 // queue: production/research in order (only the first advances); rally: where finished units walk.
 export type QueueItem={id:number;entryId:string;reservationId:string;work:number;required:number};
 // hp: structure points; a foundation starts at 1 and gains hit points in step with construction work.
@@ -18,7 +18,7 @@ export type Building={id:string;kind:BuildKind|'town-center';player:number;x:num
 // capacity: population housed when complete (hard cap rules.settings.populationCap). One builder adds one
 // work point per tick; required = entry time (s) x tick rate. Positions snap to a 10-unit grid, fine enough
 // that the mirror image of any site (the maps are left-right symmetric) is also a legal position.
-export const buildingRules={provenance:'design_default',capacity:{'town-center':5,house:5,barracks:0,farm:0},grid:10,
+export const buildingRules={provenance:'design_default',capacity:{'town-center':5,house:5,barracks:0,farm:0,'lumber-camp':0,'mining-camp':0,mill:0,stable:0},grid:10,
  required:Object.fromEntries(buildKinds.map(k=>[k,rules.entries.find(e=>e.id===k)!.time*rules.settings.tickHz])) as Record<BuildKind,number>} as const;
 export type BuildingState={map:MapData;units:Unit[];accounts:Account[];buildings:Building[];nextBuildingId:number;vision:{explored:number[]}[];ages:number[]};
 const overlap=(a:number[],b:number[])=>Math.min(a[2],b[2])-Math.max(a[0],b[0])>0&&Math.min(a[3],b[3])-Math.max(a[1],b[1])>0;
@@ -50,6 +50,11 @@ function openFarm(s:BuildingState,b:Building){const capacity=terrainRules.resour
 // Removing a farm (destroyed, cancelled or worked out) closes its food source.
 export function closeFarm(s:BuildingState,buildingId:string,tick:number){const r=s.map.resources.find(r=>r.id===farmResourceId(buildingId));if(!r||r.status==='depleted')return;r.collectible=false;r.status='depleted';r.obstacleId=null;r.depletedAt=tick;}
 export function farmOwner(s:BuildingState,resourceId:string){return s.buildings.find(b=>farmResourceId(b.id)===resourceId)?.player??null;}
+// Construction requirements from the rule data (for now: an age). Shared by the Worker and the page.
+export function buildRequirement(age:number,kind:string):string|null{
+ const entry=rules.entries.find(e=>e.id===kind);if(!entry)return '未知的建築種類';
+ for(const req of entry.requires){const m=/^age-(\d)$/.exec(req);if(m&&age<Number(m[1]))return `需要${rules.entries.find(e=>e.id===req)?.name??req}`;}
+ return null;}
 export function stageOf(b:Building){return b.complete?100:Math.min(80,Math.floor(b.work*5/b.required)*20);}
 function obstacleOf(s:BuildingState,b:Building){return s.map.obstacles.find(o=>o.id===b.id);}
 export function recomputeCapacity(s:BuildingState,player:number){
@@ -62,7 +67,7 @@ export function initBuildings(s:BuildingState){
 }
 // Pays up front (reservation), places a blocking foundation and updates navigation. Throws before any change.
 export function placeBuilding(s:BuildingState,player:number,kind:BuildKind,x:number,y:number,reservationId:string):Building{
- const problem=authoritativeProblem(s,player,kind,x,y);if(problem)throw Error(problem);
+ const problem=authoritativeProblem(s,player,kind,x,y)??buildRequirement(s.ages[player],kind);if(problem)throw Error(problem);
  reserve(s.accounts[player],reservationId,kind);
  const b:Building={id:`building-${s.nextBuildingId++}`,kind,player,x,y,work:0,required:buildingRules.required[kind],complete:false,reservationId,queue:[],rally:null,hp:1,maxHp:combatRules.buildings[kind]};
  s.buildings.push(b);const o:Obstacle={id:b.id,kind,x,y,progress:0,age:s.ages[player],...(player?{red:true}:{})};s.map.obstacles.push(o);s.map.tiles[tileAt(x,y,s.map.size)].obstacleRefs.push(b.id);

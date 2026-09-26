@@ -26,8 +26,12 @@ export function workSlots(map:MapData,resourceId:string):number[]{
  if(o?.kind==='farm'){const b=obstacleBounds(o),out:number[]=[],closed=blockedTable(map);for(const n of nodesNear(map,b,0)){const p=position(map,n);if(!closed[n]&&p.x>b[0]&&p.x<b[2]&&p.y>b[1]&&p.y<b[3])out.push(n);}return out;}
  return o?ring(map,o,economyRules.workReach):[];
 }
-export function dropoffNodes(map:MapData,player:number):number[]{
- return [...new Set(map.obstacles.filter(o=>o.kind==='town-center'&&(o.red?1:0)===player).flatMap(o=>ring(map,o,economyRules.dropoffReach)))].sort((a,b)=>a-b);
+// Where cargo may be delivered (design_default): the town centre takes everything; camps take their own kinds.
+export const dropoffRules={provenance:'design_default',accepts:{'town-center':['food','wood','gold','stone'],'lumber-camp':['wood'],'mining-camp':['gold','stone'],mill:['food']}} as const;
+// Nodes next to the player's completed drop-offs that accept the resource (all of them when none is given).
+export function dropoffNodes(map:MapData,player:number,resource?:Resource):number[]{
+ const accepts=dropoffRules.accepts as Record<string,readonly string[]>;
+ return [...new Set(map.obstacles.filter(o=>accepts[o.kind]&&o.progress===undefined&&(o.red?1:0)===player&&(!resource||accepts[o.kind].includes(resource))).flatMap(o=>ring(map,o,economyRules.dropoffReach)))].sort((a,b)=>a-b);
 }
 export function gatherable(map:MapData,resourceId:string):string|null{
  const r=map.resources.find(r=>r.id===resourceId);
@@ -43,7 +47,8 @@ function sourceTargets(s:WorkState,u:Unit,resourceId:string){
  const free=slots.filter(n=>!taken.has(n));return free.length?free:slots;
 }
 function goToSource(s:WorkState,u:Unit,w:GatherWork){const t=sourceTargets(s,u,w.resourceId);if(!t.length)return stopWork(s,u);w.phase='toSource';routeTo(s,u,t);}
-function goToDropoff(s:WorkState,u:Unit,w:GatherWork){const t=dropoffNodes(s.map,u.player);if(!t.length)return stopWork(s,u);w.phase='toDropoff';routeTo(s,u,t);}
+const cargoOf=(s:WorkState,w:GatherWork)=>{const r=s.map.resources.find(r=>r.id===w.resourceId);return r?resourceDefinitions[r.kind].yield:undefined;};
+function goToDropoff(s:WorkState,u:Unit,w:GatherWork){const t=dropoffNodes(s.map,u.player,s.cargo[u.id]?.resource??cargoOf(s,w));if(!t.length)return stopWork(s,u);w.phase='toDropoff';routeTo(s,u,t);}
 function stopWork(s:WorkState,u:Unit){delete s.works[u.id];if(u.navigation!=='moving')u.navigation=u.partial?'unreachable':'idle';}
 export function commandGather(s:WorkState,unitIds:number[],resourceId:string){
  for(const id of unitIds){const u=s.units.find(u=>u.id===id)!;cancelMovement(s,id);
@@ -85,7 +90,7 @@ export function stepWork(s:WorkState){
   if(w.kind==='build'){stepBuilder(s,u,w);continue;}
   const resource=s.map.resources.find(r=>r.id===w.resourceId)!,kind=resourceDefinitions[resource.kind].yield;
   if(w.phase==='toDropoff'){
-   if(!dropoffNodes(s.map,u.player).includes(u.node)){if(++w.retries>3){stopWork(s,u);continue;}goToDropoff(s,u,w);continue;}
+   if(!dropoffNodes(s.map,u.player,s.cargo[u.id]?.resource??kind).includes(u.node)){if(++w.retries>3){stopWork(s,u);continue;}goToDropoff(s,u,w);continue;}
    deposit(s,u);w.retries=0;
    if(!resource.collectible){const next=nextSource(s,resource,kind);if(!next){stopWork(s,u);continue;}w.resourceId=next;}
    goToSource(s,u,w);continue;

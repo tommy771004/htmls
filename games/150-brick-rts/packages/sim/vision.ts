@@ -1,9 +1,10 @@
 import type {MapData,Obstacle} from './navigation.ts';
+import {isBuilding} from './navigation.ts';
 import type {ResourceNode} from './terrain.ts';
 import {tileAt} from './terrain.ts';
 import {obstacleBounds} from '../content/footprints.ts';
 // Buildings count as seen when any tile under their footprint is visible; other objects use their anchor tile.
-function footprintTiles(o:Obstacle,size:number):number[]{if(o.kind!=='house'&&o.kind!=='town-center'&&o.kind!=='barracks'&&o.kind!=='farm')return [tileAt(o.x,o.y,size)];const [x0,y0,x1,y1]=obstacleBounds(o),tiles:number[]=[];for(let ty=Math.max(0,Math.floor(y0/100));ty<=Math.min(size-1,Math.floor((y1-1)/100));ty++)for(let tx=Math.max(0,Math.floor(x0/100));tx<=Math.min(size-1,Math.floor((x1-1)/100));tx++)tiles.push(ty*size+tx);return tiles;}
+function footprintTiles(o:Obstacle,size:number):number[]{if(!isBuilding(o))return [tileAt(o.x,o.y,size)];const [x0,y0,x1,y1]=obstacleBounds(o),tiles:number[]=[];for(let ty=Math.max(0,Math.floor(y0/100));ty<=Math.min(size-1,Math.floor((y1-1)/100));ty++)for(let tx=Math.max(0,Math.floor(x0/100));tx<=Math.min(size-1,Math.floor((x1-1)/100));tx++)tiles.push(ty*size+tx);return tiles;}
 export const visionRules={provenance:'design_default',unitRadius:400,scoutRadius:550,houseRadius:300,townCenterRadius:600,shareVision:false,rememberStaticObjects:true} as const;
 export type Observer={player:number;x:number;y:number;kind?:string};
 export type KnownObstacle={obstacle:Obstacle;lastSeenTick:number};

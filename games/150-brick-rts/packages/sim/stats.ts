@@ -11,7 +11,7 @@ export const combatRules={provenance:'design_default',
   // The scout scouts; it attacks only on an explicit order.
   scout:{hp:45,damage:3,range:50,cooldown:40,sight:0},
  },
- buildings:{'town-center':400,house:150,barracks:300,farm:100},
+ buildings:{'town-center':400,house:150,barracks:300,farm:100,'lumber-camp':200,'mining-camp':200,mill:200,stable:300},
  corpseTicks:40,hitFlashTicks:6,
  // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
  speed:{villager:5,militia:5,archer:5,scout:10},

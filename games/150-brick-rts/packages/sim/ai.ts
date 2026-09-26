@@ -7,7 +7,7 @@ import {placementProblem,buildKinds,farmOwner,buildingRules} from './buildings.t
 import type {Building,BuildKind} from './buildings.ts';
 import {trainable} from './production.ts';
 import type {ProductionState} from './production.ts';
-import {gatherable} from './work.ts';
+import {gatherable,dropoffRules} from './work.ts';
 import {targetProblem} from './combat.ts';
 import type {CombatState,Target} from './combat.ts';
 import type {Unit} from './movement.ts';
@@ -18,7 +18,7 @@ import type {PlayerVision} from './vision.ts';
 // thinkTicks: one decision pass per second at 20 Hz. firstWaveTick: no attack wave before 4 minutes.
 export const aiRules={provenance:'design_default',player:1,thinkTicks:20,thinkOffset:7,villagerTarget:12,
  gatherWeights:{food:4,wood:3,gold:2,stone:0},houseMargin:2,barracksAtVillagers:3,ageUpAtVillagers:9,
- waveSize:5,firstWaveTick:4800,engageRange:500,defendRadius:700,baseMargin:50,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100} as const;
+ waveSize:5,firstWaveTick:4800,engageRange:500,defendRadius:700,baseMargin:50,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2} as const;
 export type AIState=CombatState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
 export type Order=(commandType:'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign',payload:Record<string,unknown>)=>boolean;
 type Box=number[];
@@ -51,6 +51,12 @@ export function stepAI(s:AIState,order:Order){
  const barracksDue=villagers.length>=aiRules.barracksAtVillagers&&!own.some(b=>b.kind==='barracks');
  if(barracksDue)place(s,order,'barracks',villagers,idle,tcBox,own);
  if(room<=aiRules.houseMargin&&account.populationCap<rules.settings.populationCap&&!pending('house')&&(!barracksDue||room<=0))place(s,order,'house',villagers,idle,tcBox,own);
+ // Drop-off camps: when two or more villagers carry wood (or gold/stone) from farther than campDistance to the
+ // nearest drop-off that takes it, a camp goes up next to that source.
+ const accepts=dropoffRules.accepts as Record<string,readonly string[]>,drops=own.filter(b=>b.complete&&accepts[b.kind]).map(b=>({kinds:accepts[b.kind],box:boxOf(s,b)!})).filter(d=>d.box);
+ for(const [camp,kinds] of [['lumber-camp',['wood']],['mining-camp',['gold','stone']]] as const){if(own.some(b=>b.kind===camp&&!b.complete))continue;
+  const far=villagers.map(u=>s.works[u.id]).filter(w=>w?.kind==='gather').map(w=>s.map.resources.find(r=>r.id===(w as {resourceId:string}).resourceId)).filter((r):r is NonNullable<typeof r>=>!!r&&(kinds as readonly string[]).includes(resourceDefinitions[r.kind].yield)&&Math.min(...drops.filter(d=>d.kinds.includes(resourceDefinitions[r.kind].yield)).map(d=>gap([r.x,r.y,r.x,r.y],d.box)))>aiRules.campDistance);
+  if(far.length>=aiRules.campWorkers){place(s,order,camp,villagers,idle,tcBox,own,undefined,{x:far[0].x,y:far[0].y});break;}}
  // Town centre: villagers up to the target, then the second age once the barracks exists.
  const queued=(id:string)=>own.reduce((t,b)=>t+b.queue.filter(q=>q.entryId===id).length,0);
  if(tc.complete&&!tc.queue.length){
@@ -82,12 +88,13 @@ function pickBuilder(s:AIState,villagers:Unit[],idle:(u:Unit)=>boolean,near:{x:n
 }
 // Sites: anywhere on the own half, nearest to the town centre first, keeping a margin around the town centre
 // and other own buildings (drop-off ring and gates stay open). Same placement rule as a human's order.
-function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Unit)=>boolean,tcBox:Box,own:Building[],worker?:Unit):boolean{
+// near: centre of the search (default the town centre); camps search round the resource they serve.
+function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Unit)=>boolean,tcBox:Box,own:Building[],worker?:Unit,near?:{x:number;y:number}):boolean{
  const cost=rules.entries.find(e=>e.id===kind)!.cost,stock=s.accounts[aiRules.player].stock;
  if((Object.keys(cost) as Resource[]).some(r=>stock[r]<cost[r])||!buildKinds.includes(kind))return false;
- const c=centre(tcBox),others=own.filter(b=>b.kind!=='farm'&&b.kind!=='town-center').map(b=>boxOf(s,b)).filter(b=>b!==null) as Box[],[x0,y0,x1,y1]=obstacleBounds({kind,x:0,y:0}),world=s.map.size*100,
+ const home=centre(tcBox),c=near??home,others=own.filter(b=>b.kind!=='farm'&&b.kind!=='town-center').map(b=>boxOf(s,b)).filter(b=>b!==null) as Box[],[x0,y0,x1,y1]=obstacleBounds({kind,x:0,y:0}),world=s.map.size*100,
   // Mines, berries and animals keep room round them, so a building never boxes in their work slots.
-  sources=s.map.obstacles.filter(o=>o.kind==='gold'||o.kind==='rock'||o.kind==='berries'||o.kind==='hunt'||o.kind==='livestock').map(o=>obstacleBounds(o)),middle=world/2,axis=Math.hypot(c.x-middle,c.y-middle)||1,ux=(c.x-middle)/axis,uy=(c.y-middle)/axis;
+  sources=s.map.obstacles.filter(o=>o.kind==='gold'||o.kind==='rock'||o.kind==='berries'||o.kind==='hunt'||o.kind==='livestock').map(o=>obstacleBounds(o)),middle=world/2,axis=Math.hypot(home.x-middle,home.y-middle)||1,ux=(home.x-middle)/axis,uy=(home.y-middle)/axis;
  // Own side: how far a point lies from the map centre towards the own town centre (negative = the far side).
  const side=(x:number,y:number)=>(x-middle)*ux+(y-middle)*uy;
  const explored=new Set(s.vision[aiRules.player].explored),bodies=s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[position(s.map,u.next)])]);

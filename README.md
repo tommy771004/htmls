@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 157，皆放在 `web/`），以及另外 103 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151、153 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 157，皆放在 `web/`），以及另外 103 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151、153 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。第 155 件的原始碼在 `games/155-tally-crm/`（無相依套件），`node games/155-tally-crm/build.mjs` 內嵌成單檔 `web/155-tally-crm.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -162,6 +162,7 @@
 | 152 | [152-tideline-board.html](https://htmls-ruddy.vercel.app/web/152-tideline-board.html) | 介面風格 · 產品微互動元件板 | 潮班 TIDELINE：虛構澎湖渡輪公司的五格元件板。行程膠囊在船班卡、取消確認與退款收據之間變形；航線圖描繪航跡、港口輪播與票根；港口側欄旗標滑動；延誤通知堆疊展開與關閉；同行分票扇形寄出。每格自動示範，碰到就交給使用者 | 版面與動態參考 Inspora 的 Product 分類；班表與票價為示意 |
 | 153 | [153-slipstream-gp.html](https://htmls-ruddy.vercel.app/web/153-slipstream-gp.html) | 遊戲敘事 · Q 版 3D 卡丁車 | 尾流大獎賽：四條賽道、大獎賽／計時賽／氣球大戰三種模式、八位原創車手，跳躍甩尾迷你加速、七種道具、尾流吸附與依賽道即時合成的配樂 | 單檔 HTML；Three.js 由 CDN 載入，需連線及 WebGL；模型、貼圖、音樂與音效全部由程式生成；計時紀錄與幽靈車存在本機 |
 | 154 | [154-fixer-editor.html](https://htmls-ruddy.vercel.app/web/154-fixer-editor.html) | 工具產生器 · 點陣影像編輯器 | 定影：Photoshop 式介面的瀏覽器修圖軟體。圖層、群組、遮色片與五種調整圖層，21 種混合模式在 WebGL2 以 16 位元浮點即時合成；選取、壓力筆刷、仿製印章、修復筆刷、漸層、文字、裁切、濾鏡與歷史紀錄；PSD 讀寫、PNG／JPG／WebP 匯出；頁面附零依賴的 Node MCP 橋接程式，Claude Code／Codex 可用自然語言操作開著的文件 | △ 單檔 HTML，需要 WebGL2；PSD 只支援 8 位元 RGB／灰階，寫入時文字與調整圖層烘焙成像素圖層；尚無自由變形與剪裁遮色片；MCP 需在本機執行頁面提供的橋接程式 |
+| 155 | [155-tally-crm.html](https://htmls-ruddy.vercel.app/web/155-tally-crm.html) | 專案範例 · 概念稿風格 · 完整 CRM | 劃記 TALLY CRM：虛構感測器公司的業務 CRM，儀表板、聯絡人、公司（表格／卡片、組織圖）、交易 pipeline（七階段看板拖曳、報價品項、成交入帳動畫）、任務（自然語言快速新增、週曆拖曳改期）、活動紀錄（熱度格、排行）六頁共用一份種子固定、日期相對今天的示範資料；往來次數以正字劃記呈現，⌘K 命令面板、快捷鍵、可復原的操作、深淺色與手機版 | 靜態 HTML 互動範例；資料為示意，修改存在瀏覽器 localStorage；原始碼在 `games/155-tally-crm/`，`node games/155-tally-crm/build.mjs` 內嵌成單檔 |
 | 156 | [156-one-shape.html](https://htmls-ruddy.vercel.app/web/156-one-shape.html) | 介面風格 · 單一形狀 UI 動態短片 | 一形 ONE SHAPE：120 BPM、7 小節 28 拍的無縫循環，同一個形狀依序變成按鈕、載入、動態島、播放器（播放／暫停變形、拖曳進度）、會被拉長的音量滑桿、開關、前後緣各走一條彈簧的液態分頁、自己畫出的圖表與 tooltip、可篩選的 ⌘K 命令面板與通知，再回到按鈕。所有畫面由 seek(t) 以閉式彈簧解計算，可逐拍拖曳時間軸 | 字型 Geist 從 Google Fonts 載入；聲音為 WebAudio 合成，需點「聲音」才會播放 |
 | 157 | [157-lucid-ledger.html](https://htmls-ruddy.vercel.app/web/157-lucid-ledger.html) | 專案範例 · AI 理財工作台 | 澄帳：九個畫面（總覽、洞察、助理、現金流、交易、帳戶、固定支出、投資、目標）全部從同一份種子固定的虛構帳本推導。帳戶間轉帳、暫停訂閱、改分類、拆帳、模擬再平衡、調整目標提撥後，淨資產、現金預測、洞察與目標進度一起重算；助理以本機規則回答「負擔得起嗎」「餐飲為何變多」等問題並列出算式，答案可直接建立目標；⌘K 搜尋、⌘J 提問，全覽模式把九個畫面縮成九宮格並從格子放大回去 | 單檔 HTML，零外部資源；帳本、股價與機構名稱皆為虛構，不是投資建議 |
 

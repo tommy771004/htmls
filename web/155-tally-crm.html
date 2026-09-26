@@ -2299,21 +2299,23 @@ a.db-more:hover .ic { transform: translateX(2px); }
 .db-hero-chart { min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; }
 .db-hero-chart > .db-legend { justify-content: flex-end; }
 .db-lc-wrap { position: relative; border-radius: 10px; outline-offset: 4px; touch-action: pan-y; }
-.db-lc { display: block; width: 100%; height: auto; overflow: visible; }
+.db-lc { display: block; width: 100%; height: 200px; overflow: visible; }
+.db-lc-pt { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; box-shadow: 0 0 0 2px var(--sheet); pointer-events: none; }
+.db-lc-pt[hidden] { display: none; }
 .db-lc line, .db-lc polyline { vector-effect: non-scaling-stroke; }
 .db-lc-grid, .db-lc-base { stroke: var(--line-strong); stroke-width: 1; }
 .db-lc-pace { stroke: var(--ink-3); stroke-width: 1.5; stroke-linecap: round; }
 .db-lc-area { fill: var(--accent); opacity: .1; }
 .db-lc-won { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.db-lc-dot { fill: var(--accent); stroke: var(--sheet); stroke-width: 2; }
+.db-lc-dot { background: var(--accent); }
 .db-lc-x { stroke: var(--ink-4); stroke-width: 1; opacity: 0; }
 .db-lc-x.is-on { opacity: 1; }
 .db-lc-hp, .db-lc-hw { opacity: 0; }
 .db-lc-wrap.is-hover .db-lc-hp, .db-lc-wrap.is-hover .db-lc-hw { opacity: 1; }
-.db-lc-hp { fill: var(--ink-3); stroke: var(--sheet); stroke-width: 2; }
-.db-lc-hw { fill: var(--accent); stroke: var(--sheet); stroke-width: 2; }
+.db-lc-hp { background: var(--ink-3); }
+.db-lc-hw { background: var(--accent); }
 .db-lc-axis { display: flex; justify-content: space-between; font-size: var(--fs-11); color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.db-ctip { position: absolute; bottom: calc(100% + 4px); z-index: 2; min-width: 150px; padding: 8px 10px; border-radius: 10px; background: var(--raised); box-shadow: var(--shadow-pop); pointer-events: none; }
+.db-ctip { position: absolute; top: 0; z-index: 2; min-width: 150px; padding: 8px 10px; border-radius: 10px; background: var(--raised); box-shadow: var(--shadow-pop); pointer-events: none; }
 .db-ctip[hidden] { display: none; }
 .db-ctip-h { margin-bottom: 4px; font-size: var(--fs-12); color: var(--ink-3); white-space: nowrap; }
 .db-ctip-r { display: flex; align-items: center; gap: 6px; font-size: var(--fs-12); color: var(--ink-3); white-space: nowrap; }
@@ -2528,6 +2530,7 @@ button.db-hm-lab:hover { color: var(--ink); }
   .db-sc { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "who amt" "w log"; row-gap: 6px; padding: 10px 24px; }
   .db-sc-who { grid-area: who; } .db-sc-amt { grid-area: amt; } .db-sc-w { grid-area: w; flex-direction: row; align-items: center; gap: 8px; padding-left: 48px; } .db-sc-log { grid-area: log; justify-self: end; }
   .db-hm-row { height: 52px; }
+  .db-lc { height: 170px; }
   .db-hm-c { height: 28px; }
 }
 @media (max-width: 1080px) {
@@ -2558,6 +2561,7 @@ button.db-hm-lab:hover { color: var(--ink); }
   .db-hero { padding: 18px 16px 16px; gap: 14px; }
   .db-hero-top { grid-template-columns: minmax(0, 1fr); gap: var(--s4); }
   .db-hero-won { font-size: 48px; }
+  .db-lc { height: 140px; }
   .db-hero-chart > .db-legend { justify-content: flex-start; }
   .db-say { padding: 12px 14px; }
   .db-say-main { font-size: var(--fs-14); }
@@ -2958,6 +2962,9 @@ button.dl-step-btn:hover { background: var(--hover); }
   .dl-lines .lines-row { grid-template-columns: minmax(0, 1fr) 64px 30px; }
   .dl-day-h { margin-left: 44px; }
 }
+
+/* 從儀表板漏斗跳過來的階段欄 */
+.dl-lane.is-jump { box-shadow: inset 0 0 0 2px var(--st), 0 0 0 4px color-mix(in srgb, var(--st) 18%, transparent); transition: box-shadow var(--dur-enter) var(--ease-out); }
 
 /* ── styles/pages/kit.css ── */
 /* pages/kit · 元件總覽 */
@@ -8968,17 +8975,14 @@ html.tk-dragging, html.tk-dragging * { cursor: grabbing !important; user-select:
       const last = sr.nowI;
       const area = `M${x(0).toFixed(1)},${y(0).toFixed(1)} L${wonPts.join(' L')} L${x(last).toFixed(1)},${y(0).toFixed(1)} Z`;
       const tgtY = y(sr.pace[sr.n - 1]);
-      return raw(`<svg class="db-lc" viewBox="0 0 ${W} ${H}" role="img" aria-label="累計成交與目標進度">
+      return raw(`<svg class="db-lc" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="累計成交與目標進度">
         <line class="db-lc-grid" x1="${L}" x2="${W - R}" y1="${tgtY.toFixed(1)}" y2="${tgtY.toFixed(1)}"/>
         <line class="db-lc-base" x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>
         <line class="db-lc-pace" x1="${x(0).toFixed(1)}" y1="${y(0).toFixed(1)}" x2="${x(sr.n - 1).toFixed(1)}" y2="${tgtY.toFixed(1)}"/>
         <path class="db-lc-area" d="${area}"/>
         <polyline class="db-lc-won" points="${wonPts.join(' ')}"/>
         <line class="db-lc-x" x1="0" x2="0" y1="${TP}" y2="${y(0).toFixed(1)}"/>
-        <circle class="db-lc-hp" r="4" cx="-20" cy="-20"/>
-        <circle class="db-lc-hw" r="4" cx="-20" cy="-20"/>
-        <circle class="db-lc-dot" r="4.5" cx="${x(last).toFixed(1)}" cy="${y(sr.won[last]).toFixed(1)}"/>
-      </svg>`);
+      </svg><i class="db-lc-pt db-lc-hp" aria-hidden="true"></i><i class="db-lc-pt db-lc-hw" aria-hidden="true"></i><i class="db-lc-pt db-lc-dot" aria-hidden="true" style="left:${((x(last) / W) * 100).toFixed(2)}%;top:${((y(sr.won[last]) / H) * 100).toFixed(2)}%"></i>`);
     }
     function drawHero() {
       const k = D.hero;
@@ -9031,15 +9035,16 @@ html.tk-dragging, html.tk-dragging * { cursor: grabbing !important; user-select:
       const max = Math.max(1, ...sr.pace, ...sr.won.filter((v) => v != null)) * 1.04;
       const x = (i) => L + (sr.n === 1 ? 0 : (i * (W - L - R)) / (sr.n - 1));
       const y = (v) => TP + (1 - v / max) * (H - TP - B);
-      const cross = svg.querySelector('.db-lc-x'), hp = svg.querySelector('.db-lc-hp'), hw = svg.querySelector('.db-lc-hw');
+      const cross = svg.querySelector('.db-lc-x'), hp = wrap.querySelector('.db-lc-hp'), hw = wrap.querySelector('.db-lc-hw');
+      const put = (el, vx, vy) => { el.style.left = ((vx / W) * 100).toFixed(2) + '%'; el.style.top = ((vy / H) * 100).toFixed(2) + '%'; el.hidden = vy == null; };
       function show(i) {
         const px = x(i);
         cross.setAttribute('x1', px); cross.setAttribute('x2', px);
         cross.classList.add('is-on');
         wrap.classList.add('is-hover');
-        hp.setAttribute('cx', px); hp.setAttribute('cy', y(sr.pace[i]));
+        put(hp, px, y(sr.pace[i]));
         const wv = sr.won[i];
-        if (wv != null) { hw.setAttribute('cx', px); hw.setAttribute('cy', y(wv)); } else { hw.setAttribute('cx', -20); }
+        if (wv != null) put(hw, px, y(wv)); else hw.hidden = true;
         tip.textContent = '';
         const head = document.createElement('p'); head.className = 'db-ctip-h'; head.textContent = sr.labels[i];
         tip.appendChild(head);
@@ -9053,9 +9058,10 @@ html.tk-dragging, html.tk-dragging * { cursor: grabbing !important; user-select:
         tip.hidden = false;
         const rect = wrap.getBoundingClientRect();
         const left = (px / W) * rect.width;
-        tip.style.left = Math.round(U.clamp(left - tip.offsetWidth / 2, 0, rect.width - tip.offsetWidth)) + 'px';
+        const tw = tip.offsetWidth;
+        tip.style.left = Math.round(U.clamp(left > rect.width / 2 ? left - tw - 12 : left + 12, 0, Math.max(0, rect.width - tw))) + 'px';
       }
-      function hide() { tip.hidden = true; wrap.classList.remove('is-hover'); cross.classList.remove('is-on'); hp.setAttribute('cx', -20); hw.setAttribute('cx', -20); }
+      function hide() { tip.hidden = true; wrap.classList.remove('is-hover'); cross.classList.remove('is-on'); }
       wrap.addEventListener('pointermove', (e) => {
         const rect = svg.getBoundingClientRect();
         const vx = ((e.clientX - rect.left) / rect.width) * W;
@@ -9705,6 +9711,17 @@ html.tk-dragging, html.tk-dragging * { cursor: grabbing !important; user-select:
     let pendingFocus = null;
     let barStage = null;
     let landedId = null;
+    // 從儀表板漏斗帶 stage= 進來時，桌面版把看板捲到該欄並短暫標出
+    let jumpStage = st.stage || null;
+    function jumpToStage() {
+      if (!jumpStage || U.isMobile()) { jumpStage = null; return; }
+      const lane = boardEl.querySelector(`.dl-lane[data-stage="${jumpStage}"]`);
+      jumpStage = null;
+      if (!lane) return;
+      boardEl.scrollTo({ left: Math.max(0, lane.offsetLeft - boardEl.offsetLeft - 12), behavior: U.reducedMotion() ? 'auto' : 'smooth' });
+      lane.classList.add('is-jump');
+      setTimeout(() => lane.classList.remove('is-jump'), 1600);
+    }
     function drawBoard(rows) {
       if (!boardEl || !boardEl.isConnected) buildBoard();
       const active = document.activeElement;
@@ -9842,7 +9859,7 @@ html.tk-dragging, html.tk-dragging * { cursor: grabbing !important; user-select:
       countEl.textContent = `${open.length} 筆進行中 · ${U.moneyCompact(open.reduce((s, vm) => s + vm.d.amount, 0))}`;
       page.classList.toggle('is-board', st.view === 'board');
       page.classList.toggle('is-list', st.view === 'list');
-      if (st.view === 'board') drawBoard(rows); else drawList(rows);
+      if (st.view === 'board') { drawBoard(rows); jumpToStage(); } else drawList(rows);
     }
     function setView(v) {
       if (v === st.view) return;

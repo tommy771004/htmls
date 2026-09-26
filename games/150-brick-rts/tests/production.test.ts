@@ -67,3 +67,14 @@ test('a rally point on a building is refused; one covered later by a new buildin
  order(s,'build',{unitIds:[1],kind:'house',x:spot!.x,y:spot!.y});run(s,450);
  assert.ok(s.units.some(u=>u.id===5),'the villager came out');assert.ok(other);
 });
+
+test('a stable needs the second age; once built it trains scouts',()=>{
+ const s=createState(260925);s.vision[0].explored=Array.from({length:256},(_,i)=>i);s.accounts[0].stock.food=1000;s.accounts[0].stock.wood=1000;
+ let site:{x:number;y:number}|null=null;for(let y=650;y<=1200&&!site;y+=50)for(let x=500;x<=1100&&!site;x+=50)if(!authoritativeProblem(s,0,'stable',x,y))site={x,y};
+ assert.throws(()=>order(s,'build',{unitIds:[1,2,3],kind:'stable',x:site!.x,y:site!.y}),/需要第二時代/);
+ order(s,'train',{buildingId:tc(s).id,entryId:'age-2'});run(s,401);assert.equal(s.ages[0],2);
+ order(s,'build',{unitIds:[1,2,3],kind:'stable',x:site!.x,y:site!.y});for(let i=0;i<3000&&!s.buildings.some(b=>b.kind==='stable'&&b.complete);i++)tick(s);
+ const stable=s.buildings.find(b=>b.kind==='stable'&&b.complete)!;assert.ok(stable,'stable built');
+ order(s,'train',{buildingId:stable.id,entryId:'scout'});run(s,410);
+ assert.ok(s.units.some(u=>u.kind==='scout'&&u.player===0),'a scout rode out');assert.throws(()=>order(s,'train',{buildingId:stable.id,entryId:'militia'}),/不能生產/);
+});

@@ -265,17 +265,14 @@
       const last = sr.nowI;
       const area = `M${x(0).toFixed(1)},${y(0).toFixed(1)} L${wonPts.join(' L')} L${x(last).toFixed(1)},${y(0).toFixed(1)} Z`;
       const tgtY = y(sr.pace[sr.n - 1]);
-      return raw(`<svg class="db-lc" viewBox="0 0 ${W} ${H}" role="img" aria-label="累計成交與目標進度">
+      return raw(`<svg class="db-lc" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="累計成交與目標進度">
         <line class="db-lc-grid" x1="${L}" x2="${W - R}" y1="${tgtY.toFixed(1)}" y2="${tgtY.toFixed(1)}"/>
         <line class="db-lc-base" x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>
         <line class="db-lc-pace" x1="${x(0).toFixed(1)}" y1="${y(0).toFixed(1)}" x2="${x(sr.n - 1).toFixed(1)}" y2="${tgtY.toFixed(1)}"/>
         <path class="db-lc-area" d="${area}"/>
         <polyline class="db-lc-won" points="${wonPts.join(' ')}"/>
         <line class="db-lc-x" x1="0" x2="0" y1="${TP}" y2="${y(0).toFixed(1)}"/>
-        <circle class="db-lc-hp" r="4" cx="-20" cy="-20"/>
-        <circle class="db-lc-hw" r="4" cx="-20" cy="-20"/>
-        <circle class="db-lc-dot" r="4.5" cx="${x(last).toFixed(1)}" cy="${y(sr.won[last]).toFixed(1)}"/>
-      </svg>`);
+      </svg><i class="db-lc-pt db-lc-hp" aria-hidden="true"></i><i class="db-lc-pt db-lc-hw" aria-hidden="true"></i><i class="db-lc-pt db-lc-dot" aria-hidden="true" style="left:${((x(last) / W) * 100).toFixed(2)}%;top:${((y(sr.won[last]) / H) * 100).toFixed(2)}%"></i>`);
     }
     function drawHero() {
       const k = D.hero;
@@ -328,15 +325,16 @@
       const max = Math.max(1, ...sr.pace, ...sr.won.filter((v) => v != null)) * 1.04;
       const x = (i) => L + (sr.n === 1 ? 0 : (i * (W - L - R)) / (sr.n - 1));
       const y = (v) => TP + (1 - v / max) * (H - TP - B);
-      const cross = svg.querySelector('.db-lc-x'), hp = svg.querySelector('.db-lc-hp'), hw = svg.querySelector('.db-lc-hw');
+      const cross = svg.querySelector('.db-lc-x'), hp = wrap.querySelector('.db-lc-hp'), hw = wrap.querySelector('.db-lc-hw');
+      const put = (el, vx, vy) => { el.style.left = ((vx / W) * 100).toFixed(2) + '%'; el.style.top = ((vy / H) * 100).toFixed(2) + '%'; el.hidden = vy == null; };
       function show(i) {
         const px = x(i);
         cross.setAttribute('x1', px); cross.setAttribute('x2', px);
         cross.classList.add('is-on');
         wrap.classList.add('is-hover');
-        hp.setAttribute('cx', px); hp.setAttribute('cy', y(sr.pace[i]));
+        put(hp, px, y(sr.pace[i]));
         const wv = sr.won[i];
-        if (wv != null) { hw.setAttribute('cx', px); hw.setAttribute('cy', y(wv)); } else { hw.setAttribute('cx', -20); }
+        if (wv != null) put(hw, px, y(wv)); else hw.hidden = true;
         tip.textContent = '';
         const head = document.createElement('p'); head.className = 'db-ctip-h'; head.textContent = sr.labels[i];
         tip.appendChild(head);
@@ -350,9 +348,10 @@
         tip.hidden = false;
         const rect = wrap.getBoundingClientRect();
         const left = (px / W) * rect.width;
-        tip.style.left = Math.round(U.clamp(left - tip.offsetWidth / 2, 0, rect.width - tip.offsetWidth)) + 'px';
+        const tw = tip.offsetWidth;
+        tip.style.left = Math.round(U.clamp(left > rect.width / 2 ? left - tw - 12 : left + 12, 0, Math.max(0, rect.width - tw))) + 'px';
       }
-      function hide() { tip.hidden = true; wrap.classList.remove('is-hover'); cross.classList.remove('is-on'); hp.setAttribute('cx', -20); hw.setAttribute('cx', -20); }
+      function hide() { tip.hidden = true; wrap.classList.remove('is-hover'); cross.classList.remove('is-on'); }
       wrap.addEventListener('pointermove', (e) => {
         const rect = svg.getBoundingClientRect();
         const vx = ((e.clientX - rect.left) / rect.width) * W;
