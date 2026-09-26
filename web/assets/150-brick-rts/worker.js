@@ -1398,10 +1398,14 @@ function resolve(s, t) {
   for (let ty = Math.floor(box[1] / 100); ty <= Math.floor((box[3] - 1) / 100); ty++) for (let tx = Math.floor(box[0] / 100); tx <= Math.floor((box[2] - 1) / 100); tx++) tiles.push(ty * s.map.size + tx);
   return { player: b.player, shape: box, tiles };
 }
+function remembered(s, player, id) {
+  return s.vision[player].known.find((k) => k.obstacle.id === id && !!k.obstacle.red === (player === 0))?.obstacle ?? null;
+}
 function targetProblem(s, player, t) {
   const r = resolve(s, t);
+  if (r && r.player === player) return "\u4E0D\u80FD\u653B\u64CA\u5DF1\u65B9";
+  if (t.kind === "building" && remembered(s, player, t.id)) return null;
   if (!r) return "\u627E\u4E0D\u5230\u76EE\u6A19";
-  if (r.player === player) return "\u4E0D\u80FD\u653B\u64CA\u5DF1\u65B9";
   const seen = new Set(s.vision[player].visible);
   if (!r.tiles.some((id) => seen.has(id))) return "\u627E\u4E0D\u5230\u76EE\u6A19";
   return null;
@@ -1493,7 +1497,17 @@ function stepCombat(s) {
       Object.assign(u, { path: [], goal: null, target: null, navigation: u.next === null ? "idle" : "moving" });
       continue;
     }
-    const r = resolve(s, a.target), stats = combatRules.units[u.kind];
+    const r = resolve(s, a.target);
+    if (!r) {
+      const o = a.target.kind === "building" ? remembered(s, u.player, a.target.id) : null;
+      delete s.attacks[id];
+      if (o) {
+        const [x0, y0, x1, y1] = obstacleBounds(o);
+        commandMove(s, [u.id], { x: Math.round((x0 + x1) / 2), y: Math.round((y0 + y1) / 2) });
+      }
+      continue;
+    }
+    const stats = combatRules.units[u.kind];
     if (a.cooldown > 0) a.cooldown--;
     if (reach(u, r.shape) <= limit(u, r.shape)) {
       if (u.next !== null) continue;

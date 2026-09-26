@@ -135,7 +135,7 @@
 - [136 Zork · 帝國的餘燼](https://htmls-ruddy.vercel.app/web/136-zork.html): 第一人稱 Three.js 動作冒險。1977 Zork 285 的 80 房間、11 寶物與原始地圖條件；提燈、限載、鏡面、水壩及冥界謎題，即時近戰與追擊 AI，分塊場景、安全點、本機存檔。全部模型與聲音由程式生成。
 - [140 浮雲鐵道 · Cumulus Line](https://htmls-ruddy.vercel.app/web/140-cumulus-line.html): Three.js 水彩浮島電車模擬。駕駛室視角、一桿式主控制器（P5～B7／EB）、以急動度與側向加速度換算的乘客舒適度與小費、茶杯液面即時傾斜、平穩連續倍率、定點停車、雲梯線與星汐線兩條路線、晴日與午夜光照、機廠小鎮整備。
 - [153 尾流大獎賽 · SLIPSTREAM GP](https://htmls-ruddy.vercel.app/web/153-slipstream-gp.html): Q 版 3D 卡丁車。四條賽道、大獎賽／計時賽／氣球大戰三種模式、八位原創車手，跳躍甩尾迷你加速、七種道具、尾流吸附與即時合成配樂，模型與貼圖全由程式生成。
-- [159 沉星機 · ANTIKYTHERA](https://htmls-ruddy.vercel.app/web/159-antikythera.html): 潛水打撈與齒輪復原解謎。潛入安提基特拉沉船撈起鏽蝕青銅，除鏽讀出齒數，依孔距齒數和與齒輪比裝回五組齒輪；裝對後轉曲柄預測太陽、月亮、月相、奧林匹克賽會與日月食。畫面與聲音全部程序生成。
+- [159 沉星機 · ANTIKYTHERA](https://htmls-ruddy.vercel.app/web/159-antikythera.html): 3D 潛水打撈與齒輪復原解謎。以第三人稱潛入安提基特拉沉船撈起鏽蝕青銅，除鏽讀出齒數，依孔距齒數和與齒輪比裝回五組齒輪；裝對後轉動立體機械的曲柄預測太陽、月亮、月相、奧林匹克賽會與日月食。以 Three.js 即時程序生成，畫面與聲音不用任何素材檔。
 
 ### 品牌頁面
 

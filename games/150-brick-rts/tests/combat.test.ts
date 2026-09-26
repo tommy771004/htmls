@@ -95,3 +95,19 @@ test('on the 32x32 map a building is a valid target exactly when its own tiles a
  s.vision[0].visible=own;assert.equal(targetProblem(s,0,target),null,'visible footprint: attackable');
  s.vision[0].visible=stale.filter(t=>!own.includes(t));assert.equal(targetProblem(s,0,target),'找不到目標','unrelated tiles do not make it attackable');
 });
+
+test('a remembered enemy building in the fog can be attacked; if it is gone the units walk to its spot and stop',()=>{
+ const s=createState(260925),tc=s.buildings.find(b=>b.player===1&&b.kind==='town-center')!,box=obstacleBounds(s.map.obstacles.find(o=>o.id===tc.id)!);
+ const tiles:number[]=[];for(let ty=Math.floor(box[1]/100);ty<=Math.floor((box[3]-1)/100);ty++)for(let tx=Math.floor(box[0]/100);tx<=Math.floor((box[2]-1)/100);tx++)tiles.push(ty*16+tx);
+ const seen=()=>s.vision[0].visible.some(t=>tiles.includes(t)),known=()=>s.vision[0].known.some(k=>k.obstacle.id===tc.id);
+ // Villager 1 walks close enough to see red's town centre, then back home: the centre is remembered, not visible.
+ const home={x:s.units[0].x,y:s.units[0].y};order(s,'move',{unitIds:[1],x:box[0]-150,y:box[1]+100});run(s,1500,()=>seen());assert.ok(known(),'remembered');
+ order(s,'move',{unitIds:[1],x:home.x,y:home.y});run(s,1500,()=>!seen()&&!s.units.find(u=>u.id===1)!.path.length);assert.ok(!seen()&&known());
+ const archer=spawn(s,0,'archer',home.x+100,home.y,60);tick(s);
+ order(s,'attack',{unitIds:[archer.id],target:{kind:'building',id:tc.id}});const hp=tc.hp;run(s,1500,()=>tc.hp<hp);assert.ok(tc.hp<hp,'the archer walked into the fog and hit the remembered town centre');
+ // Now a remembered building that no longer stands (removed out of sight): the order is still accepted, nothing leaks.
+ order(s,'move',{unitIds:[archer.id],x:home.x,y:home.y});run(s,1500,()=>!seen()&&!s.units.find(u=>u.id===archer.id)!.path.length);
+ s.buildings=s.buildings.filter(b=>b!==tc);s.map.obstacles=s.map.obstacles.filter(o=>o.id!==tc.id);assert.ok(known(),'still remembered');
+ order(s,'attack',{unitIds:[archer.id],target:{kind:'building',id:tc.id}});run(s,1500,()=>seen());assert.ok(seen(),'walked to where it stood');run(s,5);
+ assert.equal(s.attacks[archer.id],undefined);assert.ok(!known(),'the memory clears once the spot is seen');
+});

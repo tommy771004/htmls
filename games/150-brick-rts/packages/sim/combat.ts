@@ -1,20 +1,21 @@
 import {obstacleBounds} from '../content/footprints.ts';
 import {forfeitReservation} from './economy.ts';
 import {refreshNavigation,position,navigationRules,blockedTable,nodesNear} from './navigation.ts';
-import {routeTo,cancelMovement} from './movement.ts';
+import {routeTo,cancelMovement,commandMove} from './movement.ts';
 import type {Unit} from './movement.ts';
 import {recomputeCapacity,closeFarm} from './buildings.ts';
 import type {Building} from './buildings.ts';
 import type {WorkState} from './work.ts';
 import {combatRules} from './stats.ts';
 import {tileAt} from './terrain.ts';
+import type {KnownObstacle} from './vision.ts';
 // Deterministic combat: fixed damage on a fixed cooldown, no randomness, no animation timing.
 export type Target={kind:'unit';id:number}|{kind:'building';id:string};
 export type Attack={target:Target;cooldown:number;auto:boolean;repath:number;firedTick:number};
 export type Corpse={id:number;player:number;kind:Unit['kind'];x:number;y:number;tick:number};
 // reason: conquest (no units and no buildings left) or resign (a player conceded).
 export type Outcome={winner:number|null;defeated:number[];tick:number;reason?:'resign'};
-export type CombatState=WorkState&{attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;vision:{visible:number[];explored:number[]}[]};
+export type CombatState=WorkState&{attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;vision:{visible:number[];explored:number[];known:KnownObstacle[]}[]};
 const REPATH=20;
 function buildingBox(s:CombatState,b:Building){const o=s.map.obstacles.find(o=>o.id===b.id);return o?obstacleBounds(o):null;}
 // Chebyshev distance from a point to a unit centre or to a building footprint edge.
@@ -23,8 +24,13 @@ function resolve(s:CombatState,t:Target){if(t.kind==='unit'){const u=s.units.fin
  const b=s.buildings.find(b=>b.id===t.id),box=b&&buildingBox(s,b);if(!b||!box)return null;
  const tiles:number[]=[];for(let ty=Math.floor(box[1]/100);ty<=Math.floor((box[3]-1)/100);ty++)for(let tx=Math.floor(box[0]/100);tx<=Math.floor((box[2]-1)/100);tx++)tiles.push(ty*s.map.size+tx);
  return {player:b.player,shape:box as {x:number;y:number}|number[],tiles};}
+// An enemy building the player has seen and still remembers (now in the fog) stays a valid target, as in the
+// reference: the units walk there. Whether it still stands is not revealed by the answer.
+function remembered(s:CombatState,player:number,id:string){return s.vision[player].known.find(k=>k.obstacle.id===id&&!!k.obstacle.red===(player===0))?.obstacle??null;}
 export function targetProblem(s:CombatState,player:number,t:Target):string|null{
- const r=resolve(s,t);if(!r)return '找不到目標';if(r.player===player)return '不能攻擊己方';
+ const r=resolve(s,t);if(r&&r.player===player)return '不能攻擊己方';
+ if(t.kind==='building'&&remembered(s,player,t.id))return null;
+ if(!r)return '找不到目標';
  const seen=new Set(s.vision[player].visible);if(!r.tiles.some(id=>seen.has(id)))return '找不到目標';return null;
 }
 export function commandAttack(s:CombatState,unitIds:number[],t:Target){
@@ -73,7 +79,10 @@ export function stepCombat(s:CombatState){
   const a=s.attacks[id],u=s.units.find(u=>u.id===id);if(!a||!u)continue;
   // Target gone or out of sight: stop at the next node instead of walking on to a stale position.
   if(targetProblem(s,u.player,a.target)){delete s.attacks[id];cancelMovement(s,u.id);Object.assign(u,{path:[],goal:null,target:null,navigation:u.next===null?'idle':'moving'});continue;}
-  const r=resolve(s,a.target)!,stats=combatRules.units[u.kind];if(a.cooldown>0)a.cooldown--;
+  // A remembered building that is gone: the order becomes a walk to where it stood (the memory clears on arrival).
+  const r=resolve(s,a.target);if(!r){const o=a.target.kind==='building'?remembered(s,u.player,a.target.id):null;delete s.attacks[id];
+   if(o){const [x0,y0,x1,y1]=obstacleBounds(o);commandMove(s,[u.id],{x:Math.round((x0+x1)/2),y:Math.round((y0+y1)/2)});}continue;}
+  const stats=combatRules.units[u.kind];if(a.cooldown>0)a.cooldown--;
   if(reach(u,r.shape)<=limit(u,r.shape)){
    if(u.next!==null)continue;
    if(u.path.length||busy.has(u.id)){cancelMovement(s,u.id);u.path=[];u.goal=null;u.target=null;}
