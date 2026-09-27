@@ -1361,4 +1361,25 @@
     <lastmod>2026-09-26</lastmod>
     <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/172.jpg</image:loc></image:image>
   </url>
+  <url>
+    <loc>https://htmls-ruddy.vercel.app/web/173-nord-voyage.html</loc>
+    <lastmod>2026-09-27</lastmod>
+    <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/173.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://htmls-ruddy.vercel.app/web/176-motion-studies.html</loc>
+    <lastmod>2026-09-27</lastmod>
+    <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/176.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://htmls-ruddy.vercel.app/app/104-tournote.html</loc>
+    <lastmod>2026-09-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://htmls-ruddy.vercel.app/web/174-kurogane-house.html</loc>
+    <lastmod>2026-09-27</lastmod>
+    <image:image><image:loc>https://htmls-ruddy.vercel.app/thumbs/174.jpg</image:loc></image:image>
+  </url>
 </urlset>
