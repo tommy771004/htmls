@@ -27,6 +27,7 @@ button,input{font:inherit;color:inherit}
 button{background:none;border:0;cursor:pointer}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 #stage{position:fixed;inset:0;display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#stage.pick{cursor:pointer}
 #stage.drag{cursor:grabbing}
 #labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
 .lbl{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;padding:3px 6px 2px;border-radius:2px;background:var(--panel);color:var(--ink);white-space:nowrap;line-height:1.1;will-change:transform;transition:opacity var(--dur-hover) linear}
@@ -781,7 +782,9 @@ if (R) {
     R.setClearColor(g('--bg'));
     U.uGhost.value.copy(g('--ghost')); U.uPlate.value.copy(g('--plate')); U.uInk.value.copy(g('--ink'));
     U.uHead.value.set(night ? 0xfff0cc : 0xffffff); U.uNight.value = night ? 1 : 0;
-    const pc = g('--plate'); plateTop.color.copy(pc); slabA.color.copy(pc).multiplyScalar(night ? .62 : .8); slabB.color.copy(pc).multiplyScalar(night ? .45 : .7);
+    // 夜間的地盤原本和背景幾乎同色，整張地圖像浮在黑暗裡；夜裡把頂面往 --ghost 提一點、側面維持比背景亮一階，看得出一塊擺在桌上的石板
+    const pc = g('--plate'); plateTop.color.copy(pc); if (night) plateTop.color.lerp(g('--ghost'), .42);
+    slabA.color.copy(pc).multiplyScalar(night ? 1.02 : .8); slabB.color.copy(pc).multiplyScalar(night ? .86 : .7);
     U.uBg.value.copy(g('--bg'));
     ticks.material.color.copy(g('--faint'));
     plane.material.color.copy(g('--bg')); plane.material.opacity = night ? .62 : .58;
@@ -841,7 +844,7 @@ cvs.addEventListener('pointermove', e => {
   moved += Math.abs(dx) + Math.abs(dy);
   if (ptrs.size === 2 && pinch) {
     const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-    goal.dist = clamp(goal.dist * pinch.d / Math.max(d, 1), 22, 600); panBy(mx - pinch.mx, my - pinch.my);
+    zoomAt(mx, my, clamp(goal.dist * pinch.d / Math.max(d, 1), 22, 600)); panBy(mx - pinch.mx, my - pinch.my);
     pinch = { d, mx, my };
   } else if (p.b === 2 || p.sh || e.shiftKey) panBy(dx, dy);
   else { goal.az -= dx * .0055; goal.pol = clamp(goal.pol - dy * .004, .08, 1.38); }
@@ -862,8 +865,19 @@ cvs.addEventListener('keydown',e=>{
  else goal.dist=clamp(goal.dist*(['+','='].includes(e.key)?.9:1.1),22,600);
  hideTip();dirty();
 });
-cvs.addEventListener('pointerleave', () => { if (!ptrs.size) hideTip(); });
-cvs.addEventListener('wheel', e => { e.preventDefault(); goal.dist = clamp(goal.dist * Math.exp(e.deltaY * (e.deltaMode ? .05 : .0012)), 22, 600); hideTip(); dirty(); }, { passive: false });
+cvs.addEventListener('pointerleave', () => { cvs.classList.remove('pick'); if (!ptrs.size) hideTip(); });
+cvs.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, clamp(goal.dist * Math.exp(e.deltaY * (e.deltaMode ? .05 : .0012)), 22, 600)); hideTip(); dirty(); }, { passive: false });
+// 滾輪與雙指縮放朝游標／兩指中點拉近：游標下那一點留在原位，像真的把地圖湊到眼前，而不是一律往畫面中央縮
+const zRay = T ? new T.Raycaster() : null, zPlane = T ? new T.Plane(new T.Vector3(0, 1, 0), 0) : null, zHit = T ? new T.Vector3() : null, zNdc = T ? new T.Vector2() : null;
+function zoomAt(x, y, nd) {
+  const f = nd / goal.dist;
+  if (camera && Math.abs(1 - f) > 1e-4) {
+    zNdc.set(x / innerWidth * 2 - 1, 1 - y / innerHeight * 2);
+    camera.updateMatrixWorld(); zRay.setFromCamera(zNdc, camera); zPlane.constant = -goal.ty;
+    if (zRay.ray.intersectPlane(zPlane, zHit)) { goal.tx = clamp(goal.tx + (zHit.x - goal.tx) * (1 - f), bx0, bx1); goal.tz = clamp(goal.tz + (zHit.z - goal.tz) * (1 - f), bz0, bz1); }
+  }
+  goal.dist = nd;
+}
 
 // ---------- 點選 ----------
 const v3 = T ? new T.Vector3() : null;
@@ -881,7 +895,7 @@ function pick(x, y) {
   return best;
 }
 let tipXY = [0, 0];
-function hoverPick(x, y) { const i = pick(x, y); tipXY = [x, y]; if (i < 0) hideTip(); else showTip(i); }
+function hoverPick(x, y) { const i = pick(x, y); tipXY = [x, y]; cvs.classList.toggle('pick', i >= 0); if (i < 0) hideTip(); else showTip(i); }
 function clickPick(x, y, type) {
   const i = pick(x, y);
   if (i >= 0) { tipXY = [x, y]; showTip(i); setFocus(ALL[i].L.i, false); if (!isNarrow()) {} }

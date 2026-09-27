@@ -92,4 +92,4 @@ $("share-button").onclick=()=>{if(screen){stopScreen();return;}selected=null;sho
 $("stop-share").onclick=stopScreen;
 window.addEventListener("pagehide",()=>{stopVoice();stopScreen();});
 render();
-try{const {createOffice}=await import("./scene.js?review=controls-20260927");office=createOffice({agents,onChat:openChat,isBlocked:()=>dialog.open,onHint:a=>{$("walk-hint").querySelector("span:nth-child(2)").textContent=a?`按 T 和 ${a.name} 聊聊 · ${statusLabel(a)}`:"走近一位同事，聊聊下一個點子。";}});$("scene-message").textContent="";render();}catch(e){console.warn("Office renderer unavailable",e);$("scene-message").textContent="3D 場景需要 WebGL 2。你仍可從成員面板聊天、派工與查看進度。";}
+try{const {createOffice}=await import("./scene.js?review=realism-r5-20260927");office=createOffice({agents,onChat:openChat,isBlocked:()=>dialog.open,onHint:a=>{$("walk-hint").querySelector("span:nth-child(2)").textContent=a?`按 T 和 ${a.name} 聊聊 · ${statusLabel(a)}`:"走近一位同事，聊聊下一個點子。";}});$("scene-message").textContent="";render();}catch(e){console.warn("Office renderer unavailable",e);$("scene-message").textContent="3D 場景需要 WebGL 2。你仍可從成員面板聊天、派工與查看進度。";}

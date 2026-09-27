@@ -563,7 +563,16 @@ function buildJaipur() {
     mapRects.push([x0, z0, x1, z1]);
   }
   // 大街兩側的拱廊：柱子、拱板、廊頂
-  const pillars = [], arches = [], pillarGeo = new T.BoxGeometry(.5, GF - .7, .5); pillarGeo.translate(0, (GF - .7) / 2, 0);
+  // 柱子：柱礎（跨在高一階的廊地邊上）＋柱身＋拱腳下的柱頭，不再是一根光秃的方棍插進拱板
+  const pillars = [], arches = [], pillarGeo = (() => {
+    const b = new Builder(), w = col('#ffffff'), o = { tw: 1, th: 1 }, ob = { tw: 1, th: 1, bottom: true };
+    b.box(0, 0, 0, .76, .16, .76, w, o); b.box(0, .16, 0, .64, .3, .64, w, o); b.box(0, .46, 0, .54, .06, .54, w, o);
+    b.box(0, .52, 0, .5, 2.08, .5, w, o);
+    b.box(0, 2.6, 0, .6, .1, .6, w, ob); b.box(0, 2.7, 0, .72, .14, .72, w, ob); b.box(0, 2.84, 0, .5, GF - .7 - 2.84, .5, w, o);
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(b.p, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(b.n, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(b.u, 2));
+    return g;
+  })();
   const archGeo = archPanel(3.6, 1.35, 2.9, .35, .42);
   function arcade(x0, z0, x1, z1, face, skip) {
     const L = Math.hypot(x1 - x0, z1 - z0), [fx, fz] = fwd(face), ry = FACE[face], n = Math.round(L / 3.6);
@@ -915,9 +924,11 @@ function buildVaranasi() {
       const h = ghatH(x + .01); if (x >= 34) break;
       const land = (x - 2) % 7 >= 4 && x < 30;
       if (land && (x - 2) % 7 > 4.01) continue;
-      const w = land ? 3 : .5, kk = land ? tint : tint.clone().multiplyScalar(((x * 2) | 0) % 2 ? .9 : 1.04);
+      // 貼近水面的三級台階被河水打濕：越靠近水越深，河階和河面之間有一條看得出的濕線
+      const wet = !land && h > WATER && h < WATER + .75 ? .44 + (h - WATER) * .42 : 1;
+      const w = land ? 3 : .5, kk = land ? tint : tint.clone().multiplyScalar((((x * 2) | 0) % 2 ? .9 : 1.04) * wet);
       B.stone.box(x + w / 2, -12, (z0 + z1) / 2, w, h + 12, z1 - z0 - .02, kk, { tw: 2, th: 2, v0: 0 });
-      if (!land) B.plain.box(x + .03, h - .05, (z0 + z1) / 2, .08, .07, z1 - z0 - .02, tint.clone().multiplyScalar(1.12), { flat: [.5, .5] });
+      if (!land) B.plain.box(x + .03, h - .05, (z0 + z1) / 2, .08, .07, z1 - z0 - .02, tint.clone().multiplyScalar(1.12 * wet), { flat: [.5, .5] });
     }
   });
   // 河階頂的步道
@@ -1062,12 +1073,16 @@ function buildVaranasi() {
 
   // --- 船 ---
   const boatGeo = (() => {
-    const s = new T.Shape(); s.moveTo(-3.6, 0); s.quadraticCurveTo(-2.2, .95, 0, .95); s.quadraticCurveTo(2.2, .95, 3.8, 0); s.quadraticCurveTo(2.2, -.95, 0, -.95); s.quadraticCurveTo(-2.2, -.95, -3.6, 0);
+    // 船身是中空的：外輪廓挖掉內輪廓成一圈約 12 公分的船舷，裡面有船底板和三條橫座板，不再是一塊實心木片
+    const hullLine = (P, sx, sy) => { P.moveTo(-3.6 * sx, 0); P.quadraticCurveTo(-2.2 * sx, .95 * sy, 0, .95 * sy); P.quadraticCurveTo(2.2 * sx, .95 * sy, 3.8 * sx, 0); P.quadraticCurveTo(2.2 * sx, -.95 * sy, 0, -.95 * sy); P.quadraticCurveTo(-2.2 * sx, -.95 * sy, -3.6 * sx, 0); return P; };
+    const s = hullLine(new T.Shape(), 1, 1); s.holes.push(hullLine(new T.Path(), .955, .87));
     const b = new Builder();
     b.geo(new T.ExtrudeGeometry(s, { depth: .8, bevelEnabled: false, curveSegments: 6 }), mtx(0, 0, 0, 0, 1, 1, 1, -Math.PI / 2), col('#9a6a42'), [.5, .5]);
     b.geo(new T.ExtrudeGeometry(s, { depth: .12, bevelEnabled: false, curveSegments: 6 }), mtx(0, .52, 0, 0, 1.015, 1.04, 1, -Math.PI / 2), col('#2f8a86'), [.5, .5]);
     b.geo(new T.ExtrudeGeometry(s, { depth: .06, bevelEnabled: false, curveSegments: 6 }), mtx(0, .3, 0, 0, 1.012, 1.03, 1, -Math.PI / 2), col('#c0392b'), [.5, .5]);
-    for (const x of [-1.5, 0, 1.5]) b.box(x, .5, 0, .3, .12, 1.7, col('#a07850'), { flat: [.5, .5] });
+    // 船底板高過吃水線（船身放在水面下 .45，再加上起伏與側傾），從上面看不會透出河水
+    b.geo(new T.ShapeGeometry(hullLine(new T.Shape(), .955, .87), 6), mtx(0, .56, 0, 0, 1, 1, 1, -Math.PI / 2), col('#7a5436'), [.5, .5]);
+    for (const [x, w] of [[-1.5, 1.5], [0, 1.7], [1.5, 1.5]]) b.box(x, .64, 0, .3, .1, w, col('#a07850'), { flat: [.5, .5], bottom: true });
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(b.p, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(b.n, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(b.u, 2)); g.setAttribute('color', new T.Float32BufferAttribute(b.c, 3)); return g;
   })();
   const boatMat = new T.MeshStandardMaterial({ map: TEX.plain, vertexColors: true, roughness: .85 });

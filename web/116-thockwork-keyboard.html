@@ -316,7 +316,8 @@ const PROFILES = {
             rows: [[9.1, 0], [9.1, 0], [9.1, 0], [9.1, 0], [9.1, 0]] },
 };
 const MATERIALS = {
-  pbt: { name: 'PBT', note: '熱昇華 · 霧面', price: 1900, rough: .64, clear: 0,  sheen: .35 },
+  // PBT's matte grain only lifts grazing light a little: a stronger white sheen greyed the dark caps (夜行, 炭黑 mods) and turned 朱 into salmon.
+  pbt: { name: 'PBT', note: '熱昇華 · 霧面', price: 1900, rough: .64, clear: 0,  sheen: .12 },
   abs: { name: 'ABS', note: '雙色成型 · 亮面', price: 2600, rough: .24, clear: .35, sheen: 0 },
 };
 const SWITCHES = [
@@ -465,7 +466,7 @@ const M = {
   port: new THREE.MeshStandardMaterial({ color: '#0c0c0b', roughness: .7 }),
   caps: {},
 };
-for (const r of ['alpha', 'mod', 'accent']) M.caps[r] = new THREE.MeshPhysicalMaterial({ color: '#fff', roughness: .64, sheen: .35, sheenRoughness: .8, sheenColor: new THREE.Color('#ffffff'), side: THREE.DoubleSide });
+for (const r of ['alpha', 'mod', 'accent']) M.caps[r] = new THREE.MeshPhysicalMaterial({ color: '#fff', roughness: .64, sheen: .12, sheenRoughness: .8, sheenColor: new THREE.Color('#ffffff'), side: THREE.DoubleSide });
 
 /* =========================================================================
    Procedural geometry

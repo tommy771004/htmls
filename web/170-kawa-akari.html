@@ -16,7 +16,8 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#101a21}
 body{font-family:"Hiragino Mincho ProN","Hiragino Mincho Pro","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif TC","Songti TC","PMingLiU",serif;color:var(--ink);-webkit-font-smoothing:antialiased;touch-action:auto;user-select:none;-webkit-user-select:none}
-#c{touch-action:none;position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
+#c{touch-action:none;position:fixed;inset:0;width:100%;height:100%;display:block;outline:none;cursor:grab}
+#c.dragging{cursor:grabbing}
 .ui{position:fixed;z-index:2;transition:opacity var(--dur-exit) var(--ease-out)}
 body.hide :is(#title,#fuda,#keys,#stat,#note){opacity:0;pointer-events:none}
 
@@ -151,9 +152,9 @@ function heightToNormal(heights, n, strength){
     let nx = (l - r) * strength, ny = (u - d) * strength, nz = 1; const len = Math.hypot(nx, ny, nz); nx /= len; ny /= len; nz /= len;
     const i = (y * n + x) * 4; data[i] = (nx * .5 + .5) * 255; data[i + 1] = (ny * .5 + .5) * 255; data[i + 2] = (nz * .5 + .5) * 255; data[i + 3] = 255;
   }
-  const t = new THREE.DataTexture(data, n, n); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t;
+  const t = new THREE.DataTexture(data, n, n); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.anisotropy = MAX_ANISO; t.needsUpdate = true; return t;
 }
-function texFrom(canvas, srgb = true){ const t = new THREE.CanvasTexture(canvas); t.wrapS = t.wrapT = THREE.RepeatWrapping; if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
+function texFrom(canvas, srgb = true){ const t = new THREE.CanvasTexture(canvas); t.wrapS = t.wrapT = THREE.RepeatWrapping; if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = MAX_ANISO; return t; }
 // 木紋
 function woodTex(base = [110, 78, 44], dark = [72, 48, 26], n = 256){
   const [c, g] = makeCanvas(n); const img = g.createImageData(n, n); const h = new Float32Array(n * n);
@@ -284,6 +285,8 @@ function mountainH(x, z){ const r = Math.hypot(x * .95, z * 1.22); const m = smo
 /* ---------- 渲染器與場景 ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 if (!renderer.capabilities.isWebGL2){ $('err').style.display = 'flex'; throw new Error('WebGL2 required'); }
+// 河岸草地、石垣與木紋在斜視角下不糊掉
+const MAX_ANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 const PR = Math.min(devicePixelRatio || 1, isTouch ? 1.25 : 1.5);
 renderer.setPixelRatio(PR);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -307,13 +310,13 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 const skyUni = {
   uSun: { value: new THREE.Vector3(0, 1, 0) }, uMoon: { value: new THREE.Vector3(0, -1, 0) },
   uZenith: { value: new THREE.Color() }, uHorizon: { value: new THREE.Color() }, uSunCol: { value: new THREE.Color() }, uFog: { value: new THREE.Color() },
-  uNight: { value: 0 }, uCloud: { value: .3 }, uFogAmt: { value: 0 }, uTime: { value: 0 }, uGlow: { value: 0 }
+  uNight: { value: 0 }, uCloud: { value: .3 }, uFogAmt: { value: 0 }, uTime: { value: 0 }, uGlow: { value: 0 }, uStar: { value: 1 }
 };
 const skyMat = new THREE.ShaderMaterial({
   uniforms: skyUni, side: THREE.BackSide, depthWrite: false, fog: false,
   vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position.z = gl_Position.w * 0.99999; }`,
   fragmentShader: `
-    uniform vec3 uSun, uMoon, uZenith, uHorizon, uSunCol, uFog; uniform float uNight, uCloud, uFogAmt, uTime, uGlow; varying vec3 vDir;
+    uniform vec3 uSun, uMoon, uZenith, uHorizon, uSunCol, uFog; uniform float uNight, uCloud, uFogAmt, uTime, uGlow, uStar; varying vec3 vDir;
     float hash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
     float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash2(i), hash2(i + vec2(1, 0)), f.x), mix(hash2(i + vec2(0, 1)), hash2(i + vec2(1, 1)), f.x), f.y); }
@@ -328,7 +331,7 @@ const skyMat = new THREE.ShaderMaterial({
       // 星
       vec3 cell = floor(d * 90.0); float st = hash(cell); vec3 fc = fract(d * 90.0) - 0.5;
       float star = smoothstep(0.95, 1.0, st) * smoothstep(0.32, 0.0, length(fc)) * (0.6 + 0.4 * sin(uTime * 2.0 + st * 40.0));
-      sky += vec3(0.9, 0.93, 1.0) * star * uNight * 2.5 * smoothstep(0.02, 0.25, h);
+      sky += vec3(0.9, 0.93, 1.0) * star * uNight * 2.5 * uStar * smoothstep(0.02, 0.25, h);
       // 雲
       vec2 cp = d.xz / (h + 0.18) * 0.55 + vec2(uTime * 0.006, uTime * 0.002);
       float n = fbm(cp); float cover = smoothstep(0.62 - uCloud * 0.28, 0.78, n) * smoothstep(0.0, 0.16, h);
@@ -349,6 +352,23 @@ const skyMesh = new THREE.Mesh(new THREE.SphereGeometry(1400, 48, 24), skyMat); 
 const skyScene = new THREE.Scene(); skyScene.add(new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), skyMat));
 
 /* ---------- 地形 ---------- */
+// 水漬線：岸土、石垣與河裡的石頭在水面上方約半公尺長年是濕的，顏色較深、較有光澤；上緣隨位置起伏，不是一條尺畫的線
+function wetline(mat){
+  mat.onBeforeCompile = (sh) => {
+    sh.vertexShader = 'varying vec3 vWetP;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+      { vec4 wetW = vec4(transformed, 1.0);
+      #ifdef USE_INSTANCING
+        wetW = instanceMatrix * wetW;
+      #endif
+        vWetP = (modelMatrix * wetW).xyz; }`);
+    sh.fragmentShader = 'varying vec3 vWetP;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      float wetK = 1.0 - smoothstep(0.24, 0.62 + 0.16 * sin(vWetP.x * 0.9 + vWetP.z * 0.6) * sin(vWetP.x * 0.31 - vWetP.z * 1.3), vWetP.y);
+      diffuseColor.rgb *= 1.0 - 0.42 * wetK;`).replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      roughnessFactor *= 1.0 - 0.45 * wetK;`);
+  };
+  mat.customProgramCacheKey = () => 'wetline';
+  return mat;
+}
 const TEX = { ground: groundTex(), stone: stoneTex(), stoneDark: stoneTex([112, 108, 100]), wood: woodTex(), woodDark: woodTex([78, 54, 30], [40, 26, 14]), woodPale: woodTex([172, 140, 92], [128, 98, 60]), plaster: plasterTex(), tile: tileTex(), lattice: latticeTex(), waterN: waterNormalTex() };
 function buildTerrain(){
   const SX = 860, SZ = 700, nx = 250, nz = 205;
@@ -370,7 +390,7 @@ function buildTerrain(){
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.computeVertexNormals();
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.ground.map, normalMap: TEX.ground.normalMap, normalScale: new THREE.Vector2(.5, .5), roughness: .96, metalness: 0 });
-  mat.map.repeat.set(120, 100); mat.normalMap.repeat.set(120, 100);
+  mat.map.repeat.set(120, 100); mat.normalMap.repeat.set(120, 100); wetline(mat);
   const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; m.castShadow = true; scene.add(m);
   // 遠山
   const g2 = new THREE.PlaneGeometry(2800, 2800, 140, 140); g2.rotateX(-Math.PI / 2);
@@ -441,8 +461,10 @@ const waterMat = new THREE.ShaderMaterial({
       float F = 0.03 + 0.97 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
       vec3 col = mix(refr, refl, clamp(F, 0.0, 0.92));
       // 岸邊與船跡白沫
-      float shore = smoothstep(0.55, 0.0, thick) * (0.4 + 0.6 * texture2D(tNorm, vW.xz * 0.25 + vec2(uTime * 0.03)).x);
-      foam = clamp(foam + shore * 0.5, 0.0, 1.0);
+      // thick 是沿視線的水厚；斜看石垣時沿視線很厚、垂直卻很淺，整條水線會亮成一道半公尺寬的白帶。改用垂直水深，只留貼著水線、斷斷續續的碎沫
+      float vDepth = thick * max(V.y, 0.05);
+      float shore = (1.0 - smoothstep(0.0, 0.14, vDepth)) * smoothstep(0.42, 0.62, texture2D(tNorm, vW.xz * 0.35 + vec2(uTime * 0.03, -uTime * 0.02)).x);
+      foam = clamp(foam + shore * 0.32, 0.0, 1.0);
       col = mix(col, uAmbient * 1.4 + uLightCol * 0.15, foam);
       // 光斑
       vec3 H = normalize(uLightDir + V); float sp = pow(max(dot(N, H), 0.0), 240.0) * uSpec; float sp2 = pow(max(dot(N, H), 0.0), 24.0) * 0.05 * uSpec;
@@ -531,6 +553,7 @@ const M = {
   iron: std({ color: 0x3a3a3c, roughness: .55, metalness: .8 }),
   rope: std({ color: 0x8a7a5a, roughness: 1 }),
 };
+wetline(M.stone); wetline(M.stoneDark); // 石垣、河階、河裡的石頭（石燈籠都在 2 m 以上，不受影響）
 TEX.tile.map.repeat.set(3, 2); TEX.tile.normalMap.repeat.set(3, 2);
 TEX.stone.map.repeat.set(2, 2); TEX.stone.normalMap.repeat.set(2, 2);
 // 提灯（紙燈）：夜裡發光
@@ -590,7 +613,8 @@ function machiya(w, d, k){
   const mado = mesh(new THREE.PlaneGeometry(w * .5, h2 * .45), M.lattice, 0, h1 + h2 * .5, d / 2 + .02); mado.castShadow = false; g.add(mado);
   // 屋頂
   const ry = h1 + h2, pitch = .5, rl = (d / 2 + 1.1) / Math.cos(pitch);
-  for (const s of [-1, 1]){ const r = mesh(G.box(w + 1.4, .18, rl), M.tile, 0, ry + Math.sin(pitch) * rl / 2, s * Math.cos(pitch) * rl / 2); r.rotation.x = -s * pitch; g.add(r); }
+  // 兩片屋面是屋脊高、屋簷低：原本傾角正負號相反，屋簷翹得比屋脊高，變成中間凹下去的 V 形屋頂，山牆三角從凹槽裡穿出來
+  for (const s of [-1, 1]){ const r = mesh(G.box(w + 1.4, .18, rl), M.tile, 0, ry + Math.sin(pitch) * rl / 2, s * Math.cos(pitch) * rl / 2); r.rotation.x = s * pitch; g.add(r); }
   g.add(mesh(G.box(w + 1.5, .24, .5), M.lacquer, 0, ry + Math.sin(pitch) * rl + .04, 0));
   const tri = new THREE.Shape(); tri.moveTo(-d / 2, 0); tri.lineTo(d / 2, 0); tri.lineTo(0, Math.tan(pitch) * d / 2); tri.lineTo(-d / 2, 0);
   for (const s of [-1, 1]){ const gm = mesh(new THREE.ShapeGeometry(tri), M.plaster, s * (w / 2 - .01), ry, 0); gm.rotation.y = s * Math.PI / 2; gm.material = M.plaster; g.add(gm); }
@@ -713,6 +737,11 @@ const leafGeo = new THREE.PlaneGeometry(1.8, 1.8);
 const trunkGeo = G.cyl(.18, .3, 1, 7); trunkGeo.translate(0, .5, 0);
 const pineGeo = G.cone(1, 1, 9); pineGeo.translate(0, .5, 0); { const p = pineGeo.attributes.position; for (let i = 0; i < p.count; i++){ const y = p.getY(i); if (y < .5){ const a = Math.atan2(p.getZ(i), p.getX(i)); const r = 1 + .12 * Math.sin(a * 5) ; p.setX(i, p.getX(i) * r); p.setZ(i, p.getZ(i) * r); } } pineGeo.computeVertexNormals(); }
 const mapleGeo = new THREE.IcosahedronGeometry(1, 2); { const p = mapleGeo.attributes.position; for (let i = 0; i < p.count; i++){ const x = p.getX(i), y = p.getY(i), z = p.getZ(i); const r = 1 + (fbm(x * 1.7 + 3, z * 1.7 + y, 2) - .5) * .5; p.setXYZ(i, x * r, y * r * .85, z * r); } mapleGeo.computeVertexNormals(); }
+// 樹冠自遮蔽：每層松枝的下緣、楓樹樹冠的底部與凹處較暗（乘在每棵樹各自的色調上）
+function foliageAO(geo, f){ const p = geo.attributes.position, c = new Float32Array(p.count * 3); for (let i = 0; i < p.count; i++){ const k = f(p.getX(i), p.getY(i), p.getZ(i)); c[i * 3] = c[i * 3 + 1] = c[i * 3 + 2] = k; } geo.setAttribute('color', new THREE.BufferAttribute(c, 3)); }
+foliageAO(pineGeo, (x, y) => .5 + .5 * smooth(0, .75, y));
+foliageAO(mapleGeo, (x, y, z) => .55 + .45 * smooth(-.85, .7, y) * (.8 + .2 * clamp(Math.hypot(x, y, z) - .7, 0, 1) / .5));
+M.pine.vertexColors = true; M.maple.vertexColors = true;
 const rockGeo = new THREE.DodecahedronGeometry(1, 0);
 function buildWorld(){
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s3 = new THREE.Vector3();
@@ -721,8 +750,12 @@ function buildWorld(){
 
   /* 町（A 區） */
   const wall = new THREE.Group(); scene.add(wall);
-  for (let i = 12; i <= 165; i += 6){ const p = placeAt(i, 1, .2); const t = RIVER.T[i]; const b = mesh(G.box(6.4, 4, 1.6), M.stone, p.x, 0, p.z); b.rotation.y = Math.atan2(t.x, t.z); wall.add(b); const cap = mesh(G.box(6.4, .22, 2.0), M.stoneDark, p.x, 2.05, p.z); cap.rotation.y = b.rotation.y; wall.add(cap); }
-  for (let i = 40; i <= 48; i += 2){ for (let k = 0; k < 5; k++){ const p = placeAt(i, 1, -.6 - k * .7); const t = RIVER.T[i]; const st = mesh(G.box(4.2, .3, .7), M.stoneDark, p.x, 1.9 - k * .5, p.z); st.rotation.y = Math.atan2(t.x, t.z); wall.add(st); } }
+  // 石垣沿著河岸連成一道牆：每段取前後兩點的弦長與方向，段與段之間略為重疊，不再是一塊塊垂直伸進河裡的石墩
+  for (let i = 12; i <= 165; i += 6){ const a = placeAt(i - 3, 1, .9), c = placeAt(i + 3, 1, .9); const dx = c.x - a.x, dz = c.z - a.z, len = Math.hypot(dx, dz) + .6, ry = Math.atan2(-dz, dx);
+    const b = mesh(G.box(len, 4, 3.0), M.stone, (a.x + c.x) / 2, 0, (a.z + c.z) / 2); b.rotation.y = ry; wall.add(b);
+    const cap = mesh(G.box(len, .22, 3.2), M.stoneDark, (a.x + c.x) / 2, 2.05, (a.z + c.z) / 2); cap.rotation.y = ry; wall.add(cap); }
+  // 河階：踏面寬度沿著河岸，一階一階往水裡降
+  for (let i = 40; i <= 48; i += 2){ for (let k = 0; k < 5; k++){ const p = placeAt(i, 1, -.6 - k * .7); const t = RIVER.T[i]; const st = mesh(G.box(4.2, .7, .7), M.stoneDark, p.x, 1.7 - k * .5, p.z); /* 踏面高度不變、石塊加厚到下一階以下，不再是一片片懸空的石板 */ st.rotation.y = Math.atan2(t.x, t.z) + Math.PI / 2; wall.add(st); } }
   const houses = [[24, 7.5, 7], [33, 6, 7], [41, 8, 6.5], [52, 7, 7], [60, 9, 7], [70, 6.5, 6], [78, 7.5, 7], [104, 8, 7], [113, 6.5, 6.5], [121, 8.5, 7], [131, 7, 7], [140, 8, 7], [150, 6.5, 6.5]];
   houses.forEach(([i, w, d], k) => { const p = placeAt(i, 1, 3.2 + d / 2); const h = machiya(w, d, k); h.position.set(p.x, terrainH(p.x, p.z, i) - .05, p.z); h.rotation.y = p.yaw; scene.add(h); const lp = new THREE.Vector3(); h.userData.lantern.getWorldPosition(lp); lightSources.push({ pos: lp, color: 0xffa64a, k: .5 }); });
   for (let i = 18; i <= 160; i += 14){ const p = placeAt(i, 1, 1.9); addToro(p.x, 2.15, p.z, p.yaw); }
@@ -740,10 +773,10 @@ function buildWorld(){
   { const p = placeAt(455, -1, -4.5); const t = torii(1.1); t.position.set(p.x, -.6, p.z); t.rotation.y = p.yaw + Math.PI / 2; scene.add(t);
     for (const sx of [-1, 1]){ const c = Math.cos(t.rotation.y), s = Math.sin(t.rotation.y); colliders.push({ x: p.x + c * sx * 2.75, z: p.z - s * sx * 2.75, r: .9 }); }
     const p2 = placeAt(468, -1, 5.5); const t2 = torii(.85); t2.position.set(p2.x, terrainH(p2.x, p2.z, 468), p2.z); t2.rotation.y = p2.yaw; scene.add(t2);
-    for (let k = 0; k < 9; k++){ const p3 = placeAt(468, -1, 7.5 + k * 1.1); const st = mesh(G.box(3.2, .32, 1.1), M.stoneDark, p3.x, terrainH(p3.x, p3.z, 468) + .1 + k * .12, p3.z); st.rotation.y = p3.yaw; scene.add(st); }
+    for (let k = 0; k < 9; k++){ const p3 = placeAt(468, -1, 7.5 + k * 1.1); const st = mesh(G.box(3.2, 1.4, 1.1), M.stoneDark, p3.x, terrainH(p3.x, p3.z, 468) + .1 + k * .12 - .54, p3.z); /* 石段往下加厚 1.08 m 埋進坡裡：地形網格是 3.4 m 一格的折線，實測上段石板比地面高出 0.1 至 0.9 m、懸在半空 */ st.rotation.y = p3.yaw; scene.add(st); }
     const p4 = placeAt(468, -1, 19); const shrine = new THREE.Group(); shrine.position.set(p4.x, terrainH(p4.x, p4.z, 468) + 1.1, p4.z); shrine.rotation.y = p4.yaw;
-    shrine.add(mesh(G.box(4.2, 1, 3.6), M.stone, 0, .5, 0)); shrine.add(mesh(G.box(3, 2.2, 2.6), M.woodDark, 0, 2.1, 0)); shrine.add(mesh(G.box(4.6, .2, 4.2), M.tile, 0, 3.4, 0));
-    for (const s of [-1, 1]){ const r = mesh(G.box(4.8, .16, 2.6), M.tile, 0, 3.9, s * 1.05); r.rotation.x = -s * .42; shrine.add(r); }
+    shrine.add(mesh(G.box(4.2, 3, 3.6), M.stone, 0, -.5, 0)); /* 基壇往下延伸 2 m：原本底面比坡面高 1.1 至 1.6 m，整座社殿浮在空中 */ shrine.add(mesh(G.box(3, 2.2, 2.6), M.woodDark, 0, 2.1, 0)); shrine.add(mesh(G.box(4.6, .2, 4.2), M.tile, 0, 3.4, 0));
+    for (const s of [-1, 1]){ const r = mesh(G.box(4.8, .16, 2.6), M.tile, 0, 3.9, s * 1.05); r.rotation.x = s * .42; shrine.add(r); } // 同町屋：屋脊（4.5 m 的漆木）在中間最高
     shrine.add(mesh(G.box(4.9, .2, .4), M.lacquer, 0, 4.5, 0)); scene.add(shrine);
     for (let i = 418; i <= 502; i += 7){ const p = placeAt(i, -1, 2.2); addToro(p.x, terrainH(p.x, p.z, i), p.z, p.yaw); }
   }
@@ -826,7 +859,7 @@ const people = [];
   people.push({ c, tick(t, S){ rod.rotation.x = Math.sin(t * .8) * .08 - .1; c.arms[1].rotation.x = -1.1 + Math.sin(t * .8) * .05; c.arms[0].rotation.x = -.9; floatB.position.set(fx, waveH(fx, fz, t) * waterUni.uWaveAmp.value + .03, fz); tip.set(0, 0, 2.5).applyMatrix4(rod.matrixWorld); lineGeo.attributes.position.setXYZ(0, tip.x, tip.y, tip.z); lineGeo.attributes.position.setXYZ(1, fx, floatB.position.y, fz); lineGeo.attributes.position.needsUpdate = true; } });
 }
 { // 町屋門口掃地的女將（A 區）
-  const c = person({ cloth: M.indigo, hat: 'none' }); const p = placeAt(60, 1, 2.2); c.g.position.set(p.x, terrainH(p.x, p.z, 60), p.z); c.g.rotation.y = p.yaw + .6; scene.add(c.g);
+  const c = person({ cloth: M.indigo, hat: 'none' }); const p = placeAt(60, 1, 2.2); c.g.position.set(p.x, Math.max(terrainH(p.x, p.z, 60), 2.16), p.z); /* 站在石垣壓頂上 */ c.g.rotation.y = p.yaw + .6; scene.add(c.g);
   const broom = new THREE.Group(); broom.position.set(.25, 1.0, .15); broom.add(mesh(G.cyl(.02, .02, 1.5, 5), M.woodPale, 0, -.55, .2).rotateX(-.3)); broom.add(mesh(G.cone(.14, .3, 6), M.straw, 0, -1.3, .45)); c.g.add(broom); c.g.traverse(o => o.layers.set(LAYER_NOREFL));
   people.push({ c, tick(t){ const ph = Math.sin(t * 2.4); broom.rotation.y = ph * .6; c.arms[0].rotation.x = -.8 + ph * .2; c.arms[1].rotation.x = -.7 - ph * .2; c.g.rotation.z = ph * .03; } });
 }
@@ -976,7 +1009,7 @@ function startAudio(){
 const keys = new Set();
 let started = false, paused = false, soundOn = true, lookAtTime = 0, dragId = null;
 const stick = $('stick'), knob = stick.querySelector('i'); let stickId = null; const touchIn = { s: 0, f: 0 };
-function clearInput(){ keys.clear(); S.fast = false; input.f = input.s = touchIn.f = touchIn.s = 0; stickId = dragId = null; camS.dragging = false; knob.style.transform = ''; $('fwd').classList.remove('on'); $('rev').classList.remove('on'); }
+function clearInput(){ keys.clear(); S.fast = false; input.f = input.s = touchIn.f = touchIn.s = 0; stickId = dragId = null; camS.dragging = false; canvas.classList.remove('dragging'); knob.style.transform = ''; $('fwd').classList.remove('on'); $('rev').classList.remove('on'); }
 function syncAudio(){ if (audio) { if (soundOn && !paused && !document.hidden) audio.ctx.resume().catch(()=>{}); else audio.ctx.suspend().catch(()=>{}); } }
 function start(){
   if (started) return; started = true; $('intro').classList.add('off'); $('intro').inert = true;
@@ -993,8 +1026,9 @@ $('weather').addEventListener('click',()=>{ const names=['晴','雨','霧']; set
 $('view').addEventListener('click',cycleView); $('hide').addEventListener('click',hideLabels);
 $('sound').addEventListener('click',()=>{ soundOn=!soundOn; if(soundOn&&!audio){try{startAudio();}catch{soundOn=false;}} $('sound').setAttribute('aria-pressed',String(soundOn));syncAudio(); });
 addEventListener('keydown', e => {
-  if(e.metaKey||e.ctrlKey||e.altKey||!started||e.target.closest('button,input,select,textarea,[contenteditable="true"]')) return;
   const k=e.key.toLowerCase();
+  // 按鈕只保留空白鍵與 Enter：點了天候、視角等按鈕後焦點留在按鈕上，W A S D 仍要能操舟
+  if(e.metaKey||e.ctrlKey||e.altKey||!started||e.target.closest('input,select,textarea,[contenteditable="true"]')||(e.target.closest('button')&&(k===' '||k==='enter'))) return;
   if(k==='p'||k==='escape'){e.preventDefault();if(!e.repeat)setPaused(!paused);return;}
   if(k==='h'){if(!e.repeat)hideLabels();return;}
   if(paused)return;
@@ -1005,9 +1039,9 @@ addEventListener('keydown', e => {
 addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys.delete(k);if(k==='t')S.fast=false;});
 addEventListener('blur',()=>{if(started)setPaused(true);else clearInput();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&started)setPaused(true);syncAudio();});
-canvas.addEventListener('pointerdown',e=>{if(!started||paused||e.button!==0||dragId!==null)return;dragId=e.pointerId;camS.dragging=true;camS.lx=e.clientX;camS.ly=e.clientY;canvas.setPointerCapture(e.pointerId);canvas.focus({preventScroll:true});});
+canvas.addEventListener('pointerdown',e=>{if(!started||paused||e.button!==0||dragId!==null)return;dragId=e.pointerId;camS.dragging=true;canvas.classList.add('dragging');camS.lx=e.clientX;camS.ly=e.clientY;canvas.setPointerCapture(e.pointerId);canvas.focus({preventScroll:true});});
 canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;lookAtTime=performance.now();camS.yawOff-=(e.clientX-camS.lx)*.006;camS.pitchOff=clamp(camS.pitchOff+(e.clientY-camS.ly)*.003,-.5,.8);camS.lx=e.clientX;camS.ly=e.clientY;});
-const endDrag=e=>{if(e.pointerId===dragId){dragId=null;camS.dragging=false;lookAtTime=performance.now();}};
+const endDrag=e=>{if(e.pointerId===dragId){dragId=null;camS.dragging=false;canvas.classList.remove('dragging');lookAtTime=performance.now();}};
 for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,endDrag);
 stick.addEventListener('pointerdown',e=>{if(!started||paused||e.button!==0||stickId!==null)return;stickId=e.pointerId;stick.setPointerCapture(e.pointerId);moveStick(e);});
 stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)moveStick(e);});
@@ -1036,7 +1070,8 @@ function frame(){
   rainUni.uAnchor.value.set(Math.round(camera.position.x / 4) * 4, 0, Math.round(camera.position.z / 4) * 4);
   skyMesh.position.copy(camera.position);
   // 1) 倒影（半解析度，不含人物與雨）
-  updateMirror(); renderer.setRenderTarget(reflRT); renderer.render(scene, mirrorCam);
+  // 半解析度倒影裡的星點會放大成一格一格的白點，看起來像落雪：倒影裡的星星壓暗
+  updateMirror(); skyUni.uStar.value = .1; renderer.setRenderTarget(reflRT); renderer.render(scene, mirrorCam); skyUni.uStar.value = 1;
   // 2) 主場景（不含水）到含深度的貼圖
   renderer.setRenderTarget(sceneRT); renderer.render(scene, camera);
   // 3) 貼到畫面，疊上水與雨

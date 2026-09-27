@@ -180,20 +180,33 @@ function impact(x,z,strength=1){impacts[impactCursor].set(x,z,state.time,strengt
 
 const refraction=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthTexture:new THREE.DepthTexture(1,1,THREE.UnsignedIntType)}),reflection=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType});
 const reflectionMatrix=new THREE.Matrix4();
-const waterUniforms={tScene:{value:refraction.texture},tDepth:{value:refraction.depthTexture},tReflect:{value:reflection.texture},reflectionMatrix:{value:reflectionMatrix},uTime:{value:0},uNear:{value:camera.near},uFar:{value:camera.far},uResolution:{value:new THREE.Vector2()},uDeep:{value:new THREE.Color('#174a43')},uFog:{value:scene.fog.color},uFogDensity:{value:scene.fog.density},uSun:{value:new THREE.Vector3(-.6,.7,-.3)},uGlint:{value:new THREE.Color('#f6e3b7')},uImpacts:{value:impacts}};
+const waterUniforms={tScene:{value:refraction.texture},tDepth:{value:refraction.depthTexture},tReflect:{value:reflection.texture},reflectionMatrix:{value:reflectionMatrix},uTime:{value:0},uNear:{value:camera.near},uFar:{value:camera.far},uResolution:{value:new THREE.Vector2()},uDeep:{value:new THREE.Color('#174a43')},uFog:{value:scene.fog.color},uFogDensity:{value:scene.fog.density},uSun:{value:new THREE.Vector3(-.6,.7,-.3)},uGlint:{value:new THREE.Color('#f6e3b7')},uImpacts:{value:impacts},uBoat:{value:new THREE.Vector4(0,0,0,0)}};
 const waterMat=new THREE.ShaderMaterial({uniforms:waterUniforms,vertexShader:`
  uniform float uTime; uniform mat4 reflectionMatrix;
  varying vec3 vWorld; varying vec4 vReflect; varying float vViewDepth;
  void main(){vec3 p=position;p.y+=sin(p.x*.31+p.z*.17+uTime*1.2)*.075+sin(p.z*.61-p.x*.18+uTime*1.6)*.038;
  vec4 world=modelMatrix*vec4(p,1.);vWorld=world.xyz;vReflect=reflectionMatrix*world;vec4 view=modelViewMatrix*vec4(p,1.);vViewDepth=-view.z;gl_Position=projectionMatrix*view;}`,
  fragmentShader:`
- uniform sampler2D tScene,tDepth,tReflect;uniform float uTime,uNear,uFar,uFogDensity;uniform vec2 uResolution;uniform vec3 uDeep,uFog,uSun,uGlint;uniform vec4 uImpacts[32];
+ uniform sampler2D tScene,tDepth,tReflect;uniform float uTime,uNear,uFar,uFogDensity;uniform vec2 uResolution;uniform vec3 uDeep,uFog,uSun,uGlint;uniform vec4 uImpacts[32];uniform vec4 uBoat;
  varying vec3 vWorld;varying vec4 vReflect;varying float vViewDepth;
  float linearDepth(float d){return (uNear*uFar)/((uNear-uFar)*d+uFar);}
  void main(){
   vec2 p=vWorld.xz;float a=p.x*.31+p.y*.17+uTime*1.2,b=p.y*.61-p.x*.18+uTime*1.6;
   vec2 slope=vec2(cos(a)*.023-cos(b)*.0068,cos(a)*.0128+cos(b)*.023);float foam=0.;
-  for(int i=0;i<32;i++){vec4 hit=uImpacts[i];float age=uTime-hit.z;if(age>0.&&age<3.8){vec2 delta=p-hit.xy;float r=length(delta);float ring=exp(-pow((r-age*1.65)*4.,2.))*exp(-age*.95)*hit.w;foam+=ring*.62+exp(-r*r*7.)*exp(-age*3.)*.9;slope+=delta/max(r,.01)*sin(r*17.-age*16.)*ring*.15;}}
+  // An oar blade leaves a swirl that stays where it left the water and slowly opens, plus one faint capillary ring: no travelling stack of bands.
+  for(int i=0;i<32;i++){vec4 hit=uImpacts[i];float age=uTime-hit.z;if(age>0.&&age<3.8){vec2 delta=p-hit.xy;float r=length(delta);if(r<5.){
+   float rad=.22+.8*(1.-exp(-age*1.3)),churn=.55+.45*sin(delta.x*4.1+age*1.7)*cos(delta.y*3.7-age*1.3);
+   float swirl=exp(-pow((r-rad)*3.2,2.))*churn*exp(-age*1.05)*hit.w,cap=exp(-pow((r-age*1.1)*3.,2.))*exp(-age*1.6)*hit.w;
+   foam+=swirl*.42+exp(-r*r*6.)*exp(-age*2.6)*hit.w*.7+cap*.1;slope+=(delta*cap*.05+vec2(-delta.y,delta.x)*swirl*.035)/max(r,.01);}}}
+  // Hull wake in boat space (x across, y astern): a bow wave hugging the strakes, then two Kelvin arms and a churned centre line.
+  if(uBoat.w>0.){vec2 d=p-uBoat.xy;float cy=cos(uBoat.z),sy=sin(uBoat.z);vec2 l=vec2(cy*d.x-sy*d.y,sy*d.x+cy*d.y);
+   float breakup=.6+.4*sin(p.x*2.3+uTime*1.7)*sin(p.y*1.9-uTime*1.3);
+   float hw=1.38*pow(max(sin((l.y+7.)/14.*3.14159),0.),.67),e=abs(l.x)-hw;
+   float hull=(1.-smoothstep(0.,.65,e))*step(-.2,e)*(1.-smoothstep(6.6,7.6,abs(l.y)))*(.3+.5*smoothstep(3.,-6.,l.y));
+   float bow=l.y+7.,stern=l.y-6.8,arm=0.,trail=0.;
+   if(bow>0.){float spread=abs(l.x)-.36*bow-.35,wd=.28+bow*.022;arm=exp(-spread*spread/(wd*wd))*exp(-bow*.035)*smoothstep(0.,2.,bow);}
+   if(stern>0.)trail=exp(-l.x*l.x/(.8+stern*.12))*exp(-stern*.08)*smoothstep(0.,2.,stern);
+   foam+=(hull+arm*.55+trail*.35)*uBoat.w*breakup;}
   vec3 n=normalize(vec3(-slope.x,1.,-slope.y)),eye=normalize(cameraPosition-vWorld);
   vec2 uv=gl_FragCoord.xy/uResolution;float depth=max(0.,linearDepth(texture2D(tDepth,uv).x)-vViewDepth);
   vec2 refractUV=clamp(uv+slope*.055*min(depth,2.),.002,.998);
@@ -213,6 +226,11 @@ const waterMat=new THREE.ShaderMaterial({uniforms:waterUniforms,vertexShader:`
 const waterGeo=new THREE.PlaneGeometry(650,2100,160,420);waterGeo.rotateX(-Math.PI/2);waterGeo.translate(0,0,-850);const water=mesh(waterGeo,waterMat);
 // Falling ribbons use flowing noise, with whitewater and mist at the foot.
 const waterfalls=[];
+const foamCanvas=document.createElement('canvas');foamCanvas.width=foamCanvas.height=128;const fc=foamCanvas.getContext('2d');let foamSeed=91;const foamRand=()=>(foamSeed=(Math.imul(foamSeed,1664525)+1013904223)>>>0)/4294967296;
+for(let i=0;i<900;i++){const a=foamRand()*TAU,r=Math.sqrt(foamRand())*60;fc.fillStyle=`rgba(255,255,255,${.12+foamRand()*.22})`;fc.beginPath();fc.arc(64+Math.cos(a)*r,64+Math.sin(a)*r,1+foamRand()*4.5,0,TAU);fc.fill();}
+fc.globalCompositeOperation='destination-out';for(let i=0;i<140;i++){fc.fillStyle=`rgba(0,0,0,${.3+foamRand()*.5})`;fc.beginPath();fc.arc(foamRand()*128,foamRand()*128,1+foamRand()*3,0,TAU);fc.fill();}
+fc.globalCompositeOperation='destination-in';const foamFade=fc.createRadialGradient(64,64,0,64,64,64);foamFade.addColorStop(0,'#000');foamFade.addColorStop(.5,'#000c');foamFade.addColorStop(1,'#0000');fc.fillStyle=foamFade;fc.fillRect(0,0,128,128);
+const foamTex=new THREE.CanvasTexture(foamCanvas),foamGeo=new THREE.PlaneGeometry(9,9);
 for(const [z,side,height] of [[-85,1,46],[-470,-1,37],[-860,1,53],[-1280,-1,40],[-1530,1,49]]){
  const x=center(z)+side*(width(z)+11),uniforms={uTime:{value:0},uColor:{value:new THREE.Color('#d4e8df')},uFog:waterUniforms.uFog,uFogDensity:waterUniforms.uFogDensity};
  const mat=new THREE.ShaderMaterial({uniforms,side:THREE.DoubleSide,transparent:true,depthWrite:false,vertexShader:`varying vec2 vUv;varying float vDepth;void main(){vUv=uv;vec4 view=modelViewMatrix*vec4(position,1.);vDepth=-view.z;gl_Position=projectionMatrix*view;}`,fragmentShader:`uniform float uTime,uFogDensity;uniform vec3 uColor,uFog;varying vec2 vUv;varying float vDepth;void main(){float flow=sin(vUv.y*180.+uTime*15.+sin(vUv.x*43.)*3.)*.055+sin(vUv.x*83.+sin(vUv.y*2.+uTime*2.))*.13;float edge=smoothstep(0.,.12,vUv.x)*(1.-smoothstep(.85,1.,vUv.x));float fog=1.-exp(-uFogDensity*uFogDensity*vDepth*vDepth);gl_FragColor=vec4(mix(uColor*(.8+flow),uFog,fog),edge*(.68+flow)*(1.-fog));#include <tonemapping_fragment>
@@ -220,8 +238,8 @@ for(const [z,side,height] of [[-85,1,46],[-470,-1,37],[-860,1,53],[-1280,-1,40],
  const g=new THREE.PlaneGeometry(11,height,12,36),p=g.attributes.position;
  for(let i=0;i<p.count;i++){const y=p.getY(i),f=(y+height*.5)/height;p.setZ(i,19*(1-f)-5+Math.sin(f*Math.PI)*1.5);p.setX(i,p.getX(i)*(1.2-f*.45));}
  g.computeVertexNormals();const fall=mesh(g,mat);fall.rotation.y=-side*Math.PI/3;fall.position.set(x,height/2,z);waterfalls.push({fall,uniforms,x:x-side*12,z:z+7,height});
- const foamMat=new THREE.MeshBasicMaterial({color:'#d3e5dc',transparent:true,opacity:.35,depthWrite:false});
- for(let i=0;i<7;i++){const f=mesh(new THREE.RingGeometry(.4+i*.5,1.0+i*.5,40),foamMat);f.rotation.x=-Math.PI/2;f.position.set(x-side*12,.12+i*.009,z+7);f.scale.set(1,.65,1);waterfalls[waterfalls.length-1].rings??=[];waterfalls[waterfalls.length-1].rings.push(f);}
+ // Plunge-pool foam: three soft, blotchy layers that open, turn and fade in turn, instead of hard concentric rings.
+ for(let i=0;i<3;i++){const f=mesh(foamGeo,new THREE.MeshBasicMaterial({color:'#d3e5dc',map:foamTex,transparent:true,opacity:0,depthWrite:false}));f.rotation.x=-Math.PI/2;f.position.set(x-side*12,.12+i*.012,z+7);waterfalls[waterfalls.length-1].rings??=[];waterfalls[waterfalls.length-1].rings.push(f);}
 }
 const mistCount=210,mistPos=new Float32Array(mistCount*3),mistInfo=[];
 for(let i=0;i<mistCount;i++){const f=waterfalls[i%waterfalls.length];mistInfo.push({f,phase:rand(),dx:(rand()-.5)*9,dz:(rand()-.5)*9});}
@@ -268,19 +286,23 @@ function update(dt){
  for(const o of oars){const a=phase+o.phase;o.pivot.rotation.y=Math.sin(a)*.28;o.pivot.rotation.z=rowing?o.side*(Math.cos(a)*.28-.12):o.side*.08;}
  boat.updateMatrixWorld(true);
  const lightPosition=lights[state.light].pos;sun.target.position.copy(boat.position);sun.position.copy(boat.position).add(sunOffset.fromArray(lightPosition));sun.target.updateMatrixWorld();renderer.shadowMap.needsUpdate=true;
- for(const o of oars){o.tip.copy(o.local);o.pivot.localToWorld(o.tip);const wet=o.tip.y<wave(o.tip.x,o.tip.z,t);if(rowing&&wet&&!o.wet)impact(o.tip.x,o.tip.z);o.wet=wet;}
+ for(const o of oars){o.tip.copy(o.local);o.pivot.localToWorld(o.tip);const wet=o.tip.y<wave(o.tip.x,o.tip.z,t);if(rowing&&wet&&!o.wet)impact(o.tip.x,o.tip.z,.6);o.wet=wet;}
  for(let i=0;i<sailGeo.attributes.position.count;i++){const x=sailBase[i*3],y=sailBase[i*3+1],bulge=Math.sin((x/8.7+.5)*Math.PI)*Math.sin((y/5.8+.5)*Math.PI);sailGeo.attributes.position.setZ(i,-bulge*(.9+state.speed*.055)+Math.sin(x*1.8+t*2.3)*.07*bulge);}
  sailGeo.attributes.position.needsUpdate=true;sailGeo.computeVertexNormals();
  wakeTimer-=dt;if(state.speed>.35&&wakeTimer<=0){const z=state.z+Math.cos(state.yaw)*6,x=state.x+Math.sin(state.yaw)*6;impact(x,z,.4);wakeTimer=.4;}
+ waterUniforms.uBoat.value.set(state.x,state.z,state.yaw,Math.min(1,state.speed/4.5));
  for(let i=0;i<dropCount;i++)if(dropLife[i]>0){dropLife[i]-=dt;dropVel[i*3+1]-=dt*7;for(let k=0;k<3;k++)dropPos[i*3+k]+=dropVel[i*3+k]*dt;if(dropLife[i]<=0||dropPos[i*3+1]<-.1){dropPos[i*3+1]=-999;dropLife[i]=0;}}
  dropsGeo.attributes.position.needsUpdate=true;
- for(const f of waterfalls){f.uniforms.uTime.value=t;f.rings.forEach((r,i)=>{const size=1+((t*.2+i*.13)%1)*.45;r.scale.set(size,size*.7,1);});}
+ for(const f of waterfalls){f.uniforms.uTime.value=t;f.rings.forEach((r,i)=>{const k=(t*.11+i/3)%1,size=.7+k*.55;r.scale.set(size,size,1);r.rotation.z=t*(i%2?.05:-.07)+i*2.1;r.material.opacity=(motion.matches?.3:.6*Math.sin(k*Math.PI));});}
  for(let i=0;i<mistCount;i++){const m=mistInfo[i],age=(t*.13+m.phase)%1;mistPos[i*3]=m.f.x+m.dx+age*2;mistPos[i*3+1]=age*5+.3;mistPos[i*3+2]=m.f.z+m.dz;}
  mistGeo.attributes.position.needsUpdate=true;
  if(!drag)orbit*=Math.exp(-dt*2.4);
  const mobile=innerWidth<600,angle=state.yaw+orbit+.13,back=mobile?40:33;
  camPos.set(state.x+Math.sin(angle)*back,boat.position.y+(mobile?16:14),state.z+Math.cos(angle)*back);
- target.set(state.x-Math.sin(state.yaw)*14,2.7,state.z-Math.cos(state.yaw)*14);
+ // Keep the chase camera over open water; a wide look-around must not push it into the cliff face.
+ const lane=camPos.x-center(camPos.z),room=width(camPos.z)+.5;if(Math.abs(lane)>room)camPos.x=center(camPos.z)+Math.sign(lane)*room;
+ // Aim low enough that the stern and its wake clear the helm readout (desktop) and the chapter line (phone) instead of sitting under the HUD.
+ target.set(state.x-Math.sin(state.yaw)*14,mobile?-1.2:.3,state.z-Math.cos(state.yaw)*14);
  if(!cameraReady){camera.position.copy(camPos);cameraReady=true;}else camera.position.lerp(camPos,1-Math.exp(-dt*3));camera.lookAt(target);camera.updateMatrixWorld();
  sky.position.set(state.x,0,state.z);waterUniforms.uTime.value=t;
  if(state.time>noticeUntil)$('notice').hidden=true;

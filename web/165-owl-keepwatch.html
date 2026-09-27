@@ -236,12 +236,23 @@ function featherCanvas(base, light, dark, rows, gray) {
   const g = c.getContext('2d');
   g.fillStyle = base; g.fillRect(0, 0, 512, 512);
   const cols = 7, w = 512 / cols, h = 512 / rows;
+  // 每片羽毛的深淺與大小由格位雜湊決定（不是固定每三片一亮），不會排成條紋；
+  // 格位取模，貼圖接縫兩側畫的是同一片，顏色與凹凸兩張也對齊
+  const hash = (r, i, k) => {
+    let n = Math.imul(((r % rows) + rows) % rows + 1, 73856093) ^ Math.imul(((i % cols) + cols) % cols + 1, 19349663) ^ Math.imul(k + rows, 83492791);
+    n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  };
   for (let r = rows + 1; r >= -1; r--) {
     for (let i = -1; i <= cols; i++) {
-      const x = i * w + (r % 2 ? w / 2 : 0), y = r * h;
-      g.beginPath(); g.arc(x + w / 2, y, w * 0.56, 0, Math.PI);
-      g.fillStyle = ((r + i) % 3 === 0) ? light : base;
+      const x = i * w + (r % 2 ? w / 2 : 0) + (hash(r, i, 1) - .5) * w * .12, y = r * h;
+      // 羽片畫成整顆橢圓、高度蓋過一整排，只描下緣：上下排之間不再露出一截底色與平直的切邊（胸口橫條紋的來源）
+      const rx = w * (0.53 + hash(r, i, 2) * 0.07), ry = h * (1.08 + hash(r, i, 4) * 0.1);
+      g.beginPath(); g.ellipse(x + w / 2, y, rx, ry, 0, 0, Math.PI * 2);
+      const tone = hash(r, i, 3);
+      g.fillStyle = tone < .28 ? light : base;
       g.fill();
+      if (tone >= .28 && tone < .6) { g.globalAlpha = .45; g.fillStyle = light; g.fill(); g.globalAlpha = 1; }
+      g.beginPath(); g.ellipse(x + w / 2, y, rx, ry, 0, 0, Math.PI);
       g.strokeStyle = dark; g.lineWidth = gray ? 5 : 3; g.stroke();
       // 羽軸
       g.beginPath(); g.moveTo(x + w / 2, y); g.lineTo(x + w / 2, y + w * 0.5);
@@ -319,7 +330,7 @@ function barkCanvas(gray) {
   t.anisotropy = renderer.capabilities.getMaxAnisotropy(); if (!gray) t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 const matBark = new THREE.MeshStandardMaterial({ map: barkCanvas(false), bumpMap: barkCanvas(true), bumpScale: .05, roughness: .95 });
-const matFoot = new THREE.MeshStandardMaterial({ color: 0x8b7a5a, roughness: .8 });
+const matFoot = new THREE.MeshStandardMaterial({ color: 0x6f6550, roughness: .8 });
 const matTalon = new THREE.MeshStandardMaterial({ color: 0x1e1712, roughness: .35 });
 
 const shadowed = m => { m.castShadow = true; m.receiveShadow = true; return m; };
@@ -401,9 +412,11 @@ for (const s of [-1, 1]) {
 }
 // 眉（守夜模式時壓下來）
 const brows = [];
+// 眉是一道圓潤的羽脊，不是方塊：膠囊橫放、壓扁，貼著臉盤
+const browGeo = new THREE.CapsuleGeometry(0.03, 0.25, 4, 12).rotateZ(Math.PI / 2).scale(1, 0.85, 1.7);
 for (const s of [-1, 1]) {
-  const brow = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.045, 0.14), matFaceRim);
-  brow.position.set(s * 0.33, 0.3, 0.94);
+  const brow = shadowed(new THREE.Mesh(browGeo, matFaceRim));
+  brow.position.set(s * 0.33, 0.3, 0.92);
   brow.rotation.z = s * 0.04;
   brow.userData.s = s;
   head.add(brow);
@@ -460,7 +473,12 @@ for (const s of [-1, 1]) {
   scene.add(twig);
   // 腳趾末端的黑色鉤爪，扣在樹皮上
   const talonGeo = new THREE.ConeGeometry(0.03, 0.12, 8);
+  const legGeo = new THREE.SphereGeometry(1, 20, 14);
   for (const s of [-1, 1]) {
+    // 腿上的絨羽蓋住趾根：腳趾從羽毛裡伸出來扣住樹枝，不再像三根光禿的棒子
+    const leg = shadowed(new THREE.Mesh(legGeo, matChest));
+    leg.scale.set(0.17, 0.11, 0.15); leg.position.set(s * 0.34, 0.0, 0.12);
+    scene.add(leg);
     for (let k = -1; k <= 1; k++) {
       const toe = shadowed(new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.28, 6, 10), matFoot));
       toe.position.set(s * 0.34 + k * 0.1, -0.04, 0.16 + Math.abs(k) * -0.04);
@@ -486,9 +504,13 @@ function glowSprite(hex, size, alpha) {
   const sp = new THREE.Sprite(m); sp.scale.setScalar(size); return sp;
 }
 const fire = new THREE.Group();
-const fireCore = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), new THREE.MeshBasicMaterial({ color: 0xfff2c8 }));
+// 光核不經色調映射：ACES 會把它壓成一顆灰白圓片，看起來像貼紙而不是發光體；
+// 實心核縮小，外面包一層同樣不經色調映射的緊密熱暈，邊緣是漸層而不是硬邊圓片
+// 核不寫深度：熱暈才能疊在核上面，中心是最亮的白，而不是一顆比周圍暗的米色圓點
+const fireCore = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 10), new THREE.MeshBasicMaterial({ color: 0xfff6d8, toneMapped: false, depthWrite: false }));
+const fireHot = glowSprite(0xfff1cf, 0.26, 1); fireHot.material.toneMapped = false;
 const fireGlow = glowSprite(LAMPS[0].hex, 0.9, 0.85);
-fire.add(fireCore, fireGlow);
+fire.add(fireCore, fireHot, fireGlow);
 scene.add(fire);
 const TRAIL = reduced ? 0 : 22;
 const trail = [];
@@ -506,7 +528,8 @@ function resize() {
   const w = innerWidth, h = innerHeight, a = w / h;
   renderer.setSize(w, h, false);
   camera.aspect = a;
-  const dist = 7.4 * Math.max(1, 0.98 / a);
+  // 直式螢幕把鏡頭拉近一些：貓頭鷹佔寬約六成，頭不碰右上的注視儀表、樹枝不碰下方文案
+  const dist = 7.4 * Math.max(1, 0.85 / a);
   camera.position.set(0.15, 1.8, dist);
   camera.lookAt(LOOK);
   camera.updateProjectionMatrix();

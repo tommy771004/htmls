@@ -342,12 +342,16 @@ function updDust(dt,spd){for(const[c,k]of[[motes,1],[puffs,.85]]){const p=c.p;fo
 /* ---------- 靜態場景：合併成少數幾個 mesh ---------- */
 class Batch{constructor(){this.p=[];this.c=[]}
   add(geo,mat,hex,o={}){const jit=o.jit??.12,disp=o.disp||0,ns=o.ns||.12,g=geo.index?geo.toNonIndexed():geo,a=g.attributes.position;_c.set(hex);
-    for(let i=0;i<a.count;i+=3){const k=1-jit/2+rnd()*jit;
+    // 細分版幾何（boxHi）的面色抖動改用自己的亂數，並照原本 12 面的用量消耗 rnd，讓後面的遺跡、砲台配置維持原樣
+    const lo=geo.userData.lo,jr=lo?mulberry(this.p.length+7):rnd;if(lo)for(let q=0;q<lo;q++)rnd();
+    for(let i=0;i<a.count;i+=3){const k=1-jit/2+jr()*jit;
       for(let j=0;j<3;j++){_v.fromBufferAttribute(a,i+j).applyMatrix4(mat);
         if(disp){const x=_v.x,y=_v.y,z=_v.z;_v.x+=(vnoise(y*ns+z*ns*.7,x*ns)-.5)*disp;_v.y+=(vnoise(x*ns+11,z*ns-y*ns*.5)-.5)*disp;_v.z+=(vnoise(z*ns-7,y*ns+x*ns*.3)-.5)*disp}
         this.p.push(_v.x,_v.y,_v.z);this.c.push(_c.r*k,_c.g*k,_c.b*k)}}}
   mesh(mat){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(this.p,3));g.setAttribute('color',new THREE.Float32BufferAttribute(this.c,3));g.computeVertexNormals();const m=new THREE.Mesh(g,mat);scene.add(m);return m}}
-const G={box:new THREE.BoxGeometry(1,1,1),cyl8:new THREE.CylinderGeometry(1,1,1,8),cyl6:new THREE.CylinderGeometry(1,1,1,6),cyl5:new THREE.CylinderGeometry(1,1,1,5),cone6:new THREE.ConeGeometry(1,1,6),cone5:new THREE.ConeGeometry(1,1,5),cone4:new THREE.ConeGeometry(1,1,4),ico0:new THREE.IcosahedronGeometry(1,0),ico1:new THREE.IcosahedronGeometry(1,1),oct:new THREE.OctahedronGeometry(1,0),tet:new THREE.TetrahedronGeometry(1,0),dod:new THREE.DodecahedronGeometry(1,0)};
+const G={box:new THREE.BoxGeometry(1,1,1),cyl8:new THREE.CylinderGeometry(1,1,1,8),cyl6:new THREE.CylinderGeometry(1,1,1,6),cyl5:new THREE.CylinderGeometry(1,1,1,5),cone6:new THREE.ConeGeometry(1,1,6),cone5:new THREE.ConeGeometry(1,1,5),cone4:new THREE.ConeGeometry(1,1,4),ico0:new THREE.IcosahedronGeometry(1,0),ico1:new THREE.IcosahedronGeometry(1,1),oct:new THREE.OctahedronGeometry(1,0),tet:new THREE.TetrahedronGeometry(1,0),dod:new THREE.DodecahedronGeometry(1,0),boxHi:new THREE.BoxGeometry(1,1,1,3,6,3)};
+// 神殿的牆、城門塔與台地原本是 8 個頂點的方塊，disp 位移只能推動角點，大面仍是兩個三角形的平板；細分後石面才會有崩缺的切面
+G.boxHi.userData.lo=12;
 const _e=new THREE.Euler(),_s=new V3();
 function M4(x,y,z,sx,sy,sz,rx=0,ry=0,rz=0){return new THREE.Matrix4().compose(_v3.set(x,y,z),_q.setFromEuler(_e.set(rx,ry,rz)),_s.set(sx,sy,sz))}
 function frameM(x,y,z,h){const r=rightOf(h);return new THREE.Matrix4().makeBasis(new V3(r.x,0,r.z),UP,new V3(-Math.sin(h),0,Math.cos(h))).setPosition(x,y,z)}
@@ -378,16 +382,16 @@ function column(x,z,h,rad,broken){const y=heightAt(x,z)-1,c=pick(STONE);
   return y+3+h}
 for(let bar=25.6;bar<46;bar+=rr(.28,.42))for(const sd of[-1,1]){if(rnd()<.18)continue;const p=spot(bar,sd*rr(36,46));column(p.x,p.z,rr(20,38),rr(2.4,3.4),rnd()<.3)}
 function wall(p,len,h){const m=frameM(p.x,p.y-2,p.z,p.h+rr(-.2,.2));const add=(g,x,y,z,sx,sy,sz,c)=>ruin.add(g,m.clone().multiply(M4(x,y,z,sx,sy,sz)),c,{disp:.8,ns:.2});
-  add(G.box,0,h*.18,0,5,h*.36,len,0xc7a47a);
-  for(let k=-len/2+4;k<len/2-3;k+=9){if(rnd()<.2)continue;const hh=h*rr(.5,.95);add(G.box,0,h*.36+hh/2-2,k,4,hh,3.5,pick(STONE))}
-  if(rnd()<.6)add(G.box,0,h*.95,rr(-len/4,len/4),5,3.5,len*rr(.3,.6),0xd4bb92)}
+  add(G.boxHi,0,h*.18,0,5,h*.36,len,0xc7a47a);
+  for(let k=-len/2+4;k<len/2-3;k+=9){if(rnd()<.2)continue;const hh=h*rr(.5,.95);add(G.boxHi,0,h*.36+hh/2-2,k,4,hh,3.5,pick(STONE))}
+  if(rnd()<.6)add(G.boxHi,0,h*.95,rr(-len/4,len/4),5,3.5,len*rr(.3,.6),0xd4bb92)}
 for(let k=0;k<26;k++){const bar=rr(25.5,46),sd=rnd()<.5?-1:1;wall(spot(bar,sd*rr(62,120)),rr(40,90),rr(18,34))}
 {const g0=spot(32,0),m=frameM(g0.x,g0.fl-4,g0.z,g0.h);const add=(g,x,y,z,sx,sy,sz,c,b=ruin,o={disp:1,ns:.15})=>b.add(g,m.clone().multiply(M4(x,y,z,sx,sy,sz)),c,o);
-  for(const sd of[-1,1]){add(G.box,sd*40,43,0,17,90,17,0xd1b58b);add(G.box,sd*40,91,0,20,6,20,0xbf9a74);add(G.box,sd*40,97,0,13,8,13,0xd8c29a);add(G.cone4,sd*40,107,0,9,14,9,0xc9a97f);
-    for(let y=14;y<82;y+=12)add(G.box,sd*(40-8.7),y,0,.5,6,9,0x74f5e0,glyph,{jit:0})}
-  add(G.box,0,68,0,98,11,15,0xcdb087);add(G.box,0,76,0,86,5,12,0xdcc49c);
-  for(let x=-30;x<=30;x+=10)add(G.box,x,68,-7.8,5,4,.5,0x74f5e0,glyph,{jit:0})}
-for(let k=0;k<5;k++){const p=spot(rr(27,45),(rnd()<.5?-1:1)*rr(170,280));for(let t=0;t<4;t++){const w=40-t*9;ruin.add(G.box,M4(p.x,p.y+t*9+2,p.z,w,9,w*rr(.8,1.1),0,p.h,0),pick(STONE),{disp:1.5,ns:.1})}
+  for(const sd of[-1,1]){add(G.boxHi,sd*40,43,0,17,90,17,0xd1b58b,ruin,{disp:.7,ns:.15});add(G.boxHi,sd*40,91,0,20,6,20,0xbf9a74);add(G.boxHi,sd*40,97,0,13,8,13,0xd8c29a);add(G.cone4,sd*40,107,0,9,14,9,0xc9a97f);
+    for(let y=14;y<82;y+=12)add(G.box,sd*(40-8.95),y,0,.5,6,9,0x74f5e0,glyph,{jit:0})}
+  add(G.boxHi,0,68,0,98,11,15,0xcdb087);add(G.boxHi,0,76,0,86,5,12,0xdcc49c);
+  for(let x=-30;x<=30;x+=10)add(G.box,x,68,-8.2,5,4,.5,0x74f5e0,glyph,{jit:0})}
+for(let k=0;k<5;k++){const p=spot(rr(27,45),(rnd()<.5?-1:1)*rr(170,280));for(let t=0;t<4;t++){const w=40-t*9;ruin.add(G.boxHi,M4(p.x,p.y+t*9+2,p.z,w,9,w*rr(.8,1.1),0,p.h,0),pick(STONE),{disp:1.5,ns:.1})}
   glyph.add(G.ico0,M4(p.x,p.y+42,p.z,2.5,2.5,2.5),0x74f5e0,{jit:0})}
 for(let k=0;k<10;k++){const p=spot(rr(26,46),(rnd()<.5?-1:1)*rr(52,95)),h=rr(26,48);ruin.add(G.cone4,M4(p.x,p.y+h/2-1,p.z,4,h,4,0,rnd(),0),0xc59f76,{disp:.6});glyph.add(G.oct,M4(p.x,p.y+h+2,p.z,1.3,2.4,1.3),0x74f5e0,{jit:0})}
 {const p=spot(44,-100),y=p.y;rock.add(G.ico1,M4(p.x,y+4,p.z,20,15,25,.2,p.h+.5,.3),BONE,{disp:3,ns:.08});
@@ -396,11 +400,27 @@ for(let k=0;k<10;k++){const p=spot(rr(26,46),(rnd()<.5?-1:1)*rr(52,95)),h=rr(26,
 // 砲台位置（峽谷段貼在崖壁，遺跡段立在石柱頂）
 const TURRETS=[[17.3,-25,0],[17.8,26,0],[18.3,-24,0],[27,-40,1],[27.6,42,1],[28.2,-38,1],[28.8,40,1],[35,44,1],[35.5,-42,1],[36.1,40,1],[36.7,-44,1],[43.8,40,1],[44.3,-38,1],[44.9,42,1]].map(([bar,lat,pil])=>{const p=spot(bar,lat);let y=p.y+1;if(pil)y=column(p.x,p.z,rr(22,26),3.2,false)+2.4;return{bar,x:p.x,y,z:p.z}});
 // 頭目競技場：深淵、巨牙與外圈台地
-for(let k=0;k<18;k++){const a=k/18*Math.PI*2+rr(-.1,.1),r=rr(158,182),x=AC.x+Math.cos(a)*r,z=AC.z+Math.sin(a)*r,h=rr(18,40);ruin.add(G.box,M4(x,heightAt(x,z)+h/2-3,z,rr(5,8),h,rr(8,12),rr(-.15,.15),a,rr(-.2,.2)),pick(STONE),{disp:1,ns:.2})}
+for(let k=0;k<18;k++){const a=k/18*Math.PI*2+rr(-.1,.1),r=rr(158,182),x=AC.x+Math.cos(a)*r,z=AC.z+Math.sin(a)*r,h=rr(18,40);ruin.add(G.boxHi,M4(x,heightAt(x,z)+h/2-3,z,rr(5,8),h,rr(8,12),rr(-.15,.15),a,rr(-.2,.2)),pick(STONE),{disp:1,ns:.2})}
 for(let k=0;k<7;k++){const a=k/7*Math.PI*2+.3,x=AC.x+Math.cos(a)*128,z=AC.z+Math.sin(a)*128,ix=AC.x+Math.cos(a)*50,iz=AC.z+Math.sin(a)*50,h=rr(70,95);
   rock.add(tube([new V3(x,-20,z),new V3(lerp(x,ix,.2),h*.6,lerp(z,iz,.2)),new V3(lerp(x,ix,.65),h,lerp(z,iz,.65)),new V3(ix,h*.85,iz)],5.5,12),new THREE.Matrix4(),BONE,{disp:1.5,ns:.1})}
 for(let k=0;k<32;k++){const a=k/32*Math.PI*2;glyph.add(G.box,M4(AC.x+Math.cos(a)*118,-8,AC.z+Math.sin(a)*118,2,1.2,9,0,-a,0),0x74f5e0,{jit:0})}
 for(let k=0;k<14;k++){const a=rnd()*Math.PI*2,r=rr(330,430),x=AC.x+Math.cos(a)*r,z=AC.z+Math.sin(a)*r;let y=heightAt(x,z)-3,rad=rr(9,16);for(let t=0;t<3;t++){const th=rr(14,26);rock.add(G.cyl6,M4(x,y+th/2,z,rad,th,rad,0,rnd(),0),pick(ROCK),{disp:3,ns:.1});y+=th;rad*=.8}}
+// 谷底碎石與崖腳落石堆：谷底原本只有 15 單位見方的大三角面，飛行時沒有尺度與速度參考。
+// 高度取實際渲染的地形三角形（不是 heightAt 的解析值，兩者在谷底差到 1 單位以上），石塊埋入約三分之一，不會浮空
+function groundAt(x,z){const ci=Math.floor((x-minX)/SP),cj=Math.floor((z-minZ)/SP);
+  for(let j=cj-1;j<=cj+1;j++)for(let i=ci-1;i<=ci+1;i++){if(i<0||j<0||i>=GW-1||j>=GH-1)continue;
+    const q=(i+j)&1?[[i,j,i,j+1,i+1,j],[i,j+1,i+1,j+1,i+1,j]]:[[i,j,i,j+1,i+1,j+1],[i,j,i+1,j+1,i+1,j]];
+    for(const[a,b,c,d,e,f]of q){const x0=GX(a,b),z0=GZ(a,b),x1=GX(c,d),z1=GZ(c,d),x2=GX(e,f),z2=GZ(e,f),den=(z1-z2)*(x0-x2)+(x2-x1)*(z0-z2);if(!den)continue;
+      const u=((z1-z2)*(x-x2)+(x2-x1)*(z-z2))/den,v=((z2-z0)*(x-x2)+(x0-x2)*(z-z2))/den,w=1-u-v;
+      if(u>=-1e-4&&v>=-1e-4&&w>=-1e-4)return u*HG[b*GW+a]+v*HG[d*GW+c]+w*HG[f*GW+e]}}
+  return heightAt(x,z)}
+{const keep=rnd;rnd=mulberry(907);// 獨立亂數：不改動既有遺跡、砲台與特效的亂數序列
+  const TALUS=[0x9c4a32,0xb35a3a,0x8c3e2a,0xc46c44],GRIT=[0xc98b5a,0xb8764a,0xd29a66];
+  for(let k=0;k<1300;k++){const bar=rr(1.7,46),hf=Math.max(spot(bar,0).half,20),foot=rnd()<.6;
+    const lat=foot?(rnd()<.5?-1:1)*(hf+rr(-5,9)):rr(-1,1)*Math.min(hf,90)*.85,n=foot?1+(rnd()*3|0):1,c=spot(bar,lat);
+    for(let q=0;q<n;q++){const x=c.x+(q?rr(-3.5,3.5):0),z=c.z+(q?rr(-3.5,3.5):0),sz=(.45+3.2*rnd()**3)*(foot?1.25:.8),sy=sz*rr(.5,.8);
+      rock.add(rnd()<.5?G.dod:G.ico0,M4(x,groundAt(x,z)+sy*.3,z,sz*rr(.8,1.25),sy,sz*rr(.8,1.25),rr(-.4,.4),rnd()*6,rr(-.4,.4)),pick(foot?TALUS:GRIT),{disp:sz*.25,ns:.9/sz,jit:.14})}}
+  rnd=keep}
 const rockMat=new THREE.MeshLambertMaterial({vertexColors:true});
 rock.mesh(rockMat);ruin.mesh(rockMat);glyph.mesh(new THREE.MeshBasicMaterial({vertexColors:true}));
 
@@ -830,7 +850,10 @@ function updCamera(dt){phi=damp(phi,phiT,8,dt);const dx=-Math.sin(phi),dz=-Math.
   _m.lookAt(camera.position,_v2,UP);camera.quaternion.setFromRotationMatrix(_m);
   camera.rotateZ(clamp(-railK*speedNow*.9,-.12,.12)*Math.cos(phi)-P.vel.x*.004);
   if(shake>0){const sk=shake*(RMQ.matches?0:.7);camera.position.x+=(rnd()-.5)*sk;camera.position.y+=(rnd()-.5)*sk;shake=Math.max(0,shake-dt*2.4)}
+  // 航速拉高（第 16–20 小節的 38）時視角慢慢放寬，身體感覺得到加速；只放寬不收窄，減少動態時關閉
+  fovKick=damp(fovKick,RMQ.matches?0:clamp((speedNow-31)*.4,0,3),1.5,dt);if(Math.abs(camera.fov-baseFov-fovKick)>.005){camera.fov=baseFov+fovKick;camera.updateProjectionMatrix()}
   camera.updateMatrixWorld();camLocal.copy(camera.position);camera.getWorldPosition(camW)}
+let baseFov=62,fovKick=0;
 const aimPoint=new V3();
 function updAim(){raycaster.setFromCamera({x:ret.x/W*2-1,y:-(ret.y/H)*2+1},camera);aimPoint.copy(raycaster.ray.direction).multiplyScalar(160).add(raycaster.ray.origin);railSpace.worldToLocal(aimPoint)}
 function project(){const f=H/(2*Math.tan(camera.fov*Math.PI/360));
@@ -1103,7 +1126,7 @@ $('retryBtn').onclick=()=>startRun(cp.bar,true);$('restartBtn').onclick=()=>star
 addEventListener('blur',()=>pause());document.addEventListener('visibilitychange',()=>{if(document.hidden)pause()});
 addEventListener('pointerdown',()=>{if(AU.ctx&&AU.ctx.state==='suspended'&&state!=='paused')AU.ctx.resume()});
 function resize(){W=innerWidth;H=innerHeight;renderer.setSize(W,H,false);hudC.width=Math.round(W*DPR);hudC.height=Math.round(H*DPR);const a=W/H;camera.aspect=a;
-  camera.fov=a>=1?62:Math.min(92,2*Math.atan(Math.tan(35*Math.PI/180)/a)*180/Math.PI);camera.updateProjectionMatrix();UI=clamp(Math.min(W,H)/820,.72,1.25);const sc=H*DPR/2;scaleUniforms.forEach(u=>u.value=sc)}
+  baseFov=a>=1?62:Math.min(92,2*Math.atan(Math.tan(35*Math.PI/180)/a)*180/Math.PI);camera.fov=baseFov+fovKick;camera.updateProjectionMatrix();UI=clamp(Math.min(W,H)/820,.72,1.25);const sc=H*DPR/2;scaleUniforms.forEach(u=>u.value=sc)}
 addEventListener('resize',resize);resize();
 
 function envFollow(dt){sky.position.copy(camW);for(const r of ridges)r.position.set(camW.x,0,camW.z);skyMat.uniforms.uT.value=gT;updDust(dt,speedNow)}

@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#f5f4ed">
   <title>agent-office · A little room for big ideas</title>
   <meta name="description" content="Three.js 卡通微縮辦公室：WASD 走動、與 agent 聊天派工、worker 指令進度與完成報告的互動原型。">
-  <link rel="stylesheet" href="assets/agent-office/office.css?review=controls-20260927">
+  <link rel="stylesheet" href="assets/agent-office/office.css?review=realism-r5-20260927">
   <script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js"}}</script>
 </head>
 <body>
@@ -35,7 +35,7 @@
     <div id="scene" tabindex="0" role="application" aria-label="3D 辦公室。WASD 或方向鍵走動，靠近同事按 T 聊天。亦可用右側成員按鈕開啟聊天。"><div id="scene-message">正在打開辦公室…</div></div>
     <div id="nameplates" aria-hidden="true"></div>
     <div class="scene-note"><span>01 / STUDIO FLOOR</span><span>Built for a little more flow.</span></div>
-    <div class="view-tools" aria-label="視角"><button id="zoom-in" aria-label="放大">＋</button><button id="zoom-out" aria-label="縮小">−</button><button id="reset-view" aria-label="重設視角">⌂</button></div>
+    <div class="view-tools" aria-label="光線與視角"><button id="room-light" aria-label="午後斜陽" aria-pressed="false" title="切換午後斜陽">午後</button><button id="zoom-in" aria-label="放大">＋</button><button id="zoom-out" aria-label="縮小">−</button><button id="reset-view" aria-label="重設視角">⌂</button></div>
     <section id="completion" class="completion" aria-live="polite" hidden></section>
     <div class="walk-hint" id="walk-hint"><span class="tiny-avatar">Y</span><span>走近一位同事，聊聊下一個點子。</span><kbd>T</kbd></div>
     <div class="controls"><div class="key-guide"><kbd>W</kbd><span><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></div><span>走動</span><i></i><kbd>T</kbd><span>聊天派工</span><i></i><span class="control-extra">點同事也可以聊天</span></div>
@@ -58,5 +58,5 @@
 <div id="toast" role="status" hidden></div>
 <dialog id="dialog"><div class="dialog-top"><span class="eyebrow" id="dialog-eyebrow">AGENT OFFICE</span><button id="close-dialog" aria-label="關閉">×</button></div><div id="dialog-body"></div></dialog>
 <div id="share-preview" hidden><div>螢幕本機預覽 · 未傳送<button id="stop-share">停止分享</button></div><video autoplay muted playsinline></video></div>
-<script type="module" src="assets/agent-office/app.js?review=controls-20260927"></script>
+<script type="module" src="assets/agent-office/app.js?review=realism-r5-20260927"></script>
 </body></html>

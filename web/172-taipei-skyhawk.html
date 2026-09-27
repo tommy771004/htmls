@@ -594,7 +594,7 @@ const sunLight = new THREE.DirectionalLight(0xffffff, 3);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.set(2048, 2048);
 Object.assign(sunLight.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 900 });
-sunLight.shadow.bias = -0.0004; sunLight.shadow.normalBias = 0.02;
+sunLight.shadow.bias = -0.0004; sunLight.shadow.normalBias = 0.02; sunLight.shadow.radius = 2;
 scene.add(sunLight, sunLight.target);
 const hemi = new THREE.HemisphereLight(0x9fb7d6, 0x55503f, 1.0);
 scene.add(hemi);
@@ -1342,10 +1342,18 @@ const bldMat = new THREE.ShaderMaterial({
       float skyVis = 0.5 + 0.5 * n.y;
       vec3 light = uSunCol * diff * 1.15 + uAmb * (0.32 + 0.3 * skyVis);
       if (n.y > 0.5){
-        // 屋頂：水泥、加蓋鐵皮
-        float r = h21(floor(vW.xz * 0.35));
-        vec3 roof = mix(vec3(0.52, 0.52, 0.50), vec3(0.60, 0.62, 0.64), step(0.7, seed)) * (0.9 + 0.12 * r);
-        if (k > 3.5) roof = vec3(0.72, 0.38, 0.18);
+        // 屋頂：從空中看台北，屋頂比衛星影像上的街道亮不了多少。
+        // 舊水泥偏暗、綠色防水漆、頂樓加蓋的灰藍或鏽紅鐵皮，再加上水塔與機電設備的深色小塊
+        float rs = fract(seed * 17.31);
+        vec3 roof = vec3(0.34, 0.335, 0.32) * (0.82 + 0.36 * fract(seed * 5.3));
+        if (rs > 0.60) roof = vec3(0.25, 0.34, 0.29);
+        if (rs > 0.78) roof = vec3(0.30, 0.35, 0.40);
+        if (rs > 0.95) roof = vec3(0.37, 0.26, 0.22);
+        float c1 = h21(floor(vW.xz / 6.0) + seed * 17.0);
+        if (c1 > 0.86) roof = mix(vec3(0.33, 0.39, 0.45), vec3(0.40, 0.28, 0.23), step(0.97, c1));
+        else if (c1 < 0.08) roof *= 0.55;
+        roof *= 0.9 + 0.12 * h21(floor(vW.xz * 0.8));
+        if (k > 3.5) roof = vec3(0.62, 0.33, 0.17);
         col = roof * light;
       } else {
         float fh = 3.3;
@@ -1601,8 +1609,16 @@ const linspace = (a, b, n) => Array.from({ length: n }, (_, i) => a + (b - a) * 
   const nose = new THREE.Mesh(new THREE.CircleGeometry(0.31, 24), darkMat);
   nose.position.set(0, -0.05, FUSE_Z0 - 0.001); nose.rotation.y = Math.PI; nose.scale.set(0.97, 0.82, 1); ext.add(nose);
   // 內裝殼（只在駕駛艙視角顯示，窗戶處挖空）
-  const inner = new THREE.Mesh(loft(linspace(-1.1, 1.6, 44), linspace(0, Math.PI * 2, 61), (z, th) => fusePoint(z, th, -0.03), inWindow),
-    new THREE.MeshStandardMaterial({ color: 0x2c2a27, roughness: 1, side: THREE.BackSide }));
+  // 艙內飾板是淺灰米色的布面與塑料，不是一片黑：以頂棚最亮、地板與機鼻側最暗的頂點色做出艙內的遮蔽
+  const ig = loft(linspace(-1.1, 1.6, 44), linspace(0, Math.PI * 2, 61), (z, th) => fusePoint(z, th, -0.03), inWindow);
+  { const p = ig.attributes.position, col = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) {
+      const y = p.getY(i), z = p.getZ(i);
+      const k = (0.28 + 0.72 * smooth(-0.5, 0.75, y)) * (0.55 + 0.45 * smooth(-1.1, -0.2, z)) * (0.8 + 0.2 * smooth(1.6, 0.9, z));
+      col[i * 3] = k; col[i * 3 + 1] = k * 0.97; col[i * 3 + 2] = k * 0.92;
+    }
+    ig.setAttribute('color', new THREE.BufferAttribute(col, 3)); }
+  const inner = new THREE.Mesh(ig, new THREE.MeshStandardMaterial({ color: 0x8a847a, vertexColors: true, roughness: 0.95, side: THREE.BackSide }));
   cockpit.add(inner);
 }
 // 螺旋槳與整流錐
@@ -1786,22 +1802,28 @@ const panelTex = new THREE.CanvasTexture(panelCv); panelTex.colorSpace = THREE.S
   // 羅盤
   const cmp = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.045, 0.05), new THREE.MeshStandardMaterial({ color: 0x111111 })); cmp.position.set(0, 0.745, -0.66); cockpit.add(cmp);
   // 窗框
-  const frame = new THREE.MeshStandardMaterial({ color: 0x3c3a36, roughness: 0.8 });
+  // 窗柱包著和頂棚同色的塑料飾板，圓潤而非八角黑棍；它是駕駛艙視角裡離眼睛最近的東西
+  const frame = new THREE.MeshStandardMaterial({ color: 0x6f695f, roughness: 0.85 });
   for (const s of [-1, 1]) {
     const a = new THREE.Vector3(...fusePoint(-1.04, s < 0 ? 2.74 : 0.4, -0.035)), b = new THREE.Vector3(...fusePoint(-0.585, s < 0 ? 2.17 : 0.97, -0.035));
-    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, a.distanceTo(b), 8), frame);
+    // 窗柱從遮光罩上緣長出來，不穿過儀表板；上端多伸 6 cm 埋進頂棚，看不到管口
+    a.lerp(b, clamp((0.47 - a.y) / (b.y - a.y), 0, 1));
+    b.addScaledVector(b.clone().sub(a).normalize(), 0.06);
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.019, a.distanceTo(b), 20), frame);
     p.position.copy(a).add(b).multiplyScalar(.5); p.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); cockpit.add(p);
     const d = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.1, 0.05), frame); d.position.set(s * 0.54, 0.2, 0.6); cockpit.add(d);
   }
   const top = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.03, 0.05), frame); top.position.set(0, 0.765, -0.62); cockpit.add(top);
 }
 const yokes = [];
+const yokeMat = new THREE.MeshStandardMaterial({ color: 0x1e1d1b, roughness: 0.45 });
 for (const x of [-0.3, 0.3]) {
   const y = new THREE.Group(); y.position.set(x, 0.2, -0.64);
   const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.25, 8), metal); shaft.rotation.x = Math.PI / 2; shaft.position.z = -0.12; y.add(shaft);
   const w = new THREE.Group(); y.add(w);
-  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.03, 0.03), darkMat); w.add(bar);
-  for (const s of [-1, 1]) { const h = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.1, 0.035), darkMat); h.position.set(s * 0.13, 0.04, 0); w.add(h); }
+  // 操縱盤：圓管橫桿加兩支圓握把（近在眼前，方盒子太假）
+  const bar = new THREE.Mesh(new THREE.CapsuleGeometry(0.016, 0.24, 4, 10), yokeMat); bar.rotation.z = Math.PI / 2; w.add(bar);
+  for (const s of [-1, 1]) { const h = new THREE.Mesh(new THREE.CapsuleGeometry(0.02, 0.08, 4, 10), yokeMat); h.position.set(s * 0.13, 0.04, 0); h.rotation.z = -s * 0.12; w.add(h); }
   cockpit.add(y); yokes.push({ y, w });
 }
 const EYE = new THREE.Vector3(-0.29, 0.63, -0.12);
@@ -1832,6 +1854,10 @@ function animatePlane(s, dt) {
   lights.bcn.visible = bOn; surfaces.beacon.material.color.setHex(bOn ? 0xff3322 : 0x5a0a08);
   const sOn = !reduced && (t % 1.1) < 0.05 && !s.onGround;
   lights.strL.visible = lights.strR.visible = sOn;
+  // 航行燈在白天幾乎看不出來，天暗才亮成一團光；閃光燈與信標本來就是給白天看的，不調
+  const navK = 1 - 0.8 * smooth(-0.05, 0.25, SKY.sunDir.y);
+  lights.navL.material.opacity = lights.navR.material.opacity = lights.tail.material.opacity = navK;
+  lights.navL.scale.setScalar(0.5 * (0.6 + 0.4 * navK)); lights.navR.scale.setScalar(0.5 * (0.6 + 0.4 * navK)); lights.tail.scale.setScalar(0.4 * (0.6 + 0.4 * navK));
   yokes.forEach(y => { y.w.rotation.z = -c.ail * 0.7; y.y.position.z = -0.64 + c.elev * 0.07; });
 }
 
@@ -2123,7 +2149,8 @@ addEventListener('keydown', e => {
     if(k==='escape'){e.preventDefault();toBrief();}
     else if(k==='r'&&!e.ctrlKey&&!e.metaKey)retry();else trapDialog(e,$('crash'));return;
   }
-  if(e.altKey||e.ctrlKey||e.metaKey||e.target.closest('button,input,select,textarea,[role="slider"],[contenteditable="true"]'))return;
+  // 按鈕只吃空白鍵與 Enter：用滑鼠點了視角或暫停鈕之後，焦點留在按鈕上，飛行按鍵仍要有效
+  if(e.altKey||e.ctrlKey||e.metaKey||e.target.closest('input,select,textarea,[role="slider"],[contenteditable="true"]')||(e.target.closest('button')&&(k===' '||k==='enter')))return;
   if(app.mode==='brief'){if(k==='enter'){e.preventDefault();beginFlight();}return;}
   if(k==='p'){e.preventDefault();if(!e.repeat)togglePause();return;}
   if(k==='h'){if(!e.repeat)toggleHelp();return;}

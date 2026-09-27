@@ -376,7 +376,8 @@ document.addEventListener('keydown',e=>{const t=e.target as HTMLElement;
  if(e.ctrlKey){const ids=[...selected].sort((a,b)=>a-b);if(!ids.length){notice('請先選取單位再編組。');return;}groups.set(n,ids);renderGroups();notice(`編組 ${n}：${names(ids)}。按 ${n} 叫回。`);return;}
  const ids=groups.get(n);if(!ids){notice(`編組 ${n} 尚未建立：選取後按 Ctrl＋${n}。`);return;}select(ids);notice(`已叫回編組 ${n}：${names(ids)}。`);});
 window.addEventListener('blur',endDrag);
-canvas.addEventListener('wheel',e=>{e.preventDefault();if(!graphicsFailed)scene?.zoom(e.deltaY<0?.1:-.1);},{passive:false});
+// Zoom follows how far the wheel or pinch actually moved (a mouse notch is about 0.12; a trackpad stream adds up in small steps).
+canvas.addEventListener('wheel',e=>{e.preventDefault();if(!graphicsFailed){const px=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?400:1);scene?.wheelZoom(Math.max(-.25,Math.min(.25,-px*(e.ctrlKey?.004:.0012))));}},{passive:false});
 el('zoom-in').onclick=()=>scene?.zoom(.2);el('zoom-out').onclick=()=>scene?.zoom(-.2);el('rotate-view').onclick=()=>scene?.rotate();el('reset-view').onclick=()=>scene?.resetCamera();el('idle-villager').onclick=nextIdle;
 document.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(b=>b.onclick=e=>{const id=Number(b.dataset.unit);if(e.shiftKey)toggle(id);else choose(id);});
 el('stop').onclick=()=>void stop();renderGroups();

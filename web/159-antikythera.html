@@ -1749,8 +1749,10 @@ function buildDiver(){const T=T3,g=new T.Group(),ct=canvasTex3();
   return{g,hip,chest,helm,arms,legs,hoseAt,ropeAt,exhaust,bag};}
 function poseDiver(D,s){// s:{walk,spd,dig,float,t}
   const k=clamp(s.spd,0,1),ph=s.walk,dg=s.dig,fl=s.float,t=s.t;
-  const bob=Math.abs(Math.sin(ph))*.03*k;
-  D.hip.position.y=1+bob-dg*.16+fl*.05;D.hip.rotation.x=dg*.12;D.chest.rotation.x=.08*k+dg*.42+fl*.05;D.chest.rotation.z=Math.sin(ph)*.04*k;
+  // 腰的高度跟著步伐下沉，讓比較長的那條腿剛好踩到沙面（大腿 .46 + 小腿到鉛鞋底 .5085），走路時不再兩腳懸空
+  const a0=Math.sin(ph)*.5*k,b0=Math.max(0,-Math.sin(ph-.9))*.8*k,a1=-a0,b1=Math.max(0,Math.sin(ph-.9))*.8*k;
+  const drop=(.9685-Math.max(.46*Math.cos(a0)+.5085*Math.cos(a0+b0),.46*Math.cos(a1)+.5085*Math.cos(a1+b1)))*(1-fl)*(1-dg);
+  D.hip.position.y=1-drop-dg*.16+fl*.05;D.hip.rotation.x=dg*.12;D.chest.rotation.x=.08*k+dg*.42+fl*.05;D.chest.rotation.z=Math.sin(ph)*.04*k;
   for(let i=0;i<2;i++){const L=D.legs[i],sgn=i?1:-1,p=ph+(i?Math.PI:0);
     L.hp.rotation.x=(Math.sin(p)*.5*k)*(1-fl)-dg*.55+fl*(-.25+Math.sin(t*.9+i)*.12);L.kn.rotation.x=(Math.max(0,-Math.sin(p-.9))*.8*k)*(1-fl)+dg*.95+fl*(.45+Math.sin(t*.9+i)*.1);
     const A=D.arms[i];A.sh.rotation.x=(-Math.sin(p)*.3*k)-dg*(i?1.25:.6)+fl*(-.35);A.sh.rotation.z=sgn*(.14+fl*.35)+(i?Math.sin(t*6.5)*.55*dg:0);A.el.rotation.x=-.35-.3*k-dg*(i?.2:.7)+fl*(-.4);}}
@@ -1807,7 +1809,10 @@ function updLife(dt,t,center){const T=T3;
   // 魚群繞著沉船巡游
   if(GL.school){const S=GL.school,o=S.o;let cx=SITE.x+Math.cos(t*.045)*8+Math.sin(t*.11)*3,cz=SITE.z+Math.sin(t*.037)*7;if(center){const k=.55+.45*Math.sin(t*.06);cx=lerp(cx,center.x+Math.cos(t*.2)*3.5,k);cz=lerp(cz,center.z+Math.sin(t*.2)*3.5,k);}
     S.c=S.c||new T.Vector3(cx,0,cz);S.c.x=lerp(S.c.x,cx,.02);S.c.z=lerp(S.c.z,cz,.02);cx=S.c.x;cz=S.c.z;const cy=bedH(cx,cz)+2.2+Math.sin(t*.2)*.8;
-    for(let i=0;i<S.F.length;i++){const f=S.F[i],a=t*.25*f.sp+f.ph;const x=cx+f.o.x+Math.cos(a)*1.2,y=cy+f.o.y+Math.sin(a*1.3)*.4,z=cz+f.o.z+Math.sin(a)*1.2;
+    // 魚會避開鏡頭：進到半徑 RC 以內就沿著離鏡頭的方向被平滑推開（最近 RC/2），不會貼著鏡頭變成一大塊橘色
+    const cp=GL.cam.position,RC=2.4;
+    for(let i=0;i<S.F.length;i++){const f=S.F[i],a=t*.25*f.sp+f.ph;let x=cx+f.o.x+Math.cos(a)*1.2,y=cy+f.o.y+Math.sin(a*1.3)*.4,z=cz+f.o.z+Math.sin(a)*1.2;
+      {const ex=x-cp.x,ey=y-cp.y,ez=z-cp.z,d=Math.hypot(ex,ey,ez);if(d<RC&&d>1e-4){const s=(RC-(RC-d)*(RC-d)/(2*RC))/d;x=cp.x+ex*s;y=cp.y+ey*s;z=cp.z+ez*s;}}
       o.position.set(x,y,z);const dx=x-f.p.x,dy=y-f.p.y,dz=z-f.p.z;if(dx*dx+dz*dz>1e-8){o.rotation.set(0,Math.atan2(dx,dz),0);o.rotateX(-Math.atan2(dy,Math.hypot(dx,dz))*.6);}f.p.set(x,y,z);
       o.updateMatrix();S.im.setMatrixAt(i,o.matrix);}S.im.instanceMatrix.needsUpdate=true;}
   if(GL.damsel){const S=GL.damsel,o=S.o;for(let i=0;i<S.F.length;i++){const f=S.F[i],a=t*f.sp+f.ph,q=f.q,x=q.x+f.o.x+Math.sin(a)*.6,z=q.z+f.o.z+Math.cos(a*.8)*.6,y=bedH(q.x,q.z)+f.o.y+Math.sin(a*1.7)*.15;
@@ -1822,8 +1827,8 @@ function updLife(dt,t,center){const T=T3;
   const S=GL.sandP;for(let i=0;i<S.N;i++){if(S.life[i]<=0){S.a[i]=0;continue;}S.life[i]-=dt*.32;S.v[i*3]*=.97;S.v[i*3+2]*=.97;S.v[i*3+1]=S.v[i*3+1]*.96-.05*dt;
     S.p[i*3]+=S.v[i*3]*dt;S.p[i*3+1]+=S.v[i*3+1]*dt;S.p[i*3+2]+=S.v[i*3+2]*dt;S.s[i]+=dt*.28;S.a[i]=Math.max(0,S.life[i])*.5;}
   S.pts.geometry.attributes.position.needsUpdate=true;S.pts.geometry.attributes.aS.needsUpdate=true;S.pts.geometry.attributes.aA.needsUpdate=true;}
-function puffSand(x,y,z,n){const S=GL.sandP;for(let k=0;k<n;k++){const i=S.i=(S.i+1)%S.N;S.p[i*3]=x+(Math.random()-.5)*.3;S.p[i*3+1]=y+Math.random()*.1;S.p[i*3+2]=z+(Math.random()-.5)*.3;
-  S.v[i*3]=(Math.random()-.5)*.9;S.v[i*3+1]=.25+Math.random()*.5;S.v[i*3+2]=(Math.random()-.5)*.9;S.s[i]=.12+Math.random()*.18;S.life[i]=1;S.a[i]=.5;}}
+function puffSand(x,y,z,n,q=1){const S=GL.sandP;for(let k=0;k<n;k++){const i=S.i=(S.i+1)%S.N;S.p[i*3]=x+(Math.random()-.5)*.3*q;S.p[i*3+1]=y+Math.random()*.1*q;S.p[i*3+2]=z+(Math.random()-.5)*.3*q;
+  S.v[i*3]=(Math.random()-.5)*.9*q;S.v[i*3+1]=(.25+Math.random()*.5)*q;S.v[i*3+2]=(Math.random()-.5)*.9*q;S.s[i]=.12+Math.random()*.18;S.life[i]=1;S.a[i]=.5;}}
 function blowBubbles(p,n){const B=GL.bub;for(let i=0;i<n;i++)if(B.list.length<B.N)B.list.push({p:p.clone().add(new T3.Vector3((Math.random()-.5)*.05,Math.random()*.08,(Math.random()-.5)*.05)),r:.012+Math.random()*.03,t:Math.random()*.2,ph:Math.random()*6});}
 // 送氣管與救生索：由頭盔拉回船上的幫浦
 function updHose(a,b,t,sag,a2){const T=T3,mid=a.clone().lerp(b,.5);
@@ -1858,8 +1863,10 @@ function envUpd(focus){const T=T3,U=GL.U,cam=GL.cam,y=cam.position.y,uw=y<0;
   U.uFogC.value.setRGB(lerp(.018,.004,dep),lerp(.19,.052,dep),lerp(.27,.1,dep));U.uFogD.value=lerp(.028,.04,dep);
   const f=GL.sc.fog;
   if(uw){f.color.copy(U.uFogC.value);f.density=U.uFogD.value;
-    GL.hemi.color.setRGB(.32,.66,.68);GL.hemi.groundColor.setRGB(.1,.15,.14);GL.hemi.intensity=1.25*(1-dep*.4);GL.sc.environment=GL.envUW;GL.sc.environmentIntensity=.55*(1-dep*.35);
-    GL.sun.color.setRGB(.62,.93,.9);GL.sun.intensity=2.8*(1-dep*.45);U.uCaus.value=1.25;GL.rays.material.uniforms.uRay.value=.34*(1-dep*.35);
+    // 光往下走，紅光最先被水吃掉：越深越偏藍綠；焦散在深處也被散射抹平
+    GL.hemi.color.setRGB(.32*(1-dep*.5),.66*(1-dep*.12),.68);GL.hemi.groundColor.setRGB(.1,.15,.14);GL.hemi.intensity=1.25*(1-dep*.4);GL.sc.environment=GL.envUW;GL.sc.environmentIntensity=.55*(1-dep*.35);
+    GL.sun.color.setRGB(.62*(1-dep*.45),.93*(1-dep*.1),.9);GL.sun.intensity=2.8*(1-dep*.45);U.uCaus.value=1.25*(1-dep*.45);GL.rays.material.uniforms.uRay.value=.34*(1-dep*.35);
+    GL.sandP.pts.material.uniforms.uCol.value.setRGB(lerp(.485,.8,dep),lerp(.376,1.05,dep),lerp(.2,.95,dep));// 揚起的沙雲不吃場景燈光：深處改成比沙面稍亮的藍綠霧，而不是褐色污漬
     GL.r.toneMappingExposure=1.18;}
   else{f.color.copy(U.uHor.value);f.density=.00034;GL.hemi.color.setRGB(.62,.76,.95);GL.hemi.groundColor.setRGB(.42,.36,.28);GL.hemi.intensity=1.05;GL.sc.environment=GL.envSky;GL.sc.environmentIntensity=.45;
     GL.sun.color.setRGB(1,.86,.66);GL.sun.intensity=3.1;U.uCaus.value=0;GL.rays.material.uniforms.uRay.value=0;GL.r.toneMappingExposure=1.02;}
@@ -1952,7 +1959,9 @@ const Dive3={gl:true,
       for(const q of ROCKS){const dx=p.x-q.x,dz=p.z-q.z,dd=Math.hypot(dx,dz),m=q.r*.95+.3;if(dd<m&&dd>1e-4){p.x=q.x+dx/dd*m;p.z=q.z+dz/dd*m;}}
       const rr=Math.hypot(p.x-SITE.x,p.z-SITE.z);if(rr>30){p.x=SITE.x+(p.x-SITE.x)/rr*30;p.z=SITE.z+(p.z-SITE.z)/rr*30;}
       p.y=lerp(p.y,bedH(p.x,p.z),1-Math.exp(-dt*10));
-      const v=Math.hypot(d.v.x,d.v.z);d.spd=v/1.55;d.walk+=v*dt*3.1;if(v>.08)d.yaw=angLerp(d.yaw,Math.atan2(d.v.x,d.v.z),1-Math.exp(-dt*5));
+      const v=Math.hypot(d.v.x,d.v.z),st0=Math.floor(d.walk/Math.PI);d.spd=v/1.55;d.walk+=v*dt*3.1;if(v>.08)d.yaw=angLerp(d.yaw,Math.atan2(d.v.x,d.v.z),1-Math.exp(-dt*5));
+      // 鉛底靴每踩一步都揚起一小團細沙（左右腳交替）
+      const st1=Math.floor(d.walk/Math.PI);if(st1!==st0&&v>.3){const sd=st1%2?.13:-.13,fx=p.x+Math.cos(d.yaw)*sd+Math.sin(d.yaw)*.12,fz=p.z-Math.sin(d.yaw)*sd+Math.cos(d.yaw)*.12;puffSand(fx,bedH(fx,fz)+.02,fz,10,.5);}
       if(dig&&near)d.yaw=angLerp(d.yaw,Math.atan2(near.x-p.x,near.z-p.z),1-Math.exp(-dt*6));
       d.float=lerp(d.float,0,1-Math.exp(-dt*3));
       const left=this.tmax-this.bt;if(left<20&&this.warned<1){this.warned=1;clink(700,.25,2.2);toast('底時剩 20 秒。');}if(left<10&&this.warned<2){this.warned=2;clink(700,.25,2.2);setTimeout(()=>clink(700,.2,2),260);}

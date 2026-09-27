@@ -928,7 +928,7 @@ function buildDriver(ch, P, mat) {
   const sw = group(SW, wheel); sw.rotation.x = -0.7;
   return { drv, head, eyes, top, stars, armL, armR, sw, wheel };
 }
-function newAnim() { return { blinkT: 1 + Math.random() * 3, blink: 0, sy: 0, sv: 0, sq: 0, acc: 0, pvf: 0, wasAir: false, lastVy: 0, t: Math.random() * 10 }; }
+function newAnim() { return { blinkT: 1 + Math.random() * 3, blink: 0, sy: 0, sv: 0, sq: 0, acc: 0, pvf: 0, wasAir: false, lastVy: 0, t: Math.random() * 10, rp: 0 }; }
 // 依狀態擺動作。p：steer、drift、boost、acc、spin、throwT、cheer（1 歡呼、2 沮喪）、wave、idle、count、look
 function animRig(m, p, dt) {
   const R = m.rig, a = m.anim; a.t += dt; const t = a.t;
@@ -963,7 +963,10 @@ function animRig(m, p, dt) {
   // 車身擠壓與懸吊：加速抬頭、煞車點頭，落地壓扁
   m.tilt.scale.set(1 + a.sq * 0.5, 1 - a.sq, 1 + a.sq * 0.5);
   m.tilt.rotation.x = lerp(m.tilt.rotation.x, clamp(-(p.acc || 0) * 0.0035, -0.07, 0.07), k10);
-  m.tilt.position.y = p.count ? Math.sin(t * 60) * 0.01 : 0;
+  // 路肩、草地的顛簸：相位跟著行駛距離走，越快震得越密（路肩一格一格、草地高低不規則）
+  a.rp += Math.abs(p.v || 0) * dt;
+  const rum = p.rumble || 0, bump = !rum ? 0 : p.curb ? 0.035 * Math.abs(Math.sin(a.rp * 2.4)) : 0.05 * (Math.sin(a.rp * 1.7) * 0.6 + Math.sin(a.rp * 4.3 + 1.1) * 0.4);
+  m.tilt.position.y = p.count ? Math.sin(t * 60) * 0.01 : bump * rum;
 }
 function buildKart(ch) {
   const P = prims(); const list = [], metal = [];
@@ -996,7 +999,8 @@ function buildKart(ch) {
   const rig = buildDriver(ch, P, mat); tilt.add(rig.drv); tilt.add(rig.sw);
   const Z = Math.PI / 2;
   const wg = mergeGeos([part(P.wheel, '#26272c', 0, 0, 0, 1, 1, 1, 0, 0, Z), part(P.torus, '#34363d', 0.5, 0, 0, 0.82, 0.82, 1.2, 0, Z), part(P.torus, '#34363d', -0.5, 0, 0, 0.82, 0.82, 1.2, 0, Z),
-    part(P.cyl, cream, 0.06, 0, 0, 0.56, 1.02, 0.56, 0, 0, Z), part(P.cyl, '#8b8f98', 0.08, 0, 0, 0.2, 1.06, 0.2, 0, 0, Z)]);
+    part(P.cyl, cream, 0.06, 0, 0, 0.56, 1.02, 0.56, 0, 0, Z), part(P.cyl, '#8b8f98', 0.08, 0, 0, 0.2, 1.06, 0.2, 0, 0, Z),
+    ...[0, 1, 2].map(i => { const a = Math.PI / 2 + i * TAU / 3; return part(P.cyl6, '#6b6f78', 0.6, Math.cos(a) * 0.17, Math.sin(a) * 0.17, 0.075, 0.1, 0.075, 0, 0, Z); })]); // 三顆輪圈螺帽：輪子轉動時看得出來
   const wmat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 });
   const wheels = [];
   [[-0.92, 0.4, 1.0, 0.8, 0.4, 1], [0.92, 0.4, 1.0, 0.8, 0.4, 1], [-0.98, 0.47, -0.95, 0.94, 0.5, 0], [0.98, 0.47, -0.95, 0.94, 0.5, 0]].forEach(([x, y, z, d, w, front]) => {
@@ -2084,7 +2088,10 @@ function syncKart(k, dt) {
   if (k.throwT > 0) k.throwT = Math.max(0, k.throwT - dt);
   const battleEnd = G.mode === 'battle' && G.state !== 'race' && G.state !== 'countdown' && G.battle;
   const cheer = battleEnd ? (G.battle.winner === k ? 1 : k.out ? 2 : 0) : k.finished ? (k.place <= 3 ? 1 : 2) : k.out ? 2 : 0;
-  animRig(m, { steer: k.steerVis, drift: k.driftVis / 0.42, boost: k.boostT > 0, acc: a.acc, spin: k.spinT > 0 || k.frozenT > 0, throwT: k.throwT, cheer, count: G.state === 'countdown' }, dt);
+  // 外側輪壓上路肩或整台開上草地時，車身跟著地面顛（暫停、騰空、救援中與減少動態時不震）
+  let rumble = 0, curb = false;
+  if (!REDUCED && !G.paused && !k.air && k.rescueT <= 0 && T.kind === 'race' && !(k.loc.z & (Z_LAVA | Z_GAP)) && Math.abs(k.loc.d) + 0.98 > k.loc.w) { curb = !k.offroad; rumble = clamp(Math.abs(k.vf) / 18, 0, 1); }
+  animRig(m, { steer: k.steerVis, drift: k.driftVis / 0.42, boost: k.boostT > 0, acc: a.acc, spin: k.spinT > 0 || k.frozenT > 0, throwT: k.throwT, cheer, count: G.state === 'countdown', rumble, curb, v: k.vf }, dt);
   m.shield.visible = k.starT > 0; if (k.starT > 0) { const s = 1 + Math.sin(G.raceT * 7) * 0.03; m.shield.scale.set(s, s, s); }
   const near2 = (k.x - camera.position.x) ** 2 + (k.z - camera.position.z) ** 2 < 70 * 70;
   if (near2) kartFx(k, dt);
@@ -2570,7 +2577,9 @@ function applyQuality(recompile) {
   if (sunLight.shadow.map) { sunLight.shadow.map.dispose(); sunLight.shadow.map = null; }
   if (recompile) for (const sc of [scene, showScene]) sc.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.needsUpdate = true; }); });
 }
-function placeShowCam() { const p = portrait(); showCam.fov = p ? 46 : 34; if (p) { showCam.position.set(0, 3.8, 18); showCam.lookAt(0, 0.1, 0); } else { showCam.position.set(4.4, 3.5, 17); showCam.lookAt(4.4, 0.35, 0); } showCam.updateProjectionMatrix(); }
+// 橫向：圓台放在右側選角面板左邊那塊空地的正中央。面板寬度照 CSS（.g-panel）算，面板還沒顯示也算得出來；
+// 17.35 是圓台中心到鏡頭的視線深度。760px 以下面板改在底部，圓台置中
+function placeShowCam() { const p = portrait(); showCam.fov = p ? 46 : 34; if (p) { showCam.position.set(0, 3.8, 18); showCam.lookAt(0, 0.1, 0); } else { const W = innerWidth, free = W > 760 ? W - Math.min(470, W * 0.38) - Math.max(24, W * 0.024) : W, x = (W - free) * 17.35 * Math.tan(17 * Math.PI / 180) / innerHeight; showCam.position.set(x, 3.5, 17); showCam.lookAt(x, 0.35, 0); } showCam.updateProjectionMatrix(); }
 
 // ============================================================
 // 啟動

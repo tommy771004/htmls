@@ -1255,8 +1255,10 @@ const pick = [];
     const n = Math.sin(x * 61) * Math.cos(z * 47) * 0.5 + Math.sin(x * 23 + z * 31) * 0.5;
     const pathD = Math.abs(z - (0.35 + 0.4 * Math.sin((x + gw / DIO / 2) * 9)) / DIO);
     gp.setY(i, edge ? 0 : 0.0018 + n * 0.0016 * Math.min(1, pathD * 60)); // 整片墊高 1.8 mm：起伏最低處也高過底座頂面，不再和底座 z-fighting
-    const onPath = pathD < 0.55 / DIO;
-    const c = onPath ? new T.Color(0.36, 0.27, 0.17) : new T.Color(0.2 + n * 0.03, 0.4 + n * 0.05, 0.16);
+    // 草色：大片的濃綠／枯黃斑塊（像模型用的靜電草），小徑邊緣被踩得半禿，不再是一條硬邊
+    const px = x * DIO, pz = z * DIO, m = 0.5 + 0.5 * Math.sin(px * 0.9 + Math.sin(pz * 1.3) * 1.7) * Math.cos(pz * 0.7 - px * 0.35);
+    const c = new T.Color(0.07, 0.2, 0.045).lerp(new T.Color(0.17, 0.21, 0.06), m * 0.8).multiplyScalar(0.92 + n * 0.08);
+    c.lerp(new T.Color(0.22, 0.15, 0.085).multiplyScalar(0.95 + n * 0.05), 1 - T.MathUtils.smoothstep(pathD * DIO, 0.42, 0.7));
     cols.push(c.r, c.g, c.b);
   }
   gg.setAttribute('color', new T.Float32BufferAttribute(cols, 3)); gg.computeVertexNormals();
@@ -1334,6 +1336,23 @@ for (let x = 1.8; x < 4.3; x += 0.6) { const p = new T.Mesh(new T.BoxGeometry(0.
 { const railG = new T.Mesh(new T.BoxGeometry(2.5, 0.05, 0.05), std(0x6b4b30, 0.9)); railG.scale.setScalar(1 / DIO); railG.position.copy(ex(3.0, 0.62, -1.5)); dio.add(railG); }
 dio.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; pick.push(o); } });
 both(dio);
+// 接地：樹冠下、石頭與木屋腳邊的草地壓暗（烘在頂點色裡的環境遮蔽），物件才像種在地上
+{
+  const ground = pick[0], gc = ground.geometry.attributes.color, gq = ground.geometry.attributes.position, bb = new T.Box3(), foot = [];
+  dio.updateMatrixWorld(true);
+  for (const o of [...dio.children, ...forest.children]) {
+    if (o === ground || o === forest) continue;
+    bb.setFromObject(o); if (bb.min.y > YG + 0.004) continue; // 懸空的柵欄橫桿不算
+    const hx = (bb.max.x - bb.min.x) / 2, hz = (bb.max.z - bb.min.z) / 2;
+    foot.push([(bb.min.x + bb.max.x) / 2, (bb.min.z + bb.max.z) / 2, hx * 0.6, hz * 0.6, Math.max(hx, hz) * 0.5 + 0.004]);
+  }
+  for (let i = 0; i < gq.count; i++) {
+    const wx = gq.getX(i) + ground.position.x, wz = gq.getZ(i) + ground.position.z; let ao = 1;
+    for (const [cx, cz, ax, az, f] of foot) ao = Math.min(ao, T.MathUtils.smoothstep(Math.hypot(Math.max(0, Math.abs(wx - cx) - ax), Math.max(0, Math.abs(wz - cz) - az)), 0, f));
+    const k = 0.55 + 0.45 * ao; gc.setXYZ(i, gc.getX(i) * k, gc.getY(i) * k, gc.getZ(i) * k);
+  }
+  gc.needsUpdate = true;
+}
 // 鏡頭才看得到：遠方地面、樹線、遠山、天空
 {
   const fg_ = new T.Mesh(new T.PlaneGeometry(60, 80), std(0x557a3c, 0.95)); fg_.rotation.x = -Math.PI / 2; fg_.position.set(X0 + LEN_REAL / DIO + 30, YG - 0.001, 0); far.add(fg_);

@@ -47,6 +47,24 @@ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.set
 const camera=new THREE.PerspectiveCamera(35,1,.1,200), controls=new OrbitControls(camera,renderer.domElement);controls.enablePan=false;controls.enableDamping=true;controls.minDistance=22;controls.maxDistance=65;controls.maxPolarAngle=Math.PI*.485;controls.autoRotateSpeed=.45;controls.target.set(0,8,0);
 const mat=(name,color,metalness=0,roughness=.72)=>new THREE.MeshStandardMaterial({name,color,metalness,roughness});
 const stone=mat('Ivory limestone','#eee1d2'),pink=mat('Rose limestone','#d8b9b0'),trim=mat('Carved pale stone','#f6e9d5',0,.6),blue=mat('Midnight blue glazed roof','#315b8c',.24,.36),gold=mat('Champagne gold','#c5a15b',.72,.28),glass=mat('Amber window glass','#82502a',.2,.3),door=mat('Carved walnut gates','#664a43'),base=mat('Plaza limestone','#c2c1b5',0,.86),grass=mat('Garden sage','#829989',0,.93);glass.emissive.set('#ffbf64');glass.emissiveIntensity=.25;
+// Contact occlusion for a model with no textures: blurred plan-view footprints darken the plaza and disk where walls, towers and the platform stand,
+// and every wall darkens into the crease above its support. Full strength on indirect light, under half on direct sun, so the sun shadow keeps the directional work.
+const AO_N=256,AO_SPAN=24,aoPlaza=new Float32Array(AO_N*AO_N),aoDisk=new Float32Array(AO_N*AO_N);
+const rectAt=(cx,cz,w,d)=>(x,z)=>Math.abs(x-cx)<=w/2&&Math.abs(z-cz)<=d/2,discAt=(cx,cz,r)=>(x,z)=>(x-cx)**2+(z-cz)**2<=r*r;
+const plazaFeet=[rectAt(0,0,10,4.8),rectAt(0,-2,6.4,4.8),rectAt(0,3.35,3.4,2.9),rectAt(0,-4.55,10.8,.8)];for(const s of [-1,1])plazaFeet.push(rectAt(s*6.2,-.5,1.3,6.5),discAt(s*5.9,2.7,1.18),discAt(s*5.3,-3.2,1.27),discAt(s*7.5,-.2,.7));
+function footprint(buf,inside){for(let j=0;j<AO_N;j++)for(let i=0;i<AO_N;i++){const x=(i+.5)/AO_N*AO_SPAN-AO_SPAN/2,z=(j+.5)/AO_N*AO_SPAN-AO_SPAN/2;if(inside(x,z))buf[j*AO_N+i]=1}}
+function blur(buf,r){const tmp=new Float32Array(buf.length),at=(i)=>Math.min(AO_N-1,Math.max(0,i));for(let pass=0;pass<3;pass++)for(const [src,dst,step,line] of [[buf,tmp,1,AO_N],[tmp,buf,AO_N,1]])for(let l=0;l<AO_N;l++){let acc=0;for(let i=-r;i<=r;i++)acc+=src[l*line+at(i)*step];for(let i=0;i<AO_N;i++){dst[l*line+i*step]=acc/(2*r+1);acc+=src[l*line+at(i+r+1)*step]-src[l*line+at(i-r)*step]}}}
+footprint(aoPlaza,(x,z)=>plazaFeet.some(f=>f(x,z)));footprint(aoDisk,rectAt(0,0,16.3,10.3));blur(aoPlaza,4);blur(aoDisk,5);
+const aoBytes=new Uint8Array(AO_N*AO_N*4);for(let i=0;i<AO_N*AO_N;i++){aoBytes[i*4]=aoPlaza[i]*255;aoBytes[i*4+1]=aoDisk[i]*255;aoBytes[i*4+3]=255}
+const aoTexture=new THREE.DataTexture(aoBytes,AO_N,AO_N);aoTexture.magFilter=aoTexture.minFilter=THREE.LinearFilter;aoTexture.needsUpdate=true;
+function contactOcclusion(shader){shader.uniforms.uContactAO={value:aoTexture};
+  shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vAoP;varying vec3 vAoN;').replace('#include <project_vertex>','#include <project_vertex>\nvAoP=(modelMatrix*vec4(transformed,1.)).xyz;vAoN=normalize(mat3(modelMatrix)*objectNormal);');
+  shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+uniform sampler2D uContactAO;varying vec3 vAoP;varying vec3 vAoN;
+float contactAO(){vec3 n=normalize(vAoN);vec2 q=vAoP.xz+n.xz*.25;bool plaza=abs(q.x)<8.15&&abs(q.y)<5.15;float support=plaza?.82:(dot(q,q)<125.4?.17:-.34);
+ float h=max(vAoP.y-support,0.);vec2 m=texture2D(uContactAO,vAoP.xz/${AO_SPAN}.+.5).rg;float floorAO=1.-.72*(plaza?m.r:m.g)*(1.-smoothstep(.02,.45,h));
+ float wallAO=mix(.52,1.,smoothstep(0.,.75,h));return mix(wallAO,floorAO,smoothstep(.3,.7,n.y));}`).replace('#include <aomap_fragment>','float cAO=contactAO();reflectedLight.indirectDiffuse*=cAO;reflectedLight.indirectSpecular*=cAO;reflectedLight.directDiffuse*=mix(1.,cAO,.45);\n#include <aomap_fragment>')}
+for(const m of [stone,pink,trim,blue,gold,glass,door,base,grass])m.onBeforeCompile=contactOcclusion;
 function mesh(g,m,x,y,z,parent=model){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
 function box(w,h,d,m,x,y,z,parent=model){return mesh(new THREE.BoxGeometry(w,h,d),m,x,y,z,parent)}
 function cyl(r,rt,h,m,x,y,z,n=32){return mesh(new THREE.CylinderGeometry(rt,r,h,n),m,x,y,z)}
@@ -64,7 +82,7 @@ for(let side of [-1,1]){box(.22,.24,3.65,trim,side*1.95,.8,7.1);for(let i=0;i<10
 // Palace volumes: front gatehouse, transverse wings, rear hall, central keep.
 box(10,4.5,4.8,pink,0,3,0);box(10.3,.2,5.05,trim,0,5.3,0);
 box(6.4,6,4.8,stone,0,3.75,-2);box(6.7,.25,5.1,trim,0,6.8,-2);
-function hipRoof(w,d,h,x,y,z){const geo=new THREE.CylinderGeometry(0,1,h,4,1);geo.rotateY(Math.PI/4);geo.scale(w/Math.SQRT2,1,d/Math.SQRT2);mesh(geo,blue,x,y+h/2,z)}
+function hipRoof(w,d,h,x,y,z){const geo=new THREE.CylinderGeometry(0,1,h,4,1).toNonIndexed();geo.rotateY(Math.PI/4);geo.scale(w/Math.SQRT2,1,d/Math.SQRT2);geo.computeVertexNormals();mesh(geo,blue,x,y+h/2,z)}// Flat roof planes: a four-sided cylinder's smooth normals shade each pitch like a curved cushion.
 hipRoof(10.9,5.5,2,0,5.4,0);hipRoof(7,5.5,2.4,0,6.9,-2);
 for(let side of [-1,1]){for(let x of [2.3,3.8])for(let y of [1.5,3.4]){windowAt(side*x,y,2.42);windowAt(side*x,y,-2.42,Math.PI)}for(let z of [-1,1])for(let y of [1.5,3.4])windowAt(side*5.02,y,z,side*Math.PI/2);}
 box(3.4,5.5,2.8,stone,0,3.45,3.35);box(3.7,.23,3.1,trim,0,6.3,3.35);hipRoof(4,3.5,2.15,0,6.4,3.35);
@@ -83,10 +101,13 @@ for(let side of [-1,1]){const x=side*1.47;box(.05,.05,.27,gold,x,2.86,4.88);cyl(
 // Consolidate static architecture by material to keep mobile draw calls low.
 model.updateMatrixWorld(true);const batches=new Map();model.traverse(o=>{if(!o.isMesh)return;const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();g.applyMatrix4(o.matrixWorld);for(const key of Object.keys(g.attributes))if(!['position','normal'].includes(key))g.deleteAttribute(key);if(!batches.has(o.material))batches.set(o.material,[]);batches.get(o.material).push(g)});const originals=new Set();model.traverse(o=>{if(o.isMesh)originals.add(o.geometry)});model.clear();for(const [m,geos]of batches){mesh(mergeGeometries(geos),m,0,0,0);geos.forEach(g=>g.dispose())}originals.forEach(g=>g.dispose());
 const {createStudioEnvironment,bindOrbitKeyboard}=await import('./assets/3d/studio.js');const studioEnvironment=createStudioEnvironment(THREE,renderer);scene.environment=studioEnvironment.texture;scene.environmentIntensity=.45;
-const hemi=new THREE.HemisphereLight('#e4efff','#a09589',1.25);scene.add(hemi);const sun=new THREE.DirectionalLight('#fff0d6',3);sun.position.set(-12,24,15);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-16,right:16,top:25,bottom:-15,near:1,far:70});sun.shadow.bias=-.0004;sun.shadow.normalBias=.035;sun.shadow.radius=4;scene.add(sun);const rim=new THREE.DirectionalLight('#b8cfff',2);rim.position.set(12,16,-12);scene.add(rim);
+const hemi=new THREE.HemisphereLight('#e4efff','#a09589',1.25);scene.add(hemi);const sun=new THREE.DirectionalLight('#fff0d6',3);sun.position.set(-12,24,15);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-16,right:16,top:25,bottom:-15,near:1,far:70});sun.shadow.bias=-.0004;sun.shadow.normalBias=.035;sun.shadow.radius=3;scene.add(sun);const rim=new THREE.DirectionalLight('#b8cfff',2);rim.position.set(12,16,-12);scene.add(rim);
 // Gate lanterns: dark by day, a warm pool on the steps and gatehouse at night.
 const lanternLight=new THREE.PointLight('#ffb35c',0,10,2);lanternLight.position.set(0,2.7,6.2);scene.add(lanternLight);
 const ground=mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({opacity:.16}),0,-.34,0,scene);ground.rotation.x=-Math.PI/2;ground.castShadow=false;
+// Soft contact shadow where the plinth rim meets the page (outside the model, so the glTF export is unchanged).
+const rimCanvas=document.createElement('canvas');rimCanvas.width=rimCanvas.height=256;const rimCtx=rimCanvas.getContext('2d'),rimFade=rimCtx.createRadialGradient(128,128,0,128,128,128);[[0,1],[.86,1],[.9,.62],[.95,.18],[1,0]].forEach(([s,a])=>rimFade.addColorStop(s,`rgba(0,0,0,${a})`));rimCtx.fillStyle=rimFade;rimCtx.fillRect(0,0,256,256);
+const rimShadow=new THREE.Mesh(new THREE.PlaneGeometry(25.6,25.6),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(rimCanvas),color:'#000',transparent:true,opacity:.3,depthWrite:false}));rimShadow.rotation.x=-Math.PI/2;rimShadow.position.y=-.33;scene.add(rimShadow);
 const motion=matchMedia('(prefers-reduced-motion: reduce)');
 let night=false, lightLevel=0, cameraMove=null, lightMove=null;
 const views={hero:[27,20,34],front:[0,16,43],side:[43,18,0],top:[0,46,.1]};

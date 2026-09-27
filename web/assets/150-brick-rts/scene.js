@@ -1274,6 +1274,11 @@ async function createScene(canvas, onFailure, options = {}) {
   scene.add(sun);
   sun.target.position.set(8, 0, 8);
   scene.add(sun.target);
+  const table = new T.Mesh(new T.PlaneGeometry(400, 400), new T.ShadowMaterial({ opacity: 0.24 }));
+  table.rotation.x = -Math.PI / 2;
+  table.position.y = -0.25;
+  table.receiveShadow = true;
+  scene.add(table);
   const groundGeometries = /* @__PURE__ */ new Set();
   const geometry = /* @__PURE__ */ new Map(), materials = /* @__PURE__ */ new Map();
   function material(color) {
@@ -1381,10 +1386,15 @@ async function createScene(canvas, onFailure, options = {}) {
       if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
       else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
       else if (o.kind === "tree") {
-        brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8, "#80664b", false);
-        brick(x - 0.2, z - 0.2, 0.7, 1, 1, 0.4, "#67835a");
-        brick(x - 0.075, z - 0.075, 1.1, 0.75, 0.75, 0.4, "#7e985f");
-        brick(x + 0.05, z + 0.05, 1.5, 0.5, 0.5, 0.3, "#91a970");
+        let v = Math.imul(o.x | 0, 73856093) ^ Math.imul(o.y | 0, 19349663);
+        v = Math.imul(v ^ v >>> 16, 73244475);
+        v = (v ^ v >>> 16) >>> 0;
+        const lift = [0, 0.16, -0.12, 0.08][v & 3], leaf = v >> 2 & 1 ? "#5d824e" : "#67835a";
+        brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8 + lift, "#80664b", false);
+        brick(x - 0.2, z - 0.2, 0.7 + lift, 1, 1, 0.4, leaf);
+        brick(x - 0.075, z - 0.075, 1.1 + lift, 0.75, 0.75, 0.4, "#7e985f");
+        if ((v & 3) !== 2) brick(x + 0.05, z + 0.05, 1.5 + lift, 0.5, 0.5, 0.3, "#91a970");
+        if ((v >> 3) % 3 === 0) brick(x + 0.175, z + 0.175, (v & 3) === 2 ? 1.5 + lift : 1.8 + lift, 0.25, 0.25, 0.2, "#91a970", false);
       } else if (o.kind === "hunt" || o.kind === "livestock") {
         const color = o.kind === "hunt" ? "#99714e" : "#e7e2cc";
         for (const dx of [0.1, 0.45]) for (const dz of [0.1, 0.5]) brick(x + dx, z + dz, 0, 0.09, 0.09, 0.28, "#615643", false);
@@ -1636,11 +1646,20 @@ async function createScene(canvas, onFailure, options = {}) {
     return out.sort((a, b) => a - b);
   }
   let lastDraw = 0;
+  let zoomGoal = null;
   function draw(time) {
     if (contextLost) return;
     resize();
     const dt = lastDraw ? Math.min(100, Math.max(0, time - lastDraw)) : 0, ease = 1 - Math.exp(-dt / 60);
     lastDraw = time;
+    if (zoomGoal !== null) {
+      zoom += (zoomGoal - zoom) * (1 - Math.exp(-dt / 70));
+      if (Math.abs(zoomGoal - zoom) < 2e-3) {
+        zoom = zoomGoal;
+        zoomGoal = null;
+      }
+      cameraUpdate();
+    }
     for (const u of units.values()) if (u.goal) {
       if (u.group.position.distanceTo(u.goal) < 2e-3) u.group.position.copy(u.goal);
       else u.group.position.lerp(u.goal, ease);
@@ -1821,6 +1840,7 @@ async function createScene(canvas, onFailure, options = {}) {
       sun.shadow.map?.dispose();
       sun.shadow.map = null;
       for (const m of materials.values()) m.needsUpdate = true;
+      table.material.needsUpdate = true;
     }
     canvas.dataset.quality = level;
   }
@@ -1863,6 +1883,7 @@ async function createScene(canvas, onFailure, options = {}) {
       focus.x = 4;
       focus.y = 1;
       focus.z = 4.85;
+      zoomGoal = null;
       zoom = 2.5;
       cameraUpdate();
     },
@@ -1873,6 +1894,7 @@ async function createScene(canvas, onFailure, options = {}) {
       focus.x = u.group.position.x;
       focus.y = u.group.position.y + 0.5;
       focus.z = u.group.position.z;
+      zoomGoal = null;
       zoom = 2.5;
       cameraUpdate();
     },
@@ -1895,8 +1917,17 @@ async function createScene(canvas, onFailure, options = {}) {
       if (latest) update(latest, selected);
     },
     zoom: (delta) => {
+      zoomGoal = null;
       zoom = Math.max(minZoom(), Math.min(2.5, zoom + delta));
       cameraUpdate();
+    },
+    wheelZoom: (delta) => {
+      const goal = Math.max(minZoom(), Math.min(2.5, (zoomGoal ?? zoom) + delta));
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        zoomGoal = null;
+        zoom = goal;
+        cameraUpdate();
+      } else zoomGoal = goal;
     },
     rotate: () => {
       angle += Math.PI / 2;
@@ -1913,6 +1944,7 @@ async function createScene(canvas, onFailure, options = {}) {
     focusHome: (x, z) => {
       resize();
       const aspect = width / Math.max(1, height), halfH = Math.max(10.5, 12 / aspect);
+      zoomGoal = null;
       zoom = Math.max(1, Math.min(2.5, Math.max(halfH * aspect / 10, halfH / 6)));
       focus.x = Math.max(0, Math.min(board, x));
       focus.z = Math.max(0, Math.min(board, z));
@@ -1927,6 +1959,7 @@ async function createScene(canvas, onFailure, options = {}) {
       focus.x = board / 2;
       focus.y = 0;
       focus.z = board / 2;
+      zoomGoal = null;
       zoom = Math.max(minZoom(), 16 / board);
       angle = Math.PI / 4;
       cameraUpdate();

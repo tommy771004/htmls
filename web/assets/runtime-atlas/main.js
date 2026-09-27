@@ -69,7 +69,7 @@ function textPlane(parent, text, width, pos, {bg = '#f0eee4', color = '#344c40',
 }
 function tube(points, material, radius = .035) {
   const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)), false, 'centripetal');
-  const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 60, radius, 8, false), material); mesh.castShadow = true; scene.add(mesh); return curve;
+  const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, radius, 8, false), material); mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); return curve;
 }
 function island(x, z, width, depth, name) {
   const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
@@ -142,16 +142,19 @@ for(let i=0;i<3;i++){
 for(let i=0;i<8;i++){const a=i/8*Math.PI*2;const node=new THREE.Mesh(new THREE.SphereGeometry(.065,12,8),orange);node.position.set(Math.cos(a)*1.15,Math.sin(a*2)*.5,Math.sin(a)*1.15);orb.add(node);}
 cylinder(model,.06,1.25,[0,1.2,0],copper);
 // Orthogonal routes are illustrative connections, not physical network topology.
+// Cables have weight: they lie on each island top, spill over its lip and run along the floor between islands.
 const routes = [
-  tube([[-4.5,.4,2.3],[-4.5,.45,3],[-2,.45,3],[1,.45,3],[4,.45,3],[5.1,.6,2],[5.1,.8,-1.8]],orange,.045),
-  tube([[5.1,.8,-1.8],[4.5,.8,-.7],[4.1,.7,1.3],[2,.6,1.5],[2,1,0]],orange,.045),
-  tube([[2,1,0],[2,.65,1.7],[.3,.65,1.7],[-1.2,.7,.5]],green,.04),
-  tube([[2.15,1,0],[2.15,.6,1.68],[4.28,.7,1.48],[4.68,.8,-.7],[5.25,.8,-1.8]],green,.04),
-  tube([[5.25,.8,-1.8],[5.28,.5,2],[4,.45,3.18],[1,.45,3.18],[-2,.45,3.18],[-4.68,.45,3.18],[-4.68,.4,2.3]],green,.045)
+  tube([[-4.5,.33,1.75],[-4.5,.36,2.2],[-4.5,-.02,2.52],[-4.3,-.275,2.95],[-2,-.275,3],[1,-.275,3],[4,-.275,3],[5.05,-.275,1.35],[5.1,-.04,.12],[5.1,.36,-.22],[5.1,.64,-.48],[5.1,.76,-.8],[5.1,.8,-1.8]],orange,.045),
+  tube([[5.1,.8,-1.8],[4.5,.76,-.8],[4.32,.36,-.24],[4.18,-.02,.12],[3.95,-.275,.75],[3.55,-.275,1.66],[2.4,-.275,1.8],[2,-.02,1.56],[2,.36,1.36],[2,.34,1.05],[2,1,0]],orange,.045),
+  tube([[2,1,0],[1.84,.34,1.02],[1.82,.36,1.4],[1.78,-.02,1.62],[1.5,-.275,1.95],[.55,-.275,2.12],[.12,.36,1.68],[-.25,.34,1.4],[-1.2,.7,.5]],green,.04),
+  tube([[2.15,1,0],[2.15,.34,1.05],[2.16,.36,1.36],[2.2,-.02,1.6],[2.5,-.275,1.98],[3.7,-.275,1.85],[4.13,-.275,.85],[4.36,-.02,.16],[4.5,.36,-.24],[4.68,.76,-.8],[5.25,.8,-1.8]],green,.04),
+  tube([[5.25,.8,-1.8],[5.25,.76,-.8],[5.25,.64,-.48],[5.25,.36,-.22],[5.25,-.04,.12],[5.22,-.275,1.4],[4,-.275,3.18],[1,-.275,3.18],[-2,-.275,3.18],[-4.5,-.275,3.14],[-4.68,-.02,2.52],[-4.68,.36,2.2],[-4.68,.33,1.75]],green,.045)
 ];
 const packet=new THREE.Mesh(new THREE.SphereGeometry(.105,16,12),new THREE.MeshBasicMaterial({color:'#f47836'}));scene.add(packet);packet.visible=false;
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({opacity:.12}));ground.rotation.x=-Math.PI/2;ground.position.y=-.32;ground.receiveShadow=true;scene.add(ground);
-const grid=new THREE.GridHelper(18,36,0xc4cbbd,0xd9ddd2);grid.position.y=-.305;grid.material.transparent=true;grid.material.opacity=.46;scene.add(grid);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({opacity:.19}));ground.rotation.x=-Math.PI/2;ground.position.y=-.32;ground.receiveShadow=true;scene.add(ground);
+const grid=new THREE.GridHelper(26,52,0xc4cbbd,0xd9ddd2);grid.position.y=-.305;grid.material.transparent=true;grid.material.opacity=.46;scene.add(grid);
+// The drafting grid thins out radially around the model instead of stopping at a square edge.
+grid.material.onBeforeCompile=s=>{s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vGrid;').replace('#include <begin_vertex>','#include <begin_vertex>\nvGrid=position.xz;');s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vGrid;').replace('#include <opaque_fragment>','diffuseColor.a*=1.-smoothstep(6.,12.5,length((vGrid-vec2(.3,-.2))*vec2(.92,1.25)));\n#include <opaque_fragment>');};
 scene.add(new THREE.HemisphereLight('#fff8df','#8d9f8c',3));
 const sun=new THREE.DirectionalLight('#fff6e3',4.1);sun.position.set(-5,12,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12,near:1,far:40});sun.shadow.normalBias=.035;sun.shadow.bias=-.0002;sun.shadow.radius=3;scene.add(sun);
 const fill=new THREE.DirectionalLight('#dbede6',1.7);fill.position.set(8,5,-5);scene.add(fill);
@@ -190,11 +193,13 @@ function syncFlow(){
 }
 function advanceFlow(){flowIndex++;flowElapsed=0;if(flowIndex>4){flowRunning=false;packet.visible=false;if(document.activeElement===$('stage-step')||document.activeElement===$('stage-pause'))$('stage-close').focus({preventScroll:true});}syncFlow();schedule();}
 function startFlow(){stopTour();selectScene(5);flowIndex=0;flowElapsed=0;flowRunning=!reduced.matches;syncFlow();stage.scrollIntoView({behavior:reduced.matches?'instant':'smooth',block:'center'});schedule();}
+const labelPoint=new THREE.Vector3();
 function render(){
   if(!renderer||lost)return;
   camera.updateMatrixWorld();
   const width=stage.clientWidth,height=stage.clientHeight;
-  objects.forEach((o,i)=>{const p=new THREE.Vector3(...o[4]);if(i===1)p.y+=expansion*1.2;p.project(camera);const b=hotspotButtons[i];b.hidden=p.z>1||p.z< -1||Math.abs(p.x)>.96||Math.abs(p.y)>.86;const half=b.offsetWidth/2+4;b.style.left=`${THREE.MathUtils.clamp((p.x*.5+.5)*width,half,width-half)}px`;b.style.top=`${THREE.MathUtils.clamp((-p.y*.5+.5)*height,flowOverlay.hidden?60:128,height-105)}px`;});
+  // Each label hangs above its anchor (its lower edge 6 px over the point), so it names the object without covering it.
+  objects.forEach((o,i)=>{const p=labelPoint.set(...o[4]);if(i===1)p.y+=expansion*1.2;p.project(camera);const b=hotspotButtons[i];b.hidden=p.z>1||p.z< -1||Math.abs(p.x)>.96||Math.abs(p.y)>.86;const half=b.offsetWidth/2+4;b.style.left=`${THREE.MathUtils.clamp((p.x*.5+.5)*width,half,width-half)}px`;b.style.top=`${THREE.MathUtils.clamp((-p.y*.5+.5)*height-b.offsetHeight/2-6,flowOverlay.hidden?60:128,height-105)}px`;});
   renderer.render(scene,camera);
 }
 function tick(now){
@@ -205,7 +210,7 @@ function tick(now){
   const desired=expanded?1:0;expansion=reduced.matches?desired:THREE.MathUtils.damp(expansion,desired,7,dt/1000);if(Math.abs(expansion-desired)<.001)expansion=desired;
   layers.forEach((l,i)=>l.position.y=.48+i*.45+expansion*i*.62);
   if(flowRunning){flowElapsed+=dt;if(flowElapsed>=2600)advanceFlow();}
-  if(flowIndex>=0&&flowIndex<5){packet.visible=true;packet.position.copy(routes[flowIndex].getPointAt(Math.min(flowElapsed/2600,1)));}
+  if(flowIndex>=0&&flowIndex<5){packet.visible=true;routes[flowIndex].getPointAt(Math.min(flowElapsed/2600,1),packet.position);packet.position.y=Math.max(packet.position.y,-.215);}// rides on the floor cable, never sinks into the floor
   render();
   if(tour||transition||flowRunning||expansion!==desired)schedule();else last=0;
 }

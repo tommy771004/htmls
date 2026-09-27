@@ -770,6 +770,15 @@ void main(){
   col*=.9+.15*grain;
   float stain=smoothstep(.5,.82,fbm(q*2.2+11.));
   col=mix(col,col*uStain,stain*.3);
+  // 接地墨暈：人物、屋腳、船舷與地面、水面相接處，依深度的凹陷量淡淡暈開一層墨（成對取樣，平面坡度會互相抵消，
+  // 只有真正的凹角與接觸處變深）；半徑以世界尺度換算成像素。落差超過約 2 單位（樹枝、屋簷懸在地面上方）不作用，免得剪影外圍一圈灰暈
+  float fpx=uRes.y*1.866;// = 解析度高 / (2·tan(15°))，鏡頭 fov 固定 30°
+  float rpx=clamp(1.1*fpx/dist,2.*uPx,18.*uPx),aoA=noise(vUv*uRes*.05)*.6,occ=0.;
+  for(int i=0;i<4;i++){float a=aoA+float(i)*.785398;vec2 o=vec2(cos(a),sin(a))*rpx*(i==1||i==3?.6:1.)/uRes;
+    float k=dist+.5*(vz(vUv+o)+vz(vUv-o));
+    occ+=smoothstep(.1,.6,k)*(1.-smoothstep(1.2,2.4,k));}
+  float ao=clamp(occ*.4,0.,1.)*fade*(1.-uNight*.4);
+  col=mix(col,uInkCol,ao*.24);
   col=mix(col,uInkCol,clamp(edge*uInkAmt,0.,.8));
   vec2 e=abs(vUv*2.-1.);
   float v=pow(e.x,10.)+pow(e.y,6.);
@@ -791,16 +800,18 @@ const EYE_MIN=11.5,TALL=[[-WALL_P-4.6,-WALL_P+4.6,-44,96,12],[-WALL_P-4,-WALL_P+
 function minPitch(dist,yaw,p){let need=EYE_MIN;const cx=-p+Math.sin(yaw)*dist*.9,cz=focusZ(p)+Math.cos(yaw)*dist*.9;
   for(const b of TALL)if(cx>b[0]-8&&cx<b[1]+8&&cz>b[2]-8&&cz<b[3]+8)need=Math.max(need,b[4]);
   return Math.asin(clamp((need-1.5)/dist,0,.97))}
-const ptrs=new Map();let pinch0=0,zoom0=1;
-canvas.addEventListener('pointerdown',e=>{canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('drag');lastInput=performance.now();if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);zoom0=tZoom}});
+// 環視放手後的慣性：拖曳時記下水平轉速，放開後沿原方向滑一小段再停（按下、雙指、重設、減少動態時取消）
+const ptrs=new Map();let pinch0=0,zoom0=1,flingV=0,moveT=0;
+canvas.addEventListener('pointerdown',e=>{canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('drag');lastInput=moveT=performance.now();flingV=0;if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);zoom0=tZoom}});
 canvas.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;lastInput=performance.now();
-  if(ptrs.size===1){tYaw=clamp(tYaw-dx*.0045,-1.25,1.25);tPitch=clamp(tPitch+dy*.0035,.12,1.28)}
-  else if(ptrs.size===2&&pinch0>0){const [a,b]=[...ptrs.values()];tZoom=clamp(zoom0*pinch0/Math.max(20,Math.hypot(a.x-b.x,a.y-b.y)),.35,1.8)}});
-const pUp=e=>{ptrs.delete(e.pointerId);if(!ptrs.size)canvas.classList.remove('drag');pinch0=0};
+  if(ptrs.size===1){tYaw=clamp(tYaw-dx*.0045,-1.25,1.25);tPitch=clamp(tPitch+dy*.0035,.12,1.28);const now=performance.now();flingV=flingV*.4+.6*(-dx*.0045)/Math.max(8,now-moveT)*1000;moveT=now}
+  else if(ptrs.size===2&&pinch0>0){flingV=0;const [a,b]=[...ptrs.values()];tZoom=clamp(zoom0*pinch0/Math.max(20,Math.hypot(a.x-b.x,a.y-b.y)),.35,1.8)}});
+const pUp=e=>{const was=ptrs.delete(e.pointerId);if(!ptrs.size)canvas.classList.remove('drag');pinch0=0;
+  if(e.type==='pointercancel'||ptrs.size||reduceMotion||performance.now()-moveT>80)flingV=0;else if(was)flingV=clamp(flingV,-1.8,1.8)};
 canvas.addEventListener('pointerup',pUp);canvas.addEventListener('pointercancel',pUp);canvas.addEventListener('lostpointercapture',pUp);
 canvas.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();const horiz=Math.abs(e.deltaX)>Math.abs(e.deltaY);
   if(e.shiftKey)tgtP=clamp(tgtP+(e.deltaY||e.deltaX)*.07,PSTART,PEND);else if(horiz)tgtP=clamp(tgtP-e.deltaX*.07,PSTART,PEND);else tZoom=clamp(tZoom*Math.exp(e.deltaY*.0011),.35,1.8)},{passive:false});
-function resetView(){tYaw=0;tPitch=DEF_PITCH;tZoom=1;lastInput=performance.now()}
+function resetView(){tYaw=0;tPitch=DEF_PITCH;tZoom=1;flingV=0;lastInput=performance.now()}
 canvas.addEventListener('dblclick',resetView);$('resetView').onclick=resetView;
 function syncMotion(){$('motion').textContent=motionPaused?'繼續動態':'暫停動態';$('motion').setAttribute('aria-pressed',String(motionPaused))}
 $('motion').onclick=()=>{motionPaused=!motionPaused;if(motionPaused){playing=false;updPlay()}syncMotion()};syncMotion();
@@ -932,6 +943,7 @@ function frame(now){
   lerpTod(reduceMotion?1:1-Math.exp(-dt*1.8));
   if(playing&&!ptrs.size&&!scrub){tgtP+=CONFIG.scrollSpeed*dt;if(tgtP>=PEND){tgtP=PEND;if(camP>PEND-1.5){playing=false;ended=true;updPlay()}}}
   const far=Math.abs(tgtP-camP)>40;camP+=(tgtP-camP)*(reduceMotion?1:1-Math.exp(-dt*(far?1.5:2.4)));
+  if(flingV&&!ptrs.size){tYaw+=flingV*dt;if(Math.abs(tYaw)>=1.25){tYaw=clamp(tYaw,-1.25,1.25);flingV=0}else{flingV*=Math.exp(-dt*6);if(Math.abs(flingV)<.03)flingV=0}}
   const mp=minPitch(baseDist()*tZoom,DEF_YAW+tYaw,tgtP);if(tPitch<mp)tPitch=mp;
   const kc=reduceMotion?1:1-Math.exp(-dt*6);yawO+=(tYaw-yawO)*kc;pitch+=(tPitch-pitch)*kc;zoom+=(tZoom-zoom)*kc;
   focus.set(-camP,1.5,focusZ(camP));

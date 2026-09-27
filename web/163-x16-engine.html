@@ -38,9 +38,15 @@ button,input{font:inherit;color:inherit}
 .stage-tools .btn{padding:0 14px;background:#1a251fed;border:1px solid var(--edge);height:36px}
 #gl:focus-visible{outline:2px solid var(--ink-2);outline-offset:-3px}
 #labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+/* Close views: the model dissolves into the page colour (= scene background) over the last 28px of the canvas
+   instead of meeting a hard crop line. The mask also hides the canvas's inset focus ring, so the ring is drawn on an overlay. */
+#gl{--fade:28px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 var(--fade),#000 calc(100% - var(--fade)),transparent),linear-gradient(180deg,transparent,#000 var(--fade),#000 calc(100% - var(--fade)),transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 var(--fade),#000 calc(100% - var(--fade)),transparent),linear-gradient(180deg,transparent,#000 var(--fade),#000 calc(100% - var(--fade)),transparent);mask-composite:intersect}
+#stage::after{content:"";position:absolute;left:0;right:0;top:0;height:calc(100% - 44px);pointer-events:none}
+#stage:has(#gl:focus-visible)::after{outline:2px solid var(--ink-2);outline-offset:-3px}
 .bank-tag{position:absolute;left:0;top:0;font:600 26px/1 var(--display);color:var(--ink);letter-spacing:.02em;
   transform:translate(-50%,-50%);text-shadow:0 1px 2px rgba(10,16,13,.8);will-change:transform}
-.bank-tag small{display:block;font:500 11px/1.2 var(--sans);color:var(--ink-2);text-align:center;margin-top:2px}
+.bank-tag small{display:block;font:500 11px/1.2 var(--sans);color:var(--ink-2);text-align:center;margin-top:2px;
+  padding:1px 5px;background:rgba(22,32,27,.72);border-radius:2px;text-shadow:none}
 
 .mark{position:fixed;left:32px;top:26px;pointer-events:none;max-width:calc(100vw - var(--panel-w) - 80px)}
 .mark h1{margin:0;font:600 clamp(64px,8vw,104px)/.82 var(--display);letter-spacing:.01em;color:var(--ink)}
@@ -131,6 +137,8 @@ input[type=range]:focus-visible{outline:2px solid var(--ink-2);outline-offset:2p
 @media (max-width:820px){
   :root{--panel-w:0px}
   body{overflow:auto}
+  /* Phone: the engine spans almost the full width, so only the top and bottom edges fade. */
+  #gl{-webkit-mask-image:linear-gradient(180deg,transparent,#000 var(--fade),#000 calc(100% - var(--fade)),transparent);mask-image:linear-gradient(180deg,transparent,#000 var(--fade),#000 calc(100% - var(--fade)),transparent)}
   #stage{position:relative;inset:auto;margin-top:108px;height:56svh;min-height:380px}
   .stage-tools{bottom:4px}
   .cell{height:36px}
@@ -215,10 +223,11 @@ input[type=range]:focus-visible{outline:2px solid var(--ink-2);outline-offset:2p
 
 <script type="module">
 const $ = id => document.getElementById(id);
-let THREE, OrbitControls;
+let THREE, OrbitControls, RoundedBoxGeometry;
 try {
   THREE = await import('three');
   ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
+  ({ RoundedBoxGeometry } = await import('three/addons/geometries/RoundedBoxGeometry.js'));
 } catch (e) {
   $('boot').innerHTML = '<div><b>3D 模型載入失敗</b>無法載入本機 3D 模組，請透過網站伺服器開啟此頁。</div>';
 }
@@ -419,6 +428,30 @@ const H = {
   head: housingMat('#b9b7ad', 0.5, 0.6),
   crinkle: housingMat('#1f221e', 0.86, 0.2),
 };
+// 砂模鑄鋁的斑駁霧面與皺紋漆的細顆粒：程序生成的灰階圖同時當粗糙度與凹凸
+{
+  let seed = 11; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  const grainTex = (blobs, fine, repeat) => {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d'); x.fillStyle = '#c8c8c8'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < blobs; i++) {
+      const px = rnd() * 256, py = rnd() * 256, r = 3 + rnd() * 14, v = 150 + rnd() * 105 | 0;
+      for (const ox of [-256, 0, 256]) for (const oy of [-256, 0, 256]) {
+        const g = x.createRadialGradient(px + ox, py + oy, 0, px + ox, py + oy, r);
+        g.addColorStop(0, `rgba(${v},${v},${v},.35)`); g.addColorStop(1, `rgba(${v},${v},${v},0)`);
+        x.fillStyle = g; x.fillRect(px + ox - r, py + oy - r, r * 2, r * 2);
+      }
+    }
+    const d = x.getImageData(0, 0, 256, 256);
+    for (let i = 0; i < d.data.length; i += 4) { const n = (rnd() - 0.5) * fine; d.data[i] += n; d.data[i + 1] += n; d.data[i + 2] += n; }
+    x.putImageData(d, 0, 0);
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat, repeat); t.anisotropy = 4;
+    return t;
+  };
+  const cast = grainTex(700, 26, 1.4), crinkle = grainTex(0, 90, 3);
+  for (const m of [H.cast, H.head]) { m.roughnessMap = cast; m.bumpMap = cast; m.bumpScale = 0.5; m.roughness += 0.12; }
+  H.crinkle.bumpMap = crinkle; H.crinkle.bumpScale = 1.2;
+}
 const cutMat = new THREE.MeshStandardMaterial({ color: '#c0391f', roughness: 0.62, metalness: 0.05, side: THREE.BackSide, clipShadows: true });
 const edgeMat = new THREE.LineBasicMaterial({ color: '#dfe6d6', transparent: true, opacity: 0.22, depthWrite: false });
 
@@ -430,14 +463,35 @@ const circ = (x, y, r, hole) => {
 };
 const poly = pts => { const s = new THREE.Shape(); s.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) s.lineTo(pts[i][0], pts[i][1]); s.closePath(); return s; };
 // 在截面平面（YZ）內畫形狀、沿 X 擠出：形狀 (sx, sy) → 世界 (y = sy, z = -sx)，形狀的 +Y 對應網格本地 +Y
-function plateYZ(shapes, depth, bevel = 0, seg = 28) {
-  const g = new THREE.ExtrudeGeometry(shapes, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2, curveSegments: seg });
-  g.translate(0, 0, -depth / 2); g.rotateY(Math.PI / 2); return g;
+function plateYZ(shapes, depth, bevel = 0, seg = 28, inset = false) {
+  const d = inset ? depth - 2 * bevel : depth;
+  const g = new THREE.ExtrudeGeometry(shapes, { depth: d, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelOffset: inset ? -bevel : 0, bevelSegments: 2, curveSegments: seg });
+  g.translate(0, 0, -d / 2); g.rotateY(Math.PI / 2); return g;
 }
 // 汽缸排本地座標：x = 曲軸方向、y = 汽缸軸線、z = 側向。形狀 (sx, sy) → (x = sx, z = -sy)，沿 y 擠出
-function slabBank(shapes, y0, y1) {
-  const g = new THREE.ExtrudeGeometry(shapes, { depth: y1 - y0, bevelEnabled: false, curveSegments: 40 });
+// bevel > 0：鑄件倒角。bevelOffset = -bevel 讓側壁留在原輪廓、端面內縮，外形尺寸不變。
+// 兩段倒角面相對端面是 22.5°／67.5°，EdgesGeometry(28°) 只會在倒角中線留一條邊線，不會變雙線。
+function slabBank(shapes, y0, y1, bevel = 0) {
+  const g = new THREE.ExtrudeGeometry(shapes, bevel
+    ? { depth: y1 - y0 - 2 * bevel, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelOffset: -bevel, bevelSegments: 2, curveSegments: 40 }
+    : { depth: y1 - y0, bevelEnabled: false, curveSegments: 40 });
+  if (bevel) g.translate(0, 0, bevel);
   g.rotateX(-Math.PI / 2); g.translate(0, y0, 0); return g;
+}
+// 圓角矩形（每個角 6 段、15°，低於邊線門檻）；角的中點記進 mids，之後補回半透明模式的豎向邊線
+function rrect(path, x0, y0, x1, y1, r, mids) {
+  [[x1 - r, y0 + r, -90], [x1 - r, y1 - r, 0], [x0 + r, y1 - r, 90], [x0 + r, y0 + r, 180]].forEach(([cx, cy, a0], i) => {
+    for (let k = 0; k <= 6; k++) { const a = (a0 + k * 15) * D2R, x = cx + r * Math.cos(a), y = cy + r * Math.sin(a); i || k ? path.lineTo(x, y) : path.moveTo(x, y); }
+    if (mids) mids.push([cx + r * Math.cos((a0 + 45) * D2R), cy + r * Math.sin((a0 + 45) * D2R)]);
+  });
+  path.closePath(); return path;
+}
+// 邊線來自倒角後的幾何（每條倒角一條中線），再加上圓角中線的豎向線段
+function slabEdges(g, mids, y0, y1, bevel) {
+  const e = new THREE.EdgesGeometry(g, 28), a = e.attributes.position.array, extra = [];
+  for (const [x, y] of mids) extra.push(x, y0 + 0.3 * bevel, -y, x, y1 - 0.3 * bevel, -y);
+  const arr = new Float32Array(a.length + extra.length); arr.set(a); arr.set(extra, a.length);
+  e.setAttribute('position', new THREE.BufferAttribute(arr, 3)); g.userData.edges = e; return g;
 }
 const P2 = (deg, r) => [-r * Math.sin(deg * D2R), r * Math.cos(deg * D2R)];   // 截面角度 → 形狀座標
 const cylX = (r, len, seg = 32) => new THREE.CylinderGeometry(r, r, len, seg).rotateZ(Math.PI / 2);
@@ -449,7 +503,7 @@ const housing = [];
 function addHousing(g, m, parent, x = 0) {
   const o = mesh(g, m, parent);
   const cap = new THREE.Mesh(g, cutMat); cap.visible = false; cap.castShadow = false; parent.add(cap);
-  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(g, 28), edgeMat); parent.add(edges);
+  const edges = new THREE.LineSegments(g.userData.edges || new THREE.EdgesGeometry(g, 28), edgeMat); parent.add(edges);
   for (const e of [o, cap, edges]) e.position.x = x;
   housing.push({ o, cap, edges });
   return o;
@@ -577,13 +631,14 @@ const plugG = (() => {
 const sparkG = new THREE.SphereGeometry(0.06, 16, 12);
 
 const HW = 0.48, HL = 2.2;   // 缸體側向半寬、長度半長
+const blockMids = [], deckMids = [], wallMids = [], capMids = [];
 const blockShape = (() => {
-  const s = poly([[-HL, -HW], [HL, -HW], [HL, HW], [-HL, HW]]);
+  const s = rrect(new THREE.Shape(), -HL, -HW, HL, HW, 0.06, blockMids);
   XJ.forEach(x => { const h = new THREE.Path(); h.absarc(x, 0, BORE, 0, TAU, true); s.holes.push(h); });
   return s;
 })();
 const deckShape = (() => {
-  const s = poly([[-HL, -HW], [HL, -HW], [HL, HW], [-HL, HW]]);
+  const s = rrect(new THREE.Shape(), -HL, -HW, HL, HW, 0.06, deckMids);
   XJ.forEach(x => {
     for (const z of [-0.2, 0.2]) { const h = new THREE.Path(); h.absarc(x, z, 0.12, 0, TAU, true); s.holes.push(h); }
     const h = new THREE.Path(); h.absarc(x, 0, 0.036, 0, TAU, true); s.holes.push(h);
@@ -591,19 +646,18 @@ const deckShape = (() => {
   return s;
 })();
 const wallShape = (() => {
-  const s = poly([[-HL, -HW - 0.02], [HL, -HW - 0.02], [HL, HW + 0.02], [-HL, HW + 0.02]]);
-  const h = new THREE.Path(); [[-HL + 0.07, -HW + 0.05], [-HL + 0.07, HW - 0.05], [HL - 0.07, HW - 0.05], [HL - 0.07, -HW + 0.05]].forEach(([x, y], i) => i ? h.lineTo(x, y) : h.moveTo(x, y)); h.closePath();
-  s.holes.push(h); return s;
+  const s = rrect(new THREE.Shape(), -HL, -HW - 0.02, HL, HW + 0.02, 0.07, wallMids);
+  s.holes.push(rrect(new THREE.Path(), -HL + 0.07, -HW + 0.05, HL - 0.07, HW - 0.05, 0.03, wallMids)); return s;
 })();
 const capShape = (() => {
-  const s = poly([[-HL, -HW - 0.02], [HL, -HW - 0.02], [HL, HW + 0.02], [-HL, HW + 0.02]]);
+  const s = rrect(new THREE.Shape(), -HL, -HW - 0.02, HL, HW + 0.02, 0.07, capMids);
   XJ.forEach(x => { const h = new THREE.Path(); h.absarc(x, 0, 0.05, 0, TAU, true); s.holes.push(h); });
   return s;
 })();
-const blockG = slabBank([blockShape], BASE_S, deckS);
-const deckG = slabBank([deckShape], deckS, deckS + 0.07);
-const wallG = slabBank([wallShape], deckS + 0.07, deckS + 0.66);
-const capG = slabBank([capShape], deckS + 0.66, deckS + 0.72);
+const blockG = slabEdges(slabBank([blockShape], BASE_S, deckS, 0.03), blockMids, BASE_S, deckS, 0.03);
+const deckG = slabEdges(slabBank([deckShape], deckS, deckS + 0.07, 0.012), deckMids, deckS, deckS + 0.07, 0.012);
+const wallG = slabEdges(slabBank([wallShape], deckS + 0.07, deckS + 0.66, 0.018), wallMids, deckS + 0.07, deckS + 0.66, 0.018);
+const capG = slabEdges(slabBank([capShape], deckS + 0.66, deckS + 0.72, 0.02), capMids, deckS + 0.66, deckS + 0.72, 0.02);
 const camshaftG = cylX(0.045, 2 * HL - 0.1, 16);
 
 // Visible mechanical detail shares the same housing/clipping lifecycle.
@@ -662,29 +716,73 @@ BANKS.forEach((b, k) => {
 
 /* ------------------------------------------------------------------ crankcase */
 {
-  // 四片曲軸箱谷板（兩排汽缸之間）
-  [0, 90, 180, 270].forEach(c => {
-    const s = new THREE.Shape(), a0 = c - 20, a1 = c + 20, r0 = 0.98, r1 = 1.07;
-    const pts = [];
-    for (let i = 0; i <= 16; i++) pts.push(P2(a0 + (a1 - a0) * i / 16, r1));
-    for (let i = 16; i >= 0; i--) pts.push(P2(a0 + (a1 - a0) * i / 16, r0));
-    pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath();
-    const g = new THREE.ExtrudeGeometry([s], { depth: 2 * HL, bevelEnabled: false }); g.translate(0, 0, -HL); g.rotateY(Math.PI / 2);
-    addHousing(g, H.cast, engine);
-  });
+  // 四片曲軸箱谷板（兩排汽缸之間）：環形扇區 r0–r1，沿曲軸方向的四條長邊做圓角 VR。
+  // 每個圓角 2 段：與弧面、側面的轉折都 <28°、兩段之間約 45°，半透明模式的 EdgesGeometry 每條長邊剛好一條線。
+  // 側面用解析法線，弧面不再出現平面分段的條紋；兩端是平面，貼齊前後端蓋。
+  const VA = 21, VR = 0.03, r0 = 0.98, r1 = 1.07;
+  const valleyG = c => {
+    const P = [], N = [], at = (r, d) => [r * Math.cos(d * D2R), r * Math.sin(d * D2R)];
+    const add = (p, nd) => { P.push(p); N.push(at(1, nd)); };
+    const round = (rc, dc, f0, f1) => { const [y, z] = at(rc, dc), f = (f0 + f1) / 2; add([y + VR * Math.cos(f * D2R), z + VR * Math.sin(f * D2R)], f); };
+    const a0 = c - VA, a1 = c + VA, dO = Math.asin(VR / (r1 - VR)) / D2R, dI = Math.asin(VR / (r0 + VR)) / D2R;
+    const sO = (r1 - VR) * Math.cos(dO * D2R), sI = (r0 + VR) * Math.cos(dI * D2R);
+    for (let i = 0; i <= 16; i++) { const d = a0 + dO + (a1 - a0 - 2 * dO) * i / 16; add(at(r1, d), d); }
+    round(r1 - VR, a1 - dO, a1 - dO, a1 + 90);
+    add(at(sO, a1), a1 + 90); add(at(sI, a1), a1 + 90);
+    round(r0 + VR, a1 - dI, a1 + 90, a1 - dI + 180);
+    for (let i = 0; i <= 16; i++) { const d = a1 - dI - (a1 - a0 - 2 * dI) * i / 16; add(at(r0, d), d + 180); }
+    round(r0 + VR, a0 + dI, a0 + dI + 180, a0 + 270);
+    add(at(sI, a0), a0 - 90); add(at(sO, a0), a0 - 90);
+    round(r1 - VR, a0 + dO, a0 - 90, a0 + dO);
+    const n = P.length, pos = [], nor = [], uv = [], idx = [];
+    let v = 0;
+    for (let i = 0; i <= n; i++) {                  // 側面：輪廓逆時針（YZ 平面），(A0,B0,B1) 的法線朝外
+      const p = P[i % n], q = N[i % n];
+      if (i) v += Math.hypot(p[0] - P[i - 1][0], p[1] - P[i - 1][1]);
+      for (const x of [-HL, HL]) { pos.push(x, p[0], p[1]); nor.push(0, q[0], q[1]); uv.push(x, v); }
+      if (i) { const a = 2 * (i - 1); idx.push(a, a + 2, a + 3, a, a + 3, a + 1); }
+    }
+    const tri = THREE.ShapeUtils.triangulateShape(P.map(([y, z]) => new THREE.Vector2(y, z)), []);
+    for (const x of [-HL, HL]) {                     // 兩端平蓋
+      const o = pos.length / 3;
+      for (const [y, z] of P) { pos.push(x, y, z); nor.push(Math.sign(x), 0, 0); uv.push(z, y); }
+      for (const [a, b, c2] of tri) {
+        const ccw = (P[b][0] - P[a][0]) * (P[c2][1] - P[a][1]) - (P[b][1] - P[a][1]) * (P[c2][0] - P[a][0]) > 0;
+        idx.push(...((ccw === x > 0) ? [o + a, o + b, o + c2] : [o + a, o + c2, o + b]));
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx); return g;
+  };
+  [0, 90, 180, 270].forEach(c => addHousing(valleyG(c), H.cast, engine));
   // 主軸承隔板與前後端蓋
-  const bulk = plateYZ([circ(0, 0, 0.99, 0.16)], 0.09, 0, 48);
+  const bulk = plateYZ([circ(0, 0, 0.99, 0.16)], 0.09, 0.012, 48, true);
+  bulk.userData.edges = new THREE.EdgesGeometry(bulk, 28);
   [-1.05, 0, 1.05].forEach(x => addHousing(bulk, H.cast, engine, x));
-  const endP = plateYZ([circ(0, 0, 1.07, 0.17)], 0.1, 0, 56);
-  [-HL - 0.05, HL + 0.05].forEach(x => addHousing(endP, H.cast, engine, x));
+  const endP = plateYZ([circ(0, 0, 1.07, 0.17)], 0.1, 0.025, 56, true), endEdges = new THREE.EdgesGeometry(endP, 28);
+  // 端蓋內側的定位止口（r 1.00–1.044）：端蓋內緣倒角、缸體底部倒角與谷板側面在兩端角落會留下針孔，止口把它補起來。
+  // 止口不超出端蓋端面的半徑，外側的 V 形接縫不變；它藏在谷板與缸體裡，邊線沿用原端蓋的。
+  [-1, 1].forEach(side => {
+    const lip = plateYZ([circ(0, 0, 1.044, 1.0)], 0.05, 0, 56).translate(-side * 0.055, 0, 0), g = new THREE.BufferGeometry();
+    for (const k of ['position', 'normal', 'uv']) {
+      const a = endP.attributes[k].array, b = lip.attributes[k].array, arr = new Float32Array(a.length + b.length);
+      arr.set(a); arr.set(b, a.length); g.setAttribute(k, new THREE.BufferAttribute(arr, endP.attributes[k].itemSize));
+    }
+    g.userData.edges = endEdges;
+    addHousing(g, H.cast, engine, side * (HL + 0.05));
+  });
 }
-// 引擎架
+// 引擎架：鋼板件的圓角（立柱 0.03、托架 0.02、底板 0.012），尺寸不變；不屬於機殼，沒有邊線也不參與剖切
 {
   const topY = -1.03;
+  const postG = new RoundedBoxGeometry(0.16, topY - FLOOR_Y, 0.34, 2, 0.03).translate(0, (topY + FLOOR_Y) / 2, 0);
+  const footG = new RoundedBoxGeometry(0.5, 0.05, 1.5, 2, 0.012).translate(0, FLOOR_Y + 0.025, 0);
+  const cradleG = new RoundedBoxGeometry(0.2, 0.08, 0.9, 2, 0.02).translate(0, topY - 0.04, 0);
   [-1.35, 1.35].forEach(x => {
-    mesh(new THREE.BoxGeometry(0.16, topY - FLOOR_Y, 0.34).translate(0, (topY + FLOOR_Y) / 2, 0), M.stand, scene).position.x = x;
-    mesh(new THREE.BoxGeometry(0.5, 0.05, 1.5).translate(0, FLOOR_Y + 0.025, 0), M.stand, scene).position.x = x;
-    const cr = mesh(new THREE.BoxGeometry(0.2, 0.08, 0.9).translate(0, topY - 0.04, 0), M.stand, scene); cr.position.x = x;
+    for (const g of [postG, footG, cradleG]) mesh(g, M.stand, scene).position.x = x;
   });
 }
 
@@ -906,6 +1004,18 @@ reducedMotion.addEventListener('change', () => {
     const hit = ray.intersectObjects(targets, false)[0];
     if (hit) select(hit.object.userData.cyl);
   });
+  // 滑鼠停在活塞上時提示可點選（其餘時候維持拖曳游標）
+  let hoverT = 0; const hoverTargets = [];
+  canvas.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || e.buttons) { canvas.style.cursor = ''; return; }
+    const now = performance.now(); if (now - hoverT < 80) return; hoverT = now;
+    const r = canvas.getBoundingClientRect();
+    ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    hoverTargets.length = 0; cylObjs.forEach(o => { hoverTargets.push(o.piston.children[0]); if (o.gas.visible) hoverTargets.push(o.gas); });
+    canvas.style.cursor = ray.intersectObjects(hoverTargets, false).length ? 'pointer' : '';
+  });
+  canvas.addEventListener('pointerleave', () => { canvas.style.cursor = ''; });
 }
 
 // 聲音：每次點火一記低頻悶響（WebAudio 即時合成）
@@ -1048,7 +1158,8 @@ function frame(now) {
     l.pos.set(0, deckS + 1.05, 0); bankGroups[k].localToWorld(l.pos);
     l.pos.project(camera);
     const px = (l.pos.x + 1) / 2 * w, py = (1 - l.pos.y) / 2 * h;
-    const vis = l.pos.z < 1 && Math.abs(l.pos.x) < 1.1 && Math.abs(l.pos.y) < 1.1 && !placed.some(([x, y]) => Math.abs(x - px) < 56 && Math.abs(y - py) < 44);
+    // A tag must sit wholly inside the canvas: near the bottom it would land on the focus/reset buttons.
+    const vis = l.pos.z < 1 && px > 24 && px < w - 24 && py > 24 && py < h - 24 && !placed.some(([x, y]) => Math.abs(x - px) < 56 && Math.abs(y - py) < 44);
     l.el.style.display = vis ? '' : 'none';
     if (vis) { placed.push([px, py]); l.el.style.transform = `translate(${px}px,${py}px) translate(-50%,-50%)`; }
   });

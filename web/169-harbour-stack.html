@@ -407,7 +407,8 @@ const mTide = M({ map: concreteTex, color: 0x56654c, roughness: .38, metalness: 
 const mRubber = M({ color: 0x1d2120, roughness: .82 });
 const ropeGeos = [];
 for (const [x, z] of pillarPos) {
-  box(1.5, DECK_Y + 2.2, 1.5, mConcreteDark, x, -2.2, z);
+  // 柱頂收在甲板底下的混凝土圈梁裡（5.3 m）：原本柱頂剛好等於甲板面 6.0 m，兩個面搶深度，甲板上六塊黑色條紋方格
+  box(1.5, DECK_Y + 1.5, 1.5, mConcreteDark, x, -2.2, z);
   box(1.56, 1.35, 1.56, mTide, x, -.6, z, world, false);
   const t = new THREE.Mesh(new THREE.TorusGeometry(.55, .18, 8, 18), mRubber); t.position.set(x + .9, 1.1, z); t.rotation.y = Math.PI / 2; t.castShadow = true; world.add(t);
   for (const dz of [-.3, .3]) ropeGeos.push({ geo: cylUnit, matrix: strutMat(new THREE.Vector3(x + .9, 1.6, z + dz), new THREE.Vector3(x + .8, 2.9, z + dz * .4), .025) });
@@ -764,6 +765,12 @@ const water = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.Shad
       g += d4 * cos(dot(p, d4)*5.1 + t*2.8) * 5.1*.004;
       return normalize(vec3(-g.x, 1., -g.y));
     }
+    // 船殼吃水線：以船身方向的膠囊近似船殼，船頭收窄；回傳離船殼越近越接近 1
+    float hullLap(vec2 p, vec2 c, float h, float aft, float fore, float r){
+      vec2 rel = p - c; vec2 f = vec2(sin(h), cos(h)); float a = dot(rel, f), s = dot(rel, vec2(f.y, -f.x));
+      float rr = r * mix(1., .4, smoothstep(0., fore + r * .4, a));
+      return exp(-max(length(vec2(s, a - clamp(a, -aft, fore))) - rr, 0.) * 6.);
+    }
     void main(){
       vec2 p = vW.xz; float t = time;
       vec3 N = waveN(p, t);
@@ -783,6 +790,9 @@ const water = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.Shad
       { float lap = 0.;
         ${pillarPos.map(([x, z]) => `lap += exp(-max(max(abs(p.x - ${x.toFixed(1)}), abs(p.y - ${z.toFixed(1)})) - .78, 0.) * 5.);`).join(' ')}
         ${[[14.8, -1.4], [18.4, -1.4], [14.8, 1.4], [18.4, 1.4]].map(([x, z]) => `lap += exp(-max(length(p - vec2(${x}, ${z})) - .15, 0.) * 7.) * .8;`).join(' ')}
+        // 船吃水之後，船殼貼水的那一圈也有碎浪：漁船跟著 uBoat 走，兩艘小舢舨固定泊著
+        lap += hullLap(p, uBoat.xy, uBoat.z, 2.25, 2.6, .97) * .9;
+        lap += hullLap(p, vec2(-9.6, 3.4), .5, 1.15, 1.3, .56) * .7 + hullLap(p, vec2(16.5, -3.6), 1.3, 1.15, 1.3, .56) * .7;
         float br = .55 + .45 * sin(t * 1.6 + p.x * 1.3 + p.y * .9) * sin(t * .7 + p.y * 2.1);
         foam += lap * br * (.32 + .22 * hash(floor(p * 7.) + floor(t * 3.))); }
       // 雨滴漣漪
@@ -929,6 +939,65 @@ function setMode(m, instant) {
   if (m === 'orbit') { orbit.az = Math.atan2(camera.position.x - orbit.tg.x, camera.position.z - orbit.tg.z); orbit.el = Math.max(.05, Math.asin(Math.min(1, (camera.position.y - orbit.tg.y) / Math.max(1, camera.position.distanceTo(orbit.tg))))); orbit.dist = Math.max(8, camera.position.distanceTo(orbit.tg)); }
 }
 function orbitPos() { const d = orbit.dist * THREE.MathUtils.clamp(.72 / camera.aspect, 1, 3) * (innerWidth <= 760 && innerHeight > 540 && !document.body.classList.contains('frame') ? 1.12 : 1); return new THREE.Vector3(orbit.tg.x + d * Math.sin(orbit.az) * Math.cos(orbit.el), orbit.tg.y + d * Math.sin(orbit.el), orbit.tg.z + d * Math.cos(orbit.az) * Math.cos(orbit.el)); }
+// 環繞攝影機不穿進樓裡：從「店面」「階梯」「水線」這些貼著牆的視角拉近再繞到背後，原本會鑽進樓塊、甲板或樁柱，看到沒有背面的牆。
+// 做法是第三人稱的「彈簧臂」：從目標往攝影機打一條線，碰到實體（外擴 0.45 m，大於近裁面）就把攝影機收到第一個碰撞點的目標側，
+// 目標永遠在畫面裡；收進去要快、放出來慢慢放，減少動態時直接到位。實體的前 NB 塊是樓塊，其後是甲板板與六根樁柱
+const camSolids = blocks.map(b => [b.x0 - .65, b.x1 + .65, b.y0 - .45, b.y1 + .65, b.z0 - .65, b.z1 + .65]);
+camSolids.push([-8.75, 8.75, 4.79, DECK_Y + .45, -7.75, 7.75]);
+for (const [x, z] of pillarPos) camSolids.push([x - 1.23, x + 1.23, -3, 5.75, z - 1.23, z + 1.23]);
+// 不外擴的原始盒子：目標若貼在牆面（店面視角），它會落在外擴範圍內，這時只看線是否真的穿進原始盒子
+// 各內縮 5 cm：店面視角的目標 z 經過插值是 2.999999…，剛好在牆面上，不能被算成在樓裡
+const camRaw = blocks.map(b => [b.x0 + .05, b.x1 - .05, b.y0 + .05, b.y1 + .15, b.z0 + .05, b.z1 - .05]);
+camRaw.push([-8.3, 8.3, 5.24, DECK_Y, -7.3, 7.3]);
+for (const [x, z] of pillarPos) camRaw.push([x - .78, x + .78, -3, 5.3, z - .78, z + .78]);
+// 擋線用的是不內縮的原盒子，起點沿射線先走 6 cm：貼著牆面往外走不算擋，往牆裡斜切（哪怕只斜一點）就算擋
+const camWall = blocks.map(b => [b.x0, b.x1, b.y0, b.y1 + .2, b.z0, b.z1]).concat(camRaw.slice(blocks.length)), _po = new THREE.Vector3();
+const NB = blocks.length, ARM_MIN = 3, _pd = new THREE.Vector3(), camGood = new THREE.Vector3(); let armShort = 0, camGoodOk = false;
+// 射線與盒子：回傳進入點的距離（起點在盒內時為負），沒碰到回傳 Infinity
+function slabNear(o, d, s) {
+  let tn = -Infinity, tf = Infinity;
+  for (let a = 0; a < 3; a++) {
+    const oa = a === 0 ? o.x : a === 1 ? o.y : o.z, da = a === 0 ? d.x : a === 1 ? d.y : d.z, lo = s[a * 2], hi = s[a * 2 + 1];
+    if (Math.abs(da) < 1e-6) { if (oa <= lo || oa >= hi) return Infinity; continue; }
+    let t1 = (lo - oa) / da, t2 = (hi - oa) / da; if (t1 > t2) { const q = t1; t1 = t2; t2 = q; }
+    if (t1 > tn) tn = t1; if (t2 < tf) tf = t2; if (tn > tf || tf <= 1e-4) return Infinity; // 只擦過起點所在的面、往外走，不算碰到
+  }
+  return tn;
+}
+function inBlockAt(tg, t) { const x = tg.x + _pd.x * t, y = tg.y + _pd.y * t, z = tg.z + _pd.z * t;
+  for (let i = 0; i < camSolids.length; i++) { const s = camSolids[i]; if (x > s[0] && x < s[1] && y > s[2] && y < s[3] && z > s[4] && z < s[5]) return i; } return -1; }
+let armD = 0, armInMass = false;
+// 回傳從目標往 p 方向、第一個實體之前可用的長度（方向存在 _pd，全長存在 armD）
+function armClear(tg, p) {
+  _pd.subVectors(p, tg); armD = _pd.length(); if (armD < 1e-4) return armD; _pd.divideScalar(armD);
+  // 目標在樓裡（原稿、屋頂、背巷看的是整棟樓）：樓塊本身就是主體，不擋線，只在攝影機落進某一塊時往回收
+  let inMass = false;
+  for (let i = 0; i < NB; i++) { const b = camRaw[i]; if (tg.x > b[0] && tg.x < b[1] && tg.y > b[2] && tg.y < b[3] && tg.z > b[4] && tg.z < b[5]) { inMass = true; break; } }
+  armInMass = inMass; let L = armD;
+  // 擋線看原盒子（細的樁柱不會因為外擴而擋掉「水線」視角）；碰到就退回 0.45 m
+  _po.copy(tg).addScaledVector(_pd, .06);
+  for (let i = inMass ? NB : 0; i < camWall.length; i++) { const t = slabNear(_po, _pd, camWall[i]); if (t < Infinity) L = Math.min(L, Math.max(t + .06 - .45, 0)); }
+  // 攝影機本身不能落在任何實體的外擴範圍裡（斜擦過牆角時），落進去就收到那塊的外擴入口
+  for (let it = 0, k; it < 4 && (k = inBlockAt(tg, L)) >= 0; it++) L = Math.max(0, Math.min(L, slabNear(tg, _pd, camSolids[k])));
+  return L;
+}
+// 攝影機平滑移動的途中也不能穿過實體（例如從牆的一側被放開、跳到另一側時）：途中的位置照樣收回，收不回就停在上一幀
+function armGuard(tg, cam, prev) {
+  const L = armClear(tg, cam); if (L >= armD - 1e-3) return;
+  if (L >= ARM_MIN) { cam.copy(tg).addScaledVector(_pd, L); return; }
+  const pl = armClear(tg, prev); if (pl >= armD - 1e-3) cam.copy(prev); // 上一幀本身也不合法（剛從別的模式切過來）就不擋，免得卡住
+}
+const _prevCam = new THREE.Vector3();
+function springArm(tg, p, dt) {
+  const L = armClear(tg, p), D = armD, inMass = armInMass; if (D < 1e-4) return;
+  // 目標貼在牆面、攝影機繞到那道牆後面：沒有位置能不穿牆又看得到目標，停在最後一個可行的位置（像被牆擋住），往回拖就恢復
+  if (L < ARM_MIN) { if (camGoodOk) p.copy(camGood); return; }
+  const short = D - L;
+  armShort = reduced || short > armShort ? short : armShort + (short - armShort) * (1 - Math.exp(-dt * 2.5));
+  let arm = Math.max(D - armShort, ARM_MIN);
+  if (inMass && inBlockAt(tg, arm) >= 0) { arm = L; armShort = short; }
+  p.copy(tg).addScaledVector(_pd, arm); camGood.copy(p); camGoodOk = true;
+}
 document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 document.querySelectorAll('[data-wx]').forEach(b => b.addEventListener('click', () => setWeather(b.dataset.wx)));
 let drift = false;
@@ -977,7 +1046,8 @@ addEventListener('keydown', e => {
   if ($('help').classList.contains('on')) {
     if (k === 'tab') { e.preventDefault(); $('bHelpClose').focus(); } return;
   }
-  if (e.altKey || e.metaKey || e.ctrlKey || e.target.closest('button,input,select,textarea,[contenteditable="true"]')) return;
+  // 按鈕只保留空白鍵與 Enter：點了「上岸」「出海」之後焦點還在按鈕上，W A S D 也要能直接走、直接開船
+  if (e.altKey || e.metaKey || e.ctrlKey || e.target.closest('input,select,textarea,[contenteditable="true"]') || (e.target.closest('button') && (k === ' ' || k === 'enter'))) return;
   if (/^[1-6]$/.test(k)) { e.preventDefault(); setView(+k - 1); return; }
   if (mode === 'orbit' && ['arrowleft','arrowright','arrowup','arrowdown','+','=','-','home'].includes(k)) {
     e.preventDefault(); lastMove = performance.now();
@@ -1038,9 +1108,9 @@ addEventListener('blur', clearInput);
 // ---------- 後製 ----------
 let composer = null, bloom = null;
 if (post) {
-  // 後製會關掉畫布的抗鋸齒，改用多重取樣的渲染目標，欄杆、纜線與天線才不會鋸齒
+  // 後製會關掉畫布的抗鋸齒：一倍像素的螢幕改用多重取樣的渲染目標，欄杆、纜線與天線才不會鋸齒（高密度螢幕本身夠細，省下這筆）
   const ds = renderer.getDrawingBufferSize(new THREE.Vector2());
-  composer = new post.EffectComposer(renderer, new THREE.WebGLRenderTarget(ds.x, ds.y, { type: THREE.HalfFloatType, samples: renderer.getPixelRatio() > 1.25 ? 2 : 4 }));
+  composer = new post.EffectComposer(renderer, new THREE.WebGLRenderTarget(ds.x, ds.y, { type: THREE.HalfFloatType, samples: renderer.getPixelRatio() > 1.25 ? 0 : 4 }));
   composer.setPixelRatio(renderer.getPixelRatio());
   composer.addPass(new post.RenderPass(scene, camera));
   bloom = new post.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), small ? .34 : .42, .5, .9);
@@ -1089,10 +1159,11 @@ function frame() {
   boat.x += fwd.x * boat.v * dt; boat.z += fwd.z * boat.v * dt;
   { const r = Math.hypot(boat.x, boat.z); if (r < 15.5) { boat.x *= 15.5 / r; boat.z *= 15.5 / r; boat.v *= .4; } if (r > 140) { boat.x *= 140 / r; boat.z *= 140 / r; boat.v *= .5; } }
   { const rel = { x: boat.x - 16.6, z: boat.z }; const d = Math.hypot(rel.x, rel.z); if (d < 5.2) { boat.x = 16.6 + rel.x / d * 5.2; boat.z = rel.z / d * 5.2; boat.v *= .4; } }
-  fisher.position.set(boat.x, .25 + Math.sin(time * 1.3) * .06, boat.z); fisher.rotation.set(Math.sin(time * 1.1) * .02 - boat.v * .006, boat.h, -boat.steer * .07 * Math.min(1, Math.abs(boat.v) / 3) + Math.sin(time * .9) * .015);
+  // 吃水：原本船底離水面 0.15 m，整艘船擱在水面上；壓到船底約 0.35 m 在水下，藍綠色腰線與甲板仍在水上
+  fisher.position.set(boat.x, -.25 + Math.sin(time * 1.3) * .06, boat.z); fisher.rotation.set(Math.sin(time * 1.1) * .02 - boat.v * .006, boat.h, -boat.steer * .07 * Math.min(1, Math.abs(boat.v) / 3) + Math.sin(time * .9) * .015);
   boat.wakeT += dt; if (Math.abs(boat.v) > .6 && boat.wakeT > .16) { boat.wakeT = 0; const w = waterU.uWake.value[boat.wakeI]; w.set(boat.x - fwd.x * 2.6, boat.z - fwd.z * 2.6, time, Math.min(1, Math.abs(boat.v) / 4)); boat.wakeI = (boat.wakeI + 1) % WAKE_N; }
   waterU.uBoat.value.set(boat.x, boat.z, boat.h, Math.min(1, Math.abs(boat.v) / 3));
-  rowA.position.y = Math.sin(time * 1.4 + 1) * .05; rowA.rotation.z = Math.sin(time * 1.1) * .03; rowB.position.y = Math.sin(time * 1.2 + 2) * .05; rowB.rotation.x = Math.sin(time * .9) * .03;
+  rowA.position.y = Math.sin(time * 1.4 + 1) * .05 - .15; rowA.rotation.z = Math.sin(time * 1.1) * .03; rowB.position.y = Math.sin(time * 1.2 + 2) * .05 - .15; rowB.rotation.x = Math.sin(time * .9) * .03;
 
   // 居民與飛行物
   {
@@ -1113,7 +1184,7 @@ function frame() {
     }
     const k = reduced ? 1 : 1 - Math.exp(-dt * 5);
     orbit.az += (orbit.dAz - orbit.az) * k; orbit.el += (orbit.dEl - orbit.el) * k; orbit.dist += (orbit.dDist - orbit.dist) * k; orbit.tg.lerp(orbit.dTg, k);
-    posDes.copy(orbitPos()); lookDes.copy(orbit.tg);
+    posDes.copy(orbitPos()); lookDes.copy(orbit.tg); springArm(orbit.tg, posDes, dt);
     if (posDes.y < 1.2) posDes.y = 1.2;
   } else if (mode === 'walk') {
     let mx = (keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0) + joy.x;
@@ -1128,7 +1199,9 @@ function frame() {
   } else {
     posDes.set(boat.x - fwd.x * 17, 5.6, boat.z - fwd.z * 17); lookDes.set(boat.x + fwd.x * 6, 1.4, boat.z + fwd.z * 6);
   }
-  camera.position.lerp(posDes, kf); lookCur.lerp(lookDes, kf); camera.lookAt(lookCur);
+  _prevCam.copy(camera.position); camera.position.lerp(posDes, kf);
+  if (mode === 'orbit' && transT >= 1) armGuard(orbit.tg, camera.position, _prevCam);
+  lookCur.lerp(lookDes, kf); camera.lookAt(lookCur);
   rain.position.set(lookCur.x, 0, lookCur.z);
 
   // 渲染

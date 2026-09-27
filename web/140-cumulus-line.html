@@ -6,6 +6,7 @@
 <meta name="description" content="浮雲鐵道：在水彩畫般的浮島與海面之間駕駛電車。用一支主控制器拿捏動力與煞車，讓乘客手上的茶一滴也不灑。">
 <meta name="theme-color" content="#2b1d14">
 <title>浮雲鐵道 · Cumulus Line</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <style>
 :root{
   --walnut:#2b1d14;--walnut-2:#33241a;--walnut-3:#47331f;--walnut-4:#5a4129;
@@ -522,12 +523,16 @@ function buildWorld(ri){
   disposeWorld();anim.mills=[];anim.falls=[];anim.glows=[];anim.clouds=[];anim.cloudMats=[];anim.labelTex=[];anim.turn=null;anim.beam=null;anim.flies=null;
   world=new THREE.Group();scene.add(world);
   const R=ROUTES[ri];P=makePath(R);curRoute=ri;const rand=rng(R.seed);
-  const B={trunk:new Batch(GEO.trunk,M.trunk),leaf:new Batch(GEO.blob,M.tint),wall:new Batch(GEO.box,M.wall),roof:new Batch(GEO.gable,M.tint),hwin:new Batch(GEO.box,M.hwin),post:new Batch(GEO.post,M.pole),sleeper:new Batch(GEO.box,M.sleeper),pier:new Batch(GEO.box,M.stone),arch:null,cat:new Batch(GEO.post,M.pole),arm:new Batch(GEO.box,M.pole),rock:new Batch(GEO.spike,M.rock)};
+  const B={trunk:new Batch(GEO.trunk,M.trunk),leaf:new Batch(GEO.blob,M.tint),wall:new Batch(GEO.box,M.wall),roof:new Batch(GEO.gable,M.tint),hwin:new Batch(GEO.box,M.hwin),door:new Batch(GEO.box,M.trunk),post:new Batch(GEO.post,M.pole),sleeper:new Batch(GEO.box,M.sleeper),pier:new Batch(GEO.box,M.stone),arch:null,cat:new Batch(GEO.post,M.pole),arm:new Batch(GEO.box,M.pole),rock:new Batch(GEO.spike,M.rock)};
   const LEAF=['#5d8c3a','#78a445','#4f7a3c','#93b653','#6b9a40'],ROOF=['#c4533a','#3f8a82','#cf8f35','#a9473a','#4f7c93'];
   const glow=(x,y,z,s=3.2)=>{const sp=new THREE.Sprite(M.glow);sp.position.set(x,y,z);sp.scale.setScalar(s);world.add(sp);anim.glows.push(sp)};
   const tree=(x,y,z,s)=>{B.trunk.add(x,y,z,0,s,s*2.3,s);const c=()=>LEAF[Math.floor(rand()*LEAF.length)];B.leaf.add(x,y+s*2.8,z,rand()*3,s*1.55,s*1.3,s*1.55,c());B.leaf.add(x+s*.8,y+s*2.2,z+s*.3,rand()*3,s*1.1,s*.95,s*1.1,c());B.leaf.add(x-s*.7,y+s*2.3,z-s*.5,rand()*3,s,s*.9,s,c())};
   const house=(x,y,z,ry,w,d,h,lit)=>{B.wall.add(x,y,z,ry,w,h,d);B.roof.add(x,y+h,z,ry,w*1.16,h*.62,d*1.26,ROOF[Math.floor(rand()*ROOF.length)]);
-    const cs=Math.cos(ry),sn=Math.sin(ry);for(const lx of [-w*.22,w*.22]){const lz=d/2+.02;B.hwin.add(x+lx*cs+lz*sn,y+h*.42,z-lx*sn+lz*cs,ry,w*.16,h*.3,.08,lit&&rand()<.7?'#ffc26a':'#6d6a62')}};
+    const cs=Math.cos(ry),sn=Math.sin(ry);for(const lx of [-w*.22,w*.22]){const lz=d/2+.02;B.hwin.add(x+lx*cs+lz*sn,y+h*.42,z-lx*sn+lz*cs,ry,w*.16,h*.3,.08,lit&&rand()<.7?'#ffc26a':'#6d6a62')}
+    // 背面兩扇窗、兩側山牆各一扇、正面一扇門：房子從哪個角度看都不再是白色實心盒。亮燈與否用位置雜湊決定，不動到 rand() 的序列（地景配置不變）。
+    const wl=(lx,lz,sx,sz,k)=>B.hwin.add(x+lx*cs+lz*sn,y+h*.42,z-lx*sn+lz*cs,ry,sx,h*.3,sz,lit&&hash2(x*.37+k,z*.41-k)<.6?'#ffc26a':'#6d6a62');
+    wl(-w*.22,-d/2-.02,w*.16,.08,1);wl(w*.22,-d/2-.02,w*.16,.08,2);wl(-w/2-.02,0,.08,d*.22,3);wl(w/2+.02,0,.08,d*.22,4);
+    B.door.add(x+(d/2+.03)*sn,y,z+(d/2+.03)*cs,ry,w*.15,Math.min(h*.56,2.4),.1)};
   // 車站島與景觀島
   const isl=[];
   R.stops.forEach((s,k)=>{const F=frameAt(s),r=k===0?128:100,c=place(F,0,r*.3);isl.push({k,s,r,x:c.x,z:c.z,top:F.q.y-.35,F,station:true})});
@@ -544,7 +549,8 @@ function buildWorld(ri){
   const ranges=[];let cur=null;for(let s=0;s<=P.len;s+=2){const q=P.at(s),on=onIsland(q.x,q.z);if(!cur||cur.on!==on){if(cur)cur.to=s;cur={on,from:s};ranges.push(cur)}}cur.to=P.len;
   for(const rg of ranges){const a=Math.max(0,rg.from-3),b=Math.min(P.len,rg.to+3);
     if(rg.on)ribbon(world,a,b,0,3.8,-.06,-1.3,M.ballast);
-    else{ribbon(world,a,b,0,5.4,-.08,-1.7,M.deck);ribbon(world,a,b,-2.55,.32,.85,-.1,M.stone);ribbon(world,a,b,2.55,.32,.85,-.1,M.stone);
+    // 高架段：橋面降低，中間鋪一道道碴床把枕木埋住，兩側留出維修步道；護牆一路接到新的橋面，不留縫
+    else{ribbon(world,a,b,0,5.4,-.34,-1.7,M.deck);ribbon(world,a,b,0,3.8,-.06,-.34,M.ballast);ribbon(world,a,b,-2.55,.32,.85,-.34,M.stone);ribbon(world,a,b,2.55,.32,.85,-.34,M.stone);
       for(let s=Math.ceil(rg.from/24)*24;s<rg.to;s+=24){const q=P.at(s),hh=q.y-1.7;B.pier.add(q.x,-2,q.z,-q.h,4.6,hh+2,2.2)}}}
   ribbon(world,0,P.len,-.72,.1,.12,-.06,M.rail,1.5);ribbon(world,0,P.len,.72,.1,.12,-.06,M.rail,1.5);
   for(let s=.5;s<P.len;s+=.75){const q=P.at(s);B.sleeper.add(q.x,q.y-.14,q.z,-q.h,2.3,.1,.22)}
@@ -583,6 +589,10 @@ function station(st,o,B,house,tree,glow,rand){
   const s=o.s,F=o.F,side=1;
   ribbon(world,s-70,s+14,3.35,2.9,1.0,-1.4,M.platform);ribbon(world,s-70,s+14,2.05,.22,1.03,.9,M.yellow);
   const hut=place(F,-30,8.2);B.wall.add(hut.x,F.q.y+1,hut.z,-F.q.h,9,3.4,4.6);B.roof.add(hut.x,F.q.y+4.4,hut.z,-F.q.h,10.4,1.7,6,'#a9473a');
+  // 站房：長邊各三扇窗、外側山牆一扇窗、朝月台那端一扇門（原本是沒有開口的實心盒，機廠整備時正好在畫面前景）
+  {const ry=-F.q.h,cs=Math.cos(ry),sn=Math.sin(ry),y0=F.q.y+1,at=(lx,lz)=>[hut.x+lx*cs+lz*sn,hut.z-lx*sn+lz*cs];
+    for(const lz of [-2.32,2.32])for(const lx of [-2.8,0,2.8]){const[x,z]=at(lx,lz);B.hwin.add(x,y0+1.25,z,ry,1.3,1.15,.08,'#ffc26a')}
+    {const[x,z]=at(4.52,0);B.hwin.add(x,y0+1.25,z,ry,.08,1.15,1.4,'#ffc26a')}{const[x,z]=at(-4.53,0);B.door.add(x,y0,z,ry,.1,2.3,1.15)}}
   for(let a=-62;a<=8;a+=14){const p=place(F,a,4.5);B.post.add(p.x,F.q.y+1,p.z,0,1,3.4,1);const lp=new THREE.Mesh(new THREE.SphereGeometry(.2,8,6),M.lamp);lp.position.set(p.x,F.q.y+4.5,p.z);world.add(lp);glow(p.x,F.q.y+4.5,p.z,4.2)}
   // 站名板（面向進站列車）與停車標
   const t=label([st.name,st.en]);anim.labelTex.push(t);const bp=place(F,-44,4.6),bm=new THREE.Mesh(new THREE.PlaneGeometry(4.4,2.2),new THREE.MeshBasicMaterial({map:t}));bm.material.userData.own=true;bm.position.set(bp.x,F.q.y+4.7,bp.z);bm.rotation.y=-F.q.h;world.add(bm);
@@ -640,13 +650,16 @@ function buildTrain(n){
     box(c,2.2,.5,9,M.under,0,.9,0);for(const z of [-2.7,2.7])box(c,.85,.2,1.2,M.under,0,4.22,z);for(const z of [-7.1,7.1])box(c,.45,.28,.75,M.iron,0,.72,z);for(const x of [-1.45,1.45])for(const z of [-3.95,3.95]){box(c,.06,.48,.06,M.trim,x,2.12,z);box(c,.25,.1,1.25,M.iron,x,.95,z);}
     if(i===0||i===n-1){const dir=i===0?-1:1,z=dir*6.95;box(c,2.8,1.4,.12,M.glass,0,3.05,z);box(c,2.82,.3,.14,M.livery,0,3.9,z);const hl=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.12,12).rotateX(Math.PI/2),M.lamp);hl.position.set(0,1.75,z+dir*.03);c.add(hl);box(c,2.6,.28,.4,M.iron,0,.62,z+dir*.2)}
   }
-  const pg=new THREE.Group();pg.position.set(0,4.2,-2.5);cars[0].add(pg);for(const s of [-1,1]){const a=new THREE.Mesh(new THREE.BoxGeometry(.06,1.35,.06),M.iron);a.position.set(0,.55,s*.45);a.rotation.x=s*.72;pg.add(a)}const bar=new THREE.Mesh(new THREE.BoxGeometry(1.9,.07,.14),M.iron);bar.position.y=1.12;pg.add(bar);
+  const pg=new THREE.Group();pg.position.set(0,4.2,-2.5);cars[0].add(pg);for(const s of [-1,1]){const a=new THREE.Mesh(new THREE.BoxGeometry(.06,1.9,.06),M.iron);a.position.set(0,.83,s*.45);a.rotation.x=s*.52;pg.add(a)}const bar=new THREE.Mesh(new THREE.BoxGeometry(1.9,.07,.14),M.iron);bar.position.y=1.65;pg.add(bar);// 集電弓升到接觸網高度（軌面上 5.85），滑板貼著電車線，不再懸空
   const pl=new THREE.PointLight('#ffb863',0,44,1.3);pl.position.set(0,3.2,0);cars[Math.floor(n/2)].add(pl);
   const hl=new THREE.SpotLight('#fff0cc',0,190,.34,.6,1.3);hl.position.set(0,1.9,-7.2);const tgt=new THREE.Object3D();tgt.position.set(0,-2,-60);cars[0].add(hl,tgt);hl.target=tgt;
   g.traverse(o=>{if(o.isMesh&&o.material.isMeshToonMaterial){o.castShadow=true;o.receiveShadow=true}});
   train={g,cars,n,pl,hl};applyLight();return train}
 const q1={},q2={};
-function placeTrain(sFront){for(let i=0;i<train.n;i++){const sc=sFront-7.1-i*CAR;P.at(sc+4.7,q1);P.at(sc-4.7,q2);const c=train.cars[i];c.position.set((q1.x+q2.x)/2,(q1.y+q2.y)/2,(q1.z+q2.z)/2);c.rotation.set(Math.atan2(q1.y-q2.y,9.4),Math.atan2(-(q1.x-q2.x),-(q1.z-q2.z)),0,'YXZ')}}
+// 過彎時車身依側向加速度（v²·曲率）往彎外側傾，經彈簧般的低通慢慢跟上；減少動態時不傾
+function placeTrain(sFront,dt=0){const v=!reduced&&(sim.state==='run'||sim.state==='dwell')?sim.v:0;for(let i=0;i<train.n;i++){const sc=sFront-7.1-i*CAR;P.at(sc+4.7,q1);P.at(sc-4.7,q2);const c=train.cars[i];c.position.set((q1.x+q2.x)/2,(q1.y+q2.y)/2,(q1.z+q2.z)/2);
+  const lean=clamp((P.kAt(sc+4.7)+P.kAt(sc-4.7))*.5*v*v*.028,-.045,.045);c.userData.lean=dt&&c.userData.lean!==undefined?c.userData.lean+(lean-c.userData.lean)*(1-Math.exp(-dt*2.4)):lean;
+  c.rotation.set(Math.atan2(q1.y-q2.y,9.4),Math.atan2(-(q1.x-q2.x),-(q1.z-q2.z)),c.userData.lean,'YXZ')}}
 
 /* ---------- 光照模式 ---------- */
 let night=!!save.night;
@@ -835,7 +848,7 @@ function renderDepot(){$('dCoins').textContent=fmt(save.coins);
 $('ups').addEventListener('click',e=>{const b=e.target.closest('[data-up]');if(!b||b.disabled)return;const u=UPS.find(x=>x.id===b.dataset.up),lv=save[u.id];if(lv>=2||save.coins<u.price[lv])return;save.coins-=u.price[lv];save[u.id]++;persist();
   $('depotMsg').textContent=`${u.name}完成，${u.desc[save[u.id]].split('：')[0]}。`;if(u.id==='cars'){buildTrain(2+save.cars);placeTrain(ROUTES[curRoute].stops[0])}spinT=1.6;renderDepot()});
 $('livery').addEventListener('click',e=>{const b=e.target.closest('[data-liv]');if(!b)return;save.livery=+b.dataset.liv;persist();M.livery.color.set(LIVERIES[save.livery].c);$('depotMsg').textContent=`換上${LIVERIES[save.livery].name}塗裝。`;renderDepot()});
-function showDepot(on){$('board').classList.toggle('depot',on);document.body.classList.toggle('depotview',on);depotView=on;renderDepot();camBlend=0;camFrom.copy(camera.position);lookFrom.copy(lookNow);resize();if(on)$('backHub').focus();else $('toDepot').focus()}
+function showDepot(on){$('board').classList.toggle('depot',on);document.body.classList.toggle('depotview',on);depotView=on;renderDepot();camBlend=0;camFrom.copy(camera.position);lookFrom.copy(lookNow);resize();if(on){$('board').scrollTop=0;$('backHub').focus({preventScroll:true})}else $('toDepot').focus()}// 手機上面板要從標題開始看，焦點給「回到月台」但不把面板捲到底
 $('toDepot').onclick=()=>showDepot(true);$('backHub').onclick=()=>showDepot(false);
 for(const b of document.querySelectorAll('[data-light]'))b.onclick=()=>setNight(b.dataset.light==='night');
 for(const t of document.querySelectorAll('.ticket'))t.onclick=()=>{if(t.classList.contains('punched'))return;t.classList.add('punched');audio.init();audio.tone(1400,.04,.06,'square');setTimeout(()=>{t.classList.remove('punched');startRun(+t.dataset.route)},reduced?40:420)};
@@ -864,7 +877,8 @@ function updateCamera(dt,t){cameraTarget(dt,t);camBlend=reduced?1:Math.min(1,cam
   if(camBlend<1){camera.position.lerpVectors(camFrom,wantPos,e);camera.position.y+=Math.sin(Math.PI*e)*Math.min(14,camFrom.distanceTo(wantPos)*.25);lookNow.lerpVectors(lookFrom,wantLook,e)}
   else if(mode==='drive'&&cam==='cab'){camera.position.copy(wantPos);lookNow.lerp(wantLook,1-Math.exp(-dt*14))}
   else{camera.position.lerp(wantPos,1-Math.exp(-dt*3));lookNow.lerp(wantLook,1-Math.exp(-dt*4))}
-  if(reduced){camera.position.copy(wantPos);lookNow.copy(wantLook)}camera.lookAt(lookNow)}
+  if(reduced){camera.position.copy(wantPos);lookNow.copy(wantLook)}camera.lookAt(lookNow);
+  if(mode==='drive'&&cam==='cab'&&train)camera.rotateZ(train.cars[0].rotation.z)}// 車頭視角跟著車身一起傾（減少動態時車身不傾，這裡也就是 0）
 
 /* ---------- 尺寸 ---------- */
 function resize(){const w=innerWidth,h=innerHeight,pr=Math.min(devicePixelRatio||1,w<761?1.25:1.5);renderer.setPixelRatio(pr);renderer.setSize(w,h,false);
@@ -881,7 +895,7 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min(.1,(now-last)/1
   if(mode==='drive'&&!paused){
     if(held.up||held.down){repT-=dt;if(repT<=0){moveLever(held.up?1:-1);repT=.28}}
     acc+=dt;while(acc>=DT){stepSim(DT);acc-=DT}
-    placeTrain(sim.s);
+    placeTrain(sim.s,dt);
     if(audio.ctx&&sim.v>1){const j=Math.floor(sim.s/25);if(j!==lastClackS){lastClackS=j;audio.clack(sim.v)}}
   }else acc=0;
   if(anim.turn){spinT=Math.max(0,spinT-dt);anim.turn.rotation.y+=dt*(reduced?.02:.08+spinT*1.4)}
@@ -899,7 +913,7 @@ if(!audio.on){$('bSound').setAttribute('aria-pressed','false');$('bSound').first
 buildWorld(0);buildTrain(2+save.cars);placeTrain(ROUTES[0].stops[0]);applyLight();refreshTickets();renderDepot();resize();
 camera.position.set(anim.hubCenter.x+200,anim.hubCenter.y+80,anim.hubCenter.z+120);lookNow.copy(anim.hubCenter);camBlend=1;
 requestAnimationFrame(frame);
-if(QA)window.__cl={sim,stepSim,P:()=>P,setLever:n=>sim.lever=n,startRun,setNight,toggleCam,save,frameAt:s=>frameAt(s)};
+if(QA)window.__cl={sim,stepSim,P:()=>P,setLever:n=>sim.lever=n,startRun,setNight,toggleCam,save,frameAt:s=>frameAt(s),train:()=>train,camera};
 </script>
 </body>
 </html>

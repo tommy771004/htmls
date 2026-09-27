@@ -706,11 +706,32 @@ const WATER_U = {
   uL: { value: Array.from({ length: LIGHT_SLOTS }, () => new THREE.Vector4(0, -50, 0, 0)) },
   uLC: { value: Array.from({ length: LIGHT_SLOTS }, () => new THREE.Color(SPEC.amber)) }
 };
+// 湖面接收月光陰影：原本水面不吃陰影，石柱、踏石在逆光下沒有朝鏡頭拉長的影子，像浮在水上（規格 B「陰影朝鏡頭拉長」）。
+// 陰影只壓暗天空反射與月光亮帶（燈火反光不受影響），陰影貼圖邊界附近淡出，不會切出硬邊。
+// UniformsUtils.merge 會複製值，所以先 merge 燈光 uniform，再把共用的 WATER_U 參照掛回去
+const WATER_MAT_U = Object.assign(THREE.UniformsUtils.merge([THREE.UniformsLib.lights]), WATER_U);
 const water = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000, 1, 1), new THREE.ShaderMaterial({
-  uniforms: WATER_U,
-  vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  uniforms: WATER_MAT_U, lights: true,
+  vertexShader: `#include <common>
+  #include <shadowmap_pars_vertex>
+  varying vec3 vW;
+  void main(){
+    #include <beginnormal_vertex>
+    #include <defaultnormal_vertex>
+    #include <begin_vertex>
+    #include <project_vertex>
+    #include <worldpos_vertex>
+    #include <shadowmap_vertex>
+    vW = (modelMatrix * vec4(position, 1.)).xyz;
+  }`,
   fragmentShader: `uniform float uTime, uFogD; uniform sampler2D uNoise; uniform vec3 uFog, uDeep, uTop, uMid, uLow, uHorizon, uBelow, uMoonDir, uMoonCol;
   uniform vec4 uL[${LIGHT_SLOTS}]; uniform vec3 uLC[${LIGHT_SLOTS}]; varying vec3 vW;
+  #include <common>
+  #include <packing>
+  #include <bsdfs>
+  #include <lights_pars_begin>
+  #include <shadowmap_pars_fragment>
+  #include <shadowmask_pars_fragment>
   ${SKY_FN}
   float H(vec2 p){ return texture2D(uNoise, p*.045 + vec2(uTime*.011, uTime*.006)).r*.55 + texture2D(uNoise, p*.12 + vec2(-uTime*.017, uTime*.01)).r*.3 + texture2D(uNoise, p*.34 + vec2(uTime*.028, -uTime*.022)).r*.15; }
   void main(){
@@ -724,7 +745,14 @@ const water = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000, 1, 1), new THRE
     vec3 skyC = skyGrad(R.y * .9 + .01);
     float md = max(dot(R, uMoonDir), 0.);
     skyC += uMoonCol * (pow(md, 16.) * .18 + pow(md, 700.) * 5.);
-    vec3 col = mix(uDeep, skyC, clamp(fres * 1.05, 0., 1.));
+    float sh = 1.;
+    #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
+      sh = getShadowMask();
+      vec2 sc = vDirectionalShadowCoord[0].xy / vDirectionalShadowCoord[0].w;
+      sh = mix(1., sh, smoothstep(0., .14, min(min(sc.x, sc.y), min(1. - sc.x, 1. - sc.y))));
+    #endif
+    skyC *= mix(.42, 1., sh);
+    vec3 col = mix(uDeep, skyC, clamp(fres * 1.05, 0., 1.)) * mix(.6, 1., sh);
     for (int i = 0; i < ${LIGHT_SLOTS}; i++) {
       if (uL[i].w <= 0.) continue;
       vec3 L = uL[i].xyz - vW; float d2 = dot(L, L); vec3 Ld = L * inversesqrt(d2);
@@ -735,7 +763,7 @@ const water = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000, 1, 1), new THRE
     gl_FragColor = vec4(mix(col, uFog, f), 1.);
   }`
 }));
-water.rotation.x = -Math.PI / 2; water.position.set(0, 0, -65);
+water.rotation.x = -Math.PI / 2; water.position.set(0, 0, -65); water.receiveShadow = true;
 scene.add(water);
 
 // 低霧：貼水面的兩層噪聲霧，靠近鏡頭自動淡出，讓石台浮在霧上（規格 B）
@@ -903,7 +931,29 @@ function lathe(r, top, bottom, seg, broken) {
 }
 function stoneDisc(cx, cz, r, top, opt = {}) {
   const bottom = opt.bottom ?? STONE_BOTTOM, cy = (top + bottom) / 2;
-  const geo = lathe(r, top, bottom, 26, 0); projectUV(geo, [cx, cy, cz, rand()], 2.4, r);
+  const geo = lathe(r, top, bottom, 26, 0);
+  // 每顆踏石各自的風化輪廓：原本全是同一個正圓鼓（像一排冰球），改成略扁、邊線不規則、頂面微傾、邊緣一處崩口。
+  // 形變只往內收（不超出碰撞半徑），參數由座標雜湊決定，不抽 rand()，關卡其他石塊的隨機序列不變
+  {
+    const p = geo.attributes.position, hh = (top - bottom) / 2, hs = k => hash2(cx * 10 | 0, cz * 10 | 0, 900 + k);
+    const f1 = hs(1) * TAU, f2 = hs(2) * TAU, nick = hs(3) * TAU, sq = .05 + hs(4) * .05, sqA = hs(5) * Math.PI;
+    const tx = (hs(6) - .5) * .05, tz = (hs(7) - .5) * .05, depth = .06 + hs(8) * .07;
+    for (let i = 0; i < p.count; i++) {
+      let x = p.getX(i), z = p.getZ(i); const y = p.getY(i), rad = Math.hypot(x, z);
+      if (rad < 1e-4) continue;
+      const a = Math.atan2(z, x), top01 = clamp((y - (hh - .5)) / .5, 0, 1);
+      let k = 1 - .04 * (1 + .6 * Math.sin(2 * a + f1) + .4 * Math.sin(3 * a + f2));
+      const along = Math.cos(a - sqA); k *= 1 - sq * along * along;
+      x *= k; z *= k;
+      const dn = Math.abs(wrapAng(a - nick)), chip = Math.exp(-dn * dn * 9) * depth * top01 * clamp(rad / r - .6, 0, 1) * 2.5;
+      p.setXYZ(i, x - Math.cos(a) * chip * .5, y + (x * tx + z * tz) * top01 - chip, z - Math.sin(a) * chip * .5);
+    }
+    geo.computeVertexNormals();
+    // Lathe 的接縫（第一圈與最後一圈重複的頂點）平均法線，免得出現一條亮縫
+    const n = geo.attributes.normal, P = 7, last = 26 * P;
+    for (let j = 0; j < P; j++) { tmpV.fromBufferAttribute(n, j).add(tmpV2.fromBufferAttribute(n, last + j)).normalize(); n.setXYZ(j, tmpV.x, tmpV.y, tmpV.z); n.setXYZ(last + j, tmpV.x, tmpV.y, tmpV.z); }
+  }
+  projectUV(geo, [cx, cy, cz, rand()], 2.4, r);
   const mesh = addMesh(new THREE.Mesh(geo, opt.mat || M.stone)); mesh.position.set(cx, cy, cz); mesh.rotation.y = rand() * TAU;
   return cylCollider(cx, cz, r, bottom, top, mesh);
 }

@@ -12,7 +12,7 @@ test('3D HTML entry points have parseable executable scripts and resolvable loca
   for (const name of await readdir(web)) {
     if (!name.endsWith('.html')) continue;
     const url = new URL(name, web), html = await readFile(url, 'utf8');
-    if (!/THREE\.|three(?:@|\/|\.module)|WebGPURenderer|navigator\.gpu|assets\/150-brick-rts\/main.js/.test(html)) continue;
+    if (!/^(091|099|138|160)-/.test(name) && !/THREE\.|three(?:@|\/|\.module)|WebGPURenderer|navigator\.gpu|assets\/150-brick-rts\/main.js/.test(html)) continue;
     pages++;
     const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
     const importMap = scripts.find(([, attrs]) => /type=["']importmap["']/.test(attrs));

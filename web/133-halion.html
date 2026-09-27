@@ -86,11 +86,20 @@ let THREE;
 try{THREE=await import(location.protocol==='file:'?'https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js':'../vendor/three-0.186.0/three.module.js')}catch(error){document.body.classList.add('no-webgl');setTarget()}
 if(THREE){
   try{
-    renderer=new THREE.WebGLRenderer({canvas:$('chipCanvas'),alpha:true,antialias:!mobile,powerPreference:'high-performance'});
-    renderer.setClearColor(0x000000,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.25:1.75));
+    renderer=new THREE.WebGLRenderer({canvas:$('chipCanvas'),alpha:true,antialias:true,powerPreference:'high-performance'});
+    renderer.setClearColor(0x000000,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.5:1.75));
     scene=new THREE.Scene();const {createStudioEnvironment}=await import('./assets/3d/studio.js');const studioEnvironment=createStudioEnvironment(THREE,renderer);scene.environment=studioEnvironment.texture;scene.environmentIntensity=.65;camera=new THREE.PerspectiveCamera(34,1,.1,100);rig=new THREE.Group();scene.add(rig);
-    scene.add(new THREE.AmbientLight(0x9dc9e0,1.75));const key=new THREE.DirectionalLight(0xb7edff,3.8);key.position.set(-2,5,8);scene.add(key);const rim=new THREE.PointLight(0x38bbf7,65,24);rim.position.set(4,-2,3);scene.add(rim);const rear=new THREE.PointLight(0xa4a8ff,28,20);rear.position.set(-4,2,-4);scene.add(rear);
+    scene.add(new THREE.AmbientLight(0x9dc9e0,1.75));const key=new THREE.DirectionalLight(0xb7edff,3.8);key.position.set(-2,5,8);scene.add(key);
+    // Opaque layers shade the ones beneath them; the frustum is fitted to the chip, and the map only renders while scrolling.
+    renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;key.castShadow=true;key.shadow.mapSize.set(mobile?1024:2048,mobile?1024:2048);Object.assign(key.shadow.camera,{left:-5.5,right:5.5,top:5.5,bottom:-5.5,near:2,far:22});key.shadow.bias=-.0004;key.shadow.normalBias=.02;key.shadow.radius=4;key.target.position.set(1,0,0);scene.add(key.target);const rim=new THREE.PointLight(0x38bbf7,65,24);rim.position.set(4,-2,3);scene.add(rim);const rear=new THREE.PointLight(0xa4a8ff,28,20);rear.position.set(-4,2,-4);scene.add(rear);
     const glass=new THREE.MeshPhysicalMaterial({color:0x9bd7e8,metalness:.08,roughness:.16,transparent:true,opacity:.18,depthWrite:false,side:THREE.DoubleSide,clearcoat:1,clearcoatRoughness:.08});
+    // A glass at 18% opacity also loses 82% of its reflection. This black, additive twin carries only the specular
+    // (Fresnel edges, the studio's light cards) and leaves the canvas alpha alone so the backdrop still reads through.
+    // Its own dark room: one tall light strip that the tilting glass sweeps past as the layers open, one soft ceiling card for the bevels.
+    const glassRoom=new THREE.Scene();glassRoom.background=new THREE.Color(0x010305);const card=new THREE.PlaneGeometry(1,1);
+    for(const [w,h,x,y,z,c,e,tilt] of [[.4,10,-3.4,.4,4.9,0xe4f7ff,3,.38],[9,2.2,0,6,-1,0xcfefff,2.2,0]]){const m=new THREE.Mesh(card,new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(e),side:THREE.DoubleSide}));m.position.set(x,y,z);m.scale.set(w,h,1);m.lookAt(0,0,0);m.rotateZ(tilt);glassRoom.add(m)}
+    const glassPmrem=new THREE.PMREMGenerator(renderer),glassEnv=glassPmrem.fromScene(glassRoom,.03);glassPmrem.dispose();card.dispose();glassRoom.children.forEach(m=>m.material.dispose());
+    const glassSheen=new THREE.MeshPhysicalMaterial({color:0x000000,metalness:0,roughness:.05,envMap:glassEnv.texture,envMapIntensity:1.5,transparent:true,depthWrite:false,blending:THREE.CustomBlending,blendEquation:THREE.AddEquation,blendSrc:THREE.OneFactor,blendDst:THREE.OneFactor,blendSrcAlpha:THREE.ZeroFactor,blendDstAlpha:THREE.OneFactor});
     const edge=new THREE.MeshStandardMaterial({color:0xb7e9f3,metalness:.74,roughness:.18,emissive:0x2a687b,emissiveIntensity:.2});
     const dark=new THREE.MeshStandardMaterial({color:0x102938,metalness:.68,roughness:.25});
     const mid=new THREE.MeshStandardMaterial({color:0x254c5e,metalness:.66,roughness:.28});
@@ -98,10 +107,10 @@ if(THREE){
     const bright=new THREE.MeshStandardMaterial({color:0x9befff,emissive:0x2aacca,emissiveIntensity:1.2,metalness:.44,roughness:.22});
     const lineMat=new THREE.LineBasicMaterial({color:0x74ddec,transparent:true,opacity:.67});
     const dimLine=new THREE.LineBasicMaterial({color:0x6ab4c2,transparent:true,opacity:.45});
-    function plate(parent,w,h,r,d,mat,z=0){const geom=new THREE.ExtrudeGeometry(roundedShape(w,h,r),{depth:d,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:2,curveSegments:6,steps:1});const mesh=new THREE.Mesh(geom,mat);mesh.position.z=z-d/2;parent.add(mesh);return mesh}
+    function plate(parent,w,h,r,d,mat,z=0){const geom=new THREE.ExtrudeGeometry(roundedShape(w,h,r),{depth:d,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:2,curveSegments:6,steps:1});const mesh=new THREE.Mesh(geom,mat);mesh.position.z=z-d/2;mesh.castShadow=mat!==glass;mesh.receiveShadow=true;parent.add(mesh);if(mat===glass){const sheen=new THREE.Mesh(geom,glassSheen);sheen.position.z=mesh.position.z;sheen.renderOrder=1;parent.add(sheen)}return mesh}
     function outline(parent,w,h,r,z,mat=lineMat){let points=roundedShape(w,h,r).getPoints(12).map(p=>new THREE.Vector3(p.x,p.y,z));parent.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points),mat))}
-    function box(parent,w,h,d,x,y,z,mat){let m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);parent.add(m);return m}
-    function ring(parent,r,tube,z,mat=bright){let m=new THREE.Mesh(new THREE.TorusGeometry(r,tube,6,mobile?56:100),mat);m.position.z=z;parent.add(m);return m}
+    function box(parent,w,h,d,x,y,z,mat){let m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;parent.add(m);return m}
+    function ring(parent,r,tube,z,mat=bright){let m=new THREE.Mesh(new THREE.TorusGeometry(r,tube,6,mobile?56:100),mat);m.position.z=z;m.castShadow=m.receiveShadow=true;parent.add(m);return m}
     function route(parent,coords,mat=lineMat){let pts=coords.map(v=>new THREE.Vector3(...v));parent.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat))}
     function group(z){let g=new THREE.Group();g.position.z=z;rig.add(g);return g}
     // Each assembly, including its inner elements, has its own scroll window.
@@ -127,22 +136,26 @@ if(THREE){
     for(let i=0;i<8;i++){let v=-.49+i*.14;box(processor,.08,.045,.04,-.76,v,.16,edge);box(processor,.08,.045,.04,.76,v,.16,edge);box(processor,.045,.08,.04,v,-.76,.16,edge);box(processor,.045,.08,.04,v,.76,.16,edge)}
     ring(processor,.32,.015,.18,bright);pieces.push({object:processor,x:.75,y:.55,z:1.7,rx:-.04});
     const dust=new THREE.BufferGeometry(),count=mobile?35:90,arr=new Float32Array(count*3);for(let i=0;i<count;i++){arr[i*3]=(Math.random()-.5)*17;arr[i*3+1]=(Math.random()-.5)*10;arr[i*3+2]=-2-Math.random()*6}dust.setAttribute('position',new THREE.BufferAttribute(arr,3));scene.add(new THREE.Points(dust,new THREE.PointsMaterial({color:0x8ed0e9,size:.014,transparent:true,opacity:.35})));
-    function resize(){mobile=mobileQuery.matches;renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.25:1.75));let w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.position.set(0,0,mobile?25:11.7);camera.updateProjectionMatrix();if(!raf)raf=requestAnimationFrame(frame)}
+    function resize(){mobile=mobileQuery.matches;renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.5:1.75));let w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.position.set(0,0,mobile?25:11.7);camera.updateProjectionMatrix();if(!raf)raf=requestAnimationFrame(frame)}
     addEventListener('resize',resize,{passive:true});resize();setTarget();
   }catch(error){console.error('HALION 3D fallback:',error);document.body.classList.add('no-webgl');renderer=undefined;setTarget()}
 }
 motionQuery.addEventListener('change',()=>{reduced=motionQuery.matches;if(renderer&&!raf)raf=requestAnimationFrame(frame)});
-function frame(){raf=0;if(!renderer)return;let delta=target-current;current=reduced?target:current+delta*.16;
+// Time-based easing: the same glide on 60 Hz and 120 Hz screens.
+let lastFrame=0;
+function frame(now){raf=0;if(!renderer)return;const dt=lastFrame?Math.min(.05,(now-lastFrame)/1000):1/60;lastFrame=now;let delta=target-current;current=reduced?target:current+delta*(1-Math.exp(-dt*10.5));
   if(Math.abs(target-current)<.0002)current=target;
   // 0.79–0.94: a measured reunion, while the camera remains nearly fixed.
   let reunite=travel(current,.79,.94),growth=(mobile?.99:.73)+(mobile?.06:.09)*travel(current,.12,.72);
-  rig.scale.setScalar(growth-(mobile?.06:.09)*reunite);rig.position.x=mobile?0:2;rig.position.y=mobile?-2.05:0;
+  rig.scale.setScalar(growth-(mobile?.06:.09)*reunite);// Phone: the chip waits below the hero copy, then rises into the empty middle of the frame (and nudges off the left
+  // frame line) while the layers are open, and settles back under the closing copy.
+  const lift=mobile?travel(current,.1,.24)*(1-travel(current,.8,.88)):0;rig.position.x=mobile?.22*lift:2;rig.position.y=mobile?-2.05+1.5*lift:0;
   rig.rotation.y=(mobile?-.18:-.25)-(mobile?.07:.15)*travel(current,.16,.72)+(mobile?.07:.15)*reunite;
   rig.rotation.x=(mobile?.12:.18)+(mobile?.03:.08)*travel(current,.33,.72)-(mobile?.03:.08)*reunite;
   pieces.forEach((part,i)=>{let t=travel(current,starts[i],ends[i])*(1-reunite);part.object.position.x=part.x*t*(mobile?.25:1);part.object.position.y=part.y*t*(mobile?.4:1);part.object.position.z=[.28,.22,.035,-.025,-.25,-.11][i]+part.z*t*(mobile?.48:1);part.object.rotation.x=part.rx*t});
   camera.position.z=(mobile?25:11.7)-(.55*travel(current,.13,.72))+.55*reunite;camera.lookAt(0,0,0);
   renderer.render(scene,camera);
-  if(Math.abs(target-current)>.0002)raf=requestAnimationFrame(frame)
+  if(Math.abs(target-current)>.0002)raf=requestAnimationFrame(frame);else lastFrame=0
 }
 setTarget();
 </script>

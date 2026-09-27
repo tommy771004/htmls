@@ -259,8 +259,9 @@ scene.environmentIntensity = 0.7;
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8d8a84, 0.65));
 const key = new THREE.DirectionalLight(0xffffff, 2.1); key.position.set(300, 500, 420); scene.add(key);
 key.castShadow = true;
-key.shadow.mapSize.set(1024, 1024);
-Object.assign(key.shadow.camera, { left: -320, right: 320, top: 320, bottom: -320, near: 1, far: 1400 });
+// 外接球半徑約 215 LDU，球心離光軸約 45 LDU：陰影範圍貼著模型，每個 texel 約 0.25 LDU，退縮一排的板件不再出現陰影雜點
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -260, right: 260, top: 260, bottom: -260, near: 1, far: 1400 });
 key.shadow.bias = -0.00025; key.shadow.normalBias = 1.2; key.shadow.radius = 3;
 const fill = new THREE.DirectionalLight(0xffffff, 0.7); fill.position.set(-400, 150, -200); scene.add(fill);
 // LDraw 的 y 軸朝下：外層把整台車翻正；翻面步驟時把它轉回來
@@ -307,10 +308,30 @@ ground.rotation.x = -Math.PI / 2;
 ground.position.y = modelBounds.min.y - .5;
 ground.receiveShadow = true;
 scene.add(ground);
+// 接觸陰影：主光陰影之外，車底與四個輪胎壓地處再暗一點，車子才像放在桌上而不是浮著
+const contact = new THREE.Group(); contact.position.y = ground.position.y + .3; scene.add(contact);
+{
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), rg = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  rg.addColorStop(0, 'rgba(0,0,0,1)'); rg.addColorStop(.45, 'rgba(0,0,0,.55)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(c), pg = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+  const blob = (x, z, sx, sz, a) => { const m = new THREE.Mesh(pg, new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: a, depthWrite: false, color: 0x000000 })); m.position.set(x, 0, z); m.scale.set(sx, 1, sz); m.renderOrder = 1; contact.add(m); };
+  blob(0, 0, 480, 240, .34);                                                   // 車底整片的環境遮蔽
+  for (const x of [-120, 120]) for (const z of [-77.5, 77.5]) blob(x, z, 66, 42, .9); // 輪胎接地（LDraw 輪距 ±120、±77.5）
+}
 const camera = new THREE.PerspectiveCamera(24, 1, 5, 20000);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true; controls.dampingFactor = .08; controls.enablePan = false;
 controls.minDistance = 380; controls.maxDistance = 2600;
+// 鏡頭停在地面之上（車底由翻面步驟展示），不會鑽到接地陰影下方
+controls.maxPolarAngle = 1.55;
+// 滾輪往游標所指的位置拉近（想看輪框就指著輪框）；旋轉中心只能在車身範圍內移動，
+// 而且越退回原本距離，允許的範圍越小：拉遠時車子自己回到畫面中央，不會停在角落
+controls.zoomToCursor = true;
+const HOME = new THREE.Vector3(0, 68, 0), PIVOT_HALF = new THREE.Vector3(200, 44, 92);
+const pivotMin = new THREE.Vector3(), pivotMax = new THREE.Vector3(), pivotFix = new THREE.Vector3();
+let homeDist = 1;
 function frame() {
   const r = canvas.getBoundingClientRect();
   renderer.setSize(r.width, r.height, false);
@@ -321,6 +342,7 @@ function frame() {
   const dist = (camera.aspect < 1 ? 255 : 215) / Math.sin(half);
   camera.position.set(dist * .62, 68 + dist * .36, dist * .66);
   controls.target.set(0, 68, 0);
+  homeDist = camera.position.distanceTo(controls.target);
   camera.updateProjectionMatrix(); controls.update();
 }
 frame(); new ResizeObserver(frame).observe(canvas);
@@ -382,8 +404,13 @@ function tick(now) {
     if (k >= 1) anim = null;
   }
   // A ground plane is meaningful only for the upright, completed model.
-  ground.visible = (cur === 0 || cur === STEPS) && !anim;
+  ground.visible = contact.visible = (cur === 0 || cur === STEPS) && !anim;
   for (const [color, material] of edgeMat) if (color !== 'hl') material.opacity = cur === 0 ? .2 : .55;
+  // 旋轉中心超出允許範圍時，鏡頭與中心一起平移回來（只平移不轉向，畫面不會跳）
+  const free = THREE.MathUtils.clamp((homeDist - camera.position.distanceTo(controls.target)) / (homeDist * .35), 0, 1);
+  pivotMin.copy(PIVOT_HALF).multiplyScalar(-free).add(HOME); pivotMax.copy(PIVOT_HALF).multiplyScalar(free).add(HOME);
+  pivotFix.copy(controls.target).clamp(pivotMin, pivotMax).sub(controls.target);
+  if (pivotFix.lengthSq() > 1e-6) { controls.target.add(pivotFix); camera.position.add(pivotFix); }
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(tick);

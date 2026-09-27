@@ -67,7 +67,7 @@ actual frame rate depends on the device and browser.
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(65,1,.07,650);
     const sunDir = new THREE.Vector3();
-    const sunUniform = {value:sunDir};
+    const sunUniform = {value:sunDir}, cloudUniform = {value:new THREE.Vector2(72,122)};
     function terrainHeight(x,z){return -.09 + .23*Math.sin(x*.047+z*.012)*Math.cos(z*.039) + .13*Math.sin(x*.105-z*.071);}
     const skyColor = new THREE.Color(0xc5dcd4);
     scene.background = skyColor;
@@ -75,6 +75,9 @@ actual frame rate depends on the device and browser.
     const commonNoise = `
       float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+      // One thin cloud deck CLOUD_H up, drifting downwind. The sky draws it; the field samples it along the sun ray for its shadow.
+      const float CLOUD_H=110.;
+      float cloudCover(vec2 p){p=vec2(dot(p,vec2(.845,.534)),dot(p,vec2(-.534,.845))*1.7);float n=noise(p*.03)*.68+noise(p*.075+3.7)*.32;return smoothstep(.42,.7,n);}
     `;
     const bladeGeometry = new THREE.BufferGeometry();
     const bladePositions = [], bladeHeights = [];
@@ -88,12 +91,12 @@ actual frame rate depends on the device and browser.
     bladeGeometry.setAttribute('position',new THREE.Float32BufferAttribute(bladePositions,3));
     bladeGeometry.setAttribute('bladeHeight',new THREE.Float32BufferAttribute(bladeHeights,1));
     bladeGeometry.computeBoundingSphere();
-    const grassUniforms={uTime:{value:0},uWind:{value:CONFIG.WIND_STRENGTH},uSun:sunUniform,uCamera:{value:new THREE.Vector3()},uHorizon:{value:new THREE.Color(0xb6c9b3)}};
+    const grassUniforms={uTime:{value:0},uWind:{value:CONFIG.WIND_STRENGTH},uSun:sunUniform,uCloud:cloudUniform,uCamera:{value:new THREE.Vector3()},uHorizon:{value:new THREE.Color(0xb6c9b3)}};
     const grassMaterial=new THREE.RawShaderMaterial({side:THREE.DoubleSide,transparent:false,depthWrite:true,uniforms:grassUniforms,
       vertexShader:`precision highp float;
-        attribute vec3 position;attribute float bladeHeight;attribute mat4 instanceMatrix;
-        uniform mat4 modelMatrix,viewMatrix,projectionMatrix;uniform float uTime,uWind;uniform vec3 uCamera;
-        varying float vHeight,vSeed,vDistance,vFacing,vWave,vAcross;varying vec3 vWorld,vNormal;
+        attribute vec3 position;attribute float bladeHeight;attribute mat4 instanceMatrix;attribute vec2 aTuft;
+        uniform mat4 modelMatrix,viewMatrix,projectionMatrix;uniform float uTime,uWind;uniform vec3 uCamera,uSun;uniform vec2 uCloud;
+        varying float vHeight,vSeed,vDistance,vFacing,vWave,vAcross,vTint,vShade;varying vec3 vWorld,vNormal;
         ${commonNoise}
         void main(){
           vec3 base=(modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.)).xyz;
@@ -104,27 +107,29 @@ actual frame rate depends on the device and browser.
           float wave=(broad*.65+fine*.35-.42)*(.45+front*.75);
           // Real blades arch under their own weight: a per-blade static lean along the blade's face normal.
           vec3 facing=(modelMatrix*instanceMatrix*vec4(0.,0.,1.,0.)).xyz;float tall=length((instanceMatrix*vec4(0.,1.,0.,0.)).xyz);
-          float lean=(.12+.3*hash(base.xz*.71))*tall;wp.xz+=normalize(facing.xz+1e-4)*lean*bladeHeight*bladeHeight;wp.y-=lean*.35*bladeHeight*bladeHeight;
+          float lean=(.12+.3*hash(base.xz*.71))*tall*aTuft.y;wp.xz+=normalize(facing.xz+1e-4)*lean*bladeHeight*bladeHeight;wp.y-=lean*.35*bladeHeight*bladeHeight;
           wp.xz+=vec2(.76,.48)*wave*uWind*pow(bladeHeight,1.7)*.45;
-          vHeight=bladeHeight;vSeed=hash(base.xz*.137);vDistance=distance(uCamera.xz,base.xz);
+          vHeight=bladeHeight;vSeed=hash(base.xz*.137);vTint=aTuft.x;vDistance=distance(uCamera.xz,base.xz);vShade=cloudCover(base.xz+uSun.xz/max(uSun.y,.45)*CLOUD_H-uCloud);
           vAcross=position.x/max(.001,.5*(1.-bladeHeight));vNormal=normalize(vec3(facing.x,-2.*lean*bladeHeight/max(tall,.1),facing.z));vWorld=wp.xyz;vWave=wave;vFacing=dot(normalize(vec3(.76,0.,.48)),normalize(uCamera-base));
           gl_Position=projectionMatrix*viewMatrix*wp;
         }`,
       fragmentShader:`precision highp float;
-        uniform vec3 uSun,uCamera,uHorizon;varying float vHeight,vSeed,vDistance,vFacing,vWave,vAcross;varying vec3 vWorld,vNormal;
+        uniform vec3 uSun,uCamera,uHorizon;varying float vHeight,vSeed,vDistance,vFacing,vWave,vAcross,vTint,vShade;varying vec3 vWorld,vNormal;
         void main(){
           float density=1.-smoothstep(38.,108.,vDistance);
           if(vSeed>density)discard;
           vec3 root=vec3(.095,.20,.09), tip=vec3(.67,.70,.29);
           vec3 color=mix(root,tip,pow(vHeight,.83));
-          color*=.84+.3*vSeed+.12*vWave;
+          color*=.84+.3*vSeed+.12*vWave;color*=1.+vTint*vec3(.07,.05,-.07);
           float dry=step(.9,fract(vSeed*7.31));color=mix(color,vec3(.62,.56,.34)*(.55+.45*vHeight),dry*.65);
           float back=max(0.,dot(normalize(uSun),normalize(vWorld-uCamera)));
-          float transmit=pow(back,3.)*(.21+.45*vHeight);
+          // Under a passing cloud the blades lose direct sun (glow-through, diffuse, glint) and keep only cool skylight.
+          float sunVis=1.-.7*vShade;
+          float transmit=pow(back,3.)*(.21+.45*vHeight)*sunVis;
           color+=vec3(.25,.29,.045)*transmit;
-          float diffuse=abs(dot(normalize(vNormal),normalize(uSun)));color*=.65+.35*diffuse;color*=.86+.14*pow(1.-abs(vAcross),2.);color+=vec3(.025,.035,.008)*pow(1.-abs(vAcross),12.)*vHeight;color*=.8+.2*smoothstep(0.,.3,vHeight);
+          float diffuse=abs(dot(normalize(vNormal),normalize(uSun)))*sunVis;color*=.65+.35*diffuse;color*=mix(vec3(1.),vec3(.64,.7,.8),vShade);color*=.86+.14*pow(1.-abs(vAcross),2.);color+=vec3(.025,.035,.008)*pow(1.-abs(vAcross),12.)*vHeight;color*=.8+.2*smoothstep(0.,.3,vHeight);
           // Waxy cuticle: a tight sun glint on some blades, strongest on the bent upper half, so gusts read as a travelling sheen.
-          vec3 hv=normalize(normalize(uSun)+normalize(uCamera-vWorld));float glint=pow(abs(dot(normalize(vNormal),hv)),48.)*smoothstep(.35,1.,vHeight)*(.3+.7*vSeed);color+=vec3(.95,.9,.7)*glint*.14*(1.-smoothstep(5.,16.,vDistance));
+          vec3 hv=normalize(normalize(uSun)+normalize(uCamera-vWorld));float glint=pow(abs(dot(normalize(vNormal),hv)),48.)*smoothstep(.35,1.,vHeight)*(.3+.7*vSeed);color+=vec3(.95,.9,.7)*glint*.14*sunVis*(1.-smoothstep(5.,16.,vDistance));
           float haze=smoothstep(30.,140.,vDistance)*.73;
           color=mix(color,uHorizon,haze);
           gl_FragColor=vec4(color,1.);
@@ -135,19 +140,33 @@ actual frame rate depends on the device and browser.
     const dummy=new THREE.Object3D();
     // Stable scatter: each blade is positioned once. Animation updates shader uniforms only.
     function rand(i,s){let x=Math.sin(i*12.9898+s*78.233)*43758.5453;return x-Math.floor(x);}
+    // Per blade: x = tuft colour shift, y = lean multiplier (1 for the open field).
+    const tuftData=new Float32Array(CONFIG.GRASS_COUNT*2);let tufts=0,tuftLeft=0,tx=0,tz=0,tr=0,ts=0,tt=0;
     for(let i=0;i<CONFIG.GRASS_COUNT;i++){
       let x=(rand(i,1)-.5)*132,z=(rand(i,2)-.5)*160-25;
       // An additional near-camera belt keeps close blades dense without extending GPU cost to the horizon.
       if(i<CONFIG.GRASS_COUNT*.35){x=(rand(i,3)-.5)*38;z=(rand(i,4)-.5)*88-20;}
-      const h=.44+rand(i,5)*.62, w=.022+rand(i,6)*.037;
+      let h=.44+rand(i,5)*.62, w=.022+rand(i,6)*.037, yaw=rand(i,7)*Math.PI*2, tint=0, lean=1;
+      // The walk starts at z = 9 facing -z and turns at most ~75 degrees off axis, so blades past z = 12 or far out to the side
+      // of the start are never on screen (about 34,600 of them). They are regrown along the walk as low tufts:
+      // 5-9 blades fanning out from one root, each tuft with its own height and colour, densest along the path.
+      if(z>12||Math.abs(x)>3.5*(9.5-z)){
+        if(!tuftLeft){tufts++;const g=Math.sqrt(-2*Math.log(1-.998*rand(tufts,21)))*Math.cos(6.2832*rand(tufts,22));
+          tz=9-rand(tufts,23)*70;tx=Math.sin((9-tz)*.021)*.55+Math.max(-10,Math.min(10,g*3.2));
+          tuftLeft=5+Math.floor(rand(tufts,24)*5);tr=.07+rand(tufts,25)*.13;ts=.75+rand(tufts,26)*.5;tt=rand(tufts,27)*2-1;}
+        tuftLeft--;const a=rand(i,8)*6.2832,out=Math.sqrt(rand(i,9)),ox=Math.cos(a)*out*tr,oz=Math.sin(a)*out*tr;
+        x=tx+ox;z=tz+oz;h=(.3+rand(i,5)*.34)*ts*(1.12-.4*out);w*=1.2;yaw=Math.atan2(ox,oz)+(rand(i,7)-.5)*.8;tint=tt;lean=.8+out*.9;
+      }
+      tuftData[i*2]=tint;tuftData[i*2+1]=lean;
       dummy.position.set(x,terrainHeight(x,z)-.015,z);
-      dummy.rotation.set(0,rand(i,7)*Math.PI*2,0);
+      dummy.rotation.set(0,yaw,0);
       dummy.scale.set(w,h,1);dummy.updateMatrix();grass.setMatrixAt(i,dummy.matrix);
     }
+    bladeGeometry.setAttribute('aTuft',new THREE.InstancedBufferAttribute(tuftData,2));
     grass.instanceMatrix.needsUpdate=true;
     scene.add(grass);
 
-    const groundUniforms={uTime:{value:0},uSun:sunUniform,uCamera:{value:new THREE.Vector3()},uHorizon:grassUniforms.uHorizon,uWind:grassUniforms.uWind};
+    const groundUniforms={uTime:{value:0},uSun:sunUniform,uCloud:cloudUniform,uCamera:{value:new THREE.Vector3()},uHorizon:grassUniforms.uHorizon,uWind:grassUniforms.uWind};
     const groundGeometry=new THREE.PlaneGeometry(700,700,180,180);
     groundGeometry.rotateX(-Math.PI/2);
     const gp=groundGeometry.attributes.position;
@@ -164,7 +183,7 @@ actual frame rate depends on the device and browser.
           w.y+=far*(wave-.5)*.15*uWind;vWorld=w.xyz;vSlope=normal.y;
           gl_Position=projectionMatrix*viewMatrix*w;}`,
       fragmentShader:`precision highp float;
-        uniform vec3 uSun,uHorizon;varying vec3 vWorld;varying float vDistance,vSlope;
+        uniform vec3 uSun,uHorizon;uniform vec2 uCloud;varying vec3 vWorld;varying float vDistance,vSlope;
         ${commonNoise}
         void main(){float n=noise(vWorld.xz*.065)*.62+noise(vWorld.xz*.23)*.38;
           vec3 c=mix(vec3(.15,.27,.115),vec3(.31,.40,.19),n);
@@ -173,20 +192,25 @@ actual frame rate depends on the device and browser.
           // Near the walker the soil is a mat of short grass and dry thatch in the blades' shade, not a flat lawn colour.
           float thatchN=noise(vWorld.xz*3.1)*.55+noise(vWorld.xz*8.3)*.45,near=1.-smoothstep(6.,34.,vDistance);
           c=mix(c,c*(.66+.5*thatchN),near*.8);c=mix(c,vec3(.34,.33,.16)*(.55+.45*thatchN),near*smoothstep(.62,.8,thatchN)*.45);
+          c*=mix(vec3(1.),vec3(.64,.7,.8),cloudCover(vWorld.xz+uSun.xz/max(uSun.y,.45)*CLOUD_H-uCloud));
           c=mix(c,uHorizon,smoothstep(32.,180.,vDistance)*.88);
           gl_FragColor=vec4(c,1.);}`});
     const ground=new THREE.Mesh(groundGeometry,groundMaterial);ground.frustumCulled=false;scene.add(ground);
 
-    const skyUniforms={uSun:sunUniform,uTop:{value:new THREE.Color(0x8fb8bf)},uHorizon:{value:new THREE.Color(0xe7e4c7)}};
+    const skyUniforms={uSun:sunUniform,uCloud:cloudUniform,uTop:{value:new THREE.Color(0x8fb8bf)},uHorizon:{value:new THREE.Color(0xe7e4c7)}};
     const sky=new THREE.Mesh(new THREE.SphereGeometry(500,32,16),new THREE.RawShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:skyUniforms,
       vertexShader:`precision highp float;attribute vec3 position;uniform mat4 modelMatrix,viewMatrix,projectionMatrix;varying vec3 vRay;void main(){vRay=normalize(position);gl_Position=projectionMatrix*viewMatrix*modelMatrix*vec4(position,1.);}`,
-      fragmentShader:`precision highp float;uniform vec3 uSun,uTop,uHorizon;varying vec3 vRay;
+      fragmentShader:`precision highp float;uniform vec3 uSun,uTop,uHorizon;uniform vec2 uCloud;varying vec3 vRay;
+        ${commonNoise}
         void main(){vec3 ray=normalize(vRay);float h=clamp(ray.y*.72+.18,0.,1.);
           vec3 c=mix(uHorizon,uTop,pow(h,.55));
           float rayleigh=pow(max(ray.y,0.),.52)*.08;
           float mie=pow(max(dot(ray,normalize(uSun)),0.),55.);
           float glow=pow(max(dot(ray,normalize(uSun)),0.),5.);
           c+=vec3(.07,.10,.09)*rayleigh+vec3(1.,.74,.38)*mie*.47+vec3(.31,.21,.1)*glow*.11;
+          // The cloud deck from below: thin sunlit veils that thin out into the horizon haze.
+          float cov=ray.y>0.?cloudCover(ray.xz/(ray.y+.04)*CLOUD_H-uCloud)*smoothstep(.03,.3,ray.y):0.;
+          c=mix(c,mix(vec3(.97,.97,.93),uHorizon,.25)+vec3(.3,.22,.1)*glow,cov*.34);
           gl_FragColor=vec4(c,1.);}`}));
     sky.frustumCulled=false;scene.add(sky);
 
@@ -284,7 +308,9 @@ actual frame rate depends on the device and browser.
     window.addEventListener('resize',resize);resize();
     const flare=document.getElementById('flare'),travel=document.getElementById('travel');
     const sunPoint=new THREE.Vector3(),lookDir=new THREE.Vector3(),lookAt=new THREE.Vector3(),light2Goal=new THREE.Vector2();
-    function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(!motionPaused)elapsed+=dt;
+    function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(!motionPaused){elapsed+=dt;
+        // Cloud shadows travel downwind (the way the blades lean) at a pace set by the wind slider, and hold still while paused.
+        const drift=dt*(1.5+5*grassUniforms.uWind.value);cloudUniform.value.x+=.76*drift;cloudUniform.value.y+=.48*drift;}
       const idle=now-lastInput>4500;
       if(idle&&!reducedMotion&&!motionPaused){state.targetYaw=Math.sin(elapsed*.09)*.15;state.targetPitch=-.04+Math.sin(elapsed*.055)*.035;state.targetDolly=Math.min(62,state.targetDolly+dt*.46);}
       const k=reducedMotion?1:1-Math.exp(-dt*2.1);

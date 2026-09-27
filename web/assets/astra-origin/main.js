@@ -41,7 +41,7 @@ $('prev').onclick=()=>jump(Math.max(0,current-1));$('next').onclick=()=>jump(Mat
 $('play').onclick=()=>{if(time>=95.99)updateTime(0);play(!playing);};
 $('timeline').addEventListener('input',e=>{play(false);updateTime(Number(e.target.value));});
 function syncMotion(){$('motion').textContent=`動態：${moving?'開':'關'}`;$('motion').setAttribute('aria-pressed',String(moving));}
-$('motion').onclick=()=>{moving=!moving;syncMotion();if(!moving)sceneAPI?.reset();};reduced.addEventListener('change',e=>{moving=!e.matches;syncMotion();if(!moving)sceneAPI?.reset();});syncMotion();
+$('motion').onclick=()=>{moving=!moving;syncMotion();if(!moving)sceneAPI?.reset();};reduced.addEventListener('change',e=>{moving=!e.matches;syncMotion();sceneAPI?.damping?.(!e.matches);if(!moving)sceneAPI?.reset();});syncMotion();
 $('labels').onclick=()=>{const visible=$('annotation').hidden;$('annotation').hidden=!visible;$('labels').textContent=`標註：${visible?'開':'關'}`;$('labels').setAttribute('aria-pressed',String(visible));};
 function setExplode(value){explode=value;$('explode').value=value*100;$('explode-value').textContent=`${Math.round(explode*100)}%`;$('quick-explode').textContent=value>0?'合攏模型 −':'拆解模型 ＋';$('quick-explode').setAttribute('aria-pressed',String(value>0));}
 $('explode').addEventListener('input',e=>setExplode(Number(e.target.value)/100));
@@ -59,12 +59,15 @@ async function boot(){
   const {RoundedBoxGeometry} = await import('three/addons/geometries/RoundedBoxGeometry.js');
   const host=$('canvas-host'), renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setClearColor(0x101413,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
+  // Real shadows: stacked planes, cards and the core now occlude each other and land on the instrument plate below.
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;
   host.appendChild(renderer.domElement);renderer.domElement.setAttribute('aria-label','Astra 誕生之旅 3D 場景');renderer.domElement.setAttribute('aria-describedby','orbit-help');
   const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x101413,.025);scene.environment=createStudioEnvironment(THREE,renderer).texture;scene.environmentIntensity=.42;
   const camera=new THREE.PerspectiveCamera(39,1,.1,100);camera.position.set(8,5.5,11);
   const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=!reduced.matches;controls.dampingFactor=.08;controls.enablePan=false;controls.minDistance=8;controls.maxDistance=22;controls.maxPolarAngle=Math.PI*.88;controls.target.set(0,-.45,0);
   scene.add(new THREE.HemisphereLight(0xd8e4cd,0x121d16,2.1));
   const key=new THREE.DirectionalLight(0xffd7a0,4);key.position.set(4,7,5);scene.add(key);
+  key.castShadow=true;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-6.5,right:6.5,top:6.5,bottom:-6.5,near:2,far:22});key.shadow.camera.updateProjectionMatrix();key.shadow.bias=-.0004;key.shadow.normalBias=.02;key.shadow.radius=3;
   const rim=new THREE.DirectionalLight(0x9ad6b5,3);rim.position.set(-5,1,-3);scene.add(rim);
   // The glowing core actually lights what orbits it (inner faces of cards and rings warm up near the centre).
   const coreLight=new THREE.PointLight(0xffc88a,0,6,2);scene.add(coreLight);const coreChapters=new Set([0,3,7]);
@@ -76,9 +79,11 @@ async function boot(){
   const lineMat=new THREE.LineBasicMaterial({color:0x86aa90,transparent:true,opacity:.28});
   const boxGeo=new THREE.BoxGeometry(1,1,1),sphereGeo=new THREE.IcosahedronGeometry(1,1);
   let seed=177;function rand(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
+  // Separate stream for hand-placed variation, so existing dust and token heights keep their layout.
+  let seed2=911;function vary(a,b){seed2=(Math.imul(seed2,1664525)+1013904223)>>>0;return a+(b-a)*seed2/4294967296;}
   // Plates and cells get machined edges at their real size (a scaled unit bevel would squash); hairline rules stay crisp.
   const edgeCache=new Map();function edgedBox(s){const key=s.join(','),min=Math.min(...s);if(!edgeCache.has(key))edgeCache.set(key,min<.03?new THREE.BoxGeometry(...s):new RoundedBoxGeometry(...s,2,Math.min(min*.2,.03)));return edgeCache.get(key);}
-  function mesh(geo,mat,parent,pos=[0,0,0],scale=[1,1,1],part=0){if(geo===boxGeo){geo=edgedBox(scale);scale=[1,1,1];}const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.userData.part=part;parent.add(m);return m;}
+  function mesh(geo,mat,parent,pos=[0,0,0],scale=[1,1,1],part=0){let hair=false;if(geo===boxGeo){hair=Math.min(...scale)<.03;geo=edgedBox(scale);scale=[1,1,1];}const m=new THREE.Mesh(geo,mat);m.castShadow=!hair;m.receiveShadow=true;m.position.set(...pos);m.scale.set(...scale);m.userData.part=part;parent.add(m);return m;}
   function ring(parent,radius,tube,rotation,mat=gold,part=0){const m=mesh(new THREE.TorusGeometry(radius,tube,8,120),mat,parent,[0,0,0],[1,1,1],part);m.rotation.set(...rotation);return m;}
   function line(parent,pts,mat=lineMat,part=0){const geo=new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(...p)));const l=new THREE.Line(geo,mat);l.userData.part=part;parent.add(l);return l;}
   function node(parent,pos,r=.06,mat=light,part=0){return mesh(sphereGeo,mat,parent,pos,[r,r,r],part);}
@@ -86,6 +91,8 @@ async function boot(){
   // A static scientific-instrument base gives every chapter a shared visual scale.
   const base=new THREE.Group();base.position.y=-2.75;scene.add(base);
   mesh(new THREE.CylinderGeometry(3.82,3.84,.08,96,1,true),dark,base,[0,-.065,0]);
+  // The instrument gets a dark satin plate inside its rim, so each sculpture has somewhere to cast its shadow.
+  const plate=new THREE.Mesh(new THREE.CircleGeometry(3.8,96),new THREE.MeshPhysicalMaterial({color:0x0b0f0d,roughness:.8,metalness:0,specularIntensity:.45}));plate.rotation.x=-Math.PI/2;plate.position.y=-.03;plate.receiveShadow=true;base.add(plate);
   ring(base,3.8,.035,[Math.PI/2,0,0],metal);ring(base,3.55,.013,[Math.PI/2,0,0],gold);
   for(let i=0;i<96;i++){const a=i/96*Math.PI*2;const tick=mesh(boxGeo,i%8===0?gold:metal,base,[Math.cos(a)*3.72,0,Math.sin(a)*3.72],[i%8===0?.15:.07,.025,.018]);tick.rotation.y=-a;}
   for(let i=0;i<4;i++){const a=i*Math.PI/2;line(base,[[Math.cos(a)*3.9,0,Math.sin(a)*3.9],[Math.cos(a)*4.3,0,Math.sin(a)*4.3]]);}
@@ -94,7 +101,7 @@ async function boot(){
   let attentionGeometry=null;const attentionEdges=[];
   const groups=chapters.map(()=>{const g=new THREE.Group();g.visible=false;scene.add(g);return g;});
   // 01: three orbital archives, each made of individually ruled document plates.
-  {const g=groups[0];orb(g,.92);for(let k=0;k<3;k++){const layer=new THREE.Group();layer.userData.part=k;layer.rotation.set(.38+k*.44,k*.9,.2);g.add(layer);ring(layer,1.65+k*.42,.026,[Math.PI/2,0,0],k===1?gold:metal,k);for(let i=0;i<12;i++){const a=i/12*Math.PI*2+k*.3,r=1.65+k*.42;const card=new THREE.Group();card.position.set(Math.cos(a)*r,0,Math.sin(a)*r);card.rotation.y=-a;layer.add(card);mesh(boxGeo,i%4===0?gold:dark,card,[0,0,0],[.35,.48,.035],k);for(let j=0;j<4;j++)mesh(boxGeo,pale,card,[-.03,.14-j*.085,.025],[j===3?.14:.23,.012,.008],k);}}ring(g,3.1,.016,[.4,0,.1],gold);}
+  {const g=groups[0];orb(g,.92);for(let k=0;k<3;k++){const layer=new THREE.Group();layer.userData.part=k;layer.rotation.set(.38+k*.44,k*.9,.2);g.add(layer);ring(layer,1.65+k*.42,.026,[Math.PI/2,0,0],k===1?gold:metal,k);for(let i=0;i<12;i++){const a=i/12*Math.PI*2+k*.3,r=1.65+k*.42;const card=new THREE.Group();card.position.set(Math.cos(a)*r,vary(-.04,.04),Math.sin(a)*r);card.rotation.set(vary(-.07,.07),-a+vary(-.12,.12),vary(-.1,.1));layer.add(card);mesh(boxGeo,i%4===0?gold:dark,card,[0,0,0],[.35,.48,.035],k);for(let j=0;j<4;j++)mesh(boxGeo,pale,card,[-.03,.14-j*.085,.025],[j===3?.14:.23,.012,.008],k);}}ring(g,3.1,.016,[.4,0,.1],gold);}
   // 02: token cells and three banks of embedding coordinates.
   {const g=groups[1];for(let k=0;k<3;k++){const layer=new THREE.Group();layer.userData.part=k;layer.position.x=(k-1)*1.7;g.add(layer);for(let y=0;y<5;y++)for(let z=0;z<4;z++){const height=k===0?.14:k===1?.28:.2+rand()*.7;mesh(boxGeo,(y+z)%4===0?gold:metal,layer,[0,(y-2)*.66,(z-1.5)*.65],[height,.42,.42],k);node(layer,[height*.5+.04,(y-2)*.66,(z-1.5)*.65],.035,light,k);}line(g,[[(k-1)*1.7,-2,0],[(k-1)*1.7,2,0]]);}ring(g,3.25,.017,[0,Math.PI/2,0]);}
   // 03: an explicit layered graph; links are illustrative, not model weights.
@@ -106,7 +113,7 @@ async function boot(){
   // 06: three testing gates with different geometric apertures.
   {const g=groups[5];for(let k=0;k<3;k++){const layer=new THREE.Group();layer.position.x=(k-1)*1.75;layer.userData.part=k;g.add(layer);ring(layer,1.8,.12,[0,Math.PI/2,0],k===1?gold:metal,k);ring(layer,1.57,.018,[0,Math.PI/2,0],pale,k);for(let j=0;j<12;j++){const a=j/12*Math.PI*2;node(layer,[0,Math.cos(a)*1.79,Math.sin(a)*1.79],.065,light,k);}}for(let i=0;i<14;i++)node(g,[-3+i*.45,Math.sin(i)*.13,0],.09,i%4===0?gold:pale,Math.min(2,Math.floor(i/5)));line(g,[[-3.3,0,0],[3.3,0,0]]);}
   // 07: stacked compute planes and a chain of output tokens.
-  {const g=groups[6];for(let k=0;k<6;k++){const layer=new THREE.Group();layer.position.y=(k-2.5)*.55;layer.userData.part=Math.floor(k/2);g.add(layer);mesh(boxGeo,dark,layer,[0,0,0],[2.3,.1,2.3],Math.floor(k/2));for(let i=0;i<4;i++)for(let j=0;j<4;j++)mesh(boxGeo,(i+j+k)%4===0?gold:metal,layer,[(i-1.5)*.51,.09,(j-1.5)*.51],[.32,.08,.32],Math.floor(k/2));ring(layer,1.72,.018,[Math.PI/2,0,0],pale,Math.floor(k/2));}for(let i=0;i<9;i++)node(g,[-2.8+i*.35,2,0],.075,light,0);for(let i=0;i<7;i++)mesh(boxGeo,gold,g,[1.8+i*.21,-1.4+i*.32,0],[.14,.18,.18],2);}
+  {const g=groups[6];for(let k=0;k<6;k++){const layer=new THREE.Group();layer.position.y=(k-2.5)*.55;layer.userData.part=Math.floor(k/2);g.add(layer);mesh(boxGeo,dark,layer,[0,0,0],[2.3,.1,2.3],Math.floor(k/2));for(let i=0;i<4;i++)for(let j=0;j<4;j++){const h=[.06,.08,.1,.12][vary(0,4)|0];mesh(boxGeo,(i+j+k)%4===0?gold:metal,layer,[(i-1.5)*.51,.05+h/2,(j-1.5)*.51],[.32,h,.32],Math.floor(k/2)).rotation.y=vary(-.05,.05);}ring(layer,1.72,.018,[Math.PI/2,0,0],pale,Math.floor(k/2));}for(let i=0;i<9;i++)node(g,[-2.8+i*.35,2,0],.075,light,0);for(let i=0;i<7;i++)mesh(boxGeo,gold,g,[1.8+i*.21,-1.4+i*.32,0],[.14,.18,.18],2);}
   // 08: an open, luminous mathematical shell, not an anatomical brain.
   {const g=groups[7];orb(g,1.2);for(let k=0;k<5;k++)ring(g,1.8+k*.22,.021,[k*.45,.5+k*.36,k*.2],k%2?gold:metal,k%3);for(let i=0;i<110;i++){const y=1-(i/109)*2,r=Math.sqrt(1-y*y),a=i*Math.PI*(3-Math.sqrt(5));node(g,[Math.cos(a)*r*2.8,y*2.8,Math.sin(a)*r*2.8],i%7===0?.05:.022,i%7===0?gold:pale,i%3);}}
   // Record rest positions once; the inspector only transforms top-level components.
@@ -120,10 +127,21 @@ async function boot(){
   function reset(){settle();goal.copy(pose(current));camera.position.copy(goal);controls.target.set(0,-.45,0);controls.update();transition=false;}
   controls.addEventListener('start',()=>{transition=false;});
   bindOrbitKeyboard(THREE,controls,renderer.domElement,{reset,change:()=>{transition=false;}});
-  sceneAPI={chapter(i){groups.forEach((g,n)=>{g.visible=n===i;});coreLight.intensity=coreChapters.has(i)?5:0;settle();goal.copy(pose(i));transition=moving&&!reduced.matches;if(!transition)reset();this.select(-1);},reset};
+  sceneAPI={chapter(i){groups.forEach((g,n)=>{g.visible=n===i;});coreLight.intensity=coreChapters.has(i)?12:0;settle();goal.copy(pose(i));transition=moving&&!reduced.matches;if(!transition)reset();this.select(-1);},reset};
   // Material selection uses cached originals to avoid accumulating GPU materials.
   const materialCache=new Map();groups.forEach(g=>g.traverse(o=>{if(o.isMesh)materialCache.set(o,o.material);}));
-  sceneAPI.select=part=>{groups[current].traverse(o=>{if(!o.isMesh)return;const original=materialCache.get(o);if(o.material!==original)o.material.dispose();o.material=original;if(part>=0){o.material=original.clone();o.material.emissive.set(o.userData.part===part?0xb18e51:0x000000);o.material.emissiveIntensity=o.userData.part===part?.8:0;}});};
+  // Pointing at a component lifts the whole group it belongs to (one prebuilt material per original, no per-frame clones);
+  // a tap or click that is not a drag selects it, exactly like the matching flow step below.
+  const hoverMats=new Map(),hoverSet=new Set();materialCache.forEach(m=>{if(hoverMats.has(m))return;const h=m.clone();if(m.emissive.getHex()&&m.emissiveIntensity>.5)h.emissiveIntensity=m.emissiveIntensity*1.4;else{h.emissive.set(0xb18e51);h.emissiveIntensity=.14;}hoverMats.set(m,h);hoverSet.add(h);});
+  const picker=new THREE.Raycaster(),ndc=new THREE.Vector2(),canvas=renderer.domElement;let hoverPart=-1,press=null;
+  function pickPart(e){const r=canvas.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);picker.setFromCamera(ndc,camera);const hit=picker.intersectObject(groups[current],true).find(h=>h.object.isMesh&&materialCache.has(h.object));return hit?hit.object.userData.part??-1:-1;}
+  function setHover(part){if(part===hoverPart)return;hoverPart=part;canvas.style.cursor=part>=0?'pointer':'';groups[current].traverse(o=>{if(!o.isMesh)return;const original=materialCache.get(o);if(!original||(o.material!==original&&!hoverSet.has(o.material)))return;o.material=part>=0&&o.userData.part===part?hoverMats.get(original):original;});}
+  canvas.addEventListener('pointerdown',e=>{press={x:e.clientX,y:e.clientY,t:performance.now()};});
+  canvas.addEventListener('pointermove',e=>{if(press&&Math.hypot(e.clientX-press.x,e.clientY-press.y)>6){press=null;setHover(-1);}if(e.buttons||e.pointerType==='touch')return;setHover(pickPart(e));});
+  canvas.addEventListener('pointerleave',()=>setHover(-1));canvas.addEventListener('pointercancel',()=>{press=null;setHover(-1);});
+  canvas.addEventListener('pointerup',e=>{if(!press||performance.now()-press.t>600){press=null;return;}press=null;const part=pickPart(e);const step=part>=0&&$('flow').querySelector(`[data-part="${part}"]`);if(step)step.click();else{$('flow').querySelectorAll('button').forEach(el=>el.setAttribute('aria-pressed','false'));sceneAPI.select(-1);}});
+  sceneAPI.select=part=>{hoverPart=-1;canvas.style.cursor='';groups[current].traverse(o=>{if(!o.isMesh)return;const original=materialCache.get(o);if(o.material!==original&&!hoverSet.has(o.material))o.material.dispose();o.material=original;if(part>=0){o.material=original.clone();o.material.emissive.set(o.userData.part===part?0xb18e51:0x000000);o.material.emissiveIntensity=o.userData.part===part?.8:0;}});};
+  sceneAPI.damping=on=>{settle();controls.enableDamping=on;};
   sceneAPI.chapter(current);
   const resize=()=>{const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();reset();};new ResizeObserver(resize).observe(host);resize();
   renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();contextLost=true;play(false);$('fallback').hidden=false;$('render-state').textContent='3D 已中斷';});

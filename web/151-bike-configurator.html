@@ -726,6 +726,9 @@ function makeTextures() {
   });
   T.tapeBlack = tape('#171717', 'rgba(255,255,255,.07)'); T.tapeBlack.repeat.set(70, 1);
   T.tapeTan = tape('#9a6a3e', 'rgba(60,30,10,.28)'); T.tapeTan.repeat.set(70, 1);
+  // tyre contact occlusion: dense at the patch, gone within a few centimetres
+  T.contact = canvasTex(128, 128, (x, w) => { const gr = x.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); gr.addColorStop(0, 'rgba(0,0,0,.9)'); gr.addColorStop(0.4, 'rgba(0,0,0,.62)'); gr.addColorStop(0.72, 'rgba(0,0,0,.2)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gr; x.fillRect(0, 0, w, w); });
+  T.contact.wrapS = T.contact.wrapT = THREE.ClampToEdgeWrapping;
   return T;
 }
 // down-tube decal, drawn along the tube (texture v = along the tube)
@@ -775,6 +778,7 @@ function makeMaterials(T) {
     tapeTan: S({ map: T.tapeTan, roughness: 0.75 }),
     hood: S({ color: '#1a1a1b', roughness: 0.72 }),
     decal: new THREE.MeshStandardMaterial({ transparent: true, roughness: 0.55, metalness: 0, envMapIntensity: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
+    contact: new THREE.MeshBasicMaterial({ map: T.contact, transparent: true, depthWrite: false, opacity: 0.85 }),
   };
   M.decalTex = new THREE.CanvasTexture(decalCanvas('#f1eee6'));
   M.decalTex.colorSpace = THREE.SRGBColorSpace; M.decalTex.anisotropy = 8;
@@ -968,6 +972,9 @@ function buildWheel(wId, tId, rear, M) {
   for (let i = 0; i < 36; i++) { const a = i / 36 * Math.PI * 2, h = new THREE.Path(); h.absarc(Math.cos(a) * 0.0715, Math.sin(a) * 0.0715, 0.0021, 0, Math.PI * 2, true); rs.holes.push(h); }
   const rotor = mesh(new THREE.ExtrudeGeometry(rs, { depth: 0.0018, bevelEnabled: false, curveSegments: 20 }), M.rotor, 'brakes');
   rotor.position.z = rear ? -0.059 : -0.047; spin.add(rotor);
+  // contact occlusion under the tread; on the non-spinning root so it rides the intro roll-in and swaps (not pickable, casts nothing)
+  const cg = new THREE.PlaneGeometry(0.2, tw * 2); cg.rotateX(-Math.PI / 2);
+  const patch = new THREE.Mesh(cg, M.contact); patch.position.y = -(Rb + tw) + 0.0015; patch.renderOrder = 1; root.add(patch);
   root.userData.spin = spin;
   return root;
 }
@@ -1346,12 +1353,23 @@ async function bootViewer() {
     updateDrive(true);
   }
   let lastD = null;
-  function updateDrive(force) {
+  // freehub: the chain can only drive the wheels forward (−z). When the crank slows or stops they coast on and bleed
+  // speed to bearing drag, while the cassette stays locked to the chain. Chain-locked during the intro and under reduced motion.
+  const coast = { lock: true, wheel: 0, v: 0, prevD: null };
+  function updateDrive(force, dt = 0) {
     const d = -anim.crank * drv.R1;
     drv.crank.rotation.z = anim.crank;
     drv.pedals.forEach((p) => { p.rotation.z = -anim.crank; });
     const w = -d / drv.R2;
-    P.wheelR.userData.spin.rotation.z = w; P.wheelF.userData.spin.rotation.z = w;
+    const locked = coast.lock || reduced;
+    if (dt > 0 && coast.prevD !== null) {
+      const vd = -(d - coast.prevD) / drv.R2 / dt; // wheel speed the chain is asking for
+      coast.v = locked || vd <= coast.v ? vd : coast.v * Math.exp(-dt / 2.5);
+    }
+    coast.prevD = d;
+    if (locked) coast.wheel = w; else if (dt > 0) coast.wheel += coast.v * dt;
+    P.wheelR.userData.spin.rotation.z = coast.wheel; P.wheelF.userData.spin.rotation.z = coast.wheel;
+    drv.cassette.rotation.z = drv.cogOff + w - coast.wheel; // cancels the wheel's spin: the cogs follow the chain
     if (drv.pUp) { drv.pUp.rotation.z = drv.puOff + d / drv.Rp; drv.pLow.rotation.z = drv.plOff - d / drv.Rp; }
     if (force || d !== lastD) { drv.update(d); lastD = d; }
   }
@@ -1373,7 +1391,8 @@ async function bootViewer() {
       chain: [w({ x: 0.05, y: 0 }, 0.12, 0.5), w({ x: 0.02, y: 0 }, -0.04, 0.05)],
       cockpit: [bar.clone().add(V3(0.5, 0.32, 0.5)), bar.clone().add(V3(-0.02, -0.04, 0))],
       saddle: [sad.clone().add(V3(0.05, 0.28, 0.55)), sad.clone()],
-      wheel: [fa.clone().add(V3(0.3, 0.2, 1.05)), fa.clone()],
+      // pulled back and aimed a little below/behind the axle: the whole wheel, its ground contact and the disc sit clear of the caption and the view bar
+      wheel: [fa.clone().add(V3(0.32, 0.21, 1.37)), fa.clone().add(V3(-0.07, -0.05, 0))],
       tire: [fa.clone().add(V3(0.52, R * 0.55, 0.42)), fa.clone().add(V3(R * 0.72, R * 0.62, 0))],
       fork: [fa.clone().add(V3(0.55, 0.35, 0.6)), fa.clone().add(V3(-0.08, 0.2, 0))],
       brake: [w(g.FA, 0, -0.55).add(V3(0.1, 0.1, 0)), fa.clone().add(V3(-0.05, 0.02, -0.04))],
@@ -1422,7 +1441,7 @@ async function bootViewer() {
     G.to(old.map((o) => o.scale), { x: 0.001, y: 0.001, z: 0.001, duration: 0.28, ease: 'back.in(1.8)', onComplete: () => {
       keys.forEach(mount); if (after) after();
       keys.forEach((k, i) => popIn(P[k], i * 0.06));
-      if (keys.includes('wheelF')) { G.from(P.wheelF.userData.spin.rotation, { z: '+=6', duration: 0.9, ease: 'power3.out' }); G.from(P.wheelR.userData.spin.rotation, { z: '+=6', duration: 0.9, ease: 'power3.out' }); }
+      if (keys.includes('wheelF')) coast.v = Math.min(coast.v, -8); // fresh wheels get a hand spin and coast down on the freehub
     } });
   }
   function repaint(id) {
@@ -1543,7 +1562,7 @@ async function bootViewer() {
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (anim.rpm > 0.01) anim.crank -= anim.rpm / 60 * Math.PI * 2 * dt;
-    updateDrive(false);
+    updateDrive(false, dt);
     controls.update();
     panFix.copy(controls.target); controls.target.clamp(PAN_MIN, PAN_MAX); camera.position.add(panFix.subVectors(controls.target, panFix));
     if (camera.position.y < 0.03) camera.position.y = 0.03;
@@ -1568,7 +1587,8 @@ async function bootViewer() {
       .from(P.saddle.position, { y: '+=0.3', duration: 0.8, ease: 'back.out(1.7)' }, 0.9)
       .from(P.drive.scale, { x: 0.001, y: 0.001, z: 0.001, duration: 0.7, ease: 'back.out(1.6)' }, 1.0)
       .from(anim, { crank: anim.crank + Math.PI * 3, duration: 1.6, ease: 'power3.out' }, 1.0);
-  } else l.hidden = true;
+    tl.eventCallback('onComplete', () => { coast.lock = false; });
+  } else { l.hidden = true; coast.lock = false; }
 
   viewer = {
     apply, view: flyTo,

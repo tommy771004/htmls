@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from '../../../vendor/three-0.186.0/addons/geometries/RoundedBoxGeometry.js';
 import { createStudioEnvironment } from '../3d/studio.js';
+import { createSurface } from '../3d/surfaces.js';
 
 export function createOffice({agents,onChat,isBlocked,onHint}) {
  const host=document.getElementById('scene'), labels=document.getElementById('nameplates');
@@ -8,29 +9,55 @@ export function createOffice({agents,onChat,isBlocked,onHint}) {
  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
  renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setClearColor(0xeeeeE4,0);
  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;
- renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;
+ renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
  host.appendChild(renderer.domElement);
  const camera=new THREE.OrthographicCamera(-10,10,10,-10,.1,100);
  camera.position.set(13,14,19);camera.lookAt(0,.2,0);
- scene.add(new THREE.HemisphereLight(0xfff9e7,0xa6b39b,2.8));
- const sun=new THREE.DirectionalLight(0xffe6bf,4.5);sun.position.set(-3,13,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-11;sun.shadow.camera.right=11;sun.shadow.camera.top=11;sun.shadow.camera.bottom=-11;sun.shadow.normalBias=.035;sun.shadow.bias=-.0002;sun.shadow.radius=4;scene.add(sun);
- const fill=new THREE.DirectionalLight(0xecf8e4,1.2);fill.position.set(8,6,-6);scene.add(fill);
+ const sky=new THREE.HemisphereLight(0xfff9e7,0xa6b39b,1.55);scene.add(sky);
+ const sun=new THREE.DirectionalLight(0xffe6bf,3.1);sun.position.set(-3,13,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-11;sun.shadow.camera.right=11;sun.shadow.camera.top=11;sun.shadow.camera.bottom=-11;sun.shadow.normalBias=.012;sun.shadow.bias=-.0002;sun.shadow.radius=3;scene.add(sun);
+ const fill=new THREE.DirectionalLight(0xecf8e4,.75);fill.position.set(8,6,-6);scene.add(fill);
+ // Lighting changes the actual light direction and shadow, keeping the model palette intact.
+ let afternoon=false;
+ const lightButton=document.getElementById('room-light');
+ lightButton.onclick=()=>{afternoon=!afternoon;sun.position.set(afternoon?-9:-3,afternoon?7:13,8);sun.color.set(afternoon?0xffcf95:0xffe6bf);sky.intensity=afternoon?1.15:1.55;lightButton.setAttribute('aria-pressed',String(afternoon));};
+ const woodGrain=createSurface(THREE,renderer,'wood');woodGrain.repeat.set(1,4);
+ const weave=createSurface(THREE,renderer,'fabric');weave.repeat.set(3,3);
+ const timber=new Set([0xe0bd89,0xeccd9c,0xdac7a3,0xd2b995,0xe9d5b2,0xe2c99f,0xc3b393]);
+ const textiles=new Set([0xcb8e68,0xd49871,0xc78761,0xe1a47b,0xe6c987,0xa8b197,0xb2bfaa,0xd3dbbf,0x748a6f,0x809377]);
  const materials=new Map(), geometries=new Map();
  // Most of the room stays soft matte; glass, glazed ceramics, screens and steel get their own finish and a
  // reflection-only studio environment so they read as different materials without changing the palette.
  const studio=createStudioEnvironment(THREE,renderer).texture;
  const glaze={roughness:.3,envMapIntensity:.55},steel={roughness:.38,metalness:.55,envMapIntensity:.8};
  const finish={0x243e35:{roughness:.18,envMapIntensity:.6,emissive:0x1c3a30,emissiveIntensity:.45},0x90b8b3:{roughness:.08,metalness:.1,envMapIntensity:1.3},0x43534b:{roughness:.42,envMapIntensity:.5},0x424f47:{roughness:.34,metalness:.35,envMapIntensity:.7},0x282f2b:{roughness:.12,envMapIntensity:1},0x535f56:steel,0x3c4d45:{roughness:.5,envMapIntensity:.4},0x515f55:steel,0x687d61:steel,0x667b62:steel,0x798367:steel,0x717e66:steel,0x738273:steel,0x424d47:steel,0x59675c:steel,0x4e5149:{roughness:.3,metalness:.8,envMapIntensity:1},0xcd8265:glaze,0xb0bc91:glaze,0xe1b853:glaze,0x7c9caa:glaze,0xf3eedb:glaze,0xf2ead6:glaze,0xe0b563:glaze};
- function mat(color){if(!materials.has(color)){const f=finish[color];materials.set(color,new THREE.MeshStandardMaterial({color,roughness:.82,...(f?{envMap:studio,...f}:{})}));}return materials.get(color);}
+ function mat(color){if(!materials.has(color)){const f=finish[color];const surface=timber.has(color)?{bumpMap:woodGrain,bumpScale:.018,roughness:.64}:textiles.has(color)?{bumpMap:weave,bumpScale:.012,roughness:.96}:{};materials.set(color,new THREE.MeshStandardMaterial({color,roughness:.82,...surface,...(f?{envMap:studio,...f}:{})}));}return materials.get(color);}
  function box(w,h,d,color,x=0,y=0,z=0,parent=scene,r=.06){const k=[w,h,d,r].join('/');if(!geometries.has(k))geometries.set(k,r?new RoundedBoxGeometry(w,h,d,2,Math.min(r,w/3,h/3,d/3)):new THREE.BoxGeometry(w,h,d));const m=new THREE.Mesh(geometries.get(k),mat(color));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
  function sphere(w,h,d,color,x,y,z,parent=scene){const k='sphere';if(!geometries.has(k))geometries.set(k,new THREE.SphereGeometry(1,16,12));const m=new THREE.Mesh(geometries.get(k),mat(color));m.scale.set(w,h,d);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
  function cylinder(top,bottom,h,color,x,y,z,parent=scene){const k=['c',top,bottom,h].join('/');if(!geometries.has(k))geometries.set(k,new THREE.CylinderGeometry(top,bottom,h,20));const m=new THREE.Mesh(geometries.get(k),mat(color));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
  function group(x,y,z,parent=scene){const g=new THREE.Group();g.position.set(x,y,z);parent.add(g);return g;}
- function graphic(text,w,h,bg,fg,size=55){const c=document.createElement('canvas');c.width=512;c.height=Math.round(512*h/w);const ctx=c.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle=fg;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`${size}px Georgia`;const lines=text.split('\n');lines.forEach((l,i)=>ctx.fillText(l,256,c.height/2+(i-(lines.length-1)/2)*size*1.25));const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex}));return m;}
+ function graphic(text,w,h,bg,fg,size=55){const c=document.createElement('canvas');c.width=512;c.height=Math.round(512*h/w);const ctx=c.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle=fg;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`${size}px Georgia`;const lines=text.split('\n');lines.forEach((l,i)=>ctx.fillText(l,256,c.height/2+(i-(lines.length-1)/2)*size*1.25));const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  // Printed paper, lit like the surface it hangs on (and shadowed by what is in front of it), instead of an unlit sticker.
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:tex,roughness:.9}));m.receiveShadow=true;return m;}
  // The floating architectural model: warm parquet, two open walls and a garden edge.
  box(13.4,.42,10.6,0xd5c5a8,0,-.3,0,scene,.14);
  box(13,.16,10.2,0xe0cfb1,0,-.04,0);
- for(let x=-6.2;x<6.3;x+=.55){box(.012,.007,10,0xbca985,x,.046,0,scene,0);for(let z=-4.7;z<5;z+=1.8)box(.53,.008,.012,0xc5b18f,x+.265,.047,z+((Math.round(x*10)%2)*.4),scene,0);}
+ // Separate beveled planks expose narrow joints and staggered end grain; one instanced draw.
+ const plankGeometry=new RoundedBoxGeometry(1,1,1,2,.035),plankMaterial=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.72,bumpMap:woodGrain,bumpScale:.009});
+ const planks=[],plankMatrix=new THREE.Matrix4(),plankColor=new THREE.Color();
+ for(let row=0;row<24;row++)for(let part=0;part<7;part++){
+  const start=Math.max(-5.04,-5.04+part*1.8-(row%2)*.9),end=Math.min(5.04,-5.04+(part+1)*1.8-(row%2)*.9);
+  if(end-start>.02)planks.push({x:-6.435+(row+.5)*.53625,z:(start+end)/2,length:end-start-.015,row,part});
+ }
+ const floorboards=new THREE.InstancedMesh(plankGeometry,plankMaterial,planks.length);
+ planks.forEach((p,i)=>{plankMatrix.makeScale(.525,.025,p.length);plankMatrix.setPosition(p.x,.051,p.z);floorboards.setMatrixAt(i,plankMatrix);plankColor.set(0xcbb28d).multiplyScalar(.94+((p.row*13+p.part*7)%11)*.012);floorboards.setColorAt(i,plankColor);});
+ floorboards.receiveShadow=true;scene.add(floorboards);
+ // A subtle local occlusion term anchors furniture without another shadow camera.
+ const contactData=new Uint8Array(64*64*4);
+ for(let y=0;y<64;y++)for(let x=0;x<64;x++){const i=(y*64+x)*4,r=Math.hypot((x-31.5)/31.5,(y-31.5)/31.5);contactData[i]=contactData[i+1]=contactData[i+2]=30;contactData[i+3]=Math.round(Math.pow(Math.max(0,1-r),2)*100);}
+ const contactTexture=new THREE.DataTexture(contactData,64,64);contactTexture.magFilter=THREE.LinearFilter;contactTexture.needsUpdate=true;
+ const contactMaterial=new THREE.MeshBasicMaterial({map:contactTexture,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+ function contact(x,z,w,d){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),contactMaterial);m.rotation.x=-Math.PI/2;m.position.set(x,.066,z);scene.add(m);}
+ contact(5.16,1.63,1.5,2.8);contact(3.58,1.72,1.5,1.5);contact(-5.7,4.13,1.05,1.05);contact(5.7,-4.17,1.05,1.05);
  box(13.1,3.0,.2,0xeceadb,0,1.48,-5.05);
  box(.2,3,10.2,0xe7e4d4,-6.55,1.48,0);
  box(13.1,.14,.25,0xc9d0b8,0,3,-5.05);box(.25,.14,10.2,0xc9d0b8,-6.55,3,0);
@@ -43,7 +70,9 @@ export function createOffice({agents,onChat,isBlocked,onHint}) {
   box(2.55,.12,.4,0xc3b393,x,1.04,-4.72);
   const shine=box(.14,1.58,.015,0xb6d1c1,x-.74,1.98,-4.86);shine.rotation.z=-.18;
  }
- const sign=graphic('little things,\nbig possibilities.',2.15,.88,'#e8e5d4','#56664c',45);sign.position.set(3.12,2.05,-4.92);scene.add(sign);
+ // Framed print centred in the wall bay between the right window sill and the coffee shelf (it used to sit behind the shelf).
+ box(2.27,1,.03,0xc3b393,1.92,2.05,-4.935);
+ const sign=graphic('little things,\nbig possibilities.',2.15,.88,'#e8e5d4','#56664c',45);sign.position.set(1.92,2.05,-4.917);scene.add(sign);
  // Slatted green cabinet and pinboard on the left wall.
  box(.55,1.2,2.6,0x637d64,-6.04,.64,-2.95);
  for(let z=-4.12;z<-1.7;z+=.2)box(.035,.97,.055,0x8da084,-5.75,.65,z);
@@ -62,8 +91,8 @@ export function createOffice({agents,onChat,isBlocked,onHint}) {
  cylinder(.15,.14,.24,0xe0b563,4.9,1.36,-3.99);cylinder(.17,.17,.04,0xf1e6cc,4.9,1.49,-3.99);
  box(2.05,.1,.37,0xb0a283,4.4,2.36,-4.76);plant(4.85,-4.73,.48,2.43);
  // A cozy lounge: hand-sewn cushions, a striped rug and a coffee table.
- box(2.7,.025,3.55,0xb2bfaa,4.35,.068,1.75,scene,.07);
- for(let z=.13;z<3.5;z+=.18)box(2.45,.009,.035,0xd3dbbf,4.35,.083,z,scene,0);
+ box(2.7,.025,3.55,0xb2bfaa,4.35,.080,1.75,scene,.07);
+ for(let z=.13;z<3.5;z+=.18)box(2.45,.009,.035,0xd3dbbf,4.35,.095,z,scene,0);
  const couch=group(5.16,0,1.63);couch.rotation.y=-Math.PI/2;
  box(2.45,.39,.95,0xcb8e68,0,.44,0,couch,.15);box(2.48,.77,.28,0xd49871,0,.97,-.47,couch,.12);
  for(const x of [-1.15,1.15])box(.27,.53,1.07,0xc78761,x,.79,0,couch,.12);
@@ -74,11 +103,14 @@ export function createOffice({agents,onChat,isBlocked,onHint}) {
  cylinder(.28,.28,.06,0x717e66,5.78,.1,3.85);cylinder(.035,.035,2.12,0x798367,5.78,1.15,3.85);cylinder(.35,.53,.45,0xf0dab0,5.78,2.35,3.85);
  // Four workstations, each with a terminal, peripherals, notebook, mug and lamp.
  const obstacles=[{x:4.3,z:-3.95,w:2.3,d:1.2},{x:5.15,z:1.6,w:1.4,d:2.9},{x:3.58,z:1.72,w:1.5,d:1.5},{x:-5.95,z:-1.2,w:1.2,d:6.3}];
- function desk(a,index){const g=group(a.x,0,a.z);box(2.85,.15,1.32,0xe0bd89,0,1.08,0,g,.08);box(2.65,.05,1.18,0xeccd9c,0,1.176,0,g,.03);
+ function desk(a,index){contact(a.x,a.z,3.2,2.2);const g=group(a.x,0,a.z);box(2.85,.15,1.32,0xe0bd89,0,1.08,0,g,.08);box(2.65,.05,1.18,0xeccd9c,0,1.176,0,g,.03);
   for(const x of [-1.16,1.16])for(const z of [-.45,.45])box(.09,1,.09,0x738273,x,.52,z,g,.02);
   box(.5,.68,.86,0xc6c9aa,1.02,.66,0,g);for(const y of [.48,.75])box(.22,.024,.035,0x7f8b72,1.02,y,.448,g);
   box(.55,.04,.35,0x424d47,0,1.23,-.2,g);box(.07,.22,.07,0x59675c,0,1.36,-.28,g);box(1.03,.67,.09,0x43534b,0,1.76,-.3,g,.05);
   box(.94,.56,.016,0x243e35,0,1.77,-.243,g,.025);
+  // Cable exits the monitor back, bends over the rear edge and tucks under the desk.
+  const cablePath=new THREE.CatmullRomCurve3([new THREE.Vector3(.18,1.56,-.36),new THREE.Vector3(.35,1.31,-.52),new THREE.Vector3(.38,1.17,-.72),new THREE.Vector3(.38,.84,-.73),new THREE.Vector3(.72,.83,-.4)]);
+  const cable=new THREE.Mesh(new THREE.TubeGeometry(cablePath,16,.014,5,false),mat(0x424d47));g.add(cable);
   // Tiny readable-as-code color blocks embedded in the monitor.
   for(let i=0;i<7;i++){box(.04,.016,.008,0x69836c,-.405,1.98-i*.061,-.23,g,0);const len=[.31,.43,.22,.49,.36,.21,.4][i];box(len,.022,.008,[0xb6c699,0xe3bf8c,0x86bfb1][i%3],-.34+len/2+(i%3)*.04,1.98-i*.061,-.23,g,0);}
   box(.69,.033,.25,0x839187,0,1.231,.32,g,.02);for(let i=0;i<3;i++)for(let k=0;k<8;k++)box(.059,.009,.05,0xc6ccba,-.28+k*.078,1.253,.24+i*.066,g,.004);
@@ -111,7 +143,8 @@ export function createOffice({agents,onChat,isBlocked,onHint}) {
  // A small welcome plaque at the open edge.
  const plaque=graphic('THE GOOD WORK ROOM',2.1,.24,'#d5c5a8','#7b795e',24);plaque.position.set(0,-.27,5.312);scene.add(plaque);
  let zoom=1,zoomTarget=1,panX=0,panZ=0,width=0,height=0;const vel=new THREE.Vector2();
- function resize(){width=host.clientWidth;height=host.clientHeight;renderer.setSize(width,height);const aspect=width/height;const view=aspect<.85?19.8/aspect:Math.max(13.9,18.5/aspect);camera.left=-view*aspect/2;camera.right=view*aspect/2;camera.top=view/2;camera.bottom=-view/2;camera.zoom=zoom;camera.updateProjectionMatrix();}
+ function resize(){width=host.clientWidth;height=host.clientHeight;renderer.setSize(width,height);const aspect=width/height;const view=aspect<.85?19.8/aspect:Math.max(13.9,18.5/aspect);// Portrait: sit the room a little higher, in the empty band under the heading, so the right-hand view tools fall below its corner instead of over the plant and coffee bar.
+  const lift=aspect<.85?view*.07:0;camera.left=-view*aspect/2;camera.right=view*aspect/2;camera.top=view/2-lift;camera.bottom=-view/2-lift;camera.zoom=zoom;camera.updateProjectionMatrix();}
  new ResizeObserver(resize).observe(host);resize();
  // Zoom eases toward its target (buttons, wheel or trackpad pinch); the frame loop applies it.
  const setZoom=z=>{zoomTarget=THREE.MathUtils.clamp(z,.7,1.45);};
@@ -124,10 +157,14 @@ export function createOffice({agents,onChat,isBlocked,onHint}) {
  window.addEventListener('keydown',e=>{if(e.defaultPrevented||e.target.isContentEditable||isBlocked()||e.ctrlKey||e.metaKey||e.altKey||/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement?.tagName))return;const key=aliases[e.key.toLowerCase()]||e.key.toLowerCase();if('wasd'.includes(key)&&key.length===1){e.preventDefault();keys.add(key);}if(key==='t'&&!e.repeat){e.preventDefault();if(nearest)onChat(nearest);}});
  window.addEventListener('keyup',e=>keys.delete(aliases[e.key.toLowerCase()]||e.key.toLowerCase()));window.addEventListener('blur',clearKeys);document.addEventListener('visibilitychange',clearKeys);
  document.querySelectorAll('[data-move]').forEach(b=>{b.addEventListener('pointerdown',e=>{if(e.button!==0||isBlocked())return;e.preventDefault();b.setPointerCapture(e.pointerId);touchKeys.set(e.pointerId,b.dataset.move);});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,e=>touchKeys.delete(e.pointerId));b.addEventListener('keydown',e=>{if(!e.altKey&&!e.ctrlKey&&!e.metaKey&&['Space','Enter'].includes(e.code)){e.preventDefault();if(!isBlocked())touchKeys.set('key:'+b.dataset.move,b.dataset.move);}});b.addEventListener('keyup',e=>{if(['Space','Enter'].includes(e.code)){e.preventDefault();touchKeys.delete('key:'+b.dataset.move);}});b.addEventListener('blur',()=>touchKeys.delete('key:'+b.dataset.move));});
- const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();host.addEventListener('pointerdown',e=>{if(!e.isPrimary||e.button!==0||isBlocked())return;host.focus();const r=host.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(actors.map(p=>p.root),true);if(hits[0])onChat(hits[0].object.userData.agent);});
+ const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let tap=null;
+ host.addEventListener('pointerdown',e=>{if(!e.isPrimary||e.button!==0||isBlocked())return;host.focus();tap={id:e.pointerId,x:e.clientX,y:e.clientY};});
+ host.addEventListener('pointermove',e=>{if(tap&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)>7)tap=null;});
+ host.addEventListener('pointerup',e=>{const start=tap;tap=null;if(!start||start.id!==e.pointerId||isBlocked()||Math.hypot(e.clientX-start.x,e.clientY-start.y)>7)return;const r=host.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(scene.children,true)[0];if(hit?.object.userData.agent)onChat(hit.object.userData.agent);});
+ for(const event of ['pointercancel','pointerleave'])host.addEventListener(event,()=>tap=null);
  // Mouse hover over a colleague shows they are clickable.
- const actorRoots=actors.map(p=>p.root);host.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const r=host.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);host.style.cursor=!isBlocked()&&raycaster.intersectObjects(actorRoots,true).length?'pointer':'';});host.addEventListener('pointerleave',()=>{host.style.cursor='';});
- function updateStates(){actors.forEach(p=>{const a=p.agent;const state=a.state==='working'?['閱讀需求','建立分支','實作中','驗證中'][a.step]:a.state==='done'?'✓ 完成，準備報告':'● 隨時可以聊';p.label.innerHTML=`<span class="tag"><span style="color:${a.color}">●</span>${a.name}</span><small>${state}</small>`;});onHint(nearest);}
+ host.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const r=host.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);host.style.cursor=!isBlocked()&&raycaster.intersectObjects(scene.children,true)[0]?.object.userData.agent?'pointer':'';});host.addEventListener('pointerleave',()=>{host.style.cursor='';});
+ function updateStates(){actors.forEach(p=>{const a=p.agent;const state=a.state==='working'?['閱讀需求','建立分支','實作中','驗證中'][a.step]:a.state==='done'?'✓ 完成，準備報告':'隨時可以聊';p.label.dataset.busy=String(a.state==='working'||a.state==='done');p.label.innerHTML=`<span class="tag"><span style="color:${a.color}">●</span><span>${a.name}<small>${state}</small></span></span>`;});onHint(nearest);}
  function canWalk(x,z){return x>-5.75&&x<5.8&&z>-4.55&&z<4.8&&!obstacles.some(o=>Math.abs(x-o.x)<o.w/2+.22&&Math.abs(z-o.z)<o.d/2+.22);}
  const v=new THREE.Vector3();function placeLabel(label,root,up){v.copy(root.position);v.y+=up;v.project(camera);label.style.left=`${(v.x*.5+.5)*width}px`;label.style.top=`${(-v.y*.5+.5)*height}px`;label.hidden=v.x<-.95||v.x>.95||v.y<-1||v.y>1;}
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');let last=performance.now(),time=0;

@@ -27,3 +27,11 @@ A production runner would require a separate authenticated local service, explic
 - Blocked renderer module retained the fallback notice and functional member chat.
 - Media disclosure dialogs verified; actual microphone permission/device input and screen picker were not exercised.
 - Existing 3D HTML syntax/local-import check passed. New modules passed node syntax checks.
+
+## 材質與空間更新 — 2026-09-27
+
+- 保留暖色微縮辦公室；降低環境補光，分離木材、織物、釉面與金屬的表面反應。
+- 地板改成單一 InstancedMesh 的錯縫木板，加入輕微色差、接縫與倒角；桌面有木紋、沙發與座椅有微細織紋，螢幕背面補上線材。
+- 家具底部增加低對比接觸遮蔭。「午後」按鈕會切換真正的光源方向、色溫與投影。
+- 點同事改為放開後判定，移動超過 7px 或取消觸控時不開對話，並檢查前景物件遮擋。
+- 此次驗證紀錄與前後截圖：`reports/3d-realism-layout-20260927/`（本機報告目錄，不納入版本控制）。
