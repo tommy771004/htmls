@@ -1358,13 +1358,14 @@ function step(dt) {
   if (!S.air) {
     const wasDrift = S.drifting;
     S.drifting = inp.drift && (Math.abs(inp.steer) > 0 || (wasDrift && Math.abs(S.psi - S.beta) > 0.08)) && S.V > 18;
-    const w = inp.steer * (S.drifting ? 1.25 : 0.8) * (0.6 + 0.4 * clamp(S.V / 40, 0, 1.3));
+    let w = inp.steer * (S.drifting ? 1.9 : 1.45) * (0.6 + 0.4 * clamp(S.V / 40, 0, 1.3));
+    if (inp.steer * S.psi < 0) w *= 1.9; // 反方向修正要快
     const lim = S.drifting ? 0.72 : 0.42;
     S.psi = clamp(S.psi + w * dt, -lim, lim);
     if (Math.abs(S.psi) > lim) S.psi = lerp(S.psi, Math.sign(S.psi) * lim, damp(4, dt));
-    if (!inp.steer && !S.drifting) S.psi = lerp(S.psi, 0, damp(S.charge > 0 || wasDrift ? 3.2 : 2.2, dt));
+    if (!inp.steer && !S.drifting) S.psi = lerp(S.psi, 0, damp(S.charge > 0 || wasDrift ? 4 : 4.5, dt));
     // 甩尾時車頭轉得多、實際行進方向轉得少：車身斜著滑
-    const grip = S.drifting ? 2.2 : 7;
+    const grip = S.drifting ? 2.2 : inp.steer ? 9 : 12;
     const oldBeta = S.beta;
     S.beta += ((S.drifting ? S.psi * 0.5 : S.psi) - S.beta) * damp(grip, dt);
     S.beta = clamp(S.beta, -0.4, 0.4);
@@ -1839,27 +1840,36 @@ $('bCam').onclick = () => { S.camMode = (S.camMode + 1) % CAMS.length; };
 $('bReset').onclick = () => { if (S.mode === 'play' && !S.attract) { respawn(4); S.mult = 1; } };
 { let on = true; try { on = localStorage.getItem('rr-sound') !== '0'; } catch (e) {} setSound(on, false); }
 
+// 以實體鍵位判斷：注音、全形、大寫鎖定時 e.key 會變成「ㄇ」「ａ」「A」或 Process，e.code 不會
+const CODEMAP = { KeyW: 'w', KeyA: 'a', KeyS: 's', KeyD: 'd', ArrowUp: 'arrowup', ArrowDown: 'arrowdown', ArrowLeft: 'arrowleft', ArrowRight: 'arrowright',
+  Space: 'space', ShiftLeft: 'shift', ShiftRight: 'shift', KeyP: 'p', KeyC: 'c', KeyM: 'm', KeyN: 'n', KeyR: 'r', Escape: 'escape', Enter: 'enter', NumpadEnter: 'enter' };
 const KEYMAP = { ' ': 'space', 'shift': 'shift' };
+const keyOf = e => CODEMAP[e.code] || KEYMAP[(e.key || '').toLowerCase()] || (e.key || '').toLowerCase();
+const KBD_OF = { arrowup: 'w', arrowleft: 'a', arrowdown: 's', arrowright: 'd' };
+const kbdOf = k => document.querySelector(`kbd[data-k="${KBD_OF[k] || k}"]`);
 // 滑鼠點按鈕不留焦點，免得之後按 Enter／Space 又觸發同一顆按鈕
 document.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
 addEventListener('keydown', e => {
-  const k = KEYMAP[e.key.toLowerCase()] || e.key.toLowerCase();
+  if (e.metaKey || e.ctrlKey || e.altKey) return; // 保留瀏覽器快捷鍵
+  const k = keyOf(e);
   if (['space', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) e.preventDefault();
   if (S.mode === 'title' && (k === 'enter' || k === 'space')) { start(); return; }
   if (S.mode === 'done' && k === 'enter') { start(); return; }
-  if (k === 'p' || k === 'escape') { S.mode === 'paused' ? resume() : pause(); return; }
-  if (k === 'c') $('bCam').click();
-  if (k === 'm') $('bMap').click();
-  if (k === 'n') $('bSnd').click();
-  if (k === 'r') $('bReset').click();
+  if (!e.repeat) { // 按住不放時不要一直切換
+    if (k === 'p' || k === 'escape') { S.mode === 'paused' ? resume() : pause(); return; }
+    if (k === 'c') $('bCam').click();
+    if (k === 'm') $('bMap').click();
+    if (k === 'n') $('bSnd').click();
+    if (k === 'r') $('bReset').click();
+  } else if (k === 'p' || k === 'escape') return;
   if (k === 'space' && !e.repeat) jumpQueued = true;
   keys[k] = true;
-  const kb = document.querySelector(`kbd[data-k="${k}"]`); if (kb) kb.classList.add('on');
+  const kb = kbdOf(k); if (kb) kb.classList.add('on');
 });
 addEventListener('keyup', e => {
-  const k = KEYMAP[e.key.toLowerCase()] || e.key.toLowerCase();
+  const k = keyOf(e);
   keys[k] = false;
-  const kb = document.querySelector(`kbd[data-k="${k}"]`); if (kb) kb.classList.remove('on');
+  const kb = kbdOf(k); if (kb && !keys[KBD_OF[k] || k] && !Object.keys(KBD_OF).some(a => KBD_OF[a] === (KBD_OF[k] || k) && keys[a])) kb.classList.remove('on');
 });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; document.querySelectorAll('kbd.on').forEach(e => e.classList.remove('on')); pause(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
