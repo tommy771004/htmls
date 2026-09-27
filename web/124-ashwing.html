@@ -14,6 +14,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2a1510">
 <meta name="description" content="灰燼之翼 ASHWING：Three.js 軌道射擊第一關。360 度視角切換、多重鎖定追蹤雷射、荒漠峽谷到神殿廢墟，以及三階段頭目戰；地形、生物與管弦樂全部程序生成。">
+<link rel="icon" href="../favicon.svg">
 <title>灰燼之翼 ASHWING｜軌道射擊 第一關</title>
 <style>
 :root{color-scheme:dark;--ink:#f6ecd9;--dim:#eadbc4b8;--line:#f2fbf8;--cy:#9af5ec;--am:#ffbf6b;--rd:#ff5b3d;font-family:Bahnschrift,"DIN Alternate","Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif}
@@ -313,6 +314,9 @@ void main(){vec3 d=normalize(vD);float y=d.y;
  #include <colorspace_fragment>
 }`});
 const sky=new THREE.Mesh(new THREE.SphereGeometry(2200,32,16),skyMat);sky.frustumCulled=false;sky.renderOrder=-10;scene.add(sky);
+// 天空做成 PMREM 環境光：龍的鱗甲、騎士的金屬件與敵機原本只吃半球光，在暖色峽谷裡顯得又冷又暗、像貼上去的；
+// 只掛在 std() 建出的 Standard 材質上：scene.environment 會連 Lambert 的地形與岩柱一起打亮，峽谷的明暗對比就沒了
+const SKY_ENV=(()=>{const es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(10,48,24),skyMat));const pm=new THREE.PMREMGenerator(renderer),t=pm.fromScene(es,0,.1,50).texture;pm.dispose();return t})();
 function ridge(radius,base,amp,seed,hex){const seg=180,pos=[],idx=[];
   for(let i=0;i<=seg;i++){const a=i/seg*Math.PI*2,n=fbm(Math.cos(a)*2.4+seed,Math.sin(a)*2.4-seed,4),v=smooth(.3,.75,n),h=base+amp*(Math.floor(v*4)/4*.7+v*.3);
     pos.push(Math.cos(a)*radius,-140,Math.sin(a)*radius,Math.cos(a)*radius,h,Math.sin(a)*radius);if(i<seg){const k=i*2;idx.push(k,k+1,k+2,k+1,k+3,k+2)}}
@@ -401,7 +405,7 @@ const rockMat=new THREE.MeshLambertMaterial({vertexColors:true});
 rock.mesh(rockMat);ruin.mesh(rockMat);glyph.mesh(new THREE.MeshBasicMaterial({vertexColors:true}));
 
 /* ---------- 模型：低多邊形有機造型 + 生物機械 ---------- */
-const std=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.72,metalness:.08,flatShading:true,...o});
+const std=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.72,metalness:.08,flatShading:true,envMap:SKY_ENV,envMapIntensity:.7,...o});
 const glowM=(c,o={})=>new THREE.MeshBasicMaterial({color:c,fog:false,...o});
 function part(par,geo,mat,x=0,y=0,z=0,sx=1,sy=1,sz=1,rx=0,ry=0,rz=0){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.rotation.set(rx,ry,rz);par.add(m);return m}
 function grp(par,x=0,y=0,z=0){const g=new THREE.Group();g.position.set(x,y,z);if(par)par.add(g);return g}

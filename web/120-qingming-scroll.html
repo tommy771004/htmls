@@ -15,6 +15,7 @@
 <meta name="theme-color" content="#2c251c">
 <meta name="description" content="3D 立體版《清明上河圖》：沿汴河展卷橫移，郊野、漕運、虹橋、城郭四章；絹本水墨調、時辰光影與合成市聲水聲風聲。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/web/120-qingming-scroll.html">
+<link rel="icon" href="../favicon.svg">
 <title>汴河長卷｜3D 清明上河圖</title>
 <style>
 :root{--mount:#3b3326;--mount2:#29231a;--gold:#b59868;--silk:#ece2c9;--ink:#2a251f;--seal:#a8382b;--top:58px;--bot:96px;
@@ -408,7 +409,8 @@ function rectOK(p,z,hp,hz,m=.3){for(const a of [-1,0,1])for(const b of [-1,0,1])
 // ─── 建物 ─────────────────────────────────────────────
 const _q=new THREE.Quaternion(),_m=new THREE.Matrix4(),_s=new V3(),_d=new V3();
 function beam(A,Bp,r,col,batch=B.log){_d.subVectors(Bp,A);const len=_d.length();if(len<1e-4)return;_q.setFromUnitVectors(UP,_d.divideScalar(len));_s.set(r,len,r);_m.compose(A,_q,_s);batch.addM(_m,col)}
-function lantern(x,y,z){B.lan.add(x,y,z);glow.push(x,y,z)}
+const pools=[];// 燈下光暈：x, 地面高, z, 燈離地高（gy 給 null 表示燈下沒有可承接的地面，例如譙樓挑出的燈、虹橋坡段的燈）
+function lantern(x,y,z,gy=0){B.lan.add(x,y,z);glow.push(x,y,z);if(gy!==null&&!(gy===0&&inRiver(-x,z,4)))pools.push(x,gy,z,y-gy)}
 function door(x,z,ry,w,d,h,f=.4){const [dx,dz]=rot(0,d/2+.04,ry);(rnd()<.45?B.doorLit:B.door).add(x+dx,0,z+dz,ry,Math.min(w*f,2.2),h*.7,.08,'#3a3129');
   if(w>4.6)for(const s of [-1,1]){const [wx,wz]=rot(s*w*.32,d/2+.04,ry);B.door.add(x+wx,h*.4,z+wz,ry,w*.15,h*.3,.07,'#5b4b3b');
     for(const edge of [-1,1]){const [ex,ez]=rot(s*w*.32+edge*w*.08,d/2+.1,ry);B.box.add(x+ex,h*.39,z+ez,ry,.065,h*.32,.095,'#80654a')}
@@ -584,7 +586,7 @@ function buildBridge(){
   for(const sg of [-1,1])B.box.add(BX,-1.4,BZ+sg*(AS-.3),0,8,1.5,2.4,'#9a8e76');
   // 欄杆與燈籠
   for(const sx of [-3.35,3.35]){let prev=null;for(let s=-BS;s<=BS+.01;s+=BS/9){const y=deckY(s)+.18,cur=new V3(BX+sx,y+.95,BZ+s);B.box.add(BX+sx,y,BZ+s,0,.13,.95,.13,'#5d4834');if(prev)beam(prev,cur,.06,'#5d4834');prev=cur}
-    for(const s of [-8,0,8])lantern(BX+sx*1.02,deckY(s)+1.3,BZ+s)}
+    for(const s of [-8,0,8])lantern(BX+sx*1.02,deckY(s)+1.3,BZ+s,s?null:deckY(s))}
   // 華表
   for(const sx of [-4.4,4.4])for(const sg of [-1,1]){const z=BZ+sg*(BS+.8);beam(new V3(BX+sx,0,z),new V3(BX+sx,8.6,z),.17,'#54432f');B.box.add(BX+sx,7.6,z,0,.14,.26,1.6,'#54432f');B.box.add(BX+sx,8.6,z,0,.3,.28,.5,'#3a3129')}
   claim(BRIDGE_P-4.7,BRIDGE_P+4.7,BZ-BS-2.5,roadZ(BRIDGE_P));
@@ -654,7 +656,7 @@ function buildCh4(){
   B.hip.add(x0,H+3.55,gz,Math.PI/2,19.5,1.25,Tt+2.2,'#ffffff');
   B.box.add(x0,H+4.1,gz,0,Tt-2.2,2.5,12.6,'#7d5e44');
   B.hip.add(x0,H+6.45,gz,Math.PI/2,16,3.2,Tt+1.2,'#ffffff');
-  for(const z of [gz-8,gz+8])for(const sx of [-1,1])lantern(x0+sx*(Tt/2+.6),H+2.9,z);
+  for(const z of [gz-8,gz+8])for(const sx of [-1,1])lantern(x0+sx*(Tt/2+.6),H+2.9,z,null);
   board('譙樓',x0+(Tt-2.2)/2+.06,H+4.9,gz,Math.PI/2,{vert:false,u:.6});
   B.box.add(x0,H,-40,0,T+1,4,6,'#b3a585');B.roof.add(x0,H+4,-40,Math.PI/2,7,1.8,T+1.6);
   claim(WALL_P-4.6,WALL_P+4.6,-44,96);
@@ -708,6 +710,12 @@ const glowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64
 const glowGeo=new THREE.BufferGeometry();glowGeo.setAttribute('position',new THREE.Float32BufferAttribute(glow,3));
 const glowMat=new THREE.PointsMaterial({map:glowTex,size:5.2,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,color:'#ffb266',opacity:0});
 const glowPts=new THREE.Points(glowGeo,glowMat);glowPts.renderOrder=3;scene.add(glowPts);
+// 戌時燈籠在地面、橋面投下的暖色光暈（貼地加亮圓片，燈越高越大）；原本燈只自己發亮，街面沒有被照到
+const poolTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.35,'rgba(255,255,255,.45)');gr.addColorStop(.7,'rgba(255,255,255,.1)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
+const poolMat=new THREE.MeshBasicMaterial({map:poolTex,color:'#ffb266',transparent:true,opacity:0,depthWrite:false,fog:false,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8});
+const poolIM=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),poolMat,Math.max(1,pools.length/4));
+for(let i=0;i<pools.length/4;i++){const s=2.6+pools[i*4+3]*1.5;D.position.set(pools[i*4],pools[i*4+1]+.05,pools[i*4+2]);D.rotation.set(0,0,0);D.scale.set(s,1,s);D.updateMatrix();poolIM.setMatrixAt(i,D.matrix)}
+poolIM.count=pools.length/4;poolIM.computeBoundingSphere();poolIM.renderOrder=2;poolIM.visible=false;scene.add(poolIM);
 
 // ─── 光線與時辰 ─────────────────────────────────────────
 const hemi=new THREE.HemisphereLight('#efe9da','#bca98a',1.9);scene.add(hemi);
@@ -777,6 +785,12 @@ const DEF_YAW=.17,DEF_PITCH=small?.5:.45,LOOK=small?.22:.28;
 let motionPaused=reduceMotion;
 let camP=PSTART,tgtP=PSTART,playing=false,ended=false,yawO=0,pitch=DEF_PITCH,zoom=1,tYaw=0,tPitch=DEF_PITCH,tZoom=1,lastInput=-1e9;
 const baseDist=()=>92*clamp(1.55/camera.aspect,1,2.2);
+// 鏡頭高度下限：拉近又壓低俯角時，鏡頭會鑽進屋頂、城牆與譙樓裡。依目標距離換算最小俯角，
+// 城牆與譙樓一帶（外擴 8 單位先抬高）另取較高的下限
+const EYE_MIN=11.5,TALL=[[-WALL_P-4.6,-WALL_P+4.6,-44,96,12],[-WALL_P-4,-WALL_P+4,0,20,21],[-WALL_P-5,-WALL_P+5,-43,-37,17]];
+function minPitch(dist,yaw,p){let need=EYE_MIN;const cx=-p+Math.sin(yaw)*dist*.9,cz=focusZ(p)+Math.cos(yaw)*dist*.9;
+  for(const b of TALL)if(cx>b[0]-8&&cx<b[1]+8&&cz>b[2]-8&&cz<b[3]+8)need=Math.max(need,b[4]);
+  return Math.asin(clamp((need-1.5)/dist,0,.97))}
 const ptrs=new Map();let pinch0=0,zoom0=1;
 canvas.addEventListener('pointerdown',e=>{canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('drag');lastInput=performance.now();if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);zoom0=tZoom}});
 canvas.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;lastInput=performance.now();
@@ -891,7 +905,7 @@ function resize(){const r=stageEl.getBoundingClientRect();W=Math.max(1,Math.roun
 addEventListener('resize',resize);resize();
 
 // ─── 每幀更新 ────────────────────────────────────────────
-const tmpRGB={r:0,g:0,b:0},focus=new V3(),look=new V3();
+const tmpRGB={r:0,g:0,b:0},focus=new V3(),look=new V3(),lsX=new V3(),lsY=new V3(),sunAt=new V3();
 const setU=(u,c)=>{c.getRGB(tmpRGB,THREE.SRGBColorSpace);u.value.set(tmpRGB.r,tmpRGB.g,tmpRGB.b)};
 let last=performance.now(),time=0,started=false;
 function updateMovers(dt){
@@ -918,17 +932,21 @@ function frame(now){
   lerpTod(reduceMotion?1:1-Math.exp(-dt*1.8));
   if(playing&&!ptrs.size&&!scrub){tgtP+=CONFIG.scrollSpeed*dt;if(tgtP>=PEND){tgtP=PEND;if(camP>PEND-1.5){playing=false;ended=true;updPlay()}}}
   const far=Math.abs(tgtP-camP)>40;camP+=(tgtP-camP)*(reduceMotion?1:1-Math.exp(-dt*(far?1.5:2.4)));
+  const mp=minPitch(baseDist()*tZoom,DEF_YAW+tYaw,tgtP);if(tPitch<mp)tPitch=mp;
   const kc=reduceMotion?1:1-Math.exp(-dt*6);yawO+=(tYaw-yawO)*kc;pitch+=(tPitch-pitch)*kc;zoom+=(tZoom-zoom)*kc;
   focus.set(-camP,1.5,focusZ(camP));
   const yaw=DEF_YAW+yawO,dist=baseDist()*zoom,cp=Math.cos(pitch);
   camera.position.set(focus.x+Math.sin(yaw)*cp*dist,focus.y+Math.sin(pitch)*dist+(reduceMotion?0:Math.sin(time*.25)*.35),focus.z+Math.cos(yaw)*cp*dist);
   look.set(focus.x-Math.sin(yaw)*dist*LOOK,focus.y,focus.z-Math.cos(yaw)*dist*LOOK);camera.lookAt(look);
-  sun.position.copy(focus).addScaledVector(cur.dir,260);sun.target.position.copy(focus);sun.color.copy(cur.sun);sun.intensity=cur.si;
+  // 陰影相機跟著展卷平移時對齊陰影貼圖的像素格，樹影與屋影的邊緣不會在捲動中閃爍、爬動
+  {const t=(sun.shadow.camera.right-sun.shadow.camera.left)/sun.shadow.mapSize.x;lsX.crossVectors(UP,cur.dir).normalize();lsY.crossVectors(cur.dir,lsX);
+   const a=focus.dot(lsX),b=focus.dot(lsY);sunAt.copy(focus).addScaledVector(lsX,Math.round(a/t)*t-a).addScaledVector(lsY,Math.round(b/t)*t-b)}
+  sun.position.copy(sunAt).addScaledVector(cur.dir,260);sun.target.position.copy(sunAt);sun.color.copy(cur.sun);sun.intensity=cur.si;
   hemi.color.copy(cur.sky);hemi.groundColor.copy(cur.gnd);hemi.intensity=cur.hi;
   scene.fog.color.copy(cur.fog);scene.fog.near=cur.fn;scene.fog.far=cur.ff;renderer.setClearColor(cur.bg,1);
   mountMat.color.copy(cur.mount);
   for(const m of mists){m.m.material.color.copy(cur.fog);m.m.material.opacity=m.base*cur.mist;m.m.position.x=m.x+Math.sin(time*.03+m.ph)*6}
-  MAT.lantern.emissiveIntensity=.15+cur.night*2.4;MAT.doorLit.emissiveIntensity=cur.night*1.5;glowMat.opacity=cur.night*.9;
+  MAT.lantern.emissiveIntensity=.15+cur.night*2.4;MAT.doorLit.emissiveIntensity=cur.night*1.5;glowMat.opacity=cur.night*.9;poolMat.opacity=cur.night*.75;poolIM.visible=cur.night>.02;
   document.body.classList.toggle('night',cur.night>.5);
   setU(post.uniforms.uPaper,cur.paper);setU(post.uniforms.uStain,cur.stain);setU(post.uniforms.uInkCol,cur.ink);post.uniforms.uNight.value=cur.night;
   waterTex.offset.x=-time*.012;

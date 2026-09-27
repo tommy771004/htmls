@@ -759,8 +759,10 @@ function mistSheet(y, opacity, scale, speed) {
   scene.add(markNoAO(m));
   return m;
 }
-mistSheet(.14, .6, .012, 1);
-mistSheet(.48, .26, .018, 1.6);
+// 霧片是平面，和踏石、石台側面相交處會切出一條硬直的淺色帶（像石頭下緣漆了一圈）。
+// 壓低到貼水面，交線只剩水線上一道細霧邊；從上往下看的霧紋不變
+mistSheet(.05, .6, .012, 1);
+mistSheet(.2, .26, .018, 1.6);
 
 // 地平線霧牆：一圈噪聲圓柱，對應規格 B 的霧帶
 const mistWall = new THREE.Mesh(new THREE.CylinderGeometry(125, 125, 34, 96, 1, true), new THREE.ShaderMaterial({
@@ -884,11 +886,16 @@ function plat(cx, cz, w, d, top, opt = {}) {
   return boxCollider(cx - w / 2, cx + w / 2, cz - d / 2, cz + d / 2, bottom, top, mesh);
 }
 function lathe(r, top, bottom, seg, broken) {
-  const h = top - bottom, pts = [V2(r * 1.04, 0), V2(r, h * .04), V2(r * .97, h - .12), V2(r * .9, h - .03), V2(r * .75, h), V2(0, h)];
+  const h = top - bottom, pts = [V2(r * 1.04, 0), V2(r, h * .04), V2(r * .97, h - .12), V2(r * .9, h - .03), V2(r * .75, h), V2(r * .4, h), V2(0, h)];
   const geo = new THREE.LatheGeometry(pts, seg);
   if (broken) {
+    // 斷面：主要的鋸齒輪廓不變，另加一圈內環與較高頻的崩口，斷面不再是一片規則的星形扇
     const p = geo.attributes.position;
-    for (let i = 0; i < p.count; i++) if (p.getY(i) > h - .2) { const a = Math.atan2(p.getZ(i), p.getX(i)); p.setY(i, p.getY(i) - (.18 + .32 * Math.abs(Math.sin(a * 2.3 + r * 9))) * broken); }
+    for (let i = 0; i < p.count; i++) if (p.getY(i) > h - .2) {
+      const a = Math.atan2(p.getZ(i), p.getX(i)), k = Math.hypot(p.getX(i), p.getZ(i)) / r;
+      const chip = .07 * Math.sin(a * 6.7 + r * 13) * k + .05 * Math.sin(a * 11.3 + 2.1) * k * k;
+      p.setY(i, p.getY(i) - (.18 + .32 * Math.abs(Math.sin(a * 2.3 + r * 9)) + chip + .06 * (1 - k)) * broken);
+    }
     geo.computeVertexNormals();
   }
   geo.translate(0, -h / 2, 0);
@@ -902,7 +909,7 @@ function stoneDisc(cx, cz, r, top, opt = {}) {
 }
 function pillar(cx, cz, base, height, opt = {}) {
   const r = opt.r || .4, top = base + height, broken = opt.broken || 0;
-  const geo = lathe(r, top, base, 14, broken); projectUV(geo, [cx, (top + base) / 2, cz, rand()], 2.4, r);
+  const geo = lathe(r, top, base, 22, broken); projectUV(geo, [cx, (top + base) / 2, cz, rand()], 2.4, r);
   const mesh = addMesh(new THREE.Mesh(geo, M.pillar)); mesh.position.set(cx, (top + base) / 2, cz); mesh.rotation.y = rand() * TAU;
   const plinth = addMesh(new THREE.Mesh(new RoundedBoxGeometry(r * 2.4, .24, r * 2.4, 2, .05), M.pillar), false); plinth.position.set(cx, base + .12, cz);
   if (!broken) { const cap = addMesh(new THREE.Mesh(new RoundedBoxGeometry(r * 2.7, .3, r * 2.7, 2, .06), M.pillar)); cap.position.set(cx, top + .15, cz); }
@@ -989,8 +996,14 @@ function buildLevel() {
   // ── 0 起點石台
   plat(0, 3, 10, 10, 1.0);
   pillar(-4.3, 7.4, 1, 3.4); pillar(4, 6.8, 1, 2.2, { broken: 1 }); pillar(-4, -.8, 1, 1.6, { broken: 1.2 });
-  const fallen = addMesh(new THREE.Mesh(lathe(.4, 1.3, 0, 14, .8), M.pillar)); fallen.rotation.set(0, .5, Math.PI / 2); fallen.position.set(3.4, 1.4, 2.4);
-  const drum = addMesh(new THREE.Mesh(lathe(.4, .7, 0, 14, 0), M.pillar)); drum.position.set(2.2, 1.35, 3.7);
+  // 倒柱與鼓石也用世界投影 UV（原本沿用 Lathe 預設 UV，斷面扇形沒有石紋、看起來像塑膠），倒柱底端補上封面，不再露出空心。
+  // UV 偏移用固定值，不多抽 rand()，後面的關卡隨機序列維持不變
+  const fallenGeo = lathe(.4, 1.3, 0, 22, .8); projectUV(fallenGeo, [3.4, 1.4, 2.4, .37], 2.4, .4);
+  const fallen = addMesh(new THREE.Mesh(fallenGeo, M.pillar)); fallen.rotation.set(0, .5, Math.PI / 2); fallen.position.set(3.4, 1.4, 2.4);
+  const baseCap = new THREE.CircleGeometry(.416, 22); baseCap.rotateX(Math.PI / 2); baseCap.translate(0, -.65, 0); projectUV(baseCap, [0, 0, 0, .81], 2.4);
+  const fallenBase = new THREE.Mesh(baseCap, M.pillar); fallenBase.castShadow = fallenBase.receiveShadow = true; fallen.add(fallenBase);
+  const drumGeo = lathe(.4, .7, 0, 22, 0); projectUV(drumGeo, [2.2, 1.35, 3.7, .13], 2.4, .4);
+  const drum = addMesh(new THREE.Mesh(drumGeo, M.pillar)); drum.position.set(2.2, 1.35, 3.7);
   boxCollider(2.8, 4.1, 1.8, 3, 1, 1.8, fallen); cylCollider(2.2, 3.7, .42, 1, 1.7, drum);
   // ── I 渡口：踏石、側路、第一座燈台島
   [[.4, -4.6, 1.3, .95], [2.2, -8, 1.2, 1], [.6, -11.4, 1.25, 1.1], [-1.8, -14.4, 1.1, 1], [-.6, -18, 1.3, 1.15], [1.6, -21.2, 1.2, 1.05], [-3.4, -11.6, .9, 1.3], [-5.8, -13.6, .9, 1.6]]
@@ -1002,7 +1015,9 @@ function buildLevel() {
   plat(0, -40, 4.4, 14, 1.2);
   for (const z of [-35.5, -39, -42.5, -46]) { pillar(-1.8, z, 1.2, 3.1, { r: .36, broken: z === -42.5 ? 1 : 0 }); pillar(1.8, z, 1.2, 3.1, { r: .36, broken: z === -39 ? 1.3 : 0 }); }
   lintel(-1.8, -35.5, 1.8, -35.5, 4.6); lintel(-1.8, -46, 1.8, -46, 4.6);
-  const log = addMesh(new THREE.Mesh(lathe(.3, 2.8, 0, 12, 0), M.pillar)); log.rotation.z = Math.PI / 2; log.position.set(-.1, 1.5, -41); log.rotation.y = .06;
+  const logGeo = lathe(.3, 2.8, 0, 20, 0); projectUV(logGeo, [-.1, 1.5, -41, .58], 2.4, .3);
+  const log = addMesh(new THREE.Mesh(logGeo, M.pillar)); log.rotation.z = Math.PI / 2;
+  { const g = new THREE.CircleGeometry(.312, 20); g.rotateX(Math.PI / 2); g.translate(0, -1.4, 0); projectUV(g, [0, 0, 0, .29], 2.4); const c = new THREE.Mesh(g, M.pillar); c.castShadow = c.receiveShadow = true; log.add(c); } log.position.set(-.1, 1.5, -41); log.rotation.y = .06;
   boxCollider(-1.45, 1.25, -41.32, -40.68, 1.2, 1.76, log);
   mover(2.6, 2.6, 1.2, .55, t => ({ x: 0, z: -50 + Math.sin(t * TAU / 4.6) * 1.6 }));
   plat(0, -57.5, 5, 9, 1.2);

@@ -384,6 +384,9 @@ if (!Array.isArray(cart)) cart = [];
 /* =========================================================================
    Renderer, studio, lights
    ========================================================================= */
+// r0.186 PCF takes 5 noise-rotated taps: on the keycap walls (half in a neighbour's penumbra) that reads as a woven dither.
+// 16 Vogel taps keep the same soft edge without the pattern.
+{ const c = THREE.ShaderChunk, re = /shadow = \(\s*texture\( shadowMap, vec3\( shadowCoord\.xy \+ vogelDiskSample\( 0, 5, phi \)[\s\S]*?\) \* 0\.2;/; if (re.test(c.shadowmap_pars_fragment)) c.shadowmap_pars_fragment = c.shadowmap_pars_fragment.replace(re, 'shadow = 0.0;\n\t\t\tfor ( int i = 0; i < 16; i ++ ) shadow += texture( shadowMap, vec3( shadowCoord.xy + vogelDiskSample( i, 16, phi ) * radius, shadowCoord.z ) );\n\t\t\tshadow *= 0.0625;'); }
 const canvas = $('#stage');
 let renderer;
 try {
@@ -425,7 +428,7 @@ keyLight.target.position.set(10, 0, -30);
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048);
 keyLight.shadow.camera.near = 700; keyLight.shadow.camera.far = 2100;
-keyLight.shadow.bias = -.00025; keyLight.shadow.normalBias = .35; keyLight.shadow.radius = 5;
+keyLight.shadow.bias = -.00025; keyLight.shadow.normalBias = .35; keyLight.shadow.radius = 3;
 scene.add(keyLight, keyLight.target);
 const rimLight = new THREE.DirectionalLight('#e9ecee', .9);
 rimLight.position.set(460, 300, -640);
@@ -1232,7 +1235,7 @@ addEventListener('keydown', e => {
   press(k, { hold: true });
 });
 addEventListener('keyup', e => { if (KB) release(KB.codeMap.get(e.code)); });
-addEventListener('blur', () => { if (KB) KB.keys.forEach(k => release(k, false)); });
+addEventListener('blur', () => { if (KB) KB.keys.forEach(k => release(k, false)); letGo(); });
 
 /* ---------- pointer: click keycaps ---------- */
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
@@ -1244,19 +1247,32 @@ function pick(e) {
   const hit = ray.intersectObjects(KB.caps, false)[0];
   return hit ? hit.object.userData.key : null;
 }
-canvas.addEventListener('pointerdown', e => { audio(); markInput(); downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+// mouse on a keycap: the key goes down on pointerdown and stays down until the button is let go, like the real switch.
+// Capture phase runs before OrbitControls' own listener, so this gesture never turns into an orbit. Touch keeps tap-to-type.
+let held = null;
+function letGo() { if (!held) return; release(held); held = null; controls.enabled = true; }
+canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'mouse' || e.button !== 0 || !KB || held) return;
+  const k = pick(e);
+  if (!k) return;
+  held = k; controls.enabled = false;
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* capture is best effort */ }
+  audio(); press(k, { hold: true });
+}, { capture: true });
+canvas.addEventListener('pointerdown', e => { audio(); markInput(); downAt = held ? null : { x: e.clientX, y: e.clientY, t: performance.now() }; });
 canvas.addEventListener('pointerup', e => {
+  if (held) { letGo(); return; }
   if (!downAt || !KB) return;
   const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y), quick = performance.now() - downAt.t < 450;
   downAt = null;
   if (moved < 6 && quick) press(pick(e));
 });
-for(const name of ['pointercancel','lostpointercapture'])canvas.addEventListener(name,()=>{downAt=null});
+for(const name of ['pointercancel','lostpointercapture'])canvas.addEventListener(name,()=>{downAt=null;letGo()});
 let hoverQueued = false;
 canvas.addEventListener('pointermove', e => {
   if (e.pointerType !== 'mouse' || hoverQueued || !KB) return;
   hoverQueued = true;
-  requestAnimationFrame(() => { hoverQueued = false; canvas.style.cursor = e.buttons ? 'grabbing' : pick(e) ? 'pointer' : 'grab'; });
+  requestAnimationFrame(() => { hoverQueued = false; canvas.style.cursor = held ? 'pointer' : e.buttons ? 'grabbing' : pick(e) ? 'pointer' : 'grab'; });
 });
 controls.addEventListener('start', () => {
   gsap.killTweensOf(camera.position); gsap.killTweensOf(controls.target);
@@ -1267,7 +1283,19 @@ controls.addEventListener('start', () => {
    Loop
    ========================================================================= */
 const m4 = new THREE.Matrix4();
+// keep the camera inside the infinity cove: zoomed right out and orbited low, it used to pass through the curved wall
+// (floor radius 1600, 700 fillet, wall 2300) and the backside hid the whole keyboard
+const coveR = y => y >= 700 ? 2300 : y <= 0 ? 1600 : 1600 + 700 * Math.sqrt(1 - ((y - 700) / 700) ** 2);
+function coveLimit() {
+  const phi = controls.getPolarAngle(), s = Math.sin(phi), c = Math.cos(phi), t = controls.target, off = Math.hypot(t.x, t.z);
+  const fits = d => d * s + off < coveR(t.y + d * c) - 90;
+  if (fits(2600)) return 2600;
+  let lo = 150, hi = 2600;
+  for (let i = 0; i < 14; i++) { const d = (lo + hi) / 2; fits(d) ? lo = d : hi = d; }
+  return lo;
+}
 function tick() {
+  controls.maxDistance = coveLimit();
   controls.update();
   if (KB) {
     let dirty = false;

@@ -21,7 +21,7 @@ function toast(text){$("toast").textContent=text;$("toast").hidden=false;clearTi
 function activity(text){$("activity").textContent=text;}
 function show(content,eyebrow="AGENT OFFICE"){office?.clearKeys();$("dialog-body").innerHTML=content;$("dialog-eyebrow").textContent=eyebrow;if(!dialog.open)dialog.showModal();}
 $("close-dialog").onclick=()=>dialog.close();
-dialog.addEventListener("close",()=>{selected=null;office?.clearKeys();});
+dialog.addEventListener("close",()=>{selected=null;office?.clearKeys();if(innerWidth<=700)$("mobile-team").focus();});
 function render(){
  $("members").innerHTML=agents.map(a=>`<button class="member" data-agent="${a.id}" data-state="${a.state}"><span class="avatar" style="background:${a.color}">${a.name[0]}</span><span class="member-copy"><strong>${a.name}</strong><small>${a.role}</small><p>${statusLabel(a)}</p></span><span class="member-dot"></span></button>`).join("");
  $("members").querySelectorAll("button").forEach(b=>b.onclick=()=>openChat(agents.find(a=>a.id===b.dataset.agent)));
@@ -33,7 +33,7 @@ function render(){
  office?.updateStates();
 }
 function openChat(a, prefill=""){
- selected=a;$("team-panel").classList.remove("open");
+ selected=a;$("team-panel").classList.remove("open");$("mobile-team").setAttribute("aria-expanded","false");
  show(`<h2>Hey, ${a.name}<span style="color:${a.color}">.</span></h2><div class="dialog-sub">${a.role} · ${esc(cwd)} · Claude Code 模擬</div><div class="chat-log" id="chat-log"></div><form id="task-form"><label for="task-input">今天一起做點什麼？</label><textarea id="task-input" maxlength="800" placeholder="例如：處理 issue #42，完成後整理變更摘要" ${a.state==="working"?"disabled":""}>${esc(prefill)}</textarea><div class="quick-tasks"><button type="button" data-task="處理 issue #42">處理 issue #42</button><button type="button" data-task="解掉 main 的合併衝突">解掉 main 的合併衝突</button><button type="button" data-task="檢查並補上回歸測試">補上回歸測試</button></div><button class="primary" ${a.state==="working"?"disabled":""}>${a.state==="working"?"同事正在工作中":"派給 "+a.name+" ↗"}</button></form><p class="notice">示範流程約 16 秒。指令與 PR 為模擬，不會執行 Claude Code 或修改 repo。</p>${a.state==="done"?'<button id="view-report" class="secondary">查看完成報告 ↗</button>':""}`,"A CONVERSATION WITH "+a.name.toUpperCase());
  updateChat(a);
  $("task-form").onsubmit=e=>{e.preventDefault();const task=$("task-input").value.trim();if(!task){$("task-input").setCustomValidity("請寫下想指派的任務");$("task-input").reportValidity();return;}startJob(a,task);};
@@ -80,7 +80,10 @@ function repoDialog(){selected=null;show(`<h2>Make yourself at home.</h2><p>為�
 $("issues-button").onclick=issueDialog;$("prs-button").onclick=prDialog;$("repo-button").onclick=repoDialog;
 $("first-task").onclick=()=>openChat(agents.find(a=>a.state!=="working")||agents[0]);
 $("about-button").onclick=()=>{selected=null;show(`<h2>A little room for big ideas.</h2><p>WASD 或方向鍵走動，靠近同事按 T。也可以直接點選角色或成員面板派工。</p><ul class="report-list"><li>四位具名同事、worker 指令、起身報告與 PR 草稿：互動模擬。</li><li>GitHub Issues：可唯讀載入公開 repo 的前 30 筆 issues/PRs 中的 issues。</li><li>Join voice：本機麥克風音量檢查；Share screen：本機預覽，不傳送。</li><li>Claude Code 子程序、真實 git 操作與多人通話：尚未串接。</li></ul><button id="about-repo" class="primary">設定工作區 ↗</button>`,"ABOUT THIS INTERACTIVE PROTOTYPE");$("about-repo").onclick=repoDialog;};
-$("mobile-team").onclick=()=>$("team-panel").classList.toggle("open");$("close-team").onclick=()=>$("team-panel").classList.remove("open");
+function closeTeam(){ $("team-panel").classList.remove("open");$("mobile-team").setAttribute("aria-expanded","false");$("mobile-team").focus(); }
+$("mobile-team").setAttribute("aria-controls","team-panel");$("mobile-team").setAttribute("aria-expanded","false");
+$("mobile-team").onclick=()=>{const open=$("team-panel").classList.toggle("open");$("mobile-team").setAttribute("aria-expanded",String(open));office?.clearKeys();if(open)$("close-team").focus();};$("close-team").onclick=closeTeam;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!dialog.open&&$("team-panel").classList.contains("open")){e.preventDefault();closeTeam();}});
 let mic=null,audioCtx=null,meterTimer=null,screen=null,micPending=false,screenPending=false;
 function stopVoice(){mic?.getTracks().forEach(t=>t.stop());mic=null;audioCtx?.close().catch(()=>{});audioCtx=null;clearInterval(meterTimer);$("voice-button").classList.remove("active-media");$("voice-button").querySelector("span").textContent="Join voice";activity("麥克風已關閉。");}
 $("voice-button").onclick=()=>{if(mic){stopVoice();return;}selected=null;show(`<h2>Sound check.</h2><p>開啟麥克風，查看本機輸入音量。這個原型尚未提供多人語音；聲音不會錄製或傳送。</p><button class="primary" id="enable-mic">開啟本機麥克風檢查</button>`,"VOICE / LOCAL PREVIEW");$("enable-mic").onclick=async()=>{if(micPending)return;micPending=true;$("enable-mic").disabled=true;try{if(!navigator.mediaDevices?.getUserMedia)throw Error("此瀏覽器不支援，請用 HTTPS 或 localhost 開啟");mic=await navigator.mediaDevices.getUserMedia({audio:true});audioCtx=new AudioContext();await audioCtx.resume();const source=audioCtx.createMediaStreamSource(mic),analyser=audioCtx.createAnalyser();analyser.fftSize=256;source.connect(analyser);const data=new Uint8Array(analyser.fftSize);mic.getTracks().forEach(t=>t.addEventListener("ended",stopVoice,{once:true}));meterTimer=setInterval(()=>{analyser.getByteTimeDomainData(data);const level=Math.round(Math.sqrt(data.reduce((s,v)=>s+(v-128)**2,0)/data.length)*2);activity(`本機麥克風音量 ${Math.min(100,level)}% · 未連接其他成員 · 按 Mic on 關閉`);},250);$("voice-button").classList.add("active-media");$("voice-button").querySelector("span").textContent="Mic on";dialog.close();toast("本機麥克風已開啟；再次點擊即可關閉。");}catch(e){stopVoice();toast(`無法開啟麥克風：${e.message}`);}finally{micPending=false;if($("enable-mic"))$("enable-mic").disabled=false;}};};
@@ -89,4 +92,4 @@ $("share-button").onclick=()=>{if(screen){stopScreen();return;}selected=null;sho
 $("stop-share").onclick=stopScreen;
 window.addEventListener("pagehide",()=>{stopVoice();stopScreen();});
 render();
-try{const {createOffice}=await import("./scene.js");office=createOffice({agents,onChat:openChat,isBlocked:()=>dialog.open,onHint:a=>{$("walk-hint").querySelector("span:nth-child(2)").textContent=a?`按 T 和 ${a.name} 聊聊 · ${statusLabel(a)}`:"走近一位同事，聊聊下一個點子。";}});$("scene-message").textContent="";render();}catch(e){console.warn("Office renderer unavailable",e);$("scene-message").textContent="3D 場景需要 WebGL 2。你仍可從成員面板聊天、派工與查看進度。";}
+try{const {createOffice}=await import("./scene.js?review=controls-20260927");office=createOffice({agents,onChat:openChat,isBlocked:()=>dialog.open,onHint:a=>{$("walk-hint").querySelector("span:nth-child(2)").textContent=a?`按 T 和 ${a.name} 聊聊 · ${statusLabel(a)}`:"走近一位同事，聊聊下一個點子。";}});$("scene-message").textContent="";render();}catch(e){console.warn("Office renderer unavailable",e);$("scene-message").textContent="3D 場景需要 WebGL 2。你仍可從成員面板聊天、派工與查看進度。";}

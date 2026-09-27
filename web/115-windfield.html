@@ -122,7 +122,9 @@ actual frame rate depends on the device and browser.
           float back=max(0.,dot(normalize(uSun),normalize(vWorld-uCamera)));
           float transmit=pow(back,3.)*(.21+.45*vHeight);
           color+=vec3(.25,.29,.045)*transmit;
-          float diffuse=abs(dot(normalize(vNormal),normalize(uSun)));color*=.65+.35*diffuse;color*=.86+.14*pow(1.-abs(vAcross),2.);color+=vec3(.025,.035,.008)*pow(1.-abs(vAcross),12.)*vHeight;color*=.72+.28*smoothstep(0.,.3,vHeight);
+          float diffuse=abs(dot(normalize(vNormal),normalize(uSun)));color*=.65+.35*diffuse;color*=.86+.14*pow(1.-abs(vAcross),2.);color+=vec3(.025,.035,.008)*pow(1.-abs(vAcross),12.)*vHeight;color*=.8+.2*smoothstep(0.,.3,vHeight);
+          // Waxy cuticle: a tight sun glint on some blades, strongest on the bent upper half, so gusts read as a travelling sheen.
+          vec3 hv=normalize(normalize(uSun)+normalize(uCamera-vWorld));float glint=pow(abs(dot(normalize(vNormal),hv)),48.)*smoothstep(.35,1.,vHeight)*(.3+.7*vSeed);color+=vec3(.95,.9,.7)*glint*.14*(1.-smoothstep(5.,16.,vDistance));
           float haze=smoothstep(30.,140.,vDistance)*.73;
           color=mix(color,uHorizon,haze);
           gl_FragColor=vec4(color,1.);
@@ -168,6 +170,9 @@ actual frame rate depends on the device and browser.
           vec3 c=mix(vec3(.15,.27,.115),vec3(.31,.40,.19),n);
           c+=max(0.,dot(normalize(vec3(.12,1.,.1)),normalize(uSun)))*vec3(.05,.06,.015);
           c*=.82+.18*vSlope;
+          // Near the walker the soil is a mat of short grass and dry thatch in the blades' shade, not a flat lawn colour.
+          float thatchN=noise(vWorld.xz*3.1)*.55+noise(vWorld.xz*8.3)*.45,near=1.-smoothstep(6.,34.,vDistance);
+          c=mix(c,c*(.66+.5*thatchN),near*.8);c=mix(c,vec3(.34,.33,.16)*(.55+.45*thatchN),near*smoothstep(.62,.8,thatchN)*.45);
           c=mix(c,uHorizon,smoothstep(32.,180.,vDistance)*.88);
           gl_FragColor=vec4(c,1.);}`});
     const ground=new THREE.Mesh(groundGeometry,groundMaterial);ground.frustumCulled=false;scene.add(ground);
@@ -278,7 +283,7 @@ actual frame rate depends on the device and browser.
     }
     window.addEventListener('resize',resize);resize();
     const flare=document.getElementById('flare'),travel=document.getElementById('travel');
-    const sunPoint=new THREE.Vector3();
+    const sunPoint=new THREE.Vector3(),lookDir=new THREE.Vector3(),lookAt=new THREE.Vector3(),light2Goal=new THREE.Vector2();
     function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(!motionPaused)elapsed+=dt;
       const idle=now-lastInput>4500;
       if(idle&&!reducedMotion&&!motionPaused){state.targetYaw=Math.sin(elapsed*.09)*.15;state.targetPitch=-.04+Math.sin(elapsed*.055)*.035;state.targetDolly=Math.min(62,state.targetDolly+dt*.46);}
@@ -286,8 +291,8 @@ actual frame rate depends on the device and browser.
       state.yaw+= (state.targetYaw-state.yaw)*k;state.pitch+=(state.targetPitch-state.pitch)*k;state.dolly+=(state.targetDolly-state.dolly)*k;
       const x=Math.sin(state.dolly*.021)*.55,z=9-state.dolly;
       camera.position.set(x,terrainHeight(x,z)+1.05,z);
-      const pitch=state.pitch+(camera.aspect<.8?-.13:0),dir=new THREE.Vector3(Math.sin(state.yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(state.yaw)*Math.cos(pitch));
-      camera.lookAt(camera.position.clone().add(dir));sky.position.copy(camera.position);
+      const pitch=state.pitch+(camera.aspect<.8?-.13:0);lookDir.set(Math.sin(state.yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(state.yaw)*Math.cos(pitch));
+      camera.lookAt(lookAt.copy(camera.position).add(lookDir));sky.position.copy(camera.position);
       grassUniforms.uTime.value=elapsed;groundUniforms.uTime.value=elapsed;
       grassUniforms.uCamera.value.copy(camera.position);groundUniforms.uCamera.value.copy(camera.position);
       const projected=sunPoint.copy(camera.position).addScaledVector(sunDir,200).project(camera);
@@ -300,7 +305,7 @@ actual frame rate depends on the device and browser.
       postUniforms.uLens.value.set(box.left,innerHeight-box.bottom,box.width,box.height);
       // Rim highlight faces the scene's sun, seen from the current camera.
       lightDir.copy(sunDir).transformDirection(camera.matrixWorldInverse);
-      if(Math.hypot(lightDir.x,lightDir.y)>1e-3){light2.lerp(new THREE.Vector2(lightDir.x,lightDir.y).normalize(),k).normalize();postUniforms.uLight.value.copy(light2);}
+      if(Math.hypot(lightDir.x,lightDir.y)>1e-3){light2.lerp(light2Goal.set(lightDir.x,lightDir.y).normalize(),k).normalize();postUniforms.uLight.value.copy(light2);}
       postUniforms.uPress.value+=(pressTarget-postUniforms.uPress.value)*(reducedMotion?1:1-Math.exp(-dt*6));
       renderer.setRenderTarget(target);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
     }

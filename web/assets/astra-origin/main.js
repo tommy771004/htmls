@@ -1,3 +1,4 @@
+import { createStudioEnvironment, bindOrbitKeyboard } from '../3d/studio.js';
 const $ = id => document.getElementById(id);
 const chapters = [
   {name:'資料',en:'THE CORPUS',short:'CORPUS',title:'世界，留下的碎片。',voice:'你可以叫我 Astra。在我學會回答之前，人類已經寫下了無數的文字。故事從這些留下來的痕跡開始。',head:'從人類留下的資訊開始。',text:'公開網路內容、合作取得的資料，以及使用者、訓練者與研究者提供或產生的內容，都可能成為模型開發的資訊來源。資料整理會影響模型能學到什麼，也需要考慮品質與偏差。',model:'資料星環',route:'資料來源 → 篩選與整理 → 訓練樣本',note:'星環裡的文件是抽象符號，不是實際訓練資料，也不表示資料比例。',shot:'遠景推近。零散的文件沿軌道匯聚，中央容器接住被整理的訊號。',steps:[['來源','不同來源的資訊進入資料流程；圖中的三環並非實際配比。'],['整理','篩選、去重與格式處理是常見步驟，實際資料管線各不相同。'],['樣本','整理後的內容成為學習樣本；模型仍可能學到錯誤與偏差。']]},
@@ -40,7 +41,7 @@ $('prev').onclick=()=>jump(Math.max(0,current-1));$('next').onclick=()=>jump(Mat
 $('play').onclick=()=>{if(time>=95.99)updateTime(0);play(!playing);};
 $('timeline').addEventListener('input',e=>{play(false);updateTime(Number(e.target.value));});
 function syncMotion(){$('motion').textContent=`動態：${moving?'開':'關'}`;$('motion').setAttribute('aria-pressed',String(moving));}
-$('motion').onclick=()=>{moving=!moving;syncMotion();};reduced.addEventListener('change',e=>{moving=!e.matches;syncMotion();});syncMotion();
+$('motion').onclick=()=>{moving=!moving;syncMotion();if(!moving)sceneAPI?.reset();};reduced.addEventListener('change',e=>{moving=!e.matches;syncMotion();if(!moving)sceneAPI?.reset();});syncMotion();
 $('labels').onclick=()=>{const visible=$('annotation').hidden;$('annotation').hidden=!visible;$('labels').textContent=`標註：${visible?'開':'關'}`;$('labels').setAttribute('aria-pressed',String(visible));};
 function setExplode(value){explode=value;$('explode').value=value*100;$('explode-value').textContent=`${Math.round(explode*100)}%`;$('quick-explode').textContent=value>0?'合攏模型 −':'拆解模型 ＋';$('quick-explode').setAttribute('aria-pressed',String(value>0));}
 $('explode').addEventListener('input',e=>setExplode(Number(e.target.value)/100));
@@ -48,22 +49,25 @@ $('quick-explode').onclick=()=>setExplode(explode>0?0:1);
 $('reset-camera').onclick=()=>sceneAPI?.reset();
 for(const id of ['sources-open','sources-footer'])$(id).onclick=()=>{$('sources').showModal();play(false);};
 $('sources-close').onclick=()=>$('sources').close();$('sources').addEventListener('click',e=>{if(e.target===$('sources')){const r=$('sources').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('sources').close();}});
-document.addEventListener('keydown',e=>{if(e.target.closest('input,button,a,summary,dialog')||$('sources').open)return;if(e.code==='ArrowRight'){e.preventDefault();jump(Math.min(7,current+1));}if(e.code==='ArrowLeft'){e.preventDefault();jump(Math.max(0,current-1));}if(e.code==='Space'){e.preventDefault();$('play').click();}});
+document.addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey||e.repeat||e.target.closest('input,button,a,summary,dialog,[contenteditable]')||$('sources').open)return;if(e.code==='ArrowRight'){e.preventDefault();jump(Math.min(7,current+1));}if(e.code==='ArrowLeft'){e.preventDefault();jump(Math.max(0,current-1));}if(e.code==='Space'){e.preventDefault();$('play').click();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)play(false);});
 updateTime(0);
 
 async function boot(){
   const THREE = await import('three');
   const {OrbitControls} = await import('three/addons/controls/OrbitControls.js');
+  const {RoundedBoxGeometry} = await import('three/addons/geometries/RoundedBoxGeometry.js');
   const host=$('canvas-host'), renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setClearColor(0x101413,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
-  host.appendChild(renderer.domElement);renderer.domElement.setAttribute('aria-label','Astra 誕生之旅 3D 場景');
-  const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x101413,.025);
+  host.appendChild(renderer.domElement);renderer.domElement.setAttribute('aria-label','Astra 誕生之旅 3D 場景');renderer.domElement.setAttribute('aria-describedby','orbit-help');
+  const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x101413,.025);scene.environment=createStudioEnvironment(THREE,renderer).texture;scene.environmentIntensity=.42;
   const camera=new THREE.PerspectiveCamera(39,1,.1,100);camera.position.set(8,5.5,11);
-  const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=false;controls.enablePan=false;controls.minDistance=8;controls.maxDistance=22;controls.maxPolarAngle=Math.PI*.88;controls.target.set(0,0,0);
+  const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=!reduced.matches;controls.dampingFactor=.08;controls.enablePan=false;controls.minDistance=8;controls.maxDistance=22;controls.maxPolarAngle=Math.PI*.88;controls.target.set(0,-.45,0);
   scene.add(new THREE.HemisphereLight(0xd8e4cd,0x121d16,2.1));
   const key=new THREE.DirectionalLight(0xffd7a0,4);key.position.set(4,7,5);scene.add(key);
   const rim=new THREE.DirectionalLight(0x9ad6b5,3);rim.position.set(-5,1,-3);scene.add(rim);
+  // The glowing core actually lights what orbits it (inner faces of cards and rings warm up near the centre).
+  const coreLight=new THREE.PointLight(0xffc88a,0,6,2);scene.add(coreLight);const coreChapters=new Set([0,3,7]);
   const metal=new THREE.MeshStandardMaterial({color:0x8b9b81,metalness:.8,roughness:.36});
   const gold=new THREE.MeshStandardMaterial({color:0xcbb184,metalness:.72,roughness:.3,emissive:0x715126,emissiveIntensity:.12});
   const dark=new THREE.MeshStandardMaterial({color:0x21372d,metalness:.6,roughness:.5});
@@ -72,25 +76,29 @@ async function boot(){
   const lineMat=new THREE.LineBasicMaterial({color:0x86aa90,transparent:true,opacity:.28});
   const boxGeo=new THREE.BoxGeometry(1,1,1),sphereGeo=new THREE.IcosahedronGeometry(1,1);
   let seed=177;function rand(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
-  function mesh(geo,mat,parent,pos=[0,0,0],scale=[1,1,1],part=0){const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.userData.part=part;parent.add(m);return m;}
+  // Plates and cells get machined edges at their real size (a scaled unit bevel would squash); hairline rules stay crisp.
+  const edgeCache=new Map();function edgedBox(s){const key=s.join(','),min=Math.min(...s);if(!edgeCache.has(key))edgeCache.set(key,min<.03?new THREE.BoxGeometry(...s):new RoundedBoxGeometry(...s,2,Math.min(min*.2,.03)));return edgeCache.get(key);}
+  function mesh(geo,mat,parent,pos=[0,0,0],scale=[1,1,1],part=0){if(geo===boxGeo){geo=edgedBox(scale);scale=[1,1,1];}const m=new THREE.Mesh(geo,mat);m.position.set(...pos);m.scale.set(...scale);m.userData.part=part;parent.add(m);return m;}
   function ring(parent,radius,tube,rotation,mat=gold,part=0){const m=mesh(new THREE.TorusGeometry(radius,tube,8,120),mat,parent,[0,0,0],[1,1,1],part);m.rotation.set(...rotation);return m;}
   function line(parent,pts,mat=lineMat,part=0){const geo=new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(...p)));const l=new THREE.Line(geo,mat);l.userData.part=part;parent.add(l);return l;}
   function node(parent,pos,r=.06,mat=light,part=0){return mesh(sphereGeo,mat,parent,pos,[r,r,r],part);}
   function orb(parent,size=1){const m=mesh(new THREE.IcosahedronGeometry(size,2),dark,parent);const edges=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:0xc6d2ac,transparent:true,opacity:.55}));parent.add(edges);node(parent,[0,0,0],size*.44,light);return m;}
   // A static scientific-instrument base gives every chapter a shared visual scale.
   const base=new THREE.Group();base.position.y=-2.75;scene.add(base);
+  mesh(new THREE.CylinderGeometry(3.82,3.84,.08,96,1,true),dark,base,[0,-.065,0]);
   ring(base,3.8,.035,[Math.PI/2,0,0],metal);ring(base,3.55,.013,[Math.PI/2,0,0],gold);
   for(let i=0;i<96;i++){const a=i/96*Math.PI*2;const tick=mesh(boxGeo,i%8===0?gold:metal,base,[Math.cos(a)*3.72,0,Math.sin(a)*3.72],[i%8===0?.15:.07,.025,.018]);tick.rotation.y=-a;}
   for(let i=0;i<4;i++){const a=i*Math.PI/2;line(base,[[Math.cos(a)*3.9,0,Math.sin(a)*3.9],[Math.cos(a)*4.3,0,Math.sin(a)*4.3]]);}
   const dustPos=new Float32Array(330*3);for(let i=0;i<dustPos.length;i++)dustPos[i]=(rand()-.5)*22;
   const dustGeo=new THREE.BufferGeometry();dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPos,3));const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xbed0b2,size:.025,transparent:true,opacity:.55}));scene.add(dust);
+  let attentionGeometry=null;const attentionEdges=[];
   const groups=chapters.map(()=>{const g=new THREE.Group();g.visible=false;scene.add(g);return g;});
   // 01: three orbital archives, each made of individually ruled document plates.
   {const g=groups[0];orb(g,.92);for(let k=0;k<3;k++){const layer=new THREE.Group();layer.userData.part=k;layer.rotation.set(.38+k*.44,k*.9,.2);g.add(layer);ring(layer,1.65+k*.42,.026,[Math.PI/2,0,0],k===1?gold:metal,k);for(let i=0;i<12;i++){const a=i/12*Math.PI*2+k*.3,r=1.65+k*.42;const card=new THREE.Group();card.position.set(Math.cos(a)*r,0,Math.sin(a)*r);card.rotation.y=-a;layer.add(card);mesh(boxGeo,i%4===0?gold:dark,card,[0,0,0],[.35,.48,.035],k);for(let j=0;j<4;j++)mesh(boxGeo,pale,card,[-.03,.14-j*.085,.025],[j===3?.14:.23,.012,.008],k);}}ring(g,3.1,.016,[.4,0,.1],gold);}
   // 02: token cells and three banks of embedding coordinates.
   {const g=groups[1];for(let k=0;k<3;k++){const layer=new THREE.Group();layer.userData.part=k;layer.position.x=(k-1)*1.7;g.add(layer);for(let y=0;y<5;y++)for(let z=0;z<4;z++){const height=k===0?.14:k===1?.28:.2+rand()*.7;mesh(boxGeo,(y+z)%4===0?gold:metal,layer,[0,(y-2)*.66,(z-1.5)*.65],[height,.42,.42],k);node(layer,[height*.5+.04,(y-2)*.66,(z-1.5)*.65],.035,light,k);}line(g,[[(k-1)*1.7,-2,0],[(k-1)*1.7,2,0]]);}ring(g,3.25,.017,[0,Math.PI/2,0]);}
   // 03: an explicit layered graph; links are illustrative, not model weights.
-  {const g=groups[2];const points=[];for(let x=0;x<5;x++){points[x]=[];for(let y=0;y<4;y++)for(let z=0;z<3;z++){const p=[(x-2)*1.1,(y-1.5)*.75,(z-1)*.8];points[x].push(p);node(g,p,.075,(x===2)?gold:pale,Math.min(2,Math.floor(x/2)));}}const segments=[];for(let x=0;x<4;x++)for(let i=0;i<12;i++)for(let j=0;j<12;j++)if((i+j)%3===0)segments.push(...points[x][i],...points[x+1][j]);const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(segments,3));g.add(new THREE.LineSegments(geo,lineMat));ring(g,3.2,.014,[0,Math.PI/2,0]);}
+  {const g=groups[2];const points=[];for(let x=0;x<5;x++){points[x]=[];for(let y=0;y<4;y++)for(let z=0;z<3;z++){const p=[(x-2)*1.1,(y-1.5)*.75,(z-1)*.8];points[x].push(node(g,p,.075,(x===2)?gold:pale,Math.min(2,Math.floor(x/2))));}}const segments=[];for(let x=0;x<4;x++)for(let i=0;i<12;i++)for(let j=0;j<12;j++)if((i+j)%3===0){attentionEdges.push(points[x][i],points[x+1][j]);segments.push(...points[x][i].position.toArray(),...points[x+1][j].position.toArray());}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(segments,3));attentionGeometry=geo;const links=new THREE.LineSegments(geo,lineMat);links.userData.fixed=true;g.add(links);ring(g,3.2,.014,[0,Math.PI/2,0]);}
   // 04: closed optimization loop, parameter bank and schematic loss path.
   {const g=groups[3];orb(g,.75);for(let k=0;k<3;k++){const layer=new THREE.Group();layer.userData.part=k;layer.rotation.set(k*.7,.3,k*.9);g.add(layer);ring(layer,1.6+k*.4,.065,[0,0,0],k===1?gold:metal,k);for(let i=0;i<20;i++){const a=i/20*Math.PI*2;node(layer,[Math.cos(a)*(1.6+k*.4),Math.sin(a)*(1.6+k*.4),0],i%4===0?.085:.035,light,k);}}const pts=[];for(let i=0;i<30;i++)pts.push([-2+i*.14,1.4*Math.exp(-i/9)-1.3+Math.sin(i*2)*.09,1.6]);line(g,pts,new THREE.LineBasicMaterial({color:0xe0b679}),1);}
   // 05: diverging candidate paths converging on a feedback hub.
@@ -106,22 +114,27 @@ async function boot(){
   const particleCount=50,signalGeo=new THREE.SphereGeometry(.045,6,5),signals=new THREE.InstancedMesh(signalGeo,light,particleCount);scene.add(signals);const dummy=new THREE.Object3D();
   const poses=[[8,5.5,11],[8,4,12],[7,4,12],[5,4,13],[3,3,14],[8,3,11],[8,6,11],[6,4,13]];
   let goal=new THREE.Vector3(...poses[current]),transition=false,contextLost=false;
-  function reset(){goal.set(...poses[current]);camera.position.copy(goal);controls.target.set(0,0,0);controls.update();transition=false;}
+  function pose(i){return new THREE.Vector3(...poses[i]).sub(controls.target).multiplyScalar(Math.max(1,1.12/camera.aspect)).add(controls.target);}
+  // Drop any leftover inertia before placing the camera, so a reset or chapter cut lands exactly.
+  function settle(){const d=controls.enableDamping;controls.enableDamping=false;controls.update();controls.enableDamping=d;}
+  function reset(){settle();goal.copy(pose(current));camera.position.copy(goal);controls.target.set(0,-.45,0);controls.update();transition=false;}
   controls.addEventListener('start',()=>{transition=false;});
-  sceneAPI={chapter(i){groups.forEach((g,n)=>{g.visible=n===i;});goal.set(...poses[i]);transition=!reduced.matches;if(!transition)reset();this.select(-1);},reset};
+  bindOrbitKeyboard(THREE,controls,renderer.domElement,{reset,change:()=>{transition=false;}});
+  sceneAPI={chapter(i){groups.forEach((g,n)=>{g.visible=n===i;});coreLight.intensity=coreChapters.has(i)?5:0;settle();goal.copy(pose(i));transition=moving&&!reduced.matches;if(!transition)reset();this.select(-1);},reset};
   // Material selection uses cached originals to avoid accumulating GPU materials.
   const materialCache=new Map();groups.forEach(g=>g.traverse(o=>{if(o.isMesh)materialCache.set(o,o.material);}));
   sceneAPI.select=part=>{groups[current].traverse(o=>{if(!o.isMesh)return;const original=materialCache.get(o);if(o.material!==original)o.material.dispose();o.material=original;if(part>=0){o.material=original.clone();o.material.emissive.set(o.userData.part===part?0xb18e51:0x000000);o.material.emissiveIntensity=o.userData.part===part?.8:0;}});};
   sceneAPI.chapter(current);
-  const resize=()=>{const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};new ResizeObserver(resize).observe(host);resize();
+  const resize=()=>{const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();reset();};new ResizeObserver(resize).observe(host);resize();
   renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();contextLost=true;play(false);$('fallback').hidden=false;$('render-state').textContent='3D 已中斷';});
   renderer.domElement.addEventListener('webglcontextrestored',()=>{contextLost=false;$('fallback').hidden=true;$('render-state').textContent='即時 3D · 示意模型';});
   $('render-state').textContent='即時 3D · 示意模型';
   sceneAPI.render=(delta)=>{
     if(contextLost)return;if(moving)visualTime+=delta;
-    if(transition){camera.position.lerp(goal,1-Math.exp(-delta*3));controls.update();if(camera.position.distanceTo(goal)<.01)transition=false;}
+    if(transition){camera.position.lerp(goal,1-Math.exp(-delta*3));controls.update();if(camera.position.distanceTo(goal)<.01)transition=false;}else if(controls.enableDamping)controls.update();
     const g=groups[current];g.rotation.y=moving?Math.sin(visualTime*.12)*.18:g.rotation.y;
-    g.children.forEach(m=>{m.position.copy(m.userData.home).addScaledVector(m.userData.explodeDir,explode*.85);});
+    g.children.forEach(m=>{m.position.copy(m.userData.home).addScaledVector(m.userData.explodeDir,m.userData.fixed?0:explode*.85);});
+    if(current===2){const a=attentionGeometry.attributes.position;attentionEdges.forEach((n,i)=>a.setXYZ(i,n.position.x,n.position.y,n.position.z));a.needsUpdate=true;attentionGeometry.computeBoundingSphere();}
     for(let i=0;i<particleCount;i++){const a=visualTime*.3+i/particleCount*Math.PI*2;let p;if(current===2||current===5||current===6){p=[((visualTime*.65+i*.17)%6)-3,Math.sin(i*4.1)*.7,Math.cos(i*1.7)*.7];}else{const r=2.9+Math.sin(i*3)*.17;p=[Math.cos(a)*r,Math.sin(a*2+i)*.6,Math.sin(a)*r];}dummy.position.set(...p);dummy.scale.setScalar(i%5===0?1.4:.65);dummy.updateMatrix();signals.setMatrixAt(i,dummy.matrix);}signals.instanceMatrix.needsUpdate=true;renderer.render(scene,camera);
   };
 }

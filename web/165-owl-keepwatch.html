@@ -28,6 +28,8 @@ body{
 #sky:after{content:"";position:absolute;inset:0;opacity:.16;mix-blend-mode:soft-light;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 #gl{position:fixed;inset:0;z-index:1;width:100%;height:100%;display:block;touch-action:none;outline:none}
+/* 游標本身就是那隻螢火蟲：畫面上不再另外疊一個系統箭頭 */
+@media (pointer:fine){#gl{cursor:none}}
 
 #gl:focus-visible{outline:2px solid var(--lamp);outline-offset:-5px}
 
@@ -194,7 +196,27 @@ moon.shadow.camera.right = moon.shadow.camera.top = 3.2;
 moon.shadow.camera.near = 1; moon.shadow.camera.far = 20;
 moon.shadow.bias = -0.0008;
 moon.shadow.normalBias = 0.02;
+moon.shadow.radius = 3;
 scene.add(moon);
+// 夜林環境光：暗綠天頂、黑地面，月光方向一團冷光，讓眼角膜與喙有真的反光
+{
+  const W = 64, H = 32, d = new Float32Array(W * H * 4);
+  const md = moon.position.clone().normalize();
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const ph = ((i + .5) / W - .5) * Math.PI * 2, la = ((j + .5) / H - .5) * Math.PI;
+    const x = Math.cos(ph) * Math.cos(la), y = Math.sin(la), z = Math.sin(ph) * Math.cos(la);
+    const up = Math.max(0, y), dn = Math.max(0, -y);
+    let r = .018 + .035 * up, g = .03 + .05 * up, b = .026 + .045 * up;
+    r *= 1 - dn * .9; g *= 1 - dn * .9; b *= 1 - dn * .9;
+    const m = Math.max(0, x * md.x + y * md.y + z * md.z), s = Math.pow(m, 90) * 5 + Math.pow(m, 8) * .12;
+    const k = (j * W + i) * 4; d[k] = r + s * .62; d[k + 1] = g + s * .74; d[k + 2] = b + s * .86; d[k + 3] = 1;
+  }
+  const eq = new THREE.DataTexture(d, W, H, THREE.RGBAFormat, THREE.FloatType);
+  eq.mapping = THREE.EquirectangularReflectionMapping; eq.magFilter = THREE.LinearFilter; eq.needsUpdate = true;
+  const pm = new THREE.PMREMGenerator(renderer);
+  scene.environment = pm.fromEquirectangular(eq).texture; scene.environmentIntensity = 1;
+  eq.dispose(); pm.dispose();
+}
 const rim = new THREE.DirectionalLight(0x6f8f9c, 0.6);
 rim.position.set(3, 2, -5);
 scene.add(rim);
@@ -250,11 +272,55 @@ const matFace = new THREE.MeshStandardMaterial({ color: 0xd2b98d, roughness: .95
 const matFaceRim = new THREE.MeshStandardMaterial({ color: 0x42291a, roughness: .95 });
 const matDark = new THREE.MeshStandardMaterial({ color: 0x2e1d12, roughness: .8 });
 const matBeak = new THREE.MeshStandardMaterial({ color: 0x3a2a1e, roughness: .45, metalness: .05 });
-const matIris = new THREE.MeshStandardMaterial({ color: 0xe6a63c, roughness: .35, emissive: 0x3d2600, emissiveIntensity: .6 });
-const matPupil = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: .25 });
+// 虹膜外罩一層濕潤的角膜（clearcoat），反射環境裡的月光
+const matIris = new THREE.MeshPhysicalMaterial({ color: 0xe6a63c, roughness: .35, emissive: 0x3d2600, emissiveIntensity: .6, clearcoat: 1, clearcoatRoughness: .04 });
+const matPupil = new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: .25, clearcoat: 1, clearcoatRoughness: .04 });
 const matGlint = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const matBark = new THREE.MeshStandardMaterial({ color: 0x3b2a1c, roughness: 1 });
+// 同一個種子畫兩次：顏色貼圖與凹凸貼圖才會對齊
+const seeded = s => () => (s = s * 16807 % 2147483647) / 2147483647;
+// 臉盤：由眼睛向外放射的細羽
+function discCanvas(gray) {
+  const R = seeded(1651);
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = gray ? '#808080' : '#d2b98d'; g.fillRect(0, 0, 256, 256);
+  const cx = 128, cy = 116;
+  for (let i = 0; i < 520; i++) {
+    const a = R() * Math.PI * 2, r0 = 18 + R() * 30, r1 = r0 + 40 + R() * 90;
+    g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+    const lt = R() < .5;
+    g.strokeStyle = gray ? (lt ? 'rgba(200,200,200,.35)' : 'rgba(40,40,40,.35)') : (lt ? 'rgba(236,216,176,.3)' : 'rgba(122,92,58,.24)');
+    g.lineWidth = .8 + R() * 1.4; g.stroke();
+  }
+  const rg = g.createRadialGradient(cx, cy, 70, cx, cy, 128);
+  rg.addColorStop(0, 'rgba(0,0,0,0)'); rg.addColorStop(1, gray ? 'rgba(0,0,0,.35)' : 'rgba(90,60,34,.45)');
+  g.fillStyle = rg; g.fillRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); if (!gray) t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const matDisc = new THREE.MeshStandardMaterial({ map: discCanvas(false), bumpMap: discCanvas(true), bumpScale: .012, roughness: .95 });
+// 樹皮：沿枝條方向的裂紋與節瘤
+function barkCanvas(gray) {
+  const R = seeded(1652);
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = gray ? '#7a7a7a' : '#3b2a1c'; g.fillRect(0, 0, 512, 128);
+  for (let i = 0; i < 260; i++) {
+    const y = R() * 128, x = R() * 512, len = 30 + R() * 140, w = 1 + R() * 3;
+    g.fillStyle = gray ? (R() < .6 ? 'rgba(20,20,20,.55)' : 'rgba(190,190,190,.35)') : (R() < .6 ? 'rgba(18,11,6,.55)' : 'rgba(96,74,52,.35)');
+    g.fillRect(x, y, len, w);
+  }
+  for (let i = 0; i < 7; i++) {
+    const x = R() * 512, y = 20 + R() * 88;
+    g.strokeStyle = gray ? 'rgba(15,15,15,.7)' : 'rgba(20,12,6,.7)'; g.lineWidth = 2;
+    for (let k = 0; k < 3; k++) { g.beginPath(); g.ellipse(x, y, 14 - k * 4, 7 - k * 2, 0, 0, Math.PI * 2); g.stroke(); }
+  }
+  if (!gray) { g.globalAlpha = .18; for (let i = 0; i < 40; i++) { g.fillStyle = '#4b5a33'; g.beginPath(); g.ellipse(R() * 512, R() * 40, 10 + R() * 26, 4 + R() * 8, 0, 0, 7); g.fill(); } g.globalAlpha = 1; }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 1);
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy(); if (!gray) t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const matBark = new THREE.MeshStandardMaterial({ map: barkCanvas(false), bumpMap: barkCanvas(true), bumpScale: .05, roughness: .95 });
 const matFoot = new THREE.MeshStandardMaterial({ color: 0x8b7a5a, roughness: .8 });
+const matTalon = new THREE.MeshStandardMaterial({ color: 0x1e1712, roughness: .35 });
 
 const shadowed = m => { m.castShadow = true; m.receiveShadow = true; return m; };
 
@@ -308,7 +374,9 @@ owl.add(head);
   for (const s of [-1, 1]) {
     const rimD = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 24), matFaceRim);
     rimD.scale.set(1.02, 1.2, 0.4); rimD.position.set(s * 0.36, -0.02, 0.65); rimD.rotation.y = s * 0.42; head.add(rimD);
-    const disc = new THREE.Mesh(new THREE.SphereGeometry(0.46, 32, 24), matFace);
+    const dg = new THREE.SphereGeometry(0.46, 32, 24), dp = dg.attributes.position, du = dg.attributes.uv;
+    for (let i = 0; i < dp.count; i++) du.setXY(i, dp.getX(i) / 0.92 + .5, dp.getY(i) / 0.92 + .5); // 正面平面投影，羽紋由眼睛放射
+    const disc = new THREE.Mesh(dg, matDisc);
     disc.scale.set(1, 1.18, 0.42); disc.position.set(s * 0.35, -0.02, 0.70); disc.rotation.y = s * 0.42; head.add(disc);
   }
   // 喙
@@ -352,14 +420,14 @@ for (const s of [-1, 1]) {
   const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.125, 24, 18), matPupil);
   pupil.position.z = 0.16;
   eye.add(pupil);
-  const glint = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), matGlint);
-  glint.position.set(-0.07, 0.08, 0.235);
-  eye.add(glint);
+  // 眼神光固定在頭上、不跟著眼球轉：真的反光點只跟光源走，眼珠轉動時瞳孔會滑過它
+  const glint = new THREE.Mesh(new THREE.SphereGeometry(0.036, 12, 10), matGlint);
+  glint.position.set(s * 0.33 - 0.07, 0.04 + 0.08, 0.83 + 0.232);
   const lid = new THREE.Mesh(new THREE.SphereGeometry(0.262, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), matFace);
   lid.position.copy(eye.position);
   lid.rotation.x = -Math.PI / 2;
-  head.add(eye, lid);
-  eyes.push({ group: eye, pupil, lid, s });
+  head.add(eye, glint, lid);
+  eyes.push({ group: eye, pupil, lid, glint, s });
 }
 
 // 樹枝與腳
@@ -368,18 +436,39 @@ for (const s of [-1, 1]) {
     new THREE.Vector3(-3.6, -0.55, -0.4), new THREE.Vector3(-1.6, -0.3, -0.1),
     new THREE.Vector3(0, -0.24, 0), new THREE.Vector3(1.7, -0.32, 0.15), new THREE.Vector3(3.8, -0.7, 0.55)
   ]);
-  const branch = shadowed(new THREE.Mesh(new THREE.TubeGeometry(curve, 40, 0.2, 14, false), matBark));
+  // 樹枝不是等粗的管子：沿長度收細，截面帶一點不規則的起伏；細枝末端收成尖
+  const taper = (geo, crv, segs, rad, fn) => {
+    const p = geo.attributes.position, c = new THREE.Vector3(), v = new THREE.Vector3();
+    for (let i = 0; i <= segs; i++) {
+      crv.getPointAt(i / segs, c);
+      for (let j = 0; j <= rad; j++) {
+        const k = i * (rad + 1) + j; v.fromBufferAttribute(p, k).sub(c);
+        v.multiplyScalar(fn(i / segs, j / rad)); p.setXYZ(k, c.x + v.x, c.y + v.y, c.z + v.z);
+      }
+    }
+    geo.computeVertexNormals(); return geo;
+  };
+  const bg = taper(new THREE.TubeGeometry(curve, 40, 0.2, 14, false), curve, 40, 14,
+    (t, a) => (1.12 - 0.3 * t) * (1 + 0.05 * Math.sin(a * Math.PI * 6 + t * 9) + 0.04 * Math.sin(t * 37)));
+  const branch = shadowed(new THREE.Mesh(bg, matBark));
   scene.add(branch);
-  const twig = shadowed(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+  const twigCurve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(1.4, -0.3, 0.1), new THREE.Vector3(2.0, 0.25, 0.2), new THREE.Vector3(2.5, 0.9, 0.1)
-  ]), 12, 0.07, 10, false), matBark));
+  ]);
+  const twig = shadowed(new THREE.Mesh(taper(new THREE.TubeGeometry(twigCurve, 12, 0.07, 10, false), twigCurve, 12, 10,
+    t => 1.3 - 1.22 * t * t), matBark));
   scene.add(twig);
+  // 腳趾末端的黑色鉤爪，扣在樹皮上
+  const talonGeo = new THREE.ConeGeometry(0.03, 0.12, 8);
   for (const s of [-1, 1]) {
     for (let k = -1; k <= 1; k++) {
       const toe = shadowed(new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.28, 6, 10), matFoot));
       toe.position.set(s * 0.34 + k * 0.1, -0.04, 0.16 + Math.abs(k) * -0.04);
       toe.rotation.x = Math.PI / 2 + 0.9;
       toe.rotation.z = k * 0.25;
+      const talon = new THREE.Mesh(talonGeo, matTalon);
+      talon.position.y = 0.21; talon.rotation.x = 0.7; talon.castShadow = true;
+      toe.add(talon);
       scene.add(toe);
     }
   }
@@ -597,6 +686,7 @@ function frame() {
   for (const e of eyes) {
     e.group.rotation.set(-ep, ey, 0);
     e.lid.rotation.x = -Math.PI / 2 + Math.PI * clamp(lidOpen, 0, 1);
+    e.glint.visible = lidOpen < 0.42;
     e.pupil.scale.setScalar(pupilScale);
     e.pupil.position.z = 0.16 + (pupilScale - 1) * 0.02;
   }

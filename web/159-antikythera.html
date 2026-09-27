@@ -1416,6 +1416,15 @@ function initGL(){
   const sun=new T.DirectionalLight(0xffe2b8,3);sun.castShadow=true;sun.shadow.mapSize.set(W<760?1024:2048,W<760?1024:2048);
   const sca=sun.shadow.camera;sca.left=-14;sca.right=14;sca.top=14;sca.bottom=-14;sca.near=1;sca.far=90;sun.shadow.bias=-.0006;sun.shadow.normalBias=.03;
   sc.add(sun);sc.add(sun.target);GL.sun=sun;
+  // 反射環境：水面上是天空與夕陽，水下是頭頂亮（斯涅耳窗）、腳下暗的藍綠水色；envUpd 依攝影機在水上或水下切換
+  {const pm=new T.PMREMGenerator(r),mkEnv=(top,hor,bot,spot,spotC,spotR)=>{const es=new T.Scene(),geo=new T.SphereGeometry(10,32,16),p=geo.attributes.position,col=[],c=new T.Color();
+    for(let i=0;i<p.count;i++){const y=p.getY(i)/10;if(y>=0)c.copy(hor).lerp(top,Math.pow(y,.6));else c.copy(hor).lerp(bot,Math.min(1,-y*3));col.push(c.r,c.g,c.b);}
+    geo.setAttribute('color',new T.Float32BufferAttribute(col,3));es.add(new T.Mesh(geo,new T.MeshBasicMaterial({vertexColors:true,side:T.BackSide})));
+    const s=new T.Mesh(new T.SphereGeometry(spotR,16,8),new T.MeshBasicMaterial({color:spotC}));s.position.copy(spot).multiplyScalar(8);es.add(s);
+    const t=pm.fromScene(es,.02).texture;es.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});return t;};
+   GL.envSky=mkEnv(new T.Color(.1,.25,.6),U.uHor.value,new T.Color(.05,.1,.13),U.uSunDir.value,new T.Color(6,4.6,3.2),.7);
+   GL.envUW=mkEnv(new T.Color(.1,.55,.6),new T.Color(.03,.22,.27),new T.Color(.004,.03,.04),new T.Vector3(0,1,0),new T.Color(1.2,2.2,2),2.6);
+   pm.dispose();}
 
   GL.tmpV=new T.Vector3();GL.tmpV2=new T.Vector3();
   buildGLWorld();buildGLLife();
@@ -1431,7 +1440,7 @@ function uwPatch(m,extraV){
       .replace('#include <begin_vertex>','#include <begin_vertex>\n'+(extraV||''))
       .replace('#include <project_vertex>','#include <project_vertex>\n{vec4 cw=vec4(transformed,1.);\n#ifdef USE_INSTANCING\ncw=instanceMatrix*cw;\n#endif\nvCW=(modelMatrix*cw).xyz;}');
     s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nuniform float uTime;uniform float uCaus;uniform float uUW;uniform float uFogD;varying vec3 vCW;\n'+GLSL_CAUS+GLSL_UWBG)
-      .replace('#include <fog_fragment>','if(uUW>.5){vec3 fv=vCW-cameraPosition;float fd=length(fv);vec3 fc=uwBg(fv/fd);\n#ifdef TONE_MAPPING\nfc=toneMapping(fc);\n#endif\nfc=linearToOutputTexel(vec4(fc,1.)).rgb;gl_FragColor.rgb=mix(gl_FragColor.rgb,fc,1.-exp(-pow(fd*uFogD,2.)));}else{\n#include <fog_fragment>\n}')
+      .replace('#include <fog_fragment>','if(uUW>.5){vec3 fv=vCW-cameraPosition;float fd=length(fv);vec3 fc=uwBg(fv/fd);\n#ifdef TONE_MAPPING\nfc=toneMapping(fc);\n#endif\nfc=linearToOutputTexel(vec4(fc,1.)).rgb;gl_FragColor.rgb=mix(gl_FragColor.rgb,fc,1.-exp(-fd*uFogD*.5-pow(fd*uFogD,2.)));}else{\n#include <fog_fragment>\n}')
       .replace('#include <tonemapping_fragment>',`{float up=clamp(inverseTransformDirection(normal,viewMatrix).y*1.15,0.,1.);
         float dz=(1.-smoothstep(-3.,-.5,vCW.y))*(.45+.55*exp(vCW.y*.02));
         float cs=caustic(vCW.xz*.55,uTime*.55);
@@ -1552,7 +1561,9 @@ function buildGLWorld(){
       for(let k=0;k<=12;k++){const t=lerp(a0,a1,k/12)*side,ac=Math.sin(t*Math.PI/2)*w,y=-1.25+Math.pow(Math.abs(t),1.5)*1.7;const [x,z]=toW(al,ac*.92+.4);pts.push(new T.Vector3(x,bedH(x,z)+y+.5-.4*Math.abs(t)*0,z));}
       const g=new T.TubeGeometry(new T.CatmullRomCurve3(pts),16,.1,4,false);W0.push([g,null,wood]);}
     {const pts=[];for(let k=0;k<=10;k++){const [x,z]=toW(-11+k*2.2,.4);pts.push(new T.Vector3(x,bedH(x,z)-.12,z));}W0.push([new T.TubeGeometry(new T.CatmullRomCurve3(pts),24,.2,5,false),null,wood]);}
-    for(let i=0;i<14;i++){const al=(R()-.5)*20,ac=(R()-.5)*7,[x,z]=toW(al,ac),L=1.5+R()*3.5;const g=new T.BoxGeometry(.22,.05,L);W0.push([g,mat(x,bedH(x,z)+.02,z,(R()-.5)*.25,-WRECK_A+Math.PI/2+(R()-.5)*1.2,(R()-.5)*.35),wood]);}
+    // 散落船板：沿長度切段，讓木紋色在板上有變化，並把板身順著海床起伏壓彎（不再一端懸空、一端插進沙裡）
+    for(let i=0;i<14;i++){const al=(R()-.5)*20,ac=(R()-.5)*7,[x,z]=toW(al,ac),L=1.5+R()*3.5;const g=new T.BoxGeometry(.22,.05,L,1,1,Math.max(3,Math.round(L*3)));g.applyMatrix4(mat(x,bedH(x,z)+.02,z,(R()-.5)*.25,-WRECK_A+Math.PI/2+(R()-.5)*1.2,(R()-.5)*.35));
+      const gp=g.attributes.position,y0=bedH(x,z);for(let k=0;k<gp.count;k++)gp.setY(k,gp.getY(k)+(bedH(gp.getX(k),gp.getZ(k))-y0)*.85);g.computeVertexNormals();W0.push([g,null,wood]);}
     const wm=new T.Mesh(mergeGeo(W0),stdM({vertexColors:true,roughness:.92}));wm.castShadow=wm.receiveShadow=true;UN.add(wm);
     // 雙耳陶罐（羅德島式）
     const prof=[[0,0],[.028,.012],[.05,.06],[.075,.16],[.15,.36],[.18,.52],[.172,.66],[.13,.76],[.07,.82],[.052,.86],[.05,1.0],[.068,1.03],[.066,1.06],[.045,1.065]].map(([x,y])=>new T.Vector2(x,y));
@@ -1847,10 +1858,10 @@ function envUpd(focus){const T=T3,U=GL.U,cam=GL.cam,y=cam.position.y,uw=y<0;
   U.uFogC.value.setRGB(lerp(.018,.004,dep),lerp(.19,.052,dep),lerp(.27,.1,dep));U.uFogD.value=lerp(.028,.04,dep);
   const f=GL.sc.fog;
   if(uw){f.color.copy(U.uFogC.value);f.density=U.uFogD.value;
-    GL.hemi.color.setRGB(.32,.66,.68);GL.hemi.groundColor.setRGB(.1,.15,.14);GL.hemi.intensity=1.5*(1-dep*.4);
+    GL.hemi.color.setRGB(.32,.66,.68);GL.hemi.groundColor.setRGB(.1,.15,.14);GL.hemi.intensity=1.25*(1-dep*.4);GL.sc.environment=GL.envUW;GL.sc.environmentIntensity=.55*(1-dep*.35);
     GL.sun.color.setRGB(.62,.93,.9);GL.sun.intensity=2.8*(1-dep*.45);U.uCaus.value=1.25;GL.rays.material.uniforms.uRay.value=.34*(1-dep*.35);
     GL.r.toneMappingExposure=1.18;}
-  else{f.color.copy(U.uHor.value);f.density=.00034;GL.hemi.color.setRGB(.62,.76,.95);GL.hemi.groundColor.setRGB(.42,.36,.28);GL.hemi.intensity=1.05;
+  else{f.color.copy(U.uHor.value);f.density=.00034;GL.hemi.color.setRGB(.62,.76,.95);GL.hemi.groundColor.setRGB(.42,.36,.28);GL.hemi.intensity=1.05;GL.sc.environment=GL.envSky;GL.sc.environmentIntensity=.45;
     GL.sun.color.setRGB(1,.86,.66);GL.sun.intensity=3.1;U.uCaus.value=0;GL.rays.material.uniforms.uRay.value=0;GL.r.toneMappingExposure=1.02;}
   GL.under.visible=y<1.2;for(const o of GL.islands)o.visible=!uw;for(const o of GL.gulls)o.visible=!uw;GL.sea.visible=y>-36;GL.sea.position.set(cam.position.x,0,cam.position.z);GL.sky.position.copy(cam.position);
   GL.snow.visible=GL.rays.visible=uw;GL.snow.material.uniforms.uCam.value.copy(cam.position);GL.rays.material.uniforms.uCam.value.copy(cam.position);
@@ -2083,7 +2094,7 @@ function buildShop(){if(SHOP.built)return;SHOP.built=true;const T=T3,grp=new T.G
 // 在海與工作室之間切換可見的東西
 function glMode(m){if(SHOP.mode===m)return;SHOP.mode=m;const sea=m==='sea';
   for(const o of [GL.sky,GL.sea,GL.under,GL.boat,GL.hemi,GL.sun,...GL.islands,...GL.gulls])o.visible=sea;if(GL.shop)GL.shop.visible=!sea;
-  if(!sea){GL.diver.g.visible=false;GL.hose.visible=GL.rope.visible=false;GL.sc.background=new T3.Color(.012,.008,.005);GL.sc.fog.color.setRGB(.012,.008,.005);GL.sc.fog.density=.55;GL.U.uUW.value=0;GL.r.toneMappingExposure=1.15;}
+  if(!sea){GL.diver.g.visible=false;GL.hose.visible=GL.rope.visible=false;GL.sc.environment=null;GL.sc.background=new T3.Color(.012,.008,.005);GL.sc.fog.color.setRGB(.012,.008,.005);GL.sc.fog.density=.55;GL.U.uUW.value=0;GL.r.toneMappingExposure=1.15;}
   else{GL.sc.background=null;GL.cam.clearViewOffset();glResize();}}
 function shopTick(dt){const t=GL.t;GL.t+=dt;GL.U.uTime.value=GL.t;if(!SHOP.flame)return;const fl=1+Math.sin(t*13)*.04+Math.sin(t*7.3)*.05+(Math.random()-.5)*.04;
   SHOP.spot.intensity=5*fl;SHOP.pl.intensity=.6*fl;SHOP.flame.scale.set(1,2.2*fl,1);SHOP.glow.material.opacity=.45*fl;
@@ -2159,7 +2170,7 @@ cv.addEventListener('pointerdown',e=>{if(paused||e.button!==0||!e.isPrimary)retu
 cv.addEventListener('pointermove',e=>{if(paused)return;if(ptrId!==null&&e.pointerId!==ptrId)return;scene&&scene.move&&scene.move(e.clientX,e.clientY,e);});
 const endP=e=>{if(e.pointerId!==ptrId)return;ptrId=null;scene&&scene.up&&scene.up(e.clientX,e.clientY,e);};
 cv.addEventListener('pointerup',endP);cv.addEventListener('pointercancel',e=>{if(e.pointerId===ptrId){ptrId=null;clearInput();}});cv.addEventListener('lostpointercapture',e=>{if(e.pointerId===ptrId){ptrId=null;clearInput();}});
-cv.addEventListener('wheel',e=>{if(scene===Dials){e.preventDefault();Dials.nudge(e.deltaY>0?1:-1);}},{passive:false});
+cv.addEventListener('wheel',e=>{if(scene===Dials){e.preventDefault();Dials.nudge(e.deltaY>0?1:-1);}else if(scene===DIVE&&DIVE===Dive3&&!paused&&DIVE.mode!=='done'){e.preventDefault();CAM.dist=clamp(CAM.dist*Math.exp(e.deltaY*(e.deltaMode?.05:.0012)),2.8,11);}},{passive:false});// 潛水時滾輪拉近拉遠
 document.addEventListener('pointerdown',()=>auInit(),{capture:true});
 
 let last=performance.now();

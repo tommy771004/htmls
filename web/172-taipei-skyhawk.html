@@ -7,7 +7,7 @@
 <meta name="description" content="在真實衛星影像、真實地形與十萬棟 OpenStreetMap 建物重建的台北盆地上空，駕駛一架 Cessna 172S：六自由度飛行力學、失速與地面效應、自動駕駛、駕駛艙儀表與即時合成引擎聲。">
 <meta name="theme-color" content="#0f0e0c">
 <link rel="icon" href="../favicon.svg">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js"}}</script>
 <style>
 :root{
   --ink:#f3f0e8;--ink-2:#c9c4b8;--ink-3:#8e897e;
@@ -19,16 +19,17 @@
   --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;overflow:hidden;background:#0f0e0c;color:var(--ink);font:14px/1.45 var(--ui);-webkit-font-smoothing:antialiased;touch-action:none;-webkit-user-select:none;user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#0f0e0c;color:var(--ink);font:14px/1.45 var(--ui);-webkit-font-smoothing:antialiased;touch-action:auto;-webkit-user-select:none;user-select:none}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+#c:focus-visible{outline:2px solid var(--cyan);outline-offset:-4px}
+#c{touch-action:none;position:fixed;inset:0;width:100%;height:100%;display:block}
 #pfd{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
 .n{font-family:var(--num);font-variant-numeric:tabular-nums;letter-spacing:.01em}
 
 /* ---------- HUD 框架 ---------- */
 #hud{position:fixed;inset:0;pointer-events:none;opacity:1;transition:opacity var(--dur-exit) var(--ease-out)}
-body.briefing #hud{opacity:0}
+body.briefing #hud{opacity:0;visibility:hidden}
 #hud>*{pointer-events:auto}
 .blk{background:var(--panel);border-radius:6px}
 #ident{position:absolute;left:calc(14px + var(--sal));top:calc(12px + var(--sat));padding:8px 12px 9px;max-width:min(440px,46vw)}
@@ -256,11 +257,29 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
   .opts .seg button{padding:4px 8px 5px;font-size:12px}
   #goBtn{padding:11px 18px 12px}
 }
+#ctx button{touch-action:none}
+#lever:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+#brief{touch-action:pan-y}#brief .lede{text-shadow:0 1px 4px #000,0 0 18px #000}
+#help,#crash{touch-action:pan-y}
+#views button,#tools button,.sheet button,#tbar button{min-height:44px}
+#nav{top:calc(68px + var(--sat))}
+#warn{flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 32px);width:max-content}
+@media(min-width:761px){body.briefing #bay{max-width:min(620px,48vw)}}
+@media(max-width:760px){
+  .opts .seg button{min-height:44px}
+  #views{right:14px}#views button{flex:1;padding:5px 4px}
+  #nav{top:calc(164px + var(--sat))}
+  #mapBox{top:calc(202px + var(--sat))}
+  #tools{top:calc(202px + var(--sat))}
+  #credit{bottom:calc(10px + var(--sab))}
+  #warn{max-width:calc(100vw - 32px);font-size:12px}
+  body.touch #warn{max-width:calc(100vw - 24px)}
+}
 @media (prefers-reduced-motion:reduce){ *{transition-duration:.01ms!important} }
 </style>
 </head>
 <body class="briefing">
-<canvas id="c" aria-label="飛行模擬 3D 畫面"></canvas>
+<canvas id="c" tabindex="0" aria-label="飛行模擬 3D 畫面。WASD 操縱，IJKL 環視，Home 回正，P 暫停。"></canvas>
 <canvas id="pfd" aria-hidden="true"></canvas>
 
 <div id="hud">
@@ -306,7 +325,7 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
     <button id="tBrief" aria-label="回到管制條">管制條</button>
   </div>
   <div id="touch">
-    <div id="lever" aria-label="油門桿"><span class="val n" id="lvVal">0%</span><div class="trk"><div class="fill" id="lvFill"></div><b class="det" style="bottom:0"><em>IDLE</em></b><b class="det" style="bottom:65%"><em>巡航</em></b><b class="det" style="bottom:100%"><em>全開</em></b><i class="knob" id="lvKnob" style="bottom:0"></i></div><span class="lab">油門</span></div>
+    <div id="lever" role="slider" tabindex="0" aria-label="油門桿" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="val n" id="lvVal">0%</span><div class="trk"><div class="fill" id="lvFill"></div><b class="det" style="bottom:0"><em>IDLE</em></b><b class="det" style="bottom:65%"><em>巡航</em></b><b class="det" style="bottom:100%"><em>全開</em></b><i class="knob" id="lvKnob" style="bottom:0"></i></div><span class="lab">油門</span></div>
     <div id="zone" aria-label="操縱區：按住拖曳"></div>
     <div id="zoneHint">這一側任一處<br>按住拖曳<br>就是操縱桿</div>
     <div id="ring"><s></s><i></i></div>
@@ -341,7 +360,7 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
   </div>
 </div>
 
-<div id="help" class="sheet" role="dialog" aria-label="操作說明">
+<div id="help" class="sheet" role="dialog" aria-modal="true" aria-label="操作說明">
   <h2>操作</h2>
   <div class="keys touchkeys">
     <b>右半邊按住拖曳</b><span>操縱桿：往下拉是拉桿（機頭抬起），左右是滾轉。簡易模式放開手指就保持姿態、機翼改平</span>
@@ -360,7 +379,7 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
     <b>空白鍵</b><span>煞車（按住），B 切換停留煞車</span>
     <b>Z</b><span>自動駕駛開關（航向、高度、爬升率保持）</span>
     <b>1 – 5</b><span>駕駛艙、追蹤、環繞、塔台、定點視角；C 輪換</span>
-    <b>滑鼠拖曳、滾輪</b><span>轉頭看、拉近拉遠</span>
+    <b>滑鼠拖曳、滾輪</b><span>轉頭看、拉近拉遠；I J K L 環視、Home 回正、Page Up／Down 縮放</span>
     <b>M</b><span>聲音開關</span>
     <b>P</b><span>暫停</span>
     <b>Esc</b><span>回到管制條選任務</span>
@@ -368,7 +387,7 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
   </div>
   <button class="close" id="helpClose">關閉</button>
 </div>
-<div id="crash" class="sheet" role="alertdialog" aria-label="墜毀">
+<div id="crash" class="sheet" role="alertdialog" aria-modal="true" aria-label="墜毀">
   <h2 id="crashTitle">墜毀</h2>
   <p id="crashWhy"></p>
   <p id="crashStat" class="n"></p>
@@ -391,6 +410,7 @@ const wrap360 = a => ((a % 360) + 360) % 360;
 const angDiff = (a, b) => ((a - b + 540) % 360) - 180;
 // 觸控裝置：主要指標是粗指標、不能懸停，或有多點觸控卻沒有精細指標（平板也算）
 const mq = q => matchMedia(q).matches;
+const reduced = mq('(prefers-reduced-motion:reduce)');
 const isTouch = (mq('(pointer:coarse)') && !mq('(hover:hover)')) || (navigator.maxTouchPoints > 1 && !mq('(pointer:fine)'));
 const PREF = (() => { try { return JSON.parse(localStorage.getItem('sky172') || '{}'); } catch (e) { return {}; } })();
 const savePref = () => { try { localStorage.setItem('sky172', JSON.stringify(PREF)); } catch (e) {} };
@@ -1808,9 +1828,9 @@ function animatePlane(s, dt) {
   for (const w of wheels) w.rotation.x -= (s.onGround ? s.out.V || 0 : 0) * dt / 0.25;
   // 燈
   const t = performance.now() / 1000;
-  const bOn = (t % 1.2) < 0.12;
+  const bOn = reduced || (t % 1.2) < 0.12;
   lights.bcn.visible = bOn; surfaces.beacon.material.color.setHex(bOn ? 0xff3322 : 0x5a0a08);
-  const sOn = (t % 1.1) < 0.05 && !s.onGround;
+  const sOn = !reduced && (t % 1.1) < 0.05 && !s.onGround;
   lights.strL.visible = lights.strR.visible = sOn;
   yokes.forEach(y => { y.w.rotation.z = -c.ail * 0.7; y.y.position.z = -0.64 + c.elev * 0.07; });
 }
@@ -2071,7 +2091,7 @@ function startScenario(i) {
   sim.stallBias = Math.random() - 0.5;
   app.apOn = false; app.apHdg = Math.round(toMag(SCEN_AP[i].hdg === 95 ? RWY.hdgTrue : SCEN_AP[i].hdg)); app.apAlt = SCEN_AP[i].alt; app.apVs = i === 1 ? -500 : 500;
   app.pbrake = i === 0; app.pbrakeHeld = false; app.relT = 0; app.track = []; app.maxG = 1; app.t0 = performance.now(); app.touchdown = null; app.crashT = 0;
-  input.elev = input.ail = input.rud = 0;
+  clearInput();
   sim.ctl.brake = app.pbrake ? 1 : 0;
   camState.init = false; flyby.set = false;
   $('crash').classList.remove('open');
@@ -2082,43 +2102,72 @@ function startScenario(i) {
 /* ---------- 輸入 ---------- */
 const keys = new Set();
 const input = { elev: 0, ail: 0, rud: 0, stickX: 0, stickY: 0, stickOn: false, lookYaw: 0, lookPitch: 0, dragging: false, lastDrag: 0, zoom: 1, gp: null };
+const inputResetters = [];
+function clearInput() {
+  keys.clear(); input.elev = input.ail = input.rud = input.stickX = input.stickY = 0;
+  input.stickOn = input.dragging = input.holdBrake = false; input.dragId = null;
+  inputResetters.forEach(reset => reset());
+}
+function trapDialog(e, panel) {
+  if(e.key !== 'Tab') return;
+  const controls = [...panel.querySelectorAll('button,[tabindex="0"]')].filter(el=>!el.disabled);
+  if(!controls.length)return;
+  const first=controls[0],last=controls[controls.length-1];
+  if(e.shiftKey && (document.activeElement===first || !panel.contains(document.activeElement))){e.preventDefault();last.focus();}
+  else if(!e.shiftKey && (document.activeElement===last || !panel.contains(document.activeElement))){e.preventDefault();first.focus();}
+}
 addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
-  const k = e.key.toLowerCase();
-  if (app.mode === 'brief') { if (k === 'enter') { e.preventDefault(); beginFlight(); } return; }
-  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
-  if (e.repeat && !['r', 'f', '+', '-', '=', 't', 'g'].includes(k)) { keys.add(k); return; }
+  const k=e.key.toLowerCase();
+  if($('help').classList.contains('open')) { if(k==='escape'){e.preventDefault();toggleHelp();}else trapDialog(e,$('help'));return; }
+  if($('crash').classList.contains('open')) {
+    if(k==='escape'){e.preventDefault();toBrief();}
+    else if(k==='r'&&!e.ctrlKey&&!e.metaKey)retry();else trapDialog(e,$('crash'));return;
+  }
+  if(e.altKey||e.ctrlKey||e.metaKey||e.target.closest('button,input,select,textarea,[role="slider"],[contenteditable="true"]'))return;
+  if(app.mode==='brief'){if(k==='enter'){e.preventDefault();beginFlight();}return;}
+  if(k==='p'){e.preventDefault();if(!e.repeat)togglePause();return;}
+  if(k==='h'){if(!e.repeat)toggleHelp();return;}
+  if(k==='escape'){e.preventDefault();toBrief();return;}
+  if(['i','j','k','l','home','pageup','pagedown'].includes(k)){
+    e.preventDefault();input.lastDrag=performance.now();
+    if(k==='home')input.lookYaw=input.lookPitch=0;
+    else if(k==='pageup'||k==='pagedown')input.zoom=clamp(input.zoom*(k==='pageup'?.9:1.1),.35,4);
+    else {input.lookYaw+=(k==='j'?.12:k==='l'?-.12:0);input.lookPitch=clamp(input.lookPitch+(k==='i'?.08:k==='k'?-.08:0),-1.2,1.3);}
+    return;
+  }
+  if(e.repeat)return;
+  if(k>='1'&&k<='5'){setView(+k-1);return;}
+  if(k==='c'){setView((app.view+1)%5);return;}
+  if(k==='m'){app.mute=!app.mute;return;}
+  if(app.paused||sim.crashed)return;
+  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
   keys.add(k);
-  if (sim.crashed) { if (k === 'r') retry(); if (k === 'escape') toBrief(); return; }
-  if (k >= '1' && k <= '5') setView(+k - 1);
-  else if (k === 'c') setView((app.view + 1) % 5);
-  else if (k === '[') sim.ctl.flapSel = Math.max(0, sim.ctl.flapSel - 1);
-  else if (k === ']') sim.ctl.flapSel = Math.min(3, sim.ctl.flapSel + 1);
-  else if (k === 'b') { app.pbrake = !app.pbrake; app.pbrakeHeld = app.pbrake && sim.ctl.thr > 0.35; }
-  else if (k === 'z') toggleAp();
-  else if (k === 'p') togglePause();
-  else if (k === 'h') toggleHelp();
-  else if (k === 'm') { app.mute = !app.mute; }
-  else if (k === 'escape') { if ($('help').classList.contains('open')) toggleHelp(); else toBrief(); }
+  if(k==='[')sim.ctl.flapSel=Math.max(0,sim.ctl.flapSel-1);
+  else if(k===']')sim.ctl.flapSel=Math.min(3,sim.ctl.flapSel+1);
+  else if(k==='b'){app.pbrake=!app.pbrake;app.pbrakeHeld=app.pbrake&&sim.ctl.thr>.35;}
+  else if(k==='z')toggleAp();
 });
 addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
-addEventListener('blur', () => keys.clear());
+addEventListener('blur',()=>{clearInput();if(app.mode==='fly'&&!sim.crashed)setPaused(true);});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();if(app.mode==='fly'&&!sim.crashed)setPaused(true);}});
 const has = (...ks) => ks.some(k => keys.has(k));
 
 let lastTap = 0;
 canvas.addEventListener('pointerdown', e => {
+  if(e.button!==0||app.mode!=='fly'||$('help').classList.contains('open'))return;
+  canvas.focus({preventScroll:true});
   if (e.pointerType === 'touch') { const t = performance.now(); if (t - lastTap < 320) { input.lookYaw = 0; input.lookPitch = 0; } lastTap = t; }
   if (input.dragging) return;
-  input.dragging = true; input.px = e.clientX; input.py = e.clientY; canvas.setPointerCapture(e.pointerId);
+  input.dragging = true; input.dragId=e.pointerId; input.px = e.clientX; input.py = e.clientY; canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove', e => {
-  if (!input.dragging) return;
+  if (!input.dragging || e.pointerId!==input.dragId) return;
   input.lookYaw -= (e.clientX - input.px) * 0.005; input.lookPitch -= (e.clientY - input.py) * 0.004;
   input.lookPitch = clamp(input.lookPitch, -1.2, 1.3);
   input.px = e.clientX; input.py = e.clientY; input.lastDrag = performance.now();
 });
-const endDrag = () => { input.dragging = false; };
-canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
+const endDrag=e=>{if(e.pointerId===input.dragId){input.dragging=false;input.dragId=null;}};
+canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag); canvas.addEventListener('lostpointercapture',endDrag);
 canvas.addEventListener('dblclick', () => { input.lookYaw = 0; input.lookPitch = 0; });
 canvas.addEventListener('wheel', e => { e.preventDefault(); input.zoom = clamp(input.zoom * Math.exp(e.deltaY * 0.0012), 0.35, 4); }, { passive: false });
 
@@ -2135,14 +2184,15 @@ const vib = ms => { try { if (touchUI) navigator.vibrate?.(ms); } catch (e) {} }
     knob.style.transform = `translate(${dx * R}px,${dy * R}px)`;
   };
   zone.addEventListener('pointerdown', e => {
-    if (id !== null) return;
+    if (id !== null || e.button!==0 || app.paused || app.mode!=='fly') return;
     id = e.pointerId; zone.setPointerCapture(id); ox = e.clientX; oy = e.clientY;
     ring.style.left = ox + 'px'; ring.style.top = oy + 'px'; ring.classList.add('on'); zone.classList.add('used');
     move(e);
   });
   zone.addEventListener('pointermove', e => { if (e.pointerId === id) move(e); });
   const up = e => { if (e.pointerId !== id) return; id = null; input.stickX = input.stickY = 0; input.stickOn = false; ring.classList.remove('on'); knob.style.transform = ''; };
-  zone.addEventListener('pointerup', up); zone.addEventListener('pointercancel', up);
+  zone.addEventListener('pointerup', up); zone.addEventListener('pointercancel', up); zone.addEventListener('lostpointercapture',up);
+  inputResetters.push(()=>{id=null;ring.classList.remove('on');knob.style.transform='';});
 
   // 油門桿：怠速、巡航 65%、全開三個卡點
   const lever = $('lever'), trk = lever.querySelector('.trk');
@@ -2156,16 +2206,26 @@ const vib = ms => { try { if (touchUI) navigator.vibrate?.(ms); } catch (e) {} }
     lastDet = d;
     sim.ctl.thr = v;
   };
-  lever.addEventListener('pointerdown', e => { lid = e.pointerId; lever.setPointerCapture(lid); lmove(e); });
+  lever.addEventListener('pointerdown', e => { if(lid!==null||e.button!==0||app.paused)return; lever.focus(); lid = e.pointerId; lever.setPointerCapture(lid); lmove(e); });
   lever.addEventListener('pointermove', e => { if (e.pointerId === lid) lmove(e); });
   lever.addEventListener('pointerup', () => { lid = null; });
   lever.addEventListener('pointercancel', () => { lid = null; });
+  lever.addEventListener('lostpointercapture',()=>{lid=null;});
+  inputResetters.push(()=>{lid=null;});
+  lever.addEventListener('keydown',e=>{
+    if(e.altKey||e.ctrlKey||e.metaKey||app.paused)return;
+    if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+    e.preventDefault();e.stopPropagation();
+    sim.ctl.thr=e.key==='Home'?0:e.key==='End'?1:clamp(sim.ctl.thr+(['ArrowUp','ArrowRight'].includes(e.key)?.05:-.05),0,1);
+  });
 
   // 煞車：按住才作用
   const cb = $('cBrake');
-  const bOn = e => { e.preventDefault(); input.holdBrake = true; cb.classList.add('held'); if (app.pbrake) { app.pbrake = false; } vib(8); };
+  const bOn = e => { if(app.paused||app.mode!=='fly'||e.type==='pointerdown'&&e.button!==0)return; e.preventDefault(); input.holdBrake = true; cb.classList.add('held'); if (app.pbrake) { app.pbrake = false; } vib(8); };
   const bOff = () => { input.holdBrake = false; cb.classList.remove('held'); };
-  cb.addEventListener('pointerdown', bOn); cb.addEventListener('pointerup', bOff); cb.addEventListener('pointercancel', bOff); cb.addEventListener('pointerleave', bOff);
+  cb.addEventListener('pointerdown', bOn); cb.addEventListener('pointerup', bOff); cb.addEventListener('pointercancel', bOff); cb.addEventListener('pointerleave', bOff); cb.addEventListener('lostpointercapture',bOff);cb.addEventListener('blur',bOff);
+  cb.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter')bOn(e);});cb.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();bOff();}});
+  inputResetters.push(bOff);
   $('cTo').onclick = () => { sim.ctl.flapSel = 1; sim.ctl.trim = 0.3; toast('起飛設定：襟翼 10°、配平完成'); vib(10); };
   $('cFlapUp').onclick = () => { sim.ctl.flapSel = Math.max(0, sim.ctl.flapSel - 1); vib(8); };
   $('cFlapDn').onclick = () => { sim.ctl.flapSel = Math.min(3, sim.ctl.flapSel + 1); vib(8); };
@@ -2313,8 +2373,8 @@ document.querySelectorAll('#ap .seg').forEach(seg => {
       if (m === 'vs') app.apVs = clamp(app.apVs + d * 100, -1500, 1500);
       syncAp();
     };
-    b.addEventListener('pointerdown', e => { e.preventDefault(); step(); hold = setTimeout(function rep() { step(); hold = setTimeout(rep, 90); }, 420); });
-    const stop = () => clearTimeout(hold);
+    b.addEventListener('pointerdown', e => { if(e.button!==0)return; e.preventDefault(); b.focus(); step(); hold = setTimeout(function rep() { step(); hold = setTimeout(rep, 90); }, 420); });
+    const stop = () => { clearTimeout(hold); hold=null; }; inputResetters.push(stop); b.addEventListener('blur',stop);
     b.addEventListener('pointerup', stop); b.addEventListener('pointerleave', stop); b.addEventListener('pointercancel', stop);
     b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); step(); } });
   });
@@ -2329,7 +2389,7 @@ function setView(v) {
   app.view = v; input.lookYaw = 0; input.lookPitch = 0; input.zoom = 1; flyby.set = false;
   document.querySelectorAll('#views button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === v));
   cockpit.visible = v === 0;
-  $('tViewName').textContent = ['駕駛艙', '追蹤', '環繞', '塔台', '定點'][v];
+  $('tViewName').textContent = ['駕駛艙', '追蹤', '環繞', '塔台', '定點'][v]; resize();
 }
 document.querySelectorAll('#views button').forEach(b => b.onclick = () => setView(+b.dataset.v));
 function updateCamera(dt) {
@@ -2341,22 +2401,22 @@ function updateCamera(dt) {
     _e.set(input.lookPitch - 0.17, input.lookYaw, 0);
     camera.quaternion.copy(plane.quaternion).multiply(_q.setFromEuler(_e));
     fov = 68 / input.zoom ** 0.5; near = 0.08;
-    if (!input.dragging && performance.now() - input.lastDrag > 4000) { input.lookYaw *= 1 - dt * 1.5; input.lookPitch *= 1 - dt * 1.5; }
+    if (!reduced && !input.dragging && performance.now() - input.lastDrag > 4000) { input.lookYaw *= 1 - dt * 1.5; input.lookPitch *= 1 - dt * 1.5; }
   } else if (view === 1) {
     const vel = _v.set(...sim.vel); const sp = vel.length();
     const tgtYaw = sp > 8 && !sim.onGround ? Math.atan2(vel.x, -vel.z) : eu.hdg * D2R;
     if (!camState.init) { camState.yaw = tgtYaw; camState.init = true; }
     camState.yaw += angDiff(tgtYaw * R2D, camState.yaw * R2D) * D2R * Math.min(1, dt * 2.2);
-    if (!input.dragging && performance.now() - input.lastDrag > 3000) { input.lookYaw *= 1 - dt * 0.8; input.lookPitch *= 1 - dt * 0.8; }
+    if (!reduced && !input.dragging && performance.now() - input.lastDrag > 3000) { input.lookYaw *= 1 - dt * 0.8; input.lookPitch *= 1 - dt * 0.8; }
     const yaw = camState.yaw + input.lookYaw, pitch = 0.16 + input.lookPitch * 0.8;
-    const dist = 17 * input.zoom;
+    const dist = 17 * input.zoom * Math.max(1, 1.08 / camera.aspect);
     const tgt = _v2.copy(P).add(_v.set(0, 1.3, 0));
     camera.position.set(tgt.x - Math.sin(yaw) * Math.cos(pitch) * dist, tgt.y + Math.sin(pitch) * dist, tgt.z + Math.cos(yaw) * Math.cos(pitch) * dist);
     camera.lookAt(tgt); near = 0.4;
   } else if (view === 2) {
-    camState.orbit += dt * (app.mode === 'brief' ? 0.09 : 0.05);
+    if(!reduced&&!app.paused)camState.orbit += dt * (app.mode === 'brief' ? 0.09 : 0.05);
     const yaw = camState.orbit + input.lookYaw, pitch = 0.2 + input.lookPitch;
-    const dist = (app.mode === 'brief' ? 21 : 24) * input.zoom;
+    const dist = (app.mode === 'brief' ? 21 : 24) * input.zoom * Math.max(1,1.08/camera.aspect);
     camera.position.set(P.x + Math.sin(yaw) * Math.cos(pitch) * dist, P.y + Math.sin(pitch) * dist + 1, P.z + Math.cos(yaw) * Math.cos(pitch) * dist);
     camera.lookAt(P.x, P.y + 0.6, P.z);
   } else if (view === 3) {
@@ -2484,7 +2544,11 @@ let W = 0, H = 0;
 function resize() {
   W = innerWidth; H = innerHeight;
   renderer.setSize(W, H, false);
-  camera.aspect = W / H; camera.updateProjectionMatrix();
+  camera.aspect = W / H;
+  if(app.mode==='brief'&&W>1000&&H>540){const bay=$('bay').getBoundingClientRect();camera.setViewOffset(W,H,-(bay.right+20)/2,0,W,H);}
+  else if(app.mode==='fly'&&touchUI&&W<=760&&H>W&&app.view!==0)camera.setViewOffset(W,H,0,H*.1,W,H);
+  else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
   pfd.width = Math.round(W * DPR); pfd.height = Math.round(H * DPR);
   const m = $('map'); m.width = m.clientWidth * DPR; m.height = m.clientHeight * DPR;
 }
@@ -2511,7 +2575,7 @@ function pfdLayout() {
     const m = rect('mapBox');
     if (cx + L.hw / 2 > m.left - 6 && L.hy < m.bottom) { L.hy = m.bottom + 8; L.hw = Math.min(L.hw, W - 40); }
   }
-  $('warn').style.top = (touchUI || W < 760) ? (L.hy + 64) + 'px' : '';
+  $('warn').style.top = (touchUI || W < 760) ? (Math.max(L.hy+56, !touchUI&&W<760 ? Math.max(rect('mapBox').bottom,rect('tools').bottom)+8 : 0)) + 'px' : '';
   let top = L.hy + 34 + 22 + 26, bottom;
   if (touchUI) {
     const mapR = rect('mapBox');
@@ -2520,7 +2584,7 @@ function pfdLayout() {
     if (H > W) bottom = Math.min(bottom, H * 0.6 - 84);
     L.off = H > W ? W / 2 - L.tw - 22 : Math.min(330, W * 0.24);
   } else if (W < 760) {
-    top = Math.max(top, 290); bottom = H - 210;
+    top = Math.max(top, rect('warn').bottom+22,rect('tools').bottom+22,rect('mapBox').bottom+22); bottom = H - 150;
     L.off = W / 2 - L.tw - 22;
   } else { bottom = H - 150; L.off = Math.min(330, W * 0.24); }
   L.th = clamp(bottom - top, 140, L.narrow ? 240 : 300);
@@ -2836,22 +2900,32 @@ $('pauseBtn').onclick = () => togglePause();
 $('resetBtn').onclick = () => toBrief();
 $('crashRetry').onclick = () => retry();
 $('crashBrief').onclick = () => toBrief();
+let helpWasPaused=false, helpReturn=null;
+function syncPanels(){
+  const help=$('help').classList.contains('open'),crash=$('crash').classList.contains('open'),brief=app.mode==='brief';
+  $('hud').inert=brief||help||crash; $('brief').inert=!brief||help||crash; canvas.inert=brief||help||crash;
+}
+function setPaused(on){
+  app.paused=on;clearInput();$('pauseBtn').textContent=on?'繼續':'暫停';$('pauseBtn').setAttribute('aria-pressed',String(on));
+  $('tPause').textContent=on?'▶':'Ⅱ';$('tPause').setAttribute('aria-label',on?'繼續':'暫停');$('tPause').setAttribute('aria-pressed',String(on));
+}
 function beginFlight() {
-  sound.init();
-  if (app.mode === 'brief') { startScenario(settings.scen); }
-  app.mode = 'fly'; app.paused = false;
-  document.body.classList.remove('briefing');
-  setView(1);
-  canvas.focus?.();
-  if (touchUI && innerHeight > innerWidth && !app.rotHint) { app.rotHint = true; toast('手機轉成橫向比較好飛', 3500); }
+  sound.init(); if(app.mode==='brief')startScenario(settings.scen);
+  app.mode='fly';setPaused(false);document.body.classList.remove('briefing');syncPanels();resize();setView(1);canvas.focus({preventScroll:true});
+  if(touchUI&&innerHeight>innerWidth&&!app.rotHint){app.rotHint=true;toast('手機轉成橫向比較好飛',3500);}
 }
-function toBrief() {
-  app.mode = 'brief'; app.paused = false; $('crash').classList.remove('open'); $('help').classList.remove('open');
-  document.body.classList.add('briefing'); startScenario(settings.scen); setView(1); camState.orbit = FDM.euler(sim.q).hdg * D2R + 2.4;
+function toBrief(){
+  app.mode='brief';setPaused(false);$('crash').classList.remove('open');$('help').classList.remove('open');document.body.classList.add('briefing');
+  startScenario(settings.scen);setView(1);camState.orbit=FDM.euler(sim.q).hdg*D2R+2.4;syncPanels();resize();$('goBtn').focus({preventScroll:true});
 }
-function retry() { startScenario(settings.scen); app.mode = 'fly'; document.body.classList.remove('briefing'); }
-function togglePause() { if (app.mode !== 'fly' || sim.crashed) return; app.paused = !app.paused; $('pauseBtn').textContent = app.paused ? '繼續' : '暫停'; $('tPause').textContent = app.paused ? '▶' : 'Ⅱ'; }
-function toggleHelp() { $('help').classList.toggle('open'); }
+function retry(){startScenario(settings.scen);app.mode='fly';setPaused(false);document.body.classList.remove('briefing');syncPanels();resize();canvas.focus({preventScroll:true});}
+function togglePause(){if(app.mode!=='fly'||sim.crashed)return;setPaused(!app.paused);}
+function toggleHelp(){
+  const open=!$('help').classList.contains('open');
+  if(open){helpWasPaused=app.paused;helpReturn=document.activeElement;setPaused(true);}
+  $('help').classList.toggle('open',open);syncPanels();
+  if(open)$('helpClose').focus();else{setPaused(helpWasPaused);(helpReturn?.isConnected?helpReturn:canvas).focus({preventScroll:true});}
+}
 
 function crashed() {
   const eu = FDM.euler(sim.q);
@@ -2859,7 +2933,7 @@ function crashed() {
   const t = (performance.now() - app.t0) / 1000;
   $('crashWhy').textContent = { '起落架折斷': '觸地太重，起落架折斷。進場時把下降率控制在每分鐘 500 呎以內，平飄後再讓主輪先著地。', '機尾觸地': '機尾先觸地。', '左翼尖觸地': '左翼尖擦地，坡度太大。', '右翼尖觸地': '右翼尖擦地，坡度太大。', '螺旋槳觸地': '螺旋槳打到地面：機頭太低或前輪先著地。', '撞上建築': '飛進了建築物。台北市區上空的最低安全高度是 1,000 呎以上。' }[sim.crashed] || sim.crashed;
   $('crashStat').textContent = `飛行 ${Math.floor(t / 60)} 分 ${Math.round(t % 60)} 秒 · 撞擊時 ${Math.round((sim.out.ias || 0) * KT)} 節 · 下降率 ${Math.round(-sim.vel[1] * 196.85)} 呎／分 · 最大 ${app.maxG.toFixed(1)} G`;
-  $('crash').classList.add('open');
+  $('crash').classList.add('open'); clearInput();syncPanels();$('crashRetry').focus();
   sound.burst(90, 1.6, 0.9, 'lowpass'); sound.burst(900, 0.6, 0.5);
 }
 
@@ -2931,10 +3005,10 @@ function hudUpdate() {
 let last = performance.now(), acc = 0;
 function frame(now) {
   requestAnimationFrame(frame);
-  let dt = Math.min((now - last) / 1000, 0.1); last = now;
+  let dt = Math.min((now - last) / 1000, 0.1); last = now; if(document.hidden)return;
   U.uTime.value = now / 1000;
   const flying = app.mode === 'fly' && !app.paused && !sim.crashed;
-  if (app.mode === 'fly' && !app.paused) readControls(dt);
+  if (app.mode === 'fly' && !app.paused && !sim.crashed) readControls(dt);
   if (flying) {
     updateWind(dt);
     acc += dt;
@@ -2984,7 +3058,7 @@ function frame(now) {
   if (touchUI) {
     const v = sim.ctl.thr;
     lvKnob.style.bottom = (v * 100) + '%'; lvFill.style.height = (v * 100) + '%';
-    const tv = Math.round(v * 100); if (tv !== app.lvShown) { app.lvShown = tv; lvVal.textContent = '油門 ' + tv + '%'; }
+    const tv = Math.round(v * 100); if (tv !== app.lvShown) { app.lvShown = tv; lvVal.textContent = '油門 ' + tv + '%'; $('lever').setAttribute('aria-valuenow',String(tv)); }
   }
   renderer.render(scene, camera);
   drawPFD(dt);

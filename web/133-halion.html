@@ -31,6 +31,7 @@ body.no-webgl .fallback-chip{display:grid}body.no-webgl #chipCanvas{display:none
 @media(max-width:800px){.frame{inset:12px}.topbar{padding:25px 28px}.brand{font-size:17px;letter-spacing:.27em}.brand-mark{width:19px;height:19px;margin-right:7px;vertical-align:-4px}.brand-mark:after{width:7px;height:7px}.menu-button{padding:10px 12px 10px 14px;font-size:9px;gap:11px}.hero-copy{left:8vw;top:28%;width:85vw;transform:none}.hero-copy .eyebrow{margin-bottom:20px}.hero-copy h1{font-size:clamp(43px,10.5vw,78px)}.hero-copy .lead{font-size:13px;max-width:270px;margin-top:22px}.technical{left:8vw;top:auto;bottom:6%;width:82vw;transform:none}.note{top:auto;bottom:0;transform:translateY(14px);max-width:360px}.note.is-active{transform:translateY(0)}.note .rule{margin:11px 0 14px}.note h2{font-size:26px;margin-bottom:9px}.note p{font-size:11px;line-height:1.5;max-width:36ch}.note .index{display:none}.readout{right:8vw;top:19%;}.readout .track{display:none}.readout .chapter{font-size:9px}.scroll-cue{left:8vw;bottom:105px}.scroll-cue i{height:32px}.bottomline{left:8vw;right:8vw;bottom:26px;font-size:8px}.bottomline .measure{display:none}.closing-copy{left:8vw;top:18%;transform:none;text-align:left;width:84vw}.closing-copy h2{font-size:clamp(54px,11vw,84px)}.closing-copy p:not(.tag){margin:17px 0 22px;font-size:12px;max-width:260px}.fallback-chip{width:83vw;top:56%;transform:translate(-50%,-50%) rotate(-8deg)}.scene{background:radial-gradient(ellipse 83% 37% at 52% 55%,#17394b 0%,#0a1c2b 42%,transparent 100%),#040c15}}
 @media(max-width:400px){.hero-copy h1{font-size:43px}.technical{bottom:6%}.note h2{font-size:22px}.note p{font-size:10px}.closing-copy{top:17%}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hero-copy,.closing-copy,.note,.scroll-cue{transition:none!important}}
+.menu-button{min-height:44px}.brand{min-height:44px;display:inline-flex;align-items:center}
 </style>
 </head>
 <body>
@@ -53,7 +54,7 @@ body.no-webgl .fallback-chip{display:grid}body.no-webgl #chipCanvas{display:none
 <section class="closing-copy" id="closingCopy" aria-label="結語"><p class="tag">HALION / H-01</p><h2>DIFFERENT<br>BY <span>DESIGN.</span></h2><p>Three distinct systems, brought back into one. The next interface begins with understanding what lies within.</p><a class="cta" href="#start">REPLAY THE REVEAL <b aria-hidden="true">↗</b></a></section>
 <div class="bottomline"><span>HALION © 2026 · CONCEPT STUDY</span><span class="measure"><i></i> REAL-TIME ARCHITECTURE / 3D</span><span id="percent">000% / 100%</span></div>
 <script type="module">
-const $=id=>document.getElementById(id),mobile=matchMedia('(max-width:800px)').matches,reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const $=id=>document.getElementById(id),mobileQuery=matchMedia('(max-width:800px)'),motionQuery=matchMedia('(prefers-reduced-motion:reduce)');let mobile=mobileQuery.matches,reduced=motionQuery.matches;
 const menu=$('menuPanel'),menuButton=$('menuButton');
 function setMenu(open){menu.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));menuButton.firstChild.textContent=open?'CLOSE ':'MENU '}
 menuButton.addEventListener('click',()=>setMenu(menu.hidden));menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>setMenu(false)));
@@ -126,10 +127,11 @@ if(THREE){
     for(let i=0;i<8;i++){let v=-.49+i*.14;box(processor,.08,.045,.04,-.76,v,.16,edge);box(processor,.08,.045,.04,.76,v,.16,edge);box(processor,.045,.08,.04,v,-.76,.16,edge);box(processor,.045,.08,.04,v,.76,.16,edge)}
     ring(processor,.32,.015,.18,bright);pieces.push({object:processor,x:.75,y:.55,z:1.7,rx:-.04});
     const dust=new THREE.BufferGeometry(),count=mobile?35:90,arr=new Float32Array(count*3);for(let i=0;i<count;i++){arr[i*3]=(Math.random()-.5)*17;arr[i*3+1]=(Math.random()-.5)*10;arr[i*3+2]=-2-Math.random()*6}dust.setAttribute('position',new THREE.BufferAttribute(arr,3));scene.add(new THREE.Points(dust,new THREE.PointsMaterial({color:0x8ed0e9,size:.014,transparent:true,opacity:.35})));
-    function resize(){let w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.position.set(0,0,mobile?25:11.7);camera.updateProjectionMatrix();if(!raf)raf=requestAnimationFrame(frame)}
+    function resize(){mobile=mobileQuery.matches;renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.25:1.75));let w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.position.set(0,0,mobile?25:11.7);camera.updateProjectionMatrix();if(!raf)raf=requestAnimationFrame(frame)}
     addEventListener('resize',resize,{passive:true});resize();setTarget();
   }catch(error){console.error('HALION 3D fallback:',error);document.body.classList.add('no-webgl');renderer=undefined;setTarget()}
 }
+motionQuery.addEventListener('change',()=>{reduced=motionQuery.matches;if(renderer&&!raf)raf=requestAnimationFrame(frame)});
 function frame(){raf=0;if(!renderer)return;let delta=target-current;current=reduced?target:current+delta*.16;
   if(Math.abs(target-current)<.0002)current=target;
   // 0.79–0.94: a measured reunion, while the camera remains nearly fixed.

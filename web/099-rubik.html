@@ -77,6 +77,8 @@
     .keys{display:none}
     .stats b{font-size:22px}
   }
+
+.view-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.stage:focus-visible{outline:2px solid var(--ink);outline-offset:-3px}@media(prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
 </head>
 <body>
@@ -93,7 +95,7 @@
     </div>
   </section>
 
-  <section class="stage" id="stage" aria-label="3D cube. Drag to orbit.">
+  <section class="stage" id="stage" tabindex="0" aria-label="3D cube: drag or arrow keys to orbit, Home resets view.">
     <div class="floor" id="floor"></div>
     <div class="cube" id="cube"></div>
     <div class="hint">drag to orbit</div>
@@ -107,6 +109,7 @@
       <button class="act alt" id="undo">Undo</button>
       <button class="act alt" id="sol">Unscramble</button>
     </div>
+    <div class="view-acts"><button class="act alt" id="orbitToggle" aria-pressed="true">Auto orbit</button><button class="act alt" id="resetOrbit">Reset view</button></div>
     <div class="hist" id="hist" aria-live="polite">No moves yet. The cube is smug.</div>
     <div class="keys"><kbd>U</kbd><kbd>D</kbd><kbd>L</kbd><kbd>R</kbd><kbd>F</kbd><kbd>B</kbd> turn clockwise · with <kbd>Shift</kbd> counter-clockwise · <kbd>←↑→↓</kbd> orbit · <kbd>Space</kbd> scramble</div>
   </section>
@@ -119,7 +122,7 @@
   const $ = s => document.querySelector(s);
   const cubeEl = $('#cube'), stage = $('#stage');
   if (!cubeEl || !stage) return;
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');let reduce=motion.matches,autoOrbit=!reduce;
 
   // ---------- linear algebra on integer 3×3 rotations (logical coords: x right, y up, z toward viewer) ----------
   const I3 = () => [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
@@ -183,16 +186,20 @@
 
   // ---------- orbit ----------
   let rx = -28, ry = -38, vx = 0, vy = 0, dragging = null;
+  const stopOrbit=()=>{autoOrbit=false;$('#orbitToggle').setAttribute('aria-pressed','false');};
+  $('#orbitToggle').setAttribute('aria-pressed',autoOrbit);$('#orbitToggle').onclick=()=>{autoOrbit=!autoOrbit;$('#orbitToggle').setAttribute('aria-pressed',autoOrbit);};
+  $('#resetOrbit').onclick=()=>{stopOrbit();rx=-28;ry=-38;vx=vy=0;view();};
+  motion.addEventListener('change',e=>{reduce=e.matches;if(reduce){stopOrbit();vx=vy=0;}});
   function view() { cubeEl.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`; }
-  stage.addEventListener('pointerdown', e => { dragging = { x: e.clientX, y: e.clientY }; try { stage.setPointerCapture(e.pointerId); } catch (_) {} stage.classList.add('drag'); });
+  stage.addEventListener('pointerdown', e => {if(!e.isPrimary||e.button!==0||dragging)return;stopOrbit();stage.focus();dragging = { x: e.clientX, y: e.clientY,id:e.pointerId }; try { stage.setPointerCapture(e.pointerId); } catch (_) {} stage.classList.add('drag'); });
   stage.addEventListener('pointermove', e => {
-    if (!dragging) return;
+    if (!dragging || dragging.id!==e.pointerId) return;
     const dx = e.clientX - dragging.x, dy = e.clientY - dragging.y;
-    ry += dx * .45; rx = Math.max(-88, Math.min(88, rx - dy * .45)); vx = -dy * .45; vy = dx * .45;
+    ry += dx * .45; rx = Math.max(-88, Math.min(88, rx - dy * .45)); vx = reduce?0:-dy * .45; vy = reduce?0:dx * .45;
     dragging.x = e.clientX; dragging.y = e.clientY; view();
   });
   const endDrag = () => { dragging = null; stage.classList.remove('drag'); };
-  stage.addEventListener('pointerup', endDrag); stage.addEventListener('pointercancel', endDrag);
+  stage.addEventListener('pointerup', endDrag); stage.addEventListener('pointercancel', endDrag);stage.addEventListener('lostpointercapture',endDrag);window.addEventListener('blur',()=>{endDrag();vx=vy=0;});
 
   // ---------- turning ----------
   const queue = []; let busy = false, history = [], moveCount = 0, t0 = 0, timing = false, wasScrambled = false;
@@ -291,6 +298,10 @@
     if (histEl) histEl.textContent = 'Rewinding ' + seq.length + ' moves. No shame in it.';
   });
   addEventListener('keydown', e => {
+    if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey||e.target.closest('input,textarea,select,[contenteditable=true]'))return;
+    if(e.repeat&&!e.key.startsWith('Arrow'))return;
+    if(e.key.startsWith('Arrow')){e.preventDefault();stopOrbit();vx=vy=0;}
+    if(e.key==='Home'&&e.target===stage){e.preventDefault();$('#resetOrbit').click();return;}
     if (e.target && e.target.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     const k = e.key.toUpperCase();
     if ('UDLRFB'.includes(k) && k.length === 1) { turn(k + (e.shiftKey ? "'" : '')); click(); }
@@ -321,8 +332,8 @@
   let last = performance.now();
   function loop(now) {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
-    if (!dragging && (Math.abs(vx) > .01 || Math.abs(vy) > .01)) { rx = Math.max(-88, Math.min(88, rx + vx)); ry += vy; vx *= .92; vy *= .92; view(); }
-    else if (!dragging && !reduce && !busy && queue.length === 0) { ry += dt * 4; view(); }
+    if (!dragging && (Math.abs(vx) > .01 || Math.abs(vy) > .01)) { rx = Math.max(-88, Math.min(88, rx + vx*dt*60)); ry += vy*dt*60; vx *= Math.pow(.92,dt*60); vy *= Math.pow(.92,dt*60); view(); }
+    else if (!dragging && autoOrbit && !busy && queue.length === 0) { ry += dt * 4; view(); }
     requestAnimationFrame(loop);
   }
   function resize() {
@@ -337,8 +348,7 @@
 
   placeFaces(); drawAll(); view();
   requestAnimationFrame(loop);
-  // a small welcome: the cube shows off one sexy move and undoes it
-  if (!reduce) setTimeout(() => { ["R", "U", "R'", "U'"].forEach(m => turn(m, false)); ["U", "R", "U'", "R'"].forEach(m => turn(m, false)); }, 500);
+
 })();
 </script>
 </body>

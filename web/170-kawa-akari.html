@@ -6,7 +6,7 @@
 <title>川明かり · KAWA-AKARI</title>
 <link rel="icon" href="../favicon.svg">
 <meta name="description" content="川明かり：用 WASD 駕一艘小木船順川而下，穿過鳥居、町屋、竹林、石燈籠與遠山。Three.js 全程式建模，水面有倒影、折射與船行水波，晴、雨、霧與日夜循環，岸上有會動的人物。">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js"}}</script>
 <style>
 :root{
   --wood:#c9a877;--wood-2:#b08f5c;--wood-3:#8a6a3c;--ink:#2a1f14;--ink-2:#5b4a35;--paper:#efe6d2;--shu:#a34a32;
@@ -15,10 +15,10 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#101a21}
-body{font-family:"Hiragino Mincho ProN","Hiragino Mincho Pro","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif TC","Songti TC","PMingLiU",serif;color:var(--ink);-webkit-font-smoothing:antialiased;touch-action:none;user-select:none;-webkit-user-select:none}
-#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
+body{font-family:"Hiragino Mincho ProN","Hiragino Mincho Pro","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif TC","Songti TC","PMingLiU",serif;color:var(--ink);-webkit-font-smoothing:antialiased;touch-action:auto;user-select:none;-webkit-user-select:none}
+#c{touch-action:none;position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
 .ui{position:fixed;z-index:2;transition:opacity var(--dur-exit) var(--ease-out)}
-body.hide .ui{opacity:0;pointer-events:none}
+body.hide :is(#title,#fuda,#keys,#stat,#note){opacity:0;pointer-events:none}
 
 /* 左上：直書標題 */
 #title{top:calc(18px + var(--sat));left:calc(18px + var(--sal));writing-mode:vertical-rl;color:var(--paper);text-shadow:0 1px 0 rgba(20,14,8,.35),0 0 18px rgba(20,14,8,.35);display:flex;gap:10px;pointer-events:none}
@@ -56,46 +56,61 @@ body.hide .ui{opacity:0;pointer-events:none}
 }
 
 /* 啟航：和紙橫幅 */
-#intro{inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,14,18,.28);cursor:pointer}
-#intro .strip{width:100%;padding:34px 24px;background:var(--paper);color:var(--ink);display:flex;justify-content:center;gap:34px;position:relative;border-top:1px solid rgba(90,70,40,.35);border-bottom:1px solid rgba(90,70,40,.35)}
+#intro{z-index:4;overflow:auto;touch-action:pan-y;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,14,18,.28);cursor:pointer}
+#intro .strip{max-height:90dvh;overflow:auto;flex-shrink:0;width:100%;padding:34px 24px;background:var(--paper);color:var(--ink);display:flex;justify-content:center;gap:34px;position:relative;border-top:1px solid rgba(90,70,40,.35);border-bottom:1px solid rgba(90,70,40,.35)}
 #intro .strip::before{content:"";position:absolute;inset:0;opacity:.5;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .26 0 0 0 0 .14 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");mix-blend-mode:multiply;pointer-events:none}
 #intro .col{writing-mode:vertical-rl;position:relative;line-height:1.15}
 #intro h2{margin:0;font-size:clamp(34px,6vh,58px);font-weight:600;letter-spacing:.22em}
 #intro .col p{margin:0;font-size:14px;letter-spacing:.24em;color:var(--ink-2)}
 #intro .col p b{font-weight:600;color:var(--ink)}
-#intro .go{writing-mode:vertical-rl;align-self:center;font-size:15px;letter-spacing:.3em;color:var(--shu);border-left:1.5px solid var(--shu);padding-left:14px;margin-left:8px}
-#intro.off{opacity:0;pointer-events:none}
+#intro .go{font-family:inherit;background:none;border:0;cursor:pointer;min-width:44px;min-height:44px;writing-mode:vertical-rl;align-self:center;font-size:15px;letter-spacing:.3em;color:var(--shu);border-left:1.5px solid var(--shu);padding-left:14px;margin-left:8px}
+#intro.off{opacity:0;pointer-events:none;visibility:hidden}
 @media (max-width:600px){#intro .strip{gap:18px;padding:26px 12px}#intro h2{font-size:34px}#intro .col p{font-size:12px}}
 
 /* 天氣提示 */
 #note{left:50%;top:calc(22px + var(--sat));transform:translateX(-50%);color:var(--paper);font-size:15px;letter-spacing:.36em;text-shadow:0 1px 3px rgba(0,0,0,.6);opacity:0;transition:opacity var(--dur-enter) var(--ease-out);pointer-events:none;white-space:nowrap}
 #note.show{opacity:.92}
 #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;color:var(--paper);background:#101a21;font-size:15px;letter-spacing:.2em;padding:24px;text-align:center;line-height:2;z-index:5}
+#c:focus-visible{outline:2px solid var(--paper);outline-offset:-4px}
+button:focus-visible{outline:2px solid var(--paper);outline-offset:3px}
+#go:focus-visible{outline-color:var(--shu)}
+#tools{position:fixed;z-index:3;right:calc(18px + var(--sar));top:calc(70px + var(--sat));display:flex;gap:6px;max-width:calc(100vw - 100px);flex-wrap:wrap;justify-content:flex-end}
+#tools button{font:inherit;font-size:12px;min-height:44px;min-width:44px;padding:6px 9px;color:var(--paper);background:rgba(20,16,10,.78);border:1px solid rgba(239,230,210,.5);border-radius:4px;cursor:pointer}
+#tools button[aria-pressed=true]{background:var(--wood);color:var(--ink)}
+#stat{opacity:1;background:rgba(20,16,10,.45);padding:4px 8px;border-radius:3px}
+#note{top:140px;background:rgba(20,16,10,.7);padding:6px 12px;border-radius:3px;font-size:13px;letter-spacing:.12em}
+@media(max-width:440px){#tools{gap:4px;right:14px}#tools button{padding:4px 6px}#stick{left:82px;width:104px;height:104px}#thr{right:16px}}
+@media(max-height:520px){#title p{display:none}#title h1{font-size:26px}#fuda{font-size:11px;padding:24px 0 10px;width:44px}#fuda b{font-size:13px}#keys{font-size:10px;gap:3px 6px}#stick,#thr{bottom:16px}#note{top:120px}}
 @media (prefers-reduced-motion:reduce){.ui,#note,#intro{transition:none}}
 </style>
 </head>
 <body>
-<canvas id="c" tabindex="0" aria-label="川明かり 駕船遊戲畫面"></canvas>
+<canvas id="c" tabindex="0" inert aria-label="川明かり 駕船遊戲畫面。WASD 操舟，Q E 環視，Home 回正，P 暫停。"></canvas>
 
 <div id="title" class="ui"><h1>川明かり</h1><p>かわあかり · 順川而下</p></div>
-<div id="fuda" class="ui" aria-live="polite"><span><b id="koku">酉の刻</b></span><span id="wx">晴</span><span id="dist">〇 里</span><span class="stamp">川舟</span></div>
+<div id="fuda" class="ui" aria-live="off"><span><b id="koku">酉の刻</b></span><span id="wx">晴</span><span id="dist">〇 里</span><span class="stamp">川舟</span></div>
 <div id="keys" class="ui">
   <span><kbd>W</kbd><kbd>S</kbd></span><span class="dim">前進 · 後退</span>
   <span><kbd>A</kbd><kbd>D</kbd></span><span class="dim">左舵 · 右舵</span>
   <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></span><span class="dim">晴 · 雨 · 霧</span>
   <span><kbd>T</kbd> <kbd>C</kbd></span><span class="dim">快轉時辰 · 視角</span>
-  <span><kbd>H</kbd></span><span class="dim">收起木札</span>
+  <span><kbd>Q</kbd><kbd>E</kbd></span><span class="dim">環視 · Home 回正</span>
+  <span><kbd>P</kbd><kbd>H</kbd></span><span class="dim">暫停 · 收起木札</span>
 </div>
 <div id="stat" class="ui"><span id="fps">60</span> 幀<br><span id="cam">追船</span></div>
-<div id="stick" class="ui"><i></i></div>
-<div id="thr" class="ui"><button id="fwd" aria-label="前進">進</button><button id="rev" aria-label="後退">退</button></div>
-<div id="note" class="ui"></div>
+<div id="stick" class="ui" inert><i></i></div>
+<div id="thr" class="ui" inert><button id="fwd" aria-label="前進">進</button><button id="rev" aria-label="後退">退</button></div>
+<div id="note" class="ui" role="status"></div>
+<div id="tools" role="group" aria-label="航行控制" inert>
+  <button id="pause" aria-pressed="false">暫停</button><button id="weather">天候：晴</button>
+  <button id="view">追船</button><button id="sound" aria-pressed="true">聲音</button><button id="hide" aria-pressed="false">收札</button>
+</div>
 
-<div id="intro" class="ui">
+<div id="intro" class="ui" role="dialog" aria-modal="true" aria-label="啟航說明">
   <div class="strip">
     <div class="col"><h2>川明かり</h2></div>
     <div class="col"><p>暮色裡水面映出的微光，日本人叫它 <b>川明かり</b>。</p><p>W A S D 操舟，順著河道穿過鳥居、町屋與竹林；</p><p>一天四分鐘，晴、雨、霧會自己輪替，也可用 1 2 3 切換。</p></div>
-    <div class="go" id="go">點擊或按任意鍵 · 啟航</div>
+    <button class="go" id="go" type="button">啟航</button>
   </div>
 </div>
 <div id="err">這件作品需要 WebGL 2。<br>請改用較新的瀏覽器開啟。</div>
@@ -109,6 +124,7 @@ catch (e) {
 const $ = id => document.getElementById(id);
 const canvas = $('c');
 const isTouch = matchMedia('(pointer:coarse)').matches;
+const reduced = matchMedia('(prefers-reduced-motion:reduce)').matches;
 
 /* ---------- 亂數與雜訊 ---------- */
 function mulberry(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -135,7 +151,7 @@ function heightToNormal(heights, n, strength){
     let nx = (l - r) * strength, ny = (u - d) * strength, nz = 1; const len = Math.hypot(nx, ny, nz); nx /= len; ny /= len; nz /= len;
     const i = (y * n + x) * 4; data[i] = (nx * .5 + .5) * 255; data[i + 1] = (ny * .5 + .5) * 255; data[i + 2] = (nz * .5 + .5) * 255; data[i + 3] = 255;
   }
-  const t = new THREE.DataTexture(data, n, n); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.needsUpdate = true; return t;
+  const t = new THREE.DataTexture(data, n, n); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t;
 }
 function texFrom(canvas, srgb = true){ const t = new THREE.CanvasTexture(canvas); t.wrapS = t.wrapT = THREE.RepeatWrapping; if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
 // 木紋
@@ -492,9 +508,9 @@ function updateMirror(){
 /* ---------- 材質（PBR） ---------- */
 const std = (o) => new THREE.MeshStandardMaterial(o), phy = (o) => new THREE.MeshPhysicalMaterial(o);
 const M = {
-  wood: std({ map: TEX.wood.map, normalMap: TEX.wood.normalMap, roughness: .72 }),
-  woodDark: std({ map: TEX.woodDark.map, normalMap: TEX.woodDark.normalMap, roughness: .78 }),
-  woodPale: std({ map: TEX.woodPale.map, normalMap: TEX.woodPale.normalMap, roughness: .68 }),
+  wood: std({ map: TEX.wood.map, normalMap: TEX.wood.normalMap, normalScale:new THREE.Vector2(.35,.35), roughness: .72 }),
+  woodDark: std({ map: TEX.woodDark.map, normalMap: TEX.woodDark.normalMap, normalScale:new THREE.Vector2(.35,.35), roughness: .78 }),
+  woodPale: std({ map: TEX.woodPale.map, normalMap: TEX.woodPale.normalMap, normalScale:new THREE.Vector2(.35,.35), roughness: .68 }),
   plaster: std({ map: TEX.plaster.map, normalMap: TEX.plaster.normalMap, roughness: .92 }),
   tile: std({ map: TEX.tile.map, normalMap: TEX.tile.normalMap, roughness: .62, metalness: .08 }),
   stone: std({ map: TEX.stone.map, normalMap: TEX.stone.normalMap, roughness: .88 }),
@@ -593,7 +609,7 @@ function bridge(i, red = true){
   const verts = [], idx = [], uv = []; const bw = 1.6;
   for (let k = 0; k <= K; k++){ const x = -hw + 2 * hw * k / K, yy = y(x); verts.push(x, yy, -bw, x, yy, bw); uv.push(k / K * 8, 0, k / K * 8, 1); if (k < K){ const a = k * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); } }
   const deckGeo = new THREE.BufferGeometry(); deckGeo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3)); deckGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); deckGeo.setIndex(idx); deckGeo.computeVertexNormals();
-  const deck = new THREE.Mesh(deckGeo, new THREE.MeshStandardMaterial({ map: TEX.woodPale.map, normalMap: TEX.woodPale.normalMap, roughness: .7, side: THREE.DoubleSide })); deck.castShadow = true; deck.receiveShadow = true; g.add(deck);
+  const deck = new THREE.Mesh(deckGeo, new THREE.MeshStandardMaterial({ map: TEX.woodPale.map, normalMap: TEX.woodPale.normalMap, normalScale:new THREE.Vector2(.35,.35), roughness: .7, side: THREE.DoubleSide })); deck.castShadow = true; deck.receiveShadow = true; g.add(deck);
   // 底板厚度
   const under = deck.clone(); under.position.y = -.22; under.material = M.woodDark; g.add(under);
   const railMat = red ? M.shu : M.woodDark;
@@ -630,10 +646,11 @@ function hullGeo(L = 4.8){
 }
 function boatModel(withLantern = true){
   const g = new THREE.Group();
-  const hullMat = new THREE.MeshStandardMaterial({ map: TEX.woodDark.map, normalMap: TEX.woodDark.normalMap, roughness: .7 });
+  const hullMat = new THREE.MeshStandardMaterial({ map: TEX.woodDark.map, normalMap: TEX.woodDark.normalMap, normalScale:new THREE.Vector2(.35,.35), roughness: .7 });
   const hg = hullGeo(); const hull = new THREE.Mesh(hg, hullMat); hull.castShadow = true; hull.receiveShadow = true; g.add(hull);
-  const inner = new THREE.Mesh(hg, new THREE.MeshStandardMaterial({ map: TEX.wood.map, normalMap: TEX.wood.normalMap, roughness: .85, side: THREE.BackSide })); inner.scale.set(.96, .97, .985); inner.position.y = .02; inner.receiveShadow = true; g.add(inner);
-  g.add(mesh(G.box(1.3, .08, 3.6), M.wood, 0, .3, -.1));
+  const inner = new THREE.Mesh(hg, new THREE.MeshStandardMaterial({ map: TEX.wood.map, normalMap: TEX.wood.normalMap, normalScale:new THREE.Vector2(.35,.35), roughness: .85, side: THREE.BackSide })); inner.scale.set(.96, .97, .985); inner.position.y = .02; inner.receiveShadow = true; g.add(inner);
+  for (let i = -2; i <= 2; i++) g.add(mesh(G.box(.245, .08, 3.6), M.wood, i * .26, .3, -.1));
+  for (const z of [-1.2,.2,1.4]) for (const x of [-.68,.68]) g.add(mesh(G.cyl(.025,.025,.012,8), M.iron, x,.606,z));
   for (const z of [-1.2, .2, 1.4]) g.add(mesh(G.box(1.7, .08, .3), M.wood, 0, .56, z));
   const transom = mesh(G.box(1.28, .64, .1), M.woodDark, 0, .36, -2.36); g.add(transom); const stem = mesh(G.box(.42, .78, .1), M.woodDark, 0, .5, 2.36); g.add(stem);
   for (const s of [-1, 1]){ const gw = mesh(G.box(.1, .1, 3.1), M.wood, s * .84, .66, .3); g.add(gw); }
@@ -844,7 +861,7 @@ const S = {
 const WX = { '晴': { rain: 0, fog: 0, cloud: .3 }, '雨': { rain: 1, fog: .35, cloud: 1 }, '霧': { rain: 0, fog: 1, cloud: .7 } };
 const NOTES = { '晴': '雲散了 · 晴', '雨': '下起雨來 · 雨', '霧': '川霧漫上來 · 霧' };
 let noteT = 0;
-function setWeather(name, quiet){ S.wxName = name; Object.assign(S.target, WX[name]); S.wxTimer = R(55, 95); $('wx').textContent = name; if (!quiet){ $('note').textContent = NOTES[name]; $('note').classList.add('show'); noteT = 3; } }
+function setWeather(name, quiet){ S.wxName = name; Object.assign(S.target, WX[name]); S.wxTimer = R(55, 95); $('wx').textContent = name; $('weather').textContent = '天候：' + name; if (!quiet){ $('note').textContent = NOTES[name]; $('note').classList.add('show'); noteT = 3; } }
 const KOKU = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 function kokuName(t){ const h = (t * 24 + 1) % 24; return KOKU[Math.floor(h / 2)] + 'の刻'; }
 
@@ -923,14 +940,14 @@ function stepCamera(dt){
   const fx = Math.sin(B.yaw), fz = Math.cos(B.yaw);
   let tx, ty, tz, lx, ly, lz;
   if (S.camMode === 0){ const yaw = B.yaw + camS.yawOff; const sx = Math.sin(yaw), sz = Math.cos(yaw); const back = 9.5, up = 3.6 + camS.pitchOff * 4; tx = B.x - sx * back; tz = B.z - sz * back; ty = up; lx = B.x + fx * 3; lz = B.z + fz * 3; ly = 1.0; }
-  else if (S.camMode === 1){ tx = B.x + fx * 2.9; tz = B.z + fz * 2.9; ty = B.y + 1.45; ly = 1.0 + camS.pitchOff * 6; const yaw = B.yaw + camS.yawOff; lx = tx + Math.sin(yaw) * 30; lz = tz + Math.cos(yaw) * 30; }
+  else if (S.camMode === 1){ tx = B.x + fx * 2.9; tz = B.z + fz * 2.9; ty = (reduced ? 0 : B.y) + 1.45; ly = 1.0 + camS.pitchOff * 6; const yaw = B.yaw + camS.yawOff; lx = tx + Math.sin(yaw) * 30; lz = tz + Math.cos(yaw) * 30; }
   else { const yaw = B.yaw + camS.yawOff + Math.PI * .7; tx = B.x - Math.sin(yaw) * 26; tz = B.z - Math.cos(yaw) * 26; ty = 9 + camS.pitchOff * 6; lx = B.x; lz = B.z; ly = .8; }
   // 攝影機不鑽進河岸
   const gy = terrainH(tx, tz, B.idx) + 1.2; if (ty < gy) ty = gy;
-  const k = camInit ? 1 - Math.exp(-dt * (S.camMode === 1 ? 14 : 4.5)) : 1; camInit = true;
+  const k = camInit && !reduced ? 1 - Math.exp(-dt * (S.camMode === 1 ? 14 : 4.5)) : 1; camInit = true;
   camS.pos.lerp(_v.set(tx, ty, tz), k); camS.look.lerp(_v2.set(lx, ly, lz), k);
   camera.position.copy(camS.pos); camera.lookAt(camS.look);
-  if (!camS.dragging){ camS.yawOff *= Math.exp(-dt * 1.5); camS.pitchOff *= Math.exp(-dt * 1.5); }
+  if (!camS.dragging && !reduced && performance.now() - lookAtTime > 1800){ camS.yawOff *= Math.exp(-dt * 1.5); camS.pitchOff *= Math.exp(-dt * 1.5); }
 }
 
 /* ---------- 燈光池分配 ---------- */
@@ -957,33 +974,60 @@ function startAudio(){
 
 /* ---------- 輸入 ---------- */
 const keys = new Set();
-let started = false;
-function start(){ if (started) return; started = true; $('intro').classList.add('off'); startAudio(); if (audio && audio.ctx.state === 'suspended') audio.ctx.resume(); canvas.focus(); }
-addEventListener('keydown', (e) => { if (e.metaKey || e.ctrlKey || e.altKey) return; const k = e.key.toLowerCase(); if (!started) start(); keys.add(k);
-  if (k === '1') setWeather('晴'); if (k === '2') setWeather('雨'); if (k === '3') setWeather('霧'); if (k === 'h') document.body.classList.toggle('hide'); if (k === 'c'){ S.camMode = (S.camMode + 1) % 3; $('cam').textContent = ['追船', '船首', '遠眺'][S.camMode]; } if (k === 't') S.fast = true;
-  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault(); });
-addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); keys.delete(k); if (k === 't') S.fast = false; });
-addEventListener('blur', () => keys.clear());
-$('intro').addEventListener('pointerdown', start);
-// 拖曳看四周
-canvas.addEventListener('pointerdown', (e) => { if (!started) start(); if (isTouch && e.clientX < innerWidth * .5) return; camS.dragging = true; camS.lx = e.clientX; camS.ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
-canvas.addEventListener('pointermove', (e) => { if (!camS.dragging) return; camS.yawOff -= (e.clientX - camS.lx) * .006; camS.pitchOff = clamp(camS.pitchOff + (e.clientY - camS.ly) * .003, -.5, .8); camS.lx = e.clientX; camS.ly = e.clientY; });
-canvas.addEventListener('pointerup', () => { camS.dragging = false; }); canvas.addEventListener('pointercancel', () => { camS.dragging = false; });
-// 手機搖桿與油門
+let started = false, paused = false, soundOn = true, lookAtTime = 0, dragId = null;
 const stick = $('stick'), knob = stick.querySelector('i'); let stickId = null; const touchIn = { s: 0, f: 0 };
-stick.addEventListener('pointerdown', (e) => { if (!started) start(); stickId = e.pointerId; stick.setPointerCapture(e.pointerId); moveStick(e); });
-stick.addEventListener('pointermove', (e) => { if (e.pointerId === stickId) moveStick(e); });
-const endStick = (e) => { if (e.pointerId !== stickId) return; stickId = null; touchIn.s = 0; knob.style.transform = ''; };
-stick.addEventListener('pointerup', endStick); stick.addEventListener('pointercancel', endStick);
-function moveStick(e){ const r = stick.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const l = Math.hypot(dx, dy); if (l > 1){ dx /= l; dy /= l; } touchIn.s = -dx; knob.style.transform = `translate(${dx * 34}px,${dy * 34}px)`; }
-for (const [id, val] of [['fwd', 1], ['rev', -1]]){ const b = $(id); const on = (e) => { if (!started) start(); touchIn.f = val; b.classList.add('on'); b.setPointerCapture(e.pointerId); }; const off = () => { if (touchIn.f === val) touchIn.f = 0; b.classList.remove('on'); }; b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); }
+function clearInput(){ keys.clear(); S.fast = false; input.f = input.s = touchIn.f = touchIn.s = 0; stickId = dragId = null; camS.dragging = false; knob.style.transform = ''; $('fwd').classList.remove('on'); $('rev').classList.remove('on'); }
+function syncAudio(){ if (audio) { if (soundOn && !paused && !document.hidden) audio.ctx.resume().catch(()=>{}); else audio.ctx.suspend().catch(()=>{}); } }
+function start(){
+  if (started) return; started = true; $('intro').classList.add('off'); $('intro').inert = true;
+  for (const id of ['c','tools','stick','thr']) $(id).inert = false;
+  try { startAudio(); } catch { soundOn = false; $('sound').setAttribute('aria-pressed','false'); }
+  syncAudio(); canvas.focus({preventScroll:true});
+}
+function setPaused(on){ paused = on; clearInput(); $('pause').textContent = on ? '繼續' : '暫停'; $('pause').setAttribute('aria-pressed',String(on)); syncAudio(); }
+function cycleView(){ S.camMode = (S.camMode + 1) % 3; $('cam').textContent = $('view').textContent = ['追船','船首','遠眺'][S.camMode]; camS.yawOff = camS.pitchOff = 0; camInit = !(reduced || paused); }
+function hideLabels(){ const on = document.body.classList.toggle('hide'); $('hide').setAttribute('aria-pressed',String(on)); $('hide').textContent = on ? '展札' : '收札'; }
+$('go').addEventListener('click',start);
+$('pause').addEventListener('click',()=>setPaused(!paused));
+$('weather').addEventListener('click',()=>{ const names=['晴','雨','霧']; setWeather(names[(names.indexOf(S.wxName)+1)%3]); });
+$('view').addEventListener('click',cycleView); $('hide').addEventListener('click',hideLabels);
+$('sound').addEventListener('click',()=>{ soundOn=!soundOn; if(soundOn&&!audio){try{startAudio();}catch{soundOn=false;}} $('sound').setAttribute('aria-pressed',String(soundOn));syncAudio(); });
+addEventListener('keydown', e => {
+  if(e.metaKey||e.ctrlKey||e.altKey||!started||e.target.closest('button,input,select,textarea,[contenteditable="true"]')) return;
+  const k=e.key.toLowerCase();
+  if(k==='p'||k==='escape'){e.preventDefault();if(!e.repeat)setPaused(!paused);return;}
+  if(k==='h'){if(!e.repeat)hideLabels();return;}
+  if(paused)return;
+  if(!e.repeat){if(k==='1')setWeather('晴');if(k==='2')setWeather('雨');if(k==='3')setWeather('霧');if(k==='c')cycleView();}
+  if(k==='q'||k==='e'||k==='home'){e.preventDefault();lookAtTime=performance.now();if(k==='home')camS.yawOff=camS.pitchOff=0;else camS.yawOff+=k==='q'?.12:-.12;return;}
+  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','t'].includes(k)){e.preventDefault();keys.add(k);if(k==='t')S.fast=true;}
+});
+addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys.delete(k);if(k==='t')S.fast=false;});
+addEventListener('blur',()=>{if(started)setPaused(true);else clearInput();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started)setPaused(true);syncAudio();});
+canvas.addEventListener('pointerdown',e=>{if(!started||paused||e.button!==0||dragId!==null)return;dragId=e.pointerId;camS.dragging=true;camS.lx=e.clientX;camS.ly=e.clientY;canvas.setPointerCapture(e.pointerId);canvas.focus({preventScroll:true});});
+canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;lookAtTime=performance.now();camS.yawOff-=(e.clientX-camS.lx)*.006;camS.pitchOff=clamp(camS.pitchOff+(e.clientY-camS.ly)*.003,-.5,.8);camS.lx=e.clientX;camS.ly=e.clientY;});
+const endDrag=e=>{if(e.pointerId===dragId){dragId=null;camS.dragging=false;lookAtTime=performance.now();}};
+for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,endDrag);
+stick.addEventListener('pointerdown',e=>{if(!started||paused||e.button!==0||stickId!==null)return;stickId=e.pointerId;stick.setPointerCapture(e.pointerId);moveStick(e);});
+stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)moveStick(e);});
+const endStick=e=>{if(e.pointerId!==stickId)return;stickId=null;touchIn.s=0;knob.style.transform='';};
+for(const event of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(event,endStick);
+function moveStick(e){const r=stick.getBoundingClientRect();let dx=(e.clientX-r.left-r.width/2)/(r.width/2),dy=(e.clientY-r.top-r.height/2)/(r.height/2);const l=Math.hypot(dx,dy);if(l>1){dx/=l;dy/=l;}touchIn.s=-dx;knob.style.transform=`translate(${dx*34}px,${dy*34}px)`;}
+for(const [id,val] of [['fwd',1],['rev',-1]]){
+  const b=$(id),on=()=>{if(!started||paused)return;touchIn.f=val;b.classList.add('on');},off=()=>{if(touchIn.f===val)touchIn.f=0;b.classList.remove('on');};
+  b.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();b.focus();b.setPointerCapture(e.pointerId);on();});
+  for(const event of ['pointerup','pointercancel','lostpointercapture','blur'])b.addEventListener(event,off);
+  b.addEventListener('keydown',e=>{if(e.code==='Space'||e.key==='Enter'){e.preventDefault();on();}});
+  b.addEventListener('keyup',e=>{if(e.code==='Space'||e.key==='Enter'){e.preventDefault();off();}});
+}
 function readInput(){ const f = (keys.has('w') || keys.has('arrowup') ? 1 : 0) - (keys.has('s') || keys.has('arrowdown') ? 1 : 0); const s = (keys.has('a') || keys.has('arrowleft') ? 1 : 0) - (keys.has('d') || keys.has('arrowright') ? 1 : 0); input.f = f || touchIn.f; input.s = s || touchIn.s; }
 
 /* ---------- 主迴圈 ---------- */
 let lastT = performance.now(); let simT = 0, fpsAcc = 0, fpsN = 0, fpsT = 0, slowFrames = 0, hudT = 0;
 function frame(){
   requestAnimationFrame(frame);
-  const now = performance.now(); const raw = (now - lastT) / 1000; lastT = now; const dt = Math.min(raw, .05); simT += dt;
+  const now = performance.now(); const raw = (now - lastT) / 1000; lastT = now; if(document.hidden)return; const dt = paused || !started ? 0 : Math.min(raw, .05); simT += dt;
   readInput(); S.time = (S.time + dt * S.daySpeed * (S.fast ? 24 : 1)) % 1;
   updateWeather(dt); stepBoat(dt, simT); stepCamera(dt); updateSky(dt); stepLights();
   for (const p of people) p.tick(simT, S, dt); for (const a of anim) a(dt, simT, S);
@@ -1000,7 +1044,7 @@ function frame(){
   // HUD 與效能
   fpsAcc += raw; fpsN++; fpsT += raw; if (raw > .028) slowFrames++;
   if (fpsT >= 1){ const fps = Math.round(fpsN / fpsAcc); $('fps').textContent = fps; if (slowFrames > fpsN * .4 && REFL_SCALE > .3){ REFL_SCALE = .3; makeTargets(); } fpsAcc = fpsN = fpsT = slowFrames = 0; }
-  hudT -= dt; if (hudT <= 0){ hudT = .5; $('koku').textContent = kokuName(S.time); const ri = S.dist / 3927; $('dist').textContent = (ri < .1 ? '〇' : ri.toFixed(1)) + ' 里'; }
+  hudT -= dt; if (hudT <= 0){ hudT = .5; $('koku').textContent = kokuName(S.time); const ri = S.dist / 3927; $('dist').textContent = ri < .1 ? Math.round(S.dist) + ' 公尺' : ri.toFixed(1) + ' 里'; }
 }
 frame();
 

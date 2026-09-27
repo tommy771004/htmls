@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from '../../../vendor/three-0.186.0/addons/geometries/RoundedBoxGeometry.js';
+import { createStudioEnvironment } from '../3d/studio.js';
 
 export function createOffice({agents,onChat,isBlocked,onHint}) {
  const host=document.getElementById('scene'), labels=document.getElementById('nameplates');
  const scene=new THREE.Scene();
  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
  renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setClearColor(0xeeeeE4,0);
- renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;
  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;
  host.appendChild(renderer.domElement);
  const camera=new THREE.OrthographicCamera(-10,10,10,-10,.1,100);
@@ -15,7 +16,12 @@ export function createOffice({agents,onChat,isBlocked,onHint}) {
  const sun=new THREE.DirectionalLight(0xffe6bf,4.5);sun.position.set(-3,13,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-11;sun.shadow.camera.right=11;sun.shadow.camera.top=11;sun.shadow.camera.bottom=-11;sun.shadow.normalBias=.035;sun.shadow.bias=-.0002;sun.shadow.radius=4;scene.add(sun);
  const fill=new THREE.DirectionalLight(0xecf8e4,1.2);fill.position.set(8,6,-6);scene.add(fill);
  const materials=new Map(), geometries=new Map();
- function mat(color){if(!materials.has(color))materials.set(color,new THREE.MeshStandardMaterial({color,roughness:.82}));return materials.get(color);}
+ // Most of the room stays soft matte; glass, glazed ceramics, screens and steel get their own finish and a
+ // reflection-only studio environment so they read as different materials without changing the palette.
+ const studio=createStudioEnvironment(THREE,renderer).texture;
+ const glaze={roughness:.3,envMapIntensity:.55},steel={roughness:.38,metalness:.55,envMapIntensity:.8};
+ const finish={0x243e35:{roughness:.18,envMapIntensity:.6,emissive:0x1c3a30,emissiveIntensity:.45},0x90b8b3:{roughness:.08,metalness:.1,envMapIntensity:1.3},0x43534b:{roughness:.42,envMapIntensity:.5},0x424f47:{roughness:.34,metalness:.35,envMapIntensity:.7},0x282f2b:{roughness:.12,envMapIntensity:1},0x535f56:steel,0x3c4d45:{roughness:.5,envMapIntensity:.4},0x515f55:steel,0x687d61:steel,0x667b62:steel,0x798367:steel,0x717e66:steel,0x738273:steel,0x424d47:steel,0x59675c:steel,0x4e5149:{roughness:.3,metalness:.8,envMapIntensity:1},0xcd8265:glaze,0xb0bc91:glaze,0xe1b853:glaze,0x7c9caa:glaze,0xf3eedb:glaze,0xf2ead6:glaze,0xe0b563:glaze};
+ function mat(color){if(!materials.has(color)){const f=finish[color];materials.set(color,new THREE.MeshStandardMaterial({color,roughness:.82,...(f?{envMap:studio,...f}:{})}));}return materials.get(color);}
  function box(w,h,d,color,x=0,y=0,z=0,parent=scene,r=.06){const k=[w,h,d,r].join('/');if(!geometries.has(k))geometries.set(k,r?new RoundedBoxGeometry(w,h,d,2,Math.min(r,w/3,h/3,d/3)):new THREE.BoxGeometry(w,h,d));const m=new THREE.Mesh(geometries.get(k),mat(color));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
  function sphere(w,h,d,color,x,y,z,parent=scene){const k='sphere';if(!geometries.has(k))geometries.set(k,new THREE.SphereGeometry(1,16,12));const m=new THREE.Mesh(geometries.get(k),mat(color));m.scale.set(w,h,d);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
  function cylinder(top,bottom,h,color,x,y,z,parent=scene){const k=['c',top,bottom,h].join('/');if(!geometries.has(k))geometries.set(k,new THREE.CylinderGeometry(top,bottom,h,20));const m=new THREE.Mesh(geometries.get(k),mat(color));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
@@ -104,25 +110,37 @@ export function createOffice({agents,onChat,isBlocked,onHint}) {
  const shadow=new THREE.Mesh(new THREE.PlaneGeometry(180,180),new THREE.ShadowMaterial({opacity:.105}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-.53;shadow.receiveShadow=true;scene.add(shadow);
  // A small welcome plaque at the open edge.
  const plaque=graphic('THE GOOD WORK ROOM',2.1,.24,'#d5c5a8','#7b795e',24);plaque.position.set(0,-.27,5.312);scene.add(plaque);
- let zoom=1, width=0,height=0;
+ let zoom=1,zoomTarget=1,panX=0,panZ=0,width=0,height=0;const vel=new THREE.Vector2();
  function resize(){width=host.clientWidth;height=host.clientHeight;renderer.setSize(width,height);const aspect=width/height;const view=aspect<.85?19.8/aspect:Math.max(13.9,18.5/aspect);camera.left=-view*aspect/2;camera.right=view*aspect/2;camera.top=view/2;camera.bottom=-view/2;camera.zoom=zoom;camera.updateProjectionMatrix();}
  new ResizeObserver(resize).observe(host);resize();
- document.getElementById('zoom-in').onclick=()=>{zoom=Math.min(1.45,zoom+.1);resize();};document.getElementById('zoom-out').onclick=()=>{zoom=Math.max(.7,zoom-.1);resize();};document.getElementById('reset-view').onclick=()=>{zoom=1;resize();};
- const keys=new Set();let nearest=null;
- function clearKeys(){keys.clear();}
+ // Zoom eases toward its target (buttons, wheel or trackpad pinch); the frame loop applies it.
+ const setZoom=z=>{zoomTarget=THREE.MathUtils.clamp(z,.7,1.45);};
+ document.getElementById('zoom-in').onclick=()=>setZoom(zoomTarget+.1);document.getElementById('zoom-out').onclick=()=>setZoom(zoomTarget-.1);document.getElementById('reset-view').onclick=()=>setZoom(1);
+ host.addEventListener('wheel',e=>{if(isBlocked())return;e.preventDefault();setZoom(zoomTarget*Math.exp(-e.deltaY*(e.ctrlKey?.01:.0015)));},{passive:false});
+ const keys=new Set(),touchKeys=new Map();let nearest=null;
+ const held=key=>keys.has(key)||[...touchKeys.values()].includes(key);
+ function clearKeys(){keys.clear();touchKeys.clear();vel.set(0,0);}
  const aliases={arrowup:'w',arrowdown:'s',arrowleft:'a',arrowright:'d'};
- window.addEventListener('keydown',e=>{if(isBlocked()||e.ctrlKey||e.metaKey||e.altKey||/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement?.tagName))return;const key=aliases[e.key.toLowerCase()]||e.key.toLowerCase();if('wasd'.includes(key)&&key.length===1){e.preventDefault();keys.add(key);}if(key==='t'&&!e.repeat){e.preventDefault();if(nearest)onChat(nearest);}});
+ window.addEventListener('keydown',e=>{if(e.defaultPrevented||e.target.isContentEditable||isBlocked()||e.ctrlKey||e.metaKey||e.altKey||/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement?.tagName))return;const key=aliases[e.key.toLowerCase()]||e.key.toLowerCase();if('wasd'.includes(key)&&key.length===1){e.preventDefault();keys.add(key);}if(key==='t'&&!e.repeat){e.preventDefault();if(nearest)onChat(nearest);}});
  window.addEventListener('keyup',e=>keys.delete(aliases[e.key.toLowerCase()]||e.key.toLowerCase()));window.addEventListener('blur',clearKeys);document.addEventListener('visibilitychange',clearKeys);
- document.querySelectorAll('[data-move]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();if(isBlocked())return;b.setPointerCapture(e.pointerId);keys.add(b.dataset.move);});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,()=>keys.delete(b.dataset.move));});
- const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();host.addEventListener('pointerdown',e=>{if(isBlocked())return;host.focus();const r=host.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(actors.map(p=>p.root),true);if(hits[0])onChat(hits[0].object.userData.agent);});
+ document.querySelectorAll('[data-move]').forEach(b=>{b.addEventListener('pointerdown',e=>{if(e.button!==0||isBlocked())return;e.preventDefault();b.setPointerCapture(e.pointerId);touchKeys.set(e.pointerId,b.dataset.move);});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,e=>touchKeys.delete(e.pointerId));b.addEventListener('keydown',e=>{if(!e.altKey&&!e.ctrlKey&&!e.metaKey&&['Space','Enter'].includes(e.code)){e.preventDefault();if(!isBlocked())touchKeys.set('key:'+b.dataset.move,b.dataset.move);}});b.addEventListener('keyup',e=>{if(['Space','Enter'].includes(e.code)){e.preventDefault();touchKeys.delete('key:'+b.dataset.move);}});b.addEventListener('blur',()=>touchKeys.delete('key:'+b.dataset.move));});
+ const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();host.addEventListener('pointerdown',e=>{if(!e.isPrimary||e.button!==0||isBlocked())return;host.focus();const r=host.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(actors.map(p=>p.root),true);if(hits[0])onChat(hits[0].object.userData.agent);});
+ // Mouse hover over a colleague shows they are clickable.
+ const actorRoots=actors.map(p=>p.root);host.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const r=host.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);host.style.cursor=!isBlocked()&&raycaster.intersectObjects(actorRoots,true).length?'pointer':'';});host.addEventListener('pointerleave',()=>{host.style.cursor='';});
  function updateStates(){actors.forEach(p=>{const a=p.agent;const state=a.state==='working'?['閱讀需求','建立分支','實作中','驗證中'][a.step]:a.state==='done'?'✓ 完成，準備報告':'● 隨時可以聊';p.label.innerHTML=`<span class="tag"><span style="color:${a.color}">●</span>${a.name}</span><small>${state}</small>`;});onHint(nearest);}
  function canWalk(x,z){return x>-5.75&&x<5.8&&z>-4.55&&z<4.8&&!obstacles.some(o=>Math.abs(x-o.x)<o.w/2+.22&&Math.abs(z-o.z)<o.d/2+.22);}
  const v=new THREE.Vector3();function placeLabel(label,root,up){v.copy(root.position);v.y+=up;v.project(camera);label.style.left=`${(v.x*.5+.5)*width}px`;label.style.top=`${(-v.y*.5+.5)*height}px`;label.hidden=v.x<-.95||v.x>.95||v.y<-1||v.y>1;}
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');let last=performance.now(),time=0;
  function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(document.hidden)return;time+=dt;
-  let dx=0,dz=0;if(!isBlocked()){const horizontal=Number(keys.has('d'))-Number(keys.has('a')),vertical=Number(keys.has('s'))-Number(keys.has('w'));dx=horizontal*.825+vertical*.565;dz=-horizontal*.565+vertical*.825;}
-  const moving=Math.hypot(dx,dz)>.1;if(moving){const norm=Math.hypot(dx,dz),step=dt*3.1;dx=dx/norm*step;dz=dz/norm*step;const p=player.root.position;if(canWalk(p.x+dx,p.z))p.x+=dx;if(canWalk(p.x,p.z+dz))p.z+=dz;player.root.rotation.y=Math.atan2(dx,dz);}
-  player.body.position.y=moving&&!reduced.matches?Math.abs(Math.sin(time*10))*.045:0;player.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(time*10+i*Math.PI)*.48:0);player.arms.forEach((l,i)=>l.rotation.x=moving?Math.sin(time*10-i*Math.PI)*.4:0);
+  let dx=0,dz=0;if(!isBlocked()){const horizontal=Number(held('d'))-Number(held('a')),vertical=Number(held('s'))-Number(held('w'));dx=horizontal*.825+vertical*.565;dz=-horizontal*.565+vertical*.825;}
+  // Walking has a short ramp up / settle and the body turns toward the new heading instead of snapping.
+  const want=Math.hypot(dx,dz)>.1;if(want){const norm=Math.hypot(dx,dz);dx=dx/norm*3.1;dz=dz/norm*3.1;}const accel=reduced.matches?1:1-Math.exp(-dt*12);vel.x+=(dx-vel.x)*accel;vel.y+=(dz-vel.y)*accel;const speed=vel.length(),moving=speed>.25,gait=Math.min(1,speed/3.1);
+  if(speed>.01){const p=player.root.position,sx=vel.x*dt,sz=vel.y*dt;if(canWalk(p.x+sx,p.z))p.x+=sx;else vel.x=0;if(canWalk(p.x,p.z+sz))p.z+=sz;else vel.y=0;}
+  if(want){let turn=Math.atan2(dx,dz)-player.root.rotation.y;turn=Math.atan2(Math.sin(turn),Math.cos(turn));player.root.rotation.y+=turn*(reduced.matches?1:1-Math.exp(-dt*14));}
+  player.body.position.y=moving&&!reduced.matches?Math.abs(Math.sin(time*10))*.045*gait:0;player.legs.forEach((l,i)=>l.rotation.x=Math.sin(time*10+i*Math.PI)*.48*gait);player.arms.forEach((l,i)=>l.rotation.x=Math.sin(time*10-i*Math.PI)*.4*gait);
+  // Eased zoom; when zoomed in, the view drifts toward the player so they stay in frame.
+  const ease=reduced.matches?1:1-Math.exp(-dt*10);if(Math.abs(zoomTarget-zoom)>1e-4){zoom+=(zoomTarget-zoom)*ease;if(Math.abs(zoomTarget-zoom)<1e-4)zoom=zoomTarget;camera.zoom=zoom;camera.updateProjectionMatrix();}
+  const follow=THREE.MathUtils.clamp((zoom-1)/.45,0,1)*.75,drift=reduced.matches?1:1-Math.exp(-dt*4);panX+=(player.root.position.x*follow-panX)*drift;panZ+=(player.root.position.z*follow-panZ)*drift;camera.position.set(13+panX,14,19+panZ);camera.lookAt(panX,.2,panZ);camera.updateMatrixWorld();
   ring.position.x=player.root.position.x;ring.position.z=player.root.position.z;
   let closest=null,min=2.15;
   actors.forEach((p,i)=>{const a=p.agent,done=a.state==='done',work=a.state==='working';const targetY=done?0:.19;const blend=reduced.matches?1:1-Math.exp(-dt*7);p.root.position.y=THREE.MathUtils.lerp(p.root.position.y,targetY,blend);p.body.position.y=THREE.MathUtils.lerp(p.body.position.y,done?0:-.26,blend);p.root.position.z=THREE.MathUtils.lerp(p.root.position.z,a.z+(done?1.45:.98),blend);p.root.rotation.y=THREE.MathUtils.lerp(p.root.rotation.y,done?.3:work?Math.PI:0,blend);p.legs.forEach(l=>l.rotation.x=THREE.MathUtils.lerp(l.rotation.x,done?0:-1.15,blend));p.arms.forEach((arm,k)=>{arm.rotation.x=done?(k===0?-.8:0):work?-1.1+(reduced.matches?0:Math.sin(time*12+k)*.08):-.28;arm.rotation.z=done&&k===0?-.65+(reduced.matches?0:Math.sin(time*4)*.18):0;});

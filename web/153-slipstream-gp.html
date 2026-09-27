@@ -719,7 +719,7 @@ const THEMES = {
 const TEX = {};
 function canvasTex(w, h, draw, rep = true) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); draw(g, w, h);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer ? Math.min(8, renderer.capabilities.getMaxAnisotropy()) : 4; // 貼地視角下路面紋理不糊
   if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; }
   return t;
 }
@@ -737,7 +737,10 @@ function getTex(name) {
   if (TEX[name]) return TEX[name];
   let t;
   switch (name) {
-    case 'asphalt': t = softGround('#585b64', ['#62656e', '#4f525b', '#5b5e67', '#686a72'], 11, (g) => { g.fillStyle = 'rgba(255,255,255,.62)'; g.beginPath(); g.roundRect(123, 8, 10, 96, 5); g.fill(); }); break;
+    case 'asphalt': t = softGround('#585b64', ['#62656e', '#4f525b', '#5b5e67', '#686a72'], 11, (g) => { // 兩條被輪胎磨深的行車線＋碎石骨材顆粒
+      for (const cx of [72, 184]) { const gr = g.createLinearGradient(cx - 34, 0, cx + 34, 0); gr.addColorStop(0, 'rgba(30,32,38,0)'); gr.addColorStop(.5, 'rgba(30,32,38,.2)'); gr.addColorStop(1, 'rgba(30,32,38,0)'); g.fillStyle = gr; g.fillRect(cx - 34, 0, 68, 256); }
+      fineGrain(g, 256, 256, ['#3c3e45', '#74777f', '#34363c'], 700, 0.38, 71);
+      g.fillStyle = 'rgba(255,255,255,.62)'; g.beginPath(); g.roundRect(123, 8, 10, 96, 5); g.fill(); }); break;
     case 'clay': t = softGround('#b0703f', ['#bd7d4b', '#a2653a', '#c58a55', '#99603a'], 12); break;
     case 'packed': t = softGround('#9eacbe', ['#abb8c8', '#8f9db1', '#b7c2d2'], 13, (g) => { g.fillStyle = 'rgba(80,96,120,.22)'; g.fillRect(52, 0, 18, 256); g.fillRect(186, 0, 18, 256); }); break;
     case 'cobble': t = canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#2a2320'; g.fillRect(0, 0, w, h); const r = mulberry(4); for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const v = 70 + r() * 30 | 0; g.fillStyle = `rgb(${v},${v - 8},${v - 14})`; g.fillRect(x * 8 + (y % 2) * 4 + 1, y * 8 + 1, 6, 6); } }); break;
@@ -963,8 +966,9 @@ function animRig(m, p, dt) {
   m.tilt.position.y = p.count ? Math.sin(t * 60) * 0.01 : 0;
 }
 function buildKart(ch) {
-  const P = prims(); const list = [];
+  const P = prims(); const list = [], metal = [];
   const push = (geo, col, ...a) => list.push(part(geo, col, ...a));
+  const pushM = (geo, col, ...a) => metal.push(part(geo, col, ...a)); // 金屬件另外一個材質：引擎、排氣管、後軸
   const K = ch.kart, dark = shade(K, 0.62), light = shade(K, 1.22), trim = '#2a2d35', cream = '#f4ead6';
   const HX = Math.PI / 2;
   push(P.box, trim, 0, 0.3, 0.05, 1.5, 0.14, 2.7);                       // 底盤
@@ -976,22 +980,24 @@ function buildKart(ch) {
   push(P.cap, dark, -0.84, 0.44, 0.02, 0.36, 0.66, 0.4, HX); push(P.cap, dark, 0.84, 0.44, 0.02, 0.36, 0.66, 0.4, HX); // 側箱
   push(P.box, cream, -0.84, 0.64, 0.02, 0.2, 0.03, 1.1); push(P.box, cream, 0.84, 0.64, 0.02, 0.2, 0.03, 1.1);
   push(P.cap, trim, 0, 0.96, -0.62, 0.92, 0.36, 0.26, 0.12);             // 椅背
-  push(P.box, '#6b6f78', 0, 0.68, -1.1, 0.92, 0.44, 0.52);for(let i=0;i<5;i++)push(P.box,'#adb2ba',-.36+i*.18,.93,-1.1,.065,.06,.5);               // 引擎
+  pushM(P.box, '#6b6f78', 0, 0.68, -1.1, 0.92, 0.44, 0.52);for(let i=0;i<5;i++)pushM(P.box,'#adb2ba',-.36+i*.18,.93,-1.1,.065,.06,.5);               // 引擎
+  pushM(P.cyl, '#9aa0a8', 0, 0.47, -0.95, 0.09, 1.9, 0.09, 0, 0, HX);    // 後軸
   push(P.cap, K, 0, 0.4, -1.52, 0.34, 0.86, 0.34, 0, 0, HX);             // 後保險桿
-  push(P.cyl, '#d4d8dd', -0.28, 0.68, -1.46, 0.2, 0.46, 0.2, HX); push(P.cyl, '#d4d8dd', 0.28, 0.68, -1.46, 0.2, 0.46, 0.2, HX);
-  push(P.cyl, '#3a3d44', -0.28, 0.68, -1.7, 0.13, 0.04, 0.13, HX); push(P.cyl, '#3a3d44', 0.28, 0.68, -1.7, 0.13, 0.04, 0.13, HX);
+  pushM(P.cyl, '#d4d8dd', -0.28, 0.68, -1.46, 0.2, 0.46, 0.2, HX); pushM(P.cyl, '#d4d8dd', 0.28, 0.68, -1.46, 0.2, 0.46, 0.2, HX);
+  pushM(P.cyl, '#3a3d44', -0.28, 0.68, -1.7, 0.13, 0.04, 0.13, HX); pushM(P.cyl, '#3a3d44', 0.28, 0.68, -1.7, 0.13, 0.04, 0.13, HX);
   push(P.cap, K, 0, 1.06, -1.32, 0.3, 0.8, 0.3, 0, 0, HX);               // 尾翼
   push(P.box, trim, -0.52, 0.86, -1.3, 0.08, 0.32, 0.18); push(P.box, trim, 0.52, 0.86, -1.3, 0.08, 0.32, 0.18);
   push(P.cyl, trim, 0, 0.8, 0.6, 0.08, 0.5, 0.08, -0.9);                 // 方向盤柱
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.52, metalness: 0.04 });
   const body = shadowed(new THREE.Mesh(mergeGeos(list), mat), true, true);
-  const root = new THREE.Group(); const tilt = new THREE.Group(); root.add(tilt); tilt.add(body);
+  const mmat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, metalness: 0.85 });
+  const root = new THREE.Group(); const tilt = new THREE.Group(); root.add(tilt); tilt.add(body); tilt.add(shadowed(new THREE.Mesh(mergeGeos(metal), mmat), true, true));
   root.rotation.order = 'YXZ';
   const rig = buildDriver(ch, P, mat); tilt.add(rig.drv); tilt.add(rig.sw);
   const Z = Math.PI / 2;
   const wg = mergeGeos([part(P.wheel, '#26272c', 0, 0, 0, 1, 1, 1, 0, 0, Z), part(P.torus, '#34363d', 0.5, 0, 0, 0.82, 0.82, 1.2, 0, Z), part(P.torus, '#34363d', -0.5, 0, 0, 0.82, 0.82, 1.2, 0, Z),
     part(P.cyl, cream, 0.06, 0, 0, 0.56, 1.02, 0.56, 0, 0, Z), part(P.cyl, '#8b8f98', 0.08, 0, 0, 0.2, 1.06, 0.2, 0, 0, Z)]);
-  const wmat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 });
+  const wmat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 });
   const wheels = [];
   [[-0.92, 0.4, 1.0, 0.8, 0.4, 1], [0.92, 0.4, 1.0, 0.8, 0.4, 1], [-0.98, 0.47, -0.95, 0.94, 0.5, 0], [0.98, 0.47, -0.95, 0.94, 0.5, 0]].forEach(([x, y, z, d, w, front]) => {
     const piv = new THREE.Group(); piv.position.set(x, y, z); const m = shadowed(new THREE.Mesh(wg, wmat), true, false); m.scale.set(w * Math.sign(x), d, d); piv.add(m); tilt.add(piv); wheels.push({ piv, m, front, r: d / 2 });
@@ -1000,7 +1006,7 @@ function buildKart(ch) {
   const flame = new THREE.Group(); const fm = new THREE.MeshBasicMaterial({ color: 0xffb13a }), fm2 = new THREE.MeshBasicMaterial({ color: 0xfff3b0 });
   [-0.28, 0.28].forEach(x => { const c = new THREE.Mesh(P.cone, fm); c.scale.set(0.34, 1.2, 0.34); c.rotation.x = -Math.PI / 2; c.position.set(x, 0.68, -2.3); flame.add(c); const c2 = new THREE.Mesh(P.cone, fm2); c2.scale.set(0.18, 0.7, 0.18); c2.rotation.x = -Math.PI / 2; c2.position.set(x, 0.68, -2.05); flame.add(c2); });
   flame.visible = false; tilt.add(flame);
-  return { root, tilt, body, mat, wheels, flame, rig, anim: newAnim() };
+  return { root, tilt, body, mat, metal: mmat, wheels, flame, rig, anim: newAnim() };
 }
 function balloonGroup(color) {
   const P = prims(); const g = new THREE.Group(); const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.3 }); const sm = new THREE.MeshBasicMaterial({ color: 0x3a3028 });
@@ -1397,6 +1403,17 @@ function disposeGroup(g) {
   const keep = new Set(Object.values(prims()));
   g.traverse(o => { if (o.geometry && !keep.has(o.geometry)) o.geometry.dispose(); if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose()); });
 }
+let PMG = null;
+function skyEnv(top, hor, ground, sunCol, sunDir) {
+  if (!PMG) PMG = new THREE.PMREMGenerator(renderer);
+  const es = new THREE.Scene(), geo = new THREE.SphereGeometry(10, 32, 16), A = new THREE.Color(top), B = new THREE.Color(hor), C = new THREE.Color(ground), col = [], p = geo.attributes.position, c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) { const y = p.getY(i) / 10; if (y >= 0) c.copy(B).lerp(A, Math.pow(y, 0.6)); else c.copy(B).lerp(C, Math.min(1, -y * 5)); col.push(c.r, c.g, c.b); }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  es.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(sunCol).multiplyScalar(7) }));
+  sun.position.set(sunDir[0] * 8, sunDir[1] * 8, sunDir[2] * 8); es.add(sun);
+  const rt = PMG.fromScene(es, 0.02); es.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); return rt;
+}
 function setWorld(kind, def) {
   if (World.group) { scene.remove(World.group); disposeGroup(World.group); }
   for (const k of G.karts) { scene.remove(k.model.root); disposeGroup(k.model.root); scene.remove(k.shadow); k.shadow.geometry.dispose(); k.shadow.material.dispose(); scene.remove(k.model.trail.mesh); k.model.trail.mesh.geometry.dispose(); k.model.trail.mesh.material.dispose(); }
@@ -1407,6 +1424,10 @@ function setWorld(kind, def) {
   scene.fog = new THREE.Fog(T.th.fog, T.th.fogN, T.th.fogF); scene.background = new THREE.Color(T.th.fog);
   hemi.color.set(T.th.amb); hemi.groundColor.set(def.theme === 'cinder' ? '#3a1208' : '#6b5a44'); hemi.intensity = def.theme === 'cinder' ? 1.3 : 1.15;
   sunLight.color.set(T.th.sun); sunLight.intensity = T.th.lightI;
+  // 反射環境：用這張地圖的天空漸層＋太陽烘一張 PMREM，車殼與金屬件才映得出天空和地面（賽道是 Lambert，不受影響）
+  if (World.env) World.env.dispose();
+  const gnd = { grass: '#5d8a43', sand: '#c98d55', snow: '#dfe6f0', lava: '#3a1208' }[T.th.ground] || '#6b5a44';
+  World.env = skyEnv(T.th.sky[0], T.th.sky[1], gnd, T.th.sun, SUN_DIR); scene.environment = World.env.texture; scene.environmentIntensity = def.theme === 'cinder' ? 0.35 : 0.5;
   // 道具箱：天藍色問號方塊
   G.boxMeshes = [];
   const qt = getTex('qbox'); const og = new THREE.BoxGeometry(1.9, 1.9, 1.9);
@@ -1962,7 +1983,7 @@ function loadGhost(id) {
   const rec = store.get('tt:' + id, null); G.ghost = null;
   if (rec && rec.ghost && rec.ghost.length > 8) {
     const ch = CHARS[rec.char] || CHARS[0]; const m = buildKart(ch); const gm = m.mat.clone(); gm.transparent = true; gm.opacity = 0.45; gm.depthWrite = false;
-    m.root.traverse(o => { if (o.isMesh) { if (o.material === m.mat) o.material = gm; o.castShadow = false; } }); m.mat = gm;
+    m.root.traverse(o => { if (o.isMesh) { if (o.material === m.mat || o.material === m.metal) o.material = gm; o.castShadow = false; } }); m.mat = gm;
     m.wheels.forEach(w => { w.m.material = w.m.material.clone(); w.m.material.transparent = true; w.m.material.opacity = 0.45; w.m.castShadow = false; });
     scene.add(m.root); G.ghost = { m, data: rec.ghost };
     const disposeOld = World.ghostModel; if (disposeOld) scene.remove(disposeOld); World.ghostModel = m.root;
@@ -2557,8 +2578,9 @@ function placeShowCam() { const p = portrait(); showCam.fov = p ? 46 : 34; if (p
 function buildShowroom() {
   // 車庫：暖色地磚、後牆藍色腰線、輪胎堆、工具箱；中央圓台打一道頂光
   showScene = new THREE.Scene(); const bgc = new THREE.Color('#efe2cc'); showScene.background = bgc; showScene.fog = new THREE.Fog(bgc, 26, 60);
-  showScene.add(new THREE.HemisphereLight(0xfff6ea, 0xc9b496, 1.45));
-  const d = new THREE.DirectionalLight(0xfff4e2, 2.1); d.position.set(3, 12, 7); d.castShadow = true; const dc = d.shadow.camera; dc.left = dc.bottom = -8; dc.right = dc.top = 8; dc.near = 1; dc.far = 40; d.shadow.mapSize.set(1024, 1024); d.shadow.bias = -0.0006; d.shadow.normalBias = 0.03; showScene.add(d);
+  showScene.environment = skyEnv('#fff8ee', '#efe2cc', '#e2d2b8', '#fffbef', [0.15, 1, 0.35]).texture; showScene.environmentIntensity = 0.3; // 車庫的暖色反光＋頂光（半球光同步調低，總亮度不變）
+  showScene.add(new THREE.HemisphereLight(0xfff6ea, 0xc9b496, 1.2));
+  const d = new THREE.DirectionalLight(0xfff4e2, 2.3); d.position.set(3, 12, 7); d.castShadow = true; const dc = d.shadow.camera; dc.left = dc.bottom = -8; dc.right = dc.top = 8; dc.near = 1; dc.far = 40; d.shadow.mapSize.set(1024, 1024); d.shadow.bias = -0.0006; d.shadow.normalBias = 0.03; showScene.add(d);
   showCam = new THREE.PerspectiveCamera(36, 1, 0.1, 200);
   const P = prims(); const std = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.75 });
   const tiles = canvasTex(128, 128, (g, w, h) => { g.fillStyle = '#f3e7d3'; g.fillRect(0, 0, w, h); softNoise(g, w, h, ['#f6ecdb', '#ecdfc8', '#f1e4cf'], 5, 0.6, 31); g.fillStyle = '#d8c6a8'; g.fillRect(0, 0, w, 3); g.fillRect(0, 0, 3, h); });

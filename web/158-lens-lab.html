@@ -188,7 +188,7 @@ canvas{display:block}
 <section class="stage" aria-label="3D 光學實驗台">
   <div class="glwrap" id="glwrap">
     <canvas id="gl" tabindex="0" aria-describedby="orbitHelp" aria-label="3D 光學實驗台：剖開的鏡頭、感光元件、螢幕與玻璃箱微縮場景。拖曳旋轉視角，拖動鏡頭上的對焦環改變對焦，點場景裡的東西就對焦到那裡。"></canvas>
-    <p class="orbit-help" id="orbitHelp">拖曳或方向鍵旋轉 · ＋／－縮放 · Home 重設視角</p>
+    <p class="orbit-help" id="orbitHelp">拖曳或方向鍵旋轉 · 滾輪或＋／－縮放 · Home 重設視角</p>
     <div class="tags" id="tags" aria-hidden="true"></div>
     <div class="boot" id="boot"><div><b>3D 實驗台載入中…</b>需要連到 cdn.jsdelivr.net 載入 Three.js</div></div>
   </div>
@@ -1254,7 +1254,7 @@ const pick = [];
     const x = gp.getX(i), z = gp.getZ(i), edge = Math.abs(z) > HALF_W / DIO - 0.002 || Math.abs(x) > gw / DIO / 2 - 0.002;
     const n = Math.sin(x * 61) * Math.cos(z * 47) * 0.5 + Math.sin(x * 23 + z * 31) * 0.5;
     const pathD = Math.abs(z - (0.35 + 0.4 * Math.sin((x + gw / DIO / 2) * 9)) / DIO);
-    gp.setY(i, edge ? 0 : n * 0.0016 * Math.min(1, pathD * 60));
+    gp.setY(i, edge ? 0 : 0.0018 + n * 0.0016 * Math.min(1, pathD * 60)); // 整片墊高 1.8 mm：起伏最低處也高過底座頂面，不再和底座 z-fighting
     const onPath = pathD < 0.55 / DIO;
     const c = onPath ? new T.Color(0.36, 0.27, 0.17) : new T.Color(0.2 + n * 0.03, 0.4 + n * 0.05, 0.16);
     cols.push(c.r, c.g, c.b);
@@ -1606,16 +1606,20 @@ const orbit = { target: VIEWS.all.target.clone(), yaw: VIEWS.all.yaw, pitch: VIE
 function fitDist(width) { const hf = 2 * Math.atan(Math.tan(cam.fov * Math.PI / 360) * cam.aspect); return width / 2 / Math.tan(hf / 2) + 0.15; }
 function setView(name, instant) {
   const v = name === 'all' ? { target: new T.Vector3(-0.16, 1.3, -0.1), yaw: 0.06, pitch: 0.18, fit: 2.6 } : VIEWS[name];
-  orbit.goal = { target: v.target.clone(), yaw: v.yaw, pitch: v.pitch, dist: Math.max(fitDist(v.fit), name === 'all' ? 1.2 : 0.55) };
+  orbit.goal = { target: v.target.clone(), yaw: v.yaw, pitch: v.pitch, dist: Math.max(fitDist(v.fit), name === 'all' ? 1.2 : 0.55) }; orbit.vel = null;
   if (instant || REDUCED) { Object.assign(orbit, { target: orbit.goal.target, yaw: orbit.goal.yaw, pitch: orbit.goal.pitch, dist: orbit.goal.dist }); orbit.goal = null; }
   document.querySelectorAll('.views button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
   kick();
 }
 let viewName = 'all';
 document.querySelectorAll('.views button').forEach(b => b.addEventListener('click', () => { viewName = b.dataset.view; setView(viewName); }));
-function applyCam() {
+function applyCam(dt = 1 / 60) {
+  if (orbit.vel) { // 放開後的慣性：角速度指數衰減
+    orbit.yaw = clamp(orbit.yaw + orbit.vel.y * dt, -0.9, 0.9); orbit.pitch = clamp(orbit.pitch + orbit.vel.p * dt, 0.02, 0.75);
+    const d = Math.exp(-dt * 5); orbit.vel.y *= d; orbit.vel.p *= d; if (Math.abs(orbit.vel.y) + Math.abs(orbit.vel.p) < 0.01) orbit.vel = null;
+  }
   if (orbit.goal) {
-    const g = orbit.goal, k = 0.12;
+    const g = orbit.goal, k = 1 - Math.exp(-dt * 7.7); // 與幀率無關（60 fps 時約 0.12）
     orbit.target.lerp(g.target, k); orbit.yaw += (g.yaw - orbit.yaw) * k; orbit.pitch += (g.pitch - orbit.pitch) * k; orbit.dist += (g.dist - orbit.dist) * k;
     if (Math.abs(g.dist - orbit.dist) < 1e-4 && orbit.target.distanceTo(g.target) < 1e-4 && Math.abs(g.yaw - orbit.yaw) < 1e-4) orbit.goal = null;
   }
@@ -1644,7 +1648,8 @@ canvas.addEventListener('pointerdown', e => {
   if (h && isIn(h.object, focusRing.group)) mode = 'focus';
   else if (h && isIn(h.object, zoomRing.group)) mode = 'zoom';
   else if (h && pick.includes(h.object)) mode = 'pick';
-  drag = { pointerId:e.pointerId, mode, x: e.clientX, y: e.clientY, moved: 0, u: LAB.state.u, f0: LAB.state.f0, yaw: orbit.yaw, pitch: orbit.pitch, hit: h };
+  orbit.vel = null;
+  drag = { pointerId:e.pointerId, mode, x: e.clientX, y: e.clientY, moved: 0, u: LAB.state.u, f0: LAB.state.f0, yaw: orbit.yaw, pitch: orbit.pitch, hit: h, lt: e.timeStamp, vy: 0, vp: 0 };
   if (mode !== 'orbit' || e.pointerType !== 'touch') canvas.setPointerCapture(e.pointerId);
   if (mode === 'focus' || mode === 'zoom') LAB.stopAnim();
   canvas.classList.add('drag');
@@ -1665,7 +1670,9 @@ canvas.addEventListener('pointermove', e => {
   else if (drag.mode === 'zoom') { s.f0 = clamp(Math.round(drag.f0 * Math.exp((dx - dy) / LAB.KZ) * 10) / 10, LAB.ZMIN, LAB.ZMAX); LAB.update(); }
   else if (drag.mode === 'orbit' || (drag.mode === 'pick' && drag.moved > 5)) {
     drag.mode = 'orbit'; orbit.goal = null;
-    orbit.yaw = clamp(drag.yaw - dx * 0.004, -0.9, 0.9); orbit.pitch = clamp(drag.pitch + dy * 0.003, 0.02, 0.75); kick();
+    const py = orbit.yaw, pp = orbit.pitch, dtm = Math.max(4, e.timeStamp - drag.lt) / 1000;
+    orbit.yaw = clamp(drag.yaw - dx * 0.004, -0.9, 0.9); orbit.pitch = clamp(drag.pitch + dy * 0.003, 0.02, 0.75);
+    drag.vy = drag.vy * 0.5 + (orbit.yaw - py) / dtm * 0.5; drag.vp = drag.vp * 0.5 + (orbit.pitch - pp) / dtm * 0.5; drag.lt = e.timeStamp; kick();
   }
 });
 const endDrag = e => {
@@ -1674,20 +1681,25 @@ const endDrag = e => {
     const D = (drag.hit.point.x - X0) * DIO * 1000; // 場景座標 → 真實距離（從感光元件起算）
     LAB.focusTo(D);
   }
-  drag = null; canvas.classList.remove('drag');
+  if (e.type === 'pointerup' && drag.mode === 'orbit' && !REDUCED && e.timeStamp - drag.lt < 90) { orbit.vel = { y: clamp(drag.vy, -3, 3), p: clamp(drag.vp, -2, 2) }; }
+  drag = null; canvas.classList.remove('drag'); kick();
 };
 canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag); canvas.addEventListener('lostpointercapture',endDrag);
 canvas.addEventListener('keydown',e=>{
   if(e.altKey||e.ctrlKey||e.metaKey)return;
   if(e.key==='Home'){e.preventDefault();setView(viewName);return;}
   if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','_'].includes(e.key))return;
-  e.preventDefault();orbit.goal=null;
+  e.preventDefault();orbit.goal=null;orbit.vel=null;
   if(e.key==='ArrowLeft'||e.key==='ArrowRight')orbit.yaw=clamp(orbit.yaw+(e.key==='ArrowLeft'?-.06:.06),-.9,.9);
   else if(e.key==='ArrowUp'||e.key==='ArrowDown')orbit.pitch=clamp(orbit.pitch+(e.key==='ArrowUp'?.04:-.04),.02,.75);
   else orbit.dist=clamp(orbit.dist*(['+','='].includes(e.key)?.9:1.1),.55,8);
   kick();
 });
 canvas.addEventListener('dblclick', e => e.preventDefault());
+canvas.addEventListener('wheel', e => { // 滾輪／觸控板縮放，範圍與 ＋／－ 相同
+  e.preventDefault(); orbit.goal = null;
+  orbit.dist = clamp(orbit.dist * Math.exp(e.deltaY * (e.deltaMode ? 0.05 : e.ctrlKey ? 0.01 : 0.0015)), 0.55, 8); kick();
+}, { passive: false });
 
 // ——— 快照膠卷 ———
 const film = $('film');
@@ -1765,13 +1777,13 @@ function kick() { if (!raf) raf = requestAnimationFrame(loop); }
 function loop(t) {
   raf = 0;
   if (needPhoto) { renderPhoto(LAB.M || LAB.compute()); needPhoto = false; }
-  applyCam();
+  applyCam(last ? Math.min(0.05, (t - last) / 1000) : 1 / 60);
   particles.visible = LAB.state.rays;
   if (LAB.state.rays) moveParticles(REDUCED ? 0 : t);
   renderer.render(scene, cam);
   placeTags();
   last = t;
-  if (visible && !document.hidden && ((LAB.state.rays && !REDUCED) || orbit.goal || drag)) kick();
+  if (visible && !document.hidden && ((LAB.state.rays && !REDUCED) || orbit.goal || orbit.vel || drag)) kick(); else last = 0;
 }
 function resize() {
   const w = wrap.clientWidth, h = wrap.clientHeight;

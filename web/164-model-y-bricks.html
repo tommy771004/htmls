@@ -151,6 +151,8 @@ footer.colophon a { color: var(--ink) }
 .hint button{font:inherit;color:var(--ink-2);border:1px solid var(--rule);background:var(--paper);padding:7px 12px;border-radius:5px;min-height:36px;cursor:pointer;margin-bottom:8px}
 #stage:focus-visible{outline:2px solid var(--mark);outline-offset:-3px}
 @media(max-width:860px){.hint{display:block;top:auto;bottom:72px;font-size:0;line-height:0}.hint button{min-height:44px;font-size:12px;line-height:1.4;margin:0}}
+
+.pager button,.hint button,.ticks{min-height:44px}.ticks:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 </style>
 </head>
 <body>
@@ -236,7 +238,8 @@ import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 const BASE = '../assets/model-y-bricks/';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
+let reduceMotion = motionQuery.matches;
 const [mesh, bom, report] = await Promise.all(['model-y.mesh.json', 'bom.json', 'verify-report.json'].map((f) => fetch(BASE + f).then((r) => { if (!r.ok) throw new Error(f); return r.json(); })));
 const STEPS = mesh.steps.length;
 const lotOf = (f, c) => bom.lots.find((l) => l.ldraw === f && l.color === c);
@@ -328,7 +331,7 @@ $('loading').remove();
 
 // ---------- 步驟 ----------
 let cur = 0, anim = null;
-const T_IN = reduceMotion ? 0 : 520;
+let T_IN = reduceMotion ? 0 : 520;
 const ticks = $('ticks');
 ticks.setAttribute('aria-valuemax', STEPS);
 ticks.innerHTML = '<i></i>'.repeat(STEPS + 1);
@@ -360,6 +363,7 @@ function show(n, animate = true) {
   $('stepTitle').textContent = n === 0 ? '完成圖' : mesh.steps[n - 1].title;
   $('readout').textContent = n === 0 ? `共 ${STEPS} 步` : `第 ${n} 步，共 ${STEPS} 步`;
   ticks.setAttribute('aria-valuenow', n);
+  ticks.setAttribute('aria-valuetext', n === 0 ? '完成圖' : `第 ${n} 步，共 ${STEPS} 步：${mesh.steps[n - 1].title}`);
   tickEls.forEach((t, i) => { t.classList.toggle('cur', i === n); t.classList.toggle('done', i > 0 && i < n); });
   $('prev').disabled = n === 0; $('next').disabled = n === STEPS;
   callout(n);
@@ -388,13 +392,19 @@ requestAnimationFrame(tick);
 $('prev').onclick = () => { stop(); show(cur - 1); };
 $('next').onclick = () => { stop(); show(cur + 1); };
 addEventListener('keydown', (e) => {
-  if (e.target.closest('input, textarea, select, button, a, canvas')) return;
+  if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.target.closest('input, textarea, select, button, a, canvas, #ticks, [contenteditable=true]')) return;
   if (e.key === 'ArrowRight') { e.preventDefault(); stop(); show(cur + 1); }
   if (e.key === 'ArrowLeft') { e.preventDefault(); stop(); show(cur - 1); }
 });
 function tickAt(x) { const r = ticks.getBoundingClientRect(); return Math.round(((x - r.left) / r.width) * STEPS); }
-ticks.addEventListener('pointerdown', (e) => { stop(); ticks.setPointerCapture(e.pointerId); show(tickAt(e.clientX), false); });
+ticks.addEventListener('pointerdown', (e) => { if (!e.isPrimary || e.button !== 0) return; stop(); ticks.setPointerCapture(e.pointerId); show(tickAt(e.clientX), false); });
 ticks.addEventListener('pointermove', (e) => { if (e.buttons && ticks.hasPointerCapture(e.pointerId)) { const n = tickAt(e.clientX); if (n !== cur) show(n, false); } });
+ticks.addEventListener('keydown', e => {
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  const next = {ArrowRight:cur+1, ArrowUp:cur+1, ArrowLeft:cur-1, ArrowDown:cur-1, Home:0, End:STEPS}[e.key];
+  if (next === undefined) return;
+  e.preventDefault(); e.stopPropagation(); stop(); show(next, false);
+});
 let timer = null;
 function stop() { clearInterval(timer); timer = null; $('playIcon').innerHTML = '<path d="M5 3.5v11l9-5.5z" fill="currentColor"/>'; $('play').setAttribute('aria-label', '自動播放'); }
 $('play').onclick = () => {
@@ -405,6 +415,9 @@ $('play').onclick = () => {
   timer = setInterval(() => { if (cur >= STEPS) { stop(); return; } show(cur + 1); }, 1500);
 };
 show(0, false);
+motionQuery.addEventListener('change', e => { reduceMotion = e.matches; T_IN = reduceMotion ? 0 : 520; controls.enableDamping = !reduceMotion; if (reduceMotion) stop(); });
+controls.enableDamping = !reduceMotion;
+document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
 
 // ---------- 驗證報告 ----------
 const S = report.summary;

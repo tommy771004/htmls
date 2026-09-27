@@ -35,6 +35,7 @@ let THREE;
 try { THREE = await import('../vendor/three-0.186.0/three.module.js'); }
 catch { try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); }
   catch (e) { document.getElementById('error').hidden=false; throw e; } }
+import {createStudioEnvironment} from './assets/3d/studio.js';
 
 const $=id=>document.getElementById(id);
 const canvas=$('scene'), form=$('form'), input=$('promise'), feedback=$('feedback');
@@ -50,10 +51,10 @@ renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFShadowMap;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color('#343e35');
-scene.fog=new THREE.FogExp2('#596858',.021);
+scene.fog=new THREE.FogExp2('#596858',.021);scene.environment=createStudioEnvironment(THREE,renderer).texture;scene.environmentIntensity=.22;
 const camera=new THREE.PerspectiveCamera(42,stageWidth()/innerHeight,.1,150);
 const hemi=new THREE.HemisphereLight(0xd5e1d3,0x625342,1.35);scene.add(hemi);
-const sun=new THREE.DirectionalLight(0xffd69a,2.15);sun.position.set(-4,7,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.bias=-.00025;sun.shadow.normalBias=.012;scene.add(sun);
+const sun=new THREE.DirectionalLight(0xffd69a,2.15);sun.position.set(-4,7,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.bias=-.00025;sun.shadow.normalBias=.012;sun.shadow.radius=2;scene.add(sun);
 const lamp=new THREE.PointLight(0xffb76d,45,11,2);lamp.position.set(3.6,5.7,2.3);scene.add(lamp);
 const lamp2=new THREE.PointLight(0xffd9a4,20,9,2);lamp2.position.set(-5.2,5.2,2);scene.add(lamp2);
 const mat=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
@@ -102,11 +103,14 @@ function textureForNote(note){const s=STYLES[note.style],c=document.createElemen
   const wrap=(size)=>{g.font=`${note.style==='wood'?'600':'500'} ${size}px Georgia,"Noto Serif TC","PingFang TC",serif`;const out=[];for(const para of note.text.split('\n')){let line='';for(const ch of para){if(g.measureText(line+ch).width>650&&line){out.push(line);line=ch;}else line+=ch;}out.push(line);}return out;};
   let size=note.style==='sticky'?42:45,lines=wrap(size);while((lines.length>5||lines.length*size*1.38>317)&&size>25){size-=2;lines=wrap(size);}g.font=`${note.style==='wood'?'600':'500'} ${size}px Georgia,"Noto Serif TC","PingFang TC",serif`;g.textBaseline='middle';let y=252-(lines.length-1)*size*.69;for(const line of lines){g.fillText(line,56,y,655);y+=size*1.38;}
   g.globalAlpha=.52;g.font='19px ui-monospace,monospace';g.textAlign='right';g.fillText(note.demo?'MOUNTAIN CAFÉ':'MY PROMISE',717,466);g.globalAlpha=1;return canvasTexture(c);}
-function createNote(note,animate=false){const s=STYLES[note.style];note.restZ=note.style==='wood'?0:-.05;const group=new THREE.Group();group.position.set(note.x,note.y,note.restZ);group.rotation.z=note.rot;scene.add(group);
+function createNote(note,animate=false){const s=STYLES[note.style];note.restZ={wood:-.0105,sticky:-.097,card:-.089,strip:-.108}[note.style];const group=new THREE.Group();group.position.set(note.x,note.y,note.restZ);group.rotation.z=note.rot;scene.add(group);
   let backing;if(note.style==='wood'){backing=box(group,walnut,0,0,-.045,s.w,s.h,.105,true);for(const x of [-s.w*.43,s.w*.43]){const nail=new THREE.Mesh(new THREE.SphereGeometry(.038,8,6),bronze);nail.position.set(x,s.h*.36,.022);group.add(nail);}}
-  else {backing=box(group,mat(note.style==='card'?'#899f95':'#c2a47a'),0,-.025,-.026,s.w+.035,s.h+.035,.035,true);if(note.style==='sticky'){const curl=new THREE.Mesh(new THREE.PlaneGeometry(.22,.22),new THREE.MeshStandardMaterial({color:'#f7dba1',side:THREE.DoubleSide,roughness:1}));curl.position.set(s.w*.42,-s.h*.42,.029);curl.rotation.y=-.4;curl.rotation.z=.12;group.add(curl);}}
-  const front=new THREE.Mesh(new THREE.PlaneGeometry(s.w,s.h),new THREE.MeshStandardMaterial({map:textureForNote(note),roughness:note.style==='wood'?.83:1,side:THREE.DoubleSide}));front.position.z=.028;front.castShadow=true;front.userData.note=note;group.add(front);noteMeshes.push(front);note.group=group;note.front=front;
-  if(note.style==='strip'){const tape=new THREE.Mesh(new THREE.PlaneGeometry(.34,.18),new THREE.MeshStandardMaterial({color:'#c7b9a1',transparent:true,opacity:.77,side:THREE.DoubleSide,roughness:1}));tape.position.set(0,s.h*.48,.06);tape.rotation.z=-.08;group.add(tape);}else if(note.style==='card'){const pin=new THREE.Mesh(new THREE.SphereGeometry(.065,12,8),mat('#bd704d',.38));pin.position.set(0,s.h*.43,.08);group.add(pin);}
+  // Paper sits flush on the plaster: a sticky pad keeps a thin darker stack under its top sheet, a card has card-stock thickness, a strip is a single taped sheet.
+  else if(note.style!=='strip'){const th=note.style==='card'?.02:.012;backing=box(group,mat(new THREE.Color(note.style==='card'?'#9fb3a8':s.color).multiplyScalar(note.style==='card'?1:.8)),0,0,-th/2,s.w,s.h,th,true);}
+  // Adhesive holds only the top edge, so the free paper lifts: the sticky sheet peels most at its lower right, a taped strip curls at both lower corners, a pinned card bows slightly.
+  const lift={sticky:.075,strip:.04,card:.018,wood:0}[note.style],seg=lift?10:1,frontGeo=new THREE.PlaneGeometry(s.w,s.h,seg,seg);if(lift){const pos=frontGeo.attributes.position;for(let i=0;i<pos.count;i++){const u=pos.getX(i)/s.w+.5,v=pos.getY(i)/s.h+.5,free=Math.pow(Math.max(0,1-v),2.2);pos.setZ(i,lift*free*(note.style==='sticky'?.35+.65*u:note.style==='strip'?.35+1.3*Math.abs(u-.5):1));}frontGeo.computeVertexNormals();}
+  const front=new THREE.Mesh(frontGeo,new THREE.MeshStandardMaterial({map:textureForNote(note),roughness:note.style==='wood'?.83:.92,side:THREE.DoubleSide}));front.position.z=note.style==='wood'?.0095:.0015;front.castShadow=true;front.userData.note=note;group.add(front);noteMeshes.push(front);note.group=group;note.front=front;
+  if(note.style==='strip'){const tape=new THREE.Mesh(new THREE.PlaneGeometry(.34,.18),new THREE.MeshStandardMaterial({color:'#c7b9a1',transparent:true,opacity:.77,side:THREE.DoubleSide,roughness:1}));tape.position.set(0,s.h*.48,.007);tape.rotation.z=-.08;group.add(tape);}else if(note.style==='card'){const pin=new THREE.Mesh(new THREE.SphereGeometry(.065,12,8),mat('#bd704d',.38));pin.scale.z=.6;pin.position.set(0,s.h*.43,.045);group.add(pin);}
   if(animate){group.position.set(note.x,note.y+.65,2.4);group.rotation.set(-.3,.28,note.rot+.27);group.scale.setScalar(.7);note.animation={t:0,duration:1.15};}notes.push(note);updateCount();return note;}
 const examples=[
   ['下次上山，記得慢慢走。','strip',-3.65,4.92,-.07],['每週留一晚，陪家人吃飯。','sticky',-1.9,4.65,.045],['把說出口的謝謝，說得更勤一些。','card',.25,4.9,-.035],['好好睡覺，也是一種勇敢。','wood',2.8,4.83,.055],
@@ -141,6 +145,7 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();targetDistance=THREE.Math
 canvas.addEventListener('keydown',e=>{const step=.12;if(e.key==='ArrowLeft')targetYaw=THREE.MathUtils.clamp(targetYaw+step,-.62,.62);else if(e.key==='ArrowRight')targetYaw=THREE.MathUtils.clamp(targetYaw-step,-.62,.62);else if(e.key==='ArrowUp')targetPitch=THREE.MathUtils.clamp(targetPitch-step,-.25,.3);else if(e.key==='ArrowDown')targetPitch=THREE.MathUtils.clamp(targetPitch+step,-.25,.3);else if(e.key==='+'||e.key==='=')targetDistance=THREE.MathUtils.clamp(targetDistance*.85,3.1,maxDistance());else if(e.key==='-'||e.key==='_')targetDistance=THREE.MathUtils.clamp(targetDistance*1.15,3.1,maxDistance());else if(e.key==='Home'){fullView();}else if(e.key==='Enter'){const r=canvas.getBoundingClientRect();pickNote(r.left+r.width/2,r.top+r.height/2);}else return;e.preventDefault();});
 const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
 function intersect(x,y){const r=canvas.getBoundingClientRect();mouse.set((x-r.left)/r.width*2-1,-(y-r.top)/r.height*2+1);raycaster.setFromCamera(mouse,camera);return raycaster.intersectObjects(noteMeshes,false)[0]?.object.userData.note||null;}
+let hovered=null;function setHover(n){if(n!==hovered){hovered=n;canvas.classList.toggle('hovering',!!n);}}canvas.addEventListener('pointermove',e=>{if(!pointers.size&&e.pointerType==='mouse')setHover(intersect(e.clientX,e.clientY));});canvas.addEventListener('pointerdown',()=>setHover(null));canvas.addEventListener('pointerleave',()=>setHover(null));
 function pickNote(x,y){const note=intersect(x,y);if(!note){if(focused)resetView();return;}showNote(note);}
 function showNote(note){focused=note;focusView(note);$('detailCard').className='detail-card '+note.style;$('detailLabel').textContent=note.demo?'牆上原有的話 · '+STYLES[note.style].name:'我的承諾 · '+STYLES[note.style].name;$('detailText').textContent=note.text;$('detailDate').textContent=note.demo?'山中咖啡館':note.date||'今天';$('removeNote').hidden=note.demo;$('detail').hidden=false;$('detailClose').focus();}
 function fullView(){focusedFrom=null;focused=null;targetYaw=0;targetPitch=.055;targetCenter.set(0,3.2,0);targetDistance=homeDistance();if(reduced)snapCam=true;}$('homeView').addEventListener('click',fullView);$('notePicker').addEventListener('change',e=>{const note=notes.find(n=>n.id===e.target.value);if(note)showNote(note);e.target.value='';});
@@ -153,7 +158,7 @@ addEventListener('resize',resize);
 const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;let snapCam=false;
 let last=performance.now();
 function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;const d=snapCam?1:1-Math.exp(-7*dt);snapCam=false;yaw+=(targetYaw-yaw)*d;pitch+=(targetPitch-pitch)*d;distance+=(targetDistance-distance)*d;center.lerp(targetCenter,d);camera.position.set(center.x+Math.sin(yaw)*Math.cos(pitch)*distance,center.y+Math.sin(pitch)*distance,center.z+Math.cos(yaw)*Math.cos(pitch)*distance);camera.lookAt(center);
-  for(const n of notes){if(!n.animation)continue;const a=n.animation;a.t=Math.min(1,a.t+dt/(reduced?.25:a.duration));const t=a.t;const settle=1-Math.pow(1-t,3);const w=reduced?0:1-t;n.group.position.z=2.4+(n.restZ-2.4)*settle;n.group.position.y=n.y+.65*(1-settle)+Math.sin(t*20)*.08*w;n.group.rotation.x=-.3*(1-settle)+Math.sin(t*18)*.08*w;n.group.rotation.y=.28*(1-settle);n.group.rotation.z=n.rot+.27*(1-settle)+Math.sin(t*22)*.055*w;n.group.scale.setScalar(.7+.3*settle);if(t>=1)delete n.animation;}
+  for(const n of notes){if(!n.animation){const z=n.restZ+(n===hovered?.05:0);n.group.position.z+=(z-n.group.position.z)*d;continue;}const a=n.animation;a.t=Math.min(1,a.t+dt/(reduced?.25:a.duration));const t=a.t;const settle=1-Math.pow(1-t,3);const w=reduced?0:1-t;n.group.position.z=2.4+(n.restZ-2.4)*settle;n.group.position.y=n.y+.65*(1-settle)+Math.sin(t*20)*.08*w;n.group.rotation.x=-.3*(1-settle)+Math.sin(t*18)*.08*w;n.group.rotation.y=.28*(1-settle);n.group.rotation.z=n.rot+.27*(1-settle)+Math.sin(t*22)*.055*w;n.group.scale.setScalar(.7+.3*settle);if(t>=1)delete n.animation;}
   renderer.render(scene,camera);}
 requestAnimationFrame(frame);
 </script>

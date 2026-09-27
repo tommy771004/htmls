@@ -613,7 +613,8 @@ if (R) {
   U = {
     uW: { value: new T.Vector3(1, 0, 0) }, uDay: { value: 0 }, uH: { value: H }, uGap: { value: GAP }, uNow: { value: S.now }, uFocus: { value: -1 },
     uR: { value: .2 }, uGhost: { value: new T.Color() }, uPlate: { value: new T.Color() }, uInk: { value: new T.Color() }, uHead: { value: new T.Color() },
-    uNight: { value: 1 }, uPix: { value: 600 }, uGhostAmt: { value: 1 }, uHov: { value: -1 }
+    uNight: { value: 1 }, uPix: { value: 600 }, uGhostAmt: { value: 1 }, uHov: { value: -1 },
+    uBg: { value: new T.Color() }, uFogN: { value: 100 }, uFogF: { value: 300 }
   };
   // 路線管：一次合併成單一幾何
   const P = [], N = [], AT = [], AF = [], AL = [], AC = [], IDX = []; let base = 0;
@@ -654,7 +655,7 @@ if (R) {
     vertexShader: HEIGHT_GLSL + `
       attribute vec2 aT; attribute float aFloor, aLine; attribute vec3 aCol;
       uniform float uR;
-      varying vec3 vCol; varying float vAlive, vHead, vFoc; varying vec3 vN;
+      varying vec3 vCol; varying float vAlive, vHead, vFoc; varying vec3 vN; varying vec3 vW; varying float vDep;
       void main(){
         float t = lastT(aT);
         float alive = step(uNow, t);
@@ -663,17 +664,22 @@ if (R) {
         vec3 p = position - normal * uR * (1.0 - k);
         p.y += hgt(t, aFloor);
         vCol = aCol; vAlive = alive; vHead = head; vFoc = focusK(aLine); vN = normal;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0); vW = (modelMatrix * vec4(p, 1.0)).xyz; vDep = -mv.z;
+        gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
-      uniform vec3 uGhost, uPlate, uHead; uniform float uNight;
-      varying vec3 vCol; varying float vAlive, vHead, vFoc; varying vec3 vN;
+      uniform vec3 uGhost, uPlate, uHead, uBg; uniform float uNight, uFogN, uFogF;
+      varying vec3 vCol; varying float vAlive, vHead, vFoc; varying vec3 vN; varying vec3 vW; varying float vDep;
       void main(){
-        float lam = 0.62 + 0.38 * max(dot(normalize(vN), normalize(vec3(-0.35, 1.0, 0.45))), 0.0);
-        vec3 c = vCol * lam * mix(1.0, 0.86, uNight);
+        vec3 N = normalize(vN), L = normalize(vec3(-0.35, 1.0, 0.45)), V = normalize(cameraPosition - vW);
+        float lam = 0.62 + 0.38 * max(dot(N, L), 0.0);
+        float nv = max(dot(N, V), 0.0);
+        vec3 c = vCol * lam * mix(1.0, 0.86, uNight) * mix(0.78, 1.0, nv);           // 管子邊緣略暗，看得出是圓的
+        c += vec3(pow(max(dot(N, normalize(L + V)), 0.0), 36.0) * 0.22 * vAlive);     // 沿管身一道細高光
         c = mix(uGhost, c, vAlive);
         c = mix(c, uHead, vHead * 0.8);
         c = mix(mix(uPlate, uGhost, 0.55), c, mix(0.14, 1.0, vFoc));
+        c = mix(c, uBg, smoothstep(uFogN, uFogF, vDep) * 0.38);                       // 空氣透視：遠端的線稍微退向背景
         gl_FragColor = vec4(c, 1.0);
       }`
   }));
@@ -688,8 +694,13 @@ if (R) {
   }));
   scene.add(ghost);
   // 地盤
-  plate = new T.Mesh(new T.PlaneGeometry(bx1 - bx0, bz1 - bz0).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0x000000 }));
-  plate.position.set(CX, -0.3, CZ); scene.add(plate);
+  // 地盤做成有厚度的石板：頂面中央亮、四周略暗（像燈打在桌上），側面依朝向分兩種深淺，地圖才有實體感；頂面仍在 y = -0.3
+  const SLAB = 2.2, vc = document.createElement('canvas'); vc.width = vc.height = 256;
+  { const g = vc.getContext('2d'), gr = g.createRadialGradient(128, 128, 8, 128, 128, 182); gr.addColorStop(0, '#ffffff'); gr.addColorStop(.5, '#f2f2f2'); gr.addColorStop(1, '#c6c6c6'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256); }
+  const vtex = new T.CanvasTexture(vc); vtex.colorSpace = T.SRGBColorSpace;
+  const plateTop = new T.MeshBasicMaterial({ color: 0x000000, map: vtex }), slabA = new T.MeshBasicMaterial({ color: 0x000000 }), slabB = new T.MeshBasicMaterial({ color: 0x000000 });
+  plate = new T.Mesh(new T.BoxGeometry(bx1 - bx0, SLAB, bz1 - bz0), [slabB, slabB, plateTop, slabB, slabA, slabA]);
+  plate.position.set(CX, -0.3 - SLAB / 2, CZ); scene.add(plate);
   // 比例尺刻度：地盤四邊每 5 km 一格
   const tk = [];
   for (let x = Math.ceil(bx0 / 5) * 5; x <= bx1; x += 5) { const l = x % 25 === 0 ? 1.6 : .7; tk.push(x, -.28, bz0, x, -.28, bz0 + l, x, -.28, bz1, x, -.28, bz1 - l); }
@@ -770,7 +781,8 @@ if (R) {
     R.setClearColor(g('--bg'));
     U.uGhost.value.copy(g('--ghost')); U.uPlate.value.copy(g('--plate')); U.uInk.value.copy(g('--ink'));
     U.uHead.value.set(night ? 0xfff0cc : 0xffffff); U.uNight.value = night ? 1 : 0;
-    plate.material.color.copy(g('--plate'));
+    const pc = g('--plate'); plateTop.color.copy(pc); slabA.color.copy(pc).multiplyScalar(night ? .62 : .8); slabB.color.copy(pc).multiplyScalar(night ? .45 : .7);
+    U.uBg.value.copy(g('--bg'));
     ticks.material.color.copy(g('--faint'));
     plane.material.color.copy(g('--bg')); plane.material.opacity = night ? .62 : .58;
     planeEdge.material.color.copy(g('--amber'));
@@ -788,6 +800,7 @@ cam.dist = 260; cam.pol = .25; goal.dist = frameDist();
 function resetView(){Object.assign(goal,{tx:CX,ty:[13,15,0][S.mode],tz:CZ+2,az:.06,pol:.93,dist:frameDist()});hideTip();dirty();}
 $('viewReset').onclick=resetView;
 function applyCam() {
+  if (U) { U.uFogN.value = cam.dist * 0.75; U.uFogF.value = cam.dist * 1.55; }
   const sp = Math.sin(cam.pol);
   camera.position.set(cam.tx + cam.dist * sp * Math.sin(cam.az), cam.ty + cam.dist * Math.cos(cam.pol), cam.tz + cam.dist * sp * Math.cos(cam.az));
   camera.lookAt(cam.tx, cam.ty, cam.tz);
@@ -975,10 +988,11 @@ function frame(now) {
   if (W.cur.some((v, i) => v !== W.to[i])) { const e = ease(wk); W.cur = W.from.map((v, i) => lerp(v, W.to[i], e)); if (wk >= 1) W.cur = W.to.slice(); U.uW.value.set(...W.cur); U.uGhostAmt.value = 1 - W.cur[2]; updatePlane(); needs = 2; }
   const dk = clamp((now - DAYB.t0) / (reduced ? 1 : 700), 0, 1);
   if (DAYB.cur !== DAYB.to) { DAYB.cur = lerp(DAYB.from, DAYB.to, ease(dk)); if (dk >= 1) DAYB.cur = DAYB.to; U.uDay.value = DAYB.cur; needs = 2; }
-  let moving = false;
+  let moving = false; const fdt = Math.min(.1, (now - (frame.last || now)) / 1000) || 1 / 60; frame.last = now;
   for (const k of ['tx', 'ty', 'tz', 'az', 'pol', 'dist']) {
     const d = goal[k] - cam[k];
-    if (Math.abs(d) > (k === 'dist' ? .01 : .0004)) { cam[k] += d * (reduced ? 1 : k === 'dist' || k === 'pol' ? .09 : .16); moving = true; } else cam[k] = goal[k];
+    // 與幀率無關的緩動：60 fps 時等於原本每幀 .09 / .16
+    if (Math.abs(d) > (k === 'dist' ? .01 : .0004)) { cam[k] += d * (reduced ? 1 : 1 - Math.pow(1 - (k === 'dist' || k === 'pol' ? .09 : .16), fdt * 60)); moving = true; } else cam[k] = goal[k];
   }
   if (moving) needs = 2;
   if (needs <= 0) return;

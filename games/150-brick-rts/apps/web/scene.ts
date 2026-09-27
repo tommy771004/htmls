@@ -38,7 +38,7 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  const detail=createDetailController(T);
  const scene=new T.Scene();const camera=new T.OrthographicCamera(-12,12,10,-10,.1,100);
  const ambient=new T.HemisphereLight('#fff5dc','#819b75',2.1);scene.add(ambient);
- const sun=new T.DirectionalLight('#fff1d8',3);sun.position.set(-4,20,12);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14,near:1,far:60});sun.shadow.normalBias=.03;scene.add(sun);sun.target.position.set(8,0,8);scene.add(sun.target);
+ const sun=new T.DirectionalLight('#fff1d8',3);sun.position.set(-4,20,12);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14,near:1,far:60});sun.shadow.normalBias=.03;sun.shadow.radius=2.2;scene.add(sun);sun.target.position.set(8,0,8);scene.add(sun.target);
  const groundGeometries=new Set<any>();const geometry=new Map<string,any>(),materials=new Map<string,any>();
  function material(color:string){if(!materials.has(color))materials.set(color,new T.MeshStandardMaterial({color,roughness:brickStyle.roughness}));return materials.get(color);}
  function box(w:number,h:number,d:number){const key=`${w}:${h}:${d}`;if(geometry.has(key))return geometry.get(key);
@@ -55,7 +55,11 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  function staticPart(geo:any,color:string,x:number,y:number,z:number){if(muted)color='#737b72';const key=geo.uuid+color+'@'+Math.floor(x/8)+','+Math.floor(z/8);if(!batches.has(key))batches.set(key,{geo,color,matrices:[]});batches.get(key)!.matrices.push(new T.Matrix4().makeTranslation(x,y+baseHeight,z));}
  function arch(w:number,h:number,d:number){const key=`arch:${w}:${h}:${d}`;if(!geometry.has(key))geometry.set(key,createArchGeometry(T,w,h,d));return geometry.get(key);}
  function brick(x:number,z:number,y:number,w:number,d:number,h:number,color:string,studs=true,shape?:'arch'){staticPart(shape==='arch'?arch(w-.018,h,d-.018):box(w-.018,h,d-.018),color,x+w/2,y,z+d/2);if(studs)for(let a=.25;a<w;a+=.5)for(let b=.25;b<d;b+=.5)staticPart(studGeo,color,x+a,y+h+.04,z+b);}
- function groundBlock(x:number,z:number,height:number,color:string){const h=height+.24,key=`ground:${h}`;if(!geometry.has(key)){const geo=new T.BoxGeometry(1,h,1);geo.translate(0,h/2,0);geometry.set(key,geo);groundGeometries.add(geo);}staticPart(geometry.get(key),color,x+.5,-.24,z+.5);}
+ function groundBlock(x:number,z:number,height:number,color:string){const h=height+.24,key=`ground:${h}`;if(!geometry.has(key)){
+  // Ground tiles are baseplate sections: a slight chamfer on the top edge leaves a fine seam between neighbours, so the
+  // board reads as joined plates instead of one printed sheet. Own cache key: never shared with building parts (picking).
+  const b=.03,shape=new T.Shape();shape.moveTo(-.5+b,-.5+b);shape.lineTo(.5-b,-.5+b);shape.lineTo(.5-b,.5-b);shape.lineTo(-.5+b,.5-b);shape.closePath();
+  const geo=new T.ExtrudeGeometry(shape,{depth:h-2*b,bevelEnabled:true,bevelSize:b,bevelThickness:b,bevelSegments:1,steps:1,curveSegments:1});geo.rotateX(-Math.PI/2);geo.translate(0,b,0);geometry.set(key,geo);groundGeometries.add(geo);}staticPart(geometry.get(key),color,x+.5,-.24,z+.5);}
  let previewBuildingKind:'house'|EconomicBuilding|MilitaryBuilding='house';
  let previewBuilding:Omit<BuildingVisual,'red'>={ageVariant:2,progress:100,health:100};
  // The model page swaps in the inspected kind; the sandbox draws each obstacle as itself at age 2.

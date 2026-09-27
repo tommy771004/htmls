@@ -146,6 +146,8 @@ input[type=range]:focus-visible{outline:2px solid var(--ink-2);outline-offset:2p
 @media (prefers-reduced-motion: reduce){
   *{transition-duration:0ms !important}
 }
+
+.btn,.seg button,.cell{min-height:44px}#dial:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -372,6 +374,7 @@ key.shadow.mapSize.set(small() ? 1024 : 2048, small() ? 1024 : 2048);
 Object.assign(key.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 30 });
 key.shadow.bias = -0.0004;
 key.shadow.normalBias = 0.012;
+key.shadow.radius = 3;
 scene.add(key);
 const rim = new THREE.DirectionalLight('#cfe6ff', 0.9);
 rim.position.set(7, 3, -8);
@@ -381,8 +384,16 @@ scene.add(flashLight);
 
 const FLOOR_Y = -2.8;
 {
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(40, 64), new THREE.MeshStandardMaterial({ color: '#17201b', roughness: 0.93, metalness: 0 }));
-  floor.rotation.x = -Math.PI / 2; floor.position.y = FLOOR_Y; floor.receiveShadow = true;
+  // 地面只留下「燈池＋陰影」：燈池在畫布邊緣前就淡回背景色，3D 視區不再是一塊比頁面亮的方框
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'), gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, '#fff'); gr.addColorStop(0.4, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), color: '#16120d', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false }));
+  pool.rotation.x = -Math.PI / 2; pool.position.set(0.6, FLOOR_Y + 0.002, -0.4); pool.renderOrder = -2;
+  scene.add(pool);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(40, 64), new THREE.ShadowMaterial({ opacity: 0.5, depthWrite: false }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = FLOOR_Y; floor.receiveShadow = true; floor.renderOrder = -1;
   scene.add(floor);
 }
 
@@ -808,20 +819,22 @@ $('gas').addEventListener('change', e => { gasOn = e.target.checked; updateGasVi
 
 // 角度盤拖曳
 {
-  let drag = null;
+  let drag = null, pointer = null;
   const ang = e => { const r = dial.getBoundingClientRect(); return Math.atan2(e.clientX - r.left - r.width / 2, -(e.clientY - r.top - r.height / 2)) / D2R; };
-  dial.addEventListener('pointerdown', e => { drag = ang(e); dial.setPointerCapture(e.pointerId); setPlaying(false); tween = null; });
-  dial.addEventListener('pointermove', e => { if (drag === null) return; const a = ang(e); let d = a - drag; d = mod(d + 180, 360) - 180; theta -= 2 * d; drag = a; });
-  const end = () => { drag = null; };
-  dial.addEventListener('pointerup', end); dial.addEventListener('pointercancel', end);
+  dial.addEventListener('pointerdown', e => { if (!e.isPrimary || e.button !== 0 || pointer !== null) return; pointer = e.pointerId; drag = ang(e); dial.setPointerCapture(e.pointerId); setPlaying(false); tween = null; });
+  dial.addEventListener('pointermove', e => { if (drag === null || e.pointerId !== pointer) return; const a = ang(e); let d = a - drag; d = mod(d + 180, 360) - 180; theta -= 2 * d; drag = a; });
+  const end = e => { if (e?.pointerId !== undefined && e.pointerId !== pointer) return; const id = pointer; drag = null; pointer = null; if (id !== null && dial.hasPointerCapture(id)) dial.releasePointerCapture(id); };
+  for (const type of ['pointerup','pointercancel','lostpointercapture']) dial.addEventListener(type, end);
+  window.addEventListener('blur', () => end());
   dial.addEventListener('keydown', e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { theta += e.shiftKey ? 45 : 5; tween = null; setPlaying(false); e.preventDefault(); }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { theta -= e.shiftKey ? 45 : 5; tween = null; setPlaying(false); e.preventDefault(); }
   });
 }
 window.addEventListener('keydown', e => {
   if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input,button,select,textarea,#dial,[contenteditable=true]')) return;
-  if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) playBtn.click(); }
   else if (e.key === 'ArrowRight') { e.preventDefault(); stepFire(1); }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); stepFire(-1); }
 });
@@ -878,10 +891,11 @@ reducedMotion.addEventListener('change', () => {
 {
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   let down = null;
-  canvas.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
-  canvas.addEventListener('pointercancel', () => { down = null; });
+  canvas.addEventListener('pointerdown', e => { down = e.isPrimary && e.button === 0 ? [e.clientX, e.clientY, e.pointerId] : null; });
+  for (const type of ['pointercancel','lostpointercapture']) canvas.addEventListener(type, () => { down = null; });
+  window.addEventListener('blur', () => { down = null; });
   canvas.addEventListener('pointerup', e => {
-    if (!down) return;
+    if (!down || e.pointerId !== down[2] || e.button !== 0) return;
     const start = down; down = null;
     if (Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 5) return;
     const r = canvas.getBoundingClientRect();

@@ -16,6 +16,8 @@
 @media(max-width:900px){.hud{padding:24px}.compass{display:none}.topright{gap:12px}.bottom{grid-template-columns:1fr 310px;gap:25px}.mapbox{display:none}.intro{left:25px}.wordmark{font-size:37px}.brand{gap:12px}.lighting button{padding:4px 9px}}
 @media(max-width:560px){.hud{padding:20px 20px max(17px,env(safe-area-inset-bottom))}header{gap:10px}.brand svg{width:24px;height:37px}.wordmark{font-size:28px}.caption{font-size:8px;letter-spacing:.2em;margin-top:7px}.topright{gap:8px}.lighting{gap:0}.lighting button{font-size:10px;padding:3px 8px;letter-spacing:0}.icon{width:34px;min-height:34px;font-size:18px}.intro{top:17%;left:22px}.intro h1{font-size:30px;margin:8px 0}.intro p{font-size:10px}.intro .rule,.intro small{display:none}.eyebrow{font-size:8px}.bottom{grid-template-columns:1fr;gap:17px}.chapter{max-width:none}.chapter p{display:none}.chapter strong{font-size:13px}.chapter .count{font-size:18px}.chapter .route{float:right;width:135px;padding-top:8px}.helm{padding-top:9px}.speed strong{font-size:29px}.throttle{margin:7px 0}.keys{font-size:9px}.sailing{font-size:10px}#notice{top:41%;width:max-content;max-width:87vw}.helm-buttons button{min-height:44px}}
 @media(max-height:600px){.intro{top:27%}.intro h1{font-size:27px}.intro p,.intro .rule,.intro small,.mapbox{display:none}.hud{padding:16px 24px}.bottom{grid-template-columns:1fr 310px}.chapter p{display:none}.keys{display:none}.caption{display:none}.wordmark{font-size:28px}.brand svg{height:35px}.compass{top:18px}}
+
+.throttle input{min-height:44px}@media(max-width:560px){header{display:grid;grid-template-columns:1fr 44px}.topright{display:contents}.lighting{grid-row:2;grid-column:1/-1;justify-self:end}.lighting button{min-width:44px}.icon{width:44px;min-height:44px;grid-row:1;grid-column:2}}
 </style>
 </head>
 <body>
@@ -38,7 +40,7 @@
  </div>
 </main>
 <div id="notice" role="status">正在雕刻峽灣、鋪設甲板…</div>
-<dialog id="guide"><h2>把時間交給水流。</h2><p>沿著蜿蜒峽灣航行 1.6 公里，穿過松林、石壁與瀑布。這是一段虛構的北境旅程，可以隨時停下來看水。</p><dl><dt>掌舵</dt><dd>A / D、← / →，或按住方向鈕</dd><dt>槳速</dt><dd>W / S、↑ / ↓，或拖動速度桿</dd><dt>停泊 / 啟航</dt><dd>空白鍵，或中央按鈕</dd><dt>環顧</dt><dd>在景色上左右拖曳，放開回到船後</dd><dt>光線</dt><dd>右上角切換晨霧、暮金、月夜</dd></dl><p class="credit">Three.js / WebGL · 模型與材質由程式生成。建議使用支援 WebGL 2 的瀏覽器。首次開啟需載入 Three.js。</p><button id="closeGuide">回到船上</button></dialog>
+<dialog id="guide" aria-labelledby="guideTitle"><h2 id="guideTitle">把時間交給水流。</h2><p>沿著蜿蜒峽灣航行 1.6 公里，穿過松林、石壁與瀑布。這是一段虛構的北境旅程，可以隨時停下來看水。</p><dl><dt>掌舵</dt><dd>A / D、← / →，或按住方向鈕</dd><dt>槳速</dt><dd>W / S、↑ / ↓，或拖動速度桿</dd><dt>停泊 / 啟航</dt><dd>空白鍵，或中央按鈕</dd><dt>環顧</dt><dd>在景色上左右拖曳，放開回到船後</dd><dt>光線</dt><dd>右上角切換晨霧、暮金、月夜</dd></dl><p class="credit">Three.js / WebGL · 模型與材質由程式生成。建議使用支援 WebGL 2 的瀏覽器。首次開啟需載入 Three.js。</p><button id="closeGuide">回到船上</button></dialog>
 <div id="failure" hidden role="alert"><h2>暫時無法啟航</h2><p id="failureMessage">請確認瀏覽器支援 WebGL 2，並重新載入。</p><button onclick="location.reload()">重新載入</button><a href="../index.html#173">回到作品集</a></div>
 <noscript><div style="position:fixed;inset:0;background:#172b2c;padding:40px;z-index:10">這趟 WebGL 長船之旅需要 JavaScript。<a href="../index.html">回作品集</a></div></noscript>
 <script type="module">
@@ -233,13 +235,14 @@ let noticeUntil=0;function notice(text,seconds=3){$('notice').textContent=text;$
 function reset(){Object.assign(state,{x:0,z:0,yaw:0,speed:0,distance:0,finished:false});oars.forEach(o=>o.wet=false);impacts.forEach(v=>v.z=-100);dropLife.fill(0);dropPos.fill(-999);cameraReady=false;}
 function toggleSail(){if(state.finished)reset();state.sailing=!state.sailing;$('sail').textContent=state.sailing?'Ⅱ　停泊片刻':'↗　啟航';$('sail').setAttribute('aria-pressed',String(state.sailing));}
 $('sail').onclick=toggleSail;$('throttle').oninput=e=>state.power=Number(e.target.value)/100;
+const motion=matchMedia('(prefers-reduced-motion: reduce)');
 const keys=new Set(),pointers=new Map();let drag=null,orbit=0,cameraReady=false;
 clearInput=()=>{keys.clear();pointers.clear();drag=null;};
-for(const [id,value] of [['left',-1],['right',1]]){const b=$(id);b.onpointerdown=e=>{b.setPointerCapture(e.pointerId);pointers.set(e.pointerId,value);};for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,e=>pointers.delete(e.pointerId));}
+for(const [id,value] of [['left',-1],['right',1]]){const b=$(id);b.onpointerdown=e=>{if(e.button!==0)return;b.setPointerCapture(e.pointerId);pointers.set(e.pointerId,value);};for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,e=>pointers.delete(e.pointerId));b.addEventListener('keydown',e=>{if(!e.altKey&&!e.ctrlKey&&!e.metaKey&&['Space','Enter'].includes(e.code)){e.preventDefault();pointers.set('key:'+id,value);}});b.addEventListener('keyup',e=>{if(['Space','Enter'].includes(e.code)){e.preventDefault();pointers.delete('key:'+id);}});b.addEventListener('blur',()=>pointers.delete('key:'+id));}
 const handled=['KeyW','KeyA','KeyS','KeyD','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'];
-window.addEventListener('keydown',e=>{const tag=document.activeElement.tagName;if($('guide').open||/^(INPUT|TEXTAREA|SELECT)$/.test(tag)||(e.code==='Space'&&/^(BUTTON|A)$/.test(tag)))return;if(handled.includes(e.code)){e.preventDefault();keys.add(e.code);if(e.code==='Space'&&!e.repeat)toggleSail();}});
+window.addEventListener('keydown',e=>{if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey||e.target.isContentEditable)return;const tag=document.activeElement.tagName;if($('guide').open||/^(INPUT|TEXTAREA|SELECT)$/.test(tag)||(e.code==='Space'&&/^(BUTTON|A)$/.test(tag)))return;if(handled.includes(e.code)){e.preventDefault();keys.add(e.code);if(e.code==='Space'&&!e.repeat)toggleSail();}});
 window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',clearInput);document.addEventListener('visibilitychange',clearInput);
-canvas.onpointerdown=e=>{canvas.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,angle:orbit};};canvas.onpointermove=e=>{if(drag?.id===e.pointerId)orbit=clamp(drag.angle+(e.clientX-drag.x)*.006,-1.2,1.2);};for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,()=>drag=null);
+canvas.onpointerdown=e=>{if(!e.isPrimary||e.button!==0||drag)return;canvas.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,angle:orbit};};canvas.onpointermove=e=>{if(drag?.id===e.pointerId)orbit=clamp(drag.angle+(e.clientX-drag.x)*.006,-1.2,1.2);};for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if(drag?.id===e.pointerId)drag=null;});
 canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();running=false;fail('WebGL 繪圖連線已中斷。請重新載入，繼續北境之旅。');});
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();const size=renderer.getDrawingBufferSize(new THREE.Vector2());refraction.setSize(size.x,size.y);reflection.setSize(Math.max(1,Math.floor(size.x*.7)),Math.max(1,Math.floor(size.y*.7)));waterUniforms.uResolution.value.copy(size);cameraReady=false;}
 window.addEventListener('resize',resize);resize();
@@ -247,7 +250,8 @@ const target=new THREE.Vector3(),camPos=new THREE.Vector3(),mirrorTarget=new THR
 const chapters=[['松影入海','兩岸針葉林之間，第一道瀑布正落入晨光。'],['石壁迴聲','收攏航向。岩壁之間，只有水聲回答你。'],['白瀑之徑','抬頭看水霧。雪山的融水，在這裡回到峽灣。'],['北境之門','越過最後一彎，讓這片寧靜多留一會兒。']];
 let phase=0,wakeTimer=0,hudTimer=0;
 function update(dt){
- state.time+=dt;const t=state.time;
+ if($('guide').open)return;
+ state.time+=dt;const t=motion.matches?0:state.time;
  const steering=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0)+[...pointers.values()].reduce((a,b)=>a+b,0);
  const throttle=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);
  if(throttle){state.power=clamp(state.power+throttle*dt*.3,0,1);$('throttle').value=Math.round(state.power*100);}
@@ -259,7 +263,7 @@ function update(dt){
  if(Math.abs(offset)>edge){state.x=center(state.z)+Math.sign(offset)*edge;state.speed*=Math.exp(-dt*3);state.yaw=lerp(state.yaw,Math.sign(offset)*.4,Math.min(1,dt*2));if($('notice').hidden)notice('靠近淺灘了，朝航道中央掌舵。');}
  state.distance=Math.max(state.distance,-state.z);
  if(state.distance>=1600&&!state.finished){state.finished=true;state.sailing=false;state.speed=0;$('sail').textContent='↻　再航行一次';$('sail').setAttribute('aria-pressed','false');notice('已抵達北境之門。謝謝你，把時間交給水流。',100000);}
- boat.position.set(state.x,wave(state.x,state.z,t)*.65+.12,state.z);boat.rotation.set(Math.sin(t*.9)*.008,state.yaw,Math.sin(t*.7)*.017+steering*.015*Math.min(state.speed,1));
+ boat.position.set(state.x,(motion.matches?0:wave(state.x,state.z,t)*.65)+.12,state.z);boat.rotation.set(motion.matches?0:Math.sin(t*.9)*.008,state.yaw,motion.matches?0:Math.sin(t*.7)*.017+steering*.015*Math.min(state.speed,1));
  const rowing=state.sailing&&state.power>.01;phase+=dt*(rowing?1.1+state.power*2.4:0);
  for(const o of oars){const a=phase+o.phase;o.pivot.rotation.y=Math.sin(a)*.28;o.pivot.rotation.z=rowing?o.side*(Math.cos(a)*.28-.12):o.side*.08;}
  boat.updateMatrixWorld(true);
@@ -279,7 +283,7 @@ function update(dt){
  target.set(state.x-Math.sin(state.yaw)*14,2.7,state.z-Math.cos(state.yaw)*14);
  if(!cameraReady){camera.position.copy(camPos);cameraReady=true;}else camera.position.lerp(camPos,1-Math.exp(-dt*3));camera.lookAt(target);camera.updateMatrixWorld();
  sky.position.set(state.x,0,state.z);waterUniforms.uTime.value=t;
- if(t>noticeUntil)$('notice').hidden=true;
+ if(state.time>noticeUntil)$('notice').hidden=true;
  hudTimer-=dt;if(hudTimer<=0){hudTimer=.15;$('speed').textContent=(state.speed*1.94384).toFixed(1);$('sailing').textContent=state.finished?'抵達北境之門':state.sailing?(state.power<.01?'收槳漂泊':'順流航行中'):'泊於水光之間';$('distance').textContent=(Math.min(1600,state.distance)/1000).toFixed(2);$('progress').style.width=Math.min(100,state.distance/16)+'%';const c=Math.min(3,Math.floor(state.distance/400));$('chapterNo').textContent='0'+(c+1);$('chapterName').textContent=chapters[c][0];$('chapterText').textContent=chapters[c][1];$('bearing').textContent=String(Math.round((-state.yaw*180/Math.PI+360)%360)).padStart(3,'0')+'° N';const f=clamp(state.distance/1600,0,1);$('mapBoat').setAttribute('transform',`translate(${83+Math.sin(f*TAU*1.5)*16},${110-f*106})`);}
 }
 function render(){

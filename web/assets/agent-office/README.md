@@ -6,6 +6,7 @@ Open `/web/181-agent-office.html` through an HTTP server. Three.js and RoundedBo
 
 - WASD / arrow keys: camera-relative walking with desk and room boundaries.
 - T near a colleague, click a 3D colleague, or choose a member: task conversation.
+- Zoom buttons, mouse wheel or trackpad pinch: eased zoom (0.7–1.45×); when zoomed in the view drifts toward you. Reflection lighting comes from the local `../3d/studio.js`.
 - Each simulated task advances through four stages over about 16 seconds. Multiple colleagues can work concurrently. Completed characters stand up and a report card appears.
 - Issues: sample data initially; workspace settings can load public GitHub issues (first 30 combined issues/PR records, PRs excluded). Refresh failures retain the previous list. Assignment is local only.
 - PRs: local, simulated draft records, never real pull requests.

@@ -250,7 +250,7 @@ function tex(w, h, draw, opt = {}) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const g = c.getContext('2d'); draw(g, w, h);
   const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   if (opt.repeat) t.repeat.set(opt.repeat[0], opt.repeat[1]);
   return t;
 }
@@ -306,7 +306,7 @@ const mTin = M({ map: tinTex, bumpMap: tinTex, bumpScale: .035, roughness: .6, m
 const mDeck = M({ map: deckTex, roughness: .95 });
 const mIron = M({ color: 0x2a3634, roughness: .55, metalness: .7 });
 const mRust = M({ color: 0x6e4a33, roughness: .9 });
-const mWhite = M({ color: 0xe8e4d8, roughness: .6 });
+const mWhite = M({ color: 0xe8e4d8, roughness: .78 });
 const mRed = M({ color: 0xa63d2c, roughness: .8 });
 const mGreen = M({ color: 0x4d7d43, roughness: .9 });
 const mPot = M({ color: 0x8a5a3c, roughness: .9 });
@@ -375,6 +375,11 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(3000, 32, 16), new THREE.Sha
       gl_FragColor = vec4(c, 1.); }`
 }));
 sky.renderOrder = -10; scene.add(sky);
+// 環境反射：把同一片天空烘成 PMREM，鐵件、鐵皮與玻璃才有東西可以反射；換天候時跟著重烘
+const skyScene = new THREE.Scene(); skyScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), sky.material));
+const pmrem = new THREE.PMREMGenerator(renderer);
+let envRT = null, envT = 0, envUntil = 0;
+function bakeEnv() { const old = envRT; envRT = pmrem.fromScene(skyScene, 0, .1, 200); scene.environment = envRT.texture; if (old) old.dispose(); }
 const starGeo = new THREE.BufferGeometry(); {
   const a = new Float32Array(900 * 3);
   for (let i = 0; i < 900; i++) { const t = rr(0, Math.PI * 2), p = Math.acos(rr(.05, 1)); a[i * 3] = 2500 * Math.sin(p) * Math.cos(t); a[i * 3 + 1] = 2500 * Math.cos(p); a[i * 3 + 2] = 2500 * Math.sin(p) * Math.sin(t); }
@@ -388,7 +393,7 @@ const hemi = new THREE.HemisphereLight(0x9fc4c4, 0x2a4a4c, .6); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffe0b0, 1.2); sun.castShadow = true;
 sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
 Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 30, bottom: -14, near: 1, far: 160 });
-sun.shadow.bias = -0.0006; sun.shadow.normalBias = .03;
+sun.shadow.bias = -0.0006; sun.shadow.normalBias = .03; sun.shadow.radius = 2.5;
 sun.target.position.set(0, 8, 0); scene.add(sun, sun.target);
 const moon = new THREE.DirectionalLight(0x8fb0c8, 0); moon.position.set(-30, 40, -20); scene.add(moon);
 const lamps = []; // 點光源
@@ -397,10 +402,17 @@ function lamp(x, y, z, color, intensity, dist = 16) { const l = new THREE.PointL
 // ---------- 樁柱與甲板 ----------
 const DECK_Y = 6;
 const pillarPos = [[-7, -6], [1, -6], [7, -6], [-7, 6], [1, 6], [7, 6]];
+// 潮間帶：水線上下一圈濕黑、長青苔的混凝土；防撞輪胎是橡膠，用繩子吊在柱上
+const mTide = M({ map: concreteTex, color: 0x56654c, roughness: .38, metalness: 0 });
+const mRubber = M({ color: 0x1d2120, roughness: .82 });
+const ropeGeos = [];
 for (const [x, z] of pillarPos) {
   box(1.5, DECK_Y + 2.2, 1.5, mConcreteDark, x, -2.2, z);
-  const t = new THREE.Mesh(new THREE.TorusGeometry(.55, .18, 8, 18), mIron); t.position.set(x + .9, 1.1, z); t.rotation.y = Math.PI / 2; world.add(t);
+  box(1.56, 1.35, 1.56, mTide, x, -.6, z, world, false);
+  const t = new THREE.Mesh(new THREE.TorusGeometry(.55, .18, 8, 18), mRubber); t.position.set(x + .9, 1.1, z); t.rotation.y = Math.PI / 2; t.castShadow = true; world.add(t);
+  for (const dz of [-.3, .3]) ropeGeos.push({ geo: cylUnit, matrix: strutMat(new THREE.Vector3(x + .9, 1.6, z + dz), new THREE.Vector3(x + .8, 2.9, z + dz * .4), .025) });
 }
+{ const m = new THREE.Mesh(mergeGeos(ropeGeos), M({ color: 0x6f604a, roughness: 1 })); m.castShadow = true; world.add(m); }
 // 樁柱間的橫梁
 for (const z of [-6, 6]) box(15, .5, .5, mConcreteDark, 0, 3.6, z);
 box(.5, .5, 12, mConcreteDark, -7, 3.6, 0); box(.5, .5, 12, mConcreteDark, 7, 3.6, 0);
@@ -767,6 +779,12 @@ const water = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.Shad
       if (uBoat.w > .01) { vec2 rel = p - uBoat.xy; vec2 f = vec2(sin(uBoat.z), cos(uBoat.z)); float along = dot(rel, f); float side = abs(dot(rel, vec2(f.y, -f.x)));
         float bow = smoothstep(1.2, 0., abs(along - 3.1)) * smoothstep(1.4, .5, side) * uBoat.w; foam += bow * .45;
       }
+      // 樁柱與碼頭木樁的水線：一圈隨波起落的碎白沫
+      { float lap = 0.;
+        ${pillarPos.map(([x, z]) => `lap += exp(-max(max(abs(p.x - ${x.toFixed(1)}), abs(p.y - ${z.toFixed(1)})) - .78, 0.) * 5.);`).join(' ')}
+        ${[[14.8, -1.4], [18.4, -1.4], [14.8, 1.4], [18.4, 1.4]].map(([x, z]) => `lap += exp(-max(length(p - vec2(${x}, ${z})) - .15, 0.) * 7.) * .8;`).join(' ')}
+        float br = .55 + .45 * sin(t * 1.6 + p.x * 1.3 + p.y * .9) * sin(t * .7 + p.y * 2.1);
+        foam += lap * br * (.32 + .22 * hash(floor(p * 7.) + floor(t * 3.))); }
       // 雨滴漣漪
       if (uRain > .01) { vec2 c = floor(p*1.6); vec2 fr = fract(p*1.6) - .5; float h = hash(c); float ph = fract(t*.9 + h*7.); vec2 off = vec2(hash(c+7.1), hash(c+3.3)) - .5;
         float d = length(fr - off*.6); float ring = exp(-abs(d - ph*.42)*22.) * (1.-ph) * step(h, uRain*.9);
@@ -781,7 +799,9 @@ const water = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.Shad
       vec3 col = mix(wcol, refl, fres);
       vec3 H = normalize(uSunDir + V); float spec = pow(max(dot(N, H), 0.), 220.) * .8 + pow(max(dot(N, H), 0.), 30.)*.05;
       col += uSunCol * spec;
-      col = mix(col, vec3(.86, .9, .88), clamp(foam, 0., .85));
+      // 白沫是被照亮的水花，不會自己發光：深夜跟著天光一起暗下來
+      float amb = clamp(dot(uSky, vec3(.3, .59, .11)) * 3. + .12, .16, 1.);
+      col = mix(col, vec3(.86, .9, .88) * amb, clamp(foam, 0., .85));
       gl_FragColor = vec4(col, 1.);
       #include <fog_fragment>
       #include <colorspace_fragment>
@@ -832,10 +852,10 @@ let rainOn = false;
 // ---------- 天候 ----------
 const C = (h) => new THREE.Color(h);
 const WX = {
-  dusk: { top: C(0x2f4f55), hor: C(0x7f9a99), bot: C(0x36585a), fog: C(0x7f9a99), fogN: 70, fogF: 300, sunCol: C(0xffc98a), sunInt: 1.4, sunPos: [40, 22, 55], moon: 0, hemiSky: C(0x8fb0b0), hemiGnd: C(0x2c4c4c), hemiInt: .55, glow: 1, lampI: 1, bulb: 1, rain: 0, stars: 0, deep: C(0x1e4a4e), shallow: C(0x3a8281), refl: .9, exp: 1 },
-  day: { top: C(0x9fd3da), hor: C(0xe4f1ef), bot: C(0x86c4c2), fog: C(0xe4f1ef), fogN: 90, fogF: 360, sunCol: C(0xfff4de), sunInt: 2.6, sunPos: [30, 70, 40], moon: 0, hemiSky: C(0xd8ecec), hemiGnd: C(0x4a8886), hemiInt: .9, glow: .12, lampI: .05, bulb: .18, rain: 0, stars: 0, deep: C(0x1f8a8a), shallow: C(0x63d1c8), refl: .7, exp: 1.05 },
-  rain: { top: C(0x8ea3a3), hor: C(0xc4d2cf), bot: C(0x92aaa8), fog: C(0xc4d2cf), fogN: 40, fogF: 190, sunCol: C(0xdfe6e4), sunInt: .55, sunPos: [10, 60, 30], moon: 0, hemiSky: C(0xc4d2cf), hemiGnd: C(0x4f6c6a), hemiInt: .8, glow: .85, lampI: .8, bulb: .8, rain: 1, stars: 0, deep: C(0x4f7d7c), shallow: C(0x84aead), refl: .75, exp: .95 },
-  night: { top: C(0x07141b), hor: C(0x1a3038), bot: C(0x0b1c22), fog: C(0x1a3038), fogN: 50, fogF: 240, sunCol: C(0x2a3a44), sunInt: 0, sunPos: [40, 22, 55], moon: .55, hemiSky: C(0x24404a), hemiGnd: C(0x0a1416), hemiInt: .35, glow: 1.25, lampI: 1.3, bulb: 1.25, rain: 0, stars: 1, deep: C(0x0c2a30), shallow: C(0x143e44), refl: 1, exp: .9 },
+  dusk: { top: C(0x2f4f55), hor: C(0x7f9a99), bot: C(0x36585a), fog: C(0x7f9a99), fogN: 70, fogF: 300, sunCol: C(0xffc98a), sunInt: 1.4, sunPos: [40, 22, 55], moon: 0, hemiSky: C(0x8fb0b0), hemiGnd: C(0x2c4c4c), hemiInt: .55, glow: 1, lampI: 1, bulb: 1, rain: 0, stars: 0, deep: C(0x1e4a4e), shallow: C(0x3a8281), refl: .9, exp: 1, env: .5 },
+  day: { top: C(0x9fd3da), hor: C(0xe4f1ef), bot: C(0x86c4c2), fog: C(0xe4f1ef), fogN: 90, fogF: 360, sunCol: C(0xfff4de), sunInt: 2.6, sunPos: [30, 70, 40], moon: 0, hemiSky: C(0xd8ecec), hemiGnd: C(0x4a8886), hemiInt: .9, glow: .12, lampI: .05, bulb: .18, rain: 0, stars: 0, deep: C(0x1f8a8a), shallow: C(0x63d1c8), refl: .7, exp: 1.05, env: .3 },
+  rain: { top: C(0x8ea3a3), hor: C(0xc4d2cf), bot: C(0x92aaa8), fog: C(0xc4d2cf), fogN: 40, fogF: 190, sunCol: C(0xdfe6e4), sunInt: .55, sunPos: [10, 60, 30], moon: 0, hemiSky: C(0xc4d2cf), hemiGnd: C(0x4f6c6a), hemiInt: .8, glow: .85, lampI: .8, bulb: .8, rain: 1, stars: 0, deep: C(0x4f7d7c), shallow: C(0x84aead), refl: .75, exp: .95, env: .55 },
+  night: { top: C(0x07141b), hor: C(0x1a3038), bot: C(0x0b1c22), fog: C(0x1a3038), fogN: 50, fogF: 240, sunCol: C(0x2a3a44), sunInt: 0, sunPos: [40, 22, 55], moon: .55, hemiSky: C(0x24404a), hemiGnd: C(0x0a1416), hemiInt: .35, glow: 1.25, lampI: 1.3, bulb: 1.25, rain: 0, stars: 1, deep: C(0x0c2a30), shallow: C(0x143e44), refl: 1, exp: .9, env: .6 },
 };
 const cur = {}; for (const k in WX.dusk) cur[k] = WX.dusk[k] instanceof THREE.Color ? WX.dusk[k].clone() : Array.isArray(WX.dusk[k]) ? WX.dusk[k].slice() : WX.dusk[k];
 let wxKey = 'dusk';
@@ -846,6 +866,7 @@ function setWeather(k, instant) {
   const rail = document.querySelector('.gauge .rail i'); const btn = document.querySelector(`.gauge [data-wx="${k}"]`);
   if (rail && btn) rail.style.setProperty('--y', (btn.offsetTop + btn.offsetHeight / 2 - 18) + 'px');
   if (instant) blendWeather(1);
+  envUntil = time + (instant ? 0 : 4.5); envT = 0; if (instant) bakeEnv();
   if (audio) audio.setRain(WX[k].rain);
   void idx;
 }
@@ -864,7 +885,7 @@ function blendWeather(f) {
   waterU.uDeep.value.copy(cur.deep); waterU.uShallow.value.copy(cur.shallow); waterU.uSky.value.copy(cur.hor); waterU.uRain.value = cur.rain; waterU.uRefl.value = cur.refl;
   waterU.uSunDir.value.copy(cur.moon > .3 ? moon.position.clone().normalize() : sd); waterU.uSunCol.value.copy(cur.sunCol).multiplyScalar(Math.max(cur.sunInt * .5, cur.moon * .8));
   waterU.fogColor.value.copy(cur.fog); waterU.fogNear.value = cur.fogN; waterU.fogFar.value = cur.fogF;
-  renderer.toneMappingExposure = cur.exp;
+  renderer.toneMappingExposure = cur.exp; scene.environmentIntensity = cur.env;
 }
 
 // ---------- 視角 ----------
@@ -884,7 +905,7 @@ function setView(i, instant) {
   $('vN').textContent = String(viewIdx + 1).padStart(2, '0') + ' / 0' + VIEWS.length; $('vT').textContent = v.t; $('vD').textContent = v.d;
   document.querySelectorAll('#views button').forEach((b, k) => b.setAttribute('aria-pressed', String(k === viewIdx)));
   let az = v.az * Math.PI / 180; while (az - orbit.az > Math.PI) az -= Math.PI * 2; while (az - orbit.az < -Math.PI) az += Math.PI * 2;
-  orbit.dAz = az; orbit.dEl = v.el * Math.PI / 180; orbit.dDist = v.dist; orbit.dTg.set(v.tg[0], v.tg[1], v.tg[2]);
+  orbit.dAz = az; orbit.dEl = v.el * Math.PI / 180; orbit.dDist = v.dist; orbit.dTg.set(v.tg[0], v.tg[1], v.tg[2]); fling.az = fling.el = 0;
   if (instant || reduced) { orbit.az = az; orbit.el = orbit.dEl; orbit.dist = v.dist; orbit.tg.copy(orbit.dTg); camK = 60; }
   if (mode !== 'orbit') setMode('orbit', instant);
 }
@@ -971,15 +992,26 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 const ptrs = new Map(); let pinchD = 0, lastMove = 0;
-canvas.addEventListener('pointerdown', e => { if (e.button !== 0) return; canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); canvas.classList.add('dragging'); canvas.focus({ preventScroll: true }); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); } });
+// 放手後的慣性：拖得快，樓會多轉一點再慢慢停
+const fling = { az: 0, el: 0, t: 0 };
+canvas.addEventListener('pointerdown', e => { if (e.button !== 0) return; fling.az = fling.el = 0; canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); canvas.classList.add('dragging'); canvas.focus({ preventScroll: true }); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); } });
 canvas.addEventListener('pointermove', e => {
   const p = ptrs.get(e.pointerId); if (!p) return;
   const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; lastMove = performance.now();
   if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinchD) orbit.dDist = THREE.MathUtils.clamp(orbit.dDist * (pinchD / d), 8, 95); pinchD = d; return; }
-  if (mode === 'orbit') { orbit.dAz -= dx * .0045; orbit.dEl = THREE.MathUtils.clamp(orbit.dEl + dy * .0035, .03, 1.45); }
+  if (mode === 'orbit') {
+    orbit.dAz -= dx * .0045; orbit.dEl = THREE.MathUtils.clamp(orbit.dEl + dy * .0035, .03, 1.45);
+    const now = performance.now(), ft = Math.max(8, now - fling.t) / 1000; fling.t = now;
+    fling.az = THREE.MathUtils.clamp(fling.az * .4 - dx * .0045 / ft * .6, -3, 3); fling.el = THREE.MathUtils.clamp(fling.el * .4 + dy * .0035 / ft * .6, -2, 2);
+  }
   else if (mode === 'walk') { walk.yaw -= dx * .004; walk.pitch = THREE.MathUtils.clamp(walk.pitch - dy * .003, -.9, .9); }
 });
-const endPtr = e => { ptrs.delete(e.pointerId); if (!ptrs.size) canvas.classList.remove('dragging'); pinchD = 0; };
+const endPtr = e => {
+  const pinch = pinchD > 0;
+  if (!ptrs.delete(e.pointerId)) return; // pointerup 之後的 lostpointercapture 不要再清一次
+  if (!ptrs.size) canvas.classList.remove('dragging'); pinchD = 0;
+  if (pinch || ptrs.size || e.type !== 'pointerup' || reduced || performance.now() - fling.t > 80) fling.az = fling.el = 0;
+};
 canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr); canvas.addEventListener('lostpointercapture', endPtr);
 canvas.addEventListener('wheel', e => { e.preventDefault(); if (mode === 'orbit') orbit.dDist = THREE.MathUtils.clamp(orbit.dDist * Math.exp(e.deltaY * .0012), 8, 95); }, { passive: false });
 // 搖桿
@@ -998,7 +1030,7 @@ document.querySelectorAll('#helm button').forEach(b => {
   b.addEventListener('keyup', e => { if (e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); off(); } });
 });
 function clearInput() {
-  keys.clear(); ptrs.clear(); pinchD = 0; canvas.classList.remove('dragging');
+  keys.clear(); ptrs.clear(); pinchD = 0; canvas.classList.remove('dragging'); fling.az = fling.el = 0;
   joy.id = null; joy.x = joy.y = 0; knob.style.transform = '';
 }
 addEventListener('blur', clearInput);
@@ -1006,7 +1038,10 @@ addEventListener('blur', clearInput);
 // ---------- 後製 ----------
 let composer = null, bloom = null;
 if (post) {
-  composer = new post.EffectComposer(renderer);
+  // 後製會關掉畫布的抗鋸齒，改用多重取樣的渲染目標，欄杆、纜線與天線才不會鋸齒
+  const ds = renderer.getDrawingBufferSize(new THREE.Vector2());
+  composer = new post.EffectComposer(renderer, new THREE.WebGLRenderTarget(ds.x, ds.y, { type: THREE.HalfFloatType, samples: renderer.getPixelRatio() > 1.25 ? 2 : 4 }));
+  composer.setPixelRatio(renderer.getPixelRatio());
   composer.addPass(new post.RenderPass(scene, camera));
   bloom = new post.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), small ? .34 : .42, .5, .9);
   composer.addPass(bloom); composer.addPass(new post.OutputPass());
@@ -1034,6 +1069,7 @@ function frame() {
   if (paused) return;
   const now = performance.now(); const dt = Math.min((now - lastT) / 1000, .05); lastT = now; time += dt;
   blendWeather(1 - Math.exp(-dt * 2.2));
+  if (time < envUntil) { envT -= dt; if (envT <= 0) { envT = .5; bakeEnv(); } }
   transT = Math.min(1, transT + dt / 1.3); camK = 4 + 56 * transT * transT;
   const kf = reduced ? 1 : 1 - Math.exp(-dt * camK);
 
@@ -1070,6 +1106,11 @@ function frame() {
   // 相機
   if (mode === 'orbit') {
     if (drift && !reduced && performance.now() - lastMove > 1500 && !ptrs.size) orbit.dAz += dt * .06;
+    if (!ptrs.size && (fling.az || fling.el)) {
+      orbit.dAz += fling.az * dt; orbit.dEl = THREE.MathUtils.clamp(orbit.dEl + fling.el * dt, .03, 1.45);
+      const fd = Math.exp(-dt * 3.2); fling.az *= fd; fling.el *= fd;
+      if (Math.abs(fling.az) + Math.abs(fling.el) < .004) fling.az = fling.el = 0;
+    }
     const k = reduced ? 1 : 1 - Math.exp(-dt * 5);
     orbit.az += (orbit.dAz - orbit.az) * k; orbit.el += (orbit.dEl - orbit.el) * k; orbit.dist += (orbit.dDist - orbit.dist) * k; orbit.tg.lerp(orbit.dTg, k);
     posDes.copy(orbitPos()); lookDes.copy(orbit.tg);

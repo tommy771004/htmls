@@ -216,6 +216,8 @@ legend span{font-size:13px;color:var(--ink-2)}
 .done .no{font-family:var(--mono);font-size:15px;letter-spacing:.06em}
 .toast{position:fixed;left:50%;bottom:92px;z-index:60;transform:translateX(-50%);padding:10px 18px;border-radius:999px;background:var(--ink);color:#fff;font-size:14px;opacity:0;pointer-events:none;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.stage canvas:focus-visible{outline:3px solid var(--accent);outline-offset:-4px}.ctl,.ctl.icon,.views button{min-height:44px;min-width:44px}.hint{bottom:78px}.inspect-part{position:absolute;left:20px;top:52px;max-width:150px;min-height:44px;padding:0 12px;border:1px solid #bbb;border-radius:8px;background:#ffffffe6;color:var(--ink)}@media(max-width:700px){.inspect-part{top:16px;left:16px}}
 </style>
 </head>
 <body>
@@ -255,8 +257,8 @@ legend span{font-size:13px;color:var(--ink-2)}
         <button class="ctl icon" id="resetBtn" title="重設視角" aria-label="重設視角"><svg class="i"><use href="#i-reset"/></svg></button>
       </div>
     </div>
-    <div class="views" id="views" role="group" aria-label="視角"></div>
-    <p class="hint">拖曳旋轉 · 滾輪縮放 · 右鍵平移 · 點零件看細節</p>
+    <div class="views" id="views" role="group" aria-label="視角"></div><select class="inspect-part" id="inspectPart" aria-label="查看模型零件"><option value="">查看零件細節</option></select>
+    <p class="hint">拖曳旋轉 · 滾輪縮放 · 方向鍵環繞 · ＋／－縮放 · Home 重設</p>
     <div class="tip" id="tip"></div>
     <div class="part-card" id="partCard" hidden aria-live="polite">
       <button class="x" id="partClose" aria-label="關閉零件資訊">×</button>
@@ -760,6 +762,7 @@ function makeMaterials(T) {
     carbon: P({ map: T.carbonFine, color: '#ffffff', metalness: 0.25, roughness: 0.38, clearcoat: 1, clearcoatRoughness: 0.06, side: THREE.DoubleSide }),
     alloyRim: S({ color: '#b9bcc1', metalness: 1, roughness: 0.3, side: THREE.DoubleSide }),
     rubber: S({ color: '#161616', roughness: 0.86, metalness: 0, side: THREE.DoubleSide }),
+    rubberSide: S({ color: '#1b1b1c', roughness: 0.62, metalness: 0, side: THREE.DoubleSide }), // moulded sidewall: satin, not the scuffed tread
     tan: S({ color: '#c49c6c', roughness: 0.8, metalness: 0, side: THREE.DoubleSide }),
     chain: S({ color: '#9a9da2', metalness: 1, roughness: 0.3 }),
     chainIn: S({ color: '#63666b', metalness: 1, roughness: 0.38 }),
@@ -908,8 +911,9 @@ function buildWheel(wId, tId, rear, M) {
   const tw = T.w, rc = Rb + tw * 0.46, ra = tw * 0.54, rb = tw * 0.5;
   const arc = (a0, a1, n) => Array.from({ length: n + 1 }, (_, i) => { const a = deg(a0 + (a1 - a0) * i / n); return [rc + ra * Math.cos(a), rb * Math.sin(a)]; });
   spin.add(lathe(arc(-62, 62, 28), M.rubber, 'tires', 160));
-  spin.add(lathe(arc(62, 140, 16), M[T.side], 'tires', 160));
-  spin.add(lathe(arc(-140, -62, 16), M[T.side], 'tires', 160));
+  const sideM = T.side === 'rubber' ? M.rubberSide : M[T.side];
+  spin.add(lathe(arc(62, 140, 16), sideM, 'tires', 160));
+  spin.add(lathe(arc(-140, -62, 16), sideM, 'tires', 160));
   if (T.knobs) {
     const n = 64, rows = [[0, 0], [38, 0.5], [-38, 0.5]], kg = new THREE.BoxGeometry(0.0065, 0.0032, 0.0052);
     const im = new THREE.InstancedMesh(kg, M.rubber, n * rows.length); im.castShadow = true; im.userData.part = 'tires';
@@ -1123,6 +1127,8 @@ function buildDrive(dId, g, M) {
     band.absarc(0, 0, r1, a0, a1, false); band.absarc(0, 0, r0, a1, a0, true); band.closePath();
     const bg = new THREE.ExtrudeGeometry(band, { depth: 0.0016, bevelEnabled: false, curveSegments: 16 });
     for (const z of [0.0535, 0.0385]) { const m = mesh(bg, M.alloy, 'drive'); m.position.set(BB.x, BB.y, z); stat.add(m); }
+    // nose and tail spacers join the two cage plates into one part
+    for (const a of [a0, a1]) { const br = block(0.007, r1 - r0, 0.013, 0.002, M.alloy, 'drive'), rm = (r0 + r1) / 2; br.position.set(BB.x + Math.cos(a) * rm, BB.y + Math.sin(a) * rm, 0.0468); br.rotation.z = a - Math.PI / 2; stat.add(br); }
     const clampP = g.at(R1 + 0.04);
     stat.add(cyl(v3(clampP), v3(g.stDir), 0.0205, 0.016, M.black, 'drive'));
     const body = block(0.04, 0.02, 0.022, 0.005, M.black, 'drive');
@@ -1270,8 +1276,8 @@ async function bootViewer() {
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 1.05;
-  renderer.domElement.setAttribute('aria-label', 'Crosswind R 3D 模型，可拖曳旋轉');
-  renderer.domElement.tabIndex = 0;
+  renderer.domElement.setAttribute('aria-label', 'Crosswind R 3D 模型：方向鍵環繞，加減鍵縮放，Home 重設');
+  renderer.domElement.tabIndex = 0; renderer.domElement.style.cursor = 'grab';
   stage.prepend(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -1378,6 +1384,7 @@ async function bootViewer() {
   // arc around the target (spherical interpolation) so the camera never cuts through the frame
   function flyTo(name, dur = 1.2) {
     const v = views()[name]; if (!v) return;
+    controls.autoRotate = false; $('spinBtn').setAttribute('aria-pressed', 'false');
     const G = gs();
     document.querySelectorAll('#views button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.view === name));
     if (flight) flight.kill();
@@ -1395,6 +1402,12 @@ async function bootViewer() {
   $('views').innerHTML = VIEW_BTNS.map(([k, l]) => `<button data-view="${k}" aria-pressed="${k === 'hero'}">${l}</button>`).join('');
   $('views').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) flyTo(b.dataset.view); });
   controls.addEventListener('start', () => { const G = gs(); if (flight) flight.kill(); if (G) G.killTweensOf(camera.position); document.querySelectorAll('#views button').forEach((b) => b.setAttribute('aria-pressed', 'false')); });
+
+  const { bindOrbitKeyboard } = await import('./assets/3d/studio.js');
+  function stopCamera() { if (flight) flight.kill(); const G = gs(); if (G) G.killTweensOf(camera.position); controls.autoRotate = false; $('spinBtn').setAttribute('aria-pressed', 'false'); document.querySelectorAll('#views button').forEach(b => b.setAttribute('aria-pressed', 'false')); }
+  let keyboardHome = false;
+  bindOrbitKeyboard(THREE, controls, renderer.domElement, { reset: () => { keyboardHome = true; stopCamera(); flyTo('hero'); }, change: () => { if (!keyboardHome) stopCamera(); keyboardHome = false; } });
+  controls.addEventListener('start', stopCamera);
 
   // ---------- swaps with GSAP ----------
   const follow = { on: true };
@@ -1455,10 +1468,10 @@ async function bootViewer() {
     if (G && !reduced) G.to(anim, { rpm: target, duration: on ? 1.2 : 1.6, ease: on ? 'power2.out' : 'power2.inOut' }); else anim.rpm = target;
   }
   pb.addEventListener('click', () => setPedal(!anim.pedal));
-  $('rpm').addEventListener('input', (e) => { $('rpmOut').textContent = e.target.value + ' rpm'; if (anim.pedal) { const G = gs(); if (G) G.to(anim, { rpm: +e.target.value, duration: 0.5 }); else anim.rpm = +e.target.value; } if (current === 'chain' || current === 'drive') showPart(current, false); });
+  $('rpm').addEventListener('input', (e) => { $('rpmOut').textContent = e.target.value + ' rpm'; if (anim.pedal) { const G = gs(); if (G && !reduced) G.to(anim, { rpm: +e.target.value, duration: 0.5 }); else anim.rpm = +e.target.value; } if (current === 'chain' || current === 'drive') showPart(current, false); });
   $('spinBtn').addEventListener('click', (e) => { controls.autoRotate = !controls.autoRotate; e.currentTarget.setAttribute('aria-pressed', controls.autoRotate); });
   $('followBtn').addEventListener('click', (e) => { follow.on = !follow.on; e.currentTarget.setAttribute('aria-pressed', follow.on); });
-  const zoom = (f) => { const G = gs(), dir = camera.position.clone().sub(controls.target), len = THREE.MathUtils.clamp(dir.length() * f, controls.minDistance, controls.maxDistance), p = controls.target.clone().add(dir.setLength(len)); if (G) G.to(camera.position, { x: p.x, y: p.y, z: p.z, duration: 0.5, ease: 'power2.out' }); else camera.position.copy(p); };
+  const zoom = (f) => { stopCamera(); const G = gs(), dir = camera.position.clone().sub(controls.target), len = THREE.MathUtils.clamp(dir.length() * f, controls.minDistance, controls.maxDistance), p = controls.target.clone().add(dir.setLength(len)); if (G && !reduced) G.to(camera.position, { x: p.x, y: p.y, z: p.z, duration: 0.5, ease: 'power2.out' }); else camera.position.copy(p); };
   $('zoomIn').addEventListener('click', () => zoom(0.75));
   $('zoomOut').addEventListener('click', () => zoom(1.33));
   $('resetBtn').addEventListener('click', () => flyTo('hero'));
@@ -1480,16 +1493,18 @@ async function bootViewer() {
   let current = null;
   function showPart(k, fly = true) {
     const f = INFO[k]; if (!f) return;
-    const i = f(); current = k;
+    const i = f(); current = k; $('inspectPart').value = k;
     $('partName').textContent = i.n; $('partDesc').textContent = i.d;
     $('partSpec').innerHTML = i.s.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
     const card = $('partCard'), wasHidden = card.hidden; card.hidden = false;
     const G = gs(); if (G && !reduced && wasHidden) G.fromTo(card, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3 });
     if (fly) flyTo(i.v);
   }
-  $('partClose').addEventListener('click', () => { $('partCard').hidden = true; current = null; });
+  $('partClose').addEventListener('click', () => { $('partCard').hidden = true; current = null; $('inspectPart').value = ''; $('inspectPart').focus(); });
   const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(), tip = $('tip');
   const NAMES = { frame: '車架', fork: '前叉', wheels: '輪組', tires: '輪胎', drive: '傳動系統', chain: '鏈條', bar: '把手與龍頭', saddle: '坐墊與坐管', pedal: '踏板', brakes: '碟煞' };
+  for (const [key, name] of Object.entries(NAMES)) $('inspectPart').add(new Option(name, key));
+  $('inspectPart').addEventListener('change', e => { if (e.target.value) showPart(e.target.value); else { $('partCard').hidden = true; current = null; } });
   function pick(e) {
     const r = renderer.domElement.getBoundingClientRect();
     ptr.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
@@ -1498,10 +1513,11 @@ async function bootViewer() {
     return hit ? hit.object.userData.part : null;
   }
   let down = null, hoverT = 0;
-  renderer.domElement.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
+  renderer.domElement.addEventListener('pointerdown', (e) => { down = e.isPrimary && e.button === 0 ? [e.clientX, e.clientY, e.pointerId] : null; if (e.pointerType === 'mouse') renderer.domElement.style.cursor = e.button === 2 ? 'move' : 'grabbing'; });
+  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) renderer.domElement.addEventListener(event, (e) => { if (e.pointerType === 'mouse') renderer.domElement.style.cursor = 'grab'; });
   for (const event of ['pointercancel', 'lostpointercapture']) renderer.domElement.addEventListener(event, () => { down = null; tip.classList.remove('on'); });
   renderer.domElement.addEventListener('pointerup', (e) => {
-    if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) { const p = pick(e); if (p) showPart(p); }
+    if (down && e.pointerId === down[2] && e.button === 0 && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) { const p = pick(e); if (p) showPart(p); }
     down = null;
   });
   renderer.domElement.addEventListener('pointermove', (e) => {
@@ -1511,6 +1527,7 @@ async function bootViewer() {
     renderer.domElement.style.cursor = p ? 'pointer' : 'grab';
     if (p) { tip.textContent = NAMES[p]; tip.style.left = (e.clientX - r.left) + 'px'; tip.style.top = (e.clientY - r.top) + 'px'; tip.classList.add('on'); } else tip.classList.remove('on');
   });
+  window.addEventListener('blur', () => { down = null; tip.classList.remove('on'); });
   renderer.domElement.addEventListener('pointerleave', () => tip.classList.remove('on'));
 
   // ---------- render loop ----------
@@ -1521,11 +1538,15 @@ async function bootViewer() {
   }
   new ResizeObserver(resize).observe(stage); resize();
   let last = performance.now();
+  // right-drag panning stays around the bike, and the camera never dips under the studio floor
+  const PAN_MIN = new THREE.Vector3(-0.9, 0.05, -0.45), PAN_MAX = new THREE.Vector3(0.9, 1.15, 0.45), panFix = new THREE.Vector3();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (anim.rpm > 0.01) anim.crank -= anim.rpm / 60 * Math.PI * 2 * dt;
     updateDrive(false);
     controls.update();
+    panFix.copy(controls.target); controls.target.clamp(PAN_MIN, PAN_MAX); camera.position.add(panFix.subVectors(controls.target, panFix));
+    if (camera.position.y < 0.03) camera.position.y = 0.03;
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }

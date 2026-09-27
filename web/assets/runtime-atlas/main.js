@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { createStudioEnvironment } from '../3d/studio.js';
 
 const $ = id => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -27,10 +29,11 @@ try {
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(36, 1, .1, 120);
 const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = false;
+controls.enableDamping = !reduced.matches;
+controls.dampingFactor = .09;
 controls.enablePan = false;
 controls.minDistance = 4;
-controls.maxDistance = 32;
+controls.maxDistance = 48;
 controls.minPolarAngle = .2;
 controls.maxPolarAngle = Math.PI / 2.1;
 const cream = new THREE.MeshStandardMaterial({color: '#ece9dc', roughness: .8});
@@ -42,8 +45,15 @@ const copper = new THREE.MeshStandardMaterial({color: '#bc8b5c', metalness: .45,
 const black = new THREE.MeshStandardMaterial({color: '#182d28', roughness: .4});
 const light = new THREE.MeshStandardMaterial({color: '#b3d8b0', emissive: '#739c67', emissiveIntensity: .35});
 const glass = new THREE.MeshPhysicalMaterial({color: '#84b5a8', transparent: true, opacity: .26, roughness: .25, metalness: .05, depthWrite: false, side: THREE.DoubleSide});
+// Softened edges read as a built miniature; slivers below 5 cm stay crisp boxes.
+const boxCache = new Map();
+function boxGeometry(size) {
+  const key = size.join(','), min = Math.min(...size);
+  if (!boxCache.has(key)) boxCache.set(key, min < .05 ? new THREE.BoxGeometry(...size) : new RoundedBoxGeometry(...size, 2, Math.min(min * .16, .035)));
+  return boxCache.get(key);
+}
 function box(parent, size, pos, material = cream) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+  const m = new THREE.Mesh(boxGeometry(size), material);
   m.position.set(...pos); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m;
 }
 function cylinder(parent, radius, height, pos, material = dark, sides = 24) {
@@ -64,7 +74,7 @@ function tube(points, material, radius = .035) {
 function island(x, z, width, depth, name) {
   const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
   box(g, [width, .28, depth], [0, .14, 0]); box(g, [width - .15, .1, depth - .15], [0, -.06, 0], edge);
-  for (const a of [-1, 1]) for (const b of [-1, 1]) cylinder(g, .08, .18, [a*(width/2-.24), -.19, b*(depth/2-.24)], copper);
+  for (const a of [-1, 1]) for (const b of [-1, 1]) cylinder(g, .08, .22, [a*(width/2-.24), -.21, b*(depth/2-.24)], copper);
   textPlane(g, name, width-.3, [0, .16, depth/2+.006], {height:.16}); return g;
 }
 const desk = island(-4.5, .6, 3.2, 3.1, 'A / INTERFACE');
@@ -82,6 +92,8 @@ box(desk, [.93, .05, .36], [-.05, 1.18, .44], cream);
 for(let r=0;r<3;r++)for(let k=0;k<10;k++)box(desk,[.065,.016,.063],[-.44+k*.086,1.214,.33+r*.1],edge);
 box(desk, [.2, .06, .28], [.74, 1.19, .4], dark);
 cylinder(desk,.105,.23,[-1,1.25,.35],orange);
+const coffee=new THREE.Mesh(new THREE.CircleGeometry(.084,32),new THREE.MeshStandardMaterial({color:'#3a261b',roughness:.22}));coffee.rotation.x=-Math.PI/2;coffee.position.set(-1,1.366,.35);desk.add(coffee);
+const cupRim=new THREE.Mesh(new THREE.TorusGeometry(.097,.009,8,32),orange);cupRim.rotation.x=Math.PI/2;cupRim.position.set(-1,1.37,.35);desk.add(cupRim);
 const handle=new THREE.Mesh(new THREE.TorusGeometry(.075,.02,8,20),orange);handle.position.set(-1.12,1.27,.35);desk.add(handle);
 // Lamp with angled neck and a reading pool.
 cylinder(desk,.16,.04,[.95,1.18,-.45],dark);box(desk,[.035,.6,.035],[.95,1.5,-.45],copper);
@@ -111,6 +123,7 @@ for(let i=0;i<9;i++){
   for(let j=0;j<6;j++)box(rack,[.018,.09,.015],[-.53+j*.064,.61+i*.255,.851],dark);
   box(rack,[.075,.035,.018],[.49,.61+i*.255,.851],light);
 }
+for(const x of [-.67,.67])for(const y of [.52,2.78]){const screw=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.018,12),copper);screw.rotation.x=Math.PI/2;screw.position.set(x,y,.755);rack.add(screw);}
 for(const y of [.88,1.65,2.42])textPlane(rack,['FILES','SHELL','BROWSER'][Math.round((y-.88)/.77)],.5,[.18,y,.86],{height:.1});
 for(let j=0;j<7;j++)box(rack,[.018,2.3,.065],[.812,1.68,-.5+j*.16],edge);
 box(rack,[.065,2.55,1.35],[.87,1.67,0],glass);
@@ -142,7 +155,7 @@ const grid=new THREE.GridHelper(18,36,0xc4cbbd,0xd9ddd2);grid.position.y=-.305;g
 scene.add(new THREE.HemisphereLight('#fff8df','#8d9f8c',3));
 const sun=new THREE.DirectionalLight('#fff6e3',4.1);sun.position.set(-5,12,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12,near:1,far:40});sun.shadow.normalBias=.035;sun.shadow.bias=-.0002;sun.shadow.radius=3;scene.add(sun);
 const fill=new THREE.DirectionalLight('#dbede6',1.7);fill.position.set(8,5,-5);scene.add(fill);
-if(renderer){renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.setClearColor('#f2f0e9',0);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;$('fallback').hidden=true;}
+if(renderer){renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.setClearColor('#f2f0e9',0);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;renderer.outputColorSpace=THREE.SRGBColorSpace;scene.environment=createStudioEnvironment(THREE,renderer).texture;scene.environmentIntensity=.3;$('fallback').hidden=true;}
 
 let current=0, tour=false, tourElapsed=0, transition=null, expanded=false, expansion=0, flowIndex=-1, flowElapsed=0, flowRunning=false, raf=0, last=0, lost=false;
 // Keep playback controls next to the model when the lab scrolls out of view.
@@ -150,12 +163,12 @@ const flowOverlay=document.createElement('div');flowOverlay.className='flow-over
 flowOverlay.innerHTML='<span id="flow-caption"></span><div><button id="stage-pause">暫停</button><button id="stage-step">下一步 →</button><button id="stage-close" aria-label="關閉流程展示">×</button></div>';
 stage.append(flowOverlay);
 const hotspotButtons=objects.map((o,i)=>{
-  const b=document.createElement('button');b.className='hotspot';b.innerHTML=`<b>${o[0]}</b>${o[1]}`;b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>{stopTour();selectScene(o[5]);inspect(i);});$('hotspots').append(b);return b;
+  const b=document.createElement('button');b.className='hotspot';b.innerHTML=`<b>${o[0]}</b><span>${o[1]}</span>`;b.setAttribute('aria-label',`${o[0]} ${o[1]}`);b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>{stopTour();selectScene(o[5]);inspect(i);});$('hotspots').append(b);return b;
 });
 function inspect(index){
   const o=objects[index];$('object-id').textContent=o[0];$('object-title').textContent=o[1];$('object-description').textContent=o[2];$('object-fact').textContent=o[3];hotspotButtons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===index)));
 }
-function cameraPosition(index){const p=new THREE.Vector3(...chapters[index][3]);const t=new THREE.Vector3(...chapters[index][4]);if(stage.clientWidth<550)p.sub(t).multiplyScalar(index===0||index===5?1.16:1.05).add(t);return p;}
+function cameraPosition(index){const p=new THREE.Vector3(...chapters[index][3]);const t=new THREE.Vector3(...chapters[index][4]);const aspect=stage.clientWidth/stage.clientHeight;p.sub(t).multiplyScalar(Math.max(1,(index===0||index===5?1.28:.9)/aspect)).add(t);return p;}
 function selectScene(index, immediate=false){
   current=index;const c=chapters[index];$('shot-label').textContent=`0${index+1} / ${c[0]}`;$('scene-title').textContent=c[1];$('scene-description').textContent=c[2];$('chapter-count').textContent=`0${index+1} / 06`;$('view-mode').textContent=index===0?'總覽 / OVERVIEW':c[0];
   document.querySelectorAll('[data-scene]').forEach((b,i)=>{if(i===index)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
@@ -175,18 +188,20 @@ function syncFlow(){
   $('flow-caption').textContent=flowIndex<5?`0${flowIndex+1} / ${$('flow').children[flowIndex]?.textContent||''}`:'✓ 一次往返完成';
   $('stage-pause').textContent=flowRunning?'暫停':'繼續';$('stage-pause').disabled=flowIndex<0||flowIndex>4;$('stage-step').disabled=flowIndex<0||flowIndex>4;
 }
-function advanceFlow(){flowIndex++;flowElapsed=0;if(flowIndex>4){flowRunning=false;packet.visible=false;}syncFlow();schedule();}
+function advanceFlow(){flowIndex++;flowElapsed=0;if(flowIndex>4){flowRunning=false;packet.visible=false;if(document.activeElement===$('stage-step')||document.activeElement===$('stage-pause'))$('stage-close').focus({preventScroll:true});}syncFlow();schedule();}
 function startFlow(){stopTour();selectScene(5);flowIndex=0;flowElapsed=0;flowRunning=!reduced.matches;syncFlow();stage.scrollIntoView({behavior:reduced.matches?'instant':'smooth',block:'center'});schedule();}
 function render(){
   if(!renderer||lost)return;
+  camera.updateMatrixWorld();
   const width=stage.clientWidth,height=stage.clientHeight;
-  objects.forEach((o,i)=>{const p=new THREE.Vector3(...o[4]);if(i===1)p.y+=expansion*1.2;p.project(camera);const b=hotspotButtons[i];b.style.left=`${(p.x*.5+.5)*width}px`;b.style.top=`${(-p.y*.5+.5)*height}px`;b.hidden=p.z>1||p.z< -1||Math.abs(p.x)>.93||Math.abs(p.y)>.86;});
+  objects.forEach((o,i)=>{const p=new THREE.Vector3(...o[4]);if(i===1)p.y+=expansion*1.2;p.project(camera);const b=hotspotButtons[i];b.hidden=p.z>1||p.z< -1||Math.abs(p.x)>.96||Math.abs(p.y)>.86;const half=b.offsetWidth/2+4;b.style.left=`${THREE.MathUtils.clamp((p.x*.5+.5)*width,half,width-half)}px`;b.style.top=`${THREE.MathUtils.clamp((-p.y*.5+.5)*height,flowOverlay.hidden?60:128,height-105)}px`;});
   renderer.render(scene,camera);
 }
 function tick(now){
   raf=0;const dt=last?Math.min(now-last,60):0;last=now;
   if(tour){tourElapsed+=dt;const next=Math.min(5,Math.floor(tourElapsed/8000));if(next!==current)selectScene(next);$('tour-progress').style.width=`${Math.min(100,tourElapsed/48000*100)}%`;if(tourElapsed>=48000)stopTour();}
   if(transition){const t=transition;t.elapsed+=dt;const f=Math.min(t.elapsed/1300,1),s=f*f*(3-2*f);camera.position.lerpVectors(t.from,t.to,s);controls.target.lerpVectors(t.startTarget,t.target,s);controls.update();if(f===1)transition=null;}
+  else if(controls.enableDamping)controls.update(); // settles the orbit's inertia; a change event reschedules the next frame
   const desired=expanded?1:0;expansion=reduced.matches?desired:THREE.MathUtils.damp(expansion,desired,7,dt/1000);if(Math.abs(expansion-desired)<.001)expansion=desired;
   layers.forEach((l,i)=>l.position.y=.48+i*.45+expansion*i*.62);
   if(flowRunning){flowElapsed+=dt;if(flowElapsed>=2600)advanceFlow();}
@@ -195,13 +210,14 @@ function tick(now){
   if(tour||transition||flowRunning||expansion!==desired)schedule();else last=0;
 }
 function schedule(){if(!raf&&!document.hidden&&!lost)raf=requestAnimationFrame(tick);}
-function resize(){if(renderer)renderer.setSize(stage.clientWidth,stage.clientHeight,false);camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();schedule();}
+let previousAspect=0;
+function resize(){if(renderer)renderer.setSize(stage.clientWidth,stage.clientHeight,false);camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();if(previousAspect&&Math.abs(previousAspect-camera.aspect)>.01&&$('view-mode').textContent!=='自由環繞 / FREE ORBIT')selectScene(current,true);previousAspect=camera.aspect;schedule();}
 new ResizeObserver(resize).observe(stage);
 controls.addEventListener('start',()=>{transition=null;stopTour();$('view-mode').textContent='自由環繞 / FREE ORBIT';});
 controls.addEventListener('change',schedule);
 document.querySelectorAll('[data-scene]').forEach(b=>b.addEventListener('click',()=>{stopTour();selectScene(Number(b.dataset.scene));}));
 $('tour').disabled=false;$('tour').setAttribute('aria-pressed','false');
-$('tour').addEventListener('click',()=>{if(tour){stopTour();return;}tour=true;tourElapsed=0;selectScene(0);$('tour').innerHTML='停止導覽 <span>Ⅱ</span>';$('tour').setAttribute('aria-pressed','true');schedule();});
+$('tour').addEventListener('click',()=>{if(tour){stopTour();return;}flowIndex=-1;flowRunning=false;packet.visible=false;syncFlow();tour=true;tourElapsed=0;selectScene(0);$('tour').innerHTML='停止導覽 <span>Ⅱ</span>';$('tour').setAttribute('aria-pressed','true');schedule();});
 $('reset').disabled=!renderer;$('reset').addEventListener('click',()=>{stopTour();selectScene(current);});
 $('explode').disabled=!renderer;$('explode').addEventListener('click',()=>{stopTour();expanded=!expanded;$('explode').setAttribute('aria-pressed',String(expanded));$('explode').textContent=expanded?'⊟ 合攏層板':'⊞ 分層展開';selectScene(2);});
 $('request').disabled=false;$('request').addEventListener('click',startFlow);
@@ -209,7 +225,7 @@ $('flow-pause').addEventListener('click',()=>{flowRunning=!flowRunning;syncFlow(
 $('flow-step').addEventListener('click',()=>{flowRunning=false;advanceFlow();});
 $('stage-pause').addEventListener('click',()=>{$('flow-pause').click();});
 $('stage-step').addEventListener('click',()=>{$('flow-step').click();});
-$('stage-close').addEventListener('click',()=>{flowIndex=-1;flowRunning=false;packet.visible=false;syncFlow();$('flow-status').textContent='流程已關閉，可重新送出一次請求。';schedule();});
+$('stage-close').addEventListener('click',()=>{flowIndex=-1;flowRunning=false;packet.visible=false;syncFlow();$('flow-status').textContent='流程已關閉，可重新送出一次請求。';canvas.focus({preventScroll:true});schedule();});
 canvas.addEventListener('keydown',e=>{
   if(e.altKey||e.ctrlKey||e.metaKey)return;
   if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-','=','Home'].includes(e.key))return;
@@ -220,7 +236,7 @@ canvas.addEventListener('keydown',e=>{
   if(e.key==='+'||e.key==='=')s.radius*=.9;if(e.key==='-')s.radius*=1.1;
   s.phi=THREE.MathUtils.clamp(s.phi,controls.minPolarAngle,controls.maxPolarAngle);s.radius=THREE.MathUtils.clamp(s.radius,controls.minDistance,controls.maxDistance);camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));controls.update();$('view-mode').textContent='自由環繞 / FREE ORBIT';schedule();
 });
-reduced.addEventListener('change',e=>{if(e.matches){stopTour();flowRunning=false;syncFlow();selectScene(current,true);}});
+reduced.addEventListener('change',e=>{controls.enableDamping=!e.matches;if(e.matches){stopTour();flowRunning=false;syncFlow();selectScene(current,true);}});
 document.addEventListener('visibilitychange',()=>{cancelAnimationFrame(raf);raf=0;last=0;if(!document.hidden)schedule();});
 canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();lost=true;cancelAnimationFrame(raf);raf=0;last=0;stopTour();flowRunning=false;syncFlow();$('fallback').hidden=false;$('fallback').innerHTML='3D 顯示暫時中斷。<small>文字導覽仍可閱讀；圖形環境恢復後會重新顯示。</small>';$('hotspots').hidden=true;});
 canvas.addEventListener('webglcontextrestored',()=>{lost=false;$('fallback').hidden=true;$('hotspots').hidden=false;resize();schedule();});

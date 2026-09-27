@@ -69,10 +69,12 @@
     .hint{display:none}
     .kicker{font-size:10px;padding-bottom:6px;margin-bottom:6px}
   }
+
+button{min-width:44px;min-height:44px}canvas#view:focus-visible{outline:3px solid var(--paper);outline-offset:-4px}@media(prefers-reduced-motion:reduce){.blink{animation:none}}
 </style>
 </head>
 <body>
-<canvas id="view" aria-label="A dithered 3D object, drag to rotate"></canvas>
+<canvas id="view" tabindex="0" aria-label="Dithered 3D object: drag or arrow keys to rotate; Home resets view"></canvas>
 
 <header class="panel">
   <div class="kicker"><span>Plate 091</span><span>1-bit / 2 inks</span></div>
@@ -133,11 +135,12 @@
     {k:'noise', label:'rand', n:-1, note:'White noise threshold. Every frame re-rolls the dice — the film-grain school.'}
   ];
 
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const S = {
     obj: 0, from: 0, to: 0, morph: 1,
     mat: 3, px: innerWidth < 760 ? 2 : 3,
     yaw: .6, pitch: .75, vy: 0, vp: 0,
-    spin: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+    spin: !motion.matches,
     inv: false
   };
 
@@ -192,15 +195,15 @@
     const rM = $('#rM'), rG = $('#rG');
     if (rM) rM.textContent = m.label;
     if (rG) rG.textContent = m.n > 0 ? (m.n * m.n + 1) : (m.n === 0 ? '2' : '∞?');
-    [...(matRow ? matRow.children : [])].forEach((b, i) => b.classList.toggle('on', i === S.mat));
+    [...(matRow ? matRow.children : [])].forEach((b, i) => { b.classList.toggle('on', i === S.mat); b.setAttribute('aria-pressed', i === S.mat); });
   }
   function setObj(i) {
     if (i === S.to && S.morph >= 1) return;
-    S.from = S.morph >= 1 ? S.to : S.to; S.to = i; S.morph = 0;
+    S.from = S.morph >= 1 ? S.to : S.to; S.to = i; S.morph = motion.matches ? 1 : 0; if (motion.matches) S.from = i;
     const s = SPECIMENS[i];
     const t = $('#sTag'), n = $('#sName'), q = $('#sQuip');
     if (t) t.textContent = s[0]; if (n) n.textContent = s[1]; if (q) q.textContent = s[2];
-    [...(objRow ? objRow.children : [])].forEach((b, k) => b.classList.toggle('on', k === i));
+    [...(objRow ? objRow.children : [])].forEach((b, k) => { b.classList.toggle('on', k === i); b.setAttribute('aria-pressed', k === i); });
   }
   function setMat(i) { S.mat = (i + MATS.length) % MATS.length; paintMatrix(); }
   function setPx(p) { S.px = Math.max(1, Math.min(8, p)); const r = $('#rP'); if (r) r.textContent = S.px + 'px'; resize(); }
@@ -208,11 +211,17 @@
   const pxDown = $('#pxDown'), pxUp = $('#pxUp'), invB = $('#inv'), spinB = $('#spin');
   pxDown && pxDown.addEventListener('click', () => setPx(S.px - 1));
   pxUp && pxUp.addEventListener('click', () => setPx(S.px + 1));
-  invB && invB.addEventListener('click', () => { S.inv = !S.inv; document.body.classList.toggle('inv', S.inv); invB.classList.toggle('on', S.inv); });
-  spinB && spinB.addEventListener('click', () => { S.spin = !S.spin; spinB.classList.toggle('on', S.spin); });
-  spinB && spinB.classList.toggle('on', S.spin);
+  invB && invB.addEventListener('click', () => { S.inv = !S.inv; document.body.classList.toggle('inv', S.inv); invB.classList.toggle('on', S.inv); invB.setAttribute('aria-pressed', S.inv); });
+  spinB && spinB.addEventListener('click', () => { S.spin = !S.spin; spinB.classList.toggle('on', S.spin); spinB?.setAttribute('aria-pressed', S.spin); });
+  spinB && spinB.classList.toggle('on', S.spin); spinB?.setAttribute('aria-pressed', S.spin);
 
+  invB?.setAttribute('aria-pressed', S.inv);
+  motion.addEventListener('change', e => { if(e.matches){S.spin=false;S.vy=S.vp=0;S.morph=1;S.from=S.to;spinB.classList.remove('on');spinB.setAttribute('aria-pressed','false');} });
   addEventListener('keydown', e => {
+    if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey||e.target.closest('input,textarea,select,[contenteditable=true]'))return;
+    if(e.key.startsWith('Arrow'))e.preventDefault();
+    if(e.key==='Home'&&e.target===cv){e.preventDefault();S.yaw=.6;S.pitch=.75;S.vy=S.vp=0;return;}
+    if(e.repeat&&[' ','i','I'].includes(e.key))return;
     if (e.target && e.target.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     const k = e.key;
     if (k >= '1' && k <= '5') setObj(+k - 1);
@@ -220,7 +229,7 @@
     else if (k === '+' || k === '=') setPx(S.px + 1);
     else if (k === '-' || k === '_') setPx(S.px - 1);
     else if (k === 'i' || k === 'I') invB && invB.click();
-    else if (k === ' ') { S.spin = !S.spin; spinB && spinB.classList.toggle('on', S.spin); e.preventDefault(); }
+    else if (k === ' ') { S.spin = !S.spin; spinB && spinB.classList.toggle('on', S.spin); spinB?.setAttribute('aria-pressed', S.spin); e.preventDefault(); }
     else if (k === 'ArrowLeft') S.vy -= .06;
     else if (k === 'ArrowRight') S.vy += .06;
     else if (k === 'ArrowUp') S.vp -= .04;
@@ -231,20 +240,21 @@
   let drag = null;
   function bindCanvas(c) {
     c.addEventListener('pointerdown', e => {
-      drag = { x: e.clientX, y: e.clientY };
+      if(!e.isPrimary||e.button!==0||drag)return;
+      c.focus();drag = { x: e.clientX, y: e.clientY, id:e.pointerId };
       try { c.setPointerCapture(e.pointerId); } catch (_) {}
       c.classList.add('drag');
     });
     c.addEventListener('pointermove', e => {
-      if (!drag) return;
+      if (!drag || drag.id!==e.pointerId) return;
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       S.yaw += dx * .008; S.pitch = Math.max(-1.2, Math.min(1.2, S.pitch + dy * .008));
-      S.vy = dx * .008 * .5; S.vp = dy * .008 * .5;
+      S.vy = motion.matches ? 0 : dx * .008 * .5; S.vp = motion.matches ? 0 : dy * .008 * .5;
       drag.x = e.clientX; drag.y = e.clientY;
     });
     const end = () => { drag = null; c.classList.remove('drag'); };
     c.addEventListener('pointerup', end);
-    c.addEventListener('pointercancel', end);
+    c.addEventListener('pointercancel', end);c.addEventListener('lostpointercapture', end);window.addEventListener('blur',()=>{end();S.vy=S.vp=0;});
     c.addEventListener('wheel', e => { e.preventDefault(); S.vy += Math.sign(e.deltaY) * .03; }, { passive: false });
   }
   bindCanvas(cv);
@@ -530,12 +540,12 @@ void main(){
   const rF = $('#rF');
   function frame(now) {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
-    clock += dt;
+    if(!motion.matches||S.spin)clock += dt;
     if (!drag) {
-      S.yaw += S.vy; S.pitch = Math.max(-1.2, Math.min(1.2, S.pitch + S.vp));
-      S.vy *= .93; S.vp *= .9;
+      S.yaw += S.vy*dt*60; S.pitch = Math.max(-1.2, Math.min(1.2, S.pitch + S.vp*dt*60));
+      S.vy *= Math.pow(.93,dt*60); S.vp *= Math.pow(.9,dt*60);
       if (S.spin) S.yaw += dt * .35;
-      S.pitch += (.75 - S.pitch) * dt * .4;
+      if(!motion.matches)S.pitch += (.75 - S.pitch) * dt * .4;
     }
     if (S.morph < 1) { S.morph = Math.min(1, S.morph + dt / .9); if (S.morph >= 1) S.from = S.to; }
     const U = gl && !glLost ? (getProg(S.from, S.morph >= 1 ? S.from : S.to) || getProg(S.to, S.to)) : null;

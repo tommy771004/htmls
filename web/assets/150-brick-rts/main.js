@@ -1544,6 +1544,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 60 });
   sun.shadow.normalBias = 0.03;
+  sun.shadow.radius = 2.2;
   scene2.add(sun);
   sun.target.position.set(8, 0, 8);
   scene2.add(sun.target);
@@ -1600,8 +1601,15 @@ async function createScene(canvas2, onFailure, options = {}) {
   function groundBlock(x, z, height2, color) {
     const h = height2 + 0.24, key = `ground:${h}`;
     if (!geometry.has(key)) {
-      const geo = new T.BoxGeometry(1, h, 1);
-      geo.translate(0, h / 2, 0);
+      const b = 0.03, shape = new T.Shape();
+      shape.moveTo(-0.5 + b, -0.5 + b);
+      shape.lineTo(0.5 - b, -0.5 + b);
+      shape.lineTo(0.5 - b, 0.5 - b);
+      shape.lineTo(-0.5 + b, 0.5 - b);
+      shape.closePath();
+      const geo = new T.ExtrudeGeometry(shape, { depth: h - 2 * b, bevelEnabled: true, bevelSize: b, bevelThickness: b, bevelSegments: 1, steps: 1, curveSegments: 1 });
+      geo.rotateX(-Math.PI / 2);
+      geo.translate(0, b, 0);
       geometry.set(key, geo);
       groundGeometries.add(geo);
     }
