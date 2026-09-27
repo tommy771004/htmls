@@ -136,6 +136,38 @@ button{font:inherit;color:inherit}
 .card .body{transition:opacity 120ms var(--ease-out)}
 .card .body.swap{opacity:.25}
 
+/* 空氣動力實驗室面板 */
+.aero{position:fixed;left:22px;top:78px;z-index:5;width:300px;padding:14px 15px 13px;border-radius:14px;
+  background:rgba(21,19,18,.8);-webkit-backdrop-filter:blur(20px) saturate(1.2);backdrop-filter:blur(20px) saturate(1.2);
+  box-shadow:inset 0 0 0 1px var(--edge),inset 0 1px 0 rgba(255,244,236,.05),0 4px 14px rgba(0,0,0,.4);
+  opacity:0;visibility:hidden;transform:translate3d(-8px,0,0);
+  transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out),visibility 0s linear var(--dur-exit)}
+.aero.on{opacity:1;visibility:visible;transform:none;transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.ap-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.ap-hd b{font-size:15px;font-weight:650}
+.ap-x{border:0;background:transparent;color:var(--ink-3);font-size:12px;padding:4px 6px;border-radius:6px;cursor:pointer;transition:color var(--dur-hover)}
+.ap-x:hover{color:var(--ink)}
+.ap-seg{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border-radius:9px;background:rgba(255,236,226,.05)}
+.ap-seg button{border:0;background:transparent;color:var(--ink-2);font-size:13px;padding:8px 0;border-radius:7px;cursor:pointer;transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+.ap-seg button:hover{color:var(--ink)}
+.ap-seg button[aria-pressed="true"]{background:var(--act);color:var(--act-ink)}
+.ap-spd{padding:12px 0 4px !important;gap:10px}
+.ap-spd span{font-size:12.5px;color:var(--ink-3)}
+.ap-spd input{flex:1;width:auto}
+.ap-spd output{width:74px}
+.ap-num{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 10px}
+.ap-num span{display:block;font-size:11.5px;color:var(--ink-3)}
+.ap-num b{display:block;margin:3px 0 2px;font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.ap-num small{font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.ap-num em{font-style:normal;color:var(--ink)}
+.ap-split div{display:grid;grid-template-columns:34px 1fr;align-items:center;column-gap:10px;margin:0 0 7px}
+.ap-split span{font-size:12px;color:var(--ink-2)}
+.ap-split i{position:relative;height:5px;border-radius:3px;background:rgba(255,236,226,.08);overflow:hidden}
+.ap-split i::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--w,0%);border-radius:3px;background:#e9e3dc;transition:width .35s var(--ease-out)}
+.ap-split b{grid-column:2;margin-top:3px;font-size:11px;font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ap-note{margin:6px 0 0;font-size:11px;line-height:1.55;color:var(--ink-3)}
+.dim.flow b{font-size:12.5px}
+
 #boot{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:var(--bg);transition:opacity .5s var(--ease-out)}
 #boot div{max-width:320px;padding:0 24px;text-align:center;font-size:14px;line-height:1.7;color:var(--ink-2)}
 #boot b{display:block;margin-bottom:6px;font-size:16px;color:var(--ink)}
@@ -143,6 +175,7 @@ button{font:inherit;color:inherit}
 
 @media (max-width:1060px){
   .brand{display:none}
+  .aero{top:70px}
   .legend{top:66px}
 }
 @media (max-width:760px){
@@ -156,6 +189,13 @@ button{font:inherit;color:inherit}
   .legend button{font-size:11.5px;padding:4px 6px;gap:6px}
   .card{width:auto;left:8px;right:8px;top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 84px);max-height:52vh;overflow:auto;transform:translate3d(0,10px,0);padding:15px 16px 16px}
   .card.on{transform:none}
+  .aero{left:8px;right:8px;top:auto;width:auto;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 84px);max-height:46vh;overflow:auto;padding:12px 13px}
+  .ap-note{display:none}
+  .ap-split div{margin:0 0 4px}
+  .ap-num b{font-size:18px}
+  .ap-spd{padding:8px 0 2px !important}
+  .ap-hd{margin-bottom:8px}
+  body.sheet .aero{opacity:0;visibility:hidden}
   .card .x{display:block;position:absolute;right:8px;top:8px;border:0;background:transparent;color:var(--ink-2);font-size:13px;padding:6px 8px;border-radius:6px;cursor:pointer}
   .card .hd em{display:none}
   .card h2{font-size:19px}
@@ -198,10 +238,27 @@ button{font:inherit;color:inherit}
   <button type="button" data-tog="rule" aria-pressed="false">規則配色</button>
   <button type="button" data-tog="xray" aria-pressed="true">X 光</button>
   <button type="button" data-tog="dim" aria-pressed="true">尺寸</button>
+  <button type="button" data-tog="flow" aria-pressed="false">空氣動力</button>
   <button type="button" data-tog="spin" aria-pressed="true">轉盤</button>
   <button type="button" class="tyre" id="tyreBtn"><i></i><span>軟胎</span></button>
   <button type="button" class="swatch" id="liveryBtn" aria-label="車身塗裝：酒紅"><i></i></button>
 </div>
+
+<aside class="aero" id="aeroPanel" aria-label="空氣動力實驗室">
+  <div class="ap-hd"><b>空氣動力實驗室</b><button type="button" class="ap-x" id="aeroX">關閉</button></div>
+  <div class="ap-seg" role="group" aria-label="主動空力模式"><button type="button" data-am="0" aria-pressed="true">彎道模式</button><button type="button" data-am="1" aria-pressed="false">直道模式</button></div>
+  <label class="slide ap-spd"><span>車速</span><input id="spd" type="range" min="80" max="340" step="5" value="250" aria-label="車速"><output id="spdOut">250 km/h</output></label>
+  <div class="ap-num">
+    <div><span>總下壓力</span><b id="aDF">–</b><small id="aRatio"></small></div>
+    <div><span>阻力</span><b id="aDrag">–</b><small>克服阻力需 <em id="aPow">–</em></small></div>
+  </div>
+  <div class="ap-split" id="aSplit">
+    <div data-k="front"><span>前翼</span><i></i><b></b></div>
+    <div data-k="floor"><span>底板</span><i></i><b></b></div>
+    <div data-k="rear"><span>尾翼</span><i></i><b></b></div>
+  </div>
+  <p class="ap-note">數字為教學估算：切到直道模式時下壓力約少 25%、阻力約少 18%（Raceteq CFD 模擬），底板約占一半下壓力。FIA 公布 2026 年車比 2025 年下壓力少 30%、阻力少 55%。流線為示意，不是 CFD。</p>
+</aside>
 
 <div class="pop" id="layersPop" role="menu" aria-label="圖層"></div>
 <div class="pop" id="partsPop" role="menu" aria-label="零件"></div>
@@ -285,7 +342,7 @@ const INFO = {
   frontWing: { cat: 'team', name: '前翼', free: 3, layer: 'aero',
     desc: '產生前端下壓力，也替車身其他部位整理氣流。',
     who: '各車隊自行設計。',
-    list: ['最多三片翼片，後方兩片可以動。', '比 2025 年窄 100 mm。', '必須通過負載測試，不能靠形變換取空力。', '端板簡化，不得使用外洗氣流裝置。'],
+    list: ['三片翼片（2025 年為四片），上方兩片可以動。', '比 2025 年窄 100 mm。', '必須通過負載測試，不能靠形變換取空力。', '端板簡化，不得使用外洗氣流裝置。'],
     spec: [['翼片', '≤ 3'], ['寬度變化', '−100 mm']],
     nw: '主動空力，前翼襟翼可以動了。' },
   fwFlaps: { cat: 'team', name: '前翼襟翼（主動空力）', free: 3, layer: 'aero', act: true,
@@ -382,7 +439,8 @@ const INFO = {
   floor: { cat: 'team', name: '底板', free: 3, layer: 'body',
     desc: '車底是主要的下壓力來源，2026 年變得更平。',
     who: '各車隊自行設計。',
-    list: ['地面效應比 2022–2025 年減弱。', '底板邊緣與導流片受參考體積限制。', '必須通過 FIA 形變測試。'],
+    list: ['約產生全車一半的下壓力。', '部分平坦的底板，地面效應比 2022–2025 年減弱。', '寬度比 2025 年少 150 mm；前緣最多 5 個導流裝置。', '必須通過 FIA 形變測試。'],
+    spec: [['下壓力占比', '約 50%'], ['寬度變化', '−150 mm']],
     nw: '底板更平，較不依賴極低的車身高度。' },
   plank: { cat: 'spec', name: '滑板', free: 1, layer: 'body',
     desc: '固定在車底中央的複合材料板，用來確保車身不能壓得太低。',
@@ -392,7 +450,12 @@ const INFO = {
   diffuser: { cat: 'team', name: '擴散器', free: 3, layer: 'body',
     desc: '讓車底氣流減速上揚，把車身往下吸。',
     who: '各車隊自行設計。',
-    list: ['2026 年的擴散器變小。', '高度與寬度受參考體積限制。'] },
+    list: ['2026 年的擴散器變小、效率較低。', '下方可以加裝導流隔板，處理壓力分布與渦流。', '高度與寬度受參考體積限制。'] },
+  wakeBoards: { cat: 'team', name: '輪胎尾流導流板', free: 3, layer: 'body',
+    desc: '裝在側箱前方，把前輪捲起的亂流往車身內側導（內洗）。',
+    who: '各車隊自行設計。',
+    list: ['規則允許分成三段。', '內洗設計讓車尾的亂流變小，後車比較容易跟車。', '前輪上方的輪拱導流片取消。'],
+    nw: '全新的空力部件。' },
   gearbox: { cat: 'transfer', name: '變速箱', free: 2, layer: 'pu',
     desc: '八速無縫換檔變速箱，同時是後懸吊與尾翼的安裝結構。',
     who: '可以自行設計，也可以向其他車隊購買。',
@@ -403,12 +466,13 @@ const INFO = {
     list: ['完全被動：行進中不得有主動系統或調整。', '前後懸吊不得互相連接。', '禁止慣性器與調諧質量阻尼器。'],
     spec: [['形式', '僅限被動']] },
   rearWing: { cat: 'team', name: '尾翼', free: 3, layer: 'aero',
-    desc: '產生後端下壓力；2026 年上層襟翼同樣可以動。',
+    desc: '產生後端下壓力，由兩根支架固定在變速箱上。',
     who: '各車隊自行設計。',
-    list: ['端板形狀簡化。', '端板後緣內建雨天警示燈。'],
-    nw: '主動空力，尾翼襟翼可以打開。' },
+    list: ['三片翼片，其中上方兩片可以動。', '下方的梁翼取消，只留一根沒有空力作用的支撐桿。', '端板後緣內建雨天警示燈。'],
+    spec: [['翼片', '3（2 片可動）'], ['支架', '2 根']],
+    nw: '取消梁翼；襟翼可以打開。' },
   rwFlap: { cat: 'team', name: '尾翼襟翼（主動空力）', free: 3, layer: 'aero', act: true,
-    desc: '直道模式時打開，降低阻力以提高極速。',
+    desc: '尾翼上方的兩片襟翼，直道模式時打開，降低阻力以提高極速。',
     who: '各車隊自行設計。',
     list: ['與前翼襟翼一起在啟動區開啟。', '故障時自動回到彎道模式。'],
     spec: [['模式', '彎道／直道']],
@@ -535,6 +599,26 @@ const heatTex = (() => {
   g.fillStyle = gr; g.fillRect(0, 0, 256, 4);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 })();
+
+/* 雨胎胎紋：畫在胎面帶上，當作顏色與凹凸貼圖（半雨胎淺、全雨胎深） */
+const treadCanvas = document.createElement('canvas'); treadCanvas.width = 1024; treadCanvas.height = 256;
+const treadTex = new THREE.CanvasTexture(treadCanvas);
+treadTex.wrapS = THREE.RepeatWrapping; treadTex.colorSpace = THREE.SRGBColorSpace; treadTex.anisotropy = 4;
+function drawTread(kind) {
+  const g = treadCanvas.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, 1024, 256);
+  g.strokeStyle = '#2a2a2a'; g.lineCap = 'round';
+  const n = kind === 2 ? 56 : 44, w = kind === 2 ? 7 : 4;
+  g.lineWidth = w;
+  for (let i = 0; i < n; i++) {
+    const x = i / n * 1024;
+    g.beginPath(); g.moveTo(x, 128); g.lineTo(x + 20, 88); g.lineTo(x + 34, 78); g.stroke();
+    g.beginPath(); g.moveTo(x, 128); g.lineTo(x + 20, 168); g.lineTo(x + 34, 178); g.stroke();
+    if (kind === 2) { g.beginPath(); g.moveTo(x + 10, 104); g.lineTo(x - 4, 92); g.stroke(); g.beginPath(); g.moveTo(x + 10, 152); g.lineTo(x - 4, 164); g.stroke(); }
+  }
+  if (kind === 2) { g.lineWidth = 6; for (const y of [110, 146]) { g.beginPath(); g.moveTo(0, y); g.lineTo(1024, y); g.stroke(); } }
+  treadTex.needsUpdate = true;
+}
 
 const BASE = {
   livery:  { c: 0x5a161b, r: .56, m: .08, cc: .12 },
@@ -682,6 +766,17 @@ function strut(a, b, r, r2) {
   g.applyQuaternion(q); g.translate(a.x, a.y, a.z);
   return g;
 }
+/* 翼型斷面的懸吊臂：寬面保持水平，像真車的碳纖維 A 臂 */
+function blade(a, b, w, t) {
+  const d = b.clone().sub(a), L = d.length(); d.normalize();
+  const wd = new THREE.Vector3().crossVectors(d, up);
+  if (wd.lengthSq() < 1e-4) wd.set(1, 0, 0);
+  wd.normalize();
+  const td = new THREE.Vector3().crossVectors(wd, d).normalize();
+  const g = new THREE.CylinderGeometry(1, 1, L, 12, 1); g.scale(w / 2, 1, t / 2); g.translate(0, L / 2, 0);
+  g.applyMatrix4(new THREE.Matrix4().makeBasis(wd, d, td)); g.translate(a.x, a.y, a.z);
+  return g;
+}
 function limb(a, b, r) {
   const d = b.clone().sub(a), L = d.length();
   const g = new THREE.CapsuleGeometry(r, Math.max(.001, L), 5, 12);
@@ -814,6 +909,18 @@ add('sidepods', BODY.podL, 'livery', V(0, .08, .95));
 add('sidepods', BODY.podR, 'livery', V(0, .08, -.95));
 add('engineCover', BODY.engineCover, 'livery', V(-.1, .95, 0));
 
+/* 在車身表面放細節：由上往下找外殼頂面 */
+const bodyF = (x, y, z) => field(x, y, z, crKeys(SPINE, x), crKeys(PODS, x), podOn(x));
+function surfY(x, z) { for (let y = 1.3; y > 0; y -= .004) if (bodyF(x, y, z) < 0) return y; return 0; }
+/* 引擎蓋兩側的散熱百葉 */
+for (const s of [1, -1]) for (let k = 0; k < 7; k++) {
+  const x = -.9 - k * .045, z = s * .24, y = surfY(x, z);
+  add('engineCover', new THREE.BoxGeometry(.012, .006, .1), 'black', V(-.1, .95, 0), { pos: V(x, y + .001, z), rot: [s * .35, 0, 0], shadow: false });
+}
+/* 空氣盒上方的 T 型攝影機與座艙前的天線 */
+add('rollHoop', merge([new THREE.BoxGeometry(.08, .03, .05).translate(-.33, .99, 0), new THREE.BoxGeometry(.012, .03, .012).translate(-.31, .97, 0)]), 'black', V(0, 1.45, 0));
+add('mono', strut(V(.62, surfY(.62, .12) - .005, .12), V(.6, surfY(.62, .12) + .09, .12), .003), 'black', V(0, 0, 0), { shadow: false });
+
 /* 座艙開口：深色內襯與一圈座艙邊緣 */
 add('mono', new THREE.SphereGeometry(1, 36, 12), 'black', V(0, 0, 0), { pos: V(.1, .598, 0), scl: [.34, .03, .205] });
 add('mono', new THREE.TorusGeometry(1, .07, 8, 48), 'livery', V(0, 0, 0), { pos: V(.1, .605, 0), rot: [Math.PI / 2, 0, 0], scl: [.35, .215, .3] });
@@ -845,11 +952,12 @@ for (const s of [1, -1]) {
   for (const s of [1, -1]) {
     const edge = plate([[.55, 0], [-.75, 0], [-.75, .05], [.4, .07, .55, .04]], .01);
     edge.translate(0, .086, 0); edge.translate(0, 0, .695 * s); parts.push(edge);
-    for (let k = 0; k < 4; k++) {
-      const f = plate([[1.3 - k * .06, 0], [.86 - k * .05, 0], [.86 - k * .05, .045], [1.1 - k * .06, .05, 1.3 - k * .06, .02]], .008);
-      f.rotateY(s * (.12 + k * .05)); f.translate(0, .02, (.22 + k * .11) * s); parts.push(f);
+    for (let k = 0; k < 2; k++) {
+      const f = plate([[.2, 0], [-.22, 0], [-.22, .045], [.02, .05, .2, .02]], .008);
+      f.rotateY(s * (.12 + k * .08)); f.translate(1.1 - k * .08, .02, (.28 + k * .24) * s); parts.push(f);
     }
   }
+  { const f = plate([[.2, 0], [-.22, 0], [-.22, .045], [.02, .05, .2, .02]], .008); f.translate(1.14, .02, 0); parts.push(f); }
   add('floor', merge(parts), 'satin', V(0, -.25, 0));
 }
 
@@ -895,14 +1003,33 @@ const AERO = [
   { m: flapB, corner: -.62, straight: -.12 },
 ];
 
-/* 尾翼：主翼片、可動襟翼、端板、天鵝頸支架 */
-add('rearWing', foil(.3, .1, 1.0, .07), 'carbon', V(-1.2, .5, 0), { pos: V(-1.97, .79, 0), rot: [0, 0, -.1] });
+/* 尾翼：三片翼片（主翼＋兩片可動襟翼）、雙支架、端板；2026 年取消梁翼，只留一根沒有空力作用的支撐桿 */
+add('rearWing', foil(.26, .1, 1.0, .07), 'carbon', V(-1.2, .5, 0), { pos: V(-1.95, .775, 0), rot: [0, 0, -.08] });
 for (const s of [1, -1]) {
-  add('rearWing', plate([[-1.95, .74], [-1.96, .97, -2.04, .99], [-2.3, .99], [-2.36, .84, -2.3, .74]], .014), 'carbon', V(-1.2, .5, .12 * s), { pos: V(0, 0, .505 * s) });
+  add('rearWing', plate([[-1.93, .7], [-1.95, 1.0, -2.04, 1.045], [-2.34, 1.045], [-2.43, .88, -2.35, .7]], .014), 'carbon', V(-1.2, .5, .12 * s), { pos: V(0, 0, .505 * s) });
   add('rearWing', plate([[-1.74, .44], [-1.9, .5, -1.96, .74], [-1.99, .79], [-1.93, .6, -1.79, .44]], .012), 'carbon', V(-1.2, .5, 0), { pos: V(0, 0, .07 * s) });
 }
-const rwFlapMesh = add('rwFlap', foil(.2, .09, .99, .06), 'carbon', V(-1.2, .88, 0), { pos: V(-2.18, .895, 0) });
-AERO.push({ m: rwFlapMesh, corner: -.52, straight: -.05 });
+add('rearWing', foil(.06, .18, 1.0, 0), 'carbon', V(-1.2, .5, 0), { pos: V(-2.2, .72, 0) });
+const rwA = add('rwFlap', foil(.17, .09, .99, .06), 'carbon', V(-1.2, .82, 0), { pos: V(-2.13, .845, 0) });
+const rwB = add('rwFlap', foil(.14, .09, .99, .06), 'carbon', V(-1.2, .98, 0), { pos: V(-2.25, .925, 0) });
+add('rwFlap', new THREE.CapsuleGeometry(.016, .07, 4, 10).rotateZ(Math.PI / 2), 'black', V(-1.2, .9, 0), { pos: V(-2.12, .815, 0) });
+AERO.push({ m: rwA, corner: -.4, straight: -.06 }, { m: rwB, corner: -.72, straight: -.1 });
+
+/* 輪胎尾流導流板：側箱前方三片內洗導流片（前緣朝外），頂端以一根支撐樑相連 */
+for (const s of [1, -1]) {
+  const vanes = [];
+  for (let k = 0; k < 3; k++) {
+    const h = .3 - k * .03;
+    const v = plate([[.13, 0], [-.12, 0], [-.12, h], [.04, h + .03, .13, h - .08]], .008);
+    v.rotateY(-s * (.2 + k * .04)); v.translate(1.1 - k * .07, .1, s * (.47 + k * .085)); vanes.push(v);
+  }
+  vanes.push(new THREE.BoxGeometry(.05, .012, .26).translate(1.03, .41, s * .56));
+  add('wakeBoards', merge(vanes), 'carbon', V(.35, .12, .55 * s));
+}
+
+/* 鼻錐：前端皮托管與兩側攝影機 */
+add('nose', strut(V(3.0, .21, 0), V(3.24, .215, 0), .0045), 'metal', V(.6, .2, 0));
+for (const s of [1, -1]) add('nose', new THREE.CapsuleGeometry(.014, .06, 4, 8).rotateZ(Math.PI / 2), 'black', V(.6, .2, 0), { pos: V(2.2, .4, .13 * s) });
 
 /* 車輪：輪胎、輪框、胎壁字樣 */
 function tyreGeo(r, w) {
@@ -935,13 +1062,13 @@ for (const [x, r, w, zc, fx] of [[FA, FR, FW, FZ, .1], [RA, RR, RW, RZ, -.1]]) {
   const ring = new THREE.RingGeometry(.245, .343, 96, 1);
   for (const s of [1, -1]) {
     const pos = V(x, r, zc * s), rot = [0, s > 0 ? 0 : Math.PI, 0];
-    add('tyres', tg, 'rubber', V(fx, 0, 1.05 * s), { pos, rot });
+    add('tyres', tg, 'rubber', V(fx, 0, 1.05 * s), { pos, rot }).userData.spin = s > 0 ? -1 : 1;
     for (const side of [1, -1]) {
       const m = add('tyres', ring, 'tyreTxt', V(fx, 0, 1.05 * s), { pos: pos.clone().add(V(0, 0, (w / 2 + .013) * s * side)), rot: [0, (s * side) > 0 ? 0 : Math.PI, 0] });
-      m.renderOrder = 2;
+      m.renderOrder = 2; m.userData.spin = (s * side) > 0 ? -1 : 1;
     }
-    add('rims', rg, 'rimBlk', V(fx, 0, .72 * s), { pos, rot });
-    add('rims', new THREE.CylinderGeometry(.03, .034, .06, 6).rotateX(Math.PI / 2).translate(0, 0, w / 2 - .035), 'metal', V(fx, 0, .72 * s), { pos, rot });
+    add('rims', rg, 'rimBlk', V(fx, 0, .72 * s), { pos, rot }).userData.spin = s > 0 ? -1 : 1;
+    add('rims', new THREE.CylinderGeometry(.03, .034, .06, 6).rotateX(Math.PI / 2).translate(0, 0, w / 2 - .035), 'metal', V(fx, 0, .72 * s), { pos, rot }).userData.spin = s > 0 ? -1 : 1;
     TYRES.push({ x, r, zc: zc * s });
   }
 }
@@ -981,18 +1108,18 @@ function drawTyres(color) {
     const f = (x, y, z) => V(x, y, z * s);
     const fu = f(FA - .01, .5, .66), fl = f(FA + .01, .19, .69);
     L.push({ s, g: merge([
-      strut(f(1.98, .5, .17), fu, .013), strut(f(1.56, .52, .19), fu, .013),
-      strut(f(2.02, .22, .14), fl, .015), strut(f(1.5, .26, .16), fl, .015),
-      strut(f(FA + .02, .22, .64), f(1.62, .56, .18), .012),
-      strut(f(1.96, .38, .18), f(1.94, .36, .66), .01),
+      blade(f(1.98, .5, .17), fu, .05, .012), blade(f(1.56, .52, .19), fu, .05, .012),
+      blade(f(2.02, .22, .14), fl, .055, .013), blade(f(1.5, .26, .16), fl, .055, .013),
+      blade(f(FA + .02, .22, .64), f(1.62, .56, .18), .04, .014),
+      blade(f(1.96, .38, .18), f(1.94, .36, .66), .035, .011),
       new THREE.BoxGeometry(.07, .32, .05).translate(FA, .35, (FZ - .12) * s),
     ]) });
     const ru = f(RA, .52, .62), rl = f(RA, .2, .66);
     Rr.push({ s, g: merge([
-      strut(f(-1.38, .43, .14), ru, .013), strut(f(-1.82, .44, .13), ru, .013),
-      strut(f(-1.3, .22, .15), rl, .015), strut(f(-1.86, .24, .13), rl, .015),
-      strut(f(RA + .03, .5, .6), f(-1.48, .2, .15), .012),
-      strut(f(-1.9, .34, .14), f(-1.86, .34, .62), .01),
+      blade(f(-1.38, .43, .14), ru, .05, .012), blade(f(-1.82, .44, .13), ru, .05, .012),
+      blade(f(-1.3, .22, .15), rl, .055, .013), blade(f(-1.86, .24, .13), rl, .055, .013),
+      blade(f(RA + .03, .5, .6), f(-1.48, .2, .15), .04, .014),
+      blade(f(-1.9, .34, .14), f(-1.86, .34, .62), .035, .011),
       new THREE.BoxGeometry(.08, .34, .05).translate(RA, .36, (RZ - .16) * s),
     ]) });
   }
@@ -1043,15 +1170,34 @@ function drawTyres(color) {
 {
   const loop = new THREE.CatmullRomCurve3([V(-.26, .66, .27), V(-.14, .85, .27), V(.16, .9, .23), V(.36, .895, 0), V(.16, .9, -.23), V(-.14, .85, -.27), V(-.26, .66, -.27)]);
   add('halo', merge([new THREE.TubeGeometry(loop, 64, .022, 10), strut(V(.62, .63, 0), V(.36, .895, 0), .02, .026)]), 'livery', V(.1, .85, 0));
-  const helmet = new THREE.SphereGeometry(.125, 32, 20).translate(-.02, .735, 0);
-  add('driver', helmet, 'white', V(0, 1.25, 0));
-  add('driver', new THREE.SphereGeometry(.128, 32, 8, Math.PI - .95, 1.9, 1.2, .42).translate(-.02, .735, 0), 'visor', V(0, 1.25, 0));
+  /* 車手：安全帽（塗裝色帶、深色面罩、頂部進氣口）、頭頸支撐 HANS、手套、賽車鞋與座椅 */
+  const HX = -.02, HY = .735;
+  add('driver', new THREE.SphereGeometry(.125, 40, 24).translate(HX, HY, 0), 'white', V(0, 1.25, 0));
+  add('driver', new THREE.SphereGeometry(.128, 40, 10, Math.PI - .95, 1.9, 1.18, .44).translate(HX, HY, 0), 'visor', V(0, 1.25, 0));
+  add('driver', new THREE.TorusGeometry(.1265, .014, 8, 64, Math.PI * 1.15).rotateZ(-.08).translate(HX, HY, 0), 'livery', V(0, 1.25, 0));
+  add('driver', new THREE.TorusGeometry(.1265, .006, 6, 64, Math.PI * .95).rotateX(Math.PI / 2).translate(HX, HY + .012, 0), 'livery', V(0, 1.25, 0));
+  add('driver', new THREE.CapsuleGeometry(.018, .05, 4, 10).rotateZ(Math.PI / 2).translate(HX - .06, HY + .12, 0), 'black', V(0, 1.25, 0));
+  const hans = new THREE.CatmullRomCurve3([V(.02, .63, .14), V(-.1, .62, .12), V(-.15, .63, 0), V(-.1, .62, -.12), V(.02, .63, -.14)]);
+  add('driver', merge([new THREE.TubeGeometry(hans, 32, .022, 8), new THREE.BoxGeometry(.05, .1, .1).translate(-.15, .66, 0)]), 'black', V(0, 1.25, 0));
   const S = s => V(-.1, .58, .17 * s), E = s => V(.14, .5, .21 * s), H = s => V(.36, .57, .12 * s), Hp = s => V(-.18, .28, .09 * s), K = s => V(.52, .4, .11 * s), F = s => V(1.14, .3, .08 * s);
-  const body = [limb(V(-.2, .3, 0), V(-.1, .58, 0), .14), limb(V(-.08, .6, 0), V(-.04, .66, 0), .05)];
-  for (const s of [1, -1]) body.push(limb(S(s), E(s), .045), limb(E(s), H(s), .04), limb(Hp(s), K(s), .065), limb(K(s), F(s), .055));
+  const body = [limb(V(-.2, .3, 0), V(-.1, .55, 0), .14), limb(V(-.08, .6, 0), V(-.04, .66, 0), .05)];
+  for (const s of [1, -1]) body.push(limb(S(s), E(s), .045), limb(E(s), H(s), .04), limb(Hp(s), K(s), .065), limb(K(s), F(s), .055), new THREE.SphereGeometry(.06, 16, 10).scale(1, .9, 1.1).translate(-.1, .57, .15 * s));
   add('driver', merge(body), 'suit', V(0, 1.25, 0));
-  add('steering', new THREE.BoxGeometry(.035, .13, .27), 'black', V(.35, .72, 0), { pos: V(.42, .6, 0), rot: [0, 0, -.35] });
-  add('steering', new THREE.PlaneGeometry(.075, .045).rotateY(-Math.PI / 2), 'screen', V(.35, .72, 0), { pos: V(.44, .6, 0), rot: [0, Math.PI, .35 - Math.PI], shadow: false });
+  const kit = [];
+  for (const s of [1, -1]) kit.push(new THREE.SphereGeometry(.036, 12, 10).scale(1.2, 1, 1).translate(.37, .575, .12 * s), new THREE.CapsuleGeometry(.045, .12, 4, 10).rotateZ(Math.PI / 2 - .15).translate(1.2, .3, .08 * s));
+  kit.push(new THREE.BoxGeometry(.06, .5, .38).rotateZ(.42).translate(-.27, .38, 0), new THREE.BoxGeometry(.5, .05, .34).rotateZ(.08).translate(0, .15, 0));
+  add('driver', merge(kit), 'black', V(0, 1.25, 0));
+
+  /* 方向盤：兩側握把、中央螢幕、旋鈕與彩色按鍵；面板朝向車手（−X） */
+  const wheelAt = { pos: V(.43, .6, 0), rot: [0, 0, -.35] };
+  const wBody = [new THREE.BoxGeometry(.028, .115, .19)];
+  for (const s of [1, -1]) wBody.push(new THREE.CapsuleGeometry(.022, .07, 4, 10).translate(.004, -.012, .118 * s));
+  for (const [y, z] of [[-.038, .045], [-.038, -.045], [.036, .07], [.036, -.07]]) wBody.push(new THREE.CylinderGeometry(.011, .011, .012, 14).rotateZ(Math.PI / 2).translate(-.019, y, z));
+  add('steering', merge(wBody), 'black', V(.35, .72, 0), wheelAt);
+  add('steering', new THREE.PlaneGeometry(.07, .042).rotateY(-Math.PI / 2).translate(-.0145, .01, 0), 'screen', V(.35, .72, 0), { ...wheelAt, shadow: false });
+  const btn = (key, pts) => add('steering', merge(pts.map(([y, z]) => new THREE.BoxGeometry(.006, .01, .014).translate(-.016, y, z))), key, V(.35, .72, 0), { ...wheelAt, shadow: false });
+  btn('ledGrn', [[.042, .03], [-.04, 0]]);
+  btn('screen', [[.042, -.03], [-.012, .075], [-.012, -.075]]);
   for (const s of [1, -1]) {
     add('mirrors', merge([strut(V(.4, .6, .36 * s), V(.5, .72, .42 * s), .008), new THREE.CapsuleGeometry(.018, .13, 4, 10).rotateX(Math.PI / 2).scale(1.5, 1, 1).translate(.5, .735, .45 * s)]), 'livery', V(.1, .35, .5 * s));
   }
@@ -1060,7 +1206,7 @@ function drawTyres(color) {
 /* 零件的爆炸順序：外層先走，內部晚一點 */
 const DELAY = { frontWing: .02, fwFlaps: .08, rearWing: .04, rwFlap: .1, tyres: 0, rims: .06, nose: .1, sidepods: .08, engineCover: .12, rollHoop: .18,
   floor: .05, plank: .12, diffuser: .1, gearbox: .16, rearCrash: .2, rainLight: .24, suspension: .18, halo: .2, driver: .26, steering: .3, mirrors: .22,
-  ice: .28, turbo: .32, exhaust: .3, mguk: .34, battery: .3, fuelCell: .32, ecu: .34, radiators: .26, ersLight: .36, mono: 0 };
+  ice: .28, turbo: .32, exhaust: .3, mguk: .34, battery: .3, fuelCell: .32, ecu: .34, radiators: .26, ersLight: .36, wakeBoards: .12, mono: 0 };
 for (const id in PARTS) PARTS[id].delay = DELAY[id] ?? .2;
 
 /* ---------------- 尺寸標註 ---------------- */
@@ -1128,7 +1274,7 @@ const LIVERIES = [
 ];
 const st = {
   mode: 'assembled', e: 0, exTween: null,
-  rule: { v: 0, to: 0 }, xray: { v: 1, to: 1 }, dim: { v: 0, to: 1 }, nobody: { v: 0, to: 0 }, aero: { v: 0, to: 0 },
+  rule: { v: 0, to: 0 }, xray: { v: 1, to: 1 }, dim: { v: 0, to: 1 }, nobody: { v: 0, to: 0 }, aero: { v: 0, to: 0 }, flow: { v: 0, to: 0 }, speed: 250, wet: 0,
   spin: true, spinV: 0, compound: 0, livery: 0, liveryCol: new THREE.Color(LIVERIES[0].c), liveryTo: new THREE.Color(LIVERIES[0].c),
   layers: Object.fromEntries(Object.keys(LAYERS).map(k => [k, true])), solo: null,
   hover: null, pin: null, legendCat: null, menuHover: null, outlineA: 0, view: 'q',
@@ -1221,6 +1367,7 @@ document.querySelectorAll('[data-tog]').forEach(b => b.addEventListener('click',
   const k = b.dataset.tog, on = b.getAttribute('aria-pressed') !== 'true';
   b.setAttribute('aria-pressed', on);
   if (k === 'spin') st.spin = on; else st[k].to = on ? 1 : 0;
+  if (k === 'flow' && on && mobile()) unpin();
 }));
 const tyreBtn = $('tyreBtn');
 function setCompound(i) {
@@ -1228,6 +1375,8 @@ function setCompound(i) {
   tyreBtn.style.setProperty('--tc', c.c); tyreBtn.querySelector('span').textContent = c.n;
   tyreBtn.setAttribute('aria-label', '輪胎配方：' + c.n + '（按下切換）');
   drawTyres(c.c);
+  st.wet = i >= 3 ? i - 2 : 0;
+  if (st.wet) drawTread(st.wet);
 }
 tyreBtn.addEventListener('click', () => setCompound((st.compound + 1) % COMPOUNDS.length));
 const liveryBtn = $('liveryBtn');
@@ -1289,6 +1438,238 @@ for (const [btn, pop] of POPS) btn.addEventListener('click', e => {
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.pop') && !e.target.closest('.menu')) closePops(); });
 addEventListener('keydown', e => { if (e.key === 'Escape') { closePops(); unpin(); } });
 
+/* ---------------- 空氣動力實驗室 ----------------
+ * 流線：以車身隱函數、四個車輪、前後翼與底板組成的障礙距離場，沿 −X 積分（車向前、空氣往後），
+ * 靠近表面時去掉穿入分量，再加上尾翼上洗、擴散器上揚、前翼上洗與導流板內洗。
+ * 彎道與直道兩組路徑點數相同，切換模式時逐點內插。這是示意流場，不是 CFD。
+ * 力：下壓力與阻力用 ½ρv²·係數 估算（教學用），比例依公開資料設定：
+ *   直道模式下壓力約 −25%、阻力約 −18%（Raceteq CFD）；底板約產生一半下壓力（FIA / Motorsport Tech）。 */
+const RHO = 1.225, MASS = 768, G = 9.81;
+const COEF = {
+  corner:   { front: .70, floor: 1.60, rear: .90, cd: 1.00 },
+  straight: { front: .55, floor: 1.60, rear: .25, cd: .82 },
+};
+const FLOW = { built: false, group: new THREE.Group(), paths: [], N: 128, P: 9, lines: null, dots: null, cur: -1 };
+FLOW.group.visible = false;
+car.add(FLOW.group);
+const sdBox = (x, y, z, cx, cy, cz, hx, hy, hz) => {
+  const qx = Math.abs(x - cx) - hx, qy = Math.abs(y - cy) - hy, qz = Math.abs(z - cz) - hz;
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qy, qz), 0);
+};
+function obstacle(x, y, z) {
+  const xc = clamp(x, -1.99, 3.03), dx = Math.abs(x - xc);
+  let d = bodyF(xc, y, z);
+  if (dx > 0) d = Math.hypot(Math.max(d, 0), dx);
+  for (const w of TYRES) d = Math.min(d, Math.max(Math.hypot(x - w.x, y - w.r) - w.r, Math.abs(z - w.zc) - (w.x > 0 ? FW : RW) / 2));
+  d = Math.min(d, sdBox(x, y, z, 2.9, .15, 0, .25, .07, .9), sdBox(x, y, z, -2.18, .89, 0, .26, .15, .52), sdBox(x, y, z, 0, .072, 0, 1.3, .014, .68));
+  return Math.min(d, y - .015);
+}
+function trace(p0, aF, aR) {
+  const p = p0.clone(), pts = [], spd = [], e = .012;
+  for (let i = 0; i < 380; i++) {
+    const D = obstacle(p.x, p.y, p.z);
+    let nx = obstacle(p.x + e, p.y, p.z) - obstacle(p.x - e, p.y, p.z), ny = obstacle(p.x, p.y + e, p.z) - obstacle(p.x, p.y - e, p.z), nz = obstacle(p.x, p.y, p.z + e) - obstacle(p.x, p.y, p.z - e);
+    const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl;
+    let vx = -1, vy = 0, vz = 0;
+    const infl = 1 - sstep(0, .3, D), vn = -nx;
+    let sp = 1;
+    if (vn < 0) { vx -= nx * vn * infl * 1.08; vy -= ny * vn * infl * 1.08; vz -= nz * vn * infl * 1.08; sp -= .6 * -vn * infl * (1 - Math.abs(ny)); }
+    sp += .45 * infl * (1 + vn) * .5;
+    const az = Math.abs(p.z);
+    /* 尾翼後方的上洗（「蘑菇狀」尾流），直道模式時變弱 */
+    const wR = sstep(-1.9, -2.35, p.x) * (1 - sstep(-3.3, -4.4, p.x)) * (1 - sstep(.42, .7, az)) * Math.exp(-((p.y - .95) ** 2) / .12);
+    vy += .5 * aR * wR;
+    /* 擴散器：車底氣流減速上揚 */
+    const wD = sstep(-1.15, -1.7, p.x) * (1 - sstep(-2.7, -3.4, p.x)) * (1 - sstep(.45, .62, az)) * (1 - sstep(.3, .5, p.y));
+    vy += .24 * wD;
+    /* 前翼後方上洗；側箱前的導流板把氣流往內帶（內洗） */
+    const wF = sstep(2.75, 2.5, p.x) * (1 - sstep(1.9, 1.4, p.x)) * (1 - sstep(.8, 1, az)) * (1 - sstep(.3, .55, p.y));
+    vy += .16 * aF * wF;
+    const wW = sstep(1.3, 1.05, p.x) * (1 - sstep(.6, .2, p.x)) * sstep(.35, .5, az) * (1 - sstep(.72, .9, az)) * (1 - sstep(.3, .5, p.y));
+    vz -= Math.sign(p.z) * .2 * wW;
+    if (p.y < .12 && az < .66 && p.x < 1.3 && p.x > -1.2) sp += .38;
+    if (i % 3 === 0) { pts.push(p.x, p.y, p.z); spd.push(sp); }
+    p.x += vx * .025; p.y += vy * .025; p.z += vz * .025;
+    const D2 = obstacle(p.x, p.y, p.z);
+    if (D2 < .02) { p.x += nx * (.02 - D2); p.y += ny * (.02 - D2); p.z += nz * (.02 - D2); }
+  }
+  return { pts, spd };
+}
+/* 翼尖渦流：從端板頂端往後螺旋，下壓力越大轉得越緊 */
+function vortex(x0, y0, z0, dir, load, phase) {
+  const pts = [], spd = [];
+  for (let i = 0; i < 127; i++) {
+    const t = i / 126, x = x0 - t * (x0 + 4.4 > 0 ? x0 + 4.4 : 1), r = .015 + .09 * t * (.4 + .6 * load);
+    const a = phase + dir * t * TAU * (1.5 + 3.5 * load);
+    pts.push(x, y0 + t * .18 * load + Math.sin(a) * r, z0 + Math.cos(a) * r); spd.push(1.25);
+  }
+  return { pts, spd, vort: true };
+}
+function buildFlow() {
+  if (FLOW.built) return;
+  FLOW.built = true;
+  const seeds = [];
+  let k = 0;
+  for (const y of [.1, .22, .36, .5, .64, .8, .96, 1.12]) for (const z of [-.95, -.7, -.46, -.2, .2, .46, .7, .95]) {
+    const j = Math.sin(k++ * 12.9898) * 43758.5453, fr = j - Math.floor(j);
+    seeds.push(V(4.3, y + (fr - .5) * .06, z + (fr - .5) * .08));
+  }
+  for (const z of [-.45, -.2, .2, .45]) seeds.push(V(4.3, .04, z));
+  const C = COEF.corner, S = COEF.straight;
+  for (const sd of seeds) {
+    const a = trace(sd, 1, 1), b = trace(sd, S.front / C.front, S.rear / C.rear);
+    FLOW.paths.push({ a: a.pts, b: b.pts, sa: a.spd, sb: b.spd, n: Math.min(a.pts.length, b.pts.length) / 3 });
+  }
+  for (const s of [1, -1]) for (const ph of [0, Math.PI]) {
+    const a = vortex(-2.36, 1.03, .5 * s, s, 1, ph), b = vortex(-2.36, 1.03, .5 * s, s, S.rear / C.rear, ph);
+    FLOW.paths.push({ a: a.pts, b: b.pts, sa: a.spd, sb: b.spd, n: 127, vort: true });
+    const c = vortex(2.72, .2, .92 * s, -s, 1, ph), d = vortex(2.72, .2, .92 * s, -s, S.front / C.front, ph);
+    FLOW.paths.push({ a: c.pts, b: d.pts, sa: c.spd, sb: d.spd, n: 127, vort: true });
+  }
+  for (const p of FLOW.paths) { p.cur = new Float32Array(p.n * 3); p.sp = new Float32Array(p.n); }
+  const segs = FLOW.paths.reduce((a, p) => a + p.n - 1, 0);
+  const lg = new THREE.BufferGeometry();
+  lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(segs * 6), 3));
+  lg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(segs * 6), 3));
+  FLOW.lines = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: .2, depthWrite: false }));
+  FLOW.lines.frustumCulled = false;
+  const nd = FLOW.paths.length * FLOW.P;
+  const dg = new THREE.BufferGeometry();
+  dg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nd * 3), 3));
+  dg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(nd * 3), 3));
+  const dc = document.createElement('canvas'); dc.width = dc.height = 64;
+  const dx = dc.getContext('2d'), gr = dx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.45, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  dx.fillStyle = gr; dx.fillRect(0, 0, 64, 64);
+  FLOW.dots = new THREE.Points(dg, new THREE.PointsMaterial({ size: .045, map: new THREE.CanvasTexture(dc), vertexColors: true, transparent: true, depthWrite: false, opacity: 1 }));
+  FLOW.dots.frustumCulled = false;
+  FLOW.group.add(FLOW.lines, FLOW.dots);
+  FLOW.phase = FLOW.paths.map((_, i) => Array.from({ length: FLOW.P }, (_, j) => ((i * .37 + j / FLOW.P) % 1)));
+}
+/* 速度色階：慢（停滯）＝琥珀、正常＝暖白、快＝淺青 */
+const C_SLOW = new THREE.Color(0xd98a4a), C_MID = new THREE.Color(0xe9e3dc), C_FAST = new THREE.Color(0x7fcfd6), C_VORT = new THREE.Color(0xa8dde2);
+const flowCol = (sp, out) => {
+  const t = clamp((sp - .55) / .8, 0, 1);
+  return t < .55 ? out.copy(C_SLOW).lerp(C_MID, t / .55) : out.copy(C_MID).lerp(C_FAST, (t - .55) / .45);
+};
+function morphFlow(m) {
+  const lp = FLOW.lines.geometry.attributes.position.array, lc = FLOW.lines.geometry.attributes.color.array, c = new THREE.Color();
+  let o = 0;
+  for (const p of FLOW.paths) {
+    for (let i = 0; i < p.n; i++) {
+      for (let k = 0; k < 3; k++) p.cur[i * 3 + k] = lerp(p.a[i * 3 + k], p.b[i * 3 + k], m);
+      p.sp[i] = lerp(p.sa[i], p.sb[i], m);
+    }
+    for (let i = 0; i < p.n - 1; i++) for (const j of [i, i + 1]) {
+      lp[o] = p.cur[j * 3]; lp[o + 1] = p.cur[j * 3 + 1]; lp[o + 2] = p.cur[j * 3 + 2];
+      (p.vort ? c.copy(C_VORT) : flowCol(p.sp[j], c)).toArray(lc, o); o += 3;
+    }
+  }
+  FLOW.lines.geometry.attributes.position.needsUpdate = true;
+  FLOW.lines.geometry.attributes.color.needsUpdate = true;
+}
+/* 力的箭頭：尖端落在零件上，長度與力成正比 */
+const arrowMat = c => new THREE.MeshBasicMaterial({ color: c, transparent: true, depthTest: false, depthWrite: false });
+function makeArrow(tip, color, rotZ) {
+  const g = new THREE.Group(); g.position.copy(tip); g.rotation.z = rotZ || 0;
+  const m = arrowMat(color);
+  const head = new THREE.Mesh(new THREE.ConeGeometry(.035, .09, 16).rotateX(Math.PI).translate(0, .045, 0), m);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.011, .011, 1, 10).translate(0, .5, 0), m);
+  shaft.position.y = .085;
+  head.renderOrder = shaft.renderOrder = 30;
+  g.add(head, shaft); FLOW.group.add(g);
+  const el = document.createElement('div'); el.className = 'dim flow'; el.innerHTML = '<b></b><span></span>';
+  $('dims').appendChild(el);
+  return { g, shaft, m, el, tip };
+}
+const ARROWS = {
+  front: makeArrow(V(2.86, .26, 0), 0xefe6da),
+  floor: makeArrow(V(-.2, .7, 0), 0xefe6da),
+  rear:  makeArrow(V(-2.14, 1.08, 0), 0xefe6da),
+  drag:  makeArrow(V(-2.72, .5, 0), 0xe39b5b, -Math.PI / 2),
+};
+const ARROW_NAME = { front: '前翼下壓力', floor: '底板下壓力', rear: '尾翼下壓力', drag: '阻力' };
+function aeroNumbers() {
+  const m = ease(st.aero.v), v = st.speed / 3.6, q = .5 * RHO * v * v;
+  const f = k => lerp(COEF.corner[k], COEF.straight[k], m) * q;
+  const front = f('front'), floor = f('floor'), rear = f('rear'), drag = f('cd');
+  const df = front + floor + rear;
+  return { front, floor, rear, drag, df, ratio: df / (MASS * G), power: drag * v };
+}
+const aeroEls = { df: $('aDF'), ratio: $('aRatio'), drag: $('aDrag'), pw: $('aPow'), bars: [...document.querySelectorAll('#aSplit [data-k]')] };
+let flowWheel = 0;
+function updateFlow(dt, now) {
+  const show = st.flow.v * (1 - clamp(st.e * 3, 0, 1));
+  FLOW.group.visible = show > .01;
+  $('aeroPanel').classList.toggle('on', st.flow.to > .5);
+  if (show > .01 && !FLOW.built) buildFlow();
+  if (!FLOW.built) { for (const k in ARROWS) ARROWS[k].el.style.opacity = 0; return; }
+  const n = aeroNumbers();
+  /* 面板數字 */
+  if (st.flow.to > .5) {
+    aeroEls.df.textContent = (n.df / 1000).toFixed(1) + ' kN';
+    aeroEls.ratio.textContent = '約車重的 ' + n.ratio.toFixed(2) + ' 倍';
+    aeroEls.drag.textContent = (n.drag / 1000).toFixed(2) + ' kN';
+    aeroEls.pw.textContent = Math.round(n.power / 1000) + ' kW';
+    for (const b of aeroEls.bars) {
+      const val = n[b.dataset.k];
+      b.style.setProperty('--w', (val / n.df * 100).toFixed(1) + '%');
+      b.querySelector('b').textContent = (val / 1000).toFixed(1) + ' kN · ' + Math.round(val / n.df * 100) + '%';
+    }
+  }
+  if (!FLOW.group.visible) { for (const k in ARROWS) ARROWS[k].el.style.opacity = 0; return; }
+  /* 模式切換時逐點內插流線 */
+  const m = ease(st.aero.v);
+  if (Math.abs(m - FLOW.cur) > 1e-3) { morphFlow(m); FLOW.cur = m; }
+  FLOW.lines.material.opacity = .2 * show;
+  FLOW.dots.material.opacity = show;
+  /* 粒子沿路徑前進，速度跟著車速 */
+  const dp = FLOW.dots.geometry.attributes.position.array, dcol = FLOW.dots.geometry.attributes.color.array, c = new THREE.Color();
+  const rate = st.speed / 250 * .16;
+  let o = 0;
+  FLOW.paths.forEach((p, i) => {
+    for (let j = 0; j < FLOW.P; j++) {
+      FLOW.phase[i][j] = (FLOW.phase[i][j] + dt * rate * (reduce ? 0 : 1)) % 1;
+      const u = FLOW.phase[i][j] * (p.n - 1), a = Math.floor(u), t = u - a, b = Math.min(p.n - 1, a + 1);
+      for (let k = 0; k < 3; k++) dp[o * 3 + k] = lerp(p.cur[a * 3 + k], p.cur[b * 3 + k], t);
+      const fade = Math.sin(Math.PI * FLOW.phase[i][j]);
+      (p.vort ? c.copy(C_VORT) : flowCol(lerp(p.sp[a], p.sp[b], t), c)).multiplyScalar(fade).toArray(dcol, o * 3);
+      o++;
+    }
+  });
+  FLOW.dots.geometry.attributes.position.needsUpdate = true;
+  FLOW.dots.geometry.attributes.color.needsUpdate = true;
+  /* 箭頭長度與標籤；標籤彼此重疊時往上推開 */
+  const placed = [];
+  for (const k in ARROWS) {
+    const A = ARROWS[k], kn = n[k] / 1000;
+    const L = clamp(kn * (k === 'drag' ? .22 : .075), .04, 1.4);
+    A.shaft.scale.y = L; A.m.opacity = .9 * show;
+    const tail = A.tip.clone().add(k === 'drag' ? V(L * .5, .03, 0) : V(0, L + .12, 0));
+    car.localToWorld(tail);
+    const sc = toScreen(tail);
+    A.el.querySelector('b').textContent = kn.toFixed(kn < 10 ? 2 : 1) + ' kN';
+    A.el.querySelector('span').textContent = ARROW_NAME[k];
+    const hw = (A.el.offsetWidth || 90) / 2, hh = A.el.offsetHeight || 40;
+    let x = clamp(sc.x, hw + 8, innerWidth - hw - 8), y = sc.y - (k === 'drag' ? hh * 1.35 : hh);
+    for (let it = 0; it < 4; it++) for (const q of placed) if (Math.abs(q.x - x) < hw + q.hw + 4 && Math.abs(q.y - y) < hh + 4) y = q.y - hh - 6;
+    placed.push({ x, y, hw });
+    A.el.style.opacity = sc.ok ? show : 0;
+    A.el.style.transform = `translate3d(${x}px,${y}px,0) translate(-50%,0)`;
+  }
+}
+/* 輪胎在空氣動力模式下跟著車速轉（慢動作） */
+function spinWheels(dt) {
+  if (st.flow.v < .01 || reduce) return;
+  flowWheel -= st.speed / 3.6 / .357 * dt * .035 * st.flow.v;
+  for (const id of ['tyres', 'rims']) for (const m of PARTS[id].meshes) if (m.userData.spin) m.rotation.z = -m.userData.spin * flowWheel;
+}
+$('spd').addEventListener('input', e => { st.speed = +e.target.value; syncSpeed(); });
+function syncSpeed() { const el = $('spd'); el.style.setProperty('--p', ((st.speed - 80) / 260 * 100) + '%'); $('spdOut').textContent = st.speed + ' km/h'; }
+syncSpeed();
+document.querySelectorAll('[data-am]').forEach(b => b.addEventListener('click', () => { st.aero.to = +b.dataset.am; syncAct(); }));
+$('aeroX').addEventListener('click', () => { const t = document.querySelector('[data-tog=flow]'); t.click(); });
+
 /* ---------------- 說明卡 ---------------- */
 const card = $('card'), cardBody = $('cardBody'), cAct = $('cAct');
 let cardFor = null, hideTimer = 0;
@@ -1312,7 +1693,10 @@ function fillCard(id) {
   syncAct();
   cardFor = id;
 }
-function syncAct() { cAct.textContent = st.aero.to > .5 ? '回到彎道模式' : '切換到直道模式'; }
+function syncAct() {
+  cAct.textContent = st.aero.to > .5 ? '回到彎道模式' : '切換到直道模式';
+  document.querySelectorAll('[data-am]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.am === (st.aero.to > .5 ? 1 : 0)));
+}
 cAct.addEventListener('click', () => { st.aero.to = st.aero.to > .5 ? 0 : 1; syncAct(); });
 $('cardX').addEventListener('click', () => unpin());
 const mobile = () => innerWidth <= 760;
@@ -1345,11 +1729,13 @@ function pin(hit, sx, sy, prefer) {
   showCard(hit.id, sx, sy, prefer);
   if (cardFor === hit.id) placeCard(sx, sy, prefer);
   card.classList.add('pinned');
+  document.body.classList.add('sheet');
   $('cPin').textContent = '已釘選 · 點空白處取消';
 }
 function unpin() {
   st.pin = null;
   card.classList.remove('pinned');
+  document.body.classList.remove('sheet');
   $('cPin').textContent = '點擊釘選';
   if (!st.hover) hideCard();
 }
@@ -1440,7 +1826,8 @@ function updateParts(dt) {
     m.roughness = lerp(b.r, .55, rT);
     m.metalness = lerp(b.m, .02, rT);
     m.clearcoat = lerp(b.cc || 0, 0, rT);
-    if (b.ei) m.emissiveIntensity = b.ei * (1 - rT);
+    if (b.ei) m.emissiveIntensity = b.ei * (1 - rT) * (p.id === 'rainLight' && st.compound >= 3 && !reduce ? (Math.sin(performance.now() / 1000 * TAU * 4) > 0 ? 1 : .06) : 1);
+    if (key === 'rubber') { const want = rT > .5 || !st.wet ? null : treadTex; if (m.map !== want) { m.map = want; m.bumpMap = want; m.bumpScale = 3; m.needsUpdate = true; } }
     if (key === 'heat') { const want = rT > .5 ? null : heatTex; if (m.map !== want) { m.map = want; m.needsUpdate = true; } }
     let o = p.vis;
     if (p.shell) o *= lerp(1, .26, xT);
@@ -1457,7 +1844,7 @@ function toScreen(v) {
   return { x: (proj.x + 1) / 2 * innerWidth, y: (1 - proj.y) / 2 * innerHeight, ok: proj.z < 1 && proj.z > -1 };
 }
 function updateDims(dt) {
-  const show = st.dim.v * (1 - clamp(st.e * 3, 0, 1));
+  const show = st.dim.v * (1 - clamp(st.e * 3, 0, 1)) * (1 - st.flow.v);
   for (const d of DIMS) {
     const k = ease(clamp((show - d.delay) / (1 - .4), 0, 1));
     d.grp.visible = k > .01;
@@ -1527,17 +1914,17 @@ function renderReflection() {
   mirrorCam.projectionMatrix.copy(camera.projectionMatrix);
   reflMatrix.set(.5, 0, 0, .5, 0, .5, 0, .5, 0, 0, .5, .5, 0, 0, 0, 1);
   reflMatrix.multiply(mirrorCam.projectionMatrix).multiply(mirrorCam.matrixWorldInverse).multiply(floor.matrixWorld);
-  floor.visible = false; contact.visible = false;
+  floor.visible = false; contact.visible = false; const fv = FLOW.group.visible; FLOW.group.visible = false;
   const dv = DIMS.map(d => d.grp.visible); DIMS.forEach(d => { d.grp.visible = false; });
   renderer.setRenderTarget(reflRT); renderer.clear(); renderer.render(scene, mirrorCam);
   renderer.setRenderTarget(null);
-  floor.visible = true; contact.visible = true;
+  floor.visible = true; contact.visible = true; FLOW.group.visible = fv;
   DIMS.forEach((d, i) => { d.grp.visible = dv[i]; });
 }
 function renderMask(ids) {
   const saved = [];
   scene.traverse(o => {
-    if (o.isMesh || o.isLine) { saved.push([o, o.visible]); o.visible = o.visible && !!o.userData.part && ids.has(o.userData.part.id); }
+    if (o.isMesh || o.isLine || o.isPoints) { saved.push([o, o.visible]); o.visible = o.visible && !!o.userData.part && ids.has(o.userData.part.id); }
   });
   const bg = scene.background; scene.background = null;
   scene.overrideMaterial = maskMat;
@@ -1547,7 +1934,7 @@ function renderMask(ids) {
   for (const [o, v] of saved) o.visible = v;
 }
 
-let last = performance.now(), lastIds = new Set(), frameNo = 0;
+let last = performance.now(), lastIds = new Set(), frameNo = 0, viewKey = '';
 renderer.shadowMap.autoUpdate = false;
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
@@ -1559,7 +1946,7 @@ function frame(now) {
     if (k >= 1) st.exTween = null;
   }
   syncSlider();
-  smooth(st.rule, dt); smooth(st.xray, dt); smooth(st.dim, dt, 4); smooth(st.nobody, dt, 6); smooth(st.aero, dt, 4.5);
+  smooth(st.rule, dt); smooth(st.xray, dt); smooth(st.dim, dt, 4); smooth(st.nobody, dt, 6); smooth(st.aero, dt, 4.5); smooth(st.flow, dt, 5);
   st.liveryCol.lerp(st.liveryTo, 1 - Math.exp(-dt * (reduce ? 60 : 5)));
   const busy = !!(st.hover || st.pin);
   const wantSpin = st.spin && !reduce ? (busy ? .025 : .16) : 0;
@@ -1571,9 +1958,21 @@ function frame(now) {
     st.spinV = 0;
   } else rig.rotation.y += st.spinV * dt;
   updateParts(dt);
+  spinWheels(dt);
   scene.updateMatrixWorld();
   updateHover();
 
+  /* 實驗室面板開啟時：桌機把畫面稍微拉遠並往右移，手機往上移，讓車不被面板蓋住 */
+  const fv = Math.round(st.flow.v * 100) / 100, vkey = fv + ':' + innerWidth + ':' + innerHeight;
+  if (vkey !== viewKey) {
+    viewKey = vkey;
+    if (fv < .01) camera.clearViewOffset();
+    else {
+      const W = innerWidth, H = innerHeight, mob = mobile(), k = 1 + (mob ? .08 : .12) * fv;
+      const w = W * k, h = H * k, ox = mob ? 0 : 150 * fv, oy = mob ? H * .24 * fv : 0;
+      camera.setViewOffset(W, H, -(w - W) / 2 - ox, -(h - H) / 2 + oy, w, h);
+    }
+  }
   floor.visible = camera.position.y > .02;
   under.intensity = clamp(-camera.position.y / 2.5, 0, 1) * 2.6;
   scene.environmentIntensity = .85 + (1 - clamp(camera.position.y / 1.5 + 1, 0, 1)) * .6;
@@ -1592,6 +1991,7 @@ function frame(now) {
     renderer.autoClear = false; renderer.render(fsScene, fsCam); renderer.autoClear = true;
   }
   updateDims(dt);
+  updateFlow(dt, now);
   updateLeader();
   frameNo++;
   requestAnimationFrame(frame);
@@ -1607,7 +2007,7 @@ camera.lookAt(HOME);
 goView('q', 2.2, true);
 
 Object.assign(window.__f1, {
-  goView, setMode, focusPart, pin, unpin, camera,
+  goView, setMode, focusPart, pin, unpin, camera, aeroNumbers,
   setE: v => { st.exTween = null; st.e = v; },
   hover: id => { const m = PARTS[id].meshes[0]; st.hover = { id, mesh: m, local: V(0, 0, 0) }; showCard(id, innerWidth * .5, innerHeight * .45); },
   snap: () => { if (camTween) { camTween.start = -1e9; stepCam(performance.now()); } st.rule.v = st.rule.to; st.xray.v = st.xray.to; st.dim.v = st.dim.to; st.nobody.v = st.nobody.to; st.aero.v = st.aero.to; st.liveryCol.copy(st.liveryTo); for (const id in PARTS) { PARTS[id].layerV = st.layers[PARTS[id].layer] ? 1 : 0; PARTS[id].soloV = !st.solo || st.solo === PARTS[id].cat ? 1 : .08; } },
