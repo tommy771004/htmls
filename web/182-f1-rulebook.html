@@ -1,0 +1,1620 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>規則之車 · F1 2026 技術規則圖解</title>
+<meta name="description" content="可互動的 2026 年 F1 賽車 3D 規則圖解：滑過任一零件，看它由誰製造、車隊能改多少、2026 年有什麼新規定。支援爆炸圖、X 光、規則配色、尺寸標註、轉盤、六種視角與主動空力。">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23100d0c%22/%3E%3Cpath d=%22M5 19h22M9 19l3-6h8l3 6%22 stroke=%22%23ece8e4%22 stroke-width=%222.4%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223%22 fill=%22%23d8262c%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223%22 fill=%22%23d8262c%22/%3E%3C/svg%3E">
+<script type="importmap">
+{ "imports": {
+  "three": "../vendor/three-0.186.0/three.module.js",
+  "three/addons/": "../vendor/three-0.186.0/addons/"
+} }
+</script>
+<style>
+:root{
+  --bg:#000;
+  --glass:rgba(22,20,19,.74);
+  --glass-2:rgba(30,27,26,.9);
+  --edge:rgba(255,238,226,.07);
+  --ink:#eeeae6; --ink-2:#aaa39d; --ink-3:#7f7873;
+  --act:#4a1b1f; --act-ink:#f6ecea;
+  --red:#d9404a;
+  --sans:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --ease-out:cubic-bezier(.22,.8,.3,1);
+  --dur-hover:140ms; --dur-enter:220ms; --dur-exit:140ms;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+
+/* 上下兩條工具列：同一種玻璃材質 */
+.bar{position:fixed;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:2px;padding:5px;
+  background:var(--glass);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);
+  border-radius:12px;box-shadow:inset 0 0 0 1px var(--edge),inset 0 1px 0 rgba(255,244,236,.05),0 2px 6px rgba(0,0,0,.35);white-space:nowrap}
+.bar.top{top:14px}
+.bar.bottom{bottom:16px}
+.bar button{border:0;background:transparent;color:var(--ink-2);font-size:13.5px;line-height:1;padding:9px 11px;border-radius:8px;cursor:pointer;
+  transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+.bar button:hover{color:var(--ink);background:rgba(255,236,226,.055)}
+.bar button[aria-pressed="true"]{background:var(--act);color:var(--act-ink)}
+.bar button:focus-visible,.legend button:focus-visible,.pop button:focus-visible,.card .act:focus-visible{outline:2px solid #e9d7cf;outline-offset:1px}
+.bar .sep{flex:none;width:1px;height:18px;margin:0 7px;background:rgba(255,236,226,.11);border-radius:1px}
+.bar .menu{display:inline-flex;align-items:center;gap:6px}
+.bar .menu svg{width:9px;height:6px;opacity:.7;transition:transform var(--dur-hover) var(--ease-out)}
+.bar .menu[aria-expanded="true"]{color:var(--ink);background:rgba(255,236,226,.07)}
+.bar .menu[aria-expanded="true"] svg{transform:rotate(180deg)}
+
+/* 爆炸程度滑桿 */
+.slide{display:flex;align-items:center;gap:10px;padding:0 6px 0 10px}
+.slide input{--p:0%;-webkit-appearance:none;appearance:none;width:104px;height:22px;margin:0;background:transparent;cursor:pointer}
+.slide input::-webkit-slider-runnable-track{height:3px;border-radius:3px;background:linear-gradient(90deg,var(--red) 0 var(--p),rgba(255,236,226,.15) var(--p) 100%)}
+.slide input::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;margin-top:-6px;border-radius:50%;background:#f4f0ec;border:0;box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.slide input::-moz-range-track{height:3px;border-radius:3px;background:rgba(255,236,226,.15)}
+.slide input::-moz-range-progress{height:3px;border-radius:3px;background:var(--red)}
+.slide input::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#f4f0ec;border:0}
+.slide output{width:36px;text-align:right;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* 輪胎配方與塗裝 */
+.tyre{display:inline-flex;align-items:center;gap:7px}
+.tyre i{width:9px;height:9px;border-radius:50%;background:var(--tc,#d8262c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.bar button.swatch{width:34px;height:31px;padding:0;display:grid;place-items:center}
+.swatch i{width:15px;height:15px;border-radius:50%;background:var(--lc,#5a161b);box-shadow:0 0 0 1.5px rgba(255,236,226,.28);transition:background-color .5s var(--ease-out)}
+
+/* 左上角：作品名與操作提示 */
+.brand{position:fixed;top:18px;left:22px;z-index:4;pointer-events:none}
+.brand b{display:block;font-size:15px;font-weight:650;letter-spacing:.02em}
+.brand span{display:block;margin-top:4px;font-size:12px;color:var(--ink-3)}
+
+/* 右上角：規則類別圖例 */
+.legend{position:fixed;top:14px;right:14px;z-index:4;display:flex;flex-direction:column;gap:1px;padding:4px}
+.legend button{display:flex;align-items:center;gap:9px;border:0;background:transparent;color:var(--ink-2);font-size:12.5px;padding:4px 8px;border-radius:6px;cursor:pointer;text-align:left;
+  transition:color var(--dur-hover) var(--ease-out),opacity var(--dur-hover) var(--ease-out),background-color var(--dur-hover) var(--ease-out)}
+.legend button i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--c)}
+.legend button:hover{color:var(--ink);background:rgba(255,236,226,.05)}
+.legend.solo button{opacity:.45}
+.legend.solo button[aria-pressed="true"]{opacity:1;color:var(--ink)}
+
+/* 圖層與零件的下拉清單 */
+.pop{position:fixed;z-index:8;min-width:220px;max-height:min(60vh,520px);overflow:auto;padding:6px;border-radius:12px;
+  background:var(--glass-2);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+  box-shadow:inset 0 0 0 1px var(--edge),0 6px 18px rgba(0,0,0,.45);
+  opacity:0;transform:translateY(-4px);pointer-events:none;visibility:hidden;
+  transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out),visibility 0s linear var(--dur-exit)}
+.pop.on{opacity:1;transform:none;pointer-events:auto;visibility:visible;transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.pop h3{margin:8px 8px 4px;font-size:11.5px;font-weight:600;color:var(--ink-3)}
+.pop button{display:flex;width:100%;align-items:center;gap:10px;border:0;background:transparent;color:var(--ink-2);font-size:13px;padding:7px 8px;border-radius:7px;cursor:pointer;text-align:left;
+  transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+.pop button:hover{background:rgba(255,236,226,.06);color:var(--ink)}
+.pop button i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--c)}
+.pop .chk{flex:none;width:15px;height:15px;border-radius:4px;box-shadow:inset 0 0 0 1.5px rgba(255,236,226,.25);display:grid;place-items:center;transition:background-color var(--dur-hover)}
+.pop .chk svg{width:9px;height:9px;opacity:0}
+.pop [aria-checked="true"] .chk{background:var(--act);box-shadow:none}
+.pop [aria-checked="true"] .chk svg{opacity:1}
+.pop button small{margin-left:auto;font-size:11px;color:var(--ink-3)}
+
+/* 尺寸標註 */
+#dims{position:fixed;inset:0;z-index:2;pointer-events:none}
+.dim{position:absolute;left:0;top:0;padding:6px 9px 7px;border-radius:6px;background:rgba(20,18,17,.8);box-shadow:inset 0 0 0 1px rgba(255,236,226,.06);white-space:nowrap;will-change:transform,opacity}
+.dim b{display:block;font-size:13px;font-weight:650;font-variant-numeric:tabular-nums}
+.dim span{display:block;margin-top:2px;font-size:11px;color:var(--ink-3)}
+
+/* 滑過零件時的說明卡與引線 */
+#lead{position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible}
+#lead line{stroke:rgba(244,240,236,.62);stroke-width:1}
+#lead circle{fill:#111;stroke:#f4f0ec;stroke-width:1.4}
+.card{position:fixed;left:0;top:0;z-index:6;width:360px;padding:17px 19px 18px;border-radius:14px;
+  background:rgba(21,19,18,.8);-webkit-backdrop-filter:blur(20px) saturate(1.2);backdrop-filter:blur(20px) saturate(1.2);
+  box-shadow:inset 0 0 0 1px var(--edge),inset 0 1px 0 rgba(255,244,236,.05),0 4px 14px rgba(0,0,0,.4);
+  opacity:0;visibility:hidden;pointer-events:none;transform:translate3d(var(--x,0),var(--y,0),0) scale(.985);transform-origin:var(--ox,0) 50%;
+  transition:opacity var(--dur-exit) var(--ease-out),transform var(--dur-exit) var(--ease-out),visibility 0s linear var(--dur-exit)}
+.card.on{opacity:1;visibility:visible;transform:translate3d(var(--x,0),var(--y,0),0);transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out)}
+.card.pinned{pointer-events:auto}
+.card .hd{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.card .hd i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.card .hd em{margin-left:auto;font-style:normal;font-weight:400;color:var(--ink-3)}
+.card h2{margin:10px 0 9px;font-size:21px;font-weight:650;letter-spacing:.01em;line-height:1.25}
+.card p{margin:0 0 9px;font-size:13.5px;line-height:1.6;color:#d7d1cc}
+.card p b{color:var(--ink);font-weight:600}
+.card .free{display:flex;align-items:center;gap:12px;margin:12px 0 12px;padding:11px 0;font-size:13px;color:var(--ink-3);
+  background:linear-gradient(var(--edge),var(--edge)) top/100% 1px no-repeat,linear-gradient(var(--edge),var(--edge)) bottom/100% 1px no-repeat}
+.card .meter{display:flex;gap:4px;margin-left:auto}
+.card .meter i{width:15px;height:3px;border-radius:2px;background:rgba(255,236,226,.12)}
+.card .meter i.on{background:var(--red)}
+.card .free b{min-width:48px;color:var(--ink);font-weight:600}
+.card ul{margin:0 0 10px;padding:0;list-style:none}
+.card li{position:relative;padding-left:16px;margin:0 0 6px;font-size:13.5px;line-height:1.55;color:#d7d1cc}
+.card li::before{content:"";position:absolute;left:2px;top:.78em;width:6px;height:1.5px;border-radius:1px;background:var(--ink-3)}
+.card .act{display:none;margin-top:4px;border:0;border-radius:8px;padding:9px 13px;background:var(--act);color:var(--act-ink);font-size:13px;cursor:pointer;transition:background-color var(--dur-hover) var(--ease-out)}
+.card .act:hover{background:#5b2227}
+.card.has-act .act{display:inline-block}
+.card .x{display:none}
+.card .body{transition:opacity 120ms var(--ease-out)}
+.card .body.swap{opacity:.25}
+
+#boot{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:var(--bg);transition:opacity .5s var(--ease-out)}
+#boot div{max-width:320px;padding:0 24px;text-align:center;font-size:14px;line-height:1.7;color:var(--ink-2)}
+#boot b{display:block;margin-bottom:6px;font-size:16px;color:var(--ink)}
+#boot.gone{opacity:0;pointer-events:none}
+
+@media (max-width:1060px){
+  .brand{display:none}
+  .legend{top:66px}
+}
+@media (max-width:760px){
+  .bar{left:8px;right:8px;transform:none;flex-wrap:wrap;justify-content:center;row-gap:2px;border-radius:11px}
+  .bar .sep{display:none}
+  .bar.top{top:max(8px,env(safe-area-inset-top))}
+  .bar.bottom{bottom:max(10px,env(safe-area-inset-bottom))}
+  .bar button{font-size:13px;padding:9px 10px}
+  .slide input{width:84px}
+  .legend{top:calc(max(8px,env(safe-area-inset-top)) + 84px);left:8px;right:8px;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:0 2px;padding:0}
+  .legend button{font-size:11.5px;padding:4px 6px;gap:6px}
+  .card{width:auto;left:8px;right:8px;top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 84px);max-height:52vh;overflow:auto;transform:translate3d(0,10px,0);padding:15px 16px 16px}
+  .card.on{transform:none}
+  .card .x{display:block;position:absolute;right:8px;top:8px;border:0;background:transparent;color:var(--ink-2);font-size:13px;padding:6px 8px;border-radius:6px;cursor:pointer}
+  .card .hd em{display:none}
+  .card h2{font-size:19px}
+  .dim{padding:5px 7px 6px}
+  .dim b{font-size:12px}
+  .dim span{font-size:10px}
+}
+@media (prefers-reduced-motion:reduce){
+  .card,.card.on,.pop,.pop.on{transition-duration:1ms}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="可旋轉的 2026 年 F1 賽車 3D 模型，滑過零件查看規則"></canvas>
+<div id="dims" aria-hidden="true"></div>
+<svg id="lead" aria-hidden="true"><line id="leadLine" x1="0" y1="0" x2="0" y2="0" opacity="0"/><circle id="leadDot" r="4.5" cx="-20" cy="-20" opacity="0"/></svg>
+
+<div class="brand"><b>規則之車</b><span>F1 2026 技術規則圖解 · 滑過零件、拖曳旋轉</span></div>
+
+<div class="bar top" role="toolbar" aria-label="模型狀態">
+  <button type="button" data-mode="assembled" aria-pressed="true">組裝</button>
+  <button type="button" data-mode="nobody" aria-pressed="false">無車身</button>
+  <button type="button" data-mode="exploded" aria-pressed="false">爆炸</button>
+  <label class="slide"><input id="ex" type="range" min="0" max="100" step="1" value="0" aria-label="爆炸程度"><output id="exOut">0%</output></label>
+  <span class="sep"></span>
+  <button type="button" class="menu" id="layersBtn" aria-haspopup="true" aria-expanded="false" aria-controls="layersPop">圖層<svg viewBox="0 0 9 6"><path d="M1 1l3.5 3.5L8 1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <button type="button" class="menu" id="partsBtn" aria-haspopup="true" aria-expanded="false" aria-controls="partsPop">零件<svg viewBox="0 0 9 6"><path d="M1 1l3.5 3.5L8 1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
+
+<div class="legend" id="legend" aria-label="規則類別"></div>
+
+<div class="bar bottom" role="toolbar" aria-label="視角與顯示">
+  <button type="button" data-view="q" aria-pressed="true">3/4</button>
+  <button type="button" data-view="side" aria-pressed="false">側面</button>
+  <button type="button" data-view="top" aria-pressed="false">上方</button>
+  <button type="button" data-view="front" aria-pressed="false">正面</button>
+  <button type="button" data-view="rear" aria-pressed="false">後方</button>
+  <button type="button" data-view="under" aria-pressed="false">底部</button>
+  <span class="sep"></span>
+  <button type="button" data-tog="rule" aria-pressed="false">規則配色</button>
+  <button type="button" data-tog="xray" aria-pressed="true">X 光</button>
+  <button type="button" data-tog="dim" aria-pressed="true">尺寸</button>
+  <button type="button" data-tog="spin" aria-pressed="true">轉盤</button>
+  <button type="button" class="tyre" id="tyreBtn"><i></i><span>軟胎</span></button>
+  <button type="button" class="swatch" id="liveryBtn" aria-label="車身塗裝：酒紅"><i></i></button>
+</div>
+
+<div class="pop" id="layersPop" role="menu" aria-label="圖層"></div>
+<div class="pop" id="partsPop" role="menu" aria-label="零件"></div>
+
+<div class="card" id="card" role="dialog" aria-live="polite" aria-label="零件規則">
+  <button type="button" class="x" id="cardX">關閉</button>
+  <div class="body" id="cardBody">
+    <div class="hd"><i></i><span id="cCat"></span><em id="cPin">點擊釘選</em></div>
+    <h2 id="cName"></h2>
+    <p id="cDesc"></p>
+    <p id="cWho"></p>
+    <div class="free"><span>車隊設計自由度</span><span class="meter" id="cMeter"><i></i><i></i><i></i><i></i></span><b id="cFree"></b></div>
+    <ul id="cList"></ul>
+    <p id="cSpec"></p>
+    <p id="cNew"></p>
+  </div>
+  <button type="button" class="act" id="cAct"></button>
+</div>
+
+<div id="boot"><div><b>規則之車</b>正在載入 Three.js 並建立賽車模型…</div></div>
+
+<script type="module">
+const $ = id => document.getElementById(id);
+let THREE, OrbitControls, mergeGeometries;
+try {
+  THREE = await import('three');
+  ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
+  ({ mergeGeometries } = await import('three/addons/utils/BufferGeometryUtils.js'));
+} catch (e) {
+  $('boot').innerHTML = '<div><b>3D 模型載入失敗</b>無法載入本機 3D 模組，請透過網站伺服器開啟此頁。</div>';
+}
+if (THREE) {
+  try { init(); $('boot').classList.add('gone'); }
+  catch (err) { console.warn(err); $('boot').innerHTML = '<div><b>這個瀏覽器無法建立 WebGL</b>規則之車需要 WebGL 才能顯示 3D 模型。</div>'; }
+}
+
+function init() {
+/* ------------------------------------------------------------------ *
+ *  座標：1 單位 = 1 公尺。車頭朝 +X，地面 y = 0，左側（駕駛的左手）為 +Z。
+ *  前軸 x = 1.80、後軸 x = −1.60，軸距 3400 mm；後胎外緣 z = ±0.95，全寬 1900 mm。
+ * ------------------------------------------------------------------ */
+const TAU = Math.PI * 2;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const touchOnly = matchMedia('(hover: none)').matches;
+
+/* ---------------- 規則類別與零件資料 ---------------- */
+const CATS = {
+  single:   { name: 'FIA 單一供應商', color: '#3cc4b3' },
+  spec:     { name: 'FIA 規定規格',   color: '#d4b04a' },
+  pu:       { name: '認證動力單元',   color: '#cf6a36' },
+  transfer: { name: '可轉讓零件',     color: '#c47fd4' },
+  open:     { name: '開源設計',       color: '#6db35a' },
+  team:     { name: '車隊自行設計',   color: '#4a73d6' },
+};
+const FREE = ['無', '極少', '有限', '相當大', '高'];
+const LAYERS = {
+  body:    '車身與底板',
+  aero:    '前翼與尾翼',
+  pu:      '動力與傳動',
+  wheels:  '車輪與懸吊',
+  cockpit: '座艙與安全',
+};
+
+const INFO = {
+  tyres: { cat: 'single', name: '輪胎', free: 0, layer: 'wheels',
+    desc: '每支車隊用的都是同一款 Pirelli 輪胎，配方由胎壁顏色辨識。',
+    who: 'FIA 選定的唯一供應商，替所有車隊製造。',
+    list: ['比 2025 年窄：前胎 −25 mm、後胎 −30 mm。', '乾地配方由硬到軟，每站由供應商指定其中三種。', '另有半雨胎與全雨胎，全雨胎不使用胎溫毯。'],
+    spec: [['輪框', '18″'], ['前胎寬', '−25 mm'], ['後胎寬', '−30 mm']],
+    nw: '胎寬變窄，外徑也略為縮小。底部的配方按鈕可以切換胎壁顏色。' },
+  rims: { cat: 'open', name: '輪框', free: 2, layer: 'wheels',
+    desc: '18 吋鎂合金輪框，每個只用一顆中央螺帽固定。',
+    who: '車隊之間共用的開源設計。',
+    list: ['AZ70 或 AZ80 鎂合金。', '單一輪轂螺帽，搭配兩段式固定器。', '每輪三條繫繩，撞擊時防止車輪飛脫。'],
+    spec: [['直徑', '18″'], ['繫繩', '每輪 3 條'], ['材質', '鎂合金']],
+    nw: '不再由單一標準供應商提供。' },
+  frontWing: { cat: 'team', name: '前翼', free: 3, layer: 'aero',
+    desc: '產生前端下壓力，也替車身其他部位整理氣流。',
+    who: '各車隊自行設計。',
+    list: ['最多三片翼片，後方兩片可以動。', '比 2025 年窄 100 mm。', '必須通過負載測試，不能靠形變換取空力。', '端板簡化，不得使用外洗氣流裝置。'],
+    spec: [['翼片', '≤ 3'], ['寬度變化', '−100 mm']],
+    nw: '主動空力，前翼襟翼可以動了。' },
+  fwFlaps: { cat: 'team', name: '前翼襟翼（主動空力）', free: 3, layer: 'aero', act: true,
+    desc: '前翼後方的兩片襟翼，在直道模式下放平以降低阻力。',
+    who: '各車隊自行設計。',
+    list: ['每位車手都能在 FIA 劃定的啟動區開啟，不需要跟車距離。', '由 FIA 標準 ECU 控制，致動器為開源設計。', '抓地不足時，FIA 可以只開放前翼。', '故障時自動回到彎道模式。'],
+    spec: [['模式', '彎道／直道'], ['DRS', '取消']],
+    nw: '取代 DRS。' },
+  nose: { cat: 'team', name: '鼻錐與前防撞結構', free: 3, layer: 'body',
+    desc: '吸收正面撞擊的能量，同時是前翼的安裝點。',
+    who: '各車隊設計，須通過 FIA 撞擊測試。',
+    list: ['上賽道前必須通過 FIA 正面撞擊測試。', '外形受 FIA 車身參考體積限制。'],
+    nw: '改為兩段式吸能結構，第一次撞擊後仍保有保護能力。' },
+  mono: { cat: 'team', name: '生存艙（單體殼）', free: 3, layer: 'body',
+    desc: '經過撞擊測試的碳纖維艙體，容納車手、油箱與電池。',
+    who: '各車隊自行設計。',
+    list: ['上賽道前必須通過 FIA 負載與撞擊測試。', '側面有防穿刺板，可以使用 Zylon。', '座艙開口必須符合 FIA 樣板。', '測試負載比 2025 年更高。'],
+    spec: [['材質', '碳纖維複合材料＋Zylon']],
+    nw: '撞擊與防穿刺要求更嚴格。' },
+  sidepods: { cat: 'team', name: '側箱', free: 4, layer: 'body', panel: true,
+    desc: '包覆散熱器與電子設備，決定氣流怎麼流向車尾。',
+    who: '各車隊自行設計。',
+    list: ['必須落在 FIA 車身參考體積內。', '進氣口形狀與位置由車隊決定。', '側面防撞結構藏在內部。'] },
+  engineCover: { cat: 'team', name: '引擎蓋', free: 4, layer: 'body', panel: true,
+    desc: '包覆動力單元，把氣流導向尾翼與擴散器。',
+    who: '各車隊自行設計。',
+    list: ['必須落在 FIA 車身參考體積內。', '不能有尖銳邊緣，須符合最小曲率半徑。', '只能在規定區域開散熱百葉。'] },
+  rollHoop: { cat: 'team', name: '防滾架與進氣口', free: 2, layer: 'body',
+    desc: '翻車時保護車手頭部，同時是內燃機的進氣口。',
+    who: '各車隊設計，須通過 FIA 負載測試。',
+    list: ['結構頂點高於參考平面 968 mm。', '必須通過 FIA 靜態負載測試。'],
+    spec: [['高度', '968 mm']],
+    nw: '負載測試的要求提高。' },
+  halo: { cat: 'spec', name: '頭部保護環 Halo', free: 0, layer: 'cockpit',
+    desc: '環繞座艙的鈦合金保護環，擋下飛來的輪胎與碎片。',
+    who: 'FIA 規定設計，由認證廠商製造。',
+    list: ['形狀與材質由 FIA 規定。', '車隊只能加裝規定範圍內的整流罩。', '必須通過 FIA 負載測試。'],
+    spec: [['材質', '鈦合金']] },
+  driver: { cat: 'spec', name: '車手與安全裝備', free: 1, layer: 'cockpit',
+    desc: '安全帽、頭頸支撐與防火賽車服，全都要符合 FIA 標準。',
+    who: '通過 FIA 認證的裝備廠商。',
+    list: ['安全帽須符合 FIA 8860 標準。', '必須配戴頭頸支撐系統（HANS）。', '賽車服、手套與鞋須通過防火認證。'] },
+  steering: { cat: 'team', name: '方向盤', free: 4, layer: 'cockpit',
+    desc: '車手調整煞車平衡、差速器與能量模式的操作面板。',
+    who: '各車隊自行設計。',
+    list: ['可以快速拆下，方便車手進出座艙。', '按鍵、旋鈕與顯示內容由車隊決定。'] },
+  mirrors: { cat: 'team', name: '後照鏡', free: 2, layer: 'body',
+    desc: '讓車手看見後方來車。',
+    who: '各車隊自行設計。',
+    list: ['鏡面尺寸與可視範圍由規則定義。', '位置必須讓車手看得到後方。'] },
+  ice: { cat: 'pu', name: '內燃機', free: 1, layer: 'pu',
+    desc: '1.6 公升渦輪增壓 V6，以永續燃料提供全車大約一半的動力。',
+    who: '由車隊的動力單元製造商供應。',
+    list: ['1.6 公升 90° V6，缸徑 80 mm，壓縮比 ≤ 16。', '燃料能量流量上限 3000 MJ/h。', '每位車手每季限用 4 具（2026 年），超過就退後發車。', '製造商：Mercedes、Ferrari、Honda、Red Bull Ford 與 Audi。'],
+    spec: [['形式', '1.6 L V6 渦輪'], ['內燃機功率', '≈ 400 kW'], ['動力單元最低重量', '185 kg']],
+    nw: '全新的動力單元規格。' },
+  turbo: { cat: 'pu', name: '渦輪增壓器', free: 1, layer: 'pu',
+    desc: '用排氣推動渦輪，替內燃機壓縮進氣。',
+    who: '由車隊的動力單元製造商供應。',
+    list: ['不再連接 MGU-H 發電機。', '屬於動力單元的認證零件。'],
+    nw: '取消 MGU-H。' },
+  exhaust: { cat: 'pu', name: '排氣尾管', free: 1, layer: 'pu',
+    desc: '廢氣最後從這裡離開車尾，尾管位置有明確規定。',
+    who: '由車隊的動力單元製造商供應。',
+    list: ['尾管出口位於後軸之後 390–400 mm。', '管壁的金、紫、藍色是鈦合金受熱後的氧化色。'],
+    spec: [['位置', '後軸後 390–400 mm']] },
+  mguk: { cat: 'pu', name: 'MGU-K 動能回收馬達', free: 1, layer: 'pu',
+    desc: '煞車時回收能量，加速時再把電力送回後輪。',
+    who: '由車隊的動力單元製造商供應。',
+    list: ['輸出上限從 120 kW 提高到 350 kW。', '電力與內燃機的動力比例接近各半。'],
+    spec: [['最大輸出', '350 kW']],
+    nw: '電力占比大幅提高。' },
+  battery: { cat: 'pu', name: '能量儲存（電池）', free: 1, layer: 'pu',
+    desc: '儲存 MGU-K 回收的電能，裝在生存艙裡、油箱下方。',
+    who: '由車隊的動力單元製造商供應。',
+    list: ['必須放在生存艙內受保護。', '最低重量由規則規定。'] },
+  fuelCell: { cat: 'spec', name: '油箱（燃料囊）', free: 1, layer: 'pu',
+    desc: '車手背後的柔性燃料囊，受到撞擊也不容易破裂。',
+    who: '必須使用符合 FIA 標準的認證產品。',
+    list: ['必須符合 FIA 燃料囊安全標準。', '必須完整放在生存艙內。', '2026 年使用百分之百永續燃料。'],
+    nw: '改用百分之百永續燃料。' },
+  ecu: { cat: 'single', name: '標準 ECU', free: 0, layer: 'pu',
+    desc: '全體共用的 FIA 標準電子控制單元，控制動力單元與主動空力。',
+    who: 'FIA 指定的單一供應商。',
+    list: ['所有車隊使用相同的硬體與軟體。', '直道模式的開關也經由它控制。'] },
+  ersLight: { cat: 'spec', name: 'ERS 狀態燈', free: 0, layer: 'cockpit',
+    desc: '顯示電力系統是否安全，讓工作人員知道能不能碰車。',
+    who: 'FIA 規定的規格。',
+    list: ['綠燈代表安全，紅燈代表危險。', '車身上必須從外面看得到。'] },
+  radiators: { cat: 'team', name: '散熱器', free: 4, layer: 'pu',
+    desc: '藏在側箱裡，替內燃機、電池與電子設備散熱。',
+    who: '各車隊自行設計。',
+    list: ['數量、大小與擺放角度由車隊決定。', '散熱越多，阻力通常也越大。'] },
+  floor: { cat: 'team', name: '底板', free: 3, layer: 'body',
+    desc: '車底是主要的下壓力來源，2026 年變得更平。',
+    who: '各車隊自行設計。',
+    list: ['地面效應比 2022–2025 年減弱。', '底板邊緣與導流片受參考體積限制。', '必須通過 FIA 形變測試。'],
+    nw: '底板更平，較不依賴極低的車身高度。' },
+  plank: { cat: 'spec', name: '滑板', free: 1, layer: 'body',
+    desc: '固定在車底中央的複合材料板，用來確保車身不能壓得太低。',
+    who: '規格由 FIA 規定，車隊依規格製作。',
+    list: ['厚 10 mm，賽後量測磨耗。', '磨耗超過限制就會被取消成績。', '金屬耐磨片的位置有規定。'],
+    spec: [['厚度', '10 mm']] },
+  diffuser: { cat: 'team', name: '擴散器', free: 3, layer: 'body',
+    desc: '讓車底氣流減速上揚，把車身往下吸。',
+    who: '各車隊自行設計。',
+    list: ['2026 年的擴散器變小。', '高度與寬度受參考體積限制。'] },
+  gearbox: { cat: 'transfer', name: '變速箱', free: 2, layer: 'pu',
+    desc: '八速無縫換檔變速箱，同時是後懸吊與尾翼的安裝結構。',
+    who: '可以自行設計，也可以向其他車隊購買。',
+    list: ['八個前進檔加一個倒檔。', '齒比每季只能申報一次。'] },
+  suspension: { cat: 'transfer', name: '懸吊', free: 3, layer: 'wheels',
+    desc: '碳纖維 A 臂、推桿與拉桿，全部必須是被動式。',
+    who: '由車隊設計，也可以向其他車隊購買。',
+    list: ['完全被動：行進中不得有主動系統或調整。', '前後懸吊不得互相連接。', '禁止慣性器與調諧質量阻尼器。'],
+    spec: [['形式', '僅限被動']] },
+  rearWing: { cat: 'team', name: '尾翼', free: 3, layer: 'aero',
+    desc: '產生後端下壓力；2026 年上層襟翼同樣可以動。',
+    who: '各車隊自行設計。',
+    list: ['端板形狀簡化。', '端板後緣內建雨天警示燈。'],
+    nw: '主動空力，尾翼襟翼可以打開。' },
+  rwFlap: { cat: 'team', name: '尾翼襟翼（主動空力）', free: 3, layer: 'aero', act: true,
+    desc: '直道模式時打開，降低阻力以提高極速。',
+    who: '各車隊自行設計。',
+    list: ['與前翼襟翼一起在啟動區開啟。', '故障時自動回到彎道模式。'],
+    spec: [['模式', '彎道／直道']],
+    nw: '取代 DRS。' },
+  rearCrash: { cat: 'team', name: '後防撞結構', free: 3, layer: 'body',
+    desc: '固定在變速箱後方，吸收追撞時的能量。',
+    who: '各車隊設計，須通過 FIA 撞擊測試。',
+    list: ['必須通過 FIA 撞擊測試。', '尾燈安裝在它的末端。'] },
+  rainLight: { cat: 'spec', name: '尾燈與雨燈', free: 0, layer: 'cockpit',
+    desc: '雨天或低能見度時提醒後車的紅燈。',
+    who: 'FIA 規定規格的標準零件。',
+    list: ['雨天時必須開啟。', '位置與亮度由規則規定。'] },
+};
+
+/* ---------------- 渲染器、場景、相機 ---------------- */
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+const PR = Math.min(devicePixelRatio || 1, 1.75);
+renderer.setPixelRatio(PR);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+const camera = new THREE.PerspectiveCamera(30, 1, .1, 90);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = .085;
+controls.minDistance = 2.6;
+controls.maxDistance = 30;
+controls.maxPolarAngle = Math.PI * .49;
+controls.rotateSpeed = .7;
+controls.target.set(.1, .35, 0);
+
+/* 攝影棚環境：頭頂柔光箱與兩道長條燈，讓黑色翼片有反光 */
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = new THREE.Scene();
+  env.add(new THREE.Mesh(new THREE.BoxGeometry(30, 14, 30), new THREE.MeshBasicMaterial({ color: 0x040404, side: THREE.BackSide })));
+  const soft = (w, h, p, r, k) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(k, k * .96, k * .9), side: THREE.DoubleSide }));
+    m.position.set(...p); m.rotation.set(...r); env.add(m);
+  };
+  soft(9, 3.2, [0, 6.8, 0], [Math.PI / 2, 0, 0], 3.4);
+  soft(16, .6, [0, 2.6, -9], [0, 0, 0], 1.8);
+  soft(16, .6, [0, 3.4, 9], [0, Math.PI, 0], 1.1);
+  soft(.7, 5, [9, 3, 0], [0, -Math.PI / 2, 0], 1.0);
+  scene.environment = pmrem.fromScene(env, .035).texture;
+  scene.environmentIntensity = .85;
+  pmrem.dispose();
+}
+
+scene.add(new THREE.HemisphereLight(0xfff2e6, 0x0b0907, .22));
+const key = new THREE.SpotLight(0xfff0e0, 330, 24, Math.PI / 5.6, 1, 2);
+key.position.set(1.2, 9, 2.2);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.near = 4; key.shadow.camera.far = 16;
+key.shadow.bias = -.0003; key.shadow.normalBias = .02; key.shadow.radius = 5;
+scene.add(key, key.target);
+const rimL = new THREE.DirectionalLight(0xf2ece6, .55);
+rimL.position.set(-6, 3.5, -4);
+scene.add(rimL);
+/* 從底下看時才亮的補光，讓底板與滑板看得清楚 */
+const under = new THREE.DirectionalLight(0xf4ede6, 0);
+under.position.set(1.5, -6, 2);
+scene.add(under);
+
+/* 地板：局部聚光打出光圈，外加手作的平面倒影 */
+const reflRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+const reflMatrix = new THREE.Matrix4();
+const mirrorCam = new THREE.PerspectiveCamera();
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x141211, roughness: .82, metalness: 0 });
+floorMat.onBeforeCompile = sh => {
+  sh.uniforms.tRefl = { value: reflRT.texture };
+  sh.uniforms.uReflMat = { value: reflMatrix };
+  sh.vertexShader = 'uniform mat4 uReflMat;\nvarying vec4 vRefl;\nvarying vec3 vWp;\n' + sh.vertexShader.replace('#include <project_vertex>',
+    '#include <project_vertex>\nvRefl = uReflMat * vec4(position, 1.0);\nvWp = (modelMatrix * vec4(position, 1.0)).xyz;\n');
+  sh.fragmentShader = 'uniform sampler2D tRefl;\nvarying vec4 vRefl;\nvarying vec3 vWp;\n' + sh.fragmentShader.replace('#include <opaque_fragment>', `
+    vec2 ruv = vRefl.xy / vRefl.w;
+    vec3 rc = texture2D(tRefl, ruv).rgb * .36;
+    rc += texture2D(tRefl, ruv + vec2(.0035, 0.)).rgb * .16;
+    rc += texture2D(tRefl, ruv - vec2(.0035, 0.)).rgb * .16;
+    rc += texture2D(tRefl, ruv + vec2(0., .006)).rgb * .16;
+    rc += texture2D(tRefl, ruv - vec2(0., .006)).rgb * .16;
+    float fade = 1. - smoothstep(2.2, 6.5, length(vWp.xz * vec2(.72, 1.25)));
+    outgoingLight += rc * .3 * fade;
+    outgoingLight *= 1. - smoothstep(3.2, 8.5, length(vWp.xz * vec2(.8, 1.15)));
+    #include <opaque_fragment>`);
+};
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(70, 70), floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+/* 車輛：rig 負責轉盤旋轉，car 負責爆炸時整體抬升 */
+const rig = new THREE.Group(); scene.add(rig);
+const car = new THREE.Group(); rig.add(car);
+
+/* 接地陰影：柔和的橢圓，讓車子壓在地板上 */
+const contact = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(128, 128, 4, 128, 128, 127);
+  gr.addColorStop(0, 'rgba(0,0,0,.75)'); gr.addColorStop(.5, 'rgba(0,0,0,.4)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 2.8), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.set(.15, .004, 0);
+  rig.add(m); return m;
+})();
+
+/* ---------------- 材質 ---------------- */
+const tyreCanvas = document.createElement('canvas'); tyreCanvas.width = tyreCanvas.height = 1024;
+const tyreTex = new THREE.CanvasTexture(tyreCanvas);
+tyreTex.colorSpace = THREE.SRGBColorSpace; tyreTex.anisotropy = 4;
+const heatTex = (() => {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 4;
+  const g = c.getContext('2d'); const gr = g.createLinearGradient(0, 0, 256, 0);
+  gr.addColorStop(0, '#d9b36a'); gr.addColorStop(.28, '#c4833f'); gr.addColorStop(.5, '#8a4f8e'); gr.addColorStop(.72, '#4e6db3'); gr.addColorStop(1, '#b7bcc4');
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 4);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+
+const BASE = {
+  livery:  { c: 0x5a161b, r: .56, m: .08, cc: .12 },
+  rimBlk:  { c: 0x121213, r: .5, m: .45 },
+  carbon:  { c: 0x0b0b0c, r: .26, m: .3, cc: .85 },
+  satin:   { c: 0x0c0c0d, r: .62, m: .1, env: .35 },
+  rubber:  { c: 0x141414, r: .9, m: 0 },
+  metal:   { c: 0xb8bbbf, r: .26, m: 1 },
+  dmetal:  { c: 0x3b3c3f, r: .38, m: .9 },
+  copper:  { c: 0xc27b43, r: .3, m: 1 },
+  gold:    { c: 0xd8a64a, r: .24, m: 1 },
+  camRed:  { c: 0x9a1d21, r: .32, m: .25, cc: .7 },
+  tan:     { c: 0xa47b4b, r: .72, m: 0 },
+  black:   { c: 0x050505, r: .7, m: 0 },
+  suit:    { c: 0x2b323c, r: .82, m: 0 },
+  white:   { c: 0xecebe7, r: .22, m: 0, cc: .9 },
+  visor:   { c: 0x060708, r: .06, m: .6, cc: 1 },
+  ledRed:  { c: 0x2a0000, r: .4, m: 0, em: 0xff2b2b, ei: 3.2 },
+  ledGrn:  { c: 0x001a06, r: .4, m: 0, em: 0x33ff77, ei: 2.6 },
+  screen:  { c: 0x040505, r: .2, m: 0, em: 0xf2a54a, ei: .9 },
+  heat:    { c: 0xffffff, r: .3, m: 1, map: heatTex },
+  tyreTxt: { c: 0xffffff, r: .85, m: 0, map: tyreTex, at: .3 },
+};
+for (const k in BASE) BASE[k].col = new THREE.Color(BASE[k].c);
+
+const PARTS = {};
+const allMats = [];
+const pickables = [];
+function P(id) {
+  if (PARTS[id]) return PARTS[id];
+  const inf = INFO[id];
+  const p = PARTS[id] = { id, info: inf, cat: inf.cat, catColor: new THREE.Color(CATS[inf.cat].color), layer: inf.layer, meshes: [], mats: {},
+    shell: false, panel: !!inf.panel, delay: 0, t: 0, vis: 1, layerV: 1, soloV: 1 };
+  return p;
+}
+function matFor(p, key) {
+  if (p.mats[key]) return p.mats[key];
+  const b = BASE[key];
+  const m = new THREE.MeshPhysicalMaterial({ color: b.col.clone(), roughness: b.r, metalness: b.m, clearcoat: b.cc || 0, clearcoatRoughness: .18,
+    transparent: true, map: b.map || null, alphaTest: b.at || 0,
+    emissive: b.em ? new THREE.Color(b.em) : new THREE.Color(0), emissiveIntensity: b.ei || 0, envMapIntensity: b.env ?? 1 });
+  if (key === 'tyreTxt') { m.polygonOffset = true; m.polygonOffsetFactor = -2; m.depthWrite = false; }
+  if (key === 'livery' && p.shell) m.side = THREE.DoubleSide;
+  m.userData = { key, part: p };
+  allMats.push(m);
+  return p.mats[key] = m;
+}
+/* 把一塊幾何加進零件；ex 是爆炸時的位移（公尺） */
+function add(id, geo, key, ex, o = {}) {
+  const p = P(id);
+  const mesh = new THREE.Mesh(geo, matFor(p, key));
+  if (o.pos) mesh.position.copy(o.pos);
+  if (o.rot) mesh.rotation.set(...o.rot);
+  if (o.scl) mesh.scale.set(...o.scl);
+  mesh.castShadow = o.shadow !== false;
+  mesh.receiveShadow = true;
+  mesh.userData = { part: p, base: mesh.position.clone(), ex: ex ? ex.clone() : V(0, 0, 0) };
+  if (key === 'tyreTxt') mesh.castShadow = false;
+  car.add(mesh);
+  p.meshes.push(mesh);
+  pickables.push(mesh);
+  return mesh;
+}
+
+/* ---------------- 幾何工具 ---------------- */
+const cr = (a, b, c, d, t) => .5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t);
+/* 放樣：沿 X 軸排列的超橢圓截面，以 Catmull-Rom 插值成平滑殼體。每個截面 {x,y,z,w,ht,hb,n} */
+function loft(secs, { radial = 44, steps = 7, capA = true, capB = true } = {}) {
+  const S = secs.map(s => ({ z: 0, n: 2.6, ...s }));
+  const keys = ['x', 'y', 'z', 'w', 'ht', 'hb', 'n'];
+  const rings = [];
+  for (let i = 0; i < S.length - 1; i++) {
+    const a = S[Math.max(0, i - 1)], b = S[i], c = S[i + 1], d = S[Math.min(S.length - 1, i + 2)];
+    for (let k = 0; k < steps; k++) {
+      const t = k / steps, r = {};
+      for (const q of keys) r[q] = cr(a[q], b[q], c[q], d[q], t);
+      rings.push(r);
+    }
+  }
+  rings.push(S[S.length - 1]);
+  const R = radial, pos = [], idx = [];
+  for (const r of rings) for (let j = 0; j < R; j++) {
+    const an = j / R * TAU, c = Math.cos(an), s = Math.sin(an), e = 2 / r.n;
+    pos.push(r.x, r.y + Math.sign(s) * Math.pow(Math.abs(s), e) * (s >= 0 ? r.ht : r.hb), r.z + Math.sign(c) * Math.pow(Math.abs(c), e) * r.w / 2);
+  }
+  for (let i = 0; i < rings.length - 1; i++) for (let j = 0; j < R; j++) {
+    const a = i * R + j, b = (i + 1) * R + j, c = (i + 1) * R + (j + 1) % R, d = i * R + (j + 1) % R;
+    idx.push(a, b, d, b, c, d);
+  }
+  const cap = (ri, flip) => {
+    const r = rings[ri], base = pos.length / 3;
+    pos.push(r.x, r.y, r.z);
+    for (let j = 0; j < R; j++) { const v = (ri * R + j) * 3; pos.push(pos[v], pos[v + 1], pos[v + 2]); }
+    for (let j = 0; j < R; j++) { const a = base + 1 + j, b = base + 1 + (j + 1) % R; flip ? idx.push(base, b, a) : idx.push(base, a, b); }
+  };
+  if (capA) cap(0, false);
+  if (capB) cap(rings.length - 1, true);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+/* 翼型：前緣在 x = 0，弦長往 −X；倒置弧度（下壓力）。沿 Z 擠出並分段，方便彎曲 */
+function foil(chord, th, span, camber = .05, bend) {
+  const up = [], lo = [], N = 22;
+  for (let i = 0; i <= N; i++) {
+    const t = (1 - Math.cos(i / N * Math.PI)) / 2;
+    const yt = 5 * th * (.2969 * Math.sqrt(t) - .126 * t - .3516 * t * t + .2843 * t ** 3 - .1036 * t ** 4);
+    const yc = -camber * 4 * t * (1 - t);
+    up.push([-t * chord, (yc + yt) * chord]); lo.push([-t * chord, (yc - yt) * chord]);
+  }
+  const sh = new THREE.Shape();
+  sh.moveTo(up[0][0], up[0][1]);
+  for (let i = 1; i < up.length; i++) sh.lineTo(up[i][0], up[i][1]);
+  for (let i = lo.length - 2; i > 0; i--) sh.lineTo(lo[i][0], lo[i][1]);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: span, bevelEnabled: false, steps: 28, curveSegments: 1 });
+  g.translate(0, 0, -span / 2);
+  if (bend) {
+    const a = g.attributes.position;
+    for (let i = 0; i < a.count; i++) { const u = Math.abs(a.getZ(i)) / (span / 2); const d = bend(u); a.setX(i, a.getX(i) + d[0]); a.setY(i, a.getY(i) + d[1]); }
+    g.computeVertexNormals();
+  }
+  return g;
+}
+/* 在 XY 平面畫的薄板，沿 Z 擠出（端板、鯊魚鰭、導流片） */
+function plate(pts, thick, curve) {
+  const sh = new THREE.Shape();
+  sh.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i];
+    if (p.length === 4) sh.quadraticCurveTo(p[0], p[1], p[2], p[3]); else sh.lineTo(p[0], p[1]);
+  }
+  sh.closePath();
+  const g = new THREE.ExtrudeGeometry(sh, { depth: thick, bevelEnabled: false, curveSegments: curve || 8 });
+  g.translate(0, 0, -thick / 2);
+  return g;
+}
+const up = V(0, 1, 0);
+function strut(a, b, r, r2) {
+  const d = b.clone().sub(a), L = d.length();
+  const g = new THREE.CylinderGeometry(r2 ?? r, r, L, 8, 1);
+  g.translate(0, L / 2, 0);
+  const q = new THREE.Quaternion().setFromUnitVectors(up, d.normalize());
+  g.applyQuaternion(q); g.translate(a.x, a.y, a.z);
+  return g;
+}
+function limb(a, b, r) {
+  const d = b.clone().sub(a), L = d.length();
+  const g = new THREE.CapsuleGeometry(r, Math.max(.001, L), 5, 12);
+  g.translate(0, L / 2, 0);
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up, d.normalize()));
+  g.translate(a.x, a.y, a.z);
+  return g;
+}
+const merge = list => mergeGeometries(list.map(g => (g.index ? g.toNonIndexed() : g)));
+
+/* ---------------- 建模 ---------------- */
+const FA = 1.8, RA = -1.6;             // 前後軸 x
+const FR = .355, RR = .36;             // 胎徑（半徑）
+const FW = .28, RW = .375;             // 胎寬
+const FZ = .79, RZ = .95 - RW / 2;     // 輪距中心 z
+
+/* 車身：用隱函數截面沿 X 放樣成一整張連續外殼（中央脊＋寬扁側箱平台，平滑聯集），
+ * 再依區域把三角形分給鼻錐、生存艙、左右側箱與引擎蓋。各件共用同一組頂點與法線，接縫看不出來。 */
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function crKeys(K, x) {
+  const n = K.length;
+  if (x <= K[0][0]) return K[0].slice(1);
+  if (x >= K[n - 1][0]) return K[n - 1].slice(1);
+  let i = 0; while (x > K[i + 1][0]) i++;
+  const t = (x - K[i][0]) / (K[i + 1][0] - K[i][0]);
+  const a = K[Math.max(0, i - 1)], b = K[i], c = K[i + 1], d = K[Math.min(n - 1, i + 2)];
+  return b.slice(1).map((_, j) => cr(a[j + 1], b[j + 1], c[j + 1], d[j + 1], t));
+}
+/* 中央脊 [x, 中心高, 半寬, 上半高, 下半高]：鼻尖 → 座艙 → 進氣口隆起 → 車尾 */
+const SPINE = [
+  [-1.99, .40, .05, .04, .05],
+  [-1.7, .42, .1, .065, .1],
+  [-1.2, .46, .21, .2, .28],
+  [-.72, .5, .27, .35, .36],
+  [-.4, .5, .23, .46, .38],
+  [-.22, .47, .28, .21, .35],
+  [0, .45, .36, .15, .33],
+  [.42, .45, .33, .2, .33],
+  [.9, .45, .26, .18, .3],
+  [1.5, .42, .19, .13, .25],
+  [2.1, .35, .15, .095, .15],
+  [2.6, .27, .115, .065, .08],
+  [3.03, .21, .075, .04, .04],
+];
+/* 側箱平台 [x, 中心高, 半寬, 上半高, 下半高]；下方內凹（undercut），上緣往外側下斜 */
+const PODS = [
+  [-1.3, .33, .3, .07, .12],
+  [-.95, .36, .54, .14, .19],
+  [-.4, .39, .64, .18, .21],
+  [.3, .41, .67, .19, .23],
+  [.76, .42, .64, .18, .22],
+];
+const podOn = x => sstep(-1.42, -1.2, x) * (1 - sstep(.7, .79, x));
+function field(x, y, z, S, Q, qe) {
+  const [yc, a, t, b] = S;
+  const dy = y - yc, hb = dy > 0 ? t : b;
+  let r = Math.pow(Math.pow(Math.abs(z) / a, 2.4) + Math.pow(Math.abs(dy) / hb, 2.4), 1 / 2.4);
+  let f = (r - 1) * Math.min(a, hb);
+  if (qe > .02) {
+    const pw = Q[1] * qe, pt = Q[2] * (.4 + .6 * qe), pb = Q[3] * (.4 + .6 * qe);
+    const yc2 = Q[0] - .07 * (z / pw) * (z / pw);
+    const d2 = y - yc2, h2 = d2 > 0 ? pt : pb;
+    const az = d2 < 0 ? pw * lerp(1, .72, clamp(-d2 / pb, 0, 1)) : pw;
+    const r2 = Math.pow(Math.pow(Math.abs(z) / az, 3.4) + Math.pow(Math.abs(d2) / h2, 3.4), 1 / 3.4);
+    const f2 = (r2 - 1) * Math.min(az, h2);
+    const k = .07, h = clamp(.5 + .5 * (f2 - f) / k, 0, 1);
+    f = lerp(f2, f, h) - k * h * (1 - h);
+  }
+  return f;
+}
+function bodyShell() {
+  const R = 120, xs = [];
+  for (let x = -1.99; x < 3.03; x += .022) xs.push(x);
+  xs.push(3.03);
+  const pos = [], idx = [];
+  for (const x of xs) {
+    const S = crKeys(SPINE, x), Q = crKeys(PODS, x), qe = podOn(x);
+    const oy = S[0];
+    for (let j = 0; j < R; j++) {
+      const an = j / R * TAU, dz = Math.cos(an), dy = Math.sin(an);
+      let lo = 0, hi = .006;
+      while (hi < 1.2 && field(x, oy + dy * hi, dz * hi, S, Q, qe) < 0) { lo = hi; hi += .006; }
+      for (let k = 0; k < 14; k++) { const m = (lo + hi) / 2; if (field(x, oy + dy * m, dz * m, S, Q, qe) < 0) lo = m; else hi = m; }
+      pos.push(x, oy + dy * lo, dz * lo);
+    }
+  }
+  for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < R; j++) {
+    const a = i * R + j, b = (i + 1) * R + j, c = (i + 1) * R + (j + 1) % R, d = i * R + (j + 1) % R;
+    idx.push(a, b, d, b, c, d);
+  }
+  const cap = (ri, flip) => {
+    const base = pos.length / 3; pos.push(xs[ri], crKeys(SPINE, xs[ri])[0], 0);
+    for (let j = 0; j < R; j++) { const v = (ri * R + j) * 3; pos.push(pos[v], pos[v + 1], pos[v + 2]); }
+    for (let j = 0; j < R; j++) { const a = base + 1 + j, b = base + 1 + (j + 1) % R; flip ? idx.push(base, b, a) : idx.push(base, a, b); }
+  };
+  cap(0, false); cap(xs.length - 1, true);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  /* 依三角形重心分區 */
+  const P3 = g.attributes.position, groups = { nose: [], mono: [], podL: [], podR: [], engineCover: [] };
+  for (let i = 0; i < idx.length; i += 3) {
+    let cx = 0, cy = 0, cz = 0;
+    for (let k = 0; k < 3; k++) { cx += P3.getX(idx[i + k]); cy += P3.getY(idx[i + k]); cz += P3.getZ(idx[i + k]); }
+    cx /= 3; cy /= 3; cz /= 3;
+    const S = crKeys(SPINE, cx);
+    let key;
+    if (cx > 1.45) key = 'nose';
+    else if (podOn(cx) > .05 && Math.abs(cz) > S[1] * .9 + .015) key = cz > 0 ? 'podL' : 'podR';
+    else if (cx > -.3) key = 'mono';
+    else key = 'engineCover';
+    groups[key].push(idx[i], idx[i + 1], idx[i + 2]);
+  }
+  const out = {};
+  for (const k in groups) {
+    const sub = new THREE.BufferGeometry();
+    sub.setAttribute('position', g.attributes.position); sub.setAttribute('normal', g.attributes.normal);
+    sub.setIndex(groups[k]);
+    sub.computeBoundingSphere();
+    out[k] = sub;
+  }
+  return out;
+}
+const BODY = bodyShell();
+for (const id of ['mono', 'nose', 'sidepods', 'engineCover', 'rollHoop']) P(id).shell = true;
+add('nose', BODY.nose, 'livery', V(.6, .2, 0));
+add('mono', BODY.mono, 'livery', V(0, 0, 0));
+add('sidepods', BODY.podL, 'livery', V(0, .08, .95));
+add('sidepods', BODY.podR, 'livery', V(0, .08, -.95));
+add('engineCover', BODY.engineCover, 'livery', V(-.1, .95, 0));
+
+/* 座艙開口：深色內襯與一圈座艙邊緣 */
+add('mono', new THREE.SphereGeometry(1, 36, 12), 'black', V(0, 0, 0), { pos: V(.1, .598, 0), scl: [.34, .03, .205] });
+add('mono', new THREE.TorusGeometry(1, .07, 8, 48), 'livery', V(0, 0, 0), { pos: V(.1, .605, 0), rot: [Math.PI / 2, 0, 0], scl: [.35, .215, .3] });
+/* 側箱進氣口與側箱上方一排散熱孔 */
+for (const s of [1, -1]) {
+  const mouth = new THREE.CylinderGeometry(1, 1, .02, 36); mouth.rotateZ(Math.PI / 2); mouth.scale(1, .1, .12);
+  add('sidepods', mouth, 'black', V(0, .08, .95 * s), { pos: V(.772, .41, .44 * s) });
+  for (let k = 0; k < 6; k++) add('sidepods', new THREE.SphereGeometry(1, 10, 6), 'black', V(0, .08, .95 * s), { pos: V(.12 - k * .055, .6 - k * .002, .4 * s), scl: [.012, .006, .012], shadow: false });
+}
+
+/* 防滾架：頂點 968 mm，前方是進氣口 */
+{
+  const c = new THREE.CatmullRomCurve3([V(-.36, .9, .12), V(-.33, .95, .07), V(-.3, .945, 0), V(-.33, .95, -.07), V(-.36, .9, -.12)]);
+  add('rollHoop', new THREE.TubeGeometry(c, 30, .022, 8), 'livery', V(0, 1.45, 0));
+  add('rollHoop', new THREE.SphereGeometry(1, 24, 12), 'black', V(0, 1.45, 0), { pos: V(-.265, .86, 0), scl: [.03, .062, .085] });
+}
+
+/* 底板：大部分藏在側箱下方，只露出邊緣翼與前緣導流片 */
+{
+  const half = [[1.36, .2], [1.2, .4], [.9, .6], [.55, .7], [-.7, .7], [-1.05, .62], [-1.22, .5]];
+  const sh = new THREE.Shape();
+  sh.moveTo(half[0][0], -half[0][1]);
+  for (const [x, z] of half) sh.lineTo(x, -z);
+  for (let i = half.length - 1; i >= 0; i--) sh.lineTo(half[i][0], half[i][1]);
+  sh.closePath();
+  const g = new THREE.ExtrudeGeometry(sh, { depth: .024, bevelEnabled: false });
+  g.rotateX(-Math.PI / 2); g.translate(0, .062, 0);
+  const parts = [g];
+  for (const s of [1, -1]) {
+    const edge = plate([[.55, 0], [-.75, 0], [-.75, .05], [.4, .07, .55, .04]], .01);
+    edge.translate(0, .086, 0); edge.translate(0, 0, .695 * s); parts.push(edge);
+    for (let k = 0; k < 4; k++) {
+      const f = plate([[1.3 - k * .06, 0], [.86 - k * .05, 0], [.86 - k * .05, .045], [1.1 - k * .06, .05, 1.3 - k * .06, .02]], .008);
+      f.rotateY(s * (.12 + k * .05)); f.translate(0, .02, (.22 + k * .11) * s); parts.push(f);
+    }
+  }
+  add('floor', merge(parts), 'satin', V(0, -.25, 0));
+}
+
+/* 滑板：10 mm 厚，嵌三片金屬耐磨片 */
+add('plank', new THREE.BoxGeometry(2.0, .01, .3), 'tan', V(0, -.42, 0), { pos: V(0, .056, 0) });
+for (const x of [-.72, .02, .8]) add('plank', new THREE.CylinderGeometry(.04, .04, .004, 20), 'dmetal', V(0, -.42, 0), { pos: V(x, .0505, 0), shadow: false });
+
+/* 擴散器：上揚斜板與導流隔板 */
+{
+  const L = Math.hypot(.76, .24), ang = Math.atan2(.24, .76);
+  const ramp = new THREE.BoxGeometry(L, .014, .98); ramp.rotateZ(-ang); ramp.translate(-1.58, .19, 0);
+  const parts = [ramp];
+  for (const z of [-.49, -.26, 0, .26, .49]) {
+    const s = plate([[-1.2, .075], [-1.97, .31], [-1.97, .08]], .01); s.translate(0, 0, z); parts.push(s);
+  }
+  add('diffuser', merge(parts), 'carbon', V(-.6, -.22, 0));
+}
+
+/* 變速箱與後防撞結構、尾燈 */
+add('gearbox', loft([
+  { x: -1.98, y: .33, w: .15, ht: .09, hb: .1 },
+  { x: -1.6, y: .31, w: .24, ht: .12, hb: .14 },
+  { x: -1.12, y: .3, w: .3, ht: .13, hb: .16 },
+]), 'dmetal', V(-.6, 0, 0));
+add('rearCrash', loft([
+  { x: -2.36, y: .4, w: .09, ht: .045, hb: .05, n: 2.3 },
+  { x: -2.12, y: .38, w: .12, ht: .06, hb: .07 },
+  { x: -1.96, y: .36, w: .15, ht: .08, hb: .09 },
+]), 'carbon', V(-1.15, 0, 0));
+add('rainLight', new THREE.BoxGeometry(.018, .05, .07), 'ledRed', V(-1.5, 0, 0), { pos: V(-2.365, .4, 0), shadow: false });
+for (const s of [1, -1]) add('rainLight', new THREE.BoxGeometry(.012, .2, .006), 'ledRed', V(-1.5, .5, .2 * s), { pos: V(-2.415, .82, .51 * s), shadow: false });
+
+/* 前翼：主翼片跨全寬，外側上揚後掠 */
+const fwBend = u => { const k = clamp((u - .32) / .68, 0, 1); return [-.1 * k * k, .065 * Math.pow(k, 1.6)]; };
+add('frontWing', foil(.36, .085, 1.8, .05, fwBend), 'carbon', V(1.0, -.04, 0), { pos: V(3.1, .085, 0), rot: [0, 0, -.06] });
+for (const s of [1, -1]) {
+  add('frontWing', plate([[3.12, .05], [3.14, .13, 3.02, .16], [2.78, .16], [2.7, .07, 2.78, .05]], .012), 'carbon', V(1.0, -.04, .1 * s), { pos: V(0, 0, .905 * s) });
+}
+const flapA = add('fwFlaps', foil(.2, .08, 1.64, .06, u => { const k = clamp((u - .25) / .75, 0, 1); return [-.08 * k * k, .06 * Math.pow(k, 1.5)]; }), 'carbon', V(1.0, .36, 0), { pos: V(2.86, .15, 0) });
+const flapB = add('fwFlaps', foil(.16, .08, 1.5, .06, u => { const k = clamp((u - .25) / .75, 0, 1); return [-.07 * k * k, .055 * Math.pow(k, 1.5)]; }), 'carbon', V(1.0, .5, 0), { pos: V(2.71, .205, 0) });
+const AERO = [
+  { m: flapA, corner: -.36, straight: -.08 },
+  { m: flapB, corner: -.62, straight: -.12 },
+];
+
+/* 尾翼：主翼片、可動襟翼、端板、天鵝頸支架 */
+add('rearWing', foil(.3, .1, 1.0, .07), 'carbon', V(-1.2, .5, 0), { pos: V(-1.97, .79, 0), rot: [0, 0, -.1] });
+for (const s of [1, -1]) {
+  add('rearWing', plate([[-1.95, .74], [-1.96, .97, -2.04, .99], [-2.3, .99], [-2.36, .84, -2.3, .74]], .014), 'carbon', V(-1.2, .5, .12 * s), { pos: V(0, 0, .505 * s) });
+  add('rearWing', plate([[-1.74, .44], [-1.9, .5, -1.96, .74], [-1.99, .79], [-1.93, .6, -1.79, .44]], .012), 'carbon', V(-1.2, .5, 0), { pos: V(0, 0, .07 * s) });
+}
+const rwFlapMesh = add('rwFlap', foil(.2, .09, .99, .06), 'carbon', V(-1.2, .88, 0), { pos: V(-2.18, .895, 0) });
+AERO.push({ m: rwFlapMesh, corner: -.52, straight: -.05 });
+
+/* 車輪：輪胎、輪框、胎壁字樣 */
+function tyreGeo(r, w) {
+  const hw = w / 2, rin = .232, s = .058;
+  const pts = [[rin, -hw * .9], [rin + .03, -hw], [(rin + r) / 2, -hw - .012], [r - s, -hw]];
+  for (let i = 1; i <= 6; i++) { const a = -Math.PI / 2 + i / 6 * Math.PI / 2; pts.push([r - s + Math.cos(a) * s, -hw + s + Math.sin(a) * s]); }
+  pts.push([r + .004, 0]);
+  for (let i = 0; i <= 5; i++) { const a = i / 6 * Math.PI / 2; pts.push([r - s + Math.cos(a) * s, hw - s + Math.sin(a) * s]); }
+  pts.push([r - s, hw], [(rin + r) / 2, hw + .012], [rin + .03, hw], [rin, hw * .9]);
+  const g = new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), 72);
+  g.rotateX(Math.PI / 2);
+  return g;
+}
+function rimGeo(w) {
+  const parts = [];
+  const barrel = new THREE.CylinderGeometry(.226, .226, w * .88, 48, 1, true); barrel.rotateX(Math.PI / 2); parts.push(barrel);
+  const face = w / 2 - .035;
+  /* 輪框外面是一片微凹的黑色圓盤（影片裡看不到輻條），中心略為下陷 */
+  const prof = [[0, face - .03], [.05, face - .03], [.07, face - .012], [.2, face - .004], [.224, face + .006], [.226, face - .01]];
+  const disc = new THREE.LatheGeometry(prof.map(p => new THREE.Vector2(p[0], p[1])), 48); disc.rotateX(Math.PI / 2); disc.scale(1, 1, -1);
+  parts.push(disc);
+  for (let i = 0; i < 5; i++) { const b = new THREE.CylinderGeometry(.016, .016, .01, 12); b.rotateX(Math.PI / 2); b.translate(Math.cos(i / 5 * TAU) * .13, Math.sin(i / 5 * TAU) * .13, face - .006); parts.push(b); }
+  const hub = new THREE.CylinderGeometry(.05, .06, .05, 20); hub.rotateX(Math.PI / 2); hub.translate(0, 0, face - .02); parts.push(hub);
+  const drum = new THREE.CylinderGeometry(.17, .17, w * .6, 32, 1); drum.rotateX(Math.PI / 2); drum.translate(0, 0, -.02); parts.push(drum);
+  return merge(parts);
+}
+const TYRES = [];
+for (const [x, r, w, zc, fx] of [[FA, FR, FW, FZ, .1], [RA, RR, RW, RZ, -.1]]) {
+  const tg = tyreGeo(r, w), rg = rimGeo(w);
+  const ring = new THREE.RingGeometry(.245, .343, 96, 1);
+  for (const s of [1, -1]) {
+    const pos = V(x, r, zc * s), rot = [0, s > 0 ? 0 : Math.PI, 0];
+    add('tyres', tg, 'rubber', V(fx, 0, 1.05 * s), { pos, rot });
+    for (const side of [1, -1]) {
+      const m = add('tyres', ring, 'tyreTxt', V(fx, 0, 1.05 * s), { pos: pos.clone().add(V(0, 0, (w / 2 + .013) * s * side)), rot: [0, (s * side) > 0 ? 0 : Math.PI, 0] });
+      m.renderOrder = 2;
+    }
+    add('rims', rg, 'rimBlk', V(fx, 0, .72 * s), { pos, rot });
+    add('rims', new THREE.CylinderGeometry(.03, .034, .06, 6).rotateX(Math.PI / 2).translate(0, 0, w / 2 - .035), 'metal', V(fx, 0, .72 * s), { pos, rot });
+    TYRES.push({ x, r, zc: zc * s });
+  }
+}
+const COMPOUNDS = [
+  { n: '軟胎', c: '#d8262c' }, { n: '中性胎', c: '#f0c22e' }, { n: '硬胎', c: '#e8e8e4' }, { n: '半雨胎', c: '#35a852' }, { n: '全雨胎', c: '#2f6fd6' },
+];
+function arcText(g, str, r, center, size, spacing) {
+  g.font = `700 ${size}px system-ui, -apple-system, sans-serif`;
+  const ch = [...str], ws = ch.map(c => g.measureText(c).width + spacing), total = ws.reduce((a, b) => a + b, 0);
+  let an = center - total / r / 2;
+  g.save(); g.translate(512, 512);
+  for (let i = 0; i < ch.length; i++) {
+    an += ws[i] / 2 / r;
+    g.save(); g.rotate(an); g.translate(0, -r); g.fillText(ch[i], -g.measureText(ch[i]).width / 2, size * .36); g.restore();
+    an += ws[i] / 2 / r;
+  }
+  g.restore();
+}
+function drawTyres(color) {
+  const g = tyreCanvas.getContext('2d'), k = 512 / .343;
+  g.clearRect(0, 0, 1024, 1024);
+  g.strokeStyle = color; g.lineWidth = .017 * k;
+  g.beginPath(); g.arc(512, 512, .283 * k, 0, TAU); g.stroke();
+  g.fillStyle = '#e8e6e2';
+  arcText(g, 'RACING SLICK', .318 * k, -.35, .026 * k, .005 * k);
+  arcText(g, 'RACING SLICK', .318 * k, Math.PI - .35, .026 * k, .005 * k);
+  g.fillStyle = '#a19d99';
+  arcText(g, 'F1 · 2026 · 18″', .32 * k, Math.PI / 2 + .2, .015 * k, .004 * k);
+  arcText(g, 'F1 · 2026 · 18″', .32 * k, -Math.PI / 2 + .2, .015 * k, .004 * k);
+  tyreTex.needsUpdate = true;
+}
+
+/* 懸吊：前推桿、後拉桿，立柱放在輪框內 */
+{
+  const L = [], Rr = [];
+  for (const s of [1, -1]) {
+    const f = (x, y, z) => V(x, y, z * s);
+    const fu = f(FA - .01, .5, .66), fl = f(FA + .01, .19, .69);
+    L.push({ s, g: merge([
+      strut(f(1.98, .5, .17), fu, .013), strut(f(1.56, .52, .19), fu, .013),
+      strut(f(2.02, .22, .14), fl, .015), strut(f(1.5, .26, .16), fl, .015),
+      strut(f(FA + .02, .22, .64), f(1.62, .56, .18), .012),
+      strut(f(1.96, .38, .18), f(1.94, .36, .66), .01),
+      new THREE.BoxGeometry(.07, .32, .05).translate(FA, .35, (FZ - .12) * s),
+    ]) });
+    const ru = f(RA, .52, .62), rl = f(RA, .2, .66);
+    Rr.push({ s, g: merge([
+      strut(f(-1.38, .43, .14), ru, .013), strut(f(-1.82, .44, .13), ru, .013),
+      strut(f(-1.3, .22, .15), rl, .015), strut(f(-1.86, .24, .13), rl, .015),
+      strut(f(RA + .03, .5, .6), f(-1.48, .2, .15), .012),
+      strut(f(-1.9, .34, .14), f(-1.86, .34, .62), .01),
+      new THREE.BoxGeometry(.08, .34, .05).translate(RA, .36, (RZ - .16) * s),
+    ]) });
+  }
+  for (const { s, g } of L) add('suspension', g, 'metal', V(.12, .06, .5 * s));
+  for (const { s, g } of Rr) add('suspension', g, 'metal', V(-.12, .06, .5 * s));
+}
+
+/* 動力單元：V6、渦輪、排氣、MGU-K、電池、油箱、ECU、散熱器 */
+{
+  const block = new THREE.BoxGeometry(.6, .2, .24).translate(-.8, .25, 0);
+  const banks = [];
+  for (const s of [1, -1]) {
+    const b = new THREE.BoxGeometry(.52, .17, .12); b.rotateX(s * Math.PI / 4); b.translate(-.8, .38, .08 * s); banks.push(b);
+  }
+  add('ice', merge([block, ...banks]), 'dmetal', V(0, .5, 0));
+  for (const s of [1, -1]) {
+    const cv = loft([{ x: -1.07, y: 0, w: .1, ht: .03, hb: .01 }, { x: -.53, y: 0, w: .1, ht: .03, hb: .01 }], { radial: 24, steps: 2 });
+    cv.rotateX(s * Math.PI / 4); cv.translate(0, .45, .13 * s);
+    add('ice', cv, 'camRed', V(0, .5, 0));
+  }
+  add('ice', loft([{ x: -1.02, y: .5, w: .12, ht: .05, hb: .04 }, { x: -.8, y: .52, w: .16, ht: .07, hb: .04 }, { x: -.58, y: .5, w: .12, ht: .05, hb: .04 }], { radial: 28, steps: 4 }), 'camRed', V(0, .5, 0));
+  const pipes = [];
+  for (const s of [1, -1]) for (let i = 0; i < 3; i++) {
+    const x0 = -.62 - i * .16;
+    const c = new THREE.CatmullRomCurve3([V(x0, .33, .2 * s), V(x0 - .02, .22, .27 * s), V(x0 - .12, .2, .25 * s), V(-1.08, .3, .12 * s), V(-1.16, .38, .03 * s)]);
+    pipes.push(new THREE.TubeGeometry(c, 24, .016, 8));
+  }
+  add('ice', merge(pipes), 'copper', V(0, .5, 0));
+  add('turbo', merge([
+    new THREE.TorusGeometry(.07, .035, 12, 28).rotateY(Math.PI / 2).translate(-1.2, .42, 0),
+    new THREE.CylinderGeometry(.045, .045, .12, 20).rotateZ(Math.PI / 2).translate(-1.2, .42, 0),
+    new THREE.CylinderGeometry(.03, .03, .14, 16).translate(-1.2, .5, .06),
+  ]), 'gold', V(-.3, .75, 0));
+  const tail = new THREE.CatmullRomCurve3([V(-1.24, .43, 0), V(-1.5, .45, 0), V(-1.8, .465, 0), V(-1.995, .47, 0)]);
+  add('exhaust', new THREE.TubeGeometry(tail, 40, .042, 16), 'heat', V(-.8, .4, 0));
+  add('mguk', new THREE.CylinderGeometry(.075, .075, .22, 24).rotateZ(Math.PI / 2), 'copper', V(.1, .05, -.62), { pos: V(-.56, .18, -.2) });
+  add('battery', new THREE.BoxGeometry(.46, .1, .42), 'dmetal', V(0, -.32, 0), { pos: V(-.2, .16, 0) });
+  add('fuelCell', loft([{ x: -.46, y: .38, w: .44, ht: .17, hb: .18, n: 3.6 }, { x: -.25, y: .38, w: .5, ht: .19, hb: .19, n: 3.6 }, { x: -.06, y: .38, w: .44, ht: .17, hb: .18, n: 3.6 }], { steps: 5 }), 'black', V(.1, .45, .72));
+  add('ecu', new THREE.BoxGeometry(.18, .06, .13), 'dmetal', V(.2, .25, 1.0), { pos: V(.3, .3, .33) });
+  add('ecu', new THREE.BoxGeometry(.012, .012, .03), 'ledGrn', V(.2, .25, 1.0), { pos: V(.39, .315, .33), shadow: false });
+  for (const s of [1, -1]) add('radiators', new THREE.BoxGeometry(.06, .3, .34), 'dmetal', V(0, .1, .6 * s), { pos: V(.12, .4, .5 * s), rot: [0, 0, -.35] });
+  add('ersLight', new THREE.BoxGeometry(.05, .03, .006), 'ledGrn', V(0, .25, .55), { pos: V(.2, .56, .345), shadow: false });
+  add('ersLight', new THREE.BoxGeometry(.05, .03, .006), 'ledGrn', V(0, .25, -.55), { pos: V(.2, .56, -.345), shadow: false });
+  add('ersLight', new THREE.BoxGeometry(.03, .02, .05), 'ledGrn', V(0, 1.5, 0), { pos: V(-.36, .93, 0), shadow: false });
+}
+
+/* 座艙：Halo、車手、方向盤、後照鏡 */
+{
+  const loop = new THREE.CatmullRomCurve3([V(-.26, .66, .27), V(-.14, .85, .27), V(.16, .9, .23), V(.36, .895, 0), V(.16, .9, -.23), V(-.14, .85, -.27), V(-.26, .66, -.27)]);
+  add('halo', merge([new THREE.TubeGeometry(loop, 64, .022, 10), strut(V(.62, .63, 0), V(.36, .895, 0), .02, .026)]), 'livery', V(.1, .85, 0));
+  const helmet = new THREE.SphereGeometry(.125, 32, 20).translate(-.02, .735, 0);
+  add('driver', helmet, 'white', V(0, 1.25, 0));
+  add('driver', new THREE.SphereGeometry(.128, 32, 8, Math.PI - .95, 1.9, 1.2, .42).translate(-.02, .735, 0), 'visor', V(0, 1.25, 0));
+  const S = s => V(-.1, .58, .17 * s), E = s => V(.14, .5, .21 * s), H = s => V(.36, .57, .12 * s), Hp = s => V(-.18, .28, .09 * s), K = s => V(.52, .4, .11 * s), F = s => V(1.14, .3, .08 * s);
+  const body = [limb(V(-.2, .3, 0), V(-.1, .58, 0), .14), limb(V(-.08, .6, 0), V(-.04, .66, 0), .05)];
+  for (const s of [1, -1]) body.push(limb(S(s), E(s), .045), limb(E(s), H(s), .04), limb(Hp(s), K(s), .065), limb(K(s), F(s), .055));
+  add('driver', merge(body), 'suit', V(0, 1.25, 0));
+  add('steering', new THREE.BoxGeometry(.035, .13, .27), 'black', V(.35, .72, 0), { pos: V(.42, .6, 0), rot: [0, 0, -.35] });
+  add('steering', new THREE.PlaneGeometry(.075, .045).rotateY(-Math.PI / 2), 'screen', V(.35, .72, 0), { pos: V(.44, .6, 0), rot: [0, Math.PI, .35 - Math.PI], shadow: false });
+  for (const s of [1, -1]) {
+    add('mirrors', merge([strut(V(.4, .6, .36 * s), V(.5, .72, .42 * s), .008), new THREE.CapsuleGeometry(.018, .13, 4, 10).rotateX(Math.PI / 2).scale(1.5, 1, 1).translate(.5, .735, .45 * s)]), 'livery', V(.1, .35, .5 * s));
+  }
+}
+
+/* 零件的爆炸順序：外層先走，內部晚一點 */
+const DELAY = { frontWing: .02, fwFlaps: .08, rearWing: .04, rwFlap: .1, tyres: 0, rims: .06, nose: .1, sidepods: .08, engineCover: .12, rollHoop: .18,
+  floor: .05, plank: .12, diffuser: .1, gearbox: .16, rearCrash: .2, rainLight: .24, suspension: .18, halo: .2, driver: .26, steering: .3, mirrors: .22,
+  ice: .28, turbo: .32, exhaust: .3, mguk: .34, battery: .3, fuelCell: .32, ecu: .34, radiators: .26, ersLight: .36, mono: 0 };
+for (const id in PARTS) PARTS[id].delay = DELAY[id] ?? .2;
+
+/* ---------------- 尺寸標註 ---------------- */
+const dimLine = new THREE.LineBasicMaterial({ color: 0xe9e3dc, transparent: true, opacity: .55, depthTest: false });
+const dimDash = new THREE.LineDashedMaterial({ color: 0xe9e3dc, transparent: true, opacity: .38, dashSize: .045, gapSize: .035, depthTest: false });
+const DIMS = [];
+function dimension(a, b, v, c, at, ext = []) {
+  const mid = a.clone().add(b).multiplyScalar(.5);
+  const grp = new THREE.Group(); grp.position.copy(mid);
+  const la = a.clone().sub(mid), lb = b.clone().sub(mid), u = lb.clone().sub(la).normalize();
+  const side = Math.abs(u.y) > .9 ? V(1, 0, 0) : V(0, 1, 0);
+  const p = new THREE.Vector3().crossVectors(u, side).normalize().multiplyScalar(.028);
+  const hd = u.clone().multiplyScalar(.07);
+  const pts = [la, lb,
+    la, la.clone().add(hd).add(p), la, la.clone().add(hd).sub(p),
+    lb, lb.clone().sub(hd).add(p), lb, lb.clone().sub(hd).sub(p)];
+  const ls = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), dimLine); ls.renderOrder = 20; grp.add(ls);
+  if (ext.length) {
+    const e = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(ext.flat().map(q => q.clone().sub(mid))), dimDash);
+    e.computeLineDistances(); e.renderOrder = 20; grp.add(e);
+  }
+  car.add(grp);
+  const el = document.createElement('div'); el.className = 'dim'; el.innerHTML = `<b>${v}</b><span>${c}</span>`;
+  $('dims').appendChild(el);
+  DIMS.push({ grp, el, at: at || mid, delay: DIMS.length * .06 });
+}
+dimension(V(RA, .012, 1.16), V(FA, .012, 1.16), '3400 mm', '最大軸距', V(.1, .012, 1.16),
+  [[V(RA, .012, .95), V(RA, .012, 1.22)], [V(FA, .012, .93), V(FA, .012, 1.22)]]);
+dimension(V(-2.2, .012, -.95), V(-2.2, .012, .95), '1900 mm', '最大全寬', V(-2.2, .012, -.35),
+  [[V(RA, .012, .95), V(-2.26, .012, .95)], [V(RA, .012, -.95), V(-2.26, .012, -.95)]]);
+dimension(V(-.31, 0, -.72), V(-.31, .968, -.72), '968 mm', '防滾架結構高於參考平面', V(-.31, 1.02, -.72),
+  [[V(-.31, .968, -.04), V(-.31, .968, -.78)]]);
+dimension(V(3.2, .06, -.9), V(3.2, .06, .9), '前翼', '比 2025 年窄 100 mm', V(3.2, .06, .62), []);
+dimension(V(RA, .58, -.4), V(-1.995, .58, -.4), '390–400 mm', '尾管位於後軸之後', V(-1.8, .62, -.4),
+  [[V(RA, .36, -.4), V(RA, .64, -.4)], [V(-1.995, .47, 0), V(-1.995, .64, -.4)]]);
+dimension(V(FA, FR * 2 + .02, FZ + .02), V(FA, FR * 2 + .26, FZ + .02), '18″ 輪框', '輪胎：前窄 25 mm、後窄 30 mm', V(FA, FR * 2 + .3, FZ + .02), []);
+dimension(V(0, .05, .38), V(0, .05, .64), '滑板 10 mm', '磨耗後仍有最低厚度', V(0, .05, .66), [[V(0, .05, .15), V(0, .05, .38)]]);
+
+/* ---------------- 描邊（滑過零件時的白色輪廓） ---------------- */
+const maskRT = new THREE.WebGLRenderTarget(1, 1);
+const maskMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+const outlineMat = new THREE.ShaderMaterial({
+  uniforms: { tMask: { value: maskRT.texture }, uTexel: { value: new THREE.Vector2(1, 1) }, uAlpha: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
+  fragmentShader: `uniform sampler2D tMask; uniform vec2 uTexel; uniform float uAlpha; varying vec2 vUv;
+    void main(){
+      float c = texture2D(tMask, vUv).r, n1 = 0., n2 = 0.;
+      for (int i = 0; i < 12; i++) {
+        float a = float(i) * .5235988; vec2 d = vec2(cos(a), sin(a));
+        n1 = max(n1, texture2D(tMask, vUv + d * uTexel * 1.7).r);
+        n2 = max(n2, texture2D(tMask, vUv + d * uTexel * 4.5).r);
+      }
+      float a = max(n1 * (1. - c) * .95, n2 * (1. - c) * .22) + c * .06;
+      gl_FragColor = vec4(vec3(1.), a * uAlpha);
+    }`,
+  transparent: true, depthTest: false, depthWrite: false,
+});
+const fsScene = new THREE.Scene();
+const fsCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+fsScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), outlineMat));
+
+/* ---------------- 狀態 ---------------- */
+const LIVERIES = [
+  { n: '酒紅', c: '#5a161b' }, { n: '深藍', c: '#18264a' }, { n: '墨綠', c: '#163629' }, { n: '石墨', c: '#2c2b2c' },
+];
+const st = {
+  mode: 'assembled', e: 0, exTween: null,
+  rule: { v: 0, to: 0 }, xray: { v: 1, to: 1 }, dim: { v: 0, to: 1 }, nobody: { v: 0, to: 0 }, aero: { v: 0, to: 0 },
+  spin: true, spinV: 0, compound: 0, livery: 0, liveryCol: new THREE.Color(LIVERIES[0].c), liveryTo: new THREE.Color(LIVERIES[0].c),
+  layers: Object.fromEntries(Object.keys(LAYERS).map(k => [k, true])), solo: null,
+  hover: null, pin: null, legendCat: null, menuHover: null, outlineA: 0, view: 'q',
+};
+const ptr = { x: 0, y: 0, inside: false, type: 'mouse', down: null, dragging: false };
+window.__f1 = { st, PARTS };
+
+/* ---------------- 相機預設與過場 ---------------- */
+const VIEWS = {
+  q:     { p: V(5.3, 3.75, 6.1) },
+  side:  { p: V(.1, .7, 9.6) },
+  top:   { p: V(.1, 10.4, .002) },
+  front: { p: V(9.4, 1.25, 0) },
+  rear:  { p: V(-9.4, 1.4, 0) },
+  under: { p: V(.1, -9.8, .002) },
+};
+const HOME = V(.1, .35, 0);
+let camTween = null, rigTween = null;
+function fitScale() {
+  const a = camera.aspect;
+  return a >= 1.25 ? 1 : a >= 1 ? 1.12 : 1 + (1 - a) * 2.3;
+}
+function goView(name, dur = 1.25, keepSpin) {
+  st.view = name;
+  if (!keepSpin) {
+  if (st.spin) { st.spin = false; document.querySelector('[data-tog=spin]').setAttribute('aria-pressed', 'false'); }
+  const r0 = rig.rotation.y;
+  rigTween = { from: r0, to: Math.round(r0 / TAU) * TAU, start: performance.now(), dur: reduce ? 1 : dur * 1000 };
+  }
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === name));
+  const tgt = HOME.clone();
+  const to = VIEWS[name].p.clone().sub(HOME).multiplyScalar(fitScale()).add(tgt);
+  startCam(to, tgt, dur);
+}
+function startCam(toPos, toTgt, dur, fromPos) {
+  controls.maxPolarAngle = Math.PI - .01;
+  const s0 = new THREE.Spherical().setFromVector3((fromPos || camera.position).clone().sub(controls.target));
+  const s1 = new THREE.Spherical().setFromVector3(toPos.clone().sub(toTgt));
+  let dt = s1.theta - s0.theta; if (dt > Math.PI) dt -= TAU; if (dt < -Math.PI) dt += TAU;
+  camTween = { s0, s1, dTheta: dt, t0: controls.target.clone(), t1: toTgt.clone(), start: performance.now(), dur: reduce ? .001 : dur * 1000 };
+  controls.enabled = false;
+}
+function stepCam(now) {
+  if (!camTween) return;
+  const k = clamp((now - camTween.start) / camTween.dur, 0, 1), e = ease(k);
+  const { s0, s1 } = camTween;
+  const s = new THREE.Spherical(lerp(s0.radius, s1.radius, e), lerp(s0.phi, s1.phi, e), s0.theta + camTween.dTheta * e);
+  controls.target.lerpVectors(camTween.t0, camTween.t1, e);
+  camera.position.setFromSpherical(s).add(controls.target);
+  camera.lookAt(controls.target);
+  if (k >= 1) {
+    camTween = null; controls.enabled = true;
+    controls.maxPolarAngle = st.view === 'under' ? Math.PI - .01 : Math.PI * .49;
+    controls.update();
+  }
+}
+controls.addEventListener('start', () => {
+  ptr.dragging = true;
+  if (st.view) { st.view = null; document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', 'false')); }
+  if (st.view !== 'under' && camera.position.y > controls.target.y - .2) controls.maxPolarAngle = Math.PI * .49;
+});
+controls.addEventListener('end', () => { ptr.dragging = false; });
+
+/* ---------------- UI：模式、滑桿、切換 ---------------- */
+const exIn = $('ex'), exOut = $('exOut');
+function setMode(m, fromSlider) {
+  st.mode = m;
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
+  st.nobody.to = m === 'nobody' ? 1 : 0;
+  if (!fromSlider) {
+    const to = m === 'exploded' ? 1 : 0;
+    st.exTween = { from: st.e, to, start: performance.now(), dur: reduce ? 1 : 1500 * Math.max(.35, Math.abs(to - st.e)) };
+  }
+}
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+exIn.addEventListener('input', () => {
+  st.exTween = null;
+  st.e = exIn.value / 100;
+  const m = st.e > 0 ? 'exploded' : (st.mode === 'nobody' ? 'nobody' : 'assembled');
+  if (m !== st.mode) setMode(m, true);
+});
+function syncSlider() {
+  const p = Math.round(st.e * 100);
+  if (document.activeElement !== exIn || st.exTween) exIn.value = p;
+  exIn.style.setProperty('--p', p + '%');
+  exOut.textContent = p + '%';
+}
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => goView(b.dataset.view)));
+document.querySelectorAll('[data-tog]').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.tog, on = b.getAttribute('aria-pressed') !== 'true';
+  b.setAttribute('aria-pressed', on);
+  if (k === 'spin') st.spin = on; else st[k].to = on ? 1 : 0;
+}));
+const tyreBtn = $('tyreBtn');
+function setCompound(i) {
+  st.compound = i; const c = COMPOUNDS[i];
+  tyreBtn.style.setProperty('--tc', c.c); tyreBtn.querySelector('span').textContent = c.n;
+  tyreBtn.setAttribute('aria-label', '輪胎配方：' + c.n + '（按下切換）');
+  drawTyres(c.c);
+}
+tyreBtn.addEventListener('click', () => setCompound((st.compound + 1) % COMPOUNDS.length));
+const liveryBtn = $('liveryBtn');
+function setLivery(i) {
+  st.livery = i; const l = LIVERIES[i];
+  st.liveryTo.set(l.c);
+  liveryBtn.style.setProperty('--lc', l.c);
+  liveryBtn.setAttribute('aria-label', '車身塗裝：' + l.n + '（按下切換）');
+  liveryBtn.title = '車身塗裝：' + l.n;
+}
+liveryBtn.addEventListener('click', () => setLivery((st.livery + 1) % LIVERIES.length));
+
+/* 圖例：滑過描出整類零件，按下只顯示這一類 */
+const legend = $('legend');
+for (const k in CATS) {
+  const b = document.createElement('button'); b.type = 'button'; b.dataset.cat = k; b.setAttribute('aria-pressed', 'false');
+  b.style.setProperty('--c', CATS[k].color); b.innerHTML = `<i></i>${CATS[k].name}`;
+  b.addEventListener('pointerenter', () => { st.legendCat = k; });
+  b.addEventListener('pointerleave', () => { st.legendCat = null; });
+  b.addEventListener('click', () => {
+    st.solo = st.solo === k ? null : k;
+    legend.classList.toggle('solo', !!st.solo);
+    legend.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.cat === st.solo));
+  });
+  legend.appendChild(b);
+}
+
+/* 下拉清單 */
+const CHECK = '<svg viewBox="0 0 10 10"><path d="M2 5.2l2 2L8 3" fill="none" stroke="#f6ecea" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const layersPop = $('layersPop'), partsPop = $('partsPop');
+layersPop.innerHTML = Object.entries(LAYERS).map(([k, n]) => {
+  const c = Object.values(PARTS).filter(p => p.layer === k).length;
+  return `<button type="button" role="menuitemcheckbox" aria-checked="true" data-layer="${k}"><span class="chk">${CHECK}</span>${n}<small>${c} 件</small></button>`;
+}).join('');
+layersPop.addEventListener('click', e => {
+  const b = e.target.closest('[data-layer]'); if (!b) return;
+  const k = b.dataset.layer, on = b.getAttribute('aria-checked') !== 'true';
+  b.setAttribute('aria-checked', on); st.layers[k] = on;
+});
+partsPop.innerHTML = Object.keys(CATS).map(k => {
+  const ps = Object.values(PARTS).filter(p => p.cat === k);
+  return `<h3>${CATS[k].name}</h3>` + ps.map(p => `<button type="button" role="menuitem" data-part="${p.id}" style="--c:${CATS[k].color}"><i></i>${p.info.name}</button>`).join('');
+}).join('');
+partsPop.addEventListener('pointerover', e => { const b = e.target.closest('[data-part]'); st.menuHover = b ? b.dataset.part : null; });
+partsPop.addEventListener('pointerleave', () => { st.menuHover = null; });
+partsPop.addEventListener('click', e => { const b = e.target.closest('[data-part]'); if (!b) return; closePops(); focusPart(b.dataset.part); });
+const POPS = [[$('layersBtn'), layersPop], [$('partsBtn'), partsPop]];
+function closePops() { for (const [b, p] of POPS) { b.setAttribute('aria-expanded', 'false'); p.classList.remove('on'); } st.menuHover = null; }
+for (const [btn, pop] of POPS) btn.addEventListener('click', e => {
+  e.stopPropagation();
+  const open = btn.getAttribute('aria-expanded') !== 'true';
+  closePops();
+  if (!open) return;
+  const r = btn.getBoundingClientRect();
+  const w = 240, left = clamp(r.left + r.width / 2 - w / 2, 8, innerWidth - w - 8);
+  pop.style.left = left + 'px'; pop.style.top = (r.bottom + 12) + 'px'; pop.style.width = w + 'px';
+  btn.setAttribute('aria-expanded', 'true'); pop.classList.add('on');
+});
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.pop') && !e.target.closest('.menu')) closePops(); });
+addEventListener('keydown', e => { if (e.key === 'Escape') { closePops(); unpin(); } });
+
+/* ---------------- 說明卡 ---------------- */
+const card = $('card'), cardBody = $('cardBody'), cAct = $('cAct');
+let cardFor = null, hideTimer = 0;
+function fillCard(id) {
+  const p = PARTS[id], inf = p.info, cat = CATS[inf.cat];
+  card.style.setProperty('--c', cat.color);
+  $('cCat').textContent = cat.name;
+  $('cName').textContent = inf.name;
+  $('cDesc').textContent = inf.desc;
+  $('cWho').innerHTML = `<b>誰來製造：</b>${inf.who}`;
+  $('cMeter').querySelectorAll('i').forEach((el, i) => el.classList.toggle('on', i < inf.free));
+  $('cFree').textContent = FREE[inf.free];
+  $('cList').innerHTML = inf.list.map(t => `<li>${t}</li>`).join('');
+  const spec = $('cSpec');
+  spec.innerHTML = inf.spec ? inf.spec.map(([k, v]) => `<b>${k}：</b>${v}`).join(' · ') : '';
+  spec.style.display = inf.spec ? '' : 'none';
+  const nw = $('cNew');
+  nw.innerHTML = inf.nw ? `<b>2026 新規：</b>${inf.nw}` : '';
+  nw.style.display = inf.nw ? '' : 'none';
+  card.classList.toggle('has-act', !!inf.act);
+  syncAct();
+  cardFor = id;
+}
+function syncAct() { cAct.textContent = st.aero.to > .5 ? '回到彎道模式' : '切換到直道模式'; }
+cAct.addEventListener('click', () => { st.aero.to = st.aero.to > .5 ? 0 : 1; syncAct(); });
+$('cardX').addEventListener('click', () => unpin());
+const mobile = () => innerWidth <= 760;
+function placeCard(sx, sy, prefer) {
+  if (mobile()) { card.style.setProperty('--x', '0px'); card.style.setProperty('--y', '0px'); return; }
+  const W = card.offsetWidth, H = card.offsetHeight, gap = 64;
+  let x = prefer === 'right' ? innerWidth - W - 28 : sx + gap;
+  let side = 'left';
+  if (prefer !== 'right' && x + W > innerWidth - 16) { x = sx - gap - W; side = 'right'; }
+  x = clamp(x, 16, innerWidth - W - 16);
+  const y = clamp(sy - H * .42, 64, innerHeight - H - 76);
+  card.style.setProperty('--x', x + 'px'); card.style.setProperty('--y', y + 'px'); card.style.setProperty('--ox', side === 'left' ? '0%' : '100%');
+}
+function showCard(id, sx, sy, prefer) {
+  clearTimeout(hideTimer);
+  if (cardFor !== id) {
+    if (card.classList.contains('on')) {
+      cardBody.classList.add('swap');
+      requestAnimationFrame(() => { fillCard(id); placeCard(sx, sy, prefer); requestAnimationFrame(() => cardBody.classList.remove('swap')); });
+    } else { fillCard(id); placeCard(sx, sy, prefer); }
+  }
+  card.classList.add('on');
+}
+function hideCard() {
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => { if (!st.pin && !st.hover) { card.classList.remove('on'); cardFor = null; } }, 90);
+}
+function pin(hit, sx, sy, prefer) {
+  st.pin = hit;
+  showCard(hit.id, sx, sy, prefer);
+  if (cardFor === hit.id) placeCard(sx, sy, prefer);
+  card.classList.add('pinned');
+  $('cPin').textContent = '已釘選 · 點空白處取消';
+}
+function unpin() {
+  st.pin = null;
+  card.classList.remove('pinned');
+  $('cPin').textContent = '點擊釘選';
+  if (!st.hover) hideCard();
+}
+function partCenter(id) {
+  const box = new THREE.Box3();
+  for (const m of PARTS[id].meshes) if (m.visible) box.expandByObject(m);
+  if (box.isEmpty()) for (const m of PARTS[id].meshes) box.expandByObject(m);
+  return box;
+}
+function focusPart(id) {
+  if (st.spin) { st.spin = false; st.spinV = 0; document.querySelector('[data-tog=spin]').setAttribute('aria-pressed', 'false'); }
+  const box = partCenter(id), c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()).length();
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const dist = clamp(size * 2.6 + 2.4, 4.2, 9) * fitScale();
+  const tgt = c.clone();
+  if (mobile()) tgt.y -= dist * .16;
+  st.view = null;
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  startCam(tgt.clone().add(dir.multiplyScalar(dist)), tgt, 1.1);
+  const mesh = PARTS[id].meshes.find(m => m.visible) || PARTS[id].meshes[0];
+  pin({ id, mesh, local: mesh.worldToLocal(c.clone()) }, innerWidth * .7, innerHeight * .45, 'right');
+}
+
+/* ---------------- 指標與點選 ---------------- */
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+function pick(x, y) {
+  ndc.set(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const vis = pickables.filter(m => m.visible && (m.material.opacity > .3 || (m.userData.part.shell && st.xray.v > .5)) && m.userData.part.vis > .3 && m.material.userData.key !== 'tyreTxt');
+  const hits = ray.intersectObjects(vis, false);
+  if (!hits.length) return null;
+  let h = hits[0];
+  if (st.xray.v > .5) h = hits.find(q => !q.object.userData.part.shell) || h;
+  return { id: h.object.userData.part.id, mesh: h.object, local: h.object.worldToLocal(h.point.clone()) };
+}
+canvas.addEventListener('pointermove', e => { ptr.x = e.clientX; ptr.y = e.clientY; ptr.inside = true; ptr.type = e.pointerType; });
+canvas.addEventListener('pointerleave', () => { ptr.inside = false; });
+canvas.addEventListener('pointerdown', e => { ptr.down = { x: e.clientX, y: e.clientY }; ptr.type = e.pointerType; closePops(); });
+canvas.addEventListener('pointerup', e => {
+  const d = ptr.down; ptr.down = null;
+  if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;
+  const h = pick(e.clientX, e.clientY);
+  if (!h) { unpin(); return; }
+  if (st.pin && st.pin.id === h.id && e.pointerType === 'mouse') { unpin(); return; }
+  pin(h, e.clientX, e.clientY);
+});
+
+/* ---------------- 版面 ---------------- */
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.fov = camera.aspect < 1 ? 40 : 30;
+  camera.updateProjectionMatrix();
+  const bw = Math.floor(w * PR), bh = Math.floor(h * PR);
+  reflRT.setSize(Math.max(1, bw >> 1), Math.max(1, bh >> 1));
+  maskRT.setSize(bw, bh);
+  outlineMat.uniforms.uTexel.value.set(PR / bw, PR / bh);
+}
+addEventListener('resize', () => { DIMS.forEach(d => { d.w = 0; }); resize(); if (st.view) goView(st.view, .5, true); });
+resize();
+
+/* ---------------- 每幀更新 ---------------- */
+const tmpC = new THREE.Color(), xrayTone = new THREE.Color(0xd4d8dc);
+const smooth = (o, dt, k = 7) => { o.v += (o.to - o.v) * (1 - Math.exp(-dt * (reduce ? 60 : k))); if (Math.abs(o.to - o.v) < 1e-4) o.v = o.to; };
+function updateParts(dt) {
+  const lift = ease(st.e) * .34;
+  car.position.y = lift;
+  car.scale.setScalar(1 - .2 * ease(st.e));
+  contact.material.opacity = 1 - clamp(st.e * 1.4, 0, .85);
+  for (const id in PARTS) {
+    const p = PARTS[id];
+    p.t = ease(clamp((st.e - p.delay) / (1 - .4), 0, 1));
+    p.layerV += ((st.layers[p.layer] ? 1 : 0) - p.layerV) * (1 - Math.exp(-dt * (reduce ? 60 : 8)));
+    p.soloV += ((!st.solo || st.solo === p.cat ? 1 : .08) - p.soloV) * (1 - Math.exp(-dt * (reduce ? 60 : 8)));
+    p.vis = p.layerV * p.soloV * (p.panel ? 1 - st.nobody.v : 1);
+    for (const m of p.meshes) m.position.copy(m.userData.base).addScaledVector(m.userData.ex, p.t * .82);
+  }
+  const a = ease(st.aero.v);
+  for (const f of AERO) f.m.rotation.z = lerp(f.corner, f.straight, a);
+  const rT = st.rule.v, xT = st.xray.v;
+  for (const m of allMats) {
+    const { key, part: p } = m.userData, b = BASE[key];
+    tmpC.copy(key === 'livery' ? st.liveryCol : b.col).lerp(p.catColor, rT);
+    if (p.shell) tmpC.lerp(xrayTone, xT * .8 * (1 - rT * .7));
+    m.color.copy(tmpC);
+    m.roughness = lerp(b.r, .55, rT);
+    m.metalness = lerp(b.m, .02, rT);
+    m.clearcoat = lerp(b.cc || 0, 0, rT);
+    if (b.ei) m.emissiveIntensity = b.ei * (1 - rT);
+    if (key === 'heat') { const want = rT > .5 ? null : heatTex; if (m.map !== want) { m.map = want; m.needsUpdate = true; } }
+    let o = p.vis;
+    if (p.shell) o *= lerp(1, .26, xT);
+    if (key === 'tyreTxt') o *= 1 - rT;
+    m.opacity = o;
+    if (key !== 'tyreTxt') m.depthWrite = o > .6;
+  }
+  for (const id in PARTS) for (const m of PARTS[id].meshes) m.visible = m.material.opacity > .01;
+}
+
+const proj = new THREE.Vector3(), wtmp = new THREE.Vector3();
+function toScreen(v) {
+  proj.copy(v).project(camera);
+  return { x: (proj.x + 1) / 2 * innerWidth, y: (1 - proj.y) / 2 * innerHeight, ok: proj.z < 1 && proj.z > -1 };
+}
+function updateDims(dt) {
+  const show = st.dim.v * (1 - clamp(st.e * 3, 0, 1));
+  for (const d of DIMS) {
+    const k = ease(clamp((show - d.delay) / (1 - .4), 0, 1));
+    d.grp.visible = k > .01;
+    d.grp.scale.setScalar(Math.max(.001, k));
+    car.localToWorld(wtmp.copy(d.at));
+    const s = toScreen(wtmp);
+    const o = s.ok ? k : 0;
+    d.el.style.opacity = o;
+    if (o > 0 && !d.w) d.w = d.el.offsetWidth;
+    const hw = (d.w || 120) / 2, lx = clamp(s.x, hw + 8, innerWidth - hw - 8);
+    d.el.style.transform = `translate3d(${lx}px,${s.y}px,0) translate(-50%,-50%) translateY(${(1 - k) * 6}px)`;
+  }
+  dimLine.opacity = .55 * show; dimDash.opacity = .38 * show;
+}
+
+const leadLine = $('leadLine'), leadDot = $('leadDot');
+function updateLeader() {
+  const target = st.pin || st.hover;
+  if (!target || !card.classList.contains('on')) { leadLine.setAttribute('opacity', 0); leadDot.setAttribute('opacity', 0); return; }
+  const w = target.mesh.localToWorld(wtmp.copy(target.local));
+  const s = toScreen(w);
+  if (!s.ok || !target.mesh.visible) { leadLine.setAttribute('opacity', 0); leadDot.setAttribute('opacity', 0); return; }
+  const r = card.getBoundingClientRect();
+  const cx = clamp(s.x, r.left, r.right), cy = clamp(s.y, r.top, r.bottom);
+  const inside = cx === s.x && cy === s.y;
+  leadDot.setAttribute('cx', s.x); leadDot.setAttribute('cy', s.y); leadDot.setAttribute('opacity', 1);
+  leadLine.setAttribute('x1', s.x); leadLine.setAttribute('y1', s.y); leadLine.setAttribute('x2', cx); leadLine.setAttribute('y2', cy);
+  leadLine.setAttribute('opacity', inside ? 0 : 1);
+}
+
+function updateHover() {
+  if (!ptr.inside || ptr.dragging || camTween || ptr.type === 'touch' || touchOnly) {
+    if (st.hover && (ptr.dragging || !ptr.inside || ptr.type === 'touch')) { st.hover = null; if (!st.pin) hideCard(); }
+    return;
+  }
+  const h = pick(ptr.x, ptr.y);
+  if (!h) { if (st.hover) { st.hover = null; if (!st.pin) hideCard(); } canvas.style.cursor = ''; return; }
+  canvas.style.cursor = 'pointer';
+  const changed = !st.hover || st.hover.id !== h.id;
+  st.hover = h;
+  if (!st.pin && changed) showCard(h.id, ptr.x, ptr.y);
+  else if (!st.pin) clearTimeout(hideTimer);
+}
+
+function outlineSet() {
+  const s = new Set();
+  if (st.hover) s.add(st.hover.id);
+  if (st.pin) s.add(st.pin.id);
+  if (st.menuHover) s.add(st.menuHover);
+  if (st.legendCat) for (const id in PARTS) if (PARTS[id].cat === st.legendCat) s.add(id);
+  return s;
+}
+
+/* 平面倒影：鏡射相機（依 Reflector 的做法） */
+const rN = V(0, 1, 0), rWorld = new THREE.Vector3(), rCam = new THREE.Vector3(), rView = new THREE.Vector3(), rLook = new THREE.Vector3(), rTgt = new THREE.Vector3(), rRot = new THREE.Matrix4();
+function renderReflection() {
+  rCam.setFromMatrixPosition(camera.matrixWorld);
+  rView.copy(rWorld).sub(rCam).reflect(rN).negate().add(rWorld);
+  rRot.extractRotation(camera.matrixWorld);
+  rLook.set(0, 0, -1).applyMatrix4(rRot).add(rCam);
+  rTgt.copy(rWorld).sub(rLook).reflect(rN).negate().add(rWorld);
+  mirrorCam.position.copy(rView);
+  mirrorCam.up.set(0, 1, 0).applyMatrix4(rRot).reflect(rN);
+  mirrorCam.lookAt(rTgt);
+  mirrorCam.far = camera.far;
+  mirrorCam.updateMatrixWorld();
+  mirrorCam.projectionMatrix.copy(camera.projectionMatrix);
+  reflMatrix.set(.5, 0, 0, .5, 0, .5, 0, .5, 0, 0, .5, .5, 0, 0, 0, 1);
+  reflMatrix.multiply(mirrorCam.projectionMatrix).multiply(mirrorCam.matrixWorldInverse).multiply(floor.matrixWorld);
+  floor.visible = false; contact.visible = false;
+  const dv = DIMS.map(d => d.grp.visible); DIMS.forEach(d => { d.grp.visible = false; });
+  renderer.setRenderTarget(reflRT); renderer.clear(); renderer.render(scene, mirrorCam);
+  renderer.setRenderTarget(null);
+  floor.visible = true; contact.visible = true;
+  DIMS.forEach((d, i) => { d.grp.visible = dv[i]; });
+}
+function renderMask(ids) {
+  const saved = [];
+  scene.traverse(o => {
+    if (o.isMesh || o.isLine) { saved.push([o, o.visible]); o.visible = o.visible && !!o.userData.part && ids.has(o.userData.part.id); }
+  });
+  const bg = scene.background; scene.background = null;
+  scene.overrideMaterial = maskMat;
+  renderer.setRenderTarget(maskRT); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+  scene.overrideMaterial = null; scene.background = bg;
+  for (const [o, v] of saved) o.visible = v;
+}
+
+let last = performance.now(), lastIds = new Set(), frameNo = 0;
+renderer.shadowMap.autoUpdate = false;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  stepCam(now);
+  if (!camTween) controls.update();
+  if (st.exTween) {
+    const k = clamp((now - st.exTween.start) / st.exTween.dur, 0, 1);
+    st.e = lerp(st.exTween.from, st.exTween.to, ease(k));
+    if (k >= 1) st.exTween = null;
+  }
+  syncSlider();
+  smooth(st.rule, dt); smooth(st.xray, dt); smooth(st.dim, dt, 4); smooth(st.nobody, dt, 6); smooth(st.aero, dt, 4.5);
+  st.liveryCol.lerp(st.liveryTo, 1 - Math.exp(-dt * (reduce ? 60 : 5)));
+  const busy = !!(st.hover || st.pin);
+  const wantSpin = st.spin && !reduce ? (busy ? .025 : .16) : 0;
+  st.spinV += (wantSpin - st.spinV) * (1 - Math.exp(-dt * 3));
+  if (rigTween) {
+    const k = clamp((now - rigTween.start) / rigTween.dur, 0, 1);
+    rig.rotation.y = lerp(rigTween.from, rigTween.to, ease(k));
+    if (k >= 1) rigTween = null;
+    st.spinV = 0;
+  } else rig.rotation.y += st.spinV * dt;
+  updateParts(dt);
+  scene.updateMatrixWorld();
+  updateHover();
+
+  floor.visible = camera.position.y > .02;
+  under.intensity = clamp(-camera.position.y / 2.5, 0, 1) * 2.6;
+  scene.environmentIntensity = .85 + (1 - clamp(camera.position.y / 1.5 + 1, 0, 1)) * .6;
+  renderer.shadowMap.needsUpdate = true;
+  if (floor.visible) renderReflection();
+  renderer.setClearColor(0x000000, 1);
+  renderer.render(scene, camera);
+
+  const ids = outlineSet();
+  const want = ids.size ? 1 : 0;
+  st.outlineA += (want - st.outlineA) * (1 - Math.exp(-dt * (reduce ? 60 : 14)));
+  if (ids.size) lastIds = ids;
+  if (st.outlineA > .01 && lastIds.size) {
+    renderMask(lastIds);
+    outlineMat.uniforms.uAlpha.value = st.outlineA;
+    renderer.autoClear = false; renderer.render(fsScene, fsCam); renderer.autoClear = true;
+  }
+  updateDims(dt);
+  updateLeader();
+  frameNo++;
+  requestAnimationFrame(frame);
+}
+
+/* 手機畫面窄，尺寸標註預設關閉 */
+if (innerWidth <= 760) { st.dim.to = 0; document.querySelector('[data-tog=dim]').setAttribute('aria-pressed', 'false'); }
+/* 開場：相機從遠處滑入 3/4 視角 */
+setCompound(0);
+setLivery(0);
+camera.position.copy(V(-7.5, 4.2, 9.5).multiplyScalar(fitScale() * 1.15));
+camera.lookAt(HOME);
+goView('q', 2.2, true);
+
+Object.assign(window.__f1, {
+  goView, setMode, focusPart, pin, unpin, camera,
+  setE: v => { st.exTween = null; st.e = v; },
+  hover: id => { const m = PARTS[id].meshes[0]; st.hover = { id, mesh: m, local: V(0, 0, 0) }; showCard(id, innerWidth * .5, innerHeight * .45); },
+  snap: () => { if (camTween) { camTween.start = -1e9; stepCam(performance.now()); } st.rule.v = st.rule.to; st.xray.v = st.xray.to; st.dim.v = st.dim.to; st.nobody.v = st.nobody.to; st.aero.v = st.aero.to; st.liveryCol.copy(st.liveryTo); for (const id in PARTS) { PARTS[id].layerV = st.layers[PARTS[id].layer] ? 1 : 0; PARTS[id].soloV = !st.solo || st.solo === PARTS[id].cat ? 1 : .08; } },
+  frames: () => frameNo,
+});
+requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>

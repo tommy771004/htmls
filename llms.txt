@@ -143,6 +143,7 @@
 - [170 川明かり · KAWA-AKARI](https://htmls-ruddy.vercel.app/web/170-kawa-akari.html)：用 WASD 駕小木船順著首尾相接的日本河道穿過鳥居、町屋、竹林、石燈籠與遠山；水面有鏡面倒影、深度折射、船行水波與雨滴漣漪，船依波高浮沉；四分鐘日夜循環與晴／雨／霧輪替，岸上有會動的人物與鷺；全程式建模與 PBR 材質，Three.js 從 CDN 載入。
 - [172 台北上空 · SKYHAWK 172](https://htmls-ruddy.vercel.app/web/172-taipei-skyhawk.html)：在真實衛星影像、地形與十萬棟 OpenStreetMap 建物重建的台北盆地駕駛 Cessna 172S；依 POH 校準的六自由度飛行力學、自動駕駛、駕駛艙六大儀表、PAPI 與進場燈，四個任務（松山起降、信義區、淡水河口）與四個時段、三種天氣；影像與地形圖磚需連線
 - [173 北境航記 · NORÐ](https://htmls-ruddy.vercel.app/web/173-nord-voyage.html)：維京長船 3D 峽灣之旅；1.6 公里航道、懸崖、針葉林與五道瀑布，十二支船槳入水產生泡沫、漣漪和水花；水面反射、折射與深度透明，程序化木石 PBR 材質，鍵盤與觸控掌舵、槳速及三種燈光。單檔 HTML，Three.js 從 CDN 載入。
+- [183 冰帶 · RIME RIBBON](https://htmls-ruddy.vercel.app/web/183-rime-ribbon.html)：莫比烏斯冰帶上的 3D 太空單車漂移；冰帶沿三葉結半扭接回自己，一圈後翻到背面紫冰、兩圈回到起點。捲浪冰管、翻滾段、甩尾蓄力加速、跳躍迴旋、金環連擊、隕石與加速門，多層視差冰脈著色器與 WebAudio 音效，鍵盤與觸控操作。單檔 HTML，Three.js 從 CDN 載入。
 
 ### 品牌頁面
 
@@ -215,6 +216,7 @@
 - [104 FRAME · 3D 筆電產品攝影棚](https://htmls-ruddy.vercel.app/web/104-laptop-studio.html): 擬真 3D Mockup。上傳或貼上截圖，置入程序建模的金屬筆電；調整相機、景深、打光與背景，匯出高解析度 PNG
 - [134 一身金色 · GOLDEN STUDY](https://htmls-ruddy.vercel.app/web/134-golden-retriever.html): BlenderMCP 從空場景製作黃金獵犬 3D 模型。查看大塊造型、融合細分、程序材質與三點光四階段預覽；下載 1500×1250 成品圖及 Blender 原始檔。
 - [163 X-16 · 四排十六缸剖面引擎](https://htmls-ruddy.vercel.app/web/163-x16-engine.html): 3D 機械剖面模型。X 形四排汽缸共用一根曲軸，主副連桿、凸輪與氣門依連桿幾何推導的點火順序連動；轉速可調、可逐發步進，外殼切換實心／半透明／剖切，全部零件程式建模；需連線載入 Three.js
+- [182 規則之車 · F1 2026 技術規則圖解](https://htmls-ruddy.vercel.app/web/182-f1-rulebook.html)：3D 賽車規則圖解。程式建模的 2026 年 F1 賽車分成 31 個零件，滑過即描邊並顯示說明卡：由誰製造、車隊設計自由度、條文重點與 2026 新規；爆炸圖、無車身、六類規則配色、X 光、尺寸標註、轉盤、六種視角、輪胎配方與塗裝切換、前後翼直道模式。本地 Three.js，無外部請求。
 
 ### AI 學習
 
