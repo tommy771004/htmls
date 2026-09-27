@@ -6,7 +6,7 @@
 <title>守夜 · KEEPWATCH — 牠在看</title>
 <link rel="icon" href="../favicon.svg">
 <meta name="description" content="守夜：夜貓子的專注計時器。落地頁中央是一隻程序化建模的 3D 貓頭鷹，游標化成螢火蟲，牠的頭、眼睛與耳羽會一路追著看；三秒不動牠自己張望，太久不動就打盹。">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js"}}</script>
 <style>
 :root{
   --ink:#0a120e;--ink2:#132019;--bone:#e8dfc9;--bone-2:#bfb59d;--dim:#7d7a6a;
@@ -29,6 +29,8 @@ body{
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 #gl{position:fixed;inset:0;z-index:1;width:100%;height:100%;display:block;touch-action:none;outline:none}
 
+#gl:focus-visible{outline:2px solid var(--lamp);outline-offset:-5px}
+
 /* 上方：品牌與三個真的能按的控制 */
 .nav{position:fixed;z-index:5;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;
   padding:26px clamp(20px,4vw,56px);pointer-events:none}
@@ -37,7 +39,7 @@ body{
 .brand b{font-family:"Songti TC","Hiragino Mincho ProN","Noto Serif TC","PMingLiU",serif;font-weight:900;font-size:19px;letter-spacing:.14em}
 .brand small{display:block;font-size:10px;letter-spacing:.3em;color:var(--bone-2);line-height:1;margin-top:3px}
 .ctl{display:flex;gap:6px;pointer-events:auto}
-.ctl button{font:inherit;font-size:13px;letter-spacing:.06em;color:var(--bone-2);background:none;border:0;padding:8px 12px;cursor:pointer;
+.ctl button{min-height:44px;font:inherit;font-size:13px;letter-spacing:.06em;color:var(--bone-2);background:none;border:0;padding:8px 12px;cursor:pointer;
   border-radius:3px;transition:color var(--dur) var(--ease-out),background-color var(--dur) var(--ease-out)}
 .ctl button:hover{color:var(--bone)}
 .ctl button[aria-pressed=true],.ctl button[aria-expanded=true]{color:var(--ink);background:var(--bone)}
@@ -54,7 +56,7 @@ body{
 
 /* 下方左：文案與唯一的動作 */
 .copy{position:fixed;z-index:4;left:clamp(20px,4vw,56px);bottom:clamp(24px,5vh,52px);max-width:340px}
-.copy p{margin:0 0 18px;color:var(--bone-2);font-size:14px;line-height:1.85}
+.copy p{text-shadow:0 2px 8px #0a120e,0 0 20px #0a120e;margin:0 0 18px;color:var(--bone-2);font-size:14px;line-height:1.85}
 .copy p b{color:var(--bone);font-weight:600}
 .cta{font:inherit;font-size:14px;font-weight:600;letter-spacing:.08em;color:var(--ink);background:var(--bone);border:0;
   border-radius:3px;padding:13px 18px 13px 20px;cursor:pointer;display:inline-flex;align-items:center;gap:16px;
@@ -75,6 +77,7 @@ body{
 /* 說明小卡 */
 .note{position:fixed;z-index:6;top:82px;right:clamp(20px,4vw,56px);width:min(330px,calc(100vw - 40px));
   background:var(--ink2);color:var(--bone-2);border:1px solid var(--line);border-radius:4px;padding:18px 20px;font-size:13px;line-height:1.8}
+.note{max-height:calc(100dvh - 100px);overflow:auto}
 .note[hidden]{display:none}
 .note p{margin:0 0 8px}.note p:last-child{margin:0}
 .note b{color:var(--bone);font-weight:600}
@@ -107,7 +110,7 @@ body{
 </head>
 <body>
 <div id="sky"></div>
-<canvas id="gl" aria-label="會追著你看的 3D 貓頭鷹"></canvas>
+<canvas id="gl" tabindex="0" aria-label="會追著你看的 3D 貓頭鷹。方向鍵移動螢火蟲，Home 置中，空白鍵呼叫。"></canvas>
 
 <header class="nav">
   <span class="brand">
@@ -145,6 +148,7 @@ body{
 
 <div class="note" id="note" hidden>
   <p><b>游標是一隻螢火蟲</b>，落在貓頭鷹前方一片看不見的平面上；牠看的是那隻蟲，不是你。</p>
+  <p>也可以用 <b>Tab</b> 選取畫面，按方向鍵移動螢火蟲、Home 置中、空白鍵呼叫；Esc 關閉說明。</p>
   <p><b>眼睛比頭快一步</b>：眼先到、頭用彈簧慢半拍跟上，轉超過一定角度身體才跟著轉。移動太快牠會歪頭、豎起耳羽。</p>
   <p><b>三秒沒動</b>牠自己找東西看，二十秒沒動就打盹；再動一下就驚醒。整隻鳥是程式建模，沒有載入任何模型或貼圖。</p>
 </div>
@@ -170,7 +174,7 @@ const canvas = $('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.setClearColor(0x000000, 0);
@@ -240,8 +244,8 @@ const bumpChest = featherCanvas('#808080', '#9a9a9a', '#505050', 10, true);
 texBody.repeat.set(3, 2); bumpBody.repeat.set(3, 2);
 texChest.repeat.set(2, 2); bumpChest.repeat.set(2, 2);
 
-const matBody = new THREE.MeshStandardMaterial({ map: texBody, bumpMap: bumpBody, bumpScale: 0.6, roughness: .92, metalness: 0 });
-const matChest = new THREE.MeshStandardMaterial({ map: texChest, bumpMap: bumpChest, bumpScale: 0.45, roughness: .95 });
+const matBody = new THREE.MeshStandardMaterial({ map: texBody, bumpMap: bumpBody, bumpScale: 0.045, roughness: .92, metalness: 0 });
+const matChest = new THREE.MeshStandardMaterial({ map: texChest, bumpMap: bumpChest, bumpScale: 0.025, roughness: .95 });
 const matFace = new THREE.MeshStandardMaterial({ color: 0xd2b98d, roughness: .95 });
 const matFaceRim = new THREE.MeshStandardMaterial({ color: 0x42291a, roughness: .95 });
 const matDark = new THREE.MeshStandardMaterial({ color: 0x2e1d12, roughness: .8 });
@@ -303,13 +307,13 @@ owl.add(head);
   // 臉盤：兩片淺色圓盤 + 深色邊
   for (const s of [-1, 1]) {
     const rimD = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 24), matFaceRim);
-    rimD.scale.set(1.02, 1.2, 0.4); rimD.position.set(s * 0.36, -0.02, 0.42); rimD.rotation.y = s * 0.42; head.add(rimD);
+    rimD.scale.set(1.02, 1.2, 0.4); rimD.position.set(s * 0.36, -0.02, 0.65); rimD.rotation.y = s * 0.42; head.add(rimD);
     const disc = new THREE.Mesh(new THREE.SphereGeometry(0.46, 32, 24), matFace);
-    disc.scale.set(1, 1.18, 0.42); disc.position.set(s * 0.35, -0.02, 0.47); disc.rotation.y = s * 0.42; head.add(disc);
+    disc.scale.set(1, 1.18, 0.42); disc.position.set(s * 0.35, -0.02, 0.70); disc.rotation.y = s * 0.42; head.add(disc);
   }
   // 喙
   const beak = shadowed(new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.34, 18), matBeak));
-  beak.position.set(0, -0.2, 0.86);
+  beak.position.set(0, -0.2, 1.02);
   beak.rotation.x = Math.PI * 0.62;
   head.add(beak);
 }
@@ -331,7 +335,7 @@ for (const s of [-1, 1]) {
 const brows = [];
 for (const s of [-1, 1]) {
   const brow = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.045, 0.14), matFaceRim);
-  brow.position.set(s * 0.33, 0.3, 0.72);
+  brow.position.set(s * 0.33, 0.3, 0.94);
   brow.rotation.z = s * 0.04;
   brow.userData.s = s;
   head.add(brow);
@@ -341,7 +345,7 @@ for (const s of [-1, 1]) {
 const eyes = [];
 for (const s of [-1, 1]) {
   const eye = new THREE.Group();
-  eye.position.set(s * 0.33, 0.04, 0.62);
+  eye.position.set(s * 0.33, 0.04, 0.83);
   eye.rotation.order = 'YXZ';
   const iris = new THREE.Mesh(new THREE.SphereGeometry(0.245, 32, 24), matIris);
   eye.add(iris);
@@ -437,11 +441,21 @@ function setTarget(px, py) {
   pointerSeen = true;
   if (dozing) wake();
 }
-addEventListener('pointermove', e => setTarget(e.clientX, e.clientY), { passive: true });
+canvas.addEventListener('pointermove', e => setTarget(e.clientX, e.clientY), { passive: true });
+canvas.addEventListener('keydown', e => {
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) { ensureAudio(); wake(); hoot(); } return; }
+  if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(e.key)) return;
+  e.preventDefault();
+  const x = e.key === 'Home' ? 0 : Math.max(-.9, Math.min(.9, ndc.x + (e.key === 'ArrowRight' ? .12 : e.key === 'ArrowLeft' ? -.12 : 0)));
+  const y = e.key === 'Home' ? .1 : Math.max(-.9, Math.min(.9, ndc.y + (e.key === 'ArrowUp' ? .12 : e.key === 'ArrowDown' ? -.12 : 0)));
+  setTarget((x + 1) * innerWidth / 2, (1 - y) * innerHeight / 2);
+});
 addEventListener('pointerdown', e => {
+  if (e.target !== canvas || e.button !== 0) return;
+  canvas.focus({preventScroll:true});
   setTarget(e.clientX, e.clientY);
-  ensureAudio();
-  if (e.target === canvas || e.target === document.body || e.target === $('sky')) hoot();
+  ensureAudio(); hoot();
 }, { passive: true });
 
 /* ---------- 狀態機：盯著你 / 找你 / 打盹 ---------- */
@@ -490,10 +504,12 @@ function updateUI(dt) {
 }
 
 /* ---------- 主迴圈 ---------- */
-const clock = new THREE.Clock();
+let lastFrame = performance.now();
 let elapsed = 0;
 function frame() {
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const frameTime = performance.now();
+  const dt = Math.min((frameTime - lastFrame) / 1000, 0.05);
+  lastFrame = frameTime;
   elapsed += dt;
   const now = performance.now();
   const idle = (now - lastMove) / 1000;
@@ -598,7 +614,7 @@ function frame() {
 
   // 呼吸與叫聲鼓起
   puff = Math.max(0, puff - dt * 2.2);
-  const breathe = 1 + Math.sin(elapsed * (dozing ? 1.1 : 2.1)) * 0.012 + puff * 0.07;
+  const breathe = 1 + (reduced ? 0 : Math.sin(elapsed * (dozing ? 1.1 : 2.1)) * 0.012) + puff * 0.07;
   owl.scale.set(breathe, 1 / Math.sqrt(breathe), breathe);
 
   matIris.emissiveIntensity = watch ? 1.4 : 0.6;
@@ -658,29 +674,34 @@ $('how').addEventListener('click', () => {
   $('how').setAttribute('aria-expanded', String(open));
 });
 
-// 守夜計時：25 分鐘倒數，按第二次結束
-let timer = null, remain = 25 * 60;
-const fmt = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-$('cta').addEventListener('click', () => {
-  ensureAudio();
-  watch = !watch;
-  $('cta').dataset.on = String(watch);
-  $('cta').firstChild.textContent = watch ? '結束守夜' : '開始守夜';
-  wake();
-  lastMove = performance.now();
-  if (watch) {
-    remain = 25 * 60;
-    $('ctaT').textContent = fmt(remain);
-    timer = setInterval(() => {
-      remain--;
-      $('ctaT').textContent = fmt(remain);
-      if (remain <= 0) { clearInterval(timer); watch = false; $('cta').dataset.on = 'false'; $('cta').firstChild.textContent = '開始守夜'; $('ctaT').textContent = '25:00'; hoot(); }
-    }, 1000);
-  } else {
-    clearInterval(timer);
-    $('ctaT').textContent = '25:00';
+addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('note').hidden) {
+    $('note').hidden = true; $('how').setAttribute('aria-expanded', 'false'); $('how').focus();
   }
 });
+
+// 守夜計時：以截止時間計算，背景分頁降頻不延長專注時段
+let timer = null, deadline = 0;
+const fmt = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+function stopWatch() {
+  clearInterval(timer); timer = null; watch = false;
+  $('cta').dataset.on = 'false'; $('cta').firstChild.textContent = '開始守夜';
+  $('ctaT').textContent = '25:00';
+}
+function syncWatch() {
+  if (!watch) return;
+  const remain = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+  $('ctaT').textContent = fmt(remain);
+  if (remain === 0) { stopWatch(); hoot(); }
+}
+$('cta').addEventListener('click', () => {
+  ensureAudio(); wake(); lastMove = performance.now();
+  if (watch) { stopWatch(); return; }
+  watch = true; deadline = Date.now() + 25 * 60 * 1000;
+  $('cta').dataset.on = 'true'; $('cta').firstChild.textContent = '結束守夜';
+  syncWatch(); timer = setInterval(syncWatch, 1000);
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) syncWatch(); });
 
 // 讓測試與截圖可以直接設定注視點
 window.__owl = { setTarget, get state() { return { hy, hp, ey, ep, dozing, watch }; } };

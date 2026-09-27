@@ -1510,7 +1510,7 @@ function advancePathJob(map, job, budget) {
 }
 
 // apps/web/scene.ts
-var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.72, provenance: "original_procedural" };
+var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.62, provenance: "original_procedural" };
 function farmParts(progress, red) {
   const out = [{ x: 0, y: 0, z: 0, w: 2, d: 2, h: 0.1, color: "#806b49", studs: false }];
   if (progress < 100) {
@@ -1528,15 +1528,15 @@ async function createScene(canvas2, onFailure, options = {}) {
   const renderer = new T.WebGLRenderer({ canvas: canvas2, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.shadowMap.type = T.PCFShadowMap;
   renderer.setClearColor("#d7e0cc");
   renderer.outputColorSpace = T.SRGBColorSpace;
   renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.35;
+  renderer.toneMappingExposure = 1.2;
   const detail = createDetailController(T);
   const scene2 = new T.Scene();
   const camera = new T.OrthographicCamera(-12, 12, 10, -10, 0.1, 100);
-  const ambient = new T.HemisphereLight("#fff5dc", "#819b75", 2.4);
+  const ambient = new T.HemisphereLight("#fff5dc", "#819b75", 2.1);
   scene2.add(ambient);
   const sun = new T.DirectionalLight("#fff1d8", 3);
   sun.position.set(-4, 20, 12);
@@ -3384,7 +3384,8 @@ function orderAtGround(x, y) {
   void move(x, y);
 }
 canvas.addEventListener("pointerdown", (e) => {
-  if (!scene || graphicsFailed) return;
+  if (!scene || graphicsFailed || !e.isPrimary) return;
+  canvas.focus({ preventScroll: true });
   if (placing) {
     e.preventDefault();
     if (e.button !== 0) {
@@ -3486,6 +3487,7 @@ canvas.addEventListener("pointermove", (e) => {
   if (drag.box) showBox(drag.x, drag.y, e.clientX, e.clientY);
 });
 canvas.addEventListener("pointercancel", endDrag);
+canvas.addEventListener("lostpointercapture", endDrag);
 canvas.addEventListener("pointerup", (e) => {
   if (!drag || e.pointerId !== drag.id || !scene) return;
   const d = drag;
@@ -3505,6 +3507,20 @@ canvas.addEventListener("pointerup", (e) => {
       else choose(unit.id);
     } else notice("\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002");
     return;
+  }
+  if (e.pointerType === "touch") {
+    const g = scene.pickGround(e.clientX, e.clientY), roof = scene.pickBuilding(e.clientX, e.clientY);
+    const site = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
+    if (site) {
+      const own = state.buildings.find((b) => b.id === site.id);
+      if (own && !own.complete && selected.size) {
+        void construct(own.id);
+        return;
+      }
+      selectBuilding(site.id);
+      notice(`\u5DF2\u9078\u53D6${buildingNames2[site.kind]}\u3002`);
+      return;
+    }
   }
   if (e.pointerType === "touch" && selected.size) {
     const g = scene.pickGround(e.clientX, e.clientY);

@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#12284a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2215%22 fill=%22%2315110c%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%228%22 fill=%22%23f4bf1a%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%222.5%22 fill=%22%2315110c%22/%3E%3C/svg%3E">
 <script type="importmap">
-{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js" } }
+{ "imports": { "three": "../vendor/three-0.186.0/three.module.js" } }
 </script>
 <style>
 :root{
@@ -632,9 +632,11 @@ function buildSong(name) {
 // ============================================================
 // 輸入：鍵盤、手把、觸控
 // ============================================================
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const Keys = new Set();
 const Pad = { steer: 0, gas: false, brake: false, hop: false, item: false, touch: false, touchSteer: 0, tHop: false, tItem: false, tBrake: false };
 const Input = { steer: 0, gas: false, brake: false, hop: false, item: false, hopEdge: false, itemEdge: false, _hop: false, _item: false };
+function clearInput(){Keys.clear();Pad.touchSteer=0;Pad.tHop=Pad.tItem=Pad.tBrake=false;Input.steer=0;for(const key of ['gas','brake','hop','item','hopEdge','itemEdge','_hop','_item'])Input[key]=false;document.querySelectorAll('.tbtn.down,.act#steerPad').forEach(e=>e.classList.remove('down','act'));}
 function readInput() {
   let steer = 0;
   if (Keys.has('ArrowLeft') || Keys.has('KeyA')) steer -= 1;
@@ -974,7 +976,7 @@ function buildKart(ch) {
   push(P.cap, dark, -0.84, 0.44, 0.02, 0.36, 0.66, 0.4, HX); push(P.cap, dark, 0.84, 0.44, 0.02, 0.36, 0.66, 0.4, HX); // 側箱
   push(P.box, cream, -0.84, 0.64, 0.02, 0.2, 0.03, 1.1); push(P.box, cream, 0.84, 0.64, 0.02, 0.2, 0.03, 1.1);
   push(P.cap, trim, 0, 0.96, -0.62, 0.92, 0.36, 0.26, 0.12);             // 椅背
-  push(P.box, '#6b6f78', 0, 0.68, -1.1, 0.92, 0.44, 0.52);               // 引擎
+  push(P.box, '#6b6f78', 0, 0.68, -1.1, 0.92, 0.44, 0.52);for(let i=0;i<5;i++)push(P.box,'#adb2ba',-.36+i*.18,.93,-1.1,.065,.06,.5);               // 引擎
   push(P.cap, K, 0, 0.4, -1.52, 0.34, 0.86, 0.34, 0, 0, HX);             // 後保險桿
   push(P.cyl, '#d4d8dd', -0.28, 0.68, -1.46, 0.2, 0.46, 0.2, HX); push(P.cyl, '#d4d8dd', 0.28, 0.68, -1.46, 0.2, 0.46, 0.2, HX);
   push(P.cyl, '#3a3d44', -0.28, 0.68, -1.7, 0.13, 0.04, 0.13, HX); push(P.cyl, '#3a3d44', 0.28, 0.68, -1.7, 0.13, 0.04, 0.13, HX);
@@ -2065,7 +2067,7 @@ function syncKart(k, dt) {
   m.shield.visible = k.starT > 0; if (k.starT > 0) { const s = 1 + Math.sin(G.raceT * 7) * 0.03; m.shield.scale.set(s, s, s); }
   const near2 = (k.x - camera.position.x) ** 2 + (k.z - camera.position.z) ** 2 < 70 * 70;
   if (near2) kartFx(k, dt);
-  r.visible = !(k.invT > 0 && k.spinT <= 0 && k.rescueT <= 0 && Math.floor(G.raceT * 16) % 2 === 0) && !(k.rescueT > 0 && k.rescueT < 1.0 && Math.floor(G.raceT * 12) % 2 === 0);
+  r.visible = REDUCED || !(k.invT > 0 && k.spinT <= 0 && k.rescueT <= 0 && Math.floor(G.raceT * 16) % 2 === 0) && !(k.rescueT > 0 && k.rescueT < 1.0 && Math.floor(G.raceT * 12) % 2 === 0);
   if (k.bal) k.bal.list.forEach(b => { b.position.y = (b.userData.y0 ??= b.position.y) + Math.sin(G.raceT * 3 + b.userData.phase) * 0.12; });
   // 影子
   let gy = k.y; if (T.kind === 'race') { gy = groundAt(T, k); if (gy < k.loc.y - 3) gy = -999; }
@@ -2078,6 +2080,7 @@ function updateCamera(dt) {
   if (G.view === 'showroom') return;
   const k = G.mode === 'attract' ? G.karts[G.camK % G.karts.length] : G.player; if (!k) return;
   if (G.mode === 'attract') {
+    if(REDUCED){camera.position.set(k.x+12,k.y+6,k.z+12);camera.lookAt(k.x,k.y+1,k.z);return;}
     G.camT += dt; if (G.camT > 7) { G.camT = 0; G.camK = (G.camK + 1 + Math.floor(Math.random() * 3)) % G.karts.length; G.camShot = (G.camShot + 1 || 1) % 3; }
     const shot = G.camShot || 0; const f = [Math.sin(k.h), Math.cos(k.h)];
     if (shot === 0) { camera.position.set(k.x + Math.sin(G.camT * 0.4 + 1) * 12, k.y + 4 + G.camT * 0.3, k.z + Math.cos(G.camT * 0.4 + 1) * 12); camera.lookAt(k.x, k.y + 1, k.z); }
@@ -2087,12 +2090,12 @@ function updateCamera(dt) {
   }
   const fin = G.state === 'results' || (G.state === 'done' && G.raceT - G.finishT > 1.2 && G.mode !== 'battle');
   if (G.state === 'countdown') {
-    const u = clamp((CD0 - G.cd) / 3.9, 0, 1); const e = u * u * (3 - 2 * u); const ang = k.h + Math.PI * 0.85 * (1 - e); const dist = lerp(9.5, 7.4, e), hh = lerp(1.7, 3.1, e);
+    const u = REDUCED?1:clamp((CD0 - G.cd) / 3.9, 0, 1); const e = u * u * (3 - 2 * u); const ang = k.h + Math.PI * 0.85 * (1 - e); const dist = lerp(9.5, 7.4, e), hh = lerp(1.7, 3.1, e);
     camera.position.set(k.x - Math.sin(ang) * dist, k.y + hh, k.z - Math.cos(ang) * dist); camera.lookAt(k.x, k.y + 1.1, k.z); G.camYaw = k.h; return;
   }
-  if (fin) { G.camYaw += dt * 0.35; camera.position.set(k.x - Math.sin(G.camYaw) * 10, k.y + 5, k.z - Math.cos(G.camYaw) * 10); camera.lookAt(k.x, k.y + 1, k.z); return; }
+  if (fin) { G.camYaw += REDUCED?0:dt * 0.35; camera.position.set(k.x - Math.sin(G.camYaw) * 10, k.y + 5, k.z - Math.cos(G.camYaw) * 10); camera.lookAt(k.x, k.y + 1, k.z); return; }
   G.camYaw += angDiff(G.camYaw, k.h) * (1 - Math.exp(-(k.drift ? 3.4 : 5.5) * dt));
-  const boost = k.boostT > 0 ? 1 : 0; const dist = 7.4 + boost * 1.1 + (portrait() ? 1.6 : 0), hh = 3.0 + (portrait() ? 0.7 : 0);
+  const boost = !REDUCED&&k.boostT > 0 ? 1 : 0; const dist = 7.4 + boost * 1.1 + (portrait() ? 1.6 : 0), hh = 3.0 + (portrait() ? 0.7 : 0);
   const tx = k.x - Math.sin(G.camYaw) * dist, tz = k.z - Math.cos(G.camYaw) * dist; let ty = k.y + hh;
   camPos.y = lerp(camPos.y, ty, 1 - Math.exp(-6 * dt)); camPos.x = tx; camPos.z = tz;
   camera.position.set(camPos.x, Math.max(camPos.y, k.y + 1.6), camPos.z);
@@ -2104,7 +2107,7 @@ const baseFov = () => portrait() ? 80 : 64;
 
 // 天氣粒子（雪、餘燼）跟著攝影機走
 function weather(dt) {
-  if (!World.weather) return; const c = camera.position;
+  if (REDUCED||!World.weather) return; const c = camera.position;
   const n = World.weather === 'snow' ? 3 : 1;
   for (let i = 0; i < n; i++) {
     if (World.weather === 'snow') Parts.emit(c.x + (Math.random() - .5) * 70, c.y + 18, c.z + (Math.random() - .5) * 70, -2 + Math.random(), -5 - Math.random() * 3, (Math.random() - .5), 0xffffff, 0.22, 4);
@@ -2225,7 +2228,7 @@ function drawSpeed(dt, k) {
 let bannerT = 0, calloutT = 0;
 function banner(t, sub = '', kick = '') { const b = $('banner'); b.innerHTML = t ? (kick ? `<span class="k">${kick}</span>` : '') + `<span class="m">${t}</span>` + (sub ? `<span class="s">${sub}</span>` : '') : ''; b.classList.remove('pop'); void b.offsetWidth; if (t) b.classList.add('pop'); clearTimeout(bannerT); bannerT = setTimeout(() => { b.innerHTML = ''; }, 1900); }
 function callout(t) { const c = $('callout'); c.textContent = t; c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); clearTimeout(calloutT); calloutT = setTimeout(() => { c.textContent = ''; }, 1100); }
-function zap() { const z = $('zap'); z.animate([{ opacity: 0.85 }, { opacity: 0 }], { duration: 420, easing: 'ease-out' }); }
+function zap() { if(REDUCED)return;const z = $('zap'); z.animate([{ opacity: 0.85 }, { opacity: 0 }], { duration: 420, easing: 'ease-out' }); }
 
 // ============================================================
 // 選單
@@ -2245,9 +2248,11 @@ function slab(o, i) {
   return `<div class="row${o.opt ? ' optrow' : ''}">${TIRE}<button class="slab opt${ic ? '' : ' solo'}" data-i="${i}"${o.dis ? ' aria-disabled="true"' : ''}>${ic}<span class="k">${o.k}</span>${val}${o.s ? `<span class="s">${o.s}</span>` : ''}</button></div>`;
 }
 function showScreen(id, cfg = {}) {
+  clearInput();
   for (const s of document.querySelectorAll('.scr')) s.hidden = s.id !== id;
   UI.id = id; UI.shownAt = performance.now(); if (id) $('keys').className = ''; UI.back = cfg.back || null; UI.left = cfg.left || null; UI.right = cfg.right || null; UI.cols = cfg.cols || 1; UI.onFocus = cfg.onFocus || null; UI.acts = cfg.acts || [];
   $('keys').innerHTML = id ? (cfg.keys ?? '<span><kbd>↑</kbd><kbd>↓</kbd>選擇</span><span><kbd>Enter</kbd>確定</span>' + (cfg.back ? '<span><kbd>Esc</kbd>返回</span>' : '')) : '';
+  if(!id&&renderer?.domElement){renderer.domElement.tabIndex=0;renderer.domElement.focus({preventScroll:true});}
   const scr = id && $(id); UI.opts = scr ? [...scr.querySelectorAll('.opt')] : [];
   setFocus(clamp(cfg.focus || 0, 0, Math.max(0, UI.opts.length - 1)), true);
 }
@@ -2255,6 +2260,7 @@ function setFocus(i, silent) {
   if (!UI.opts.length) return; i = (i + UI.opts.length) % UI.opts.length;
   if (i !== UI.focus && !silent) Audio.sfx('move');
   UI.focus = i; UI.opts.forEach((o, n) => { const on = n === i; (o.closest('.row') || o).classList.toggle('on', on); o.classList.toggle('on', on); });
+  if(document.activeElement!==UI.opts[i])UI.opts[i].focus({preventScroll:true});
   if (UI.onFocus) UI.onFocus(i);
 }
 function activate(i) { const o = UI.opts[i]; if (!o || o.getAttribute('aria-disabled') === 'true') return; const a = UI.acts[+o.dataset.i]; if (a) { Audio.sfx('ok'); a(); } }
@@ -2271,6 +2277,7 @@ function menuKey(e) {
   else return false;
   return true;
 }
+document.addEventListener('focusin',e=>{const i=UI.opts.indexOf(e.target);if(i>=0&&i!==UI.focus)setFocus(i,true);});
 document.addEventListener('click', e => { const o = e.target.closest('.opt'); if (!o || !UI.opts.includes(o) || performance.now() - UI.shownAt < 350) return; const i = UI.opts.indexOf(o); setFocus(i, true); activate(i); });
 document.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; const o = e.target.closest && e.target.closest('.opt'); if (o && UI.opts.includes(o)) { const i = UI.opts.indexOf(o); if (i !== UI.focus) setFocus(i); } });
 
@@ -2320,7 +2327,7 @@ function pickChar(next, back) {
   const lab = ['速度', '加速', '重量', '操控'];
   showScreen('sChar', { cols: matchMedia('(max-width:760px)').matches ? 4 : 2, focus: G.charIdx, back: () => { G.view = 'world'; back(); }, acts: CHARS.map((c, i) => () => { G.charIdx = i; store.set('char', i); G.view = 'world'; next(); }),
     keys: '<span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd>選擇</span><span><kbd>Enter</kbd>決定</span><span><kbd>Esc</kbd>返回</span>',
-    onFocus: i => { const c = CHARS[i]; Show.karts.forEach((k, n) => k.root.visible = n === i); const sk = Show.karts[i]; Show.waveT = 1.9; sk.anim.sv += 1.8; sk.anim.sq = -0.07;
+    onFocus: i => { const c = CHARS[i]; Show.karts.forEach((k, n) => k.root.visible = n === i); const sk = Show.karts[i]; Show.waveT = REDUCED?0:1.9; sk.anim.sv += REDUCED?0:1.8; sk.anim.sq = REDUCED?0:-0.07;
       $('charName').innerHTML = `${c.name}<em>${c.en}</em>`; $('charLine').textContent = `${c.kind} · ${c.cls}`;
       $('charStats').innerHTML = c.st.map((v, n) => `<div class="stat"><span>${lab[n]}</span><span class="pips">${[1, 2, 3, 4, 5].map(p => `<i class="${p <= v ? 'f' : ''}"></i>`).join('')}</span></div>`).join('');
       UI.opts[i].scrollIntoView({ block: 'nearest' }); } });
@@ -2438,7 +2445,7 @@ function podiumCam(dt) {
 // ---- 暫停 ----
 function pause(on) {
   if (!['countdown', 'race', 'done'].includes(G.state) || G.mode === 'attract') return;
-  G.paused = on;
+  G.paused = on;clearInput();
   if (on) { Audio.engineSet(0, false, false, false); setTouch(false);
     board(`<h2>暫停</h2><p class="sub">${G.mode === 'battle' ? G.battle.arena.name : G.T.def.name}</p>`, [
       { k: '繼續', act: () => pause(false) },
@@ -2458,11 +2465,11 @@ function initTouch() {
   pad.addEventListener('pointerdown', e => { id = e.pointerId; sx = e.clientX; pad.setPointerCapture(id); pad.classList.add('act'); const r = pad.getBoundingClientRect(); base.style.left = knob.style.left = (e.clientX - r.left) + 'px'; base.style.top = knob.style.top = (e.clientY - r.top) + 'px'; });
   pad.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const dx = clamp((e.clientX - sx) / 60, -1, 1); Pad.touchSteer = dx; const r = pad.getBoundingClientRect(); knob.style.left = (sx - r.left + dx * 60) + 'px'; });
   const up = e => { if (e.pointerId !== id) return; id = null; Pad.touchSteer = 0; pad.classList.remove('act'); };
-  pad.addEventListener('pointerup', up); pad.addEventListener('pointercancel', up);
+  pad.addEventListener('pointerup', up); pad.addEventListener('pointercancel', up);pad.addEventListener('lostpointercapture',up);
   for (const b of document.querySelectorAll('.tbtn')) {
     const k = { hop: 'tHop', item: 'tItem', brake: 'tBrake' }[b.dataset.t];
     b.addEventListener('pointerdown', e => { e.preventDefault(); Pad[k] = true; b.classList.add('down'); b.setPointerCapture(e.pointerId); });
-    const off = () => { Pad[k] = false; b.classList.remove('down'); }; b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off);
+    const off = () => { Pad[k] = false; b.classList.remove('down'); }; b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off);b.addEventListener('lostpointercapture',off);b.addEventListener('blur',off);b.addEventListener('keydown',e=>{if(!['Space','Enter'].includes(e.code))return;e.preventDefault();e.stopPropagation();if(!G.paused&&Pad.touch){Pad[k]=true;b.classList.add('down')}});b.addEventListener('keyup',e=>{if(['Space','Enter'].includes(e.code)){e.preventDefault();e.stopPropagation();off()}});
   }
   $('pauseBtn').addEventListener('click', e => { e.currentTarget.blur(); pause(true); });
   $('fsBtn').hidden = !document.fullscreenEnabled;
@@ -2479,10 +2486,10 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   readInput(); pollPadMenu();
   if (G.view === 'showroom') { Show.waveT = Math.max(0, (Show.waveT || 0) - dt);
-    Show.karts.forEach(k => { if (!k.root.visible) return; k.root.rotation.y += dt * 0.45; animRig(k, { idle: true, wave: Show.waveT > 0.2 ? 1 : 0 }, dt); });
+    Show.karts.forEach(k => { if (!k.root.visible) return; if(!REDUCED)k.root.rotation.y += dt * 0.45; animRig(k, { idle: true, wave: !REDUCED&&Show.waveT > 0.2 ? 1 : 0 }, REDUCED?0:dt); });
     renderer.render(showScene, showCam); return; }
   if (G.state === 'podium') { podiumCam(dt); Parts.update(dt); for (const a of G.T.anim) a(dt, now / 1000); followSun(); renderer.render(scene, camera); return; }
-  if (!G.paused && G.T && G.state !== 'results') {
+  if (!G.paused && G.T && G.state !== 'results' && !(REDUCED&&G.mode==='attract')) {
     acc += dt * FAST; let n = 0;
     while (acc >= DT && n < 4 * FAST) { tickRace(DT); acc -= DT; n++; Input.hopEdge = Input.itemEdge = false; }
     if (n === 4 * FAST) acc = 0;
@@ -2614,16 +2621,18 @@ async function boot() {
   requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
 }
 addEventListener('keydown', e => {
+  if(e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,select,textarea,[contenteditable]'))return;
+  if(e.target.closest('button')&&!UI.opts.includes(e.target.closest('button'))&&['Space','Enter'].includes(e.code))return;
   if (e.repeat && !e.code.startsWith('Arrow')) { if (!['Space', 'ShiftLeft', 'ShiftRight'].includes(e.code)) return; }
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
   if (UI.id === 'sTitle' && !e.repeat) { Audio.init(); Audio.sfx('ok'); toMain(); return; }
-  if (!e.repeat && UI.id && menuKey(e)) return;
+  if (!e.repeat && UI.id && menuKey(e)){e.preventDefault();return;}
   if (!e.repeat && (e.code === 'Escape' || e.code === 'KeyP') && !UI.id) { pause(true); return; }
   if (e.code === 'KeyM' && !e.repeat) { OPT.music = OPT.music ? 0 : 1; store.set('opt', OPT); Audio.setVol(); }
   Keys.add(e.code);
 });
 addEventListener('keyup', e => Keys.delete(e.code));
-addEventListener('blur', () => { Keys.clear(); if (!UI.id) pause(true); });
+addEventListener('blur', () => { clearInput(); if (!UI.id) pause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && !UI.id) pause(true); });
 $('sTitle').addEventListener('pointerdown', () => { if (UI.id === 'sTitle') { Audio.init(); Audio.sfx('ok'); toMain(); } });
 document.addEventListener('pointerdown', () => Audio.init(), { once: true, capture: true });

@@ -29,10 +29,11 @@ actual frame rate depends on the device and browser.
     .error{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(400px,calc(100% - 40px));padding:22px;text-align:center;background:var(--milk);border:1px solid #8f9a8c;line-height:1.7;display:none}.error.visible{display:block}
     @media(min-width:701px) and (min-height:640px){.panel{margin-top:calc(50dvh - 190px)}}
     @media(max-width:700px){.top,.bottom{left:18px;right:18px}.top{top:20px}.bottom{bottom:22px}.panel{width:min(180px,44vw);padding:12px}.panel.collapsed{width:min(150px,40vw)}.subtitle{max-width:190px}.control{margin:6px 0}.eyebrow{font-size:9px;letter-spacing:.14em}.note .serif,.hint{font-size:11px}.readout strong{font-size:25px}}@media(max-width:470px){h1{font-size:35px}.panel{width:150px}.subtitle{display:none}.note .serif{max-width:160px}.readout .line{margin:7px 0}}@media(prefers-reduced-motion:reduce){#flare,.panel,.controls,.panel-title span{transition:none}}
+  .field-actions{display:flex;gap:6px;margin-top:12px}.field-actions button{flex:1;border:1px solid #5a715b;background:#f0eee4b8;color:#263c32;font:11px system-ui,sans-serif;min-height:36px;padding:6px;border-radius:6px;cursor:pointer}.field-actions button[aria-pressed=true]{background:#36543c;color:#f9f3e0}#scene:focus-visible,input:focus-visible,.field-actions button:focus-visible{outline:3px solid #e6bb65;outline-offset:3px}@media(pointer:coarse){input[type=range],.panel-title,.field-actions button{min-height:44px}}
   </style>
 </head>
 <body>
-  <canvas id="scene" aria-label="隨風擺動的互動草原"></canvas><div id="flare"></div><div class="grain"></div>
+  <canvas id="scene" tabindex="0" aria-label="互動草原。方向鍵環視，W 和 S 前後移動，Home 回到起點。"></canvas><div id="flare"></div><div class="grain"></div>
   <header class="top">
     <div><p class="eyebrow">Field study / 001</p><h1>WIND<br><em>草原</em></h1><p class="subtitle">風走過的地方，草會先知道。<br>移動視線，向前走一小段。</p></div>
     <section class="panel" id="panel" aria-label="環境控制">
@@ -41,20 +42,20 @@ actual frame rate depends on the device and browser.
       <label class="control"><span class="control-label">風力 <output id="wind-value">0.85</output></span><input id="wind" type="range" min="0" max="1.6" step="0.01" value="0.85" aria-label="風力"></label>
       <label class="control"><span class="control-label">日照方位 <output id="azimuth-value">44°</output></span><input id="azimuth" type="range" min="-90" max="90" step="1" value="44" aria-label="日照方位"></label>
       <label class="control"><span class="control-label">太陽高度 <output id="elevation-value">24°</output></span><input id="elevation" type="range" min="5" max="75" step="1" value="24" aria-label="太陽高度"></label>
-      </div></div>
+      <div class="field-actions"><button id="motion-toggle" type="button" aria-pressed="false">暫停動態</button><button id="home-view" type="button">回到起點</button></div></div></div>
     </section>
   </header>
-  <footer class="bottom"><div class="note"><span class="micro">An open field · rendered in real time</span><span class="divider"></span><span class="serif">滑鼠移動視角 · 滾輪前進 · 閒置時巡遊</span></div><div class="readout"><strong id="blade-count">120,000</strong><small>individual blades</small><span class="line"></span><div class="hint" id="travel">漫遊中 · 0 m</div></div></footer>
+  <footer class="bottom"><div class="note"><span class="micro">An open field · rendered in real time</span><span class="divider"></span><span class="serif">滑鼠環視 · 滾輪前進 · 鍵盤 W / S 漫遊</span></div><div class="readout"><strong id="blade-count">120,000</strong><small>individual blades</small><span class="line"></span><div class="hint" id="travel">漫遊中 · 0 m</div></div></footer>
   <div class="error" id="error" role="alert">此頁需要支援 WebGL2 的瀏覽器與網路連線，才能載入 Three.js 並呈現草原。</div>
   <script type="module">
     let THREE;
-    try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); }
-    catch { try { THREE = await import('../vendor/three-0.186.0/three.module.js'); } catch (cause) { document.getElementById('error').classList.add('visible'); throw cause; } }
+    try { THREE = await import('../vendor/three-0.186.0/three.module.js'); }
+    catch { try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); } catch (cause) { document.getElementById('error').classList.add('visible'); throw cause; } }
 
     const CONFIG = Object.freeze({ GRASS_COUNT:120000, WIND_STRENGTH:0.85, SUN_AZIMUTH_DEG:44, SUN_ELEVATION_DEG:24, MAX_PIXEL_RATIO:1.25 });
     const canvas = document.getElementById('scene');
     const error = document.getElementById('error');
-    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const motionPreference=matchMedia('(prefers-reduced-motion: reduce)');let reducedMotion=motionPreference.matches,motionPaused=reducedMotion;
     let renderer;
     try { renderer = new THREE.WebGLRenderer({canvas,antialias:false,alpha:false,powerPreference:'high-performance'}); }
     catch (cause) { error.classList.add('visible'); throw cause; }
@@ -92,7 +93,7 @@ actual frame rate depends on the device and browser.
       vertexShader:`precision highp float;
         attribute vec3 position;attribute float bladeHeight;attribute mat4 instanceMatrix;
         uniform mat4 modelMatrix,viewMatrix,projectionMatrix;uniform float uTime,uWind;uniform vec3 uCamera;
-        varying float vHeight,vSeed,vDistance,vFacing,vWave;varying vec3 vWorld;
+        varying float vHeight,vSeed,vDistance,vFacing,vWave,vAcross;varying vec3 vWorld,vNormal;
         ${commonNoise}
         void main(){
           vec3 base=(modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.)).xyz;
@@ -106,11 +107,11 @@ actual frame rate depends on the device and browser.
           float lean=(.12+.3*hash(base.xz*.71))*tall;wp.xz+=normalize(facing.xz+1e-4)*lean*bladeHeight*bladeHeight;wp.y-=lean*.35*bladeHeight*bladeHeight;
           wp.xz+=vec2(.76,.48)*wave*uWind*pow(bladeHeight,1.7)*.45;
           vHeight=bladeHeight;vSeed=hash(base.xz*.137);vDistance=distance(uCamera.xz,base.xz);
-          vWorld=wp.xyz;vWave=wave;vFacing=dot(normalize(vec3(.76,0.,.48)),normalize(uCamera-base));
+          vAcross=position.x/max(.001,.5*(1.-bladeHeight));vNormal=normalize(vec3(facing.x,-2.*lean*bladeHeight/max(tall,.1),facing.z));vWorld=wp.xyz;vWave=wave;vFacing=dot(normalize(vec3(.76,0.,.48)),normalize(uCamera-base));
           gl_Position=projectionMatrix*viewMatrix*wp;
         }`,
       fragmentShader:`precision highp float;
-        uniform vec3 uSun,uCamera,uHorizon;varying float vHeight,vSeed,vDistance,vFacing,vWave;varying vec3 vWorld;
+        uniform vec3 uSun,uCamera,uHorizon;varying float vHeight,vSeed,vDistance,vFacing,vWave,vAcross;varying vec3 vWorld,vNormal;
         void main(){
           float density=1.-smoothstep(38.,108.,vDistance);
           if(vSeed>density)discard;
@@ -118,10 +119,10 @@ actual frame rate depends on the device and browser.
           vec3 color=mix(root,tip,pow(vHeight,.83));
           color*=.84+.3*vSeed+.12*vWave;
           float dry=step(.9,fract(vSeed*7.31));color=mix(color,vec3(.62,.56,.34)*(.55+.45*vHeight),dry*.65);
-          float back=max(0.,dot(normalize(uSun),normalize(uCamera-vWorld)));
+          float back=max(0.,dot(normalize(uSun),normalize(vWorld-uCamera)));
           float transmit=pow(back,3.)*(.21+.45*vHeight);
           color+=vec3(.25,.29,.045)*transmit;
-          color*=.88+.2*abs(vFacing);
+          float diffuse=abs(dot(normalize(vNormal),normalize(uSun)));color*=.65+.35*diffuse;color*=.86+.14*pow(1.-abs(vAcross),2.);color+=vec3(.025,.035,.008)*pow(1.-abs(vAcross),12.)*vHeight;color*=.72+.28*smoothstep(0.,.3,vHeight);
           float haze=smoothstep(30.,140.,vDistance)*.73;
           color=mix(color,uHorizon,haze);
           gl_FragColor=vec4(color,1.);
@@ -136,7 +137,7 @@ actual frame rate depends on the device and browser.
       let x=(rand(i,1)-.5)*132,z=(rand(i,2)-.5)*160-25;
       // An additional near-camera belt keeps close blades dense without extending GPU cost to the horizon.
       if(i<CONFIG.GRASS_COUNT*.35){x=(rand(i,3)-.5)*38;z=(rand(i,4)-.5)*88-20;}
-      const h=.44+rand(i,5)*.62, w=.045+rand(i,6)*.055;
+      const h=.44+rand(i,5)*.62, w=.022+rand(i,6)*.037;
       dummy.position.set(x,terrainHeight(x,z)-.015,z);
       dummy.rotation.set(0,rand(i,7)*Math.PI*2,0);
       dummy.scale.set(w,h,1);dummy.updateMatrix();grass.setMatrixAt(i,dummy.matrix);
@@ -249,7 +250,7 @@ actual frame rate depends on the device and browser.
     setSun();document.getElementById('blade-count').textContent=CONFIG.GRASS_COUNT.toLocaleString('en-US');
 
     const panel=document.getElementById('panel'),panelToggle=document.getElementById('panel-toggle');
-    function setPanel(open){panel.classList.toggle('collapsed',!open);panelToggle.setAttribute('aria-expanded',String(open));}
+    function setPanel(open){panel.classList.toggle('collapsed',!open);panelToggle.setAttribute('aria-expanded',String(open));document.getElementById('controls').inert=!open;}
     setPanel(innerWidth>470);
     panelToggle.addEventListener('click',()=>{setPanel(panel.classList.contains('collapsed'));lastInput=performance.now();});
     panel.classList.add('lens');
@@ -267,9 +268,10 @@ actual frame rate depends on the device and browser.
     });
     canvas.addEventListener('wheel',e=>{e.preventDefault();state.targetDolly=THREE.MathUtils.clamp(state.targetDolly+e.deltaY*.013,0,62);markInput();},{passive:false});
     let touchY=null;
-    canvas.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')touchY=e.clientY;markInput();});
+    canvas.addEventListener('pointerdown',e=>{canvas.focus({preventScroll:true});if(e.pointerType!=='mouse'){touchY=e.clientY;canvas.setPointerCapture(e.pointerId)}markInput();});
     canvas.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'&&touchY!==null){state.targetDolly=THREE.MathUtils.clamp(state.targetDolly+(touchY-e.clientY)*.035,0,62);touchY=e.clientY;}});
-    window.addEventListener('pointerup',()=>touchY=null);
+    window.addEventListener('pointerup',()=>touchY=null);canvas.addEventListener('pointercancel',()=>touchY=null);canvas.addEventListener('lostpointercapture',()=>touchY=null);
+    const motionButton=document.getElementById('motion-toggle');function syncMotion(){motionButton.setAttribute('aria-pressed',String(motionPaused));motionButton.textContent=motionPaused?'繼續動態':'暫停動態'}syncMotion();motionButton.addEventListener('click',()=>{motionPaused=!motionPaused;markInput();syncMotion()});motionPreference.addEventListener('change',e=>{reducedMotion=e.matches;if(reducedMotion)motionPaused=true;syncMotion()});function homeView(){Object.assign(state,{yaw:0,pitch:-.035,dolly:0,targetYaw:0,targetPitch:-.035,targetDolly:0});markInput()}document.getElementById('home-view').addEventListener('click',homeView);canvas.addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(!['arrowleft','arrowright','arrowup','arrowdown','w','s','home'].includes(key))return;e.preventDefault();if(key==='home')homeView();else if(key==='w'||key==='s')state.targetDolly=THREE.MathUtils.clamp(state.targetDolly+(key==='w'?2:-2),0,62);else if(key==='arrowleft'||key==='arrowright')state.targetYaw=THREE.MathUtils.clamp(state.targetYaw+(key==='arrowleft'?-.05:.05),-.3,.3);else state.targetPitch=THREE.MathUtils.clamp(state.targetPitch+(key==='arrowup'?.03:-.03),-.2,.15);markInput()});
     function resize(){const w=innerWidth,h=innerHeight,dpr=Math.min(devicePixelRatio||1,CONFIG.MAX_PIXEL_RATIO);
       renderer.setPixelRatio(dpr);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
       const tw=Math.max(1,Math.round(w*dpr)),th=Math.max(1,Math.round(h*dpr));target.setSize(tw,th);postUniforms.uTexel.value.set(1/tw,1/th);
@@ -277,10 +279,10 @@ actual frame rate depends on the device and browser.
     window.addEventListener('resize',resize);resize();
     const flare=document.getElementById('flare'),travel=document.getElementById('travel');
     const sunPoint=new THREE.Vector3();
-    function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;elapsed+=dt;
+    function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(!motionPaused)elapsed+=dt;
       const idle=now-lastInput>4500;
-      if(idle&&!reducedMotion){state.targetYaw=Math.sin(elapsed*.09)*.15;state.targetPitch=-.04+Math.sin(elapsed*.055)*.035;state.targetDolly=Math.min(62,state.targetDolly+dt*.46);}
-      const k=1-Math.exp(-dt*2.1);
+      if(idle&&!reducedMotion&&!motionPaused){state.targetYaw=Math.sin(elapsed*.09)*.15;state.targetPitch=-.04+Math.sin(elapsed*.055)*.035;state.targetDolly=Math.min(62,state.targetDolly+dt*.46);}
+      const k=reducedMotion?1:1-Math.exp(-dt*2.1);
       state.yaw+= (state.targetYaw-state.yaw)*k;state.pitch+=(state.targetPitch-state.pitch)*k;state.dolly+=(state.targetDolly-state.dolly)*k;
       const x=Math.sin(state.dolly*.021)*.55,z=9-state.dolly;
       camera.position.set(x,terrainHeight(x,z)+1.05,z);
@@ -291,7 +293,7 @@ actual frame rate depends on the device and browser.
       const projected=sunPoint.copy(camera.position).addScaledVector(sunDir,200).project(camera);
       const onScreen=projected.z<1&&projected.x>-1.15&&projected.x<1.15&&projected.y>-1.15&&projected.y<1.15;
       flare.style.opacity=onScreen?'.8':'0';flare.style.setProperty('--sun-x',((projected.x+1)*50)+'%');flare.style.setProperty('--sun-y',((1-projected.y)*50)+'%');
-      travel.textContent=(idle?'自動巡遊':'漫遊中')+' · '+Math.round(state.dolly)+' m';
+      travel.textContent=(motionPaused?'動態已暫停':idle&&!reducedMotion?'自動巡遊':'漫遊中')+' · '+Math.round(state.dolly)+' m';
       // The lens reads the live panel box every frame, so it morphs with the collapse transition.
       const box=panel.getBoundingClientRect();
       postUniforms.uRes.value.set(innerWidth,innerHeight);

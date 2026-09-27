@@ -227,10 +227,12 @@ body.failed #fail{display:block}
 }
 @media (pointer:coarse) and (min-width:761px){.touch{display:flex;flex-direction:column;gap:8px;position:fixed;right:18px;bottom:calc(var(--dash) + 12px)}#tBrake,#tPower{min-width:96px}}
 @media (prefers-reduced-motion:reduce){#win,#dash,.ticket,#needle,#leverHandle{transition-duration:.01ms!important}}
+button{min-height:44px}#scene:focus-visible{outline:2px solid #ecd9a6;outline-offset:-3px}body.depotview #board{width:min(420px,40vw);max-height:calc(100dvh - 150px);overflow:auto;scrollbar-width:thin}
+@media(max-width:760px){body.depotview #board{width:auto;max-height:42dvh}#tools{gap:4px}.tab{padding-left:9px;padding-right:9px}}
 </style>
 </head>
 <body class="day hub">
-<canvas id="scene" aria-label="水彩風格的浮島、海面與跨海高架鐵道 3D 場景"></canvas>
+<canvas tabindex="0" id="scene" aria-label="水彩風格的浮島、海面與跨海高架鐵道 3D 場景"></canvas>
 <div id="win" aria-hidden="true"></div>
 
 <header id="top">
@@ -247,7 +249,7 @@ body.failed #fail{display:block}
   </nav>
 </header>
 
-<footer id="dash" aria-label="駕駛台">
+<footer inert id="dash" aria-label="駕駛台">
   <div class="lever">
     <svg viewBox="0 0 34 112" aria-hidden="true"><rect x="13" y="2" width="8" height="108" rx="4" fill="#1a130d"/><g id="leverTicks"></g><g id="leverHandle"><rect x="3" y="-5" width="28" height="10" rx="4" fill="#c9a45c"/><rect x="3" y="-5" width="28" height="3.2" rx="1.6" fill="#ecd9a6"/></g></svg>
     <div><span class="lab">主控制器</span><b id="leverTxt">B1</b></div>
@@ -630,8 +632,8 @@ function buildTrain(n){
     const roof=new THREE.Mesh(new THREE.CylinderGeometry(1.46,1.46,13.6,14,1,false,-Math.PI/2,Math.PI).rotateX(-Math.PI/2),M.troof);roof.scale.y=.32;roof.position.y=3.74;c.add(roof);
     for(const sx of [-1.41,1.41])for(let k=0;k<6;k++){box(c,.05,.92,1.35,M.win,sx,2.98,-5.3+k*2.12)}
     for(const sx of [-1.415,1.415])for(const dz of [-3.95,3.95])box(c,.04,2.1,1.1,M.glass,sx,2.02,dz);
-    for(const dz of [-4.7,4.7]){box(c,2.3,.62,2.6,M.under,0,.62,dz);for(const sx of [-1.02,1.02])for(const wz of [-.72,.72]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.16,12).rotateZ(Math.PI/2),M.iron);w.position.set(sx,.48,dz+wz);c.add(w)}}
-    box(c,2.2,.5,9,M.under,0,.9,0);
+    for(const dz of [-4.7,4.7]){box(c,2.3,.62,2.6,M.under,0,.62,dz);for(const sx of [-.76,.76])for(const wz of [-.72,.72]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.16,12).rotateZ(Math.PI/2),M.iron);w.position.set(sx,.55,dz+wz);c.add(w);const hub=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,.05,10).rotateZ(Math.PI/2),M.trim);hub.position.set(sx+Math.sign(sx)*.105,.55,dz+wz);c.add(hub)}}
+    box(c,2.2,.5,9,M.under,0,.9,0);for(const z of [-2.7,2.7])box(c,.85,.2,1.2,M.under,0,4.22,z);for(const z of [-7.1,7.1])box(c,.45,.28,.75,M.iron,0,.72,z);for(const x of [-1.45,1.45])for(const z of [-3.95,3.95]){box(c,.06,.48,.06,M.trim,x,2.12,z);box(c,.25,.1,1.25,M.iron,x,.95,z);}
     if(i===0||i===n-1){const dir=i===0?-1:1,z=dir*6.95;box(c,2.8,1.4,.12,M.glass,0,3.05,z);box(c,2.82,.3,.14,M.livery,0,3.9,z);const hl=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.12,12).rotateX(Math.PI/2),M.lamp);hl.position.set(0,1.75,z+dir*.03);c.add(hl);box(c,2.6,.28,.4,M.iron,0,.62,z+dir*.2)}
   }
   const pg=new THREE.Group();pg.position.set(0,4.2,-2.5);cars[0].add(pg);for(const s of [-1,1]){const a=new THREE.Mesh(new THREE.BoxGeometry(.06,1.35,.06),M.iron);a.position.set(0,.55,s*.45);a.rotation.x=s*.72;pg.add(a)}const bar=new THREE.Mesh(new THREE.BoxGeometry(1.9,.07,.14),M.iron);bar.position.y=1.12;pg.add(bar);
@@ -723,9 +725,9 @@ const notchLog=[];
 function moveLever(d){if(sim.state!=='run'&&sim.state!=='dwell')return;const n=clamp(sim.lever+d,-8,5);if(n===sim.lever)return;sim.lever=n;audio.notch(n);
   const now=sim.t;notchLog.push([now,Math.sign(d)]);while(notchLog.length&&now-notchLog[0][0]>.6)notchLog.shift();
   if(sim.state==='run'&&Math.abs(d)===1&&notchLog.filter(x=>x[1]===Math.sign(d)).length>=4){notchLog.length=0;sim.comfort=Math.max(0,sim.comfort-6);breakStreak()}}
-function press(dir){if(dir>0){held.up=1}else{held.down=1}moveLever(dir);repT=.32}
+function press(dir){if(mode!=='drive'||paused)return;if(dir>0){held.up=1}else{held.down=1}moveLever(dir);repT=.32}
 function release(dir){if(dir>0)held.up=0;else held.down=0}
-addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const k=e.code;
+addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const k=e.code;if((e.target.closest('input,select,textarea')&&k!=='Escape'||e.target.closest('button,a')&&!['Escape','KeyP'].includes(k)))return;
   if(['ArrowUp','ArrowDown','Space'].includes(k)&&!e.target.closest('button,input,select,textarea'))e.preventDefault();
   if(mode==='drive'&&!paused){if(k==='KeyW'||k==='ArrowUp'){if(!e.repeat)press(1);return}if(k==='KeyS'||k==='ArrowDown'){if(!e.repeat)press(-1);return}if(k==='KeyE'&&!e.repeat){moveLever(-8-sim.lever);return}}
   if(e.repeat)return;
@@ -733,7 +735,7 @@ addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const k=
   else if((k==='KeyP'||k==='Escape')&&mode==='drive')togglePause();else if(k==='Escape'&&mode==='hub'&&$('board').classList.contains('depot'))showDepot(false)});
 addEventListener('keyup',e=>{if(e.code==='KeyW'||e.code==='ArrowUp')release(1);if(e.code==='KeyS'||e.code==='ArrowDown')release(-1)});
 addEventListener('blur',()=>{held.up=held.down=0;$('tBrake').classList.remove('held');$('tPower').classList.remove('held')});
-for(const[id,dir]of[['tPower',1],['tBrake',-1]]){const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();audio.init();try{b.setPointerCapture(e.pointerId)}catch{}b.classList.add('held');press(dir)});for(const ev of['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>{b.classList.remove('held');release(dir)})}
+for(const[id,dir]of[['tPower',1],['tBrake',-1]]){const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();audio.init();try{b.setPointerCapture(e.pointerId)}catch{}if(mode==='drive'&&!paused){b.classList.add('held');press(dir)}});for(const ev of['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>{b.classList.remove('held');release(dir)});b.addEventListener('keydown',e=>{if(!['Space','Enter'].includes(e.code))return;e.preventDefault();if(!e.repeat&&mode==='drive'&&!paused){audio.init();b.classList.add('held');press(dir)}});b.addEventListener('keyup',e=>{if(['Space','Enter'].includes(e.code)){e.preventDefault();b.classList.remove('held');release(dir)}});b.addEventListener('blur',()=>{b.classList.remove('held');release(dir)})}
 
 /* ---------- 聲音 ---------- */
 const audio={ctx:null,on:save.sound!==false,
@@ -805,12 +807,12 @@ function tipText(dist,kmh,lim){const S=sim;
   return `平穩行駛中。再平穩 ${Math.max(1,Math.ceil(6-S.smoothT))} 秒，倍率 +0.1。`}
 
 /* ---------- 模式切換 ---------- */
-function setMode(m){mode=m;document.body.classList.toggle('hub',m==='hub');document.body.classList.toggle('sum',m==='sum');document.body.classList.toggle('drive',m==='drive');document.body.classList.toggle('out',m==='drive'&&cam==='out');camBlend=0;camFrom.copy(camera.position);lookFrom.copy(lookNow);resize()}
+function setMode(m){$('dash').inert=m!=='drive';held.up=held.down=0;$('tBrake').classList.remove('held');$('tPower').classList.remove('held');mode=m;document.body.classList.toggle('hub',m==='hub');document.body.classList.toggle('sum',m==='sum');document.body.classList.toggle('drive',m==='drive');document.body.classList.toggle('out',m==='drive'&&cam==='out');camBlend=0;camFrom.copy(camera.position);lookFrom.copy(lookNow);resize()}
 function toggleCam(){cam=cam==='cab'?'out':'cab';$('bCam').firstChild.nodeValue=cam==='cab'?'車外':'車頭';document.body.classList.toggle('out',cam==='out');camBlend=0;camFrom.copy(camera.position);lookFrom.copy(lookNow);resize()}
-function togglePause(){if(mode!=='drive')return;paused=!paused;$('pause').classList.toggle('show',paused);if(paused){held.up=held.down=0;$('pResume').focus()}}
+function togglePause(){if(mode!=='drive')return;paused=!paused;$('dash').inert=paused;$('pause').classList.toggle('show',paused);held.up=held.down=0;$('tBrake').classList.remove('held');$('tPower').classList.remove('held');if(paused)$('pResume').focus();else canvas.focus({preventScroll:true})}
 function goHub(){paused=false;depotView=false;$('board').classList.remove('depot');document.body.classList.remove('depotview');$('pause').classList.remove('show');$('slip').classList.remove('show');$('call').classList.remove('show');sim.state='idle';if(!train||train.n!==2+save.cars)buildTrain(2+save.cars);placeTrain(ROUTES[curRoute].stops[0]);setBlind('本日待命','機廠小鎮','Depot Town');refreshTickets();setMode('hub');renderDepot()}
 function startRun(ri){audio.init();if(curRoute!==ri)buildWorld(ri);if(!train||train.n!==2+save.cars)buildTrain(2+save.cars);resetSim(ri);placeTrain(sim.s);
-  const to=sim.route.stations[1];setBlind('下一站','往 '+to.name,'for '+to.en);$('slip').classList.remove('show');paused=false;cam='cab';$('bCam').firstChild.nodeValue='車外';setMode('drive');cache.lim=null;
+  const to=sim.route.stations[1];setBlind('下一站','往 '+to.name,'for '+to.en);$('slip').classList.remove('show');paused=false;cam='cab';$('bCam').firstChild.nodeValue='車外';setMode('drive');canvas.focus({preventScroll:true});cache.lim=null;
   callout(`往 ${to.name}。按住 W 或 ↑，一格一格推上動力。`,4200)}
 function showSummary(){const S=sim,R=S.route;
   $('sumT').textContent=R.name+'　運行紀錄';$('sumMeta').textContent=`${night?'午夜':'晴日'} · ${S.cars} 節車 · ${S.seats} 座 · 馬達 Lv${save.motor} · 懸吊 Lv${save.susp}`;
@@ -828,7 +830,7 @@ function renderDepot(){$('dCoins').textContent=fmt(save.coins);
 $('ups').addEventListener('click',e=>{const b=e.target.closest('[data-up]');if(!b||b.disabled)return;const u=UPS.find(x=>x.id===b.dataset.up),lv=save[u.id];if(lv>=2||save.coins<u.price[lv])return;save.coins-=u.price[lv];save[u.id]++;persist();
   $('depotMsg').textContent=`${u.name}完成，${u.desc[save[u.id]].split('：')[0]}。`;if(u.id==='cars'){buildTrain(2+save.cars);placeTrain(ROUTES[curRoute].stops[0])}spinT=1.6;renderDepot()});
 $('livery').addEventListener('click',e=>{const b=e.target.closest('[data-liv]');if(!b)return;save.livery=+b.dataset.liv;persist();M.livery.color.set(LIVERIES[save.livery].c);$('depotMsg').textContent=`換上${LIVERIES[save.livery].name}塗裝。`;renderDepot()});
-function showDepot(on){$('board').classList.toggle('depot',on);document.body.classList.toggle('depotview',on);depotView=on;renderDepot();camBlend=0;camFrom.copy(camera.position);lookFrom.copy(lookNow);if(on)$('backHub').focus();else $('toDepot').focus()}
+function showDepot(on){$('board').classList.toggle('depot',on);document.body.classList.toggle('depotview',on);depotView=on;renderDepot();camBlend=0;camFrom.copy(camera.position);lookFrom.copy(lookNow);resize();if(on)$('backHub').focus();else $('toDepot').focus()}
 $('toDepot').onclick=()=>showDepot(true);$('backHub').onclick=()=>showDepot(false);
 for(const b of document.querySelectorAll('[data-light]'))b.onclick=()=>setNight(b.dataset.light==='night');
 for(const t of document.querySelectorAll('.ticket'))t.onclick=()=>{if(t.classList.contains('punched'))return;t.classList.add('punched');audio.init();audio.tone(1400,.04,.06,'square');setTimeout(()=>{t.classList.remove('punched');startRun(+t.dataset.route)},reduced?40:420)};
@@ -840,31 +842,31 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='dr
 /* ---------- 鏡頭 ---------- */
 let camBlend=1,depotView=false,spinT=0,orbitA=.6,dragging=null;
 const camFrom=new THREE.Vector3(),lookFrom=new THREE.Vector3(),lookNow=new THREE.Vector3(),wantPos=new THREE.Vector3(),wantLook=new THREE.Vector3(),tmp={};
-canvas.addEventListener('pointerdown',e=>{if(mode==='hub'){dragging={x:e.clientX,a:orbitA};canvas.setPointerCapture(e.pointerId)}});
+canvas.addEventListener('pointerdown',e=>{if(mode==='hub'){canvas.focus({preventScroll:true});dragging={x:e.clientX,a:orbitA};canvas.setPointerCapture(e.pointerId)}});
 canvas.addEventListener('pointermove',e=>{if(dragging)orbitA=dragging.a-(e.clientX-dragging.x)*.006});
-canvas.addEventListener('pointerup',()=>dragging=null);canvas.addEventListener('pointercancel',()=>dragging=null);
+canvas.addEventListener('pointerup',()=>dragging=null);canvas.addEventListener('pointercancel',()=>dragging=null);canvas.addEventListener('lostpointercapture',()=>dragging=null);canvas.addEventListener('keydown',e=>{if(mode!=='hub'||e.ctrlKey||e.metaKey||e.altKey)return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();orbitA+=e.key==='ArrowLeft'?-.12:.12}});
 function cameraTarget(dt,t){
   if(mode==='hub'){
     if(!dragging&&!reduced)orbitA+=dt*.03;
-    if(depotView){const c=train.cars[Math.floor(train.n/2)].position,F=frameAt(ROUTES[curRoute].stops[0]-train.n*CAR/2);const a=orbitA*1.4;wantPos.set(c.x+F.r.x*20+Math.sin(a)*14,c.y+8,c.z+F.r.z*20+Math.cos(a)*14);wantLook.set(c.x,c.y+2,c.z)}
+    if(depotView){const first=train.cars[0].position,last=train.cars[train.n-1].position,c={x:(first.x+last.x)/2,y:(first.y+last.y)/2,z:(first.z+last.z)/2},F=frameAt(ROUTES[curRoute].stops[0]-train.n*CAR/2),a=orbitA*1.4,d=Math.max(42,train.n*CAR*1.25);wantPos.set(c.x+F.r.x*d+Math.sin(a)*10,c.y+13,c.z+F.r.z*d+Math.cos(a)*10);wantLook.set(c.x,c.y+2,c.z)}
     else{const h=anim.hubCenter,mob=innerWidth<761;wantPos.set(h.x+Math.cos(orbitA)*(mob?330:290),h.y+(mob?70:48),h.z+Math.sin(orbitA)*(mob?330:290));wantLook.set(h.x+Math.sin(orbitA)*(mob?0:95),h.y+(mob?-8:26),h.z-Math.cos(orbitA)*(mob?0:95))}
     return}
   const S=sim,front=S.s;
   if(mode==='drive'&&cam==='cab'){P.at(front+.6,tmp);const sw=reduced?0:1;wantPos.set(tmp.x,tmp.y+3.05+Math.sin(S.t*9)*.012*Math.min(1,S.v/10)*sw,tmp.z);P.at(front+70,q1);
     const pitch=reduced?0:clamp(S.aFelt,-1.5,1.5)*.9;wantLook.set(q1.x,q1.y+2.2-pitch,q1.z);return}
   P.at(front-S.len*.55,tmp);const f=fwd(tmp.h),r=right(tmp.h);wantPos.set(tmp.x-f.x*34+r.x*17,tmp.y+10,tmp.z-f.z*34+r.z*17);P.at(front+18,q1);wantLook.set(q1.x,q1.y+1.5,q1.z)}
-function updateCamera(dt,t){cameraTarget(dt,t);camBlend=Math.min(1,camBlend+dt/1.3);const e=1-Math.pow(1-camBlend,3);
+function updateCamera(dt,t){cameraTarget(dt,t);camBlend=reduced?1:Math.min(1,camBlend+dt/1.3);const e=1-Math.pow(1-camBlend,3);
   if(camBlend<1){camera.position.lerpVectors(camFrom,wantPos,e);camera.position.y+=Math.sin(Math.PI*e)*Math.min(14,camFrom.distanceTo(wantPos)*.25);lookNow.lerpVectors(lookFrom,wantLook,e)}
   else if(mode==='drive'&&cam==='cab'){camera.position.copy(wantPos);lookNow.lerp(wantLook,1-Math.exp(-dt*14))}
   else{camera.position.lerp(wantPos,1-Math.exp(-dt*3));lookNow.lerp(wantLook,1-Math.exp(-dt*4))}
-  camera.lookAt(lookNow)}
+  if(reduced){camera.position.copy(wantPos);lookNow.copy(wantLook)}camera.lookAt(lookNow)}
 
 /* ---------- 尺寸 ---------- */
 function resize(){const w=innerWidth,h=innerHeight,pr=Math.min(devicePixelRatio||1,w<761?1.25:1.5);renderer.setPixelRatio(pr);renderer.setSize(w,h,false);
   const bw=Math.floor(w*pr),bh=Math.floor(h*pr);rt.setSize(bw,bh);post.uniforms.uRes.value.set(bw,bh);post.uniforms.uPx.value=pr;if(anim.flies)anim.flies.material.uniforms.uPx.value=pr;
   camera.aspect=w/h;camera.fov=w<761?70:(mode==='drive'&&cam==='cab'?60:52);
   const cs=getComputedStyle(document.documentElement),band=parseFloat(cs.getPropertyValue('--band')),dash=parseFloat(cs.getPropertyValue('--dash'));
-  if(mode==='drive'){const shift=Math.round((dash-26-band)/2);camera.setViewOffset(w,h,0,shift,w,h)}else camera.clearViewOffset();
+  if(mode==='drive'){const shift=Math.round((dash-26-band)/2);camera.setViewOffset(w,h,0,shift,w,h)}else if(mode==='hub'&&depotView){const panel=$('board').getBoundingClientRect();camera.setViewOffset(w,h,w<761?0:-panel.right/2,w<761?panel.height/2:0,w,h)}else camera.clearViewOffset();
   camera.updateProjectionMatrix()}
 addEventListener('resize',resize);
 

@@ -104,11 +104,18 @@ body.dv #bSnd{color:#e6efe9;text-shadow:0 1px 2px rgba(0,10,12,.95),0 1px 8px rg
 @media (prefers-reduced-motion:reduce){
   #cap,#toast,#fade{transition-duration:1ms}
 }
+#bPause{position:fixed;z-index:5;right:14px;top:max(14px,env(safe-area-inset-top));min-height:44px}
+#pauseDialog{margin:auto;max-width:calc(100vw - 32px);padding:28px;background:#102e32;color:#edf3e9;border:1px solid #46716c;border-radius:8px}
+#pauseDialog::backdrop{background:rgba(0,12,18,.68)}
+#pauseDialog p{margin:12px 0 20px}
+#bSnd,.panel .steps button{min-height:44px;min-width:44px}
+#cv:focus-visible{outline:2px solid #9bcac0;outline-offset:-3px}
+#titleUi .lede{background:rgba(3,25,31,.62);padding:14px 16px;border-left:2px solid #94b9ac}
 </style>
 </head>
 <body>
 <canvas id="gl" hidden aria-hidden="true"></canvas>
-<canvas id="cv" aria-label="遊戲畫面"></canvas>
+<canvas id="cv" tabindex="0" aria-label="遊戲畫面：方向鍵或 WASD 移動，空白鍵撥沙，Escape 暫停"></canvas>
 <div id="boot">潮水退去中…</div>
 <h1 class="sr">沉星機：安提基特拉機械</h1>
 <div id="titleUi" hidden>
@@ -121,6 +128,8 @@ body.dv #bSnd{color:#e6efe9;text-shadow:0 1px 2px rgba(0,10,12,.95),0 1px 8px rg
 <div id="cap" aria-live="polite"><b></b><span></span></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <button id="bSnd" class="quiet">聲音：開</button>
+<button id="bPause" class="btn sea" hidden>暫停</button>
+<dialog id="pauseDialog" aria-labelledby="pauseTitle"><h2 id="pauseTitle">潛水已暫停</h2><p>底時暫停計算，恢復後繼續探索。</p><button id="bResume" class="btn sea">繼續潛水</button></dialog>
 <div id="fade"></div>
 <script>
 'use strict';
@@ -357,7 +366,7 @@ function caption(a,b,dur=3.4){cap.querySelector('b').textContent=a;cap.querySele
 function toast(t,dur=2.8){toastEl.textContent=t;toastEl.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('on'),dur*1000);}
 function setPanel(kind,html){panel.className='panel '+kind;panel.innerHTML=html;panel.hidden=false;}
 function fadeTo(fn){fadeEl.classList.add('on');setTimeout(()=>{fn();requestAnimationFrame(()=>requestAnimationFrame(()=>fadeEl.classList.remove('on')));},RM?30:440);}
-function go(s,arg){if(scene&&scene.exit)scene.exit();scene=s;glShow(!!s.gl);s.enter(arg);s.layout&&s.layout();}
+function go(s,arg){paused=false;$('#pauseDialog').close();clearInput();if(scene&&scene.exit)scene.exit();scene=s;glShow(!!s.gl);s.enter(arg);s.layout&&s.layout();if(s===DIVE)cv.focus({preventScroll:true});}
 function hideAll(){panel.hidden=true;hud.hidden=true;titleUi.hidden=true;}
 
 // ======================================================================
@@ -631,8 +640,14 @@ const Title={
 // ======================================================================
 // 潛水
 // ======================================================================
-const keys={};
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(scene&&scene.key)scene.key(e);if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase())&&document.activeElement===document.body)e.preventDefault();});
+const keys={};let paused=false;
+function clearInput(){for(const k in keys)delete keys[k];if(scene){scene.ptr=null;scene.digHeld=false;}setLoop('dig',0);}
+function pauseDive(on){if(scene!==DIVE||DIVE.mode==='done')return;paused=on;clearInput();const d=$('#pauseDialog');if(on){if(!d.open)d.showModal();}else{d.close();cv.focus({preventScroll:true});}}
+$('#bPause').onclick=()=>pauseDive(true);$('#bResume').onclick=()=>pauseDive(false);
+$('#pauseDialog').addEventListener('cancel',e=>{e.preventDefault();pauseDive(false);});
+addEventListener('blur',()=>{clearInput();if(scene===DIVE)pauseDive(true);});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();if(scene===DIVE)pauseDive(true);}});
+addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.key==='Escape'&&!e.repeat&&scene===DIVE&&!paused){e.preventDefault();pauseDive(true);return;}if(paused||e.target.closest('button,input,select,textarea,[contenteditable]'))return;keys[e.key.toLowerCase()]=true;if(scene&&scene.key)scene.key(e);if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 const Dive={
   enter(){hideAll();const st=STAGES[G.stage];this.st=st;this.t=0;this.bt=0;this.tmax=85+Object.keys(st.items).length*10;this.mode='descend';this.ptr=null;this.digHeld=false;this.warned=0;
@@ -727,8 +742,9 @@ const Dive={
   down(x,y){this.ptr={x,y};},move(x,y,e){if(this.ptr)this.ptr={x,y};},up(){this.ptr=null;}
 };
 {const bd=$('#bDig');const on=e=>{e.preventDefault();auInit();DIVE.digHeld=true;},off=()=>{DIVE.digHeld=false;};
-  bd.addEventListener('pointerdown',on);bd.addEventListener('pointerup',off);bd.addEventListener('pointerleave',off);bd.addEventListener('pointercancel',off);
-  $('#bUp').addEventListener('click',()=>{if(scene===DIVE&&DIVE.mode!=='descend')DIVE.ascend(false);});}
+  bd.addEventListener('pointerdown',on);bd.addEventListener('pointerup',off);bd.addEventListener('pointerleave',off);bd.addEventListener('pointercancel',off);bd.addEventListener('lostpointercapture',off);bd.addEventListener('blur',off);
+  bd.addEventListener('keydown',e=>{if(['Space','Enter'].includes(e.code)&&!paused){e.preventDefault();e.stopPropagation();DIVE.digHeld=true;}});bd.addEventListener('keyup',e=>{if(['Space','Enter'].includes(e.code)){e.preventDefault();off();}});
+  $('#bUp').addEventListener('click',()=>{if(!paused&&scene===DIVE&&DIVE.mode!=='descend')DIVE.ascend(false);});}
 
 // ======================================================================
 // 齒輪繪製（三角齒、四輻、青銅與銅綠）
@@ -1583,7 +1599,7 @@ function rockNormal(){const S=256,c=mk(S,S),g=c.getContext('2d'),im=g.createImag
 // 島上岩壁的細部：水平岩層、垂直裂縫與零星灌木
 function rockDetail(){const S=256,c=mk(S,S),g=c.getContext('2d'),im=g.createImageData(S,S);
   for(let y=0;y<S;y++)for(let x=0;x<S;x++){const u=x/S,v=y/S,w=fbm(u*4,v*4,91,3,4),str=Math.sin(TAU*(v*6+w*.8))*.5+.5,cr=Math.pow(Math.abs(Math.sin(TAU*(u*9+fbm(u*2,v*8,92,3,2)*.9))),24),n=fbm(u*16,v*16,93,4,16),q=hash2(x,y,94);
-    let l=.86+str*.05+n*.14-cr*.18;if(q>.97)l+=.05;const i=(y*S+x)*4;im.data[i]=im.data[i+1]=im.data[i+2]=clamp(l,0,1)*255;im.data[i+3]=255;}
+    let l=.90+str*.025+n*.07-cr*.045;if(q>.97)l+=.05;const i=(y*S+x)*4;im.data[i]=im.data[i+1]=im.data[i+2]=clamp(l,0,1)*255;im.data[i+3]=255;}
   g.putImageData(im,0,0);return canvasTex(c,1,true);}
 // ---------- 採海綿船（錫米島的卡伊克船）
 function person(shirt,R){const T=T3,g=new T.Group(),skin=stdM({color:0x8a5a3c,roughness:.8},false),cl=stdM({color:shirt,roughness:.9},false),dk=stdM({color:0x1e1a17,roughness:.9},false);
@@ -1946,7 +1962,7 @@ const Dive3={gl:true,
     for(const a of this.anims){a.t+=dt*1.4;const g=a.l.o.grp,u=ease(Math.min(1,a.t));g.position.set(lerp(a.l.x,bagW.x,u),lerp(a.l.y,bagW.y,u)+Math.sin(u*Math.PI)*.5,lerp(a.l.z,bagW.z,u));g.scale.setScalar(1-u*.6);g.rotation.y+=dt*3;if(a.t>=1)g.visible=false;}
     this.anims=this.anims.filter(a=>a.t<1);
     // 閃光提示
-    for(const l of this.lumps){if(l.found)continue;const gp=(t*.9+l.ph)%3.2,a=gp<.7?Math.sin(gp/.7*Math.PI):0;l.o.sp.material.opacity=a*(1-l.dig*.5)*.95;l.o.sp.scale.setScalar(.35+a*.55);}
+    for(const l of this.lumps){if(l.found)continue;const gp=(t*.9+l.ph)%3.2,a=RM?.35:gp<.7?Math.sin(gp/.7*Math.PI):0;l.o.sp.material.opacity=a*(1-l.dig*.5)*.95;l.o.sp.scale.setScalar(.35+a*.55);}
     // 潛水夫
     D.g.position.copy(p);D.g.rotation.y=d.yaw;poseDiver(D,{walk:d.walk,spd:d.spd,dig:d.dig,float:d.float,t});
     // 氣泡與幫浦聲
@@ -2139,15 +2155,15 @@ const DIALS3={
 // 指標事件與主迴圈
 // ======================================================================
 let ptrId=null;
-cv.addEventListener('pointerdown',e=>{auInit();if(ptrId!==null&&ptrId!==e.pointerId)return;ptrId=e.pointerId;try{cv.setPointerCapture(e.pointerId);}catch(_){}scene&&scene.down&&scene.down(e.clientX,e.clientY,e);});
-cv.addEventListener('pointermove',e=>{if(ptrId!==null&&e.pointerId!==ptrId)return;scene&&scene.move&&scene.move(e.clientX,e.clientY,e);});
+cv.addEventListener('pointerdown',e=>{if(paused||e.button!==0||!e.isPrimary)return;cv.focus({preventScroll:true});auInit();if(ptrId!==null&&ptrId!==e.pointerId)return;ptrId=e.pointerId;try{cv.setPointerCapture(e.pointerId);}catch(_){}scene&&scene.down&&scene.down(e.clientX,e.clientY,e);});
+cv.addEventListener('pointermove',e=>{if(paused)return;if(ptrId!==null&&e.pointerId!==ptrId)return;scene&&scene.move&&scene.move(e.clientX,e.clientY,e);});
 const endP=e=>{if(e.pointerId!==ptrId)return;ptrId=null;scene&&scene.up&&scene.up(e.clientX,e.clientY,e);};
-cv.addEventListener('pointerup',endP);cv.addEventListener('pointercancel',endP);
+cv.addEventListener('pointerup',endP);cv.addEventListener('pointercancel',e=>{if(e.pointerId===ptrId){ptrId=null;clearInput();}});cv.addEventListener('lostpointercapture',e=>{if(e.pointerId===ptrId){ptrId=null;clearInput();}});
 cv.addEventListener('wheel',e=>{if(scene===Dials){e.preventDefault();Dials.nudge(e.deltaY>0?1:-1);}},{passive:false});
 document.addEventListener('pointerdown',()=>auInit(),{capture:true});
 
 let last=performance.now();
-function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!document.hidden&&scene){scene.update(dt);scene.draw();audioTick();}requestAnimationFrame(frame);}
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!document.hidden&&scene){if(!paused){scene.update(dt);audioTick();}scene.draw();$('#bPause').hidden=scene!==DIVE||DIVE.mode==='done';}requestAnimationFrame(frame);}
 
 $('#bStart').onclick=()=>{auInit();G.stage=0;G.days=0;G.found=new Set();G.finds=[];save();fadeTo(()=>go(DIVE));};
 $('#bCont').onclick=()=>{auInit();const s=load();if(!s)return;G.stage=s.stage;G.days=s.days||0;G.finds=s.finds||[];G.found=new Set();fadeTo(()=>go(s.stage>=5?Dials:DIVE));};

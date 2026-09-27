@@ -203,6 +203,7 @@ body.cart-open .drawer{transform:none;visibility:visible}
   .drawer,.scrim{transition:none}
   [aria-pressed=true] .bars i{animation:none;height:8px}
 }
+@media(pointer:coarse){.views button{min-height:44px;min-width:36px}.views{max-width:100%;overflow-x:auto}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}</script>
@@ -234,7 +235,7 @@ body.cart-open .drawer{transform:none;visibility:visible}
       <button data-view="top" aria-pressed="false">俯視</button>
       <button data-view="side" aria-pressed="false">側面</button>
       <span class="gap" aria-hidden="true"></span>
-      <button id="explode" aria-pressed="false">拆解</button>
+      <button id="explode" aria-pressed="false">拆解</button><button id="zoomIn" aria-label="放大鍵盤">＋</button><button id="zoomOut" aria-label="縮小鍵盤">−</button>
       <button id="sound" aria-pressed="true"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>聲音</button>
     </div>
   </div>
@@ -440,7 +441,7 @@ const contactTex = (() => {
   x.fillStyle = '#000'; x.beginPath(); x.roundRect(-400 + 34, 30, 188, 68, 18); x.fill();
   const t = new THREE.CanvasTexture(c); return t;
 })();
-const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: '#000', alphaMap: contactTex, transparent: true, opacity: .62, depthWrite: false }));
+const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: '#000', map: contactTex, transparent: true, opacity: .62, depthWrite: false }));
 contact.rotation.x = -Math.PI / 2; contact.position.y = .3;
 scene.add(contact);
 
@@ -606,7 +607,8 @@ function buildKeyboard(id) {
   const bez = 12, caseW = layoutW + 2 * bez + 4, caseD = layoutD + 2 * bez + 4;
   const hf = 11, hb = hf + caseD * Math.tan(TILT), hc = (hf + hb) / 2, deckD = caseD / Math.cos(TILT);
 
-  const root = new THREE.Group();
+  const root = new THREE.Group();root.position.y=1.3;
+  for(const x of [-1,1])for(const z of [-1,1]){const foot=new THREE.Mesh(new THREE.CylinderGeometry(5,5,1.3,20),M.port);foot.position.set(x*(caseW/2-15),-.65,z*(caseD/2-13));foot.castShadow=foot.receiveShadow=true;root.add(foot)}
   // wedge body: side profile extruded along the width
   const wedgeShape = roundedPoly([[caseD / 2 - 2, 2], [-caseD / 2 + 2, 2], [-caseD / 2 + 2, hb - 2], [caseD / 2 - 2, hf - 2]], [2, 2, 4, 4]);
   const wg = new THREE.ExtrudeGeometry(wedgeShape, { depth: caseW - 4, bevelEnabled: true, bevelThickness: 2, bevelSize: 2, bevelSegments: 4, curveSegments: 6 });
@@ -623,6 +625,7 @@ function buildKeyboard(id) {
   const rg = new THREE.ExtrudeGeometry(rimShape, { depth: rimTop - 2 * bt, bevelEnabled: true, bevelThickness: bt, bevelSize: bt, bevelSegments: 3, curveSegments: 10 });
   rg.rotateX(-Math.PI / 2); rg.translate(0, bt, 0);
   const rim = new THREE.Mesh(rg, M.case); rim.castShadow = rim.receiveShadow = true; deck.add(rim);
+  for(const x of [-1,1])for(const z of [-1,1]){const screw=new THREE.Mesh(new THREE.CylinderGeometry(1.25,1.25,.35,16),M.wire);screw.position.set(x*(caseW/2-6),rimTop+.1,z*(layoutD/2+7));screw.castShadow=true;deck.add(screw);const slot=new THREE.Mesh(new THREE.BoxGeometry(1.55,.03,.24),M.port);slot.position.copy(screw.position);slot.position.y+=.19;deck.add(slot)}
   const well = new THREE.Mesh(new THREE.PlaneGeometry(layoutW + 4.5, layoutD + 4.5), M.well);
   well.rotation.x = -Math.PI / 2; well.position.y = .4; deck.add(well);
 
@@ -861,7 +864,7 @@ const ghost = {
     this.busy = true;
     const word = 'thockwork'.split('').map(c => KB.codeMap.get('Key' + c.toUpperCase()));
     word.forEach((k, i) => this.calls.push(gsap.delayedCall(i * .17 + Math.random() * .04, () => press(k, { sound: false }))));
-    this.calls.push(gsap.delayedCall(word.length * .17 + .3, () => { this.busy = false; lastInput = performance.now(); }));
+    this.calls.push(gsap.delayedCall(word.length * .17 + .3, () => { this.busy = false; this.calls = []; lastInput = performance.now(); }));
   },
   stop() { this.calls.forEach(c => c.kill()); this.calls = []; this.busy = false; },
 };
@@ -992,10 +995,9 @@ function renderSegs() {
 function renderLines() {
   $('#lines').innerHTML = Object.keys(LAYOUTS).map(id => `<button data-layout="${id}" aria-pressed="${state.layout === id}" aria-label="${LAYOUTS[id].name}，${KEYCOUNT[id]} 鍵"><b>${id}<i>%</i></b><small>${KEYCOUNT[id]} 鍵</small></button>`).join('');
 }
-const priceShown = { v: 0 };
 function renderPrice() {
   const p = priceOf(cfgOf());
-  gsap.to(priceShown, { v: p, duration: T(.55), ease: 'power2.out', onUpdate: () => { $('#total').textContent = fmt(priceShown.v); $('#addPrice').textContent = fmt(priceShown.v); } });
+  $('#total').textContent = fmt(p); $('#addPrice').textContent = fmt(p);
 }
 function renderHeadline() {
   const c = cfgOf();
@@ -1214,11 +1216,12 @@ $('#sound').addEventListener('click', () => {
   if (state.sound) { audio(); keySound(false, 1); }
 });
 
+for(const [id,factor] of [['zoomIn',.85],['zoomOut',1/.85]])$('#'+id).addEventListener('click',()=>{markInput();gsap.killTweensOf(camera.position);gsap.killTweensOf(controls.target);const offset=camera.position.clone().sub(controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*factor,controls.minDistance,controls.maxDistance));camera.position.copy(controls.target).add(offset);state.view=null;syncViewButtons();controls.update()});
 /* ---------- physical keyboard -> 3D keys ---------- */
 const typing = el => el && el.closest && el.closest('input,textarea,select,[contenteditable]');
 addEventListener('keydown', e => {
   if (document.body.classList.contains('cart-open')) { if (e.key === 'Escape') closeCart(); return; }
-  if (typing(e.target) || e.metaKey && e.code !== 'MetaLeft' && e.code !== 'MetaRight') return;
+  if (typing(e.target) || e.target.closest?.('button,a,summary') || e.ctrlKey || e.altKey || e.metaKey && e.code !== 'MetaLeft' && e.code !== 'MetaRight') return;
   if (!KB) return;
   const k = KB.codeMap.get(e.code);
   if (!k) return;
@@ -1248,6 +1251,7 @@ canvas.addEventListener('pointerup', e => {
   downAt = null;
   if (moved < 6 && quick) press(pick(e));
 });
+for(const name of ['pointercancel','lostpointercapture'])canvas.addEventListener(name,()=>{downAt=null});
 let hoverQueued = false;
 canvas.addEventListener('pointermove', e => {
   if (e.pointerType !== 'mouse' || hoverQueued || !KB) return;
@@ -1310,11 +1314,7 @@ measureUI(false); applyViewOffset();
 {
   const { pos, target } = fitPose('hero');
   controls.target.copy(target);
-  const start = target.clone().add(pos.clone().sub(target).applyAxisAngle(new THREE.Vector3(0, 1, 0), -.75).multiplyScalar(1.25));
-  start.y = Math.max(60, start.y * .45);
-  camera.position.copy(reduceMotion ? pos : start);
-  gsap.to(camera.position, { x: pos.x, y: pos.y, z: pos.z, duration: T(2.4), ease: 'power3.inOut' });
-  dropIn(.35);
+  camera.position.copy(pos); // Show the complete configured product on the first frame.
 }
 renderer.setAnimationLoop(tick);
 </script>

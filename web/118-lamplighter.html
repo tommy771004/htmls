@@ -84,7 +84,7 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 .hud-tr{position:absolute;right:calc(22px + env(safe-area-inset-right));top:calc(14px + env(safe-area-inset-top));text-align:right;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 .timer{font:400 26px/1 var(--num);color:var(--bone);font-variant-numeric:tabular-nums}
 .zone{margin-top:7px;font-size:11px;letter-spacing:.24em;color:var(--mist)}
-.pause-btn{margin-top:10px;pointer-events:auto;width:40px;height:34px;border:1px solid var(--bone-dim);background:var(--ink-2);color:var(--bone);font-size:12px;letter-spacing:.1em}
+.pause-btn{margin-top:10px;pointer-events:auto;width:44px;height:44px;border:1px solid var(--bone-dim);background:var(--ink-2);color:var(--bone);font-size:12px;letter-spacing:.1em}
 .marker{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:2px;will-change:transform;font:12px var(--num);color:var(--bone);text-shadow:0 1px 6px #000;transition:opacity .3s}
 .marker svg{width:18px;height:18px;filter:drop-shadow(0 0 6px rgba(255,176,74,.65))}
 .marker .arr{width:0;height:0;border:6px solid transparent;border-bottom:9px solid var(--amber);margin-bottom:-2px;opacity:0}
@@ -227,7 +227,7 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
     <div class="skill"><svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="rgba(7,11,16,.55)" stroke="rgba(239,230,210,.25)"/><circle id="ringDash" cx="23" cy="23" r="19" fill="none" stroke="#8fa9b3" stroke-width="2.5" stroke-dasharray="119.4" stroke-dashoffset="0"/></svg><i>閃避</i><span>SHIFT</span></div>
     <div class="skill"><svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="rgba(7,11,16,.55)" stroke="rgba(239,230,210,.25)"/></svg><i>跳</i><span>SPACE</span></div>
   </div>
-  <div class="lock-hint" id="lockHint">點擊畫面鎖定滑鼠視角 · ESC 暫停</div>
+  <div class="lock-hint" id="lockHint">拖曳環視／點擊鎖定視角 · ESC 暫停</div>
 </div>
 
 <div id="touch" hidden>
@@ -1215,7 +1215,7 @@ function buildHero() {
   const mats = [cloakMat, hoodMat, scarfMat];
   const S = (geo, mat, parent = body) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; parent.add(m); return m; };
   const cloakGeo = new THREE.LatheGeometry([V2(.35, .06), V2(.372, .1), V2(.35, .2), V2(.305, .34), V2(.25, .47), V2(.198, .58), V2(.152, .66), V2(.1, .715), V2(0, .74)], 30);
-  { const p = cloakGeo.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i); if (y < .07) { const a = Math.atan2(p.getZ(i), p.getX(i)); p.setY(i, y + (Math.sin(a * 7) * .5 + Math.sin(a * 3 + 1) * .5) * .018); } } }
+  { const p = cloakGeo.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i), a = Math.atan2(p.getZ(i), p.getX(i)), fold = 1 + Math.sin(a * 7 + y * .7) * .035 * Math.max(0, 1 - y / .74); p.setX(i, p.getX(i) * fold); p.setZ(i, p.getZ(i) * fold); if (y < .07) p.setY(i, y + (Math.sin(a * 7) * .5 + Math.sin(a * 3 + 1) * .5) * .018); } cloakGeo.computeVertexNormals(); }
   S(cloakGeo, cloakMat);
   const hem = S(new THREE.TorusGeometry(.356, .016, 6, 44), new THREE.MeshStandardMaterial({ color: SPEC.cloakDark, roughness: .9 })); hem.rotation.x = Math.PI / 2; hem.position.y = .075;
   const belt = S(new THREE.TorusGeometry(.268, .014, 6, 36), new THREE.MeshStandardMaterial({ color: 0x3a2a22, roughness: .8 })); belt.rotation.x = Math.PI / 2; belt.position.y = .44;
@@ -1600,12 +1600,20 @@ const touch = { x: 0, y: 0, held: {}, pressed: {} };
 let mouseAttack = false, dragging = false, lastMX = 0, lastMY = 0;
 const GAME_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 addEventListener('keydown', e => {
-  if (e.target && (e.target.tagName === 'INPUT')) return;
+  if (e.code === 'Escape' && !e.repeat) {
+    e.preventDefault();
+    if (G.state === 'playing') pauseGame();
+    else if (G.state === 'paused') resumeGame();
+    else closeModals();
+    return;
+  }
+  if (e.target instanceof HTMLElement && e.target.closest('button,input,select,textarea,a')) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (G.state === 'playing' && GAME_KEYS.includes(e.code)) e.preventDefault();
   if (!e.repeat) pressed.add(e.code);
   keys.add(e.code);
   if (e.code === 'KeyM' && !e.repeat) toggleMute();
-  if ((e.code === 'Escape' || e.code === 'KeyP') && !e.repeat) {
+  if (e.code === 'KeyP' && !e.repeat) {
     if (G.state === 'playing' && e.code === 'KeyP') pauseGame();
     else if (G.state === 'paused') resumeGame();
     else closeModals();
@@ -1634,6 +1642,7 @@ canvas.addEventListener('pointerdown', e => {
   dragging = true; lastMX = e.clientX; lastMY = e.clientY;
 });
 addEventListener('pointerup', e => { if (e.pointerType !== 'touch') dragging = false; });
+addEventListener('pointercancel', () => { dragging = false; mouseAttack = false; });
 addEventListener('mousemove', e => {
   if (G.state !== 'playing') return;
   if (document.pointerLockElement === canvas) rotateCam(e.movementX, e.movementY, .0024);
@@ -1648,7 +1657,7 @@ let stickId = null, camId = null, camLX = 0, camLY = 0;
 stick.addEventListener('pointerdown', e => { stickId = e.pointerId; stick.setPointerCapture(e.pointerId); moveStick(e); e.preventDefault(); });
 stick.addEventListener('pointermove', e => { if (e.pointerId === stickId) moveStick(e); });
 const endStick = e => { if (e.pointerId !== stickId) return; stickId = null; touch.x = touch.y = 0; knob.style.transform = ''; };
-stick.addEventListener('pointerup', endStick); stick.addEventListener('pointercancel', endStick);
+stick.addEventListener('pointerup', endStick); stick.addEventListener('pointercancel', endStick); stick.addEventListener('lostpointercapture', endStick);
 function moveStick(e) {
   const r = stick.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, max = r.width * .38;
   let dx = e.clientX - cx, dy = e.clientY - cy; const d = Math.hypot(dx, dy); if (d > max) { dx *= max / d; dy *= max / d; }
@@ -1657,7 +1666,7 @@ function moveStick(e) {
 function camTouchStart(e) { if (camId !== null || e.clientX < innerWidth * .35) return; camId = e.pointerId; camLX = e.clientX; camLY = e.clientY; canvas.setPointerCapture(e.pointerId); }
 canvas.addEventListener('pointermove', e => { if (e.pointerId === camId) { rotateCam(e.clientX - camLX, e.clientY - camLY, .0065); camLX = e.clientX; camLY = e.clientY; } });
 const endCam = e => { if (e.pointerId === camId) camId = null; };
-canvas.addEventListener('pointerup', endCam); canvas.addEventListener('pointercancel', endCam);
+canvas.addEventListener('pointerup', endCam); canvas.addEventListener('pointercancel', endCam); canvas.addEventListener('lostpointercapture', endCam);
 document.querySelectorAll('.tb').forEach(b => {
   const act = b.dataset.act;
   b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); touch.held[act] = true; touch.pressed[act] = true; b.classList.add('on'); Sound.init(); });
@@ -1695,7 +1704,7 @@ function pollInput(dt) {
 const Cam = { yaw: 0, pitch: CONFIG.CAM_PITCH, zoom: CONFIG.CAM_DIST, dist: CONFIG.CAM_DIST, target: new THREE.Vector3(0, 2.2, 4.5), lastInput: -9, trauma: 0, fovKick: 0, dir: new THREE.Vector3() };
 const ray = new THREE.Raycaster();
 function visibleDeep(o) { for (; o; o = o.parent) if (!o.visible) return false; return true; }
-function shake(a) { Cam.trauma = Math.min(1, Cam.trauma + a * (reducedMotion ? .35 : 1)); }
+function shake(a) { Cam.trauma = Math.min(1, Cam.trauma + a * (reducedMotion ? 0 : 1)); }
 function updateCamera(dt, t) {
   const tx = P.pos.x + P.vel.x * .07, tz = P.pos.z + P.vel.z * .07, ty = P.pos.y + 1.15;
   Cam.target.x = damp(Cam.target.x, tx, 9, dt); Cam.target.z = damp(Cam.target.z, tz, 9, dt);
@@ -2263,7 +2272,7 @@ function startGame() {
   if (G.state === 'loading') return;
   Sound.init(); Sound.startAmbient(); Sound.ui();
   closeModals(); $('resultModal').classList.remove('show'); $('pauseModal').classList.remove('show');
-  resetWorld();
+  resetWorld(); clearInput();
   G.state = 'playing'; G.hints.delete('move');
   $('title').classList.remove('show'); $('hud').hidden = false; $('touch').hidden = !coarse; $('lockHint').hidden = coarse;
   $('toast').classList.remove('show');
@@ -2271,11 +2280,17 @@ function startGame() {
   if (camera.view && camera.view.enabled) camera.clearViewOffset();
   camera.fov = baseFov(); camera.updateProjectionMatrix();
 }
+function clearInput() {
+  keys.clear(); pressed.clear(); mouseAttack = dragging = false;
+  touch.x = touch.y = 0; touch.held = {}; touch.pressed = {};
+  stickId = camId = null; knob.style.transform = '';
+  document.querySelectorAll('.tb.on').forEach(b => b.classList.remove('on'));
+}
 function pauseGame() {
   if (G.state !== 'playing') return;
   G.state = 'paused'; lockedDuringPlay = false;
   if (document.pointerLockElement) document.exitPointerLock();
-  keys.clear(); openModal('pauseModal');
+  clearInput(); openModal('pauseModal');
 }
 function resumeGame() {
   if (G.state !== 'paused') return;

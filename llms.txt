@@ -55,6 +55,8 @@
 
 ### 介面風格
 
+- [181 agent-office · 同事都在這裡](https://htmls-ruddy.vercel.app/web/181-agent-office.html): Three.js 卡通微縮辦公室，WASD 走動、T 鍵聊天派工、四位具名同事、worker 指令進度與起身報告、模擬 PR 草稿；可唯讀載入公開 GitHub Issues，麥克風音量與螢幕僅本機預覽。Claude Code 與 git 操作為互動示範，支援觸控與無 WebGL 成員面板。
+
 - [125 太空漫步 · AI 科普筆記](https://htmls-ruddy.vercel.app/web/125-spacewalk.html): 給 AI 初學者的個人品牌網站。人物插畫主視覺與大字宣言、白話名詞索引、四階段學習路線、個人介紹與可複製的第一個提問；手機可閱讀
 
 - [007 微光之家](https://htmls-ruddy.vercel.app/web/007-glassmorphism.html): 玻璃擬態。雨夜窗前的家居面板：玻璃溫控透鏡即時折射窗外失焦的城市燈火，滑動玻璃珠標示房間，燈光與四種情境改變窗上倒影、天色與雨
@@ -215,6 +217,10 @@
 - [163 X-16 · 四排十六缸剖面引擎](https://htmls-ruddy.vercel.app/web/163-x16-engine.html): 3D 機械剖面模型。X 形四排汽缸共用一根曲軸，主副連桿、凸輪與氣門依連桿幾何推導的點火順序連動；轉速可調、可逐發步進，外殼切換實心／半透明／剖切，全部零件程式建模；需連線載入 Three.js
 
 ### AI 學習
+
+- [178 ASTRA · 成為回答之前](https://htmls-ruddy.vercel.app/web/178-astra-origin.html): 八幕 3D 語言模型誕生紀錄片。資料、切詞、注意力、預訓練、回饋、評估、推論與回答；96 秒導覽、章節與時間軸、模型旋轉縮放與拆解、流程高亮、完整分鏡手冊及來源。本地 Three.js，Astra 為敘事角色，內容依公開原理重構。
+
+- [180 此刻，我在哪裡？ · Runtime Atlas](https://htmls-ruddy.vercel.app/web/180-runtime-atlas.html)：AI 執行環境 3D 空間圖解，桌面、工作區、工具與模型服務四座微縮模型；六幕分鏡、分層展開、元件解說、自由環繞與可逐步觀察的請求流程。本地 Three.js，已知情境與未知硬體位置明確標註，無實際 API 呼叫。
 
 - [101 MattPocock Skills](https://htmls-ruddy.vercel.app/web/101-mattpocock-skills.html): AI 工程化教學簡報。mattpocock/skills 教學簡報：從需求訪談、PRD、任務拆解到 TDD 與架構審查，13 張投影片走完 AI 編程工作流
 - [102 Starting on Your Own Project](https://htmls-ruddy.vercel.app/web/102-your-project-playbooks.html): AI 工程化教學簡報。在自己的專案啟動 Claude Code 的三套起手劇本：全新專案、WebForms 轉 Web、WinForms 轉 Web，16 張投影片

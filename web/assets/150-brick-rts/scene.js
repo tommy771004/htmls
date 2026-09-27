@@ -1236,7 +1236,7 @@ function advancePathJob(map, job, budget) {
 }
 
 // apps/web/scene.ts
-var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.72, provenance: "original_procedural" };
+var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.62, provenance: "original_procedural" };
 function farmParts(progress, red) {
   const out = [{ x: 0, y: 0, z: 0, w: 2, d: 2, h: 0.1, color: "#806b49", studs: false }];
   if (progress < 100) {
@@ -1254,15 +1254,15 @@ async function createScene(canvas, onFailure, options = {}) {
   const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.shadowMap.type = T.PCFShadowMap;
   renderer.setClearColor("#d7e0cc");
   renderer.outputColorSpace = T.SRGBColorSpace;
   renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.35;
+  renderer.toneMappingExposure = 1.2;
   const detail = createDetailController(T);
   const scene = new T.Scene();
   const camera = new T.OrthographicCamera(-12, 12, 10, -10, 0.1, 100);
-  const ambient = new T.HemisphereLight("#fff5dc", "#819b75", 2.4);
+  const ambient = new T.HemisphereLight("#fff5dc", "#819b75", 2.1);
   scene.add(ambient);
   const sun = new T.DirectionalLight("#fff1d8", 3);
   sun.position.set(-4, 20, 12);

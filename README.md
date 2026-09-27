@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 176，皆放在 `web/`），以及另外 104 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151、153、158、159、161、162、163、165、169、170、172、173 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142、164、174 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。第 155 件的原始碼在 `games/155-tally-crm/`（無相依套件），`node games/155-tally-crm/build.mjs` 內嵌成單檔 `web/155-tally-crm.html`。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 181，皆放在 `web/`），以及另外 104 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151、153、158、159、161、162、163、165、169、170、172、173 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142、164、174、178、180、181 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。第 155 件的原始碼在 `games/155-tally-crm/`（無相依套件），`node games/155-tally-crm/build.mjs` 內嵌成單檔 `web/155-tally-crm.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -183,6 +183,9 @@
 | 173 | [173-nord-voyage.html](https://htmls-ruddy.vercel.app/web/173-nord-voyage.html) | 遊戲敘事 · 維京長船峽灣航行 | 北境航記 NORÐ：掌舵十二槳維京長船，在 1.6 公里峽灣穿過懸崖、森林與瀑布；場景反射、深度折射及透明淺水，船槳接觸水面觸發泡沫、漣漪與水花，程序化木石 PBR 貼圖；槳速、停泊、環顧與三種燈光，鍵盤及手機觸控 | 需 WebGL 2；Three.js 從 CDN 載入，失敗時退回站內 vendor 模組 |
 | 174 | [174-kurogane-house.html](https://htmls-ruddy.vercel.app/web/174-kurogane-house.html) | 專案範例 · 建築模型工作室 | 黑鋼與木之屋：依參考影片與平面圖重建兩層住宅、16 個空間、34 組家具、十九級樓梯及車庫越野車；47 秒運鏡導覽、逐件組裝、樓層分解合攏、真實剖面裁切、家具聚焦、白模型、繁中平面配置及手機操作 | 本地 Three.js；需 HTTP 與 WebGL 2，尺寸為概念重建，非施工圖 |
 | 176 | [176-motion-studies.html](https://htmls-ruddy.vercel.app/web/176-motion-studies.html) | 介面風格 · 16 格動態設計 | 動態十六式：依 Charlie Hills 影片以 HTML / SVG / JavaScript 重新實作 16 種介面、字體、圖表與粒子動效；逐格重播、暫停、變速、時間軸、游標磁吸 Dock、手機兩欄及減少動態效果，圖片內嵌，單檔離線可用 | |
+| 178 | [178-astra-origin.html](https://htmls-ruddy.vercel.app/web/178-astra-origin.html) | AI 學習 · 3D 語言模型誕生紀錄片 | ASTRA 成為回答之前：八幕程序模型、96 秒導覽、時間軸、環繞與縮放、結構拆解、流程高亮、完整分鏡與公開來源 | 本地 Three.js；需 HTTP 與 WebGL 2；無 WebGL 可閱讀分鏡，Astra 為敘事角色，非私有訓練資訊 |
+| 180 | [180-runtime-atlas.html](https://htmls-ruddy.vercel.app/web/180-runtime-atlas.html) | AI 學習 · 3D 執行環境圖解 | 此刻，我在哪裡？ Runtime Atlas：四座程序化微縮模型、六幕導覽、工作區分層、元件筆記、環繞與鍵盤視角；請求流程可播放、暫停與逐步觀察，區分製作情境與示意模型 | 本地 Three.js；需 HTTP 與 WebGL 2，無 WebGL 時保留文字導覽 |
+| 181 | [181-agent-office.html](https://htmls-ruddy.vercel.app/web/181-agent-office.html) | 介面風格 · 卡通微縮 3D 辦公室 | agent-office：四位同事、WASD 走動與 T 鍵聊天派工、worker 指令進度、起身報告、Issues 指派與模擬 PR 草稿；桌機與手機操作 | 本地 Three.js；Claude Code / git 為示範，公開 GitHub Issues 可唯讀載入，麥克風與螢幕僅本機預覽；無 WebGL 時可用成員面板 |
 
 ## 較弱的作品（誠實版）
 - 網頁作品目前沒有標 ⚠ 的。原本的 7 件都已照改進方向重做：007 改成雨夜窗景，玻璃溫控透鏡真實折射窗外燈火（Safari 可能看不到折射，標為 △）；024 改成整頁終端 session 加上可核可的修正計畫；022 改用自繪 SVG 骨架字，粗細、寬窄、斜度真正連續變化；029 改用自繪字形網格變形填滿燈泡輪廓；057 改走純字體封面，字本身就是影像；080 自繪 Didone 刊頭與大標；086 加入探照燈自動掃描與水層導覽（手機上導覽會遮到部分學名，標為 △）。

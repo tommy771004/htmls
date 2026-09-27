@@ -91,6 +91,8 @@ body.night .inscr .no{color:#cdb88e}
   .ch{font-size:12px;letter-spacing:.04em;gap:.2em}.inscr{top:14px;right:12px;gap:8px}.inscr .sub{font-size:13px}}
 @media (max-width:370px){.brand h1{display:none}}
 @media (prefers-reduced-motion:reduce){.unroll,.rod,.inscr{transition:none}}
+.view-tools{position:absolute;left:14px;top:14px;z-index:3;display:flex;gap:6px}.view-tools button{min-height:40px;border:1px solid #b5986890;background:#29231ae8;color:#f1e5ce;padding:8px 12px;cursor:pointer;font-size:12px}
+@media(max-width:560px){:root{--top:104px;--bot:110px}.ctrls{flex-wrap:wrap;justify-content:flex-end;max-width:200px}.tb{min-width:44px;height:44px}.grp{gap:3px}.top{gap:4px}.tl{height:84px}.chs{top:44px}.ch{height:40px}.view-tools{left:10px;top:10px}.view-tools button{min-height:44px;padding:6px 9px}}
 </style>
 </head>
 <body>
@@ -115,7 +117,8 @@ body.night .inscr .no{color:#cdb88e}
 </header>
 
 <main class="stage" id="stage">
-  <canvas id="scene" tabindex="0" aria-label="3D 汴河長卷。拖曳可環視，滾輪縮放，左右方向鍵沿河移動"></canvas>
+  <div class="view-tools"><button id="resetView" type="button">重設視角</button><button id="motion" type="button" aria-pressed="false">暫停動態</button></div>
+  <canvas id="scene" tabindex="0" aria-label="3D 汴河長卷。拖曳可環視，滾輪縮放，左右方向鍵沿河移動，上下調整俯仰，加減縮放，Home 重設視角"></canvas>
   <div class="inscr" id="inscr" aria-live="polite">
     <span class="no" id="cNo">第壹章</span>
     <h2 id="cTitle">郊野</h2>
@@ -143,8 +146,8 @@ const $=id=>document.getElementById(id);
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function fail(msg){const u=$('unroll');u.classList.add('err');$('loadMsg').textContent=msg}
 let THREE;
-try{THREE=await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js')}
-catch(e){try{THREE=await import('../vendor/three-0.186.0/three.module.js')}catch(e2){fail('無法載入 Three.js。請確認網路連線後重新整理。');throw e2}}
+try{THREE=await import('../vendor/three-0.186.0/three.module.js')}
+catch(e){try{THREE=await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js')}catch(e2){fail('無法載入 Three.js。請確認網路連線後重新整理。');throw e2}}
 const canvas=$('scene'),stageEl=$('stage');
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'})}
@@ -407,7 +410,9 @@ const _q=new THREE.Quaternion(),_m=new THREE.Matrix4(),_s=new V3(),_d=new V3();
 function beam(A,Bp,r,col,batch=B.log){_d.subVectors(Bp,A);const len=_d.length();if(len<1e-4)return;_q.setFromUnitVectors(UP,_d.divideScalar(len));_s.set(r,len,r);_m.compose(A,_q,_s);batch.addM(_m,col)}
 function lantern(x,y,z){B.lan.add(x,y,z);glow.push(x,y,z)}
 function door(x,z,ry,w,d,h,f=.4){const [dx,dz]=rot(0,d/2+.04,ry);(rnd()<.45?B.doorLit:B.door).add(x+dx,0,z+dz,ry,Math.min(w*f,2.2),h*.7,.08,'#3a3129');
-  if(w>4.6)for(const s of [-1,1]){const [wx,wz]=rot(s*w*.32,d/2+.04,ry);B.door.add(x+wx,h*.4,z+wz,ry,w*.15,h*.3,.07,'#5b4b3b')}}
+  if(w>4.6)for(const s of [-1,1]){const [wx,wz]=rot(s*w*.32,d/2+.04,ry);B.door.add(x+wx,h*.4,z+wz,ry,w*.15,h*.3,.07,'#5b4b3b');
+    for(const edge of [-1,1]){const [ex,ez]=rot(s*w*.32+edge*w*.08,d/2+.1,ry);B.box.add(x+ex,h*.39,z+ez,ry,.065,h*.32,.095,'#80654a')}
+    const [mx,mz]=rot(s*w*.32,d/2+.1,ry);B.box.add(x+mx,h*.54,z+mz,ry,w*.16,.06,.095,'#80654a');B.box.add(x+mx,h*.39,z+mz,ry,w*.17,.065,.14,'#8b795d')}}
 function house(p,z,ry,w,d,o={}){
   const shopX=o.shop?2.1:0,hp=Math.abs(Math.cos(ry))*w/2+Math.abs(Math.sin(ry))*(d/2+shopX/2),hz=Math.abs(Math.sin(ry))*w/2+Math.abs(Math.cos(ry))*(d/2+shopX/2);
   const [ox,oz]=rot(0,shopX/2,ry),pc=p-ox,zc=z+oz;
@@ -712,7 +717,7 @@ const TOD={
   mao:{n:'卯時',s:'晨霧初開',dir:[.82,.3,.48],sun:'#ffd6b2',si:2.3,sky:'#dfe2e0',gnd:'#b8aa8c',hi:1.75,bg:'#ebe6d8',fog:'#e6e1d3',fn:105,ff:420,paper:'#f3ecdc',stain:'#d9c7a3',ink:'#2d2a26',night:0,mist:1,mount:'#ffffff'},
   wu:{n:'午時',s:'日正當中',dir:[.3,.9,.45],sun:'#fff3de',si:2.7,sky:'#efe9da',gnd:'#bca98a',hi:1.9,bg:'#efe6d1',fog:'#ebe1cb',fn:150,ff:540,paper:'#f6ecd8',stain:'#d8c29a',ink:'#2a2622',night:0,mist:.45,mount:'#ffffff'},
   you:{n:'酉時',s:'夕照西斜',dir:[-.85,.26,.42],sun:'#ffae6a',si:2.5,sky:'#e2cdb2',gnd:'#a78d6e',hi:1.5,bg:'#eed9bd',fog:'#e8d2b4',fn:120,ff:470,paper:'#f7e3c7',stain:'#cfae84',ink:'#2e2620',night:.22,mist:.75,mount:'#f2dcc2'},
-  xu:{n:'戌時',s:'華燈初上',dir:[-.3,.85,.42],sun:'#9fb3d8',si:.75,sky:'#5a6682',gnd:'#2f2c2a',hi:1.05,bg:'#2f3441',fog:'#353a47',fn:100,ff:430,paper:'#bab8be',stain:'#8d8579',ink:'#15171c',night:1,mist:.5,mount:'#6d7383'},
+  xu:{n:'戌時',s:'華燈初上',dir:[-.3,.85,.42],sun:'#afc3e3',si:1.1,sky:'#7d8cab',gnd:'#514c46',hi:1.35,bg:'#414858',fog:'#454d5e',fn:100,ff:430,paper:'#d1d2d8',stain:'#a09baa',ink:'#15171c',night:1,mist:.5,mount:'#6d7383'},
 };
 const mk=t=>({dir:new V3(...t.dir).normalize(),sun:C(t.sun),si:t.si,sky:C(t.sky),gnd:C(t.gnd),hi:t.hi,bg:C(t.bg),fog:C(t.fog),fn:t.fn,ff:t.ff,paper:C(t.paper),stain:C(t.stain),ink:C(t.ink),night:t.night,mist:t.mist,mount:C(t.mount)});
 let todKey=TOD[CONFIG.startTime]?CONFIG.startTime:'wu',tgt=mk(TOD[todKey]),cur=mk(TOD[todKey]);
@@ -769,24 +774,33 @@ postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),post));
 
 // ─── 鏡頭：展卷橫移 + 拖曳環視 ────────────────────────────
 const DEF_YAW=.17,DEF_PITCH=small?.5:.45,LOOK=small?.22:.28;
+let motionPaused=reduceMotion;
 let camP=PSTART,tgtP=PSTART,playing=false,ended=false,yawO=0,pitch=DEF_PITCH,zoom=1,tYaw=0,tPitch=DEF_PITCH,tZoom=1,lastInput=-1e9;
 const baseDist=()=>92*clamp(1.55/camera.aspect,1,2.2);
 const ptrs=new Map();let pinch0=0,zoom0=1;
-canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('drag');lastInput=performance.now();if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);zoom0=tZoom}});
+canvas.addEventListener('pointerdown',e=>{canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.classList.add('drag');lastInput=performance.now();if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);zoom0=tZoom}});
 canvas.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;lastInput=performance.now();
   if(ptrs.size===1){tYaw=clamp(tYaw-dx*.0045,-1.25,1.25);tPitch=clamp(tPitch+dy*.0035,.12,1.28)}
   else if(ptrs.size===2&&pinch0>0){const [a,b]=[...ptrs.values()];tZoom=clamp(zoom0*pinch0/Math.max(20,Math.hypot(a.x-b.x,a.y-b.y)),.35,1.8)}});
 const pUp=e=>{ptrs.delete(e.pointerId);if(!ptrs.size)canvas.classList.remove('drag');pinch0=0};
-canvas.addEventListener('pointerup',pUp);canvas.addEventListener('pointercancel',pUp);
+canvas.addEventListener('pointerup',pUp);canvas.addEventListener('pointercancel',pUp);canvas.addEventListener('lostpointercapture',pUp);
 canvas.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();const horiz=Math.abs(e.deltaX)>Math.abs(e.deltaY);
   if(e.shiftKey)tgtP=clamp(tgtP+(e.deltaY||e.deltaX)*.07,PSTART,PEND);else if(horiz)tgtP=clamp(tgtP-e.deltaX*.07,PSTART,PEND);else tZoom=clamp(tZoom*Math.exp(e.deltaY*.0011),.35,1.8)},{passive:false});
-canvas.addEventListener('dblclick',()=>{tYaw=0;tPitch=DEF_PITCH;tZoom=1});
-function goChapter(i){tgtP=clamp(CH[i].at,PSTART,PEND);ended=false;updPlay()}
-function togglePlay(){if(ended){tgtP=PSTART;ended=false;playing=true}else playing=!playing;lastInput=-1e9;updPlay()}
+function resetView(){tYaw=0;tPitch=DEF_PITCH;tZoom=1;lastInput=performance.now()}
+canvas.addEventListener('dblclick',resetView);$('resetView').onclick=resetView;
+function syncMotion(){$('motion').textContent=motionPaused?'繼續動態':'暫停動態';$('motion').setAttribute('aria-pressed',String(motionPaused))}
+$('motion').onclick=()=>{motionPaused=!motionPaused;if(motionPaused){playing=false;updPlay()}syncMotion()};syncMotion();
+function goChapter(i){playing=false;tgtP=clamp(CH[i].at,PSTART,PEND);ended=false;updPlay()}
+function togglePlay(){if(motionPaused){motionPaused=false;syncMotion()}if(ended){tgtP=PSTART;ended=false;playing=true}else playing=!playing;lastInput=-1e9;updPlay()}
 function updPlay(){$('playK').textContent=ended?'重':playing?'停':'展';$('playS').textContent=ended?'重展':playing?'暫停':'展卷';$('play').setAttribute('aria-label',ended?'從頭重新展卷':playing?'暫停展卷':'開始展卷')}
 $('play').addEventListener('click',togglePlay);
-addEventListener('keydown',e=>{const tag=e.target&&e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA')return;
-  if(e.code==='Space'&&tag!=='BUTTON'){e.preventDefault();togglePlay()}
+addEventListener('keydown',e=>{const tag=e.target&&e.target.tagName;if(['INPUT','TEXTAREA','SELECT','BUTTON','A'].includes(tag)||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.code==='Space'){e.preventDefault();if(!e.repeat)togglePlay()}
+  else if(e.key==='Home'){e.preventDefault();resetView()}
+  else if(e.key==='ArrowUp'){e.preventDefault();tPitch=clamp(tPitch-.08,.12,1.28)}
+  else if(e.key==='ArrowDown'){e.preventDefault();tPitch=clamp(tPitch+.08,.12,1.28)}
+  else if(e.key==='+'||e.key==='='){tZoom=clamp(tZoom*.9,.35,1.8)}
+  else if(e.key==='-'){tZoom=clamp(tZoom/ .9,.35,1.8)}
   else if(e.key==='ArrowLeft'){e.preventDefault();tgtP=clamp(tgtP+14,PSTART,PEND);lastInput=performance.now()}
   else if(e.key==='ArrowRight'){e.preventDefault();tgtP=clamp(tgtP-14,PSTART,PEND);lastInput=performance.now()}
   else if(/^[1-4]$/.test(e.key))goChapter(+e.key-1)});
@@ -810,9 +824,9 @@ function drawMini(){const r=mini.getBoundingClientRect(),w=Math.max(10,Math.roun
   g.strokeStyle='rgba(140,60,44,.5)';g.setLineDash([2,3]);for(const c of CH.slice(1)){g.beginPath();g.moveTo(X(c.from),0);g.lineTo(X(c.from),h);g.stroke()}g.setLineDash([])}
 const pFromX=cx=>{const r=mini.getBoundingClientRect();return clamp(MP0+(1-(cx-r.left)/r.width)*(MP1-MP0),PSTART,PEND)};
 let scrub=false;
-mini.addEventListener('pointerdown',e=>{scrub=true;mini.setPointerCapture(e.pointerId);tgtP=pFromX(e.clientX);ended=false;updPlay()});
+mini.addEventListener('pointerdown',e=>{playing=false;scrub=true;mini.setPointerCapture(e.pointerId);tgtP=pFromX(e.clientX);ended=false;updPlay()});
 mini.addEventListener('pointermove',e=>{if(scrub)tgtP=pFromX(e.clientX)});
-mini.addEventListener('pointerup',()=>scrub=false);mini.addEventListener('pointercancel',()=>scrub=false);
+mini.addEventListener('pointerup',()=>scrub=false);mini.addEventListener('pointercancel',()=>scrub=false);mini.addEventListener('lostpointercapture',()=>scrub=false);
 
 // ─── 時辰切換 ───────────────────────────────────────────
 const todBtns=[...document.querySelectorAll('.tod')];
@@ -900,13 +914,11 @@ function updateMovers(dt){
   for(const d of Object.values(DY))d.im.instanceMatrix.needsUpdate=true}
 function frame(now){
   requestAnimationFrame(frame);
-  const dt=Math.min(.05,(now-last)/1000);last=now;time+=dt;
-  lerpTod(1-Math.exp(-dt*1.8));
+  const dt=Math.min(.05,(now-last)/1000),worldDt=motionPaused?0:dt;last=now;time+=worldDt;
+  lerpTod(reduceMotion?1:1-Math.exp(-dt*1.8));
   if(playing&&!ptrs.size&&!scrub){tgtP+=CONFIG.scrollSpeed*dt;if(tgtP>=PEND){tgtP=PEND;if(camP>PEND-1.5){playing=false;ended=true;updPlay()}}}
-  const far=Math.abs(tgtP-camP)>40;camP+=(tgtP-camP)*(1-Math.exp(-dt*(far?1.5:2.4)));
-  const idle=now-lastInput>6500,kr=1-Math.exp(-dt*(idle?.5:6));
-  if(idle){tYaw+=(0-tYaw)*kr;tPitch+=(DEF_PITCH-tPitch)*kr;tZoom+=(1-tZoom)*kr}
-  const kc=1-Math.exp(-dt*6);yawO+=(tYaw-yawO)*kc;pitch+=(tPitch-pitch)*kc;zoom+=(tZoom-zoom)*kc;
+  const far=Math.abs(tgtP-camP)>40;camP+=(tgtP-camP)*(reduceMotion?1:1-Math.exp(-dt*(far?1.5:2.4)));
+  const kc=reduceMotion?1:1-Math.exp(-dt*6);yawO+=(tYaw-yawO)*kc;pitch+=(tPitch-pitch)*kc;zoom+=(tZoom-zoom)*kc;
   focus.set(-camP,1.5,focusZ(camP));
   const yaw=DEF_YAW+yawO,dist=baseDist()*zoom,cp=Math.cos(pitch);
   camera.position.set(focus.x+Math.sin(yaw)*cp*dist,focus.y+Math.sin(pitch)*dist+(reduceMotion?0:Math.sin(time*.25)*.35),focus.z+Math.cos(yaw)*cp*dist);
@@ -921,13 +933,13 @@ function frame(now){
   setU(post.uniforms.uPaper,cur.paper);setU(post.uniforms.uStain,cur.stain);setU(post.uniforms.uInkCol,cur.ink);post.uniforms.uNight.value=cur.night;
   waterTex.offset.x=-time*.012;
   for(const f of flags)f.g.rotation.y=f.ry+Math.sin(time*1.1+f.ph)*.22;
-  updateMovers(dt);
+  if(worldDt>0||!started)updateMovers(worldDt);
   renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCam);
   let ci=0;for(let i=0;i<CH.length;i++)if(camP>=CH[i].from-4)ci=i;if(ci!==curCh){showChapter(ci,curCh<0);curCh=ci}
   const hs=dist*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect,span=MP1-MP0;
   $('view').style.left=clamp((1-(camP+hs-MP0)/span)*100,0,100)+'%';$('view').style.width=clamp(2*hs/span*100,1,100)+'%';$('mk').style.left=(1-(camP-MP0)/span)*100+'%';
   if(Snd.ctx)soundMix(camP);
-  if(!started){started=true;$('loadMsg').textContent='畫卷徐徐展開…';requestAnimationFrame(()=>{$('unroll').classList.add('open');$('rod').classList.add('open');const u=$('unroll'),drop=()=>u.remove();u.addEventListener('transitionend',drop,{once:true});setTimeout(drop,reduceMotion?50:3000);setTimeout(()=>{if(!reduceMotion){playing=true;updPlay()}},reduceMotion?50:2600)})}
+  if(!started){started=true;$('unroll').remove();$('rod').remove();playing=!reduceMotion;updPlay()}
 }
 updPlay();requestAnimationFrame(frame);
 </script>

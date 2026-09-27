@@ -207,7 +207,7 @@ function renderPublic(){
   const p=publicSeat,discards=state.discards[p],melds=state.melds[p],flowers=state.flowers[p];
   $('publicContent').innerHTML=`<p>${seatLabels[p]} · ${esc(names[p])}${state.declared[p]?' · 已聽牌':''}</p><h3>捨牌 · ${discards.length} 張</h3>`+(discards.length?publicTiles(discards,state.last?.p===p?discards.length-1:-1):'<p>尚未出牌</p>')+`<h3>吃・碰・槓 · ${melds.length} 組</h3>`+(melds.length?melds.map(m=>`<div class="public-meld"><b>${meldLabel(m)}${m.closed?' · 蓋牌':m.from>=0?' · 來自'+seatLabels[m.from]:''}</b>${publicTiles(m.tiles)}</div>`).join(''):'<p>尚無副露</p>')+`<h3>花牌 · ${flowers.length} 張</h3>`+(flowers.length?publicTiles(flowers):'<p>尚無花牌</p>');
 }
-function togglePublic(open,p=publicSeat){publicSeat=p;$('publicPanel').hidden=!open;$('publicToggle').setAttribute('aria-expanded',String(open));$('tileInspect').hidden=true;if(open){renderPublic();document.querySelector('.table-notes').open=false;}else $('publicToggle').focus({preventScroll:true});}
+function togglePublic(open,p=publicSeat){publicSeat=p;$('publicPanel').hidden=!open;$('publicToggle').setAttribute('aria-expanded',String(open));$('tileInspect').hidden=true;if(open){renderPublic();document.querySelector('.table-notes').open=false;$('closePublic').focus({preventScroll:true});}else $('publicToggle').focus({preventScroll:true});}
 $('publicToggle').onclick=()=>togglePublic($('publicPanel').hidden,state?.last?.p??0);
 $('closePublic').onclick=()=>togglePublic(false);
 $('publicTabs').onclick=e=>{const b=e.target.closest('button');if(b){publicSeat=Number(b.dataset.seat);renderPublic();$('publicContent').scrollTop=0;}};
@@ -276,7 +276,7 @@ function movePiece(mesh,to,rotation,scale,{from,delay=0,duration=340,arc=0,impac
   if(reduced){if(impact)sound('tile');mesh.position.copy(to);mesh.rotation.set(u.hand?.48:0,rotation,0);mesh.scale.setScalar(scale);u.motion=null;return;}
   u.motion={from:mesh.position.clone(),to:to.clone(),rot:mesh.rotation.y,scale:mesh.scale.x,time:performance.now()+delay,duration,arc,impact};
 }
-function piece(key,t,back,p,x,z,{scale=1,y=.36,hand=false,index=-1,from,delay=0,arc=0,impact=false}={}){
+function piece(key,t,back,p,x,z,{scale=1,y=-.13+.145*scale,hand=false,index=-1,from,delay=0,arc=0,impact=false}={}){
   let m=pieces.get(key),fresh=!m;
   if(fresh){m=new THREE.Mesh(tileGeo);m.castShadow=true;m.receiveShadow=true;tileGroup.add(m);pieces.set(key,m);}
   m.material=[back?backMat:faceMats[t],baseMat];
@@ -308,7 +308,7 @@ function syncScene(prior=null,instant=false){
         m.userData.hitWidth=step-2;handMeshes[i]=m;if(isNew&&prior&&hand.length>prior.hands[0].length&&!instant)sound('draw');
       }else{
         const x=(i-(hand.length-1)/2)*(portrait?.61:.77),z=portrait?8.65:p===2?10.35:13;
-        piece(`h:${p}:${i}`,t,t===null,p,x,z,{scale:portrait?.62:.8,y:.55,from:roundChanged?center:null,delay:roundChanged?i*18:0,arc:roundChanged?.8:0});
+        piece(`h:${p}:${i}`,t,t===null,p,x,z,{scale:portrait?.62:.8,y:-.13+.145*(portrait?.62:.8),from:roundChanged?center:null,delay:roundChanged?i*18:0,arc:roundChanged?.8:0});
       }
     });
     const discards=demo?[]:state.discards[p];
@@ -331,7 +331,7 @@ function syncScene(prior=null,instant=false){
   }
   const count=demo?76:state.wallCount;
   // Fixed wall slots shrink from one end instead of rebuilding four changing walls.
-  for(let i=80-count;i<80;i++){const side=Math.floor(i/20),n=i%20;piece(`w:${i}`,0,true,side,(Math.floor(n/2)-4.5)*.94,side===0?6.8:portrait?7.3:9.35,{y:.34+(n%2)*.31});}
+  for(let i=80-count;i<80;i++){const side=Math.floor(i/20),n=i%20;piece(`w:${i}`,0,true,side,(Math.floor(n/2)-4.5)*.94,side===0?6.8:portrait?7.3:9.35,{y:.015+(n%2)*.29});}
   for(const [key,m] of pieces)if(!m.userData.seen){tileGroup.remove(m);pieces.delete(key);}
   discardOrigin=null;updateSelection();
   if(instant)for(const m of pieces.values()){if(m.userData.to)m.position.copy(m.userData.to);m.scale.setScalar(m.userData.size);m.rotation.set(m.userData.hand?.48:0,m.userData.rot,0);m.userData.motion=null;}
@@ -374,7 +374,7 @@ function drawFrame(now){
     if(e.big)pulseLight.intensity=Math.max(pulseLight.intensity,Math.sin(t*Math.PI)*55);const pos=e.particles.geometry.attributes.position;
     e.vel.forEach((v,j)=>{const a=e.big?t*4:0,c=Math.cos(a),s=Math.sin(a);pos.setXYZ(j,e.at.x+(v.x*c-v.z*s)*t*2,e.at.y+Math.sin(t*Math.PI)*v.y*(e.big?2:1),e.at.z+(v.x*s+v.z*c)*t*2);});pos.needsUpdate=true;e.particles.material.opacity=(1-t)*.85;e.ring.scale.setScalar(.3+t*(e.big?9:3));e.ring.material.opacity=(1-t)*.5;
   }
-  if(latestMesh){highlight.visible=true;highlight.position.copy(latestMesh.position);highlight.position.y=.18;highlight.rotation.z=latestMesh.rotation.y;highlight.material.opacity=reduced?.35:.3+Math.sin(now*.004)*.12;}else highlight.visible=false;
+  if(latestMesh){highlight.visible=true;highlight.position.copy(latestMesh.position);highlight.position.y=-.125;highlight.rotation.z=latestMesh.rotation.y;highlight.material.opacity=reduced?.35:.3+Math.sin(now*.004)*.12;}else highlight.visible=false;
   const pulse=now<shakeUntil?Math.sin(now*.065)*shakePower*(shakeUntil-now)/600:0;if(pulse)camera.setViewOffset(viewWidth,viewHeight,pulse,0,viewWidth,viewHeight);else if(camera.view?.enabled)camera.clearViewOffset();
   layoutHits();renderer.render(scene,camera);
 }
@@ -385,6 +385,7 @@ function initScene(){
   tableBase=new THREE.Group();scene.add(tableBase);const wood=makeMat('#13271e',.25,.4),gold=makeMat('#a88a48',.55,.32),felt=makeMat('#176347',0,.98);
   box(36,.8,32,wood,0,-.8,0,tableBase);box(35.4,.12,31.4,gold,0,-.34,0,tableBase);box(35,.22,31,felt,0,-.24,0,tableBase);
   const cloth=document.createElement('canvas');cloth.width=cloth.height=256;const ctx=cloth.getContext('2d');ctx.fillStyle='#0b3928';ctx.fillRect(0,0,256,256);for(let y=0;y<256;y+=2){ctx.fillStyle=y%4?'#124932':'#0d3a28';ctx.fillRect(0,y,256,1);}const clothMap=new THREE.CanvasTexture(cloth);clothMap.wrapS=clothMap.wrapT=THREE.RepeatWrapping;clothMap.repeat.set(15,15);clothMap.colorSpace=THREE.SRGBColorSpace;felt.map=clothMap;felt.color.set('#ffffff');
+  const weave=document.createElement('canvas');weave.width=weave.height=64;const wg=weave.getContext('2d');for(let y=0;y<64;y++)for(let x=0;x<64;x++){const v=128+Math.round(Math.sin(x*Math.PI/2)*12+Math.cos(y*Math.PI/2)*12);wg.fillStyle=`rgb(${v},${v},${v})`;wg.fillRect(x,y,1,1);}const weaveMap=new THREE.CanvasTexture(weave);weaveMap.wrapS=weaveMap.wrapT=THREE.RepeatWrapping;weaveMap.repeat.set(42,42);weaveMap.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());felt.bumpMap=weaveMap;felt.bumpScale=.012;
   pulseLight=new THREE.PointLight('#ffd586',0,25,2);pulseLight.position.set(0,4,0);scene.add(pulseLight);centerBase=new THREE.Group();scene.add(centerBase);box(3.7,.17,3.9,wood,0,.04,0,centerBase);box(3.5,.05,3.7,gold,0,.15,0,centerBase);box(3.35,.05,3.55,makeMat('#0d2d24',.1,.5),0,.19,0,centerBase);
   const shape=new THREE.Shape(),w=.82,d=1.18,r=.045;shape.moveTo(-w/2+r,-d/2);shape.lineTo(w/2-r,-d/2);shape.quadraticCurveTo(w/2,-d/2,w/2,-d/2+r);shape.lineTo(w/2,d/2-r);shape.quadraticCurveTo(w/2,d/2,w/2-r,d/2);shape.lineTo(-w/2+r,d/2);shape.quadraticCurveTo(-w/2,d/2,-w/2,d/2-r);shape.lineTo(-w/2,-d/2+r);shape.quadraticCurveTo(-w/2,-d/2,-w/2+r,-d/2);
   tileGeo=new THREE.ExtrudeGeometry(shape,{depth:.22,bevelEnabled:true,bevelThickness:.035,bevelSize:.03,bevelSegments:2,steps:1,curveSegments:3});const uv=tileGeo.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,(uv.getX(i)+w/2)/w,(uv.getY(i)+d/2)/d);tileGeo.rotateX(-Math.PI/2);tileGeo.translate(0,-.11,0);baseMat=makeMat('#e4dfc8',0,.35);
@@ -394,6 +395,9 @@ function initScene(){
   raycaster=new THREE.Raycaster();pointer=new THREE.Vector2();
   renderer.domElement.addEventListener('pointermove',inspectTile);renderer.domElement.addEventListener('pointerdown',inspectTile);renderer.domElement.addEventListener('pointerleave',()=>$('tileInspect').hidden=true);
   $('hand').addEventListener('pointerover',e=>{const b=e.target.closest('button');hovered=b&&!b.disabled?Number(b.dataset.index):-1;updateSelection();$('tileInspect').hidden=true;});$('hand').addEventListener('pointerout',()=>{hovered=-1;updateSelection();});
+  $('hand').addEventListener('focusin',e=>{const b=e.target.closest('button');hovered=b&&!b.disabled?Number(b.dataset.index):-1;updateSelection();});
+  $('hand').addEventListener('focusout',()=>{hovered=-1;updateSelection();});
+  $('hand').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;const buttons=[...$('hand').querySelectorAll('button:not(:disabled)')],i=buttons.indexOf(e.target);if(i<0)return;e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?buttons.length-1:Math.max(0,Math.min(buttons.length-1,i+(e.key==='ArrowRight'?1:-1)));buttons[next].focus({preventScroll:true});});
   sceneReady=true;new ResizeObserver(()=>{const h=document.querySelector('.table-controls').offsetHeight;if(h!==controlsHeight){controlsHeight=h;document.querySelector('.arena').style.setProperty('--controls-height',h+'px');syncScene();}}).observe(document.querySelector('.table-controls'));new ResizeObserver(resize).observe($('scene'));resize();renderer.setAnimationLoop(drawFrame);
   renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('renderError').hidden=false;$('renderError').textContent='3D 顯示已中斷，請重新整理頁面以恢復牌桌。';});
 }

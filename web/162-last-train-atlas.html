@@ -220,10 +220,13 @@ dialog[open]{animation:dlg var(--dur-enter) var(--ease-out)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:0s!important;animation:none!important}
 }
+#stage:focus-visible{outline:2px solid var(--amber);outline-offset:-3px}
+@media(max-width:760px){.sq{width:44px;height:44px}#ctl2{top:calc(max(12px,env(safe-area-inset-top)) + 62px)}#ctl2 .rail button{height:44px}#nowBtn{height:44px}.sorts button{min-height:44px}}
 </style>
 </head>
 <body>
-<canvas id="stage" aria-label="東京鐵路末班車 3D 地圖，拖曳旋轉、滾輪縮放"></canvas>
+<canvas id="stage" tabindex="0" aria-describedby="mapKeys" aria-label="東京鐵路末班車 3D 地圖，拖曳旋轉、滾輪縮放"></canvas>
+<p id="mapKeys" class="vh">地圖取得焦點後，方向鍵旋轉，Shift 加方向鍵平移，加減號縮放，Home 回到全景。</p>
 <div id="labels" aria-hidden="true"></div>
 <div id="boot"><div><b>路網鋪設中</b>需要連線到 cdn.jsdelivr.net 載入 Three.js</div></div>
 
@@ -240,6 +243,7 @@ dialog[open]{animation:dlg var(--dur-enter) var(--ease-out)}
   <div class="rail" role="group" aria-label="高度"><button data-mode="0" aria-pressed="true">時刻高度</button><button data-mode="1" aria-pressed="false">業者樓層</button><button data-mode="2" aria-pressed="false">平面</button></div>
   <button class="sq" id="sheetBtn" aria-label="路線清單"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 4.5h12M3 9h12M3 13.5h7"/></svg></button>
   <button class="sq" id="themeBtn" aria-label="切換晝夜配色" title="切換晝夜配色">晝</button>
+  <button class="sq" id="viewReset" aria-label="地圖回全景" title="地圖回全景">⌂</button>
   <button class="sq" id="infoBtn" aria-label="說明與資料來源"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="9" r="7.2"/><path d="M9 8.2v4.6"/><circle cx="9" cy="5.4" r=".6" fill="currentColor"/></svg></button>
 </nav>
 <div id="ctl2"></div>
@@ -279,7 +283,7 @@ dialog[open]{animation:dlg var(--dur-enter) var(--ease-out)}
   <p>每一個點是一條路線上的一個車站。「時刻高度」模式裡，點的高度就是那一站最後一班車離開的時刻：越晚收班，站得越高。時間軸往前推，一片半透明的「時間水位」跟著上升，被淹過的站就是末班已經開走的站。路線上最亮、最粗的那一截，就是正在跑的末班車。</p>
   <h3>操作</h3>
   <ul>
-    <li>拖曳旋轉，右鍵或 <kbd>Shift</kbd> 拖曳平移，滾輪或雙指縮放。</li>
+    <li>地圖取得焦點後可用方向鍵旋轉、Shift 加方向鍵平移、＋／－縮放、Home 回全景。拖曳旋轉，右鍵或 <kbd>Shift</kbd> 拖曳平移，滾輪或雙指縮放。</li>
     <li>滑過車站看那一站的末班：幾點、從哪裡發車、開往哪裡。點車站或清單裡的路線，會單獨標出整條線。</li>
     <li><kbd>空白鍵</kbd> 播放／暫停，<kbd>←</kbd> <kbd>→</kbd> 移動 1 分鐘（按住 <kbd>Shift</kbd> 為 10 分鐘），<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 切換高度模式，<kbd>Esc</kbd> 取消選取。</li>
     <li>「現在時刻」用東京時間（JST）。凌晨 4 點前算前一天的營運日，例如週六 0:30 仍套用週五的平日時刻表。國定假日不另外判斷。</li>
@@ -474,7 +478,9 @@ function updateClock() {
   LINES.forEach(L => { const e = lerp(L.end[0], L.end[1], d); if (e >= S.now) { before++; if (!next || e < next.e) next = { L, e }; } else after++; });
   $('stat').innerHTML = `末班前 <b>${before}</b> 線 · 已收班 <b>${after}</b> 線` + (next ? ` · 下一條收班：<b>${esc(next.L.n)}</b>（${fmt(next.e)}）` : ' · 今晚全部收班了');
 }
+let intro = null;
 function setNow(t, opt = {}) {
+  if(!opt.keepLive)intro=null;
   S.now = clamp(t, T0, T1);
   if (!opt.keepLive) S.live = false;
   updateTimeline(); updateClock(); updateRows(); if (U) U.uNow.value = S.now; dirty(); updatePlane();
@@ -482,20 +488,20 @@ function setNow(t, opt = {}) {
 }
 let dragTl = false;
 function tlPointer(e) { const r = tl.getBoundingClientRect(); setNow(Math.round(tOf(e.clientX - r.left))); }
-tl.addEventListener('pointerdown', e => { dragTl = true; tl.setPointerCapture(e.pointerId); stopPlay(); tlPointer(e); });
+tl.addEventListener('pointerdown', e => { if(e.button!==0||!e.isPrimary)return;tl.focus({preventScroll:true});dragTl = true; tl.setPointerCapture(e.pointerId); stopPlay(); tlPointer(e); });
 tl.addEventListener('pointermove', e => { if (dragTl) tlPointer(e); });
 tl.addEventListener('pointerup', () => dragTl = false);
-tl.addEventListener('pointercancel', () => dragTl = false);
+tl.addEventListener('pointercancel', () => dragTl = false);tl.addEventListener('lostpointercapture',()=>dragTl=false);
 tl.addEventListener('keydown', e => {
   const step = e.shiftKey ? 10 : 1;
   if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { stopPlay(); setNow(Math.floor(S.now) + step); e.preventDefault(); e.stopPropagation(); }
   else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { stopPlay(); setNow(Math.ceil(S.now) - step); e.preventDefault(); e.stopPropagation(); }
-  else if (e.key === 'Home') { setNow(T0); e.preventDefault(); } else if (e.key === 'End') { setNow(T1); e.preventDefault(); }
+  else if (e.key === 'Home') { stopPlay(); setNow(T0); e.preventDefault(); e.stopPropagation(); } else if (e.key === 'End') { stopPlay(); setNow(T1); e.preventDefault(); e.stopPropagation(); }
 });
 
 // ---------- 播放與現在時刻 ----------
 let playLast = 0;
-function startPlay() { if (S.now >= T1 - .5) setNow(T0); S.playing = true; S.live = false; playLast = performance.now(); $('playIco').setAttribute('d', 'M4.5 3h3.2v12H4.5zM10.3 3h3.2v12h-3.2z'); $('play').setAttribute('aria-label', '暫停'); dirty(); }
+function startPlay() { intro=null; if (S.now >= T1 - .5) setNow(T0); S.playing = true; S.live = false; playLast = performance.now(); $('playIco').setAttribute('d', 'M4.5 3h3.2v12H4.5zM10.3 3h3.2v12h-3.2z'); $('play').setAttribute('aria-label', '暫停'); dirty(); }
 function stopPlay() { S.playing = false; $('playIco').setAttribute('d', 'M5 3.2v11.6L14.6 9z'); $('play').setAttribute('aria-label', '播放'); }
 $('play').onclick = () => S.playing ? stopPlay() : startPlay();
 function jst() {
@@ -530,7 +536,7 @@ function setDay(d) {
   drawTimeline(); updateClock(); buildList(); if (S.focus >= 0) updateStops(); dirty();
 }
 function setMode(m) {
-  S.mode = m; W.from = W.cur.slice(); W.to = [m === 0 ? 1 : 0, m === 1 ? 1 : 0, m === 2 ? 1 : 0]; W.t0 = performance.now(); goal.ty = [4, 13, 0][m];
+  S.mode = m; W.from = W.cur.slice(); W.to = [m === 0 ? 1 : 0, m === 1 ? 1 : 0, m === 2 ? 1 : 0]; W.t0 = performance.now(); goal.ty = [13, 15, 0][m];
   document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.mode === m)));
   dirty();
 }
@@ -558,24 +564,28 @@ $('themeBtn').onclick = () => { S.theme = S.theme === 'night' ? 'day' : 'night';
 $('infoBtn').onclick = () => $('info').showModal();
 $('infoClose').onclick = () => $('info').close();
 $('info').addEventListener('click', e => { if (e.target === $('info')) $('info').close(); });
-$('sheetBtn').onclick = () => $('side').classList.toggle('open');
-$('sheetClose').onclick = () => $('side').classList.remove('open');
+function setSheet(open,focus=true){const side=$('side');side.classList.toggle('open',open);side.inert=mq.matches&&!open;$('sheetBtn').setAttribute('aria-expanded',String(open));if(mq.matches&&focus){if(open)(S.focus>=0?$('back'):$('q')).focus({preventScroll:true});else if(side.contains(document.activeElement))$('sheetBtn').focus({preventScroll:true});}if(focus)dirty();}
+$('sheetBtn').onclick=()=>setSheet(!$('side').classList.contains('open'));
+$('sheetClose').onclick=()=>setSheet(false);
 // 手機：把兩組切換移到第二列
 const mq = matchMedia('(max-width:760px)');
 function placeRails() {
   const rails = [...document.querySelectorAll('#ctl .rail, #ctl2 .rail')];
   if (mq.matches) rails.forEach(r => $('ctl2').appendChild(r));
   else rails.forEach(r => $('ctl').insertBefore(r, $('sheetBtn')));
+  setSheet($('side').classList.contains('open'),false);
 }
 mq.addEventListener('change', () => { placeRails(); onResize(); });
 placeRails();
 window.addEventListener('keydown', e => {
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
   if (e.target.closest && e.target.closest('input,dialog')) { if (e.key === 'Escape' && e.target.id === 'q') e.target.blur(); return; }
+  if(e.key==='Escape'){setSheet(false);setFocus(-1);return;}
   if (e.key === ' ') { if (e.target.closest && e.target.closest('button,[role=slider]') && e.target.id !== 'play') return; e.preventDefault(); S.playing ? stopPlay() : startPlay(); }
+  else if (e.target.closest('button,a,[role=slider]')) return;
   else if (e.key === 'ArrowRight') { stopPlay(); setNow(Math.floor(S.now) + (e.shiftKey ? 10 : 1)); }
   else if (e.key === 'ArrowLeft') { stopPlay(); setNow(Math.ceil(S.now) - (e.shiftKey ? 10 : 1)); }
   else if (e.key === '1' || e.key === '2' || e.key === '3') setMode(+e.key - 1);
-  else if (e.key === 'Escape') { setFocus(-1); $('side').classList.remove('open'); }
 });
 
 // ---------- 3D ----------
@@ -711,7 +721,7 @@ if (R) {
         gl_PointSize = clamp(uSize * mix(0.6, 1.0, vAlive) * (1.0 + vHov * 0.7) * uPix / -mv.z, 2.0, 40.0);
       }`;
   points = new T.Points(pg, new T.ShaderMaterial({
-    uniforms: { ...U, uSize: { value: .62 } }, vertexShader: PV,
+    uniforms: { ...U, uSize: { value: .50 } }, vertexShader: PV,
     fragmentShader: `
       uniform vec3 uGhost, uPlate, uInk; uniform float uNight;
       varying vec3 vCol; varying float vAlive, vFoc, vHov;
@@ -733,14 +743,14 @@ if (R) {
   }));
   scene.add(points);
   glow = new T.Points(pg, new T.ShaderMaterial({
-    uniforms: { ...U, uSize: { value: 2.4 } }, vertexShader: PV, transparent: true, depthWrite: false, blending: T.AdditiveBlending,
+    uniforms: { ...U, uSize: { value: 1.85 } }, vertexShader: PV, transparent: true, depthWrite: false, blending: T.AdditiveBlending,
     fragmentShader: `
       varying vec3 vCol; varying float vAlive, vFoc, vHov;
       void main(){
         float d = length(gl_PointCoord - 0.5) * 2.0;
         float a = exp(-d * d * 5.5) * (1.0 - d) * vAlive * vFoc;
         if (a < 0.004) discard;
-        gl_FragColor = vec4(mix(vCol, vec3(1.0, 0.86, 0.62), 0.55) * a * 0.55, 1.0);
+        gl_FragColor = vec4(mix(vCol, vec3(1.0, 0.86, 0.62), 0.35) * a * 0.32, 1.0);
       }`
   }));
   scene.add(glow);
@@ -771,16 +781,18 @@ if (R) {
 
 // ---------- 相機 ----------
 const isNarrow = () => innerWidth < 761;
-const cam = { tx: CX, ty: 4, tz: CZ + 2, az: .06, pol: .93, dist: 150 };
+const cam = { tx: CX, ty: 13, tz: CZ + 2, az: .06, pol: .93, dist: 150 };
 const goal = { ...cam };
-function frameDist() { const a = innerWidth / innerHeight; return a < .8 ? 205 : a < 1.2 ? 165 : 128; }
+function frameDist() {const narrow=isNarrow(), aw=Math.max(240,innerWidth-(narrow?32:356)),ah=Math.max(240,innerHeight-(narrow?300:170)),tan=Math.tan(34*Math.PI/360),w=bx1-bx0,d=bz1-bz0;return Math.max(w*.54*innerHeight/(tan*aw),(d*.6+26)*.54*innerHeight/(tan*ah))+d*.4;}
 cam.dist = 260; cam.pol = .25; goal.dist = frameDist();
+function resetView(){Object.assign(goal,{tx:CX,ty:[13,15,0][S.mode],tz:CZ+2,az:.06,pol:.93,dist:frameDist()});hideTip();dirty();}
+$('viewReset').onclick=resetView;
 function applyCam() {
   const sp = Math.sin(cam.pol);
   camera.position.set(cam.tx + cam.dist * sp * Math.sin(cam.az), cam.ty + cam.dist * Math.cos(cam.pol), cam.tz + cam.dist * sp * Math.cos(cam.az));
   camera.lookAt(cam.tx, cam.ty, cam.tz);
 }
-function flyTo(x, z, dist, ty = 4) { goal.tx = x; goal.tz = z; goal.dist = dist || goal.dist; goal.ty = ty; dirty(); if (isNarrow()) $('side').classList.remove('open'); }
+function flyTo(x, z, dist, ty = 4) { goal.tx = x; goal.tz = z; goal.dist = dist || goal.dist; goal.ty = ty; dirty(); if (isNarrow()) setSheet(false); }
 function flyToLine(L) {
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
   L.st.forEach(s => { x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); z0 = Math.min(z0, s.z); z1 = Math.max(z1, s.z); });
@@ -799,6 +811,7 @@ function flyToStation(n) {
 const cvs = $('stage'), ptrs = new Map(); let pinch = null, moved = 0, downAt = null;
 cvs.addEventListener('contextmenu', e => e.preventDefault());
 cvs.addEventListener('pointerdown', e => {
+  if(e.button!==0&&e.button!==2)return;cvs.focus({preventScroll:true});
   cvs.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, b: e.button, sh: e.shiftKey });
   moved = 0; downAt = { x: e.clientX, y: e.clientY }; cvs.classList.add('drag');
   if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; }
@@ -815,7 +828,7 @@ cvs.addEventListener('pointermove', e => {
   moved += Math.abs(dx) + Math.abs(dy);
   if (ptrs.size === 2 && pinch) {
     const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-    goal.dist = clamp(goal.dist * pinch.d / Math.max(d, 1), 22, 320); panBy(mx - pinch.mx, my - pinch.my);
+    goal.dist = clamp(goal.dist * pinch.d / Math.max(d, 1), 22, 600); panBy(mx - pinch.mx, my - pinch.my);
     pinch = { d, mx, my };
   } else if (p.b === 2 || p.sh || e.shiftKey) panBy(dx, dy);
   else { goal.az -= dx * .0055; goal.pol = clamp(goal.pol - dy * .004, .08, 1.38); }
@@ -826,9 +839,18 @@ function endPtr(e) {
   if (!ptrs.size) cvs.classList.remove('drag');
   if (p && moved < 6 && e.type === 'pointerup') clickPick(e.clientX, e.clientY, e.pointerType);
 }
-cvs.addEventListener('pointerup', endPtr); cvs.addEventListener('pointercancel', endPtr);
+cvs.addEventListener('pointerup', endPtr); cvs.addEventListener('pointercancel', endPtr);cvs.addEventListener('lostpointercapture',endPtr);
+cvs.addEventListener('keydown',e=>{
+ if(e.ctrlKey||e.metaKey||e.altKey)return;
+ if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','_','Home'].includes(e.key))return;
+ e.preventDefault();e.stopPropagation();
+ if(e.key==='Home')resetView();
+ else if(e.key.startsWith('Arrow')){if(e.shiftKey)panBy(e.key==='ArrowLeft'?-15:e.key==='ArrowRight'?15:0,e.key==='ArrowUp'?-15:e.key==='ArrowDown'?15:0);else if(e.key==='ArrowLeft'||e.key==='ArrowRight')goal.az+=e.key==='ArrowLeft'?.08:-.08;else goal.pol=clamp(goal.pol+(e.key==='ArrowUp'?-.06:.06),.08,1.38);}
+ else goal.dist=clamp(goal.dist*(['+','='].includes(e.key)?.9:1.1),22,600);
+ hideTip();dirty();
+});
 cvs.addEventListener('pointerleave', () => { if (!ptrs.size) hideTip(); });
-cvs.addEventListener('wheel', e => { e.preventDefault(); goal.dist = clamp(goal.dist * Math.exp(e.deltaY * (e.deltaMode ? .05 : .0012)), 22, 320); hideTip(); dirty(); }, { passive: false });
+cvs.addEventListener('wheel', e => { e.preventDefault(); goal.dist = clamp(goal.dist * Math.exp(e.deltaY * (e.deltaMode ? .05 : .0012)), 22, 600); hideTip(); dirty(); }, { passive: false });
 
 // ---------- 點選 ----------
 const v3 = T ? new T.Vector3() : null;
@@ -892,7 +914,7 @@ function place(el, x, y, z, dx = 0, dy = 0) {
 }
 function updateLabels() {
   if (!labelsReady) return;
-  const taken = [], max = isNarrow() ? 12 : 30;
+  const taken = ['sign','ctl','ctl2','dock','side'].map(id=>$(id)).filter(el=>!el.inert&&el.getClientRects().length).map(el=>{const r=el.getBoundingClientRect();return [r.left-5,r.top-5,r.right+5,r.bottom+5];}), max = isNarrow() ? 12 : 24;
   let shown = 0;
   for (const h of HUBL) {
     if (!h.w) { h.w = h.el.offsetWidth; h.h = h.el.offsetHeight; }
@@ -904,7 +926,7 @@ function updateLabels() {
     const p = place(h.el, top.x, ty, top.z, -h.w / 2, -h.h - 9);
     if (!p) continue;
     const r = [p[0] - h.w / 2 - 3, p[1] - h.h - 12, p[0] + h.w / 2 + 3, p[1] - 6];
-    const clash = shown >= max || r[0] < 0 || r[2] > innerWidth || r[1] < 0 || taken.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]);
+    const clash = shown >= max || r[0] < 0 || r[2] > innerWidth || r[1] < 0 || r[3]>innerHeight || taken.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]);
     h.el.style.opacity = '';
     h.el.classList.toggle('hide', clash);
     h.el.classList.toggle('dead', !alive);
@@ -936,7 +958,6 @@ function onResize() {
   U.uPix.value = R.getDrawingBufferSize(new T.Vector2()).y / (2 * Math.tan(camera.fov * Math.PI / 360));
   drawTimeline(); HUBL.forEach(h => h.w = 0); if (HUBL.floors) HUBL.floors.forEach(f => f.w = 0); dirty();
 }
-let intro = null;
 function frame(now) {
   requestAnimationFrame(frame);
   if (S.playing) {

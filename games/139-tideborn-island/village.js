@@ -18,8 +18,8 @@ export function createVillage({config, graph, surface, road, mark}) {
   function house(p,{w=10,d=11,h=7,c=colors.roof,barn=false}={}) {
     box(p,w,h,d,colors.wall,0,h/2,0);roof(p,w+2,d+2,h,c);
     box(p,barn?4:2.2,barn?5:4,.35,colors.wood,0,barn?2.5:2,d/2+.18);
-    for(const x of [-w*.32,w*.32]){box(p,1.7,2.1,.3,colors.dark,x,4.4,d/2+.2);box(p,2.3,.4,.5,colors.wall,x,5.55,d/2+.2);}
-    for(const z of [-d*.26,d*.26])box(p,.3,2,1.8,colors.dark,w/2+.16,4.3,z);
+    for(const x of [-w*.32,w*.32]){box(p,1.7,2.1,.3,colors.dark,x,4.4,d/2+.2);box(p,2.3,.4,.5,colors.wall,x,5.55,d/2+.2);box(p,2.2,.25,.7,colors.stone,x,3.3,d/2+.35);box(p,.13,2.1,.13,colors.wall,x,4.4,d/2+.4);box(p,1.7,.13,.13,colors.wall,x,4.4,d/2+.4);}
+    for(const z of [-d*.26,d*.26]){box(p,.3,2,1.8,colors.dark,w/2+.16,4.3,z);box(p,.7,.25,2.2,colors.stone,w/2+.35,3.25,z);box(p,.13,2,.13,colors.wall,w/2+.36,4.3,z);box(p,.13,.13,1.8,colors.wall,w/2+.36,4.3,z);}
     if(!barn){box(p,1.5,4,1.5,colors.stone,w*.27,h+1,-d*.22);box(p,4,.4,2,colors.stone,0,.2,d/2+1);}
     else {box(p,w+.1,.5,d+.1,colors.wood,0,1,0);for(const x of [-w/2,w/2])box(p,.5,h,.5,colors.wood,x,h/2,d/2+.1);}
   }

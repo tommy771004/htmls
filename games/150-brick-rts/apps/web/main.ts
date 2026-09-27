@@ -278,7 +278,7 @@ canvas.addEventListener('pointermove',e=>{if(!placing||!scene)return;const g=sce
 function orderAtGround(x:number,y:number){
  if(selectedBuilding&&!selected.size){const b=state.buildings.find(b=>b.id===selectedBuilding);if(b?.complete&&Object.values(rules.production).includes(b.kind))void rally(b.id,x,y);else notice('這棟建築沒有集結點。');return;}
  void move(x,y);}
-canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed)return;
+canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed||!e.isPrimary)return;canvas.focus({preventScroll:true});
  if(placing){e.preventDefault();if(e.button!==0){stopPlacing('已取消放置。');return;}const g=scene.pickGround(e.clientX,e.clientY);if(g.x===undefined||g.y===undefined)return;
   const p=placeAt(placing,g.x,g.y);if(p.problem){notice(`不能放在這裡：${p.problem}`);return;}const k=placing;if(!e.shiftKey)stopPlacing();void build(k,p.x,p.y);return;}
  if(e.button===2&&state.outcome){e.preventDefault();notice('對局已結束：按「再開一局」開始新遊戲。');return;}
@@ -301,13 +301,17 @@ canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed)return;
   const r=resourceAt(hit.x,hit.y);if(r){scene.setMarker('gather',hit.x,hit.y);void gather(r.id);return;}void move(hit.x,hit.y);return;}
  if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId,box:false};canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;if(!drag.box&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>=4)drag.box=true;if(drag.box)showBox(drag.x,drag.y,e.clientX,e.clientY);});
-canvas.addEventListener('pointercancel',endDrag);
+canvas.addEventListener('pointercancel',endDrag);canvas.addEventListener('lostpointercapture',endDrag);
 canvas.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.id||!scene)return;const d=drag;endDrag();
  if(d.box){const own=new Set(ownUnits().map(u=>u.id)),ids=scene.unitsInRect(d.x,d.y,e.clientX,e.clientY).filter(id=>own.has(id));
   if(e.shiftKey)select([...selected,...ids]);else select(ids);notice(ids.length?`框選 ${ids.length} 名單位。對地面按右鍵下達移動。`:'框內沒有藍方單位。');return;}
  const hit=scene.pick(e.clientX,e.clientY);
  if(hit.unitId!==undefined){const unit=state.units.find(u=>u.id===hit.unitId);if(unit?.player===0){if(e.shiftKey)toggle(unit.id);else choose(unit.id);}else notice('紅方單位不可由藍方控制。');return;}
- // Touch has no right button: a tap on the ground moves the current selection instead of clearing it.
+ // Touch: inspect completed own buildings before interpreting a ground tap as an order.
+ // A selected worker can instead resume an unfinished site; production stays reachable after unit selection.
+ if(e.pointerType==='touch'){const g=scene.pickGround(e.clientX,e.clientY),roof=scene.pickBuilding(e.clientX,e.clientY);const site=g.x!==undefined&&g.y!==undefined?buildingAt(g.x,g.y,roof):roof?buildingAt(-1,-1,roof):undefined;
+  if(site){const own=state.buildings.find(b=>b.id===site.id);if(own&&!own.complete&&selected.size){void construct(own.id);return;}selectBuilding(site.id!);notice(`已選取${buildingNames[site.kind]}。`);return;}}
+ // Touch has no right button: a tap on empty ground moves the current selection instead of clearing it.
  if(e.pointerType==='touch'&&selected.size){const g=scene.pickGround(e.clientX,e.clientY);if(g.x!==undefined&&g.y!==undefined&&g.x>=.5&&g.x<=state.size-.5&&g.y>=.5&&g.y<=state.size-.5){const r=resourceAt(g.x,g.y);if(r)void gather(r.id);else void move(g.x,g.y);return;}}
  {const g=scene.pickGround(e.clientX,e.clientY),roof=scene.pickBuilding(e.clientX,e.clientY);const site=g.x!==undefined&&g.y!==undefined?buildingAt(g.x,g.y,roof):roof?buildingAt(-1,-1,roof):undefined;if(site&&!e.shiftKey&&e.pointerType!=='touch'){selectBuilding(site.id!);notice(`已選取${buildingNames[site.kind]}。`);return;}}
  if(!e.shiftKey&&selected.size){select([]);notice('已取消選取。移動指令請對地面按右鍵（觸控：選取後輕觸地面）。');}

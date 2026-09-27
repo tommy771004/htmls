@@ -258,7 +258,7 @@ const key = new THREE.DirectionalLight(0xffffff, 2.1); key.position.set(300, 500
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
 Object.assign(key.shadow.camera, { left: -320, right: 320, top: 320, bottom: -320, near: 1, far: 1400 });
-key.shadow.bias = -0.00015; key.shadow.normalBias = 0.35; key.shadow.radius = 3;
+key.shadow.bias = -0.00025; key.shadow.normalBias = 1.2; key.shadow.radius = 3;
 const fill = new THREE.DirectionalLight(0xffffff, 0.7); fill.position.set(-400, 150, -200); scene.add(fill);
 // LDraw 的 y 軸朝下：外層把整台車翻正；翻面步驟時把它轉回來
 // 翻面時繞車身中心高度（約 68 LDU）旋轉，車子留在畫面中間

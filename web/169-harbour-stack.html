@@ -6,7 +6,7 @@
 <title>港上疊樓 · HARBOUR STACK</title>
 <link rel="icon" href="../favicon.svg">
 <meta name="description" content="港上疊樓：一棟蓋在海上樁柱之間、越加越高的小樓。全程式建模的 Three.js 立體場景，水面有真實倒影，黃昏、白日、落雨、深夜四種天候，可環繞、上岸走甲板或駕船出海。">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}</script>
 <style>
 :root{
   --mist:rgba(224,234,232,.9);--mist-2:rgba(224,234,232,.66);--ink:#183a3b;--ink-2:#3c5f60;--dim:#6f8d8d;
@@ -18,6 +18,8 @@
 html,body{margin:0;height:100%;overflow:hidden}
 body{background:var(--sea);color:var(--ink);font:14px/1.6 "PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:grab}
+#gl:focus-visible{outline:2px solid #e3ecea;outline-offset:-4px}
+button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 #gl.dragging{cursor:grabbing}
 body.walk #gl,body.boat #gl{cursor:crosshair}
 
@@ -33,7 +35,7 @@ body.frame .ui{opacity:0;pointer-events:none;transform:translateY(6px)}
 .brand p b{font-weight:600;letter-spacing:.16em;color:var(--ink)}
 
 .tools{top:22px;right:22px;display:flex;padding:6px 8px 6px 14px;gap:2px}
-.tools button{font:inherit;font-size:13px;letter-spacing:.08em;color:var(--ink-2);background:none;border:0;padding:8px 12px;cursor:pointer;border-radius:3px;
+.tools button{min-height:44px;font:inherit;font-size:13px;letter-spacing:.08em;color:var(--ink-2);background:none;border:0;padding:8px 12px;cursor:pointer;border-radius:3px;
   transition:color var(--dur-hover) var(--ease-out),background-color var(--dur-hover) var(--ease-out)}
 .tools button:hover{color:var(--ink);background:rgba(24,58,59,.08)}
 .tools button[aria-pressed="true"]{color:#e3ecea;background:var(--ink)}
@@ -58,12 +60,12 @@ body.frame .gauge{transform:translateY(calc(-50% + 6px))}
 .view{padding:16px 26px 18px 22px;max-width:520px}
 .view .n{font-size:11px;letter-spacing:.3em;color:var(--dim);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:10px}
 .view .n .nav{display:inline-flex;gap:2px;margin-left:2px}
-.nav button{font:inherit;font-size:18px;line-height:1;color:var(--ink-2);background:none;border:0;width:26px;height:22px;cursor:pointer;border-radius:3px;transition:color var(--dur-hover),background-color var(--dur-hover)}
+.nav button{font:inherit;font-size:18px;line-height:1;color:var(--ink-2);background:none;border:0;width:44px;height:44px;cursor:pointer;border-radius:3px;transition:color var(--dur-hover),background-color var(--dur-hover)}
 .nav button:hover{color:var(--ink);background:rgba(24,58,59,.08)}
 .view h2{margin:4px 0 2px;font:400 32px/1.15 var(--kai);letter-spacing:.12em;color:var(--ink)}
 .view p{margin:0;font-size:13px;color:var(--ink-2);min-height:1.6em}
 .views{display:flex;gap:2px;margin:10px 0 0 -8px;flex-wrap:wrap}
-.views button{font:inherit;font-size:12px;letter-spacing:.1em;color:var(--dim);background:none;border:0;padding:4px 8px;cursor:pointer;border-radius:3px;font-variant-numeric:tabular-nums;transition:color var(--dur-hover)}
+.views button{min-height:44px;font:inherit;font-size:12px;letter-spacing:.1em;color:var(--dim);background:none;border:0;padding:4px 8px;cursor:pointer;border-radius:3px;font-variant-numeric:tabular-nums;transition:color var(--dur-hover)}
 .views button:hover{color:var(--ink)}
 .views button[aria-pressed="true"]{color:var(--ink);font-weight:600}
 .views button i{font-style:normal;font-size:10px;margin-right:4px;color:var(--dim)}
@@ -77,13 +79,14 @@ body.frame .gauge{transform:translateY(calc(-50% + 6px))}
 .wx-row{display:none}
 
 /* 取景模式的回程鍵 */
-#unframe{position:fixed;z-index:6;right:22px;bottom:22px;font:inherit;font-size:12px;letter-spacing:.14em;color:#e3ecea;background:rgba(24,58,59,.7);border:0;padding:10px 16px;cursor:pointer;opacity:0;pointer-events:none;transition:opacity var(--dur-enter) var(--ease-out);border-radius:3px}
+#unframe[hidden]{display:none}
+#unframe{min-height:44px;position:fixed;z-index:6;right:22px;bottom:22px;font:inherit;font-size:12px;letter-spacing:.14em;color:#e3ecea;background:rgba(24,58,59,.7);border:0;padding:10px 16px;cursor:pointer;opacity:0;pointer-events:none;transition:opacity var(--dur-enter) var(--ease-out);border-radius:3px}
 body.frame #unframe{opacity:1;pointer-events:auto}
 
 /* 觸控：搖桿與舵鍵 */
-#stick{position:fixed;z-index:6;left:26px;bottom:150px;width:120px;height:120px;border-radius:50%;background:rgba(224,234,232,.22);border:1px solid rgba(224,234,232,.45);display:none;touch-action:none}
+#stick{position:fixed;z-index:6;left:26px;bottom:var(--controls-bottom,150px);width:120px;height:120px;border-radius:50%;background:rgba(224,234,232,.22);border:1px solid rgba(224,234,232,.45);display:none;touch-action:none}
 #stick i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(224,234,232,.85)}
-#helm{position:fixed;z-index:6;left:50%;bottom:150px;transform:translateX(-50%);display:none;gap:8px}
+#helm{position:fixed;z-index:6;left:50%;bottom:var(--controls-bottom,150px);transform:translateX(-50%);display:none;gap:8px}
 #helm button{width:64px;height:54px;font:inherit;font-size:20px;color:var(--ink);background:rgba(224,234,232,.85);border:0;border-radius:4px;touch-action:none}
 #helm button:active{background:#fff}
 body.touch.walk:not(.frame) #stick{display:block}
@@ -92,7 +95,7 @@ body.touch.boat:not(.frame) #helm{display:flex}
 /* 說明 */
 #help{position:fixed;inset:0;z-index:8;display:none;align-items:center;justify-content:center;background:rgba(20,44,46,.55);padding:20px}
 #help.on{display:flex}
-#help .panel{max-width:440px;width:100%;padding:28px 34px 26px 30px}
+#help .panel{max-height:calc(100dvh - 40px);overflow:auto;max-width:440px;width:100%;padding:28px 34px 26px 30px}
 #help h3{margin:0 0 10px;font:400 24px/1.2 var(--kai);letter-spacing:.14em}
 #help dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:13px}
 #help dt{color:var(--ink);font-weight:600;letter-spacing:.14em;white-space:nowrap}
@@ -122,12 +125,15 @@ body.touch.boat:not(.frame) #helm{display:flex}
   .wx-row{display:flex;padding:6px;gap:2px}
   .wx-row button{flex:1;font:inherit;font-size:13px;letter-spacing:.12em;color:var(--ink-2);background:none;border:0;padding:9px 0;cursor:pointer;border-radius:3px}
   .wx-row button[aria-pressed="true"]{color:var(--ink);font-weight:600;background:rgba(24,58,59,.1)}
+  .wx-row button,.modes button{min-height:44px}
   .modes{padding:6px;gap:2px}
   .modes button{flex:1;padding:9px 0;font-size:13px;letter-spacing:.14em}
-  #stick{bottom:250px;left:16px;width:104px;height:104px}
-  #helm{bottom:250px}
+  #stick{bottom:var(--controls-bottom,280px);left:16px;width:104px;height:104px}
+  #helm{bottom:var(--controls-bottom,280px)}
   #unframe{right:14px;bottom:14px}
 }
+@media (max-width:360px){.brand p{display:none}.brand{padding:12px}.tools button{padding:8px 6px}}
+@media (max-height:540px){.brand{top:8px;left:8px;padding:8px 12px}.brand p{display:none}.tools{top:8px;right:8px}.bottom{bottom:8px;left:8px;right:8px;gap:4px}.view{padding:6px 12px}.view p,.views,.view h2{display:none}.wx-row,.modes{padding:2px}.bottom{flex-direction:row;align-items:flex-end}.bottom>*{flex:1}.gauge{top:90px;transform:none;padding:4px 8px;width:100px}.gauge .lab{display:none}#stick,#helm{bottom:var(--controls-bottom,80px)}}
 @media (prefers-reduced-motion:reduce){
   .ui,.gauge .rail i,.tools button,.modes button{transition:none}
 }
@@ -178,17 +184,17 @@ body.touch.boat:not(.frame) #helm{display:flex}
   </div>
 </div>
 
-<button id="unframe">顯示介面</button>
+<button id="unframe" hidden>顯示介面</button>
 <div id="stick" aria-hidden="true"><i></i></div>
-<div id="helm" aria-hidden="true"><button data-k="a">◀</button><button data-k="w">▲</button><button data-k="d">▶</button></div>
+<div id="helm" role="group" aria-label="船舵"><button data-k="a" aria-label="左舵">◀</button><button data-k="w" aria-label="前進">▲</button><button data-k="s" aria-label="倒車">▼</button><button data-k="d" aria-label="右舵">▶</button></div>
 
 <div id="help" role="dialog" aria-modal="true" aria-label="操作說明">
   <div class="panel">
     <h3>怎麼看這棟樓</h3>
     <dl>
-      <dt>環繞</dt><dd>拖曳轉動，滾輪或雙指縮放。按「漂流」它會自己慢慢轉。</dd>
-      <dt>上岸</dt><dd>站上甲板。W A S D 或方向鍵走路，拖曳畫面轉頭；手機用左下角的搖桿。</dd>
-      <dt>出海</dt><dd>接手那艘漁船。W／S 是油門，A／D 轉舵；手機用畫面下方三個鍵。樁柱撞不進去。</dd>
+      <dt>環繞</dt><dd>拖曳或選取畫面後按方向鍵轉動，滾輪、雙指或 ＋／－ 縮放，Home 回原稿。按「漂流」它會自己慢慢轉。</dd>
+      <dt>上岸</dt><dd>站上甲板。W A S D 或方向鍵走路，拖曳畫面或 Q／E 轉頭；手機用左下角的搖桿。</dd>
+      <dt>出海</dt><dd>接手那艘漁船。W／S 是油門，A／D 轉舵；手機用畫面下方四個鍵。樁柱撞不進去。</dd>
       <dt>視角</dt><dd>數字鍵 1 到 6 直接跳到六個預設視角，Esc 離開取景。</dd>
     </dl>
     <button id="bHelpClose">知道了</button>
@@ -291,12 +297,12 @@ const awningTex = tex(128, 64, (g, w, h) => {
 }, { repeat: [3, 1] });
 
 const M = (o) => new THREE.MeshStandardMaterial(o);
-const mConcrete = M({ map: concreteTex, roughness: .92, metalness: 0 });
+const mConcrete = M({ map: concreteTex, bumpMap: concreteTex, bumpScale: .025, roughness: .92, metalness: 0 });
 const mConcreteDark = M({ map: concreteTex, color: 0x8a9a97, roughness: .95 });
 const mYellow = M({ map: yellowTex, roughness: .85 });
 const mTeal = M({ map: tealTex, roughness: .9 });
-const mWood = M({ map: woodTex, roughness: .8 });
-const mTin = M({ map: tinTex, roughness: .6, metalness: .4 });
+const mWood = M({ map: woodTex, bumpMap: woodTex, bumpScale: .025, roughness: .8 });
+const mTin = M({ map: tinTex, bumpMap: tinTex, bumpScale: .035, roughness: .6, metalness: .4 });
 const mDeck = M({ map: deckTex, roughness: .95 });
 const mIron = M({ color: 0x2a3634, roughness: .55, metalness: .7 });
 const mRust = M({ color: 0x6e4a33, roughness: .9 });
@@ -863,7 +869,7 @@ function blendWeather(f) {
 
 // ---------- 視角 ----------
 const VIEWS = [
-  { t: '原稿', d: '畫稿上的那個角度：仰角三十度，轉四十六度半。', az: 46.5, el: 30, dist: 56, tg: [0.5, 10.5, 0] },
+  { t: '原稿', d: '畫稿上的那個角度：仰角三十度，轉四十六度半。', az: 46.5, el: 30, dist: 65, tg: [0.5, 10.5, 0] },
   { t: '屋頂', d: '水塔、天線，和一條掛到鐵塔上的彩旗。', az: 18, el: 46, dist: 22, tg: [-1.5, 17.5, -2] },
   { t: '店面', d: '海角食堂的燈籠，還有隔壁永遠亮著的雜貨店。', az: 8, el: 9, dist: 17, tg: [-2, 8.4, 3] },
   { t: '水線', d: '貼著水面看六根樁柱，倒影裡的燈比樓上多。', az: 62, el: 4, dist: 26, tg: [1, 3.6, 1] },
@@ -879,7 +885,7 @@ function setView(i, instant) {
   document.querySelectorAll('#views button').forEach((b, k) => b.setAttribute('aria-pressed', String(k === viewIdx)));
   let az = v.az * Math.PI / 180; while (az - orbit.az > Math.PI) az -= Math.PI * 2; while (az - orbit.az < -Math.PI) az += Math.PI * 2;
   orbit.dAz = az; orbit.dEl = v.el * Math.PI / 180; orbit.dDist = v.dist; orbit.dTg.set(v.tg[0], v.tg[1], v.tg[2]);
-  if (instant) { orbit.az = az; orbit.el = orbit.dEl; orbit.dist = v.dist; orbit.tg.copy(orbit.dTg); camK = 60; }
+  if (instant || reduced) { orbit.az = az; orbit.el = orbit.dEl; orbit.dist = v.dist; orbit.tg.copy(orbit.dTg); camK = 60; }
   if (mode !== 'orbit') setMode('orbit', instant);
 }
 VIEWS.forEach((v, i) => { const b = document.createElement('button'); b.innerHTML = `<i>${i + 1}</i>${v.t}`; b.setAttribute('aria-pressed', 'false'); b.addEventListener('click', () => setView(i)); $('views').appendChild(b); });
@@ -892,7 +898,8 @@ const boat = { x: 30, z: 6, h: -Math.PI / 2, v: 0, throttle: 0, steer: 0, wakeT:
 const lookCur = new THREE.Vector3(0, 9, 0), lookDes = new THREE.Vector3(), posDes = new THREE.Vector3();
 function setMode(m, instant) {
   if (m === mode && !instant) return;
-  mode = m; transT = instant ? 1 : 0; camK = instant ? 60 : 4;
+  clearInput();
+  mode = m; resize(); transT = instant ? 1 : 0; camK = instant ? 60 : 4;
   document.body.classList.toggle('walk', m === 'walk'); document.body.classList.toggle('boat', m === 'boat');
   document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
   if (m === 'boat') { boat.ai = false; boat.throttle = 0; boat.steer = 0; }
@@ -900,16 +907,28 @@ function setMode(m, instant) {
   if (m !== 'orbit') $('bDrift').setAttribute('aria-pressed', 'false'), drift = false;
   if (m === 'orbit') { orbit.az = Math.atan2(camera.position.x - orbit.tg.x, camera.position.z - orbit.tg.z); orbit.el = Math.max(.05, Math.asin(Math.min(1, (camera.position.y - orbit.tg.y) / Math.max(1, camera.position.distanceTo(orbit.tg))))); orbit.dist = Math.max(8, camera.position.distanceTo(orbit.tg)); }
 }
-function orbitPos() { const d = orbit.dist * THREE.MathUtils.clamp(.72 / camera.aspect, 1, 2); return new THREE.Vector3(orbit.tg.x + d * Math.sin(orbit.az) * Math.cos(orbit.el), orbit.tg.y + d * Math.sin(orbit.el), orbit.tg.z + d * Math.cos(orbit.az) * Math.cos(orbit.el)); }
+function orbitPos() { const d = orbit.dist * THREE.MathUtils.clamp(.72 / camera.aspect, 1, 3) * (innerWidth <= 760 && innerHeight > 540 && !document.body.classList.contains('frame') ? 1.12 : 1); return new THREE.Vector3(orbit.tg.x + d * Math.sin(orbit.az) * Math.cos(orbit.el), orbit.tg.y + d * Math.sin(orbit.el), orbit.tg.z + d * Math.cos(orbit.az) * Math.cos(orbit.el)); }
 document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 document.querySelectorAll('[data-wx]').forEach(b => b.addEventListener('click', () => setWeather(b.dataset.wx)));
 let drift = false;
 $('bDrift').addEventListener('click', () => { drift = !drift; $('bDrift').setAttribute('aria-pressed', String(drift)); if (drift && mode !== 'orbit') setMode('orbit'); });
-$('bFrame').addEventListener('click', () => document.body.classList.add('frame'));
-$('unframe').addEventListener('click', () => document.body.classList.remove('frame'));
-$('bHelp').addEventListener('click', () => { $('help').classList.add('on'); $('bHelpClose').focus(); });
-$('bHelpClose').addEventListener('click', () => $('help').classList.remove('on'));
-$('help').addEventListener('click', e => { if (e.target === $('help')) $('help').classList.remove('on'); });
+function setFrame(on) {
+  clearInput(); document.body.classList.toggle('frame', on);
+  document.querySelectorAll('.ui').forEach(el => el.inert = on);
+  $('unframe').hidden = !on; resize();
+  (on ? $('unframe') : $('bFrame')).focus();
+}
+function setHelp(on) {
+  clearInput(); $('help').classList.toggle('on', on);
+  document.querySelectorAll('.ui,#gl,#stick,#helm').forEach(el => el.inert = on || document.body.classList.contains('frame') && el.classList.contains('ui'));
+  $('unframe').inert = on;
+  (on ? $('bHelpClose') : $('bHelp')).focus();
+}
+$('bFrame').addEventListener('click', () => setFrame(true));
+$('unframe').addEventListener('click', () => setFrame(false));
+$('bHelp').addEventListener('click', () => setHelp(true));
+$('bHelpClose').addEventListener('click', () => setHelp(false));
+$('help').addEventListener('click', e => { if (e.target === $('help')) setHelp(false); });
 
 // ---------- 聲音 ----------
 let audio = null;
@@ -932,15 +951,27 @@ $('bSound').addEventListener('click', async () => {
 // ---------- 輸入 ----------
 const keys = new Set();
 addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
   const k = e.key.toLowerCase();
-  if (k === 'escape') { document.body.classList.remove('frame'); $('help').classList.remove('on'); }
-  if (/^[1-6]$/.test(k) && !e.metaKey && !e.ctrlKey) setView(+k - 1);
-  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) { keys.add(k); if (mode !== 'orbit') e.preventDefault(); }
+  if (k === 'escape') { if ($('help').classList.contains('on')) setHelp(false); else if (document.body.classList.contains('frame')) setFrame(false); return; }
+  if ($('help').classList.contains('on')) {
+    if (k === 'tab') { e.preventDefault(); $('bHelpClose').focus(); } return;
+  }
+  if (e.altKey || e.metaKey || e.ctrlKey || e.target.closest('button,input,select,textarea,[contenteditable="true"]')) return;
+  if (/^[1-6]$/.test(k)) { e.preventDefault(); setView(+k - 1); return; }
+  if (mode === 'orbit' && ['arrowleft','arrowright','arrowup','arrowdown','+','=','-','home'].includes(k)) {
+    e.preventDefault(); lastMove = performance.now();
+    if (k === 'home') setView(0);
+    else if (k === 'arrowleft' || k === 'arrowright') orbit.dAz += k === 'arrowleft' ? -.12 : .12;
+    else if (k === 'arrowup' || k === 'arrowdown') orbit.dEl = THREE.MathUtils.clamp(orbit.dEl + (k === 'arrowup' ? .08 : -.08), .03, 1.45);
+    else orbit.dDist = THREE.MathUtils.clamp(orbit.dDist * (k === '-' ? 1.1 : .9), 8, 95);
+    return;
+  }
+  if (mode === 'walk' && (k === 'q' || k === 'e')) { e.preventDefault(); walk.yaw += k === 'q' ? .12 : -.12; return; }
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k) && mode !== 'orbit') { keys.add(k); e.preventDefault(); }
 });
 addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 const ptrs = new Map(); let pinchD = 0, lastMove = 0;
-canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); canvas.classList.add('dragging'); canvas.focus({ preventScroll: true }); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); } });
+canvas.addEventListener('pointerdown', e => { if (e.button !== 0) return; canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); canvas.classList.add('dragging'); canvas.focus({ preventScroll: true }); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); } });
 canvas.addEventListener('pointermove', e => {
   const p = ptrs.get(e.pointerId); if (!p) return;
   const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; lastMove = performance.now();
@@ -949,17 +980,28 @@ canvas.addEventListener('pointermove', e => {
   else if (mode === 'walk') { walk.yaw -= dx * .004; walk.pitch = THREE.MathUtils.clamp(walk.pitch - dy * .003, -.9, .9); }
 });
 const endPtr = e => { ptrs.delete(e.pointerId); if (!ptrs.size) canvas.classList.remove('dragging'); pinchD = 0; };
-canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
+canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr); canvas.addEventListener('lostpointercapture', endPtr);
 canvas.addEventListener('wheel', e => { e.preventDefault(); if (mode === 'orbit') orbit.dDist = THREE.MathUtils.clamp(orbit.dDist * Math.exp(e.deltaY * .0012), 8, 95); }, { passive: false });
 // 搖桿
 const stick = $('stick'), knob = stick.firstElementChild, joy = { x: 0, y: 0, id: null };
-stick.addEventListener('pointerdown', e => { joy.id = e.pointerId; stick.setPointerCapture(e.pointerId); joyMove(e); });
+stick.addEventListener('pointerdown', e => { if (joy.id !== null || e.button !== 0) return; joy.id = e.pointerId; stick.setPointerCapture(e.pointerId); joyMove(e); });
 stick.addEventListener('pointermove', e => { if (e.pointerId === joy.id) joyMove(e); });
 const joyEnd = e => { if (e.pointerId === joy.id) { joy.id = null; joy.x = joy.y = 0; knob.style.transform = ''; } };
-stick.addEventListener('pointerup', joyEnd); stick.addEventListener('pointercancel', joyEnd);
+stick.addEventListener('pointerup', joyEnd); stick.addEventListener('pointercancel', joyEnd); stick.addEventListener('lostpointercapture', joyEnd);
 function joyMove(e) { const r = stick.getBoundingClientRect(); let x = (e.clientX - r.left - r.width / 2) / (r.width / 2), y = (e.clientY - r.top - r.height / 2) / (r.height / 2); const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; } joy.x = x; joy.y = y; knob.style.transform = `translate(${x * r.width * .3}px,${y * r.height * .3}px)`; }
 // 舵鍵
-document.querySelectorAll('#helm button').forEach(b => { const on = e => { e.preventDefault(); keys.add(b.dataset.k); }; const off = () => keys.delete(b.dataset.k); b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('pointerleave', off); });
+document.querySelectorAll('#helm button').forEach(b => {
+  const off = () => keys.delete(b.dataset.k);
+  b.addEventListener('pointerdown', e => { if (e.button !== 0) return; e.preventDefault(); b.focus(); b.setPointerCapture(e.pointerId); keys.add(b.dataset.k); });
+  for (const event of ['pointerup','pointercancel','lostpointercapture','blur']) b.addEventListener(event, off);
+  b.addEventListener('keydown', e => { if (e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); keys.add(b.dataset.k); } });
+  b.addEventListener('keyup', e => { if (e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); off(); } });
+});
+function clearInput() {
+  keys.clear(); ptrs.clear(); pinchD = 0; canvas.classList.remove('dragging');
+  joy.id = null; joy.x = joy.y = 0; knob.style.transform = '';
+}
+addEventListener('blur', clearInput);
 
 // ---------- 後製 ----------
 let composer = null, bloom = null;
@@ -970,14 +1012,21 @@ if (post) {
   composer.addPass(bloom); composer.addPass(new post.OutputPass());
 }
 function resize() {
-  const w = innerWidth, h = innerHeight; camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h);
+  const w = innerWidth, h = innerHeight; camera.aspect = w / h;
+  const bottomInset = h - document.querySelector('.bottom').getBoundingClientRect().top;
+  document.documentElement.style.setProperty('--controls-bottom', `${bottomInset + 16}px`);
+  if (w <= 760 && h > 540 && !document.body.classList.contains('frame')) {
+    const top = 90, bottom = h - document.querySelector('.bottom').getBoundingClientRect().top;
+    camera.setViewOffset(w, h, 0, (bottom - top) / 2, w, h);
+  } else camera.clearViewOffset();
+  camera.updateProjectionMatrix(); renderer.setSize(w, h);
   if (composer) composer.setSize(w, h); rainU.scale.value = h / (2 * Math.tan(camera.fov * Math.PI / 360));
 }
 addEventListener('resize', resize); resize();
 
 // ---------- 主迴圈 ----------
 let paused = false, time = 0, lastT = performance.now(), frameNo = 0;
-document.addEventListener('visibilitychange', () => { paused = document.hidden; if (!paused) lastT = performance.now(); });
+document.addEventListener('visibilitychange', () => { paused = document.hidden; clearInput(); if (!paused) lastT = performance.now(); });
 const tmpV = new THREE.Vector3();
 function inBlocked(x, z) { for (const b of blockAABB) if (x > b.x0 && x < b.x1 && z > b.z0 && z < b.z1) return true; return false; }
 function frame() {
@@ -986,7 +1035,7 @@ function frame() {
   const now = performance.now(); const dt = Math.min((now - lastT) / 1000, .05); lastT = now; time += dt;
   blendWeather(1 - Math.exp(-dt * 2.2));
   transT = Math.min(1, transT + dt / 1.3); camK = 4 + 56 * transT * transT;
-  const kf = 1 - Math.exp(-dt * camK);
+  const kf = reduced ? 1 : 1 - Math.exp(-dt * camK);
 
   // 船
   const fwd = { x: Math.sin(boat.h), z: Math.cos(boat.h) };
@@ -1021,7 +1070,7 @@ function frame() {
   // 相機
   if (mode === 'orbit') {
     if (drift && !reduced && performance.now() - lastMove > 1500 && !ptrs.size) orbit.dAz += dt * .06;
-    const k = 1 - Math.exp(-dt * 5);
+    const k = reduced ? 1 : 1 - Math.exp(-dt * 5);
     orbit.az += (orbit.dAz - orbit.az) * k; orbit.el += (orbit.dEl - orbit.el) * k; orbit.dist += (orbit.dDist - orbit.dist) * k; orbit.tg.lerp(orbit.dTg, k);
     posDes.copy(orbitPos()); lookDes.copy(orbit.tg);
     if (posDes.y < 1.2) posDes.y = 1.2;

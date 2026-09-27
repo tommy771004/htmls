@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f4ed">
+  <title>agent-office · A little room for big ideas</title>
+  <meta name="description" content="Three.js 卡通微縮辦公室：WASD 走動、與 agent 聊天派工、worker 指令進度與完成報告的互動原型。">
+  <link rel="stylesheet" href="assets/agent-office/office.css">
+  <script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js"}}</script>
+</head>
+<body>
+<svg class="svg-defs" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-issue" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v5m0 3v.1"/></symbol>
+<symbol id="i-pr" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v10m12 0V9c0-3-2-4-5-4m2-2-2 2 2 2"/></symbol>
+<symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1m-6 7v3m-3 0h6"/></symbol>
+<symbol id="i-screen" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4m-3-11 3-3 3 3m-3-3v6"/></symbol>
+<symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 7v10m0-4c8 0 12-2 12-6"/></symbol>
+</defs></svg>
+<header class="topbar">
+  <a class="brand" href="../index.html" aria-label="返回作品集"><span class="brand-mark">a<span>o</span></span><strong>agent-office<span class="brand-dot">.</span></strong></a>
+  <button id="repo-button" class="repo-button" title="設定工作區"><svg><use href="#i-branch"/></svg><span id="repo-name">studio / little-things</span><span class="chevron">⌄</span></button>
+  <nav aria-label="工作區工具">
+    <button id="issues-button"><svg><use href="#i-issue"/></svg>Issues <span class="count" id="issue-count">3</span></button>
+    <button id="prs-button"><svg><use href="#i-pr"/></svg>PRs <span class="count" id="pr-count">0</span></button>
+    <span class="nav-divider"></span>
+    <button id="voice-button"><svg><use href="#i-mic"/></svg><span>Join voice</span></button>
+    <button id="share-button"><svg><use href="#i-screen"/></svg><span>Share screen</span></button>
+  </nav>
+  <span class="avatar you-avatar" title="You">Y</span>
+</header>
+<main class="workspace">
+  <section class="office" aria-label="3D 辦公室">
+    <div class="room-heading"><div class="eyebrow"><span class="live-dot"></span> THE GOOD WORK ROOM</div><h1>Better, together.</h1><p>一人一張桌，把好點子一起做出來。</p></div>
+    <button class="mode-tag" id="about-button"><span class="live-dot amber"></span> 互動示範 <span>↗</span></button>
+    <div id="scene" tabindex="0" role="application" aria-label="3D 辦公室。WASD 或方向鍵走動，靠近同事按 T 聊天。亦可用右側成員按鈕開啟聊天。"><div id="scene-message">正在打開辦公室…</div></div>
+    <div id="nameplates" aria-hidden="true"></div>
+    <div class="scene-note"><span>01 / STUDIO FLOOR</span><span>Built for a little more flow.</span></div>
+    <div class="view-tools" aria-label="視角"><button id="zoom-in" aria-label="放大">＋</button><button id="zoom-out" aria-label="縮小">−</button><button id="reset-view" aria-label="重設視角">⌂</button></div>
+    <section id="completion" class="completion" aria-live="polite" hidden></section>
+    <div class="walk-hint" id="walk-hint"><span class="tiny-avatar">Y</span><span>走近一位同事，聊聊下一個點子。</span><kbd>T</kbd></div>
+    <div class="controls"><div class="key-guide"><kbd>W</kbd><span><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></div><span>走動</span><i></i><kbd>T</kbd><span>聊天派工</span><i></i><span class="control-extra">點同事也可以聊天</span></div>
+    <div class="touch-pad" aria-label="觸控方向鍵"><button data-move="w" aria-label="向前">↑</button><button data-move="a" aria-label="向左">←</button><button data-move="s" aria-label="向後">↓</button><button data-move="d" aria-label="向右">→</button></div>
+    <button id="mobile-team">同事與 workers <span>4</span></button>
+  </section>
+  <aside class="team-panel" id="team-panel" aria-label="成員與 workers">
+    <div class="panel-title"><h2>In the office <span>5</span></h2><span class="live-dot"></span><button id="close-team" aria-label="關閉成員面板">×</button></div>
+    <div class="self-row"><span class="avatar you-avatar">Y</span><div><strong>You <small>就是你</small></strong><p>讓好點子開始的人</p></div><span class="status-pill">在線</span></div>
+    <div class="section-label">YOUR TEAM <span>4 AGENTS</span></div>
+    <div id="members"></div>
+    <div class="worker-heading"><h2>Workers <span id="worker-count">0</span></h2><span>示範執行紀錄</span></div>
+    <div id="workers" aria-live="polite"></div>
+    <div class="desk-note"><span>✳</span><div><strong>A little space. A lot of possibility.</strong><p>任務交給同事，留點空間給靈感。</p></div></div>
+    <button class="invite-button" id="first-task">＋ 指派第一個任務</button>
+    <div class="local-note"><span class="live-dot"></span> Demo workspace <span>· 本機模擬</span></div>
+  </aside>
+</main>
+<footer class="activity-bar"><div><span class="activity-icon">↳</span><strong>Office activity</strong><span id="activity">辦公室準備好了。和同事打聲招呼吧。</span></div><span class="branch-label"><svg><use href="#i-branch"/></svg>main <span>·</span> local demo</span></footer>
+<div id="toast" role="status" hidden></div>
+<dialog id="dialog"><div class="dialog-top"><span class="eyebrow" id="dialog-eyebrow">AGENT OFFICE</span><button id="close-dialog" aria-label="關閉">×</button></div><div id="dialog-body"></div></dialog>
+<div id="share-preview" hidden><div>螢幕本機預覽 · 未傳送<button id="stop-share">停止分享</button></div><video autoplay muted playsinline></video></div>
+<script type="module" src="assets/agent-office/app.js"></script>
+</body></html>

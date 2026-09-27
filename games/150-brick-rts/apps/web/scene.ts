@@ -21,7 +21,7 @@ import {makeMap} from '../../packages/sim/navigation.ts';
 import {walkablePlatforms,obstacleBounds} from '../../packages/content/footprints.ts';
 import type {View} from '../../packages/sim/protocol.ts';
 import type {BuildKind} from '../../packages/sim/buildings.ts';
-export const brickStyle={studPitch:.5,plateHeight:.16,brickHeight:.32,bevel:.025,roughness:.72,provenance:'original_procedural'} as const;
+export const brickStyle={studPitch:.5,plateHeight:.16,brickHeight:.32,bevel:.025,roughness:.62,provenance:'original_procedural'} as const;
 // Farm: a 2x2 soil plate with crop rows (walkable in the sim). Foundations show bare soil and a corner stake.
 export function farmParts(progress:number,red?:boolean){const out:{x:number;y:number;z:number;w:number;d:number;h:number;color:string;studs:boolean}[]=[{x:0,y:0,z:0,w:2,d:2,h:.1,color:'#806b49',studs:false}];
  if(progress<100){out.push({x:.05,y:.1,z:.05,w:.08,d:.08,h:.4,color:red?'#b85c47':'#456e87',studs:false});return out;}
@@ -33,11 +33,11 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  if(!canvas.getContext('webgl2'))throw Error('此裝置無法建立 WebGL2，請使用支援 WebGL2 的瀏覽器。');
  let contextLost=false,previewLayout:MapLayout='meadow';
  const renderer=new T.WebGLRenderer({canvas,antialias:true,alpha:false});
- renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
- renderer.setClearColor('#d7e0cc');renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
+ renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFShadowMap;
+ renderer.setClearColor('#d7e0cc');renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
  const detail=createDetailController(T);
  const scene=new T.Scene();const camera=new T.OrthographicCamera(-12,12,10,-10,.1,100);
- const ambient=new T.HemisphereLight('#fff5dc','#819b75',2.4);scene.add(ambient);
+ const ambient=new T.HemisphereLight('#fff5dc','#819b75',2.1);scene.add(ambient);
  const sun=new T.DirectionalLight('#fff1d8',3);sun.position.set(-4,20,12);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14,near:1,far:60});sun.shadow.normalBias=.03;scene.add(sun);sun.target.position.set(8,0,8);scene.add(sun.target);
  const groundGeometries=new Set<any>();const geometry=new Map<string,any>(),materials=new Map<string,any>();
  function material(color:string){if(!materials.has(color))materials.set(color,new T.MeshStandardMaterial({color,roughness:brickStyle.roughness}));return materials.get(color);}

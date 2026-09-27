@@ -3,7 +3,7 @@
 :root{--plate:#2f3f38;--plate-edge:#1f2a25;--plate-stud:#3b4d45;--well:#26332d;--tile:#415349;--tile-edge:#27342e;--tile-hover:#4c6155;--cream:#efe6cf;--muted:#a9b4a4;--gold:#d8b45a;--blue:#456e87;--red:#b85c47;--hp:#6fa46a;--sky:#d7e0cc;--hud-h:184px;--top-h:46px}
 *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}body{background:var(--plate-edge);color:var(--cream);font:14px/1.45 system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.game{height:100dvh;display:grid;grid-template-rows:var(--top-h) minmax(0,1fr) var(--hud-h)}
+.game{height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:var(--top-h) minmax(0,1fr) var(--hud-h)}
 /* Top bar: a dark plate with one stud row along its lower edge. */
 .topbar{position:relative;display:flex;align-items:center;gap:18px;padding:0 14px;background:var(--plate);border-bottom:3px solid var(--plate-edge);z-index:3}
 .res{display:flex;align-items:center;gap:16px;min-width:0}.r{display:flex;align-items:center;gap:6px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.r img{width:26px;height:26px;object-fit:contain}.r b{min-width:3ch;font-weight:650}.r.full b{color:#f0a48f}.r[hidden]{display:none}
@@ -67,6 +67,9 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
  .mini-map{width:auto;flex:1;max-width:190px;min-height:110px}.mini-tools{gap:4px}.mini-tools button{width:30px;height:28px}
  #notice{font-size:12px}.feed{top:8px;left:10px;max-width:calc(100% - 20px)}#events{font-size:11.5px}#cmd-note{left:10px;bottom:8px;width:calc(100% - 20px);font-size:12px}.field{flex-direction:column}#debug{width:auto;height:40%;border-left:0;border-top:3px solid var(--plate-edge)}}
 @media (prefers-reduced-motion:reduce){#notice{transition:none}}
+
+@media(max-width:760px){:root{--top-h:88px}.bar-btn,#speed{height:44px;min-width:44px}.slots,#commands{grid-template-columns:repeat(5,44px);grid-template-rows:repeat(3,44px)}.tile{width:44px;height:44px}.mini{flex-direction:column;gap:4px}.mini-map{width:100%;min-height:52px;height:52px;max-width:none}.mini-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.mini-tools button{width:100%;height:44px}.mini-unit,.mini-more{width:44px;height:44px}}
+@media(max-width:365px){.res{gap:3px}.r{font-size:11px;gap:2px}.r img{width:16px;height:16px}.hud{grid-template-areas:"sel sel" "cmd cmd" "mini mini"}.cmd{justify-self:center}.mini{flex-direction:row}.mini-tools{grid-template-columns:repeat(4,44px)}.mini-map{min-width:60px}}
 </style></head><body>
 <div class="game" id="game">
 <header class="topbar">
@@ -83,7 +86,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
 </header>
 <main class="field">
  <div class="canvas-wrap">
-  <canvas id="map" aria-label="3D 戰場。左鍵選取或拖曳框選，右鍵地面移動、右鍵資源採集、右鍵紅方目標攻擊。"></canvas>
+  <canvas tabindex="0" id="map" aria-label="3D 戰場。左鍵選取或拖曳框選，右鍵地面移動、右鍵資源採集、右鍵紅方目標攻擊。"></canvas>
   <div id="select-box" hidden></div>
   <div class="feed"><p id="notice" class="overlay-text" role="status" aria-live="polite">載入戰場…</p><ol id="events" class="overlay-text" aria-live="polite" aria-label="事件"></ol></div>
   <div id="paused-banner" class="overlay-text" hidden>已暫停<span class="key-hint"> · F3 繼續</span></div>
@@ -160,4 +163,4 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
  <div class="menu-links"><a href="150-brick-rts-models.html">積木模型檢視</a><a href="../index.html#150">返回作品集</a></div>
 </div></div>
 <noscript>請啟用 JavaScript 才能遊玩。</noscript>
-<script type="module" src="./assets/150-brick-rts/main.js"></script><script>window.addEventListener('error',function(e){if(e.target&&e.target.tagName==='SCRIPT'){var box=document.getElementById('boot-error');box.hidden=false;box.textContent='模組載入失敗。請透過 HTTP 伺服器開啟，並確認已執行 npm run build。'}},true);</script></body></html>
+<script type="module" src="./assets/150-brick-rts/main.js?v=20260927-realism"></script><script>window.addEventListener('error',function(e){if(e.target&&e.target.tagName==='SCRIPT'){var box=document.getElementById('boot-error');box.hidden=false;box.textContent='模組載入失敗。請透過 HTTP 伺服器開啟，並確認已執行 npm run build。'}},true);</script></body></html>

@@ -112,6 +112,14 @@ body.pre .hud:not(#back),body.pre #stick{display:none}
 @media (prefers-reduced-motion:reduce){
   #caption,#travel,.ticket,.ticket .go{transition:none}
 }
+#place{padding:10px 14px;background:rgba(40,22,15,.65);border-radius:4px;max-width:min(480px,calc(100vw - 36px))}
+#place .sub{color:#ead5be}
+#sound,#back a{min-height:44px;display:flex;align-items:center}
+#sound{padding:8px;background:rgba(40,22,15,.6);border-radius:3px}
+#view:focus-visible{outline:2px solid var(--lime);outline-offset:-3px}
+#hint{max-width:calc(100vw - 190px);padding:6px 8px;background:rgba(40,22,15,.65);border-radius:3px}
+@media(max-width:640px){#place{top:112px;left:18px;padding:8px 10px}#place .deva{font-size:34px}#place .zh{font-size:16px}#place .sub{font-size:11px}#hint{max-width:calc(100vw - 150px);font-size:11px}}
+@media(max-height:500px){#intro{overflow:auto;align-content:start;padding-top:24px;padding-bottom:24px}}
 </style>
 </head>
 <body data-city="jaipur">
@@ -129,7 +137,7 @@ body.pre .hud:not(#back),body.pre #stick{display:none}
 </div>
 <div class="hud off" id="caption" aria-live="polite"><h2 id="cTitle"></h2><div class="en" id="cEn"></div><p id="cText"></p></div>
 <div class="hud" id="mapbox"><canvas id="map" width="300" height="300" aria-label="小地圖"></canvas><div id="tally">走訪 <b id="tN">0</b> / <span id="tAll">5</span></div></div>
-<div class="hud" id="hint"><kbd>W A S D</kbd> 行走 · <kbd>Shift</kbd> 快走 · 點畫面後移動滑鼠看四周 · <kbd>Esc</kbd> 放開滑鼠</div>
+<div class="hud" id="hint"><kbd>W A S D</kbd> 行走 · <kbd>Shift</kbd> 快走 · 點畫面或拖曳環視 · Q／E 轉頭 · <kbd>Esc</kbd> 放開滑鼠</div>
 <div id="stick" aria-hidden="true"><i></i></div>
 
 <section id="intro" aria-labelledby="introTitle">
@@ -404,6 +412,8 @@ function personGeos() {
   body.setAttribute('position', new T.Float32BufferAttribute(b.p, 3)); body.setAttribute('normal', new T.Float32BufferAttribute(b.n, 3)); body.setAttribute('uv', new T.Float32BufferAttribute(b.u, 2));
   const h = new Builder();
   h.geo(new T.SphereGeometry(.12, 10, 8), mtx(0, 1.55, 0), w);
+  h.geo(new T.SphereGeometry(.035,6,4),mtx(0,1.54,.115,0,.7,.8,1.2),w);
+  for(const side of [-1,1])h.geo(new T.SphereGeometry(.03,6,4),mtx(side*.118,1.54,0,0,.5,1,.8),w);
   h.geo(new T.SphereGeometry(.125, 10, 6, 0, TAU, 0, 1.4), mtx(0, 1.57, -.01), w);
   const head = new T.BufferGeometry();
   head.setAttribute('position', new T.Float32BufferAttribute(h.p, 3)); head.setAttribute('normal', new T.Float32BufferAttribute(h.n, 3)); head.setAttribute('uv', new T.Float32BufferAttribute(h.u, 2));
@@ -1263,7 +1273,7 @@ function updateTally() { const v = visited[city.id] || []; $('tN').textContent =
 // 換城：夜車過場
 let travelling = false;
 function travel(to) {
-  if (travelling || (city && city.id === to)) return; travelling = true;
+  if (travelling || (city && city.id === to)) return; travelling = true;clearInput();$('tools').inert=true;if(document.pointerLockElement)document.exitPointerLock();
   const from = city ? city.id : 'jaipur', name = { jaipur: '齋浦爾', varanasi: '瓦拉納西' };
   $('trTitle').textContent = '搭上往' + name[to] + '的夜車'; $('trSub').textContent = name[from] + ' → ' + name[to];
   const tr = $('travel'), dot = $('trDot'); tr.classList.add('on'); tr.setAttribute('aria-hidden', 'false');
@@ -1271,20 +1281,21 @@ function travel(to) {
   (function anim(now) { const f = Math.min(1, (now - t0) / dur); dot.setAttribute('cx', 4 + f * 352); if (f < 1) requestAnimationFrame(anim); })(t0);
   setTimeout(() => {
     try { applyCity(to); } catch (e) { console.warn(e); }
-    setTimeout(() => { tr.classList.remove('on'); tr.setAttribute('aria-hidden', 'true'); travelling = false; canvas.focus({ preventScroll: true }); }, Math.max(200, dur - 600));
+    setTimeout(() => { tr.classList.remove('on'); tr.setAttribute('aria-hidden', 'true'); travelling = false;$('tools').inert=false; canvas.focus({ preventScroll: true }); }, Math.max(200, dur - 600));
   }, 600);
 }
 
 // ---------- 輸入 ----------
 const keys = new Set(); let look = { dx: 0, dy: 0 }, stick = { x: 0, y: 0, id: null }, locked = false, dragging = false, lockFailed = false;
 addEventListener('keydown', e => {
-  if (e.target.closest && e.target.closest('button,a')) { if (e.code === 'Space' || e.code === 'Enter') return; }
+  if (e.ctrlKey||e.metaKey||e.altKey||travelling||!started||e.target.closest('button,a,input,select,textarea,[contenteditable]'))return;
   const k = e.code; if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'KeyQ', 'KeyE'].includes(k)) { keys.add(k); if (k.startsWith('Arrow')) e.preventDefault(); }
 });
 addEventListener('keyup', e => keys.delete(e.code));
-addEventListener('blur', () => keys.clear());
+function clearInput(){keys.clear();look.dx=look.dy=0;dragging=false;stick.x=stick.y=0;stick.id=null;touches.clear();knob.style.transform='';}
+addEventListener('blur',clearInput);document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();});
 canvas.addEventListener('mousedown', e => {
-  if (!started || isTouch) return;
+  if (!started || isTouch || travelling || e.button!==0) return;canvas.focus({preventScroll:true});
   if (!locked && !lockFailed && canvas.requestPointerLock) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => { lockFailed = true; }); } catch (err) { lockFailed = true; } }
   dragging = true;
 });
@@ -1295,14 +1306,16 @@ addEventListener('mousemove', e => { if (locked || (dragging && started)) { look
 // 觸控：左下搖桿走路，其他地方拖曳轉頭
 const stickEl = $('stick'), knob = stickEl.querySelector('i'), touches = new Map();
 function stickMove(t) { const r = stickEl.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let dx = (t.clientX - cx) / 48, dy = (t.clientY - cy) / 48; const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } stick.x = dx; stick.y = dy; knob.style.transform = `translate(${dx * 36}px,${dy * 36}px)`; }
-stickEl.addEventListener('touchstart', e => { e.preventDefault(); const t = e.changedTouches[0]; stick.id = t.identifier; stickMove(t); }, { passive: false });
-canvas.addEventListener('touchstart', e => { for (const t of e.changedTouches) touches.set(t.identifier, [t.clientX, t.clientY]); }, { passive: true });
+stickEl.addEventListener('touchstart', e => { e.preventDefault(); if(travelling||stick.id!==null)return;const t = e.changedTouches[0]; stick.id = t.identifier; stickMove(t); }, { passive: false });
+canvas.addEventListener('touchstart', e => {if(travelling)return; for (const t of e.changedTouches) touches.set(t.identifier, [t.clientX, t.clientY]); }, { passive: true });
 addEventListener('touchmove', e => {
+  if(travelling)return;
+  let handled=false;
   for (const t of e.changedTouches) {
-    if (t.identifier === stick.id) { stickMove(t); continue; }
-    const p = touches.get(t.identifier); if (p) { look.dx += (t.clientX - p[0]) * 1.6; look.dy += (t.clientY - p[1]) * 1.6; touches.set(t.identifier, [t.clientX, t.clientY]); }
+    if (t.identifier === stick.id) { handled=true;stickMove(t); continue; }
+    const p = touches.get(t.identifier); if (p) { handled=true;look.dx += (t.clientX - p[0]) * 1.6; look.dy += (t.clientY - p[1]) * 1.6; touches.set(t.identifier, [t.clientX, t.clientY]); }
   }
-  if (e.cancelable) e.preventDefault();
+  if (handled && e.cancelable) e.preventDefault();
 }, { passive: false });
 const endTouch = e => { for (const t of e.changedTouches) { if (t.identifier === stick.id) { stick.id = null; stick.x = stick.y = 0; knob.style.transform = ''; } touches.delete(t.identifier); } };
 addEventListener('touchend', endTouch); addEventListener('touchcancel', endTouch);
@@ -1387,7 +1400,7 @@ let last = performance.now(), T0 = last;
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000), t = (now - T0) / 1000; last = now;
   if (started && !travelling) movePlayer(dt);
-  else if (!started) { const ic = city.introCam; camera.position.set(ic.x, ic.y + city.world.heightAt(ic.x, ic.z), ic.z); camera.rotation.set(ic.pitch, ic.yaw + Math.sin(t * .12) * .25, 0); P.x = ic.x; P.z = ic.z; P.yaw = camera.rotation.y; }
+  else if (!started) { const ic = city.introCam; camera.position.set(ic.x, ic.y + city.world.heightAt(ic.x, ic.z), ic.z); camera.rotation.set(ic.pitch, ic.yaw + (reduced?0:Math.sin(t * .12) * .25), 0); P.x = ic.x; P.z = ic.z; P.yaw = camera.rotation.y; }
   city.update(dt, t, P, audio.ctx ? audio : null);
   const sun = city.sun; sun.position.set(P.x + city.sunDir.x * 160, P.y + city.sunDir.y * 160, P.z + city.sunDir.z * 160); sun.target.position.set(P.x, P.y, P.z);
   if (started) { landmarks(); audio.tick(dt, city.id, P); }
