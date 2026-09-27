@@ -425,12 +425,12 @@ const CARS = {
       nose:     { cat: 'body', n: '機首與單體殼', jp: 'ノーズ／モノコック', d: '白色機首一路延伸到車尾，下緣一道藍色飾帶；機首前端左右各一片黃色燈罩，正面看像一對眼睛。', l: ['機首前端壓在前翼中央', '前輪懸吊與座艙都裝在這個殼體上'] },
       canopy:   { cat: 'cockpit', n: '座艙罩', jp: 'キャノピー', d: '深藍色透明的長座艙罩。模型套件附透明與透明藍兩種，照片裡多半用透明藍。', l: ['座艙視角時會暫時隱藏'] },
       pods:     { cat: 'body', n: '側箱', jp: 'サイドポッド', d: '雙前輪後方的白色膠囊，下半部藍色，前端一圈淺藍色進氣口。', l: ['從正面看，進氣口就在前輪內側', '前代模型的 Lifting Turn 模式會換上露出升力風扇的側箱'] },
-      fwing:    { cat: 'aero', n: '前翼', jp: 'フロントウイング', d: '橫跨全寬的白色前翼，左右各一片往前收尖的藍色楔形刀片，頂面淺藍，比機首還往前伸。', l: ['刀片就在前輪正前方', '空力模式時刀片前移（本頁推測）'] },
-      fwheels:  { cat: 'run', n: '雙前輪', jp: 'ダブルフロントホイール', d: '每側兩只小徑前輪前後排列，全車共六輪；長長的黑色懸吊桿把前輪撐到車身外側。', l: ['前輪輪距很寬，幾乎和後輪一樣', '金色五輻輪框，胎側印白字'] },
+      fwing:    { cat: 'aero', n: '前翼／前段車殼', jp: 'フロントウイング', d: '賽道模式是橫跨全寬的白色前翼，左右各一片往前收尖的藍色楔形刀片。空力模式換成一整片白色折面車殼蓋住前輪上方，前緣呈 W 形，外側頂面是細長的黃色燈罩。', l: ['空力模式的刀片更長更高，下緣一圈藍色', '前緣兩側各有一片碳纖維散熱口'] },
+      fwheels:  { cat: 'run', n: '雙前輪與懸吊', jp: 'ダブルフロントホイール', d: '每側兩只小徑前輪前後排列，全車共六輪；上下兩組彎曲的碳纖維 A 臂把前輪撐到車身外側。', l: ['懸吊臂是扁平的碳纖維管，中段微微拱起', '金色五輻輪框，胎側印白字'] },
       rwheels:  { cat: 'run', n: '後輪', jp: 'リアタイヤ', d: '一對又寬又大的後輪，位置正好在推進艙下方。', l: ['胎寬接近輪胎直徑', '從正後方看，後輪整個露出來'] },
       rbody:    { cat: 'body', n: '後車體（橋形車殼）', jp: 'リアカウル', d: '一整片白色車殼：從座艙後方的引擎罩向左右伸出兩道寬臂，末端變成擋在後輪前方的立柱，底下是空的。', l: ['寬臂上印著 NET WORKS，後緣是一道藍色帶', '立柱外側印紅色 1，下緣藍色，後方接一片白色尾鰭', '車尾中央是兩片落地的白色垂直板，中間一道紅帶'] },
-      nacelles: { cat: 'run', n: '推進艙', jp: 'ブースター', d: '寬臂末端上方的兩具推進艙：前段是藍色圓頂，後段紅色，尾端銀色噴嘴，外側三道白色箭頭。', l: ['推進艙直徑和後輪差不多'] },
-      fanwings: { cat: 'aero', n: '後扇翼', jp: 'スタビライザーウイング', d: '架在推進艙上方的兩片藍色長翼，往後掠、往外伸，頂面印黃色 SUNSET。', l: ['兩翼翼尖的寬度接近 4 公尺，是全車最寬處', '空力模式時仰角加大（本頁推測）'] },
+      nacelles: { cat: 'run', n: '推進艙', jp: 'ブースター', d: '寬臂末端上方的兩具推進艙：前段是藍色水滴形整流罩，後段紅色，尾端銀色噴嘴，外側三道白色箭頭。', l: ['推進艙直徑和後輪差不多', '空力模式時尾端上揚'] },
+      fanwings: { cat: 'aero', n: '後翼', jp: 'スタビライザーウイング', d: '賽道模式是架在推進艙上方的兩片藍色長翼，往後掠、往外伸，頂面印黃色 SUNSET。空力模式收起長翼，改由推進艙之間一道淺藍弧形翼，上面立兩片白色小鰭。', l: ['賽道模式兩翼翼尖寬度接近 4 公尺，是全車最寬處', '空力模式車尾外角另有兩片藍色垂直鰭'] },
       ai:       { cat: 'ai', n: '阿斯拉 AI 單元', jp: 'ASURADA', d: '儀表台上的黑色球體：四顆青綠鏡頭排成十字，外圈一道細綠環，左右各一片紅色弧形燈翼。', l: ['官方公開的座艙特寫，就是從駕駛位看它', '燈翼的三段紅燈依序亮起'] },
       wheel:    { cat: 'cockpit', n: '方向盤', jp: 'ステアリング', d: '同一張座艙特寫裡，方向盤中央有紅、藍、綠三顆旋鈕，旁邊一根紅頭撥桿。', l: ['三顆旋鈕各有一條白色刻線'] },
       driver:   { cat: 'cockpit', n: '風見隼人', jp: 'CV 金丸淳一', d: '新作裡的車手仍是風見隼人，由金丸淳一再度配音。他半躺在座艙裡，雙手握著方向盤。', l: ['白色頭盔加紅藍條紋，深色面罩', '藍色賽車服'] },
@@ -474,7 +474,7 @@ const PAL = {
 };
 /* 分解方向（依零件代號，z 乘上左右） */
 const EXPLODE = {
-  nose: [1.1, .1, 0], canopy: [0, .9, 0], driver: [0, 1.3, 0], tub: [0, -.4, 0], pods: [0, 0, .7], fwing: [.9, -.05, .3], fwheels: [.2, 0, .9], rwheels: [0, 0, 1.1],
+  nose: [1.1, .1, 0], canopy: [0, .9, 0], driver: [0, 1.3, 0], carbon: [0, 0, 0], tub: [0, -.4, 0], pods: [0, 0, .7], fwing: [.9, -.05, .3], fwheels: [.2, 0, .9], rwheels: [0, 0, 1.1],
   rbody: [0, 0, .45], nacelles: [-.5, .35, .45], fanwings: [-.2, .75, .35], marks: [0, 0, .45], fangs: [.45, .25, .6], splitter: [.8, -.2, 0],
   fins: [-.2, .4, .4], rwing: [-.6, .7, 0]
 };
@@ -486,18 +486,27 @@ function setupCar(key, root) {
     const pc = { obj, p0: obj.position.clone(), r0: obj.rotation.clone(),
       p1: o.p1 ? obj.position.clone().add(o.p1) : obj.position.clone(),
       r1: o.r1 ? new THREE.Euler(obj.rotation.x + o.r1[0], obj.rotation.y + o.r1[1], obj.rotation.z + o.r1[2]) : obj.rotation.clone(),
-      ex: o.ex || V(0, 0, 0), spin: o.spin || null };
+      ex: o.ex || V(0, 0, 0), spin: o.spin || null, mode: o.mode || 0, mOff: o.mOff || null };
     p.pieces.push(pc);
     obj.traverse(m => { if (m.isMesh && !m.userData.part) m.userData.part = id; });
     return obj;
   };
   /* 材質：依名稱換成亮面烤漆材質 */
   const glass = new THREE.MeshPhysicalMaterial({ color: PAL.glass, roughness: .04, metalness: 0, transparent: true, opacity: .46, clearcoat: 1, clearcoatRoughness: .03, depthWrite: false });
+  /* 碳纖維：以物件座標畫出斜紋編織 */
+  const carbon = new THREE.MeshPhysicalMaterial({ color: 0x5b5f66, roughness: .34, metalness: .2, clearcoat: .8, clearcoatRoughness: .18 });
+  carbon.onBeforeCompile = sh => {
+    sh.vertexShader = 'varying vec3 vCP;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvCP = position;');
+    sh.fragmentShader = 'varying vec3 vCP;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      vec3 q = vCP * 90.;
+      float wv = step(.5, fract((q.x + q.y + q.z) * .5)) * step(.5, fract((q.x - q.y + q.z) * .25));
+      diffuseColor.rgb *= mix(.62, 1.18, wv);`);
+  };
   const SPEC = { gold: { r: .28, m: 1, cc: 0 }, silver: { r: .22, m: 1, cc: 0 }, black: { r: .78, m: 0, cc: 0 }, grey: { r: .4, m: .6, cc: 0 } };
   root.traverse(m => {
     if (!m.isMesh) return;
     const n = (m.material && m.material.name) || 'white';
-    m.material = n === 'glass' ? glass : n === 'yellow' ? new THREE.MeshPhysicalMaterial({ color: PAL.yellow, roughness: .08, transparent: true, opacity: .88, clearcoat: 1, emissive: 0x6b3a00, emissiveIntensity: .35 })
+    m.material = n === 'glass' ? glass : n === 'carbon' ? carbon : n === 'yellow' ? new THREE.MeshPhysicalMaterial({ color: PAL.yellow, roughness: .08, transparent: true, opacity: .88, clearcoat: 1, emissive: 0x6b3a00, emissiveIntensity: .35 })
       : toon(PAL[n] ?? PAL.white, 0, 1, SPEC[n] || {});
     m.castShadow = n !== 'glass'; m.receiveShadow = true;
     if (n === 'glass') m.userData.lineFill = 'glass';
@@ -514,8 +523,12 @@ function setupCar(key, root) {
     if (id === 'fwheels' || id === 'rwheels') {
       if (!/susp/.test(obj.name)) o.spin = [[obj, id === 'fwheels' ? .235 : .33]];
     }
-    if (Z && id === 'fanwings') { o.p1 = V(0, .1, 0); o.r1 = [s * .22, 0, -.16]; }
-    if (Z && id === 'fwing' && /blade/.test(obj.name)) o.p1 = V(.16, 0, 0);
+    /* 空力模式：名稱含 __aero 的零件只在空力模式出現；前翼、扇翼等賽道零件收起；推進艙尾端上揚 */
+    if (Z) {
+      if (/__aero/.test(obj.name)) { o.mode = 1; o.mOff = /^fwing/.test(obj.name) ? V(.25, .55, 0) : V(0, .5, 0); }
+      else if (/^fanwings_|^fwing__(plane|edge|blade|bladetop)|^marks__(pulse|fw1)/.test(obj.name)) { o.mode = -1; o.mOff = /^fanwings/.test(obj.name) ? V(0, .45, s * .3) : V(.2, -.25, 0); }
+      if (/^nacelles_(L|R)$/.test(obj.name)) o.r1 = [0, 0, -.16];
+    }
     if (id === 'marks') obj.traverse(m => { if (m.isMesh) { m.userData.noHull = true; m.userData.lineFill = 'ink'; } });
     piece(id, obj, o);
   }
@@ -955,7 +968,7 @@ function fillCard(id) {
   $('cJp').textContent = p.jp;
   $('cDesc').textContent = p.d;
   $('cList').innerHTML = (p.l || []).map(t => `<li>${t}</li>`).join('');
-  const hasAero = cur().def.modes && p.pieces.some(pc => !pc.p0.equals(pc.p1) || !pc.r0.equals(pc.r1));
+  const hasAero = cur().def.modes && p.pieces.some(pc => pc.mode || !pc.p0.equals(pc.p1) || !pc.r0.equals(pc.r1));
   $('cMode').textContent = hasAero ? (st.aeroTo ? '目前：空力模式姿態' : '這個零件在空力模式會改變姿態') : '';
   $('cPin').textContent = st.pinned === id ? '已釘選 · 點空白處取消' : '點擊釘選';
 }
@@ -1121,6 +1134,11 @@ function frame(now) {
   for (const id in c.parts) for (const pc of c.parts[id].pieces) {
     const a = st.aero;
     pc.obj.position.lerpVectors(pc.p0, pc.p1, a).addScaledVector(pc.ex, ease(clamp(st.split, 0, 1)));
+    if (pc.mode) {
+      const f = pc.mode > 0 ? 1 - a : a;
+      pc.obj.position.addScaledVector(pc.mOff, ease(f));
+      pc.obj.visible = pc.mode > 0 ? a > .03 : a < .97;
+    }
     eul.set(lerp(pc.r0.x, pc.r1.x, a), lerp(pc.r0.y, pc.r1.y, a), lerp(pc.r0.z, pc.r1.z, a));
     pc.obj.rotation.copy(eul);
   }

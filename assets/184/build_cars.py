@@ -192,7 +192,7 @@ import os, sys
 
 PAL.update({
   'white': (0.90, 0.91, 0.92), 'blue': (0.03, 0.14, 0.62), 'lblue': (0.05, 0.42, 0.85), 'red': (0.75, 0.03, 0.04),
-  'gold': (0.62, 0.40, 0.15), 'glass': (0.05, 0.12, 0.6), 'yellow': (0.95, 0.62, 0.02), 'black': (0.012, 0.012, 0.014),
+  'carbon': (0.09, 0.095, 0.1), 'gold': (0.62, 0.40, 0.15), 'glass': (0.05, 0.12, 0.6), 'yellow': (0.95, 0.62, 0.02), 'black': (0.012, 0.012, 0.014),
 })
 
 RX, RR, RW, RZ = -1.68, .33, .56, 1.27        # rear wheels
@@ -240,6 +240,26 @@ def wheel2(name, r, w, loc, side, root, rim='gold'):
   ob = join(name, obs)
   ob.location = P(*loc); ob.parent = root
   return ob
+
+def arm_tube(name, a, b, bow, rw, rh, mat, n=12, seg=10):
+  """flattened tube along a quadratic curve from a to b, mid-point pushed by `bow`; slightly fatter at the ends"""
+  a, b = Vector(a), Vector(b); c = (a + b) / 2 + Vector(bow)
+  rings = []
+  for i in range(n + 1):
+    t = i / n; p = (1 - t) ** 2 * a + 2 * (1 - t) * t * c + t * t * b
+    d = (2 * (1 - t) * (c - a) + 2 * t * (b - c)).normalized()
+    side = d.cross(Vector((0, 1, 0)))
+    if side.length < 1e-4: side = Vector((1, 0, 0))
+    side.normalize(); up = side.cross(d).normalized()
+    k = 1 + .35 * abs(2 * t - 1) ** 3
+    rings.append([tuple(p + side * math.cos(j / seg * math.tau) * rw * k + up * math.sin(j / seg * math.tau) * rh * k) for j in range(seg)])
+  return loft(name, rings, mat, lv=1)
+
+def wishbone(pre, up_pt, inner_front, inner_rear, rw, rh):
+  """A-arm: two curved carbon tubes meeting at the upright"""
+  u = Vector(up_pt)
+  return [arm_tube(pre, u, Vector(inner_front), (0, .03, 0), rw, rh, 'carbon'),
+          arm_tube(pre, u, Vector(inner_rear), (0, .03, 0), rw, rh, 'carbon')]
 
 def rod_between(name, a, b, r, mat):
   a, b = Vector(a), Vector(b); d = b - a
@@ -307,12 +327,17 @@ def build(root, Z):
     # ---------------- front suspension ----------------
     rods = []
     for x in FXS:
-      for dy, dx in ((.07, .16), (.07, -.16), (-.06, .13), (-.06, -.14)):
-        rods.append(rod_between('rod', (x + dx * .15, FR + dy, s * (FZ - .12)), (x + dx, .3 + dy * .6, s * .3), .012, 'black'))
-      rods.append(cyl('up', .07, .1, 'grey', loc=(x, FR, s * (FZ - .12)), axis='z', verts=14))
+      zu = s * (FZ - .15)
+      rods += wishbone('fa', (x, FR + .07, zu), (x + .19, .4, s * .3), (x - .19, .4, s * .3), .042, .012)
+      rods += wishbone('fa', (x, FR - .07, zu), (x + .16, .24, s * .3), (x - .16, .24, s * .3), .038, .011)
+      rods.append(arm_tube('push', (x + .02, FR - .06, zu), (x - .05, .5, s * .28), (0, .02, 0), .014, .014, 'carbon'))
+      rods.append(cyl('up', .075, .1, 'grey', loc=(x, FR, s * (FZ - .13)), axis='z', verts=20))
     join(f'fwheels__susp_{sd}', rods, parent=R)
-    # rear suspension rods (visible from behind)
-    rods = [rod_between('rr', (RX + dx, RR + dy, s * (RZ - .26)), (RX + dx * 2, .3 + dy, s * .3), .014, 'black') for dx, dy in ((.12, .08), (-.12, .08), (.1, -.1), (-.1, -.1))]
+    rods = []
+    zu = s * (RZ - .3)
+    rods += wishbone('ra', (RX, RR + .09, zu), (RX + .26, .52, s * .32), (RX - .22, .52, s * .32), .032, .016)
+    rods += wishbone('ra', (RX, RR - .09, zu), (RX + .22, .26, s * .32), (RX - .2, .26, s * .32), .03, .015)
+    rods.append(cyl('rup', .09, .12, 'grey', loc=(RX, RR, s * (RZ - .31)), axis='z', verts=20))
     join(f'rwheels__susp_{sd}', rods, parent=R)
     # ---------------- wheels ----------------
     for i, x in enumerate(FXS): wheel2(f'fwheels_{sd}{i}', FR, FW, (x, FR, s * FZ), s, R, 'gold' if Z else 'silver')
@@ -338,6 +363,45 @@ def build(root, Z):
       loft(f'fwing__bladetop_{sd}', mirror(rows, s), 'lblue', lv=1, parent=R)
       text_up(f'marks__pulse_{sd}', 'PULSE', AB, .16, 'blue', (1.7, .15, s * .5), yaw=math.radians(90), parent=R)
     text_up('marks__fw1', '1', TB, .18, 'red', (1.62, .15, -.02), yaw=math.radians(90), parent=R)
+    # ======== aero mode (エアロモード): parts named "__aero" appear only in aero mode ========
+    for s, sd in ((1, 'L'), (-1, 'R')):
+      # front cover half: faceted white shell over the front wheels; front edge recedes toward the nose (W planform)
+      def cring(x, zi, zo, yb, yt):
+        # flat faceted section: steep outer wall, broad top plane with a crease, inner wall down to the nose
+        zr = zi + (zo - zi) * .38
+        return [(x, yb, zi), (x, yb, zo), (x, yt - .07, zo), (x, yt - .015, zo - .1), (x, yt, zr), (x, yt - .03, zi)]
+      st = [(2.44, .86, .98, .04, .08), (2.3, .64, 1.06, .04, .19), (2.12, .42, 1.11, .04, .3), (1.96, .22, 1.13, .05, .37), (1.8, .24, 1.15, .05, .43),
+            (1.45, .27, 1.16, .07, .5), (1.1, .28, 1.16, .1, .53), (.86, .3, 1.12, .14, .52), (.72, .4, 1.0, .24, .47)]
+      cv = loft(f'fwing__aero_cover_{sd}', mirror([cring(*r) for r in st], s), 'white', lv=0, parent=R)
+      for pl in cv.data.polygons: pl.use_smooth = False
+      bv = cv.modifiers.new('bv', 'BEVEL'); bv.width = .012; bv.segments = 2; bv.limit_method = 'ANGLE'
+      # blue lower skirt along the whole cover
+      bb = [[(x, yb - .005, zi + .01), (x, yb - .005, zo + .015), (x, yb + .09, zo + .03), (x, yb + .09, zi + .01)] for x, zi, zo, yb, yt in st[1:]]
+      loft(f'fwing__aero_skirt_{sd}', mirror(bb, s), 'blue', lv=1, parent=R)
+      # outer forward blade (longer and taller than the circuit one)
+      bl = [(2.66, .006, .03, .06), (2.4, .07, .02, .16), (2.0, .1, .02, .3), (1.6, .12, .03, .42), (1.12, .1, .06, .48), (.9, .05, .1, .44)]
+      rows = [[(x, b, 1.17 - w), (x, b, 1.17 + w), (x, t, 1.17 + w * .6), (x, t + .02, 1.17), (x, t, 1.17 - w * .6)] for x, w, b, t in bl]
+      loft(f'fwing__aero_blade_{sd}', mirror(rows, s), 'blue', lv=1, parent=R, creases={0: 1, 1: 1, 2: .7, 4: .7})
+      rows = [[(x, t - .002, 1.17 - w * .62), (x, t - .002, 1.17 + w * .62), (x, t + .03, 1.17 + w * .4), (x, t + .036, 1.17), (x, t + .03, 1.17 - w * .4)] for x, w, b, t in bl[1:]]
+      loft(f'fwing__aero_bladetop_{sd}', mirror(rows, s), 'lblue', lv=1, parent=R)
+      # long yellow lens on the outer top of the cover
+      loft(f'fwing__aero_lens_{sd}', [se_ring(x, y, w, .022, 2, s * .98, 14) for x, y, w in [(1.95, .425, .01), (1.82, .455, .07), (1.55, .5, .1), (1.28, .52, .08), (1.16, .525, .01)]], 'yellow', parent=R)
+      # carbon vents on the front slope
+      vx = [(2.22, .7), (2.22, .95), (2.08, 1.0), (2.08, .6)]
+      mesh_from(f'fwing__aero_vent_{sd}', [(x, .08 + (2.44 - x) * .72 + .012, s * z) for x, z in vx] + [(x, .08 + (2.44 - x) * .72 - .01, s * z) for x, z in vx],
+                [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)], 'carbon', smooth=False, parent=R)
+      # outer vertical fins at the tail corners
+      slab(f'rbody__aero_fin_{sd}', [(-1.95, .78), (-2.46, .78), (-2.62, 1.3), (-2.5, 1.32), (-2.2, 1.0)], .03, 'blue', z=s * 1.56, bevel=.01, parent=R)
+    text_up('marks__aero_one', '1', TB, .3, 'red', (1.5, .53, -.72), yaw=math.radians(90), parent=R)
+    # light-blue arched wing between the nacelles, with two small white fins
+    rows = []
+    for k in range(13):
+      z = -1.0 + k / 6
+      xc = -2.02 - .1 * (1 - z * z); yc = .97 + .02 * (1 - z * z)
+      rows.append([(xc + .12, yc, z), (xc + .02, yc + .03, z), (xc - .12, yc + .015, z), (xc - .12, yc - .005, z), (xc + .02, yc - .012, z)])
+    loft('fanwings__aero_arch', rows, 'lblue', lv=1, parent=R)
+    for z in (-.32, .32):
+      slab('fanwings__aero_fin', [(-1.98, .98), (-2.2, .98), (-2.26, 1.16), (-2.18, 1.16)], .02, 'white', z=z, bevel=.006, parent=R)
   else:
     for s, sd in ((1, 'L'), (-1, 'R')):
       rows = [[(x, b, z - w), (x, b, z + w), (x, t, z + w * .7), (x, t + .015, z), (x, t, z - w * .7)] for x, w, b, t, z in
@@ -359,7 +423,10 @@ def build(root, Z):
       for k in range(3):
         xc = -2.0 - k * .13
         pts = [(xc + .07, 1.01), (xc - .03, .9), (xc + .07, .79), (xc + .03, .79), (xc - .07, .9), (xc + .03, 1.01)]
-        slab(f'marks__chev_{sd}{k}', pts, .02, 'white', z=s * (1.15 + .283), parent=R)
+        slab(f'nacchev_{sd}{k}', pts, .02, 'white', z=s * (1.15 + .283), parent=R)
+      nac = [o for o in list(COL.objects) if o.parent == R and (o.name.startswith(f'nacelles__') and not o.name.startswith('nacelles__base') and o.name.endswith(sd) or o.name.startswith(f'nacchev_{sd}'))]
+      for o in nac: o.parent = None
+      join(f'nacelles_{sd}', nac, parent=R, origin=(-1.55, .9, cz))
       # fan wing: swept blade above the nacelle, rising outward
       w = [(-1.0, s * .5), (-1.52, s * .5), (-2.32, s * 1.95), (-1.82, s * 1.95)]
       fw = flat(f'fw_{sd}', w, .034, 'blue', y=0, bevel=.014)
