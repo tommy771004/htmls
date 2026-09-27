@@ -13,7 +13,7 @@
 - 編輯便條後，在跟進清單及重新載入後仍可讀到相同內容；改期與完成狀態同樣保留。
 - 房源清單與房源詳情可開啟；Escape 關閉預約抽屜並回到原觸發按鈕。
 - App 分頁顯示 104 件；理財商務分類加上 TourNote 搜尋，只顯示新增作品；縮圖成功載入，內嵌 iframe 顯示帶看行程。
-- 新頁面 Chrome error/warn 記錄為空；Node JavaScript 語法檢查、sitemap XML 與唯一性、App 區段註冊與索引連結檢查通過；`git diff --check` 通過。
+- 新頁面 Chrome error/warn 記錄為空；Node JavaScript 語法檢查、sitemap XML 與唯一性、App 區段註冊與索引連結檢查通過；新增頁面與報告的 whitespace 檢查通過。全工作區初次 `git diff --check` 通過；最後檢查時，其他並行工作在 index.html 的預覽函式加入三處尾端空白，未改動該部分。
 - 靜態檢查確認沒有外部腳本、圖片、字型或 fetch／XHR／WebSocket 依賴。
 
 ## 修正與界線
