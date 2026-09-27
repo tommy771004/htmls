@@ -1288,7 +1288,7 @@ async function bootViewer() {
   const key = new THREE.DirectionalLight('#ffffff', 2.4); key.position.set(2.2, 4.2, 2.6);
   key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
   Object.assign(key.shadow.camera, { left: -1.3, right: 1.3, top: 1.3, bottom: -1.3, near: 0.5, far: 10 });
-  key.shadow.radius = 4; key.shadow.bias = -0.0002; key.shadow.normalBias = 0.02;
+  key.shadow.radius = 4; key.shadow.bias = -0.0002; key.shadow.normalBias = 0.003;
   const rim = new THREE.DirectionalLight('#e8f0ff', 1.2); rim.position.set(-3, 2.2, -2.4);
   scene.add(key, rim, new THREE.HemisphereLight('#ffffff', '#b8b0a4', 0.35));
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.ShadowMaterial({ opacity: 0.2 }));
@@ -1499,6 +1499,7 @@ async function bootViewer() {
   }
   let down = null, hoverT = 0;
   renderer.domElement.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
+  for (const event of ['pointercancel', 'lostpointercapture']) renderer.domElement.addEventListener(event, () => { down = null; tip.classList.remove('on'); });
   renderer.domElement.addEventListener('pointerup', (e) => {
     if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) { const p = pick(e); if (p) showPart(p); }
     down = null;

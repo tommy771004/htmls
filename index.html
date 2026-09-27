@@ -420,7 +420,7 @@ footer.site .keys span{display:inline-flex;align-items:center;gap:5px}
 .pv-tools .favlabel{display:none}
 @media (min-width:480px){.pv-tools .favlabel{display:inline}}
 @media (max-width:1023px){.pv-head{flex-wrap:wrap}.pv-title{flex:1 1 100%}.pv-tools{width:100%;justify-content:flex-end}}
-.pv-stage{flex:1;min-height:0;display:flex;justify-content:center;align-items:center;overflow:hidden;perspective:1400px}
+.pv-stage{flex:1;min-height:0;display:flex;justify-content:center;align-items:center;overflow:hidden;perspective:2800px}
 @media (min-width:640px){.pv-stage{padding:0 20px}}
 .bezel{position:relative;flex:none;width:100%;height:100%;background:var(--surface);overflow:hidden;transform-origin:center;box-sizing:content-box;border:0 solid #202124}
 @media (min-width:640px){.bezel{border-radius:16px;box-shadow:var(--frame-shadow)}}
@@ -428,12 +428,15 @@ footer.site .keys span{display:inline-flex;align-items:center;gap:5px}
 .bezel.book-fold{overflow:visible;transform-style:preserve-3d;background:transparent;border-color:transparent;box-shadow:none}
 .duo-base,.duo-cover,.duo-shadow,.duo-spine{display:none;position:absolute;pointer-events:none;box-sizing:border-box}
 .book-fold .duo-base,.book-fold .duo-cover,.book-fold .duo-shadow,.book-fold .duo-spine{display:block}
-.duo-base,.duo-cover{top:-7px;bottom:-7px;left:50%;width:calc(50% + 7px);border-radius:6px 32px 32px 6px}
-.duo-base{border:7px solid #202124;background:#0b0c0e;box-shadow:0 0 0 1px #929497,3px 2px 0 #08090a,0 20px 28px #0004}
-.duo-cover{transform-origin:0 50%;transform-style:preserve-3d}
+.book-preparing .duo-base,.book-preparing .duo-cover{display:block;visibility:hidden}
+.duo-base,.duo-cover{top:-7px;bottom:-7px;left:calc(50% - 7px);width:calc(50% + 14px);border-radius:6px 32px 32px 6px}
+.duo-base{overflow:hidden;border:7px solid #202124;background:#0b0c0e;box-shadow:0 0 0 1px #929497,3px 2px 0 #08090a,0 20px 28px #0004}
+.duo-cover{transform-origin:7px 50%;transform-style:preserve-3d}
 .duo-cover::before,.duo-cover::after{content:"";position:absolute;inset:0;backface-visibility:hidden;border:7px solid #252628;border-radius:inherit;background:linear-gradient(100deg,#252729,#0b0c0e 26%,#151719 88%,#45474a);box-shadow:0 0 0 1px #939599,2px 0 0 #070809,4px 0 0 #646669}
 .duo-cover::before{transform:translateZ(3px)}
 .duo-cover::after{transform:rotateY(180deg) translateZ(3px);border-radius:32px 6px 6px 32px;box-shadow:0 0 0 1px #939599,-2px 0 0 #070809,-4px 0 0 #646669}
+.duo-back{position:absolute;inset:7px;overflow:hidden;border-radius:25px 0 0 25px;backface-visibility:visible;transform:rotateY(180deg) translateZ(4px)}
+.bezel .duo-mirror{position:absolute;top:0;bottom:auto;right:auto;border:0;pointer-events:none;background:#fff}
 .duo-shadow{left:50%;top:0;bottom:0;width:50%;border-radius:0 25px 25px 0;background:linear-gradient(90deg,#000c,#0007 36%,transparent);transform-origin:left center;transform:translateZ(1px)}
 .duo-spine{top:-6px;bottom:-6px;left:calc(50% - 3px);width:6px;border-radius:3px;background:linear-gradient(90deg,#030405,#73777b 42%,#151719 75%,#000);transform:translateZ(2px);box-shadow:0 0 7px #0008}
 .book-fold #pvFrame{transform-origin:0 50%;backface-visibility:hidden;pointer-events:none}
@@ -892,7 +895,7 @@ html:not(.js) .mast-acts,html:not(.js) .mast .theme,html:not(.js) .kinds,html:no
       <iframe id="pvFrame" title="作品預覽" allow="fullscreen; clipboard-write; autoplay"></iframe>
       <div class="duo-base" id="duoBase" aria-hidden="true"></div>
       <div class="duo-shadow" id="duoShadow" aria-hidden="true"></div>
-      <div class="duo-cover" id="duoCover" aria-hidden="true"></div>
+      <div class="duo-cover" id="duoCover" aria-hidden="true"><div class="duo-back" id="duoBack"></div></div>
       <div class="duo-spine" id="duoSpine" aria-hidden="true"></div>
       <div class="loading" id="pvLoading">載入中…</div>
     </div>
@@ -1187,6 +1190,7 @@ function step(d){
 }
 // 同一個 iframe 隨機身寬度重排，切換時不重載作品或複製遊戲／影音。
 var DEV_W = {tablet:768, mobile:390}, bezelAnim = null, foldAnimations = [], bookFoldActive = false;
+var bookGeneration = 0, bookPending = false, bookLoadCancels = [];
 var reduceDeviceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 function deviceGeometry(d, projectedWidth){
   var stage = $('bezel').parentNode, cs = getComputedStyle(stage);
@@ -1200,27 +1204,119 @@ function deviceGeometry(d, projectedWidth){
     borderRadius:(d === 'mobile' ? 38 : d === 'tablet' ? 26 : 16)+'px',
     transform:'scale('+scale+') rotateY(0deg)'};
 }
+function captureBookDocument(){
+  var frame = $('pvFrame'), doc = frame.contentDocument;
+  if (!doc || !doc.body) throw new Error('Preview is not available');
+  var root = doc.documentElement.cloneNode(true);
+  var sources = [doc.documentElement].concat(Array.from(doc.documentElement.querySelectorAll('*')));
+  var copies = [root].concat(Array.from(root.querySelectorAll('*'))), scrolls = [];
+  sources.forEach(function(source, i){
+    var copy = copies[i], tag = source.tagName;
+    copy.removeAttribute('autofocus');
+    Array.from(copy.attributes).forEach(function(a){ if (/^on/i.test(a.name)) copy.removeAttribute(a.name); });
+    if (tag === 'INPUT') { copy.setAttribute('value', source.value); copy.toggleAttribute('checked', source.checked); }
+    if (tag === 'TEXTAREA') copy.textContent = source.value;
+    if (tag === 'OPTION') copy.toggleAttribute('selected', source.selected);
+    if (source.scrollTop || source.scrollLeft) {
+      copy.setAttribute('data-duo-scroll', scrolls.length);
+      scrolls.push([source.scrollLeft, source.scrollTop]);
+    }
+    // Canvas/WebGL 轉成停格圖片，鏡像文件不執行任何遊戲或影音程式。
+    if (tag === 'CANVAS' || tag === 'VIDEO') {
+      var canvas = source;
+      if (tag === 'VIDEO') {
+        canvas = doc.createElement('canvas'); canvas.width = source.videoWidth; canvas.height = source.videoHeight;
+        if (canvas.width && canvas.height) canvas.getContext('2d').drawImage(source, 0, 0);
+      }
+      var image = doc.createElement('img'), style = doc.defaultView.getComputedStyle(source);
+      try { image.src = canvas.toDataURL(); }
+      catch (e) { if (source.poster) image.src = source.poster; else throw e; }
+      Array.from(copy.attributes).forEach(function(a){ if (a.name !== 'src') image.setAttribute(a.name, a.value); });
+      Array.from(style).forEach(function(key){ image.style.setProperty(key, style.getPropertyValue(key)); });
+      if (Math.abs(source.getBoundingClientRect().width - source.parentElement.getBoundingClientRect().width) < 2) image.style.width = '100%';
+      image.style.objectFit = 'fill'; copy.replaceWith(image); copies[i] = image;
+    }
+  });
+  // CSS / WAAPI 已經走到的視覺狀態也要保留，避免鏡像重播入場動畫。
+  doc.getAnimations().forEach(function(animation){
+    var target = animation.effect && animation.effect.target, i = sources.indexOf(target);
+    if (i < 0) return;
+    var style = doc.defaultView.getComputedStyle(target);
+    animation.effect.getKeyframes().forEach(function(keyframe){ Object.keys(keyframe).forEach(function(key){
+      if (!/^(offset|computedOffset|easing|composite)$/.test(key)) copies[i].style.setProperty(key.replace(/[A-Z]/g, function(c){ return '-'+c.toLowerCase(); }), style[key], 'important');
+    }); });
+  });
+  root.querySelectorAll('script,iframe,object,embed,audio,base,meta[http-equiv],link[rel="preload"],link[rel="modulepreload"],link[rel="prefetch"]').forEach(function(el){ el.remove(); });
+  var base = doc.createElement('base'); base.href = doc.baseURI; root.querySelector('head').prepend(base);
+  var frozen = doc.createElement('style');
+  frozen.textContent = 'html{scroll-behavior:auto!important}*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}';
+  root.querySelector('head').append(frozen);
+  return {html:'<!doctype html>'+root.outerHTML,scrolls:scrolls,x:doc.defaultView.scrollX,y:doc.defaultView.scrollY};
+}
+function prepareBookScreens(generation){
+  $('bezel').classList.add('book-preparing');
+  // 在作品自己的繪製回合後擷取，WebGL 的繪圖緩衝區此時仍有效。
+  return new Promise(function(resolve, reject){
+    var win = $('pvFrame').contentWindow, timer, raf;
+    var cancel = function(){ clearTimeout(timer); win.cancelAnimationFrame(raf); reject(new Error('Fold cancelled')); };
+    bookLoadCancels.push(cancel);
+    raf = win.requestAnimationFrame(function(){ clearTimeout(timer); resolve(); });
+    timer = setTimeout(cancel, 800);
+  }).then(function(){
+    if (generation !== bookGeneration) throw new Error('Fold superseded');
+    var snapshot = captureBookDocument(), height = parseFloat(deviceGeometry('tablet').height);
+    return Promise.all(['duoBack','duoBase'].map(function(id, side){ return new Promise(function(resolve, reject){
+      var mirror = document.createElement('iframe'), timer;
+      mirror.className = 'duo-mirror'; mirror.title = '摺疊畫面停格'; mirror.tabIndex = -1; mirror.inert = true; mirror.setAttribute('aria-hidden','true');
+      // 允許父頁設定捲動位置；不允許 scripts、表單、彈窗或自動播放。
+      mirror.setAttribute('sandbox','allow-same-origin');
+      mirror.style.cssText = 'width:768px;height:'+height+'px;left:'+(side ? -384 : 0)+'px';
+      function cancel(){ clearTimeout(timer); mirror.onload = null; reject(new Error('Fold cancelled')); }
+      bookLoadCancels.push(cancel);
+      mirror.onload = function(){
+        clearTimeout(timer); mirror.onload = null;
+        try {
+          mirror.contentWindow.scrollTo(snapshot.x, snapshot.y);
+          mirror.contentDocument.querySelectorAll('[data-duo-scroll]').forEach(function(el){
+            var pos = snapshot.scrolls[Number(el.getAttribute('data-duo-scroll'))]; el.scrollLeft = pos[0]; el.scrollTop = pos[1];
+          });
+          resolve();
+        } catch (e) { reject(e); }
+      };
+      timer = setTimeout(function(){ mirror.onload = null; reject(new Error('Fold snapshot timed out')); }, 800);
+      mirror.srcdoc = snapshot.html; $(id).append(mirror);
+    }); }));
+  });
+}
 function stopDeviceAnimation(){
+  bookGeneration++; bookPending = false;
+  bookLoadCancels.forEach(function(cancel){ cancel(); }); bookLoadCancels = [];
   if (bezelAnim) { bezelAnim.onfinish = null; bezelAnim.cancel(); bezelAnim = null; }
   foldAnimations.forEach(function(a){ a.cancel(); }); foldAnimations = [];
-  bookFoldActive = false; $('bezel').classList.remove('book-fold');
+  bookFoldActive = false; $('bezel').classList.remove('book-fold','book-preparing');
+  document.querySelectorAll('.duo-mirror').forEach(function(frame){ frame.remove(); });
 }
 function foldDevice(expanding){
   var b = $('bezel'), stage = b.parentNode, cs = getComputedStyle(stage);
   var roomW = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   var roomH = stage.clientHeight, h = parseFloat(deviceGeometry('tablet').height);
+  var perspective = parseFloat(cs.perspective) || 2800;
   var half = DEV_W.tablet / 2, frames = [], covers = [], shadows = [], spines = [], bases = [], screens = [];
-  // 一本書：右頁固定，書封由右向左翻過 180°。真實 iframe 先隨書封轉動，
-  // 越過側面而不可見時才換成內螢幕尺寸；不複製內容、不重載或重新掛載 iframe。
+  // 一本書：右頁固定，左頁由右向左翻過 180°。內側使用禁止腳本的停格鏡像；
+  // 真實 iframe 先隨外螢幕轉動，越過側面後換成內螢幕，不重載或重新掛載。
   for (var i = 0; i <= 40; i++) {
     var t = i / 40, angle = 180 * t, radians = angle * Math.PI / 180;
-    var spread = Math.max(0, -Math.cos(radians));
+    var depthScale = 1 / (1 - half * Math.sin(radians) / perspective);
+    var spread = Math.max(0, -Math.cos(radians)) * depthScale;
     var visibleW = half * (1 + spread), center = half * (1 - spread) / 2;
-    var compensation = 1 + (DEV_W.mobile / half - 1) * (1 - spread);
-    var scale = Math.min(compensation, roomW / (visibleW + 14), roomH / (h + 14));
-    var reveal = Math.max(0, Math.min(1, (t - .78) / .22));
+    var compensation = 1 + (DEV_W.mobile / half - 1) * Math.max(0, 1 - spread);
+    // 半開時保留透視凸出與投影的空間，端點仍使用完整可用寬度。
+    var clearance = Math.sin(radians);
+    var scale = Math.min(1, Math.max(1, roomW - 36 * clearance) / (visibleW * compensation + 14),
+      Math.max(1, roomH - 20 * clearance) / ((h + 14) * depthScale));
+    var reveal = Math.max(0, Math.min(1, (t - .9) / .1));
     frames.push({offset:t,width:DEV_W.tablet+'px',height:h+'px',borderWidth:'7px',borderRadius:'0px',
-      transform:'scale('+scale+') translateX('+(-center)+'px)',boxShadow:'none'});
+      transform:'scale('+(scale * compensation)+','+scale+') translateX('+(-center)+'px)',boxShadow:'none'});
     covers.push({offset:t,transform:'rotateY('+(-angle)+'deg)',opacity:1-reveal});
     bases.push({offset:t,opacity:1-reveal});
     var shadow = Math.sin(radians);
@@ -1229,15 +1325,15 @@ function foldDevice(expanding){
     spines.push({offset:t,opacity:(.35 + shadow * .65) * (1-reveal)});
     // 外螢幕以 390px 渲染，僅在不可見的換面點切成 768px 內螢幕。
     if (t <= .5) screens.push({offset:t,width:DEV_W.mobile+'px',height:h+'px',left:half+'px',
-      borderRadius:'24px',opacity:t < .5 ? 1 : 0,
+      borderRadius:'24px',opacity:t < .5 ? 1 : 0,filter:'brightness('+(1 - Math.sin(radians) * .38)+') blur('+(Math.sin(radians) * .65)+'px)',
       transform:'rotateY('+(-angle)+'deg) translateZ(8px) scaleX('+(half / DEV_W.mobile)+')'});
     else screens.push({offset:t,width:DEV_W.tablet+'px',height:h+'px',left:'0px',
-      borderRadius:'19px',opacity:reveal,transform:'translateZ(8px)'});
+      borderRadius:'19px',opacity:reveal,filter:'none',transform:'translateZ(8px)'});
   }
   // 換面必須離散發生，避免不可見期間仍讓重排跨過許多中間斷點。
   screens.splice(21, 0, {offset:.5001,width:DEV_W.tablet+'px',height:h+'px',left:'0px',
-    borderRadius:'19px',opacity:0,transform:'translateZ(8px)'});
-  b.classList.add('book-fold'); bookFoldActive = true;
+    borderRadius:'19px',opacity:0,filter:'none',transform:'translateZ(8px)'});
+  b.classList.remove('book-preparing'); b.classList.add('book-fold'); bookFoldActive = true;
   var timing = {duration:1100,easing:'cubic-bezier(.32,0,.22,1)',direction:expanding ? 'normal' : 'reverse'};
   [['duoCover',covers],['duoBase',bases],['duoShadow',shadows],['duoSpine',spines],['pvFrame',screens]].forEach(function(pair){
     foldAnimations.push($(pair[0]).animate(pair[1], timing));
@@ -1252,21 +1348,30 @@ function setDevice(d, immediate){
   b.classList.toggle('tablet', d === 'tablet'); b.classList.toggle('mobile', d === 'mobile');
   document.querySelectorAll('[data-dev]').forEach(function(x){ x.setAttribute('aria-pressed', x.getAttribute('data-dev') === d); });
   var to = deviceGeometry(d);
-  Object.keys(to).forEach(function(key){ b.style[key] = to[key]; });
+  var apply = function(){ Object.keys(to).forEach(function(key){ b.style[key] = to[key]; }); };
   // 連點同一尺寸不重播；反向點擊從當前書封角度直接倒播。
   if (bookFoldActive && !immediate && d !== 'desktop' && !reduceDeviceMotion.matches) {
+    apply();
     if (previous !== d) { bezelAnim.reverse(); foldAnimations.forEach(function(a){ a.reverse(); }); }
     return;
   }
+  if (bookPending && previous === d && !immediate) return;
   stopDeviceAnimation();
-  if (immediate || previous === d || !b.animate || reduceDeviceMotion.matches) return;
+  if (immediate || previous === d || !b.animate || reduceDeviceMotion.matches) { apply(); return; }
   var currentWidth = parseFloat(from.width);
   var canFold = previous !== 'desktop' && d !== 'desktop'
     && Math.abs(currentWidth - DEV_W[previous]) < 1
     && Math.abs(parseFloat(from.height) - parseFloat(to.height)) < 1;
-  bezelAnim = canFold ? foldDevice(d === 'tablet')
-    : b.animate([from, to], {duration:680, easing:'cubic-bezier(.22,1,.36,1)'});
-  bezelAnim.onfinish = stopDeviceAnimation;
+  function flatTransition(){ apply(); bezelAnim = b.animate([from, to], {duration:680, easing:'cubic-bezier(.22,1,.36,1)'}); bezelAnim.onfinish = stopDeviceAnimation; }
+  if (!canFold) { flatTransition(); return; }
+  var generation = bookGeneration; bookPending = true;
+  prepareBookScreens(generation).then(function(){
+    if (generation !== bookGeneration) return;
+    bookPending = false; apply(); bezelAnim = foldDevice(d === 'tablet'); bezelAnim.onfinish = stopDeviceAnimation;
+  }).catch(function(){
+    if (generation !== bookGeneration) return;
+    stopDeviceAnimation(); flatTransition();
+  });
 }
 // 工具列換行、視窗旋轉與重新開啟預覽後，重新計算可用空間。
 if (window.ResizeObserver) new ResizeObserver(function(){

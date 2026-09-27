@@ -86,11 +86,11 @@ try{THREE=await import(location.protocol==='file:'?'https://cdn.jsdelivr.net/npm
 if(THREE){
   try{
     renderer=new THREE.WebGLRenderer({canvas:$('chipCanvas'),alpha:true,antialias:!mobile,powerPreference:'high-performance'});
-    renderer.setClearColor(0x000000,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.75;renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.25:1.75));
-    scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(34,1,.1,100);rig=new THREE.Group();scene.add(rig);
+    renderer.setClearColor(0x000000,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.25:1.75));
+    scene=new THREE.Scene();const {createStudioEnvironment}=await import('./assets/3d/studio.js');const studioEnvironment=createStudioEnvironment(THREE,renderer);scene.environment=studioEnvironment.texture;scene.environmentIntensity=.65;camera=new THREE.PerspectiveCamera(34,1,.1,100);rig=new THREE.Group();scene.add(rig);
     scene.add(new THREE.AmbientLight(0x9dc9e0,1.75));const key=new THREE.DirectionalLight(0xb7edff,3.8);key.position.set(-2,5,8);scene.add(key);const rim=new THREE.PointLight(0x38bbf7,65,24);rim.position.set(4,-2,3);scene.add(rim);const rear=new THREE.PointLight(0xa4a8ff,28,20);rear.position.set(-4,2,-4);scene.add(rear);
     const glass=new THREE.MeshPhysicalMaterial({color:0x9bd7e8,metalness:.08,roughness:.16,transparent:true,opacity:.18,depthWrite:false,side:THREE.DoubleSide,clearcoat:1,clearcoatRoughness:.08});
-    const edge=new THREE.MeshStandardMaterial({color:0xb7e9f3,metalness:.74,roughness:.18,emissive:0x2a687b,emissiveIntensity:.55});
+    const edge=new THREE.MeshStandardMaterial({color:0xb7e9f3,metalness:.74,roughness:.18,emissive:0x2a687b,emissiveIntensity:.2});
     const dark=new THREE.MeshStandardMaterial({color:0x102938,metalness:.68,roughness:.25});
     const mid=new THREE.MeshStandardMaterial({color:0x254c5e,metalness:.66,roughness:.28});
     const silver=new THREE.MeshStandardMaterial({color:0xa8c7d5,metalness:.85,roughness:.16});

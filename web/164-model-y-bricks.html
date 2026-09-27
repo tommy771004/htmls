@@ -148,6 +148,9 @@ footer.colophon a { color: var(--ink) }
 @media (prefers-reduced-motion: reduce) {
   .flipmark, .ticks i, details.steps summary .chev { transition: none }
 }
+.hint button{font:inherit;color:var(--ink-2);border:1px solid var(--rule);background:var(--paper);padding:7px 12px;border-radius:5px;min-height:36px;cursor:pointer;margin-bottom:8px}
+#stage:focus-visible{outline:2px solid var(--mark);outline-offset:-3px}
+@media(max-width:860px){.hint{display:block;top:auto;bottom:72px;font-size:0;line-height:0}.hint button{min-height:44px;font-size:12px;line-height:1.4;margin:0}}
 </style>
 </head>
 <body>
@@ -169,7 +172,7 @@ footer.colophon a { color: var(--ink) }
         <div class="callout cover" id="callout"><div><b>1:30　116 片</b>用 LEGO 現行零件拼出的特斯拉 Model Y。按下一步，從底板開始組。</div></div>
         <svg class="flipmark" id="flipmark" viewBox="0 0 120 84" aria-label="翻面：從車底往上裝" role="img"><path d="M18 58h84l-6-14H70l-10-12H40l-12 12H22z" fill="none" stroke="#1d1d1b" stroke-width="5" stroke-linejoin="round"/><circle cx="36" cy="62" r="7" fill="#1d1d1b"/><circle cx="84" cy="62" r="7" fill="#1d1d1b"/><path d="M26 22a40 26 0 0 1 68 0" fill="none" stroke="#e8590c" stroke-width="6" stroke-linecap="round"/><path d="M86 9l10 14-17 2" fill="none" stroke="#e8590c" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <p class="hint">拖曳旋轉、滾輪縮放<br>← → 翻頁</p>
+      <p class="hint"><button id="resetView" type="button">重設視角</button><br>拖曳旋轉、滾輪縮放<br>← → 翻頁</p>
       <p class="step-title" id="stepTitle">完成圖</p>
       <div class="pager">
         <button id="prev" aria-label="上一步"><svg viewBox="0 0 18 18"><path d="M11.5 3.5 6 9l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -227,6 +230,7 @@ footer.colophon a { color: var(--ink) }
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createStudioEnvironment, bindOrbitKeyboard } from './assets/3d/studio.js';
 import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const BASE = '../assets/model-y-bricks/';
@@ -242,9 +246,19 @@ const canvas = $('stage');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 const scene = new THREE.Scene();
-scene.add(new THREE.HemisphereLight(0xffffff, 0x8d8a84, 1.35));
+const studioEnvironment = createStudioEnvironment(THREE, renderer);
+scene.environment = studioEnvironment.texture;
+scene.environmentIntensity = 0.7;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8d8a84, 0.65));
 const key = new THREE.DirectionalLight(0xffffff, 2.1); key.position.set(300, 500, 420); scene.add(key);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+Object.assign(key.shadow.camera, { left: -320, right: 320, top: 320, bottom: -320, near: 1, far: 1400 });
+key.shadow.bias = -0.00015; key.shadow.normalBias = 0.35; key.shadow.radius = 3;
 const fill = new THREE.DirectionalLight(0xffffff, 0.7); fill.position.set(-400, 150, -200); scene.add(fill);
 // LDraw 的 y 軸朝下：外層把整台車翻正；翻面步驟時把它轉回來
 // 翻面時繞車身中心高度（約 68 LDU）旋轉，車子留在畫面中間
@@ -255,7 +269,7 @@ const EDGE = { 0: '#7b8087', 256: '#6a6e74' };
 const mats = new Map(), geos = new Map(), lines = new Map();
 const edgeMat = new Map();
 function mat(c) {
-  if (!mats.has(c)) { const [hex, a] = DISPLAY[c] || ['#888', 1]; mats.set(c, new THREE.MeshStandardMaterial({ color: hex, roughness: .42, side: THREE.DoubleSide, transparent: a < 1, opacity: a, depthWrite: a >= 1, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 })); }
+  if (!mats.has(c)) { const [hex, a] = DISPLAY[c] || ['#888', 1]; mats.set(c, new THREE.MeshPhysicalMaterial({ color: hex, roughness: c === 256 ? .86 : a < 1 ? .16 : .3, clearcoat: c === 256 ? 0 : .35, clearcoatRoughness: .24, side: THREE.DoubleSide, transparent: a < 1, opacity: a, depthWrite: a >= 1, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 })); }
   return mats.get(c);
 }
 function emat(c, hl) {
@@ -272,7 +286,7 @@ const objs = mesh.parts.map((p) => {
     const k = p.f + '|' + ck;
     if (!geos.has(k)) { let bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); geos.set(k, toCreasedNormals(bg, .6)); }
     const c = ck === '16' ? p.c : +ck;
-    const mm = new THREE.Mesh(geos.get(k), mat(c)); mm.renderOrder = (DISPLAY[c]?.[1] ?? 1) < 1 ? 2 : 0; grp.add(mm);
+    const mm = new THREE.Mesh(geos.get(k), mat(c)); mm.castShadow = c !== 47 && c !== 36; mm.receiveShadow = true; mm.renderOrder = (DISPLAY[c]?.[1] ?? 1) < 1 ? 2 : 0; grp.add(mm);
   }
   if (!lines.has(p.f)) { const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(g.lines, 3)); lines.set(p.f, lg); }
   const edge = new THREE.LineSegments(lines.get(p.f), emat(p.c, false)); grp.add(edge);
@@ -283,6 +297,13 @@ const objs = mesh.parts.map((p) => {
   const dir = wheel ? new THREE.Vector3(0, 0, Math.sign(m[11]) || 1) : new THREE.Vector3(0, stepInfo.view === 'below' ? 1 : -1, 0);
   return { p, grp, base, edge, dir };
 });
+scene.updateMatrixWorld(true);
+const modelBounds = new THREE.Box3().setFromObject(turn);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(1800, 1800), new THREE.ShadowMaterial({ opacity: .24, depthWrite: false }));
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = modelBounds.min.y - .5;
+ground.receiveShadow = true;
+scene.add(ground);
 const camera = new THREE.PerspectiveCamera(24, 1, 5, 20000);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true; controls.dampingFactor = .08; controls.enablePan = false;
@@ -299,7 +320,10 @@ function frame() {
   controls.target.set(0, 68, 0);
   camera.updateProjectionMatrix(); controls.update();
 }
-frame(); addEventListener('resize', frame);
+frame(); new ResizeObserver(frame).observe(canvas);
+canvas.setAttribute('aria-label', 'Model Y 積木模型；拖曳或方向鍵旋轉，加減鍵縮放，Home 重設視角');
+bindOrbitKeyboard(THREE, controls, canvas, { reset: frame });
+$('resetView').onclick = frame;
 $('loading').remove();
 
 // ---------- 步驟 ----------
@@ -353,6 +377,9 @@ function tick(now) {
     }
     if (k >= 1) anim = null;
   }
+  // A ground plane is meaningful only for the upright, completed model.
+  ground.visible = (cur === 0 || cur === STEPS) && !anim;
+  for (const [color, material] of edgeMat) if (color !== 'hl') material.opacity = cur === 0 ? .2 : .55;
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
@@ -361,9 +388,9 @@ requestAnimationFrame(tick);
 $('prev').onclick = () => { stop(); show(cur - 1); };
 $('next').onclick = () => { stop(); show(cur + 1); };
 addEventListener('keydown', (e) => {
-  if (e.target.closest('input, textarea')) return;
-  if (e.key === 'ArrowRight') { stop(); show(cur + 1); }
-  if (e.key === 'ArrowLeft') { stop(); show(cur - 1); }
+  if (e.target.closest('input, textarea, select, button, a, canvas')) return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); stop(); show(cur + 1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); stop(); show(cur - 1); }
 });
 function tickAt(x) { const r = ticks.getBoundingClientRect(); return Math.round(((x - r.left) / r.width) * STEPS); }
 ticks.addEventListener('pointerdown', (e) => { stop(); ticks.setPointerCapture(e.pointerId); show(tickAt(e.clientX), false); });

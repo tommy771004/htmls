@@ -3,3 +3,5 @@ Three.js 0.186.0 (MIT), vendored from the official npm package for `web/106-cour
 Included modules: `three.core.js`, `three.module.js`, `addons/loaders/GLTFLoader.js`, `addons/utils/BufferGeometryUtils.js`, and `addons/utils/SkeletonUtils.js`. See `LICENSE` for attribution.
 
 `addons/controls/OrbitControls.js` is also vendored from the same official npm release for `web/135-nagoya-terrain.html`.
+
+`addons/geometries/RoundedBoxGeometry.js` is vendored from the same official npm release for the furniture edge details in `web/174-kurogane-house.html`. MIT license as above.

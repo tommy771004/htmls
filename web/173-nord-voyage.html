@@ -49,17 +49,19 @@ let clearInput=()=>{};
 function fail(message){$('failureMessage').textContent=message;$('failure').hidden=false;$('notice').hidden=true;}
 try {
 let THREE;
-try { THREE=await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); }
-catch { THREE=await import('../vendor/three-0.186.0/three.module.js'); }
+try { THREE=await import('../vendor/three-0.186.0/three.module.js'); }
+catch { THREE=await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); }
 const clamp=THREE.MathUtils.clamp, lerp=THREE.MathUtils.lerp, TAU=Math.PI*2;
 let seed=173;function rand(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
 const canvas=$('sea'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.5:1.75));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.autoUpdate=false;
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
 const scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.15,900), mirror=new THREE.PerspectiveCamera();
 scene.background=new THREE.Color('#a3b7b2');scene.fog=new THREE.FogExp2('#a3b7b2',.0043);
 const hemi=new THREE.HemisphereLight('#dbe8db','#384d46',2.5);scene.add(hemi);
-const sun=new THREE.DirectionalLight('#ffe3ae',3.4);sun.position.set(-100,100,-90);scene.add(sun);
+const sun=new THREE.DirectionalLight('#ffe3ae',3.4);sun.position.set(-100,100,-90);sun.castShadow=true;sun.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:1,far:400});sun.shadow.bias=-.0001;sun.shadow.normalBias=.025;sun.shadow.radius=2;scene.add(sun,sun.target);
+const sunOffset=new THREE.Vector3();
 const rim=new THREE.DirectionalLight('#8bbccc',1.1);rim.position.set(70,35,20);scene.add(rim);
 const skyUniforms={uTop:{value:new THREE.Color('#709ca7')},uHorizon:{value:scene.fog.color},uSun:{value:sun.position.clone().normalize()},uSunColor:{value:new THREE.Color('#ffe1a3')}};
 const sky=new THREE.Mesh(new THREE.SphereGeometry(700,32,20),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:skyUniforms,vertexShader:`varying vec3 vDirection;void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`uniform vec3 uTop,uHorizon,uSun,uSunColor;varying vec3 vDirection;void main(){vec3 d=normalize(vDirection);float h=max(d.y,0.);vec3 c=mix(uHorizon,uTop,pow(h,.45));float glow=pow(max(dot(d,uSun),0.),32.);c+=uSunColor*glow*.24;float cloud=sin(d.x*15.+sin(d.z*22.)*2.)*sin(d.z*27.+d.y*33.);c=mix(c,uHorizon,smoothstep(.23,.8,cloud)*smoothstep(.0,.3,h)*.15);gl_FragColor=vec4(c,1.);
@@ -151,6 +153,13 @@ for(const side of [-1,1])for(let i=0;i<7;i++){
  const boss=mesh(new THREE.SphereGeometry(.15,10,8),iron,shield);boss.scale.y=.55;boss.position.y=-side*.09;
  const ring=mesh(new THREE.TorusGeometry(.52,.035,5,24),iron,shield);ring.rotation.x=Math.PI/2;
 }
+// Repeated clinker fasteners share one mesh; curved plank geometry is unchanged.
+const rivets=new THREE.InstancedMesh(new THREE.SphereGeometry(.026,6,4),iron,2*4*30);
+let rivetIndex=0;
+for(const side of [-1,1])for(let level=1;level<=4;level++)for(let j=1;j<=30;j++){
+ const p=hullPoint(j/31,level,side);dummy.position.set(p[0]+side*.025,p[1]+.018,p[2]);dummy.scale.set(1,1,1);dummy.rotation.set(0,0,0);dummy.updateMatrix();rivets.setMatrixAt(rivetIndex++,dummy.matrix);
+}
+boat.add(rivets);
 const oars=[];
 for(const side of [-1,1])for(let i=0;i<6;i++){
  const pivot=new THREE.Group();pivot.position.set(side*1.82,.8,-3.8+i*1.48);boat.add(pivot);
@@ -158,6 +167,8 @@ for(const side of [-1,1])for(let i=0;i<6;i++){
  const blade=mesh(new THREE.BoxGeometry(.95,.09,.35),woodLight,pivot);blade.position.x=side*3.3;
  oars.push({pivot,side,phase:i*.10,wet:false,tip:new THREE.Vector3(),local:new THREE.Vector3(side*3.5,0,0)});
 }
+boat.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+banks.forEach(o=>o.receiveShadow=true);boulders.receiveShadow=true;
 // Pooled world-space impacts. An impact is emitted only on dry → wet contact.
 const impacts=Array.from({length:32},()=>new THREE.Vector4(0,0,-100,0));let impactCursor=0;
 const dropCount=384,dropPos=new Float32Array(dropCount*3),dropLife=new Float32Array(dropCount),dropVel=new Float32Array(dropCount*3);let dropCursor=0;
@@ -252,6 +263,7 @@ function update(dt){
  const rowing=state.sailing&&state.power>.01;phase+=dt*(rowing?1.1+state.power*2.4:0);
  for(const o of oars){const a=phase+o.phase;o.pivot.rotation.y=Math.sin(a)*.28;o.pivot.rotation.z=rowing?o.side*(Math.cos(a)*.28-.12):o.side*.08;}
  boat.updateMatrixWorld(true);
+ const lightPosition=lights[state.light].pos;sun.target.position.copy(boat.position);sun.position.copy(boat.position).add(sunOffset.fromArray(lightPosition));sun.target.updateMatrixWorld();renderer.shadowMap.needsUpdate=true;
  for(const o of oars){o.tip.copy(o.local);o.pivot.localToWorld(o.tip);const wet=o.tip.y<wave(o.tip.x,o.tip.z,t);if(rowing&&wet&&!o.wet)impact(o.tip.x,o.tip.z);o.wet=wet;}
  for(let i=0;i<sailGeo.attributes.position.count;i++){const x=sailBase[i*3],y=sailBase[i*3+1],bulge=Math.sin((x/8.7+.5)*Math.PI)*Math.sin((y/5.8+.5)*Math.PI);sailGeo.attributes.position.setZ(i,-bulge*(.9+state.speed*.055)+Math.sin(x*1.8+t*2.3)*.07*bulge);}
  sailGeo.attributes.position.needsUpdate=true;sailGeo.computeVertexNormals();

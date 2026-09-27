@@ -79,7 +79,8 @@ box(10.8,2.4,.8,pink,0,1.9,-4.55);box(11,.2,1.1,trim,0,3.2,-4.55);for(let x=-5;x
 for(let side of [-1,1])for(let x of [2,3.4,4.7]){box(.16,4.2,.2,trim,side*x,2.9,2.49);box(.3,.2,.32,trim,side*x,.92,2.49)}
 // Consolidate static architecture by material to keep mobile draw calls low.
 model.updateMatrixWorld(true);const batches=new Map();model.traverse(o=>{if(!o.isMesh)return;const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();g.applyMatrix4(o.matrixWorld);for(const key of Object.keys(g.attributes))if(!['position','normal'].includes(key))g.deleteAttribute(key);if(!batches.has(o.material))batches.set(o.material,[]);batches.get(o.material).push(g)});const originals=new Set();model.traverse(o=>{if(o.isMesh)originals.add(o.geometry)});model.clear();for(const [m,geos]of batches){mesh(mergeGeometries(geos),m,0,0,0);geos.forEach(g=>g.dispose())}originals.forEach(g=>g.dispose());
-const hemi=new THREE.HemisphereLight('#e4efff','#a09589',2.5);scene.add(hemi);const sun=new THREE.DirectionalLight('#fff0d6',4);sun.position.set(-12,24,15);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-16,right:16,top:25,bottom:-15,near:1,far:70});sun.shadow.bias=-.0004;sun.shadow.normalBias=.035;scene.add(sun);const rim=new THREE.DirectionalLight('#b8cfff',2);rim.position.set(12,16,-12);scene.add(rim);
+const {createStudioEnvironment}=await import('./assets/3d/studio.js');const studioEnvironment=createStudioEnvironment(THREE,renderer);scene.environment=studioEnvironment.texture;scene.environmentIntensity=.45;
+const hemi=new THREE.HemisphereLight('#e4efff','#a09589',1.25);scene.add(hemi);const sun=new THREE.DirectionalLight('#fff0d6',3);sun.position.set(-12,24,15);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-16,right:16,top:25,bottom:-15,near:1,far:70});sun.shadow.bias=-.0004;sun.shadow.normalBias=.035;scene.add(sun);const rim=new THREE.DirectionalLight('#b8cfff',2);rim.position.set(12,16,-12);scene.add(rim);
 const ground=mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({opacity:.16}),0,-.34,0,scene);ground.rotation.x=-Math.PI/2;ground.castShadow=false;
 const motion=matchMedia('(prefers-reduced-motion: reduce)');
 let night=false, lightLevel=0, cameraMove=null, lightMove=null;
@@ -104,7 +105,7 @@ function setView(name,immediate=false){
   $('#viewLabel').textContent=viewNames[name];
 }
 const dayColor=new THREE.Color('#fff0d6'),nightColor=new THREE.Color('#a7c8ff');
-function applyLight(value){lightLevel=value;hemi.intensity=THREE.MathUtils.lerp(2.5,1.1,value);sun.intensity=THREE.MathUtils.lerp(4,1.65,value);sun.color.copy(dayColor).lerp(nightColor,value);rim.intensity=THREE.MathUtils.lerp(2,2.8,value);glass.emissiveIntensity=THREE.MathUtils.lerp(.25,3,value);renderer.toneMappingExposure=THREE.MathUtils.lerp(1.15,1,value)}
+function applyLight(value){lightLevel=value;scene.environmentIntensity=THREE.MathUtils.lerp(.45,.2,value);hemi.intensity=THREE.MathUtils.lerp(1.25,.7,value);sun.intensity=THREE.MathUtils.lerp(3,1.65,value);sun.color.copy(dayColor).lerp(nightColor,value);rim.intensity=THREE.MathUtils.lerp(2,2.8,value);glass.emissiveIntensity=THREE.MathUtils.lerp(.25,3,value);renderer.toneMappingExposure=THREE.MathUtils.lerp(1.15,1,value)}
 function lighting(immediate=false){
   document.body.classList.toggle('night',night);$('#light').setAttribute('aria-pressed',String(night));$('#light').textContent=night?'☀ 日光':'☾ 月夜';
   lightMove={from:lightLevel,to:night?1:0,start:performance.now(),duration:900};
