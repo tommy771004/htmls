@@ -433,7 +433,7 @@ const CARS = {
       fanwings: { cat: 'aero', n: '後扇翼', jp: 'スタビライザーウイング', d: '架在推進艙上方的兩片藍色長翼，往後掠、往外伸，頂面印黃色 SUNSET。', l: ['兩翼翼尖的寬度接近 4 公尺，是全車最寬處', '空力模式時仰角加大（本頁推測）'] },
       ai:       { cat: 'ai', n: '阿斯拉 AI 單元', jp: 'ASURADA', d: '儀表台上的黑色球體：四顆青綠鏡頭排成十字，外圈一道細綠環，左右各一片紅色弧形燈翼。', l: ['官方公開的座艙特寫，就是從駕駛位看它', '燈翼的三段紅燈依序亮起'] },
       wheel:    { cat: 'cockpit', n: '方向盤', jp: 'ステアリング', d: '同一張座艙特寫裡，方向盤中央有紅、藍、綠三顆旋鈕，旁邊一根紅頭撥桿。', l: ['三顆旋鈕各有一條白色刻線'] },
-      driver:   { cat: 'cockpit', n: '風見隼人', jp: 'CV 金丸淳一', d: '新作裡的車手仍是風見隼人，由金丸淳一再度配音。', l: ['紅白頭盔，深色面罩'] },
+      driver:   { cat: 'cockpit', n: '風見隼人', jp: 'CV 金丸淳一', d: '新作裡的車手仍是風見隼人，由金丸淳一再度配音。他半躺在座艙裡，雙手握著方向盤。', l: ['白色頭盔加紅藍條紋，深色面罩', '藍色賽車服'] },
       marks:    { cat: 'body', n: '車身標記', jp: 'S / 1 / PULSE / SUNSET', d: '引擎罩側面的紅色 S、立柱的紅色 1、前翼的 PULSE 與 1、扇翼的 SUNSET，以及推進艙的白色箭頭。', l: ['贊助商字樣依模型貼紙，只放主要幾個'] }
     }
   },
@@ -469,12 +469,12 @@ const TYRE_TEX = { base: null };
    節點名稱＝零件代號（nose、rbody__fender_L、fwheels_L0…），材質名稱＝顏色代號。 */
 const PAL = {
   white: 0xf3f4f6, blue: 0x1741c4, lblue: 0x1e9ae6, red: 0xd41e28, silver: 0xd0d3d8, gold: 0xd1a254, dark: 0x1a1c20, black: 0x121214,
-  glass: 0x1b3fc8, yellow: 0xffbe12, grey: 0x2a2c30,
+  glass: 0x3f63d8, yellow: 0xffbe12, grey: 0x2a2c30,
   purple: 0x5b2fa0, magenta: 0xd9408f, green: 0x2fcf5e, deep: 0x3d2468
 };
 /* 分解方向（依零件代號，z 乘上左右） */
 const EXPLODE = {
-  nose: [1.1, .1, 0], canopy: [0, .9, 0], tub: [0, -.4, 0], pods: [0, 0, .7], fwing: [.9, -.05, .3], fwheels: [.2, 0, .9], rwheels: [0, 0, 1.1],
+  nose: [1.1, .1, 0], canopy: [0, .9, 0], driver: [0, 1.3, 0], tub: [0, -.4, 0], pods: [0, 0, .7], fwing: [.9, -.05, .3], fwheels: [.2, 0, .9], rwheels: [0, 0, 1.1],
   rbody: [0, 0, .45], nacelles: [-.5, .35, .45], fanwings: [-.2, .75, .35], marks: [0, 0, .45], fangs: [.45, .25, .6], splitter: [.8, -.2, 0],
   fins: [-.2, .4, .4], rwing: [-.6, .7, 0]
 };
@@ -492,7 +492,7 @@ function setupCar(key, root) {
     return obj;
   };
   /* 材質：依名稱換成亮面烤漆材質 */
-  const glass = new THREE.MeshPhysicalMaterial({ color: PAL.glass, roughness: .04, metalness: 0, transparent: true, opacity: .62, clearcoat: 1, clearcoatRoughness: .03, depthWrite: false });
+  const glass = new THREE.MeshPhysicalMaterial({ color: PAL.glass, roughness: .04, metalness: 0, transparent: true, opacity: .46, clearcoat: 1, clearcoatRoughness: .03, depthWrite: false });
   const SPEC = { gold: { r: .28, m: 1, cc: 0 }, silver: { r: .22, m: 1, cc: 0 }, black: { r: .78, m: 0, cc: 0 }, grey: { r: .4, m: .6, cc: 0 } };
   root.traverse(m => {
     if (!m.isMesh) return;
@@ -504,7 +504,8 @@ function setupCar(key, root) {
   });
   /* 每個直接子節點是一「件」 */
   for (const obj of [...root.children]) {
-    const id = (obj.name.match(/^[a-z]+/) || ['tub'])[0];
+    let id = (obj.name.match(/^[a-z]+/) || ['tub'])[0];
+    if (/^canopy__well/.test(obj.name)) id = 'nose';
     const sm = obj.name.match(/_(L|R)\d*(?:\d{3})?$/) || obj.name.match(/_(L|R)\d/);
     const s = sm ? (sm[1] === 'L' ? 1 : -1) : 0;
     const e = EXPLODE[id] || [0, 0, 0];
@@ -530,18 +531,9 @@ function setupCar(key, root) {
   }
   const add = (id, obj, ex) => { root.add(obj); piece(id, obj, { ex }); };
 
-  /* 車手頭盔 */
-  {
-    const g = new THREE.Group(); g.position.set(.42, .62, 0);
-    g.add(M(new THREE.SphereGeometry(.095, 24, 16), toon(0xf4f4f2)));
-    const b = M(new THREE.TorusGeometry(.09, .016, 8, 32, Math.PI * 1.2), toon(Z ? PAL.red : PAL.purple), { shadow: false });
-    b.rotation.set(0, Math.PI / 2, Math.PI * -.1); g.add(b);
-    g.add(M(new THREE.SphereGeometry(.098, 20, 10, -Math.PI * .28, Math.PI * .56, Math.PI * .34, Math.PI * .22), toon(0x1a1c22, 0x223355, .3), { shadow: false }));
-    add('driver', g, V(0, 1.3, 0));
-  }
   /* 方向盤：紅藍綠旋鈕與紅頭撥桿（依座艙特寫） */
   {
-    const g = new THREE.Group(); g.position.set(.72, .56, 0); g.scale.setScalar(.8);
+    const g = new THREE.Group(); g.position.set(.78, .58, 0); g.scale.setScalar(.7);
     const rimG = new THREE.TorusGeometry(.085, .013, 8, 30, Math.PI * 1.35); rimG.rotateZ(-Math.PI * .175 - Math.PI / 2);
     const rim = M(rimG, toon(PAL.dark)); rim.rotation.y = Math.PI / 2; g.add(rim);
     const hub = new THREE.CylinderGeometry(.045, .05, .03, 20); hub.rotateZ(Math.PI / 2);
@@ -1150,7 +1142,7 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 /* 給自動截圖用的掛鉤 */
-window.__asurada = { goView, setTog, setCar, setMode, pin, unpin, st, setSheet, cars };
+window.__asurada = { goView, setTog, setCar, setMode, pin, unpin, st, setSheet, cars, camera, controls };
 }
 </script>
 </body>

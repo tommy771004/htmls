@@ -270,34 +270,39 @@ def build(root, Z):
   if Z:
     slab('rbody__antenna', [(.1, .9), (-.1, .92), (-.33, 1.25), (-.27, 1.25)], .03, 'white', bevel=.008, parent=R)
   # ---------------- bridge arms + deck (per side) ----------------
-  arms = [(.12, .3, .34, .62, .72), (-.1, .3, .62, .56, .76), (-.35, .3, 1.0, .52, .79), (-.56, .3, 1.3, .52, .81),
-          (-.8, .3, 1.52, .56, .82), (-1.2, .3, 1.58, .72, .83), (-1.75, .3, 1.58, .74, .83), (-2.1, .3, 1.52, .74, .82), (-2.3, .3, 1.42, .74, .8)]
+  arms = [(.12, .3, .34, .62, .72), (-.1, .3, .62, .56, .76), (-.35, .3, 1.0, .52, .79), (-.56, .3, 1.28, .54, .82),
+          (-.8, .3, 1.46, .6, .84), (-1.2, .3, 1.5, .7, .85), (-1.75, .3, 1.5, .72, .85), (-2.1, .3, 1.46, .72, .84), (-2.3, .3, 1.38, .72, .82)]
   for s, sd in ((1, 'L'), (-1, 'R')):
     rows = [quad_ring(x, zi, zo, yb - (.1 if x > -.9 else 0), yt, bev=.05, drop=(.12 if x > -1.0 else .04)) for x, zi, zo, yb, yt in arms]
-    loft(f'rbody__arm_{sd}', mirror(rows, s), 'white', lv=1, parent=R)
+    loft(f'rbody__arm_{sd}', mirror(rows, s), 'white', lv=2, parent=R)
     # blue band across the rear of the deck (PULSE band)
     band = [[(x, yt - .01, .3), (x, yt - .01, zo - .02), (x, yt + .012, zo - .02), (x, yt + .012, .3)] for x, zi, zo, yb, yt in arms[5:]]
     loft(f'rbody__band_{sd}', mirror(band, s), A, lv=0, parent=R)
-    # ---------------- rear fender: front pillar + outer skin with wheel arch ----------------
-    pil = [(-.56, .03), (-1.26, .03), (-1.27, .74), (-1.0, .82), (-.62, .82), (-.5, .62), (-.55, .3)]
-    rows = []
-    for zz in (.94, 1.54):
-      rows.append([(x, y, zz) for x, y in pil])
-    p = loft(f'rbody__pillar_{sd}', mirror(rows, s), 'white', lv=0, parent=R)
-    bvm = p.modifiers.new('bv', 'BEVEL'); bvm.width = .05; bvm.segments = 3
-    slab(f'rbody__foot_{sd}', [(-.52, .02), (-1.27, .02), (-1.27, .18), (-.72, .18)], .64, A, z=s * 1.24, bevel=.02, parent=R)
-    arch = [(RX + .42 * math.cos(math.radians(a)), RR + .42 * math.sin(math.radians(a))) for a in range(0, 181, 12)]
-    skin = [(RX + .42, .02), (RX + .42, RR)] + arch + [(RX - .42, RR + .02), (-2.12, .4), (-2.3, .52), (-2.26, .8), (-1.2, .82)]
-    slab(f'rbody__skin_{sd}', skin, .07, 'white', z=s * 1.57, bevel=.02, parent=R)
-    slab(f'rbody__skinedge_{sd}', [(-2.02, .36), (-2.12, .4), (-2.3, .52), (-2.3, .62), (-2.1, .5)], .08, A, z=s * 1.57, parent=R)
+    # ---------------- rear fender: one smooth shell (front pillar, arch, tail), wheel arch cut out ----------------
+    def fring(x, yb, yt, zi, zo):
+      ym, zm = (yb + yt) / 2, (zi + zo) / 2
+      return [(x, yb, zi), (x, yb, zm), (x, yb, zo), (x, ym, zo), (x, yt, zo), (x, yt, zm), (x, yt, zi), (x, ym, zi)]
+    fr = [(-.46, .06, .26, 1.1, 1.4), (-.54, .03, .5, 1.0, 1.5), (-.7, .03, .78, .96, 1.54), (-1.0, .03, .86, .95, 1.55),
+          (-1.5, .03, .86, .95, 1.55), (-2.0, .06, .86, .95, 1.55), (-2.25, .22, .84, .98, 1.52), (-2.4, .42, .8, 1.04, 1.46), (-2.46, .56, .74, 1.14, 1.36)]
+    fender = loft(f'rbody__fender_{sd}', mirror([fring(*r) for r in fr], s), 'white', lv=0, parent=R)
+    subsurf(fender, 2); apply_all(fender)
+    cut = cyl('cut', .4, 1.2, 'black', loc=(RX, RR, s * 1.25), axis='z', verts=64)
+    boolean_cut(fender, cut); bpy.data.objects.remove(cut, do_unlink=True)
+    # blue lower band on the pillar and the tail (the "Jupiter" / skirt stripe)
+    bb = [(-.5, .05, .17, 1.06, 1.44), (-.56, .02, .2, .98, 1.52), (-.7, .02, .2, .95, 1.555), (-1.1, .02, .2, .95, 1.555), (-1.28, .02, .2, .96, 1.54)]
+    loft(f'rbody__foot_{sd}', mirror([fring(x, yb, yt, zi - .006, zo + .006) for x, yb, yt, zi, zo in bb], s), A, lv=2, parent=R)
+    tb = [(-2.0, .06, .2, .945, 1.556), (-2.25, .22, .34, .975, 1.526), (-2.4, .42, .5, 1.035, 1.466), (-2.46, .56, .6, 1.13, 1.37)]
+    loft(f'rbody__skirt_{sd}', mirror([fring(*r) for r in tb], s), A, lv=2, parent=R)
     # ---------------- side pod ----------------
     pod = [(.47, .4, .04, .05), (.42, .4, .15, .17), (.27, .4, .18, .2), (-.4, .4, .18, .2), (-.85, .38, .16, .18), (-1.0, .36, .05, .06)]
     loft(f'pods_{sd}', [se_ring(x, y - .04, hw * .85, hh * .82, n=2.2, N=16, cz=s * .66) for x, y, hw, hh in pod], 'white' if Z else 'white', parent=R)
     loft(f'pods__low_{sd}', [se_ring(x, y - .04 - hh * .45, hw * .88, hh * .42, n=2.2, N=14, cz=s * .66) for x, y, hw, hh in pod[1:5]], A, parent=R)
     ring = bpy.data.objects.new(f'pods__ring_{sd}', bpy.data.meshes.new('r'))
-    bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=False, segments=24, radius1=.16, radius2=.13, depth=.08); bm.to_mesh(ring.data); bm.free()
+    bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=False, segments=48, radius1=.16, radius2=.13, depth=.08); bm.to_mesh(ring.data); bm.free()
+    for pl in ring.data.polygons: pl.use_smooth = True
     link(ring, R); ring.data.materials.append(M(L)); ring.rotation_euler = (0, math.radians(90), 0); ring.location = P(.45, .36, s * .66)
     sol = ring.modifiers.new('so', 'SOLIDIFY'); sol.thickness = .03
+    subsurf(ring, 1)
     cyl(f'pods__mouth_{sd}', .13, .02, 'black', loc=(.43, .36, s * .66), axis='x', verts=24).parent = R
     # ---------------- front suspension ----------------
     rods = []
@@ -318,7 +323,7 @@ def build(root, Z):
   if Z:
     loft('rbody__tailband', [se_ring(x, .68, .305, .045, n=4, N=12) for x in (-2.0, -2.2, -2.375)], 'red', parent=R)
   for s, sd in ((1, 'L'), (-1, 'R')):
-    slab(f'rbody__rfin_{sd}', [(-1.8, .05), (-2.42, .05), (-2.42, .88), (-2.2, .9), (-1.9, .8)], .025, 'white', z=s * .32, parent=R)
+    slab(f'rbody__rfin_{sd}', [(-1.8, .05), (-2.42, .05), (-2.42, .88), (-2.2, .9), (-1.9, .8)], .03, 'white', z=s * .32, bevel=.012, parent=R)
   # ---------------- front aero ----------------
   if Z:
     half = [(2.44, 0), (2.02, .82), (1.95, 1.18), (1.42, 1.38), (1.43, .82), (1.2, 0)]
@@ -345,23 +350,22 @@ def build(root, Z):
   for s, sd in ((1, 'L'), (-1, 'R')):
     cz = s * 1.15
     if Z:
-      loft(f'nacelles__cowl_{sd}', [se_ring(x, .9, r, r, 2, cz, 20) for x, r in [(-.84, .02), (-.88, .15), (-.98, .23), (-1.12, .27), (-1.6, .28)]], 'blue', parent=R)
+      loft(f'nacelles__cowl_{sd}', [se_ring(x, y, r * .92, r, 2, cz, 20) for x, y, r in [(-.5, .82, .015), (-.62, .83, .09), (-.8, .85, .17), (-1.0, .88, .23), (-1.25, .9, .27), (-1.6, .9, .28)]], 'blue', parent=R)
       loft(f'nacelles__red_{sd}', [se_ring(x, .9, r, r, 2, cz, 20) for x, r in [(-1.6, .285), (-2.28, .285), (-2.5, .27)]], 'red', parent=R)
       cyl(f'nacelles__face_{sd}', .24, .02, 'black', loc=(-2.505, .9, cz), axis='x', verts=24).parent = R
       c = cyl(f'nacelles__cone_{sd}', .12, .34, 'silver', loc=(-2.64, .9, cz), axis='x', verts=24, r2=.085); c.parent = R
       cyl(f'nacelles__hole_{sd}', .06, .02, 'black', loc=(-2.81, .9, cz), axis='x', verts=16).parent = R
-      loft(f'nacelles__base_{sd}', [quad_ring(x, .98, 1.32, .76, .8) for x in (-1.0, -1.4, -2.2, -2.42)], 'blue', lv=1, parent=R) if s > 0 else \
-        loft(f'nacelles__base_{sd}', mirror([quad_ring(x, .98, 1.32, .76, .8) for x in (-1.0, -1.4, -2.2, -2.42)], -1), 'blue', lv=1, parent=R)
+      loft(f'nacelles__base_{sd}', [se_ring(x, .78, w, .1, 2.2, cz, 16) for x, w in [(-.7, .02), (-.9, .12), (-1.4, .16), (-2.1, .16), (-2.4, .1), (-2.5, .02)]], 'blue', parent=R)
       for k in range(3):
         xc = -2.0 - k * .13
         pts = [(xc + .07, 1.01), (xc - .03, .9), (xc + .07, .79), (xc + .03, .79), (xc - .07, .9), (xc + .03, 1.01)]
         slab(f'marks__chev_{sd}{k}', pts, .02, 'white', z=s * (1.15 + .283), parent=R)
       # fan wing: swept blade above the nacelle, rising outward
       w = [(-1.0, s * .5), (-1.52, s * .5), (-2.32, s * 1.95), (-1.82, s * 1.95)]
-      fw = flat(f'fw_{sd}', w, .045, 'blue', y=0, bevel=.01)
-      top = flat(f'fwt_{sd}', [(x, z) for x, z in w], .012, 'lblue', y=.028)
+      fw = flat(f'fw_{sd}', w, .034, 'blue', y=0, bevel=.014)
+      top = flat(f'fwt_{sd}', [(x + .01, z) for x, z in w], .008, 'lblue', y=.02, bevel=.003)
       top.scale = (1, 1, 1)
-      pyl = slab(f'fwp_{sd}', [(-1.35, -.3), (-1.75, -.3), (-1.72, 0), (-1.42, 0)], .04, 'blue', z=s * 1.15)
+      pyl = slab(f'fwp_{sd}', [(-1.3, -.3), (-1.8, -.3), (-1.74, 0), (-1.46, 0)], .03, 'blue', z=s * 1.15, bevel=.012)
       sun = text_up(f'fws_{sd}', 'SUNSET', AB, .13, 'yellow', (-1.72, .04, s * 1.22), yaw=math.atan2(1.43, .87) * (1 if s > 0 else -1) + (0 if s > 0 else math.pi))
       fwj = join(f'fanwings_{sd}', [fw, top, pyl, sun], origin=(-1.55, 0, s * 1.15))
       fwj.location = P(-1.55, 1.2, s * 1.15)
@@ -377,6 +381,33 @@ def build(root, Z):
   if not Z:
     half = [(-1.9, 0), (-2.1, .95), (-2.5, .95), (-2.3, 0)]
     flat('rwing', half + [(x, -z) for x, z in reversed(half[1:-1])], .05, 'purple', y=1.52, bevel=.012, parent=R)
+  # ---------------- cockpit interior: dark well under the canopy, seat, seated driver ----------------
+  well = [(1.5, .03), (1.3, .12), (1.0, .2), (.7, .24), (.4, .24), (.18, .16)]
+  flat('canopy__well', [(x, w) for x, w in well] + [(x, -w) for x, w in reversed(well)], .01, 'black', y=.515, parent=R)
+  loft('driver__seat', [se_ring(x, y, w, h, 3, 0, 14) for x, y, w, h in [(.12, .66, .02, .02), (.16, .66, .17, .14), (.24, .6, .18, .1), (.3, .56, .17, .05)]], 'black', parent=R)
+  suit = 'blue' if Z else 'purple'
+  loft('driver__body', [se_ring(x, y, w, h, 2.4, 0, 16) for x, y, w, h in [(.2, .5, .1, .06), (.26, .54, .19, .09), (.38, .54, .2, .08), (.62, .5, .15, .06), (.95, .46, .1, .05)]], suit, parent=R)
+  helm = bpy.data.objects.new('driver__helmet', bpy.data.meshes.new('h')); bm = bmesh.new()
+  bmesh.ops.create_uvsphere(bm, u_segments=32, v_segments=20, radius=1); bm.to_mesh(helm.data); bm.free()
+  for pl in helm.data.polygons: pl.use_smooth = True
+  link(helm, R); helm.data.materials.append(M('white')); helm.scale = (.15, .125, .14); helm.location = P(.34, .68, 0)
+  vis = bpy.data.objects.new('driver__visor', bpy.data.meshes.new('v')); bm = bmesh.new()
+  bmesh.ops.create_uvsphere(bm, u_segments=24, v_segments=14, radius=1); bm.to_mesh(vis.data); bm.free()
+  for pl in vis.data.polygons: pl.use_smooth = True
+  link(vis, R); vis.data.materials.append(M('black')); vis.scale = (.1, .1, .055); vis.location = P(.42, .69, 0)
+  for x0, col in ((.34, 'red' if Z else 'purple'), (.3, 'blue' if Z else 'magenta')):
+    bpy.ops.mesh.primitive_torus_add(major_radius=1, minor_radius=.07, major_segments=40, minor_segments=8)
+    t = bpy.context.active_object; t.name = 'driver__band'; t.data.materials.append(M(col))
+    for pl in t.data.polygons: pl.use_smooth = True
+    t.scale = (1, 1, 1); t.rotation_euler = (0, math.radians(90), 0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    k = (1 - ((x0 - .34) / .15) ** 2) ** .5
+    t.scale = (.02 / .07, .143 * k, .128 * k); t.location = P(x0, .68, 0)
+    t.parent = R
+  for sd, s in (('L', 1), ('R', -1)):
+    arm = [rod_between('a1', (.3, .56, s * .17), (.5, .5, s * .19), .035, suit), rod_between('a2', (.5, .5, s * .19), (.7, .56, s * .09), .03, suit)]
+    glove = cyl('g', .035, .06, 'black', loc=(.7, .56, s * .09), axis='z', verts=12)
+    join(f'driver__arm_{sd}', arm + [glove], parent=R)
   # ---------------- decals ----------------
   if Z:
     for s, sd in ((1, 'L'), (-1, 'R')):
