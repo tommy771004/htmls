@@ -412,9 +412,10 @@ def build(root, Z):
   else:
     flat('marks__tri', [(2.05, 0), (1.75, .1), (1.75, -.1)], .01, 'green', y=.51, parent=R)
   # ---------------- canopy ----------------
-  can = [(1.98, .445, .02, .01), (1.82, .485, .085, .035), (1.6, .535, .15, .065), (1.36, .59, .2, .09), (1.12, .64, .24, .11)] if Z else \
+  can = [(1.98, .445, .02, .01), (1.82, .485, .085, .035), (1.6, .535, .15, .065), (1.36, .575, .2, .075), (1.12, .625, .24, .095)] if Z else \
         [(1.58, .47, .02, .01), (1.4, .53, .14, .06), (1.15, .61, .22, .1)]
-  can += [(.85, .68, .26, .13), (.55, .72, .27, .14), (.3, .74, .25, .12), (.14, .74, .16, .08)]
+  # (kit paint-guide side view) the canopy's top line keeps rising all the way back and meets the cowl top at ~1 m
+  can += [(.85, .69, .26, .115), (.55, .74, .27, .15), (.3, .79, .25, .19), (.14, .82, .18, .2)]
   loft('canopy', [se_ring(x, y, hw, hh, n=2.3, N=18) for x, y, hw, hh in can], 'glass', parent=R)
   # cockpit tub: U-channel walls between the nose and the canopy edge; the top edge is the white sill line
   def sill(x, hw, cy, k=1.0):
@@ -422,9 +423,12 @@ def build(root, Z):
     return [(x, yb, -W), (x, yb, W), (x, yt - .02, W), (x, yt, W - .015), (x, yt, Wi), (x, yf, Wi), (x, yf, -Wi), (x, yt, -Wi), (x, yt, -W + .015), (x, yt - .02, -W)]
   sl = [sill(x, max(hw, .03), y, 1) for x, y, hw, hh in can[1:]]
   loft('nose__sill', sl, 'white' if Z else 'purple', lv=2, parent=R, creases={i: .95 for i in range(10)})
-  loft('canopy__collar', [se_ring(x, y, w, h, 2.4, 0, 18) for x, y, w, h in [(.26, .73, .24, .1), (.2, .735, .23, .105), (.12, .73, .2, .1)]], 'blue' if Z else 'purple', lv=1, parent=R)
   # ---------------- engine hump behind the canopy + antenna ----------------
-  hump = [(.32, .56, .2, .12, .5), (.15, .66, .28, .24, .45), (-.15, .7, .31, .26, .45), (-.5, .68, .31, .24, .4), (-.85, .63, .29, .18, .35), (-1.15, .6, .26, .13, .3)]
+  # (Variable Action figure photos) a tall, wide cowl right behind the driver's head: its pointed prow rides OVER the rear
+  # of the canopy (the glass tucks under it), the red S covers its flanks, and the rear-body arms grow straight out of its sides
+  # kit side view: highest at its front (where the canopy line arrives), then sloping down to the rear deck at x≈-1
+  hump = [(.22, .95, .06, .06, .3), (.16, .8, .24, .24, .4), (.02, .78, .28, .27, .42), (-.2, .75, .285, .27, .45), (-.45, .71, .28, .24, .45),
+          (-.7, .67, .26, .2, .4), (-.95, .64, .22, .16, .35), (-1.15, .66, .17, .13, .3), (-1.35, .72, .1, .12, .25)]
   def hsec(x, y, hw, hh, tp):
     yb, yt = y - hh, y + hh; ws = hw * (1 - tp * .55)
     return [(x, yb, hw * .8), (x, y - hh * .2, hw), (x, yt - hh * .35, ws + (hw - ws) * .35), (x, yt - .02, ws * .45), (x, yt, 0),
@@ -434,16 +438,18 @@ def build(root, Z):
   loft('rbody__spine', [[(x, y - h, w), (x, y, w), (x, y + h, 0), (x, y, -w), (x, y - h, -w)] for x, y, w, h in
         [(-.95, .66, .12, .1), (-1.3, .76, .1, .1), (-1.7, .84, .08, .09), (-1.96, .9, .05, .07), (-2.04, .92, .02, .03)]], 'white', lv=2, parent=R, creases={0: 1, 1: .9, 2: .95, 3: .9, 4: 1})
   if Z:
-    slab('rbody__antenna', [(.1, .9), (-.1, .92), (-.33, 1.25), (-.27, 1.25)], .03, 'white', bevel=.008, parent=R)
+    slab('rbody__antenna', [(.04, 1.0), (-.2, 1.0), (-.44, 1.32), (-.35, 1.33)], .03, 'white', bevel=.008, parent=R)
   # ---------------- bridge arms + deck (per side) ----------------
-  arms = [(.12, .3, .34, .62, .72), (-.1, .3, .62, .56, .76), (-.35, .3, 1.0, .52, .79), (-.56, .3, 1.28, .54, .82),
-          (-.8, .3, 1.46, .6, .84), (-1.2, .3, 1.5, .7, .85), (-1.75, .3, 1.5, .72, .85), (-2.1, .3, 1.46, .72, .84), (-2.3, .3, 1.38, .72, .82)]
+  # kit side view: at the front the arms are low, thin plates lying on the side pods (the cowl's S flank stays clear above
+  # them); they only rise to deck height over the rear fenders
+  arms = [(.12, .3, .34, .56, .6), (-.1, .3, .62, .56, .62), (-.35, .3, 1.0, .56, .66), (-.56, .3, 1.28, .57, .72),
+          (-.8, .3, 1.46, .6, .8), (-1.2, .3, 1.5, .7, .85), (-1.75, .3, 1.5, .72, .85), (-2.1, .3, 1.46, .72, .84), (-2.3, .3, 1.38, .72, .82)]
   for s, sd in ((1, 'L'), (-1, 'R')):
     # the arm is a shell riding above the side pod: its underside stays clear of the pod (open, dark gap between them)
     def arm_ring(x, zi, zo, yb, yt):
-      r = quad_ring(x, zi, zo, yb, yt, bev=.05, drop=(.12 if x > -1.0 else .04))
+      r = quad_ring(x, zi, zo, yb, yt, bev=min(.05, (yt - yb) * .4), drop=(min(.12, (yt - yb) * .5) if x > -1.0 else .04))
       if x > -1.3:
-        ybo, ybi = (.64, .5) if x > -1.0 else (.62, .52)
+        ybo, ybi = (yb, yb - .06) if x > -1.0 else (.62, .52)
         r[0] = (x, ybi, zi); r[1] = (x, ybo, zo)
       return r
     rows = [arm_ring(*a) for a in arms]
@@ -504,7 +510,7 @@ def build(root, Z):
     flat(f'pods__inlet_lip_{sd}', [(.36, s * .345), (-.25, s * .345), (-.25, s * .57), (.36, s * .57)], .022, 'white', y=.25, bevel=.006, parent=R)
     flat(f'pods__inlet_sill_{sd}', [(.33, s * .35), (.18, s * .35), (.18, s * .565), (.33, s * .565)], .016, 'white', y=.068, bevel=.004, parent=R)
     # dark chassis side seen through the gap between the side pod and the arm above it (radiator bay)
-    slab(f'rbody__bay_{sd}', [(.3, .1), (-1.2, .1), (-1.2, .66), (-.2, .66), (.3, .62)], .02, 'carbon', z=s * .35, parent=R)
+    slab(f'rbody__bay_{sd}', [(.3, .1), (-1.2, .1), (-1.2, .66), (-.6, .56), (.3, .54)], .02, 'carbon', z=s * .35, parent=R)
     # ---------------- front suspension ----------------
     rods = []
     zc = s * (FZ - .17)
@@ -859,9 +865,9 @@ def build(root, Z):
   # ---------------- decals ----------------
   if Z:
     for s, sd in ((1, 'L'), (-1, 'R')):
-      text_decal(f'marks__S_{sd}', 'S', AB, .44, 'red', (-.3, .72, s * .3), sd, shear=.25, target=hmp, parent=R)
+      text_decal(f'marks__S_{sd}', 'S', AB, .42, 'red', (-.22, .78, s * .32), sd, shear=.25, target=hmp, parent=R)
       text_decal(f'marks__one_{sd}', '1', TB, .36, 'red', (-1.04, .5, s * PZ[sd]), sd, parent=R)
-      text_decal(f'marks__kazami_{sd}', 'H.KAZAMI', AB, .07, 'black', (.05, .56, s * .3), sd, target=hmp, parent=R)
+      text_decal(f'marks__kazami_{sd}', 'H.KAZAMI', AB, .06, 'black', (.02, .57, s * .31), sd, target=hmp, parent=R)
   return nose
 
 # =====================================================================
