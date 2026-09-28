@@ -192,7 +192,7 @@ import os, sys
 
 PAL.update({
   'white': (0.90, 0.91, 0.92), 'blue': (0.03, 0.14, 0.62), 'lblue': (0.05, 0.42, 0.85), 'red': (0.75, 0.03, 0.04),
-  'carbon': (0.09, 0.095, 0.1), 'lamp': (1.0, 0.06, 0.05), 'deep': (0.05, 0.03, 0.1), 'orange': (1.0, 0.35, 0.05), 'teal': (0.05, 0.55, 0.4), 'glassg': (0.04, 0.2, 0.22), 'gold': (0.62, 0.40, 0.15), 'glass': (0.05, 0.12, 0.6), 'yellow': (0.95, 0.62, 0.02), 'black': (0.012, 0.012, 0.014), 'mesh': (0.3, 0.31, 0.33),
+  'carbon': (0.09, 0.095, 0.1), 'lamp': (1.0, 0.06, 0.05), 'deep': (0.05, 0.03, 0.1), 'orange': (1.0, 0.35, 0.05), 'teal': (0.05, 0.55, 0.4), 'glassg': (0.04, 0.2, 0.22), 'gold': (0.62, 0.40, 0.15), 'glass': (0.05, 0.12, 0.6), 'yellow': (0.95, 0.62, 0.02), 'black': (0.012, 0.012, 0.014), 'mesh': (0.3, 0.31, 0.33), 'cfgrey': (0.2, 0.21, 0.22),
 })
 
 RX, RR, RW, RZ = -1.68, .33, .56, 1.27        # rear wheels
@@ -497,7 +497,8 @@ def build(root, Z):
       slab(f'pods__gill_{sd}{k}', [(x0, .34), (x0 - .026, .34), (x0 - .006, .48), (x0 + .02, .48)], .02, 'black', z=s * .905, parent=R)
     slab(f'nose__intake_{sd}', [(.72, .43), (.42, .45), (.42, .52), (.62, .5)], .03, 'black', z=s * .325, parent=R)
     slab(f'nose__intakelip_{sd}', [(.74, .42), (.4, .44), (.4, .455), (.74, .435)], .034, 'lblue', z=s * .325, parent=R)
-    flat(f'rbody__vent_{sd}', [(-1.96, s * .3), (-2.03, s * .3), (-2.08, s * 1.02), (-2.01, s * 1.02)], .012, 'black', y=.876, parent=R)
+    # metal grille on the deck just ahead of the arched wing, following its swept leading edge
+    flat(f'rbody__vent_{sd}', [(-2.06 - .2 * (z / .93) ** 2 + dx, s * z) for z, dx in [(.12, .1), (.4, .1), (.7, .1), (.9, .1), (.9, .01), (.7, .01), (.4, .01), (.12, .01)]], .012, 'mesh', y=.876, parent=R)
     # radiator inlet: a wide, low slot between the pod's inner side and the tub, just above the floor, under a white lip plate
     slab(f'pods__inlet_duct_{sd}', [(.3, .075), (-.25, .075), (-.25, .235), (.3, .235)], .17, 'black', z=s * .46, parent=R)
     flat(f'pods__inlet_lip_{sd}', [(.36, s * .345), (-.25, s * .345), (-.25, s * .57), (.36, s * .57)], .022, 'white', y=.25, bevel=.006, parent=R)
@@ -510,8 +511,9 @@ def build(root, Z):
     def truss(apex, b1, b2, w, h):
       """wide, flat A-arm (two legs from the upright to the chassis) with one diagonal web between them"""
       A, B1, B2 = Vector(apex), Vector(b1), Vector(b2); m1 = A + (B1 - A) * .45
-      return [arm_tube('tr', A, B1, (0, 0, 0), w, h, 'black', n=4, seg=6), arm_tube('tr', A, B2, (0, 0, 0), w, h, 'black', n=4, seg=6),
-              arm_tube('tr', m1, B2 + (B1 - B2) * .15, (0, 0, 0), w * .75, h * .85, 'black', n=4, seg=6)]
+      # grey woven carbon wrapping, as on the owner's figure
+      return [arm_tube('tr', A, B1, (0, 0, 0), w, h, 'cfgrey', n=4, seg=6), arm_tube('tr', A, B2, (0, 0, 0), w, h, 'cfgrey', n=4, seg=6),
+              arm_tube('tr', m1, B2 + (B1 - B2) * .15, (0, 0, 0), w * .75, h * .85, 'cfgrey', n=4, seg=6)]
     for x in FXS:
       rods += truss((x, FR + .06, zc), (x + .2, .42, s * .3), (x - .2, .42, s * .3), .042, .016)
       rods += truss((x, FR - .06, zc), (x + .18, .24, s * .3), (x - .18, .24, s * .3), .04, .015)
@@ -528,9 +530,9 @@ def build(root, Z):
     # thin rails above and below tie the two ends together
     rods.append(arm_tube('drive', (RX, RR, zu), (RX, RR + .02, s * .3), (0, 0, 0), .024, .024, 'silver'))
     for z0, z1 in ((zu, s * .76), (s * .5, s * .3)):
-      rods.append(arm_tube('shroud', (RX, RR + .02 * (1 - abs(z0) / .97), z0), (RX, RR + .02 * (1 - abs(z1) / .97), z1), (0, 0, 0), .085, .045, 'black', n=4, seg=10))
+      rods.append(arm_tube('shroud', (RX, RR + .02 * (1 - abs(z0) / .97), z0), (RX, RR + .02 * (1 - abs(z1) / .97), z1), (0, 0, 0), .085, .045, 'cfgrey', n=4, seg=10))
     for dy in (.052, -.048):
-      rods.append(arm_tube('rail', (RX, RR + dy, zu), (RX, RR + dy + .02, s * .3), (0, 0, 0), .075, .01, 'black', n=4, seg=8))
+      rods.append(arm_tube('rail', (RX, RR + dy, zu), (RX, RR + dy + .02, s * .3), (0, 0, 0), .075, .01, 'cfgrey', n=4, seg=8))
     rods.append(arm_tube('push', (RX + .04, RR - .08, zu), (RX - .1, .6, s * .34), (0, 0, 0), .012, .012, 'silver'))
     rods.append(cyl('rup', .09, .12, 'grey', loc=(RX, RR, s * (RZ - .31)), axis='z', verts=20))
     join(f'rwheels__susp_{sd}', rods, parent=R)
@@ -710,13 +712,14 @@ def build(root, Z):
       flat(f'pods__aero_deck_{sd}', [(x, s * z) for x, z in [(-1.09, .985), (-1.09, .585), (-.05, .55), (-.05, .93)]], .024, 'white', y=.47, bevel=.006, parent=R)
       flat(f'pods__aero_deck2_{sd}', [(x, s * z) for x, z in [(-.51, .65), (-.51, .29), (.34, .29), (.34, .62)]], .024, 'white', y=.44, bevel=.006, parent=R)
       # outer vertical fins at the tail corners
-      slab(f'rbody__aero_fin_{sd}', [(-1.7, .8), (-2.46, .8), (-2.92, 1.72), (-2.78, 1.76), (-2.2, 1.1)], .035, 'blue', z=s * 1.56, bevel=.01, parent=R)   # tall swept tail fins
+      slab(f'rbody__aero_fin_{sd}', [(-1.95, .82), (-2.46, .82), (-2.8, 1.5), (-2.68, 1.54), (-2.25, 1.08)], .035, 'blue', z=s * 1.56, bevel=.01, parent=R)   # swept tail fins
     # light-blue arched wing between the nacelles, with two small white fins
     rows = []
-    for k in range(13):
-      z = -.76 + k / 6 * .76; u = 1 - (z / .76) ** 2
-      xc = -2.12 - .06 * u; yc = .915 + .02 * u
-      rows.append([(xc + .12, yc, z), (xc + .02, yc + .03, z), (xc - .12, yc + .015, z), (xc - .12, yc - .005, z), (xc + .02, yc - .012, z)])
+    # spans the whole gap between the nacelles; the centre leads and the tips sweep back (owner's top-down photo)
+    for k in range(17):
+      z = -.93 + k / 8 * .93; v = (z / .93) ** 2; u = 1 - v
+      le = -2.06 - .2 * v; te = -2.33 - .17 * v; xm = (le + te) / 2; yc = .915 + .02 * u
+      rows.append([(le, yc, z), (le - .1 * (le - te) / .24, yc + .03, z), (te, yc + .015, z), (te, yc - .005, z), (le - .1 * (le - te) / .24, yc - .012, z)])
     loft('fanwings__arch', rows, 'lblue', lv=1, parent=R, creases={0: .9, 2: .9})
     slab('fanwings__campost', [(-1.95, .9), (-2.3, .92), (-2.28, 1.2), (-2.12, 1.28)], .035, 'white', z=0, bevel=.01, parent=R)
     cyl('fanwings__cam', .04, .1, 'black', loc=(-2.27, 1.19, 0), axis='x', verts=18).parent = R
@@ -744,9 +747,41 @@ def build(root, Z):
       # over the wheel arch the underside is flattened (buried in the fender) so it never shows through the arch
       flatb = lambda x, ring: [(px, max(py, .735), pz) for px, py, pz in ring] if -2.32 < x < -1.26 else ring
       nb = loft(f'nacelles__body_{sd}', [flatb(x, se_ring(x, y, r * (.96 if x > -1.6 else 1), r * k, 2, cz, 22)) for x, y, r, k in NR], 'blue', parent=R)
-      nb.data.materials.append(M('red'))
-      for pl in nb.data.polygons:
-        if pl.center.x < -1.6: pl.material_index = 1
+      # red only on a short cap at the tail (owner's photo of the figure + built kits); two blue flame tongues run back into it
+      # on the top.  A separate shell hugging the body, so the tongues are smooth instead of stair-stepped faces.
+      def nac_r(x):
+        for a, b in zip(NR, NR[1:]):
+          if a[0] >= x >= b[0]: t = (a[0] - x) / (a[0] - b[0]); return a[2] + (b[2] - a[2]) * t
+        return NR[-1][2]
+      XC0, XE = -2.2, -2.52
+      def cap_front(th):
+        d = 0.0
+        for c in (math.radians(55), math.radians(125)):
+          u = abs(th - c) / math.radians(16)
+          if u < 1: d = max(d, .17 * (1 - u))
+        return XC0 - d
+      NT, NU = 72, 10; V, F = [], []
+      for i in range(NT):
+        th = i / NT * math.tau
+        x0 = cap_front(th)
+        for j in range(NU + 1):
+          x = x0 + (XE - x0) * j / NU; rr = nac_r(x) + .004
+          V.append((x, max(.9 + rr * math.sin(th), .739 if x > -2.32 else -9), cz + rr * math.cos(th)))
+      for i in range(NT):
+        for j in range(NU):
+          a, b = i * (NU + 1) + j, ((i + 1) % NT) * (NU + 1) + j
+          F.append((a, a + 1, b + 1, b))
+      rc = mesh_from(f'nacelles__red_{sd}', V, F, 'red', parent=R)
+      face_out(rc, lambda c: Vector((0, c.y - .9, c.z - cz)))
+      # dark intake slit on the crown of the blue cowl, a narrow V opening toward the rear
+      def nac_top(x, dz):
+        for a_, b_ in zip(NR, NR[1:]):
+          if a_[0] >= x >= b_[0]: t = (a_[0] - x) / (a_[0] - b_[0]); y, r, k = [p + (q - p) * t for p, q in zip(a_[1:], b_[1:])]; break
+        w = r * .96; return y + r * k * math.sqrt(max(0, 1 - (dz / w) ** 2)) + .004
+      sl = [(x, (x + 1.02) / -.3 * .035) for x in (-1.02, -1.1, -1.18, -1.26, -1.32)]
+      V = [(x, nac_top(x, dz), cz + dz) for x, w in sl for dz in (-w, w)]
+      sk = mesh_from(f'nacelles__slot_{sd}', V, [(2 * i, 2 * i + 1, 2 * i + 3, 2 * i + 2) for i in range(len(sl) - 1)], 'black', smooth=False, parent=R)
+      face_out(sk, lambda c: Vector((0, 1, 0)))
       cyl(f'nacelles__face_{sd}', .175, .02, 'black', loc=(-2.525, .9, cz), axis='x', verts=24).parent = R
       c = cyl(f'nacelles__cone_{sd}', .15, .2, 'grey', loc=(-2.62, .9, cz), axis='x', verts=24, r2=.13); c.parent = R
       cyl(f'nacelles__hole_{sd}', .085, .02, 'black', loc=(-2.725, .9, cz), axis='x', verts=6).parent = R
