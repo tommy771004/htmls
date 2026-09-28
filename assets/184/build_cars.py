@@ -740,7 +740,26 @@ def build(root, Z):
       flat(f'pods__aero_deck_{sd}', [(x, s * z) for x, z in [(-1.09, .985), (-1.09, .585), (-.05, .55), (-.05, .93)]], .024, 'white', y=.47, bevel=.006, parent=R)
       flat(f'pods__aero_deck2_{sd}', [(x, s * z) for x, z in [(-.51, .65), (-.51, .29), (.34, .29), (.34, .62)]], .024, 'white', y=.44, bevel=.006, parent=R)
       # outer vertical fins at the tail corners
-      slab(f'rbody__aero_fin_{sd}', [(-1.95, .82), (-2.46, .82), (-2.8, 1.5), (-2.68, 1.54), (-2.25, 1.08)], .035, 'blue', z=s * 1.56, bevel=.01, parent=R)   # swept tail fins
+      # swept tail fins: in the show the circuit fan wings fold down into these, so (after the Mobile01「宅工程濕」build's
+      # paint study) blue on top, the light-blue trailing band below, and the SUNSET on it reads upside down
+      slab(f'rbody__aero_fin_{sd}', [(-1.95, .82), (-2.3, .82), (-2.7, 1.535), (-2.68, 1.54), (-2.25, 1.08)], .035, 'blue', z=s * 1.56, bevel=.01, parent=R)
+      slab(f'rbody__aero_finband_{sd}', [(-2.3, .82), (-2.46, .82), (-2.8, 1.5), (-2.7, 1.535)], .035, 'lblue', z=s * 1.56, bevel=.01, parent=R)
+      text_decal(f'marks__aero_sunset_{sd}', 'SUNSET', AB, .085, 'yellow', (-2.555, 1.18, s * (1.56 + .02)), 'L' if s > 0 else 'R',
+                 rot=s * math.atan2(.715, -.4), parent=R)
+      # rear-view mirror at the back of the long column, behind the second front wheel (same build: in the show a row of
+      # vents appears under it once the V wing deploys; the builder made them two outboard-angled plates that pull the
+      # turbulent air out of the wheel well)
+      slab(f'fwing__aero_mirpost_{sd}', [(.47, .56), (.6, .6), (.625, .79), (.575, .79)], .025, 'blue', z=s * 1.13, bevel=.006, parent=R)
+      loft(f'fwing__aero_mirror_{sd}', mirror([se_ring(x, .805, w, h, 2.2, 1.17, 16) for x, w, h in
+           [(.69, .012, .01), (.675, .045, .026), (.645, .07, .036), (.6, .075, .038), (.588, .075, .038)]], s), 'blue', lv=1, parent=R)
+      loft(f'fwing__aero_mirglass_{sd}', mirror([se_ring(x, .805, .062, .028, 2.2, 1.17, 16) for x in (.592, .584)], s), 'silver', lv=0, parent=R)
+      def vane(name, p0, p1, poly, t):
+        (x0, z0), (x1, z1) = p0, p1; L = math.hypot(x1 - x0, z1 - z0); nx, nz = -(z1 - z0) / L * t / 2, (x1 - x0) / L * t / 2
+        V = [(x0 + (x1 - x0) * u + k * nx, y, s * (z0 + (z1 - z0) * u + k * nz)) for k in (-1, 1) for u, y in poly]; n = len(poly)
+        F = [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))] + [(j, (j + 1) % n, n + (j + 1) % n, n + j) for j in range(n)]
+        return mesh_from(name, V, F, 'blue', smooth=False, parent=R)
+      for dx in (0, -.1):   # leading edge inboard, trailing edge swept outboard
+        vane(f'fwing__aero_outlet_{sd}', (.43 + dx, 1.1), (.31 + dx, 1.3), [(0, .19), (0, .31), (1, .31), (1, .1), (.4, .1)], .016)
     # light-blue arched wing between the nacelles, with two small white fins
     rows = []
     # spans the whole gap between the nacelles; the centre leads and the tips sweep back (owner's top-down photo)
