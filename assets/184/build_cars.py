@@ -905,14 +905,20 @@ def build_ogre(R):
       loft(f'boosters_{sd}{k}', [se_ring(x, by, w, w * 1.05, 1.35, s * bz, 24) for x, w in [(-2.3, .05), (-2.4, .15), (-2.62, .18), (-2.72, .16), (-2.76, .1)]], 'red', parent=R)
       cn = cyl(f'boosters__cone_{sd}{k}', .12, .26, 'gold', loc=(-2.87, by, s * bz), axis='x', verts=24, r2=.004); cn.rotation_euler = (0, math.radians(-90), 0); cn.parent = R
     # ---------------- horns: flat blades rising from the outer rear corner, sweeping up, forward and in; white top, dark web below ----------------
-    Hn = [(-2.64, 1.04, 1.48), (-2.42, 1.2, 1.46), (-2.16, 1.32, 1.34), (-1.92, 1.38, 1.1), (-1.72, 1.4, .82), (-1.56, 1.39, .55), (-1.46, 1.36, .32)]
+    # raised deck on each pod top (side photo: rises from x≈-1.1 to a flat top at y≈1.32, then falls along the horn to the tail);
+    # a separate faceted plate standing proud of the humps, the horn grows out of its rear outer corner
+    dk = [(-.98, .84, 1.42, 1.0, 1.02), (-1.18, .8, 1.47, 1.0, 1.13), (-1.4, .78, 1.49, 1.0, 1.25), (-1.6, .78, 1.5, 1.0, 1.31), (-1.9, .8, 1.5, 1.0, 1.32), (-2.25, .92, 1.5, 1.0, 1.2), (-2.56, 1.12, 1.5, 1.0, 1.07)]
+    deck = loft(f'rbody__deck_{sd}', mirror([[(x, yb, zi), (x, yb, zo), (x, yt - .07, zo), (x, yt, zo - .06), (x, yt, zi + .06), (x, yt - .05, zi)] for x, zi, zo, yb, yt in dk], s), D, lv=0, parent=R)
+    for pl in deck.data.polygons: pl.use_smooth = False
+    bv = deck.modifiers.new('bv', 'BEVEL'); bv.width = .02; bv.segments = 2; bv.limit_method = 'ANGLE'
+    Hn = [(-2.62, 1.08, 1.47), (-2.36, 1.2, 1.47), (-2.04, 1.34, 1.4), (-1.76, 1.41, 1.14), (-1.58, 1.43, .84), (-1.46, 1.42, .56), (-1.38, 1.39, .32)]
     rings = []
     for i, p in enumerate(Hn):
       a, b = Vector(Hn[max(i - 1, 0)]), Vector(Hn[min(i + 1, len(Hn) - 1)]); d = (b - a).normalized()
       sv = d.cross(Vector((0, 1, 0))).normalized(); up = sv.cross(d).normalized(); c = Vector(p); k = 1 - .6 * i / (len(Hn) - 1)
-      rings.append([tuple(c + sv * .13 * k * math.cos(t * math.tau / 8) + up * .02 * math.sin(t * math.tau / 8)) for t in range(8)])
+      rings.append([tuple(c + sv * .11 * k * math.cos(t * math.tau / 8) + up * .012 * math.sin(t * math.tau / 8)) for t in range(8)])
     loft(f'horns_{sd}', mirror(rings, s) if s < 0 else rings, 'white', lv=1, parent=R)
-    web = [[(x, y - .015, z - .014), (x, y - .015, z + .014), (x, 1.0, z + .014), (x, 1.0, z - .014)] for x, y, z in Hn[:3]]
+    web = [[(x, y - .015, z - .014), (x, y - .015, z + .014), (x, 1.0, z + .014), (x, 1.0, z - .014)] for x, y, z in Hn[:2]]
     loft(f'horns__fin_{sd}', mirror(web, s), D, lv=0, parent=R)
     # ---------------- front fender pods: white wedges right ahead of the front wheels (pointed keel, red check on the flank) ----------------
     def tear(x, yb, yt, hw):
