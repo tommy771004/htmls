@@ -904,12 +904,15 @@ def build_ogre(R):
   # ---------------- rear pod body: stepped white collar with two mesh intakes, two humps on top, exposed rear wheel ----------------
   H1, H2 = .56, 1.3                     # hump / booster centre lines (|z|)
   def rb(x, yb, yt, zi, zo):
+    # flat folded top (o86/o94): chamfered outer and inner edges, one shallow fold between the booster lines
+    # that deepens toward the tail, so from behind each pod still reads as two hoods (o78)
     h2 = min(H2, zo - .24); h1 = max(H1, zi + .14); mid = (h1 + h2) / 2
-    return [(x, yb, zi), (x, yb, zo), (x, yt - .26, zo), (x, yt - .12, zo - .05), (x, yt - .04, zo - .15), (x, yt, h2), (x, yt - .06, h2 - .22),
-            (x, yt - .13, mid), (x, yt - .06, h1 + .2), (x, yt, h1), (x, yt - .1, zi + .07), (x, yt - .2, zi)]
-  CR = {0: 1, 1: 1, 2: .9, 3: .6, 5: .75, 7: .8, 9: .75, 11: .8}   # folded-plate top (top photos): crisp fold lines along the humps
+    dip = .025 + .1 * min(1, max(0, (-1.9 - x) / .58))
+    return [(x, yb, zi), (x, yb, zo), (x, yt - .24, zo), (x, yt - .09, zo - .03), (x, yt - .015, zo - .15), (x, yt, h2), (x, yt - dip, mid),
+            (x, yt, h1), (x, yt - .03, zi + .1), (x, yt - .13, zi + .02), (x, yt - .24, zi)]
+  CR = {0: 1, 1: 1, 2: .95, 3: .95, 4: .95, 6: .9, 8: .95, 9: .95, 10: .9}   # crisp longitudinal folds, smooth along the length
   COL_ = [(-.47, .56, .9, .46, 1.54), (-.53, .5, 1.0, .38, 1.62), (-.72, .5, 1.04, .36, 1.62)]
-  BOD = [(-.72, .5, 1.04, .36, 1.62), (-1.1, .5, 1.08, .36, 1.62), (-1.6, .5, 1.1, .36, 1.62), (-2.0, .52, 1.1, .36, 1.6), (-2.3, .56, 1.07, .38, 1.58), (-2.48, .62, 1.02, .4, 1.55)]
+  BOD = [(-.72, .5, 1.04, .36, 1.62), (-1.1, .5, 1.08, .36, 1.62), (-1.6, .5, 1.1, .36, 1.62), (-2.0, .52, 1.1, .36, 1.6), (-2.3, .56, 1.07, .38, 1.58), (-2.43, .6, 1.04, .39, 1.57), (-2.48, .62, 1.02, .4, 1.55)]   # extra ring squares off the tail cap
   for s, sd in ((1, 'L'), (-1, 'R')):
     # collar + body are ONE loft (two separately capped lofts shrink apart under subsurf and open a crack at the joint);
     # the collar is just the white material on the front rings
@@ -919,8 +922,13 @@ def build_ogre(R):
     for pl in body.data.polygons:
       if pl.center.x > -.74: pl.material_index = 1
     col = body
-    arch = cyl('cut', .38, .74, 'black', loc=(RX, RR, s * RZ), axis='z', verts=64)
+    arch = cyl('cut', .35, .74, 'black', loc=(RX, RR, s * RZ), axis='z', verts=64)   # hugs the tyre (o85), leaving room for the lower band over it
     boolean_cut(body, arch); bpy.data.objects.remove(arch, do_unlink=True)
+    # tail between the two hoods: the deck's trailing edge is notched forward down to the red louvre bar (o94)
+    nt = [(-2.3, .93), (-2.7, .7), (-2.7, 1.16)]
+    cut = mesh_from('cut', [(x, .925, s * z) for x, z in nt] + [(x, 1.4, s * z) for x, z in nt],
+                    [(2, 1, 0), (3, 4, 5), (0, 1, 4, 3), (1, 2, 5, 4), (2, 0, 3, 5)], 'black', smooth=False)
+    boolean_cut(body, cut); bpy.data.objects.remove(cut, do_unlink=True)
     # two recessed intakes per pod: hexagonal pockets in the collar, carbon mesh at the back, a small white splitter fin between them
     # scoop intakes (close-ups o73/o84/o86): eye-shaped mouths with pointed ends, a rolled white rim standing proud of the collar,
     # the mesh set deep and raked back so it catches light under the white brow
@@ -951,13 +959,15 @@ def build_ogre(R):
     lip += [(xe + .01, ye - .05, s * (abs(ze) + .02)), (xe + .02, ye - .11, s * (abs(ze) + .025)), (xe + .035, ye - .17, s * (abs(ze) + .02))]
     tube(f'rbody__facered_{sd}', lip, .046, .028, 'red', taper=lambda t: 1 if t < .7 else max(.15, 1 - (t - .7) / .3 * .85))
     # pod side: white band / wavy red stripe / white band, rising toward the boosters (dips over the wheel)
-    red = [(-.55, .585), (-.99, .643), (-1.43, .702), (-1.72, .754), (-2.02, .737), (-2.31, .754), (-2.52, .754)]
+    red = [(-.55, .585), (-.99, .643), (-1.43, .702), (-1.72, .754), (-2.02, .737), (-2.31, .754), (-2.4, .754)]
     skin_strip(f'rbody__red_{sd}', [(x, y - .036) for x, y in red], [(x, y + .036) for x, y in red], s, 'red', body, off=.004, parent=R)
-    skin_strip(f'rbody__band_{sd}', [(x, y + .036) for x, y in red], [(x, .815) for x, y in red], s, 'white', body, off=.004, parent=R)
-    # lower white band stops in front of the wheel arch (rays through the arch would miss and leave torn fragments)
-    lo = [(-.55, .52, .549), (-1.0, .525, .607), (-1.3, .6, .646)]
-    skin_strip(f'rbody__bandlo_{sd}', [(x, a) for x, a, b in lo], [(x, b) for x, a, b in lo], s, 'white', body, off=.004, parent=R)
-    cyl(f'rbody__well_{sd}', .385, .012, 'black', loc=(RX, RR, s * .93), axis='z', verts=48).parent = R
+    # the upper white band runs right up to the flank's top fold (o86), so no dark sliver shows between it and the deck
+    skin_strip(f'rbody__band_{sd}', [(x, y + .03) for x, y in red], [(x, t) for (x, y), t in zip(red, (.815, .84, .86, .87, .87, .85, .8))], s, 'white', body, off=.0025, parent=R)
+    # lower white band runs on over the wheel arch (squeezed thin between arch and red) and widens again behind it to the booster (o85)
+    # (its top tucks under the red stripe, drawn a hair lower so the two never z-fight; it stops short of the tail cap)
+    lo = [(-.55, .52, .56), (-1.0, .525, .62), (-1.3, .6, .66), (-1.45, .668, .7), (-1.68, .69, .73), (-1.9, .672, .72), (-2.1, .62, .715), (-2.31, .64, .73), (-2.4, .67, .73)]
+    skin_strip(f'rbody__bandlo_{sd}', [(x, a) for x, a, b in lo], [(x, b) for x, a, b in lo], s, 'white', body, off=.0025, parent=R)
+    cyl(f'rbody__well_{sd}', .355, .012, 'black', loc=(RX, RR, s * .93), axis='z', verts=48).parent = R
     # outer leg in front of the wheel: a dark skirt with a forward-pointing toe on the ground, green 5 on it
     # (o84: the front edge is a concave sweep ending in a sharp toe, with a raked vent slot just behind it)
     leg = slab(f'rbody__leg_{sd}', [(-.3, .0), (-1.42, .01), (-1.42, .56), (-.56, .56), (-.61, .44), (-.63, .31), (-.58, .18), (-.47, .07)], .06, D, z=s * 1.58, bevel=.006, parent=R)
@@ -972,28 +982,40 @@ def build_ogre(R):
     slab(f'rbody__tail_{sd}', [(-2.0, .56), (-2.47, .64), (-2.64, .3), (-2.36, .2), (-2.12, .34)], .05, D, z=s * 1.5, bevel=.006, parent=R)
     flat(f'rbody__blade_{sd}', [(-2.14, s * 1.2), (-2.74, s * 1.3), (-2.74, s * 1.6), (-2.3, s * 1.6)], .025, D, y=.17, bevel=.004, parent=R)
     slab(f'rbody__lamp_{sd}', [(-2.26, .5), (-2.44, .53), (-2.44, .58), (-2.26, .55)], .012, 'red', z=s * 1.555, parent=R)
-    # ---------------- boosters: rounded-diamond red housings, gold spikes, joined by a red bar ----------------
+    # tail bulkhead under the boosters (o78): the back is closed, its lower edge hangs down in a fang under each booster
+    fg = [(.4, .7), (1.46, .7), (1.46, .5), (1.3, .26), (1.12, .5), (.93, .56), (.74, .5), (.56, .3), (.4, .5)]   # top stays inside the pod shell
+    nf = len(fg)
+    bh = mesh_from(f'rbody__tailwall_{sd}', [(-2.28, y, s * z) for z, y in fg] + [(-2.36, y, s * z) for z, y in fg],
+                   [tuple(range(nf)), tuple(range(nf, 2 * nf))[::-1]] + [(j, (j + 1) % nf, nf + (j + 1) % nf, nf + j) for j in range(nf)], D, smooth=False, parent=R)
+    bv = bh.modifiers.new('bv', 'BEVEL'); bv.width = .008; bv.segments = 2; bv.limit_method = 'ANGLE'
+    # ---------------- boosters: red housings with gold spikes, joined by a red bar ----------------
+    # (o78: the outer housing is a big rounded-square frame, the inner one a smaller round collar)
     for k, (bz, by) in enumerate(((H1, .88), (H2, .85))):
-      loft(f'boosters_{sd}{k}', [se_ring(x, by, w, w * 1.05, 1.35, s * bz, 24) for x, w in [(-2.3, .05), (-2.4, .15), (-2.62, .18), (-2.72, .16), (-2.76, .1)]], 'red', parent=R)
+      n_, sc = (1.7, .92) if k == 0 else (2.8, 1.12)
+      loft(f'boosters_{sd}{k}', [se_ring(x, by, w * sc, w * sc * 1.05, n_, s * bz, 24) for x, w in [(-2.3, .05), (-2.4, .15), (-2.62, .18), (-2.72, .16), (-2.76, .1)]], 'red', parent=R)
       cn = cyl(f'boosters__cone_{sd}{k}', .12, .26, 'gold', loc=(-2.87, by, s * bz), axis='x', verts=24, r2=.004); cn.rotation_euler = (0, math.radians(-90), 0); cn.parent = R
-    # ---------------- horns: flat blades rising from the outer rear corner, sweeping up, forward and in; white top, dark web below ----------------
-    # raised deck on each pod top (side photo: rises from x≈-1.1 to a flat top at y≈1.32, then falls along the horn to the tail);
-    # a separate faceted plate standing proud of the humps, the horn grows out of its rear outer corner
-    dk = [(-.98, 1.0, 1.42, 1.0, 1.04), (-1.18, .98, 1.47, 1.0, 1.14), (-1.4, .97, 1.49, 1.0, 1.25), (-1.6, .97, 1.5, 1.0, 1.31), (-1.9, .98, 1.5, 1.0, 1.32), (-2.25, 1.02, 1.5, 1.0, 1.2), (-2.56, 1.12, 1.5, 1.0, 1.09)]   # sits on the outer hump only
-    deck = loft(f'rbody__deck_{sd}', mirror([[(x, yb, zi), (x, yb, zo), (x, yt - .07, zo - .06), (x, yt, zo - .14), (x, yt, zi + .12), (x, yt - .05, zi + .06)] for x, zi, zo, yb, yt in dk], s), D, lv=0, parent=R)
-    for pl in deck.data.polygons: pl.use_smooth = False
-    bv = deck.modifiers.new('bv', 'BEVEL'); bv.width = .02; bv.segments = 2; bv.limit_method = 'ANGLE'
-    Hn = [(-2.62, 1.1, 1.47), (-2.36, 1.26, 1.47), (-2.04, 1.41, 1.4), (-1.76, 1.47, 1.14), (-1.58, 1.47, .84), (-1.46, 1.42, .56), (-1.38, 1.39, .32)]
+    # ---------------- deck wing + horn: a plate on each pod top with a straight white trailing edge (top photos o93/o94) ----------------
+    # its leading edge sits flush on the pod, the trailing edge lifts toward the centre (two flat facets folded along the diagonal),
+    # so from behind (o78) the white edge reads as a "horn" rising from the outer booster to a tip above the inner one
+    # a thin plate: its leading edge rests on the pod, the rear is cantilevered, so from behind the hoods show under it
+    # (side o85: the white edge runs from the outer booster's top forward-inward, its inner end ~.45 m further forward)
+    To, Ti, Li, Lo = Vector((-2.6, 1.07, 1.6)), Vector((-2.15, 1.31, .52)), Vector((-1.4, 1.1, .52)), Vector((-1.78, 1.08, 1.6))
+    top = [To, Ti, Li, Lo]
+    dv = [tuple(p) for p in top] + [(p.x, p.y - (.04 if i < 2 else .1), p.z) for i, p in enumerate(top)]
+    deck = mesh_from(f'rbody__deck_{sd}', [(x, y, s * z) for x, y, z in dv], [(0, 1, 3), (1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)], D, smooth=False, parent=R)
+    bv = deck.modifiers.new('bv', 'BEVEL'); bv.width = .012; bv.segments = 2; bv.limit_method = 'ANGLE'; bv.angle_limit = math.radians(25)
+    pn = (Ti - To).cross(Lo - To).normalized()
+    if pn.y < 0: pn = -pn
+    fw = pn.cross(Ti - To).normalized()
+    if fw.x < 0: fw = -fw
+    # white trailing edge wrapping the plate's back face; the inner end runs on past the plate and curls up into a tapered tip
+    Hn = [To + (Ti - To) * t for t in (-.03, .25, .5, .75, 1.0)] + [Ti + (Ti - To) * .09 + Vector((0, .05, 0)), Ti + (Ti - To) * .16 + Vector((0, .12, 0))]
     rings = []
-    for i, p in enumerate(Hn):
-      a, b = Vector(Hn[max(i - 1, 0)]), Vector(Hn[min(i + 1, len(Hn) - 1)]); d = (b - a).normalized()
-      sv = d.cross(Vector((0, 1, 0))).normalized(); up = sv.cross(d).normalized(); c = Vector(p); k = 1 - .6 * i / (len(Hn) - 1)
-      # the inner arc banks nose-down so its white top faces forward: from the front the horns read as a pair of arcs
-      a = math.radians(50) * max(0, i - 2) / (len(Hn) - 3); sv, up = sv * math.cos(a) - up * math.sin(a), up * math.cos(a) + sv * math.sin(a)
-      rings.append([tuple(c + sv * .11 * k * math.cos(t * math.tau / 8) + up * .012 * math.sin(t * math.tau / 8)) for t in range(8)])
-    loft(f'horns_{sd}', mirror(rings, s) if s < 0 else rings, 'white', lv=1, parent=R)
-    web = [[(x, y - .015, z - .014), (x, y - .015, z + .014), (x, 1.0, z + .014), (x, 1.0, z - .014)] for x, y, z in Hn[:2]]
-    loft(f'horns__fin_{sd}', mirror(web, s), D, lv=0, parent=R)
+    for i, c in enumerate(Hn):
+      k = 1 if i < 5 else (.7, .35)[i - 5]
+      a0, a1, b0, b1 = -.012, .08 * k, -.035 * (k if i >= 5 else 1), .008
+      rings.append([tuple(c + fw * a + pn * b) for a, b in ((a0, b0), (a1, b0 * .2), (a1, b1), (a0, b1))])
+    loft(f'horns_{sd}', mirror([[tuple(p) for p in r] for r in rings], s), 'white', lv=0, parent=R)
     # ======== aero mode (エアロモード, promo still): parts named "__aero" appear only in aero mode ========
     # rear: two long faceted booster nacelles per side riding on the pod humps — white V-collar round a dark intake,
     # violet body with a white spine stripe, faceted red tail block with a dark nozzle; the outer one carries a tall swept fin
@@ -1083,7 +1105,16 @@ def build_ogre(R):
     pan.append(slab('p', [(-2.5, .8), (-2.64, .8), (-2.64, .93), (-2.5, .93)], b - a, 'red', z=(a + b) / 2, bevel=.008))
     for y in (.83, .865, .9): pan.append(slab('q', [(-2.635, y - .007), (-2.648, y - .007), (-2.648, y + .007), (-2.635, y + .007)], (b - a) * .8, 'black', z=(a + b) / 2))
   join('boosters__bar', pan, parent=R)
-  loft('rbody__spine', [se_ring(x, y, w, h, 2.6, 0, 18) for x, y, w, h in [(-.62, .8, .2, .1), (-.9, .86, .3, .14), (-1.8, .87, .32, .16), (-2.4, .85, .3, .14), (-2.62, .8, .2, .08)]], D, parent=R)
+  # engine deck between the pods (o93/o94): flat top with chamfered edges filling the gap to the pod sills, a low centre ridge,
+  # squared off at the tail above the bulkhead
+  def spn(x, yb, yt, hw): return sym_ring(x, [(0, yb), (hw, yb), (hw, yt - .09), (hw - .06, yt - .02), (.07, yt), (0, yt + .012)])
+  loft('rbody__spine', [spn(*r) for r in [(-.6, .66, .82, .2), (-.8, .62, .9, .33), (-1.2, .6, .95, .4), (-1.9, .6, .96, .4), (-2.36, .62, .93, .4), (-2.46, .66, .9, .36)]],
+       D, parent=R, creases={0: 1, 1: 1, 2: .95, 3: .95, 4: .8, 6: .8, 7: .95, 8: .95, 9: 1})
+  xw = [(-.42, .84), (.42, .84), (.42, .46), (.22, .4), (0, .24), (-.22, .4), (-.42, .46)]
+  nw = len(xw)
+  bh = mesh_from('rbody__tailwall_c', [(-2.5, y, z) for z, y in xw] + [(-2.6, y, z) for z, y in xw],   # caps the tub's tail end
+                 [tuple(range(nw)), tuple(range(nw, 2 * nw))[::-1]] + [(j, (j + 1) % nw, nw + (j + 1) % nw, nw + j) for j in range(nw)], D, smooth=False, parent=R)
+  bv = bh.modifiers.new('bv', 'BEVEL'); bv.width = .008; bv.segments = 2; bv.limit_method = 'ANGLE'
   flat('rbody__floor', [(1.4, .3), (.6, .45), (-1.9, .45), (-1.9, -.45), (.6, -.45), (1.4, -.3)], .025, 'carbon', y=.06, parent=R)
   return nose
 
