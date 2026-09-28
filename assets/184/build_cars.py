@@ -813,18 +813,19 @@ def build(root, Z):
       nac = [o for o in list(COL.objects) if o.parent == R and (o.name.startswith(f'nacelles__') and not o.name.startswith('nacelles__base') and o.name.endswith(sd) or o.name.startswith(f'nacchev_{sd}'))]
       for o in nac: o.parent = None
       join(f'nacelles_{sd}', nac, parent=R, origin=(-1.55, .9, cz))
-      # fan wing: swept blade from the arch end outward and back, with dihedral (circuit mode only)
-      L = 1.25; w = [(-1.84, 0), (-2.2, 0), (-2.95, s * L), (-2.62, s * L)]
-      fw = flat(f'fw_{sd}', w, .04, 'blue', y=0, bevel=.012)
-      top = flat(f'fwt_{sd}', [(-1.98, 0), (-2.2, 0), (-2.95, s * L), (-2.76, s * L)], .01, 'lblue', y=.024, bevel=.003)
-      ang = math.atan2(-.72 * s * L, -.75)
-      sun = text_up(f'fws_{sd}', 'SUNSET', AB, .12, 'yellow', (-2.42, .03, s * .66), yaw=ang + (math.pi if s > 0 else 0))
-      tip = flat(f'fwl_{sd}', [(-2.2 - .75 * t + dx, s * L * t) for t, dx in ((.62, 0), (1.0, 0), (1.0, .07), (.62, .07))], .05, 'lamp', y=.0)
-      fwj = join(f'fanwings_{sd}', [fw, top, sun, tip], origin=(-2.02, 0, 0))
-      fwj.location = P(-2.02, 1.02, s * .78)
-      fwj.rotation_euler = (math.radians(-9 * s), 0, 0)
+      # fan wing (circuit mode only), after the kit paint-guide top/side drawings: the root sits over the deck inboard of the
+      # nacelle, the blade passes just above the nacelle top with ~11 deg dihedral and is barely swept (tip only .14 m back)
+      L = 1.25; LR, TR, LT, TT = -1.7, -2.06, -1.84, -2.14
+      fw = flat(f'fw_{sd}', [(LR, 0), (TR, 0), (TT, s * L), (LT, s * L)], .04, 'blue', y=0, bevel=.012)
+      top = flat(f'fwt_{sd}', [(-1.92, 0), (TR, 0), (TT, s * L), (-2.02, s * L)], .01, 'lblue', y=.024, bevel=.003)
+      ang = math.atan2(-s * L, TT - TR)
+      sun = text_up(f'fws_{sd}', 'SUNSET', AB, .12, 'yellow', (-2.03, .03, s * .64), yaw=ang + (math.pi if s > 0 else 0))
+      tip = flat(f'fwl_{sd}', [(TR + (TT - TR) * t + dx, s * L * t) for t, dx in ((.62, 0), (1.0, 0), (1.0, .07), (.62, .07))], .05, 'lamp', y=.0)
+      fwj = join(f'fanwings_{sd}', [fw, top, sun, tip], origin=(-1.88, 0, 0))
+      fwj.location = P(-1.88, 1.1, s * .5)
+      fwj.rotation_euler = (math.radians(-11 * s), 0, 0)
       fwj.parent = R
-      slab(f'fanwings__pyl_{sd}', [(-2.0, 1.12), (-2.45, 1.12), (-2.42, 1.1 if False else 1.09 + .08), (-2.12, 1.1 + .06)], .03, 'blue', z=s * 1.0, bevel=.01, parent=R)
+      slab(f'fanwings__pyl_{sd}', [(-1.76, 1.1), (-2.02, 1.1), (-2.0, 1.19), (-1.8, 1.19)], .03, 'blue', z=s * 1.0, bevel=.01, parent=R)
     else:
       slab(f'fins_{sd}', [(-1.0, .9), (-1.55, .9), (-2.3, 1.62), (-2.5, 1.64), (-2.05, 1.18)], .05, 'purple', z=s * .82, bevel=.012, parent=R)
       bolt = [(-1.62, 1.36), (-1.84, 1.06), (-1.72, 1.06), (-1.9, .9), (-1.58, 1.16), (-1.7, 1.16), (-1.5, 1.36)]
