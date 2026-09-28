@@ -1,1 +1,2981 @@
 <!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>與非到底 · NAND-8</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<meta name="description" content="從 2 輸入 NAND 閘開始蓋出一台 8 位元電腦：CPU、記憶體、組譯器、小作業系統與貪食蛇，全部真的跑在兩萬多個閘上，可以一路縮放到單一個閘看訊號流動。">
+<meta name="theme-color" content="#120f0c">
+<style>:root{
+  --bg:#110d0a; --surface:#1a1410; --surface-2:#241c16; --surface-3:#2e241c;
+  --ink:#f1e6d4; --muted:#ab977f; --faint:#6f5f4e;
+  --hi:#ffb347; --hi-ink:#2a1706; --lo:#4a3322; --led:#ff4b2b; --bad:#ff6b5a;
+  --edge:rgba(255,214,168,.075); --lip:rgba(255,230,200,.06);
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.22,.8,.24,1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gl.dragging{cursor:grabbing}
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;white-space:nowrap;font:600 11px/1 var(--mono);letter-spacing:.02em;color:#e9d3b2;padding:3px 4px;transform-origin:0 0;will-change:transform}
+.lbl.chip{font:600 12px/1.25 system-ui,sans-serif;color:var(--ink);padding:0;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.7)}
+.lbl.chip small{display:block;font:500 11px/1.3 system-ui,sans-serif;color:var(--muted)}
+.lbl.mod{color:#f0d7b0;text-shadow:0 1px 1px rgba(0,0,0,.9)}
+.lbl.mod.cell{font-weight:500;color:#cdb38e}
+
+/* ---------- header ---------- */
+#top{position:fixed;left:16px;top:16px;right:420px;pointer-events:none;z-index:3;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.brand{display:flex;align-items:center;gap:14px;pointer-events:auto;width:max-content;padding:10px 16px 10px 8px;background:var(--surface);border-radius:10px;box-shadow:inset 0 1px 0 var(--lip),0 0 0 1px var(--edge),0 10px 24px -14px rgba(0,0,0,.8)}
+.back{display:grid;place-items:center;width:28px;height:28px;border-radius:6px;color:var(--muted);transition:color .15s,background .15s}
+.back:hover{color:var(--ink);background:var(--surface-2)}
+#wordmark{height:30px;width:auto;display:block}
+#wordmark rect{fill:var(--hi)}
+.titles h1{margin:0;font-size:21px;line-height:1.15;font-weight:700;letter-spacing:.04em}
+.titles p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+#crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px;pointer-events:auto;width:max-content;max-width:100%;font-size:13px;padding:4px 8px 4px 4px;background:rgba(26,20,16,.88);border-radius:8px;box-shadow:0 0 0 1px var(--edge)}
+#crumbs button{padding:4px 7px;border-radius:5px;color:var(--muted);transition:color .15s,background .15s}
+#crumbs button:hover{color:var(--ink);background:var(--surface-2)}
+#crumbs button[aria-current]{color:var(--ink);font-weight:600}
+#crumbs .sep{color:var(--faint);font-size:11px;padding:0 1px}
+#crumbs .zh{color:var(--faint);margin-left:6px;font-size:12px}
+#crumbs .jumps{display:flex;align-items:center;gap:0;margin-left:8px;padding-left:10px;box-shadow:inset 1px 0 0 rgba(255,214,168,.1)}
+#crumbs .jumps .zh{margin:0 4px 0 0}
+
+/* ---------- console ---------- */
+#console{position:fixed;left:20px;bottom:20px;z-index:3;display:grid;grid-template-columns:auto auto;gap:6px 18px;align-items:center;padding:14px 16px 12px;background:var(--surface);border-radius:10px;box-shadow:inset 0 1px 0 var(--lip),0 0 0 1px var(--edge),0 10px 24px -14px rgba(0,0,0,.8)}
+.screenwrap{padding:7px;background:#0a0706;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(255,90,50,.07)}
+#screen{width:208px;height:208px;display:block}
+.controls{display:flex;flex-direction:column;align-items:center;gap:16px}
+.dpad{display:grid;grid-template:repeat(3,34px)/repeat(3,34px);gap:2px}
+.k{display:grid;place-items:center;background:var(--surface-3);color:var(--ink);border-radius:6px;box-shadow:inset 0 1px 0 rgba(255,236,210,.08),0 2px 0 #0c0907;transition:background .08s,transform .08s,box-shadow .08s;user-select:none;-webkit-user-select:none;touch-action:none}
+.k svg{width:13px;height:13px;fill:currentColor}
+.k:hover{background:#3a2e24}
+.k.on{background:var(--hi);color:var(--hi-ink);transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 0 #0c0907}
+.up{grid-area:1/2}.left{grid-area:2/1}.right{grid-area:2/3}.down{grid-area:3/2}
+.ab{display:flex;gap:10px;align-items:flex-end}
+.round{width:40px;height:40px;border-radius:50%;font-weight:700;font-size:14px}
+.round.a{margin-bottom:12px}
+.hint{grid-column:1/-1;margin:2px 0 0;font-size:11.5px;color:var(--faint)}
+.hint kbd{font:inherit;color:var(--muted)}
+#screenNote{white-space:nowrap}
+
+/* ---------- clock bar ---------- */
+#clockbar{position:fixed;left:50%;bottom:20px;transform:translateX(calc(-50% - 60px));z-index:3;display:flex;align-items:center;gap:14px;padding:8px 10px;background:var(--surface);border-radius:10px;box-shadow:inset 0 1px 0 var(--lip),0 0 0 1px var(--edge),0 10px 24px -14px rgba(0,0,0,.8)}
+.steps{display:flex;gap:2px}
+.icon{width:36px;height:36px;display:grid;place-items:center;border-radius:7px;color:var(--ink);transition:background .15s,color .15s}
+.icon svg{width:20px;height:20px;fill:currentColor}
+.icon:hover{background:var(--surface-2)}
+.icon:disabled{opacity:.35;cursor:default;background:none}
+#btnRun .play{display:none}
+#btnRun.paused .play{display:block}#btnRun.paused .pause{display:none}
+#btnRun.paused{color:var(--hi)}
+#btnMute .x{display:block}#btnMute .wave{display:none}
+#btnMute.on .x{display:none}#btnMute.on .wave{display:block}
+#speeds{display:flex;position:relative;padding:3px;background:#120e0b;border-radius:8px}
+#speeds button{white-space:nowrap;position:relative;z-index:1;padding:6px 10px;border-radius:6px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;transition:color .2s}
+#speeds button:hover{color:var(--ink)}
+#speeds button[aria-checked=true]{color:var(--hi-ink);font-weight:600}
+#speeds .ink{position:absolute;top:3px;bottom:3px;left:0;border-radius:6px;background:var(--hi);transition:transform .32s var(--ease),width .32s var(--ease)}
+#meters{display:flex;gap:16px;margin:0 4px}
+#meters div{display:flex;flex-direction:column-reverse;min-width:62px}
+#meters dt{font-size:10.5px;color:var(--faint)}
+#meters dd{margin:0;font:600 14px/1.2 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.panel-toggle{display:none;padding:8px 12px;border-radius:7px;background:var(--surface-2);font-size:13px}
+
+/* ---------- panel ---------- */
+#panel{position:fixed;top:16px;right:16px;bottom:16px;width:388px;z-index:4;display:flex;flex-direction:column;background:var(--surface);border-radius:12px;box-shadow:inset 0 1px 0 var(--lip),0 0 0 1px var(--edge),0 18px 40px -20px rgba(0,0,0,.85)}
+.tabs{position:relative;display:flex;gap:4px;padding:10px 12px 0;border-bottom:1px solid rgba(255,214,168,.06)}
+.tabs button{padding:8px 10px 11px;font-size:14px;color:var(--muted);transition:color .2s}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected=true]{color:var(--ink);font-weight:600}
+.tabs .close{display:none;margin-left:auto;width:34px;height:34px;place-items:center;border-radius:7px;color:var(--muted)}
+.tabs .close:hover{background:var(--surface-2);color:var(--ink)}
+.tab-ink{position:absolute;bottom:-1px;left:0;height:2px;border-radius:2px;background:var(--hi);transition:transform .32s var(--ease),width .32s var(--ease)}
+.tab{flex:1;overflow:auto;padding:14px 18px 20px;scrollbar-width:thin;scrollbar-color:#3a2e24 transparent}
+.lede{margin:0 0 14px;color:var(--muted);font-size:13px}
+.tab h3{margin:18px 0 8px;font-size:13px;font-weight:600;color:var(--ink)}
+.tab h3 small{font-weight:400;color:var(--faint);margin-left:6px;font-size:11.5px}
+.note{margin:0;color:var(--muted);font-size:12.5px}
+.note b{color:var(--ink);font-family:var(--mono)}
+
+.phase{display:flex;gap:6px;align-items:center;margin-bottom:12px;font-size:12.5px}
+.phase span{padding:3px 9px;border-radius:5px;color:var(--faint);background:var(--surface-2);transition:background .12s,color .12s}
+.phase span.on{background:var(--hi);color:var(--hi-ink);font-weight:600}
+.phase .clk{margin-left:auto;background:none;font-family:var(--mono);color:var(--muted);display:flex;align-items:center;gap:6px}
+.phase .clk i{display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--lo)}
+.phase .clk i.on{background:var(--hi)}
+
+.reg-grid{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;font:12.5px/1.2 var(--mono)}
+.reg-grid .n{color:var(--muted)}
+.reg-grid .v{color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.reg-grid .v i{font-style:normal;color:var(--faint);margin-left:6px}
+.bits{display:inline-flex;gap:2px;vertical-align:middle}
+.bits i{width:9px;height:12px;border-radius:2px;background:var(--lo)}
+.bits i.on{background:var(--hi)}
+.bits i.gap{margin-left:4px}
+.instr{margin-top:14px;padding:10px 12px;background:var(--surface-2);border-radius:7px;display:grid;gap:3px}
+.instr .kk{font-size:11px;color:var(--faint)}
+.instr code{font:600 15px/1.3 var(--mono);color:var(--hi)}
+.instr .src{font:12px/1.4 var(--mono);color:var(--muted);white-space:pre;overflow:hidden;text-overflow:ellipsis}
+.stack{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font:12px var(--mono)}
+.stack li{padding:4px 6px;border-radius:4px;background:var(--surface-2);color:var(--faint);font-variant-numeric:tabular-nums}
+.stack li.used{color:var(--ink)}
+.outs{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12.5px;color:var(--muted)}
+.outs b{font:600 12.5px var(--mono);color:var(--ink);margin-left:4px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:0;font-size:12.5px}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;text-align:right;font:12.5px var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+
+.code-actions{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.code-actions button{padding:6px 12px;border-radius:6px;background:var(--surface-3);font-size:13px;transition:background .15s}
+.code-actions button:hover{background:#3a2e24}
+#btnBurn{background:var(--hi);color:var(--hi-ink);font-weight:600}
+#btnBurn:hover{background:#ffc36b}
+#asmStatus{font-size:12px;color:var(--muted)}
+#asmErrors{font:12px/1.5 var(--mono);color:var(--bad);white-space:pre-wrap}
+#asmErrors:not(:empty){margin-bottom:10px}
+#codeView{margin:0;font:11.5px/1.55 var(--mono);color:#cdbba3;background:#140f0c;border-radius:7px;padding:8px 0;max-height:none;overflow:visible;counter-reset:ln}
+#codeView .l{display:block;padding:0 10px 0 0;white-space:pre;border-left:2px solid transparent}
+#codeView .l::before{counter-increment:ln;content:counter(ln);display:inline-block;width:34px;margin-right:10px;text-align:right;color:#4d4034}
+#codeView .l.cur{background:#3a2716;border-left-color:var(--hi)}
+#codeView .l.cur::before{color:var(--hi)}
+#codeView .c{color:#7d6a56}
+#codeView .lb{color:var(--ink);font-weight:600}
+#codeView .op{color:#ffd29a}
+#codeView .d{color:#c7a27a}
+#codeEdit{width:100%;min-height:60vh;resize:vertical;font:11.5px/1.55 var(--mono);color:var(--ink);background:#140f0c;border:0;border-radius:7px;padding:10px;outline:none;box-shadow:inset 0 0 0 1px var(--edge)}
+#codeEdit:focus{box-shadow:inset 0 0 0 1px rgba(255,179,71,.5)}
+.isa{margin-top:14px;font-size:12.5px}
+.isa summary{cursor:pointer;color:var(--ink);font-weight:600;padding:6px 0}
+.isa table{width:100%;border-collapse:collapse;font:11.5px/1.45 var(--mono)}
+.isa td{padding:4px 6px 4px 0;vertical-align:top;color:#cdbba3}
+.isa td:first-child{color:var(--faint)}
+.isa td:nth-child(2){color:#ffd29a;white-space:nowrap}
+.isa td:last-child{font-family:system-ui,sans-serif;color:var(--muted)}
+
+.proofs{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.proofs li{display:grid;grid-template-columns:14px 1fr auto;gap:2px 10px;align-items:start;padding:8px 8px;border-radius:7px;cursor:pointer;transition:background .15s}
+.proofs li:hover{background:var(--surface-2)}
+.proofs li.static{cursor:default}.proofs li.static:hover{background:none}
+.proofs .mark{width:10px;height:10px;margin-top:4px;border-radius:2px;background:var(--lo)}
+.proofs .mark.ok{background:var(--hi)}
+.proofs .mark.bad{background:var(--bad)}
+.proofs .t{font-size:13.5px;color:var(--ink)}
+.proofs .t b{font:600 12px var(--mono);letter-spacing:.02em;color:#ffd29a;margin-right:8px}
+.proofs .f{grid-column:2;font-size:12px;color:var(--muted)}
+.proofs .g{font:12px var(--mono);color:var(--muted);text-align:right;white-space:nowrap}
+.proofs .r{grid-column:2/4;font:11.5px var(--mono);color:var(--faint)}
+.proofs .r.ok{color:#d7b27e}
+
+.switch{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--ink);cursor:pointer;margin-bottom:12px}
+.switch input{appearance:none;flex:none;width:32px;height:18px;margin:1px 0 0;border-radius:9px;background:var(--surface-3);position:relative;cursor:pointer;transition:background .2s}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:var(--muted);transition:transform .2s var(--ease),background .2s}
+.switch input:checked{background:#5b3a14}
+.switch input:checked::after{transform:translateX(14px);background:var(--hi)}
+
+#tip{position:fixed;left:0;top:0;z-index:6;pointer-events:none;max-width:300px;padding:9px 11px;background:#0d0a08;border-radius:7px;box-shadow:0 0 0 1px var(--edge),0 8px 20px -10px #000;font-size:12px;color:var(--muted)}
+#tip b{color:var(--ink);font-weight:600}
+#tip code{font:12px var(--mono);color:var(--ink)}
+#tip .path{font:11px var(--mono);color:var(--faint);margin-top:3px;word-break:break-all}
+#tip .io{display:flex;gap:10px;margin-top:6px;font:12px var(--mono)}
+#tip .io span i{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--lo);margin-right:4px}
+#tip .io span i.on{background:var(--hi)}
+#err{position:fixed;inset:0;display:grid;place-items:center;z-index:9;background:var(--bg);color:var(--ink);padding:24px;text-align:center}
+#err[hidden]{display:none}
+.noscript{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
+
+/* ---------- smaller screens ---------- */
+@media (max-width:1180px){
+  #panel{width:340px}
+  #top{right:370px}
+  #clockbar{transform:translateX(-50%);left:calc(50% + 40px)}
+  #meters div:nth-child(3){display:none}
+}
+@media (max-width:980px){
+  #panel{display:none;top:auto;left:12px;right:12px;bottom:12px;width:auto;height:min(72vh,640px)}
+  #panel.open{display:flex}
+  .tabs .close{display:grid}
+  .panel-toggle{display:block}
+  #top{right:20px}
+  #clockbar{left:auto;right:16px;transform:none;bottom:20px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 340px)}
+}
+@media (max-width:760px){
+  #top{left:12px;top:10px;right:12px}
+  .brand{gap:10px}
+  #wordmark{height:20px}
+  .titles h1{font-size:16px}
+  .titles p{display:none}
+  #crumbs{margin-top:8px;font-size:12px;flex-wrap:nowrap;overflow-x:auto;max-width:calc(100vw - 24px);scrollbar-width:none}
+  #crumbs .zh{display:none}
+  #crumbs .jumps{margin-left:4px;padding-left:6px}
+  #console{left:10px;right:10px;bottom:10px;grid-template-columns:auto 1fr;padding:10px 12px 10px;gap:4px 12px}
+  #screen{width:140px;height:140px}
+  .screenwrap{padding:5px}
+  .controls{flex-direction:row;justify-content:space-between;align-items:center;gap:8px;width:100%}
+  .dpad{grid-template:repeat(3,36px)/repeat(3,36px)}
+  .ab{flex-direction:column-reverse;align-items:center;gap:10px}
+  .round{width:44px;height:44px}
+  .round.a{margin:0 0 0 0}
+  .hint{display:none}
+  #clockbar{left:10px;right:10px;bottom:auto;top:auto;max-width:none;transform:none;gap:6px;padding:6px;justify-content:space-between;flex-wrap:nowrap;bottom:calc(10px + var(--console-h,190px) + 8px)}
+  #meters{display:none}
+  .icon{width:32px;height:32px}
+  #speeds button{padding:6px 8px;font-size:12px}
+  #speeds .u{display:none}
+  .panel-toggle{padding:8px 10px;white-space:nowrap}
+  #panel{left:8px;right:8px;bottom:8px;height:78vh}
+}
+@media (prefers-reduced-motion:reduce){
+  .tab-ink,#speeds .ink,.switch input::after{transition:none}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="NAND-8 電腦的立體模型，可縮放到單一個閘"></canvas>
+<div id="labels" aria-hidden="true"></div>
+
+<header id="top">
+  <div class="brand">
+    <a class="back" href="../index.html" aria-label="回到作品目錄"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M8 1.5 3.5 6 8 10.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    <svg id="wordmark" role="img" aria-label="NAND-8"></svg>
+    <div class="titles"><h1>與非到底</h1><p id="tagline">從一個 NAND 閘，蓋到會玩貪食蛇的電腦</p></div>
+  </div>
+  <nav id="crumbs" aria-label="目前縮放的位置"></nav>
+</header>
+
+<section id="console" aria-label="遊戲機">
+  <div class="screenwrap"><canvas id="screen" width="256" height="256" aria-label="32×32 LED 螢幕，內容直接讀自 RAM 0x80–0xFF 的閂鎖"></canvas></div>
+  <div class="controls">
+    <div class="dpad" aria-label="方向鍵">
+      <button data-key="UP" class="k up" aria-label="上"><svg viewBox="0 0 10 10"><path d="M5 2.2 8 7H2z"/></svg></button>
+      <button data-key="LEFT" class="k left" aria-label="左"><svg viewBox="0 0 10 10"><path d="M2.2 5 7 2v6z"/></svg></button>
+      <button data-key="RIGHT" class="k right" aria-label="右"><svg viewBox="0 0 10 10"><path d="M7.8 5 3 8V2z"/></svg></button>
+      <button data-key="DOWN" class="k down" aria-label="下"><svg viewBox="0 0 10 10"><path d="M5 7.8 2 3h6z"/></svg></button>
+    </div>
+    <div class="ab">
+      <button data-key="B" class="k round" aria-label="B 返回">B</button>
+      <button data-key="A" class="k round a" aria-label="A 確定">A</button>
+    </div>
+  </div>
+  <p class="hint"><kbd>方向鍵</kbd> 移動 · <kbd>Z</kbd> A · <kbd>X</kbd> B　<span id="screenNote">螢幕 = RAM 0x80–0xFF</span></p>
+</section>
+
+<div id="clockbar" role="toolbar" aria-label="時鐘控制">
+  <div class="steps">
+    <button id="btnRun" class="icon" aria-label="暫停" title="暫停／繼續（P）"><svg viewBox="0 0 20 20" aria-hidden="true"><g class="pause"><rect x="5" y="4" width="3.2" height="12" rx="0.8"/><rect x="11.8" y="4" width="3.2" height="12" rx="0.8"/></g><path class="play" d="M6 4.2v11.6L15.6 10z"/></svg></button>
+    <button id="btnWave" class="icon" aria-label="前進一個閘延遲" title="前進一個閘延遲（.）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 14h6v-8h9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="10" r="1.6"/></svg></button>
+    <button id="btnClock" class="icon" aria-label="前進一個時鐘週期" title="前進一個時鐘週期（,）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 14h4V6h6v8h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button id="btnInstr" class="icon" aria-label="前進一條指令" title="前進一條指令（/）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1.5 14h2.5V6h3.5v8h3V6h3.5v8h4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div id="speeds" role="radiogroup" aria-label="時鐘速度">
+    <button role="radio" data-s="0" aria-checked="true">全速</button>
+    <button role="radio" data-s="1" aria-checked="false">60<span class="u"> Hz</span></button>
+    <button role="radio" data-s="2" aria-checked="false">4<span class="u"> Hz</span></button>
+    <button role="radio" data-s="3" aria-checked="false">0.5<span class="u"> Hz</span></button>
+  </div>
+  <dl id="meters">
+    <div><dt>時鐘</dt><dd id="mHz">0</dd></div>
+    <div><dt>指令/秒</dt><dd id="mIps">0</dd></div>
+    <div><dt>閘翻轉/秒</dt><dd id="mTog">0</dd></div>
+  </dl>
+  <button id="btnMute" class="icon" aria-label="開啟聲音" title="聲音（M）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3.5v11L6 12H3z"/><path class="wave" d="M13 7.2c1.4 1.4 1.4 4.2 0 5.6M15.2 5.2c2.6 2.6 2.6 7 0 9.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path class="x" d="M13 7.5l4 5m0-5-4 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  <button id="btnPanel" class="panel-toggle" aria-expanded="false" aria-controls="panel">面板</button>
+</div>
+
+<aside id="panel" aria-label="機器面板">
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="state">狀態</button>
+    <button role="tab" aria-selected="false" data-tab="code">程式</button>
+    <button role="tab" aria-selected="false" data-tab="proof">推導</button>
+    <button role="tab" aria-selected="false" data-tab="verify">驗證</button>
+    <span class="tab-ink" aria-hidden="true"></span>
+    <button class="close" id="btnClose" aria-label="關閉面板"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2.5 2.5l7 7m0-7-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <section class="tab" id="tab-state" role="tabpanel">
+    <p class="lede">下面每個數字都是直接讀取閘的輸出，沒有另存一份 JavaScript 狀態。</p>
+    <div class="phase"><span id="phFetch">取指</span><span id="phExec">執行</span><span class="clk">CLK <i id="clkBit"></i></span></div>
+    <div class="reg-grid" id="regGrid"></div>
+    <div class="instr"><span class="kk">IR 解碼</span><code id="disasm">—</code><span class="src" id="srcLine"></span></div>
+    <h3>返回堆疊 <small>8 層 × 10 位元，CALL 往下推、RET 往上拉</small></h3>
+    <ol class="stack" id="stackList"></ol>
+    <h3>板上輸出</h3>
+    <div class="outs"><span>LED <b class="bits" id="ledBits"></b></span><span>聲音 <b id="sndVal">0</b></span><span>亂數 LFSR <b id="rngVal">0</b></span><span>計時 <b id="tickVal">0</b></span></div>
+    <h3>這台機器</h3>
+    <dl class="facts" id="facts"></dl>
+  </section>
+
+  <section class="tab" id="tab-code" role="tabpanel" hidden>
+    <p class="lede">GATE OS 與兩支程式的組合語言。按「燒錄」會重新組譯，ROM 的閘會依新的機器碼重新長出來。</p>
+    <div class="code-actions">
+      <button id="btnEdit">編輯</button>
+      <button id="btnBurn" hidden>燒錄 ROM</button>
+      <button id="btnRevert" hidden>還原</button>
+      <span id="asmStatus"></span>
+    </div>
+    <div id="asmErrors" role="alert"></div>
+    <pre id="codeView" tabindex="0"></pre>
+    <textarea id="codeEdit" spellcheck="false" hidden aria-label="組合語言原始碼"></textarea>
+    <details class="isa"><summary>指令集：16 個操作碼</summary><table id="isaTable"></table></details>
+  </section>
+
+  <section class="tab" id="tab-proof" role="tabpanel" hidden>
+    <p class="lede">一層一層往上蓋。每一層都先用 NAND 重新接出來，再放進閘級模擬器實際驗證；點一列可以飛到機器裡對應的位置。</p>
+    <ol class="proofs" id="proofList"></ol>
+    <h3>軟體</h3>
+    <ol class="proofs soft" id="softList"></ol>
+  </section>
+
+  <section class="tab" id="tab-verify" role="tabpanel" hidden>
+    <p class="lede">遊戲畫面只由閘驅動。這裡另有一份依指令集規格寫的參考模型，只拿來對照，從不驅動任何畫面。</p>
+    <label class="switch"><input type="checkbox" id="chkLive"><span>即時對照：每執行一條指令，就拿閘的暫存器、旗標與 PC 跟參考模型比</span></label>
+    <dl class="facts" id="liveStats"></dl>
+    <h3>隨機程式對照</h3>
+    <p class="note" id="fuzzNote">開頁後在背景產生隨機程式，同時交給閘與參考模型執行，逐條比對暫存器、旗標、堆疊與整片 RAM。</p>
+    <h3>亞穩態</h3>
+    <p class="note">單位延遲模型裡，兩個 NAND 交叉回授的閂鎖若在同一刻被放開，會一直振盪。模擬器偵測到就讓它倒向一邊並記錄一次。目前 <b id="metaCount">0</b> 次。</p>
+  </section>
+</aside>
+
+<div id="tip" role="tooltip" hidden></div>
+<div id="err" hidden>這件作品需要 WebGL 與網路（載入 Three.js）。請改用較新的瀏覽器開啟。</div>
+<noscript><p class="noscript">NAND-8：一台只用 2 輸入 NAND 閘蓋出來的 8 位元電腦，含 CPU、256 bytes RAM、1K×16 ROM、組譯器、小作業系統與貪食蛇。需要開啟 JavaScript 才能執行。</p></noscript>
+
+<script>// ===== NAND-8 core: netlist builder, gate simulator, machine, assembler, reference model =====
+// Every logic element is a 2-input NAND. Besides NANDs the netlist holds only the two
+// constant rails and the external inputs (clock, reset, five buttons, a 60 Hz tick).
+
+// ---------- Netlist ----------
+class Netlist {
+  constructor() {
+    this.A = []; this.B = []; this.M = [];
+    this.mods = [{ name: 'NAND-8', parent: -1, kind: 'root' }];
+    this.stack = [0];
+    this.notMemo = new Map();
+    this.alias = new Map();
+    this.inputs = {};
+    this.sig = {};
+    this.C0 = this.source(); this.C1 = this.source();
+  }
+  get cur() { return this.stack[this.stack.length - 1]; }
+  source() { const id = this.A.length; this.A.push(-1); this.B.push(-1); this.M.push(this.cur); return id; }
+  input(name) { const id = this.source(); this.inputs[name] = id; return id; }
+  gate(a = -2, b = -2) { const id = this.A.length; this.A.push(a); this.B.push(b); this.M.push(this.cur); return id; }
+  wire(g, a, b) { this.A[g] = a; this.B[g] = b; }
+  fwd() { const id = this.A.length; this.A.push(-3); this.B.push(-3); this.M.push(this.cur); return id; }
+  bind(ph, net) { this.alias.set(ph, net); }
+  scope(name, fn, kind) {
+    kind = kind || 'block';
+    let id = -1;
+    if (kind === 'chip' || kind === 'block') { const key = this.cur + '/' + name; id = (this.named || (this.named = new Map())).get(key) ?? -1; if (id < 0) this.named.set(key, this.mods.length); }
+    if (id < 0) { id = this.mods.length; this.mods.push({ name, parent: this.cur, kind }); }
+    this.stack.push(id);
+    try { return fn(id); } finally { this.stack.pop(); }
+  }
+  // Resolve forward references and renumber so ids are dense: [C0, C1, inputs..., gates...]
+  finalize() {
+    const res = (x) => { let n = 0; while (this.alias.has(x)) { x = this.alias.get(x); if (++n > 64) throw Error('alias loop'); } return x; };
+    const n = this.A.length, map = new Int32Array(n).fill(-1);
+    let k = 0;
+    for (let i = 0; i < n; i++) if (this.A[i] === -1) map[i] = k++;
+    this.nSources = k;
+    for (let i = 0; i < n; i++) if (this.A[i] >= 0 || this.A[i] === -2) map[i] = k++;
+    for (let i = 0; i < n; i++) if (this.A[i] === -3) { const t = res(i); if (map[t] < 0) throw Error('unbound forward ref'); map[i] = map[t]; }
+    const A = new Int32Array(k), B = new Int32Array(k), M = new Int32Array(k);
+    for (let i = 0; i < n; i++) {
+      if (this.A[i] === -3) continue;
+      const j = map[i];
+      M[j] = this.M[i];
+      if (this.A[i] === -1) { A[j] = -1; B[j] = -1; continue; }
+      if (this.A[i] === -2 || this.B[i] === -2) throw Error('unwired gate ' + i);
+      A[j] = map[this.A[i]]; B[j] = map[this.B[i]];
+    }
+    const remap = (v) => typeof v === 'number' ? map[v] : Array.isArray(v) ? v.map(remap) : v instanceof Map ? new Map([...v].map(([a, b]) => [a, remap(b)])) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([a, b]) => [a, remap(b)])) : v;
+    this.sig = remap(this.sig); this.inputs = remap(this.inputs);
+    this.A = A; this.B = B; this.M = M; this.C0 = map[this.C0]; this.C1 = map[this.C1];
+    this.nGates = k - this.nSources;
+    delete this.notMemo; delete this.alias; delete this.named;
+    return this;
+  }
+}
+
+let N = null;
+const nand = (a, b) => N.gate(a, b);
+function not(a) {
+  let g = N.notMemo.get(a);
+  if (g === undefined) { g = nand(a, a); N.notMemo.set(a, g); }
+  return g;
+}
+const and = (a, b) => not(nand(a, b));
+const or = (a, b) => nand(not(a), not(b));
+function xor(a, b) { const t = nand(a, b); return nand(nand(a, t), nand(b, t)); }
+const xnor = (a, b) => not(xor(a, b));
+function mux(s, a, b) { return nand(nand(a, not(s)), nand(b, s)); } // s ? b : a
+const muxBus = (s, a, b) => a.map((x, i) => mux(s, x, b[i]));
+function mux4(s1, s0, a, b, c, d) { return mux(s1, mux(s0, a, b), mux(s0, c, d)); }
+function andN(xs) { while (xs.length > 1) { const n = []; for (let i = 0; i < xs.length; i += 2) n.push(i + 1 < xs.length ? and(xs[i], xs[i + 1]) : xs[i]); xs = n; } return xs[0]; }
+function orN(xs) { while (xs.length > 1) { const n = []; for (let i = 0; i < xs.length; i += 2) n.push(i + 1 < xs.length ? or(xs[i], xs[i + 1]) : xs[i]); xs = n; } return xs[0]; }
+// OR of active-low lines = NAND of all of them
+function orLow(lows) { if (lows.length === 1) return not(lows[0]); return nand(andN(lows.slice(0, -1)), lows[lows.length - 1]); }
+
+function decode(bits) { // 2^n active-high select lines
+  if (bits.length === 1) return [not(bits[0]), bits[0]];
+  if (bits.length === 2) {
+    const [a, b] = bits, na = not(a), nb = not(b);
+    return [and(na, nb), and(a, nb), and(na, b), and(a, b)];
+  }
+  const lo = decode(bits.slice(0, 2)), hi = decode(bits.slice(2));
+  const out = [];
+  for (let h = 0; h < hi.length; h++) for (let l = 0; l < lo.length; l++) out.push(and(hi[h], lo[l]));
+  return out;
+}
+
+// Gated D latch, 4 NAND, transparent while E = 1.
+function latch(E) {
+  const s = N.gate(), r = N.gate(), q = N.gate(), qb = N.gate();
+  N.wire(r, s, E); N.wire(q, s, qb); N.wire(qb, r, q);
+  return { q, qb, s, setD(d) { N.wire(s, d, E); } };
+}
+// Rising-edge D flip-flop: master latch open while the clock is low, slave latch open while high.
+let CLK, NCLK;
+function dff(clk = CLK, nclk = NCLK) {
+  return N.scope('DFF', () => {
+    const m = latch(nclk), s = latch(clk);
+    s.setD(m.q);
+    return { q: s.q, qb: s.qb, setD: m.setD };
+  }, 'cell');
+}
+// Clock gate: the enable is caught by a latch while the clock is low, so the gated clock never glitches.
+function clockGate(en) {
+  return N.scope('CLOCK GATE', () => { const l = latch(NCLK); l.setD(en); const g = and(CLK, l.q); return [g, not(g)]; }, 'cell');
+}
+function register(name, width, en, d) { // d: bus, or (q) => bus for feedback. en: null = load every cycle
+  return N.scope(name, () => {
+    const [ck, nck] = en === null ? [CLK, NCLK] : clockGate(en);
+    const ffs = []; for (let i = 0; i < width; i++) ffs.push(dff(ck, nck));
+    const q = ffs.map(f => f.q);
+    const dv = typeof d === 'function' ? d(q) : d;
+    ffs.forEach((f, i) => f.setD(dv[i]));
+    return q;
+  }, 'reg');
+}
+function fullAdder(a, b, c) {
+  return N.scope('FA', () => {
+    const t1 = nand(a, b), t2 = nand(a, t1), t3 = nand(b, t1), s1 = nand(t2, t3);
+    const t4 = nand(s1, c), t5 = nand(s1, t4), t6 = nand(c, t4);
+    return { s: nand(t5, t6), c: nand(t4, t1) };
+  }, 'cell');
+}
+function halfAdder(a, b) {
+  return N.scope('HA', () => { const t = nand(a, b); return { s: nand(nand(a, t), nand(b, t)), c: not(t) }; }, 'cell');
+}
+function incrementer(bus, cin) {
+  const out = []; let c = cin;
+  for (const b of bus) { const h = halfAdder(b, c); out.push(h.s); c = h.c; }
+  return out;
+}
+const fwdBus = (n) => Array.from({ length: n }, () => N.fwd());
+const bindBus = (ph, bus) => ph.forEach((p, i) => N.bind(p, bus[i]));
+
+// ---------- The machine ----------
+const OPS = { NOP: 0, ALU: 1, ALUI0: 2, ALUI1: 3, LD: 4, ST: 5, LDX: 6, STX: 7, J0: 8, J1: 9, CALL: 10, RET: 11, OUT: 12, IN: 13, LDC: 14, HLT: 15 };
+
+function buildMachine(rom) {
+  N = new Netlist();
+  const S = N.sig;
+  CLK = N.input('CLK');
+  const RST = N.input('RST');
+  const KEYS = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'A', 'B'].map(k => N.input(k));
+  const TICK = N.input('TICK');
+  const C0 = N.C0, C1 = N.C1;
+  let nrst;
+  N.scope('CLOCK', () => { NCLK = not(CLK); nrst = not(RST); }, 'block');
+
+  // Forward references that cross blocks
+  const romOut = fwdBus(16), PC = fwdBus(10), aluRes = fwdBus(8), wbBus = fwdBus(8);
+  const flagC = N.fwd(), flagZ = N.fwd(), flagN = N.fwd();
+  let exec, fetch, IR, dec = {}, regA, regB;
+
+  N.scope('CPU', () => {
+    N.scope('SEQUENCER', () => {
+      const st = register('STATE', 1, null, q => [and(not(q[0]), nrst)]);
+      exec = st[0]; fetch = not(exec);
+      S.state = st;
+    }, 'block');
+
+    IR = register('IR', 16, fetch, romOut);
+    S.ir = IR;
+
+    N.scope('DECODER', () => {
+      const lines = decode(IR.slice(12, 16));
+      for (const k in OPS) dec[k] = lines[OPS[k]];
+      dec.rd = IR.slice(10, 12); dec.rs = IR.slice(8, 10); dec.imm = IR.slice(0, 8);
+      dec.isALUI = or(dec.ALUI0, dec.ALUI1);
+      dec.isALU = or(dec.ALU, dec.isALUI);
+      dec.isLoad = or(dec.LD, dec.LDX);
+      dec.isStore = or(dec.ST, dec.STX);
+      dec.xFromB = or(or(dec.LDX, dec.STX), dec.LDC);
+      dec.xZero = or(dec.LD, dec.ST);
+      // immediate forms: k = {op0, rs1, rs0}: ADD SUB AND OR XOR CMP MOV TST
+      const k = decode([dec.rs[0], dec.rs[1], IR[12]]);
+      const kfn2 = orN([k[2], k[3], k[4], k[6], k[7]]), kfn1 = orN([k[1], k[4], k[5], k[6]]), kfn0 = or(k[3], k[6]);
+      dec.fn = [
+        or(and(dec.ALU, IR[0]), and(dec.isALUI, kfn0)),
+        or(and(dec.ALU, IR[1]), and(dec.isALUI, kfn1)),
+        or(and(dec.ALU, IR[2]), and(dec.isALUI, kfn2)),
+        and(dec.ALU, IR[3]),
+      ];
+      dec.nowb = or(and(dec.ALU, IR[4]), and(dec.isALUI, or(k[5], k[7])));
+    }, 'block');
+
+    N.scope('REGISTERS', () => {
+      const regWrite = and(exec, orN([and(dec.isALU, not(dec.nowb)), dec.isLoad, dec.LDC, dec.IN]));
+      const wsel = decode(dec.rd);
+      const regQ = [];
+      for (let r = 0; r < 4; r++) regQ.push(register('R' + r, 8, and(regWrite, wsel[r]), wbBus));
+      const port = (sel) => Array.from({ length: 8 }, (_, i) => mux4(sel[1], sel[0], regQ[0][i], regQ[1][i], regQ[2][i], regQ[3][i]));
+      regA = N.scope('READ PORT A', () => port(dec.rd), 'block');
+      regB = N.scope('READ PORT B', () => port(dec.rs), 'block');
+      S.regs = regQ; S.regA = regA;
+    }, 'block');
+
+    N.scope('ALU', () => {
+      const fn = dec.fn, sub = fn[1], useC = fn[0];
+      const X = N.scope('X SELECT', () => regA.map((a, i) => and(not(dec.xZero), mux(dec.xFromB, a, regB[i]))), 'block');
+      const Y = N.scope('Y SELECT', () => muxBus(dec.ALU, dec.imm, regB), 'block');
+      const sum = []; let cout;
+      N.scope('ADDER', () => {
+        let c = mux(useC, sub, flagC);
+        for (let i = 0; i < 8; i++) { const r = fullAdder(X[i], xor(Y[i], sub), c); sum.push(r.s); c = r.c; }
+        cout = c;
+      }, 'block');
+      const logic = N.scope('LOGIC', () => X.map((x, i) => mux4(fn[1], fn[0], and(x, Y[i]), or(x, Y[i]), xor(x, Y[i]), Y[i])), 'block');
+      let shifted, sOut;
+      N.scope('SHIFTER', () => {
+        const cin = and(useC, flagC);
+        shifted = X.map((x, i) => mux(sub, i === 0 ? cin : X[i - 1], i === 7 ? cin : X[i + 1]));
+        sOut = mux(sub, X[7], X[0]);
+      }, 'block');
+      const res = N.scope('RESULT MUX', () => sum.map((s, i) => mux(fn[3], mux(fn[2], s, logic[i]), shifted[i])), 'block');
+      bindBus(aluRes, res);
+      N.scope('FLAGS', () => {
+        const z = not(orN(res.slice()));
+        const newC = mux(fn[3], cout, sOut);
+        const fw = and(exec, dec.isALU);
+        const q = register('Z C N', 3, null, q => [mux(fw, q[0], z), mux(and(fw, not(fn[2])), q[1], newC), mux(fw, q[2], res[7])]);
+        N.bind(flagZ, q[0]); N.bind(flagC, q[1]); N.bind(flagN, q[2]);
+        S.flags = q;
+      }, 'block');
+      S.aluX = X; S.aluY = Y; S.aluRes = res;
+    }, 'block');
+  }, 'chip');
+
+  // RAM: 256 bytes. 0x00-0x7F work memory, 0x80-0xFF video memory (32x32, 1 bit per pixel)
+  let ramOut;
+  N.scope('RAM', () => {
+    const we = N.scope('WRITE STROBE', () => and(and(exec, dec.isStore), NCLK), 'block');
+    let lo, hi, weHi;
+    N.scope('ADDRESS DECODER', () => {
+      lo = decode(aluRes.slice(0, 4)); hi = decode(aluRes.slice(4, 8));
+      weHi = hi.map(h => and(h, we));
+    }, 'block');
+    const cols = Array.from({ length: 8 }, () => []);
+    const ramQ = [];
+    // read word lines are only driven while the clock is low, after the address has settled
+    const rdHi = N.scope('ADDRESS DECODER', () => hi.map(h => and(h, NCLK)), 'block');
+    for (let h = 0; h < 16; h++) {
+      N.scope((h < 8 ? 'WORK ' : 'VIDEO ') + h.toString(16).toUpperCase() + '0', () => {
+        const bankData = N.scope('DATA GATE', () => regA.map(d => and(d, weHi[h])), 'block');
+        for (let l = 0; l < 16; l++) {
+          const a = h * 16 + l;
+          N.scope('BYTE ' + a.toString(16).toUpperCase().padStart(2, '0'), () => {
+            const strobe = and(weHi[h], lo[l]);
+            const row = and(rdHi[h], lo[l]);
+            const qs = [];
+            for (let b = 0; b < 8; b++) {
+              const q = N.scope('BIT ' + b, () => { const x = latch(strobe); x.setD(bankData[b]); cols[b].push(nand(x.q, row)); return x.q; }, 'cell');
+              qs.push(q);
+            }
+            ramQ[a] = qs;
+          }, 'byte');
+        }
+      }, 'bank');
+    }
+    ramOut = N.scope('READ TREE', () => cols.map(col => orLow(col)), 'block');
+    S.ramQ = ramQ; S.ramOut = ramOut;
+  }, 'chip');
+
+  // ROM: 1024 x 16 mask ROM. The assembler's output decides which NAND gates exist.
+  N.scope('ROM', () => {
+    const ra = N.scope('ADDRESS MUX', () => {
+      const ldc = and(exec, dec.LDC), out = [];
+      for (let i = 0; i < 8; i++) out.push(mux(ldc, PC[i], aluRes[i]));
+      out.push(or(ldc, PC[8])); out.push(or(ldc, PC[9]));
+      return out;
+    }, 'block');
+    let hm, lo;
+    N.scope('ROW DECODER', () => {
+      lo = decode(ra.slice(0, 3)); const mid = decode(ra.slice(3, 6)), hi = decode(ra.slice(6, 10));
+      hm = []; for (let h = 0; h < 16; h++) for (let m = 0; m < 8; m++) hm.push(and(hi[h], mid[m]));
+    }, 'block');
+    const bitRows = Array.from({ length: 16 }, () => []);
+    const rows = {};
+    N.scope('WORD LINES', () => {
+      for (let a = 0; a < 1024; a++) {
+        const w = rom[a] | 0; if (!w) continue;
+        const rn = nand(hm[a >> 3], lo[a & 7]);
+        rows[a] = rn;
+        for (let b = 0; b < 16; b++) if (w >> b & 1) bitRows[b].push(rn);
+      }
+    }, 'block');
+    const data = N.scope('BIT PLANES', () => bitRows.map((rs, b) => N.scope('D' + b, () => rs.length ? orLow(rs) : C0, 'block')), 'block');
+    bindBus(romOut, data);
+    S.romRows = rows; S.romAddr = ra; S.romOut = data;
+  }, 'chip');
+
+  // I/O: buttons, random bits, 60 Hz tick counter, sound and LED latches
+  let ioIn;
+  N.scope('IO', () => {
+    const lfsr = register('LFSR', 8, null, q => {
+      const fb = xnor(xnor(q[7], q[5]), xnor(q[4], q[3]));
+      return [or(fb, RST), q[0], q[1], q[2], q[3], q[4], q[5], q[6]];
+    });
+    const sync = register('TICK SYNC', 2, null, q => [TICK, q[0]]);
+    const pulse = and(sync[0], not(sync[1]));
+    const ticks = register('TICK COUNT', 8, pulse, q => N.scope('INC', () => incrementer(q, C1), 'block'));
+    const outEn = and(exec, dec.OUT);
+    const snd = register('SOUND', 8, and(outEn, not(dec.imm[0])), regA);
+    const leds = register('LEDS', 8, and(outEn, dec.imm[0]), regA);
+    const keyBus = [...KEYS, C0, C0];
+    ioIn = N.scope('IN PORT', () => Array.from({ length: 8 }, (_, i) => mux4(dec.imm[1], dec.imm[0], keyBus[i], lfsr[i], ticks[i], C0)), 'block');
+    S.ioIn = ioIn; S.lfsr = lfsr; S.ticks = ticks; S.sound = snd; S.leds = leds;
+  }, 'chip');
+
+  // Program counter, return stack, write-back
+  N.scope('CPU', () => {
+    N.scope('PC', () => {
+      const pcFF = N.scope('PC REG', () => { const [ck, nck] = clockGate(or(exec, RST)); return Array.from({ length: 10 }, () => dff(ck, nck)); }, 'reg');
+      const pcQ = pcFF.map(f => f.q);
+      bindBus(PC, pcQ);
+      const inc = N.scope('INCREMENTER', () => incrementer(pcQ, C1), 'block');
+      const push = and(exec, dec.CALL), pop = and(exec, dec.RET);
+      let stack;
+      N.scope('RETURN STACK', () => {
+        const [ck, nck] = clockGate(or(push, pop));
+        const ffs = [];
+        for (let e = 0; e < 8; e++) ffs.push(N.scope('LEVEL ' + e, () => Array.from({ length: 10 }, () => dff(ck, nck)), 'reg'));
+        const q = ffs.map(r => r.map(f => f.q));
+        for (let e = 0; e < 8; e++) for (let i = 0; i < 10; i++) {
+          const above = e === 0 ? inc[i] : q[e - 1][i], below = e === 7 ? C0 : q[e + 1][i];
+          ffs[e][i].setD(mux(push, below, above));
+        }
+        stack = q;
+      }, 'block');
+      const take = N.scope('BRANCH', () => {
+        const c8 = mux4(dec.rs[1], dec.rs[0], C1, flagZ, not(flagZ), flagC);
+        const c9 = mux4(dec.rs[1], dec.rs[0], not(flagC), flagN, not(flagN), C1);
+        return orN([and(dec.J0, c8), and(dec.J1, c9), dec.CALL]);
+      }, 'block');
+      const target = [...dec.imm, IR[10], IR[11]];
+      const next = N.scope('NEXT PC', () => {
+        const seq = muxBus(dec.HLT, inc, pcQ);
+        const j = muxBus(take, seq, target);
+        const n = muxBus(pop, j, stack[0]);
+        return n.map(x => and(x, nrst));
+      }, 'block');
+      pcFF.forEach((f, i) => f.setD(next[i]));
+      S.pc = pcQ; S.stack = stack;
+    }, 'block');
+    N.scope('WRITE BACK', () => {
+      const wb = aluRes.map((r, i) => mux(dec.IN, mux(dec.LDC, mux(dec.isLoad, r, ramOut[i]), romOut[i]), ioIn[i]));
+      bindBus(wbBus, wb);
+    }, 'block');
+  }, 'chip');
+
+  return N.finalize();
+}
+
+// ---------- Event-driven, unit-delay gate simulator ----------
+class Sim {
+  constructor(net) {
+    this.net = net;
+    const n = net.A.length; this.n = n;
+    this.A = net.A; this.B = net.B;
+    const cnt = new Int32Array(n + 1);
+    for (let g = 0; g < n; g++) { if (net.A[g] < 0) continue; cnt[net.A[g] + 1]++; if (net.B[g] !== net.A[g]) cnt[net.B[g] + 1]++; }
+    for (let i = 0; i < n; i++) cnt[i + 1] += cnt[i];
+    this.foS = cnt.slice(); const fo = new Int32Array(cnt[n]), fill = cnt.slice();
+    for (let g = 0; g < n; g++) { if (net.A[g] < 0) continue; fo[fill[net.A[g]]++] = g; if (net.B[g] !== net.A[g]) fo[fill[net.B[g]]++] = g; }
+    this.fo = fo;
+    this.v = new Uint8Array(n);
+    this.stamp = new Int32Array(n).fill(-1);
+    this.cur = new Int32Array(n); this.nxt = new Int32Array(n); this.chg = new Int32Array(n);
+    this.curLen = 0;
+    this.last = new Float64Array(n);   // wave index of each net's last toggle (for afterglow)
+    this.wave = 0; this.evals = 0; this.toggles = 0;
+  }
+  powerOn(seed = 12345) {
+    const { A, B, v, n } = this;
+    let s = seed >>> 0 || 1;
+    for (let g = 0; g < n; g++) { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; v[g] = s & 1; }
+    v[this.net.C0] = 0; v[this.net.C1] = 1;
+    for (const k in this.net.inputs) v[this.net.inputs[k]] = 0;
+    // relax in place until quiet (the random start is the power-on state of every latch)
+    for (let pass = 0; pass < 400; pass++) {
+      let ch = 0;
+      for (let g = this.net.nSources; g < n; g++) { const nv = 1 ^ (v[A[g]] & v[B[g]]); if (nv !== v[g]) { v[g] = nv; ch++; } }
+      if (!ch) break;
+    }
+    this.curLen = 0;
+  }
+  set(net, val) {
+    if (this.v[net] === val) return;
+    this.v[net] = val; this.last[net] = this.wave;
+    const { foS, fo, stamp, cur } = this, w = this.wave;
+    for (let k = foS[net], e = foS[net + 1]; k < e; k++) { const g = fo[k]; if (stamp[g] !== w) { stamp[g] = w; cur[this.curLen++] = g; } }
+  }
+  get busy() { return this.curLen > 0; }
+  // one gate delay: every scheduled gate computes from the previous values, then all changes land together
+  stepWave() {
+    const { A, B, v, cur, chg, foS, fo, stamp, last } = this;
+    let nc = 0; const len = this.curLen;
+    for (let i = 0; i < len; i++) { const g = cur[i]; if ((1 ^ (v[A[g]] & v[B[g]])) !== v[g]) chg[nc++] = g; }
+    this.evals += len;
+    const w = ++this.wave, nxt = this.nxt; let nl = 0;
+    for (let i = 0; i < nc; i++) {
+      const g = chg[i]; v[g] ^= 1; last[g] = w;
+      for (let k = foS[g], e = foS[g + 1]; k < e; k++) { const f = fo[k]; if (stamp[f] !== w) { stamp[f] = w; nxt[nl++] = f; } }
+    }
+    this.toggles += nc;
+    this.nxt = cur; this.cur = nxt; this.curLen = nl;
+    return nc;
+  }
+  settle(max = 3000) { let k = 0; while (this.curLen) { this.stepWave(); if (++k > max) { this.resolve(); k = 0; } } return k; }
+  // A latch that oscillates under the unit-delay model is metastable; let it fall to one side,
+  // the way a real one eventually does, and count it.
+  resolve() {
+    const { A, B, v, cur } = this; this.metastable = (this.metastable || 0) + 1;
+    for (let pass = 0; pass < 8; pass++) for (let i = 0; i < this.curLen; i++) { const g = cur[i]; v[g] = 1 ^ (v[A[g]] & v[B[g]]); }
+    const len = this.curLen; this.curLen = 0; this.wave++;
+    for (let i = 0; i < len; i++) { const g = cur[i]; for (let k = this.foS[g], e = this.foS[g + 1]; k < e; k++) { const f = this.fo[k]; if (this.stamp[f] !== this.wave) { this.stamp[f] = this.wave; this.nxt[this.curLen++] = f; } } }
+    const t = this.cur; this.cur = this.nxt; this.nxt = t;
+  }
+  bus(nets) { let x = 0; for (let i = nets.length - 1; i >= 0; i--) x = x * 2 + this.v[nets[i]]; return x; }
+}
+
+// ---------- Assembler ----------
+const FONT_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ >-!';
+const ALU_FN = { ADD: 0, ADC: 1, SUB: 2, SBC: 3, AND: 4, OR: 5, XOR: 6, MOV: 7, SHL: 8, RLC: 9, SHR: 10, RRC: 11, CMP: 0x12, TST: 0x14 };
+const ALUI_K = { ADD: 0, SUB: 1, AND: 2, OR: 3, XOR: 4, CMP: 5, MOV: 6, TST: 7 };
+const JUMPS = { JMP: [8, 0], JZ: [8, 1], JNZ: [8, 2], JC: [8, 3], JNC: [9, 0], JN: [9, 1], JNN: [9, 2] };
+const TABLE_BASE = 0x300;
+
+function assemble(src) {
+  const lines = src.split('\n');
+  const syms = Object.create(null);
+  const errors = [];
+  const items = [];
+  let pc = 0, tpc = TABLE_BASE, inTable = false;
+  const strip = (l) => { let out = '', q = null; for (const ch of l) { if (q) { out += ch; if (ch === q) q = null; continue; } if (ch === '"' || ch === "'") q = ch; if (ch === ';') break; out += ch; } return out.trim(); };
+  const splitArgs = (s) => { const out = []; let cur = '', q = null, br = 0; for (const ch of s) { if (q) { cur += ch; if (ch === q) q = null; continue; } if (ch === '"' || ch === "'") q = ch; if (ch === '[') br++; if (ch === ']') br--; if (ch === ',' && !br) { out.push(cur.trim()); cur = ''; continue; } cur += ch; } if (cur.trim()) out.push(cur.trim()); return out; };
+  // pass 1
+  lines.forEach((raw, ln) => {
+    let l = strip(raw); if (!l) return;
+    let m;
+    while ((m = /^([A-Za-z_.][\w.]*):\s*/.exec(l))) { syms[m[1]] = inTable ? tpc - TABLE_BASE : pc; l = l.slice(m[0].length); }
+    if (!l) return;
+    if ((m = /^([A-Za-z_][\w]*)\s*(=|\.equ\b|EQU\b)\s*(.+)$/i.exec(l))) { items.push({ ln, equ: m[1], expr: m[3] }); return; }
+    const sp = l.search(/\s/), mn = (sp < 0 ? l : l.slice(0, sp)).toUpperCase(), rest = sp < 0 ? '' : l.slice(sp + 1).trim();
+    if (mn === '.CODE') { inTable = false; return; }
+    if (mn === '.TABLE') { inTable = true; return; }
+    const args = splitArgs(rest);
+    if (mn === '.DB' || mn === '.STR') {
+      let n = 0;
+      if (mn === '.STR') n = JSON.parse(rest.replace(/^'|'$/g, '"')).length + 1; else n = args.length;
+      if (!inTable) { errors.push({ ln, msg: '.db/.str 只能放在 .table 區段' }); return; }
+      items.push({ ln, mn, args, rest, at: tpc, table: true }); tpc += n; return;
+    }
+    if (inTable) { errors.push({ ln, msg: '表格區段不能放指令' }); return; }
+    items.push({ ln, mn, args, at: pc }); pc++;
+  });
+  // resolve equates (in order) and .org by re-walking
+  const evalExpr = (e, ln) => {
+    e = e.trim();
+    const toks = e.match(/\s*([A-Za-z_.][\w.]*|0x[0-9a-fA-F]+|0b[01]+|\d+|'.'|[-+*()&|<>]+)\s*/g);
+    if (!toks) throw { ln, msg: '看不懂的數值：' + e };
+    const js = toks.map(t => {
+      t = t.trim();
+      if (/^'.'$/.test(t)) { const i = FONT_CHARS.indexOf(t[1].toUpperCase()); if (i < 0) throw { ln, msg: '字型沒有這個字：' + t }; return String(i); }
+      if (/^0b/.test(t)) return String(parseInt(t.slice(2), 2));
+      if (/^(0x[0-9a-fA-F]+|\d+)$/.test(t)) return String(Number(t));
+      if (/^[A-Za-z_.]/.test(t)) { if (!(t in syms)) throw { ln, msg: '未定義的名稱：' + t }; return String(syms[t]); }
+      if (/^[-+*()&|]$|^<<$|^>>$/.test(t)) return t;
+      throw { ln, msg: '不支援的運算：' + t };
+    }).join(' ');
+    return Function('return (' + js + ')')() | 0;
+  };
+  // equ pass: allow forward refs to labels (labels already known); equates evaluated in order
+  for (const it of items) if (it.equ) { try { syms[it.equ] = evalExpr(it.expr, it.ln); } catch (e) { errors.push(e); } }
+  const rom = new Uint16Array(1024), srcMap = new Int32Array(1024).fill(-1);
+  const reg = (s, ln) => { const m = /^[rR]([0-3])$/.exec(s || ''); if (!m) throw { ln, msg: '需要暫存器 r0–r3：' + (s || '（缺）') }; return +m[1]; };
+  const isReg = (s) => /^[rR][0-3]$/.test(s || '');
+  const mem = (s, ln) => { const m = /^\[(.*)\]$/.exec(s || ''); if (!m) throw { ln, msg: '需要記憶體運算元 [..]：' + s }; const inner = m[1].trim(); const rm = /^[rR]([0-3])\s*(?:([+-])\s*(.+))?$/.exec(inner); if (rm) return { rs: +rm[1], imm: rm[2] ? (rm[2] === '-' ? -evalExpr(rm[3], ln) : evalExpr(rm[3], ln)) : 0 }; return { rs: -1, imm: evalExpr(inner, ln) }; };
+  const need = (it, n) => { if (it.args.length !== n) throw { ln: it.ln, msg: it.mn + ' 需要 ' + n + ' 個運算元' }; };
+  for (const it of items) {
+    if (it.equ) continue;
+    try {
+      if (it.table) {
+        if (it.mn === '.STR') { const s = JSON.parse(it.rest.replace(/^'|'$/g, '"')); [...s].forEach((ch, i) => { const k = FONT_CHARS.indexOf(ch.toUpperCase()); if (k < 0) throw { ln: it.ln, msg: '字型沒有這個字：' + ch }; rom[it.at + i] = k; srcMap[it.at + i] = it.ln; }); rom[it.at + s.length] = 0xFF; srcMap[it.at + s.length] = it.ln; }
+        else it.args.forEach((a, i) => { rom[it.at + i] = evalExpr(a, it.ln) & 0xFF; srcMap[it.at + i] = it.ln; });
+        continue;
+      }
+      const { mn, args, ln } = it; let w = 0;
+      const imm8 = (e) => { const v = evalExpr(e, ln); if (v < -128 || v > 255) throw { ln, msg: '數值超出 8 位元：' + e }; return v & 0xFF; };
+      const addr10 = (e) => { const v = evalExpr(e, ln); if (v < 0 || v > 1023) throw { ln, msg: '位址超出 ROM：' + e }; return v; };
+      if (mn === 'NOP') w = 0;
+      else if (mn === 'HLT') w = 0xF000;
+      else if (mn === 'RET') w = 0xB000;
+      else if (mn === 'LDI') { need(it, 2); w = (2 | 1) << 12 | reg(args[0], ln) << 10 | 2 << 8 | imm8(args[1]); }
+      else if (mn === 'INC' || mn === 'DEC') { need(it, 1); w = 2 << 12 | reg(args[0], ln) << 10 | (mn === 'INC' ? 0 : 1) << 8 | 1; }
+      else if (mn === 'NOT') { need(it, 1); w = 3 << 12 | reg(args[0], ln) << 10 | 0 << 8 | 0xFF; }
+      else if (mn === 'SHL' || mn === 'SHR' || mn === 'RLC' || mn === 'RRC') { need(it, 1); w = 1 << 12 | reg(args[0], ln) << 10 | ALU_FN[mn]; }
+      else if (mn in ALU_FN) {
+        need(it, 2); const rd = reg(args[0], ln);
+        if (isReg(args[1])) { const f = ALU_FN[mn]; w = 1 << 12 | rd << 10 | reg(args[1], ln) << 8 | (f & 0x10) | (f & 0xF); }
+        else { if (!(mn in ALUI_K)) throw { ln, msg: mn + ' 沒有立即值版本' }; const k = ALUI_K[mn]; w = (2 + (k >> 2)) << 12 | rd << 10 | (k & 3) << 8 | imm8(args[1]); }
+      }
+      else if (mn === 'LD' || mn === 'ST') {
+        need(it, 2); const r = reg(args[0], ln), m = mem(args[1], ln);
+        const op = m.rs < 0 ? (mn === 'LD' ? 4 : 5) : (mn === 'LD' ? 6 : 7);
+        w = op << 12 | r << 10 | Math.max(m.rs, 0) << 8 | (m.imm & 0xFF);
+      }
+      else if (mn === 'LDC') { need(it, 2); const r = reg(args[0], ln), m = mem(args[1], ln); w = 0xE << 12 | r << 10 | Math.max(m.rs, 0) << 8 | (m.imm & 0xFF); if (m.rs < 0) throw { ln, msg: 'LDC 需要 [rN+表格]' }; }
+      else if (mn in JUMPS) { need(it, 1); const [op, c] = JUMPS[mn], t = addr10(args[0]); w = op << 12 | (t >> 8) << 10 | c << 8 | (t & 0xFF); }
+      else if (mn === 'CALL') { need(it, 1); const t = addr10(args[0]); w = 0xA << 12 | (t >> 8) << 10 | (t & 0xFF); }
+      else if (mn === 'OUT') { need(it, 2); w = 0xC << 12 | reg(args[1], ln) << 10 | imm8(args[0]); }
+      else if (mn === 'IN') { need(it, 2); w = 0xD << 12 | reg(args[0], ln) << 10 | imm8(args[1]); }
+      else throw { ln, msg: '不認得的指令：' + mn };
+      if (it.at >= TABLE_BASE) throw { ln, msg: '程式碼超過 0x300，撞進表格區' };
+      rom[it.at] = w; srcMap[it.at] = ln;
+    } catch (e) { errors.push(e.ln !== undefined ? e : { ln: it.ln, msg: String(e.message || e) }); }
+  }
+  return { rom, srcMap, syms, errors, codeWords: pc, tableBytes: tpc - TABLE_BASE };
+}
+
+function disasm(w) {
+  const op = w >> 12, rd = w >> 10 & 3, rs = w >> 8 & 3, imm = w & 0xFF, t = (w >> 10 & 3) << 8 | imm;
+  const h = (x, n = 2) => '0x' + x.toString(16).toUpperCase().padStart(n, '0');
+  const fnName = (f) => Object.keys(ALU_FN).find(k => ALU_FN[k] === f) || '?';
+  switch (op) {
+    case 0: return 'NOP';
+    case 1: { const f = w & 0x1F; if ((f & 0xF) >= 8 && (f & 0xF) < 12) return fnName(f & 0xF) + ' r' + rd; return fnName(f) + ' r' + rd + ', r' + rs; }
+    case 2: case 3: { const k = (op & 1) << 2 | rs; const n = Object.keys(ALUI_K).find(x => ALUI_K[x] === k); return (n === 'MOV' ? 'LDI' : n) + ' r' + rd + ', ' + imm; }
+    case 4: return 'LD r' + rd + ', [' + h(imm) + ']';
+    case 5: return 'ST r' + rd + ', [' + h(imm) + ']';
+    case 6: return 'LD r' + rd + ', [r' + rs + '+' + imm + ']';
+    case 7: return 'ST r' + rd + ', [r' + rs + '+' + imm + ']';
+    case 8: return ['JMP', 'JZ', 'JNZ', 'JC'][rs] + ' ' + h(t, 3);
+    case 9: return ['JNC', 'JN', 'JNN', 'JMP'][rs] + ' ' + h(t, 3);
+    case 10: return 'CALL ' + h(t, 3);
+    case 11: return 'RET';
+    case 12: return 'OUT ' + imm + ', r' + rd;
+    case 13: return 'IN r' + rd + ', ' + imm;
+    case 14: return 'LDC r' + rd + ', [r' + rs + '+' + imm + ']';
+    default: return 'HLT';
+  }
+}
+
+// ---------- Reference model (only used to cross-check the gates, never to drive the screen) ----------
+class RefCPU {
+  constructor(rom) { this.rom = rom; this.r = [0, 0, 0, 0]; this.pc = 0; this.z = 0; this.c = 0; this.n = 0; this.ram = new Uint8Array(256); this.stack = new Array(8).fill(0); this.snd = 0; this.leds = 0; }
+  step(io) { // io(port) -> byte
+    const w = this.rom[this.pc], op = w >> 12, rd = w >> 10 & 3, rs = w >> 8 & 3, imm = w & 0xFF;
+    let next = (this.pc + 1) & 1023;
+    const alu = (fn, X, Y, nowb) => {
+      let res, cOut = null; const g = fn >> 2 & 3, sub = fn >> 1 & 1, useC = fn & 1;
+      if (g === 0) { const Yx = sub ? (~Y & 255) : Y; const cin = useC ? this.c : sub; const s = X + Yx + cin; res = s & 255; cOut = s >> 8; }
+      else if (g === 1) res = [X & Y, X | Y, X ^ Y, Y][fn & 3];
+      else { const cin = useC ? this.c : 0; if (!sub) { res = (X << 1 | cin) & 255; cOut = X >> 7; } else { res = X >> 1 | cin << 7; cOut = X & 1; } }
+      this.z = res === 0 ? 1 : 0; this.n = res >> 7;
+      if (g === 0 || g === 2) this.c = cOut;
+      if (!nowb) this.r[rd] = res;
+      return res;
+    };
+    switch (op) {
+      case 1: alu(w & 0xF, this.r[rd], this.r[rs], w >> 4 & 1); break;
+      case 2: case 3: { const k = (op & 1) << 2 | rs; const map = [[0, 0], [2, 0], [4, 0], [5, 0], [6, 0], [2, 1], [7, 0], [4, 1]][k]; alu(map[0], this.r[rd], imm, map[1]); break; }
+      case 4: this.r[rd] = this.ram[imm]; break;
+      case 5: this.ram[imm] = this.r[rd]; break;
+      case 6: this.r[rd] = this.ram[(this.r[rs] + imm) & 255]; break;
+      case 7: this.ram[(this.r[rs] + imm) & 255] = this.r[rd]; break;
+      case 8: case 9: { const cz = op === 8 ? [1, this.z, 1 - this.z, this.c][rs] : [1 - this.c, this.n, 1 - this.n, 1][rs]; if (cz) next = rd << 8 | imm; break; }
+      case 10: this.stack = [next, ...this.stack.slice(0, 7)]; next = rd << 8 | imm; break;
+      case 11: next = this.stack[0]; this.stack = [...this.stack.slice(1), 0]; break;
+      case 12: if (imm & 1) this.leds = this.r[rd]; else this.snd = this.r[rd]; break;
+      case 13: this.r[rd] = (imm & 3) === 3 ? 0 : io(imm & 3); break;
+      case 14: this.r[rd] = this.rom[TABLE_BASE + ((this.r[rs] + imm) & 255)] & 255; break;
+      case 15: next = this.pc; break;
+    }
+    this.pc = next;
+  }
+}
+
+// ---------- Machine driver: clock, inputs, instruction boundary bookkeeping ----------
+class Machine {
+  constructor(rom, seed) { this.load(rom, seed); }
+  load(rom, seed = (Math.random() * 2 ** 31) | 0) {
+    this.rom = rom;
+    this.net = buildMachine(rom);
+    this.sim = new Sim(this.net);
+    this.S = this.net.sig; this.I = this.net.inputs;
+    this.sim.powerOn(seed);
+    this.phase = 0; // 0: next action is clock rise, 1: clock fall
+    this.cycles = 0; this.instr = 0;
+    this.keys = { UP: 0, DOWN: 0, LEFT: 0, RIGHT: 0, A: 0, B: 0 }; this.tick = 0;
+    this.reset();
+  }
+  reset() {
+    const s = this.sim;
+    s.set(this.I.RST, 1); s.settle();
+    for (let i = 0; i < 3; i++) this.cycle();
+    s.set(this.I.RST, 0); s.settle();
+    this.instr = 0; this.cycles = 0;
+  }
+  applyInputs() { // buttons and the tick change while the clock is low, then the logic settles
+    const s = this.sim;
+    for (const k in this.keys) s.set(this.I[k], this.keys[k]);
+    s.set(this.I.TICK, this.tick);
+    return s.busy;
+  }
+  // advance one wave (or one clock edge if the logic is quiet). Returns 'edge' / 'wave' / 'instr'
+  stepWave() {
+    const s = this.sim;
+    if (s.busy) { s.stepWave(); return 'wave'; }
+    if (this.phase === 0) {
+      if (this.applyInputs()) return 'wave';
+      const wasExec = s.v[this.S.state[0]];
+      s.set(this.I.CLK, 1); this.phase = 1;
+      this.cycles++;
+      if (wasExec) { this.instr++; return 'instr'; }
+      return 'edge';
+    }
+    s.set(this.I.CLK, 0); this.phase = 0;
+    return 'edge';
+  }
+  cycle() { const s = this.sim; this.applyInputs(); s.settle(); s.set(this.I.CLK, 1); s.settle(); s.set(this.I.CLK, 0); s.settle(); this.cycles++; }
+  // run whole instructions (FETCH + EXEC); stops at instruction boundary
+  runInstr(n) { const s = this.sim, end = this.instr + n; while (this.instr < end) { const wasExec = s.v[this.S.state[0]]; this.cycle(); if (wasExec) this.instr++; } }
+  // finish any half-settled logic and leave the clock low, so whole-cycle stepping can resume
+  sync() { const s = this.sim; s.settle(); if (this.phase === 1) { s.set(this.I.CLK, 0); s.settle(); this.phase = 0; } }
+  get pc() { return this.sim.bus(this.S.pc); }
+  get state() { return this.sim.v[this.S.state[0]]; }
+  reg(i) { return this.sim.bus(this.S.regs[i]); }
+  ram(a) { return this.sim.bus(this.S.ramQ[a]); }
+}
+
+
+// ---------- Proof chain: every layer is rebuilt from NANDs and checked on the gate simulator ----------
+function proofSteps() {
+  const L = lib;
+  const comb = (inputs, build, model) => () => {
+    const net = L.begin(); const ins = inputs.map(n => net.input(n)); const outs = [].concat(build(...ins)); net.sig.outs = outs; net.finalize();
+    const sim = new Sim(net); sim.powerOn(1);
+    const I = inputs.map(n => net.inputs[n]), O = net.sig.outs; let fails = 0; const rows = 1 << inputs.length;
+    for (let r = 0; r < rows; r++) { I.forEach((id, i) => sim.set(id, r >> i & 1)); sim.settle(); const want = [].concat(model(...inputs.map((_, i) => r >> i & 1))); if (O.some((o, i) => sim.v[o] !== want[i])) fails++; }
+    return { gates: net.nGates - 1, cases: rows, fails };
+  };
+  const seq = (build, steps) => () => { // build(net) -> {set(sim,k,v), read(sim)}; steps: generator of [inputs, expected]
+    const net = L.begin(); const h = build(net); net.finalize(); h.fix && h.fix(net);
+    const sim = new Sim(net); sim.powerOn(3); let fails = 0, cases = 0;
+    for (const [ins, want] of steps()) { for (const k in ins) sim.set(net.inputs[k], ins[k]); sim.settle(); if (want !== undefined) { cases++; if (h.read(sim, net) !== want) fails++; } }
+    return { gates: net.nGates - 1, cases, fails };
+  };
+  let rs = 7; const rnd = () => { rs ^= rs << 13; rs ^= rs >>> 17; rs ^= rs << 5; return rs >>> 0; };
+  return [
+    { id: 'nand', name: 'NAND', zh: '唯一的零件', from: '（公理）', where: 'CPU/ALU/ADDER/FA', run: comb(['a', 'b'], (a, b) => L.nand(a, b), (a, b) => 1 - (a & b)) },
+    { id: 'not', name: 'NOT', zh: '反相', from: 'NAND(a, a)', run: comb(['a'], a => L.not(a), a => 1 - a) },
+    { id: 'and', name: 'AND', zh: '且', from: 'NOT(NAND)', run: comb(['a', 'b'], (a, b) => L.and(a, b), (a, b) => a & b) },
+    { id: 'or', name: 'OR', zh: '或', from: 'NAND(NOT a, NOT b)', run: comb(['a', 'b'], (a, b) => L.or(a, b), (a, b) => a | b) },
+    { id: 'xor', name: 'XOR', zh: '互斥或', from: '4 個 NAND', run: comb(['a', 'b'], (a, b) => L.xor(a, b), (a, b) => a ^ b) },
+    { id: 'mux', name: 'MUX', zh: '二選一', from: 'NOT + 3 NAND', where: 'CPU/ALU/Y SELECT', run: comb(['s', 'a', 'b'], (s, a, b) => L.mux(s, a, b), (s, a, b) => s ? b : a) },
+    { id: 'fa', name: 'FULL ADDER', zh: '全加器', from: '9 個 NAND', where: 'CPU/ALU/ADDER/FA', run: comb(['a', 'b', 'c'], (a, b, c) => { const r = L.fullAdder(a, b, c); return [r.s, r.c]; }, (a, b, c) => [(a + b + c) & 1, (a + b + c) >> 1]) },
+    { id: 'add8', name: 'ADDER ×8', zh: '八位元加法器', from: '8 個全加器串起進位', where: 'CPU/ALU/ADDER', run: () => {
+      const net = L.begin(); const A = [], B = []; for (let i = 0; i < 8; i++) { A.push(net.input('a' + i)); B.push(net.input('b' + i)); } const ci = net.input('ci');
+      let c = ci; const S = []; for (let i = 0; i < 8; i++) { const r = L.fullAdder(A[i], B[i], c); S.push(r.s); c = r.c; } net.sig.s = [...S, c]; net.finalize();
+      const sim = new Sim(net); sim.powerOn(1); let fails = 0, cases = 0;
+      for (let x = 0; x < 256; x++) for (let y = 0; y < 256; y++) { const cin = (x ^ y) & 1; for (let i = 0; i < 8; i++) { sim.set(net.inputs['a' + i], x >> i & 1); sim.set(net.inputs['b' + i], y >> i & 1); } sim.set(net.inputs.ci, cin); sim.settle(); cases++; if (sim.bus(net.sig.s) !== x + y + cin) fails++; }
+      return { gates: net.nGates - 1, cases, fails };
+    } },
+    { id: 'dec', name: 'DECODER', zh: '解碼器 3→8', from: 'NOT + AND', where: 'CPU/DECODER', run: comb(['a', 'b', 'c'], (a, b, c) => L.decode([a, b, c]), (a, b, c) => Array.from({ length: 8 }, (_, i) => +(i === (a | b << 1 | c << 2)))) },
+    { id: 'latch', name: 'D LATCH', zh: '閂鎖：會記住的迴路', from: '4 個 NAND，兩個互相回授', where: 'RAM/WORK 00/BYTE 00/BIT 0', run: seq(net => { const e = net.input('e'), d = net.input('d'); const l = L.latch(e); l.setD(d); net.sig.q = l.q; return { read: (sim, n) => sim.v[n.sig.q] }; }, function* () {
+      let q = 0; for (let i = 0; i < 400; i++) { const e = rnd() & 1, d = rnd() & 1; if (e) q = d; yield [{ e, d }, undefined]; yield [{ e: 0 }, q]; }
+    }) },
+    { id: 'dff', name: 'D FLIP-FLOP', zh: '正反器：只在時鐘上升時取樣', from: '兩個閂鎖（8 個 NAND）', where: 'CPU/REGISTERS/R0/DFF', run: seq(net => { const d = net.input('d'); const f = L.dff(); f.setD(d); net.sig.q = f.q; return { read: (sim, n) => sim.v[n.sig.q] }; }, function* () {
+      let q; yield [{ CLK: 0, d: 0 }, undefined]; yield [{ CLK: 1 }, undefined]; q = 0;
+      for (let i = 0; i < 400; i++) { const d = rnd() & 1; yield [{ CLK: 0 }, q]; yield [{ d }, q]; yield [{ CLK: 1 }, (q = d)]; yield [{ d: rnd() & 1 }, q]; }
+    }) },
+    { id: 'reg', name: 'REGISTER', zh: '八位元暫存器＋時鐘閘控', from: '8 個正反器 + 閘控閂鎖', where: 'CPU/REGISTERS/R0', run: seq(net => { const en = net.input('en'); const d = []; for (let i = 0; i < 8; i++) d.push(net.input('d' + i)); net.sig.q = L.register('R', 8, en, d); return { read: (sim, n) => sim.bus(n.sig.q) }; }, function* () {
+      yield [{ CLK: 0, en: 1 }, undefined]; yield [{ CLK: 1 }, undefined]; yield [{ CLK: 0 }, undefined];
+      let q = null; const bits = (v) => Object.fromEntries(Array.from({ length: 8 }, (_, i) => ['d' + i, v >> i & 1]));
+      for (let i = 0; i < 300; i++) { const v = rnd() & 255, en = rnd() & 1; yield [{ ...bits(v), en }, undefined]; yield [{ CLK: 1 }, undefined]; if (en || q === null) q = en ? v : q; if (q !== null) yield [{ CLK: 0 }, q]; else yield [{ CLK: 0 }, undefined]; }
+    }) },
+    { id: 'cpu', name: 'NAND-8', zh: '整台電腦 vs 參考規格', from: 'CPU + RAM + ROM + I/O', where: 'CPU', run: () => {
+      let fails = 0, cases = 0, gates = 0;
+      for (let trial = 0; trial < 2; trial++) {
+        const rom = new Uint16Array(1024);
+        for (let i = 0; i < 0x300; i++) { let w = rnd() & 0xFFFF; const op = w >> 12; if (op === 15 && (rnd() & 7)) w ^= 0x7000; if (op === 1) { w &= ~0x60; if ((w & 0xF) >= 12) w &= ~0x4; } rom[i] = w; }
+        for (let i = 0x300; i < 1024; i++) rom[i] = rnd() & 255;
+        const m = new Machine(rom, 11 + trial), ref = new RefCPU(rom), S = m.S, v = m.sim.v; gates = m.net.nGates;
+        const snap = () => { ref.pc = m.pc; ref.r = [0, 1, 2, 3].map(i => m.reg(i)); [ref.z, ref.c, ref.n] = S.flags.map(f => v[f]); for (let a = 0; a < 256; a++) ref.ram[a] = m.ram(a); ref.stack = S.stack.map(e => m.sim.bus(e)); ref.leds = m.sim.bus(S.leds); ref.snd = m.sim.bus(S.sound); };
+        snap();
+        for (let i = 0; i < 1200; i++) {
+          const w = rom[m.pc]; m.runInstr(1); ref.step(() => m.reg(w >> 10 & 3)); cases++;
+          let bad = m.pc !== ref.pc || [0, 1, 2, 3].some(r => m.reg(r) !== ref.r[r]) || S.flags.some((f, k) => v[f] !== [ref.z, ref.c, ref.n][k]) || S.stack.some((e, k) => m.sim.bus(e) !== ref.stack[k]);
+          if (!bad && ((w >> 12) === 5 || (w >> 12) === 7)) for (let a = 0; a < 256; a++) if (m.ram(a) !== ref.ram[a]) { bad = true; break; }
+          if (bad) { fails++; snap(); }
+        }
+      }
+      return { gates, cases, fails };
+    } },
+  ];
+}
+
+// Small circuits for the proof chain: a fresh netlist with its own clock input.
+function begin() { N = new Netlist(); CLK = N.input('CLK'); NCLK = not(CLK); return N; }
+const lib = { begin, nand, not, and, or, xor, mux, decode, latch, dff, register, fullAdder, halfAdder, incrementer, orN, get N() { return N; }, get CLK() { return CLK; } };
+
+const NAND8 = { lib, proofSteps, Netlist, buildMachine, Sim, assemble, disasm, RefCPU, Machine, FONT_CHARS, TABLE_BASE };
+window.NAND8 = NAND8;
+</script>
+<script type="text/plain" id="os-src">; ============================================================
+;  NAND-8 · 閘門作業系統 GATE OS 與兩支程式
+;  這份原始碼由頁面裡的組譯器轉成 ROM，ROM 再轉成 NAND 閘。
+; ============================================================
+
+; ---- 硬體 ----
+KEYS   = 0          ; IN 埠：按鈕 bit0 上 1 下 2 左 3 右 4 A 5 B
+RNG    = 1          ; IN 埠：線性回饋移位暫存器（閘做的亂數）
+TICKS  = 2          ; IN 埠：每秒 30 次的計數器
+SOUND  = 0          ; OUT 埠：音高，0 = 靜音
+LEDS   = 1          ; OUT 埠：板上 8 顆 LED
+VRAM   = 0x80       ; 螢幕：32×32，每列 4 bytes，bit7 在最左
+
+; ---- 核心變數 0x00-0x0F ----
+K_X = 0x00
+K_P = 0x01
+K_A = 0x02
+K_N = 0x03
+K_S = 0x04
+K_T = 0x05
+K_NX = 0x06
+K_NY = 0x07
+K_NV = 0x08
+K_SX = 0x09
+K_SY = 0x0A
+K_SP = 0x0B
+K_W = 0x0C
+K_KEY = 0x0D
+K_R = 0x0E
+
+; ---- 殼層變數 0x10-0x1F ----
+SH_SEL = 0x10
+SN_HI  = 0x1F        ; 最高分，換程式也保留
+
+; ---- 程式區 0x20-0x7F ----
+SN_HEAD = 0x20
+SN_TAIL = 0x21
+SN_DIR  = 0x22
+SN_NDIR = 0x23
+SN_FX   = 0x24
+SN_FY   = 0x25
+SN_SCORE = 0x26
+SN_GROW = 0x27
+SN_NX   = 0x28
+SN_NY   = 0x29
+SN_T0   = 0x2A
+SN_BLINK = 0x2B
+SN_SPD  = 0x2C
+SN_ATE  = 0x2D
+BX      = 0x30       ; 蛇身 x，環狀佇列 40 格
+BY      = 0x58       ; 蛇身 y
+RING    = 40
+
+DR_X   = 0x20
+DR_Y   = 0x21
+DR_PEN = 0x22
+DR_UND = 0x23
+DR_BL  = 0x24
+DR_T   = 0x25
+
+; ============================================================
+;  系統呼叫表：程式用 CALL 1..11 使用核心，位址永遠不變
+; ============================================================
+        JMP boot
+        JMP k_plot       ; 1  點亮 (r0,r1)
+        JMP k_erase      ; 2  熄滅 (r0,r1)
+        JMP k_test       ; 3  r2 = (r0,r1) 是否亮著，Z 旗標
+        JMP k_putc       ; 4  在 (r0,r1) 寫字元 r2，x 須是 4 的倍數
+        JMP k_puts       ; 5  寫字串 r2
+        JMP k_putnum     ; 6  寫三位數 r2
+        JMP k_cls        ; 7  清畫面
+        JMP k_wait       ; 8  等 r0 個 tick
+        JMP k_keys       ; 9  r0 = 新按下的鍵，r1 = 按住的鍵
+        JMP k_rand       ; 10 r0 = 亂數
+        JMP k_beep       ; 11 音高 r0 響 r1 個 tick
+
+; ============================================================
+;  開機：記憶體自我測試，LED 顯示正在測的位址
+; ============================================================
+boot:   LDI r1, 0
+post:   LDI r0, 0x55
+        ST r0, [r1+0]
+        LD r2, [r1+0]
+        CMP r2, 0x55
+        JNZ post_bad
+        LDI r0, 0xAA
+        ST r0, [r1+0]
+        LD r2, [r1+0]
+        CMP r2, 0xAA
+        JNZ post_bad
+        LDI r0, 0
+        ST r0, [r1+0]
+        OUT LEDS, r1
+        INC r1
+        CMP r1, 0x80
+        JNZ post
+        CALL k_cls
+        LDI r0, 4
+        LDI r1, 6
+        LDI r2, s_title
+        CALL k_puts
+        LDI r0, 0
+        LDI r1, 16
+        LDI r2, s_ramok
+        CALL k_puts
+        LDI r0, 0xFF
+        OUT LEDS, r0
+        LDI r0, 120
+        LDI r1, 4
+        CALL k_beep
+        LDI r0, 160
+        LDI r1, 6
+        CALL k_beep
+        LDI r0, 30
+        CALL k_wait
+        JMP shell
+post_bad:
+        LDI r0, 0
+        LDI r1, 16
+        LDI r2, s_rambad
+        CALL k_puts
+        HLT
+
+; ============================================================
+;  殼層：上下選程式，A 執行，程式 RET 回到這裡
+; ============================================================
+shell:  CALL k_cls
+        LDI r0, 4
+        LDI r1, 1
+        LDI r2, s_title
+        CALL k_puts
+        LDI r0, 0xFF
+        ST r0, [0x9C]
+        ST r0, [0x9D]
+        ST r0, [0x9E]
+        ST r0, [0x9F]
+        LDI r0, 8
+        LDI r1, 12
+        LDI r2, s_snake
+        CALL k_puts
+        LDI r0, 8
+        LDI r1, 20
+        LDI r2, s_draw
+        CALL k_puts
+sh_draw:
+        LD r3, [SH_SEL]
+        LDI r2, ' '
+        CMP r3, 0
+        JNZ sh_c1
+        LDI r2, '>'
+sh_c1:  LDI r0, 0
+        LDI r1, 12
+        CALL k_putc
+        LD r3, [SH_SEL]
+        LDI r2, ' '
+        CMP r3, 1
+        JNZ sh_c2
+        LDI r2, '>'
+sh_c2:  LDI r0, 0
+        LDI r1, 20
+        CALL k_putc
+        LD r0, [SH_SEL]
+        INC r0
+        OUT LEDS, r0
+sh_key: CALL k_keys
+        TST r0, 1
+        JNZ sh_up
+        TST r0, 2
+        JNZ sh_down
+        TST r0, 16
+        JNZ sh_run
+        JMP sh_key
+sh_up:  LDI r0, 0
+        ST r0, [SH_SEL]
+        JMP sh_draw
+sh_down: LDI r0, 1
+        ST r0, [SH_SEL]
+        JMP sh_draw
+sh_run: LDI r0, 200
+        OUT SOUND, r0
+        LD r3, [SH_SEL]
+        CMP r3, 0
+        JNZ sh_r2
+        CALL snake
+        JMP shell
+sh_r2:  CALL draw
+        JMP shell
+
+; ============================================================
+;  核心：像素
+; ============================================================
+; r3 = 位元組位址，r2 = 位元遮罩（保留 r0 r1）
+k_addr: MOV r3, r1
+        SHL r3
+        SHL r3
+        MOV r2, r0
+        SHR r2
+        SHR r2
+        SHR r2
+        ADD r3, r2
+        OR r3, VRAM
+        MOV r2, r0
+        AND r2, 7
+        LDC r2, [r2+masks]
+        RET
+
+k_plot: CALL k_addr
+        ST r0, [K_T]
+        LD r0, [r3+0]
+        OR r0, r2
+        ST r0, [r3+0]
+        LD r0, [K_T]
+        RET
+
+k_erase: CALL k_addr
+        ST r0, [K_T]
+        NOT r2
+        LD r0, [r3+0]
+        AND r0, r2
+        ST r0, [r3+0]
+        LD r0, [K_T]
+        RET
+
+k_test: CALL k_addr
+        LD r3, [r3+0]
+        AND r2, r3
+        RET
+
+k_cls:  LDI r0, 0
+        LDI r1, VRAM
+cls_l:  ST r0, [r1+0]
+        INC r1
+        JNZ cls_l
+        RET
+
+; ============================================================
+;  核心：文字。字型每字 3 bytes，每 byte 兩列，每列 3 點
+; ============================================================
+k_putc: ST r0, [K_X]
+        MOV r3, r2
+        SHL r3
+        ADD r3, r2
+        ST r3, [K_P]
+        MOV r2, r1
+        SHL r2
+        SHL r2
+        SHR r0
+        SHR r0
+        SHR r0
+        ADD r2, r0
+        OR r2, VRAM
+        ST r2, [K_A]
+        LDI r3, 3
+        ST r3, [K_N]
+pc_row: LD r3, [K_P]
+        LDC r2, [r3+font]
+        INC r3
+        ST r3, [K_P]
+        LD r1, [K_X]
+        TST r1, 4
+        JNZ pc_rt
+        MOV r0, r2
+        AND r0, 0xF0
+        LDI r1, 0x0F
+        CALL pc_put
+        SHL r2
+        SHL r2
+        SHL r2
+        SHL r2
+        MOV r0, r2
+        CALL pc_put
+        JMP pc_nx
+pc_rt:  MOV r0, r2
+        SHR r0
+        SHR r0
+        SHR r0
+        SHR r0
+        LDI r1, 0xF0
+        CALL pc_put
+        MOV r0, r2
+        AND r0, 0x0F
+        CALL pc_put
+pc_nx:  LD r3, [K_N]
+        DEC r3
+        ST r3, [K_N]
+        JNZ pc_row
+        RET
+; 把 r0 的四點寫進目前這列，r1 是要保留的另一半
+pc_put: LD r3, [K_A]
+        ST r2, [K_S]
+        LD r2, [r3+0]
+        AND r2, r1
+        OR r2, r0
+        ST r2, [r3+0]
+        ADD r3, 4
+        ST r3, [K_A]
+        LD r2, [K_S]
+        RET
+
+k_puts: ST r0, [K_SX]
+        ST r1, [K_SY]
+        ST r2, [K_SP]
+ps_l:   LD r3, [K_SP]
+        LDC r2, [r3+0]
+        CMP r2, 0xFF
+        JZ ps_end
+        INC r3
+        ST r3, [K_SP]
+        LD r0, [K_SX]
+        LD r1, [K_SY]
+        CALL k_putc
+        LD r0, [K_SX]
+        ADD r0, 4
+        ST r0, [K_SX]
+        JMP ps_l
+ps_end: RET
+
+k_putnum: ST r0, [K_NX]
+        ST r1, [K_NY]
+        LDI r3, 0
+pn_h:   CMP r2, 100
+        JNC pn_h2
+        SUB r2, 100
+        INC r3
+        JMP pn_h
+pn_h2:  ST r2, [K_NV]
+        MOV r2, r3
+        CALL k_putc
+        LD r0, [K_NX]
+        ADD r0, 4
+        ST r0, [K_NX]
+        LD r1, [K_NY]
+        LD r2, [K_NV]
+        LDI r3, 0
+pn_t:   CMP r2, 10
+        JNC pn_t2
+        SUB r2, 10
+        INC r3
+        JMP pn_t
+pn_t2:  ST r2, [K_NV]
+        MOV r2, r3
+        CALL k_putc
+        LD r0, [K_NX]
+        ADD r0, 4
+        LD r1, [K_NY]
+        LD r2, [K_NV]
+        CALL k_putc
+        RET
+
+; ============================================================
+;  核心：時間、按鍵、亂數、聲音
+; ============================================================
+k_wait: IN r1, TICKS
+        ST r1, [K_W]
+kw_l:   IN r1, TICKS
+        LD r2, [K_W]
+        SUB r1, r2
+        CMP r1, r0
+        JNC kw_l
+        RET
+
+k_keys: IN r1, KEYS
+        LD r0, [K_KEY]
+        ST r1, [K_KEY]
+        NOT r0
+        AND r0, r1
+        RET
+
+k_rand: LD r0, [K_R]
+        MOV r1, r0
+        SHL r1
+        SHL r1
+        ADD r0, r1
+        ADD r0, 17
+        IN r1, RNG
+        XOR r0, r1
+        ST r0, [K_R]
+        RET
+
+k_beep: OUT SOUND, r0
+        MOV r0, r1
+        CALL k_wait
+        LDI r0, 0
+        OUT SOUND, r0
+        RET
+
+; ============================================================
+;  程式一：SNAKE 貪食蛇
+; ============================================================
+snake:
+sn_new: CALL k_cls
+        LDI r0, 0xFF
+        ST r0, [0x98]
+        ST r0, [0x99]
+        ST r0, [0x9A]
+        ST r0, [0x9B]
+        LDI r0, 0
+        ST r0, [SN_TAIL]
+        ST r0, [SN_SCORE]
+        ST r0, [SN_GROW]
+        OUT SOUND, r0
+        OUT LEDS, r0
+        LDI r0, 1
+        ST r0, [SN_DIR]
+        ST r0, [SN_NDIR]
+        LDI r3, 0
+sn_init: MOV r0, r3
+        ADD r0, 6
+        ST r0, [r3+BX]
+        LDI r1, 19
+        ST r1, [r3+BY]
+        ST r3, [SN_HEAD]
+        CALL k_plot
+        LD r3, [SN_HEAD]
+        INC r3
+        CMP r3, 4
+        JNZ sn_init
+        LDI r3, 3
+        ST r3, [SN_HEAD]
+        CALL sn_food
+        CALL sn_score
+
+sn_loop: IN r0, TICKS
+        ST r0, [SN_T0]
+sn_wait: IN r1, KEYS
+        TST r1, 32
+        JNZ sn_quit
+        LD r2, [SN_DIR]
+        TST r1, 1
+        JZ sn_w1
+        LDI r3, 0
+        CALL sn_try
+sn_w1:  TST r1, 8
+        JZ sn_w2
+        LDI r3, 1
+        CALL sn_try
+sn_w2:  TST r1, 2
+        JZ sn_w3
+        LDI r3, 2
+        CALL sn_try
+sn_w3:  TST r1, 4
+        JZ sn_w4
+        LDI r3, 3
+        CALL sn_try
+sn_w4:  IN r0, TICKS
+        LD r1, [SN_T0]
+        SUB r0, r1
+        LD r1, [SN_SPD]
+        CMP r0, r1
+        JNC sn_wait
+
+        LDI r0, 0
+        OUT SOUND, r0
+        LD r0, [SN_BLINK]           ; 食物閃爍
+        XOR r0, 1
+        ST r0, [SN_BLINK]
+        LD r0, [SN_FX]
+        LD r1, [SN_FY]
+        LD r2, [SN_BLINK]
+        CMP r2, 0
+        JZ sn_fo
+        CALL k_plot
+        JMP sn_mv
+sn_fo:  CALL k_erase
+
+sn_mv:  LD r2, [SN_NDIR]            ; 算出新的頭
+        ST r2, [SN_DIR]
+        LD r3, [SN_HEAD]
+        LD r0, [r3+BX]
+        LD r1, [r3+BY]
+        CMP r2, 0
+        JNZ sn_m1
+        DEC r1
+        CMP r1, 7
+        JC sn_md
+        LDI r1, 31
+        JMP sn_md
+sn_m1:  CMP r2, 1
+        JNZ sn_m2
+        INC r0
+        AND r0, 31
+        JMP sn_md
+sn_m2:  CMP r2, 2
+        JNZ sn_m3
+        INC r1
+        CMP r1, 32
+        JNZ sn_md
+        LDI r1, 7
+        JMP sn_md
+sn_m3:  DEC r0
+        AND r0, 31
+sn_md:  ST r0, [SN_NX]
+        ST r1, [SN_NY]
+        LDI r3, 0                   ; 吃到食物了嗎
+        LD r2, [SN_FX]
+        CMP r0, r2
+        JNZ sn_ne
+        LD r2, [SN_FY]
+        CMP r1, r2
+        JNZ sn_ne
+        LDI r3, 1
+        LD r2, [SN_GROW]
+        ADD r2, 2
+        ST r2, [SN_GROW]
+sn_ne:  ST r3, [SN_ATE]
+        LD r0, [SN_GROW]            ; 還在長就不收尾巴
+        CMP r0, 0
+        JZ sn_tail
+        DEC r0
+        ST r0, [SN_GROW]
+        JMP sn_hit
+sn_tail: LD r3, [SN_TAIL]
+        LD r0, [r3+BX]
+        LD r1, [r3+BY]
+        CALL k_erase
+        LD r3, [SN_TAIL]
+        INC r3
+        CMP r3, RING
+        JNZ sn_t1
+        LDI r3, 0
+sn_t1:  ST r3, [SN_TAIL]
+sn_hit: LD r0, [SN_NX]              ; 撞到自己
+        LD r1, [SN_NY]
+        LD r2, [SN_ATE]
+        CMP r2, 0
+        JNZ sn_ok
+        CALL k_test
+        JNZ sn_dead
+sn_ok:  LD r3, [SN_HEAD]
+        INC r3
+        CMP r3, RING
+        JNZ sn_h1
+        LDI r3, 0
+sn_h1:  LD r2, [SN_TAIL]
+        CMP r3, r2
+        JZ sn_win
+        ST r3, [SN_HEAD]
+        LD r0, [SN_NX]
+        ST r0, [r3+BX]
+        LD r1, [SN_NY]
+        ST r1, [r3+BY]
+        CALL k_plot
+        LD r2, [SN_ATE]
+        CMP r2, 0
+        JZ sn_loop
+        LD r0, [SN_SCORE]
+        INC r0
+        ST r0, [SN_SCORE]
+        OUT LEDS, r0
+        LDI r0, 90
+        OUT SOUND, r0
+        CALL sn_food
+        CALL sn_score
+        JMP sn_loop
+
+; 新方向 r3，現在方向 r2；不能直接掉頭
+sn_try: MOV r0, r3
+        XOR r0, r2
+        CMP r0, 2
+        JZ sn_tr
+        ST r3, [SN_NDIR]
+sn_tr:  RET
+
+sn_food: CALL k_rand
+        AND r0, 31
+        ST r0, [SN_FX]
+        CALL k_rand
+        AND r0, 31
+        CMP r0, 7
+        JNC sn_food
+        MOV r1, r0
+        ST r1, [SN_FY]
+        LD r0, [SN_FX]
+        CALL k_test
+        JNZ sn_food
+        CALL k_plot
+        LDI r0, 1
+        ST r0, [SN_BLINK]
+        RET
+
+sn_score: LDI r0, 0
+        LDI r1, 0
+        LD r2, [SN_SCORE]
+        CALL k_putnum
+        LDI r0, 20
+        LDI r1, 0
+        LD r2, [SN_HI]
+        CALL k_putnum
+        LD r0, [SN_SCORE]           ; 分數越高走得越快
+        LDI r1, 5
+sn_sp:  CMP r0, 3
+        JNC sn_sp2
+        SUB r0, 3
+        DEC r1
+        CMP r1, 2
+        JNZ sn_sp
+sn_sp2: ST r1, [SN_SPD]
+        RET
+
+sn_win: LDI r2, s_win
+        JMP sn_end
+sn_dead: LDI r2, s_over
+sn_end: ST r2, [SN_NX]
+        LDI r0, 40
+        OUT SOUND, r0
+        LD r0, [SN_SCORE]
+        LD r1, [SN_HI]
+        CMP r0, r1
+        JNC sn_nh
+        ST r0, [SN_HI]
+sn_nh:  CALL sn_score
+        LDI r0, 0
+        LDI r1, 0xB0
+sn_cl:  ST r0, [r1+0]
+        INC r1
+        CMP r1, 0xE8
+        JNZ sn_cl
+        LDI r0, 8
+        LDI r1, 13
+        LDI r2, s_game
+        CALL k_puts
+        LDI r0, 8
+        LDI r1, 20
+        LD r2, [SN_NX]
+        CALL k_puts
+        LDI r0, 20
+        CALL k_wait
+        LDI r0, 0
+        OUT SOUND, r0
+sn_dk:  CALL k_keys
+        TST r0, 16
+        JNZ sn_new
+        TST r0, 32
+        JNZ sn_quit
+        JMP sn_dk
+sn_quit: LDI r0, 0
+        OUT SOUND, r0
+        RET
+
+; ============================================================
+;  程式二：DRAW 描圖板。方向鍵移動，A 提筆／落筆，B 返回
+; ============================================================
+draw:   CALL k_cls
+        LDI r0, 16
+        ST r0, [DR_X]
+        ST r0, [DR_Y]
+        LDI r0, 1
+        ST r0, [DR_PEN]
+        LDI r0, 0
+        ST r0, [DR_UND]
+        LD r0, [DR_X]
+        LD r1, [DR_Y]
+        CALL k_plot
+dr_loop: LDI r0, 2
+        CALL k_wait
+        CALL k_keys
+        TST r0, 32
+        JNZ dr_quit
+        TST r0, 16
+        JZ dr_mv
+        LD r0, [DR_PEN]
+        XOR r0, 1
+        ST r0, [DR_PEN]
+        OUT LEDS, r0
+        LDI r0, 150
+        LDI r1, 2
+        CALL k_beep
+        IN r1, KEYS
+dr_mv:  TST r1, 15
+        JZ dr_blink
+        ST r1, [DR_T]
+        LD r0, [DR_X]               ; 離開前恢復這一點
+        LD r1, [DR_Y]
+        LD r2, [DR_PEN]
+        LD r3, [DR_UND]
+        OR r2, r3
+        JZ dr_off
+        CALL k_plot
+        JMP dr_go
+dr_off: CALL k_erase
+dr_go:  LD r3, [DR_T]
+        TST r3, 1
+        JZ dr_g1
+        DEC r1
+dr_g1:  TST r3, 2
+        JZ dr_g2
+        INC r1
+dr_g2:  TST r3, 4
+        JZ dr_g3
+        DEC r0
+dr_g3:  TST r3, 8
+        JZ dr_g4
+        INC r0
+dr_g4:  AND r0, 31
+        AND r1, 31
+        ST r0, [DR_X]
+        ST r1, [DR_Y]
+        CALL k_test
+        ST r2, [DR_UND]
+        LD r0, [DR_X]
+        LD r1, [DR_Y]
+        CALL k_plot
+        JMP dr_loop
+dr_blink: LD r0, [DR_PEN]            ; 提筆時游標閃爍
+        CMP r0, 0
+        JNZ dr_loop
+        LD r0, [DR_BL]
+        INC r0
+        ST r0, [DR_BL]
+        TST r0, 4
+        LD r0, [DR_X]
+        LD r1, [DR_Y]
+        JZ dr_b0
+        CALL k_plot
+        JMP dr_loop
+dr_b0:  CALL k_erase
+        JMP dr_loop
+dr_quit: RET
+
+; ============================================================
+;  表格區（ROM 0x300 起，用 LDC 讀）
+; ============================================================
+.table
+masks:  .db 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01
+s_title: .str "NAND-8"
+s_ramok: .str "RAM OK"
+s_rambad: .str "RAM BAD"
+s_snake: .str "SNAKE"
+s_draw: .str "DRAW"
+s_game: .str "GAME"
+s_over: .str "OVER"
+s_win:  .str "WIN!"
+font:
+  .db 0xEA, 0xAA, 0xE0   ; 0
+  .db 0x4C, 0x44, 0xE0   ; 1
+  .db 0xE2, 0xE8, 0xE0   ; 2
+  .db 0xE2, 0xE2, 0xE0   ; 3
+  .db 0xAA, 0xE2, 0x20   ; 4
+  .db 0xE8, 0xE2, 0xE0   ; 5
+  .db 0xE8, 0xEA, 0xE0   ; 6
+  .db 0xE2, 0x24, 0x40   ; 7
+  .db 0xEA, 0xEA, 0xE0   ; 8
+  .db 0xEA, 0xE2, 0xE0   ; 9
+  .db 0x4A, 0xEA, 0xA0   ; A
+  .db 0xCA, 0xCA, 0xC0   ; B
+  .db 0x68, 0x88, 0x60   ; C
+  .db 0xCA, 0xAA, 0xC0   ; D
+  .db 0xE8, 0xC8, 0xE0   ; E
+  .db 0xE8, 0xC8, 0x80   ; F
+  .db 0x68, 0xAA, 0x60   ; G
+  .db 0xAA, 0xEA, 0xA0   ; H
+  .db 0xE4, 0x44, 0xE0   ; I
+  .db 0x22, 0x2A, 0x40   ; J
+  .db 0xAA, 0xCA, 0xA0   ; K
+  .db 0x88, 0x88, 0xE0   ; L
+  .db 0xEE, 0xAA, 0xA0   ; M
+  .db 0xCA, 0xAA, 0xA0   ; N
+  .db 0x4A, 0xAA, 0x40   ; O
+  .db 0xCA, 0xC8, 0x80   ; P
+  .db 0x4A, 0xAC, 0x60   ; Q
+  .db 0xCA, 0xCA, 0xA0   ; R
+  .db 0x68, 0x42, 0xC0   ; S
+  .db 0xE4, 0x44, 0x40   ; T
+  .db 0xAA, 0xAA, 0xE0   ; U
+  .db 0xAA, 0xAA, 0x40   ; V
+  .db 0xAA, 0xEE, 0xA0   ; W
+  .db 0xAA, 0x4A, 0xA0   ; X
+  .db 0xAA, 0x44, 0x40   ; Y
+  .db 0xE2, 0x48, 0xE0   ; Z
+  .db 0x00, 0x00, 0x00   ; 空白
+  .db 0x84, 0x24, 0x80   ; >
+  .db 0x00, 0xE0, 0x00   ; -
+  .db 0x44, 0x40, 0x40   ; !
+</script>
+<script type="module">let THREE;
+{
+  // CDN 太慢或失敗就改用站內 vendor 模組
+  const cdn = import('three');
+  const vendor = () => import('../vendor/three-0.186.0/three.module.js');
+  try { THREE = await Promise.race([cdn, new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 9000))]); }
+  catch (e) {
+    try { THREE = await vendor(); }
+    catch (e2) { try { THREE = await cdn; } catch (e3) { document.getElementById('err').hidden = false; throw e3; } }
+  }
+}
+const K = window.NAND8;
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const hex = (v, n = 2) => v.toString(16).toUpperCase().padStart(n, '0');
+const Q = new URLSearchParams(location.search);
+const SEED = +Q.get('seed') || ((Math.random() * 2 ** 31) | 0);
+const COARSE = matchMedia('(pointer:coarse)').matches;
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const V3 = THREE.Vector3;
+
+/* ───────── 中文說明（麵包屑、提示框） ───────── */
+const ZH = {
+  'NAND-8': '主機板', CPU: '中央處理器', RAM: '隨機存取記憶體 256 B', ROM: '唯讀記憶體 1K×16', IO: '輸入輸出', CLOCK: '時鐘驅動',
+  ALU: '算術邏輯單元', ADDER: '八位元漣波進位加法器', FA: '全加器：9 個 NAND', HA: '半加器：5 個 NAND', DFF: 'D 正反器：主從兩個閂鎖',
+  BIT: '記憶位元：4 個 NAND 的閂鎖＋讀出閘', REGISTERS: '四個通用暫存器', 'READ PORT A': '讀取埠 A：四選一多工器', 'READ PORT B': '讀取埠 B：四選一多工器',
+  DECODER: '指令解碼器', SEQUENCER: '取指／執行兩相序列器', STATE: '序列器狀態位元', IR: '指令暫存器 16 位元', PC: '程式計數器',
+  'PC REG': '程式計數器 10 位元', INCREMENTER: '加一器', 'RETURN STACK': '返回堆疊：8 層', BRANCH: '分支條件', 'NEXT PC': '下一個 PC 多工器',
+  'WRITE BACK': '寫回匯流排', FLAGS: '旗標 Z C N', 'Z C N': '旗標暫存器', SHIFTER: '移位器', LOGIC: 'AND／OR／XOR', 'RESULT MUX': '結果多工器',
+  'X SELECT': 'X 運算元選擇', 'Y SELECT': 'Y 運算元選擇', 'READ TREE': '讀出樹：256 選 1', 'ADDRESS DECODER': '位址解碼器', 'WRITE STROBE': '寫入脈衝',
+  'DATA GATE': '寫入資料閘', BYTE: '一個位元組', 'WORD LINES': '字線：每個非零的字一個 NAND', 'BIT PLANES': '位元平面：程式決定這裡有多少閘',
+  'ROW DECODER': '列解碼器', 'ADDRESS MUX': '位址多工器（取指或查表）', LFSR: '線性回饋移位暫存器：亂數', 'TICK SYNC': '兩級同步器：擋亞穩態',
+  'TICK COUNT': '每秒 30 次的計數器', SOUND: '聲音暫存器', LEDS: 'LED 暫存器', 'IN PORT': '輸入埠多工器', 'CLOCK GATE': '時鐘閘控：閂鎖＋AND', INC: '加一器',
+  LEVEL: '堆疊的一層', R0: '暫存器 R0', R1: '暫存器 R1', R2: '暫存器 R2', R3: '暫存器 R3',
+};
+const zhOf = (n) => { if (!n) return ''; const b = n.name; if (ZH[b]) return ZH[b]; if (/^WORK/.test(b)) return '工作記憶體 16 bytes'; if (/^VIDEO/.test(b)) return '顯示記憶體 16 bytes：直接點亮 LED'; if (/^D\d+$/.test(b)) return 'ROM 資料位元 ' + b.slice(1); if (/^LEVEL/.test(b)) return ZH.LEVEL; return ''; };
+
+/* ───────── 渲染器 ───────── */
+const canvas = $('gl');
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
+catch (e) { $('err').hidden = false; throw e; }
+renderer.setPixelRatio(Math.min(devicePixelRatio, COARSE ? 2 : 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x110d0a);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 2000);
+
+{
+  // 簡單的暖色攝影棚環境，讓金屬（金蓋、接腳、晶振）有東西可以反射
+  const env = new THREE.Scene();
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), new THREE.MeshBasicMaterial({ side: THREE.BackSide, vertexColors: true }));
+  const cols = [], pos = sky.geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) { const y = pos.getY(i) / 50; const t = clamp(y * 0.5 + 0.5, 0, 1); cols.push(lerp(0.05, 0.55, t * t), lerp(0.035, 0.42, t * t), lerp(0.025, 0.3, t * t)); }
+  sky.geometry.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); env.add(sky);
+  const box = (w, h, x, y, z, c) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide })); m.position.set(x, y, z); m.lookAt(0, 0, 0); env.add(m); };
+  box(30, 18, -20, 38, 18, 0xfff0dc); box(16, 40, 40, 14, -20, 0xffc890); box(50, 4, 0, 10, -45, 0x8a6a4a);
+  const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(env, 0.02).texture; scene.environmentIntensity = 0.55;
+}
+scene.add(new THREE.HemisphereLight(0xffe2c0, 0x1a120c, 0.4));
+const key = new THREE.DirectionalLight(0xffe6c8, 2.8);
+key.position.set(-120, 260, 140); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -170, right: 170, top: 130, bottom: -130, near: 50, far: 600 });
+key.shadow.bias = -0.0004; key.shadow.normalBias = 0.3;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xff9a50, 0.5); rim.position.set(200, 80, -200); scene.add(rim);
+
+/* ───────── 小工具 ───────── */
+function canvasTex(w, h, draw, srgb = true) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); draw(g, w, h);
+  const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t;
+}
+function noise(g, w, h, a, seed = 1) {
+  const img = g.getImageData(0, 0, w, h), d = img.data; let s = seed;
+  for (let i = 0; i < d.length; i += 4) { s = (s * 1103515245 + 12345) & 0x7fffffff; const n = ((s >> 8) & 255) / 255 - 0.5; d[i] += n * a; d[i + 1] += n * a * 0.8; d[i + 2] += n * a * 0.6; }
+  g.putImageData(img, 0, 0);
+}
+
+/* ───────── 板子：尺寸單位都是公釐 ───────── */
+const BOARD = { w: 250, d: 160, t: 1.6 };
+const TOP = BOARD.t;
+const PKG = {   // 封裝位置（中心 x,z）、長、寬、腳數、外觀
+  CPU: { x: 42, z: -6, len: 52.3, wid: 15.24, pins: 40, look: 'ceramic', des: 'U1', title: 'NAND-8 CPU' },
+  ROM: { x: 42, z: -50, len: 37.1, wid: 15.24, pins: 28, look: 'eprom', des: 'U2', title: 'ROM 1K×16' },
+  RAM: { x: 42, z: 38, len: 52.3, wid: 15.24, pins: 40, look: 'epoxy', des: 'U3', title: 'RAM 256×8' },
+  IO: { x: 102, z: -6, len: 32, wid: 7.62, pins: 24, look: 'epoxy', des: 'U4', title: 'I/O', rot: true },
+  CLOCK: { x: 102, z: -52, len: 9.8, wid: 7.62, pins: 8, look: 'epoxy', des: 'U5', title: 'CLK' },
+};
+const DISP = { x: -70, z: -14, pitch: 2.54 };
+const KEYPOS = { UP: [-38, 46], DOWN: [-38, 70], LEFT: [-50, 58], RIGHT: [-26, 58], B: [-6, 64], A: [9, 55] };
+
+const board = new THREE.Group(); scene.add(board);
+function drawBoardTexture(g, W, H) {
+  const sx = W / BOARD.w, sz = H / BOARD.d;
+  const X = x => (x + BOARD.w / 2) * sx, Z = z => (z + BOARD.d / 2) * sz;
+  g.fillStyle = '#4c3220'; g.fillRect(0, 0, W, H);
+  // 酚醛板纖維
+  for (let i = 0; i < 2600; i++) { g.strokeStyle = `rgba(${90 + Math.random() * 40},${55 + Math.random() * 25},${30},${0.05 + Math.random() * 0.06})`; g.lineWidth = 1 + Math.random() * 2; const x = Math.random() * W, y = Math.random() * H, a = Math.random() * 0.5 - 0.25; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * 60, y + Math.sin(a) * 60); g.stroke(); }
+  noise(g, W, H, 22, 7);
+  const copper = '#a8703c', tin = '#c9b393';
+  const trace = (pts, w = 0.32) => { g.strokeStyle = copper; g.lineWidth = w * sx; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); pts.forEach(([x, z], i) => i ? g.lineTo(X(x), Z(z)) : g.moveTo(X(x), Z(z))); g.stroke(); };
+  // 匯流排：CPU ↔ ROM、CPU ↔ RAM、CPU ↔ I/O
+  for (let i = 0; i < 26; i++) { const x = PKG.CPU.x - 24 + i * 1.9; trace([[x, PKG.ROM.z + 8.5], [x, PKG.CPU.z - 8.5]]); }
+  for (let i = 0; i < 24; i++) { const x = PKG.CPU.x - 23 + i * 1.95; trace([[x, PKG.CPU.z + 8.5], [x, PKG.RAM.z - 8.5]]); }
+  for (let i = 0; i < 12; i++) { const z = PKG.CPU.z - 13 + i * 2.3; trace([[PKG.CPU.x + 27.5, z], [PKG.IO.x - 5, z]]); }
+  // 顯示記憶體 → LED 矩陣
+  for (let i = 0; i < 16; i++) { const z = PKG.RAM.z - 7 + i * 0.9 * 0 + i * 0.95, x0 = PKG.RAM.x - 27.5; trace([[x0, PKG.RAM.z - 7 + i * 0.95], [x0 - 6 - i * 0.6, PKG.RAM.z - 7 + i * 0.95], [DISP.x + 46 + 2 + i * 0.95, 26 + i * 0.4], [DISP.x + 46 + 2 + i * 0.95, 30]], 0.25); void z; }
+  // 按鍵 → I/O
+  Object.values(KEYPOS).forEach(([x, z], i) => trace([[x, z], [x, 78 - i], [PKG.IO.x - 12 + i * 1.6, 78 - i], [PKG.IO.x - 12 + i * 1.6, PKG.IO.z + 16]], 0.28));
+  // LED 列 ← I/O
+  for (let i = 0; i < 8; i++) trace([[30 + i * 6, 66], [30 + i * 6, 60], [PKG.IO.x - 6 + i * 0.6, 60 - i * 0.6], [PKG.IO.x - 6 + i * 0.6, PKG.IO.z + 16]], 0.25);
+  // 焊墊
+  const pads = (p) => { const n = p.pins / 2; for (let i = 0; i < n; i++) for (const s of [-1, 1]) { let x = p.x - (n - 1) * 1.27 + i * 2.54, z = p.z + s * p.wid / 2; if (p.rot) [x, z] = [p.x + s * p.wid / 2, p.z - (n - 1) * 1.27 + i * 2.54]; g.fillStyle = tin; g.beginPath(); g.arc(X(x), Z(z), 0.85 * sx, 0, 7); g.fill(); g.fillStyle = '#2a1a10'; g.beginPath(); g.arc(X(x), Z(z), 0.35 * sx, 0, 7); g.fill(); } };
+  Object.values(PKG).forEach(pads);
+  // 絲印
+  g.fillStyle = '#efe6d6'; g.strokeStyle = '#efe6d6';
+  const text = (s, x, z, size, align = 'left', weight = 600) => { g.font = `${weight} ${size * sx}px ui-sans-serif, system-ui, sans-serif`; g.textAlign = align; g.textBaseline = 'middle'; g.fillText(s, X(x), Z(z)); };
+  Object.values(PKG).forEach(p => {
+    const l = p.rot ? p.wid + 3 : p.len + 3, w = p.rot ? p.len + 3 : p.wid + 3;
+    g.lineWidth = 0.25 * sx; g.strokeRect(X(p.x - l / 2), Z(p.z - w / 2), l * sx, w * sz);
+    text(p.des, p.rot ? p.x + 7 : p.x - p.len / 2 - 1.5, p.rot ? p.z - p.len / 2 - 4 : p.z - p.wid / 2 - 3.2, 2.6, p.rot ? 'left' : 'left');
+  });
+  text('DS1  32×32 LED', DISP.x - 46, DISP.z - 48.5, 2.8);
+  text('D1–D8', 28, 70.8, 2.4);
+  text('Y1', 112, -63, 2.4);
+  text('LS1', 94, 60, 2.4);
+  Object.entries(KEYPOS).forEach(([k, [x, z]]) => text(k === 'UP' ? '▲' : k === 'DOWN' ? '▼' : k === 'LEFT' ? '◀' : k === 'RIGHT' ? '▶' : k, x + (k === 'A' || k === 'B' ? 0 : 0), z + (k === 'A' || k === 'B' ? 7.2 : 0) + (k === 'UP' ? -6.2 : k === 'DOWN' ? 6.2 : 0) , 2.4, k === 'LEFT' ? 'right' : k === 'RIGHT' ? 'left' : 'center'));
+  g.save(); g.translate(X(82), Z(64)); g.font = `700 ${4.2 * sx}px ui-sans-serif, system-ui, sans-serif`; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText('NAND-8', 0, 0); g.restore();
+  text('REV A · ONLY 2-INPUT NAND GATES', 82, 69.5, 2.2, 'left', 500);
+  text('2026 · 與非到底', 82, 73.5, 2.2, 'left', 500);
+  // 固定孔
+  for (const [x, z] of [[-118, -73], [118, -73], [-118, 73], [118, 73]]) { g.fillStyle = tin; g.beginPath(); g.arc(X(x), Z(z), 3 * sx, 0, 7); g.fill(); g.fillStyle = '#0b0806'; g.beginPath(); g.arc(X(x), Z(z), 1.6 * sx, 0, 7); g.fill(); }
+}
+{
+  const tex = canvasTex(2500, 1600, drawBoardTexture);
+  const mats = [new THREE.MeshStandardMaterial({ color: 0x3a2618, roughness: 0.8 }), null, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.62, metalness: 0.05 })];
+  const geo = new THREE.BoxGeometry(BOARD.w, BOARD.t, BOARD.d);
+  const m = new THREE.Mesh(geo, [mats[0], mats[0], mats[2], mats[0], mats[0], mats[0]]);
+  m.position.y = BOARD.t / 2; m.receiveShadow = true; m.castShadow = true; m.userData.pick = true; board.add(m);
+  // 桌面
+  const desk = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.MeshStandardMaterial({ color: 0x1c140e, roughness: 0.95 }));
+  desk.rotation.x = -Math.PI / 2; desk.position.y = -6; desk.receiveShadow = true; scene.add(desk);
+  // 支撐柱
+  for (const [x, z] of [[-118, -73], [118, -73], [-118, 73], [118, 73]]) { const s = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 6, 6), new THREE.MeshStandardMaterial({ color: 0xb8a27e, metalness: 0.8, roughness: 0.35 })); s.position.set(x, -3, z); board.add(s); }
+}
+
+/* ───────── 封裝 ───────── */
+const pickables = [];
+const pinGeo = new THREE.BoxGeometry(0.5, 1, 0.26);
+const pinMat = new THREE.MeshStandardMaterial({ color: 0xcfc6b8, metalness: 0.9, roughness: 0.3 });
+function makePackage(name, p) {
+  const grp = new THREE.Group(); grp.position.set(p.x, 0, p.z); if (p.rot) grp.rotation.y = Math.PI / 2; board.add(grp);
+  const ceramic = p.look === 'ceramic', eprom = p.look === 'eprom';
+  const H = ceramic || eprom ? 3.4 : 3.0, stand = 0.9, capH = 0.7;
+  const bodyCol = ceramic ? 0x3a322b : eprom ? 0x2a2622 : 0x191715;
+  const bodyMat = new THREE.MeshStandardMaterial({ color: bodyCol, roughness: ceramic ? 0.45 : 0.7, metalness: 0 });
+  const lower = new THREE.Mesh(new THREE.BoxGeometry(p.len, H - capH, p.wid), bodyMat);
+  lower.position.y = TOP + stand + (H - capH) / 2; lower.castShadow = true; lower.receiveShadow = true; grp.add(lower);
+  const dieY = TOP + stand + H - capH + 0.02;
+  // 上蓋：放大到晶片時淡出
+  const capMats = [];
+  const label = canvasTex(512, Math.round(512 * p.wid / p.len), (g, w, h) => {
+    g.fillStyle = ceramic ? '#3a322b' : eprom ? '#2a2622' : '#191715'; g.fillRect(0, 0, w, h);
+    noise(g, w, h, ceramic ? 10 : 14, 3);
+    g.fillStyle = 'rgba(235,225,210,.78)';
+    g.font = `600 ${h * 0.2}px ui-sans-serif, system-ui, sans-serif`; g.textBaseline = 'middle';
+    if (ceramic) { g.textAlign = 'left'; g.fillText('NAND-8', w * 0.04, h * 0.3); g.font = `500 ${h * 0.14}px ui-sans-serif, system-ui, sans-serif`; g.fillText(p.des + ' CPU', w * 0.04, h * 0.72); g.textAlign = 'right'; g.fillText('2026', w * 0.96, h * 0.72); }
+    else if (eprom) { }
+    else { g.textAlign = 'center'; g.fillText(p.title, w / 2, h * 0.42); g.font = `500 ${h * 0.15}px ui-sans-serif, system-ui, sans-serif`; g.fillText(p.des + ' · NAND-8', w / 2, h * 0.72); }
+    g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(p.len > 12 ? w * 0.012 + 8 : 6, h / 2, h * 0.09, 0, 7); g.fill();
+  });
+  const capMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: label, roughness: ceramic ? 0.45 : 0.72, transparent: true, opacity: 1 });
+  const sideMat = new THREE.MeshStandardMaterial({ color: bodyCol, roughness: 0.7, transparent: true, opacity: 1 });
+  capMats.push(capMat, sideMat);
+  let cap;
+  if (eprom) {
+    // 石英窗：四塊框加一片玻璃
+    const win = Math.min(p.wid * 0.62, 9.5);
+    cap = new THREE.Group();
+    const fr = (w, d, x, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, capH, d), sideMat); m.position.set(x, 0, z); m.castShadow = true; cap.add(m); };
+    fr((p.len - win) / 2, p.wid, -(p.len + win) / 4, 0); fr((p.len - win) / 2, p.wid, (p.len + win) / 4, 0);
+    fr(win, (p.wid - win) / 2, 0, -(p.wid + win) / 4); fr(win, (p.wid - win) / 2, 0, (p.wid + win) / 4);
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(win, 0.25, win), new THREE.MeshStandardMaterial({ color: 0xd8e2e0, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.16 }));
+    glass.position.y = capH / 2 - 0.15; cap.add(glass); cap.userData.glass = glass.material;
+    cap.userData.window = win;
+  } else {
+    cap = new THREE.Mesh(new THREE.BoxGeometry(p.len, capH, p.wid), [sideMat, sideMat, capMat, sideMat, sideMat, sideMat]);
+    cap.castShadow = true;
+  }
+  cap.position.y = dieY - 0.02 + capH / 2; grp.add(cap);
+  let lid = null;
+  if (ceramic) {
+    lid = new THREE.Mesh(new THREE.BoxGeometry(13, 0.18, 11.5), new THREE.MeshStandardMaterial({ color: 0xc9a24a, metalness: 1, roughness: 0.28, transparent: true }));
+    lid.position.y = dieY - 0.02 + capH + 0.09; lid.castShadow = true; grp.add(lid); capMats.push(lid.material);
+  }
+  // 接腳
+  const n = p.pins / 2, pins = new THREE.InstancedMesh(pinGeo, pinMat, p.pins * 2);
+  const mm = new THREE.Matrix4(); let k = 0;
+  for (let i = 0; i < n; i++) for (const s of [-1, 1]) {
+    const x = -(n - 1) * 1.27 + i * 2.54;
+    mm.compose(new V3(x, TOP + (stand + 1.1) / 2, s * (p.wid / 2)), new THREE.Quaternion(), new V3(1, stand + 1.1, 1)); pins.setMatrixAt(k++, mm);
+    mm.compose(new V3(x, TOP + stand + 1.1, s * (p.wid / 2 - 0.7)), new THREE.Quaternion(), new V3(1, 0.26, 5.4)); pins.setMatrixAt(k++, mm);
+  }
+  pins.castShadow = true; grp.add(pins);
+  lower.userData.pick = true; pickables.push(lower);
+  if (!eprom) { cap.userData.pick = true; pickables.push(cap); }
+  return { name, p, grp, dieY, capMats, lid, cap, open: 0, eprom, ceramic };
+}
+const packages = {};
+for (const [k, p] of Object.entries(PKG)) packages[k] = makePackage(k, p);
+
+/* ───────── LED 矩陣、按鍵、LED、晶振、喇叭 ───────── */
+const ledOn = new THREE.Color(0xff5030), ledOff = new THREE.Color(0x2c0c07), ledOnHi = new THREE.Color(0xffc0a0);
+let matrix;
+{
+  const g = new THREE.Group(); g.position.set(DISP.x, 0, DISP.z); board.add(g);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(90, 5.5, 90), new THREE.MeshStandardMaterial({ color: 0x0f0d0c, roughness: 0.55 }));
+  frame.position.y = TOP + 2.75; frame.castShadow = true; frame.receiveShadow = true; frame.userData.pick = true; pickables.push(frame); g.add(frame);
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(84, 84), new THREE.MeshStandardMaterial({ color: 0x080606, roughness: 0.9 }));
+  face.rotation.x = -Math.PI / 2; face.position.y = TOP + 5.52; g.add(face);
+  const led = new THREE.CylinderGeometry(0.95, 1.0, 0.7, 14);
+  matrix = new THREE.InstancedMesh(led, new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }), 1024);
+  const mm = new THREE.Matrix4();
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { mm.makeTranslation((x - 15.5) * DISP.pitch, TOP + 5.7, (y - 15.5) * DISP.pitch); matrix.setMatrixAt(y * 32 + x, mm); matrix.setColorAt(y * 32 + x, ledOff); }
+  g.add(matrix);
+}
+const keycaps = {};
+{
+  const capMat = new THREE.MeshStandardMaterial({ color: 0xd8ccb6, roughness: 0.55 });
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x151311, roughness: 0.6 });
+  for (const [k, [x, z]] of Object.entries(KEYPOS)) {
+    const round = k === 'A' || k === 'B';
+    const base = new THREE.Mesh(new THREE.BoxGeometry(12, 3.5, 12), baseMat); base.position.set(x, TOP + 1.75, z); base.castShadow = true; board.add(base);
+    const cap = new THREE.Mesh(round ? new THREE.CylinderGeometry(4.6, 4.9, 2.6, 28) : new THREE.BoxGeometry(9.4, 2.6, 9.4), capMat.clone());
+    cap.position.set(x, TOP + 4.8, z); cap.castShadow = true; cap.userData.key = k; board.add(cap); keycaps[k] = cap; pickables.push(cap);
+  }
+}
+const boardLeds = [];
+{
+  const geo = new THREE.SphereGeometry(1.6, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+  for (let i = 0; i < 8; i++) { const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x2c0c07, toneMapped: false })); m.position.set(30 + (7 - i) * 6, TOP + 0.3, 66); board.add(m); boardLeds.push(m); }
+}
+let clkLed;
+{
+  const xtal = new THREE.Mesh(new THREE.CapsuleGeometry(2.1, 7, 6, 16), new THREE.MeshStandardMaterial({ color: 0xd9d4cc, metalness: 1, roughness: 0.22 }));
+  xtal.rotation.z = Math.PI / 2; xtal.position.set(114, TOP + 2.2, -66); xtal.castShadow = true; board.add(xtal);
+  clkLed = new THREE.Mesh(new THREE.SphereGeometry(1.4, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x3a2508, toneMapped: false }));
+  clkLed.position.set(90, TOP + 0.3, -66); board.add(clkLed);
+  const spk = new THREE.Mesh(new THREE.CylinderGeometry(11, 11, 3.2, 40), new THREE.MeshStandardMaterial({ color: 0x141211, roughness: 0.5 }));
+  spk.position.set(106, TOP + 1.6, 48); spk.castShadow = true; board.add(spk);
+  const cone = new THREE.Mesh(new THREE.RingGeometry(2, 8.5, 40), new THREE.MeshStandardMaterial({ color: 0x2a2521, roughness: 0.8, side: THREE.DoubleSide }));
+  cone.rotation.x = -Math.PI / 2; cone.position.set(106, TOP + 3.25, 48); board.add(cone);
+}
+
+/* ───────── 動態匯流排走線 ───────── */
+let busLines;
+const busSig = [];
+{
+  const pos = [], col = [];
+  const add = (x0, z0, x1, z1, getNet) => { pos.push(x0, TOP + 0.02, z0, x1, TOP + 0.02, z1); col.push(0, 0, 0, 0, 0, 0); busSig.push(getNet); };
+  for (let i = 0; i < 26; i++) { const x = PKG.CPU.x - 24 + i * 1.9; add(x, PKG.ROM.z + 8.5, x, PKG.CPU.z - 8.5, () => i < 10 ? S.romAddr[i] : S.romOut[i - 10]); }
+  for (let i = 0; i < 24; i++) { const x = PKG.CPU.x - 23 + i * 1.95; add(x, PKG.CPU.z + 8.5, x, PKG.RAM.z - 8.5, () => i < 8 ? S.aluRes[i] : i < 16 ? S.regA[i - 8] : S.ramOut[i - 16]); }
+  for (let i = 0; i < 12; i++) { const z = PKG.CPU.z - 13 + i * 2.3; add(PKG.CPU.x + 27.5, z, PKG.IO.x - 5, z, () => i < 8 ? S.ioIn[i] : S.regA[i - 8]); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  busLines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true, toneMapped: false, transparent: true, opacity: 0.95 }));
+  board.add(busLines);
+}
+
+/* ───────── 機器與版圖 ───────── */
+const hist = [];
+let lastInstr = 0, lastCyc = 0, lastTog = 0;
+function resetMeters() { hist.length = 0; if (M) { lastInstr = M.instr; lastCyc = M.cycles; lastTog = M.sim.toggles; } }
+let src = $('os-src').textContent.replace(/^\n/, '');
+const ORIGINAL_SRC = src;
+let asm, M, S, sim, net, tree, chips = {}, gateChip, gatePos;
+const DIE_MM = 0.046;   // 每個版圖單位 = 0.046 mm
+
+function buildTree(n) {
+  const mods = n.mods.map((m, i) => ({ id: i, name: m.name, kind: m.kind, parent: m.parent, kids: [], gates: [], count: 0 }));
+  for (const m of mods) if (m.parent >= 0) mods[m.parent].kids.push(m);
+  for (let g = n.nSources; g < n.A.length; g++) mods[n.M[g]].gates.push(g);
+  for (let i = mods.length - 1; i >= 0; i--) { const m = mods[i]; m.count += m.gates.length; if (m.parent >= 0) mods[m.parent].count += m.count; }
+  for (const m of mods) {
+    m.kids = m.kids.filter(k => k.count > 0);
+    const dup = {}, seen = {};
+    m.kids.forEach(k => dup[k.name] = (dup[k.name] || 0) + 1);
+    m.kids.forEach(k => { if (dup[k.name] > 1) { seen[k.name] = (seen[k.name] ?? -1) + 1; k.label = k.name + ' ' + seen[k.name]; } else k.label = k.name; });
+  }
+  return mods;
+}
+function squarify(items, r, out) {
+  items = items.slice().sort((a, b) => b.wt - a.wt);
+  const total = items.reduce((s, i) => s + i.wt, 0); if (!total) return;
+  const scale = r.w * r.h / total; let { x, y, w, h } = r; let row = [];
+  const worst = (row, len) => { let s = 0, mx = 0, mn = Infinity; for (const i of row) { const a = i.wt * scale; s += a; mx = Math.max(mx, a); mn = Math.min(mn, a); } return Math.max(len * len * mx / (s * s), s * s / (len * len * mn)); };
+  const flush = () => {
+    const s = row.reduce((t, i) => t + i.wt * scale, 0);
+    if (w >= h) { const cw = s / h; let yy = y; for (const i of row) { const ih = i.wt * scale / cw; out.push([i, { x, y: yy, w: cw, h: ih }]); yy += ih; } x += cw; w -= cw; }
+    else { const rh = s / w; let xx = x; for (const i of row) { const iw = i.wt * scale / rh; out.push([i, { x: xx, y, w: iw, h: rh }]); xx += iw; } y += rh; h -= rh; }
+    row = [];
+  };
+  for (const it of items) { const side = Math.min(w, h); if (!row.length || worst([...row, it], side) <= worst(row, side)) row.push(it); else { flush(); row.push(it); } }
+  if (row.length) flush();
+}
+
+function placeGates(node, gates, r) {
+  // 依模組內的邏輯深度排序：訊號大致由左往右流
+  const inG = new Set(gates), d = new Map(gates.map(g => [g, 0]));
+  for (let pass = 0; pass < 6; pass++) for (const g of gates) { const a = net.A[g], b = net.B[g]; let v = 0; if (inG.has(a)) v = Math.max(v, d.get(a) + 1); if (inG.has(b)) v = Math.max(v, d.get(b) + 1); d.set(g, Math.min(v, 40)); }
+  const list = gates.slice().sort((x, y) => d.get(x) - d.get(y) || x - y);
+  const n = list.length, rows = Math.max(1, Math.round(Math.sqrt(n * r.h / r.w))), cols = Math.ceil(n / rows);
+  const pitch = Math.min(r.w / cols, r.h / rows);
+  const ox = r.x + (r.w - cols * pitch) / 2, oy = r.y + (r.h - rows * pitch) / 2;
+  list.forEach((g, i) => { const c = Math.floor(i / rows), rr = i % rows; gatePos[g * 3] = ox + (c + 0.5) * pitch; gatePos[g * 3 + 1] = oy + (rr + 0.5) * pitch; gatePos[g * 3 + 2] = pitch; });
+  node.leaf = { x: ox, y: oy, rows, cols, pitch, list };
+}
+function gridRects(items, r, out, cols) { // 同大小的兄弟排成整齊陣列，保持原本順序
+  const n = items.length; cols = cols || Math.max(1, Math.round(Math.sqrt(n * r.w / r.h))); const rows = Math.ceil(n / cols);
+  items.forEach((it, i) => { const c = i % cols, rr = Math.floor(i / cols); out.push([it, { x: r.x + c * r.w / cols, y: r.y + rr * r.h / rows, w: r.w / cols, h: r.h / rows }]); });
+}
+function layoutItems(node, items, inner, out) {
+  // 把重複的同尺寸兄弟（位元、位元組、全加器、正反器…）收成一組排成陣列，其餘用 squarify
+  const byKey = new Map();
+  items.forEach(it => { if (it.own) return; const k = it.node.kind + ':' + it.wt; (byKey.get(k) || byKey.set(k, []).get(k)).push(it); });
+  const grouped = new Set(), list = [];
+  for (const [, g] of byKey) if (g.length >= 4) { g.forEach(i => grouped.add(i)); list.push({ wt: g.reduce((t, i) => t + i.wt, 0), group: g }); }
+  items.forEach(it => { if (!grouped.has(it)) list.push(it); });
+  const tmp = [];
+  if (list.length === 1) tmp.push([list[0], inner]); else squarify(list, inner, tmp);
+  for (const [it, rr] of tmp) {
+    if (!it.group) { out.push([it, rr]); continue; }
+    const k = it.group[0].node.kind, cols = k === 'cell' && node.kind === 'byte' ? 8 : k === 'byte' ? 4 : 0;
+    // 位元組裡 bit7 放最左邊，跟螢幕像素的順序一致
+    gridRects(k === 'cell' && node.kind === 'byte' ? it.group.slice().reverse() : it.group, rr, out, cols);
+  }
+}
+function layoutNode(node, r, depth) {
+  node.rect = r;
+  const cell = node.kind === 'cell';
+  const vid = /^VIDEO/.test(node.name);
+  const pad = cell ? Math.min(r.w, r.h) * 0.06 : node.kind === 'byte' ? Math.min(r.w, r.h) * 0.02 : vid ? 0.08 : Math.min(r.w, r.h) * 0.025 + 0.35;
+  const head = !cell && !vid && node.kind !== 'byte' && node.count >= 24 && depth > 0 ? Math.min(r.h * 0.1, 2.2 + Math.sqrt(node.count) * 0.05) : 0;
+  const inner = { x: r.x + pad, y: r.y + pad + head, w: Math.max(0.1, r.w - 2 * pad), h: Math.max(0.1, r.h - 2 * pad - head) };
+  const items = node.kids.map(k => ({ wt: k.count, node: k }));
+  if (node.gates.length) items.push({ wt: node.gates.length, own: true });
+  const out = [];
+  if (depth === 0 && node.name === 'RAM') layoutRAM(items, inner, out);
+  else if (items.length === 1) out.push([items[0], inner]);
+  else layoutItems(node, items, inner, out);
+  for (const [it, rr] of out) { if (it.own) { node.ownRect = rr; placeGates(node, node.gates, rr); } else layoutNode(it.node, rr, depth + 1); }
+}
+// RAM：顯示記憶體 0x80–0xFF 疊成 32×32，跟 LED 矩陣一格對一格；其餘放左邊
+function layoutRAM(items, r, out) {
+  const video = items.filter(i => i.node && /^VIDEO/.test(i.node.name)), rest = items.filter(i => !video.includes(i));
+  const side = Math.min(r.h, r.w * 0.5), vx = r.x + r.w - side;
+  const bankH = side / video.length;
+  video.forEach((it, i) => out.push([it, { x: vx, y: r.y + (r.h - side) / 2 + i * bankH, w: side, h: bankH }]));
+  layoutItems({ kind: 'chip' }, rest, { x: r.x, y: r.y, w: r.w - side - 1.2, h: r.h }, out);
+}
+
+function buildMachine(source, seed) {
+  const a = K.assemble(source);
+  if (a.errors.length) return a;
+  asm = a; src = source;
+  M = new K.Machine(a.rom, seed); S = M.S; sim = M.sim; net = M.net;
+  tree = buildTree(net);
+  gatePos = new Float32Array(net.A.length * 3);
+  gateChip = new Int8Array(net.A.length).fill(-1);
+  const prevOpen = Object.fromEntries(Object.entries(chips).map(([k, c]) => [k, c.open]));
+  for (const c of Object.values(chips)) disposeChip(c);
+  chips = {};
+  tree[0].kids.forEach((node, ci) => {
+    const pkg = packages[node.name]; if (!pkg) return;
+    const side = Math.max(14, Math.sqrt(node.count * 2.3) + 5);
+    let W = side, H = side;
+    if (node.name === 'RAM') { H = Math.sqrt(node.count * 2.3 / 1.8) + 4; W = H * 1.8; }
+    if (pkg.eprom) { W = H = Math.min(side, pkg.cap.userData.window * 0.78 / DIE_MM); }
+    const maxW = (pkg.p.len - 4) / DIE_MM, maxH = (pkg.p.wid - 3) / DIE_MM; const f = Math.min(1, maxW / W, maxH / H); W *= f; H *= f;
+    layoutNode(node, { x: 0, y: 0, w: W, h: H }, 0);
+    const c = { node, pkg, W, H, index: ci, gates: [], open: prevOpen[node.name] || 0 };
+    const stack = [node]; while (stack.length) { const m = stack.pop(); for (const g of m.gates) { c.gates.push(g); gateChip[g] = ci; } stack.push(...m.kids); }
+    chips[node.name] = c;
+    buildChipView(c);
+  });
+  wires.focus = null;
+  resetMeters();
+  refreshFacts();
+  return a;
+}
+
+/* ───────── 晶片上的閘 ───────── */
+const gateTex = canvasTex(128, 128, (g, w) => {
+  g.fillStyle = '#383838'; g.fillRect(0, 0, w, w);
+  g.fillStyle = '#5e5e5e'; g.fillRect(4, 4, w - 8, w - 8);
+  g.fillStyle = '#2c2c2c'; g.fillRect(9, 9, w - 18, w - 18);
+  // NAND 符號：D 形加圓圈
+  g.strokeStyle = '#ffffff'; g.lineWidth = 8; g.lineJoin = 'round'; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(31, 33); g.lineTo(60, 33); g.arc(60, 64, 31, -Math.PI / 2, Math.PI / 2); g.lineTo(31, 95); g.closePath(); g.stroke();
+  g.beginPath(); g.arc(100, 64, 7.5, 0, 7); g.stroke();
+  g.beginPath(); g.moveTo(10, 48); g.lineTo(31, 48); g.moveTo(10, 80); g.lineTo(31, 80); g.moveTo(108, 64); g.lineTo(119, 64); g.stroke();
+});
+gateTex.generateMipmaps = true; gateTex.minFilter = THREE.LinearMipmapLinearFilter;
+const gateGeo = new THREE.PlaneGeometry(1, 1); gateGeo.rotateX(-Math.PI / 2);
+const dieWorld = (c, u, v, out = new V3()) => {
+  // 版圖 (u,v) → 世界座標
+  const p = c.pkg.p, lx = (u - c.W / 2) * DIE_MM, lz = (v - c.H / 2) * DIE_MM;
+  if (p.rot) out.set(p.x - lz, c.pkg.dieY, p.z + lx); else out.set(p.x + lx, c.pkg.dieY, p.z + lz);
+  return out;
+};
+const worldDie = (c, x, z) => { const p = c.pkg.p; let lx = x - p.x, lz = z - p.z; if (p.rot) [lx, lz] = [lz, -lx]; return [lx / DIE_MM + c.W / 2, lz / DIE_MM + c.H / 2]; };
+function buildChipView(c) {
+  const grp = new THREE.Group(); c.view = grp; scene.add(grp);
+  // 矽晶粒底色：區塊用不同色調
+  const tex = canvasTex(1024, Math.round(1024 * c.H / c.W), (g, w, h) => {
+    const s = w / c.W;
+    g.fillStyle = '#1c1814'; g.fillRect(0, 0, w, h);
+    const tones = ['#2a221b', '#251f1a', '#2d2419', '#221d19', '#2b2520', '#27201a'];
+    const paint = (n, d) => { if (!n.rect || n.kind === 'cell') return; if (d === 1 || d === 2) { g.fillStyle = tones[(n.id * 7 + d) % tones.length]; g.fillRect(n.rect.x * s, n.rect.y * s, n.rect.w * s, n.rect.h * s); } n.kids.forEach(k => paint(k, d + 1)); };
+    paint(c.node, 0); noise(g, w, h, 10, c.index + 3);
+    // 焊墊
+    g.fillStyle = '#b9924a'; const np = 12; for (let i = 0; i < np; i++) { const t = (i + 0.5) / np; for (const [x, y] of [[t * w, 6], [t * w, h - 6], [6, t * h], [w - 6, t * h]]) g.fillRect(x - 5, y - 5, 10, 10); }
+  });
+  const die = new THREE.Mesh(new THREE.PlaneGeometry(c.W * DIE_MM, c.H * DIE_MM), new THREE.MeshBasicMaterial({ map: tex }));
+  die.rotation.x = -Math.PI / 2; if (c.pkg.p.rot) die.rotation.z = -Math.PI / 2;
+  die.position.set(c.pkg.p.x, c.pkg.dieY - 0.001, c.pkg.p.z); die.userData.pick = true; die.userData.chip = c; grp.add(die); c.die = die; pickables.push(die);
+  // 閘
+  const n = c.gates.length;
+  const mesh = new THREE.InstancedMesh(gateGeo, new THREE.MeshBasicMaterial({ map: gateTex, toneMapped: false }), n);
+  const mm = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new V3(), sc = new V3();
+  if (c.pkg.p.rot) q.setFromAxisAngle(new V3(0, 1, 0), -Math.PI / 2);
+  c.slot = new Int32Array(n);
+  c.gates.forEach((g, i) => { dieWorld(c, gatePos[g * 3], gatePos[g * 3 + 1], p); p.y += 0.0025; const s = gatePos[g * 3 + 2] * DIE_MM * 0.84; sc.set(s, 1, s); mm.compose(p, q, sc); mesh.setMatrixAt(i, mm); c.slot[i] = g; });
+  mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
+  mesh.frustumCulled = false; grp.add(mesh); c.mesh = mesh;
+  // 儲存格底色：每個閂鎖／正反器依它的 Q 輸出上色。RAM 的顯示區因此會直接浮現螢幕畫面
+  const cells = []; const st = [c.node];
+  while (st.length) { const m = st.pop(); if (m.kind === 'cell' && (m.name === 'DFF' || /^BIT/.test(m.name)) && m.rect) cells.push(m); else st.push(...m.kids); }
+  if (cells.length) {
+    const tm = new THREE.InstancedMesh(gateGeo, new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true, depthWrite: false }), cells.length);
+    c.cellMm = cells.reduce((t, m) => t + Math.min(m.rect.w, m.rect.h), 0) / cells.length * DIE_MM;
+    c.storeQ = new Int32Array(cells.length);
+    cells.forEach((m, i) => { const r = m.rect; dieWorld(c, r.x + r.w / 2, r.y + r.h / 2, p); p.y += 0.0032; sc.set(r.w * DIE_MM * 0.96, 1, r.h * DIE_MM * 0.96); if (c.pkg.p.rot) sc.set(r.h * DIE_MM * 0.96, 1, r.w * DIE_MM * 0.96); mm.compose(p, new THREE.Quaternion(), sc); tm.setMatrixAt(i, mm); c.storeQ[i] = m.gates[m.name === 'DFF' ? 6 : 2]; });
+    tm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cells.length * 3), 3);
+    tm.frustumCulled = false; grp.add(tm); c.store = tm;
+  }
+  // 模組外框
+  const major = [], minor = [];
+  const walk = (m, d) => { if (m.rect && d > 0) { const arr = m.kind === 'cell' || m.kind === 'byte' ? minor : major; const r = m.rect, a = dieWorld(c, r.x, r.y), b = dieWorld(c, r.x + r.w, r.y), cc = dieWorld(c, r.x + r.w, r.y + r.h), dd = dieWorld(c, r.x, r.y + r.h); for (const [u, v] of [[a, b], [b, cc], [cc, dd], [dd, a]]) arr.push(u.x, u.y + 0.002, u.z, v.x, v.y + 0.002, v.z); } m.kids.forEach(k => walk(k, d + 1)); };
+  walk(c.node, 0);
+  const mk = (arr, color, op) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity: op, toneMapped: false })); l.frustumCulled = false; grp.add(l); return l; };
+  c.outMajor = mk(major, 0xc9a071, 0.55); c.outMinor = mk(minor, 0x8a6a4a, 0.3);
+  // 打線
+  const bw = [];
+  const edge = (u, v, ox, oz) => { const a = dieWorld(c, u, v); const b = a.clone(); if (c.pkg.p.rot) { b.x -= oz; b.z += ox; } else { b.x += ox; b.z += oz; } for (let i = 0; i < 8; i++) { const t0 = i / 8, t1 = (i + 1) / 8; const y0 = Math.sin(t0 * Math.PI) * 0.5, y1 = Math.sin(t1 * Math.PI) * 0.5; bw.push(lerp(a.x, b.x, t0), a.y + y0, lerp(a.z, b.z, t0), lerp(a.x, b.x, t1), a.y + y1, lerp(a.z, b.z, t1)); } };
+  const np = 12, span = Math.min(2.2, (c.pkg.p.wid - c.H * DIE_MM) / 2 - 0.3);
+  if (span > 0.3) for (let i = 0; i < np; i++) { const t = (i + 0.5) / np; edge(t * c.W, 0, 0, -span); edge(t * c.W, c.H, 0, span); }
+  if (bw.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(bw, 3)); const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xe8c068, transparent: true, opacity: 0.8 })); grp.add(l); c.bond = l; }
+  grp.visible = false;
+}
+function disposeChip(c) {
+  if (!c.view) return;
+  scene.remove(c.view);
+  c.view.traverse(o => { if (o.geometry && o.geometry !== gateGeo) o.geometry.dispose(); if (o.material) { if (o.material.map && o.material.map !== gateTex) o.material.map.dispose(); o.material.dispose(); } });
+  const i = pickables.indexOf(c.die); if (i >= 0) pickables.splice(i, 1);
+}
+
+/* ───────── 焦點模組的連線：寬度跟著閘的大小，放大後也看得清楚 ───────── */
+const wires = { focus: null, mesh: null, src: null, nseg: 0 };
+function buildWires(node, c) {
+  if (wires.mesh) { scene.remove(wires.mesh); wires.mesh.geometry.dispose(); wires.mesh = null; }
+  wires.focus = node; if (!node) return;
+  const gates = []; const st = [node]; while (st.length) { const m = st.pop(); gates.push(...m.gates); st.push(...m.kids); }
+  const inSet = new Set(gates);
+  const pos = [], idx = [], srcs = [];
+  const r = node.rect;
+  const A = new V3(), B = new V3();
+  const seg = (u0, v0, u1, v1, s, w) => {
+    // 兩端各延長半個線寬，轉角才會接滿
+    const du = u1 - u0, dv = v1 - v0, L = Math.hypot(du, dv) || 1, eu = du / L * w / 2, ev = dv / L * w / 2, nu = -ev, nv = eu;
+    const base = pos.length / 3;
+    for (const [u, v] of [[u0 - eu + nu, v0 - ev + nv], [u0 - eu - nu, v0 - ev - nv], [u1 + eu + nu, v1 + ev + nv], [u1 + eu - nu, v1 + ev - nv]]) { dieWorld(c, u, v, A); pos.push(A.x, A.y + 0.0012, A.z); }
+    idx.push(base, base + 2, base + 1, base + 1, base + 2, base + 3); srcs.push(s);
+  };
+  for (const g of gates) {
+    const gx = gatePos[g * 3], gy = gatePos[g * 3 + 1], pt = gatePos[g * 3 + 2], w = pt * 0.045;
+    const ins = net.A[g] === net.B[g] ? [[net.A[g], 0]] : [[net.A[g], -0.125], [net.B[g], 0.125]];
+    for (const [s, off] of ins) {
+      if (s === net.C0 || s === net.C1) continue;
+      const tx = gx - pt * 0.42, ty = gy + off * pt;
+      let sx, sy;
+      if (s >= net.nSources && gateChip[s] === c.index && (inSet.has(s) || true)) { sx = gatePos[s * 3] + gatePos[s * 3 + 2] * 0.44; sy = gatePos[s * 3 + 1]; }
+      else { sx = r.x; sy = ty; }
+      if (!inSet.has(s) && s >= net.nSources && gateChip[s] === c.index) {
+        // 從焦點外面來的訊號：只畫進入焦點框的那一段
+        const ex = clamp(sx, r.x, r.x + r.w), ey = clamp(sy, r.y, r.y + r.h); sx = ex; sy = ey;
+      }
+      const mx = tx - pt * (0.1 + 0.07 * (g % 4));
+      seg(sx, sy, mx, sy, s, w); seg(mx, sy, mx, ty, s, w); seg(mx, ty, tx, ty, s, w);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(pos.length), 3));
+  geo.setIndex(idx);
+  wires.mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, side: THREE.DoubleSide }));
+  wires.mesh.frustumCulled = false; scene.add(wires.mesh);
+  wires.src = Int32Array.from(srcs); wires.nseg = srcs.length;
+}
+
+/* ───────── 相機 ───────── */
+const HOME = () => innerWidth < 760 ? { target: new V3(-44, 4, 8), dist: 560, pol: 0.52, az: -0.1 } : { target: new V3(-2, 4, 6), dist: 372, pol: 0.66, az: -0.16 };
+const cam = { ...HOME(), goal: null };
+function applyCam() {
+  const sp = Math.sin(cam.pol), cp = Math.cos(cam.pol);
+  camera.position.set(cam.target.x + cam.dist * sp * Math.sin(cam.az), cam.target.y + cam.dist * cp, cam.target.z + cam.dist * sp * Math.cos(cam.az));
+  camera.lookAt(cam.target);
+  camera.near = Math.max(cam.dist * 0.004, 0.0004); camera.far = cam.dist * 60 + 60;
+  camera.updateProjectionMatrix();
+}
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pickPoint(cx, cy) {
+  ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+  const vis = pickables.filter(o => { let v = true; o.traverseAncestors(a => { if (!a.visible) v = false; }); return v && o.visible; });
+  const hit = ray.intersectObjects(vis, false)[0];
+  if (hit) return hit.point;
+  const t = (TOP - ray.ray.origin.y) / ray.ray.direction.y; return t > 0 ? ray.ray.origin.clone().addScaledVector(ray.ray.direction, t) : cam.target.clone();
+}
+function zoomAt(cx, cy, factor) {
+  const hit = pickPoint(cx, cy);
+  const nd = clamp(cam.dist * factor, 0.35, 700), f = nd / cam.dist;
+  cam.target.sub(hit).multiplyScalar(f).add(hit); cam.dist = nd; cam.goal = null;
+}
+function flyTo(center, size, pol) {
+  // 只算上下 UI 沒蓋住的高度
+  const avail = innerWidth < 760 ? innerHeight - $('console').offsetHeight - 170 : innerHeight - 250;
+  const fit = size / (2 * Math.tan(camera.fov * Math.PI / 360)) * innerHeight / Math.max(avail, 200) * 1.08;
+  const az = fit < 40 ? Math.round(cam.az / (Math.PI * 2)) * Math.PI * 2 : cam.az;
+  cam.goal = { target: center.clone(), dist: clamp(fit, 0.35, 700), pol: pol ?? (fit < 20 ? 0.18 : fit < 80 ? 0.38 : 0.6), az };
+}
+// 滑鼠與觸控
+const ptrs = new Map(); let dragMode = null, lastX = 0, lastY = 0, moved = 0, pinch = null;
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 1) { dragMode = (e.button === 2 || e.shiftKey || e.ctrlKey || e.altKey) ? 'rot' : 'pan'; lastX = e.clientX; lastY = e.clientY; moved = 0; }
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), ang: Math.atan2(b.y - a.y, b.x - a.x), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; dragMode = 'pinch'; }
+  cam.goal = null; canvas.classList.add('dragging'); hideTip();
+});
+canvas.addEventListener('pointermove', e => {
+  if (!ptrs.has(e.pointerId)) { hover(e.clientX, e.clientY); return; }
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (dragMode === 'pinch' && ptrs.size >= 2) {
+    const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y), ang = Math.atan2(b.y - a.y, b.x - a.x), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    zoomAt(mx, my, pinch.d / Math.max(d, 1)); cam.az += (ang - pinch.ang); panBy(mx - pinch.mx, my - pinch.my);
+    pinch = { d, ang, mx, my }; moved += 10; return;
+  }
+  const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY; moved += Math.abs(dx) + Math.abs(dy);
+  if (dragMode === 'rot') { cam.az -= dx * 0.006; cam.pol = clamp(cam.pol - dy * 0.005, 0.02, 1.32); }
+  else if (dragMode === 'pan') panBy(dx, dy);
+});
+function panBy(dx, dy) {
+  const k = cam.dist * 2 * Math.tan(camera.fov * Math.PI / 360) / innerHeight, k2 = k / Math.max(Math.cos(cam.pol), 0.35);
+  const ca = Math.cos(cam.az), sa = Math.sin(cam.az);
+  cam.target.x -= ca * dx * k + sa * dy * k2;
+  cam.target.z -= -sa * dx * k + ca * dy * k2;
+  cam.target.x = clamp(cam.target.x, -160, 160); cam.target.z = clamp(cam.target.z, -110, 110);
+}
+const endPtr = e => {
+  const wasClick = ptrs.size === 1 && moved < 6 && dragMode === 'pan';
+  ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null;
+  if (!ptrs.size) { dragMode = null; canvas.classList.remove('dragging'); if (wasClick) clickAt(e.clientX, e.clientY); }
+  else if (ptrs.size === 1) { const [p] = [...ptrs.values()]; lastX = p.x; lastY = p.y; dragMode = 'pan'; }
+};
+canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
+canvas.addEventListener('wheel', e => { e.preventDefault(); const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY; zoomAt(e.clientX, e.clientY, Math.exp(clamp(dy, -200, 200) * 0.0022)); hideTip(); }, { passive: false });
+canvas.addEventListener('dblclick', e => zoomAt(e.clientX, e.clientY, 0.35));
+
+/* ───────── 找出游標底下的閘或模組 ───────── */
+function locate(cx, cy) {
+  ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+  for (const c of Object.values(chips)) {
+    if (!c.view.visible) continue;
+    const t = (c.pkg.dieY - ray.ray.origin.y) / ray.ray.direction.y; if (!(t > 0)) continue;
+    const pt = ray.ray.origin.clone().addScaledVector(ray.ray.direction, t);
+    const [u, v] = worldDie(c, pt.x, pt.z);
+    if (u < 0 || v < 0 || u > c.W || v > c.H) continue;
+    return { c, ...findAt(c.node, u, v), u, v };
+  }
+  return null;
+}
+function findAt(node, u, v) {
+  const path = [node];
+  for (;;) {
+    const kid = node.kids.find(k => k.rect && u >= k.rect.x && u <= k.rect.x + k.rect.w && v >= k.rect.y && v <= k.rect.y + k.rect.h);
+    if (kid) { node = kid; path.push(kid); continue; }
+    let gate = -1;
+    const L = node.leaf;
+    if (L && node.ownRect) { const c = Math.floor((u - L.x) / L.pitch), r = Math.floor((v - L.y) / L.pitch); if (c >= 0 && r >= 0 && c < L.cols && r < L.rows) { const i = c * L.rows + r; if (i < L.list.length) { const g = L.list[i]; const dx = u - gatePos[g * 3], dy = v - gatePos[g * 3 + 1]; if (Math.abs(dx) < L.pitch * 0.45 && Math.abs(dy) < L.pitch * 0.45) gate = g; } } }
+    return { node, path, gate };
+  }
+}
+const pathOf = (node) => { const p = []; let n = node; while (n) { p.unshift(n); n = n.parent >= 0 ? tree[n.parent] : null; } return p; };
+const tip = $('tip');
+function hideTip() { tip.hidden = true; }
+function hover(cx, cy) {
+  if (COARSE) return;
+  const L = locate(cx, cy);
+  if (!L || L.gate < 0 || gatePos[L.gate * 3 + 2] * DIE_MM * innerHeight / (cam.dist * 2 * Math.tan(camera.fov * Math.PI / 360)) < 7) { hideTip(); return; }
+  showGateTip(L, cx, cy);
+}
+function showGateTip(L, cx, cy) {
+  const g = L.gate, a = net.A[g], b = net.B[g], v = sim.v;
+  const name = (s) => s === net.C0 ? '0' : s === net.C1 ? '1' : s < net.nSources ? Object.keys(net.inputs).find(k => net.inputs[k] === s) : '#' + s;
+  const fo = sim.foS[g + 1] - sim.foS[g];
+  const labelPath = L.path.slice(1).map(n => n.label).join(' / ');
+  tip.innerHTML = `<b>NAND</b> <code>#${g}</code>　${zhOf(L.node) || ''}<div class="path">${L.path[0].label} / ${labelPath}</div>` +
+    `<div class="io"><span><i class="${v[a] ? 'on' : ''}"></i>A ${name(a)}</span>${a !== b ? `<span><i class="${v[b] ? 'on' : ''}"></i>B ${name(b)}</span>` : '<span>（兩輸入接在一起＝NOT）</span>'}<span><i class="${v[g] ? 'on' : ''}"></i>輸出 → ${fo} 個閘</span></div>`;
+  tip.hidden = false;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.transform = `translate(${Math.min(cx + 16, innerWidth - w - 8)}px, ${Math.min(cy + 16, innerHeight - h - 8)}px)`;
+}
+function clickAt(cx, cy) {
+  // 點按鍵帽也能按
+  const hit = pickPoint(cx, cy);
+  for (const [k, cap] of Object.entries(keycaps)) if (cap.position.distanceTo(hit) < 6.5) { pulseKey(k); return; }
+  const L = locate(cx, cy);
+  if (L) {
+    if (COARSE && L.gate >= 0) { showGateTip(L, cx, cy); setTimeout(hideTip, 2600); }
+    // 飛到比目前視野小一層的模組
+    const viewSize = cam.dist * 2 * Math.tan(camera.fov * Math.PI / 360);
+    const want = L.path.find(n => n.rect && n.rect.w * DIE_MM < viewSize * 0.55 && n !== L.path[0]) || L.path[L.path.length - 1];
+    focusNode(want, L.c);
+    return;
+  }
+  for (const c of Object.values(chips)) { const p = c.pkg.p; const l = p.rot ? p.wid : p.len, w = p.rot ? p.len : p.wid; if (Math.abs(hit.x - p.x) < l / 2 + 1 && Math.abs(hit.z - p.z) < w / 2 + 1) { focusNode(c.node, c); return; } }
+  if (Math.abs(hit.x - DISP.x) < 46 && Math.abs(hit.z - DISP.z) < 46) { flyTo(new V3(DISP.x, TOP + 5, DISP.z), 100, 0.3); }
+}
+function focusNode(node, c) {
+  c = c || Object.values(chips).find(ch => ch.gates.length && pathOf(node)[1] === ch.node);
+  if (!c || !node.rect) return;
+  const r = node.rect, ctr = dieWorld(c, r.x + r.w / 2, r.y + r.h / 2);
+  flyTo(ctr, Math.max(r.w, r.h) * DIE_MM * 1.08);
+}
+function nodeByPath(path) {
+  const parts = path.split('/'); let n = tree[0];
+  for (const p of parts) { const k = n.kids.find(k => k.label === p || k.name === p); if (!k) return null; n = k; if (k.kind === 'cell' || k.kind === 'reg') { /* first matching */ } }
+  return n;
+}
+function firstOf(path) { // 'CPU/ALU/ADDER/FA' → 第一個 FA
+  const parts = path.split('/'); let n = tree[0];
+  for (const p of parts) { const k = n.kids.find(k => k.label === p || k.name === p || k.label === p + ' 0'); if (!k) return n; n = k; }
+  return n;
+}
+
+/* ───────── 標籤 ───────── */
+const labelLayer = $('labels'); const labelPool = [];
+function getLabel(i) { let e = labelPool[i]; if (!e) { e = document.createElement('div'); e.className = 'lbl'; labelLayer.appendChild(e); labelPool[i] = e; } return e; }
+const proj = new V3();
+function toScreen(v) { proj.copy(v).project(camera); return [(proj.x + 1) / 2 * innerWidth, (1 - proj.y) / 2 * innerHeight, proj.z]; }
+function updateLabels() {
+  let n = 0;
+  const vs = cam.dist * 2 * Math.tan(camera.fov * Math.PI / 360); // 視野高度（mm）
+  const pxPerMm = innerHeight / vs;
+  // 晶片標籤（遠看時）
+  for (const c of Object.values(chips)) {
+    const p = c.pkg.p;
+    if (cam.dist < 60 || cam.dist > 520) continue;
+    const [x, y, z] = toScreen(new V3(p.rot ? p.x + p.wid / 2 + 3 : p.x - p.len / 2, TOP + 4, p.rot ? p.z - p.len / 2 : p.z - p.wid / 2 - 2.5));
+    if (z > 1) continue;
+    const e = getLabel(n++); e.className = 'lbl chip'; e.innerHTML = `${p.des} ${c.node.name === 'CLOCK' ? 'CLK' : c.node.name}<small>${fmt(c.gates.length)} 個 NAND</small>`;
+    e.style.transform = `translate(${x | 0}px, ${(y - 30) | 0}px)`; e.style.opacity = 1;
+  }
+  // 模組標籤（晶粒打開時）
+  const cand = [];
+  for (const c of Object.values(chips)) {
+    if (!c.view.visible || c.open < 0.3) continue;
+    const walk = (m, d) => {
+      if (!m.rect) return;
+      const wpx = m.rect.w * DIE_MM * pxPerMm, hpx = m.rect.h * DIE_MM * pxPerMm;
+      if (wpx < 36 || hpx < 18) return;
+      if (d > 0 && wpx < 1400) cand.push([wpx, m, c, d]);
+      if (wpx > 120) m.kids.forEach(k => walk(k, d + 1));
+    };
+    walk(c.node, 0);
+  }
+  cand.sort((a, b) => b[0] - a[0]);
+  let shown = 0;
+  for (const [wpx, m, c] of cand) {
+    if (shown > 90) break;
+    if (c.store && c.store.visible && c.store.material.opacity > 0.4 && (/^VIDEO/.test(m.name) || m.kind === 'byte' || m.kind === 'cell')) continue;
+    const [x, y, z] = toScreen(dieWorld(c, m.rect.x, m.rect.y));
+    if (z > 1 || x < -200 || y < -40 || x > innerWidth + 10 || y > innerHeight + 10) continue;
+    const e = getLabel(n++); shown++;
+    e.className = 'lbl mod' + (m.kind === 'cell' ? ' cell' : '');
+    e.textContent = m.label;
+    const s = clamp(wpx / 220, 0.75, 1.25);
+    e.style.transform = `translate(${x | 0}px, ${y | 0}px) scale(${s.toFixed(2)})`; e.style.opacity = clamp((wpx - 36) / 40, 0, 1).toFixed(2);
+  }
+  for (let i = n; i < labelPool.length; i++) if (labelPool[i].style.opacity !== '0') labelPool[i].style.opacity = 0;
+}
+
+/* ───────── 麵包屑 ───────── */
+const crumbs = $('crumbs'); let crumbKey = '';
+function currentPath() {
+  const vs = cam.dist * 2 * Math.tan(camera.fov * Math.PI / 360);
+  for (const c of Object.values(chips)) {
+    const p = c.pkg.p, l = p.rot ? p.wid : p.len, w = p.rot ? p.len : p.wid;
+    if (Math.abs(cam.target.x - p.x) > l / 2 + 2 || Math.abs(cam.target.z - p.z) > w / 2 + 2 || cam.dist > 140) continue;
+    const [u, v] = worldDie(c, cam.target.x, cam.target.z);
+    if (u < 0 || v < 0 || u > c.W || v > c.H || c.open < 0.5) return [tree[0], c.node];
+    const f = findAt(c.node, u, v);
+    const path = [tree[0], ...f.path.filter(n => !n.rect || n === c.node || n.rect.w * DIE_MM > vs * 0.12)];
+    return f.gate >= 0 && vs < 0.35 ? [...path, { gate: f.gate }] : path;
+  }
+  return [tree[0]];
+}
+function updateCrumbs() {
+  const path = currentPath();
+  const k = path.map(n => n.gate ?? n.id).join('/'); if (k === crumbKey) return; crumbKey = k;
+  crumbs.innerHTML = '';
+  path.forEach((n, i) => {
+    if (i) { const s = document.createElement('span'); s.className = 'sep'; s.textContent = '/'; crumbs.appendChild(s); }
+    const b = document.createElement('button');
+    if (n.gate !== undefined) { b.textContent = 'NAND #' + n.gate; }
+    else if (i === 0) b.textContent = '主機板';
+    else b.textContent = (i === 1 && packages[n.name] ? packages[n.name].p.des + ' ' : '') + (n.name === 'CLOCK' ? 'CLK' : n.label);
+    if (i === path.length - 1) b.setAttribute('aria-current', 'location');
+    b.onclick = () => { if (i === 0) home(); else if (n.gate === undefined) focusNode(n); };
+    crumbs.appendChild(b);
+  });
+  if (path.length === 1) {
+    const j = document.createElement('span'); j.className = 'jumps'; j.innerHTML = '<span class="zh">跳到</span>';
+    [['CPU', 'CPU'], ['ALU', 'CPU/ALU'], ['全加器', 'CPU/ALU/ADDER/FA 3'], ['RAM 裡的螢幕', 'RAM/VIDEO 80', 'video'], ['ROM', 'ROM']].forEach(([t, where, kind]) => {
+      const b = document.createElement('button'); b.textContent = t;
+      b.onclick = () => { if (kind === 'video') { const c = chips.RAM, a = firstOf('RAM/VIDEO 80').rect, z = firstOf('RAM/VIDEO F0').rect; flyTo(dieWorld(c, a.x + a.w / 2, (a.y + z.y + z.h) / 2), (z.y + z.h - a.y) * DIE_MM * 1.15); } else focusNode(firstOf(where)); };
+      j.appendChild(b);
+    });
+    crumbs.appendChild(j); return;
+  }
+  const last = path[path.length - 1], zh = last.gate !== undefined ? '2 輸入 NAND，整台機器唯一的零件' : i18nZh(last);
+  if (zh) { const s = document.createElement('span'); s.className = 'zh'; s.textContent = zh; crumbs.appendChild(s); }
+}
+const i18nZh = (n) => n.id === 0 ? '滾輪或雙指縮放，穿過晶片蓋一路看到閘' : zhOf(n);
+function home() { cam.goal = HOME(); }
+
+/* ───────── 模擬迴圈 ───────── */
+const SPEEDS = [
+  { name: '全速', full: true },
+  { name: '60 Hz', hz: 60, wps: Infinity },
+  { name: '4 Hz', hz: 4, wps: 420 },
+  { name: '0.5 Hz', hz: 0.5, wps: 70 },
+];
+let speed = 0, paused = false, waveAcc = 0, edgeAcc = 0, budget = COARSE ? 5 : 7;
+const live = { on: false, ref: null, checked: 0, bad: 0 };
+function setTickFromClock() { M.tick = Math.floor(performance.now() / (1000 / 60)) & 1; }
+function runFull(ms) {
+  const t0 = performance.now(); M.sync();
+  while (performance.now() - t0 < ms) {
+    for (let i = 0; i < 24; i++) {
+      setTickFromClock();
+      if (live.on) liveStep(); else M.runInstr(1);
+    }
+  }
+}
+function liveStep() {
+  const w = asm.rom[M.pc], r = live.ref;
+  M.runInstr(1); r.step(() => M.reg(w >> 10 & 3)); live.checked++;
+  const bad = M.pc !== r.pc || [0, 1, 2, 3].some(i => M.reg(i) !== r.r[i]) || S.flags.some((f, k) => sim.v[f] !== [r.z, r.c, r.n][k]);
+  if (bad) { live.bad++; syncRef(); }
+}
+function syncRef() {
+  const r = live.ref || (live.ref = new K.RefCPU(asm.rom)); r.rom = asm.rom;
+  r.pc = M.pc; r.r = [0, 1, 2, 3].map(i => M.reg(i)); [r.z, r.c, r.n] = S.flags.map(f => sim.v[f]);
+  for (let a = 0; a < 256; a++) r.ram[a] = M.ram(a); r.stack = S.stack.map(e => sim.bus(e)); r.leds = sim.bus(S.leds); r.snd = sim.bus(S.sound);
+}
+let pendingEdge = false;
+// 慢速時：時鐘邊緣照設定的頻率來；按鍵或 tick 改變時先讓那一波訊號傳完，再補上這次邊緣
+function edgeNow() { let guard = 0; while (guard++ < 4) { if (M.stepWave() !== 'wave') return true; if (sim.busy) return false; } return false; }
+function simulate(dt) {
+  if (paused) return;
+  const sp = SPEEDS[speed];
+  if (sp.full) { runFull(budget); return; }
+  setTickFromClock();
+  if (sp.wps === Infinity) { // 60 Hz：每個邊緣立刻穩定
+    edgeAcc += dt * sp.hz * 2;
+    let n = 0; while (edgeAcc >= 1 && n < 8) { edgeAcc--; n++; sim.settle(); for (let k = 0; k < 4 && !edgeNow(); k++) sim.settle(); sim.settle(); }
+    return;
+  }
+  edgeAcc += dt * sp.hz * 2;
+  if (edgeAcc >= 1) { edgeAcc = Math.min(edgeAcc - 1, 1); pendingEdge = true; }
+  if (sim.busy) { waveAcc += dt * sp.wps; let n = 0; while (waveAcc >= 1 && sim.busy && n < 400) { M.stepWave(); waveAcc--; n++; } if (!sim.busy) waveAcc = 0; return; }
+  if (pendingEdge && edgeNow()) pendingEdge = false;
+}
+function stepWave() { setTickFromClock(); M.stepWave(); }
+function stepClock() { setTickFromClock(); sim.settle(); let edges = 0, guard = 0; while (edges < 2 && guard++ < 8) { if (M.stepWave() !== 'wave') edges++; sim.settle(); } }
+function stepInstr() { setTickFromClock(); M.sync(); M.runInstr(1); }
+
+/* ───────── 顏色 ───────── */
+const cLow = new THREE.Color(0x5a3a22), cHigh = new THREE.Color(0xffae42), cFlash = new THREE.Color(0xfff1d8);
+const heatRGB = [0.62, 0.2, 0.045], lowRGB = [cLow.r, cLow.g, cLow.b], hiRGB = [cHigh.r, cHigh.g, cHigh.b], flRGB = [cFlash.r, cFlash.g, cFlash.b];
+let wpf = 1; // 每幀平均 wave 數，用來讓餘暉在全速與慢速下都看得見
+function colorGates(c) {
+  const arr = c.mesh.instanceColor.array, v = sim.v, last = sim.last, w = sim.wave, slot = c.slot;
+  const [span, amt] = flashParams(), full = SPEEDS[speed].full && !paused;
+  for (let i = 0, n = slot.length; i < n; i++) {
+    const g = slot[i], on = v[g], age = w - last[g];
+    let f = age < span ? 1 - age / span : 0; f = f * f * amt;
+    const b = on ? hiRGB : lowRGB, o = i * 3, fl = full ? heatRGB : flRGB;
+    arr[o] = b[0] + (fl[0] - b[0]) * f; arr[o + 1] = b[1] + (fl[1] - b[1]) * f; arr[o + 2] = b[2] + (fl[2] - b[2]) * f;
+  }
+  c.mesh.instanceColor.needsUpdate = true;
+  if (c.store) {
+    const a2 = c.store.instanceColor.array, q = c.storeQ;
+    for (let i = 0; i < q.length; i++) { const on = v[q[i]], o = i * 3; a2[o] = on ? 1.0 : 0.035; a2[o + 1] = on ? 0.2 : 0.022; a2[o + 2] = on ? 0.07 : 0.015; }
+    c.store.instanceColor.needsUpdate = true;
+  }
+}
+// 慢速時每個閘延遲都看得清楚；全速時只留一點活動的痕跡，否則跟著時鐘翻轉的閘會一直亮
+function flashParams() { return SPEEDS[speed].full && !paused ? [Math.max(2, wpf * 0.5), 0.55] : [Math.max(2.5, Math.min(wpf, 60) * 1.6), 1]; }
+function colorWires() {
+  if (!wires.mesh) return;
+  const col = wires.mesh.geometry.attributes.color.array, v = sim.v, last = sim.last, w = sim.wave, [span, amt] = flashParams();
+  for (let i = 0; i < wires.nseg; i++) {
+    const s = wires.src[i], on = v[s], age = w - last[s]; let f = age < span ? 1 - age / span : 0; f *= f * amt;
+    const r = on ? 1.0 : 0.3, g = on ? 0.6 : 0.17, b = on ? 0.18 : 0.08;
+    const R = r + (1.1 - r) * f, G = g + (0.95 - g) * f, B = b + (0.8 - b) * f;
+    for (let k = 0, o = i * 12; k < 4; k++, o += 3) { col[o] = R; col[o + 1] = G; col[o + 2] = B; }
+  }
+  wires.mesh.geometry.attributes.color.needsUpdate = true;
+}
+const tmpC = new THREE.Color();
+let vram = new Uint8Array(1024), vramGlow = new Float32Array(1024);
+function readVram() {
+  const v = sim.v;
+  for (let a = 0; a < 128; a++) { const q = S.ramQ[0x80 + a]; for (let b = 0; b < 8; b++) { const i = a * 8 + (7 - b); const on = v[q[b]]; if (on && !vram[i]) vramGlow[i] = 1; vram[i] = on; } }
+}
+function colorMatrix(dt) {
+  for (let i = 0; i < 1024; i++) {
+    vramGlow[i] = Math.max(0, vramGlow[i] - dt * 6);
+    if (vram[i]) tmpC.copy(ledOn).lerp(ledOnHi, vramGlow[i] * 0.6); else tmpC.copy(ledOff);
+    matrix.setColorAt(i, tmpC);
+  }
+  matrix.instanceColor.needsUpdate = true;
+}
+function colorBus() {
+  const col = busLines.geometry.attributes.color.array, v = sim.v;
+  for (let i = 0; i < busSig.length; i++) { const on = v[busSig[i]()]; const r = on ? 1 : 0.28, g = on ? 0.6 : 0.16, b = on ? 0.18 : 0.08; const o = i * 6; col[o] = col[o + 3] = r; col[o + 1] = col[o + 4] = g; col[o + 2] = col[o + 5] = b; }
+  busLines.geometry.attributes.color.needsUpdate = true;
+}
+
+/* ───────── 2D 螢幕 ───────── */
+const scr = $('screen'), sx = scr.getContext('2d');
+function drawScreen() {
+  const W = scr.width, p = W / 32;
+  sx.fillStyle = '#0a0706'; sx.fillRect(0, 0, W, W);
+  for (let i = 0; i < 1024; i++) {
+    const x = i & 31, y = i >> 5;
+    sx.fillStyle = vram[i] ? (vramGlow[i] > 0.3 ? '#ff9a78' : '#ff4b2b') : '#2a0d08';
+    sx.fillRect(x * p + p * 0.12, y * p + p * 0.12, p * 0.76, p * 0.76);
+  }
+}
+function sizeScreen() { const r = scr.getBoundingClientRect(); const d = Math.min(devicePixelRatio, 2); scr.width = Math.round(r.width * d / 32) * 32 || 256; scr.height = scr.width; }
+
+/* ───────── 按鍵 ───────── */
+const keymap = { ArrowUp: 'UP', KeyW: 'UP', ArrowDown: 'DOWN', KeyS: 'DOWN', ArrowLeft: 'LEFT', KeyA: 'LEFT', ArrowRight: 'RIGHT', KeyD: 'RIGHT', KeyZ: 'A', Space: 'A', Enter: 'A', KeyJ: 'A', KeyX: 'B', Escape: 'B', KeyK: 'B' };
+const held = {};
+function setKey(k, on) { held[k] = on; M.keys[k] = on ? 1 : 0; document.querySelectorAll(`[data-key="${k}"]`).forEach(b => b.classList.toggle('on', !!on)); }
+function pulseKey(k) { setKey(k, 1); setTimeout(() => setKey(k, 0), 160); audioInit(); }
+const typing = () => { const a = document.activeElement; return a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT'); };
+addEventListener('keydown', e => {
+  if (typing() || e.metaKey || e.ctrlKey) return;
+  const k = keymap[e.code];
+  if (k) { setKey(k, 1); e.preventDefault(); audioInit(); return; }
+  if (e.code === 'KeyP') togglePause();
+  else if (e.code === 'Period') { pause(true); stepWave(); }
+  else if (e.code === 'Comma') { pause(true); stepClock(); }
+  else if (e.code === 'Slash') { pause(true); stepInstr(); }
+  else if (e.code === 'KeyM') toggleMute();
+  else if (e.code === 'KeyH') home();
+});
+addEventListener('keyup', e => { const k = keymap[e.code]; if (k) setKey(k, 0); });
+addEventListener('blur', () => Object.keys(held).forEach(k => setKey(k, 0)));
+document.querySelectorAll('[data-key]').forEach(b => {
+  const k = b.dataset.key;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); setKey(k, 1); audioInit(); });
+  const up = () => setKey(k, 0); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
+});
+
+/* ───────── 聲音 ───────── */
+let actx = null, osc = null, gain = null, muted = true;
+function audioInit() { if (actx) return; try { actx = new AudioContext(); osc = actx.createOscillator(); osc.type = 'square'; gain = actx.createGain(); gain.gain.value = 0; const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400; osc.connect(lp).connect(gain).connect(actx.destination); osc.start(); muted = false; $('btnMute').classList.add('on'); $('btnMute').setAttribute('aria-label', '關閉聲音'); } catch (e) { actx = null; } }
+function toggleMute() { if (!actx) { audioInit(); return; } muted = !muted; $('btnMute').classList.toggle('on', !muted); $('btnMute').setAttribute('aria-label', muted ? '開啟聲音' : '關閉聲音'); }
+function updateSound() {
+  if (!actx) return;
+  const v = sim.bus(S.sound), t = actx.currentTime;
+  if (v && !muted && !paused) { osc.frequency.setTargetAtTime(110 * Math.pow(2, v / 64), t, 0.005); gain.gain.setTargetAtTime(0.045, t, 0.004); }
+  else gain.gain.setTargetAtTime(0, t, 0.01);
+}
+
+/* ───────── 時鐘列 ───────── */
+function pause(p) { paused = p; $('btnRun').classList.toggle('paused', p); $('btnRun').setAttribute('aria-label', p ? '繼續' : '暫停'); }
+function togglePause() { pause(!paused); }
+$('btnRun').onclick = togglePause;
+$('btnWave').onclick = () => { pause(true); stepWave(); };
+$('btnClock').onclick = () => { pause(true); stepClock(); };
+$('btnInstr').onclick = () => { pause(true); stepInstr(); };
+$('btnMute').onclick = toggleMute;
+const speedBtns = [...document.querySelectorAll('#speeds button')];
+const speedInk = document.createElement('span'); speedInk.className = 'ink'; $('speeds').appendChild(speedInk);
+function setSpeed(i) {
+  speed = i; speedBtns.forEach((b, k) => b.setAttribute('aria-checked', k === i));
+  const b = speedBtns[i]; speedInk.style.width = b.offsetWidth + 'px'; speedInk.style.transform = `translateX(${b.offsetLeft}px)`;
+  if (SPEEDS[i].full) M.sync();
+  waveAcc = edgeAcc = 0; resetMeters();
+}
+speedBtns.forEach((b, i) => b.onclick = () => { setSpeed(i); pendingEdge = false; if (paused) pause(false); });
+$('btnClose').onclick = () => { $('panel').classList.remove('open'); $('btnPanel').setAttribute('aria-expanded', false); $('btnPanel').focus(); };
+$('btnPanel').onclick = () => { const o = $('panel').classList.toggle('open'); $('btnPanel').setAttribute('aria-expanded', o); };
+
+/* ───────── 面板 ───────── */
+const tabs = [...document.querySelectorAll('.tabs [role=tab]')], tabInk = document.querySelector('.tab-ink');
+let curTab = 'state';
+function setTab(t) {
+  curTab = t; tabs.forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+  document.querySelectorAll('.tab').forEach(s => s.hidden = s.id !== 'tab-' + t);
+  const b = tabs.find(b => b.dataset.tab === t); tabInk.style.width = b.offsetWidth - 20 + 'px'; tabInk.style.transform = `translateX(${b.offsetLeft + 10}px)`;
+  if (t === 'code') { lastLine = -1; }
+}
+tabs.forEach(b => b.onclick = () => setTab(b.dataset.tab));
+
+const bitsHTML = (v, n, gapAt = 4) => { let s = ''; for (let i = n - 1; i >= 0; i--) s += `<i class="${v >> i & 1 ? 'on' : ''}${i === gapAt - 1 && n > gapAt ? ' gap' : ''}"></i>`; return s; };
+const regGrid = $('regGrid');
+const REG_ROWS = [['PC', 10, () => M.pc, v => hex(v, 3)], ['IR', 16, () => sim.bus(S.ir), v => hex(v, 4)], ['R0', 8, () => M.reg(0)], ['R1', 8, () => M.reg(1)], ['R2', 8, () => M.reg(2)], ['R3', 8, () => M.reg(3)], ['Z C N', 3, () => sim.v[S.flags[0]] << 2 | sim.v[S.flags[1]] << 1 | sim.v[S.flags[2]], v => ['Z', 'C', 'N'].filter((_, i) => v >> (2 - i) & 1).join(' ') || '—']];
+regGrid.innerHTML = REG_ROWS.map(([n], i) => `<span class="n">${n}</span><span class="bits" id="rb${i}"></span><span class="v" id="rv${i}"></span>`).join('');
+const stackList = $('stackList'); stackList.innerHTML = Array.from({ length: 8 }, (_, i) => `<li id="st${i}">—</li>`).join('');
+let lastLine = -1;
+function updateState() {
+  const st = M.state;
+  $('phFetch').classList.toggle('on', !st); $('phExec').classList.toggle('on', !!st);
+  $('clkBit').classList.toggle('on', !!sim.v[net.inputs.CLK]);
+  REG_ROWS.forEach(([n, w, get, f], i) => { const v = get(); $('rb' + i).innerHTML = bitsHTML(v, w, w === 3 ? 0 : 4); $('rv' + i).innerHTML = f ? f(v) : `${hex(v)}<i>${v}</i>`; });
+  const ir = sim.bus(S.ir); $('disasm').textContent = K.disasm(ir);
+  const ln = asm.srcMap[M.pc]; $('srcLine').textContent = ln >= 0 ? 'PC → 第 ' + (ln + 1) + ' 行　' + src.split('\n')[ln].trim() : 'PC → ' + hex(M.pc, 3);
+  const depth = S.stack.map(e => sim.bus(e));
+  depth.forEach((v, i) => { const e = $('st' + i); e.textContent = hex(v, 3); });
+  $('ledBits').innerHTML = bitsHTML(sim.bus(S.leds), 8); $('sndVal').textContent = sim.bus(S.sound); $('rngVal').textContent = hex(sim.bus(S.lfsr)); $('tickVal').textContent = sim.bus(S.ticks);
+  $('metaCount').textContent = sim.metastable | 0;
+}
+function refreshFacts() {
+  const per = {}; for (const [k, c] of Object.entries(chips)) per[k] = c.gates.length;
+  $('facts').innerHTML = [['NAND 閘總數', fmt(net.nGates)], ['CPU', fmt(per.CPU || 0)], ['RAM 256 bytes', fmt(per.RAM || 0)], ['ROM（隨程式變動）', fmt(per.ROM || 0)], ['I/O ＋ 時鐘', fmt((per.IO || 0) + (per.CLOCK || 0))], ['程式', `${asm.codeWords} 字 ＋ ${asm.tableBytes} bytes 表格`], ['開機亂數種子', SEED]].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+  $('tagline').textContent = `從一個 NAND 閘，蓋到會玩貪食蛇的電腦：${fmt(net.nGates)} 個閘`;
+}
+
+/* ───────── 程式碼 ───────── */
+const codeView = $('codeView'), codeEdit = $('codeEdit');
+const escH = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function renderCode() {
+  codeView.innerHTML = src.split('\n').map((line, i) => {
+    const ci = line.indexOf(';'); const code = ci >= 0 ? line.slice(0, ci) : line, com = ci >= 0 ? line.slice(ci) : '';
+    let h = escH(code).replace(/^(\s*)([A-Za-z_][\w]*:)/, '$1<span class="lb">$2</span>').replace(/^(\s*(?:<span class="lb">[^<]*<\/span>)?\s*)([A-Za-z]+|\.[a-z]+)\b/, (m, a, b) => a + `<span class="${b[0] === '.' ? 'd' : 'op'}">${b}</span>`);
+    return `<span class="l" id="L${i}">${h}${com ? `<span class="c">${escH(com)}</span>` : ''}</span>`;
+  }).join('');
+  lastLine = -1;
+}
+function updateCodeLine() {
+  const ln = asm.srcMap[M.pc];
+  if (ln === lastLine) return;
+  const prev = codeView.querySelector('.l.cur'); if (prev) prev.classList.remove('cur');
+  const el = $('L' + ln); if (el) { el.classList.add('cur'); const box = codeView.parentElement; const top = el.offsetTop - box.offsetTop; if (top < box.scrollTop + 40 || top > box.scrollTop + box.clientHeight - 60) box.scrollTop = top - box.clientHeight * 0.4; }
+  lastLine = ln;
+}
+$('btnEdit').onclick = () => { codeEdit.value = src; codeView.hidden = true; codeEdit.hidden = false; $('btnEdit').hidden = true; $('btnBurn').hidden = false; $('btnRevert').hidden = false; codeEdit.focus(); };
+$('btnRevert').onclick = () => { codeEdit.value = ORIGINAL_SRC; };
+$('btnBurn').onclick = () => {
+  const t0 = performance.now();
+  const a = K.assemble(codeEdit.value);
+  if (a.errors.length) { $('asmErrors').textContent = a.errors.slice(0, 8).map(e => `第 ${e.ln + 1} 行：${e.msg}`).join('\n'); $('asmStatus').textContent = ''; return; }
+  $('asmErrors').textContent = '';
+  const was = paused; buildMachine(codeEdit.value, SEED); live.ref = null; if (live.on) syncRef();
+  codeView.hidden = false; codeEdit.hidden = true; $('btnEdit').hidden = false; $('btnBurn').hidden = true; $('btnRevert').hidden = true;
+  renderCode(); pause(was);
+  $('asmStatus').textContent = `已燒錄：${asm.codeWords} 字、ROM ${fmt(chips.ROM.gates.length)} 個閘，用了 ${Math.round(performance.now() - t0)} ms`;
+};
+const ISA = [
+  ['0', 'NOP', '什麼都不做'], ['1', 'ADD SUB ADC SBC AND OR XOR MOV CMP TST rd, rs ／ SHL SHR RLC RRC rd', '暫存器之間運算，CMP、TST 只改旗標'],
+  ['2', 'ADD SUB AND OR rd, #', '和 8 位元立即值運算'], ['3', 'XOR CMP TST rd, # ／ LDI rd, #', '同上；LDI 就是 MOV 立即值'],
+  ['4', 'LD rd, [addr]', '從 RAM 讀一個 byte'], ['5', 'ST rd, [addr]', '寫進 RAM；寫到 0x80 以上就是點亮螢幕'],
+  ['6', 'LD rd, [rs+#]', '變址讀取（位址由 ALU 相加）'], ['7', 'ST rd, [rs+#]', '變址寫入'],
+  ['8', 'JMP JZ JNZ JC addr', '10 位元跳躍目標，條件看 Z、C'], ['9', 'JNC JN JNN addr', '條件看 C、N'],
+  ['A', 'CALL addr', '把 PC+1 推進硬體返回堆疊'], ['B', 'RET', '從返回堆疊拉回 PC'],
+  ['C', 'OUT port, rd', '0 聲音、1 LED'], ['D', 'IN rd, port', '0 按鍵、1 亂數、2 計時'],
+  ['E', 'LDC rd, [rs+#]', '讀 ROM 0x300 起的表格（字型、字串）'], ['F', 'HLT', '停在原地'],
+];
+$('isaTable').innerHTML = ISA.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+
+/* ───────── 推導 ───────── */
+const proofList = $('proofList');
+const steps = K.proofSteps();
+proofList.innerHTML = steps.map((s, i) => `<li data-i="${i}"><span class="mark" id="pm${i}"></span><span class="t"><b>${s.name}</b>${s.zh}</span><span class="g" id="pg${i}"></span><span class="f">${s.from}</span><span class="r" id="pr${i}">排隊驗證中…</span></li>`).join('');
+proofList.querySelectorAll('li').forEach(li => li.onclick = () => { const s = steps[+li.dataset.i]; const n = firstOf(s.where || 'CPU/ALU/ADDER/FA'); if (n) focusNode(n); if (innerWidth <= 980) $('panel').classList.remove('open'); });
+function runProofs(i = 0) {
+  if (i >= steps.length) return;
+  const s = steps[i];
+  const go = () => {
+    const t0 = performance.now(); let r;
+    try { r = s.run(); } catch (e) { r = { gates: 0, cases: 0, fails: 1 }; console.warn(e); }
+    const ok = !r.fails;
+    $('pm' + i).className = 'mark ' + (ok ? 'ok' : 'bad');
+    $('pg' + i).textContent = s.id === 'cpu' ? fmt(r.gates) + ' 閘' : r.gates + ' 閘';
+    $('pr' + i).className = 'r' + (ok ? ' ok' : '');
+    $('pr' + i).textContent = s.id === 'cpu' ? `隨機程式 ${fmt(r.cases)} 條指令：暫存器、旗標、堆疊、RAM ${r.fails ? r.fails + ' 處不符' : '全部一致'}` : `${fmt(r.cases)} 組輸入全部驗證${ok ? '通過' : '，' + r.fails + ' 組失敗'} · ${Math.max(1, Math.round(performance.now() - t0))} ms`;
+    if (s.id === 'cpu') $('fuzzNote').innerHTML = `兩支隨機程式、共 <b>${fmt(r.cases)}</b> 條指令，每條執行完都比對 PC、四個暫存器、三個旗標與八層返回堆疊，寫入指令再比整片 256 bytes RAM：<b>${r.fails ? r.fails + ' 處不符' : '0 處不符'}</b>。這台隨機機器的 ROM 被隨機內容填滿，所以有 ${fmt(r.gates)} 個閘。`;
+    setTimeout(() => runProofs(i + 1), 30);
+  };
+  (window.requestIdleCallback || setTimeout)(go, { timeout: 600 });
+}
+$('softList').innerHTML = '';
+function renderSoft() {
+  const syscalls = ['PLOT', 'ERASE', 'TEST', 'PUTC', 'PUTS', 'PUTNUM', 'CLS', 'WAIT', 'KEYS', 'RAND', 'BEEP'];
+  $('softList').innerHTML = [
+    ['ASSEMBLER', '組譯器', `兩趟組譯：標籤、常數、表格區；${asm.codeWords} 個指令字，表格 ${asm.tableBytes} bytes`, 'ROM/BIT PLANES'],
+    ['GATE OS', '作業系統', `開機時用閘做的 RAM 自我測試 128 bytes；${syscalls.length} 個系統呼叫固定在 ROM 0x001–0x00B：${syscalls.join('、')}`, 'ROM/WORD LINES'],
+    ['SHELL', '殼層', '上下選程式、A 執行，程式 RET 就回到選單', 'ROM'],
+    ['SNAKE', '貪食蛇', '40 格環狀佇列記蛇身，撞自己靠讀螢幕記憶體判斷；分數越高步伐越快', 'RAM/VIDEO 80'],
+    ['DRAW', '描圖板', '方向鍵畫線，A 提筆／落筆，B 回選單', 'RAM/VIDEO C0'],
+  ].map(([n, zh, f, where]) => `<li data-where="${where}"><span class="mark ok"></span><span class="t"><b>${n}</b>${zh}</span><span class="g"></span><span class="f">${f}</span></li>`).join('');
+  $('softList').querySelectorAll('li').forEach(li => li.onclick = () => { const n = firstOf(li.dataset.where); if (n) focusNode(n); });
+}
+
+/* ───────── 驗證 ───────── */
+$('chkLive').onchange = e => { live.on = e.target.checked; if (live.on) { M.sync(); syncRef(); live.checked = 0; live.bad = 0; } };
+function updateLive() {
+  $('liveStats').innerHTML = [['已比對指令', fmt(live.checked)], ['不符', live.bad], ['狀態', live.on ? (SPEEDS[speed].full ? '比對中' : '只在全速時比對') : '關閉']].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+}
+
+/* ───────── 字標：用機器自己的字型 ───────── */
+function drawWordmark() {
+  const glyph = (ch) => { const i = K.FONT_CHARS.indexOf(ch); const b = [0, 1, 2].map(k => asm.rom[0x300 + asm.syms.font + i * 3 + k] & 255); return [b[0] >> 4, b[0] & 15, b[1] >> 4, b[1] & 15, b[2] >> 4]; };
+  let s = '', x = 0;
+  for (const ch of 'NAND-8') { glyph(ch).forEach((row, y) => { for (let c = 0; c < 3; c++) if (row >> (3 - c) & 1) s += `<rect x="${x + c}" y="${y}" width="0.86" height="0.86"/>`; }); x += 4; }
+  const wm = $('wordmark'); wm.setAttribute('viewBox', `0 0 ${x - 1} 5`); wm.style.aspectRatio = `${x - 1}/5`; wm.innerHTML = s;
+}
+
+/* ───────── 版面 ───────── */
+// 右側面板與左下遊戲機蓋住的部分不算畫面中心：用 view offset 把投影中心移到空著的區域
+let viewShift = [0, 0];
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight;
+  const panel = innerWidth > 980 ? $('panel').offsetWidth + 16 : 0;
+  const bottom = innerWidth > 760 ? 150 : $('console').offsetHeight + 60;
+  viewShift = [panel / 2, bottom / 2 - 10];
+  camera.setViewOffset(innerWidth, innerHeight, viewShift[0], viewShift[1], innerWidth, innerHeight);
+  camera.updateProjectionMatrix();
+  sizeScreen(); setTab(curTab); setSpeed(speed);
+  document.documentElement.style.setProperty('--console-h', $('console').offsetHeight + 'px');
+}
+addEventListener('resize', resize);
+
+/* ───────── 主迴圈 ───────── */
+buildMachine(src, SEED);
+renderCode(); renderSoft(); drawWordmark();
+resize(); applyCam();
+let lastT = performance.now(), statT = lastT, lastWave = 0, frames = 0, uiT = 0, frameAvg = 16;
+const openTmp = new V3();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  frameAvg = lerp(frameAvg, dt * 1000, 0.05);
+  if (SPEEDS[speed].full) budget = clamp(budget + (frameAvg > 19 ? -0.3 : 0.1), 2, COARSE ? 6 : 9);
+  const w0 = sim.wave;
+  simulate(dt);
+  wpf = lerp(wpf, Math.max(1, sim.wave - w0), 0.2);
+  // 相機動畫
+  if (cam.goal) {
+    const g = cam.goal, k = 1 - Math.exp(-dt * (RM ? 30 : 4.2));
+    cam.target.lerp(g.target, k); cam.dist = Math.exp(lerp(Math.log(cam.dist), Math.log(g.dist), k)); cam.pol = lerp(cam.pol, g.pol, k); cam.az = lerp(cam.az, g.az, k * 0.6);
+    if (cam.target.distanceTo(g.target) < g.dist * 0.002 && Math.abs(cam.dist / g.dist - 1) < 0.004) cam.goal = null;
+  }
+  applyCam();
+  // 蓋子開合與閘的顯示
+  for (const c of Object.values(chips)) {
+    const p = c.pkg.p; const l = p.rot ? p.wid : p.len, w = p.rot ? p.len : p.wid;
+    const near = Math.abs(cam.target.x - p.x) < l / 2 + 6 && Math.abs(cam.target.z - p.z) < w / 2 + 6;
+    const want = near ? sstep(70, 28, cam.dist) : 0;
+    c.open = lerp(c.open, want, 1 - Math.exp(-dt * 8)); if (Math.abs(c.open - want) < 0.003) c.open = want;
+    const eprom = c.pkg.eprom;
+    c.pkg.capMats.forEach(m => { m.opacity = 1 - c.open; m.depthWrite = c.open < 0.5; m.visible = c.open < 0.995; });
+    if (eprom) { const gm = c.pkg.cap.userData.glass; gm.opacity = 0.16 * (1 - c.open); gm.visible = c.open < 0.995; }
+    if (c.pkg.lid) c.pkg.lid.position.y = c.pkg.dieY - 0.02 + 0.7 + 0.09 + c.open * 3;
+    const vis = c.open > 0.01 || (eprom && cam.dist < 260);
+    c.view.visible = vis;
+    if (vis && c.store) { const px = c.cellMm * innerHeight / (cam.dist * 2 * Math.tan(camera.fov * Math.PI / 360)); c.store.material.opacity = 1 - sstep(9, 30, px); c.store.visible = c.store.material.opacity > 0.01; }
+    if (vis) { c.outMajor.material.opacity = 0.55 * Math.max(c.open, eprom ? 0.6 : 0); c.outMinor.material.opacity = 0.3 * sstep(30, 8, cam.dist); colorGates(c); }
+    void openTmp;
+  }
+  // 焦點模組的連線
+  updateWireFocus();
+  colorWires();
+  readVram(); colorMatrix(dt); colorBus();
+  // 板上 LED、時鐘 LED、按鍵帽
+  const leds = sim.bus(S.leds); boardLeds.forEach((m, i) => m.material.color.setHex(leds >> i & 1 ? 0xff5030 : 0x2c0c07));
+  clkLed.material.color.setHex(sim.v[net.inputs.CLK] ? 0xffb347 : (SPEEDS[speed].full && !paused ? 0x8a5a1c : 0x3a2508));
+  for (const [k, cap] of Object.entries(keycaps)) { const y = TOP + 4.8 - (M.keys[k] ? 1.2 : 0); cap.position.y = lerp(cap.position.y, y, 0.5); cap.material.color.setHex(M.keys[k] ? 0xffb347 : 0xd8ccb6); }
+  renderer.render(scene, camera);
+  drawScreen();
+  updateSound();
+  updateLabels();
+  frames++;
+  if (now - uiT > 100) {
+    uiT = now; updateCrumbs();
+    if (curTab === 'state') updateState(); else if (curTab === 'code' && !codeView.hidden) updateCodeLine(); else if (curTab === 'verify') { updateLive(); $('metaCount').textContent = sim.metastable | 0; }
+  }
+  if (now - statT > 1000) {
+    const s = (now - statT) / 1000;
+    hist.push([now, M.cycles]); while (hist.length > 5) hist.shift();
+    const h0 = hist[0], hz = hist.length > 1 ? (M.cycles - h0[1]) / ((now - h0[0]) / 1000) : 0;
+    const ips = (M.instr - lastInstr) / s, tog = (sim.toggles - lastTog) / s;
+    $('mHz').textContent = hz >= 1000 ? (hz / 1000).toFixed(1) + 'k' : hz.toFixed(hz < 10 ? 1 : 0); $('mIps').textContent = fmt(ips); $('mTog').textContent = tog >= 1e6 ? (tog / 1e6).toFixed(2) + 'M' : fmt(tog);
+    lastCyc = M.cycles; lastInstr = M.instr; lastTog = sim.toggles; lastWave = sim.wave; statT = now; frames = 0;
+  }
+}
+let wireCheckT = 0;
+function updateWireFocus() {
+  const now = performance.now(); if (now - wireCheckT < 150) return; wireCheckT = now;
+  let best = null, bc = null;
+  const vs = cam.dist * 2 * Math.tan(camera.fov * Math.PI / 360);
+  for (const c of Object.values(chips)) {
+    if (!c.view.visible || c.open < 0.6) continue;
+    const [u, v] = worldDie(c, cam.target.x, cam.target.z);
+    if (u < 0 || v < 0 || u > c.W || v > c.H) continue;
+    const f = findAt(c.node, u, v);
+    for (let i = f.path.length - 1; i >= 0; i--) { const n = f.path[i]; if (n.count <= 1400 && n.rect && n.rect.w * DIE_MM > vs * 0.18) { best = n; bc = c; break; } if (n.count > 1400) break; }
+  }
+  if (vs > 4) best = null;
+  if (best !== wires.focus) buildWires(best, bc);
+}
+requestAnimationFrame(frame);
+setTimeout(() => runProofs(0), 900);
+
+// 除錯與無頭截圖用
+window.__nand8 = { get M() { return M; }, cam, applyCam, flyTo, focusNode, firstOf, setSpeed, pause, stepWave, setTab, chips: () => chips, home, zoomAt,
+  view(path, extra = 1) { const n = firstOf(path); const c = Object.values(chips).find(ch => pathOf(n)[1] === ch.node); const r = n.rect; cam.target.copy(dieWorld(c, r.x + r.w / 2, r.y + r.h / 2)); cam.dist = Math.max(r.w, r.h) * DIE_MM * 1.25 / (2 * Math.tan(camera.fov * Math.PI / 360)) * extra; cam.pol = 0.2; cam.az = 0; cam.goal = null; } };
+</script>
+</body>
+</html>
