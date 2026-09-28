@@ -606,7 +606,7 @@ function roadTextures(id, W) {
     if (id === 'harbor') {
       const pud = n.per(u * 3 + 0.3, v * 9, 3, 9) + 0.35 * n.per(u * 9, v * 30, 9, 30);
       const wet = sstep(0.05, 0.32, pud);
-      let base = 34 + lo * 10 + hi * 6 + speck[i] * 34;
+      let base = 58 + lo * 14 + hi * 8 + speck[i] * 40;
       const patch = n.per(u * 2 + 7, v * 5, 2, 5) > 0.42 ? -7 : 0;
       base += patch;
       // 路中央的接縫裂痕
@@ -937,7 +937,7 @@ function buildWorld(si) {
     }
     for (let r = 0; r < rows - 1; r++) for (let c = 0; c < cols; c++) {
       const a = r * (cols + 1) + c, b = a + 1, cc = a + cols + 1, d = cc + 1;
-      idx.push(a, cc, b, b, cc, d);
+      idx.push(a, b, cc, b, d, cc);
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
@@ -945,6 +945,8 @@ function buildWorld(si) {
     const m = stdMat({ map: tex.map, roughnessMap: tex.rough, normalMap: tex.normal, roughness: 1, metalness: 0,
       normalScale: new THREE.Vector2(S.id === 'harbor' ? 0.55 : 0.8, S.id === 'harbor' ? 0.55 : 0.8), envMapIntensity: S.id === 'harbor' ? 1.8 : 1 });
     const mesh = new THREE.Mesh(g, m); mesh.receiveShadow = true; group.add(mesh);
+    if (QS.get('dbg') === 'rough') { m.roughnessMap = null; m.roughness = 0.12; m.normalMap = null; }
+    W_.roadMat = m;
   }
 
   console.log('T1', performance.now().toFixed(0));
@@ -987,7 +989,7 @@ function buildWorld(si) {
     }
     for (let r = 0; r < rows - 1; r++) for (let j = 0; j < m - 1; j++) {
       const a = r * m + j, b = a + 1, c = a + m, d = c + 1;
-      const tri = side > 0 ? [a, c, b, b, c, d] : [a, b, c, b, d, c];
+      const tri = side > 0 ? [a, b, c, b, d, c] : [a, c, b, b, c, d];
       const pr = profAt(side, clamp(Math.round(-road.PRE + r * step + road.PRE), 0, road.N - 1));
       if (pr.wall === j) widx.push(...tri); else idx.push(...tri);
     }
@@ -1009,7 +1011,7 @@ function buildWorld(si) {
     if (widx.length) g.addGroup(idx.length, widx.length, 1);
     g.computeVertexNormals();
     const mesh = new THREE.Mesh(g, wallMat ? [terrainMat, wallMat] : terrainMat);
-    mesh.receiveShadow = true; group.add(mesh);
+    mesh.receiveShadow = true; group.add(mesh); mesh.name = 'strip' + side;
   }
 
   console.log('T2', performance.now().toFixed(0));
@@ -1044,7 +1046,7 @@ function buildWorld(si) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
     g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeVertexNormals();
-    const mesh = new THREE.Mesh(g, terrainMat); mesh.receiveShadow = true; group.add(mesh);
+    const mesh = new THREE.Mesh(g, terrainMat); mesh.receiveShadow = true; group.add(mesh); mesh.name = 'grid';
     W_.grid = { x0, z0, nx, nz, sp, H };
     // 遠景地面
     const FS = 26000, fsp = 260, fn = Math.ceil(FS / fsp) + 1, cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
@@ -1070,7 +1072,7 @@ function buildWorld(si) {
     const fg = new THREE.BufferGeometry();
     fg.setAttribute('position', new THREE.BufferAttribute(fp, 3)); fg.setAttribute('color', new THREE.BufferAttribute(fcol, 3));
     fg.setIndex(new THREE.BufferAttribute(fidx, 1)); fg.computeVertexNormals();
-    group.add(new THREE.Mesh(fg, fogPatch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }))));
+    group.add(Object.assign(new THREE.Mesh(fg, fogPatch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }))), { name: 'far' }));
   }
 
   console.log('T3', performance.now().toFixed(0));
@@ -1208,7 +1210,7 @@ function buildWorld(si) {
       const pa = g.attributes.position;
       for (let v = 0; v < pa.count; v++) { const r = Math.floor(v / 4), s = -100 + r * 2, p = road.at(s), o = -(HW + 0.42); const x = p.x + Math.cos(p.a) * o, z = p.z + Math.sin(p.a) * o; pa.setY(v, pa.getY(v) - p.y + heightAt(x, z)); }
       g.computeVertexNormals();
-      group.add(new THREE.Mesh(g, stdMat({ color: 0x9a9a98, roughness: 0.35, metalness: 0.9 })));
+      group.add(new THREE.Mesh(g, stdMat({ color: 0x9a9a98, roughness: 0.35, metalness: 0.9, side: THREE.DoubleSide })));
     }
     // 山坡上的房子（窗燈）
     const winTex = canvasTex(256, 256, (g, w, h) => {
@@ -1339,6 +1341,7 @@ function buildWorld(si) {
     group.add(pts); W_.glows = pts;
   }
 
+  if (QS.get('hide')) for (const nm of QS.get('hide').split(',')) { const o = group.getObjectByName(nm); if (o) o.visible = false; }
   // 光源設定
   const night = S.id !== 'cedar';
   hemi.intensity = S.id === 'harbor' ? 0.9 : S.id === 'cedar' ? 1.1 : 1.2;
@@ -1494,9 +1497,9 @@ function makeRain() {
       vec3 w = uCam + mod(p - uCam + box * 0.5, box) - box * 0.5;
       vec3 rel = vec3(0.4, -8.5, 0.0) - uVel;
       w += rel * 0.022 * aEnd;
-      float b = 0.035;
-      for (int i = 0; i < 4; i++){ vec3 d = w - uLamps[i]; b += 9.0 / (1.0 + dot(d, d)); }
-      vB = b; vW = w;
+      float b = 0.02;
+      for (int i = 0; i < 4; i++){ vec3 d = w - uLamps[i]; b += 6.0 / (1.0 + dot(d, d)); }
+      vB = b * smoothstep(1.5, 5.0, length(w - uCam)); vW = w;
       gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
     }`,
     fragmentShader: `varying float vB; varying vec3 vW; ${FOG_GLSL}
@@ -1979,6 +1982,7 @@ function updateCamera(dt, time) {
   const ahead = road.at(ST.s + 10 + v * 0.5).a;
   const yaw = p.a + ST.psi + (ahead - p.a) * 0.22;
   camera.rotation.set(basePitch + Math.atan(p.g) + bump * 1.5 + crashPitch + (Math.random() - 0.5) * sh * 0.04, -yaw + (Math.random() - 0.5) * sh * 0.03, -ST.lean * 0.85 + crashRoll + (Math.random() - 0.5) * sh * 0.03, 'YXZ');
+  if (QS.get('cam') === 'top') { camera.position.y += 45; camera.position.x -= Math.sin(p.a) * 25; camera.position.z += Math.cos(p.a) * 25; camera.rotation.set(-1.1, -p.a, 0, 'YXZ'); }
   camera.updateMatrixWorld();
   // 車頭
   cockCam.rotation.set(basePitch + bump * 0.4, 0, 0);
@@ -2004,7 +2008,7 @@ function updateCamera(dt, time) {
     const cand = W_.lamps.filter(l => l.s > ST.s - 45 && l.s < ST.s + 190).map(l => ({ l, d: (l.x - p.x) ** 2 + (l.z - p.z) ** 2 })).sort((a, b) => a.d - b.d);
     lampPool.forEach((L, i) => {
       const c = cand[i];
-      if (c) { L.position.set(c.l.x, c.l.y, c.l.z); L.intensity = S.id === 'harbor' ? 520 : 240; }
+      if (c) { L.position.set(c.l.x, c.l.y, c.l.z); L.intensity = S.id === 'harbor' ? 2600 : 900; }
       else L.intensity = 0;
     });
     // 車頭主光：最近的一盞燈
@@ -2198,7 +2202,7 @@ const startSi = clamp(parseInt(QS.get('stage') || '1', 10) - 1, 0, 2);
 await selectStage(startSi, true);
 if (QS.has('ride')) startRide();
 if (SHOT) document.body.classList.add('shot');
-window.__fw = { ST, get road() { return road; }, selectStage, startRide, toTitle, setS: s => { ST.s = s; } };
+window.__fw = { ST, get road() { return road; }, get world() { return world; }, selectStage, startRide, toTitle, setS: s => { ST.s = s; } };
 requestAnimationFrame(t => { last = t; frame(t); });
 </script>
 </body>

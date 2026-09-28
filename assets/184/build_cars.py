@@ -433,27 +433,34 @@ def build(root, Z):
     yb, yt = y - hh, y + hh; ws = hw * (1 - tp * .55)
     return [(x, yb, hw * .8), (x, y - hh * .2, hw), (x, yt - hh * .35, ws + (hw - ws) * .35), (x, yt - .02, ws * .45), (x, yt, 0),
             (x, yt - .02, -ws * .45), (x, yt - hh * .35, -ws - (hw - ws) * .35), (x, y - hh * .2, -hw), (x, yb, -hw * .8)]
-  hmp = loft('rbody__hump', [hsec(*h) for h in hump], 'white', lv=2, parent=R, creases={1: .9, 2: .95, 4: .8, 6: .95, 7: .9})
+  # faceted like the kit's one-piece body (flat panels meeting at crisp folds), not a subdivided pillow
+  def facet(ob, w=.01):
+    for pl in ob.data.polygons: pl.use_smooth = False
+    bv = ob.modifiers.new('bv', 'BEVEL'); bv.width = w; bv.segments = 2; bv.limit_method = 'ANGLE'; bv.angle_limit = math.radians(25)
+    return ob
+  hmp = facet(loft('rbody__hump', [hsec(*h) for h in hump], 'white', lv=0, parent=R))
   # centre spine from the hump back to the arch wing
   loft('rbody__spine', [[(x, y - h, w), (x, y, w), (x, y + h, 0), (x, y, -w), (x, y - h, -w)] for x, y, w, h in
-        [(-.95, .66, .12, .1), (-1.3, .76, .1, .1), (-1.7, .84, .08, .09), (-1.96, .9, .05, .07), (-2.04, .92, .02, .03)]], 'white', lv=2, parent=R, creases={0: 1, 1: .9, 2: .95, 3: .9, 4: 1})
+        [(-.95, .66, .12, .1), (-1.3, .76, .1, .1), (-1.7, .84, .08, .09), (-1.96, .9, .05, .07), (-2.04, .92, .02, .03)]], 'white', lv=0, parent=R)
   if Z:
     slab('rbody__antenna', [(.04, 1.0), (-.2, 1.0), (-.44, 1.32), (-.35, 1.33)], .03, 'white', bevel=.008, parent=R)
   # ---------------- bridge arms + deck (per side) ----------------
   # kit side view: at the front the arms are low, thin plates lying on the side pods (the cowl's S flank stays clear above
   # them); they only rise to deck height over the rear fenders
-  arms = [(.12, .3, .34, .56, .6), (-.1, .3, .62, .56, .62), (-.35, .3, 1.0, .56, .66), (-.56, .3, 1.28, .57, .72),
-          (-.8, .3, 1.46, .6, .8), (-1.2, .3, 1.5, .7, .85), (-1.75, .3, 1.5, .72, .85), (-2.1, .3, 1.46, .72, .84), (-2.3, .3, 1.38, .72, .82)]
+  # ...and seen from the front they rise outward (low where they leave the cowl, high at the outer shoulder, which then
+  # folds straight down into the fender pillar): the bat-wing outline of the Variable Action photos.  6th value = inner top
+  arms = [(.12, .3, .34, .56, .6, .58), (-.1, .3, .62, .57, .68, .6), (-.35, .3, 1.0, .58, .76, .6), (-.56, .3, 1.28, .6, .81, .62),
+          (-.8, .3, 1.46, .62, .84, .66), (-1.2, .3, 1.5, .7, .85), (-1.75, .3, 1.5, .72, .85), (-2.1, .3, 1.46, .72, .84), (-2.3, .3, 1.38, .72, .82)]
   for s, sd in ((1, 'L'), (-1, 'R')):
     # the arm is a shell riding above the side pod: its underside stays clear of the pod (open, dark gap between them)
-    def arm_ring(x, zi, zo, yb, yt):
-      r = quad_ring(x, zi, zo, yb, yt, bev=min(.05, (yt - yb) * .4), drop=(min(.12, (yt - yb) * .5) if x > -1.0 else .04))
+    def arm_ring(x, zi, zo, yb, yt, yi=None):
+      r = quad_ring(x, zi, zo, yb, yt, bev=min(.05, (yt - yb) * .4), drop=((yt - yi) / 1.25 if yi is not None else .04))
       if x > -1.3:
-        ybo, ybi = (yb, yb - .06) if x > -1.0 else (.62, .52)
+        ybo, ybi = (yb, yi - .06) if yi is not None else (.62, .52)
         r[0] = (x, ybi, zi); r[1] = (x, ybo, zo)
       return r
     rows = [arm_ring(*a) for a in arms]
-    loft(f'rbody__arm_{sd}', mirror(rows, s), 'white', lv=2, parent=R, creases={0: 1, 1: 1, 2: .95, 3: .95, 4: .85, 5: .95})
+    facet(loft(f'rbody__arm_{sd}', mirror(rows, s), 'white', lv=0, parent=R))
     # blue band across the rear of the deck (PULSE band)
     bp = [(-1.02, .3), (-1.5, 1.46), (-2.26, 1.4), (-2.26, .3)]
     flat(f'rbody__band_{sd}', [(x, s * z) for x, z in bp], .026, A, y=.858, bevel=.008, parent=R)
