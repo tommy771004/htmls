@@ -203,7 +203,7 @@ body.ink #sheetLabel{opacity:1}
     <li><button type="button" data-ch="cars" aria-pressed="false"><b>兩台車<em>換車款</em></b><span>賽車仍由河森正治設計。新作的 Zenith ASURADA AKF-S0/G 在 4 月先亮相，這次首度公開鳳・凰呀 AA-1 的設定圖；「凰呀」正是布里德加賀在 SIN 駕駛的賽車之名。新車目前只有設定圖，這裡的阿斯拉以前代 ν 阿斯拉的模型為本，凰呀則以 SIN 版凰呀 AN-21 的完成模型建模。</span></button></li>
     <li><button type="button" data-ch="game" aria-pressed="false"><b>遊戲與台灣<em>看上方</em></b><span>PROJECT YNP 製作的遊戲《閃電霹靂車 Spiral》收錄新劇情，由福田己津央監修；據《Fami通》4 月報導，發售時程與平台未定。台灣是否上映，官方尚未說明。</span></button></li>
   </ol>
-  <p class="src">非官方圖解。車體在 Blender 建模：阿斯拉比照前代 ν 阿斯拉 AKF-0/G 的模型照片與組裝說明書，凰呀 AN-21 依 Mobile01 網友「dream0579」的青島 1/24 套件完成照（2012）；細部比例與空力模式的動作是推測。前翼端板、推桿懸吊、地面效應底板、散熱口與警示燈等機構細節，參考 Mobile01 網友「宅工程濕」自製 1/24 阿斯拉的設計說明。資料：Bandai Namco Filmworks 2026 年 9 月 26 日公布，整理自遊幕民眾 CineMob Nomad 的報導。</p>
+  <p class="src">非官方圖解。車體在 Blender 建模：阿斯拉比照前代 ν 阿斯拉 AKF-0/G 的模型照片與組裝說明書，凰呀 AN-21 依 Mobile01 網友「dream0579」的青島 1/24 套件完成照（2012）；細部比例與空力模式的動作是推測。前翼端板、推桿懸吊、地面效應底板、散熱口與警示燈等機構細節，參考 Mobile01 網友「宅工程濕」自製 1/24 阿斯拉的設計說明；二段推進器的機構依同一位網友 2022 年的「二段推進器模式」製作文。資料：Bandai Namco Filmworks 2026 年 9 月 26 日公布，整理自遊幕民眾 CineMob Nomad 的報導。</p>
 </aside>
 
 <div class="bar top glass" role="toolbar" aria-label="車體狀態">
@@ -851,7 +851,7 @@ function highlight() {
 const VIEWS = {
   q:     { p: V(7.6, 2.5, 7.8), t: V(.1, .5, 0) },
   side:  { p: V(0, 1.0, 10.2), t: V(.2, .55, 0) },
-  top:   { p: V(.01, 11.5, .01), t: V(.2, 0, 0) },
+  top:   { p: V(.01, 12.6, .01), t: V(-.1, 0, 0) },   /* 推進器展開時車尾更長，留足上下空間 */
   front: { p: V(9.6, 1.1, 0), t: V(0, .6, 0) },
   rear:  { p: V(-9.6, 1.5, 0), t: V(0, .7, 0) },
   cockpit: { p: V(.36, .82, -.05), t: V(1.3, .58, 0) }
