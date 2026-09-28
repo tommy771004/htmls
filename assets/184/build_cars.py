@@ -901,45 +901,76 @@ def build_ogre(R):
   for sd, s in (('L', 1), ('R', -1)):
     arm = [rod_between('a1', (.2, .77, s * .17), (.4, .7, s * .19), .035, 'purple'), rod_between('a2', (.4, .7, s * .19), (.6, .71, s * .09), .03, 'purple')]
     join(f'driver__arm_{sd}', arm + [cyl('g', .035, .06, 'black', loc=(.6, .71, s * .09), axis='z', verts=12)], parent=R)
-  # ---------------- rear pod body: stepped white collar with two mesh intakes, two humps on top, exposed rear wheel ----------------
-  H1, H2 = .56, 1.3                     # hump / booster centre lines (|z|)
+  # ---------------- rear body (kit paint-guide top/side/rear drawings, 126 px/m): ONE wide body across the car ----------------
+  # the two halves meet on the centre line (a shallow groove); plan is a rectangle x -1.1..-2.5, |z| < 1.55, whose front
+  # carries two lobes per side (inner lobe beside the canopy tail, outer lobe) with a recessed notch between them;
+  # four boosters: the inner pair almost touching on the centre line and sitting lower, the outer pair at the corners
+  H1, H2 = .3, 1.3                      # inner / outer booster centre lines (|z|)
   def rb(x, yb, yt, zi, zo):
-    # flat folded top (o86/o94): chamfered outer and inner edges, one shallow fold between the booster lines
-    # that deepens toward the tail, so from behind each pod still reads as two hoods (o78)
-    h2 = min(H2, zo - .24); h1 = max(H1, zi + .14); mid = (h1 + h2) / 2
-    dip = .025 + .1 * min(1, max(0, (-1.9 - x) / .58))
-    return [(x, yb, zi), (x, yb, zo), (x, yt - .24, zo), (x, yt - .09, zo - .03), (x, yt - .015, zo - .15), (x, yt, h2), (x, yt - dip, mid),
-            (x, yt, h1), (x, yt - .03, zi + .1), (x, yt - .13, zi + .02), (x, yt - .24, zi)]
-  CR = {0: 1, 1: 1, 2: .95, 3: .95, 4: .95, 6: .9, 8: .95, 9: .95, 10: .9}   # crisp longitudinal folds, smooth along the length
-  COL_ = [(-.47, .56, .9, .46, 1.54), (-.53, .5, 1.0, .38, 1.62), (-.72, .5, 1.04, .36, 1.62)]
-  BOD = [(-.72, .5, 1.04, .36, 1.62), (-1.1, .5, 1.08, .36, 1.62), (-1.6, .5, 1.1, .36, 1.62), (-2.0, .52, 1.1, .36, 1.6), (-2.3, .56, 1.07, .38, 1.58), (-2.43, .6, 1.04, .39, 1.57), (-2.48, .62, 1.02, .4, 1.55)]   # extra ring squares off the tail cap
+    # flat folded top (o86/o94): chamfered outer edge, a shallow fold between the booster lines that deepens toward the tail,
+    # so from behind each half reads as two hoods (o78); the inner edge rounds into the centre groove
+    mid = (H1 + H2) / 2; t = min(1, max(0, (-1.9 - x) / .58)); dip = .025 + .1 * t
+    return [(x, yb, zi), (x, yb, zo), (x, yt - .24, zo), (x, yt - .09, zo - .03), (x, yt - .015, zo - .15), (x, yt, H2), (x, yt - dip, mid),
+            (x, yt - .05 * t, H1), (x, yt - .03 - .05 * t, zi + .07), (x, yt - .07 - .05 * t, zi + .015), (x, yt - .13 - .05 * t, zi)]
+  CR = {0: 1, 1: 1, 2: .95, 3: .95, 4: .95, 6: .9, 8: .8, 9: .8, 10: .9}   # crisp longitudinal folds, smooth along the length
+  BOD = [(-.4, .6, .92, .02, 1.5), (-.52, .52, .98, .02, 1.55), (-.72, .5, 1.02, .02, 1.55), (-1.1, .5, 1.06, .02, 1.55), (-1.6, .5, 1.1, .02, 1.55),
+         (-2.0, .52, 1.11, .02, 1.54), (-2.3, .56, 1.1, .02, 1.53), (-2.43, .6, 1.07, .02, 1.52), (-2.48, .62, 1.04, .02, 1.5)]   # extra ring squares off the tail cap
+  # front outline in plan (x at |z|): inner lobe tip beside the canopy, notch, outer lobe tip
+  FO = [(0, -.56), (.1, -.5), (.22, -.45), (.36, -.5), (.5, -.66), (.6, -.9), (.75, -1.04), (.88, -1.02), (1.0, -.9), (1.15, -.72), (1.28, -.63), (1.42, -.7), (1.5, -.85), (1.56, -1.05)]
+  def front_x(z):
+    z = abs(z)
+    for (z0, x0), (z1, x1) in zip(FO, FO[1:]):
+      if z <= z1: return x0 + (x1 - x0) * (z - z0) / (z1 - z0)
+    return FO[-1][1]
   for s, sd in ((1, 'L'), (-1, 'R')):
     # collar + body are ONE loft (two separately capped lofts shrink apart under subsurf and open a crack at the joint);
-    # the collar is just the white material on the front rings
-    body = loft(f'rbody_{sd}', mirror([rb(*r) for r in COL_ + BOD[1:]], s), D, lv=0, parent=R, creases=CR)
+    # the collar is just the white material on the lobes
+    body = loft(f'rbody_{sd}', mirror([rb(*r) for r in BOD], s), D, lv=0, parent=R, creases=CR)
     subsurf(body, 2); apply_all(body)
+    # lobes: a vertical prism cuts away everything ahead of the plan outline
+    pl_ = [(x, z) for z, x in FO] + [(-1.3, 1.7), (1.0, 1.7), (1.0, -.1), (FO[0][1], -.1)]
+    npl = len(pl_)
+    cut = mesh_from('cut', [(x, .2, s * z) for x, z in pl_] + [(x, 1.6, s * z) for x, z in pl_],
+                    [tuple(range(npl)), tuple(range(npl, 2 * npl))[::-1]] + [(j, (j + 1) % npl, npl + (j + 1) % npl, npl + j) for j in range(npl)], 'black', smooth=False)
+    boolean_cut(body, cut); bpy.data.objects.remove(cut, do_unlink=True)
+    # slice the mesh along the colour boundaries first, so the white/dark split follows the line instead of stair-stepping by face
+    bm = bmesh.new(); bm.from_mesh(body.data)
+    cuts = [((front_x(z) - .3, z), (front_x(z2) - .3, z2)) for z, z2 in zip([f[0] for f in FO], [f[0] for f in FO][1:])]
+    for (x0, z0), (x1, z1) in cuts:
+      dx, dz = x1 - x0, s * (z1 - z0)
+      bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], dist=1e-5, plane_co=P(x0, 0, s * z0), plane_no=Vector((dz, dx, 0)).normalized())
+    for co, no in ((P(0, 0, s * 1.38), Vector((0, 1, 0))), (P(0, .95, 0), Vector((0, 0, 1))), (P(-1.0, 0, 0), Vector((1, 0, 0))), (P(-2.5, 0, 0), Vector((1, 0, 0)))):
+      bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], dist=1e-5, plane_co=co, plane_no=no)
+    bm.to_mesh(body.data); bm.free()
+    # (the boolean left the cutter's black on the lobe walls: slots are looked up by name, and the walls go back to body colour)
     body.data.materials.append(M('white'))
+    ms = [m.name for m in body.data.materials]; iD, iW = ms.index(D), ms.index('white')
     for pl in body.data.polygons:
-      if pl.center.x > -.74: pl.material_index = 1
+      c = pl.center; px_, py_, pz_ = c.x, c.z, abs(c.y)
+      pl.material_index = iD
+      # white: the lobes' collar, and the strip along the top outer edge (drawing: "ARD" band outside the deck plate)
+      if px_ > front_x(pz_) - .3 or (pz_ > 1.38 and py_ > .95 and -2.5 < px_ < -1.0): pl.material_index = iW
     col = body
     arch = cyl('cut', .35, .74, 'black', loc=(RX, RR, s * RZ), axis='z', verts=64)   # hugs the tyre (o85), leaving room for the lower band over it
     boolean_cut(body, arch); bpy.data.objects.remove(arch, do_unlink=True)
     # tail between the two hoods: the deck's trailing edge is notched forward down to the red louvre bar (o94)
-    nt = [(-2.3, .93), (-2.7, .7), (-2.7, 1.16)]
-    cut = mesh_from('cut', [(x, .925, s * z) for x, z in nt] + [(x, 1.4, s * z) for x, z in nt],
+    nt = [(-2.3, .8), (-2.7, .58), (-2.7, 1.02)]
+    cut = mesh_from('cut', [(x, .98, s * z) for x, z in nt] + [(x, 1.4, s * z) for x, z in nt],
                     [(2, 1, 0), (3, 4, 5), (0, 1, 4, 3), (1, 2, 5, 4), (2, 0, 3, 5)], 'black', smooth=False)
     boolean_cut(body, cut); bpy.data.objects.remove(cut, do_unlink=True)
-    # two recessed intakes per pod: hexagonal pockets in the collar, carbon mesh at the back, a small white splitter fin between them
-    # scoop intakes (close-ups o73/o84/o86): eye-shaped mouths with pointed ends, a rolled white rim standing proud of the collar,
-    # the mesh set deep and raked back so it catches light under the white brow
+    ms = [m.name for m in body.data.materials]
+    for pl in body.data.polygons:
+      if ms[pl.material_index] == 'black' and pl.center.x < -2.2: pl.material_index = ms.index(D)
+    # one scoop intake on each lobe (front drawing: inner eye beside the canopy, big outer eye): eye-shaped mouths with a rolled
+    # white rim standing proud of the collar, the mesh set deep and raked back so it catches light under the white brow
     eyes = []
-    for k, zc in enumerate((.72, 1.3)):
-      hx = [(zc - .24, .79), (zc - .17, .88), (zc - .04, .925), (zc + .12, .915), (zc + .24, .82), (zc + .15, .72), (zc - .14, .715)]
-      n7 = len(hx)
-      cut = mesh_from('cut', [(-.3, y, s * z) for z, y in hx] + [(-.86, y, s * z) for z, y in hx],
+    for k, (zc, kw) in enumerate(((.4, .6), (1.25, .85))):
+      hx = [(zc - .24 * kw, .79), (zc - .17 * kw, .88), (zc - .04 * kw, .925), (zc + .12 * kw, .915), (zc + .24 * kw, .82), (zc + .15 * kw, .72), (zc - .14 * kw, .715)]
+      n7 = len(hx); xf = front_x(zc)
+      cut = mesh_from('cut', [(xf + .3, y, s * z) for z, y in hx] + [(xf - .38, y, s * z) for z, y in hx],
                       [tuple(range(n7))[::-1], tuple(range(n7, 2 * n7))] + [(j, (j + 1) % n7, n7 + (j + 1) % n7, n7 + j) for j in range(n7)], 'black', smooth=False)
       boolean_cut(col, cut); bpy.data.objects.remove(cut, do_unlink=True)
-      mesh_from(f'rbody__mesh_{sd}{k}', [(-.5 - (y - .7) * .9, y, s * z) for z, y in hx], [tuple(range(n7))], 'mesh', smooth=False, parent=R)
+      mesh_from(f'rbody__mesh_{sd}{k}', [(xf - .16 - (y - .7) * .9, y, s * z) for z, y in hx], [tuple(range(n7))], 'mesh', smooth=False, parent=R)
       eyes.append(hx)
     for k, hx in enumerate(eyes):
       rim = []
@@ -947,17 +978,24 @@ def build_ogre(R):
       for z, y in densify(hx, .03):
         dz, dy = z - cz_, y - cy_; L = math.hypot(dz, dy) or 1
         p, _ = hit(col, (4, y + dy / L * .03, s * (z + dz / L * .03)), (-1, 0, 0))   # just outside the mouth, on the collar face
-        rim.append((p.x + .004 if p is not None and p.x > -.62 else -.47, y, s * z))
+        rim.append((p.x + .004 if p is not None and p.x > front_x(z) - .25 else front_x(z) - .02, y, s * z))
       sweep_loop(f'rbody__rim_{sd}{k}', rim, .022, .018, 'white', parent=R)
-    slab(f'rbody__splitter_{sd}', [(-.4, .7), (-.62, .7), (-.62, .84), (-.5, .8)], .035, 'white', z=s * 1.01, bevel=.006, parent=R)
-    # red lip: a thick rolled edge under the collar, dipping toward the nose, hooking down into a point at the outer front corner
-    lip = []
-    for z, y in [(.4, .545), (.5, .565), (.62, .59), (.75, .6), (.95, .592), (1.15, .585), (1.35, .58), (1.5, .575), (1.58, .56)]:
-      p, _ = hit(col, (4, y, s * z), (-1, 0, 0))
-      if p is not None: lip.append((p.x - .005, y, s * z))
-    xe, ye, ze = lip[-1]
-    lip += [(xe + .01, ye - .05, s * (abs(ze) + .02)), (xe + .02, ye - .11, s * (abs(ze) + .025)), (xe + .035, ye - .17, s * (abs(ze) + .02))]
-    tube(f'rbody__facered_{sd}', lip, .046, .028, 'red', taper=lambda t: 1 if t < .7 else max(.15, 1 - (t - .7) / .3 * .85))
+    # the notch face between the lobes reads as a dark slot band with a small white fin in it (front drawing)
+    slab(f'rbody__slot_{sd}', [(-.96, .69), (-1.2, .69), (-1.2, .79), (-.96, .79)], .5, 'black', z=s * .8, parent=R)
+    slab(f'rbody__splitter_{sd}', [(-.98, .66), (-1.14, .66), (-1.14, .84), (-1.04, .8)], .035, 'white', z=s * .8, bevel=.006, parent=R)
+    # red lip: a thick rolled edge under each lobe (two tubes: the ray hits jump back across the notch), the outer one hooking
+    # down into a point at the outer front corner
+    for nm, pts in (('i', [(.06, .57), (.2, .56), (.34, .56), (.48, .575)]), ('o', [(1.02, .6), (1.15, .59), (1.3, .585), (1.45, .575), (1.53, .56)])):
+      lip = []
+      for z, y in pts:
+        p, _ = hit(col, (4, y, s * z), (-1, 0, 0))
+        if p is not None: lip.append((p.x - .005, y, s * z))
+      if nm == 'o':
+        xe, ye, ze = lip[-1]
+        lip += [(xe + .01, ye - .05, s * (abs(ze) + .02)), (xe + .02, ye - .11, s * (abs(ze) + .025)), (xe + .035, ye - .17, s * (abs(ze) + .02))]
+        tube(f'rbody__facered_{sd}{nm}', lip, .046, .028, 'red', taper=lambda t: 1 if t < .6 else max(.15, 1 - (t - .6) / .4 * .85))
+      else:
+        tube(f'rbody__facered_{sd}{nm}', lip, .046, .028, 'red')
     # pod side: white band / wavy red stripe / white band, rising toward the boosters (dips over the wheel)
     red = [(-.55, .585), (-.99, .643), (-1.43, .702), (-1.72, .754), (-2.02, .737), (-2.31, .754), (-2.4, .754)]
     skin_strip(f'rbody__red_{sd}', [(x, y - .036) for x, y in red], [(x, y + .036) for x, y in red], s, 'red', body, off=.004, parent=R)
@@ -982,40 +1020,39 @@ def build_ogre(R):
     slab(f'rbody__tail_{sd}', [(-2.0, .56), (-2.47, .64), (-2.64, .3), (-2.36, .2), (-2.12, .34)], .05, D, z=s * 1.5, bevel=.006, parent=R)
     flat(f'rbody__blade_{sd}', [(-2.14, s * 1.2), (-2.74, s * 1.3), (-2.74, s * 1.6), (-2.3, s * 1.6)], .025, D, y=.17, bevel=.004, parent=R)
     slab(f'rbody__lamp_{sd}', [(-2.26, .5), (-2.44, .53), (-2.44, .58), (-2.26, .55)], .012, 'red', z=s * 1.555, parent=R)
-    # tail bulkhead under the boosters (o78): the back is closed, its lower edge hangs down in a fang under each booster
-    fg = [(.4, .7), (1.46, .7), (1.46, .5), (1.3, .26), (1.12, .5), (.93, .56), (.74, .5), (.56, .3), (.4, .5)]   # top stays inside the pod shell
-    nf = len(fg)
-    bh = mesh_from(f'rbody__tailwall_{sd}', [(-2.28, y, s * z) for z, y in fg] + [(-2.36, y, s * z) for z, y in fg],
-                   [tuple(range(nf)), tuple(range(nf, 2 * nf))[::-1]] + [(j, (j + 1) % nf, nf + (j + 1) % nf, nf + j) for j in range(nf)], D, smooth=False, parent=R)
-    bv = bh.modifiers.new('bv', 'BEVEL'); bv.width = .008; bv.segments = 2; bv.limit_method = 'ANGLE'
-    # ---------------- boosters: red housings with gold spikes, joined by a red bar ----------------
-    # (o78: the outer housing is a big rounded-square frame, the inner one a smaller round collar)
-    for k, (bz, by) in enumerate(((H1, .88), (H2, .85))):
-      n_, sc = (1.7, .92) if k == 0 else (2.8, 1.12)
-      loft(f'boosters_{sd}{k}', [se_ring(x, by, w * sc, w * sc * 1.05, n_, s * bz, 24) for x, w in [(-2.3, .05), (-2.4, .15), (-2.62, .18), (-2.72, .16), (-2.76, .1)]], 'red', parent=R)
-      cn = cyl(f'boosters__cone_{sd}{k}', .12, .26, 'gold', loc=(-2.87, by, s * bz), axis='x', verts=24, r2=.004); cn.rotation_euler = (0, math.radians(-90), 0); cn.parent = R
-    # ---------------- deck wing + horn: a plate on each pod top with a straight white trailing edge (top photos o93/o94) ----------------
-    # its leading edge sits flush on the pod, the trailing edge lifts toward the centre (two flat facets folded along the diagonal),
-    # so from behind (o78) the white edge reads as a "horn" rising from the outer booster to a tip above the inner one
-    # a thin plate: its leading edge rests on the pod, the rear is cantilevered, so from behind the hoods show under it
-    # (side o85: the white edge runs from the outer booster's top forward-inward, its inner end ~.45 m further forward)
-    To, Ti, Li, Lo = Vector((-2.6, 1.07, 1.6)), Vector((-2.15, 1.31, .52)), Vector((-1.4, 1.1, .52)), Vector((-1.78, 1.08, 1.6))
-    top = [To, Ti, Li, Lo]
-    dv = [tuple(p) for p in top] + [(p.x, p.y - (.04 if i < 2 else .1), p.z) for i, p in enumerate(top)]
-    deck = mesh_from(f'rbody__deck_{sd}', [(x, y, s * z) for x, y, z in dv], [(0, 1, 3), (1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)], D, smooth=False, parent=R)
-    bv = deck.modifiers.new('bv', 'BEVEL'); bv.width = .012; bv.segments = 2; bv.limit_method = 'ANGLE'; bv.angle_limit = math.radians(25)
-    pn = (Ti - To).cross(Lo - To).normalized()
-    if pn.y < 0: pn = -pn
-    fw = pn.cross(Ti - To).normalized()
-    if fw.x < 0: fw = -fw
-    # white trailing edge wrapping the plate's back face; the inner end runs on past the plate and curls up into a tapered tip
-    Hn = [To + (Ti - To) * t for t in (-.03, .25, .5, .75, 1.0)] + [Ti + (Ti - To) * .09 + Vector((0, .05, 0)), Ti + (Ti - To) * .16 + Vector((0, .12, 0))]
-    rings = []
-    for i, c in enumerate(Hn):
-      k = 1 if i < 5 else (.7, .35)[i - 5]
-      a0, a1, b0, b1 = -.012, .08 * k, -.035 * (k if i >= 5 else 1), .008
-      rings.append([tuple(c + fw * a + pn * b) for a, b in ((a0, b0), (a1, b0 * .2), (a1, b1), (a0, b1))])
-    loft(f'horns_{sd}', mirror([[tuple(p) for p in r] for r in rings], s), 'white', lv=0, parent=R)
+    # ---------------- boosters: rounded-diamond red housings (rear drawing: framed bezel, recessed face), gold spikes ----------------
+    # the inner pair sits lower and almost touches on the centre line, the outer pair is larger and higher
+    BZ = ((H1, .77, .9), (H2, .92, 1.1))
+    for k, (bz, by, sc) in enumerate(BZ):
+      loft(f'boosters_{sd}{k}', [se_ring(x, by, w * sc, w * sc, 1.35, s * bz, 24) for x, w in [(-2.3, .08), (-2.42, .17), (-2.64, .19), (-2.72, .19), (-2.73, .135), (-2.68, .11)]], 'red', parent=R)
+      cn = cyl(f'boosters__cone_{sd}{k}', .11 * sc, .3, 'gold', loc=(-2.83, by, s * bz), axis='x', verts=24, r2=.004); cn.rotation_euler = (0, math.radians(-90), 0); cn.parent = R
+    # red louvre bar between the inner and outer housing, sloping with their heights; three dark slots on its back face
+    def sbar(name, z0, y0, z1, y1, x0, x1, h, mat):
+      v = [(x, y + dy, s * z) for (z, y) in ((z0, y0), (z1, y1)) for x in (x0, x1) for dy in (-h, h)]
+      return mesh_from(name, v, [(0, 1, 3, 2), (4, 6, 7, 5), (0, 2, 6, 4), (1, 5, 7, 3), (0, 4, 5, 1), (2, 3, 7, 6)], mat, smooth=False)
+    (z0, y0, _), (z1, y1, _) = BZ
+    bar = [sbar('b', z0 + .12, y0 + .02, z1 - .16, y1 - .01, -2.5, -2.64, .07, 'red')]
+    for dy in (-.035, 0, .035):
+      bar.append(sbar('q', z0 + .17, y0 + .02 + dy, z1 - .21, y1 - .01 + dy, -2.635, -2.648, .007, 'black'))
+    join(f'boosters__bar_{sd}', bar, parent=R)
+    # ---------------- horn blade (kit drawings + front photo): one thin curved blade per side, straight along the car ----------------
+    # its cross-section (front/rear views) is an arc rising from the outer corner, above the outer booster, to a tip over the inner
+    # one, so head-on and from behind it is only an edge and the two read as one big arch with air under it; from above it is
+    # the trapezoidal plate of the top drawing (rear edge -2.73 -> -2.47, front edge -1.93 -> -2.2); outboard it sinks into the deck
+    NU = 14
+    def blade(name, xa, xb, th, mat):
+        rings = []
+        for i in range(NU + 1):
+          u = i / NU; z = 1.52 - 1.07 * u; y = 1.04 + .32 * math.sin(u * math.pi / 2)
+          dz, dy = -1.07, .32 * math.pi / 2 * math.cos(u * math.pi / 2); L = math.hypot(dz, dy); nz, ny = -dy / L, dz / L
+          if ny < 0: nz, ny = -nz, -ny
+          x0, x1 = xa(u), xb(u)
+          rings.append([(x0, y - ny * th, z - nz * th), (x1, y - ny * th, z - nz * th), (x1, y + ny * th, z + nz * th), (x0, y + ny * th, z + nz * th)])
+        return loft(name, mirror(rings, s), mat, lv=0, parent=R)
+    xr = lambda u: -2.73 + .26 * u; xf = lambda u: -1.93 - .27 * u
+    blade(f'rbody__deck_{sd}', lambda u: xr(u) + .06, xf, .016, D)
+    # white rear edge wrapping the blade's trailing edge: the "horn" line seen from behind and from above
+    blade(f'horns_{sd}', lambda u: xr(u) - .005, lambda u: xr(u) + .085, .022, 'white')
     # ======== aero mode (エアロモード, promo still): parts named "__aero" appear only in aero mode ========
     # rear: two long faceted booster nacelles per side riding on the pod humps — white V-collar round a dark intake,
     # violet body with a white spine stripe, faceted red tail block with a dark nozzle; the outer one carries a tall swept fin
@@ -1098,23 +1135,16 @@ def build_ogre(R):
     text_decal(f'marks__kaga_{sd}', 'BLEED KAGA', TB, .045, 'black', (.9, .614, s * .6), sd, target=nose, parent=R)
   slab('fwing__keel', [(2.12, .02), (1.5, .08), (1.5, .2), (1.93, .38), (2.02, .3)], .04, D, bevel=.004, parent=R)
   text_up('marks__five_f', '5', AB, .22, 'teal', (1.86, .27, .66), yaw=math.radians(90), parent=R)
-  # red bar joining the four boosters across the tail, and the engine cover between the pods
-  # (rear photo: short red panels span the gaps between the housings, each with three dark louvre slots)
-  pan = []
-  for a, b in ((-1.14, -.72), (-.4, .4), (.72, 1.14)):
-    pan.append(slab('p', [(-2.5, .8), (-2.64, .8), (-2.64, .93), (-2.5, .93)], b - a, 'red', z=(a + b) / 2, bevel=.008))
-    for y in (.83, .865, .9): pan.append(slab('q', [(-2.635, y - .007), (-2.648, y - .007), (-2.648, y + .007), (-2.635, y + .007)], (b - a) * .8, 'black', z=(a + b) / 2))
-  join('boosters__bar', pan, parent=R)
-  # engine deck between the pods (o93/o94): flat top with chamfered edges filling the gap to the pod sills, a low centre ridge,
-  # squared off at the tail above the bulkhead
-  def spn(x, yb, yt, hw): return sym_ring(x, [(0, yb), (hw, yb), (hw, yt - .09), (hw - .06, yt - .02), (.07, yt), (0, yt + .012)])
-  loft('rbody__spine', [spn(*r) for r in [(-.6, .66, .82, .2), (-.8, .62, .9, .33), (-1.2, .6, .95, .4), (-1.9, .6, .96, .4), (-2.36, .62, .93, .4), (-2.46, .66, .9, .36)]],
-       D, parent=R, creases={0: 1, 1: 1, 2: .95, 3: .95, 4: .8, 6: .8, 7: .95, 8: .95, 9: 1})
-  xw = [(-.42, .84), (.42, .84), (.42, .46), (.22, .4), (0, .24), (-.22, .4), (-.42, .46)]
+  # tail centre block under the inner boosters (rear drawing): caps the tub end, two round "eyes" low down;
+  # between it and the outer legs the tail stays open, the rear suspension shows through
+  xw = [(-.5, .64), (.5, .64), (.5, .3), (.4, .1), (-.4, .1), (-.5, .3)]
   nw = len(xw)
-  bh = mesh_from('rbody__tailwall_c', [(-2.5, y, z) for z, y in xw] + [(-2.6, y, z) for z, y in xw],   # caps the tub's tail end
+  bh = mesh_from('rbody__tailwall_c', [(-2.46, y, z) for z, y in xw] + [(-2.58, y, z) for z, y in xw],
                  [tuple(range(nw)), tuple(range(nw, 2 * nw))[::-1]] + [(j, (j + 1) % nw, nw + (j + 1) % nw, nw + j) for j in range(nw)], D, smooth=False, parent=R)
-  bv = bh.modifiers.new('bv', 'BEVEL'); bv.width = .008; bv.segments = 2; bv.limit_method = 'ANGLE'
+  bv = bh.modifiers.new('bv', 'BEVEL'); bv.width = .01; bv.segments = 2; bv.limit_method = 'ANGLE'
+  for z in (-.2, .2):
+    cyl('rbody__eye', .075, .03, 'grey', loc=(-2.585, .27, z), axis='x', verts=24).parent = R
+    cyl('rbody__eyein', .05, .032, 'black', loc=(-2.59, .27, z), axis='x', verts=24).parent = R
   flat('rbody__floor', [(1.4, .3), (.6, .45), (-1.9, .45), (-1.9, -.45), (.6, -.45), (1.4, -.3)], .025, 'carbon', y=.06, parent=R)
   return nose
 
