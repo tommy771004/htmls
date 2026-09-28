@@ -460,23 +460,27 @@ def build(root, Z):
     def fring(x, yb, yt, zi, zo):
       ym, zm = (yb + yt) / 2, (zi + zo) / 2
       return [(x, yb, zi), (x, yb, zm), (x, yb, zo), (x, ym, zo), (x, yt, zo), (x, yt, zm), (x, yt, zi), (x, ym, zi)]
-    fr = [(-.46, .06, .26, 1.14, 1.42), (-.54, .03, .5, 1.07, 1.5), (-.7, .03, .78, 1.03, 1.54), (-1.0, .03, .86, 1.0, 1.55),
-          (-1.5, .03, .86, .95, 1.55), (-2.0, .06, .86, .95, 1.55), (-2.12, .12, .85, 1.5, 1.6), (-2.3, .3, .83, 1.5, 1.585), (-2.46, .5, .8, 1.5, 1.565)]
+    # front: a toe that points forward on the ground (narrow in plan), its front edge sweeping up and back into the arm;
+    # over the wheel the top runs level; behind the wheel only the outer skin remains, ending in a near-vertical rear edge
+    fr = [(-.44, .03, .07, 1.33, 1.38), (-.56, .02, .12, 1.25, 1.45), (-.7, .02, .2, 1.15, 1.5), (-.84, .02, .34, 1.07, 1.53), (-.95, .02, .54, 1.03, 1.545), (-1.03, .02, .74, 1.01, 1.55),
+          (-1.1, .02, .84, 1.0, 1.55), (-1.5, .03, .86, .95, 1.55), (-2.0, .06, .86, .95, 1.55), (-2.12, .2, .85, 1.5, 1.6), (-2.32, .3, .83, 1.5, 1.588), (-2.44, .33, .81, 1.5, 1.572)]
     fender = loft(f'rbody__fender_{sd}', mirror([fring(*r) for r in fr], s), 'white', lv=0, parent=R, creases={0: .95, 1: .95, 2: .95, 3: .95, 4: .95, 5: .95, 6: .95, 7: .95})
     subsurf(fender, 2); apply_all(fender)
-    cut = cyl('cut', .4, 1.2, 'black', loc=(RX, RR, s * 1.25), axis='z', verts=64)
+    cut = cyl('cut', .375, 1.2, 'black', loc=(RX, RR, s * 1.25), axis='z', verts=64)
     boolean_cut(fender, cut); bpy.data.objects.remove(cut, do_unlink=True)
+    # dark wheel-well liner on the inboard side, so the arch reads as a well rather than a hole through the body
+    cyl(f'rbody__well_{sd}', .385, .012, 'black', loc=(RX, RR, s * .972), axis='z', verts=48).parent = R
     # open the space behind the wheel (seen from the rear only a thin outer fin remains)
     bpy.ops.mesh.primitive_cube_add(size=1)
     box = bpy.context.active_object; box.scale = (.9, .57, .72); box.location = P(-2.28, .33, s * 1.235)
     boolean_cut(fender, box); bpy.data.objects.remove(box, do_unlink=True)
     # blue lower band on the pillar and the tail (the "Jupiter" / skirt stripe)
-    bb = [(-.5, .05, .17, 1.1, 1.46), (-.56, .02, .2, 1.05, 1.52), (-.7, .02, .2, 1.02, 1.555), (-1.1, .02, .2, .985, 1.555), (-1.28, .02, .2, .96, 1.54)]
+    bb = [(-.43, .025, .075, 1.33, 1.38), (-.56, .015, .125, 1.25, 1.45), (-.7, .015, .18, 1.15, 1.5), (-.84, .015, .21, 1.07, 1.53), (-1.0, .015, .22, 1.02, 1.555), (-1.28, .015, .2, .97, 1.55)]
     loft(f'rbody__foot_{sd}', mirror([fring(x, yb, yt, zi - .006, zo + .006) for x, yb, yt, zi, zo in bb], s), A, lv=2, parent=R, creases={0: .95, 1: .95, 2: .95, 3: .95, 4: .95, 5: .95, 6: .95, 7: .95})
-    zmax = max(abs(v.co.y) for v in fender.data.vertices if -1.25 < v.co.x < -.62 and .3 < v.co.z < .7)
-    slab(f'rbody__panel_{sd}', [(-.66, .24), (-1.22, .24), (-1.22, .74), (-.74, .76), (-.62, .5)], .024, 'white', z=s * (zmax + .004), bevel=.008, parent=R)
+    zmax = max(abs(v.co.y) for v in fender.data.vertices if -1.25 < v.co.x < -.9 and .3 < v.co.z < .7)
+    slab(f'rbody__panel_{sd}', [(-.8, .26), (-1.22, .26), (-1.22, .76), (-1.04, .76), (-.9, .52)], .024, 'white', z=s * (zmax + .004), bevel=.008, parent=R)
     PZ[sd] = zmax + .02
-    tb = [(-2.0, .06, .2, .945, 1.556), (-2.12, .11, .25, 1.495, 1.606), (-2.3, .29, .41, 1.495, 1.591), (-2.46, .49, .57, 1.495, 1.571)]
+    tb = [(-2.08, .2, .27, 1.495, 1.604), (-2.2, .25, .33, 1.495, 1.598), (-2.32, .295, .37, 1.495, 1.592), (-2.445, .325, .39, 1.495, 1.576)]
     loft(f'rbody__skirt_{sd}', mirror([fring(*r) for r in tb], s), A, lv=2, parent=R, creases={0: .95, 1: .95, 2: .95, 3: .95, 4: .95, 5: .95, 6: .95, 7: .95})
     # ---------------- side pod ----------------
     pod = [(.47, .4, .04, .05), (.42, .4, .15, .17), (.27, .4, .18, .2), (-.4, .4, .18, .2), (-.85, .38, .16, .18), (-1.0, .36, .05, .06)]
@@ -667,14 +671,19 @@ def build(root, Z):
   for s, sd in ((1, 'L'), (-1, 'R')):
     cz = s * 1.15
     if Z:
-      # blue cowl: a long shallow ogive growing out of the deck into the red nacelle (not a dome sitting on the deck)
-      loft(f'nacelles__cowl_{sd}', [se_ring(x, y, r * .96, r * k, 2, cz, 22) for x, y, r, k in [(-.66, .83, .02, .5), (-.8, .835, .07, .55), (-.96, .845, .13, .62),
-            (-1.12, .86, .185, .72), (-1.28, .875, .23, .84), (-1.44, .89, .265, .95), (-1.6, .9, .285, 1)]], 'blue', parent=R)
-      loft(f'nacelles__red_{sd}', [se_ring(x, .9, r, r, 2, cz, 20) for x, r in [(-1.6, .285), (-2.3, .285), (-2.44, .268), (-2.52, .215)]], 'red', parent=R)
+      # one continuous shell: blue ogive growing out of the deck, turning red at x=-1.6 (no seam, no pinch between them)
+      NR = [(-.66, .83, .02, .5), (-.8, .835, .07, .55), (-.96, .845, .13, .62), (-1.12, .86, .185, .72), (-1.28, .875, .23, .84), (-1.44, .89, .265, .95),
+            (-1.57, .9, .283, 1), (-1.63, .9, .285, 1), (-1.85, .9, .285, 1), (-2.1, .9, .285, 1), (-2.3, .9, .285, 1), (-2.44, .9, .268, 1), (-2.52, .9, .215, 1)]
+      # over the wheel arch the underside is flattened (buried in the fender) so it never shows through the arch
+      flatb = lambda x, ring: [(px, max(py, .735), pz) for px, py, pz in ring] if -2.32 < x < -1.26 else ring
+      nb = loft(f'nacelles__body_{sd}', [flatb(x, se_ring(x, y, r * (.96 if x > -1.6 else 1), r * k, 2, cz, 22)) for x, y, r, k in NR], 'blue', parent=R)
+      nb.data.materials.append(M('red'))
+      for pl in nb.data.polygons:
+        if pl.center.x < -1.6: pl.material_index = 1
       cyl(f'nacelles__face_{sd}', .175, .02, 'black', loc=(-2.525, .9, cz), axis='x', verts=24).parent = R
       c = cyl(f'nacelles__cone_{sd}', .15, .2, 'grey', loc=(-2.62, .9, cz), axis='x', verts=24, r2=.13); c.parent = R
       cyl(f'nacelles__hole_{sd}', .085, .02, 'black', loc=(-2.725, .9, cz), axis='x', verts=6).parent = R
-      loft(f'nacelles__base_{sd}', [se_ring(x, .77, w, .1, 3, cz, 16) for x, w in [(-.9, .02), (-1.0, .13), (-1.4, .17), (-2.1, .17), (-2.4, .1), (-2.5, .02)]], 'blue', parent=R)
+      loft(f'nacelles__base_{sd}', [se_ring(x, .8, w, .075, 3, cz, 16) for x, w in [(-.9, .02), (-1.0, .13), (-1.4, .17), (-2.1, .17), (-2.4, .1), (-2.5, .02)]], 'blue', parent=R)
       for k in range(3):
         xc = -2.0 - k * .13
         pts = [(xc + .07, 1.01), (xc - .03, .9), (xc + .07, .79), (xc + .03, .79), (xc - .07, .9), (xc + .03, 1.01)]
@@ -735,7 +744,7 @@ def build(root, Z):
   if Z:
     for s, sd in ((1, 'L'), (-1, 'R')):
       text_decal(f'marks__S_{sd}', 'S', AB, .44, 'red', (-.3, .72, s * .3), sd, shear=.25, target=hmp, parent=R)
-      text_decal(f'marks__one_{sd}', '1', TB, .36, 'red', (-.95, .49, s * PZ[sd]), sd, parent=R)
+      text_decal(f'marks__one_{sd}', '1', TB, .36, 'red', (-1.04, .5, s * PZ[sd]), sd, parent=R)
       text_decal(f'marks__kazami_{sd}', 'H.KAZAMI', AB, .07, 'black', (.05, .56, s * .3), sd, target=hmp, parent=R)
   return nose
 

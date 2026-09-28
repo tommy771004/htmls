@@ -2338,13 +2338,9 @@ function buildWires(node, c) {
     for (const [s, off] of ins) {
       if (s === net.C0 || s === net.C1) continue;
       const tx = gx - pt * 0.42, ty = gy + off * pt;
-      let sx, sy;
-      if (s >= net.nSources && gateChip[s] === c.index && (inSet.has(s) || true)) { sx = gatePos[s * 3] + gatePos[s * 3 + 2] * 0.44; sy = gatePos[s * 3 + 1]; }
-      else { sx = r.x; sy = ty; }
-      if (!inSet.has(s) && s >= net.nSources && gateChip[s] === c.index) {
-        // 從焦點外面來的訊號：只畫進入焦點框的那一段
-        const ex = clamp(sx, r.x, r.x + r.w), ey = clamp(sy, r.y, r.y + r.h); sx = ex; sy = ey;
-      }
+      // 焦點內的訊號從來源閘的輸出腳出發；焦點外的訊號從左緣直接進來
+      let sx = r.x, sy = ty;
+      if (inSet.has(s)) { sx = gatePos[s * 3] + gatePos[s * 3 + 2] * 0.44; sy = gatePos[s * 3 + 1]; }
       const mx = tx - pt * (0.1 + 0.07 * (g % 4));
       seg(sx, sy, mx, sy, s, w); seg(mx, sy, mx, ty, s, w); seg(mx, ty, tx, ty, s, w);
     }
@@ -2670,11 +2666,12 @@ function colorGates(c) {
 function flashParams() { return SPEEDS[speed].full && !paused ? [Math.max(2, wpf * 0.5), 0.55] : [Math.max(2.5, Math.min(wpf, 60) * 1.6), 1]; }
 function colorWires() {
   if (!wires.mesh) return;
-  const col = wires.mesh.geometry.attributes.color.array, v = sim.v, last = sim.last, w = sim.wave, [span, amt] = flashParams();
+  const col = wires.mesh.geometry.attributes.color.array, v = sim.v, last = sim.last, w = sim.wave, [span, amt] = flashParams(), full = SPEEDS[speed].full && !paused;
   for (let i = 0; i < wires.nseg; i++) {
     const s = wires.src[i], on = v[s], age = w - last[s]; let f = age < span ? 1 - age / span : 0; f *= f * amt;
     const r = on ? 1.0 : 0.3, g = on ? 0.6 : 0.17, b = on ? 0.18 : 0.08;
-    const R = r + (1.1 - r) * f, G = g + (0.95 - g) * f, B = b + (0.8 - b) * f;
+    const fr = full ? 1.0 : 1.1, fg = full ? 0.42 : 0.95, fb = full ? 0.12 : 0.8;
+    const R = r + (fr - r) * f, G = g + (fg - g) * f, B = b + (fb - b) * f;
     for (let k = 0, o = i * 12; k < 4; k++, o += 3) { col[o] = R; col[o + 1] = G; col[o + 2] = B; }
   }
   wires.mesh.geometry.attributes.color.needsUpdate = true;
