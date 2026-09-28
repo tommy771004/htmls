@@ -501,7 +501,7 @@ function setupCar(key, root) {
   };
   /* 材質：依名稱換成亮面烤漆材質 */
   const glass = new THREE.MeshPhysicalMaterial({ color: 0x0e1631, roughness: .04, metalness: 0, transparent: true, opacity: .8, clearcoat: 1, clearcoatRoughness: .03, depthWrite: false });
-  const glassG = glass.clone(); glassG.color.set(0x0d2a2d); glassG.opacity = .9;   /* 凰呀：模型師調的偏綠深色玻璃 */
+  const glassG = glass.clone(); glassG.color.set(0x04100f); glassG.opacity = .97; glassG.envMapIntensity = .5;   /* 凰呀：模型師調的偏綠深色玻璃 */
   /* 碳纖維：以物件座標畫出斜紋編織 */
   const carbon = new THREE.MeshPhysicalMaterial({ color: 0x16181b, roughness: .58, metalness: 0, clearcoat: .15, clearcoatRoughness: .4 });
   carbon.onBeforeCompile = sh => {
@@ -511,15 +511,23 @@ function setupCar(key, root) {
       float wv = step(.5, fract((q.x + q.y + q.z) * .5)) * step(.5, fract((q.x - q.y + q.z) * .25));
       diffuseColor.rgb *= mix(.62, 1.18, wv);`);
   };
+  /* 金屬網（凰呀後側進氣口，模型師黏的蝕刻網）：物件座標上的方格孔 */
+  const wire = new THREE.MeshStandardMaterial({ color: 0x8a8e96, roughness: .42, metalness: .75, side: THREE.DoubleSide });
+  wire.onBeforeCompile = sh => {
+    sh.vertexShader = 'varying vec3 vCP;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvCP = position;');
+    sh.fragmentShader = 'varying vec3 vCP;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      vec2 g = abs(fract(vec2(vCP.y + vCP.z, vCP.y - vCP.z) * 60.) - .5);
+      diffuseColor.rgb *= mix(.12, 1., smoothstep(.28, .36, max(g.x, g.y)));`);
+  };
   const SPEC = { gold: { r: .28, m: 1, cc: 0 }, silver: { r: .22, m: 1, cc: 0 }, black: { r: .78, m: 0, cc: 0 }, grey: { r: .4, m: .6, cc: 0 } };
   root.traverse(m => {
     if (!m.isMesh) return;
     const n = (m.material && m.material.name) || 'white';
-    m.material = n === 'glass' ? glass : n === 'glassg' ? glassG : n === 'carbon' ? carbon : n === 'lamp' ? new THREE.MeshStandardMaterial({ color: 0xff3a30, emissive: 0xff1a10, emissiveIntensity: 1.6, roughness: .3 }) : n === 'yellow' ? new THREE.MeshPhysicalMaterial({ color: PAL.yellow, roughness: .08, transparent: true, opacity: .88, clearcoat: 1, emissive: 0x6b3a00, emissiveIntensity: .35 })
+    m.material = n === 'glass' ? glass : n === 'glassg' ? glassG : n === 'carbon' ? carbon : n === 'mesh' ? wire : n === 'lamp' ? new THREE.MeshStandardMaterial({ color: 0xff3a30, emissive: 0xff1a10, emissiveIntensity: 1.6, roughness: .3 }) : n === 'yellow' ? new THREE.MeshPhysicalMaterial({ color: PAL.yellow, roughness: .08, transparent: true, opacity: .88, clearcoat: 1, emissive: 0x6b3a00, emissiveIntensity: .35 })
       : toon(PAL[n] ?? PAL.white, 0, 1, SPEC[n] || {});
     m.castShadow = n !== 'glass' && n !== 'glassg'; m.receiveShadow = true;
     if (n === 'glass' || n === 'glassg') m.userData.lineFill = 'glass';
-    else if (n === 'black' || n === 'carbon' || n === 'dark') m.userData.lineFill = 'ink';   /* 設定稿裡懸吊、底板與開口塗黑 */
+    else if (n === 'black' || n === 'carbon' || n === 'mesh' || n === 'dark') m.userData.lineFill = 'ink';   /* 設定稿裡懸吊、底板與開口塗黑 */
   });
   /* 每個直接子節點是一「件」 */
   for (const obj of [...root.children]) {
