@@ -861,16 +861,20 @@ def build_ogre(R):
   H1, H2 = .56, 1.3                     # hump / booster centre lines (|z|)
   def rb(x, yb, yt, zi, zo):
     h2 = min(H2, zo - .24); h1 = max(H1, zi + .14); mid = (h1 + h2) / 2
-    return [(x, yb, zi), (x, yb, zo), (x, yt - .24, zo), (x, yt - .11, zo - .04), (x, yt - .03, zo - .17), (x, yt, h2), (x, yt - .03, h2 - .2),
-            (x, yt - .1, mid), (x, yt - .04, h1 + .19), (x, yt - .02, h1), (x, yt - .08, zi + .06), (x, yt - .17, zi)]
-  CR = {0: 1, 1: 1, 2: .9, 3: .6, 11: .8}
+    return [(x, yb, zi), (x, yb, zo), (x, yt - .26, zo), (x, yt - .12, zo - .05), (x, yt - .04, zo - .15), (x, yt, h2), (x, yt - .06, h2 - .22),
+            (x, yt - .13, mid), (x, yt - .06, h1 + .2), (x, yt, h1), (x, yt - .1, zi + .07), (x, yt - .2, zi)]
+  CR = {0: 1, 1: 1, 2: .9, 3: .6, 5: .75, 7: .8, 9: .75, 11: .8}   # folded-plate top (top photos): crisp fold lines along the humps
   COL_ = [(-.47, .56, .9, .46, 1.54), (-.53, .5, 1.0, .38, 1.62), (-.72, .5, 1.04, .36, 1.62)]
   BOD = [(-.72, .5, 1.04, .36, 1.62), (-1.1, .5, 1.08, .36, 1.62), (-1.6, .5, 1.1, .36, 1.62), (-2.0, .52, 1.1, .36, 1.6), (-2.3, .56, 1.07, .38, 1.58), (-2.48, .62, 1.02, .4, 1.55)]
   for s, sd in ((1, 'L'), (-1, 'R')):
-    col = loft(f'rbody__collar_{sd}', mirror([rb(*r) for r in COL_], s), 'white', lv=0, parent=R, creases=CR)
-    subsurf(col, 2); apply_all(col)
-    body = loft(f'rbody_{sd}', mirror([rb(*r) for r in BOD], s), D, lv=0, parent=R, creases=CR)
+    # collar + body are ONE loft (two separately capped lofts shrink apart under subsurf and open a crack at the joint);
+    # the collar is just the white material on the front rings
+    body = loft(f'rbody_{sd}', mirror([rb(*r) for r in COL_ + BOD[1:]], s), D, lv=0, parent=R, creases=CR)
     subsurf(body, 2); apply_all(body)
+    body.data.materials.append(M('white'))
+    for pl in body.data.polygons:
+      if pl.center.x > -.74: pl.material_index = 1
+    col = body
     arch = cyl('cut', .38, .74, 'black', loc=(RX, RR, s * RZ), axis='z', verts=64)
     boolean_cut(body, arch); bpy.data.objects.remove(arch, do_unlink=True)
     # two recessed intakes per pod: hexagonal pockets in the collar, carbon mesh at the back, a small white splitter fin between them
@@ -887,7 +891,9 @@ def build_ogre(R):
     red = [(-.55, .585), (-.99, .643), (-1.43, .702), (-1.72, .754), (-2.02, .737), (-2.31, .754), (-2.52, .754)]
     skin_strip(f'rbody__red_{sd}', [(x, y - .036) for x, y in red], [(x, y + .036) for x, y in red], s, 'red', body, off=.004, parent=R)
     skin_strip(f'rbody__band_{sd}', [(x, y + .036) for x, y in red], [(x, .815) for x, y in red], s, 'white', body, off=.004, parent=R)
-    skin_strip(f'rbody__bandlo_{sd}', [(x, max(.515, y - .13 + max(0, -1.5 - x) * .06)) for x, y in red[:5]], [(x, y - .036) for x, y in red[:5]], s, 'white', body, off=.004, parent=R)
+    # lower white band stops in front of the wheel arch (rays through the arch would miss and leave torn fragments)
+    lo = [(-.55, .52, .549), (-1.0, .525, .607), (-1.3, .6, .646)]
+    skin_strip(f'rbody__bandlo_{sd}', [(x, a) for x, a, b in lo], [(x, b) for x, a, b in lo], s, 'white', body, off=.004, parent=R)
     cyl(f'rbody__well_{sd}', .385, .012, 'black', loc=(RX, RR, s * .93), axis='z', verts=48).parent = R
     # outer leg in front of the wheel: a dark skirt with a forward-pointing toe on the ground, green 5 on it
     leg = slab(f'rbody__leg_{sd}', [(-.4, .01), (-1.42, .01), (-1.42, .56), (-.62, .56), (-.5, .26)], .06, D, z=s * 1.58, bevel=.006, parent=R)
@@ -907,15 +913,17 @@ def build_ogre(R):
     # ---------------- horns: flat blades rising from the outer rear corner, sweeping up, forward and in; white top, dark web below ----------------
     # raised deck on each pod top (side photo: rises from x≈-1.1 to a flat top at y≈1.32, then falls along the horn to the tail);
     # a separate faceted plate standing proud of the humps, the horn grows out of its rear outer corner
-    dk = [(-.98, .84, 1.42, 1.0, 1.02), (-1.18, .8, 1.47, 1.0, 1.13), (-1.4, .78, 1.49, 1.0, 1.25), (-1.6, .78, 1.5, 1.0, 1.31), (-1.9, .8, 1.5, 1.0, 1.32), (-2.25, .92, 1.5, 1.0, 1.2), (-2.56, 1.12, 1.5, 1.0, 1.07)]
-    deck = loft(f'rbody__deck_{sd}', mirror([[(x, yb, zi), (x, yb, zo), (x, yt - .07, zo), (x, yt, zo - .06), (x, yt, zi + .06), (x, yt - .05, zi)] for x, zi, zo, yb, yt in dk], s), D, lv=0, parent=R)
+    dk = [(-.98, 1.0, 1.42, 1.0, 1.04), (-1.18, .98, 1.47, 1.0, 1.14), (-1.4, .97, 1.49, 1.0, 1.25), (-1.6, .97, 1.5, 1.0, 1.31), (-1.9, .98, 1.5, 1.0, 1.32), (-2.25, 1.02, 1.5, 1.0, 1.2), (-2.56, 1.12, 1.5, 1.0, 1.09)]   # sits on the outer hump only
+    deck = loft(f'rbody__deck_{sd}', mirror([[(x, yb, zi), (x, yb, zo), (x, yt - .07, zo - .06), (x, yt, zo - .14), (x, yt, zi + .12), (x, yt - .05, zi + .06)] for x, zi, zo, yb, yt in dk], s), D, lv=0, parent=R)
     for pl in deck.data.polygons: pl.use_smooth = False
     bv = deck.modifiers.new('bv', 'BEVEL'); bv.width = .02; bv.segments = 2; bv.limit_method = 'ANGLE'
-    Hn = [(-2.62, 1.08, 1.47), (-2.36, 1.2, 1.47), (-2.04, 1.34, 1.4), (-1.76, 1.41, 1.14), (-1.58, 1.43, .84), (-1.46, 1.42, .56), (-1.38, 1.39, .32)]
+    Hn = [(-2.62, 1.1, 1.47), (-2.36, 1.26, 1.47), (-2.04, 1.41, 1.4), (-1.76, 1.47, 1.14), (-1.58, 1.47, .84), (-1.46, 1.42, .56), (-1.38, 1.39, .32)]
     rings = []
     for i, p in enumerate(Hn):
       a, b = Vector(Hn[max(i - 1, 0)]), Vector(Hn[min(i + 1, len(Hn) - 1)]); d = (b - a).normalized()
       sv = d.cross(Vector((0, 1, 0))).normalized(); up = sv.cross(d).normalized(); c = Vector(p); k = 1 - .6 * i / (len(Hn) - 1)
+      # the inner arc banks nose-down so its white top faces forward: from the front the horns read as a pair of arcs
+      a = math.radians(50) * max(0, i - 2) / (len(Hn) - 3); sv, up = sv * math.cos(a) - up * math.sin(a), up * math.cos(a) + sv * math.sin(a)
       rings.append([tuple(c + sv * .11 * k * math.cos(t * math.tau / 8) + up * .012 * math.sin(t * math.tau / 8)) for t in range(8)])
     loft(f'horns_{sd}', mirror(rings, s) if s < 0 else rings, 'white', lv=1, parent=R)
     web = [[(x, y - .015, z - .014), (x, y - .015, z + .014), (x, 1.0, z + .014), (x, 1.0, z - .014)] for x, y, z in Hn[:2]]
@@ -959,8 +967,12 @@ def build_ogre(R):
   slab('fwing__keel', [(2.12, .02), (1.5, .08), (1.5, .2), (1.93, .38), (2.02, .3)], .04, D, bevel=.004, parent=R)
   text_up('marks__five_f', '5', AB, .22, 'teal', (1.86, .27, .66), yaw=math.radians(90), parent=R)
   # red bar joining the four boosters across the tail, and the engine cover between the pods
-  bpy.ops.mesh.primitive_cube_add(size=1); bar = bpy.context.active_object; bar.name = 'boosters__bar'
-  bar.scale = (.06, 2.4, .1); bar.location = P(-2.6, .86, 0); bar.data.materials.append(M('red')); bar.parent = R
+  # (rear photo: short red panels span the gaps between the housings, each with three dark louvre slots)
+  pan = []
+  for a, b in ((-1.14, -.72), (-.4, .4), (.72, 1.14)):
+    pan.append(slab('p', [(-2.5, .8), (-2.64, .8), (-2.64, .93), (-2.5, .93)], b - a, 'red', z=(a + b) / 2, bevel=.008))
+    for y in (.83, .865, .9): pan.append(slab('q', [(-2.635, y - .007), (-2.648, y - .007), (-2.648, y + .007), (-2.635, y + .007)], (b - a) * .8, 'black', z=(a + b) / 2))
+  join('boosters__bar', pan, parent=R)
   loft('rbody__spine', [se_ring(x, y, w, h, 2.6, 0, 18) for x, y, w, h in [(-.62, .8, .2, .1), (-.9, .86, .3, .14), (-1.8, .87, .32, .16), (-2.4, .85, .3, .14), (-2.62, .8, .2, .08)]], D, parent=R)
   flat('rbody__floor', [(1.4, .3), (.6, .45), (-1.9, .45), (-1.9, -.45), (.6, -.45), (1.4, -.3)], .025, 'carbon', y=.06, parent=R)
   return nose
