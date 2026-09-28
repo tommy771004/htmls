@@ -770,15 +770,15 @@ def build(root, Z):
 # =====================================================================
 # 凰呀 AN-21 (Aoi Ogre, Bleed Kaga's #5 in SIN), after photos of a finished 1/24 Aoshima kit (Mobile01 t=3103136).
 # Scale from the side shot: rear wheel r=.33 -> ~197 px/m.  Page coords as above.
-OFX, OFZ = (1.82, 1.25), 1.2          # front wheels sit far forward, right behind the white fender pods
-OB = [(.5, 1.0), (1.3, .92)]          # boosters: (|z|, y)
+OFX, OFZ = (1.33, .82), 1.2           # front axles (side photo: 3.0 m / 2.5 m ahead of the rear axle), right behind the white fender pods
 def band_ring(x, y, hw, hh, j0, j1, k_out, k_in, n=2.6, N=24, cz=0.0):
   """thin strip lying on a superellipse section between ring indices j0..j1 (outer copy scaled k_out, inner k_in)"""
   o = se_ring(x, y, hw * k_out, hh * k_out, n=n, N=N, cz=cz); i = se_ring(x, y, hw * k_in, hh * k_in, n=n, N=N, cz=cz)
   return [o[j] for j in range(j0, j1 + 1)] + [i[j] for j in range(j1, j0 - 1, -1)]
 
-def skin_strip(name, lower, upper, side, mat, target, off=.006, parent=None, n=40, m=4):
-  """ribbon between two side-view polylines (x, y), projected along page z onto `target`'s outer surface"""
+def skin_strip(name, lower, upper, side, mat, target, off=.006, parent=None, n=40, m=4, axis='z'):
+  """ribbon between two side-view polylines (x, y), projected along page z onto `target`'s outer surface
+     (axis='x': front-view polylines (z, y), projected backward from the front)"""
   def samp(pl, t):
     L = [0]
     for a, b in zip(pl, pl[1:]): L.append(L[-1] + math.hypot(b[0] - a[0], b[1] - a[1]))
@@ -790,15 +790,19 @@ def skin_strip(name, lower, upper, side, mat, target, off=.006, parent=None, n=4
   V, F = [], []
   for i in range(n + 1):
     a, b = samp(lower, i / n), samp(upper, i / n)
-    for j in range(m + 1): V.append((a[0] + (b[0] - a[0]) * j / m, a[1] + (b[1] - a[1]) * j / m, side * 2.5))
+    for j in range(m + 1):
+      u, v = a[0] + (b[0] - a[0]) * j / m, a[1] + (b[1] - a[1]) * j / m
+      V.append((u, v, side * 2.5) if axis == 'z' else (5.0, v, u))
   for i in range(n):
     for j in range(m): F.append((i * (m + 1) + j, (i + 1) * (m + 1) + j, (i + 1) * (m + 1) + j + 1, i * (m + 1) + j + 1))
   ob = mesh_from(name, V, F, mat)
-  sw = ob.modifiers.new('sw', 'SHRINKWRAP'); sw.target = target; sw.wrap_method = 'PROJECT'; sw.use_project_y = True
+  sw = ob.modifiers.new('sw', 'SHRINKWRAP'); sw.target = target; sw.wrap_method = 'PROJECT'
+  if axis == 'z': sw.use_project_y = True
+  else: sw.use_project_x = True
   sw.use_negative_direction = True; sw.use_positive_direction = True; sw.offset = off; sw.wrap_mode = 'OUTSIDE_SURFACE'
   apply_all(ob)
   me = ob.data; bm = bmesh.new(); bm.from_mesh(me)
-  bmesh.ops.delete(bm, geom=[v for v in bm.verts if abs(v.co.y) > 2.2], context='VERTS')   # rays that missed the body
+  bmesh.ops.delete(bm, geom=[v for v in bm.verts if (abs(v.co.y) > 2.2 if axis == 'z' else v.co.x > 4)], context='VERTS')   # rays that missed the body
   bm.to_mesh(me); bm.free()
   for pl in me.polygons: pl.use_smooth = True
   if parent: ob.parent = parent
@@ -806,51 +810,124 @@ def skin_strip(name, lower, upper, side, mat, target, off=.006, parent=None, n=4
 
 def build_ogre(R):
   D = 'deep'
-  # ---------------- nose + tub: dark violet, long and low, white shoulders with a red pin line ----------------
-  T = [(3.02, .2, .02, .015), (2.85, .23, .1, .05), (2.6, .28, .2, .09), (2.3, .33, .29, .13), (1.9, .38, .37, .17), (1.4, .41, .43, .2),
-       (.9, .43, .47, .22), (.3, .44, .5, .23), (-.4, .45, .48, .24), (-1.2, .47, .42, .24), (-2.0, .5, .38, .22), (-2.5, .52, .3, .18)]
-  nose = loft('nose', [se_ring(x, y, hw, hh, n=2.6, N=24) for x, y, hw, hh in T], D, parent=R)
+  def shield(x, yb, yt, hw):
+    """nose/tub section: pointed keel, flanks widest ~70% up, rounded shoulders, flat-ish top"""
+    h = yt - yb
+    return sym_ring(x, [(0, yb), (.4 * hw, yb + .16 * h), (.8 * hw, yb + .42 * h), (hw, yb + .7 * h), (.93 * hw, yb + .87 * h), (.66 * hw, yb + .97 * h), (.3 * hw, yt), (0, yt)])
+  def hit(ob, o, d):
+    """first surface point of `ob` along page ray o + t*d (object sits at the origin, modifiers applied)"""
+    ok, loc, nrm, _ = ob.ray_cast(P(*o), P(*d).normalized())
+    return (Vector((loc.x, loc.z, -loc.y)), Vector((nrm.x, nrm.z, -nrm.y))) if ok else (None, None)
+  # ---------------- nose + tub (side photo, rear wheel r=.33 -> 114 px/m): nose tip x≈2.0 at sill height, tub sill y≈.64 ----------------
+  TS = [(2.0, .53, .6, .015), (1.93, .38, .62, .1), (1.82, .27, .63, .19), (1.62, .2, .635, .27), (1.3, .17, .64, .34), (.9, .15, .64, .4), (.4, .15, .64, .44),
+        (-.2, .15, .645, .45), (-.8, .16, .65, .43), (-1.5, .18, .67, .38), (-2.1, .22, .7, .33), (-2.55, .3, .72, .26)]
+  nose = loft('nose', [shield(*t) for t in TS], D, parent=R)
+  apply_all(nose)
+  # the one continuous line: white shoulder band with a red pin under it, from the nose tip back to the rear-pod collar
+  skin_strip('nose__band_L', [(1.8, .585), (1.2, .578), (0, .578), (-.66, .584)], [(1.8, .64), (1.2, .648), (0, .652), (-.66, .656)], 1, 'white', nose, parent=R)
+  skin_strip('nose__band_R', [(1.8, .585), (1.2, .578), (0, .578), (-.66, .584)], [(1.8, .64), (1.2, .648), (0, .652), (-.66, .656)], -1, 'white', nose, parent=R)
   for s, sd in ((1, 'L'), (-1, 'R')):
-    j0, j1 = (1, 4) if s > 0 else (8, 11)
-    loft(f'nose__band_{sd}', [band_ring(x, y, hw, hh, j0, j1, 1.02, .99) for x, y, hw, hh in T[1:9]], 'white', lv=1, parent=R)
-    jr = (4, 5) if s > 0 else (7, 8)
-    loft(f'nose__pin_{sd}', [band_ring(x, y, hw, hh, *jr, 1.028, 1.0) for x, y, hw, hh in T[1:9]], 'red', lv=1, parent=R)
-  # green gem on the nose tip with small orange lamps around it
-  gem = mesh_from('nose__gem', [(2.62, .372, 0), (2.44, .4, .07), (2.3, .41, 0), (2.44, .4, -.07), (2.46, .44, 0), (2.46, .36, 0)],
-                  [(0, 1, 4), (1, 2, 4), (2, 3, 4), (3, 0, 4), (1, 0, 5), (2, 1, 5), (3, 2, 5), (0, 3, 5)], 'green', smooth=False, parent=R)
-  for x, y, z in ((2.52, .37, .12), (2.36, .4, .18), (2.2, .43, .23)):
+    skin_strip(f'nose__pin_{sd}', [(1.8, .558), (1.2, .552), (0, .552), (-.66, .556)], [(1.8, .585), (1.2, .578), (0, .578), (-.66, .584)], s, 'red', nose, parent=R, m=1)
+  # front view: the band wraps the nose front as a V (red pin on its inner edge), orange lamps along it
+  skin_strip('nose__band_f', [(-.27, .578), (0, .4), (.27, .578)], [(-.27, .64), (0, .46), (.27, .64)], 1, 'white', nose, parent=R, axis='x')
+  skin_strip('nose__pin_f', [(-.27, .552), (0, .374), (.27, .552)], [(-.27, .578), (0, .4), (.27, .578)], 1, 'red', nose, parent=R, axis='x', m=1)
+  for z, y in ((.07, .44), (.15, .5), (.22, .56)):
     for s in (1, -1):
-      cyl('nose__lamp', .022, .02, 'orange', loc=(x, y + .005, s * z), axis='y', verts=12).parent = R
-  # ---------------- canopy + cockpit ----------------
-  can = [(2.4, .47, .02, .01), (2.2, .5, .09, .03), (1.8, .56, .17, .06), (1.3, .62, .23, .09), (.8, .66, .26, .11), (.3, .68, .26, .12), (-.1, .67, .23, .1), (-.4, .63, .15, .06)]
-  loft('canopy', [se_ring(x, y, hw, hh, n=2.3, N=18) for x, y, hw, hh in can], 'glassg', parent=R)
-  flat('canopy__well', [(1.9, .04), (1.4, .18), (.8, .24), (.1, .24), (-.3, .14), (-.3, -.14), (.1, -.24), (.8, -.24), (1.4, -.18), (1.9, -.04)], .01, 'black', y=.62, parent=R)
-  loft('driver__seat', [se_ring(x, y, w, h, 3, 0, 14) for x, y, w, h in [(.02, .72, .02, .02), (.06, .72, .15, .12), (.14, .67, .16, .09), (.2, .63, .15, .05)]], 'black', parent=R)
-  loft('driver__body', [se_ring(x, y, w, h, 2.4, 0, 16) for x, y, w, h in [(.1, .64, .1, .06), (.16, .68, .19, .09), (.28, .68, .2, .08), (.52, .66, .15, .06), (.85, .64, .1, .05)]], 'purple', parent=R)
+      p, n = hit(nose, (4, y, s * z), (-1, 0, 0))
+      if p is None: continue
+      bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=8, radius=1); l = bpy.context.active_object; l.name = 'nose__lamp'
+      l.scale = (.024, .024, .018); l.location = P(*(p + n * .006)); l.data.materials.append(M('orange')); l.parent = R
+  # green arrowhead gem on the nose top, right in front of the canopy
+  mesh_from('nose__gem', [(1.8, .633, 0), (1.56, .655, .085), (1.47, .668, 0), (1.56, .655, -.085), (1.6, .69, 0)],
+            [(0, 1, 4), (1, 2, 4), (2, 3, 4), (3, 0, 4), (0, 3, 2, 1)], 'green', smooth=False, parent=R)
+  # ---------------- canopy: long, tall bubble peaking over the driver (y≈.98 at x≈.45), blending into the rear deck ----------------
+  can = [(1.64, .02, .02), (1.5, .09, .07), (1.25, .17, .16), (.9, .24, .27), (.45, .27, .34), (0, .27, .33), (-.4, .25, .3), (-.66, .2, .26), (-.8, .1, .16)]
+  loft('canopy', [se_ring(x, .62, hw, hh, n=2.3, N=18) for x, hw, hh in can], 'glassg', parent=R)
+  flat('canopy__well', [(1.5, .04), (1.2, .16), (.8, .22), (.1, .24), (-.5, .16), (-.5, -.16), (.1, -.24), (.8, -.22), (1.2, -.16), (1.5, -.04)], .01, 'black', y=.63, parent=R)
+  loft('driver__seat', [se_ring(x, y, w, h, 3, 0, 14) for x, y, w, h in [(.02, .8, .02, .02), (.06, .8, .15, .14), (.14, .72, .16, .1), (.2, .67, .15, .05)]], 'black', parent=R)
+  loft('driver__body', [se_ring(x, y, w, h, 2.4, 0, 16) for x, y, w, h in [(.1, .7, .1, .06), (.16, .74, .19, .09), (.28, .73, .2, .08), (.52, .7, .15, .06), (.85, .67, .1, .05)]], 'purple', parent=R)
   helm = bpy.data.objects.new('driver__helmet', bpy.data.meshes.new('h')); bm = bmesh.new()
   bmesh.ops.create_uvsphere(bm, u_segments=32, v_segments=20, radius=1); bm.to_mesh(helm.data); bm.free()
   for pl in helm.data.polygons: pl.use_smooth = True
-  link(helm, R); helm.data.materials.append(M('white')); helm.scale = (.13, .11, .12); helm.location = P(.24, .72, 0)
+  link(helm, R); helm.data.materials.append(M('white')); helm.scale = (.13, .11, .12); helm.location = P(.24, .8, 0)
   vis = bpy.data.objects.new('driver__visor', bpy.data.meshes.new('v')); bm = bmesh.new()
   bmesh.ops.create_uvsphere(bm, u_segments=24, v_segments=14, radius=1); bm.to_mesh(vis.data); bm.free()
   for pl in vis.data.polygons: pl.use_smooth = True
-  link(vis, R); vis.data.materials.append(M('green')); vis.scale = (.085, .085, .05); vis.location = P(.31, .73, 0)
+  link(vis, R); vis.data.materials.append(M('green')); vis.scale = (.085, .085, .05); vis.location = P(.31, .81, 0)
   for sd, s in (('L', 1), ('R', -1)):
-    arm = [rod_between('a1', (.2, .7, s * .17), (.4, .64, s * .19), .035, 'purple'), rod_between('a2', (.4, .64, s * .19), (.6, .69, s * .09), .03, 'purple')]
-    join(f'driver__arm_{sd}', arm + [cyl('g', .035, .06, 'black', loc=(.6, .69, s * .09), axis='z', verts=12)], parent=R)
+    arm = [rod_between('a1', (.2, .77, s * .17), (.4, .7, s * .19), .035, 'purple'), rod_between('a2', (.4, .7, s * .19), (.6, .71, s * .09), .03, 'purple')]
+    join(f'driver__arm_{sd}', arm + [cyl('g', .035, .06, 'black', loc=(.6, .71, s * .09), axis='z', verts=12)], parent=R)
+  # ---------------- rear pod body: stepped white collar with two mesh intakes, two humps on top, exposed rear wheel ----------------
+  H1, H2 = .56, 1.3                     # hump / booster centre lines (|z|)
+  def rb(x, yb, yt, zi, zo):
+    h2 = min(H2, zo - .24); h1 = max(H1, zi + .14); mid = (h1 + h2) / 2
+    return [(x, yb, zi), (x, yb, zo), (x, yt - .24, zo), (x, yt - .11, zo - .04), (x, yt - .03, zo - .17), (x, yt, h2), (x, yt - .03, h2 - .2),
+            (x, yt - .1, mid), (x, yt - .04, h1 + .19), (x, yt - .02, h1), (x, yt - .08, zi + .06), (x, yt - .17, zi)]
+  CR = {0: 1, 1: 1, 2: .9, 3: .6, 11: .8}
+  COL_ = [(-.47, .56, .9, .46, 1.54), (-.53, .5, 1.0, .38, 1.62), (-.72, .5, 1.04, .36, 1.62)]
+  BOD = [(-.72, .5, 1.04, .36, 1.62), (-1.1, .5, 1.08, .36, 1.62), (-1.6, .5, 1.1, .36, 1.62), (-2.0, .52, 1.1, .36, 1.6), (-2.3, .56, 1.07, .38, 1.58), (-2.48, .62, 1.02, .4, 1.55)]
   for s, sd in ((1, 'L'), (-1, 'R')):
-    # ---------------- front fender pods: white bullets ahead of the front wheels, black spike tips ----------------
-    fp = [(2.9, .24, .03, .03), (2.78, .27, .1, .1), (2.58, .32, .15, .17), (2.38, .36, .17, .23), (2.2, .38, .16, .24), (2.1, .37, .06, .08)]
-    pod = loft(f'fpods_{sd}', [se_ring(x, y, hw, hh, n=2.2, N=18, cz=s * OFZ) for x, y, hw, hh in fp], 'white', parent=R)
-    tip = cyl(f'fpods__tip_{sd}', .07, .3, 'black', loc=(2.98, .25, s * OFZ), axis='x', verts=16, r2=.004); tip.parent = R; tip.rotation_euler[1] += math.radians(8)
-    skin_strip(f'marks__chev_{sd}', [(2.7, .28), (2.22, .52)], [(2.7, .31), (2.22, .56)], s, 'red', pod, off=.003, parent=R, n=12, m=1)
-    skin_strip(f'marks__chev2_{sd}', [(2.7, .28), (2.22, .14)], [(2.7, .31), (2.22, .18)], s, 'red', pod, off=.003, parent=R, n=12, m=1)
-    # black blades under the pod (the jagged lower edge seen from the front)
-    slab(f'fwing__blade_{sd}', [(3.0, .01), (2.25, .01), (2.25, .1), (2.7, .2)], .035, 'black', z=s * (OFZ - .02), bevel=.004, parent=R)
-    slab(f'fwing__blade2_{sd}', [(2.85, .01), (2.25, .01), (2.25, .08), (2.6, .2)], .03, 'black', z=s * .66, bevel=.004, parent=R)
-    # white wing plate between the nose and the pod
-    flat(f'fwing__plate_{sd}', [(2.72, s * .3), (2.66, s * 1.05), (2.18, s * 1.08), (2.14, s * .36)], .035, 'white', y=.24, bevel=.008, parent=R)
-    flat(f'fwing__under_{sd}', [(2.7, s * .3), (2.64, s * 1.05), (2.18, s * 1.08), (2.14, s * .36)], .02, 'black', y=.21, parent=R)
+    col = loft(f'rbody__collar_{sd}', mirror([rb(*r) for r in COL_], s), 'white', lv=0, parent=R, creases=CR)
+    subsurf(col, 2); apply_all(col)
+    body = loft(f'rbody_{sd}', mirror([rb(*r) for r in BOD], s), D, lv=0, parent=R, creases=CR)
+    subsurf(body, 2); apply_all(body)
+    arch = cyl('cut', .38, .74, 'black', loc=(RX, RR, s * RZ), axis='z', verts=64)
+    boolean_cut(body, arch); bpy.data.objects.remove(arch, do_unlink=True)
+    # two recessed intakes per pod: hexagonal pockets in the collar, carbon mesh at the back, a small white splitter fin between them
+    for k, zc in enumerate((.72, 1.3)):
+      hx = [(zc - .23, .8), (zc - .15, .9), (zc + .15, .91), (zc + .23, .81), (zc + .15, .71), (zc - .15, .71)]
+      cut = mesh_from('cut', [(-.35, y, s * z) for z, y in hx] + [(-.68, y, s * z) for z, y in hx],
+                      [tuple(range(6))[::-1], tuple(range(6, 12))] + [(j, (j + 1) % 6, 6 + (j + 1) % 6, 6 + j) for j in range(6)], 'black', smooth=False)
+      boolean_cut(col, cut); bpy.data.objects.remove(cut, do_unlink=True)
+      mesh_from(f'rbody__mesh_{sd}{k}', [(-.66, y, s * z) for z, y in hx], [tuple(range(6))], 'carbon', smooth=False, parent=R)
+    slab(f'rbody__splitter_{sd}', [(-.44, .7), (-.62, .7), (-.62, .8)], .03, 'white', z=s * 1.01, bevel=.004, parent=R)
+    # red line under the collar, dipping toward the nose where it meets the tub's pin line
+    skin_strip(f'rbody__facered_{sd}', [(s * .4, .525), (s * .75, .58), (s * 1.62, .56)], [(s * .4, .56), (s * .75, .615), (s * 1.62, .6)], 1, 'red', col, parent=R, axis='x', m=1)
+    # pod side: white band / wavy red stripe / white band, rising toward the boosters (dips over the wheel)
+    red = [(-.55, .585), (-.99, .643), (-1.43, .702), (-1.72, .754), (-2.02, .737), (-2.31, .754), (-2.52, .754)]
+    skin_strip(f'rbody__red_{sd}', [(x, y - .036) for x, y in red], [(x, y + .036) for x, y in red], s, 'red', body, off=.004, parent=R)
+    skin_strip(f'rbody__band_{sd}', [(x, y + .036) for x, y in red], [(x, .815) for x, y in red], s, 'white', body, off=.004, parent=R)
+    skin_strip(f'rbody__bandlo_{sd}', [(x, max(.515, y - .13 + max(0, -1.5 - x) * .06)) for x, y in red[:5]], [(x, y - .036) for x, y in red[:5]], s, 'white', body, off=.004, parent=R)
+    cyl(f'rbody__well_{sd}', .385, .012, 'black', loc=(RX, RR, s * .93), axis='z', verts=48).parent = R
+    # outer leg in front of the wheel: a dark skirt with a forward-pointing toe on the ground, green 5 on it
+    leg = slab(f'rbody__leg_{sd}', [(-.4, .01), (-1.42, .01), (-1.42, .56), (-.62, .56), (-.5, .26)], .06, D, z=s * 1.58, bevel=.006, parent=R)
+    apply_all(leg); arch = cyl('cut2', .38, .3, 'black', loc=(RX, RR, s * 1.58), axis='z', verts=64); boolean_cut(leg, arch)
+    bpy.data.objects.remove(arch, do_unlink=True)
+    # under the collar: an inner skirt and a dark radiator panel set back, so the pod reads solid from the front (dark legs at both edges)
+    slab(f'rbody__skirt_{sd}', [(-.5, .1), (-1.2, .08), (-1.2, .54), (-.56, .54)], .05, D, z=s * .44, bevel=.006, parent=R)
+    slab(f'rbody__duct_{sd}', [(-.74, .1), (-.84, .1), (-.84, .52), (-.74, .52)], 1.1, 'black', z=s * 1.0, parent=R)
+    # behind the wheel: a down-swept tail skirt and a flat blade near the ground
+    slab(f'rbody__tail_{sd}', [(-2.0, .56), (-2.47, .64), (-2.64, .3), (-2.36, .2), (-2.12, .34)], .05, D, z=s * 1.5, bevel=.006, parent=R)
+    flat(f'rbody__blade_{sd}', [(-2.14, s * 1.2), (-2.74, s * 1.3), (-2.74, s * 1.6), (-2.3, s * 1.6)], .025, D, y=.17, bevel=.004, parent=R)
+    slab(f'rbody__lamp_{sd}', [(-2.26, .5), (-2.44, .53), (-2.44, .58), (-2.26, .55)], .012, 'red', z=s * 1.555, parent=R)
+    # ---------------- boosters: rounded-diamond red housings, gold spikes, joined by a red bar ----------------
+    for k, (bz, by) in enumerate(((H1, .88), (H2, .85))):
+      loft(f'boosters_{sd}{k}', [se_ring(x, by, w, w * 1.05, 1.35, s * bz, 24) for x, w in [(-2.3, .05), (-2.4, .15), (-2.62, .18), (-2.72, .16), (-2.76, .1)]], 'red', parent=R)
+      cn = cyl(f'boosters__cone_{sd}{k}', .12, .26, 'gold', loc=(-2.87, by, s * bz), axis='x', verts=24, r2=.004); cn.rotation_euler = (0, math.radians(-90), 0); cn.parent = R
+    # ---------------- horns: flat blades rising from the outer rear corner, sweeping up, forward and in; white top, dark web below ----------------
+    Hn = [(-2.64, 1.04, 1.48), (-2.42, 1.2, 1.46), (-2.16, 1.32, 1.34), (-1.92, 1.38, 1.1), (-1.72, 1.4, .82), (-1.56, 1.39, .55), (-1.46, 1.36, .32)]
+    rings = []
+    for i, p in enumerate(Hn):
+      a, b = Vector(Hn[max(i - 1, 0)]), Vector(Hn[min(i + 1, len(Hn) - 1)]); d = (b - a).normalized()
+      sv = d.cross(Vector((0, 1, 0))).normalized(); up = sv.cross(d).normalized(); c = Vector(p); k = 1 - .6 * i / (len(Hn) - 1)
+      rings.append([tuple(c + sv * .13 * k * math.cos(t * math.tau / 8) + up * .02 * math.sin(t * math.tau / 8)) for t in range(8)])
+    loft(f'horns_{sd}', mirror(rings, s) if s < 0 else rings, 'white', lv=1, parent=R)
+    web = [[(x, y - .015, z - .014), (x, y - .015, z + .014), (x, 1.0, z + .014), (x, 1.0, z - .014)] for x, y, z in Hn[:3]]
+    loft(f'horns__fin_{sd}', mirror(web, s), D, lv=0, parent=R)
+    # ---------------- front fender pods: white wedges right ahead of the front wheels (pointed keel, red check on the flank) ----------------
+    def tear(x, yb, yt, hw):
+      h = yt - yb
+      return sym_ring(x, [(0, yb), (.5 * hw, yb + .22 * h), (.95 * hw, yb + .58 * h), (.88 * hw, yb + .84 * h), (.45 * hw, yb + .98 * h), (0, yt)])
+    fp = [(2.36, .19, .21, .01), (2.2, .13, .27, .07), (2.0, .1, .36, .11), (1.8, .08, .45, .14), (1.6, .07, .54, .155), (1.52, .07, .57, .155)]
+    pod = loft(f'fpods_{sd}', [[(x, y, z + s * OFZ) for x, y, z in tear(*r)] for r in fp], 'white', parent=R)
+    apply_all(pod)
+    skin_strip(f'marks__chev_{sd}', [(1.95, .3), (1.85, .2), (1.68, .38)], [(1.98, .33), (1.86, .25), (1.7, .42)], s, 'red', pod, off=.003, parent=R, n=16, m=1)
+    # dark blades: under each pod down to a ground spike, one outboard, and the jagged lower edge of the wing
+    slab(f'fwing__blade_{sd}', [(2.66, .01), (1.58, .0), (1.56, .2), (1.8, .12), (2.33, .17)], .04, 'black', z=s * OFZ, bevel=.004, parent=R)
+    slab(f'fwing__blade2_{sd}', [(2.42, .01), (1.72, .01), (1.72, .19), (2.0, .19)], .03, 'black', z=s * 1.45, bevel=.004, parent=R)
+    # white wing plate between the nose and the pod, dark underside with a saw-tooth leading edge
+    flat(f'fwing__plate_{sd}', [(1.98, s * .16), (2.2, s * 1.06), (1.7, s * 1.08), (1.62, s * .3)], .035, 'white', y=.25, bevel=.008, parent=R)
+    flat(f'fwing__under_{sd}', [(2.02, s * .24), (2.12, s * .5), (2.04, s * .62), (2.28, s * 1.06), (1.7, s * 1.08), (1.62, s * .3)], .025, D, y=.22, parent=R)
     # ---------------- front suspension: slim black rods ----------------
     rods = []
     for x in OFX:
@@ -861,69 +938,25 @@ def build_ogre(R):
     join(f'fwheels__susp_{sd}', rods, parent=R)
     for i, x in enumerate(OFX): wheel2(f'fwheels_{sd}{i}', FR, FW, (x, FR, s * OFZ), s, R, 'gold', five=True)
     wheel2(f'rwheels_{sd}', RR, RW, (RX, RR, s * RZ), s, R, 'gold', five=True)
-    # ---------------- mid side pods: white noses beside the cockpit, dark behind ----------------
-    sp = loft(f'pods_{sd}', [se_ring(x, y, hw, hh, n=2.4, N=16, cz=s * .72) for x, y, hw, hh in [(.78, .36, .02, .02), (.7, .36, .13, .15), (.52, .36, .18, .21), (0, .36, .2, .23), (-.6, .36, .2, .23)]], D, parent=R)
+    # ---------------- mid side pods: a white vertical nose just behind the front wheels, dark behind ----------------
+    sp = loft(f'pods_{sd}', [se_ring(x, y, hw, hh, n=2.4, N=16, cz=s * .62) for x, y, hw, hh in [(.32, .37, .02, .02), (.26, .37, .09, .16), (.12, .37, .13, .18), (-.3, .37, .14, .18), (-.62, .4, .14, .18)]], D, parent=R)
     sp.data.materials.append(M('white'))
     for pl in sp.data.polygons:
-      if pl.center.x > .36: pl.material_index = 1
-    # ---------------- rear body: wide bat-wing deck, two humps per side, white front face with a red pin line ----------------
-    def rb(x, yb, yt, zi, zo):
-      return [(x, yb, zi), (x, yb, zo), (x, yt - .28, zo), (x, yt - .1, zo - .08), (x, yt, zo - .3), (x, yt - .14, (zi + zo) / 2 + .05), (x, yt - .03, zi + .24), (x, yt - .16, zi)]
-    # near-vertical white front face; dark main body behind a red pin line; top line rising toward the tail
-    RB = [(-.26, .34, .56, 1.28, 1.44), (-.36, .18, .86, .7, 1.56), (-.46, .12, .96, .42, 1.6), (-.62, .1, 1.02, .38, 1.62), (-.7, .1, 1.04, .38, 1.62), (-1.2, .1, 1.1, .38, 1.62),
-          (-1.8, .1, 1.16, .38, 1.62), (-2.3, .18, 1.16, .38, 1.62), (-2.6, .35, 1.1, .38, 1.6), (-2.78, .55, 1.0, .4, 1.56)]
-    face = loft(f'rbody__face_{sd}', mirror([rb(*r) for r in RB[:4]], s), 'white', lv=0, parent=R, creases={i: .92 for i in range(8)})
-    subsurf(face, 2); apply_all(face)
-    body = loft(f'rbody_{sd}', mirror([rb(*r) for r in RB[3:]], s), D, lv=0, parent=R, creases={i: .92 for i in range(8)})
-    subsurf(body, 2); apply_all(body)
-    cut = cyl('cut', .375, 1.4, 'black', loc=(RX, RR, s * 1.0), axis='z', verts=64)
-    boolean_cut(body, cut); bpy.data.objects.remove(cut, do_unlink=True)
-    ring = [rb(-.6, *RB[3][1:]), rb(-.64, *RB[3][1:])]
-    loft(f'rbody__pin_{sd}', mirror([[(x, .6 + (y - .6) * 1.012, 1.0 + (z - 1.0) * 1.012) for x, y, z in r] for r in ring], s), 'red', lv=1, parent=R)
-    # side: a white panel ahead of the wheel that becomes a stripe sweeping up to the boosters; red line under it
-    lo = [(-.66, .46), (-1.2, .62), (-1.9, .74), (-2.5, .86), (-2.74, .9)]
-    hi = [(-.66, .86), (-1.25, .9), (-1.8, .95), (-2.4, 1.0), (-2.74, 1.02)]
-    skin_strip(f'rbody__band_{sd}', lo, hi, s, 'white', body, off=.004, parent=R)
-    skin_strip(f'rbody__bandred_{sd}', [(x, y - .05) for x, y in lo], lo, s, 'red', body, off=.004, parent=R, m=1)
-    cyl(f'rbody__well_{sd}', .385, .012, 'black', loc=(RX, RR, s * .975), axis='z', verts=48).parent = R
-    # dark "eye" intakes on the white face, in front of each hump
-    # dark diamond intakes ("eyes") set into the white face, one in front of each hump
-    for zc, yc in ((.64, .8), (1.3, .78)):
-      d = [(zc - .2, yc - .01), (zc - .05, yc + .07), (zc + .2, yc + .05), (zc + .06, yc - .06)]
-      V = [(-.3, y, s * z) for z, y in d] + [(-.52, y, s * z) for z, y in d]
-      mesh_from(f'rbody__eye_{sd}', V, [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)], 'black', smooth=False, parent=R)
-    # black ground blades: forward spike under the front leg, a short tail blade behind the wheel
-    slab(f'rbody__blade_{sd}', [(-.02, .02), (-1.1, .02), (-1.1, .16), (-.45, .22)], .04, 'black', z=s * 1.45, bevel=.004, parent=R)
-    slab(f'rbody__tailblade_{sd}', [(-2.2, .2), (-2.95, .1), (-2.95, .17), (-2.35, .3)], .04, 'black', z=s * 1.3, bevel=.004, parent=R)
-    # ---------------- boosters: red housings, gold cones, joined by a red bar ----------------
-    for k, (bz, by) in enumerate(OB):
-      h = loft(f'boosters_{sd}{k}', [se_ring(x, by, r, r * .95, 2.6, s * bz, 20) for x, r in [(-2.35, .12), (-2.45, .19), (-2.78, .2), (-2.86, .17)]], 'red', parent=R)
-      c = cyl(f'boosters__cone_{sd}{k}', .15, .36, 'gold', loc=(-3.03, by, s * bz), axis='x', verts=24, r2=.004); c.parent = R
-    # ---------------- horns: white-edged blades rising from the outer rear corner and curving in over the car ----------------
-    H = [(-2.72, 1.0, 1.5), (-2.52, 1.25, 1.47), (-2.28, 1.42, 1.28), (-2.06, 1.5, .98), (-1.9, 1.53, .62), (-1.8, 1.52, .3)]
-    rings = []
-    for i, p in enumerate(H):
-      a, b = Vector(H[max(i - 1, 0)]), Vector(H[min(i + 1, len(H) - 1)]); d = (b - a).normalized()
-      sv = d.cross(Vector((0, 1, 0))).normalized(); up = sv.cross(d).normalized(); c = Vector(p); k = 1 - .5 * i / (len(H) - 1)
-      rings.append([tuple(c + sv * .13 * k * math.cos(t * math.tau / 8) + up * .02 * math.sin(t * math.tau / 8)) for t in range(8)])
-    loft(f'horns_{sd}', mirror([[(x, y, z) for x, y, z in r] for r in rings], s) if s < 0 else rings, 'white', lv=1, parent=R)
-    fin = []
-    for x, y, z in H[:3]:
-      fin.append([(x, y - .02, z - .015), (x, y - .02, z + .015), (x, .98, z + .015), (x, .98, z - .015)])
-    loft(f'horns__fin_{sd}', mirror(fin, s), D, lv=0, parent=R)
+      if pl.center.x > .06: pl.material_index = 1
     # ---------------- rear suspension (mostly hidden inside the body) ----------------
     rods = [rod_between('r', (RX, RR + .08, s * .98), (RX + .2, .45, s * .4), .02, 'black'), rod_between('r', (RX, RR - .08, s * .98), (RX - .2, .25, s * .4), .02, 'black'),
             rod_between('d', (RX, RR, s * .98), (RX, RR + .02, s * .4), .025, 'silver')]
     join(f'rwheels__susp_{sd}', rods, parent=R)
     # ---------------- decals ----------------
-    text_decal(f'marks__five_{sd}', '5', AB, .32, 'teal', (-.95, .34, s * 1.7), sd, target=body, parent=R)
-    text_decal(f'marks__kaga_{sd}', 'BLEED KAGA', TB, .055, 'black', (1.05, .56, s * .45), sd, target=nose, parent=R)
-  text_up('marks__five_f', '5', AB, .26, 'teal', (2.44, .262, .7), yaw=math.radians(90), parent=R)
-  # red bar joining the four boosters across the tail, and the centre spine behind the canopy
+    text_decal(f'marks__five_{sd}', '5', AB, .3, 'teal', (-.98, .28, s * 1.7), sd, target=leg, parent=R)
+    text_decal(f'marks__kaga_{sd}', 'BLEED KAGA', TB, .045, 'black', (.9, .614, s * .6), sd, target=nose, parent=R)
+  slab('fwing__keel', [(2.12, .02), (1.5, .08), (1.5, .2), (1.93, .38), (2.02, .3)], .04, D, bevel=.004, parent=R)
+  text_up('marks__five_f', '5', AB, .22, 'teal', (1.86, .27, .66), yaw=math.radians(90), parent=R)
+  # red bar joining the four boosters across the tail, and the engine cover between the pods
   bpy.ops.mesh.primitive_cube_add(size=1); bar = bpy.context.active_object; bar.name = 'boosters__bar'
-  bar.scale = (.1, 2.5, .07); bar.location = P(-2.74, .83, 0); bar.data.materials.append(M('red')); bar.parent = R
-  loft('rbody__spine', [se_ring(x, y, w, h, 2.6, 0, 18) for x, y, w, h in [(-.4, .66, .14, .06), (-.8, .72, .2, .12), (-1.8, .76, .22, .16), (-2.5, .76, .22, .16), (-2.74, .74, .16, .1)]], D, parent=R)
-  flat('rbody__floor', [(1.6, .3), (.6, .5), (-1.9, .5), (-1.9, -.5), (.6, -.5), (1.6, -.3)], .025, 'carbon', y=.055, parent=R)
+  bar.scale = (.06, 2.4, .1); bar.location = P(-2.6, .86, 0); bar.data.materials.append(M('red')); bar.parent = R
+  loft('rbody__spine', [se_ring(x, y, w, h, 2.6, 0, 18) for x, y, w, h in [(-.62, .8, .2, .1), (-.9, .86, .3, .14), (-1.8, .87, .32, .16), (-2.4, .85, .3, .14), (-2.62, .8, .2, .08)]], D, parent=R)
+  flat('rbody__floor', [(1.4, .3), (.6, .45), (-1.9, .45), (-1.9, -.45), (.6, -.45), (1.4, -.3)], .025, 'carbon', y=.06, parent=R)
   return nose
 
 def car(name, Z):
