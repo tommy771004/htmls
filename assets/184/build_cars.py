@@ -319,24 +319,6 @@ def face_out(ob, want):
     bm = bmesh.new(); bm.from_mesh(me); bmesh.ops.reverse_faces(bm, faces=bm.faces); bm.to_mesh(me); bm.free()
   return ob
 
-def cover_top_fn(st):
-  """y of the aero front-cover top surface at (x, |z|); follows the loft's faceted top exactly"""
-  def prof(r):
-    x, zi, zo, yb, yt = r; zr = zi + (zo - zi) * .38
-    return [(zi, yt - .03), (zr, yt), (zo - .1, yt - .015), (zo, yt - .07)]
-  def f(x, z):
-    x = min(max(x, st[-1][0]), st[0][0])
-    for i in range(len(st) - 1):
-      if st[i][0] >= x >= st[i + 1][0]: break
-    t = (st[i][0] - x) / (st[i][0] - st[i + 1][0] or 1)
-    pa, pb = prof(st[i]), prof(st[i + 1])
-    pr = [(za + (zb - za) * t, ya + (yb - ya) * t) for (za, ya), (zb, yb) in zip(pa, pb)]
-    if z <= pr[0][0]: return pr[0][1]
-    for (z0, y0), (z1, y1) in zip(pr, pr[1:]):
-      if z <= z1: return y0 + (y1 - y0) * (z - z0) / ((z1 - z0) or 1)
-    return pr[-1][1]
-  return f
-
 def densify(poly, step=.04, closed=True):
   out = []; n = len(poly)
   for i in range(n if closed else n - 1):
@@ -406,8 +388,6 @@ def cheek_pt(x, u, s, off=.012):
   z, y = z0 + (z1 - z0) * u, y0 + (y1 - y0) * u
   nz, ny = (y1 - y0), -(z1 - z0); L = math.hypot(nz, ny); nz, ny = nz / L, ny / L
   return (x, y + ny * off, s * (z + nz * off))
-AZ = lambda z: z if z < .3 else .3 + (z - .3) * 1.24   # widening map for the front section (inner edge at the nose unchanged)
-WZ = lambda poly: [(x, AZ(z)) for x, z in poly]
 def build(root, Z):
   A = 'blue' if Z else 'purple'; L = 'lblue' if Z else 'magenta'; R = root
   # ---------------- tub + nose (one loft, nose tip -> tail) ----------------
@@ -629,51 +609,108 @@ def build(root, Z):
     text_up('marks__pulse_R', 'PULSE', AB, .16, 'blue', (1.78, .292, -.84), yaw=math.radians(90), parent=R)
     text_up('marks__fw1_L', '1', TB, .3, 'red', (1.78, .292, .84), yaw=math.radians(90), parent=R)
     # ======== aero mode (エアロモード): parts named "__aero" appear only in aero mode ========
+    # After a top-down photo of the Variable Action figure in aero mode, back-projected through a solved camera.
+    # One faceted cowl spans the car (planform: W front edge whose centre point leads, V notch around the canopy tip);
+    # the outer prongs are long columns that start at the side pods (which slide outboard in this mode, see the page)
+    # and run over the front wheels to a blue spike on the ground.  Tables are (|z|, x).
+    XR = [(0, 2.26), (.04, 2.12), (.08, 1.99), (.17, 1.77), (.44, 1.62), (.92, 1.39)]   # rear edge / notch
+    XI = [(.055, 2.17), (.4, 2.035), (.487, 1.85), (.93, 1.66)]                         # stepped panel line
+    XT = [(0, 2.63), (.47, 2.32), (.83, 2.19), (.92, 2.2)]                               # top of the blue front band
+    XF = [(0, 2.71), (.48, 2.34), (.84, 2.28), (.92, 2.3)]                               # front edge
+    def tab(t, z):
+      z = min(max(z, t[0][0]), t[-1][0])
+      for (z0, a), (z1, b) in zip(t, t[1:]):
+        if z <= z1: return a + (b - a) * (z - z0) / ((z1 - z0) or 1)
+      return t[-1][1]
+    def cowl_prof(z):
+      z = abs(z); xr, xt, xf = tab(XR, z), tab(XT, z), tab(XF, z)
+      xi = min(max(tab(XI, z), xr + .02), xt - .05)
+      yr = .5 + .04 * min(z, .9) / .9
+      return [(xr, yr - .2), (xr, yr), (xi, yr - .02), (xi + .008, yr - .035), (xt, .22), (xf, .06), (xf - .07, .03)]
+    def cowl_y(x, z):
+      pr = cowl_prof(z)[1:6]
+      if x <= pr[0][0]: return pr[0][1]
+      for (x0, y0), (x1, y1) in zip(pr, pr[1:]):
+        if x <= x1: return y0 + (y1 - y0) * (x - x0) / ((x1 - x0) or 1)
+      return pr[-1][1]
+    ZS = [0, .02, .04, .055, .08, .12, .17, .25, .35, .4, .44, .47, .487, .53, .65, .75, .83, .88, .92]
+    zs = [-z for z in reversed(ZS[1:])] + ZS
+    cw = loft('fwing__aero_cowl', [[(x, y, z) for x, y in cowl_prof(z)] for z in zs], 'white', lv=0, parent=R)
+    cw.data.materials.append(M('blue'))
+    n = 7; assert len(cw.data.polygons) == (len(zs) - 1) * n + 2
+    for i in range(len(zs) - 1):   # blue: the front band, and the walls of the V notch around the canopy tip
+      for j in (4, 0):
+        if j == 4 or max(abs(zs[i]), abs(zs[i + 1])) <= .17: cw.data.polygons[i * n + j].material_index = 1
+    for pl in cw.data.polygons: pl.use_smooth = False
+    bv = cw.modifiers.new('bv', 'BEVEL'); bv.width = .008; bv.segments = 2; bv.limit_method = 'ANGLE'
+    def drape(ob, off):
+      """lay a flat decal onto the cowl top"""
+      bpy.context.view_layer.objects.active = ob; bpy.ops.object.select_all(action='DESELECT'); ob.select_set(True)
+      bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+      y0 = min(v.co.z for v in ob.data.vertices)
+      for v in ob.data.vertices: v.co.z = cowl_y(v.co.x, -v.co.y) + off + (v.co.z - y0)
+      return ob
+    one = text_up('marks__aero_one', '1', TB, .4, 'red', (1.98, .5, -.68), yaw=math.radians(90), parent=R)
+    drape(one, .004)
+    em = [(2.615, 0), (2.53, .05), (2.545, .012), (2.52, 0)]
+    hug_plate('marks__aero_emblem_L', cowl_y, em, None, .003, .004, 'yellow', 1, parent=R)
+    hug_plate('marks__aero_emblem_R', cowl_y, em, None, .003, .004, 'red', -1, parent=R)
+    # outer column: circle where it leaves the side pod's fan ring, flattening over the front wheels, spike at the front
+    CLM = [(.2, .38, .165, .17, 1.08), (.32, .4, .163, .15, 1.08), (.45, .45, .16, .12, 1.08), (.58, .56, .158, .08, 1.075),
+           (.75, .585, .155, .075, 1.07), (1.22, .59, .155, .075, 1.07), (1.5, .58, .15, .08, 1.065), (1.75, .53, .145, .09, 1.06),
+           (2.0, .45, .135, .1, 1.06), (2.25, .35, .115, .1, 1.065), (2.5, .22, .085, .085, 1.075), (2.7, .11, .05, .055, 1.085),
+           (2.84, .04, .02, .025, 1.09), (2.88, .02, .005, .01, 1.09)]
+    def col_at(x):
+      for a, b in zip(CLM, CLM[1:]):
+        if a[0] <= x <= b[0]: t = (x - a[0]) / (b[0] - a[0]); return [p + (q - p) * t for p, q in zip(a, b)]
+      return list(CLM[-1] if x > CLM[-1][0] else CLM[0])
+    def col_top(x, z):
+      _, cy, hw, hh, cz = col_at(x); u = min(abs(abs(z) - cz) / hw, .999)
+      return cy + hh * (1 - u ** 2.5) ** (1 / 2.5)
+    def arc(x, t0, t1, d, m=19):
+      _, cy, hw, hh, cz = col_at(x); out = []
+      for i in range(m):
+        t = (t0 + (t1 - t0) * i / (m - 1)) * math.pi; c, sn = math.cos(t), math.sin(t)
+        out.append((x, cy + (hh + d) * math.copysign(abs(sn) ** .8, sn), cz + (hw + d) * math.copysign(abs(c) ** .8, c)))
+      return out
+    # white top: covers the inner side and the crown; the outer flank stays blue; narrows around the lamp, pointed at x=2.43
+    WT = [(.2, .22, 1.1), (1.45, .24, 1.08), (1.62, .7, 1.08), (1.9, .74, 1.06), (2.1, .76, .98), (2.3, .78, .88), (2.43, .81, .83)]
+    def wt_at(x):
+      for a, b in zip(WT, WT[1:]):
+        if a[0] <= x <= b[0]: t = (x - a[0]) / (b[0] - a[0]); return a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t
+      return WT[-1][1:]
+    wxs = [.2, .3, .45, .6, .8, 1.0, 1.22, 1.45, 1.55, 1.62, 1.75, 1.9, 2.0, 2.1, 2.2, 2.3, 2.38, 2.43]
     for s, sd in ((1, 'L'), (-1, 'R')):
-      # front cover half: faceted white shell over the front wheels; front edge recedes toward the nose (W planform)
-      def cring(x, zi, zo, yb, yt):
-        # flat faceted section: steep outer wall, broad top plane with a crease, inner wall down to the nose
-        zr = zi + (zo - zi) * .38
-        return [(x, yb, zi), (x, yb, zo), (x, yt - .07, zo), (x, yt - .015, zo - .1), (x, yt, zr), (x, yt - .03, zi)]
-      st = [(x, AZ(zi), AZ(zo), yb, yt) for x, zi, zo, yb, yt in [(2.44, .86, .98, .04, .08), (2.3, .64, 1.06, .04, .19), (2.12, .42, 1.11, .04, .3), (1.96, .22, 1.13, .05, .37), (1.8, .24, 1.15, .2, .45),
-            (1.45, .27, 1.16, .4, .56), (1.1, .28, 1.16, .42, .58), (.86, .3, 1.12, .4, .56), (.72, .4, 1.0, .36, .5)]]
-      # (setting drawing: the cowl rides over the front wheels, which stay exposed below its edge)
-      cv = loft(f'fwing__aero_cover_{sd}', mirror([cring(*r) for r in st], s), 'white', lv=0, parent=R)
-      for pl in cv.data.polygons: pl.use_smooth = False
-      bv = cv.modifiers.new('bv', 'BEVEL'); bv.width = .012; bv.segments = 2; bv.limit_method = 'ANGLE'
-      # blue lower skirt along the whole cover
-      bb = [[(x, yb - .005, zi + .01), (x, yb - .005, zo + .015), (x, yb + .09, zo + .03), (x, yb + .09, zi + .01)] for x, zi, zo, yb, yt in st[1:]]
-      loft(f'fwing__aero_skirt_{sd}', mirror(bb, s), 'blue', lv=1, parent=R)
-      # outer forward blade (longer and taller than the circuit one)
-      bl = [(2.66, .006, .03, .06), (2.4, .07, .02, .12), (2.0, .1, .02, .16), (1.6, .12, .03, .19), (1.12, .1, .06, .18), (.9, .05, .1, .12)]   # low strake
-      rows = [[(x, b, 1.43 - w), (x, b, 1.43 + w), (x, t, 1.43 + w * .6), (x, t + .02, 1.43), (x, t, 1.43 - w * .6)] for x, w, b, t in bl]
-      loft(f'fwing__aero_blade_{sd}', mirror(rows, s), 'blue', lv=1, parent=R, creases={0: 1, 1: 1, 2: .7, 4: .7})
-      rows = [[(x, t - .002, 1.43 - w * .62), (x, t - .002, 1.43 + w * .62), (x, t + .03, 1.43 + w * .4), (x, t + .036, 1.43), (x, t + .03, 1.43 - w * .4)] for x, w, b, t in bl[1:]]
-      loft(f'fwing__aero_bladetop_{sd}', mirror(rows, s), 'lblue', lv=1, parent=R)
-      # long yellow lens on the outer top of the cover
-      top = cover_top_fn(st)
-      # ---- layered panels on the cover (all hug the faceted top) ----
-      # lens: blue bezel plate, yellow lens sitting in it
-      ell = lambda cx, cz, a, b, n=20: [(cx + a * math.cos(t * math.tau / n), cz + b * math.sin(t * math.tau / n)) for t in range(n)]
-      hug_plate(f'fwing__aero_bezel_{sd}', top, ell(1.56, AZ(.95), .44, .095), ell(1.56, AZ(.95), .39, .058), .004, .014, 'blue', s, parent=R)
-      loft(f'fwing__aero_lens_{sd}', [se_ring(x, top(x, AZ(.95)) + .02, w * 1.1, .016, 2, s * AZ(.95), 14) for x, w in [(1.95, .006), (1.86, .03), (1.62, .052), (1.3, .04), (1.18, .006)]], 'yellow', parent=R)
-      # carbon vent recessed inside a raised white frame
-      vo = [(2.24, .68), (2.24, 1.03), (1.98, 1.08), (1.98, .56)]
-      vi = [(2.2, .73), (2.2, .98), (2.02, 1.02), (2.02, .62)]
-      hug_plate(f'fwing__aero_ventframe_{sd}', top, WZ(vo), WZ(vi), .012, .012, 'white', s, parent=R)
-      hug_plate(f'fwing__aero_vent_{sd}', top, WZ(vi), None, .004, .0, 'carbon', s, parent=R)
-      # inner deck panel with a blue edge stripe, stepped above the cover
-      dp = [(1.92, .26), (1.92, .47), (1.55, .54), (1.02, .54), (.9, .44), (.9, .31), (1.3, .29)]
-      hug_plate(f'fwing__aero_deck_{sd}', top, WZ(dp), None, .008, .01, 'white', s, parent=R)
-      hug_plate(f'fwing__aero_deckedge_{sd}', top, WZ([(1.9, .5), (1.55, .57), (1.0, .57), (1.0, .545), (1.55, .545), (1.9, .475)]), None, .008, .014, 'lblue', s, parent=R)
-      # blue lip along the W-shaped front edge
-      hug_plate(f'fwing__aero_lip_{sd}', top, WZ([(2.43, .87), (2.3, .65), (2.12, .43), (1.96, .23), (1.9, .27), (2.06, .47), (2.24, .69), (2.37, .92)]), None, .006, .012, 'blue', s, parent=R)
-      # rear step: a carbon strip where the cover ends in front of the side pods
-      hug_plate(f'fwing__aero_rearstrip_{sd}', top, WZ([(.86, .32), (.86, 1.1), (.76, 1.0), (.76, .42)]), None, .006, .01, 'carbon', s, parent=R)
-      if s < 0: ONE_Y = top(1.42, AZ(.74)) + .004
+      loft(f'fwing__aero_col_{sd}', mirror([se_ring(x, cy, hw, hh, 2.5, cz, 24) for x, cy, hw, hh, cz in CLM], s), 'blue', lv=0, parent=R)
+      # (an open strip, flipped to face away from the column axis: a thin closed shell came out inside-out)
+      rows = [arc(x, *wt_at(x), .007) for x in wxs]; m = len(rows[0])
+      ct = mesh_from(f'fwing__aero_coltop_{sd}', [(x, y, s * z) for r in rows for x, y, z in r],
+                     [(i * m + j, i * m + j + 1, (i + 1) * m + j + 1, (i + 1) * m + j) for i in range(len(rows) - 1) for j in range(m - 1)], 'white', parent=R)
+      face_out(ct, lambda c: Vector((0, c.y - col_at(c.x)[1], c.z - s * col_at(c.x)[4])))
+      # yellow lamp: a long lozenge on the crown, pointed at both ends
+      lz = 1.045
+      LW = [(1.63, .004), (1.7, .04), (1.82, .066), (1.95, .07), (2.07, .054), (2.17, .025), (2.22, .004)]
+      loft(f'fwing__aero_lens_{sd}', mirror([se_ring(x, col_top(x, lz) + .004, w, .012 + w * .12, 2, lz, 14) for x, w in LW], s), 'yellow', lv=1, parent=R)
+      # amber reflector inside the lens
+      loft(f'fwing__aero_lensin_{sd}', mirror([se_ring(x, col_top(x, lz) + .012, w * .5, .012 + w * .08, 2, lz, 12) for x, w in LW[1:-1]], s), 'orange', lv=1, parent=R)
+      # carbon vent just behind the band, running diagonally inboard
+      hug_plate(f'fwing__aero_vent_{sd}', cowl_y, [(2.04, .81), (2.17, .826), (2.3, .466), (2.2, .452)], None, .002, .003, 'carbon', s, parent=R)
+      # blue lining along the rim of the V notch
+      for q in ([(1.8, .17), (2.0, .085), (1.99, .115), (1.8, .205)], [(2.0, .085), (2.26, .003), (2.2, .05), (1.99, .115)]):
+        hug_plate(f'fwing__aero_notch_{sd}', cowl_y, q, None, .002, .004, 'blue', s, parent=R)
+      # recessed panel grooves: a small L beside the notch and a dash near the outer rear corner
+      # the stepped panel line, drawn as a dark groove just below the step
+      for (z0, x0), (z1, x1) in zip(XI, XI[1:]):
+        hug_plate(f'fwing__aero_groove_{sd}', cowl_y, [(x0 + .01, z0), (x1 + .01, z1), (x1 + .02, z1), (x0 + .02, z0)], None, .001, .002, 'grey', s, parent=R)
+      for g in ([(1.935, .186), (2.07, .186), (2.07, .196), (1.935, .196)], [(1.93, .186), (1.94, .186), (1.94, .24), (1.93, .24)], [(1.655, .8), (1.667, .8), (1.667, .86), (1.655, .86)]):
+        hug_plate(f'fwing__aero_groove_{sd}', cowl_y, g, None, .001, .002, 'black', s, parent=R)
+      # the chevron slats behind the cowl, from the column in to the canopy side (suspension shows between them)
+      flat(f'fwing__aero_slat_{sd}', [(x, s * z) for x, z in [(.925, .95), (1.1, .935), (1.56, .2), (1.39, .2)]], .026, 'white', y=.54, bevel=.006, parent=R)
+      # side pods slide outboard in this mode: stepped white decks fill the gap between them and the tub
+      flat(f'pods__aero_deck_{sd}', [(x, s * z) for x, z in [(-1.09, .985), (-1.09, .585), (-.05, .55), (-.05, .93)]], .024, 'white', y=.47, bevel=.006, parent=R)
+      flat(f'pods__aero_deck2_{sd}', [(x, s * z) for x, z in [(-.51, .65), (-.51, .29), (.34, .29), (.34, .62)]], .024, 'white', y=.44, bevel=.006, parent=R)
       # outer vertical fins at the tail corners
       slab(f'rbody__aero_fin_{sd}', [(-1.7, .8), (-2.46, .8), (-2.92, 1.72), (-2.78, 1.76), (-2.2, 1.1)], .035, 'blue', z=s * 1.56, bevel=.01, parent=R)   # tall swept tail fins
-    text_up('marks__aero_one', '1', TB, .46, 'red', (1.42, ONE_Y, -AZ(.74)), yaw=math.radians(90), parent=R)
     # light-blue arched wing between the nacelles, with two small white fins
     rows = []
     for k in range(13):
