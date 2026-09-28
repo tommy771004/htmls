@@ -20,6 +20,7 @@ PAL = {
   'silver': (0.62, 0.64, 0.67), 'gold': (0.55, 0.42, 0.18), 'dark': (0.03, 0.035, 0.04), 'tyre': (0.025, 0.025, 0.03),
   'glass': (0.55, 0.75, 0.92), 'yellow': (0.95, 0.72, 0.1), 'grey': (0.35, 0.37, 0.4), 'rimface': (0.05, 0.05, 0.06),
   'purple': (0.22, 0.09, 0.45), 'magenta': (0.75, 0.12, 0.38), 'green': (0.12, 0.72, 0.28), 'deep': (0.08, 0.03, 0.18),
+  'khaki': (0.55, 0.5, 0.32), 'orange': (0.85, 0.35, 0.08), 'glowy': (1.0, 0.75, 0.2),
 }
 MATS = {}
 def M(name):
@@ -773,7 +774,21 @@ def build(root, Z):
             (-1.57, .9, .283, 1), (-1.63, .9, .285, 1), (-1.85, .9, .285, 1), (-2.1, .9, .285, 1), (-2.3, .9, .285, 1), (-2.44, .9, .268, 1), (-2.52, .9, .215, 1)]
       # over the wheel arch the underside is flattened (buried in the fender) so it never shows through the arch
       flatb = lambda x, ring: [(px, max(py, .735), pz) for px, py, pz in ring] if -2.32 < x < -1.26 else ring
-      nb = loft(f'nacelles__body_{sd}', [flatb(x, se_ring(x, y, r * (.96 if x > -1.6 else 1), r * k, 2, cz, 22)) for x, y, r, k in NR], 'blue', parent=R)
+      # 二段推進器（Spiral Booster，依 Mobile01「宅工程濕」2022 自製模型）：艙身拆成三段。前段固定；中段是可被油壓推桿
+      # 往前推的整流罩套筒（略大一圈、兩端開口，套在前段外面）；紅色尾罩底下另有一段固定的藍色尾身
+      def nr_at(x):
+        for a, b in zip(NR, NR[1:]):
+          if a[0] >= x >= b[0]: t = (a[0] - x) / (a[0] - b[0]); return [p + (q - p) * t for p, q in zip(a[1:], b[1:])]
+        return list(NR[-1][1:])
+      def nring(x, grow=0.0, floor=.735):
+        y, r, k = nr_at(x)
+        ring = se_ring(x, y, r * (.96 if x > -1.6 else 1) + grow, r * k + grow, 2, cz, 22)
+        return [(px, max(py, floor), pz) for px, py, pz in ring] if -2.32 < x < -1.26 else ring
+      loft(f'nacelles__body_{sd}', [nring(x) for x in (-.66, -.8, -.96, -1.12, -1.28, -1.44, -1.5, -1.56)], 'blue', parent=R)
+      sv = loft(f'nacelles__sleeve_{sd}', [nring(x, .008, .727) for x in (-1.44, -1.452, -1.57, -1.63, -1.85, -2.1, -2.188, -2.2)], 'blue', parent=R, cap=False)
+      face_out(sv, lambda c: Vector((0, c.y - .9, c.z - cz)))
+      so = sv.modifiers.new('sol', 'SOLIDIFY'); so.thickness = .012; so.offset = -1
+      loft(f'nacelles__tailbody_{sd}', [nring(x) for x in (-2.2, -2.212, -2.3, -2.44, -2.52)], 'blue', parent=R)
       # red only on a short cap at the tail (owner's photo of the figure + built kits); two blue flame tongues run back into it
       # on the top.  A separate shell hugging the body, so the tongues are smooth instead of stair-stepped faces.
       def nac_r(x):
@@ -800,6 +815,7 @@ def build(root, Z):
           F.append((a, a + 1, b + 1, b))
       rc = mesh_from(f'nacelles__red_{sd}', V, F, 'red', parent=R)
       face_out(rc, lambda c: Vector((0, c.y - .9, c.z - cz)))
+      so = rc.modifiers.new('sol', 'SOLIDIFY'); so.thickness = .008; so.offset = -1   # 套筒前推後，紅罩前緣看得到厚度
       # dark intake slit on the crown of the blue cowl, a narrow V opening toward the rear
       def nac_top(x, dz):
         for a_, b_ in zip(NR, NR[1:]):
@@ -811,15 +827,69 @@ def build(root, Z):
       face_out(sk, lambda c: Vector((0, 1, 0)))
       cyl(f'nacelles__face_{sd}', .175, .02, 'black', loc=(-2.525, .9, cz), axis='x', verts=24).parent = R
       c = cyl(f'nacelles__cone_{sd}', .15, .2, 'grey', loc=(-2.62, .9, cz), axis='x', verts=24, r2=.13); c.parent = R
-      cyl(f'nacelles__hole_{sd}', .085, .02, 'black', loc=(-2.725, .9, cz), axis='x', verts=6).parent = R
+      h = cyl(f'nacelles__hole_{sd}', .085, .02, 'black', loc=(-2.725, .9, cz), axis='x', verts=6); h.parent = R
+      cone = join(f'nacelles__cone_{sd}', [c, h], origin=(-2.62, .9, cz))   # 推進器展開時縮進尾罩
       loft(f'nacelles__base_{sd}', [se_ring(x, .8, w, .075, 3, cz, 16) for x, w in [(-.9, .02), (-1.0, .13), (-1.4, .17), (-2.1, .17), (-2.4, .1), (-2.5, .02)]], 'blue', parent=R)
-      for k in range(3):
-        xc = -2.0 - k * .13
+      chev = []
+      for k in range(3):   # 白色箭頭畫在整流罩套筒上，跟著它前推
+        xc = -1.87 - k * .12
         pts = [(xc + .07, 1.01), (xc - .03, .9), (xc + .07, .79), (xc + .03, .79), (xc - .07, .9), (xc + .03, 1.01)]
-        slab(f'nacchev_{sd}{k}', pts, .02, 'white', z=s * (1.15 + .283), parent=R)
-      nac = [o for o in list(COL.objects) if o.parent == R and (o.name.startswith(f'nacelles__') and not o.name.startswith('nacelles__base') and o.name.endswith(sd) or o.name.startswith(f'nacchev_{sd}'))]
+        chev.append(slab(f'nacchev_{sd}{k}', pts, .02, 'white', z=s * (1.15 + .291)))
+      sleeve = join(f'nacelles__sleeve_{sd}', [sv] + chev, origin=(-1.8, .9, cz))
+      # ---- 套筒底下的引擎本體（只在推進器展開時露出）：卡其色金屬環節鼓、控制電腦盒、兩條冷卻水管、四支油壓推桿 ----
+      CY = .93; rows = []
+      for j in range(7):
+        x0 = -1.62 - j * .083
+        for dx, rr in ((0, .148), (-.012, .162), (-.05, .162), (-.062, .148)):
+          if x0 + dx >= -2.2: rows.append(se_ring(x0 + dx, CY, rr, rr, 2, cz, 24))
+      rows.append(se_ring(-2.2, CY, .148, .148, 2, cz, 24))
+      core = loft(f'nacelles__core_{sd}', rows, 'khaki', lv=0, parent=R)
+      slab(f'nacelles__ecu_{sd}', [(-1.86, 1.07), (-2.04, 1.07), (-2.04, 1.14), (-1.86, 1.14)], .12, 'silver', z=cz, bevel=.008, parent=R)
+      slab(f'nacelles__ecutop_{sd}', [(-1.89, 1.139), (-2.01, 1.139), (-2.01, 1.147), (-1.89, 1.147)], .08, 'black', z=cz, parent=R)
+      for yp in (CY, CY - .07):   # 冷卻水管：在推進艙外側，一進一出
+        pts = [(-1.66, yp + .1, cz + s * .13), (-1.78, yp, cz + s * .19), (-2.1, yp, cz + s * .19), (-2.18, yp - .03, cz + s * .17)]
+        for a, b in zip(pts, pts[1:]): rod_between(f'nacelles__pipe_{sd}', a, b, .013, 'orange').parent = R
+      for a in (35, 145, 215, 325):   # 油壓推桿：缸筒固定在尾段，推桿伸進套筒
+        dy, dz = .215 * math.sin(math.radians(a)), .215 * math.cos(math.radians(a))
+        rod_between(f'nacelles__ram_{sd}', (-2.2, .9 + dy, cz + dz), (-2.0, .9 + dy, cz + dz), .02, 'grey').parent = R
+        rod_between(f'nacelles__rod_{sd}', (-2.0, .9 + dy, cz + dz), (-1.7, .9 + dy, cz + dz), .01, 'silver').parent = R
+      # ---- 紅色外涵道的四片擾流片：平時貼著紅罩，展開時以前緣為軸往外張開 ----
+      flaps = []
+      for k, th in enumerate((0, 90, 180, 270)):
+        t0 = math.radians(th); X0, X1, NX, NA = -2.32, -2.56, 6, 4; V = []
+        for i in range(NX + 1):
+          x = X0 + (X1 - X0) * i / NX; ha = math.radians(15 - 7 * i / NX)
+          for j in range(NA + 1):
+            a = t0 + ha * (2 * j / NA - 1)
+            for dr in (.012, .026):
+              rr = nac_r(x) + dr; V.append((x, .9 + rr * math.sin(a), cz + rr * math.cos(a)))
+        ix = lambda i, j, o: (i * (NA + 1) + j) * 2 + o
+        F = [(ix(i, j, o), ix(i + 1, j, o), ix(i + 1, j + 1, o), ix(i, j + 1, o)) for i in range(NX) for j in range(NA) for o in (0, 1)]
+        F += [(ix(i, j, 0), ix(i + 1, j, 0), ix(i + 1, j, 1), ix(i, j, 1)) for i in range(NX) for j in (0, NA)]
+        F += [(ix(i, j, 0), ix(i, j + 1, 0), ix(i, j + 1, 1), ix(i, j, 1)) for i in (0, NX) for j in range(NA)]
+        fl = mesh_from(f'nacelles__flap_{sd}{k}', V, F, 'red', smooth=False)
+        rh = nac_r(X0) + .012
+        flaps.append(set_origin(fl, (X0, .9 + rh * math.sin(t0), cz + rh * math.cos(t0))))
+      # ---- 噴嘴：平時收在尾罩裡，展開時往後伸出；管內黃色燃燒室，前面六片黑色導流片 ----
+      NF, NB, NS = -2.18, -2.52, 28
+      prof = [(NF, .145), (NF, .165), (NB + .05, .165), (NB, .174), (NB, .156), (NF + .02, .145)]
+      V = [(x, .9 + r * math.sin(i / NS * math.tau), cz + r * math.cos(i / NS * math.tau)) for x, r in prof for i in range(NS)]
+      F = [(p * NS + i, p * NS + (i + 1) % NS, ((p + 1) % len(prof)) * NS + (i + 1) % NS, ((p + 1) % len(prof)) * NS + i) for p in range(len(prof)) for i in range(NS)]
+      nz = [mesh_from(f'nacelles__nozzle_{sd}', V, F, 'black'),
+            cyl(f'nzg_{sd}', .146, .01, 'glowy', loc=(NF - .07, .9, cz), axis='x', verts=NS),
+            cyl(f'nzh_{sd}', .04, .03, 'black', loc=(NF - .085, .9, cz), axis='x', verts=16)]
+      for k in range(6):
+        a = k / 6 * math.tau; d, tn = (0, math.sin(a), math.cos(a)), (0, math.cos(a), -math.sin(a))
+        V = [(x, .9 + r * d[1] + w * tn[1], cz + r * d[2] + w * tn[2]) for x in (NF - .076, NF - .096) for r in (.035, .14) for w in (-.006, .006)]
+        nz.append(mesh_from(f'nzv_{sd}{k}', V, [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)], 'black', smooth=False))
+      nozzle = join(f'nacelles__nozzle_{sd}', nz, origin=(-2.35, .9, cz))
+      KIDS = ('nacelles__sleeve', 'nacelles__cone', 'nacelles__flap', 'nacelles__nozzle')
+      nac = [o for o in list(COL.objects) if o.parent == R and o.name.startswith(f'nacelles__') and not o.name.startswith(('nacelles__base',) + KIDS) and o.name.split('.')[0].endswith(sd)]
       for o in nac: o.parent = None
-      join(f'nacelles_{sd}', nac, parent=R, origin=(-1.55, .9, cz))
+      nob = join(f'nacelles_{sd}', nac, parent=R, origin=(-1.55, .9, cz))
+      bpy.context.view_layer.update()
+      for o in [sleeve, cone, nozzle] + flaps:   # 可動件掛在推進艙底下：空力模式的上揚與後滑會一起帶著走
+        mw = o.matrix_world.copy(); o.parent = nob; o.matrix_world = mw
       # fan wing (circuit mode only), after the kit paint-guide top/side drawings: the root sits over the deck inboard of the
       # nacelle, the blade passes just above the nacelle top with ~11 deg dihedral and is barely swept (tip only .14 m back)
       L = 1.25; LR, TR, LT, TT = -1.7, -2.06, -1.84, -2.14

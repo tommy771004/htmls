@@ -209,6 +209,7 @@ body.ink #sheetLabel{opacity:1}
 <div class="bar top glass" role="toolbar" aria-label="車體狀態">
   <button type="button" data-mode="circuit" aria-pressed="true">賽道模式</button>
   <button type="button" data-mode="aero" aria-pressed="false" id="aeroBtn">空力模式</button>
+  <button type="button" data-mode="boost" aria-pressed="false" id="boostBtn">推進器</button>
   <button type="button" data-mode="split" aria-pressed="false">分解</button>
   <label class="slide"><input id="ex" type="range" min="0" max="100" step="1" value="0" aria-label="分解程度"><output id="exOut">0%</output></label>
   <span class="sep"></span>
@@ -428,8 +429,8 @@ function tyreText(names, ink) {
 const CARS = {
   zenith: {
     name: 'ν 阿斯拉 AKF-0/G', short: 'ν 阿斯拉', dot: '#1f4fd0',
-    label: ['νアスラーダ AKF-0/G', { circuit: 'サーキットモード', aero: 'エアロモード' }],
-    modes: true,
+    label: ['νアスラーダ AKF-0/G', { circuit: 'サーキットモード', aero: 'エアロモード', boost: 'エアロモード · スパイラルブースター' }],
+    modes: true, boost: true,
     parts: {
       nose:     { cat: 'body', n: '機首與單體殼', jp: 'ノーズ／モノコック', d: '白色機首一路延伸到車尾。前段斷面是倒過來的盾形：頂面一道稜線，兩側斜面往下收到一道折線（稜角），折線以下是藍色龍骨；機首兩頰各一片黃色三角，尖端朝前。', l: ['機首尖端往下壓進前翼正中央，正面看前翼下緣的 V 字就是這道龍骨', '前輪懸吊與座艙都裝在這個殼體上'] },
       canopy:   { cat: 'cockpit', n: '座艙罩', jp: 'キャノピー', d: '淺藍色的長座艙罩，前端尖尖地伸到黃色三角之間，底部一圈白色座艙框；頂線從機首一路往後升高，在約 1 公尺高處接上引擎罩，後段收進引擎罩的尖角底下，玻璃和白色車殼接成一體。', l: ['半透明的淺藍色玻璃，看得到裡面的車手（依 Variable Action 官方照）', '座艙視角時會暫時隱藏'] },
@@ -438,7 +439,7 @@ const CARS = {
       fwheels:  { cat: 'run', n: '雙前輪與懸吊', jp: 'ダブルフロントホイール', d: '每側兩只前輪前後排列，全車共六輪。推桿式懸吊：每只輪上下各一支又寬又扁的三角搖臂，外面包灰色斜紋碳纖維，兩支臂之間一道斜撐（作者嫌動畫和市售模型只有細細的三支支架）；輪內側是黑色的煞車整流罩，下方一個小進氣口替碟盤散熱。', l: ['前輪距加寬到接近後輪，修正原廠模型「前窄後寬」的比例', '金色輪框比原廠模型大一號，8 組雙輻從輪轂分叉到輪緣，中央一顆黃色中央鎖緊螺帽；胎側因此變薄', '推桿從下搖臂斜斜拉到車身上方的避震器'] },
       rwheels:  { cat: 'run', n: '後輪', jp: 'リアタイヤ', d: '一對又寬又大的後輪，位置正好在推進艙下方。後懸吊同樣是推桿式的寬扁三角搖臂，也包灰色碳纖維；傳動軸整合進搖臂：外面包一道碳纖維翼形樑降低風阻，上下兩條細桿把樑的兩端連起來，中段開窗露出銀色的軸。', l: ['胎寬接近輪胎直徑', '車底是平整的地面效應底板，車尾接擴散器與四片導流片'] },
       rbody:    { cat: 'body', n: '後車體（橋形車殼）', jp: 'リアカウル', d: '一整片白色車殼：從座艙後方的引擎罩向左右伸出兩道寬臂，末端變成擋在後輪前方的立柱，底下是空的。寬臂從引擎罩下緣、貼著側箱伸出，內低外高，正面看像一對蝙蝠翼；外側的肩角銳利地折下，接到後擋泥板立柱。整片車殼由平面和折線構成，有稜有角（依模型說明書與 Variable Action 官方照）。', l: ['引擎罩緊接在車手頭後：又高又寬的五角斷面，前端尖角壓在座艙罩後段上，頂上立一片往後掠的白色尾鰭，側面是大大的紅色 S，兩道寬臂直接從它兩側長出去；後方一道白色中脊連到弧形翼', '寬臂後段疊著一片藍色帶，前緣呈 V 形並鑲一道淺藍邊，帶上三道黑色排熱口，後翼前方另有一道金屬網格', '側箱後端有三道鯊魚腮排氣口，座艙兩側各一個小進氣口', '擋泥板前緣是一根貼地往前伸的藍色尖角，前緣沿內凹弧線往上接到寬臂；輪拱貼著輪胎，內側有黑色內襯；後輪後方只剩外側一片薄鰭，後緣接近垂直，從正後方看後輪整個露出；車尾中央是槍灰色的梯形防撞結構，兩個小橢圓散熱孔；擴散器的四片導流片收在斜板底下', '空力模式時車尾兩角豎起兩片高高往後掃的藍色尾鰭，比推進艙還高（依設定稿）'] },
-      nacelles: { cat: 'run', n: '推進艙', jp: 'ブースター', d: '寬臂末端上方的兩具推進艙：從車殼長出來的細長藍色艙身，前端頂上一道深色 V 形進氣縫；只有尾端一小段是紅色圓罩，頂面兩道藍色火焰尖角往後伸進紅色裡，尾端中間伸出深灰色噴嘴，外側三道白色箭頭。', l: ['推進艙直徑和後輪差不多', '紅色只佔尾端一小段（依模型實物照）', '空力模式時尾端上揚，整具連同底座往後滑約 40 公分'] },
+      nacelles: { cat: 'run', n: '推進艙', jp: 'ブースター', d: '寬臂末端上方的兩具推進艙：從車殼長出來的細長藍色艙身，前端頂上一道深色 V 形進氣縫；只有尾端一小段是紅色圓罩，頂面兩道藍色火焰尖角往後伸進紅色裡，尾端中間伸出深灰色噴嘴，外側三道白色箭頭。', l: ['推進艙直徑和後輪差不多', '紅色只佔尾端一小段（依模型實物照）', '空力模式時尾端上揚，整具連同底座往後滑約 40 公分', '空力模式下可再展開二段推進器（依 Mobile01 網友「宅工程濕」2022 年的 1/24 自製模型）：油壓推桿把藍色整流罩往前推約 36 公分，露出卡其色的引擎本體、頂上的控制電腦盒、外側一進一出兩條冷卻水管與四支推桿；接著尾端紅色外涵道的四片擾流片往外張開，黑色噴嘴往後伸出，管內透出黃色燃燒室並噴出尾焰'] },
       fanwings: { cat: 'aero', n: '後翼', jp: 'スタビライザーウイング', d: '推進艙之間一道淺藍弧形翼，兩端一路接到推進艙內側，中央在前、翼尖往後掠，翼前的甲板上一道金屬網格；翼上立兩片白色小鰭；中央兩盞紅色警示燈，正上方一根白色尾鰭頂著攝影機。賽道模式另有兩片藍色扇翼：翼根在推進艙內側的甲板上方，由一根短支柱撐著，越過推進艙頂往外伸，微微上翹、幾乎不後掠（依模型說明書），頂面印黃色 SUNSET。空力模式收起扇翼，只留弧形翼。', l: ['賽道模式兩翼翼尖寬度約 3.5 公尺，是全車最寬處，翼尖後緣各一段紅色警示燈條，雨天讓後車看出車寬', '空力模式車尾外角另有兩片藍色垂直鰭'] },
       ai:       { cat: 'ai', n: '阿斯拉 AI 單元', jp: 'ASURADA', d: '儀表台上的黑色球體：四顆青綠鏡頭排成十字，外圈一道細綠環，左右各一片紅色弧形燈翼。', l: ['官方公開的座艙特寫，就是從駕駛位看它', '燈翼的三段紅燈依序亮起'] },
       wheel:    { cat: 'cockpit', n: '方向盤', jp: 'ステアリング', d: '同一張座艙特寫裡，方向盤中央有紅、藍、綠三顆旋鈕，旁邊一根紅頭撥桿。', l: ['三顆旋鈕各有一條白色刻線'] },
@@ -477,7 +478,7 @@ const TYRE_TEX = { base: null };
    節點名稱＝零件代號（nose、rbody__fender_L、fwheels_L0…），材質名稱＝顏色代號。 */
 const PAL = {
   white: 0xf3f4f6, blue: 0x1c22a0, lblue: 0x1e9ae6, red: 0xd41e28, silver: 0xd0d3d8, gold: 0xd1a254, dark: 0x1a1c20, black: 0x121214,
-  glass: 0x3f63d8, yellow: 0xffbe12, grey: 0x2a2c30, orange: 0xff6a1a, teal: 0x1f9e7a,
+  glass: 0x3f63d8, yellow: 0xffbe12, grey: 0x2a2c30, orange: 0xff6a1a, teal: 0x1f9e7a, khaki: 0xb3a36c,
   purple: 0x5b2fa0, magenta: 0xd9408f, green: 0x1fb07a, deep: 0x1d1633
 };
 /* 分解方向（依零件代號，z 乘上左右） */
@@ -522,11 +523,11 @@ function setupCar(key, root) {
       vec2 g = abs(fract(vec2(vCP.y + vCP.z, vCP.y - vCP.z) * 60.) - .5);
       diffuseColor.rgb *= mix(.12, 1., smoothstep(.28, .36, max(g.x, g.y)));`);
   };
-  const SPEC = { gold: { r: .28, m: 1, cc: 0 }, silver: { r: .22, m: 1, cc: 0 }, black: { r: .78, m: 0, cc: 0 }, grey: { r: .4, m: .6, cc: 0 } };
+  const SPEC = { khaki: { r: .36, m: .75, cc: 0 }, gold: { r: .28, m: 1, cc: 0 }, silver: { r: .22, m: 1, cc: 0 }, black: { r: .78, m: 0, cc: 0 }, grey: { r: .4, m: .6, cc: 0 } };
   root.traverse(m => {
     if (!m.isMesh) return;
     const n = (m.material && m.material.name) || 'white';
-    m.material = n === 'glass' ? glass : n === 'glassg' ? glassG : n === 'carbon' ? carbon : n === 'cfgrey' ? cfGrey : n === 'mesh' ? wire : n === 'lamp' ? new THREE.MeshStandardMaterial({ color: 0xff3a30, emissive: 0xff1a10, emissiveIntensity: 1.6, roughness: .3 }) : n === 'yellow' ? new THREE.MeshPhysicalMaterial({ color: PAL.yellow, roughness: .08, transparent: true, opacity: .88, clearcoat: 1, emissive: 0x6b3a00, emissiveIntensity: .35 })
+    m.material = n === 'glass' ? glass : n === 'glassg' ? glassG : n === 'carbon' ? carbon : n === 'cfgrey' ? cfGrey : n === 'mesh' ? wire : n === 'lamp' ? new THREE.MeshStandardMaterial({ color: 0xff3a30, emissive: 0xff1a10, emissiveIntensity: 1.6, roughness: .3 }) : n === 'glowy' ? new THREE.MeshStandardMaterial({ color: 0xffd25a, emissive: 0xffa21a, emissiveIntensity: 1.5, roughness: .4 }) : n === 'yellow' ? new THREE.MeshPhysicalMaterial({ color: PAL.yellow, roughness: .08, transparent: true, opacity: .88, clearcoat: 1, emissive: 0x6b3a00, emissiveIntensity: .35 })
       : toon(PAL[n] ?? PAL.white, 0, 1, SPEC[n] || {});
     m.castShadow = n !== 'glass' && n !== 'glassg'; m.receiveShadow = true;
     if (n === 'glass' || n === 'glassg') m.userData.lineFill = 'glass';
@@ -667,7 +668,36 @@ function setupCar(key, root) {
     }
     pickables.push(m);
   });
-  return { key, def, root, parts, pickables, ai, embers };
+  /* 二段推進器：推進艙底下的可動件（Blender 模型裡掛在 nacelles_L/R 下），依 a0→a1 的進度依序動作 */
+  const boost = [], flames = [];
+  if (Z) for (const sd of ['L', 'R']) {
+    const nac = root.getObjectByName('nacelles_' + sd), kid = n => nac.getObjectByName(`nacelles__${n}_${sd}`);
+    const slide = (o, d, a0, a1) => boost.push({ o, p0: o.position.clone(), d, a0, a1 });
+    slide(kid('sleeve'), V(.36, 0, 0), 0, .45);    /* 油壓推桿把整流罩往前推 */
+    slide(kid('cone'), V(.22, 0, 0), .15, .45);    /* 尾錐縮進尾罩 */
+    const nz = kid('nozzle');
+    slide(nz, V(-.34, 0, 0), .5, 1);               /* 噴嘴往後伸出 */
+    for (let k = 0; k < 4; k++) {                  /* 擾流片以前緣為軸往外張開 */
+      const f = nac.getObjectByName(`nacelles__flap_${sd}${k}`), r = V(0, f.position.y, f.position.z).normalize();
+      boost.push({ o: f, q0: f.quaternion.clone(), axis: r.cross(V(1, 0, 0)), ang: .55, a0: .42, a1: .82 });
+    }
+    /* 尾焰：從噴口往後收尖，外層橘、內層近白 */
+    for (const [r, h, c0, c1, a] of [[.13, .62, 0xffd27a, 0xff5a14, .7], [.075, .34, 0xfff6de, 0xffc04a, .9]]) {
+      const g = new THREE.ConeGeometry(r, h, 28, 1, true); g.rotateZ(Math.PI / 2); g.translate(-h / 2, 0, 0);
+      const m = new THREE.Mesh(g, new THREE.ShaderMaterial({
+        uniforms: { uA: { value: a }, uC0: { value: new THREE.Color(c0) }, uC1: { value: new THREE.Color(c1) } },
+        vertexShader: `varying vec2 vUv; varying float vF;
+          void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            vF = abs(dot(normalize(normalMatrix * normal), normalize(-mv.xyz))); gl_Position = projectionMatrix * mv; }`,
+        fragmentShader: `uniform float uA; uniform vec3 uC0, uC1; varying vec2 vUv; varying float vF;
+          void main(){ float t = vUv.y; gl_FragColor = vec4(mix(uC0, uC1, t), uA * pow(1.0 - t, 1.6) * smoothstep(.05, .6, vF)); }`,
+        transparent: true, depthWrite: false, side: THREE.DoubleSide, toneMapped: false
+      }));
+      m.position.x = -.18; m.userData.fx = true; m.userData.part = 'nacelles'; m.castShadow = false; m.visible = false; m.raycast = noop;
+      nz.add(m); flames.push(m);
+    }
+  }
+  return { key, def, root, parts, pickables, ai, embers, boost, flames };
 }
 
 const cars = { zenith: setupCar('zenith', GLB.getObjectByName('car_zenith')), ouga: setupCar('ouga', GLB.getObjectByName('car_ouga')) };
@@ -779,7 +809,7 @@ function renderReflection() {
 
 /* ---------------- 狀態 ---------------- */
 const st = {
-  car: 'zenith', aero: 0, aeroTo: 0, split: 0, splitTo: 0,
+  car: 'zenith', aero: 0, aeroTo: 0, boost: 0, boostTo: 0, split: 0, splitTo: 0,
   ink: 0, inkOn: false,
   spin: !reduce, spinA: 0, view: 'q', cam: null, hover: null, pinned: null, hit: null, solo: null, legendCat: null,
   sheetShift: 0, roll: 0
@@ -861,8 +891,10 @@ function syncTog(k, on) { const b = document.querySelector(`[data-tog="${k}"]`);
 const exIn = $('ex'), exOut = $('exOut');
 function setMode(m) {
   if (m === 'aero' && !cur().def.modes) return;
+  if (m === 'boost' && !cur().def.boost) return;
   if (m === 'split') { st.splitTo = st.splitTo > 0 ? 0 : 1; }
-  else { st.aeroTo = m === 'aero' ? 1 : 0; if (st.splitTo > 0 && m === 'circuit') st.splitTo = 0; }
+  else if (m === 'boost') { st.boostTo = st.boostTo ? 0 : 1; if (st.boostTo) st.aeroTo = 1; }   /* 二段推進器只在空力模式展開：先變形，再推整流罩 */
+  else { st.aeroTo = m === 'aero' ? 1 : 0; st.boostTo = 0; if (st.splitTo > 0 && m === 'circuit') st.splitTo = 0; }
   syncModes();
 }
 function syncModes() {
@@ -872,6 +904,10 @@ function syncModes() {
   const ab = $('aeroBtn'), ok = cur().def.modes;
   ab.setAttribute('aria-disabled', !ok);
   ab.title = ok ? '' : '凰呀 AN-21 這裡只做賽道模式';
+  const bb = $('boostBtn'), bok = !!cur().def.boost;
+  bb.setAttribute('aria-pressed', st.boostTo === 1);
+  bb.setAttribute('aria-disabled', !bok);
+  bb.title = bok ? '空力模式下展開二段推進器' : '二段推進器是 ν 阿斯拉的機構';
   updateLabel();
 }
 document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
@@ -912,13 +948,14 @@ function setCar(k) {
   carBtn.style.setProperty('--cc', CARS[k].dot);
   carPop.querySelectorAll('[data-car]').forEach(b => b.setAttribute('aria-checked', b.dataset.car === k));
   if (!CARS[k].modes) st.aeroTo = 0;
+  if (!CARS[k].boost) st.boostTo = 0;
   st.pinned = null; st.hover = null; hideCard();
   buildParts(); syncModes(); refreshLook();
   if (st.view === 'cockpit') goView('cockpit');
 }
 function updateLabel() {
   const L = CARS[st.car].label;
-  $('sheetLabel').innerHTML = `${L[0]}<br>${L[1][st.aeroTo ? 'aero' : 'circuit']}`;
+  $('sheetLabel').innerHTML = `${L[0]}<br>${L[1][st.boostTo && L[1].boost ? 'boost' : st.aeroTo ? 'aero' : 'circuit']}`;
 }
 function openPop(btn, pop) {
   const on = !pop.classList.contains('on');
@@ -1005,7 +1042,8 @@ function fillCard(id) {
   $('cDesc').textContent = p.d;
   $('cList').innerHTML = (p.l || []).map(t => `<li>${t}</li>`).join('');
   const hasAero = cur().def.modes && p.pieces.some(pc => pc.mode || !pc.p0.equals(pc.p1) || !pc.r0.equals(pc.r1));
-  $('cMode').textContent = hasAero ? (st.aeroTo ? '目前：空力模式姿態' : '這個零件在空力模式會改變姿態') : '';
+  $('cMode').textContent = id === 'nacelles' && cur().def.boost ? (st.boostTo ? '目前：二段推進器展開' : st.aeroTo ? '按上方「推進器」展開二段推進器' : '這個零件在空力模式會改變姿態，並可展開二段推進器')
+    : hasAero ? (st.aeroTo ? '目前：空力模式姿態' : '這個零件在空力模式會改變姿態') : '';
   $('cPin').textContent = st.pinned === id ? '已釘選 · 點空白處取消' : '點擊釘選';
 }
 function showCard(id) {
@@ -1141,12 +1179,17 @@ buildParts(); syncModes(); applyStudio('light'); refreshLook();
 goView('q', true);
 
 let last = performance.now();
-const eul = new THREE.Euler();
+const eul = new THREE.Euler(), boostQ = new THREE.Quaternion();
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   const k = 1 - Math.exp(-dt * 7);
-  st.aero += (st.aeroTo - st.aero) * k;
-  if (Math.abs(st.aeroTo - st.aero) < 1e-3) st.aero = st.aeroTo;
+  /* 收推進器時先收完再變回賽道模式；展開時等空力變形接近完成才推整流罩 */
+  const aeroGoal = st.aeroTo === 0 && st.boost > 0 ? 1 : st.aeroTo;
+  st.aero += (aeroGoal - st.aero) * k;
+  if (Math.abs(aeroGoal - st.aero) < 1e-3) st.aero = aeroGoal;
+  const boostGoal = st.boostTo && st.aero > .9 ? 1 : 0;
+  if (boostGoal > st.boost) st.boost = Math.min(1, st.boost + dt / 1.8);
+  else if (boostGoal < st.boost) st.boost = Math.max(0, st.boost - dt / 1.3);
   if (document.activeElement !== exIn) st.split += (st.splitTo - st.split) * k;
   syncSlider();
 
@@ -1177,6 +1220,20 @@ function frame(now) {
     }
     eul.set(lerp(pc.r0.x, pc.r1.x, a), lerp(pc.r0.y, pc.r1.y, a), lerp(pc.r0.z, pc.r1.z, a));
     pc.obj.rotation.copy(eul);
+  }
+  /* 二段推進器 */
+  {
+    const z = cars.zenith;
+    for (const b of z.boost) {
+      const e = ease(clamp((st.boost - b.a0) / (b.a1 - b.a0), 0, 1));
+      if (b.d) b.o.position.copy(b.p0).addScaledVector(b.d, e);
+      else b.o.quaternion.copy(b.q0).multiply(boostQ.setFromAxisAngle(b.axis, b.ang * e));
+    }
+    const lit = st.boost >= 1 && !st.inkOn && (!st.solo || st.solo === 'run');
+    z.flames.forEach((f, i) => {
+      f.visible = lit;
+      if (lit && !reduce) f.scale.set(1 + .1 * Math.sin(now * .031 + i) + .06 * Math.sin(now * .057 + i * 2.1), 1, 1);
+    });
   }
   /* AI 單元：鏡頭呼吸、燈翼依序亮 */
   if (c.ai && !st.inkOn) {
