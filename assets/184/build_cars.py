@@ -226,7 +226,7 @@ TBI = '/System/Library/Fonts/Supplemental/Times New Roman Bold Italic.ttf'
 def wheel2(name, r, w, loc, side, root, rim='gold'):
   obs = []
   # tyre: lathed ring (open centre) so the rim shows through
-  ri, b = r * .68, min(.06, w * .2)
+  ri, b = r * .74, min(.05, w * .18)   # thin sidewall: the rim fills most of the wheel (12" front / 17" rear on the build)
   prof = [(ri, -w / 2 + .01), (r - b, -w / 2), (r - b * .3, -w / 2 + b * .3), (r, -w / 2 + b), (r, w / 2 - b), (r - b * .3, w / 2 - b * .3), (r - b, w / 2), (ri, w / 2 - .01)]
   N = 48; verts = []; faces = []
   for i in range(N):
@@ -241,10 +241,10 @@ def wheel2(name, r, w, loc, side, root, rim='gold'):
   t = bpy.data.objects.new(name + '_t', me); t.data.materials.append(M('black')); link(t)
   for pl in me.polygons: pl.use_smooth = True
   obs.append(t)
-  dish = cyl(name + '_d', r * .67, w * .5, 'black', axis='z', verts=32)
+  dish = cyl(name + '_d', r * .73, w * .5, 'black', axis='z', verts=32)
   obs.append(dish)
   # rim lip: an open ring (a capped cylinder here would hide the spokes)
-  lp = [(r * .6, -w * .05), (r * .675, -w * .05), (r * .675, w * .05), (r * .6, w * .05)]; N2 = 48; lv, lf = [], []
+  lp = [(r * .67, -w * .05), (r * .735, -w * .05), (r * .735, w * .05), (r * .67, w * .05)]; N2 = 48; lv, lf = [], []
   for i in range(N2):
     a0 = i / N2 * math.tau
     for rr, zz in lp: lv.append((rr * math.cos(a0), rr * math.sin(a0), zz + side * w * .42))
@@ -255,12 +255,14 @@ def wheel2(name, r, w, loc, side, root, rim='gold'):
   lob = bpy.data.objects.new(name + '_lip', mel); lob.data.materials.append(M(rim)); link(lob)
   for pl in mel.polygons: pl.use_smooth = True
   obs.append(lob)
-  obs.append(cyl(name + '_bar', r * .64, w * .62, 'black', loc=(0, 0, side * w * .08), axis='z', verts=32))
-  for k in range(8):
-    a = k / 8 * math.tau
-    sp = slab(name + f'_sp{k}', [(r * .13, -r * .045), (r * .645, -r * .03), (r * .645, r * .03), (r * .13, r * .045)], w * .07, rim, z=side * w * .43, bevel=.003)
-    sp.rotation_euler = (0, -a, 0); obs.append(sp)
-  obs.append(cyl(name + '_hub', r * .15, w * .96, rim, axis='z', verts=16))
+  obs.append(cyl(name + '_bar', r * .7, w * .62, 'black', loc=(0, 0, side * w * .08), axis='z', verts=32))
+  for k in range(8):  # 8 twin spokes: each a pair splitting from the hub toward the rim
+    for d in (-.045, .045):
+      a = k / 8 * math.tau + d
+      sp = slab(name + f'_sp{k}', [(r * .15, -r * .036), (r * .71, -r * .03), (r * .71, r * .03), (r * .15, r * .036)], w * .07, rim, z=side * w * .43, bevel=.002)
+      sp.rotation_euler = (0, -a, 0); obs.append(sp)
+  obs.append(cyl(name + '_hub', r * .17, w * .96, rim, axis='z', verts=16))
+  obs.append(cyl(name + '_nut', r * .07, w * .08, 'yellow', loc=(0, 0, side * w * .5), axis='z', verts=6))
   ob = join(name, obs)
   ob.location = P(*loc); ob.parent = root
   return ob
@@ -483,19 +485,22 @@ def build(root, Z):
     tb = [(-2.08, .2, .27, 1.495, 1.604), (-2.2, .25, .33, 1.495, 1.598), (-2.32, .295, .37, 1.495, 1.592), (-2.445, .325, .39, 1.495, 1.576)]
     loft(f'rbody__skirt_{sd}', mirror([fring(*r) for r in tb], s), A, lv=2, parent=R, creases={0: .95, 1: .95, 2: .95, 3: .95, 4: .95, 5: .95, 6: .95, 7: .95})
     # ---------------- side pod ----------------
-    pod = [(.47, .4, .04, .05), (.42, .4, .15, .17), (.27, .4, .18, .2), (-.4, .4, .18, .2), (-.85, .38, .16, .18), (-1.0, .36, .05, .06)]
-    loft(f'pods_{sd}', [se_ring(x, y - .02, hw * .95, hh * .92, n=2.2, N=16, cz=s * .74) for x, y, hw, hh in pod], 'white' if Z else 'white', parent=R)
-    loft(f'pods__low_{sd}', [se_ring(x, y - .02 - hh * .5, hw * .98, hh * .44, n=2.2, N=14, cz=s * .74) for x, y, hw, hh in pod[1:5]], A, parent=R)
+    pod = [(.425, .4, .1, .11), (.41, .4, .15, .17), (.27, .4, .18, .2), (.19, .4, .18, .2), (.15, .4, .18, .2), (-.4, .4, .18, .2), (-.85, .38, .16, .18), (-1.0, .36, .05, .06)]
+    pb = loft(f'pods_{sd}', [se_ring(x, y - .02, hw * .95, hh * .92, n=2.2, N=16, cz=s * .74) for x, y, hw, hh in pod], 'white', parent=R)
+    pb.data.materials.append(M(L))   # front third light blue (the fan intake cowl)
+    for pl in pb.data.polygons:
+      if pl.center.x > .17: pl.material_index = 1
+    loft(f'pods__low_{sd}', [se_ring(x, y - .02 - hh * .5, hw * .98, hh * .44, n=2.2, N=14, cz=s * .74) for x, y, hw, hh in pod[4:7]], A, parent=R)
     ring = bpy.data.objects.new(f'pods__ring_{sd}', bpy.data.meshes.new('r'))
-    bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=False, segments=48, radius1=.18, radius2=.145, depth=.09); bm.to_mesh(ring.data); bm.free()
+    bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=False, segments=48, radius1=.182, radius2=.165, depth=.07); bm.to_mesh(ring.data); bm.free()
     for pl in ring.data.polygons: pl.use_smooth = True
     link(ring, R); ring.data.materials.append(M(L)); ring.rotation_euler = (0, math.radians(90), 0); ring.location = P(.45, .38, s * .74)
     sol = ring.modifiers.new('so', 'SOLIDIFY'); sol.thickness = .03
     subsurf(ring, 1)
-    cyl(f'pods__mouth_{sd}', .145, .02, 'black', loc=(.43, .38, s * .74), axis='x', verts=24).parent = R
+    cyl(f'pods__mouth_{sd}', .165, .02, 'black', loc=(.425, .38, s * .74), axis='x', verts=24).parent = R
     for k in range(3):
       x0 = -.52 - k * .13
-      slab(f'pods__gill_{sd}{k}', [(x0, .3), (x0 - .045, .3), (x0 - .01, .5), (x0 + .035, .5)], .04, 'black', z=s * .9, parent=R)
+      slab(f'pods__gill_{sd}{k}', [(x0, .34), (x0 - .026, .34), (x0 - .006, .48), (x0 + .02, .48)], .02, 'black', z=s * .905, parent=R)
     slab(f'nose__intake_{sd}', [(.72, .43), (.42, .45), (.42, .52), (.62, .5)], .03, 'black', z=s * .325, parent=R)
     slab(f'nose__intakelip_{sd}', [(.74, .42), (.4, .44), (.4, .455), (.74, .435)], .034, 'lblue', z=s * .325, parent=R)
     flat(f'rbody__vent_{sd}', [(-1.96, s * .3), (-2.03, s * .3), (-2.08, s * 1.02), (-2.01, s * 1.02)], .012, 'black', y=.876, parent=R)
@@ -505,13 +510,13 @@ def build(root, Z):
     rods = []
     zc = s * (FZ - .17)
     def truss(apex, b1, b2, w, h):
-      """A-arm with X bracing between the legs (lattice arm from the post)"""
-      A, B1, B2 = Vector(apex), Vector(b1), Vector(b2); m1, m2 = (A + B1) / 2, (A + B2) / 2
-      return [arm_tube('tr', A, B1, (0, 0, 0), w, h, 'carbon', n=4, seg=6), arm_tube('tr', A, B2, (0, 0, 0), w, h, 'carbon', n=4, seg=6),
-              arm_tube('tr', m1, B2, (0, 0, 0), w * .7, h * .8, 'carbon', n=4, seg=6), arm_tube('tr', m2, B1, (0, 0, 0), w * .7, h * .8, 'carbon', n=4, seg=6)]
+      """wide, flat A-arm (two legs from the upright to the chassis) with one diagonal web between them"""
+      A, B1, B2 = Vector(apex), Vector(b1), Vector(b2); m1 = A + (B1 - A) * .45
+      return [arm_tube('tr', A, B1, (0, 0, 0), w, h, 'black', n=4, seg=6), arm_tube('tr', A, B2, (0, 0, 0), w, h, 'black', n=4, seg=6),
+              arm_tube('tr', m1, B2 + (B1 - B2) * .15, (0, 0, 0), w * .75, h * .85, 'black', n=4, seg=6)]
     for x in FXS:
-      rods += truss((x, FR + .06, zc), (x + .2, .42, s * .3), (x - .2, .42, s * .3), .024, .012)
-      rods += truss((x, FR - .06, zc), (x + .18, .24, s * .3), (x - .18, .24, s * .3), .022, .011)
+      rods += truss((x, FR + .06, zc), (x + .2, .42, s * .3), (x - .2, .42, s * .3), .042, .016)
+      rods += truss((x, FR - .06, zc), (x + .18, .24, s * .3), (x - .18, .24, s * .3), .04, .015)
       rods.append(arm_tube('push', (x - .03, FR - .05, zc), (x - .13, .44, s * .32), (0, 0, 0), .011, .011, 'silver'))
       # brake fairing: black dome over the caliper and disc, with a small cooling inlet
       rods.append(cyl('brk', .15, .09, 'black', loc=(x, FR, s * (FZ - .14)), axis='z', verts=28, r2=.1))
@@ -519,8 +524,8 @@ def build(root, Z):
     join(f'fwheels__susp_{sd}', rods, parent=R)
     rods = []
     zu = s * (RZ - .3)
-    rods += truss((RX, RR + .09, zu), (RX + .26, .52, s * .32), (RX - .22, .52, s * .32), .03, .015)
-    rods += truss((RX, RR - .09, zu), (RX + .22, .26, s * .32), (RX - .2, .26, s * .32), .028, .014)
+    rods += truss((RX, RR + .09, zu), (RX + .26, .52, s * .32), (RX - .22, .52, s * .32), .05, .018)
+    rods += truss((RX, RR - .09, zu), (RX + .22, .26, s * .32), (RX - .2, .26, s * .32), .048, .017)
     rods.append(arm_tube('drive', (RX, RR, zu), (RX, RR + .02, s * .3), (0, 0, 0), .03, .03, 'grey'))
     rods.append(arm_tube('push', (RX + .04, RR - .08, zu), (RX - .1, .6, s * .34), (0, 0, 0), .012, .012, 'silver'))
     rods.append(cyl('rup', .09, .12, 'grey', loc=(RX, RR, s * (RZ - .31)), axis='z', verts=20))

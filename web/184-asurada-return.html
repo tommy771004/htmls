@@ -404,11 +404,11 @@ function tyreText(names, ink) {
   const c = document.createElement('canvas'); c.width = c.height = 512;
   const x = c.getContext('2d'); x.translate(256, 256);
   x.fillStyle = ink ? '#141414' : '#f4f4f0';
-  x.font = '800 40px "Helvetica Neue",Arial,system-ui,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.font = '800 30px "Helvetica Neue",Arial,system-ui,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
   names.forEach((word, k) => {
-    const chars = [...word], step = .2, start = (k ? Math.PI / 2 : -Math.PI / 2) - step * (chars.length - 1) / 2;
+    const chars = [...word], step = .16, start = (k ? Math.PI / 2 : -Math.PI / 2) - step * (chars.length - 1) / 2;
     chars.forEach((ch, i) => {
-      x.save(); const a = start + i * step; x.rotate(a); x.translate(0, -212); x.fillText(ch, 0, 0); x.restore();
+      x.save(); const a = start + i * step; x.rotate(a); x.translate(0, -224); x.fillText(ch, 0, 0); x.restore();
     });
   });
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
@@ -424,9 +424,9 @@ const CARS = {
     parts: {
       nose:     { cat: 'body', n: '機首與單體殼', jp: 'ノーズ／モノコック', d: '白色機首一路延伸到車尾。前段斷面是倒過來的盾形：頂面一道稜線，兩側斜面往下收到一道折線（稜角），折線以下是藍色龍骨；機首兩頰各一片黃色三角，尖端朝前。', l: ['機首尖端往下壓進前翼正中央，正面看前翼下緣的 V 字就是這道龍骨', '前輪懸吊與座艙都裝在這個殼體上'] },
       canopy:   { cat: 'cockpit', n: '座艙罩', jp: 'キャノピー', d: '深色的長座艙罩，前端尖尖地伸到黃色三角之間，底部一圈白色座艙框，後緣接一圈藍色環再連到引擎罩。', l: ['顏色壓深，只隱約看得到裡面的車手', '座艙視角時會暫時隱藏'] },
-      pods:     { cat: 'body', n: '側箱', jp: 'サイドポッド', d: '雙前輪後方的白色膠囊，下半部藍色，比原廠模型更靠外、更粗。前端淺藍色圓形進氣口給風扇用，後端三道鯊魚腮把水箱廢熱排出。側箱是獨立的圓筒，上方的後車體寬臂和外側的擋泥板都跟它留有空隙。', l: ['從正面看，進氣口就在前輪內側', '前代模型的 Lifting Turn 模式會換上露出升力風扇的側箱'] },
+      pods:     { cat: 'body', n: '側箱', jp: 'サイドポッド', d: '雙前輪後方的白色膠囊，下半部藍色，比原廠模型更靠外、更粗。前段約三分之一是淺藍色的風扇罩，正面一個幾乎和側箱一樣大的深色進氣口，給風扇用；後端三道鯊魚腮把水箱廢熱排出。側箱是獨立的圓筒，上方的後車體寬臂和外側的擋泥板都跟它留有空隙。', l: ['從正面看，進氣口就在前輪內側', '前代模型的 Lifting Turn 模式會換上露出升力風扇的側箱'] },
       fwing:    { cat: 'aero', n: '前翼／前段車殼', jp: 'フロントウイング', d: '賽道模式是跨全寬的雙層前翼，上白下藍，兩層之間的黑縫是穿透的，底下另有一片擾流板。正面看，白色上層在半翼中段往上折一階；藍色下層的下緣是 W 形：機首正下方和兩端端板都落到地面，中間抬高。端板是斷面呈三角形的藍色刀片，前端貼地往前收尖，後端最高，頂部蓋一片白色，兩面都有黑色三角開孔，外側另有一片小鰭。空力模式換成一整片白色折面車殼蓋住前輪上方，前緣呈 W 形，外側頂面是細長的黃色燈罩。', l: ['空力模式的刀片更長更高，下緣一圈藍色', '車殼上疊著幾層板件：凹在白色框板裡的碳纖維散熱口、藍色框上的黃色燈罩、沿 W 形前緣的藍色邊條', '靠機首的內側頂面另疊一塊白色飾板，外緣鑲淺藍線；車殼尾端收在一道碳纖維條'] },
-      fwheels:  { cat: 'run', n: '雙前輪與懸吊', jp: 'ダブルフロントホイール', d: '每側兩只前輪前後排列，全車共六輪。推桿式懸吊：每只輪上下各一支碳纖維三角桁架搖臂，中間有交叉斜撐；輪內側是黑色的煞車整流罩，下方一個小進氣口替碟盤散熱。', l: ['前輪距加寬到接近後輪，修正原廠模型「前窄後寬」的比例', '金色 8 輻輪框，前輪比原廠模型大一號', '推桿從下搖臂斜斜拉到車身上方的避震器'] },
+      fwheels:  { cat: 'run', n: '雙前輪與懸吊', jp: 'ダブルフロントホイール', d: '每側兩只前輪前後排列，全車共六輪。推桿式懸吊：每只輪上下各一支又寬又扁的黑色三角搖臂，兩支臂之間一道斜撐（作者嫌動畫和市售模型只有細細的三支支架）；輪內側是黑色的煞車整流罩，下方一個小進氣口替碟盤散熱。', l: ['前輪距加寬到接近後輪，修正原廠模型「前窄後寬」的比例', '金色輪框比原廠模型大一號，8 組雙輻從輪轂分叉到輪緣，中央一顆黃色中央鎖緊螺帽；胎側因此變薄', '推桿從下搖臂斜斜拉到車身上方的避震器'] },
       rwheels:  { cat: 'run', n: '後輪', jp: 'リアタイヤ', d: '一對又寬又大的後輪，位置正好在推進艙下方。後懸吊同樣是推桿式三角桁架搖臂，傳動軸收在搖臂之間。', l: ['胎寬接近輪胎直徑', '車底是平整的地面效應底板，車尾接擴散器與五片導流片'] },
       rbody:    { cat: 'body', n: '後車體（橋形車殼）', jp: 'リアカウル', d: '一整片白色車殼：從座艙後方的引擎罩向左右伸出兩道寬臂，末端變成擋在後輪前方的立柱，底下是空的。寬臂像屋簷一樣懸在側箱上方，兩者不相連，中間的縫看得到深色的底盤側面。', l: ['引擎罩是有稜線的五角斷面，後方一道白色中脊連到弧形翼', '寬臂後段疊著一片藍色帶，前緣呈 V 形並鑲一道淺藍邊，帶上三道黑色排熱口', '側箱後端有三道鯊魚腮排氣口，座艙兩側各一個小進氣口', '擋泥板前緣是一根貼地往前伸的藍色尖角，前緣沿內凹弧線往上接到寬臂；輪拱貼著輪胎，內側有黑色內襯；後輪後方只剩外側一片薄鰭，後緣接近垂直，從正後方看後輪整個露出；車尾中央是槍灰色的梯形防撞結構，兩個小橢圓散熱孔；擴散器的四片導流片收在斜板底下'] },
       nacelles: { cat: 'run', n: '推進艙', jp: 'ブースター', d: '寬臂末端上方的兩具推進艙：前段是從車殼長出來的細長藍色整流罩，往後直接轉成紅色的艙身（同一個連續外殼，中間沒有接縫），尾端收圓，中間伸出深灰色噴嘴，外側三道白色箭頭。', l: ['推進艙直徑和後輪差不多', '空力模式時尾端上揚'] },
@@ -536,7 +536,7 @@ function setupCar(key, root) {
   if (!TYRE_TEX.base) TYRE_TEX.base = tyreText(['MAXIMA', 'AINOS'], false);
   for (const id of ['fwheels', 'rwheels']) for (const pc of parts[id].pieces) {
     if (!pc.spin) continue;
-    const s = /_L/.test(pc.obj.name) ? 1 : -1, r = id === 'fwheels' ? .25 : .33, w = id === 'fwheels' ? .26 : .56, ri = r * .68;
+    const s = /_L/.test(pc.obj.name) ? 1 : -1, r = id === 'fwheels' ? .25 : .33, w = id === 'fwheels' ? .26 : .56, ri = r * .74;
     const ring = new THREE.Mesh(new THREE.RingGeometry(ri * 1.03, r * .96, 48, 1),
       new THREE.MeshBasicMaterial({ map: TYRE_TEX.base, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
     ring.position.z = s * (w / 2 + .003); if (s < 0) ring.rotation.y = Math.PI;
