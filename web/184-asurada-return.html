@@ -547,7 +547,7 @@ function setupCar(key, root) {
     /* 空力模式：名稱含 __aero 的零件只在空力模式出現；前翼、扇翼等賽道零件收起；推進艙尾端上揚 */
     if (Z) {
       if (/__aero/.test(obj.name)) { o.mode = 1; o.mOff = /^fwing/.test(obj.name) ? V(.25, .55, 0) : V(0, .5, 0); }
-      else if (/^fanwings_(L|R)$|^fanwings__pyl|^fwing__(plane|edge|blade|bladetop)|^marks__(pulse|fw1)|^nose__lamp/.test(obj.name)) { o.mode = -1; o.mOff = /^fanwings/.test(obj.name) ? V(-.1, -.3, 0) : V(.2, -.25, 0); }
+      else if (/^fanwings_(L|R)$|^fanwings__pyl|^fwing__(plane|edge|blade|bladetop)|^marks__(pulse|fw1)|^nose__lamp|^pods__gill/.test(obj.name)) { o.mode = -1; o.mOff = /^fanwings/.test(obj.name) ? V(-.1, -.3, 0) : /^pods/.test(obj.name) ? V(0, -.06, 0) : V(.2, -.25, 0); }
       if (/^nacelles_(L|R)$/.test(obj.name)) o.r1 = [0, 0, -.16];
       if (/^nacelles(_|__base_)(L|R)$/.test(obj.name)) o.p1 = V(-.4, 0, 0);   /* 推進艙連同底座往後滑（模型實物俯視照） */
       /* 側箱（風扇艙）往外滑到推進艙正下方、略往後，前端接上車殼外側的長柱；水箱進氣口留在單體殼旁 */

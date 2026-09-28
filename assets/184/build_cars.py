@@ -658,7 +658,7 @@ def build(root, Z):
     hug_plate('marks__aero_emblem_L', cowl_y, em, None, .003, .004, 'yellow', 1, parent=R)
     hug_plate('marks__aero_emblem_R', cowl_y, em, None, .003, .004, 'red', -1, parent=R)
     # outer column: circle where it leaves the side pod's fan ring, flattening over the front wheels, spike at the front
-    CLM = [(.2, .38, .165, .17, 1.08), (.32, .4, .163, .15, 1.08), (.45, .45, .16, .12, 1.08), (.58, .56, .158, .08, 1.075),
+    CLM = [(.2, .38, .176, .18, 1.08), (.32, .4, .17, .155, 1.08), (.45, .45, .162, .12, 1.08), (.58, .56, .158, .08, 1.075),
            (.75, .585, .155, .075, 1.07), (1.22, .59, .155, .075, 1.07), (1.5, .58, .15, .08, 1.065), (1.75, .53, .145, .09, 1.06),
            (2.0, .45, .135, .1, 1.06), (2.25, .35, .115, .1, 1.065), (2.5, .22, .085, .085, 1.075), (2.7, .11, .05, .055, 1.085),
            (2.84, .04, .02, .025, 1.09), (2.88, .02, .005, .01, 1.09)]
@@ -669,7 +669,7 @@ def build(root, Z):
     def col_top(x, z):
       _, cy, hw, hh, cz = col_at(x); u = min(abs(abs(z) - cz) / hw, .999)
       return cy + hh * (1 - u ** 2.5) ** (1 / 2.5)
-    def arc(x, t0, t1, d, m=19):
+    def arc(x, t0, t1, d, m=31):
       _, cy, hw, hh, cz = col_at(x); out = []
       for i in range(m):
         t = (t0 + (t1 - t0) * i / (m - 1)) * math.pi; c, sn = math.cos(t), math.sin(t)
@@ -681,11 +681,12 @@ def build(root, Z):
       for a, b in zip(WT, WT[1:]):
         if a[0] <= x <= b[0]: t = (x - a[0]) / (b[0] - a[0]); return a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t
       return WT[-1][1:]
-    wxs = [.2, .3, .45, .6, .8, 1.0, 1.22, 1.45, 1.55, 1.62, 1.75, 1.9, 2.0, 2.1, 2.2, 2.3, 2.38, 2.43]
+    # same stations as the column body (plus the lamp / taper breaks), so the strip never cuts a chord through a crease
+    wxs = sorted(set([r[0] for r in CLM if r[0] <= 2.43] + [.9, 1.05, 1.35, 1.45, 1.55, 1.62, 1.68, 1.82, 1.9, 2.1, 2.2, 2.3, 2.38, 2.43]))
     for s, sd in ((1, 'L'), (-1, 'R')):
       loft(f'fwing__aero_col_{sd}', mirror([se_ring(x, cy, hw, hh, 2.5, cz, 24) for x, cy, hw, hh, cz in CLM], s), 'blue', lv=0, parent=R)
       # (an open strip, flipped to face away from the column axis: a thin closed shell came out inside-out)
-      rows = [arc(x, *wt_at(x), .007) for x in wxs]; m = len(rows[0])
+      rows = [arc(x, *wt_at(x), .01) for x in wxs]; m = len(rows[0])
       ct = mesh_from(f'fwing__aero_coltop_{sd}', [(x, y, s * z) for r in rows for x, y, z in r],
                      [(i * m + j, i * m + j + 1, (i + 1) * m + j + 1, (i + 1) * m + j) for i in range(len(rows) - 1) for j in range(m - 1)], 'white', parent=R)
       face_out(ct, lambda c: Vector((0, c.y - col_at(c.x)[1], c.z - s * col_at(c.x)[4])))
@@ -696,7 +697,20 @@ def build(root, Z):
       # amber reflector inside the lens
       loft(f'fwing__aero_lensin_{sd}', mirror([se_ring(x, col_top(x, lz) + .012, w * .5, .012 + w * .08, 2, lz, 12) for x, w in LW[1:-1]], s), 'orange', lv=1, parent=R)
       # carbon vent just behind the band, running diagonally inboard
-      hug_plate(f'fwing__aero_vent_{sd}', cowl_y, [(2.04, .81), (2.17, .826), (2.3, .466), (2.2, .452)], None, .002, .003, 'carbon', s, parent=R)
+      # (a fine grid draped on the cowl: a coarse fan plate showed big shading triangles on the slope)
+      q = [(2.04, .81), (2.17, .826), (2.3, .466), (2.2, .452)]; NU, NV = 6, 14; V = []
+      for i in range(NV + 1):
+        a = [q[0][k] + (q[3][k] - q[0][k]) * i / NV for k in (0, 1)]; b = [q[1][k] + (q[2][k] - q[1][k]) * i / NV for k in (0, 1)]
+        for j in range(NU + 1):
+          x, z = a[0] + (b[0] - a[0]) * j / NU, a[1] + (b[1] - a[1]) * j / NU
+          V.append((x, cowl_y(x, z) + .004, s * z))
+      vt = mesh_from(f'fwing__aero_vent_{sd}', V, [(i * (NU + 1) + j, i * (NU + 1) + j + 1, (i + 1) * (NU + 1) + j + 1, (i + 1) * (NU + 1) + j) for i in range(NV) for j in range(NU)], 'carbon', parent=R)
+      face_out(vt, lambda c: Vector((0, 1, 0)))
+      # blue sleeve where the outboard-slid side pod runs into the rear fender pillar (the pod tucks inside it)
+      PZc = 1.08
+      sv = [se_ring(-.42, .38, .176, .189, 2.2, PZc, 24)] + [se_ring(x, y, w, h, 2.2, PZc, 24) for x, y, w, h in
+            [(-.42, .38, .214, .222), (-.5, .38, .208, .214), (-.75, .375, .204, .21), (-1.0, .365, .19, .198), (-1.15, .35, .15, .16), (-1.24, .34, .07, .08)]]
+      loft(f'rbody__aero_sleeve_{sd}', mirror(sv, s), 'blue', lv=1, parent=R)
       # blue lining along the rim of the V notch
       for q in ([(1.8, .17), (2.0, .085), (1.99, .115), (1.8, .205)], [(2.0, .085), (2.26, .003), (2.2, .05), (1.99, .115)]):
         hug_plate(f'fwing__aero_notch_{sd}', cowl_y, q, None, .002, .004, 'blue', s, parent=R)
