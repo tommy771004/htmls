@@ -624,8 +624,9 @@ def build(root, Z):
         # flat faceted section: steep outer wall, broad top plane with a crease, inner wall down to the nose
         zr = zi + (zo - zi) * .38
         return [(x, yb, zi), (x, yb, zo), (x, yt - .07, zo), (x, yt - .015, zo - .1), (x, yt, zr), (x, yt - .03, zi)]
-      st = [(x, AZ(zi), AZ(zo), yb, yt) for x, zi, zo, yb, yt in [(2.44, .86, .98, .04, .08), (2.3, .64, 1.06, .04, .19), (2.12, .42, 1.11, .04, .3), (1.96, .22, 1.13, .05, .37), (1.8, .24, 1.15, .05, .43),
-            (1.45, .27, 1.16, .07, .5), (1.1, .28, 1.16, .1, .53), (.86, .3, 1.12, .14, .52), (.72, .4, 1.0, .24, .47)]]
+      st = [(x, AZ(zi), AZ(zo), yb, yt) for x, zi, zo, yb, yt in [(2.44, .86, .98, .04, .08), (2.3, .64, 1.06, .04, .19), (2.12, .42, 1.11, .04, .3), (1.96, .22, 1.13, .05, .37), (1.8, .24, 1.15, .2, .45),
+            (1.45, .27, 1.16, .4, .56), (1.1, .28, 1.16, .42, .58), (.86, .3, 1.12, .4, .56), (.72, .4, 1.0, .36, .5)]]
+      # (setting drawing: the cowl rides over the front wheels, which stay exposed below its edge)
       cv = loft(f'fwing__aero_cover_{sd}', mirror([cring(*r) for r in st], s), 'white', lv=0, parent=R)
       for pl in cv.data.polygons: pl.use_smooth = False
       bv = cv.modifiers.new('bv', 'BEVEL'); bv.width = .012; bv.segments = 2; bv.limit_method = 'ANGLE'
@@ -633,7 +634,7 @@ def build(root, Z):
       bb = [[(x, yb - .005, zi + .01), (x, yb - .005, zo + .015), (x, yb + .09, zo + .03), (x, yb + .09, zi + .01)] for x, zi, zo, yb, yt in st[1:]]
       loft(f'fwing__aero_skirt_{sd}', mirror(bb, s), 'blue', lv=1, parent=R)
       # outer forward blade (longer and taller than the circuit one)
-      bl = [(2.66, .006, .03, .06), (2.4, .07, .02, .16), (2.0, .1, .02, .3), (1.6, .12, .03, .42), (1.12, .1, .06, .48), (.9, .05, .1, .44)]
+      bl = [(2.66, .006, .03, .06), (2.4, .07, .02, .12), (2.0, .1, .02, .16), (1.6, .12, .03, .19), (1.12, .1, .06, .18), (.9, .05, .1, .12)]   # low strake
       rows = [[(x, b, 1.43 - w), (x, b, 1.43 + w), (x, t, 1.43 + w * .6), (x, t + .02, 1.43), (x, t, 1.43 - w * .6)] for x, w, b, t in bl]
       loft(f'fwing__aero_blade_{sd}', mirror(rows, s), 'blue', lv=1, parent=R, creases={0: 1, 1: 1, 2: .7, 4: .7})
       rows = [[(x, t - .002, 1.43 - w * .62), (x, t - .002, 1.43 + w * .62), (x, t + .03, 1.43 + w * .4), (x, t + .036, 1.43), (x, t + .03, 1.43 - w * .4)] for x, w, b, t in bl[1:]]
@@ -660,7 +661,7 @@ def build(root, Z):
       hug_plate(f'fwing__aero_rearstrip_{sd}', top, WZ([(.86, .32), (.86, 1.1), (.76, 1.0), (.76, .42)]), None, .006, .01, 'carbon', s, parent=R)
       if s < 0: ONE_Y = top(1.42, AZ(.74)) + .004
       # outer vertical fins at the tail corners
-      slab(f'rbody__aero_fin_{sd}', [(-1.95, .78), (-2.46, .78), (-2.62, 1.3), (-2.5, 1.32), (-2.2, 1.0)], .03, 'blue', z=s * 1.56, bevel=.01, parent=R)
+      slab(f'rbody__aero_fin_{sd}', [(-1.7, .8), (-2.46, .8), (-2.92, 1.72), (-2.78, 1.76), (-2.2, 1.1)], .035, 'blue', z=s * 1.56, bevel=.01, parent=R)   # tall swept tail fins
     text_up('marks__aero_one', '1', TB, .46, 'red', (1.42, ONE_Y, -AZ(.74)), yaw=math.radians(90), parent=R)
     # light-blue arched wing between the nacelles, with two small white fins
     rows = []
